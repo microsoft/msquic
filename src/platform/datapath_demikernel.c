@@ -459,6 +459,11 @@ CxPlatSocketCreateUdp(
     Socket->Datapath = Datapath;
     if (Config->LocalAddress) {
         memcpy(&Socket->LocalAddress, Config->LocalAddress, sizeof(Socket->LocalAddress));
+    } else{
+            Socket->LocalAddress.Ipv4.sin_family = QUIC_ADDRESS_FAMILY_INET;
+            Socket->LocalAddress.Ipv4.sin_addr.s_addr = INADDR_ANY;
+            Socket->LocalAddress.Ipv4.sin_port = 0;
+
     }
     if (Config->RemoteAddress) {
         memcpy(&Socket->RemoteAddress, Config->RemoteAddress, sizeof(Socket->RemoteAddress));
@@ -472,11 +477,9 @@ CxPlatSocketCreateUdp(
         goto Exit0;
     }
 
-    if (Config->LocalAddress) {
-    if (demi_bind(Socket->sockqd, (const struct sockaddr*)&Socket->LocalAddress, sizeof(QUIC_ADDR)) != 0) {
+    if (demi_bind(Socket->sockqd, (const struct sockaddr*)&Socket->LocalAddress, sizeof(struct sockaddr_in)) != 0) {
         Status = QUIC_STATUS_INTERNAL_ERROR;
         goto Exit1;
-    }
     }
 
 // TODO: Enable the following block when Demikernel features connected UDP sockets.
