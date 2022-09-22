@@ -1179,10 +1179,10 @@ TRACEPOINT_EVENT(CLOG_CRYPTO_TLS_C, DecodeTPDisable1RttEncryption,
 // Decoder Ring for DecodeTPVersionNegotiationInfo
 // [conn][%p] TP: Version Negotiation Info (%hu bytes)
 // QuicTraceLogConnVerbose(
-                    DecodeTPVersionNegotiationInfo,
-                    Connection,
-                    "TP: Version Negotiation Info (%hu bytes)",
-                    Length);
+                DecodeTPVersionNegotiationInfo,
+                Connection,
+                "TP: Version Negotiation Info (%hu bytes)",
+                Length);
 // arg1 = arg1 = Connection = arg1
 // arg3 = arg3 = Length = arg3
 ----------------------------------------------------------*/
