@@ -70,7 +70,7 @@ CxPlatDataPathRecvDataToRecvPacket(
     _In_ const CXPLAT_RECV_DATA* const Datagram
     )
 {
-    return (CXPLAT_RECV_PACKET*)(void*)(Datagram + 1);
+    return (CXPLAT_RECV_PACKET*)(void*)(((DEMI_RECEIVE_DATA*)Datagram + 1));
 }
 
 // Initializes Demikernel datapath.
