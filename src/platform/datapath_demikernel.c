@@ -759,11 +759,13 @@ CxPlatDataPathProcessCqe(
 }
 
 void microsleep(long sec) {
+#if 0
     struct timespec ts;
     ts.tv_sec = sec / 1000000;
     ts.tv_nsec = (sec % 1000000) * 1000;
     fprintf(stderr, "sleep for %ld ns\n", ts.tv_nsec);
     nanosleep(&ts,NULL);
+#endif
 }
 
 CXPLAT_THREAD_CALLBACK(DemiWorkLoop, Context) {
