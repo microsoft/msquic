@@ -758,18 +758,7 @@ CxPlatDataPathProcessCqe(
     UNREFERENCED_PARAMETER(Cqe);
 }
 
-void microsleep(long sec) {
-#if 0
-    struct timespec ts;
-    ts.tv_sec = sec / 1000000;
-    ts.tv_nsec = (sec % 1000000) * 1000;
-    fprintf(stderr, "sleep for %ld ns\n", ts.tv_nsec);
-    nanosleep(&ts,NULL);
-#endif
-}
-
 CXPLAT_THREAD_CALLBACK(DemiWorkLoop, Context) {
-    long delay = 1;
     CXPLAT_DATAPATH* Datapath = Context;
     while (Datapath->IsRunning) {
         CXPLAT_SOCKET* Socket = Datapath->Socket;
@@ -795,11 +784,9 @@ CXPLAT_THREAD_CALLBACK(DemiWorkLoop, Context) {
                     break;
                 }
                 Socket->popqt_set = FALSE;
-                delay = 1;
             }
             else {
-                microsleep(delay);
-                delay *=2;
+                CxPlatSchedulerYield();
             }
             CxPlatRundownRelease(&Socket->Rundown);
         }
