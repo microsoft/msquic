@@ -186,6 +186,14 @@ typedef union QUIC_CONNECTION_STATE {
         //
         BOOLEAN IsVerifying : 1;
 #endif
+
+#ifdef DEBUG
+        //
+        // Whether to disable automatic generation of VNE transport parameter.
+        // Only used for testing, and thus only enabled for debug builds.
+        //
+        BOOLEAN DisableVneTp : 1;
+#endif
     };
 } QUIC_CONNECTION_STATE;
 
@@ -629,14 +637,6 @@ typedef struct QUIC_CONNECTION {
         QUIC_FLOW_BLOCKED_TIMING_TRACKER CongestionControl;
         QUIC_FLOW_BLOCKED_TIMING_TRACKER FlowControl;
     } BlockedTimings;
-
-#ifdef DEBUG
-    //
-    // Whether to disable automatic generation of VNE transport parameter.
-    // Only used for testing, and thus only enabled for debug builds.
-    //
-    BOOLEAN DisableVneTp;
-#endif
 
 } QUIC_CONNECTION;
 

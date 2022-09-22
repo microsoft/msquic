@@ -2346,7 +2346,7 @@ QuicConnGenerateLocalTransportParameters(
 
     if (Connection->Settings.VersionNegotiationExtEnabled
 #ifdef DEBUG
-        && !Connection->DisableVneTp
+        && !Connection->State.DisableVneTp
 #endif
         ) {
         uint32_t VersionInfoLength = 0;
@@ -6584,12 +6584,12 @@ QuicConnParamSet(
 #ifdef DEBUG
     case QUIC_PARAM_CONN_DISABLE_VNE_TP_GENERATION:
 
-        if (BufferLength != sizeof(Connection->DisableVneTp)) {
+        if (BufferLength != sizeof(BOOLEAN)) {
             Status = QUIC_STATUS_INVALID_PARAMETER;
             break;
         }
 
-        Connection->DisableVneTp = *(BOOLEAN*)Buffer;
+        Connection->State.DisableVneTp = *(BOOLEAN*)Buffer != FALSE;
         Status = QUIC_STATUS_SUCCESS;
         break;
 #endif
