@@ -7,6 +7,12 @@ Abstract:
 
     QUIC Demikernel Datapath Implementation (User Mode)
 
+Long term TODOs:
+
+    Multiple independent socket support
+    Multiple parallel threads / execution contexts
+    Fix build system to rebuild demikernel automatically (on changes)
+
 --*/
 
 #include "platform_internal.h"
@@ -381,7 +387,6 @@ CxPlatDataPathResolveAddress(
     ADDRINFO* AddrInfo = NULL;
     int Result = 0;
 
-
     //
     // Prepopulate hint with input family. It might be unspecified.
     //
@@ -443,7 +448,6 @@ CxPlatSocketCreateUdp(
 {
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
 
-
     assert(Datapath->Socket == NULL); // Don't support more than 1 right now
 
     CXPLAT_SOCKET* Socket =
@@ -462,11 +466,11 @@ CxPlatSocketCreateUdp(
     Socket->CallbackContext = Config->CallbackContext;
     if (Config->LocalAddress) {
         memcpy(&Socket->LocalAddress, Config->LocalAddress, sizeof(Socket->LocalAddress));
+        Socket->LocalAddress.Ipv4.sin_family = QUIC_ADDRESS_FAMILY_INET; // Hardcode to v4
     } else{
-            Socket->LocalAddress.Ipv4.sin_family = QUIC_ADDRESS_FAMILY_INET;
-            Socket->LocalAddress.Ipv4.sin_addr.s_addr = INADDR_ANY;
-            Socket->LocalAddress.Ipv4.sin_port = 0;
-
+        Socket->LocalAddress.Ipv4.sin_family = QUIC_ADDRESS_FAMILY_INET;
+        Socket->LocalAddress.Ipv4.sin_addr.s_addr = INADDR_ANY;
+        Socket->LocalAddress.Ipv4.sin_port = 0;
     }
     if (Config->RemoteAddress) {
         memcpy(&Socket->RemoteAddress, Config->RemoteAddress, sizeof(Socket->RemoteAddress));
@@ -620,7 +624,6 @@ CxPlatRecvDataReturn(
     _In_opt_ CXPLAT_RECV_DATA* RecvDataChain
     )
 {
-
     while (RecvDataChain != NULL) {
         DEMI_RECEIVE_DATA* DemiRecvData = (DEMI_RECEIVE_DATA*)RecvDataChain;
         CxPlatLockAcquire(&DemiRecvData->Datapath->Lock);
@@ -731,10 +734,10 @@ CxPlatSocketSend(
     sga.sga_segs[0].sgaseg_len = SendData->Buffer.Length;
 
     CxPlatLockAcquire(&Socket->Datapath->Lock);
-    assert(demi_pushto(&qt, Socket->sockqd, &sga, (const struct sockaddr*)&Route->RemoteAddress, sizeof(struct sockaddr_in)) == 0);
-
-    memset(&qr, 0, sizeof(demi_qresult_t()));
-    assert(demi_wait(&qr, qt) == 0);
+    if (demi_pushto(&qt, Socket->sockqd, &sga, (const struct sockaddr*)&Route->RemoteAddress, sizeof(struct sockaddr_in)) == 0) {
+        memset(&qr, 0, sizeof(demi_qresult_t()));
+        assert(demi_wait(&qr, qt) == 0);
+    }
     CxPlatLockRelease(&Socket->Datapath->Lock);
 
     CxPlatSendDataFree(SendData);
