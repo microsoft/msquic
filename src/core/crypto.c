@@ -1798,7 +1798,7 @@ QuicCryptoProcessData(
 
             Status =
                 QuicConnProcessPeerTransportParameters(Connection, FALSE);
-            if (Status == QUIC_STATUS_VER_NEG_ERROR) {
+            if (QUIC_FAILED(Status)) {
                 //
                 // Communicate error up the stack to perform Incompatible
                 // Version Negotiation.

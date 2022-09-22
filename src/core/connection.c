@@ -2344,7 +2344,11 @@ QuicConnGenerateLocalTransportParameters(
         LocalTP->CibirOffset = Connection->CibirId[1];
     }
 
-    if (Connection->Settings.VersionNegotiationExtEnabled) {
+    if (Connection->Settings.VersionNegotiationExtEnabled
+#ifdef DEBUG
+        && !Connection->DisableVneTp
+#endif
+        ) {
         uint32_t VersionInfoLength = 0;
         LocalTP->VersionInfo =
             QuicVersionNegotiationExtEncodeVersionInfo(Connection, &VersionInfoLength);
@@ -5385,8 +5389,11 @@ QuicConnRecvDatagramBatch(
         CXPLAT_DBG_ASSERT(Packet->PacketId != 0);
         if (QuicConnRecvPrepareDecrypt(
                 Connection, Packet, HpMask + i * CXPLAT_HP_SAMPLE_LENGTH) &&
-            QuicConnRecvDecryptAndAuthenticate(Connection, Path, Packet) &&
-            QuicConnRecvFrames(Connection, Path, Packet, ECN)) {
+            QuicConnRecvDecryptAndAuthenticate(Connection, Path, Packet)) {
+
+            if (!QuicConnRecvFrames(Connection, Path, Packet, ECN)) {
+                continue;
+            }
 
             QuicConnRecvPostProcessing(Connection, &Path, Packet);
             RecvState->ResetIdleTimeout |= Packet->CompletelyValid;
@@ -6578,6 +6585,19 @@ QuicConnParamSet(
         Connection->KeepAlivePadding = *(uint16_t*)Buffer;
         Status = QUIC_STATUS_SUCCESS;
         break;
+
+#ifdef DEBUG
+    case QUIC_PARAM_CONN_DISABLE_VNE_TP_GENERATION:
+
+        if (BufferLength != sizeof(Connection->DisableVneTp)) {
+            Status = QUIC_STATUS_INVALID_PARAMETER;
+            break;
+        }
+
+        Connection->DisableVneTp = *(BOOLEAN*)Buffer;
+        Status = QUIC_STATUS_SUCCESS;
+        break;
+#endif
 
     default:
         Status = QUIC_STATUS_INVALID_PARAMETER;

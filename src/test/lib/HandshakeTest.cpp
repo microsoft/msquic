@@ -3238,3 +3238,140 @@ QuicTestChangeAlpn(
         }
     }
 }
+
+_Function_class_(NEW_CONNECTION_CALLBACK)
+static
+bool
+ListenerAcceptConnectionTestTP(
+    _In_ TestListener* Listener,
+    _In_ HQUIC ConnectionHandle
+    )
+{
+    ServerAcceptContext* AcceptContext = (ServerAcceptContext*)Listener->Context;
+    const BOOLEAN Disable = TRUE;
+    QUIC_STATUS Status;
+    if (QUIC_FAILED(
+        Status = MsQuic->SetParam(
+            ConnectionHandle,
+            QUIC_PARAM_CONN_DISABLE_VNE_TP_GENERATION,
+            sizeof(Disable),
+            &Disable))) {
+        TEST_FAILURE("Failed to disable VNE TP generation, 0x%x", Status);
+        return false;
+    }
+    CXPLAT_ASSERT_LOG(
+        AcceptContext->TestTP != nullptr,
+        "Did you forget to set the test TP on the acceptcontext?");
+    if (QUIC_FAILED(
+        Status = MsQuic->SetParam(
+            ConnectionHandle,
+            QUIC_PARAM_CONN_TEST_TRANSPORT_PARAMETER,
+            sizeof(*AcceptContext->TestTP),
+            AcceptContext->TestTP))) {
+        TEST_FAILURE("Failed to set test TP on connection, 0x%x", Status);
+        return false;
+    }
+    return ListenerAcceptConnection(Listener, ConnectionHandle);
+}
+
+void
+QuicTestOddSizeVNTP(
+    _In_ bool TestServer,
+    _In_ uint16_t VNTPSize
+    )
+{
+#define QUIC_TP_ID_VERSION_NEGOTIATION_EXT                  0xFF73DB
+    MsQuicRegistration Registration;
+    TEST_QUIC_SUCCEEDED(Registration.GetInitStatus());
+
+    MsQuicAlpn Alpn("MsQuicTest");
+
+    QUIC_PRIVATE_TRANSPORT_PARAMETER TestTP;
+    TestTP.Type = QUIC_TP_ID_VERSION_NEGOTIATION_EXT;
+    TestTP.Length = VNTPSize;
+    UniquePtr<uint8_t[]> TPData(VNTPSize ? new uint8_t[VNTPSize] : nullptr);
+    TestTP.Buffer = TPData.get();
+
+    if (VNTPSize > 0) {
+        TEST_TRUE(TPData.get());
+        CxPlatZeroMemory(TPData.get(), VNTPSize);
+    }
+
+    if (VNTPSize >= sizeof(uint32_t)) {
+        uint32_t Latest = QUIC_VERSION_LATEST;
+        //
+        // Ensure that if a chosen_version can fit, it is a valid version.
+        //
+        CxPlatCopyMemory(TPData.get(), &Latest, sizeof(uint32_t));
+    }
+
+    ClearGlobalVersionListScope ClearVersionsScope;
+    BOOLEAN Enabled = TRUE;
+    TEST_QUIC_SUCCEEDED(
+        MsQuic->SetParam(
+            NULL,
+            QUIC_PARAM_GLOBAL_VERSION_NEGOTIATION_ENABLED,
+            sizeof(Enabled),
+            &Enabled));
+
+    MsQuicConfiguration ServerConfiguration(Registration, Alpn, ServerSelfSignedCredConfig);
+    TEST_QUIC_SUCCEEDED(ServerConfiguration.GetInitStatus());
+
+    MsQuicConfiguration ClientConfiguration(Registration, Alpn, MsQuicCredentialConfig());
+    TEST_QUIC_SUCCEEDED(ClientConfiguration.GetInitStatus());
+
+    QUIC_ADDRESS_FAMILY QuicAddrFamily = QUIC_ADDRESS_FAMILY_INET;
+
+    {
+        TestListener Listener(Registration, TestServer ? ListenerAcceptConnectionTestTP : ListenerAcceptConnection, ServerConfiguration);
+        TEST_TRUE(Listener.IsValid());
+        QuicAddr ServerLocalAddr(QuicAddrFamily);
+        TEST_QUIC_SUCCEEDED(Listener.Start(Alpn, &ServerLocalAddr.SockAddr));
+
+        TEST_QUIC_SUCCEEDED(Listener.GetLocalAddr(ServerLocalAddr));
+
+        {
+            UniquePtr<TestConnection> Server;
+            ServerAcceptContext ServerAcceptCtx((TestConnection**)&Server);
+            ServerAcceptCtx.ExpectedTransportCloseStatus = QUIC_STATUS_INTERNAL_ERROR;
+            Listener.Context = &ServerAcceptCtx;
+            ServerAcceptCtx.TestTP = &TestTP;
+            {
+                TestConnection Client(Registration);
+                if (!TestServer) {
+                    Client.SetTestTransportParameter(&TestTP);
+                    BOOLEAN Disable = TRUE;
+                    TEST_QUIC_SUCCEEDED(
+                        MsQuic->SetParam(
+                            Client.GetConnection(),
+                            QUIC_PARAM_CONN_DISABLE_VNE_TP_GENERATION,
+                            sizeof(Disable),
+                            &Disable));
+                }
+                TEST_TRUE(Client.IsValid());
+                Client.SetExpectedTransportCloseStatus(QUIC_STATUS_INTERNAL_ERROR); // REVIEW: should quic_error_transport_parameter_error be mapped to this?
+
+                TEST_QUIC_SUCCEEDED(
+                    Client.Start(
+                        ClientConfiguration,
+                        QuicAddrFamily,
+                        QUIC_LOCALHOST_FOR_AF(QuicAddrFamily),
+                        ServerLocalAddr.GetPort()));
+
+                if (!Client.WaitForConnectionComplete()) {
+                    return;
+                }
+                TEST_FALSE(Client.GetIsConnected());
+
+                if (TestServer) {
+                    TEST_NOT_EQUAL(nullptr, Server);
+                    if (!Server->WaitForConnectionComplete()) {
+                        return;
+                    }
+                    TEST_FALSE(Server->GetIsConnected());
+                }
+            }
+
+        }
+    }
+}

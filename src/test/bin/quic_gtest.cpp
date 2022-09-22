@@ -903,6 +903,19 @@ TEST_P(WithHandshakeArgs7, CibirExtension) {
 //     }
 // }
 
+TEST_P(WithHandshakeArgs8, OddSizeVnTp) {
+    TestLoggerT<ParamType> Logger("QuicTestOddSizeVNTP", GetParam());
+    if (TestingKernelMode) {
+        QUIC_RUN_ODD_SIZE_VN_TP_PARAMS Params = {
+            GetParam().TestServer,
+            GetParam().VnTpSize
+        };
+        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_ODD_SIZE_VN_TP, Params));
+    } else {
+        QuicTestOddSizeVNTP(GetParam().TestServer, GetParam().VnTpSize);
+    }
+}
+
 #if QUIC_TEST_FAILING_TEST_CERTIFICATES
 TEST(CredValidation, ConnectExpiredServerCertificate) {
     QUIC_RUN_CRED_VALIDATION Params;
@@ -1936,6 +1949,11 @@ INSTANTIATE_TEST_SUITE_P(
     Handshake,
     WithHandshakeArgs7,
     testing::ValuesIn(HandshakeArgs7::Generate()));
+
+INSTANTIATE_TEST_SUITE_P(
+    Handshake,
+    WithHandshakeArgs8,
+    testing::ValuesIn(HandshakeArgs8::Generate()));
 
 INSTANTIATE_TEST_SUITE_P(
     AppData,

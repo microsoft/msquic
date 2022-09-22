@@ -630,6 +630,14 @@ typedef struct QUIC_CONNECTION {
         QUIC_FLOW_BLOCKED_TIMING_TRACKER FlowControl;
     } BlockedTimings;
 
+#ifdef DEBUG
+    //
+    // Whether to disable automatic generation of VNE transport parameter.
+    // Only used for testing, and thus only enabled for debug builds.
+    //
+    BOOLEAN DisableVneTp;
+#endif
+
 } QUIC_CONNECTION;
 
 typedef struct QUIC_SERIALIZED_RESUMPTION_STATE {

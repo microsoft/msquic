@@ -474,6 +474,7 @@ size_t QUIC_IOCTL_BUFFER_SIZES[] =
     0,
     0,
     0,
+    sizeof(QUIC_RUN_ODD_SIZE_VN_TP_PARAMS),
 };
 
 CXPLAT_STATIC_ASSERT(
@@ -506,6 +507,7 @@ typedef union {
     QUIC_RUN_REBIND_PARAMS RebindParams;
     UINT8 RejectByClosing;
     QUIC_RUN_CIBIR_EXTENSION CibirParams;
+    QUIC_RUN_ODD_SIZE_VN_TP_PARAMS OddSizeVnTpParams;
 
 } QUIC_IOCTL_PARAMS;
 
@@ -1268,6 +1270,14 @@ QuicTestCtlEvtIoDeviceControl(
 
     case IOCTL_QUIC_RUN_CHANGE_ALPN:
         QuicTestCtlRun(QuicTestChangeAlpn());
+        break;
+
+    case IOCTL_QUIC_RUN_ODD_SIZE_VN_TP:
+        CXPLAT_FRE_ASSERT(Params != nullptr);
+        QuicTestCtlRun(
+            QuicTestOddSizeVNTP(
+                Params->OddSizeVnTpParams.TestServer == TRUE,
+                Params->OddSizeVnTpParams.VnTpSize));
         break;
 
     default:

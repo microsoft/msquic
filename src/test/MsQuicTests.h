@@ -285,6 +285,12 @@ QuicTestClientBlockedSourcePort(
     _In_ int Family
     );
 
+void
+QuicTestOddSizeVNTP(
+    _In_ bool TestServer,
+    _In_ uint16_t VNTPSize
+    );
+
 //
 // Post Handshake Tests
 //
@@ -1088,4 +1094,12 @@ typedef struct {
 #define IOCTL_QUIC_RUN_CHANGE_ALPN \
     QUIC_CTL_CODE(102, METHOD_BUFFERED, FILE_WRITE_DATA)
 
-#define QUIC_MAX_IOCTL_FUNC_CODE 102
+typedef struct {
+    uint8_t TestServer;
+    uint8_t VnTpSize;
+} QUIC_RUN_ODD_SIZE_VN_TP_PARAMS;
+
+#define IOCTL_QUIC_RUN_ODD_SIZE_VN_TP \
+    QUIC_CTL_CODE(103, METHOD_BUFFERED, FILE_WRITE_DATA)
+
+#define QUIC_MAX_IOCTL_FUNC_CODE 103
