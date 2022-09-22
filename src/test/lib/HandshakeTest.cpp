@@ -3290,7 +3290,10 @@ QuicTestOddSizeVNTP(
     QUIC_PRIVATE_TRANSPORT_PARAMETER TestTP;
     TestTP.Type = QUIC_TP_ID_VERSION_NEGOTIATION_EXT;
     TestTP.Length = VNTPSize;
-    UniquePtr<uint8_t[]> TPData(VNTPSize ? new uint8_t[VNTPSize] : nullptr);
+    UniquePtr<uint8_t[]> TPData(
+        VNTPSize ?
+            (uint8_t*)CXPLAT_ALLOC_NONPAGED(VNTPSize, QUIC_POOL_TEST) :
+            nullptr);
     TestTP.Buffer = TPData.get();
 
     if (VNTPSize > 0) {
