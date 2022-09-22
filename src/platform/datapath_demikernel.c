@@ -22,9 +22,9 @@ Abstract:
 
 // Demikernel's datapath data.
 typedef struct CXPLAT_DATAPATH {
+    CXPLAT_EXECUTION_CONTEXT EC;
     uint32_t ClientRecvContextLength;
     CXPLAT_SOCKET* Socket;
-    CXPLAT_THREAD Thread;
     CXPLAT_UDP_DATAPATH_CALLBACKS UdpCallbacks;
     CXPLAT_LOCK Lock;
     BOOLEAN IsRunning;
@@ -55,7 +55,12 @@ typedef struct DEMI_RECEIVE_DATA {
     CXPLAT_DATAPATH* Datapath;
 } DEMI_RECEIVE_DATA;
 
-CXPLAT_THREAD_CALLBACK(DemiWorkLoop, Context);
+_IRQL_requires_max_(PASSIVE_LEVEL)
+BOOLEAN
+CxPlatDemiExecute(
+    _Inout_ void* Context,
+    _Inout_ CXPLAT_EXECUTION_STATE* State
+    );
 
 CXPLAT_RECV_DATA*
 CxPlatDataPathRecvPacketToRecvData(
@@ -86,7 +91,6 @@ CxPlatDataPathInitialize(
 {
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
 
-
     // Validate input args.
     UNREFERENCED_PARAMETER(TcpCallbacks);
     if (NewDataPath == NULL || UdpCallbacks == NULL ||
@@ -112,38 +116,30 @@ CxPlatDataPathInitialize(
     memcpy(&Datapath->UdpCallbacks, UdpCallbacks, sizeof(CXPLAT_UDP_DATAPATH_CALLBACKS));
     CxPlatLockInitialize(&Datapath->Lock);
 
+    // Set execution context for the datapath.
+    Datapath->EC.Ready = TRUE;
+    Datapath->EC.NextTimeUs = UINT64_MAX;
+    Datapath->EC.Callback = CxPlatDemiExecute;
+    Datapath->EC.Context = Datapath;
+
     // Initialize Demikernel.
     // FIXME: Pass down right arguments.
     int argc = 1;
     char* argv[] = { "foobar" };
     if (demi_init(argc, argv) != 0) {
         Status = QUIC_STATUS_INTERNAL_ERROR;
-        goto Error0;
+        goto Error;
     }
 
-    // Spawn Demikernel's work loop thread.
-    CXPLAT_THREAD_CONFIG config = {0, 0, NULL, DemiWorkLoop, Datapath};
-    Status = CxPlatThreadCreate(&config, &Datapath->Thread);
-    if (QUIC_FAILED(Status)) {
-        QuicTraceEvent(
-            LibraryErrorStatus,
-            "[ lib] ERROR, %u, %s.",
-            Status,
-            "CxPlatThreadCreate");
-        goto Error1;
-    }
+    // Start processing the datapath execution.
+    CxPlatAddExecutionContext(&Datapath->EC, 0);
 
     // Set output values.
     *NewDataPath = Datapath;
 
     return QUIC_STATUS_SUCCESS;
 
-Error1:
-    // TODO: Enable the following code when Demikernel features an exit function.
-#ifdef __DEMIKERNEL_HAS_EXIT__
-    demi_exit(-1);
-#endif
-Error0:
+Error:
     CXPLAT_FREE(Datapath, QUIC_POOL_DATAPATH);
     return Status;
 }
@@ -155,8 +151,14 @@ CxPlatDataPathUninitialize(
     )
 {
     Datapath->IsRunning = FALSE;
-    CxPlatThreadWait(&Datapath->Thread);
-    CxPlatThreadDelete(&Datapath->Thread);
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+CxPlatDataPathUninitializeComplete(
+    _In_ CXPLAT_DATAPATH* Datapath
+    )
+{
     // TODO: Cleanup demikernel?
     CxPlatLockUninitialize(&Datapath->Lock);
     CXPLAT_FREE(Datapath, QUIC_POOL_DATAPATH);
@@ -713,7 +715,6 @@ CxPlatSocketSend(
     demi_qtoken_t qt = -1;
     demi_qresult_t qr = {};
 
-
     QuicTraceEvent(
         DatapathSend,
         "[data][%p] Send %u bytes in %hhu buffers (segment=%hu) Dst=%!ADDR!, Src=%!ADDR!",
@@ -724,7 +725,7 @@ CxPlatSocketSend(
         CASTED_CLOG_BYTEARRAY(sizeof(Route->RemoteAddress), &Route->RemoteAddress),
         CASTED_CLOG_BYTEARRAY(sizeof(Route->LocalAddress), &Route->LocalAddress));
 
-    // TODO: check the following code.
+    // FIXME: Provide a trim function instead of hacking lengths.
     demi_sgarray_t sga = {};
     memcpy(&sga, &SendData->sga, sizeof(demi_sgarray_t));
     sga.sga_segs[0].sgaseg_len = SendData->Buffer.Length;
@@ -736,17 +737,51 @@ CxPlatSocketSend(
     assert(demi_wait(&qr, qt) == 0);
     CxPlatLockRelease(&Socket->Datapath->Lock);
 
-    switch (qr.qr_opcode)
-    {
-    case DEMI_OPC_PUSH:
-        break;
-    default: // TODO: log this.
-        break;
-    }
-
     CxPlatSendDataFree(SendData);
 
     return QUIC_STATUS_SUCCESS;
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+BOOLEAN
+CxPlatDemiExecute(
+    _Inout_ void* Context,
+    _Inout_ CXPLAT_EXECUTION_STATE* State
+    )
+{
+    CXPLAT_DATAPATH* Datapath = Context;
+
+    if (!Datapath->IsRunning) {
+        CxPlatDataPathUninitializeComplete(Datapath);
+        return FALSE;
+    }
+
+    CXPLAT_SOCKET* Socket = Datapath->Socket;
+    if (Socket != NULL && CxPlatRundownAcquire(&Socket->Rundown)) {
+        demi_qresult_t qr = {0};
+        int result;
+
+        CxPlatLockAcquire(&Datapath->Lock);
+        if (!Socket->popqt_set) {
+            assert(demi_pop(&Socket->popqt, Socket->sockqd) == 0);
+            Socket->popqt_set = TRUE;
+        }
+        result = demi_wait_timeout(&qr, Socket->popqt, 0);
+        CxPlatLockRelease(&Datapath->Lock);
+
+        if (result == 0) {
+            if (qr.qr_opcode == DEMI_OPC_POP) {
+                State->NoWorkCount = 0;
+                CxPlatSocketRecv(Datapath, Socket, &qr);
+            }
+            Socket->popqt_set = FALSE;
+        }
+        CxPlatRundownRelease(&Socket->Rundown);
+    }
+
+    Datapath->EC.Ready = TRUE;
+
+    return TRUE;
 }
 
 void
@@ -756,40 +791,4 @@ CxPlatDataPathProcessCqe(
 {
     // No events (yet)
     UNREFERENCED_PARAMETER(Cqe);
-}
-
-CXPLAT_THREAD_CALLBACK(DemiWorkLoop, Context) {
-    CXPLAT_DATAPATH* Datapath = Context;
-    while (Datapath->IsRunning) {
-        CXPLAT_SOCKET* Socket = Datapath->Socket;
-        if (Socket != NULL && CxPlatRundownAcquire(&Socket->Rundown)) {
-            demi_qresult_t qr = {0};
-            int result;
-
-            CxPlatLockAcquire(&Datapath->Lock);
-            if (!Socket->popqt_set) {
-                assert(demi_pop(&Socket->popqt, Socket->sockqd) == 0);
-                Socket->popqt_set = TRUE;
-            }
-            result = demi_wait_timeout(&qr, Socket->popqt, 0);
-            CxPlatLockRelease(&Datapath->Lock);
-
-
-            if (result == 0) {
-                switch (qr.qr_opcode) {
-                case DEMI_OPC_POP:
-                    CxPlatSocketRecv(Datapath, Socket, &qr);
-                    break;
-                default:
-                    break;
-                }
-                Socket->popqt_set = FALSE;
-            }
-            else {
-                CxPlatSchedulerYield();
-            }
-            CxPlatRundownRelease(&Socket->Rundown);
-        }
-    }
-    CXPLAT_THREAD_RETURN(0);
 }
