@@ -640,7 +640,7 @@ CxPlatSendDataAlloc(
     )
 {
     if (MaxPacketSize == 0) {
-        return NULL;
+        MaxPacketSize = 1472; // 1500 -20 - 8
     }
 
     CXPLAT_SEND_DATA* SendData = CXPLAT_ALLOC_NONPAGED(sizeof(CXPLAT_SEND_DATA), QUIC_POOL_PLATFORM_SENDCTX);
