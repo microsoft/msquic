@@ -639,6 +639,10 @@ CxPlatSendDataAlloc(
     _Inout_ CXPLAT_ROUTE* Route
     )
 {
+    if (MaxPacketSize == 0) {
+        return NULL;
+    }
+
     CXPLAT_SEND_DATA* SendData = CXPLAT_ALLOC_NONPAGED(sizeof(CXPLAT_SEND_DATA), QUIC_POOL_PLATFORM_SENDCTX);
     assert(SendData != NULL);
 
