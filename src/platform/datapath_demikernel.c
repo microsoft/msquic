@@ -594,6 +594,7 @@ CxPlatSocketRecv(
     DemiRecvData->RecvData.Buffer = sga.sga_segs[0].sgaseg_buf;
     DemiRecvData->RecvData.BufferLength = sga.sga_segs[0].sgaseg_len;
     memcpy(&DemiRecvData->sga, &sga, sizeof(demi_sgarray_t));
+    DemiRecvData->RecvData.Allocated = TRUE;
     memcpy(&DemiRecvData->Route.LocalAddress, &Socket->LocalAddress, sizeof(struct sockaddr));
     memcpy(&DemiRecvData->Route.RemoteAddress, &qr->qr_value.sga.sga_addr, sizeof(struct sockaddr));
 
