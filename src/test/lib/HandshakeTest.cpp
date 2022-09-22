@@ -3259,9 +3259,10 @@ ListenerAcceptConnectionTestTP(
         TEST_FAILURE("Failed to disable VNE TP generation, 0x%x", Status);
         return false;
     }
-    CXPLAT_ASSERT_LOG(
-        AcceptContext->TestTP != nullptr,
-        "Did you forget to set the test TP on the acceptcontext?");
+    if (AcceptContext->TestTP == nullptr) {
+        TEST_FAILURE("Did you forget to set the test TP on the acceptcontext?");
+        return false;
+    }
     if (QUIC_FAILED(
         Status = MsQuic->SetParam(
             ConnectionHandle,

@@ -5387,13 +5387,19 @@ QuicConnRecvDatagramBatch(
         CXPLAT_ECN_TYPE ECN = CXPLAT_ECN_FROM_TOS(Datagrams[i]->TypeOfService);
         Packet = CxPlatDataPathRecvDataToRecvPacket(Datagrams[i]);
         CXPLAT_DBG_ASSERT(Packet->PacketId != 0);
-        if (QuicConnRecvPrepareDecrypt(
-                Connection, Packet, HpMask + i * CXPLAT_HP_SAMPLE_LENGTH) &&
-            QuicConnRecvDecryptAndAuthenticate(Connection, Path, Packet)) {
-
-            if (!QuicConnRecvFrames(Connection, Path, Packet, ECN)) {
-                continue;
-            }
+        if (!QuicConnRecvPrepareDecrypt(
+                Connection, Packet, HpMask + i * CXPLAT_HP_SAMPLE_LENGTH) ||
+            !QuicConnRecvDecryptAndAuthenticate(Connection, Path, Packet)) {
+                if (Connection->State.CompatibleVerNegotiationAttempted &&
+                    !Connection->State.CompatibleVerNegotiationCompleted) {
+                    //
+                    // The packet which initiated compatible version negotation failed
+                    // decryption, so undo the version change.
+                    //
+                    Connection->Stats.QuicVersion = Connection->OriginalQuicVersion;
+                    Connection->State.CompatibleVerNegotiationAttempted = FALSE;
+                }
+        } else if (QuicConnRecvFrames(Connection, Path, Packet, ECN)) {
 
             QuicConnRecvPostProcessing(Connection, &Path, Packet);
             RecvState->ResetIdleTimeout |= Packet->CompletelyValid;
@@ -5413,17 +5419,6 @@ QuicConnRecvDatagramBatch(
                 } else {
                     Path->SpinBit = !Packet->SH->SpinBit;
                 }
-            }
-
-        } else {
-            if (Connection->State.CompatibleVerNegotiationAttempted &&
-                !Connection->State.CompatibleVerNegotiationCompleted) {
-                //
-                // The packet which initiated compatible version negotation failed
-                // decryption, so undo the version change.
-                //
-                Connection->Stats.QuicVersion = Connection->OriginalQuicVersion;
-                Connection->State.CompatibleVerNegotiationAttempted = FALSE;
             }
         }
     }

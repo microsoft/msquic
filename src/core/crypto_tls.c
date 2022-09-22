@@ -1749,9 +1749,7 @@ QuicCryptoTlsDecodeTransportParameters( // NOLINT(readability-function-size, goo
                     QuicTraceEvent(
                         AllocFailure,
                         "Allocation of '%s' failed. (%llu bytes)",
-                        IsServerTP ?
-                            "Received Client Version Negotiation Info" :
-                            "Received Server Version Negotiation Info",
+                        "Version Negotiation Info",
                         Length);
                     break;
                 }
