@@ -597,6 +597,7 @@ CxPlatSocketRecv(
     DemiRecvData->RecvData.Allocated = TRUE;
     memcpy(&DemiRecvData->Route.LocalAddress, &Socket->LocalAddress, sizeof(struct sockaddr));
     memcpy(&DemiRecvData->Route.RemoteAddress, &qr->qr_value.sga.sga_addr, sizeof(struct sockaddr));
+    DemiRecvData->Route.RemoteAddress.Ipv4.sin_port = htons(DemiRecvData->Route.RemoteAddress.Ipv4.sin_port);
 
     QuicTraceEvent(
         DatapathRecv,
@@ -605,7 +606,7 @@ CxPlatSocketRecv(
         (uint32_t)DemiRecvData->RecvData.BufferLength,
         (uint32_t)DemiRecvData->RecvData.BufferLength,
         CASTED_CLOG_BYTEARRAY(sizeof(Socket->LocalAddress), &Socket->LocalAddress),
-        CASTED_CLOG_BYTEARRAY(sizeof(qr->qr_value.sga.sga_addr), &qr->qr_value.sga.sga_addr));
+        CASTED_CLOG_BYTEARRAY(sizeof(DemiRecvData->Route.RemoteAddress), &DemiRecvData->Route.RemoteAddress));
 
     // Tell QUIC that there is data read to be read.
     Datapath->UdpCallbacks.Receive(Socket, Socket->CallbackContext, &DemiRecvData->RecvData);
