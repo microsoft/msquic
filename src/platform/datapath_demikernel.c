@@ -457,6 +457,7 @@ CxPlatSocketCreateUdp(
 
     CxPlatZeroMemory(Socket, sizeof(*Socket));
     Socket->Datapath = Datapath;
+    Socket->CallbackContext = Config->CallbackContext;
     if (Config->LocalAddress) {
         memcpy(&Socket->LocalAddress, Config->LocalAddress, sizeof(Socket->LocalAddress));
     } else{
