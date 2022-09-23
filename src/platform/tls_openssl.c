@@ -1938,6 +1938,9 @@ CxPlatTlsProcessData(
             switch (Err) {
             case SSL_ERROR_WANT_READ:
             case SSL_ERROR_WANT_WRITE:
+                //
+                // Best effort to get the server's transport params as early as possible.
+                //
                 if (!TlsContext->IsServer && TlsContext->PeerTPReceived == FALSE) {
                     const uint8_t* TransportParams;
                     size_t TransportParamLen;
@@ -2076,12 +2079,22 @@ CxPlatTlsProcessData(
             TlsContext->State->ReadKey = QUIC_PACKET_KEY_1_RTT;
             TlsContext->ResultFlags |= CXPLAT_TLS_RESULT_READ_KEY_UPDATED;
         } else if (!TlsContext->PeerTPReceived) {
-            QuicTraceLogConnError(
-                OpenSslMissingTransportParameters,
-                TlsContext->Connection,
-                "No transport parameters received");
-            TlsContext->ResultFlags |= CXPLAT_TLS_RESULT_ERROR;
-            goto Exit;
+            //
+            // Last chance to get the server's transport params.
+            //
+            const uint8_t* TransportParams;
+            size_t TransportParamLen;
+            SSL_get_peer_quic_transport_params(
+                    TlsContext->Ssl, &TransportParams, &TransportParamLen);
+            if (TransportParams == NULL || TransportParamLen == 0) {
+                QuicTraceLogConnError(
+                    OpenSslMissingTransportParameters,
+                    TlsContext->Connection,
+                    "No transport parameters received");
+                TlsContext->ResultFlags |= CXPLAT_TLS_RESULT_ERROR;
+                goto Exit;
+            }
+            TlsContext->PeerTPReceived = TRUE;
         }
 
     } else {
