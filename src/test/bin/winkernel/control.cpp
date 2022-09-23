@@ -1276,7 +1276,7 @@ QuicTestCtlEvtIoDeviceControl(
         CXPLAT_FRE_ASSERT(Params != nullptr);
         QuicTestCtlRun(
             QuicTestOddSizeVNTP(
-                Params->OddSizeVnTpParams.TestServer == TRUE,
+                Params->OddSizeVnTpParams.TestServer,
                 Params->OddSizeVnTpParams.VnTpSize));
         break;
 

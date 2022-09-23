@@ -1095,7 +1095,7 @@ typedef struct {
     QUIC_CTL_CODE(102, METHOD_BUFFERED, FILE_WRITE_DATA)
 
 typedef struct {
-    uint8_t TestServer;
+    BOOLEAN TestServer;
     uint8_t VnTpSize;
 } QUIC_RUN_ODD_SIZE_VN_TP_PARAMS;
 

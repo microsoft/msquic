@@ -6563,7 +6563,7 @@ QuicConnParamSet(
         QuicTraceLogConnVerbose(
             TestTPSet,
             Connection,
-            "Setting Test Transport Parameter (type %hu, %hu bytes)",
+            "Setting Test Transport Parameter (type %x, %hu bytes)",
             Connection->TestTransportParameter.Type,
             Connection->TestTransportParameter.Length);
 
@@ -6584,12 +6584,12 @@ QuicConnParamSet(
 #ifdef DEBUG
     case QUIC_PARAM_CONN_DISABLE_VNE_TP_GENERATION:
 
-        if (BufferLength != sizeof(BOOLEAN)) {
+        if (BufferLength != sizeof(BOOLEAN) || Buffer == NULL) {
             Status = QUIC_STATUS_INVALID_PARAMETER;
             break;
         }
 
-        Connection->State.DisableVneTp = *(BOOLEAN*)Buffer != FALSE;
+        Connection->State.DisableVneTp = *(BOOLEAN*)Buffer;
         Status = QUIC_STATUS_SUCCESS;
         break;
 #endif
