@@ -2095,6 +2095,13 @@ CxPlatTlsProcessData(
                 goto Exit;
             }
             TlsContext->PeerTPReceived = TRUE;
+            if (!TlsContext->SecConfig->Callbacks.ReceiveTP(
+                    TlsContext->Connection,
+                    (uint16_t)TransportParamLen,
+                    TransportParams)) {
+                TlsContext->ResultFlags |= CXPLAT_TLS_RESULT_ERROR;
+                goto Exit;
+            }
         }
 
     } else {
