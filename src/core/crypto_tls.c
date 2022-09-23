@@ -1884,8 +1884,10 @@ QuicCryptoTlsCleanupTransportParameters(
     )
 {
     if (TransportParams->Flags & QUIC_TP_FLAG_VERSION_NEGOTIATION) {
-        CXPLAT_FREE(TransportParams->VersionInfo, QUIC_POOL_VERSION_INFO);
-        TransportParams->VersionInfo = NULL;
+        if (TransportParams->VersionInfo != NULL) {
+            CXPLAT_FREE(TransportParams->VersionInfo, QUIC_POOL_VERSION_INFO);
+            TransportParams->VersionInfo = NULL;
+        }
         TransportParams->VersionInfoLength = 0;
         TransportParams->Flags &= ~QUIC_TP_FLAG_VERSION_NEGOTIATION;
     }

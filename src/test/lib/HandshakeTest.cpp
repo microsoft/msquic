@@ -3287,18 +3287,16 @@ QuicTestOddSizeVNTP(
 
     MsQuicAlpn Alpn("MsQuicTest");
 
-    uint8_t Buffer[9];
-    if (VNTPSize > sizeof(Buffer)) {
-        TEST_FAILURE("VNTPSize %u is larger than Buffer size %u", VNTPSize, (uint32_t)sizeof(Buffer));
-        return;
-    }
     QUIC_PRIVATE_TRANSPORT_PARAMETER TestTP;
     TestTP.Type = QUIC_TP_ID_VERSION_NEGOTIATION_EXT;
     TestTP.Length = VNTPSize;
-    TestTP.Buffer = Buffer;
+    UniquePtr<uint8_t[]> TPData(
+        VNTPSize ? new(std::nothrow) uint8_t[VNTPSize] : nullptr);
+    TestTP.Buffer = TPData.get();
 
     if (VNTPSize > 0) {
-        CxPlatZeroMemory(Buffer, VNTPSize);
+        TEST_TRUE(TPData.get());
+        CxPlatZeroMemory(TPData.get(), VNTPSize);
     }
 
     if (VNTPSize >= sizeof(uint32_t)) {
@@ -3306,7 +3304,7 @@ QuicTestOddSizeVNTP(
         //
         // Ensure that if a chosen_version can fit, it is a valid version.
         //
-        CxPlatCopyMemory(Buffer, &Latest, sizeof(uint32_t));
+        CxPlatCopyMemory(TPData.get(), &Latest, sizeof(uint32_t));
     }
 
     ClearGlobalVersionListScope ClearVersionsScope;
