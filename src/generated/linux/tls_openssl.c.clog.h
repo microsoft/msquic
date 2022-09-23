@@ -177,9 +177,9 @@ tracepoint(CLOG_TLS_OPENSSL_C, OpenSslNoMatchingAlpn , arg1);\
 // Decoder Ring for OpenSslMissingTransportParameters
 // [conn][%p] No transport parameters received
 // QuicTraceLogConnError(
-                    OpenSslMissingTransportParameters,
-                    TlsContext->Connection,
-                    "No transport parameters received");
+                OpenSslMissingTransportParameters,
+                TlsContext->Connection,
+                "No transport parameters received");
 // arg1 = arg1 = TlsContext->Connection = arg1
 ----------------------------------------------------------*/
 #ifndef _clog_3_ARGS_TRACE_OpenSslMissingTransportParameters

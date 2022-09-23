@@ -1550,11 +1550,11 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, ForceCidUpdate,
 
 /*----------------------------------------------------------
 // Decoder Ring for TestTPSet
-// [conn][%p] Setting Test Transport Parameter (type %hu, %hu bytes)
+// [conn][%p] Setting Test Transport Parameter (type %x, %hu bytes)
 // QuicTraceLogConnVerbose(
             TestTPSet,
             Connection,
-            "Setting Test Transport Parameter (type %hu, %hu bytes)",
+            "Setting Test Transport Parameter (type %x, %hu bytes)",
             Connection->TestTransportParameter.Type,
             Connection->TestTransportParameter.Length);
 // arg1 = arg1 = Connection = arg1
@@ -1564,11 +1564,11 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, ForceCidUpdate,
 TRACEPOINT_EVENT(CLOG_CONNECTION_C, TestTPSet,
     TP_ARGS(
         const void *, arg1,
-        unsigned short, arg3,
+        unsigned int, arg3,
         unsigned short, arg4), 
     TP_FIELDS(
         ctf_integer_hex(uint64_t, arg1, arg1)
-        ctf_integer(unsigned short, arg3, arg3)
+        ctf_integer(unsigned int, arg3, arg3)
         ctf_integer(unsigned short, arg4, arg4)
     )
 )

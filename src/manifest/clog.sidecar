@@ -10585,7 +10585,7 @@
     },
     "TestTPSet": {
       "ModuleProperites": {},
-      "TraceString": "[conn][%p] Setting Test Transport Parameter (type %hu, %hu bytes)",
+      "TraceString": "[conn][%p] Setting Test Transport Parameter (type %x, %hu bytes)",
       "UniqueId": "TestTPSet",
       "splitArgs": [
         {
@@ -10593,7 +10593,7 @@
           "MacroVariableName": "arg1"
         },
         {
-          "DefinationEncoding": "hu",
+          "DefinationEncoding": "x",
           "MacroVariableName": "arg3"
         },
         {
@@ -15091,9 +15091,9 @@
         "EncodingString": "[test]<--- %s"
       },
       {
-        "UniquenessHash": "ad3632a2-ac75-293d-854f-381b59368114",
+        "UniquenessHash": "d35927ed-5967-1f8a-2604-5660d1911c16",
         "TraceID": "TestTPSet",
-        "EncodingString": "[conn][%p] Setting Test Transport Parameter (type %hu, %hu bytes)"
+        "EncodingString": "[conn][%p] Setting Test Transport Parameter (type %x, %hu bytes)"
       },
       {
         "UniquenessHash": "db41669b-3e8f-05ca-4ac2-2c194cce7b51",
