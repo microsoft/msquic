@@ -22,12 +22,6 @@ Abstract:
 
 extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
 {
-	uint8_t *Buf = (uint8_t *)malloc(size);
-	if (Buf == NULL) {
-		return 0;
-	}
-	memcpy(Buf, data, size);
-
 	const MsQuicApi* MsQuic = new(std::nothrow) MsQuicApi();
 
 	for (uint32_t Param = QUIC_PARAM_GLOBAL_RETRY_MEMORY_PERCENT;
@@ -37,10 +31,9 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
 			nullptr,
 			Param,
 			size,
-			&Buf);
+			&data);
 	}
 
 	delete MsQuic;
-	free(Buf);
 	return 0;
 }
