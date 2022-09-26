@@ -1,3 +1,14 @@
+/*++
+
+    Copyright (c) Microsoft Corporation.
+    Licensed under the MIT License.
+
+Abstract:
+
+    Fuzzing msquic api
+
+--*/
+
 #define CX_PLATFORM_LINUX 1
 #define QUIC_TEST_APIS 1
 
