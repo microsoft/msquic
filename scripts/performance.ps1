@@ -419,6 +419,10 @@ function Invoke-Test {
         $RemoteArguments += " -stats:1"
     }
 
+    if ($LocalArguments.Contains("-exec:maxtput")) {
+        $RemoteArguments += " -exec:maxtput"
+    }
+
     if ($XDP) {
         $RemoteArguments += " -cpu:-1"
         $LocalArguments += " -cpu:-1"
