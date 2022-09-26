@@ -777,13 +777,6 @@ if ($Kernel -ne "") {
     }
 }
 
-if ($IsWindows -and ($EnableTcpipVerifier -or $Kernel)) {
-    verifier.exe /volatile /adddriver afd.sys netio.sys tcpip.sys /flags 0x9BB
-    if ($LastExitCode) {
-        Log ("verifier.exe " + $LastExitCode)
-    }
-}
-
 try {
     if ($IsolationMode -eq "Batch") {
         # Run the the test process once for all tests.
@@ -851,13 +844,13 @@ try {
         net.exe stop msquicpriv /y | Out-Null
         sc.exe delete msquictestpriv | Out-Null
         sc.exe delete msquicpriv | Out-Null
-        verifier.exe /volatile /removedriver msquicpriv.sys msquictestpriv.sys
-        verifier.exe /volatile /flags 0x0
-    }
-
-    if ($IsWindows -and ($EnableTcpipVerifier -or $Kernel)) {
-        verifier.exe /volatile /removedriver afd.sys netio.sys tcpip.sys
-        verifier.exe /volatile /flags 0x0
+        try {
+            verifier.exe /volatile /removedriver msquicpriv.sys msquictestpriv.sys
+            verifier.exe /volatile /flags 0x0
+        } catch {
+            Log "verifier.exe clean up exception thrown"
+            Log $_
+        }
     }
 
     # Print out the results.
