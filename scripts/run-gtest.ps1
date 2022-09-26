@@ -47,7 +47,7 @@ as necessary.
 .Parameter EnableAppVerifier
     Enables all basic Application Verifier checks on the test binary.
 
-.Parameter EnableTcpipVerifier
+.Parameter EnableSystemVerifier
     Enables TCPIP verifier in user mode tests.
 
 .Parameter CodeCoverage
@@ -110,7 +110,7 @@ param (
     [switch]$EnableAppVerifier = $false,
 
     [Parameter(Mandatory = $false)]
-    [switch]$EnableTcpipVerifier = $false,
+    [switch]$EnableSystemVerifier = $false,
 
     [Parameter(Mandatory = $false)]
     [switch]$CodeCoverage = $false,
@@ -299,7 +299,7 @@ function Start-TestExecutable([String]$Arguments, [String]$OutputDir) {
     $pinfo = New-Object System.Diagnostics.ProcessStartInfo
     if ($IsWindows) {
         if ($Debugger) {
-            $pinfo.FileName = "windbg"
+            $pinfo.FileName = "windbgx"
             if ($InitialBreak) {
                 $pinfo.Arguments = "-G $($Path) $($Arguments)"
             } else {
@@ -767,13 +767,22 @@ if ($Kernel -ne "") {
     if ($LastExitCode) {
         Log ("sc.exe " + $LastExitCode)
     }
-    verifier.exe /volatile /adddriver msquicpriv.sys msquictestpriv.sys /flags 0x9BB
-    if ($LastExitCode) {
-        Log ("verifier.exe " + $LastExitCode)
+    if ($EnableSystemVerifier) {
+        verifier.exe /volatile /adddriver msquicpriv.sys msquictestpriv.sys /flags 0x9BB
+        if ($LastExitCode) {
+            Log ("verifier.exe " + $LastExitCode)
+        }
     }
     net.exe start msquicpriv
     if ($LastExitCode) {
         Log ("net.exe " + $LastExitCode)
+    }
+}
+
+if ($IsWindows -and $EnableSystemVerifier) {
+    verifier.exe /volatile /adddriver afd.sys netio.sys tcpip.sys /flags 0x9BB
+    if ($LastExitCode) {
+        Log ("verifier.exe " + $LastExitCode)
     }
 }
 
@@ -844,13 +853,15 @@ try {
         net.exe stop msquicpriv /y | Out-Null
         sc.exe delete msquictestpriv | Out-Null
         sc.exe delete msquicpriv | Out-Null
-        try {
+    }
+
+    if ($IsWindows -and $EnableSystemVerifier) {
+        if ($Kernel -ne "") {
             verifier.exe /volatile /removedriver msquicpriv.sys msquictestpriv.sys
             verifier.exe /volatile /flags 0x0
-        } catch {
-            Log "verifier.exe clean up exception thrown"
-            Log $_
         }
+        verifier.exe /volatile /removedriver afd.sys netio.sys tcpip.sys
+        verifier.exe /volatile /flags 0x0
     }
 
     # Print out the results.
