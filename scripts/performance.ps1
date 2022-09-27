@@ -423,6 +423,10 @@ function Invoke-Test {
         $RemoteArguments += " -exec:maxtput"
     }
 
+    if ($LocalArguments.Contains("-exec:lowlat")) {
+        $RemoteArguments += " -exec:lowlat"
+    }
+
     if ($XDP) {
         $RemoteArguments += " -cpu:-1"
         $LocalArguments += " -cpu:-1"

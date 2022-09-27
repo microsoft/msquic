@@ -146,7 +146,7 @@
                 "Tls": ["openssl"],
                 "Arch": ["x64", "arm"],
                 "Exe": "secnetperf",
-                "Arguments": "-exec:lowlat -test:Throughput -target:$RemoteAddress -uni:1 -timed:1 -download:12000 -stats:1"
+                "Arguments": "-exec:maxtput -test:Throughput -target:$RemoteAddress -uni:1 -timed:1 -download:12000 -stats:1"
             },
             "Variables": [
                 {
@@ -172,7 +172,7 @@
                 "Tls": ["schannel", "openssl"],
                 "Arch": ["x64", "x86", "arm", "arm64"],
                 "Exe": "secnetperf",
-                "Arguments": "-exec:lowlat -exec:maxtput -test:RPS -target:$RemoteAddress"
+                "Arguments": "-exec:lowlat -test:RPS -target:$RemoteAddress"
             },
             "Variables": [
                 {
