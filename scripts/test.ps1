@@ -137,6 +137,9 @@ param (
     [switch]$EnableAppVerifier = $false,
 
     [Parameter(Mandatory = $false)]
+    [switch]$EnableSystemVerifier = $false,
+
+    [Parameter(Mandatory = $false)]
     [switch]$CodeCoverage = $false,
 
     [Parameter(Mandatory = $false)]
@@ -256,6 +259,9 @@ if ($NoProgress) {
 }
 if ($EnableAppVerifier) {
     $TestArguments += " -EnableAppVerifier"
+}
+if ($EnableSystemVerifier) {
+    $TestArguments += " -EnableSystemVerifier"
 }
 if ($CodeCoverage) {
     $TestArguments += " -CodeCoverage"
