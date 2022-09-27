@@ -352,6 +352,7 @@ if ($IsWindows) {
             sudo apt-get install -y cppcheck clang-tidy
             # used for packaging
             sudo apt-get install -y ruby ruby-dev rpm
+            sudo gem install public_suffix -v 4.0.7
             sudo gem install fpm
         }
         "Test" {
