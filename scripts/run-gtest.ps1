@@ -50,6 +50,9 @@ as necessary.
 .Parameter EnableAppVerifier
     Enables all basic Application Verifier checks on the test binary.
 
+.Parameter EnableSystemVerifier
+    Enables TCPIP verifier in user mode tests.
+
 .Parameter CodeCoverage
     Collects code coverage for this test run. Incompatible with -Debugger.
 
@@ -103,6 +106,9 @@ param (
 
     [Parameter(Mandatory = $false)]
     [switch]$EnableAppVerifier = $false,
+
+    [Parameter(Mandatory = $false)]
+    [switch]$EnableSystemVerifier = $false,
 
     [Parameter(Mandatory = $false)]
     [switch]$CodeCoverage = $false
@@ -249,7 +255,7 @@ function Start-TestExecutable([String]$Arguments, [String]$OutputDir) {
     $pinfo = New-Object System.Diagnostics.ProcessStartInfo
     if ($IsWindows) {
         if ($Debugger) {
-            $pinfo.FileName = "windbg"
+            $pinfo.FileName = "windbgx"
             if ($InitialBreak) {
                 $pinfo.Arguments = "-G $($Path) $($Arguments)"
             } else {
@@ -590,7 +596,9 @@ if ($Kernel -ne "") {
         & "C:\Program Files (x86)\Windows Kits\10\bin\10.0.19041.0\x86\signtool.exe" sign /f C:\CodeSign.pfx -p "placeholder" /fd SHA256 /tr http://timestamp.digicert.com /td SHA256  (Join-Path (Split-Path $Path -Parent) "msquictestpriv.sys")
     }
     sc.exe create "msquicpriv" type= kernel binpath= (Join-Path (Split-Path $Path -Parent) "msquicpriv.sys") start= demand | Out-Null
-    verifier.exe /volatile /adddriver afd.sys msquicpriv.sys msquictestpriv.sys netio.sys tcpip.sys /flags 0x9BB
+    if ($EnableSystemVerifier) {
+        verifier.exe /volatile /adddriver afd.sys msquicpriv.sys msquictestpriv.sys netio.sys tcpip.sys /flags 0x9BB
+    }
     net.exe start msquicpriv
 }
 
@@ -700,7 +708,9 @@ try {
         net.exe stop msquicpriv /y | Out-Null
         sc.exe delete msquictestpriv | Out-Null
         sc.exe delete msquicpriv | Out-Null
-        verifier.exe /volatile /removedriver afd.sys msquicpriv.sys msquictestpriv.sys netio.sys tcpip.sys
-        verifier.exe /volatile /flags 0x0
+        if ($EnableSystemVerifier) {
+            verifier.exe /volatile /removedriver afd.sys msquicpriv.sys msquictestpriv.sys netio.sys tcpip.sys
+            verifier.exe /volatile /flags 0x0
+        }
     }
 }
