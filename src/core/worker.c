@@ -96,7 +96,7 @@ QuicWorkerInitialize(
     Worker->ExecutionContext.Ready = TRUE;
 
 #ifndef _KERNEL_MODE // Not supported on kernel mode
-    if (ExecProfile == QUIC_EXECUTION_PROFILE_TYPE_MAX_THROUGHPUT) {
+    if (ExecProfile != QUIC_EXECUTION_PROFILE_TYPE_MAX_THROUGHPUT) {
         Worker->IsExternal = TRUE;
         CxPlatAddExecutionContext(&Worker->ExecutionContext, IdealProcessor);
     } else
