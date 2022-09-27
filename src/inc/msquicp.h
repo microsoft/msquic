@@ -87,7 +87,7 @@ typedef struct QUIC_TEST_DATAPATH_HOOKS {
 #endif
 
 typedef struct QUIC_PRIVATE_TRANSPORT_PARAMETER {
-    uint16_t Type;
+    uint32_t Type;
     uint16_t Length;
     _Field_size_(Length)
     const uint8_t* Buffer;
