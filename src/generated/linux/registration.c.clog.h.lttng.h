@@ -67,23 +67,27 @@ TRACEPOINT_EVENT(CLOG_REGISTRATION_C, AllocFailure,
 
 
 /*----------------------------------------------------------
-// Decoder Ring for RegistrationCreated
-// [ reg][%p] Created, AppName=%s
+// Decoder Ring for RegistrationCreatedV2
+// [ reg][%p] Created, AppName=%s, ExecProfile=%u
 // QuicTraceEvent(
-        RegistrationCreated,
-        "[ reg][%p] Created, AppName=%s",
+        RegistrationCreatedV2,
+        "[ reg][%p] Created, AppName=%s, ExecProfile=%u",
         Registration,
-        Registration->AppName);
+        Registration->AppName,
+        Registration->ExecProfile);
 // arg2 = arg2 = Registration = arg2
 // arg3 = arg3 = Registration->AppName = arg3
+// arg4 = arg4 = Registration->ExecProfile = arg4
 ----------------------------------------------------------*/
-TRACEPOINT_EVENT(CLOG_REGISTRATION_C, RegistrationCreated,
+TRACEPOINT_EVENT(CLOG_REGISTRATION_C, RegistrationCreatedV2,
     TP_ARGS(
         const void *, arg2,
-        const char *, arg3), 
+        const char *, arg3,
+        unsigned int, arg4), 
     TP_FIELDS(
         ctf_integer_hex(uint64_t, arg2, arg2)
         ctf_string(arg3, arg3)
+        ctf_integer(unsigned int, arg4, arg4)
     )
 )
 
@@ -144,22 +148,26 @@ TRACEPOINT_EVENT(CLOG_REGISTRATION_C, ApiExit,
 
 
 /*----------------------------------------------------------
-// Decoder Ring for RegistrationRundown
-// [ reg][%p] Rundown, AppName=%s
+// Decoder Ring for RegistrationRundownV2
+// [ reg][%p] Rundown, AppName=%s, ExecProfile=%u
 // QuicTraceEvent(
-        RegistrationRundown,
-        "[ reg][%p] Rundown, AppName=%s",
+        RegistrationRundownV2,
+        "[ reg][%p] Rundown, AppName=%s, ExecProfile=%u",
         Registration,
-        Registration->AppName);
+        Registration->AppName,
+        Registration->ExecProfile);
 // arg2 = arg2 = Registration = arg2
 // arg3 = arg3 = Registration->AppName = arg3
+// arg4 = arg4 = Registration->ExecProfile = arg4
 ----------------------------------------------------------*/
-TRACEPOINT_EVENT(CLOG_REGISTRATION_C, RegistrationRundown,
+TRACEPOINT_EVENT(CLOG_REGISTRATION_C, RegistrationRundownV2,
     TP_ARGS(
         const void *, arg2,
-        const char *, arg3), 
+        const char *, arg3,
+        unsigned int, arg4), 
     TP_FIELDS(
         ctf_integer_hex(uint64_t, arg2, arg2)
         ctf_string(arg3, arg3)
+        ctf_integer(unsigned int, arg4, arg4)
     )
 )

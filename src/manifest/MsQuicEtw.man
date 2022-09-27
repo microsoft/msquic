@@ -535,6 +535,24 @@
                 value="12"
                 />
           </valueMap>
+          <valueMap name="map_QUIC_EXECUTION_PROFILE">
+            <map
+                message="$(string.Enum.QUIC_EXECUTION_PROFILE.QUIC_EXECUTION_PROFILE_LOW_LATENCY)"
+                value="0"
+                />
+            <map
+                message="$(string.Enum.QUIC_EXECUTION_PROFILE.QUIC_EXECUTION_PROFILE_TYPE_MAX_THROUGHPUT)"
+                value="1"
+                />
+            <map
+                message="$(string.Enum.QUIC_EXECUTION_PROFILE.QUIC_EXECUTION_PROFILE_TYPE_SCAVENGER)"
+                value="2"
+                />
+            <map
+                message="$(string.Enum.QUIC_EXECUTION_PROFILE.QUIC_EXECUTION_PROFILE_TYPE_REAL_TIME)"
+                value="3"
+                />
+          </valueMap>
         </maps>
         <templates>
           <template tid="tid_MESSAGE">
@@ -661,6 +679,21 @@
             <data
                 inType="win:AnsiString"
                 name="AppName"
+                />
+          </template>
+          <template tid="tid_REGISTRATION_STRING_EXEC">
+            <data
+                inType="win:Pointer"
+                name="Registration"
+                />
+            <data
+                inType="win:AnsiString"
+                name="AppName"
+                />
+            <data
+                inType="win:UInt32"
+                map="map_QUIC_EXECUTION_PROFILE"
+                name="ExecProfile"
                 />
           </template>
           <template tid="tid_REGISTRATION_ERROR">
@@ -2162,6 +2195,24 @@
               symbol="QuicRegistrationShutdown"
               template="tid_REGISTRATION_FLAGS_ERRORCODE"
               value="1030"
+              />
+          <event
+              keywords="ut:Registration ut:LowVolume"
+              level="win:Informational"
+              message="$(string.Etw.RegistrationCreatedV2)"
+              opcode="Registration"
+              symbol="QuicRegistrationCreatedV2"
+              template="tid_REGISTRATION_STRING_EXEC"
+              value="1031"
+              />
+          <event
+              keywords="ut:Registration ut:LowVolume"
+              level="win:Informational"
+              message="$(string.Etw.RegistrationRundownV2)"
+              opcode="Registration"
+              symbol="QuicRegistrationRundownV2"
+              template="tid_REGISTRATION_STRING_EXEC"
+              value="1032"
               />
           <!-- 2048 - 3071 | Worker Events -->
           <event
@@ -3748,8 +3799,16 @@
             value="[ reg][%1] Created, AppName=%2"
             />
         <string
+            id="Etw.RegistrationCreatedV2"
+            value="[ reg][%1] Created, AppName=%2, ExecProfile=%3"
+            />
+        <string
             id="Etw.RegistrationRundown"
             value="[ reg][%1] Rundown, AppName=%2"
+            />
+        <string
+            id="Etw.RegistrationRundownV2"
+            value="[ reg][%1] Rundown, AppName=%2, ExecProfile=%3"
             />
         <string
             id="Etw.RegistrationDestroyed"
@@ -4395,6 +4454,22 @@
         <string
             id="Enum.QUIC_SEND_FLUSH_REASON.SCHEDULING"
             value="SCHEDULING"
+            />
+        <string
+            id="Enum.QUIC_EXECUTION_PROFILE.QUIC_EXECUTION_PROFILE_LOW_LATENCY"
+            value="LOW_LATENCY"
+            />
+        <string
+            id="Enum.QUIC_EXECUTION_PROFILE.QUIC_EXECUTION_PROFILE_TYPE_MAX_THROUGHPUT"
+            value="MAX_THROUGHPUT"
+            />
+        <string
+            id="Enum.QUIC_EXECUTION_PROFILE.QUIC_EXECUTION_PROFILE_TYPE_SCAVENGER"
+            value="SCAVENGER"
+            />
+        <string
+            id="Enum.QUIC_EXECUTION_PROFILE.QUIC_EXECUTION_PROFILE_TYPE_REAL_TIME"
+            value="REAL_TIME"
             />
         <string
             id="Etw.ConnNoListenerIp"

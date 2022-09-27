@@ -96,10 +96,11 @@ MsQuicRegistrationOpen(
     }
 
     QuicTraceEvent(
-        RegistrationCreated,
-        "[ reg][%p] Created, AppName=%s",
+        RegistrationCreatedV2,
+        "[ reg][%p] Created, AppName=%s, ExecProfile=%u",
         Registration,
-        Registration->AppName);
+        Registration->AppName,
+        Registration->ExecProfile);
 
 #ifdef CxPlatVerifierEnabledByAddr
 #pragma prefast(suppress:6001, "SAL doesn't understand checking whether memory is tracked by Verifier.")
@@ -262,10 +263,11 @@ QuicRegistrationTraceRundown(
     )
 {
     QuicTraceEvent(
-        RegistrationRundown,
-        "[ reg][%p] Rundown, AppName=%s",
+        RegistrationRundownV2,
+        "[ reg][%p] Rundown, AppName=%s, ExecProfile=%u",
         Registration,
-        Registration->AppName);
+        Registration->AppName,
+        Registration->ExecProfile);
 
     CxPlatLockAcquire(&Registration->ConfigLock);
 
