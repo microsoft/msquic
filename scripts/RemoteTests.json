@@ -252,7 +252,7 @@
             "RegressionThreshold": "-75.0"
         },
         {
-            "TestName": "RPS",
+            "TestName": "Latency",
             "Local": {
                 "Platform": "Windows",
                 "Tls": ["schannel", "openssl"],
@@ -295,7 +295,7 @@
             "RegressionThreshold": "-50.0"
         },
         {
-            "TestName": "RPS",
+            "TestName": "Latency",
             "Local": {
                 "Platform": "linux",
                 "Tls": ["openssl"],
