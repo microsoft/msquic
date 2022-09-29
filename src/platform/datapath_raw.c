@@ -172,6 +172,9 @@ CxPlatDataPathInitialize(
 Error:
 
     if (DataPath != NULL) {
+#if DEBUG
+        DataPath->Uninitialized = TRUE;
+#endif
         if (DpRawInitialized) {
             CxPlatDpRawUninitialize(DataPath);
         } else {
