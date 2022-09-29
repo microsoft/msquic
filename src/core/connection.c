@@ -2344,7 +2344,11 @@ QuicConnGenerateLocalTransportParameters(
         LocalTP->CibirOffset = Connection->CibirId[1];
     }
 
-    if (Connection->Settings.VersionNegotiationExtEnabled) {
+    if (Connection->Settings.VersionNegotiationExtEnabled
+#if QUIC_TEST_DISABLE_VNE_TP_GENERATION
+        && !Connection->State.DisableVneTp
+#endif
+        ) {
         uint32_t VersionInfoLength = 0;
         LocalTP->VersionInfo =
             QuicVersionNegotiationExtEncodeVersionInfo(Connection, &VersionInfoLength);
@@ -5383,10 +5387,19 @@ QuicConnRecvDatagramBatch(
         CXPLAT_ECN_TYPE ECN = CXPLAT_ECN_FROM_TOS(Datagrams[i]->TypeOfService);
         Packet = CxPlatDataPathRecvDataToRecvPacket(Datagrams[i]);
         CXPLAT_DBG_ASSERT(Packet->PacketId != 0);
-        if (QuicConnRecvPrepareDecrypt(
-                Connection, Packet, HpMask + i * CXPLAT_HP_SAMPLE_LENGTH) &&
-            QuicConnRecvDecryptAndAuthenticate(Connection, Path, Packet) &&
-            QuicConnRecvFrames(Connection, Path, Packet, ECN)) {
+        if (!QuicConnRecvPrepareDecrypt(
+                Connection, Packet, HpMask + i * CXPLAT_HP_SAMPLE_LENGTH) ||
+            !QuicConnRecvDecryptAndAuthenticate(Connection, Path, Packet)) {
+            if (Connection->State.CompatibleVerNegotiationAttempted &&
+                !Connection->State.CompatibleVerNegotiationCompleted) {
+                //
+                // The packet which initiated compatible version negotation failed
+                // decryption, so undo the version change.
+                //
+                Connection->Stats.QuicVersion = Connection->OriginalQuicVersion;
+                Connection->State.CompatibleVerNegotiationAttempted = FALSE;
+            }
+        } else if (QuicConnRecvFrames(Connection, Path, Packet, ECN)) {
 
             QuicConnRecvPostProcessing(Connection, &Path, Packet);
             RecvState->ResetIdleTimeout |= Packet->CompletelyValid;
@@ -5406,17 +5419,6 @@ QuicConnRecvDatagramBatch(
                 } else {
                     Path->SpinBit = !Packet->SH->SpinBit;
                 }
-            }
-
-        } else {
-            if (Connection->State.CompatibleVerNegotiationAttempted &&
-                !Connection->State.CompatibleVerNegotiationCompleted) {
-                //
-                // The packet which initiated compatible version negotation failed
-                // decryption, so undo the version change.
-                //
-                Connection->Stats.QuicVersion = Connection->OriginalQuicVersion;
-                Connection->State.CompatibleVerNegotiationAttempted = FALSE;
             }
         }
     }
@@ -6561,7 +6563,7 @@ QuicConnParamSet(
         QuicTraceLogConnVerbose(
             TestTPSet,
             Connection,
-            "Setting Test Transport Parameter (type %hu, %hu bytes)",
+            "Setting Test Transport Parameter (type %x, %hu bytes)",
             Connection->TestTransportParameter.Type,
             Connection->TestTransportParameter.Length);
 
@@ -6578,6 +6580,19 @@ QuicConnParamSet(
         Connection->KeepAlivePadding = *(uint16_t*)Buffer;
         Status = QUIC_STATUS_SUCCESS;
         break;
+
+#if QUIC_TEST_DISABLE_VNE_TP_GENERATION
+    case QUIC_PARAM_CONN_DISABLE_VNE_TP_GENERATION:
+
+        if (BufferLength != sizeof(BOOLEAN) || Buffer == NULL) {
+            Status = QUIC_STATUS_INVALID_PARAMETER;
+            break;
+        }
+
+        Connection->State.DisableVneTp = *(BOOLEAN*)Buffer;
+        Status = QUIC_STATUS_SUCCESS;
+        break;
+#endif
 
     default:
         Status = QUIC_STATUS_INVALID_PARAMETER;

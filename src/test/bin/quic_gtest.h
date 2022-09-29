@@ -270,6 +270,28 @@ class WithHandshakeArgs7 : public testing::Test,
     public testing::WithParamInterface<HandshakeArgs7> {
 };
 
+struct HandshakeArgs8 {
+    bool TestServer;
+    uint8_t VnTpSize;
+    static ::std::vector<HandshakeArgs8> Generate() {
+        ::std::vector<HandshakeArgs8> list;
+        for (bool TestServer : { false, true })
+        for (uint8_t VnTpSize: { 0, 2, 7, 9 })
+            list.push_back({TestServer, VnTpSize});
+        return list;
+    }
+};
+
+std::ostream& operator << (std::ostream& o, const HandshakeArgs8& args) {
+    return o <<
+        (args.TestServer ? "server" : "client") << "/" <<
+        (int)args.VnTpSize;
+}
+
+class WithHandshakeArgs8 : public testing::Test,
+    public testing::WithParamInterface<HandshakeArgs8> {
+};
+
 struct SendArgs1 {
     int Family;
     uint64_t Length;

@@ -84,6 +84,12 @@ typedef struct QUIC_TEST_DATAPATH_HOOKS {
 // Allocation failures are currently only enabled on debug builds.
 //
 #define QUIC_TEST_ALLOC_FAILURES_ENABLED 1
+
+//
+// Enable support to disable automatic generation of the version
+// negotiation transport parameter.
+//
+#define QUIC_TEST_DISABLE_VNE_TP_GENERATION 1
 #endif
 
 typedef struct QUIC_PRIVATE_TRANSPORT_PARAMETER {
@@ -123,6 +129,7 @@ typedef struct QUIC_PRIVATE_TRANSPORT_PARAMETER {
 #define QUIC_PARAM_CONN_FORCE_CID_UPDATE                0x85000001  // No payload
 #define QUIC_PARAM_CONN_TEST_TRANSPORT_PARAMETER        0x85000002  // QUIC_PRIVATE_TRANSPORT_PARAMETER
 #define QUIC_PARAM_CONN_KEEP_ALIVE_PADDING              0x85000003  // uint16_t
+#define QUIC_PARAM_CONN_DISABLE_VNE_TP_GENERATION       0x85000004  // BOOLEAN
 
 #if defined(__cplusplus)
 }

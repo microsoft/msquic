@@ -186,6 +186,14 @@ typedef union QUIC_CONNECTION_STATE {
         //
         BOOLEAN IsVerifying : 1;
 #endif
+
+#if QUIC_TEST_DISABLE_VNE_TP_GENERATION
+        //
+        // Whether to disable automatic generation of VNE transport parameter.
+        // Only used for testing, and thus only enabled for debug builds.
+        //
+        BOOLEAN DisableVneTp : 1;
+#endif
     };
 } QUIC_CONNECTION_STATE;
 

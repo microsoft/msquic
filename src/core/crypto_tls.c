@@ -1743,34 +1743,27 @@ QuicCryptoTlsDecodeTransportParameters( // NOLINT(readability-function-size, goo
             break;
 
         case QUIC_TP_ID_VERSION_NEGOTIATION_EXT:
-            if (Length < MIN_VERSION_INFO_LENGTH) {
-                QuicTraceEvent(
-                    ConnErrorStatus,
-                    "[conn][%p] ERROR, %u, %s.",
-                    Connection,
-                    Length,
-                    "Invalid length of QUIC_TP_ID_VERSION_NEGOTIATION_EXT");
-                goto Exit;
-            }
-            TransportParams->VersionInfo = CXPLAT_ALLOC_NONPAGED(Length, QUIC_POOL_VERSION_INFO);
-            if (TransportParams->VersionInfo == NULL) {
-                QuicTraceEvent(
-                    AllocFailure,
-                    "Allocation of '%s' failed. (%llu bytes)",
-                    IsServerTP ?
-                        "Received Client Version Negotiation Info" :
-                        "Received Server Version Negotiation Info",
-                    Length);
-            } else {
-                TransportParams->Flags |= QUIC_TP_FLAG_VERSION_NEGOTIATION;
+            if (Length > 0) {
+                TransportParams->VersionInfo = CXPLAT_ALLOC_NONPAGED(Length, QUIC_POOL_VERSION_INFO);
+                if (TransportParams->VersionInfo == NULL) {
+                    QuicTraceEvent(
+                        AllocFailure,
+                        "Allocation of '%s' failed. (%llu bytes)",
+                        "Version Negotiation Info",
+                        Length);
+                    break;
+                }
                 CxPlatCopyMemory((uint8_t*)TransportParams->VersionInfo, TPBuf + Offset, Length);
-                TransportParams->VersionInfoLength = Length;
-                QuicTraceLogConnVerbose(
-                    DecodeTPVersionNegotiationInfo,
-                    Connection,
-                    "TP: Version Negotiation Info (%hu bytes)",
-                    Length);
+            } else {
+                TransportParams->VersionInfo = NULL;
             }
+            TransportParams->Flags |= QUIC_TP_FLAG_VERSION_NEGOTIATION;
+            TransportParams->VersionInfoLength = Length;
+            QuicTraceLogConnVerbose(
+                DecodeTPVersionNegotiationInfo,
+                Connection,
+                "TP: Version Negotiation Info (%hu bytes)",
+                Length);
             break;
 
         case QUIC_TP_ID_MIN_ACK_DELAY:
@@ -1891,8 +1884,10 @@ QuicCryptoTlsCleanupTransportParameters(
     )
 {
     if (TransportParams->Flags & QUIC_TP_FLAG_VERSION_NEGOTIATION) {
-        CXPLAT_FREE(TransportParams->VersionInfo, QUIC_POOL_VERSION_INFO);
-        TransportParams->VersionInfo = NULL;
+        if (TransportParams->VersionInfo != NULL) {
+            CXPLAT_FREE(TransportParams->VersionInfo, QUIC_POOL_VERSION_INFO);
+            TransportParams->VersionInfo = NULL;
+        }
         TransportParams->VersionInfoLength = 0;
         TransportParams->Flags &= ~QUIC_TP_FLAG_VERSION_NEGOTIATION;
     }

@@ -1410,11 +1410,11 @@ tracepoint(CLOG_CONNECTION_C, ForceCidUpdate , arg1);\
 
 /*----------------------------------------------------------
 // Decoder Ring for TestTPSet
-// [conn][%p] Setting Test Transport Parameter (type %hu, %hu bytes)
+// [conn][%p] Setting Test Transport Parameter (type %x, %hu bytes)
 // QuicTraceLogConnVerbose(
             TestTPSet,
             Connection,
-            "Setting Test Transport Parameter (type %hu, %hu bytes)",
+            "Setting Test Transport Parameter (type %x, %hu bytes)",
             Connection->TestTransportParameter.Type,
             Connection->TestTransportParameter.Length);
 // arg1 = arg1 = Connection = arg1
