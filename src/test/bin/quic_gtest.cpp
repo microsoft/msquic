@@ -903,6 +903,7 @@ TEST_P(WithHandshakeArgs7, CibirExtension) {
 //     }
 // }
 
+#if QUIC_TEST_DISABLE_VNE_TP_GENERATION
 TEST_P(WithHandshakeArgs8, OddSizeVnTp) {
     TestLoggerT<ParamType> Logger("QuicTestOddSizeVNTP", GetParam());
     if (TestingKernelMode) {
@@ -915,6 +916,7 @@ TEST_P(WithHandshakeArgs8, OddSizeVnTp) {
         QuicTestOddSizeVNTP(GetParam().TestServer, GetParam().VnTpSize);
     }
 }
+#endif
 
 #if QUIC_TEST_FAILING_TEST_CERTIFICATES
 TEST(CredValidation, ConnectExpiredServerCertificate) {

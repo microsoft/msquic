@@ -84,6 +84,12 @@ typedef struct QUIC_TEST_DATAPATH_HOOKS {
 // Allocation failures are currently only enabled on debug builds.
 //
 #define QUIC_TEST_ALLOC_FAILURES_ENABLED 1
+
+//
+// Enable support to disable automatic generation of the version
+// negotiation transport parameter.
+//
+#define QUIC_TEST_DISABLE_VNE_TP_GENERATION 1
 #endif
 
 typedef struct QUIC_PRIVATE_TRANSPORT_PARAMETER {
