@@ -1952,10 +1952,12 @@ INSTANTIATE_TEST_SUITE_P(
     WithHandshakeArgs7,
     testing::ValuesIn(HandshakeArgs7::Generate()));
 
+#if QUIC_TEST_DISABLE_VNE_TP_GENERATION
 INSTANTIATE_TEST_SUITE_P(
     Handshake,
     WithHandshakeArgs8,
     testing::ValuesIn(HandshakeArgs8::Generate()));
+#endif
 
 INSTANTIATE_TEST_SUITE_P(
     AppData,

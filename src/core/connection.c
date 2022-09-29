@@ -5390,15 +5390,15 @@ QuicConnRecvDatagramBatch(
         if (!QuicConnRecvPrepareDecrypt(
                 Connection, Packet, HpMask + i * CXPLAT_HP_SAMPLE_LENGTH) ||
             !QuicConnRecvDecryptAndAuthenticate(Connection, Path, Packet)) {
-                if (Connection->State.CompatibleVerNegotiationAttempted &&
-                    !Connection->State.CompatibleVerNegotiationCompleted) {
-                    //
-                    // The packet which initiated compatible version negotation failed
-                    // decryption, so undo the version change.
-                    //
-                    Connection->Stats.QuicVersion = Connection->OriginalQuicVersion;
-                    Connection->State.CompatibleVerNegotiationAttempted = FALSE;
-                }
+            if (Connection->State.CompatibleVerNegotiationAttempted &&
+                !Connection->State.CompatibleVerNegotiationCompleted) {
+                //
+                // The packet which initiated compatible version negotation failed
+                // decryption, so undo the version change.
+                //
+                Connection->Stats.QuicVersion = Connection->OriginalQuicVersion;
+                Connection->State.CompatibleVerNegotiationAttempted = FALSE;
+            }
         } else if (QuicConnRecvFrames(Connection, Path, Packet, ECN)) {
 
             QuicConnRecvPostProcessing(Connection, &Path, Packet);
