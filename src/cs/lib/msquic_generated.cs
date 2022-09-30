@@ -194,7 +194,7 @@ namespace Microsoft.Quic
         internal QUIC_EXECUTION_CONFIG_FLAGS Flags;
 
         [NativeTypeName("uint32_t")]
-        internal uint SleepTimeoutUs;
+        internal uint PollingIdleTimeoutUs;
 
         [NativeTypeName("uint32_t")]
         internal uint ProcessorCount;

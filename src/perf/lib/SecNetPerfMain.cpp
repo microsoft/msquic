@@ -96,7 +96,7 @@ PrintHelp(
         "Both:\n"
         "  -exec:<profile>             Execution profile to use {lowlat, maxtput, scavenger, realtime}.\n"
         "  -cc:<algo>                  Congestion control algorithm to use {cubic, bbr}.\n"
-        "  -sleepthresh:<time_us>      Amount of time to poll before sleeping (default: 0).\n"
+        "  -pollidle:<time_us>         Amount of time to poll while idle before sleeping (default: 0).\n"
 #ifndef _KERNEL_MODE
         "  -cpu:<cpu_index>            Specify the processor(s) to use.\n"
         "  -cipher:<value>             Decimal value of 1 or more QUIC_ALLOWED_CIPHER_SUITE_FLAGS.\n"
@@ -189,7 +189,7 @@ QuicMainStart(
 
     uint8_t RawConfig[QUIC_EXECUTION_CONFIG_MIN_SIZE + 256 * sizeof(uint16_t)] = {0};
     QUIC_EXECUTION_CONFIG* Config = (QUIC_EXECUTION_CONFIG*)RawConfig;
-    Config->SleepTimeoutUs = UINT32_MAX; // Default to no sleep.
+    Config->PollingIdleTimeoutUs = UINT32_MAX; // Default to no sleep.
     bool SetConfig = false;
 
 #ifndef _KERNEL_MODE
@@ -210,7 +210,7 @@ QuicMainStart(
     }
 #endif // _KERNEL_MODE
 
-    if (TryGetValue(argc, argv, "sleepthresh", &Config->SleepTimeoutUs)) {
+    if (TryGetValue(argc, argv, "pollidle", &Config->PollingIdleTimeoutUs)) {
         SetConfig = true;
     }
 

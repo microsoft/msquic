@@ -244,7 +244,7 @@ DEFINE_ENUM_FLAG_OPERATORS(QUIC_EXECUTION_CONFIG_FLAGS)
 typedef struct QUIC_EXECUTION_CONFIG {
 
     QUIC_EXECUTION_CONFIG_FLAGS Flags;
-    uint32_t SleepTimeoutUs;            // Number of microseconds of idleness before sleeping a datapath thread.
+    uint32_t PollingIdleTimeoutUs;      // Time before a polling thread, with no work to do, sleeps.
     uint32_t ProcessorCount;
     _Field_size_(ProcessorCount)
     uint16_t ProcessorList[1];          // List of processors to use for threads.
