@@ -42,11 +42,8 @@ typedef struct QUIC_REGISTRATION {
     BOOLEAN NoPartitioning : 1;
 
     //
-    // Indicates whether if the QUIC worker is partitioned split from the RSS
-    // core.
+    // Indicates the registration is in the proces of shutting down.
     //
-    BOOLEAN SplitPartitioning : 1;
-
     BOOLEAN ShuttingDown : 1;
 
     //
@@ -54,6 +51,9 @@ typedef struct QUIC_REGISTRATION {
     //
     QUIC_EXECUTION_PROFILE ExecProfile;
 
+    //
+    // When shutdown, the set of flags passed to each connection for shutdown.
+    //
     QUIC_CONNECTION_SHUTDOWN_FLAGS ShutdownFlags;
 
     //

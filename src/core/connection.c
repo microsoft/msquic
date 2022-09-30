@@ -5438,12 +5438,6 @@ QuicConnRecvDatagrams(
     uint32_t ReleaseChainCount = 0;
     QUIC_RECEIVE_PROCESSING_STATE RecvState = { FALSE, FALSE, 0 };
     RecvState.PartitionIndex = QuicPartitionIdGetIndex(Connection->PartitionID);
-    if (Connection->Registration && Connection->Registration->SplitPartitioning) {
-        RecvState.PartitionIndex =
-            QuicPartitionIndexDecrement(
-                RecvState.PartitionIndex,
-                QUIC_MAX_THROUGHPUT_PARTITION_OFFSET);
-    }
 
     UNREFERENCED_PARAMETER(DatagramChainCount);
 
@@ -5697,13 +5691,6 @@ QuicConnRecvDatagrams(
         Connection->State.Connected &&
         RecvState.UpdatePartitionId) {
         CXPLAT_DBG_ASSERT(!Connection->Registration->NoPartitioning);
-        if (Connection->Registration->SplitPartitioning) {
-            // TODO - Constrain PartitionID to the same NUMA node?
-            RecvState.PartitionIndex =
-                QuicPartitionIndexIncrement(
-                    RecvState.PartitionIndex,
-                    QUIC_MAX_THROUGHPUT_PARTITION_OFFSET);
-        }
         CXPLAT_DBG_ASSERT(RecvState.PartitionIndex != QuicPartitionIdGetIndex(Connection->PartitionID));
         Connection->PartitionID = QuicPartitionIdCreate(RecvState.PartitionIndex);
         QuicConnGenerateNewSourceCids(Connection, TRUE);

@@ -144,6 +144,9 @@ typedef enum QUIC_EVENT_ID_REGISTRATION {
     EventId_QuicRegistrationRundown,
     EventId_QuicRegistrationError,
     EventId_QuicRegistrationErrorStatus,
+    EventId_QuicRegistrationShutdown,
+    EventId_QuicRegistrationCreatedV2,
+    EventId_QuicRegistrationRundownV2,
 
     EventId_QuicRegistrationCount
 } QUIC_EVENT_ID_REGISTRATION;

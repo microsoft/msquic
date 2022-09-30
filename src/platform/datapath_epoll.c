@@ -354,9 +354,9 @@ typedef struct QUIC_CACHEALIGN CXPLAT_DATAPATH_PROC {
     CXPLAT_REF_COUNT RefCount;
 
     //
-    // The index of the context in the datapath's array.
+    // The ideal processor of the context.
     //
-    uint32_t Index;
+    uint16_t IdealProcessor;
 
 #if DEBUG
     uint8_t Uninitialized : 1;
@@ -420,9 +420,24 @@ typedef struct CXPLAT_DATAPATH {
     //
     // The per proc datapath contexts.
     //
-    CXPLAT_DATAPATH_PROC DatapathProcs[];
+    CXPLAT_DATAPATH_PROC Processors[];
 
 } CXPLAT_DATAPATH;
+
+CXPLAT_DATAPATH_PROC*
+CxPlatDataPathGetProc(
+    _In_ CXPLAT_DATAPATH* Datapath,
+    _In_ uint16_t Processor
+    )
+{
+    for (uint32_t i = 0; i < Datapath->ProcCount; ++i) {
+        if (Datapath->Processors[i].IdealProcessor == Processor) {
+            return &Datapath->Processors[i];
+        }
+    }
+    CXPLAT_FRE_ASSERT(FALSE); // TODO - What now?!
+    return NULL;
+}
 
 QUIC_STATUS
 CxPlatSocketSendInternal(
@@ -484,7 +499,7 @@ Error:
 void
 CxPlatProcessorContextInitialize(
     _In_ CXPLAT_DATAPATH* Datapath,
-    _In_ uint32_t Index,
+    _In_ uint16_t IdealProcessor,
     _In_ uint32_t ClientRecvContextLength,
     _Out_ CXPLAT_DATAPATH_PROC* DatapathProc
     )
@@ -494,9 +509,9 @@ CxPlatProcessorContextInitialize(
 
     CXPLAT_DBG_ASSERT(Datapath != NULL);
     DatapathProc->Datapath = Datapath;
-    DatapathProc->Index = Index;
+    DatapathProc->IdealProcessor = IdealProcessor;
+    DatapathProc->EventQ = CxPlatWorkerGetEventQ(IdealProcessor);
     CxPlatRefInitialize(&DatapathProc->RefCount);
-    DatapathProc->EventQ = CxPlatWorkerGetEventQ((uint16_t)Index);
 
     CxPlatPoolInitialize(
         TRUE,
@@ -525,12 +540,11 @@ CxPlatDataPathInitialize(
     _In_ uint32_t ClientRecvContextLength,
     _In_opt_ const CXPLAT_UDP_DATAPATH_CALLBACKS* UdpCallbacks,
     _In_opt_ const CXPLAT_TCP_DATAPATH_CALLBACKS* TcpCallbacks,
-    _In_opt_ CXPLAT_DATAPATH_CONFIG* Config,
+    _In_opt_ QUIC_EXECUTION_CONFIG* Config,
     _Out_ CXPLAT_DATAPATH** NewDataPath
     )
 {
     UNREFERENCED_PARAMETER(TcpCallbacks);
-    UNREFERENCED_PARAMETER(Config);
     if (NewDataPath == NULL) {
         return QUIC_STATUS_INVALID_PARAMETER;
     }
@@ -540,11 +554,25 @@ CxPlatDataPathInitialize(
         }
     }
 
-    const size_t DatapathLength =
-        sizeof(CXPLAT_DATAPATH) +
-            CxPlatProcMaxCount() * sizeof(CXPLAT_DATAPATH_PROC);
+    if (!CxPlatWorkersLazyStart(Config)) {
+        return QUIC_STATUS_OUT_OF_MEMORY;
+    }
 
-    CXPLAT_DATAPATH* Datapath = (CXPLAT_DATAPATH*)CXPLAT_ALLOC_PAGED(DatapathLength, QUIC_POOL_DATAPATH);
+    const uint16_t* ProcessorList;
+    uint32_t ProcessorCount;
+    if (Config && Config->ProcessorCount) {
+        ProcessorCount = Config->ProcessorCount;
+        ProcessorList = Config->ProcessorList;
+    } else {
+        ProcessorCount = CxPlatProcMaxCount();
+        ProcessorList = NULL;
+    }
+
+    const size_t DatapathLength =
+        sizeof(CXPLAT_DATAPATH) + ProcessorCount * sizeof(CXPLAT_DATAPATH_PROC);
+
+    CXPLAT_DATAPATH* Datapath =
+        (CXPLAT_DATAPATH*)CXPLAT_ALLOC_PAGED(DatapathLength, QUIC_POOL_DATAPATH);
     if (Datapath == NULL) {
         QuicTraceEvent(
             AllocFailure,
@@ -558,7 +586,7 @@ CxPlatDataPathInitialize(
     if (UdpCallbacks) {
         Datapath->UdpHandlers = *UdpCallbacks;
     }
-    Datapath->ProcCount = CxPlatProcMaxCount();
+    Datapath->ProcCount = ProcessorCount;
     Datapath->Features = CXPLAT_DATAPATH_FEATURE_LOCAL_PORT_SHARING;
     CxPlatRefInitializeEx(&Datapath->RefCount, Datapath->ProcCount);
 
@@ -574,7 +602,11 @@ CxPlatDataPathInitialize(
     // Initialize the per processor contexts.
     //
     for (uint32_t i = 0; i < Datapath->ProcCount; i++) {
-        CxPlatProcessorContextInitialize(Datapath, i, ClientRecvContextLength, &Datapath->DatapathProcs[i]);
+        CxPlatProcessorContextInitialize(
+            Datapath,
+            ProcessorList ? ProcessorList[i] : (uint16_t)i,
+            ClientRecvContextLength,
+            &Datapath->Processors[i]);
     }
 
     CXPLAT_FRE_ASSERT(CxPlatRundownAcquire(&CxPlatWorkerRundown));
@@ -631,7 +663,7 @@ CxPlatDataPathUninitialize(
 #endif
         const uint16_t ProcCount = Datapath->ProcCount;
         for (uint32_t i = 0; i < ProcCount; i++) {
-            CxPlatProcessorContextRelease(&Datapath->DatapathProcs[i]);
+            CxPlatProcessorContextRelease(&Datapath->Processors[i]);
         }
     }
 }
@@ -1512,7 +1544,7 @@ CxPlatSocketContextRecvComplete(
         CXPLAT_FRE_ASSERT(FoundLocalAddr);
         CXPLAT_FRE_ASSERT(FoundTOS);
 
-        RecvPacket->PartitionIndex = SocketContext->DatapathProc->Index;
+        RecvPacket->PartitionIndex = SocketContext->DatapathProc->IdealProcessor;
 
         QuicTraceEvent(
             DatapathRecv,
@@ -1817,7 +1849,10 @@ CxPlatSocketCreateUdp(
             Binding->SocketContexts[i].RecvIov[j].iov_len =
                 Binding->Mtu - CXPLAT_MIN_IPV4_HEADER_SIZE - CXPLAT_UDP_HEADER_SIZE;
         }
-        Binding->SocketContexts[i].DatapathProc = &Datapath->DatapathProcs[IsServerSocket ? i : CurrentProc];
+        Binding->SocketContexts[i].DatapathProc =
+            IsServerSocket ?
+                &Datapath->Processors[i] :
+                CxPlatDataPathGetProc(Datapath, CurrentProc);
         CxPlatRefIncrement(&Binding->SocketContexts[i].DatapathProc->RefCount);
         CxPlatListInitializeHead(&Binding->SocketContexts[i].PendingSendDataHead);
         CxPlatLockInitialize(&Binding->SocketContexts[i].PendingSendDataLock);
@@ -2013,7 +2048,7 @@ CxPlatSendDataAlloc(
     CXPLAT_DBG_ASSERT(Socket != NULL);
 
     CXPLAT_DATAPATH_PROC* DatapathProc =
-        &Socket->Datapath->DatapathProcs[CxPlatProcCurrentNumber() % Socket->Datapath->ProcCount];
+        CxPlatDataPathGetProc(Socket->Datapath, CxPlatProcCurrentNumber());
 
     CXPLAT_SEND_DATA* SendData =
         CxPlatPoolAlloc(&DatapathProc->SendDataPool);

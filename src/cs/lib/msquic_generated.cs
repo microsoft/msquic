@@ -183,6 +183,26 @@ namespace Microsoft.Quic
         CANCELED,
     }
 
+    [System.Flags]
+    internal enum QUIC_EXECUTION_CONFIG_FLAGS
+    {
+        NONE = 0x0000,
+    }
+
+    internal unsafe partial struct QUIC_EXECUTION_CONFIG
+    {
+        internal QUIC_EXECUTION_CONFIG_FLAGS Flags;
+
+        [NativeTypeName("uint32_t")]
+        internal uint PollingIdleTimeoutUs;
+
+        [NativeTypeName("uint32_t")]
+        internal uint ProcessorCount;
+
+        [NativeTypeName("uint16_t [1]")]
+        internal fixed ushort ProcessorList[1];
+    }
+
     internal unsafe partial struct QUIC_REGISTRATION_CONFIG
     {
         [NativeTypeName("const char *")]
@@ -2680,6 +2700,9 @@ namespace Microsoft.Quic
         [NativeTypeName("#define QUIC_MAX_RESUMPTION_APP_DATA_LENGTH 1000")]
         internal const uint QUIC_MAX_RESUMPTION_APP_DATA_LENGTH = 1000;
 
+        [NativeTypeName("#define QUIC_EXECUTION_CONFIG_MIN_SIZE (uint32_t)FIELD_OFFSET(QUIC_EXECUTION_CONFIG, ProcessorList)")]
+        internal static readonly uint QUIC_EXECUTION_CONFIG_MIN_SIZE = unchecked((uint)((int)(Marshal.OffsetOf<QUIC_EXECUTION_CONFIG>("ProcessorList"))));
+
         [NativeTypeName("#define QUIC_MAX_TICKET_KEY_COUNT 16")]
         internal const uint QUIC_MAX_TICKET_KEY_COUNT = 16;
 
@@ -2737,8 +2760,8 @@ namespace Microsoft.Quic
         [NativeTypeName("#define QUIC_PARAM_GLOBAL_LIBRARY_GIT_HASH 0x01000008")]
         internal const uint QUIC_PARAM_GLOBAL_LIBRARY_GIT_HASH = 0x01000008;
 
-        [NativeTypeName("#define QUIC_PARAM_GLOBAL_DATAPATH_PROCESSORS 0x01000009")]
-        internal const uint QUIC_PARAM_GLOBAL_DATAPATH_PROCESSORS = 0x01000009;
+        [NativeTypeName("#define QUIC_PARAM_GLOBAL_EXECUTION_CONFIG 0x01000009")]
+        internal const uint QUIC_PARAM_GLOBAL_EXECUTION_CONFIG = 0x01000009;
 
         [NativeTypeName("#define QUIC_PARAM_GLOBAL_TLS_PROVIDER 0x0100000A")]
         internal const uint QUIC_PARAM_GLOBAL_TLS_PROVIDER = 0x0100000A;

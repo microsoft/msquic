@@ -143,7 +143,7 @@ typedef struct CXPLAT_SLIST_ENTRY {
 #define QUIC_POOL_PLATFORM_WORKER           '94cQ' // Qc49 - QUIC platform worker
 #define QUIC_POOL_ROUTE_RESOLUTION_WORKER   'A4cQ' // Qc4A - QUIC route resolution worker
 #define QUIC_POOL_ROUTE_RESOLUTION_OPER     'B4cQ' // Qc4B - QUIC route resolution operation
-#define QUIC_POOL_RAW_DATAPATH_PROCS        'C4cQ' // Qc4C - QUIC raw datapath procs
+#define QUIC_POOL_EXECUTION_CONFIG          'C4cQ' // Qc4C - QUIC execution config
 
 typedef enum CXPLAT_THREAD_FLAGS {
     CXPLAT_THREAD_FLAG_NONE               = 0x0000,
@@ -422,6 +422,8 @@ CxPlatGetAllocFailDenominator(
 // loops.
 //
 
+typedef struct QUIC_EXECUTION_CONFIG QUIC_EXECUTION_CONFIG;
+
 typedef struct CXPLAT_EXECUTION_CONTEXT CXPLAT_EXECUTION_CONTEXT;
 
 typedef struct CXPLAT_EXECUTION_STATE {
@@ -460,6 +462,10 @@ typedef struct CXPLAT_EXECUTION_CONTEXT {
 
 } CXPLAT_EXECUTION_CONTEXT;
 
+#ifdef _KERNEL_MODE // Not supported on kernel mode
+#define CxPlatAddExecutionContext(Context, IdealProcessor) CXPLAT_FRE_ASSERT(FALSE)
+#define CxPlatWakeExecutionContext(Context) CXPLAT_FRE_ASSERT(FALSE)
+#else
 void
 CxPlatAddExecutionContext(
     _Inout_ CXPLAT_EXECUTION_CONTEXT* Context,
@@ -470,6 +476,7 @@ void
 CxPlatWakeExecutionContext(
     _In_ CXPLAT_EXECUTION_CONTEXT* Context
     );
+#endif
 
 //
 // The "type" of the completion queue event is stored as the first uint32_t of

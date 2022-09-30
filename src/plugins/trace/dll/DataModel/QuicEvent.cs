@@ -61,6 +61,8 @@ namespace QuicTrace.DataModel
         RegistrationError,
         RegistrationErrorStatus,
         RegistrationShutdown,
+        RegistrationCreatedV2,
+        RegistrationRundownV2,
 
         WorkerCreated = 2048,
         WorkerStart,

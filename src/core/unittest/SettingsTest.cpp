@@ -430,73 +430,84 @@ TEST(SettingsTest, GlobalSettingsSizesSet)
     }
 }
 
-TEST(SettingsTest, GlobalRawDataPathProcsSetAndGet)
+TEST(SettingsTest, GlobalExecutionConfigSetAndGet)
 {
-    uint16_t SetCpus[] = {0, 1};
-    uint32_t SetCpusSize = ARRAYSIZE(SetCpus);
-    if (CxPlatProcActiveCount() < 2) {
-        SetCpusSize = CxPlatProcActiveCount();
+    uint8_t RawConfig[QUIC_EXECUTION_CONFIG_MIN_SIZE + 2 * sizeof(uint16_t)] = {0};
+    QUIC_EXECUTION_CONFIG* Config = (QUIC_EXECUTION_CONFIG*)RawConfig;
+    Config->ProcessorCount = 2;
+    if (CxPlatProcMaxCount() < 2) {
+        Config->ProcessorCount = CxPlatProcMaxCount();
     }
-    uint32_t BufferLength = SetCpusSize * sizeof(uint16_t);
+    Config->ProcessorList[0] = 0;
+    Config->ProcessorList[1] = 1;
+
+    uint32_t BufferLength = sizeof(RawConfig);
     ASSERT_EQ(
         QUIC_STATUS_SUCCESS,
         QuicLibrarySetGlobalParam(
-            QUIC_PARAM_GLOBAL_DATAPATH_PROCESSORS,
+            QUIC_PARAM_GLOBAL_EXECUTION_CONFIG,
             BufferLength,
-            SetCpus));
+            Config));
     BufferLength = 0;
     ASSERT_EQ(
         QUIC_STATUS_BUFFER_TOO_SMALL,
         QuicLibraryGetGlobalParam(
-            QUIC_PARAM_GLOBAL_DATAPATH_PROCESSORS,
+            QUIC_PARAM_GLOBAL_EXECUTION_CONFIG,
             &BufferLength,
-            NULL));
-    ASSERT_EQ(SetCpusSize, BufferLength / sizeof(uint16_t));
-    uint16_t GetCpus[ARRAYSIZE(SetCpus)] = {0};
+            nullptr));
+    ASSERT_EQ((uint32_t)sizeof(RawConfig), BufferLength);
+    uint16_t GetRawConfig[sizeof(RawConfig)] = {0};
+    QUIC_EXECUTION_CONFIG* GetConfig = (QUIC_EXECUTION_CONFIG*)GetRawConfig;
     ASSERT_EQ(
         QUIC_STATUS_SUCCESS,
         QuicLibraryGetGlobalParam(
-            QUIC_PARAM_GLOBAL_DATAPATH_PROCESSORS,
+            QUIC_PARAM_GLOBAL_EXECUTION_CONFIG,
             &BufferLength,
-            GetCpus));
-    ASSERT_EQ(0, memcmp(GetCpus, SetCpus, SetCpusSize * sizeof(uint16_t)));
+            GetConfig));
+    ASSERT_EQ(0, memcmp(GetConfig, Config, BufferLength));
     //
     // Passing a NULL buffer should clear the proc list.
     //
     ASSERT_EQ(
         QUIC_STATUS_SUCCESS,
         QuicLibrarySetGlobalParam(
-            QUIC_PARAM_GLOBAL_DATAPATH_PROCESSORS,
+            QUIC_PARAM_GLOBAL_EXECUTION_CONFIG,
             0,
-            NULL));
+            nullptr));
     BufferLength = 0;
     ASSERT_EQ(
         QUIC_STATUS_SUCCESS,
         QuicLibraryGetGlobalParam(
-            QUIC_PARAM_GLOBAL_DATAPATH_PROCESSORS,
+            QUIC_PARAM_GLOBAL_EXECUTION_CONFIG,
             &BufferLength,
-            NULL));
+            nullptr));
     ASSERT_EQ((uint32_t)0, BufferLength);
+
     //
     // Passing an invalid processor number.
     //
-    SetCpus[0] = (uint16_t)CxPlatProcActiveCount();
+    Config->ProcessorCount = 1;
+    Config->ProcessorList[0] = (uint16_t)CxPlatProcMaxCount();
     ASSERT_EQ(
         QUIC_STATUS_INVALID_PARAMETER,
         QuicLibrarySetGlobalParam(
-            QUIC_PARAM_GLOBAL_DATAPATH_PROCESSORS,
-            sizeof(SetCpus),
-            SetCpus));
+            QUIC_PARAM_GLOBAL_EXECUTION_CONFIG,
+            sizeof(RawConfig),
+            Config));
 }
 
 TEST(SettingsTest, GlobalRawDataPathProcsSetAfterDataPathInit)
 {
-    uint32_t SetCpus[] = {1, 2, 3, 4, 5};
+    uint8_t RawConfig[QUIC_EXECUTION_CONFIG_MIN_SIZE + 2 * sizeof(uint16_t)] = {0};
+    QUIC_EXECUTION_CONFIG* Config = (QUIC_EXECUTION_CONFIG*)RawConfig;
+    Config->ProcessorCount = 2;
+    Config->ProcessorList[0] = 0;
+    Config->ProcessorList[1] = 1;
     MsQuicLib.Datapath = (CXPLAT_DATAPATH*)1; // Pretend datapath has been initialized
     ASSERT_EQ(
         QUIC_STATUS_INVALID_STATE,
         QuicLibrarySetGlobalParam(
-            QUIC_PARAM_GLOBAL_DATAPATH_PROCESSORS,
-            sizeof(SetCpus),
-            SetCpus));
+            QUIC_PARAM_GLOBAL_EXECUTION_CONFIG,
+            sizeof(RawConfig),
+            Config));
 }

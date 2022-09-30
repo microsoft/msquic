@@ -5853,6 +5853,13 @@
       ],
       "macroName": "QuicTraceEvent"
     },
+    "LibraryExecutionConfigSet": {
+      "ModuleProperites": {},
+      "TraceString": "[ lib] Setting execution config",
+      "UniqueId": "LibraryExecutionConfigSet",
+      "splitArgs": [],
+      "macroName": "QuicTraceLogInfo"
+    },
     "LibraryInitializedV2": {
       "ModuleProperites": {},
       "TraceString": "[ lib] Initialized, PartitionCount=%u",
@@ -8567,6 +8574,26 @@
       ],
       "macroName": "QuicTraceEvent"
     },
+    "RegistrationCreatedV2": {
+      "ModuleProperites": {},
+      "TraceString": "[ reg][%p] Created, AppName=%s, ExecProfile=%u",
+      "UniqueId": "RegistrationCreatedV2",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "s",
+          "MacroVariableName": "arg3"
+        },
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg4"
+        }
+      ],
+      "macroName": "QuicTraceEvent"
+    },
     "RegistrationRundown": {
       "ModuleProperites": {},
       "TraceString": "[ reg][%p] Rundown, AppName=%s",
@@ -8579,6 +8606,26 @@
         {
           "DefinationEncoding": "s",
           "MacroVariableName": "arg3"
+        }
+      ],
+      "macroName": "QuicTraceEvent"
+    },
+    "RegistrationRundownV2": {
+      "ModuleProperites": {},
+      "TraceString": "[ reg][%p] Rundown, AppName=%s, ExecProfile=%u",
+      "UniqueId": "RegistrationRundownV2",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "s",
+          "MacroVariableName": "arg3"
+        },
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg4"
         }
       ],
       "macroName": "QuicTraceEvent"
@@ -13496,6 +13543,11 @@
         "EncodingString": "[ lib] ERROR, %u, %s."
       },
       {
+        "UniquenessHash": "e9a6fe1f-54f6-7cc0-0dc8-8e6dfbc8beec",
+        "TraceID": "LibraryExecutionConfigSet",
+        "EncodingString": "[ lib] Setting execution config"
+      },
+      {
         "UniquenessHash": "49364a79-a042-c58c-1024-f2b92b2bf039",
         "TraceID": "LibraryInitializedV2",
         "EncodingString": "[ lib] Initialized, PartitionCount=%u"
@@ -14406,9 +14458,19 @@
         "EncodingString": "[ reg][%p] Created, AppName=%s"
       },
       {
+        "UniquenessHash": "ac192139-6140-6e50-94ef-26748ce5e25d",
+        "TraceID": "RegistrationCreatedV2",
+        "EncodingString": "[ reg][%p] Created, AppName=%s, ExecProfile=%u"
+      },
+      {
         "UniquenessHash": "6f6956ec-af60-d54a-176e-c9db6ac7a50a",
         "TraceID": "RegistrationRundown",
         "EncodingString": "[ reg][%p] Rundown, AppName=%s"
+      },
+      {
+        "UniquenessHash": "c62e1ef6-4e2c-d370-bce8-970873aa3979",
+        "TraceID": "RegistrationRundownV2",
+        "EncodingString": "[ reg][%p] Rundown, AppName=%s, ExecProfile=%u"
       },
       {
         "UniquenessHash": "cf0f3e68-b28d-2378-09be-480fa6147054",

@@ -117,9 +117,9 @@ tracepoint(CLOG_PLATFORM_POSIX_C, PosixUninitialized );\
 // QuicTraceEvent(
             LibraryErrorStatus,
             "[ lib] ERROR, %u, %s.",
-            Status,
+            errno,
             "open(/dev/urandom, O_RDONLY|O_CLOEXEC) failed");
-// arg2 = arg2 = Status = arg2
+// arg2 = arg2 = errno = arg2
 // arg3 = arg3 = "open(/dev/urandom, O_RDONLY|O_CLOEXEC) failed" = arg3
 ----------------------------------------------------------*/
 #ifndef _clog_4_ARGS_TRACE_LibraryErrorStatus

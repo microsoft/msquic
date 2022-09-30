@@ -365,7 +365,7 @@ QuicTestConnectAndPing(
         //
     }
 
-    MsQuicRegistration Registration(true);
+    MsQuicRegistration Registration(NULL, QUIC_EXECUTION_PROFILE_TYPE_MAX_THROUGHPUT, true);
     TEST_TRUE(Registration.IsValid());
 
     MsQuicAlpn Alpn("MsQuicTest");

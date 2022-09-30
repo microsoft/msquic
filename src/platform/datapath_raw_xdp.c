@@ -977,11 +977,11 @@ CxPlatDpRawInterfaceRemoveRules(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 size_t
 CxPlatDpRawGetDatapathSize(
-    _In_opt_ const CXPLAT_DATAPATH_CONFIG* Config
+    _In_opt_ const QUIC_EXECUTION_CONFIG* Config
     )
 {
     const uint32_t WorkerCount =
-        (Config && Config->DataPathProcList) ? Config->DataPathProcListLength : 1;
+        (Config && Config->ProcessorCount) ? Config->ProcessorCount : CxPlatProcMaxCount();
     return sizeof(XDP_DATAPATH) + (WorkerCount * sizeof(XDP_WORKER));
 }
 
@@ -990,20 +990,23 @@ QUIC_STATUS
 CxPlatDpRawInitialize(
     _Inout_ CXPLAT_DATAPATH* Datapath,
     _In_ uint32_t ClientRecvContextLength,
-    _In_opt_ const CXPLAT_DATAPATH_CONFIG* Config
+    _In_opt_ const QUIC_EXECUTION_CONFIG* Config
     )
 {
     XDP_DATAPATH* Xdp = (XDP_DATAPATH*)Datapath;
     QUIC_STATUS Status;
-
-    uint16_t DefaultProc = (uint16_t)(CxPlatProcMaxCount() - 1);
-    const uint16_t* ProcList =
-        (Config && Config->DataPathProcList) ? Config->DataPathProcList : &DefaultProc;
+    const uint16_t* ProcessorList;
 
     CxPlatXdpReadConfig(Xdp);
     CxPlatListInitializeHead(&Xdp->Interfaces);
-    Xdp->WorkerCount =
-        (Config && Config->DataPathProcList) ? Config->DataPathProcListLength : 1;
+
+    if (Config && Config->ProcessorCount) {
+        Xdp->WorkerCount = Config->ProcessorCount;
+        ProcessorList = Config->ProcessorList;
+    } else {
+        Xdp->WorkerCount = CxPlatProcMaxCount();
+        ProcessorList = NULL;
+    }
 
     PIP_ADAPTER_ADDRESSES Adapters = NULL;
     ULONG Error;
@@ -1114,14 +1117,14 @@ CxPlatDpRawInitialize(
             break;
         }
         Xdp->Workers[i].Xdp = Xdp;
-        Xdp->Workers[i].ProcIndex = ProcList[i];
+        Xdp->Workers[i].ProcIndex = ProcessorList ? ProcessorList[i] : (uint16_t)i;
         Xdp->Workers[i].Ready = TRUE;
         Xdp->Workers[i].NextTimeUs = UINT64_MAX;
         Xdp->Workers[i].Callback = CxPlatXdpExecute;
         Xdp->Workers[i].Context = &Xdp->Workers[i];
         CxPlatRefIncrement(&Xdp->RefCount);
         CxPlatAddExecutionContext(
-            (CXPLAT_EXECUTION_CONTEXT*)&Xdp->Workers[i], ProcList[i]);
+            (CXPLAT_EXECUTION_CONTEXT*)&Xdp->Workers[i], Xdp->Workers[i].ProcIndex);
     }
     Status = QUIC_STATUS_SUCCESS;
 

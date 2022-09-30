@@ -159,7 +159,7 @@ public:
 
     MsQuicRegistration Registration {
         "secnetperf-client-rps",
-        QUIC_EXECUTION_PROFILE_LOW_LATENCY,
+        PerfDefaultExecutionProfile,
         true};
     MsQuicConfiguration Configuration {
         Registration,
@@ -167,7 +167,8 @@ public:
         MsQuicSettings()
             .SetDisconnectTimeoutMs(PERF_DEFAULT_DISCONNECT_TIMEOUT)
             .SetIdleTimeoutMs(PERF_DEFAULT_IDLE_TIMEOUT)
-            .SetSendBufferingEnabled(false),
+            .SetSendBufferingEnabled(false)
+            .SetCongestionControlAlgorithm(PerfDefaultCongestionControl),
         MsQuicCredentialConfig(
             QUIC_CREDENTIAL_FLAG_CLIENT |
             QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION)};

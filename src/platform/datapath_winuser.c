@@ -373,9 +373,9 @@ typedef struct QUIC_CACHEALIGN CXPLAT_DATAPATH_PROC {
     CXPLAT_REF_COUNT RefCount;
 
     //
-    // The index of the context in the datapath's array.
+    // The index of ideal processor for this datapath.
     //
-    uint16_t Index;
+    uint16_t IdealProcessor;
 
 #if DEBUG
     uint8_t Uninitialized : 1;
@@ -513,6 +513,21 @@ CxPlatDataPathDatagramToInternalDatagramContext(
 {
     return (CXPLAT_DATAPATH_INTERNAL_RECV_BUFFER_CONTEXT*)
         (((PUCHAR)Datagram) + sizeof(CXPLAT_RECV_DATA));
+}
+
+CXPLAT_DATAPATH_PROC*
+CxPlatDataPathGetProc(
+    _In_ CXPLAT_DATAPATH* Datapath,
+    _In_ uint16_t Processor
+    )
+{
+    for (uint16_t i = 0; i < Datapath->ProcCount; ++i) {
+        if (Datapath->Processors[i].IdealProcessor == Processor) {
+            return &Datapath->Processors[i];
+        }
+    }
+    CXPLAT_FRE_ASSERT(FALSE); // TODO - What now?!
+    return NULL;
 }
 
 QUIC_STATUS
@@ -769,33 +784,26 @@ CxPlatDataPathInitialize(
     _In_ uint32_t ClientRecvContextLength,
     _In_opt_ const CXPLAT_UDP_DATAPATH_CALLBACKS* UdpCallbacks,
     _In_opt_ const CXPLAT_TCP_DATAPATH_CALLBACKS* TcpCallbacks,
-    _In_opt_ CXPLAT_DATAPATH_CONFIG* Config,
+    _In_opt_ QUIC_EXECUTION_CONFIG* Config,
     _Out_ CXPLAT_DATAPATH** NewDataPath
     )
 {
     int WsaError;
     QUIC_STATUS Status;
     WSADATA WsaData;
-    CXPLAT_DATAPATH* Datapath;
+    const uint16_t* ProcessorList;
+    uint32_t ProcessorCount;
     uint32_t DatapathLength;
-
-    UNREFERENCED_PARAMETER(Config);
-
-    uint32_t MaxProcCount = CxPlatProcActiveCount();
-    CXPLAT_DBG_ASSERT(MaxProcCount <= UINT16_MAX - 1);
-    if (MaxProcCount >= UINT16_MAX) {
-        MaxProcCount = UINT16_MAX - 1;
-    }
+    CXPLAT_DATAPATH* Datapath = NULL;
+    BOOLEAN WsaInitialized = FALSE;
 
     if (NewDataPath == NULL) {
         Status = QUIC_STATUS_INVALID_PARAMETER;
-        Datapath = NULL;
         goto Exit;
     }
     if (UdpCallbacks != NULL) {
         if (UdpCallbacks->Receive == NULL || UdpCallbacks->Unreachable == NULL) {
             Status = QUIC_STATUS_INVALID_PARAMETER;
-            Datapath = NULL;
             goto Exit;
         }
     }
@@ -805,9 +813,13 @@ CxPlatDataPathInitialize(
             TcpCallbacks->Receive == NULL ||
             TcpCallbacks->SendComplete == NULL) {
             Status = QUIC_STATUS_INVALID_PARAMETER;
-            Datapath = NULL;
             goto Exit;
         }
+    }
+
+    if (!CxPlatWorkersLazyStart(Config)) {
+        Status = QUIC_STATUS_OUT_OF_MEMORY;
+        goto Exit;
     }
 
     if ((WsaError = WSAStartup(MAKEWORD(2, 2), &WsaData)) != 0) {
@@ -817,13 +829,21 @@ CxPlatDataPathInitialize(
             WsaError,
             "WSAStartup");
         Status = HRESULT_FROM_WIN32(WsaError);
-        Datapath = NULL;
         goto Exit;
+    }
+    WsaInitialized = TRUE;
+
+    if (Config && Config->ProcessorCount) {
+        ProcessorCount = Config->ProcessorCount;
+        ProcessorList = Config->ProcessorList;
+    } else {
+        ProcessorCount = CxPlatProcMaxCount();
+        ProcessorList = NULL;
     }
 
     DatapathLength =
         sizeof(CXPLAT_DATAPATH) +
-        MaxProcCount * sizeof(CXPLAT_DATAPATH_PROC);
+        ProcessorCount * sizeof(CXPLAT_DATAPATH_PROC);
 
     Datapath = (CXPLAT_DATAPATH*)CXPLAT_ALLOC_PAGED(DatapathLength, QUIC_POOL_DATAPATH);
     if (Datapath == NULL) {
@@ -843,7 +863,7 @@ CxPlatDataPathInitialize(
     if (TcpCallbacks) {
         Datapath->TcpHandlers = *TcpCallbacks;
     }
-    Datapath->ProcCount = (uint16_t)MaxProcCount;
+    Datapath->ProcCount = (uint16_t)ProcessorCount;
     CxPlatRefInitializeEx(&Datapath->RefCount, Datapath->ProcCount);
 
     CxPlatDataPathQueryRssScalabilityInfo(Datapath);
@@ -908,8 +928,10 @@ CxPlatDataPathInitialize(
     for (uint16_t i = 0; i < Datapath->ProcCount; i++) {
 
         Datapath->Processors[i].Datapath = Datapath;
-        Datapath->Processors[i].EventQ = CxPlatWorkerGetEventQ(i);
-        Datapath->Processors[i].Index = i;
+        Datapath->Processors[i].IdealProcessor =
+            ProcessorList ? ProcessorList[i] : (uint16_t)i;
+        Datapath->Processors[i].EventQ =
+            CxPlatWorkerGetEventQ(Datapath->Processors[i].IdealProcessor);
         CxPlatRefInitialize(&Datapath->Processors[i].RefCount);
 
         CxPlatPoolInitialize(
@@ -947,7 +969,9 @@ Error:
         if (Datapath != NULL) {
             CXPLAT_FREE(Datapath, QUIC_POOL_DATAPATH);
         }
-        (void)WSACleanup();
+        if (WsaInitialized) {
+            (void)WSACleanup();
+        }
     }
 
 Exit:
@@ -1689,7 +1713,8 @@ CxPlatSocketCreateUdp(
 
 QUIC_DISABLED_BY_FUZZER_START;
 
-        SocketProc->DatapathProc = &Datapath->Processors[AffinitizedProcessor];
+        SocketProc->DatapathProc =
+            CxPlatDataPathGetProc(Datapath, AffinitizedProcessor);
         CxPlatRefIncrement(&SocketProc->DatapathProc->RefCount);
 
         if (*SocketProc->DatapathProc->EventQ !=
@@ -2044,7 +2069,8 @@ CxPlatSocketCreateTcpInternal(
 
     if (Type != CXPLAT_SOCKET_TCP_SERVER) {
 
-        SocketProc->DatapathProc = &Datapath->Processors[AffinitizedProcessor];
+        SocketProc->DatapathProc =
+            CxPlatDataPathGetProc(Datapath, AffinitizedProcessor);
         CxPlatRefIncrement(&SocketProc->DatapathProc->RefCount);
 
         if (*SocketProc->DatapathProc->EventQ !=
@@ -2781,7 +2807,7 @@ CxPlatDataPathAcceptComplete(
         }
 
         AcceptSocketProc->DatapathProc =
-            &ListenerSocketProc->Parent->Datapath->Processors[AffinitizedProcessor];
+            CxPlatDataPathGetProc(ListenerSocketProc->Parent->Datapath, AffinitizedProcessor);
         CxPlatRefIncrement(&AcceptSocketProc->DatapathProc->RefCount);
 
         if (*AcceptSocketProc->DatapathProc->EventQ !=
@@ -3190,7 +3216,7 @@ CxPlatDataPathUdpRecvComplete(
             Datagram->Buffer = RecvPayload;
             Datagram->BufferLength = MessageLength;
             Datagram->Route = &RecvContext->Route;
-            Datagram->PartitionIndex = SocketProc->DatapathProc->Index;
+            Datagram->PartitionIndex = SocketProc->DatapathProc->IdealProcessor;
             Datagram->TypeOfService = (uint8_t)ECN;
             Datagram->Allocated = TRUE;
             Datagram->QueuedOnConnection = FALSE;
@@ -3350,7 +3376,7 @@ CxPlatDataPathTcpRecvComplete(
         Data->Buffer = ((PUCHAR)RecvContext) + Datapath->RecvPayloadOffset;
         Data->BufferLength = NumberOfBytesTransferred;
         Data->Route = &RecvContext->Route;
-        Data->PartitionIndex = SocketProc->DatapathProc->Index;
+        Data->PartitionIndex = SocketProc->DatapathProc->IdealProcessor;
         Data->TypeOfService = 0;
         Data->Allocated = TRUE;
         Data->QueuedOnConnection = FALSE;
@@ -3492,7 +3518,7 @@ CxPlatSendDataAlloc(
     CXPLAT_DBG_ASSERT(Socket != NULL);
 
     CXPLAT_DATAPATH_PROC* DatapathProc =
-        &Socket->Datapath->Processors[GetCurrentProcessorNumber()];
+        CxPlatDataPathGetProc(Socket->Datapath, (uint16_t)GetCurrentProcessorNumber());
 
     CXPLAT_SEND_DATA* SendData =
         CxPlatPoolAlloc(&DatapathProc->SendDataPool);
@@ -3950,8 +3976,19 @@ CxPlatSocketSend(
         SendData != NULL);
 
     CXPLAT_DATAPATH* Datapath = Socket->Datapath;
-    CXPLAT_SOCKET_PROC* SocketProc =
-        &Socket->Processors[Socket->HasFixedRemoteAddress ? 0 : IdealProcessor % Datapath->ProcCount];
+    CXPLAT_SOCKET_PROC* SocketProc;
+    if (Socket->HasFixedRemoteAddress) {
+        SocketProc = &Socket->Processors[0];
+    } else {
+        SocketProc = NULL;
+        for (uint16_t i = 0; i < Datapath->ProcCount; i++) {
+            if (Socket->Processors[i].DatapathProc->IdealProcessor == IdealProcessor) {
+                SocketProc = &Socket->Processors[i];
+                break;
+            }
+        }
+        CXPLAT_FRE_ASSERT(SocketProc != NULL);
+    }
 
     CxPlatSendDataFinalizeSendBuffer(SendData);
 

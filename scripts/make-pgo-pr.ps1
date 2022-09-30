@@ -42,7 +42,6 @@ git checkout -b $BranchName
 
 Copy-Item -Path artifacts/PerfDataResults/performance/windows/$($Arch)_$($Config)_schannel/msquic.pgd src/bin/winuser/pgo_$($Arch)/msquic.schannel.pgd -Force
 Copy-Item -Path artifacts/PerfDataResults/performance/windows/$($Arch)_$($Config)_openssl/msquic.pgd src/bin/winuser/pgo_$($Arch)/msquic.openssl.pgd -Force
-Copy-Item -Path artifacts/PerfDataResults/performance/windows/$($Arch)_$($Config)_schannel_SharedEC/msquic.pgd src/bin/winuser/pgo_$($Arch)/msquic.schannel.sharedec.pgd -Force
 Copy-Item -Path artifacts/PerfDataResults/performance/windows/$($Arch)_$($Config)_schannel_Xdp/msquic.pgd src/bin/winuser/pgo_$($Arch)/msquic.schannel.xdp.pgd -Force
 
 # Commit the new PGD files.

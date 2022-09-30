@@ -108,7 +108,7 @@ CxPlatDataPathInitialize(
     _In_ uint32_t ClientRecvContextLength,
     _In_opt_ const CXPLAT_UDP_DATAPATH_CALLBACKS* UdpCallbacks,
     _In_opt_ const CXPLAT_TCP_DATAPATH_CALLBACKS* TcpCallbacks,
-    _In_opt_ CXPLAT_DATAPATH_CONFIG* Config,
+    _In_opt_ QUIC_EXECUTION_CONFIG* Config,
     _Out_ CXPLAT_DATAPATH** NewDataPath
     )
 {
@@ -127,6 +127,10 @@ CxPlatDataPathInitialize(
         if (UdpCallbacks->Receive == NULL || UdpCallbacks->Unreachable == NULL) {
             return QUIC_STATUS_INVALID_PARAMETER;
         }
+    }
+
+    if (!CxPlatWorkersLazyStart(Config)) {
+        return QUIC_STATUS_OUT_OF_MEMORY;
     }
 
     CXPLAT_DATAPATH* DataPath = CXPLAT_ALLOC_PAGED(DatapathSize, QUIC_POOL_DATAPATH);
@@ -168,6 +172,9 @@ CxPlatDataPathInitialize(
 Error:
 
     if (DataPath != NULL) {
+#if DEBUG
+        DataPath->Uninitialized = TRUE;
+#endif
         if (DpRawInitialized) {
             CxPlatDpRawUninitialize(DataPath);
         } else {

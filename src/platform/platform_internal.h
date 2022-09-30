@@ -212,7 +212,7 @@ CxPlatCryptUninitialize(
 // Platform Worker APIs
 //
 
-BOOLEAN
+void
 CxPlatWorkersInit(
     void
     );
@@ -220,6 +220,11 @@ CxPlatWorkersInit(
 void
 CxPlatWorkersUninit(
     void
+    );
+
+BOOLEAN
+CxPlatWorkersLazyStart(
+    _In_opt_ QUIC_EXECUTION_CONFIG* Config
     );
 
 CXPLAT_EVENTQ*
