@@ -231,19 +231,15 @@ function Get-ThroughputTestsJs {
 
     $DataFile = Get-ThroughputPlatformTests -DataFile $DataFile -ThroughputTests $UploadTests["Windows_x64_schannel"] -RawReplaceName "UP_WINDOWS_X64_SCHANNEL" -CommitIndexMap $CommitIndexMap
     $DataFile = Get-ThroughputPlatformTests -DataFile $DataFile -ThroughputTests $UploadTests["Winkernel_x64_schannel"] -RawReplaceName "UP_WINKERNEL_X64_SCHANNEL" -CommitIndexMap $CommitIndexMap
-    $DataFile = Get-ThroughputPlatformTests -DataFile $DataFile -ThroughputTests $UploadTests["WinSharedEC_x64_schannel"] -RawReplaceName "UP_WINSHAREDEC_X64_SCHANNEL" -CommitIndexMap $CommitIndexMap
     $DataFile = Get-ThroughputPlatformTests -DataFile $DataFile -ThroughputTests $UploadTests["WinXDP_x64_schannel"] -RawReplaceName "UP_WINXDP_X64_SCHANNEL" -CommitIndexMap $CommitIndexMap
     $DataFile = Get-ThroughputPlatformTests -DataFile $DataFile -ThroughputTests $UploadTests["Windows_x64_openssl"] -RawReplaceName "UP_WINDOWS_X64_OPENSSL" -CommitIndexMap $CommitIndexMap
     $DataFile = Get-ThroughputPlatformTests -DataFile $DataFile -ThroughputTests $UploadTests["linux_x64_openssl"] -RawReplaceName "UP_LINUX_X64_OPENSSL" -CommitIndexMap $CommitIndexMap
-    $DataFile = Get-ThroughputPlatformTests -DataFile $DataFile -ThroughputTests $UploadTests["LinuxSharedEC_x64_openssl"] -RawReplaceName "UP_LINUXSHAREDEC_X64_OPENSSL" -CommitIndexMap $CommitIndexMap
 
     $DataFile = Get-ThroughputPlatformTests -DataFile $DataFile -ThroughputTests $DownloadTests["Windows_x64_schannel"] -RawReplaceName "DOWN_WINDOWS_X64_SCHANNEL" -CommitIndexMap $CommitIndexMap
     $DataFile = Get-ThroughputPlatformTests -DataFile $DataFile -ThroughputTests $DownloadTests["Winkernel_x64_schannel"] -RawReplaceName "DOWN_WINKERNEL_X64_SCHANNEL" -CommitIndexMap $CommitIndexMap
-    $DataFile = Get-ThroughputPlatformTests -DataFile $DataFile -ThroughputTests $DownloadTests["WinSharedEC_x64_schannel"] -RawReplaceName "DOWN_WINSHAREDEC_X64_SCHANNEL" -CommitIndexMap $CommitIndexMap
     $DataFile = Get-ThroughputPlatformTests -DataFile $DataFile -ThroughputTests $DownloadTests["WinXDP_x64_schannel"] -RawReplaceName "DOWN_WINXDP_X64_SCHANNEL" -CommitIndexMap $CommitIndexMap
     $DataFile = Get-ThroughputPlatformTests -DataFile $DataFile -ThroughputTests $DownloadTests["Windows_x64_openssl"] -RawReplaceName "DOWN_WINDOWS_X64_OPENSSL" -CommitIndexMap $CommitIndexMap
     $DataFile = Get-ThroughputPlatformTests -DataFile $DataFile -ThroughputTests $DownloadTests["linux_x64_openssl"] -RawReplaceName "DOWN_LINUX_X64_OPENSSL" -CommitIndexMap $CommitIndexMap
-    $DataFile = Get-ThroughputPlatformTests -DataFile $DataFile -ThroughputTests $DownloadTests["LinuxSharedEC_x64_openssl"] -RawReplaceName "DOWN_LINUXSHAREDEC_X64_OPENSSL" -CommitIndexMap $CommitIndexMap
 
     return $DataFile
 }
@@ -353,11 +349,9 @@ function Get-RpsTestsJs {
 
     $DataFile = Get-RpsPlatformTests -DataFile $DataFile -RpsTests $RpsTestConfig["Windows_x64_schannel"] -RawReplaceName "RPS_WINDOWS_X64_SCHANNEL" -CommitIndexMap $CommitIndexMap
     $DataFile = Get-RpsPlatformTests -DataFile $DataFile -RpsTests $RpsTestConfig["Winkernel_x64_schannel"] -RawReplaceName "RPS_WINKERNEL_X64_SCHANNEL" -CommitIndexMap $CommitIndexMap
-    $DataFile = Get-RpsPlatformTests -DataFile $DataFile -RpsTests $RpsTestConfig["WinSharedEC_x64_schannel"] -RawReplaceName "RPS_WINSHAREDEC_X64_SCHANNEL" -CommitIndexMap $CommitIndexMap
     $DataFile = Get-RpsPlatformTests -DataFile $DataFile -RpsTests $RpsTestConfig["WinXDP_x64_schannel"] -RawReplaceName "RPS_WINXDP_X64_SCHANNEL" -CommitIndexMap $CommitIndexMap
     $DataFile = Get-RpsPlatformTests -DataFile $DataFile -RpsTests $RpsTestConfig["Windows_x64_openssl"] -RawReplaceName "RPS_WINDOWS_X64_OPENSSL" -CommitIndexMap $CommitIndexMap
     $DataFile = Get-RpsPlatformTests -DataFile $DataFile -RpsTests $RpsTestConfig["linux_x64_openssl"] -RawReplaceName "RPS_LINUX_X64_OPENSSL" -CommitIndexMap $CommitIndexMap
-    $DataFile = Get-RpsPlatformTests -DataFile $DataFile -RpsTests $RpsTestConfig["LinuxSharedEC_x64_openssl"] -RawReplaceName "RPS_LINUXSHAREDEC_X64_OPENSSL" -CommitIndexMap $CommitIndexMap
 
     return $DataFile
 }
@@ -463,11 +457,9 @@ function Get-HpsTestsJs {
 
     $DataFile = Get-HpsPlatformTests -DataFile $DataFile -HpsTests $HpsTestConfig["Windows_x64_schannel"] -RawReplaceName "HPS_WINDOWS_X64_SCHANNEL" -CommitIndexMap $CommitIndexMap
     $DataFile = Get-HpsPlatformTests -DataFile $DataFile -HpsTests $HpsTestConfig["Winkernel_x64_schannel"] -RawReplaceName "HPS_WINKERNEL_X64_SCHANNEL" -CommitIndexMap $CommitIndexMap
-    $DataFile = Get-HpsPlatformTests -DataFile $DataFile -HpsTests $HpsTestConfig["WinSharedEC_x64_schannel"] -RawReplaceName "HPS_WINSHAREDEC_X64_SCHANNEL" -CommitIndexMap $CommitIndexMap
     $DataFile = Get-HpsPlatformTests -DataFile $DataFile -HpsTests $HpsTestConfig["WinXDP_x64_schannel"] -RawReplaceName "HPS_WINXDP_X64_SCHANNEL" -CommitIndexMap $CommitIndexMap
     $DataFile = Get-HpsPlatformTests -DataFile $DataFile -HpsTests $HpsTestConfig["Windows_x64_openssl"] -RawReplaceName "HPS_WINDOWS_X64_OPENSSL" -CommitIndexMap $CommitIndexMap
     $DataFile = Get-HpsPlatformTests -DataFile $DataFile -HpsTests $HpsTestConfig["linux_x64_openssl"] -RawReplaceName "HPS_LINUX_X64_OPENSSL" -CommitIndexMap $CommitIndexMap
-    $DataFile = Get-HpsPlatformTests -DataFile $DataFile -HpsTests $HpsTestConfig["LinuxSharedEC_x64_openssl"] -RawReplaceName "HPS_LINUXSHAREDEC_X64_OPENSSL" -CommitIndexMap $CommitIndexMap
 
     return $DataFile
 }
@@ -515,7 +507,7 @@ function Get-PerCommitLatencyDataJs {
     )
 
     $DataStrings = @{};
-    $platformNames = @("linux_x64_openssl", "LinuxSharedEC_x64_openssl", "Windows_x64_openssl", "Windows_x64_schannel", "Winkernel_x64_schannel", "WinSharedEC_x64_schannel", "WinXDP_x64_schannel");
+    $platformNames = @("linux_x64_openssl", "Windows_x64_openssl", "Windows_x64_schannel", "Winkernel_x64_schannel", "WinXDP_x64_schannel");
     $connCounts = @("1", "40");
     foreach ($platformName in $platformNames) {
         $platformResults = [System.Collections.ArrayList]@();
@@ -580,27 +572,21 @@ function Get-LatestLatencyDataJs {
     $LatestCommit = Get-LatestCommit -BranchFolder $BranchFolder
     $LatencyFolder = Join-Path $BranchFolder $LatestCommit.CommitHash "RpsLatency"
     $LinuxOpenSslLatencyFile = Join-Path $LatencyFolder "histogram_RPS_linux_x64_openssl_ConnectionCount_1.txt"
-    $LinuxSharedECLatencyFile = Join-Path $LatencyFolder "histogram_RPS_LinuxSharedEC_x64_openssl_ConnectionCount_1.txt"
     $WinOpenSslLatencyFile = Join-Path $LatencyFolder "histogram_RPS_Windows_x64_openssl_ConnectionCount_1.txt"
     $WinSchannelLatencyFile = Join-Path $LatencyFolder "histogram_RPS_Windows_x64_schannel_ConnectionCount_1.txt"
     $WinKernelLatencyFile = Join-Path $LatencyFolder "histogram_RPS_Winkernel_x64_schannel_ConnectionCount_1.txt"
-    $WinSharedECLatencyFile = Join-Path $LatencyFolder "histogram_RPS_WinSharedEC_x64_schannel_ConnectionCount_1.txt"
     $WinXDPLatencyFile = Join-Path $LatencyFolder "histogram_RPS_WinXDP_x64_schannel_ConnectionCount_1.txt"
 
     $LinuxOpenSslData = Get-LatestLatencyData $LinuxOpenSslLatencyFile
-    $LinuxSharedECData = Get-LatestLatencyData $LinuxSharedECLatencyFile
     $WinOpenSslData = Get-LatestLatencyData $WinOpenSslLatencyFile
     $WinSchannelData = Get-LatestLatencyData $WinSchannelLatencyFile
     $WinKernelData = Get-LatestLatencyData $WinKernelLatencyFile
-    $WinSharedECData = Get-LatestLatencyData $WinSharedECLatencyFile
     $WinXDPData = Get-LatestLatencyData $WinXDPLatencyFile
 
     $DataFile = $DataFile.Replace("RPS_LATENCY_LATEST_LINUX_X64_OPENSSL", $LinuxOpenSslData)
-    $DataFile = $DataFile.Replace("RPS_LATENCY_LATEST_LINUXSHAREDEC_X64_OPENSSL", $LinuxSharedECData)
     $DataFile = $DataFile.Replace("RPS_LATENCY_LATEST_WINDOWS_X64_OPENSSL", $WinOpenSslData)
     $DataFile = $DataFile.Replace("RPS_LATENCY_LATEST_WINDOWS_X64_SCHANNEL", $WinSchannelData)
     $DataFile = $DataFile.Replace("RPS_LATENCY_LATEST_WINKERNEL_X64_SCHANNEL", $WinKernelData)
-    $DataFile = $DataFile.Replace("RPS_LATENCY_LATEST_WINSHAREDEC_X64_SCHANNEL", $WinSharedECData)
     $DataFile = $DataFile.Replace("RPS_LATENCY_LATEST_WINXDP_X64_SCHANNEL", $WinXDPData)
 
     return $DataFile
