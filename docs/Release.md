@@ -344,7 +344,7 @@ Official (v1) RFC, v2 (WG-LC) and draft-29 are supported by this release.
    - The release title should be `MsQuic vX.Y.Z`
    - Put relavent information in the notes of the release (see previous releases for examples)
 2. Wait for [msquic-Official](https://mscodehub.visualstudio.com/msquic/_build?definitionId=1738&_a=summary) pipeline to run for the newly created tag.
-3. Download the signed Linux packages (under `drop_package_linux_distribution), upload them to the GitHub release and publish them (via [MsQuic-Publish](https://mscodehub.visualstudio.com/msquic/_build?definitionId=2068)) to https://packages.microsoft.com:
+3. Download the signed Linux packages (under `drop_package_linux_distribution`), upload them to the GitHub release and publish them (via [MsQuic-Publish](https://mscodehub.visualstudio.com/msquic/_build?definitionId=2068)) to https://packages.microsoft.com:
    - libmsquic-X.Y.Z-1-aarch64.rpm
    - libmsquic-X.Y.Z-1-armhf.rpm
    - libmsquic-X.Y.Z-1-x86_64.rpm
@@ -352,8 +352,9 @@ Official (v1) RFC, v2 (WG-LC) and draft-29 are supported by this release.
    - libmsquic-X.Y.Z-arm64.deb
    - libmsquic-X.Y.Z-armhf.deb
 4. Download the signed Windows NuGet packages (under `drop_package_windows_nuget`) and upload them to [NuGet](https://www.nuget.org/packages/manage/upload):
-   - Microsoft.Native.Quic.MsQuic.OpenSSL.X.Y.Z-ci.BUILD.nupkg
-   - Microsoft.Native.Quic.MsQuic.Schannel.X.Y.Z-ci.BUILD.nupkg
+   - Microsoft.Native.Quic.MsQuic.OpenSSL.X.Y.Z.BUILD.nupkg
+   - Microsoft.Native.Quic.MsQuic.Schannel.X.Y.Z.BUILD.nupkg
+   - Use https://raw.githubusercontent.com/microsoft/msquic/vX.Y.Z/README.md as package description URL.
 5. Wait for [msquic-Official-Tests](https://mscodehub.visualstudio.com/msquic/_build?definitionId=1824&_a=summary) pipeline to run for the newly created tag.
 6. Download the distribution packages from the artifacts and upload them to the GitHub release:
    - msquic_gamecore_console_x64_Release_schannel.zip
@@ -368,7 +369,7 @@ Official (v1) RFC, v2 (WG-LC) and draft-29 are supported by this release.
    - msquic_windows_x64_Release_schannel_test.zip
    - msquic_windows_x86_Release_openssl.zip
    - msquic_windows_x86_Release_schannel.zip
-7. The macOS distribution package isn't generated from the internal pipelines. Grab it from the public [CI](https://dev.azure.com/ms/msquic/_build?definitionId=347&_a=summary) from the latest run of the release branch, and upload it to the GitHub release:
+7. The macOS distribution package isn't generated from the internal pipelines. Grab it from the public [CI](https://dev.azure.com/ms/msquic/_build?definitionId=347&_a=summary) from the latest run of the release branch (under `distribution`), and upload it to the GitHub release:
    - msquic_macos_universal_Release_openssl.zip
 8. From Linux (use GitHub Codespace) to publish the latest Rust Crate.
    - Run `cargo publish` from the `release/X.Y` branch.
