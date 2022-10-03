@@ -707,7 +707,7 @@ Arguments:
 
 --*/
 {
-    CXPLAT_HASHTABLE_LOOKUP_CONTEXT LocalContext = {0};
+    CXPLAT_HASHTABLE_LOOKUP_CONTEXT LocalContext;
     CXPLAT_HASHTABLE_LOOKUP_CONTEXT* ContextPtr = NULL;
 
     if (Signature == CXPLAT_HASH_RESERVED_SIGNATURE) {
