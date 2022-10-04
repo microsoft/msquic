@@ -209,7 +209,7 @@ extern "C" {
 //
 
 #define _strnicmp strncasecmp
-#define sprintf_s(dst, dst_len, format, ...) sprintf(dst, format, __VA_ARGS__)
+#define sprintf_s(dst, dst_len, format, ...) snprintf(dst, dst_len, format, __VA_ARGS__)
 #define _vsnprintf_s(dst, dst_len, flag, format, ...) vsnprintf(dst, dst_len, format, __VA_ARGS__)
 
 //
@@ -505,7 +505,7 @@ QuicAddrToString(
             Address[0] = ']';
             Address++;
         }
-        sprintf(Address, ":%hu", ntohs(Addr->Ipv4.sin_port));
+        snprintf(Address, 64, ":%hu", ntohs(Addr->Ipv4.sin_port));
     }
     return TRUE;
 }
