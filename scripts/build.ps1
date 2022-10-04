@@ -265,10 +265,18 @@ if ($Platform -eq "ios" -and !$Static) {
     Write-Host "iOS can only be built as static"
 }
 
-try {
-#    $env:GIT_REDIRECT_STDERR = '2>&1'
-#    $CurrentBranch = git branch --show-current
-} catch { }
+if (!$OfficialRelease) {
+    try {
+        $env:GIT_REDIRECT_STDERR = '2>&1'
+        # Thanks to https://stackoverflow.com/questions/3404936/show-which-git-tag-you-are-on
+        # for this magic git command!
+        $Output = git describe --exact-match --tags $(git log -n1 --pretty='%h')
+        if (!$Output.Contains("fatal: no tag exactly matches")) {
+            Write-Host "Configuring OfficialRelease for tag build"
+            $OfficialRelease = $true
+        }
+    } catch { }
+}
 
 # Root directory of the project.
 $RootDir = Split-Path $PSScriptRoot -Parent

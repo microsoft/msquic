@@ -329,6 +329,7 @@ endif()
 
 if(QUIC_OFFICIAL_RELEASE)
     list(APPEND QUIC_COMMON_DEFINES QUIC_OFFICIAL_RELEASE=1)
+    message(STATUS "Configured for official release build")
 endif()
 
 if(QUIC_TLS STREQUAL "schannel")
