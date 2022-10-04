@@ -1921,10 +1921,12 @@ INSTANTIATE_TEST_SUITE_P(
 
 #endif // QUIC_TEST_DATAPATH_HOOKS_ENABLED
 
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
 INSTANTIATE_TEST_SUITE_P(
     Basic,
     WithVersionNegotiationExtArgs,
     testing::ValuesIn(VersionNegotiationExtArgs::Generate()));
+#endif
 
 INSTANTIATE_TEST_SUITE_P(
     Handshake,
