@@ -430,6 +430,7 @@ TEST(SettingsTest, GlobalSettingsSizesSet)
     }
 }
 
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
 TEST(SettingsTest, GlobalExecutionConfigSetAndGet)
 {
     uint8_t RawConfig[QUIC_EXECUTION_CONFIG_MIN_SIZE + 2 * sizeof(uint16_t)] = {0};
@@ -511,3 +512,4 @@ TEST(SettingsTest, GlobalRawDataPathProcsSetAfterDataPathInit)
             sizeof(RawConfig),
             Config));
 }
+#endif
