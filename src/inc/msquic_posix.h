@@ -505,7 +505,7 @@ QuicAddrToString(
             Address[0] = ']';
             Address++;
         }
-        sprintf(Address, ":%hu", ntohs(Addr->Ipv4.sin_port));
+        snprintf(Address, 64, ":%hu", ntohs(Addr->Ipv4.sin_port));
     }
     return TRUE;
 }
