@@ -9,7 +9,9 @@ Abstract:
 
 --*/
 
+#ifndef QUIC_OFFICIAL_RELEASE
 #define QUIC_API_ENABLE_PREVIEW_FEATURES
+#endif
 
 #include "msquic.hpp"
 

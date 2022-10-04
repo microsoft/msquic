@@ -75,6 +75,9 @@ This script provides helpers for building msquic.
 .PARAMETER CI
     Build is occuring from CI
 
+.PARAMETER OfficialRelease
+    Build is for an official (tag) release.
+
 .PARAMETER EnableTelemetryAsserts
     Enables telemetry asserts in release builds.
 
@@ -182,6 +185,9 @@ param (
     [switch]$CI = $false,
 
     [Parameter(Mandatory = $false)]
+    [switch]$OfficialRelease = $false,
+
+    [Parameter(Mandatory = $false)]
     [switch]$EnableTelemetryAsserts = $false,
 
     [Parameter(Mandatory = $false)]
@@ -258,6 +264,11 @@ if ($Platform -eq "ios" -and !$Static) {
     $Static = $true
     Write-Host "iOS can only be built as static"
 }
+
+try {
+#    $env:GIT_REDIRECT_STDERR = '2>&1'
+#    $CurrentBranch = git branch --show-current
+} catch { }
 
 # Root directory of the project.
 $RootDir = Split-Path $PSScriptRoot -Parent
@@ -425,6 +436,9 @@ function CMake-Generate {
         }
         $Arguments += " -DQUIC_VER_BUILD_ID=$env:BUILD_BUILDID"
         $Arguments += " -DQUIC_VER_SUFFIX=-official"
+    }
+    if ($OfficialRelease) {
+        $Arguments += " -DQUIC_OFFICIAL_RELEASE=ON"
     }
     if ($EnableTelemetryAsserts) {
         $Arguments += " -DQUIC_TELEMETRY_ASSERTS=on"

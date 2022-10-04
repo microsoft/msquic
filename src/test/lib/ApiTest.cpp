@@ -2111,6 +2111,7 @@ void QuicTestStatefulGlobalSetParam()
                 &Mode));
     }
 
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
     //
     // Set QUIC_PARAM_GLOBAL_EXECUTION_CONFIG when MsQuicLib.Datapath != NULL
     //
@@ -2126,6 +2127,7 @@ void QuicTestStatefulGlobalSetParam()
                 sizeof(Data),
                 &Data));
     }
+#endif
 }
 
 void QuicTestGlobalParam()
@@ -2442,6 +2444,7 @@ void QuicTestGlobalParam()
         }
     }
 
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
     //
     // QUIC_PARAM_GLOBAL_EXECUTION_CONFIG
     //
@@ -2505,6 +2508,7 @@ void QuicTestGlobalParam()
                 &BufferLength,
                 nullptr));
     }
+#endif
 
 #if QUIC_TEST_DATAPATH_HOOKS_ENABLED
     //
@@ -4765,6 +4769,7 @@ QuicTestGetPerfCounters()
     TEST_EQUAL(BufferLength, (sizeof(uint64_t) * (QUIC_PERF_COUNTER_MAX - 4)));
 }
 
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
 void
 ValidateVersionSettings(
     _In_ const QUIC_VERSION_SETTINGS* const OutputVersionSettings,
@@ -5016,6 +5021,7 @@ QuicTestVersionSettings()
         ValidateVersionSettings(OutputVersionSettings, ValidVersions, ARRAYSIZE(ValidVersions));
     }
 }
+#endif // QUIC_API_ENABLE_PREVIEW_FEATURES
 
 void
 QuicTestValidateParamApi()
@@ -5300,6 +5306,7 @@ QuicTestStorage()
     TEST_NOT_EQUAL(Settings.InitialRttMs, SpecialInitialRtt);
 }
 
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
 void
 QuicTestVersionStorage()
 {
@@ -5658,3 +5665,4 @@ QuicTestVersionStorage()
     TEST_EQUAL(Settings.OfferedVersions, nullptr);
     TEST_EQUAL(Settings.FullyDeployedVersions, nullptr);
 }
+#endif // QUIC_API_ENABLE_PREVIEW_FEATURES
