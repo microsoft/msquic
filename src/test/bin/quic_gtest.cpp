@@ -597,6 +597,7 @@ TEST_P(WithFamilyArgs, InterfaceBinding) {
     }
 }
 
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
 TEST_P(WithHandshakeArgs2, OldVersion) {
     TestLoggerT<ParamType> Logger("QuicTestConnect-OldVersion", GetParam());
     if (TestingKernelMode) {
@@ -623,6 +624,7 @@ TEST_P(WithHandshakeArgs2, OldVersion) {
             0);     // RandomLossPercentage
     }
 }
+#endif
 
 TEST_P(WithHandshakeArgs3, AsyncSecurityConfig) {
     TestLoggerT<ParamType> Logger("QuicTestConnect-AsyncSecurityConfig", GetParam());
@@ -1721,10 +1723,12 @@ INSTANTIATE_TEST_SUITE_P(
     WithHandshakeArgs1,
     testing::ValuesIn(HandshakeArgs1::Generate()));
 
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
 INSTANTIATE_TEST_SUITE_P(
     Handshake,
     WithHandshakeArgs2,
     testing::ValuesIn(HandshakeArgs2::Generate()));
+#endif
 
 INSTANTIATE_TEST_SUITE_P(
     Handshake,

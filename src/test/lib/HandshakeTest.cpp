@@ -1630,7 +1630,7 @@ QuicTestConnectBadAlpn(
     TEST_TRUE(ServerConfiguration.IsValid());
 
     MsQuicCredentialConfig ClientCredConfig;
-    MsQuicConfiguration ClientConfiguration(Registration, "BanALPN", Settings, ClientCredConfig);
+    MsQuicConfiguration ClientConfiguration(Registration, "BadALPN", Settings, ClientCredConfig);
     TEST_TRUE(ClientConfiguration.IsValid());
 
     {
