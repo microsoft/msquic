@@ -143,6 +143,7 @@ CxPlatDataPathInitialize(
         return QUIC_STATUS_OUT_OF_MEMORY;
     }
     CxPlatZeroMemory(DataPath, DatapathSize);
+    CXPLAT_FRE_ASSERT(CxPlatRundownAcquire(&CxPlatWorkerRundown));
 
     if (UdpCallbacks) {
         DataPath->UdpHandlers = *UdpCallbacks;
@@ -165,7 +166,6 @@ CxPlatDataPathInitialize(
         goto Error;
     }
 
-    CXPLAT_FRE_ASSERT(CxPlatRundownAcquire(&CxPlatWorkerRundown));
     *NewDataPath = DataPath;
     DataPath = NULL;
 
@@ -182,6 +182,7 @@ Error:
                 CxPlatSockPoolUninitialize(&DataPath->SocketPool);
             }
             CXPLAT_FREE(DataPath, QUIC_POOL_DATAPATH);
+            CxPlatRundownRelease(&CxPlatWorkerRundown);
         }
     }
 
