@@ -9,7 +9,9 @@ Abstract:
 
 --*/
 
+#ifndef QUIC_OFFICIAL_RELEASE
 #define QUIC_API_ENABLE_PREVIEW_FEATURES
+#endif
 
 #include "msquic.hpp"
 
@@ -134,6 +136,7 @@ QuicTestConnect(
     _In_ uint8_t RandomLossPercentage // 0 to 100
     );
 
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
 void
 QuicTestVersionNegotiation(
     _In_ int Family
@@ -179,6 +182,7 @@ void
 QuicTestFailedVersionNegotiation(
     _In_ int Family
     );
+#endif // QUIC_API_ENABLE_PREVIEW_FEATURES
 
 void
 QuicTestCustomCertificateValidation(
@@ -217,14 +221,18 @@ QuicTestInterfaceBinding(
     _In_ int Family
     );
 
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
 void
 QuicTestCibirExtension(
     _In_ int Family,
     _In_ uint8_t Mode // server = &1, client = &2
     );
+#endif
 
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
 void
 QuicTestResumptionAcrossVersions();
+#endif
 
 //
 // Negative Handshake Tests
@@ -514,9 +522,11 @@ void
 QuicTestStorage(
     );
 
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
 void
 QuicTestVersionStorage(
     );
+#endif
 
 //
 // Platform Specific Functions

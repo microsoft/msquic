@@ -360,6 +360,7 @@ TEST_P(WithValidateStreamEventArgs, ValidateStreamEvents) {
     }
 }
 
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
 TEST(ParameterValidation, ValidateVersionSettings) {
     TestLogger Logger("QuicTestVersionSettings");
     if (TestingKernelMode) {
@@ -368,6 +369,7 @@ TEST(ParameterValidation, ValidateVersionSettings) {
         QuicTestVersionSettings();
     }
 }
+#endif
 
 TEST(ParameterValidation, ValidateParamApi) {
     TestLogger Logger("QuicTestValidateParamApi");
@@ -687,6 +689,7 @@ TEST_P(WithFamilyArgs, InterfaceBinding) {
     }
 }
 
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
 TEST_P(WithHandshakeArgs2, OldVersion) {
     TestLoggerT<ParamType> Logger("QuicTestConnect-OldVersion", GetParam());
     if (TestingKernelMode) {
@@ -713,6 +716,7 @@ TEST_P(WithHandshakeArgs2, OldVersion) {
             0);     // RandomLossPercentage
     }
 }
+#endif
 
 TEST_P(WithHandshakeArgs3, AsyncSecurityConfig) {
     TestLoggerT<ParamType> Logger("QuicTestConnect-AsyncSecurityConfig", GetParam());
@@ -741,6 +745,7 @@ TEST_P(WithHandshakeArgs3, AsyncSecurityConfig) {
     }
 }
 
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
 TEST_P(WithFamilyArgs, VersionNegotiation) {
     TestLoggerT<ParamType> Logger("QuicTestVersionNegotiation", GetParam());
     if (TestingKernelMode) {
@@ -836,6 +841,7 @@ TEST_P(WithFamilyArgs, FailedVersionNegotiation) {
         QuicTestFailedVersionNegotiation(GetParam().Family);
     }
 }
+#endif // QUIC_API_ENABLE_PREVIEW_FEATURES
 
 TEST_P(WithHandshakeArgs5, CustomCertificateValidation) {
     TestLoggerT<ParamType> Logger("QuicTestCustomCertificateValidation", GetParam());
@@ -863,6 +869,7 @@ TEST_P(WithHandshakeArgs6, ConnectClientCertificate) {
     }
 }
 
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
 TEST_P(WithHandshakeArgs7, CibirExtension) {
     TestLoggerT<ParamType> Logger("QuicTestCibirExtension", GetParam());
     if (TestingKernelMode) {
@@ -875,6 +882,7 @@ TEST_P(WithHandshakeArgs7, CibirExtension) {
         QuicTestCibirExtension(GetParam().Family, GetParam().Mode);
     }
 }
+#endif
 
 // TEST(Handshake, ResumptionAcrossVersions) {
 //     if (TestingKernelMode) {
@@ -1817,6 +1825,8 @@ TEST(Basic, TestStorage) {
         QuicTestStorage();
     }
 }
+
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
 TEST(Basic, TestVersionStorage) {
     if (!CanRunStorageTests) {
         return;
@@ -1829,6 +1839,7 @@ TEST(Basic, TestVersionStorage) {
         QuicTestVersionStorage();
     }
 }
+#endif
 
 #endif // _WIN32
 
@@ -1871,20 +1882,24 @@ INSTANTIATE_TEST_SUITE_P(
 
 #endif // QUIC_TEST_DATAPATH_HOOKS_ENABLED
 
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
 INSTANTIATE_TEST_SUITE_P(
     Basic,
     WithVersionNegotiationExtArgs,
     testing::ValuesIn(VersionNegotiationExtArgs::Generate()));
+#endif
 
 INSTANTIATE_TEST_SUITE_P(
     Handshake,
     WithHandshakeArgs1,
     testing::ValuesIn(HandshakeArgs1::Generate()));
 
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
 INSTANTIATE_TEST_SUITE_P(
     Handshake,
     WithHandshakeArgs2,
     testing::ValuesIn(HandshakeArgs2::Generate()));
+#endif
 
 INSTANTIATE_TEST_SUITE_P(
     Handshake,
@@ -1910,10 +1925,12 @@ INSTANTIATE_TEST_SUITE_P(
     WithHandshakeArgs6,
     testing::ValuesIn(HandshakeArgs6::Generate()));
 
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
 INSTANTIATE_TEST_SUITE_P(
     Handshake,
     WithHandshakeArgs7,
     testing::ValuesIn(HandshakeArgs7::Generate()));
+#endif
 
 INSTANTIATE_TEST_SUITE_P(
     AppData,
