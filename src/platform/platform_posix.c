@@ -201,6 +201,8 @@ CxPlatInitialize(
     void
     )
 {
+    QUIC_STATUS Status;
+
     RandomFd = open("/dev/urandom", O_RDONLY|O_CLOEXEC);
     if (RandomFd == -1) {
         QuicTraceEvent(
@@ -209,6 +211,14 @@ CxPlatInitialize(
             errno,
             "open(/dev/urandom, O_RDONLY|O_CLOEXEC) failed");
         return (QUIC_STATUS)errno;
+    }
+
+    Status = CxPlatCryptInitialize();
+    if (QUIC_FAILED(Status)) {
+        if (RandomFd != -1) {
+            close(RandomFd);
+        }
+        return Status;
     }
 
     CxPlatWorkersInit();
@@ -229,6 +239,7 @@ CxPlatUninitialize(
     )
 {
     CxPlatWorkersUninit();
+    CxPlatCryptUninitialize();
     close(RandomFd);
     QuicTraceLogInfo(
         PosixUninitialized,
