@@ -276,7 +276,7 @@ if (!$OfficialRelease) {
             $OfficialRelease = $true
         }
     } catch { }
-    $LASTEXITCODE = 0
+    $global:LASTEXITCODE = 0
 }
 
 # Root directory of the project.
