@@ -23,7 +23,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        release: ['2.0.2']
+        release: ['2.0.5']
         os: [ubuntu-latest, windows-latest]
         arch: [x64]
         tls: [schannel, openssl]
