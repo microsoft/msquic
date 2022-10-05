@@ -762,10 +762,12 @@ QuicTestCtlEvtIoDeviceControl(
         QuicTestCtlRun(QuicTestValidateStreamEvents(Params->Test));
         break;
 
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
     case IOCTL_QUIC_RUN_VERSION_NEGOTIATION:
         CXPLAT_FRE_ASSERT(Params != nullptr);
         QuicTestCtlRun(QuicTestVersionNegotiation(Params->Family));
         break;
+#endif
 
     case IOCTL_QUIC_RUN_KEY_UPDATE:
         CXPLAT_FRE_ASSERT(Params != nullptr);
@@ -914,6 +916,7 @@ QuicTestCtlEvtIoDeviceControl(
                 Params->CustomCertValidationParams.AsyncValidation));
         break;
 
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
     case IOCTL_QUIC_RUN_VERSION_NEGOTIATION_RETRY:
         CXPLAT_FRE_ASSERT(Params != nullptr);
         QuicTestCtlRun(QuicTestVersionNegotiationRetry(Params->Family));
@@ -964,6 +967,7 @@ QuicTestCtlEvtIoDeviceControl(
     case IOCTL_QUIC_RUN_VALIDATE_VERSION_SETTINGS_SETTINGS:
         QuicTestCtlRun(QuicTestVersionSettings());
         break;
+#endif // QUIC_API_ENABLE_PREVIEW_FEATURES
 
     case IOCTL_QUIC_RUN_CONNECT_CLIENT_CERT:
         CXPLAT_FRE_ASSERT(Params != nullptr);
@@ -1189,6 +1193,7 @@ QuicTestCtlEvtIoDeviceControl(
                 &Params->CredValidationParams.CredConfig));
         break;
 
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
     case IOCTL_QUIC_RUN_CIBIR_EXTENSION:
         CXPLAT_FRE_ASSERT(Params != nullptr);
         QuicTestCtlRun(
@@ -1196,6 +1201,7 @@ QuicTestCtlEvtIoDeviceControl(
                 Params->CibirParams.Family,
                 Params->CibirParams.Mode));
         break;
+#endif
 
     case IOCTL_QUIC_RUN_STREAM_PRIORITY_INFINITE_LOOP:
         QuicTestCtlRun(QuicTestStreamPriorityInfiniteLoop());
@@ -1256,9 +1262,11 @@ QuicTestCtlEvtIoDeviceControl(
         QuicTestCtlRun(QuicTestCloseConnBeforeStreamFlush());
         break;
 
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
     case IOCTL_QUIC_RUN_VERSION_STORAGE:
         QuicTestCtlRun(QuicTestVersionStorage());
         break;
+#endif
 
     case IOCTL_QUIC_RUN_CONNECT_AND_IDLE_FOR_DEST_CID_CHANGE:
         QuicTestCtlRun(QuicTestConnectAndIdleForDestCidChange());

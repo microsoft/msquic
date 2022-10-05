@@ -98,6 +98,7 @@ struct ServerAcceptContext {
     }
 };
 
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
 struct ClearGlobalVersionListScope {
     ~ClearGlobalVersionListScope() {
         MsQuicVersionSettings Settings(nullptr, 0);
@@ -117,6 +118,7 @@ struct ClearGlobalVersionListScope {
                 &Default));
     }
 };
+#endif
 
 //
 // Simulating Connection's status to be QUIC_CONN_BAD_START_STATE
@@ -191,8 +193,12 @@ struct GlobalSettingScope {
                 Parameter,
                 &BufferLength,
                 nullptr);
+#ifndef QUIC_API_ENABLE_PREVIEW_FEATURES
+        TEST_TRUE(Status == QUIC_STATUS_BUFFER_TOO_SMALL);
+#else
         TEST_TRUE(Status == QUIC_STATUS_BUFFER_TOO_SMALL ||
             (Parameter == QUIC_PARAM_GLOBAL_DATAPATH_PROCESSORS && Status == QUIC_STATUS_SUCCESS));
+#endif
 
         OriginalValue = CXPLAT_ALLOC_NONPAGED(BufferLength, QUIC_POOL_TEST);
         if (OriginalValue == nullptr) {

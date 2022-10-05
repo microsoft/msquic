@@ -885,6 +885,7 @@ QuicTestConnectInvalidAddress(
     }
 }
 
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
 void
 QuicTestVersionNegotiation(
     _In_ int Family
@@ -1669,6 +1670,7 @@ QuicTestFailedVersionNegotiation(
         QUIC_VERSION_1_H,
         Family);
 }
+#endif // QUIC_API_ENABLE_PREVIEW_FEATURES
 
 void
 QuicTestConnectBadAlpn(
@@ -1687,7 +1689,7 @@ QuicTestConnectBadAlpn(
     TEST_TRUE(ServerConfiguration.IsValid());
 
     MsQuicCredentialConfig ClientCredConfig;
-    MsQuicConfiguration ClientConfiguration(Registration, "BanALPN", Settings, ClientCredConfig);
+    MsQuicConfiguration ClientConfiguration(Registration, "BadALPN", Settings, ClientCredConfig);
     TEST_TRUE(ClientConfiguration.IsValid());
 
     {
@@ -2925,6 +2927,7 @@ QuicTestInterfaceBinding(
     TEST_TRUE(!Connection2.HandshakeComplete);
 }
 
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
 void
 QuicTestCibirExtension(
     _In_ int Family,
@@ -3050,6 +3053,7 @@ QuicTestResumptionAcrossVersions()
         }
     }
 }
+#endif // QUIC_API_ENABLE_PREVIEW_FEATURES
 
 void
 QuicTestClientBlockedSourcePort(

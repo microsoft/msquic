@@ -428,6 +428,7 @@ TEST(SettingsTest, GlobalSettingsSizesSet)
     }
 }
 
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
 TEST(SettingsTest, GlobalRawDataPathProcsSetAndGet)
 {
     uint16_t SetCpus[] = {0, 1};
@@ -498,3 +499,4 @@ TEST(SettingsTest, GlobalRawDataPathProcsSetAfterDataPathInit)
             sizeof(SetCpus),
             SetCpus));
 }
+#endif
