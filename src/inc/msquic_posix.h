@@ -125,6 +125,8 @@ inline ENUMTYPE &operator ^= (ENUMTYPE &a, ENUMTYPE b) throw() { return (ENUMTYP
 #define QUIC_STATUS_USER_CANCELED           ((QUIC_STATUS)EOWNERDEAD)       // 130  (105 on macOS)
 #define QUIC_STATUS_ALPN_NEG_FAILURE        ((QUIC_STATUS)ENOPROTOOPT)      // 92   (42 on macOS)
 #define QUIC_STATUS_STREAM_LIMIT_REACHED    ((QUIC_STATUS)ESTRPIPE)         // 86
+#define QUIC_STATUS_ALPN_IN_USE             ((QUIC_STATUS)EPROTOTYPE)       // 91   (41 on macOS)
+#define QUIC_STATUS_ADDRESS_NOT_AVAILABLE   ((QUIC_STATUS)EADDRNOTAVAIL)    // 99   (47 on macOS)
 
 #define QUIC_STATUS_TLS_ALERT(Alert)        ((QUIC_STATUS)(0xff & Alert) + TLS_ERROR_BASE)
 
@@ -140,6 +142,7 @@ inline ENUMTYPE &operator ^= (ENUMTYPE &a, ENUMTYPE b) throw() { return (ENUMTYP
 
 #define QUIC_STATUS_CERT_EXPIRED            QUIC_STATUS_CERT_ERROR(1)       // 0xBEBC401
 #define QUIC_STATUS_CERT_UNTRUSTED_ROOT     QUIC_STATUS_CERT_ERROR(2)       // 0xBEBC402
+#define QUIC_STATUS_CERT_NO_CERT            QUIC_STATUS_CERT_ERROR(3)       // 0xBEBC403
 
 typedef unsigned char BOOLEAN;
 typedef struct in_addr IN_ADDR;
@@ -147,12 +150,9 @@ typedef struct in6_addr IN6_ADDR;
 typedef struct addrinfo ADDRINFO;
 typedef sa_family_t QUIC_ADDRESS_FAMILY;
 
-//
-// Defines match windows values.
-//
-#define QUIC_ADDRESS_FAMILY_UNSPEC 0
-#define QUIC_ADDRESS_FAMILY_INET 2
-#define QUIC_ADDRESS_FAMILY_INET6 23
+#define QUIC_ADDRESS_FAMILY_UNSPEC AF_UNSPEC
+#define QUIC_ADDRESS_FAMILY_INET AF_INET
+#define QUIC_ADDRESS_FAMILY_INET6 AF_INET6
 
 typedef union QUIC_ADDR {
     struct sockaddr Ip;
@@ -209,7 +209,7 @@ extern "C" {
 //
 
 #define _strnicmp strncasecmp
-#define sprintf_s(dst, dst_len, format, ...) sprintf(dst, format, __VA_ARGS__)
+#define sprintf_s(dst, dst_len, format, ...) snprintf(dst, dst_len, format, __VA_ARGS__)
 #define _vsnprintf_s(dst, dst_len, flag, format, ...) vsnprintf(dst, dst_len, format, __VA_ARGS__)
 
 //
@@ -505,7 +505,7 @@ QuicAddrToString(
             Address[0] = ']';
             Address++;
         }
-        sprintf(Address, ":%hu", ntohs(Addr->Ipv4.sin_port));
+        snprintf(Address, 64, ":%hu", ntohs(Addr->Ipv4.sin_port));
     }
     return TRUE;
 }

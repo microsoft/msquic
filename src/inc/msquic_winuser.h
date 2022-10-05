@@ -23,7 +23,10 @@ Environment:
 #define WIN32_LEAN_AND_MEAN
 #endif
 
+#pragma warning(push)
+#pragma warning(disable:6553) // Annotation does not apply to value type.
 #include <windows.h>
+#pragma warning(pop)
 #include <winsock2.h>
 #include <ws2ipdef.h>
 #pragma warning(push)
@@ -74,6 +77,10 @@ Environment:
 #define ERROR_QUIC_STREAM_LIMIT_REACHED _HRESULT_TYPEDEF_(0x80410008L)
 #endif
 
+#ifndef ERROR_QUIC_ALPN_IN_USE
+#define ERROR_QUIC_ALPN_IN_USE          _HRESULT_TYPEDEF_(0x80410009L)
+#endif
+
 #ifndef QUIC_TLS_ALERT_HRESULT_PREFIX
 #define QUIC_TLS_ALERT_HRESULT_PREFIX   _HRESULT_TYPEDEF_(0x80410100L)
 #endif
@@ -108,6 +115,7 @@ Environment:
 #define QUIC_STATUS_USER_CANCELED           ERROR_QUIC_USER_CANCELED                        // 0x80410002
 #define QUIC_STATUS_ALPN_NEG_FAILURE        ERROR_QUIC_ALPN_NEG_FAILURE                     // 0x80410007
 #define QUIC_STATUS_STREAM_LIMIT_REACHED    ERROR_QUIC_STREAM_LIMIT_REACHED                 // 0x80410008
+#define QUIC_STATUS_ALPN_IN_USE             ERROR_QUIC_ALPN_IN_USE                          // 0x80410009
 
 #define QUIC_STATUS_TLS_ALERT(Alert)        (QUIC_TLS_ALERT_HRESULT_PREFIX | (0xff & Alert))
 
@@ -121,6 +129,7 @@ Environment:
 
 #define QUIC_STATUS_CERT_EXPIRED            CERT_E_EXPIRED
 #define QUIC_STATUS_CERT_UNTRUSTED_ROOT     CERT_E_UNTRUSTEDROOT
+#define QUIC_STATUS_CERT_NO_CERT            SEC_E_NO_CREDENTIALS
 
 //
 // Swaps byte orders between host and network endianness.
@@ -313,13 +322,15 @@ QuicAddrFromString(
     _Out_ QUIC_ADDR* Addr
     )
 {
-    Addr->Ipv4.sin_port = QuicNetByteSwapShort(Port);
     if (RtlIpv4StringToAddressExA(AddrStr, FALSE, &Addr->Ipv4.sin_addr, &Addr->Ipv4.sin_port) == NO_ERROR) {
         Addr->si_family = QUIC_ADDRESS_FAMILY_INET;
     } else if (RtlIpv6StringToAddressExA(AddrStr, &Addr->Ipv6.sin6_addr, &Addr->Ipv6.sin6_scope_id, &Addr->Ipv6.sin6_port) == NO_ERROR) {
         Addr->si_family = QUIC_ADDRESS_FAMILY_INET6;
     } else {
         return FALSE;
+    }
+    if (Addr->Ipv4.sin_port == 0) {
+        Addr->Ipv4.sin_port = QuicNetByteSwapShort(Port);
     }
     return TRUE;
 }

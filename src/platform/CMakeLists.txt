@@ -9,13 +9,18 @@ if (QUIC_CODE_CHECK)
     set(CMAKE_CXX_CPPCHECK ${CMAKE_C_CPPCHECK_AVAILABLE})
 endif()
 
-set(SOURCES crypt.c hashtable.c pcp.c toeplitz.c)
+set(SOURCES crypt.c hashtable.c pcp.c platform_worker.c toeplitz.c)
 
 if("${CX_PLATFORM}" STREQUAL "windows")
-    set(SOURCES ${SOURCES} datapath_winuser.c platform_winuser.c storage_winuser.c)
+    set(SOURCES ${SOURCES} platform_winuser.c storage_winuser.c)
+    if(QUIC_USE_XDP)
+        set(SOURCES ${SOURCES} datapath_raw.c datapath_raw_socket.c datapath_raw_xdp.c)
+    else()
+        set(SOURCES ${SOURCES} datapath_winuser.c)
+    endif()
 else()
     set(SOURCES ${SOURCES} inline.c platform_posix.c storage_posix.c cgroup.c)
-    if(CX_PLATFORM STREQUAL "linux")
+    if(CX_PLATFORM STREQUAL "linux" AND NOT CMAKE_SYSTEM_NAME STREQUAL "FreeBSD")
         set(SOURCES ${SOURCES} datapath_epoll.c)
     else()
         set(SOURCES ${SOURCES} datapath_kqueue.c)
@@ -41,13 +46,34 @@ endif()
 
 add_library(platform STATIC ${SOURCES})
 
-target_link_libraries(platform PUBLIC inc)
+if(QUIC_USE_XDP)
+    target_link_libraries(
+        platform
+        PUBLIC
+        inc
+        wbemuuid
+        ${PROJECT_SOURCE_DIR}/artifacts/xdp/lib/xdpapi.lib)
+else()
+    target_link_libraries(platform PUBLIC inc)
+endif()
+
+if("${CX_PLATFORM}" STREQUAL "windows")
+    target_link_libraries(platform PUBLIC winmm)
+endif()
 
 target_link_libraries(platform PRIVATE warnings main_binary_link_args)
 
 set_property(TARGET platform PROPERTY FOLDER "${QUIC_FOLDER_PREFIX}libraries")
 
-target_include_directories(platform PRIVATE ${EXTRA_PLATFORM_INCLUDE_DIRECTORIES})
+if(QUIC_USE_XDP)
+    target_include_directories(
+        platform
+        PRIVATE
+        ${EXTRA_PLATFORM_INCLUDE_DIRECTORIES}
+        ${PROJECT_SOURCE_DIR}/artifacts/xdp/include)
+else()
+    target_include_directories(platform PRIVATE ${EXTRA_PLATFORM_INCLUDE_DIRECTORIES})
+endif()
 
 if (MSVC AND (QUIC_TLS STREQUAL "openssl" OR QUIC_TLS STREQUAL "schannel") AND NOT QUIC_ENABLE_SANITIZERS)
     target_compile_options(platform PRIVATE /analyze)
@@ -59,5 +85,5 @@ if(QUIC_TLS STREQUAL "openssl")
         target_link_libraries(platform PUBLIC "-framework CoreFoundation" "-framework Security")
     endif()
 elseif(QUIC_TLS STREQUAL "schannel")
-    target_link_libraries(platform PUBLIC secur32)
+    target_link_libraries(platform PUBLIC secur32 onecore)
 endif()

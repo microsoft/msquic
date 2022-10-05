@@ -9,6 +9,10 @@ Abstract:
 
 --*/
 
+#ifndef QUIC_OFFICIAL_RELEASE
+#define QUIC_API_ENABLE_PREVIEW_FEATURES
+#endif
+
 #include "msquic.hpp"
 
 //#define QUIC_COMPARTMENT_TESTS 1
@@ -34,9 +38,27 @@ void QuicTestValidateConfiguration();
 void QuicTestValidateListener();
 void QuicTestValidateConnection();
 void QuicTestValidateStream(bool Connect);
+void QuicTestCloseConnBeforeStreamFlush();
+void QuicTestGlobalParam();
+void QuicTestCommonParam();
+void QuicTestRegistrationParam();
+void QuicTestConfigurationParam();
+void QuicTestListenerParam();
+void QuicTestConnectionParam();
+void QuicTestTlsParam();
+void QuicTestStreamParam();
 void QuicTestGetPerfCounters();
-void QuicTestDesiredVersionSettings();
+void QuicTestVersionSettings();
 void QuicTestValidateParamApi();
+void QuicTestCredentialLoad(const QUIC_CREDENTIAL_CONFIG* Config);
+
+//
+// Ownership tests
+//
+void QuicTestRegistrationShutdownBeforeConnOpen();
+void QuicTestRegistrationShutdownAfterConnOpen();
+void QuicTestRegistrationShutdownAfterConnOpenBeforeStart();
+void QuicTestRegistrationShutdownAfterConnOpenAndStart();
 
 //
 // Rejection Tests
@@ -64,6 +86,7 @@ void QuicTestStartListenerExplicit(_In_ int Family);
 void QuicTestCreateConnection();
 void QuicTestBindConnectionImplicit(_In_ int Family);
 void QuicTestBindConnectionExplicit(_In_ int Family);
+void QuicTestConnectionCloseFromCallback();
 
 //
 // MTU tests
@@ -107,12 +130,14 @@ QuicTestConnect(
     _In_ bool ServerStatelessRetry,
     _In_ bool ClientUsesOldVersion,
     _In_ bool MultipleALPNs,
+    _In_ bool GreaseQuicBitExtension,
     _In_ QUIC_TEST_ASYNC_CONFIG_MODE AsyncConfiguration,
     _In_ bool MultiPacketClientInitial,
     _In_ QUIC_TEST_RESUMPTION_MODE SessionResumption,
     _In_ uint8_t RandomLossPercentage // 0 to 100
     );
 
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
 void
 QuicTestVersionNegotiation(
     _In_ int Family
@@ -158,6 +183,7 @@ void
 QuicTestFailedVersionNegotiation(
     _In_ int Family
     );
+#endif // QUIC_API_ENABLE_PREVIEW_FEATURES
 
 void
 QuicTestCustomCertificateValidation(
@@ -194,6 +220,24 @@ QuicTestClientSharedLocalPort(
 void
 QuicTestInterfaceBinding(
     _In_ int Family
+    );
+
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
+void
+QuicTestCibirExtension(
+    _In_ int Family,
+    _In_ uint8_t Mode // server = &1, client = &2
+    );
+#endif
+
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
+void
+QuicTestResumptionAcrossVersions();
+#endif
+
+void
+QuicTestChangeAlpn(
+    void
     );
 
 //
@@ -243,6 +287,19 @@ void
 QuicTestConnectExpiredClientCertificate(
     _In_ const QUIC_CREDENTIAL_CONFIG* Config
     );
+
+void
+QuicTestClientBlockedSourcePort(
+    _In_ int Family
+    );
+
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
+void
+QuicTestOddSizeVNTP(
+    _In_ bool TestServer,
+    _In_ uint16_t VNTPSize
+    );
+#endif
 
 //
 // Post Handshake Tests
@@ -299,6 +356,11 @@ QuicTestConnectAndPing(
 void
 QuicTestConnectAndIdle(
     _In_ bool EnableKeepAlive
+    );
+
+void
+QuicTestConnectAndIdleForDestCidChange(
+    void
     );
 
 void
@@ -417,6 +479,10 @@ QuicTestStreamPriority(
     );
 
 void
+QuicTestStreamPriorityInfiniteLoop(
+    );
+
+void
 QuicTestStreamDifferentAbortErrors(
     );
 
@@ -462,6 +528,19 @@ void
 QuicTestDatagramSend(
     _In_ int Family
     );
+
+//
+// Storage tests
+//
+void
+QuicTestStorage(
+    );
+
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
+void
+QuicTestVersionStorage(
+    );
+#endif
 
 //
 // Platform Specific Functions
@@ -582,6 +661,7 @@ typedef struct {
     uint8_t ServerStatelessRetry;
     uint8_t ClientUsesOldVersion;
     uint8_t MultipleALPNs;
+    uint8_t GreaseQuicBitExtension;
     uint8_t AsyncConfiguration;
     uint8_t MultiPacketClientInitial;
     uint8_t SessionResumption;
@@ -833,7 +913,7 @@ typedef struct {
     QUIC_CTL_CODE(54, METHOD_BUFFERED, FILE_WRITE_DATA)
     // int - Family
 
-#define IOCTL_QUIC_RUN_VALIDATE_DESIRED_VERSIONS_SETTINGS \
+#define IOCTL_QUIC_RUN_VALIDATE_VERSION_SETTINGS_SETTINGS \
     QUIC_CTL_CODE(55, METHOD_BUFFERED, FILE_WRITE_DATA)
 
 typedef struct {
@@ -856,6 +936,9 @@ typedef struct {
     union {
         QUIC_CERTIFICATE_HASH CertHash;
         QUIC_CERTIFICATE_HASH_STORE CertHashStore;
+        QUIC_CERTIFICATE_FILE CertFile;
+        QUIC_CERTIFICATE_FILE_PROTECTED CertFileProtected;
+        QUIC_CERTIFICATE_PKCS12 Pkcs12;
         char PrincipalString[100];
     };
 } QUIC_RUN_CRED_VALIDATION;
@@ -947,4 +1030,88 @@ typedef struct {
 #define IOCTL_QUIC_RUN_STREAM_ABORT_CONN_FLOW_CONTROL \
     QUIC_CTL_CODE(79, METHOD_BUFFERED, FILE_WRITE_DATA)
 
-#define QUIC_MAX_IOCTL_FUNC_CODE 79
+#define IOCTL_QUIC_RUN__REG_SHUTDOWN_BEFORE_OPEN \
+    QUIC_CTL_CODE(80, METHOD_BUFFERED, FILE_WRITE_DATA)
+
+#define IOCTL_QUIC_RUN_REG_SHUTDOWN_AFTER_OPEN \
+    QUIC_CTL_CODE(81, METHOD_BUFFERED, FILE_WRITE_DATA)
+
+#define IOCTL_QUIC_RUN_REG_SHUTDOWN_AFTER_OPEN_BEFORE_START \
+    QUIC_CTL_CODE(82, METHOD_BUFFERED, FILE_WRITE_DATA)
+
+#define IOCTL_QUIC_RUN_REG_SHUTDOWN_AFTER_OPEN_AND_START \
+    QUIC_CTL_CODE(83, METHOD_BUFFERED, FILE_WRITE_DATA)
+
+#define IOCTL_QUIC_RUN_CRED_TYPE_VALIDATION \
+    QUIC_CTL_CODE(84, METHOD_BUFFERED, FILE_WRITE_DATA)
+
+typedef struct {
+    int Family;
+    uint8_t Mode;
+} QUIC_RUN_CIBIR_EXTENSION;
+
+#define IOCTL_QUIC_RUN_CIBIR_EXTENSION \
+    QUIC_CTL_CODE(85, METHOD_BUFFERED, FILE_WRITE_DATA)
+    // QUIC_RUN_CIBIR_EXTENSION
+
+#define IOCTL_QUIC_RUN_STREAM_PRIORITY_INFINITE_LOOP \
+    QUIC_CTL_CODE(86, METHOD_BUFFERED, FILE_WRITE_DATA)
+
+#define IOCTL_QUIC_RUN_RESUMPTION_ACROSS_VERSIONS \
+    QUIC_CTL_CODE(87, METHOD_BUFFERED, FILE_WRITE_DATA)
+
+#define IOCTL_QUIC_RUN_CLIENT_BLOCKED_SOURCE_PORT \
+    QUIC_CTL_CODE(88, METHOD_BUFFERED, FILE_WRITE_DATA)
+    // int - Family
+
+#define IOCTL_QUIC_RUN_STORAGE \
+    QUIC_CTL_CODE(89, METHOD_BUFFERED, FILE_WRITE_DATA)
+
+#define IOCTL_QUIC_RUN_VALIDATE_GLOBAL_PARAM \
+    QUIC_CTL_CODE(90, METHOD_BUFFERED, FILE_WRITE_DATA)
+
+#define IOCTL_QUIC_RUN_VALIDATE_COMMON_PARAM \
+    QUIC_CTL_CODE(91, METHOD_BUFFERED, FILE_WRITE_DATA)
+
+#define IOCTL_QUIC_RUN_VALIDATE_REGISTRATION_PARAM \
+    QUIC_CTL_CODE(92, METHOD_BUFFERED, FILE_WRITE_DATA)
+
+#define IOCTL_QUIC_RUN_VALIDATE_CONFIGURATION_PARAM \
+    QUIC_CTL_CODE(93, METHOD_BUFFERED, FILE_WRITE_DATA)
+
+#define IOCTL_QUIC_RUN_VALIDATE_LISTENER_PARAM \
+    QUIC_CTL_CODE(94, METHOD_BUFFERED, FILE_WRITE_DATA)
+
+#define IOCTL_QUIC_RUN_VALIDATE_CONNECTION_PARAM \
+    QUIC_CTL_CODE(95, METHOD_BUFFERED, FILE_WRITE_DATA)
+
+#define IOCTL_QUIC_RUN_VALIDATE_TLS_PARAM \
+    QUIC_CTL_CODE(96, METHOD_BUFFERED, FILE_WRITE_DATA)
+
+#define IOCTL_QUIC_RUN_VALIDATE_STREAM_PARAM \
+    QUIC_CTL_CODE(97, METHOD_BUFFERED, FILE_WRITE_DATA)
+
+#define IOCTL_QUIC_RUN_CONNECTION_CLOSE_FROM_CALLBACK \
+    QUIC_CTL_CODE(98, METHOD_BUFFERED, FILE_WRITE_DATA)
+
+#define IOCTL_QUIC_RUN_CLOSE_CONN_BEFORE_STREAM_FLUSH \
+    QUIC_CTL_CODE(99, METHOD_BUFFERED, FILE_WRITE_DATA)
+
+#define IOCTL_QUIC_RUN_VERSION_STORAGE \
+    QUIC_CTL_CODE(100, METHOD_BUFFERED, FILE_WRITE_DATA)
+
+#define IOCTL_QUIC_RUN_CONNECT_AND_IDLE_FOR_DEST_CID_CHANGE \
+    QUIC_CTL_CODE(101, METHOD_BUFFERED, FILE_WRITE_DATA)
+
+#define IOCTL_QUIC_RUN_CHANGE_ALPN \
+    QUIC_CTL_CODE(102, METHOD_BUFFERED, FILE_WRITE_DATA)
+
+typedef struct {
+    BOOLEAN TestServer;
+    uint8_t VnTpSize;
+} QUIC_RUN_ODD_SIZE_VN_TP_PARAMS;
+
+#define IOCTL_QUIC_RUN_ODD_SIZE_VN_TP \
+    QUIC_CTL_CODE(103, METHOD_BUFFERED, FILE_WRITE_DATA)
+
+#define QUIC_MAX_IOCTL_FUNC_CODE 103

@@ -216,7 +216,12 @@ QuicKeyTypeToEncryptLevel(
     );
 
 QUIC_PACKET_KEY_TYPE
-QuicPacketTypeToKeyType(
+QuicPacketTypeToKeyTypeV1(
+    uint8_t PacketType
+    );
+
+QUIC_PACKET_KEY_TYPE
+QuicPacketTypeToKeyTypeV2(
     uint8_t PacketType
     );
 
@@ -354,7 +359,7 @@ QuicCongestionControlOnDataLost(
     );
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
-void
+BOOLEAN
 QuicCongestionControlOnSpuriousCongestionEvent(
     _In_ QUIC_CONGESTION_CONTROL* Cc
     );
@@ -373,8 +378,26 @@ QuicCongestionControlLogOutFlowStatus(
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 uint32_t
+QuicCongestionControlGetCongestionWindow(
+    _In_ const QUIC_CONGESTION_CONTROL* Cc
+    );
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+uint32_t
 QuicCongestionControlGetBytesInFlightMax(
     _In_ const QUIC_CONGESTION_CONTROL* Cc
+    );
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+BOOLEAN
+QuicCongestionControlIsAppLimited(
+    _In_ struct QUIC_CONGESTION_CONTROL* Cc
+    );
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+void
+QuicCongestionControlSetAppLimited(
+    _In_ struct QUIC_CONGESTION_CONTROL* Cc
     );
 
 QUIC_CONNECTION*
@@ -393,17 +416,32 @@ QuicDatagramGetConnection(
     );
 
 uint8_t
-QuicEncryptLevelToPacketType(
+QuicEncryptLevelToPacketTypeV1(
+    QUIC_ENCRYPT_LEVEL Level
+    );
+
+uint8_t
+QuicEncryptLevelToPacketTypeV2(
     QUIC_ENCRYPT_LEVEL Level
     );
 
 QUIC_ENCRYPT_LEVEL
-QuicPacketTypeToEncryptLevel(
+QuicPacketTypeToEncryptLevelV1(
+    uint8_t PacketType
+    );
+
+QUIC_ENCRYPT_LEVEL
+QuicPacketTypeToEncryptLevelV2(
     uint8_t PacketType
     );
 
 uint8_t
-QuicKeyTypeToPacketType(
+QuicKeyTypeToPacketTypeV1(
+    QUIC_PACKET_KEY_TYPE KeyType
+    );
+
+uint8_t
+QuicKeyTypeToPacketTypeV2(
     QUIC_PACKET_KEY_TYPE KeyType
     );
 
@@ -465,7 +503,8 @@ _Success_(return != 0)
 uint16_t
 QuicPacketEncodeLongHeaderV1(
     _In_ uint32_t Version, // Allows for version negotiation forcing
-    _In_ QUIC_LONG_HEADER_TYPE_V1 PacketType,
+    _In_ uint8_t PacketType,
+    _In_ BOOLEAN FixedBit,
     _In_ const QUIC_CID* const DestCid,
     _In_ const QUIC_CID* const SourceCid,
     _In_ uint16_t TokenLength,
@@ -488,6 +527,7 @@ QuicPacketEncodeShortHeaderV1(
     _In_ uint8_t PacketNumberLength,
     _In_ BOOLEAN SpinBit,
     _In_ BOOLEAN KeyPhase,
+    _In_ BOOLEAN FixedBit,
     _In_ uint16_t BufferLength,
     _Out_writes_bytes_opt_(BufferLength)
         uint8_t* Buffer
@@ -571,6 +611,11 @@ QuicPathDecrementAllowance(
     _In_ QUIC_CONNECTION* Connection,
     _In_ QUIC_PATH* Path,
     _In_ uint32_t Amount
+    );
+
+uint16_t
+QuicPathGetDatagramPayloadSize(
+    _In_ const QUIC_PATH* Path
     );
 
 uint64_t
@@ -661,9 +706,9 @@ QuicStreamRecvGetState(
 BOOLEAN
 QuicRetryTokenDecrypt(
     _In_ const CXPLAT_RECV_PACKET* const Packet,
-    _In_reads_(sizeof(QUIC_RETRY_TOKEN_CONTENTS))
+    _In_reads_(sizeof(QUIC_TOKEN_CONTENTS))
         const uint8_t* TokenBuffer,
-    _Out_ QUIC_RETRY_TOKEN_CONTENTS* Token
+    _Out_ QUIC_TOKEN_CONTENTS* Token
     );
 
 void

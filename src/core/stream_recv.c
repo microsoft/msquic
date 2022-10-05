@@ -123,7 +123,8 @@ Exit:
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicStreamRecvQueueFlush(
-    _In_ QUIC_STREAM* Stream
+    _In_ QUIC_STREAM* Stream,
+    _In_ BOOLEAN AllowInlineFlush
     )
 {
     //
@@ -133,26 +134,30 @@ QuicStreamRecvQueueFlush(
 
     if (Stream->Flags.ReceiveEnabled &&
         Stream->Flags.ReceiveDataPending &&
-        !Stream->Flags.ReceiveCallPending &&
-        !Stream->Flags.ReceiveFlushQueued) {
+        !Stream->Flags.ReceiveCallPending) {
 
-        QuicTraceLogStreamVerbose(
-            QueueRecvFlush,
-            Stream,
-            "Queuing recv flush");
+        if (AllowInlineFlush) {
+            QuicStreamRecvFlush(Stream);
 
-        QUIC_OPERATION* Oper;
-        if ((Oper = QuicOperationAlloc(Stream->Connection->Worker, QUIC_OPER_TYPE_FLUSH_STREAM_RECV)) != NULL) {
-            Oper->FLUSH_STREAM_RECEIVE.Stream = Stream;
-            QuicStreamAddRef(Stream, QUIC_STREAM_REF_OPERATION);
-            QuicConnQueueOper(Stream->Connection, Oper);
-            Stream->Flags.ReceiveFlushQueued = TRUE;
-        } else {
-            QuicTraceEvent(
-                AllocFailure,
-                "Allocation of '%s' failed. (%llu bytes)",
-                "Flush Stream Recv operation",
-                0);
+        } else if (!Stream->Flags.ReceiveFlushQueued) {
+            QuicTraceLogStreamVerbose(
+                QueueRecvFlush,
+                Stream,
+                "Queuing recv flush");
+
+            QUIC_OPERATION* Oper;
+            if ((Oper = QuicOperationAlloc(Stream->Connection->Worker, QUIC_OPER_TYPE_FLUSH_STREAM_RECV)) != NULL) {
+                Oper->FLUSH_STREAM_RECEIVE.Stream = Stream;
+                QuicStreamAddRef(Stream, QUIC_STREAM_REF_OPERATION);
+                QuicConnQueueOper(Stream->Connection, Oper);
+                Stream->Flags.ReceiveFlushQueued = TRUE;
+            } else {
+                QuicTraceEvent(
+                    AllocFailure,
+                    "Allocation of '%s' failed. (%llu bytes)",
+                    "Flush Stream Recv operation",
+                    0);
+            }
         }
     }
 }
@@ -464,7 +469,9 @@ QuicStreamProcessStreamFrame(
 
     if (ReadyToDeliver) {
         Stream->Flags.ReceiveDataPending = TRUE;
-        QuicStreamRecvQueueFlush(Stream);
+        QuicStreamRecvQueueFlush(
+            Stream,
+            Stream->RecvBuffer.BaseOffset == Stream->RecvMaxLength);
     }
 
     QuicTraceLogStreamVerbose(
@@ -498,7 +505,7 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 QuicStreamRecv(
     _In_ QUIC_STREAM* Stream,
-    _In_ BOOLEAN EncryptedWith0Rtt,
+    _In_ CXPLAT_RECV_PACKET* Packet,
     _In_ QUIC_FRAME_TYPE FrameType,
     _In_ uint16_t BufferLength,
     _In_reads_bytes_(BufferLength)
@@ -508,6 +515,12 @@ QuicStreamRecv(
     )
 {
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
+
+    QuicTraceEvent(
+        StreamReceiveFrame,
+        "[strm][%p] Processing frame in packet %llu",
+        Stream,
+        Packet->PacketId);
 
     switch (FrameType) {
 
@@ -613,23 +626,30 @@ QuicStreamRecv(
 
         Status =
             QuicStreamProcessStreamFrame(
-                Stream, EncryptedWith0Rtt, &Frame);
+                Stream, Packet->EncryptedWith0Rtt, &Frame);
 
         break;
     }
     }
 
+    QuicTraceEvent(
+        StreamReceiveFrameComplete,
+        "[strm][%p] Done processing frame",
+        Stream);
+
     return Status;
 }
 
 //
-// Generally, every time bytes are delivered to the application we update our max
-// data (stream and connection) values and queue an update to be sent to the
-// peer. It is done every time, because nearly always an ACK frame is also
-// ready to be sent out, so we might as well take advantage of that packet to
-// send this data as well. If we don't have an ACK ready to be sent out
-// immediately then we only update the values if we have reached the drain
-// limit.
+// Criteria for sending MAX_DATA/MAX_STREAM_DATA frames:
+//
+// Whenever bytes are delivered on a stream, a MAX_STREAM_DATA frame is sent if an ACK
+// is already queued, or if the buffer tuning algorithm below increases the buffer size.
+//
+// The connection-wide MAX_DATA frame is sent independently from MAX_STREAM_DATA (see use
+// of OrderedStreamBytesDeliveredAccumulator). This prevents issues in corner cases, like
+// when many short streams are used, in which case we might never actually send a
+// MAX_STREAM_DATA update since each stream's entire payload fits in the initial window.
 //
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
@@ -643,6 +663,15 @@ QuicStreamOnBytesDelivered(
 
     Stream->RecvWindowBytesDelivered += BytesDelivered;
     Stream->Connection->Send.MaxData += BytesDelivered;
+
+    Stream->Connection->Send.OrderedStreamBytesDeliveredAccumulator += BytesDelivered;
+    if (Stream->Connection->Send.OrderedStreamBytesDeliveredAccumulator >=
+        Stream->Connection->Settings.ConnFlowControlWindow / QUIC_RECV_BUFFER_DRAIN_RATIO) {
+        Stream->Connection->Send.OrderedStreamBytesDeliveredAccumulator = 0;
+        QuicSendSetSendFlag(
+            &Stream->Connection->Send,
+            QUIC_CONN_SEND_FLAG_MAX_DATA);
+    }
 
     if (Stream->RecvWindowBytesDelivered >= RecvBufferDrainThreshold) {
 
@@ -698,7 +727,7 @@ QuicStreamOnBytesDelivered(
     } else if (!(Stream->Connection->Send.SendFlags & QUIC_CONN_SEND_FLAG_ACK)) {
         //
         // We haven't hit the drain limit AND we don't have any ACKs to send
-        // immediately, so we don't need to immediately update the max data
+        // immediately, so we don't need to immediately update the max stream data
         // values.
         //
         return;
@@ -737,6 +766,14 @@ QuicStreamRecvFlush(
     )
 {
     Stream->Flags.ReceiveFlushQueued = FALSE;
+
+    if (!Stream->Flags.ReceiveDataPending) {
+        //
+        // Means flush was executed inline already.
+        //
+        return;
+    }
+
     if (!Stream->Flags.ReceiveEnabled) {
         QuicTraceLogStreamVerbose(
             IgnoreRecvFlush,
@@ -745,7 +782,6 @@ QuicStreamRecvFlush(
         return;
     }
 
-    CXPLAT_TEL_ASSERT(Stream->Flags.ReceiveDataPending);
     CXPLAT_TEL_ASSERT(!Stream->Flags.ReceiveCallPending);
 
     BOOLEAN FlushRecv = TRUE;
@@ -801,19 +837,36 @@ QuicStreamRecvFlush(
             Event.RECEIVE.Flags |= QUIC_RECEIVE_FLAG_FIN; // TODO - 0-RTT flag?
         }
 
+        if (Stream->ReceiveCompleteOperation == NULL) {
+            Stream->ReceiveCompleteOperation =
+                QuicOperationAlloc(
+                    Stream->Connection->Worker, QUIC_OPER_TYPE_API_CALL);
+            if (Stream->ReceiveCompleteOperation == NULL) {
+                QuicConnFatalError(
+                    Stream->Connection, QUIC_STATUS_INTERNAL_ERROR, NULL);
+                break;
+            }
+            Stream->ReceiveCompleteOperation->API_CALL.Context->Type = QUIC_API_TYPE_STRM_RECV_COMPLETE;
+            Stream->ReceiveCompleteOperation->API_CALL.Context->STRM_RECV_COMPLETE.Stream = NULL;
+        }
+
         Stream->Flags.ReceiveEnabled = FALSE;
         Stream->Flags.ReceiveCallPending = TRUE;
+        Stream->Flags.ReceiveCallActive = TRUE;
         Stream->RecvPendingLength = Event.RECEIVE.TotalBufferLength;
+        Stream->RecvInlineCompletionLength = UINT64_MAX;
 
-        QuicTraceLogStreamVerbose(
-            IndicateReceive,
+        QuicTraceEvent(
+            StreamAppReceive,
+            "[strm][%p] Indicating QUIC_STREAM_EVENT_RECEIVE [%llu bytes, %u buffers, 0x%x flags]",
             Stream,
-            "Indicating QUIC_STREAM_EVENT_RECEIVE [%llu bytes, %u buffers, 0x%x flags]",
             Event.RECEIVE.TotalBufferLength,
             Event.RECEIVE.BufferCount,
             Event.RECEIVE.Flags);
 
         QUIC_STATUS Status = QuicStreamIndicateEvent(Stream, &Event);
+
+        Stream->Flags.ReceiveCallActive = FALSE;
 
         if (Stream->Flags.SentStopSending || Stream->Flags.RemoteCloseFin) {
             //
@@ -823,8 +876,19 @@ QuicStreamRecvFlush(
             break;
         }
 
+        //
+        // Should be impossible to have already completed inline.
+        //
+        CXPLAT_DBG_ASSERT(Stream->Flags.ReceiveCallPending);
+
         if (Status == QUIC_STATUS_PENDING) {
-            if (Stream->Flags.ReceiveCallPending) {
+            if (Stream->RecvInlineCompletionLength != UINT64_MAX) {
+                //
+                // The app called StreamReceiveComplete inline to the callback
+                // so treat that as a synchronous completion.
+                //
+                Event.RECEIVE.TotalBufferLength = Stream->RecvInlineCompletionLength;
+            } else {
                 //
                 // If the pending call wasn't completed inline, then receive
                 // callbacks MUST be disabled still.
@@ -835,11 +899,10 @@ QuicStreamRecvFlush(
                     Stream->Connection->Registration->AppName,
                     0, 0);
                 Stream->Flags.ReceiveEnabled = FALSE;
+                break;
             }
-            break;
-        }
 
-        if (Status == QUIC_STATUS_CONTINUE) {
+        } else if (Status == QUIC_STATUS_CONTINUE) {
             CXPLAT_DBG_ASSERT(!Stream->Flags.SentStopSending);
             //
             // The app has explicitly indicated it wants to continue to
@@ -859,12 +922,6 @@ QuicStreamRecvFlush(
                 Status, 0);
         }
 
-        CXPLAT_TEL_ASSERTMSG_ARGS(
-            Stream->Flags.ReceiveCallPending,
-            "App completed async recv without pending it",
-            Stream->Connection->Registration->AppName,
-            0, 0);
-
         FlushRecv = QuicStreamReceiveComplete(Stream, Event.RECEIVE.TotalBufferLength);
     }
 }
@@ -879,6 +936,21 @@ QuicStreamReceiveCompletePending(
     if (QuicStreamReceiveComplete(Stream, BufferLength)) {
         QuicStreamRecvFlush(Stream);
     }
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+QuicStreamReceiveCompleteInline(
+    _In_ QUIC_STREAM* Stream,
+    _In_ uint64_t BufferLength
+    )
+{
+    CXPLAT_FRE_ASSERTMSG(
+        BufferLength <= Stream->RecvPendingLength,
+        "App overflowed read buffer!");
+
+    CXPLAT_DBG_ASSERT(Stream->RecvInlineCompletionLength == UINT64_MAX); // Indicates double call.
+    Stream->RecvInlineCompletionLength = BufferLength;
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -899,10 +971,11 @@ QuicStreamReceiveComplete(
         "App overflowed read buffer!");
 
     Stream->Flags.ReceiveCallPending = FALSE;
-    QuicTraceLogStreamVerbose(
-        ReceiveComplete,
+
+    QuicTraceEvent(
+        StreamAppReceiveComplete,
+        "[strm][%p] Receive complete [%llu bytes]",
         Stream,
-        "Recv complete (%llu bytes)",
         BufferLength);
 
     //
@@ -1020,7 +1093,7 @@ QuicStreamRecvSetEnabledState(
                 "[strm][%p] Recv State: %hhu",
                 Stream,
                 QuicStreamRecvGetState(Stream));
-            QuicStreamRecvQueueFlush(Stream);
+            QuicStreamRecvQueueFlush(Stream, TRUE);
         }
     }
 

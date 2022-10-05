@@ -1,443 +1,485 @@
+#pragma warning disable IDE0073
 //
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 //
+#pragma warning restore IDE0073
+
+#pragma warning disable CS0649
+
+// Polyfill for MemoryMarshal on .NET Standard
+#if NETSTANDARD && !NETSTANDARD2_1_OR_GREATER
+using MemoryMarshal = Microsoft.Quic.Polyfill.MemoryMarshal;
+#else
+using MemoryMarshal = System.Runtime.InteropServices.MemoryMarshal;
+#endif
 
 using System.Runtime.InteropServices;
 
 namespace Microsoft.Quic
 {
-    public partial struct QUIC_HANDLE
+    internal partial struct QUIC_HANDLE
     {
     }
 
-    public enum QUIC_EXECUTION_PROFILE
+    internal enum QUIC_TLS_PROVIDER
     {
-        QUIC_EXECUTION_PROFILE_LOW_LATENCY,
-        QUIC_EXECUTION_PROFILE_TYPE_MAX_THROUGHPUT,
-        QUIC_EXECUTION_PROFILE_TYPE_SCAVENGER,
-        QUIC_EXECUTION_PROFILE_TYPE_REAL_TIME,
+        SCHANNEL = 0x0000,
+        OPENSSL = 0x0001,
     }
 
-    public enum QUIC_LOAD_BALANCING_MODE
+    internal enum QUIC_EXECUTION_PROFILE
     {
-        QUIC_LOAD_BALANCING_DISABLED,
-        QUIC_LOAD_BALANCING_SERVER_ID_IP,
+        LOW_LATENCY,
+        MAX_THROUGHPUT,
+        SCAVENGER,
+        REAL_TIME,
     }
 
-    public enum QUIC_CREDENTIAL_TYPE
+    internal enum QUIC_LOAD_BALANCING_MODE
     {
-        QUIC_CREDENTIAL_TYPE_NONE,
-        QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH,
-        QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH_STORE,
-        QUIC_CREDENTIAL_TYPE_CERTIFICATE_CONTEXT,
-        QUIC_CREDENTIAL_TYPE_CERTIFICATE_FILE,
-        QUIC_CREDENTIAL_TYPE_CERTIFICATE_FILE_PROTECTED,
-        QUIC_CREDENTIAL_TYPE_CERTIFICATE_PKCS12,
+        DISABLED,
+        SERVER_ID_IP,
     }
 
-    public enum QUIC_CREDENTIAL_FLAGS
+    internal enum QUIC_CREDENTIAL_TYPE
     {
-        QUIC_CREDENTIAL_FLAG_NONE = 0x00000000,
-        QUIC_CREDENTIAL_FLAG_CLIENT = 0x00000001,
-        QUIC_CREDENTIAL_FLAG_LOAD_ASYNCHRONOUS = 0x00000002,
-        QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION = 0x00000004,
-        QUIC_CREDENTIAL_FLAG_ENABLE_OCSP = 0x00000008,
-        QUIC_CREDENTIAL_FLAG_INDICATE_CERTIFICATE_RECEIVED = 0x00000010,
-        QUIC_CREDENTIAL_FLAG_DEFER_CERTIFICATE_VALIDATION = 0x00000020,
-        QUIC_CREDENTIAL_FLAG_REQUIRE_CLIENT_AUTHENTICATION = 0x00000040,
-        QUIC_CREDENTIAL_FLAG_USE_TLS_BUILTIN_CERTIFICATE_VALIDATION = 0x00000080,
-        QUIC_CREDENTIAL_FLAG_REVOCATION_CHECK_END_CERT = 0x00000100,
-        QUIC_CREDENTIAL_FLAG_REVOCATION_CHECK_CHAIN = 0x00000200,
-        QUIC_CREDENTIAL_FLAG_REVOCATION_CHECK_CHAIN_EXCLUDE_ROOT = 0x00000400,
-        QUIC_CREDENTIAL_FLAG_IGNORE_NO_REVOCATION_CHECK = 0x00000800,
-        QUIC_CREDENTIAL_FLAG_IGNORE_REVOCATION_OFFLINE = 0x00001000,
-        QUIC_CREDENTIAL_FLAG_SET_ALLOWED_CIPHER_SUITES = 0x00002000,
-        QUIC_CREDENTIAL_FLAGS_USE_PORTABLE_CERTIFICATES = 0x00004000,
+        NONE,
+        CERTIFICATE_HASH,
+        CERTIFICATE_HASH_STORE,
+        CERTIFICATE_CONTEXT,
+        CERTIFICATE_FILE,
+        CERTIFICATE_FILE_PROTECTED,
+        CERTIFICATE_PKCS12,
     }
 
-    public enum QUIC_ALLOWED_CIPHER_SUITE_FLAGS
+    [System.Flags]
+    internal enum QUIC_CREDENTIAL_FLAGS
     {
-        QUIC_ALLOWED_CIPHER_SUITE_NONE = 0x0,
-        QUIC_ALLOWED_CIPHER_SUITE_AES_128_GCM_SHA256 = 0x1,
-        QUIC_ALLOWED_CIPHER_SUITE_AES_256_GCM_SHA384 = 0x2,
-        QUIC_ALLOWED_CIPHER_SUITE_CHACHA20_POLY1305_SHA256 = 0x4,
+        NONE = 0x00000000,
+        CLIENT = 0x00000001,
+        LOAD_ASYNCHRONOUS = 0x00000002,
+        NO_CERTIFICATE_VALIDATION = 0x00000004,
+        ENABLE_OCSP = 0x00000008,
+        INDICATE_CERTIFICATE_RECEIVED = 0x00000010,
+        DEFER_CERTIFICATE_VALIDATION = 0x00000020,
+        REQUIRE_CLIENT_AUTHENTICATION = 0x00000040,
+        USE_TLS_BUILTIN_CERTIFICATE_VALIDATION = 0x00000080,
+        REVOCATION_CHECK_END_CERT = 0x00000100,
+        REVOCATION_CHECK_CHAIN = 0x00000200,
+        REVOCATION_CHECK_CHAIN_EXCLUDE_ROOT = 0x00000400,
+        IGNORE_NO_REVOCATION_CHECK = 0x00000800,
+        IGNORE_REVOCATION_OFFLINE = 0x00001000,
+        SET_ALLOWED_CIPHER_SUITES = 0x00002000,
+        USE_PORTABLE_CERTIFICATES = 0x00004000,
+        USE_SUPPLIED_CREDENTIALS = 0x00008000,
+        USE_SYSTEM_MAPPER = 0x00010000,
+        CACHE_ONLY_URL_RETRIEVAL = 0x00020000,
+        REVOCATION_CHECK_CACHE_ONLY = 0x00040000,
+        INPROC_PEER_CERTIFICATE = 0x00080000,
     }
 
-    public enum QUIC_CERTIFICATE_HASH_STORE_FLAGS
+    [System.Flags]
+    internal enum QUIC_ALLOWED_CIPHER_SUITE_FLAGS
     {
-        QUIC_CERTIFICATE_HASH_STORE_FLAG_NONE = 0x0000,
-        QUIC_CERTIFICATE_HASH_STORE_FLAG_MACHINE_STORE = 0x0001,
+        NONE = 0x0,
+        AES_128_GCM_SHA256 = 0x1,
+        AES_256_GCM_SHA384 = 0x2,
+        CHACHA20_POLY1305_SHA256 = 0x4,
     }
 
-    public enum QUIC_CONNECTION_SHUTDOWN_FLAGS
+    [System.Flags]
+    internal enum QUIC_CERTIFICATE_HASH_STORE_FLAGS
     {
-        QUIC_CONNECTION_SHUTDOWN_FLAG_NONE = 0x0000,
-        QUIC_CONNECTION_SHUTDOWN_FLAG_SILENT = 0x0001,
+        NONE = 0x0000,
+        MACHINE_STORE = 0x0001,
     }
 
-    public enum QUIC_SERVER_RESUMPTION_LEVEL
+    [System.Flags]
+    internal enum QUIC_CONNECTION_SHUTDOWN_FLAGS
     {
-        QUIC_SERVER_NO_RESUME,
-        QUIC_SERVER_RESUME_ONLY,
-        QUIC_SERVER_RESUME_AND_ZERORTT,
+        NONE = 0x0000,
+        SILENT = 0x0001,
     }
 
-    public enum QUIC_SEND_RESUMPTION_FLAGS
+    internal enum QUIC_SERVER_RESUMPTION_LEVEL
     {
-        QUIC_SEND_RESUMPTION_FLAG_NONE = 0x0000,
-        QUIC_SEND_RESUMPTION_FLAG_FINAL = 0x0001,
+        NO_RESUME,
+        RESUME_ONLY,
+        RESUME_AND_ZERORTT,
     }
 
-    public enum QUIC_STREAM_SCHEDULING_SCHEME
+    [System.Flags]
+    internal enum QUIC_SEND_RESUMPTION_FLAGS
     {
-        QUIC_STREAM_SCHEDULING_SCHEME_FIFO = 0x0000,
-        QUIC_STREAM_SCHEDULING_SCHEME_ROUND_ROBIN = 0x0001,
-        QUIC_STREAM_SCHEDULING_SCHEME_COUNT,
+        NONE = 0x0000,
+        FINAL = 0x0001,
     }
 
-    public enum QUIC_STREAM_OPEN_FLAGS
+    internal enum QUIC_STREAM_SCHEDULING_SCHEME
     {
-        QUIC_STREAM_OPEN_FLAG_NONE = 0x0000,
-        QUIC_STREAM_OPEN_FLAG_UNIDIRECTIONAL = 0x0001,
-        QUIC_STREAM_OPEN_FLAG_0_RTT = 0x0002,
+        FIFO = 0x0000,
+        ROUND_ROBIN = 0x0001,
+        COUNT,
     }
 
-    public enum QUIC_STREAM_START_FLAGS
+    [System.Flags]
+    internal enum QUIC_STREAM_OPEN_FLAGS
     {
-        QUIC_STREAM_START_FLAG_NONE = 0x0000,
-        QUIC_STREAM_START_FLAG_FAIL_BLOCKED = 0x0001,
-        QUIC_STREAM_START_FLAG_IMMEDIATE = 0x0002,
-        QUIC_STREAM_START_FLAG_ASYNC = 0x0004,
-        QUIC_STREAM_START_FLAG_SHUTDOWN_ON_FAIL = 0x0008,
-        QUIC_STREAM_START_FLAG_INDICATE_PEER_ACCEPT = 0x0010,
+        NONE = 0x0000,
+        UNIDIRECTIONAL = 0x0001,
+        ZERO_RTT = 0x0002,
     }
 
-    public enum QUIC_STREAM_SHUTDOWN_FLAGS
+    [System.Flags]
+    internal enum QUIC_STREAM_START_FLAGS
     {
-        QUIC_STREAM_SHUTDOWN_FLAG_NONE = 0x0000,
-        QUIC_STREAM_SHUTDOWN_FLAG_GRACEFUL = 0x0001,
-        QUIC_STREAM_SHUTDOWN_FLAG_ABORT_SEND = 0x0002,
-        QUIC_STREAM_SHUTDOWN_FLAG_ABORT_RECEIVE = 0x0004,
-        QUIC_STREAM_SHUTDOWN_FLAG_ABORT = 0x0006,
-        QUIC_STREAM_SHUTDOWN_FLAG_IMMEDIATE = 0x0008,
+        NONE = 0x0000,
+        IMMEDIATE = 0x0001,
+        FAIL_BLOCKED = 0x0002,
+        SHUTDOWN_ON_FAIL = 0x0004,
+        INDICATE_PEER_ACCEPT = 0x0008,
     }
 
-    public enum QUIC_RECEIVE_FLAGS
+    [System.Flags]
+    internal enum QUIC_STREAM_SHUTDOWN_FLAGS
     {
-        QUIC_RECEIVE_FLAG_NONE = 0x0000,
-        QUIC_RECEIVE_FLAG_0_RTT = 0x0001,
-        QUIC_RECEIVE_FLAG_FIN = 0x0002,
+        NONE = 0x0000,
+        GRACEFUL = 0x0001,
+        ABORT_SEND = 0x0002,
+        ABORT_RECEIVE = 0x0004,
+        ABORT = 0x0006,
+        IMMEDIATE = 0x0008,
+        INLINE = 0x0010,
     }
 
-    public enum QUIC_SEND_FLAGS
+    [System.Flags]
+    internal enum QUIC_RECEIVE_FLAGS
     {
-        QUIC_SEND_FLAG_NONE = 0x0000,
-        QUIC_SEND_FLAG_ALLOW_0_RTT = 0x0001,
-        QUIC_SEND_FLAG_START = 0x0002,
-        QUIC_SEND_FLAG_FIN = 0x0004,
-        QUIC_SEND_FLAG_DGRAM_PRIORITY = 0x0008,
-        QUIC_SEND_FLAG_DELAY_SEND = 0x0010,
+        NONE = 0x0000,
+        ZERO_RTT = 0x0001,
+        FIN = 0x0002,
     }
 
-    public enum QUIC_DATAGRAM_SEND_STATE
+    [System.Flags]
+    internal enum QUIC_SEND_FLAGS
     {
-        QUIC_DATAGRAM_SEND_SENT,
-        QUIC_DATAGRAM_SEND_LOST_SUSPECT,
-        QUIC_DATAGRAM_SEND_LOST_DISCARDED,
-        QUIC_DATAGRAM_SEND_ACKNOWLEDGED,
-        QUIC_DATAGRAM_SEND_ACKNOWLEDGED_SPURIOUS,
-        QUIC_DATAGRAM_SEND_CANCELED,
+        NONE = 0x0000,
+        ALLOW_0_RTT = 0x0001,
+        START = 0x0002,
+        FIN = 0x0004,
+        DGRAM_PRIORITY = 0x0008,
+        DELAY_SEND = 0x0010,
     }
 
-    public unsafe partial struct QUIC_REGISTRATION_CONFIG
+    internal enum QUIC_DATAGRAM_SEND_STATE
     {
-        [NativeTypeName("const char *")]
-        public byte* AppName;
-
-        public QUIC_EXECUTION_PROFILE ExecutionProfile;
+        UNKNOWN,
+        SENT,
+        LOST_SUSPECT,
+        LOST_DISCARDED,
+        ACKNOWLEDGED,
+        ACKNOWLEDGED_SPURIOUS,
+        CANCELED,
     }
 
-    public unsafe partial struct QUIC_CERTIFICATE_HASH
+    [System.Flags]
+    internal enum QUIC_EXECUTION_CONFIG_FLAGS
     {
-        [NativeTypeName("uint8_t [20]")]
-        public fixed byte ShaHash[20];
+        NONE = 0x0000,
     }
 
-    public unsafe partial struct QUIC_CERTIFICATE_HASH_STORE
+    internal unsafe partial struct QUIC_EXECUTION_CONFIG
     {
-        public QUIC_CERTIFICATE_HASH_STORE_FLAGS Flags;
-
-        [NativeTypeName("uint8_t [20]")]
-        public fixed byte ShaHash[20];
-
-        [NativeTypeName("char [128]")]
-        public fixed byte StoreName[128];
-    }
-
-    public unsafe partial struct QUIC_CERTIFICATE_FILE
-    {
-        [NativeTypeName("const char *")]
-        public byte* PrivateKeyFile;
-
-        [NativeTypeName("const char *")]
-        public byte* CertificateFile;
-    }
-
-    public unsafe partial struct QUIC_CERTIFICATE_FILE_PROTECTED
-    {
-        [NativeTypeName("const char *")]
-        public byte* PrivateKeyFile;
-
-        [NativeTypeName("const char *")]
-        public byte* CertificateFile;
-
-        [NativeTypeName("const char *")]
-        public byte* PrivateKeyPassword;
-    }
-
-    public unsafe partial struct QUIC_CERTIFICATE_PKCS12
-    {
-        [NativeTypeName("const uint8_t *")]
-        public byte* Asn1Blob;
+        internal QUIC_EXECUTION_CONFIG_FLAGS Flags;
 
         [NativeTypeName("uint32_t")]
-        public uint Asn1BlobLength;
+        internal uint PollingIdleTimeoutUs;
 
-        [NativeTypeName("const char *")]
-        public byte* PrivateKeyPassword;
+        [NativeTypeName("uint32_t")]
+        internal uint ProcessorCount;
+
+        [NativeTypeName("uint16_t [1]")]
+        internal fixed ushort ProcessorList[1];
     }
 
-    public unsafe partial struct QUIC_CREDENTIAL_CONFIG
+    internal unsafe partial struct QUIC_REGISTRATION_CONFIG
     {
-        public QUIC_CREDENTIAL_TYPE Type;
+        [NativeTypeName("const char *")]
+        internal sbyte* AppName;
 
-        public QUIC_CREDENTIAL_FLAGS Flags;
+        internal QUIC_EXECUTION_PROFILE ExecutionProfile;
+    }
 
-        [NativeTypeName("QUIC_CREDENTIAL_CONFIG::(anonymous union at src/inc/msquic.h:274:5)")]
-        public _Anonymous_e__Union Anonymous;
+    internal unsafe partial struct QUIC_CERTIFICATE_HASH
+    {
+        [NativeTypeName("uint8_t [20]")]
+        internal fixed byte ShaHash[20];
+    }
+
+    internal unsafe partial struct QUIC_CERTIFICATE_HASH_STORE
+    {
+        internal QUIC_CERTIFICATE_HASH_STORE_FLAGS Flags;
+
+        [NativeTypeName("uint8_t [20]")]
+        internal fixed byte ShaHash[20];
+
+        [NativeTypeName("char [128]")]
+        internal fixed sbyte StoreName[128];
+    }
+
+    internal unsafe partial struct QUIC_CERTIFICATE_FILE
+    {
+        [NativeTypeName("const char *")]
+        internal sbyte* PrivateKeyFile;
 
         [NativeTypeName("const char *")]
-        public byte* Principal;
+        internal sbyte* CertificateFile;
+    }
 
-        public void* Reserved;
+    internal unsafe partial struct QUIC_CERTIFICATE_FILE_PROTECTED
+    {
+        [NativeTypeName("const char *")]
+        internal sbyte* PrivateKeyFile;
+
+        [NativeTypeName("const char *")]
+        internal sbyte* CertificateFile;
+
+        [NativeTypeName("const char *")]
+        internal sbyte* PrivateKeyPassword;
+    }
+
+    internal unsafe partial struct QUIC_CERTIFICATE_PKCS12
+    {
+        [NativeTypeName("const uint8_t *")]
+        internal byte* Asn1Blob;
+
+        [NativeTypeName("uint32_t")]
+        internal uint Asn1BlobLength;
+
+        [NativeTypeName("const char *")]
+        internal sbyte* PrivateKeyPassword;
+    }
+
+    internal unsafe partial struct QUIC_CREDENTIAL_CONFIG
+    {
+        internal QUIC_CREDENTIAL_TYPE Type;
+
+        internal QUIC_CREDENTIAL_FLAGS Flags;
+
+        [NativeTypeName("QUIC_CREDENTIAL_CONFIG::(anonymous union)")]
+        internal _Anonymous_e__Union Anonymous;
+
+        [NativeTypeName("const char *")]
+        internal sbyte* Principal;
+
+        internal void* Reserved;
 
         [NativeTypeName("QUIC_CREDENTIAL_LOAD_COMPLETE_HANDLER")]
-        public delegate* unmanaged[Cdecl]<QUIC_HANDLE*, void*, int, void> AsyncHandler;
+        internal delegate* unmanaged[Cdecl]<QUIC_HANDLE*, void*, int, void> AsyncHandler;
 
-        public QUIC_ALLOWED_CIPHER_SUITE_FLAGS AllowedCipherSuites;
+        internal QUIC_ALLOWED_CIPHER_SUITE_FLAGS AllowedCipherSuites;
 
-        public ref QUIC_CERTIFICATE_HASH* CertificateHash
+        internal ref QUIC_CERTIFICATE_HASH* CertificateHash
         {
             get
             {
-                fixed (_Anonymous_e__Union* pField = &Anonymous)
-                {
-                    return ref pField->CertificateHash;
-                }
+                return ref MemoryMarshal.GetReference(MemoryMarshal.CreateSpan(ref this, 1)).Anonymous.CertificateHash;
             }
         }
 
-        public ref QUIC_CERTIFICATE_HASH_STORE* CertificateHashStore
+        internal ref QUIC_CERTIFICATE_HASH_STORE* CertificateHashStore
         {
             get
             {
-                fixed (_Anonymous_e__Union* pField = &Anonymous)
-                {
-                    return ref pField->CertificateHashStore;
-                }
+                return ref MemoryMarshal.GetReference(MemoryMarshal.CreateSpan(ref this, 1)).Anonymous.CertificateHashStore;
             }
         }
 
-        public ref void* CertificateContext
+        internal ref void* CertificateContext
         {
             get
             {
-                fixed (_Anonymous_e__Union* pField = &Anonymous)
-                {
-                    return ref pField->CertificateContext;
-                }
+                return ref MemoryMarshal.GetReference(MemoryMarshal.CreateSpan(ref this, 1)).Anonymous.CertificateContext;
             }
         }
 
-        public ref QUIC_CERTIFICATE_FILE* CertificateFile
+        internal ref QUIC_CERTIFICATE_FILE* CertificateFile
         {
             get
             {
-                fixed (_Anonymous_e__Union* pField = &Anonymous)
-                {
-                    return ref pField->CertificateFile;
-                }
+                return ref MemoryMarshal.GetReference(MemoryMarshal.CreateSpan(ref this, 1)).Anonymous.CertificateFile;
             }
         }
 
-        public ref QUIC_CERTIFICATE_FILE_PROTECTED* CertificateFileProtected
+        internal ref QUIC_CERTIFICATE_FILE_PROTECTED* CertificateFileProtected
         {
             get
             {
-                fixed (_Anonymous_e__Union* pField = &Anonymous)
-                {
-                    return ref pField->CertificateFileProtected;
-                }
+                return ref MemoryMarshal.GetReference(MemoryMarshal.CreateSpan(ref this, 1)).Anonymous.CertificateFileProtected;
             }
         }
 
-        public ref QUIC_CERTIFICATE_PKCS12* CertificatePkcs12
+        internal ref QUIC_CERTIFICATE_PKCS12* CertificatePkcs12
         {
             get
             {
-                fixed (_Anonymous_e__Union* pField = &Anonymous)
-                {
-                    return ref pField->CertificatePkcs12;
-                }
+                return ref MemoryMarshal.GetReference(MemoryMarshal.CreateSpan(ref this, 1)).Anonymous.CertificatePkcs12;
             }
         }
 
         [StructLayout(LayoutKind.Explicit)]
-        public unsafe partial struct _Anonymous_e__Union
+        internal unsafe partial struct _Anonymous_e__Union
         {
             [FieldOffset(0)]
-            public QUIC_CERTIFICATE_HASH* CertificateHash;
+            internal QUIC_CERTIFICATE_HASH* CertificateHash;
 
             [FieldOffset(0)]
-            public QUIC_CERTIFICATE_HASH_STORE* CertificateHashStore;
+            internal QUIC_CERTIFICATE_HASH_STORE* CertificateHashStore;
 
             [FieldOffset(0)]
             [NativeTypeName("QUIC_CERTIFICATE *")]
-            public void* CertificateContext;
+            internal void* CertificateContext;
 
             [FieldOffset(0)]
-            public QUIC_CERTIFICATE_FILE* CertificateFile;
+            internal QUIC_CERTIFICATE_FILE* CertificateFile;
 
             [FieldOffset(0)]
-            public QUIC_CERTIFICATE_FILE_PROTECTED* CertificateFileProtected;
+            internal QUIC_CERTIFICATE_FILE_PROTECTED* CertificateFileProtected;
 
             [FieldOffset(0)]
-            public QUIC_CERTIFICATE_PKCS12* CertificatePkcs12;
+            internal QUIC_CERTIFICATE_PKCS12* CertificatePkcs12;
         }
     }
 
-    public unsafe partial struct QUIC_TICKET_KEY_CONFIG
+    internal unsafe partial struct QUIC_TICKET_KEY_CONFIG
     {
         [NativeTypeName("uint8_t [16]")]
-        public fixed byte Id[16];
+        internal fixed byte Id[16];
 
         [NativeTypeName("uint8_t [64]")]
-        public fixed byte Material[64];
+        internal fixed byte Material[64];
 
         [NativeTypeName("uint8_t")]
-        public byte MaterialLength;
+        internal byte MaterialLength;
     }
 
-    public unsafe partial struct QUIC_BUFFER
+    internal unsafe partial struct QUIC_BUFFER
     {
         [NativeTypeName("uint32_t")]
-        public uint Length;
+        internal uint Length;
 
         [NativeTypeName("uint8_t *")]
-        public byte* Buffer;
+        internal byte* Buffer;
     }
 
-    public unsafe partial struct QUIC_NEW_CONNECTION_INFO
+    internal unsafe partial struct QUIC_NEW_CONNECTION_INFO
     {
         [NativeTypeName("uint32_t")]
-        public uint QuicVersion;
+        internal uint QuicVersion;
 
         [NativeTypeName("const QUIC_ADDR *")]
-        public QuicAddr* LocalAddress;
+        internal QuicAddr* LocalAddress;
 
         [NativeTypeName("const QUIC_ADDR *")]
-        public QuicAddr* RemoteAddress;
+        internal QuicAddr* RemoteAddress;
 
         [NativeTypeName("uint32_t")]
-        public uint CryptoBufferLength;
+        internal uint CryptoBufferLength;
 
         [NativeTypeName("uint16_t")]
-        public ushort ClientAlpnListLength;
+        internal ushort ClientAlpnListLength;
 
         [NativeTypeName("uint16_t")]
-        public ushort ServerNameLength;
+        internal ushort ServerNameLength;
 
         [NativeTypeName("uint8_t")]
-        public byte NegotiatedAlpnLength;
+        internal byte NegotiatedAlpnLength;
 
         [NativeTypeName("const uint8_t *")]
-        public byte* CryptoBuffer;
+        internal byte* CryptoBuffer;
 
         [NativeTypeName("const uint8_t *")]
-        public byte* ClientAlpnList;
+        internal byte* ClientAlpnList;
 
         [NativeTypeName("const uint8_t *")]
-        public byte* NegotiatedAlpn;
+        internal byte* NegotiatedAlpn;
 
         [NativeTypeName("const char *")]
-        public byte* ServerName;
+        internal sbyte* ServerName;
     }
 
-    public enum QUIC_TLS_PROTOCOL_VERSION
+    internal enum QUIC_TLS_PROTOCOL_VERSION
     {
-        QUIC_TLS_PROTOCOL_UNKNOWN = 0,
-        QUIC_TLS_PROTOCOL_1_3 = 0x3000,
+        UNKNOWN = 0,
+        TLS_1_3 = 0x3000,
     }
 
-    public enum QUIC_CIPHER_ALGORITHM
+    internal enum QUIC_CIPHER_ALGORITHM
     {
-        QUIC_CIPHER_ALGORITHM_NONE = 0,
-        QUIC_CIPHER_ALGORITHM_AES_128 = 0x660E,
-        QUIC_CIPHER_ALGORITHM_AES_256 = 0x6610,
-        QUIC_CIPHER_ALGORITHM_CHACHA20 = 0x6612,
+        NONE = 0,
+        AES_128 = 0x660E,
+        AES_256 = 0x6610,
+        CHACHA20 = 0x6612,
     }
 
-    public enum QUIC_HASH_ALGORITHM
+    internal enum QUIC_HASH_ALGORITHM
     {
-        QUIC_HASH_ALGORITHM_NONE = 0,
-        QUIC_HASH_ALGORITHM_SHA_256 = 0x800C,
-        QUIC_HASH_ALGORITHM_SHA_384 = 0x800D,
+        NONE = 0,
+        SHA_256 = 0x800C,
+        SHA_384 = 0x800D,
     }
 
-    public enum QUIC_KEY_EXCHANGE_ALGORITHM
+    internal enum QUIC_KEY_EXCHANGE_ALGORITHM
     {
-        QUIC_KEY_EXCHANGE_ALGORITHM_NONE = 0,
+        NONE = 0,
     }
 
-    public enum QUIC_CIPHER_SUITE
+    internal enum QUIC_CIPHER_SUITE
     {
-        QUIC_CIPHER_SUITE_TLS_AES_128_GCM_SHA256 = 0x1301,
-        QUIC_CIPHER_SUITE_TLS_AES_256_GCM_SHA384 = 0x1302,
-        QUIC_CIPHER_SUITE_TLS_CHACHA20_POLY1305_SHA256 = 0x1303,
+        TLS_AES_128_GCM_SHA256 = 0x1301,
+        TLS_AES_256_GCM_SHA384 = 0x1302,
+        TLS_CHACHA20_POLY1305_SHA256 = 0x1303,
     }
 
-    public partial struct QUIC_HANDSHAKE_INFO
+    internal enum QUIC_CONGESTION_CONTROL_ALGORITHM
     {
-        public QUIC_TLS_PROTOCOL_VERSION TlsProtocolVersion;
+        CUBIC,
+        BBR,
+        MAX,
+    }
 
-        public QUIC_CIPHER_ALGORITHM CipherAlgorithm;
+    internal partial struct QUIC_HANDSHAKE_INFO
+    {
+        internal QUIC_TLS_PROTOCOL_VERSION TlsProtocolVersion;
+
+        internal QUIC_CIPHER_ALGORITHM CipherAlgorithm;
 
         [NativeTypeName("int32_t")]
-        public int CipherStrength;
+        internal int CipherStrength;
 
-        public QUIC_HASH_ALGORITHM Hash;
-
-        [NativeTypeName("int32_t")]
-        public int HashStrength;
-
-        public QUIC_KEY_EXCHANGE_ALGORITHM KeyExchangeAlgorithm;
+        internal QUIC_HASH_ALGORITHM Hash;
 
         [NativeTypeName("int32_t")]
-        public int KeyExchangeStrength;
+        internal int HashStrength;
 
-        public QUIC_CIPHER_SUITE CipherSuite;
+        internal QUIC_KEY_EXCHANGE_ALGORITHM KeyExchangeAlgorithm;
+
+        [NativeTypeName("int32_t")]
+        internal int KeyExchangeStrength;
+
+        internal QUIC_CIPHER_SUITE CipherSuite;
     }
 
-    public partial struct QUIC_STATISTICS
+    internal partial struct QUIC_STATISTICS
     {
         [NativeTypeName("uint64_t")]
-        public ulong CorrelationId;
+        internal ulong CorrelationId;
 
-        public uint _bitfield;
+        internal uint _bitfield;
 
         [NativeTypeName("uint32_t : 1")]
-        public uint VersionNegotiation
+        internal uint VersionNegotiation
         {
             get
             {
@@ -451,7 +493,7 @@ namespace Microsoft.Quic
         }
 
         [NativeTypeName("uint32_t : 1")]
-        public uint StatelessRetry
+        internal uint StatelessRetry
         {
             get
             {
@@ -465,7 +507,7 @@ namespace Microsoft.Quic
         }
 
         [NativeTypeName("uint32_t : 1")]
-        public uint ResumptionAttempted
+        internal uint ResumptionAttempted
         {
             get
             {
@@ -479,7 +521,7 @@ namespace Microsoft.Quic
         }
 
         [NativeTypeName("uint32_t : 1")]
-        public uint ResumptionSucceeded
+        internal uint ResumptionSucceeded
         {
             get
             {
@@ -493,366 +535,377 @@ namespace Microsoft.Quic
         }
 
         [NativeTypeName("uint32_t")]
-        public uint Rtt;
+        internal uint Rtt;
 
         [NativeTypeName("uint32_t")]
-        public uint MinRtt;
+        internal uint MinRtt;
 
         [NativeTypeName("uint32_t")]
-        public uint MaxRtt;
+        internal uint MaxRtt;
 
-        [NativeTypeName("struct (anonymous struct at src/inc/msquic.h:386:5)")]
-        public _Timing_e__Struct Timing;
+        [NativeTypeName("struct (anonymous struct)")]
+        internal _Timing_e__Struct Timing;
 
-        [NativeTypeName("struct (anonymous struct at src/inc/msquic.h:391:5)")]
-        public _Handshake_e__Struct Handshake;
+        [NativeTypeName("struct (anonymous struct)")]
+        internal _Handshake_e__Struct Handshake;
 
-        [NativeTypeName("struct (anonymous struct at src/inc/msquic.h:396:5)")]
-        public _Send_e__Struct Send;
+        [NativeTypeName("struct (anonymous struct)")]
+        internal _Send_e__Struct Send;
 
-        [NativeTypeName("struct (anonymous struct at src/inc/msquic.h:407:5)")]
-        public _Recv_e__Struct Recv;
+        [NativeTypeName("struct (anonymous struct)")]
+        internal _Recv_e__Struct Recv;
 
-        [NativeTypeName("struct (anonymous struct at src/inc/msquic.h:417:5)")]
-        public _Misc_e__Struct Misc;
+        [NativeTypeName("struct (anonymous struct)")]
+        internal _Misc_e__Struct Misc;
 
-        public partial struct _Timing_e__Struct
+        internal partial struct _Timing_e__Struct
         {
             [NativeTypeName("uint64_t")]
-            public ulong Start;
+            internal ulong Start;
 
             [NativeTypeName("uint64_t")]
-            public ulong InitialFlightEnd;
+            internal ulong InitialFlightEnd;
 
             [NativeTypeName("uint64_t")]
-            public ulong HandshakeFlightEnd;
+            internal ulong HandshakeFlightEnd;
         }
 
-        public partial struct _Handshake_e__Struct
+        internal partial struct _Handshake_e__Struct
         {
             [NativeTypeName("uint32_t")]
-            public uint ClientFlight1Bytes;
+            internal uint ClientFlight1Bytes;
 
             [NativeTypeName("uint32_t")]
-            public uint ServerFlight1Bytes;
+            internal uint ServerFlight1Bytes;
 
             [NativeTypeName("uint32_t")]
-            public uint ClientFlight2Bytes;
+            internal uint ClientFlight2Bytes;
         }
 
-        public partial struct _Send_e__Struct
+        internal partial struct _Send_e__Struct
         {
             [NativeTypeName("uint16_t")]
-            public ushort PathMtu;
+            internal ushort PathMtu;
 
             [NativeTypeName("uint64_t")]
-            public ulong TotalPackets;
+            internal ulong TotalPackets;
 
             [NativeTypeName("uint64_t")]
-            public ulong RetransmittablePackets;
+            internal ulong RetransmittablePackets;
 
             [NativeTypeName("uint64_t")]
-            public ulong SuspectedLostPackets;
+            internal ulong SuspectedLostPackets;
 
             [NativeTypeName("uint64_t")]
-            public ulong SpuriousLostPackets;
+            internal ulong SpuriousLostPackets;
 
             [NativeTypeName("uint64_t")]
-            public ulong TotalBytes;
+            internal ulong TotalBytes;
 
             [NativeTypeName("uint64_t")]
-            public ulong TotalStreamBytes;
+            internal ulong TotalStreamBytes;
 
             [NativeTypeName("uint32_t")]
-            public uint CongestionCount;
+            internal uint CongestionCount;
 
             [NativeTypeName("uint32_t")]
-            public uint PersistentCongestionCount;
+            internal uint PersistentCongestionCount;
         }
 
-        public partial struct _Recv_e__Struct
+        internal partial struct _Recv_e__Struct
         {
             [NativeTypeName("uint64_t")]
-            public ulong TotalPackets;
+            internal ulong TotalPackets;
 
             [NativeTypeName("uint64_t")]
-            public ulong ReorderedPackets;
+            internal ulong ReorderedPackets;
 
             [NativeTypeName("uint64_t")]
-            public ulong DroppedPackets;
+            internal ulong DroppedPackets;
 
             [NativeTypeName("uint64_t")]
-            public ulong DuplicatePackets;
+            internal ulong DuplicatePackets;
 
             [NativeTypeName("uint64_t")]
-            public ulong TotalBytes;
+            internal ulong TotalBytes;
 
             [NativeTypeName("uint64_t")]
-            public ulong TotalStreamBytes;
+            internal ulong TotalStreamBytes;
 
             [NativeTypeName("uint64_t")]
-            public ulong DecryptionFailures;
+            internal ulong DecryptionFailures;
 
             [NativeTypeName("uint64_t")]
-            public ulong ValidAckFrames;
+            internal ulong ValidAckFrames;
         }
 
-        public partial struct _Misc_e__Struct
+        internal partial struct _Misc_e__Struct
         {
             [NativeTypeName("uint32_t")]
-            public uint KeyUpdateCount;
+            internal uint KeyUpdateCount;
         }
     }
 
-    public partial struct QUIC_LISTENER_STATISTICS
+    internal partial struct QUIC_STATISTICS_V2
     {
         [NativeTypeName("uint64_t")]
-        public ulong TotalAcceptedConnections;
+        internal ulong CorrelationId;
 
-        [NativeTypeName("uint64_t")]
-        public ulong TotalRejectedConnections;
+        internal uint _bitfield;
 
-        [NativeTypeName("struct (anonymous struct at src/inc/msquic.h:427:5)")]
-        public _Binding_e__Struct Binding;
-
-        public partial struct _Binding_e__Struct
+        [NativeTypeName("uint32_t : 1")]
+        internal uint VersionNegotiation
         {
-            [NativeTypeName("struct (anonymous struct at src/inc/msquic.h:428:9)")]
-            public _Recv_e__Struct Recv;
-
-            public partial struct _Recv_e__Struct
+            get
             {
-                [NativeTypeName("uint64_t")]
-                public ulong DroppedPackets;
+                return _bitfield & 0x1u;
+            }
+
+            set
+            {
+                _bitfield = (_bitfield & ~0x1u) | (value & 0x1u);
             }
         }
+
+        [NativeTypeName("uint32_t : 1")]
+        internal uint StatelessRetry
+        {
+            get
+            {
+                return (_bitfield >> 1) & 0x1u;
+            }
+
+            set
+            {
+                _bitfield = (_bitfield & ~(0x1u << 1)) | ((value & 0x1u) << 1);
+            }
+        }
+
+        [NativeTypeName("uint32_t : 1")]
+        internal uint ResumptionAttempted
+        {
+            get
+            {
+                return (_bitfield >> 2) & 0x1u;
+            }
+
+            set
+            {
+                _bitfield = (_bitfield & ~(0x1u << 2)) | ((value & 0x1u) << 2);
+            }
+        }
+
+        [NativeTypeName("uint32_t : 1")]
+        internal uint ResumptionSucceeded
+        {
+            get
+            {
+                return (_bitfield >> 3) & 0x1u;
+            }
+
+            set
+            {
+                _bitfield = (_bitfield & ~(0x1u << 3)) | ((value & 0x1u) << 3);
+            }
+        }
+
+        [NativeTypeName("uint32_t : 1")]
+        internal uint GreaseBitNegotiated
+        {
+            get
+            {
+                return (_bitfield >> 4) & 0x1u;
+            }
+
+            set
+            {
+                _bitfield = (_bitfield & ~(0x1u << 4)) | ((value & 0x1u) << 4);
+            }
+        }
+
+        [NativeTypeName("uint32_t : 27")]
+        internal uint RESERVED
+        {
+            get
+            {
+                return (_bitfield >> 5) & 0x7FFFFFFu;
+            }
+
+            set
+            {
+                _bitfield = (_bitfield & ~(0x7FFFFFFu << 5)) | ((value & 0x7FFFFFFu) << 5);
+            }
+        }
+
+        [NativeTypeName("uint32_t")]
+        internal uint Rtt;
+
+        [NativeTypeName("uint32_t")]
+        internal uint MinRtt;
+
+        [NativeTypeName("uint32_t")]
+        internal uint MaxRtt;
+
+        [NativeTypeName("uint64_t")]
+        internal ulong TimingStart;
+
+        [NativeTypeName("uint64_t")]
+        internal ulong TimingInitialFlightEnd;
+
+        [NativeTypeName("uint64_t")]
+        internal ulong TimingHandshakeFlightEnd;
+
+        [NativeTypeName("uint32_t")]
+        internal uint HandshakeClientFlight1Bytes;
+
+        [NativeTypeName("uint32_t")]
+        internal uint HandshakeServerFlight1Bytes;
+
+        [NativeTypeName("uint32_t")]
+        internal uint HandshakeClientFlight2Bytes;
+
+        [NativeTypeName("uint16_t")]
+        internal ushort SendPathMtu;
+
+        [NativeTypeName("uint64_t")]
+        internal ulong SendTotalPackets;
+
+        [NativeTypeName("uint64_t")]
+        internal ulong SendRetransmittablePackets;
+
+        [NativeTypeName("uint64_t")]
+        internal ulong SendSuspectedLostPackets;
+
+        [NativeTypeName("uint64_t")]
+        internal ulong SendSpuriousLostPackets;
+
+        [NativeTypeName("uint64_t")]
+        internal ulong SendTotalBytes;
+
+        [NativeTypeName("uint64_t")]
+        internal ulong SendTotalStreamBytes;
+
+        [NativeTypeName("uint32_t")]
+        internal uint SendCongestionCount;
+
+        [NativeTypeName("uint32_t")]
+        internal uint SendPersistentCongestionCount;
+
+        [NativeTypeName("uint64_t")]
+        internal ulong RecvTotalPackets;
+
+        [NativeTypeName("uint64_t")]
+        internal ulong RecvReorderedPackets;
+
+        [NativeTypeName("uint64_t")]
+        internal ulong RecvDroppedPackets;
+
+        [NativeTypeName("uint64_t")]
+        internal ulong RecvDuplicatePackets;
+
+        [NativeTypeName("uint64_t")]
+        internal ulong RecvTotalBytes;
+
+        [NativeTypeName("uint64_t")]
+        internal ulong RecvTotalStreamBytes;
+
+        [NativeTypeName("uint64_t")]
+        internal ulong RecvDecryptionFailures;
+
+        [NativeTypeName("uint64_t")]
+        internal ulong RecvValidAckFrames;
+
+        [NativeTypeName("uint32_t")]
+        internal uint KeyUpdateCount;
+
+        [NativeTypeName("uint32_t")]
+        internal uint SendCongestionWindow;
+
+        [NativeTypeName("uint32_t")]
+        internal uint DestCidUpdateCount;
     }
 
-    public enum QUIC_PERFORMANCE_COUNTERS
+    internal partial struct QUIC_LISTENER_STATISTICS
     {
-        QUIC_PERF_COUNTER_CONN_CREATED,
-        QUIC_PERF_COUNTER_CONN_HANDSHAKE_FAIL,
-        QUIC_PERF_COUNTER_CONN_APP_REJECT,
-        QUIC_PERF_COUNTER_CONN_RESUMED,
-        QUIC_PERF_COUNTER_CONN_ACTIVE,
-        QUIC_PERF_COUNTER_CONN_CONNECTED,
-        QUIC_PERF_COUNTER_CONN_PROTOCOL_ERRORS,
-        QUIC_PERF_COUNTER_CONN_NO_ALPN,
-        QUIC_PERF_COUNTER_STRM_ACTIVE,
-        QUIC_PERF_COUNTER_PKTS_SUSPECTED_LOST,
-        QUIC_PERF_COUNTER_PKTS_DROPPED,
-        QUIC_PERF_COUNTER_PKTS_DECRYPTION_FAIL,
-        QUIC_PERF_COUNTER_UDP_RECV,
-        QUIC_PERF_COUNTER_UDP_SEND,
-        QUIC_PERF_COUNTER_UDP_RECV_BYTES,
-        QUIC_PERF_COUNTER_UDP_SEND_BYTES,
-        QUIC_PERF_COUNTER_UDP_RECV_EVENTS,
-        QUIC_PERF_COUNTER_UDP_SEND_CALLS,
-        QUIC_PERF_COUNTER_APP_SEND_BYTES,
-        QUIC_PERF_COUNTER_APP_RECV_BYTES,
-        QUIC_PERF_COUNTER_CONN_QUEUE_DEPTH,
-        QUIC_PERF_COUNTER_CONN_OPER_QUEUE_DEPTH,
-        QUIC_PERF_COUNTER_CONN_OPER_QUEUED,
-        QUIC_PERF_COUNTER_CONN_OPER_COMPLETED,
-        QUIC_PERF_COUNTER_WORK_OPER_QUEUE_DEPTH,
-        QUIC_PERF_COUNTER_WORK_OPER_QUEUED,
-        QUIC_PERF_COUNTER_WORK_OPER_COMPLETED,
-        QUIC_PERF_COUNTER_MAX,
+        [NativeTypeName("uint64_t")]
+        internal ulong TotalAcceptedConnections;
+
+        [NativeTypeName("uint64_t")]
+        internal ulong TotalRejectedConnections;
+
+        [NativeTypeName("uint64_t")]
+        internal ulong BindingRecvDroppedPackets;
     }
 
-    public unsafe partial struct QUIC_SETTINGS
+    internal enum QUIC_PERFORMANCE_COUNTERS
     {
-        [NativeTypeName("QUIC_SETTINGS::(anonymous union at src/inc/msquic.h:467:5)")]
-        public _Anonymous_e__Union Anonymous;
+        CONN_CREATED,
+        CONN_HANDSHAKE_FAIL,
+        CONN_APP_REJECT,
+        CONN_RESUMED,
+        CONN_ACTIVE,
+        CONN_CONNECTED,
+        CONN_PROTOCOL_ERRORS,
+        CONN_NO_ALPN,
+        STRM_ACTIVE,
+        PKTS_SUSPECTED_LOST,
+        PKTS_DROPPED,
+        PKTS_DECRYPTION_FAIL,
+        UDP_RECV,
+        UDP_SEND,
+        UDP_RECV_BYTES,
+        UDP_SEND_BYTES,
+        UDP_RECV_EVENTS,
+        UDP_SEND_CALLS,
+        APP_SEND_BYTES,
+        APP_RECV_BYTES,
+        CONN_QUEUE_DEPTH,
+        CONN_OPER_QUEUE_DEPTH,
+        CONN_OPER_QUEUED,
+        CONN_OPER_COMPLETED,
+        WORK_OPER_QUEUE_DEPTH,
+        WORK_OPER_QUEUED,
+        WORK_OPER_COMPLETED,
+        PATH_VALIDATED,
+        PATH_FAILURE,
+        SEND_STATELESS_RESET,
+        SEND_STATELESS_RETRY,
+        MAX,
+    }
 
-        [NativeTypeName("uint64_t")]
-        public ulong MaxBytesPerKey;
-
-        [NativeTypeName("uint64_t")]
-        public ulong HandshakeIdleTimeoutMs;
-
-        [NativeTypeName("uint64_t")]
-        public ulong IdleTimeoutMs;
-
-        [NativeTypeName("uint32_t")]
-        public uint TlsClientMaxSendBuffer;
-
-        [NativeTypeName("uint32_t")]
-        public uint TlsServerMaxSendBuffer;
-
-        [NativeTypeName("uint32_t")]
-        public uint StreamRecvWindowDefault;
-
-        [NativeTypeName("uint32_t")]
-        public uint StreamRecvBufferDefault;
-
-        [NativeTypeName("uint32_t")]
-        public uint ConnFlowControlWindow;
-
-        [NativeTypeName("uint32_t")]
-        public uint MaxWorkerQueueDelayUs;
-
-        [NativeTypeName("uint32_t")]
-        public uint MaxStatelessOperations;
-
-        [NativeTypeName("uint32_t")]
-        public uint InitialWindowPackets;
-
-        [NativeTypeName("uint32_t")]
-        public uint SendIdleTimeoutMs;
-
-        [NativeTypeName("uint32_t")]
-        public uint InitialRttMs;
-
-        [NativeTypeName("uint32_t")]
-        public uint MaxAckDelayMs;
-
-        [NativeTypeName("uint32_t")]
-        public uint DisconnectTimeoutMs;
-
-        [NativeTypeName("uint32_t")]
-        public uint KeepAliveIntervalMs;
-
-        [NativeTypeName("uint16_t")]
-        public ushort PeerBidiStreamCount;
-
-        [NativeTypeName("uint16_t")]
-        public ushort PeerUnidiStreamCount;
-
-        [NativeTypeName("uint16_t")]
-        public ushort RetryMemoryLimit;
-
-        [NativeTypeName("uint16_t")]
-        public ushort LoadBalancingMode;
-
-        [NativeTypeName("uint8_t")]
-        public byte MaxOperationsPerDrain;
-
-        public byte _bitfield;
-
-        [NativeTypeName("uint8_t : 1")]
-        public byte SendBufferingEnabled
-        {
-            get
-            {
-                return (byte)(_bitfield & 0x1u);
-            }
-
-            set
-            {
-                _bitfield = (byte)((_bitfield & ~0x1u) | (value & 0x1u));
-            }
-        }
-
-        [NativeTypeName("uint8_t : 1")]
-        public byte PacingEnabled
-        {
-            get
-            {
-                return (byte)((_bitfield >> 1) & 0x1u);
-            }
-
-            set
-            {
-                _bitfield = (byte)((_bitfield & ~(0x1u << 1)) | ((value & 0x1u) << 1));
-            }
-        }
-
-        [NativeTypeName("uint8_t : 1")]
-        public byte MigrationEnabled
-        {
-            get
-            {
-                return (byte)((_bitfield >> 2) & 0x1u);
-            }
-
-            set
-            {
-                _bitfield = (byte)((_bitfield & ~(0x1u << 2)) | ((value & 0x1u) << 2));
-            }
-        }
-
-        [NativeTypeName("uint8_t : 1")]
-        public byte DatagramReceiveEnabled
-        {
-            get
-            {
-                return (byte)((_bitfield >> 3) & 0x1u);
-            }
-
-            set
-            {
-                _bitfield = (byte)((_bitfield & ~(0x1u << 3)) | ((value & 0x1u) << 3));
-            }
-        }
-
-        [NativeTypeName("uint8_t : 2")]
-        public byte ServerResumptionLevel
-        {
-            get
-            {
-                return (byte)((_bitfield >> 4) & 0x3u);
-            }
-
-            set
-            {
-                _bitfield = (byte)((_bitfield & ~(0x3u << 4)) | ((value & 0x3u) << 4));
-            }
-        }
-
-        [NativeTypeName("uint8_t : 1")]
-        public byte VersionNegotiationExtEnabled
-        {
-            get
-            {
-                return (byte)((_bitfield >> 6) & 0x1u);
-            }
-
-            set
-            {
-                _bitfield = (byte)((_bitfield & ~(0x1u << 6)) | ((value & 0x1u) << 6));
-            }
-        }
-
-        [NativeTypeName("uint8_t : 1")]
-        public byte RESERVED
-        {
-            get
-            {
-                return (byte)((_bitfield >> 7) & 0x1u);
-            }
-
-            set
-            {
-                _bitfield = (byte)((_bitfield & ~(0x1u << 7)) | ((value & 0x1u) << 7));
-            }
-        }
+    internal unsafe partial struct QUIC_VERSION_SETTINGS
+    {
+        [NativeTypeName("const uint32_t *")]
+        internal uint* AcceptableVersions;
 
         [NativeTypeName("const uint32_t *")]
-        public uint* DesiredVersionsList;
+        internal uint* OfferedVersions;
+
+        [NativeTypeName("const uint32_t *")]
+        internal uint* FullyDeployedVersions;
 
         [NativeTypeName("uint32_t")]
-        public uint DesiredVersionsListLength;
+        internal uint AcceptableVersionsLength;
+
+        [NativeTypeName("uint32_t")]
+        internal uint OfferedVersionsLength;
+
+        [NativeTypeName("uint32_t")]
+        internal uint FullyDeployedVersionsLength;
+    }
+
+    internal partial struct QUIC_GLOBAL_SETTINGS
+    {
+        [NativeTypeName("QUIC_GLOBAL_SETTINGS::(anonymous union)")]
+        internal _Anonymous_e__Union Anonymous;
 
         [NativeTypeName("uint16_t")]
-        public ushort MinimumMtu;
+        internal ushort RetryMemoryLimit;
 
         [NativeTypeName("uint16_t")]
-        public ushort MaximumMtu;
+        internal ushort LoadBalancingMode;
 
-        [NativeTypeName("uint64_t")]
-        public ulong MtuDiscoverySearchCompleteTimeoutUs;
-
-        [NativeTypeName("uint8_t")]
-        public byte MtuDiscoveryMissingProbeCount;
-
-        [NativeTypeName("uint16_t")]
-        public ushort MaxBindingStatelessOperations;
-
-        [NativeTypeName("uint16_t")]
-        public ushort StatelessOperationExpirationMs;
-
-        public ref ulong IsSetFlags
+        internal ref ulong IsSetFlags
         {
             get
             {
@@ -860,7 +913,7 @@ namespace Microsoft.Quic
             }
         }
 
-        public ref _Anonymous_e__Union._IsSet_e__Struct IsSet
+        internal ref _Anonymous_e__Union._IsSet_e__Struct IsSet
         {
             get
             {
@@ -869,22 +922,22 @@ namespace Microsoft.Quic
         }
 
         [StructLayout(LayoutKind.Explicit)]
-        public partial struct _Anonymous_e__Union
+        internal partial struct _Anonymous_e__Union
         {
             [FieldOffset(0)]
             [NativeTypeName("uint64_t")]
-            public ulong IsSetFlags;
+            internal ulong IsSetFlags;
 
             [FieldOffset(0)]
-            [NativeTypeName("struct (anonymous struct at src/inc/msquic.h:469:9)")]
-            public _IsSet_e__Struct IsSet;
+            [NativeTypeName("struct (anonymous struct)")]
+            internal _IsSet_e__Struct IsSet;
 
-            public partial struct _IsSet_e__Struct
+            internal partial struct _IsSet_e__Struct
             {
-                public ulong _bitfield;
+                internal ulong _bitfield;
 
                 [NativeTypeName("uint64_t : 1")]
-                public ulong MaxBytesPerKey
+                internal ulong RetryMemoryLimit
                 {
                     get
                     {
@@ -898,7 +951,269 @@ namespace Microsoft.Quic
                 }
 
                 [NativeTypeName("uint64_t : 1")]
-                public ulong HandshakeIdleTimeoutMs
+                internal ulong LoadBalancingMode
+                {
+                    get
+                    {
+                        return (_bitfield >> 1) & 0x1UL;
+                    }
+
+                    set
+                    {
+                        _bitfield = (_bitfield & ~(0x1UL << 1)) | ((value & 0x1UL) << 1);
+                    }
+                }
+
+                [NativeTypeName("uint64_t : 62")]
+                internal ulong RESERVED
+                {
+                    get
+                    {
+                        return (_bitfield >> 2) & 0x3FFFFFFFUL;
+                    }
+
+                    set
+                    {
+                        _bitfield = (_bitfield & ~(0x3FFFFFFFUL << 2)) | ((value & 0x3FFFFFFFUL) << 2);
+                    }
+                }
+            }
+        }
+    }
+
+    internal partial struct QUIC_SETTINGS
+    {
+        [NativeTypeName("QUIC_SETTINGS::(anonymous union)")]
+        internal _Anonymous_e__Union Anonymous;
+
+        [NativeTypeName("uint64_t")]
+        internal ulong MaxBytesPerKey;
+
+        [NativeTypeName("uint64_t")]
+        internal ulong HandshakeIdleTimeoutMs;
+
+        [NativeTypeName("uint64_t")]
+        internal ulong IdleTimeoutMs;
+
+        [NativeTypeName("uint64_t")]
+        internal ulong MtuDiscoverySearchCompleteTimeoutUs;
+
+        [NativeTypeName("uint32_t")]
+        internal uint TlsClientMaxSendBuffer;
+
+        [NativeTypeName("uint32_t")]
+        internal uint TlsServerMaxSendBuffer;
+
+        [NativeTypeName("uint32_t")]
+        internal uint StreamRecvWindowDefault;
+
+        [NativeTypeName("uint32_t")]
+        internal uint StreamRecvBufferDefault;
+
+        [NativeTypeName("uint32_t")]
+        internal uint ConnFlowControlWindow;
+
+        [NativeTypeName("uint32_t")]
+        internal uint MaxWorkerQueueDelayUs;
+
+        [NativeTypeName("uint32_t")]
+        internal uint MaxStatelessOperations;
+
+        [NativeTypeName("uint32_t")]
+        internal uint InitialWindowPackets;
+
+        [NativeTypeName("uint32_t")]
+        internal uint SendIdleTimeoutMs;
+
+        [NativeTypeName("uint32_t")]
+        internal uint InitialRttMs;
+
+        [NativeTypeName("uint32_t")]
+        internal uint MaxAckDelayMs;
+
+        [NativeTypeName("uint32_t")]
+        internal uint DisconnectTimeoutMs;
+
+        [NativeTypeName("uint32_t")]
+        internal uint KeepAliveIntervalMs;
+
+        [NativeTypeName("uint16_t")]
+        internal ushort CongestionControlAlgorithm;
+
+        [NativeTypeName("uint16_t")]
+        internal ushort PeerBidiStreamCount;
+
+        [NativeTypeName("uint16_t")]
+        internal ushort PeerUnidiStreamCount;
+
+        [NativeTypeName("uint16_t")]
+        internal ushort MaxBindingStatelessOperations;
+
+        [NativeTypeName("uint16_t")]
+        internal ushort StatelessOperationExpirationMs;
+
+        [NativeTypeName("uint16_t")]
+        internal ushort MinimumMtu;
+
+        [NativeTypeName("uint16_t")]
+        internal ushort MaximumMtu;
+
+        internal byte _bitfield;
+
+        [NativeTypeName("uint8_t : 1")]
+        internal byte SendBufferingEnabled
+        {
+            get
+            {
+                return (byte)(_bitfield & 0x1u);
+            }
+
+            set
+            {
+                _bitfield = (byte)((_bitfield & ~0x1u) | (value & 0x1u));
+            }
+        }
+
+        [NativeTypeName("uint8_t : 1")]
+        internal byte PacingEnabled
+        {
+            get
+            {
+                return (byte)((_bitfield >> 1) & 0x1u);
+            }
+
+            set
+            {
+                _bitfield = (byte)((_bitfield & ~(0x1u << 1)) | ((value & 0x1u) << 1));
+            }
+        }
+
+        [NativeTypeName("uint8_t : 1")]
+        internal byte MigrationEnabled
+        {
+            get
+            {
+                return (byte)((_bitfield >> 2) & 0x1u);
+            }
+
+            set
+            {
+                _bitfield = (byte)((_bitfield & ~(0x1u << 2)) | ((value & 0x1u) << 2));
+            }
+        }
+
+        [NativeTypeName("uint8_t : 1")]
+        internal byte DatagramReceiveEnabled
+        {
+            get
+            {
+                return (byte)((_bitfield >> 3) & 0x1u);
+            }
+
+            set
+            {
+                _bitfield = (byte)((_bitfield & ~(0x1u << 3)) | ((value & 0x1u) << 3));
+            }
+        }
+
+        [NativeTypeName("uint8_t : 2")]
+        internal byte ServerResumptionLevel
+        {
+            get
+            {
+                return (byte)((_bitfield >> 4) & 0x3u);
+            }
+
+            set
+            {
+                _bitfield = (byte)((_bitfield & ~(0x3u << 4)) | ((value & 0x3u) << 4));
+            }
+        }
+
+        [NativeTypeName("uint8_t : 1")]
+        internal byte GreaseQuicBitEnabled
+        {
+            get
+            {
+                return (byte)((_bitfield >> 6) & 0x1u);
+            }
+
+            set
+            {
+                _bitfield = (byte)((_bitfield & ~(0x1u << 6)) | ((value & 0x1u) << 6));
+            }
+        }
+
+        [NativeTypeName("uint8_t : 1")]
+        internal byte RESERVED
+        {
+            get
+            {
+                return (byte)((_bitfield >> 7) & 0x1u);
+            }
+
+            set
+            {
+                _bitfield = (byte)((_bitfield & ~(0x1u << 7)) | ((value & 0x1u) << 7));
+            }
+        }
+
+        [NativeTypeName("uint8_t")]
+        internal byte MaxOperationsPerDrain;
+
+        [NativeTypeName("uint8_t")]
+        internal byte MtuDiscoveryMissingProbeCount;
+
+        [NativeTypeName("uint32_t")]
+        internal uint DestCidUpdateIdleTimeoutMs;
+
+        internal ref ulong IsSetFlags
+        {
+            get
+            {
+                return ref MemoryMarshal.GetReference(MemoryMarshal.CreateSpan(ref Anonymous.IsSetFlags, 1));
+            }
+        }
+
+        internal ref _Anonymous_e__Union._IsSet_e__Struct IsSet
+        {
+            get
+            {
+                return ref MemoryMarshal.GetReference(MemoryMarshal.CreateSpan(ref Anonymous.IsSet, 1));
+            }
+        }
+
+        [StructLayout(LayoutKind.Explicit)]
+        internal partial struct _Anonymous_e__Union
+        {
+            [FieldOffset(0)]
+            [NativeTypeName("uint64_t")]
+            internal ulong IsSetFlags;
+
+            [FieldOffset(0)]
+            [NativeTypeName("struct (anonymous struct)")]
+            internal _IsSet_e__Struct IsSet;
+
+            internal partial struct _IsSet_e__Struct
+            {
+                internal ulong _bitfield;
+
+                [NativeTypeName("uint64_t : 1")]
+                internal ulong MaxBytesPerKey
+                {
+                    get
+                    {
+                        return _bitfield & 0x1UL;
+                    }
+
+                    set
+                    {
+                        _bitfield = (_bitfield & ~0x1UL) | (value & 0x1UL);
+                    }
+                }
+
+                [NativeTypeName("uint64_t : 1")]
+                internal ulong HandshakeIdleTimeoutMs
                 {
                     get
                     {
@@ -912,7 +1227,7 @@ namespace Microsoft.Quic
                 }
 
                 [NativeTypeName("uint64_t : 1")]
-                public ulong IdleTimeoutMs
+                internal ulong IdleTimeoutMs
                 {
                     get
                     {
@@ -926,7 +1241,7 @@ namespace Microsoft.Quic
                 }
 
                 [NativeTypeName("uint64_t : 1")]
-                public ulong TlsClientMaxSendBuffer
+                internal ulong MtuDiscoverySearchCompleteTimeoutUs
                 {
                     get
                     {
@@ -940,7 +1255,7 @@ namespace Microsoft.Quic
                 }
 
                 [NativeTypeName("uint64_t : 1")]
-                public ulong TlsServerMaxSendBuffer
+                internal ulong TlsClientMaxSendBuffer
                 {
                     get
                     {
@@ -954,7 +1269,7 @@ namespace Microsoft.Quic
                 }
 
                 [NativeTypeName("uint64_t : 1")]
-                public ulong StreamRecvWindowDefault
+                internal ulong TlsServerMaxSendBuffer
                 {
                     get
                     {
@@ -968,7 +1283,7 @@ namespace Microsoft.Quic
                 }
 
                 [NativeTypeName("uint64_t : 1")]
-                public ulong StreamRecvBufferDefault
+                internal ulong StreamRecvWindowDefault
                 {
                     get
                     {
@@ -982,7 +1297,7 @@ namespace Microsoft.Quic
                 }
 
                 [NativeTypeName("uint64_t : 1")]
-                public ulong ConnFlowControlWindow
+                internal ulong StreamRecvBufferDefault
                 {
                     get
                     {
@@ -996,7 +1311,7 @@ namespace Microsoft.Quic
                 }
 
                 [NativeTypeName("uint64_t : 1")]
-                public ulong MaxWorkerQueueDelayUs
+                internal ulong ConnFlowControlWindow
                 {
                     get
                     {
@@ -1010,7 +1325,7 @@ namespace Microsoft.Quic
                 }
 
                 [NativeTypeName("uint64_t : 1")]
-                public ulong MaxStatelessOperations
+                internal ulong MaxWorkerQueueDelayUs
                 {
                     get
                     {
@@ -1024,7 +1339,7 @@ namespace Microsoft.Quic
                 }
 
                 [NativeTypeName("uint64_t : 1")]
-                public ulong InitialWindowPackets
+                internal ulong MaxStatelessOperations
                 {
                     get
                     {
@@ -1038,7 +1353,7 @@ namespace Microsoft.Quic
                 }
 
                 [NativeTypeName("uint64_t : 1")]
-                public ulong SendIdleTimeoutMs
+                internal ulong InitialWindowPackets
                 {
                     get
                     {
@@ -1052,7 +1367,7 @@ namespace Microsoft.Quic
                 }
 
                 [NativeTypeName("uint64_t : 1")]
-                public ulong InitialRttMs
+                internal ulong SendIdleTimeoutMs
                 {
                     get
                     {
@@ -1066,7 +1381,7 @@ namespace Microsoft.Quic
                 }
 
                 [NativeTypeName("uint64_t : 1")]
-                public ulong MaxAckDelayMs
+                internal ulong InitialRttMs
                 {
                     get
                     {
@@ -1080,7 +1395,7 @@ namespace Microsoft.Quic
                 }
 
                 [NativeTypeName("uint64_t : 1")]
-                public ulong DisconnectTimeoutMs
+                internal ulong MaxAckDelayMs
                 {
                     get
                     {
@@ -1094,7 +1409,7 @@ namespace Microsoft.Quic
                 }
 
                 [NativeTypeName("uint64_t : 1")]
-                public ulong KeepAliveIntervalMs
+                internal ulong DisconnectTimeoutMs
                 {
                     get
                     {
@@ -1108,7 +1423,7 @@ namespace Microsoft.Quic
                 }
 
                 [NativeTypeName("uint64_t : 1")]
-                public ulong PeerBidiStreamCount
+                internal ulong KeepAliveIntervalMs
                 {
                     get
                     {
@@ -1122,7 +1437,7 @@ namespace Microsoft.Quic
                 }
 
                 [NativeTypeName("uint64_t : 1")]
-                public ulong PeerUnidiStreamCount
+                internal ulong CongestionControlAlgorithm
                 {
                     get
                     {
@@ -1136,7 +1451,7 @@ namespace Microsoft.Quic
                 }
 
                 [NativeTypeName("uint64_t : 1")]
-                public ulong RetryMemoryLimit
+                internal ulong PeerBidiStreamCount
                 {
                     get
                     {
@@ -1150,7 +1465,7 @@ namespace Microsoft.Quic
                 }
 
                 [NativeTypeName("uint64_t : 1")]
-                public ulong LoadBalancingMode
+                internal ulong PeerUnidiStreamCount
                 {
                     get
                     {
@@ -1164,7 +1479,7 @@ namespace Microsoft.Quic
                 }
 
                 [NativeTypeName("uint64_t : 1")]
-                public ulong MaxOperationsPerDrain
+                internal ulong MaxBindingStatelessOperations
                 {
                     get
                     {
@@ -1178,7 +1493,7 @@ namespace Microsoft.Quic
                 }
 
                 [NativeTypeName("uint64_t : 1")]
-                public ulong SendBufferingEnabled
+                internal ulong StatelessOperationExpirationMs
                 {
                     get
                     {
@@ -1192,7 +1507,7 @@ namespace Microsoft.Quic
                 }
 
                 [NativeTypeName("uint64_t : 1")]
-                public ulong PacingEnabled
+                internal ulong MinimumMtu
                 {
                     get
                     {
@@ -1206,7 +1521,7 @@ namespace Microsoft.Quic
                 }
 
                 [NativeTypeName("uint64_t : 1")]
-                public ulong MigrationEnabled
+                internal ulong MaximumMtu
                 {
                     get
                     {
@@ -1220,7 +1535,7 @@ namespace Microsoft.Quic
                 }
 
                 [NativeTypeName("uint64_t : 1")]
-                public ulong DatagramReceiveEnabled
+                internal ulong SendBufferingEnabled
                 {
                     get
                     {
@@ -1234,7 +1549,7 @@ namespace Microsoft.Quic
                 }
 
                 [NativeTypeName("uint64_t : 1")]
-                public ulong ServerResumptionLevel
+                internal ulong PacingEnabled
                 {
                     get
                     {
@@ -1248,7 +1563,7 @@ namespace Microsoft.Quic
                 }
 
                 [NativeTypeName("uint64_t : 1")]
-                public ulong DesiredVersionsList
+                internal ulong MigrationEnabled
                 {
                     get
                     {
@@ -1262,7 +1577,7 @@ namespace Microsoft.Quic
                 }
 
                 [NativeTypeName("uint64_t : 1")]
-                public ulong VersionNegotiationExtEnabled
+                internal ulong DatagramReceiveEnabled
                 {
                     get
                     {
@@ -1276,7 +1591,7 @@ namespace Microsoft.Quic
                 }
 
                 [NativeTypeName("uint64_t : 1")]
-                public ulong MinimumMtu
+                internal ulong ServerResumptionLevel
                 {
                     get
                     {
@@ -1290,7 +1605,7 @@ namespace Microsoft.Quic
                 }
 
                 [NativeTypeName("uint64_t : 1")]
-                public ulong MaximumMtu
+                internal ulong MaxOperationsPerDrain
                 {
                     get
                     {
@@ -1304,7 +1619,7 @@ namespace Microsoft.Quic
                 }
 
                 [NativeTypeName("uint64_t : 1")]
-                public ulong MtuDiscoverySearchCompleteTimeoutUs
+                internal ulong MtuDiscoveryMissingProbeCount
                 {
                     get
                     {
@@ -1318,7 +1633,7 @@ namespace Microsoft.Quic
                 }
 
                 [NativeTypeName("uint64_t : 1")]
-                public ulong MtuDiscoveryMissingProbeCount
+                internal ulong DestCidUpdateIdleTimeoutMs
                 {
                     get
                     {
@@ -1332,7 +1647,7 @@ namespace Microsoft.Quic
                 }
 
                 [NativeTypeName("uint64_t : 1")]
-                public ulong MaxBindingStatelessOperations
+                internal ulong GreaseQuicBitEnabled
                 {
                     get
                     {
@@ -1345,69 +1660,210 @@ namespace Microsoft.Quic
                     }
                 }
 
-                [NativeTypeName("uint64_t : 1")]
-                public ulong StatelessOperationExpirationMs
+                [NativeTypeName("uint64_t : 31")]
+                internal ulong RESERVED
                 {
                     get
                     {
-                        return (_bitfield >> 33) & 0x1UL;
+                        return (_bitfield >> 33) & 0x7FFFFFFFUL;
                     }
 
                     set
                     {
-                        _bitfield = (_bitfield & ~(0x1UL << 33)) | ((value & 0x1UL) << 33);
-                    }
-                }
-
-                [NativeTypeName("uint64_t : 30")]
-                public ulong RESERVED
-                {
-                    get
-                    {
-                        return (_bitfield >> 34) & 0x3FFFFFFFUL;
-                    }
-
-                    set
-                    {
-                        _bitfield = (_bitfield & ~(0x3FFFFFFFUL << 34)) | ((value & 0x3FFFFFFFUL) << 34);
+                        _bitfield = (_bitfield & ~(0x7FFFFFFFUL << 33)) | ((value & 0x7FFFFFFFUL) << 33);
                     }
                 }
             }
         }
     }
 
-    public enum QUIC_PARAM_LEVEL
+    internal unsafe partial struct QUIC_TLS_SECRETS
     {
-        QUIC_PARAM_LEVEL_GLOBAL,
-        QUIC_PARAM_LEVEL_REGISTRATION,
-        QUIC_PARAM_LEVEL_CONFIGURATION,
-        QUIC_PARAM_LEVEL_LISTENER,
-        QUIC_PARAM_LEVEL_CONNECTION,
-        QUIC_PARAM_LEVEL_TLS,
-        QUIC_PARAM_LEVEL_STREAM,
+        [NativeTypeName("uint8_t")]
+        internal byte SecretLength;
+
+        [NativeTypeName("struct (anonymous struct)")]
+        internal _IsSet_e__Struct IsSet;
+
+        [NativeTypeName("uint8_t [32]")]
+        internal fixed byte ClientRandom[32];
+
+        [NativeTypeName("uint8_t [64]")]
+        internal fixed byte ClientEarlyTrafficSecret[64];
+
+        [NativeTypeName("uint8_t [64]")]
+        internal fixed byte ClientHandshakeTrafficSecret[64];
+
+        [NativeTypeName("uint8_t [64]")]
+        internal fixed byte ServerHandshakeTrafficSecret[64];
+
+        [NativeTypeName("uint8_t [64]")]
+        internal fixed byte ClientTrafficSecret0[64];
+
+        [NativeTypeName("uint8_t [64]")]
+        internal fixed byte ServerTrafficSecret0[64];
+
+        internal partial struct _IsSet_e__Struct
+        {
+            internal byte _bitfield;
+
+            [NativeTypeName("uint8_t : 1")]
+            internal byte ClientRandom
+            {
+                get
+                {
+                    return (byte)(_bitfield & 0x1u);
+                }
+
+                set
+                {
+                    _bitfield = (byte)((_bitfield & ~0x1u) | (value & 0x1u));
+                }
+            }
+
+            [NativeTypeName("uint8_t : 1")]
+            internal byte ClientEarlyTrafficSecret
+            {
+                get
+                {
+                    return (byte)((_bitfield >> 1) & 0x1u);
+                }
+
+                set
+                {
+                    _bitfield = (byte)((_bitfield & ~(0x1u << 1)) | ((value & 0x1u) << 1));
+                }
+            }
+
+            [NativeTypeName("uint8_t : 1")]
+            internal byte ClientHandshakeTrafficSecret
+            {
+                get
+                {
+                    return (byte)((_bitfield >> 2) & 0x1u);
+                }
+
+                set
+                {
+                    _bitfield = (byte)((_bitfield & ~(0x1u << 2)) | ((value & 0x1u) << 2));
+                }
+            }
+
+            [NativeTypeName("uint8_t : 1")]
+            internal byte ServerHandshakeTrafficSecret
+            {
+                get
+                {
+                    return (byte)((_bitfield >> 3) & 0x1u);
+                }
+
+                set
+                {
+                    _bitfield = (byte)((_bitfield & ~(0x1u << 3)) | ((value & 0x1u) << 3));
+                }
+            }
+
+            [NativeTypeName("uint8_t : 1")]
+            internal byte ClientTrafficSecret0
+            {
+                get
+                {
+                    return (byte)((_bitfield >> 4) & 0x1u);
+                }
+
+                set
+                {
+                    _bitfield = (byte)((_bitfield & ~(0x1u << 4)) | ((value & 0x1u) << 4));
+                }
+            }
+
+            [NativeTypeName("uint8_t : 1")]
+            internal byte ServerTrafficSecret0
+            {
+                get
+                {
+                    return (byte)((_bitfield >> 5) & 0x1u);
+                }
+
+                set
+                {
+                    _bitfield = (byte)((_bitfield & ~(0x1u << 5)) | ((value & 0x1u) << 5));
+                }
+            }
+        }
     }
 
-    public unsafe partial struct QUIC_SCHANNEL_CONTEXT_ATTRIBUTE_W
+    internal partial struct QUIC_STREAM_STATISTICS
+    {
+        [NativeTypeName("uint64_t")]
+        internal ulong ConnBlockedBySchedulingUs;
+
+        [NativeTypeName("uint64_t")]
+        internal ulong ConnBlockedByPacingUs;
+
+        [NativeTypeName("uint64_t")]
+        internal ulong ConnBlockedByAmplificationProtUs;
+
+        [NativeTypeName("uint64_t")]
+        internal ulong ConnBlockedByCongestionControlUs;
+
+        [NativeTypeName("uint64_t")]
+        internal ulong ConnBlockedByFlowControlUs;
+
+        [NativeTypeName("uint64_t")]
+        internal ulong StreamBlockedByIdFlowControlUs;
+
+        [NativeTypeName("uint64_t")]
+        internal ulong StreamBlockedByFlowControlUs;
+
+        [NativeTypeName("uint64_t")]
+        internal ulong StreamBlockedByAppUs;
+    }
+
+    internal unsafe partial struct QUIC_SCHANNEL_CREDENTIAL_ATTRIBUTE_W
     {
         [NativeTypeName("unsigned long")]
-        public uint Attribute;
+        internal uint Attribute;
 
-        public void* Buffer;
+        [NativeTypeName("unsigned long")]
+        internal uint BufferLength;
+
+        internal void* Buffer;
     }
 
-    public enum QUIC_LISTENER_EVENT_TYPE
+    internal unsafe partial struct QUIC_SCHANNEL_CONTEXT_ATTRIBUTE_W
     {
-        QUIC_LISTENER_EVENT_NEW_CONNECTION = 0,
+        [NativeTypeName("unsigned long")]
+        internal uint Attribute;
+
+        internal void* Buffer;
     }
 
-    public partial struct QUIC_LISTENER_EVENT
+    internal unsafe partial struct QUIC_SCHANNEL_CONTEXT_ATTRIBUTE_EX_W
     {
-        public QUIC_LISTENER_EVENT_TYPE Type;
+        [NativeTypeName("unsigned long")]
+        internal uint Attribute;
 
-        [NativeTypeName("QUIC_LISTENER_EVENT::(anonymous union at src/inc/msquic.h:798:5)")]
-        public _Anonymous_e__Union Anonymous;
+        [NativeTypeName("unsigned long")]
+        internal uint BufferLength;
 
-        public ref _Anonymous_e__Union._NEW_CONNECTION_e__Struct NEW_CONNECTION
+        internal void* Buffer;
+    }
+
+    internal enum QUIC_LISTENER_EVENT_TYPE
+    {
+        NEW_CONNECTION = 0,
+        STOP_COMPLETE = 1,
+    }
+
+    internal partial struct QUIC_LISTENER_EVENT
+    {
+        internal QUIC_LISTENER_EVENT_TYPE Type;
+
+        [NativeTypeName("QUIC_LISTENER_EVENT::(anonymous union)")]
+        internal _Anonymous_e__Union Anonymous;
+
+        internal ref _Anonymous_e__Union._NEW_CONNECTION_e__Struct NEW_CONNECTION
         {
             get
             {
@@ -1415,531 +1871,40 @@ namespace Microsoft.Quic
             }
         }
 
+        internal ref _Anonymous_e__Union._STOP_COMPLETE_e__Struct STOP_COMPLETE
+        {
+            get
+            {
+                return ref MemoryMarshal.GetReference(MemoryMarshal.CreateSpan(ref Anonymous.STOP_COMPLETE, 1));
+            }
+        }
+
         [StructLayout(LayoutKind.Explicit)]
-        public partial struct _Anonymous_e__Union
+        internal partial struct _Anonymous_e__Union
         {
             [FieldOffset(0)]
-            [NativeTypeName("struct (anonymous struct at src/inc/msquic.h:799:9)")]
-            public _NEW_CONNECTION_e__Struct NEW_CONNECTION;
+            [NativeTypeName("struct (anonymous struct)")]
+            internal _NEW_CONNECTION_e__Struct NEW_CONNECTION;
 
-            public unsafe partial struct _NEW_CONNECTION_e__Struct
+            [FieldOffset(0)]
+            [NativeTypeName("struct (anonymous struct)")]
+            internal _STOP_COMPLETE_e__Struct STOP_COMPLETE;
+
+            internal unsafe partial struct _NEW_CONNECTION_e__Struct
             {
                 [NativeTypeName("const QUIC_NEW_CONNECTION_INFO *")]
-                public QUIC_NEW_CONNECTION_INFO* Info;
+                internal QUIC_NEW_CONNECTION_INFO* Info;
 
                 [NativeTypeName("HQUIC")]
-                public QUIC_HANDLE* Connection;
-            }
-        }
-    }
-
-    public enum QUIC_CONNECTION_EVENT_TYPE
-    {
-        QUIC_CONNECTION_EVENT_CONNECTED = 0,
-        QUIC_CONNECTION_EVENT_SHUTDOWN_INITIATED_BY_TRANSPORT = 1,
-        QUIC_CONNECTION_EVENT_SHUTDOWN_INITIATED_BY_PEER = 2,
-        QUIC_CONNECTION_EVENT_SHUTDOWN_COMPLETE = 3,
-        QUIC_CONNECTION_EVENT_LOCAL_ADDRESS_CHANGED = 4,
-        QUIC_CONNECTION_EVENT_PEER_ADDRESS_CHANGED = 5,
-        QUIC_CONNECTION_EVENT_PEER_STREAM_STARTED = 6,
-        QUIC_CONNECTION_EVENT_STREAMS_AVAILABLE = 7,
-        QUIC_CONNECTION_EVENT_PEER_NEEDS_STREAMS = 8,
-        QUIC_CONNECTION_EVENT_IDEAL_PROCESSOR_CHANGED = 9,
-        QUIC_CONNECTION_EVENT_DATAGRAM_STATE_CHANGED = 10,
-        QUIC_CONNECTION_EVENT_DATAGRAM_RECEIVED = 11,
-        QUIC_CONNECTION_EVENT_DATAGRAM_SEND_STATE_CHANGED = 12,
-        QUIC_CONNECTION_EVENT_RESUMED = 13,
-        QUIC_CONNECTION_EVENT_RESUMPTION_TICKET_RECEIVED = 14,
-        QUIC_CONNECTION_EVENT_PEER_CERTIFICATE_RECEIVED = 15,
-    }
-
-    public partial struct QUIC_CONNECTION_EVENT
-    {
-        public QUIC_CONNECTION_EVENT_TYPE Type;
-
-        [NativeTypeName("QUIC_CONNECTION_EVENT::(anonymous union at src/inc/msquic.h:893:5)")]
-        public _Anonymous_e__Union Anonymous;
-
-        public ref _Anonymous_e__Union._CONNECTED_e__Struct CONNECTED
-        {
-            get
-            {
-                return ref MemoryMarshal.GetReference(MemoryMarshal.CreateSpan(ref Anonymous.CONNECTED, 1));
-            }
-        }
-
-        public ref _Anonymous_e__Union._SHUTDOWN_INITIATED_BY_TRANSPORT_e__Struct SHUTDOWN_INITIATED_BY_TRANSPORT
-        {
-            get
-            {
-                return ref MemoryMarshal.GetReference(MemoryMarshal.CreateSpan(ref Anonymous.SHUTDOWN_INITIATED_BY_TRANSPORT, 1));
-            }
-        }
-
-        public ref _Anonymous_e__Union._SHUTDOWN_INITIATED_BY_PEER_e__Struct SHUTDOWN_INITIATED_BY_PEER
-        {
-            get
-            {
-                return ref MemoryMarshal.GetReference(MemoryMarshal.CreateSpan(ref Anonymous.SHUTDOWN_INITIATED_BY_PEER, 1));
-            }
-        }
-
-        public ref _Anonymous_e__Union._SHUTDOWN_COMPLETE_e__Struct SHUTDOWN_COMPLETE
-        {
-            get
-            {
-                return ref MemoryMarshal.GetReference(MemoryMarshal.CreateSpan(ref Anonymous.SHUTDOWN_COMPLETE, 1));
-            }
-        }
-
-        public ref _Anonymous_e__Union._LOCAL_ADDRESS_CHANGED_e__Struct LOCAL_ADDRESS_CHANGED
-        {
-            get
-            {
-                return ref MemoryMarshal.GetReference(MemoryMarshal.CreateSpan(ref Anonymous.LOCAL_ADDRESS_CHANGED, 1));
-            }
-        }
-
-        public ref _Anonymous_e__Union._PEER_ADDRESS_CHANGED_e__Struct PEER_ADDRESS_CHANGED
-        {
-            get
-            {
-                return ref MemoryMarshal.GetReference(MemoryMarshal.CreateSpan(ref Anonymous.PEER_ADDRESS_CHANGED, 1));
-            }
-        }
-
-        public ref _Anonymous_e__Union._PEER_STREAM_STARTED_e__Struct PEER_STREAM_STARTED
-        {
-            get
-            {
-                return ref MemoryMarshal.GetReference(MemoryMarshal.CreateSpan(ref Anonymous.PEER_STREAM_STARTED, 1));
-            }
-        }
-
-        public ref _Anonymous_e__Union._STREAMS_AVAILABLE_e__Struct STREAMS_AVAILABLE
-        {
-            get
-            {
-                return ref MemoryMarshal.GetReference(MemoryMarshal.CreateSpan(ref Anonymous.STREAMS_AVAILABLE, 1));
-            }
-        }
-
-        public ref _Anonymous_e__Union._IDEAL_PROCESSOR_CHANGED_e__Struct IDEAL_PROCESSOR_CHANGED
-        {
-            get
-            {
-                return ref MemoryMarshal.GetReference(MemoryMarshal.CreateSpan(ref Anonymous.IDEAL_PROCESSOR_CHANGED, 1));
-            }
-        }
-
-        public ref _Anonymous_e__Union._DATAGRAM_STATE_CHANGED_e__Struct DATAGRAM_STATE_CHANGED
-        {
-            get
-            {
-                return ref MemoryMarshal.GetReference(MemoryMarshal.CreateSpan(ref Anonymous.DATAGRAM_STATE_CHANGED, 1));
-            }
-        }
-
-        public ref _Anonymous_e__Union._DATAGRAM_RECEIVED_e__Struct DATAGRAM_RECEIVED
-        {
-            get
-            {
-                return ref MemoryMarshal.GetReference(MemoryMarshal.CreateSpan(ref Anonymous.DATAGRAM_RECEIVED, 1));
-            }
-        }
-
-        public ref _Anonymous_e__Union._DATAGRAM_SEND_STATE_CHANGED_e__Struct DATAGRAM_SEND_STATE_CHANGED
-        {
-            get
-            {
-                return ref MemoryMarshal.GetReference(MemoryMarshal.CreateSpan(ref Anonymous.DATAGRAM_SEND_STATE_CHANGED, 1));
-            }
-        }
-
-        public ref _Anonymous_e__Union._RESUMED_e__Struct RESUMED
-        {
-            get
-            {
-                return ref MemoryMarshal.GetReference(MemoryMarshal.CreateSpan(ref Anonymous.RESUMED, 1));
-            }
-        }
-
-        public ref _Anonymous_e__Union._RESUMPTION_TICKET_RECEIVED_e__Struct RESUMPTION_TICKET_RECEIVED
-        {
-            get
-            {
-                return ref MemoryMarshal.GetReference(MemoryMarshal.CreateSpan(ref Anonymous.RESUMPTION_TICKET_RECEIVED, 1));
-            }
-        }
-
-        public ref _Anonymous_e__Union._PEER_CERTIFICATE_RECEIVED_e__Struct PEER_CERTIFICATE_RECEIVED
-        {
-            get
-            {
-                return ref MemoryMarshal.GetReference(MemoryMarshal.CreateSpan(ref Anonymous.PEER_CERTIFICATE_RECEIVED, 1));
-            }
-        }
-
-        [StructLayout(LayoutKind.Explicit)]
-        public partial struct _Anonymous_e__Union
-        {
-            [FieldOffset(0)]
-            [NativeTypeName("struct (anonymous struct at src/inc/msquic.h:894:9)")]
-            public _CONNECTED_e__Struct CONNECTED;
-
-            [FieldOffset(0)]
-            [NativeTypeName("struct (anonymous struct at src/inc/msquic.h:901:9)")]
-            public _SHUTDOWN_INITIATED_BY_TRANSPORT_e__Struct SHUTDOWN_INITIATED_BY_TRANSPORT;
-
-            [FieldOffset(0)]
-            [NativeTypeName("struct (anonymous struct at src/inc/msquic.h:904:9)")]
-            public _SHUTDOWN_INITIATED_BY_PEER_e__Struct SHUTDOWN_INITIATED_BY_PEER;
-
-            [FieldOffset(0)]
-            [NativeTypeName("struct (anonymous struct at src/inc/msquic.h:907:9)")]
-            public _SHUTDOWN_COMPLETE_e__Struct SHUTDOWN_COMPLETE;
-
-            [FieldOffset(0)]
-            [NativeTypeName("struct (anonymous struct at src/inc/msquic.h:912:9)")]
-            public _LOCAL_ADDRESS_CHANGED_e__Struct LOCAL_ADDRESS_CHANGED;
-
-            [FieldOffset(0)]
-            [NativeTypeName("struct (anonymous struct at src/inc/msquic.h:915:9)")]
-            public _PEER_ADDRESS_CHANGED_e__Struct PEER_ADDRESS_CHANGED;
-
-            [FieldOffset(0)]
-            [NativeTypeName("struct (anonymous struct at src/inc/msquic.h:918:9)")]
-            public _PEER_STREAM_STARTED_e__Struct PEER_STREAM_STARTED;
-
-            [FieldOffset(0)]
-            [NativeTypeName("struct (anonymous struct at src/inc/msquic.h:922:9)")]
-            public _STREAMS_AVAILABLE_e__Struct STREAMS_AVAILABLE;
-
-            [FieldOffset(0)]
-            [NativeTypeName("struct (anonymous struct at src/inc/msquic.h:926:9)")]
-            public _IDEAL_PROCESSOR_CHANGED_e__Struct IDEAL_PROCESSOR_CHANGED;
-
-            [FieldOffset(0)]
-            [NativeTypeName("struct (anonymous struct at src/inc/msquic.h:929:9)")]
-            public _DATAGRAM_STATE_CHANGED_e__Struct DATAGRAM_STATE_CHANGED;
-
-            [FieldOffset(0)]
-            [NativeTypeName("struct (anonymous struct at src/inc/msquic.h:933:9)")]
-            public _DATAGRAM_RECEIVED_e__Struct DATAGRAM_RECEIVED;
-
-            [FieldOffset(0)]
-            [NativeTypeName("struct (anonymous struct at src/inc/msquic.h:937:9)")]
-            public _DATAGRAM_SEND_STATE_CHANGED_e__Struct DATAGRAM_SEND_STATE_CHANGED;
-
-            [FieldOffset(0)]
-            [NativeTypeName("struct (anonymous struct at src/inc/msquic.h:941:9)")]
-            public _RESUMED_e__Struct RESUMED;
-
-            [FieldOffset(0)]
-            [NativeTypeName("struct (anonymous struct at src/inc/msquic.h:945:9)")]
-            public _RESUMPTION_TICKET_RECEIVED_e__Struct RESUMPTION_TICKET_RECEIVED;
-
-            [FieldOffset(0)]
-            [NativeTypeName("struct (anonymous struct at src/inc/msquic.h:951:9)")]
-            public _PEER_CERTIFICATE_RECEIVED_e__Struct PEER_CERTIFICATE_RECEIVED;
-
-            public unsafe partial struct _CONNECTED_e__Struct
-            {
-                [NativeTypeName("BOOLEAN")]
-                public byte SessionResumed;
-
-                [NativeTypeName("uint8_t")]
-                public byte NegotiatedAlpnLength;
-
-                [NativeTypeName("const uint8_t *")]
-                public byte* NegotiatedAlpn;
+                internal QUIC_HANDLE* Connection;
             }
 
-            public partial struct _SHUTDOWN_INITIATED_BY_TRANSPORT_e__Struct
+            internal partial struct _STOP_COMPLETE_e__Struct
             {
-                [NativeTypeName("HRESULT")]
-                public int Status;
-            }
-
-            public partial struct _SHUTDOWN_INITIATED_BY_PEER_e__Struct
-            {
-                [NativeTypeName("QUIC_UINT62")]
-                public ulong ErrorCode;
-            }
-
-            public partial struct _SHUTDOWN_COMPLETE_e__Struct
-            {
-                public byte _bitfield;
+                internal byte _bitfield;
 
                 [NativeTypeName("BOOLEAN : 1")]
-                public byte HandshakeCompleted
-                {
-                    get
-                    {
-                        return (byte)(_bitfield & 0x1u);
-                    }
-
-                    set
-                    {
-                        _bitfield = (byte)((_bitfield & ~0x1u) | (value & 0x1u));
-                    }
-                }
-
-                [NativeTypeName("BOOLEAN : 1")]
-                public byte PeerAcknowledgedShutdown
-                {
-                    get
-                    {
-                        return (byte)((_bitfield >> 1) & 0x1u);
-                    }
-
-                    set
-                    {
-                        _bitfield = (byte)((_bitfield & ~(0x1u << 1)) | ((value & 0x1u) << 1));
-                    }
-                }
-
-                [NativeTypeName("BOOLEAN : 1")]
-                public byte AppCloseInProgress
-                {
-                    get
-                    {
-                        return (byte)((_bitfield >> 2) & 0x1u);
-                    }
-
-                    set
-                    {
-                        _bitfield = (byte)((_bitfield & ~(0x1u << 2)) | ((value & 0x1u) << 2));
-                    }
-                }
-            }
-
-            public unsafe partial struct _LOCAL_ADDRESS_CHANGED_e__Struct
-            {
-                [NativeTypeName("const QUIC_ADDR *")]
-                public QuicAddr* Address;
-            }
-
-            public unsafe partial struct _PEER_ADDRESS_CHANGED_e__Struct
-            {
-                [NativeTypeName("const QUIC_ADDR *")]
-                public QuicAddr* Address;
-            }
-
-            public unsafe partial struct _PEER_STREAM_STARTED_e__Struct
-            {
-                [NativeTypeName("HQUIC")]
-                public QUIC_HANDLE* Stream;
-
-                public QUIC_STREAM_OPEN_FLAGS Flags;
-            }
-
-            public partial struct _STREAMS_AVAILABLE_e__Struct
-            {
-                [NativeTypeName("uint16_t")]
-                public ushort BidirectionalCount;
-
-                [NativeTypeName("uint16_t")]
-                public ushort UnidirectionalCount;
-            }
-
-            public partial struct _IDEAL_PROCESSOR_CHANGED_e__Struct
-            {
-                [NativeTypeName("uint16_t")]
-                public ushort IdealProcessor;
-            }
-
-            public partial struct _DATAGRAM_STATE_CHANGED_e__Struct
-            {
-                [NativeTypeName("BOOLEAN")]
-                public byte SendEnabled;
-
-                [NativeTypeName("uint16_t")]
-                public ushort MaxSendLength;
-            }
-
-            public unsafe partial struct _DATAGRAM_RECEIVED_e__Struct
-            {
-                [NativeTypeName("const QUIC_BUFFER *")]
-                public QUIC_BUFFER* Buffer;
-
-                public QUIC_RECEIVE_FLAGS Flags;
-            }
-
-            public unsafe partial struct _DATAGRAM_SEND_STATE_CHANGED_e__Struct
-            {
-                public void* ClientContext;
-
-                public QUIC_DATAGRAM_SEND_STATE State;
-            }
-
-            public unsafe partial struct _RESUMED_e__Struct
-            {
-                [NativeTypeName("uint16_t")]
-                public ushort ResumptionStateLength;
-
-                [NativeTypeName("const uint8_t *")]
-                public byte* ResumptionState;
-            }
-
-            public unsafe partial struct _RESUMPTION_TICKET_RECEIVED_e__Struct
-            {
-                [NativeTypeName("uint32_t")]
-                public uint ResumptionTicketLength;
-
-                [NativeTypeName("const uint8_t *")]
-                public byte* ResumptionTicket;
-            }
-
-            public unsafe partial struct _PEER_CERTIFICATE_RECEIVED_e__Struct
-            {
-                [NativeTypeName("QUIC_CERTIFICATE *")]
-                public void* Certificate;
-
-                [NativeTypeName("uint32_t")]
-                public uint DeferredErrorFlags;
-
-                [NativeTypeName("HRESULT")]
-                public int DeferredStatus;
-
-                [NativeTypeName("QUIC_CERTIFICATE_CHAIN *")]
-                public void* Chain;
-            }
-        }
-    }
-
-    public enum QUIC_STREAM_EVENT_TYPE
-    {
-        QUIC_STREAM_EVENT_START_COMPLETE = 0,
-        QUIC_STREAM_EVENT_RECEIVE = 1,
-        QUIC_STREAM_EVENT_SEND_COMPLETE = 2,
-        QUIC_STREAM_EVENT_PEER_SEND_SHUTDOWN = 3,
-        QUIC_STREAM_EVENT_PEER_SEND_ABORTED = 4,
-        QUIC_STREAM_EVENT_PEER_RECEIVE_ABORTED = 5,
-        QUIC_STREAM_EVENT_SEND_SHUTDOWN_COMPLETE = 6,
-        QUIC_STREAM_EVENT_SHUTDOWN_COMPLETE = 7,
-        QUIC_STREAM_EVENT_IDEAL_SEND_BUFFER_SIZE = 8,
-        QUIC_STREAM_EVENT_PEER_ACCEPTED = 9,
-    }
-
-    public partial struct QUIC_STREAM_EVENT
-    {
-        public QUIC_STREAM_EVENT_TYPE Type;
-
-        [NativeTypeName("QUIC_STREAM_EVENT::(anonymous union at src/inc/msquic.h:1074:5)")]
-        public _Anonymous_e__Union Anonymous;
-
-        public ref _Anonymous_e__Union._START_COMPLETE_e__Struct START_COMPLETE
-        {
-            get
-            {
-                return ref MemoryMarshal.GetReference(MemoryMarshal.CreateSpan(ref Anonymous.START_COMPLETE, 1));
-            }
-        }
-
-        public ref _Anonymous_e__Union._RECEIVE_e__Struct RECEIVE
-        {
-            get
-            {
-                return ref MemoryMarshal.GetReference(MemoryMarshal.CreateSpan(ref Anonymous.RECEIVE, 1));
-            }
-        }
-
-        public ref _Anonymous_e__Union._SEND_COMPLETE_e__Struct SEND_COMPLETE
-        {
-            get
-            {
-                return ref MemoryMarshal.GetReference(MemoryMarshal.CreateSpan(ref Anonymous.SEND_COMPLETE, 1));
-            }
-        }
-
-        public ref _Anonymous_e__Union._PEER_SEND_ABORTED_e__Struct PEER_SEND_ABORTED
-        {
-            get
-            {
-                return ref MemoryMarshal.GetReference(MemoryMarshal.CreateSpan(ref Anonymous.PEER_SEND_ABORTED, 1));
-            }
-        }
-
-        public ref _Anonymous_e__Union._PEER_RECEIVE_ABORTED_e__Struct PEER_RECEIVE_ABORTED
-        {
-            get
-            {
-                return ref MemoryMarshal.GetReference(MemoryMarshal.CreateSpan(ref Anonymous.PEER_RECEIVE_ABORTED, 1));
-            }
-        }
-
-        public ref _Anonymous_e__Union._SEND_SHUTDOWN_COMPLETE_e__Struct SEND_SHUTDOWN_COMPLETE
-        {
-            get
-            {
-                return ref MemoryMarshal.GetReference(MemoryMarshal.CreateSpan(ref Anonymous.SEND_SHUTDOWN_COMPLETE, 1));
-            }
-        }
-
-        public ref _Anonymous_e__Union._SHUTDOWN_COMPLETE_e__Struct SHUTDOWN_COMPLETE
-        {
-            get
-            {
-                return ref MemoryMarshal.GetReference(MemoryMarshal.CreateSpan(ref Anonymous.SHUTDOWN_COMPLETE, 1));
-            }
-        }
-
-        public ref _Anonymous_e__Union._IDEAL_SEND_BUFFER_SIZE_e__Struct IDEAL_SEND_BUFFER_SIZE
-        {
-            get
-            {
-                return ref MemoryMarshal.GetReference(MemoryMarshal.CreateSpan(ref Anonymous.IDEAL_SEND_BUFFER_SIZE, 1));
-            }
-        }
-
-        [StructLayout(LayoutKind.Explicit)]
-        public partial struct _Anonymous_e__Union
-        {
-            [FieldOffset(0)]
-            [NativeTypeName("struct (anonymous struct at src/inc/msquic.h:1075:9)")]
-            public _START_COMPLETE_e__Struct START_COMPLETE;
-
-            [FieldOffset(0)]
-            [NativeTypeName("struct (anonymous struct at src/inc/msquic.h:1081:9)")]
-            public _RECEIVE_e__Struct RECEIVE;
-
-            [FieldOffset(0)]
-            [NativeTypeName("struct (anonymous struct at src/inc/msquic.h:1090:9)")]
-            public _SEND_COMPLETE_e__Struct SEND_COMPLETE;
-
-            [FieldOffset(0)]
-            [NativeTypeName("struct (anonymous struct at src/inc/msquic.h:1094:9)")]
-            public _PEER_SEND_ABORTED_e__Struct PEER_SEND_ABORTED;
-
-            [FieldOffset(0)]
-            [NativeTypeName("struct (anonymous struct at src/inc/msquic.h:1097:9)")]
-            public _PEER_RECEIVE_ABORTED_e__Struct PEER_RECEIVE_ABORTED;
-
-            [FieldOffset(0)]
-            [NativeTypeName("struct (anonymous struct at src/inc/msquic.h:1100:9)")]
-            public _SEND_SHUTDOWN_COMPLETE_e__Struct SEND_SHUTDOWN_COMPLETE;
-
-            [FieldOffset(0)]
-            [NativeTypeName("struct (anonymous struct at src/inc/msquic.h:1103:9)")]
-            public _SHUTDOWN_COMPLETE_e__Struct SHUTDOWN_COMPLETE;
-
-            [FieldOffset(0)]
-            [NativeTypeName("struct (anonymous struct at src/inc/msquic.h:1106:9)")]
-            public _IDEAL_SEND_BUFFER_SIZE_e__Struct IDEAL_SEND_BUFFER_SIZE;
-
-            public partial struct _START_COMPLETE_e__Struct
-            {
-                [NativeTypeName("HRESULT")]
-                public int Status;
-
-                [NativeTypeName("QUIC_UINT62")]
-                public ulong ID;
-
-                public byte _bitfield;
-
-                [NativeTypeName("BOOLEAN : 1")]
-                public byte PeerAccepted
+                internal byte AppCloseInProgress
                 {
                     get
                     {
@@ -1953,7 +1918,546 @@ namespace Microsoft.Quic
                 }
 
                 [NativeTypeName("BOOLEAN : 7")]
-                public byte RESERVED
+                internal byte RESERVED
+                {
+                    get
+                    {
+                        return (byte)((_bitfield >> 1) & 0x7Fu);
+                    }
+
+                    set
+                    {
+                        _bitfield = (byte)((_bitfield & ~(0x7Fu << 1)) | ((value & 0x7Fu) << 1));
+                    }
+                }
+            }
+        }
+    }
+
+    internal enum QUIC_CONNECTION_EVENT_TYPE
+    {
+        CONNECTED = 0,
+        SHUTDOWN_INITIATED_BY_TRANSPORT = 1,
+        SHUTDOWN_INITIATED_BY_PEER = 2,
+        SHUTDOWN_COMPLETE = 3,
+        LOCAL_ADDRESS_CHANGED = 4,
+        PEER_ADDRESS_CHANGED = 5,
+        PEER_STREAM_STARTED = 6,
+        STREAMS_AVAILABLE = 7,
+        PEER_NEEDS_STREAMS = 8,
+        IDEAL_PROCESSOR_CHANGED = 9,
+        DATAGRAM_STATE_CHANGED = 10,
+        DATAGRAM_RECEIVED = 11,
+        DATAGRAM_SEND_STATE_CHANGED = 12,
+        RESUMED = 13,
+        RESUMPTION_TICKET_RECEIVED = 14,
+        PEER_CERTIFICATE_RECEIVED = 15,
+    }
+
+    internal partial struct QUIC_CONNECTION_EVENT
+    {
+        internal QUIC_CONNECTION_EVENT_TYPE Type;
+
+        [NativeTypeName("QUIC_CONNECTION_EVENT::(anonymous union)")]
+        internal _Anonymous_e__Union Anonymous;
+
+        internal ref _Anonymous_e__Union._CONNECTED_e__Struct CONNECTED
+        {
+            get
+            {
+                return ref MemoryMarshal.GetReference(MemoryMarshal.CreateSpan(ref Anonymous.CONNECTED, 1));
+            }
+        }
+
+        internal ref _Anonymous_e__Union._SHUTDOWN_INITIATED_BY_TRANSPORT_e__Struct SHUTDOWN_INITIATED_BY_TRANSPORT
+        {
+            get
+            {
+                return ref MemoryMarshal.GetReference(MemoryMarshal.CreateSpan(ref Anonymous.SHUTDOWN_INITIATED_BY_TRANSPORT, 1));
+            }
+        }
+
+        internal ref _Anonymous_e__Union._SHUTDOWN_INITIATED_BY_PEER_e__Struct SHUTDOWN_INITIATED_BY_PEER
+        {
+            get
+            {
+                return ref MemoryMarshal.GetReference(MemoryMarshal.CreateSpan(ref Anonymous.SHUTDOWN_INITIATED_BY_PEER, 1));
+            }
+        }
+
+        internal ref _Anonymous_e__Union._SHUTDOWN_COMPLETE_e__Struct SHUTDOWN_COMPLETE
+        {
+            get
+            {
+                return ref MemoryMarshal.GetReference(MemoryMarshal.CreateSpan(ref Anonymous.SHUTDOWN_COMPLETE, 1));
+            }
+        }
+
+        internal ref _Anonymous_e__Union._LOCAL_ADDRESS_CHANGED_e__Struct LOCAL_ADDRESS_CHANGED
+        {
+            get
+            {
+                return ref MemoryMarshal.GetReference(MemoryMarshal.CreateSpan(ref Anonymous.LOCAL_ADDRESS_CHANGED, 1));
+            }
+        }
+
+        internal ref _Anonymous_e__Union._PEER_ADDRESS_CHANGED_e__Struct PEER_ADDRESS_CHANGED
+        {
+            get
+            {
+                return ref MemoryMarshal.GetReference(MemoryMarshal.CreateSpan(ref Anonymous.PEER_ADDRESS_CHANGED, 1));
+            }
+        }
+
+        internal ref _Anonymous_e__Union._PEER_STREAM_STARTED_e__Struct PEER_STREAM_STARTED
+        {
+            get
+            {
+                return ref MemoryMarshal.GetReference(MemoryMarshal.CreateSpan(ref Anonymous.PEER_STREAM_STARTED, 1));
+            }
+        }
+
+        internal ref _Anonymous_e__Union._STREAMS_AVAILABLE_e__Struct STREAMS_AVAILABLE
+        {
+            get
+            {
+                return ref MemoryMarshal.GetReference(MemoryMarshal.CreateSpan(ref Anonymous.STREAMS_AVAILABLE, 1));
+            }
+        }
+
+        internal ref _Anonymous_e__Union._IDEAL_PROCESSOR_CHANGED_e__Struct IDEAL_PROCESSOR_CHANGED
+        {
+            get
+            {
+                return ref MemoryMarshal.GetReference(MemoryMarshal.CreateSpan(ref Anonymous.IDEAL_PROCESSOR_CHANGED, 1));
+            }
+        }
+
+        internal ref _Anonymous_e__Union._DATAGRAM_STATE_CHANGED_e__Struct DATAGRAM_STATE_CHANGED
+        {
+            get
+            {
+                return ref MemoryMarshal.GetReference(MemoryMarshal.CreateSpan(ref Anonymous.DATAGRAM_STATE_CHANGED, 1));
+            }
+        }
+
+        internal ref _Anonymous_e__Union._DATAGRAM_RECEIVED_e__Struct DATAGRAM_RECEIVED
+        {
+            get
+            {
+                return ref MemoryMarshal.GetReference(MemoryMarshal.CreateSpan(ref Anonymous.DATAGRAM_RECEIVED, 1));
+            }
+        }
+
+        internal ref _Anonymous_e__Union._DATAGRAM_SEND_STATE_CHANGED_e__Struct DATAGRAM_SEND_STATE_CHANGED
+        {
+            get
+            {
+                return ref MemoryMarshal.GetReference(MemoryMarshal.CreateSpan(ref Anonymous.DATAGRAM_SEND_STATE_CHANGED, 1));
+            }
+        }
+
+        internal ref _Anonymous_e__Union._RESUMED_e__Struct RESUMED
+        {
+            get
+            {
+                return ref MemoryMarshal.GetReference(MemoryMarshal.CreateSpan(ref Anonymous.RESUMED, 1));
+            }
+        }
+
+        internal ref _Anonymous_e__Union._RESUMPTION_TICKET_RECEIVED_e__Struct RESUMPTION_TICKET_RECEIVED
+        {
+            get
+            {
+                return ref MemoryMarshal.GetReference(MemoryMarshal.CreateSpan(ref Anonymous.RESUMPTION_TICKET_RECEIVED, 1));
+            }
+        }
+
+        internal ref _Anonymous_e__Union._PEER_CERTIFICATE_RECEIVED_e__Struct PEER_CERTIFICATE_RECEIVED
+        {
+            get
+            {
+                return ref MemoryMarshal.GetReference(MemoryMarshal.CreateSpan(ref Anonymous.PEER_CERTIFICATE_RECEIVED, 1));
+            }
+        }
+
+        [StructLayout(LayoutKind.Explicit)]
+        internal partial struct _Anonymous_e__Union
+        {
+            [FieldOffset(0)]
+            [NativeTypeName("struct (anonymous struct)")]
+            internal _CONNECTED_e__Struct CONNECTED;
+
+            [FieldOffset(0)]
+            [NativeTypeName("struct (anonymous struct)")]
+            internal _SHUTDOWN_INITIATED_BY_TRANSPORT_e__Struct SHUTDOWN_INITIATED_BY_TRANSPORT;
+
+            [FieldOffset(0)]
+            [NativeTypeName("struct (anonymous struct)")]
+            internal _SHUTDOWN_INITIATED_BY_PEER_e__Struct SHUTDOWN_INITIATED_BY_PEER;
+
+            [FieldOffset(0)]
+            [NativeTypeName("struct (anonymous struct)")]
+            internal _SHUTDOWN_COMPLETE_e__Struct SHUTDOWN_COMPLETE;
+
+            [FieldOffset(0)]
+            [NativeTypeName("struct (anonymous struct)")]
+            internal _LOCAL_ADDRESS_CHANGED_e__Struct LOCAL_ADDRESS_CHANGED;
+
+            [FieldOffset(0)]
+            [NativeTypeName("struct (anonymous struct)")]
+            internal _PEER_ADDRESS_CHANGED_e__Struct PEER_ADDRESS_CHANGED;
+
+            [FieldOffset(0)]
+            [NativeTypeName("struct (anonymous struct)")]
+            internal _PEER_STREAM_STARTED_e__Struct PEER_STREAM_STARTED;
+
+            [FieldOffset(0)]
+            [NativeTypeName("struct (anonymous struct)")]
+            internal _STREAMS_AVAILABLE_e__Struct STREAMS_AVAILABLE;
+
+            [FieldOffset(0)]
+            [NativeTypeName("struct (anonymous struct)")]
+            internal _IDEAL_PROCESSOR_CHANGED_e__Struct IDEAL_PROCESSOR_CHANGED;
+
+            [FieldOffset(0)]
+            [NativeTypeName("struct (anonymous struct)")]
+            internal _DATAGRAM_STATE_CHANGED_e__Struct DATAGRAM_STATE_CHANGED;
+
+            [FieldOffset(0)]
+            [NativeTypeName("struct (anonymous struct)")]
+            internal _DATAGRAM_RECEIVED_e__Struct DATAGRAM_RECEIVED;
+
+            [FieldOffset(0)]
+            [NativeTypeName("struct (anonymous struct)")]
+            internal _DATAGRAM_SEND_STATE_CHANGED_e__Struct DATAGRAM_SEND_STATE_CHANGED;
+
+            [FieldOffset(0)]
+            [NativeTypeName("struct (anonymous struct)")]
+            internal _RESUMED_e__Struct RESUMED;
+
+            [FieldOffset(0)]
+            [NativeTypeName("struct (anonymous struct)")]
+            internal _RESUMPTION_TICKET_RECEIVED_e__Struct RESUMPTION_TICKET_RECEIVED;
+
+            [FieldOffset(0)]
+            [NativeTypeName("struct (anonymous struct)")]
+            internal _PEER_CERTIFICATE_RECEIVED_e__Struct PEER_CERTIFICATE_RECEIVED;
+
+            internal unsafe partial struct _CONNECTED_e__Struct
+            {
+                [NativeTypeName("BOOLEAN")]
+                internal byte SessionResumed;
+
+                [NativeTypeName("uint8_t")]
+                internal byte NegotiatedAlpnLength;
+
+                [NativeTypeName("const uint8_t *")]
+                internal byte* NegotiatedAlpn;
+            }
+
+            internal partial struct _SHUTDOWN_INITIATED_BY_TRANSPORT_e__Struct
+            {
+                [NativeTypeName("HRESULT")]
+                internal int Status;
+
+                [NativeTypeName("QUIC_UINT62")]
+                internal ulong ErrorCode;
+            }
+
+            internal partial struct _SHUTDOWN_INITIATED_BY_PEER_e__Struct
+            {
+                [NativeTypeName("QUIC_UINT62")]
+                internal ulong ErrorCode;
+            }
+
+            internal partial struct _SHUTDOWN_COMPLETE_e__Struct
+            {
+                internal byte _bitfield;
+
+                [NativeTypeName("BOOLEAN : 1")]
+                internal byte HandshakeCompleted
+                {
+                    get
+                    {
+                        return (byte)(_bitfield & 0x1u);
+                    }
+
+                    set
+                    {
+                        _bitfield = (byte)((_bitfield & ~0x1u) | (value & 0x1u));
+                    }
+                }
+
+                [NativeTypeName("BOOLEAN : 1")]
+                internal byte PeerAcknowledgedShutdown
+                {
+                    get
+                    {
+                        return (byte)((_bitfield >> 1) & 0x1u);
+                    }
+
+                    set
+                    {
+                        _bitfield = (byte)((_bitfield & ~(0x1u << 1)) | ((value & 0x1u) << 1));
+                    }
+                }
+
+                [NativeTypeName("BOOLEAN : 1")]
+                internal byte AppCloseInProgress
+                {
+                    get
+                    {
+                        return (byte)((_bitfield >> 2) & 0x1u);
+                    }
+
+                    set
+                    {
+                        _bitfield = (byte)((_bitfield & ~(0x1u << 2)) | ((value & 0x1u) << 2));
+                    }
+                }
+            }
+
+            internal unsafe partial struct _LOCAL_ADDRESS_CHANGED_e__Struct
+            {
+                [NativeTypeName("const QUIC_ADDR *")]
+                internal QuicAddr* Address;
+            }
+
+            internal unsafe partial struct _PEER_ADDRESS_CHANGED_e__Struct
+            {
+                [NativeTypeName("const QUIC_ADDR *")]
+                internal QuicAddr* Address;
+            }
+
+            internal unsafe partial struct _PEER_STREAM_STARTED_e__Struct
+            {
+                [NativeTypeName("HQUIC")]
+                internal QUIC_HANDLE* Stream;
+
+                internal QUIC_STREAM_OPEN_FLAGS Flags;
+            }
+
+            internal partial struct _STREAMS_AVAILABLE_e__Struct
+            {
+                [NativeTypeName("uint16_t")]
+                internal ushort BidirectionalCount;
+
+                [NativeTypeName("uint16_t")]
+                internal ushort UnidirectionalCount;
+            }
+
+            internal partial struct _IDEAL_PROCESSOR_CHANGED_e__Struct
+            {
+                [NativeTypeName("uint16_t")]
+                internal ushort IdealProcessor;
+            }
+
+            internal partial struct _DATAGRAM_STATE_CHANGED_e__Struct
+            {
+                [NativeTypeName("BOOLEAN")]
+                internal byte SendEnabled;
+
+                [NativeTypeName("uint16_t")]
+                internal ushort MaxSendLength;
+            }
+
+            internal unsafe partial struct _DATAGRAM_RECEIVED_e__Struct
+            {
+                [NativeTypeName("const QUIC_BUFFER *")]
+                internal QUIC_BUFFER* Buffer;
+
+                internal QUIC_RECEIVE_FLAGS Flags;
+            }
+
+            internal unsafe partial struct _DATAGRAM_SEND_STATE_CHANGED_e__Struct
+            {
+                internal void* ClientContext;
+
+                internal QUIC_DATAGRAM_SEND_STATE State;
+            }
+
+            internal unsafe partial struct _RESUMED_e__Struct
+            {
+                [NativeTypeName("uint16_t")]
+                internal ushort ResumptionStateLength;
+
+                [NativeTypeName("const uint8_t *")]
+                internal byte* ResumptionState;
+            }
+
+            internal unsafe partial struct _RESUMPTION_TICKET_RECEIVED_e__Struct
+            {
+                [NativeTypeName("uint32_t")]
+                internal uint ResumptionTicketLength;
+
+                [NativeTypeName("const uint8_t *")]
+                internal byte* ResumptionTicket;
+            }
+
+            internal unsafe partial struct _PEER_CERTIFICATE_RECEIVED_e__Struct
+            {
+                [NativeTypeName("QUIC_CERTIFICATE *")]
+                internal void* Certificate;
+
+                [NativeTypeName("uint32_t")]
+                internal uint DeferredErrorFlags;
+
+                [NativeTypeName("HRESULT")]
+                internal int DeferredStatus;
+
+                [NativeTypeName("QUIC_CERTIFICATE_CHAIN *")]
+                internal void* Chain;
+            }
+        }
+    }
+
+    internal enum QUIC_STREAM_EVENT_TYPE
+    {
+        START_COMPLETE = 0,
+        RECEIVE = 1,
+        SEND_COMPLETE = 2,
+        PEER_SEND_SHUTDOWN = 3,
+        PEER_SEND_ABORTED = 4,
+        PEER_RECEIVE_ABORTED = 5,
+        SEND_SHUTDOWN_COMPLETE = 6,
+        SHUTDOWN_COMPLETE = 7,
+        IDEAL_SEND_BUFFER_SIZE = 8,
+        PEER_ACCEPTED = 9,
+    }
+
+    internal partial struct QUIC_STREAM_EVENT
+    {
+        internal QUIC_STREAM_EVENT_TYPE Type;
+
+        [NativeTypeName("QUIC_STREAM_EVENT::(anonymous union)")]
+        internal _Anonymous_e__Union Anonymous;
+
+        internal ref _Anonymous_e__Union._START_COMPLETE_e__Struct START_COMPLETE
+        {
+            get
+            {
+                return ref MemoryMarshal.GetReference(MemoryMarshal.CreateSpan(ref Anonymous.START_COMPLETE, 1));
+            }
+        }
+
+        internal ref _Anonymous_e__Union._RECEIVE_e__Struct RECEIVE
+        {
+            get
+            {
+                return ref MemoryMarshal.GetReference(MemoryMarshal.CreateSpan(ref Anonymous.RECEIVE, 1));
+            }
+        }
+
+        internal ref _Anonymous_e__Union._SEND_COMPLETE_e__Struct SEND_COMPLETE
+        {
+            get
+            {
+                return ref MemoryMarshal.GetReference(MemoryMarshal.CreateSpan(ref Anonymous.SEND_COMPLETE, 1));
+            }
+        }
+
+        internal ref _Anonymous_e__Union._PEER_SEND_ABORTED_e__Struct PEER_SEND_ABORTED
+        {
+            get
+            {
+                return ref MemoryMarshal.GetReference(MemoryMarshal.CreateSpan(ref Anonymous.PEER_SEND_ABORTED, 1));
+            }
+        }
+
+        internal ref _Anonymous_e__Union._PEER_RECEIVE_ABORTED_e__Struct PEER_RECEIVE_ABORTED
+        {
+            get
+            {
+                return ref MemoryMarshal.GetReference(MemoryMarshal.CreateSpan(ref Anonymous.PEER_RECEIVE_ABORTED, 1));
+            }
+        }
+
+        internal ref _Anonymous_e__Union._SEND_SHUTDOWN_COMPLETE_e__Struct SEND_SHUTDOWN_COMPLETE
+        {
+            get
+            {
+                return ref MemoryMarshal.GetReference(MemoryMarshal.CreateSpan(ref Anonymous.SEND_SHUTDOWN_COMPLETE, 1));
+            }
+        }
+
+        internal ref _Anonymous_e__Union._SHUTDOWN_COMPLETE_e__Struct SHUTDOWN_COMPLETE
+        {
+            get
+            {
+                return ref MemoryMarshal.GetReference(MemoryMarshal.CreateSpan(ref Anonymous.SHUTDOWN_COMPLETE, 1));
+            }
+        }
+
+        internal ref _Anonymous_e__Union._IDEAL_SEND_BUFFER_SIZE_e__Struct IDEAL_SEND_BUFFER_SIZE
+        {
+            get
+            {
+                return ref MemoryMarshal.GetReference(MemoryMarshal.CreateSpan(ref Anonymous.IDEAL_SEND_BUFFER_SIZE, 1));
+            }
+        }
+
+        [StructLayout(LayoutKind.Explicit)]
+        internal partial struct _Anonymous_e__Union
+        {
+            [FieldOffset(0)]
+            [NativeTypeName("struct (anonymous struct)")]
+            internal _START_COMPLETE_e__Struct START_COMPLETE;
+
+            [FieldOffset(0)]
+            [NativeTypeName("struct (anonymous struct)")]
+            internal _RECEIVE_e__Struct RECEIVE;
+
+            [FieldOffset(0)]
+            [NativeTypeName("struct (anonymous struct)")]
+            internal _SEND_COMPLETE_e__Struct SEND_COMPLETE;
+
+            [FieldOffset(0)]
+            [NativeTypeName("struct (anonymous struct)")]
+            internal _PEER_SEND_ABORTED_e__Struct PEER_SEND_ABORTED;
+
+            [FieldOffset(0)]
+            [NativeTypeName("struct (anonymous struct)")]
+            internal _PEER_RECEIVE_ABORTED_e__Struct PEER_RECEIVE_ABORTED;
+
+            [FieldOffset(0)]
+            [NativeTypeName("struct (anonymous struct)")]
+            internal _SEND_SHUTDOWN_COMPLETE_e__Struct SEND_SHUTDOWN_COMPLETE;
+
+            [FieldOffset(0)]
+            [NativeTypeName("struct (anonymous struct)")]
+            internal _SHUTDOWN_COMPLETE_e__Struct SHUTDOWN_COMPLETE;
+
+            [FieldOffset(0)]
+            [NativeTypeName("struct (anonymous struct)")]
+            internal _IDEAL_SEND_BUFFER_SIZE_e__Struct IDEAL_SEND_BUFFER_SIZE;
+
+            internal partial struct _START_COMPLETE_e__Struct
+            {
+                [NativeTypeName("HRESULT")]
+                internal int Status;
+
+                [NativeTypeName("QUIC_UINT62")]
+                internal ulong ID;
+
+                internal byte _bitfield;
+
+                [NativeTypeName("BOOLEAN : 1")]
+                internal byte PeerAccepted
+                {
+                    get
+                    {
+                        return (byte)(_bitfield & 0x1u);
+                    }
+
+                    set
+                    {
+                        _bitfield = (byte)((_bitfield & ~0x1u) | (value & 0x1u));
+                    }
+                }
+
+                [NativeTypeName("BOOLEAN : 7")]
+                internal byte RESERVED
                 {
                     get
                     {
@@ -1967,277 +2471,425 @@ namespace Microsoft.Quic
                 }
             }
 
-            public unsafe partial struct _RECEIVE_e__Struct
+            internal unsafe partial struct _RECEIVE_e__Struct
             {
                 [NativeTypeName("uint64_t")]
-                public ulong AbsoluteOffset;
+                internal ulong AbsoluteOffset;
 
                 [NativeTypeName("uint64_t")]
-                public ulong TotalBufferLength;
+                internal ulong TotalBufferLength;
 
                 [NativeTypeName("const QUIC_BUFFER *")]
-                public QUIC_BUFFER* Buffers;
+                internal QUIC_BUFFER* Buffers;
 
                 [NativeTypeName("uint32_t")]
-                public uint BufferCount;
+                internal uint BufferCount;
 
-                public QUIC_RECEIVE_FLAGS Flags;
+                internal QUIC_RECEIVE_FLAGS Flags;
             }
 
-            public unsafe partial struct _SEND_COMPLETE_e__Struct
+            internal unsafe partial struct _SEND_COMPLETE_e__Struct
             {
                 [NativeTypeName("BOOLEAN")]
-                public byte Canceled;
+                internal byte Canceled;
 
-                public void* ClientContext;
+                internal void* ClientContext;
             }
 
-            public partial struct _PEER_SEND_ABORTED_e__Struct
+            internal partial struct _PEER_SEND_ABORTED_e__Struct
             {
                 [NativeTypeName("QUIC_UINT62")]
-                public ulong ErrorCode;
+                internal ulong ErrorCode;
             }
 
-            public partial struct _PEER_RECEIVE_ABORTED_e__Struct
+            internal partial struct _PEER_RECEIVE_ABORTED_e__Struct
             {
                 [NativeTypeName("QUIC_UINT62")]
-                public ulong ErrorCode;
+                internal ulong ErrorCode;
             }
 
-            public partial struct _SEND_SHUTDOWN_COMPLETE_e__Struct
+            internal partial struct _SEND_SHUTDOWN_COMPLETE_e__Struct
             {
                 [NativeTypeName("BOOLEAN")]
-                public byte Graceful;
+                internal byte Graceful;
             }
 
-            public partial struct _SHUTDOWN_COMPLETE_e__Struct
+            internal partial struct _SHUTDOWN_COMPLETE_e__Struct
             {
                 [NativeTypeName("BOOLEAN")]
-                public byte ConnectionShutdown;
+                internal byte ConnectionShutdown;
+
+                internal byte _bitfield;
+
+                [NativeTypeName("BOOLEAN : 1")]
+                internal byte AppCloseInProgress
+                {
+                    get
+                    {
+                        return (byte)(_bitfield & 0x1u);
+                    }
+
+                    set
+                    {
+                        _bitfield = (byte)((_bitfield & ~0x1u) | (value & 0x1u));
+                    }
+                }
+
+                [NativeTypeName("BOOLEAN : 1")]
+                internal byte ConnectionShutdownByApp
+                {
+                    get
+                    {
+                        return (byte)((_bitfield >> 1) & 0x1u);
+                    }
+
+                    set
+                    {
+                        _bitfield = (byte)((_bitfield & ~(0x1u << 1)) | ((value & 0x1u) << 1));
+                    }
+                }
+
+                [NativeTypeName("BOOLEAN : 1")]
+                internal byte ConnectionClosedRemotely
+                {
+                    get
+                    {
+                        return (byte)((_bitfield >> 2) & 0x1u);
+                    }
+
+                    set
+                    {
+                        _bitfield = (byte)((_bitfield & ~(0x1u << 2)) | ((value & 0x1u) << 2));
+                    }
+                }
+
+                [NativeTypeName("BOOLEAN : 5")]
+                internal byte RESERVED
+                {
+                    get
+                    {
+                        return (byte)((_bitfield >> 3) & 0x1Fu);
+                    }
+
+                    set
+                    {
+                        _bitfield = (byte)((_bitfield & ~(0x1Fu << 3)) | ((value & 0x1Fu) << 3));
+                    }
+                }
+
+                [NativeTypeName("QUIC_UINT62")]
+                internal ulong ConnectionErrorCode;
+
+                [NativeTypeName("HRESULT")]
+                internal int ConnectionCloseStatus;
             }
 
-            public partial struct _IDEAL_SEND_BUFFER_SIZE_e__Struct
+            internal partial struct _IDEAL_SEND_BUFFER_SIZE_e__Struct
             {
                 [NativeTypeName("uint64_t")]
-                public ulong ByteCount;
+                internal ulong ByteCount;
             }
         }
     }
 
-    public unsafe partial struct QUIC_API_TABLE
+    internal unsafe partial struct QUIC_API_TABLE
     {
         [NativeTypeName("QUIC_SET_CONTEXT_FN")]
-        public delegate* unmanaged[Cdecl]<QUIC_HANDLE*, void*, void> SetContext;
+        internal delegate* unmanaged[Cdecl]<QUIC_HANDLE*, void*, void> SetContext;
 
         [NativeTypeName("QUIC_GET_CONTEXT_FN")]
-        public delegate* unmanaged[Cdecl]<QUIC_HANDLE*, void*> GetContext;
+        internal delegate* unmanaged[Cdecl]<QUIC_HANDLE*, void*> GetContext;
 
         [NativeTypeName("QUIC_SET_CALLBACK_HANDLER_FN")]
-        public delegate* unmanaged[Cdecl]<QUIC_HANDLE*, void*, void*, void> SetCallbackHandler;
+        internal delegate* unmanaged[Cdecl]<QUIC_HANDLE*, void*, void*, void> SetCallbackHandler;
 
         [NativeTypeName("QUIC_SET_PARAM_FN")]
-        public delegate* unmanaged[Cdecl]<QUIC_HANDLE*, QUIC_PARAM_LEVEL, uint, uint, void*, int> SetParam;
+        internal delegate* unmanaged[Cdecl]<QUIC_HANDLE*, uint, uint, void*, int> SetParam;
 
         [NativeTypeName("QUIC_GET_PARAM_FN")]
-        public delegate* unmanaged[Cdecl]<QUIC_HANDLE*, QUIC_PARAM_LEVEL, uint, uint*, void*, int> GetParam;
+        internal delegate* unmanaged[Cdecl]<QUIC_HANDLE*, uint, uint*, void*, int> GetParam;
 
         [NativeTypeName("QUIC_REGISTRATION_OPEN_FN")]
-        public delegate* unmanaged[Cdecl]<QUIC_REGISTRATION_CONFIG*, QUIC_HANDLE**, int> RegistrationOpen;
+        internal delegate* unmanaged[Cdecl]<QUIC_REGISTRATION_CONFIG*, QUIC_HANDLE**, int> RegistrationOpen;
 
         [NativeTypeName("QUIC_REGISTRATION_CLOSE_FN")]
-        public delegate* unmanaged[Cdecl]<QUIC_HANDLE*, void> RegistrationClose;
+        internal delegate* unmanaged[Cdecl]<QUIC_HANDLE*, void> RegistrationClose;
 
         [NativeTypeName("QUIC_REGISTRATION_SHUTDOWN_FN")]
-        public delegate* unmanaged[Cdecl]<QUIC_HANDLE*, QUIC_CONNECTION_SHUTDOWN_FLAGS, ulong, void> RegistrationShutdown;
+        internal delegate* unmanaged[Cdecl]<QUIC_HANDLE*, QUIC_CONNECTION_SHUTDOWN_FLAGS, ulong, void> RegistrationShutdown;
 
         [NativeTypeName("QUIC_CONFIGURATION_OPEN_FN")]
-        public delegate* unmanaged[Cdecl]<QUIC_HANDLE*, QUIC_BUFFER*, uint, QUIC_SETTINGS*, uint, void*, QUIC_HANDLE**, int> ConfigurationOpen;
+        internal delegate* unmanaged[Cdecl]<QUIC_HANDLE*, QUIC_BUFFER*, uint, QUIC_SETTINGS*, uint, void*, QUIC_HANDLE**, int> ConfigurationOpen;
 
         [NativeTypeName("QUIC_CONFIGURATION_CLOSE_FN")]
-        public delegate* unmanaged[Cdecl]<QUIC_HANDLE*, void> ConfigurationClose;
+        internal delegate* unmanaged[Cdecl]<QUIC_HANDLE*, void> ConfigurationClose;
 
         [NativeTypeName("QUIC_CONFIGURATION_LOAD_CREDENTIAL_FN")]
-        public delegate* unmanaged[Cdecl]<QUIC_HANDLE*, QUIC_CREDENTIAL_CONFIG*, int> ConfigurationLoadCredential;
+        internal delegate* unmanaged[Cdecl]<QUIC_HANDLE*, QUIC_CREDENTIAL_CONFIG*, int> ConfigurationLoadCredential;
 
         [NativeTypeName("QUIC_LISTENER_OPEN_FN")]
-        public delegate* unmanaged[Cdecl]<QUIC_HANDLE*, delegate* unmanaged[Cdecl]<QUIC_HANDLE*, void*, QUIC_LISTENER_EVENT*, int>, void*, QUIC_HANDLE**, int> ListenerOpen;
+        internal delegate* unmanaged[Cdecl]<QUIC_HANDLE*, delegate* unmanaged[Cdecl]<QUIC_HANDLE*, void*, QUIC_LISTENER_EVENT*, int>, void*, QUIC_HANDLE**, int> ListenerOpen;
 
         [NativeTypeName("QUIC_LISTENER_CLOSE_FN")]
-        public delegate* unmanaged[Cdecl]<QUIC_HANDLE*, void> ListenerClose;
+        internal delegate* unmanaged[Cdecl]<QUIC_HANDLE*, void> ListenerClose;
 
         [NativeTypeName("QUIC_LISTENER_START_FN")]
-        public delegate* unmanaged[Cdecl]<QUIC_HANDLE*, QUIC_BUFFER*, uint, QuicAddr*, int> ListenerStart;
+        internal delegate* unmanaged[Cdecl]<QUIC_HANDLE*, QUIC_BUFFER*, uint, QuicAddr*, int> ListenerStart;
 
         [NativeTypeName("QUIC_LISTENER_STOP_FN")]
-        public delegate* unmanaged[Cdecl]<QUIC_HANDLE*, void> ListenerStop;
+        internal delegate* unmanaged[Cdecl]<QUIC_HANDLE*, void> ListenerStop;
 
         [NativeTypeName("QUIC_CONNECTION_OPEN_FN")]
-        public delegate* unmanaged[Cdecl]<QUIC_HANDLE*, delegate* unmanaged[Cdecl]<QUIC_HANDLE*, void*, QUIC_CONNECTION_EVENT*, int>, void*, QUIC_HANDLE**, int> ConnectionOpen;
+        internal delegate* unmanaged[Cdecl]<QUIC_HANDLE*, delegate* unmanaged[Cdecl]<QUIC_HANDLE*, void*, QUIC_CONNECTION_EVENT*, int>, void*, QUIC_HANDLE**, int> ConnectionOpen;
 
         [NativeTypeName("QUIC_CONNECTION_CLOSE_FN")]
-        public delegate* unmanaged[Cdecl]<QUIC_HANDLE*, void> ConnectionClose;
+        internal delegate* unmanaged[Cdecl]<QUIC_HANDLE*, void> ConnectionClose;
 
         [NativeTypeName("QUIC_CONNECTION_SHUTDOWN_FN")]
-        public delegate* unmanaged[Cdecl]<QUIC_HANDLE*, QUIC_CONNECTION_SHUTDOWN_FLAGS, ulong, void> ConnectionShutdown;
+        internal delegate* unmanaged[Cdecl]<QUIC_HANDLE*, QUIC_CONNECTION_SHUTDOWN_FLAGS, ulong, void> ConnectionShutdown;
 
         [NativeTypeName("QUIC_CONNECTION_START_FN")]
-        public delegate* unmanaged[Cdecl]<QUIC_HANDLE*, QUIC_HANDLE*, ushort, byte*, ushort, int> ConnectionStart;
+        internal delegate* unmanaged[Cdecl]<QUIC_HANDLE*, QUIC_HANDLE*, ushort, sbyte*, ushort, int> ConnectionStart;
 
         [NativeTypeName("QUIC_CONNECTION_SET_CONFIGURATION_FN")]
-        public delegate* unmanaged[Cdecl]<QUIC_HANDLE*, QUIC_HANDLE*, int> ConnectionSetConfiguration;
+        internal delegate* unmanaged[Cdecl]<QUIC_HANDLE*, QUIC_HANDLE*, int> ConnectionSetConfiguration;
 
         [NativeTypeName("QUIC_CONNECTION_SEND_RESUMPTION_FN")]
-        public delegate* unmanaged[Cdecl]<QUIC_HANDLE*, QUIC_SEND_RESUMPTION_FLAGS, ushort, byte*, int> ConnectionSendResumptionTicket;
+        internal delegate* unmanaged[Cdecl]<QUIC_HANDLE*, QUIC_SEND_RESUMPTION_FLAGS, ushort, byte*, int> ConnectionSendResumptionTicket;
 
         [NativeTypeName("QUIC_STREAM_OPEN_FN")]
-        public delegate* unmanaged[Cdecl]<QUIC_HANDLE*, QUIC_STREAM_OPEN_FLAGS, delegate* unmanaged[Cdecl]<QUIC_HANDLE*, void*, QUIC_STREAM_EVENT*, int>, void*, QUIC_HANDLE**, int> StreamOpen;
+        internal delegate* unmanaged[Cdecl]<QUIC_HANDLE*, QUIC_STREAM_OPEN_FLAGS, delegate* unmanaged[Cdecl]<QUIC_HANDLE*, void*, QUIC_STREAM_EVENT*, int>, void*, QUIC_HANDLE**, int> StreamOpen;
 
         [NativeTypeName("QUIC_STREAM_CLOSE_FN")]
-        public delegate* unmanaged[Cdecl]<QUIC_HANDLE*, void> StreamClose;
+        internal delegate* unmanaged[Cdecl]<QUIC_HANDLE*, void> StreamClose;
 
         [NativeTypeName("QUIC_STREAM_START_FN")]
-        public delegate* unmanaged[Cdecl]<QUIC_HANDLE*, QUIC_STREAM_START_FLAGS, int> StreamStart;
+        internal delegate* unmanaged[Cdecl]<QUIC_HANDLE*, QUIC_STREAM_START_FLAGS, int> StreamStart;
 
         [NativeTypeName("QUIC_STREAM_SHUTDOWN_FN")]
-        public delegate* unmanaged[Cdecl]<QUIC_HANDLE*, QUIC_STREAM_SHUTDOWN_FLAGS, ulong, int> StreamShutdown;
+        internal delegate* unmanaged[Cdecl]<QUIC_HANDLE*, QUIC_STREAM_SHUTDOWN_FLAGS, ulong, int> StreamShutdown;
 
         [NativeTypeName("QUIC_STREAM_SEND_FN")]
-        public delegate* unmanaged[Cdecl]<QUIC_HANDLE*, QUIC_BUFFER*, uint, QUIC_SEND_FLAGS, void*, int> StreamSend;
+        internal delegate* unmanaged[Cdecl]<QUIC_HANDLE*, QUIC_BUFFER*, uint, QUIC_SEND_FLAGS, void*, int> StreamSend;
 
         [NativeTypeName("QUIC_STREAM_RECEIVE_COMPLETE_FN")]
-        public delegate* unmanaged[Cdecl]<QUIC_HANDLE*, ulong, int> StreamReceiveComplete;
+        internal delegate* unmanaged[Cdecl]<QUIC_HANDLE*, ulong, void> StreamReceiveComplete;
 
         [NativeTypeName("QUIC_STREAM_RECEIVE_SET_ENABLED_FN")]
-        public delegate* unmanaged[Cdecl]<QUIC_HANDLE*, byte, int> StreamReceiveSetEnabled;
+        internal delegate* unmanaged[Cdecl]<QUIC_HANDLE*, byte, int> StreamReceiveSetEnabled;
 
         [NativeTypeName("QUIC_DATAGRAM_SEND_FN")]
-        public delegate* unmanaged[Cdecl]<QUIC_HANDLE*, QUIC_BUFFER*, uint, QUIC_SEND_FLAGS, void*, int> DatagramSend;
+        internal delegate* unmanaged[Cdecl]<QUIC_HANDLE*, QUIC_BUFFER*, uint, QUIC_SEND_FLAGS, void*, int> DatagramSend;
     }
 
-    public static unsafe partial class MsQuic
+    internal static unsafe partial class MsQuic
     {
         [DllImport("msquic", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
         [return: NativeTypeName("HRESULT")]
-        public static extern int MsQuicOpenVersion([NativeTypeName("uint32_t")] uint Version, [NativeTypeName("const void **")] void** QuicApi);
+        internal static extern int MsQuicOpenVersion([NativeTypeName("uint32_t")] uint Version, [NativeTypeName("const void **")] void** QuicApi);
 
         [DllImport("msquic", CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
-        public static extern void MsQuicClose([NativeTypeName("const void *")] void* QuicApi);
+        internal static extern void MsQuicClose([NativeTypeName("const void *")] void* QuicApi);
 
         [NativeTypeName("#define QUIC_MAX_ALPN_LENGTH 255")]
-        public const int QUIC_MAX_ALPN_LENGTH = 255;
+        internal const uint QUIC_MAX_ALPN_LENGTH = 255;
 
         [NativeTypeName("#define QUIC_MAX_SNI_LENGTH 65535")]
-        public const int QUIC_MAX_SNI_LENGTH = 65535;
+        internal const uint QUIC_MAX_SNI_LENGTH = 65535;
 
         [NativeTypeName("#define QUIC_MAX_RESUMPTION_APP_DATA_LENGTH 1000")]
-        public const int QUIC_MAX_RESUMPTION_APP_DATA_LENGTH = 1000;
+        internal const uint QUIC_MAX_RESUMPTION_APP_DATA_LENGTH = 1000;
+
+        [NativeTypeName("#define QUIC_EXECUTION_CONFIG_MIN_SIZE (uint32_t)FIELD_OFFSET(QUIC_EXECUTION_CONFIG, ProcessorList)")]
+        internal static readonly uint QUIC_EXECUTION_CONFIG_MIN_SIZE = unchecked((uint)((int)(Marshal.OffsetOf<QUIC_EXECUTION_CONFIG>("ProcessorList"))));
 
         [NativeTypeName("#define QUIC_MAX_TICKET_KEY_COUNT 16")]
-        public const int QUIC_MAX_TICKET_KEY_COUNT = 16;
+        internal const uint QUIC_MAX_TICKET_KEY_COUNT = 16;
 
-        [NativeTypeName("#define QUIC_PARAM_GLOBAL_RETRY_MEMORY_PERCENT 0x4000000")]
-        public const int QUIC_PARAM_GLOBAL_RETRY_MEMORY_PERCENT = 0x4000000;
+        [NativeTypeName("#define QUIC_TLS_SECRETS_MAX_SECRET_LEN 64")]
+        internal const uint QUIC_TLS_SECRETS_MAX_SECRET_LEN = 64;
 
-        [NativeTypeName("#define QUIC_PARAM_GLOBAL_SUPPORTED_VERSIONS 0x4000001")]
-        public const int QUIC_PARAM_GLOBAL_SUPPORTED_VERSIONS = 0x4000001;
+        [NativeTypeName("#define QUIC_PARAM_PREFIX_GLOBAL 0x01000000")]
+        internal const uint QUIC_PARAM_PREFIX_GLOBAL = 0x01000000;
 
-        [NativeTypeName("#define QUIC_PARAM_GLOBAL_LOAD_BALACING_MODE 0x4000002")]
-        public const int QUIC_PARAM_GLOBAL_LOAD_BALACING_MODE = 0x4000002;
+        [NativeTypeName("#define QUIC_PARAM_PREFIX_REGISTRATION 0x02000000")]
+        internal const uint QUIC_PARAM_PREFIX_REGISTRATION = 0x02000000;
 
-        [NativeTypeName("#define QUIC_PARAM_GLOBAL_PERF_COUNTERS 0x4000003")]
-        public const int QUIC_PARAM_GLOBAL_PERF_COUNTERS = 0x4000003;
+        [NativeTypeName("#define QUIC_PARAM_PREFIX_CONFIGURATION 0x03000000")]
+        internal const uint QUIC_PARAM_PREFIX_CONFIGURATION = 0x03000000;
 
-        [NativeTypeName("#define QUIC_PARAM_GLOBAL_SETTINGS 0x4000004")]
-        public const int QUIC_PARAM_GLOBAL_SETTINGS = 0x4000004;
+        [NativeTypeName("#define QUIC_PARAM_PREFIX_LISTENER 0x04000000")]
+        internal const uint QUIC_PARAM_PREFIX_LISTENER = 0x04000000;
 
-        [NativeTypeName("#define QUIC_PARAM_GLOBAL_VERSION 0x4000005")]
-        public const int QUIC_PARAM_GLOBAL_VERSION = 0x4000005;
+        [NativeTypeName("#define QUIC_PARAM_PREFIX_CONNECTION 0x05000000")]
+        internal const uint QUIC_PARAM_PREFIX_CONNECTION = 0x05000000;
 
-        [NativeTypeName("#define QUIC_PARAM_REGISTRATION_CID_PREFIX 0x8000000")]
-        public const int QUIC_PARAM_REGISTRATION_CID_PREFIX = 0x8000000;
+        [NativeTypeName("#define QUIC_PARAM_PREFIX_TLS 0x06000000")]
+        internal const uint QUIC_PARAM_PREFIX_TLS = 0x06000000;
 
-        [NativeTypeName("#define QUIC_PARAM_CONFIGURATION_SETTINGS 0xC000000")]
-        public const int QUIC_PARAM_CONFIGURATION_SETTINGS = 0xC000000;
+        [NativeTypeName("#define QUIC_PARAM_PREFIX_TLS_SCHANNEL 0x07000000")]
+        internal const uint QUIC_PARAM_PREFIX_TLS_SCHANNEL = 0x07000000;
 
-        [NativeTypeName("#define QUIC_PARAM_CONFIGURATION_TICKET_KEYS 0xC000001")]
-        public const int QUIC_PARAM_CONFIGURATION_TICKET_KEYS = 0xC000001;
+        [NativeTypeName("#define QUIC_PARAM_PREFIX_STREAM 0x08000000")]
+        internal const uint QUIC_PARAM_PREFIX_STREAM = 0x08000000;
 
-        [NativeTypeName("#define QUIC_PARAM_LISTENER_LOCAL_ADDRESS 0x10000000")]
-        public const int QUIC_PARAM_LISTENER_LOCAL_ADDRESS = 0x10000000;
+        [NativeTypeName("#define QUIC_PARAM_GLOBAL_RETRY_MEMORY_PERCENT 0x01000000")]
+        internal const uint QUIC_PARAM_GLOBAL_RETRY_MEMORY_PERCENT = 0x01000000;
 
-        [NativeTypeName("#define QUIC_PARAM_LISTENER_STATS 0x10000001")]
-        public const int QUIC_PARAM_LISTENER_STATS = 0x10000001;
+        [NativeTypeName("#define QUIC_PARAM_GLOBAL_SUPPORTED_VERSIONS 0x01000001")]
+        internal const uint QUIC_PARAM_GLOBAL_SUPPORTED_VERSIONS = 0x01000001;
 
-        [NativeTypeName("#define QUIC_PARAM_CONN_QUIC_VERSION 0x14000000")]
-        public const int QUIC_PARAM_CONN_QUIC_VERSION = 0x14000000;
+        [NativeTypeName("#define QUIC_PARAM_GLOBAL_LOAD_BALACING_MODE 0x01000002")]
+        internal const uint QUIC_PARAM_GLOBAL_LOAD_BALACING_MODE = 0x01000002;
 
-        [NativeTypeName("#define QUIC_PARAM_CONN_LOCAL_ADDRESS 0x14000001")]
-        public const int QUIC_PARAM_CONN_LOCAL_ADDRESS = 0x14000001;
+        [NativeTypeName("#define QUIC_PARAM_GLOBAL_PERF_COUNTERS 0x01000003")]
+        internal const uint QUIC_PARAM_GLOBAL_PERF_COUNTERS = 0x01000003;
 
-        [NativeTypeName("#define QUIC_PARAM_CONN_REMOTE_ADDRESS 0x14000002")]
-        public const int QUIC_PARAM_CONN_REMOTE_ADDRESS = 0x14000002;
+        [NativeTypeName("#define QUIC_PARAM_GLOBAL_LIBRARY_VERSION 0x01000004")]
+        internal const uint QUIC_PARAM_GLOBAL_LIBRARY_VERSION = 0x01000004;
 
-        [NativeTypeName("#define QUIC_PARAM_CONN_IDEAL_PROCESSOR 0x14000003")]
-        public const int QUIC_PARAM_CONN_IDEAL_PROCESSOR = 0x14000003;
+        [NativeTypeName("#define QUIC_PARAM_GLOBAL_SETTINGS 0x01000005")]
+        internal const uint QUIC_PARAM_GLOBAL_SETTINGS = 0x01000005;
 
-        [NativeTypeName("#define QUIC_PARAM_CONN_SETTINGS 0x14000004")]
-        public const int QUIC_PARAM_CONN_SETTINGS = 0x14000004;
+        [NativeTypeName("#define QUIC_PARAM_GLOBAL_GLOBAL_SETTINGS 0x01000006")]
+        internal const uint QUIC_PARAM_GLOBAL_GLOBAL_SETTINGS = 0x01000006;
 
-        [NativeTypeName("#define QUIC_PARAM_CONN_STATISTICS 0x14000005")]
-        public const int QUIC_PARAM_CONN_STATISTICS = 0x14000005;
+        [NativeTypeName("#define QUIC_PARAM_GLOBAL_VERSION_SETTINGS 0x01000007")]
+        internal const uint QUIC_PARAM_GLOBAL_VERSION_SETTINGS = 0x01000007;
 
-        [NativeTypeName("#define QUIC_PARAM_CONN_STATISTICS_PLAT 0x14000006")]
-        public const int QUIC_PARAM_CONN_STATISTICS_PLAT = 0x14000006;
+        [NativeTypeName("#define QUIC_PARAM_GLOBAL_LIBRARY_GIT_HASH 0x01000008")]
+        internal const uint QUIC_PARAM_GLOBAL_LIBRARY_GIT_HASH = 0x01000008;
 
-        [NativeTypeName("#define QUIC_PARAM_CONN_SHARE_UDP_BINDING 0x14000007")]
-        public const int QUIC_PARAM_CONN_SHARE_UDP_BINDING = 0x14000007;
+        [NativeTypeName("#define QUIC_PARAM_GLOBAL_EXECUTION_CONFIG 0x01000009")]
+        internal const uint QUIC_PARAM_GLOBAL_EXECUTION_CONFIG = 0x01000009;
 
-        [NativeTypeName("#define QUIC_PARAM_CONN_LOCAL_BIDI_STREAM_COUNT 0x14000008")]
-        public const int QUIC_PARAM_CONN_LOCAL_BIDI_STREAM_COUNT = 0x14000008;
+        [NativeTypeName("#define QUIC_PARAM_GLOBAL_TLS_PROVIDER 0x0100000A")]
+        internal const uint QUIC_PARAM_GLOBAL_TLS_PROVIDER = 0x0100000A;
 
-        [NativeTypeName("#define QUIC_PARAM_CONN_LOCAL_UNIDI_STREAM_COUNT 0x14000009")]
-        public const int QUIC_PARAM_CONN_LOCAL_UNIDI_STREAM_COUNT = 0x14000009;
+        [NativeTypeName("#define QUIC_PARAM_CONFIGURATION_SETTINGS 0x03000000")]
+        internal const uint QUIC_PARAM_CONFIGURATION_SETTINGS = 0x03000000;
 
-        [NativeTypeName("#define QUIC_PARAM_CONN_MAX_STREAM_IDS 0x1400000A")]
-        public const int QUIC_PARAM_CONN_MAX_STREAM_IDS = 0x1400000A;
+        [NativeTypeName("#define QUIC_PARAM_CONFIGURATION_TICKET_KEYS 0x03000001")]
+        internal const uint QUIC_PARAM_CONFIGURATION_TICKET_KEYS = 0x03000001;
 
-        [NativeTypeName("#define QUIC_PARAM_CONN_CLOSE_REASON_PHRASE 0x1400000B")]
-        public const int QUIC_PARAM_CONN_CLOSE_REASON_PHRASE = 0x1400000B;
+        [NativeTypeName("#define QUIC_PARAM_CONFIGURATION_VERSION_SETTINGS 0x03000002")]
+        internal const uint QUIC_PARAM_CONFIGURATION_VERSION_SETTINGS = 0x03000002;
 
-        [NativeTypeName("#define QUIC_PARAM_CONN_STREAM_SCHEDULING_SCHEME 0x1400000C")]
-        public const int QUIC_PARAM_CONN_STREAM_SCHEDULING_SCHEME = 0x1400000C;
+        [NativeTypeName("#define QUIC_PARAM_CONFIGURATION_SCHANNEL_CREDENTIAL_ATTRIBUTE_W 0x03000003")]
+        internal const uint QUIC_PARAM_CONFIGURATION_SCHANNEL_CREDENTIAL_ATTRIBUTE_W = 0x03000003;
 
-        [NativeTypeName("#define QUIC_PARAM_CONN_DATAGRAM_RECEIVE_ENABLED 0x1400000D")]
-        public const int QUIC_PARAM_CONN_DATAGRAM_RECEIVE_ENABLED = 0x1400000D;
+        [NativeTypeName("#define QUIC_PARAM_LISTENER_LOCAL_ADDRESS 0x04000000")]
+        internal const uint QUIC_PARAM_LISTENER_LOCAL_ADDRESS = 0x04000000;
 
-        [NativeTypeName("#define QUIC_PARAM_CONN_DATAGRAM_SEND_ENABLED 0x1400000E")]
-        public const int QUIC_PARAM_CONN_DATAGRAM_SEND_ENABLED = 0x1400000E;
+        [NativeTypeName("#define QUIC_PARAM_LISTENER_STATS 0x04000001")]
+        internal const uint QUIC_PARAM_LISTENER_STATS = 0x04000001;
 
-        [NativeTypeName("#define QUIC_PARAM_CONN_RESUMPTION_TICKET 0x14000010")]
-        public const int QUIC_PARAM_CONN_RESUMPTION_TICKET = 0x14000010;
+        [NativeTypeName("#define QUIC_PARAM_LISTENER_CIBIR_ID 0x04000002")]
+        internal const uint QUIC_PARAM_LISTENER_CIBIR_ID = 0x04000002;
 
-        [NativeTypeName("#define QUIC_PARAM_CONN_PEER_CERTIFICATE_VALID 0x14000011")]
-        public const int QUIC_PARAM_CONN_PEER_CERTIFICATE_VALID = 0x14000011;
+        [NativeTypeName("#define QUIC_PARAM_CONN_QUIC_VERSION 0x05000000")]
+        internal const uint QUIC_PARAM_CONN_QUIC_VERSION = 0x05000000;
 
-        [NativeTypeName("#define QUIC_PARAM_TLS_SCHANNEL_CONTEXT_ATTRIBUTE_W 0x19000000")]
-        public const int QUIC_PARAM_TLS_SCHANNEL_CONTEXT_ATTRIBUTE_W = 0x19000000;
+        [NativeTypeName("#define QUIC_PARAM_CONN_LOCAL_ADDRESS 0x05000001")]
+        internal const uint QUIC_PARAM_CONN_LOCAL_ADDRESS = 0x05000001;
 
-        [NativeTypeName("#define QUIC_PARAM_TLS_HANDSHAKE_INFO 0x18000000")]
-        public const int QUIC_PARAM_TLS_HANDSHAKE_INFO = 0x18000000;
+        [NativeTypeName("#define QUIC_PARAM_CONN_REMOTE_ADDRESS 0x05000002")]
+        internal const uint QUIC_PARAM_CONN_REMOTE_ADDRESS = 0x05000002;
 
-        [NativeTypeName("#define QUIC_PARAM_TLS_NEGOTIATED_ALPN 0x18000001")]
-        public const int QUIC_PARAM_TLS_NEGOTIATED_ALPN = 0x18000001;
+        [NativeTypeName("#define QUIC_PARAM_CONN_IDEAL_PROCESSOR 0x05000003")]
+        internal const uint QUIC_PARAM_CONN_IDEAL_PROCESSOR = 0x05000003;
 
-        [NativeTypeName("#define QUIC_PARAM_STREAM_ID 0x1C000000")]
-        public const int QUIC_PARAM_STREAM_ID = 0x1C000000;
+        [NativeTypeName("#define QUIC_PARAM_CONN_SETTINGS 0x05000004")]
+        internal const uint QUIC_PARAM_CONN_SETTINGS = 0x05000004;
 
-        [NativeTypeName("#define QUIC_PARAM_STREAM_0RTT_LENGTH 0x1C000001")]
-        public const int QUIC_PARAM_STREAM_0RTT_LENGTH = 0x1C000001;
+        [NativeTypeName("#define QUIC_PARAM_CONN_STATISTICS 0x05000005")]
+        internal const uint QUIC_PARAM_CONN_STATISTICS = 0x05000005;
 
-        [NativeTypeName("#define QUIC_PARAM_STREAM_IDEAL_SEND_BUFFER_SIZE 0x1C000002")]
-        public const int QUIC_PARAM_STREAM_IDEAL_SEND_BUFFER_SIZE = 0x1C000002;
+        [NativeTypeName("#define QUIC_PARAM_CONN_STATISTICS_PLAT 0x05000006")]
+        internal const uint QUIC_PARAM_CONN_STATISTICS_PLAT = 0x05000006;
 
-        [NativeTypeName("#define QUIC_PARAM_STREAM_PRIORITY 0x1C000003")]
-        public const int QUIC_PARAM_STREAM_PRIORITY = 0x1C000003;
+        [NativeTypeName("#define QUIC_PARAM_CONN_SHARE_UDP_BINDING 0x05000007")]
+        internal const uint QUIC_PARAM_CONN_SHARE_UDP_BINDING = 0x05000007;
+
+        [NativeTypeName("#define QUIC_PARAM_CONN_LOCAL_BIDI_STREAM_COUNT 0x05000008")]
+        internal const uint QUIC_PARAM_CONN_LOCAL_BIDI_STREAM_COUNT = 0x05000008;
+
+        [NativeTypeName("#define QUIC_PARAM_CONN_LOCAL_UNIDI_STREAM_COUNT 0x05000009")]
+        internal const uint QUIC_PARAM_CONN_LOCAL_UNIDI_STREAM_COUNT = 0x05000009;
+
+        [NativeTypeName("#define QUIC_PARAM_CONN_MAX_STREAM_IDS 0x0500000A")]
+        internal const uint QUIC_PARAM_CONN_MAX_STREAM_IDS = 0x0500000A;
+
+        [NativeTypeName("#define QUIC_PARAM_CONN_CLOSE_REASON_PHRASE 0x0500000B")]
+        internal const uint QUIC_PARAM_CONN_CLOSE_REASON_PHRASE = 0x0500000B;
+
+        [NativeTypeName("#define QUIC_PARAM_CONN_STREAM_SCHEDULING_SCHEME 0x0500000C")]
+        internal const uint QUIC_PARAM_CONN_STREAM_SCHEDULING_SCHEME = 0x0500000C;
+
+        [NativeTypeName("#define QUIC_PARAM_CONN_DATAGRAM_RECEIVE_ENABLED 0x0500000D")]
+        internal const uint QUIC_PARAM_CONN_DATAGRAM_RECEIVE_ENABLED = 0x0500000D;
+
+        [NativeTypeName("#define QUIC_PARAM_CONN_DATAGRAM_SEND_ENABLED 0x0500000E")]
+        internal const uint QUIC_PARAM_CONN_DATAGRAM_SEND_ENABLED = 0x0500000E;
+
+        [NativeTypeName("#define QUIC_PARAM_CONN_DISABLE_1RTT_ENCRYPTION 0x0500000F")]
+        internal const uint QUIC_PARAM_CONN_DISABLE_1RTT_ENCRYPTION = 0x0500000F;
+
+        [NativeTypeName("#define QUIC_PARAM_CONN_RESUMPTION_TICKET 0x05000010")]
+        internal const uint QUIC_PARAM_CONN_RESUMPTION_TICKET = 0x05000010;
+
+        [NativeTypeName("#define QUIC_PARAM_CONN_PEER_CERTIFICATE_VALID 0x05000011")]
+        internal const uint QUIC_PARAM_CONN_PEER_CERTIFICATE_VALID = 0x05000011;
+
+        [NativeTypeName("#define QUIC_PARAM_CONN_LOCAL_INTERFACE 0x05000012")]
+        internal const uint QUIC_PARAM_CONN_LOCAL_INTERFACE = 0x05000012;
+
+        [NativeTypeName("#define QUIC_PARAM_CONN_TLS_SECRETS 0x05000013")]
+        internal const uint QUIC_PARAM_CONN_TLS_SECRETS = 0x05000013;
+
+        [NativeTypeName("#define QUIC_PARAM_CONN_VERSION_SETTINGS 0x05000014")]
+        internal const uint QUIC_PARAM_CONN_VERSION_SETTINGS = 0x05000014;
+
+        [NativeTypeName("#define QUIC_PARAM_CONN_CIBIR_ID 0x05000015")]
+        internal const uint QUIC_PARAM_CONN_CIBIR_ID = 0x05000015;
+
+        [NativeTypeName("#define QUIC_PARAM_CONN_STATISTICS_V2 0x05000016")]
+        internal const uint QUIC_PARAM_CONN_STATISTICS_V2 = 0x05000016;
+
+        [NativeTypeName("#define QUIC_PARAM_CONN_STATISTICS_V2_PLAT 0x05000017")]
+        internal const uint QUIC_PARAM_CONN_STATISTICS_V2_PLAT = 0x05000017;
+
+        [NativeTypeName("#define QUIC_PARAM_TLS_HANDSHAKE_INFO 0x06000000")]
+        internal const uint QUIC_PARAM_TLS_HANDSHAKE_INFO = 0x06000000;
+
+        [NativeTypeName("#define QUIC_PARAM_TLS_NEGOTIATED_ALPN 0x06000001")]
+        internal const uint QUIC_PARAM_TLS_NEGOTIATED_ALPN = 0x06000001;
+
+        [NativeTypeName("#define QUIC_PARAM_TLS_SCHANNEL_CONTEXT_ATTRIBUTE_W 0x07000000")]
+        internal const uint QUIC_PARAM_TLS_SCHANNEL_CONTEXT_ATTRIBUTE_W = 0x07000000;
+
+        [NativeTypeName("#define QUIC_PARAM_TLS_SCHANNEL_CONTEXT_ATTRIBUTE_EX_W 0x07000001")]
+        internal const uint QUIC_PARAM_TLS_SCHANNEL_CONTEXT_ATTRIBUTE_EX_W = 0x07000001;
+
+        [NativeTypeName("#define QUIC_PARAM_TLS_SCHANNEL_SECURITY_CONTEXT_TOKEN 0x07000002")]
+        internal const uint QUIC_PARAM_TLS_SCHANNEL_SECURITY_CONTEXT_TOKEN = 0x07000002;
+
+        [NativeTypeName("#define QUIC_PARAM_STREAM_ID 0x08000000")]
+        internal const uint QUIC_PARAM_STREAM_ID = 0x08000000;
+
+        [NativeTypeName("#define QUIC_PARAM_STREAM_0RTT_LENGTH 0x08000001")]
+        internal const uint QUIC_PARAM_STREAM_0RTT_LENGTH = 0x08000001;
+
+        [NativeTypeName("#define QUIC_PARAM_STREAM_IDEAL_SEND_BUFFER_SIZE 0x08000002")]
+        internal const uint QUIC_PARAM_STREAM_IDEAL_SEND_BUFFER_SIZE = 0x08000002;
+
+        [NativeTypeName("#define QUIC_PARAM_STREAM_PRIORITY 0x08000003")]
+        internal const uint QUIC_PARAM_STREAM_PRIORITY = 0x08000003;
+
+        [NativeTypeName("#define QUIC_PARAM_STREAM_STATISTICS 0X08000004")]
+        internal const uint QUIC_PARAM_STREAM_STATISTICS = 0X08000004;
+
+        [NativeTypeName("#define QUIC_API_VERSION_2 2")]
+        internal const uint QUIC_API_VERSION_2 = 2;
     }
 }

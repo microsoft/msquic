@@ -47,6 +47,19 @@ typedef struct QUIC_PATH QUIC_PATH;
 #define QUIC_INITIAL_WINDOW_PACKETS             10
 
 //
+// Maximum number of bytes allowed for a connection ID.
+// This is used for both QUIC versions 1 and 2.
+//
+#define QUIC_MAX_CONNECTION_ID_LENGTH_INVARIANT 255
+#define QUIC_MAX_CONNECTION_ID_LENGTH_V1        20
+
+//
+// Minimum number of bytes required for a connection ID in the client's
+// Initial packet.
+//
+#define QUIC_MIN_INITIAL_CONNECTION_ID_LENGTH   8
+
+//
 // The amount of packet amplification allowed by the server. Until the
 // client address is validated, a server will send no more than
 // QUIC_AMPLIFICATION_RATIO UDP payload bytes for each received byte.
@@ -191,13 +204,16 @@ typedef struct QUIC_PATH QUIC_PATH;
 // connection. When this limit is reached, any additional packets are dropped.
 //
 #ifdef _KERNEL_MODE
-//
-// Kernel modes receive path is slightly different, so allow larger queue sizes.
-//
 #define QUIC_MAX_RECEIVE_QUEUE_COUNT            1024
 #else
-#define QUIC_MAX_RECEIVE_QUEUE_COUNT            180
+#define QUIC_MAX_RECEIVE_QUEUE_COUNT            8192
 #endif
+
+//
+// The maximum number of received packets that may be processed in a single
+// flush operation.
+//
+#define QUIC_MAX_RECEIVE_FLUSH_COUNT            100
 
 //
 // The maximum number of pending datagrams we will hold on to, per connection,
@@ -219,7 +235,7 @@ typedef struct QUIC_PATH QUIC_PATH;
 //
 // The initial stream FC window size reported to peers.
 //
-#define QUIC_DEFAULT_STREAM_FC_WINDOW_SIZE      0x8000  // 32768
+#define QUIC_DEFAULT_STREAM_FC_WINDOW_SIZE      0x10000  // 65536
 
 //
 // The initial stream receive buffer allocation size.
@@ -367,9 +383,14 @@ CXPLAT_STATIC_ASSERT(
 #define QUIC_DEFAULT_SEND_PACING                TRUE
 
 //
-// The number of milliseconds between pacing chunks.
+// The minimum RTT, in microseconds, where pacing will be used.
 //
-#define QUIC_SEND_PACING_INTERVAL               1
+#define QUIC_MIN_PACING_RTT                     1000
+
+//
+// The number of microseconds between pacing chunks.
+//
+#define QUIC_SEND_PACING_INTERVAL               1000
 
 //
 // The maximum number of bytes to send in a given key phase
@@ -469,6 +490,65 @@ CXPLAT_STATIC_ASSERT(
 //
 #define QUIC_CONGESTION_CONTROL_ALGORITHM_DEFAULT   QUIC_CONGESTION_CONTROL_ALGORITHM_CUBIC
 
+//
+// The default idle timeout period after which the source CID is updated before sending again.
+//
+#define QUIC_DEFAULT_DEST_CID_UPDATE_IDLE_TIMEOUT_MS 20000
+
+//
+// The default value for enabling grease quic bit extension.
+//
+#define QUIC_DEFAULT_GREASE_QUIC_BIT_ENABLED         FALSE
+
+/*************************************************************
+                  TRANSPORT PARAMETERS
+*************************************************************/
+
+#define QUIC_TP_FLAG_INITIAL_MAX_DATA                       0x00000001
+#define QUIC_TP_FLAG_INITIAL_MAX_STRM_DATA_BIDI_LOCAL       0x00000002
+#define QUIC_TP_FLAG_INITIAL_MAX_STRM_DATA_BIDI_REMOTE      0x00000004
+#define QUIC_TP_FLAG_INITIAL_MAX_STRM_DATA_UNI              0x00000008
+#define QUIC_TP_FLAG_INITIAL_MAX_STRMS_BIDI                 0x00000010
+#define QUIC_TP_FLAG_INITIAL_MAX_STRMS_UNI                  0x00000020
+#define QUIC_TP_FLAG_MAX_UDP_PAYLOAD_SIZE                   0x00000040
+#define QUIC_TP_FLAG_ACK_DELAY_EXPONENT                     0x00000080
+#define QUIC_TP_FLAG_STATELESS_RESET_TOKEN                  0x00000100
+#define QUIC_TP_FLAG_PREFERRED_ADDRESS                      0x00000200
+#define QUIC_TP_FLAG_DISABLE_ACTIVE_MIGRATION               0x00000400
+#define QUIC_TP_FLAG_IDLE_TIMEOUT                           0x00000800
+#define QUIC_TP_FLAG_MAX_ACK_DELAY                          0x00001000
+#define QUIC_TP_FLAG_ORIGINAL_DESTINATION_CONNECTION_ID     0x00002000
+#define QUIC_TP_FLAG_ACTIVE_CONNECTION_ID_LIMIT             0x00004000
+#define QUIC_TP_FLAG_MAX_DATAGRAM_FRAME_SIZE                0x00008000
+#define QUIC_TP_FLAG_INITIAL_SOURCE_CONNECTION_ID           0x00010000
+#define QUIC_TP_FLAG_RETRY_SOURCE_CONNECTION_ID             0x00020000
+#define QUIC_TP_FLAG_DISABLE_1RTT_ENCRYPTION                0x00040000
+#define QUIC_TP_FLAG_VERSION_NEGOTIATION                    0x00080000
+#define QUIC_TP_FLAG_MIN_ACK_DELAY                          0x00100000
+#define QUIC_TP_FLAG_CIBIR_ENCODING                         0x00200000
+#define QUIC_TP_FLAG_GREASE_QUIC_BIT                        0x00400000
+
+#define QUIC_TP_MAX_PACKET_SIZE_DEFAULT                     65527
+#define QUIC_TP_MAX_UDP_PAYLOAD_SIZE_MIN                    1200
+#define QUIC_TP_MAX_UDP_PAYLOAD_SIZE_MAX                    65527
+
+#define QUIC_TP_ACK_DELAY_EXPONENT_DEFAULT                  3
+#define QUIC_TP_ACK_DELAY_EXPONENT_MAX                      20
+
+#define QUIC_TP_MAX_ACK_DELAY_DEFAULT                       25 // ms
+#define QUIC_TP_MAX_ACK_DELAY_MAX                           ((1 << 14) - 1)
+#define QUIC_TP_MIN_ACK_DELAY_MAX                           ((1 << 24) - 1)
+
+#define QUIC_TP_ACTIVE_CONNECTION_ID_LIMIT_DEFAULT          2
+#define QUIC_TP_ACTIVE_CONNECTION_ID_LIMIT_MIN              2
+
+//
+// Max allowed value of a MAX_STREAMS frame or transport parameter.
+// Any larger value would allow a max stream ID that cannot be expressed
+// as a variable-length integer.
+//
+#define QUIC_TP_MAX_STREAMS_MAX                             ((1ULL << 60) - 1)
+
 /*************************************************************
                   PERSISTENT SETTINGS
 *************************************************************/
@@ -488,9 +568,11 @@ CXPLAT_STATIC_ASSERT(
 #define QUIC_SETTING_SEND_PACING_DEFAULT            "SendPacingDefault"
 #define QUIC_SETTING_MIGRATION_ENABLED              "MigrationEnabled"
 #define QUIC_SETTING_DATAGRAM_RECEIVE_ENABLED       "DatagramReceiveEnabled"
+#define QUIC_SETTING_GREASE_QUIC_BIT_ENABLED        "GreaseQuicBitEnabled"
 
 #define QUIC_SETTING_INITIAL_WINDOW_PACKETS         "InitialWindowPackets"
 #define QUIC_SETTING_SEND_IDLE_TIMEOUT_MS           "SendIdleTimeoutMs"
+#define QUIC_SETTING_DEST_CID_UPDATE_IDLE_TIMEOUT_MS "DestCidUpdateIdleTimeoutMs"
 
 #define QUIC_SETTING_INITIAL_RTT                    "InitialRttMs"
 #define QUIC_SETTING_MAX_ACK_DELAY                  "MaxAckDelayMs"
@@ -510,6 +592,10 @@ CXPLAT_STATIC_ASSERT(
 #define QUIC_SETTING_SERVER_RESUMPTION_LEVEL        "ResumptionLevel"
 
 #define QUIC_SETTING_VERSION_NEGOTIATION_EXT_ENABLE "VersionNegotiationExtEnabled"
+
+#define QUIC_SETTING_ACCEPTABLE_VERSIONS            "AcceptableVersions"
+#define QUIC_SETTING_OFFERED_VERSIONS               "OfferedVersions"
+#define QUIC_SETTING_FULLY_DEPLOYED_VERSIONS        "FullyDeployedVersions"
 
 #define QUIC_SETTING_MINIMUM_MTU                    "MinimumMtu"
 #define QUIC_SETTING_MAXIMUM_MTU                    "MaximumMtu"

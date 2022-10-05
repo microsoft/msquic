@@ -156,7 +156,7 @@ void QuicTestStartTwoListenersSameALPN()
         TestListener Listener2(Registration, ListenerDoNothingCallback, ServerConfiguration1);
         TEST_TRUE(Listener2.IsValid());
         TEST_QUIC_STATUS(
-            QUIC_STATUS_INVALID_STATE,
+            QUIC_STATUS_ALPN_IN_USE,
             Listener2.Start(Alpn1, Alpn1.Length(), &LocalAddress.SockAddr));
     }
 
@@ -174,7 +174,7 @@ void QuicTestStartTwoListenersSameALPN()
         TestListener Listener2(Registration, ListenerDoNothingCallback, ServerConfiguration1);
         TEST_TRUE(Listener2.IsValid());
         TEST_QUIC_STATUS(
-            QUIC_STATUS_INVALID_STATE,
+            QUIC_STATUS_ALPN_IN_USE,
             Listener2.Start(Alpn1, Alpn1.Length(), &LocalAddress.SockAddr));
     }
 
@@ -192,7 +192,7 @@ void QuicTestStartTwoListenersSameALPN()
         TestListener Listener2(Registration, ListenerDoNothingCallback, ServerConfiguration2);
         TEST_TRUE(Listener2.IsValid());
         TEST_QUIC_STATUS(
-            QUIC_STATUS_INVALID_STATE,
+            QUIC_STATUS_ALPN_IN_USE,
             Listener2.Start(Alpn2, Alpn2.Length(), &LocalAddress.SockAddr));
     }
 }
@@ -211,6 +211,9 @@ void QuicTestStartListenerExplicit(_In_ int Family)
 
         QUIC_ADDRESS_FAMILY QuicAddrFamily = (Family == 4) ? QUIC_ADDRESS_FAMILY_INET : QUIC_ADDRESS_FAMILY_INET6;
         QuicAddr LocalAddress(QuicAddr(QuicAddrFamily, true), TestUdpPortBase);
+        if (UseDuoNic) {
+            QuicAddrSetToDuoNic(&LocalAddress.SockAddr);
+        }
         QUIC_STATUS Status = QUIC_STATUS_ADDRESS_IN_USE;
         while (Status == QUIC_STATUS_ADDRESS_IN_USE) {
             LocalAddress.IncrementPort();
@@ -256,6 +259,9 @@ void QuicTestBindConnectionExplicit(_In_ int Family)
 
         QUIC_ADDRESS_FAMILY QuicAddrFamily = (Family == 4) ? QUIC_ADDRESS_FAMILY_INET : QUIC_ADDRESS_FAMILY_INET6;
         QuicAddr LocalAddress(QuicAddr(QuicAddrFamily, true), TestUdpPortBase);
+        if (UseDuoNic) {
+            QuicAddrSetToDuoNic(&LocalAddress.SockAddr);
+        }
         QUIC_STATUS Status = QUIC_STATUS_ADDRESS_IN_USE;
         while (Status == QUIC_STATUS_ADDRESS_IN_USE) {
             LocalAddress.IncrementPort();

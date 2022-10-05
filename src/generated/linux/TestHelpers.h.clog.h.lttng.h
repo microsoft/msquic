@@ -8,7 +8,7 @@
             TestScopeEntry,
             "[test]---> %s",
             Name);
-// arg2 = arg2 = Name
+// arg2 = arg2 = Name = arg2
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_TESTHELPERS_H, TestScopeEntry,
     TP_ARGS(
@@ -27,7 +27,7 @@ TRACEPOINT_EVENT(CLOG_TESTHELPERS_H, TestScopeEntry,
             TestScopeExit,
             "[test]<--- %s",
             Name);
-// arg2 = arg2 = Name
+// arg2 = arg2 = Name = arg2
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_TESTHELPERS_H, TestScopeExit,
     TP_ARGS(
@@ -127,8 +127,8 @@ TRACEPOINT_EVENT(CLOG_TESTHELPERS_H, TestHookDropPacketSelective,
                 "[test][hook] Recv Addr :%hu => :%hu",
                 QuicAddrGetPort(&Original),
                 QuicAddrGetPort(&New));
-// arg2 = arg2 = QuicAddrGetPort(&Original)
-// arg3 = arg3 = QuicAddrGetPort(&New)
+// arg2 = arg2 = QuicAddrGetPort(&Original) = arg2
+// arg3 = arg3 = QuicAddrGetPort(&New) = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_TESTHELPERS_H, TestHookReplaceAddrRecv,
     TP_ARGS(
@@ -150,8 +150,8 @@ TRACEPOINT_EVENT(CLOG_TESTHELPERS_H, TestHookReplaceAddrRecv,
                 "[test][hook] Send Addr :%hu => :%hu",
                 QuicAddrGetPort(&New),
                 QuicAddrGetPort(&Original));
-// arg2 = arg2 = QuicAddrGetPort(&New)
-// arg3 = arg3 = QuicAddrGetPort(&Original)
+// arg2 = arg2 = QuicAddrGetPort(&New) = arg2
+// arg3 = arg3 = QuicAddrGetPort(&Original) = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_TESTHELPERS_H, TestHookReplaceAddrSend,
     TP_ARGS(
@@ -221,8 +221,8 @@ TRACEPOINT_EVENT(CLOG_TESTHELPERS_H, TestHookDropLimitAddrSend,
                 "[test][hook] Create (remote) Addr :%hu => :%hu",
                 QuicAddrGetPort(&PublicAddress),
                 QuicAddrGetPort(RemoteAddress));
-// arg2 = arg2 = QuicAddrGetPort(&PublicAddress)
-// arg3 = arg3 = QuicAddrGetPort(RemoteAddress)
+// arg2 = arg2 = QuicAddrGetPort(&PublicAddress) = arg2
+// arg3 = arg3 = QuicAddrGetPort(RemoteAddress) = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_TESTHELPERS_H, TestHookReplaceCreateSend,
     TP_ARGS(

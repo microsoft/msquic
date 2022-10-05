@@ -112,7 +112,9 @@ QuicOperationFree(
         } else if (ApiCtx->Type == QUIC_API_TYPE_STRM_SEND) {
             QuicStreamRelease(ApiCtx->STRM_SEND.Stream, QUIC_STREAM_REF_OPERATION);
         } else if (ApiCtx->Type == QUIC_API_TYPE_STRM_RECV_COMPLETE) {
-            QuicStreamRelease(ApiCtx->STRM_RECV_COMPLETE.Stream, QUIC_STREAM_REF_OPERATION);
+            if (ApiCtx->STRM_RECV_COMPLETE.Stream) {
+                QuicStreamRelease(ApiCtx->STRM_RECV_COMPLETE.Stream, QUIC_STREAM_REF_OPERATION);
+            }
         } else if (ApiCtx->Type == QUIC_API_TYPE_STRM_RECV_SET_ENABLED) {
             QuicStreamRelease(ApiCtx->STRM_RECV_SET_ENABLED.Stream, QUIC_STREAM_REF_OPERATION);
         }
@@ -226,6 +228,18 @@ QuicOperationQueueClear(
                     CXPLAT_DBG_ASSERT(ApiCtx->Completed == NULL);
                     QuicStreamIndicateStartComplete(
                         ApiCtx->STRM_START.Stream, QUIC_STATUS_ABORTED);
+                    if (ApiCtx->STRM_START.Flags & QUIC_STREAM_START_FLAG_SHUTDOWN_ON_FAIL) {
+                        QuicStreamShutdown(
+                            ApiCtx->STRM_START.Stream,
+                            QUIC_STREAM_SHUTDOWN_FLAG_ABORT | QUIC_STREAM_SHUTDOWN_FLAG_IMMEDIATE,
+                            0);
+                    }
+                } else if (ApiCtx->Type == QUIC_API_TYPE_STRM_SEND &&
+                    !ApiCtx->STRM_START.Stream->Flags.Started) {
+                    QuicStreamShutdown(
+                        ApiCtx->STRM_START.Stream,
+                        QUIC_STREAM_SHUTDOWN_FLAG_ABORT | QUIC_STREAM_SHUTDOWN_FLAG_IMMEDIATE,
+                        0);
                 }
             }
             QuicOperationFree(Worker, Oper);

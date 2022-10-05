@@ -2,27 +2,35 @@
 
 ## Running the Tests
 
-To run the all the tests, (after [building](./BUILD.md)) simply run:
+First [build](./BUILD.md). Then prepare the machine:
+
+```PowerShell
+.\scripts\prepare-machine.ps1 -ForTest
+```
+
+Then all the tests can be run with:
 
 ```PowerShell
 ./scripts/test.ps1
 ```
 
-> **Note** - On Windows, `schannel` is the default TLS provider, but requires the latest Windows OS versions (Windows Server 2022 or Insider Preview) to function. If you don't have `schannel` use `openssl` to build and test.
+> **Note**
+> On Windows, `schannel` is the default TLS provider, but requires the latest Windows OS versions (Windows Server 2022 or Insider Preview) to function. If you don't have `schannel` use `openssl` to build and test.
 
 ```PowerShell
 ./scripts/test.ps1 -Tls openssl
 ```
 
-By default this will run all tests in series, with no log to collection. To include log collection for failed tests, run:
+By default this will run all tests in series, with no log collection. To include log collection for failed tests, run:
 
 ```PowerShell
 ./scripts/test.ps1 -LogProfile Full.Light
 ```
 
-> **Note** - On Windows, you will need to run Powershell as **Administrator** to get the logs.
+> **Note**
+> On Windows, you will need to run Powershell as **Administrator** to get the logs.
 
-If there are any failed tests, this will generate a directory for each failed test that incldues the console output from running the test and any logs collected.
+If there are any failed tests, this will generate a directory for each failed test that includes the console output from running the test and any logs collected.
 
 **Example Output** (Windows)
 ```PowerShell

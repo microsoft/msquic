@@ -1,0 +1,62 @@
+name: Plugins
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+    - .github/workflows/plugins.yml
+    - src/plugins/*
+  pull_request:
+    branches: [ main ]
+    paths:
+    - .github/workflows/plugins.yml
+    - src/plugins/*
+
+permissions: read-all
+
+jobs:
+  build_dbgext:
+    name: Build WinDbg Extension
+    runs-on: windows-2019 # TODO - Need to figure out why -2022 doesn't have the prerequisites
+    strategy:
+      fail-fast: false
+      matrix:
+        configuration: [Release, Debug]
+        platform: [x86, x64]
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@2541b1294d2704b0964813337f33b291d3f8596b
+    - name: Setup MSBuild.exe
+      uses: microsoft/setup-msbuild@ab534842b4bdf384b8aaf93765dc6f721d9f5fab
+    - name: Build
+      run: msbuild src\plugins\msquic.windbg.sln /p:configuration=${{ matrix.configuration }} /p:platform=${{ matrix.platform }}
+    - uses: actions/upload-artifact@3cea5372237819ed00197afe530f5a7ea3e805c8
+      with:
+        name: bin_windbg_${{ matrix.configuration }}_${{ matrix.platform }}
+        path: |
+          artifacts/bin
+          !artifacts/bin/**/*.ilk
+          !artifacts/bin/**/*.exp
+          !artifacts/bin/**/*.lib
+
+  build_quictrace:
+    name: Build QuicTrace
+    needs: []
+    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        configuration: [Release, Debug]
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@2541b1294d2704b0964813337f33b291d3f8596b
+    - name: Setup .NET
+      uses: actions/setup-dotnet@c7e7147fd3e41056e75a761416c06f5fa781b5fb
+      with:
+        dotnet-version: 6.0.x
+    - name: Build
+      run: dotnet build src\plugins\QuicTrace.sln -c ${{ matrix.configuration }}
+    - uses: actions/upload-artifact@3cea5372237819ed00197afe530f5a7ea3e805c8
+      with:
+        name: bin_quictrace_${{ matrix.configuration }}
+        path: artifacts/bin

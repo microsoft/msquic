@@ -9,14 +9,29 @@
 
 inline
 uint8_t
-QuicKeyTypeToPacketType(
+QuicKeyTypeToPacketTypeV1(
     QUIC_PACKET_KEY_TYPE KeyType
     )
 {
     switch (KeyType) {
-    case QUIC_PACKET_KEY_INITIAL:      return QUIC_INITIAL;
-    case QUIC_PACKET_KEY_0_RTT:        return QUIC_0_RTT_PROTECTED;
-    case QUIC_PACKET_KEY_HANDSHAKE:    return QUIC_HANDSHAKE;
+    case QUIC_PACKET_KEY_INITIAL:      return QUIC_INITIAL_V1;
+    case QUIC_PACKET_KEY_0_RTT:        return QUIC_0_RTT_PROTECTED_V1;
+    case QUIC_PACKET_KEY_HANDSHAKE:    return QUIC_HANDSHAKE_V1;
+    case QUIC_PACKET_KEY_1_RTT:
+    default:                           return SEND_PACKET_SHORT_HEADER_TYPE;
+    }
+}
+
+inline
+uint8_t
+QuicKeyTypeToPacketTypeV2(
+    QUIC_PACKET_KEY_TYPE KeyType
+    )
+{
+    switch (KeyType) {
+    case QUIC_PACKET_KEY_INITIAL:      return QUIC_INITIAL_V2;
+    case QUIC_PACKET_KEY_0_RTT:        return QUIC_0_RTT_PROTECTED_V2;
+    case QUIC_PACKET_KEY_HANDSHAKE:    return QUIC_HANDSHAKE_V2;
     case QUIC_PACKET_KEY_1_RTT:
     default:                           return SEND_PACKET_SHORT_HEADER_TYPE;
     }
@@ -24,28 +39,57 @@ QuicKeyTypeToPacketType(
 
 inline
 QUIC_PACKET_KEY_TYPE
-QuicPacketTypeToKeyType(
+QuicPacketTypeToKeyTypeV1(
     uint8_t PacketType
     )
 {
     switch (PacketType) {
-    case QUIC_INITIAL:
-    case QUIC_RETRY:            return QUIC_PACKET_KEY_INITIAL;
-    case QUIC_HANDSHAKE:        return QUIC_PACKET_KEY_HANDSHAKE;
-    case QUIC_0_RTT_PROTECTED:  return QUIC_PACKET_KEY_0_RTT;
-    default:                    return QUIC_PACKET_KEY_1_RTT;
+    case QUIC_INITIAL_V1:
+    case QUIC_RETRY_V1:            return QUIC_PACKET_KEY_INITIAL;
+    case QUIC_HANDSHAKE_V1:        return QUIC_PACKET_KEY_HANDSHAKE;
+    case QUIC_0_RTT_PROTECTED_V1:  return QUIC_PACKET_KEY_0_RTT;
+    default:                       return QUIC_PACKET_KEY_1_RTT;
+    }
+}
+
+inline
+QUIC_PACKET_KEY_TYPE
+QuicPacketTypeToKeyTypeV2(
+    uint8_t PacketType
+    )
+{
+    switch (PacketType) {
+    case QUIC_INITIAL_V2:
+    case QUIC_RETRY_V2:            return QUIC_PACKET_KEY_INITIAL;
+    case QUIC_HANDSHAKE_V2:        return QUIC_PACKET_KEY_HANDSHAKE;
+    case QUIC_0_RTT_PROTECTED_V2:  return QUIC_PACKET_KEY_0_RTT;
+    default:                       return QUIC_PACKET_KEY_1_RTT;
     }
 }
 
 inline
 uint8_t
-QuicEncryptLevelToPacketType(
+QuicEncryptLevelToPacketTypeV1(
     QUIC_ENCRYPT_LEVEL Level
     )
 {
     switch (Level) {
-    case QUIC_ENCRYPT_LEVEL_INITIAL:    return QUIC_INITIAL;
-    case QUIC_ENCRYPT_LEVEL_HANDSHAKE:  return QUIC_HANDSHAKE;
+    case QUIC_ENCRYPT_LEVEL_INITIAL:    return QUIC_INITIAL_V1;
+    case QUIC_ENCRYPT_LEVEL_HANDSHAKE:  return QUIC_HANDSHAKE_V1;
+    case QUIC_ENCRYPT_LEVEL_1_RTT:
+    default:                            return SEND_PACKET_SHORT_HEADER_TYPE;
+    }
+}
+
+inline
+uint8_t
+QuicEncryptLevelToPacketTypeV2(
+    QUIC_ENCRYPT_LEVEL Level
+    )
+{
+    switch (Level) {
+    case QUIC_ENCRYPT_LEVEL_INITIAL:    return QUIC_INITIAL_V2;
+    case QUIC_ENCRYPT_LEVEL_HANDSHAKE:  return QUIC_HANDSHAKE_V2;
     case QUIC_ENCRYPT_LEVEL_1_RTT:
     default:                            return SEND_PACKET_SHORT_HEADER_TYPE;
     }
@@ -53,14 +97,27 @@ QuicEncryptLevelToPacketType(
 
 inline
 QUIC_ENCRYPT_LEVEL
-QuicPacketTypeToEncryptLevel(
+QuicPacketTypeToEncryptLevelV1(
     uint8_t PacketType
     )
 {
     switch (PacketType) {
-    case QUIC_INITIAL:          return QUIC_ENCRYPT_LEVEL_INITIAL;
-    case QUIC_HANDSHAKE:        return QUIC_ENCRYPT_LEVEL_HANDSHAKE;
-    default:                    return QUIC_ENCRYPT_LEVEL_1_RTT;
+    case QUIC_INITIAL_V1:      return QUIC_ENCRYPT_LEVEL_INITIAL;
+    case QUIC_HANDSHAKE_V1:    return QUIC_ENCRYPT_LEVEL_HANDSHAKE;
+    default:                   return QUIC_ENCRYPT_LEVEL_1_RTT;
+    }
+}
+
+inline
+QUIC_ENCRYPT_LEVEL
+QuicPacketTypeToEncryptLevelV2(
+    uint8_t PacketType
+    )
+{
+    switch (PacketType) {
+    case QUIC_INITIAL_V2:      return QUIC_ENCRYPT_LEVEL_INITIAL;
+    case QUIC_HANDSHAKE_V2:    return QUIC_ENCRYPT_LEVEL_HANDSHAKE;
+    default:                   return QUIC_ENCRYPT_LEVEL_1_RTT;
     }
 }
 
@@ -217,6 +274,13 @@ typedef struct QUIC_SEND {
     uint64_t OrderedStreamBytesSent;
 
     //
+    // An accumulator for in-order delivered bytes across all streams. When this
+    // reaches ConnFlowControlWindow / QUIC_RECV_BUFFER_DRAIN_RATIO, the accumulator
+    // is reset and a MAX_DATA frame is sent.
+    //
+    uint64_t OrderedStreamBytesDeliveredAccumulator;
+
+    //
     // Set of flags indicating what data is ready to be sent out.
     //
     uint32_t SendFlags;
@@ -238,11 +302,19 @@ typedef struct QUIC_SEND {
 
 } QUIC_SEND;
 
+//
+// This structure defines flow blocked timing for a stream or connection.
+//
+typedef struct QUIC_FLOW_BLOCKED_TIMING_TRACKER {
+    uint64_t CumulativeTimeUs;
+    uint64_t LastStartTimeUs;
+} QUIC_FLOW_BLOCKED_TIMING_TRACKER;
+
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicSendInitialize(
     _Inout_ QUIC_SEND* Send,
-    _In_ const QUIC_SETTINGS* Settings
+    _In_ const QUIC_SETTINGS_INTERNAL* Settings
     );
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -265,7 +337,7 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicSendApplyNewSettings(
     _Inout_ QUIC_SEND* Send,
-    _In_ const QUIC_SETTINGS* Settings
+    _In_ const QUIC_SETTINGS_INTERNAL* Settings
     );
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -287,7 +359,8 @@ typedef enum QUIC_SEND_FLUSH_REASON {
     REASON_STREAM_FLOW_CONTROL,
     REASON_STREAM_ID_FLOW_CONTROL,
     REASON_AMP_PROTECTION,
-    REASON_SCHEDULING
+    REASON_SCHEDULING,
+    REASON_ROUTE_COMPLETION,
 } QUIC_SEND_FLUSH_REASON;
 
 //
@@ -308,7 +381,6 @@ void
 QuicSendQueueFlushForStream(
     _In_ QUIC_SEND* Send,
     _In_ QUIC_STREAM* Stream,
-    _In_ BOOLEAN WasPreviouslyQueued,
     _In_ BOOLEAN DelaySend
     );
 

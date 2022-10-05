@@ -1,4 +1,6 @@
+#ifndef CLOG_DO_NOT_INCLUDE_HEADER
 #include <clog.h>
+#endif
 #undef TRACEPOINT_PROVIDER
 #define TRACEPOINT_PROVIDER CLOG_CERT_CAPI_C
 #undef TRACEPOINT_PROBE_DYNAMIC_LINKAGE
@@ -27,10 +29,6 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-#ifndef _clog_5_ARGS_TRACE_CertCapiVerifiedChain
-
-
-
 /*----------------------------------------------------------
 // Decoder Ring for CertCapiVerifiedChain
 // CertVerifyChain: %S 0x%x, result=0x%x
@@ -40,19 +38,16 @@ extern "C" {
         ServerName,
         CredFlags,
         Status);
-// arg2 = arg2 = ServerName
-// arg3 = arg3 = CredFlags
-// arg4 = arg4 = Status
+// arg2 = arg2 = ServerName = arg2
+// arg3 = arg3 = CredFlags = arg3
+// arg4 = arg4 = Status = arg4
 ----------------------------------------------------------*/
+#ifndef _clog_5_ARGS_TRACE_CertCapiVerifiedChain
 #define _clog_5_ARGS_TRACE_CertCapiVerifiedChain(uniqueId, encoded_arg_string, arg2, arg3, arg4)\
 tracepoint(CLOG_CERT_CAPI_C, CertCapiVerifiedChain , arg3, arg4);\
 
 #endif
 
-
-
-
-#ifndef _clog_3_ARGS_TRACE_CertCapiParsedChain
 
 
 
@@ -63,17 +58,14 @@ tracepoint(CLOG_CERT_CAPI_C, CertCapiVerifiedChain , arg3, arg4);\
         CertCapiParsedChain,
         "[cert] Successfully parsed chain of %u certificate(s)",
         CertNumber);
-// arg2 = arg2 = CertNumber
+// arg2 = arg2 = CertNumber = arg2
 ----------------------------------------------------------*/
+#ifndef _clog_3_ARGS_TRACE_CertCapiParsedChain
 #define _clog_3_ARGS_TRACE_CertCapiParsedChain(uniqueId, encoded_arg_string, arg2)\
 tracepoint(CLOG_CERT_CAPI_C, CertCapiParsedChain , arg2);\
 
 #endif
 
-
-
-
-#ifndef _clog_3_ARGS_TRACE_CertCapiFormattedChain
 
 
 
@@ -84,17 +76,14 @@ tracepoint(CLOG_CERT_CAPI_C, CertCapiParsedChain , arg2);\
         CertCapiFormattedChain,
         "[cert] Successfully formatted chain of %u certificate(s)",
         CertNumber);
-// arg2 = arg2 = CertNumber
+// arg2 = arg2 = CertNumber = arg2
 ----------------------------------------------------------*/
+#ifndef _clog_3_ARGS_TRACE_CertCapiFormattedChain
 #define _clog_3_ARGS_TRACE_CertCapiFormattedChain(uniqueId, encoded_arg_string, arg2)\
 tracepoint(CLOG_CERT_CAPI_C, CertCapiFormattedChain , arg2);\
 
 #endif
 
-
-
-
-#ifndef _clog_3_ARGS_TRACE_CertCapiSign
 
 
 
@@ -105,17 +94,14 @@ tracepoint(CLOG_CERT_CAPI_C, CertCapiFormattedChain , arg2);\
         CertCapiSign,
         "[cert] QuicCertSign alg=0x%4.4x",
         SignatureAlgorithm);
-// arg2 = arg2 = SignatureAlgorithm
+// arg2 = arg2 = SignatureAlgorithm = arg2
 ----------------------------------------------------------*/
+#ifndef _clog_3_ARGS_TRACE_CertCapiSign
 #define _clog_3_ARGS_TRACE_CertCapiSign(uniqueId, encoded_arg_string, arg2)\
 tracepoint(CLOG_CERT_CAPI_C, CertCapiSign , arg2);\
 
 #endif
 
-
-
-
-#ifndef _clog_3_ARGS_TRACE_CertCapiVerify
 
 
 
@@ -126,17 +112,14 @@ tracepoint(CLOG_CERT_CAPI_C, CertCapiSign , arg2);\
         CertCapiVerify,
         "[cert] QuicCertVerify alg=0x%4.4x",
         SignatureAlgorithm);
-// arg2 = arg2 = SignatureAlgorithm
+// arg2 = arg2 = SignatureAlgorithm = arg2
 ----------------------------------------------------------*/
+#ifndef _clog_3_ARGS_TRACE_CertCapiVerify
 #define _clog_3_ARGS_TRACE_CertCapiVerify(uniqueId, encoded_arg_string, arg2)\
 tracepoint(CLOG_CERT_CAPI_C, CertCapiVerify , arg2);\
 
 #endif
 
-
-
-
-#ifndef _clog_4_ARGS_TRACE_LibraryErrorStatus
 
 
 
@@ -148,106 +131,15 @@ tracepoint(CLOG_CERT_CAPI_C, CertCapiVerify , arg2);\
             "[ lib] ERROR, %u, %s.",
             GetLastError(),
             "Get CERT_HASH_PROP_ID failed");
-// arg2 = arg2 = GetLastError()
-// arg3 = arg3 = "Get CERT_HASH_PROP_ID failed"
+// arg2 = arg2 = GetLastError() = arg2
+// arg3 = arg3 = "Get CERT_HASH_PROP_ID failed" = arg3
 ----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_LibraryErrorStatus
 #define _clog_4_ARGS_TRACE_LibraryErrorStatus(uniqueId, encoded_arg_string, arg2, arg3)\
 tracepoint(CLOG_CERT_CAPI_C, LibraryErrorStatus , arg2, arg3);\
 
 #endif
 
-
-
-
-#ifndef _clog_4_ARGS_TRACE_LibraryErrorStatus
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for LibraryErrorStatus
-// [ lib] ERROR, %u, %s.
-// QuicTraceEvent(
-            LibraryErrorStatus,
-            "[ lib] ERROR, %u, %s.",
-            CertHashLength,
-            "CERT_HASH_PROP_ID incorrect size");
-// arg2 = arg2 = CertHashLength
-// arg3 = arg3 = "CERT_HASH_PROP_ID incorrect size"
-----------------------------------------------------------*/
-#define _clog_4_ARGS_TRACE_LibraryErrorStatus(uniqueId, encoded_arg_string, arg2, arg3)\
-
-#endif
-
-
-
-
-#ifndef _clog_4_ARGS_TRACE_LibraryErrorStatus
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for LibraryErrorStatus
-// [ lib] ERROR, %u, %s.
-// QuicTraceEvent(
-            LibraryErrorStatus,
-            "[ lib] ERROR, %u, %s.",
-            Status,
-            "CertOpenStore failed");
-// arg2 = arg2 = Status
-// arg3 = arg3 = "CertOpenStore failed"
-----------------------------------------------------------*/
-#define _clog_4_ARGS_TRACE_LibraryErrorStatus(uniqueId, encoded_arg_string, arg2, arg3)\
-
-#endif
-
-
-
-
-#ifndef _clog_4_ARGS_TRACE_LibraryErrorStatus
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for LibraryErrorStatus
-// [ lib] ERROR, %u, %s.
-// QuicTraceEvent(
-            LibraryErrorStatus,
-            "[ lib] ERROR, %u, %s.",
-            GetLastError(),
-            "CertOpenStore failed");
-// arg2 = arg2 = GetLastError()
-// arg3 = arg3 = "CertOpenStore failed"
-----------------------------------------------------------*/
-#define _clog_4_ARGS_TRACE_LibraryErrorStatus(uniqueId, encoded_arg_string, arg2, arg3)\
-
-#endif
-
-
-
-
-#ifndef _clog_4_ARGS_TRACE_LibraryErrorStatus
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for LibraryErrorStatus
-// [ lib] ERROR, %u, %s.
-// QuicTraceEvent(
-            LibraryErrorStatus,
-            "[ lib] ERROR, %u, %s.",
-            GetLastError(),
-            "CertAddEncodedCertificateToStore failed");
-// arg2 = arg2 = GetLastError()
-// arg3 = arg3 = "CertAddEncodedCertificateToStore failed"
-----------------------------------------------------------*/
-#define _clog_4_ARGS_TRACE_LibraryErrorStatus(uniqueId, encoded_arg_string, arg2, arg3)\
-
-#endif
-
-
-
-
-#ifndef _clog_3_ARGS_TRACE_LibraryError
 
 
 
@@ -258,8 +150,9 @@ tracepoint(CLOG_CERT_CAPI_C, LibraryErrorStatus , arg2, arg3);\
             LibraryError,
             "[ lib] ERROR, %s.",
             "Not all cert bytes were processed");
-// arg2 = arg2 = "Not all cert bytes were processed"
+// arg2 = arg2 = "Not all cert bytes were processed" = arg2
 ----------------------------------------------------------*/
+#ifndef _clog_3_ARGS_TRACE_LibraryError
 #define _clog_3_ARGS_TRACE_LibraryError(uniqueId, encoded_arg_string, arg2)\
 tracepoint(CLOG_CERT_CAPI_C, LibraryError , arg2);\
 
@@ -268,500 +161,20 @@ tracepoint(CLOG_CERT_CAPI_C, LibraryError , arg2);\
 
 
 
-#ifndef _clog_3_ARGS_TRACE_LibraryError
-
-
-
 /*----------------------------------------------------------
-// Decoder Ring for LibraryError
-// [ lib] ERROR, %s.
+// Decoder Ring for AllocFailure
+// Allocation of '%s' failed. (%llu bytes)
 // QuicTraceEvent(
-                LibraryError,
-                "[ lib] ERROR, %s.",
-                "Insufficient buffer to store the empty formatted chain");
-// arg2 = arg2 = "Insufficient buffer to store the empty formatted chain"
+            AllocFailure,
+            "Allocation of '%s' failed. (%llu bytes)",
+            "PKCS7 data",
+            Blob.cbData);
+// arg2 = arg2 = "PKCS7 data" = arg2
+// arg3 = arg3 = Blob.cbData = arg3
 ----------------------------------------------------------*/
-#define _clog_3_ARGS_TRACE_LibraryError(uniqueId, encoded_arg_string, arg2)\
-
-#endif
-
-
-
-
-#ifndef _clog_4_ARGS_TRACE_LibraryErrorStatus
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for LibraryErrorStatus
-// [ lib] ERROR, %u, %s.
-// QuicTraceEvent(
-            LibraryErrorStatus,
-            "[ lib] ERROR, %u, %s.",
-            GetLastError(),
-            "CertGetCertificateChain failed");
-// arg2 = arg2 = GetLastError()
-// arg3 = arg3 = "CertGetCertificateChain failed"
-----------------------------------------------------------*/
-#define _clog_4_ARGS_TRACE_LibraryErrorStatus(uniqueId, encoded_arg_string, arg2, arg3)\
-
-#endif
-
-
-
-
-#ifndef _clog_3_ARGS_TRACE_LibraryError
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for LibraryError
-// [ lib] ERROR, %s.
-// QuicTraceEvent(
-                    LibraryError,
-                    "[ lib] ERROR, %s.",
-                    "Insufficient buffer to store the formatted chain");
-// arg2 = arg2 = "Insufficient buffer to store the formatted chain"
-----------------------------------------------------------*/
-#define _clog_3_ARGS_TRACE_LibraryError(uniqueId, encoded_arg_string, arg2)\
-
-#endif
-
-
-
-
-#ifndef _clog_4_ARGS_TRACE_LibraryErrorStatus
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for LibraryErrorStatus
-// [ lib] ERROR, %u, %s.
-// QuicTraceEvent(
-            LibraryErrorStatus,
-            "[ lib] ERROR, %u, %s.",
-            Status,
-            "CertVerifyCertificateChainPolicy failed");
-// arg2 = arg2 = Status
-// arg3 = arg3 = "CertVerifyCertificateChainPolicy failed"
-----------------------------------------------------------*/
-#define _clog_4_ARGS_TRACE_LibraryErrorStatus(uniqueId, encoded_arg_string, arg2, arg3)\
-
-#endif
-
-
-
-
-#ifndef _clog_4_ARGS_TRACE_LibraryErrorStatus
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for LibraryErrorStatus
-// [ lib] ERROR, %u, %s.
-// QuicTraceEvent(
-            LibraryErrorStatus,
-            "[ lib] ERROR, %u, %s.",
-            Status,
-            "CertVerifyCertificateChainPolicy indicated a cert error");
-// arg2 = arg2 = Status
-// arg3 = arg3 = "CertVerifyCertificateChainPolicy indicated a cert error"
-----------------------------------------------------------*/
-#define _clog_4_ARGS_TRACE_LibraryErrorStatus(uniqueId, encoded_arg_string, arg2, arg3)\
-
-#endif
-
-
-
-
-#ifndef _clog_4_ARGS_TRACE_LibraryErrorStatus
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for LibraryErrorStatus
-// [ lib] ERROR, %u, %s.
-// QuicTraceEvent(
-            LibraryErrorStatus,
-            "[ lib] ERROR, %u, %s.",
-            Error,
-            "CertGetCertificateChain failed");
-// arg2 = arg2 = Error
-// arg3 = arg3 = "CertGetCertificateChain failed"
-----------------------------------------------------------*/
-#define _clog_4_ARGS_TRACE_LibraryErrorStatus(uniqueId, encoded_arg_string, arg2, arg3)\
-
-#endif
-
-
-
-
-#ifndef _clog_4_ARGS_TRACE_LibraryErrorStatus
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for LibraryErrorStatus
-// [ lib] ERROR, %u, %s.
-// QuicTraceEvent(
-                LibraryErrorStatus,
-                "[ lib] ERROR, %u, %s.",
-                Status,
-                "Convert Host to unicode");
-// arg2 = arg2 = Status
-// arg3 = arg3 = "Convert Host to unicode"
-----------------------------------------------------------*/
-#define _clog_4_ARGS_TRACE_LibraryErrorStatus(uniqueId, encoded_arg_string, arg2, arg3)\
-
-#endif
-
-
-
-
-#ifndef _clog_4_ARGS_TRACE_LibraryErrorStatus
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for LibraryErrorStatus
-// [ lib] ERROR, %u, %s.
-// QuicTraceEvent(
-            LibraryErrorStatus,
-            "[ lib] ERROR, %u, %s.",
-            GetLastError(),
-            "CryptAcquireCertificatePrivateKey failed");
-// arg2 = arg2 = GetLastError()
-// arg3 = arg3 = "CryptAcquireCertificatePrivateKey failed"
-----------------------------------------------------------*/
-#define _clog_4_ARGS_TRACE_LibraryErrorStatus(uniqueId, encoded_arg_string, arg2, arg3)\
-
-#endif
-
-
-
-
-#ifndef _clog_4_ARGS_TRACE_LibraryErrorStatus
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for LibraryErrorStatus
-// [ lib] ERROR, %u, %s.
-// QuicTraceEvent(
-            LibraryErrorStatus,
-            "[ lib] ERROR, %u, %s.",
-            KeySpec,
-            "Cert KeySpec doesn't have CERT_NCRYPT_KEY_SPEC");
-// arg2 = arg2 = KeySpec
-// arg3 = arg3 = "Cert KeySpec doesn't have CERT_NCRYPT_KEY_SPEC"
-----------------------------------------------------------*/
-#define _clog_4_ARGS_TRACE_LibraryErrorStatus(uniqueId, encoded_arg_string, arg2, arg3)\
-
-#endif
-
-
-
-
-#ifndef _clog_4_ARGS_TRACE_LibraryErrorStatus
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for LibraryErrorStatus
-// [ lib] ERROR, %u, %s.
-// QuicTraceEvent(
-            LibraryErrorStatus,
-            "[ lib] ERROR, %u, %s.",
-            SignatureAlgorithm,
-            "Unsupported hash algorithm (HashAlg)");
-// arg2 = arg2 = SignatureAlgorithm
-// arg3 = arg3 = "Unsupported hash algorithm (HashAlg)"
-----------------------------------------------------------*/
-#define _clog_4_ARGS_TRACE_LibraryErrorStatus(uniqueId, encoded_arg_string, arg2, arg3)\
-
-#endif
-
-
-
-
-#ifndef _clog_4_ARGS_TRACE_LibraryErrorStatus
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for LibraryErrorStatus
-// [ lib] ERROR, %u, %s.
-// QuicTraceEvent(
-            LibraryErrorStatus,
-            "[ lib] ERROR, %u, %s.",
-            SignatureAlgorithm,
-            "Unsupported hash algorithm");
-// arg2 = arg2 = SignatureAlgorithm
-// arg3 = arg3 = "Unsupported hash algorithm"
-----------------------------------------------------------*/
-#define _clog_4_ARGS_TRACE_LibraryErrorStatus(uniqueId, encoded_arg_string, arg2, arg3)\
-
-#endif
-
-
-
-
-#ifndef _clog_4_ARGS_TRACE_LibraryErrorStatus
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for LibraryErrorStatus
-// [ lib] ERROR, %u, %s.
-// QuicTraceEvent(
-            LibraryErrorStatus,
-            "[ lib] ERROR, %u, %s.",
-            SignatureAlgorithm,
-            "Unsupported hash size");
-// arg2 = arg2 = SignatureAlgorithm
-// arg3 = arg3 = "Unsupported hash size"
-----------------------------------------------------------*/
-#define _clog_4_ARGS_TRACE_LibraryErrorStatus(uniqueId, encoded_arg_string, arg2, arg3)\
-
-#endif
-
-
-
-
-#ifndef _clog_4_ARGS_TRACE_LibraryErrorStatus
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for LibraryErrorStatus
-// [ lib] ERROR, %u, %s.
-// QuicTraceEvent(
-            LibraryErrorStatus,
-            "[ lib] ERROR, %u, %s.",
-            SignatureAlgorithm,
-            "Unsupported padding scheme");
-// arg2 = arg2 = SignatureAlgorithm
-// arg3 = arg3 = "Unsupported padding scheme"
-----------------------------------------------------------*/
-#define _clog_4_ARGS_TRACE_LibraryErrorStatus(uniqueId, encoded_arg_string, arg2, arg3)\
-
-#endif
-
-
-
-
-#ifndef _clog_4_ARGS_TRACE_LibraryErrorStatus
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for LibraryErrorStatus
-// [ lib] ERROR, %u, %s.
-// QuicTraceEvent(
-            LibraryErrorStatus,
-            "[ lib] ERROR, %u, %s.",
-            Status,
-            "BCryptHash failed");
-// arg2 = arg2 = Status
-// arg3 = arg3 = "BCryptHash failed"
-----------------------------------------------------------*/
-#define _clog_4_ARGS_TRACE_LibraryErrorStatus(uniqueId, encoded_arg_string, arg2, arg3)\
-
-#endif
-
-
-
-
-#ifndef _clog_4_ARGS_TRACE_LibraryErrorStatus
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for LibraryErrorStatus
-// [ lib] ERROR, %u, %s.
-// QuicTraceEvent(
-            LibraryErrorStatus,
-            "[ lib] ERROR, %u, %s.",
-            Status,
-            "NCryptSignHash failed");
-// arg2 = arg2 = Status
-// arg3 = arg3 = "NCryptSignHash failed"
-----------------------------------------------------------*/
-#define _clog_4_ARGS_TRACE_LibraryErrorStatus(uniqueId, encoded_arg_string, arg2, arg3)\
-
-#endif
-
-
-
-
-#ifndef _clog_3_ARGS_TRACE_LibraryError
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for LibraryError
-// [ lib] ERROR, %s.
-// QuicTraceEvent(
-            LibraryError,
-            "[ lib] ERROR, %s.",
-            "CertListToVerify or Signature too large");
-// arg2 = arg2 = "CertListToVerify or Signature too large"
-----------------------------------------------------------*/
-#define _clog_3_ARGS_TRACE_LibraryError(uniqueId, encoded_arg_string, arg2)\
-
-#endif
-
-
-
-
-#ifndef _clog_4_ARGS_TRACE_LibraryErrorStatus
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for LibraryErrorStatus
-// [ lib] ERROR, %u, %s.
-// QuicTraceEvent(
-            LibraryErrorStatus,
-            "[ lib] ERROR, %u, %s.",
-            SignatureAlgorithm,
-            "Unsupported hash algorithm (HashAlg)");
-// arg2 = arg2 = SignatureAlgorithm
-// arg3 = arg3 = "Unsupported hash algorithm (HashAlg)"
-----------------------------------------------------------*/
-#define _clog_4_ARGS_TRACE_LibraryErrorStatus(uniqueId, encoded_arg_string, arg2, arg3)\
-
-#endif
-
-
-
-
-#ifndef _clog_4_ARGS_TRACE_LibraryErrorStatus
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for LibraryErrorStatus
-// [ lib] ERROR, %u, %s.
-// QuicTraceEvent(
-            LibraryErrorStatus,
-            "[ lib] ERROR, %u, %s.",
-            SignatureAlgorithm,
-            "Unsupported padding scheme");
-// arg2 = arg2 = SignatureAlgorithm
-// arg3 = arg3 = "Unsupported padding scheme"
-----------------------------------------------------------*/
-#define _clog_4_ARGS_TRACE_LibraryErrorStatus(uniqueId, encoded_arg_string, arg2, arg3)\
-
-#endif
-
-
-
-
-#ifndef _clog_4_ARGS_TRACE_LibraryErrorStatus
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for LibraryErrorStatus
-// [ lib] ERROR, %u, %s.
-// QuicTraceEvent(
-            LibraryErrorStatus,
-            "[ lib] ERROR, %u, %s.",
-            SignatureAlgorithm,
-            "Unsupported hash algorithm");
-// arg2 = arg2 = SignatureAlgorithm
-// arg3 = arg3 = "Unsupported hash algorithm"
-----------------------------------------------------------*/
-#define _clog_4_ARGS_TRACE_LibraryErrorStatus(uniqueId, encoded_arg_string, arg2, arg3)\
-
-#endif
-
-
-
-
-#ifndef _clog_4_ARGS_TRACE_LibraryErrorStatus
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for LibraryErrorStatus
-// [ lib] ERROR, %u, %s.
-// QuicTraceEvent(
-            LibraryErrorStatus,
-            "[ lib] ERROR, %u, %s.",
-            SignatureAlgorithm,
-            "Unsupported hash size");
-// arg2 = arg2 = SignatureAlgorithm
-// arg3 = arg3 = "Unsupported hash size"
-----------------------------------------------------------*/
-#define _clog_4_ARGS_TRACE_LibraryErrorStatus(uniqueId, encoded_arg_string, arg2, arg3)\
-
-#endif
-
-
-
-
-#ifndef _clog_4_ARGS_TRACE_LibraryErrorStatus
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for LibraryErrorStatus
-// [ lib] ERROR, %u, %s.
-// QuicTraceEvent(
-            LibraryErrorStatus,
-            "[ lib] ERROR, %u, %s.",
-            Status,
-            "BCryptHash failed");
-// arg2 = arg2 = Status
-// arg3 = arg3 = "BCryptHash failed"
-----------------------------------------------------------*/
-#define _clog_4_ARGS_TRACE_LibraryErrorStatus(uniqueId, encoded_arg_string, arg2, arg3)\
-
-#endif
-
-
-
-
-#ifndef _clog_4_ARGS_TRACE_LibraryErrorStatus
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for LibraryErrorStatus
-// [ lib] ERROR, %u, %s.
-// QuicTraceEvent(
-            LibraryErrorStatus,
-            "[ lib] ERROR, %u, %s.",
-            Status,
-            "CryptImportPublicKeyInfoEx2 failed");
-// arg2 = arg2 = Status
-// arg3 = arg3 = "CryptImportPublicKeyInfoEx2 failed"
-----------------------------------------------------------*/
-#define _clog_4_ARGS_TRACE_LibraryErrorStatus(uniqueId, encoded_arg_string, arg2, arg3)\
-
-#endif
-
-
-
-
-#ifndef _clog_4_ARGS_TRACE_LibraryErrorStatus
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for LibraryErrorStatus
-// [ lib] ERROR, %u, %s.
-// QuicTraceEvent(
-            LibraryErrorStatus,
-            "[ lib] ERROR, %u, %s.",
-            Status,
-            "BCryptVerifySignature failed");
-// arg2 = arg2 = Status
-// arg3 = arg3 = "BCryptVerifySignature failed"
-----------------------------------------------------------*/
-#define _clog_4_ARGS_TRACE_LibraryErrorStatus(uniqueId, encoded_arg_string, arg2, arg3)\
+#ifndef _clog_4_ARGS_TRACE_AllocFailure
+#define _clog_4_ARGS_TRACE_AllocFailure(uniqueId, encoded_arg_string, arg2, arg3)\
+tracepoint(CLOG_CERT_CAPI_C, AllocFailure , arg2, arg3);\
 
 #endif
 

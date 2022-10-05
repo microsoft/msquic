@@ -57,7 +57,7 @@ main(
     }
 
     HQUIC Registration = nullptr;
-    EXIT_ON_FAILURE(MsQuicOpen(&MsQuic));
+    EXIT_ON_FAILURE(MsQuicOpen2(&MsQuic));
     const QUIC_REGISTRATION_CONFIG RegConfig = { "interopserver", QUIC_EXECUTION_PROFILE_LOW_LATENCY };
     EXIT_ON_FAILURE(MsQuic->RegistrationOpen(&RegConfig, &Registration));
 
@@ -96,22 +96,27 @@ main(
     QUIC_SETTINGS Settings{0};
     Settings.PeerBidiStreamCount = MAX_HTTP_REQUESTS_PER_CONNECTION;
     Settings.IsSet.PeerBidiStreamCount = TRUE;
-    Settings.PeerUnidiStreamCount = 1; // We allow 1 unidirectional stream, just for interop tests.
+    Settings.PeerUnidiStreamCount = MAX_HTTP_REQUESTS_PER_CONNECTION;
     Settings.IsSet.PeerUnidiStreamCount = TRUE;
     Settings.InitialRttMs = 50; // Be more aggressive with RTT for interop testing
     Settings.IsSet.InitialRttMs = TRUE;
     Settings.ServerResumptionLevel = QUIC_SERVER_RESUME_AND_ZERORTT; // Enable resumption & 0-RTT
     Settings.IsSet.ServerResumptionLevel = TRUE;
     if (EnableVNE) {
-        Settings.VersionNegotiationExtEnabled = TRUE;
-        Settings.IsSet.VersionNegotiationExtEnabled = TRUE;
+        uint32_t SupportedVersions[] = {QUIC_VERSION_2_H, QUIC_VERSION_1_H, QUIC_VERSION_DRAFT_29_H, QUIC_VERSION_1_MS_H};
+        QUIC_VERSION_SETTINGS VersionSettings{0};
+        VersionSettings.AcceptableVersions = SupportedVersions;
+        VersionSettings.OfferedVersions = SupportedVersions;
+        VersionSettings.FullyDeployedVersions = SupportedVersions;
+        VersionSettings.AcceptableVersionsLength = ARRAYSIZE(SupportedVersions);
+        VersionSettings.OfferedVersionsLength = ARRAYSIZE(SupportedVersions);
+        VersionSettings.FullyDeployedVersionsLength = ARRAYSIZE(SupportedVersions);
         if (QUIC_FAILED(
             MsQuic->SetParam(
                 nullptr,
-                QUIC_PARAM_LEVEL_GLOBAL,
-                QUIC_PARAM_GLOBAL_SETTINGS,
-                sizeof(Settings),
-                &Settings))) {
+                QUIC_PARAM_GLOBAL_VERSION_SETTINGS,
+                sizeof(VersionSettings),
+                &VersionSettings))) {
             printf("Failed to enable Version Negotiation Extension!\n");
             return -1;
         }

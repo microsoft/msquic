@@ -11,10 +11,10 @@
             PktRxPre(Rx),
             PacketNumber,
             FrameType);
-// arg2 = arg2 = PtkConnPre(Connection)
-// arg3 = arg3 = PktRxPre(Rx)
-// arg4 = arg4 = PacketNumber
-// arg5 = arg5 = FrameType
+// arg2 = arg2 = PtkConnPre(Connection) = arg2
+// arg3 = arg3 = PktRxPre(Rx) = arg3
+// arg4 = arg4 = PacketNumber = arg4
+// arg5 = arg5 = FrameType = arg5
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_FRAME_C, FrameLogUnknownType,
     TP_ARGS(
@@ -42,10 +42,10 @@ TRACEPOINT_EVENT(CLOG_FRAME_C, FrameLogUnknownType,
             PktRxPre(Rx),
             PacketNumber,
             (uint16_t)((*Offset - Start) + 1));
-// arg2 = arg2 = PtkConnPre(Connection)
-// arg3 = arg3 = PktRxPre(Rx)
-// arg4 = arg4 = PacketNumber
-// arg5 = arg5 = (uint16_t)((*Offset - Start) + 1)
+// arg2 = arg2 = PtkConnPre(Connection) = arg2
+// arg3 = arg3 = PktRxPre(Rx) = arg3
+// arg4 = arg4 = PacketNumber = arg4
+// arg5 = arg5 = (uint16_t)((*Offset - Start) + 1) = arg5
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_FRAME_C, FrameLogPadding,
     TP_ARGS(
@@ -72,9 +72,9 @@ TRACEPOINT_EVENT(CLOG_FRAME_C, FrameLogPadding,
             PtkConnPre(Connection),
             PktRxPre(Rx),
             PacketNumber);
-// arg2 = arg2 = PtkConnPre(Connection)
-// arg3 = arg3 = PktRxPre(Rx)
-// arg4 = arg4 = PacketNumber
+// arg2 = arg2 = PtkConnPre(Connection) = arg2
+// arg3 = arg3 = PktRxPre(Rx) = arg3
+// arg4 = arg4 = PacketNumber = arg4
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_FRAME_C, FrameLogPing,
     TP_ARGS(
@@ -99,9 +99,9 @@ TRACEPOINT_EVENT(CLOG_FRAME_C, FrameLogPing,
                 PtkConnPre(Connection),
                 PktRxPre(Rx),
                 PacketNumber);
-// arg2 = arg2 = PtkConnPre(Connection)
-// arg3 = arg3 = PktRxPre(Rx)
-// arg4 = arg4 = PacketNumber
+// arg2 = arg2 = PtkConnPre(Connection) = arg2
+// arg3 = arg3 = PktRxPre(Rx) = arg3
+// arg4 = arg4 = PacketNumber = arg4
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_FRAME_C, FrameLogAckInvalid,
     TP_ARGS(
@@ -128,11 +128,11 @@ TRACEPOINT_EVENT(CLOG_FRAME_C, FrameLogAckInvalid,
             PacketNumber,
             Frame.LargestAcknowledged,
             Frame.AckDelay);
-// arg2 = arg2 = PtkConnPre(Connection)
-// arg3 = arg3 = PktRxPre(Rx)
-// arg4 = arg4 = PacketNumber
-// arg5 = arg5 = Frame.LargestAcknowledged
-// arg6 = arg6 = Frame.AckDelay
+// arg2 = arg2 = PtkConnPre(Connection) = arg2
+// arg3 = arg3 = PktRxPre(Rx) = arg3
+// arg4 = arg4 = PacketNumber = arg4
+// arg5 = arg5 = Frame.LargestAcknowledged = arg5
+// arg6 = arg6 = Frame.AckDelay = arg6
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_FRAME_C, FrameLogAck,
     TP_ARGS(
@@ -162,10 +162,10 @@ TRACEPOINT_EVENT(CLOG_FRAME_C, FrameLogAck,
                 PktRxPre(Rx),
                 PacketNumber,
                 Frame.LargestAcknowledged);
-// arg2 = arg2 = PtkConnPre(Connection)
-// arg3 = arg3 = PktRxPre(Rx)
-// arg4 = arg4 = PacketNumber
-// arg5 = arg5 = Frame.LargestAcknowledged
+// arg2 = arg2 = PtkConnPre(Connection) = arg2
+// arg3 = arg3 = PktRxPre(Rx) = arg3
+// arg4 = arg4 = PacketNumber = arg4
+// arg5 = arg5 = Frame.LargestAcknowledged = arg5
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_FRAME_C, FrameLogAckSingleBlock,
     TP_ARGS(
@@ -194,11 +194,11 @@ TRACEPOINT_EVENT(CLOG_FRAME_C, FrameLogAckSingleBlock,
                 PacketNumber,
                 Frame.LargestAcknowledged - Frame.FirstAckBlock,
                 Frame.LargestAcknowledged);
-// arg2 = arg2 = PtkConnPre(Connection)
-// arg3 = arg3 = PktRxPre(Rx)
-// arg4 = arg4 = PacketNumber
-// arg5 = arg5 = Frame.LargestAcknowledged - Frame.FirstAckBlock
-// arg6 = arg6 = Frame.LargestAcknowledged
+// arg2 = arg2 = PtkConnPre(Connection) = arg2
+// arg3 = arg3 = PktRxPre(Rx) = arg3
+// arg4 = arg4 = PacketNumber = arg4
+// arg5 = arg5 = Frame.LargestAcknowledged - Frame.FirstAckBlock = arg5
+// arg6 = arg6 = Frame.LargestAcknowledged = arg6
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_FRAME_C, FrameLogAckMultiBlock,
     TP_ARGS(
@@ -227,9 +227,9 @@ TRACEPOINT_EVENT(CLOG_FRAME_C, FrameLogAckMultiBlock,
                     PtkConnPre(Connection),
                     PktRxPre(Rx),
                     PacketNumber);
-// arg2 = arg2 = PtkConnPre(Connection)
-// arg3 = arg3 = PktRxPre(Rx)
-// arg4 = arg4 = PacketNumber
+// arg2 = arg2 = PtkConnPre(Connection) = arg2
+// arg3 = arg3 = PktRxPre(Rx) = arg3
+// arg4 = arg4 = PacketNumber = arg4
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_FRAME_C, FrameLogAckInvalidBlock,
     TP_ARGS(
@@ -254,9 +254,9 @@ TRACEPOINT_EVENT(CLOG_FRAME_C, FrameLogAckInvalidBlock,
                     PtkConnPre(Connection),
                     PktRxPre(Rx),
                     PacketNumber);
-// arg2 = arg2 = PtkConnPre(Connection)
-// arg3 = arg3 = PktRxPre(Rx)
-// arg4 = arg4 = PacketNumber
+// arg2 = arg2 = PtkConnPre(Connection) = arg2
+// arg3 = arg3 = PktRxPre(Rx) = arg3
+// arg4 = arg4 = PacketNumber = arg4
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_FRAME_C, FrameLogAckEcnInvalid,
     TP_ARGS(
@@ -284,12 +284,12 @@ TRACEPOINT_EVENT(CLOG_FRAME_C, FrameLogAckEcnInvalid,
                 Ecn.ECT_0_Count,
                 Ecn.ECT_1_Count,
                 Ecn.CE_Count);
-// arg2 = arg2 = PtkConnPre(Connection)
-// arg3 = arg3 = PktRxPre(Rx)
-// arg4 = arg4 = PacketNumber
-// arg5 = arg5 = Ecn.ECT_0_Count
-// arg6 = arg6 = Ecn.ECT_1_Count
-// arg7 = arg7 = Ecn.CE_Count
+// arg2 = arg2 = PtkConnPre(Connection) = arg2
+// arg3 = arg3 = PktRxPre(Rx) = arg3
+// arg4 = arg4 = PacketNumber = arg4
+// arg5 = arg5 = Ecn.ECT_0_Count = arg5
+// arg6 = arg6 = Ecn.ECT_1_Count = arg6
+// arg7 = arg7 = Ecn.CE_Count = arg7
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_FRAME_C, FrameLogAckEcn,
     TP_ARGS(
@@ -320,9 +320,9 @@ TRACEPOINT_EVENT(CLOG_FRAME_C, FrameLogAckEcn,
                 PtkConnPre(Connection),
                 PktRxPre(Rx),
                 PacketNumber);
-// arg2 = arg2 = PtkConnPre(Connection)
-// arg3 = arg3 = PktRxPre(Rx)
-// arg4 = arg4 = PacketNumber
+// arg2 = arg2 = PtkConnPre(Connection) = arg2
+// arg3 = arg3 = PktRxPre(Rx) = arg3
+// arg4 = arg4 = PacketNumber = arg4
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_FRAME_C, FrameLogResetStreamInvalid,
     TP_ARGS(
@@ -350,12 +350,12 @@ TRACEPOINT_EVENT(CLOG_FRAME_C, FrameLogResetStreamInvalid,
             Frame.StreamID,
             Frame.ErrorCode,
             Frame.FinalSize);
-// arg2 = arg2 = PtkConnPre(Connection)
-// arg3 = arg3 = PktRxPre(Rx)
-// arg4 = arg4 = PacketNumber
-// arg5 = arg5 = Frame.StreamID
-// arg6 = arg6 = Frame.ErrorCode
-// arg7 = arg7 = Frame.FinalSize
+// arg2 = arg2 = PtkConnPre(Connection) = arg2
+// arg3 = arg3 = PktRxPre(Rx) = arg3
+// arg4 = arg4 = PacketNumber = arg4
+// arg5 = arg5 = Frame.StreamID = arg5
+// arg6 = arg6 = Frame.ErrorCode = arg6
+// arg7 = arg7 = Frame.FinalSize = arg7
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_FRAME_C, FrameLogResetStream,
     TP_ARGS(
@@ -386,9 +386,9 @@ TRACEPOINT_EVENT(CLOG_FRAME_C, FrameLogResetStream,
                 PtkConnPre(Connection),
                 PktRxPre(Rx),
                 PacketNumber);
-// arg2 = arg2 = PtkConnPre(Connection)
-// arg3 = arg3 = PktRxPre(Rx)
-// arg4 = arg4 = PacketNumber
+// arg2 = arg2 = PtkConnPre(Connection) = arg2
+// arg3 = arg3 = PktRxPre(Rx) = arg3
+// arg4 = arg4 = PacketNumber = arg4
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_FRAME_C, FrameLogStopSendingInvalid,
     TP_ARGS(
@@ -415,11 +415,11 @@ TRACEPOINT_EVENT(CLOG_FRAME_C, FrameLogStopSendingInvalid,
             PacketNumber,
             Frame.StreamID,
             Frame.ErrorCode);
-// arg2 = arg2 = PtkConnPre(Connection)
-// arg3 = arg3 = PktRxPre(Rx)
-// arg4 = arg4 = PacketNumber
-// arg5 = arg5 = Frame.StreamID
-// arg6 = arg6 = Frame.ErrorCode
+// arg2 = arg2 = PtkConnPre(Connection) = arg2
+// arg3 = arg3 = PktRxPre(Rx) = arg3
+// arg4 = arg4 = PacketNumber = arg4
+// arg5 = arg5 = Frame.StreamID = arg5
+// arg6 = arg6 = Frame.ErrorCode = arg6
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_FRAME_C, FrameLogStopSending,
     TP_ARGS(
@@ -448,9 +448,9 @@ TRACEPOINT_EVENT(CLOG_FRAME_C, FrameLogStopSending,
                 PtkConnPre(Connection),
                 PktRxPre(Rx),
                 PacketNumber);
-// arg2 = arg2 = PtkConnPre(Connection)
-// arg3 = arg3 = PktRxPre(Rx)
-// arg4 = arg4 = PacketNumber
+// arg2 = arg2 = PtkConnPre(Connection) = arg2
+// arg3 = arg3 = PktRxPre(Rx) = arg3
+// arg4 = arg4 = PacketNumber = arg4
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_FRAME_C, FrameLogCryptoInvalid,
     TP_ARGS(
@@ -477,11 +477,11 @@ TRACEPOINT_EVENT(CLOG_FRAME_C, FrameLogCryptoInvalid,
             PacketNumber,
             Frame.Offset,
             (uint16_t)Frame.Length);
-// arg2 = arg2 = PtkConnPre(Connection)
-// arg3 = arg3 = PktRxPre(Rx)
-// arg4 = arg4 = PacketNumber
-// arg5 = arg5 = Frame.Offset
-// arg6 = arg6 = (uint16_t)Frame.Length
+// arg2 = arg2 = PtkConnPre(Connection) = arg2
+// arg3 = arg3 = PktRxPre(Rx) = arg3
+// arg4 = arg4 = PacketNumber = arg4
+// arg5 = arg5 = Frame.Offset = arg5
+// arg6 = arg6 = (uint16_t)Frame.Length = arg6
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_FRAME_C, FrameLogCrypto,
     TP_ARGS(
@@ -510,9 +510,9 @@ TRACEPOINT_EVENT(CLOG_FRAME_C, FrameLogCrypto,
                 PtkConnPre(Connection),
                 PktRxPre(Rx),
                 PacketNumber);
-// arg2 = arg2 = PtkConnPre(Connection)
-// arg3 = arg3 = PktRxPre(Rx)
-// arg4 = arg4 = PacketNumber
+// arg2 = arg2 = PtkConnPre(Connection) = arg2
+// arg3 = arg3 = PktRxPre(Rx) = arg3
+// arg4 = arg4 = PacketNumber = arg4
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_FRAME_C, FrameLogNewTokenInvalid,
     TP_ARGS(
@@ -538,10 +538,10 @@ TRACEPOINT_EVENT(CLOG_FRAME_C, FrameLogNewTokenInvalid,
             PktRxPre(Rx),
             PacketNumber,
             Frame.TokenLength);
-// arg2 = arg2 = PtkConnPre(Connection)
-// arg3 = arg3 = PktRxPre(Rx)
-// arg4 = arg4 = PacketNumber
-// arg5 = arg5 = Frame.TokenLength
+// arg2 = arg2 = PtkConnPre(Connection) = arg2
+// arg3 = arg3 = PktRxPre(Rx) = arg3
+// arg4 = arg4 = PacketNumber = arg4
+// arg5 = arg5 = Frame.TokenLength = arg5
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_FRAME_C, FrameLogNewToken,
     TP_ARGS(
@@ -568,9 +568,9 @@ TRACEPOINT_EVENT(CLOG_FRAME_C, FrameLogNewToken,
                 PtkConnPre(Connection),
                 PktRxPre(Rx),
                 PacketNumber);
-// arg2 = arg2 = PtkConnPre(Connection)
-// arg3 = arg3 = PktRxPre(Rx)
-// arg4 = arg4 = PacketNumber
+// arg2 = arg2 = PtkConnPre(Connection) = arg2
+// arg3 = arg3 = PktRxPre(Rx) = arg3
+// arg4 = arg4 = PacketNumber = arg4
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_FRAME_C, FrameLogStreamInvalid,
     TP_ARGS(
@@ -598,12 +598,12 @@ TRACEPOINT_EVENT(CLOG_FRAME_C, FrameLogStreamInvalid,
                 Frame.StreamID,
                 Frame.Offset,
                 (uint16_t)Frame.Length);
-// arg2 = arg2 = PtkConnPre(Connection)
-// arg3 = arg3 = PktRxPre(Rx)
-// arg4 = arg4 = PacketNumber
-// arg5 = arg5 = Frame.StreamID
-// arg6 = arg6 = Frame.Offset
-// arg7 = arg7 = (uint16_t)Frame.Length
+// arg2 = arg2 = PtkConnPre(Connection) = arg2
+// arg3 = arg3 = PktRxPre(Rx) = arg3
+// arg4 = arg4 = PacketNumber = arg4
+// arg5 = arg5 = Frame.StreamID = arg5
+// arg6 = arg6 = Frame.Offset = arg6
+// arg7 = arg7 = (uint16_t)Frame.Length = arg7
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_FRAME_C, FrameLogStreamFin,
     TP_ARGS(
@@ -637,12 +637,12 @@ TRACEPOINT_EVENT(CLOG_FRAME_C, FrameLogStreamFin,
                 Frame.StreamID,
                 Frame.Offset,
                 (uint16_t)Frame.Length);
-// arg2 = arg2 = PtkConnPre(Connection)
-// arg3 = arg3 = PktRxPre(Rx)
-// arg4 = arg4 = PacketNumber
-// arg5 = arg5 = Frame.StreamID
-// arg6 = arg6 = Frame.Offset
-// arg7 = arg7 = (uint16_t)Frame.Length
+// arg2 = arg2 = PtkConnPre(Connection) = arg2
+// arg3 = arg3 = PktRxPre(Rx) = arg3
+// arg4 = arg4 = PacketNumber = arg4
+// arg5 = arg5 = Frame.StreamID = arg5
+// arg6 = arg6 = Frame.Offset = arg6
+// arg7 = arg7 = (uint16_t)Frame.Length = arg7
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_FRAME_C, FrameLogStream,
     TP_ARGS(
@@ -673,9 +673,9 @@ TRACEPOINT_EVENT(CLOG_FRAME_C, FrameLogStream,
                 PtkConnPre(Connection),
                 PktRxPre(Rx),
                 PacketNumber);
-// arg2 = arg2 = PtkConnPre(Connection)
-// arg3 = arg3 = PktRxPre(Rx)
-// arg4 = arg4 = PacketNumber
+// arg2 = arg2 = PtkConnPre(Connection) = arg2
+// arg3 = arg3 = PktRxPre(Rx) = arg3
+// arg4 = arg4 = PacketNumber = arg4
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_FRAME_C, FrameLogMaxDataInvalid,
     TP_ARGS(
@@ -701,10 +701,10 @@ TRACEPOINT_EVENT(CLOG_FRAME_C, FrameLogMaxDataInvalid,
             PktRxPre(Rx),
             PacketNumber,
             Frame.MaximumData);
-// arg2 = arg2 = PtkConnPre(Connection)
-// arg3 = arg3 = PktRxPre(Rx)
-// arg4 = arg4 = PacketNumber
-// arg5 = arg5 = Frame.MaximumData
+// arg2 = arg2 = PtkConnPre(Connection) = arg2
+// arg3 = arg3 = PktRxPre(Rx) = arg3
+// arg4 = arg4 = PacketNumber = arg4
+// arg5 = arg5 = Frame.MaximumData = arg5
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_FRAME_C, FrameLogMaxData,
     TP_ARGS(
@@ -731,9 +731,9 @@ TRACEPOINT_EVENT(CLOG_FRAME_C, FrameLogMaxData,
                 PtkConnPre(Connection),
                 PktRxPre(Rx),
                 PacketNumber);
-// arg2 = arg2 = PtkConnPre(Connection)
-// arg3 = arg3 = PktRxPre(Rx)
-// arg4 = arg4 = PacketNumber
+// arg2 = arg2 = PtkConnPre(Connection) = arg2
+// arg3 = arg3 = PktRxPre(Rx) = arg3
+// arg4 = arg4 = PacketNumber = arg4
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_FRAME_C, FrameLogMaxStreamDataInvalid,
     TP_ARGS(
@@ -760,11 +760,11 @@ TRACEPOINT_EVENT(CLOG_FRAME_C, FrameLogMaxStreamDataInvalid,
             PacketNumber,
             Frame.StreamID,
             Frame.MaximumData);
-// arg2 = arg2 = PtkConnPre(Connection)
-// arg3 = arg3 = PktRxPre(Rx)
-// arg4 = arg4 = PacketNumber
-// arg5 = arg5 = Frame.StreamID
-// arg6 = arg6 = Frame.MaximumData
+// arg2 = arg2 = PtkConnPre(Connection) = arg2
+// arg3 = arg3 = PktRxPre(Rx) = arg3
+// arg4 = arg4 = PacketNumber = arg4
+// arg5 = arg5 = Frame.StreamID = arg5
+// arg6 = arg6 = Frame.MaximumData = arg6
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_FRAME_C, FrameLogMaxStreamData,
     TP_ARGS(
@@ -793,9 +793,9 @@ TRACEPOINT_EVENT(CLOG_FRAME_C, FrameLogMaxStreamData,
                 PtkConnPre(Connection),
                 PktRxPre(Rx),
                 PacketNumber);
-// arg2 = arg2 = PtkConnPre(Connection)
-// arg3 = arg3 = PktRxPre(Rx)
-// arg4 = arg4 = PacketNumber
+// arg2 = arg2 = PtkConnPre(Connection) = arg2
+// arg3 = arg3 = PktRxPre(Rx) = arg3
+// arg4 = arg4 = PacketNumber = arg4
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_FRAME_C, FrameLogMaxStreamsInvalid,
     TP_ARGS(
@@ -822,11 +822,11 @@ TRACEPOINT_EVENT(CLOG_FRAME_C, FrameLogMaxStreamsInvalid,
             PacketNumber,
             Frame.BidirectionalStreams,
             Frame.MaximumStreams);
-// arg2 = arg2 = PtkConnPre(Connection)
-// arg3 = arg3 = PktRxPre(Rx)
-// arg4 = arg4 = PacketNumber
-// arg5 = arg5 = Frame.BidirectionalStreams
-// arg6 = arg6 = Frame.MaximumStreams
+// arg2 = arg2 = PtkConnPre(Connection) = arg2
+// arg3 = arg3 = PktRxPre(Rx) = arg3
+// arg4 = arg4 = PacketNumber = arg4
+// arg5 = arg5 = Frame.BidirectionalStreams = arg5
+// arg6 = arg6 = Frame.MaximumStreams = arg6
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_FRAME_C, FrameLogMaxStreams,
     TP_ARGS(
@@ -855,9 +855,9 @@ TRACEPOINT_EVENT(CLOG_FRAME_C, FrameLogMaxStreams,
                 PtkConnPre(Connection),
                 PktRxPre(Rx),
                 PacketNumber);
-// arg2 = arg2 = PtkConnPre(Connection)
-// arg3 = arg3 = PktRxPre(Rx)
-// arg4 = arg4 = PacketNumber
+// arg2 = arg2 = PtkConnPre(Connection) = arg2
+// arg3 = arg3 = PktRxPre(Rx) = arg3
+// arg4 = arg4 = PacketNumber = arg4
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_FRAME_C, FrameLogDataBlockedInvalid,
     TP_ARGS(
@@ -883,10 +883,10 @@ TRACEPOINT_EVENT(CLOG_FRAME_C, FrameLogDataBlockedInvalid,
             PktRxPre(Rx),
             PacketNumber,
             Frame.DataLimit);
-// arg2 = arg2 = PtkConnPre(Connection)
-// arg3 = arg3 = PktRxPre(Rx)
-// arg4 = arg4 = PacketNumber
-// arg5 = arg5 = Frame.DataLimit
+// arg2 = arg2 = PtkConnPre(Connection) = arg2
+// arg3 = arg3 = PktRxPre(Rx) = arg3
+// arg4 = arg4 = PacketNumber = arg4
+// arg5 = arg5 = Frame.DataLimit = arg5
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_FRAME_C, FrameLogDataBlocked,
     TP_ARGS(
@@ -913,9 +913,9 @@ TRACEPOINT_EVENT(CLOG_FRAME_C, FrameLogDataBlocked,
                 PtkConnPre(Connection),
                 PktRxPre(Rx),
                 PacketNumber);
-// arg2 = arg2 = PtkConnPre(Connection)
-// arg3 = arg3 = PktRxPre(Rx)
-// arg4 = arg4 = PacketNumber
+// arg2 = arg2 = PtkConnPre(Connection) = arg2
+// arg3 = arg3 = PktRxPre(Rx) = arg3
+// arg4 = arg4 = PacketNumber = arg4
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_FRAME_C, FrameLogStreamDataBlockedInvalid,
     TP_ARGS(
@@ -942,11 +942,11 @@ TRACEPOINT_EVENT(CLOG_FRAME_C, FrameLogStreamDataBlockedInvalid,
             PacketNumber,
             Frame.StreamID,
             Frame.StreamDataLimit);
-// arg2 = arg2 = PtkConnPre(Connection)
-// arg3 = arg3 = PktRxPre(Rx)
-// arg4 = arg4 = PacketNumber
-// arg5 = arg5 = Frame.StreamID
-// arg6 = arg6 = Frame.StreamDataLimit
+// arg2 = arg2 = PtkConnPre(Connection) = arg2
+// arg3 = arg3 = PktRxPre(Rx) = arg3
+// arg4 = arg4 = PacketNumber = arg4
+// arg5 = arg5 = Frame.StreamID = arg5
+// arg6 = arg6 = Frame.StreamDataLimit = arg6
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_FRAME_C, FrameLogStreamDataBlocked,
     TP_ARGS(
@@ -975,9 +975,9 @@ TRACEPOINT_EVENT(CLOG_FRAME_C, FrameLogStreamDataBlocked,
                 PtkConnPre(Connection),
                 PktRxPre(Rx),
                 PacketNumber);
-// arg2 = arg2 = PtkConnPre(Connection)
-// arg3 = arg3 = PktRxPre(Rx)
-// arg4 = arg4 = PacketNumber
+// arg2 = arg2 = PtkConnPre(Connection) = arg2
+// arg3 = arg3 = PktRxPre(Rx) = arg3
+// arg4 = arg4 = PacketNumber = arg4
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_FRAME_C, FrameLogStreamsBlockedInvalid,
     TP_ARGS(
@@ -1004,11 +1004,11 @@ TRACEPOINT_EVENT(CLOG_FRAME_C, FrameLogStreamsBlockedInvalid,
             PacketNumber,
             Frame.BidirectionalStreams,
             Frame.StreamLimit);
-// arg2 = arg2 = PtkConnPre(Connection)
-// arg3 = arg3 = PktRxPre(Rx)
-// arg4 = arg4 = PacketNumber
-// arg5 = arg5 = Frame.BidirectionalStreams
-// arg6 = arg6 = Frame.StreamLimit
+// arg2 = arg2 = PtkConnPre(Connection) = arg2
+// arg3 = arg3 = PktRxPre(Rx) = arg3
+// arg4 = arg4 = PacketNumber = arg4
+// arg5 = arg5 = Frame.BidirectionalStreams = arg5
+// arg6 = arg6 = Frame.StreamLimit = arg6
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_FRAME_C, FrameLogStreamsBlocked,
     TP_ARGS(
@@ -1037,9 +1037,9 @@ TRACEPOINT_EVENT(CLOG_FRAME_C, FrameLogStreamsBlocked,
                 PtkConnPre(Connection),
                 PktRxPre(Rx),
                 PacketNumber);
-// arg2 = arg2 = PtkConnPre(Connection)
-// arg3 = arg3 = PktRxPre(Rx)
-// arg4 = arg4 = PacketNumber
+// arg2 = arg2 = PtkConnPre(Connection) = arg2
+// arg3 = arg3 = PktRxPre(Rx) = arg3
+// arg4 = arg4 = PacketNumber = arg4
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_FRAME_C, FrameLogNewConnectionIDInvalid,
     TP_ARGS(
@@ -1068,13 +1068,13 @@ TRACEPOINT_EVENT(CLOG_FRAME_C, FrameLogNewConnectionIDInvalid,
             Frame.RetirePriorTo,
             QuicCidBufToStr(Frame.Buffer, Frame.Length).Buffer,
             QuicCidBufToStr(Frame.Buffer + Frame.Length, QUIC_STATELESS_RESET_TOKEN_LENGTH).Buffer);
-// arg2 = arg2 = PtkConnPre(Connection)
-// arg3 = arg3 = PktRxPre(Rx)
-// arg4 = arg4 = PacketNumber
-// arg5 = arg5 = Frame.Sequence
-// arg6 = arg6 = Frame.RetirePriorTo
-// arg7 = arg7 = QuicCidBufToStr(Frame.Buffer, Frame.Length).Buffer
-// arg8 = arg8 = QuicCidBufToStr(Frame.Buffer + Frame.Length, QUIC_STATELESS_RESET_TOKEN_LENGTH).Buffer
+// arg2 = arg2 = PtkConnPre(Connection) = arg2
+// arg3 = arg3 = PktRxPre(Rx) = arg3
+// arg4 = arg4 = PacketNumber = arg4
+// arg5 = arg5 = Frame.Sequence = arg5
+// arg6 = arg6 = Frame.RetirePriorTo = arg6
+// arg7 = arg7 = QuicCidBufToStr(Frame.Buffer, Frame.Length).Buffer = arg7
+// arg8 = arg8 = QuicCidBufToStr(Frame.Buffer + Frame.Length, QUIC_STATELESS_RESET_TOKEN_LENGTH).Buffer = arg8
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_FRAME_C, FrameLogNewConnectionID,
     TP_ARGS(
@@ -1107,9 +1107,9 @@ TRACEPOINT_EVENT(CLOG_FRAME_C, FrameLogNewConnectionID,
                 PtkConnPre(Connection),
                 PktRxPre(Rx),
                 PacketNumber);
-// arg2 = arg2 = PtkConnPre(Connection)
-// arg3 = arg3 = PktRxPre(Rx)
-// arg4 = arg4 = PacketNumber
+// arg2 = arg2 = PtkConnPre(Connection) = arg2
+// arg3 = arg3 = PktRxPre(Rx) = arg3
+// arg4 = arg4 = PacketNumber = arg4
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_FRAME_C, FrameLogRetireConnectionIDInvalid,
     TP_ARGS(
@@ -1135,10 +1135,10 @@ TRACEPOINT_EVENT(CLOG_FRAME_C, FrameLogRetireConnectionIDInvalid,
             PktRxPre(Rx),
             PacketNumber,
             Frame.Sequence);
-// arg2 = arg2 = PtkConnPre(Connection)
-// arg3 = arg3 = PktRxPre(Rx)
-// arg4 = arg4 = PacketNumber
-// arg5 = arg5 = Frame.Sequence
+// arg2 = arg2 = PtkConnPre(Connection) = arg2
+// arg3 = arg3 = PktRxPre(Rx) = arg3
+// arg4 = arg4 = PacketNumber = arg4
+// arg5 = arg5 = Frame.Sequence = arg5
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_FRAME_C, FrameLogRetireConnectionID,
     TP_ARGS(
@@ -1165,9 +1165,9 @@ TRACEPOINT_EVENT(CLOG_FRAME_C, FrameLogRetireConnectionID,
                 PtkConnPre(Connection),
                 PktRxPre(Rx),
                 PacketNumber);
-// arg2 = arg2 = PtkConnPre(Connection)
-// arg3 = arg3 = PktRxPre(Rx)
-// arg4 = arg4 = PacketNumber
+// arg2 = arg2 = PtkConnPre(Connection) = arg2
+// arg3 = arg3 = PktRxPre(Rx) = arg3
+// arg4 = arg4 = PacketNumber = arg4
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_FRAME_C, FrameLogPathChallengeInvalid,
     TP_ARGS(
@@ -1193,10 +1193,10 @@ TRACEPOINT_EVENT(CLOG_FRAME_C, FrameLogPathChallengeInvalid,
             PktRxPre(Rx),
             PacketNumber,
             CxPlatByteSwapUint64(*(uint64_t*)Frame.Data));
-// arg2 = arg2 = PtkConnPre(Connection)
-// arg3 = arg3 = PktRxPre(Rx)
-// arg4 = arg4 = PacketNumber
-// arg5 = arg5 = CxPlatByteSwapUint64(*(uint64_t*)Frame.Data)
+// arg2 = arg2 = PtkConnPre(Connection) = arg2
+// arg3 = arg3 = PktRxPre(Rx) = arg3
+// arg4 = arg4 = PacketNumber = arg4
+// arg5 = arg5 = CxPlatByteSwapUint64(*(uint64_t*)Frame.Data) = arg5
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_FRAME_C, FrameLogPathChallenge,
     TP_ARGS(
@@ -1223,9 +1223,9 @@ TRACEPOINT_EVENT(CLOG_FRAME_C, FrameLogPathChallenge,
                 PtkConnPre(Connection),
                 PktRxPre(Rx),
                 PacketNumber);
-// arg2 = arg2 = PtkConnPre(Connection)
-// arg3 = arg3 = PktRxPre(Rx)
-// arg4 = arg4 = PacketNumber
+// arg2 = arg2 = PtkConnPre(Connection) = arg2
+// arg3 = arg3 = PktRxPre(Rx) = arg3
+// arg4 = arg4 = PacketNumber = arg4
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_FRAME_C, FrameLogPathResponseInvalid,
     TP_ARGS(
@@ -1251,10 +1251,10 @@ TRACEPOINT_EVENT(CLOG_FRAME_C, FrameLogPathResponseInvalid,
             PktRxPre(Rx),
             PacketNumber,
             CxPlatByteSwapUint64(*(uint64_t*)Frame.Data));
-// arg2 = arg2 = PtkConnPre(Connection)
-// arg3 = arg3 = PktRxPre(Rx)
-// arg4 = arg4 = PacketNumber
-// arg5 = arg5 = CxPlatByteSwapUint64(*(uint64_t*)Frame.Data)
+// arg2 = arg2 = PtkConnPre(Connection) = arg2
+// arg3 = arg3 = PktRxPre(Rx) = arg3
+// arg4 = arg4 = PacketNumber = arg4
+// arg5 = arg5 = CxPlatByteSwapUint64(*(uint64_t*)Frame.Data) = arg5
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_FRAME_C, FrameLogPathResponse,
     TP_ARGS(
@@ -1281,9 +1281,9 @@ TRACEPOINT_EVENT(CLOG_FRAME_C, FrameLogPathResponse,
                 PtkConnPre(Connection),
                 PktRxPre(Rx),
                 PacketNumber);
-// arg2 = arg2 = PtkConnPre(Connection)
-// arg3 = arg3 = PktRxPre(Rx)
-// arg4 = arg4 = PacketNumber
+// arg2 = arg2 = PtkConnPre(Connection) = arg2
+// arg3 = arg3 = PktRxPre(Rx) = arg3
+// arg4 = arg4 = PacketNumber = arg4
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_FRAME_C, FrameLogConnectionCloseInvalid,
     TP_ARGS(
@@ -1309,10 +1309,10 @@ TRACEPOINT_EVENT(CLOG_FRAME_C, FrameLogConnectionCloseInvalid,
                 PktRxPre(Rx),
                 PacketNumber,
                 Frame.ErrorCode);
-// arg2 = arg2 = PtkConnPre(Connection)
-// arg3 = arg3 = PktRxPre(Rx)
-// arg4 = arg4 = PacketNumber
-// arg5 = arg5 = Frame.ErrorCode
+// arg2 = arg2 = PtkConnPre(Connection) = arg2
+// arg3 = arg3 = PktRxPre(Rx) = arg3
+// arg4 = arg4 = PacketNumber = arg4
+// arg5 = arg5 = Frame.ErrorCode = arg5
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_FRAME_C, FrameLogConnectionCloseApp,
     TP_ARGS(
@@ -1341,11 +1341,11 @@ TRACEPOINT_EVENT(CLOG_FRAME_C, FrameLogConnectionCloseApp,
                 PacketNumber,
                 Frame.ErrorCode,
                 Frame.FrameType);
-// arg2 = arg2 = PtkConnPre(Connection)
-// arg3 = arg3 = PktRxPre(Rx)
-// arg4 = arg4 = PacketNumber
-// arg5 = arg5 = Frame.ErrorCode
-// arg6 = arg6 = Frame.FrameType
+// arg2 = arg2 = PtkConnPre(Connection) = arg2
+// arg3 = arg3 = PktRxPre(Rx) = arg3
+// arg4 = arg4 = PacketNumber = arg4
+// arg5 = arg5 = Frame.ErrorCode = arg5
+// arg6 = arg6 = Frame.FrameType = arg6
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_FRAME_C, FrameLogConnectionClose,
     TP_ARGS(
@@ -1374,9 +1374,9 @@ TRACEPOINT_EVENT(CLOG_FRAME_C, FrameLogConnectionClose,
             PtkConnPre(Connection),
             PktRxPre(Rx),
             PacketNumber);
-// arg2 = arg2 = PtkConnPre(Connection)
-// arg3 = arg3 = PktRxPre(Rx)
-// arg4 = arg4 = PacketNumber
+// arg2 = arg2 = PtkConnPre(Connection) = arg2
+// arg3 = arg3 = PktRxPre(Rx) = arg3
+// arg4 = arg4 = PacketNumber = arg4
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_FRAME_C, FrameLogHandshakeDone,
     TP_ARGS(
@@ -1401,9 +1401,9 @@ TRACEPOINT_EVENT(CLOG_FRAME_C, FrameLogHandshakeDone,
                 PtkConnPre(Connection),
                 PktRxPre(Rx),
                 PacketNumber);
-// arg2 = arg2 = PtkConnPre(Connection)
-// arg3 = arg3 = PktRxPre(Rx)
-// arg4 = arg4 = PacketNumber
+// arg2 = arg2 = PtkConnPre(Connection) = arg2
+// arg3 = arg3 = PktRxPre(Rx) = arg3
+// arg4 = arg4 = PacketNumber = arg4
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_FRAME_C, FrameLogDatagramInvalid,
     TP_ARGS(
@@ -1429,10 +1429,10 @@ TRACEPOINT_EVENT(CLOG_FRAME_C, FrameLogDatagramInvalid,
             PktRxPre(Rx),
             PacketNumber,
             (uint16_t)Frame.Length);
-// arg2 = arg2 = PtkConnPre(Connection)
-// arg3 = arg3 = PktRxPre(Rx)
-// arg4 = arg4 = PacketNumber
-// arg5 = arg5 = (uint16_t)Frame.Length
+// arg2 = arg2 = PtkConnPre(Connection) = arg2
+// arg3 = arg3 = PktRxPre(Rx) = arg3
+// arg4 = arg4 = PacketNumber = arg4
+// arg5 = arg5 = (uint16_t)Frame.Length = arg5
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_FRAME_C, FrameLogDatagram,
     TP_ARGS(
@@ -1459,9 +1459,9 @@ TRACEPOINT_EVENT(CLOG_FRAME_C, FrameLogDatagram,
                 PtkConnPre(Connection),
                 PktRxPre(Rx),
                 PacketNumber);
-// arg2 = arg2 = PtkConnPre(Connection)
-// arg3 = arg3 = PktRxPre(Rx)
-// arg4 = arg4 = PacketNumber
+// arg2 = arg2 = PtkConnPre(Connection) = arg2
+// arg3 = arg3 = PktRxPre(Rx) = arg3
+// arg4 = arg4 = PacketNumber = arg4
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_FRAME_C, FrameLogAckFrequencyInvalid,
     TP_ARGS(
@@ -1479,24 +1479,26 @@ TRACEPOINT_EVENT(CLOG_FRAME_C, FrameLogAckFrequencyInvalid,
 
 /*----------------------------------------------------------
 // Decoder Ring for FrameLogAckFrequency
-// [%c][%cX][%llu]   ACK_FREQUENCY SeqNum:%llu PktTolerance:%llu MaxAckDelay:%llu IgnoreOrder:%hhu
+// [%c][%cX][%llu]   ACK_FREQUENCY SeqNum:%llu PktTolerance:%llu MaxAckDelay:%llu IgnoreOrder:%hhu IgnoreCE:%hhu
 // QuicTraceLogVerbose(
             FrameLogAckFrequency,
-            "[%c][%cX][%llu]   ACK_FREQUENCY SeqNum:%llu PktTolerance:%llu MaxAckDelay:%llu IgnoreOrder:%hhu",
+            "[%c][%cX][%llu]   ACK_FREQUENCY SeqNum:%llu PktTolerance:%llu MaxAckDelay:%llu IgnoreOrder:%hhu IgnoreCE:%hhu",
             PtkConnPre(Connection),
             PktRxPre(Rx),
             PacketNumber,
             Frame.SequenceNumber,
             Frame.PacketTolerance,
             Frame.UpdateMaxAckDelay,
-            Frame.IgnoreOrder);
-// arg2 = arg2 = PtkConnPre(Connection)
-// arg3 = arg3 = PktRxPre(Rx)
-// arg4 = arg4 = PacketNumber
-// arg5 = arg5 = Frame.SequenceNumber
-// arg6 = arg6 = Frame.PacketTolerance
-// arg7 = arg7 = Frame.UpdateMaxAckDelay
-// arg8 = arg8 = Frame.IgnoreOrder
+            Frame.IgnoreOrder,
+            Frame.IgnoreCE);
+// arg2 = arg2 = PtkConnPre(Connection) = arg2
+// arg3 = arg3 = PktRxPre(Rx) = arg3
+// arg4 = arg4 = PacketNumber = arg4
+// arg5 = arg5 = Frame.SequenceNumber = arg5
+// arg6 = arg6 = Frame.PacketTolerance = arg6
+// arg7 = arg7 = Frame.UpdateMaxAckDelay = arg7
+// arg8 = arg8 = Frame.IgnoreOrder = arg8
+// arg9 = arg9 = Frame.IgnoreCE = arg9
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_FRAME_C, FrameLogAckFrequency,
     TP_ARGS(
@@ -1506,7 +1508,8 @@ TRACEPOINT_EVENT(CLOG_FRAME_C, FrameLogAckFrequency,
         unsigned long long, arg5,
         unsigned long long, arg6,
         unsigned long long, arg7,
-        unsigned char, arg8), 
+        unsigned char, arg8,
+        unsigned char, arg9), 
     TP_FIELDS(
         ctf_integer(unsigned char, arg2, arg2)
         ctf_integer(unsigned char, arg3, arg3)
@@ -1515,6 +1518,34 @@ TRACEPOINT_EVENT(CLOG_FRAME_C, FrameLogAckFrequency,
         ctf_integer(uint64_t, arg6, arg6)
         ctf_integer(uint64_t, arg7, arg7)
         ctf_integer(unsigned char, arg8, arg8)
+        ctf_integer(unsigned char, arg9, arg9)
+    )
+)
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for FrameLogImmediateAck
+// [%c][%cX][%llu]   IMMEDIATE_ACK
+// QuicTraceLogVerbose(
+            FrameLogImmediateAck,
+            "[%c][%cX][%llu]   IMMEDIATE_ACK",
+            PtkConnPre(Connection),
+            PktRxPre(Rx),
+            PacketNumber);
+// arg2 = arg2 = PtkConnPre(Connection) = arg2
+// arg3 = arg3 = PktRxPre(Rx) = arg3
+// arg4 = arg4 = PacketNumber = arg4
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_FRAME_C, FrameLogImmediateAck,
+    TP_ARGS(
+        unsigned char, arg2,
+        unsigned char, arg3,
+        unsigned long long, arg4), 
+    TP_FIELDS(
+        ctf_integer(unsigned char, arg2, arg2)
+        ctf_integer(unsigned char, arg3, arg3)
+        ctf_integer(uint64_t, arg4, arg4)
     )
 )
 
@@ -1528,8 +1559,8 @@ TRACEPOINT_EVENT(CLOG_FRAME_C, FrameLogAckFrequency,
             "[conn][%p] ERROR, %s.",
             Connection,
             "Frame type decode failure");
-// arg2 = arg2 = Connection
-// arg3 = arg3 = "Frame type decode failure"
+// arg2 = arg2 = Connection = arg2
+// arg3 = arg3 = "Frame type decode failure" = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_FRAME_C, ConnError,
     TP_ARGS(

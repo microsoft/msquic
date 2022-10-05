@@ -10,15 +10,23 @@ on:
     - main
     - release/*
 
+permissions: read-all
+
 jobs:
   validate:
+    permissions:
+      contents: read # for actions/checkout to fetch code
     name: Validate
     runs-on: windows-latest
     steps:
+    - name: Setup .NET
+      uses: actions/setup-dotnet@c7e7147fd3e41056e75a761416c06f5fa781b5fb
+      with:
+        dotnet-version: 6.0.x
     - name: Checkout repository
-      uses: actions/checkout@v2
+      uses: actions/checkout@2541b1294d2704b0964813337f33b291d3f8596b
     - name: Prepare Machine
-      run: scripts/prepare-machine.ps1 -Configuration Dev
+      run: scripts/prepare-machine.ps1
       shell: pwsh
     - name: Run CLOG Update
       run: scripts/update-sidecar.ps1

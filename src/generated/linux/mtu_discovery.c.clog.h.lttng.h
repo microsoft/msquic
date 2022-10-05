@@ -10,9 +10,9 @@
         "Path[%hhu] Mtu Discovery Entering Search Complete at MTU %hu",
         Path->ID,
         Path->Mtu);
-// arg1 = arg1 = Connection
-// arg3 = arg3 = Path->ID
-// arg4 = arg4 = Path->Mtu
+// arg1 = arg1 = Connection = arg1
+// arg3 = arg3 = Path->ID = arg3
+// arg4 = arg4 = Path->Mtu = arg4
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_MTU_DISCOVERY_C, MtuSearchComplete,
     TP_ARGS(
@@ -37,9 +37,9 @@ TRACEPOINT_EVENT(CLOG_MTU_DISCOVERY_C, MtuSearchComplete,
         "Path[%hhu] Mtu Discovery Search Packet Sending with MTU %hu",
         Path->ID,
         MtuDiscovery->ProbeSize);
-// arg1 = arg1 = Connection
-// arg3 = arg3 = Path->ID
-// arg4 = arg4 = MtuDiscovery->ProbeSize
+// arg1 = arg1 = Connection = arg1
+// arg3 = arg3 = Path->ID = arg3
+// arg4 = arg4 = MtuDiscovery->ProbeSize = arg4
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_MTU_DISCOVERY_C, MtuSearching,
     TP_ARGS(
@@ -65,10 +65,10 @@ TRACEPOINT_EVENT(CLOG_MTU_DISCOVERY_C, MtuSearching,
         Path->ID,
         MtuDiscovery->MaxMtu,
         Path->Mtu);
-// arg1 = arg1 = Connection
-// arg3 = arg3 = Path->ID
-// arg4 = arg4 = MtuDiscovery->MaxMtu
-// arg5 = arg5 = Path->Mtu
+// arg1 = arg1 = Connection = arg1
+// arg3 = arg3 = Path->ID = arg3
+// arg4 = arg4 = MtuDiscovery->MaxMtu = arg4
+// arg5 = arg5 = Path->Mtu = arg5
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_MTU_DISCOVERY_C, MtuPathInitialized,
     TP_ARGS(
@@ -95,9 +95,9 @@ TRACEPOINT_EVENT(CLOG_MTU_DISCOVERY_C, MtuPathInitialized,
         "Path[%hhu] MTU updated to %hu bytes",
         Path->ID,
         Path->Mtu);
-// arg1 = arg1 = Connection
-// arg3 = arg3 = Path->ID
-// arg4 = arg4 = Path->Mtu
+// arg1 = arg1 = Connection = arg1
+// arg3 = arg3 = Path->ID = arg3
+// arg4 = arg4 = Path->Mtu = arg4
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_MTU_DISCOVERY_C, PathMtuUpdated,
     TP_ARGS(
@@ -123,10 +123,10 @@ TRACEPOINT_EVENT(CLOG_MTU_DISCOVERY_C, PathMtuUpdated,
         Path->ID,
         MtuDiscovery->ProbeSize,
         MtuDiscovery->ProbeCount);
-// arg1 = arg1 = Connection
-// arg3 = arg3 = Path->ID
-// arg4 = arg4 = MtuDiscovery->ProbeSize
-// arg5 = arg5 = MtuDiscovery->ProbeCount
+// arg1 = arg1 = Connection = arg1
+// arg3 = arg3 = Path->ID = arg3
+// arg4 = arg4 = MtuDiscovery->ProbeSize = arg4
+// arg5 = arg5 = MtuDiscovery->ProbeCount = arg5
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_MTU_DISCOVERY_C, MtuDiscarded,
     TP_ARGS(
@@ -154,10 +154,10 @@ TRACEPOINT_EVENT(CLOG_MTU_DISCOVERY_C, MtuDiscarded,
             Path->ID,
             MtuDiscovery->ProbeSize,
             PacketMtu);
-// arg1 = arg1 = Connection
-// arg3 = arg3 = Path->ID
-// arg4 = arg4 = MtuDiscovery->ProbeSize
-// arg5 = arg5 = PacketMtu
+// arg1 = arg1 = Connection = arg1
+// arg3 = arg3 = Path->ID = arg3
+// arg4 = arg4 = MtuDiscovery->ProbeSize = arg4
+// arg5 = arg5 = PacketMtu = arg5
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_MTU_DISCOVERY_C, MtuIncorrectSize,
     TP_ARGS(

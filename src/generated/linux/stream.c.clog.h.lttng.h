@@ -8,7 +8,7 @@
                 CloseWithoutShutdown,
                 Stream,
                 "Closing handle without fully shutting down");
-// arg1 = arg1 = Stream
+// arg1 = arg1 = Stream = arg1
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_STREAM_C, CloseWithoutShutdown,
     TP_ARGS(
@@ -27,7 +27,7 @@ TRACEPOINT_EVENT(CLOG_STREAM_C, CloseWithoutShutdown,
             EventSilentDiscard,
             Stream,
             "Event silently discarded");
-// arg1 = arg1 = Stream
+// arg1 = arg1 = Stream = arg1
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_STREAM_C, EventSilentDiscard,
     TP_ARGS(
@@ -47,8 +47,8 @@ TRACEPOINT_EVENT(CLOG_STREAM_C, EventSilentDiscard,
                 Stream,
                 "New send priority = %hu",
                 Stream->SendPriority);
-// arg1 = arg1 = Stream
-// arg3 = arg3 = Stream->SendPriority
+// arg1 = arg1 = Stream = arg1
+// arg3 = arg3 = Stream->SendPriority = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_STREAM_C, UpdatePriority,
     TP_ARGS(
@@ -72,10 +72,10 @@ TRACEPOINT_EVENT(CLOG_STREAM_C, UpdatePriority,
         Status,
         Stream->ID,
         Event.START_COMPLETE.PeerAccepted);
-// arg1 = arg1 = Stream
-// arg3 = arg3 = Status
-// arg4 = arg4 = Stream->ID
-// arg5 = arg5 = Event.START_COMPLETE.PeerAccepted
+// arg1 = arg1 = Stream = arg1
+// arg3 = arg3 = Status = arg3
+// arg4 = arg4 = Stream->ID = arg4
+// arg5 = arg5 = Event.START_COMPLETE.PeerAccepted = arg5
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_STREAM_C, IndicateStartComplete,
     TP_ARGS(
@@ -95,22 +95,61 @@ TRACEPOINT_EVENT(CLOG_STREAM_C, IndicateStartComplete,
 
 /*----------------------------------------------------------
 // Decoder Ring for IndicateStreamShutdownComplete
-// [strm][%p] Indicating QUIC_STREAM_EVENT_SHUTDOWN_COMPLETE [ConnectionShutdown=%hhu]
+// [strm][%p] Indicating QUIC_STREAM_EVENT_SHUTDOWN_COMPLETE [ConnectionShutdown=%hhu, ConnectionShutdownByApp=%hhu, ConnectionClosedRemotely=%hhu, ConnectionErrorCode=0x%llx, ConnectionCloseStatus=0x%x]
 // QuicTraceLogStreamVerbose(
             IndicateStreamShutdownComplete,
             Stream,
-            "Indicating QUIC_STREAM_EVENT_SHUTDOWN_COMPLETE [ConnectionShutdown=%hhu]",
-            Event.SHUTDOWN_COMPLETE.ConnectionShutdown);
-// arg1 = arg1 = Stream
-// arg3 = arg3 = Event.SHUTDOWN_COMPLETE.ConnectionShutdown
+            "Indicating QUIC_STREAM_EVENT_SHUTDOWN_COMPLETE [ConnectionShutdown=%hhu, ConnectionShutdownByApp=%hhu, ConnectionClosedRemotely=%hhu, ConnectionErrorCode=0x%llx, ConnectionCloseStatus=0x%x]",
+            Event.SHUTDOWN_COMPLETE.ConnectionShutdown,
+            Event.SHUTDOWN_COMPLETE.ConnectionShutdownByApp,
+            Event.SHUTDOWN_COMPLETE.ConnectionClosedRemotely,
+            Event.SHUTDOWN_COMPLETE.ConnectionErrorCode,
+            Event.SHUTDOWN_COMPLETE.ConnectionCloseStatus);
+// arg1 = arg1 = Stream = arg1
+// arg3 = arg3 = Event.SHUTDOWN_COMPLETE.ConnectionShutdown = arg3
+// arg4 = arg4 = Event.SHUTDOWN_COMPLETE.ConnectionShutdownByApp = arg4
+// arg5 = arg5 = Event.SHUTDOWN_COMPLETE.ConnectionClosedRemotely = arg5
+// arg6 = arg6 = Event.SHUTDOWN_COMPLETE.ConnectionErrorCode = arg6
+// arg7 = arg7 = Event.SHUTDOWN_COMPLETE.ConnectionCloseStatus = arg7
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_STREAM_C, IndicateStreamShutdownComplete,
     TP_ARGS(
         const void *, arg1,
-        unsigned char, arg3), 
+        unsigned char, arg3,
+        unsigned char, arg4,
+        unsigned char, arg5,
+        unsigned long long, arg6,
+        unsigned int, arg7), 
     TP_FIELDS(
         ctf_integer_hex(uint64_t, arg1, arg1)
         ctf_integer(unsigned char, arg3, arg3)
+        ctf_integer(unsigned char, arg4, arg4)
+        ctf_integer(unsigned char, arg5, arg5)
+        ctf_integer(uint64_t, arg6, arg6)
+        ctf_integer(unsigned int, arg7, arg7)
+    )
+)
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for StreamAlloc
+// [strm][%p] Allocated, Conn=%p
+// QuicTraceEvent(
+        StreamAlloc,
+        "[strm][%p] Allocated, Conn=%p",
+        Stream,
+        Connection);
+// arg2 = arg2 = Stream = arg2
+// arg3 = arg3 = Connection = arg3
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_STREAM_C, StreamAlloc,
+    TP_ARGS(
+        const void *, arg2,
+        const void *, arg3), 
+    TP_FIELDS(
+        ctf_integer_hex(uint64_t, arg2, arg2)
+        ctf_integer_hex(uint64_t, arg3, arg3)
     )
 )
 
@@ -123,7 +162,7 @@ TRACEPOINT_EVENT(CLOG_STREAM_C, IndicateStreamShutdownComplete,
             StreamDestroyed,
             "[strm][%p] Destroyed",
             Stream);
-// arg2 = arg2 = Stream
+// arg2 = arg2 = Stream = arg2
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_STREAM_C, StreamDestroyed,
     TP_ARGS(
@@ -145,10 +184,10 @@ TRACEPOINT_EVENT(CLOG_STREAM_C, StreamDestroyed,
         Stream->Connection,
         Stream->ID,
         !IsRemoteStream);
-// arg2 = arg2 = Stream
-// arg3 = arg3 = Stream->Connection
-// arg4 = arg4 = Stream->ID
-// arg5 = arg5 = !IsRemoteStream
+// arg2 = arg2 = Stream = arg2
+// arg3 = arg3 = Stream->Connection = arg3
+// arg4 = arg4 = Stream->ID = arg4
+// arg5 = arg5 = !IsRemoteStream = arg5
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_STREAM_C, StreamCreated,
     TP_ARGS(
@@ -174,8 +213,8 @@ TRACEPOINT_EVENT(CLOG_STREAM_C, StreamCreated,
         "[strm][%p] Send State: %hhu",
         Stream,
         QuicStreamSendGetState(Stream));
-// arg2 = arg2 = Stream
-// arg3 = arg3 = QuicStreamSendGetState(Stream)
+// arg2 = arg2 = Stream = arg2
+// arg3 = arg3 = QuicStreamSendGetState(Stream) = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_STREAM_C, StreamSendState,
     TP_ARGS(
@@ -197,33 +236,10 @@ TRACEPOINT_EVENT(CLOG_STREAM_C, StreamSendState,
         "[strm][%p] Recv State: %hhu",
         Stream,
         QuicStreamRecvGetState(Stream));
-// arg2 = arg2 = Stream
-// arg3 = arg3 = QuicStreamRecvGetState(Stream)
+// arg2 = arg2 = Stream = arg2
+// arg3 = arg3 = QuicStreamRecvGetState(Stream) = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_STREAM_C, StreamRecvState,
-    TP_ARGS(
-        const void *, arg2,
-        unsigned char, arg3), 
-    TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg2, arg2)
-        ctf_integer(unsigned char, arg3, arg3)
-    )
-)
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for StreamOutFlowBlocked
-// [strm][%p] Send Blocked Flags: %hhu
-// QuicTraceEvent(
-            StreamOutFlowBlocked,
-            "[strm][%p] Send Blocked Flags: %hhu",
-            Stream,
-            Stream->OutFlowBlockedReasons);
-// arg2 = arg2 = Stream
-// arg3 = arg3 = Stream->OutFlowBlockedReasons
-----------------------------------------------------------*/
-TRACEPOINT_EVENT(CLOG_STREAM_C, StreamOutFlowBlocked,
     TP_ARGS(
         const void *, arg2,
         unsigned char, arg3), 
@@ -245,10 +261,10 @@ TRACEPOINT_EVENT(CLOG_STREAM_C, StreamOutFlowBlocked,
         Stream->Connection,
         Stream->ID,
         ((QuicConnIsClient(Stream->Connection)) ^ (Stream->ID & STREAM_ID_FLAG_IS_SERVER)));
-// arg2 = arg2 = Stream
-// arg3 = arg3 = Stream->Connection
-// arg4 = arg4 = Stream->ID
-// arg5 = arg5 = ((QuicConnIsClient(Stream->Connection)) ^ (Stream->ID & STREAM_ID_FLAG_IS_SERVER))
+// arg2 = arg2 = Stream = arg2
+// arg3 = arg3 = Stream->Connection = arg3
+// arg4 = arg4 = Stream->ID = arg4
+// arg5 = arg5 = ((QuicConnIsClient(Stream->Connection)) ^ (Stream->ID & STREAM_ID_FLAG_IS_SERVER)) = arg5
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_STREAM_C, StreamRundown,
     TP_ARGS(
@@ -261,5 +277,28 @@ TRACEPOINT_EVENT(CLOG_STREAM_C, StreamRundown,
         ctf_integer_hex(uint64_t, arg3, arg3)
         ctf_integer(uint64_t, arg4, arg4)
         ctf_integer(unsigned char, arg5, arg5)
+    )
+)
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for StreamOutFlowBlocked
+// [strm][%p] Send Blocked Flags: %hhu
+// QuicTraceEvent(
+        StreamOutFlowBlocked,
+        "[strm][%p] Send Blocked Flags: %hhu",
+        Stream,
+        Stream->OutFlowBlockedReasons);
+// arg2 = arg2 = Stream = arg2
+// arg3 = arg3 = Stream->OutFlowBlockedReasons = arg3
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_STREAM_C, StreamOutFlowBlocked,
+    TP_ARGS(
+        const void *, arg2,
+        unsigned char, arg3), 
+    TP_FIELDS(
+        ctf_integer_hex(uint64_t, arg2, arg2)
+        ctf_integer(unsigned char, arg3, arg3)
     )
 )

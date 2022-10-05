@@ -22,7 +22,8 @@ namespace QuicTrace.DataModel
         ConnectionTput = 0x0080,
         Stream = 0x0100,
         StreamFlowBlocked = 0x0200,
-        Datapath = 0x0400
+        Datapath = 0x0400,
+        Packet = 0x0800
     };
 
     public readonly struct QuicActivityData
@@ -155,16 +156,17 @@ namespace QuicTrace.DataModel
 
     public enum QuicTputDataType
     {
-        Tx,
-        TxAck,
-        TxUdp,
-        Rx,
+        Tx,         // Sent to UDP
+        PktCreate,  // Packet created to be sent
+        TxAck,      // Packet(s) bytes acknowledged
+        Rx,         // Packet received
         Rtt,
         InFlight,
         CWnd,
         Bufferred,
         ConnFC,
-        StreamFC
+        StreamFC,
+        TxDelay
     }
 
     public struct QuicRawTputData

@@ -3,20 +3,20 @@
 
 /*----------------------------------------------------------
 // Decoder Ring for LogPacketVersionNegotiation
-// [%c][%cX][-] VerNeg DestCid:%s SrcCid:%s (Payload %lu bytes)
+// [%c][%cX][-] VerNeg DestCid:%s SrcCid:%s (Payload %hu bytes)
 // QuicTraceLogVerbose(
                 LogPacketVersionNegotiation,
-                "[%c][%cX][-] VerNeg DestCid:%s SrcCid:%s (Payload %lu bytes)",
+                "[%c][%cX][-] VerNeg DestCid:%s SrcCid:%s (Payload %hu bytes)",
                 PtkConnPre(Connection),
                 (uint8_t)PktRxPre(Rx),
                 QuicCidBufToStr(DestCid, DestCidLen).Buffer,
                 QuicCidBufToStr(SourceCid, SourceCidLen).Buffer,
                 (uint16_t)(PacketLength - Offset));
-// arg2 = arg2 = PtkConnPre(Connection)
-// arg3 = arg3 = (uint8_t)PktRxPre(Rx)
-// arg4 = arg4 = QuicCidBufToStr(DestCid, DestCidLen).Buffer
-// arg5 = arg5 = QuicCidBufToStr(SourceCid, SourceCidLen).Buffer
-// arg6 = arg6 = (uint16_t)(PacketLength - Offset)
+// arg2 = arg2 = PtkConnPre(Connection) = arg2
+// arg3 = arg3 = (uint8_t)PktRxPre(Rx) = arg3
+// arg4 = arg4 = QuicCidBufToStr(DestCid, DestCidLen).Buffer = arg4
+// arg5 = arg5 = QuicCidBufToStr(SourceCid, SourceCidLen).Buffer = arg5
+// arg6 = arg6 = (uint16_t)(PacketLength - Offset) = arg6
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_PACKET_C, LogPacketVersionNegotiation,
     TP_ARGS(
@@ -24,13 +24,13 @@ TRACEPOINT_EVENT(CLOG_PACKET_C, LogPacketVersionNegotiation,
         unsigned char, arg3,
         const char *, arg4,
         const char *, arg5,
-        unsigned int, arg6), 
+        unsigned short, arg6), 
     TP_FIELDS(
         ctf_integer(unsigned char, arg2, arg2)
         ctf_integer(unsigned char, arg3, arg3)
         ctf_string(arg4, arg4)
         ctf_string(arg5, arg5)
-        ctf_integer(unsigned int, arg6, arg6)
+        ctf_integer(unsigned short, arg6, arg6)
     )
 )
 
@@ -45,9 +45,9 @@ TRACEPOINT_EVENT(CLOG_PACKET_C, LogPacketVersionNegotiation,
                     PtkConnPre(Connection),
                     (uint8_t)PktRxPre(Rx),
                     *(uint32_t*)(Packet + Offset));
-// arg2 = arg2 = PtkConnPre(Connection)
-// arg3 = arg3 = (uint8_t)PktRxPre(Rx)
-// arg4 = arg4 = *(uint32_t*)(Packet + Offset)
+// arg2 = arg2 = PtkConnPre(Connection) = arg2
+// arg3 = arg3 = (uint8_t)PktRxPre(Rx) = arg3
+// arg4 = arg4 = *(uint32_t*)(Packet + Offset) = arg4
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_PACKET_C, LogPacketVersionNegotiationVersion,
     TP_ARGS(
@@ -75,12 +75,12 @@ TRACEPOINT_EVENT(CLOG_PACKET_C, LogPacketVersionNegotiationVersion,
                     QuicCidBufToStr(DestCid, DestCidLen).Buffer,
                     QuicCidBufToStr(SourceCid, SourceCidLen).Buffer,
                     (uint16_t)(PacketLength - (Offset + QUIC_RETRY_INTEGRITY_TAG_LENGTH_V1)));
-// arg2 = arg2 = PtkConnPre(Connection)
-// arg3 = arg3 = PktRxPre(Rx)
-// arg4 = arg4 = LongHdr->Version
-// arg5 = arg5 = QuicCidBufToStr(DestCid, DestCidLen).Buffer
-// arg6 = arg6 = QuicCidBufToStr(SourceCid, SourceCidLen).Buffer
-// arg7 = arg7 = (uint16_t)(PacketLength - (Offset + QUIC_RETRY_INTEGRITY_TAG_LENGTH_V1))
+// arg2 = arg2 = PtkConnPre(Connection) = arg2
+// arg3 = arg3 = PktRxPre(Rx) = arg3
+// arg4 = arg4 = LongHdr->Version = arg4
+// arg5 = arg5 = QuicCidBufToStr(DestCid, DestCidLen).Buffer = arg5
+// arg6 = arg6 = QuicCidBufToStr(SourceCid, SourceCidLen).Buffer = arg6
+// arg7 = arg7 = (uint16_t)(PacketLength - (Offset + QUIC_RETRY_INTEGRITY_TAG_LENGTH_V1)) = arg7
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_PACKET_C, LogPacketRetry,
     TP_ARGS(
@@ -116,14 +116,14 @@ TRACEPOINT_EVENT(CLOG_PACKET_C, LogPacketRetry,
                     QuicCidBufToStr(SourceCid, SourceCidLen).Buffer,
                     (uint16_t)TokenLength,
                     (uint16_t)Length);
-// arg2 = arg2 = PtkConnPre(Connection)
-// arg3 = arg3 = PktRxPre(Rx)
-// arg4 = arg4 = PacketNumber
-// arg5 = arg5 = LongHdr->Version
-// arg6 = arg6 = QuicCidBufToStr(DestCid, DestCidLen).Buffer
-// arg7 = arg7 = QuicCidBufToStr(SourceCid, SourceCidLen).Buffer
-// arg8 = arg8 = (uint16_t)TokenLength
-// arg9 = arg9 = (uint16_t)Length
+// arg2 = arg2 = PtkConnPre(Connection) = arg2
+// arg3 = arg3 = PktRxPre(Rx) = arg3
+// arg4 = arg4 = PacketNumber = arg4
+// arg5 = arg5 = LongHdr->Version = arg5
+// arg6 = arg6 = QuicCidBufToStr(DestCid, DestCidLen).Buffer = arg6
+// arg7 = arg7 = QuicCidBufToStr(SourceCid, SourceCidLen).Buffer = arg7
+// arg8 = arg8 = (uint16_t)TokenLength = arg8
+// arg9 = arg9 = (uint16_t)Length = arg9
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_PACKET_C, LogPacketLongHeaderInitial,
     TP_ARGS(
@@ -161,16 +161,20 @@ TRACEPOINT_EVENT(CLOG_PACKET_C, LogPacketLongHeaderInitial,
                     LongHdr->Version,
                     QuicCidBufToStr(DestCid, DestCidLen).Buffer,
                     QuicCidBufToStr(SourceCid, SourceCidLen).Buffer,
-                    QuicLongHeaderTypeToString(LongHdr->Type),
+                    LongHdr->Version == QUIC_VERSION_2 ?
+                        QuicLongHeaderTypeToStringV2(LongHdr->Type) :
+                        QuicLongHeaderTypeToStringV1(LongHdr->Type),
                     (uint16_t)Length);
-// arg2 = arg2 = PtkConnPre(Connection)
-// arg3 = arg3 = PktRxPre(Rx)
-// arg4 = arg4 = PacketNumber
-// arg5 = arg5 = LongHdr->Version
-// arg6 = arg6 = QuicCidBufToStr(DestCid, DestCidLen).Buffer
-// arg7 = arg7 = QuicCidBufToStr(SourceCid, SourceCidLen).Buffer
-// arg8 = arg8 = QuicLongHeaderTypeToString(LongHdr->Type)
-// arg9 = arg9 = (uint16_t)Length
+// arg2 = arg2 = PtkConnPre(Connection) = arg2
+// arg3 = arg3 = PktRxPre(Rx) = arg3
+// arg4 = arg4 = PacketNumber = arg4
+// arg5 = arg5 = LongHdr->Version = arg5
+// arg6 = arg6 = QuicCidBufToStr(DestCid, DestCidLen).Buffer = arg6
+// arg7 = arg7 = QuicCidBufToStr(SourceCid, SourceCidLen).Buffer = arg7
+// arg8 = arg8 = LongHdr->Version == QUIC_VERSION_2 ?
+                        QuicLongHeaderTypeToStringV2(LongHdr->Type) :
+                        QuicLongHeaderTypeToStringV1(LongHdr->Type) = arg8
+// arg9 = arg9 = (uint16_t)Length = arg9
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_PACKET_C, LogPacketLongHeader,
     TP_ARGS(
@@ -208,12 +212,12 @@ TRACEPOINT_EVENT(CLOG_PACKET_C, LogPacketLongHeader,
                 Invariant->LONG_HDR.Version,
                 QuicCidBufToStr(DestCid, DestCidLen).Buffer,
                 QuicCidBufToStr(SourceCid, SourceCidLen).Buffer);
-// arg2 = arg2 = PtkConnPre(Connection)
-// arg3 = arg3 = PktRxPre(Rx)
-// arg4 = arg4 = PacketNumber
-// arg5 = arg5 = Invariant->LONG_HDR.Version
-// arg6 = arg6 = QuicCidBufToStr(DestCid, DestCidLen).Buffer
-// arg7 = arg7 = QuicCidBufToStr(SourceCid, SourceCidLen).Buffer
+// arg2 = arg2 = PtkConnPre(Connection) = arg2
+// arg3 = arg3 = PktRxPre(Rx) = arg3
+// arg4 = arg4 = PacketNumber = arg4
+// arg5 = arg5 = Invariant->LONG_HDR.Version = arg5
+// arg6 = arg6 = QuicCidBufToStr(DestCid, DestCidLen).Buffer = arg6
+// arg7 = arg7 = QuicCidBufToStr(SourceCid, SourceCidLen).Buffer = arg7
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_PACKET_C, LogPacketLongHeaderUnsupported,
     TP_ARGS(
@@ -248,13 +252,13 @@ TRACEPOINT_EVENT(CLOG_PACKET_C, LogPacketLongHeaderUnsupported,
                 Header->KeyPhase,
                 Header->SpinBit,
                 (uint16_t)(PacketLength - Offset));
-// arg2 = arg2 = PtkConnPre(Connection)
-// arg3 = arg3 = PktRxPre(Rx)
-// arg4 = arg4 = PacketNumber
-// arg5 = arg5 = QuicCidBufToStr(DestCid, DestCidLen).Buffer
-// arg6 = arg6 = Header->KeyPhase
-// arg7 = arg7 = Header->SpinBit
-// arg8 = arg8 = (uint16_t)(PacketLength - Offset)
+// arg2 = arg2 = PtkConnPre(Connection) = arg2
+// arg3 = arg3 = PktRxPre(Rx) = arg3
+// arg4 = arg4 = PacketNumber = arg4
+// arg5 = arg5 = QuicCidBufToStr(DestCid, DestCidLen).Buffer = arg5
+// arg6 = arg6 = Header->KeyPhase = arg6
+// arg7 = arg7 = Header->SpinBit = arg7
+// arg8 = arg8 = (uint16_t)(PacketLength - Offset) = arg8
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_PACKET_C, LogPacketShortHeader,
     TP_ARGS(
@@ -286,8 +290,8 @@ TRACEPOINT_EVENT(CLOG_PACKET_C, LogPacketShortHeader,
             "Allocation of '%s' failed. (%llu bytes)",
             "RetryPseudoPacket",
             RetryPseudoPacketLength);
-// arg2 = arg2 = "RetryPseudoPacket"
-// arg3 = arg3 = RetryPseudoPacketLength
+// arg2 = arg2 = "RetryPseudoPacket" = arg2
+// arg3 = arg3 = RetryPseudoPacketLength = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_PACKET_C, AllocFailure,
     TP_ARGS(
@@ -311,10 +315,10 @@ TRACEPOINT_EVENT(CLOG_PACKET_C, AllocFailure,
             CASTED_CLOG_BYTEARRAY(sizeof(Datagram->Route->LocalAddress), &Datagram->Route->LocalAddress),
             CASTED_CLOG_BYTEARRAY(sizeof(Datagram->Route->RemoteAddress), &Datagram->Route->RemoteAddress),
             Reason);
-// arg2 = arg2 = Owner
-// arg3 = arg3 = CASTED_CLOG_BYTEARRAY(sizeof(Datagram->Route->LocalAddress), &Datagram->Route->LocalAddress)
-// arg4 = arg4 = CASTED_CLOG_BYTEARRAY(sizeof(Datagram->Route->RemoteAddress), &Datagram->Route->RemoteAddress)
-// arg5 = arg5 = Reason
+// arg2 = arg2 = Owner = arg2
+// arg3 = arg3 = CASTED_CLOG_BYTEARRAY(sizeof(Datagram->Route->LocalAddress), &Datagram->Route->LocalAddress) = arg3
+// arg4 = arg4 = CASTED_CLOG_BYTEARRAY(sizeof(Datagram->Route->RemoteAddress), &Datagram->Route->RemoteAddress) = arg4
+// arg5 = arg5 = Reason = arg5
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_PACKET_C, ConnDropPacket,
     TP_ARGS(
@@ -346,10 +350,10 @@ TRACEPOINT_EVENT(CLOG_PACKET_C, ConnDropPacket,
             CASTED_CLOG_BYTEARRAY(sizeof(Datagram->Route->LocalAddress), &Datagram->Route->LocalAddress),
             CASTED_CLOG_BYTEARRAY(sizeof(Datagram->Route->RemoteAddress), &Datagram->Route->RemoteAddress),
             Reason);
-// arg2 = arg2 = Owner
-// arg3 = arg3 = CASTED_CLOG_BYTEARRAY(sizeof(Datagram->Route->LocalAddress), &Datagram->Route->LocalAddress)
-// arg4 = arg4 = CASTED_CLOG_BYTEARRAY(sizeof(Datagram->Route->RemoteAddress), &Datagram->Route->RemoteAddress)
-// arg5 = arg5 = Reason
+// arg2 = arg2 = Owner = arg2
+// arg3 = arg3 = CASTED_CLOG_BYTEARRAY(sizeof(Datagram->Route->LocalAddress), &Datagram->Route->LocalAddress) = arg3
+// arg4 = arg4 = CASTED_CLOG_BYTEARRAY(sizeof(Datagram->Route->RemoteAddress), &Datagram->Route->RemoteAddress) = arg4
+// arg5 = arg5 = Reason = arg5
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_PACKET_C, BindingDropPacket,
     TP_ARGS(
@@ -382,11 +386,11 @@ TRACEPOINT_EVENT(CLOG_PACKET_C, BindingDropPacket,
             CASTED_CLOG_BYTEARRAY(sizeof(Datagram->Route->LocalAddress), &Datagram->Route->LocalAddress),
             CASTED_CLOG_BYTEARRAY(sizeof(Datagram->Route->RemoteAddress), &Datagram->Route->RemoteAddress),
             Reason);
-// arg2 = arg2 = Owner
-// arg3 = arg3 = Value
-// arg4 = arg4 = CASTED_CLOG_BYTEARRAY(sizeof(Datagram->Route->LocalAddress), &Datagram->Route->LocalAddress)
-// arg5 = arg5 = CASTED_CLOG_BYTEARRAY(sizeof(Datagram->Route->RemoteAddress), &Datagram->Route->RemoteAddress)
-// arg6 = arg6 = Reason
+// arg2 = arg2 = Owner = arg2
+// arg3 = arg3 = Value = arg3
+// arg4 = arg4 = CASTED_CLOG_BYTEARRAY(sizeof(Datagram->Route->LocalAddress), &Datagram->Route->LocalAddress) = arg4
+// arg5 = arg5 = CASTED_CLOG_BYTEARRAY(sizeof(Datagram->Route->RemoteAddress), &Datagram->Route->RemoteAddress) = arg5
+// arg6 = arg6 = Reason = arg6
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_PACKET_C, ConnDropPacketEx,
     TP_ARGS(
@@ -421,11 +425,11 @@ TRACEPOINT_EVENT(CLOG_PACKET_C, ConnDropPacketEx,
             CASTED_CLOG_BYTEARRAY(sizeof(Datagram->Route->LocalAddress), &Datagram->Route->LocalAddress),
             CASTED_CLOG_BYTEARRAY(sizeof(Datagram->Route->RemoteAddress), &Datagram->Route->RemoteAddress),
             Reason);
-// arg2 = arg2 = Owner
-// arg3 = arg3 = Value
-// arg4 = arg4 = CASTED_CLOG_BYTEARRAY(sizeof(Datagram->Route->LocalAddress), &Datagram->Route->LocalAddress)
-// arg5 = arg5 = CASTED_CLOG_BYTEARRAY(sizeof(Datagram->Route->RemoteAddress), &Datagram->Route->RemoteAddress)
-// arg6 = arg6 = Reason
+// arg2 = arg2 = Owner = arg2
+// arg3 = arg3 = Value = arg3
+// arg4 = arg4 = CASTED_CLOG_BYTEARRAY(sizeof(Datagram->Route->LocalAddress), &Datagram->Route->LocalAddress) = arg4
+// arg5 = arg5 = CASTED_CLOG_BYTEARRAY(sizeof(Datagram->Route->RemoteAddress), &Datagram->Route->RemoteAddress) = arg5
+// arg6 = arg6 = Reason = arg6
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_PACKET_C, BindingDropPacketEx,
     TP_ARGS(

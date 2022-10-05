@@ -10,59 +10,52 @@ Abstract:
 --*/
 
 //
-// Maximum number of bytes allowed for a connection ID.
-//
-#define QUIC_MAX_CONNECTION_ID_LENGTH_INVARIANT     255
-#define QUIC_MAX_CONNECTION_ID_LENGTH_V1            20
-
-//
-// Minimum number of bytes required for a connection ID in the client's
-// Initial packet.
-//
-#define QUIC_MIN_INITIAL_CONNECTION_ID_LENGTH       8
-
-//
 // The maximum CID server ID length used by MsQuic.
 //
-#define MSQUIC_MAX_CID_SID_LENGTH                   5
+#define QUIC_MAX_CID_SID_LENGTH                 5
 
 //
 // The index of the byte we use for partition ID lookup, in the connection ID.
 // The PID is 2 bytes. The PID immediately follows the SID.
 //
-#define MSQUIC_CID_PID_LENGTH                       2
+#define QUIC_CID_PID_LENGTH                     2
 
 //
 // The number of bytes (and randomness) that MsQuic uses to uniquely
 // identify connections for a single server / partition combination.
 //
-#define MSQUIC_CID_PAYLOAD_LENGTH                   7
+#define QUIC_CID_PAYLOAD_LENGTH                 7
 
 //
 // The minimum number of bytes that should be purely random in a CID.
 //
-#define MSQUIC_CID_MIN_RANDOM_BYTES                 4
+#define QUIC_CID_MIN_RANDOM_BYTES               4
+
+//
+// The maximum number of bytes that MsQuic supports encoding for CIBIR in a CID.
+//
+#define QUIC_MAX_CIBIR_LENGTH                   6
 
 //
 // The minimum length CIDs that MsQuic ever will generate.
 //
-#define MSQUIC_CID_MIN_LENGTH \
-    (MSQUIC_CID_PID_LENGTH + MSQUIC_CID_PAYLOAD_LENGTH)
+#define QUIC_CID_MIN_LENGTH \
+    (QUIC_CID_PID_LENGTH + QUIC_CID_PAYLOAD_LENGTH)
 
 //
 // The maximum length CIDs that MsQuic ever will generate.
 //
-#define MSQUIC_CID_MAX_LENGTH \
-    (MSQUIC_MAX_CID_SID_LENGTH + \
-     MSQUIC_CID_PID_LENGTH + \
-     MSQUIC_CID_PAYLOAD_LENGTH)
+#define QUIC_CID_MAX_LENGTH \
+    (QUIC_MAX_CID_SID_LENGTH + \
+     QUIC_CID_PID_LENGTH + \
+     QUIC_CID_PAYLOAD_LENGTH)
 
 CXPLAT_STATIC_ASSERT(
-    MSQUIC_CID_MIN_LENGTH >= QUIC_MIN_INITIAL_CONNECTION_ID_LENGTH,
+    QUIC_CID_MIN_LENGTH >= QUIC_MIN_INITIAL_CONNECTION_ID_LENGTH,
     "MsQuic CID length must be at least the minimum initial length");
 
 CXPLAT_STATIC_ASSERT(
-    MSQUIC_CID_MAX_LENGTH <= QUIC_MAX_CONNECTION_ID_LENGTH_V1,
+    QUIC_CID_MAX_LENGTH <= QUIC_MAX_CONNECTION_ID_LENGTH_V1,
     "MsQuic CID length must fit in v1");
 
 //
@@ -70,14 +63,14 @@ CXPLAT_STATIC_ASSERT(
 // the values of the other defines above; essentially constituting the left over
 // part of the CID buffer.
 //
-#define MSQUIC_CID_MAX_APP_PREFIX \
-    (MSQUIC_CID_PAYLOAD_LENGTH - MSQUIC_CID_MIN_RANDOM_BYTES)
+#define QUIC_CID_MAX_APP_PREFIX \
+    (QUIC_CID_PAYLOAD_LENGTH - QUIC_CID_MIN_RANDOM_BYTES)
 
 //
-// The maximum number we will try to randomly calculate a new initial CID before
+// The maximum number we will try to randomly generate a new initial CID before
 // failing.
 //
-#define QUIC_CID_MAX_COLLISION_RETRY                8
+#define QUIC_CID_MAX_COLLISION_RETRY            8
 
 //
 // Connection ID Structures

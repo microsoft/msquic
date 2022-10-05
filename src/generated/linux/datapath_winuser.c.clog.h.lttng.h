@@ -8,7 +8,7 @@
             DatapathOpenTcpSocketFailed,
             "[data] RSS helper socket failed to open, 0x%x",
             WsaError);
-// arg2 = arg2 = WsaError
+// arg2 = arg2 = WsaError = arg2
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_DATAPATH_WINUSER_C, DatapathOpenTcpSocketFailed,
     TP_ARGS(
@@ -27,7 +27,7 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_WINUSER_C, DatapathOpenTcpSocketFailed,
             DatapathQueryRssProcessorInfoFailed,
             "[data] Query for SIO_QUERY_RSS_SCALABILITY_INFO failed, 0x%x",
             WsaError);
-// arg2 = arg2 = WsaError
+// arg2 = arg2 = WsaError = arg2
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_DATAPATH_WINUSER_C, DatapathQueryRssProcessorInfoFailed,
     TP_ARGS(
@@ -46,7 +46,7 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_WINUSER_C, DatapathQueryRssProcessorInfoFailed,
             DatapathOpenUdpSocketFailed,
             "[data] UDP send segmentation helper socket failed to open, 0x%x",
             WsaError);
-// arg2 = arg2 = WsaError
+// arg2 = arg2 = WsaError = arg2
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_DATAPATH_WINUSER_C, DatapathOpenUdpSocketFailed,
     TP_ARGS(
@@ -65,7 +65,7 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_WINUSER_C, DatapathOpenUdpSocketFailed,
             DatapathQueryUdpSendMsgFailed,
             "[data] Query for UDP_SEND_MSG_SIZE failed, 0x%x",
             WsaError);
-// arg2 = arg2 = WsaError
+// arg2 = arg2 = WsaError = arg2
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_DATAPATH_WINUSER_C, DatapathQueryUdpSendMsgFailed,
     TP_ARGS(
@@ -84,7 +84,7 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_WINUSER_C, DatapathQueryUdpSendMsgFailed,
             DatapathQueryRecvMaxCoalescedSizeFailed,
             "[data] Query for UDP_RECV_MAX_COALESCED_SIZE failed, 0x%x",
             WsaError);
-// arg2 = arg2 = WsaError
+// arg2 = arg2 = WsaError = arg2
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_DATAPATH_WINUSER_C, DatapathQueryRecvMaxCoalescedSizeFailed,
     TP_ARGS(
@@ -103,7 +103,7 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_WINUSER_C, DatapathQueryRecvMaxCoalescedSizeFaile
                 DatapathMissingInfo,
                 "[data][%p] WSARecvMsg completion is missing IP_PKTINFO",
                 SocketProc->Parent);
-// arg2 = arg2 = SocketProc->Parent
+// arg2 = arg2 = SocketProc->Parent = arg2
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_DATAPATH_WINUSER_C, DatapathMissingInfo,
     TP_ARGS(
@@ -122,7 +122,7 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_WINUSER_C, DatapathMissingInfo,
                 DatapathRecvEmpty,
                 "[data][%p] Dropping datagram with empty payload.",
                 SocketProc->Parent);
-// arg2 = arg2 = SocketProc->Parent
+// arg2 = arg2 = SocketProc->Parent = arg2
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_DATAPATH_WINUSER_C, DatapathRecvEmpty,
     TP_ARGS(
@@ -141,66 +141,9 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_WINUSER_C, DatapathRecvEmpty,
                     DatapathUroPreallocExceeded,
                     "[data][%p] Exceeded URO preallocation capacity.",
                     SocketProc->Parent);
-// arg2 = arg2 = SocketProc->Parent
+// arg2 = arg2 = SocketProc->Parent = arg2
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_DATAPATH_WINUSER_C, DatapathUroPreallocExceeded,
-    TP_ARGS(
-        const void *, arg2), 
-    TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg2, arg2)
-    )
-)
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for DatapathWorkerThreadStart
-// [data][%p] Worker start
-// QuicTraceLogInfo(
-        DatapathWorkerThreadStart,
-        "[data][%p] Worker start",
-        DatapathProc);
-// arg2 = arg2 = DatapathProc
-----------------------------------------------------------*/
-TRACEPOINT_EVENT(CLOG_DATAPATH_WINUSER_C, DatapathWorkerThreadStart,
-    TP_ARGS(
-        const void *, arg2), 
-    TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg2, arg2)
-    )
-)
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for DatapathWorkerThreadStop
-// [data][%p] Worker stop
-// QuicTraceLogInfo(
-        DatapathWorkerThreadStop,
-        "[data][%p] Worker stop",
-        DatapathProc);
-// arg2 = arg2 = DatapathProc
-----------------------------------------------------------*/
-TRACEPOINT_EVENT(CLOG_DATAPATH_WINUSER_C, DatapathWorkerThreadStop,
-    TP_ARGS(
-        const void *, arg2), 
-    TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg2, arg2)
-    )
-)
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for DatapathShutDownReturn
-// [data][%p] Shut down (return)
-// QuicTraceLogVerbose(
-        DatapathShutDownReturn,
-        "[data][%p] Shut down (return)",
-        Socket);
-// arg2 = arg2 = Socket
-----------------------------------------------------------*/
-TRACEPOINT_EVENT(CLOG_DATAPATH_WINUSER_C, DatapathShutDownReturn,
     TP_ARGS(
         const void *, arg2), 
     TP_FIELDS(
@@ -216,10 +159,29 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_WINUSER_C, DatapathShutDownReturn,
 // QuicTraceLogVerbose(
             DatapathShutDownComplete,
             "[data][%p] Shut down (complete)",
-            SocketProc->Parent);
-// arg2 = arg2 = SocketProc->Parent
+            Socket);
+// arg2 = arg2 = Socket = arg2
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_DATAPATH_WINUSER_C, DatapathShutDownComplete,
+    TP_ARGS(
+        const void *, arg2), 
+    TP_FIELDS(
+        ctf_integer_hex(uint64_t, arg2, arg2)
+    )
+)
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for DatapathSocketContextComplete
+// [data][%p] Socket context shutdown
+// QuicTraceLogVerbose(
+        DatapathSocketContextComplete,
+        "[data][%p] Socket context shutdown",
+        SocketProc);
+// arg2 = arg2 = SocketProc = arg2
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_DATAPATH_WINUSER_C, DatapathSocketContextComplete,
     TP_ARGS(
         const void *, arg2), 
     TP_FIELDS(
@@ -238,9 +200,9 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_WINUSER_C, DatapathShutDownComplete,
         SocketProc->Parent,
         ErrorCode,
         CASTED_CLOG_BYTEARRAY(sizeof(*RemoteAddr), RemoteAddr));
-// arg2 = arg2 = SocketProc->Parent
-// arg3 = arg3 = ErrorCode
-// arg4 = arg4 = CASTED_CLOG_BYTEARRAY(sizeof(*RemoteAddr), RemoteAddr)
+// arg2 = arg2 = SocketProc->Parent = arg2
+// arg3 = arg3 = ErrorCode = arg3
+// arg4 = arg4 = CASTED_CLOG_BYTEARRAY(sizeof(*RemoteAddr), RemoteAddr) = arg4
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_DATAPATH_WINUSER_C, DatapathUnreachableWithError,
     TP_ARGS(
@@ -266,8 +228,8 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_WINUSER_C, DatapathUnreachableWithError,
             "[data][%p] Received larger than expected datagram from %!ADDR!",
             SocketProc->Parent,
             CASTED_CLOG_BYTEARRAY(sizeof(*RemoteAddr), RemoteAddr));
-// arg2 = arg2 = SocketProc->Parent
-// arg3 = arg3 = CASTED_CLOG_BYTEARRAY(sizeof(*RemoteAddr), RemoteAddr)
+// arg2 = arg2 = SocketProc->Parent = arg2
+// arg3 = arg3 = CASTED_CLOG_BYTEARRAY(sizeof(*RemoteAddr), RemoteAddr) = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_DATAPATH_WINUSER_C, DatapathTooLarge,
     TP_ARGS(
@@ -291,8 +253,8 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_WINUSER_C, DatapathTooLarge,
         "[%p] Couldn't resolve hostname '%s' to an IP address",
         Datapath,
         HostName);
-// arg2 = arg2 = Datapath
-// arg3 = arg3 = HostName
+// arg2 = arg2 = Datapath = arg2
+// arg3 = arg3 = HostName = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_DATAPATH_WINUSER_C, DatapathResolveHostNameFailed,
     TP_ARGS(
@@ -314,8 +276,8 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_WINUSER_C, DatapathResolveHostNameFailed,
             "[ lib] ERROR, %u, %s.",
             WsaError,
             "SIO_GET_EXTENSION_FUNCTION_POINTER (AcceptEx)");
-// arg2 = arg2 = WsaError
-// arg3 = arg3 = "SIO_GET_EXTENSION_FUNCTION_POINTER (AcceptEx)"
+// arg2 = arg2 = WsaError = arg2
+// arg3 = arg3 = "SIO_GET_EXTENSION_FUNCTION_POINTER (AcceptEx)" = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_DATAPATH_WINUSER_C, LibraryErrorStatus,
     TP_ARGS(
@@ -337,8 +299,8 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_WINUSER_C, LibraryErrorStatus,
             "Allocation of '%s' failed. (%llu bytes)",
             "CXPLAT_DATAPATH",
             DatapathLength);
-// arg2 = arg2 = "CXPLAT_DATAPATH"
-// arg3 = arg3 = DatapathLength
+// arg2 = arg2 = "CXPLAT_DATAPATH" = arg2
+// arg3 = arg3 = DatapathLength = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_DATAPATH_WINUSER_C, AllocFailure,
     TP_ARGS(
@@ -359,7 +321,7 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_WINUSER_C, AllocFailure,
             LibraryError,
             "[ lib] ERROR, %s.",
             "No local unicast addresses found");
-// arg2 = arg2 = "No local unicast addresses found"
+// arg2 = arg2 = "No local unicast addresses found" = arg2
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_DATAPATH_WINUSER_C, LibraryError,
     TP_ARGS(
@@ -380,9 +342,9 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_WINUSER_C, LibraryError,
         Socket,
         CASTED_CLOG_BYTEARRAY(Config->LocalAddress ? sizeof(*Config->LocalAddress) : 0, Config->LocalAddress),
         CASTED_CLOG_BYTEARRAY(Config->RemoteAddress ? sizeof(*Config->RemoteAddress) : 0, Config->RemoteAddress));
-// arg2 = arg2 = Socket
-// arg3 = arg3 = CASTED_CLOG_BYTEARRAY(Config->LocalAddress ? sizeof(*Config->LocalAddress) : 0, Config->LocalAddress)
-// arg4 = arg4 = CASTED_CLOG_BYTEARRAY(Config->RemoteAddress ? sizeof(*Config->RemoteAddress) : 0, Config->RemoteAddress)
+// arg2 = arg2 = Socket = arg2
+// arg3 = arg3 = CASTED_CLOG_BYTEARRAY(Config->LocalAddress ? sizeof(*Config->LocalAddress) : 0, Config->LocalAddress) = arg3
+// arg4 = arg4 = CASTED_CLOG_BYTEARRAY(Config->RemoteAddress ? sizeof(*Config->RemoteAddress) : 0, Config->RemoteAddress) = arg4
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_DATAPATH_WINUSER_C, DatapathCreated,
     TP_ARGS(
@@ -411,9 +373,9 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_WINUSER_C, DatapathCreated,
                 Socket,
                 WsaError,
                 "WSASocketW");
-// arg2 = arg2 = Socket
-// arg3 = arg3 = WsaError
-// arg4 = arg4 = "WSASocketW"
+// arg2 = arg2 = Socket = arg2
+// arg3 = arg3 = WsaError = arg3
+// arg4 = arg4 = "WSASocketW" = arg4
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_DATAPATH_WINUSER_C, DatapathErrorStatus,
     TP_ARGS(
@@ -433,10 +395,10 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_WINUSER_C, DatapathErrorStatus,
 // Decoder Ring for DatapathDestroyed
 // [data][%p] Destroyed
 // QuicTraceEvent(
-                    DatapathDestroyed,
-                    "[data][%p] Destroyed",
-                    Socket);
-// arg2 = arg2 = Socket
+        DatapathDestroyed,
+        "[data][%p] Destroyed",
+        Socket);
+// arg2 = arg2 = Socket = arg2
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_DATAPATH_WINUSER_C, DatapathDestroyed,
     TP_ARGS(
@@ -459,11 +421,11 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_WINUSER_C, DatapathDestroyed,
             MessageLength,
             CASTED_CLOG_BYTEARRAY(sizeof(*LocalAddr), LocalAddr),
             CASTED_CLOG_BYTEARRAY(sizeof(*RemoteAddr), RemoteAddr));
-// arg2 = arg2 = SocketProc->Parent
-// arg3 = arg3 = NumberOfBytesTransferred
-// arg4 = arg4 = MessageLength
-// arg5 = arg5 = CASTED_CLOG_BYTEARRAY(sizeof(*LocalAddr), LocalAddr)
-// arg6 = arg6 = CASTED_CLOG_BYTEARRAY(sizeof(*RemoteAddr), RemoteAddr)
+// arg2 = arg2 = SocketProc->Parent = arg2
+// arg3 = arg3 = NumberOfBytesTransferred = arg3
+// arg4 = arg4 = MessageLength = arg4
+// arg5 = arg5 = CASTED_CLOG_BYTEARRAY(sizeof(*LocalAddr), LocalAddr) = arg5
+// arg6 = arg6 = CASTED_CLOG_BYTEARRAY(sizeof(*RemoteAddr), RemoteAddr) = arg6
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_DATAPATH_WINUSER_C, DatapathRecv,
     TP_ARGS(
@@ -499,12 +461,12 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_WINUSER_C, DatapathRecv,
         SendData->SegmentSize,
         CASTED_CLOG_BYTEARRAY(sizeof(*RemoteAddress), RemoteAddress),
         CASTED_CLOG_BYTEARRAY(sizeof(*LocalAddress), LocalAddress));
-// arg2 = arg2 = Socket
-// arg3 = arg3 = SendData->TotalSize
-// arg4 = arg4 = SendData->WsaBufferCount
-// arg5 = arg5 = SendData->SegmentSize
-// arg6 = arg6 = CASTED_CLOG_BYTEARRAY(sizeof(*RemoteAddress), RemoteAddress)
-// arg7 = arg7 = CASTED_CLOG_BYTEARRAY(sizeof(*LocalAddress), LocalAddress)
+// arg2 = arg2 = Socket = arg2
+// arg3 = arg3 = SendData->TotalSize = arg3
+// arg4 = arg4 = SendData->WsaBufferCount = arg4
+// arg5 = arg5 = SendData->SegmentSize = arg5
+// arg6 = arg6 = CASTED_CLOG_BYTEARRAY(sizeof(*RemoteAddress), RemoteAddress) = arg6
+// arg7 = arg7 = CASTED_CLOG_BYTEARRAY(sizeof(*LocalAddress), LocalAddress) = arg7
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_DATAPATH_WINUSER_C, DatapathSend,
     TP_ARGS(

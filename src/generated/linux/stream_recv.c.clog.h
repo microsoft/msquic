@@ -1,4 +1,6 @@
+#ifndef CLOG_DO_NOT_INCLUDE_HEADER
 #include <clog.h>
+#endif
 #undef TRACEPOINT_PROVIDER
 #define TRACEPOINT_PROVIDER CLOG_STREAM_RECV_C
 #undef TRACEPOINT_PROBE_DYNAMIC_LINKAGE
@@ -31,10 +33,6 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-#ifndef _clog_3_ARGS_TRACE_ResetEarly
-
-
-
 /*----------------------------------------------------------
 // Decoder Ring for ResetEarly
 // [strm][%p] Tried to reset at earlier final size!
@@ -42,17 +40,14 @@ extern "C" {
                 ResetEarly,
                 Stream,
                 "Tried to reset at earlier final size!");
-// arg1 = arg1 = Stream
+// arg1 = arg1 = Stream = arg1
 ----------------------------------------------------------*/
+#ifndef _clog_3_ARGS_TRACE_ResetEarly
 #define _clog_3_ARGS_TRACE_ResetEarly(uniqueId, arg1, encoded_arg_string)\
 tracepoint(CLOG_STREAM_RECV_C, ResetEarly , arg1);\
 
 #endif
 
-
-
-
-#ifndef _clog_3_ARGS_TRACE_ResetTooBig
 
 
 
@@ -63,17 +58,14 @@ tracepoint(CLOG_STREAM_RECV_C, ResetEarly , arg1);\
                     ResetTooBig,
                     Stream,
                     "Tried to reset with too big final size!");
-// arg1 = arg1 = Stream
+// arg1 = arg1 = Stream = arg1
 ----------------------------------------------------------*/
+#ifndef _clog_3_ARGS_TRACE_ResetTooBig
 #define _clog_3_ARGS_TRACE_ResetTooBig(uniqueId, arg1, encoded_arg_string)\
 tracepoint(CLOG_STREAM_RECV_C, ResetTooBig , arg1);\
 
 #endif
 
-
-
-
-#ifndef _clog_3_ARGS_TRACE_ReceiveTooBig
 
 
 
@@ -84,17 +76,14 @@ tracepoint(CLOG_STREAM_RECV_C, ResetTooBig , arg1);\
             ReceiveTooBig,
             Stream,
             "Tried to write beyond end of buffer!");
-// arg1 = arg1 = Stream
+// arg1 = arg1 = Stream = arg1
 ----------------------------------------------------------*/
+#ifndef _clog_3_ARGS_TRACE_ReceiveTooBig
 #define _clog_3_ARGS_TRACE_ReceiveTooBig(uniqueId, arg1, encoded_arg_string)\
 tracepoint(CLOG_STREAM_RECV_C, ReceiveTooBig , arg1);\
 
 #endif
 
-
-
-
-#ifndef _clog_3_ARGS_TRACE_ReceiveBeyondFlowControl
 
 
 
@@ -105,17 +94,14 @@ tracepoint(CLOG_STREAM_RECV_C, ReceiveTooBig , arg1);\
             ReceiveBeyondFlowControl,
             Stream,
             "Tried to write beyond flow control limit!");
-// arg1 = arg1 = Stream
+// arg1 = arg1 = Stream = arg1
 ----------------------------------------------------------*/
+#ifndef _clog_3_ARGS_TRACE_ReceiveBeyondFlowControl
 #define _clog_3_ARGS_TRACE_ReceiveBeyondFlowControl(uniqueId, arg1, encoded_arg_string)\
 tracepoint(CLOG_STREAM_RECV_C, ReceiveBeyondFlowControl , arg1);\
 
 #endif
 
-
-
-
-#ifndef _clog_3_ARGS_TRACE_RemoteCloseReset
 
 
 
@@ -126,17 +112,14 @@ tracepoint(CLOG_STREAM_RECV_C, ReceiveBeyondFlowControl , arg1);\
                 RemoteCloseReset,
                 Stream,
                 "Closed remotely (reset)");
-// arg1 = arg1 = Stream
+// arg1 = arg1 = Stream = arg1
 ----------------------------------------------------------*/
+#ifndef _clog_3_ARGS_TRACE_RemoteCloseReset
 #define _clog_3_ARGS_TRACE_RemoteCloseReset(uniqueId, arg1, encoded_arg_string)\
 tracepoint(CLOG_STREAM_RECV_C, RemoteCloseReset , arg1);\
 
 #endif
 
-
-
-
-#ifndef _clog_3_ARGS_TRACE_LocalCloseStopSending
 
 
 
@@ -147,17 +130,14 @@ tracepoint(CLOG_STREAM_RECV_C, RemoteCloseReset , arg1);\
             LocalCloseStopSending,
             Stream,
             "Closed locally (stop sending)");
-// arg1 = arg1 = Stream
+// arg1 = arg1 = Stream = arg1
 ----------------------------------------------------------*/
+#ifndef _clog_3_ARGS_TRACE_LocalCloseStopSending
 #define _clog_3_ARGS_TRACE_LocalCloseStopSending(uniqueId, arg1, encoded_arg_string)\
 tracepoint(CLOG_STREAM_RECV_C, LocalCloseStopSending , arg1);\
 
 #endif
 
-
-
-
-#ifndef _clog_3_ARGS_TRACE_TreatFinAsReset
 
 
 
@@ -168,8 +148,9 @@ tracepoint(CLOG_STREAM_RECV_C, LocalCloseStopSending , arg1);\
                 TreatFinAsReset,
                 Stream,
                 "Treating FIN after receive abort as reset");
-// arg1 = arg1 = Stream
+// arg1 = arg1 = Stream = arg1
 ----------------------------------------------------------*/
+#ifndef _clog_3_ARGS_TRACE_TreatFinAsReset
 #define _clog_3_ARGS_TRACE_TreatFinAsReset(uniqueId, arg1, encoded_arg_string)\
 tracepoint(CLOG_STREAM_RECV_C, TreatFinAsReset , arg1);\
 
@@ -178,28 +159,21 @@ tracepoint(CLOG_STREAM_RECV_C, TreatFinAsReset , arg1);\
 
 
 
-#ifndef _clog_3_ARGS_TRACE_QueueRecvFlush
-
-
-
 /*----------------------------------------------------------
 // Decoder Ring for QueueRecvFlush
 // [strm][%p] Queuing recv flush
 // QuicTraceLogStreamVerbose(
-            QueueRecvFlush,
-            Stream,
-            "Queuing recv flush");
-// arg1 = arg1 = Stream
+                QueueRecvFlush,
+                Stream,
+                "Queuing recv flush");
+// arg1 = arg1 = Stream = arg1
 ----------------------------------------------------------*/
+#ifndef _clog_3_ARGS_TRACE_QueueRecvFlush
 #define _clog_3_ARGS_TRACE_QueueRecvFlush(uniqueId, arg1, encoded_arg_string)\
 tracepoint(CLOG_STREAM_RECV_C, QueueRecvFlush , arg1);\
 
 #endif
 
-
-
-
-#ifndef _clog_4_ARGS_TRACE_IndicatePeerSendAbort
 
 
 
@@ -211,18 +185,15 @@ tracepoint(CLOG_STREAM_RECV_C, QueueRecvFlush , arg1);\
                 Stream,
                 "Indicating QUIC_STREAM_EVENT_PEER_SEND_ABORTED (0x%llX)",
                 ErrorCode);
-// arg1 = arg1 = Stream
-// arg3 = arg3 = ErrorCode
+// arg1 = arg1 = Stream = arg1
+// arg3 = arg3 = ErrorCode = arg3
 ----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_IndicatePeerSendAbort
 #define _clog_4_ARGS_TRACE_IndicatePeerSendAbort(uniqueId, arg1, encoded_arg_string, arg3)\
 tracepoint(CLOG_STREAM_RECV_C, IndicatePeerSendAbort , arg1, arg3);\
 
 #endif
 
-
-
-
-#ifndef _clog_4_ARGS_TRACE_IndicatePeerReceiveAborted
 
 
 
@@ -234,18 +205,15 @@ tracepoint(CLOG_STREAM_RECV_C, IndicatePeerSendAbort , arg1, arg3);\
             Stream,
             "Indicating QUIC_STREAM_EVENT_PEER_RECEIVE_ABORTED (0x%llX)",
             ErrorCode);
-// arg1 = arg1 = Stream
-// arg3 = arg3 = ErrorCode
+// arg1 = arg1 = Stream = arg1
+// arg3 = arg3 = ErrorCode = arg3
 ----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_IndicatePeerReceiveAborted
 #define _clog_4_ARGS_TRACE_IndicatePeerReceiveAborted(uniqueId, arg1, encoded_arg_string, arg3)\
 tracepoint(CLOG_STREAM_RECV_C, IndicatePeerReceiveAborted , arg1, arg3);\
 
 #endif
 
-
-
-
-#ifndef _clog_3_ARGS_TRACE_IgnoreRecvAfterClose
 
 
 
@@ -256,17 +224,14 @@ tracepoint(CLOG_STREAM_RECV_C, IndicatePeerReceiveAborted , arg1, arg3);\
             IgnoreRecvAfterClose,
             Stream,
             "Ignoring recv after close");
-// arg1 = arg1 = Stream
+// arg1 = arg1 = Stream = arg1
 ----------------------------------------------------------*/
+#ifndef _clog_3_ARGS_TRACE_IgnoreRecvAfterClose
 #define _clog_3_ARGS_TRACE_IgnoreRecvAfterClose(uniqueId, arg1, encoded_arg_string)\
 tracepoint(CLOG_STREAM_RECV_C, IgnoreRecvAfterClose , arg1);\
 
 #endif
 
-
-
-
-#ifndef _clog_3_ARGS_TRACE_IgnoreRecvAfterAbort
 
 
 
@@ -277,17 +242,14 @@ tracepoint(CLOG_STREAM_RECV_C, IgnoreRecvAfterClose , arg1);\
                 IgnoreRecvAfterAbort,
                 Stream,
                 "Ignoring received frame after receive abort");
-// arg1 = arg1 = Stream
+// arg1 = arg1 = Stream = arg1
 ----------------------------------------------------------*/
+#ifndef _clog_3_ARGS_TRACE_IgnoreRecvAfterAbort
 #define _clog_3_ARGS_TRACE_IgnoreRecvAfterAbort(uniqueId, arg1, encoded_arg_string)\
 tracepoint(CLOG_STREAM_RECV_C, IgnoreRecvAfterAbort , arg1);\
 
 #endif
 
-
-
-
-#ifndef _clog_3_ARGS_TRACE_FlowControlExhausted
 
 
 
@@ -298,17 +260,14 @@ tracepoint(CLOG_STREAM_RECV_C, IgnoreRecvAfterAbort , arg1);\
                 FlowControlExhausted,
                 Stream,
                 "Flow control window exhausted!");
-// arg1 = arg1 = Stream
+// arg1 = arg1 = Stream = arg1
 ----------------------------------------------------------*/
+#ifndef _clog_3_ARGS_TRACE_FlowControlExhausted
 #define _clog_3_ARGS_TRACE_FlowControlExhausted(uniqueId, arg1, encoded_arg_string)\
 tracepoint(CLOG_STREAM_RECV_C, FlowControlExhausted , arg1);\
 
 #endif
 
-
-
-
-#ifndef _clog_6_ARGS_TRACE_Receive
 
 
 
@@ -322,20 +281,17 @@ tracepoint(CLOG_STREAM_RECV_C, FlowControlExhausted , arg1);\
         (uint16_t)Frame->Length,
         Frame->Offset,
         ReadyToDeliver);
-// arg1 = arg1 = Stream
-// arg3 = arg3 = (uint16_t)Frame->Length
-// arg4 = arg4 = Frame->Offset
-// arg5 = arg5 = ReadyToDeliver
+// arg1 = arg1 = Stream = arg1
+// arg3 = arg3 = (uint16_t)Frame->Length = arg3
+// arg4 = arg4 = Frame->Offset = arg4
+// arg5 = arg5 = ReadyToDeliver = arg5
 ----------------------------------------------------------*/
+#ifndef _clog_6_ARGS_TRACE_Receive
 #define _clog_6_ARGS_TRACE_Receive(uniqueId, arg1, encoded_arg_string, arg3, arg4, arg5)\
 tracepoint(CLOG_STREAM_RECV_C, Receive , arg1, arg3, arg4, arg5);\
 
 #endif
 
-
-
-
-#ifndef _clog_4_ARGS_TRACE_RemoteBlocked
 
 
 
@@ -347,18 +303,15 @@ tracepoint(CLOG_STREAM_RECV_C, Receive , arg1, arg3, arg4, arg5);\
             Stream,
             "Remote FC blocked (%llu)",
             Frame.StreamDataLimit);
-// arg1 = arg1 = Stream
-// arg3 = arg3 = Frame.StreamDataLimit
+// arg1 = arg1 = Stream = arg1
+// arg3 = arg3 = Frame.StreamDataLimit = arg3
 ----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_RemoteBlocked
 #define _clog_4_ARGS_TRACE_RemoteBlocked(uniqueId, arg1, encoded_arg_string, arg3)\
 tracepoint(CLOG_STREAM_RECV_C, RemoteBlocked , arg1, arg3);\
 
 #endif
 
-
-
-
-#ifndef _clog_7_ARGS_TRACE_IncreaseRxBuffer
 
 
 
@@ -373,21 +326,18 @@ tracepoint(CLOG_STREAM_RECV_C, RemoteBlocked , arg1, arg3);\
                     Stream->Connection->Paths[0].MinRtt,
                     TimeNow,
                     Stream->RecvWindowLastUpdate);
-// arg1 = arg1 = Stream
-// arg3 = arg3 = Stream->RecvBuffer.VirtualBufferLength * 2
-// arg4 = arg4 = Stream->Connection->Paths[0].MinRtt
-// arg5 = arg5 = TimeNow
-// arg6 = arg6 = Stream->RecvWindowLastUpdate
+// arg1 = arg1 = Stream = arg1
+// arg3 = arg3 = Stream->RecvBuffer.VirtualBufferLength * 2 = arg3
+// arg4 = arg4 = Stream->Connection->Paths[0].MinRtt = arg4
+// arg5 = arg5 = TimeNow = arg5
+// arg6 = arg6 = Stream->RecvWindowLastUpdate = arg6
 ----------------------------------------------------------*/
+#ifndef _clog_7_ARGS_TRACE_IncreaseRxBuffer
 #define _clog_7_ARGS_TRACE_IncreaseRxBuffer(uniqueId, arg1, encoded_arg_string, arg3, arg4, arg5, arg6)\
 tracepoint(CLOG_STREAM_RECV_C, IncreaseRxBuffer , arg1, arg3, arg4, arg5, arg6);\
 
 #endif
 
-
-
-
-#ifndef _clog_3_ARGS_TRACE_UpdateFlowControl
 
 
 
@@ -398,17 +348,14 @@ tracepoint(CLOG_STREAM_RECV_C, IncreaseRxBuffer , arg1, arg3, arg4, arg5, arg6);
         UpdateFlowControl,
         Stream,
         "Updating flow control window");
-// arg1 = arg1 = Stream
+// arg1 = arg1 = Stream = arg1
 ----------------------------------------------------------*/
+#ifndef _clog_3_ARGS_TRACE_UpdateFlowControl
 #define _clog_3_ARGS_TRACE_UpdateFlowControl(uniqueId, arg1, encoded_arg_string)\
 tracepoint(CLOG_STREAM_RECV_C, UpdateFlowControl , arg1);\
 
 #endif
 
-
-
-
-#ifndef _clog_3_ARGS_TRACE_IgnoreRecvFlush
 
 
 
@@ -419,67 +366,14 @@ tracepoint(CLOG_STREAM_RECV_C, UpdateFlowControl , arg1);\
             IgnoreRecvFlush,
             Stream,
             "Ignoring recv flush (recv disabled)");
-// arg1 = arg1 = Stream
+// arg1 = arg1 = Stream = arg1
 ----------------------------------------------------------*/
+#ifndef _clog_3_ARGS_TRACE_IgnoreRecvFlush
 #define _clog_3_ARGS_TRACE_IgnoreRecvFlush(uniqueId, arg1, encoded_arg_string)\
 tracepoint(CLOG_STREAM_RECV_C, IgnoreRecvFlush , arg1);\
 
 #endif
 
-
-
-
-#ifndef _clog_6_ARGS_TRACE_IndicateReceive
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for IndicateReceive
-// [strm][%p] Indicating QUIC_STREAM_EVENT_RECEIVE [%llu bytes, %u buffers, 0x%x flags]
-// QuicTraceLogStreamVerbose(
-            IndicateReceive,
-            Stream,
-            "Indicating QUIC_STREAM_EVENT_RECEIVE [%llu bytes, %u buffers, 0x%x flags]",
-            Event.RECEIVE.TotalBufferLength,
-            Event.RECEIVE.BufferCount,
-            Event.RECEIVE.Flags);
-// arg1 = arg1 = Stream
-// arg3 = arg3 = Event.RECEIVE.TotalBufferLength
-// arg4 = arg4 = Event.RECEIVE.BufferCount
-// arg5 = arg5 = Event.RECEIVE.Flags
-----------------------------------------------------------*/
-#define _clog_6_ARGS_TRACE_IndicateReceive(uniqueId, arg1, encoded_arg_string, arg3, arg4, arg5)\
-tracepoint(CLOG_STREAM_RECV_C, IndicateReceive , arg1, arg3, arg4, arg5);\
-
-#endif
-
-
-
-
-#ifndef _clog_4_ARGS_TRACE_ReceiveComplete
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for ReceiveComplete
-// [strm][%p] Recv complete (%llu bytes)
-// QuicTraceLogStreamVerbose(
-        ReceiveComplete,
-        Stream,
-        "Recv complete (%llu bytes)",
-        BufferLength);
-// arg1 = arg1 = Stream
-// arg3 = arg3 = BufferLength
-----------------------------------------------------------*/
-#define _clog_4_ARGS_TRACE_ReceiveComplete(uniqueId, arg1, encoded_arg_string, arg3)\
-tracepoint(CLOG_STREAM_RECV_C, ReceiveComplete , arg1, arg3);\
-
-#endif
-
-
-
-
-#ifndef _clog_3_ARGS_TRACE_IndicatePeerSendShutdown
 
 
 
@@ -490,17 +384,14 @@ tracepoint(CLOG_STREAM_RECV_C, ReceiveComplete , arg1, arg3);\
             IndicatePeerSendShutdown,
             Stream,
             "Indicating QUIC_STREAM_EVENT_PEER_SEND_SHUTDOWN");
-// arg1 = arg1 = Stream
+// arg1 = arg1 = Stream = arg1
 ----------------------------------------------------------*/
+#ifndef _clog_3_ARGS_TRACE_IndicatePeerSendShutdown
 #define _clog_3_ARGS_TRACE_IndicatePeerSendShutdown(uniqueId, arg1, encoded_arg_string)\
 tracepoint(CLOG_STREAM_RECV_C, IndicatePeerSendShutdown , arg1);\
 
 #endif
 
-
-
-
-#ifndef _clog_4_ARGS_TRACE_StreamRecvState
 
 
 
@@ -512,9 +403,10 @@ tracepoint(CLOG_STREAM_RECV_C, IndicatePeerSendShutdown , arg1);\
         "[strm][%p] Recv State: %hhu",
         Stream,
         QuicStreamRecvGetState(Stream));
-// arg2 = arg2 = Stream
-// arg3 = arg3 = QuicStreamRecvGetState(Stream)
+// arg2 = arg2 = Stream = arg2
+// arg3 = arg3 = QuicStreamRecvGetState(Stream) = arg3
 ----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_StreamRecvState
 #define _clog_4_ARGS_TRACE_StreamRecvState(uniqueId, encoded_arg_string, arg2, arg3)\
 tracepoint(CLOG_STREAM_RECV_C, StreamRecvState , arg2, arg3);\
 
@@ -523,52 +415,23 @@ tracepoint(CLOG_STREAM_RECV_C, StreamRecvState , arg2, arg3);\
 
 
 
-#ifndef _clog_4_ARGS_TRACE_AllocFailure
-
-
-
 /*----------------------------------------------------------
 // Decoder Ring for AllocFailure
 // Allocation of '%s' failed. (%llu bytes)
 // QuicTraceEvent(
-                AllocFailure,
-                "Allocation of '%s' failed. (%llu bytes)",
-                "Flush Stream Recv operation",
-                0);
-// arg2 = arg2 = "Flush Stream Recv operation"
-// arg3 = arg3 = 0
+                    AllocFailure,
+                    "Allocation of '%s' failed. (%llu bytes)",
+                    "Flush Stream Recv operation",
+                    0);
+// arg2 = arg2 = "Flush Stream Recv operation" = arg2
+// arg3 = arg3 = 0 = arg3
 ----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_AllocFailure
 #define _clog_4_ARGS_TRACE_AllocFailure(uniqueId, encoded_arg_string, arg2, arg3)\
 tracepoint(CLOG_STREAM_RECV_C, AllocFailure , arg2, arg3);\
 
 #endif
 
-
-
-
-#ifndef _clog_4_ARGS_TRACE_StreamRecvState
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for StreamRecvState
-// [strm][%p] Recv State: %hhu
-// QuicTraceEvent(
-            StreamRecvState,
-            "[strm][%p] Recv State: %hhu",
-            Stream,
-            QuicStreamRecvGetState(Stream));
-// arg2 = arg2 = Stream
-// arg3 = arg3 = QuicStreamRecvGetState(Stream)
-----------------------------------------------------------*/
-#define _clog_4_ARGS_TRACE_StreamRecvState(uniqueId, encoded_arg_string, arg2, arg3)\
-
-#endif
-
-
-
-
-#ifndef _clog_4_ARGS_TRACE_StreamError
 
 
 
@@ -580,9 +443,10 @@ tracepoint(CLOG_STREAM_RECV_C, AllocFailure , arg2, arg3);\
             "[strm][%p] ERROR, %s.",
             Stream,
             "Receive on unidirectional stream");
-// arg2 = arg2 = Stream
-// arg3 = arg3 = "Receive on unidirectional stream"
+// arg2 = arg2 = Stream = arg2
+// arg3 = arg3 = "Receive on unidirectional stream" = arg3
 ----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_StreamError
 #define _clog_4_ARGS_TRACE_StreamError(uniqueId, encoded_arg_string, arg2, arg3)\
 tracepoint(CLOG_STREAM_RECV_C, StreamError , arg2, arg3);\
 
@@ -591,66 +455,82 @@ tracepoint(CLOG_STREAM_RECV_C, StreamError , arg2, arg3);\
 
 
 
-#ifndef _clog_4_ARGS_TRACE_StreamRecvState
-
-
-
 /*----------------------------------------------------------
-// Decoder Ring for StreamRecvState
-// [strm][%p] Recv State: %hhu
+// Decoder Ring for StreamReceiveFrame
+// [strm][%p] Processing frame in packet %llu
 // QuicTraceEvent(
-            StreamRecvState,
-            "[strm][%p] Recv State: %hhu",
-            Stream,
-            QuicStreamRecvGetState(Stream));
-// arg2 = arg2 = Stream
-// arg3 = arg3 = QuicStreamRecvGetState(Stream)
+        StreamReceiveFrame,
+        "[strm][%p] Processing frame in packet %llu",
+        Stream,
+        Packet->PacketId);
+// arg2 = arg2 = Stream = arg2
+// arg3 = arg3 = Packet->PacketId = arg3
 ----------------------------------------------------------*/
-#define _clog_4_ARGS_TRACE_StreamRecvState(uniqueId, encoded_arg_string, arg2, arg3)\
+#ifndef _clog_4_ARGS_TRACE_StreamReceiveFrame
+#define _clog_4_ARGS_TRACE_StreamReceiveFrame(uniqueId, encoded_arg_string, arg2, arg3)\
+tracepoint(CLOG_STREAM_RECV_C, StreamReceiveFrame , arg2, arg3);\
 
 #endif
 
 
 
 
-#ifndef _clog_4_ARGS_TRACE_StreamRecvState
-
-
-
 /*----------------------------------------------------------
-// Decoder Ring for StreamRecvState
-// [strm][%p] Recv State: %hhu
+// Decoder Ring for StreamReceiveFrameComplete
+// [strm][%p] Done processing frame
 // QuicTraceEvent(
-            StreamRecvState,
-            "[strm][%p] Recv State: %hhu",
-            Stream,
-            QuicStreamRecvGetState(Stream));
-// arg2 = arg2 = Stream
-// arg3 = arg3 = QuicStreamRecvGetState(Stream)
+        StreamReceiveFrameComplete,
+        "[strm][%p] Done processing frame",
+        Stream);
+// arg2 = arg2 = Stream = arg2
 ----------------------------------------------------------*/
-#define _clog_4_ARGS_TRACE_StreamRecvState(uniqueId, encoded_arg_string, arg2, arg3)\
+#ifndef _clog_3_ARGS_TRACE_StreamReceiveFrameComplete
+#define _clog_3_ARGS_TRACE_StreamReceiveFrameComplete(uniqueId, encoded_arg_string, arg2)\
+tracepoint(CLOG_STREAM_RECV_C, StreamReceiveFrameComplete , arg2);\
 
 #endif
 
 
 
 
-#ifndef _clog_4_ARGS_TRACE_StreamRecvState
+/*----------------------------------------------------------
+// Decoder Ring for StreamAppReceive
+// [strm][%p] Indicating QUIC_STREAM_EVENT_RECEIVE [%llu bytes, %u buffers, 0x%x flags]
+// QuicTraceEvent(
+            StreamAppReceive,
+            "[strm][%p] Indicating QUIC_STREAM_EVENT_RECEIVE [%llu bytes, %u buffers, 0x%x flags]",
+            Stream,
+            Event.RECEIVE.TotalBufferLength,
+            Event.RECEIVE.BufferCount,
+            Event.RECEIVE.Flags);
+// arg2 = arg2 = Stream = arg2
+// arg3 = arg3 = Event.RECEIVE.TotalBufferLength = arg3
+// arg4 = arg4 = Event.RECEIVE.BufferCount = arg4
+// arg5 = arg5 = Event.RECEIVE.Flags = arg5
+----------------------------------------------------------*/
+#ifndef _clog_6_ARGS_TRACE_StreamAppReceive
+#define _clog_6_ARGS_TRACE_StreamAppReceive(uniqueId, encoded_arg_string, arg2, arg3, arg4, arg5)\
+tracepoint(CLOG_STREAM_RECV_C, StreamAppReceive , arg2, arg3, arg4, arg5);\
+
+#endif
+
 
 
 
 /*----------------------------------------------------------
-// Decoder Ring for StreamRecvState
-// [strm][%p] Recv State: %hhu
+// Decoder Ring for StreamAppReceiveComplete
+// [strm][%p] Receive complete [%llu bytes]
 // QuicTraceEvent(
-                StreamRecvState,
-                "[strm][%p] Recv State: %hhu",
-                Stream,
-                QuicStreamRecvGetState(Stream));
-// arg2 = arg2 = Stream
-// arg3 = arg3 = QuicStreamRecvGetState(Stream)
+        StreamAppReceiveComplete,
+        "[strm][%p] Receive complete [%llu bytes]",
+        Stream,
+        BufferLength);
+// arg2 = arg2 = Stream = arg2
+// arg3 = arg3 = BufferLength = arg3
 ----------------------------------------------------------*/
-#define _clog_4_ARGS_TRACE_StreamRecvState(uniqueId, encoded_arg_string, arg2, arg3)\
+#ifndef _clog_4_ARGS_TRACE_StreamAppReceiveComplete
+#define _clog_4_ARGS_TRACE_StreamAppReceiveComplete(uniqueId, encoded_arg_string, arg2, arg3)\
+tracepoint(CLOG_STREAM_RECV_C, StreamAppReceiveComplete , arg2, arg3);\
 
 #endif
 

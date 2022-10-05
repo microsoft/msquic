@@ -56,7 +56,7 @@ TRACEPOINT_EVENT(CLOG_TLS_SCHANNEL_C, SchannelAch,
         SchannelAchCompleteInline,
         "[ tls] Invoking security config completion callback inline, 0x%x",
         Status);
-// arg2 = arg2 = Status
+// arg2 = arg2 = Status = arg2
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_TLS_SCHANNEL_C, SchannelAchCompleteInline,
     TP_ARGS(
@@ -76,8 +76,8 @@ TRACEPOINT_EVENT(CLOG_TLS_SCHANNEL_C, SchannelAchCompleteInline,
                 TlsContext->Connection,
                 "Handshake complete (resume=%hu)",
                 State->SessionResumed);
-// arg1 = arg1 = TlsContext->Connection
-// arg3 = arg3 = State->SessionResumed
+// arg1 = arg1 = TlsContext->Connection = arg1
+// arg3 = arg3 = State->SessionResumed = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_TLS_SCHANNEL_C, SchannelHandshakeComplete,
     TP_ARGS(
@@ -99,8 +99,8 @@ TRACEPOINT_EVENT(CLOG_TLS_SCHANNEL_C, SchannelHandshakeComplete,
             TlsContext->Connection,
             "Consumed %u bytes",
             *InBufferLength);
-// arg1 = arg1 = TlsContext->Connection
-// arg3 = arg3 = *InBufferLength
+// arg1 = arg1 = TlsContext->Connection = arg1
+// arg3 = arg3 = *InBufferLength = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_TLS_SCHANNEL_C, SchannelConsumedBytes,
     TP_ARGS(
@@ -121,7 +121,7 @@ TRACEPOINT_EVENT(CLOG_TLS_SCHANNEL_C, SchannelConsumedBytes,
                         SchannelReadHandshakeStart,
                         TlsContext->Connection,
                         "Reading Handshake data starts now");
-// arg1 = arg1 = TlsContext->Connection
+// arg1 = arg1 = TlsContext->Connection = arg1
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_TLS_SCHANNEL_C, SchannelReadHandshakeStart,
     TP_ARGS(
@@ -140,7 +140,7 @@ TRACEPOINT_EVENT(CLOG_TLS_SCHANNEL_C, SchannelReadHandshakeStart,
                         SchannelRead1RttStart,
                         TlsContext->Connection,
                         "Reading 1-RTT data starts now");
-// arg1 = arg1 = TlsContext->Connection
+// arg1 = arg1 = TlsContext->Connection = arg1
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_TLS_SCHANNEL_C, SchannelRead1RttStart,
     TP_ARGS(
@@ -160,8 +160,8 @@ TRACEPOINT_EVENT(CLOG_TLS_SCHANNEL_C, SchannelRead1RttStart,
                         TlsContext->Connection,
                         "Writing Handshake data starts at %u",
                         State->BufferOffsetHandshake);
-// arg1 = arg1 = TlsContext->Connection
-// arg3 = arg3 = State->BufferOffsetHandshake
+// arg1 = arg1 = TlsContext->Connection = arg1
+// arg3 = arg3 = State->BufferOffsetHandshake = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_TLS_SCHANNEL_C, SchannelWriteHandshakeStart,
     TP_ARGS(
@@ -183,8 +183,8 @@ TRACEPOINT_EVENT(CLOG_TLS_SCHANNEL_C, SchannelWriteHandshakeStart,
                             TlsContext->Connection,
                             "Writing 1-RTT data starts at %u",
                             State->BufferOffset1Rtt);
-// arg1 = arg1 = TlsContext->Connection
-// arg3 = arg3 = State->BufferOffset1Rtt
+// arg1 = arg1 = TlsContext->Connection = arg1
+// arg3 = arg3 = State->BufferOffset1Rtt = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_TLS_SCHANNEL_C, SchannelWrite1RttStart,
     TP_ARGS(
@@ -206,8 +206,8 @@ TRACEPOINT_EVENT(CLOG_TLS_SCHANNEL_C, SchannelWrite1RttStart,
                 TlsContext->Connection,
                 "Produced %u bytes",
                 OutputTokenBuffer->cbBuffer);
-// arg1 = arg1 = TlsContext->Connection
-// arg3 = arg3 = OutputTokenBuffer->cbBuffer
+// arg1 = arg1 = TlsContext->Connection = arg1
+// arg3 = arg3 = OutputTokenBuffer->cbBuffer = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_TLS_SCHANNEL_C, SchannelProducedData,
     TP_ARGS(
@@ -229,8 +229,8 @@ TRACEPOINT_EVENT(CLOG_TLS_SCHANNEL_C, SchannelProducedData,
                 TlsContext->Connection,
                 "TLS message missing %u bytes of data",
                 MissingBuffer->cbBuffer);
-// arg1 = arg1 = TlsContext->Connection
-// arg3 = arg3 = MissingBuffer->cbBuffer
+// arg1 = arg1 = TlsContext->Connection = arg1
+// arg3 = arg3 = MissingBuffer->cbBuffer = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_TLS_SCHANNEL_C, SchannelMissingData,
     TP_ARGS(
@@ -255,11 +255,11 @@ TRACEPOINT_EVENT(CLOG_TLS_SCHANNEL_C, SchannelMissingData,
                         (TlsContext->PeerTransportParams != NULL) ?
                             TlsContext->PeerTransportParamsLength :
                             *InBufferLength);
-// arg1 = arg1 = TlsContext->Connection
-// arg3 = arg3 = OutSecBufferDesc.pBuffers[i].cbBuffer
+// arg1 = arg1 = TlsContext->Connection = arg1
+// arg3 = arg3 = OutSecBufferDesc.pBuffers[i].cbBuffer = arg3
 // arg4 = arg4 = (TlsContext->PeerTransportParams != NULL) ?
                             TlsContext->PeerTransportParamsLength :
-                            *InBufferLength
+                            *InBufferLength = arg4
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_TLS_SCHANNEL_C, SchannelTransParamsBufferTooSmall,
     TP_ARGS(
@@ -282,7 +282,7 @@ TRACEPOINT_EVENT(CLOG_TLS_SCHANNEL_C, SchannelTransParamsBufferTooSmall,
         SchannelContextCreated,
         TlsContext->Connection,
         "TLS context Created");
-// arg1 = arg1 = TlsContext->Connection
+// arg1 = arg1 = TlsContext->Connection = arg1
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_TLS_SCHANNEL_C, SchannelContextCreated,
     TP_ARGS(
@@ -301,7 +301,7 @@ TRACEPOINT_EVENT(CLOG_TLS_SCHANNEL_C, SchannelContextCreated,
             SchannelContextCleaningUp,
             TlsContext->Connection,
             "Cleaning up");
-// arg1 = arg1 = TlsContext->Connection
+// arg1 = arg1 = TlsContext->Connection = arg1
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_TLS_SCHANNEL_C, SchannelContextCleaningUp,
     TP_ARGS(
@@ -323,10 +323,10 @@ TRACEPOINT_EVENT(CLOG_TLS_SCHANNEL_C, SchannelContextCleaningUp,
                 (uint32_t)TrafficSecret->TrafficSecretType,
                 TrafficSecret->MsgSequenceStart,
                 TrafficSecret->MsgSequenceEnd);
-// arg1 = arg1 = TlsContext->Connection
-// arg3 = arg3 = (uint32_t)TrafficSecret->TrafficSecretType
-// arg4 = arg4 = TrafficSecret->MsgSequenceStart
-// arg5 = arg5 = TrafficSecret->MsgSequenceEnd
+// arg1 = arg1 = TlsContext->Connection = arg1
+// arg3 = arg3 = (uint32_t)TrafficSecret->TrafficSecretType = arg3
+// arg4 = arg4 = TrafficSecret->MsgSequenceStart = arg4
+// arg5 = arg5 = TrafficSecret->MsgSequenceEnd = arg5
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_TLS_SCHANNEL_C, SchannelKeyReady,
     TP_ARGS(
@@ -352,8 +352,8 @@ TRACEPOINT_EVENT(CLOG_TLS_SCHANNEL_C, SchannelKeyReady,
             TlsContext->Connection,
             "Ignoring %u ticket bytes",
             *BufferLength);
-// arg1 = arg1 = TlsContext->Connection
-// arg3 = arg3 = *BufferLength
+// arg1 = arg1 = TlsContext->Connection = arg1
+// arg3 = arg3 = *BufferLength = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_TLS_SCHANNEL_C, SchannelIgnoringTicket,
     TP_ARGS(
@@ -375,8 +375,8 @@ TRACEPOINT_EVENT(CLOG_TLS_SCHANNEL_C, SchannelIgnoringTicket,
         TlsContext->Connection,
         "Processing %u received bytes",
         *BufferLength);
-// arg1 = arg1 = TlsContext->Connection
-// arg3 = arg3 = *BufferLength
+// arg1 = arg1 = TlsContext->Connection = arg1
+// arg3 = arg3 = *BufferLength = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_TLS_SCHANNEL_C, SchannelProcessingData,
     TP_ARGS(
@@ -398,8 +398,8 @@ TRACEPOINT_EVENT(CLOG_TLS_SCHANNEL_C, SchannelProcessingData,
             "[ lib] ERROR, %u, %s.",
             Status,
             "Get unicode string size");
-// arg2 = arg2 = Status
-// arg3 = arg3 = "Get unicode string size"
+// arg2 = arg2 = Status = arg2
+// arg3 = arg3 = "Get unicode string size" = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_TLS_SCHANNEL_C, LibraryErrorStatus,
     TP_ARGS(
@@ -421,8 +421,8 @@ TRACEPOINT_EVENT(CLOG_TLS_SCHANNEL_C, LibraryErrorStatus,
             "Allocation of '%s' failed. (%llu bytes)",
             "unicode string",
             RequiredSize);
-// arg2 = arg2 = "unicode string"
-// arg3 = arg3 = RequiredSize
+// arg2 = arg2 = "unicode string" = arg2
+// arg3 = arg3 = RequiredSize = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_TLS_SCHANNEL_C, AllocFailure,
     TP_ARGS(
@@ -443,7 +443,7 @@ TRACEPOINT_EVENT(CLOG_TLS_SCHANNEL_C, AllocFailure,
             LibraryError,
             "[ lib] ERROR, %s.",
             "NULL CallbackData to CxPlatTlsSspiNotifyCallback");
-// arg2 = arg2 = "NULL CallbackData to CxPlatTlsSspiNotifyCallback"
+// arg2 = arg2 = "NULL CallbackData to CxPlatTlsSspiNotifyCallback" = arg2
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_TLS_SCHANNEL_C, LibraryError,
     TP_ARGS(
@@ -463,8 +463,8 @@ TRACEPOINT_EVENT(CLOG_TLS_SCHANNEL_C, LibraryError,
             "[ tls][%p] ERROR, %s.",
             Config->Connection,
             "Mismatched SEC_CONFIG IsServer state");
-// arg2 = arg2 = Config->Connection
-// arg3 = arg3 = "Mismatched SEC_CONFIG IsServer state"
+// arg2 = arg2 = Config->Connection = arg2
+// arg3 = arg3 = "Mismatched SEC_CONFIG IsServer state" = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_TLS_SCHANNEL_C, TlsError,
     TP_ARGS(
@@ -487,9 +487,9 @@ TRACEPOINT_EVENT(CLOG_TLS_SCHANNEL_C, TlsError,
                     TlsContext->Connection,
                     Status,
                     "Convert SNI to unicode");
-// arg2 = arg2 = TlsContext->Connection
-// arg3 = arg3 = Status
-// arg4 = arg4 = "Convert SNI to unicode"
+// arg2 = arg2 = TlsContext->Connection = arg2
+// arg3 = arg3 = Status = arg3
+// arg4 = arg4 = "Convert SNI to unicode" = arg4
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_TLS_SCHANNEL_C, TlsErrorStatus,
     TP_ARGS(

@@ -5,8 +5,8 @@
 
 Abstract:
 
-    A configurations is a container for multiple different settings, including
-    TLS security configuration and QUIC settings. On Windows it also manages
+    A configuration is a container for multiple settings, including TLS security
+    configuration and QUIC settings. On Windows it also manages
     silo and network compartment state.
 
 --*/
@@ -37,6 +37,7 @@ MsQuicConfigurationOpen(
     QUIC_CONFIGURATION* Configuration = NULL;
     uint8_t* AlpnList;
     uint32_t AlpnListLength;
+    QUIC_SETTINGS_INTERNAL InternalSettings;
 
     QuicTraceEvent(
         ApiEnter,
@@ -49,12 +50,6 @@ MsQuicConfigurationOpen(
         AlpnBuffers == NULL ||
         AlpnBufferCount == 0 ||
         NewConfiguration == NULL) {
-        goto Error;
-    }
-
-    if (Settings != NULL &&
-        SettingsSize < (uint32_t)FIELD_OFFSET(QUIC_SETTINGS, DesiredVersionsList)) {
-        Status = QUIC_STATUS_INVALID_PARAMETER;
         goto Error;
     }
 
@@ -173,14 +168,19 @@ MsQuicConfigurationOpen(
     }
 
     if (Settings != NULL && Settings->IsSetFlags != 0) {
-        CXPLAT_DBG_ASSERT(SettingsSize >= (uint32_t)FIELD_OFFSET(QUIC_SETTINGS, DesiredVersionsList));
+        Status =
+            QuicSettingsSettingsToInternal(
+                SettingsSize,
+                Settings,
+                &InternalSettings);
+        if (QUIC_FAILED(Status)) {
+            goto Error;
+        }
         if (!QuicSettingApply(
                 &Configuration->Settings,
                 TRUE,
                 TRUE,
-                TRUE,
-                SettingsSize,
-                Settings)) {
+                &InternalSettings)) {
             Status = QUIC_STATUS_INVALID_PARAMETER;
             goto Error;
         }
@@ -429,18 +429,24 @@ QuicConfigurationParamGet(
     )
 {
     if (Param == QUIC_PARAM_CONFIGURATION_SETTINGS) {
+        return QuicSettingsGetSettings(&Configuration->Settings, BufferLength, (QUIC_SETTINGS*)Buffer);
+    }
+    if (Param == QUIC_PARAM_CONFIGURATION_VERSION_SETTINGS) {
+        return QuicSettingsGetVersionSettings(&Configuration->Settings, BufferLength, (QUIC_VERSION_SETTINGS*)Buffer);
+    }
+    if (Param  == QUIC_PARAM_CONFIGURATION_VERSION_NEG_ENABLED) {
 
-        if (*BufferLength < sizeof(QUIC_SETTINGS)) {
-            *BufferLength = sizeof(QUIC_SETTINGS);
-            return QUIC_STATUS_BUFFER_TOO_SMALL; // TODO - Support partial
+        if (*BufferLength < sizeof(BOOLEAN)) {
+            *BufferLength = sizeof(BOOLEAN);
+            return QUIC_STATUS_BUFFER_TOO_SMALL;
         }
 
         if (Buffer == NULL) {
             return QUIC_STATUS_INVALID_PARAMETER;
         }
 
-        *BufferLength = sizeof(QUIC_SETTINGS);
-        CxPlatCopyMemory(Buffer, &Configuration->Settings, sizeof(QUIC_SETTINGS));
+        *BufferLength = sizeof(BOOLEAN);
+        *(BOOLEAN*)Buffer = Configuration->Settings.VersionNegotiationExtEnabled;
 
         return QUIC_STATUS_SUCCESS;
     }
@@ -458,12 +464,14 @@ QuicConfigurationParamSet(
         const void* Buffer
     )
 {
+    QUIC_SETTINGS_INTERNAL InternalSettings = {0};
+    QUIC_STATUS Status;
+
     switch (Param) {
     case QUIC_PARAM_CONFIGURATION_SETTINGS:
 
-        if (Buffer == NULL ||
-            BufferLength != sizeof(QUIC_SETTINGS)) {
-            return QUIC_STATUS_INVALID_PARAMETER; // TODO - Support partial
+        if (Buffer == NULL) {
+            return QUIC_STATUS_INVALID_PARAMETER;
         }
 
         QuicTraceLogInfo(
@@ -471,17 +479,54 @@ QuicConfigurationParamSet(
             "[cnfg][%p] Setting new settings",
             Configuration);
 
+        Status =
+            QuicSettingsSettingsToInternal(
+                BufferLength,
+                (QUIC_SETTINGS*)Buffer,
+                &InternalSettings);
+        if (QUIC_FAILED(Status)) {
+            return Status;
+        }
+
         if (!QuicSettingApply(
                 &Configuration->Settings,
                 TRUE,
                 TRUE,
-                TRUE,
-                BufferLength,
-                (QUIC_SETTINGS*)Buffer)) {
+                &InternalSettings)) {
             return QUIC_STATUS_INVALID_PARAMETER;
         }
 
-        QuicSettingsDumpNew(BufferLength, (QUIC_SETTINGS*)Buffer);
+        return QUIC_STATUS_SUCCESS;
+
+    case QUIC_PARAM_CONFIGURATION_VERSION_SETTINGS:
+
+        if (Buffer == NULL) {
+            return QUIC_STATUS_INVALID_PARAMETER;
+        }
+
+        QuicTraceLogInfo(
+            ConfigurationSetSettings,
+            "[cnfg][%p] Setting new settings",
+            Configuration);
+
+        Status =
+            QuicSettingsVersionSettingsToInternal(
+                BufferLength,
+                (QUIC_VERSION_SETTINGS*)Buffer,
+                &InternalSettings);
+        if (QUIC_FAILED(Status)) {
+            return Status;
+        }
+
+        if (!QuicSettingApply(
+                &Configuration->Settings,
+                TRUE,
+                TRUE,
+                &InternalSettings)) {
+            QuicSettingsCleanup(&InternalSettings);
+            return QUIC_STATUS_INVALID_PARAMETER;
+        }
+        QuicSettingsCleanup(&InternalSettings);
 
         return QUIC_STATUS_SUCCESS;
 
@@ -501,6 +546,29 @@ QuicConfigurationParamSet(
                 Configuration->SecurityConfig,
                 (QUIC_TICKET_KEY_CONFIG*)Buffer,
                 (uint8_t)(BufferLength / sizeof(QUIC_TICKET_KEY_CONFIG)));
+
+    case QUIC_PARAM_CONFIGURATION_VERSION_NEG_ENABLED:
+
+        if (Buffer == NULL ||
+            BufferLength < sizeof(BOOLEAN)) {
+            return QUIC_STATUS_INVALID_PARAMETER;
+        }
+
+        Configuration->Settings.IsSet.VersionNegotiationExtEnabled = TRUE;
+        Configuration->Settings.VersionNegotiationExtEnabled = *(BOOLEAN*)Buffer;
+
+        return QUIC_STATUS_SUCCESS;
+
+#ifdef WIN32
+    case QUIC_PARAM_CONFIGURATION_SCHANNEL_CREDENTIAL_ATTRIBUTE_W:
+
+        return
+            CxPlatSecConfigParamSet(
+                Configuration->SecurityConfig,
+                Param,
+                BufferLength,
+                Buffer);
+#endif
 
     default:
         break;

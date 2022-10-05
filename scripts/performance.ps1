@@ -85,6 +85,9 @@ param (
     [string]$RemoteArch = "x64",
 
     [Parameter(Mandatory = $false)]
+    [string]$ExtraArtifactDir = "",
+
+    [Parameter(Mandatory = $false)]
     [ValidateSet("schannel", "openssl")]
     [string]$RemoteTls = "",
 
@@ -92,7 +95,7 @@ param (
     [string]$ComputerName = "quic-server",
 
     [Parameter(Mandatory = $false)]
-    [ValidateSet("Basic.Light", "Datapath.Light", "Datapath.Verbose", "Stacks.Light", "Performance.Light", "Basic.Verbose", "Performance.Light", "Performance.Verbose", "Full.Light", "Full.Verbose", "SpinQuic.Light", "None")]
+    [ValidateSet("Basic.Light", "Datapath.Light", "Datapath.Verbose", "Stacks.Light", "RPS.Light", "RPS.Verbose", "Performance.Light", "Basic.Verbose", "Performance.Light", "Performance.Verbose", "Full.Light", "Full.Verbose", "SpinQuic.Light", "None")]
     [string]$LogProfile = "None",
 
     [Parameter(Mandatory = $false)]
@@ -114,6 +117,9 @@ param (
     [switch]$PGO = $false,
 
     [Parameter(Mandatory = $false)]
+    [switch]$XDP = $false,
+
+    [Parameter(Mandatory = $false)]
     [int]$Timeout = 120,
 
     [Parameter(Mandatory = $false)]
@@ -127,24 +133,44 @@ param (
 
     [Parameter(Mandatory = $false)]
     [ValidateSet("QUIC", "TCPTLS")]
-    [string]$Protocol = "QUIC"
+    [string]$Protocol = "QUIC",
+
+    [Parameter(Mandatory = $false)]
+    [int]$ForceIterations = 0
 )
 
 Set-StrictMode -Version 'Latest'
 $PSDefaultParameterValues['*:ErrorAction'] = 'Stop'
 $ProgressPreference = 'SilentlyContinue'
 
-# Validate the the kernel switch.
-if ($Kernel -and !$IsWindows) {
-    Write-Error "-Kernel switch only supported on Windows"
+# Validate the the switches.
+if ($Kernel) {
+    if (!$IsWindows) {
+        Write-Error "'-Kernel' is not supported on this platform"
+    }
+    if ($PGO) {
+        Write-Error "'-PGO' is not supported in kernel mode!"
+    }
+    if ($XDP) {
+        Write-Error "'-XDP' is not supported in kernel mode!"
+    }
 }
-
-if ($Kernel -and $PGO) {
-    Write-Error "PGO is currently not supported in kernel mode"
+if (!$IsWindows) {
+    if ($PGO) {
+        Write-Error "'-PGO' is not supported on this platform!"
+    }
+    if ($XDP) {
+        Write-Error "'-XDP' is not supported on this platform!"
+    }
 }
 
 if (!$IsWindows -and [string]::IsNullOrWhiteSpace($Remote)) {
     $Remote = "quic-server"
+}
+
+if ($PGO) {
+    # PGO makes things slower, so increase the timeout accordingly.
+    $Timeout = $Timeout * 5
 }
 
 # Root directory of the project.
@@ -173,12 +199,6 @@ if (($LocalTls -eq "") -and ($RemoteTls -eq "")) {
     }
 } elseif (($LocalTls -ne "") -xor ($RemoteTls -ne "")) {
     Write-Error "Both TLS arguments must be set if a manual setting is done"
-}
-
-if (!$IsWindows) {
-    if ($PGO) {
-        Write-Error "'-PGO' is not supported on this platform!"
-    }
 }
 
 $TestFileName = ($Protocol -eq "QUIC") ? "RemoteTests.json" : "TcpTests.json"
@@ -226,6 +246,7 @@ Set-ScriptVariables -Local $Local `
                     -LocalArch $LocalArch `
                     -RemoteTls $RemoteTls `
                     -RemoteArch $RemoteArch `
+                    -XDP $XDP `
                     -Config $Config `
                     -Publish $Publish `
                     -Record $Record `
@@ -233,7 +254,8 @@ Set-ScriptVariables -Local $Local `
                     -RemoteAddress $RemoteAddress `
                     -Session $Session `
                     -Kernel $Kernel `
-                    -FailOnRegression $FailOnRegression
+                    -FailOnRegression $FailOnRegression `
+                    -PGO $PGO
 
 $RemotePlatform = Invoke-TestCommand -Session $Session -ScriptBlock {
     if ($IsWindows) {
@@ -243,7 +265,7 @@ $RemotePlatform = Invoke-TestCommand -Session $Session -ScriptBlock {
     }
 }
 
-$OutputDir = Join-Path $RootDir "artifacts/PerfDataResults/$RemotePlatform/$($RemoteArch)_$($Config)_$($RemoteTls)"
+$OutputDir = Join-Path $RootDir "artifacts/PerfDataResults/$RemotePlatform/$($RemoteArch)_$($Config)_$($RemoteTls)$($ExtraArtifactDir)"
 New-Item -Path $OutputDir -ItemType Directory -Force | Out-Null
 
 $DebugFileName = $Local ? "DebugLogLocal.txt" : "DebugLog.txt"
@@ -263,6 +285,9 @@ $RemoteDirectorySMB = $null
 
 # Copy manifest and log script to local directory
 Copy-Item -Path (Join-Path $RootDir scripts log.ps1) -Destination $LocalDirectory
+Copy-Item -Path (Join-Path $RootDir scripts xdp-devkit.json) -Destination $LocalDirectory
+Copy-Item -Path (Join-Path $RootDir scripts prepare-machine.ps1) -Destination $LocalDirectory
+Copy-Item -Path (Join-Path $RootDir scripts xdp-devkit.json) -Destination $LocalDirectory
 Copy-Item -Path (Join-Path $RootDir src manifest MsQuic.wprp) -Destination $LocalDirectory
 
 if ($Local) {
@@ -327,8 +352,8 @@ function LocalTeardown {
     }
 }
 
-$RemoteExePath = Get-ExePath -PathRoot $RemoteDirectory -Platform $RemotePlatform -IsRemote $true
-$LocalExePath = Get-ExePath -PathRoot $LocalDirectory -Platform $LocalPlatform -IsRemote $false
+$RemoteExePath = Get-ExePath -PathRoot $RemoteDirectory -Platform $RemotePlatform -IsRemote $true -ExtraArtifactDir $ExtraArtifactDir
+$LocalExePath = Get-ExePath -PathRoot $LocalDirectory -Platform $LocalPlatform -IsRemote $false -ExtraArtifactDir $ExtraArtifactDir
 
 # See if we are an AZP PR
 $PrBranchName = $env:SYSTEM_PULLREQUEST_TARGETBRANCH
@@ -364,8 +389,8 @@ function Invoke-Test {
 
     Write-Output "Running Test $Test"
 
-    $RemoteExe = Get-ExeName -PathRoot $RemoteDirectory -Platform $RemotePlatform -IsRemote $true -TestPlat $RemoteConfig
-    $LocalExe = Get-ExeName -PathRoot $LocalDirectory -Platform $LocalPlatform -IsRemote $false -TestPlat $Test.Local
+    $RemoteExe = Get-ExeName -PathRoot $RemoteDirectory -Platform $RemotePlatform -IsRemote $true -TestPlat $RemoteConfig -ExtraArtifactDir $ExtraArtifactDir
+    $LocalExe = Get-ExeName -PathRoot $LocalDirectory -Platform $LocalPlatform -IsRemote $false -TestPlat $Test.Local -ExtraArtifactDir $ExtraArtifactDir
 
     # Check both Exes
     $RemoteExeExists = Invoke-TestCommand -Session $Session -ScriptBlock {
@@ -394,6 +419,19 @@ function Invoke-Test {
         $RemoteArguments += " -stats:1"
     }
 
+    if ($LocalArguments.Contains("-exec:maxtput")) {
+        $RemoteArguments += " -exec:maxtput"
+    }
+
+    if ($LocalArguments.Contains("-exec:lowlat")) {
+        $RemoteArguments += " -exec:lowlat"
+    }
+
+    if ($XDP) {
+        $RemoteArguments += " -cpu:-1"
+        $LocalArguments += " -cpu:-1"
+    }
+
     if ($Kernel) {
         $Arch = Split-Path (Split-Path $LocalExe -Parent) -Leaf
         $RootBinPath = Split-Path (Split-Path (Split-Path $LocalExe -Parent) -Parent) -Parent
@@ -403,6 +441,15 @@ function Invoke-Test {
         Copy-Item (Join-Path $KernelDir "msquicpriv.sys") (Split-Path $LocalExe -Parent)
 
         $LocalArguments = "-driverNamePriv:secnetperfdrvpriv $LocalArguments"
+    }
+
+    if ($IsWindows) {
+        # Copy to tmp folder
+        $CopyToDirectory = "C:\RunningTests"
+        New-Item -Path $CopyToDirectory -ItemType Directory -Force | Out-Null
+        $ExeFolder = Split-Path $LocalExe -Parent
+        Copy-Item -Path "$ExeFolder\*" -Destination $CopyToDirectory -Recurse -Force
+        $LocalExe = Join-Path $CopyToDirectory (Split-Path $LocalExe -Leaf)
     }
 
     Write-LogAndDebug "Running Remote: $RemoteExe Args: $RemoteArguments"
@@ -415,6 +462,7 @@ function Invoke-Test {
         Stop-Job -Job $RemoteJob
         $RetVal = Receive-Job -Job $RemoteJob
         $RetVal = $RetVal -join "`n"
+        Cancel-RemoteLogs -RemoteDirectory $RemoteDirectory
         Write-Error "Test Remote for $Test failed to start: $RetVal"
     }
 
@@ -422,12 +470,17 @@ function Invoke-Test {
 
     Start-Tracing -LocalDirectory $LocalDirectory
 
+    $NumIterations = $Test.Iterations
+    if ($ForceIterations -gt 0) {
+        $NumIterations = $ForceIterations
+    }
+
     try {
-        1..$Test.Iterations | ForEach-Object {
+        1..$NumIterations | ForEach-Object {
             Write-LogAndDebug "Running Local: $LocalExe Args: $LocalArguments"
             $LocalResults = Invoke-LocalExe -Exe $LocalExe -RunArgs $LocalArguments -Timeout $Timeout -OutputDir $OutputDir
             Write-LogAndDebug $LocalResults
-            $AllLocalParsedResults = Get-TestResult -Results $LocalResults -Matcher $Test.ResultsMatcher
+            $AllLocalParsedResults = Get-TestResult -Results $LocalResults -Matcher $Test.ResultsMatcher -FailureDefault $Test.FailureDefault
             $AllRunsResults += $AllLocalParsedResults
             if ($PGO) {
                 # Merge client PGO Counts
@@ -452,6 +505,8 @@ function Invoke-Test {
         $RemoteResults = Wait-ForRemote -Job $RemoteJob
         Write-LogAndDebug $RemoteResults.ToString()
 
+        Stop-RemoteLogs -RemoteDirectory $RemoteDirectory
+
         if ($Kernel) {
             net.exe stop secnetperfdrvpriv /y | Out-Null
             net.exe stop msquicpriv /y | Out-Null
@@ -472,7 +527,11 @@ function Invoke-Test {
                     # This will still throw if a file cannot successfuly be deleted
                 }
             } else {
-                Get-RemoteLogDirectory -Local (Join-Path $OutputDir $Test.ToString()) -Remote (Join-Path $RemoteDirectory serverlogs) -SmbDir (Join-Path $RemoteDirectorySMB serverlogs) -Cleanup
+                try {
+                    Get-RemoteLogDirectory -Local (Join-Path $OutputDir $Test.ToString()) -Remote (Join-Path $RemoteDirectory serverlogs) -SmbDir (Join-Path $RemoteDirectorySMB serverlogs) -Cleanup
+                } catch {
+                    Write-Host "Failed to get remote logs"
+                }
             }
         }
     }
@@ -496,15 +555,9 @@ function Invoke-Test {
 $LocalDataCache = LocalSetup
 
 if ($Record -and $IsWindows) {
-    try {
-        wpr.exe -cancel 2> $null
-    } catch {
-    }
+    try { wpr.exe -cancel -instancename msquicperf 2> $null } catch { }
     Invoke-TestCommand -Session $Session -ScriptBlock {
-        try {
-            wpr.exe -cancel 2> $null
-        } catch {
-        }
+        try { wpr.exe -cancel -instancename msquicperf 2> $null } catch { }
     }
 }
 
@@ -513,6 +566,20 @@ try {
 
     if ($null -eq $Tests) {
         Write-Error "Tests are not valid"
+    }
+
+    Remove-PerfServices
+
+    if ($IsWindows) {
+        Cancel-RemoteLogs -RemoteDirectory $RemoteDirectory
+
+        try {
+            $CopyToDirectory = "C:\RunningTests"
+            Remove-Item -Path "$CopyToDirectory/*" -Recurse -Force
+        } catch [System.Management.Automation.ItemNotFoundException] {
+            # Ignore Not Found for when the directory does not exist
+            # This will still throw if a file cannot successfuly be deleted
+        }
     }
 
     # Find All Remote processes, and kill them
@@ -531,6 +598,25 @@ try {
         Copy-Artifacts -From $LocalDirectory -To $RemoteDirectory -SmbDir $RemoteDirectorySMB
     }
 
+    Cancel-LocalTracing -LocalDirectory $LocalDirectory
+    Cancel-RemoteLogs -RemoteDirectory $RemoteDirectory
+
+    Invoke-Expression "$(Join-Path $LocalDirectory prepare-machine.ps1) -UninstallXdp"
+    if (!$Local) {
+        Invoke-TestCommand -Session $Session -ScriptBlock {
+            param ($RemoteDirectory)
+            Invoke-Expression "$(Join-Path $RemoteDirectory prepare-machine.ps1) -UninstallXdp"
+        } -ArgumentList $RemoteDirectory
+    }
+
+    if ($XDP) {
+        Invoke-Expression "$(Join-Path $LocalDirectory prepare-machine.ps1) -InstallXdpDriver -Force"
+        Invoke-TestCommand -Session $Session -ScriptBlock {
+            param ($RemoteDirectory)
+            Invoke-Expression "$(Join-Path $RemoteDirectory prepare-machine.ps1) -InstallXdpDriver -Force"
+        } -ArgumentList $RemoteDirectory
+    }
+
     foreach ($Test in $Tests.Tests) {
         if ($TestToRun -ne "" -and $Test.TestName -ne $TestToRun) {
             continue
@@ -544,8 +630,14 @@ try {
     }
 
     Check-Regressions
-
 } finally {
+    if ($XDP) {
+        Invoke-Expression "$(Join-Path $LocalDirectory prepare-machine.ps1) -UninstallXdp"
+        Invoke-TestCommand -Session $Session -ScriptBlock {
+            param ($RemoteDirectory)
+            Invoke-Expression "$(Join-Path $RemoteDirectory prepare-machine.ps1) -UninstallXdp"
+        } -ArgumentList $RemoteDirectory
+    }
     if ($null -ne $Session) {
         Remove-PSSession -Session $Session
     }

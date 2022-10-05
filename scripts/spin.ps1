@@ -67,6 +67,9 @@ param (
     [string]$Seed = "",
 
     [Parameter(Mandatory = $false)]
+    [string]$Target = "",
+
+    [Parameter(Mandatory = $false)]
     [switch]$KeepOutputOnSuccess = $false,
 
     [Parameter(Mandatory = $false)]
@@ -79,7 +82,7 @@ param (
     [switch]$InitialBreak = $false,
 
     [Parameter(Mandatory = $false)]
-    [ValidateSet("None", "Basic.Light", "Basic.Verbose", "Full.Light", "Full.Verbose", "SpinQuic.Light")]
+    [ValidateSet("None", "Basic.Light", "Basic.Verbose", "Full.Light", "Full.Verbose", "SpinQuic.Light", "SpinQuicWarnings.Light")]
     [string]$LogProfile = "None",
 
     [Parameter(Mandatory = $false)]
@@ -144,6 +147,9 @@ if ($AllocFail -gt 0) {
 if ($Seed -ne "") {
     $SpinQuicArgs += " -seed:$($Seed)"
 }
+if ($Target -ne "") {
+    $SpinQuicArgs += " -target:$($Target)"
+}
 
 $Arguments = "-Path $($SpinQuic) -Arguments '$($SpinQuicArgs)' -ShowOutput"
 if ($KeepOutputOnSuccess) {
@@ -166,6 +172,10 @@ if ($CodeCoverage) {
 }
 if ($AZP) {
     $Arguments += " -AZP"
+}
+
+if (![string]::IsNullOrWhiteSpace($ExtraArtifactDir)) {
+    $Arguments += " -ExtraArtifactDir $ExtraArtifactDir"
 }
 
 # Run the script.

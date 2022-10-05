@@ -46,6 +46,9 @@ typedef struct QUIC_CONGESTION_CONTROL_CUBIC {
     uint32_t PrevCongestionWindow; // bytes
     uint32_t SlowStartThreshold; // bytes
     uint32_t PrevSlowStartThreshold; // bytes
+    uint32_t AimdWindow; // bytes
+    uint32_t PrevAimdWindow; // bytes
+    uint32_t AimdAccumulator; // bytes
 
     //
     // The number of bytes considered to be still in the network.
@@ -59,6 +62,11 @@ typedef struct QUIC_CONGESTION_CONTROL_CUBIC {
     uint32_t BytesInFlightMax;
 
     //
+    // The leftover send allowance from a previous send. Only used when pacing.
+    //
+    uint32_t LastSendAllowance; // bytes
+
+    //
     // A count of packets which can be sent ignoring CongestionWindow.
     // The count is decremented as the packets are sent. BytesInFlight is still
     // incremented for these packets. This is used to send probe packets for
@@ -66,13 +74,15 @@ typedef struct QUIC_CONGESTION_CONTROL_CUBIC {
     //
     uint8_t Exemptions;
 
-    uint64_t TimeOfLastAck; // millisec
-    uint64_t TimeOfCongAvoidStart; // millisec
+    uint64_t TimeOfLastAck; // microseconds
+    uint64_t TimeOfCongAvoidStart; // microseconds
     uint32_t KCubic; // millisec
     uint32_t PrevKCubic; // millisec
-    uint32_t WindowMax; // bytes
+    uint32_t WindowPrior; // bytes (prior_cwnd from rfc8312bis)
+    uint32_t PrevWindowPrior; // bytes
+    uint32_t WindowMax; // bytes (W_max from rfc8312bis)
     uint32_t PrevWindowMax; // bytes
-    uint32_t WindowLastMax; // bytes
+    uint32_t WindowLastMax; // bytes (W_last_max from rfc8312bis)
     uint32_t PrevWindowLastMax; // bytes
 
     //
@@ -88,5 +98,5 @@ _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 CubicCongestionControlInitialize(
     _In_ QUIC_CONGESTION_CONTROL* Cc,
-    _In_ const QUIC_SETTINGS* Settings
+    _In_ const QUIC_SETTINGS_INTERNAL* Settings
     );

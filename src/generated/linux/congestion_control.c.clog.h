@@ -1,4 +1,6 @@
+#ifndef CLOG_DO_NOT_INCLUDE_HEADER
 #include <clog.h>
+#endif
 #undef TRACEPOINT_PROVIDER
 #define TRACEPOINT_PROVIDER CLOG_CONGESTION_CONTROL_C
 #undef TRACEPOINT_PROBE_DYNAMIC_LINKAGE
@@ -19,21 +21,18 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-#ifndef _clog_4_ARGS_TRACE_InvalidCongestionControlAlgorithm
-
-
-
 /*----------------------------------------------------------
 // Decoder Ring for InvalidCongestionControlAlgorithm
-// [conn][%p] Unknown congestion control algorithm: %d, fallback to Cubic
+// [conn][%p] Unknown congestion control algorithm: %hu, fallback to Cubic
 // QuicTraceLogConnWarning(
             InvalidCongestionControlAlgorithm,
             QuicCongestionControlGetConnection(Cc),
-            "Unknown congestion control algorithm: %d, fallback to Cubic",
+            "Unknown congestion control algorithm: %hu, fallback to Cubic",
             Settings->CongestionControlAlgorithm);
-// arg1 = arg1 = QuicCongestionControlGetConnection(Cc)
-// arg3 = arg3 = Settings->CongestionControlAlgorithm
+// arg1 = arg1 = QuicCongestionControlGetConnection(Cc) = arg1
+// arg3 = arg3 = Settings->CongestionControlAlgorithm = arg3
 ----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_InvalidCongestionControlAlgorithm
 #define _clog_4_ARGS_TRACE_InvalidCongestionControlAlgorithm(uniqueId, arg1, encoded_arg_string, arg3)\
 tracepoint(CLOG_CONGESTION_CONTROL_C, InvalidCongestionControlAlgorithm , arg1, arg3);\
 

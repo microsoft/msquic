@@ -207,3 +207,52 @@ void
 CxPlatCryptUninitialize(
     void
     );
+
+//
+// Platform Worker APIs
+//
+
+void
+CxPlatWorkersInit(
+    void
+    );
+
+void
+CxPlatWorkersUninit(
+    void
+    );
+
+BOOLEAN
+CxPlatWorkersLazyStart(
+    _In_opt_ QUIC_EXECUTION_CONFIG* Config
+    );
+
+CXPLAT_EVENTQ*
+CxPlatWorkerGetEventQ(
+    _In_ uint16_t IdealProcessor
+    );
+
+void
+CxPlatDataPathProcessCqe(
+    _In_ CXPLAT_CQE* Cqe
+    );
+
+BOOLEAN // Returns FALSE no work was done.
+CxPlatDataPathPoll(
+    _In_ void* Context,
+    _Out_ BOOLEAN* RemoveFromPolling
+    );
+
+typedef struct DATAPATH_SQE {
+    uint32_t CqeType;
+#ifdef CXPLAT_SQE
+    CXPLAT_SQE Sqe;
+#endif
+} DATAPATH_SQE;
+
+#define CXPLAT_CQE_TYPE_WORKER_WAKE         CXPLAT_CQE_TYPE_QUIC_BASE + 1
+#define CXPLAT_CQE_TYPE_WORKER_UPDATE_POLL  CXPLAT_CQE_TYPE_QUIC_BASE + 2
+#define CXPLAT_CQE_TYPE_SOCKET_SHUTDOWN     CXPLAT_CQE_TYPE_QUIC_BASE + 3
+#define CXPLAT_CQE_TYPE_SOCKET_IO           CXPLAT_CQE_TYPE_QUIC_BASE + 4
+
+extern CXPLAT_RUNDOWN_REF CxPlatWorkerRundown;

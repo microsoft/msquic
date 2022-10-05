@@ -294,7 +294,7 @@ class MsQuicApi : public QUIC_API_TABLE {
     QUIC_STATUS InitStatus;
 public:
     MsQuicApi() noexcept {
-        if (QUIC_SUCCEEDED(InitStatus = MsQuicOpen(&ApiTable))) {
+        if (QUIC_SUCCEEDED(InitStatus = MsQuicOpen2(&ApiTable))) {
             QUIC_API_TABLE* thisTable = this;
             memcpy(thisTable, ApiTable, sizeof(*ApiTable));
         }
@@ -312,11 +312,11 @@ public:
 
 extern const MsQuicApi* MsQuic;
 
-class MsQuicRegistration {
+struct MsQuicRegistration {
     bool CloseAllConnectionsOnDelete {false};
     HQUIC Handle {nullptr};
     QUIC_STATUS InitStatus;
-public:
+
     operator HQUIC () const noexcept { return Handle; }
     MsQuicRegistration(
         _In_ bool AutoCleanUp = false
@@ -374,6 +374,45 @@ public:
     uint32_t Length() const noexcept { return BuffersLength; }
 };
 
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
+class MsQuicVersionSettings : public QUIC_VERSION_SETTINGS {
+public:
+    MsQuicVersionSettings() noexcept {}
+    MsQuicVersionSettings(const uint32_t* Versions, uint32_t Length) noexcept {
+        AcceptableVersions = OfferedVersions = FullyDeployedVersions = Versions;
+        AcceptableVersionsLength = OfferedVersionsLength = FullyDeployedVersionsLength = Length;
+    }
+    MsQuicVersionSettings& SetAllVersionLists(const uint32_t* Versions, uint32_t Length) {
+        AcceptableVersions = OfferedVersions = FullyDeployedVersions = Versions;
+        AcceptableVersionsLength = OfferedVersionsLength = FullyDeployedVersionsLength = Length;
+        return *this;
+    }
+    QUIC_STATUS
+    SetGlobal() const noexcept {
+        const QUIC_VERSION_SETTINGS* Settings = this;
+        return
+            MsQuic->SetParam(
+                nullptr,
+                QUIC_PARAM_GLOBAL_VERSION_SETTINGS,
+                sizeof(*Settings),
+                Settings);
+    }
+    QUIC_STATUS
+    GetGlobal() noexcept {
+        QUIC_VERSION_SETTINGS* Settings = this;
+        uint32_t Size = sizeof(*Settings);
+        return
+            MsQuic->GetParam(
+                nullptr,
+                QUIC_PARAM_GLOBAL_VERSION_SETTINGS,
+                &Size,
+                Settings);
+    }
+};
+
+static_assert(sizeof(QUIC_VERSION_SETTINGS) == sizeof(MsQuicVersionSettings), "Cpp wrappers must not change size");
+#endif
+
 class MsQuicSettings : public QUIC_SETTINGS {
 public:
     MsQuicSettings() noexcept { IsSetFlags = 0; }
@@ -390,15 +429,15 @@ public:
     MsQuicSettings& SetPeerUnidiStreamCount(uint16_t Value) { PeerUnidiStreamCount = Value; IsSet.PeerUnidiStreamCount = TRUE; return *this; }
     MsQuicSettings& SetMaxBytesPerKey(uint64_t Value) { MaxBytesPerKey = Value; IsSet.MaxBytesPerKey = TRUE; return *this; }
     MsQuicSettings& SetMaxAckDelayMs(uint32_t Value) { MaxAckDelayMs = Value; IsSet.MaxAckDelayMs = TRUE; return *this; }
-    MsQuicSettings& SetDesiredVersionsList(const uint32_t* DesiredVersions, uint32_t Length) {
-        DesiredVersionsList = DesiredVersions; DesiredVersionsListLength = Length; IsSet.DesiredVersionsList = TRUE; return *this; }
-    MsQuicSettings& SetVersionNegotiationExtEnabled(bool Value) { VersionNegotiationExtEnabled = Value; IsSet.VersionNegotiationExtEnabled = TRUE; return *this; }
     MsQuicSettings& SetMaximumMtu(uint16_t Mtu) { MaximumMtu = Mtu; IsSet.MaximumMtu = TRUE; return *this; }
     MsQuicSettings& SetMinimumMtu(uint16_t Mtu) { MinimumMtu = Mtu; IsSet.MinimumMtu = TRUE; return *this; }
     MsQuicSettings& SetMtuDiscoverySearchCompleteTimeoutUs(uint64_t Time) { MtuDiscoverySearchCompleteTimeoutUs = Time; IsSet.MtuDiscoverySearchCompleteTimeoutUs = TRUE; return *this; }
     MsQuicSettings& SetMtuDiscoveryMissingProbeCount(uint8_t Count) { MtuDiscoveryMissingProbeCount = Count; IsSet.MtuDiscoveryMissingProbeCount = TRUE; return *this; }
     MsQuicSettings& SetKeepAlive(uint32_t Time) { KeepAliveIntervalMs = Time; IsSet.KeepAliveIntervalMs = TRUE; return *this; }
     MsQuicSettings& SetConnFlowControlWindow(uint32_t Window) { ConnFlowControlWindow = Window; IsSet.ConnFlowControlWindow = TRUE; return *this; }
+    MsQuicSettings& SetCongestionControlAlgorithm(QUIC_CONGESTION_CONTROL_ALGORITHM Cc) { CongestionControlAlgorithm = (uint8_t)Cc; IsSet.CongestionControlAlgorithm = TRUE; return *this; }
+    MsQuicSettings& SetDestCidUpdateIdleTimeoutMs(uint32_t Value) { DestCidUpdateIdleTimeoutMs = Value; IsSet.DestCidUpdateIdleTimeoutMs = TRUE; return *this; }
+    MsQuicSettings& SetGreaseQuicBitEnabled(bool Value) { GreaseQuicBitEnabled = Value; IsSet.GreaseQuicBitEnabled = TRUE; return *this; }
 
     QUIC_STATUS
     SetGlobal() const noexcept {
@@ -406,7 +445,6 @@ public:
         return
             MsQuic->SetParam(
                 nullptr,
-                QUIC_PARAM_LEVEL_GLOBAL,
                 QUIC_PARAM_GLOBAL_SETTINGS,
                 sizeof(*Settings),
                 Settings);
@@ -419,12 +457,13 @@ public:
         return
             MsQuic->GetParam(
                 nullptr,
-                QUIC_PARAM_LEVEL_GLOBAL,
                 QUIC_PARAM_GLOBAL_SETTINGS,
                 &Size,
                 Settings);
     }
 };
+
+static_assert(sizeof(QUIC_SETTINGS) == sizeof(MsQuicSettings), "Cpp wrappers must not change size");
 
 class MsQuicCertificateHash : public QUIC_CERTIFICATE_HASH {
 public:
@@ -458,11 +497,11 @@ public:
     }
 };
 
-class MsQuicConfiguration {
+struct MsQuicConfiguration {
     HQUIC Handle {nullptr};
     QUIC_STATUS InitStatus;
-public:
     operator HQUIC () const noexcept { return Handle; }
+
     MsQuicConfiguration(
         _In_ const MsQuicRegistration& Reg,
         _In_ const MsQuicAlpn& Alpns
@@ -551,7 +590,6 @@ public:
         return
             MsQuic->SetParam(
                 Handle,
-                QUIC_PARAM_LEVEL_CONFIGURATION,
                 QUIC_PARAM_CONFIGURATION_TICKET_KEYS,
                 sizeof(QUIC_TICKET_KEY_CONFIG),
                 KeyConfig);
@@ -563,7 +601,6 @@ public:
         return
             MsQuic->SetParam(
                 Handle,
-                QUIC_PARAM_LEVEL_CONFIGURATION,
                 QUIC_PARAM_CONFIGURATION_TICKET_KEYS,
                 KeyCount * sizeof(QUIC_TICKET_KEY_CONFIG),
                 KeyConfig);
@@ -574,11 +611,59 @@ public:
         return
             MsQuic->SetParam(
                 Handle,
-                QUIC_PARAM_LEVEL_CONFIGURATION,
                 QUIC_PARAM_CONFIGURATION_SETTINGS,
                 sizeof(*QSettings),
                 QSettings);
     }
+
+    QUIC_STATUS
+    GetSettings(_Out_ MsQuicSettings& Settings) noexcept {
+        QUIC_SETTINGS* QSettings = &Settings;
+        uint32_t Size = sizeof(*QSettings);
+        return
+            MsQuic->GetParam(
+                Handle,
+                QUIC_PARAM_CONFIGURATION_SETTINGS,
+                &Size,
+                QSettings);
+    }
+
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
+    QUIC_STATUS
+    SetVersionSettings(
+        _In_ const MsQuicVersionSettings& Settings) noexcept {
+        const QUIC_VERSION_SETTINGS* QSettings = &Settings;
+        return
+            MsQuic->SetParam(
+                Handle,
+                QUIC_PARAM_CONFIGURATION_VERSION_SETTINGS,
+                sizeof(*QSettings),
+                QSettings);
+    }
+
+    QUIC_STATUS
+    GetVersionSettings(
+        _Out_ MsQuicVersionSettings& Settings,
+        _Inout_ uint32_t* SettingsLength) noexcept {
+        QUIC_VERSION_SETTINGS* VSettings = &Settings;
+        return
+            MsQuic->GetParam(
+                Handle,
+                QUIC_PARAM_CONFIGURATION_VERSION_SETTINGS,
+                SettingsLength,
+                VSettings);
+    }
+
+    QUIC_STATUS
+    SetVersionNegotiationExtEnabled(_In_ const bool Value = true) noexcept {
+        BOOLEAN _Value = Value;
+        return MsQuic->SetParam(
+            Handle,
+            QUIC_PARAM_CONFIGURATION_VERSION_NEG_ENABLED,
+            sizeof(_Value),
+            &_Value);
+    }
+#endif
 };
 
 struct MsQuicListener {
@@ -621,24 +706,22 @@ struct MsQuicListener {
 
     QUIC_STATUS
     SetParam(
-        _In_ _Pre_defensive_ QUIC_PARAM_LEVEL Level,
         _In_ uint32_t Param,
         _In_ uint32_t BufferLength,
         _In_reads_bytes_(BufferLength)
             const void* Buffer
         ) noexcept {
-        return MsQuic->SetParam(Handle, Level, Param, BufferLength, Buffer);
+        return MsQuic->SetParam(Handle, Param, BufferLength, Buffer);
     }
 
     QUIC_STATUS
     GetParam(
-        _In_ _Pre_defensive_ QUIC_PARAM_LEVEL Level,
         _In_ uint32_t Param,
         _Inout_ _Pre_defensive_ uint32_t* BufferLength,
         _Out_writes_bytes_opt_(*BufferLength)
             void* Buffer
         ) noexcept {
-        return MsQuic->GetParam(Handle, Level, Param, BufferLength, Buffer);
+        return MsQuic->GetParam(Handle, Param, BufferLength, Buffer);
     }
 
     QUIC_STATUS
@@ -646,10 +729,34 @@ struct MsQuicListener {
         uint32_t Size = sizeof(Addr.SockAddr);
         return
             GetParam(
-                QUIC_PARAM_LEVEL_LISTENER,
                 QUIC_PARAM_LISTENER_LOCAL_ADDRESS,
                 &Size,
                 &Addr.SockAddr);
+    }
+
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
+    QUIC_STATUS
+    SetCibirId(
+        _In_reads_(Length) const uint8_t* Value,
+        _In_ uint8_t Length) noexcept {
+        return
+            MsQuic->SetParam(
+                Handle,
+                QUIC_PARAM_LISTENER_CIBIR_ID,
+                Length,
+                Value);
+    }
+#endif
+
+    QUIC_STATUS
+    GetStatistics(_Out_ QUIC_LISTENER_STATISTICS& Statistics) const noexcept {
+        uint32_t Size = sizeof(Statistics);
+        return
+            MsQuic->GetParam(
+                Handle,
+                QUIC_PARAM_LISTENER_STATS,
+                &Size,
+                &Statistics);
     }
 
     QUIC_STATUS GetInitStatus() const noexcept { return InitStatus; }
@@ -721,9 +828,7 @@ struct MsQuicConnection {
     }
 
     ~MsQuicConnection() noexcept {
-        if (Handle) {
-            MsQuic->ConnectionClose(Handle);
-        }
+        Close();
         delete[] ResumptionTicket;
     }
 
@@ -733,6 +838,19 @@ struct MsQuicConnection {
         _In_ QUIC_CONNECTION_SHUTDOWN_FLAGS Flags = QUIC_CONNECTION_SHUTDOWN_FLAG_NONE
         ) noexcept {
         MsQuic->ConnectionShutdown(Handle, Flags, ErrorCode);
+    }
+
+    void
+    Close(
+    ) noexcept {
+#ifdef _WIN32
+        auto HandleToClose = (HQUIC)InterlockedExchangePointer((PVOID*)&Handle, NULL);
+#else
+        auto HandleToClose = (HQUIC)__sync_fetch_and_and(&Handle, 0);
+#endif
+        if (HandleToClose) {
+            MsQuic->ConnectionClose(HandleToClose);
+        }
     }
 
     QUIC_STATUS
@@ -757,14 +875,6 @@ struct MsQuicConnection {
     }
 
     QUIC_STATUS
-    StartLocalhost(
-        _In_ const MsQuicConfiguration& Config,
-        _In_ const QuicAddr& LocalhostAddr
-        ) noexcept {
-        return MsQuic->ConnectionStart(Handle, Config, LocalhostAddr.GetFamily(), QUIC_LOCALHOST_FOR_AF(LocalhostAddr.GetFamily()), LocalhostAddr.GetPort());
-    }
-
-    QUIC_STATUS
     SetConfiguration(
         _In_ const MsQuicConfiguration& Config
         ) noexcept {
@@ -783,24 +893,22 @@ struct MsQuicConnection {
 
     QUIC_STATUS
     SetParam(
-        _In_ _Pre_defensive_ QUIC_PARAM_LEVEL Level,
         _In_ uint32_t Param,
         _In_ uint32_t BufferLength,
         _In_reads_bytes_(BufferLength)
             const void* Buffer
         ) noexcept {
-        return MsQuic->SetParam(Handle, Level, Param, BufferLength, Buffer);
+        return MsQuic->SetParam(Handle, Param, BufferLength, Buffer);
     }
 
     QUIC_STATUS
     GetParam(
-        _In_ _Pre_defensive_ QUIC_PARAM_LEVEL Level,
         _In_ uint32_t Param,
         _Inout_ _Pre_defensive_ uint32_t* BufferLength,
         _Out_writes_bytes_opt_(*BufferLength)
             void* Buffer
         ) noexcept {
-        return MsQuic->GetParam(Handle, Level, Param, BufferLength, Buffer);
+        return MsQuic->GetParam(Handle, Param, BufferLength, Buffer);
     }
 
     QUIC_STATUS
@@ -808,7 +916,6 @@ struct MsQuicConnection {
         uint32_t Size = sizeof(Addr.SockAddr);
         return
             GetParam(
-                QUIC_PARAM_LEVEL_CONNECTION,
                 QUIC_PARAM_CONN_LOCAL_ADDRESS,
                 &Size,
                 &Addr.SockAddr);
@@ -819,7 +926,6 @@ struct MsQuicConnection {
         uint32_t Size = sizeof(Addr.SockAddr);
         return
             GetParam(
-                QUIC_PARAM_LEVEL_CONNECTION,
                 QUIC_PARAM_CONN_REMOTE_ADDRESS,
                 &Size,
                 &Addr.SockAddr);
@@ -830,8 +936,17 @@ struct MsQuicConnection {
         return
             MsQuic->SetParam(
                 Handle,
-                QUIC_PARAM_LEVEL_CONNECTION,
                 QUIC_PARAM_CONN_LOCAL_ADDRESS,
+                sizeof(Addr.SockAddr),
+                &Addr.SockAddr);
+    }
+
+    QUIC_STATUS
+    SetRemoteAddr(_In_ const QuicAddr& Addr) noexcept {
+        return
+            MsQuic->SetParam(
+                Handle,
+                QUIC_PARAM_CONN_REMOTE_ADDRESS,
                 sizeof(Addr.SockAddr),
                 &Addr.SockAddr);
     }
@@ -841,7 +956,6 @@ struct MsQuicConnection {
         return
             MsQuic->SetParam(
                 Handle,
-                QUIC_PARAM_LEVEL_CONNECTION,
                 QUIC_PARAM_CONN_LOCAL_INTERFACE,
                 sizeof(Index),
                 &Index);
@@ -853,7 +967,6 @@ struct MsQuicConnection {
         return
             MsQuic->SetParam(
                 Handle,
-                QUIC_PARAM_LEVEL_CONNECTION,
                 QUIC_PARAM_CONN_SHARE_UDP_BINDING,
                 sizeof(Value),
                 &Value);
@@ -864,7 +977,6 @@ struct MsQuicConnection {
         return
             MsQuic->SetParam(
                 Handle,
-                QUIC_PARAM_LEVEL_CONNECTION,
                 QUIC_PARAM_CONN_RESUMPTION_TICKET,
                 TicketLength,
                 Ticket);
@@ -876,7 +988,6 @@ struct MsQuicConnection {
         return
             MsQuic->SetParam(
                 Handle,
-                QUIC_PARAM_LEVEL_CONNECTION,
                 QUIC_PARAM_CONN_SETTINGS,
                 sizeof(*QSettings),
                 QSettings);
@@ -889,20 +1000,18 @@ struct MsQuicConnection {
         return
             MsQuic->GetParam(
                 Handle,
-                QUIC_PARAM_LEVEL_CONNECTION,
                 QUIC_PARAM_CONN_SETTINGS,
                 &Size,
                 QSettings);
     }
 
     QUIC_STATUS
-    GetStatistics(_Out_ QUIC_STATISTICS* Statistics) const noexcept {
+    GetStatistics(_Out_ QUIC_STATISTICS_V2* Statistics) const noexcept {
         uint32_t Size = sizeof(*Statistics);
         return
             MsQuic->GetParam(
                 Handle,
-                QUIC_PARAM_LEVEL_CONNECTION,
-                QUIC_PARAM_CONN_STATISTICS,
+                QUIC_PARAM_CONN_STATISTICS_V2,
                 &Size,
                 Statistics);
     }
@@ -912,11 +1021,24 @@ struct MsQuicConnection {
         return
             MsQuic->SetParam(
                 Handle,
-                QUIC_PARAM_LEVEL_CONNECTION,
                 QUIC_PARAM_CONN_KEEP_ALIVE_PADDING,
                 sizeof(Value),
                 &Value);
     }
+
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
+    QUIC_STATUS
+    SetCibirId(
+        _In_reads_(Length) const uint8_t* Value,
+        _In_ uint8_t Length) noexcept {
+        return
+            MsQuic->SetParam(
+                Handle,
+                QUIC_PARAM_CONN_CIBIR_ID,
+                Length,
+                Value);
+    }
+#endif
 
     QUIC_STATUS GetInitStatus() const noexcept { return InitStatus; }
     bool IsValid() const { return QUIC_SUCCEEDED(InitStatus); }
@@ -1023,7 +1145,9 @@ struct MsQuicAutoAcceptListener : public MsQuicListener {
     const MsQuicConfiguration& Configuration;
     MsQuicConnectionCallback* ConnectionHandler;
     void* ConnectionContext;
+#ifdef CX_PLATFORM_TYPE
     uint32_t AcceptedConnectionCount {0};
+#endif
 
     MsQuicAutoAcceptListener(
         _In_ const MsQuicRegistration& Registration,
@@ -1062,7 +1186,9 @@ private:
                     Connection->Handle = nullptr;
                     delete Connection;
                 } else {
+#ifdef CX_PLATFORM_TYPE
                     InterlockedIncrement((long*)&pThis->AcceptedConnectionCount);
+#endif
                 }
             }
         }
@@ -1109,7 +1235,7 @@ struct MsQuicStream {
     MsQuicStream(
         _In_ HQUIC StreamHandle,
         _In_ MsQuicCleanUpMode CleanUpMode,
-        _In_ MsQuicStreamCallback* Callback,
+        _In_ MsQuicStreamCallback* Callback = NoOpCallback,
         _In_ void* Context = nullptr
         ) noexcept : CleanUpMode(CleanUpMode), Callback(Callback), Context(Context) {
         Handle = StreamHandle;
@@ -1118,14 +1244,12 @@ struct MsQuicStream {
     }
 
     ~MsQuicStream() noexcept {
-        if (Handle) {
-            MsQuic->StreamClose(Handle);
-        }
+        Close();
     }
 
     QUIC_STATUS
     Start(
-        _In_ QUIC_STREAM_START_FLAGS Flags = QUIC_STREAM_START_FLAG_ASYNC
+        _In_ QUIC_STREAM_START_FLAGS Flags = QUIC_STREAM_START_FLAG_NONE
         ) noexcept {
         return MsQuic->StreamStart(Handle, Flags);
     }
@@ -1136,6 +1260,19 @@ struct MsQuicStream {
         _In_ QUIC_STREAM_SHUTDOWN_FLAGS Flags = QUIC_STREAM_SHUTDOWN_FLAG_ABORT
         ) noexcept {
         return MsQuic->StreamShutdown(Handle, Flags, ErrorCode);
+    }
+
+    void
+    Close(
+    ) noexcept {
+#ifdef _WIN32
+        auto HandleToClose = (HQUIC)InterlockedExchangePointer((PVOID*)&Handle, NULL);
+#else
+        HQUIC HandleToClose = (HQUIC)__sync_fetch_and_and(&Handle, 0);
+#endif
+        if (HandleToClose) {
+            MsQuic->StreamClose(HandleToClose);
+        }
     }
 
     void
@@ -1158,11 +1295,11 @@ struct MsQuicStream {
     }
 
     _IRQL_requires_max_(DISPATCH_LEVEL)
-    QUIC_STATUS
+    void
     ReceiveComplete(
         _In_ uint64_t BufferLength
         ) noexcept {
-        return MsQuic->StreamReceiveComplete(Handle, BufferLength);
+        MsQuic->StreamReceiveComplete(Handle, BufferLength);
     }
 
     _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -1179,7 +1316,6 @@ struct MsQuicStream {
         return
             MsQuic->GetParam(
                 Handle,
-                QUIC_PARAM_LEVEL_STREAM,
                 QUIC_PARAM_STREAM_ID,
                 &Size,
                 ID);
@@ -1196,7 +1332,6 @@ struct MsQuicStream {
         return
             MsQuic->SetParam(
                 Handle,
-                QUIC_PARAM_LEVEL_STREAM,
                 QUIC_PARAM_STREAM_PRIORITY,
                 sizeof(Priority),
                 &Priority);
@@ -1208,7 +1343,6 @@ struct MsQuicStream {
         return
             MsQuic->GetParam(
                 Handle,
-                QUIC_PARAM_LEVEL_STREAM,
                 QUIC_PARAM_STREAM_PRIORITY,
                 &Size,
                 Priority);

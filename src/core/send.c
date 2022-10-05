@@ -29,7 +29,7 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicSendInitialize(
     _Inout_ QUIC_SEND* Send,
-    _In_ const QUIC_SETTINGS* Settings
+    _In_ const QUIC_SETTINGS_INTERNAL* Settings
     )
 {
     CxPlatListInitializeHead(&Send->SendStreams);
@@ -71,7 +71,7 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicSendApplyNewSettings(
     _Inout_ QUIC_SEND* Send,
-    _In_ const QUIC_SETTINGS* Settings
+    _In_ const QUIC_SETTINGS_INTERNAL* Settings
     )
 {
     Send->MaxData = Settings->ConnFlowControlWindow;
@@ -86,10 +86,6 @@ QuicSendReset(
     Send->SendFlags = 0;
     Send->LastFlushTime = 0;
     if (Send->DelayedAckTimerActive) {
-        QuicTraceLogConnVerbose(
-            CancelAckDelayTimer,
-            QuicSendGetConnection(Send),
-            "Canceling ACK_DELAY timer");
         QuicConnTimerCancel(QuicSendGetConnection(Send), QUIC_CONN_TIMER_ACK_DELAY);
         Send->DelayedAckTimerActive = FALSE;
     }
@@ -125,9 +121,10 @@ QuicSendQueueFlush(
     _In_ QUIC_SEND_FLUSH_REASON Reason
     )
 {
+    QUIC_CONNECTION* Connection = QuicSendGetConnection(Send);
+
     if (!Send->FlushOperationPending && QuicSendCanSendFlagsNow(Send)) {
         QUIC_OPERATION* Oper;
-        QUIC_CONNECTION* Connection = QuicSendGetConnection(Send);
         if ((Oper = QuicOperationAlloc(Connection->Worker, QUIC_OPER_TYPE_FLUSH_SEND)) != NULL) {
             Send->FlushOperationPending = TRUE;
             QuicTraceEvent(
@@ -145,15 +142,13 @@ void
 QuicSendQueueFlushForStream(
     _In_ QUIC_SEND* Send,
     _In_ QUIC_STREAM* Stream,
-    _In_ BOOLEAN WasPreviouslyQueued,
     _In_ BOOLEAN DelaySend
     )
 {
-    if (!WasPreviouslyQueued) {
+    if (Stream->SendLink.Flink == NULL) {
         //
         // Not previously queued, so add the stream to the end of the queue.
         //
-        CXPLAT_DBG_ASSERT(Stream->SendLink.Flink == NULL);
         CXPLAT_LIST_ENTRY* Entry = Send->SendStreams.Blink;
         while (Entry != &Send->SendStreams) {
             //
@@ -290,10 +285,6 @@ QuicSendSetSendFlag(
         !QuicConnIsClosed(Connection) || IsCloseFrame;
 
     if (SendFlags & QUIC_CONN_SEND_FLAG_ACK && Send->DelayedAckTimerActive) {
-        QuicTraceLogConnVerbose(
-            CancelAckDelayTimer,
-            Connection,
-            "Canceling ACK_DELAY timer");
         QuicConnTimerCancel(Connection, QUIC_CONN_TIMER_ACK_DELAY);
         Send->DelayedAckTimerActive = FALSE;
     }
@@ -359,10 +350,6 @@ QuicSendUpdateAckState(
             CXPLAT_DBG_ASSERT(!Send->DelayedAckTimerActive);
             Send->SendFlags &= ~QUIC_CONN_SEND_FLAG_ACK;
         } else if (Send->DelayedAckTimerActive) {
-            QuicTraceLogConnVerbose(
-                CancelAckDelayTimer,
-                Connection,
-                "Canceling ACK_DELAY timer");
             QuicConnTimerCancel(Connection, QUIC_CONN_TIMER_ACK_DELAY);
             Send->DelayedAckTimerActive = FALSE;
         }
@@ -426,11 +413,7 @@ QuicSendSetStreamSendFlag(
             // Since this is new data for a started stream, we need to queue
             // up the send to flush the stream data.
             //
-            QuicSendQueueFlushForStream(
-                Send,
-                Stream,
-                Stream->SendFlags != 0,
-                DelaySend);
+            QuicSendQueueFlushForStream(Send, Stream, DelaySend);
         }
         Stream->SendFlags |= SendFlags;
     }
@@ -461,11 +444,10 @@ QuicSendClearStreamSendFlag(
         //
         Stream->SendFlags &= ~SendFlags;
 
-        if (Stream->SendFlags == 0 && Stream->Flags.Started) {
+        if (Stream->SendFlags == 0 && Stream->SendLink.Flink != NULL) {
             //
             // Since there are no flags left, remove the stream from the queue.
             //
-            CXPLAT_DBG_ASSERT(Stream->SendLink.Flink != NULL);
             CxPlatListEntryRemove(&Stream->SendLink);
             Stream->SendLink.Flink = NULL;
             QuicStreamRelease(Stream, QUIC_STREAM_REF_SEND);
@@ -505,7 +487,10 @@ QuicSendWriteFrames(
     // specific frames.
     //
 
-    if (Builder->PacketType != QUIC_0_RTT_PROTECTED &&
+    uint8_t ZeroRttPacketType =
+        Connection->Stats.QuicVersion == QUIC_VERSION_2 ?
+            QUIC_0_RTT_PROTECTED_V2 : QUIC_0_RTT_PROTECTED_V1;
+    if (Builder->PacketType != ZeroRttPacketType &&
         QuicAckTrackerHasPacketsToAck(&Packets->AckTracker)) {
         if (!QuicAckTrackerAckFrameEncode(&Packets->AckTracker, Builder)) {
             RanOutOfRoom = TRUE;
@@ -837,6 +822,7 @@ QuicSendWriteFrames(
                     (uint64_t)Connection->Settings.MaxAckDelayMs +
                     (uint64_t)MsQuicLib.TimerResolutionMs);
             Frame.IgnoreOrder = FALSE;
+            Frame.IgnoreCE = FALSE;
 
             if (QuicAckFrequencyFrameEncode(
                     &Frame,
@@ -953,7 +939,7 @@ QuicSendGetNextStream(
                 // that entry.
                 //
                 CXPLAT_LIST_ENTRY* LastEntry = Stream->SendLink.Flink;
-                while (Stream->SendLink.Flink != &Send->SendStreams) {
+                while (LastEntry != &Send->SendStreams) {
                     if (Stream->SendPriority >
                         CXPLAT_CONTAINING_RECORD(LastEntry, QUIC_STREAM, SendLink)->SendPriority) {
                         break;
@@ -1073,6 +1059,8 @@ typedef enum QUIC_SEND_RESULT {
 
 } QUIC_SEND_RESULT;
 
+#pragma warning(push)
+#pragma warning(disable:6001) // SAL is confused by the QuicConnAddRef followed by QuicConnRelease.
 _IRQL_requires_max_(PASSIVE_LEVEL)
 BOOLEAN
 QuicSendFlush(
@@ -1080,19 +1068,47 @@ QuicSendFlush(
     )
 {
     QUIC_CONNECTION* Connection = QuicSendGetConnection(Send);
+    QUIC_PATH* Path = &Connection->Paths[0];
 
     CXPLAT_DBG_ASSERT(!Connection->State.HandleClosed);
+
+#ifdef QUIC_USE_RAW_DATAPATH
+    //
+    // Make sure the route is resolved before sending packets.
+    //
+    CXPLAT_DBG_ASSERT(Path->IsActive);
+    if (Path->Route.State == RouteUnresolved || Path->Route.State == RouteSuspected) {
+        QuicConnAddRef(Connection, QUIC_CONN_REF_ROUTE);
+        QUIC_STATUS Status =
+            CxPlatResolveRoute(
+                Path->Binding->Socket, &Path->Route, Path->ID, (void*)Connection, QuicConnQueueRouteCompletion);
+        if (Status == QUIC_STATUS_SUCCESS) {
+            QuicConnRelease(Connection, QUIC_CONN_REF_ROUTE);
+        } else {
+            //
+            // Route resolution failed or pended. We need to pause sending.
+            //
+            CXPLAT_DBG_ASSERT(Status == QUIC_STATUS_PENDING || QUIC_FAILED(Status));
+            return TRUE;
+        }
+    } else if (Path->Route.State == RouteResolving) {
+        //
+        // Can't send now. Once route resolution completes, we will resume sending.
+        //
+        return TRUE;
+    }
+#endif
 
     QuicConnTimerCancel(Connection, QUIC_CONN_TIMER_PACING);
     QuicConnRemoveOutFlowBlockedReason(
         Connection, QUIC_FLOW_BLOCKED_SCHEDULING | QUIC_FLOW_BLOCKED_PACING);
 
-    QUIC_PATH* Path = &Connection->Paths[0];
     if (Path->DestCid == NULL) {
         return TRUE;
     }
 
-    QuicMtuDiscoveryCheckSearchCompleteTimeout(Connection, CxPlatTimeUs64());
+    uint64_t TimeNow = CxPlatTimeUs64();
+    QuicMtuDiscoveryCheckSearchCompleteTimeout(Connection, TimeNow);
 
     //
     // If path is active without being peer validated, disable MTU flag if set.
@@ -1103,6 +1119,15 @@ QuicSendFlush(
 
     if (Send->SendFlags == 0 && CxPlatListIsEmpty(&Send->SendStreams)) {
         return TRUE;
+    }
+
+    //
+    // Connection CID changes on idle state after an amount of time
+    //
+    if (Connection->Settings.DestCidUpdateIdleTimeoutMs != 0 &&
+        Send->LastFlushTimeValid &&
+        CxPlatTimeDiff64(Send->LastFlushTime, TimeNow) >= MS_TO_US(Connection->Settings.DestCidUpdateIdleTimeoutMs)) {
+        (void)QuicConnRetireCurrentDestCid(Connection, Path);
     }
 
     QUIC_SEND_RESULT Result = QUIC_SEND_INCOMPLETE;
@@ -1125,10 +1150,10 @@ QuicSendFlush(
     }
     _Analysis_assume_(Builder.Metadata != NULL);
 
-    QuicTraceLogConnVerbose(
-        FlushSend,
+    QuicTraceEvent(
+        ConnFlushSend,
+        "[conn][%p] Flushing Send. Allowance=%u bytes",
         Connection,
-        "Flushing send. Allowance=%u bytes",
         Builder.SendAllowance);
 
 #if DEBUG
@@ -1174,11 +1199,6 @@ QuicSendFlush(
                     //
                     QuicConnAddOutFlowBlockedReason(
                         Connection, QUIC_FLOW_BLOCKED_PACING);
-                    QuicTraceLogConnVerbose(
-                        SetPacingTimer,
-                        Connection,
-                        "Setting delayed send (PACING) timer for %u ms",
-                        QUIC_SEND_PACING_INTERVAL);
                     QuicConnTimerSet(
                         Connection,
                         QUIC_CONN_TIMER_PACING,
@@ -1243,8 +1263,11 @@ QuicSendFlush(
             // Write any ACK frames if we have them.
             //
             QUIC_PACKET_SPACE* Packets = Connection->Packets[Builder.EncryptLevel];
+            uint8_t ZeroRttPacketType =
+                Connection->Stats.QuicVersion == QUIC_VERSION_2 ?
+                    QUIC_0_RTT_PROTECTED_V2 : QUIC_0_RTT_PROTECTED_V1;
             WrotePacketFrames =
-                Builder.PacketType != QUIC_0_RTT_PROTECTED &&
+                Builder.PacketType != ZeroRttPacketType &&
                 QuicAckTrackerHasPacketsToAck(&Packets->AckTracker) &&
                 QuicAckTrackerAckFrameEncode(&Packets->AckTracker, &Builder);
 
@@ -1253,7 +1276,7 @@ QuicSendFlush(
             //
             WrotePacketFrames |= QuicStreamSendWrite(Stream, &Builder);
 
-            if (Stream->SendFlags == 0) {
+            if (Stream->SendFlags == 0 && Stream->SendLink.Flink != NULL) {
                 //
                 // If the stream no longer has anything to send, remove it from the
                 // list and release Send's reference on it.
@@ -1357,6 +1380,7 @@ QuicSendFlush(
 
     return Result != QUIC_SEND_INCOMPLETE;
 }
+#pragma warning(pop)
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
@@ -1379,7 +1403,7 @@ QuicSendStartDelayedAckTimer(
         QuicConnTimerSet(
             Connection,
             QUIC_CONN_TIMER_ACK_DELAY,
-            Connection->Settings.MaxAckDelayMs); // TODO - Use smaller timeout when handshake data is outstanding.
+            MS_TO_US(Connection->Settings.MaxAckDelayMs)); // TODO - Use smaller timeout when handshake data is outstanding.
         Send->DelayedAckTimerActive = TRUE;
     }
 }

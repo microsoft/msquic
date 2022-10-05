@@ -9,8 +9,8 @@
             Connection,
             "Version info too short to contain Chosen Version (%hu bytes)",
             BufferLength);
-// arg1 = arg1 = Connection
-// arg3 = arg3 = BufferLength
+// arg1 = arg1 = Connection = arg1
+// arg3 = arg3 = BufferLength = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_VERSION_NEG_C, VersionInfoDecodeFailed1,
     TP_ARGS(
@@ -28,12 +28,12 @@ TRACEPOINT_EVENT(CLOG_VERSION_NEG_C, VersionInfoDecodeFailed1,
 // Decoder Ring for VersionInfoDecodeFailed2
 // [conn][%p] Version info too short to contain any Other Versions (%hu bytes)
 // QuicTraceLogConnError(
-            VersionInfoDecodeFailed2,
-            Connection,
-            "Version info too short to contain any Other Versions (%hu bytes)",
-            BufferLength);
-// arg1 = arg1 = Connection
-// arg3 = arg3 = BufferLength
+                VersionInfoDecodeFailed2,
+                Connection,
+                "Version info too short to contain any Other Versions (%hu bytes)",
+                (unsigned)(BufferLength - Offset));
+// arg1 = arg1 = Connection = arg1
+// arg3 = arg3 = (unsigned)(BufferLength - Offset) = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_VERSION_NEG_C, VersionInfoDecodeFailed2,
     TP_ARGS(
@@ -56,9 +56,9 @@ TRACEPOINT_EVENT(CLOG_VERSION_NEG_C, VersionInfoDecodeFailed2,
             "Version info contains partial Other Version (%hu bytes vs. %u bytes)",
             (unsigned)(BufferLength - Offset),
             (BufferLength - Offset) / (unsigned)sizeof(uint32_t));
-// arg1 = arg1 = Connection
-// arg3 = arg3 = (unsigned)(BufferLength - Offset)
-// arg4 = arg4 = (BufferLength - Offset) / (unsigned)sizeof(uint32_t)
+// arg1 = arg1 = Connection = arg1
+// arg3 = arg3 = (unsigned)(BufferLength - Offset) = arg3
+// arg4 = arg4 = (BufferLength - Offset) / (unsigned)sizeof(uint32_t) = arg4
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_VERSION_NEG_C, ServerVersionInfoDecodeFailed3,
     TP_ARGS(
@@ -83,9 +83,9 @@ TRACEPOINT_EVENT(CLOG_VERSION_NEG_C, ServerVersionInfoDecodeFailed3,
             "Version info parsed less than full buffer (%hu bytes vs. %hu bytes",
             Offset,
             BufferLength);
-// arg1 = arg1 = Connection
-// arg3 = arg3 = Offset
-// arg4 = arg4 = BufferLength
+// arg1 = arg1 = Connection = arg1
+// arg3 = arg3 = Offset = arg3
+// arg4 = arg4 = BufferLength = arg4
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_VERSION_NEG_C, ServerVersionInfoDecodeFailed4,
     TP_ARGS(
@@ -110,9 +110,9 @@ TRACEPOINT_EVENT(CLOG_VERSION_NEG_C, ServerVersionInfoDecodeFailed4,
         "VerInfo Decoded: Chosen Ver:%x Other Ver Count:%u",
         VersionInfo->ChosenVersion,
         VersionInfo->OtherVersionsCount);
-// arg1 = arg1 = Connection
-// arg3 = arg3 = VersionInfo->ChosenVersion
-// arg4 = arg4 = VersionInfo->OtherVersionsCount
+// arg1 = arg1 = Connection = arg1
+// arg3 = arg3 = VersionInfo->ChosenVersion = arg3
+// arg4 = arg4 = VersionInfo->OtherVersionsCount = arg4
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_VERSION_NEG_C, ServerVersionInfoDecoded,
     TP_ARGS(
@@ -136,10 +136,10 @@ TRACEPOINT_EVENT(CLOG_VERSION_NEG_C, ServerVersionInfoDecoded,
             Connection,
             "Server VI Encoded: Chosen Ver:%x Other Ver Count:%u",
             Connection->Stats.QuicVersion,
-            DesiredVersionsListLength);
-// arg1 = arg1 = Connection
-// arg3 = arg3 = Connection->Stats.QuicVersion
-// arg4 = arg4 = DesiredVersionsListLength
+            OtherVersionsListLength);
+// arg1 = arg1 = Connection = arg1
+// arg3 = arg3 = Connection->Stats.QuicVersion = arg3
+// arg4 = arg4 = OtherVersionsListLength = arg4
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_VERSION_NEG_C, ServerVersionNegotiationInfoEncoded,
     TP_ARGS(
@@ -167,12 +167,12 @@ TRACEPOINT_EVENT(CLOG_VERSION_NEG_C, ServerVersionNegotiationInfoEncoded,
             CompatibilityListByteLength == 0 ?
                 MsQuicLib.DefaultCompatibilityListLength :
                 (uint32_t)(CompatibilityListByteLength / sizeof(uint32_t)));
-// arg1 = arg1 = Connection
-// arg3 = arg3 = Connection->Stats.QuicVersion
-// arg4 = arg4 = Connection->PreviousQuicVersion
+// arg1 = arg1 = Connection = arg1
+// arg3 = arg3 = Connection->Stats.QuicVersion = arg3
+// arg4 = arg4 = Connection->PreviousQuicVersion = arg4
 // arg5 = arg5 = CompatibilityListByteLength == 0 ?
                 MsQuicLib.DefaultCompatibilityListLength :
-                (uint32_t)(CompatibilityListByteLength / sizeof(uint32_t))
+                (uint32_t)(CompatibilityListByteLength / sizeof(uint32_t)) = arg5
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_VERSION_NEG_C, ClientVersionInfoEncoded,
     TP_ARGS(
@@ -198,8 +198,8 @@ TRACEPOINT_EVENT(CLOG_VERSION_NEG_C, ClientVersionInfoEncoded,
         "[conn][%p] VerInfo Other Versions List: %!VNL!",
         Connection,
         CASTED_CLOG_BYTEARRAY(VersionInfo->OtherVersionsCount * sizeof(uint32_t), VersionInfo->OtherVersions));
-// arg2 = arg2 = Connection
-// arg3 = arg3 = CASTED_CLOG_BYTEARRAY(VersionInfo->OtherVersionsCount * sizeof(uint32_t), VersionInfo->OtherVersions)
+// arg2 = arg2 = Connection = arg2
+// arg3 = arg3 = CASTED_CLOG_BYTEARRAY(VersionInfo->OtherVersionsCount * sizeof(uint32_t), VersionInfo->OtherVersions) = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_VERSION_NEG_C, ConnVNEOtherVersionList,
     TP_ARGS(
@@ -223,8 +223,8 @@ TRACEPOINT_EVENT(CLOG_VERSION_NEG_C, ConnVNEOtherVersionList,
                 "Allocation of '%s' failed. (%llu bytes)",
                 "Server Version Info",
                 VILen);
-// arg2 = arg2 = "Server Version Info"
-// arg3 = arg3 = VILen
+// arg2 = arg2 = "Server Version Info" = arg2
+// arg3 = arg3 = VILen = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_VERSION_NEG_C, AllocFailure,
     TP_ARGS(

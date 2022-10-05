@@ -10,9 +10,9 @@
         ServerName,
         CredFlags,
         Status);
-// arg2 = arg2 = ServerName
-// arg3 = arg3 = CredFlags
-// arg4 = arg4 = Status
+// arg2 = arg2 = ServerName = arg2
+// arg3 = arg3 = CredFlags = arg3
+// arg4 = arg4 = Status = arg4
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CERT_CAPI_C, CertCapiVerifiedChain,
     TP_ARGS(
@@ -33,7 +33,7 @@ TRACEPOINT_EVENT(CLOG_CERT_CAPI_C, CertCapiVerifiedChain,
         CertCapiParsedChain,
         "[cert] Successfully parsed chain of %u certificate(s)",
         CertNumber);
-// arg2 = arg2 = CertNumber
+// arg2 = arg2 = CertNumber = arg2
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CERT_CAPI_C, CertCapiParsedChain,
     TP_ARGS(
@@ -52,7 +52,7 @@ TRACEPOINT_EVENT(CLOG_CERT_CAPI_C, CertCapiParsedChain,
         CertCapiFormattedChain,
         "[cert] Successfully formatted chain of %u certificate(s)",
         CertNumber);
-// arg2 = arg2 = CertNumber
+// arg2 = arg2 = CertNumber = arg2
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CERT_CAPI_C, CertCapiFormattedChain,
     TP_ARGS(
@@ -71,7 +71,7 @@ TRACEPOINT_EVENT(CLOG_CERT_CAPI_C, CertCapiFormattedChain,
         CertCapiSign,
         "[cert] QuicCertSign alg=0x%4.4x",
         SignatureAlgorithm);
-// arg2 = arg2 = SignatureAlgorithm
+// arg2 = arg2 = SignatureAlgorithm = arg2
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CERT_CAPI_C, CertCapiSign,
     TP_ARGS(
@@ -90,7 +90,7 @@ TRACEPOINT_EVENT(CLOG_CERT_CAPI_C, CertCapiSign,
         CertCapiVerify,
         "[cert] QuicCertVerify alg=0x%4.4x",
         SignatureAlgorithm);
-// arg2 = arg2 = SignatureAlgorithm
+// arg2 = arg2 = SignatureAlgorithm = arg2
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CERT_CAPI_C, CertCapiVerify,
     TP_ARGS(
@@ -110,8 +110,8 @@ TRACEPOINT_EVENT(CLOG_CERT_CAPI_C, CertCapiVerify,
             "[ lib] ERROR, %u, %s.",
             GetLastError(),
             "Get CERT_HASH_PROP_ID failed");
-// arg2 = arg2 = GetLastError()
-// arg3 = arg3 = "Get CERT_HASH_PROP_ID failed"
+// arg2 = arg2 = GetLastError() = arg2
+// arg3 = arg3 = "Get CERT_HASH_PROP_ID failed" = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CERT_CAPI_C, LibraryErrorStatus,
     TP_ARGS(
@@ -132,12 +132,35 @@ TRACEPOINT_EVENT(CLOG_CERT_CAPI_C, LibraryErrorStatus,
             LibraryError,
             "[ lib] ERROR, %s.",
             "Not all cert bytes were processed");
-// arg2 = arg2 = "Not all cert bytes were processed"
+// arg2 = arg2 = "Not all cert bytes were processed" = arg2
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CERT_CAPI_C, LibraryError,
     TP_ARGS(
         const char *, arg2), 
     TP_FIELDS(
         ctf_string(arg2, arg2)
+    )
+)
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for AllocFailure
+// Allocation of '%s' failed. (%llu bytes)
+// QuicTraceEvent(
+            AllocFailure,
+            "Allocation of '%s' failed. (%llu bytes)",
+            "PKCS7 data",
+            Blob.cbData);
+// arg2 = arg2 = "PKCS7 data" = arg2
+// arg3 = arg3 = Blob.cbData = arg3
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_CERT_CAPI_C, AllocFailure,
+    TP_ARGS(
+        const char *, arg2,
+        unsigned long long, arg3), 
+    TP_FIELDS(
+        ctf_string(arg2, arg2)
+        ctf_integer(uint64_t, arg3, arg3)
     )
 )

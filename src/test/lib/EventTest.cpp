@@ -293,17 +293,20 @@ ListenerEventValidatorCallback(
     _Inout_ QUIC_LISTENER_EVENT* Event
     )
 {
-    _Analysis_assume_(Context != nullptr);
-    ConnValidator* Validator = (ConnValidator*)Context;
-    Validator->Handle = Event->NEW_CONNECTION.Connection;
-    MsQuic->SetCallbackHandler(
-        Event->NEW_CONNECTION.Connection,
-        (void *)ConnValidatorCallback,
-        Validator);
-    return
-        MsQuic->ConnectionSetConfiguration(
+    if (Event->Type == QUIC_LISTENER_EVENT_NEW_CONNECTION) {
+        _Analysis_assume_(Context != nullptr);
+        ConnValidator* Validator = (ConnValidator*)Context;
+        Validator->Handle = Event->NEW_CONNECTION.Connection;
+        MsQuic->SetCallbackHandler(
             Event->NEW_CONNECTION.Connection,
-            Validator->Configuration);
+            (void *)ConnValidatorCallback,
+            Validator);
+        return
+            MsQuic->ConnectionSetConfiguration(
+                Event->NEW_CONNECTION.Connection,
+                Validator->Configuration);
+    }
+    return QUIC_STATUS_SUCCESS;
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -316,15 +319,18 @@ ListenerEventResumptionCallback(
     _Inout_ QUIC_LISTENER_EVENT* Event
     )
 {
-    MsQuic->SetCallbackHandler(
-        Event->NEW_CONNECTION.Connection,
-        (void *)ConnServerResumptionCallback,
-        nullptr);
-
-    return
-        MsQuic->ConnectionSetConfiguration(
+    if (Event->Type == QUIC_LISTENER_EVENT_NEW_CONNECTION) {
+        MsQuic->SetCallbackHandler(
             Event->NEW_CONNECTION.Connection,
-            (HQUIC)Context);
+            (void *)ConnServerResumptionCallback,
+            nullptr);
+
+        return
+            MsQuic->ConnectionSetConfiguration(
+                Event->NEW_CONNECTION.Connection,
+                (HQUIC)Context);
+    }
+    return QUIC_STATUS_SUCCESS;
 }
 
 void
@@ -375,7 +381,7 @@ QuicTestValidateConnectionEvents1(
             Client.Handle,
             ClientConfiguration,
             QuicAddrGetFamily(&ServerLocalAddr.SockAddr),
-            QUIC_LOCALHOST_FOR_AF(
+            QUIC_TEST_LOOPBACK_FOR_AF(
                 QuicAddrGetFamily(&ServerLocalAddr.SockAddr)),
             ServerLocalAddr.GetPort()));
 
@@ -432,7 +438,7 @@ QuicTestValidateConnectionEvents2(
             Client.Handle,
             ClientConfiguration,
             QuicAddrGetFamily(&ServerLocalAddr.SockAddr),
-            QUIC_LOCALHOST_FOR_AF(
+            QUIC_TEST_LOOPBACK_FOR_AF(
                 QuicAddrGetFamily(&ServerLocalAddr.SockAddr)),
             ServerLocalAddr.GetPort()));
 
@@ -459,6 +465,7 @@ QuicTestValidateConnectionEvents3(
 
     QUIC_BUFFER* ResumptionTicket = nullptr;
     QuicTestPrimeResumption(
+        QuicAddrGetFamily(&ServerLocalAddr.SockAddr),
         Registration,
         ServerConfiguration,
         ClientConfiguration,
@@ -497,7 +504,6 @@ QuicTestValidateConnectionEvents3(
     TEST_QUIC_SUCCEEDED(
         MsQuic->SetParam(
             Client.Handle,
-            QUIC_PARAM_LEVEL_CONNECTION,
             QUIC_PARAM_CONN_RESUMPTION_TICKET,
             ResumptionTicket->Length,
             ResumptionTicket->Buffer));
@@ -507,7 +513,7 @@ QuicTestValidateConnectionEvents3(
             Client.Handle,
             ClientConfiguration,
             QuicAddrGetFamily(&ServerLocalAddr.SockAddr),
-            QUIC_LOCALHOST_FOR_AF(QuicAddrGetFamily(&ServerLocalAddr.SockAddr)),
+            QUIC_TEST_LOOPBACK_FOR_AF(QuicAddrGetFamily(&ServerLocalAddr.SockAddr)),
             QuicAddrGetPort(&ServerLocalAddr.SockAddr)));
 
     TEST_TRUE(Client.Complete.WaitTimeout(2000));
@@ -633,7 +639,7 @@ QuicTestValidateStreamEvents1(
             Client.Handle,
             ClientConfiguration,
             QuicAddrGetFamily(&ServerLocalAddr.SockAddr),
-            QUIC_LOCALHOST_FOR_AF(
+            QUIC_TEST_LOOPBACK_FOR_AF(
                 QuicAddrGetFamily(&ServerLocalAddr.SockAddr)),
             ServerLocalAddr.GetPort()));
 
@@ -720,7 +726,7 @@ QuicTestValidateStreamEvents2(
             Client.Handle,
             ClientConfiguration,
             QuicAddrGetFamily(&ServerLocalAddr.SockAddr),
-            QUIC_LOCALHOST_FOR_AF(
+            QUIC_TEST_LOOPBACK_FOR_AF(
                 QuicAddrGetFamily(&ServerLocalAddr.SockAddr)),
             ServerLocalAddr.GetPort()));
 
@@ -819,7 +825,7 @@ QuicTestValidateStreamEvents3(
             Client.Handle,
             ClientConfiguration,
             QuicAddrGetFamily(&ServerLocalAddr.SockAddr),
-            QUIC_LOCALHOST_FOR_AF(
+            QUIC_TEST_LOOPBACK_FOR_AF(
                 QuicAddrGetFamily(&ServerLocalAddr.SockAddr)),
             ServerLocalAddr.GetPort()));
     TEST_TRUE(Client.HandshakeComplete.WaitTimeout(1000));
@@ -942,7 +948,7 @@ QuicTestValidateStreamEvents4(
             Client.Handle,
             ClientConfiguration,
             QuicAddrGetFamily(&ServerLocalAddr.SockAddr),
-            QUIC_LOCALHOST_FOR_AF(
+            QUIC_TEST_LOOPBACK_FOR_AF(
                 QuicAddrGetFamily(&ServerLocalAddr.SockAddr)),
             ServerLocalAddr.GetPort()));
     TEST_TRUE(Client.HandshakeComplete.WaitTimeout(1000));
@@ -1070,7 +1076,7 @@ QuicTestValidateStreamEvents5(
             Client.Handle,
             ClientConfiguration,
             QuicAddrGetFamily(&ServerLocalAddr.SockAddr),
-            QUIC_LOCALHOST_FOR_AF(
+            QUIC_TEST_LOOPBACK_FOR_AF(
                 QuicAddrGetFamily(&ServerLocalAddr.SockAddr)),
             ServerLocalAddr.GetPort()));
 
@@ -1164,13 +1170,20 @@ QuicTestValidateStreamEvents6(
             0,
             QUIC_SEND_FLAG_START,
             nullptr));
+    TEST_QUIC_SUCCEEDED(
+        MsQuic->StreamSend(
+            ClientStream.Handle,
+            nullptr,
+            0,
+            QUIC_SEND_FLAG_START,
+            nullptr));
 
     TEST_QUIC_SUCCEEDED(
         MsQuic->ConnectionStart(
             Client.Handle,
             ClientConfiguration,
             QuicAddrGetFamily(&ServerLocalAddr.SockAddr),
-            QUIC_LOCALHOST_FOR_AF(
+            QUIC_TEST_LOOPBACK_FOR_AF(
                 QuicAddrGetFamily(&ServerLocalAddr.SockAddr)),
             ServerLocalAddr.GetPort()));
     TEST_TRUE(Client.HandshakeComplete.WaitTimeout(1000));
@@ -1290,9 +1303,134 @@ QuicTestValidateStreamEvents7(
             Client.Handle,
             ClientConfiguration,
             QuicAddrGetFamily(&ServerLocalAddr.SockAddr),
-            QUIC_LOCALHOST_FOR_AF(
+            QUIC_TEST_LOOPBACK_FOR_AF(
                 QuicAddrGetFamily(&ServerLocalAddr.SockAddr)),
             ServerLocalAddr.GetPort()));
+
+    TEST_TRUE(Client.Complete.WaitTimeout(2000));
+    TEST_TRUE(Server.Complete.WaitTimeout(1000));
+
+    } // Stream scope
+    } // Connections scope
+}
+
+
+void
+QuicTestValidateStreamEvents8(
+    _In_ MsQuicRegistration& Registration,
+    _In_ HQUIC Listener,
+    _In_ QuicAddr& ServerLocalAddr
+    )
+{
+    TestScopeLogger ScopeLogger(__FUNCTION__);
+
+    MsQuicSettings Settings;
+    Settings.SetPeerBidiStreamCount(1).SetMinimumMtu(1280).SetMaximumMtu(1280);
+    MsQuicConfiguration ServerConfiguration(Registration, "MsQuicTest", Settings, ServerSelfSignedCredConfig);
+    TEST_TRUE(ServerConfiguration.IsValid());
+
+    MsQuicConfiguration ClientConfiguration(Registration, "MsQuicTest", MsQuicSettings().SetMinimumMtu(1280).SetMaximumMtu(1280), MsQuicCredentialConfig());
+    TEST_TRUE(ClientConfiguration.IsValid());
+
+    { // Connections scope
+    ConnValidator Client, Server(ServerConfiguration);
+
+    MsQuic->SetContext(Listener, &Server);
+
+    TEST_QUIC_SUCCEEDED(
+        MsQuic->ConnectionOpen(
+            Registration,
+            ConnValidatorCallback,
+            &Client,
+            &Client.Handle));
+
+    { // Stream scope
+
+    StreamValidator ClientStream(
+        new(std::nothrow) StreamEventValidator* [7] {
+            new(std::nothrow) StreamStartCompleteEventValidator(),
+            new(std::nothrow) StreamEventValidator(QUIC_STREAM_EVENT_SEND_SHUTDOWN_COMPLETE, 0, true),
+            new(std::nothrow) StreamEventValidator(QUIC_STREAM_EVENT_RECEIVE),
+            new(std::nothrow) StreamEventValidator(QUIC_STREAM_EVENT_PEER_SEND_SHUTDOWN),
+            new(std::nothrow) StreamEventValidator(QUIC_STREAM_EVENT_SEND_SHUTDOWN_COMPLETE, 0, true),
+            new(std::nothrow) StreamEventValidator(QUIC_STREAM_EVENT_SHUTDOWN_COMPLETE, QUIC_EVENT_ACTION_SHUTDOWN_CONNECTION),
+            nullptr
+        });
+    StreamValidator ServerStream(
+        new(std::nothrow) StreamEventValidator* [7] {
+            new(std::nothrow) StreamEventValidator(QUIC_STREAM_EVENT_RECEIVE), // First send buffer
+            new(std::nothrow) StreamEventValidator(QUIC_STREAM_EVENT_RECEIVE), // Second send buffer
+            new(std::nothrow) StreamEventValidator(QUIC_STREAM_EVENT_RECEIVE), // FIN
+            new(std::nothrow) StreamEventValidator(QUIC_STREAM_EVENT_PEER_SEND_SHUTDOWN, QUIC_EVENT_ACTION_SHUTDOWN_STREAM),
+            new(std::nothrow) StreamEventValidator(QUIC_STREAM_EVENT_SEND_SHUTDOWN_COMPLETE),
+            new(std::nothrow) StreamEventValidator(QUIC_STREAM_EVENT_SHUTDOWN_COMPLETE),
+            nullptr
+        });
+
+    Client.SetExpectedEvents(
+        new(std::nothrow) ConnEventValidator* [7] {
+            new(std::nothrow) ConnEventValidator(QUIC_CONNECTION_EVENT_STREAMS_AVAILABLE),
+            new(std::nothrow) ConnEventValidator(QUIC_CONNECTION_EVENT_DATAGRAM_STATE_CHANGED),
+            new(std::nothrow) ConnEventValidator(QUIC_CONNECTION_EVENT_CONNECTED),
+            new(std::nothrow) ConnEventValidator(QUIC_CONNECTION_EVENT_STREAMS_AVAILABLE, 0, true),
+            new(std::nothrow) ConnEventValidator(QUIC_CONNECTION_EVENT_RESUMPTION_TICKET_RECEIVED, 0, true), // TODO - Schannel does resumption regardless
+            new(std::nothrow) ConnEventValidator(QUIC_CONNECTION_EVENT_SHUTDOWN_COMPLETE),
+            nullptr
+        });
+    Server.SetExpectedEvents(
+        new(std::nothrow) ConnEventValidator* [6] {
+            new(std::nothrow) ConnEventValidator(QUIC_CONNECTION_EVENT_CONNECTED),
+            new(std::nothrow) NewStreamEventValidator(&ServerStream),
+            new(std::nothrow) ConnEventValidator(QUIC_CONNECTION_EVENT_SHUTDOWN_INITIATED_BY_PEER),
+            new(std::nothrow) ConnEventValidator(QUIC_CONNECTION_EVENT_SHUTDOWN_COMPLETE),
+            nullptr
+        });
+
+    TEST_QUIC_SUCCEEDED(
+        MsQuic->StreamOpen(
+            Client.Handle,
+            QUIC_STREAM_OPEN_FLAG_NONE,
+            StreamValidatorCallback,
+            &ClientStream,
+            &ClientStream.Handle));
+    TEST_QUIC_SUCCEEDED(
+        MsQuic->StreamStart(
+            ClientStream.Handle,
+            QUIC_STREAM_START_FLAG_IMMEDIATE));
+
+    TEST_QUIC_SUCCEEDED(
+        MsQuic->ConnectionStart(
+            Client.Handle,
+            ClientConfiguration,
+            QuicAddrGetFamily(&ServerLocalAddr.SockAddr),
+            QUIC_TEST_LOOPBACK_FOR_AF(
+                QuicAddrGetFamily(&ServerLocalAddr.SockAddr)),
+            ServerLocalAddr.GetPort()));
+    TEST_TRUE(Client.HandshakeComplete.WaitTimeout(1000));
+
+    CxPlatSleep(100);
+    TEST_QUIC_SUCCEEDED(
+        MsQuic->StreamSend(
+            ClientStream.Handle,
+            &StreamBuffer,
+            1,
+            QUIC_SEND_FLAG_START,
+            nullptr));
+    CxPlatSleep(20);
+    TEST_QUIC_SUCCEEDED(
+        MsQuic->StreamSend(
+            ClientStream.Handle,
+            &StreamBuffer,
+            1,
+            QUIC_SEND_FLAG_START,
+            nullptr));
+
+    CxPlatSleep(100);
+    TEST_QUIC_SUCCEEDED(
+        MsQuic->StreamShutdown(
+            ClientStream.Handle,
+            QUIC_STREAM_SHUTDOWN_FLAG_GRACEFUL,
+            0));
 
     TEST_TRUE(Client.Complete.WaitTimeout(2000));
     TEST_TRUE(Server.Complete.WaitTimeout(1000));
@@ -1325,7 +1463,8 @@ void QuicTestValidateStreamEvents(uint32_t Test)
         QuicTestValidateStreamEvents4,
         QuicTestValidateStreamEvents5,
         QuicTestValidateStreamEvents6,
-        QuicTestValidateStreamEvents7
+        QuicTestValidateStreamEvents7,
+        QuicTestValidateStreamEvents8
     };
 
     Tests[Test](Registration, Listener, ServerLocalAddr);

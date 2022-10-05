@@ -8,7 +8,7 @@
             NoSniPresent,
             Connection,
             "No SNI extension present");
-// arg1 = arg1 = Connection
+// arg1 = arg1 = Connection = arg1
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CRYPTO_TLS_C, NoSniPresent,
     TP_ARGS(
@@ -29,9 +29,9 @@ TRACEPOINT_EVENT(CLOG_CRYPTO_TLS_C, NoSniPresent,
                     "TP: Reserved ID %llu, length %hu",
                     Id,
                     Length);
-// arg1 = arg1 = Connection
-// arg3 = arg3 = Id
-// arg4 = arg4 = Length
+// arg1 = arg1 = Connection = arg1
+// arg3 = arg3 = Id = arg3
+// arg4 = arg4 = Length = arg4
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CRYPTO_TLS_C, DecodeTPReserved,
     TP_ARGS(
@@ -56,9 +56,9 @@ TRACEPOINT_EVENT(CLOG_CRYPTO_TLS_C, DecodeTPReserved,
                     "TP: Unknown ID %llu, length %hu",
                     Id,
                     Length);
-// arg1 = arg1 = Connection
-// arg3 = arg3 = Id
-// arg4 = arg4 = Length
+// arg1 = arg1 = Connection = arg1
+// arg3 = arg3 = Id = arg3
+// arg4 = arg4 = Length = arg4
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CRYPTO_TLS_C, DecodeTPUnknown,
     TP_ARGS(
@@ -82,8 +82,8 @@ TRACEPOINT_EVENT(CLOG_CRYPTO_TLS_C, DecodeTPUnknown,
         Connection,
         "Encoding Transport Parameters (Server = %hhu)",
         IsServerTP);
-// arg1 = arg1 = Connection
-// arg3 = arg3 = IsServerTP
+// arg1 = arg1 = Connection = arg1
+// arg3 = arg3 = IsServerTP = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CRYPTO_TLS_C, EncodeTPStart,
     TP_ARGS(
@@ -107,10 +107,10 @@ TRACEPOINT_EVENT(CLOG_CRYPTO_TLS_C, EncodeTPStart,
             QuicCidBufToStr(
                 TransportParams->OriginalDestinationConnectionID,
                 TransportParams->OriginalDestinationConnectionIDLength).Buffer);
-// arg1 = arg1 = Connection
+// arg1 = arg1 = Connection = arg1
 // arg3 = arg3 = QuicCidBufToStr(
                 TransportParams->OriginalDestinationConnectionID,
-                TransportParams->OriginalDestinationConnectionIDLength).Buffer
+                TransportParams->OriginalDestinationConnectionIDLength).Buffer = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CRYPTO_TLS_C, EncodeTPOriginalDestinationCID,
     TP_ARGS(
@@ -132,8 +132,8 @@ TRACEPOINT_EVENT(CLOG_CRYPTO_TLS_C, EncodeTPOriginalDestinationCID,
             Connection,
             "TP: Idle Timeout (%llu ms)",
             TransportParams->IdleTimeout);
-// arg1 = arg1 = Connection
-// arg3 = arg3 = TransportParams->IdleTimeout
+// arg1 = arg1 = Connection = arg1
+// arg3 = arg3 = TransportParams->IdleTimeout = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CRYPTO_TLS_C, EncodeTPIdleTimeout,
     TP_ARGS(
@@ -157,10 +157,10 @@ TRACEPOINT_EVENT(CLOG_CRYPTO_TLS_C, EncodeTPIdleTimeout,
             QuicCidBufToStr(
                 TransportParams->StatelessResetToken,
                 QUIC_STATELESS_RESET_TOKEN_LENGTH).Buffer);
-// arg1 = arg1 = Connection
+// arg1 = arg1 = Connection = arg1
 // arg3 = arg3 = QuicCidBufToStr(
                 TransportParams->StatelessResetToken,
-                QUIC_STATELESS_RESET_TOKEN_LENGTH).Buffer
+                QUIC_STATELESS_RESET_TOKEN_LENGTH).Buffer = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CRYPTO_TLS_C, EncodeTPStatelessResetToken,
     TP_ARGS(
@@ -182,8 +182,8 @@ TRACEPOINT_EVENT(CLOG_CRYPTO_TLS_C, EncodeTPStatelessResetToken,
             Connection,
             "TP: Max Udp Payload Size (%llu bytes)",
             TransportParams->MaxUdpPayloadSize);
-// arg1 = arg1 = Connection
-// arg3 = arg3 = TransportParams->MaxUdpPayloadSize
+// arg1 = arg1 = Connection = arg1
+// arg3 = arg3 = TransportParams->MaxUdpPayloadSize = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CRYPTO_TLS_C, EncodeTPMaxUdpPayloadSize,
     TP_ARGS(
@@ -205,8 +205,8 @@ TRACEPOINT_EVENT(CLOG_CRYPTO_TLS_C, EncodeTPMaxUdpPayloadSize,
             Connection,
             "TP: Max Data (%llu bytes)",
             TransportParams->InitialMaxData);
-// arg1 = arg1 = Connection
-// arg3 = arg3 = TransportParams->InitialMaxData
+// arg1 = arg1 = Connection = arg1
+// arg3 = arg3 = TransportParams->InitialMaxData = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CRYPTO_TLS_C, EncodeTPInitMaxData,
     TP_ARGS(
@@ -228,8 +228,8 @@ TRACEPOINT_EVENT(CLOG_CRYPTO_TLS_C, EncodeTPInitMaxData,
             Connection,
             "TP: Max Local Bidirectional Stream Data (%llu bytes)",
             TransportParams->InitialMaxStreamDataBidiLocal);
-// arg1 = arg1 = Connection
-// arg3 = arg3 = TransportParams->InitialMaxStreamDataBidiLocal
+// arg1 = arg1 = Connection = arg1
+// arg3 = arg3 = TransportParams->InitialMaxStreamDataBidiLocal = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CRYPTO_TLS_C, EncodeTPInitMaxStreamDataBidiLocal,
     TP_ARGS(
@@ -251,8 +251,8 @@ TRACEPOINT_EVENT(CLOG_CRYPTO_TLS_C, EncodeTPInitMaxStreamDataBidiLocal,
             Connection,
             "TP: Max Remote Bidirectional Stream Data (%llu bytes)",
             TransportParams->InitialMaxStreamDataBidiRemote);
-// arg1 = arg1 = Connection
-// arg3 = arg3 = TransportParams->InitialMaxStreamDataBidiRemote
+// arg1 = arg1 = Connection = arg1
+// arg3 = arg3 = TransportParams->InitialMaxStreamDataBidiRemote = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CRYPTO_TLS_C, EncodeTPInitMaxStreamDataBidiRemote,
     TP_ARGS(
@@ -274,8 +274,8 @@ TRACEPOINT_EVENT(CLOG_CRYPTO_TLS_C, EncodeTPInitMaxStreamDataBidiRemote,
             Connection,
             "TP: Max Unidirectional Stream Data (%llu)",
             TransportParams->InitialMaxStreamDataUni);
-// arg1 = arg1 = Connection
-// arg3 = arg3 = TransportParams->InitialMaxStreamDataUni
+// arg1 = arg1 = Connection = arg1
+// arg3 = arg3 = TransportParams->InitialMaxStreamDataUni = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CRYPTO_TLS_C, EncodeTPInitMaxStreamUni,
     TP_ARGS(
@@ -297,8 +297,8 @@ TRACEPOINT_EVENT(CLOG_CRYPTO_TLS_C, EncodeTPInitMaxStreamUni,
             Connection,
             "TP: Max Bidirectional Streams (%llu)",
             TransportParams->InitialMaxBidiStreams);
-// arg1 = arg1 = Connection
-// arg3 = arg3 = TransportParams->InitialMaxBidiStreams
+// arg1 = arg1 = Connection = arg1
+// arg3 = arg3 = TransportParams->InitialMaxBidiStreams = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CRYPTO_TLS_C, EncodeTPMaxBidiStreams,
     TP_ARGS(
@@ -320,8 +320,8 @@ TRACEPOINT_EVENT(CLOG_CRYPTO_TLS_C, EncodeTPMaxBidiStreams,
             Connection,
             "TP: Max Unidirectional Streams (%llu)",
             TransportParams->InitialMaxUniStreams);
-// arg1 = arg1 = Connection
-// arg3 = arg3 = TransportParams->InitialMaxUniStreams
+// arg1 = arg1 = Connection = arg1
+// arg3 = arg3 = TransportParams->InitialMaxUniStreams = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CRYPTO_TLS_C, EncodeTPMaxUniStreams,
     TP_ARGS(
@@ -343,8 +343,8 @@ TRACEPOINT_EVENT(CLOG_CRYPTO_TLS_C, EncodeTPMaxUniStreams,
             Connection,
             "TP: ACK Delay Exponent (%llu)",
             TransportParams->AckDelayExponent);
-// arg1 = arg1 = Connection
-// arg3 = arg3 = TransportParams->AckDelayExponent
+// arg1 = arg1 = Connection = arg1
+// arg3 = arg3 = TransportParams->AckDelayExponent = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CRYPTO_TLS_C, EncodeTPAckDelayExponent,
     TP_ARGS(
@@ -366,8 +366,8 @@ TRACEPOINT_EVENT(CLOG_CRYPTO_TLS_C, EncodeTPAckDelayExponent,
             Connection,
             "TP: Max ACK Delay (%llu ms)",
             TransportParams->MaxAckDelay);
-// arg1 = arg1 = Connection
-// arg3 = arg3 = TransportParams->MaxAckDelay
+// arg1 = arg1 = Connection = arg1
+// arg3 = arg3 = TransportParams->MaxAckDelay = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CRYPTO_TLS_C, EncodeTPMaxAckDelay,
     TP_ARGS(
@@ -388,7 +388,7 @@ TRACEPOINT_EVENT(CLOG_CRYPTO_TLS_C, EncodeTPMaxAckDelay,
             EncodeTPDisableMigration,
             Connection,
             "TP: Disable Active Migration");
-// arg1 = arg1 = Connection
+// arg1 = arg1 = Connection = arg1
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CRYPTO_TLS_C, EncodeTPDisableMigration,
     TP_ARGS(
@@ -407,7 +407,7 @@ TRACEPOINT_EVENT(CLOG_CRYPTO_TLS_C, EncodeTPDisableMigration,
             EncodeTPPreferredAddress,
             Connection,
             "TP: Preferred Address");
-// arg1 = arg1 = Connection
+// arg1 = arg1 = Connection = arg1
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CRYPTO_TLS_C, EncodeTPPreferredAddress,
     TP_ARGS(
@@ -427,8 +427,8 @@ TRACEPOINT_EVENT(CLOG_CRYPTO_TLS_C, EncodeTPPreferredAddress,
             Connection,
             "TP: Connection ID Limit (%llu)",
             TransportParams->ActiveConnectionIdLimit);
-// arg1 = arg1 = Connection
-// arg3 = arg3 = TransportParams->ActiveConnectionIdLimit
+// arg1 = arg1 = Connection = arg1
+// arg3 = arg3 = TransportParams->ActiveConnectionIdLimit = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CRYPTO_TLS_C, EncodeTPCIDLimit,
     TP_ARGS(
@@ -452,10 +452,10 @@ TRACEPOINT_EVENT(CLOG_CRYPTO_TLS_C, EncodeTPCIDLimit,
             QuicCidBufToStr(
                 TransportParams->InitialSourceConnectionID,
                 TransportParams->InitialSourceConnectionIDLength).Buffer);
-// arg1 = arg1 = Connection
+// arg1 = arg1 = Connection = arg1
 // arg3 = arg3 = QuicCidBufToStr(
                 TransportParams->InitialSourceConnectionID,
-                TransportParams->InitialSourceConnectionIDLength).Buffer
+                TransportParams->InitialSourceConnectionIDLength).Buffer = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CRYPTO_TLS_C, EncodeTPOriginalCID,
     TP_ARGS(
@@ -479,10 +479,10 @@ TRACEPOINT_EVENT(CLOG_CRYPTO_TLS_C, EncodeTPOriginalCID,
             QuicCidBufToStr(
                 TransportParams->RetrySourceConnectionID,
                 TransportParams->RetrySourceConnectionIDLength).Buffer);
-// arg1 = arg1 = Connection
+// arg1 = arg1 = Connection = arg1
 // arg3 = arg3 = QuicCidBufToStr(
                 TransportParams->RetrySourceConnectionID,
-                TransportParams->RetrySourceConnectionIDLength).Buffer
+                TransportParams->RetrySourceConnectionIDLength).Buffer = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CRYPTO_TLS_C, EncodeTPRetrySourceCID,
     TP_ARGS(
@@ -504,8 +504,8 @@ TRACEPOINT_EVENT(CLOG_CRYPTO_TLS_C, EncodeTPRetrySourceCID,
             Connection,
             "TP: Max Datagram Frame Size (%llu bytes)",
             TransportParams->MaxDatagramFrameSize);
-// arg1 = arg1 = Connection
-// arg3 = arg3 = TransportParams->MaxDatagramFrameSize
+// arg1 = arg1 = Connection = arg1
+// arg3 = arg3 = TransportParams->MaxDatagramFrameSize = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CRYPTO_TLS_C, EncodeMaxDatagramFrameSize,
     TP_ARGS(
@@ -526,7 +526,7 @@ TRACEPOINT_EVENT(CLOG_CRYPTO_TLS_C, EncodeMaxDatagramFrameSize,
             EncodeTPDisable1RttEncryption,
             Connection,
             "TP: Disable 1-RTT Encryption");
-// arg1 = arg1 = Connection
+// arg1 = arg1 = Connection = arg1
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CRYPTO_TLS_C, EncodeTPDisable1RttEncryption,
     TP_ARGS(
@@ -546,8 +546,8 @@ TRACEPOINT_EVENT(CLOG_CRYPTO_TLS_C, EncodeTPDisable1RttEncryption,
             Connection,
             "TP: Version Negotiation Extension (%u bytes)",
             TransportParams->VersionInfoLength);
-// arg1 = arg1 = Connection
-// arg3 = arg3 = TransportParams->VersionInfoLength
+// arg1 = arg1 = Connection = arg1
+// arg3 = arg3 = TransportParams->VersionInfoLength = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CRYPTO_TLS_C, EncodeTPVersionNegotiationExt,
     TP_ARGS(
@@ -569,8 +569,8 @@ TRACEPOINT_EVENT(CLOG_CRYPTO_TLS_C, EncodeTPVersionNegotiationExt,
             Connection,
             "TP: Min ACK Delay (%llu us)",
             TransportParams->MinAckDelay);
-// arg1 = arg1 = Connection
-// arg3 = arg3 = TransportParams->MinAckDelay
+// arg1 = arg1 = Connection = arg1
+// arg3 = arg3 = TransportParams->MinAckDelay = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CRYPTO_TLS_C, EncodeTPMinAckDelay,
     TP_ARGS(
@@ -585,6 +585,52 @@ TRACEPOINT_EVENT(CLOG_CRYPTO_TLS_C, EncodeTPMinAckDelay,
 
 
 /*----------------------------------------------------------
+// Decoder Ring for EncodeTPCibirEncoding
+// [conn][%p] TP: CIBIR Encoding (%llu length, %llu offset)
+// QuicTraceLogConnVerbose(
+            EncodeTPCibirEncoding,
+            Connection,
+            "TP: CIBIR Encoding (%llu length, %llu offset)",
+            TransportParams->CibirLength,
+            TransportParams->CibirOffset);
+// arg1 = arg1 = Connection = arg1
+// arg3 = arg3 = TransportParams->CibirLength = arg3
+// arg4 = arg4 = TransportParams->CibirOffset = arg4
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_CRYPTO_TLS_C, EncodeTPCibirEncoding,
+    TP_ARGS(
+        const void *, arg1,
+        unsigned long long, arg3,
+        unsigned long long, arg4), 
+    TP_FIELDS(
+        ctf_integer_hex(uint64_t, arg1, arg1)
+        ctf_integer(uint64_t, arg3, arg3)
+        ctf_integer(uint64_t, arg4, arg4)
+    )
+)
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for EncodeTPGreaseQuicBit
+// [conn][%p] TP: Grease Quic Bit
+// QuicTraceLogConnVerbose(
+            EncodeTPGreaseQuicBit,
+            Connection,
+            "TP: Grease Quic Bit");
+// arg1 = arg1 = Connection = arg1
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_CRYPTO_TLS_C, EncodeTPGreaseQuicBit,
+    TP_ARGS(
+        const void *, arg1), 
+    TP_FIELDS(
+        ctf_integer_hex(uint64_t, arg1, arg1)
+    )
+)
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for EncodeTPTest
 // [conn][%p] TP: TEST TP (Type %hu, Length %hu)
 // QuicTraceLogConnVerbose(
@@ -593,9 +639,9 @@ TRACEPOINT_EVENT(CLOG_CRYPTO_TLS_C, EncodeTPMinAckDelay,
             "TP: TEST TP (Type %hu, Length %hu)",
             TestParam->Type,
             TestParam->Length);
-// arg1 = arg1 = Connection
-// arg3 = arg3 = TestParam->Type
-// arg4 = arg4 = TestParam->Length
+// arg1 = arg1 = Connection = arg1
+// arg3 = arg3 = TestParam->Type = arg3
+// arg4 = arg4 = TestParam->Length = arg4
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CRYPTO_TLS_C, EncodeTPTest,
     TP_ARGS(
@@ -619,8 +665,8 @@ TRACEPOINT_EVENT(CLOG_CRYPTO_TLS_C, EncodeTPTest,
         Connection,
         "Encoded %hu bytes for QUIC TP",
         (uint16_t)FinalTPLength);
-// arg1 = arg1 = Connection
-// arg3 = arg3 = (uint16_t)FinalTPLength
+// arg1 = arg1 = Connection = arg1
+// arg3 = arg3 = (uint16_t)FinalTPLength = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CRYPTO_TLS_C, EncodeTPEnd,
     TP_ARGS(
@@ -643,9 +689,9 @@ TRACEPOINT_EVENT(CLOG_CRYPTO_TLS_C, EncodeTPEnd,
         "Decoding Transport Parameters (Server = %hhu) (%hu bytes)",
         IsServerTP,
         TPLen);
-// arg1 = arg1 = Connection
-// arg3 = arg3 = IsServerTP
-// arg4 = arg4 = TPLen
+// arg1 = arg1 = Connection = arg1
+// arg3 = arg3 = IsServerTP = arg3
+// arg4 = arg4 = TPLen = arg4
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CRYPTO_TLS_C, DecodeTPStart,
     TP_ARGS(
@@ -671,10 +717,10 @@ TRACEPOINT_EVENT(CLOG_CRYPTO_TLS_C, DecodeTPStart,
                 QuicCidBufToStr(
                     TransportParams->OriginalDestinationConnectionID,
                     TransportParams->OriginalDestinationConnectionIDLength).Buffer);
-// arg1 = arg1 = Connection
+// arg1 = arg1 = Connection = arg1
 // arg3 = arg3 = QuicCidBufToStr(
                     TransportParams->OriginalDestinationConnectionID,
-                    TransportParams->OriginalDestinationConnectionIDLength).Buffer
+                    TransportParams->OriginalDestinationConnectionIDLength).Buffer = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CRYPTO_TLS_C, DecodeTPOriginalDestinationCID,
     TP_ARGS(
@@ -696,8 +742,8 @@ TRACEPOINT_EVENT(CLOG_CRYPTO_TLS_C, DecodeTPOriginalDestinationCID,
                 Connection,
                 "TP: Idle Timeout (%llu ms)",
                 TransportParams->IdleTimeout);
-// arg1 = arg1 = Connection
-// arg3 = arg3 = TransportParams->IdleTimeout
+// arg1 = arg1 = Connection = arg1
+// arg3 = arg3 = TransportParams->IdleTimeout = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CRYPTO_TLS_C, DecodeTPIdleTimeout,
     TP_ARGS(
@@ -721,10 +767,10 @@ TRACEPOINT_EVENT(CLOG_CRYPTO_TLS_C, DecodeTPIdleTimeout,
                 QuicCidBufToStr(
                     TransportParams->StatelessResetToken,
                     QUIC_STATELESS_RESET_TOKEN_LENGTH).Buffer);
-// arg1 = arg1 = Connection
+// arg1 = arg1 = Connection = arg1
 // arg3 = arg3 = QuicCidBufToStr(
                     TransportParams->StatelessResetToken,
-                    QUIC_STATELESS_RESET_TOKEN_LENGTH).Buffer
+                    QUIC_STATELESS_RESET_TOKEN_LENGTH).Buffer = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CRYPTO_TLS_C, DecodeTPStatelessResetToken,
     TP_ARGS(
@@ -746,8 +792,8 @@ TRACEPOINT_EVENT(CLOG_CRYPTO_TLS_C, DecodeTPStatelessResetToken,
                 Connection,
                 "TP: Max Udp Payload Size (%llu bytes)",
                 TransportParams->MaxUdpPayloadSize);
-// arg1 = arg1 = Connection
-// arg3 = arg3 = TransportParams->MaxUdpPayloadSize
+// arg1 = arg1 = Connection = arg1
+// arg3 = arg3 = TransportParams->MaxUdpPayloadSize = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CRYPTO_TLS_C, DecodeTPMaxUdpPayloadSize,
     TP_ARGS(
@@ -769,8 +815,8 @@ TRACEPOINT_EVENT(CLOG_CRYPTO_TLS_C, DecodeTPMaxUdpPayloadSize,
                 Connection,
                 "TP: Max Data (%llu bytes)",
                 TransportParams->InitialMaxData);
-// arg1 = arg1 = Connection
-// arg3 = arg3 = TransportParams->InitialMaxData
+// arg1 = arg1 = Connection = arg1
+// arg3 = arg3 = TransportParams->InitialMaxData = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CRYPTO_TLS_C, DecodeTPInitMaxData,
     TP_ARGS(
@@ -792,8 +838,8 @@ TRACEPOINT_EVENT(CLOG_CRYPTO_TLS_C, DecodeTPInitMaxData,
                 Connection,
                 "TP: Max Local Bidirectional Stream Data (%llu bytes)",
                 TransportParams->InitialMaxStreamDataBidiLocal);
-// arg1 = arg1 = Connection
-// arg3 = arg3 = TransportParams->InitialMaxStreamDataBidiLocal
+// arg1 = arg1 = Connection = arg1
+// arg3 = arg3 = TransportParams->InitialMaxStreamDataBidiLocal = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CRYPTO_TLS_C, DecodeTPInitMaxStreamDataBidiLocal,
     TP_ARGS(
@@ -815,8 +861,8 @@ TRACEPOINT_EVENT(CLOG_CRYPTO_TLS_C, DecodeTPInitMaxStreamDataBidiLocal,
                 Connection,
                 "TP: Max Remote Bidirectional Stream Data (%llu bytes)",
                 TransportParams->InitialMaxStreamDataBidiRemote);
-// arg1 = arg1 = Connection
-// arg3 = arg3 = TransportParams->InitialMaxStreamDataBidiRemote
+// arg1 = arg1 = Connection = arg1
+// arg3 = arg3 = TransportParams->InitialMaxStreamDataBidiRemote = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CRYPTO_TLS_C, DecodeTPInitMaxStreamDataBidiRemote,
     TP_ARGS(
@@ -838,8 +884,8 @@ TRACEPOINT_EVENT(CLOG_CRYPTO_TLS_C, DecodeTPInitMaxStreamDataBidiRemote,
                 Connection,
                 "TP: Max Unidirectional Stream Data (%llu)",
                 TransportParams->InitialMaxStreamDataUni);
-// arg1 = arg1 = Connection
-// arg3 = arg3 = TransportParams->InitialMaxStreamDataUni
+// arg1 = arg1 = Connection = arg1
+// arg3 = arg3 = TransportParams->InitialMaxStreamDataUni = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CRYPTO_TLS_C, DecodeTPInitMaxStreamDataBidiUni,
     TP_ARGS(
@@ -861,8 +907,8 @@ TRACEPOINT_EVENT(CLOG_CRYPTO_TLS_C, DecodeTPInitMaxStreamDataBidiUni,
                 Connection,
                 "TP: Max Bidirectional Streams (%llu)",
                 TransportParams->InitialMaxBidiStreams);
-// arg1 = arg1 = Connection
-// arg3 = arg3 = TransportParams->InitialMaxBidiStreams
+// arg1 = arg1 = Connection = arg1
+// arg3 = arg3 = TransportParams->InitialMaxBidiStreams = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CRYPTO_TLS_C, DecodeTPMaxBidiStreams,
     TP_ARGS(
@@ -884,8 +930,8 @@ TRACEPOINT_EVENT(CLOG_CRYPTO_TLS_C, DecodeTPMaxBidiStreams,
                 Connection,
                 "TP: Max Unidirectional Streams (%llu)",
                 TransportParams->InitialMaxUniStreams);
-// arg1 = arg1 = Connection
-// arg3 = arg3 = TransportParams->InitialMaxUniStreams
+// arg1 = arg1 = Connection = arg1
+// arg3 = arg3 = TransportParams->InitialMaxUniStreams = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CRYPTO_TLS_C, DecodeTPMaxUniStreams,
     TP_ARGS(
@@ -907,8 +953,8 @@ TRACEPOINT_EVENT(CLOG_CRYPTO_TLS_C, DecodeTPMaxUniStreams,
                 Connection,
                 "TP: ACK Delay Exponent (%llu)",
                 TransportParams->AckDelayExponent);
-// arg1 = arg1 = Connection
-// arg3 = arg3 = TransportParams->AckDelayExponent
+// arg1 = arg1 = Connection = arg1
+// arg3 = arg3 = TransportParams->AckDelayExponent = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CRYPTO_TLS_C, DecodeTPAckDelayExponent,
     TP_ARGS(
@@ -930,8 +976,8 @@ TRACEPOINT_EVENT(CLOG_CRYPTO_TLS_C, DecodeTPAckDelayExponent,
                 Connection,
                 "TP: Max ACK Delay (%llu ms)",
                 TransportParams->MaxAckDelay);
-// arg1 = arg1 = Connection
-// arg3 = arg3 = TransportParams->MaxAckDelay
+// arg1 = arg1 = Connection = arg1
+// arg3 = arg3 = TransportParams->MaxAckDelay = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CRYPTO_TLS_C, DecodeTPMaxAckDelay,
     TP_ARGS(
@@ -952,7 +998,7 @@ TRACEPOINT_EVENT(CLOG_CRYPTO_TLS_C, DecodeTPMaxAckDelay,
                 DecodeTPDisableActiveMigration,
                 Connection,
                 "TP: Disable Active Migration");
-// arg1 = arg1 = Connection
+// arg1 = arg1 = Connection = arg1
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CRYPTO_TLS_C, DecodeTPDisableActiveMigration,
     TP_ARGS(
@@ -971,7 +1017,7 @@ TRACEPOINT_EVENT(CLOG_CRYPTO_TLS_C, DecodeTPDisableActiveMigration,
                 DecodeTPPreferredAddress,
                 Connection,
                 "TP: Preferred Address");
-// arg1 = arg1 = Connection
+// arg1 = arg1 = Connection = arg1
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CRYPTO_TLS_C, DecodeTPPreferredAddress,
     TP_ARGS(
@@ -991,8 +1037,8 @@ TRACEPOINT_EVENT(CLOG_CRYPTO_TLS_C, DecodeTPPreferredAddress,
                 Connection,
                 "TP: Connection ID Limit (%llu)",
                 TransportParams->ActiveConnectionIdLimit);
-// arg1 = arg1 = Connection
-// arg3 = arg3 = TransportParams->ActiveConnectionIdLimit
+// arg1 = arg1 = Connection = arg1
+// arg3 = arg3 = TransportParams->ActiveConnectionIdLimit = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CRYPTO_TLS_C, DecodeTPCIDLimit,
     TP_ARGS(
@@ -1016,10 +1062,10 @@ TRACEPOINT_EVENT(CLOG_CRYPTO_TLS_C, DecodeTPCIDLimit,
                 QuicCidBufToStr(
                     TransportParams->InitialSourceConnectionID,
                     TransportParams->InitialSourceConnectionIDLength).Buffer);
-// arg1 = arg1 = Connection
+// arg1 = arg1 = Connection = arg1
 // arg3 = arg3 = QuicCidBufToStr(
                     TransportParams->InitialSourceConnectionID,
-                    TransportParams->InitialSourceConnectionIDLength).Buffer
+                    TransportParams->InitialSourceConnectionIDLength).Buffer = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CRYPTO_TLS_C, DecodeTPInitialSourceCID,
     TP_ARGS(
@@ -1043,10 +1089,10 @@ TRACEPOINT_EVENT(CLOG_CRYPTO_TLS_C, DecodeTPInitialSourceCID,
                 QuicCidBufToStr(
                     TransportParams->RetrySourceConnectionID,
                     TransportParams->RetrySourceConnectionIDLength).Buffer);
-// arg1 = arg1 = Connection
+// arg1 = arg1 = Connection = arg1
 // arg3 = arg3 = QuicCidBufToStr(
                     TransportParams->RetrySourceConnectionID,
-                    TransportParams->RetrySourceConnectionIDLength).Buffer
+                    TransportParams->RetrySourceConnectionIDLength).Buffer = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CRYPTO_TLS_C, DecodeTPRetrySourceCID,
     TP_ARGS(
@@ -1068,8 +1114,8 @@ TRACEPOINT_EVENT(CLOG_CRYPTO_TLS_C, DecodeTPRetrySourceCID,
                 Connection,
                 "TP: Max Datagram Frame Size (%llu bytes)",
                 TransportParams->MaxDatagramFrameSize);
-// arg1 = arg1 = Connection
-// arg3 = arg3 = TransportParams->MaxDatagramFrameSize
+// arg1 = arg1 = Connection = arg1
+// arg3 = arg3 = TransportParams->MaxDatagramFrameSize = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CRYPTO_TLS_C, DecodeTPMaxDatagramFrameSize,
     TP_ARGS(
@@ -1084,13 +1130,40 @@ TRACEPOINT_EVENT(CLOG_CRYPTO_TLS_C, DecodeTPMaxDatagramFrameSize,
 
 
 /*----------------------------------------------------------
+// Decoder Ring for DecodeTPCibirEncoding
+// [conn][%p] TP: CIBIR Encoding (%llu length, %llu offset)
+// QuicTraceLogConnVerbose(
+                DecodeTPCibirEncoding,
+                Connection,
+                "TP: CIBIR Encoding (%llu length, %llu offset)",
+                TransportParams->CibirLength,
+                TransportParams->CibirOffset);
+// arg1 = arg1 = Connection = arg1
+// arg3 = arg3 = TransportParams->CibirLength = arg3
+// arg4 = arg4 = TransportParams->CibirOffset = arg4
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_CRYPTO_TLS_C, DecodeTPCibirEncoding,
+    TP_ARGS(
+        const void *, arg1,
+        unsigned long long, arg3,
+        unsigned long long, arg4), 
+    TP_FIELDS(
+        ctf_integer_hex(uint64_t, arg1, arg1)
+        ctf_integer(uint64_t, arg3, arg3)
+        ctf_integer(uint64_t, arg4, arg4)
+    )
+)
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for DecodeTPDisable1RttEncryption
 // [conn][%p] TP: Disable 1-RTT Encryption
 // QuicTraceLogConnVerbose(
                 DecodeTPDisable1RttEncryption,
                 Connection,
                 "TP: Disable 1-RTT Encryption");
-// arg1 = arg1 = Connection
+// arg1 = arg1 = Connection = arg1
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CRYPTO_TLS_C, DecodeTPDisable1RttEncryption,
     TP_ARGS(
@@ -1106,12 +1179,12 @@ TRACEPOINT_EVENT(CLOG_CRYPTO_TLS_C, DecodeTPDisable1RttEncryption,
 // Decoder Ring for DecodeTPVersionNegotiationInfo
 // [conn][%p] TP: Version Negotiation Info (%hu bytes)
 // QuicTraceLogConnVerbose(
-                    DecodeTPVersionNegotiationInfo,
-                    Connection,
-                    "TP: Version Negotiation Info (%hu bytes)",
-                    Length);
-// arg1 = arg1 = Connection
-// arg3 = arg3 = Length
+                DecodeTPVersionNegotiationInfo,
+                Connection,
+                "TP: Version Negotiation Info (%hu bytes)",
+                Length);
+// arg1 = arg1 = Connection = arg1
+// arg3 = arg3 = Length = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CRYPTO_TLS_C, DecodeTPVersionNegotiationInfo,
     TP_ARGS(
@@ -1133,8 +1206,8 @@ TRACEPOINT_EVENT(CLOG_CRYPTO_TLS_C, DecodeTPVersionNegotiationInfo,
                 Connection,
                 "TP: Min ACK Delay (%llu us)",
                 TransportParams->MinAckDelay);
-// arg1 = arg1 = Connection
-// arg3 = arg3 = TransportParams->MinAckDelay
+// arg1 = arg1 = Connection = arg1
+// arg3 = arg3 = TransportParams->MinAckDelay = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CRYPTO_TLS_C, DecodeTPMinAckDelay,
     TP_ARGS(
@@ -1149,6 +1222,25 @@ TRACEPOINT_EVENT(CLOG_CRYPTO_TLS_C, DecodeTPMinAckDelay,
 
 
 /*----------------------------------------------------------
+// Decoder Ring for DecodeTPGreaseQuicBit
+// [conn][%p] TP: Grease QUIC Bit
+// QuicTraceLogConnVerbose(
+                DecodeTPGreaseQuicBit,
+                Connection,
+                "TP: Grease QUIC Bit");
+// arg1 = arg1 = Connection = arg1
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_CRYPTO_TLS_C, DecodeTPGreaseQuicBit,
+    TP_ARGS(
+        const void *, arg1), 
+    TP_FIELDS(
+        ctf_integer_hex(uint64_t, arg1, arg1)
+    )
+)
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for ConnError
 // [conn][%p] ERROR, %s.
 // QuicTraceEvent(
@@ -1156,8 +1248,8 @@ TRACEPOINT_EVENT(CLOG_CRYPTO_TLS_C, DecodeTPMinAckDelay,
             "[conn][%p] ERROR, %s.",
             Connection,
             "Parse error. ReadTlsSni #1");
-// arg2 = arg2 = Connection
-// arg3 = arg3 = "Parse error. ReadTlsSni #1"
+// arg2 = arg2 = Connection = arg2
+// arg3 = arg3 = "Parse error. ReadTlsSni #1" = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CRYPTO_TLS_C, ConnError,
     TP_ARGS(
@@ -1179,8 +1271,8 @@ TRACEPOINT_EVENT(CLOG_CRYPTO_TLS_C, ConnError,
             "Allocation of '%s' failed. (%llu bytes)",
             "TP buffer",
             CxPlatTlsTPHeaderSize + RequiredTPLen);
-// arg2 = arg2 = "TP buffer"
-// arg3 = arg3 = CxPlatTlsTPHeaderSize + RequiredTPLen
+// arg2 = arg2 = "TP buffer" = arg2
+// arg3 = arg3 = CxPlatTlsTPHeaderSize + RequiredTPLen = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CRYPTO_TLS_C, AllocFailure,
     TP_ARGS(
@@ -1203,9 +1295,9 @@ TRACEPOINT_EVENT(CLOG_CRYPTO_TLS_C, AllocFailure,
                     Connection,
                     Length,
                     "Invalid length of QUIC_TP_ID_ORIGINAL_DESTINATION_CONNECTION_ID");
-// arg2 = arg2 = Connection
-// arg3 = arg3 = Length
-// arg4 = arg4 = "Invalid length of QUIC_TP_ID_ORIGINAL_DESTINATION_CONNECTION_ID"
+// arg2 = arg2 = Connection = arg2
+// arg3 = arg3 = Length = arg3
+// arg4 = arg4 = "Invalid length of QUIC_TP_ID_ORIGINAL_DESTINATION_CONNECTION_ID" = arg4
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CRYPTO_TLS_C, ConnErrorStatus,
     TP_ARGS(

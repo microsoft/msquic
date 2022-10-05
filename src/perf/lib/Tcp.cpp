@@ -15,9 +15,11 @@ Abstract:
 #include "Tcp.cpp.clog.h"
 #endif
 
+extern CXPLAT_DATAPATH* Datapath;
+
 // ############################# HELPERS #############################
 
-#define FRAME_TYPE_CRYTPO   0
+#define FRAME_TYPE_CRYPTO   0
 #define FRAME_TYPE_STREAM   1
 
 #pragma pack(push)
@@ -43,6 +45,8 @@ const uint8_t FixedAlpnBuffer[] = {
 };
 
 const uint8_t FixedIv[CXPLAT_MAX_IV_LENGTH] = { 0 };
+
+const QUIC_HKDF_LABELS TcpHkdfLabels = { "tcp key", "tcp iv", "tcp hp", "tcp ku" };
 
 struct LoadSecConfigHelper {
     LoadSecConfigHelper() : SecConfig(nullptr) { CxPlatEventInitialize(&CallbackEvent, TRUE, FALSE); }
@@ -106,21 +110,14 @@ TcpEngine::TcpEngine(
     AcceptHandler(AcceptHandler), ConnectHandler(ConnectHandler),
     ReceiveHandler(ReceiveHandler), SendCompleteHandler(SendCompleteHandler)
 {
-    if (QUIC_FAILED(
-        CxPlatDataPathInitialize(
-            0, // TODO
-            nullptr,
-            &TcpCallbacks,
-            &Datapath))) {
-        WriteOutput("CxPlatDataPathInitialize FAILED\n");
-        return;
-    }
+#ifndef QUIC_NO_SHARED_DATAPATH
     for (uint16_t i = 0; i < ProcCount; ++i) {
         if (!Workers[i].Initialize(this)) {
             return;
         }
     }
     Initialized = true;
+#endif
 }
 
 TcpEngine::~TcpEngine()
@@ -128,9 +125,6 @@ TcpEngine::~TcpEngine()
     Shutdown = true;
     for (uint16_t i = 0; i < ProcCount; ++i) {
         Workers[i].Shutdown();
-    }
-    if (Datapath) {
-        CxPlatDataPathUninitialize(Datapath);
     }
     delete [] Workers;
 }
@@ -263,7 +257,7 @@ bool TcpServer::Start(const QUIC_ADDR* LocalAddress)
     if (!Initialized ||
         QUIC_FAILED(
         CxPlatSocketCreateTcpListener(
-            Engine->Datapath,
+            Datapath,
             LocalAddress,
             this,
             &Listener))) {
@@ -319,23 +313,23 @@ TcpConnection::TcpConnection(
     if (LocalAddress) {
         Family = QuicAddrGetFamily(LocalAddress);
     }
-    QuicAddrSetFamily(&RemoteAddress, Family);
+    QuicAddrSetFamily(&Route.RemoteAddress, Family);
     if (QUIC_FAILED(
         CxPlatDataPathResolveAddress(
-            Engine->Datapath,
+            Datapath,
             ServerName,
-            &RemoteAddress))) {
+            &Route.RemoteAddress))) {
         WriteOutput("CxPlatDataPathResolveAddress FAILED\n");
         return;
     }
-    QuicAddrSetPort(&RemoteAddress, ServerPort);
+    QuicAddrSetPort(&Route.RemoteAddress, ServerPort);
     Engine->AddConnection(this, 0); // TODO - Correct index
     Initialized = true;
     if (QUIC_FAILED(
         CxPlatSocketCreateTcp(
-            Engine->Datapath,
+            Datapath,
             LocalAddress,
-            &RemoteAddress,
+            &Route.RemoteAddress,
             this,
             &Socket))) {
         Initialized = false;
@@ -522,9 +516,6 @@ void TcpConnection::Process()
         }
     }
     if (BatchedSendData) {
-        CXPLAT_ROUTE Route;
-        Route.LocalAddress = LocalAddress;
-        Route.RemoteAddress = RemoteAddress;
         if (QUIC_FAILED(
             CxPlatSocketSend(Socket, &Route, BatchedSendData, PartitionIndex))) {
             IndicateDisconnect = true;
@@ -556,6 +547,7 @@ bool TcpConnection::InitializeTls()
     Config.IsServer = IsServer ? TRUE : FALSE;
     Config.Connection = (QUIC_CONNECTION*)(void*)this;
     Config.SecConfig = SecConfig;
+    Config.HkdfLabels = &TcpHkdfLabels;
     Config.AlpnBuffer = FixedAlpnBuffer;
     Config.AlpnBufferLength = sizeof(FixedAlpnBuffer);
     Config.TPType = TLS_EXTENSION_TYPE_QUIC_TRANSPORT_PARAMETERS;
@@ -642,7 +634,7 @@ bool TcpConnection::SendTlsData(const uint8_t* Buffer, uint16_t BufferLength, ui
     }
 
     auto Frame = (TcpFrame*)SendBuffer->Buffer;
-    Frame->FrameType = FRAME_TYPE_CRYTPO;
+    Frame->FrameType = FRAME_TYPE_CRYPTO;
     Frame->Length = BufferLength;
     Frame->KeyType = KeyType;
     CxPlatCopyMemory(Frame->Data, Buffer, BufferLength);
@@ -757,7 +749,7 @@ bool TcpConnection::ProcessReceiveFrame(TcpFrame* Frame)
     }
 
     switch (Frame->FrameType) {
-    case FRAME_TYPE_CRYTPO:
+    case FRAME_TYPE_CRYPTO:
         if (!ProcessTls(Frame->Data, Frame->Length)) {
             return false;
         }
@@ -892,7 +884,7 @@ bool TcpConnection::EncryptFrame(TcpFrame* Frame)
 QUIC_BUFFER* TcpConnection::NewSendBuffer()
 {
     if (!BatchedSendData) {
-        BatchedSendData = CxPlatSendDataAlloc(Socket, CXPLAT_ECN_NON_ECT, TLS_BLOCK_SIZE);
+        BatchedSendData = CxPlatSendDataAlloc(Socket, CXPLAT_ECN_NON_ECT, TLS_BLOCK_SIZE, &Route);
         if (!BatchedSendData) { return nullptr; }
     }
     return CxPlatSendDataAllocBuffer(BatchedSendData, TLS_BLOCK_SIZE);
@@ -908,9 +900,6 @@ bool TcpConnection::FinalizeSendBuffer(QUIC_BUFFER* SendBuffer)
     TotalSendOffset += SendBuffer->Length;
     if (SendBuffer->Length != TLS_BLOCK_SIZE ||
         CxPlatSendDataIsFull(BatchedSendData)) {
-        CXPLAT_ROUTE Route;
-        Route.LocalAddress = LocalAddress;
-        Route.RemoteAddress = RemoteAddress;
         if (QUIC_FAILED(
             CxPlatSocketSend(Socket, &Route, BatchedSendData, PartitionIndex))) {
             WriteOutput("CxPlatSocketSend FAILED\n");

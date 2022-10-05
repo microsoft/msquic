@@ -2,7 +2,8 @@
 
 MsQuic uses [profile-guided optimizations](https://docs.microsoft.com/en-us/cpp/build/profile-guided-optimizations) (PGO) to generate optimized builds of the MsQuic library. PGO lets you optimize the whole library by using data from a previous run of the library.
 
-> **Note** - This document is Windows specific.
+> **Note**
+> This document is Windows specific.
 
 # Build
 
@@ -24,7 +25,7 @@ A fundamental part of profile-guided optimizations is training. The code is run 
 2. Copy the binaries to the test machine(s).
    1. The PGO msquic library.
    2. The test tool (e.g. `secnetperf`).
-   3. The PGO runtime library from your VS install: (e.g. `"C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\VC\Tools\MSVC\14.26.28801\bin\Hostx64\x64\pgort140.dll"`).
+   3. The PGO runtime library from your VS install: (e.g. `"C:\Program Files (x86)\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.26.28801\bin\Hostx64\x64\pgort140.dll"`).
 3. Run the test for the production/performance scenario.
 4. Use [pgomgr](https://docs.microsoft.com/en-us/cpp/build/pgomgr) to merge the `.pgc` into the `.pgd`.
 5. Update the `.pgd` and `.pdb` files in the repository.

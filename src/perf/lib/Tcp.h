@@ -88,7 +88,6 @@ class TcpEngine {
 public:
     static const CXPLAT_TCP_DATAPATH_CALLBACKS TcpCallbacks;
     static const CXPLAT_TLS_CALLBACKS TlsCallbacks;
-    CXPLAT_DATAPATH* Datapath{nullptr};
     const TcpAcceptHandler AcceptHandler;
     const TcpConnectHandler ConnectHandler;
     const TcpReceiveHandler ReceiveHandler;
@@ -176,8 +175,7 @@ class TcpConnection {
     uint16_t PartitionIndex;
     CXPLAT_REF_COUNT Ref;
     CXPLAT_DISPATCH_LOCK Lock;
-    QUIC_ADDR LocalAddress;
-    QUIC_ADDR RemoteAddress;
+    CXPLAT_ROUTE Route;
     CXPLAT_SOCKET* Socket{nullptr};
     CXPLAT_SEC_CONFIG* SecConfig{nullptr};
     CXPLAT_TLS* Tls{nullptr};

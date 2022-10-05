@@ -8,7 +8,7 @@
             LibraryStorageOpenFailed,
             "[ lib] Failed to open global settings, 0x%x",
             Status);
-// arg2 = arg2 = Status
+// arg2 = arg2 = Status = arg2
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_LIBRARY_C, LibraryStorageOpenFailed,
     TP_ARGS(
@@ -43,7 +43,7 @@ TRACEPOINT_EVENT(CLOG_LIBRARY_C, LibraryTestDatapathHooksSet,
         LibrarySettingsUpdated,
         "[ lib] Settings %p Updated",
         &MsQuicLib.Settings);
-// arg2 = arg2 = &MsQuicLib.Settings
+// arg2 = arg2 = &MsQuicLib.Settings = arg2
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_LIBRARY_C, LibrarySettingsUpdated,
     TP_ARGS(
@@ -94,7 +94,7 @@ TRACEPOINT_EVENT(CLOG_LIBRARY_C, LibraryVerifierEnabled,
         LibraryCidLengthSet,
         "[ lib] CID Length = %hhu",
         MsQuicLib.CidTotalLength);
-// arg2 = arg2 = MsQuicLib.CidTotalLength
+// arg2 = arg2 = MsQuicLib.CidTotalLength = arg2
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_LIBRARY_C, LibraryCidLengthSet,
     TP_ARGS(
@@ -113,7 +113,7 @@ TRACEPOINT_EVENT(CLOG_LIBRARY_C, LibraryCidLengthSet,
             LibraryRetryMemoryLimitSet,
             "[ lib] Updated retry memory limit = %hu",
             MsQuicLib.Settings.RetryMemoryLimit);
-// arg2 = arg2 = MsQuicLib.Settings.RetryMemoryLimit
+// arg2 = arg2 = MsQuicLib.Settings.RetryMemoryLimit = arg2
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_LIBRARY_C, LibraryRetryMemoryLimitSet,
     TP_ARGS(
@@ -132,7 +132,7 @@ TRACEPOINT_EVENT(CLOG_LIBRARY_C, LibraryRetryMemoryLimitSet,
             LibraryLoadBalancingModeSet,
             "[ lib] Updated load balancing mode = %hu",
             MsQuicLib.Settings.LoadBalancingMode);
-// arg2 = arg2 = MsQuicLib.Settings.LoadBalancingMode
+// arg2 = arg2 = MsQuicLib.Settings.LoadBalancingMode = arg2
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_LIBRARY_C, LibraryLoadBalancingModeSet,
     TP_ARGS(
@@ -152,6 +152,22 @@ TRACEPOINT_EVENT(CLOG_LIBRARY_C, LibraryLoadBalancingModeSet,
             "[ lib] Setting new settings");
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_LIBRARY_C, LibrarySetSettings,
+    TP_ARGS(
+), 
+    TP_FIELDS(
+    )
+)
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for LibraryExecutionConfigSet
+// [ lib] Setting execution config
+// QuicTraceLogInfo(
+            LibraryExecutionConfigSet,
+            "[ lib] Setting execution config");
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_LIBRARY_C, LibraryExecutionConfigSet,
     TP_ARGS(
 ), 
     TP_FIELDS(
@@ -193,13 +209,13 @@ TRACEPOINT_EVENT(CLOG_LIBRARY_C, LibraryNotInUse,
 
 
 /*----------------------------------------------------------
-// Decoder Ring for LibraryMsQuicOpenNull
-// [ api] MsQuicOpen, NULL
+// Decoder Ring for LibraryMsQuicOpenVersionNull
+// [ api] MsQuicOpenVersion, NULL
 // QuicTraceLogVerbose(
-            LibraryMsQuicOpenNull,
-            "[ api] MsQuicOpen, NULL");
+            LibraryMsQuicOpenVersionNull,
+            "[ api] MsQuicOpenVersion, NULL");
 ----------------------------------------------------------*/
-TRACEPOINT_EVENT(CLOG_LIBRARY_C, LibraryMsQuicOpenNull,
+TRACEPOINT_EVENT(CLOG_LIBRARY_C, LibraryMsQuicOpenVersionNull,
     TP_ARGS(
 ), 
     TP_FIELDS(
@@ -209,13 +225,13 @@ TRACEPOINT_EVENT(CLOG_LIBRARY_C, LibraryMsQuicOpenNull,
 
 
 /*----------------------------------------------------------
-// Decoder Ring for LibraryMsQuicOpenEntry
-// [ api] MsQuicOpen
+// Decoder Ring for LibraryMsQuicOpenVersionEntry
+// [ api] MsQuicOpenVersion
 // QuicTraceLogVerbose(
-        LibraryMsQuicOpenEntry,
-        "[ api] MsQuicOpen");
+        LibraryMsQuicOpenVersionEntry,
+        "[ api] MsQuicOpenVersion");
 ----------------------------------------------------------*/
-TRACEPOINT_EVENT(CLOG_LIBRARY_C, LibraryMsQuicOpenEntry,
+TRACEPOINT_EVENT(CLOG_LIBRARY_C, LibraryMsQuicOpenVersionEntry,
     TP_ARGS(
 ), 
     TP_FIELDS(
@@ -225,15 +241,15 @@ TRACEPOINT_EVENT(CLOG_LIBRARY_C, LibraryMsQuicOpenEntry,
 
 
 /*----------------------------------------------------------
-// Decoder Ring for LibraryMsQuicOpenExit
-// [ api] MsQuicOpen, status=0x%x
+// Decoder Ring for LibraryMsQuicOpenVersionExit
+// [ api] MsQuicOpenVersion, status=0x%x
 // QuicTraceLogVerbose(
-        LibraryMsQuicOpenExit,
-        "[ api] MsQuicOpen, status=0x%x",
+        LibraryMsQuicOpenVersionExit,
+        "[ api] MsQuicOpenVersion, status=0x%x",
         Status);
-// arg2 = arg2 = Status
+// arg2 = arg2 = Status = arg2
 ----------------------------------------------------------*/
-TRACEPOINT_EVENT(CLOG_LIBRARY_C, LibraryMsQuicOpenExit,
+TRACEPOINT_EVENT(CLOG_LIBRARY_C, LibraryMsQuicOpenVersionExit,
     TP_ARGS(
         unsigned int, arg2), 
     TP_FIELDS(
@@ -282,8 +298,8 @@ TRACEPOINT_EVENT(CLOG_LIBRARY_C, LibraryLoadBalancingModeSetAfterInUse,
             AllocFailure,
             "Allocation of '%s' failed. (%llu bytes)", "default compatibility list",
             CompatibilityListByteLength);
-// arg2 = arg2 = "default compatibility list"
-// arg3 = arg3 = CompatibilityListByteLength
+// arg2 = arg2 = "default compatibility list" = arg2
+// arg3 = arg3 = CompatibilityListByteLength = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_LIBRARY_C, AllocFailure,
     TP_ARGS(
@@ -305,8 +321,8 @@ TRACEPOINT_EVENT(CLOG_LIBRARY_C, AllocFailure,
                 "[ lib] ERROR, %u, %s.",
                 Status,
                 "Create reset token hash");
-// arg2 = arg2 = Status
-// arg3 = arg3 = "Create reset token hash"
+// arg2 = arg2 = Status = arg2
+// arg3 = arg3 = "Create reset token hash" = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_LIBRARY_C, LibraryErrorStatus,
     TP_ARGS(
@@ -321,23 +337,19 @@ TRACEPOINT_EVENT(CLOG_LIBRARY_C, LibraryErrorStatus,
 
 
 /*----------------------------------------------------------
-// Decoder Ring for LibraryInitialized
-// [ lib] Initialized, PartitionCount=%u DatapathFeatures=%u
+// Decoder Ring for LibraryInitializedV2
+// [ lib] Initialized, PartitionCount=%u
 // QuicTraceEvent(
-        LibraryInitialized,
-        "[ lib] Initialized, PartitionCount=%u DatapathFeatures=%u",
-        MsQuicLib.PartitionCount,
-        CxPlatDataPathGetSupportedFeatures(MsQuicLib.Datapath));
-// arg2 = arg2 = MsQuicLib.PartitionCount
-// arg3 = arg3 = CxPlatDataPathGetSupportedFeatures(MsQuicLib.Datapath)
+        LibraryInitializedV2,
+        "[ lib] Initialized, PartitionCount=%u",
+        MsQuicLib.PartitionCount);
+// arg2 = arg2 = MsQuicLib.PartitionCount = arg2
 ----------------------------------------------------------*/
-TRACEPOINT_EVENT(CLOG_LIBRARY_C, LibraryInitialized,
+TRACEPOINT_EVENT(CLOG_LIBRARY_C, LibraryInitializedV2,
     TP_ARGS(
-        unsigned int, arg2,
-        unsigned int, arg3), 
+        unsigned int, arg2), 
     TP_FIELDS(
         ctf_integer(unsigned int, arg2, arg2)
-        ctf_integer(unsigned int, arg3, arg3)
     )
 )
 
@@ -353,10 +365,10 @@ TRACEPOINT_EVENT(CLOG_LIBRARY_C, LibraryInitialized,
         MsQuicLib.Version[1],
         MsQuicLib.Version[2],
         MsQuicLib.Version[3]);
-// arg2 = arg2 = MsQuicLib.Version[0]
-// arg3 = arg3 = MsQuicLib.Version[1]
-// arg4 = arg4 = MsQuicLib.Version[2]
-// arg5 = arg5 = MsQuicLib.Version[3]
+// arg2 = arg2 = MsQuicLib.Version[0] = arg2
+// arg3 = arg3 = MsQuicLib.Version[1] = arg3
+// arg4 = arg4 = MsQuicLib.Version[2] = arg4
+// arg5 = arg5 = MsQuicLib.Version[3] = arg5
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_LIBRARY_C, LibraryVersion,
     TP_ARGS(
@@ -423,6 +435,44 @@ TRACEPOINT_EVENT(CLOG_LIBRARY_C, LibraryRelease,
 
 
 /*----------------------------------------------------------
+// Decoder Ring for DataPathInitialized
+// [data] Initialized, DatapathFeatures=%u
+// QuicTraceEvent(
+                DataPathInitialized,
+                "[data] Initialized, DatapathFeatures=%u",
+                CxPlatDataPathGetSupportedFeatures(MsQuicLib.Datapath));
+// arg2 = arg2 = CxPlatDataPathGetSupportedFeatures(MsQuicLib.Datapath) = arg2
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_LIBRARY_C, DataPathInitialized,
+    TP_ARGS(
+        unsigned int, arg2), 
+    TP_FIELDS(
+        ctf_integer(unsigned int, arg2, arg2)
+    )
+)
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for LibraryError
+// [ lib] ERROR, %s.
+// QuicTraceEvent(
+                LibraryError,
+                "[ lib] ERROR, %s.",
+                "Tried to change execution config after datapath initialization");
+// arg2 = arg2 = "Tried to change execution config after datapath initialization" = arg2
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_LIBRARY_C, LibraryError,
+    TP_ARGS(
+        const char *, arg2), 
+    TP_FIELDS(
+        ctf_string(arg2, arg2)
+    )
+)
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for BindingError
 // [bind][%p] ERROR, %s.
 // QuicTraceEvent(
@@ -430,8 +480,8 @@ TRACEPOINT_EVENT(CLOG_LIBRARY_C, LibraryRelease,
                 "[bind][%p] ERROR, %s.",
                 Binding,
                 "Binding already in use");
-// arg2 = arg2 = Binding
-// arg3 = arg3 = "Binding already in use"
+// arg2 = arg2 = Binding = arg2
+// arg3 = arg3 = "Binding already in use" = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_LIBRARY_C, BindingError,
     TP_ARGS(
@@ -462,23 +512,38 @@ TRACEPOINT_EVENT(CLOG_LIBRARY_C, LibraryServerInit,
 
 
 /*----------------------------------------------------------
-// Decoder Ring for LibraryRundown
-// [ lib] Rundown, PartitionCount=%u DatapathFeatures=%u
+// Decoder Ring for LibraryRundownV2
+// [ lib] Rundown, PartitionCount=%u
 // QuicTraceEvent(
-            LibraryRundown,
-            "[ lib] Rundown, PartitionCount=%u DatapathFeatures=%u",
-            MsQuicLib.PartitionCount,
-            CxPlatDataPathGetSupportedFeatures(MsQuicLib.Datapath));
-// arg2 = arg2 = MsQuicLib.PartitionCount
-// arg3 = arg3 = CxPlatDataPathGetSupportedFeatures(MsQuicLib.Datapath)
+            LibraryRundownV2,
+            "[ lib] Rundown, PartitionCount=%u",
+            MsQuicLib.PartitionCount);
+// arg2 = arg2 = MsQuicLib.PartitionCount = arg2
 ----------------------------------------------------------*/
-TRACEPOINT_EVENT(CLOG_LIBRARY_C, LibraryRundown,
+TRACEPOINT_EVENT(CLOG_LIBRARY_C, LibraryRundownV2,
     TP_ARGS(
-        unsigned int, arg2,
-        unsigned int, arg3), 
+        unsigned int, arg2), 
     TP_FIELDS(
         ctf_integer(unsigned int, arg2, arg2)
-        ctf_integer(unsigned int, arg3, arg3)
+    )
+)
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for DataPathRundown
+// [data] Rundown, DatapathFeatures=%u
+// QuicTraceEvent(
+                DataPathRundown,
+                "[data] Rundown, DatapathFeatures=%u",
+                CxPlatDataPathGetSupportedFeatures(MsQuicLib.Datapath));
+// arg2 = arg2 = CxPlatDataPathGetSupportedFeatures(MsQuicLib.Datapath) = arg2
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_LIBRARY_C, DataPathRundown,
+    TP_ARGS(
+        unsigned int, arg2), 
+    TP_FIELDS(
+        ctf_integer(unsigned int, arg2, arg2)
     )
 )
 
@@ -491,7 +556,7 @@ TRACEPOINT_EVENT(CLOG_LIBRARY_C, LibraryRundown,
             LibrarySendRetryStateUpdated,
             "[ lib] New SendRetryEnabled state, %hhu",
             MsQuicLib.SendRetryEnabled);
-// arg2 = arg2 = MsQuicLib.SendRetryEnabled
+// arg2 = arg2 = MsQuicLib.SendRetryEnabled = arg2
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_LIBRARY_C, LibrarySendRetryStateUpdated,
     TP_ARGS(
@@ -510,7 +575,7 @@ TRACEPOINT_EVENT(CLOG_LIBRARY_C, LibrarySendRetryStateUpdated,
             PerfCountersRundown,
             "[ lib] Perf counters Rundown, Counters=%!CID!",
             CASTED_CLOG_BYTEARRAY(sizeof(PerfCounters), PerfCounters));
-// arg2 = arg2 = CASTED_CLOG_BYTEARRAY(sizeof(PerfCounters), PerfCounters)
+// arg2 = arg2 = CASTED_CLOG_BYTEARRAY(sizeof(PerfCounters), PerfCounters) = arg2
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_LIBRARY_C, PerfCountersRundown,
     TP_ARGS(

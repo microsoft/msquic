@@ -1,4 +1,6 @@
+#ifndef CLOG_DO_NOT_INCLUDE_HEADER
 #include <clog.h>
+#endif
 #undef TRACEPOINT_PROVIDER
 #define TRACEPOINT_PROVIDER CLOG_CRYPTO_TLS_C
 #undef TRACEPOINT_PROBE_DYNAMIC_LINKAGE
@@ -27,10 +29,6 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-#ifndef _clog_3_ARGS_TRACE_NoSniPresent
-
-
-
 /*----------------------------------------------------------
 // Decoder Ring for NoSniPresent
 // [conn][%p] No SNI extension present
@@ -38,17 +36,14 @@ extern "C" {
             NoSniPresent,
             Connection,
             "No SNI extension present");
-// arg1 = arg1 = Connection
+// arg1 = arg1 = Connection = arg1
 ----------------------------------------------------------*/
+#ifndef _clog_3_ARGS_TRACE_NoSniPresent
 #define _clog_3_ARGS_TRACE_NoSniPresent(uniqueId, arg1, encoded_arg_string)\
 tracepoint(CLOG_CRYPTO_TLS_C, NoSniPresent , arg1);\
 
 #endif
 
-
-
-
-#ifndef _clog_5_ARGS_TRACE_DecodeTPReserved
 
 
 
@@ -61,19 +56,16 @@ tracepoint(CLOG_CRYPTO_TLS_C, NoSniPresent , arg1);\
                     "TP: Reserved ID %llu, length %hu",
                     Id,
                     Length);
-// arg1 = arg1 = Connection
-// arg3 = arg3 = Id
-// arg4 = arg4 = Length
+// arg1 = arg1 = Connection = arg1
+// arg3 = arg3 = Id = arg3
+// arg4 = arg4 = Length = arg4
 ----------------------------------------------------------*/
+#ifndef _clog_5_ARGS_TRACE_DecodeTPReserved
 #define _clog_5_ARGS_TRACE_DecodeTPReserved(uniqueId, arg1, encoded_arg_string, arg3, arg4)\
 tracepoint(CLOG_CRYPTO_TLS_C, DecodeTPReserved , arg1, arg3, arg4);\
 
 #endif
 
-
-
-
-#ifndef _clog_5_ARGS_TRACE_DecodeTPUnknown
 
 
 
@@ -86,19 +78,16 @@ tracepoint(CLOG_CRYPTO_TLS_C, DecodeTPReserved , arg1, arg3, arg4);\
                     "TP: Unknown ID %llu, length %hu",
                     Id,
                     Length);
-// arg1 = arg1 = Connection
-// arg3 = arg3 = Id
-// arg4 = arg4 = Length
+// arg1 = arg1 = Connection = arg1
+// arg3 = arg3 = Id = arg3
+// arg4 = arg4 = Length = arg4
 ----------------------------------------------------------*/
+#ifndef _clog_5_ARGS_TRACE_DecodeTPUnknown
 #define _clog_5_ARGS_TRACE_DecodeTPUnknown(uniqueId, arg1, encoded_arg_string, arg3, arg4)\
 tracepoint(CLOG_CRYPTO_TLS_C, DecodeTPUnknown , arg1, arg3, arg4);\
 
 #endif
 
-
-
-
-#ifndef _clog_4_ARGS_TRACE_EncodeTPStart
 
 
 
@@ -110,18 +99,15 @@ tracepoint(CLOG_CRYPTO_TLS_C, DecodeTPUnknown , arg1, arg3, arg4);\
         Connection,
         "Encoding Transport Parameters (Server = %hhu)",
         IsServerTP);
-// arg1 = arg1 = Connection
-// arg3 = arg3 = IsServerTP
+// arg1 = arg1 = Connection = arg1
+// arg3 = arg3 = IsServerTP = arg3
 ----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_EncodeTPStart
 #define _clog_4_ARGS_TRACE_EncodeTPStart(uniqueId, arg1, encoded_arg_string, arg3)\
 tracepoint(CLOG_CRYPTO_TLS_C, EncodeTPStart , arg1, arg3);\
 
 #endif
 
-
-
-
-#ifndef _clog_4_ARGS_TRACE_EncodeTPOriginalDestinationCID
 
 
 
@@ -135,20 +121,17 @@ tracepoint(CLOG_CRYPTO_TLS_C, EncodeTPStart , arg1, arg3);\
             QuicCidBufToStr(
                 TransportParams->OriginalDestinationConnectionID,
                 TransportParams->OriginalDestinationConnectionIDLength).Buffer);
-// arg1 = arg1 = Connection
+// arg1 = arg1 = Connection = arg1
 // arg3 = arg3 = QuicCidBufToStr(
                 TransportParams->OriginalDestinationConnectionID,
-                TransportParams->OriginalDestinationConnectionIDLength).Buffer
+                TransportParams->OriginalDestinationConnectionIDLength).Buffer = arg3
 ----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_EncodeTPOriginalDestinationCID
 #define _clog_4_ARGS_TRACE_EncodeTPOriginalDestinationCID(uniqueId, arg1, encoded_arg_string, arg3)\
 tracepoint(CLOG_CRYPTO_TLS_C, EncodeTPOriginalDestinationCID , arg1, arg3);\
 
 #endif
 
-
-
-
-#ifndef _clog_4_ARGS_TRACE_EncodeTPIdleTimeout
 
 
 
@@ -160,18 +143,15 @@ tracepoint(CLOG_CRYPTO_TLS_C, EncodeTPOriginalDestinationCID , arg1, arg3);\
             Connection,
             "TP: Idle Timeout (%llu ms)",
             TransportParams->IdleTimeout);
-// arg1 = arg1 = Connection
-// arg3 = arg3 = TransportParams->IdleTimeout
+// arg1 = arg1 = Connection = arg1
+// arg3 = arg3 = TransportParams->IdleTimeout = arg3
 ----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_EncodeTPIdleTimeout
 #define _clog_4_ARGS_TRACE_EncodeTPIdleTimeout(uniqueId, arg1, encoded_arg_string, arg3)\
 tracepoint(CLOG_CRYPTO_TLS_C, EncodeTPIdleTimeout , arg1, arg3);\
 
 #endif
 
-
-
-
-#ifndef _clog_4_ARGS_TRACE_EncodeTPStatelessResetToken
 
 
 
@@ -185,20 +165,17 @@ tracepoint(CLOG_CRYPTO_TLS_C, EncodeTPIdleTimeout , arg1, arg3);\
             QuicCidBufToStr(
                 TransportParams->StatelessResetToken,
                 QUIC_STATELESS_RESET_TOKEN_LENGTH).Buffer);
-// arg1 = arg1 = Connection
+// arg1 = arg1 = Connection = arg1
 // arg3 = arg3 = QuicCidBufToStr(
                 TransportParams->StatelessResetToken,
-                QUIC_STATELESS_RESET_TOKEN_LENGTH).Buffer
+                QUIC_STATELESS_RESET_TOKEN_LENGTH).Buffer = arg3
 ----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_EncodeTPStatelessResetToken
 #define _clog_4_ARGS_TRACE_EncodeTPStatelessResetToken(uniqueId, arg1, encoded_arg_string, arg3)\
 tracepoint(CLOG_CRYPTO_TLS_C, EncodeTPStatelessResetToken , arg1, arg3);\
 
 #endif
 
-
-
-
-#ifndef _clog_4_ARGS_TRACE_EncodeTPMaxUdpPayloadSize
 
 
 
@@ -210,18 +187,15 @@ tracepoint(CLOG_CRYPTO_TLS_C, EncodeTPStatelessResetToken , arg1, arg3);\
             Connection,
             "TP: Max Udp Payload Size (%llu bytes)",
             TransportParams->MaxUdpPayloadSize);
-// arg1 = arg1 = Connection
-// arg3 = arg3 = TransportParams->MaxUdpPayloadSize
+// arg1 = arg1 = Connection = arg1
+// arg3 = arg3 = TransportParams->MaxUdpPayloadSize = arg3
 ----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_EncodeTPMaxUdpPayloadSize
 #define _clog_4_ARGS_TRACE_EncodeTPMaxUdpPayloadSize(uniqueId, arg1, encoded_arg_string, arg3)\
 tracepoint(CLOG_CRYPTO_TLS_C, EncodeTPMaxUdpPayloadSize , arg1, arg3);\
 
 #endif
 
-
-
-
-#ifndef _clog_4_ARGS_TRACE_EncodeTPInitMaxData
 
 
 
@@ -233,18 +207,15 @@ tracepoint(CLOG_CRYPTO_TLS_C, EncodeTPMaxUdpPayloadSize , arg1, arg3);\
             Connection,
             "TP: Max Data (%llu bytes)",
             TransportParams->InitialMaxData);
-// arg1 = arg1 = Connection
-// arg3 = arg3 = TransportParams->InitialMaxData
+// arg1 = arg1 = Connection = arg1
+// arg3 = arg3 = TransportParams->InitialMaxData = arg3
 ----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_EncodeTPInitMaxData
 #define _clog_4_ARGS_TRACE_EncodeTPInitMaxData(uniqueId, arg1, encoded_arg_string, arg3)\
 tracepoint(CLOG_CRYPTO_TLS_C, EncodeTPInitMaxData , arg1, arg3);\
 
 #endif
 
-
-
-
-#ifndef _clog_4_ARGS_TRACE_EncodeTPInitMaxStreamDataBidiLocal
 
 
 
@@ -256,18 +227,15 @@ tracepoint(CLOG_CRYPTO_TLS_C, EncodeTPInitMaxData , arg1, arg3);\
             Connection,
             "TP: Max Local Bidirectional Stream Data (%llu bytes)",
             TransportParams->InitialMaxStreamDataBidiLocal);
-// arg1 = arg1 = Connection
-// arg3 = arg3 = TransportParams->InitialMaxStreamDataBidiLocal
+// arg1 = arg1 = Connection = arg1
+// arg3 = arg3 = TransportParams->InitialMaxStreamDataBidiLocal = arg3
 ----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_EncodeTPInitMaxStreamDataBidiLocal
 #define _clog_4_ARGS_TRACE_EncodeTPInitMaxStreamDataBidiLocal(uniqueId, arg1, encoded_arg_string, arg3)\
 tracepoint(CLOG_CRYPTO_TLS_C, EncodeTPInitMaxStreamDataBidiLocal , arg1, arg3);\
 
 #endif
 
-
-
-
-#ifndef _clog_4_ARGS_TRACE_EncodeTPInitMaxStreamDataBidiRemote
 
 
 
@@ -279,18 +247,15 @@ tracepoint(CLOG_CRYPTO_TLS_C, EncodeTPInitMaxStreamDataBidiLocal , arg1, arg3);\
             Connection,
             "TP: Max Remote Bidirectional Stream Data (%llu bytes)",
             TransportParams->InitialMaxStreamDataBidiRemote);
-// arg1 = arg1 = Connection
-// arg3 = arg3 = TransportParams->InitialMaxStreamDataBidiRemote
+// arg1 = arg1 = Connection = arg1
+// arg3 = arg3 = TransportParams->InitialMaxStreamDataBidiRemote = arg3
 ----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_EncodeTPInitMaxStreamDataBidiRemote
 #define _clog_4_ARGS_TRACE_EncodeTPInitMaxStreamDataBidiRemote(uniqueId, arg1, encoded_arg_string, arg3)\
 tracepoint(CLOG_CRYPTO_TLS_C, EncodeTPInitMaxStreamDataBidiRemote , arg1, arg3);\
 
 #endif
 
-
-
-
-#ifndef _clog_4_ARGS_TRACE_EncodeTPInitMaxStreamUni
 
 
 
@@ -302,18 +267,15 @@ tracepoint(CLOG_CRYPTO_TLS_C, EncodeTPInitMaxStreamDataBidiRemote , arg1, arg3);
             Connection,
             "TP: Max Unidirectional Stream Data (%llu)",
             TransportParams->InitialMaxStreamDataUni);
-// arg1 = arg1 = Connection
-// arg3 = arg3 = TransportParams->InitialMaxStreamDataUni
+// arg1 = arg1 = Connection = arg1
+// arg3 = arg3 = TransportParams->InitialMaxStreamDataUni = arg3
 ----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_EncodeTPInitMaxStreamUni
 #define _clog_4_ARGS_TRACE_EncodeTPInitMaxStreamUni(uniqueId, arg1, encoded_arg_string, arg3)\
 tracepoint(CLOG_CRYPTO_TLS_C, EncodeTPInitMaxStreamUni , arg1, arg3);\
 
 #endif
 
-
-
-
-#ifndef _clog_4_ARGS_TRACE_EncodeTPMaxBidiStreams
 
 
 
@@ -325,18 +287,15 @@ tracepoint(CLOG_CRYPTO_TLS_C, EncodeTPInitMaxStreamUni , arg1, arg3);\
             Connection,
             "TP: Max Bidirectional Streams (%llu)",
             TransportParams->InitialMaxBidiStreams);
-// arg1 = arg1 = Connection
-// arg3 = arg3 = TransportParams->InitialMaxBidiStreams
+// arg1 = arg1 = Connection = arg1
+// arg3 = arg3 = TransportParams->InitialMaxBidiStreams = arg3
 ----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_EncodeTPMaxBidiStreams
 #define _clog_4_ARGS_TRACE_EncodeTPMaxBidiStreams(uniqueId, arg1, encoded_arg_string, arg3)\
 tracepoint(CLOG_CRYPTO_TLS_C, EncodeTPMaxBidiStreams , arg1, arg3);\
 
 #endif
 
-
-
-
-#ifndef _clog_4_ARGS_TRACE_EncodeTPMaxUniStreams
 
 
 
@@ -348,18 +307,15 @@ tracepoint(CLOG_CRYPTO_TLS_C, EncodeTPMaxBidiStreams , arg1, arg3);\
             Connection,
             "TP: Max Unidirectional Streams (%llu)",
             TransportParams->InitialMaxUniStreams);
-// arg1 = arg1 = Connection
-// arg3 = arg3 = TransportParams->InitialMaxUniStreams
+// arg1 = arg1 = Connection = arg1
+// arg3 = arg3 = TransportParams->InitialMaxUniStreams = arg3
 ----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_EncodeTPMaxUniStreams
 #define _clog_4_ARGS_TRACE_EncodeTPMaxUniStreams(uniqueId, arg1, encoded_arg_string, arg3)\
 tracepoint(CLOG_CRYPTO_TLS_C, EncodeTPMaxUniStreams , arg1, arg3);\
 
 #endif
 
-
-
-
-#ifndef _clog_4_ARGS_TRACE_EncodeTPAckDelayExponent
 
 
 
@@ -371,18 +327,15 @@ tracepoint(CLOG_CRYPTO_TLS_C, EncodeTPMaxUniStreams , arg1, arg3);\
             Connection,
             "TP: ACK Delay Exponent (%llu)",
             TransportParams->AckDelayExponent);
-// arg1 = arg1 = Connection
-// arg3 = arg3 = TransportParams->AckDelayExponent
+// arg1 = arg1 = Connection = arg1
+// arg3 = arg3 = TransportParams->AckDelayExponent = arg3
 ----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_EncodeTPAckDelayExponent
 #define _clog_4_ARGS_TRACE_EncodeTPAckDelayExponent(uniqueId, arg1, encoded_arg_string, arg3)\
 tracepoint(CLOG_CRYPTO_TLS_C, EncodeTPAckDelayExponent , arg1, arg3);\
 
 #endif
 
-
-
-
-#ifndef _clog_4_ARGS_TRACE_EncodeTPMaxAckDelay
 
 
 
@@ -394,18 +347,15 @@ tracepoint(CLOG_CRYPTO_TLS_C, EncodeTPAckDelayExponent , arg1, arg3);\
             Connection,
             "TP: Max ACK Delay (%llu ms)",
             TransportParams->MaxAckDelay);
-// arg1 = arg1 = Connection
-// arg3 = arg3 = TransportParams->MaxAckDelay
+// arg1 = arg1 = Connection = arg1
+// arg3 = arg3 = TransportParams->MaxAckDelay = arg3
 ----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_EncodeTPMaxAckDelay
 #define _clog_4_ARGS_TRACE_EncodeTPMaxAckDelay(uniqueId, arg1, encoded_arg_string, arg3)\
 tracepoint(CLOG_CRYPTO_TLS_C, EncodeTPMaxAckDelay , arg1, arg3);\
 
 #endif
 
-
-
-
-#ifndef _clog_3_ARGS_TRACE_EncodeTPDisableMigration
 
 
 
@@ -416,17 +366,14 @@ tracepoint(CLOG_CRYPTO_TLS_C, EncodeTPMaxAckDelay , arg1, arg3);\
             EncodeTPDisableMigration,
             Connection,
             "TP: Disable Active Migration");
-// arg1 = arg1 = Connection
+// arg1 = arg1 = Connection = arg1
 ----------------------------------------------------------*/
+#ifndef _clog_3_ARGS_TRACE_EncodeTPDisableMigration
 #define _clog_3_ARGS_TRACE_EncodeTPDisableMigration(uniqueId, arg1, encoded_arg_string)\
 tracepoint(CLOG_CRYPTO_TLS_C, EncodeTPDisableMigration , arg1);\
 
 #endif
 
-
-
-
-#ifndef _clog_3_ARGS_TRACE_EncodeTPPreferredAddress
 
 
 
@@ -437,17 +384,14 @@ tracepoint(CLOG_CRYPTO_TLS_C, EncodeTPDisableMigration , arg1);\
             EncodeTPPreferredAddress,
             Connection,
             "TP: Preferred Address");
-// arg1 = arg1 = Connection
+// arg1 = arg1 = Connection = arg1
 ----------------------------------------------------------*/
+#ifndef _clog_3_ARGS_TRACE_EncodeTPPreferredAddress
 #define _clog_3_ARGS_TRACE_EncodeTPPreferredAddress(uniqueId, arg1, encoded_arg_string)\
 tracepoint(CLOG_CRYPTO_TLS_C, EncodeTPPreferredAddress , arg1);\
 
 #endif
 
-
-
-
-#ifndef _clog_4_ARGS_TRACE_EncodeTPCIDLimit
 
 
 
@@ -459,18 +403,15 @@ tracepoint(CLOG_CRYPTO_TLS_C, EncodeTPPreferredAddress , arg1);\
             Connection,
             "TP: Connection ID Limit (%llu)",
             TransportParams->ActiveConnectionIdLimit);
-// arg1 = arg1 = Connection
-// arg3 = arg3 = TransportParams->ActiveConnectionIdLimit
+// arg1 = arg1 = Connection = arg1
+// arg3 = arg3 = TransportParams->ActiveConnectionIdLimit = arg3
 ----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_EncodeTPCIDLimit
 #define _clog_4_ARGS_TRACE_EncodeTPCIDLimit(uniqueId, arg1, encoded_arg_string, arg3)\
 tracepoint(CLOG_CRYPTO_TLS_C, EncodeTPCIDLimit , arg1, arg3);\
 
 #endif
 
-
-
-
-#ifndef _clog_4_ARGS_TRACE_EncodeTPOriginalCID
 
 
 
@@ -484,20 +425,17 @@ tracepoint(CLOG_CRYPTO_TLS_C, EncodeTPCIDLimit , arg1, arg3);\
             QuicCidBufToStr(
                 TransportParams->InitialSourceConnectionID,
                 TransportParams->InitialSourceConnectionIDLength).Buffer);
-// arg1 = arg1 = Connection
+// arg1 = arg1 = Connection = arg1
 // arg3 = arg3 = QuicCidBufToStr(
                 TransportParams->InitialSourceConnectionID,
-                TransportParams->InitialSourceConnectionIDLength).Buffer
+                TransportParams->InitialSourceConnectionIDLength).Buffer = arg3
 ----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_EncodeTPOriginalCID
 #define _clog_4_ARGS_TRACE_EncodeTPOriginalCID(uniqueId, arg1, encoded_arg_string, arg3)\
 tracepoint(CLOG_CRYPTO_TLS_C, EncodeTPOriginalCID , arg1, arg3);\
 
 #endif
 
-
-
-
-#ifndef _clog_4_ARGS_TRACE_EncodeTPRetrySourceCID
 
 
 
@@ -511,20 +449,17 @@ tracepoint(CLOG_CRYPTO_TLS_C, EncodeTPOriginalCID , arg1, arg3);\
             QuicCidBufToStr(
                 TransportParams->RetrySourceConnectionID,
                 TransportParams->RetrySourceConnectionIDLength).Buffer);
-// arg1 = arg1 = Connection
+// arg1 = arg1 = Connection = arg1
 // arg3 = arg3 = QuicCidBufToStr(
                 TransportParams->RetrySourceConnectionID,
-                TransportParams->RetrySourceConnectionIDLength).Buffer
+                TransportParams->RetrySourceConnectionIDLength).Buffer = arg3
 ----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_EncodeTPRetrySourceCID
 #define _clog_4_ARGS_TRACE_EncodeTPRetrySourceCID(uniqueId, arg1, encoded_arg_string, arg3)\
 tracepoint(CLOG_CRYPTO_TLS_C, EncodeTPRetrySourceCID , arg1, arg3);\
 
 #endif
 
-
-
-
-#ifndef _clog_4_ARGS_TRACE_EncodeMaxDatagramFrameSize
 
 
 
@@ -536,18 +471,15 @@ tracepoint(CLOG_CRYPTO_TLS_C, EncodeTPRetrySourceCID , arg1, arg3);\
             Connection,
             "TP: Max Datagram Frame Size (%llu bytes)",
             TransportParams->MaxDatagramFrameSize);
-// arg1 = arg1 = Connection
-// arg3 = arg3 = TransportParams->MaxDatagramFrameSize
+// arg1 = arg1 = Connection = arg1
+// arg3 = arg3 = TransportParams->MaxDatagramFrameSize = arg3
 ----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_EncodeMaxDatagramFrameSize
 #define _clog_4_ARGS_TRACE_EncodeMaxDatagramFrameSize(uniqueId, arg1, encoded_arg_string, arg3)\
 tracepoint(CLOG_CRYPTO_TLS_C, EncodeMaxDatagramFrameSize , arg1, arg3);\
 
 #endif
 
-
-
-
-#ifndef _clog_3_ARGS_TRACE_EncodeTPDisable1RttEncryption
 
 
 
@@ -558,17 +490,14 @@ tracepoint(CLOG_CRYPTO_TLS_C, EncodeMaxDatagramFrameSize , arg1, arg3);\
             EncodeTPDisable1RttEncryption,
             Connection,
             "TP: Disable 1-RTT Encryption");
-// arg1 = arg1 = Connection
+// arg1 = arg1 = Connection = arg1
 ----------------------------------------------------------*/
+#ifndef _clog_3_ARGS_TRACE_EncodeTPDisable1RttEncryption
 #define _clog_3_ARGS_TRACE_EncodeTPDisable1RttEncryption(uniqueId, arg1, encoded_arg_string)\
 tracepoint(CLOG_CRYPTO_TLS_C, EncodeTPDisable1RttEncryption , arg1);\
 
 #endif
 
-
-
-
-#ifndef _clog_4_ARGS_TRACE_EncodeTPVersionNegotiationExt
 
 
 
@@ -580,18 +509,15 @@ tracepoint(CLOG_CRYPTO_TLS_C, EncodeTPDisable1RttEncryption , arg1);\
             Connection,
             "TP: Version Negotiation Extension (%u bytes)",
             TransportParams->VersionInfoLength);
-// arg1 = arg1 = Connection
-// arg3 = arg3 = TransportParams->VersionInfoLength
+// arg1 = arg1 = Connection = arg1
+// arg3 = arg3 = TransportParams->VersionInfoLength = arg3
 ----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_EncodeTPVersionNegotiationExt
 #define _clog_4_ARGS_TRACE_EncodeTPVersionNegotiationExt(uniqueId, arg1, encoded_arg_string, arg3)\
 tracepoint(CLOG_CRYPTO_TLS_C, EncodeTPVersionNegotiationExt , arg1, arg3);\
 
 #endif
 
-
-
-
-#ifndef _clog_4_ARGS_TRACE_EncodeTPMinAckDelay
 
 
 
@@ -603,9 +529,10 @@ tracepoint(CLOG_CRYPTO_TLS_C, EncodeTPVersionNegotiationExt , arg1, arg3);\
             Connection,
             "TP: Min ACK Delay (%llu us)",
             TransportParams->MinAckDelay);
-// arg1 = arg1 = Connection
-// arg3 = arg3 = TransportParams->MinAckDelay
+// arg1 = arg1 = Connection = arg1
+// arg3 = arg3 = TransportParams->MinAckDelay = arg3
 ----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_EncodeTPMinAckDelay
 #define _clog_4_ARGS_TRACE_EncodeTPMinAckDelay(uniqueId, arg1, encoded_arg_string, arg3)\
 tracepoint(CLOG_CRYPTO_TLS_C, EncodeTPMinAckDelay , arg1, arg3);\
 
@@ -614,7 +541,43 @@ tracepoint(CLOG_CRYPTO_TLS_C, EncodeTPMinAckDelay , arg1, arg3);\
 
 
 
-#ifndef _clog_5_ARGS_TRACE_EncodeTPTest
+/*----------------------------------------------------------
+// Decoder Ring for EncodeTPCibirEncoding
+// [conn][%p] TP: CIBIR Encoding (%llu length, %llu offset)
+// QuicTraceLogConnVerbose(
+            EncodeTPCibirEncoding,
+            Connection,
+            "TP: CIBIR Encoding (%llu length, %llu offset)",
+            TransportParams->CibirLength,
+            TransportParams->CibirOffset);
+// arg1 = arg1 = Connection = arg1
+// arg3 = arg3 = TransportParams->CibirLength = arg3
+// arg4 = arg4 = TransportParams->CibirOffset = arg4
+----------------------------------------------------------*/
+#ifndef _clog_5_ARGS_TRACE_EncodeTPCibirEncoding
+#define _clog_5_ARGS_TRACE_EncodeTPCibirEncoding(uniqueId, arg1, encoded_arg_string, arg3, arg4)\
+tracepoint(CLOG_CRYPTO_TLS_C, EncodeTPCibirEncoding , arg1, arg3, arg4);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for EncodeTPGreaseQuicBit
+// [conn][%p] TP: Grease Quic Bit
+// QuicTraceLogConnVerbose(
+            EncodeTPGreaseQuicBit,
+            Connection,
+            "TP: Grease Quic Bit");
+// arg1 = arg1 = Connection = arg1
+----------------------------------------------------------*/
+#ifndef _clog_3_ARGS_TRACE_EncodeTPGreaseQuicBit
+#define _clog_3_ARGS_TRACE_EncodeTPGreaseQuicBit(uniqueId, arg1, encoded_arg_string)\
+tracepoint(CLOG_CRYPTO_TLS_C, EncodeTPGreaseQuicBit , arg1);\
+
+#endif
+
 
 
 
@@ -627,19 +590,16 @@ tracepoint(CLOG_CRYPTO_TLS_C, EncodeTPMinAckDelay , arg1, arg3);\
             "TP: TEST TP (Type %hu, Length %hu)",
             TestParam->Type,
             TestParam->Length);
-// arg1 = arg1 = Connection
-// arg3 = arg3 = TestParam->Type
-// arg4 = arg4 = TestParam->Length
+// arg1 = arg1 = Connection = arg1
+// arg3 = arg3 = TestParam->Type = arg3
+// arg4 = arg4 = TestParam->Length = arg4
 ----------------------------------------------------------*/
+#ifndef _clog_5_ARGS_TRACE_EncodeTPTest
 #define _clog_5_ARGS_TRACE_EncodeTPTest(uniqueId, arg1, encoded_arg_string, arg3, arg4)\
 tracepoint(CLOG_CRYPTO_TLS_C, EncodeTPTest , arg1, arg3, arg4);\
 
 #endif
 
-
-
-
-#ifndef _clog_4_ARGS_TRACE_EncodeTPEnd
 
 
 
@@ -651,18 +611,15 @@ tracepoint(CLOG_CRYPTO_TLS_C, EncodeTPTest , arg1, arg3, arg4);\
         Connection,
         "Encoded %hu bytes for QUIC TP",
         (uint16_t)FinalTPLength);
-// arg1 = arg1 = Connection
-// arg3 = arg3 = (uint16_t)FinalTPLength
+// arg1 = arg1 = Connection = arg1
+// arg3 = arg3 = (uint16_t)FinalTPLength = arg3
 ----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_EncodeTPEnd
 #define _clog_4_ARGS_TRACE_EncodeTPEnd(uniqueId, arg1, encoded_arg_string, arg3)\
 tracepoint(CLOG_CRYPTO_TLS_C, EncodeTPEnd , arg1, arg3);\
 
 #endif
 
-
-
-
-#ifndef _clog_5_ARGS_TRACE_DecodeTPStart
 
 
 
@@ -675,19 +632,16 @@ tracepoint(CLOG_CRYPTO_TLS_C, EncodeTPEnd , arg1, arg3);\
         "Decoding Transport Parameters (Server = %hhu) (%hu bytes)",
         IsServerTP,
         TPLen);
-// arg1 = arg1 = Connection
-// arg3 = arg3 = IsServerTP
-// arg4 = arg4 = TPLen
+// arg1 = arg1 = Connection = arg1
+// arg3 = arg3 = IsServerTP = arg3
+// arg4 = arg4 = TPLen = arg4
 ----------------------------------------------------------*/
+#ifndef _clog_5_ARGS_TRACE_DecodeTPStart
 #define _clog_5_ARGS_TRACE_DecodeTPStart(uniqueId, arg1, encoded_arg_string, arg3, arg4)\
 tracepoint(CLOG_CRYPTO_TLS_C, DecodeTPStart , arg1, arg3, arg4);\
 
 #endif
 
-
-
-
-#ifndef _clog_4_ARGS_TRACE_DecodeTPOriginalDestinationCID
 
 
 
@@ -701,20 +655,17 @@ tracepoint(CLOG_CRYPTO_TLS_C, DecodeTPStart , arg1, arg3, arg4);\
                 QuicCidBufToStr(
                     TransportParams->OriginalDestinationConnectionID,
                     TransportParams->OriginalDestinationConnectionIDLength).Buffer);
-// arg1 = arg1 = Connection
+// arg1 = arg1 = Connection = arg1
 // arg3 = arg3 = QuicCidBufToStr(
                     TransportParams->OriginalDestinationConnectionID,
-                    TransportParams->OriginalDestinationConnectionIDLength).Buffer
+                    TransportParams->OriginalDestinationConnectionIDLength).Buffer = arg3
 ----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_DecodeTPOriginalDestinationCID
 #define _clog_4_ARGS_TRACE_DecodeTPOriginalDestinationCID(uniqueId, arg1, encoded_arg_string, arg3)\
 tracepoint(CLOG_CRYPTO_TLS_C, DecodeTPOriginalDestinationCID , arg1, arg3);\
 
 #endif
 
-
-
-
-#ifndef _clog_4_ARGS_TRACE_DecodeTPIdleTimeout
 
 
 
@@ -726,18 +677,15 @@ tracepoint(CLOG_CRYPTO_TLS_C, DecodeTPOriginalDestinationCID , arg1, arg3);\
                 Connection,
                 "TP: Idle Timeout (%llu ms)",
                 TransportParams->IdleTimeout);
-// arg1 = arg1 = Connection
-// arg3 = arg3 = TransportParams->IdleTimeout
+// arg1 = arg1 = Connection = arg1
+// arg3 = arg3 = TransportParams->IdleTimeout = arg3
 ----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_DecodeTPIdleTimeout
 #define _clog_4_ARGS_TRACE_DecodeTPIdleTimeout(uniqueId, arg1, encoded_arg_string, arg3)\
 tracepoint(CLOG_CRYPTO_TLS_C, DecodeTPIdleTimeout , arg1, arg3);\
 
 #endif
 
-
-
-
-#ifndef _clog_4_ARGS_TRACE_DecodeTPStatelessResetToken
 
 
 
@@ -751,20 +699,17 @@ tracepoint(CLOG_CRYPTO_TLS_C, DecodeTPIdleTimeout , arg1, arg3);\
                 QuicCidBufToStr(
                     TransportParams->StatelessResetToken,
                     QUIC_STATELESS_RESET_TOKEN_LENGTH).Buffer);
-// arg1 = arg1 = Connection
+// arg1 = arg1 = Connection = arg1
 // arg3 = arg3 = QuicCidBufToStr(
                     TransportParams->StatelessResetToken,
-                    QUIC_STATELESS_RESET_TOKEN_LENGTH).Buffer
+                    QUIC_STATELESS_RESET_TOKEN_LENGTH).Buffer = arg3
 ----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_DecodeTPStatelessResetToken
 #define _clog_4_ARGS_TRACE_DecodeTPStatelessResetToken(uniqueId, arg1, encoded_arg_string, arg3)\
 tracepoint(CLOG_CRYPTO_TLS_C, DecodeTPStatelessResetToken , arg1, arg3);\
 
 #endif
 
-
-
-
-#ifndef _clog_4_ARGS_TRACE_DecodeTPMaxUdpPayloadSize
 
 
 
@@ -776,18 +721,15 @@ tracepoint(CLOG_CRYPTO_TLS_C, DecodeTPStatelessResetToken , arg1, arg3);\
                 Connection,
                 "TP: Max Udp Payload Size (%llu bytes)",
                 TransportParams->MaxUdpPayloadSize);
-// arg1 = arg1 = Connection
-// arg3 = arg3 = TransportParams->MaxUdpPayloadSize
+// arg1 = arg1 = Connection = arg1
+// arg3 = arg3 = TransportParams->MaxUdpPayloadSize = arg3
 ----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_DecodeTPMaxUdpPayloadSize
 #define _clog_4_ARGS_TRACE_DecodeTPMaxUdpPayloadSize(uniqueId, arg1, encoded_arg_string, arg3)\
 tracepoint(CLOG_CRYPTO_TLS_C, DecodeTPMaxUdpPayloadSize , arg1, arg3);\
 
 #endif
 
-
-
-
-#ifndef _clog_4_ARGS_TRACE_DecodeTPInitMaxData
 
 
 
@@ -799,18 +741,15 @@ tracepoint(CLOG_CRYPTO_TLS_C, DecodeTPMaxUdpPayloadSize , arg1, arg3);\
                 Connection,
                 "TP: Max Data (%llu bytes)",
                 TransportParams->InitialMaxData);
-// arg1 = arg1 = Connection
-// arg3 = arg3 = TransportParams->InitialMaxData
+// arg1 = arg1 = Connection = arg1
+// arg3 = arg3 = TransportParams->InitialMaxData = arg3
 ----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_DecodeTPInitMaxData
 #define _clog_4_ARGS_TRACE_DecodeTPInitMaxData(uniqueId, arg1, encoded_arg_string, arg3)\
 tracepoint(CLOG_CRYPTO_TLS_C, DecodeTPInitMaxData , arg1, arg3);\
 
 #endif
 
-
-
-
-#ifndef _clog_4_ARGS_TRACE_DecodeTPInitMaxStreamDataBidiLocal
 
 
 
@@ -822,18 +761,15 @@ tracepoint(CLOG_CRYPTO_TLS_C, DecodeTPInitMaxData , arg1, arg3);\
                 Connection,
                 "TP: Max Local Bidirectional Stream Data (%llu bytes)",
                 TransportParams->InitialMaxStreamDataBidiLocal);
-// arg1 = arg1 = Connection
-// arg3 = arg3 = TransportParams->InitialMaxStreamDataBidiLocal
+// arg1 = arg1 = Connection = arg1
+// arg3 = arg3 = TransportParams->InitialMaxStreamDataBidiLocal = arg3
 ----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_DecodeTPInitMaxStreamDataBidiLocal
 #define _clog_4_ARGS_TRACE_DecodeTPInitMaxStreamDataBidiLocal(uniqueId, arg1, encoded_arg_string, arg3)\
 tracepoint(CLOG_CRYPTO_TLS_C, DecodeTPInitMaxStreamDataBidiLocal , arg1, arg3);\
 
 #endif
 
-
-
-
-#ifndef _clog_4_ARGS_TRACE_DecodeTPInitMaxStreamDataBidiRemote
 
 
 
@@ -845,18 +781,15 @@ tracepoint(CLOG_CRYPTO_TLS_C, DecodeTPInitMaxStreamDataBidiLocal , arg1, arg3);\
                 Connection,
                 "TP: Max Remote Bidirectional Stream Data (%llu bytes)",
                 TransportParams->InitialMaxStreamDataBidiRemote);
-// arg1 = arg1 = Connection
-// arg3 = arg3 = TransportParams->InitialMaxStreamDataBidiRemote
+// arg1 = arg1 = Connection = arg1
+// arg3 = arg3 = TransportParams->InitialMaxStreamDataBidiRemote = arg3
 ----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_DecodeTPInitMaxStreamDataBidiRemote
 #define _clog_4_ARGS_TRACE_DecodeTPInitMaxStreamDataBidiRemote(uniqueId, arg1, encoded_arg_string, arg3)\
 tracepoint(CLOG_CRYPTO_TLS_C, DecodeTPInitMaxStreamDataBidiRemote , arg1, arg3);\
 
 #endif
 
-
-
-
-#ifndef _clog_4_ARGS_TRACE_DecodeTPInitMaxStreamDataBidiUni
 
 
 
@@ -868,18 +801,15 @@ tracepoint(CLOG_CRYPTO_TLS_C, DecodeTPInitMaxStreamDataBidiRemote , arg1, arg3);
                 Connection,
                 "TP: Max Unidirectional Stream Data (%llu)",
                 TransportParams->InitialMaxStreamDataUni);
-// arg1 = arg1 = Connection
-// arg3 = arg3 = TransportParams->InitialMaxStreamDataUni
+// arg1 = arg1 = Connection = arg1
+// arg3 = arg3 = TransportParams->InitialMaxStreamDataUni = arg3
 ----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_DecodeTPInitMaxStreamDataBidiUni
 #define _clog_4_ARGS_TRACE_DecodeTPInitMaxStreamDataBidiUni(uniqueId, arg1, encoded_arg_string, arg3)\
 tracepoint(CLOG_CRYPTO_TLS_C, DecodeTPInitMaxStreamDataBidiUni , arg1, arg3);\
 
 #endif
 
-
-
-
-#ifndef _clog_4_ARGS_TRACE_DecodeTPMaxBidiStreams
 
 
 
@@ -891,18 +821,15 @@ tracepoint(CLOG_CRYPTO_TLS_C, DecodeTPInitMaxStreamDataBidiUni , arg1, arg3);\
                 Connection,
                 "TP: Max Bidirectional Streams (%llu)",
                 TransportParams->InitialMaxBidiStreams);
-// arg1 = arg1 = Connection
-// arg3 = arg3 = TransportParams->InitialMaxBidiStreams
+// arg1 = arg1 = Connection = arg1
+// arg3 = arg3 = TransportParams->InitialMaxBidiStreams = arg3
 ----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_DecodeTPMaxBidiStreams
 #define _clog_4_ARGS_TRACE_DecodeTPMaxBidiStreams(uniqueId, arg1, encoded_arg_string, arg3)\
 tracepoint(CLOG_CRYPTO_TLS_C, DecodeTPMaxBidiStreams , arg1, arg3);\
 
 #endif
 
-
-
-
-#ifndef _clog_4_ARGS_TRACE_DecodeTPMaxUniStreams
 
 
 
@@ -914,18 +841,15 @@ tracepoint(CLOG_CRYPTO_TLS_C, DecodeTPMaxBidiStreams , arg1, arg3);\
                 Connection,
                 "TP: Max Unidirectional Streams (%llu)",
                 TransportParams->InitialMaxUniStreams);
-// arg1 = arg1 = Connection
-// arg3 = arg3 = TransportParams->InitialMaxUniStreams
+// arg1 = arg1 = Connection = arg1
+// arg3 = arg3 = TransportParams->InitialMaxUniStreams = arg3
 ----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_DecodeTPMaxUniStreams
 #define _clog_4_ARGS_TRACE_DecodeTPMaxUniStreams(uniqueId, arg1, encoded_arg_string, arg3)\
 tracepoint(CLOG_CRYPTO_TLS_C, DecodeTPMaxUniStreams , arg1, arg3);\
 
 #endif
 
-
-
-
-#ifndef _clog_4_ARGS_TRACE_DecodeTPAckDelayExponent
 
 
 
@@ -937,18 +861,15 @@ tracepoint(CLOG_CRYPTO_TLS_C, DecodeTPMaxUniStreams , arg1, arg3);\
                 Connection,
                 "TP: ACK Delay Exponent (%llu)",
                 TransportParams->AckDelayExponent);
-// arg1 = arg1 = Connection
-// arg3 = arg3 = TransportParams->AckDelayExponent
+// arg1 = arg1 = Connection = arg1
+// arg3 = arg3 = TransportParams->AckDelayExponent = arg3
 ----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_DecodeTPAckDelayExponent
 #define _clog_4_ARGS_TRACE_DecodeTPAckDelayExponent(uniqueId, arg1, encoded_arg_string, arg3)\
 tracepoint(CLOG_CRYPTO_TLS_C, DecodeTPAckDelayExponent , arg1, arg3);\
 
 #endif
 
-
-
-
-#ifndef _clog_4_ARGS_TRACE_DecodeTPMaxAckDelay
 
 
 
@@ -960,18 +881,15 @@ tracepoint(CLOG_CRYPTO_TLS_C, DecodeTPAckDelayExponent , arg1, arg3);\
                 Connection,
                 "TP: Max ACK Delay (%llu ms)",
                 TransportParams->MaxAckDelay);
-// arg1 = arg1 = Connection
-// arg3 = arg3 = TransportParams->MaxAckDelay
+// arg1 = arg1 = Connection = arg1
+// arg3 = arg3 = TransportParams->MaxAckDelay = arg3
 ----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_DecodeTPMaxAckDelay
 #define _clog_4_ARGS_TRACE_DecodeTPMaxAckDelay(uniqueId, arg1, encoded_arg_string, arg3)\
 tracepoint(CLOG_CRYPTO_TLS_C, DecodeTPMaxAckDelay , arg1, arg3);\
 
 #endif
 
-
-
-
-#ifndef _clog_3_ARGS_TRACE_DecodeTPDisableActiveMigration
 
 
 
@@ -982,17 +900,14 @@ tracepoint(CLOG_CRYPTO_TLS_C, DecodeTPMaxAckDelay , arg1, arg3);\
                 DecodeTPDisableActiveMigration,
                 Connection,
                 "TP: Disable Active Migration");
-// arg1 = arg1 = Connection
+// arg1 = arg1 = Connection = arg1
 ----------------------------------------------------------*/
+#ifndef _clog_3_ARGS_TRACE_DecodeTPDisableActiveMigration
 #define _clog_3_ARGS_TRACE_DecodeTPDisableActiveMigration(uniqueId, arg1, encoded_arg_string)\
 tracepoint(CLOG_CRYPTO_TLS_C, DecodeTPDisableActiveMigration , arg1);\
 
 #endif
 
-
-
-
-#ifndef _clog_3_ARGS_TRACE_DecodeTPPreferredAddress
 
 
 
@@ -1003,17 +918,14 @@ tracepoint(CLOG_CRYPTO_TLS_C, DecodeTPDisableActiveMigration , arg1);\
                 DecodeTPPreferredAddress,
                 Connection,
                 "TP: Preferred Address");
-// arg1 = arg1 = Connection
+// arg1 = arg1 = Connection = arg1
 ----------------------------------------------------------*/
+#ifndef _clog_3_ARGS_TRACE_DecodeTPPreferredAddress
 #define _clog_3_ARGS_TRACE_DecodeTPPreferredAddress(uniqueId, arg1, encoded_arg_string)\
 tracepoint(CLOG_CRYPTO_TLS_C, DecodeTPPreferredAddress , arg1);\
 
 #endif
 
-
-
-
-#ifndef _clog_4_ARGS_TRACE_DecodeTPCIDLimit
 
 
 
@@ -1025,18 +937,15 @@ tracepoint(CLOG_CRYPTO_TLS_C, DecodeTPPreferredAddress , arg1);\
                 Connection,
                 "TP: Connection ID Limit (%llu)",
                 TransportParams->ActiveConnectionIdLimit);
-// arg1 = arg1 = Connection
-// arg3 = arg3 = TransportParams->ActiveConnectionIdLimit
+// arg1 = arg1 = Connection = arg1
+// arg3 = arg3 = TransportParams->ActiveConnectionIdLimit = arg3
 ----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_DecodeTPCIDLimit
 #define _clog_4_ARGS_TRACE_DecodeTPCIDLimit(uniqueId, arg1, encoded_arg_string, arg3)\
 tracepoint(CLOG_CRYPTO_TLS_C, DecodeTPCIDLimit , arg1, arg3);\
 
 #endif
 
-
-
-
-#ifndef _clog_4_ARGS_TRACE_DecodeTPInitialSourceCID
 
 
 
@@ -1050,20 +959,17 @@ tracepoint(CLOG_CRYPTO_TLS_C, DecodeTPCIDLimit , arg1, arg3);\
                 QuicCidBufToStr(
                     TransportParams->InitialSourceConnectionID,
                     TransportParams->InitialSourceConnectionIDLength).Buffer);
-// arg1 = arg1 = Connection
+// arg1 = arg1 = Connection = arg1
 // arg3 = arg3 = QuicCidBufToStr(
                     TransportParams->InitialSourceConnectionID,
-                    TransportParams->InitialSourceConnectionIDLength).Buffer
+                    TransportParams->InitialSourceConnectionIDLength).Buffer = arg3
 ----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_DecodeTPInitialSourceCID
 #define _clog_4_ARGS_TRACE_DecodeTPInitialSourceCID(uniqueId, arg1, encoded_arg_string, arg3)\
 tracepoint(CLOG_CRYPTO_TLS_C, DecodeTPInitialSourceCID , arg1, arg3);\
 
 #endif
 
-
-
-
-#ifndef _clog_4_ARGS_TRACE_DecodeTPRetrySourceCID
 
 
 
@@ -1077,20 +983,17 @@ tracepoint(CLOG_CRYPTO_TLS_C, DecodeTPInitialSourceCID , arg1, arg3);\
                 QuicCidBufToStr(
                     TransportParams->RetrySourceConnectionID,
                     TransportParams->RetrySourceConnectionIDLength).Buffer);
-// arg1 = arg1 = Connection
+// arg1 = arg1 = Connection = arg1
 // arg3 = arg3 = QuicCidBufToStr(
                     TransportParams->RetrySourceConnectionID,
-                    TransportParams->RetrySourceConnectionIDLength).Buffer
+                    TransportParams->RetrySourceConnectionIDLength).Buffer = arg3
 ----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_DecodeTPRetrySourceCID
 #define _clog_4_ARGS_TRACE_DecodeTPRetrySourceCID(uniqueId, arg1, encoded_arg_string, arg3)\
 tracepoint(CLOG_CRYPTO_TLS_C, DecodeTPRetrySourceCID , arg1, arg3);\
 
 #endif
 
-
-
-
-#ifndef _clog_4_ARGS_TRACE_DecodeTPMaxDatagramFrameSize
 
 
 
@@ -1102,9 +1005,10 @@ tracepoint(CLOG_CRYPTO_TLS_C, DecodeTPRetrySourceCID , arg1, arg3);\
                 Connection,
                 "TP: Max Datagram Frame Size (%llu bytes)",
                 TransportParams->MaxDatagramFrameSize);
-// arg1 = arg1 = Connection
-// arg3 = arg3 = TransportParams->MaxDatagramFrameSize
+// arg1 = arg1 = Connection = arg1
+// arg3 = arg3 = TransportParams->MaxDatagramFrameSize = arg3
 ----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_DecodeTPMaxDatagramFrameSize
 #define _clog_4_ARGS_TRACE_DecodeTPMaxDatagramFrameSize(uniqueId, arg1, encoded_arg_string, arg3)\
 tracepoint(CLOG_CRYPTO_TLS_C, DecodeTPMaxDatagramFrameSize , arg1, arg3);\
 
@@ -1113,7 +1017,25 @@ tracepoint(CLOG_CRYPTO_TLS_C, DecodeTPMaxDatagramFrameSize , arg1, arg3);\
 
 
 
-#ifndef _clog_3_ARGS_TRACE_DecodeTPDisable1RttEncryption
+/*----------------------------------------------------------
+// Decoder Ring for DecodeTPCibirEncoding
+// [conn][%p] TP: CIBIR Encoding (%llu length, %llu offset)
+// QuicTraceLogConnVerbose(
+                DecodeTPCibirEncoding,
+                Connection,
+                "TP: CIBIR Encoding (%llu length, %llu offset)",
+                TransportParams->CibirLength,
+                TransportParams->CibirOffset);
+// arg1 = arg1 = Connection = arg1
+// arg3 = arg3 = TransportParams->CibirLength = arg3
+// arg4 = arg4 = TransportParams->CibirOffset = arg4
+----------------------------------------------------------*/
+#ifndef _clog_5_ARGS_TRACE_DecodeTPCibirEncoding
+#define _clog_5_ARGS_TRACE_DecodeTPCibirEncoding(uniqueId, arg1, encoded_arg_string, arg3, arg4)\
+tracepoint(CLOG_CRYPTO_TLS_C, DecodeTPCibirEncoding , arg1, arg3, arg4);\
+
+#endif
+
 
 
 
@@ -1124,8 +1046,9 @@ tracepoint(CLOG_CRYPTO_TLS_C, DecodeTPMaxDatagramFrameSize , arg1, arg3);\
                 DecodeTPDisable1RttEncryption,
                 Connection,
                 "TP: Disable 1-RTT Encryption");
-// arg1 = arg1 = Connection
+// arg1 = arg1 = Connection = arg1
 ----------------------------------------------------------*/
+#ifndef _clog_3_ARGS_TRACE_DecodeTPDisable1RttEncryption
 #define _clog_3_ARGS_TRACE_DecodeTPDisable1RttEncryption(uniqueId, arg1, encoded_arg_string)\
 tracepoint(CLOG_CRYPTO_TLS_C, DecodeTPDisable1RttEncryption , arg1);\
 
@@ -1134,30 +1057,23 @@ tracepoint(CLOG_CRYPTO_TLS_C, DecodeTPDisable1RttEncryption , arg1);\
 
 
 
-#ifndef _clog_4_ARGS_TRACE_DecodeTPVersionNegotiationInfo
-
-
-
 /*----------------------------------------------------------
 // Decoder Ring for DecodeTPVersionNegotiationInfo
 // [conn][%p] TP: Version Negotiation Info (%hu bytes)
 // QuicTraceLogConnVerbose(
-                    DecodeTPVersionNegotiationInfo,
-                    Connection,
-                    "TP: Version Negotiation Info (%hu bytes)",
-                    Length);
-// arg1 = arg1 = Connection
-// arg3 = arg3 = Length
+                DecodeTPVersionNegotiationInfo,
+                Connection,
+                "TP: Version Negotiation Info (%hu bytes)",
+                Length);
+// arg1 = arg1 = Connection = arg1
+// arg3 = arg3 = Length = arg3
 ----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_DecodeTPVersionNegotiationInfo
 #define _clog_4_ARGS_TRACE_DecodeTPVersionNegotiationInfo(uniqueId, arg1, encoded_arg_string, arg3)\
 tracepoint(CLOG_CRYPTO_TLS_C, DecodeTPVersionNegotiationInfo , arg1, arg3);\
 
 #endif
 
-
-
-
-#ifndef _clog_4_ARGS_TRACE_DecodeTPMinAckDelay
 
 
 
@@ -1169,9 +1085,10 @@ tracepoint(CLOG_CRYPTO_TLS_C, DecodeTPVersionNegotiationInfo , arg1, arg3);\
                 Connection,
                 "TP: Min ACK Delay (%llu us)",
                 TransportParams->MinAckDelay);
-// arg1 = arg1 = Connection
-// arg3 = arg3 = TransportParams->MinAckDelay
+// arg1 = arg1 = Connection = arg1
+// arg3 = arg3 = TransportParams->MinAckDelay = arg3
 ----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_DecodeTPMinAckDelay
 #define _clog_4_ARGS_TRACE_DecodeTPMinAckDelay(uniqueId, arg1, encoded_arg_string, arg3)\
 tracepoint(CLOG_CRYPTO_TLS_C, DecodeTPMinAckDelay , arg1, arg3);\
 
@@ -1180,7 +1097,21 @@ tracepoint(CLOG_CRYPTO_TLS_C, DecodeTPMinAckDelay , arg1, arg3);\
 
 
 
-#ifndef _clog_4_ARGS_TRACE_ConnError
+/*----------------------------------------------------------
+// Decoder Ring for DecodeTPGreaseQuicBit
+// [conn][%p] TP: Grease QUIC Bit
+// QuicTraceLogConnVerbose(
+                DecodeTPGreaseQuicBit,
+                Connection,
+                "TP: Grease QUIC Bit");
+// arg1 = arg1 = Connection = arg1
+----------------------------------------------------------*/
+#ifndef _clog_3_ARGS_TRACE_DecodeTPGreaseQuicBit
+#define _clog_3_ARGS_TRACE_DecodeTPGreaseQuicBit(uniqueId, arg1, encoded_arg_string)\
+tracepoint(CLOG_CRYPTO_TLS_C, DecodeTPGreaseQuicBit , arg1);\
+
+#endif
+
 
 
 
@@ -1192,436 +1123,15 @@ tracepoint(CLOG_CRYPTO_TLS_C, DecodeTPMinAckDelay , arg1, arg3);\
             "[conn][%p] ERROR, %s.",
             Connection,
             "Parse error. ReadTlsSni #1");
-// arg2 = arg2 = Connection
-// arg3 = arg3 = "Parse error. ReadTlsSni #1"
+// arg2 = arg2 = Connection = arg2
+// arg3 = arg3 = "Parse error. ReadTlsSni #1" = arg3
 ----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_ConnError
 #define _clog_4_ARGS_TRACE_ConnError(uniqueId, encoded_arg_string, arg2, arg3)\
 tracepoint(CLOG_CRYPTO_TLS_C, ConnError , arg2, arg3);\
 
 #endif
 
-
-
-
-#ifndef _clog_4_ARGS_TRACE_ConnError
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for ConnError
-// [conn][%p] ERROR, %s.
-// QuicTraceEvent(
-            ConnError,
-            "[conn][%p] ERROR, %s.",
-            Connection,
-            "Parse error. ReadTlsSni #2");
-// arg2 = arg2 = Connection
-// arg3 = arg3 = "Parse error. ReadTlsSni #2"
-----------------------------------------------------------*/
-#define _clog_4_ARGS_TRACE_ConnError(uniqueId, encoded_arg_string, arg2, arg3)\
-
-#endif
-
-
-
-
-#ifndef _clog_4_ARGS_TRACE_ConnError
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for ConnError
-// [conn][%p] ERROR, %s.
-// QuicTraceEvent(
-                ConnError,
-                "[conn][%p] ERROR, %s.",
-                Connection,
-                "Parse error. ReadTlsSni #3");
-// arg2 = arg2 = Connection
-// arg3 = arg3 = "Parse error. ReadTlsSni #3"
-----------------------------------------------------------*/
-#define _clog_4_ARGS_TRACE_ConnError(uniqueId, encoded_arg_string, arg2, arg3)\
-
-#endif
-
-
-
-
-#ifndef _clog_4_ARGS_TRACE_ConnError
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for ConnError
-// [conn][%p] ERROR, %s.
-// QuicTraceEvent(
-                ConnError,
-                "[conn][%p] ERROR, %s.",
-                Connection,
-                "Parse error. ReadTlsSni #4");
-// arg2 = arg2 = Connection
-// arg3 = arg3 = "Parse error. ReadTlsSni #4"
-----------------------------------------------------------*/
-#define _clog_4_ARGS_TRACE_ConnError(uniqueId, encoded_arg_string, arg2, arg3)\
-
-#endif
-
-
-
-
-#ifndef _clog_4_ARGS_TRACE_ConnError
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for ConnError
-// [conn][%p] ERROR, %s.
-// QuicTraceEvent(
-            ConnError,
-            "[conn][%p] ERROR, %s.",
-            Connection,
-            "Parse error. ReadTlsAlpn #1");
-// arg2 = arg2 = Connection
-// arg3 = arg3 = "Parse error. ReadTlsAlpn #1"
-----------------------------------------------------------*/
-#define _clog_4_ARGS_TRACE_ConnError(uniqueId, encoded_arg_string, arg2, arg3)\
-
-#endif
-
-
-
-
-#ifndef _clog_4_ARGS_TRACE_ConnError
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for ConnError
-// [conn][%p] ERROR, %s.
-// QuicTraceEvent(
-            ConnError,
-            "[conn][%p] ERROR, %s.",
-            Connection,
-            "Parse error. ReadTlsAlpn #2");
-// arg2 = arg2 = Connection
-// arg3 = arg3 = "Parse error. ReadTlsAlpn #2"
-----------------------------------------------------------*/
-#define _clog_4_ARGS_TRACE_ConnError(uniqueId, encoded_arg_string, arg2, arg3)\
-
-#endif
-
-
-
-
-#ifndef _clog_4_ARGS_TRACE_ConnError
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for ConnError
-// [conn][%p] ERROR, %s.
-// QuicTraceEvent(
-                ConnError,
-                "[conn][%p] ERROR, %s.",
-                Connection,
-                "Parse error. ReadTlsAlpn #3");
-// arg2 = arg2 = Connection
-// arg3 = arg3 = "Parse error. ReadTlsAlpn #3"
-----------------------------------------------------------*/
-#define _clog_4_ARGS_TRACE_ConnError(uniqueId, encoded_arg_string, arg2, arg3)\
-
-#endif
-
-
-
-
-#ifndef _clog_4_ARGS_TRACE_ConnError
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for ConnError
-// [conn][%p] ERROR, %s.
-// QuicTraceEvent(
-                ConnError,
-                "[conn][%p] ERROR, %s.",
-                Connection,
-                "Parse error. ReadTlsExt #1");
-// arg2 = arg2 = Connection
-// arg3 = arg3 = "Parse error. ReadTlsExt #1"
-----------------------------------------------------------*/
-#define _clog_4_ARGS_TRACE_ConnError(uniqueId, encoded_arg_string, arg2, arg3)\
-
-#endif
-
-
-
-
-#ifndef _clog_4_ARGS_TRACE_ConnError
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for ConnError
-// [conn][%p] ERROR, %s.
-// QuicTraceEvent(
-                ConnError,
-                "[conn][%p] ERROR, %s.",
-                Connection,
-                "Parse error. ReadTlsExt #2");
-// arg2 = arg2 = Connection
-// arg3 = arg3 = "Parse error. ReadTlsExt #2"
-----------------------------------------------------------*/
-#define _clog_4_ARGS_TRACE_ConnError(uniqueId, encoded_arg_string, arg2, arg3)\
-
-#endif
-
-
-
-
-#ifndef _clog_4_ARGS_TRACE_ConnError
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for ConnError
-// [conn][%p] ERROR, %s.
-// QuicTraceEvent(
-            ConnError,
-            "[conn][%p] ERROR, %s.",
-            Connection,
-            "No QUIC TP extension present");
-// arg2 = arg2 = Connection
-// arg3 = arg3 = "No QUIC TP extension present"
-----------------------------------------------------------*/
-#define _clog_4_ARGS_TRACE_ConnError(uniqueId, encoded_arg_string, arg2, arg3)\
-
-#endif
-
-
-
-
-#ifndef _clog_4_ARGS_TRACE_ConnError
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for ConnError
-// [conn][%p] ERROR, %s.
-// QuicTraceEvent(
-            ConnError,
-            "[conn][%p] ERROR, %s.",
-            Connection,
-            "Parse error. ReadTlsClientHello #1");
-// arg2 = arg2 = Connection
-// arg3 = arg3 = "Parse error. ReadTlsClientHello #1"
-----------------------------------------------------------*/
-#define _clog_4_ARGS_TRACE_ConnError(uniqueId, encoded_arg_string, arg2, arg3)\
-
-#endif
-
-
-
-
-#ifndef _clog_4_ARGS_TRACE_ConnError
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for ConnError
-// [conn][%p] ERROR, %s.
-// QuicTraceEvent(
-            ConnError,
-            "[conn][%p] ERROR, %s.",
-            Connection,
-            "Parse error. ReadTlsClientHello #2");
-// arg2 = arg2 = Connection
-// arg3 = arg3 = "Parse error. ReadTlsClientHello #2"
-----------------------------------------------------------*/
-#define _clog_4_ARGS_TRACE_ConnError(uniqueId, encoded_arg_string, arg2, arg3)\
-
-#endif
-
-
-
-
-#ifndef _clog_4_ARGS_TRACE_ConnError
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for ConnError
-// [conn][%p] ERROR, %s.
-// QuicTraceEvent(
-            ConnError,
-            "[conn][%p] ERROR, %s.",
-            Connection,
-            "Parse error. ReadTlsClientHello #3");
-// arg2 = arg2 = Connection
-// arg3 = arg3 = "Parse error. ReadTlsClientHello #3"
-----------------------------------------------------------*/
-#define _clog_4_ARGS_TRACE_ConnError(uniqueId, encoded_arg_string, arg2, arg3)\
-
-#endif
-
-
-
-
-#ifndef _clog_4_ARGS_TRACE_ConnError
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for ConnError
-// [conn][%p] ERROR, %s.
-// QuicTraceEvent(
-            ConnError,
-            "[conn][%p] ERROR, %s.",
-            Connection,
-            "Parse error. ReadTlsClientHello #4");
-// arg2 = arg2 = Connection
-// arg3 = arg3 = "Parse error. ReadTlsClientHello #4"
-----------------------------------------------------------*/
-#define _clog_4_ARGS_TRACE_ConnError(uniqueId, encoded_arg_string, arg2, arg3)\
-
-#endif
-
-
-
-
-#ifndef _clog_4_ARGS_TRACE_ConnError
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for ConnError
-// [conn][%p] ERROR, %s.
-// QuicTraceEvent(
-            ConnError,
-            "[conn][%p] ERROR, %s.",
-            Connection,
-            "Parse error. ReadTlsClientHello #5");
-// arg2 = arg2 = Connection
-// arg3 = arg3 = "Parse error. ReadTlsClientHello #5"
-----------------------------------------------------------*/
-#define _clog_4_ARGS_TRACE_ConnError(uniqueId, encoded_arg_string, arg2, arg3)\
-
-#endif
-
-
-
-
-#ifndef _clog_4_ARGS_TRACE_ConnError
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for ConnError
-// [conn][%p] ERROR, %s.
-// QuicTraceEvent(
-            ConnError,
-            "[conn][%p] ERROR, %s.",
-            Connection,
-            "Parse error. ReadTlsClientHello #6");
-// arg2 = arg2 = Connection
-// arg3 = arg3 = "Parse error. ReadTlsClientHello #6"
-----------------------------------------------------------*/
-#define _clog_4_ARGS_TRACE_ConnError(uniqueId, encoded_arg_string, arg2, arg3)\
-
-#endif
-
-
-
-
-#ifndef _clog_4_ARGS_TRACE_ConnError
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for ConnError
-// [conn][%p] ERROR, %s.
-// QuicTraceEvent(
-            ConnError,
-            "[conn][%p] ERROR, %s.",
-            Connection,
-            "Parse error. ReadTlsClientHello #7");
-// arg2 = arg2 = Connection
-// arg3 = arg3 = "Parse error. ReadTlsClientHello #7"
-----------------------------------------------------------*/
-#define _clog_4_ARGS_TRACE_ConnError(uniqueId, encoded_arg_string, arg2, arg3)\
-
-#endif
-
-
-
-
-#ifndef _clog_4_ARGS_TRACE_ConnError
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for ConnError
-// [conn][%p] ERROR, %s.
-// QuicTraceEvent(
-                ConnError,
-                "[conn][%p] ERROR, %s.",
-                Connection,
-                "Invalid message in TlsReadInitial");
-// arg2 = arg2 = Connection
-// arg3 = arg3 = "Invalid message in TlsReadInitial"
-----------------------------------------------------------*/
-#define _clog_4_ARGS_TRACE_ConnError(uniqueId, encoded_arg_string, arg2, arg3)\
-
-#endif
-
-
-
-
-#ifndef _clog_4_ARGS_TRACE_ConnError
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for ConnError
-// [conn][%p] ERROR, %s.
-// QuicTraceEvent(
-            ConnError,
-            "[conn][%p] ERROR, %s.",
-            Connection,
-            "No ALPN list extension present");
-// arg2 = arg2 = Connection
-// arg3 = arg3 = "No ALPN list extension present"
-----------------------------------------------------------*/
-#define _clog_4_ARGS_TRACE_ConnError(uniqueId, encoded_arg_string, arg2, arg3)\
-
-#endif
-
-
-
-
-#ifndef _clog_4_ARGS_TRACE_ConnError
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for ConnError
-// [conn][%p] ERROR, %s.
-// QuicTraceEvent(
-            ConnError,
-            "[conn][%p] ERROR, %s.",
-            Connection,
-            "Encoding TP too big.");
-// arg2 = arg2 = Connection
-// arg3 = arg3 = "Encoding TP too big."
-----------------------------------------------------------*/
-#define _clog_4_ARGS_TRACE_ConnError(uniqueId, encoded_arg_string, arg2, arg3)\
-
-#endif
-
-
-
-
-#ifndef _clog_4_ARGS_TRACE_AllocFailure
 
 
 
@@ -1633,128 +1143,15 @@ tracepoint(CLOG_CRYPTO_TLS_C, ConnError , arg2, arg3);\
             "Allocation of '%s' failed. (%llu bytes)",
             "TP buffer",
             CxPlatTlsTPHeaderSize + RequiredTPLen);
-// arg2 = arg2 = "TP buffer"
-// arg3 = arg3 = CxPlatTlsTPHeaderSize + RequiredTPLen
+// arg2 = arg2 = "TP buffer" = arg2
+// arg3 = arg3 = CxPlatTlsTPHeaderSize + RequiredTPLen = arg3
 ----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_AllocFailure
 #define _clog_4_ARGS_TRACE_AllocFailure(uniqueId, encoded_arg_string, arg2, arg3)\
 tracepoint(CLOG_CRYPTO_TLS_C, AllocFailure , arg2, arg3);\
 
 #endif
 
-
-
-
-#ifndef _clog_4_ARGS_TRACE_ConnError
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for ConnError
-// [conn][%p] ERROR, %s.
-// QuicTraceEvent(
-            ConnError,
-            "[conn][%p] ERROR, %s.",
-            Connection,
-            "Encoding error! Length mismatch.");
-// arg2 = arg2 = Connection
-// arg3 = arg3 = "Encoding error! Length mismatch."
-----------------------------------------------------------*/
-#define _clog_4_ARGS_TRACE_ConnError(uniqueId, encoded_arg_string, arg2, arg3)\
-
-#endif
-
-
-
-
-#ifndef _clog_4_ARGS_TRACE_ConnError
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for ConnError
-// [conn][%p] ERROR, %s.
-// QuicTraceEvent(
-                ConnError,
-                "[conn][%p] ERROR, %s.",
-                Connection,
-                "No room for QUIC TP ID");
-// arg2 = arg2 = Connection
-// arg3 = arg3 = "No room for QUIC TP ID"
-----------------------------------------------------------*/
-#define _clog_4_ARGS_TRACE_ConnError(uniqueId, encoded_arg_string, arg2, arg3)\
-
-#endif
-
-
-
-
-#ifndef _clog_4_ARGS_TRACE_ConnError
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for ConnError
-// [conn][%p] ERROR, %s.
-// QuicTraceEvent(
-                    ConnError,
-                    "[conn][%p] ERROR, %s.",
-                    Connection,
-                    "Duplicate QUIC TP ID");
-// arg2 = arg2 = Connection
-// arg3 = arg3 = "Duplicate QUIC TP ID"
-----------------------------------------------------------*/
-#define _clog_4_ARGS_TRACE_ConnError(uniqueId, encoded_arg_string, arg2, arg3)\
-
-#endif
-
-
-
-
-#ifndef _clog_4_ARGS_TRACE_ConnError
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for ConnError
-// [conn][%p] ERROR, %s.
-// QuicTraceEvent(
-                ConnError,
-                "[conn][%p] ERROR, %s.",
-                Connection,
-                "No room for QUIC TP length");
-// arg2 = arg2 = Connection
-// arg3 = arg3 = "No room for QUIC TP length"
-----------------------------------------------------------*/
-#define _clog_4_ARGS_TRACE_ConnError(uniqueId, encoded_arg_string, arg2, arg3)\
-
-#endif
-
-
-
-
-#ifndef _clog_4_ARGS_TRACE_ConnError
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for ConnError
-// [conn][%p] ERROR, %s.
-// QuicTraceEvent(
-                ConnError,
-                "[conn][%p] ERROR, %s.",
-                Connection,
-                "QUIC TP length too big");
-// arg2 = arg2 = Connection
-// arg3 = arg3 = "QUIC TP length too big"
-----------------------------------------------------------*/
-#define _clog_4_ARGS_TRACE_ConnError(uniqueId, encoded_arg_string, arg2, arg3)\
-
-#endif
-
-
-
-
-#ifndef _clog_5_ARGS_TRACE_ConnErrorStatus
 
 
 
@@ -1767,824 +1164,13 @@ tracepoint(CLOG_CRYPTO_TLS_C, AllocFailure , arg2, arg3);\
                     Connection,
                     Length,
                     "Invalid length of QUIC_TP_ID_ORIGINAL_DESTINATION_CONNECTION_ID");
-// arg2 = arg2 = Connection
-// arg3 = arg3 = Length
-// arg4 = arg4 = "Invalid length of QUIC_TP_ID_ORIGINAL_DESTINATION_CONNECTION_ID"
+// arg2 = arg2 = Connection = arg2
+// arg3 = arg3 = Length = arg3
+// arg4 = arg4 = "Invalid length of QUIC_TP_ID_ORIGINAL_DESTINATION_CONNECTION_ID" = arg4
 ----------------------------------------------------------*/
+#ifndef _clog_5_ARGS_TRACE_ConnErrorStatus
 #define _clog_5_ARGS_TRACE_ConnErrorStatus(uniqueId, encoded_arg_string, arg2, arg3, arg4)\
 tracepoint(CLOG_CRYPTO_TLS_C, ConnErrorStatus , arg2, arg3, arg4);\
-
-#endif
-
-
-
-
-#ifndef _clog_4_ARGS_TRACE_ConnError
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for ConnError
-// [conn][%p] ERROR, %s.
-// QuicTraceEvent(
-                    ConnError,
-                    "[conn][%p] ERROR, %s.",
-                    Connection,
-                    "Client incorrectly provided original destination connection ID");
-// arg2 = arg2 = Connection
-// arg3 = arg3 = "Client incorrectly provided original destination connection ID"
-----------------------------------------------------------*/
-#define _clog_4_ARGS_TRACE_ConnError(uniqueId, encoded_arg_string, arg2, arg3)\
-
-#endif
-
-
-
-
-#ifndef _clog_5_ARGS_TRACE_ConnErrorStatus
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for ConnErrorStatus
-// [conn][%p] ERROR, %u, %s.
-// QuicTraceEvent(
-                    ConnErrorStatus,
-                    "[conn][%p] ERROR, %u, %s.",
-                    Connection,
-                    Length,
-                    "Invalid length of QUIC_TP_ID_IDLE_TIMEOUT");
-// arg2 = arg2 = Connection
-// arg3 = arg3 = Length
-// arg4 = arg4 = "Invalid length of QUIC_TP_ID_IDLE_TIMEOUT"
-----------------------------------------------------------*/
-#define _clog_5_ARGS_TRACE_ConnErrorStatus(uniqueId, encoded_arg_string, arg2, arg3, arg4)\
-
-#endif
-
-
-
-
-#ifndef _clog_5_ARGS_TRACE_ConnErrorStatus
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for ConnErrorStatus
-// [conn][%p] ERROR, %u, %s.
-// QuicTraceEvent(
-                    ConnErrorStatus,
-                    "[conn][%p] ERROR, %u, %s.",
-                    Connection,
-                    Length,
-                    "Invalid length of QUIC_TP_ID_STATELESS_RESET_TOKEN");
-// arg2 = arg2 = Connection
-// arg3 = arg3 = Length
-// arg4 = arg4 = "Invalid length of QUIC_TP_ID_STATELESS_RESET_TOKEN"
-----------------------------------------------------------*/
-#define _clog_5_ARGS_TRACE_ConnErrorStatus(uniqueId, encoded_arg_string, arg2, arg3, arg4)\
-
-#endif
-
-
-
-
-#ifndef _clog_4_ARGS_TRACE_ConnError
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for ConnError
-// [conn][%p] ERROR, %s.
-// QuicTraceEvent(
-                    ConnError,
-                    "[conn][%p] ERROR, %s.",
-                    Connection,
-                    "Client incorrectly provided stateless reset token");
-// arg2 = arg2 = Connection
-// arg3 = arg3 = "Client incorrectly provided stateless reset token"
-----------------------------------------------------------*/
-#define _clog_4_ARGS_TRACE_ConnError(uniqueId, encoded_arg_string, arg2, arg3)\
-
-#endif
-
-
-
-
-#ifndef _clog_5_ARGS_TRACE_ConnErrorStatus
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for ConnErrorStatus
-// [conn][%p] ERROR, %u, %s.
-// QuicTraceEvent(
-                    ConnErrorStatus,
-                    "[conn][%p] ERROR, %u, %s.",
-                    Connection,
-                    Length,
-                    "Invalid length of QUIC_TP_ID_MAX_UDP_PAYLOAD_SIZE");
-// arg2 = arg2 = Connection
-// arg3 = arg3 = Length
-// arg4 = arg4 = "Invalid length of QUIC_TP_ID_MAX_UDP_PAYLOAD_SIZE"
-----------------------------------------------------------*/
-#define _clog_5_ARGS_TRACE_ConnErrorStatus(uniqueId, encoded_arg_string, arg2, arg3, arg4)\
-
-#endif
-
-
-
-
-#ifndef _clog_4_ARGS_TRACE_ConnError
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for ConnError
-// [conn][%p] ERROR, %s.
-// QuicTraceEvent(
-                    ConnError,
-                    "[conn][%p] ERROR, %s.",
-                    Connection,
-                    "TP MaxUdpPayloadSize too small");
-// arg2 = arg2 = Connection
-// arg3 = arg3 = "TP MaxUdpPayloadSize too small"
-----------------------------------------------------------*/
-#define _clog_4_ARGS_TRACE_ConnError(uniqueId, encoded_arg_string, arg2, arg3)\
-
-#endif
-
-
-
-
-#ifndef _clog_4_ARGS_TRACE_ConnError
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for ConnError
-// [conn][%p] ERROR, %s.
-// QuicTraceEvent(
-                    ConnError,
-                    "[conn][%p] ERROR, %s.",
-                    Connection,
-                    "TP MaxUdpPayloadSize too big");
-// arg2 = arg2 = Connection
-// arg3 = arg3 = "TP MaxUdpPayloadSize too big"
-----------------------------------------------------------*/
-#define _clog_4_ARGS_TRACE_ConnError(uniqueId, encoded_arg_string, arg2, arg3)\
-
-#endif
-
-
-
-
-#ifndef _clog_5_ARGS_TRACE_ConnErrorStatus
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for ConnErrorStatus
-// [conn][%p] ERROR, %u, %s.
-// QuicTraceEvent(
-                    ConnErrorStatus,
-                    "[conn][%p] ERROR, %u, %s.",
-                    Connection,
-                    Length,
-                    "Invalid length of QUIC_TP_ID_INITIAL_MAX_DATA");
-// arg2 = arg2 = Connection
-// arg3 = arg3 = Length
-// arg4 = arg4 = "Invalid length of QUIC_TP_ID_INITIAL_MAX_DATA"
-----------------------------------------------------------*/
-#define _clog_5_ARGS_TRACE_ConnErrorStatus(uniqueId, encoded_arg_string, arg2, arg3, arg4)\
-
-#endif
-
-
-
-
-#ifndef _clog_5_ARGS_TRACE_ConnErrorStatus
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for ConnErrorStatus
-// [conn][%p] ERROR, %u, %s.
-// QuicTraceEvent(
-                    ConnErrorStatus,
-                    "[conn][%p] ERROR, %u, %s.",
-                    Connection,
-                    Length,
-                    "Invalid length of QUIC_TP_ID_INITIAL_MAX_STREAM_DATA_BIDI_LOCAL");
-// arg2 = arg2 = Connection
-// arg3 = arg3 = Length
-// arg4 = arg4 = "Invalid length of QUIC_TP_ID_INITIAL_MAX_STREAM_DATA_BIDI_LOCAL"
-----------------------------------------------------------*/
-#define _clog_5_ARGS_TRACE_ConnErrorStatus(uniqueId, encoded_arg_string, arg2, arg3, arg4)\
-
-#endif
-
-
-
-
-#ifndef _clog_5_ARGS_TRACE_ConnErrorStatus
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for ConnErrorStatus
-// [conn][%p] ERROR, %u, %s.
-// QuicTraceEvent(
-                    ConnErrorStatus,
-                    "[conn][%p] ERROR, %u, %s.",
-                    Connection,
-                    Length,
-                    "Invalid length of QUIC_TP_ID_INITIAL_MAX_STREAM_DATA_BIDI_REMOTE");
-// arg2 = arg2 = Connection
-// arg3 = arg3 = Length
-// arg4 = arg4 = "Invalid length of QUIC_TP_ID_INITIAL_MAX_STREAM_DATA_BIDI_REMOTE"
-----------------------------------------------------------*/
-#define _clog_5_ARGS_TRACE_ConnErrorStatus(uniqueId, encoded_arg_string, arg2, arg3, arg4)\
-
-#endif
-
-
-
-
-#ifndef _clog_5_ARGS_TRACE_ConnErrorStatus
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for ConnErrorStatus
-// [conn][%p] ERROR, %u, %s.
-// QuicTraceEvent(
-                    ConnErrorStatus,
-                    "[conn][%p] ERROR, %u, %s.",
-                    Connection,
-                    Length,
-                    "Invalid length of QUIC_TP_ID_INITIAL_MAX_STREAM_DATA_UNI");
-// arg2 = arg2 = Connection
-// arg3 = arg3 = Length
-// arg4 = arg4 = "Invalid length of QUIC_TP_ID_INITIAL_MAX_STREAM_DATA_UNI"
-----------------------------------------------------------*/
-#define _clog_5_ARGS_TRACE_ConnErrorStatus(uniqueId, encoded_arg_string, arg2, arg3, arg4)\
-
-#endif
-
-
-
-
-#ifndef _clog_5_ARGS_TRACE_ConnErrorStatus
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for ConnErrorStatus
-// [conn][%p] ERROR, %u, %s.
-// QuicTraceEvent(
-                    ConnErrorStatus,
-                    "[conn][%p] ERROR, %u, %s.",
-                    Connection,
-                    Length,
-                    "Invalid length of QUIC_TP_ID_INITIAL_MAX_STREAMS_BIDI");
-// arg2 = arg2 = Connection
-// arg3 = arg3 = Length
-// arg4 = arg4 = "Invalid length of QUIC_TP_ID_INITIAL_MAX_STREAMS_BIDI"
-----------------------------------------------------------*/
-#define _clog_5_ARGS_TRACE_ConnErrorStatus(uniqueId, encoded_arg_string, arg2, arg3, arg4)\
-
-#endif
-
-
-
-
-#ifndef _clog_4_ARGS_TRACE_ConnError
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for ConnError
-// [conn][%p] ERROR, %s.
-// QuicTraceEvent(
-                    ConnError,
-                    "[conn][%p] ERROR, %s.",
-                    Connection,
-                    "Invalid value of QUIC_TP_ID_INITIAL_MAX_STREAMS_BIDI");
-// arg2 = arg2 = Connection
-// arg3 = arg3 = "Invalid value of QUIC_TP_ID_INITIAL_MAX_STREAMS_BIDI"
-----------------------------------------------------------*/
-#define _clog_4_ARGS_TRACE_ConnError(uniqueId, encoded_arg_string, arg2, arg3)\
-
-#endif
-
-
-
-
-#ifndef _clog_4_ARGS_TRACE_ConnError
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for ConnError
-// [conn][%p] ERROR, %s.
-// QuicTraceEvent(
-                    ConnError,
-                    "[conn][%p] ERROR, %s.",
-                    Connection,
-                    "Invalid value of QUIC_TP_ID_INITIAL_MAX_STREAMS_BIDI");
-// arg2 = arg2 = Connection
-// arg3 = arg3 = "Invalid value of QUIC_TP_ID_INITIAL_MAX_STREAMS_BIDI"
-----------------------------------------------------------*/
-#define _clog_4_ARGS_TRACE_ConnError(uniqueId, encoded_arg_string, arg2, arg3)\
-
-#endif
-
-
-
-
-#ifndef _clog_5_ARGS_TRACE_ConnErrorStatus
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for ConnErrorStatus
-// [conn][%p] ERROR, %u, %s.
-// QuicTraceEvent(
-                    ConnErrorStatus,
-                    "[conn][%p] ERROR, %u, %s.",
-                    Connection,
-                    Length,
-                    "Invalid length of QUIC_TP_ID_INITIAL_MAX_STREAMS_UNI");
-// arg2 = arg2 = Connection
-// arg3 = arg3 = Length
-// arg4 = arg4 = "Invalid length of QUIC_TP_ID_INITIAL_MAX_STREAMS_UNI"
-----------------------------------------------------------*/
-#define _clog_5_ARGS_TRACE_ConnErrorStatus(uniqueId, encoded_arg_string, arg2, arg3, arg4)\
-
-#endif
-
-
-
-
-#ifndef _clog_4_ARGS_TRACE_ConnError
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for ConnError
-// [conn][%p] ERROR, %s.
-// QuicTraceEvent(
-                    ConnError,
-                    "[conn][%p] ERROR, %s.",
-                    Connection,
-                    "Invalid value of QUIC_TP_ID_INITIAL_MAX_STREAMS_UNI");
-// arg2 = arg2 = Connection
-// arg3 = arg3 = "Invalid value of QUIC_TP_ID_INITIAL_MAX_STREAMS_UNI"
-----------------------------------------------------------*/
-#define _clog_4_ARGS_TRACE_ConnError(uniqueId, encoded_arg_string, arg2, arg3)\
-
-#endif
-
-
-
-
-#ifndef _clog_5_ARGS_TRACE_ConnErrorStatus
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for ConnErrorStatus
-// [conn][%p] ERROR, %u, %s.
-// QuicTraceEvent(
-                    ConnErrorStatus,
-                    "[conn][%p] ERROR, %u, %s.",
-                    Connection,
-                    Length,
-                    "Invalid length of QUIC_TP_ACK_DELAY_EXPONENT");
-// arg2 = arg2 = Connection
-// arg3 = arg3 = Length
-// arg4 = arg4 = "Invalid length of QUIC_TP_ACK_DELAY_EXPONENT"
-----------------------------------------------------------*/
-#define _clog_5_ARGS_TRACE_ConnErrorStatus(uniqueId, encoded_arg_string, arg2, arg3, arg4)\
-
-#endif
-
-
-
-
-#ifndef _clog_4_ARGS_TRACE_ConnError
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for ConnError
-// [conn][%p] ERROR, %s.
-// QuicTraceEvent(
-                    ConnError,
-                    "[conn][%p] ERROR, %s.",
-                    Connection,
-                    "Invalid value of QUIC_TP_ACK_DELAY_EXPONENT");
-// arg2 = arg2 = Connection
-// arg3 = arg3 = "Invalid value of QUIC_TP_ACK_DELAY_EXPONENT"
-----------------------------------------------------------*/
-#define _clog_4_ARGS_TRACE_ConnError(uniqueId, encoded_arg_string, arg2, arg3)\
-
-#endif
-
-
-
-
-#ifndef _clog_5_ARGS_TRACE_ConnErrorStatus
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for ConnErrorStatus
-// [conn][%p] ERROR, %u, %s.
-// QuicTraceEvent(
-                    ConnErrorStatus,
-                    "[conn][%p] ERROR, %u, %s.",
-                    Connection,
-                    Length,
-                    "Invalid length of QUIC_TP_MAX_ACK_DELAY");
-// arg2 = arg2 = Connection
-// arg3 = arg3 = Length
-// arg4 = arg4 = "Invalid length of QUIC_TP_MAX_ACK_DELAY"
-----------------------------------------------------------*/
-#define _clog_5_ARGS_TRACE_ConnErrorStatus(uniqueId, encoded_arg_string, arg2, arg3, arg4)\
-
-#endif
-
-
-
-
-#ifndef _clog_4_ARGS_TRACE_ConnError
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for ConnError
-// [conn][%p] ERROR, %s.
-// QuicTraceEvent(
-                    ConnError,
-                    "[conn][%p] ERROR, %s.",
-                    Connection,
-                    "Invalid value of QUIC_TP_MAX_ACK_DELAY");
-// arg2 = arg2 = Connection
-// arg3 = arg3 = "Invalid value of QUIC_TP_MAX_ACK_DELAY"
-----------------------------------------------------------*/
-#define _clog_4_ARGS_TRACE_ConnError(uniqueId, encoded_arg_string, arg2, arg3)\
-
-#endif
-
-
-
-
-#ifndef _clog_5_ARGS_TRACE_ConnErrorStatus
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for ConnErrorStatus
-// [conn][%p] ERROR, %u, %s.
-// QuicTraceEvent(
-                    ConnErrorStatus,
-                    "[conn][%p] ERROR, %u, %s.",
-                    Connection,
-                    Length,
-                    "Invalid length of QUIC_TP_ID_DISABLE_ACTIVE_MIGRATION");
-// arg2 = arg2 = Connection
-// arg3 = arg3 = Length
-// arg4 = arg4 = "Invalid length of QUIC_TP_ID_DISABLE_ACTIVE_MIGRATION"
-----------------------------------------------------------*/
-#define _clog_5_ARGS_TRACE_ConnErrorStatus(uniqueId, encoded_arg_string, arg2, arg3, arg4)\
-
-#endif
-
-
-
-
-#ifndef _clog_4_ARGS_TRACE_ConnError
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for ConnError
-// [conn][%p] ERROR, %s.
-// QuicTraceEvent(
-                    ConnError,
-                    "[conn][%p] ERROR, %s.",
-                    Connection,
-                    "Client incorrectly provided preferred address");
-// arg2 = arg2 = Connection
-// arg3 = arg3 = "Client incorrectly provided preferred address"
-----------------------------------------------------------*/
-#define _clog_4_ARGS_TRACE_ConnError(uniqueId, encoded_arg_string, arg2, arg3)\
-
-#endif
-
-
-
-
-#ifndef _clog_5_ARGS_TRACE_ConnErrorStatus
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for ConnErrorStatus
-// [conn][%p] ERROR, %u, %s.
-// QuicTraceEvent(
-                    ConnErrorStatus,
-                    "[conn][%p] ERROR, %u, %s.",
-                    Connection,
-                    Length,
-                    "Invalid length of QUIC_TP_ID_ACTIVE_CONNECTION_ID_LIMIT");
-// arg2 = arg2 = Connection
-// arg3 = arg3 = Length
-// arg4 = arg4 = "Invalid length of QUIC_TP_ID_ACTIVE_CONNECTION_ID_LIMIT"
-----------------------------------------------------------*/
-#define _clog_5_ARGS_TRACE_ConnErrorStatus(uniqueId, encoded_arg_string, arg2, arg3, arg4)\
-
-#endif
-
-
-
-
-#ifndef _clog_4_ARGS_TRACE_ConnError
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for ConnError
-// [conn][%p] ERROR, %s.
-// QuicTraceEvent(
-                    ConnError,
-                    "[conn][%p] ERROR, %s.",
-                    Connection,
-                    "Invalid value of QUIC_TP_ACTIVE_CONNECTION_ID_LIMIT");
-// arg2 = arg2 = Connection
-// arg3 = arg3 = "Invalid value of QUIC_TP_ACTIVE_CONNECTION_ID_LIMIT"
-----------------------------------------------------------*/
-#define _clog_4_ARGS_TRACE_ConnError(uniqueId, encoded_arg_string, arg2, arg3)\
-
-#endif
-
-
-
-
-#ifndef _clog_5_ARGS_TRACE_ConnErrorStatus
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for ConnErrorStatus
-// [conn][%p] ERROR, %u, %s.
-// QuicTraceEvent(
-                    ConnErrorStatus,
-                    "[conn][%p] ERROR, %u, %s.",
-                    Connection,
-                    Length,
-                    "Invalid length of QUIC_TP_ID_INITIAL_SOURCE_CONNECTION_ID");
-// arg2 = arg2 = Connection
-// arg3 = arg3 = Length
-// arg4 = arg4 = "Invalid length of QUIC_TP_ID_INITIAL_SOURCE_CONNECTION_ID"
-----------------------------------------------------------*/
-#define _clog_5_ARGS_TRACE_ConnErrorStatus(uniqueId, encoded_arg_string, arg2, arg3, arg4)\
-
-#endif
-
-
-
-
-#ifndef _clog_5_ARGS_TRACE_ConnErrorStatus
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for ConnErrorStatus
-// [conn][%p] ERROR, %u, %s.
-// QuicTraceEvent(
-                    ConnErrorStatus,
-                    "[conn][%p] ERROR, %u, %s.",
-                    Connection,
-                    Length,
-                    "Invalid length of QUIC_TP_ID_RETRY_SOURCE_CONNECTION_ID");
-// arg2 = arg2 = Connection
-// arg3 = arg3 = Length
-// arg4 = arg4 = "Invalid length of QUIC_TP_ID_RETRY_SOURCE_CONNECTION_ID"
-----------------------------------------------------------*/
-#define _clog_5_ARGS_TRACE_ConnErrorStatus(uniqueId, encoded_arg_string, arg2, arg3, arg4)\
-
-#endif
-
-
-
-
-#ifndef _clog_4_ARGS_TRACE_ConnError
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for ConnError
-// [conn][%p] ERROR, %s.
-// QuicTraceEvent(
-                    ConnError,
-                    "[conn][%p] ERROR, %s.",
-                    Connection,
-                    "Client incorrectly provided retry source connection ID");
-// arg2 = arg2 = Connection
-// arg3 = arg3 = "Client incorrectly provided retry source connection ID"
-----------------------------------------------------------*/
-#define _clog_4_ARGS_TRACE_ConnError(uniqueId, encoded_arg_string, arg2, arg3)\
-
-#endif
-
-
-
-
-#ifndef _clog_5_ARGS_TRACE_ConnErrorStatus
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for ConnErrorStatus
-// [conn][%p] ERROR, %u, %s.
-// QuicTraceEvent(
-                    ConnErrorStatus,
-                    "[conn][%p] ERROR, %u, %s.",
-                    Connection,
-                    Length,
-                    "Invalid length of QUIC_TP_ID_MAX_DATAGRAM_FRAME_SIZE");
-// arg2 = arg2 = Connection
-// arg3 = arg3 = Length
-// arg4 = arg4 = "Invalid length of QUIC_TP_ID_MAX_DATAGRAM_FRAME_SIZE"
-----------------------------------------------------------*/
-#define _clog_5_ARGS_TRACE_ConnErrorStatus(uniqueId, encoded_arg_string, arg2, arg3, arg4)\
-
-#endif
-
-
-
-
-#ifndef _clog_5_ARGS_TRACE_ConnErrorStatus
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for ConnErrorStatus
-// [conn][%p] ERROR, %u, %s.
-// QuicTraceEvent(
-                    ConnErrorStatus,
-                    "[conn][%p] ERROR, %u, %s.",
-                    Connection,
-                    Length,
-                    "Invalid length of QUIC_TP_ID_DISABLE_1RTT_ENCRYPTION");
-// arg2 = arg2 = Connection
-// arg3 = arg3 = Length
-// arg4 = arg4 = "Invalid length of QUIC_TP_ID_DISABLE_1RTT_ENCRYPTION"
-----------------------------------------------------------*/
-#define _clog_5_ARGS_TRACE_ConnErrorStatus(uniqueId, encoded_arg_string, arg2, arg3, arg4)\
-
-#endif
-
-
-
-
-#ifndef _clog_5_ARGS_TRACE_ConnErrorStatus
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for ConnErrorStatus
-// [conn][%p] ERROR, %u, %s.
-// QuicTraceEvent(
-                    ConnErrorStatus,
-                    "[conn][%p] ERROR, %u, %s.",
-                    Connection,
-                    Length,
-                    "Invalid length of QUIC_TP_ID_VERSION_NEGOTIATION_EXT");
-// arg2 = arg2 = Connection
-// arg3 = arg3 = Length
-// arg4 = arg4 = "Invalid length of QUIC_TP_ID_VERSION_NEGOTIATION_EXT"
-----------------------------------------------------------*/
-#define _clog_5_ARGS_TRACE_ConnErrorStatus(uniqueId, encoded_arg_string, arg2, arg3, arg4)\
-
-#endif
-
-
-
-
-#ifndef _clog_4_ARGS_TRACE_AllocFailure
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for AllocFailure
-// Allocation of '%s' failed. (%llu bytes)
-// QuicTraceEvent(
-                    AllocFailure,
-                    "Allocation of '%s' failed. (%llu bytes)",
-                    IsServerTP ?
-                        "Received Client Version Negotiation Info" :
-                        "Received Server Version Negotiation Info",
-                    Length);
-// arg2 = arg2 = IsServerTP ?
-                        "Received Client Version Negotiation Info" :
-                        "Received Server Version Negotiation Info"
-// arg3 = arg3 = Length
-----------------------------------------------------------*/
-#define _clog_4_ARGS_TRACE_AllocFailure(uniqueId, encoded_arg_string, arg2, arg3)\
-
-#endif
-
-
-
-
-#ifndef _clog_5_ARGS_TRACE_ConnErrorStatus
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for ConnErrorStatus
-// [conn][%p] ERROR, %u, %s.
-// QuicTraceEvent(
-                    ConnErrorStatus,
-                    "[conn][%p] ERROR, %u, %s.",
-                    Connection,
-                    Length,
-                    "Invalid length of QUIC_TP_MIN_ACK_DELAY");
-// arg2 = arg2 = Connection
-// arg3 = arg3 = Length
-// arg4 = arg4 = "Invalid length of QUIC_TP_MIN_ACK_DELAY"
-----------------------------------------------------------*/
-#define _clog_5_ARGS_TRACE_ConnErrorStatus(uniqueId, encoded_arg_string, arg2, arg3, arg4)\
-
-#endif
-
-
-
-
-#ifndef _clog_4_ARGS_TRACE_ConnError
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for ConnError
-// [conn][%p] ERROR, %s.
-// QuicTraceEvent(
-                    ConnError,
-                    "[conn][%p] ERROR, %s.",
-                    Connection,
-                    "Invalid value of QUIC_TP_MIN_ACK_DELAY");
-// arg2 = arg2 = Connection
-// arg3 = arg3 = "Invalid value of QUIC_TP_MIN_ACK_DELAY"
-----------------------------------------------------------*/
-#define _clog_4_ARGS_TRACE_ConnError(uniqueId, encoded_arg_string, arg2, arg3)\
-
-#endif
-
-
-
-
-#ifndef _clog_4_ARGS_TRACE_ConnError
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for ConnError
-// [conn][%p] ERROR, %s.
-// QuicTraceEvent(
-            ConnError,
-            "[conn][%p] ERROR, %s.",
-            Connection,
-            "MIN_ACK_DELAY is larger than MAX_ACK_DELAY");
-// arg2 = arg2 = Connection
-// arg3 = arg3 = "MIN_ACK_DELAY is larger than MAX_ACK_DELAY"
-----------------------------------------------------------*/
-#define _clog_4_ARGS_TRACE_ConnError(uniqueId, encoded_arg_string, arg2, arg3)\
-
-#endif
-
-
-
-
-#ifndef _clog_4_ARGS_TRACE_AllocFailure
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for AllocFailure
-// Allocation of '%s' failed. (%llu bytes)
-// QuicTraceEvent(
-                AllocFailure,
-                "Allocation of '%s' failed. (%llu bytes)",
-                "Version Negotiation Info",
-                Source->VersionInfoLength);
-// arg2 = arg2 = "Version Negotiation Info"
-// arg3 = arg3 = Source->VersionInfoLength
-----------------------------------------------------------*/
-#define _clog_4_ARGS_TRACE_AllocFailure(uniqueId, encoded_arg_string, arg2, arg3)\
 
 #endif
 

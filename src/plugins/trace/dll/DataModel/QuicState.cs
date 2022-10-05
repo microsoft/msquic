@@ -18,6 +18,12 @@ namespace QuicTrace.DataModel
 
         public IReadOnlyList<QuicStream> Streams => StreamSet.GetObjects();
 
+        public IReadOnlyList<QuicPacketBatch> PacketBatches => PacketBatchSet.GetObjects();
+
+        public IReadOnlyList<QuicSendPacket> SendPackets => SendPacketSet.GetObjects();
+
+        public IReadOnlyList<QuicReceivePacket> ReceivePackets => ReceivePacketSet.GetObjects();
+
         public IReadOnlyList<QuicDatapath> Datapaths => DatapathSet.GetObjects();
 
         private QuicObjectSet<QuicWorker> WorkerSet { get; } =
@@ -29,8 +35,19 @@ namespace QuicTrace.DataModel
         private QuicObjectSet<QuicStream> StreamSet { get; } =
             new QuicObjectSet<QuicStream>(QuicStream.CreateEventId, QuicStream.DestroyedEventId, QuicStream.New);
 
+        internal QuicObjectSet<QuicPacketBatch> PacketBatchSet { get; } =
+            new QuicObjectSet<QuicPacketBatch>(QuicPacketBatch.CreateEventId, QuicPacketBatch.DestroyedEventId, QuicPacketBatch.New);
+
+        internal QuicObjectSet<QuicSendPacket> SendPacketSet { get; } =
+            new QuicObjectSet<QuicSendPacket>(QuicSendPacket.CreateEventId, QuicSendPacket.DestroyedEventId, QuicSendPacket.New);
+
+        internal QuicObjectSet<QuicReceivePacket> ReceivePacketSet { get; } =
+            new QuicObjectSet<QuicReceivePacket>(QuicReceivePacket.CreateEventId, QuicReceivePacket.DestroyedEventId, QuicReceivePacket.New);
+
         private QuicObjectSet<QuicDatapath> DatapathSet { get; } =
             new QuicObjectSet<QuicDatapath>(QuicDatapath.CreateEventId, QuicDatapath.DestroyedEventId, QuicDatapath.New);
+
+        private Dictionary<uint, QuicConnection> LastConnections = new Dictionary<uint, QuicConnection>();
 
         public List<QuicEvent> Events { get; } = new List<QuicEvent>();
 
@@ -44,21 +61,45 @@ namespace QuicTrace.DataModel
                     {
                         DataAvailableFlags |= QuicDataAvailableFlags.Api;
                     }
+                    else if (evt.EventId == QuicEventId.PacketBatchSent)
+                    {
+                        DataAvailableFlags |= QuicDataAvailableFlags.Packet;
+                        PacketBatchSet.FindOrCreateActive(evt).AddEvent(evt, this);
+                    }
+                    else if (evt.EventId >= QuicEventId.PacketCreated &&
+                        evt.EventId <= QuicEventId.PacketFinalize)
+                    {
+                        DataAvailableFlags |= QuicDataAvailableFlags.Packet;
+                        SendPacketSet.FindOrCreateActive(evt).AddEvent(evt, this);
+                    }
+                    else if (evt.EventId >= QuicEventId.PacketReceive &&
+                        evt.EventId <= QuicEventId.PacketDecrypt)
+                    {
+                        DataAvailableFlags |= QuicDataAvailableFlags.Packet;
+                        ReceivePacketSet.FindOrCreateActive(evt).AddEvent(evt, this);
+                    }
                     break;
                 case QuicObjectType.Worker:
                     DataAvailableFlags |= QuicDataAvailableFlags.Worker;
-                    WorkerSet.FindOrCreateActive(new QuicObjectKey(evt)).AddEvent(evt, this);
+                    WorkerSet.FindOrCreateActive(evt).AddEvent(evt, this);
                     break;
                 case QuicObjectType.Connection:
                     DataAvailableFlags |= QuicDataAvailableFlags.Connection;
-                    ConnectionSet.FindOrCreateActive(new QuicObjectKey(evt)).AddEvent(evt, this);
+                    var Conn = ConnectionSet.FindOrCreateActive(evt);
+                    Conn.AddEvent(evt, this);
+                    LastConnections[evt.ThreadId] = Conn;
                     break;
                 case QuicObjectType.Stream:
                     DataAvailableFlags |= QuicDataAvailableFlags.Stream;
-                    StreamSet.FindOrCreateActive(new QuicObjectKey(evt)).AddEvent(evt, this);
+                    StreamSet.FindOrCreateActive(evt).AddEvent(evt, this);
                     break;
                 case QuicObjectType.Datapath:
-                    DatapathSet.FindOrCreateActive(new QuicObjectKey(evt)).AddEvent(evt, this);
+                    DatapathSet.FindOrCreateActive(evt).AddEvent(evt, this);
+                    if (evt.EventId == QuicEventId.DatapathSend &&
+                        LastConnections.TryGetValue(evt.ThreadId, out var LastConn))
+                    {
+                        LastConn.AddEvent(evt, this);
+                    }
                     break;
                 default:
                     break;

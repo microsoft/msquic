@@ -4,6 +4,9 @@
 //
 
 using System;
+using System.Collections;
+using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 using Microsoft.Diagnostics.Tracing.Session;
 using Microsoft.Performance.SDK.Extensibility;
@@ -14,13 +17,16 @@ namespace QuicTrace
 {
     class Program
     {
+        static bool VerboseMode = false;
+
         static void PrintCommands()
         {
             Console.WriteLine(
                 "\n" +
                 "Commands:\n" +
                 "  -p, --print           Prints events as text\n" +
-                "  -r, --report          Prints out an analysis of possible problems in the trace\n"
+                "  -r, --report          Prints out an analysis of possible problems in the trace\n" +
+                "  -s, --rps             Prints out an analysis RPS-related events in the trace\n"
                 );
         }
 
@@ -36,7 +42,8 @@ namespace QuicTrace
                 "  -c, --capture         Captures local events to analyze\n" +
                 "  -f, --file <file>     Opens a local file of events to analyze\n" +
                 "  -h, --help            Prints out help text\n" +
-                "  -t, --text            Enables additional trace processing to allow for full text output"
+                "  -t, --text            Enables additional trace processing to allow for full text output\n" +
+                "  -v, --verbose         Enables any verbose output"
                 );
             PrintCommands();
         }
@@ -56,22 +63,42 @@ namespace QuicTrace
             return fileName;
         }
 
-        static QuicState ProcessTraceFile(string filePath)
+        static QuicState[] ProcessTraceFiles(IEnumerable<string> filePaths)
         {
-            //
-            // Create our runtime environment, add file, enable cookers, and process.
-            //
-            var runtime = Engine.Create();
-            runtime.AddFile(filePath);
-            runtime.EnableCooker(QuicEventCooker.CookerPath);
-            Console.WriteLine("Processing...");
-            var results = runtime.Process();
-            Console.WriteLine("Done.\n");
+            var quicStates = new List<QuicState>();
+            foreach (var filePath in filePaths)
+            {
+                //
+                // Create our runtime environment, add file, enable cookers, and process.
+                //
+                PluginSet pluginSet;
 
-            //
-            // Return our 'cooked' data.
-            //
-            return results.QueryOutput<QuicState>(new DataOutputPath(QuicEventCooker.CookerPath, "State"));
+                if (string.IsNullOrWhiteSpace(typeof(QuicEtwSource).Assembly.Location))
+                {
+                    // Single File EXE
+                    pluginSet = PluginSet.Load(new[] { Environment.CurrentDirectory }, new SingleFileAssemblyLoader());
+                }
+                else
+                {
+                    pluginSet = PluginSet.Load();
+                }
+
+                using var dataSources = DataSourceSet.Create(pluginSet);
+                dataSources.AddFile(filePath);
+                var info = new EngineCreateInfo(dataSources.AsReadOnly());
+                using var runtime = Engine.Create(info);
+                runtime.EnableCooker(QuicEventCooker.CookerPath);
+                //Console.Write("Processing {0}...", filePath);
+                var results = runtime.Process();
+                //Console.WriteLine("Done.\n");
+
+                //
+                // Return our 'cooked' data.
+                //
+                quicStates.Add(results.QueryOutput<QuicState>(new DataOutputPath(QuicEventCooker.CookerPath, "State")));
+            }
+
+            return quicStates.ToArray();
         }
 
         static void RunReport(QuicState quicState)
@@ -143,8 +170,211 @@ namespace QuicTrace
             // TODO - Dump Connection info
             //
         }
+        public sealed class SequentialByteComparer : IEqualityComparer<byte[]>
+        {
+#pragma warning disable CS8767 // Nullability of reference types in type of parameter doesn't match implicitly implemented member (possibly because of nullability attributes).
+            public bool Equals(byte[] x, byte[] y) => StructuralComparisons.StructuralEqualityComparer.Equals(x, y);
+#pragma warning restore CS8767 // Nullability of reference types in type of parameter doesn't match implicitly implemented member (possibly because of nullability attributes).
+            public int GetHashCode([System.Diagnostics.CodeAnalysis.DisallowNull] byte[] obj)
+            {
+                return StructuralComparisons.StructuralEqualityComparer.GetHashCode(obj);
+            }
+        }
 
-        static void RunCommand(QuicState quicState, string[] args)
+        static void RunRpsAnalysis(QuicState[] quicStates)
+        {
+            var ConnSourceCIDs = new Dictionary<byte[], QuicConnection>(new SequentialByteComparer());
+            var ConnDestinationCIDs = new Dictionary<byte[], QuicConnection>(new SequentialByteComparer());
+
+            var ClientRequests = new List<QuicStream>();
+            var ServerRequests = new List<QuicStream>();
+
+            foreach (var quicState in quicStates)
+            {
+                foreach (var conn in quicState.Connections)
+                {
+                    foreach (var src in conn.SourceCIDs)
+                    {
+                        try
+                        {
+                            ConnSourceCIDs.Add(src, conn);
+                            if (conn.Peer == null && ConnDestinationCIDs.TryGetValue(src, out var peer))
+                            {
+                                conn.Peer = peer;
+                                peer.Peer = conn;
+                            }
+                        }
+                        catch { }
+                    }
+
+                    foreach (var dst in conn.DestinationCIDs)
+                    {
+                        try
+                        {
+                            ConnDestinationCIDs.Add(dst, conn);
+                            if (conn.Peer == null && ConnSourceCIDs.TryGetValue(dst, out var peer))
+                            {
+                                conn.Peer = peer;
+                                peer.Peer = conn;
+                            }
+                        }
+                        catch { }
+                    }
+                }
+
+                foreach (var stream in quicState.Streams)
+                {
+                    if (stream.Connection != null &&
+                        !stream.Timings.EncounteredError &&
+                        stream.Timings.IsFinalized)
+                    {
+                        if (stream.Timings.IsServer)
+                        {
+                            ServerRequests.Add(stream);
+                        }
+                        else
+                        {
+                            ClientRequests.Add(stream);
+                        }
+                    }
+                }
+            }
+
+            var clientRequestCount = ClientRequests.Count;
+            var serverRequestCount = ServerRequests.Count;
+            if (clientRequestCount == 0)
+            {
+                Console.WriteLine("No complete client requests! Found {0} server requests.", serverRequestCount);
+                return;
+            }
+            Console.WriteLine("{0} client and {1} server complete requests found.", clientRequestCount, serverRequestCount);
+
+            var CompleteClientRequests = new List<QuicStream>();
+
+            var MissingConnection = 0;
+            var MissingPeer = 0;
+            var MissingPeerTimings = 0;
+            var ServerDict = new Dictionary<(ulong, ulong), QuicStream>();
+            foreach (var x in ServerRequests) ServerDict.TryAdd((x.Connection!.Pointer, x.StreamId), x);
+            foreach (var stream in ClientRequests)
+            {
+                if (stream.Connection == null)
+                {
+                    MissingConnection++;
+                }
+                else if (stream.Connection.Peer == null)
+                {
+                    MissingPeer++;
+                }
+                else if(!ServerDict.TryGetValue((stream.Connection.Peer.Pointer, stream.StreamId), out var peer))
+                {
+                    MissingPeerTimings++;
+                }
+                else
+                {
+                    stream.Timings.Peer = peer.Timings;
+                    peer.Timings.Peer = stream.Timings;
+                    CompleteClientRequests.Add(stream);
+                }
+            }
+
+            clientRequestCount = CompleteClientRequests.Count;
+            if (MissingConnection > 0) Console.WriteLine("WARNING: {0} requests missing connection!", MissingConnection);
+            if (MissingPeer > 0) Console.WriteLine("WARNING: {0} requests missing peer connection!", MissingPeer);
+            if (MissingPeerTimings > 0) Console.WriteLine("WARNING: {0} requests missing peer timings!", MissingPeerTimings);
+            Console.WriteLine("{0} complete, matching requests found.", clientRequestCount);
+            Console.WriteLine();
+
+            if (clientRequestCount == 0) return;
+
+            var Percentiles = new List<double>() { 0, 50, 90, 99, 99.9, 99.99, 99.999 };
+
+            var sortedRequests = CompleteClientRequests.OrderBy(t => t.Timings.TotalTime);
+
+            //
+            // Percentile based on client request total time breakdown.
+            //
+            Console.WriteLine("Percentile,ID,Total,Net/2,Server,{0},{0}", string.Join(",", QuicStreamTiming.States));
+            foreach (var percentile in Percentiles)
+            {
+                var s = sortedRequests.ElementAt((int)((clientRequestCount * percentile) / 100));
+                var t = s.Timings;
+                Console.WriteLine(
+                    "{0}th,{1},{2},{3},{4},{5},{6}",
+                    percentile,                                         // Percentile
+                    s.StreamId,                                         // ID
+                    t.TotalTime / 1000.0,                               // Total
+                    t.ClientNetworkTime.ToNanoseconds / 2000.0,         // (Net/2)
+                    t.Peer!.ServerResponseTime.ToNanoseconds / 1000.0,  // Server
+                    string.Join(",", t.TimesUs),
+                    string.Join(",", t.Peer.TimesUs));
+            }
+            Console.WriteLine();
+
+            //
+            // Full state changes for each percentile request above.
+            //
+            Console.WriteLine("Percentile,States");
+            foreach (var percentile in Percentiles)
+            {
+                var s = sortedRequests.ElementAt((int)((clientRequestCount * percentile) / 100));
+                var t = s.Timings;
+                Console.WriteLine("{0}th (Client),{1}", percentile, string.Join(",", t.StateChangeDeltas));
+                Console.WriteLine("{0}th (Server),{1}", percentile, string.Join(",", t.Peer!.StateChangeDeltas));
+            }
+            Console.WriteLine();
+
+            //
+            // Percentile based on individual layer breakdown.
+            //
+            var clientLayerTimes = new List<IOrderedEnumerable<QuicStream>>();
+            var serverLayerTimes = new List<IOrderedEnumerable<QuicStream>>();
+            foreach (var state in QuicStreamTiming.States)
+            {
+                clientLayerTimes.Add(CompleteClientRequests.OrderBy(s => s.Timings.Times[(int)state]));
+                serverLayerTimes.Add(CompleteClientRequests.OrderBy(s => s.Timings.Peer!.Times[(int)state]));
+            }
+
+            Console.WriteLine("Percentile,{0},{0}", string.Join(",", QuicStreamTiming.States));
+            foreach (var percentile in Percentiles)
+            {
+                var i = (int)((clientRequestCount * percentile) / 100);
+                Console.Write("{0}th", percentile);
+                foreach (var state in QuicStreamTiming.States)
+                {
+                    Console.Write(",{0}", clientLayerTimes[(int)state].ElementAt(i).Timings.TimesUs.ElementAt((int)state));
+                }
+                foreach (var state in QuicStreamTiming.States)
+                {
+                    Console.Write(",{0}", serverLayerTimes[(int)state].ElementAt(i).Timings.Peer!.TimesUs.ElementAt((int)state));
+                }
+                Console.WriteLine();
+            }
+            Console.WriteLine();
+
+            //
+            // Full breakdown of every request.
+            //
+            if (VerboseMode)
+            {
+                Console.WriteLine("ID,Total,Net/2,Server,{0},{0}", string.Join(",", QuicStreamTiming.States));
+                foreach (var s in sortedRequests)
+                {
+                    var t = s.Timings;
+                    Console.WriteLine(
+                        "{0},{1},{2},{3},{4},{5}",
+                        s.StreamId,                                         // ID
+                        t.TotalTime / 1000.0,                               // Total
+                        t.ClientNetworkTime.ToNanoseconds / 2000.0,         // (Net/2)
+                        t.Peer!.ServerResponseTime.ToNanoseconds / 1000.0,  // Server
+                        string.Join(",", t.TimesUs),
+                        string.Join(",", t.Peer.TimesUs));
+                }
+                Console.WriteLine();
+            }
+        }
+
+        static void RunCommand(QuicState[] quicStates, string[] args)
         {
             if (args[0] == "--print" || args[0] == "-p")
             {
@@ -154,14 +384,18 @@ namespace QuicTrace
                     return;
                 }
 
-                foreach (var evt in quicState.Events)
+                foreach (var evt in quicStates[0].Events)
                 {
                     Console.WriteLine(evt);
                 }
             }
             else if (args[0] == "--report" || args[0] == "-r")
             {
-                RunReport(quicState);
+                RunReport(quicStates[0]);
+            }
+            else if (args[0] == "--rps" || args[0] == "-s")
+            {
+                RunRpsAnalysis(quicStates);
             }
             else if (args[0] == "--help" || args[0] == "-h" || args[0] == "-?")
             {
@@ -177,7 +411,7 @@ namespace QuicTrace
         static void Main(string[] args)
         {
             var i = 0;
-            string? traceFile = null;
+            var traceFiles = new List<string>();
 
             //
             // Process input args for initial 'option' values.
@@ -186,11 +420,12 @@ namespace QuicTrace
             {
                 if (args[i] == "--capture" || args[i] == "-c")
                 {
-                    traceFile = CaptureLocalTrace();
+                    var traceFile = CaptureLocalTrace();
                     if (traceFile == null)
                     {
                         return;
                     }
+                    traceFiles.Add(traceFile);
                 }
                 else if (args[i] == "--file" || args[i] == "-f")
                 {
@@ -201,7 +436,7 @@ namespace QuicTrace
                     }
 
                     ++i;
-                    traceFile = args[i];
+                    traceFiles.Add(args[i]);
                 }
                 else if (args[i] == "--help" || args[i] == "-h" || args[i] == "-?")
                 {
@@ -215,6 +450,10 @@ namespace QuicTrace
                     //
                     QuicEvent.ParseMode = QuicEventParseMode.Full;
                 }
+                else if (args[i] == "--verbose" || args[i] == "-v")
+                {
+                    VerboseMode = true;
+                }
                 else
                 {
                     break;
@@ -224,16 +463,16 @@ namespace QuicTrace
             //
             // Make sure we have something valid to process.
             //
-            if (traceFile == null)
+            if (traceFiles.Count == 0)
             {
                 Console.WriteLine("Missing valid option! Run '--help' for additional usage information!");
                 return;
             }
 
             //
-            // Process the trace file to generate the QUIC state.
+            // Process the trace files to generate the QUIC state.
             //
-            var quicState = ProcessTraceFile(traceFile);
+            var quicStates = ProcessTraceFiles(traceFiles);
 
             if (i == args.Length)
             {
@@ -253,7 +492,7 @@ namespace QuicTrace
                     if (input.Length > 0)
                     {
                         var cmdArgs = input.Split(" \t\r\n");
-                        RunCommand(quicState, cmdArgs);
+                        RunCommand(quicStates, cmdArgs);
                     }
                 }
             }
@@ -262,7 +501,7 @@ namespace QuicTrace
                 //
                 // Process specified commands inline.
                 //
-                RunCommand(quicState, args[i..]);
+                RunCommand(quicStates, args[i..]);
             }
         }
     }

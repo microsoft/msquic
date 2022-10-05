@@ -40,6 +40,23 @@ static QUIC_STATUS MtuSettingsCallback(_In_ MsQuicConnection*, _In_opt_ void*, _
     return QUIC_STATUS_SUCCESS;
 }
 
+struct ResetSettings {
+    MsQuicSettings CurrentSettings;
+    QUIC_STATUS GetResult = QUIC_STATUS_OUT_OF_MEMORY;
+    ResetSettings() {
+        GetResult = CurrentSettings.GetGlobal();
+    }
+
+    ~ResetSettings() {
+        if (QUIC_SUCCEEDED(GetResult)) {
+            CurrentSettings.IsSetFlags = 0;
+            CurrentSettings.IsSet.MaximumMtu = 1;
+            CurrentSettings.IsSet.MinimumMtu = 1;
+            CurrentSettings.SetGlobal();
+        }
+    }
+};
+
 void
 QuicTestMtuSettings()
 {
@@ -47,8 +64,7 @@ QuicTestMtuSettings()
         //
         // Test setting on library works
         //
-        MsQuicSettings CurrentSettings;
-        TEST_QUIC_SUCCEEDED(CurrentSettings.GetGlobal());
+        ResetSettings Resetter;
 
         MsQuicSettings NewSettings;
         QUIC_STATUS SetSuccess =
@@ -59,11 +75,6 @@ QuicTestMtuSettings()
 
         MsQuicSettings UpdatedSettings;
         QUIC_STATUS GetSuccess = UpdatedSettings.GetGlobal();
-
-        CurrentSettings.IsSetFlags = 0;
-        CurrentSettings.IsSet.MaximumMtu = TRUE;
-        CurrentSettings.IsSet.MinimumMtu = TRUE;
-        TEST_QUIC_SUCCEEDED(CurrentSettings.SetGlobal());
 
         TEST_QUIC_SUCCEEDED(SetSuccess);
         TEST_QUIC_SUCCEEDED(GetSuccess);
@@ -76,6 +87,76 @@ QuicTestMtuSettings()
     TEST_QUIC_SUCCEEDED(Registration.GetInitStatus());
     MsQuicAlpn Alpn("MsQuicTest");
     {
+        {
+            MsQuicSettings Settings;
+
+            //
+            // Test just setting lower bound
+            //
+            Settings.SetMinimumMtu(1);
+
+            MsQuicCredentialConfig ClientCredConfig;
+            MsQuicConfiguration ClientConfiguration(Registration, Alpn, Settings, ClientCredConfig);
+            TEST_QUIC_SUCCEEDED(ClientConfiguration.GetInitStatus());
+        }
+
+        {
+            ResetSettings Resetter;
+
+            MsQuicSettings NewGlobalSettings;
+            TEST_QUIC_SUCCEEDED(
+                NewGlobalSettings.
+                    SetMinimumMtu(1400).
+                    SetMaximumMtu(1400).
+                    SetGlobal());
+
+
+            MsQuicSettings Settings;
+
+            //
+            // Test setting minimum higher then global maximum
+            //
+            Settings.SetMinimumMtu(1450);
+
+            MsQuicCredentialConfig ClientCredConfig;
+            MsQuicConfiguration ClientConfiguration(Registration, Alpn, Settings, ClientCredConfig);
+            TEST_QUIC_SUCCEEDED(ClientConfiguration.GetInitStatus());
+
+            Settings.IsSetFlags = 0;
+            TEST_QUIC_SUCCEEDED(ClientConfiguration.GetSettings(Settings));
+            TEST_EQUAL(1450, Settings.MinimumMtu);
+            TEST_NOT_EQUAL(Settings.MaximumMtu, NewGlobalSettings.MaximumMtu);
+            TEST_TRUE(Settings.MinimumMtu <= Settings.MaximumMtu);
+        }
+
+        {
+            ResetSettings Resetter;
+
+            MsQuicSettings NewGlobalSettings;
+            TEST_QUIC_SUCCEEDED(
+                NewGlobalSettings.
+                    SetMinimumMtu(1400).
+                    SetMaximumMtu(1460).
+                    SetGlobal());
+
+
+            MsQuicSettings Settings;
+
+            //
+            // Test setting minimum higher then global, and setting global max
+            //
+            Settings.SetMinimumMtu(1450);
+
+            MsQuicCredentialConfig ClientCredConfig;
+            MsQuicConfiguration ClientConfiguration(Registration, Alpn, Settings, ClientCredConfig);
+            TEST_QUIC_SUCCEEDED(ClientConfiguration.GetInitStatus());
+
+            Settings.IsSetFlags = 0;
+            TEST_QUIC_SUCCEEDED(ClientConfiguration.GetSettings(Settings));
+            TEST_EQUAL(1450, Settings.MinimumMtu);
+            TEST_EQUAL(Settings.MaximumMtu, NewGlobalSettings.MaximumMtu);
+        }
+
         {
             MsQuicCredentialConfig ClientCredConfig;
             MsQuicConfiguration ClientConfiguration(Registration, Alpn, ClientCredConfig);
@@ -121,7 +202,7 @@ QuicTestMtuSettings()
 
             MsQuicConnection Connection(Registration);
             TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
-            TEST_QUIC_SUCCEEDED(Connection.StartLocalhost(ClientConfiguration, ServerLocalAddr));
+            TEST_QUIC_SUCCEEDED(Connection.Start(ClientConfiguration, ServerLocalAddr.GetFamily(), QUIC_TEST_LOOPBACK_FOR_AF(ServerLocalAddr.GetFamily()), ServerLocalAddr.GetPort()));
 
             //
             // Set connection settings after open, should fail
@@ -179,7 +260,7 @@ QuicTestMtuSettings()
                 0,
                 ServerLocalAddr.GetPort(),
                 1499);
-            TEST_QUIC_SUCCEEDED(Connection.StartLocalhost(ClientConfiguration, ServerLocalAddr));
+            TEST_QUIC_SUCCEEDED(Connection.Start(ClientConfiguration, ServerLocalAddr.GetFamily(), QUIC_TEST_LOOPBACK_FOR_AF(ServerLocalAddr.GetFamily()), ServerLocalAddr.GetPort()));
             MsQuicStream Stream(Connection, QUIC_STREAM_OPEN_FLAG_UNIDIRECTIONAL);
             TEST_QUIC_SUCCEEDED(Stream.GetInitStatus());
 
@@ -198,10 +279,10 @@ QuicTestMtuSettings()
             //
             // Ensure our MTU is in the middle somewhere
             //
-            QUIC_STATISTICS Stats;
+            QUIC_STATISTICS_V2 Stats;
             TEST_QUIC_SUCCEEDED(Connection.GetStatistics(&Stats));
-            TEST_NOT_EQUAL(1500, Stats.Send.PathMtu);
-            TEST_NOT_EQUAL(1280, Stats.Send.PathMtu);
+            TEST_NOT_EQUAL(1500, Stats.SendPathMtu);
+            TEST_NOT_EQUAL(1280, Stats.SendPathMtu);
 
             ServerDropper.ClientDropPacketSize = 0xFFFF;
 
@@ -217,7 +298,7 @@ QuicTestMtuSettings()
             // Ensure our MTU is in the max
             //
             TEST_QUIC_SUCCEEDED(Connection.GetStatistics(&Stats));
-            TEST_EQUAL(1500, Stats.Send.PathMtu);
+            TEST_EQUAL(1500, Stats.SendPathMtu);
 
             TEST_QUIC_SUCCEEDED(Stream.Send(&Buffer, 1, QUIC_SEND_FLAG_FIN));
 
@@ -270,7 +351,7 @@ QuicTestMtuDiscovery(
     MsQuicConnection Connection(Registration);
     TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
 
-    TEST_QUIC_SUCCEEDED(Connection.StartLocalhost(ClientConfiguration, ServerLocalAddr));
+    TEST_QUIC_SUCCEEDED(Connection.Start(ClientConfiguration, ServerLocalAddr.GetFamily(), QUIC_TEST_LOOPBACK_FOR_AF(ServerLocalAddr.GetFamily()), ServerLocalAddr.GetPort()));
 
     CxPlatSleep(4000); // Wait for the first idle period to expire.
     TEST_NOT_EQUAL(nullptr, Context.Connection);
@@ -278,9 +359,9 @@ QuicTestMtuDiscovery(
     //
     // Assert our maximum MTUs
     //
-    QUIC_STATISTICS ClientStats;
+    QUIC_STATISTICS_V2 ClientStats;
     QUIC_STATUS ClientSuccess = Connection.GetStatistics(&ClientStats);
-    QUIC_STATISTICS ServerStats;
+    QUIC_STATISTICS_V2 ServerStats;
     QUIC_STATUS ServerSuccess = Context.Connection->GetStatistics(&ServerStats);
 
     Connection.Shutdown(1);
@@ -289,8 +370,8 @@ QuicTestMtuDiscovery(
     TEST_QUIC_SUCCEEDED(ClientSuccess);
     TEST_QUIC_SUCCEEDED(ServerSuccess);
 
-    TEST_EQUAL(ClientExpectedMtu, ClientStats.Send.PathMtu);
-    TEST_EQUAL(ServerExpectedMtu, ServerStats.Send.PathMtu);
+    TEST_EQUAL(ClientExpectedMtu, ClientStats.SendPathMtu);
+    TEST_EQUAL(ServerExpectedMtu, ServerStats.SendPathMtu);
 
     Context.ShutdownEvent.WaitTimeout(2000);
 }

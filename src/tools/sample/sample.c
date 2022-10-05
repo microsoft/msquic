@@ -80,7 +80,7 @@ const uint64_t IdleTimeoutMs = 1000;
 const uint32_t SendBufferLength = 100;
 
 //
-// The QUIC API/function table returned from MsQuicOpen. It contains all the
+// The QUIC API/function table returned from MsQuicOpen2. It contains all the
 // functions called by the app to interact with MsQuic.
 //
 const QUIC_API_TABLE* MsQuic;
@@ -593,7 +593,9 @@ ClientStreamCallback(
         // with the stream. It can now be safely cleaned up.
         //
         printf("[strm][%p] All done\n", Stream);
-        MsQuic->StreamClose(Stream);
+        if (!Event->SHUTDOWN_COMPLETE.AppCloseInProgress) {
+            MsQuic->StreamClose(Stream);
+        }
         break;
     default:
         break;
@@ -816,7 +818,7 @@ RunClient(
         //
         uint8_t ResumptionTicket[1024];
         uint16_t TicketLength = (uint16_t)DecodeHexBuffer(ResumptionTicketString, sizeof(ResumptionTicket), ResumptionTicket);
-        if (QUIC_FAILED(Status = MsQuic->SetParam(Connection, QUIC_PARAM_LEVEL_CONNECTION, QUIC_PARAM_CONN_RESUMPTION_TICKET, TicketLength, ResumptionTicket))) {
+        if (QUIC_FAILED(Status = MsQuic->SetParam(Connection, QUIC_PARAM_CONN_RESUMPTION_TICKET, TicketLength, ResumptionTicket))) {
             printf("SetParam(QUIC_PARAM_CONN_RESUMPTION_TICKET) failed, 0x%x!\n", Status);
             goto Error;
         }
@@ -861,8 +863,8 @@ main(
     //
     // Open a handle to the library and get the API function table.
     //
-    if (QUIC_FAILED(Status = MsQuicOpen(&MsQuic))) {
-        printf("MsQuicOpen failed, 0x%x!\n", Status);
+    if (QUIC_FAILED(Status = MsQuicOpen2(&MsQuic))) {
+        printf("MsQuicOpen2 failed, 0x%x!\n", Status);
         goto Error;
     }
 

@@ -81,7 +81,6 @@ TestListener::GetLocalAddr(
     return
         MsQuic->GetParam(
             QuicListener,
-            QUIC_PARAM_LEVEL_LISTENER,
             QUIC_PARAM_LISTENER_LOCAL_ADDRESS,
             &Size,
             &localAddr.SockAddr);
@@ -96,7 +95,6 @@ TestListener::GetStatistics(
     return
         MsQuic->GetParam(
             QuicListener,
-            QUIC_PARAM_LEVEL_LISTENER,
             QUIC_PARAM_LISTENER_STATS,
             &Size,
             &stats);
@@ -113,6 +111,14 @@ TestListener::HandleListenerEvent(
 
     case QUIC_LISTENER_EVENT_NEW_CONNECTION:
         if (Event->NEW_CONNECTION.Info->ServerName != nullptr &&
+            _strnicmp(
+                QUIC_TEST_LOOPBACK_FOR_AF(QUIC_ADDRESS_FAMILY_INET),
+                Event->NEW_CONNECTION.Info->ServerName,
+                Event->NEW_CONNECTION.Info->ServerNameLength) != 0 &&
+            _strnicmp(
+                QUIC_TEST_LOOPBACK_FOR_AF(QUIC_ADDRESS_FAMILY_INET6),
+                Event->NEW_CONNECTION.Info->ServerName,
+                Event->NEW_CONNECTION.Info->ServerNameLength) != 0 &&
             _strnicmp(
                 QUIC_LOCALHOST_FOR_AF(QUIC_ADDRESS_FAMILY_INET),
                 Event->NEW_CONNECTION.Info->ServerName,
@@ -150,6 +156,9 @@ TestListener::HandleListenerEvent(
         }
 
         Status = QUIC_STATUS_SUCCESS;
+        break;
+
+    default:
         break;
     }
 

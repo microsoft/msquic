@@ -131,10 +131,30 @@ Ignore revocation offline failures. Only valid on Windows.
 
 Enables which cipher suites are available for negotiation via the `AllowedCipherSuites` member.
 
-`QUIC_CREDENTIAL_FLAGS_USE_PORTABLE_CERTIFICATES`
+`QUIC_CREDENTIAL_FLAG_USE_PORTABLE_CERTIFICATES`
 
-Provide the entire certificate chain to the application as a PKCS7 binary blob in the `QUIC_CONNECTION_EVENT_PEER_CERTIFICATE_RECEIVED` event.
-Only supported by OpenSSL.
+Provide the remote X.509 certificate as a DER (binary) blob and entire certificate chain to the application as a PKCS #7 DER blob in the `QUIC_CONNECTION_EVENT_PEER_CERTIFICATE_RECEIVED` event.
+Not supported in kernel mode.
+
+`QUIC_CREDENTIAL_FLAG_USE_SUPPLIED_CREDENTIALS`
+
+Tells the TLS layer (currently only supported by Schannel) to only use the supplied client certificate and not go looking for one on its own if the server asked for a certificate but the client app didn't supply one. More information can be found [here](https://docs.microsoft.com/en-us/windows/win32/secauthn/performing-authentication-using-schannel#authenticating-the-client).
+
+`QUIC_CREDENTIAL_FLAG_USE_SYSTEM_MAPPER`
+
+Tells the TLS layer (only supported by Schannel server) to use the system credential mapper to map the client-supplied credentials to a user account on the system.
+
+`QUIC_CREDENTIAL_FLAG_CACHE_ONLY_URL_RETRIEVAL`
+
+Only use certificates already cached when doing URL retrieval to build a certificate chain. Only valid on Windows.
+
+`QUIC_CREDENTIAL_FLAG_REVOCATION_CHECK_CACHE_ONLY`
+
+Only use cached revocation information when checking a certificate chain. Only valid on Windows.
+
+`QUIC_CREDENTIAL_FLAG_INPROC_PEER_CERTIFICATE`
+
+Obtain the peer certificate using a faster in-process API call. Only available on Schannel in the latest Windows 11 builds.
 
 #### `CertificateHash`
 

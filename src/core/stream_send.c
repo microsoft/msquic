@@ -239,10 +239,6 @@ Exit:
     }
 }
 
-//
-// Returns TRUE if the peer has indicated the stream ID is allowed to be used
-// yet.
-//
 BOOLEAN
 QuicStreamAllowedByPeer(
     _In_ const QUIC_STREAM* Stream
@@ -376,6 +372,10 @@ QuicStreamCompleteSendRequest(
         CXPLAT_DBG_ASSERT(
             Stream->SendBufferBookmark == NULL ||
             !(Stream->SendBufferBookmark->Flags & QUIC_SEND_FLAG_BUFFERED));
+    }
+
+    if (SendRequest->Flags & QUIC_SEND_FLAG_START && !Stream->Flags.Started) {
+        QuicStreamIndicateStartComplete(Stream, QUIC_STATUS_ABORTED);
     }
 
     if (!(SendRequest->Flags & QUIC_SEND_FLAG_BUFFERED)) {
@@ -561,7 +561,7 @@ QuicStreamSendFlush(
             SendRequest->StreamOffset,
             SendRequest->Flags);
 
-        if (SendRequest->Flags & QUIC_SEND_FLAG_START) {
+        if (SendRequest->Flags & QUIC_SEND_FLAG_START && !Stream->Flags.Started) {
             //
             // Start the stream if the flag is set.
             //
@@ -598,7 +598,7 @@ QuicStreamSendFlush(
     if (Start) {
         (void)QuicStreamStart(
             Stream,
-            QUIC_STREAM_START_FLAG_IMMEDIATE | QUIC_STREAM_START_FLAG_ASYNC,
+            QUIC_STREAM_START_FLAG_IMMEDIATE,
             FALSE);
     }
 
@@ -770,7 +770,7 @@ QuicStreamWriteOneFrame(
     QuicTraceLogStreamVerbose(
         AddFrame,
         Stream,
-        "Built stream frame, offset=%llu len=%lu fin=%hhu",
+        "Built stream frame, offset=%llu len=%hu fin=%hhu",
         Frame.Offset,
         (uint16_t)Frame.Length,
         Frame.Fin);
@@ -1017,6 +1017,9 @@ QuicStreamSendWrite(
     CXPLAT_DBG_ASSERT(Builder->Metadata->FrameCount < QUIC_MAX_FRAMES_PER_PACKET);
     uint8_t PrevFrameCount = Builder->Metadata->FrameCount;
     BOOLEAN RanOutOfRoom = FALSE;
+    const BOOLEAN IsInitial =
+        (Stream->Connection->Stats.QuicVersion != QUIC_VERSION_2 && Builder->PacketType == QUIC_INITIAL_V1) ||
+        (Stream->Connection->Stats.QuicVersion == QUIC_VERSION_2 && Builder->PacketType == QUIC_INITIAL_V2);
 
     uint16_t AvailableBufferLength =
         (uint16_t)Builder->Datagram->Length - Builder->EncryptionOverhead;
@@ -1026,6 +1029,12 @@ QuicStreamSendWrite(
         Builder->Metadata->Flags.KeyType == QUIC_PACKET_KEY_1_RTT ||
         Builder->Metadata->Flags.KeyType == QUIC_PACKET_KEY_0_RTT);
     CXPLAT_DBG_ASSERT(QuicStreamAllowedByPeer(Stream));
+
+    QuicTraceEvent(
+        StreamWriteFrames,
+        "[strm][%p] Writing frames to packet %llu",
+        Stream,
+        Builder->Metadata->PacketId);
 
     if (Stream->SendFlags & QUIC_STREAM_SEND_FLAG_MAX_DATA) {
 
@@ -1090,7 +1099,7 @@ QuicStreamSendWrite(
         uint16_t StreamFrameLength = AvailableBufferLength - Builder->DatagramLength;
         QuicStreamWriteStreamFrames(
             Stream,
-            Builder->PacketType == QUIC_INITIAL,
+            IsInitial,
             Builder->Metadata,
             &StreamFrameLength,
             Builder->Datagram->Buffer + Builder->DatagramLength);

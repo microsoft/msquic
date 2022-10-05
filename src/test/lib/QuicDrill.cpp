@@ -140,6 +140,7 @@ struct DrillSender {
                 0,
                 &DatapathCallbacks,
                 NULL,
+                NULL,
                 &Datapath);
         if (QUIC_FAILED(Status)) {
             TEST_FAILURE("Datapath init failed 0x%x", Status);
@@ -200,7 +201,7 @@ struct DrillSender {
 
         CXPLAT_SEND_DATA* SendData =
             CxPlatSendDataAlloc(
-                Binding, CXPLAT_ECN_NON_ECT, DatagramLength);
+                Binding, CXPLAT_ECN_NON_ECT, DatagramLength, &Route);
 
         QUIC_BUFFER* SendBuffer =
             CxPlatSendDataAllocBuffer(SendData, DatagramLength);
@@ -285,7 +286,7 @@ QuicDrillInitialPacketFailureTest(
 
         Status =
             Sender.Initialize(
-                QUIC_LOCALHOST_FOR_AF(QuicAddrFamily),
+                QUIC_TEST_LOOPBACK_FOR_AF(QuicAddrFamily),
                 QuicAddrFamily,
                 (QuicAddrFamily == QUIC_ADDRESS_FAMILY_INET) ?
                     ServerAddress.SockAddr.Ipv4.sin_port :
@@ -301,7 +302,7 @@ QuicDrillInitialPacketFailureTest(
             TEST_FAILURE("Get Listener statistics before test failed, 0x%x.", Status);
             return false;
         }
-        DroppedPacketsBefore = Stats.Binding.Recv.DroppedPackets;
+        DroppedPacketsBefore = Stats.BindingRecvDroppedPackets;
 
         //
         // Send test packet to the server.
@@ -311,17 +312,15 @@ QuicDrillInitialPacketFailureTest(
             return false;
         }
 
-        //
-        // Generously wait for server to process packet.
-        //
-        CxPlatSleep(100);
-
-        Status = Listener.GetStatistics(Stats);
-        if (QUIC_FAILED(Status)) {
-            TEST_FAILURE("Get Listener statistics after test failed, 0x%x.", Status);
-            return false;
-        }
-        DroppedPacketsAfter = Stats.Binding.Recv.DroppedPackets;
+        uint32_t Tries = 0;
+        do {
+            CxPlatSleep(100);
+            if (QUIC_FAILED(Status = Listener.GetStatistics(Stats))) {
+                TEST_FAILURE("Get Listener statistics after test failed, 0x%x.", Status);
+                return false;
+            }
+            DroppedPacketsAfter = Stats.BindingRecvDroppedPackets;
+        } while (DroppedPacketsAfter - DroppedPacketsBefore != 1 && Tries++ < 10);
 
         //
         // Validate the server rejected the packet just sent.

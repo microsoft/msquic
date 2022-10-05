@@ -75,8 +75,8 @@ This script provides helpers for building msquic.
 .PARAMETER CI
     Build is occuring from CI
 
-.PARAMETER TlsSecretsSupport
-    Enables export of traffic secrets.
+.PARAMETER OfficialRelease
+    Build is for an official (tag) release.
 
 .PARAMETER EnableTelemetryAsserts
     Enables telemetry asserts in release builds.
@@ -84,11 +84,23 @@ This script provides helpers for building msquic.
 .PARAMETER UseSystemOpenSSLCrypto
     Use system provided OpenSSL libcrypto rather then statically linked. Only affects OpenSSL Linux builds
 
+.PARAMETER EnableHighResolutionTimers
+    Configures the system to use high resolution timers.
+
+.PARAMETER UseXdp
+    Use XDP for the datapath instead of system socket APIs.
+
 .PARAMETER ExtraArtifactDir
     Add an extra classifier to the artifact directory to allow publishing alternate builds of same base library
 
 .PARAMETER LibraryName
     Renames the library to whatever is passed in
+
+.PARAMETER SysRoot
+    Directory with cross-compilation tools
+
+.PARAMETER OneBranch
+    Build is occuring from Onebranch pipeline.
 
 .EXAMPLE
     build.ps1
@@ -173,7 +185,7 @@ param (
     [switch]$CI = $false,
 
     [Parameter(Mandatory = $false)]
-    [switch]$TlsSecretsSupport = $false,
+    [switch]$OfficialRelease = $false,
 
     [Parameter(Mandatory = $false)]
     [switch]$EnableTelemetryAsserts = $false,
@@ -182,10 +194,22 @@ param (
     [switch]$UseSystemOpenSSLCrypto = $false,
 
     [Parameter(Mandatory = $false)]
+    [switch]$EnableHighResolutionTimers = $false,
+
+    [Parameter(Mandatory = $false)]
+    [switch]$UseXdp = $false,
+
+    [Parameter(Mandatory = $false)]
     [string]$ExtraArtifactDir = "",
 
     [Parameter(Mandatory = $false)]
-    [string]$LibraryName = "msquic"
+    [string]$LibraryName = "msquic",
+
+    [Parameter(Mandatory = $false)]
+    [string]$SysRoot = "/",
+
+    [Parameter(Mandatory = $false)]
+    [switch]$OneBranch = $false
 )
 
 Set-StrictMode -Version 'Latest'
@@ -207,19 +231,7 @@ $Arch = $BuildConfig.Arch
 $ArtifactsDir = $BuildConfig.ArtifactsDir
 
 if ($Generator -eq "") {
-    if ($IsWindows) {
-        $SetupModule = Get-Module -Name "VSSetup"
-        if ($null -eq $SetupModule) {
-            Install-Module VSSetup -Scope CurrentUser -Force -SkipPublisherCheck
-            Import-Module VSSetup
-        }
-        $VsVersion = Get-VSSetupInstance | Select-VSSetupInstance -Latest -Require Microsoft.VisualStudio.Component.VC.Tools.x86.x64 | Select-Object -ExpandProperty DisplayName
-        if ($VsVersion.Contains("2022")) {
-            $Generator = "Visual Studio 17 2022"
-        } else {
-            $Generator = "Visual Studio 16 2019"
-        }
-    } else {
+    if (!$IsWindows) {
         $Generator = "Unix Makefiles"
     }
 }
@@ -251,6 +263,20 @@ if ($Arch -eq "arm64ec") {
 if ($Platform -eq "ios" -and !$Static) {
     $Static = $true
     Write-Host "iOS can only be built as static"
+}
+
+if (!$OfficialRelease) {
+    try {
+        $env:GIT_REDIRECT_STDERR = '2>&1'
+        # Thanks to https://stackoverflow.com/questions/3404936/show-which-git-tag-you-are-on
+        # for this magic git command!
+        $Output = git describe --exact-match --tags $(git log -n1 --pretty='%h')
+        if (!$Output.Contains("fatal: no tag exactly matches")) {
+            Write-Host "Configuring OfficialRelease for tag build"
+            $OfficialRelease = $true
+        }
+    } catch { }
+    $LASTEXITCODE = 0
 }
 
 # Root directory of the project.
@@ -301,15 +327,18 @@ function CMake-Execute([String]$Arguments) {
 
 # Uses cmake to generate the build configuration files.
 function CMake-Generate {
-    $Arguments = "-G"
+    $Arguments = ""
 
     if ($Generator.Contains(" ")) {
         $Generator = """$Generator"""
     }
 
     if ($IsWindows) {
-        if ($Generator.Contains("Visual Studio")) {
-            $Arguments += " $Generator -A "
+        if ($Generator.Contains("Visual Studio") -or [string]::IsNullOrWhiteSpace($Generator)) {
+            if ($Generator.Contains("Visual Studio")) {
+                $Arguments += " -G $Generator"
+            }
+            $Arguments += " -A "
             switch ($Arch) {
                 "x86"   { $Arguments += "Win32" }
                 "x64"   { $Arguments += "x64" }
@@ -319,10 +348,10 @@ function CMake-Generate {
             }
         } else {
             Write-Host "Non VS based generators must be run from a Visual Studio Developer Powershell Prompt matching the passed in architecture"
-            $Arguments += " $Generator"
+            $Arguments += " -G $Generator"
         }
     } else {
-        $Arguments += " $Generator"
+        $Arguments += "-G $Generator"
     }
     if ($Platform -eq "ios") {
         $IosTCFile = Join-Path $RootDir cmake toolchains ios.cmake
@@ -334,15 +363,33 @@ function CMake-Generate {
     }
     if ($Platform -eq "macos") {
         switch ($Arch) {
-            "x64"   { $Arguments += " -DCMAKE_OSX_ARCHITECTURES=x86_64 -DCMAKE_OSX_DEPLOYMENT_TARGET=""10.15"""}
+            "x64"   { $Arguments += " -DCMAKE_OSX_ARCHITECTURES=x86_64 -DCMAKE_OSX_DEPLOYMENT_TARGET=""12"""}
             "arm64" { $Arguments += " -DCMAKE_OSX_ARCHITECTURES=arm64 -DCMAKE_OSX_DEPLOYMENT_TARGET=""11.0"""}
         }
+    }
+    if ($Platform -eq "linux") {
+        $Arguments += " $Generator"
+        $HostArch = "$([System.Runtime.InteropServices.RuntimeInformation]::ProcessArchitecture)".ToLower()
+        if ($HostArch -ne $Arch) {
+            if ($OneBranch) {
+                $Arguments += " -DONEBRANCH=1"
+            }
+            $Arguments += " -DCMAKE_FIND_ROOT_PATH_MODE_PROGRAM=NEVER -DCMAKE_CROSSCOMPILING=1 -DCMAKE_SYSROOT=$SysRoot"
+            switch ($Arch) {
+                "arm64" { $Arguments += " -DCMAKE_CXX_COMPILER_TARGET=aarch64-linux-gnu -DCMAKE_C_COMPILER_TARGET=aarch64-linux-gnu -DCMAKE_TARGET_ARCHITECTURE=arm64" }
+                "arm" { $Arguments += " -DCMAKE_CXX_COMPILER_TARGET=arm-linux-gnueabihf  -DCMAKE_C_COMPILER_TARGET=arm-linux-gnueabihf -DCMAKE_TARGET_ARCHITECTURE=arm" }
+            }
+       }
     }
     if($Static) {
         $Arguments += " -DQUIC_BUILD_SHARED=off"
     }
     $Arguments += " -DQUIC_TLS=" + $Tls
     $Arguments += " -DQUIC_OUTPUT_DIR=""$ArtifactsDir"""
+
+    if ($IsLinux) {
+        $Arguments += " -DQUIC_LINUX_LOG_ENCODER=lttng"
+    }
     if (!$DisableLogs) {
         $Arguments += " -DQUIC_ENABLE_LOGGING=on"
     }
@@ -352,30 +399,35 @@ function CMake-Generate {
     if ($CodeCheck) {
         $Arguments += " -DQUIC_CODE_CHECK=on"
     }
-    if ($DisableTools) {
-        $Arguments += " -DQUIC_BUILD_TOOLS=off"
-    }
-    if ($DisableTest) {
-        $Arguments += " -DQUIC_BUILD_TEST=off"
-    }
-    if ($DisablePerf) {
-        $Arguments += " -DQUIC_BUILD_PERF=off"
+    if ($Platform -ne "uwp" -and $Platform -ne "gamecore_console") {
+        if (!$DisableTools) {
+            $Arguments += " -DQUIC_BUILD_TOOLS=on"
+        }
+        if (!$DisableTest) {
+            $Arguments += " -DQUIC_BUILD_TEST=on"
+        }
+        if (!$DisablePerf) {
+            $Arguments += " -DQUIC_BUILD_PERF=on"
+        }
     }
     if (!$IsWindows) {
-        $Arguments += " -DCMAKE_BUILD_TYPE=" + $Config
+        $ConfigToBuild = $Config;
+        if ($Config -eq "Release") {
+            $ConfigToBuild = "RelWithDebInfo"
+        }
+        $Arguments += " -DCMAKE_BUILD_TYPE=" + $ConfigToBuild
     }
     if ($DynamicCRT) {
-        $Arguments += " -DQUIC_STATIC_LINK_CRT=off"
+        $Arguments += " -DQUIC_STATIC_LINK_CRT=off -DQUIC_STATIC_LINK_PARTIAL_CRT=off"
     }
     if ($PGO) {
         $Arguments += " -DQUIC_PGO=on"
     }
     if ($Platform -eq "uwp") {
-        $Arguments += " -DCMAKE_SYSTEM_NAME=WindowsStore -DCMAKE_SYSTEM_VERSION=10 -DQUIC_UWP_BUILD=on -DQUIC_STATIC_LINK_CRT=Off"
+        $Arguments += " -DCMAKE_SYSTEM_NAME=WindowsStore -DCMAKE_SYSTEM_VERSION=10 -DQUIC_UWP_BUILD=on"
     }
-    # On gamecore, only the main binary can be built.
     if ($Platform -eq "gamecore_console") {
-        $Arguments += " -DQUIC_GAMECORE_BUILD=on -DQUIC_STATIC_LINK_CRT=Off -DQUIC_BUILD_TEST=off -DQUIC_BUILD_TOOLS=off -DQUIC_BUILD_PERF=off"
+        $Arguments += " -DQUIC_GAMECORE_BUILD=on"
     }
     if ($ToolchainFile -ne "") {
         $Arguments += " -DCMAKE_TOOLCHAIN_FILE=""$ToolchainFile"""
@@ -394,8 +446,8 @@ function CMake-Generate {
         $Arguments += " -DQUIC_VER_BUILD_ID=$env:BUILD_BUILDID"
         $Arguments += " -DQUIC_VER_SUFFIX=-official"
     }
-    if ($TlsSecretsSupport) {
-        $Arguments += " -DQUIC_TLS_SECRETS_SUPPORT=on"
+    if ($OfficialRelease) {
+        $Arguments += " -DQUIC_OFFICIAL_RELEASE=ON"
     }
     if ($EnableTelemetryAsserts) {
         $Arguments += " -DQUIC_TELEMETRY_ASSERTS=on"
@@ -403,8 +455,14 @@ function CMake-Generate {
     if ($UseSystemOpenSSLCrypto) {
         $Arguments += " -DQUIC_USE_SYSTEM_LIBCRYPTO=on"
     }
+    if ($EnableHighResolutionTimers) {
+        $Arguments += " -DQUIC_HIGH_RES_TIMERS=on"
+    }
+    if ($UseXdp) {
+        $Arguments += " -DQUIC_USE_XDP=on"
+    }
     if ($Platform -eq "android") {
-        $env:PATH = "$env:ANDROID_NDK_ROOT/toolchains/llvm/prebuilt/linux-x86_64/bin:$env:PATH"
+        $env:PATH = "$env:ANDROID_NDK_LATEST_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin:$env:PATH"
         switch ($Arch) {
             "x86"   { $Arguments += " -DANDROID_ABI=x86"}
             "x64"   { $Arguments += " -DANDROID_ABI=x86_64" }
@@ -412,24 +470,20 @@ function CMake-Generate {
             "arm64" { $Arguments += " -DANDROID_ABI=arm64-v8a" }
         }
         $Arguments += " -DANDROID_PLATFORM=android-29"
-        $NDK = $env:ANDROID_NDK_HOME
+        $NDK = $env:ANDROID_NDK_LATEST_HOME
+        $env:ANDROID_NDK_HOME = $env:ANDROID_NDK_LATEST_HOME
         $NdkToolchainFile = "$NDK/build/cmake/android.toolchain.cmake"
         $Arguments += " -DANDROID_NDK=""$NDK"""
         $Arguments += " -DCMAKE_TOOLCHAIN_FILE=""$NdkToolchainFile"""
     }
+
     $Arguments += " -DQUIC_LIBRARY_NAME=$LibraryName"
     $Arguments += " ../../.."
 
+    Write-Host "Executing: $Arguments"
     CMake-Execute $Arguments
-
-    if ($PGO -and $Config -eq "Release") {
-        # Manually edit project file, since CMake doesn't seem to have a way to do it.
-        $FindText = "  <PropertyGroup Label=`"UserMacros`" />"
-        $ReplaceText = "  <PropertyGroup Label=`"UserMacros`" />`r`n  <PropertyGroup><LibraryPath>`$(LibraryPath);`$(VC_LibraryPath_VC_$($Arch)_Desktop)</LibraryPath></PropertyGroup>"
-        $ProjectFile = Join-Path $BuildDir "src\bin\msquic.vcxproj"
-        (Get-Content $ProjectFile) -replace $FindText, $ReplaceText | Out-File $ProjectFile
-    }
 }
+
 
 # Uses cmake to generate the build configuration files.
 function CMake-Build {
@@ -445,17 +499,17 @@ function CMake-Build {
         $Arguments += " -- VERBOSE=1"
     }
 
+    Write-Host "Running: $Arguments"
     CMake-Execute $Arguments
 
     if ($IsWindows) {
         Copy-Item (Join-Path $BuildDir "obj" $Config "$LibraryName.lib") $ArtifactsDir
         if ($SanitizeAddress -or ($PGO -and $Config -eq "Release")) {
-            Install-Module VSSetup -Scope CurrentUser -Force -SkipPublisherCheck
-            Import-Module VSSetup
-            $VSInstallationPath = Get-VSSetupInstance | Select-VSSetupInstance -Latest -Require Microsoft.VisualStudio.Component.VC.Tools.x86.x64 | Select-Object -ExpandProperty InstallationPath
-            $VCToolVersion = Get-Content -Path "$VSInstallationPath\VC\Auxiliary\Build\Microsoft.VCToolsVersion.default.txt"
-            $VCToolsPath = "$VSInstallationPath\VC\Tools\MSVC\$VCToolVersion\bin\Host$Arch\$Arch"
-            if (Test-Path $VCToolsPath) {
+            $CacheFile = Join-Path $BuildDir "CMakeCache.txt"
+            $LinkerMatches = Select-String -Path $CacheFile -Pattern "CMAKE_LINKER:FILEPATH=(.+)"
+            if ($LinkerMatches.Matches.Length -eq 1 -and $LinkerMatches.Matches[0].Groups.Count -eq 2) {
+                $Linker = $LinkerMatches.Matches[0].Groups[1].Value
+                $VCToolsPath = Split-Path -Path $Linker -Parent
                 if ($PGO) {
                     Copy-Item (Join-Path $VCToolsPath "pgort140.dll") $ArtifactsDir
                     Copy-Item (Join-Path $VCToolsPath "pgodb140.dll") $ArtifactsDir
@@ -471,7 +525,13 @@ function CMake-Build {
                 Log "Failed to find VC Tools path!"
             }
         }
+    } elseif ($IsLinux -and $OneBranch) {
+        # archive the build artifacts for packaging to persist symlinks and permissons.
+        $ArtifactsParentDir = Split-Path $ArtifactsDir -Parent
+        $ArtifactsLeafDir = Split-Path $ArtifactsDir -Leaf
+        tar -cvf "$ArtifactsDir.tar" -C $ArtifactsParentDir "./$ArtifactsLeafDir"
     }
+
     # Package debug symbols on macos
     if ($Platform -eq "macos") {
         $BuiltArtifacts = Get-ChildItem $ArtifactsDir -File

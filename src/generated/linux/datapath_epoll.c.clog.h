@@ -1,4 +1,6 @@
+#ifndef CLOG_DO_NOT_INCLUDE_HEADER
 #include <clog.h>
+#endif
 #undef TRACEPOINT_PROVIDER
 #define TRACEPOINT_PROVIDER CLOG_DATAPATH_EPOLL_C
 #undef TRACEPOINT_PROBE_DYNAMIC_LINKAGE
@@ -16,10 +18,6 @@
 #define _clog_MACRO_QuicTraceLogWarning  1
 #define QuicTraceLogWarning(a, ...) _clog_CAT(_clog_ARGN_SELECTOR(__VA_ARGS__), _clog_CAT(_,a(#a, __VA_ARGS__)))
 #endif
-#ifndef _clog_MACRO_QuicTraceLogInfo
-#define _clog_MACRO_QuicTraceLogInfo  1
-#define QuicTraceLogInfo(a, ...) _clog_CAT(_clog_ARGN_SELECTOR(__VA_ARGS__), _clog_CAT(_,a(#a, __VA_ARGS__)))
-#endif
 #ifndef _clog_MACRO_QuicTraceLogError
 #define _clog_MACRO_QuicTraceLogError  1
 #define QuicTraceLogError(a, ...) _clog_CAT(_clog_ARGN_SELECTOR(__VA_ARGS__), _clog_CAT(_,a(#a, __VA_ARGS__)))
@@ -31,10 +29,6 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-#ifndef _clog_3_ARGS_TRACE_DatapathOpenUdpSocketFailed
-
-
-
 /*----------------------------------------------------------
 // Decoder Ring for DatapathOpenUdpSocketFailed
 // [data] UDP send segmentation helper socket failed to open, 0x%x
@@ -42,17 +36,14 @@ extern "C" {
             DatapathOpenUdpSocketFailed,
             "[data] UDP send segmentation helper socket failed to open, 0x%x",
             SockError);
-// arg2 = arg2 = SockError
+// arg2 = arg2 = SockError = arg2
 ----------------------------------------------------------*/
+#ifndef _clog_3_ARGS_TRACE_DatapathOpenUdpSocketFailed
 #define _clog_3_ARGS_TRACE_DatapathOpenUdpSocketFailed(uniqueId, encoded_arg_string, arg2)\
 tracepoint(CLOG_DATAPATH_EPOLL_C, DatapathOpenUdpSocketFailed , arg2);\
 
 #endif
 
-
-
-
-#ifndef _clog_3_ARGS_TRACE_DatapathQueryUdpSegmentFailed
 
 
 
@@ -63,17 +54,14 @@ tracepoint(CLOG_DATAPATH_EPOLL_C, DatapathOpenUdpSocketFailed , arg2);\
             DatapathQueryUdpSegmentFailed,
             "[data] Query for UDP_SEGMENT failed, 0x%x",
             SockError);
-// arg2 = arg2 = SockError
+// arg2 = arg2 = SockError = arg2
 ----------------------------------------------------------*/
+#ifndef _clog_3_ARGS_TRACE_DatapathQueryUdpSegmentFailed
 #define _clog_3_ARGS_TRACE_DatapathQueryUdpSegmentFailed(uniqueId, encoded_arg_string, arg2)\
 tracepoint(CLOG_DATAPATH_EPOLL_C, DatapathQueryUdpSegmentFailed , arg2);\
 
 #endif
 
-
-
-
-#ifndef _clog_3_ARGS_TRACE_DatapathRecvEmpty
 
 
 
@@ -84,59 +72,14 @@ tracepoint(CLOG_DATAPATH_EPOLL_C, DatapathQueryUdpSegmentFailed , arg2);\
             DatapathRecvEmpty,
             "[data][%p] Dropping datagram with empty payload.",
             SocketContext->Binding);
-// arg2 = arg2 = SocketContext->Binding
+// arg2 = arg2 = SocketContext->Binding = arg2
 ----------------------------------------------------------*/
+#ifndef _clog_3_ARGS_TRACE_DatapathRecvEmpty
 #define _clog_3_ARGS_TRACE_DatapathRecvEmpty(uniqueId, encoded_arg_string, arg2)\
 tracepoint(CLOG_DATAPATH_EPOLL_C, DatapathRecvEmpty , arg2);\
 
 #endif
 
-
-
-
-#ifndef _clog_3_ARGS_TRACE_DatapathWorkerThreadStart
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for DatapathWorkerThreadStart
-// [data][%p] Worker start
-// QuicTraceLogInfo(
-        DatapathWorkerThreadStart,
-        "[data][%p] Worker start",
-        ProcContext);
-// arg2 = arg2 = ProcContext
-----------------------------------------------------------*/
-#define _clog_3_ARGS_TRACE_DatapathWorkerThreadStart(uniqueId, encoded_arg_string, arg2)\
-tracepoint(CLOG_DATAPATH_EPOLL_C, DatapathWorkerThreadStart , arg2);\
-
-#endif
-
-
-
-
-#ifndef _clog_3_ARGS_TRACE_DatapathWorkerThreadStop
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for DatapathWorkerThreadStop
-// [data][%p] Worker stop
-// QuicTraceLogInfo(
-        DatapathWorkerThreadStop,
-        "[data][%p] Worker stop",
-        ProcContext);
-// arg2 = arg2 = ProcContext
-----------------------------------------------------------*/
-#define _clog_3_ARGS_TRACE_DatapathWorkerThreadStop(uniqueId, encoded_arg_string, arg2)\
-tracepoint(CLOG_DATAPATH_EPOLL_C, DatapathWorkerThreadStop , arg2);\
-
-#endif
-
-
-
-
-#ifndef _clog_4_ARGS_TRACE_DatapathResolveHostNameFailed
 
 
 
@@ -148,107 +91,15 @@ tracepoint(CLOG_DATAPATH_EPOLL_C, DatapathWorkerThreadStop , arg2);\
         "[%p] Couldn't resolve hostname '%s' to an IP address",
         Datapath,
         HostName);
-// arg2 = arg2 = Datapath
-// arg3 = arg3 = HostName
+// arg2 = arg2 = Datapath = arg2
+// arg3 = arg3 = HostName = arg3
 ----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_DatapathResolveHostNameFailed
 #define _clog_4_ARGS_TRACE_DatapathResolveHostNameFailed(uniqueId, encoded_arg_string, arg2, arg3)\
 tracepoint(CLOG_DATAPATH_EPOLL_C, DatapathResolveHostNameFailed , arg2, arg3);\
 
 #endif
 
-
-
-
-#ifndef _clog_4_ARGS_TRACE_LibraryErrorStatus
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for LibraryErrorStatus
-// [ lib] ERROR, %u, %s.
-// QuicTraceEvent(
-            LibraryErrorStatus,
-            "[ lib] ERROR, %u, %s.",
-            Status,
-            "epoll_create1(EPOLL_CLOEXEC) failed");
-// arg2 = arg2 = Status
-// arg3 = arg3 = "epoll_create1(EPOLL_CLOEXEC) failed"
-----------------------------------------------------------*/
-#define _clog_4_ARGS_TRACE_LibraryErrorStatus(uniqueId, encoded_arg_string, arg2, arg3)\
-tracepoint(CLOG_DATAPATH_EPOLL_C, LibraryErrorStatus , arg2, arg3);\
-
-#endif
-
-
-
-
-#ifndef _clog_4_ARGS_TRACE_LibraryErrorStatus
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for LibraryErrorStatus
-// [ lib] ERROR, %u, %s.
-// QuicTraceEvent(
-            LibraryErrorStatus,
-            "[ lib] ERROR, %u, %s.",
-            Status,
-            "eventfd failed");
-// arg2 = arg2 = Status
-// arg3 = arg3 = "eventfd failed"
-----------------------------------------------------------*/
-#define _clog_4_ARGS_TRACE_LibraryErrorStatus(uniqueId, encoded_arg_string, arg2, arg3)\
-
-#endif
-
-
-
-
-#ifndef _clog_4_ARGS_TRACE_LibraryErrorStatus
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for LibraryErrorStatus
-// [ lib] ERROR, %u, %s.
-// QuicTraceEvent(
-            LibraryErrorStatus,
-            "[ lib] ERROR, %u, %s.",
-            Status,
-            "epoll_ctl(EPOLL_CTL_ADD) failed");
-// arg2 = arg2 = Status
-// arg3 = arg3 = "epoll_ctl(EPOLL_CTL_ADD) failed"
-----------------------------------------------------------*/
-#define _clog_4_ARGS_TRACE_LibraryErrorStatus(uniqueId, encoded_arg_string, arg2, arg3)\
-
-#endif
-
-
-
-
-#ifndef _clog_4_ARGS_TRACE_LibraryErrorStatus
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for LibraryErrorStatus
-// [ lib] ERROR, %u, %s.
-// QuicTraceEvent(
-            LibraryErrorStatus,
-            "[ lib] ERROR, %u, %s.",
-            Status,
-            "CxPlatThreadCreate failed");
-// arg2 = arg2 = Status
-// arg3 = arg3 = "CxPlatThreadCreate failed"
-----------------------------------------------------------*/
-#define _clog_4_ARGS_TRACE_LibraryErrorStatus(uniqueId, encoded_arg_string, arg2, arg3)\
-
-#endif
-
-
-
-
-#ifndef _clog_4_ARGS_TRACE_AllocFailure
 
 
 
@@ -260,40 +111,15 @@ tracepoint(CLOG_DATAPATH_EPOLL_C, LibraryErrorStatus , arg2, arg3);\
             "Allocation of '%s' failed. (%llu bytes)",
             "CXPLAT_DATAPATH",
             DatapathLength);
-// arg2 = arg2 = "CXPLAT_DATAPATH"
-// arg3 = arg3 = DatapathLength
+// arg2 = arg2 = "CXPLAT_DATAPATH" = arg2
+// arg3 = arg3 = DatapathLength = arg3
 ----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_AllocFailure
 #define _clog_4_ARGS_TRACE_AllocFailure(uniqueId, encoded_arg_string, arg2, arg3)\
 tracepoint(CLOG_DATAPATH_EPOLL_C, AllocFailure , arg2, arg3);\
 
 #endif
 
-
-
-
-#ifndef _clog_4_ARGS_TRACE_AllocFailure
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for AllocFailure
-// Allocation of '%s' failed. (%llu bytes)
-// QuicTraceEvent(
-            AllocFailure,
-            "Allocation of '%s' failed. (%llu bytes)",
-            "CXPLAT_DATAPATH_RECV_BLOCK",
-            0);
-// arg2 = arg2 = "CXPLAT_DATAPATH_RECV_BLOCK"
-// arg3 = arg3 = 0
-----------------------------------------------------------*/
-#define _clog_4_ARGS_TRACE_AllocFailure(uniqueId, encoded_arg_string, arg2, arg3)\
-
-#endif
-
-
-
-
-#ifndef _clog_4_ARGS_TRACE_LibraryErrorStatus
 
 
 
@@ -305,17 +131,15 @@ tracepoint(CLOG_DATAPATH_EPOLL_C, AllocFailure , arg2, arg3);\
         "[ lib] ERROR, %u, %s.",
         (uint32_t)Result,
         "Resolving hostname to IP");
-// arg2 = arg2 = (uint32_t)Result
-// arg3 = arg3 = "Resolving hostname to IP"
+// arg2 = arg2 = (uint32_t)Result = arg2
+// arg3 = arg3 = "Resolving hostname to IP" = arg3
 ----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_LibraryErrorStatus
 #define _clog_4_ARGS_TRACE_LibraryErrorStatus(uniqueId, encoded_arg_string, arg2, arg3)\
+tracepoint(CLOG_DATAPATH_EPOLL_C, LibraryErrorStatus , arg2, arg3);\
 
 #endif
 
-
-
-
-#ifndef _clog_5_ARGS_TRACE_DatapathErrorStatus
 
 
 
@@ -328,425 +152,16 @@ tracepoint(CLOG_DATAPATH_EPOLL_C, AllocFailure , arg2, arg3);\
             SocketContext->Binding,
             Status,
             "setsockopt(SO_ATTACH_REUSEPORT_CBPF) failed");
-// arg2 = arg2 = SocketContext->Binding
-// arg3 = arg3 = Status
-// arg4 = arg4 = "setsockopt(SO_ATTACH_REUSEPORT_CBPF) failed"
+// arg2 = arg2 = SocketContext->Binding = arg2
+// arg3 = arg3 = Status = arg3
+// arg4 = arg4 = "setsockopt(SO_ATTACH_REUSEPORT_CBPF) failed" = arg4
 ----------------------------------------------------------*/
+#ifndef _clog_5_ARGS_TRACE_DatapathErrorStatus
 #define _clog_5_ARGS_TRACE_DatapathErrorStatus(uniqueId, encoded_arg_string, arg2, arg3, arg4)\
 tracepoint(CLOG_DATAPATH_EPOLL_C, DatapathErrorStatus , arg2, arg3, arg4);\
 
 #endif
 
-
-
-
-#ifndef _clog_5_ARGS_TRACE_DatapathErrorStatus
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for DatapathErrorStatus
-// [data][%p] ERROR, %u, %s.
-// QuicTraceEvent(
-            DatapathErrorStatus,
-            "[data][%p] ERROR, %u, %s.",
-            Binding,
-            Status,
-            "eventfd failed");
-// arg2 = arg2 = Binding
-// arg3 = arg3 = Status
-// arg4 = arg4 = "eventfd failed"
-----------------------------------------------------------*/
-#define _clog_5_ARGS_TRACE_DatapathErrorStatus(uniqueId, encoded_arg_string, arg2, arg3, arg4)\
-
-#endif
-
-
-
-
-#ifndef _clog_5_ARGS_TRACE_DatapathErrorStatus
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for DatapathErrorStatus
-// [data][%p] ERROR, %u, %s.
-// QuicTraceEvent(
-            DatapathErrorStatus,
-            "[data][%p] ERROR, %u, %s.",
-            Binding,
-            Status,
-            "epoll_ctl(EPOLL_CTL_ADD) failed");
-// arg2 = arg2 = Binding
-// arg3 = arg3 = Status
-// arg4 = arg4 = "epoll_ctl(EPOLL_CTL_ADD) failed"
-----------------------------------------------------------*/
-#define _clog_5_ARGS_TRACE_DatapathErrorStatus(uniqueId, encoded_arg_string, arg2, arg3, arg4)\
-
-#endif
-
-
-
-
-#ifndef _clog_5_ARGS_TRACE_DatapathErrorStatus
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for DatapathErrorStatus
-// [data][%p] ERROR, %u, %s.
-// QuicTraceEvent(
-            DatapathErrorStatus,
-            "[data][%p] ERROR, %u, %s.",
-            Binding,
-            Status,
-            "socket failed");
-// arg2 = arg2 = Binding
-// arg3 = arg3 = Status
-// arg4 = arg4 = "socket failed"
-----------------------------------------------------------*/
-#define _clog_5_ARGS_TRACE_DatapathErrorStatus(uniqueId, encoded_arg_string, arg2, arg3, arg4)\
-
-#endif
-
-
-
-
-#ifndef _clog_5_ARGS_TRACE_DatapathErrorStatus
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for DatapathErrorStatus
-// [data][%p] ERROR, %u, %s.
-// QuicTraceEvent(
-            DatapathErrorStatus,
-            "[data][%p] ERROR, %u, %s.",
-            Binding,
-            Status,
-            "setsockopt(IPV6_V6ONLY) failed");
-// arg2 = arg2 = Binding
-// arg3 = arg3 = Status
-// arg4 = arg4 = "setsockopt(IPV6_V6ONLY) failed"
-----------------------------------------------------------*/
-#define _clog_5_ARGS_TRACE_DatapathErrorStatus(uniqueId, encoded_arg_string, arg2, arg3, arg4)\
-
-#endif
-
-
-
-
-#ifndef _clog_5_ARGS_TRACE_DatapathErrorStatus
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for DatapathErrorStatus
-// [data][%p] ERROR, %u, %s.
-// QuicTraceEvent(
-            DatapathErrorStatus,
-            "[data][%p] ERROR, %u, %s.",
-            Binding,
-            Status,
-            "setsockopt(IP_MTU_DISCOVER) failed");
-// arg2 = arg2 = Binding
-// arg3 = arg3 = Status
-// arg4 = arg4 = "setsockopt(IP_MTU_DISCOVER) failed"
-----------------------------------------------------------*/
-#define _clog_5_ARGS_TRACE_DatapathErrorStatus(uniqueId, encoded_arg_string, arg2, arg3, arg4)\
-
-#endif
-
-
-
-
-#ifndef _clog_5_ARGS_TRACE_DatapathErrorStatus
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for DatapathErrorStatus
-// [data][%p] ERROR, %u, %s.
-// QuicTraceEvent(
-            DatapathErrorStatus,
-            "[data][%p] ERROR, %u, %s.",
-            Binding,
-            Status,
-            "setsockopt(IPV6_DONTFRAG) failed");
-// arg2 = arg2 = Binding
-// arg3 = arg3 = Status
-// arg4 = arg4 = "setsockopt(IPV6_DONTFRAG) failed"
-----------------------------------------------------------*/
-#define _clog_5_ARGS_TRACE_DatapathErrorStatus(uniqueId, encoded_arg_string, arg2, arg3, arg4)\
-
-#endif
-
-
-
-
-#ifndef _clog_5_ARGS_TRACE_DatapathErrorStatus
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for DatapathErrorStatus
-// [data][%p] ERROR, %u, %s.
-// QuicTraceEvent(
-            DatapathErrorStatus,
-            "[data][%p] ERROR, %u, %s.",
-            Binding,
-            Status,
-            "setsockopt(IPV6_RECVPKTINFO) failed");
-// arg2 = arg2 = Binding
-// arg3 = arg3 = Status
-// arg4 = arg4 = "setsockopt(IPV6_RECVPKTINFO) failed"
-----------------------------------------------------------*/
-#define _clog_5_ARGS_TRACE_DatapathErrorStatus(uniqueId, encoded_arg_string, arg2, arg3, arg4)\
-
-#endif
-
-
-
-
-#ifndef _clog_5_ARGS_TRACE_DatapathErrorStatus
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for DatapathErrorStatus
-// [data][%p] ERROR, %u, %s.
-// QuicTraceEvent(
-            DatapathErrorStatus,
-            "[data][%p] ERROR, %u, %s.",
-            Binding,
-            Status,
-            "setsockopt(IP_PKTINFO) failed");
-// arg2 = arg2 = Binding
-// arg3 = arg3 = Status
-// arg4 = arg4 = "setsockopt(IP_PKTINFO) failed"
-----------------------------------------------------------*/
-#define _clog_5_ARGS_TRACE_DatapathErrorStatus(uniqueId, encoded_arg_string, arg2, arg3, arg4)\
-
-#endif
-
-
-
-
-#ifndef _clog_5_ARGS_TRACE_DatapathErrorStatus
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for DatapathErrorStatus
-// [data][%p] ERROR, %u, %s.
-// QuicTraceEvent(
-            DatapathErrorStatus,
-            "[data][%p] ERROR, %u, %s.",
-            Binding,
-            Status,
-            "setsockopt(IPV6_RECVTCLASS) failed");
-// arg2 = arg2 = Binding
-// arg3 = arg3 = Status
-// arg4 = arg4 = "setsockopt(IPV6_RECVTCLASS) failed"
-----------------------------------------------------------*/
-#define _clog_5_ARGS_TRACE_DatapathErrorStatus(uniqueId, encoded_arg_string, arg2, arg3, arg4)\
-
-#endif
-
-
-
-
-#ifndef _clog_5_ARGS_TRACE_DatapathErrorStatus
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for DatapathErrorStatus
-// [data][%p] ERROR, %u, %s.
-// QuicTraceEvent(
-            DatapathErrorStatus,
-            "[data][%p] ERROR, %u, %s.",
-            Binding,
-            Status,
-            "setsockopt(IP_RECVTOS) failed");
-// arg2 = arg2 = Binding
-// arg3 = arg3 = Status
-// arg4 = arg4 = "setsockopt(IP_RECVTOS) failed"
-----------------------------------------------------------*/
-#define _clog_5_ARGS_TRACE_DatapathErrorStatus(uniqueId, encoded_arg_string, arg2, arg3, arg4)\
-
-#endif
-
-
-
-
-#ifndef _clog_5_ARGS_TRACE_DatapathErrorStatus
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for DatapathErrorStatus
-// [data][%p] ERROR, %u, %s.
-// QuicTraceEvent(
-            DatapathErrorStatus,
-            "[data][%p] ERROR, %u, %s.",
-            Binding,
-            Status,
-            "setsockopt(SO_RCVBUF) failed");
-// arg2 = arg2 = Binding
-// arg3 = arg3 = Status
-// arg4 = arg4 = "setsockopt(SO_RCVBUF) failed"
-----------------------------------------------------------*/
-#define _clog_5_ARGS_TRACE_DatapathErrorStatus(uniqueId, encoded_arg_string, arg2, arg3, arg4)\
-
-#endif
-
-
-
-
-#ifndef _clog_5_ARGS_TRACE_DatapathErrorStatus
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for DatapathErrorStatus
-// [data][%p] ERROR, %u, %s.
-// QuicTraceEvent(
-                DatapathErrorStatus,
-                "[data][%p] ERROR, %u, %s.",
-                Binding,
-                Status,
-                "setsockopt(SO_REUSEPORT) failed");
-// arg2 = arg2 = Binding
-// arg3 = arg3 = Status
-// arg4 = arg4 = "setsockopt(SO_REUSEPORT) failed"
-----------------------------------------------------------*/
-#define _clog_5_ARGS_TRACE_DatapathErrorStatus(uniqueId, encoded_arg_string, arg2, arg3, arg4)\
-
-#endif
-
-
-
-
-#ifndef _clog_5_ARGS_TRACE_DatapathErrorStatus
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for DatapathErrorStatus
-// [data][%p] ERROR, %u, %s.
-// QuicTraceEvent(
-            DatapathErrorStatus,
-            "[data][%p] ERROR, %u, %s.",
-            Binding,
-            Status,
-            "bind failed");
-// arg2 = arg2 = Binding
-// arg3 = arg3 = Status
-// arg4 = arg4 = "bind failed"
-----------------------------------------------------------*/
-#define _clog_5_ARGS_TRACE_DatapathErrorStatus(uniqueId, encoded_arg_string, arg2, arg3, arg4)\
-
-#endif
-
-
-
-
-#ifndef _clog_5_ARGS_TRACE_DatapathErrorStatus
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for DatapathErrorStatus
-// [data][%p] ERROR, %u, %s.
-// QuicTraceEvent(
-                DatapathErrorStatus,
-                "[data][%p] ERROR, %u, %s.",
-                Binding,
-                Status,
-                "connect failed");
-// arg2 = arg2 = Binding
-// arg3 = arg3 = Status
-// arg4 = arg4 = "connect failed"
-----------------------------------------------------------*/
-#define _clog_5_ARGS_TRACE_DatapathErrorStatus(uniqueId, encoded_arg_string, arg2, arg3, arg4)\
-
-#endif
-
-
-
-
-#ifndef _clog_5_ARGS_TRACE_DatapathErrorStatus
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for DatapathErrorStatus
-// [data][%p] ERROR, %u, %s.
-// QuicTraceEvent(
-            DatapathErrorStatus,
-            "[data][%p] ERROR, %u, %s.",
-            Binding,
-            Status,
-            "getsockname failed");
-// arg2 = arg2 = Binding
-// arg3 = arg3 = Status
-// arg4 = arg4 = "getsockname failed"
-----------------------------------------------------------*/
-#define _clog_5_ARGS_TRACE_DatapathErrorStatus(uniqueId, encoded_arg_string, arg2, arg3, arg4)\
-
-#endif
-
-
-
-
-#ifndef _clog_4_ARGS_TRACE_AllocFailure
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for AllocFailure
-// Allocation of '%s' failed. (%llu bytes)
-// QuicTraceEvent(
-                    AllocFailure,
-                    "Allocation of '%s' failed. (%llu bytes)",
-                    "CXPLAT_DATAPATH_RECV_BLOCK",
-                    0);
-// arg2 = arg2 = "CXPLAT_DATAPATH_RECV_BLOCK"
-// arg3 = arg3 = 0
-----------------------------------------------------------*/
-#define _clog_4_ARGS_TRACE_AllocFailure(uniqueId, encoded_arg_string, arg2, arg3)\
-
-#endif
-
-
-
-
-#ifndef _clog_5_ARGS_TRACE_DatapathErrorStatus
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for DatapathErrorStatus
-// [data][%p] ERROR, %u, %s.
-// QuicTraceEvent(
-            DatapathErrorStatus,
-            "[data][%p] ERROR, %u, %s.",
-            SocketContext->Binding,
-            Status,
-            "epoll_ctl failed");
-// arg2 = arg2 = SocketContext->Binding
-// arg3 = arg3 = Status
-// arg4 = arg4 = "epoll_ctl failed"
-----------------------------------------------------------*/
-#define _clog_5_ARGS_TRACE_DatapathErrorStatus(uniqueId, encoded_arg_string, arg2, arg3, arg4)\
-
-#endif
-
-
-
-
-#ifndef _clog_9_ARGS_TRACE_DatapathRecv
 
 
 
@@ -761,163 +176,18 @@ tracepoint(CLOG_DATAPATH_EPOLL_C, DatapathErrorStatus , arg2, arg3, arg4);\
             (uint32_t)RecvPacket->BufferLength,
             CASTED_CLOG_BYTEARRAY(sizeof(*LocalAddr), LocalAddr),
             CASTED_CLOG_BYTEARRAY(sizeof(*RemoteAddr), RemoteAddr));
-// arg2 = arg2 = SocketContext->Binding
-// arg3 = arg3 = (uint32_t)RecvPacket->BufferLength
-// arg4 = arg4 = (uint32_t)RecvPacket->BufferLength
-// arg5 = arg5 = CASTED_CLOG_BYTEARRAY(sizeof(*LocalAddr), LocalAddr)
-// arg6 = arg6 = CASTED_CLOG_BYTEARRAY(sizeof(*RemoteAddr), RemoteAddr)
+// arg2 = arg2 = SocketContext->Binding = arg2
+// arg3 = arg3 = (uint32_t)RecvPacket->BufferLength = arg3
+// arg4 = arg4 = (uint32_t)RecvPacket->BufferLength = arg4
+// arg5 = arg5 = CASTED_CLOG_BYTEARRAY(sizeof(*LocalAddr), LocalAddr) = arg5
+// arg6 = arg6 = CASTED_CLOG_BYTEARRAY(sizeof(*RemoteAddr), RemoteAddr) = arg6
 ----------------------------------------------------------*/
+#ifndef _clog_9_ARGS_TRACE_DatapathRecv
 #define _clog_9_ARGS_TRACE_DatapathRecv(uniqueId, encoded_arg_string, arg2, arg3, arg4, arg5, arg5_len, arg6, arg6_len)\
 tracepoint(CLOG_DATAPATH_EPOLL_C, DatapathRecv , arg2, arg3, arg4, arg5_len, arg5, arg6_len, arg6);\
 
 #endif
 
-
-
-
-#ifndef _clog_5_ARGS_TRACE_DatapathErrorStatus
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for DatapathErrorStatus
-// [data][%p] ERROR, %u, %s.
-// QuicTraceEvent(
-            DatapathErrorStatus,
-            "[data][%p] ERROR, %u, %s.",
-            SocketContext->Binding,
-            Status,
-            "CxPlatSocketContextPrepareReceive failed multiple times. Receive will no longer work.");
-// arg2 = arg2 = SocketContext->Binding
-// arg3 = arg3 = Status
-// arg4 = arg4 = "CxPlatSocketContextPrepareReceive failed multiple times. Receive will no longer work."
-----------------------------------------------------------*/
-#define _clog_5_ARGS_TRACE_DatapathErrorStatus(uniqueId, encoded_arg_string, arg2, arg3, arg4)\
-
-#endif
-
-
-
-
-#ifndef _clog_5_ARGS_TRACE_DatapathErrorStatus
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for DatapathErrorStatus
-// [data][%p] ERROR, %u, %s.
-// QuicTraceEvent(
-            DatapathErrorStatus,
-            "[data][%p] ERROR, %u, %s.",
-            SocketContext->Binding,
-            Status,
-            "epoll_ctl failed");
-// arg2 = arg2 = SocketContext->Binding
-// arg3 = arg3 = Status
-// arg4 = arg4 = "epoll_ctl failed"
-----------------------------------------------------------*/
-#define _clog_5_ARGS_TRACE_DatapathErrorStatus(uniqueId, encoded_arg_string, arg2, arg3, arg4)\
-
-#endif
-
-
-
-
-#ifndef _clog_5_ARGS_TRACE_DatapathErrorStatus
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for DatapathErrorStatus
-// [data][%p] ERROR, %u, %s.
-// QuicTraceEvent(
-                DatapathErrorStatus,
-                "[data][%p] ERROR, %u, %s.",
-                SocketContext->Binding,
-                errno,
-                "getsockopt(SO_ERROR) failed");
-// arg2 = arg2 = SocketContext->Binding
-// arg3 = arg3 = errno
-// arg4 = arg4 = "getsockopt(SO_ERROR) failed"
-----------------------------------------------------------*/
-#define _clog_5_ARGS_TRACE_DatapathErrorStatus(uniqueId, encoded_arg_string, arg2, arg3, arg4)\
-
-#endif
-
-
-
-
-#ifndef _clog_5_ARGS_TRACE_DatapathErrorStatus
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for DatapathErrorStatus
-// [data][%p] ERROR, %u, %s.
-// QuicTraceEvent(
-                DatapathErrorStatus,
-                "[data][%p] ERROR, %u, %s.",
-                SocketContext->Binding,
-                ErrNum,
-                "Socket error event");
-// arg2 = arg2 = SocketContext->Binding
-// arg3 = arg3 = ErrNum
-// arg4 = arg4 = "Socket error event"
-----------------------------------------------------------*/
-#define _clog_5_ARGS_TRACE_DatapathErrorStatus(uniqueId, encoded_arg_string, arg2, arg3, arg4)\
-
-#endif
-
-
-
-
-#ifndef _clog_5_ARGS_TRACE_DatapathErrorStatus
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for DatapathErrorStatus
-// [data][%p] ERROR, %u, %s.
-// QuicTraceEvent(
-                        DatapathErrorStatus,
-                        "[data][%p] ERROR, %u, %s.",
-                        SocketContext->Binding,
-                        errno,
-                        "recvmmsg failed");
-// arg2 = arg2 = SocketContext->Binding
-// arg3 = arg3 = errno
-// arg4 = arg4 = "recvmmsg failed"
-----------------------------------------------------------*/
-#define _clog_5_ARGS_TRACE_DatapathErrorStatus(uniqueId, encoded_arg_string, arg2, arg3, arg4)\
-
-#endif
-
-
-
-
-#ifndef _clog_4_ARGS_TRACE_AllocFailure
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for AllocFailure
-// Allocation of '%s' failed. (%llu bytes)
-// QuicTraceEvent(
-            AllocFailure,
-            "Allocation of '%s' failed. (%llu bytes)",
-            "CXPLAT_SOCKET",
-            BindingLength);
-// arg2 = arg2 = "CXPLAT_SOCKET"
-// arg3 = arg3 = BindingLength
-----------------------------------------------------------*/
-#define _clog_4_ARGS_TRACE_AllocFailure(uniqueId, encoded_arg_string, arg2, arg3)\
-
-#endif
-
-
-
-
-#ifndef _clog_7_ARGS_TRACE_DatapathCreated
 
 
 
@@ -930,40 +200,16 @@ tracepoint(CLOG_DATAPATH_EPOLL_C, DatapathRecv , arg2, arg3, arg4, arg5_len, arg
         Binding,
         CASTED_CLOG_BYTEARRAY(Config->LocalAddress ? sizeof(*Config->LocalAddress) : 0, Config->LocalAddress),
         CASTED_CLOG_BYTEARRAY(Config->RemoteAddress ? sizeof(*Config->RemoteAddress) : 0, Config->RemoteAddress));
-// arg2 = arg2 = Binding
-// arg3 = arg3 = CASTED_CLOG_BYTEARRAY(Config->LocalAddress ? sizeof(*Config->LocalAddress) : 0, Config->LocalAddress)
-// arg4 = arg4 = CASTED_CLOG_BYTEARRAY(Config->RemoteAddress ? sizeof(*Config->RemoteAddress) : 0, Config->RemoteAddress)
+// arg2 = arg2 = Binding = arg2
+// arg3 = arg3 = CASTED_CLOG_BYTEARRAY(Config->LocalAddress ? sizeof(*Config->LocalAddress) : 0, Config->LocalAddress) = arg3
+// arg4 = arg4 = CASTED_CLOG_BYTEARRAY(Config->RemoteAddress ? sizeof(*Config->RemoteAddress) : 0, Config->RemoteAddress) = arg4
 ----------------------------------------------------------*/
+#ifndef _clog_7_ARGS_TRACE_DatapathCreated
 #define _clog_7_ARGS_TRACE_DatapathCreated(uniqueId, encoded_arg_string, arg2, arg3, arg3_len, arg4, arg4_len)\
 tracepoint(CLOG_DATAPATH_EPOLL_C, DatapathCreated , arg2, arg3_len, arg3, arg4_len, arg4);\
 
 #endif
 
-
-
-
-#ifndef _clog_3_ARGS_TRACE_DatapathDestroyed
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for DatapathDestroyed
-// [data][%p] Destroyed
-// QuicTraceEvent(
-                DatapathDestroyed,
-                "[data][%p] Destroyed",
-                Binding);
-// arg2 = arg2 = Binding
-----------------------------------------------------------*/
-#define _clog_3_ARGS_TRACE_DatapathDestroyed(uniqueId, encoded_arg_string, arg2)\
-tracepoint(CLOG_DATAPATH_EPOLL_C, DatapathDestroyed , arg2);\
-
-#endif
-
-
-
-
-#ifndef _clog_3_ARGS_TRACE_DatapathDestroyed
 
 
 
@@ -974,62 +220,14 @@ tracepoint(CLOG_DATAPATH_EPOLL_C, DatapathDestroyed , arg2);\
         DatapathDestroyed,
         "[data][%p] Destroyed",
         Socket);
-// arg2 = arg2 = Socket
+// arg2 = arg2 = Socket = arg2
 ----------------------------------------------------------*/
+#ifndef _clog_3_ARGS_TRACE_DatapathDestroyed
 #define _clog_3_ARGS_TRACE_DatapathDestroyed(uniqueId, encoded_arg_string, arg2)\
+tracepoint(CLOG_DATAPATH_EPOLL_C, DatapathDestroyed , arg2);\
 
 #endif
 
-
-
-
-#ifndef _clog_4_ARGS_TRACE_AllocFailure
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for AllocFailure
-// Allocation of '%s' failed. (%llu bytes)
-// QuicTraceEvent(
-            AllocFailure,
-            "Allocation of '%s' failed. (%llu bytes)",
-            "CXPLAT_SEND_DATA",
-            0);
-// arg2 = arg2 = "CXPLAT_SEND_DATA"
-// arg3 = arg3 = 0
-----------------------------------------------------------*/
-#define _clog_4_ARGS_TRACE_AllocFailure(uniqueId, encoded_arg_string, arg2, arg3)\
-
-#endif
-
-
-
-
-#ifndef _clog_5_ARGS_TRACE_DatapathErrorStatus
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for DatapathErrorStatus
-// [data][%p] ERROR, %u, %s.
-// QuicTraceEvent(
-            DatapathErrorStatus,
-            "[data][%p] ERROR, %u, %s.",
-            SocketProc->Binding,
-            IoResult,
-            "sendmmsg completion");
-// arg2 = arg2 = SocketProc->Binding
-// arg3 = arg3 = IoResult
-// arg4 = arg4 = "sendmmsg completion"
-----------------------------------------------------------*/
-#define _clog_5_ARGS_TRACE_DatapathErrorStatus(uniqueId, encoded_arg_string, arg2, arg3, arg4)\
-
-#endif
-
-
-
-
-#ifndef _clog_10_ARGS_TRACE_DatapathSend
 
 
 
@@ -1045,63 +243,16 @@ tracepoint(CLOG_DATAPATH_EPOLL_C, DatapathDestroyed , arg2);\
             SendData->SegmentSize,
             CASTED_CLOG_BYTEARRAY(sizeof(*RemoteAddress), RemoteAddress),
             CASTED_CLOG_BYTEARRAY(sizeof(*LocalAddress), LocalAddress));
-// arg2 = arg2 = Socket
-// arg3 = arg3 = SendData->TotalSize
-// arg4 = arg4 = SendData->BufferCount
-// arg5 = arg5 = SendData->SegmentSize
-// arg6 = arg6 = CASTED_CLOG_BYTEARRAY(sizeof(*RemoteAddress), RemoteAddress)
-// arg7 = arg7 = CASTED_CLOG_BYTEARRAY(sizeof(*LocalAddress), LocalAddress)
+// arg2 = arg2 = Socket = arg2
+// arg3 = arg3 = SendData->TotalSize = arg3
+// arg4 = arg4 = SendData->BufferCount = arg4
+// arg5 = arg5 = SendData->SegmentSize = arg5
+// arg6 = arg6 = CASTED_CLOG_BYTEARRAY(sizeof(*RemoteAddress), RemoteAddress) = arg6
+// arg7 = arg7 = CASTED_CLOG_BYTEARRAY(sizeof(*LocalAddress), LocalAddress) = arg7
 ----------------------------------------------------------*/
+#ifndef _clog_10_ARGS_TRACE_DatapathSend
 #define _clog_10_ARGS_TRACE_DatapathSend(uniqueId, encoded_arg_string, arg2, arg3, arg4, arg5, arg6, arg6_len, arg7, arg7_len)\
 tracepoint(CLOG_DATAPATH_EPOLL_C, DatapathSend , arg2, arg3, arg4, arg5, arg6_len, arg6, arg7_len, arg7);\
-
-#endif
-
-
-
-
-#ifndef _clog_5_ARGS_TRACE_DatapathErrorStatus
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for DatapathErrorStatus
-// [data][%p] ERROR, %u, %s.
-// QuicTraceEvent(
-                        DatapathErrorStatus,
-                        "[data][%p] ERROR, %u, %s.",
-                        SocketContext->Binding,
-                        errno,
-                        "epoll_ctl failed");
-// arg2 = arg2 = SocketContext->Binding
-// arg3 = arg3 = errno
-// arg4 = arg4 = "epoll_ctl failed"
-----------------------------------------------------------*/
-#define _clog_5_ARGS_TRACE_DatapathErrorStatus(uniqueId, encoded_arg_string, arg2, arg3, arg4)\
-
-#endif
-
-
-
-
-#ifndef _clog_5_ARGS_TRACE_DatapathErrorStatus
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for DatapathErrorStatus
-// [data][%p] ERROR, %u, %s.
-// QuicTraceEvent(
-                    DatapathErrorStatus,
-                    "[data][%p] ERROR, %u, %s.",
-                    SocketContext->Binding,
-                    Status,
-                    "sendmmsg failed");
-// arg2 = arg2 = SocketContext->Binding
-// arg3 = arg3 = Status
-// arg4 = arg4 = "sendmmsg failed"
-----------------------------------------------------------*/
-#define _clog_5_ARGS_TRACE_DatapathErrorStatus(uniqueId, encoded_arg_string, arg2, arg3, arg4)\
 
 #endif
 

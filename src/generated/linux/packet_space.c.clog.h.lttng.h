@@ -9,8 +9,8 @@
             "Allocation of '%s' failed. (%llu bytes)",
             "packet space",
             sizeof(QUIC_PACKET_SPACE));
-// arg2 = arg2 = "packet space"
-// arg3 = arg3 = sizeof(QUIC_PACKET_SPACE)
+// arg2 = arg2 = "packet space" = arg2
+// arg3 = arg3 = sizeof(QUIC_PACKET_SPACE) = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_PACKET_SPACE_C, AllocFailure,
     TP_ARGS(

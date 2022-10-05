@@ -68,7 +68,6 @@ QuicPacketBuilderValidate(
         CXPLAT_DBG_ASSERT(Builder->Datagram->Length != 0);
         CXPLAT_DBG_ASSERT(Builder->Datagram->Length <= UINT16_MAX);
         CXPLAT_DBG_ASSERT(Builder->Datagram->Length >= Builder->MinimumDatagramLength);
-        CXPLAT_DBG_ASSERT(Builder->Datagram->Length > (uint32_t)Builder->DatagramLength);
         CXPLAT_DBG_ASSERT(Builder->Datagram->Length >= (uint32_t)(Builder->DatagramLength + Builder->EncryptionOverhead));
         CXPLAT_DBG_ASSERT(Builder->DatagramLength >= Builder->PacketStart);
         CXPLAT_DBG_ASSERT(Builder->DatagramLength >= Builder->HeaderLength);
@@ -194,7 +193,18 @@ QuicPacketBuilderPrepare(
     }
 
     BOOLEAN Result = FALSE;
-    uint8_t NewPacketType = QuicKeyTypeToPacketType(NewPacketKeyType);
+    uint8_t NewPacketType =
+        Connection->Stats.QuicVersion == QUIC_VERSION_2 ?
+            QuicKeyTypeToPacketTypeV2(NewPacketKeyType) :
+            QuicKeyTypeToPacketTypeV1(NewPacketKeyType);
+
+    //
+    // For now, we can't send QUIC Bit as 0 on initial packets from client to server.
+    // see: https://www.ietf.org/archive/id/draft-ietf-quic-bit-grease-04.html#name-clearing-the-quic-bit
+    //
+    BOOLEAN FixedBit = (QuicConnIsClient(Connection) &&
+        (NewPacketType == (uint8_t)QUIC_INITIAL_V1 || NewPacketKeyType == (uint8_t)QUIC_INITIAL_V2)) ? TRUE : Connection->State.FixedBit;
+
     uint16_t DatagramSize = Builder->Path->Mtu;
     if ((uint32_t)DatagramSize > Builder->Path->Allowance) {
         CXPLAT_DBG_ASSERT(!IsPathMtuDiscovery); // PMTUD always happens after source addr validation.
@@ -207,6 +217,9 @@ QuicPacketBuilderPrepare(
     // Next, make sure the current QUIC packet matches the new packet type. If
     // the current one doesn't match, finalize it and then start a new one.
     //
+
+    uint32_t Proc = CxPlatProcCurrentNumber();
+    uint64_t ProcShifted = ((uint64_t)Proc + 1) << 40;
 
     BOOLEAN NewQuicPacket = FALSE;
     if (Builder->PacketType != NewPacketType || IsPathMtuDiscovery ||
@@ -240,6 +253,8 @@ QuicPacketBuilderPrepare(
         //
         BOOLEAN SendDataAllocated = FALSE;
         if (Builder->SendData == NULL) {
+            Builder->BatchId =
+                ProcShifted | InterlockedIncrement64((int64_t*)&MsQuicLib.PerProc[Proc].SendBatchId);
             Builder->SendData =
                 CxPlatSendDataAlloc(
                     Builder->Path->Binding->Socket,
@@ -248,7 +263,8 @@ QuicPacketBuilderPrepare(
                         0 :
                         MaxUdpPayloadSizeForFamily(
                             QuicAddrGetFamily(&Builder->Path->Route.RemoteAddress),
-                            DatagramSize));
+                            DatagramSize),
+                    &Builder->Path->Route);
             if (Builder->SendData == NULL) {
                 QuicTraceEvent(
                     AllocFailure,
@@ -306,7 +322,8 @@ QuicPacketBuilderPrepare(
                 Builder->MinimumDatagramLength = NewDatagramLength;
             }
 
-        } else if (NewPacketType == QUIC_INITIAL) {
+        } else if ((Connection->Stats.QuicVersion == QUIC_VERSION_2 && NewPacketType == QUIC_INITIAL_V2) ||
+            (Connection->Stats.QuicVersion != QUIC_VERSION_2 && NewPacketType == QUIC_INITIAL_V1)) {
 
             //
             // Make sure to pad Initial packets.
@@ -336,7 +353,10 @@ QuicPacketBuilderPrepare(
         //
 
         Builder->PacketType = NewPacketType;
-        Builder->EncryptLevel = QuicPacketTypeToEncryptLevel(NewPacketType);
+        Builder->EncryptLevel =
+            Connection->Stats.QuicVersion == QUIC_VERSION_2 ?
+                QuicPacketTypeToEncryptLevelV2(NewPacketType) :
+                QuicPacketTypeToEncryptLevelV1(NewPacketType);
         Builder->Key = Connection->Crypto.TlsState.WriteKeys[NewPacketKeyType];
         CXPLAT_DBG_ASSERT(Builder->Key != NULL);
         CXPLAT_DBG_ASSERT(Builder->Key->PacketKey != NULL);
@@ -345,6 +365,14 @@ QuicPacketBuilderPrepare(
             Connection->State.Disable1RttEncrytion) {
             Builder->EncryptionOverhead = 0;
         }
+
+        Builder->Metadata->PacketId =
+            ProcShifted | InterlockedIncrement64((int64_t*)&MsQuicLib.PerProc[Proc].SendPacketId);
+        QuicTraceEvent(
+            PacketCreated,
+            "[pack][%llu] Created in batch %llu",
+            Builder->Metadata->PacketId,
+            Builder->BatchId);
 
         Builder->Metadata->FrameCount = 0;
         Builder->Metadata->PacketNumber = Connection->Send.NextPacketNumber++;
@@ -373,6 +401,7 @@ QuicPacketBuilderPrepare(
             case QUIC_VERSION_1:
             case QUIC_VERSION_DRAFT_29:
             case QUIC_VERSION_MS_1:
+            case QUIC_VERSION_2:
                 Builder->HeaderLength =
                     QuicPacketEncodeShortHeaderV1(
                         &Builder->Path->DestCid->CID,
@@ -380,6 +409,7 @@ QuicPacketBuilderPrepare(
                         Builder->PacketNumberLength,
                         Builder->Path->SpinBit,
                         PacketSpace->CurrentKeyPhase,
+                        FixedBit,
                         BufferSpaceAvailable,
                         Header);
                 Builder->Metadata->Flags.KeyPhase = PacketSpace->CurrentKeyPhase;
@@ -396,11 +426,13 @@ QuicPacketBuilderPrepare(
             case QUIC_VERSION_1:
             case QUIC_VERSION_DRAFT_29:
             case QUIC_VERSION_MS_1:
+            case QUIC_VERSION_2:
             default:
                 Builder->HeaderLength =
                     QuicPacketEncodeLongHeaderV1(
                         Connection->Stats.QuicVersion,
-                        (QUIC_LONG_HEADER_TYPE_V1)NewPacketType,
+                        NewPacketType,
+                        FixedBit,
                         &Builder->Path->DestCid->CID,
                         &Builder->SourceCid->CID,
                         Connection->Send.InitialTokenLength,
@@ -721,6 +753,7 @@ QuicPacketBuilderFinalize(
         case QUIC_VERSION_1:
         case QUIC_VERSION_DRAFT_29:
         case QUIC_VERSION_MS_1:
+        case QUIC_VERSION_2:
         default:
             QuicVarIntEncode2Bytes(
                 (uint16_t)Builder->PacketNumberLength +
@@ -759,6 +792,11 @@ QuicPacketBuilderFinalize(
         // Encrypt the data.
         //
 
+        QuicTraceEvent(
+            PacketEncrypt,
+            "[pack][%llu] Encrypting",
+            Builder->Metadata->PacketId);
+
         PayloadLength += Builder->EncryptionOverhead;
         Builder->DatagramLength += Builder->EncryptionOverhead;
 
@@ -780,6 +818,11 @@ QuicPacketBuilderFinalize(
             QuicConnFatalError(Connection, Status, "Encryption failure");
             goto Exit;
         }
+
+        QuicTraceEvent(
+            PacketFinalize,
+            "[pack][%llu] Finalizing",
+            Builder->Metadata->PacketId);
 
         if (Connection->State.HeaderProtectionEnabled) {
 
@@ -867,6 +910,13 @@ QuicPacketBuilderFinalize(
             CXPLAT_DBG_ASSERT(Builder->Key->PacketKey != NULL);
             CXPLAT_DBG_ASSERT(Builder->Key->HeaderKey != NULL);
         }
+
+    } else {
+
+        QuicTraceEvent(
+            PacketFinalize,
+            "[pack][%llu] Finalizing",
+            Builder->Metadata->PacketId);
     }
 
     //
@@ -915,9 +965,9 @@ Exit:
         if (Builder->Datagram != NULL) {
             Builder->Datagram->Length = Builder->DatagramLength;
             Builder->Datagram = NULL;
-            Builder->DatagramLength = 0;
             ++Builder->TotalCountDatagrams;
             Builder->TotalDatagramsLength += Builder->DatagramLength;
+            Builder->DatagramLength = 0;
         }
 
         if (FlushBatchedDatagrams || CxPlatSendDataIsFull(Builder->SendData)) {
@@ -927,9 +977,14 @@ Exit:
             CXPLAT_DBG_ASSERT(Builder->TotalCountDatagrams > 0);
             QuicPacketBuilderSendBatch(Builder);
             CXPLAT_DBG_ASSERT(Builder->Metadata->FrameCount == 0);
+            QuicTraceEvent(
+                PacketBatchSent,
+                "[pack][%llu] Batch sent",
+                Builder->BatchId);
         }
 
-        if (Builder->PacketType == QUIC_RETRY) {
+        if ((Connection->Stats.QuicVersion != QUIC_VERSION_2 && Builder->PacketType == QUIC_RETRY_V1) ||
+            (Connection->Stats.QuicVersion == QUIC_VERSION_2 && Builder->PacketType == QUIC_RETRY_V2)) {
             CXPLAT_DBG_ASSERT(Builder->Metadata->PacketNumber == 0);
             QuicConnCloseLocally(
                 Connection,

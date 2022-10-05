@@ -9,8 +9,8 @@
                 "[%c][TX][%llu] Thrown away on shutdown",
                 PtkConnPre(Connection),
                 Packet->PacketNumber);
-// arg2 = arg2 = PtkConnPre(Connection)
-// arg3 = arg3 = Packet->PacketNumber
+// arg2 = arg2 = PtkConnPre(Connection) = arg2
+// arg3 = arg3 = Packet->PacketNumber = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_LOSS_DETECTION_C, PacketTxDiscarded,
     TP_ARGS(
@@ -32,8 +32,8 @@ TRACEPOINT_EVENT(CLOG_LOSS_DETECTION_C, PacketTxDiscarded,
             "[%c][TX][%llu] Thrown away on shutdown (lost packet)",
             PtkConnPre(Connection),
             Packet->PacketNumber);
-// arg2 = arg2 = PtkConnPre(Connection)
-// arg3 = arg3 = Packet->PacketNumber
+// arg2 = arg2 = PtkConnPre(Connection) = arg2
+// arg3 = arg3 = Packet->PacketNumber = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_LOSS_DETECTION_C, PacketTxLostDiscarded,
     TP_ARGS(
@@ -55,8 +55,8 @@ TRACEPOINT_EVENT(CLOG_LOSS_DETECTION_C, PacketTxLostDiscarded,
                 "[%c][TX][%llu] Forgetting",
                 PtkConnPre(Connection),
                 Packet->PacketNumber);
-// arg2 = arg2 = PtkConnPre(Connection)
-// arg3 = arg3 = Packet->PacketNumber
+// arg2 = arg2 = PtkConnPre(Connection) = arg2
+// arg3 = arg3 = Packet->PacketNumber = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_LOSS_DETECTION_C, PacketTxForget,
     TP_ARGS(
@@ -79,9 +79,9 @@ TRACEPOINT_EVENT(CLOG_LOSS_DETECTION_C, PacketTxForget,
                         PtkConnPre(Connection),
                         Packet->PacketNumber,
                         LossDetection->LargestAck - Packet->PacketNumber);
-// arg2 = arg2 = PtkConnPre(Connection)
-// arg3 = arg3 = Packet->PacketNumber
-// arg4 = arg4 = LossDetection->LargestAck - Packet->PacketNumber
+// arg2 = arg2 = PtkConnPre(Connection) = arg2
+// arg3 = arg3 = Packet->PacketNumber = arg3
+// arg4 = arg4 = LossDetection->LargestAck - Packet->PacketNumber = arg4
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_LOSS_DETECTION_C, PacketTxLostFack,
     TP_ARGS(
@@ -99,16 +99,16 @@ TRACEPOINT_EVENT(CLOG_LOSS_DETECTION_C, PacketTxLostFack,
 
 /*----------------------------------------------------------
 // Decoder Ring for PacketTxLostRack
-// [%c][TX][%llu] Lost: RACK %lu ms
+// [%c][TX][%llu] Lost: RACK %u ms
 // QuicTraceLogVerbose(
                         PacketTxLostRack,
-                        "[%c][TX][%llu] Lost: RACK %lu ms",
+                        "[%c][TX][%llu] Lost: RACK %u ms",
                         PtkConnPre(Connection),
                         Packet->PacketNumber,
                         CxPlatTimeDiff32(Packet->SentTime, TimeNow));
-// arg2 = arg2 = PtkConnPre(Connection)
-// arg3 = arg3 = Packet->PacketNumber
-// arg4 = arg4 = CxPlatTimeDiff32(Packet->SentTime, TimeNow)
+// arg2 = arg2 = PtkConnPre(Connection) = arg2
+// arg3 = arg3 = Packet->PacketNumber = arg3
+// arg4 = arg4 = CxPlatTimeDiff32(Packet->SentTime, TimeNow) = arg4
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_LOSS_DETECTION_C, PacketTxLostRack,
     TP_ARGS(
@@ -132,8 +132,8 @@ TRACEPOINT_EVENT(CLOG_LOSS_DETECTION_C, PacketTxLostRack,
                 "[%c][TX][%llu] ACKed (implicit)",
                 PtkConnPre(Connection),
                 Packet->PacketNumber);
-// arg2 = arg2 = PtkConnPre(Connection)
-// arg3 = arg3 = Packet->PacketNumber
+// arg2 = arg2 = PtkConnPre(Connection) = arg2
+// arg3 = arg3 = Packet->PacketNumber = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_LOSS_DETECTION_C, PacketTxAckedImplicit,
     TP_ARGS(
@@ -155,8 +155,8 @@ TRACEPOINT_EVENT(CLOG_LOSS_DETECTION_C, PacketTxAckedImplicit,
                 "[%c][TX][%llu] Rejected",
                 PtkConnPre(Connection),
                 Packet->PacketNumber);
-// arg2 = arg2 = PtkConnPre(Connection)
-// arg3 = arg3 = Packet->PacketNumber
+// arg2 = arg2 = PtkConnPre(Connection) = arg2
+// arg3 = arg3 = Packet->PacketNumber = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_LOSS_DETECTION_C, PacketTx0RttRejected,
     TP_ARGS(
@@ -178,8 +178,8 @@ TRACEPOINT_EVENT(CLOG_LOSS_DETECTION_C, PacketTx0RttRejected,
                     "[%c][TX][%llu] Spurious loss detected",
                     PtkConnPre(Connection),
                     (*End)->PacketNumber);
-// arg2 = arg2 = PtkConnPre(Connection)
-// arg3 = arg3 = (*End)->PacketNumber
+// arg2 = arg2 = PtkConnPre(Connection) = arg2
+// arg3 = arg3 = (*End)->PacketNumber = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_LOSS_DETECTION_C, PacketTxSpuriousLoss,
     TP_ARGS(
@@ -203,10 +203,10 @@ TRACEPOINT_EVENT(CLOG_LOSS_DETECTION_C, PacketTxSpuriousLoss,
             Packet->PacketNumber,
             PacketRtt / 1000,
             PacketRtt % 1000);
-// arg2 = arg2 = PtkConnPre(Connection)
-// arg3 = arg3 = Packet->PacketNumber
-// arg4 = arg4 = PacketRtt / 1000
-// arg5 = arg5 = PacketRtt % 1000
+// arg2 = arg2 = PtkConnPre(Connection) = arg2
+// arg3 = arg3 = Packet->PacketNumber = arg3
+// arg4 = arg4 = PacketRtt / 1000 = arg4
+// arg5 = arg5 = PacketRtt % 1000 = arg5
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_LOSS_DETECTION_C, PacketTxAcked,
     TP_ARGS(
@@ -232,8 +232,8 @@ TRACEPOINT_EVENT(CLOG_LOSS_DETECTION_C, PacketTxAcked,
                 "[%c][TX][%llu] Probe Retransmit",
                 PtkConnPre(Connection),
                 Packet->PacketNumber);
-// arg2 = arg2 = PtkConnPre(Connection)
-// arg3 = arg3 = Packet->PacketNumber
+// arg2 = arg2 = PtkConnPre(Connection) = arg2
+// arg3 = arg3 = Packet->PacketNumber = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_LOSS_DETECTION_C, PacketTxProbeRetransmit,
     TP_ARGS(
@@ -254,7 +254,7 @@ TRACEPOINT_EVENT(CLOG_LOSS_DETECTION_C, PacketTxProbeRetransmit,
             HandshakeConfirmedAck,
             Connection,
             "Handshake confirmed (ack)");
-// arg1 = arg1 = Connection
+// arg1 = arg1 = Connection = arg1
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_LOSS_DETECTION_C, HandshakeConfirmedAck,
     TP_ARGS(
@@ -274,8 +274,8 @@ TRACEPOINT_EVENT(CLOG_LOSS_DETECTION_C, HandshakeConfirmedAck,
                 Connection,
                 "Path[%hhu] Minimum MTU validated",
                 Path->ID);
-// arg1 = arg1 = Connection
-// arg3 = arg3 = Path->ID
+// arg1 = arg1 = Connection = arg1
+// arg3 = arg3 = Path->ID = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_LOSS_DETECTION_C, PathMinMtuValidated,
     TP_ARGS(
@@ -297,8 +297,8 @@ TRACEPOINT_EVENT(CLOG_LOSS_DETECTION_C, PathMinMtuValidated,
                         Connection,
                         "Path[%hhu] validation timed out",
                         Path->ID);
-// arg1 = arg1 = Connection
-// arg3 = arg3 = Path->ID
+// arg1 = arg1 = Connection = arg1
+// arg3 = arg3 = Path->ID = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_LOSS_DETECTION_C, PathValidationTimeout,
     TP_ARGS(
@@ -314,22 +314,22 @@ TRACEPOINT_EVENT(CLOG_LOSS_DETECTION_C, PathValidationTimeout,
 
 /*----------------------------------------------------------
 // Decoder Ring for ScheduleProbe
-// [conn][%p] probe round %lu
+// [conn][%p] probe round %hu
 // QuicTraceLogConnInfo(
         ScheduleProbe,
         Connection,
-        "probe round %lu",
+        "probe round %hu",
         LossDetection->ProbeCount);
-// arg1 = arg1 = Connection
-// arg3 = arg3 = LossDetection->ProbeCount
+// arg1 = arg1 = Connection = arg1
+// arg3 = arg3 = LossDetection->ProbeCount = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_LOSS_DETECTION_C, ScheduleProbe,
     TP_ARGS(
         const void *, arg1,
-        unsigned int, arg3), 
+        unsigned short, arg3), 
     TP_FIELDS(
         ctf_integer_hex(uint64_t, arg1, arg1)
-        ctf_integer(unsigned int, arg3, arg3)
+        ctf_integer(unsigned short, arg3, arg3)
     )
 )
 
@@ -342,7 +342,7 @@ TRACEPOINT_EVENT(CLOG_LOSS_DETECTION_C, ScheduleProbe,
             KeyChangeConfirmed,
             Connection,
             "Key change confirmed by peer");
-// arg1 = arg1 = Connection
+// arg1 = arg1 = Connection = arg1
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_LOSS_DETECTION_C, KeyChangeConfirmed,
     TP_ARGS(
@@ -355,38 +355,19 @@ TRACEPOINT_EVENT(CLOG_LOSS_DETECTION_C, KeyChangeConfirmed,
 
 
 /*----------------------------------------------------------
-// Decoder Ring for ConnLossDetectionTimerCancel
-// [conn][%p] Cancelling loss detection timer.
-// QuicTraceEvent(
-            ConnLossDetectionTimerCancel,
-            "[conn][%p] Cancelling loss detection timer.",
-            Connection);
-// arg2 = arg2 = Connection
-----------------------------------------------------------*/
-TRACEPOINT_EVENT(CLOG_LOSS_DETECTION_C, ConnLossDetectionTimerCancel,
-    TP_ARGS(
-        const void *, arg2), 
-    TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg2, arg2)
-    )
-)
-
-
-
-/*----------------------------------------------------------
 // Decoder Ring for ConnLossDetectionTimerSet
-// [conn][%p] Setting loss detection %hhu timer for %u ms. (ProbeCount=%hu)
+// [conn][%p] Setting loss detection %hhu timer for %u us. (ProbeCount=%hu)
 // QuicTraceEvent(
             ConnLossDetectionTimerSet,
-            "[conn][%p] Setting loss detection %hhu timer for %u ms. (ProbeCount=%hu)",
+            "[conn][%p] Setting loss detection %hhu timer for %u us. (ProbeCount=%hu)",
             Connection,
             TimeoutType,
             Delay,
             LossDetection->ProbeCount);
-// arg2 = arg2 = Connection
-// arg3 = arg3 = TimeoutType
-// arg4 = arg4 = Delay
-// arg5 = arg5 = LossDetection->ProbeCount
+// arg2 = arg2 = Connection = arg2
+// arg3 = arg3 = TimeoutType = arg3
+// arg4 = arg4 = Delay = arg4
+// arg5 = arg5 = LossDetection->ProbeCount = arg5
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_LOSS_DETECTION_C, ConnLossDetectionTimerSet,
     TP_ARGS(
@@ -412,8 +393,8 @@ TRACEPOINT_EVENT(CLOG_LOSS_DETECTION_C, ConnLossDetectionTimerSet,
             "Allocation of '%s' failed. (%llu bytes)",
             "Sent packet metadata",
             SIZEOF_QUIC_SENT_PACKET_METADATA(TempSentPacket->FrameCount));
-// arg2 = arg2 = "Sent packet metadata"
-// arg3 = arg3 = SIZEOF_QUIC_SENT_PACKET_METADATA(TempSentPacket->FrameCount)
+// arg2 = arg2 = "Sent packet metadata" = arg2
+// arg3 = arg3 = SIZEOF_QUIC_SENT_PACKET_METADATA(TempSentPacket->FrameCount) = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_LOSS_DETECTION_C, AllocFailure,
     TP_ARGS(
@@ -437,10 +418,10 @@ TRACEPOINT_EVENT(CLOG_LOSS_DETECTION_C, AllocFailure,
                         Packet->PacketNumber,
                         QuicPacketTraceType(Packet),
                         QUIC_TRACE_PACKET_LOSS_FACK);
-// arg2 = arg2 = Connection
-// arg3 = arg3 = Packet->PacketNumber
-// arg4 = arg4 = QuicPacketTraceType(Packet)
-// arg5 = arg5 = QUIC_TRACE_PACKET_LOSS_FACK
+// arg2 = arg2 = Connection = arg2
+// arg3 = arg3 = Packet->PacketNumber = arg3
+// arg4 = arg4 = QuicPacketTraceType(Packet) = arg4
+// arg5 = arg5 = QUIC_TRACE_PACKET_LOSS_FACK = arg5
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_LOSS_DETECTION_C, ConnPacketLost,
     TP_ARGS(
@@ -467,9 +448,9 @@ TRACEPOINT_EVENT(CLOG_LOSS_DETECTION_C, ConnPacketLost,
                 Connection,
                 Packet->PacketNumber,
                 QuicPacketTraceType(Packet));
-// arg2 = arg2 = Connection
-// arg3 = arg3 = Packet->PacketNumber
-// arg4 = arg4 = QuicPacketTraceType(Packet)
+// arg2 = arg2 = Connection = arg2
+// arg3 = arg3 = Packet->PacketNumber = arg3
+// arg4 = arg4 = QuicPacketTraceType(Packet) = arg4
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_LOSS_DETECTION_C, ConnPacketACKed,
     TP_ARGS(
@@ -493,8 +474,8 @@ TRACEPOINT_EVENT(CLOG_LOSS_DETECTION_C, ConnPacketACKed,
                 "[conn][%p] ERROR, %s.",
                 Connection,
                 "Incorrect ACK encryption level");
-// arg2 = arg2 = Connection
-// arg3 = arg3 = "Incorrect ACK encryption level"
+// arg2 = arg2 = Connection = arg2
+// arg3 = arg3 = "Incorrect ACK encryption level" = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_LOSS_DETECTION_C, ConnError,
     TP_ARGS(

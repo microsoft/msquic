@@ -314,13 +314,13 @@ QuicBindingHasListenerRegistered(
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
-BOOLEAN
+QUIC_STATUS
 QuicBindingRegisterListener(
     _In_ QUIC_BINDING* Binding,
     _In_ QUIC_LISTENER* NewListener
     )
 {
-    BOOLEAN AddNewListener = TRUE;
+    QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
     BOOLEAN MaximizeLookup = FALSE;
 
     const QUIC_ADDR* NewAddr = &NewListener->LocalAddress;
@@ -373,12 +373,12 @@ QuicBindingRegisterListener(
                 BindingListenerAlreadyRegistered,
                 "[bind][%p] Listener (%p) already registered on ALPN",
                 Binding, ExistingListener);
-            AddNewListener = FALSE;
+            Status = QUIC_STATUS_ALPN_IN_USE;
             break;
         }
     }
 
-    if (AddNewListener) {
+    if (Status == QUIC_STATUS_SUCCESS) {
         MaximizeLookup = CxPlatListIsEmpty(&Binding->Listeners);
 
         //
@@ -402,10 +402,10 @@ QuicBindingRegisterListener(
     if (MaximizeLookup &&
         !QuicLookupMaximizePartitioning(&Binding->Lookup)) {
         QuicBindingUnregisterListener(Binding, NewListener);
-        AddNewListener = FALSE;
+        Status = QUIC_STATUS_OUT_OF_MEMORY;
     }
 
-    return AddNewListener;
+    return Status;
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -449,7 +449,7 @@ QuicBindingGetListener(
         FailedAddrMatch = FALSE;
 
         if (QuicListenerMatchesAlpn(ExistingListener, Info)) {
-            if (CxPlatRundownAcquire(&ExistingListener->Rundown)) {
+            if (CxPlatRefIncrementNonZero(&ExistingListener->RefCount, 1)) {
                 Listener = ExistingListener;
             }
             goto Done;
@@ -537,11 +537,13 @@ QuicBindingAcceptConnection(
             QuicConnTransportError(
                 Connection,
                 QUIC_ERROR_INTERNAL_ERROR);
-            return;
+            goto Error;
         }
     }
     CxPlatCopyMemory(NegotiatedAlpn, Info->NegotiatedAlpn - 1, NegotiatedAlpnLength);
     Connection->Crypto.TlsState.NegotiatedAlpn = NegotiatedAlpn;
+    Connection->Crypto.TlsState.ClientAlpnList = Info->ClientAlpnList;
+    Connection->Crypto.TlsState.ClientAlpnListLength = Info->ClientAlpnListLength;
 
     //
     // Allow for the listener to decide if it wishes to accept the incoming
@@ -549,7 +551,9 @@ QuicBindingAcceptConnection(
     //
     QuicListenerAcceptConnection(Listener, Connection, Info);
 
-    CxPlatRundownRelease(&Listener->Rundown);
+Error:
+
+    QuicListenerRelease(Listener, TRUE);
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -813,7 +817,8 @@ QuicBindingProcessStatelessOperation(
         CxPlatSendDataAlloc(
             Binding->Socket,
             CXPLAT_ECN_NON_ECT,
-            0);
+            0,
+            RecvDatagram->Route);
     if (SendData == NULL) {
         QuicTraceEvent(
             AllocFailure,
@@ -830,9 +835,9 @@ QuicBindingProcessStatelessOperation(
 
         const uint32_t* SupportedVersions;
         uint32_t SupportedVersionsLength;
-        if (MsQuicLib.Settings.IsSet.DesiredVersionsList) {
-            SupportedVersions = MsQuicLib.Settings.DesiredVersionsList;
-            SupportedVersionsLength = MsQuicLib.Settings.DesiredVersionsListLength;
+        if (MsQuicLib.Settings.IsSet.VersionSettings) {
+            SupportedVersions = MsQuicLib.Settings.VersionSettings->OfferedVersions;
+            SupportedVersionsLength = MsQuicLib.Settings.VersionSettings->OfferedVersionsLength;
         } else {
             SupportedVersions = DefaultSupportedVersionsList;
             SupportedVersionsLength = ARRAYSIZE(DefaultSupportedVersionsList);
@@ -985,12 +990,13 @@ QuicBindingProcessStatelessOperation(
             goto Exit;
         }
 
-        uint8_t NewDestCid[MSQUIC_CID_MAX_LENGTH];
+        uint8_t NewDestCid[QUIC_CID_MAX_LENGTH];
         CXPLAT_DBG_ASSERT(sizeof(NewDestCid) >= MsQuicLib.CidTotalLength);
         CxPlatRandom(sizeof(NewDestCid), NewDestCid);
 
-        QUIC_RETRY_TOKEN_CONTENTS Token = { 0 };
-        Token.Authenticated.Timestamp = CxPlatTimeEpochMs64();
+        QUIC_TOKEN_CONTENTS Token = { 0 };
+        Token.Authenticated.Timestamp = (uint64_t)CxPlatTimeEpochMs64();
+        Token.Authenticated.IsNewToken = FALSE;
 
         Token.Encrypted.RemoteAddress = RecvDatagram->Route->RemoteAddress;
         CxPlatCopyMemory(Token.Encrypted.OrigConnId, RecvPacket->DestCid, RecvPacket->DestCidLen);
@@ -1147,7 +1153,7 @@ QuicBindingPreprocessDatagram(
     )
 {
     CXPLAT_RECV_PACKET* Packet = CxPlatDataPathRecvDataToRecvPacket(Datagram);
-    CxPlatZeroMemory(Packet, sizeof(CXPLAT_RECV_PACKET));
+    CxPlatZeroMemory(&Packet->PacketNumber, sizeof(CXPLAT_RECV_PACKET) - sizeof(uint64_t));
     Packet->Buffer = Datagram->Buffer;
     Packet->BufferLength = Datagram->BufferLength;
 
@@ -1211,45 +1217,6 @@ QuicBindingPreprocessDatagram(
 }
 
 //
-// Returns TRUE if the retry token was successfully decrypted and validated.
-//
-_IRQL_requires_max_(DISPATCH_LEVEL)
-BOOLEAN
-QuicBindingValidateRetryToken(
-    _In_ const QUIC_BINDING* const Binding,
-    _In_ const CXPLAT_RECV_PACKET* const Packet,
-    _In_ uint16_t TokenLength,
-    _In_reads_(TokenLength)
-        const uint8_t* TokenBuffer
-    )
-{
-    if (TokenLength != sizeof(QUIC_RETRY_TOKEN_CONTENTS)) {
-        QuicPacketLogDrop(Binding, Packet, "Invalid Retry Token Length");
-        return FALSE;
-    }
-
-    QUIC_RETRY_TOKEN_CONTENTS Token;
-    if (!QuicRetryTokenDecrypt(Packet, TokenBuffer, &Token)) {
-        QuicPacketLogDrop(Binding, Packet, "Retry Token Decryption Failure");
-        return FALSE;
-    }
-
-    if (Token.Encrypted.OrigConnIdLength > sizeof(Token.Encrypted.OrigConnId)) {
-        QuicPacketLogDrop(Binding, Packet, "Invalid Retry Token OrigConnId Length");
-        return FALSE;
-    }
-
-    const CXPLAT_RECV_DATA* Datagram =
-        CxPlatDataPathRecvPacketToRecvData(Packet);
-    if (!QuicAddrCompare(&Token.Encrypted.RemoteAddress, &Datagram->Route->RemoteAddress)) {
-        QuicPacketLogDrop(Binding, Packet, "Retry Token Addr Mismatch");
-        return FALSE;
-    }
-
-    return TRUE;
-}
-
-//
 // Returns TRUE if we should respond to the connection attempt with a Retry
 // packet.
 //
@@ -1274,14 +1241,18 @@ QuicBindingShouldRetryConnection(
 
     if (TokenLength != 0) {
         //
-        // Must always validate the token when provided by the client.
+        // Must always validate the token when provided by the client. Failure
+        // to validate retry tokens is fatal. Failure to validate NEW_TOKEN
+        // tokens is not.
         //
-        if (QuicBindingValidateRetryToken(Binding, Packet, TokenLength, Token)) {
+        if (QuicPacketValidateInitialToken(
+                Binding, Packet, TokenLength, Token, DropPacket)) {
             Packet->ValidToken = TRUE;
-        } else {
-            *DropPacket = TRUE;
+            return FALSE;
         }
-        return FALSE;
+        if (*DropPacket) {
+            return FALSE;
+        }
     }
 
     uint64_t CurrentMemoryLimit =
@@ -1316,16 +1287,17 @@ QuicBindingCreateConnection(
     }
 
     QUIC_CONNECTION* Connection = NULL;
-    QUIC_CONNECTION* NewConnection =
+    QUIC_CONNECTION* NewConnection;
+    QUIC_STATUS Status =
         QuicConnAlloc(
             MsQuicLib.StatelessRegistration,
-            Datagram);
-    if (NewConnection == NULL) {
+            Worker,
+            Datagram,
+            &NewConnection);
+    if (QUIC_FAILED(Status)) {
         QuicPacketLogDrop(Binding, Packet, "Failed to initialize new connection");
         return NULL;
     }
-
-    QuicWorkerAssignConnection(Worker, NewConnection);
 
     BOOLEAN BindingRefAdded = FALSE;
     CXPLAT_DBG_ASSERT(NewConnection->SourceCids.Next != NULL);
@@ -1393,6 +1365,7 @@ Exit:
             Oper->API_CALL.Context->Type = QUIC_API_TYPE_CONN_SHUTDOWN;
             Oper->API_CALL.Context->CONN_SHUTDOWN.Flags = QUIC_CONNECTION_SHUTDOWN_FLAG_SILENT;
             Oper->API_CALL.Context->CONN_SHUTDOWN.ErrorCode = 0;
+            Oper->API_CALL.Context->CONN_SHUTDOWN.RegistrationShutdown = FALSE;
             QuicConnQueueOper(NewConnection, Oper);
         }
 #pragma warning(pop)
@@ -1406,6 +1379,52 @@ Exit:
     }
 
     return Connection;
+}
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+BOOLEAN
+QuicBindingDropBlockedSourcePorts(
+    _In_ QUIC_BINDING* Binding,
+    _In_ const CXPLAT_RECV_DATA* const Datagram
+    )
+{
+    const uint16_t SourcePort = QuicAddrGetPort(&Datagram->Route->RemoteAddress);
+
+    //
+    // These UDP source ports are recommended to be blocked by the QUIC WG. See
+    // draft-ietf-quic-applicability for more details on the set of ports that
+    // may cause issues.
+    //
+    // N.B - This list MUST be sorted in decreasing order.
+    //
+    const uint16_t BlockedPorts[] = {
+        11211,  // memcache
+        5353,   // mDNS
+        1900,   // SSDP
+        500,    // IKE
+        389,    // CLDAP
+        161,    // SNMP
+        138,    // NETBIOS Datagram Service
+        137,    // NETBIOS Name Service
+        123,    // NTP
+        111,    // Portmap
+        53,     // DNS
+        19,     // Chargen
+        17,     // Quote of the Day
+        0,      // Unusable
+    };
+
+    for (size_t i = 0; i < ARRAYSIZE(BlockedPorts) && SourcePort <= BlockedPorts[i]; ++i) {
+        if (BlockedPorts[i] == SourcePort) {
+            QuicPacketLogDrop(
+                Binding,
+                CxPlatDataPathRecvDataToRecvPacket(Datagram),
+                "Blocked source port");
+            return TRUE;
+        }
+    }
+
+    return FALSE;
 }
 
 //
@@ -1434,13 +1453,8 @@ QuicBindingDeliverDatagrams(
     // be used for partitioning the look up table.
     //
     // For long header packets for server owned bindings, the packet's DestCid
-    // was not necessarily generated locally, so cannot be used for routing.
-    // Instead, a hash of the tuple and source connection ID (SourceCid) is
-    // used.
-    //
-    // The exact type of lookup table associated with the binding varies on the
-    // circumstances, but it allows for quick and easy lookup based on DestCid
-    // (when used).
+    // was not necessarily generated locally, so cannot be used for lookup.
+    // Instead, a hash of the remote address/port and source CID is used.
     //
     // If the lookup fails, and if there is a listener on the local 2-Tuple,
     // then a new connection is created and inserted into the binding's lookup
@@ -1483,8 +1497,17 @@ QuicBindingDeliverDatagrams(
         // be created.
         //
 
+        if (!Binding->ServerOwned) {
+            QuicPacketLogDrop(Binding, Packet, "No matching client connection");
+            return FALSE;
+        }
+
         if (Binding->Exclusive) {
             QuicPacketLogDrop(Binding, Packet, "No connection on exclusive binding");
+            return FALSE;
+        }
+
+        if (QuicBindingDropBlockedSourcePorts(Binding, DatagramChain)) {
             return FALSE;
         }
 
@@ -1515,7 +1538,13 @@ QuicBindingDeliverDatagrams(
         case QUIC_VERSION_1:
         case QUIC_VERSION_DRAFT_29:
         case QUIC_VERSION_MS_1:
-            if (Packet->LH->Type != QUIC_INITIAL) {
+            if (Packet->LH->Type != QUIC_INITIAL_V1) {
+                QuicPacketLogDrop(Binding, Packet, "Non-initial packet not matched with a connection");
+                return FALSE;
+            }
+            break;
+        case QUIC_VERSION_2:
+            if (Packet->LH->Type != QUIC_INITIAL_V2) {
                 QuicPacketLogDrop(Binding, Packet, "Non-initial packet not matched with a connection");
                 return FALSE;
             }
@@ -1528,7 +1557,20 @@ QuicBindingDeliverDatagrams(
                 TRUE,
                 Packet,
                 &Token,
-                &TokenLength)) {
+                &TokenLength,
+                /*
+                    TODO : When NEW_TOKEN implementation is done, server should remember the NEW_TOKEN and when -
+                    is sent to the client, if the NEW_TOKEN validated by server we can accept this bit as 0.
+
+                    A client MAY also set the QUIC Bit to 0 in Initial, Handshake,
+                    or 0-RTT packets that are sent prior to receiving transport parameters from the server.
+                    However, a client MUST NOT set the QUIC Bit to 0 unless the Initial packets
+                    it sends include a token provided by the server in a NEW_TOKEN frame (Section 19.7 of [QUIC]),
+                    received less than 604800 seconds (7 days) prior on a connection where the server also
+                    included the grease_quic_bit transport parameter.
+                    (see: https://www.ietf.org/archive/id/draft-ietf-quic-bit-grease-04.html - 3.1 Clearing the QUIC Bit)
+                */
+                FALSE)) { // This parameter should be FALSE for now. We shouldn't ignore the fixed bit on initial packet from client.
             return FALSE;
         }
 
@@ -1547,7 +1589,6 @@ QuicBindingDeliverDatagrams(
             return
                 QuicBindingQueueStatelessOperation(
                     Binding, QUIC_OPER_TYPE_RETRY, DatagramChain);
-
         }
 
         if (!DropPacket) {
@@ -1598,6 +1639,9 @@ QuicBindingReceive(
     // connection it was delivered to.
     //
 
+    uint32_t Proc = CxPlatProcCurrentNumber();
+    uint64_t ProcShifted = ((uint64_t)Proc + 1) << 40;
+
     CXPLAT_RECV_DATA* Datagram;
     while ((Datagram = DatagramChain) != NULL) {
         TotalChainLength++;
@@ -1612,8 +1656,16 @@ QuicBindingReceive(
         CXPLAT_RECV_PACKET* Packet =
             CxPlatDataPathRecvDataToRecvPacket(Datagram);
         CxPlatZeroMemory(Packet, sizeof(CXPLAT_RECV_PACKET));
+        Packet->PacketId =
+            ProcShifted | InterlockedIncrement64((int64_t*)&MsQuicLib.PerProc[Proc].ReceivePacketId);
         Packet->Buffer = Datagram->Buffer;
         Packet->BufferLength = Datagram->BufferLength;
+
+        CXPLAT_DBG_ASSERT(Packet->PacketId != 0);
+        QuicTraceEvent(
+            PacketReceive,
+            "[pack][%llu] Received",
+            Packet->PacketId);
 
 #if QUIC_TEST_DATAPATH_HOOKS_ENABLED
         //

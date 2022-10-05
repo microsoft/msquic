@@ -175,11 +175,24 @@ typedef union QUIC_CONNECTION_STATE {
         //
         BOOLEAN LocalInterfaceSet : 1;
 
+        //
+        // This value of the fixed bit on send packets.
+        //
+        BOOLEAN FixedBit : 1;
+
 #ifdef CxPlatVerifierEnabledByAddr
         //
         // The calling app is being verified (app or driver verifier).
         //
         BOOLEAN IsVerifying : 1;
+#endif
+
+#if QUIC_TEST_DISABLE_VNE_TP_GENERATION
+        //
+        // Whether to disable automatic generation of VNE transport parameter.
+        // Only used for testing, and thus only enabled for debug builds.
+        //
+        BOOLEAN DisableVneTp : 1;
 #endif
     };
 } QUIC_CONNECTION_STATE;
@@ -195,6 +208,7 @@ typedef enum QUIC_CONNECTION_REF {
     QUIC_CONN_REF_LOOKUP_TABLE,         // Per registered CID.
     QUIC_CONN_REF_LOOKUP_RESULT,        // For connections returned from lookups.
     QUIC_CONN_REF_WORKER,               // Worker is (queued for) processing.
+    QUIC_CONN_REF_ROUTE,                // Route resolution is undergoing.
 
     QUIC_CONN_REF_COUNT
 
@@ -228,6 +242,7 @@ typedef struct QUIC_CONN_STATS {
     uint32_t StatelessRetry         : 1;
     uint32_t ResumptionAttempted    : 1;
     uint32_t ResumptionSucceeded    : 1;
+    uint32_t GreaseBitNegotiated    : 1;
 
     //
     // QUIC protocol version used. Network byte order.
@@ -283,6 +298,7 @@ typedef struct QUIC_CONN_STATS {
 
     struct {
         uint32_t KeyUpdateCount;        // Count of key updates completed.
+        uint32_t DestCidUpdateCount;    // Number of times the destination CID changed.
     } Misc;
 
 } QUIC_CONN_STATS;
@@ -294,7 +310,11 @@ typedef struct QUIC_CONN_STATS {
 //
 typedef struct QUIC_CONNECTION {
 
+#ifdef __cplusplus
+    struct QUIC_HANDLE _;
+#else
     struct QUIC_HANDLE;
+#endif
 
     //
     // Link into the registrations's list of connections.
@@ -331,7 +351,7 @@ typedef struct QUIC_CONNECTION {
     // The settings for this connection. Some values may be inherited from the
     // global settings, the configuration setting or explicitly set by the app.
     //
-    QUIC_SETTINGS Settings;
+    QUIC_SETTINGS_INTERNAL Settings;
 
     //
     // Number of references to the handle.
@@ -358,7 +378,7 @@ typedef struct QUIC_CONNECTION {
     //
     // The server ID for the connection ID.
     //
-    uint8_t ServerID[MSQUIC_MAX_CID_SID_LENGTH];
+    uint8_t ServerID[QUIC_MAX_CID_SID_LENGTH];
 
     //
     // The partition ID for the connection ID.
@@ -460,6 +480,13 @@ typedef struct QUIC_CONNECTION {
     // The original CID used by the Client in its first Initial packet.
     //
     QUIC_CID* OrigDestCID;
+
+    //
+    // An app configured prefix for all connection IDs. The first byte indicates
+    // the length of the ID, the second byte the offset of the ID in the CID and
+    // the rest payload of the identifier.
+    //
+    uint8_t CibirId[2 + QUIC_MAX_CIBIR_LENGTH];
 
     //
     // Sorted array of all timers for the connection.
@@ -578,13 +605,11 @@ typedef struct QUIC_CONNECTION {
     //
     QUIC_PRIVATE_TRANSPORT_PARAMETER TestTransportParameter;
 
-#ifdef CXPLAT_TLS_SECRETS_SUPPORT
     //
     // Struct to log TLS traffic secrets. The app will have to read and
     // format the struct once the connection is connected.
     //
-    CXPLAT_TLS_SECRETS* TlsSecrets;
-#endif
+    QUIC_TLS_SECRETS* TlsSecrets;
 
     //
     // Previously-attempted QUIC version, after Incompatible Version Negotiation.
@@ -601,6 +626,17 @@ typedef struct QUIC_CONNECTION {
     // The size of the keep alive padding.
     //
     uint16_t KeepAlivePadding;
+
+    //
+    // Connection blocked timings.
+    //
+    struct {
+        QUIC_FLOW_BLOCKED_TIMING_TRACKER Scheduling;
+        QUIC_FLOW_BLOCKED_TIMING_TRACKER Pacing;
+        QUIC_FLOW_BLOCKED_TIMING_TRACKER AmplificationProt;
+        QUIC_FLOW_BLOCKED_TIMING_TRACKER CongestionControl;
+        QUIC_FLOW_BLOCKED_TIMING_TRACKER FlowControl;
+    } BlockedTimings;
 
 } QUIC_CONNECTION;
 
@@ -812,13 +848,15 @@ QuicConnLogStatistics(
 
     QuicTraceEvent(
         ConnStats,
-        "[conn][%p] STATS: SRtt=%u CongestionCount=%u PersistentCongestionCount=%u SendTotalBytes=%llu RecvTotalBytes=%llu",
+        "[conn][%p] STATS: SRtt=%u CongestionCount=%u PersistentCongestionCount=%u SendTotalBytes=%llu RecvTotalBytes=%llu CongestionWindow=%u Cc=%s",
         Connection,
         Path->SmoothedRtt,
         Connection->Stats.Send.CongestionCount,
         Connection->Stats.Send.PersistentCongestionCount,
         Connection->Stats.Send.TotalBytes,
-        Connection->Stats.Recv.TotalBytes);
+        Connection->Stats.Recv.TotalBytes,
+        QuicCongestionControlGetCongestionWindow(&Connection->CongestionControl),
+        Connection->CongestionControl.Name);
 
     QuicTraceEvent(
         ConnPacketStats,
@@ -841,7 +879,27 @@ QuicConnAddOutFlowBlockedReason(
     _In_ QUIC_FLOW_BLOCK_REASON Reason
     )
 {
+    CXPLAT_DBG_ASSERTMSG(
+        (Reason & (Reason - 1)) == 0,
+        "More than one reason is not allowed");
     if (!(Connection->OutFlowBlockedReasons & Reason)) {
+        uint64_t Now = CxPlatTimeUs64();
+        if (Reason & QUIC_FLOW_BLOCKED_PACING) {
+            Connection->BlockedTimings.Pacing.LastStartTimeUs = Now;
+        }
+        if (Reason & QUIC_FLOW_BLOCKED_SCHEDULING) {
+            Connection->BlockedTimings.Scheduling.LastStartTimeUs = Now;
+        }
+        if (Reason & QUIC_FLOW_BLOCKED_AMPLIFICATION_PROT) {
+            Connection->BlockedTimings.AmplificationProt.LastStartTimeUs = Now;
+        }
+        if (Reason & QUIC_FLOW_BLOCKED_CONGESTION_CONTROL) {
+            Connection->BlockedTimings.CongestionControl.LastStartTimeUs = Now;
+        }
+        if (Reason & QUIC_FLOW_BLOCKED_CONN_FLOW_CONTROL) {
+            Connection->BlockedTimings.FlowControl.LastStartTimeUs = Now;
+        }
+
         Connection->OutFlowBlockedReasons |= Reason;
         QuicTraceEvent(
             ConnOutFlowBlocked,
@@ -861,6 +919,38 @@ QuicConnRemoveOutFlowBlockedReason(
     )
 {
     if ((Connection->OutFlowBlockedReasons & Reason)) {
+        uint64_t Now = CxPlatTimeUs64();
+        if ((Connection->OutFlowBlockedReasons & QUIC_FLOW_BLOCKED_PACING) &&
+            (Reason & QUIC_FLOW_BLOCKED_PACING)) {
+            Connection->BlockedTimings.Pacing.CumulativeTimeUs +=
+                CxPlatTimeDiff64(Connection->BlockedTimings.Pacing.LastStartTimeUs, Now);
+            Connection->BlockedTimings.Pacing.LastStartTimeUs = 0;
+        }
+        if ((Connection->OutFlowBlockedReasons & QUIC_FLOW_BLOCKED_SCHEDULING) &&
+            (Reason & QUIC_FLOW_BLOCKED_SCHEDULING)) {
+            Connection->BlockedTimings.Scheduling.CumulativeTimeUs +=
+                CxPlatTimeDiff64(Connection->BlockedTimings.Scheduling.LastStartTimeUs, Now);
+            Connection->BlockedTimings.Scheduling.LastStartTimeUs = 0;
+        }
+        if ((Connection->OutFlowBlockedReasons & QUIC_FLOW_BLOCKED_AMPLIFICATION_PROT) &&
+            (Reason & QUIC_FLOW_BLOCKED_AMPLIFICATION_PROT)) {
+            Connection->BlockedTimings.AmplificationProt.CumulativeTimeUs +=
+                CxPlatTimeDiff64(Connection->BlockedTimings.AmplificationProt.LastStartTimeUs, Now);
+            Connection->BlockedTimings.AmplificationProt.LastStartTimeUs = 0;
+        }
+        if ((Connection->OutFlowBlockedReasons & QUIC_FLOW_BLOCKED_CONGESTION_CONTROL) &&
+            (Reason & QUIC_FLOW_BLOCKED_CONGESTION_CONTROL)) {
+            Connection->BlockedTimings.CongestionControl.CumulativeTimeUs +=
+                CxPlatTimeDiff64(Connection->BlockedTimings.CongestionControl.LastStartTimeUs, Now);
+            Connection->BlockedTimings.CongestionControl.LastStartTimeUs = 0;
+        }
+        if ((Connection->OutFlowBlockedReasons & QUIC_FLOW_BLOCKED_CONN_FLOW_CONTROL) &&
+            (Reason & QUIC_FLOW_BLOCKED_CONN_FLOW_CONTROL)) {
+            Connection->BlockedTimings.FlowControl.CumulativeTimeUs +=
+                CxPlatTimeDiff64(Connection->BlockedTimings.FlowControl.LastStartTimeUs, Now);
+            Connection->BlockedTimings.FlowControl.LastStartTimeUs = 0;
+        }
+
         Connection->OutFlowBlockedReasons &= ~Reason;
         QuicTraceEvent(
             ConnOutFlowBlocked,
@@ -878,13 +968,15 @@ QuicConnRemoveOutFlowBlockedReason(
 // a datagram is the cause of the creation, and is passed in.
 //
 _IRQL_requires_max_(DISPATCH_LEVEL)
-__drv_allocatesMem(Mem)
 _Must_inspect_result_
-_Success_(return != NULL)
-QUIC_CONNECTION*
+_Success_(return == QUIC_STATUS_SUCCESS)
+QUIC_STATUS
 QuicConnAlloc(
     _In_ QUIC_REGISTRATION* Registration,
-    _In_opt_ const CXPLAT_RECV_DATA* const Datagram
+    _In_opt_ QUIC_WORKER* Worker,
+    _In_opt_ const CXPLAT_RECV_DATA* const Datagram,
+    _Outptr_ _At_(*NewConnection, __drv_allocatesMem(Mem))
+        QUIC_CONNECTION** NewConnection
     );
 
 //
@@ -997,7 +1089,8 @@ QuicConnRelease(
 // Registers the connection with a registration.
 //
 _IRQL_requires_max_(DISPATCH_LEVEL)
-void
+_Must_inspect_result_
+BOOLEAN
 QuicConnRegister(
     _Inout_ QUIC_CONNECTION* Connection,
     _Inout_ QUIC_REGISTRATION* Registration
@@ -1194,14 +1287,14 @@ QuicConnUpdateRtt(
     );
 
 //
-// Sets a new timer delay in milliseconds.
+// Sets a new timer delay in microseconds.
 //
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicConnTimerSet(
     _Inout_ QUIC_CONNECTION* Connection,
     _In_ QUIC_CONN_TIMER_TYPE Type,
-    _In_ uint64_t DelayMs
+    _In_ uint64_t DelayUs
     );
 
 //
@@ -1396,6 +1489,23 @@ QuicConnQueueUnreachable(
     _In_ QUIC_CONNECTION* Connection,
     _In_ const QUIC_ADDR* RemoteAddress
     );
+
+#ifdef QUIC_USE_RAW_DATAPATH
+//
+// Queues a route completion event to a connection for processing.
+//
+_IRQL_requires_max_(DISPATCH_LEVEL)
+_Function_class_(CXPLAT_ROUTE_RESOLUTION_CALLBACK)
+void
+QuicConnQueueRouteCompletion(
+    _Inout_ QUIC_CONNECTION* Connection,
+    _When_(Succeeded == FALSE, _Reserved_)
+    _When_(Succeeded == TRUE, _In_reads_bytes_(6))
+        const uint8_t* PhysicalAddress,
+    _In_ uint8_t PathId,
+    _In_ BOOLEAN Succeeded
+    );
+#endif // QUIC_USE_RAW_DATAPATH
 
 //
 // Queues up an update to the packet tolerance we want the peer to use.

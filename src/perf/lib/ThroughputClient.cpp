@@ -31,6 +31,7 @@ PrintHelp(
         "  -bind:<addr>                 A local IP address to bind to.\n"
         "  -port:<####>                 The UDP port of the server. (def:%u)\n"
         "  -ip:<0/4/6>                  A hint for the resolving the hostname to an IP address. (def:0)\n"
+        "  -cibir:<hex_bytes>           A CIBIR well-known idenfitier.\n"
         "  -encrypt:<0/1>               Enables/disables encryption. (def:1)\n"
         "  -sendbuf:<0/1>               Whether to use send buffering. (def:0)\n"
         "  -pacing:<0/1>                Whether to use pacing. (def:1)\n"
@@ -40,6 +41,8 @@ PrintHelp(
         "  -iosize:<####>               The size of each send request queued. (def:%u)\n"
         "  -tcp:<0/1>                   Indicates TCP/TLS should be used instead of QUIC. (def:0)\n"
         "  -stats:<0/1>                 Indicates connection stats should be printed at the end of the run. (def:0)\n"
+        "  -cc:<algo>                   Indicates congestion control algorithm to use. (def:cubic)\n"
+        "  -sstats:<0/1>                Indicates connection blocked timings at the end of the run. (def:0)\n"
         "\n",
         PERF_DEFAULT_PORT,
         PERF_DEFAULT_IO_SIZE
@@ -61,7 +64,8 @@ ThroughputClient::Init(
     }
 
     const char* Target = nullptr;
-    if (!TryGetValue(argc, argv, "target", &Target)) {
+    if (!TryGetValue(argc, argv, "target", &Target) &&
+        !TryGetValue(argc, argv, "server", &Target)) {
         WriteOutput("Must specify '-target' argument!\n");
         PrintHelp();
         return QUIC_STATUS_INVALID_PARAMETER;
@@ -73,6 +77,7 @@ ThroughputClient::Init(
     TryGetValue(argc, argv, "upload", &UploadLength);
     TryGetValue(argc, argv, "download", &DownloadLength);
     TryGetValue(argc, argv, "stats", &PrintStats);
+    TryGetValue(argc, argv, "sstats", &PrintStreamStats);
 
     if (UploadLength && DownloadLength) {
         WriteOutput("Must specify only one of '-upload' or '-download' argument!\n");
@@ -114,6 +119,15 @@ ThroughputClient::Init(
         }
     }
 #endif
+
+    const char* CibirBytes = nullptr;
+    if (TryGetValue(argc, argv, "cibir", &CibirBytes)) {
+        CibirId[0] = 0; // offset
+        if ((CibirIdLength = DecodeHexBuffer(CibirBytes, 6, CibirId+1)) == 0) {
+            WriteOutput("Cibir ID must be a hex string <= 6 bytes.\n");
+            return QUIC_STATUS_INVALID_PARAMETER;
+        }
+    }
 
     QUIC_STATUS Status;
 
@@ -257,7 +271,6 @@ ThroughputClient::StartQuic()
         Status =
             MsQuic->SetParam(
                 Shutdown.ConnHandle,
-                QUIC_PARAM_LEVEL_CONNECTION,
                 QUIC_PARAM_CONN_SETTINGS,
                 sizeof(Settings),
                 &Settings);
@@ -272,7 +285,6 @@ ThroughputClient::StartQuic()
         Status =
             MsQuic->SetParam(
                 Shutdown.ConnHandle,
-                QUIC_PARAM_LEVEL_CONNECTION,
                 QUIC_PARAM_CONN_DISABLE_1RTT_ENCRYPTION,
                 sizeof(value),
                 &value);
@@ -285,10 +297,34 @@ ThroughputClient::StartQuic()
     if (QuicAddrGetFamily(&LocalIpAddr) != QUIC_ADDRESS_FAMILY_UNSPEC) {
         MsQuic->SetParam(
             Shutdown.ConnHandle,
-            QUIC_PARAM_LEVEL_CONNECTION,
             QUIC_PARAM_CONN_LOCAL_ADDRESS,
             sizeof(LocalIpAddr),
             &LocalIpAddr);
+    }
+
+    if (CibirIdLength) {
+        BOOLEAN Opt = TRUE;
+        Status =
+            MsQuic->SetParam(
+                Shutdown.ConnHandle,
+                QUIC_PARAM_CONN_SHARE_UDP_BINDING,
+                sizeof(Opt),
+                &Opt);
+        if (QUIC_FAILED(Status)) {
+            WriteOutput("SetParam(CONN_SHARE_UDP_BINDING) failed, 0x%x\n", Status);
+            return Status;
+        }
+
+        Status =
+            MsQuic->SetParam(
+                Shutdown.ConnHandle,
+                QUIC_PARAM_CONN_CIBIR_ID,
+                CibirIdLength+1,
+                CibirId);
+        if (QUIC_FAILED(Status)) {
+            WriteOutput("SetParam(CONN_CIBIR_ID) failed, 0x%x\n", Status);
+            return Status;
+        }
     }
 
     StreamContext* StrmContext = StreamContextAllocator.Alloc(this);
@@ -473,22 +509,21 @@ ThroughputClient::OnStreamShutdownComplete(
     uint64_t ElapsedMicroseconds = StrmContext->EndTime - StrmContext->StartTime;
     uint32_t SendRate = (uint32_t)((StrmContext->BytesCompleted * 1000 * 1000 * 8) / (1000 * ElapsedMicroseconds));
 
-    if (StrmContext->Complete) {
+    if (!StrmContext->Complete && StrmContext->BytesCompleted == 0) {
+        WriteOutput("Error: Did not complete any bytes! Failed to connect?\n");
+    } else {
         WriteOutput(
             "Result: %llu bytes @ %u kbps (%u.%03u ms).\n",
             (unsigned long long)StrmContext->BytesCompleted,
             SendRate,
             (uint32_t)(ElapsedMicroseconds / 1000),
             (uint32_t)(ElapsedMicroseconds % 1000));
-    } else if (StrmContext->BytesCompleted) {
-        WriteOutput(
-            "Error: Did not complete all bytes! %llu bytes @ %u kbps (%u.%03u ms).\n",
-            (unsigned long long)StrmContext->BytesCompleted,
-            SendRate,
-            (uint32_t)(ElapsedMicroseconds / 1000),
-            (uint32_t)(ElapsedMicroseconds % 1000));
-    } else {
-        WriteOutput("Error: Did not complete any bytes! Failed to connect?\n");
+        if (!StrmContext->Complete) {
+            WriteOutput(
+                "Warning: Did not complete all bytes (sent: %llu, completed: %llu).\n",
+                (unsigned long long)StrmContext->BytesSent,
+                (unsigned long long)StrmContext->BytesCompleted);
+        }
     }
 
     StreamContextAllocator.Free(StrmContext);
@@ -548,6 +583,33 @@ ThroughputClient::StreamCallback(
         MsQuic->StreamShutdown(StreamHandle, QUIC_STREAM_SHUTDOWN_FLAG_ABORT, 0);
         break;
     case QUIC_STREAM_EVENT_SHUTDOWN_COMPLETE:
+        if (PrintStreamStats) {
+            QUIC_STREAM_STATISTICS Stats = {0};
+            uint32_t BufferLength = sizeof(Stats);
+            MsQuic->GetParam(StreamHandle, QUIC_PARAM_STREAM_STATISTICS, &BufferLength, &Stats);
+            WriteOutput("Flow blocked timing:\n");
+            WriteOutput(
+                "Reason: QUIC_FLOW_BLOCKED_SCHEDULING Time: %llu us\n",
+                (unsigned long long)Stats.ConnBlockedBySchedulingUs);
+            WriteOutput(
+                "Reason: QUIC_FLOW_BLOCKED_PACING Time: %llu us\n",
+                (unsigned long long)Stats.ConnBlockedByPacingUs);
+            WriteOutput(
+                "Reason: QUIC_FLOW_BLOCKED_AMPLIFICATION_PROT Time: %llu us\n",
+                (unsigned long long)Stats.ConnBlockedByAmplificationProtUs);
+            WriteOutput(
+                "Reason: QUIC_FLOW_BLOCKED_CONN_FLOW_CONTROL Time: %llu us\n",
+                (unsigned long long)Stats.ConnBlockedByFlowControlUs);
+            WriteOutput(
+                "Reason: QUIC_FLOW_BLOCKED_STREAM_ID_FLOW_CONTROL Time: %llu us\n",
+                (unsigned long long)Stats.StreamBlockedByIdFlowControlUs);
+            WriteOutput(
+                "Reason: QUIC_FLOW_BLOCKED_STREAM_FLOW_CONTROL Time: %llu us\n",
+                (unsigned long long)Stats.StreamBlockedByFlowControlUs);
+            WriteOutput(
+                "Reason: QUIC_FLOW_BLOCKED_APP Time: %llu us\n",
+                (unsigned long long)Stats.StreamBlockedByAppUs);
+        }
         OnStreamShutdownComplete(StrmContext);
         break;
     case QUIC_STREAM_EVENT_IDEAL_SEND_BUFFER_SIZE:

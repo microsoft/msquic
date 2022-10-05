@@ -1,14 +1,6 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" ToolsVersion="12.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
-    <ProjectConfiguration Include="Debug|Win32">
-      <Configuration>Debug</Configuration>
-      <Platform>Win32</Platform>
-    </ProjectConfiguration>
-    <ProjectConfiguration Include="Release|Win32">
-      <Configuration>Release</Configuration>
-      <Platform>Win32</Platform>
-    </ProjectConfiguration>
     <ProjectConfiguration Include="Debug|x64">
       <Configuration>Debug</Configuration>
       <Platform>x64</Platform>
@@ -16,14 +8,6 @@
     <ProjectConfiguration Include="Release|x64">
       <Configuration>Release</Configuration>
       <Platform>x64</Platform>
-    </ProjectConfiguration>
-    <ProjectConfiguration Include="Debug|ARM">
-      <Configuration>Debug</Configuration>
-      <Platform>ARM</Platform>
-    </ProjectConfiguration>
-    <ProjectConfiguration Include="Release|ARM">
-      <Configuration>Release</Configuration>
-      <Platform>ARM</Platform>
     </ProjectConfiguration>
     <ProjectConfiguration Include="Debug|ARM64">
       <Configuration>Debug</Configuration>
@@ -37,6 +21,7 @@
   <ItemGroup>
     <ClCompile Include="ack_tracker.c" />
     <ClCompile Include="api.c" />
+    <ClCompile Include="bbr.c" />
     <ClCompile Include="binding.c" />
     <ClCompile Include="configuration.c" />
     <ClCompile Include="congestion_control.c" />
@@ -64,6 +49,7 @@
     <ClCompile Include="send_buffer.c" />
     <ClCompile Include="sent_packet_metadata.c" />
     <ClCompile Include="settings.c" />
+    <ClCompile Include="sliding_window_extremum.c" />
     <ClCompile Include="stream.c" />
     <ClCompile Include="stream_recv.c" />
     <ClCompile Include="stream_send.c" />
@@ -75,6 +61,7 @@
   <ItemGroup>
     <ClInclude Include="ack_tracker.h" />
     <ClInclude Include="api.h" />
+    <ClInclude Include="bbr.h" />
     <ClInclude Include="binding.h" />
     <ClInclude Include="cid.h" />
     <ClInclude Include="configuration.h" />
@@ -103,6 +90,7 @@
     <ClInclude Include="send_buffer.h" />
     <ClInclude Include="sent_packet_metadata.h" />
     <ClInclude Include="settings.h" />
+    <ClInclude Include="sliding_window_extremum.h" />
     <ClInclude Include="stream.h" />
     <ClInclude Include="stream_set.h" />
     <ClInclude Include="timer_wheel.h" />
@@ -137,6 +125,11 @@
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup>
+    <QUIC_VER_BUILD_ID Condition="'$(QUIC_VER_BUILD_ID)' == ''">0</QUIC_VER_BUILD_ID>
+    <QUIC_VER_SUFFIX Condition="'$(QUIC_VER_SUFFIX)' == ''">-private</QUIC_VER_SUFFIX>
+    <QUIC_VER_GIT_HASH Condition="'$(QUIC_VER_GIT_HASH)' == ''">0</QUIC_VER_GIT_HASH>
+  </PropertyGroup>
+  <PropertyGroup>
     <RunCodeAnalysis>true</RunCodeAnalysis>
     <CodeAnalysisTreatWarningsAsErrors>true</CodeAnalysisTreatWarningsAsErrors>
   </PropertyGroup>
@@ -166,13 +159,13 @@
   <ItemDefinitionGroup Condition="'$(Configuration)'=='Debug'">
     <ClCompile>
       <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
-      <PreprocessorDefinitions>QUIC_EVENTS_MANIFEST_ETW;QUIC_LOGS_MANIFEST_ETW;QUIC_TELEMETRY_ASSERTS=1;CXPLAT_TLS_SECRETS_SUPPORT=1;SECURITY_KERNEL;SECURITY_WIN32;_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>VER_BUILD_ID=$(QUIC_VER_BUILD_ID);VER_SUFFIX=$(QUIC_VER_SUFFIX);VER_GIT_HASH=$(QUIC_VER_GIT_HASH);QUIC_EVENTS_MANIFEST_ETW;QUIC_LOGS_MANIFEST_ETW;QUIC_TELEMETRY_ASSERTS=1;SECURITY_KERNEL;SECURITY_WIN32;_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)'=='Release'">
     <ClCompile>
-      <PreprocessorDefinitions>QUIC_EVENTS_MANIFEST_ETW;QUIC_LOGS_MANIFEST_ETW;QUIC_TELEMETRY_ASSERTS=1;CXPLAT_TLS_SECRETS_SUPPORT=1;SECURITY_KERNEL;SECURITY_WIN32;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>VER_BUILD_ID=$(QUIC_VER_BUILD_ID);VER_SUFFIX=$(QUIC_VER_SUFFIX);VER_GIT_HASH=$(QUIC_VER_GIT_HASH);QUIC_EVENTS_MANIFEST_ETW;QUIC_LOGS_MANIFEST_ETW;QUIC_TELEMETRY_ASSERTS=1;SECURITY_KERNEL;SECURITY_WIN32;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
   </ItemDefinitionGroup>

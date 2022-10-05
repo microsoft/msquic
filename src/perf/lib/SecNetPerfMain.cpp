@@ -14,6 +14,7 @@ Abstract:
 #include "ThroughputClient.h"
 #include "RpsClient.h"
 #include "HpsClient.h"
+#include "Tcp.h"
 
 #ifdef QUIC_CLOG
 #include "SecNetPerfMain.cpp.clog.h"
@@ -24,9 +25,15 @@ volatile int BufferCurrent;
 char Buffer[BufferLength];
 
 PerfBase* TestToRun;
+QUIC_EXECUTION_PROFILE PerfDefaultExecutionProfile = QUIC_EXECUTION_PROFILE_LOW_LATENCY;
+QUIC_CONGESTION_CONTROL_ALGORITHM PerfDefaultCongestionControl = QUIC_CONGESTION_CONTROL_ALGORITHM_CUBIC;
 
 #include "quic_datapath.h"
 
+const uint8_t SecNetPerfShutdownGuid[16] = { // {ff15e657-4f26-570e-88ab-0796b258d11c}
+    0x57, 0xe6, 0x15, 0xff, 0x26, 0x4f, 0x0e, 0x57,
+    0x88, 0xab, 0x07, 0x96, 0xb2, 0x58, 0xd1, 0x1c};
+CXPLAT_THREAD ControlThreadHandle;
 CXPLAT_DATAPATH_RECEIVE_CALLBACK DatapathReceive;
 CXPLAT_DATAPATH_UNREACHABLE_CALLBACK DatapathUnreachable;
 CXPLAT_DATAPATH* Datapath;
@@ -83,8 +90,17 @@ PrintHelp(
         "Server: secnetperf [options]\n"
         "\n"
         "  -bind:<addr>                A local IP address to bind to.\n"
+        "  -cibir:<hex_bytes>          A CIBIR well-known idenfitier.\n"
         "\n"
         "Client: secnetperf -TestName:<Throughput|RPS|HPS> [options]\n"
+        "Both:\n"
+        "  -exec:<profile>             Execution profile to use {lowlat, maxtput, scavenger, realtime}.\n"
+        "  -cc:<algo>                  Congestion control algorithm to use {cubic, bbr}.\n"
+        "  -pollidle:<time_us>         Amount of time to poll while idle before sleeping (default: 0).\n"
+#ifndef _KERNEL_MODE
+        "  -cpu:<cpu_index>            Specify the processor(s) to use.\n"
+        "  -cipher:<value>             Decimal value of 1 or more QUIC_ALLOWED_CIPHER_SUITE_FLAGS.\n"
+#endif // _KERNEL_MODE
         "\n"
         );
 }
@@ -120,19 +136,18 @@ QuicMainStart(
 
     QUIC_STATUS Status;
 
-    if (ServerMode) {
-        Datapath = nullptr;
-        Binding = nullptr;
-        const CXPLAT_UDP_DATAPATH_CALLBACKS DatapathCallbacks = {
-            DatapathReceive,
-            DatapathUnreachable
-        };
-        Status = CxPlatDataPathInitialize(0, &DatapathCallbacks, NULL, &Datapath);
-        if (QUIC_FAILED(Status)) {
-            WriteOutput("Datapath for shutdown failed to initialize: %d\n", Status);
-            return Status;
-        }
+    const CXPLAT_UDP_DATAPATH_CALLBACKS DatapathCallbacks = {
+        DatapathReceive,
+        DatapathUnreachable
+    };
 
+    Status = CxPlatDataPathInitialize(0, &DatapathCallbacks, &TcpEngine::TcpCallbacks, nullptr, &Datapath);
+    if (QUIC_FAILED(Status)) {
+        WriteOutput("Datapath for shutdown failed to initialize: %d\n", Status);
+        return Status;
+    }
+
+    if (ServerMode) {
         QuicAddr LocalAddress {QUIC_ADDRESS_FAMILY_INET, (uint16_t)9999};
         CXPLAT_UDP_CONFIG UdpConfig = {0};
         UdpConfig.LocalAddress = &LocalAddress.SockAddr;
@@ -170,6 +185,71 @@ QuicMainStart(
         Watchdog = nullptr;
         WriteOutput("MsQuic Failed To Initialize: %d\n", Status);
         return Status;
+    }
+
+    uint8_t RawConfig[QUIC_EXECUTION_CONFIG_MIN_SIZE + 256 * sizeof(uint16_t)] = {0};
+    QUIC_EXECUTION_CONFIG* Config = (QUIC_EXECUTION_CONFIG*)RawConfig;
+    Config->PollingIdleTimeoutUs = UINT32_MAX; // Default to no sleep.
+    bool SetConfig = false;
+
+#ifndef _KERNEL_MODE
+    const char* CpuStr;
+    if ((CpuStr = GetValue(argc, argv, "cpu")) != nullptr) {
+        SetConfig = true;
+        if (strtol(CpuStr, nullptr, 10) == -1) {
+            for (uint16_t i = 0; i < CxPlatProcActiveCount() && Config->ProcessorCount < 256; ++i) {
+                Config->ProcessorList[Config->ProcessorCount++] = i;
+            }
+        } else {
+            do {
+                if (*CpuStr == ',') CpuStr++;
+                Config->ProcessorList[Config->ProcessorCount++] =
+                    (uint16_t)strtoul(CpuStr, (char**)&CpuStr, 10);
+            } while (*CpuStr && Config->ProcessorCount < 256);
+        }
+    }
+#endif // _KERNEL_MODE
+
+    if (TryGetValue(argc, argv, "pollidle", &Config->PollingIdleTimeoutUs)) {
+        SetConfig = true;
+    }
+
+    if (SetConfig &&
+        QUIC_FAILED(
+        Status =
+        MsQuic->SetParam(
+            nullptr,
+            QUIC_PARAM_GLOBAL_EXECUTION_CONFIG,
+            (uint32_t)QUIC_EXECUTION_CONFIG_MIN_SIZE + Config->ProcessorCount * sizeof(uint16_t),
+            Config))) {
+        WriteOutput("Failed to set execution config %d\n", Status);
+        return Status;
+    }
+
+    const char* ExecStr = GetValue(argc, argv, "exec");
+    if (ExecStr != nullptr) {
+        if (IsValue(ExecStr, "lowlat")) {
+            PerfDefaultExecutionProfile = QUIC_EXECUTION_PROFILE_LOW_LATENCY;
+        } else if (IsValue(ExecStr, "maxtput")) {
+            PerfDefaultExecutionProfile = QUIC_EXECUTION_PROFILE_TYPE_MAX_THROUGHPUT;
+        } else if (IsValue(ExecStr, "scavenger")) {
+            PerfDefaultExecutionProfile = QUIC_EXECUTION_PROFILE_TYPE_SCAVENGER;
+        } else if (IsValue(ExecStr, "realtime")) {
+            PerfDefaultExecutionProfile = QUIC_EXECUTION_PROFILE_TYPE_REAL_TIME;
+        } else {
+            WriteOutput("Failed to parse execution profile[%s], use lowlat as default\n", ExecStr);
+        }
+    }
+
+    const char* CcName = GetValue(argc, argv, "cc");
+    if (CcName != nullptr) {
+        if (IsValue(CcName, "cubic")) {
+            PerfDefaultCongestionControl = QUIC_CONGESTION_CONTROL_ALGORITHM_CUBIC;
+        } else if (IsValue(CcName, "bbr")) {
+            PerfDefaultCongestionControl = QUIC_CONGESTION_CONTROL_ALGORITHM_BBR;
+        } else {
+            WriteOutput("Failed to parse congestion control algorithm[%s], use cubic as default\n", CcName);
+        }
     }
 
     if (ServerMode) {
@@ -236,6 +316,7 @@ QuicMainFree(
         CxPlatSocketDelete(Binding);
         Binding = nullptr;
     }
+
     if (Datapath) {
         CxPlatDataPathUninitialize(Datapath);
         Datapath = nullptr;
@@ -276,9 +357,15 @@ void
 DatapathReceive(
     _In_ CXPLAT_SOCKET*,
     _In_ void* Context,
-    _In_ CXPLAT_RECV_DATA*
+    _In_ CXPLAT_RECV_DATA* Data
     )
 {
+    if (Data->BufferLength != sizeof(SecNetPerfShutdownGuid)) {
+        return;
+    }
+    if (memcmp(Data->Buffer, SecNetPerfShutdownGuid, sizeof(SecNetPerfShutdownGuid))) {
+        return;
+    }
     CXPLAT_EVENT* Event = static_cast<CXPLAT_EVENT*>(Context);
     CxPlatEventSet(*Event);
 }

@@ -92,7 +92,7 @@ QuicTestDatagramNegotiation(
                     Client.Start(
                         ClientConfiguration,
                         QuicAddrFamily,
-                        QUIC_LOCALHOST_FOR_AF(QuicAddrFamily),
+                        QUIC_TEST_LOOPBACK_FOR_AF(QuicAddrFamily),
                         ServerLocalAddr.GetPort()));
 
                 if (!Client.WaitForConnectionComplete()) {
@@ -184,7 +184,7 @@ QuicTestDatagramSend(
                     Client.Start(
                         ClientConfiguration,
                         QuicAddrFamily,
-                        QUIC_LOCALHOST_FOR_AF(QuicAddrFamily),
+                        QUIC_TEST_LOOPBACK_FOR_AF(QuicAddrFamily),
                         ServerLocalAddr.GetPort()));
 
                 if (!Client.WaitForConnectionComplete()) {
@@ -246,6 +246,7 @@ QuicTestDatagramSend(
                     CxPlatSleep(100);
                 }
                 TEST_EQUAL(1, Client.GetDatagramsSuspectLost());
+                CxPlatSleep(100);
 #endif
 
                 Client.Shutdown(QUIC_CONNECTION_SHUTDOWN_FLAG_NONE, QUIC_TEST_NO_ERROR);

@@ -9,6 +9,8 @@
 
 #define MagicCid 0x989898989898989ull
 
+extern const QUIC_HKDF_LABELS HkdfLabels;
+
 class PacketWriter
 {
     uint32_t QuicVersion;

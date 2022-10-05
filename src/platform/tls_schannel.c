@@ -109,11 +109,15 @@ typedef struct _SecPkgCred_ClientCertPolicy
     LPWSTR  pwszSslCtlIdentifier;
 } SecPkgCred_ClientCertPolicy, *PSecPkgCred_ClientCertPolicy;
 
+// CERT_CHAIN_CACHE_ONLY_URL_RETRIEVAL - don't hit the wire to get URL based objects
+#define CERT_CHAIN_CACHE_ONLY_URL_RETRIEVAL            0x00000004
+
 // CERT_CHAIN_CACHE_END_CERT can be used here as well
 // Revocation flags are in the high nibble
 #define CERT_CHAIN_REVOCATION_CHECK_END_CERT           0x10000000
 #define CERT_CHAIN_REVOCATION_CHECK_CHAIN              0x20000000
 #define CERT_CHAIN_REVOCATION_CHECK_CHAIN_EXCLUDE_ROOT 0x40000000
+#define CERT_CHAIN_REVOCATION_CHECK_CACHE_ONLY         0x80000000
 
 #define SECPKG_ATTR_REMOTE_CERTIFICATES  0x5F   // returns SecPkgContext_Certificates
 
@@ -184,6 +188,12 @@ typedef struct _SCHANNEL_CERT_HASH_STORE
 
 // Values for SCHANNEL_CERT_HASH dwFlags field.
 #define SCH_MACHINE_CERT_HASH           0x00000001
+
+typedef struct _CRYPTOAPI_BLOB {
+    DWORD   cbData;
+    _Field_size_bytes_(cbData)
+        BYTE    *pbData;
+} CERT_BLOB, *PCERT_BLOB;
 
 //
 // Schannel credentials data structure.
@@ -363,6 +373,10 @@ typedef struct _SecPkgCred_SessionTicketKeys
 
 #ifndef SECPKG_ATTR_CLIENT_CERT_POLICY
 #define SECPKG_ATTR_CLIENT_CERT_POLICY   0x60   // sets    SecPkgCred_ClientCertCtlPolicy
+#endif
+
+#ifndef SECPKG_ATTR_SERIALIZED_REMOTE_CERT_CONTEXT_INPROC
+#define SECPKG_ATTR_SERIALIZED_REMOTE_CERT_CONTEXT_INPROC 0x74 // returns CERT_BLOB, use only after SSPI handshake loop
 #endif
 
 //
@@ -558,6 +572,11 @@ typedef struct CXPLAT_TLS {
     //
     CXPLAT_SEC_CONFIG* SecConfig;
 
+    //
+    // Labels for deriving key material.
+    //
+    const QUIC_HKDF_LABELS* HkdfLabels;
+
     SEC_APPLICATION_PROTOCOLS* ApplicationProtocols;
 
     ULONG AppProtocolsSize;
@@ -588,15 +607,29 @@ typedef struct CXPLAT_TLS {
     //
     uint8_t* PeerTransportParams;
 
-#ifdef CXPLAT_TLS_SECRETS_SUPPORT
     //
     // Optional struct to log TLS traffic secrets.
     // Only non-null when the connection is configured to log these.
     //
-    CXPLAT_TLS_SECRETS* TlsSecrets;
-#endif
+    QUIC_TLS_SECRETS* TlsSecrets;
 
 } CXPLAT_TLS;
+
+typedef enum QUIC_CERT_BLOB_TYPE {
+    QUIC_CERT_BLOB_NONE,
+    QUIC_CERT_BLOB_CHAIN,
+    QUIC_CERT_BLOB_CONTEXT,
+    QUIC_CERT_BLOB_SERIALIZED
+} QUIC_CERT_BLOB_TYPE;
+
+typedef struct QUIC_CERT_BLOB {
+    QUIC_CERT_BLOB_TYPE Type;
+    union {
+        SecPkgContext_Certificates Chain;
+        PCCERT_CONTEXT Context;
+        CERT_BLOB Serialized;
+    };
+} QUIC_CERT_BLOB;
 
 _Success_(return==TRUE)
 BOOLEAN
@@ -717,6 +750,12 @@ CxPlatTlsSetClientCertPolicy(
     if (SecConfig->Flags & QUIC_CREDENTIAL_FLAG_REVOCATION_CHECK_CHAIN_EXCLUDE_ROOT) {
         ClientCertPolicy.dwCertFlags |= CERT_CHAIN_REVOCATION_CHECK_CHAIN_EXCLUDE_ROOT;
     }
+    if (SecConfig->Flags & QUIC_CREDENTIAL_FLAG_CACHE_ONLY_URL_RETRIEVAL) {
+        ClientCertPolicy.dwCertFlags |= CERT_CHAIN_CACHE_ONLY_URL_RETRIEVAL;
+    }
+    if (SecConfig->Flags & QUIC_CREDENTIAL_FLAG_REVOCATION_CHECK_CACHE_ONLY) {
+        ClientCertPolicy.dwCertFlags |= CERT_CHAIN_REVOCATION_CHECK_CACHE_ONLY;
+    }
 
     SecStatus =
         SetCredentialsAttributesW(
@@ -731,6 +770,10 @@ CxPlatTlsSetClientCertPolicy(
             "[ lib] ERROR, %u, %s.",
             SecStatus,
             "SetCredentialsAttributesW(SECPKG_ATTR_CLIENT_CERT_POLICY) failed");
+    }
+
+    if (SecStatus == SEC_E_UNSUPPORTED_FUNCTION) {
+        return QUIC_STATUS_NOT_SUPPORTED;
     }
 
     return SecStatusToQuicStatus(SecStatus);
@@ -906,6 +949,15 @@ CxPlatTlsAchWorker(
 
 #endif
 
+_IRQL_requires_max_(DISPATCH_LEVEL)
+QUIC_TLS_PROVIDER
+CxPlatTlsGetProvider(
+    void
+    )
+{
+    return QUIC_TLS_PROVIDER_SCHANNEL;
+}
+
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 CxPlatTlsSecConfigCreate(
@@ -939,17 +991,26 @@ CxPlatTlsSecConfigCreate(
         return QUIC_STATUS_INVALID_PARAMETER; // Defer validation without indication doesn't make sense.
     }
 
-    if ((CredConfig->Flags & QUIC_CREDENTIAL_FLAG_REQUIRE_CLIENT_AUTHENTICATION) && IsClient) {
-        return QUIC_STATUS_INVALID_PARAMETER; // Client authentication is a server-only flag.
+    if (IsClient) {
+        if ((CredConfig->Flags & QUIC_CREDENTIAL_FLAG_REQUIRE_CLIENT_AUTHENTICATION) ||
+            (CredConfig->Flags & QUIC_CREDENTIAL_FLAG_USE_SYSTEM_MAPPER)) {
+            return QUIC_STATUS_INVALID_PARAMETER; // Client authentication is a server-only flag.
+        }
+    } else {
+        if ((CredConfig->Flags & QUIC_CREDENTIAL_FLAG_USE_SUPPLIED_CREDENTIALS)) {
+            return QUIC_STATUS_INVALID_PARAMETER; // Using supplied credentials is a client-only flag.
+        }
     }
 
     if (CredConfig->Flags & QUIC_CREDENTIAL_FLAG_USE_TLS_BUILTIN_CERTIFICATE_VALIDATION) {
         return QUIC_STATUS_INVALID_PARAMETER;
     }
 
-    if (CredConfig->Flags & QUIC_CREDENTIAL_FLAGS_USE_PORTABLE_CERTIFICATES) {
-       return QUIC_STATUS_NOT_SUPPORTED;    // Not supported yet.
+#ifdef _KERNEL_MODE
+    if (CredConfig->Flags & QUIC_CREDENTIAL_FLAG_USE_PORTABLE_CERTIFICATES) {
+       return QUIC_STATUS_NOT_SUPPORTED;    // Not supported in kernel mode.
     }
+#endif
 
     switch (CredConfig->Type) {
     case QUIC_CREDENTIAL_TYPE_NONE:
@@ -1041,11 +1102,19 @@ CxPlatTlsSecConfigCreate(
     if (CredConfig->Flags & QUIC_CREDENTIAL_FLAG_IGNORE_REVOCATION_OFFLINE) {
         Credentials->dwFlags |= SCH_CRED_IGNORE_REVOCATION_OFFLINE;
     }
+    if (CredConfig->Flags & QUIC_CREDENTIAL_FLAG_CACHE_ONLY_URL_RETRIEVAL) {
+        Credentials->dwFlags |= SCH_CRED_CACHE_ONLY_URL_RETRIEVAL;
+    }
+    if (CredConfig->Flags & QUIC_CREDENTIAL_FLAG_REVOCATION_CHECK_CACHE_ONLY) {
+        Credentials->dwFlags |= SCH_CRED_REVOCATION_CHECK_CACHE_ONLY;
+    }
     if (IsClient) {
         Credentials->dwFlags |= SCH_CRED_NO_DEFAULT_CREDS;
         Credentials->pTlsParameters->grbitDisabledProtocols = (DWORD)~SP_PROT_TLS1_3_CLIENT;
     } else {
-        Credentials->dwFlags |= SCH_CRED_NO_SYSTEM_MAPPER;
+        if (!(CredConfig->Flags & QUIC_CREDENTIAL_FLAG_USE_SYSTEM_MAPPER)) {
+            Credentials->dwFlags |= SCH_CRED_NO_SYSTEM_MAPPER;
+        }
         Credentials->pTlsParameters->grbitDisabledProtocols = (DWORD)~SP_PROT_TLS1_3_SERVER;
         if (TlsCredFlags & CXPLAT_TLS_CREDENTIAL_FLAG_DISABLE_RESUMPTION) {
             Credentials->dwFlags |= SCH_CRED_DISABLE_RECONNECTS;
@@ -1337,6 +1406,9 @@ CxPlatTlsSecConfigCreate(
 
     if (CredConfig->Flags & QUIC_CREDENTIAL_FLAG_REQUIRE_CLIENT_AUTHENTICATION) {
         Status = CxPlatTlsSetClientCertPolicy(AchContext->SecConfig);
+        if (QUIC_FAILED(Status)) {
+            goto Error;
+        }
     }
 
     QuicTraceLogVerbose(
@@ -1408,6 +1480,10 @@ CxPlatTlsSecConfigSetTicketKeys(
         return QUIC_STATUS_INVALID_PARAMETER;
     }
 
+    if (SecurityConfig->Flags & QUIC_CREDENTIAL_FLAG_CLIENT) {
+        return QUIC_STATUS_NOT_SUPPORTED;
+    }
+
     SecPkgCred_SessionTicketKey Key[QUIC_MAX_TICKET_KEY_COUNT];
     for (uint8_t i = 0; i < KeyCount; ++i) {
         if (KeyConfig[i].MaterialLength > sizeof(Key[i].KeyingMaterial)) {
@@ -1459,6 +1535,8 @@ CxPlatTlsInitialize(
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
     CXPLAT_TLS* TlsContext = NULL;
 
+    CXPLAT_DBG_ASSERT(Config->HkdfLabels);
+
     if (Config->IsServer != !(Config->SecConfig->Flags & QUIC_CREDENTIAL_FLAG_CLIENT)) {
         QuicTraceEvent(
             TlsError,
@@ -1486,12 +1564,11 @@ CxPlatTlsInitialize(
 
     TlsContext->IsServer = Config->IsServer;
     TlsContext->Connection = Config->Connection;
+    TlsContext->HkdfLabels = Config->HkdfLabels;
     TlsContext->QuicTpExtType = Config->TPType;
     TlsContext->SNI = Config->ServerName;
     TlsContext->SecConfig = Config->SecConfig;
-#ifdef CXPLAT_TLS_SECRETS_SUPPORT
     TlsContext->TlsSecrets = Config->TlsSecrets;
-#endif
 
     QuicTraceLogConnVerbose(
         SchannelContextCreated,
@@ -1584,6 +1661,117 @@ CxPlatTlsUninitialize(
         }
         CXPLAT_FREE(TlsContext, QUIC_POOL_TLS_CTX);
     }
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+CxPlatTlsUpdateHkdfLabels(
+    _In_ CXPLAT_TLS* TlsContext,
+    _In_ const QUIC_HKDF_LABELS* const Labels
+    )
+{
+    TlsContext->HkdfLabels = Labels;
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+CXPLAT_TLS_RESULT_FLAGS
+CxPlatTlsIndicateCertificateReceived(
+    _In_ CXPLAT_TLS* TlsContext,
+    _In_ CXPLAT_TLS_PROCESS_STATE* State,
+    _In_ SecPkgContext_CertificateValidationResult* CertValidationResult,
+    _In_ QUIC_CERT_BLOB* PeerCertBlob
+    )
+{
+    CXPLAT_TLS_RESULT_FLAGS Result = 0;
+    QUIC_CERTIFICATE* Certificate;
+    QUIC_CERTIFICATE_CHAIN* CertificateChain;
+#ifndef _KERNEL_MODE
+    QUIC_PORTABLE_CERTIFICATE PortableCertificate = {0};
+#endif
+
+    if (PeerCertBlob->Type == QUIC_CERT_BLOB_NONE) {
+        Certificate = NULL;
+        CertificateChain = NULL;
+    } else if (PeerCertBlob->Type == QUIC_CERT_BLOB_CHAIN) {
+#ifndef _KERNEL_MODE
+        CXPLAT_DBG_ASSERT(FALSE);
+#endif
+        Certificate = (QUIC_CERTIFICATE*)&PeerCertBlob->Chain;
+        CertificateChain = (QUIC_CERTIFICATE_CHAIN*)&PeerCertBlob->Chain;
+    } else if (PeerCertBlob->Type == QUIC_CERT_BLOB_CONTEXT) {
+#ifdef _KERNEL_MODE
+        Certificate = NULL;
+        CertificateChain = NULL;
+        CXPLAT_DBG_ASSERT(FALSE);
+#else
+        if (TlsContext->SecConfig->Flags & QUIC_CREDENTIAL_FLAG_USE_PORTABLE_CERTIFICATES) {
+            QUIC_STATUS Status =
+                CxPlatGetPortableCertificate(
+                    (QUIC_CERTIFICATE*)PeerCertBlob->Context,
+                    &PortableCertificate);
+            if (QUIC_FAILED(Status)) {
+                Result |= CXPLAT_TLS_RESULT_ERROR;
+                State->AlertCode = CXPLAT_TLS_ALERT_CODE_INTERNAL_ERROR;
+                goto Exit;
+            }
+            Certificate = (QUIC_CERTIFICATE*)&PortableCertificate.PortableCertificate;
+            CertificateChain = (QUIC_CERTIFICATE_CHAIN*)&PortableCertificate.PortableChain;
+        } else {
+            Certificate = (QUIC_CERTIFICATE*)PeerCertBlob->Context;
+            CertificateChain = (QUIC_CERTIFICATE_CHAIN*)(PeerCertBlob->Context->hCertStore);
+        }
+#endif
+    } else if (PeerCertBlob->Type == QUIC_CERT_BLOB_SERIALIZED) {
+#ifndef _KERNEL_MODE
+        if (TlsContext->SecConfig->Flags & QUIC_CREDENTIAL_FLAG_USE_PORTABLE_CERTIFICATES) {
+            QUIC_STATUS Status =
+                CxPlatGetPortableCertificateFromSerialized(
+                    (QUIC_CERTIFICATE*)&PeerCertBlob->Serialized,
+                    &PortableCertificate);
+            if (QUIC_FAILED(Status)) {
+                Result |= CXPLAT_TLS_RESULT_ERROR;
+                State->AlertCode = CXPLAT_TLS_ALERT_CODE_INTERNAL_ERROR;
+                goto Exit;
+            }
+            Certificate = (QUIC_CERTIFICATE*)&PortableCertificate.PortableCertificate;
+            CertificateChain = (QUIC_CERTIFICATE_CHAIN*)&PortableCertificate.PortableChain;
+        } else {
+            Certificate = (QUIC_CERTIFICATE*)&PeerCertBlob->Serialized;
+            CertificateChain = (QUIC_CERTIFICATE_CHAIN*)(&PeerCertBlob->Serialized);
+        }
+#else
+        Certificate = (QUIC_CERTIFICATE*)&PeerCertBlob->Serialized;
+        CertificateChain = (QUIC_CERTIFICATE_CHAIN*)(&PeerCertBlob->Serialized);
+#endif
+    } else {
+        CXPLAT_DBG_ASSERTMSG(FALSE, "QUIC_CERT_BLOB_TYPE out of range!");
+        Certificate = NULL;
+        CertificateChain = NULL;
+    }
+
+    if (!TlsContext->SecConfig->Callbacks.CertificateReceived(
+            TlsContext->Connection,
+            Certificate,
+            CertificateChain,
+            CertValidationResult->dwChainErrorStatus,
+            (QUIC_STATUS)CertValidationResult->hrVerifyChainStatus)) {
+        QuicTraceEvent(
+            TlsError,
+            "[ tls][%p] ERROR, %s.",
+            TlsContext->Connection,
+            "Indicate certificate received failed");
+        Result |= CXPLAT_TLS_RESULT_ERROR;
+        State->AlertCode = CXPLAT_TLS_ALERT_CODE_BAD_CERTIFICATE;
+        goto Exit;
+    }
+
+Exit:
+
+#ifndef _KERNEL_MODE
+    CxPlatFreePortableCertificate(&PortableCertificate);
+#endif
+
+    return Result;
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -1777,15 +1965,19 @@ CxPlatTlsWriteDataToSchannel(
         OutSecBufferDesc.cBuffers++;
     }
 
-    ULONG ContextReq =
-        ISC_REQ_SEQUENCE_DETECT |
-        ISC_REQ_CONFIDENTIALITY |
-        ISC_RET_EXTENDED_ERROR |
-        ISC_REQ_STREAM;
+    CXPLAT_STATIC_ASSERT(ISC_REQ_SEQUENCE_DETECT == ASC_REQ_SEQUENCE_DETECT, "These are assumed to match");
+    CXPLAT_STATIC_ASSERT(ISC_REQ_CONFIDENTIALITY == ASC_REQ_CONFIDENTIALITY, "These are assumed to match");
+    ULONG ContextReq = ISC_REQ_SEQUENCE_DETECT | ISC_REQ_CONFIDENTIALITY;
     if (TlsContext->IsServer) {
-        ContextReq |= ASC_REQ_SESSION_TICKET; // Always use session tickets for resumption
+        ContextReq |= ASC_REQ_EXTENDED_ERROR | ASC_REQ_STREAM |
+            ASC_REQ_SESSION_TICKET; // Always use session tickets for resumption
         if (TlsContext->SecConfig->Flags & QUIC_CREDENTIAL_FLAG_REQUIRE_CLIENT_AUTHENTICATION) {
             ContextReq |= ASC_REQ_MUTUAL_AUTH;
+        }
+    } else {
+        ContextReq |= ISC_REQ_EXTENDED_ERROR | ISC_REQ_STREAM;
+        if (TlsContext->SecConfig->Flags & QUIC_CREDENTIAL_FLAG_USE_SUPPLIED_CREDENTIALS) {
+            ContextReq |= ISC_REQ_USE_SUPPLIED_CREDS;
         }
     }
     ULONG ContextAttr;
@@ -2001,28 +2193,6 @@ CxPlatTlsWriteDataToSchannel(
                 }
             }
             SecPkgContext_CertificateValidationResult CertValidationResult = {0,0};
-            if (!(TlsContext->SecConfig->Flags & QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION) &&
-                (TlsContext->SecConfig->Flags & QUIC_CREDENTIAL_FLAG_REQUIRE_CLIENT_AUTHENTICATION ||
-                TlsContext->SecConfig->Flags & QUIC_CREDENTIAL_FLAG_DEFER_CERTIFICATE_VALIDATION)) {
-                //
-                // Collect the client cert validation result
-                //
-                SecStatus =
-                    QueryContextAttributesW(
-                        &TlsContext->SchannelContext,
-                        SECPKG_ATTR_CERT_CHECK_RESULT_INPROC,
-                        &CertValidationResult);
-                if (SecStatus != SEC_E_OK) {
-                    QuicTraceEvent(
-                        TlsErrorStatus,
-                        "[ tls][%p] ERROR, %u, %s.",
-                        TlsContext->Connection,
-                        SecStatus,
-                        "query cert validation result");
-                    Result |= CXPLAT_TLS_RESULT_ERROR;
-                    break;
-                }
-            }
 
             SecPkgContext_SessionInfo SessionInfo;
             SecStatus =
@@ -2044,65 +2214,109 @@ CxPlatTlsWriteDataToSchannel(
                 State->SessionResumed = TRUE;
             }
 
-            if (TlsContext->SecConfig->Flags & QUIC_CREDENTIAL_FLAG_INDICATE_CERTIFICATE_RECEIVED) {
+            const BOOLEAN RequirePeerCert =
+                !TlsContext->IsServer ||
+                TlsContext->SecConfig->Flags & QUIC_CREDENTIAL_FLAG_REQUIRE_CLIENT_AUTHENTICATION;
 
+            QUIC_CERT_BLOB PeerCertBlob;
+            CxPlatZeroMemory(&PeerCertBlob, sizeof(PeerCertBlob));
+            if (TlsContext->SecConfig->Flags & QUIC_CREDENTIAL_FLAG_INPROC_PEER_CERTIFICATE) {
+                PeerCertBlob.Type = QUIC_CERT_BLOB_SERIALIZED;
+                SecStatus =
+                    QueryContextAttributesW(
+                        &TlsContext->SchannelContext,
+                        SECPKG_ATTR_SERIALIZED_REMOTE_CERT_CONTEXT_INPROC,
+                        (PVOID)&(PeerCertBlob.Serialized));
+            } else {
 #ifdef _KERNEL_MODE
-                SecPkgContext_Certificates PeerCert;
-                CxPlatZeroMemory(&PeerCert, sizeof(PeerCert));
+                PeerCertBlob.Type = QUIC_CERT_BLOB_CHAIN;
                 SecStatus =
                     QueryContextAttributesW(
                         &TlsContext->SchannelContext,
                         SECPKG_ATTR_REMOTE_CERTIFICATES,
-                        (PVOID)&PeerCert);
+                        (PVOID)&PeerCertBlob.Chain);
 #else
-                PCCERT_CONTEXT PeerCert = NULL;
                 SecStatus =
                     QueryContextAttributesW(
                         &TlsContext->SchannelContext,
                         SECPKG_ATTR_REMOTE_CERT_CONTEXT,
-                        (PVOID)&PeerCert);
+                        (PVOID)&PeerCertBlob.Context);
+                PeerCertBlob.Type =
+                    PeerCertBlob.Context ?
+                        QUIC_CERT_BLOB_CONTEXT : QUIC_CERT_BLOB_NONE;
 #endif
-                if (SecStatus != SEC_E_OK) {
+            }
+            if (SecStatus == SEC_E_NO_CREDENTIALS &&
+                (TlsContext->SecConfig->Flags & QUIC_CREDENTIAL_FLAG_DEFER_CERTIFICATE_VALIDATION)) {
+                //
+                // Ignore this case.
+                //
+                PeerCertBlob.Type = QUIC_CERT_BLOB_NONE;
+                CertValidationResult.hrVerifyChainStatus = SecStatus;
+            } else if (SecStatus == SEC_E_OK &&
+                !(TlsContext->SecConfig->Flags & QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION) &&
+                (TlsContext->SecConfig->Flags & QUIC_CREDENTIAL_FLAG_REQUIRE_CLIENT_AUTHENTICATION ||
+                TlsContext->SecConfig->Flags & QUIC_CREDENTIAL_FLAG_DEFER_CERTIFICATE_VALIDATION)) {
+                //
+                // Collect the client cert validation result
+                //
+                SecStatus =
+                    QueryContextAttributesW(
+                        &TlsContext->SchannelContext,
+                        SECPKG_ATTR_CERT_CHECK_RESULT_INPROC,
+                        &CertValidationResult);
+                if (SecStatus == SEC_E_NO_CREDENTIALS) {
+                    CertValidationResult.hrVerifyChainStatus = SecStatus;
+                } else if (SecStatus != SEC_E_OK) {
                     QuicTraceEvent(
                         TlsErrorStatus,
                         "[ tls][%p] ERROR, %u, %s.",
                         TlsContext->Connection,
                         SecStatus,
-                        "Query peer cert");
-                }
-#ifndef _KERNEL_MODE
-                CXPLAT_DBG_ASSERT(PeerCert != NULL);
-#endif
-                if (!TlsContext->SecConfig->Callbacks.CertificateReceived(
-                        TlsContext->Connection,
-#ifdef _KERNEL_MODE
-                        (QUIC_CERTIFICATE*)&PeerCert,
-                        (QUIC_CERTIFICATE_CHAIN*)&PeerCert,
-#else
-                        (QUIC_CERTIFICATE*)PeerCert,
-                        (QUIC_CERTIFICATE_CHAIN*)(PeerCert->hCertStore),
-#endif
-                        CertValidationResult.dwChainErrorStatus,
-                        (QUIC_STATUS)CertValidationResult.hrVerifyChainStatus)) {
-                    QuicTraceEvent(
-                        TlsError,
-                        "[ tls][%p] ERROR, %s.",
-                        TlsContext->Connection,
-                        "Indicate certificate received failed");
+                        "query cert validation result");
                     Result |= CXPLAT_TLS_RESULT_ERROR;
-                    State->AlertCode = CXPLAT_TLS_ALERT_CODE_BAD_CERTIFICATE;
                     break;
                 }
+            } else if (SecStatus != SEC_E_OK && RequirePeerCert &&
+                !(TlsContext->SecConfig->Flags & QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION)) {
+                QuicTraceEvent(
+                    TlsErrorStatus,
+                    "[ tls][%p] ERROR, %u, %s.",
+                    TlsContext->Connection,
+                    SecStatus,
+                    "Query peer cert");
+                Result |= CXPLAT_TLS_RESULT_ERROR;
+                State->AlertCode = CXPLAT_TLS_ALERT_CODE_INTERNAL_ERROR;
+                break;
+            }
 
+            if (TlsContext->SecConfig->Flags & QUIC_CREDENTIAL_FLAG_INDICATE_CERTIFICATE_RECEIVED) {
+                Result |=
+                     CxPlatTlsIndicateCertificateReceived(
+                        TlsContext,
+                        State,
+                        &CertValidationResult,
+                        &PeerCertBlob);
+            }
+
+            if (TlsContext->SecConfig->Flags & QUIC_CREDENTIAL_FLAG_INPROC_PEER_CERTIFICATE) {
+                if (PeerCertBlob.Serialized.pbData != NULL) {
+                    FreeContextBuffer(PeerCertBlob.Serialized.pbData);
+                }
+            } else {
 #ifdef _KERNEL_MODE
-                if (PeerCert.pbCertificateChain != NULL) {
-                    FreeContextBuffer(PeerCert.pbCertificateChain);
+                if (PeerCertBlob.Chain.pbCertificateChain != NULL) {
+                    FreeContextBuffer(PeerCertBlob.Chain.pbCertificateChain);
                 }
 #else
-                if (PeerCert != NULL) {
-                    CertFreeCertificateContext(PeerCert);
+                if (PeerCertBlob.Context != NULL) {
+                    CertFreeCertificateContext(PeerCertBlob.Context);
                 }
 #endif
+            }
+
+            if ((Result & CXPLAT_TLS_RESULT_ERROR) != 0) {
+                break;
             }
 
             if (!(TlsContext->SecConfig->Flags & QUIC_CREDENTIAL_FLAG_DEFER_CERTIFICATE_VALIDATION) &&
@@ -2198,7 +2412,6 @@ CxPlatTlsWriteDataToSchannel(
                         SchannelReadHandshakeStart,
                         TlsContext->Connection,
                         "Reading Handshake data starts now");
-#ifdef CXPLAT_TLS_SECRETS_SUPPORT
                     if (TlsContext->TlsSecrets != NULL) {
                         TlsContext->TlsSecrets->SecretLength = (uint8_t)NewPeerTrafficSecrets[i]->TrafficSecretSize;
                         if (TlsContext->IsServer) {
@@ -2215,7 +2428,6 @@ CxPlatTlsWriteDataToSchannel(
                             TlsContext->TlsSecrets->IsSet.ServerHandshakeTrafficSecret = TRUE;
                         }
                     }
-#endif
                 } else if (State->ReadKey == QUIC_PACKET_KEY_HANDSHAKE) {
                     if (!QuicPacketKeyCreate(
                             TlsContext,
@@ -2231,7 +2443,6 @@ CxPlatTlsWriteDataToSchannel(
                         SchannelRead1RttStart,
                         TlsContext->Connection,
                         "Reading 1-RTT data starts now");
-#ifdef CXPLAT_TLS_SECRETS_SUPPORT
                     if (TlsContext->TlsSecrets != NULL) {
                         TlsContext->TlsSecrets->SecretLength = (uint8_t)NewPeerTrafficSecrets[i]->TrafficSecretSize;
                         if (TlsContext->IsServer) {
@@ -2248,7 +2459,6 @@ CxPlatTlsWriteDataToSchannel(
                             TlsContext->TlsSecrets->IsSet.ServerTrafficSecret0 = TRUE;
                         }
                     }
-#endif
                 }
             }
         }
@@ -2260,7 +2470,6 @@ CxPlatTlsWriteDataToSchannel(
             Result |= CXPLAT_TLS_RESULT_WRITE_KEY_UPDATED;
             if (NewOwnTrafficSecrets[i]->TrafficSecretType == SecTrafficSecret_ClientEarlyData) {
                 CXPLAT_FRE_ASSERT(FALSE); // TODO - Finish the 0-RTT logic.
-#ifdef CXPLAT_TLS_SECRETS_SUPPORT
                 CXPLAT_FRE_ASSERT(!TlsContext->IsServer);
                 if (TlsContext->TlsSecrets != NULL) {
                     TlsContext->TlsSecrets->SecretLength = (uint8_t)NewOwnTrafficSecrets[i]->TrafficSecretSize;
@@ -2270,7 +2479,6 @@ CxPlatTlsWriteDataToSchannel(
                         NewOwnTrafficSecrets[i]->TrafficSecretSize);
                     TlsContext->TlsSecrets->IsSet.ClientEarlyTrafficSecret = TRUE;
                 }
-#endif
             } else {
                 if (State->WriteKey == QUIC_PACKET_KEY_INITIAL) {
                     if (!QuicPacketKeyCreate(
@@ -2292,7 +2500,6 @@ CxPlatTlsWriteDataToSchannel(
                         TlsContext->Connection,
                         "Writing Handshake data starts at %u",
                         State->BufferOffsetHandshake);
-#ifdef CXPLAT_TLS_SECRETS_SUPPORT
                     if (TlsContext->TlsSecrets != NULL) {
                         TlsContext->TlsSecrets->SecretLength = (uint8_t)NewOwnTrafficSecrets[i]->TrafficSecretSize;
                         if (TlsContext->IsServer) {
@@ -2309,7 +2516,6 @@ CxPlatTlsWriteDataToSchannel(
                             TlsContext->TlsSecrets->IsSet.ClientHandshakeTrafficSecret = TRUE;
                         }
                     }
-#endif
                 } else if (State->WriteKey == QUIC_PACKET_KEY_HANDSHAKE) {
                     if (!TlsContext->IsServer && State->BufferOffsetHandshake == State->BufferOffset1Rtt) {
                         State->BufferOffset1Rtt = // HACK - Currently Schannel has weird output for 1-RTT start
@@ -2332,7 +2538,6 @@ CxPlatTlsWriteDataToSchannel(
                             TlsContext->Connection,
                             "Writing 1-RTT data starts at %u",
                             State->BufferOffset1Rtt);
-#ifdef CXPLAT_TLS_SECRETS_SUPPORT
                         if (TlsContext->TlsSecrets != NULL) {
                             TlsContext->TlsSecrets->SecretLength = (uint8_t)NewOwnTrafficSecrets[i]->TrafficSecretSize;
                             if (TlsContext->IsServer) {
@@ -2349,20 +2554,17 @@ CxPlatTlsWriteDataToSchannel(
                                 TlsContext->TlsSecrets->IsSet.ClientTrafficSecret0 = TRUE;
                             }
                         }
-#endif
                     }
                 }
             }
         }
 
-#ifdef CXPLAT_TLS_SECRETS_SUPPORT
         if (SecStatus == SEC_E_OK) {
             //
             // We're done with the TlsSecrets.
             //
             TlsContext->TlsSecrets = NULL;
         }
-#endif
 
         if (OutputTokenBuffer != NULL && OutputTokenBuffer->cbBuffer > 0) {
             //
@@ -2620,6 +2822,67 @@ Error:
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
+CxPlatSecConfigParamSet(
+    _In_ CXPLAT_SEC_CONFIG* SecConfig,
+    _In_ uint32_t Param,
+    _In_ uint32_t BufferLength,
+    _In_reads_bytes_(BufferLength)
+        const void* Buffer
+    )
+{
+    QUIC_STATUS Status;
+
+    switch (Param) {
+    case QUIC_PARAM_CONFIGURATION_SCHANNEL_CREDENTIAL_ATTRIBUTE_W: {
+        if (Buffer == NULL ||
+            BufferLength != sizeof(QUIC_SCHANNEL_CREDENTIAL_ATTRIBUTE_W)) {
+            Status = QUIC_STATUS_INVALID_PARAMETER;
+            break;
+        }
+
+        if (SecConfig == NULL || !SecIsValidHandle(&SecConfig->CredentialHandle)) {
+            Status = QUIC_STATUS_INVALID_STATE;
+            break;
+        }
+
+        QUIC_SCHANNEL_CREDENTIAL_ATTRIBUTE_W *CredentialAttribute =
+            (QUIC_SCHANNEL_CREDENTIAL_ATTRIBUTE_W*)Buffer;
+
+        Status =
+            SecStatusToQuicStatus(
+            SetCredentialsAttributesW(
+                &SecConfig->CredentialHandle,
+                CredentialAttribute->Attribute,
+                CredentialAttribute->Buffer,
+                CredentialAttribute->BufferLength));
+        break;
+    }
+    default:
+        Status = QUIC_STATUS_NOT_SUPPORTED;
+    }
+
+    return Status;
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_STATUS
+CxPlatSecConfigParamGet(
+    _In_ CXPLAT_SEC_CONFIG* SecConfig,
+    _In_ uint32_t Param,
+    _Inout_ uint32_t* BufferLength,
+    _Inout_updates_bytes_opt_(*BufferLength)
+        void* Buffer
+    )
+{
+    UNREFERENCED_PARAMETER(SecConfig);
+    UNREFERENCED_PARAMETER(Param);
+    UNREFERENCED_PARAMETER(BufferLength);
+    UNREFERENCED_PARAMETER(Buffer);
+    return QUIC_STATUS_NOT_SUPPORTED;
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_STATUS
 CxPlatTlsParamSet(
     _In_ CXPLAT_TLS* TlsContext,
     _In_ uint32_t Param,
@@ -2647,6 +2910,12 @@ CxPlatTlsParamGet(
 {
     QUIC_STATUS Status;
 
+    // TODO:
+    // Need to check Connection->Crypto.TlsState.HandshakeComplete for
+    // QUIC_PARAM_TLS_HANDSHAKE_INFO and QUIC_PARAM_TLS_NEGOTIATED_ALPN
+    // It is difficult to access this flag because of dependency problem
+    // caused by including connection.h
+
     switch (Param) {
 
         case QUIC_PARAM_TLS_SCHANNEL_CONTEXT_ATTRIBUTE_W: {
@@ -2672,6 +2941,50 @@ CxPlatTlsParamGet(
                     ContextAttribute->Buffer));
             break;
         }
+
+        case QUIC_PARAM_TLS_SCHANNEL_CONTEXT_ATTRIBUTE_EX_W: {
+            if (*BufferLength < sizeof(QUIC_SCHANNEL_CONTEXT_ATTRIBUTE_EX_W)) {
+                *BufferLength = sizeof(QUIC_SCHANNEL_CONTEXT_ATTRIBUTE_EX_W);
+                Status = QUIC_STATUS_BUFFER_TOO_SMALL;
+                break;
+            }
+
+            if (Buffer == NULL) {
+                Status = QUIC_STATUS_INVALID_PARAMETER;
+                break;
+            }
+
+            QUIC_SCHANNEL_CONTEXT_ATTRIBUTE_EX_W *ContextAttribute =
+                (QUIC_SCHANNEL_CONTEXT_ATTRIBUTE_EX_W*)Buffer;
+
+            Status =
+                SecStatusToQuicStatus(
+                QueryContextAttributesExW(
+                    &TlsContext->SchannelContext,
+                    ContextAttribute->Attribute,
+                    ContextAttribute->Buffer,
+                    ContextAttribute->BufferLength));
+            break;
+        }
+
+        case QUIC_PARAM_TLS_SCHANNEL_SECURITY_CONTEXT_TOKEN:
+            if (*BufferLength < sizeof(void*)) {
+                *BufferLength = sizeof(void*);
+                Status = QUIC_STATUS_BUFFER_TOO_SMALL;
+                break;
+            }
+
+            if (Buffer == NULL) {
+                Status = QUIC_STATUS_INVALID_PARAMETER;
+                break;
+            }
+
+            Status =
+                SecStatusToQuicStatus(
+                QuerySecurityContextToken(
+                    &TlsContext->SchannelContext,
+                    Buffer));
+            break;
 
         case QUIC_PARAM_TLS_HANDSHAKE_INFO: {
             if (*BufferLength < sizeof(QUIC_HANDSHAKE_INFO)) {
@@ -2740,10 +3053,6 @@ CxPlatTlsParamGet(
             break;
         }
 
-        default:
-            Status = QUIC_STATUS_NOT_SUPPORTED;
-            break;
-
         case QUIC_PARAM_TLS_NEGOTIATED_ALPN: {
             if (Buffer == NULL) {
                 Status = QUIC_STATUS_INVALID_PARAMETER;
@@ -2787,6 +3096,10 @@ CxPlatTlsParamGet(
             CxPlatCopyMemory(Buffer, NegotiatedAlpn.ProtocolId, NegotiatedAlpn.ProtocolIdSize);
             break;
         }
+
+        default:
+            Status = QUIC_STATUS_NOT_SUPPORTED;
+            break;
     }
 
     return Status;
@@ -2900,6 +3213,7 @@ QuicPacketKeyCreate(
     Status =
         QuicPacketKeyDerive(
             KeyType,
+            TlsContext->HkdfLabels,
             &Secret,
             SecretName,
             TRUE,

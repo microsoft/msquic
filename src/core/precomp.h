@@ -17,7 +17,7 @@
 #pragma warning(disable:28931) // Unused Assignment
 
 #define QUIC_API_ENABLE_INSECURE_FEATURES 1
-#define QUIC_CORE_INTERNAL 1
+#define QUIC_API_ENABLE_PREVIEW_FEATURES 1
 
 //
 // Platform or Public Headers.
@@ -74,3 +74,5 @@
 #include "packet_builder.h"
 #include "listener.h"
 #include "cubic.h"
+#include "bbr.h"
+#include "sliding_window_extremum.h"

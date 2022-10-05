@@ -19,8 +19,21 @@ Environment:
 #include "cert_capi.c.clog.h"
 #endif
 
+#pragma warning(push)
+#pragma warning(disable:6553) // Annotation does not apply to value type.
 #include <wincrypt.h>
+#pragma warning(pop)
 #include "msquic.h"
+
+#ifndef CERT_CHAIN_ORDER_PROP_ID
+// Set for certificate stores serialized from a remote chain. The value is a DWORD
+// 0 based index for the order received from the peer in certificate_list of the
+// certificate message.
+// This ID value was randomly chosen from the range of CERT_FIRST_USER_PROP_ID to
+// CERT_LAST_USER_PROP_ID to minimize the chance of conflict with ones that end
+// users might add.
+#define CERT_CHAIN_ORDER_PROP_ID 0xE697U
+#endif
 
 #ifdef QUIC_RESTRICTED_BUILD
 #ifndef NT_SUCCESS
@@ -695,6 +708,397 @@ Exit:
     }
 
     return (QUIC_CERTIFICATE*)LeafCertCtx;
+}
+
+_Success_(return != 0)
+QUIC_STATUS
+CxPlatGetPortableCertificateFromSerialized(
+    _In_ QUIC_CERTIFICATE* SerializedCertificate,
+    _Out_ QUIC_PORTABLE_CERTIFICATE* PortableCertificate
+    )
+{
+    QUIC_STATUS Status;
+    DWORD LastError;
+    HCERTSTORE TempCertStore = NULL;
+    CERT_BLOB* SerializedCertificateStore = (CERT_BLOB*)SerializedCertificate;
+    CERT_BLOB Blob = {0};
+    PCCERT_CONTEXT CurrentCertContext = NULL;
+    PCCERT_CONTEXT LeafCertContext = NULL;
+
+    PortableCertificate->PlatformCertificate = NULL;
+
+    HCERTSTORE SerializedStore =
+        CertOpenStore(
+            CERT_STORE_PROV_SERIALIZED,
+            X509_ASN_ENCODING,
+            0,
+            CERT_STORE_DEFER_CLOSE_UNTIL_LAST_FREE_FLAG,
+            SerializedCertificateStore);
+    if (SerializedStore == NULL) {
+        LastError = GetLastError();
+        if (LastError == ERROR_OUTOFMEMORY ||
+            LastError == ERROR_NOT_ENOUGH_MEMORY) {
+            return QUIC_STATUS_OUT_OF_MEMORY;
+        } else {
+            QuicTraceEvent(
+                LibraryErrorStatus,
+                "[ lib] ERROR, %u, %s.",
+                LastError,
+                "CertOpenStore failed");
+            return QUIC_STATUS_INTERNAL_ERROR;
+        }
+    }
+
+    TempCertStore =
+        CertOpenStore(
+            CERT_STORE_PROV_MEMORY,
+            X509_ASN_ENCODING | PKCS_7_ASN_ENCODING,
+            0,
+            CERT_STORE_ENUM_ARCHIVED_FLAG,
+            NULL);
+    if (NULL == TempCertStore) {
+        LastError = GetLastError();
+        Status = HRESULT_FROM_WIN32(LastError);
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            LastError,
+            "CertOpenStore failed");
+        goto Exit;
+    }
+
+    //
+    // Locate the leaf certificate
+    //
+    while ((CurrentCertContext = CertEnumCertificatesInStore(SerializedStore, CurrentCertContext)) != NULL) {
+        DWORD cbCertOrder = sizeof(DWORD);
+        DWORD dwCertOrder = 0;
+        if (CertGetCertificateContextProperty(
+                CurrentCertContext,
+                CERT_CHAIN_ORDER_PROP_ID,
+                &dwCertOrder,
+                &cbCertOrder)) {
+            if (dwCertOrder == 0) {
+                LeafCertContext = CertDuplicateCertificateContext(CurrentCertContext);
+                if (LeafCertContext == NULL) {
+                    LastError = GetLastError();
+                    Status = HRESULT_FROM_WIN32(LastError);
+                    QuicTraceEvent(
+                        LibraryErrorStatus,
+                        "[ lib] ERROR, %u, %s.",
+                        LastError,
+                        "CertDuplicateCertificateContext failed");
+                    goto Exit;
+                }
+            } else {
+                if (!CertAddCertificateLinkToStore(
+                        TempCertStore,
+                        CurrentCertContext,
+                        CERT_STORE_ADD_ALWAYS,
+                        NULL)) {
+                    LastError = GetLastError();
+                    Status = HRESULT_FROM_WIN32(LastError);
+                    QuicTraceEvent(
+                        LibraryErrorStatus,
+                        "[ lib] ERROR, %u, %s.",
+                        LastError,
+                        "CertAddCertificateLinkToStore failed");
+                    goto Exit;
+                }
+            }
+        } else {
+            // Either the property does not exist or it is not the expected size.
+            // This can happen if the serialized buffer did not come from schannel.
+            QuicTraceEvent(
+                LibraryErrorStatus,
+                "[ lib] ERROR, %u, %s.",
+                GetLastError(),
+                "CertGetCertificateContextProperty failed");
+            Status = QUIC_STATUS_INVALID_PARAMETER;
+            goto Exit;
+        }
+    }
+
+    if (LeafCertContext == NULL) {
+        // Schannel did not mark a leaf. This is bad.
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            QUIC_STATUS_NOT_FOUND,
+            "No leaf certificate found");
+        Status = QUIC_STATUS_NOT_FOUND;
+        goto Exit;
+    }
+
+    if (!CertSaveStore(
+            TempCertStore,
+            X509_ASN_ENCODING | PKCS_7_ASN_ENCODING,
+            CERT_STORE_SAVE_AS_PKCS7,
+            CERT_STORE_SAVE_TO_MEMORY,
+            &Blob,
+            0)) {
+        LastError = GetLastError();
+        Status = HRESULT_FROM_WIN32(LastError);
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            LastError,
+            "CertSaveStore failed");
+        goto Exit;
+    }
+
+    Blob.pbData = CXPLAT_ALLOC_NONPAGED(Blob.cbData, QUIC_POOL_TLS_PFX);
+    if (Blob.pbData == NULL) {
+        QuicTraceEvent(
+            AllocFailure,
+            "Allocation of '%s' failed. (%llu bytes)",
+            "PKCS7 data",
+            Blob.cbData);
+        Status = QUIC_STATUS_OUT_OF_MEMORY;
+        goto Exit;
+    }
+
+    if (!CertSaveStore(
+            TempCertStore,
+            X509_ASN_ENCODING | PKCS_7_ASN_ENCODING,
+            CERT_STORE_SAVE_AS_PKCS7,
+            CERT_STORE_SAVE_TO_MEMORY,
+            &Blob,
+            0)) {
+        LastError = GetLastError();
+        Status = HRESULT_FROM_WIN32(LastError);
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            LastError,
+            "CertSaveStore failed");
+        goto Exit;
+    }
+
+    PortableCertificate->PortableChain.Length = Blob.cbData;
+    PortableCertificate->PortableChain.Buffer = Blob.pbData;
+    Blob.pbData = NULL;
+
+    PortableCertificate->PortableCertificate.Length =
+        LeafCertContext->cbCertEncoded;
+    PortableCertificate->PortableCertificate.Buffer =
+        LeafCertContext->pbCertEncoded;
+
+    PortableCertificate->PlatformCertificate =
+        (QUIC_CERTIFICATE*)LeafCertContext;
+    LeafCertContext = NULL;
+
+    Status = QUIC_STATUS_SUCCESS;
+
+Exit:
+    if (LeafCertContext != NULL) {
+        CertFreeCertificateContext(CurrentCertContext);
+    }
+
+    if (CurrentCertContext != NULL) {
+        CertFreeCertificateContext(CurrentCertContext);
+    }
+
+    if (Blob.pbData != NULL) {
+        CXPLAT_FREE(Blob.pbData, QUIC_POOL_TLS_PFX);
+    }
+
+    if (TempCertStore != NULL) {
+        CertCloseStore(TempCertStore, 0);
+    }
+
+    CertCloseStore(SerializedStore, 0);
+
+    return Status;
+}
+
+_Success_(return != 0)
+QUIC_STATUS
+CxPlatGetPortableCertificate(
+    _In_ QUIC_CERTIFICATE* Certificate,
+    _Out_ QUIC_PORTABLE_CERTIFICATE* PortableCertificate
+    )
+{
+    QUIC_STATUS Status;
+    DWORD LastError;
+    CERT_CHAIN_PARA ChainPara;
+    CERT_ENHKEY_USAGE EnhKeyUsage;
+    CERT_USAGE_MATCH CertUsage;
+    PCCERT_CHAIN_CONTEXT ChainContext;
+    PCCERT_CONTEXT CertCtx = (PCCERT_CONTEXT)Certificate;
+    PCCERT_CONTEXT DuplicateCtx;
+    HCERTSTORE TempCertStore = NULL;
+    CERT_BLOB Blob = {0};
+
+    PortableCertificate->PlatformCertificate = NULL;
+
+    EnhKeyUsage.cUsageIdentifier = 0;
+    EnhKeyUsage.rgpszUsageIdentifier = NULL;
+    CertUsage.dwType = USAGE_MATCH_TYPE_AND;
+    CertUsage.Usage = EnhKeyUsage;
+    ChainPara.cbSize = sizeof(CERT_CHAIN_PARA);
+    ChainPara.RequestedUsage = CertUsage;
+
+    if (!CertGetCertificateChain(
+            NULL,  // default chain engine
+            CertCtx,
+            NULL,
+            NULL,
+            &ChainPara,
+            0,
+            NULL,
+            &ChainContext)) {
+        LastError = GetLastError();
+        Status = HRESULT_FROM_WIN32(LastError);
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            LastError,
+            "CertGetCertificateChain failed");
+        goto Exit;
+    }
+
+    TempCertStore =
+        CertOpenStore(
+            CERT_STORE_PROV_MEMORY,
+            X509_ASN_ENCODING | PKCS_7_ASN_ENCODING,
+            0,
+            CERT_STORE_ENUM_ARCHIVED_FLAG,
+            NULL);
+    if (NULL == TempCertStore) {
+        LastError = GetLastError();
+        Status = HRESULT_FROM_WIN32(LastError);
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            LastError,
+            "CertOpenStore failed");
+        goto Exit;
+    }
+
+    for (DWORD i = 0; i < ChainContext->cChain; ++i) {
+        PCERT_SIMPLE_CHAIN SimpleChain = ChainContext->rgpChain[i];
+        for (DWORD j = 0; j < SimpleChain->cElement; ++j) {
+            PCERT_CHAIN_ELEMENT Element = SimpleChain->rgpElement[j];
+            PCCERT_CONTEXT EncodedCert = Element->pCertContext;
+            if (!CertAddCertificateLinkToStore(
+                    TempCertStore,
+                    EncodedCert,
+                    CERT_STORE_ADD_ALWAYS,
+                    NULL)) {
+                LastError = GetLastError();
+                Status = HRESULT_FROM_WIN32(LastError);
+                QuicTraceEvent(
+                    LibraryErrorStatus,
+                    "[ lib] ERROR, %u, %s.",
+                    LastError,
+                    "CertAddCertificateLinkToStore failed");
+                goto Exit;
+            }
+        }
+    }
+
+    if (!CertSaveStore(
+            TempCertStore,
+            X509_ASN_ENCODING | PKCS_7_ASN_ENCODING,
+            CERT_STORE_SAVE_AS_PKCS7,
+            CERT_STORE_SAVE_TO_MEMORY,
+            &Blob,
+            0)) {
+        LastError = GetLastError();
+        Status = HRESULT_FROM_WIN32(LastError);
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            LastError,
+            "CertSaveStore failed");
+        goto Exit;
+    }
+
+    Blob.pbData = CXPLAT_ALLOC_NONPAGED(Blob.cbData, QUIC_POOL_TLS_PFX);
+    if (Blob.pbData == NULL) {
+        QuicTraceEvent(
+            AllocFailure,
+            "Allocation of '%s' failed. (%llu bytes)",
+            "PKCS7 data",
+            Blob.cbData);
+        Status = QUIC_STATUS_OUT_OF_MEMORY;
+        goto Exit;
+    }
+
+    if (!CertSaveStore(
+            TempCertStore,
+            X509_ASN_ENCODING | PKCS_7_ASN_ENCODING,
+            CERT_STORE_SAVE_AS_PKCS7,
+            CERT_STORE_SAVE_TO_MEMORY,
+            &Blob,
+            0)) {
+        LastError = GetLastError();
+        Status = HRESULT_FROM_WIN32(LastError);
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            LastError,
+            "CertSaveStore failed");
+        goto Exit;
+    }
+
+    DuplicateCtx = CertDuplicateCertificateContext(CertCtx);
+    if (DuplicateCtx == NULL) {
+        LastError = GetLastError();
+        Status = HRESULT_FROM_WIN32(LastError);
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            LastError,
+            "CertDuplicateCertificateContext failed");
+        goto Exit;
+    }
+
+    PortableCertificate->PortableChain.Length = Blob.cbData;
+    PortableCertificate->PortableChain.Buffer = Blob.pbData;
+    Blob.pbData = NULL;
+
+    PortableCertificate->PortableCertificate.Length =
+        DuplicateCtx->cbCertEncoded;
+    PortableCertificate->PortableCertificate.Buffer =
+        DuplicateCtx->pbCertEncoded;
+
+    PortableCertificate->PlatformCertificate =
+        (QUIC_CERTIFICATE*)DuplicateCtx;
+
+    Status = QUIC_STATUS_SUCCESS;
+
+Exit:
+
+    if (Blob.pbData != NULL) {
+        CXPLAT_FREE(Blob.pbData, QUIC_POOL_TLS_PFX);
+    }
+
+    if (TempCertStore != NULL) {
+        CertCloseStore(TempCertStore, 0);
+    }
+
+    if (ChainContext != NULL) {
+        CertFreeCertificateChain(ChainContext);
+    }
+
+    return Status;
+}
+
+void
+CxPlatFreePortableCertificate(
+    _In_ QUIC_PORTABLE_CERTIFICATE* PortableCertificate
+    )
+{
+    if (PortableCertificate->PlatformCertificate) {
+        CertFreeCertificateContext(
+            (PCCERT_CONTEXT)PortableCertificate->PlatformCertificate);
+
+        CXPLAT_FREE(
+            PortableCertificate->PortableChain.Buffer,
+            QUIC_POOL_TLS_PFX);
+    }
 }
 
 _Success_(return != 0)

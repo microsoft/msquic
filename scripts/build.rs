@@ -3,25 +3,35 @@
 
 use cmake::Config;
 use std::path::Path;
+use std::env;
 
 fn main() {
-    let mut path_extra = "msquic/lib";
+    let path_extra = "lib";
     let mut logging_enabled = "off";
     if cfg!(windows) {
-        path_extra = "lib";
         logging_enabled = "on";
     }
 
+    let target = env::var("TARGET").unwrap();
+
     // Builds the native MsQuic and installs it into $OUT_DIR.
-    let dst = Config::new(".")
-                 .define("QUIC_BUILD_TEST", "off")
-                 .define("QUIC_BUILD_TOOLS", "off")
-                 .define("QUIC_BUILD_PERF", "off")
-                 .define("QUIC_SOURCE_LINK", "off")
-                 .define("QUIC_ENABLE_LOGGING", logging_enabled)
-                 .define("QUIC_TLS", "openssl")
-                 .define("QUIC_OUTPUT_DIR", "../lib")
-                 .build();
+    let mut config = Config::new(".");
+    config
+        .define("QUIC_ENABLE_LOGGING", logging_enabled)
+        .define("QUIC_TLS", "openssl")
+        .define("QUIC_OUTPUT_DIR", "../lib");
+
+    match target.as_str() {
+        "x86_64-apple-darwin" => config
+            .define("CMAKE_OSX_ARCHITECTURES", "x86_64")
+            .define("CMAKE_OSX_DEPLOYMENT_TARGET", "10.15"),
+        "aarch64-apple-darwin" => config
+            .define("CMAKE_OSX_ARCHITECTURES", "arm64")
+            .define("CMAKE_OSX_DEPLOYMENT_TARGET", "11.0"),
+        _ => &mut config
+    };
+
+    let dst = config.build();
     let lib_path = Path::join(Path::new(&dst), Path::new(path_extra));
     println!("cargo:rustc-link-search=native={}", lib_path.display());
 }

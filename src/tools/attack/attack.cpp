@@ -26,6 +26,8 @@
 
 #define ATTACK_PORT_DEFAULT 443
 
+const QUIC_HKDF_LABELS HkdfLabels = { "quic key", "quic iv", "quic hp", "quic ku" };
+
 static CXPLAT_DATAPATH* Datapath;
 static PacketWriter* Writer;
 
@@ -117,7 +119,7 @@ void RunAttackRandom(CXPLAT_SOCKET* Binding, uint16_t Length, bool ValidQuic)
 
         CXPLAT_SEND_DATA* SendData =
             CxPlatSendDataAlloc(
-                Binding, CXPLAT_ECN_NON_ECT, Length);
+                Binding, CXPLAT_ECN_NON_ECT, Length, &Route);
         if (SendData == nullptr) {
             printf("CxPlatSendDataAlloc failed\n");
             return;
@@ -138,7 +140,7 @@ void RunAttackRandom(CXPLAT_SOCKET* Binding, uint16_t Length, bool ValidQuic)
                 QUIC_LONG_HEADER_V1* Header =
                     (QUIC_LONG_HEADER_V1*)SendBuffer->Buffer;
                 Header->IsLongHeader = 1;
-                Header->Type = QUIC_INITIAL;
+                Header->Type = QUIC_INITIAL_V1;
                 Header->FixedBit = 1;
                 Header->Reserved = 0;
                 Header->Version = QUIC_VERSION_LATEST;
@@ -221,7 +223,7 @@ void RunAttackValidInitial(CXPLAT_SOCKET* Binding)
 
         CXPLAT_SEND_DATA* SendData =
             CxPlatSendDataAlloc(
-                Binding, CXPLAT_ECN_NON_ECT, DatagramLength);
+                Binding, CXPLAT_ECN_NON_ECT, DatagramLength, &Route);
         VERIFY(SendData);
 
         while (CxPlatTimeDiff64(TimeStart, CxPlatTimeMs64()) < TimeoutMs &&
@@ -241,6 +243,7 @@ void RunAttackValidInitial(CXPLAT_SOCKET* Binding)
             QUIC_SUCCEEDED(
             QuicPacketKeyCreateInitial(
                 FALSE,
+                &HkdfLabels,
                 InitialSalt.Data,
                 sizeof(uint64_t),
                 (uint8_t*)DestCid,
@@ -390,6 +393,7 @@ main(
     CxPlatDataPathInitialize(
         0,
         &DatapathCallbacks,
+        NULL,
         NULL,
         &Datapath);
 

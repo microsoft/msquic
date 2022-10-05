@@ -141,6 +141,13 @@ typedef struct CXPLAT_SEND_DATA CXPLAT_SEND_DATA;
 //
 typedef struct QUIC_BUFFER QUIC_BUFFER;
 
+typedef enum CXPLAT_ROUTE_STATE {
+    RouteUnresolved,
+    RouteResolving,
+    RouteSuspected,
+    RouteResolved,
+} CXPLAT_ROUTE_STATE;
+
 //
 // Structure to represent a network route.
 //
@@ -148,6 +155,18 @@ typedef struct CXPLAT_ROUTE {
 
     QUIC_ADDR RemoteAddress;
     QUIC_ADDR LocalAddress;
+
+#ifdef QUIC_USE_RAW_DATAPATH
+    uint8_t LocalLinkLayerAddress[6];
+    uint8_t NextHopLinkLayerAddress[6];
+    void* Queue;
+
+    //
+    // QuicCopyRouteInfo copies memory up to this point (not including State).
+    //
+
+    CXPLAT_ROUTE_STATE State;
+#endif // QUIC_USE_RAW_DATAPATH
 
 } CXPLAT_ROUTE;
 
@@ -193,6 +212,7 @@ typedef struct CXPLAT_RECV_DATA {
     //
     uint8_t Allocated : 1;          // Used for debugging. Set to FALSE on free.
     uint8_t QueuedOnConnection : 1; // Used for debugging.
+    uint8_t Reserved : 6;
 
 } CXPLAT_RECV_DATA;
 
@@ -336,6 +356,7 @@ CxPlatDataPathInitialize(
     _In_ uint32_t ClientRecvContextLength,
     _In_opt_ const CXPLAT_UDP_DATAPATH_CALLBACKS* UdpCallbacks,
     _In_opt_ const CXPLAT_TCP_DATAPATH_CALLBACKS* TcpCallbacks,
+    _In_opt_ QUIC_EXECUTION_CONFIG* Config,
     _Out_ CXPLAT_DATAPATH** NewDatapath
     );
 
@@ -352,6 +373,7 @@ CxPlatDataPathUninitialize(
 #define CXPLAT_DATAPATH_FEATURE_RECV_COALESCING       0x0002
 #define CXPLAT_DATAPATH_FEATURE_SEND_SEGMENTATION     0x0004
 #define CXPLAT_DATAPATH_FEATURE_LOCAL_PORT_SHARING    0x0008
+#define CXPLAT_DATAPATH_FEATURE_PORT_RESERVATIONS     0x0010
 
 //
 // Queries the currently supported features of the datapath.
@@ -381,7 +403,7 @@ CxPlatDataPathResolveAddress(
     _In_z_ const char* HostName,
     _Inout_ QUIC_ADDR* Address
     );
-    
+
 //
 // Values from RFC 2863
 //
@@ -449,6 +471,12 @@ typedef struct CXPLAT_UDP_CONFIG {
 #endif
 #ifdef QUIC_OWNING_PROCESS
     QUIC_PROCESS OwningProcess;         // Kernel client-only
+#endif
+#ifdef QUIC_USE_RAW_DATAPATH
+    uint8_t CibirIdLength;              // CIBIR ID length. Value of 0 indicates CIBIR isn't used
+    uint8_t CibirIdOffsetSrc;           // CIBIR ID offset in source CID
+    uint8_t CibirIdOffsetDst;           // CIBIR ID offset in destination CID
+    uint8_t CibirId[6];                 // CIBIR ID data
 #endif
 } CXPLAT_UDP_CONFIG;
 
@@ -554,7 +582,8 @@ CXPLAT_SEND_DATA*
 CxPlatSendDataAlloc(
     _In_ CXPLAT_SOCKET* Socket,
     _In_ CXPLAT_ECN_TYPE ECN,
-    _In_ uint16_t MaxPacketSize
+    _In_ uint16_t MaxPacketSize,
+    _Inout_ CXPLAT_ROUTE* Route
     );
 
 //
@@ -608,29 +637,50 @@ CxPlatSocketSend(
     _In_ uint16_t PartitionId
     );
 
+#ifdef QUIC_USE_RAW_DATAPATH
 //
-// Sets a parameter on the socket.
+// Copies L2 address into route object and sets route state to resolved.
 //
-_IRQL_requires_max_(PASSIVE_LEVEL)
-QUIC_STATUS
-CxPlatSocketSetParam(
-    _In_ CXPLAT_SOCKET* Socket,
-    _In_ uint32_t Param,
-    _In_ uint32_t BufferLength,
-    _In_reads_bytes_(BufferLength) const uint8_t* Buffer
+void
+CxPlatResolveRouteComplete(
+    _In_ void* Connection,
+    _Inout_ CXPLAT_ROUTE* Route,
+    _In_reads_bytes_(6) const uint8_t* PhysicalAddress,
+    _In_ uint8_t PathId
     );
 
 //
-// Sets a parameter on the socket.
+// Function pointer type for datapath route resolution callbacks.
+//
+typedef
+_IRQL_requires_max_(DISPATCH_LEVEL)
+_Function_class_(CXPLAT_ROUTE_RESOLUTION_CALLBACK)
+void
+(CXPLAT_ROUTE_RESOLUTION_CALLBACK)(
+    _Inout_ void* Context,
+    _When_(Succeeded == FALSE, _Reserved_)
+    _When_(Succeeded == TRUE, _In_reads_bytes_(6))
+        const uint8_t* PhysicalAddress,
+    _In_ uint8_t PathId,
+    _In_ BOOLEAN Succeeded
+    );
+
+typedef CXPLAT_ROUTE_RESOLUTION_CALLBACK *CXPLAT_ROUTE_RESOLUTION_CALLBACK_HANDLER;
+
+//
+// Tries to resolve route and neighbor for the given destination address.
 //
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
-CxPlatSocketGetParam(
+CxPlatResolveRoute(
     _In_ CXPLAT_SOCKET* Socket,
-    _In_ uint32_t Param,
-    _Inout_ uint32_t* BufferLength,
-    _Out_writes_bytes_opt_(*BufferLength) uint8_t* Buffer
+    _Inout_ CXPLAT_ROUTE* Route,
+    _In_ uint8_t PathId,
+    _In_ void* Context,
+    _In_ CXPLAT_ROUTE_RESOLUTION_CALLBACK_HANDLER Callback
     );
+
+#endif // QUIC_USE_RAW_DATAPATH
 
 #if defined(__cplusplus)
 }

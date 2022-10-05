@@ -42,10 +42,9 @@ typedef struct QUIC_REGISTRATION {
     BOOLEAN NoPartitioning : 1;
 
     //
-    // Indicates whether if the QUIC worker is partitioned split from the RSS
-    // core.
+    // Indicates the registration is in the proces of shutting down.
     //
-    BOOLEAN SplitPartitioning : 1;
+    BOOLEAN ShuttingDown : 1;
 
     //
     // App (optionally) configured execution profile.
@@ -53,10 +52,9 @@ typedef struct QUIC_REGISTRATION {
     QUIC_EXECUTION_PROFILE ExecProfile;
 
     //
-    // An app configured prefix for all connection IDs in this registration.
+    // When shutdown, the set of flags passed to each connection for shutdown.
     //
-    uint8_t CidPrefixLength;
-    uint8_t* CidPrefix;
+    QUIC_CONNECTION_SHUTDOWN_FLAGS ShutdownFlags;
 
     //
     // Link into the global library's Registrations list.
@@ -92,6 +90,11 @@ typedef struct QUIC_REGISTRATION {
     // Rundown for all child objects.
     //
     CXPLAT_RUNDOWN_REF Rundown;
+
+    //
+    // Shutdown error code if set.
+    //
+    uint64_t ShutdownErrorCode;
 
     //
     // Name of the application layer.
@@ -133,7 +136,7 @@ QuicRegistrationSettingsChanged(
 // Determines whether this new connection can be accepted by the registration
 // or not.
 //
-_IRQL_requires_max_(PASSIVE_LEVEL)
+_IRQL_requires_max_(DISPATCH_LEVEL)
 BOOLEAN
 QuicRegistrationAcceptConnection(
     _In_ QUIC_REGISTRATION* Registration,

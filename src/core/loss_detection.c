@@ -9,10 +9,16 @@ Abstract:
     have been lost or delivered to the peer.
 
 
-    RACK (time-based loss detection) algorithm:
+    A combination of two similar loss detection algorithms is used:
 
-    An unacknowledged packet sent before an acknowledged packet and
-    sent more than QUIC_TIME_REORDER_THRESHOLD ago is assumed lost.
+    RACK (time-based reordering threshold) algorithm:
+        An unacknowledged packet sent before an acknowledged packet and
+        sent more than QUIC_TIME_REORDER_THRESHOLD ago is assumed lost.
+
+    FACK (packet-number-based reordering threshold) algorithm:
+        An unacknowledged packet sent before an acknowledged packet and
+        sent more than QUIC_PACKET_REORDER_THRESHOLD packets ago is assumed
+        lost.
 
 
     There are three logical timers in this module:
@@ -71,6 +77,13 @@ QuicLossDetectionInitializeInternalState(
     )
 {
     LossDetection->PacketsInFlight = 0;
+    LossDetection->TimeOfLastPacketSent = 0;
+    LossDetection->TotalBytesSent = 0;
+    LossDetection->TotalBytesAcked = 0;
+    LossDetection->TotalBytesSentAtLastAck = 0;
+    LossDetection->TimeOfLastPacketAcked = 0;
+    LossDetection->TimeOfLastAckedPacketSent = 0;
+    LossDetection->AdjustedLastAckedTime = 0;
     LossDetection->ProbeCount = 0;
 }
 
@@ -228,9 +241,6 @@ QuicLossDetectionComputeProbeTimeout(
         4 * Path->RttVariance +
         (uint32_t)MS_TO_US(Connection->PeerTransportParams.MaxAckDelay);
     Pto *= Count;
-    if (Pto < Connection->Settings.MaxWorkerQueueDelayUs) {
-        Pto = Connection->Settings.MaxWorkerQueueDelayUs;
-    }
     return Pto;
 }
 
@@ -253,10 +263,6 @@ QuicLossDetectionUpdateTimer(
         //
         // No retransmission timer runs after the connection has been shut down.
         //
-        QuicTraceEvent(
-            ConnLossDetectionTimerCancel,
-            "[conn][%p] Cancelling loss detection timer.",
-            Connection);
         QuicConnTimerCancel(Connection, QUIC_CONN_TIMER_LOSS_DETECTION);
         return;
     }
@@ -273,10 +279,6 @@ QuicLossDetectionUpdateTimer(
         // doing amplification protection, which means more data might need to
         // be sent to unblock it.
         //
-        QuicTraceEvent(
-            ConnLossDetectionTimerCancel,
-            "[conn][%p] Cancelling loss detection timer.",
-            Connection);
         QuicConnTimerCancel(Connection, QUIC_CONN_TIMER_LOSS_DETECTION);
         return;
     }
@@ -288,10 +290,6 @@ QuicLossDetectionUpdateTimer(
         // Sending is restricted for amplification protection.
         // Don't run the timer, because nothing can be sent when it fires.
         //
-        QuicTraceEvent(
-            ConnLossDetectionTimerCancel,
-            "[conn][%p] Cancelling loss detection timer.",
-            Connection);
         QuicConnTimerCancel(Connection, QUIC_CONN_TIMER_LOSS_DETECTION);
         return;
     }
@@ -334,12 +332,8 @@ QuicLossDetectionUpdateTimer(
     }
 
     //
-    // The units for the delay values start in microseconds. Before being passed
-    // to QuicConnTimerSet, Delay is converted to milliseconds. To account for
-    // any rounding errors, 1 extra millisecond is added to the timer, so it
-    // doesn't end up firing early.
+    // The units for the delay values start in microseconds.
     //
-
     uint32_t Delay = CxPlatTimeDiff32(TimeNow, TimeFires);
 
     //
@@ -368,9 +362,9 @@ QuicLossDetectionUpdateTimer(
         //
         // The disconnect timeout is now the limiting factor for the timer.
         //
-        Delay = US_TO_MS(MaxDelay) + 1;
+        Delay = MaxDelay + 1;
     } else {
-        Delay = US_TO_MS(Delay) + 1;
+        Delay = Delay + 1;
     }
 
     if (Delay == 0 && ExecuteImmediatelyIfNecessary) {
@@ -384,7 +378,7 @@ QuicLossDetectionUpdateTimer(
     } else {
         QuicTraceEvent(
             ConnLossDetectionTimerSet,
-            "[conn][%p] Setting loss detection %hhu timer for %u ms. (ProbeCount=%hu)",
+            "[conn][%p] Setting loss detection %hhu timer for %u us. (ProbeCount=%hu)",
             Connection,
             TimeoutType,
             Delay,
@@ -466,6 +460,38 @@ QuicLossDetectionOnPacketSent(
             &Connection->CongestionControl, SentPacket->PacketLength);
     }
 
+    uint64_t SendPostedBytes = Connection->SendBuffer.PostedBytes;
+
+    CXPLAT_LIST_ENTRY* Entry = Connection->Send.SendStreams.Flink;
+    QUIC_STREAM* Stream =
+        (Entry != &(Connection->Send.SendStreams)) ?
+          CXPLAT_CONTAINING_RECORD(Entry, QUIC_STREAM, SendLink) :
+          NULL;
+    
+    if (SendPostedBytes < Path->Mtu &&
+        QuicCongestionControlCanSend(&Connection->CongestionControl) &&
+        !QuicCryptoHasPendingCryptoFrame(&Connection->Crypto) &&
+        (Stream && QuicStreamAllowedByPeer(Stream)) && !QuicStreamCanSendNow(Stream, FALSE)) {
+        QuicCongestionControlSetAppLimited(&Connection->CongestionControl);
+    }
+
+    SentPacket->Flags.IsAppLimited = QuicCongestionControlIsAppLimited(&Connection->CongestionControl);
+
+    LossDetection->TotalBytesSent += TempSentPacket->PacketLength;
+
+    SentPacket->TotalBytesSent = LossDetection->TotalBytesSent;
+
+    SentPacket->Flags.HasLastAckedPacketInfo = FALSE;
+    if (LossDetection->TimeOfLastPacketAcked) {
+        SentPacket->Flags.HasLastAckedPacketInfo = TRUE;
+
+        SentPacket->LastAckedPacketInfo.SentTime = LossDetection->TimeOfLastAckedPacketSent;
+        SentPacket->LastAckedPacketInfo.AckTime = LossDetection->TimeOfLastPacketAcked;
+        SentPacket->LastAckedPacketInfo.AdjustedAckTime = LossDetection->AdjustedLastAckedTime;
+        SentPacket->LastAckedPacketInfo.TotalBytesSent = LossDetection->TotalBytesSentAtLastAck;
+        SentPacket->LastAckedPacketInfo.TotalBytesAcked = LossDetection->TotalBytesAcked;
+    }
+
     QuicLossValidate(LossDetection);
 }
 
@@ -474,7 +500,10 @@ void
 QuicLossDetectionOnPacketAcknowledged(
     _In_ QUIC_LOSS_DETECTION* LossDetection,
     _In_ QUIC_ENCRYPT_LEVEL EncryptLevel,
-    _In_ QUIC_SENT_PACKET_METADATA* Packet
+    _In_ QUIC_SENT_PACKET_METADATA* Packet,
+    _In_ BOOLEAN IsImplicit,
+    _In_ uint32_t AckTime,
+    _In_ uint64_t AckDelay
     )
 {
     QUIC_CONNECTION* Connection = QuicLossDetectionGetConnection(LossDetection);
@@ -631,7 +660,13 @@ QuicLossDetectionOnPacketAcknowledged(
         }
     }
 
-    QuicSentPacketPoolReturnPacketMetadata(&Connection->Worker->SentPacketPool, Packet);
+    if (!IsImplicit) {
+        LossDetection->TotalBytesAcked += Packet->PacketLength;
+        LossDetection->TotalBytesSentAtLastAck = Packet->TotalBytesSent;
+        LossDetection->TimeOfLastPacketAcked = AckTime;
+        LossDetection->TimeOfLastAckedPacketSent = Packet->SentTime;
+        LossDetection->AdjustedLastAckedTime = AckTime - (uint32_t)AckDelay;
+    }
 }
 
 //
@@ -972,7 +1007,7 @@ QuicLossDetectionDetectAndHandleLostPackets(
                 if (!NonretransmittableHandshakePacket) {
                     QuicTraceLogVerbose(
                         PacketTxLostRack,
-                        "[%c][TX][%llu] Lost: RACK %lu ms",
+                        "[%c][TX][%llu] Lost: RACK %u ms",
                         PtkConnPre(Connection),
                         Packet->PacketNumber,
                         CxPlatTimeDiff32(Packet->SentTime, TimeNow));
@@ -1025,15 +1060,15 @@ QuicLossDetectionDetectAndHandleLostPackets(
                 //
                 QuicConnUpdatePeerPacketTolerance(Connection, QUIC_MIN_ACK_SEND_NUMBER);
             }
-            
+
             QUIC_LOSS_EVENT LossEvent = {
                 .LargestPacketNumberLost = LargestLostPacketNumber,
-                .LargestPacketNumberSent = LossDetection->LargestSentPacketNumber,
+                .LargestSentPacketNumber = LossDetection->LargestSentPacketNumber,
                 .NumRetransmittableBytes = LostRetransmittableBytes,
-                .PersistentCongestion = 
+                .PersistentCongestion =
                     LossDetection->ProbeCount > QUIC_PERSISTENT_CONGESTION_THRESHOLD
             };
-            
+
             QuicCongestionControlOnDataLost(&Connection->CongestionControl, &LossEvent);
             //
             // Send packets from any previously blocked streams.
@@ -1096,7 +1131,10 @@ QuicLossDetectionDiscardPackets(
                 Connection,
                 Packet->PacketNumber,
                 QuicPacketTraceType(Packet));
-            QuicLossDetectionOnPacketAcknowledged(LossDetection, EncryptLevel, Packet);
+
+            QuicLossDetectionOnPacketAcknowledged(LossDetection, EncryptLevel, Packet, TRUE, TimeNow, 0);
+
+            QuicSentPacketPoolReturnPacketMetadata(&Connection->Worker->SentPacketPool, Packet);
 
             Packet = NextPacket;
 
@@ -1143,7 +1181,9 @@ QuicLossDetectionDiscardPackets(
                 AckedRetransmittableBytes += Packet->PacketLength;
             }
 
-            QuicLossDetectionOnPacketAcknowledged(LossDetection, EncryptLevel, Packet);
+            QuicLossDetectionOnPacketAcknowledged(LossDetection, EncryptLevel, Packet, TRUE, TimeNow, 0);
+
+            QuicSentPacketPoolReturnPacketMetadata(&Connection->Worker->SentPacketPool, Packet);
 
             Packet = NextPacket;
 
@@ -1159,10 +1199,19 @@ QuicLossDetectionDiscardPackets(
         const QUIC_PATH* Path = &Connection->Paths[0]; // TODO - Correct?
 
         QUIC_ACK_EVENT AckEvent = {
+            .IsImplicit = TRUE,
             .TimeNow = TimeNow,
-            .LargestPacketNumberAcked = LossDetection->LargestAck,
+            .LargestAck = LossDetection->LargestAck,
+            .LargestSentPacketNumber = LossDetection->LargestSentPacketNumber,
             .NumRetransmittableBytes = AckedRetransmittableBytes,
-            .SmoothedRtt = Path->SmoothedRtt
+            .SmoothedRtt = Path->SmoothedRtt,
+            .MinRtt = 0,
+            .HasLoss = FALSE,
+            .AdjustedAckTime = 0,
+            .AckedPackets = NULL,
+            .NumTotalAckedRetransmittableBytes = 0,
+            .IsLargestAckedPacketAppLimited = FALSE,
+            .MinRttValid = FALSE
         };
 
         if (QuicCongestionControlOnDataAcknowledged(&Connection->CongestionControl, &AckEvent)) {
@@ -1258,8 +1307,8 @@ QuicLossDetectionProcessAckBlocks(
 
     uint32_t AckedRetransmittableBytes = 0;
     QUIC_CONNECTION* Connection = QuicLossDetectionGetConnection(LossDetection);
-    uint32_t TimeNow = CxPlatTimeUs32();
-    uint32_t SmallestRtt = (uint32_t)(-1);
+    uint64_t TimeNow = CxPlatTimeUs64();
+    uint32_t MinRtt = UINT32_MAX;
     BOOLEAN NewLargestAck = FALSE;
     BOOLEAN NewLargestAckRetransmittable = FALSE;
     BOOLEAN NewLargestAckDifferentPath = FALSE;
@@ -1317,8 +1366,13 @@ QuicLossDetectionProcessAckBlocks(
                 // All previously considered lost packets were found to be
                 // spuriously lost. Inform congestion control.
                 //
-                QuicCongestionControlOnSpuriousCongestionEvent(
-                    &Connection->CongestionControl);
+                if (QuicCongestionControlOnSpuriousCongestionEvent(
+                        &Connection->CongestionControl)) {
+                    //
+                    // We were previously blocked and are now unblocked.
+                    //
+                    QuicSendQueueFlush(&Connection->Send, REASON_CONGESTION_CONTROL);
+                }
             }
         }
 
@@ -1376,10 +1430,15 @@ QuicLossDetectionProcessAckBlocks(
         return;
     }
 
-    while (AckedPackets != NULL) {
+    uint64_t LargestAckedPacketNum = 0;
+    BOOLEAN IsLargestAckedPacketAppLimited = FALSE;
 
-        QUIC_SENT_PACKET_METADATA* Packet = AckedPackets;
-        AckedPackets = AckedPackets->Next;
+    QUIC_SENT_PACKET_METADATA* AckedPacketsIterator = AckedPackets;
+
+    while (AckedPacketsIterator != NULL) {
+
+        QUIC_SENT_PACKET_METADATA* Packet = AckedPacketsIterator;
+        AckedPacketsIterator = AckedPacketsIterator->Next;
 
         if (QuicKeyTypeToEncryptLevel(Packet->Flags.KeyType) != EncryptLevel) {
             //
@@ -1394,7 +1453,7 @@ QuicLossDetectionProcessAckBlocks(
             return;
         }
 
-        uint32_t PacketRtt = CxPlatTimeDiff32(Packet->SentTime, TimeNow);
+        uint32_t PacketRtt = CxPlatTimeDiff32(Packet->SentTime, (uint32_t)TimeNow);
         QuicTraceLogVerbose(
             PacketTxAcked,
             "[%c][TX][%llu] ACKed (%u.%03u ms)",
@@ -1409,9 +1468,14 @@ QuicLossDetectionProcessAckBlocks(
             Packet->PacketNumber,
             QuicPacketTraceType(Packet));
 
-        SmallestRtt = CXPLAT_MIN(SmallestRtt, PacketRtt);
+        MinRtt = CXPLAT_MIN(MinRtt, PacketRtt);
 
-        QuicLossDetectionOnPacketAcknowledged(LossDetection, EncryptLevel, Packet);
+        if (LargestAckedPacketNum < Packet->PacketNumber) {
+            LargestAckedPacketNum = Packet->PacketNumber;
+            IsLargestAckedPacketAppLimited = Packet->Flags.IsAppLimited;
+        }
+
+        QuicLossDetectionOnPacketAcknowledged(LossDetection, EncryptLevel, Packet, FALSE, (uint32_t)TimeNow, AckDelay);
     }
 
     QuicLossValidate(LossDetection);
@@ -1421,14 +1485,14 @@ QuicLossDetectionProcessAckBlocks(
         // Update the current RTT with the smallest RTT calculated, which
         // should be for the most acknowledged retransmittable packet.
         //
-        CXPLAT_DBG_ASSERT(SmallestRtt != (uint32_t)(-1));
-        if ((uint64_t)SmallestRtt >= AckDelay) {
+        CXPLAT_DBG_ASSERT(MinRtt != UINT32_MAX);
+        if ((uint64_t)MinRtt >= AckDelay) {
             //
             // The ACK delay looks reasonable.
             //
-            SmallestRtt -= (uint32_t)AckDelay;
+            MinRtt -= (uint32_t)AckDelay;
         }
-        QuicConnUpdateRtt(Connection, Path, SmallestRtt);
+        QuicConnUpdateRtt(Connection, Path, MinRtt);
     }
 
     if (NewLargestAck) {
@@ -1437,15 +1501,24 @@ QuicLossDetectionProcessAckBlocks(
         // data acknowledgement so that we have an accurate bytes in flight
         // calculation for congestion events.
         //
-        QuicLossDetectionDetectAndHandleLostPackets(LossDetection, TimeNow);
+        QuicLossDetectionDetectAndHandleLostPackets(LossDetection, (uint32_t)TimeNow);
     }
 
     if (NewLargestAck || AckedRetransmittableBytes > 0) {
         QUIC_ACK_EVENT AckEvent = {
+            .IsImplicit = FALSE,
             .TimeNow = TimeNow,
-            .LargestPacketNumberAcked = LossDetection->LargestAck,
+            .LargestAck = LossDetection->LargestAck,
+            .LargestSentPacketNumber = LossDetection->LargestSentPacketNumber,
             .NumRetransmittableBytes = AckedRetransmittableBytes,
-            .SmoothedRtt = Connection->Paths[0].SmoothedRtt
+            .SmoothedRtt = Connection->Paths[0].SmoothedRtt,
+            .MinRtt = MinRtt,
+            .HasLoss = (LossDetection->LostPackets != NULL),
+            .AdjustedAckTime = (uint32_t)(TimeNow - AckDelay),
+            .AckedPackets = AckedPackets,
+            .NumTotalAckedRetransmittableBytes = LossDetection->TotalBytesAcked,
+            .IsLargestAckedPacketAppLimited = IsLargestAckedPacketAppLimited,
+            .MinRttValid = TRUE,
         };
 
         if (QuicCongestionControlOnDataAcknowledged(&Connection->CongestionControl, &AckEvent)) {
@@ -1457,6 +1530,13 @@ QuicLossDetectionProcessAckBlocks(
     }
 
     LossDetection->ProbeCount = 0;
+
+    AckedPacketsIterator = AckedPackets;
+    while (AckedPacketsIterator != NULL) {
+        QUIC_SENT_PACKET_METADATA* Packet = AckedPacketsIterator;
+        AckedPacketsIterator = AckedPacketsIterator->Next;
+        QuicSentPacketPoolReturnPacketMetadata(&Connection->Worker->SentPacketPool, Packet);
+    }
 
     //
     // At least one packet was ACKed. If all packets were ACKed then we'll
@@ -1548,7 +1628,7 @@ QuicLossDetectionScheduleProbe(
     QuicTraceLogConnInfo(
         ScheduleProbe,
         Connection,
-        "probe round %lu",
+        "probe round %hu",
         LossDetection->ProbeCount);
 
     //

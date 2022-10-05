@@ -19,7 +19,8 @@ Abstract:
 
 class ThroughputClient : public PerfBase {
 public:
-    ThroughputClient() : Engine(nullptr, TcpConnectCallback, TcpReceiveCallback, TcpSendCompleteCallback) {
+    ThroughputClient() :
+        Engine(nullptr, TcpConnectCallback, TcpReceiveCallback, TcpSendCompleteCallback) {
         CxPlatZeroMemory(&LocalIpAddr, sizeof(LocalIpAddr));
         CxPlatLockInitialize(&TcpLock);
     }
@@ -108,13 +109,15 @@ private:
 
     MsQuicRegistration Registration {
         "secnetperf-client-tput",
-        QUIC_EXECUTION_PROFILE_LOW_LATENCY,
+        PerfDefaultExecutionProfile,
         true};
     MsQuicConfiguration Configuration {
         Registration,
         MsQuicAlpn(PERF_ALPN),
         MsQuicSettings()
-            .SetIdleTimeoutMs(TPUT_DEFAULT_IDLE_TIMEOUT),
+            .SetConnFlowControlWindow(PERF_DEFAULT_CONN_FLOW_CONTROL)
+            .SetIdleTimeoutMs(TPUT_DEFAULT_IDLE_TIMEOUT)
+            .SetCongestionControlAlgorithm(PerfDefaultCongestionControl),
         MsQuicCredentialConfig(
             QUIC_CREDENTIAL_FLAG_CLIENT |
             QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION)};
@@ -128,12 +131,15 @@ private:
     uint8_t UseEncryption {TRUE};
     uint8_t TimedTransfer {FALSE};
     uint8_t PrintStats {FALSE};
+    uint8_t PrintStreamStats {FALSE};
     QUIC_ADDR LocalIpAddr;
     uint16_t Port {PERF_DEFAULT_PORT};
     QUIC_ADDRESS_FAMILY RemoteFamily {QUIC_ADDRESS_FAMILY_UNSPEC};
     uint64_t UploadLength {0};
     uint64_t DownloadLength {0};
     uint32_t IoSize {0};
+    uint32_t CibirIdLength {0};
+    uint8_t CibirId[7]; // {offset, values}
 
     TcpEngine Engine;
     CXPLAT_LOCK TcpLock;

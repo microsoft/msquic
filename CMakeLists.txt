@@ -54,6 +54,9 @@ message(STATUS "System version: ${CMAKE_SYSTEM_VERSION}")
 message(STATUS "Platform version: ${CMAKE_VS_WINDOWS_TARGET_PLATFORM_VERSION}")
 message(STATUS "Build type: ${CMAKE_BUILD_TYPE}")
 
+set(QUIC_MAJOR_VERSION 2)
+set(QUIC_FULL_VERSION 2.2.0)
+
 if (WIN32)
     set(CX_PLATFORM "windows")
 elseif (APPLE)
@@ -62,45 +65,6 @@ elseif (UNIX)
     set(CX_PLATFORM "linux")
 endif()
 message(STATUS "QUIC Platform: ${CX_PLATFORM}")
-
-if(WIN32)
-    # On Windows, we just need to set the destination variables
-    # This will allow the build to be picked up by other projects
-    set(msquic_dest ${CMAKE_INSTALL_PREFIX})
-    set(main_lib_dest lib)
-    set(include_dest include)
-else()
-    # On unix platforms, we need to do rpath manipulation for the shared library
-    # In addition, we install into a subfolder of install to not polute the global namespace
-
-    # Setup for Install. We set this up in here rather then in the main library folder for future use.
-    # i.e. don't skip the full RPATH for the build tree
-    #set(CMAKE_SKIP_BUILD_RPATH FALSE)
-
-    # When building, don't use the install RPATH already
-    # (but later on when installing)
-    #set(CMAKE_BUILD_WITH_INSTALL_RPATH FALSE)
-
-    # Azure is not liking this argument. I think its a bug in their configuration
-    # Once this is fixed, also fix the shim in build-config-user.yml
-    #set(CMAKE_BUILD_RPATH_USE_ORIGIN TRUE)
-
-    #set(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/msquic/lib")
-
-    # Add the automatically determined parts of the RPATH
-    # which point to directories outside the build tree to the install RPATH
-    #set(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
-
-    # The RPATH to be used when installing, but only if it's not a system directory
-    list(FIND CMAKE_PLATFORM_IMPLICIT_LINK_DIRECTORIES "${CMAKE_INSTALL_PREFIX}/msquic/lib" isSystemDir)
-    if("${isSystemDir}" STREQUAL "-1")
-    #set(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/msquic/lib")
-    endif("${isSystemDir}" STREQUAL "-1")
-
-    set(msquic_dest msquic)
-    set(main_lib_dest msquic/lib)
-    set(include_dest msquic/include)
-endif()
 
 set(FILENAME_DEP_REPLACE "get_filename_component(SELF_DIR \"$\{CMAKE_CURRENT_LIST_FILE\}\" PATH)")
 set(SELF_DIR "$\{SELF_DIR\}")
@@ -114,28 +78,45 @@ else()
     set(QUIC_TLS "openssl" CACHE STRING "TLS Library to use")
 endif()
 
-option(QUIC_BUILD_TOOLS "Builds the tools code" ON)
-option(QUIC_BUILD_TEST "Builds the test code" ON)
-option(QUIC_BUILD_PERF "Builds the perf code" ON)
+option(QUIC_BUILD_TOOLS "Builds the tools code" OFF)
+option(QUIC_BUILD_TEST "Builds the test code" OFF)
+option(QUIC_BUILD_PERF "Builds the perf code" OFF)
 option(QUIC_BUILD_SHARED "Builds msquic as a dynamic library" ON)
 option(QUIC_ENABLE_LOGGING "Enables logging" OFF)
 option(QUIC_ENABLE_SANITIZERS "Enables sanitizers" OFF)
 option(QUIC_STATIC_LINK_CRT "Statically links the C runtime" ON)
+option(QUIC_STATIC_LINK_PARTIAL_CRT "Statically links the compiler-specific portion of the C runtime" ON)
 option(QUIC_UWP_BUILD "Build for UWP" OFF)
 option(QUIC_GAMECORE_BUILD "Build for GameCore" OFF)
 option(QUIC_PGO "Enables profile guided optimizations" OFF)
 option(QUIC_SOURCE_LINK "Enables source linking on MSVC" ON)
+option(QUIC_EMBED_GIT_HASH "Embed git commit hash in the binary" ON)
 option(QUIC_PDBALTPATH "Enable PDBALTPATH setting on MSVC" ON)
 option(QUIC_CODE_CHECK "Run static code checkers" OFF)
 option(QUIC_OPTIMIZE_LOCAL "Optimize code for local machine architecture" OFF)
 option(QUIC_CI "CI Specific build" OFF)
 option(QUIC_SKIP_CI_CHECKS "Disable CI specific build checks" OFF)
-option(QUIC_TLS_SECRETS_SUPPORT "Enable export of TLS secrets" OFF)
 option(QUIC_TELEMETRY_ASSERTS "Enable telemetry asserts in release builds" OFF)
 option(QUIC_USE_SYSTEM_LIBCRYPTO "Use system libcrypto if openssl TLS" OFF)
+option(QUIC_HIGH_RES_TIMERS "Configure the system to use high resolution timers" OFF)
+option(QUIC_USE_XDP "Uses XDP instead of socket APIs" OFF)
 option(QUIC_DISABLE_POSIX_GSO "Disable GSO for systems that say they support it but don't" OFF)
+option(QUIC_OFFICIAL_RELEASE "Configured the build for an official release" OFF)
 set(QUIC_FOLDER_PREFIX "" CACHE STRING "Optional prefix for source group folders when using an IDE generator")
 set(QUIC_LIBRARY_NAME "msquic" CACHE STRING "Override the output library name")
+
+if (QUIC_UWP_BUILD OR QUIC_GAMECORE_BUILD)
+    message(STATUS "UWP And GameCore builds disable all executables, and force shared CRT")
+    set(QUIC_BUILD_TOOLS OFF)
+    set(QUIC_BUILD_TEST OFF)
+    set(QUIC_BUILD_PERF OFF)
+    set(QUIC_STATIC_LINK_CRT OFF)
+    set(QUIC_STATIC_LINK_PARTIAL_CRT OFF)
+endif()
+
+if (QUIC_STATIC_LINK_PARTIAL_CRT)
+    set(QUIC_STATIC_LINK_CRT ON)
+endif()
 
 if (NOT QUIC_BUILD_SHARED)
     cmake_minimum_required(VERSION 3.20)
@@ -157,6 +138,15 @@ if (QUIC_PDBALTPATH AND MSVC)
 #    message(STATUS ${CMAKE_EXE_LINKER_FLAGS})
 endif()
 
+include(${PROJECT_SOURCE_DIR}/cmake/GitCommands.cmake)
+get_git_current_hash(${PROJECT_SOURCE_DIR} GIT_CURRENT_HASH)
+
+if(NOT GIT_CURRENT_HASH)
+    message("Failed to get git hash. Binary will not contain git hash")
+    set(QUIC_SOURCE_LINK OFF)
+    set(QUIC_EMBED_GIT_HASH OFF)
+endif()
+
 if (QUIC_SOURCE_LINK AND MSVC)
     if ("${CMAKE_C_COMPILER_VERSION}" VERSION_GREATER_EQUAL "19.20")
         include(${PROJECT_SOURCE_DIR}/cmake/SourceLink.cmake)
@@ -170,12 +160,22 @@ if (QUIC_SOURCE_LINK AND MSVC)
         set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} /FORCE:PGOREPRO /SOURCELINK:\"${SOURCE_LINK_JSON}\"")
         set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} /FORCE:PGOREPRO /SOURCELINK:\"${SOURCE_LINK_JSON}\"")
     else()
-        message(WARNING "Disabling SourceLink due to old version of MSVC. Please update to VS2019!")
+        message(WARNING "Disabling SourceLink due to old version of MSVC. Please update to VS2019 or greater!")
     endif()
 endif()
 
 set(QUIC_BUILD_DIR ${CMAKE_CURRENT_BINARY_DIR})
 set(QUIC_OUTPUT_DIR ${QUIC_BUILD_DIR}/bin/$<IF:$<CONFIG:Debug>,Debug,Release> CACHE STRING "Output directory for build artifacts")
+
+string(GENEX_STRIP ${QUIC_OUTPUT_DIR} QUIC_OUTPUT_DIR_STRIPPED)
+
+string(COMPARE EQUAL ${QUIC_OUTPUT_DIR} ${QUIC_OUTPUT_DIR_STRIPPED} QUIC_HAS_GENERATOR_OUTPUT_DIR)
+
+if (QUIC_HAS_GENERATOR_OUTPUT_DIR)
+    set(QUIC_PGO_DIR ${QUIC_OUTPUT_DIR})
+else ()
+    set(QUIC_PGO_DIR ${QUIC_BUILD_DIR}/PGO)
+endif ()
 
 set(QUIC_VER_BUILD_ID "0" CACHE STRING "The version build ID")
 set(QUIC_VER_SUFFIX "-private" CACHE STRING "The version suffix")
@@ -195,7 +195,7 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_DEBUG ${QUIC_OUTPUT_DIR})
 set(QUIC_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/src/inc)
 
 if (WIN32)
-    set(QUIC_WARNING_FLAGS /WX /W4 /sdl CACHE INTERNAL "")
+    set(QUIC_WARNING_FLAGS /WX /W4 /sdl /wd4206 CACHE INTERNAL "")
     set(QUIC_COMMON_FLAGS "")
 
     include(CheckCCompilerFlag)
@@ -311,27 +311,39 @@ endif()
 list(APPEND QUIC_COMMON_DEFINES VER_BUILD_ID=${QUIC_VER_BUILD_ID})
 list(APPEND QUIC_COMMON_DEFINES VER_SUFFIX=${QUIC_VER_SUFFIX})
 
-if(QUIC_TLS_SECRETS_SUPPORT)
-    list(APPEND QUIC_COMMON_DEFINES CXPLAT_TLS_SECRETS_SUPPORT=1)
+if (QUIC_EMBED_GIT_HASH)
+    list(APPEND QUIC_COMMON_DEFINES VER_GIT_HASH=${GIT_CURRENT_HASH})
 endif()
 
 if(QUIC_TELEMETRY_ASSERTS)
     list(APPEND QUIC_COMMON_DEFINES QUIC_TELEMETRY_ASSERTS=1)
 endif()
 
+if(QUIC_HIGH_RES_TIMERS)
+    list(APPEND QUIC_COMMON_DEFINES QUIC_HIGH_RES_TIMERS=1)
+endif()
+
+if(QUIC_USE_XDP)
+    list(APPEND QUIC_COMMON_DEFINES QUIC_USE_RAW_DATAPATH=1)
+endif()
+
+if(QUIC_OFFICIAL_RELEASE)
+    list(APPEND QUIC_COMMON_DEFINES QUIC_OFFICIAL_RELEASE=1)
+    message(STATUS "Configured for official release build")
+endif()
+
 if(QUIC_TLS STREQUAL "schannel")
     message(STATUS "Enabling Schannel configuration tests")
     list(APPEND QUIC_COMMON_DEFINES QUIC_TEST_SCHANNEL_FLAGS=1)
-    message(STATUS "Enabling UDP Send Queuing")
-    list(APPEND QUIC_COMMON_DEFINES CXPLAT_DATAPATH_QUEUE_SENDS=1)
+
     message(STATUS "Disabling PFX tests")
     list(APPEND QUIC_COMMON_DEFINES QUIC_DISABLE_PFX_TESTS)
-    message(STATUS "Disabling portable certificate tests")
-    list(APPEND QUIC_COMMON_DEFINES QUIC_DISABLE_PORTABLE_CERTIFICATE_TESTS)
     message(STATUS "Disabling 0-RTT support")
     list(APPEND QUIC_COMMON_DEFINES QUIC_DISABLE_0RTT_TESTS)
     message(STATUS "Disabling ChaCha20 support")
     list(APPEND QUIC_COMMON_DEFINES QUIC_DISABLE_CHACHA20_TESTS)
+    message(STATUS "Enabling anonymous client auth tests")
+    list(APPEND QUIC_COMMON_DEFINES QUIC_ENABLE_ANON_CLIENT_AUTH_TESTS)
 endif()
 
 if(QUIC_TLS STREQUAL "openssl")
@@ -368,6 +380,9 @@ if(WIN32)
 
     message(STATUS "Disabling (client) shared port support")
     list(APPEND QUIC_COMMON_DEFINES QUIC_DISABLE_SHARED_PORT_TESTS)
+
+    message(STATUS "Enabling UDP Send Queuing")
+    list(APPEND QUIC_COMMON_DEFINES CXPLAT_DATAPATH_QUEUE_SENDS=1)
 
     if (QUIC_UWP_BUILD)
         list(APPEND QUIC_COMMON_DEFINES QUIC_UWP_BUILD QUIC_RESTRICTED_BUILD)
@@ -443,7 +458,7 @@ if(WIN32)
         message(STATUS "Configuring for manifested ETW tracing")
         list(APPEND QUIC_COMMON_DEFINES QUIC_EVENTS_MANIFEST_ETW QUIC_LOGS_MANIFEST_ETW)
     else()
-        message(STATUS "Disabling tracing")
+        message(STATUS "QUIC_ENABLE_LOGGING is false. Disabling logging")
         list(APPEND QUIC_COMMON_DEFINES QUIC_EVENTS_STUB QUIC_LOGS_STUB)
     endif()
 
@@ -465,30 +480,53 @@ if(WIN32)
     set(CMAKE_SHARED_LINKER_FLAGS_RELEASE "${CMAKE_SHARED_LINKER_FLAGS_RELEASE} /LTCG /IGNORE:4075 /DEBUG /OPT:REF /OPT:ICF")
     set(CMAKE_EXE_LINKER_FLAGS_RELEASE "${CMAKE_EXE_LINKER_FLAGS_RELEASE} /LTCG /IGNORE:4075 /DEBUG /OPT:REF /OPT:ICF")
 
+    # Find the right PGO file.
+    if(QUIC_USE_XDP)
+        set(QUIC_PGO_NAME "msquic.${QUIC_TLS}.xdp.pgd")
+        set(QUIC_PGO_FILE "${CMAKE_CURRENT_SOURCE_DIR}/src/bin/winuser/pgo_${SYSTEM_PROCESSOR}/${QUIC_PGO_NAME}")
+    endif()
+
+    if(NOT EXISTS "${QUIC_PGO_FILE}")
+        set(QUIC_PGO_NAME "msquic.${QUIC_TLS}.pgd")
+        set(QUIC_PGO_FILE "${CMAKE_CURRENT_SOURCE_DIR}/src/bin/winuser/pgo_${SYSTEM_PROCESSOR}/${QUIC_PGO_NAME}")
+    endif()
+    if(NOT EXISTS "${QUIC_PGO_FILE}")
+        set(QUIC_PGO_NAME "msquic.pgd")
+        set(QUIC_PGO_FILE "${CMAKE_CURRENT_SOURCE_DIR}/src/bin/winuser/pgo_${SYSTEM_PROCESSOR}/${QUIC_PGO_NAME}")
+    endif()
+    message(STATUS "Using PGO file ${QUIC_PGO_NAME}")
+
     # Configure PGO linker flags.
-    set(QUIC_PGO_FILE "${CMAKE_CURRENT_SOURCE_DIR}/src/bin/winuser/pgo_${SYSTEM_PROCESSOR}/msquic.pgd")
     if(QUIC_PGO)
         # Configured for training mode. Use the previous PGD file if present.
         if(EXISTS "${QUIC_PGO_FILE}")
             message(STATUS "/GENPROFILE:PDG")
-            configure_file("${QUIC_PGO_FILE}" "${QUIC_OUTPUT_DIR}/msquic.pgd" COPYONLY)
-            set(CMAKE_SHARED_LINKER_FLAGS_RELEASE "${CMAKE_SHARED_LINKER_FLAGS_RELEASE} /GENPROFILE:\"PGD=${QUIC_OUTPUT_DIR}/msquic.pgd\"")
+            configure_file("${QUIC_PGO_FILE}" "${QUIC_PGO_DIR}/msquic.pgd" COPYONLY)
+            set(CMAKE_SHARED_LINKER_FLAGS_RELEASE "${CMAKE_SHARED_LINKER_FLAGS_RELEASE} /GENPROFILE:\"PGD=${QUIC_PGO_DIR}/msquic.pgd\"")
         else()
             message(STATUS "/GENPROFILE")
             set(CMAKE_SHARED_LINKER_FLAGS_RELEASE "${CMAKE_SHARED_LINKER_FLAGS_RELEASE} /GENPROFILE")
         endif()
+        set(CMAKE_VS_SDK_LIBRARY_DIRECTORIES "$(LibraryPath);$(VC_LibraryPath_VC_${SYSTEM_PROCESSOR}_Desktop)")
     else()
         # Just doing a normal build. Use the PGD file if present.
         if(EXISTS "${QUIC_PGO_FILE}")
             message(STATUS "Using profile-guided optimization")
-            configure_file("${QUIC_PGO_FILE}" "${QUIC_OUTPUT_DIR}/msquic.pgd" COPYONLY)
-            set(CMAKE_SHARED_LINKER_FLAGS_RELEASE "${CMAKE_SHARED_LINKER_FLAGS_RELEASE} /USEPROFILE:\"PGD=${QUIC_OUTPUT_DIR}/msquic.pgd\"")
+            file(MAKE_DIRECTORY ${QUIC_PGO_DIR})
+            configure_file("${QUIC_PGO_FILE}" "${QUIC_PGO_DIR}/msquic.pgd" COPYONLY)
+            set(CMAKE_SHARED_LINKER_FLAGS_RELEASE "${CMAKE_SHARED_LINKER_FLAGS_RELEASE} /USEPROFILE:\"PGD=${QUIC_PGO_DIR}/msquic.pgd\"")
         endif()
     endif()
 
     if(QUIC_STATIC_LINK_CRT)
         message(STATUS "Configuring for statically-linked CRT")
         set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+    endif()
+
+    if(QUIC_STATIC_LINK_PARTIAL_CRT)
+        message(STATUS "Configuring for partially statically-linked CRT")
+        set(CMAKE_SHARED_LINKER_FLAGS_RELEASE "${CMAKE_SHARED_LINKER_FLAGS_RELEASE} /NODEFAULTLIB:libucrt.lib /DEFAULTLIB:ucrt.lib")
+        set(CMAKE_SHARED_LINKER_FLAGS_DEBUG "${CMAKE_SHARED_LINKER_FLAGS_DEBUG} /NODEFAULTLIB:libucrtd.lib /DEFAULTLIB:ucrtd.lib")
     endif()
 
 else() #!WIN32
@@ -543,17 +581,17 @@ else() #!WIN32
         else()
             message(STATUS "Configuring for LTTng tracing")
             list(APPEND QUIC_COMMON_DEFINES QUIC_CLOG)
-            set (QUIC_LTTNG_PLATFORM linux)
+            set (QUIC_LINUX_LOGGING_METHOD linux)
             include(FindLTTngUST)
         endif()
     else()
-        message(STATUS "Disabling tracing")
+        message(STATUS "QUIC_ENABLE_LOGGING is false. Disabling logging")
         list(APPEND QUIC_COMMON_DEFINES QUIC_EVENTS_STUB QUIC_LOGS_STUB)
     endif()
 
     if(QUIC_ENABLE_SANITIZERS)
         message(STATUS "Configuring sanitizers")
-        list(APPEND QUIC_COMMON_FLAGS -fsanitize=address,leak,undefined -fsanitize-address-use-after-scope -Og -fno-omit-frame-pointer -fno-optimize-sibling-calls)
+        list(APPEND QUIC_COMMON_FLAGS -fsanitize=address,leak,undefined,alignment -fsanitize-address-use-after-scope -Og -fno-omit-frame-pointer -fno-optimize-sibling-calls)
         if (CX_PLATFORM STREQUAL "darwin")
             list(APPEND QUIC_COMMON_FLAGS -gdwarf)
         else()
@@ -592,9 +630,11 @@ if(QUIC_CODE_CHECK)
         message(STATUS "Found clang-tidy: ${CLANGTIDY}")
         set(CLANG_TIDY_CHECKS *
             # add checks to ignore here:
-            -altera-struct-pack-align
+            -altera-*
             -android-cloexec-fopen
             -android-cloexec-socket
+            -bugprone-easily-swappable-parameters
+            -bugprone-implicit-widening-of-multiplication-result
             -bugprone-macro-parentheses
             -bugprone-narrowing-conversions
             -bugprone-reserved-identifier
@@ -631,10 +671,10 @@ if(QUIC_CODE_CHECK)
         message(STATUS "Found cppcheck: ${CPPCHECK}")
         set(CMAKE_C_CPPCHECK_AVAILABLE ${CPPCHECK} -q --inline-suppr
             --suppress=duplicateValueTernary --suppress=objectIndex
-            --suppress=varFuncNullUB
+            --suppress=varFuncNullUB --suppress=constParameter
             # these are finding potential logic issues, may want to suppress when focusing on nits:
             --suppress=nullPointer --suppress=nullPointerRedundantCheck
-            --suppress=knownConditionTrueFalse
+            --suppress=knownConditionTrueFalse --suppress=invalidscanf
             --enable=warning,style,performance,portability -D__linux__)
     else()
         message(STATUS "cppcheck not found")

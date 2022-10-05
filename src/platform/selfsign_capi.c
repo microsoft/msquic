@@ -16,7 +16,10 @@ Abstract:
 #include "selfsign_capi.c.clog.h"
 #endif
 
+#pragma warning(push)
+#pragma warning(disable:6553) // Annotation does not apply to value type.
 #include <wincrypt.h>
+#pragma warning(pop)
 #include "msquic.h"
 
 #define CXPLAT_CERT_CREATION_EVENT_NAME                 L"MsQuicCertEvent"
@@ -26,14 +29,16 @@ Abstract:
 #define CXPLAT_KEY_CONTAINER_NAME                       L"MsQuicSelfSignKey2"
 #define CXPLAT_KEY_SIZE                                 2048
 
-#define CXPLAT_TEST_CERT_VALID_SERVER_FRIENDLY_NAME     L"MsQuicTestServer"
-#define CXPLAT_TEST_CERT_VALID_CLIENT_FRIENDLY_NAME     L"MsQuicTestClient"
-#define CXPLAT_TEST_CERT_EXPIRED_SERVER_FRIENDLY_NAME   L"MsQuicTestExpiredServer"
-#define CXPLAT_TEST_CERT_EXPIRED_CLIENT_FRIENDLY_NAME   L"MsQuicTestExpiredClient"
-#define CXPLAT_TEST_CERT_VALID_SERVER_SUBJECT_NAME      "MsQuicTestServer"
-#define CXPLAT_TEST_CERT_VALID_CLIENT_SUBJECT_NAME      "MsQuicTestClient"
-#define CXPLAT_TEST_CERT_EXPIRED_SERVER_SUBJECT_NAME    "MsQuicTestExpiredServer"
-#define CXPLAT_TEST_CERT_EXPIRED_CLIENT_SUBJECT_NAME    "MsQuicTestExpiredClient"
+#define CXPLAT_TEST_CERT_VALID_SERVER_FRIENDLY_NAME         L"MsQuicTestServer"
+#define CXPLAT_TEST_CERT_VALID_CLIENT_FRIENDLY_NAME         L"MsQuicTestClient"
+#define CXPLAT_TEST_CERT_EXPIRED_SERVER_FRIENDLY_NAME       L"MsQuicTestExpiredServer"
+#define CXPLAT_TEST_CERT_EXPIRED_CLIENT_FRIENDLY_NAME       L"MsQuicTestExpiredClient"
+#define CXPLAT_TEST_CERT_VALID_SERVER_SUBJECT_NAME          "MsQuicTestServer"
+#define CXPLAT_TEST_CERT_VALID_CLIENT_SUBJECT_NAME          "MsQuicTestClient"
+#define CXPLAT_TEST_CERT_EXPIRED_SERVER_SUBJECT_NAME        "MsQuicTestExpiredServer"
+#define CXPLAT_TEST_CERT_EXPIRED_CLIENT_SUBJECT_NAME        "MsQuicTestExpiredClient"
+#define CXPLAT_TEST_CERT_SELF_SIGNED_CLIENT_SUBJECT_NAME    "MsQuicClient"
+#define CXPLAT_TEST_CERT_SELF_SIGNED_SERVER_SUBJECT_NAME    "localhost"
 
 void
 CleanTestCertificatesFromStore(BOOLEAN UserStore)
@@ -1027,7 +1032,7 @@ Done:
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
-const QUIC_CREDENTIAL_CONFIG*
+QUIC_CREDENTIAL_CONFIG*
 CxPlatGetSelfSignedCert(
     _In_ CXPLAT_SELF_SIGN_CERT_TYPE Type,
     _In_ BOOLEAN IsClient
@@ -1056,6 +1061,7 @@ CxPlatGetSelfSignedCert(
     return Params;
 }
 
+_IRQL_requires_max_(PASSIVE_LEVEL)
 _Success_(return == TRUE)
 BOOLEAN
 CxPlatGetTestCertificate(
@@ -1069,15 +1075,29 @@ CxPlatGetTestCertificate(
     _When_(CredType == QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH_STORE, _Out_)
     _When_(CredType != QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH_STORE, _Reserved_)
         QUIC_CERTIFICATE_HASH_STORE* CertHashStore,
+    _When_(CredType == QUIC_CREDENTIAL_TYPE_CERTIFICATE_FILE, _Out_)
+    _When_(CredType != QUIC_CREDENTIAL_TYPE_CERTIFICATE_FILE, _Reserved_)
+        QUIC_CERTIFICATE_FILE* CertFile,
+    _When_(CredType == QUIC_CREDENTIAL_TYPE_CERTIFICATE_FILE_PROTECTED, _Out_)
+    _When_(CredType != QUIC_CREDENTIAL_TYPE_CERTIFICATE_FILE_PROTECTED, _Reserved_)
+        QUIC_CERTIFICATE_FILE_PROTECTED* CertFileProtected,
+    _When_(CredType == QUIC_CREDENTIAL_TYPE_CERTIFICATE_PKCS12, _Out_)
+    _When_(CredType != QUIC_CREDENTIAL_TYPE_CERTIFICATE_PKCS12, _Reserved_)
+        QUIC_CERTIFICATE_PKCS12* Pkcs12,
     _When_(CredType == QUIC_CREDENTIAL_TYPE_NONE, _Out_z_bytecap_(100))
     _When_(CredType != QUIC_CREDENTIAL_TYPE_NONE, _Reserved_)
         char Principal[100]
     )
 {
+    UNREFERENCED_PARAMETER(CertFile);
+    UNREFERENCED_PARAMETER(CertFileProtected);
+    UNREFERENCED_PARAMETER(Pkcs12);
     BOOLEAN Success = FALSE;
     PCCERT_CONTEXT Cert = NULL;
     const wchar_t* FriendlyName = NULL;
     const char* SubjectName = NULL;
+    HCERTSTORE CertStore = NULL;
+    uint8_t CertHashBytes[20];
 
     switch (Type) {
     case CXPLAT_TEST_CERT_VALID_SERVER:
@@ -1095,6 +1115,14 @@ CxPlatGetTestCertificate(
     case CXPLAT_TEST_CERT_EXPIRED_CLIENT:
         FriendlyName = CXPLAT_TEST_CERT_EXPIRED_CLIENT_FRIENDLY_NAME;
         SubjectName = CXPLAT_TEST_CERT_EXPIRED_CLIENT_SUBJECT_NAME;
+        break;
+    case CXPLAT_TEST_CERT_SELF_SIGNED_SERVER:
+        FriendlyName = CXPLAT_CERTIFICATE_TEST_FRIENDLY_NAME;
+        SubjectName = CXPLAT_TEST_CERT_SELF_SIGNED_SERVER_SUBJECT_NAME;
+        break;
+    case CXPLAT_TEST_CERT_SELF_SIGNED_CLIENT:
+        FriendlyName = CXPLAT_CERTIFICATE_TEST_CLIENT_FRIENDLY_NAME;
+        SubjectName = CXPLAT_TEST_CERT_SELF_SIGNED_CLIENT_SUBJECT_NAME;
         break;
     default:
         QuicTraceEvent(
@@ -1149,33 +1177,44 @@ CxPlatGetTestCertificate(
 
     CxPlatZeroMemory(Params, sizeof(*Params));
 
-    HCERTSTORE CertStore =
-        CertOpenStore(
-            CERT_STORE_PROV_SYSTEM_A,
-            0,
-            0,
-            StoreType == CXPLAT_SELF_SIGN_CERT_USER ?
-                CERT_SYSTEM_STORE_CURRENT_USER :
-                CERT_SYSTEM_STORE_LOCAL_MACHINE,
-            "MY");
-    if (CertStore == NULL) {
-        QuicTraceEvent(
-            LibraryErrorStatus,
-            "[ lib] ERROR, %u, %s.",
-            GetLastError(),
-            "CertOpenStore failed");
-        goto Done;
-    }
-    uint8_t CertHashBytes[20];
+    if (Type == CXPLAT_TEST_CERT_SELF_SIGNED_CLIENT ||
+        Type == CXPLAT_TEST_CERT_SELF_SIGNED_SERVER) {
+        Cert =
+            FindOrCreateCertificate(
+                StoreType == CXPLAT_SELF_SIGN_CERT_USER,
+                Type == CXPLAT_TEST_CERT_SELF_SIGNED_CLIENT,
+                CertHashBytes);
+        if (Cert == NULL) {
+            goto Done;
+        }
+    } else {
+        CertStore =
+            CertOpenStore(
+                CERT_STORE_PROV_SYSTEM_A,
+                0,
+                0,
+                StoreType == CXPLAT_SELF_SIGN_CERT_USER ?
+                    CERT_SYSTEM_STORE_CURRENT_USER :
+                    CERT_SYSTEM_STORE_LOCAL_MACHINE,
+                "MY");
+        if (CertStore == NULL) {
+            QuicTraceEvent(
+                LibraryErrorStatus,
+                "[ lib] ERROR, %u, %s.",
+                GetLastError(),
+                "CertOpenStore failed");
+            goto Done;
+        }
 
-    Cert = FindCertificate(
-        CertStore,
-        TRUE,
-        FriendlyName,
-        CertHashBytes);
+        Cert = FindCertificate(
+            CertStore,
+            TRUE,
+            FriendlyName,
+            CertHashBytes);
 
-    if (Cert == NULL) {
-        goto Done;
+        if (Cert == NULL) {
+            goto Done;
+        }
     }
 
     switch (CredType) {

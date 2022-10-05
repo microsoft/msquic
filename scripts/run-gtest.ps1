@@ -1,7 +1,7 @@
 <#
 
 .SYNOPSIS
-This script runs a google test executable and collects and logs or process dumps
+This script runs a google test executable and collects logs or dumps
 as necessary.
 
 .PARAMETER Path
@@ -47,7 +47,7 @@ as necessary.
 .Parameter EnableAppVerifier
     Enables all basic Application Verifier checks on the test binary.
 
-.Parameter EnableTcpipVerifier
+.Parameter EnableSystemVerifier
     Enables TCPIP verifier in user mode tests.
 
 .Parameter CodeCoverage
@@ -58,6 +58,9 @@ as necessary.
 
 .Parameter ErrorsAsWarnings
     Treats all errors as warnings.
+
+.PARAMETER DuoNic
+    Uses DuoNic instead of loopback.
 
 #>
 
@@ -107,7 +110,7 @@ param (
     [switch]$EnableAppVerifier = $false,
 
     [Parameter(Mandatory = $false)]
-    [switch]$EnableTcpipVerifier = $false,
+    [switch]$EnableSystemVerifier = $false,
 
     [Parameter(Mandatory = $false)]
     [switch]$CodeCoverage = $false,
@@ -119,7 +122,13 @@ param (
     [switch]$AZP = $false,
 
     [Parameter(Mandatory = $false)]
-    [switch]$ErrorsAsWarnings = $false
+    [switch]$ErrorsAsWarnings = $false,
+
+    [Parameter(Mandatory = $false)]
+    [string]$ExtraArtifactDir = "",
+
+    [Parameter(Mandatory = $false)]
+    [switch]$DuoNic = $false
 )
 
 Set-StrictMode -Version 'Latest'
@@ -187,8 +196,13 @@ $LogScript = Join-Path $RootDir "scripts" "log.ps1"
 $TestExeName = Split-Path $Path -Leaf
 $CoverageName = "$(Split-Path $Path -LeafBase).cov"
 
+$ExeLogFolder = $TestExeName
+if (![string]::IsNullOrWhiteSpace($ExtraArtifactDir)) {
+    $ExeLogFolder += "_$ExtraArtifactDir"
+}
+
 # Folder for log files.
-$LogDir = Join-Path $RootDir "artifacts" "logs" $TestExeName (Get-Date -UFormat "%m.%d.%Y.%T").Replace(':','.')
+$LogDir = Join-Path $RootDir "artifacts" "logs" $ExeLogFolder (Get-Date -UFormat "%m.%d.%Y.%T").Replace(':','.')
 New-Item -Path $LogDir -ItemType Directory -Force | Out-Null
 
 # Folder for coverage files
@@ -222,7 +236,7 @@ $FailXmlText = @"
 "@
 
 # Global state for tracking if any crashes occurred.
-$AnyProcessCrashes = $false
+$global:CrashedProcessCount = 0
 
 # Path to the WER registry key used for collecting dumps.
 $WerDumpRegPath = "HKLM:\Software\Microsoft\Windows\Windows Error Reporting\LocalDumps\$TestExeName"
@@ -285,7 +299,7 @@ function Start-TestExecutable([String]$Arguments, [String]$OutputDir) {
     $pinfo = New-Object System.Diagnostics.ProcessStartInfo
     if ($IsWindows) {
         if ($Debugger) {
-            $pinfo.FileName = "windbg"
+            $pinfo.FileName = "windbgx"
             if ($InitialBreak) {
                 $pinfo.Arguments = "-G $($Path) $($Arguments)"
             } else {
@@ -315,7 +329,7 @@ function Start-TestExecutable([String]$Arguments, [String]$OutputDir) {
             }
         } else {
             $pinfo.FileName = "bash"
-            $pinfo.Arguments = "-c `"ulimit -c unlimited && $($Path) $($Arguments) && echo Done`""
+            $pinfo.Arguments = "-c `"ulimit -c unlimited && LSAN_OPTIONS=report_objects=1 ASAN_OPTIONS=disable_coredump=0:abort_on_error=1 UBSAN_OPTIONS=halt_on_error=1:print_stacktrace=1 $($Path) $($Arguments) && echo Done`""
             $pinfo.WorkingDirectory = $OutputDir
         }
     }
@@ -344,12 +358,15 @@ function Start-TestCase([String]$Name) {
 
     # Build up the argument list.
     $ResultsPath = Join-Path $LocalLogDir "results.xml"
-    $Arguments = "--gtest_catch_exceptions=0 --gtest_filter=$($Name) --gtest_output=xml:$($ResultsPath)"
+    $Arguments = "--gtest_catch_exceptions=0 --gtest_filter=$($Name) --gtest_output=xml:$($ResultsPath) --timeout 30000"
     if ($BreakOnFailure) {
         $Arguments += " --gtest_break_on_failure"
     }
     if ($Kernel -ne "") {
         $Arguments += " --kernelPriv"
+    }
+    if ($DuoNic) {
+        $Arguments += " --duoNic"
     }
     if ($PfxPath -ne "") {
         $Arguments += " -PfxPath:$PfxPath"
@@ -388,6 +405,9 @@ function Start-AllTestCases {
     if ($Kernel -ne "") {
         $Arguments += " --kernelPriv"
     }
+    if ($DuoNic) {
+        $Arguments += " --duoNic"
+    }
     if ($PfxPath -ne "") {
         $Arguments += " -PfxPath:$PfxPath"
     }
@@ -415,8 +435,69 @@ function PrintDumpCallStack($DumpFile) {
         Write-Host " $(Split-Path $DumpFile -Leaf)"
         Write-Host "=================================================================================="
         $Output -replace "quit:", "=================================================================================="
+        $Output | Out-File "$DumpFile.txt"
     } catch {
         # Silently fail
+    }
+}
+
+function PrintLldbCoreCallStack($CoreFile) {
+    try {
+        $Output = lldb $Path -c $CoreFile -b -o "`"bt all`""
+        Write-Host "=================================================================================="
+        Write-Host " $(Split-Path $CoreFile -Leaf)"
+        Write-Host "=================================================================================="
+        # Find line containing Current thread
+        $Found = $false
+        $LastThreadStart = 0
+        for ($i = 0; $i -lt $Output.Length; $i++) {
+            if ($Output[$i] -like "*stop reason =*") {
+                if ($Found) {
+                    break
+                }
+                $LastThreadStart = $i
+            }
+            if ($Output[$i] -like "*quic_bugcheck*") {
+                $Found = $true
+                for ($j = $LastThreadStart; $j -lt $i; $j++) {
+                    $Output[$j]
+                }
+            }
+            if ($Found) {
+                $Output[$i]
+            }
+        }
+        if (!$Found) {
+            $Output | Join-String -Separator "`n"
+        }
+        $Output | Join-String -Separator "`n" | Out-File "$CoreFile.txt"
+    } catch {
+        # Silently Fail
+    }
+}
+
+function PrintGdbCoreCallStack($CoreFile) {
+    try {
+        $Output = gdb $Path $CoreFile -batch -ex "`"bt`"" -ex "`"quit`""
+        Write-Host "=================================================================================="
+        Write-Host " $(Split-Path $CoreFile -Leaf)"
+        Write-Host "=================================================================================="
+        # Find line containing Current thread
+        $Found = $false
+        for ($i = 0; $i -lt $Output.Length; $i++) {
+            if ($Output[$i] -like "*Current thread*") {
+                $Found = $true
+            }
+            if ($Found) {
+                $Output[$i]
+            }
+        }
+        if (!$Found) {
+            $Output | Join-String -Separator "`n"
+        }
+        $Output | Join-String -Separator "`n" | Out-File "$CoreFile.txt"
+    } catch {
+        # Silently Fail
     }
 }
 
@@ -446,7 +527,7 @@ function Wait-TestCase($TestCase) {
             $StdOutTxt = $StdOut.Result
             $StdErrorTxt = $StdError.Result
 
-            if (!$isWindows -and !$ProcessCrashed) {
+            if (!$IsWindows -and !$ProcessCrashed) {
                 $ProcessCrashed = $StdErrorTxt.Contains("Aborted")
             }
             $AnyTestFailed = $StdOutTxt.Contains("[  FAILED  ]")
@@ -463,6 +544,18 @@ function Wait-TestCase($TestCase) {
             }
             $ProcessCrashed = $true
         }
+        $CoreFiles = (Get-ChildItem $TestCase.LogDir) | Where-Object { $_.Extension -eq ".core" }
+        if ($CoreFiles) {
+            LogWrn "Core file(s) generated"
+            foreach ($File in $CoreFiles) {
+                if ($IsMacOS) {
+                    PrintLldbCoreCallStack $File
+                } else {
+                    PrintGdbCoreCallStack $File
+                }
+            }
+            $ProcessCrashed = $true
+        }
     } catch {
         LogWrn "Treating exception as crash!"
         $ProcessCrashed = $true
@@ -470,7 +563,7 @@ function Wait-TestCase($TestCase) {
     } finally {
         # Add the current test case results.
         if ($IsolationMode -ne "Batch") {
-            Add-XmlResults $TestCase
+            try { Add-XmlResults $TestCase } catch { }
         }
 
         if ($CodeCoverage) {
@@ -500,7 +593,7 @@ function Wait-TestCase($TestCase) {
         }
 
         if ($ProcessCrashed) {
-            $AnyProcessCrashes = $true;
+            $global:CrashedProcessCount++
         }
 
         if ($IsolationMode -eq "Batch") {
@@ -674,9 +767,11 @@ if ($Kernel -ne "") {
     if ($LastExitCode) {
         Log ("sc.exe " + $LastExitCode)
     }
-    verifier.exe /volatile /adddriver msquicpriv.sys msquictestpriv.sys /flags 0x9BB
-    if ($LastExitCode) {
-        Log ("verifier.exe " + $LastExitCode)
+    if ($EnableSystemVerifier) {
+        verifier.exe /volatile /adddriver msquicpriv.sys msquictestpriv.sys /flags 0x9BB
+        if ($LastExitCode) {
+            Log ("verifier.exe " + $LastExitCode)
+        }
     }
     net.exe start msquicpriv
     if ($LastExitCode) {
@@ -684,7 +779,7 @@ if ($Kernel -ne "") {
     }
 }
 
-if ($IsWindows -and ($EnableTcpipVerifier -or $Kernel)) {
+if ($IsWindows -and $EnableSystemVerifier) {
     verifier.exe /volatile /adddriver afd.sys netio.sys tcpip.sys /flags 0x9BB
     if ($LastExitCode) {
         Log ("verifier.exe " + $LastExitCode)
@@ -714,7 +809,7 @@ try {
         & $LogScript -Cancel | Out-Null
     }
 
-    if ($isWindows) {
+    if ($IsWindows) {
         # Cleanup the WER registry.
         if (Test-Administrator) {
             Remove-Item -Path $WerDumpRegPath -Force | Out-Null
@@ -758,23 +853,27 @@ try {
         net.exe stop msquicpriv /y | Out-Null
         sc.exe delete msquictestpriv | Out-Null
         sc.exe delete msquicpriv | Out-Null
-        verifier.exe /volatile /removedriver msquicpriv.sys msquictestpriv.sys
-        verifier.exe /volatile /flags 0x0
     }
 
-    if ($IsWindows -and ($EnableTcpipVerifier -or $Kernel)) {
+    if ($IsWindows -and $EnableSystemVerifier) {
+        if ($Kernel -ne "") {
+            verifier.exe /volatile /removedriver msquicpriv.sys msquictestpriv.sys
+            verifier.exe /volatile /flags 0x0
+        }
         verifier.exe /volatile /removedriver afd.sys netio.sys tcpip.sys
         verifier.exe /volatile /flags 0x0
     }
 
     # Print out the results.
     Log "$($TestCount) test(s) run."
-    if ($KeepOutputOnSuccess -or ($TestsFailed -ne 0) -or $AnyProcessCrashes) {
+    if ($KeepOutputOnSuccess -or ($TestsFailed -ne 0) -or ($global:CrashedProcessCount -ne 0)) {
         Log "Output can be found in $($LogDir)"
         if ($ErrorsAsWarnings) {
             Write-Warning "$($TestsFailed) test(s) failed."
+            Write-Warning "$($TestsFailed) test(s) failed, $($global:CrashedProcessCount) test(s) crashed."
         } else {
-            Write-Error "$($TestsFailed) test(s) failed."
+            Write-Error "$($TestsFailed) test(s) failed, $($global:CrashedProcessCount) test(s) crashed."
+            $LastExitCode = 1
         }
     } elseif ($AZP -and $TestCount -eq 0) {
         Write-Error "Failed to run any tests."

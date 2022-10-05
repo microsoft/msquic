@@ -1,4 +1,6 @@
+#ifndef CLOG_DO_NOT_INCLUDE_HEADER
 #include <clog.h>
+#endif
 #undef TRACEPOINT_PROVIDER
 #define TRACEPOINT_PROVIDER CLOG_CONNECTION_C
 #undef TRACEPOINT_PROBE_DYNAMIC_LINKAGE
@@ -39,28 +41,21 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-#ifndef _clog_3_ARGS_TRACE_PacketRxStatelessReset
-
-
-
 /*----------------------------------------------------------
 // Decoder Ring for PacketRxStatelessReset
 // [S][RX][-] SR %s
 // QuicTraceLogVerbose(
-                        PacketRxStatelessReset,
-                        "[S][RX][-] SR %s",
-                        QuicCidBufToStr(PacketResetToken, QUIC_STATELESS_RESET_TOKEN_LENGTH).Buffer);
-// arg2 = arg2 = QuicCidBufToStr(PacketResetToken, QUIC_STATELESS_RESET_TOKEN_LENGTH).Buffer
+                            PacketRxStatelessReset,
+                            "[S][RX][-] SR %s",
+                            QuicCidBufToStr(PacketResetToken, QUIC_STATELESS_RESET_TOKEN_LENGTH).Buffer);
+// arg2 = arg2 = QuicCidBufToStr(PacketResetToken, QUIC_STATELESS_RESET_TOKEN_LENGTH).Buffer = arg2
 ----------------------------------------------------------*/
+#ifndef _clog_3_ARGS_TRACE_PacketRxStatelessReset
 #define _clog_3_ARGS_TRACE_PacketRxStatelessReset(uniqueId, encoded_arg_string, arg2)\
 tracepoint(CLOG_CONNECTION_C, PacketRxStatelessReset , arg2);\
 
 #endif
 
-
-
-
-#ifndef _clog_4_ARGS_TRACE_PacketRxNotAcked
 
 
 
@@ -72,18 +67,15 @@ tracepoint(CLOG_CONNECTION_C, PacketRxStatelessReset , arg2);\
             "[%c][RX][%llu] not acked (connection is closed)",
             PtkConnPre(Connection),
             Packet->PacketNumber);
-// arg2 = arg2 = PtkConnPre(Connection)
-// arg3 = arg3 = Packet->PacketNumber
+// arg2 = arg2 = PtkConnPre(Connection) = arg2
+// arg3 = arg3 = Packet->PacketNumber = arg3
 ----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_PacketRxNotAcked
 #define _clog_4_ARGS_TRACE_PacketRxNotAcked(uniqueId, encoded_arg_string, arg2, arg3)\
 tracepoint(CLOG_CONNECTION_C, PacketRxNotAcked , arg2, arg3);\
 
 #endif
 
-
-
-
-#ifndef _clog_5_ARGS_TRACE_ClientVersionInfoVersionMismatch
 
 
 
@@ -96,19 +88,16 @@ tracepoint(CLOG_CONNECTION_C, PacketRxNotAcked , arg2, arg3);\
                 "Client Chosen Version doesn't match long header. 0x%x != 0x%x",
                 ClientVI.ChosenVersion,
                 Connection->Stats.QuicVersion);
-// arg1 = arg1 = Connection
-// arg3 = arg3 = ClientVI.ChosenVersion
-// arg4 = arg4 = Connection->Stats.QuicVersion
+// arg1 = arg1 = Connection = arg1
+// arg3 = arg3 = ClientVI.ChosenVersion = arg3
+// arg4 = arg4 = Connection->Stats.QuicVersion = arg4
 ----------------------------------------------------------*/
+#ifndef _clog_5_ARGS_TRACE_ClientVersionInfoVersionMismatch
 #define _clog_5_ARGS_TRACE_ClientVersionInfoVersionMismatch(uniqueId, arg1, encoded_arg_string, arg3, arg4)\
 tracepoint(CLOG_CONNECTION_C, ClientVersionInfoVersionMismatch , arg1, arg3, arg4);\
 
 #endif
 
-
-
-
-#ifndef _clog_5_ARGS_TRACE_ServerVersionInfoVersionMismatch
 
 
 
@@ -121,42 +110,16 @@ tracepoint(CLOG_CONNECTION_C, ClientVersionInfoVersionMismatch , arg1, arg3, arg
                 "Server Chosen Version doesn't match long header. 0x%x != 0x%x",
                 ServerVI.ChosenVersion,
                 Connection->Stats.QuicVersion);
-// arg1 = arg1 = Connection
-// arg3 = arg3 = ServerVI.ChosenVersion
-// arg4 = arg4 = Connection->Stats.QuicVersion
+// arg1 = arg1 = Connection = arg1
+// arg3 = arg3 = ServerVI.ChosenVersion = arg3
+// arg4 = arg4 = Connection->Stats.QuicVersion = arg4
 ----------------------------------------------------------*/
+#ifndef _clog_5_ARGS_TRACE_ServerVersionInfoVersionMismatch
 #define _clog_5_ARGS_TRACE_ServerVersionInfoVersionMismatch(uniqueId, arg1, encoded_arg_string, arg3, arg4)\
 tracepoint(CLOG_CONNECTION_C, ServerVersionInfoVersionMismatch , arg1, arg3, arg4);\
 
 #endif
 
-
-
-
-#ifndef _clog_4_ARGS_TRACE_ServerVersionInformationChosenVersionNotInOtherVerList
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for ServerVersionInformationChosenVersionNotInOtherVerList
-// [conn][%p] Server Chosen Version is not in Server Other Versions list: 0x%x
-// QuicTraceLogConnError(
-                ServerVersionInformationChosenVersionNotInOtherVerList,
-                Connection,
-                "Server Chosen Version is not in Server Other Versions list: 0x%x",
-                ServerVI.ChosenVersion);
-// arg1 = arg1 = Connection
-// arg3 = arg3 = ServerVI.ChosenVersion
-----------------------------------------------------------*/
-#define _clog_4_ARGS_TRACE_ServerVersionInformationChosenVersionNotInOtherVerList(uniqueId, arg1, encoded_arg_string, arg3)\
-tracepoint(CLOG_CONNECTION_C, ServerVersionInformationChosenVersionNotInOtherVerList , arg1, arg3);\
-
-#endif
-
-
-
-
-#ifndef _clog_5_ARGS_TRACE_ClientChosenVersionMismatchServerChosenVersion
 
 
 
@@ -169,19 +132,16 @@ tracepoint(CLOG_CONNECTION_C, ServerVersionInformationChosenVersionNotInOtherVer
                 "Client Chosen Version doesn't match Server Chosen Version: 0x%x vs. 0x%x",
                 ClientChosenVersion,
                 ServerVI.ChosenVersion);
-// arg1 = arg1 = Connection
-// arg3 = arg3 = ClientChosenVersion
-// arg4 = arg4 = ServerVI.ChosenVersion
+// arg1 = arg1 = Connection = arg1
+// arg3 = arg3 = ClientChosenVersion = arg3
+// arg4 = arg4 = ServerVI.ChosenVersion = arg4
 ----------------------------------------------------------*/
+#ifndef _clog_5_ARGS_TRACE_ClientChosenVersionMismatchServerChosenVersion
 #define _clog_5_ARGS_TRACE_ClientChosenVersionMismatchServerChosenVersion(uniqueId, arg1, encoded_arg_string, arg3, arg4)\
 tracepoint(CLOG_CONNECTION_C, ClientChosenVersionMismatchServerChosenVersion , arg1, arg3, arg4);\
 
 #endif
 
-
-
-
-#ifndef _clog_4_ARGS_TRACE_ServerVersionInformationPreviousVersionIsChosenVersion
 
 
 
@@ -193,9 +153,10 @@ tracepoint(CLOG_CONNECTION_C, ClientChosenVersionMismatchServerChosenVersion , a
                     Connection,
                     "Previous Client Version is Server Chosen Version: 0x%x",
                     Connection->PreviousQuicVersion);
-// arg1 = arg1 = Connection
-// arg3 = arg3 = Connection->PreviousQuicVersion
+// arg1 = arg1 = Connection = arg1
+// arg3 = arg3 = Connection->PreviousQuicVersion = arg3
 ----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_ServerVersionInformationPreviousVersionIsChosenVersion
 #define _clog_4_ARGS_TRACE_ServerVersionInformationPreviousVersionIsChosenVersion(uniqueId, arg1, encoded_arg_string, arg3)\
 tracepoint(CLOG_CONNECTION_C, ServerVersionInformationPreviousVersionIsChosenVersion , arg1, arg3);\
 
@@ -204,30 +165,23 @@ tracepoint(CLOG_CONNECTION_C, ServerVersionInformationPreviousVersionIsChosenVer
 
 
 
-#ifndef _clog_4_ARGS_TRACE_ServerVersionInformationPreviousVersionInOtherVerList
-
-
-
 /*----------------------------------------------------------
 // Decoder Ring for ServerVersionInformationPreviousVersionInOtherVerList
 // [conn][%p] Previous Client Version in Server Other Versions list: 0x%x
 // QuicTraceLogConnError(
-                        ServerVersionInformationPreviousVersionInOtherVerList,
-                        Connection,
-                        "Previous Client Version in Server Other Versions list: 0x%x",
-                        Connection->PreviousQuicVersion);
-// arg1 = arg1 = Connection
-// arg3 = arg3 = Connection->PreviousQuicVersion
+                            ServerVersionInformationPreviousVersionInOtherVerList,
+                            Connection,
+                            "Previous Client Version in Server Other Versions list: 0x%x",
+                            Connection->PreviousQuicVersion);
+// arg1 = arg1 = Connection = arg1
+// arg3 = arg3 = Connection->PreviousQuicVersion = arg3
 ----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_ServerVersionInformationPreviousVersionInOtherVerList
 #define _clog_4_ARGS_TRACE_ServerVersionInformationPreviousVersionInOtherVerList(uniqueId, arg1, encoded_arg_string, arg3)\
 tracepoint(CLOG_CONNECTION_C, ServerVersionInformationPreviousVersionInOtherVerList , arg1, arg3);\
 
 #endif
 
-
-
-
-#ifndef _clog_5_ARGS_TRACE_CompatibleVersionNegotiationNotCompatible
 
 
 
@@ -240,19 +194,16 @@ tracepoint(CLOG_CONNECTION_C, ServerVersionInformationPreviousVersionInOtherVerL
                     "Compatible Version negotiation not compatible with client: original 0x%x, upgrade: 0x%x",
                     Connection->OriginalQuicVersion,
                     ServerVI.ChosenVersion);
-// arg1 = arg1 = Connection
-// arg3 = arg3 = Connection->OriginalQuicVersion
-// arg4 = arg4 = ServerVI.ChosenVersion
+// arg1 = arg1 = Connection = arg1
+// arg3 = arg3 = Connection->OriginalQuicVersion = arg3
+// arg4 = arg4 = ServerVI.ChosenVersion = arg4
 ----------------------------------------------------------*/
+#ifndef _clog_5_ARGS_TRACE_CompatibleVersionNegotiationNotCompatible
 #define _clog_5_ARGS_TRACE_CompatibleVersionNegotiationNotCompatible(uniqueId, arg1, encoded_arg_string, arg3, arg4)\
 tracepoint(CLOG_CONNECTION_C, CompatibleVersionNegotiationNotCompatible , arg1, arg3, arg4);\
 
 #endif
 
-
-
-
-#ifndef _clog_5_ARGS_TRACE_CompatibleVersionNegotiationOriginalVersionNotFound
 
 
 
@@ -265,19 +216,16 @@ tracepoint(CLOG_CONNECTION_C, CompatibleVersionNegotiationNotCompatible , arg1, 
                     "OriginalVersion not found in server's TP: original 0x%x, upgrade: 0x%x",
                     Connection->OriginalQuicVersion,
                     ServerVI.ChosenVersion);
-// arg1 = arg1 = Connection
-// arg3 = arg3 = Connection->OriginalQuicVersion
-// arg4 = arg4 = ServerVI.ChosenVersion
+// arg1 = arg1 = Connection = arg1
+// arg3 = arg3 = Connection->OriginalQuicVersion = arg3
+// arg4 = arg4 = ServerVI.ChosenVersion = arg4
 ----------------------------------------------------------*/
+#ifndef _clog_5_ARGS_TRACE_CompatibleVersionNegotiationOriginalVersionNotFound
 #define _clog_5_ARGS_TRACE_CompatibleVersionNegotiationOriginalVersionNotFound(uniqueId, arg1, encoded_arg_string, arg3, arg4)\
 tracepoint(CLOG_CONNECTION_C, CompatibleVersionNegotiationOriginalVersionNotFound , arg1, arg3, arg4);\
 
 #endif
 
-
-
-
-#ifndef _clog_3_ARGS_TRACE_RecvVerNegNoMatch
 
 
 
@@ -288,8 +236,9 @@ tracepoint(CLOG_CONNECTION_C, CompatibleVersionNegotiationOriginalVersionNotFoun
             RecvVerNegNoMatch,
             Connection,
             "Version Negotation contained no supported versions");
-// arg1 = arg1 = Connection
+// arg1 = arg1 = Connection = arg1
 ----------------------------------------------------------*/
+#ifndef _clog_3_ARGS_TRACE_RecvVerNegNoMatch
 #define _clog_3_ARGS_TRACE_RecvVerNegNoMatch(uniqueId, arg1, encoded_arg_string)\
 tracepoint(CLOG_CONNECTION_C, RecvVerNegNoMatch , arg1);\
 
@@ -298,7 +247,21 @@ tracepoint(CLOG_CONNECTION_C, RecvVerNegNoMatch , arg1);\
 
 
 
-#ifndef _clog_3_ARGS_TRACE_ApiEventNoHandler
+/*----------------------------------------------------------
+// Decoder Ring for RecvVerNegCryptoError
+// [conn][%p] Failed to update crypto on ver neg
+// QuicTraceLogConnError(
+            RecvVerNegCryptoError,
+            Connection,
+            "Failed to update crypto on ver neg");
+// arg1 = arg1 = Connection = arg1
+----------------------------------------------------------*/
+#ifndef _clog_3_ARGS_TRACE_RecvVerNegCryptoError
+#define _clog_3_ARGS_TRACE_RecvVerNegCryptoError(uniqueId, arg1, encoded_arg_string)\
+tracepoint(CLOG_CONNECTION_C, RecvVerNegCryptoError , arg1);\
+
+#endif
+
 
 
 
@@ -309,17 +272,14 @@ tracepoint(CLOG_CONNECTION_C, RecvVerNegNoMatch , arg1);\
             ApiEventNoHandler,
             Connection,
             "Event silently discarded (no handler).");
-// arg1 = arg1 = Connection
+// arg1 = arg1 = Connection = arg1
 ----------------------------------------------------------*/
+#ifndef _clog_3_ARGS_TRACE_ApiEventNoHandler
 #define _clog_3_ARGS_TRACE_ApiEventNoHandler(uniqueId, arg1, encoded_arg_string)\
 tracepoint(CLOG_CONNECTION_C, ApiEventNoHandler , arg1);\
 
 #endif
 
-
-
-
-#ifndef _clog_3_ARGS_TRACE_NoReplacementCidForRetire
 
 
 
@@ -330,17 +290,14 @@ tracepoint(CLOG_CONNECTION_C, ApiEventNoHandler , arg1);\
             NoReplacementCidForRetire,
             Connection,
             "Can't retire current CID because we don't have a replacement");
-// arg1 = arg1 = Connection
+// arg1 = arg1 = Connection = arg1
 ----------------------------------------------------------*/
+#ifndef _clog_3_ARGS_TRACE_NoReplacementCidForRetire
 #define _clog_3_ARGS_TRACE_NoReplacementCidForRetire(uniqueId, arg1, encoded_arg_string)\
 tracepoint(CLOG_CONNECTION_C, NoReplacementCidForRetire , arg1);\
 
 #endif
 
-
-
-
-#ifndef _clog_3_ARGS_TRACE_NonActivePathCidRetired
 
 
 
@@ -351,17 +308,14 @@ tracepoint(CLOG_CONNECTION_C, NoReplacementCidForRetire , arg1);\
                 NonActivePathCidRetired,
                 Connection,
                 "Non-active path has no replacement for retired CID.");
-// arg1 = arg1 = Connection
+// arg1 = arg1 = Connection = arg1
 ----------------------------------------------------------*/
+#ifndef _clog_3_ARGS_TRACE_NonActivePathCidRetired
 #define _clog_3_ARGS_TRACE_NonActivePathCidRetired(uniqueId, arg1, encoded_arg_string)\
 tracepoint(CLOG_CONNECTION_C, NonActivePathCidRetired , arg1);\
 
 #endif
 
-
-
-
-#ifndef _clog_3_ARGS_TRACE_IgnoreUnreachable
 
 
 
@@ -372,17 +326,14 @@ tracepoint(CLOG_CONNECTION_C, NonActivePathCidRetired , arg1);\
             IgnoreUnreachable,
             Connection,
             "Ignoring received unreachable event (inline)");
-// arg1 = arg1 = Connection
+// arg1 = arg1 = Connection = arg1
 ----------------------------------------------------------*/
+#ifndef _clog_3_ARGS_TRACE_IgnoreUnreachable
 #define _clog_3_ARGS_TRACE_IgnoreUnreachable(uniqueId, arg1, encoded_arg_string)\
 tracepoint(CLOG_CONNECTION_C, IgnoreUnreachable , arg1);\
 
 #endif
 
-
-
-
-#ifndef _clog_5_ARGS_TRACE_IgnoreFrameAfterClose
 
 
 
@@ -395,20 +346,17 @@ tracepoint(CLOG_CONNECTION_C, IgnoreUnreachable , arg1);\
                     "Ignoring frame (%hhu) for already closed stream id = %llu",
                     (uint8_t)FrameType, // This cast is safe because of the switch cases above.
                     StreamId);
-// arg1 = arg1 = Connection
-// arg3 = arg3 = (uint8_t)FrameType
+// arg1 = arg1 = Connection = arg1
+// arg3 = arg3 = (uint8_t)FrameType = arg3
 // arg4 = arg4 = // This cast is safe because of the switch cases above.
-                    StreamId
+                    StreamId = arg4
 ----------------------------------------------------------*/
+#ifndef _clog_5_ARGS_TRACE_IgnoreFrameAfterClose
 #define _clog_5_ARGS_TRACE_IgnoreFrameAfterClose(uniqueId, arg1, encoded_arg_string, arg3, arg4)\
 tracepoint(CLOG_CONNECTION_C, IgnoreFrameAfterClose , arg1, arg3, arg4);\
 
 #endif
 
-
-
-
-#ifndef _clog_3_ARGS_TRACE_InvalidInitialPackets
 
 
 
@@ -419,17 +367,14 @@ tracepoint(CLOG_CONNECTION_C, IgnoreFrameAfterClose , arg1, arg3, arg4);\
             InvalidInitialPackets,
             Connection,
             "Aborting connection with invalid initial packets");
-// arg1 = arg1 = Connection
+// arg1 = arg1 = Connection = arg1
 ----------------------------------------------------------*/
+#ifndef _clog_3_ARGS_TRACE_InvalidInitialPackets
 #define _clog_3_ARGS_TRACE_InvalidInitialPackets(uniqueId, arg1, encoded_arg_string)\
 tracepoint(CLOG_CONNECTION_C, InvalidInitialPackets , arg1);\
 
 #endif
 
-
-
-
-#ifndef _clog_3_ARGS_TRACE_UnreachableIgnore
 
 
 
@@ -440,17 +385,14 @@ tracepoint(CLOG_CONNECTION_C, InvalidInitialPackets , arg1);\
             UnreachableIgnore,
             Connection,
             "Ignoring received unreachable event");
-// arg1 = arg1 = Connection
+// arg1 = arg1 = Connection = arg1
 ----------------------------------------------------------*/
+#ifndef _clog_3_ARGS_TRACE_UnreachableIgnore
 #define _clog_3_ARGS_TRACE_UnreachableIgnore(uniqueId, arg1, encoded_arg_string)\
 tracepoint(CLOG_CONNECTION_C, UnreachableIgnore , arg1);\
 
 #endif
 
-
-
-
-#ifndef _clog_3_ARGS_TRACE_UnreachableInvalid
 
 
 
@@ -461,17 +403,14 @@ tracepoint(CLOG_CONNECTION_C, UnreachableIgnore , arg1);\
             UnreachableInvalid,
             Connection,
             "Received invalid unreachable event");
-// arg1 = arg1 = Connection
+// arg1 = arg1 = Connection = arg1
 ----------------------------------------------------------*/
+#ifndef _clog_3_ARGS_TRACE_UnreachableInvalid
 #define _clog_3_ARGS_TRACE_UnreachableInvalid(uniqueId, arg1, encoded_arg_string)\
 tracepoint(CLOG_CONNECTION_C, UnreachableInvalid , arg1);\
 
 #endif
 
-
-
-
-#ifndef _clog_3_ARGS_TRACE_CloseUserCanceled
 
 
 
@@ -482,17 +421,14 @@ tracepoint(CLOG_CONNECTION_C, UnreachableInvalid , arg1);\
                 CloseUserCanceled,
                 Connection,
                 "Connection close using user canceled error");
-// arg1 = arg1 = Connection
+// arg1 = arg1 = Connection = arg1
 ----------------------------------------------------------*/
+#ifndef _clog_3_ARGS_TRACE_CloseUserCanceled
 #define _clog_3_ARGS_TRACE_CloseUserCanceled(uniqueId, arg1, encoded_arg_string)\
 tracepoint(CLOG_CONNECTION_C, CloseUserCanceled , arg1);\
 
 #endif
 
-
-
-
-#ifndef _clog_3_ARGS_TRACE_CloseComplete
 
 
 
@@ -503,17 +439,14 @@ tracepoint(CLOG_CONNECTION_C, CloseUserCanceled , arg1);\
             CloseComplete,
             Connection,
             "Connection close complete");
-// arg1 = arg1 = Connection
+// arg1 = arg1 = Connection = arg1
 ----------------------------------------------------------*/
+#ifndef _clog_3_ARGS_TRACE_CloseComplete
 #define _clog_3_ARGS_TRACE_CloseComplete(uniqueId, arg1, encoded_arg_string)\
 tracepoint(CLOG_CONNECTION_C, CloseComplete , arg1);\
 
 #endif
 
-
-
-
-#ifndef _clog_4_ARGS_TRACE_Restart
 
 
 
@@ -525,18 +458,15 @@ tracepoint(CLOG_CONNECTION_C, CloseComplete , arg1);\
         Connection,
         "Restart (CompleteReset=%hhu)",
         CompleteReset);
-// arg1 = arg1 = Connection
-// arg3 = arg3 = CompleteReset
+// arg1 = arg1 = Connection = arg1
+// arg3 = arg3 = CompleteReset = arg3
 ----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_Restart
 #define _clog_4_ARGS_TRACE_Restart(uniqueId, arg1, encoded_arg_string, arg3)\
 tracepoint(CLOG_CONNECTION_C, Restart , arg1, arg3);\
 
 #endif
 
-
-
-
-#ifndef _clog_3_ARGS_TRACE_CryptoStateDiscard
 
 
 
@@ -547,17 +477,14 @@ tracepoint(CLOG_CONNECTION_C, Restart , arg1, arg3);\
             CryptoStateDiscard,
             Connection,
             "TLS state no longer needed");
-// arg1 = arg1 = Connection
+// arg1 = arg1 = Connection = arg1
 ----------------------------------------------------------*/
+#ifndef _clog_3_ARGS_TRACE_CryptoStateDiscard
 #define _clog_3_ARGS_TRACE_CryptoStateDiscard(uniqueId, arg1, encoded_arg_string)\
 tracepoint(CLOG_CONNECTION_C, CryptoStateDiscard , arg1);\
 
 #endif
 
-
-
-
-#ifndef _clog_4_ARGS_TRACE_SetConfiguration
 
 
 
@@ -569,18 +496,15 @@ tracepoint(CLOG_CONNECTION_C, CryptoStateDiscard , arg1);\
         Connection,
         "Configuration set, %p",
         Configuration);
-// arg1 = arg1 = Connection
-// arg3 = arg3 = Configuration
+// arg1 = arg1 = Connection = arg1
+// arg3 = arg3 = Configuration = arg3
 ----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_SetConfiguration
 #define _clog_4_ARGS_TRACE_SetConfiguration(uniqueId, arg1, encoded_arg_string, arg3)\
 tracepoint(CLOG_CONNECTION_C, SetConfiguration , arg1, arg3);\
 
 #endif
 
-
-
-
-#ifndef _clog_3_ARGS_TRACE_PeerTPSet
 
 
 
@@ -591,17 +515,14 @@ tracepoint(CLOG_CONNECTION_C, SetConfiguration , arg1, arg3);\
         PeerTPSet,
         Connection,
         "Peer Transport Parameters Set");
-// arg1 = arg1 = Connection
+// arg1 = arg1 = Connection = arg1
 ----------------------------------------------------------*/
+#ifndef _clog_3_ARGS_TRACE_PeerTPSet
 #define _clog_3_ARGS_TRACE_PeerTPSet(uniqueId, arg1, encoded_arg_string)\
 tracepoint(CLOG_CONNECTION_C, PeerTPSet , arg1);\
 
 #endif
 
-
-
-
-#ifndef _clog_5_ARGS_TRACE_PeerPreferredAddress
 
 
 
@@ -613,18 +534,15 @@ tracepoint(CLOG_CONNECTION_C, PeerTPSet , arg1);\
                 Connection,
                 "Peer configured preferred address %!ADDR!",
                 CASTED_CLOG_BYTEARRAY(sizeof(Connection->PeerTransportParams.PreferredAddress), &Connection->PeerTransportParams.PreferredAddress));
-// arg1 = arg1 = Connection
-// arg3 = arg3 = CASTED_CLOG_BYTEARRAY(sizeof(Connection->PeerTransportParams.PreferredAddress), &Connection->PeerTransportParams.PreferredAddress)
+// arg1 = arg1 = Connection = arg1
+// arg3 = arg3 = CASTED_CLOG_BYTEARRAY(sizeof(Connection->PeerTransportParams.PreferredAddress), &Connection->PeerTransportParams.PreferredAddress) = arg3
 ----------------------------------------------------------*/
+#ifndef _clog_5_ARGS_TRACE_PeerPreferredAddress
 #define _clog_5_ARGS_TRACE_PeerPreferredAddress(uniqueId, arg1, encoded_arg_string, arg3, arg3_len)\
 tracepoint(CLOG_CONNECTION_C, PeerPreferredAddress , arg1, arg3_len, arg3);\
 
 #endif
 
-
-
-
-#ifndef _clog_3_ARGS_TRACE_NegotiatedDisable1RttEncryption
 
 
 
@@ -635,17 +553,14 @@ tracepoint(CLOG_CONNECTION_C, PeerPreferredAddress , arg1, arg3_len, arg3);\
                 NegotiatedDisable1RttEncryption,
                 Connection,
                 "Negotiated Disable 1-RTT Encryption");
-// arg1 = arg1 = Connection
+// arg1 = arg1 = Connection = arg1
 ----------------------------------------------------------*/
+#ifndef _clog_3_ARGS_TRACE_NegotiatedDisable1RttEncryption
 #define _clog_3_ARGS_TRACE_NegotiatedDisable1RttEncryption(uniqueId, arg1, encoded_arg_string)\
 tracepoint(CLOG_CONNECTION_C, NegotiatedDisable1RttEncryption , arg1);\
 
 #endif
 
-
-
-
-#ifndef _clog_3_ARGS_TRACE_CustomCertValidationPending
 
 
 
@@ -656,8 +571,9 @@ tracepoint(CLOG_CONNECTION_C, NegotiatedDisable1RttEncryption , arg1);\
             CustomCertValidationPending,
             Connection,
             "Custom cert validation is pending");
-// arg1 = arg1 = Connection
+// arg1 = arg1 = Connection = arg1
 ----------------------------------------------------------*/
+#ifndef _clog_3_ARGS_TRACE_CustomCertValidationPending
 #define _clog_3_ARGS_TRACE_CustomCertValidationPending(uniqueId, arg1, encoded_arg_string)\
 tracepoint(CLOG_CONNECTION_C, CustomCertValidationPending , arg1);\
 
@@ -666,28 +582,21 @@ tracepoint(CLOG_CONNECTION_C, CustomCertValidationPending , arg1);\
 
 
 
-#ifndef _clog_3_ARGS_TRACE_RecvStatelessReset
-
-
-
 /*----------------------------------------------------------
 // Decoder Ring for RecvStatelessReset
 // [conn][%p] Received stateless reset
 // QuicTraceLogConnInfo(
-                        RecvStatelessReset,
-                        Connection,
-                        "Received stateless reset");
-// arg1 = arg1 = Connection
+                            RecvStatelessReset,
+                            Connection,
+                            "Received stateless reset");
+// arg1 = arg1 = Connection = arg1
 ----------------------------------------------------------*/
+#ifndef _clog_3_ARGS_TRACE_RecvStatelessReset
 #define _clog_3_ARGS_TRACE_RecvStatelessReset(uniqueId, arg1, encoded_arg_string)\
 tracepoint(CLOG_CONNECTION_C, RecvStatelessReset , arg1);\
 
 #endif
 
-
-
-
-#ifndef _clog_3_ARGS_TRACE_HandshakeConfirmedFrame
 
 
 
@@ -698,17 +607,14 @@ tracepoint(CLOG_CONNECTION_C, RecvStatelessReset , arg1);\
                     HandshakeConfirmedFrame,
                     Connection,
                     "Handshake confirmed (frame)");
-// arg1 = arg1 = Connection
+// arg1 = arg1 = Connection = arg1
 ----------------------------------------------------------*/
+#ifndef _clog_3_ARGS_TRACE_HandshakeConfirmedFrame
 #define _clog_3_ARGS_TRACE_HandshakeConfirmedFrame(uniqueId, arg1, encoded_arg_string)\
 tracepoint(CLOG_CONNECTION_C, HandshakeConfirmedFrame , arg1);\
 
 #endif
 
-
-
-
-#ifndef _clog_4_ARGS_TRACE_UpdatePacketTolerance
 
 
 
@@ -720,18 +626,15 @@ tracepoint(CLOG_CONNECTION_C, HandshakeConfirmedFrame , arg1);\
                 Connection,
                 "Updating packet tolerance to %hhu",
                 Connection->PacketTolerance);
-// arg1 = arg1 = Connection
-// arg3 = arg3 = Connection->PacketTolerance
+// arg1 = arg1 = Connection = arg1
+// arg3 = arg3 = Connection->PacketTolerance = arg3
 ----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_UpdatePacketTolerance
 #define _clog_4_ARGS_TRACE_UpdatePacketTolerance(uniqueId, arg1, encoded_arg_string, arg3)\
 tracepoint(CLOG_CONNECTION_C, UpdatePacketTolerance , arg1, arg3);\
 
 #endif
 
-
-
-
-#ifndef _clog_4_ARGS_TRACE_FirstCidUsage
 
 
 
@@ -743,18 +646,15 @@ tracepoint(CLOG_CONNECTION_C, UpdatePacketTolerance , arg1, arg3);\
                 Connection,
                 "First usage of SrcCid: %s",
                 QuicCidBufToStr(Packet->DestCid, Packet->DestCidLen).Buffer);
-// arg1 = arg1 = Connection
-// arg3 = arg3 = QuicCidBufToStr(Packet->DestCid, Packet->DestCidLen).Buffer
+// arg1 = arg1 = Connection = arg1
+// arg3 = arg3 = QuicCidBufToStr(Packet->DestCid, Packet->DestCidLen).Buffer = arg3
 ----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_FirstCidUsage
 #define _clog_4_ARGS_TRACE_FirstCidUsage(uniqueId, arg1, encoded_arg_string, arg3)\
 tracepoint(CLOG_CONNECTION_C, FirstCidUsage , arg1, arg3);\
 
 #endif
 
-
-
-
-#ifndef _clog_4_ARGS_TRACE_PathDiscarded
 
 
 
@@ -766,18 +666,15 @@ tracepoint(CLOG_CONNECTION_C, FirstCidUsage , arg1, arg3);\
                 Connection,
                 "Removing invalid path[%hhu]",
                 Connection->Paths[i].ID);
-// arg1 = arg1 = Connection
-// arg3 = arg3 = Connection->Paths[i].ID
+// arg1 = arg1 = Connection = arg1
+// arg3 = arg3 = Connection->Paths[i].ID = arg3
 ----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_PathDiscarded
 #define _clog_4_ARGS_TRACE_PathDiscarded(uniqueId, arg1, encoded_arg_string, arg3)\
 tracepoint(CLOG_CONNECTION_C, PathDiscarded , arg1, arg3);\
 
 #endif
 
-
-
-
-#ifndef _clog_3_ARGS_TRACE_Unreachable
 
 
 
@@ -788,8 +685,9 @@ tracepoint(CLOG_CONNECTION_C, PathDiscarded , arg1, arg3);\
             Unreachable,
             Connection,
             "Received unreachable event");
-// arg1 = arg1 = Connection
+// arg1 = arg1 = Connection = arg1
 ----------------------------------------------------------*/
+#ifndef _clog_3_ARGS_TRACE_Unreachable
 #define _clog_3_ARGS_TRACE_Unreachable(uniqueId, arg1, encoded_arg_string)\
 tracepoint(CLOG_CONNECTION_C, Unreachable , arg1);\
 
@@ -798,7 +696,23 @@ tracepoint(CLOG_CONNECTION_C, Unreachable , arg1);\
 
 
 
-#ifndef _clog_4_ARGS_TRACE_UpdatePeerPacketTolerance
+/*----------------------------------------------------------
+// Decoder Ring for FailedRouteResolution
+// [conn][%p] Route resolution failed on Path[%hhu]. Switching paths...
+// QuicTraceLogConnInfo(
+                    FailedRouteResolution,
+                    Connection,
+                    "Route resolution failed on Path[%hhu]. Switching paths...",
+                    PathId);
+// arg1 = arg1 = Connection = arg1
+// arg3 = arg3 = PathId = arg3
+----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_FailedRouteResolution
+#define _clog_4_ARGS_TRACE_FailedRouteResolution(uniqueId, arg1, encoded_arg_string, arg3)\
+tracepoint(CLOG_CONNECTION_C, FailedRouteResolution , arg1, arg3);\
+
+#endif
+
 
 
 
@@ -810,18 +724,15 @@ tracepoint(CLOG_CONNECTION_C, Unreachable , arg1);\
             Connection,
             "Updating peer packet tolerance to %hhu",
             NewPacketTolerance);
-// arg1 = arg1 = Connection
-// arg3 = arg3 = NewPacketTolerance
+// arg1 = arg1 = Connection = arg1
+// arg3 = arg3 = NewPacketTolerance = arg3
 ----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_UpdatePeerPacketTolerance
 #define _clog_4_ARGS_TRACE_UpdatePeerPacketTolerance(uniqueId, arg1, encoded_arg_string, arg3)\
 tracepoint(CLOG_CONNECTION_C, UpdatePeerPacketTolerance , arg1, arg3);\
 
 #endif
 
-
-
-
-#ifndef _clog_4_ARGS_TRACE_UpdateShareBinding
 
 
 
@@ -833,18 +744,15 @@ tracepoint(CLOG_CONNECTION_C, UpdatePeerPacketTolerance , arg1, arg3);\
             Connection,
             "Updated ShareBinding = %hhu",
             Connection->State.ShareBinding);
-// arg1 = arg1 = Connection
-// arg3 = arg3 = Connection->State.ShareBinding
+// arg1 = arg1 = Connection = arg1
+// arg3 = arg3 = Connection->State.ShareBinding = arg3
 ----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_UpdateShareBinding
 #define _clog_4_ARGS_TRACE_UpdateShareBinding(uniqueId, arg1, encoded_arg_string, arg3)\
 tracepoint(CLOG_CONNECTION_C, UpdateShareBinding , arg1, arg3);\
 
 #endif
 
-
-
-
-#ifndef _clog_4_ARGS_TRACE_UpdateStreamSchedulingScheme
 
 
 
@@ -856,18 +764,15 @@ tracepoint(CLOG_CONNECTION_C, UpdateShareBinding , arg1, arg3);\
             Connection,
             "Updated Stream Scheduling Scheme = %u",
             (uint32_t)Scheme);
-// arg1 = arg1 = Connection
-// arg3 = arg3 = (uint32_t)Scheme
+// arg1 = arg1 = Connection = arg1
+// arg3 = arg3 = (uint32_t)Scheme = arg3
 ----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_UpdateStreamSchedulingScheme
 #define _clog_4_ARGS_TRACE_UpdateStreamSchedulingScheme(uniqueId, arg1, encoded_arg_string, arg3)\
 tracepoint(CLOG_CONNECTION_C, UpdateStreamSchedulingScheme , arg1, arg3);\
 
 #endif
 
-
-
-
-#ifndef _clog_4_ARGS_TRACE_LocalInterfaceSet
 
 
 
@@ -879,9 +784,10 @@ tracepoint(CLOG_CONNECTION_C, UpdateStreamSchedulingScheme , arg1, arg3);\
             Connection,
             "Local interface set to %u",
             Connection->Paths[0].Route.LocalAddress.Ipv6.sin6_scope_id);
-// arg1 = arg1 = Connection
-// arg3 = arg3 = Connection->Paths[0].Route.LocalAddress.Ipv6.sin6_scope_id
+// arg1 = arg1 = Connection = arg1
+// arg3 = arg3 = Connection->Paths[0].Route.LocalAddress.Ipv6.sin6_scope_id = arg3
 ----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_LocalInterfaceSet
 #define _clog_4_ARGS_TRACE_LocalInterfaceSet(uniqueId, arg1, encoded_arg_string, arg3)\
 tracepoint(CLOG_CONNECTION_C, LocalInterfaceSet , arg1, arg3);\
 
@@ -890,7 +796,25 @@ tracepoint(CLOG_CONNECTION_C, LocalInterfaceSet , arg1, arg3);\
 
 
 
-#ifndef _clog_3_ARGS_TRACE_ApplySettings
+/*----------------------------------------------------------
+// Decoder Ring for CibirIdSet
+// [conn][%p] CIBIR ID set (len %hhu, offset %hhu)
+// QuicTraceLogConnInfo(
+            CibirIdSet,
+            Connection,
+            "CIBIR ID set (len %hhu, offset %hhu)",
+            Connection->CibirId[0],
+            Connection->CibirId[1]);
+// arg1 = arg1 = Connection = arg1
+// arg3 = arg3 = Connection->CibirId[0] = arg3
+// arg4 = arg4 = Connection->CibirId[1] = arg4
+----------------------------------------------------------*/
+#ifndef _clog_5_ARGS_TRACE_CibirIdSet
+#define _clog_5_ARGS_TRACE_CibirIdSet(uniqueId, arg1, encoded_arg_string, arg3, arg4)\
+tracepoint(CLOG_CONNECTION_C, CibirIdSet , arg1, arg3, arg4);\
+
+#endif
+
 
 
 
@@ -901,17 +825,14 @@ tracepoint(CLOG_CONNECTION_C, LocalInterfaceSet , arg1, arg3);\
         ApplySettings,
         Connection,
         "Applying new settings");
-// arg1 = arg1 = Connection
+// arg1 = arg1 = Connection = arg1
 ----------------------------------------------------------*/
+#ifndef _clog_3_ARGS_TRACE_ApplySettings
 #define _clog_3_ARGS_TRACE_ApplySettings(uniqueId, arg1, encoded_arg_string)\
 tracepoint(CLOG_CONNECTION_C, ApplySettings , arg1);\
 
 #endif
 
-
-
-
-#ifndef _clog_7_ARGS_TRACE_RttUpdatedMsg
 
 
 
@@ -924,21 +845,18 @@ tracepoint(CLOG_CONNECTION_C, ApplySettings , arg1);\
             "Updated Rtt=%u.%03u ms, Var=%u.%03u",
             Path->SmoothedRtt / 1000, Path->SmoothedRtt % 1000,
             Path->RttVariance / 1000, Path->RttVariance % 1000);
-// arg1 = arg1 = Connection
-// arg3 = arg3 = Path->SmoothedRtt / 1000
-// arg4 = arg4 = Path->SmoothedRtt % 1000
-// arg5 = arg5 = Path->RttVariance / 1000
-// arg6 = arg6 = Path->RttVariance % 1000
+// arg1 = arg1 = Connection = arg1
+// arg3 = arg3 = Path->SmoothedRtt / 1000 = arg3
+// arg4 = arg4 = Path->SmoothedRtt % 1000 = arg4
+// arg5 = arg5 = Path->RttVariance / 1000 = arg5
+// arg6 = arg6 = Path->RttVariance % 1000 = arg6
 ----------------------------------------------------------*/
+#ifndef _clog_7_ARGS_TRACE_RttUpdatedMsg
 #define _clog_7_ARGS_TRACE_RttUpdatedMsg(uniqueId, arg1, encoded_arg_string, arg3, arg4, arg5, arg6)\
 tracepoint(CLOG_CONNECTION_C, RttUpdatedMsg , arg1, arg3, arg4, arg5, arg6);\
 
 #endif
 
-
-
-
-#ifndef _clog_3_ARGS_TRACE_NewSrcCidNameCollision
 
 
 
@@ -949,17 +867,14 @@ tracepoint(CLOG_CONNECTION_C, RttUpdatedMsg , arg1, arg3, arg4, arg5, arg6);\
                 NewSrcCidNameCollision,
                 Connection,
                 "CID collision, trying again");
-// arg1 = arg1 = Connection
+// arg1 = arg1 = Connection = arg1
 ----------------------------------------------------------*/
+#ifndef _clog_3_ARGS_TRACE_NewSrcCidNameCollision
 #define _clog_3_ARGS_TRACE_NewSrcCidNameCollision(uniqueId, arg1, encoded_arg_string)\
 tracepoint(CLOG_CONNECTION_C, NewSrcCidNameCollision , arg1);\
 
 #endif
 
-
-
-
-#ifndef _clog_3_ARGS_TRACE_ZeroLengthCidRetire
 
 
 
@@ -970,40 +885,14 @@ tracepoint(CLOG_CONNECTION_C, NewSrcCidNameCollision , arg1);\
             ZeroLengthCidRetire,
             Connection,
             "Can't retire current CID because it's zero length");
-// arg1 = arg1 = Connection
+// arg1 = arg1 = Connection = arg1
 ----------------------------------------------------------*/
+#ifndef _clog_3_ARGS_TRACE_ZeroLengthCidRetire
 #define _clog_3_ARGS_TRACE_ZeroLengthCidRetire(uniqueId, arg1, encoded_arg_string)\
 tracepoint(CLOG_CONNECTION_C, ZeroLengthCidRetire , arg1);\
 
 #endif
 
-
-
-
-#ifndef _clog_4_ARGS_TRACE_TimerExpired
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for TimerExpired
-// [conn][%p] %s timer expired
-// QuicTraceLogConnVerbose(
-            TimerExpired,
-            Connection,
-            "%s timer expired",
-            TimerNames[Temp[j].Type]);
-// arg1 = arg1 = Connection
-// arg3 = arg3 = TimerNames[Temp[j].Type]
-----------------------------------------------------------*/
-#define _clog_4_ARGS_TRACE_TimerExpired(uniqueId, arg1, encoded_arg_string, arg3)\
-tracepoint(CLOG_CONNECTION_C, TimerExpired , arg1, arg3);\
-
-#endif
-
-
-
-
-#ifndef _clog_4_ARGS_TRACE_IndicateShutdownByPeer
 
 
 
@@ -1015,18 +904,15 @@ tracepoint(CLOG_CONNECTION_C, TimerExpired , arg1, arg3);\
             Connection,
             "Indicating QUIC_CONNECTION_EVENT_SHUTDOWN_INITIATED_BY_PEER [0x%llx]",
             Event.SHUTDOWN_INITIATED_BY_PEER.ErrorCode);
-// arg1 = arg1 = Connection
-// arg3 = arg3 = Event.SHUTDOWN_INITIATED_BY_PEER.ErrorCode
+// arg1 = arg1 = Connection = arg1
+// arg3 = arg3 = Event.SHUTDOWN_INITIATED_BY_PEER.ErrorCode = arg3
 ----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_IndicateShutdownByPeer
 #define _clog_4_ARGS_TRACE_IndicateShutdownByPeer(uniqueId, arg1, encoded_arg_string, arg3)\
 tracepoint(CLOG_CONNECTION_C, IndicateShutdownByPeer , arg1, arg3);\
 
 #endif
 
-
-
-
-#ifndef _clog_4_ARGS_TRACE_IndicateShutdownByTransport
 
 
 
@@ -1038,18 +924,15 @@ tracepoint(CLOG_CONNECTION_C, IndicateShutdownByPeer , arg1, arg3);\
             Connection,
             "Indicating QUIC_CONNECTION_EVENT_SHUTDOWN_INITIATED_BY_TRANSPORT [0x%x]",
             Event.SHUTDOWN_INITIATED_BY_TRANSPORT.Status);
-// arg1 = arg1 = Connection
-// arg3 = arg3 = Event.SHUTDOWN_INITIATED_BY_TRANSPORT.Status
+// arg1 = arg1 = Connection = arg1
+// arg3 = arg3 = Event.SHUTDOWN_INITIATED_BY_TRANSPORT.Status = arg3
 ----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_IndicateShutdownByTransport
 #define _clog_4_ARGS_TRACE_IndicateShutdownByTransport(uniqueId, arg1, encoded_arg_string, arg3)\
 tracepoint(CLOG_CONNECTION_C, IndicateShutdownByTransport , arg1, arg3);\
 
 #endif
 
-
-
-
-#ifndef _clog_3_ARGS_TRACE_IndicateConnectionShutdownComplete
 
 
 
@@ -1060,17 +943,14 @@ tracepoint(CLOG_CONNECTION_C, IndicateShutdownByTransport , arg1, arg3);\
             IndicateConnectionShutdownComplete,
             Connection,
             "Indicating QUIC_CONNECTION_EVENT_SHUTDOWN_COMPLETE");
-// arg1 = arg1 = Connection
+// arg1 = arg1 = Connection = arg1
 ----------------------------------------------------------*/
+#ifndef _clog_3_ARGS_TRACE_IndicateConnectionShutdownComplete
 #define _clog_3_ARGS_TRACE_IndicateConnectionShutdownComplete(uniqueId, arg1, encoded_arg_string)\
 tracepoint(CLOG_CONNECTION_C, IndicateConnectionShutdownComplete , arg1);\
 
 #endif
 
-
-
-
-#ifndef _clog_3_ARGS_TRACE_IndicateResumed
 
 
 
@@ -1081,17 +961,14 @@ tracepoint(CLOG_CONNECTION_C, IndicateConnectionShutdownComplete , arg1);\
             IndicateResumed,
             Connection,
             "Indicating QUIC_CONNECTION_EVENT_RESUMED");
-// arg1 = arg1 = Connection
+// arg1 = arg1 = Connection = arg1
 ----------------------------------------------------------*/
+#ifndef _clog_3_ARGS_TRACE_IndicateResumed
 #define _clog_3_ARGS_TRACE_IndicateResumed(uniqueId, arg1, encoded_arg_string)\
 tracepoint(CLOG_CONNECTION_C, IndicateResumed , arg1);\
 
 #endif
 
-
-
-
-#ifndef _clog_3_ARGS_TRACE_IndicateResumptionTicketReceived
 
 
 
@@ -1102,17 +979,14 @@ tracepoint(CLOG_CONNECTION_C, IndicateResumed , arg1);\
                 IndicateResumptionTicketReceived,
                 Connection,
                 "Indicating QUIC_CONNECTION_EVENT_RESUMPTION_TICKET_RECEIVED");
-// arg1 = arg1 = Connection
+// arg1 = arg1 = Connection = arg1
 ----------------------------------------------------------*/
+#ifndef _clog_3_ARGS_TRACE_IndicateResumptionTicketReceived
 #define _clog_3_ARGS_TRACE_IndicateResumptionTicketReceived(uniqueId, arg1, encoded_arg_string)\
 tracepoint(CLOG_CONNECTION_C, IndicateResumptionTicketReceived , arg1);\
 
 #endif
 
-
-
-
-#ifndef _clog_5_ARGS_TRACE_ClientVersionNegotiationCompatibleVersionUpgrade
 
 
 
@@ -1125,19 +999,16 @@ tracepoint(CLOG_CONNECTION_C, IndicateResumptionTicketReceived , arg1);\
                         "Compatible version upgrade! Old: 0x%x, New: 0x%x",
                         Connection->Stats.QuicVersion,
                         SupportedVersions[ServerVersionIdx]);
-// arg1 = arg1 = Connection
-// arg3 = arg3 = Connection->Stats.QuicVersion
-// arg4 = arg4 = SupportedVersions[ServerVersionIdx]
+// arg1 = arg1 = Connection = arg1
+// arg3 = arg3 = Connection->Stats.QuicVersion = arg3
+// arg4 = arg4 = SupportedVersions[ServerVersionIdx] = arg4
 ----------------------------------------------------------*/
+#ifndef _clog_5_ARGS_TRACE_ClientVersionNegotiationCompatibleVersionUpgrade
 #define _clog_5_ARGS_TRACE_ClientVersionNegotiationCompatibleVersionUpgrade(uniqueId, arg1, encoded_arg_string, arg3, arg4)\
 tracepoint(CLOG_CONNECTION_C, ClientVersionNegotiationCompatibleVersionUpgrade , arg1, arg3, arg4);\
 
 #endif
 
-
-
-
-#ifndef _clog_5_ARGS_TRACE_CompatibleVersionUpgradeComplete
 
 
 
@@ -1150,19 +1021,16 @@ tracepoint(CLOG_CONNECTION_C, ClientVersionNegotiationCompatibleVersionUpgrade ,
                 "Compatible version upgrade! Old: 0x%x, New: 0x%x",
                 Connection->OriginalQuicVersion,
                 Connection->Stats.QuicVersion);
-// arg1 = arg1 = Connection
-// arg3 = arg3 = Connection->OriginalQuicVersion
-// arg4 = arg4 = Connection->Stats.QuicVersion
+// arg1 = arg1 = Connection = arg1
+// arg3 = arg3 = Connection->OriginalQuicVersion = arg3
+// arg4 = arg4 = Connection->Stats.QuicVersion = arg4
 ----------------------------------------------------------*/
+#ifndef _clog_5_ARGS_TRACE_CompatibleVersionUpgradeComplete
 #define _clog_5_ARGS_TRACE_CompatibleVersionUpgradeComplete(uniqueId, arg1, encoded_arg_string, arg3, arg4)\
 tracepoint(CLOG_CONNECTION_C, CompatibleVersionUpgradeComplete , arg1, arg3, arg4);\
 
 #endif
 
-
-
-
-#ifndef _clog_5_ARGS_TRACE_IndicatePeerCertificateReceived
 
 
 
@@ -1175,19 +1043,16 @@ tracepoint(CLOG_CONNECTION_C, CompatibleVersionUpgradeComplete , arg1, arg3, arg
         "Indicating QUIC_CONNECTION_EVENT_PEER_CERTIFICATE_RECEIVED (0x%x, 0x%x)",
         DeferredErrorFlags,
         DeferredStatus);
-// arg1 = arg1 = Connection
-// arg3 = arg3 = DeferredErrorFlags
-// arg4 = arg4 = DeferredStatus
+// arg1 = arg1 = Connection = arg1
+// arg3 = arg3 = DeferredErrorFlags = arg3
+// arg4 = arg4 = DeferredStatus = arg4
 ----------------------------------------------------------*/
+#ifndef _clog_5_ARGS_TRACE_IndicatePeerCertificateReceived
 #define _clog_5_ARGS_TRACE_IndicatePeerCertificateReceived(uniqueId, arg1, encoded_arg_string, arg3, arg4)\
 tracepoint(CLOG_CONNECTION_C, IndicatePeerCertificateReceived , arg1, arg3, arg4);\
 
 #endif
 
-
-
-
-#ifndef _clog_4_ARGS_TRACE_QueueDatagrams
 
 
 
@@ -1199,18 +1064,15 @@ tracepoint(CLOG_CONNECTION_C, IndicatePeerCertificateReceived , arg1, arg3, arg4
         Connection,
         "Queuing %u UDP datagrams",
         DatagramChainLength);
-// arg1 = arg1 = Connection
-// arg3 = arg3 = DatagramChainLength
+// arg1 = arg1 = Connection = arg1
+// arg3 = arg3 = DatagramChainLength = arg3
 ----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_QueueDatagrams
 #define _clog_4_ARGS_TRACE_QueueDatagrams(uniqueId, arg1, encoded_arg_string, arg3)\
 tracepoint(CLOG_CONNECTION_C, QueueDatagrams , arg1, arg3);\
 
 #endif
 
-
-
-
-#ifndef _clog_3_ARGS_TRACE_RecvVerNeg
 
 
 
@@ -1221,17 +1083,14 @@ tracepoint(CLOG_CONNECTION_C, QueueDatagrams , arg1, arg3);\
         RecvVerNeg,
         Connection,
         "Received Version Negotation:");
-// arg1 = arg1 = Connection
+// arg1 = arg1 = Connection = arg1
 ----------------------------------------------------------*/
+#ifndef _clog_3_ARGS_TRACE_RecvVerNeg
 #define _clog_3_ARGS_TRACE_RecvVerNeg(uniqueId, arg1, encoded_arg_string)\
 tracepoint(CLOG_CONNECTION_C, RecvVerNeg , arg1);\
 
 #endif
 
-
-
-
-#ifndef _clog_5_ARGS_TRACE_VerNegItem
 
 
 
@@ -1244,19 +1103,16 @@ tracepoint(CLOG_CONNECTION_C, RecvVerNeg , arg1);\
             "  Ver[%d]: 0x%x",
             (int32_t)i,
             CxPlatByteSwapUint32(ServerVersion));
-// arg1 = arg1 = Connection
-// arg3 = arg3 = (int32_t)i
-// arg4 = arg4 = CxPlatByteSwapUint32(ServerVersion)
+// arg1 = arg1 = Connection = arg1
+// arg3 = arg3 = (int32_t)i = arg3
+// arg4 = arg4 = CxPlatByteSwapUint32(ServerVersion) = arg4
 ----------------------------------------------------------*/
+#ifndef _clog_5_ARGS_TRACE_VerNegItem
 #define _clog_5_ARGS_TRACE_VerNegItem(uniqueId, arg1, encoded_arg_string, arg3, arg4)\
 tracepoint(CLOG_CONNECTION_C, VerNegItem , arg1, arg3, arg4);\
 
 #endif
 
-
-
-
-#ifndef _clog_4_ARGS_TRACE_DeferDatagram
 
 
 
@@ -1268,18 +1124,15 @@ tracepoint(CLOG_CONNECTION_C, VerNegItem , arg1, arg3, arg4);\
                     Connection,
                     "Deferring datagram (type=%hu)",
                     (uint16_t)Packet->KeyType);
-// arg1 = arg1 = Connection
-// arg3 = arg3 = (uint16_t)Packet->KeyType
+// arg1 = arg1 = Connection = arg1
+// arg3 = arg3 = (uint16_t)Packet->KeyType = arg3
 ----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_DeferDatagram
 #define _clog_4_ARGS_TRACE_DeferDatagram(uniqueId, arg1, encoded_arg_string, arg3)\
 tracepoint(CLOG_CONNECTION_C, DeferDatagram , arg1, arg3);\
 
 #endif
 
-
-
-
-#ifndef _clog_3_ARGS_TRACE_DecryptOldKey
 
 
 
@@ -1290,17 +1143,14 @@ tracepoint(CLOG_CONNECTION_C, DeferDatagram , arg1, arg3);\
                 DecryptOldKey,
                 Connection,
                 "Using old key to decrypt");
-// arg1 = arg1 = Connection
+// arg1 = arg1 = Connection = arg1
 ----------------------------------------------------------*/
+#ifndef _clog_3_ARGS_TRACE_DecryptOldKey
 #define _clog_3_ARGS_TRACE_DecryptOldKey(uniqueId, arg1, encoded_arg_string)\
 tracepoint(CLOG_CONNECTION_C, DecryptOldKey , arg1);\
 
 #endif
 
-
-
-
-#ifndef _clog_4_ARGS_TRACE_PossiblePeerKeyUpdate
 
 
 
@@ -1312,9 +1162,10 @@ tracepoint(CLOG_CONNECTION_C, DecryptOldKey , arg1);\
                 Connection,
                 "Possible peer initiated key update [packet %llu]",
                 Packet->PacketNumber);
-// arg1 = arg1 = Connection
-// arg3 = arg3 = Packet->PacketNumber
+// arg1 = arg1 = Connection = arg1
+// arg3 = arg3 = Packet->PacketNumber = arg3
 ----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_PossiblePeerKeyUpdate
 #define _clog_4_ARGS_TRACE_PossiblePeerKeyUpdate(uniqueId, arg1, encoded_arg_string, arg3)\
 tracepoint(CLOG_CONNECTION_C, PossiblePeerKeyUpdate , arg1, arg3);\
 
@@ -1323,10 +1174,6 @@ tracepoint(CLOG_CONNECTION_C, PossiblePeerKeyUpdate , arg1, arg3);\
 
 
 
-#ifndef _clog_4_ARGS_TRACE_UpdateReadKeyPhase
-
-
-
 /*----------------------------------------------------------
 // Decoder Ring for UpdateReadKeyPhase
 // [conn][%p] Updating current read key phase and packet number[%llu]
@@ -1335,40 +1182,15 @@ tracepoint(CLOG_CONNECTION_C, PossiblePeerKeyUpdate , arg1, arg3);\
                 Connection,
                 "Updating current read key phase and packet number[%llu]",
                 Packet->PacketNumber);
-// arg1 = arg1 = Connection
-// arg3 = arg3 = Packet->PacketNumber
+// arg1 = arg1 = Connection = arg1
+// arg3 = arg3 = Packet->PacketNumber = arg3
 ----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_UpdateReadKeyPhase
 #define _clog_4_ARGS_TRACE_UpdateReadKeyPhase(uniqueId, arg1, encoded_arg_string, arg3)\
 tracepoint(CLOG_CONNECTION_C, UpdateReadKeyPhase , arg1, arg3);\
 
 #endif
 
-
-
-
-#ifndef _clog_4_ARGS_TRACE_UpdateReadKeyPhase
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for UpdateReadKeyPhase
-// [conn][%p] Updating current read key phase and packet number[%llu]
-// QuicTraceLogConnVerbose(
-                UpdateReadKeyPhase,
-                Connection,
-                "Updating current read key phase and packet number[%llu]",
-                Packet->PacketNumber);
-// arg1 = arg1 = Connection
-// arg3 = arg3 = Packet->PacketNumber
-----------------------------------------------------------*/
-#define _clog_4_ARGS_TRACE_UpdateReadKeyPhase(uniqueId, arg1, encoded_arg_string, arg3)\
-
-#endif
-
-
-
-
-#ifndef _clog_4_ARGS_TRACE_PeerConnFCBlocked
 
 
 
@@ -1380,18 +1202,15 @@ tracepoint(CLOG_CONNECTION_C, UpdateReadKeyPhase , arg1, arg3);\
                 Connection,
                 "Peer Connection FC blocked (%llu)",
                 Frame.DataLimit);
-// arg1 = arg1 = Connection
-// arg3 = arg3 = Frame.DataLimit
+// arg1 = arg1 = Connection = arg1
+// arg3 = arg3 = Frame.DataLimit = arg3
 ----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_PeerConnFCBlocked
 #define _clog_4_ARGS_TRACE_PeerConnFCBlocked(uniqueId, arg1, encoded_arg_string, arg3)\
 tracepoint(CLOG_CONNECTION_C, PeerConnFCBlocked , arg1, arg3);\
 
 #endif
 
-
-
-
-#ifndef _clog_5_ARGS_TRACE_PeerStreamFCBlocked
 
 
 
@@ -1404,19 +1223,16 @@ tracepoint(CLOG_CONNECTION_C, PeerConnFCBlocked , arg1, arg3);\
                 "Peer Streams[%hu] FC blocked (%llu)",
                 Frame.BidirectionalStreams,
                 Frame.StreamLimit);
-// arg1 = arg1 = Connection
-// arg3 = arg3 = Frame.BidirectionalStreams
-// arg4 = arg4 = Frame.StreamLimit
+// arg1 = arg1 = Connection = arg1
+// arg3 = arg3 = Frame.BidirectionalStreams = arg3
+// arg4 = arg4 = Frame.StreamLimit = arg4
 ----------------------------------------------------------*/
+#ifndef _clog_5_ARGS_TRACE_PeerStreamFCBlocked
 #define _clog_5_ARGS_TRACE_PeerStreamFCBlocked(uniqueId, arg1, encoded_arg_string, arg3, arg4)\
 tracepoint(CLOG_CONNECTION_C, PeerStreamFCBlocked , arg1, arg3, arg4);\
 
 #endif
 
-
-
-
-#ifndef _clog_3_ARGS_TRACE_IndicatePeerNeedStreams
 
 
 
@@ -1427,17 +1243,14 @@ tracepoint(CLOG_CONNECTION_C, PeerStreamFCBlocked , arg1, arg3, arg4);\
                 IndicatePeerNeedStreams,
                 Connection,
                 "Indicating QUIC_CONNECTION_EVENT_PEER_NEEDS_STREAMS");
-// arg1 = arg1 = Connection
+// arg1 = arg1 = Connection = arg1
 ----------------------------------------------------------*/
+#ifndef _clog_3_ARGS_TRACE_IndicatePeerNeedStreams
 #define _clog_3_ARGS_TRACE_IndicatePeerNeedStreams(uniqueId, arg1, encoded_arg_string)\
 tracepoint(CLOG_CONNECTION_C, IndicatePeerNeedStreams , arg1);\
 
 #endif
 
-
-
-
-#ifndef _clog_3_ARGS_TRACE_IndicatePeerAddrChanged
 
 
 
@@ -1448,17 +1261,14 @@ tracepoint(CLOG_CONNECTION_C, IndicatePeerNeedStreams , arg1);\
             IndicatePeerAddrChanged,
             Connection,
             "Indicating QUIC_CONNECTION_EVENT_PEER_ADDRESS_CHANGED");
-// arg1 = arg1 = Connection
+// arg1 = arg1 = Connection = arg1
 ----------------------------------------------------------*/
+#ifndef _clog_3_ARGS_TRACE_IndicatePeerAddrChanged
 #define _clog_3_ARGS_TRACE_IndicatePeerAddrChanged(uniqueId, arg1, encoded_arg_string)\
 tracepoint(CLOG_CONNECTION_C, IndicatePeerAddrChanged , arg1);\
 
 #endif
 
-
-
-
-#ifndef _clog_4_ARGS_TRACE_UdpRecvBatch
 
 
 
@@ -1470,18 +1280,15 @@ tracepoint(CLOG_CONNECTION_C, IndicatePeerAddrChanged , arg1);\
         Connection,
         "Batch Recv %u UDP datagrams",
         BatchCount);
-// arg1 = arg1 = Connection
-// arg3 = arg3 = BatchCount
+// arg1 = arg1 = Connection = arg1
+// arg3 = arg3 = BatchCount = arg3
 ----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_UdpRecvBatch
 #define _clog_4_ARGS_TRACE_UdpRecvBatch(uniqueId, arg1, encoded_arg_string, arg3)\
 tracepoint(CLOG_CONNECTION_C, UdpRecvBatch , arg1, arg3);\
 
 #endif
 
-
-
-
-#ifndef _clog_4_ARGS_TRACE_UdpRecvDeferred
 
 
 
@@ -1493,18 +1300,15 @@ tracepoint(CLOG_CONNECTION_C, UdpRecvBatch , arg1, arg3);\
             Connection,
             "Recv %u deferred UDP datagrams",
             DatagramChainCount);
-// arg1 = arg1 = Connection
-// arg3 = arg3 = DatagramChainCount
+// arg1 = arg1 = Connection = arg1
+// arg3 = arg3 = DatagramChainCount = arg3
 ----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_UdpRecvDeferred
 #define _clog_4_ARGS_TRACE_UdpRecvDeferred(uniqueId, arg1, encoded_arg_string, arg3)\
 tracepoint(CLOG_CONNECTION_C, UdpRecvDeferred , arg1, arg3);\
 
 #endif
 
-
-
-
-#ifndef _clog_4_ARGS_TRACE_UdpRecv
 
 
 
@@ -1516,18 +1320,15 @@ tracepoint(CLOG_CONNECTION_C, UdpRecvDeferred , arg1, arg3);\
             Connection,
             "Recv %u UDP datagrams",
             DatagramChainCount);
-// arg1 = arg1 = Connection
-// arg3 = arg3 = DatagramChainCount
+// arg1 = arg1 = Connection = arg1
+// arg3 = arg3 = DatagramChainCount = arg3
 ----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_UdpRecv
 #define _clog_4_ARGS_TRACE_UdpRecv(uniqueId, arg1, encoded_arg_string, arg3)\
 tracepoint(CLOG_CONNECTION_C, UdpRecv , arg1, arg3);\
 
 #endif
 
-
-
-
-#ifndef _clog_4_ARGS_TRACE_DatagramReceiveEnableUpdated
 
 
 
@@ -1539,18 +1340,15 @@ tracepoint(CLOG_CONNECTION_C, UdpRecv , arg1, arg3);\
             Connection,
             "Updated datagram receive enabled to %hhu",
             Connection->Settings.DatagramReceiveEnabled);
-// arg1 = arg1 = Connection
-// arg3 = arg3 = Connection->Settings.DatagramReceiveEnabled
+// arg1 = arg1 = Connection = arg1
+// arg3 = arg3 = Connection->Settings.DatagramReceiveEnabled = arg3
 ----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_DatagramReceiveEnableUpdated
 #define _clog_4_ARGS_TRACE_DatagramReceiveEnableUpdated(uniqueId, arg1, encoded_arg_string, arg3)\
 tracepoint(CLOG_CONNECTION_C, DatagramReceiveEnableUpdated , arg1, arg3);\
 
 #endif
 
-
-
-
-#ifndef _clog_4_ARGS_TRACE_Disable1RttEncrytionUpdated
 
 
 
@@ -1562,18 +1360,15 @@ tracepoint(CLOG_CONNECTION_C, DatagramReceiveEnableUpdated , arg1, arg3);\
             Connection,
             "Updated disable 1-RTT encrytption to %hhu",
             Connection->State.Disable1RttEncrytion);
-// arg1 = arg1 = Connection
-// arg3 = arg3 = Connection->State.Disable1RttEncrytion
+// arg1 = arg1 = Connection = arg1
+// arg3 = arg3 = Connection->State.Disable1RttEncrytion = arg3
 ----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_Disable1RttEncrytionUpdated
 #define _clog_4_ARGS_TRACE_Disable1RttEncrytionUpdated(uniqueId, arg1, encoded_arg_string, arg3)\
 tracepoint(CLOG_CONNECTION_C, Disable1RttEncrytionUpdated , arg1, arg3);\
 
 #endif
 
-
-
-
-#ifndef _clog_3_ARGS_TRACE_ForceKeyUpdate
 
 
 
@@ -1584,17 +1379,14 @@ tracepoint(CLOG_CONNECTION_C, Disable1RttEncrytionUpdated , arg1, arg3);\
             ForceKeyUpdate,
             Connection,
             "Forcing key update");
-// arg1 = arg1 = Connection
+// arg1 = arg1 = Connection = arg1
 ----------------------------------------------------------*/
+#ifndef _clog_3_ARGS_TRACE_ForceKeyUpdate
 #define _clog_3_ARGS_TRACE_ForceKeyUpdate(uniqueId, arg1, encoded_arg_string)\
 tracepoint(CLOG_CONNECTION_C, ForceKeyUpdate , arg1);\
 
 #endif
 
-
-
-
-#ifndef _clog_3_ARGS_TRACE_ForceCidUpdate
 
 
 
@@ -1605,8 +1397,9 @@ tracepoint(CLOG_CONNECTION_C, ForceKeyUpdate , arg1);\
             ForceCidUpdate,
             Connection,
             "Forcing destination CID update");
-// arg1 = arg1 = Connection
+// arg1 = arg1 = Connection = arg1
 ----------------------------------------------------------*/
+#ifndef _clog_3_ARGS_TRACE_ForceCidUpdate
 #define _clog_3_ARGS_TRACE_ForceCidUpdate(uniqueId, arg1, encoded_arg_string)\
 tracepoint(CLOG_CONNECTION_C, ForceCidUpdate , arg1);\
 
@@ -1615,32 +1408,25 @@ tracepoint(CLOG_CONNECTION_C, ForceCidUpdate , arg1);\
 
 
 
-#ifndef _clog_5_ARGS_TRACE_TestTPSet
-
-
-
 /*----------------------------------------------------------
 // Decoder Ring for TestTPSet
-// [conn][%p] Setting Test Transport Parameter (type %hu, %hu bytes)
+// [conn][%p] Setting Test Transport Parameter (type %x, %hu bytes)
 // QuicTraceLogConnVerbose(
             TestTPSet,
             Connection,
-            "Setting Test Transport Parameter (type %hu, %hu bytes)",
+            "Setting Test Transport Parameter (type %x, %hu bytes)",
             Connection->TestTransportParameter.Type,
             Connection->TestTransportParameter.Length);
-// arg1 = arg1 = Connection
-// arg3 = arg3 = Connection->TestTransportParameter.Type
-// arg4 = arg4 = Connection->TestTransportParameter.Length
+// arg1 = arg1 = Connection = arg1
+// arg3 = arg3 = Connection->TestTransportParameter.Type = arg3
+// arg4 = arg4 = Connection->TestTransportParameter.Length = arg4
 ----------------------------------------------------------*/
+#ifndef _clog_5_ARGS_TRACE_TestTPSet
 #define _clog_5_ARGS_TRACE_TestTPSet(uniqueId, arg1, encoded_arg_string, arg3, arg4)\
 tracepoint(CLOG_CONNECTION_C, TestTPSet , arg1, arg3, arg4);\
 
 #endif
 
-
-
-
-#ifndef _clog_3_ARGS_TRACE_AbandonInternallyClosed
 
 
 
@@ -1651,17 +1437,14 @@ tracepoint(CLOG_CONNECTION_C, TestTPSet , arg1, arg3, arg4);\
             AbandonInternallyClosed,
             Connection,
             "Abandoning internal, closed connection");
-// arg1 = arg1 = Connection
+// arg1 = arg1 = Connection = arg1
 ----------------------------------------------------------*/
+#ifndef _clog_3_ARGS_TRACE_AbandonInternallyClosed
 #define _clog_3_ARGS_TRACE_AbandonInternallyClosed(uniqueId, arg1, encoded_arg_string)\
 tracepoint(CLOG_CONNECTION_C, AbandonInternallyClosed , arg1);\
 
 #endif
 
-
-
-
-#ifndef _clog_4_ARGS_TRACE_AllocFailure
 
 
 
@@ -1673,18 +1456,15 @@ tracepoint(CLOG_CONNECTION_C, AbandonInternallyClosed , arg1);\
             "Allocation of '%s' failed. (%llu bytes)",
             "connection",
             sizeof(QUIC_CONNECTION));
-// arg2 = arg2 = "connection"
-// arg3 = arg3 = sizeof(QUIC_CONNECTION)
+// arg2 = arg2 = "connection" = arg2
+// arg3 = arg3 = sizeof(QUIC_CONNECTION) = arg3
 ----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_AllocFailure
 #define _clog_4_ARGS_TRACE_AllocFailure(uniqueId, encoded_arg_string, arg2, arg3)\
 tracepoint(CLOG_CONNECTION_C, AllocFailure , arg2, arg3);\
 
 #endif
 
-
-
-
-#ifndef _clog_5_ARGS_TRACE_ConnCreated
 
 
 
@@ -1697,19 +1477,16 @@ tracepoint(CLOG_CONNECTION_C, AllocFailure , arg2, arg3);\
         Connection,
         IsServer,
         Connection->Stats.CorrelationId);
-// arg2 = arg2 = Connection
-// arg3 = arg3 = IsServer
-// arg4 = arg4 = Connection->Stats.CorrelationId
+// arg2 = arg2 = Connection = arg2
+// arg3 = arg3 = IsServer = arg3
+// arg4 = arg4 = Connection->Stats.CorrelationId = arg4
 ----------------------------------------------------------*/
+#ifndef _clog_5_ARGS_TRACE_ConnCreated
 #define _clog_5_ARGS_TRACE_ConnCreated(uniqueId, encoded_arg_string, arg2, arg3, arg4)\
 tracepoint(CLOG_CONNECTION_C, ConnCreated , arg2, arg3, arg4);\
 
 #endif
 
-
-
-
-#ifndef _clog_5_ARGS_TRACE_ConnLocalAddrAdded
 
 
 
@@ -1721,18 +1498,15 @@ tracepoint(CLOG_CONNECTION_C, ConnCreated , arg2, arg3, arg4);\
             "[conn][%p] New Local IP: %!ADDR!",
             Connection,
             CASTED_CLOG_BYTEARRAY(sizeof(Path->Route.LocalAddress), &Path->Route.LocalAddress));
-// arg2 = arg2 = Connection
-// arg3 = arg3 = CASTED_CLOG_BYTEARRAY(sizeof(Path->Route.LocalAddress), &Path->Route.LocalAddress)
+// arg2 = arg2 = Connection = arg2
+// arg3 = arg3 = CASTED_CLOG_BYTEARRAY(sizeof(Path->Route.LocalAddress), &Path->Route.LocalAddress) = arg3
 ----------------------------------------------------------*/
+#ifndef _clog_5_ARGS_TRACE_ConnLocalAddrAdded
 #define _clog_5_ARGS_TRACE_ConnLocalAddrAdded(uniqueId, encoded_arg_string, arg2, arg3, arg3_len)\
 tracepoint(CLOG_CONNECTION_C, ConnLocalAddrAdded , arg2, arg3_len, arg3);\
 
 #endif
 
-
-
-
-#ifndef _clog_5_ARGS_TRACE_ConnRemoteAddrAdded
 
 
 
@@ -1744,18 +1518,15 @@ tracepoint(CLOG_CONNECTION_C, ConnLocalAddrAdded , arg2, arg3_len, arg3);\
             "[conn][%p] New Remote IP: %!ADDR!",
             Connection,
             CASTED_CLOG_BYTEARRAY(sizeof(Path->Route.RemoteAddress), &Path->Route.RemoteAddress));
-// arg2 = arg2 = Connection
-// arg3 = arg3 = CASTED_CLOG_BYTEARRAY(sizeof(Path->Route.RemoteAddress), &Path->Route.RemoteAddress)
+// arg2 = arg2 = Connection = arg2
+// arg3 = arg3 = CASTED_CLOG_BYTEARRAY(sizeof(Path->Route.RemoteAddress), &Path->Route.RemoteAddress) = arg3
 ----------------------------------------------------------*/
+#ifndef _clog_5_ARGS_TRACE_ConnRemoteAddrAdded
 #define _clog_5_ARGS_TRACE_ConnRemoteAddrAdded(uniqueId, encoded_arg_string, arg2, arg3, arg3_len)\
 tracepoint(CLOG_CONNECTION_C, ConnRemoteAddrAdded , arg2, arg3_len, arg3);\
 
 #endif
 
-
-
-
-#ifndef _clog_6_ARGS_TRACE_ConnDestCidAdded
 
 
 
@@ -1768,19 +1539,16 @@ tracepoint(CLOG_CONNECTION_C, ConnRemoteAddrAdded , arg2, arg3_len, arg3);\
             Connection,
             Path->DestCid->CID.SequenceNumber,
             CASTED_CLOG_BYTEARRAY(Path->DestCid->CID.Length, Path->DestCid->CID.Data));
-// arg2 = arg2 = Connection
-// arg3 = arg3 = Path->DestCid->CID.SequenceNumber
-// arg4 = arg4 = CASTED_CLOG_BYTEARRAY(Path->DestCid->CID.Length, Path->DestCid->CID.Data)
+// arg2 = arg2 = Connection = arg2
+// arg3 = arg3 = Path->DestCid->CID.SequenceNumber = arg3
+// arg4 = arg4 = CASTED_CLOG_BYTEARRAY(Path->DestCid->CID.Length, Path->DestCid->CID.Data) = arg4
 ----------------------------------------------------------*/
+#ifndef _clog_6_ARGS_TRACE_ConnDestCidAdded
 #define _clog_6_ARGS_TRACE_ConnDestCidAdded(uniqueId, encoded_arg_string, arg2, arg3, arg4, arg4_len)\
 tracepoint(CLOG_CONNECTION_C, ConnDestCidAdded , arg2, arg3, arg4_len, arg4);\
 
 #endif
 
-
-
-
-#ifndef _clog_6_ARGS_TRACE_ConnSourceCidAdded
 
 
 
@@ -1793,43 +1561,16 @@ tracepoint(CLOG_CONNECTION_C, ConnDestCidAdded , arg2, arg3, arg4_len, arg4);\
             Connection,
             SourceCid->CID.SequenceNumber,
             CASTED_CLOG_BYTEARRAY(SourceCid->CID.Length, SourceCid->CID.Data));
-// arg2 = arg2 = Connection
-// arg3 = arg3 = SourceCid->CID.SequenceNumber
-// arg4 = arg4 = CASTED_CLOG_BYTEARRAY(SourceCid->CID.Length, SourceCid->CID.Data)
+// arg2 = arg2 = Connection = arg2
+// arg3 = arg3 = SourceCid->CID.SequenceNumber = arg3
+// arg4 = arg4 = CASTED_CLOG_BYTEARRAY(SourceCid->CID.Length, SourceCid->CID.Data) = arg4
 ----------------------------------------------------------*/
+#ifndef _clog_6_ARGS_TRACE_ConnSourceCidAdded
 #define _clog_6_ARGS_TRACE_ConnSourceCidAdded(uniqueId, encoded_arg_string, arg2, arg3, arg4, arg4_len)\
 tracepoint(CLOG_CONNECTION_C, ConnSourceCidAdded , arg2, arg3, arg4_len, arg4);\
 
 #endif
 
-
-
-
-#ifndef _clog_6_ARGS_TRACE_ConnDestCidAdded
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for ConnDestCidAdded
-// [conn][%p] (SeqNum=%llu) New Destination CID: %!CID!
-// QuicTraceEvent(
-            ConnDestCidAdded,
-            "[conn][%p] (SeqNum=%llu) New Destination CID: %!CID!",
-            Connection,
-            Path->DestCid->CID.SequenceNumber,
-            CASTED_CLOG_BYTEARRAY(Path->DestCid->CID.Length, Path->DestCid->CID.Data));
-// arg2 = arg2 = Connection
-// arg3 = arg3 = Path->DestCid->CID.SequenceNumber
-// arg4 = arg4 = CASTED_CLOG_BYTEARRAY(Path->DestCid->CID.Length, Path->DestCid->CID.Data)
-----------------------------------------------------------*/
-#define _clog_6_ARGS_TRACE_ConnDestCidAdded(uniqueId, encoded_arg_string, arg2, arg3, arg4, arg4_len)\
-
-#endif
-
-
-
-
-#ifndef _clog_3_ARGS_TRACE_ConnInitializeComplete
 
 
 
@@ -1840,17 +1581,14 @@ tracepoint(CLOG_CONNECTION_C, ConnSourceCidAdded , arg2, arg3, arg4_len, arg4);\
             ConnInitializeComplete,
             "[conn][%p] Initialize complete",
             Connection);
-// arg2 = arg2 = Connection
+// arg2 = arg2 = Connection = arg2
 ----------------------------------------------------------*/
+#ifndef _clog_3_ARGS_TRACE_ConnInitializeComplete
 #define _clog_3_ARGS_TRACE_ConnInitializeComplete(uniqueId, encoded_arg_string, arg2)\
 tracepoint(CLOG_CONNECTION_C, ConnInitializeComplete , arg2);\
 
 #endif
 
-
-
-
-#ifndef _clog_4_ARGS_TRACE_ConnUnregistered
 
 
 
@@ -1862,18 +1600,15 @@ tracepoint(CLOG_CONNECTION_C, ConnInitializeComplete , arg2);\
             "[conn][%p] Unregistered from %p",
             Connection,
             Connection->Registration);
-// arg2 = arg2 = Connection
-// arg3 = arg3 = Connection->Registration
+// arg2 = arg2 = Connection = arg2
+// arg3 = arg3 = Connection->Registration = arg3
 ----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_ConnUnregistered
 #define _clog_4_ARGS_TRACE_ConnUnregistered(uniqueId, encoded_arg_string, arg2, arg3)\
 tracepoint(CLOG_CONNECTION_C, ConnUnregistered , arg2, arg3);\
 
 #endif
 
-
-
-
-#ifndef _clog_3_ARGS_TRACE_ConnDestroyed
 
 
 
@@ -1884,39 +1619,14 @@ tracepoint(CLOG_CONNECTION_C, ConnUnregistered , arg2, arg3);\
         ConnDestroyed,
         "[conn][%p] Destroyed",
         Connection);
-// arg2 = arg2 = Connection
+// arg2 = arg2 = Connection = arg2
 ----------------------------------------------------------*/
+#ifndef _clog_3_ARGS_TRACE_ConnDestroyed
 #define _clog_3_ARGS_TRACE_ConnDestroyed(uniqueId, encoded_arg_string, arg2)\
 tracepoint(CLOG_CONNECTION_C, ConnDestroyed , arg2);\
 
 #endif
 
-
-
-
-#ifndef _clog_4_ARGS_TRACE_ConnUnregistered
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for ConnUnregistered
-// [conn][%p] Unregistered from %p
-// QuicTraceEvent(
-            ConnUnregistered,
-            "[conn][%p] Unregistered from %p",
-            Connection,
-            Connection->Registration);
-// arg2 = arg2 = Connection
-// arg3 = arg3 = Connection->Registration
-----------------------------------------------------------*/
-#define _clog_4_ARGS_TRACE_ConnUnregistered(uniqueId, encoded_arg_string, arg2, arg3)\
-
-#endif
-
-
-
-
-#ifndef _clog_3_ARGS_TRACE_ConnHandleClosed
 
 
 
@@ -1927,8 +1637,9 @@ tracepoint(CLOG_CONNECTION_C, ConnDestroyed , arg2);\
         ConnHandleClosed,
         "[conn][%p] Handle closed",
         Connection);
-// arg2 = arg2 = Connection
+// arg2 = arg2 = Connection = arg2
 ----------------------------------------------------------*/
+#ifndef _clog_3_ARGS_TRACE_ConnHandleClosed
 #define _clog_3_ARGS_TRACE_ConnHandleClosed(uniqueId, encoded_arg_string, arg2)\
 tracepoint(CLOG_CONNECTION_C, ConnHandleClosed , arg2);\
 
@@ -1937,74 +1648,23 @@ tracepoint(CLOG_CONNECTION_C, ConnHandleClosed , arg2);\
 
 
 
-#ifndef _clog_4_ARGS_TRACE_ConnUnregistered
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for ConnUnregistered
-// [conn][%p] Unregistered from %p
-// QuicTraceEvent(
-            ConnUnregistered,
-            "[conn][%p] Unregistered from %p",
-            Connection,
-            Connection->Registration);
-// arg2 = arg2 = Connection
-// arg3 = arg3 = Connection->Registration
-----------------------------------------------------------*/
-#define _clog_4_ARGS_TRACE_ConnUnregistered(uniqueId, encoded_arg_string, arg2, arg3)\
-
-#endif
-
-
-
-
-#ifndef _clog_4_ARGS_TRACE_ConnRegistered
-
-
-
 /*----------------------------------------------------------
 // Decoder Ring for ConnRegistered
 // [conn][%p] Registered with %p
 // QuicTraceEvent(
-        ConnRegistered,
-        "[conn][%p] Registered with %p",
-        Connection,
-        Registration);
-// arg2 = arg2 = Connection
-// arg3 = arg3 = Registration
+            ConnRegistered,
+            "[conn][%p] Registered with %p",
+            Connection,
+            Registration);
+// arg2 = arg2 = Connection = arg2
+// arg3 = arg3 = Registration = arg3
 ----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_ConnRegistered
 #define _clog_4_ARGS_TRACE_ConnRegistered(uniqueId, encoded_arg_string, arg2, arg3)\
 tracepoint(CLOG_CONNECTION_C, ConnRegistered , arg2, arg3);\
 
 #endif
 
-
-
-
-#ifndef _clog_4_ARGS_TRACE_AllocFailure
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for AllocFailure
-// Allocation of '%s' failed. (%llu bytes)
-// QuicTraceEvent(
-            AllocFailure,
-            "Allocation of '%s' failed. (%llu bytes)",
-            "trace rundown operation",
-            0);
-// arg2 = arg2 = "trace rundown operation"
-// arg3 = arg3 = 0
-----------------------------------------------------------*/
-#define _clog_4_ARGS_TRACE_AllocFailure(uniqueId, encoded_arg_string, arg2, arg3)\
-
-#endif
-
-
-
-
-#ifndef _clog_5_ARGS_TRACE_ConnRundown
 
 
 
@@ -2017,19 +1677,16 @@ tracepoint(CLOG_CONNECTION_C, ConnRegistered , arg2, arg3);\
         Connection,
         QuicConnIsServer(Connection),
         Connection->Stats.CorrelationId);
-// arg2 = arg2 = Connection
-// arg3 = arg3 = QuicConnIsServer(Connection)
-// arg4 = arg4 = Connection->Stats.CorrelationId
+// arg2 = arg2 = Connection = arg2
+// arg3 = arg3 = QuicConnIsServer(Connection) = arg3
+// arg4 = arg4 = Connection->Stats.CorrelationId = arg4
 ----------------------------------------------------------*/
+#ifndef _clog_5_ARGS_TRACE_ConnRundown
 #define _clog_5_ARGS_TRACE_ConnRundown(uniqueId, encoded_arg_string, arg2, arg3, arg4)\
 tracepoint(CLOG_CONNECTION_C, ConnRundown , arg2, arg3, arg4);\
 
 #endif
 
-
-
-
-#ifndef _clog_4_ARGS_TRACE_ConnAssignWorker
 
 
 
@@ -2041,40 +1698,15 @@ tracepoint(CLOG_CONNECTION_C, ConnRundown , arg2, arg3, arg4);\
         "[conn][%p] Assigned worker: %p",
         Connection,
         Connection->Worker);
-// arg2 = arg2 = Connection
-// arg3 = arg3 = Connection->Worker
+// arg2 = arg2 = Connection = arg2
+// arg3 = arg3 = Connection->Worker = arg3
 ----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_ConnAssignWorker
 #define _clog_4_ARGS_TRACE_ConnAssignWorker(uniqueId, encoded_arg_string, arg2, arg3)\
 tracepoint(CLOG_CONNECTION_C, ConnAssignWorker , arg2, arg3);\
 
 #endif
 
-
-
-
-#ifndef _clog_4_ARGS_TRACE_ConnRegistered
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for ConnRegistered
-// [conn][%p] Registered with %p
-// QuicTraceEvent(
-        ConnRegistered,
-        "[conn][%p] Registered with %p",
-        Connection,
-        Connection->Registration);
-// arg2 = arg2 = Connection
-// arg3 = arg3 = Connection->Registration
-----------------------------------------------------------*/
-#define _clog_4_ARGS_TRACE_ConnRegistered(uniqueId, encoded_arg_string, arg2, arg3)\
-
-#endif
-
-
-
-
-#ifndef _clog_4_ARGS_TRACE_ConnVersionSet
 
 
 
@@ -2086,110 +1718,15 @@ tracepoint(CLOG_CONNECTION_C, ConnAssignWorker , arg2, arg3);\
             "[conn][%p] QUIC Version: %u",
             Connection,
             Connection->Stats.QuicVersion);
-// arg2 = arg2 = Connection
-// arg3 = arg3 = Connection->Stats.QuicVersion
+// arg2 = arg2 = Connection = arg2
+// arg3 = arg3 = Connection->Stats.QuicVersion = arg3
 ----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_ConnVersionSet
 #define _clog_4_ARGS_TRACE_ConnVersionSet(uniqueId, encoded_arg_string, arg2, arg3)\
 tracepoint(CLOG_CONNECTION_C, ConnVersionSet , arg2, arg3);\
 
 #endif
 
-
-
-
-#ifndef _clog_5_ARGS_TRACE_ConnLocalAddrAdded
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for ConnLocalAddrAdded
-// [conn][%p] New Local IP: %!ADDR!
-// QuicTraceEvent(
-                    ConnLocalAddrAdded,
-                     "[conn][%p] New Local IP: %!ADDR!",
-                    Connection,
-                    CASTED_CLOG_BYTEARRAY(sizeof(Connection->Paths[i].Route.LocalAddress), &Connection->Paths[i].Route.LocalAddress));
-// arg2 = arg2 = Connection
-// arg3 = arg3 = CASTED_CLOG_BYTEARRAY(sizeof(Connection->Paths[i].Route.LocalAddress), &Connection->Paths[i].Route.LocalAddress)
-----------------------------------------------------------*/
-#define _clog_5_ARGS_TRACE_ConnLocalAddrAdded(uniqueId, encoded_arg_string, arg2, arg3, arg3_len)\
-
-#endif
-
-
-
-
-#ifndef _clog_5_ARGS_TRACE_ConnRemoteAddrAdded
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for ConnRemoteAddrAdded
-// [conn][%p] New Remote IP: %!ADDR!
-// QuicTraceEvent(
-                    ConnRemoteAddrAdded,
-                    "[conn][%p] New Remote IP: %!ADDR!",
-                    Connection,
-                    CASTED_CLOG_BYTEARRAY(sizeof(Connection->Paths[i].Route.RemoteAddress), &Connection->Paths[i].Route.RemoteAddress));
-// arg2 = arg2 = Connection
-// arg3 = arg3 = CASTED_CLOG_BYTEARRAY(sizeof(Connection->Paths[i].Route.RemoteAddress), &Connection->Paths[i].Route.RemoteAddress)
-----------------------------------------------------------*/
-#define _clog_5_ARGS_TRACE_ConnRemoteAddrAdded(uniqueId, encoded_arg_string, arg2, arg3, arg3_len)\
-
-#endif
-
-
-
-
-#ifndef _clog_6_ARGS_TRACE_ConnSourceCidAdded
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for ConnSourceCidAdded
-// [conn][%p] (SeqNum=%llu) New Source CID: %!CID!
-// QuicTraceEvent(
-                ConnSourceCidAdded,
-                "[conn][%p] (SeqNum=%llu) New Source CID: %!CID!",
-                Connection,
-                SourceCid->CID.SequenceNumber,
-                CASTED_CLOG_BYTEARRAY(SourceCid->CID.Length, SourceCid->CID.Data));
-// arg2 = arg2 = Connection
-// arg3 = arg3 = SourceCid->CID.SequenceNumber
-// arg4 = arg4 = CASTED_CLOG_BYTEARRAY(SourceCid->CID.Length, SourceCid->CID.Data)
-----------------------------------------------------------*/
-#define _clog_6_ARGS_TRACE_ConnSourceCidAdded(uniqueId, encoded_arg_string, arg2, arg3, arg4, arg4_len)\
-
-#endif
-
-
-
-
-#ifndef _clog_6_ARGS_TRACE_ConnDestCidAdded
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for ConnDestCidAdded
-// [conn][%p] (SeqNum=%llu) New Destination CID: %!CID!
-// QuicTraceEvent(
-                ConnDestCidAdded,
-                "[conn][%p] (SeqNum=%llu) New Destination CID: %!CID!",
-                Connection,
-                DestCid->CID.SequenceNumber,
-                CASTED_CLOG_BYTEARRAY(DestCid->CID.Length, DestCid->CID.Data));
-// arg2 = arg2 = Connection
-// arg3 = arg3 = DestCid->CID.SequenceNumber
-// arg4 = arg4 = CASTED_CLOG_BYTEARRAY(DestCid->CID.Length, DestCid->CID.Data)
-----------------------------------------------------------*/
-#define _clog_6_ARGS_TRACE_ConnDestCidAdded(uniqueId, encoded_arg_string, arg2, arg3, arg4, arg4_len)\
-
-#endif
-
-
-
-
-#ifndef _clog_3_ARGS_TRACE_ConnHandshakeComplete
 
 
 
@@ -2200,59 +1737,14 @@ tracepoint(CLOG_CONNECTION_C, ConnVersionSet , arg2, arg3);\
             ConnHandshakeComplete,
             "[conn][%p] Handshake complete",
             Connection);
-// arg2 = arg2 = Connection
+// arg2 = arg2 = Connection = arg2
 ----------------------------------------------------------*/
+#ifndef _clog_3_ARGS_TRACE_ConnHandshakeComplete
 #define _clog_3_ARGS_TRACE_ConnHandshakeComplete(uniqueId, encoded_arg_string, arg2)\
 tracepoint(CLOG_CONNECTION_C, ConnHandshakeComplete , arg2);\
 
 #endif
 
-
-
-
-#ifndef _clog_3_ARGS_TRACE_ConnHandleClosed
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for ConnHandleClosed
-// [conn][%p] Handle closed
-// QuicTraceEvent(
-            ConnHandleClosed,
-            "[conn][%p] Handle closed",
-            Connection);
-// arg2 = arg2 = Connection
-----------------------------------------------------------*/
-#define _clog_3_ARGS_TRACE_ConnHandleClosed(uniqueId, encoded_arg_string, arg2)\
-
-#endif
-
-
-
-
-#ifndef _clog_4_ARGS_TRACE_AllocFailure
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for AllocFailure
-// Allocation of '%s' failed. (%llu bytes)
-// QuicTraceEvent(
-                AllocFailure,
-                "Allocation of '%s' failed. (%llu bytes)",
-                "new Src CID",
-                sizeof(QUIC_CID_HASH_ENTRY) + MsQuicLib.CidTotalLength);
-// arg2 = arg2 = "new Src CID"
-// arg3 = arg3 = sizeof(QUIC_CID_HASH_ENTRY) + MsQuicLib.CidTotalLength
-----------------------------------------------------------*/
-#define _clog_4_ARGS_TRACE_AllocFailure(uniqueId, encoded_arg_string, arg2, arg3)\
-
-#endif
-
-
-
-
-#ifndef _clog_4_ARGS_TRACE_ConnError
 
 
 
@@ -2264,42 +1756,15 @@ tracepoint(CLOG_CONNECTION_C, ConnHandshakeComplete , arg2);\
                     "[conn][%p] ERROR, %s.",
                     Connection,
                     "Too many CID collisions");
-// arg2 = arg2 = Connection
-// arg3 = arg3 = "Too many CID collisions"
+// arg2 = arg2 = Connection = arg2
+// arg3 = arg3 = "Too many CID collisions" = arg3
 ----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_ConnError
 #define _clog_4_ARGS_TRACE_ConnError(uniqueId, encoded_arg_string, arg2, arg3)\
 tracepoint(CLOG_CONNECTION_C, ConnError , arg2, arg3);\
 
 #endif
 
-
-
-
-#ifndef _clog_6_ARGS_TRACE_ConnSourceCidAdded
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for ConnSourceCidAdded
-// [conn][%p] (SeqNum=%llu) New Source CID: %!CID!
-// QuicTraceEvent(
-        ConnSourceCidAdded,
-        "[conn][%p] (SeqNum=%llu) New Source CID: %!CID!",
-        Connection,
-        SourceCid->CID.SequenceNumber,
-        CASTED_CLOG_BYTEARRAY(SourceCid->CID.Length, SourceCid->CID.Data));
-// arg2 = arg2 = Connection
-// arg3 = arg3 = SourceCid->CID.SequenceNumber
-// arg4 = arg4 = CASTED_CLOG_BYTEARRAY(SourceCid->CID.Length, SourceCid->CID.Data)
-----------------------------------------------------------*/
-#define _clog_6_ARGS_TRACE_ConnSourceCidAdded(uniqueId, encoded_arg_string, arg2, arg3, arg4, arg4_len)\
-
-#endif
-
-
-
-
-#ifndef _clog_6_ARGS_TRACE_ConnDestCidRemoved
 
 
 
@@ -2312,10 +1777,11 @@ tracepoint(CLOG_CONNECTION_C, ConnError , arg2, arg3);\
         Connection,
         DestCid->CID.SequenceNumber,
         CASTED_CLOG_BYTEARRAY(DestCid->CID.Length, DestCid->CID.Data));
-// arg2 = arg2 = Connection
-// arg3 = arg3 = DestCid->CID.SequenceNumber
-// arg4 = arg4 = CASTED_CLOG_BYTEARRAY(DestCid->CID.Length, DestCid->CID.Data)
+// arg2 = arg2 = Connection = arg2
+// arg3 = arg3 = DestCid->CID.SequenceNumber = arg3
+// arg4 = arg4 = CASTED_CLOG_BYTEARRAY(DestCid->CID.Length, DestCid->CID.Data) = arg4
 ----------------------------------------------------------*/
+#ifndef _clog_6_ARGS_TRACE_ConnDestCidRemoved
 #define _clog_6_ARGS_TRACE_ConnDestCidRemoved(uniqueId, encoded_arg_string, arg2, arg3, arg4, arg4_len)\
 tracepoint(CLOG_CONNECTION_C, ConnDestCidRemoved , arg2, arg3, arg4_len, arg4);\
 
@@ -2324,29 +1790,65 @@ tracepoint(CLOG_CONNECTION_C, ConnDestCidRemoved , arg2, arg3, arg4_len, arg4);\
 
 
 
-#ifndef _clog_4_ARGS_TRACE_ConnError
-
-
-
 /*----------------------------------------------------------
-// Decoder Ring for ConnError
-// [conn][%p] ERROR, %s.
+// Decoder Ring for ConnSetTimer
+// [conn][%p] Setting %hhu, delay=%llu us
 // QuicTraceEvent(
-                    ConnError,
-                    "[conn][%p] ERROR, %s.",
-                    Connection,
-                    "Active path has no replacement for retired CID");
-// arg2 = arg2 = Connection
-// arg3 = arg3 = "Active path has no replacement for retired CID"
+        ConnSetTimer,
+        "[conn][%p] Setting %hhu, delay=%llu us",
+        Connection,
+        (uint8_t)Type,
+        Delay);
+// arg2 = arg2 = Connection = arg2
+// arg3 = arg3 = (uint8_t)Type = arg3
+// arg4 = arg4 = Delay = arg4
 ----------------------------------------------------------*/
-#define _clog_4_ARGS_TRACE_ConnError(uniqueId, encoded_arg_string, arg2, arg3)\
+#ifndef _clog_5_ARGS_TRACE_ConnSetTimer
+#define _clog_5_ARGS_TRACE_ConnSetTimer(uniqueId, encoded_arg_string, arg2, arg3, arg4)\
+tracepoint(CLOG_CONNECTION_C, ConnSetTimer , arg2, arg3, arg4);\
 
 #endif
 
 
 
 
-#ifndef _clog_4_ARGS_TRACE_ConnExecTimerOper
+/*----------------------------------------------------------
+// Decoder Ring for ConnCancelTimer
+// [conn][%p] Canceling %hhu
+// QuicTraceEvent(
+                ConnCancelTimer,
+                "[conn][%p] Canceling %hhu",
+                Connection,
+                (uint8_t)Type);
+// arg2 = arg2 = Connection = arg2
+// arg3 = arg3 = (uint8_t)Type = arg3
+----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_ConnCancelTimer
+#define _clog_4_ARGS_TRACE_ConnCancelTimer(uniqueId, encoded_arg_string, arg2, arg3)\
+tracepoint(CLOG_CONNECTION_C, ConnCancelTimer , arg2, arg3);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for ConnExpiredTimer
+// [conn][%p] %hhu expired
+// QuicTraceEvent(
+            ConnExpiredTimer,
+            "[conn][%p] %hhu expired",
+            Connection,
+            (uint8_t)Temp[j].Type);
+// arg2 = arg2 = Connection = arg2
+// arg3 = arg3 = (uint8_t)Temp[j].Type = arg3
+----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_ConnExpiredTimer
+#define _clog_4_ARGS_TRACE_ConnExpiredTimer(uniqueId, encoded_arg_string, arg2, arg3)\
+tracepoint(CLOG_CONNECTION_C, ConnExpiredTimer , arg2, arg3);\
+
+#endif
+
 
 
 
@@ -2358,62 +1860,15 @@ tracepoint(CLOG_CONNECTION_C, ConnDestCidRemoved , arg2, arg3, arg4_len, arg4);\
                 "[conn][%p] Execute: %u",
                 Connection,
                 QUIC_CONN_TIMER_ACK_DELAY);
-// arg2 = arg2 = Connection
-// arg3 = arg3 = QUIC_CONN_TIMER_ACK_DELAY
+// arg2 = arg2 = Connection = arg2
+// arg3 = arg3 = QUIC_CONN_TIMER_ACK_DELAY = arg3
 ----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_ConnExecTimerOper
 #define _clog_4_ARGS_TRACE_ConnExecTimerOper(uniqueId, encoded_arg_string, arg2, arg3)\
 tracepoint(CLOG_CONNECTION_C, ConnExecTimerOper , arg2, arg3);\
 
 #endif
 
-
-
-
-#ifndef _clog_4_ARGS_TRACE_ConnExecTimerOper
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for ConnExecTimerOper
-// [conn][%p] Execute: %u
-// QuicTraceEvent(
-                ConnExecTimerOper,
-                "[conn][%p] Execute: %u",
-                Connection,
-                QUIC_CONN_TIMER_PACING);
-// arg2 = arg2 = Connection
-// arg3 = arg3 = QUIC_CONN_TIMER_PACING
-----------------------------------------------------------*/
-#define _clog_4_ARGS_TRACE_ConnExecTimerOper(uniqueId, encoded_arg_string, arg2, arg3)\
-
-#endif
-
-
-
-
-#ifndef _clog_4_ARGS_TRACE_AllocFailure
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for AllocFailure
-// Allocation of '%s' failed. (%llu bytes)
-// QuicTraceEvent(
-                    AllocFailure,
-                    "Allocation of '%s' failed. (%llu bytes)",
-                    "expired timer operation",
-                    0);
-// arg2 = arg2 = "expired timer operation"
-// arg3 = arg3 = 0
-----------------------------------------------------------*/
-#define _clog_4_ARGS_TRACE_AllocFailure(uniqueId, encoded_arg_string, arg2, arg3)\
-
-#endif
-
-
-
-
-#ifndef _clog_4_ARGS_TRACE_ConnShutdownComplete
 
 
 
@@ -2425,40 +1880,15 @@ tracepoint(CLOG_CONNECTION_C, ConnExecTimerOper , arg2, arg3);\
         "[conn][%p] Shutdown complete, PeerFailedToAcknowledged=%hhu.",
         Connection,
         Connection->State.ShutdownCompleteTimedOut);
-// arg2 = arg2 = Connection
-// arg3 = arg3 = Connection->State.ShutdownCompleteTimedOut
+// arg2 = arg2 = Connection = arg2
+// arg3 = arg3 = Connection->State.ShutdownCompleteTimedOut = arg3
 ----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_ConnShutdownComplete
 #define _clog_4_ARGS_TRACE_ConnShutdownComplete(uniqueId, encoded_arg_string, arg2, arg3)\
 tracepoint(CLOG_CONNECTION_C, ConnShutdownComplete , arg2, arg3);\
 
 #endif
 
-
-
-
-#ifndef _clog_4_ARGS_TRACE_AllocFailure
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for AllocFailure
-// Allocation of '%s' failed. (%llu bytes)
-// QuicTraceEvent(
-                    AllocFailure,
-                    "Allocation of '%s' failed. (%llu bytes)",
-                    "close reason",
-                    RemoteReasonPhraseLength + 1);
-// arg2 = arg2 = "close reason"
-// arg3 = arg3 = RemoteReasonPhraseLength + 1
-----------------------------------------------------------*/
-#define _clog_4_ARGS_TRACE_AllocFailure(uniqueId, encoded_arg_string, arg2, arg3)\
-
-#endif
-
-
-
-
-#ifndef _clog_5_ARGS_TRACE_ConnAppShutdown
 
 
 
@@ -2471,19 +1901,16 @@ tracepoint(CLOG_CONNECTION_C, ConnShutdownComplete , arg2, arg3);\
                 Connection,
                 ErrorCode,
                 ClosedRemotely);
-// arg2 = arg2 = Connection
-// arg3 = arg3 = ErrorCode
-// arg4 = arg4 = ClosedRemotely
+// arg2 = arg2 = Connection = arg2
+// arg3 = arg3 = ErrorCode = arg3
+// arg4 = arg4 = ClosedRemotely = arg4
 ----------------------------------------------------------*/
+#ifndef _clog_5_ARGS_TRACE_ConnAppShutdown
 #define _clog_5_ARGS_TRACE_ConnAppShutdown(uniqueId, encoded_arg_string, arg2, arg3, arg4)\
 tracepoint(CLOG_CONNECTION_C, ConnAppShutdown , arg2, arg3, arg4);\
 
 #endif
 
-
-
-
-#ifndef _clog_6_ARGS_TRACE_ConnTransportShutdown
 
 
 
@@ -2497,42 +1924,17 @@ tracepoint(CLOG_CONNECTION_C, ConnAppShutdown , arg2, arg3, arg4);\
                 ErrorCode,
                 ClosedRemotely,
                 !!(Flags & QUIC_CLOSE_QUIC_STATUS));
-// arg2 = arg2 = Connection
-// arg3 = arg3 = ErrorCode
-// arg4 = arg4 = ClosedRemotely
-// arg5 = arg5 = !!(Flags & QUIC_CLOSE_QUIC_STATUS)
+// arg2 = arg2 = Connection = arg2
+// arg3 = arg3 = ErrorCode = arg3
+// arg4 = arg4 = ClosedRemotely = arg4
+// arg5 = arg5 = !!(Flags & QUIC_CLOSE_QUIC_STATUS) = arg5
 ----------------------------------------------------------*/
+#ifndef _clog_6_ARGS_TRACE_ConnTransportShutdown
 #define _clog_6_ARGS_TRACE_ConnTransportShutdown(uniqueId, encoded_arg_string, arg2, arg3, arg4, arg5)\
 tracepoint(CLOG_CONNECTION_C, ConnTransportShutdown , arg2, arg3, arg4, arg5);\
 
 #endif
 
-
-
-
-#ifndef _clog_4_ARGS_TRACE_ConnVersionSet
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for ConnVersionSet
-// [conn][%p] QUIC Version: %u
-// QuicTraceEvent(
-        ConnVersionSet,
-        "[conn][%p] QUIC Version: %u",
-        Connection,
-        Connection->Stats.QuicVersion);
-// arg2 = arg2 = Connection
-// arg3 = arg3 = Connection->Stats.QuicVersion
-----------------------------------------------------------*/
-#define _clog_4_ARGS_TRACE_ConnVersionSet(uniqueId, encoded_arg_string, arg2, arg3)\
-
-#endif
-
-
-
-
-#ifndef _clog_5_ARGS_TRACE_ConnErrorStatus
 
 
 
@@ -2544,109 +1946,16 @@ tracepoint(CLOG_CONNECTION_C, ConnTransportShutdown , arg2, arg3, arg4, arg5);\
                     "[conn][%p] ERROR, %u, %s.",
                     Connection, Status,
                     "Set current compartment Id");
-// arg2 = arg2 = Connection
-// arg3 = arg3 = Status
-// arg4 = arg4 = "Set current compartment Id"
+// arg2 = arg2 = Connection = arg2
+// arg3 = arg3 = Status = arg3
+// arg4 = arg4 = "Set current compartment Id" = arg4
 ----------------------------------------------------------*/
+#ifndef _clog_5_ARGS_TRACE_ConnErrorStatus
 #define _clog_5_ARGS_TRACE_ConnErrorStatus(uniqueId, encoded_arg_string, arg2, arg3, arg4)\
 tracepoint(CLOG_CONNECTION_C, ConnErrorStatus , arg2, arg3, arg4);\
 
 #endif
 
-
-
-
-#ifndef _clog_5_ARGS_TRACE_ConnRemoteAddrAdded
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for ConnRemoteAddrAdded
-// [conn][%p] New Remote IP: %!ADDR!
-// QuicTraceEvent(
-        ConnRemoteAddrAdded,
-        "[conn][%p] New Remote IP: %!ADDR!",
-        Connection,
-        CASTED_CLOG_BYTEARRAY(sizeof(Path->Route.RemoteAddress), &Path->Route.RemoteAddress));
-// arg2 = arg2 = Connection
-// arg3 = arg3 = CASTED_CLOG_BYTEARRAY(sizeof(Path->Route.RemoteAddress), &Path->Route.RemoteAddress)
-----------------------------------------------------------*/
-#define _clog_5_ARGS_TRACE_ConnRemoteAddrAdded(uniqueId, encoded_arg_string, arg2, arg3, arg3_len)\
-
-#endif
-
-
-
-
-#ifndef _clog_6_ARGS_TRACE_ConnSourceCidAdded
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for ConnSourceCidAdded
-// [conn][%p] (SeqNum=%llu) New Source CID: %!CID!
-// QuicTraceEvent(
-        ConnSourceCidAdded,
-        "[conn][%p] (SeqNum=%llu) New Source CID: %!CID!",
-        Connection,
-        SourceCid->CID.SequenceNumber,
-        CASTED_CLOG_BYTEARRAY(SourceCid->CID.Length, SourceCid->CID.Data));
-// arg2 = arg2 = Connection
-// arg3 = arg3 = SourceCid->CID.SequenceNumber
-// arg4 = arg4 = CASTED_CLOG_BYTEARRAY(SourceCid->CID.Length, SourceCid->CID.Data)
-----------------------------------------------------------*/
-#define _clog_6_ARGS_TRACE_ConnSourceCidAdded(uniqueId, encoded_arg_string, arg2, arg3, arg4, arg4_len)\
-
-#endif
-
-
-
-
-#ifndef _clog_5_ARGS_TRACE_ConnLocalAddrAdded
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for ConnLocalAddrAdded
-// [conn][%p] New Local IP: %!ADDR!
-// QuicTraceEvent(
-        ConnLocalAddrAdded,
-        "[conn][%p] New Local IP: %!ADDR!",
-        Connection,
-        CASTED_CLOG_BYTEARRAY(sizeof(Path->Route.LocalAddress), &Path->Route.LocalAddress));
-// arg2 = arg2 = Connection
-// arg3 = arg3 = CASTED_CLOG_BYTEARRAY(sizeof(Path->Route.LocalAddress), &Path->Route.LocalAddress)
-----------------------------------------------------------*/
-#define _clog_5_ARGS_TRACE_ConnLocalAddrAdded(uniqueId, encoded_arg_string, arg2, arg3, arg3_len)\
-
-#endif
-
-
-
-
-#ifndef _clog_4_ARGS_TRACE_ConnError
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for ConnError
-// [conn][%p] ERROR, %s.
-// QuicTraceEvent(
-                ConnError,
-                "[conn][%p] ERROR, %s.",
-                Connection,
-                "Resumption Ticket transport params greater than current server settings");
-// arg2 = arg2 = Connection
-// arg3 = arg3 = "Resumption Ticket transport params greater than current server settings"
-----------------------------------------------------------*/
-#define _clog_4_ARGS_TRACE_ConnError(uniqueId, encoded_arg_string, arg2, arg3)\
-
-#endif
-
-
-
-
-#ifndef _clog_3_ARGS_TRACE_ConnServerResumeTicket
 
 
 
@@ -2657,85 +1966,14 @@ tracepoint(CLOG_CONNECTION_C, ConnErrorStatus , arg2, arg3, arg4);\
                 ConnServerResumeTicket,
                 "[conn][%p] Server app accepted resumption ticket",
                 Connection);
-// arg2 = arg2 = Connection
+// arg2 = arg2 = Connection = arg2
 ----------------------------------------------------------*/
+#ifndef _clog_3_ARGS_TRACE_ConnServerResumeTicket
 #define _clog_3_ARGS_TRACE_ConnServerResumeTicket(uniqueId, encoded_arg_string, arg2)\
 tracepoint(CLOG_CONNECTION_C, ConnServerResumeTicket , arg2);\
 
 #endif
 
-
-
-
-#ifndef _clog_4_ARGS_TRACE_ConnError
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for ConnError
-// [conn][%p] ERROR, %s.
-// QuicTraceEvent(
-                ConnError,
-                "[conn][%p] ERROR, %s.",
-                Connection,
-                "Resumption Ticket rejected by server app");
-// arg2 = arg2 = Connection
-// arg3 = arg3 = "Resumption Ticket rejected by server app"
-----------------------------------------------------------*/
-#define _clog_4_ARGS_TRACE_ConnError(uniqueId, encoded_arg_string, arg2, arg3)\
-
-#endif
-
-
-
-
-#ifndef _clog_5_ARGS_TRACE_ConnErrorStatus
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for ConnErrorStatus
-// [conn][%p] ERROR, %u, %s.
-// QuicTraceEvent(
-                ConnErrorStatus,
-                "[conn][%p] ERROR, %u, %s.",
-                Connection,
-                Status,
-                "QuicLibraryGenerateStatelessResetToken");
-// arg2 = arg2 = Connection
-// arg3 = arg3 = Status
-// arg4 = arg4 = "QuicLibraryGenerateStatelessResetToken"
-----------------------------------------------------------*/
-#define _clog_5_ARGS_TRACE_ConnErrorStatus(uniqueId, encoded_arg_string, arg2, arg3, arg4)\
-
-#endif
-
-
-
-
-#ifndef _clog_4_ARGS_TRACE_AllocFailure
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for AllocFailure
-// Allocation of '%s' failed. (%llu bytes)
-// QuicTraceEvent(
-                AllocFailure,
-                "Allocation of '%s' failed. (%llu bytes)",
-                "OrigDestCID",
-                sizeof(QUIC_CID) + DestCid->CID.Length);
-// arg2 = arg2 = "OrigDestCID"
-// arg3 = arg3 = sizeof(QUIC_CID) + DestCid->CID.Length
-----------------------------------------------------------*/
-#define _clog_4_ARGS_TRACE_AllocFailure(uniqueId, encoded_arg_string, arg2, arg3)\
-
-#endif
-
-
-
-
-#ifndef _clog_3_ARGS_TRACE_ConnHandshakeStart
 
 
 
@@ -2746,8 +1984,9 @@ tracepoint(CLOG_CONNECTION_C, ConnServerResumeTicket , arg2);\
         ConnHandshakeStart,
         "[conn][%p] Handshake start",
         Connection);
-// arg2 = arg2 = Connection
+// arg2 = arg2 = Connection = arg2
 ----------------------------------------------------------*/
+#ifndef _clog_3_ARGS_TRACE_ConnHandshakeStart
 #define _clog_3_ARGS_TRACE_ConnHandshakeStart(uniqueId, encoded_arg_string, arg2)\
 tracepoint(CLOG_CONNECTION_C, ConnHandshakeStart , arg2);\
 
@@ -2756,319 +1995,21 @@ tracepoint(CLOG_CONNECTION_C, ConnHandshakeStart , arg2);\
 
 
 
-#ifndef _clog_4_ARGS_TRACE_ConnError
-
-
-
 /*----------------------------------------------------------
-// Decoder Ring for ConnError
-// [conn][%p] ERROR, %s.
+// Decoder Ring for PacketDecrypt
+// [pack][%llu] Decrypting
 // QuicTraceEvent(
-            ConnError,
-            "[conn][%p] ERROR, %s.",
-            Connection,
-            "Peer didn't provide the initial source CID in TP");
-// arg2 = arg2 = Connection
-// arg3 = arg3 = "Peer didn't provide the initial source CID in TP"
+            PacketDecrypt,
+            "[pack][%llu] Decrypting",
+            Packet->PacketId);
+// arg2 = arg2 = Packet->PacketId = arg2
 ----------------------------------------------------------*/
-#define _clog_4_ARGS_TRACE_ConnError(uniqueId, encoded_arg_string, arg2, arg3)\
+#ifndef _clog_3_ARGS_TRACE_PacketDecrypt
+#define _clog_3_ARGS_TRACE_PacketDecrypt(uniqueId, encoded_arg_string, arg2)\
+tracepoint(CLOG_CONNECTION_C, PacketDecrypt , arg2);\
 
 #endif
 
-
-
-
-#ifndef _clog_4_ARGS_TRACE_ConnError
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for ConnError
-// [conn][%p] ERROR, %s.
-// QuicTraceEvent(
-            ConnError,
-            "[conn][%p] ERROR, %s.",
-            Connection,
-            "Initial source CID from TP doesn't match");
-// arg2 = arg2 = Connection
-// arg3 = arg3 = "Initial source CID from TP doesn't match"
-----------------------------------------------------------*/
-#define _clog_4_ARGS_TRACE_ConnError(uniqueId, encoded_arg_string, arg2, arg3)\
-
-#endif
-
-
-
-
-#ifndef _clog_4_ARGS_TRACE_ConnError
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for ConnError
-// [conn][%p] ERROR, %s.
-// QuicTraceEvent(
-                ConnError,
-                "[conn][%p] ERROR, %s.",
-                Connection,
-                "Server didn't provide the original destination CID in TP");
-// arg2 = arg2 = Connection
-// arg3 = arg3 = "Server didn't provide the original destination CID in TP"
-----------------------------------------------------------*/
-#define _clog_4_ARGS_TRACE_ConnError(uniqueId, encoded_arg_string, arg2, arg3)\
-
-#endif
-
-
-
-
-#ifndef _clog_4_ARGS_TRACE_ConnError
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for ConnError
-// [conn][%p] ERROR, %s.
-// QuicTraceEvent(
-                ConnError,
-                "[conn][%p] ERROR, %s.",
-                Connection,
-                "Original destination CID from TP doesn't match");
-// arg2 = arg2 = Connection
-// arg3 = arg3 = "Original destination CID from TP doesn't match"
-----------------------------------------------------------*/
-#define _clog_4_ARGS_TRACE_ConnError(uniqueId, encoded_arg_string, arg2, arg3)\
-
-#endif
-
-
-
-
-#ifndef _clog_4_ARGS_TRACE_ConnError
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for ConnError
-// [conn][%p] ERROR, %s.
-// QuicTraceEvent(
-                    ConnError,
-                    "[conn][%p] ERROR, %s.",
-                    Connection,
-                    "Server didn't provide the retry source CID in TP");
-// arg2 = arg2 = Connection
-// arg3 = arg3 = "Server didn't provide the retry source CID in TP"
-----------------------------------------------------------*/
-#define _clog_4_ARGS_TRACE_ConnError(uniqueId, encoded_arg_string, arg2, arg3)\
-
-#endif
-
-
-
-
-#ifndef _clog_4_ARGS_TRACE_ConnError
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for ConnError
-// [conn][%p] ERROR, %s.
-// QuicTraceEvent(
-                    ConnError,
-                    "[conn][%p] ERROR, %s.",
-                    Connection,
-                    "Server incorrectly provided the retry source CID in TP");
-// arg2 = arg2 = Connection
-// arg3 = arg3 = "Server incorrectly provided the retry source CID in TP"
-----------------------------------------------------------*/
-#define _clog_4_ARGS_TRACE_ConnError(uniqueId, encoded_arg_string, arg2, arg3)\
-
-#endif
-
-
-
-
-#ifndef _clog_4_ARGS_TRACE_ConnError
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for ConnError
-// [conn][%p] ERROR, %s.
-// QuicTraceEvent(
-            ConnError,
-            "[conn][%p] ERROR, %s.",
-            Connection,
-            "Custom cert validation failed.");
-// arg2 = arg2 = Connection
-// arg3 = arg3 = "Custom cert validation failed."
-----------------------------------------------------------*/
-#define _clog_4_ARGS_TRACE_ConnError(uniqueId, encoded_arg_string, arg2, arg3)\
-
-#endif
-
-
-
-
-#ifndef _clog_4_ARGS_TRACE_AllocFailure
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for AllocFailure
-// Allocation of '%s' failed. (%llu bytes)
-// QuicTraceEvent(
-                AllocFailure,
-                "Allocation of '%s' failed. (%llu bytes)",
-                "Flush Recv operation",
-                0);
-// arg2 = arg2 = "Flush Recv operation"
-// arg3 = arg3 = 0
-----------------------------------------------------------*/
-#define _clog_4_ARGS_TRACE_AllocFailure(uniqueId, encoded_arg_string, arg2, arg3)\
-
-#endif
-
-
-
-
-#ifndef _clog_4_ARGS_TRACE_AllocFailure
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for AllocFailure
-// Allocation of '%s' failed. (%llu bytes)
-// QuicTraceEvent(
-            AllocFailure,
-            "Allocation of '%s' failed. (%llu bytes)",
-            "Unreachable operation",
-            0);
-// arg2 = arg2 = "Unreachable operation"
-// arg3 = arg3 = 0
-----------------------------------------------------------*/
-#define _clog_4_ARGS_TRACE_AllocFailure(uniqueId, encoded_arg_string, arg2, arg3)\
-
-#endif
-
-
-
-
-#ifndef _clog_6_ARGS_TRACE_ConnDestCidRemoved
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for ConnDestCidRemoved
-// [conn][%p] (SeqNum=%llu) Removed Destination CID: %!CID!
-// QuicTraceEvent(
-            ConnDestCidRemoved,
-            "[conn][%p] (SeqNum=%llu) Removed Destination CID: %!CID!",
-            Connection,
-            DestCid->CID.SequenceNumber,
-            CASTED_CLOG_BYTEARRAY(DestCid->CID.Length, DestCid->CID.Data));
-// arg2 = arg2 = Connection
-// arg3 = arg3 = DestCid->CID.SequenceNumber
-// arg4 = arg4 = CASTED_CLOG_BYTEARRAY(DestCid->CID.Length, DestCid->CID.Data)
-----------------------------------------------------------*/
-#define _clog_6_ARGS_TRACE_ConnDestCidRemoved(uniqueId, encoded_arg_string, arg2, arg3, arg4, arg4_len)\
-
-#endif
-
-
-
-
-#ifndef _clog_6_ARGS_TRACE_ConnDestCidAdded
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for ConnDestCidAdded
-// [conn][%p] (SeqNum=%llu) New Destination CID: %!CID!
-// QuicTraceEvent(
-                ConnDestCidAdded,
-                "[conn][%p] (SeqNum=%llu) New Destination CID: %!CID!",
-                Connection,
-                DestCid->CID.SequenceNumber,
-                CASTED_CLOG_BYTEARRAY(DestCid->CID.Length, DestCid->CID.Data));
-// arg2 = arg2 = Connection
-// arg3 = arg3 = DestCid->CID.SequenceNumber
-// arg4 = arg4 = CASTED_CLOG_BYTEARRAY(DestCid->CID.Length, DestCid->CID.Data)
-----------------------------------------------------------*/
-#define _clog_6_ARGS_TRACE_ConnDestCidAdded(uniqueId, encoded_arg_string, arg2, arg3, arg4, arg4_len)\
-
-#endif
-
-
-
-
-#ifndef _clog_4_ARGS_TRACE_AllocFailure
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for AllocFailure
-// Allocation of '%s' failed. (%llu bytes)
-// QuicTraceEvent(
-            AllocFailure,
-            "Allocation of '%s' failed. (%llu bytes)",
-            "InitialToken",
-            TokenLength);
-// arg2 = arg2 = "InitialToken"
-// arg3 = arg3 = TokenLength
-----------------------------------------------------------*/
-#define _clog_4_ARGS_TRACE_AllocFailure(uniqueId, encoded_arg_string, arg2, arg3)\
-
-#endif
-
-
-
-
-#ifndef _clog_4_ARGS_TRACE_AllocFailure
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for AllocFailure
-// Allocation of '%s' failed. (%llu bytes)
-// QuicTraceEvent(
-                    AllocFailure,
-                    "Allocation of '%s' failed. (%llu bytes)",
-                    "OrigDestCID",
-                    sizeof(QUIC_CID) + Token.Encrypted.OrigConnIdLength);
-// arg2 = arg2 = "OrigDestCID"
-// arg3 = arg3 = sizeof(QUIC_CID) + Token.Encrypted.OrigConnIdLength
-----------------------------------------------------------*/
-#define _clog_4_ARGS_TRACE_AllocFailure(uniqueId, encoded_arg_string, arg2, arg3)\
-
-#endif
-
-
-
-
-#ifndef _clog_4_ARGS_TRACE_AllocFailure
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for AllocFailure
-// Allocation of '%s' failed. (%llu bytes)
-// QuicTraceEvent(
-                    AllocFailure,
-                    "Allocation of '%s' failed. (%llu bytes)",
-                    "OrigDestCID",
-                    sizeof(QUIC_CID) + Packet->DestCidLen);
-// arg2 = arg2 = "OrigDestCID"
-// arg3 = arg3 = sizeof(QUIC_CID) + Packet->DestCidLen
-----------------------------------------------------------*/
-#define _clog_4_ARGS_TRACE_AllocFailure(uniqueId, encoded_arg_string, arg2, arg3)\
-
-#endif
-
-
-
-
-#ifndef _clog_6_ARGS_TRACE_ConnPacketRecv
 
 
 
@@ -3082,796 +2023,17 @@ tracepoint(CLOG_CONNECTION_C, ConnHandshakeStart , arg2);\
         Packet->PacketNumber,
         Packet->IsShortHeader ? QUIC_TRACE_PACKET_ONE_RTT : (Packet->LH->Type + 1),
         Packet->HeaderLength + Packet->PayloadLength);
-// arg2 = arg2 = Connection
-// arg3 = arg3 = Packet->PacketNumber
-// arg4 = arg4 = Packet->IsShortHeader ? QUIC_TRACE_PACKET_ONE_RTT : (Packet->LH->Type + 1)
-// arg5 = arg5 = Packet->HeaderLength + Packet->PayloadLength
+// arg2 = arg2 = Connection = arg2
+// arg3 = arg3 = Packet->PacketNumber = arg3
+// arg4 = arg4 = Packet->IsShortHeader ? QUIC_TRACE_PACKET_ONE_RTT : (Packet->LH->Type + 1) = arg4
+// arg5 = arg5 = Packet->HeaderLength + Packet->PayloadLength = arg5
 ----------------------------------------------------------*/
+#ifndef _clog_6_ARGS_TRACE_ConnPacketRecv
 #define _clog_6_ARGS_TRACE_ConnPacketRecv(uniqueId, encoded_arg_string, arg2, arg3, arg4, arg5)\
 tracepoint(CLOG_CONNECTION_C, ConnPacketRecv , arg2, arg3, arg4, arg5);\
 
 #endif
 
-
-
-
-#ifndef _clog_4_ARGS_TRACE_ConnError
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for ConnError
-// [conn][%p] ERROR, %s.
-// QuicTraceEvent(
-                ConnError,
-                "[conn][%p] ERROR, %s.",
-                Connection,
-                "Frame type decode failure");
-// arg2 = arg2 = Connection
-// arg3 = arg3 = "Frame type decode failure"
-----------------------------------------------------------*/
-#define _clog_4_ARGS_TRACE_ConnError(uniqueId, encoded_arg_string, arg2, arg3)\
-
-#endif
-
-
-
-
-#ifndef _clog_4_ARGS_TRACE_ConnError
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for ConnError
-// [conn][%p] ERROR, %s.
-// QuicTraceEvent(
-                ConnError,
-                "[conn][%p] ERROR, %s.",
-                Connection,
-                "Unknown frame type");
-// arg2 = arg2 = Connection
-// arg3 = arg3 = "Unknown frame type"
-----------------------------------------------------------*/
-#define _clog_4_ARGS_TRACE_ConnError(uniqueId, encoded_arg_string, arg2, arg3)\
-
-#endif
-
-
-
-
-#ifndef _clog_5_ARGS_TRACE_ConnErrorStatus
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for ConnErrorStatus
-// [conn][%p] ERROR, %u, %s.
-// QuicTraceEvent(
-                    ConnErrorStatus,
-                    "[conn][%p] ERROR, %u, %s.",
-                    Connection,
-                    (uint32_t)FrameType,
-                    "Disallowed frame type");
-// arg2 = arg2 = Connection
-// arg3 = arg3 = (uint32_t)FrameType
-// arg4 = arg4 = "Disallowed frame type"
-----------------------------------------------------------*/
-#define _clog_5_ARGS_TRACE_ConnErrorStatus(uniqueId, encoded_arg_string, arg2, arg3, arg4)\
-
-#endif
-
-
-
-
-#ifndef _clog_5_ARGS_TRACE_ConnErrorStatus
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for ConnErrorStatus
-// [conn][%p] ERROR, %u, %s.
-// QuicTraceEvent(
-                    ConnErrorStatus,
-                    "[conn][%p] ERROR, %u, %s.",
-                    Connection,
-                    (uint32_t)FrameType,
-                    "Disallowed frame type");
-// arg2 = arg2 = Connection
-// arg3 = arg3 = (uint32_t)FrameType
-// arg4 = arg4 = "Disallowed frame type"
-----------------------------------------------------------*/
-#define _clog_5_ARGS_TRACE_ConnErrorStatus(uniqueId, encoded_arg_string, arg2, arg3, arg4)\
-
-#endif
-
-
-
-
-#ifndef _clog_4_ARGS_TRACE_ConnError
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for ConnError
-// [conn][%p] ERROR, %s.
-// QuicTraceEvent(
-                        ConnError,
-                        "[conn][%p] ERROR, %s.",
-                        Connection,
-                        "Invalid ACK frame");
-// arg2 = arg2 = Connection
-// arg3 = arg3 = "Invalid ACK frame"
-----------------------------------------------------------*/
-#define _clog_4_ARGS_TRACE_ConnError(uniqueId, encoded_arg_string, arg2, arg3)\
-
-#endif
-
-
-
-
-#ifndef _clog_4_ARGS_TRACE_ConnError
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for ConnError
-// [conn][%p] ERROR, %s.
-// QuicTraceEvent(
-                    ConnError,
-                    "[conn][%p] ERROR, %s.",
-                    Connection,
-                    "Decoding CRYPTO frame");
-// arg2 = arg2 = Connection
-// arg3 = arg3 = "Decoding CRYPTO frame"
-----------------------------------------------------------*/
-#define _clog_4_ARGS_TRACE_ConnError(uniqueId, encoded_arg_string, arg2, arg3)\
-
-#endif
-
-
-
-
-#ifndef _clog_4_ARGS_TRACE_ConnError
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for ConnError
-// [conn][%p] ERROR, %s.
-// QuicTraceEvent(
-                        ConnError,
-                        "[conn][%p] ERROR, %s.",
-                        Connection,
-                        "Invalid CRYPTO frame");
-// arg2 = arg2 = Connection
-// arg3 = arg3 = "Invalid CRYPTO frame"
-----------------------------------------------------------*/
-#define _clog_4_ARGS_TRACE_ConnError(uniqueId, encoded_arg_string, arg2, arg3)\
-
-#endif
-
-
-
-
-#ifndef _clog_4_ARGS_TRACE_ConnError
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for ConnError
-// [conn][%p] ERROR, %s.
-// QuicTraceEvent(
-                    ConnError,
-                    "[conn][%p] ERROR, %s.",
-                    Connection,
-                    "Decoding NEW_TOKEN frame");
-// arg2 = arg2 = Connection
-// arg3 = arg3 = "Decoding NEW_TOKEN frame"
-----------------------------------------------------------*/
-#define _clog_4_ARGS_TRACE_ConnError(uniqueId, encoded_arg_string, arg2, arg3)\
-
-#endif
-
-
-
-
-#ifndef _clog_4_ARGS_TRACE_ConnError
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for ConnError
-// [conn][%p] ERROR, %s.
-// QuicTraceEvent(
-                        ConnError,
-                        "[conn][%p] ERROR, %s.",
-                        Connection,
-                        "Skipping closed stream frame");
-// arg2 = arg2 = Connection
-// arg3 = arg3 = "Skipping closed stream frame"
-----------------------------------------------------------*/
-#define _clog_4_ARGS_TRACE_ConnError(uniqueId, encoded_arg_string, arg2, arg3)\
-
-#endif
-
-
-
-
-#ifndef _clog_4_ARGS_TRACE_ConnError
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for ConnError
-// [conn][%p] ERROR, %s.
-// QuicTraceEvent(
-                    ConnError,
-                    "[conn][%p] ERROR, %s.",
-                    Connection,
-                    "Decoding stream ID from frame");
-// arg2 = arg2 = Connection
-// arg3 = arg3 = "Decoding stream ID from frame"
-----------------------------------------------------------*/
-#define _clog_4_ARGS_TRACE_ConnError(uniqueId, encoded_arg_string, arg2, arg3)\
-
-#endif
-
-
-
-
-#ifndef _clog_4_ARGS_TRACE_ConnError
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for ConnError
-// [conn][%p] ERROR, %s.
-// QuicTraceEvent(
-                        ConnError,
-                        "[conn][%p] ERROR, %s.",
-                        Connection,
-                        "Invalid frame on unidirectional stream");
-// arg2 = arg2 = Connection
-// arg3 = arg3 = "Invalid frame on unidirectional stream"
-----------------------------------------------------------*/
-#define _clog_4_ARGS_TRACE_ConnError(uniqueId, encoded_arg_string, arg2, arg3)\
-
-#endif
-
-
-
-
-#ifndef _clog_4_ARGS_TRACE_ConnError
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for ConnError
-// [conn][%p] ERROR, %s.
-// QuicTraceEvent(
-                        ConnError,
-                        "[conn][%p] ERROR, %s.",
-                        Connection,
-                        "Invalid stream frame");
-// arg2 = arg2 = Connection
-// arg3 = arg3 = "Invalid stream frame"
-----------------------------------------------------------*/
-#define _clog_4_ARGS_TRACE_ConnError(uniqueId, encoded_arg_string, arg2, arg3)\
-
-#endif
-
-
-
-
-#ifndef _clog_4_ARGS_TRACE_ConnError
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for ConnError
-// [conn][%p] ERROR, %s.
-// QuicTraceEvent(
-                    ConnError,
-                    "[conn][%p] ERROR, %s.",
-                    Connection,
-                    "Getting stream from ID");
-// arg2 = arg2 = Connection
-// arg3 = arg3 = "Getting stream from ID"
-----------------------------------------------------------*/
-#define _clog_4_ARGS_TRACE_ConnError(uniqueId, encoded_arg_string, arg2, arg3)\
-
-#endif
-
-
-
-
-#ifndef _clog_4_ARGS_TRACE_ConnError
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for ConnError
-// [conn][%p] ERROR, %s.
-// QuicTraceEvent(
-                        ConnError,
-                        "[conn][%p] ERROR, %s.",
-                        Connection,
-                        "Skipping ignored stream frame");
-// arg2 = arg2 = Connection
-// arg3 = arg3 = "Skipping ignored stream frame"
-----------------------------------------------------------*/
-#define _clog_4_ARGS_TRACE_ConnError(uniqueId, encoded_arg_string, arg2, arg3)\
-
-#endif
-
-
-
-
-#ifndef _clog_4_ARGS_TRACE_ConnError
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for ConnError
-// [conn][%p] ERROR, %s.
-// QuicTraceEvent(
-                    ConnError,
-                    "[conn][%p] ERROR, %s.",
-                    Connection,
-                    "Decoding MAX_DATA frame");
-// arg2 = arg2 = Connection
-// arg3 = arg3 = "Decoding MAX_DATA frame"
-----------------------------------------------------------*/
-#define _clog_4_ARGS_TRACE_ConnError(uniqueId, encoded_arg_string, arg2, arg3)\
-
-#endif
-
-
-
-
-#ifndef _clog_4_ARGS_TRACE_ConnError
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for ConnError
-// [conn][%p] ERROR, %s.
-// QuicTraceEvent(
-                    ConnError,
-                    "[conn][%p] ERROR, %s.",
-                    Connection,
-                    "Decoding MAX_STREAMS frame");
-// arg2 = arg2 = Connection
-// arg3 = arg3 = "Decoding MAX_STREAMS frame"
-----------------------------------------------------------*/
-#define _clog_4_ARGS_TRACE_ConnError(uniqueId, encoded_arg_string, arg2, arg3)\
-
-#endif
-
-
-
-
-#ifndef _clog_4_ARGS_TRACE_ConnError
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for ConnError
-// [conn][%p] ERROR, %s.
-// QuicTraceEvent(
-                    ConnError,
-                    "[conn][%p] ERROR, %s.",
-                    Connection,
-                    "Decoding BLOCKED frame");
-// arg2 = arg2 = Connection
-// arg3 = arg3 = "Decoding BLOCKED frame"
-----------------------------------------------------------*/
-#define _clog_4_ARGS_TRACE_ConnError(uniqueId, encoded_arg_string, arg2, arg3)\
-
-#endif
-
-
-
-
-#ifndef _clog_4_ARGS_TRACE_ConnError
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for ConnError
-// [conn][%p] ERROR, %s.
-// QuicTraceEvent(
-                    ConnError,
-                    "[conn][%p] ERROR, %s.",
-                    Connection,
-                    "Decoding STREAMS_BLOCKED frame");
-// arg2 = arg2 = Connection
-// arg3 = arg3 = "Decoding STREAMS_BLOCKED frame"
-----------------------------------------------------------*/
-#define _clog_4_ARGS_TRACE_ConnError(uniqueId, encoded_arg_string, arg2, arg3)\
-
-#endif
-
-
-
-
-#ifndef _clog_4_ARGS_TRACE_ConnError
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for ConnError
-// [conn][%p] ERROR, %s.
-// QuicTraceEvent(
-                    ConnError,
-                    "[conn][%p] ERROR, %s.",
-                    Connection,
-                    "Decoding NEW_CONNECTION_ID frame");
-// arg2 = arg2 = Connection
-// arg3 = arg3 = "Decoding NEW_CONNECTION_ID frame"
-----------------------------------------------------------*/
-#define _clog_4_ARGS_TRACE_ConnError(uniqueId, encoded_arg_string, arg2, arg3)\
-
-#endif
-
-
-
-
-#ifndef _clog_4_ARGS_TRACE_AllocFailure
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for AllocFailure
-// Allocation of '%s' failed. (%llu bytes)
-// QuicTraceEvent(
-                        AllocFailure,
-                        "Allocation of '%s' failed. (%llu bytes)",
-                        "new DestCid",
-                        sizeof(QUIC_CID_LIST_ENTRY) + Frame.Length);
-// arg2 = arg2 = "new DestCid"
-// arg3 = arg3 = sizeof(QUIC_CID_LIST_ENTRY) + Frame.Length
-----------------------------------------------------------*/
-#define _clog_4_ARGS_TRACE_AllocFailure(uniqueId, encoded_arg_string, arg2, arg3)\
-
-#endif
-
-
-
-
-#ifndef _clog_6_ARGS_TRACE_ConnDestCidAdded
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for ConnDestCidAdded
-// [conn][%p] (SeqNum=%llu) New Destination CID: %!CID!
-// QuicTraceEvent(
-                    ConnDestCidAdded,
-                    "[conn][%p] (SeqNum=%llu) New Destination CID: %!CID!",
-                    Connection,
-                    DestCid->CID.SequenceNumber,
-                    CASTED_CLOG_BYTEARRAY(DestCid->CID.Length, DestCid->CID.Data));
-// arg2 = arg2 = Connection
-// arg3 = arg3 = DestCid->CID.SequenceNumber
-// arg4 = arg4 = CASTED_CLOG_BYTEARRAY(DestCid->CID.Length, DestCid->CID.Data)
-----------------------------------------------------------*/
-#define _clog_6_ARGS_TRACE_ConnDestCidAdded(uniqueId, encoded_arg_string, arg2, arg3, arg4, arg4_len)\
-
-#endif
-
-
-
-
-#ifndef _clog_4_ARGS_TRACE_ConnError
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for ConnError
-// [conn][%p] ERROR, %s.
-// QuicTraceEvent(
-                        ConnError,
-                        "[conn][%p] ERROR, %s.",
-                        Connection,
-                        "Peer exceeded CID limit");
-// arg2 = arg2 = Connection
-// arg3 = arg3 = "Peer exceeded CID limit"
-----------------------------------------------------------*/
-#define _clog_4_ARGS_TRACE_ConnError(uniqueId, encoded_arg_string, arg2, arg3)\
-
-#endif
-
-
-
-
-#ifndef _clog_4_ARGS_TRACE_ConnError
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for ConnError
-// [conn][%p] ERROR, %s.
-// QuicTraceEvent(
-                    ConnError,
-                    "[conn][%p] ERROR, %s.",
-                    Connection,
-                    "Decoding RETIRE_CONNECTION_ID frame");
-// arg2 = arg2 = Connection
-// arg3 = arg3 = "Decoding RETIRE_CONNECTION_ID frame"
-----------------------------------------------------------*/
-#define _clog_4_ARGS_TRACE_ConnError(uniqueId, encoded_arg_string, arg2, arg3)\
-
-#endif
-
-
-
-
-#ifndef _clog_4_ARGS_TRACE_ConnError
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for ConnError
-// [conn][%p] ERROR, %s.
-// QuicTraceEvent(
-                        ConnError,
-                        "[conn][%p] ERROR, %s.",
-                        Connection,
-                        "Last Source CID Retired!");
-// arg2 = arg2 = Connection
-// arg3 = arg3 = "Last Source CID Retired!"
-----------------------------------------------------------*/
-#define _clog_4_ARGS_TRACE_ConnError(uniqueId, encoded_arg_string, arg2, arg3)\
-
-#endif
-
-
-
-
-#ifndef _clog_4_ARGS_TRACE_ConnError
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for ConnError
-// [conn][%p] ERROR, %s.
-// QuicTraceEvent(
-                    ConnError,
-                    "[conn][%p] ERROR, %s.",
-                    Connection,
-                    "Decoding PATH_CHALLENGE frame");
-// arg2 = arg2 = Connection
-// arg3 = arg3 = "Decoding PATH_CHALLENGE frame"
-----------------------------------------------------------*/
-#define _clog_4_ARGS_TRACE_ConnError(uniqueId, encoded_arg_string, arg2, arg3)\
-
-#endif
-
-
-
-
-#ifndef _clog_4_ARGS_TRACE_ConnError
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for ConnError
-// [conn][%p] ERROR, %s.
-// QuicTraceEvent(
-                    ConnError,
-                    "[conn][%p] ERROR, %s.",
-                    Connection,
-                    "Decoding PATH_RESPONSE frame");
-// arg2 = arg2 = Connection
-// arg3 = arg3 = "Decoding PATH_RESPONSE frame"
-----------------------------------------------------------*/
-#define _clog_4_ARGS_TRACE_ConnError(uniqueId, encoded_arg_string, arg2, arg3)\
-
-#endif
-
-
-
-
-#ifndef _clog_4_ARGS_TRACE_ConnError
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for ConnError
-// [conn][%p] ERROR, %s.
-// QuicTraceEvent(
-                    ConnError,
-                    "[conn][%p] ERROR, %s.",
-                    Connection,
-                    "Decoding CONNECTION_CLOSE frame");
-// arg2 = arg2 = Connection
-// arg3 = arg3 = "Decoding CONNECTION_CLOSE frame"
-----------------------------------------------------------*/
-#define _clog_4_ARGS_TRACE_ConnError(uniqueId, encoded_arg_string, arg2, arg3)\
-
-#endif
-
-
-
-
-#ifndef _clog_4_ARGS_TRACE_ConnError
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for ConnError
-// [conn][%p] ERROR, %s.
-// QuicTraceEvent(
-                    ConnError,
-                    "[conn][%p] ERROR, %s.",
-                    Connection,
-                    "Client sent HANDSHAKE_DONE frame");
-// arg2 = arg2 = Connection
-// arg3 = arg3 = "Client sent HANDSHAKE_DONE frame"
-----------------------------------------------------------*/
-#define _clog_4_ARGS_TRACE_ConnError(uniqueId, encoded_arg_string, arg2, arg3)\
-
-#endif
-
-
-
-
-#ifndef _clog_4_ARGS_TRACE_ConnError
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for ConnError
-// [conn][%p] ERROR, %s.
-// QuicTraceEvent(
-                    ConnError,
-                    "[conn][%p] ERROR, %s.",
-                    Connection,
-                    "Received DATAGRAM frame when not negotiated");
-// arg2 = arg2 = Connection
-// arg3 = arg3 = "Received DATAGRAM frame when not negotiated"
-----------------------------------------------------------*/
-#define _clog_4_ARGS_TRACE_ConnError(uniqueId, encoded_arg_string, arg2, arg3)\
-
-#endif
-
-
-
-
-#ifndef _clog_4_ARGS_TRACE_ConnError
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for ConnError
-// [conn][%p] ERROR, %s.
-// QuicTraceEvent(
-                    ConnError,
-                    "[conn][%p] ERROR, %s.",
-                    Connection,
-                    "Decoding DATAGRAM frame");
-// arg2 = arg2 = Connection
-// arg3 = arg3 = "Decoding DATAGRAM frame"
-----------------------------------------------------------*/
-#define _clog_4_ARGS_TRACE_ConnError(uniqueId, encoded_arg_string, arg2, arg3)\
-
-#endif
-
-
-
-
-#ifndef _clog_4_ARGS_TRACE_ConnError
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for ConnError
-// [conn][%p] ERROR, %s.
-// QuicTraceEvent(
-                    ConnError,
-                    "[conn][%p] ERROR, %s.",
-                    Connection,
-                    "Decoding ACK_FREQUENCY frame");
-// arg2 = arg2 = Connection
-// arg3 = arg3 = "Decoding ACK_FREQUENCY frame"
-----------------------------------------------------------*/
-#define _clog_4_ARGS_TRACE_ConnError(uniqueId, encoded_arg_string, arg2, arg3)\
-
-#endif
-
-
-
-
-#ifndef _clog_4_ARGS_TRACE_ConnError
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for ConnError
-// [conn][%p] ERROR, %s.
-// QuicTraceEvent(
-                    ConnError,
-                    "[conn][%p] ERROR, %s.",
-                    Connection,
-                    "UpdateMaxAckDelay is less than TimerResolution");
-// arg2 = arg2 = Connection
-// arg3 = arg3 = "UpdateMaxAckDelay is less than TimerResolution"
-----------------------------------------------------------*/
-#define _clog_4_ARGS_TRACE_ConnError(uniqueId, encoded_arg_string, arg2, arg3)\
-
-#endif
-
-
-
-
-#ifndef _clog_4_ARGS_TRACE_ConnError
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for ConnError
-// [conn][%p] ERROR, %s.
-// QuicTraceEvent(
-                        ConnError,
-                        "[conn][%p] ERROR, %s.",
-                        Connection,
-                        "No unused CID for new path");
-// arg2 = arg2 = Connection
-// arg3 = arg3 = "No unused CID for new path"
-----------------------------------------------------------*/
-#define _clog_4_ARGS_TRACE_ConnError(uniqueId, encoded_arg_string, arg2, arg3)\
-
-#endif
-
-
-
-
-#ifndef _clog_5_ARGS_TRACE_ConnRemoteAddrAdded
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for ConnRemoteAddrAdded
-// [conn][%p] New Remote IP: %!ADDR!
-// QuicTraceEvent(
-            ConnRemoteAddrAdded,
-            "[conn][%p] New Remote IP: %!ADDR!",
-            Connection,
-            CASTED_CLOG_BYTEARRAY(sizeof(Connection->Paths[0].Route.RemoteAddress), &Connection->Paths[0].Route.RemoteAddress));
-// arg2 = arg2 = Connection
-// arg3 = arg3 = CASTED_CLOG_BYTEARRAY(sizeof(Connection->Paths[0].Route.RemoteAddress), &Connection->Paths[0].Route.RemoteAddress)
-----------------------------------------------------------*/
-#define _clog_5_ARGS_TRACE_ConnRemoteAddrAdded(uniqueId, encoded_arg_string, arg2, arg3, arg3_len)\
-
-#endif
-
-
-
-
-#ifndef _clog_5_ARGS_TRACE_ConnLocalAddrAdded
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for ConnLocalAddrAdded
-// [conn][%p] New Local IP: %!ADDR!
-// QuicTraceEvent(
-            ConnLocalAddrAdded,
-            "[conn][%p] New Local IP: %!ADDR!",
-            Connection,
-            CASTED_CLOG_BYTEARRAY(sizeof(Connection->Paths[0].Route.LocalAddress), &Connection->Paths[0].Route.LocalAddress));
-// arg2 = arg2 = Connection
-// arg3 = arg3 = CASTED_CLOG_BYTEARRAY(sizeof(Connection->Paths[0].Route.LocalAddress), &Connection->Paths[0].Route.LocalAddress)
-----------------------------------------------------------*/
-#define _clog_5_ARGS_TRACE_ConnLocalAddrAdded(uniqueId, encoded_arg_string, arg2, arg3, arg3_len)\
-
-#endif
-
-
-
-
-#ifndef _clog_5_ARGS_TRACE_ConnLocalAddrRemoved
 
 
 
@@ -3883,99 +2045,12 @@ tracepoint(CLOG_CONNECTION_C, ConnPacketRecv , arg2, arg3, arg4, arg5);\
                 "[conn][%p] Removed Local IP: %!ADDR!",
                 Connection,
                 CASTED_CLOG_BYTEARRAY(sizeof(Connection->Paths[0].Route.LocalAddress), &Connection->Paths[0].Route.LocalAddress));
-// arg2 = arg2 = Connection
-// arg3 = arg3 = CASTED_CLOG_BYTEARRAY(sizeof(Connection->Paths[0].Route.LocalAddress), &Connection->Paths[0].Route.LocalAddress)
+// arg2 = arg2 = Connection = arg2
+// arg3 = arg3 = CASTED_CLOG_BYTEARRAY(sizeof(Connection->Paths[0].Route.LocalAddress), &Connection->Paths[0].Route.LocalAddress) = arg3
 ----------------------------------------------------------*/
+#ifndef _clog_5_ARGS_TRACE_ConnLocalAddrRemoved
 #define _clog_5_ARGS_TRACE_ConnLocalAddrRemoved(uniqueId, encoded_arg_string, arg2, arg3, arg3_len)\
 tracepoint(CLOG_CONNECTION_C, ConnLocalAddrRemoved , arg2, arg3_len, arg3);\
-
-#endif
-
-
-
-
-#ifndef _clog_5_ARGS_TRACE_ConnLocalAddrAdded
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for ConnLocalAddrAdded
-// [conn][%p] New Local IP: %!ADDR!
-// QuicTraceEvent(
-                ConnLocalAddrAdded,
-                "[conn][%p] New Local IP: %!ADDR!",
-                Connection,
-                CASTED_CLOG_BYTEARRAY(sizeof(Connection->Paths[0].Route.LocalAddress), &Connection->Paths[0].Route.LocalAddress));
-// arg2 = arg2 = Connection
-// arg3 = arg3 = CASTED_CLOG_BYTEARRAY(sizeof(Connection->Paths[0].Route.LocalAddress), &Connection->Paths[0].Route.LocalAddress)
-----------------------------------------------------------*/
-#define _clog_5_ARGS_TRACE_ConnLocalAddrAdded(uniqueId, encoded_arg_string, arg2, arg3, arg3_len)\
-
-#endif
-
-
-
-
-#ifndef _clog_5_ARGS_TRACE_ConnErrorStatus
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for ConnErrorStatus
-// [conn][%p] ERROR, %u, %s.
-// QuicTraceEvent(
-                ConnErrorStatus,
-                "[conn][%p] ERROR, %u, %s.",
-                Connection,
-                Status,
-                "Forced key update");
-// arg2 = arg2 = Connection
-// arg3 = arg3 = Status
-// arg4 = arg4 = "Forced key update"
-----------------------------------------------------------*/
-#define _clog_5_ARGS_TRACE_ConnErrorStatus(uniqueId, encoded_arg_string, arg2, arg3, arg4)\
-
-#endif
-
-
-
-
-#ifndef _clog_4_ARGS_TRACE_AllocFailure
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for AllocFailure
-// Allocation of '%s' failed. (%llu bytes)
-// QuicTraceEvent(
-                    AllocFailure,
-                    "Allocation of '%s' failed. (%llu bytes)",
-                    "handshake TP",
-                    sizeof(*Connection->HandshakeTP));
-// arg2 = arg2 = "handshake TP"
-// arg3 = arg3 = sizeof(*Connection->HandshakeTP)
-----------------------------------------------------------*/
-#define _clog_4_ARGS_TRACE_AllocFailure(uniqueId, encoded_arg_string, arg2, arg3)\
-
-#endif
-
-
-
-
-#ifndef _clog_3_ARGS_TRACE_ConnInitializeComplete
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for ConnInitializeComplete
-// [conn][%p] Initialize complete
-// QuicTraceEvent(
-                ConnInitializeComplete,
-                "[conn][%p] Initialize complete",
-                Connection);
-// arg2 = arg2 = Connection
-----------------------------------------------------------*/
-#define _clog_3_ARGS_TRACE_ConnInitializeComplete(uniqueId, encoded_arg_string, arg2)\
 
 #endif
 

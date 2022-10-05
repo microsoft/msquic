@@ -1,4 +1,6 @@
+#ifndef CLOG_DO_NOT_INCLUDE_HEADER
 #include <clog.h>
+#endif
 #undef TRACEPOINT_PROVIDER
 #define TRACEPOINT_PROVIDER CLOG_TLS_SCHANNEL_C
 #undef TRACEPOINT_PROBE_DYNAMIC_LINKAGE
@@ -31,10 +33,6 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-#ifndef _clog_2_ARGS_TRACE_SchannelAchAsync
-
-
-
 /*----------------------------------------------------------
 // Decoder Ring for SchannelAchAsync
 // [ tls] Calling SspiAcquireCredentialsHandleAsyncW
@@ -42,15 +40,12 @@ extern "C" {
         SchannelAchAsync,
         "[ tls] Calling SspiAcquireCredentialsHandleAsyncW");
 ----------------------------------------------------------*/
+#ifndef _clog_2_ARGS_TRACE_SchannelAchAsync
 #define _clog_2_ARGS_TRACE_SchannelAchAsync(uniqueId, encoded_arg_string)\
 tracepoint(CLOG_TLS_SCHANNEL_C, SchannelAchAsync );\
 
 #endif
 
-
-
-
-#ifndef _clog_2_ARGS_TRACE_SchannelAchWorkerStart
 
 
 
@@ -61,15 +56,12 @@ tracepoint(CLOG_TLS_SCHANNEL_C, SchannelAchAsync );\
         SchannelAchWorkerStart,
         "[ tls] Starting ACH worker");
 ----------------------------------------------------------*/
+#ifndef _clog_2_ARGS_TRACE_SchannelAchWorkerStart
 #define _clog_2_ARGS_TRACE_SchannelAchWorkerStart(uniqueId, encoded_arg_string)\
 tracepoint(CLOG_TLS_SCHANNEL_C, SchannelAchWorkerStart );\
 
 #endif
 
-
-
-
-#ifndef _clog_2_ARGS_TRACE_SchannelAch
 
 
 
@@ -80,15 +72,12 @@ tracepoint(CLOG_TLS_SCHANNEL_C, SchannelAchWorkerStart );\
         SchannelAch,
         "[ tls] Calling AcquireCredentialsHandleW");
 ----------------------------------------------------------*/
+#ifndef _clog_2_ARGS_TRACE_SchannelAch
 #define _clog_2_ARGS_TRACE_SchannelAch(uniqueId, encoded_arg_string)\
 tracepoint(CLOG_TLS_SCHANNEL_C, SchannelAch );\
 
 #endif
 
-
-
-
-#ifndef _clog_3_ARGS_TRACE_SchannelAchCompleteInline
 
 
 
@@ -99,17 +88,14 @@ tracepoint(CLOG_TLS_SCHANNEL_C, SchannelAch );\
         SchannelAchCompleteInline,
         "[ tls] Invoking security config completion callback inline, 0x%x",
         Status);
-// arg2 = arg2 = Status
+// arg2 = arg2 = Status = arg2
 ----------------------------------------------------------*/
+#ifndef _clog_3_ARGS_TRACE_SchannelAchCompleteInline
 #define _clog_3_ARGS_TRACE_SchannelAchCompleteInline(uniqueId, encoded_arg_string, arg2)\
 tracepoint(CLOG_TLS_SCHANNEL_C, SchannelAchCompleteInline , arg2);\
 
 #endif
 
-
-
-
-#ifndef _clog_4_ARGS_TRACE_SchannelHandshakeComplete
 
 
 
@@ -121,18 +107,15 @@ tracepoint(CLOG_TLS_SCHANNEL_C, SchannelAchCompleteInline , arg2);\
                 TlsContext->Connection,
                 "Handshake complete (resume=%hu)",
                 State->SessionResumed);
-// arg1 = arg1 = TlsContext->Connection
-// arg3 = arg3 = State->SessionResumed
+// arg1 = arg1 = TlsContext->Connection = arg1
+// arg3 = arg3 = State->SessionResumed = arg3
 ----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_SchannelHandshakeComplete
 #define _clog_4_ARGS_TRACE_SchannelHandshakeComplete(uniqueId, arg1, encoded_arg_string, arg3)\
 tracepoint(CLOG_TLS_SCHANNEL_C, SchannelHandshakeComplete , arg1, arg3);\
 
 #endif
 
-
-
-
-#ifndef _clog_4_ARGS_TRACE_SchannelConsumedBytes
 
 
 
@@ -144,18 +127,15 @@ tracepoint(CLOG_TLS_SCHANNEL_C, SchannelHandshakeComplete , arg1, arg3);\
             TlsContext->Connection,
             "Consumed %u bytes",
             *InBufferLength);
-// arg1 = arg1 = TlsContext->Connection
-// arg3 = arg3 = *InBufferLength
+// arg1 = arg1 = TlsContext->Connection = arg1
+// arg3 = arg3 = *InBufferLength = arg3
 ----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_SchannelConsumedBytes
 #define _clog_4_ARGS_TRACE_SchannelConsumedBytes(uniqueId, arg1, encoded_arg_string, arg3)\
 tracepoint(CLOG_TLS_SCHANNEL_C, SchannelConsumedBytes , arg1, arg3);\
 
 #endif
 
-
-
-
-#ifndef _clog_3_ARGS_TRACE_SchannelReadHandshakeStart
 
 
 
@@ -166,17 +146,14 @@ tracepoint(CLOG_TLS_SCHANNEL_C, SchannelConsumedBytes , arg1, arg3);\
                         SchannelReadHandshakeStart,
                         TlsContext->Connection,
                         "Reading Handshake data starts now");
-// arg1 = arg1 = TlsContext->Connection
+// arg1 = arg1 = TlsContext->Connection = arg1
 ----------------------------------------------------------*/
+#ifndef _clog_3_ARGS_TRACE_SchannelReadHandshakeStart
 #define _clog_3_ARGS_TRACE_SchannelReadHandshakeStart(uniqueId, arg1, encoded_arg_string)\
 tracepoint(CLOG_TLS_SCHANNEL_C, SchannelReadHandshakeStart , arg1);\
 
 #endif
 
-
-
-
-#ifndef _clog_3_ARGS_TRACE_SchannelRead1RttStart
 
 
 
@@ -187,17 +164,14 @@ tracepoint(CLOG_TLS_SCHANNEL_C, SchannelReadHandshakeStart , arg1);\
                         SchannelRead1RttStart,
                         TlsContext->Connection,
                         "Reading 1-RTT data starts now");
-// arg1 = arg1 = TlsContext->Connection
+// arg1 = arg1 = TlsContext->Connection = arg1
 ----------------------------------------------------------*/
+#ifndef _clog_3_ARGS_TRACE_SchannelRead1RttStart
 #define _clog_3_ARGS_TRACE_SchannelRead1RttStart(uniqueId, arg1, encoded_arg_string)\
 tracepoint(CLOG_TLS_SCHANNEL_C, SchannelRead1RttStart , arg1);\
 
 #endif
 
-
-
-
-#ifndef _clog_4_ARGS_TRACE_SchannelWriteHandshakeStart
 
 
 
@@ -209,18 +183,15 @@ tracepoint(CLOG_TLS_SCHANNEL_C, SchannelRead1RttStart , arg1);\
                         TlsContext->Connection,
                         "Writing Handshake data starts at %u",
                         State->BufferOffsetHandshake);
-// arg1 = arg1 = TlsContext->Connection
-// arg3 = arg3 = State->BufferOffsetHandshake
+// arg1 = arg1 = TlsContext->Connection = arg1
+// arg3 = arg3 = State->BufferOffsetHandshake = arg3
 ----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_SchannelWriteHandshakeStart
 #define _clog_4_ARGS_TRACE_SchannelWriteHandshakeStart(uniqueId, arg1, encoded_arg_string, arg3)\
 tracepoint(CLOG_TLS_SCHANNEL_C, SchannelWriteHandshakeStart , arg1, arg3);\
 
 #endif
 
-
-
-
-#ifndef _clog_4_ARGS_TRACE_SchannelWrite1RttStart
 
 
 
@@ -232,18 +203,15 @@ tracepoint(CLOG_TLS_SCHANNEL_C, SchannelWriteHandshakeStart , arg1, arg3);\
                             TlsContext->Connection,
                             "Writing 1-RTT data starts at %u",
                             State->BufferOffset1Rtt);
-// arg1 = arg1 = TlsContext->Connection
-// arg3 = arg3 = State->BufferOffset1Rtt
+// arg1 = arg1 = TlsContext->Connection = arg1
+// arg3 = arg3 = State->BufferOffset1Rtt = arg3
 ----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_SchannelWrite1RttStart
 #define _clog_4_ARGS_TRACE_SchannelWrite1RttStart(uniqueId, arg1, encoded_arg_string, arg3)\
 tracepoint(CLOG_TLS_SCHANNEL_C, SchannelWrite1RttStart , arg1, arg3);\
 
 #endif
 
-
-
-
-#ifndef _clog_4_ARGS_TRACE_SchannelProducedData
 
 
 
@@ -255,18 +223,15 @@ tracepoint(CLOG_TLS_SCHANNEL_C, SchannelWrite1RttStart , arg1, arg3);\
                 TlsContext->Connection,
                 "Produced %u bytes",
                 OutputTokenBuffer->cbBuffer);
-// arg1 = arg1 = TlsContext->Connection
-// arg3 = arg3 = OutputTokenBuffer->cbBuffer
+// arg1 = arg1 = TlsContext->Connection = arg1
+// arg3 = arg3 = OutputTokenBuffer->cbBuffer = arg3
 ----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_SchannelProducedData
 #define _clog_4_ARGS_TRACE_SchannelProducedData(uniqueId, arg1, encoded_arg_string, arg3)\
 tracepoint(CLOG_TLS_SCHANNEL_C, SchannelProducedData , arg1, arg3);\
 
 #endif
 
-
-
-
-#ifndef _clog_4_ARGS_TRACE_SchannelMissingData
 
 
 
@@ -278,18 +243,15 @@ tracepoint(CLOG_TLS_SCHANNEL_C, SchannelProducedData , arg1, arg3);\
                 TlsContext->Connection,
                 "TLS message missing %u bytes of data",
                 MissingBuffer->cbBuffer);
-// arg1 = arg1 = TlsContext->Connection
-// arg3 = arg3 = MissingBuffer->cbBuffer
+// arg1 = arg1 = TlsContext->Connection = arg1
+// arg3 = arg3 = MissingBuffer->cbBuffer = arg3
 ----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_SchannelMissingData
 #define _clog_4_ARGS_TRACE_SchannelMissingData(uniqueId, arg1, encoded_arg_string, arg3)\
 tracepoint(CLOG_TLS_SCHANNEL_C, SchannelMissingData , arg1, arg3);\
 
 #endif
 
-
-
-
-#ifndef _clog_5_ARGS_TRACE_SchannelTransParamsBufferTooSmall
 
 
 
@@ -304,21 +266,18 @@ tracepoint(CLOG_TLS_SCHANNEL_C, SchannelMissingData , arg1, arg3);\
                         (TlsContext->PeerTransportParams != NULL) ?
                             TlsContext->PeerTransportParamsLength :
                             *InBufferLength);
-// arg1 = arg1 = TlsContext->Connection
-// arg3 = arg3 = OutSecBufferDesc.pBuffers[i].cbBuffer
+// arg1 = arg1 = TlsContext->Connection = arg1
+// arg3 = arg3 = OutSecBufferDesc.pBuffers[i].cbBuffer = arg3
 // arg4 = arg4 = (TlsContext->PeerTransportParams != NULL) ?
                             TlsContext->PeerTransportParamsLength :
-                            *InBufferLength
+                            *InBufferLength = arg4
 ----------------------------------------------------------*/
+#ifndef _clog_5_ARGS_TRACE_SchannelTransParamsBufferTooSmall
 #define _clog_5_ARGS_TRACE_SchannelTransParamsBufferTooSmall(uniqueId, arg1, encoded_arg_string, arg3, arg4)\
 tracepoint(CLOG_TLS_SCHANNEL_C, SchannelTransParamsBufferTooSmall , arg1, arg3, arg4);\
 
 #endif
 
-
-
-
-#ifndef _clog_3_ARGS_TRACE_SchannelContextCreated
 
 
 
@@ -329,17 +288,14 @@ tracepoint(CLOG_TLS_SCHANNEL_C, SchannelTransParamsBufferTooSmall , arg1, arg3, 
         SchannelContextCreated,
         TlsContext->Connection,
         "TLS context Created");
-// arg1 = arg1 = TlsContext->Connection
+// arg1 = arg1 = TlsContext->Connection = arg1
 ----------------------------------------------------------*/
+#ifndef _clog_3_ARGS_TRACE_SchannelContextCreated
 #define _clog_3_ARGS_TRACE_SchannelContextCreated(uniqueId, arg1, encoded_arg_string)\
 tracepoint(CLOG_TLS_SCHANNEL_C, SchannelContextCreated , arg1);\
 
 #endif
 
-
-
-
-#ifndef _clog_3_ARGS_TRACE_SchannelContextCleaningUp
 
 
 
@@ -350,17 +306,14 @@ tracepoint(CLOG_TLS_SCHANNEL_C, SchannelContextCreated , arg1);\
             SchannelContextCleaningUp,
             TlsContext->Connection,
             "Cleaning up");
-// arg1 = arg1 = TlsContext->Connection
+// arg1 = arg1 = TlsContext->Connection = arg1
 ----------------------------------------------------------*/
+#ifndef _clog_3_ARGS_TRACE_SchannelContextCleaningUp
 #define _clog_3_ARGS_TRACE_SchannelContextCleaningUp(uniqueId, arg1, encoded_arg_string)\
 tracepoint(CLOG_TLS_SCHANNEL_C, SchannelContextCleaningUp , arg1);\
 
 #endif
 
-
-
-
-#ifndef _clog_6_ARGS_TRACE_SchannelKeyReady
 
 
 
@@ -374,20 +327,17 @@ tracepoint(CLOG_TLS_SCHANNEL_C, SchannelContextCleaningUp , arg1);\
                 (uint32_t)TrafficSecret->TrafficSecretType,
                 TrafficSecret->MsgSequenceStart,
                 TrafficSecret->MsgSequenceEnd);
-// arg1 = arg1 = TlsContext->Connection
-// arg3 = arg3 = (uint32_t)TrafficSecret->TrafficSecretType
-// arg4 = arg4 = TrafficSecret->MsgSequenceStart
-// arg5 = arg5 = TrafficSecret->MsgSequenceEnd
+// arg1 = arg1 = TlsContext->Connection = arg1
+// arg3 = arg3 = (uint32_t)TrafficSecret->TrafficSecretType = arg3
+// arg4 = arg4 = TrafficSecret->MsgSequenceStart = arg4
+// arg5 = arg5 = TrafficSecret->MsgSequenceEnd = arg5
 ----------------------------------------------------------*/
+#ifndef _clog_6_ARGS_TRACE_SchannelKeyReady
 #define _clog_6_ARGS_TRACE_SchannelKeyReady(uniqueId, arg1, encoded_arg_string, arg3, arg4, arg5)\
 tracepoint(CLOG_TLS_SCHANNEL_C, SchannelKeyReady , arg1, arg3, arg4, arg5);\
 
 #endif
 
-
-
-
-#ifndef _clog_4_ARGS_TRACE_SchannelIgnoringTicket
 
 
 
@@ -399,18 +349,15 @@ tracepoint(CLOG_TLS_SCHANNEL_C, SchannelKeyReady , arg1, arg3, arg4, arg5);\
             TlsContext->Connection,
             "Ignoring %u ticket bytes",
             *BufferLength);
-// arg1 = arg1 = TlsContext->Connection
-// arg3 = arg3 = *BufferLength
+// arg1 = arg1 = TlsContext->Connection = arg1
+// arg3 = arg3 = *BufferLength = arg3
 ----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_SchannelIgnoringTicket
 #define _clog_4_ARGS_TRACE_SchannelIgnoringTicket(uniqueId, arg1, encoded_arg_string, arg3)\
 tracepoint(CLOG_TLS_SCHANNEL_C, SchannelIgnoringTicket , arg1, arg3);\
 
 #endif
 
-
-
-
-#ifndef _clog_4_ARGS_TRACE_SchannelProcessingData
 
 
 
@@ -422,18 +369,15 @@ tracepoint(CLOG_TLS_SCHANNEL_C, SchannelIgnoringTicket , arg1, arg3);\
         TlsContext->Connection,
         "Processing %u received bytes",
         *BufferLength);
-// arg1 = arg1 = TlsContext->Connection
-// arg3 = arg3 = *BufferLength
+// arg1 = arg1 = TlsContext->Connection = arg1
+// arg3 = arg3 = *BufferLength = arg3
 ----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_SchannelProcessingData
 #define _clog_4_ARGS_TRACE_SchannelProcessingData(uniqueId, arg1, encoded_arg_string, arg3)\
 tracepoint(CLOG_TLS_SCHANNEL_C, SchannelProcessingData , arg1, arg3);\
 
 #endif
 
-
-
-
-#ifndef _clog_4_ARGS_TRACE_LibraryErrorStatus
 
 
 
@@ -445,18 +389,15 @@ tracepoint(CLOG_TLS_SCHANNEL_C, SchannelProcessingData , arg1, arg3);\
             "[ lib] ERROR, %u, %s.",
             Status,
             "Get unicode string size");
-// arg2 = arg2 = Status
-// arg3 = arg3 = "Get unicode string size"
+// arg2 = arg2 = Status = arg2
+// arg3 = arg3 = "Get unicode string size" = arg3
 ----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_LibraryErrorStatus
 #define _clog_4_ARGS_TRACE_LibraryErrorStatus(uniqueId, encoded_arg_string, arg2, arg3)\
 tracepoint(CLOG_TLS_SCHANNEL_C, LibraryErrorStatus , arg2, arg3);\
 
 #endif
 
-
-
-
-#ifndef _clog_4_ARGS_TRACE_AllocFailure
 
 
 
@@ -468,84 +409,15 @@ tracepoint(CLOG_TLS_SCHANNEL_C, LibraryErrorStatus , arg2, arg3);\
             "Allocation of '%s' failed. (%llu bytes)",
             "unicode string",
             RequiredSize);
-// arg2 = arg2 = "unicode string"
-// arg3 = arg3 = RequiredSize
+// arg2 = arg2 = "unicode string" = arg2
+// arg3 = arg3 = RequiredSize = arg3
 ----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_AllocFailure
 #define _clog_4_ARGS_TRACE_AllocFailure(uniqueId, encoded_arg_string, arg2, arg3)\
 tracepoint(CLOG_TLS_SCHANNEL_C, AllocFailure , arg2, arg3);\
 
 #endif
 
-
-
-
-#ifndef _clog_4_ARGS_TRACE_LibraryErrorStatus
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for LibraryErrorStatus
-// [ lib] ERROR, %u, %s.
-// QuicTraceEvent(
-            LibraryErrorStatus,
-            "[ lib] ERROR, %u, %s.",
-            Status,
-            "Convert string to unicode");
-// arg2 = arg2 = Status
-// arg3 = arg3 = "Convert string to unicode"
-----------------------------------------------------------*/
-#define _clog_4_ARGS_TRACE_LibraryErrorStatus(uniqueId, encoded_arg_string, arg2, arg3)\
-
-#endif
-
-
-
-
-#ifndef _clog_4_ARGS_TRACE_LibraryErrorStatus
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for LibraryErrorStatus
-// [ lib] ERROR, %u, %s.
-// QuicTraceEvent(
-            LibraryErrorStatus,
-            "[ lib] ERROR, %u, %s.",
-            SecStatus,
-            "SetCredentialsAttributesW(SECPKG_ATTR_CLIENT_CERT_POLICY) failed");
-// arg2 = arg2 = SecStatus
-// arg3 = arg3 = "SetCredentialsAttributesW(SECPKG_ATTR_CLIENT_CERT_POLICY) failed"
-----------------------------------------------------------*/
-#define _clog_4_ARGS_TRACE_LibraryErrorStatus(uniqueId, encoded_arg_string, arg2, arg3)\
-
-#endif
-
-
-
-
-#ifndef _clog_4_ARGS_TRACE_AllocFailure
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for AllocFailure
-// Allocation of '%s' failed. (%llu bytes)
-// QuicTraceEvent(
-            AllocFailure,
-            "Allocation of '%s' failed. (%llu bytes)",
-            "QUIC_ACH_CONTEXT",
-            sizeof(QUIC_ACH_CONTEXT));
-// arg2 = arg2 = "QUIC_ACH_CONTEXT"
-// arg3 = arg3 = sizeof(QUIC_ACH_CONTEXT)
-----------------------------------------------------------*/
-#define _clog_4_ARGS_TRACE_AllocFailure(uniqueId, encoded_arg_string, arg2, arg3)\
-
-#endif
-
-
-
-
-#ifndef _clog_3_ARGS_TRACE_LibraryError
 
 
 
@@ -556,297 +428,14 @@ tracepoint(CLOG_TLS_SCHANNEL_C, AllocFailure , arg2, arg3);\
             LibraryError,
             "[ lib] ERROR, %s.",
             "NULL CallbackData to CxPlatTlsSspiNotifyCallback");
-// arg2 = arg2 = "NULL CallbackData to CxPlatTlsSspiNotifyCallback"
+// arg2 = arg2 = "NULL CallbackData to CxPlatTlsSspiNotifyCallback" = arg2
 ----------------------------------------------------------*/
+#ifndef _clog_3_ARGS_TRACE_LibraryError
 #define _clog_3_ARGS_TRACE_LibraryError(uniqueId, encoded_arg_string, arg2)\
 tracepoint(CLOG_TLS_SCHANNEL_C, LibraryError , arg2);\
 
 #endif
 
-
-
-
-#ifndef _clog_4_ARGS_TRACE_LibraryErrorStatus
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for LibraryErrorStatus
-// [ lib] ERROR, %u, %s.
-// QuicTraceEvent(
-            LibraryErrorStatus,
-            "[ lib] ERROR, %u, %s.",
-            Status,
-            "Completion for SspiAcquireCredentialsHandleAsyncW");
-// arg2 = arg2 = Status
-// arg3 = arg3 = "Completion for SspiAcquireCredentialsHandleAsyncW"
-----------------------------------------------------------*/
-#define _clog_4_ARGS_TRACE_LibraryErrorStatus(uniqueId, encoded_arg_string, arg2, arg3)\
-
-#endif
-
-
-
-
-#ifndef _clog_4_ARGS_TRACE_LibraryErrorStatus
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for LibraryErrorStatus
-// [ lib] ERROR, %u, %s.
-// QuicTraceEvent(
-            LibraryErrorStatus,
-            "[ lib] ERROR, %u, %s.",
-            SecStatus,
-            "SspiAcquireCredentialsHandleAsyncW");
-// arg2 = arg2 = SecStatus
-// arg3 = arg3 = "SspiAcquireCredentialsHandleAsyncW"
-----------------------------------------------------------*/
-#define _clog_4_ARGS_TRACE_LibraryErrorStatus(uniqueId, encoded_arg_string, arg2, arg3)\
-
-#endif
-
-
-
-
-#ifndef _clog_4_ARGS_TRACE_LibraryErrorStatus
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for LibraryErrorStatus
-// [ lib] ERROR, %u, %s.
-// QuicTraceEvent(
-            LibraryErrorStatus,
-            "[ lib] ERROR, %u, %s.",
-            CredConfig->AllowedCipherSuites,
-            "No valid cipher suites presented");
-// arg2 = arg2 = CredConfig->AllowedCipherSuites
-// arg3 = arg3 = "No valid cipher suites presented"
-----------------------------------------------------------*/
-#define _clog_4_ARGS_TRACE_LibraryErrorStatus(uniqueId, encoded_arg_string, arg2, arg3)\
-
-#endif
-
-
-
-
-#ifndef _clog_4_ARGS_TRACE_AllocFailure
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for AllocFailure
-// Allocation of '%s' failed. (%llu bytes)
-// QuicTraceEvent(
-            AllocFailure,
-            "Allocation of '%s' failed. (%llu bytes)",
-            "CXPLAT_SEC_CONFIG",
-            sizeof(CXPLAT_SEC_CONFIG));
-// arg2 = arg2 = "CXPLAT_SEC_CONFIG"
-// arg3 = arg3 = sizeof(CXPLAT_SEC_CONFIG)
-----------------------------------------------------------*/
-#define _clog_4_ARGS_TRACE_AllocFailure(uniqueId, encoded_arg_string, arg2, arg3)\
-
-#endif
-
-
-
-
-#ifndef _clog_3_ARGS_TRACE_LibraryError
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for LibraryError
-// [ lib] ERROR, %s.
-// QuicTraceEvent(
-                LibraryError,
-                "[ lib] ERROR, %s.",
-                "No Allowed TLS Cipher Suites");
-// arg2 = arg2 = "No Allowed TLS Cipher Suites"
-----------------------------------------------------------*/
-#define _clog_3_ARGS_TRACE_LibraryError(uniqueId, encoded_arg_string, arg2)\
-
-#endif
-
-
-
-
-#ifndef _clog_4_ARGS_TRACE_LibraryErrorStatus
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for LibraryErrorStatus
-// [ lib] ERROR, %u, %s.
-// QuicTraceEvent(
-                LibraryErrorStatus,
-                "[ lib] ERROR, %u, %s.",
-                Status,
-                "Convert cert store name to unicode");
-// arg2 = arg2 = Status
-// arg3 = arg3 = "Convert cert store name to unicode"
-----------------------------------------------------------*/
-#define _clog_4_ARGS_TRACE_LibraryErrorStatus(uniqueId, encoded_arg_string, arg2, arg3)\
-
-#endif
-
-
-
-
-#ifndef _clog_3_ARGS_TRACE_LibraryError
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for LibraryError
-// [ lib] ERROR, %s.
-// QuicTraceEvent(
-            LibraryError,
-            "[ lib] ERROR, %s.",
-            "Invalid flags passed in to CxPlatTlsSecConfigCreate");
-// arg2 = arg2 = "Invalid flags passed in to CxPlatTlsSecConfigCreate"
-----------------------------------------------------------*/
-#define _clog_3_ARGS_TRACE_LibraryError(uniqueId, encoded_arg_string, arg2)\
-
-#endif
-
-
-
-
-#ifndef _clog_4_ARGS_TRACE_LibraryErrorStatus
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for LibraryErrorStatus
-// [ lib] ERROR, %u, %s.
-// QuicTraceEvent(
-                LibraryErrorStatus,
-                "[ lib] ERROR, %u, %s.",
-                Status,
-                "Convert principal to unicode");
-// arg2 = arg2 = Status
-// arg3 = arg3 = "Convert principal to unicode"
-----------------------------------------------------------*/
-#define _clog_4_ARGS_TRACE_LibraryErrorStatus(uniqueId, encoded_arg_string, arg2, arg3)\
-
-#endif
-
-
-
-
-#ifndef _clog_4_ARGS_TRACE_LibraryErrorStatus
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for LibraryErrorStatus
-// [ lib] ERROR, %u, %s.
-// QuicTraceEvent(
-                LibraryErrorStatus,
-                "[ lib] ERROR, %u, %s.",
-                Status,
-                "CxPlatCertCreate");
-// arg2 = arg2 = Status
-// arg3 = arg3 = "CxPlatCertCreate"
-----------------------------------------------------------*/
-#define _clog_4_ARGS_TRACE_LibraryErrorStatus(uniqueId, encoded_arg_string, arg2, arg3)\
-
-#endif
-
-
-
-
-#ifndef _clog_3_ARGS_TRACE_LibraryError
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for LibraryError
-// [ lib] ERROR, %s.
-// QuicTraceEvent(
-            LibraryError,
-            "[ lib] ERROR, %s.",
-            "SspiCreateAsyncContext");
-// arg2 = arg2 = "SspiCreateAsyncContext"
-----------------------------------------------------------*/
-#define _clog_3_ARGS_TRACE_LibraryError(uniqueId, encoded_arg_string, arg2)\
-
-#endif
-
-
-
-
-#ifndef _clog_4_ARGS_TRACE_LibraryErrorStatus
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for LibraryErrorStatus
-// [ lib] ERROR, %u, %s.
-// QuicTraceEvent(
-            LibraryErrorStatus,
-            "[ lib] ERROR, %u, %s.",
-            SecStatus,
-            "SspiSetAsyncNotifyCallback");
-// arg2 = arg2 = SecStatus
-// arg3 = arg3 = "SspiSetAsyncNotifyCallback"
-----------------------------------------------------------*/
-#define _clog_4_ARGS_TRACE_LibraryErrorStatus(uniqueId, encoded_arg_string, arg2, arg3)\
-
-#endif
-
-
-
-
-#ifndef _clog_4_ARGS_TRACE_LibraryErrorStatus
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for LibraryErrorStatus
-// [ lib] ERROR, %u, %s.
-// QuicTraceEvent(
-            LibraryErrorStatus,
-            "[ lib] ERROR, %u, %s.",
-            SecStatus,
-            "AcquireCredentialsHandleW");
-// arg2 = arg2 = SecStatus
-// arg3 = arg3 = "AcquireCredentialsHandleW"
-----------------------------------------------------------*/
-#define _clog_4_ARGS_TRACE_LibraryErrorStatus(uniqueId, encoded_arg_string, arg2, arg3)\
-
-#endif
-
-
-
-
-#ifndef _clog_4_ARGS_TRACE_LibraryErrorStatus
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for LibraryErrorStatus
-// [ lib] ERROR, %u, %s.
-// QuicTraceEvent(
-            LibraryErrorStatus,
-            "[ lib] ERROR, %u, %s.",
-            SecStatus,
-            "SetCredentialsAttributesW(SESSION_TICKET_KEYS)");
-// arg2 = arg2 = SecStatus
-// arg3 = arg3 = "SetCredentialsAttributesW(SESSION_TICKET_KEYS)"
-----------------------------------------------------------*/
-#define _clog_4_ARGS_TRACE_LibraryErrorStatus(uniqueId, encoded_arg_string, arg2, arg3)\
-
-#endif
-
-
-
-
-#ifndef _clog_4_ARGS_TRACE_TlsError
 
 
 
@@ -858,40 +447,15 @@ tracepoint(CLOG_TLS_SCHANNEL_C, LibraryError , arg2);\
             "[ tls][%p] ERROR, %s.",
             Config->Connection,
             "Mismatched SEC_CONFIG IsServer state");
-// arg2 = arg2 = Config->Connection
-// arg3 = arg3 = "Mismatched SEC_CONFIG IsServer state"
+// arg2 = arg2 = Config->Connection = arg2
+// arg3 = arg3 = "Mismatched SEC_CONFIG IsServer state" = arg3
 ----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_TlsError
 #define _clog_4_ARGS_TRACE_TlsError(uniqueId, encoded_arg_string, arg2, arg3)\
 tracepoint(CLOG_TLS_SCHANNEL_C, TlsError , arg2, arg3);\
 
 #endif
 
-
-
-
-#ifndef _clog_4_ARGS_TRACE_AllocFailure
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for AllocFailure
-// Allocation of '%s' failed. (%llu bytes)
-// QuicTraceEvent(
-            AllocFailure,
-            "Allocation of '%s' failed. (%llu bytes)",
-            "CXPLAT_TLS",
-            sizeof(CXPLAT_TLS));
-// arg2 = arg2 = "CXPLAT_TLS"
-// arg3 = arg3 = sizeof(CXPLAT_TLS)
-----------------------------------------------------------*/
-#define _clog_4_ARGS_TRACE_AllocFailure(uniqueId, encoded_arg_string, arg2, arg3)\
-
-#endif
-
-
-
-
-#ifndef _clog_5_ARGS_TRACE_TlsErrorStatus
 
 
 
@@ -904,680 +468,13 @@ tracepoint(CLOG_TLS_SCHANNEL_C, TlsError , arg2, arg3);\
                     TlsContext->Connection,
                     Status,
                     "Convert SNI to unicode");
-// arg2 = arg2 = TlsContext->Connection
-// arg3 = arg3 = Status
-// arg4 = arg4 = "Convert SNI to unicode"
+// arg2 = arg2 = TlsContext->Connection = arg2
+// arg3 = arg3 = Status = arg3
+// arg4 = arg4 = "Convert SNI to unicode" = arg4
 ----------------------------------------------------------*/
+#ifndef _clog_5_ARGS_TRACE_TlsErrorStatus
 #define _clog_5_ARGS_TRACE_TlsErrorStatus(uniqueId, encoded_arg_string, arg2, arg3, arg4)\
 tracepoint(CLOG_TLS_SCHANNEL_C, TlsErrorStatus , arg2, arg3, arg4);\
-
-#endif
-
-
-
-
-#ifndef _clog_5_ARGS_TRACE_TlsErrorStatus
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for TlsErrorStatus
-// [ tls][%p] ERROR, %u, %s.
-// QuicTraceEvent(
-                TlsErrorStatus,
-                "[ tls][%p] ERROR, %u, %s.",
-                TlsContext->Connection,
-                Status,
-                "PsImpersonateClient failed");
-// arg2 = arg2 = TlsContext->Connection
-// arg3 = arg3 = Status
-// arg4 = arg4 = "PsImpersonateClient failed"
-----------------------------------------------------------*/
-#define _clog_5_ARGS_TRACE_TlsErrorStatus(uniqueId, encoded_arg_string, arg2, arg3, arg4)\
-
-#endif
-
-
-
-
-#ifndef _clog_4_ARGS_TRACE_TlsError
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for TlsError
-// [ tls][%p] ERROR, %s.
-// QuicTraceEvent(
-                TlsError,
-                "[ tls][%p] ERROR, %s.",
-                TlsContext->Connection,
-                "No QUIC TP received");
-// arg2 = arg2 = TlsContext->Connection
-// arg3 = arg3 = "No QUIC TP received"
-----------------------------------------------------------*/
-#define _clog_4_ARGS_TRACE_TlsError(uniqueId, encoded_arg_string, arg2, arg3)\
-
-#endif
-
-
-
-
-#ifndef _clog_5_ARGS_TRACE_TlsErrorStatus
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for TlsErrorStatus
-// [ tls][%p] ERROR, %u, %s.
-// QuicTraceEvent(
-                        TlsErrorStatus,
-                        "[ tls][%p] ERROR, %u, %s.",
-                        TlsContext->Connection,
-                        SecStatus,
-                        "query negotiated ALPN");
-// arg2 = arg2 = TlsContext->Connection
-// arg3 = arg3 = SecStatus
-// arg4 = arg4 = "query negotiated ALPN"
-----------------------------------------------------------*/
-#define _clog_5_ARGS_TRACE_TlsErrorStatus(uniqueId, encoded_arg_string, arg2, arg3, arg4)\
-
-#endif
-
-
-
-
-#ifndef _clog_5_ARGS_TRACE_TlsErrorStatus
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for TlsErrorStatus
-// [ tls][%p] ERROR, %u, %s.
-// QuicTraceEvent(
-                        TlsErrorStatus,
-                        "[ tls][%p] ERROR, %u, %s.",
-                        TlsContext->Connection,
-                        NegotiatedAlpn.ProtoNegoStatus,
-                        "ALPN negotiation status");
-// arg2 = arg2 = TlsContext->Connection
-// arg3 = arg3 = NegotiatedAlpn.ProtoNegoStatus
-// arg4 = arg4 = "ALPN negotiation status"
-----------------------------------------------------------*/
-#define _clog_5_ARGS_TRACE_TlsErrorStatus(uniqueId, encoded_arg_string, arg2, arg3, arg4)\
-
-#endif
-
-
-
-
-#ifndef _clog_4_ARGS_TRACE_TlsError
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for TlsError
-// [ tls][%p] ERROR, %s.
-// QuicTraceEvent(
-                        TlsError,
-                        "[ tls][%p] ERROR, %s.",
-                        TlsContext->Connection,
-                        "ALPN Mismatch");
-// arg2 = arg2 = TlsContext->Connection
-// arg3 = arg3 = "ALPN Mismatch"
-----------------------------------------------------------*/
-#define _clog_4_ARGS_TRACE_TlsError(uniqueId, encoded_arg_string, arg2, arg3)\
-
-#endif
-
-
-
-
-#ifndef _clog_5_ARGS_TRACE_TlsErrorStatus
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for TlsErrorStatus
-// [ tls][%p] ERROR, %u, %s.
-// QuicTraceEvent(
-                        TlsErrorStatus,
-                        "[ tls][%p] ERROR, %u, %s.",
-                        TlsContext->Connection,
-                        SecStatus,
-                        "query cert validation result");
-// arg2 = arg2 = TlsContext->Connection
-// arg3 = arg3 = SecStatus
-// arg4 = arg4 = "query cert validation result"
-----------------------------------------------------------*/
-#define _clog_5_ARGS_TRACE_TlsErrorStatus(uniqueId, encoded_arg_string, arg2, arg3, arg4)\
-
-#endif
-
-
-
-
-#ifndef _clog_5_ARGS_TRACE_TlsErrorStatus
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for TlsErrorStatus
-// [ tls][%p] ERROR, %u, %s.
-// QuicTraceEvent(
-                    TlsErrorStatus,
-                    "[ tls][%p] ERROR, %u, %s.",
-                    TlsContext->Connection,
-                    SecStatus,
-                    "query session info");
-// arg2 = arg2 = TlsContext->Connection
-// arg3 = arg3 = SecStatus
-// arg4 = arg4 = "query session info"
-----------------------------------------------------------*/
-#define _clog_5_ARGS_TRACE_TlsErrorStatus(uniqueId, encoded_arg_string, arg2, arg3, arg4)\
-
-#endif
-
-
-
-
-#ifndef _clog_5_ARGS_TRACE_TlsErrorStatus
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for TlsErrorStatus
-// [ tls][%p] ERROR, %u, %s.
-// QuicTraceEvent(
-                        TlsErrorStatus,
-                        "[ tls][%p] ERROR, %u, %s.",
-                        TlsContext->Connection,
-                        SecStatus,
-                        "Query peer cert");
-// arg2 = arg2 = TlsContext->Connection
-// arg3 = arg3 = SecStatus
-// arg4 = arg4 = "Query peer cert"
-----------------------------------------------------------*/
-#define _clog_5_ARGS_TRACE_TlsErrorStatus(uniqueId, encoded_arg_string, arg2, arg3, arg4)\
-
-#endif
-
-
-
-
-#ifndef _clog_4_ARGS_TRACE_TlsError
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for TlsError
-// [ tls][%p] ERROR, %s.
-// QuicTraceEvent(
-                        TlsError,
-                        "[ tls][%p] ERROR, %s.",
-                        TlsContext->Connection,
-                        "Indicate certificate received failed");
-// arg2 = arg2 = TlsContext->Connection
-// arg3 = arg3 = "Indicate certificate received failed"
-----------------------------------------------------------*/
-#define _clog_4_ARGS_TRACE_TlsError(uniqueId, encoded_arg_string, arg2, arg3)\
-
-#endif
-
-
-
-
-#ifndef _clog_5_ARGS_TRACE_TlsErrorStatus
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for TlsErrorStatus
-// [ tls][%p] ERROR, %u, %s.
-// QuicTraceEvent(
-                    TlsErrorStatus,
-                    "[ tls][%p] ERROR, %u, %s.",
-                    TlsContext->Connection,
-                    CertValidationResult.hrVerifyChainStatus,
-                    "Certificate validation failed");
-// arg2 = arg2 = TlsContext->Connection
-// arg3 = arg3 = CertValidationResult.hrVerifyChainStatus
-// arg4 = arg4 = "Certificate validation failed"
-----------------------------------------------------------*/
-#define _clog_5_ARGS_TRACE_TlsErrorStatus(uniqueId, encoded_arg_string, arg2, arg3, arg4)\
-
-#endif
-
-
-
-
-#ifndef _clog_4_ARGS_TRACE_TlsError
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for TlsError
-// [ tls][%p] ERROR, %s.
-// QuicTraceEvent(
-                    TlsError,
-                    "[ tls][%p] ERROR, %s.",
-                    TlsContext->Connection,
-                    "TLS alert message received (invalid)");
-// arg2 = arg2 = TlsContext->Connection
-// arg3 = arg3 = "TLS alert message received (invalid)"
-----------------------------------------------------------*/
-#define _clog_4_ARGS_TRACE_TlsError(uniqueId, encoded_arg_string, arg2, arg3)\
-
-#endif
-
-
-
-
-#ifndef _clog_5_ARGS_TRACE_TlsErrorStatus
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for TlsErrorStatus
-// [ tls][%p] ERROR, %u, %s.
-// QuicTraceEvent(
-                    TlsErrorStatus,
-                    "[ tls][%p] ERROR, %u, %s.",
-                    TlsContext->Connection,
-                    State->AlertCode,
-                    "TLS alert message received");
-// arg2 = arg2 = TlsContext->Connection
-// arg3 = arg3 = State->AlertCode
-// arg4 = arg4 = "TLS alert message received"
-----------------------------------------------------------*/
-#define _clog_5_ARGS_TRACE_TlsErrorStatus(uniqueId, encoded_arg_string, arg2, arg3, arg4)\
-
-#endif
-
-
-
-
-#ifndef _clog_4_ARGS_TRACE_TlsError
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for TlsError
-// [ tls][%p] ERROR, %s.
-// QuicTraceEvent(
-                TlsError,
-                "[ tls][%p] ERROR, %s.",
-                TlsContext->Connection,
-                "QUIC TP wasn't present");
-// arg2 = arg2 = TlsContext->Connection
-// arg3 = arg3 = "QUIC TP wasn't present"
-----------------------------------------------------------*/
-#define _clog_4_ARGS_TRACE_TlsError(uniqueId, encoded_arg_string, arg2, arg3)\
-
-#endif
-
-
-
-
-#ifndef _clog_4_ARGS_TRACE_TlsError
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for TlsError
-// [ tls][%p] ERROR, %s.
-// QuicTraceEvent(
-                TlsError,
-                "[ tls][%p] ERROR, %s.",
-                TlsContext->Connection,
-                "Process QUIC TP");
-// arg2 = arg2 = TlsContext->Connection
-// arg3 = arg3 = "Process QUIC TP"
-----------------------------------------------------------*/
-#define _clog_4_ARGS_TRACE_TlsError(uniqueId, encoded_arg_string, arg2, arg3)\
-
-#endif
-
-
-
-
-#ifndef _clog_4_ARGS_TRACE_AllocFailure
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for AllocFailure
-// Allocation of '%s' failed. (%llu bytes)
-// QuicTraceEvent(
-                            AllocFailure,
-                            "Allocation of '%s' failed. (%llu bytes)",
-                            "Temporary Peer Transport Params",
-                            OutSecBufferDesc.pBuffers[i].cbBuffer);
-// arg2 = arg2 = "Temporary Peer Transport Params"
-// arg3 = arg3 = OutSecBufferDesc.pBuffers[i].cbBuffer
-----------------------------------------------------------*/
-#define _clog_4_ARGS_TRACE_AllocFailure(uniqueId, encoded_arg_string, arg2, arg3)\
-
-#endif
-
-
-
-
-#ifndef _clog_4_ARGS_TRACE_TlsError
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for TlsError
-// [ tls][%p] ERROR, %s.
-// QuicTraceEvent(
-                    TlsError,
-                    "[ tls][%p] ERROR, %s.",
-                    TlsContext->Connection,
-                    "TLS alert message received (invalid)");
-// arg2 = arg2 = TlsContext->Connection
-// arg3 = arg3 = "TLS alert message received (invalid)"
-----------------------------------------------------------*/
-#define _clog_4_ARGS_TRACE_TlsError(uniqueId, encoded_arg_string, arg2, arg3)\
-
-#endif
-
-
-
-
-#ifndef _clog_5_ARGS_TRACE_TlsErrorStatus
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for TlsErrorStatus
-// [ tls][%p] ERROR, %u, %s.
-// QuicTraceEvent(
-                    TlsErrorStatus,
-                    "[ tls][%p] ERROR, %u, %s.",
-                    TlsContext->Connection,
-                    State->AlertCode,
-                    "TLS alert message received");
-// arg2 = arg2 = TlsContext->Connection
-// arg3 = arg3 = State->AlertCode
-// arg4 = arg4 = "TLS alert message received"
-----------------------------------------------------------*/
-#define _clog_5_ARGS_TRACE_TlsErrorStatus(uniqueId, encoded_arg_string, arg2, arg3, arg4)\
-
-#endif
-
-
-
-
-#ifndef _clog_5_ARGS_TRACE_TlsErrorStatus
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for TlsErrorStatus
-// [ tls][%p] ERROR, %u, %s.
-// QuicTraceEvent(
-            TlsErrorStatus,
-            "[ tls][%p] ERROR, %u, %s.",
-            TlsContext->Connection,
-            SecStatus,
-            "Accept/InitializeSecurityContext");
-// arg2 = arg2 = TlsContext->Connection
-// arg3 = arg3 = SecStatus
-// arg4 = arg4 = "Accept/InitializeSecurityContext"
-----------------------------------------------------------*/
-#define _clog_5_ARGS_TRACE_TlsErrorStatus(uniqueId, encoded_arg_string, arg2, arg3, arg4)\
-
-#endif
-
-
-
-
-#ifndef _clog_5_ARGS_TRACE_TlsErrorStatus
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for TlsErrorStatus
-// [ tls][%p] ERROR, %u, %s.
-// QuicTraceEvent(
-                    TlsErrorStatus,
-                    "[ tls][%p] ERROR, %u, %s.",
-                    TlsContext->Connection,
-                    Status,
-                    "Query Connection Info");
-// arg2 = arg2 = TlsContext->Connection
-// arg3 = arg3 = Status
-// arg4 = arg4 = "Query Connection Info"
-----------------------------------------------------------*/
-#define _clog_5_ARGS_TRACE_TlsErrorStatus(uniqueId, encoded_arg_string, arg2, arg3, arg4)\
-
-#endif
-
-
-
-
-#ifndef _clog_5_ARGS_TRACE_TlsErrorStatus
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for TlsErrorStatus
-// [ tls][%p] ERROR, %u, %s.
-// QuicTraceEvent(
-                    TlsErrorStatus,
-                    "[ tls][%p] ERROR, %u, %s.",
-                    TlsContext->Connection,
-                    Status,
-                    "Query Cipher Info");
-// arg2 = arg2 = TlsContext->Connection
-// arg3 = arg3 = Status
-// arg4 = arg4 = "Query Cipher Info"
-----------------------------------------------------------*/
-#define _clog_5_ARGS_TRACE_TlsErrorStatus(uniqueId, encoded_arg_string, arg2, arg3, arg4)\
-
-#endif
-
-
-
-
-#ifndef _clog_5_ARGS_TRACE_TlsErrorStatus
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for TlsErrorStatus
-// [ tls][%p] ERROR, %u, %s.
-// QuicTraceEvent(
-                    TlsErrorStatus,
-                    "[ tls][%p] ERROR, %u, %s.",
-                    TlsContext->Connection,
-                    Status,
-                    "Query Application Protocol");
-// arg2 = arg2 = TlsContext->Connection
-// arg3 = arg3 = Status
-// arg4 = arg4 = "Query Application Protocol"
-----------------------------------------------------------*/
-#define _clog_5_ARGS_TRACE_TlsErrorStatus(uniqueId, encoded_arg_string, arg2, arg3, arg4)\
-
-#endif
-
-
-
-
-#ifndef _clog_5_ARGS_TRACE_TlsErrorStatus
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for TlsErrorStatus
-// [ tls][%p] ERROR, %u, %s.
-// QuicTraceEvent(
-                    TlsErrorStatus,
-                    "[ tls][%p] ERROR, %u, %s.",
-                    TlsContext->Connection,
-                    NegotiatedAlpn.ProtoNegoStatus,
-                    "ALPN negotiation status");
-// arg2 = arg2 = TlsContext->Connection
-// arg3 = arg3 = NegotiatedAlpn.ProtoNegoStatus
-// arg4 = arg4 = "ALPN negotiation status"
-----------------------------------------------------------*/
-#define _clog_5_ARGS_TRACE_TlsErrorStatus(uniqueId, encoded_arg_string, arg2, arg3, arg4)\
-
-#endif
-
-
-
-
-#ifndef _clog_4_ARGS_TRACE_TlsError
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for TlsError
-// [ tls][%p] ERROR, %s.
-// QuicTraceEvent(
-                TlsError,
-                "[ tls][%p] ERROR, %s.",
-                TlsContext->Connection,
-                "Unsupported chaining mode");
-// arg2 = arg2 = TlsContext->Connection
-// arg3 = arg3 = "Unsupported chaining mode"
-----------------------------------------------------------*/
-#define _clog_4_ARGS_TRACE_TlsError(uniqueId, encoded_arg_string, arg2, arg3)\
-
-#endif
-
-
-
-
-#ifndef _clog_4_ARGS_TRACE_TlsError
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for TlsError
-// [ tls][%p] ERROR, %s.
-// QuicTraceEvent(
-                TlsError,
-                "[ tls][%p] ERROR, %s.",
-                TlsContext->Connection,
-                "Unsupported AES key size");
-// arg2 = arg2 = TlsContext->Connection
-// arg3 = arg3 = "Unsupported AES key size"
-----------------------------------------------------------*/
-#define _clog_4_ARGS_TRACE_TlsError(uniqueId, encoded_arg_string, arg2, arg3)\
-
-#endif
-
-
-
-
-#ifndef _clog_4_ARGS_TRACE_TlsError
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for TlsError
-// [ tls][%p] ERROR, %s.
-// QuicTraceEvent(
-                TlsError,
-                "[ tls][%p] ERROR, %s.",
-                TlsContext->Connection,
-                "Algorithm unsupported by TLS: ChaCha20-Poly1305");
-// arg2 = arg2 = TlsContext->Connection
-// arg3 = arg3 = "Algorithm unsupported by TLS: ChaCha20-Poly1305"
-----------------------------------------------------------*/
-#define _clog_4_ARGS_TRACE_TlsError(uniqueId, encoded_arg_string, arg2, arg3)\
-
-#endif
-
-
-
-
-#ifndef _clog_4_ARGS_TRACE_TlsError
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for TlsError
-// [ tls][%p] ERROR, %s.
-// QuicTraceEvent(
-                TlsError,
-                "[ tls][%p] ERROR, %s.",
-                TlsContext->Connection,
-                "Unsupported ChaCha key size");
-// arg2 = arg2 = TlsContext->Connection
-// arg3 = arg3 = "Unsupported ChaCha key size"
-----------------------------------------------------------*/
-#define _clog_4_ARGS_TRACE_TlsError(uniqueId, encoded_arg_string, arg2, arg3)\
-
-#endif
-
-
-
-
-#ifndef _clog_4_ARGS_TRACE_TlsError
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for TlsError
-// [ tls][%p] ERROR, %s.
-// QuicTraceEvent(
-            TlsError,
-            "[ tls][%p] ERROR, %s.",
-            TlsContext->Connection,
-            "Unsupported symmetric algorithm");
-// arg2 = arg2 = TlsContext->Connection
-// arg3 = arg3 = "Unsupported symmetric algorithm"
-----------------------------------------------------------*/
-#define _clog_4_ARGS_TRACE_TlsError(uniqueId, encoded_arg_string, arg2, arg3)\
-
-#endif
-
-
-
-
-#ifndef _clog_4_ARGS_TRACE_TlsError
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for TlsError
-// [ tls][%p] ERROR, %s.
-// QuicTraceEvent(
-            TlsError,
-            "[ tls][%p] ERROR, %s.",
-            TlsContext->Connection,
-            "Unsupported hash algorithm");
-// arg2 = arg2 = TlsContext->Connection
-// arg3 = arg3 = "Unsupported hash algorithm"
-----------------------------------------------------------*/
-#define _clog_4_ARGS_TRACE_TlsError(uniqueId, encoded_arg_string, arg2, arg3)\
-
-#endif
-
-
-
-
-#ifndef _clog_5_ARGS_TRACE_TlsErrorStatus
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for TlsErrorStatus
-// [ tls][%p] ERROR, %u, %s.
-// QuicTraceEvent(
-            TlsErrorStatus,
-            "[ tls][%p] ERROR, %u, %s.",
-            TlsContext->Connection,
-            Status,
-            "QuicPacketKeyDerive");
-// arg2 = arg2 = TlsContext->Connection
-// arg3 = arg3 = Status
-// arg4 = arg4 = "QuicPacketKeyDerive"
-----------------------------------------------------------*/
-#define _clog_5_ARGS_TRACE_TlsErrorStatus(uniqueId, encoded_arg_string, arg2, arg3, arg4)\
 
 #endif
 

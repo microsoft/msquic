@@ -2,44 +2,6 @@
 
 
 /*----------------------------------------------------------
-// Decoder Ring for DatapathWorkerThreadStart
-// [data][%p] Worker start
-// QuicTraceLogInfo(
-        DatapathWorkerThreadStart,
-        "[data][%p] Worker start",
-        ProcContext);
-// arg2 = arg2 = ProcContext
-----------------------------------------------------------*/
-TRACEPOINT_EVENT(CLOG_DATAPATH_KQUEUE_C, DatapathWorkerThreadStart,
-    TP_ARGS(
-        const void *, arg2), 
-    TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg2, arg2)
-    )
-)
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for DatapathWorkerThreadStop
-// [data][%p] Worker stop
-// QuicTraceLogInfo(
-        DatapathWorkerThreadStop,
-        "[data][%p] Worker stop",
-        ProcContext);
-// arg2 = arg2 = ProcContext
-----------------------------------------------------------*/
-TRACEPOINT_EVENT(CLOG_DATAPATH_KQUEUE_C, DatapathWorkerThreadStop,
-    TP_ARGS(
-        const void *, arg2), 
-    TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg2, arg2)
-    )
-)
-
-
-
-/*----------------------------------------------------------
 // Decoder Ring for DatapathResolveHostNameFailed
 // [%p] Couldn't resolve hostname '%s' to an IP address
 // QuicTraceLogError(
@@ -47,8 +9,8 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_KQUEUE_C, DatapathWorkerThreadStop,
         "[%p] Couldn't resolve hostname '%s' to an IP address",
         Datapath,
         HostName);
-// arg2 = arg2 = Datapath
-// arg3 = arg3 = HostName
+// arg2 = arg2 = Datapath = arg2
+// arg3 = arg3 = HostName = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_DATAPATH_KQUEUE_C, DatapathResolveHostNameFailed,
     TP_ARGS(
@@ -63,29 +25,6 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_KQUEUE_C, DatapathResolveHostNameFailed,
 
 
 /*----------------------------------------------------------
-// Decoder Ring for LibraryErrorStatus
-// [ lib] ERROR, %u, %s.
-// QuicTraceEvent(
-            LibraryErrorStatus,
-            "[ lib] ERROR, %u, %s.",
-            Status,
-            "kqueue() failed");
-// arg2 = arg2 = Status
-// arg3 = arg3 = "kqueue() failed"
-----------------------------------------------------------*/
-TRACEPOINT_EVENT(CLOG_DATAPATH_KQUEUE_C, LibraryErrorStatus,
-    TP_ARGS(
-        unsigned int, arg2,
-        const char *, arg3), 
-    TP_FIELDS(
-        ctf_integer(unsigned int, arg2, arg2)
-        ctf_string(arg3, arg3)
-    )
-)
-
-
-
-/*----------------------------------------------------------
 // Decoder Ring for AllocFailure
 // Allocation of '%s' failed. (%llu bytes)
 // QuicTraceEvent(
@@ -93,8 +32,8 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_KQUEUE_C, LibraryErrorStatus,
             "Allocation of '%s' failed. (%llu bytes)",
             "CXPLAT_DATAPATH",
             DatapathLength);
-// arg2 = arg2 = "CXPLAT_DATAPATH"
-// arg3 = arg3 = DatapathLength
+// arg2 = arg2 = "CXPLAT_DATAPATH" = arg2
+// arg3 = arg3 = DatapathLength = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_DATAPATH_KQUEUE_C, AllocFailure,
     TP_ARGS(
@@ -109,6 +48,29 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_KQUEUE_C, AllocFailure,
 
 
 /*----------------------------------------------------------
+// Decoder Ring for LibraryErrorStatus
+// [ lib] ERROR, %u, %s.
+// QuicTraceEvent(
+        LibraryErrorStatus,
+        "[ lib] ERROR, %u, %s.",
+        (uint32_t)Result,
+        "Resolving hostname to IP");
+// arg2 = arg2 = (uint32_t)Result = arg2
+// arg3 = arg3 = "Resolving hostname to IP" = arg3
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_DATAPATH_KQUEUE_C, LibraryErrorStatus,
+    TP_ARGS(
+        unsigned int, arg2,
+        const char *, arg3), 
+    TP_FIELDS(
+        ctf_integer(unsigned int, arg2, arg2)
+        ctf_string(arg3, arg3)
+    )
+)
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for DatapathErrorStatus
 // [data][%p] ERROR, %u, %s.
 // QuicTraceEvent(
@@ -117,9 +79,9 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_KQUEUE_C, AllocFailure,
             Binding,
             Status,
             "socket() failed");
-// arg2 = arg2 = Binding
-// arg3 = arg3 = Status
-// arg4 = arg4 = "socket() failed"
+// arg2 = arg2 = Binding = arg2
+// arg3 = arg3 = Status = arg3
+// arg4 = arg4 = "socket() failed" = arg4
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_DATAPATH_KQUEUE_C, DatapathErrorStatus,
     TP_ARGS(
@@ -146,11 +108,11 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_KQUEUE_C, DatapathErrorStatus,
         (uint32_t)BytesTransferred,
         CASTED_CLOG_BYTEARRAY(sizeof(*LocalAddr), LocalAddr),
         CASTED_CLOG_BYTEARRAY(sizeof(*RemoteAddr), RemoteAddr));
-// arg2 = arg2 = SocketContext->Binding
-// arg3 = arg3 = (uint32_t)BytesTransferred
-// arg4 = arg4 = (uint32_t)BytesTransferred
-// arg5 = arg5 = CASTED_CLOG_BYTEARRAY(sizeof(*LocalAddr), LocalAddr)
-// arg6 = arg6 = CASTED_CLOG_BYTEARRAY(sizeof(*RemoteAddr), RemoteAddr)
+// arg2 = arg2 = SocketContext->Binding = arg2
+// arg3 = arg3 = (uint32_t)BytesTransferred = arg3
+// arg4 = arg4 = (uint32_t)BytesTransferred = arg4
+// arg5 = arg5 = CASTED_CLOG_BYTEARRAY(sizeof(*LocalAddr), LocalAddr) = arg5
+// arg6 = arg6 = CASTED_CLOG_BYTEARRAY(sizeof(*RemoteAddr), RemoteAddr) = arg6
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_DATAPATH_KQUEUE_C, DatapathRecv,
     TP_ARGS(
@@ -183,9 +145,9 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_KQUEUE_C, DatapathRecv,
         Binding,
         CASTED_CLOG_BYTEARRAY(Config->LocalAddress ? sizeof(*Config->LocalAddress) : 0, Config->LocalAddress),
         CASTED_CLOG_BYTEARRAY(Config->RemoteAddress ? sizeof(*Config->RemoteAddress) : 0, Config->RemoteAddress));
-// arg2 = arg2 = Binding
-// arg3 = arg3 = CASTED_CLOG_BYTEARRAY(Config->LocalAddress ? sizeof(*Config->LocalAddress) : 0, Config->LocalAddress)
-// arg4 = arg4 = CASTED_CLOG_BYTEARRAY(Config->RemoteAddress ? sizeof(*Config->RemoteAddress) : 0, Config->RemoteAddress)
+// arg2 = arg2 = Binding = arg2
+// arg3 = arg3 = CASTED_CLOG_BYTEARRAY(Config->LocalAddress ? sizeof(*Config->LocalAddress) : 0, Config->LocalAddress) = arg3
+// arg4 = arg4 = CASTED_CLOG_BYTEARRAY(Config->RemoteAddress ? sizeof(*Config->RemoteAddress) : 0, Config->RemoteAddress) = arg4
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_DATAPATH_KQUEUE_C, DatapathCreated,
     TP_ARGS(
@@ -209,10 +171,10 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_KQUEUE_C, DatapathCreated,
 // Decoder Ring for DatapathDestroyed
 // [data][%p] Destroyed
 // QuicTraceEvent(
-                DatapathDestroyed,
-                "[data][%p] Destroyed",
-                Binding);
-// arg2 = arg2 = Binding
+        DatapathDestroyed,
+        "[data][%p] Destroyed",
+        Socket);
+// arg2 = arg2 = Socket = arg2
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_DATAPATH_KQUEUE_C, DatapathDestroyed,
     TP_ARGS(
@@ -236,12 +198,12 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_KQUEUE_C, DatapathDestroyed,
             SendData->SegmentSize,
             CASTED_CLOG_BYTEARRAY(sizeof(*RemoteAddress), RemoteAddress),
             CASTED_CLOG_BYTEARRAY(sizeof(*LocalAddress), LocalAddress));
-// arg2 = arg2 = Socket
-// arg3 = arg3 = SendData->TotalSize
-// arg4 = arg4 = SendData->BufferCount
-// arg5 = arg5 = SendData->SegmentSize
-// arg6 = arg6 = CASTED_CLOG_BYTEARRAY(sizeof(*RemoteAddress), RemoteAddress)
-// arg7 = arg7 = CASTED_CLOG_BYTEARRAY(sizeof(*LocalAddress), LocalAddress)
+// arg2 = arg2 = Socket = arg2
+// arg3 = arg3 = SendData->TotalSize = arg3
+// arg4 = arg4 = SendData->BufferCount = arg4
+// arg5 = arg5 = SendData->SegmentSize = arg5
+// arg6 = arg6 = CASTED_CLOG_BYTEARRAY(sizeof(*RemoteAddress), RemoteAddress) = arg6
+// arg7 = arg7 = CASTED_CLOG_BYTEARRAY(sizeof(*LocalAddress), LocalAddress) = arg7
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_DATAPATH_KQUEUE_C, DatapathSend,
     TP_ARGS(

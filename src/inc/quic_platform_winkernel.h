@@ -100,6 +100,28 @@ ZwQueryInformationThread (
 #define INIT_NO_SAL(X) // No-op since Windows supports SAL
 
 //
+// Wrapper functions
+//
+
+inline
+void*
+InterlockedFetchAndClearPointer(
+    _Inout_ _Interlocked_operand_ void* volatile *Target
+    )
+{
+    return InterlockedExchangePointer(Target, NULL);
+}
+
+inline
+BOOLEAN
+InterlockedFetchAndClearBoolean(
+    _Inout_ _Interlocked_operand_ BOOLEAN volatile *Target
+    )
+{
+    return (BOOLEAN)InterlockedAnd8((char*)Target, 0);
+}
+
+//
 // Static Analysis Interfaces
 //
 
@@ -249,57 +271,12 @@ typedef LOOKASIDE_LIST_EX CXPLAT_POOL;
 // Locking Interfaces
 //
 
-//
-// The following declares several currently unpublished shared locking
-// functions from Windows.
-//
-
-__drv_maxIRQL(APC_LEVEL)
-__drv_mustHoldCriticalRegion
-NTKERNELAPI
-VOID
-FASTCALL
-ExfAcquirePushLockExclusive(
-    __inout __deref __drv_acquiresExclusiveResource(ExPushLockType)
-    PEX_PUSH_LOCK PushLock
-    );
-
-__drv_maxIRQL(APC_LEVEL)
-__drv_mustHoldCriticalRegion
-NTKERNELAPI
-VOID
-FASTCALL
-ExfAcquirePushLockShared(
-    __inout __deref __drv_acquiresExclusiveResource(ExPushLockType)
-    PEX_PUSH_LOCK PushLock
-    );
-
-__drv_maxIRQL(DISPATCH_LEVEL)
-__drv_mustHoldCriticalRegion
-NTKERNELAPI
-VOID
-FASTCALL
-ExfReleasePushLockExclusive(
-    __inout __deref __drv_releasesExclusiveResource(ExPushLockType)
-    PEX_PUSH_LOCK PushLock
-    );
-
-__drv_maxIRQL(DISPATCH_LEVEL)
-__drv_mustHoldCriticalRegion
-NTKERNELAPI
-VOID
-FASTCALL
-ExfReleasePushLockShared(
-    __inout __deref __drv_releasesExclusiveResource(ExPushLockType)
-    PEX_PUSH_LOCK PushLock
-    );
-
 typedef EX_PUSH_LOCK CXPLAT_LOCK;
 
 #define CxPlatLockInitialize(Lock) ExInitializePushLock(Lock)
 #define CxPlatLockUninitialize(Lock)
-#define CxPlatLockAcquire(Lock) KeEnterCriticalRegion(); ExfAcquirePushLockExclusive(Lock)
-#define CxPlatLockRelease(Lock) ExfReleasePushLockExclusive(Lock); KeLeaveCriticalRegion()
+#define CxPlatLockAcquire(Lock) KeEnterCriticalRegion(); ExAcquirePushLockExclusive(Lock)
+#define CxPlatLockRelease(Lock) ExReleasePushLockExclusive(Lock); KeLeaveCriticalRegion()
 
 typedef struct CXPLAT_DISPATCH_LOCK {
     KSPIN_LOCK SpinLock;
@@ -319,10 +296,10 @@ typedef EX_PUSH_LOCK CXPLAT_RW_LOCK;
 
 #define CxPlatRwLockInitialize(Lock) ExInitializePushLock(Lock)
 #define CxPlatRwLockUninitialize(Lock)
-#define CxPlatRwLockAcquireShared(Lock) KeEnterCriticalRegion(); ExfAcquirePushLockShared(Lock)
-#define CxPlatRwLockAcquireExclusive(Lock) KeEnterCriticalRegion(); ExfAcquirePushLockExclusive(Lock)
-#define CxPlatRwLockReleaseShared(Lock) ExfReleasePushLockShared(Lock); KeLeaveCriticalRegion()
-#define CxPlatRwLockReleaseExclusive(Lock) ExfReleasePushLockExclusive(Lock); KeLeaveCriticalRegion()
+#define CxPlatRwLockAcquireShared(Lock) KeEnterCriticalRegion(); ExAcquirePushLockShared(Lock)
+#define CxPlatRwLockAcquireExclusive(Lock) KeEnterCriticalRegion(); ExAcquirePushLockExclusive(Lock)
+#define CxPlatRwLockReleaseShared(Lock) ExReleasePushLockShared(Lock); KeLeaveCriticalRegion()
+#define CxPlatRwLockReleaseExclusive(Lock) ExReleasePushLockExclusive(Lock); KeLeaveCriticalRegion()
 
 typedef struct CXPLAT_DISPATCH_RW_LOCK {
     EX_SPIN_LOCK SpinLock;
@@ -480,6 +457,80 @@ _CxPlatEventWaitWithTimeout(
 }
 #define CxPlatEventWaitWithTimeout(Event, TimeoutMs) \
     (STATUS_SUCCESS == _CxPlatEventWaitWithTimeout(&Event, TimeoutMs))
+
+//
+// Event Queue Interfaces
+//
+
+typedef KEVENT CXPLAT_EVENTQ; // Event queue
+typedef void* CXPLAT_CQE;
+
+inline
+BOOLEAN
+CxPlatEventQInitialize(
+    _Out_ CXPLAT_EVENTQ* queue
+    )
+{
+    KeInitializeEvent(queue, SynchronizationEvent, FALSE);
+    return TRUE;
+}
+
+inline
+void
+CxPlatEventQCleanup(
+    _In_ CXPLAT_EVENTQ* queue
+    )
+{
+    UNREFERENCED_PARAMETER(queue);
+}
+
+inline
+BOOLEAN
+_CxPlatEventQEnqueue(
+    _In_ CXPLAT_EVENTQ* queue,
+    _In_opt_ void* user_data
+    )
+{
+    UNREFERENCED_PARAMETER(user_data);
+    KeSetEvent(queue, IO_NO_INCREMENT, FALSE);
+    return TRUE;
+}
+
+#define CxPlatEventQEnqueue(queue, sqe, user_data) _CxPlatEventQEnqueue(queue, user_data)
+
+inline
+uint32_t
+CxPlatEventQDequeue(
+    _In_ CXPLAT_EVENTQ* queue,
+    _Out_ CXPLAT_CQE* events,
+    _In_ uint32_t count,
+    _In_ uint32_t wait_time // milliseconds
+    )
+{
+    UNREFERENCED_PARAMETER(count);
+    *events = NULL;
+    return STATUS_SUCCESS == _CxPlatEventWaitWithTimeout(queue, wait_time) ? 1 : 0;
+}
+
+inline
+void
+CxPlatEventQReturn(
+    _In_ CXPLAT_EVENTQ* queue,
+    _In_ uint32_t count
+    )
+{
+    UNREFERENCED_PARAMETER(queue);
+    UNREFERENCED_PARAMETER(count);
+}
+
+inline
+void*
+CxPlatCqeUserData(
+    _In_ const CXPLAT_CQE* cqe
+    )
+{
+    return *cqe;
+}
 
 //
 // Time Measurement Interfaces
@@ -650,6 +701,8 @@ CxPlatSleep(
 
     KeWaitForSingleObject(&SleepTimer, Executive, KernelMode, FALSE, NULL);
 }
+
+#define CxPlatSchedulerYield() // no-op
 
 //
 // Create Thread Interfaces
