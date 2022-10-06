@@ -128,7 +128,7 @@ HpsClient::Start(
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
     CXPLAT_DATAPATH* Datapath = nullptr;
     if (QUIC_FAILED(Status = CxPlatDataPathInitialize(0, nullptr, nullptr, nullptr, &Datapath))) {
-        printf("Failed to initialize datapath for resolution!\n");
+        WriteOutput("Failed to initialize datapath for resolution!\n");
         return Status;
     }
 
