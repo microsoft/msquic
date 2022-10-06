@@ -1126,12 +1126,12 @@ int start(void* Context) {
 
 extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
 {
-    // TODO: pass data to "// FUZZ" part
+    // TODD: timeout within 25 sec
     // cast "data" to any structures which are passed to any API with "size".
 
     Settings.RunServer = true;
     Settings.RunClient = true;
-    Settings.RunTimeMs = 60000;
+    Settings.RunTimeMs = 10000; // OSS-Fuzz timeout is 25 sec
     Settings.ServerName = "127.0.0.1";
     Settings.Ports = std::vector<uint16_t>({9998, 9999});
     Settings.AlpnPrefix = "spin";
