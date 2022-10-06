@@ -153,6 +153,18 @@ HpsClient::Start(
             WriteOutput("Failed to resolve remote address!\n");
             break;
         }
+    }
+
+    CxPlatDataPathUninitialize(Datapath);
+
+    if (QUIC_FAILED(Status)) {
+        return Status;
+    }
+
+    StartTime = CxPlatTimeUs64();
+
+    for (uint32_t Proc = 0; Proc < ActiveProcCount; ++Proc) {
+        auto Worker = &Contexts[Proc];
 
         CXPLAT_THREAD_CONFIG ThreadConfig = {
             CXPLAT_THREAD_FLAG_SET_AFFINITIZE,
@@ -168,8 +180,6 @@ HpsClient::Start(
         }
         Worker->ThreadStarted = true;
     }
-
-    CxPlatDataPathUninitialize(Datapath);
 
     uint32_t ThreadToSetAffinityTo = CxPlatProcActiveCount();
     if (ThreadToSetAffinityTo > 2) {
@@ -207,6 +217,10 @@ HpsClient::Wait(
         StartedConnections += (uint64_t)Contexts[i].StartedConnections;
         CompletedConnections += (uint64_t)Contexts[i].CompletedConnections;
     }
+
+    uint64_t EndTime = CxPlatTimeUs64();
+
+    RunTime = (uint32_t)US_TO_MS(CxPlatTimeDiff64(StartTime, EndTime));
 
     uint32_t HPS = (uint32_t)((CompletedConnections * 1000ull) / (uint64_t)RunTime);
     if (HPS == 0) {

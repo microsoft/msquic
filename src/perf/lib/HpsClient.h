@@ -118,4 +118,5 @@ public:
     uint8_t IncrementTarget {FALSE};
     CXPLAT_EVENT* CompletionEvent {nullptr};
     bool Shutdown {false};
+    uint64_t StartTime {0};
 };
