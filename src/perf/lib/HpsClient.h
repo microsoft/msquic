@@ -17,22 +17,35 @@ Abstract:
 #include "PerfBase.h"
 #include "PerfCommon.h"
 
+struct HpsBindingContext {
+    struct HpsWorkerContext* Worker;
+    QUIC_ADDR LocalAddr;
+    CXPLAT_REF_COUNT RefCount;
+    void Release(HQUIC Connection) {
+        if (CxPlatRefDecrement(&RefCount)) {
+            MsQuic->ConnectionClose(Connection);
+        }
+    }
+};
+
 struct HpsWorkerContext {
     class HpsClient* pThis {nullptr};
     UniquePtr<char[]> Target;
     QUIC_ADDR RemoteAddr;
-    QUIC_ADDR LocalAddrs[HPS_BINDINGS_PER_WORKER];
+    HpsBindingContext Bindings[HPS_BINDINGS_PER_WORKER];
     uint16_t Processor {0};
     long OutstandingConnections {0};
     uint32_t NextLocalAddr {0};
     CXPLAT_EVENT WakeEvent;
     CXPLAT_THREAD Thread;
-    bool RemoteAddrSet {false};
     bool ThreadStarted {false};
     HpsWorkerContext() {
         CxPlatZeroMemory(&RemoteAddr, sizeof(RemoteAddr));
-        CxPlatZeroMemory(&LocalAddrs, sizeof(LocalAddrs));
+        CxPlatZeroMemory(&Bindings, sizeof(Bindings));
         CxPlatEventInitialize(&WakeEvent, FALSE, TRUE);
+        for (uint32_t i = 0; i < HPS_BINDINGS_PER_WORKER; ++i) {
+            Bindings[i].Worker = this;
+        }
     }
     ~HpsWorkerContext() {
         WaitForWorker();
@@ -83,14 +96,7 @@ public:
         _Inout_ uint32_t* Length
         ) override;
 
-    QUIC_STATUS
-    ConnectionCallback(
-        _In_ HpsWorkerContext* Context,
-        _In_ HQUIC ConnectionHandle,
-        _Inout_ QUIC_CONNECTION_EVENT* Event
-        );
-
-    void StartConnection(HpsWorkerContext* Context);
+    void StartConnection(HpsWorkerContext* Worker);
 
     HpsWorkerContext Contexts[PERF_MAX_THREAD_COUNT];
     MsQuicRegistration Registration {

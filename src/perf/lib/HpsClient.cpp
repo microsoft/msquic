@@ -95,8 +95,6 @@ HpsClient::Init(
     return QUIC_STATUS_SUCCESS;
 }
 
-
-
 static void AppendIntToString(char* String, uint8_t Value) {
     const char* Hex = "0123456789ABCDEF";
 
@@ -222,27 +220,37 @@ HpsClient::GetExtraData(
     return QUIC_STATUS_SUCCESS;
 }
 
+static
 QUIC_STATUS
-HpsClient::ConnectionCallback(
-    _In_ HpsWorkerContext* Context,
+ConnectionCallback(
+    _In_opt_ HpsBindingContext* Binding,
     _In_ HQUIC ConnectionHandle,
     _Inout_ QUIC_CONNECTION_EVENT* Event
     ) {
     switch (Event->Type) {
     case QUIC_CONNECTION_EVENT_CONNECTED:
-        InterlockedIncrement64((int64_t*)&CompletedConnections);
-        MsQuic->ConnectionShutdown(ConnectionHandle, QUIC_CONNECTION_SHUTDOWN_FLAG_NONE, 0);
-        InterlockedDecrement(&Context->OutstandingConnections);
-        if (!Shutdown) {
-            CxPlatEventSet(Context->WakeEvent);
+        MsQuic->SetContext(ConnectionHandle, nullptr); // Dissassociate our context with this connection now
+        InterlockedIncrement64((int64_t*)&Binding->Worker->pThis->CompletedConnections);
+        if (QuicAddrGetPort(&Binding->LocalAddr) == 0) { // Cache local address
+            uint32_t AddrLen = sizeof(Binding->LocalAddr);
+            MsQuic->GetParam(
+                ConnectionHandle,
+                QUIC_PARAM_CONN_LOCAL_ADDRESS,
+                &AddrLen,
+                &Binding->LocalAddr);
         }
+        MsQuic->ConnectionShutdown(ConnectionHandle, QUIC_CONNECTION_SHUTDOWN_FLAG_NONE, 0);
+        InterlockedDecrement(&Binding->Worker->OutstandingConnections);
+        CxPlatEventSet(Binding->Worker->WakeEvent);
         break;
     case QUIC_CONNECTION_EVENT_SHUTDOWN_COMPLETE:
-        if (!Shutdown && !Event->SHUTDOWN_COMPLETE.HandshakeCompleted) {
-            InterlockedDecrement(&Context->OutstandingConnections);
-            CxPlatEventSet(Context->WakeEvent);
-        }
-        if (!Event->SHUTDOWN_COMPLETE.AppCloseInProgress) {
+        if (Binding) { // Means we failed to connect
+            InterlockedDecrement(&Binding->Worker->OutstandingConnections);
+            CxPlatEventSet(Binding->Worker->WakeEvent);
+            Binding->Release(ConnectionHandle); // The async callback ref
+        } else {
+            // We've already abandoned our binding context, so no other refs
+            // exist. Just close directly.
             MsQuic->ConnectionClose(ConnectionHandle);
         }
         break;
@@ -255,35 +263,36 @@ HpsClient::ConnectionCallback(
 
 void
 HpsClient::StartConnection(
-    HpsWorkerContext* Context
+    HpsWorkerContext* Worker
     ) {
+
+    HpsBindingContext* Binding = &Worker->Bindings[Worker->NextLocalAddr];
 
     struct ScopeCleanup {
         HQUIC Connection {nullptr};
-        HpsWorkerContext* Context;
-        ScopeCleanup(HpsWorkerContext* Context) : Context(Context) { }
-        ~ScopeCleanup() {
-            if (Connection) {
-                InterlockedDecrement(&Context->OutstandingConnections);
-                MsQuic->ConnectionClose(Connection);
-            }
+        HpsBindingContext* Binding;
+        bool Failed {true};
+        ScopeCleanup(HpsBindingContext* Binding) : Binding(Binding) {
+            CxPlatRefInitialize(&Binding->RefCount); // This scope's ref
         }
-    } Scope(Context);
+        ~ScopeCleanup() {
+            if (Failed) {
+                InterlockedDecrement(&Binding->Worker->OutstandingConnections);
+            }
+            Binding->Release(Connection); // This scope's ref
+        }
+    } Scope(Binding);
 
     QUIC_CONNECTION_CALLBACK_HANDLER Handler =
         [](HQUIC Conn, void* Context, QUIC_CONNECTION_EVENT* Event) -> QUIC_STATUS {
-            return ((HpsWorkerContext*)Context)->pThis->
-                ConnectionCallback(
-                    (HpsWorkerContext*)Context,
-                    Conn,
-                    Event);
+            return ConnectionCallback((HpsBindingContext*)Context, Conn, Event);
         };
 
     QUIC_STATUS Status =
         MsQuic->ConnectionOpen(
             Registration,
             Handler,
-            Context,
+            Binding,
             &Scope.Connection);
     if (QUIC_FAILED(Status)) {
         if (!Shutdown) {
@@ -308,14 +317,13 @@ HpsClient::StartConnection(
         return;
     }
 
-    bool LocalAddrSet = QuicAddrGetPort(&Context->LocalAddrs[Context->NextLocalAddr]) != 0;
-    if (LocalAddrSet) {
+    if (QuicAddrGetPort(&Binding->LocalAddr) != 0) {
         Status =
             MsQuic->SetParam(
                 Scope.Connection,
                 QUIC_PARAM_CONN_LOCAL_ADDRESS,
                 sizeof(QUIC_ADDR),
-                &Context->LocalAddrs[Context->NextLocalAddr]);
+                &Binding->LocalAddr);
         if (QUIC_FAILED(Status)) {
             if (!Shutdown) {
                 WriteOutput("SetParam(CONN_LOCAL_ADDRESS) failed, 0x%x\n", Status);
@@ -324,13 +332,13 @@ HpsClient::StartConnection(
         }
     }
 
-    if (Context->RemoteAddrSet) {
+    if (QuicAddrGetPort(&Worker->RemoteAddr) != 0) {
         Status =
             MsQuic->SetParam(
                 Scope.Connection,
                 QUIC_PARAM_CONN_REMOTE_ADDRESS,
                 sizeof(QUIC_ADDR),
-                &Context->RemoteAddr);
+                &Worker->RemoteAddr);
         if (QUIC_FAILED(Status)) {
             if (!Shutdown) {
                 WriteOutput("SetParam(CONN_REMOTE_ADDRESS) failed, 0x%x\n", Status);
@@ -339,52 +347,33 @@ HpsClient::StartConnection(
         }
     }
 
+    CxPlatRefIncrement(&Binding->RefCount); // The async callback ref
+
     Status =
         MsQuic->ConnectionStart(
             Scope.Connection,
             Configuration,
             QUIC_ADDRESS_FAMILY_UNSPEC,
-            Context->Target.get(),
+            Worker->Target.get(),
             Port);
     if (QUIC_FAILED(Status)) {
+        CxPlatRefDecrement(&Binding->RefCount);
         if (!Shutdown) {
             WriteOutput("ConnectionStart failed, 0x%x\n", Status);
         }
         return;
     }
 
-    if (!LocalAddrSet) {
+    if (QuicAddrGetPort(&Worker->RemoteAddr) == 0) {
         uint32_t AddrLen = sizeof(QUIC_ADDR);
-        Status =
-            MsQuic->GetParam(
-                Scope.Connection,
-                QUIC_PARAM_CONN_LOCAL_ADDRESS,
-                &AddrLen,
-                &Context->LocalAddrs[Context->NextLocalAddr]);
-        if (QUIC_FAILED(Status)) {
-            if (!Shutdown) {
-                WriteOutput("GetParam(CONN_LOCAL_ADDRESS) failed, 0x%x\n", Status);
-            }
-        }
+        MsQuic->GetParam(
+            Scope.Connection,
+            QUIC_PARAM_CONN_REMOTE_ADDRESS,
+            &AddrLen,
+            &Worker->RemoteAddr);
     }
 
-    if (!Context->RemoteAddrSet) {
-        uint32_t AddrLen = sizeof(QUIC_ADDR);
-        Status =
-            MsQuic->GetParam(
-                Scope.Connection,
-                QUIC_PARAM_CONN_REMOTE_ADDRESS,
-                &AddrLen,
-                &Context->RemoteAddr);
-        if (QUIC_FAILED(Status)) {
-            if (!Shutdown) {
-                WriteOutput("GetParam(CONN_REMOTE_ADDRESS) failed, 0x%x\n", Status);
-            }
-        }
-        Context->RemoteAddrSet = true;
-    }
-
-    Context->NextLocalAddr = (Context->NextLocalAddr + 1) % HPS_BINDINGS_PER_WORKER;
+    Worker->NextLocalAddr = (Worker->NextLocalAddr + 1) % HPS_BINDINGS_PER_WORKER;
     InterlockedIncrement64((int64_t*)&StartedConnections);
-    Scope.Connection = nullptr;
+    Scope.Failed = false;
 }
