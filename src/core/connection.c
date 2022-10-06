@@ -4832,7 +4832,9 @@ QuicConnRecvFrames(
             AckEliciting = TRUE;
 
             QUIC_CONNECTION_EVENT Event;
-            Event.Type = QUIC_CONNECTION_EVENT_PEER_NEEDS_STREAMS; // TODO - Uni/Bidi
+            Event.Type = QUIC_CONNECTION_EVENT_PEER_NEEDS_STREAMS;
+            Event.PEER_NEEDS_STREAMS.Bidirectional = Frame.BidirectionalStreams;
+            Event.PEER_NEEDS_STREAMS.StreamLimit = Frame.StreamLimit;
             QuicTraceLogConnVerbose(
                 IndicatePeerNeedStreams,
                 Connection,
