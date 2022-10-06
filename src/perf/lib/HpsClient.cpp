@@ -103,29 +103,16 @@ static void AppendIntToString(char* String, uint8_t Value) {
     String[2] = '\0';
 }
 
-CXPLAT_THREAD_CALLBACK(HpsWorkerThread, _Context)
+CXPLAT_THREAD_CALLBACK(HpsWorkerThread, Context)
 {
-    auto Context = (HpsWorkerContext*)_Context;
+    auto Worker = (HpsWorkerContext*)Context;
 
-    // Compute thread address
-    const char* Target = Context->pThis->Target.get();
-    size_t Len = strlen(Target);
-
-    Context->Target.reset(new(std::nothrow) char[Len + 10]);
-    CxPlatCopyMemory(Context->Target.get(), Target, Len);
-
-    if (Context->pThis->IncrementTarget) {
-        AppendIntToString(Context->Target.get() + Len, (uint8_t)Context->Processor);
-    } else {
-        Context->Target.get()[Len] = '\0';
-    }
-
-    while (!Context->pThis->Shutdown) {
-        if ((uint32_t)Context->OutstandingConnections == Context->pThis->Parallel) {
-            CxPlatEventWaitForever(Context->WakeEvent);
+    while (!Worker->pThis->Shutdown) {
+        if ((uint32_t)Worker->OutstandingConnections == Worker->pThis->Parallel) {
+            CxPlatEventWaitForever(Worker->WakeEvent);
         } else {
-            InterlockedIncrement(&Context->OutstandingConnections);
-            Context->pThis->StartConnection(Context);
+            InterlockedIncrement(&Worker->OutstandingConnections);
+            Worker->pThis->StartConnection(Worker);
         }
     }
 
@@ -139,24 +126,50 @@ HpsClient::Start(
     CompletionEvent = StopEvent;
 
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
+    CXPLAT_DATAPATH* Datapath = nullptr;
+    if (QUIC_FAILED(Status = CxPlatDataPathInitialize(0, nullptr, nullptr, nullptr, &Datapath))) {
+        printf("Failed to initialize datapath for resolution!\n");
+        return Status;
+    }
+
     for (uint32_t Proc = 0; Proc < ActiveProcCount; ++Proc) {
-        Contexts[Proc].pThis = this;
-        Contexts[Proc].Processor = (uint16_t)Proc;
+        auto Worker = &Contexts[Proc];
+
+        Worker->pThis = this;
+        Worker->Processor = (uint16_t)Proc;
+
+        const char* NewTarget = Target.get();
+        size_t Len = strlen(NewTarget);
+        Worker->Target.reset(new(std::nothrow) char[Len + 10]);
+        CxPlatCopyMemory(Worker->Target.get(), NewTarget, Len);
+        if (IncrementTarget) {
+            AppendIntToString(Worker->Target.get() + Len, (uint8_t)Worker->Processor);
+        } else {
+            Worker->Target.get()[Len] = '\0';
+        }
+
+        Status = CxPlatDataPathResolveAddress(Datapath, Worker->Target.get(), &Worker->RemoteAddr);
+        if (QUIC_FAILED(Status)) {
+            printf("Failed to resolve remote address!\n");
+            break;
+        }
 
         CXPLAT_THREAD_CONFIG ThreadConfig = {
             CXPLAT_THREAD_FLAG_SET_AFFINITIZE,
             (uint16_t)Proc,
             "HPS Worker",
             HpsWorkerThread,
-            &Contexts[Proc]
+            Worker
         };
 
-        Status = CxPlatThreadCreate(&ThreadConfig, &Contexts[Proc].Thread);
+        Status = CxPlatThreadCreate(&ThreadConfig, &Worker->Thread);
         if (QUIC_FAILED(Status)) {
             break;
         }
-        Contexts[Proc].ThreadStarted = true;
+        Worker->ThreadStarted = true;
     }
+
+    CxPlatDataPathUninitialize(Datapath);
 
     uint32_t ThreadToSetAffinityTo = CxPlatProcActiveCount();
     if (ThreadToSetAffinityTo > 2) {
@@ -184,18 +197,23 @@ HpsClient::Wait(
         CxPlatEventSet(Contexts[i].WakeEvent);
     }
 
+    uint64_t CreatedConnections = 0;
+    uint64_t StartedConnections = 0;
+    uint64_t CompletedConnections = 0;
+
     for (uint32_t i  = 0; i < ActiveProcCount; i++) {
         Contexts[i].WaitForWorker();
+        CreatedConnections += (uint64_t)Contexts[i].CreatedConnections;
+        StartedConnections += (uint64_t)Contexts[i].StartedConnections;
+        CompletedConnections += (uint64_t)Contexts[i].CompletedConnections;
     }
 
     uint32_t HPS = (uint32_t)((CompletedConnections * 1000ull) / (uint64_t)RunTime);
     if (HPS == 0) {
-        WriteOutput("Error: No handshakes were completed\n");
+        WriteOutput("Error: No handshakes were completed (%ull created, %ull started\n)", CreatedConnections, StartedConnections);
     } else {
         WriteOutput("Result: %u HPS\n", HPS);
     }
-    //WriteOutput("Result: %u HPS (%ull create, %ull start, %ull complete)\n",
-    //    HPS, CreatedConnections, StartedConnections, CompletedConnections);
     Registration.Shutdown(QUIC_CONNECTION_SHUTDOWN_FLAG_SILENT, 0);
 
     return QUIC_STATUS_SUCCESS;
@@ -230,7 +248,7 @@ ConnectionCallback(
     switch (Event->Type) {
     case QUIC_CONNECTION_EVENT_CONNECTED:
         MsQuic->SetContext(ConnectionHandle, nullptr); // Dissassociate our context with this connection now
-        InterlockedIncrement64((int64_t*)&Binding->Worker->pThis->CompletedConnections);
+        InterlockedIncrement64(&Binding->Worker->CompletedConnections);
         if (QuicAddrGetPort(&Binding->LocalAddr) == 0) { // Cache local address
             uint32_t AddrLen = sizeof(Binding->LocalAddr);
             MsQuic->GetParam(
@@ -247,12 +265,8 @@ ConnectionCallback(
         if (Binding) { // Means we failed to connect
             InterlockedDecrement(&Binding->Worker->OutstandingConnections);
             CxPlatEventSet(Binding->Worker->WakeEvent);
-            Binding->Release(ConnectionHandle); // The async callback ref
-        } else {
-            // We've already abandoned our binding context, so no other refs
-            // exist. Just close directly.
-            MsQuic->ConnectionClose(ConnectionHandle);
         }
+        MsQuic->ConnectionClose(ConnectionHandle);
         break;
     default:
         break;
@@ -267,19 +281,17 @@ HpsClient::StartConnection(
     ) {
 
     HpsBindingContext* Binding = &Worker->Bindings[Worker->NextLocalAddr];
+    Worker->NextLocalAddr = (Worker->NextLocalAddr + 1) % HPS_BINDINGS_PER_WORKER;
 
     struct ScopeCleanup {
         HQUIC Connection {nullptr};
         HpsBindingContext* Binding;
-        bool Failed {true};
-        ScopeCleanup(HpsBindingContext* Binding) : Binding(Binding) {
-            CxPlatRefInitialize(&Binding->RefCount); // This scope's ref
-        }
+        ScopeCleanup(HpsBindingContext* Binding) : Binding(Binding) { }
         ~ScopeCleanup() {
-            if (Failed) {
+            if (Connection) {
                 InterlockedDecrement(&Binding->Worker->OutstandingConnections);
+                MsQuic->ConnectionClose(Connection);
             }
-            Binding->Release(Connection); // This scope's ref
         }
     } Scope(Binding);
 
@@ -301,7 +313,7 @@ HpsClient::StartConnection(
         return;
     }
 
-    InterlockedIncrement64((int64_t*)&CreatedConnections);
+    InterlockedIncrement64(&Worker->CreatedConnections);
 
     BOOLEAN Opt = TRUE;
     Status =
@@ -332,22 +344,18 @@ HpsClient::StartConnection(
         }
     }
 
-    if (QuicAddrGetPort(&Worker->RemoteAddr) != 0) {
-        Status =
-            MsQuic->SetParam(
-                Scope.Connection,
-                QUIC_PARAM_CONN_REMOTE_ADDRESS,
-                sizeof(QUIC_ADDR),
-                &Worker->RemoteAddr);
-        if (QUIC_FAILED(Status)) {
-            if (!Shutdown) {
-                WriteOutput("SetParam(CONN_REMOTE_ADDRESS) failed, 0x%x\n", Status);
-            }
-            return;
+    Status =
+        MsQuic->SetParam(
+            Scope.Connection,
+            QUIC_PARAM_CONN_REMOTE_ADDRESS,
+            sizeof(QUIC_ADDR),
+            &Worker->RemoteAddr);
+    if (QUIC_FAILED(Status)) {
+        if (!Shutdown) {
+            WriteOutput("SetParam(CONN_REMOTE_ADDRESS) failed, 0x%x\n", Status);
         }
+        return;
     }
-
-    CxPlatRefIncrement(&Binding->RefCount); // The async callback ref
 
     Status =
         MsQuic->ConnectionStart(
@@ -357,23 +365,12 @@ HpsClient::StartConnection(
             Worker->Target.get(),
             Port);
     if (QUIC_FAILED(Status)) {
-        CxPlatRefDecrement(&Binding->RefCount);
         if (!Shutdown) {
             WriteOutput("ConnectionStart failed, 0x%x\n", Status);
         }
         return;
     }
 
-    if (QuicAddrGetPort(&Worker->RemoteAddr) == 0) {
-        uint32_t AddrLen = sizeof(QUIC_ADDR);
-        MsQuic->GetParam(
-            Scope.Connection,
-            QUIC_PARAM_CONN_REMOTE_ADDRESS,
-            &AddrLen,
-            &Worker->RemoteAddr);
-    }
-
-    Worker->NextLocalAddr = (Worker->NextLocalAddr + 1) % HPS_BINDINGS_PER_WORKER;
-    InterlockedIncrement64((int64_t*)&StartedConnections);
-    Scope.Failed = false;
+    InterlockedIncrement64(&Worker->StartedConnections);
+    Scope.Connection = nullptr;
 }
