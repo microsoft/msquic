@@ -150,7 +150,7 @@ HpsClient::Start(
 
         Status = CxPlatDataPathResolveAddress(Datapath, Worker->Target.get(), &Worker->RemoteAddr);
         if (QUIC_FAILED(Status)) {
-            printf("Failed to resolve remote address!\n");
+            WriteOutput("Failed to resolve remote address!\n");
             break;
         }
 
@@ -210,7 +210,8 @@ HpsClient::Wait(
 
     uint32_t HPS = (uint32_t)((CompletedConnections * 1000ull) / (uint64_t)RunTime);
     if (HPS == 0) {
-        WriteOutput("Error: No handshakes were completed (%ull created, %ull started\n)", CreatedConnections, StartedConnections);
+        WriteOutput("Error: No handshakes were completed (%u created, %u started\n)",
+            (uint32_t)CreatedConnections, (uint32_t)StartedConnections);
     } else {
         WriteOutput("Result: %u HPS\n", HPS);
     }
