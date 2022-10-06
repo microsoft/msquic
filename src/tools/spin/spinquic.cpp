@@ -231,6 +231,7 @@ static struct {
     const char* ServerName;
     uint8_t LossPercent;
     int32_t AllocFailDenominator;
+    uint32_t RepeatCount;
 } Settings;
 
 QUIC_STATUS QUIC_API SpinQuicHandleStreamEvent(HQUIC Stream, void * /* Context */, QUIC_STREAM_EVENT *Event)
@@ -1062,69 +1063,10 @@ CXPLAT_THREAD_CALLBACK(RunThread, Context)
     CXPLAT_THREAD_RETURN(0);
 }
 
-int
-QUIC_MAIN_EXPORT
-main(int argc, char **argv)
-{
-    if (argc < 2) {
-        PrintHelpText();
-    }
 
-    if (strcmp(argv[1], "server") == 0) {
-        Settings.RunServer = true;
-    } else if (strcmp(argv[1], "client") == 0) {
-        Settings.RunClient = true;
-    } else if (strcmp(argv[1], "both") == 0) {
-        Settings.RunServer = true;
-        Settings.RunClient = true;
-    } else {
-        printf("Must specify one of the following as the first argument: 'server' 'client' 'both'\n\n");
-        PrintHelpText();
-    }
-
+int start(void* Context) {
     CxPlatSystemLoad();
     CxPlatInitialize();
-    CxPlatLockInitialize(&RunThreadLock);
-
-    uint32_t RepeatCount = 1;
-
-    Settings.RunTimeMs = 60000;
-    Settings.ServerName = "127.0.0.1";
-    Settings.Ports = std::vector<uint16_t>({9998, 9999});
-    Settings.AlpnPrefix = "spin";
-    Settings.MaxOperationCount = UINT64_MAX;
-    Settings.LossPercent = 1;
-    Settings.AllocFailDenominator = 0;
-
-    TryGetValue(argc, argv, "timeout", &Settings.RunTimeMs);
-    TryGetValue(argc, argv, "max_ops", &Settings.MaxOperationCount);
-    TryGetValue(argc, argv, "loss", &Settings.LossPercent);
-    TryGetValue(argc, argv, "repeat_count", &RepeatCount);
-    TryGetValue(argc, argv, "alloc_fail", &Settings.AllocFailDenominator);
-
-    if (RepeatCount == 0) {
-        printf("Must specify a non 0 repeat count\n");
-        PrintHelpText();
-    }
-
-    if (Settings.RunClient) {
-        uint16_t dstPort = 0;
-        if (TryGetValue(argc, argv, "dstport", &dstPort)) {
-            Settings.Ports = std::vector<uint16_t>({dstPort});
-        }
-        TryGetValue(argc, argv, "target", &Settings.ServerName);
-        if (TryGetValue(argc, argv, "alpn", &Settings.AlpnPrefix)) {
-            Settings.SessionCount = 1; // Default session count to 1 if ALPN explicitly specified.
-        }
-        TryGetValue(argc, argv, "sessions", &Settings.SessionCount);
-    }
-
-    uint32_t RngSeed = 0;
-    if (!TryGetValue(argc, argv, "seed", &RngSeed)) {
-        CxPlatRandom(sizeof(RngSeed), &RngSeed);
-    }
-    printf("Using seed value: %u\n", RngSeed);
-    srand(RngSeed);
 
     //
     // Initial MsQuicOpen2 and initialization.
@@ -1158,11 +1100,11 @@ main(int argc, char **argv)
 
     MsQuicClose(TempMsQuic);
 
-    Settings.RunTimeMs = Settings.RunTimeMs / RepeatCount;
-    for (uint32_t i = 0; i < RepeatCount; i++) {
+    Settings.RunTimeMs = Settings.RunTimeMs / Settings.RepeatCount;
+    for (uint32_t i = 0; i < Settings.RepeatCount; i++) {
 
         CXPLAT_THREAD_CONFIG Config = {
-            0, 0, "spin_run", RunThread, nullptr
+            0, 0, "spin_run", RunThread, Context
         };
         CXPLAT_THREAD Threads[4];
         const uint32_t Count = (uint32_t)(rand() % (ARRAYSIZE(Threads) - 1) + 1);
@@ -1177,6 +1119,99 @@ main(int argc, char **argv)
         }
     }
 
-    CxPlatLockUninitialize(&RunThreadLock);
     return 0;
 }
+
+#ifdef FUZZING
+
+extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
+{
+    // TODO: pass data to "// FUZZ" part
+    // cast "data" to any structures which are passed to any API with "size".
+
+    Settings.RunServer = true;
+    Settings.RunClient = true;
+    Settings.RunTimeMs = 60000;
+    Settings.ServerName = "127.0.0.1";
+    Settings.Ports = std::vector<uint16_t>({9998, 9999});
+    Settings.AlpnPrefix = "spin";
+    Settings.MaxOperationCount = UINT64_MAX;
+    Settings.LossPercent = 1;
+    Settings.AllocFailDenominator = 0;
+    Settings.RepeatCount = 1;
+
+    QUIC_BUFFER Context = {(uint32_t)size, const_cast<uint8_t*>(data)};
+    start(&Context);
+    return 0;
+}
+#else
+
+int
+QUIC_MAIN_EXPORT
+main(int argc, char **argv)
+{
+    if (argc < 2) {
+        PrintHelpText();
+    }
+
+    if (strcmp(argv[1], "server") == 0) {
+        Settings.RunServer = true;
+    } else if (strcmp(argv[1], "client") == 0) {
+        Settings.RunClient = true;
+    } else if (strcmp(argv[1], "both") == 0) {
+        Settings.RunServer = true;
+        Settings.RunClient = true;
+    } else {
+        printf("Must specify one of the following as the first argument: 'server' 'client' 'both'\n\n");
+        PrintHelpText();
+    }
+
+    CxPlatSystemLoad();
+    CxPlatInitialize();
+    CxPlatLockInitialize(&RunThreadLock);
+
+    uint32_t RepeatCount = 1;
+
+    Settings.RunTimeMs = 60000;
+    Settings.ServerName = "127.0.0.1";
+    Settings.Ports = std::vector<uint16_t>({9998, 9999});
+    Settings.AlpnPrefix = "spin";
+    Settings.MaxOperationCount = UINT64_MAX;
+    Settings.LossPercent = 1;
+    Settings.AllocFailDenominator = 0;
+    Settings.RepeatCount = 1;
+
+    TryGetValue(argc, argv, "timeout", &Settings.RunTimeMs);
+    TryGetValue(argc, argv, "max_ops", &Settings.MaxOperationCount);
+    TryGetValue(argc, argv, "loss", &Settings.LossPercent);
+    TryGetValue(argc, argv, "repeat_count", &Settings.RepeatCount);
+    TryGetValue(argc, argv, "alloc_fail", &Settings.AllocFailDenominator);
+
+    if (Settings.RepeatCount == 0) {
+        printf("Must specify a non 0 repeat count\n");
+        PrintHelpText();
+    }
+
+    if (Settings.RunClient) {
+        uint16_t dstPort = 0;
+        if (TryGetValue(argc, argv, "dstport", &dstPort)) {
+            Settings.Ports = std::vector<uint16_t>({dstPort});
+        }
+        TryGetValue(argc, argv, "target", &Settings.ServerName);
+        if (TryGetValue(argc, argv, "alpn", &Settings.AlpnPrefix)) {
+            Settings.SessionCount = 1; // Default session count to 1 if ALPN explicitly specified.
+        }
+        TryGetValue(argc, argv, "sessions", &Settings.SessionCount);
+    }
+
+    uint32_t RngSeed = 0;
+    if (!TryGetValue(argc, argv, "seed", &RngSeed)) {
+        CxPlatRandom(sizeof(RngSeed), &RngSeed);
+    }
+    printf("Using seed value: %u\n", RngSeed);
+    srand(RngSeed);
+
+    return start(nullptr);
+}
+
+#endif
