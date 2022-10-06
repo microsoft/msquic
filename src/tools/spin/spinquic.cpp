@@ -121,7 +121,9 @@ struct SpinQuicGlobals {
             MsQuic->RegistrationClose(Registration);
         }
         if (MsQuic) {
+#ifndef FUZZING
             DumpMsQuicPerfCounters(MsQuic);
+#endif
             MsQuicClose(MsQuic);
         }
         for (size_t j = 0; j < BufferCount; ++j) {
