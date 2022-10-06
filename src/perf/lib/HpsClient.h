@@ -22,7 +22,7 @@ struct HpsBindingContext {
     QUIC_ADDR LocalAddr;
 };
 
-struct QUIC_CACHEALIGN HpsWorkerContext {
+struct HpsWorkerContext {
     class HpsClient* pThis {nullptr};
     UniquePtr<char[]> Target;
     QUIC_ADDR RemoteAddr;
