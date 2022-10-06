@@ -673,6 +673,52 @@ QuicSendWriteFrames(
             }
         }
 
+        if (Send->SendFlags & QUIC_CONN_SEND_FLAG_BIDI_STREAMS_BLOCKED) {
+
+            uint64_t Mask = QuicConnIsServer(Connection) | STREAM_ID_FLAG_IS_BI_DIR;
+
+            QUIC_STREAMS_BLOCKED_EX Frame = {
+                TRUE,
+                Connection->Streams.Types[Mask].MaxTotalStreamCount
+            };
+
+            if (QuicStreamsBlockedFrameEncode(
+                    &Frame,
+                    &Builder->DatagramLength,
+                    AvailableBufferLength,
+                    Builder->Datagram->Buffer)) {
+                Send->SendFlags &= ~QUIC_CONN_SEND_FLAG_BIDI_STREAMS_BLOCKED;
+                if (QuicPacketBuilderAddFrame(Builder, QUIC_FRAME_STREAMS_BLOCKED, TRUE)) {
+                    return TRUE;
+                }
+            } else {
+                RanOutOfRoom = TRUE;
+            }
+        }
+
+        if (Send->SendFlags & QUIC_CONN_SEND_FLAG_UNI_STREAMS_BLOCKED) {
+
+            uint64_t Mask = QuicConnIsServer(Connection) | STREAM_ID_FLAG_IS_UNI_DIR;
+
+            QUIC_STREAMS_BLOCKED_EX Frame = {
+                FALSE,
+                Connection->Streams.Types[Mask].MaxTotalStreamCount
+            };
+
+            if (QuicStreamsBlockedFrameEncode(
+                    &Frame,
+                    &Builder->DatagramLength,
+                    AvailableBufferLength,
+                    Builder->Datagram->Buffer)) {
+                Send->SendFlags &= ~QUIC_CONN_SEND_FLAG_UNI_STREAMS_BLOCKED;
+                if (QuicPacketBuilderAddFrame(Builder, QUIC_FRAME_STREAMS_BLOCKED_1, TRUE)) {
+                    return TRUE;
+                }
+            } else {
+                RanOutOfRoom = TRUE;
+            }
+        }
+
         if ((Send->SendFlags & QUIC_CONN_SEND_FLAG_MAX_STREAMS_UNI)) {
 
             QUIC_MAX_STREAMS_EX Frame = { FALSE };

@@ -525,6 +525,10 @@ QuicStreamSetNewLocalStream(
     BOOLEAN NewStreamBlocked = Info->TotalStreamCount >= Info->MaxTotalStreamCount;
 
     if (FailOnBlocked && NewStreamBlocked) {
+        QuicSendSetSendFlag(
+            &Stream->Connection->Send,
+            STREAM_ID_IS_UNI_DIR(Stream->ID) ?
+                QUIC_CONN_SEND_FLAG_UNI_STREAMS_BLOCKED : QUIC_CONN_SEND_FLAG_BIDI_STREAMS_BLOCKED);
         Status = QUIC_STATUS_STREAM_LIMIT_REACHED;
         goto Exit;
     }
@@ -545,6 +549,10 @@ QuicStreamSetNewLocalStream(
         //
         Stream->OutFlowBlockedReasons |= QUIC_FLOW_BLOCKED_STREAM_ID_FLOW_CONTROL;
         Stream->BlockedTimings.StreamIdFlowControl.LastStartTimeUs = CxPlatTimeUs64();
+        QuicSendSetSendFlag(
+            &Stream->Connection->Send,
+            STREAM_ID_IS_UNI_DIR(Stream->ID) ?
+                QUIC_CONN_SEND_FLAG_UNI_STREAMS_BLOCKED : QUIC_CONN_SEND_FLAG_BIDI_STREAMS_BLOCKED);
     }
 
     Info->CurrentStreamCount++;
