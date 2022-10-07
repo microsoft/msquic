@@ -95,22 +95,6 @@ void XdpWorkerAddQueue(_In_ XDP_WORKER* Worker, _In_ XDP_QUEUE* Queue) {
     *Tail = Queue;
     Queue->Next = NULL;
     Queue->Worker = Worker;
-    if (*Worker->EventQ !=
-        CreateIoCompletionPort(Queue->RxXsk, *Worker->EventQ, (ULONG_PTR)&Queue->IoSqe, 0)) {
-        QuicTraceEvent(
-            LibraryErrorStatus,
-            "[ lib] ERROR, %u, %s.",
-            GetLastError(),
-            "CreateIoCompletionPort(RX)");
-    }
-    if (*Worker->EventQ !=
-        CreateIoCompletionPort(Queue->TxXsk, *Worker->EventQ, (ULONG_PTR)&Queue->IoSqe, 0)) {
-        QuicTraceEvent(
-            LibraryErrorStatus,
-            "[ lib] ERROR, %u, %s.",
-            GetLastError(),
-            "CreateIoCompletionPort(TX)");
-    }
 }
 
 typedef struct XDP_DATAPATH {
@@ -1143,17 +1127,41 @@ CxPlatDpRawInitialize(
             Xdp->WorkerCount = i;
             break;
         }
-        Xdp->Workers[i].Xdp = Xdp;
-        Xdp->Workers[i].ProcIndex = ProcessorList ? ProcessorList[i] : (uint16_t)i;
-        Xdp->Workers[i].Ready = TRUE;
-        Xdp->Workers[i].NextTimeUs = UINT64_MAX;
-        Xdp->Workers[i].Callback = CxPlatXdpExecute;
-        Xdp->Workers[i].Context = &Xdp->Workers[i];
-        Xdp->Workers[i].ShutdownSqe.CqeType = CXPLAT_CQE_TYPE_SOCKET_SHUTDOWN;
+
+        XDP_WORKER* Worker = &Xdp->Workers[i];
+        Worker->Xdp = Xdp;
+        Worker->ProcIndex = ProcessorList ? ProcessorList[i] : (uint16_t)i;
+        Worker->Ready = TRUE;
+        Worker->NextTimeUs = UINT64_MAX;
+        Worker->Callback = CxPlatXdpExecute;
+        Worker->Context = &Xdp->Workers[i];
+        Worker->ShutdownSqe.CqeType = CXPLAT_CQE_TYPE_SOCKET_SHUTDOWN;
         CxPlatRefIncrement(&Xdp->RefCount);
-        Xdp->Workers[i].EventQ = CxPlatWorkerGetEventQ(Xdp->Workers[i].ProcIndex);
+        Worker->EventQ = CxPlatWorkerGetEventQ(Worker->ProcIndex);
+
+        XDP_QUEUE* Queue = Xdp->Workers->Queues;
+        while (Queue) {
+            if (*Worker->EventQ !=
+                CreateIoCompletionPort(Queue->RxXsk, *Worker->EventQ, (ULONG_PTR)&Queue->IoSqe, 0)) {
+                QuicTraceEvent(
+                    LibraryErrorStatus,
+                    "[ lib] ERROR, %u, %s.",
+                    GetLastError(),
+                    "CreateIoCompletionPort(RX)");
+            }
+            if (*Worker->EventQ !=
+                CreateIoCompletionPort(Queue->TxXsk, *Worker->EventQ, (ULONG_PTR)&Queue->IoSqe, 0)) {
+                QuicTraceEvent(
+                    LibraryErrorStatus,
+                    "[ lib] ERROR, %u, %s.",
+                    GetLastError(),
+                    "CreateIoCompletionPort(TX)");
+            }
+            Queue = Queue->Next;
+        }
+
         CxPlatAddExecutionContext(
-            (CXPLAT_EXECUTION_CONTEXT*)&Xdp->Workers[i], Xdp->Workers[i].ProcIndex);
+            (CXPLAT_EXECUTION_CONTEXT*)&Xdp->Workers[i], Worker->ProcIndex);
     }
     Status = QUIC_STATUS_SUCCESS;
 
