@@ -9,6 +9,7 @@ Abstract:
 
 --*/
 
+#define QUIC_API_ENABLE_PREVIEW_FEATURES 1
 #define CX_PLATFORM_LINUX 1
 #define QUIC_TEST_APIS 1
 
@@ -27,11 +28,13 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
 	for (uint32_t Param = QUIC_PARAM_GLOBAL_RETRY_MEMORY_PERCENT;
 		Param <= QUIC_PARAM_GLOBAL_TLS_PROVIDER;
 		Param++) {
-		MsQuic->SetParam(
-			nullptr,
-			Param,
-			size,
-			&data);
+			if (Param == QUIC_PARAM_GLOBAL_VERSION_SETTINGS)
+				continue;
+			MsQuic->SetParam(
+				nullptr,
+				Param,
+				size,
+				data);
 	}
 
 	delete MsQuic;
