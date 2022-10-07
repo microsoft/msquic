@@ -1025,7 +1025,7 @@ CxPlatDpRawInitialize(
 
     CxPlatXdpReadConfig(Xdp);
     CxPlatListInitializeHead(&Xdp->Interfaces);
-    Xdp->PollingIdleTimeoutUs = Config ? 0 : Config->PollingIdleTimeoutUs;
+    Xdp->PollingIdleTimeoutUs = Config ? Config->PollingIdleTimeoutUs : 0;
 
     if (Config && Config->ProcessorCount) {
         Xdp->WorkerCount = Config->ProcessorCount;
