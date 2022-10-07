@@ -174,6 +174,26 @@ tracepoint(CLOG_API_C, ApiError , arg2);\
 
 
 /*----------------------------------------------------------
+// Decoder Ring for StreamAppReceiveCompleteCall
+// [strm][%p] Receive complete call [%llu bytes]
+// QuicTraceEvent(
+        StreamAppReceiveCompleteCall,
+        "[strm][%p] Receive complete call [%llu bytes]",
+        Stream,
+        BufferLength);
+// arg2 = arg2 = Stream = arg2
+// arg3 = arg3 = BufferLength = arg3
+----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_StreamAppReceiveCompleteCall
+#define _clog_4_ARGS_TRACE_StreamAppReceiveCompleteCall(uniqueId, encoded_arg_string, arg2, arg3)\
+tracepoint(CLOG_API_C, StreamAppReceiveCompleteCall , arg2, arg3);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for ConnError
 // [conn][%p] ERROR, %s.
 // QuicTraceEvent(

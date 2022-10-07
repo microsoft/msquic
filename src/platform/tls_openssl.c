@@ -41,6 +41,8 @@ Abstract:
 #include "tls_openssl.c.clog.h"
 #endif
 
+extern EVP_CIPHER *CXPLAT_AES_256_CBC_ALG_HANDLE;
+
 uint16_t CxPlatTlsTPHeaderSize = 0;
 
 const size_t OpenSslFilePrefixLength = sizeof("..\\..\\..\\..\\..\\..\\submodules");
@@ -100,7 +102,17 @@ typedef struct CXPLAT_TLS {
     // Indicates if this context belongs to server side or client side
     // connection.
     //
-    BOOLEAN IsServer;
+    BOOLEAN IsServer : 1;
+
+    //
+    // Indicates if the peer sent a certificate.
+    //
+    BOOLEAN PeerCertReceived : 1;
+
+    //
+    // Indicates whether the peer's TP has been received.
+    //
+    BOOLEAN PeerTPReceived : 1;
 
     //
     // The TLS extension type for the QUIC transport parameters.
@@ -230,8 +242,11 @@ CxPlatTlsCertificateVerifyCallback(
         (TlsContext->SecConfig->Flags & QUIC_CREDENTIAL_FLAG_REQUIRE_CLIENT_AUTHENTICATION ||
         TlsContext->SecConfig->Flags & QUIC_CREDENTIAL_FLAG_DEFER_CERTIFICATE_VALIDATION);
 
-    if (TlsContext->SecConfig->Flags & QUIC_CREDENTIAL_FLAG_CLIENT ||
-        IsDeferredValidationOrClientAuth) {
+    TlsContext->PeerCertReceived = (Cert != NULL);
+
+    if ((TlsContext->SecConfig->Flags & QUIC_CREDENTIAL_FLAG_CLIENT ||
+        IsDeferredValidationOrClientAuth) &&
+        !(TlsContext->SecConfig->Flags & QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION)) {
         if (!(TlsContext->SecConfig->Flags & QUIC_CREDENTIAL_FLAG_USE_TLS_BUILTIN_CERTIFICATE_VALIDATION)) {
             if (Cert == NULL) {
                 QuicTraceEvent(
@@ -278,6 +293,17 @@ CxPlatTlsCertificateVerifyCallback(
                     (int)CxPlatTlsMapOpenSSLErrorToQuicStatus(X509_STORE_CTX_get_error(x509_ctx));
             }
         }
+    } else if ((TlsContext->SecConfig->Flags & QUIC_CREDENTIAL_FLAG_INDICATE_CERTIFICATE_RECEIVED) &&
+               (TlsContext->SecConfig->Flags & QUIC_CREDENTIAL_FLAG_USE_PORTABLE_CERTIFICATES)) {
+        //
+        // We need to get certificates provided by peer if we going to pass them via Callbacks.CertificateReceived.
+        // We don't really care about validation status but without calling X509_verify_cert() x509_ctx has
+        // no certificates attached to it and that impacts validation of custom certificate chains.
+        //
+        // OpenSSL 3 has X509_build_chain() to build just the chain.
+        // We may do something similar here for OpenSsl 1.1
+        //
+        X509_verify_cert(x509_ctx);
     }
 
     if (!(TlsContext->SecConfig->Flags & QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION) &&
@@ -744,7 +770,7 @@ CxPlatTlsOnSessionTicketKeyNeeded(
     )
 {
 #ifdef IS_OPENSSL_3
-    OSSL_PARAM params[3];
+    OSSL_PARAM params[2];
 #endif
     CXPLAT_TLS* TlsContext = SSL_get_app_data(Ssl);
     QUIC_TICKET_KEY_CONFIG* TicketKey = TlsContext->SecConfig->TicketKey;
@@ -768,7 +794,7 @@ CxPlatTlsOnSessionTicketKeyNeeded(
             return -1; // Insufficient random
         }
         CxPlatCopyMemory(key_name, TicketKey->Id, 16);
-        EVP_EncryptInit_ex(ctx, EVP_aes_256_cbc(), NULL, TicketKey->Material, iv);
+        EVP_EncryptInit_ex(ctx, CXPLAT_AES_256_CBC_ALG_HANDLE, NULL, TicketKey->Material, iv);
 
 #ifdef IS_OPENSSL_3
         params[0] =
@@ -777,11 +803,6 @@ CxPlatTlsOnSessionTicketKeyNeeded(
                 TicketKey->Material,
                 32);
         params[1] =
-            OSSL_PARAM_construct_utf8_string(
-                OSSL_MAC_PARAM_DIGEST,
-                "sha256",
-                0);
-        params[2] =
             OSSL_PARAM_construct_end();
          EVP_MAC_CTX_set_params(hctx, params);
 #else
@@ -803,17 +824,12 @@ CxPlatTlsOnSessionTicketKeyNeeded(
                 TicketKey->Material,
                 32);
         params[1] =
-            OSSL_PARAM_construct_utf8_string(
-                OSSL_MAC_PARAM_DIGEST,
-                "sha256",
-                0);
-        params[2] =
             OSSL_PARAM_construct_end();
          EVP_MAC_CTX_set_params(hctx, params);
 #else
         HMAC_Init_ex(hctx, TicketKey->Material, 32, EVP_sha256(), NULL);
 #endif
-        EVP_DecryptInit_ex(ctx, EVP_aes_256_cbc(), NULL, TicketKey->Material, iv);
+        EVP_DecryptInit_ex(ctx, CXPLAT_AES_256_CBC_ALG_HANDLE, NULL, TicketKey->Material, iv);
     }
 
     return 1; // This indicates that the ctx and hctx have been set and the
@@ -908,6 +924,15 @@ CXPLAT_STATIC_ASSERT(
     FIELD_OFFSET(QUIC_CERTIFICATE_FILE, CertificateFile) == FIELD_OFFSET(QUIC_CERTIFICATE_FILE_PROTECTED, CertificateFile),
     "Mismatch (certificate file) in certificate file structs");
 
+_IRQL_requires_max_(DISPATCH_LEVEL)
+QUIC_TLS_PROVIDER
+CxPlatTlsGetProvider(
+    void
+    )
+{
+    return QUIC_TLS_PROVIDER_OPENSSL;
+}
+
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 CxPlatTlsSecConfigCreate(
@@ -926,7 +951,9 @@ CxPlatTlsSecConfigCreate(
     }
 
     if (CredConfigFlags & QUIC_CREDENTIAL_FLAG_ENABLE_OCSP ||
-        CredConfigFlags & QUIC_CREDENTIAL_FLAG_USE_SUPPLIED_CREDENTIALS) {
+        CredConfigFlags & QUIC_CREDENTIAL_FLAG_USE_SUPPLIED_CREDENTIALS ||
+        CredConfigFlags & QUIC_CREDENTIAL_FLAG_USE_SYSTEM_MAPPER ||
+        CredConfigFlags & QUIC_CREDENTIAL_FLAG_INPROC_PEER_CERTIFICATE) {
         return QUIC_STATUS_NOT_SUPPORTED; // Not supported by this TLS implementation
     }
 
@@ -944,7 +971,9 @@ CxPlatTlsSecConfigCreate(
         CredConfigFlags & QUIC_CREDENTIAL_FLAG_REVOCATION_CHECK_CHAIN ||
         CredConfigFlags & QUIC_CREDENTIAL_FLAG_REVOCATION_CHECK_CHAIN_EXCLUDE_ROOT ||
         CredConfigFlags & QUIC_CREDENTIAL_FLAG_IGNORE_NO_REVOCATION_CHECK ||
-        CredConfigFlags & QUIC_CREDENTIAL_FLAG_IGNORE_REVOCATION_OFFLINE)) {
+        CredConfigFlags & QUIC_CREDENTIAL_FLAG_IGNORE_REVOCATION_OFFLINE ||
+        CredConfigFlags & QUIC_CREDENTIAL_FLAG_CACHE_ONLY_URL_RETRIEVAL ||
+        CredConfigFlags & QUIC_CREDENTIAL_FLAG_REVOCATION_CHECK_CACHE_ONLY)) {
         return QUIC_STATUS_INVALID_PARAMETER;
     }
 
@@ -953,7 +982,9 @@ CxPlatTlsSecConfigCreate(
         (CredConfigFlags & QUIC_CREDENTIAL_FLAG_REVOCATION_CHECK_END_CERT ||
         CredConfigFlags & QUIC_CREDENTIAL_FLAG_REVOCATION_CHECK_CHAIN_EXCLUDE_ROOT ||
         CredConfigFlags & QUIC_CREDENTIAL_FLAG_IGNORE_NO_REVOCATION_CHECK ||
-        CredConfigFlags & QUIC_CREDENTIAL_FLAG_IGNORE_REVOCATION_OFFLINE)) {
+        CredConfigFlags & QUIC_CREDENTIAL_FLAG_IGNORE_REVOCATION_OFFLINE ||
+        CredConfigFlags & QUIC_CREDENTIAL_FLAG_CACHE_ONLY_URL_RETRIEVAL ||
+        CredConfigFlags & QUIC_CREDENTIAL_FLAG_REVOCATION_CHECK_CACHE_ONLY)) {
         return QUIC_STATUS_INVALID_PARAMETER;
     }
 #endif
@@ -1434,7 +1465,7 @@ CxPlatTlsSecConfigCreate(
     if (CredConfigFlags & QUIC_CREDENTIAL_FLAG_CLIENT) {
         SSL_CTX_set_cert_verify_callback(SecurityConfig->SSLCtx, CxPlatTlsCertificateVerifyCallback, NULL);
         SSL_CTX_set_verify(SecurityConfig->SSLCtx, SSL_VERIFY_PEER, NULL);
-        if (!(CredConfigFlags & QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION)) {
+        if (!(CredConfigFlags & (QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION | QUIC_CREDENTIAL_FLAG_DEFER_CERTIFICATE_VALIDATION))) {
             SSL_CTX_set_verify_depth(SecurityConfig->SSLCtx, CXPLAT_TLS_DEFAULT_VERIFY_DEPTH);
         }
 
@@ -1464,10 +1495,13 @@ CxPlatTlsSecConfigCreate(
         if (CredConfigFlags & QUIC_CREDENTIAL_FLAG_REQUIRE_CLIENT_AUTHENTICATION) {
             int VerifyMode = SSL_VERIFY_PEER;
             if (!(CredConfigFlags & QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION)) {
-                VerifyMode |= SSL_VERIFY_FAIL_IF_NO_PEER_CERT;
                 SSL_CTX_set_verify_depth(
                     SecurityConfig->SSLCtx,
                     CXPLAT_TLS_DEFAULT_VERIFY_DEPTH);
+            }
+            if (!(CredConfigFlags & (QUIC_CREDENTIAL_FLAG_DEFER_CERTIFICATE_VALIDATION |
+                QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION))) {
+                VerifyMode |= SSL_VERIFY_FAIL_IF_NO_PEER_CERT;
             }
             SSL_CTX_set_verify(
                 SecurityConfig->SSLCtx,
@@ -1896,6 +1930,25 @@ CxPlatTlsProcessData(
             switch (Err) {
             case SSL_ERROR_WANT_READ:
             case SSL_ERROR_WANT_WRITE:
+                //
+                // Best effort to get the server's transport params as early as possible.
+                //
+                if (!TlsContext->IsServer && TlsContext->PeerTPReceived == FALSE) {
+                    const uint8_t* TransportParams;
+                    size_t TransportParamLen;
+                    SSL_get_peer_quic_transport_params(
+                            TlsContext->Ssl, &TransportParams, &TransportParamLen);
+                    if (TransportParams != NULL && TransportParamLen != 0) {
+                        TlsContext->PeerTPReceived = TRUE;
+                        if (!TlsContext->SecConfig->Callbacks.ReceiveTP(
+                                TlsContext->Connection,
+                                (uint16_t)TransportParamLen,
+                                TransportParams)) {
+                            TlsContext->ResultFlags |= CXPLAT_TLS_RESULT_ERROR;
+                            goto Exit;
+                        }
+                    }
+                }
                 goto Exit;
 
             case SSL_ERROR_SSL: {
@@ -1963,6 +2016,30 @@ CxPlatTlsProcessData(
                 TlsContext->ResultFlags |= CXPLAT_TLS_RESULT_ERROR;
                 goto Exit;
             }
+        } else if ((TlsContext->SecConfig->Flags & QUIC_CREDENTIAL_FLAG_INDICATE_CERTIFICATE_RECEIVED) &&
+            !TlsContext->PeerCertReceived) {
+            QUIC_STATUS ValidationResult =
+                (!(TlsContext->SecConfig->Flags & QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION) &&
+                (TlsContext->SecConfig->Flags & QUIC_CREDENTIAL_FLAG_REQUIRE_CLIENT_AUTHENTICATION ||
+                TlsContext->SecConfig->Flags & QUIC_CREDENTIAL_FLAG_DEFER_CERTIFICATE_VALIDATION)) ?
+                    QUIC_STATUS_CERT_NO_CERT :
+                    QUIC_STATUS_SUCCESS;
+
+            if (!TlsContext->SecConfig->Callbacks.CertificateReceived(
+                    TlsContext->Connection,
+                    NULL,
+                    NULL,
+                    0,
+                    ValidationResult)) {
+                QuicTraceEvent(
+                    TlsError,
+                    "[ tls][%p] ERROR, %s.",
+                    TlsContext->Connection,
+                    "Indicate null certificate received failed");
+                TlsContext->ResultFlags |= CXPLAT_TLS_RESULT_ERROR;
+                TlsContext->State->AlertCode = CXPLAT_TLS_ALERT_CODE_REQUIRED_CERTIFICATE;
+                goto Exit;
+            }
         }
 
         QuicTraceLogConnInfo(
@@ -1993,7 +2070,10 @@ CxPlatTlsProcessData(
         if (TlsContext->IsServer) {
             TlsContext->State->ReadKey = QUIC_PACKET_KEY_1_RTT;
             TlsContext->ResultFlags |= CXPLAT_TLS_RESULT_READ_KEY_UPDATED;
-        } else {
+        } else if (!TlsContext->PeerTPReceived) {
+            //
+            // Last chance to get the server's transport params.
+            //
             const uint8_t* TransportParams;
             size_t TransportParamLen;
             SSL_get_peer_quic_transport_params(
@@ -2006,6 +2086,7 @@ CxPlatTlsProcessData(
                 TlsContext->ResultFlags |= CXPLAT_TLS_RESULT_ERROR;
                 goto Exit;
             }
+            TlsContext->PeerTPReceived = TRUE;
             if (!TlsContext->SecConfig->Callbacks.ReceiveTP(
                     TlsContext->Connection,
                     (uint16_t)TransportParamLen,
@@ -2056,8 +2137,8 @@ Exit:
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
-CxPlatTlsParamSet(
-    _In_ CXPLAT_TLS* TlsContext,
+CxPlatSecConfigParamSet(
+    _In_ CXPLAT_SEC_CONFIG* TlsContext,
     _In_ uint32_t Param,
     _In_ uint32_t BufferLength,
     _In_reads_bytes_(BufferLength)
@@ -2065,6 +2146,40 @@ CxPlatTlsParamSet(
     )
 {
     UNREFERENCED_PARAMETER(TlsContext);
+    UNREFERENCED_PARAMETER(Param);
+    UNREFERENCED_PARAMETER(BufferLength);
+    UNREFERENCED_PARAMETER(Buffer);
+    return QUIC_STATUS_NOT_SUPPORTED;
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_STATUS
+CxPlatSecConfigParamGet(
+    _In_ CXPLAT_SEC_CONFIG* SecConfig,
+    _In_ uint32_t Param,
+    _Inout_ uint32_t* BufferLength,
+    _Inout_updates_bytes_opt_(*BufferLength)
+        void* Buffer
+    )
+{
+    UNREFERENCED_PARAMETER(SecConfig);
+    UNREFERENCED_PARAMETER(Param);
+    UNREFERENCED_PARAMETER(BufferLength);
+    UNREFERENCED_PARAMETER(Buffer);
+    return QUIC_STATUS_NOT_SUPPORTED;
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_STATUS
+CxPlatTlsParamSet(
+    _In_ CXPLAT_TLS* SecConfig,
+    _In_ uint32_t Param,
+    _In_ uint32_t BufferLength,
+    _In_reads_bytes_(BufferLength)
+        const void* Buffer
+    )
+{
+    UNREFERENCED_PARAMETER(SecConfig);
     UNREFERENCED_PARAMETER(Param);
     UNREFERENCED_PARAMETER(BufferLength);
     UNREFERENCED_PARAMETER(Buffer);

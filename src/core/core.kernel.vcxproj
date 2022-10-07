@@ -21,6 +21,7 @@
   <ItemGroup>
     <ClCompile Include="ack_tracker.c" />
     <ClCompile Include="api.c" />
+    <ClCompile Include="bbr.c" />
     <ClCompile Include="binding.c" />
     <ClCompile Include="configuration.c" />
     <ClCompile Include="congestion_control.c" />
@@ -48,6 +49,7 @@
     <ClCompile Include="send_buffer.c" />
     <ClCompile Include="sent_packet_metadata.c" />
     <ClCompile Include="settings.c" />
+    <ClCompile Include="sliding_window_extremum.c" />
     <ClCompile Include="stream.c" />
     <ClCompile Include="stream_recv.c" />
     <ClCompile Include="stream_send.c" />
@@ -59,6 +61,7 @@
   <ItemGroup>
     <ClInclude Include="ack_tracker.h" />
     <ClInclude Include="api.h" />
+    <ClInclude Include="bbr.h" />
     <ClInclude Include="binding.h" />
     <ClInclude Include="cid.h" />
     <ClInclude Include="configuration.h" />
@@ -87,6 +90,7 @@
     <ClInclude Include="send_buffer.h" />
     <ClInclude Include="sent_packet_metadata.h" />
     <ClInclude Include="settings.h" />
+    <ClInclude Include="sliding_window_extremum.h" />
     <ClInclude Include="stream.h" />
     <ClInclude Include="stream_set.h" />
     <ClInclude Include="timer_wheel.h" />

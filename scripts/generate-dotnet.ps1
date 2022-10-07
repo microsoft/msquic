@@ -42,6 +42,9 @@ $Arguments = @(
     "-D QUIC_API_ENABLE_PREVIEW_FEATURES" # Enable preview features to be generated
     "-e QUIC_DATAGRAM_SEND_STATE_IS_FINAL" # Cannot generate macro functions
     "-e QUIC_PARAM_IS_GLOBAL" # Cannot generate macro functions
+    "-e QUIC_STRUCT_SIZE_THRU_FIELD" # Cannot generate macro functions
+    "-e QUIC_STATISTICS_V2_SIZE_1" # Inconsistent definitions across platforms
+    "-e QUIC_STATISTICS_V2_SIZE_2" # Inconsistent definitions across platforms
 )
 
 $FullArgs = $Arguments -join " "
@@ -53,6 +56,7 @@ Invoke-Expression "$ToolExe $FullArgs"
     -replace '\(anonymous union.+\)\"', "(anonymous union)`"" `
     -replace "public enum .*?_FLAGS","[System.Flags]`n    `$0" `
     -replace "const int", "const uint" `
+    -replace "  QUIC_TLS_PROVIDER_", "  " `
     -replace "  QUIC_EXECUTION_PROFILE_TYPE_", "  " `
     -replace "  QUIC_EXECUTION_PROFILE_", "  " `
     -replace "  QUIC_LOAD_BALANCING_", "  " `
@@ -72,6 +76,7 @@ Invoke-Expression "$ToolExe $FullArgs"
     -replace "  QUIC_RECEIVE_FLAG_", "  " `
     -replace "  QUIC_SEND_FLAG_", "  " `
     -replace "  QUIC_DATAGRAM_SEND_", "  " `
+    -replace "  QUIC_EXECUTION_CONFIG_FLAG_", "  " `
     -replace "QUIC_TLS_PROTOCOL_1_3", "TLS_1_3" `
     -replace "  QUIC_TLS_PROTOCOL_", "  " `
     -replace "  QUIC_CIPHER_ALGORITHM_", "  " `

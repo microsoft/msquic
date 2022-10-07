@@ -75,6 +75,9 @@ This script provides helpers for building msquic.
 .PARAMETER CI
     Build is occuring from CI
 
+.PARAMETER OfficialRelease
+    Build is for an official (tag) release.
+
 .PARAMETER EnableTelemetryAsserts
     Enables telemetry asserts in release builds.
 
@@ -84,9 +87,6 @@ This script provides helpers for building msquic.
 .PARAMETER EnableHighResolutionTimers
     Configures the system to use high resolution timers.
 
-.PARAMETER SharedEC
-    Uses shared execution contexts (threads) where possible.
-
 .PARAMETER UseXdp
     Use XDP for the datapath instead of system socket APIs.
 
@@ -95,6 +95,12 @@ This script provides helpers for building msquic.
 
 .PARAMETER LibraryName
     Renames the library to whatever is passed in
+
+.PARAMETER SysRoot
+    Directory with cross-compilation tools
+
+.PARAMETER OneBranch
+    Build is occuring from Onebranch pipeline.
 
 .EXAMPLE
     build.ps1
@@ -179,6 +185,9 @@ param (
     [switch]$CI = $false,
 
     [Parameter(Mandatory = $false)]
+    [switch]$OfficialRelease = $false,
+
+    [Parameter(Mandatory = $false)]
     [switch]$EnableTelemetryAsserts = $false,
 
     [Parameter(Mandatory = $false)]
@@ -188,16 +197,19 @@ param (
     [switch]$EnableHighResolutionTimers = $false,
 
     [Parameter(Mandatory = $false)]
-    [switch]$SharedEC = $false,
-
-    [Parameter(Mandatory = $false)]
     [switch]$UseXdp = $false,
 
     [Parameter(Mandatory = $false)]
     [string]$ExtraArtifactDir = "",
 
     [Parameter(Mandatory = $false)]
-    [string]$LibraryName = "msquic"
+    [string]$LibraryName = "msquic",
+
+    [Parameter(Mandatory = $false)]
+    [string]$SysRoot = "/",
+
+    [Parameter(Mandatory = $false)]
+    [switch]$OneBranch = $false
 )
 
 Set-StrictMode -Version 'Latest'
@@ -251,6 +263,20 @@ if ($Arch -eq "arm64ec") {
 if ($Platform -eq "ios" -and !$Static) {
     $Static = $true
     Write-Host "iOS can only be built as static"
+}
+
+if (!$OfficialRelease) {
+    try {
+        $env:GIT_REDIRECT_STDERR = '2>&1'
+        # Thanks to https://stackoverflow.com/questions/3404936/show-which-git-tag-you-are-on
+        # for this magic git command!
+        $Output = git describe --exact-match --tags $(git log -n1 --pretty='%h')
+        if (!$Output.Contains("fatal: no tag exactly matches")) {
+            Write-Host "Configuring OfficialRelease for tag build"
+            $OfficialRelease = $true
+        }
+    } catch { }
+    $global:LASTEXITCODE = 0
 }
 
 # Root directory of the project.
@@ -325,7 +351,7 @@ function CMake-Generate {
             $Arguments += " -G $Generator"
         }
     } else {
-        $Arguments += " $Generator"
+        $Arguments += "-G $Generator"
     }
     if ($Platform -eq "ios") {
         $IosTCFile = Join-Path $RootDir cmake toolchains ios.cmake
@@ -337,9 +363,23 @@ function CMake-Generate {
     }
     if ($Platform -eq "macos") {
         switch ($Arch) {
-            "x64"   { $Arguments += " -DCMAKE_OSX_ARCHITECTURES=x86_64 -DCMAKE_OSX_DEPLOYMENT_TARGET=""10.15"""}
+            "x64"   { $Arguments += " -DCMAKE_OSX_ARCHITECTURES=x86_64 -DCMAKE_OSX_DEPLOYMENT_TARGET=""12"""}
             "arm64" { $Arguments += " -DCMAKE_OSX_ARCHITECTURES=arm64 -DCMAKE_OSX_DEPLOYMENT_TARGET=""11.0"""}
         }
+    }
+    if ($Platform -eq "linux") {
+        $Arguments += " $Generator"
+        $HostArch = "$([System.Runtime.InteropServices.RuntimeInformation]::ProcessArchitecture)".ToLower()
+        if ($HostArch -ne $Arch) {
+            if ($OneBranch) {
+                $Arguments += " -DONEBRANCH=1"
+            }
+            $Arguments += " -DCMAKE_FIND_ROOT_PATH_MODE_PROGRAM=NEVER -DCMAKE_CROSSCOMPILING=1 -DCMAKE_SYSROOT=$SysRoot"
+            switch ($Arch) {
+                "arm64" { $Arguments += " -DCMAKE_CXX_COMPILER_TARGET=aarch64-linux-gnu -DCMAKE_C_COMPILER_TARGET=aarch64-linux-gnu -DCMAKE_TARGET_ARCHITECTURE=arm64" }
+                "arm" { $Arguments += " -DCMAKE_CXX_COMPILER_TARGET=arm-linux-gnueabihf  -DCMAKE_C_COMPILER_TARGET=arm-linux-gnueabihf -DCMAKE_TARGET_ARCHITECTURE=arm" }
+            }
+       }
     }
     if($Static) {
         $Arguments += " -DQUIC_BUILD_SHARED=off"
@@ -378,7 +418,7 @@ function CMake-Generate {
         $Arguments += " -DCMAKE_BUILD_TYPE=" + $ConfigToBuild
     }
     if ($DynamicCRT) {
-        $Arguments += " -DQUIC_STATIC_LINK_CRT=off"
+        $Arguments += " -DQUIC_STATIC_LINK_CRT=off -DQUIC_STATIC_LINK_PARTIAL_CRT=off"
     }
     if ($PGO) {
         $Arguments += " -DQUIC_PGO=on"
@@ -406,6 +446,9 @@ function CMake-Generate {
         $Arguments += " -DQUIC_VER_BUILD_ID=$env:BUILD_BUILDID"
         $Arguments += " -DQUIC_VER_SUFFIX=-official"
     }
+    if ($OfficialRelease) {
+        $Arguments += " -DQUIC_OFFICIAL_RELEASE=ON"
+    }
     if ($EnableTelemetryAsserts) {
         $Arguments += " -DQUIC_TELEMETRY_ASSERTS=on"
     }
@@ -415,14 +458,11 @@ function CMake-Generate {
     if ($EnableHighResolutionTimers) {
         $Arguments += " -DQUIC_HIGH_RES_TIMERS=on"
     }
-    if ($SharedEC) {
-        $Arguments += " -DQUIC_SHARED_EC=on"
-    }
     if ($UseXdp) {
         $Arguments += " -DQUIC_USE_XDP=on"
     }
     if ($Platform -eq "android") {
-        $env:PATH = "$env:ANDROID_NDK_ROOT/toolchains/llvm/prebuilt/linux-x86_64/bin:$env:PATH"
+        $env:PATH = "$env:ANDROID_NDK_LATEST_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin:$env:PATH"
         switch ($Arch) {
             "x86"   { $Arguments += " -DANDROID_ABI=x86"}
             "x64"   { $Arguments += " -DANDROID_ABI=x86_64" }
@@ -430,14 +470,17 @@ function CMake-Generate {
             "arm64" { $Arguments += " -DANDROID_ABI=arm64-v8a" }
         }
         $Arguments += " -DANDROID_PLATFORM=android-29"
-        $NDK = $env:ANDROID_NDK_HOME
+        $NDK = $env:ANDROID_NDK_LATEST_HOME
+        $env:ANDROID_NDK_HOME = $env:ANDROID_NDK_LATEST_HOME
         $NdkToolchainFile = "$NDK/build/cmake/android.toolchain.cmake"
         $Arguments += " -DANDROID_NDK=""$NDK"""
         $Arguments += " -DCMAKE_TOOLCHAIN_FILE=""$NdkToolchainFile"""
     }
+
     $Arguments += " -DQUIC_LIBRARY_NAME=$LibraryName"
     $Arguments += " ../../.."
 
+    Write-Host "Executing: $Arguments"
     CMake-Execute $Arguments
 }
 
@@ -456,6 +499,7 @@ function CMake-Build {
         $Arguments += " -- VERBOSE=1"
     }
 
+    Write-Host "Running: $Arguments"
     CMake-Execute $Arguments
 
     if ($IsWindows) {
@@ -481,7 +525,13 @@ function CMake-Build {
                 Log "Failed to find VC Tools path!"
             }
         }
+    } elseif ($IsLinux -and $OneBranch) {
+        # archive the build artifacts for packaging to persist symlinks and permissons.
+        $ArtifactsParentDir = Split-Path $ArtifactsDir -Parent
+        $ArtifactsLeafDir = Split-Path $ArtifactsDir -Leaf
+        tar -cvf "$ArtifactsDir.tar" -C $ArtifactsParentDir "./$ArtifactsLeafDir"
     }
+
     # Package debug symbols on macos
     if ($Platform -eq "macos") {
         $BuiltArtifacts = Get-ChildItem $ArtifactsDir -File

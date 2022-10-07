@@ -24,6 +24,8 @@ PrintHelp(
         "RPS Client options:\n"
         "\n"
         "  -target:<####>              The target server to connect to.\n"
+        "  -bind:<addr>                Local IP address(es)/port(s) to bind to.\n"
+        "  -addrs:<####>               The number of local addresses to use (def:%u).\n"
         "  -runtime:<####>             The total runtime (in ms). (def:%u)\n"
         "  -encrypt:<0/1>              Enables/disables encryption. (def:1)\n"
         "  -inline:<0/1>               Configured sending requests inline. (def:0)\n"
@@ -36,7 +38,10 @@ PrintHelp(
         "  -response:<####>            The length of request payloads. (def:%u)\n"
         "  -threads:<####>             The number of threads to use. Defaults and capped to number of cores\n"
         "  -affinitize:<0/1>           Affinitizes threads to a core. (def:0)\n"
+        "  -sendbuf:<0/1>              Whether to use send buffering. (def:0)\n"
+        "  -stats:<0/1>                Indicates connection stats should be printed at the end of the run. (def:0)\n"
         "\n",
+        RPS_MAX_CLIENT_PORT_COUNT,
         RPS_DEFAULT_RUN_TIME,
         PERF_DEFAULT_PORT,
         RPS_DEFAULT_CONNECTION_COUNT,
@@ -75,6 +80,29 @@ RpsClient::Init(
     CxPlatCopyMemory(Target.get(), target, Len);
     Target[Len] = '\0';
 
+    char* LocalAddress = nullptr;
+    if (TryGetValue(argc, argv, "bind", (const char**)&LocalAddress)) {
+        SpecificLocalAddresses = true;
+        LocalAddressCount = 0;
+        while (LocalAddress) {
+            char* AddrEnd = strchr(LocalAddress, ',');
+            if (AddrEnd) {
+                *AddrEnd = '\0';
+                AddrEnd++;
+            }
+            if (!ConvertArgToAddress(LocalAddress, 0, &LocalAddresses[LocalAddressCount++])) {
+                WriteOutput("Failed to decode IP address: '%s'!\nMust be *, a IPv4 or a IPv6 address.\n", LocalAddress);
+                PrintHelp();
+                return QUIC_STATUS_INVALID_PARAMETER;
+            }
+            LocalAddress = AddrEnd;
+        }
+    }
+
+    if (TryGetValue(argc, argv, "addrs", &LocalAddressCount) &&
+        LocalAddressCount > RPS_MAX_CLIENT_PORT_COUNT) {
+        LocalAddressCount = RPS_MAX_CLIENT_PORT_COUNT;
+    }
     TryGetValue(argc, argv, "runtime", &RunTime);
     TryGetValue(argc, argv, "encrypt", &UseEncryption);
     TryGetValue(argc, argv, "inline", &SendInline);
@@ -84,6 +112,7 @@ RpsClient::Init(
     TryGetValue(argc, argv, "requests", &RequestCount);
     TryGetValue(argc, argv, "request", &RequestLength);
     TryGetValue(argc, argv, "response", &ResponseLength);
+    TryGetValue(argc, argv, "stats", &PrintStats);
 
     const char* CibirBytes = nullptr;
     if (TryGetValue(argc, argv, "cibir", &CibirBytes)) {
@@ -105,6 +134,14 @@ RpsClient::Init(
     uint32_t Affinitize;
     if (TryGetValue(argc, argv, "affinitize", &Affinitize)) {
         AffinitizeWorkers = Affinitize != 0;
+    }
+
+    uint32_t SendBuf;
+    if (TryGetValue(argc, argv, "sendbuf", &SendBuf)) {
+        MsQuicSettings settings;
+        Configuration.GetSettings(settings);
+        settings.SetSendBufferingEnabled(SendBuf != 0);
+        Configuration.SetSettings(settings);
     }
 
     WorkerCount = CxPlatProcActiveCount();
@@ -271,13 +308,13 @@ RpsClient::Start(
             }
         }
 
-        if (i >= RPS_MAX_CLIENT_PORT_COUNT) {
+        if (SpecificLocalAddresses || i >= LocalAddressCount) {
             Status =
                 MsQuic->SetParam(
                     Connections[i],
                     QUIC_PARAM_CONN_LOCAL_ADDRESS,
                     sizeof(QUIC_ADDR),
-                    &LocalAddresses[i % RPS_MAX_CLIENT_PORT_COUNT]);
+                    &LocalAddresses[i % LocalAddressCount]);
             if (QUIC_FAILED(Status)) {
                 WriteOutput("SetParam(CONN_LOCAL_ADDRESS) failed, 0x%x\n", Status);
                 return Status;
@@ -296,7 +333,7 @@ RpsClient::Start(
             return Status;
         }
 
-        if (i < RPS_MAX_CLIENT_PORT_COUNT) {
+        if (!SpecificLocalAddresses && i < RPS_MAX_CLIENT_PORT_COUNT) {
             uint32_t AddrLen = sizeof(QUIC_ADDR);
             Status =
                 MsQuic->GetParam(
@@ -401,6 +438,9 @@ RpsConnectionContext::ConnectionCallback(
         //WriteOutput("Connection died, 0x%x\n", Event->SHUTDOWN_INITIATED_BY_TRANSPORT.Status);
         break;
     case QUIC_CONNECTION_EVENT_SHUTDOWN_COMPLETE:
+        if (Client->PrintStats) {
+            QuicPrintConnectionStatistics(MsQuic, Handle);
+        }
         break;
     case QUIC_CONNECTION_EVENT_IDEAL_PROCESSOR_CHANGED:
         if ((uint32_t)Event->IDEAL_PROCESSOR_CHANGED.IdealProcessor >= Client->WorkerCount) {

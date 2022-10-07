@@ -115,18 +115,26 @@ tracepoint(CLOG_STREAM_C, IndicateStartComplete , arg1, arg3, arg4, arg5);\
 
 /*----------------------------------------------------------
 // Decoder Ring for IndicateStreamShutdownComplete
-// [strm][%p] Indicating QUIC_STREAM_EVENT_SHUTDOWN_COMPLETE [ConnectionShutdown=%hhu]
+// [strm][%p] Indicating QUIC_STREAM_EVENT_SHUTDOWN_COMPLETE [ConnectionShutdown=%hhu, ConnectionShutdownByApp=%hhu, ConnectionClosedRemotely=%hhu, ConnectionErrorCode=0x%llx, ConnectionCloseStatus=0x%x]
 // QuicTraceLogStreamVerbose(
             IndicateStreamShutdownComplete,
             Stream,
-            "Indicating QUIC_STREAM_EVENT_SHUTDOWN_COMPLETE [ConnectionShutdown=%hhu]",
-            Event.SHUTDOWN_COMPLETE.ConnectionShutdown);
+            "Indicating QUIC_STREAM_EVENT_SHUTDOWN_COMPLETE [ConnectionShutdown=%hhu, ConnectionShutdownByApp=%hhu, ConnectionClosedRemotely=%hhu, ConnectionErrorCode=0x%llx, ConnectionCloseStatus=0x%x]",
+            Event.SHUTDOWN_COMPLETE.ConnectionShutdown,
+            Event.SHUTDOWN_COMPLETE.ConnectionShutdownByApp,
+            Event.SHUTDOWN_COMPLETE.ConnectionClosedRemotely,
+            Event.SHUTDOWN_COMPLETE.ConnectionErrorCode,
+            Event.SHUTDOWN_COMPLETE.ConnectionCloseStatus);
 // arg1 = arg1 = Stream = arg1
 // arg3 = arg3 = Event.SHUTDOWN_COMPLETE.ConnectionShutdown = arg3
+// arg4 = arg4 = Event.SHUTDOWN_COMPLETE.ConnectionShutdownByApp = arg4
+// arg5 = arg5 = Event.SHUTDOWN_COMPLETE.ConnectionClosedRemotely = arg5
+// arg6 = arg6 = Event.SHUTDOWN_COMPLETE.ConnectionErrorCode = arg6
+// arg7 = arg7 = Event.SHUTDOWN_COMPLETE.ConnectionCloseStatus = arg7
 ----------------------------------------------------------*/
-#ifndef _clog_4_ARGS_TRACE_IndicateStreamShutdownComplete
-#define _clog_4_ARGS_TRACE_IndicateStreamShutdownComplete(uniqueId, arg1, encoded_arg_string, arg3)\
-tracepoint(CLOG_STREAM_C, IndicateStreamShutdownComplete , arg1, arg3);\
+#ifndef _clog_8_ARGS_TRACE_IndicateStreamShutdownComplete
+#define _clog_8_ARGS_TRACE_IndicateStreamShutdownComplete(uniqueId, arg1, encoded_arg_string, arg3, arg4, arg5, arg6, arg7)\
+tracepoint(CLOG_STREAM_C, IndicateStreamShutdownComplete , arg1, arg3, arg4, arg5, arg6, arg7);\
 
 #endif
 
@@ -236,26 +244,6 @@ tracepoint(CLOG_STREAM_C, StreamRecvState , arg2, arg3);\
 
 
 /*----------------------------------------------------------
-// Decoder Ring for StreamOutFlowBlocked
-// [strm][%p] Send Blocked Flags: %hhu
-// QuicTraceEvent(
-            StreamOutFlowBlocked,
-            "[strm][%p] Send Blocked Flags: %hhu",
-            Stream,
-            Stream->OutFlowBlockedReasons);
-// arg2 = arg2 = Stream = arg2
-// arg3 = arg3 = Stream->OutFlowBlockedReasons = arg3
-----------------------------------------------------------*/
-#ifndef _clog_4_ARGS_TRACE_StreamOutFlowBlocked
-#define _clog_4_ARGS_TRACE_StreamOutFlowBlocked(uniqueId, encoded_arg_string, arg2, arg3)\
-tracepoint(CLOG_STREAM_C, StreamOutFlowBlocked , arg2, arg3);\
-
-#endif
-
-
-
-
-/*----------------------------------------------------------
 // Decoder Ring for StreamRundown
 // [strm][%p] Rundown, Conn=%p ID=%llu IsLocal=%hhu
 // QuicTraceEvent(
@@ -273,6 +261,26 @@ tracepoint(CLOG_STREAM_C, StreamOutFlowBlocked , arg2, arg3);\
 #ifndef _clog_6_ARGS_TRACE_StreamRundown
 #define _clog_6_ARGS_TRACE_StreamRundown(uniqueId, encoded_arg_string, arg2, arg3, arg4, arg5)\
 tracepoint(CLOG_STREAM_C, StreamRundown , arg2, arg3, arg4, arg5);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for StreamOutFlowBlocked
+// [strm][%p] Send Blocked Flags: %hhu
+// QuicTraceEvent(
+        StreamOutFlowBlocked,
+        "[strm][%p] Send Blocked Flags: %hhu",
+        Stream,
+        Stream->OutFlowBlockedReasons);
+// arg2 = arg2 = Stream = arg2
+// arg3 = arg3 = Stream->OutFlowBlockedReasons = arg3
+----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_StreamOutFlowBlocked
+#define _clog_4_ARGS_TRACE_StreamOutFlowBlocked(uniqueId, encoded_arg_string, arg2, arg3)\
+tracepoint(CLOG_STREAM_C, StreamOutFlowBlocked , arg2, arg3);\
 
 #endif
 

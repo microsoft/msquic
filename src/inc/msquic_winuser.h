@@ -77,6 +77,10 @@ Environment:
 #define ERROR_QUIC_STREAM_LIMIT_REACHED _HRESULT_TYPEDEF_(0x80410008L)
 #endif
 
+#ifndef ERROR_QUIC_ALPN_IN_USE
+#define ERROR_QUIC_ALPN_IN_USE          _HRESULT_TYPEDEF_(0x80410009L)
+#endif
+
 #ifndef QUIC_TLS_ALERT_HRESULT_PREFIX
 #define QUIC_TLS_ALERT_HRESULT_PREFIX   _HRESULT_TYPEDEF_(0x80410100L)
 #endif
@@ -111,6 +115,7 @@ Environment:
 #define QUIC_STATUS_USER_CANCELED           ERROR_QUIC_USER_CANCELED                        // 0x80410002
 #define QUIC_STATUS_ALPN_NEG_FAILURE        ERROR_QUIC_ALPN_NEG_FAILURE                     // 0x80410007
 #define QUIC_STATUS_STREAM_LIMIT_REACHED    ERROR_QUIC_STREAM_LIMIT_REACHED                 // 0x80410008
+#define QUIC_STATUS_ALPN_IN_USE             ERROR_QUIC_ALPN_IN_USE                          // 0x80410009
 
 #define QUIC_STATUS_TLS_ALERT(Alert)        (QUIC_TLS_ALERT_HRESULT_PREFIX | (0xff & Alert))
 
@@ -124,6 +129,7 @@ Environment:
 
 #define QUIC_STATUS_CERT_EXPIRED            CERT_E_EXPIRED
 #define QUIC_STATUS_CERT_UNTRUSTED_ROOT     CERT_E_UNTRUSTEDROOT
+#define QUIC_STATUS_CERT_NO_CERT            SEC_E_NO_CREDENTIALS
 
 //
 // Swaps byte orders between host and network endianness.

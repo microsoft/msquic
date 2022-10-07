@@ -824,7 +824,7 @@ CxPlatDataPathInitialize(
     _In_ uint32_t ClientRecvContextLength,
     _In_opt_ const CXPLAT_UDP_DATAPATH_CALLBACKS* UdpCallbacks,
     _In_opt_ const CXPLAT_TCP_DATAPATH_CALLBACKS* TcpCallbacks,
-    _In_opt_ CXPLAT_DATAPATH_CONFIG* Config,
+    _In_opt_ QUIC_EXECUTION_CONFIG* Config,
     _Out_ CXPLAT_DATAPATH* *NewDataPath
     )
 {
@@ -2658,6 +2658,7 @@ CxPlatSendDataFinalizeSendBuffer(
 
     if (SendData->SegmentSize == 0) {
         SendData->TailBuf->Link.Buffer.Length = SendData->ClientBuffer.Length;
+        SendData->TotalSize += SendData->ClientBuffer.Length;
         SendData->ClientBuffer.Length = 0;
         return;
     }
@@ -3067,36 +3068,4 @@ CxPlatSocketSend(
     }
 
     return STATUS_SUCCESS;
-}
-
-_IRQL_requires_max_(PASSIVE_LEVEL)
-QUIC_STATUS
-CxPlatSocketSetParam(
-    _In_ CXPLAT_SOCKET* Binding,
-    _In_ uint32_t Param,
-    _In_ uint32_t BufferLength,
-    _In_reads_bytes_(BufferLength) const UINT8 * Buffer
-    )
-{
-    UNREFERENCED_PARAMETER(Binding);
-    UNREFERENCED_PARAMETER(Param);
-    UNREFERENCED_PARAMETER(BufferLength);
-    UNREFERENCED_PARAMETER(Buffer);
-    return QUIC_STATUS_NOT_SUPPORTED;
-}
-
-_IRQL_requires_max_(PASSIVE_LEVEL)
-QUIC_STATUS
-CxPlatSocketGetParam(
-    _In_ CXPLAT_SOCKET* Binding,
-    _In_ uint32_t Param,
-    _Inout_ PUINT32 BufferLength,
-    _Out_writes_bytes_opt_(*BufferLength) UINT8 * Buffer
-    )
-{
-    UNREFERENCED_PARAMETER(Binding);
-    UNREFERENCED_PARAMETER(Param);
-    UNREFERENCED_PARAMETER(BufferLength);
-    UNREFERENCED_PARAMETER(Buffer);
-    return QUIC_STATUS_NOT_SUPPORTED;
 }

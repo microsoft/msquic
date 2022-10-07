@@ -1107,7 +1107,8 @@ QuicSendFlush(
         return TRUE;
     }
 
-    QuicMtuDiscoveryCheckSearchCompleteTimeout(Connection, CxPlatTimeUs64());
+    uint64_t TimeNow = CxPlatTimeUs64();
+    QuicMtuDiscoveryCheckSearchCompleteTimeout(Connection, TimeNow);
 
     //
     // If path is active without being peer validated, disable MTU flag if set.
@@ -1118,6 +1119,15 @@ QuicSendFlush(
 
     if (Send->SendFlags == 0 && CxPlatListIsEmpty(&Send->SendStreams)) {
         return TRUE;
+    }
+
+    //
+    // Connection CID changes on idle state after an amount of time
+    //
+    if (Connection->Settings.DestCidUpdateIdleTimeoutMs != 0 &&
+        Send->LastFlushTimeValid &&
+        CxPlatTimeDiff64(Send->LastFlushTime, TimeNow) >= MS_TO_US(Connection->Settings.DestCidUpdateIdleTimeoutMs)) {
+        (void)QuicConnRetireCurrentDestCid(Connection, Path);
     }
 
     QUIC_SEND_RESULT Result = QUIC_SEND_INCOMPLETE;

@@ -5,11 +5,12 @@
 
 Abstract:
 
-    This file contains linux platform implementation.
+    This file contains POSIX platform implementations of the
+    QUIC Platform Interfaces.
 
 Environment:
 
-    Linux user mode
+    POSIX user mode
 
 --*/
 
@@ -21,6 +22,13 @@ Environment:
 
 #if !defined(CX_PLATFORM_LINUX) && !defined(CX_PLATFORM_DARWIN)
 #error "Incorrectly including Posix Platform Header from unsupported platfrom"
+#endif
+
+// For FreeBSD
+#if defined(__FreeBSD__)
+#include <sys/socket.h>
+#include <netinet/in.h>
+#define ETIME   ETIMEDOUT
 #endif
 
 #include <stdlib.h>
@@ -83,16 +91,9 @@ extern "C" {
 #define __fallthrough // fall through
 #endif /* __GNUC__ >= 7 */
 
-
 //
 // Interlocked implementations.
 //
-
-#ifdef CX_PLATFORM_DARWIN
-#define YieldProcessor()
-#else
-#define YieldProcessor() pthread_yield()
-#endif
 
 inline
 long
@@ -173,6 +174,15 @@ InterlockedCompareExchange64(
     )
 {
     return __sync_val_compare_and_swap(Destination, Comperand, ExChange);
+}
+
+inline
+BOOLEAN
+InterlockedFetchAndClearBoolean(
+    _Inout_ _Interlocked_operand_ BOOLEAN volatile *Target
+    )
+{
+    return __sync_fetch_and_and(Target, 0);
 }
 
 inline
@@ -556,6 +566,12 @@ CxPlatRefInitialize(
     );
 
 void
+CxPlatRefInitializeEx(
+    _Inout_ CXPLAT_REF_COUNT* RefCount,
+    _In_ uint32_t Initial
+    );
+
+void
 CxPlatRefIncrement(
     _Inout_ CXPLAT_REF_COUNT* RefCount
     );
@@ -675,6 +691,8 @@ void
 CxPlatSleep(
     _In_ uint32_t DurationMs
     );
+
+#define CxPlatSchedulerYield() sched_yield()
 
 //
 // Event Interfaces
@@ -872,6 +890,316 @@ Exit:
 #define CxPlatEventReset(Event) CxPlatInternalEventReset(&Event)
 #define CxPlatEventWaitForever(Event) CxPlatInternalEventWaitForever(&Event)
 #define CxPlatEventWaitWithTimeout(Event, TimeoutMs) CxPlatInternalEventWaitWithTimeout(&Event, TimeoutMs)
+
+//
+// Event Queue Interfaces
+//
+
+#if __linux__
+
+#if CXPLAT_USE_IO_URING // liburing
+
+#include <liburing.h>
+typedef struct io_uring CXPLAT_EVENTQ;
+typedef struct io_uring_cqe* CXPLAT_CQE;
+
+inline
+BOOLEAN
+CxPlatEventQInitialize(
+    _Out_ CXPLAT_EVENTQ* queue
+    )
+{
+    return 0 == io_uring_queue_init(256, queue, 0); // TODO - make size configurable
+}
+
+inline
+void
+CxPlatEventQCleanup(
+    _In_ CXPLAT_EVENTQ* queue
+    )
+{
+    io_uring_queue_exit(queue);
+}
+
+inline
+BOOLEAN
+_CxPlatEventQEnqueue(
+    _In_ CXPLAT_EVENTQ* queue,
+    _In_opt_ void* user_data
+    )
+{
+    struct io_uring_sqe *io_sqe = io_uring_get_sqe(queue);
+    if (io_sqe == NULL) return FALSE; // OOM
+    io_uring_prep_nop(io_sqe);
+    io_uring_sqe_set_data(io_sqe, user_data);
+    io_uring_submit(queue); // TODO - Extract to separate function?
+    return TRUE;
+}
+
+#define CxPlatEventQEnqueue(queue, sqe, user_data) _CxPlatEventQEnqueue(queue, user_data)
+
+inline
+uint32_t
+CxPlatEventQDequeue(
+    _In_ CXPLAT_EVENTQ* queue,
+    _Out_ CXPLAT_CQE* events,
+    _In_ uint32_t count,
+    _In_ uint32_t wait_time // milliseconds
+    )
+{
+    int result = io_uring_peek_batch_cqe(queue, events, count);
+    if (result > 0 || wait_time == 0) return result;
+    if (wait_time != UINT32_MAX) {
+        struct __kernel_timespec timeout;
+        timeout.tv_sec = (wait_time / 1000);
+        timeout.tv_nsec = ((wait_time % 1000) * 1000000);
+        (void)io_uring_wait_cqe_timeout(queue, events, &timeout);
+    } else {
+        (void)io_uring_wait_cqe(queue, events);
+    }
+    return io_uring_peek_batch_cqe(queue, events, count);
+}
+
+inline
+void
+CxPlatEventQReturn(
+    _In_ CXPLAT_EVENTQ* queue,
+    _In_ uint32_t count
+    )
+{
+    io_uring_cq_advance(queue, count);
+}
+
+inline
+void*
+CxPlatCqeUserData(
+    _In_ const CXPLAT_CQE* cqe
+    )
+{
+    return (void*)(uintptr_t)cqe->user_data;
+}
+
+#else // epoll
+
+#include <sys/epoll.h>
+#include <sys/eventfd.h>
+
+typedef int CXPLAT_EVENTQ;
+#define CXPLAT_SQE int
+typedef struct epoll_event CXPLAT_CQE;
+
+inline
+BOOLEAN
+CxPlatEventQInitialize(
+    _Out_ CXPLAT_EVENTQ* queue
+    )
+{
+    return (*queue = epoll_create1(EPOLL_CLOEXEC)) != -1;
+}
+
+inline
+void
+CxPlatEventQCleanup(
+    _In_ CXPLAT_EVENTQ* queue
+    )
+{
+    close(*queue);
+}
+
+inline
+BOOLEAN
+CxPlatEventQEnqueue(
+    _In_ CXPLAT_EVENTQ* queue,
+    _In_ CXPLAT_SQE* sqe,
+    _In_opt_ void* user_data
+    )
+{
+    UNREFERENCED_PARAMETER(queue);
+    UNREFERENCED_PARAMETER(user_data);
+    return eventfd_write(*sqe, 1) == 0;
+}
+
+inline
+uint32_t
+CxPlatEventQDequeue(
+    _In_ CXPLAT_EVENTQ* queue,
+    _Out_ CXPLAT_CQE* events,
+    _In_ uint32_t count,
+    _In_ uint32_t wait_time // milliseconds
+    )
+{
+    const int timeout = wait_time == UINT32_MAX ? -1 : (int)wait_time;
+    int result;
+    do {
+        result = epoll_wait(*queue, events, count, timeout);
+    } while ((result == -1L) && (errno == EINTR));
+    return (uint32_t)result;
+}
+
+inline
+void
+CxPlatEventQReturn(
+    _In_ CXPLAT_EVENTQ* queue,
+    _In_ uint32_t count
+    )
+{
+    UNREFERENCED_PARAMETER(queue);
+    UNREFERENCED_PARAMETER(count);
+}
+
+#define CXPLAT_SQE_INIT 1
+
+inline
+BOOLEAN
+CxPlatSqeInitialize(
+    _In_ CXPLAT_EVENTQ* queue,
+    _Out_ CXPLAT_SQE* sqe,
+    _In_ void* user_data
+    )
+{
+    struct epoll_event event = { .events = EPOLLIN | EPOLLET, .data = { .ptr = user_data } };
+    if ((*sqe = eventfd(0, EFD_CLOEXEC)) == -1) return FALSE;
+    if (epoll_ctl(*queue, EPOLL_CTL_ADD, *sqe, &event) != 0) { close(*sqe); return FALSE; }
+    return TRUE;
+}
+
+inline
+void
+CxPlatSqeCleanup(
+    _In_ CXPLAT_EVENTQ* queue,
+    _In_ CXPLAT_SQE* sqe
+    )
+{
+    epoll_ctl(*queue, EPOLL_CTL_DEL, *sqe, NULL);
+    close(*sqe);
+}
+
+inline
+void*
+CxPlatCqeUserData(
+    _In_ const CXPLAT_CQE* cqe
+    )
+{
+    return (void*)cqe->data.ptr;
+}
+
+#endif
+
+#elif __APPLE__ || __FreeBSD__ // kqueue
+
+#include <sys/event.h>
+#include <fcntl.h>
+
+typedef int CXPLAT_EVENTQ;
+#define CXPLAT_SQE int
+typedef struct kevent CXPLAT_CQE;
+
+inline
+BOOLEAN
+CxPlatEventQInitialize(
+    _Out_ CXPLAT_EVENTQ* queue
+    )
+{
+    return (*queue = kqueue()) != -1;
+}
+
+inline
+void
+CxPlatEventQCleanup(
+    _In_ CXPLAT_EVENTQ* queue
+    )
+{
+    close(*queue);
+}
+
+inline
+BOOLEAN
+CxPlatEventQEnqueue(
+    _In_ CXPLAT_EVENTQ* queue,
+    _In_ CXPLAT_SQE* sqe,
+    _In_opt_ void* user_data
+    )
+{
+    struct kevent event = {0};
+    EV_SET(&event, *sqe, EVFILT_USER, EV_ADD | EV_ONESHOT, NOTE_TRIGGER, 0, user_data);
+    return kevent(*queue, &event, 1, NULL, 0, NULL) == 0;
+}
+
+inline
+uint32_t
+CxPlatEventQDequeue(
+    _In_ CXPLAT_EVENTQ* queue,
+    _Out_ CXPLAT_CQE* events,
+    _In_ uint32_t count,
+    _In_ uint32_t wait_time // milliseconds
+    )
+{
+    struct timespec timeout = {0, 0};
+    if (wait_time != UINT32_MAX) {
+        timeout.tv_sec = (wait_time / 1000);
+        timeout.tv_nsec = ((wait_time % 1000) * 1000000);
+    }
+    int result;
+    do {
+        result = kevent(*queue, NULL, 0, events, count, wait_time == UINT32_MAX ? NULL : &timeout);
+    } while ((result == -1L) && (errno == EINTR));
+    return (uint32_t)result;
+}
+
+inline
+void
+CxPlatEventQReturn(
+    _In_ CXPLAT_EVENTQ* queue,
+    _In_ uint32_t count
+    )
+{
+    UNREFERENCED_PARAMETER(queue);
+    UNREFERENCED_PARAMETER(count);
+}
+
+#define CXPLAT_SQE_INIT 1
+
+extern long CxPlatCurrentSqe;
+
+inline
+BOOLEAN
+CxPlatSqeInitialize(
+    _In_ CXPLAT_EVENTQ* queue,
+    _In_ CXPLAT_SQE* sqe,
+    _In_ void* user_data
+    )
+{
+    UNREFERENCED_PARAMETER(queue);
+    UNREFERENCED_PARAMETER(user_data);
+    *sqe = (CXPLAT_SQE)InterlockedIncrement(&CxPlatCurrentSqe);
+    return TRUE;
+}
+
+inline
+void
+CxPlatSqeCleanup(
+    _In_ CXPLAT_EVENTQ* queue,
+    _In_ CXPLAT_SQE* sqe
+    )
+{
+    UNREFERENCED_PARAMETER(queue);
+    UNREFERENCED_PARAMETER(sqe);
+}
+
+inline
+void*
+CxPlatCqeUserData(
+    _In_ const CXPLAT_CQE* cqe
+    )
+{
+    return (void*)cqe->udata;
+}
+
+#else
+
+#error "Unsupported platform"
+
+#endif
 
 //
 // Thread Interfaces.

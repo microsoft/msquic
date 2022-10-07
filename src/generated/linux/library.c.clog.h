@@ -192,15 +192,15 @@ tracepoint(CLOG_LIBRARY_C, LibrarySetSettings );\
 
 
 /*----------------------------------------------------------
-// Decoder Ring for LibraryDataPathProcsSet
-// [ lib] Setting datapath procs
+// Decoder Ring for LibraryExecutionConfigSet
+// [ lib] Setting execution config
 // QuicTraceLogInfo(
-            LibraryDataPathProcsSet,
-            "[ lib] Setting datapath procs");
+            LibraryExecutionConfigSet,
+            "[ lib] Setting execution config");
 ----------------------------------------------------------*/
-#ifndef _clog_2_ARGS_TRACE_LibraryDataPathProcsSet
-#define _clog_2_ARGS_TRACE_LibraryDataPathProcsSet(uniqueId, encoded_arg_string)\
-tracepoint(CLOG_LIBRARY_C, LibraryDataPathProcsSet );\
+#ifndef _clog_2_ARGS_TRACE_LibraryExecutionConfigSet
+#define _clog_2_ARGS_TRACE_LibraryExecutionConfigSet(uniqueId, encoded_arg_string)\
+tracepoint(CLOG_LIBRARY_C, LibraryExecutionConfigSet );\
 
 #endif
 
@@ -451,13 +451,31 @@ tracepoint(CLOG_LIBRARY_C, LibraryRelease );\
 
 
 /*----------------------------------------------------------
+// Decoder Ring for DataPathInitialized
+// [data] Initialized, DatapathFeatures=%u
+// QuicTraceEvent(
+                DataPathInitialized,
+                "[data] Initialized, DatapathFeatures=%u",
+                CxPlatDataPathGetSupportedFeatures(MsQuicLib.Datapath));
+// arg2 = arg2 = CxPlatDataPathGetSupportedFeatures(MsQuicLib.Datapath) = arg2
+----------------------------------------------------------*/
+#ifndef _clog_3_ARGS_TRACE_DataPathInitialized
+#define _clog_3_ARGS_TRACE_DataPathInitialized(uniqueId, encoded_arg_string, arg2)\
+tracepoint(CLOG_LIBRARY_C, DataPathInitialized , arg2);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for LibraryError
 // [ lib] ERROR, %s.
 // QuicTraceEvent(
                 LibraryError,
                 "[ lib] ERROR, %s.",
-                "Tried to change raw datapath procs after datapath initialization");
-// arg2 = arg2 = "Tried to change raw datapath procs after datapath initialization" = arg2
+                "Tried to change execution config after datapath initialization");
+// arg2 = arg2 = "Tried to change execution config after datapath initialization" = arg2
 ----------------------------------------------------------*/
 #ifndef _clog_3_ARGS_TRACE_LibraryError
 #define _clog_3_ARGS_TRACE_LibraryError(uniqueId, encoded_arg_string, arg2)\

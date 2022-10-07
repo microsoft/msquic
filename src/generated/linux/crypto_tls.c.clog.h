@@ -564,6 +564,24 @@ tracepoint(CLOG_CRYPTO_TLS_C, EncodeTPCibirEncoding , arg1, arg3, arg4);\
 
 
 /*----------------------------------------------------------
+// Decoder Ring for EncodeTPGreaseQuicBit
+// [conn][%p] TP: Grease Quic Bit
+// QuicTraceLogConnVerbose(
+            EncodeTPGreaseQuicBit,
+            Connection,
+            "TP: Grease Quic Bit");
+// arg1 = arg1 = Connection = arg1
+----------------------------------------------------------*/
+#ifndef _clog_3_ARGS_TRACE_EncodeTPGreaseQuicBit
+#define _clog_3_ARGS_TRACE_EncodeTPGreaseQuicBit(uniqueId, arg1, encoded_arg_string)\
+tracepoint(CLOG_CRYPTO_TLS_C, EncodeTPGreaseQuicBit , arg1);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for EncodeTPTest
 // [conn][%p] TP: TEST TP (Type %hu, Length %hu)
 // QuicTraceLogConnVerbose(
@@ -1043,10 +1061,10 @@ tracepoint(CLOG_CRYPTO_TLS_C, DecodeTPDisable1RttEncryption , arg1);\
 // Decoder Ring for DecodeTPVersionNegotiationInfo
 // [conn][%p] TP: Version Negotiation Info (%hu bytes)
 // QuicTraceLogConnVerbose(
-                    DecodeTPVersionNegotiationInfo,
-                    Connection,
-                    "TP: Version Negotiation Info (%hu bytes)",
-                    Length);
+                DecodeTPVersionNegotiationInfo,
+                Connection,
+                "TP: Version Negotiation Info (%hu bytes)",
+                Length);
 // arg1 = arg1 = Connection = arg1
 // arg3 = arg3 = Length = arg3
 ----------------------------------------------------------*/
@@ -1073,6 +1091,24 @@ tracepoint(CLOG_CRYPTO_TLS_C, DecodeTPVersionNegotiationInfo , arg1, arg3);\
 #ifndef _clog_4_ARGS_TRACE_DecodeTPMinAckDelay
 #define _clog_4_ARGS_TRACE_DecodeTPMinAckDelay(uniqueId, arg1, encoded_arg_string, arg3)\
 tracepoint(CLOG_CRYPTO_TLS_C, DecodeTPMinAckDelay , arg1, arg3);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for DecodeTPGreaseQuicBit
+// [conn][%p] TP: Grease QUIC Bit
+// QuicTraceLogConnVerbose(
+                DecodeTPGreaseQuicBit,
+                Connection,
+                "TP: Grease QUIC Bit");
+// arg1 = arg1 = Connection = arg1
+----------------------------------------------------------*/
+#ifndef _clog_3_ARGS_TRACE_DecodeTPGreaseQuicBit
+#define _clog_3_ARGS_TRACE_DecodeTPGreaseQuicBit(uniqueId, arg1, encoded_arg_string)\
+tracepoint(CLOG_CRYPTO_TLS_C, DecodeTPGreaseQuicBit , arg1);\
 
 #endif
 

@@ -8,6 +8,7 @@ usage()
 
 OS=$(uname)
 ARCH=$(uname -m)
+PKGARCH=${ARCH}
 FPM=`which fpm` 2>/dev/null
 CONFIG=Release
 NAME=libmsquic
@@ -31,8 +32,16 @@ if [ "$OS" == 'Linux' ]; then
         ARCH='x64'
         LIBDIR="lib64"
     else
-        ARCH=x86
         LIBDIR="lib"
+        if [ "$ARCH" == "aarch64" ]; then
+            ARCH=arm64
+        else
+            if [ "$ARCH" == "armv7l" ]; then
+                ARCH=arm
+            else
+                ARCH=x86
+            fi
+        fi
     fi
 else
   if [ "$OS" == 'Darwin' ]; then
@@ -53,6 +62,16 @@ while :; do
 
     lowerI="$(echo $1 | tr "[:upper:]" "[:lower:]")"
     case $lowerI in
+        -a|-arch|--arch)
+            shift
+            ARCH=$1
+            if [ "$ARCH" == 'arm64' ]; then
+                PKGARCH=aarch64
+            fi
+            if [ "$ARCH" == 'arm' ]; then
+                PKGARCH=armhf
+            fi
+            ;;
         -d|-debug|--debug)
             CONFIG=Debug
             ;;
@@ -89,12 +108,11 @@ if [ -z ${OUTPUT} ]; then
     OUTPUT="artifacts/packages/${OS}/${ARCH}_${CONFIG}_openssl"
 fi
 
+echo "ARCH=$ARCH PKGARCH=$PKGARCH ARTIFACTS=$ARTIFACTS"
+
 mkdir -p ${OUTPUT}
 
 if [ "$OS" == "linux" ]; then
-  # Create symlink
-  ln -s "${ARTIFACTS}/libmsquic.${LIBEXT}.${VER_MAJOR}.${VER_MINOR}.${VER_PATCH}" "${ARTIFACTS}/libmsquic.${LIBEXT}.${VER_MAJOR}"
-
   # RedHat/CentOS
   FILES="${ARTIFACTS}/libmsquic.${LIBEXT}.${VER_MAJOR}.${VER_MINOR}.${VER_PATCH}=/usr/${LIBDIR}/libmsquic.${LIBEXT}.${VER_MAJOR}.${VER_MINOR}.${VER_PATCH}"
   FILES="${FILES} ${ARTIFACTS}/libmsquic.${LIBEXT}.${VER_MAJOR}=/usr/${LIBDIR}/libmsquic.${LIBEXT}.${VER_MAJOR}"
@@ -105,6 +123,7 @@ if [ "$OS" == "linux" ]; then
     --force \
     --input-type dir \
     --output-type rpm \
+    --architecture ${PKGARCH} \
     --name ${NAME} \
     --provides ${NAME} \
     --conflicts ${CONFLICTS} \
@@ -119,9 +138,16 @@ if [ "$OS" == "linux" ]; then
     ${FILES}
 
   # Debian/Ubuntu
-  if [ "$LIBDIR" == 'lib64' ]; then
+  if [ "$ARCH" == 'x64' ]; then
       LIBDIR="lib/x86_64-linux-gnu"
   fi
+  if [ "$ARCH" == 'arm64' ];then
+    LIBDIR="lib/aarch64-linux-gnu"
+  fi
+  if [ "$ARCH" == 'arm' ];then
+    LIBDIR="lib/arm-linux-gnueabihf"
+  fi
+
   FILES="${ARTIFACTS}/libmsquic.${LIBEXT}.${VER_MAJOR}.${VER_MINOR}.${VER_PATCH}=/usr/${LIBDIR}/libmsquic.${LIBEXT}.${VER_MAJOR}.${VER_MINOR}.${VER_PATCH}"
   FILES="${FILES} ${ARTIFACTS}/libmsquic.${LIBEXT}.${VER_MAJOR}=/usr/${LIBDIR}/libmsquic.${LIBEXT}.${VER_MAJOR}"
   if [ -e "$ARTIFACTS/libmsquic.lttng.${LIBEXT}.${VER_MAJOR}.${VER_MINOR}.${VER_PATCH}" ]; then
@@ -131,9 +157,11 @@ if [ "$OS" == "linux" ]; then
     --force \
     --input-type dir \
     --output-type deb \
+    --architecture ${PKGARCH} \
     --name ${NAME} \
     --provides ${NAME} \
     --conflicts ${CONFLICTS} \
+    --depends "libssl1.1" \
     --version ${VER_MAJOR}.${VER_MINOR}.${VER_PATCH} \
     --description "${DESCRIPTION}" \
     --vendor "${VENDOR}" \

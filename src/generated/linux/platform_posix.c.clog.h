@@ -14,6 +14,10 @@
 #include "platform_posix.c.clog.h.lttng.h"
 #endif
 #include <lttng/tracepoint-event.h>
+#ifndef _clog_MACRO_QuicTraceLogWarning
+#define _clog_MACRO_QuicTraceLogWarning  1
+#define QuicTraceLogWarning(a, ...) _clog_CAT(_clog_ARGN_SELECTOR(__VA_ARGS__), _clog_CAT(_,a(#a, __VA_ARGS__)))
+#endif
 #ifndef _clog_MACRO_QuicTraceLogInfo
 #define _clog_MACRO_QuicTraceLogInfo  1
 #define QuicTraceLogInfo(a, ...) _clog_CAT(_clog_ARGN_SELECTOR(__VA_ARGS__), _clog_CAT(_,a(#a, __VA_ARGS__)))
@@ -25,6 +29,22 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
+/*----------------------------------------------------------
+// Decoder Ring for PlatformThreadCreateFailed
+// [ lib] pthread_create failed, retrying without affinitization
+// QuicTraceLogWarning(
+            PlatformThreadCreateFailed,
+            "[ lib] pthread_create failed, retrying without affinitization");
+----------------------------------------------------------*/
+#ifndef _clog_2_ARGS_TRACE_PlatformThreadCreateFailed
+#define _clog_2_ARGS_TRACE_PlatformThreadCreateFailed(uniqueId, encoded_arg_string)\
+tracepoint(CLOG_PLATFORM_POSIX_C, PlatformThreadCreateFailed );\
+
+#endif
+
+
+
+
 /*----------------------------------------------------------
 // Decoder Ring for PosixLoaded
 // [ dso] Loaded
@@ -97,9 +117,9 @@ tracepoint(CLOG_PLATFORM_POSIX_C, PosixUninitialized );\
 // QuicTraceEvent(
             LibraryErrorStatus,
             "[ lib] ERROR, %u, %s.",
-            Status,
+            errno,
             "open(/dev/urandom, O_RDONLY|O_CLOEXEC) failed");
-// arg2 = arg2 = Status = arg2
+// arg2 = arg2 = errno = arg2
 // arg3 = arg3 = "open(/dev/urandom, O_RDONLY|O_CLOEXEC) failed" = arg3
 ----------------------------------------------------------*/
 #ifndef _clog_4_ARGS_TRACE_LibraryErrorStatus

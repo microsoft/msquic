@@ -155,6 +155,25 @@ TRACEPOINT_EVENT(CLOG_PACKET_BUILDER_C, PacketEncrypt,
 
 
 /*----------------------------------------------------------
+// Decoder Ring for PacketFinalize
+// [pack][%llu] Finalizing
+// QuicTraceEvent(
+            PacketFinalize,
+            "[pack][%llu] Finalizing",
+            Builder->Metadata->PacketId);
+// arg2 = arg2 = Builder->Metadata->PacketId = arg2
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_PACKET_BUILDER_C, PacketFinalize,
+    TP_ARGS(
+        unsigned long long, arg2), 
+    TP_FIELDS(
+        ctf_integer(uint64_t, arg2, arg2)
+    )
+)
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for ConnErrorStatus
 // [conn][%p] ERROR, %u, %s.
 // QuicTraceEvent(
@@ -176,25 +195,6 @@ TRACEPOINT_EVENT(CLOG_PACKET_BUILDER_C, ConnErrorStatus,
         ctf_integer_hex(uint64_t, arg2, arg2)
         ctf_integer(unsigned int, arg3, arg3)
         ctf_string(arg4, arg4)
-    )
-)
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for PacketFinalize
-// [pack][%llu] Finalizing
-// QuicTraceEvent(
-        PacketFinalize,
-        "[pack][%llu] Finalizing",
-        Builder->Metadata->PacketId);
-// arg2 = arg2 = Builder->Metadata->PacketId = arg2
-----------------------------------------------------------*/
-TRACEPOINT_EVENT(CLOG_PACKET_BUILDER_C, PacketFinalize,
-    TP_ARGS(
-        unsigned long long, arg2), 
-    TP_FIELDS(
-        ctf_integer(uint64_t, arg2, arg2)
     )
 )
 

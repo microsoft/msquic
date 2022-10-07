@@ -5,8 +5,6 @@
 //
 #pragma warning restore IDE0073
 
-using System.Runtime.InteropServices;
-
 namespace Microsoft.Quic
 {
     internal static unsafe partial class MsQuic_Linux
@@ -47,6 +45,9 @@ namespace Microsoft.Quic
         [NativeTypeName("#define QUIC_STATUS_ADDRESS_IN_USE ((QUIC_STATUS)EADDRINUSE)")]
         public const int QUIC_STATUS_ADDRESS_IN_USE = ((int)(98));
 
+        [NativeTypeName("#define QUIC_STATUS_INVALID_ADDRESS ((QUIC_STATUS)EAFNOSUPPORT)")]
+        public const int QUIC_STATUS_INVALID_ADDRESS = ((int)(97));
+
         [NativeTypeName("#define QUIC_STATUS_CONNECTION_TIMEOUT ((QUIC_STATUS)ETIMEDOUT)")]
         public const int QUIC_STATUS_CONNECTION_TIMEOUT = ((int)(110));
 
@@ -80,6 +81,9 @@ namespace Microsoft.Quic
         [NativeTypeName("#define QUIC_STATUS_STREAM_LIMIT_REACHED ((QUIC_STATUS)ESTRPIPE)")]
         public const int QUIC_STATUS_STREAM_LIMIT_REACHED = ((int)(86));
 
+        [NativeTypeName("#define QUIC_STATUS_ALPN_IN_USE ((QUIC_STATUS)EPROTOTYPE)")]
+        public const int QUIC_STATUS_ALPN_IN_USE = unchecked((int)(91));
+
         [NativeTypeName("#define QUIC_STATUS_CLOSE_NOTIFY QUIC_STATUS_TLS_ALERT(0)")]
         public const int QUIC_STATUS_CLOSE_NOTIFY = ((int)(0xff & 0) + 256 + 200000000);
 
@@ -98,11 +102,20 @@ namespace Microsoft.Quic
         [NativeTypeName("#define QUIC_STATUS_UNKNOWN_CERTIFICATE QUIC_STATUS_TLS_ALERT(46)")]
         public const int QUIC_STATUS_UNKNOWN_CERTIFICATE = ((int)(0xff & 46) + 256 + 200000000);
 
+        [NativeTypeName("#define QUIC_STATUS_REQUIRED_CERTIFICATE QUIC_STATUS_TLS_ALERT(116)")]
+        public const int QUIC_STATUS_REQUIRED_CERTIFICATE = ((int)(0xff & 116) + 256 + 200000000);
+
         [NativeTypeName("#define QUIC_STATUS_CERT_EXPIRED QUIC_STATUS_CERT_ERROR(1)")]
         public const int QUIC_STATUS_CERT_EXPIRED = ((int)(1) + 512 + 200000000);
 
         [NativeTypeName("#define QUIC_STATUS_CERT_UNTRUSTED_ROOT QUIC_STATUS_CERT_ERROR(2)")]
         public const int QUIC_STATUS_CERT_UNTRUSTED_ROOT = ((int)(2) + 512 + 200000000);
+
+        [NativeTypeName("#define QUIC_STATUS_CERT_NO_CERT QUIC_STATUS_CERT_ERROR(3)")]
+        public const int QUIC_STATUS_CERT_NO_CERT = ((int)(3) + 512 + 200000000);
+
+        [NativeTypeName("#define QUIC_STATUS_ADDRESS_NOT_AVAILABLE ((QUIC_STATUS)EADDRNOTAVAIL)")]
+        public const int QUIC_STATUS_ADDRESS_NOT_AVAILABLE = ((int)(0x63));
 
         public const int QUIC_ADDRESS_FAMILY_UNSPEC = 0;
         public const int QUIC_ADDRESS_FAMILY_INET = 2;

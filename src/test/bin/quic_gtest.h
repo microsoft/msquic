@@ -75,13 +75,15 @@ struct HandshakeArgs1 {
     bool ServerStatelessRetry;
     bool MultipleALPNs;
     bool MultiPacketClientInitial;
+    bool GreaseQuicBitExtension;
     static ::std::vector<HandshakeArgs1> Generate() {
         ::std::vector<HandshakeArgs1> list;
         for (int Family : { 4, 6})
         for (bool ServerStatelessRetry : { false, true })
         for (bool MultipleALPNs : { false, true })
         for (bool MultiPacketClientInitial : { false, true })
-            list.push_back({ Family, ServerStatelessRetry, MultipleALPNs, MultiPacketClientInitial });
+        for (bool GreaseQuicBitExtension : { false, true })
+            list.push_back({ Family, ServerStatelessRetry, MultipleALPNs, MultiPacketClientInitial, GreaseQuicBitExtension });
         return list;
     }
 };
@@ -91,7 +93,8 @@ std::ostream& operator << (std::ostream& o, const HandshakeArgs1& args) {
         (args.Family == 4 ? "v4" : "v6") << "/" <<
         (args.ServerStatelessRetry ? "Retry" : "NoRetry") << "/" <<
         (args.MultipleALPNs ? "MultipleALPNs" : "SingleALPN") << "/" <<
-        (args.MultiPacketClientInitial ? "MultipleInitials" : "SingleInitial");
+        (args.MultiPacketClientInitial ? "MultipleInitials" : "SingleInitial") << "/" <<
+        (args.GreaseQuicBitExtension ? "Grease" : "NoGrease");
 }
 
 class WithHandshakeArgs1 : public testing::Test,
@@ -265,6 +268,28 @@ std::ostream& operator << (std::ostream& o, const HandshakeArgs7& args) {
 
 class WithHandshakeArgs7 : public testing::Test,
     public testing::WithParamInterface<HandshakeArgs7> {
+};
+
+struct HandshakeArgs8 {
+    bool TestServer;
+    uint8_t VnTpSize;
+    static ::std::vector<HandshakeArgs8> Generate() {
+        ::std::vector<HandshakeArgs8> list;
+        for (bool TestServer : { false, true })
+        for (uint8_t VnTpSize: { 0, 2, 7, 9 })
+            list.push_back({TestServer, VnTpSize});
+        return list;
+    }
+};
+
+std::ostream& operator << (std::ostream& o, const HandshakeArgs8& args) {
+    return o <<
+        (args.TestServer ? "server" : "client") << "/" <<
+        (int)args.VnTpSize;
+}
+
+class WithHandshakeArgs8 : public testing::Test,
+    public testing::WithParamInterface<HandshakeArgs8> {
 };
 
 struct SendArgs1 {

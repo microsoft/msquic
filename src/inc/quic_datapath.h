@@ -347,11 +347,6 @@ void
 
 typedef CXPLAT_DATAPATH_SEND_COMPLETE *CXPLAT_DATAPATH_SEND_COMPLETE_HANDLER;
 
-typedef struct CXPLAT_DATAPATH_CONFIG {
-    const uint16_t* DataPathProcList; // Processor index candidates
-    uint32_t DataPathProcListLength;
-} CXPLAT_DATAPATH_CONFIG;
-
 //
 // Opens a new handle to the QUIC datapath.
 //
@@ -361,7 +356,7 @@ CxPlatDataPathInitialize(
     _In_ uint32_t ClientRecvContextLength,
     _In_opt_ const CXPLAT_UDP_DATAPATH_CALLBACKS* UdpCallbacks,
     _In_opt_ const CXPLAT_TCP_DATAPATH_CALLBACKS* TcpCallbacks,
-    _In_opt_ CXPLAT_DATAPATH_CONFIG* Config,
+    _In_opt_ QUIC_EXECUTION_CONFIG* Config,
     _Out_ CXPLAT_DATAPATH** NewDatapath
     );
 
@@ -640,30 +635,6 @@ CxPlatSocketSend(
     _In_ const CXPLAT_ROUTE* Route,
     _In_ CXPLAT_SEND_DATA* SendData,
     _In_ uint16_t PartitionId
-    );
-
-//
-// Sets a parameter on the socket.
-//
-_IRQL_requires_max_(PASSIVE_LEVEL)
-QUIC_STATUS
-CxPlatSocketSetParam(
-    _In_ CXPLAT_SOCKET* Socket,
-    _In_ uint32_t Param,
-    _In_ uint32_t BufferLength,
-    _In_reads_bytes_(BufferLength) const uint8_t* Buffer
-    );
-
-//
-// Sets a parameter on the socket.
-//
-_IRQL_requires_max_(PASSIVE_LEVEL)
-QUIC_STATUS
-CxPlatSocketGetParam(
-    _In_ CXPLAT_SOCKET* Socket,
-    _In_ uint32_t Param,
-    _Inout_ uint32_t* BufferLength,
-    _Out_writes_bytes_opt_(*BufferLength) uint8_t* Buffer
     );
 
 #ifdef QUIC_USE_RAW_DATAPATH

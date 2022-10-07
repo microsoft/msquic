@@ -197,6 +197,14 @@ QuicPacketBuilderPrepare(
         Connection->Stats.QuicVersion == QUIC_VERSION_2 ?
             QuicKeyTypeToPacketTypeV2(NewPacketKeyType) :
             QuicKeyTypeToPacketTypeV1(NewPacketKeyType);
+
+    //
+    // For now, we can't send QUIC Bit as 0 on initial packets from client to server.
+    // see: https://www.ietf.org/archive/id/draft-ietf-quic-bit-grease-04.html#name-clearing-the-quic-bit
+    //
+    BOOLEAN FixedBit = (QuicConnIsClient(Connection) &&
+        (NewPacketType == (uint8_t)QUIC_INITIAL_V1 || NewPacketKeyType == (uint8_t)QUIC_INITIAL_V2)) ? TRUE : Connection->State.FixedBit;
+
     uint16_t DatagramSize = Builder->Path->Mtu;
     if ((uint32_t)DatagramSize > Builder->Path->Allowance) {
         CXPLAT_DBG_ASSERT(!IsPathMtuDiscovery); // PMTUD always happens after source addr validation.
@@ -401,6 +409,7 @@ QuicPacketBuilderPrepare(
                         Builder->PacketNumberLength,
                         Builder->Path->SpinBit,
                         PacketSpace->CurrentKeyPhase,
+                        FixedBit,
                         BufferSpaceAvailable,
                         Header);
                 Builder->Metadata->Flags.KeyPhase = PacketSpace->CurrentKeyPhase;
@@ -423,6 +432,7 @@ QuicPacketBuilderPrepare(
                     QuicPacketEncodeLongHeaderV1(
                         Connection->Stats.QuicVersion,
                         NewPacketType,
+                        FixedBit,
                         &Builder->Path->DestCid->CID,
                         &Builder->SourceCid->CID,
                         Connection->Send.InitialTokenLength,
@@ -809,6 +819,11 @@ QuicPacketBuilderFinalize(
             goto Exit;
         }
 
+        QuicTraceEvent(
+            PacketFinalize,
+            "[pack][%llu] Finalizing",
+            Builder->Metadata->PacketId);
+
         if (Connection->State.HeaderProtectionEnabled) {
 
             uint8_t* PnStart = Payload - Builder->PacketNumberLength;
@@ -895,6 +910,13 @@ QuicPacketBuilderFinalize(
             CXPLAT_DBG_ASSERT(Builder->Key->PacketKey != NULL);
             CXPLAT_DBG_ASSERT(Builder->Key->HeaderKey != NULL);
         }
+
+    } else {
+
+        QuicTraceEvent(
+            PacketFinalize,
+            "[pack][%llu] Finalizing",
+            Builder->Metadata->PacketId);
     }
 
     //
@@ -905,10 +927,6 @@ QuicPacketBuilderFinalize(
     Builder->Metadata->SentTime = CxPlatTimeUs32();
     Builder->Metadata->PacketLength =
         Builder->HeaderLength + PayloadLength;
-    QuicTraceEvent(
-        PacketFinalize,
-        "[pack][%llu] Finalizing",
-        Builder->Metadata->PacketId);
 
     QuicTraceEvent(
         ConnPacketSent,
@@ -947,9 +965,9 @@ Exit:
         if (Builder->Datagram != NULL) {
             Builder->Datagram->Length = Builder->DatagramLength;
             Builder->Datagram = NULL;
-            Builder->DatagramLength = 0;
             ++Builder->TotalCountDatagrams;
             Builder->TotalDatagramsLength += Builder->DatagramLength;
+            Builder->DatagramLength = 0;
         }
 
         if (FlushBatchedDatagrams || CxPlatSendDataIsFull(Builder->SendData)) {

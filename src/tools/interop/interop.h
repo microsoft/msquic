@@ -13,6 +13,7 @@
 #include <string>
 #include <vector>
 #include "msquichelper.h"
+#include "quic_versions.h"
 #include "quic_trace.h"
 
 //
@@ -31,10 +32,12 @@ enum QuicTestFeature {
     CidUpdate           = 0x0200,
     NatRebinding        = 0x0400,
     Datagram            = 0x0800,
-    ChaCha20            = 0x1000
+    ChaCha20            = 0x1000,
+    Version2            = 0x2000,
+    GreaseQuicBit       = 0x4000,
 };
 
-#define QuicTestFeatureCodes "VHDCRZSQUMBG2"
+#define QuicTestFeatureCodes "VHDCRZSQUMBGA2E"
 
 const uint32_t QuicTestFeatureCount = sizeof(QuicTestFeatureCodes) - 1;
 const uint32_t QuicTestFeatureAll = ((1 << QuicTestFeatureCount) - 1);

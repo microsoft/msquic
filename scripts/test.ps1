@@ -142,7 +142,7 @@ param (
     [switch]$EnableAppVerifier = $false,
 
     [Parameter(Mandatory = $false)]
-    [switch]$EnableTcpipVerifier = $false,
+    [switch]$EnableSystemVerifier = $false,
 
     [Parameter(Mandatory = $false)]
     [switch]$CodeCoverage = $false,
@@ -301,8 +301,8 @@ if ($NoProgress) {
 if ($EnableAppVerifier) {
     $TestArguments += " -EnableAppVerifier"
 }
-if ($EnableTcpipVerifier) {
-    $TestArguments += " -EnableTcpipVerifier"
+if ($EnableSystemVerifier) {
+    $TestArguments += " -EnableSystemVerifier"
 }
 if ($CodeCoverage) {
     $TestArguments += " -CodeCoverage"
@@ -320,8 +320,8 @@ if (![string]::IsNullOrWhiteSpace($ExtraArtifactDir)) {
 
 # Run the script.
 if (!$Kernel -and !$SkipUnitTests) {
-    Invoke-Expression ($RunTest + " -Path $MsQuicCoreTest " + $TestArguments)
     Invoke-Expression ($RunTest + " -Path $MsQuicPlatTest " + $TestArguments)
+    Invoke-Expression ($RunTest + " -Path $MsQuicCoreTest " + $TestArguments)
 }
 Invoke-Expression ($RunTest + " -Path $MsQuicTest " + $TestArguments)
 

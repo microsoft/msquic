@@ -6,7 +6,8 @@ This document describes various ways to debug and diagnose issues when using MsQ
 
 For debugging issues, logging is generally the best way to diagnose problems. MsQuic has extensive logs in the code to facilitate debugging. The logs can simply be converted to human readable text or they can be processed by various automated tools to help improve diagnostics.
 
-> **Note** - Currently tools only support Windows ETW.
+> **Note**
+> Currently tools only support Windows ETW.
 
 ### Windows
 
@@ -128,12 +129,20 @@ As already indicated, there are lots of ways to collect ETW traces. Feel free to
 
 ## Linux
 
+This script wraps steps bellows  
+**WARN**: This wrapper doesn't work with `./scripts/test.ps1` etc. as it is also creating lttng session internally.
+```
+./scripts/log_wrapper.sh ${Your binary}
+# e.g.
+./scripts/log_wrapper.sh ./artifacts/bin/linux/x64_Debug_openssl/msquictest --gtest_filter=Basic.*
+```
+
 To start collecting a trace, you can use the following commands:
 
 ```
 mkdir msquic_lttng
 lttng create msquic -o=./msquic_lttng
-lttng enable-event --userspace CLOG_*
+lttng enable-event --userspace "CLOG_*"
 lttng add-context --userspace --type=vpid --type=vtid
 lttng start
 ```
@@ -175,10 +184,11 @@ To convert the trace, you can use the following commands:
 
 ```
 babeltrace --names all ./msquic_lttng/* > quic.babel.txt
-clog2text_lttng -i quic.babel.txt -s clog.sidecar -o quic.log --showTimestamp --showCpuInfo
+~/.dotnet/tools/clog2text_lttng -i quic.babel.txt -s clog.sidecar -o quic.log --showTimestamp --showCpuInfo
 ```
 
-> **Note** - The `clog.sidecar` file that was used to build MsQuic must be used. It can be found in the `./src/manifest` directory of the repository.
+> **Note**
+> The `clog.sidecar` file that was used to build MsQuic must be used. It can be found in the `./src/manifest` directory of the repository.
 
 # Trace Analysis
 
@@ -192,7 +202,8 @@ When viewing the traces as text, we recommend [TextAnalysisTool.NET](https://tex
 
 You may also open the trace in Windows Performance Analyzer. See the [WPA instructions](../src/plugins/trace/README.md) for more details.
 
-> **Note** - WPA support for LTTng based logs is not yet available but will be supported in the future.
+> **Note**
+> WPA support for LTTng based logs is not yet available but will be supported in the future.
 
 # Performance Counters
 

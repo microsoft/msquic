@@ -35,17 +35,11 @@ MsQuicRegistrationOpen(
 {
     QUIC_STATUS Status;
     QUIC_REGISTRATION* Registration = NULL;
-    size_t AppNameLength = 0;
-    const CXPLAT_UDP_DATAPATH_CALLBACKS DatapathCallbacks = {
-        QuicBindingReceive,
-        QuicBindingUnreachable,
-    };
     const BOOLEAN ExternalRegistration =
         Config == NULL || Config->ExecutionProfile != QUIC_EXECUTION_PROFILE_TYPE_INTERNAL;
-
-    if (Config != NULL && Config->AppName != NULL) {
-        AppNameLength = strlen(Config->AppName);
-    }
+    const size_t AppNameLength =
+        (Config != NULL && Config->AppName != NULL) ? strlen(Config->AppName) : 0;
+    const size_t RegistrationSize = sizeof(QUIC_REGISTRATION) + AppNameLength + 1;
 
     QuicTraceEvent(
         ApiEnter,
@@ -58,43 +52,16 @@ MsQuicRegistrationOpen(
         goto Error;
     }
 
-    CXPLAT_DBG_ASSERT(ExternalRegistration || MsQuicLib.Datapath != NULL);
-
     if (ExternalRegistration) {
-        CxPlatLockAcquire(&MsQuicLib.Lock);
-        if (MsQuicLib.Datapath == NULL) {
-            CXPLAT_DATAPATH_CONFIG DataPathConfig = {
-                MsQuicLib.DataPathProcList,
-                MsQuicLib.DataPathProcListLength
-            };
-            Status =
-                CxPlatDataPathInitialize(
-                    sizeof(CXPLAT_RECV_PACKET),
-                    &DatapathCallbacks,
-                    NULL,                   // TcpCallbacks
-                    &DataPathConfig,
-                    &MsQuicLib.Datapath);
-            if (QUIC_FAILED(Status)) {
-                CxPlatLockRelease(&MsQuicLib.Lock);
-                QuicTraceEvent(
-                    LibraryErrorStatus,
-                    "[ lib] ERROR, %u, %s.",
-                    Status,
-                    "CxPlatDataPathInitialize");
-                goto Error;
-            }
-            QuicTraceEvent(
-                DataPathInitialized,
-                "[data] Initialized, DatapathFeatures=%u",
-                CxPlatDataPathGetSupportedFeatures(MsQuicLib.Datapath));
+        Status = QuicLibraryEnsureExecutionContext();
+        if (QUIC_FAILED(Status)) {
+            goto Error;
         }
-        CxPlatLockRelease(&MsQuicLib.Lock);
     }
 
-    Registration =
-        CXPLAT_ALLOC_NONPAGED(
-            sizeof(QUIC_REGISTRATION) + AppNameLength + 1,
-            QUIC_POOL_REGISTRATION);
+    CXPLAT_DBG_ASSERT(MsQuicLib.Datapath != NULL);
+
+    Registration = CXPLAT_ALLOC_NONPAGED(RegistrationSize, QUIC_POOL_REGISTRATION);
     if (Registration == NULL) {
         QuicTraceEvent(
             AllocFailure,
@@ -105,14 +72,12 @@ MsQuicRegistrationOpen(
         goto Error;
     }
 
+    CxPlatZeroMemory(Registration, RegistrationSize);
     Registration->Type = QUIC_HANDLE_TYPE_REGISTRATION;
-    Registration->ClientContext = NULL;
-    Registration->NoPartitioning = FALSE;
-    Registration->SplitPartitioning = FALSE;
-    Registration->ExecProfile = Config == NULL ? QUIC_EXECUTION_PROFILE_LOW_LATENCY : Config->ExecutionProfile;
-    Registration->ShuttingDown = 0;
-    Registration->ShutdownErrorCode = 0;
-    Registration->ShutdownFlags = 0;
+    Registration->ExecProfile =
+        Config == NULL ? QUIC_EXECUTION_PROFILE_LOW_LATENCY : Config->ExecutionProfile;
+    Registration->NoPartitioning =
+        Registration->ExecProfile == QUIC_EXECUTION_PROFILE_TYPE_SCAVENGER;
     CxPlatLockInitialize(&Registration->ConfigLock);
     CxPlatListInitializeHead(&Registration->Configurations);
     CxPlatDispatchLockInitialize(&Registration->ConnectionLock);
@@ -121,58 +86,21 @@ MsQuicRegistrationOpen(
     Registration->AppNameLength = (uint8_t)(AppNameLength + 1);
     if (AppNameLength != 0) {
         CxPlatCopyMemory(Registration->AppName, Config->AppName, AppNameLength + 1);
-    } else {
-        Registration->AppName[0] = '\0';
-    }
-
-    uint16_t WorkerThreadFlags = 0;
-    switch (Registration->ExecProfile) {
-    default:
-    case QUIC_EXECUTION_PROFILE_LOW_LATENCY:
-        WorkerThreadFlags = CXPLAT_THREAD_FLAG_NONE;
-        break;
-    case QUIC_EXECUTION_PROFILE_TYPE_MAX_THROUGHPUT:
-        WorkerThreadFlags =
-            CXPLAT_THREAD_FLAG_SET_AFFINITIZE;
-        Registration->SplitPartitioning = TRUE;
-        break;
-    case QUIC_EXECUTION_PROFILE_TYPE_SCAVENGER:
-        WorkerThreadFlags = 0;
-        Registration->NoPartitioning = TRUE;
-        break;
-    case QUIC_EXECUTION_PROFILE_TYPE_REAL_TIME:
-        WorkerThreadFlags =
-            CXPLAT_THREAD_FLAG_SET_AFFINITIZE;
-        break;
-    }
-
-    //
-    // TODO - Figure out how to check to see if hyper-threading was enabled
-    // first
-    // When hyper-threading is enabled, better bulk throughput can sometimes
-    // be gained by sharing the same physical core, but not the logical one.
-    // The shared one is always one greater than the RSS core.
-    //
-    if (Registration->SplitPartitioning &&
-        MsQuicLib.PartitionCount <= QUIC_MAX_THROUGHPUT_PARTITION_OFFSET) {
-        Registration->SplitPartitioning = FALSE; // Not enough partitions.
     }
 
     Status =
         QuicWorkerPoolInitialize(
-            Registration,
-            WorkerThreadFlags,
-            Registration->NoPartitioning ? 1 : MsQuicLib.PartitionCount,
-            &Registration->WorkerPool);
+            Registration, Registration->ExecProfile, &Registration->WorkerPool);
     if (QUIC_FAILED(Status)) {
         goto Error;
     }
 
     QuicTraceEvent(
-        RegistrationCreated,
-        "[ reg][%p] Created, AppName=%s",
+        RegistrationCreatedV2,
+        "[ reg][%p] Created, AppName=%s, ExecProfile=%u",
         Registration,
-        Registration->AppName);
+        Registration->AppName,
+        Registration->ExecProfile);
 
 #ifdef CxPlatVerifierEnabledByAddr
 #pragma prefast(suppress:6001, "SAL doesn't understand checking whether memory is tracked by Verifier.")
@@ -335,10 +263,11 @@ QuicRegistrationTraceRundown(
     )
 {
     QuicTraceEvent(
-        RegistrationRundown,
-        "[ reg][%p] Rundown, AppName=%s",
+        RegistrationRundownV2,
+        "[ reg][%p] Rundown, AppName=%s, ExecProfile=%u",
         Registration,
-        Registration->AppName);
+        Registration->AppName,
+        Registration->ExecProfile);
 
     CxPlatLockAcquire(&Registration->ConfigLock);
 
@@ -381,21 +310,14 @@ QuicRegistrationSettingsChanged(
     CxPlatLockRelease(&Registration->ConfigLock);
 }
 
-_IRQL_requires_max_(PASSIVE_LEVEL)
+_IRQL_requires_max_(DISPATCH_LEVEL)
 BOOLEAN
 QuicRegistrationAcceptConnection(
     _In_ QUIC_REGISTRATION* Registration,
     _In_ QUIC_CONNECTION* Connection
     )
 {
-    if (Registration->SplitPartitioning) {
-        //
-        // TODO - Constrain PartitionID to the same NUMA node?
-        //
-        Connection->PartitionID += QUIC_MAX_THROUGHPUT_PARTITION_OFFSET;
-    }
-
-    uint16_t Index =
+    const uint16_t Index =
         Registration->NoPartitioning ? 0 : QuicPartitionIdGetIndex(Connection->PartitionID);
 
     //

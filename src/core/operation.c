@@ -234,6 +234,12 @@ QuicOperationQueueClear(
                             QUIC_STREAM_SHUTDOWN_FLAG_ABORT | QUIC_STREAM_SHUTDOWN_FLAG_IMMEDIATE,
                             0);
                     }
+                } else if (ApiCtx->Type == QUIC_API_TYPE_STRM_SEND &&
+                    !ApiCtx->STRM_START.Stream->Flags.Started) {
+                    QuicStreamShutdown(
+                        ApiCtx->STRM_START.Stream,
+                        QUIC_STREAM_SHUTDOWN_FLAG_ABORT | QUIC_STREAM_SHUTDOWN_FLAG_IMMEDIATE,
+                        0);
                 }
             }
             QuicOperationFree(Worker, Oper);

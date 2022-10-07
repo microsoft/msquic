@@ -80,6 +80,20 @@ extern "C" {
 
 #define INIT_NO_SAL(X) // No-op since Windows supports SAL
 
+#ifdef QUIC_RESTRICTED_BUILD
+#ifndef NT_SUCCESS
+#define NT_SUCCESS(Status) (((NTSTATUS)(Status)) >= 0)
+#endif
+
+_When_(Status < 0, _Out_range_(>, 0))
+_When_(Status >= 0, _Out_range_(==, 0))
+ULONG
+NTAPI
+RtlNtStatusToDosError (
+   NTSTATUS Status
+   );
+#endif
+
 //
 // Static Analysis Interfaces
 //
@@ -218,6 +232,15 @@ InterlockedFetchAndClearPointer(
     )
 {
     return InterlockedExchangePointer(Target, NULL);
+}
+
+inline
+BOOLEAN
+InterlockedFetchAndClearBoolean(
+    _Inout_ _Interlocked_operand_ BOOLEAN volatile *Target
+    )
+{
+    return (BOOLEAN)InterlockedAnd8((char*)Target, 0);
 }
 
 //
@@ -452,6 +475,16 @@ CxPlatRefInitialize(
     *RefCount = 1;
 }
 
+inline
+void
+CxPlatRefInitializeEx(
+    _Out_ CXPLAT_REF_COUNT* RefCount,
+    _In_ uint32_t Initial
+    )
+{
+    *RefCount = (LONG_PTR)Initial;
+}
+
 #define CxPlatRefUninitialize(RefCount)
 
 inline
@@ -548,6 +581,93 @@ typedef HANDLE CXPLAT_EVENT;
 #define CxPlatEventWaitForever(Event) WaitForSingleObject(Event, INFINITE)
 #define CxPlatEventWaitWithTimeout(Event, timeoutMs) \
     (WAIT_OBJECT_0 == WaitForSingleObject(Event, timeoutMs))
+
+//
+// Event Queue Interfaces
+//
+
+typedef HANDLE CXPLAT_EVENTQ;
+#define CXPLAT_SQE OVERLAPPED
+typedef OVERLAPPED_ENTRY CXPLAT_CQE;
+
+inline
+BOOLEAN
+CxPlatEventQInitialize(
+    _Out_ CXPLAT_EVENTQ* queue
+    )
+{
+    return (*queue = CreateIoCompletionPort(INVALID_HANDLE_VALUE, NULL, 0, 1)) != NULL;
+}
+
+inline
+void
+CxPlatEventQCleanup(
+    _In_ CXPLAT_EVENTQ* queue
+    )
+{
+    CloseHandle(*queue);
+}
+
+inline
+BOOLEAN
+CxPlatEventQEnqueue(
+    _In_ CXPLAT_EVENTQ* queue,
+    _In_ CXPLAT_SQE* sqe,
+    _In_opt_ void* user_data
+    )
+{
+    CxPlatZeroMemory(sqe, sizeof(*sqe));
+    return PostQueuedCompletionStatus(*queue, 0, (ULONG_PTR)user_data, sqe) != 0;
+}
+
+inline
+BOOLEAN
+CxPlatEventQEnqueueEx( // Windows specific extension
+    _In_ CXPLAT_EVENTQ* queue,
+    _In_ CXPLAT_SQE* sqe,
+    _In_ uint32_t num_bytes,
+    _In_opt_ void* user_data
+    )
+{
+    CxPlatZeroMemory(sqe, sizeof(*sqe));
+    return PostQueuedCompletionStatus(*queue, num_bytes, (ULONG_PTR)user_data, sqe) != 0;
+}
+
+inline
+uint32_t
+CxPlatEventQDequeue(
+    _In_ CXPLAT_EVENTQ* queue,
+    _Out_ CXPLAT_CQE* events,
+    _In_ uint32_t count,
+    _In_ uint32_t wait_time // milliseconds
+    )
+{
+    ULONG out_count = 0;
+    if (!GetQueuedCompletionStatusEx(*queue, events, count, &out_count, wait_time, FALSE)) return FALSE;
+    CXPLAT_DBG_ASSERT(out_count != 0);
+    CXPLAT_DBG_ASSERT(events[0].lpOverlapped != NULL || out_count == 1);
+    return events[0].lpOverlapped == NULL ? 0 : (uint32_t)out_count;
+}
+
+inline
+void
+CxPlatEventQReturn(
+    _In_ CXPLAT_EVENTQ* queue,
+    _In_ uint32_t count
+    )
+{
+    UNREFERENCED_PARAMETER(queue);
+    UNREFERENCED_PARAMETER(count);
+}
+
+inline
+void*
+CxPlatCqeUserData(
+    _In_ const CXPLAT_CQE* cqe
+    )
+{
+    return (void*)cqe->lpCompletionKey;
+}
 
 //
 // Time Measurement Interfaces
@@ -716,6 +836,8 @@ CxPlatTimeAtOrBefore32(
 }
 
 #define CxPlatSleep(ms) Sleep(ms)
+
+#define CxPlatSchedulerYield() Sleep(0)
 
 //
 // Processor Count and Index

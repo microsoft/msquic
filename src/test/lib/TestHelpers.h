@@ -80,7 +80,10 @@ struct ServerAcceptContext {
     CXPLAT_EVENT NewConnectionReady;
     TestConnection** NewConnection;
     QUIC_STATUS ExpectedTransportCloseStatus{QUIC_STATUS_SUCCESS};
-    QUIC_STATUS ExpectedClientCertValidationResult{QUIC_STATUS_SUCCESS};
+    QUIC_STATUS ExpectedClientCertValidationResult[2]{};
+    uint32_t ExpectedClientCertValidationResultCount{0};
+    QUIC_STATUS PeerCertEventReturnStatus{false};
+    QUIC_PRIVATE_TRANSPORT_PARAMETER* TestTP{nullptr};
     ServerAcceptContext(TestConnection** _NewConnection) :
         NewConnection(_NewConnection) {
         CxPlatEventInitialize(&NewConnectionReady, TRUE, FALSE);
@@ -88,12 +91,18 @@ struct ServerAcceptContext {
     ~ServerAcceptContext() {
         CxPlatEventUninitialize(NewConnectionReady);
     }
+    void AddExpectedClientCertValidationResult(QUIC_STATUS Status) {
+        CXPLAT_FRE_ASSERTMSG(
+            ExpectedClientCertValidationResultCount < ARRAYSIZE(ExpectedClientCertValidationResult),
+            "Only two expected values supported.");
+        ExpectedClientCertValidationResult[ExpectedClientCertValidationResultCount++] = Status;
+    }
 };
 
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
 struct ClearGlobalVersionListScope {
     ~ClearGlobalVersionListScope() {
-        MsQuicVersionSettings Settings;
-        Settings.SetAllVersionLists(nullptr, 0);
+        MsQuicVersionSettings Settings(nullptr, 0);
         BOOLEAN Default = FALSE;
 
         TEST_QUIC_SUCCEEDED(
@@ -108,6 +117,116 @@ struct ClearGlobalVersionListScope {
                 QUIC_PARAM_GLOBAL_VERSION_NEGOTIATION_ENABLED,
                 sizeof(Default),
                 &Default));
+    }
+};
+#endif
+
+//
+// Simulating Connection's status to be QUIC_CONN_BAD_START_STATE
+// ConnectionStart -> ConnectionShutdown
+//
+inline
+void SimulateConnBadStartState(MsQuicConnection& Connection, MsQuicConfiguration& Configuration) {
+    TEST_QUIC_SUCCEEDED(
+        Connection.Start(
+            Configuration,
+            QUIC_ADDRESS_FAMILY_INET,
+            "localhost",
+            4433));
+    CxPlatSleep(100);
+
+    Connection.Shutdown(
+        QUIC_TEST_NO_ERROR,
+        QUIC_CONNECTION_SHUTDOWN_FLAG_NONE);
+}
+
+//
+// almost all Parameter for GetParam is
+// 1. call with only BufferLength pointer
+// 2. return QUIC_STATUS_BUFFER_TOO_SMALL by filling value in BufferLength
+// 3. call again to get actual value in Buffer
+//
+inline
+void SimpleGetParamTest(HQUIC Handle, uint32_t Param, size_t ExpectedLength, void* ExpectedData) {
+    uint32_t Length = 0;
+    TEST_QUIC_STATUS(
+        QUIC_STATUS_BUFFER_TOO_SMALL,
+        MsQuic->GetParam(
+                Handle,
+                Param,
+                &Length,
+                nullptr));
+    if (ExpectedLength != Length) {
+        TEST_FAILURE("ExpectedLength (%u) != Length (%u)", ExpectedLength, Length);
+        return;
+    }
+
+    void* Value = CXPLAT_ALLOC_NONPAGED(Length, QUIC_POOL_TEST);
+    if (Value == nullptr) {
+        TEST_FAILURE("Out of memory for testing SetParam for global parameter");
+        return;
+    }
+    TEST_QUIC_SUCCEEDED(
+        MsQuic->GetParam(
+            Handle,
+            Param,
+            &Length,
+            Value));
+
+    // if SetParam is not allowed and have random value
+    if (ExpectedData) {
+        TEST_EQUAL(memcmp(Value, ExpectedData, ExpectedLength), 0);
+    }
+
+    if (Value != nullptr) {
+        CXPLAT_FREE(Value, QUIC_POOL_TEST);
+    }
+}
+
+//
+// Global parameter setting might affect other tests' behavior.
+// This sets back the original value
+//
+struct GlobalSettingScope {
+    uint32_t Parameter;
+    uint32_t BufferLength {0};
+    void* OriginalValue {nullptr};
+    GlobalSettingScope(uint32_t Parameter) : Parameter(Parameter) {
+         // can be both too samll or success
+        auto Status = MsQuic->GetParam(
+                nullptr,
+                Parameter,
+                &BufferLength,
+                nullptr);
+#ifndef QUIC_API_ENABLE_PREVIEW_FEATURES
+        TEST_TRUE(Status == QUIC_STATUS_BUFFER_TOO_SMALL);
+#else
+        TEST_TRUE(Status == QUIC_STATUS_BUFFER_TOO_SMALL ||
+            (Parameter == QUIC_PARAM_GLOBAL_EXECUTION_CONFIG && Status == QUIC_STATUS_SUCCESS));
+#endif
+
+        OriginalValue = CXPLAT_ALLOC_NONPAGED(BufferLength, QUIC_POOL_TEST);
+        if (OriginalValue == nullptr) {
+            TEST_FAILURE("Out of memory for testing SetParam for global parameter");
+        }
+        TEST_QUIC_SUCCEEDED(
+            MsQuic->GetParam(
+                nullptr,
+                Parameter,
+                &BufferLength,
+                OriginalValue));
+    }
+
+    ~GlobalSettingScope() {
+        TEST_QUIC_SUCCEEDED(
+            MsQuic->SetParam(
+                nullptr,
+                Parameter,
+                BufferLength,
+                OriginalValue));
+        if (OriginalValue != nullptr) {
+            CXPLAT_FREE(OriginalValue, QUIC_POOL_TEST);
+        }
     }
 };
 
@@ -781,3 +900,19 @@ private:
         return PrivateAddresses[Key % PrivateAddressesCount];
     }
 };
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+inline
+BOOLEAN
+WaitForMsQuicInUse() {
+    int Count = 0;
+    BOOLEAN MsQuicInUse = FALSE;
+    QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
+    uint32_t MsQuicInUseLen = sizeof(MsQuicInUse);
+    do {
+        CxPlatSleep(100);
+        Status = MsQuic->GetParam(nullptr, QUIC_PARAM_GLOBAL_IN_USE, &MsQuicInUseLen, &MsQuicInUse);
+    } while(!MsQuicInUse && Count++ < 100);
+
+    return MsQuicInUse && Status == QUIC_STATUS_SUCCESS;
+}

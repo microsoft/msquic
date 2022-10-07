@@ -19,7 +19,7 @@ $ArtifactsBinDir = Join-Path $BaseArtifactsDir "bin"
 # All direct subfolders are OS's
 $Platforms = Get-ChildItem -Path $ArtifactsBinDir
 
-$Version = "2.1.0"
+$Version = "2.2.0"
 
 $WindowsBuilds = @()
 $AllBuilds = @()
@@ -159,11 +159,17 @@ foreach ($Build in $AllBuilds) {
     Compress-Archive -Path "$TempDir/*" -DestinationPath (Join-Path $DistDir "msquic_$($Platform)_$BuildBaseName.zip") -Force
 
     # For now, package only x64 Release binaries
-    if ($Platform -eq "linux" -and $BuildBaseName -like "*x64_Release*") {
+    if ($Platform -eq "linux" -and $BuildBaseName -like "*_Release*") {
         Write-Output "Packaging $Build"
         $OldLoc = Get-Location
         Set-Location $RootDir
-        & $RootDir/scripts/make-packages.sh --output $DistDir
+        if ($BuildBaseName -like "*arm64_*") {
+            & $RootDir/scripts/make-packages.sh --output $DistDir --arch arm64
+        } elseif ($BuildBaseName -like "*arm_*") {
+            & $RootDir/scripts/make-packages.sh --output $DistDir --arch arm
+        } else {
+            & $RootDir/scripts/make-packages.sh --output $DistDir # x64
+        }
         Set-Location $OldLoc
     }
 

@@ -48,6 +48,7 @@ typedef enum CXPLAT_TLS_ALERT_CODES {
     CXPLAT_TLS_ALERT_CODE_UNKNOWN_CA = 48,
     CXPLAT_TLS_ALERT_CODE_INTERNAL_ERROR = 80,
     CXPLAT_TLS_ALERT_CODE_USER_CANCELED = 90,
+    CXPLAT_TLS_ALERT_CODE_REQUIRED_CERTIFICATE = 116,
     CXPLAT_TLS_ALERT_CODE_NO_APPLICATION_PROTOCOL = 120,
 
 } CXPLAT_TLS_ALERT_CODES;
@@ -109,8 +110,8 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 BOOLEAN
 (CXPLAT_TLS_PEER_CERTIFICATE_RECEIVED_CALLBACK)(
     _In_ QUIC_CONNECTION* Connection,
-    _In_ QUIC_CERTIFICATE* Certificate,
-    _In_ QUIC_CERTIFICATE_CHAIN* Chain,
+    _In_opt_ QUIC_CERTIFICATE* Certificate,
+    _In_opt_ QUIC_CERTIFICATE_CHAIN* Chain,
     _In_ uint32_t DeferredErrorFlags,
     _In_ QUIC_STATUS DeferredStatus
     );
@@ -325,6 +326,12 @@ typedef struct CXPLAT_TLS_PROCESS_STATE {
     //
     QUIC_PACKET_KEY* WriteKeys[QUIC_PACKET_KEY_COUNT];
 
+    //
+    // (Server-Connection-Only) ClientAlpnList cache params (in TLS format)
+    //
+    const uint8_t* ClientAlpnList;
+    uint16_t ClientAlpnListLength;
+
 } CXPLAT_TLS_PROCESS_STATE;
 
 typedef
@@ -339,6 +346,15 @@ void
     );
 
 typedef CXPLAT_SEC_CONFIG_CREATE_COMPLETE *CXPLAT_SEC_CONFIG_CREATE_COMPLETE_HANDLER;
+
+//
+// Returns the type of TLS provider in use.
+//
+_IRQL_requires_max_(DISPATCH_LEVEL)
+QUIC_TLS_PROVIDER
+CxPlatTlsGetProvider(
+    void
+    );
 
 //
 // Creates a new TLS security configuration.
@@ -419,6 +435,32 @@ CxPlatTlsProcessData(
         const uint8_t * Buffer,
     _Inout_ uint32_t * BufferLength,
     _Inout_ CXPLAT_TLS_PROCESS_STATE* State
+    );
+
+//
+// Sets a Security Configuration parameter.
+//
+_IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_STATUS
+CxPlatSecConfigParamSet(
+    _In_ CXPLAT_SEC_CONFIG* TlsContext,
+    _In_ uint32_t Param,
+    _In_ uint32_t BufferLength,
+    _In_reads_bytes_(BufferLength)
+        const void* Buffer
+    );
+
+//
+// Gets a Security Configuration parameter.
+//
+_IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_STATUS
+CxPlatSecConfigParamGet(
+    _In_ CXPLAT_SEC_CONFIG* TlsContext,
+    _In_ uint32_t Param,
+    _Inout_ uint32_t* BufferLength,
+    _Inout_updates_bytes_opt_(*BufferLength)
+        void* Buffer
     );
 
 //

@@ -129,6 +129,12 @@ QuicSettingsSetDefault(
     if (!Settings->IsSet.CongestionControlAlgorithm) {
         Settings->CongestionControlAlgorithm = QUIC_CONGESTION_CONTROL_ALGORITHM_DEFAULT;
     }
+    if (!Settings->IsSet.DestCidUpdateIdleTimeoutMs) {
+        Settings->DestCidUpdateIdleTimeoutMs = QUIC_DEFAULT_DEST_CID_UPDATE_IDLE_TIMEOUT_MS;
+    }
+    if (!Settings->IsSet.GreaseQuicBitEnabled) {
+        Settings->GreaseQuicBitEnabled = QUIC_DEFAULT_GREASE_QUIC_BIT_ENABLED;
+    }
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -258,6 +264,12 @@ QuicSettingsCopy(
     if (!Destination->IsSet.CongestionControlAlgorithm) {
         Destination->CongestionControlAlgorithm = Source->CongestionControlAlgorithm;
     }
+    if (!Destination->IsSet.DestCidUpdateIdleTimeoutMs) {
+        Destination->DestCidUpdateIdleTimeoutMs = Source->DestCidUpdateIdleTimeoutMs;
+    }
+    if (!Destination->IsSet.GreaseQuicBitEnabled) {
+        Destination->GreaseQuicBitEnabled = Source->GreaseQuicBitEnabled;
+    }
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -288,7 +300,7 @@ QuicSettingsCopyVersionSettings(
     Destination->AcceptableVersions = (uint32_t*)(Destination + 1);
     Destination->AcceptableVersionsLength = Source->AcceptableVersionsLength;
     CxPlatCopyMemory(
-        Destination->AcceptableVersions,
+        (uint32_t*)Destination->AcceptableVersions,
         Source->AcceptableVersions,
         Destination->AcceptableVersionsLength * sizeof(uint32_t));
 
@@ -296,7 +308,7 @@ QuicSettingsCopyVersionSettings(
         Destination->AcceptableVersions + Destination->AcceptableVersionsLength;
     Destination->OfferedVersionsLength = Source->OfferedVersionsLength;
     CxPlatCopyMemory(
-        Destination->OfferedVersions,
+        (uint32_t*)Destination->OfferedVersions,
         Source->OfferedVersions,
         Destination->OfferedVersionsLength * sizeof(uint32_t));
 
@@ -304,7 +316,7 @@ QuicSettingsCopyVersionSettings(
         Destination->OfferedVersions + Destination->OfferedVersionsLength;
     Destination->FullyDeployedVersionsLength = Source->FullyDeployedVersionsLength;
     CxPlatCopyMemory(
-        Destination->FullyDeployedVersions,
+        (uint32_t*)Destination->FullyDeployedVersions,
         Source->FullyDeployedVersions,
         Destination->FullyDeployedVersionsLength * sizeof(uint32_t));
 
@@ -313,13 +325,13 @@ QuicSettingsCopyVersionSettings(
         // This assumes the external is always in little-endian format
         //
         for (uint32_t i = 0; i < Destination->AcceptableVersionsLength; ++i) {
-            Destination->AcceptableVersions[i] = CxPlatByteSwapUint32(Destination->AcceptableVersions[i]);
+            ((uint32_t*)Destination->AcceptableVersions)[i] = CxPlatByteSwapUint32(Destination->AcceptableVersions[i]);
         }
         for (uint32_t i = 0; i < Destination->OfferedVersionsLength; ++i) {
-            Destination->OfferedVersions[i] = CxPlatByteSwapUint32(Destination->OfferedVersions[i]);
+            ((uint32_t*)Destination->OfferedVersions)[i] = CxPlatByteSwapUint32(Destination->OfferedVersions[i]);
         }
         for (uint32_t i = 0; i < Destination->FullyDeployedVersionsLength; ++i) {
-            Destination->FullyDeployedVersions[i] = CxPlatByteSwapUint32(Destination->FullyDeployedVersions[i]);
+            ((uint32_t*)Destination->FullyDeployedVersions)[i] = CxPlatByteSwapUint32(Destination->FullyDeployedVersions[i]);
         }
     }
 
@@ -544,6 +556,16 @@ QuicSettingApply(
     if (Source->IsSet.CongestionControlAlgorithm && (!Destination->IsSet.CongestionControlAlgorithm || OverWrite)) {
         Destination->CongestionControlAlgorithm = Source->CongestionControlAlgorithm;
         Destination->IsSet.CongestionControlAlgorithm = TRUE;
+    }
+
+    if (Source->IsSet.DestCidUpdateIdleTimeoutMs && (!Destination->IsSet.DestCidUpdateIdleTimeoutMs || OverWrite)) {
+        Destination->DestCidUpdateIdleTimeoutMs = Source->DestCidUpdateIdleTimeoutMs;
+        Destination->IsSet.DestCidUpdateIdleTimeoutMs = TRUE;
+    }
+
+    if (Source->IsSet.GreaseQuicBitEnabled && (!Destination->IsSet.GreaseQuicBitEnabled || OverWrite)) {
+        Destination->GreaseQuicBitEnabled = Source->GreaseQuicBitEnabled;
+        Destination->IsSet.GreaseQuicBitEnabled = TRUE;
     }
 
     return TRUE;
@@ -867,6 +889,142 @@ QuicSettingsLoad(
         Settings->VersionNegotiationExtEnabled = !!Value;
     }
 
+    if (!Settings->IsSet.VersionSettings) {
+        uint32_t OfferedVersionsSize = 0, AcceptableVersionsSize = 0, FullyDeployedVersionsSize = 0;
+        if (QUIC_SUCCEEDED(
+            CxPlatStorageReadValue(
+                Storage,
+                QUIC_SETTING_ACCEPTABLE_VERSIONS,
+                (uint8_t*)NULL,
+                &AcceptableVersionsSize)) &&
+            QUIC_SUCCEEDED(
+            CxPlatStorageReadValue(
+                Storage,
+                QUIC_SETTING_OFFERED_VERSIONS,
+                (uint8_t*)NULL,
+                &OfferedVersionsSize)) &&
+            QUIC_SUCCEEDED(
+            CxPlatStorageReadValue(
+                Storage,
+                QUIC_SETTING_FULLY_DEPLOYED_VERSIONS,
+                (uint8_t*)NULL,
+                &FullyDeployedVersionsSize)) &&
+            AcceptableVersionsSize && OfferedVersionsSize && FullyDeployedVersionsSize) {
+            QUIC_VERSION_SETTINGS* VersionSettings = NULL;
+            size_t AllocSize =
+                sizeof(*VersionSettings) +
+                AcceptableVersionsSize +
+                OfferedVersionsSize +
+                FullyDeployedVersionsSize;
+            VersionSettings =
+                CXPLAT_ALLOC_NONPAGED(
+                    AllocSize,
+                    QUIC_POOL_VERSION_SETTINGS);
+            if (VersionSettings == NULL) {
+                QuicTraceEvent(
+                    AllocFailure,
+                    "Allocation of '%s' failed. (%llu bytes)",
+                    "VersionSettings",
+                    AllocSize);
+                goto VersionSettingsFail;
+            }
+            VersionSettings->AcceptableVersions = (uint32_t*)(VersionSettings + 1);
+            VersionSettings->AcceptableVersionsLength = AcceptableVersionsSize / sizeof(uint32_t);
+            ValueLen = AcceptableVersionsSize;
+            if (QUIC_FAILED(
+                CxPlatStorageReadValue(
+                    Storage,
+                    QUIC_SETTING_ACCEPTABLE_VERSIONS,
+                    (uint8_t*)VersionSettings->AcceptableVersions,
+                    &ValueLen))) {
+                goto VersionSettingsFail;
+            }
+
+            VersionSettings->OfferedVersions =
+                VersionSettings->AcceptableVersions + VersionSettings->AcceptableVersionsLength;
+            VersionSettings->OfferedVersionsLength = OfferedVersionsSize / sizeof(uint32_t);
+            ValueLen = OfferedVersionsSize;
+            if (QUIC_FAILED(
+                CxPlatStorageReadValue(
+                    Storage,
+                    QUIC_SETTING_OFFERED_VERSIONS,
+                    (uint8_t*)VersionSettings->OfferedVersions,
+                    &ValueLen))) {
+                goto VersionSettingsFail;
+            }
+
+            VersionSettings->FullyDeployedVersions =
+                VersionSettings->OfferedVersions + VersionSettings->OfferedVersionsLength;
+            VersionSettings->FullyDeployedVersionsLength = FullyDeployedVersionsSize / sizeof(uint32_t);
+            ValueLen = FullyDeployedVersionsSize;
+            if (QUIC_FAILED(
+                CxPlatStorageReadValue(
+                    Storage,
+                    QUIC_SETTING_FULLY_DEPLOYED_VERSIONS,
+                    (uint8_t*)VersionSettings->FullyDeployedVersions,
+                    &ValueLen))) {
+                goto VersionSettingsFail;
+            }
+            //
+            // This assumes storage is always in little-endian format.
+            //
+            for (uint32_t i = 0; i < VersionSettings->AcceptableVersionsLength; ++i) {
+                ((uint32_t*)VersionSettings->AcceptableVersions)[i] = CxPlatByteSwapUint32(VersionSettings->AcceptableVersions[i]);
+                if (!QuicIsVersionSupported(VersionSettings->AcceptableVersions[i]) &&
+                    !QuicIsVersionReserved(VersionSettings->AcceptableVersions[i])) {
+                    QuicTraceLogError(
+                        SettingsLoadInvalidAcceptableVersion,
+                        "Invalid AcceptableVersion loaded from storage! 0x%x at position %d",
+                        VersionSettings->AcceptableVersions[i],
+                        (int32_t)i);
+                    goto VersionSettingsFail;
+                }
+            }
+            for (uint32_t i = 0; i < VersionSettings->OfferedVersionsLength; ++i) {
+                ((uint32_t*)VersionSettings->OfferedVersions)[i] = CxPlatByteSwapUint32(VersionSettings->OfferedVersions[i]);
+                if (!QuicIsVersionSupported(VersionSettings->OfferedVersions[i]) &&
+                    !QuicIsVersionReserved(VersionSettings->OfferedVersions[i])) {
+                    QuicTraceLogError(
+                        SettingsLoadInvalidOfferedVersion,
+                        "Invalid OfferedVersion loaded from storage! 0x%x at position %d",
+                        VersionSettings->OfferedVersions[i],
+                        (int32_t)i);
+                    goto VersionSettingsFail;
+                }
+            }
+            for (uint32_t i = 0; i < VersionSettings->FullyDeployedVersionsLength; ++i) {
+                ((uint32_t*)VersionSettings->FullyDeployedVersions)[i] = CxPlatByteSwapUint32(VersionSettings->FullyDeployedVersions[i]);
+                if (!QuicIsVersionSupported(VersionSettings->FullyDeployedVersions[i]) &&
+                    !QuicIsVersionReserved(VersionSettings->FullyDeployedVersions[i])) {
+                    QuicTraceLogError(
+                        SettingsLoadInvalidFullyDeployedVersion,
+                        "Invalid FullyDeployedVersion loaded from storage! 0x%x at position %d",
+                        VersionSettings->FullyDeployedVersions[i],
+                        (int32_t)i);
+                    goto VersionSettingsFail;
+                }
+            }
+            if (Settings->VersionSettings) {
+                CXPLAT_FREE(Settings->VersionSettings, QUIC_POOL_VERSION_SETTINGS);
+                Settings->VersionSettings = NULL;
+            }
+            Settings->VersionSettings = VersionSettings;
+            VersionSettings = NULL;
+VersionSettingsFail:
+            if (VersionSettings != NULL) {
+                CXPLAT_FREE(VersionSettings, QUIC_POOL_VERSION_SETTINGS);
+            }
+        } else if (Settings->VersionSettings != NULL) {
+            //
+            // Assume that the version settings were deleted from storage
+            // and free them from memory.
+            //
+            // REVIEW: This would delete versions from memory that are inherited, wouldn't it?
+            CXPLAT_FREE(Settings->VersionSettings, QUIC_POOL_VERSION_SETTINGS);
+            Settings->VersionSettings = NULL;
+        }
+    }
+
     uint16_t MinimumMtu = Settings->MinimumMtu;
     uint16_t MaximumMtu = Settings->MaximumMtu;
     if (!Settings->IsSet.MinimumMtu) {
@@ -951,6 +1109,26 @@ QuicSettingsLoad(
             Settings->CongestionControlAlgorithm = (QUIC_CONGESTION_CONTROL_ALGORITHM)Value;
         }
     }
+    if (!Settings->IsSet.DestCidUpdateIdleTimeoutMs) {
+        Value = QUIC_DEFAULT_DEST_CID_UPDATE_IDLE_TIMEOUT_MS;
+        ValueLen = sizeof(Value);
+        CxPlatStorageReadValue(
+            Storage,
+            QUIC_SETTING_DEST_CID_UPDATE_IDLE_TIMEOUT_MS,
+            (uint8_t*)&Value,
+            &ValueLen);
+        Settings->DestCidUpdateIdleTimeoutMs = Value;
+    }
+    if (!Settings->IsSet.GreaseQuicBitEnabled) {
+        Value = QUIC_DEFAULT_GREASE_QUIC_BIT_ENABLED;
+        ValueLen = sizeof(Value);
+        CxPlatStorageReadValue(
+            Storage,
+            QUIC_SETTING_GREASE_QUIC_BIT_ENABLED,
+            (uint8_t*)&Value,
+            &ValueLen);
+        Settings->GreaseQuicBitEnabled = !!Value;
+    }
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -987,6 +1165,20 @@ QuicSettingsDump(
     QuicTraceLogVerbose(SettingDumpMaxBytesPerKey,          "[sett] MaxBytesPerKey         = %llu", Settings->MaxBytesPerKey);
     QuicTraceLogVerbose(SettingDumpServerResumptionLevel,   "[sett] ServerResumptionLevel  = %hhu", Settings->ServerResumptionLevel);
     QuicTraceLogVerbose(SettingDumpVersionNegoExtEnabled,   "[sett] Version Negotiation Ext Enabled = %hhu", Settings->VersionNegotiationExtEnabled);
+    if (Settings->VersionSettings) {
+        QuicTraceLogVerbose(SettingDumpAcceptedVersionsLength,  "[sett] AcceptedVersionslength = %u", Settings->VersionSettings->AcceptableVersionsLength);
+        QuicTraceLogVerbose(SettingDumpOfferedVersionsLength,   "[sett] OfferedVersionslength  = %u", Settings->VersionSettings->OfferedVersionsLength);
+        QuicTraceLogVerbose(SettingDumpAcceptedVersionsLength,  "[sett] FullyDeployedVerlength = %u", Settings->VersionSettings->FullyDeployedVersionsLength);
+        for (uint32_t i = 0; i < Settings->VersionSettings->AcceptableVersionsLength; ++i) {
+            QuicTraceLogVerbose(SettingDumpAcceptableVersions,  "[sett] AcceptableVersions[%u]  = 0x%x", i, Settings->VersionSettings->AcceptableVersions[i]);
+        }
+        for (uint32_t i = 0; i < Settings->VersionSettings->OfferedVersionsLength; ++i) {
+            QuicTraceLogVerbose(SettingDumpOfferedVersions, "[sett] OfferedVersions[%u]     = 0x%x", i, Settings->VersionSettings->OfferedVersions[i]);
+        }
+        for (uint32_t i = 0; i < Settings->VersionSettings->FullyDeployedVersionsLength; ++i) {
+            QuicTraceLogVerbose(SettingDumpFullyDeployedVersions,   "[sett] FullyDeployedVersion[%u]= 0x%x", i, Settings->VersionSettings->FullyDeployedVersions[i]);
+        }
+    }
     QuicTraceLogVerbose(SettingDumpMinimumMtu,              "[sett] MinimumMtu             = %hu", Settings->MinimumMtu);
     QuicTraceLogVerbose(SettingDumpMaximumMtu,              "[sett] MaximumMtu             = %hu", Settings->MaximumMtu);
     QuicTraceLogVerbose(SettingDumpMtuCompleteTimeout,      "[sett] MtuCompleteTimeout     = %llu", Settings->MtuDiscoverySearchCompleteTimeoutUs);
@@ -994,6 +1186,8 @@ QuicSettingsDump(
     QuicTraceLogVerbose(SettingDumpMaxBindingStatelessOper, "[sett] MaxBindingStatelessOper= %hu", Settings->MaxBindingStatelessOperations);
     QuicTraceLogVerbose(SettingDumpStatelessOperExpirMs,    "[sett] StatelessOperExpirMs   = %hu", Settings->StatelessOperationExpirationMs);
     QuicTraceLogVerbose(SettingCongestionControlAlgorithm,  "[sett] CongestionControlAlgorithm = %hu", Settings->CongestionControlAlgorithm);
+    QuicTraceLogVerbose(SettingDestCidUpdateIdleTimeoutMs,  "[sett] DestCidUpdateIdleTimeoutMs = %u", Settings->DestCidUpdateIdleTimeoutMs);
+    QuicTraceLogVerbose(SettingGreaseQuicBitEnabled,        "[sett] GreaseQuicBitEnabled   = %hhu", Settings->GreaseQuicBitEnabled);
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -1081,7 +1275,6 @@ QuicSettingsDumpNew(
     if (Settings->IsSet.ServerResumptionLevel) {
         QuicTraceLogVerbose(SettingDumpServerResumptionLevel,       "[sett] ServerResumptionLevel  = %hhu", Settings->ServerResumptionLevel);
     }
-
     if (Settings->IsSet.VersionSettings) {
         QuicTraceLogVerbose(SettingDumpAcceptedVersionsLength,      "[sett] AcceptedVersionslength = %u", Settings->VersionSettings->AcceptableVersionsLength);
         QuicTraceLogVerbose(SettingDumpOfferedVersionsLength,       "[sett] OfferedVersionslength  = %u", Settings->VersionSettings->OfferedVersionsLength);
@@ -1099,7 +1292,6 @@ QuicSettingsDumpNew(
     if (Settings->IsSet.VersionNegotiationExtEnabled) {
         QuicTraceLogVerbose(SettingDumpVersionNegoExtEnabled,       "[sett] Version Negotiation Ext Enabled = %hhu", Settings->VersionNegotiationExtEnabled);
     }
-
     if (Settings->IsSet.MinimumMtu) {
         QuicTraceLogVerbose(SettingDumpMinimumMtu,                  "[sett] MinimumMtu             = %hu", Settings->MinimumMtu);
     }
@@ -1112,16 +1304,20 @@ QuicSettingsDumpNew(
     if (Settings->IsSet.MtuDiscoveryMissingProbeCount) {
         QuicTraceLogVerbose(SettingDumpMtuMissingProbeCount,        "[sett] MtuMissingProbeCount   = %hhu", Settings->MtuDiscoveryMissingProbeCount);
     }
-
     if (Settings->IsSet.MaxBindingStatelessOperations) {
         QuicTraceLogVerbose(SettingDumpMaxBindingStatelessOper,     "[sett] MaxBindingStatelessOper= %hu", Settings->MaxBindingStatelessOperations);
     }
     if (Settings->IsSet.StatelessOperationExpirationMs) {
         QuicTraceLogVerbose(SettingDumpStatelessOperExpirMs,        "[sett] StatelessOperExpirMs   = %hu", Settings->StatelessOperationExpirationMs);
     }
-
     if (Settings->IsSet.CongestionControlAlgorithm) {
         QuicTraceLogVerbose(SettingCongestionControlAlgorithm,      "[sett] CongestionControlAlgorithm = %hu", Settings->CongestionControlAlgorithm);
+    }
+    if (Settings->IsSet.DestCidUpdateIdleTimeoutMs) {
+        QuicTraceLogVerbose(SettingDestCidUpdateIdleTimeoutMs,      "[sett] DestCidUpdateIdleTimeoutMs = %u", Settings->DestCidUpdateIdleTimeoutMs);
+    }
+    if (Settings->IsSet.GreaseQuicBitEnabled) {
+        QuicTraceLogVerbose(SettingGreaseQuicBitEnabled,            "[sett] GreaseQuicBitEnabled   = %hhu", Settings->GreaseQuicBitEnabled);
     }
 }
 
@@ -1282,6 +1478,7 @@ QuicSettingsSettingsToInternal(
     SETTING_COPY_TO_INTERNAL(MigrationEnabled, Settings, InternalSettings);
     SETTING_COPY_TO_INTERNAL(DatagramReceiveEnabled, Settings, InternalSettings);
     SETTING_COPY_TO_INTERNAL(ServerResumptionLevel, Settings, InternalSettings);
+    SETTING_COPY_TO_INTERNAL(GreaseQuicBitEnabled, Settings, InternalSettings); // We can't copy it via sized version due to bit field operation not allowed on it.
 
     //
     // N.B. Anything after this needs to be size checked
@@ -1296,6 +1493,13 @@ QuicSettingsSettingsToInternal(
     //     Settings,
     //     SettingsSize,
     //     InternalSettings);
+
+    SETTING_COPY_TO_INTERNAL_SIZED(
+        DestCidUpdateIdleTimeoutMs,
+        QUIC_SETTINGS,
+        Settings,
+        SettingsSize,
+        InternalSettings);
 
     return QUIC_STATUS_SUCCESS;
 }
@@ -1367,6 +1571,7 @@ QuicSettingsGetSettings(
     SETTING_COPY_FROM_INTERNAL(MigrationEnabled, Settings, InternalSettings);
     SETTING_COPY_FROM_INTERNAL(DatagramReceiveEnabled, Settings, InternalSettings);
     SETTING_COPY_FROM_INTERNAL(ServerResumptionLevel, Settings, InternalSettings);
+    SETTING_COPY_FROM_INTERNAL(GreaseQuicBitEnabled, Settings, InternalSettings); // We can't copy it via sized version due to bit field operation not allowed on it.
 
     //
     // N.B. Anything after this needs to be size checked
@@ -1381,6 +1586,13 @@ QuicSettingsGetSettings(
     //     Settings,
     //     *SettingsLength,
     //     InternalSettings);
+
+    SETTING_COPY_FROM_INTERNAL_SIZED(
+        DestCidUpdateIdleTimeoutMs,
+        QUIC_SETTINGS,
+        Settings,
+        *SettingsLength,
+        InternalSettings);
 
     *SettingsLength = CXPLAT_MIN(*SettingsLength, sizeof(QUIC_SETTINGS));
 
@@ -1436,7 +1648,7 @@ QuicSettingsGetVersionSettings(
 {
     uint32_t MinimumSize =
         sizeof(QUIC_VERSION_SETTINGS);
-    if (InternalSettings->IsSet.VersionSettings) {
+    if (InternalSettings->VersionSettings != NULL) {
         MinimumSize +=
             (InternalSettings->VersionSettings->AcceptableVersionsLength * sizeof(uint32_t)) +
             (InternalSettings->VersionSettings->OfferedVersionsLength * sizeof(uint32_t)) +
@@ -1452,7 +1664,7 @@ QuicSettingsGetVersionSettings(
         return QUIC_STATUS_INVALID_PARAMETER;
     }
 
-    if (InternalSettings->IsSet.VersionSettings) {
+    if (InternalSettings->VersionSettings != NULL) {
         Settings->AcceptableVersions = (uint32_t*)(Settings + 1);
         Settings->AcceptableVersionsLength = InternalSettings->VersionSettings->AcceptableVersionsLength;
 
@@ -1463,17 +1675,17 @@ QuicSettingsGetVersionSettings(
         Settings->FullyDeployedVersionsLength = InternalSettings->VersionSettings->FullyDeployedVersionsLength;
 
         CxPlatCopyMemory(
-            Settings->AcceptableVersions,
+            (uint32_t*)Settings->AcceptableVersions,
             InternalSettings->VersionSettings->AcceptableVersions,
             InternalSettings->VersionSettings->AcceptableVersionsLength * sizeof(uint32_t));
 
         CxPlatCopyMemory(
-            Settings->OfferedVersions,
+            (uint32_t*)Settings->OfferedVersions,
             InternalSettings->VersionSettings->OfferedVersions,
             InternalSettings->VersionSettings->OfferedVersionsLength * sizeof(uint32_t));
 
         CxPlatCopyMemory(
-            Settings->FullyDeployedVersions,
+            (uint32_t*)Settings->FullyDeployedVersions,
             InternalSettings->VersionSettings->FullyDeployedVersions,
             InternalSettings->VersionSettings->FullyDeployedVersionsLength * sizeof(uint32_t));
     } else {

@@ -53,7 +53,8 @@ sudo apt-get install -y powershell
 pwsh
 ```
 
-**Note** - If you get this error trying to install PowerShell:
+> **Note**
+> If you get this error trying to install PowerShell:
 
 ```
 powershell : Depends: libicu55 but it is not installable
@@ -237,3 +238,15 @@ To run the tests:
 ```
 cargo test
 ```
+
+# Installing from vcpkg
+
+You can download and install `MsQuic` using the [vcpkg](https://github.com/Microsoft/vcpkg) dependency manager:
+```sh
+git clone https://github.com/Microsoft/vcpkg.git
+cd vcpkg
+./bootstrap-vcpkg.sh #.\bootstrap-vcpkg.bat(for windows)
+./vcpkg integrate install
+./vcpkg install ms-quic
+```
+The `MsQuic` port in vcpkg is kept up to date by Microsoft team members and community contributors. If the version is out of date, please [create an issue or pull   request](https://github.com/Microsoft/vcpkg) on the vcpkg repository.

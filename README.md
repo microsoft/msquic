@@ -19,6 +19,7 @@ protocol. It is cross-platform, written in C and designed to be a general purpos
 [![](https://img.shields.io/static/v1?label=RFC&message=9001&color=brightgreen)](https://tools.ietf.org/html/rfc9001)
 [![](https://img.shields.io/static/v1?label=RFC&message=9002&color=brightgreen)](https://tools.ietf.org/html/rfc9002)
 [![](https://img.shields.io/static/v1?label=RFC&message=9221&color=brightgreen)](https://tools.ietf.org/html/rfc9221)
+[![](https://img.shields.io/static/v1?label=RFC&message=9287&color=brightgreen)](https://tools.ietf.org/html/rfc9287)
 [![](https://img.shields.io/static/v1?label=Draft&message=Version%202&color=blue)](https://tools.ietf.org/html/draft-ietf-quic-v2)
 [![](https://img.shields.io/static/v1?label=Draft&message=Version%20Negotiation&color=blue)](https://tools.ietf.org/html/draft-ietf-quic-version-negotiation)
 [![](https://img.shields.io/static/v1?label=Draft&message=Load%20Balancers&color=blue)](https://tools.ietf.org/html/draft-ietf-quic-load-balancers)

@@ -13,6 +13,11 @@ Environment:
 
 --*/
 
+// For FreeBSD
+#if defined(__FreeBSD__)
+#include <pthread_np.h>
+#endif
+
 #include "platform_internal.h"
 #include "quic_platform.h"
 #include "quic_trace.h"
@@ -43,6 +48,10 @@ static const char TpLibName[] = "libmsquic.lttng.so." LIBRARY_VERSION;
 uint32_t CxPlatProcessorCount;
 
 uint64_t CxPlatTotalMemory;
+
+#if __APPLE__ || __FreeBSD__
+long CxPlatCurrentSqe = 0x80000000;
+#endif
 
 #ifdef __clang__
 __attribute__((noinline, noreturn, optnone))
@@ -83,7 +92,7 @@ CxPlatSystemLoad(
     void
     )
 {
-    #if defined(CX_PLATFORM_DARWIN)
+#if defined(CX_PLATFORM_DARWIN)
     //
     // arm64 macOS has no way to get the current proc, so treat as single core.
     // Intel macOS can return incorrect values for CPUID, so treat as single core.
@@ -196,38 +205,32 @@ CxPlatInitialize(
 
     RandomFd = open("/dev/urandom", O_RDONLY|O_CLOEXEC);
     if (RandomFd == -1) {
-        Status = (QUIC_STATUS)errno;
         QuicTraceEvent(
             LibraryErrorStatus,
             "[ lib] ERROR, %u, %s.",
-            Status,
+            errno,
             "open(/dev/urandom, O_RDONLY|O_CLOEXEC) failed");
-        goto Exit;
+        return (QUIC_STATUS)errno;
     }
 
-    if (!CxPlatWorkersInit()) {
-        Status = QUIC_STATUS_OUT_OF_MEMORY;
-        goto Exit;
+    Status = CxPlatCryptInitialize();
+    if (QUIC_FAILED(Status)) {
+        if (RandomFd != -1) {
+            close(RandomFd);
+        }
+        return Status;
     }
+
+    CxPlatWorkersInit();
 
     CxPlatTotalMemory = CGroupGetMemoryLimit();
-
-    Status = QUIC_STATUS_SUCCESS;
 
     QuicTraceLogInfo(
         PosixInitialized,
         "[ dso] Initialized (AvailMem = %llu bytes)",
         CxPlatTotalMemory);
 
-Exit:
-
-    if (QUIC_FAILED(Status)) {
-        if (RandomFd != -1) {
-            close(RandomFd);
-        }
-    }
-
-    return Status;
+    return QUIC_STATUS_SUCCESS;
 }
 
 void
@@ -236,6 +239,7 @@ CxPlatUninitialize(
     )
 {
     CxPlatWorkersUninit();
+    CxPlatCryptUninitialize();
     close(RandomFd);
     QuicTraceLogInfo(
         PosixUninitialized,
@@ -275,6 +279,15 @@ CxPlatRefInitialize(
     )
 {
     *RefCount = 1;
+}
+
+void
+CxPlatRefInitializeEx(
+    _Inout_ CXPLAT_REF_COUNT* RefCount,
+    _In_ uint32_t Initial
+    )
+{
+    *RefCount = (int64_t)Initial;
 }
 
 void
@@ -646,13 +659,22 @@ CxPlatThreadCreate(
 
 #else // CXPLAT_USE_CUSTOM_THREAD_CONTEXT
 
+    //
+    // If pthread_create fails with an error code, then try again without the attribute
+    // because the CPU might be offline.
+    //
     if (pthread_create(Thread, &Attr, Config->Callback, Config->Context)) {
-        Status = errno;
-        QuicTraceEvent(
-            LibraryErrorStatus,
-            "[ lib] ERROR, %u, %s.",
-            Status,
-            "pthread_create failed");
+        QuicTraceLogWarning(
+            PlatformThreadCreateFailed,
+            "[ lib] pthread_create failed, retrying without affinitization");
+        if (pthread_create(Thread, NULL, Config->Callback, Config->Context)) {
+            Status = errno;
+            QuicTraceEvent(
+                LibraryErrorStatus,
+                "[ lib] ERROR, %u, %s.",
+                Status,
+                "pthread_create failed");
+        }
     }
 
 #endif // !CXPLAT_USE_CUSTOM_THREAD_CONTEXT
@@ -786,7 +808,11 @@ CxPlatCurThreadID(
     )
 {
 
-#if defined(CX_PLATFORM_LINUX)
+// For FreeBSD
+#if defined(__FreeBSD__)
+    return pthread_getthreadid_np();
+
+#elif defined(CX_PLATFORM_LINUX)
 
     CXPLAT_STATIC_ASSERT(sizeof(pid_t) <= sizeof(CXPLAT_THREAD_ID), "PID size exceeds the expected size");
     return syscall(SYS_gettid);

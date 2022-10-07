@@ -38,3 +38,6 @@ Abstract:
 #define HPS_DEFAULT_IDLE_TIMEOUT            (5 * 1000)
 #define HPS_DEFAULT_PARALLEL_COUNT          100
 #define HPS_BINDINGS_PER_WORKER             10
+
+extern QUIC_EXECUTION_PROFILE PerfDefaultExecutionProfile;
+extern QUIC_CONGESTION_CONTROL_ALGORITHM PerfDefaultCongestionControl;

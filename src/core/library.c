@@ -454,6 +454,9 @@ MsQuicLibraryUninitialize(
     void
     )
 {
+#if DEBUG
+    CXPLAT_DATAPATH* CleanUpDatapath = NULL;
+#endif
     //
     // The library's stateless registration may still have half-opened
     // connections that need to be cleaned up before all the bindings and
@@ -470,22 +473,7 @@ MsQuicLibraryUninitialize(
     }
 
     //
-    // Clean up the data path first, which can continue to cause new connections
-    // to get created.
-    //
-    if (MsQuicLib.Datapath != NULL) {
-        CxPlatDataPathUninitialize(MsQuicLib.Datapath);
-        MsQuicLib.Datapath = NULL;
-        if (MsQuicLib.DataPathProcList != NULL) {
-            CXPLAT_FREE(MsQuicLib.DataPathProcList, QUIC_POOL_RAW_DATAPATH_PROCS);
-            MsQuicLib.DataPathProcList = NULL;
-            MsQuicLib.DataPathProcListLength = 0;
-        }
-    }
-
-    //
-    // Wait for the final clean up of everything in the stateless registration
-    // and then free it.
+    // Clean up the stateless registration that might have any leftovers.
     //
     if (MsQuicLib.StatelessRegistration != NULL) {
         MsQuicRegistrationClose(
@@ -498,6 +486,20 @@ MsQuicLibraryUninitialize(
     // first closing all registrations.
     //
     CXPLAT_TEL_ASSERT(CxPlatListIsEmpty(&MsQuicLib.Registrations));
+
+    //
+    // Clean up the data path, which will start the final clean up of the
+    // socket layer. This is generally async and doesn't block until the
+    // call to CxPlatUninitialize below.
+    //
+    if (MsQuicLib.Datapath != NULL) {
+#if DEBUG
+        CleanUpDatapath = MsQuicLib.Datapath;
+        UNREFERENCED_PARAMETER(CleanUpDatapath);
+#endif
+        CxPlatDataPathUninitialize(MsQuicLib.Datapath);
+        MsQuicLib.Datapath = NULL;
+    }
 
     if (MsQuicLib.Storage != NULL) {
         CxPlatStorageClose(MsQuicLib.Storage);
@@ -552,6 +554,11 @@ MsQuicLibraryUninitialize(
 
     CXPLAT_FREE(MsQuicLib.DefaultCompatibilityList, QUIC_POOL_DEFAULT_COMPAT_VER_LIST);
     MsQuicLib.DefaultCompatibilityList = NULL;
+
+    if (MsQuicLib.ExecutionConfig != NULL) {
+        CXPLAT_FREE(MsQuicLib.ExecutionConfig, QUIC_POOL_EXECUTION_CONFIG);
+        MsQuicLib.ExecutionConfig = NULL;
+    }
 
     QuicTraceEvent(
         LibraryUninitialized,
@@ -625,6 +632,48 @@ MsQuicRelease(
     }
 
     CxPlatLockRelease(&MsQuicLib.Lock);
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_STATUS
+QuicLibraryEnsureExecutionContext(
+    void
+    )
+{
+    const CXPLAT_UDP_DATAPATH_CALLBACKS DatapathCallbacks = {
+        QuicBindingReceive,
+        QuicBindingUnreachable,
+    };
+
+    QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
+
+    CxPlatLockAcquire(&MsQuicLib.Lock);
+
+    if (MsQuicLib.Datapath == NULL) {
+        Status =
+            CxPlatDataPathInitialize(
+                sizeof(CXPLAT_RECV_PACKET),
+                &DatapathCallbacks,
+                NULL,                   // TcpCallbacks
+                MsQuicLib.ExecutionConfig,
+                &MsQuicLib.Datapath);
+        if (QUIC_FAILED(Status)) {
+            QuicTraceEvent(
+                LibraryErrorStatus,
+                "[ lib] ERROR, %u, %s.",
+                Status,
+                "CxPlatDataPathInitialize");
+        } else {
+            QuicTraceEvent(
+                DataPathInitialized,
+                "[data] Initialized, DatapathFeatures=%u",
+                CxPlatDataPathGetSupportedFeatures(MsQuicLib.Datapath));
+        }
+    }
+
+    CxPlatLockRelease(&MsQuicLib.Lock);
+
+    return Status;
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -893,72 +942,62 @@ QuicLibrarySetGlobalParam(
 
         break;
 
-    case QUIC_PARAM_GLOBAL_DATAPATH_PROCESSORS: {
+    case QUIC_PARAM_GLOBAL_EXECUTION_CONFIG: {
         if (BufferLength == 0) {
-            if (MsQuicLib.DataPathProcList != NULL) {
-                CXPLAT_FREE(MsQuicLib.DataPathProcList, QUIC_POOL_RAW_DATAPATH_PROCS);
-                MsQuicLib.DataPathProcList = NULL;
-                MsQuicLib.DataPathProcListLength = 0;
+            if (MsQuicLib.ExecutionConfig != NULL) {
+                CXPLAT_FREE(MsQuicLib.ExecutionConfig, QUIC_POOL_EXECUTION_CONFIG);
+                MsQuicLib.ExecutionConfig = NULL;
             }
-            Status = QUIC_STATUS_SUCCESS;
-            break;
+            return QUIC_STATUS_SUCCESS;
         }
 
-        if (Buffer == NULL || BufferLength < sizeof(uint16_t) || BufferLength % sizeof(uint16_t) != 0) {
-            Status = QUIC_STATUS_INVALID_PARAMETER;
-            break;
+        if (Buffer == NULL || BufferLength < QUIC_EXECUTION_CONFIG_MIN_SIZE) {
+            return QUIC_STATUS_INVALID_PARAMETER;
+        }
+
+        QUIC_EXECUTION_CONFIG* Config = (QUIC_EXECUTION_CONFIG*)Buffer;
+
+        if (BufferLength < QUIC_EXECUTION_CONFIG_MIN_SIZE + sizeof(uint16_t) * Config->ProcessorCount) {
+            return QUIC_STATUS_INVALID_PARAMETER;
+        }
+
+        for (uint32_t i = 0; i < Config->ProcessorCount; ++i) {
+            if (Config->ProcessorList[i] >= CxPlatProcMaxCount()) {
+                return QUIC_STATUS_INVALID_PARAMETER;
+            }
         }
 
         if (MsQuicLib.Datapath != NULL) {
             QuicTraceEvent(
                 LibraryError,
                 "[ lib] ERROR, %s.",
-                "Tried to change raw datapath procs after datapath initialization");
+                "Tried to change execution config after datapath initialization");
             Status = QUIC_STATUS_INVALID_STATE;
             break;
         }
 
-        uint32_t DataPathProcListLength = BufferLength / sizeof(uint16_t);
-        uint16_t* Cpus = (uint16_t*)Buffer;
-        for (uint32_t i = 0; i < DataPathProcListLength; ++i) {
-            if (*(Cpus + i) >= CxPlatProcActiveCount()) {
-                Status = QUIC_STATUS_INVALID_PARAMETER;
-                break;
-            }
-        }
-
-        if (Status == QUIC_STATUS_INVALID_PARAMETER) {
-            QuicTraceEvent(
-                LibraryError,
-                "[ lib] ERROR, %s.",
-                "Tried to set invalid raw datapath procs");
-            break;
-        }
-
-        uint16_t* DataPathProcList = CXPLAT_ALLOC_NONPAGED(BufferLength, QUIC_POOL_RAW_DATAPATH_PROCS);
-        if (DataPathProcList == NULL) {
+        QUIC_EXECUTION_CONFIG* NewConfig =
+            CXPLAT_ALLOC_NONPAGED(BufferLength, QUIC_POOL_EXECUTION_CONFIG);
+        if (NewConfig == NULL) {
             QuicTraceEvent(
                 AllocFailure,
                 "Allocation of '%s' failed. (%llu bytes)",
-                "Raw datapath procs",
+                "Execution config",
                 BufferLength);
             Status = QUIC_STATUS_OUT_OF_MEMORY;
             break;
         }
 
-        if (MsQuicLib.DataPathProcList != NULL) {
-            CXPLAT_FREE(MsQuicLib.DataPathProcList, QUIC_POOL_RAW_DATAPATH_PROCS);
-            MsQuicLib.DataPathProcList = NULL;
-            MsQuicLib.DataPathProcListLength = 0;
+        if (MsQuicLib.ExecutionConfig != NULL) {
+            CXPLAT_FREE(MsQuicLib.ExecutionConfig, QUIC_POOL_EXECUTION_CONFIG);
         }
 
-        CxPlatCopyMemory(DataPathProcList, Buffer, BufferLength);
-        MsQuicLib.DataPathProcList = DataPathProcList;
-        MsQuicLib.DataPathProcListLength = DataPathProcListLength;
+        CxPlatCopyMemory(NewConfig, Config, BufferLength);
+        MsQuicLib.ExecutionConfig = NewConfig;
 
         QuicTraceLogInfo(
-            LibraryDataPathProcsSet,
-            "[ lib] Setting datapath procs");
+            LibraryExecutionConfigSet,
+            "[ lib] Setting execution config");
 
         Status = QUIC_STATUS_SUCCESS;
         break;
@@ -1192,14 +1231,19 @@ QuicLibraryGetGlobalParam(
         Status = QUIC_STATUS_SUCCESS;
         break;
 
-    case QUIC_PARAM_GLOBAL_DATAPATH_PROCESSORS:
-        if (*BufferLength == 0 && MsQuicLib.DataPathProcListLength == 0) {
+    case QUIC_PARAM_GLOBAL_EXECUTION_CONFIG: {
+        if (MsQuicLib.ExecutionConfig == NULL) {
+            *BufferLength = 0;
             Status = QUIC_STATUS_SUCCESS;
             break;
         }
 
-        if (*BufferLength < sizeof(uint16_t) * MsQuicLib.DataPathProcListLength) {
-            *BufferLength = sizeof(uint16_t) * MsQuicLib.DataPathProcListLength;
+        const uint32_t ConfigLength =
+            QUIC_EXECUTION_CONFIG_MIN_SIZE +
+            sizeof(uint16_t) * MsQuicLib.ExecutionConfig->ProcessorCount;
+
+        if (*BufferLength < ConfigLength) {
+            *BufferLength = ConfigLength;
             Status = QUIC_STATUS_BUFFER_TOO_SMALL;
             break;
         }
@@ -1209,10 +1253,28 @@ QuicLibraryGetGlobalParam(
             break;
         }
 
-        *BufferLength = sizeof(uint16_t) * MsQuicLib.DataPathProcListLength;
-        if (MsQuicLib.DataPathProcList != NULL) {
-            CxPlatCopyMemory(Buffer, MsQuicLib.DataPathProcList, *BufferLength);
+        *BufferLength = ConfigLength;
+        CxPlatCopyMemory(Buffer, MsQuicLib.ExecutionConfig, ConfigLength);
+        Status = QUIC_STATUS_SUCCESS;
+        break;
+    }
+
+    case QUIC_PARAM_GLOBAL_TLS_PROVIDER:
+
+        if (*BufferLength < sizeof(QUIC_TLS_PROVIDER)) {
+            *BufferLength = sizeof(QUIC_TLS_PROVIDER);
+            Status = QUIC_STATUS_BUFFER_TOO_SMALL;
+            break;
         }
+
+        if (Buffer == NULL) {
+            Status = QUIC_STATUS_INVALID_PARAMETER;
+            break;
+        }
+
+        *BufferLength = sizeof(QUIC_TLS_PROVIDER);
+        *(QUIC_TLS_PROVIDER*)Buffer = CxPlatTlsGetProvider();
+
         Status = QUIC_STATUS_SUCCESS;
         break;
 
@@ -1231,6 +1293,25 @@ QuicLibraryGetGlobalParam(
 
         *BufferLength = sizeof(BOOLEAN);
         *(BOOLEAN*)Buffer = MsQuicLib.Settings.VersionNegotiationExtEnabled;
+
+        Status = QUIC_STATUS_SUCCESS;
+        break;
+
+    case QUIC_PARAM_GLOBAL_IN_USE:
+
+        if (*BufferLength < sizeof(BOOLEAN)) {
+            *BufferLength = sizeof(BOOLEAN);
+            Status = QUIC_STATUS_BUFFER_TOO_SMALL;
+            break;
+        }
+
+        if (Buffer == NULL) {
+            Status = QUIC_STATUS_INVALID_PARAMETER;
+            break;
+        }
+
+        *BufferLength = sizeof(BOOLEAN);
+        *(BOOLEAN*)Buffer = MsQuicLib.InUse;
 
         Status = QUIC_STATUS_SUCCESS;
         break;

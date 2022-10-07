@@ -41,6 +41,8 @@ PrintHelp(
         "  -iosize:<####>               The size of each send request queued. (def:%u)\n"
         "  -tcp:<0/1>                   Indicates TCP/TLS should be used instead of QUIC. (def:0)\n"
         "  -stats:<0/1>                 Indicates connection stats should be printed at the end of the run. (def:0)\n"
+        "  -cc:<algo>                   Indicates congestion control algorithm to use. (def:cubic)\n"
+        "  -sstats:<0/1>                Indicates connection blocked timings at the end of the run. (def:0)\n"
         "\n",
         PERF_DEFAULT_PORT,
         PERF_DEFAULT_IO_SIZE
@@ -75,6 +77,7 @@ ThroughputClient::Init(
     TryGetValue(argc, argv, "upload", &UploadLength);
     TryGetValue(argc, argv, "download", &DownloadLength);
     TryGetValue(argc, argv, "stats", &PrintStats);
+    TryGetValue(argc, argv, "sstats", &PrintStreamStats);
 
     if (UploadLength && DownloadLength) {
         WriteOutput("Must specify only one of '-upload' or '-download' argument!\n");
@@ -580,6 +583,33 @@ ThroughputClient::StreamCallback(
         MsQuic->StreamShutdown(StreamHandle, QUIC_STREAM_SHUTDOWN_FLAG_ABORT, 0);
         break;
     case QUIC_STREAM_EVENT_SHUTDOWN_COMPLETE:
+        if (PrintStreamStats) {
+            QUIC_STREAM_STATISTICS Stats = {0};
+            uint32_t BufferLength = sizeof(Stats);
+            MsQuic->GetParam(StreamHandle, QUIC_PARAM_STREAM_STATISTICS, &BufferLength, &Stats);
+            WriteOutput("Flow blocked timing:\n");
+            WriteOutput(
+                "Reason: QUIC_FLOW_BLOCKED_SCHEDULING Time: %llu us\n",
+                (unsigned long long)Stats.ConnBlockedBySchedulingUs);
+            WriteOutput(
+                "Reason: QUIC_FLOW_BLOCKED_PACING Time: %llu us\n",
+                (unsigned long long)Stats.ConnBlockedByPacingUs);
+            WriteOutput(
+                "Reason: QUIC_FLOW_BLOCKED_AMPLIFICATION_PROT Time: %llu us\n",
+                (unsigned long long)Stats.ConnBlockedByAmplificationProtUs);
+            WriteOutput(
+                "Reason: QUIC_FLOW_BLOCKED_CONN_FLOW_CONTROL Time: %llu us\n",
+                (unsigned long long)Stats.ConnBlockedByFlowControlUs);
+            WriteOutput(
+                "Reason: QUIC_FLOW_BLOCKED_STREAM_ID_FLOW_CONTROL Time: %llu us\n",
+                (unsigned long long)Stats.StreamBlockedByIdFlowControlUs);
+            WriteOutput(
+                "Reason: QUIC_FLOW_BLOCKED_STREAM_FLOW_CONTROL Time: %llu us\n",
+                (unsigned long long)Stats.StreamBlockedByFlowControlUs);
+            WriteOutput(
+                "Reason: QUIC_FLOW_BLOCKED_APP Time: %llu us\n",
+                (unsigned long long)Stats.StreamBlockedByAppUs);
+        }
         OnStreamShutdownComplete(StrmContext);
         break;
     case QUIC_STREAM_EVENT_IDEAL_SEND_BUFFER_SIZE:

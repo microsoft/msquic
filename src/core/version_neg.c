@@ -106,7 +106,7 @@ QuicVersionNegotiationExtIsVersionCompatible(
     )
 {
     if (Connection->Settings.IsSet.VersionSettings) {
-        uint32_t* CompatibleVersions = Connection->Settings.VersionSettings->FullyDeployedVersions;
+        const uint32_t* CompatibleVersions = Connection->Settings.VersionSettings->FullyDeployedVersions;
         uint32_t CompatibleVersionsLength = Connection->Settings.VersionSettings->FullyDeployedVersionsLength;
 
         for (uint32_t i = 0; i < CompatibleVersionsLength; ++i) {
@@ -136,13 +136,12 @@ QuicVersionNegotiationExtGenerateCompatibleVersionsList(
     )
 {
     uint32_t NeededBufferLength = sizeof(OriginalVersion);
-    for (uint32_t i = 0; i < ARRAYSIZE(CompatibleVersionsMap); ++i) {
-        if (CompatibleVersionsMap[i].OriginalVersion == OriginalVersion) {
-            for (uint32_t j = 0; j < FullyDeployedVersionsLength; ++j) {
-                if (CompatibleVersionsMap[i].CompatibleVersion == FullyDeployedVersions[j]) {
-                    NeededBufferLength += sizeof(uint32_t);
-                    break; // bail from the inner loop
-                }
+    for (uint32_t i = 0; i < FullyDeployedVersionsLength; ++i) {
+        for (uint32_t j = 0; j < ARRAYSIZE(CompatibleVersionsMap); ++j) {
+            if (CompatibleVersionsMap[j].OriginalVersion == OriginalVersion &&
+                CompatibleVersionsMap[j].CompatibleVersion == FullyDeployedVersions[i]) {
+                NeededBufferLength += sizeof(uint32_t);
+                break; // bail from the inner loop
             }
         }
     }
@@ -162,8 +161,8 @@ QuicVersionNegotiationExtGenerateCompatibleVersionsList(
                 CxPlatCopyMemory(
                     Buffer + Offset,
                     &CompatibleVersionsMap[j].CompatibleVersion,
-                    sizeof(CompatibleVersionsMap[j].CompatibleVersion));
-                Offset += sizeof(CompatibleVersionsMap[j].CompatibleVersion);
+                    sizeof(uint32_t));
+                Offset += sizeof(uint32_t);
                 break;
             }
         }

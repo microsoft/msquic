@@ -14,8 +14,6 @@ Abstract:
 
 #define _CRT_SECURE_NO_WARNINGS 1 // TODO - Remove
 
-#define QUIC_USE_EXECUTION_CONTEXTS 1
-
 #include "datapath_raw.h"
 #ifdef QUIC_CLOG
 #include "datapath_raw_dpdk.c.clog.h"
@@ -144,7 +142,7 @@ CxPlatDpdkReadConfig(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 size_t
 CxPlatDpRawGetDatapathSize(
-    _In_opt_ const CXPLAT_DATAPATH_CONFIG* Config
+    _In_opt_ const QUIC_EXECUTION_CONFIG* Config
     )
 {
     UNREFERENCED_PARAMETER(Config);
@@ -156,7 +154,7 @@ QUIC_STATUS
 CxPlatDpRawInitialize(
     _Inout_ CXPLAT_DATAPATH* Datapath,
     _In_ uint32_t ClientRecvContextLength,
-    _In_opt_ const CXPLAT_DATAPATH_CONFIG* Config
+    _In_opt_ const QUIC_EXECUTION_CONFIG* Config
     )
 {
     DPDK_DATAPATH* Dpdk = (DPDK_DATAPATH*)Datapath;

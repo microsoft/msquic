@@ -24,11 +24,13 @@ TestConnection::TestConnection(
     IsShutdown(false), ShutdownTimedOut(false), AutoDelete(false), AsyncCustomValidation(false),
     CustomValidationResultSet(false), ExpectedResumed(false),
     ExpectedTransportCloseStatus(QUIC_STATUS_SUCCESS), ExpectedPeerCloseErrorCode(QUIC_TEST_NO_ERROR),
-    ExpectedClientCertValidationResult(QUIC_STATUS_SUCCESS), ExpectedCustomValidationResult(false),
+    ExpectedClientCertValidationResult{}, ExpectedClientCertValidationResultCount(0),
+    ExpectedCustomValidationResult(false), PeerCertEventReturnStatus(QUIC_STATUS_SUCCESS),
     EventDeleted(nullptr),
     NewStreamCallback(NewStreamCallbackHandler), ShutdownCompleteCallback(nullptr),
     DatagramsSent(0), DatagramsCanceled(0), DatagramsSuspectLost(0),
-    DatagramsLost(0), DatagramsAcknowledged(0), Context(nullptr)
+    DatagramsLost(0), DatagramsAcknowledged(0), NegotiatedAlpn(nullptr),
+    NegotiatedAlpnLength(0), Context(nullptr)
 {
     CxPlatEventInitialize(&EventConnectionComplete, TRUE, FALSE);
     CxPlatEventInitialize(&EventPeerClosed, TRUE, FALSE);
@@ -52,11 +54,13 @@ TestConnection::TestConnection(
     IsShutdown(false), ShutdownTimedOut(false), AutoDelete(false), AsyncCustomValidation(false),
     CustomValidationResultSet(false), ExpectedResumed(false),
     ExpectedTransportCloseStatus(QUIC_STATUS_SUCCESS), ExpectedPeerCloseErrorCode(QUIC_TEST_NO_ERROR),
-    ExpectedClientCertValidationResult(QUIC_STATUS_SUCCESS), ExpectedCustomValidationResult(false),
+    ExpectedClientCertValidationResult{}, ExpectedClientCertValidationResultCount(0),
+    ExpectedCustomValidationResult(false), PeerCertEventReturnStatus(QUIC_STATUS_SUCCESS),
     EventDeleted(nullptr),
     NewStreamCallback(NewStreamCallbackHandler), ShutdownCompleteCallback(nullptr),
     DatagramsSent(0), DatagramsCanceled(0), DatagramsSuspectLost(0),
-    DatagramsLost(0), DatagramsAcknowledged(0), Context(nullptr)
+    DatagramsLost(0), DatagramsAcknowledged(0), NegotiatedAlpn(nullptr),
+    NegotiatedAlpnLength(0), Context(nullptr)
 {
     CxPlatEventInitialize(&EventConnectionComplete, TRUE, FALSE);
     CxPlatEventInitialize(&EventPeerClosed, TRUE, FALSE);
@@ -291,6 +295,7 @@ TestConnection::SetQuicVersion(
     uint32_t value
     )
 {
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
     MsQuicVersionSettings Settings;
     Settings.AcceptableVersions = &value;
     Settings.AcceptableVersionsLength = 1;
@@ -304,6 +309,10 @@ TestConnection::SetQuicVersion(
             QUIC_PARAM_CONN_VERSION_SETTINGS,
             sizeof(Settings),
             &Settings);
+#else
+    UNREFERENCED_PARAMETER(value);
+    return QUIC_STATUS_NOT_SUPPORTED;
+#endif
 }
 
 QUIC_STATUS
@@ -440,6 +449,23 @@ TestConnection::SetDisconnectTimeout(
     QUIC_SETTINGS Settings{0};
     Settings.DisconnectTimeoutMs = value;
     Settings.IsSet.DisconnectTimeoutMs = TRUE;
+    return SetSettings(Settings);
+}
+
+uint32_t
+TestConnection::GetDestCidUpdateIdleTimeoutMs()
+{
+    return GetSettings().DestCidUpdateIdleTimeoutMs;
+}
+
+QUIC_STATUS
+TestConnection::SetDestCidUpdateIdleTimeoutMs(
+    uint32_t value
+    )
+{
+    QUIC_SETTINGS Settings{0};
+    Settings.DestCidUpdateIdleTimeoutMs = value;
+    Settings.IsSet.DestCidUpdateIdleTimeoutMs = TRUE;
     return SetSettings(Settings);
 }
 
@@ -731,6 +757,8 @@ TestConnection::HandleConnectionEvent(
         if (IsServer) {
             MsQuic->ConnectionSendResumptionTicket(QuicConnection, QUIC_SEND_RESUMPTION_FLAG_FINAL, 0, nullptr);
         }
+        NegotiatedAlpn = Event->CONNECTED.NegotiatedAlpn;
+        NegotiatedAlpnLength = Event->CONNECTED.NegotiatedAlpnLength;
         CxPlatEventSet(EventConnectionComplete);
         break;
 
@@ -857,11 +885,36 @@ TestConnection::HandleConnectionEvent(
         if (CustomValidationResultSet && !ExpectedCustomValidationResult) {
             return QUIC_STATUS_INTERNAL_ERROR;
         }
-        if (Event->PEER_CERTIFICATE_RECEIVED.DeferredStatus != ExpectedClientCertValidationResult) {
+        if (ExpectedClientCertValidationResultCount > 0) {
+            bool Match = false;
+            for (unsigned idx = 0; idx < ExpectedClientCertValidationResultCount; idx++) {
+                if (Event->PEER_CERTIFICATE_RECEIVED.DeferredStatus == ExpectedClientCertValidationResult[idx]) {
+                    Match = true;
+                    break;
+                }
+            }
+            if (!Match) {
+                if (ExpectedClientCertValidationResultCount == 1) {
+                    TEST_FAILURE(
+                        "Unexpected Certificate Validation Status, expected=0x%x, actual=0x%x",
+                        ExpectedClientCertValidationResult[0],
+                        Event->PEER_CERTIFICATE_RECEIVED.DeferredStatus);
+                } else if (ExpectedClientCertValidationResultCount == 2) {
+                    TEST_FAILURE(
+                        "Unexpected Certificate Validation Status, expected=0x%x or 0x%x, actual=0x%x",
+                        ExpectedClientCertValidationResult[0],
+                        ExpectedClientCertValidationResult[1],
+                        Event->PEER_CERTIFICATE_RECEIVED.DeferredStatus);
+                }
+            }
+        } else if (Event->PEER_CERTIFICATE_RECEIVED.DeferredStatus != QUIC_STATUS_SUCCESS) {
             TEST_FAILURE(
                 "Unexpected Certificate Validation Status, expected=0x%x, actual=0x%x",
-                ExpectedClientCertValidationResult,
+                QUIC_STATUS_SUCCESS,
                 Event->PEER_CERTIFICATE_RECEIVED.DeferredStatus);
+        }
+        if (PeerCertEventReturnStatus != QUIC_STATUS_SUCCESS) {
+            return PeerCertEventReturnStatus;
         }
         break;
 
@@ -870,4 +923,31 @@ TestConnection::HandleConnectionEvent(
     }
 
     return QUIC_STATUS_SUCCESS;
+}
+
+uint32_t
+TestConnection::GetDestCidUpdateCount() {
+    QUIC_STATISTICS_V2 Stats;
+    uint32_t StatsSize = sizeof(Stats);
+    QUIC_STATUS Status =
+        MsQuic->GetParam(
+            QuicConnection,
+            QUIC_PARAM_CONN_STATISTICS_V2,
+            &StatsSize,
+            &Stats);
+
+    if (QUIC_FAILED(Status)) {
+        TEST_FAILURE("GetParam(QUIC_PARAM_CONN_STATISTICS) failed: 0x%x", Status);
+    }
+    return Stats.DestCidUpdateCount;
+}
+
+const uint8_t*
+TestConnection::GetNegotiatedAlpn() const {
+    return NegotiatedAlpn;
+}
+
+uint8_t
+TestConnection::GetNegotiatedAlpnLength() const {
+    return NegotiatedAlpnLength;
 }
