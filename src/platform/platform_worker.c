@@ -348,8 +348,6 @@ CxPlatRunExecutionContexts(
         return;
     }
 
-    State->TimeNow = CxPlatTimeUs64();
-
     uint64_t NextTime = UINT64_MAX;
     CXPLAT_SLIST_ENTRY** EC = &Worker->ExecutionContexts;
     do {
@@ -387,6 +385,36 @@ CxPlatRunExecutionContexts(
     }
 }
 
+BOOLEAN
+CxPlatProcessEvents(
+    _In_ CXPLAT_WORKER* Worker,
+    _Inout_ CXPLAT_EXECUTION_STATE* State
+    )
+{
+    CXPLAT_CQE Cqes[16];
+    uint32_t CqeCount = CxPlatEventQDequeue(&Worker->EventQ, Cqes, ARRAYSIZE(Cqes), State->WaitTime);
+    if (CqeCount != 0) {
+        State->NoWorkCount = 0;
+        for (uint32_t i = 0; i < CqeCount; ++i) {
+            if (CxPlatCqeUserData(&Cqes[i]) == NULL) {
+                return TRUE; // NULL user data means shutdown.
+            }
+            switch (CxPlatCqeType(&Cqes[i])) {
+            case CXPLAT_CQE_TYPE_WORKER_WAKE:
+                break; // No-op, just wake up to do polling stuff.
+            case CXPLAT_CQE_TYPE_WORKER_UPDATE_POLL:
+                CxPlatUpdateExecutionContexts(Worker);
+                break;
+            default: // Pass the rest to the datapath
+                CxPlatDataPathProcessCqe(&Cqes[i]);
+                break;
+            }
+        }
+        CxPlatEventQReturn(&Worker->EventQ, CqeCount);
+    }
+    return FALSE;
+}
+
 //
 // The number of iterations to run before yielding our thread to the scheduler.
 //
@@ -402,38 +430,21 @@ CXPLAT_THREAD_CALLBACK(CxPlatWorkerThread, Context)
         "[ lib][%p] Worker start",
         Worker);
 
-    uint32_t CqeCount;
-    CXPLAT_CQE Cqes[16];
-    CXPLAT_EXECUTION_STATE State = { 0, UINT32_MAX, 0, CxPlatCurThreadID() };
+    CXPLAT_EXECUTION_STATE State = { 0, 0, UINT32_MAX, 0, CxPlatCurThreadID() };
 
     while (TRUE) {
 
+        State.TimeNow = CxPlatTimeUs64();
         State.WaitTime = UINT32_MAX;
         ++State.NoWorkCount;
 
         CxPlatRunExecutionContexts(Worker, &State);
+        if (CxPlatProcessEvents(Worker, &State)) {
+            goto Shutdown;
+        }
 
-        CqeCount = CxPlatEventQDequeue(&Worker->EventQ, Cqes, ARRAYSIZE(Cqes), State.WaitTime);
-
-        if (CqeCount != 0) {
-            State.NoWorkCount = 0;
-            for (uint32_t i = 0; i < CqeCount; ++i) {
-                if (CxPlatCqeUserData(&Cqes[i]) == NULL) {
-                    goto Shutdown; // NULL user data means shutdown.
-                }
-                switch (CxPlatCqeType(&Cqes[i])) {
-                case CXPLAT_CQE_TYPE_WORKER_WAKE:
-                    break; // No-op, just wake up to do polling stuff.
-                case CXPLAT_CQE_TYPE_WORKER_UPDATE_POLL:
-                    CxPlatUpdateExecutionContexts(Worker);
-                    break;
-                default: // Pass the rest to the datapath
-                    CxPlatDataPathProcessCqe(&Cqes[i]);
-                    break;
-                }
-            }
-            CxPlatEventQReturn(&Worker->EventQ, CqeCount);
-
+        if (State.NoWorkCount == 0) {
+            State.LastWorkTime = State.TimeNow;
         } else if (State.NoWorkCount > CXPLAT_WORKER_IDLE_WORK_THRESHOLD_COUNT) {
             CxPlatSchedulerYield();
             State.NoWorkCount = 0;

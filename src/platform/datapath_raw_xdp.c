@@ -33,20 +33,27 @@ Abstract:
 #define PORT_SET_TAG  'PpdX' // XdpP
 
 typedef struct XDP_INTERFACE XDP_INTERFACE;
+typedef struct XDP_WORKER XDP_WORKER;
 
 typedef struct XDP_QUEUE {
     const XDP_INTERFACE* Interface;
+    XDP_WORKER* Worker;
     struct XDP_QUEUE* Next;
+    DATAPATH_SQE IoSqe;
     uint8_t* RxBuffers;
     HANDLE RxXsk;
+    OVERLAPPED RxOv;
     XSK_RING RxFillRing;
     XSK_RING RxRing;
     HANDLE RxProgram;
     uint8_t* TxBuffers;
     HANDLE TxXsk;
+    OVERLAPPED TxOv;
     XSK_RING TxRing;
     XSK_RING TxCompletionRing;
-    BOOL Error;
+    BOOLEAN RxQueued;
+    BOOLEAN TxQueued;
+    BOOLEAN Error;
 
     CXPLAT_LIST_ENTRY WorkerTxQueue;
     CXPLAT_SLIST_ENTRY WorkerRxPool;
@@ -73,7 +80,9 @@ typedef struct XDP_INTERFACE {
 
 typedef struct QUIC_CACHEALIGN XDP_WORKER {
     CXPLAT_EXECUTION_CONTEXT;
+    DATAPATH_SQE ShutdownSqe;
     const struct XDP_DATAPATH* Xdp;
+    CXPLAT_EVENTQ* EventQ;
     XDP_QUEUE* Queues; // A linked list of queues, accessed by Next.
     uint16_t ProcIndex;
 } XDP_WORKER;
@@ -85,6 +94,23 @@ void XdpWorkerAddQueue(_In_ XDP_WORKER* Worker, _In_ XDP_QUEUE* Queue) {
     }
     *Tail = Queue;
     Queue->Next = NULL;
+    Queue->Worker = Worker;
+    if (*Worker->EventQ !=
+        CreateIoCompletionPort(Queue->RxXsk, *Worker->EventQ, (ULONG_PTR)&Queue->IoSqe, 0)) {
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            GetLastError(),
+            "CreateIoCompletionPort(RX)");
+    }
+    if (*Worker->EventQ !=
+        CreateIoCompletionPort(Queue->TxXsk, *Worker->EventQ, (ULONG_PTR)&Queue->IoSqe, 0)) {
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            GetLastError(),
+            "CreateIoCompletionPort(TX)");
+    }
 }
 
 typedef struct XDP_DATAPATH {
@@ -99,6 +125,7 @@ typedef struct XDP_DATAPATH {
     uint32_t RxRingSize;
     uint32_t TxBufferCount;
     uint32_t TxRingSize;
+    uint32_t PollingIdleTimeoutUs;
     BOOLEAN TxAlwaysPoke;
     BOOLEAN SkipXsum;
     BOOLEAN Running;        // Signal to stop workers.
@@ -568,6 +595,7 @@ CxPlatDpRawInterfaceInitialize(
         CxPlatLockInitialize(&Queue->TxLock);
         CxPlatListInitializeHead(&Queue->TxQueue);
         CxPlatListInitializeHead(&Queue->WorkerTxQueue);
+        Queue->IoSqe.CqeType = CXPLAT_CQE_TYPE_SOCKET_IO;
 
         //
         // RX datapath.
@@ -788,9 +816,7 @@ CxPlatDpRawInterfaceInitialize(
     // Add each queue to a worker (round robin).
     //
     for (uint8_t i = 0; i < Interface->QueueCount; i++) {
-        XdpWorkerAddQueue(
-            &Xdp->Workers[i % Xdp->WorkerCount],
-            &Interface->Queues[i]);
+        XdpWorkerAddQueue(&Xdp->Workers[i % Xdp->WorkerCount], &Interface->Queues[i]);
     }
 
 Error:
@@ -999,6 +1025,7 @@ CxPlatDpRawInitialize(
 
     CxPlatXdpReadConfig(Xdp);
     CxPlatListInitializeHead(&Xdp->Interfaces);
+    Xdp->PollingIdleTimeoutUs = Config ? 0 : Config->PollingIdleTimeoutUs;
 
     if (Config && Config->ProcessorCount) {
         Xdp->WorkerCount = Config->ProcessorCount;
@@ -1122,7 +1149,9 @@ CxPlatDpRawInitialize(
         Xdp->Workers[i].NextTimeUs = UINT64_MAX;
         Xdp->Workers[i].Callback = CxPlatXdpExecute;
         Xdp->Workers[i].Context = &Xdp->Workers[i];
+        Xdp->Workers[i].ShutdownSqe.CqeType = CXPLAT_CQE_TYPE_SOCKET_SHUTDOWN;
         CxPlatRefIncrement(&Xdp->RefCount);
+        Xdp->Workers[i].EventQ = CxPlatWorkerGetEventQ(Xdp->Workers[i].ProcIndex);
         CxPlatAddExecutionContext(
             (CXPLAT_EXECUTION_CONTEXT*)&Xdp->Workers[i], Xdp->Workers[i].ProcIndex);
     }
@@ -1167,6 +1196,12 @@ CxPlatDpRawUninitialize(
 {
     XDP_DATAPATH* Xdp = (XDP_DATAPATH*)Datapath;
     Xdp->Running = FALSE;
+    for (uint32_t i = 0; i < Xdp->WorkerCount; i++) {
+        CxPlatEventQEnqueue(
+            Xdp->Workers[i].EventQ,
+            &Xdp->Workers[i].ShutdownSqe.Sqe,
+            &Xdp->Workers[i].ShutdownSqe);
+    }
     CxPlatDpRawRelease(Xdp);
 }
 
@@ -1611,9 +1646,13 @@ CxPlatXdpExecute(
     const XDP_DATAPATH* Xdp = Worker->Xdp;
 
     if (!Xdp->Running) {
-        CxPlatDpRawRelease((XDP_DATAPATH*)Xdp);
+        // TODO - Shutdown queues first?
+        CxPlatEventQEnqueue(Worker->EventQ, &Worker->ShutdownSqe.Sqe, Worker);
         return FALSE;
     }
+
+    const BOOLEAN PollingExpired =
+        CxPlatTimeDiff64(State->LastWorkTime, State->TimeNow) >= Xdp->PollingIdleTimeoutUs;
 
     BOOLEAN DidWork = FALSE;
     XDP_QUEUE* Queue = Worker->Queues;
@@ -1623,9 +1662,24 @@ CxPlatXdpExecute(
         Queue = Queue->Next;
     }
 
-    Worker->Ready = TRUE;
     if (DidWork) {
+        Worker->Ready = TRUE;
         State->NoWorkCount = 0;
+    } else if (!PollingExpired) {
+        Worker->Ready = TRUE;
+    } else {
+        Queue = Worker->Queues;
+        while (Queue) {
+            if (!Queue->RxQueued) {
+                Queue->RxQueued = TRUE;
+                XskNotifyAsync(Queue->RxXsk, XSK_NOTIFY_FLAG_WAIT_RX, &Queue->RxOv);
+            }
+            if (!Queue->TxQueued) {
+                Queue->TxQueued = TRUE;
+                XskNotifyAsync(Queue->TxXsk, XSK_NOTIFY_FLAG_WAIT_TX, &Queue->TxOv);
+            }
+            Queue = Queue->Next;
+        }
     }
 
     return TRUE;
@@ -1636,6 +1690,18 @@ CxPlatDataPathProcessCqe(
     _In_ CXPLAT_CQE* Cqe
     )
 {
-    // No events (yet)
-    UNREFERENCED_PARAMETER(Cqe);
+    if (CxPlatCqeType(Cqe) == CXPLAT_CQE_TYPE_SOCKET_IO) {
+        XDP_QUEUE* Queue =
+            CONTAINING_RECORD(CxPlatCqeUserData(Cqe), XDP_QUEUE, IoSqe);
+        if (Cqe->lpOverlapped == &Queue->RxOv) {
+            Queue->RxQueued = FALSE;
+        } else {
+            Queue->TxQueued = FALSE;
+        }
+        Queue->Worker->Ready = TRUE;
+    } else if (CxPlatCqeType(Cqe) == CXPLAT_CQE_TYPE_SOCKET_SHUTDOWN) {
+        XDP_WORKER* Worker =
+            CONTAINING_RECORD(CxPlatCqeUserData(Cqe), XDP_WORKER, ShutdownSqe);
+        CxPlatDpRawRelease((XDP_DATAPATH*)Worker->Xdp);
+    }
 }

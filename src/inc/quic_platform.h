@@ -427,7 +427,8 @@ typedef struct QUIC_EXECUTION_CONFIG QUIC_EXECUTION_CONFIG;
 typedef struct CXPLAT_EXECUTION_CONTEXT CXPLAT_EXECUTION_CONTEXT;
 
 typedef struct CXPLAT_EXECUTION_STATE {
-    uint64_t TimeNow;           // in microseconds.
+    uint64_t TimeNow;           // in microseconds
+    uint64_t LastWorkTime;      // in microseconds
     uint32_t WaitTime;
     uint32_t NoWorkCount;
     CXPLAT_THREAD_ID ThreadID;
