@@ -1119,7 +1119,9 @@ CxPlatDpRawInitialize(
     Xdp->Running = TRUE;
     CxPlatRefInitialize(&Xdp->RefCount);
     for (uint32_t i = 0; i < Xdp->WorkerCount; i++) {
-        if (Xdp->Workers->Queues == NULL) {
+
+        XDP_WORKER* Worker = &Xdp->Workers[i];
+        if (Worker->Queues == NULL) {
             //
             // Becasue queues are assigned in a round-robin manner, subsequent workers will not
             // have a queue assigned. Stop the loop and update worker count.
@@ -1128,7 +1130,6 @@ CxPlatDpRawInitialize(
             break;
         }
 
-        XDP_WORKER* Worker = &Xdp->Workers[i];
         Worker->Xdp = Xdp;
         Worker->ProcIndex = ProcessorList ? ProcessorList[i] : (uint16_t)i;
         Worker->Ready = TRUE;
@@ -1139,7 +1140,7 @@ CxPlatDpRawInitialize(
         CxPlatRefIncrement(&Xdp->RefCount);
         Worker->EventQ = CxPlatWorkerGetEventQ(Worker->ProcIndex);
 
-        XDP_QUEUE* Queue = Xdp->Workers->Queues;
+        XDP_QUEUE* Queue = Worker->Queues;
         while (Queue) {
             if (*Worker->EventQ !=
                 CreateIoCompletionPort(Queue->RxXsk, *Worker->EventQ, (ULONG_PTR)&Queue->IoSqe, 0)) {
@@ -1160,8 +1161,7 @@ CxPlatDpRawInitialize(
             Queue = Queue->Next;
         }
 
-        CxPlatAddExecutionContext(
-            (CXPLAT_EXECUTION_CONTEXT*)&Xdp->Workers[i], Worker->ProcIndex);
+        CxPlatAddExecutionContext(Worker, Worker->ProcIndex);
     }
     Status = QUIC_STATUS_SUCCESS;
 
