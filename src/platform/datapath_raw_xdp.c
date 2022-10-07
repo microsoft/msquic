@@ -1646,7 +1646,14 @@ CxPlatXdpExecute(
     const XDP_DATAPATH* Xdp = Worker->Xdp;
 
     if (!Xdp->Running) {
-        // TODO - Shutdown queues first?
+        XDP_QUEUE* Queue = Worker->Queues;
+        while (Queue) {
+            CloseHandle(Queue->RxXsk);
+            Queue->RxXsk = NULL;
+            CloseHandle(Queue->TxXsk);
+            Queue->TxXsk = NULL;
+            Queue = Queue->Next;
+        }
         CxPlatEventQEnqueue(Worker->EventQ, &Worker->ShutdownSqe.Sqe, Worker);
         return FALSE;
     }
