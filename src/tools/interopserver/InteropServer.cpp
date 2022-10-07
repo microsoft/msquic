@@ -102,6 +102,8 @@ main(
     Settings.IsSet.InitialRttMs = TRUE;
     Settings.ServerResumptionLevel = QUIC_SERVER_RESUME_AND_ZERORTT; // Enable resumption & 0-RTT
     Settings.IsSet.ServerResumptionLevel = TRUE;
+    Settings.GreaseQuicBitEnabled = TRUE; // Enable Grease Quic Bit
+    Settings.IsSet.GreaseQuicBitEnabled = TRUE;
     if (EnableVNE) {
         uint32_t SupportedVersions[] = {QUIC_VERSION_2_H, QUIC_VERSION_1_H, QUIC_VERSION_DRAFT_29_H, QUIC_VERSION_1_MS_H};
         QUIC_VERSION_SETTINGS VersionSettings{0};
