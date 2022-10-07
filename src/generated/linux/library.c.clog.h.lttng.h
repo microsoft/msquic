@@ -161,13 +161,13 @@ TRACEPOINT_EVENT(CLOG_LIBRARY_C, LibrarySetSettings,
 
 
 /*----------------------------------------------------------
-// Decoder Ring for LibraryDataPathProcsSet
-// [ lib] Setting datapath procs
+// Decoder Ring for LibraryExecutionConfigSet
+// [ lib] Setting execution config
 // QuicTraceLogInfo(
-            LibraryDataPathProcsSet,
-            "[ lib] Setting datapath procs");
+            LibraryExecutionConfigSet,
+            "[ lib] Setting execution config");
 ----------------------------------------------------------*/
-TRACEPOINT_EVENT(CLOG_LIBRARY_C, LibraryDataPathProcsSet,
+TRACEPOINT_EVENT(CLOG_LIBRARY_C, LibraryExecutionConfigSet,
     TP_ARGS(
 ), 
     TP_FIELDS(
@@ -435,13 +435,32 @@ TRACEPOINT_EVENT(CLOG_LIBRARY_C, LibraryRelease,
 
 
 /*----------------------------------------------------------
+// Decoder Ring for DataPathInitialized
+// [data] Initialized, DatapathFeatures=%u
+// QuicTraceEvent(
+                DataPathInitialized,
+                "[data] Initialized, DatapathFeatures=%u",
+                CxPlatDataPathGetSupportedFeatures(MsQuicLib.Datapath));
+// arg2 = arg2 = CxPlatDataPathGetSupportedFeatures(MsQuicLib.Datapath) = arg2
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_LIBRARY_C, DataPathInitialized,
+    TP_ARGS(
+        unsigned int, arg2), 
+    TP_FIELDS(
+        ctf_integer(unsigned int, arg2, arg2)
+    )
+)
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for LibraryError
 // [ lib] ERROR, %s.
 // QuicTraceEvent(
                 LibraryError,
                 "[ lib] ERROR, %s.",
-                "Tried to change raw datapath procs after datapath initialization");
-// arg2 = arg2 = "Tried to change raw datapath procs after datapath initialization" = arg2
+                "Tried to change execution config after datapath initialization");
+// arg2 = arg2 = "Tried to change execution config after datapath initialization" = arg2
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_LIBRARY_C, LibraryError,
     TP_ARGS(

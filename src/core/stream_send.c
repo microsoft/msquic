@@ -239,10 +239,6 @@ Exit:
     }
 }
 
-//
-// Returns TRUE if the peer has indicated the stream ID is allowed to be used
-// yet.
-//
 BOOLEAN
 QuicStreamAllowedByPeer(
     _In_ const QUIC_STREAM* Stream
@@ -376,6 +372,10 @@ QuicStreamCompleteSendRequest(
         CXPLAT_DBG_ASSERT(
             Stream->SendBufferBookmark == NULL ||
             !(Stream->SendBufferBookmark->Flags & QUIC_SEND_FLAG_BUFFERED));
+    }
+
+    if (SendRequest->Flags & QUIC_SEND_FLAG_START && !Stream->Flags.Started) {
+        QuicStreamIndicateStartComplete(Stream, QUIC_STATUS_ABORTED);
     }
 
     if (!(SendRequest->Flags & QUIC_SEND_FLAG_BUFFERED)) {

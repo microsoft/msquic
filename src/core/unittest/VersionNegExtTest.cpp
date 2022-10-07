@@ -156,6 +156,216 @@ TEST_P(WithType, EncodeDecodeVersionInfo)
     }
 }
 
+TEST(VersionNegExtTest, GeneratedCompatibleVersionList)
+{
+    uint8_t Buffer[sizeof(DefaultSupportedVersionsList)];
+    {
+        //
+        // Latest version
+        //
+        uint32_t CompatibilityListByteLength = 0;
+        const uint32_t ExpectedDefaultCompatibleVersions[] = {QUIC_VERSION_1, QUIC_VERSION_2, QUIC_VERSION_MS_1};
+        ASSERT_EQ(
+            QUIC_STATUS_BUFFER_TOO_SMALL,
+            QuicVersionNegotiationExtGenerateCompatibleVersionsList(
+                QUIC_VERSION_LATEST,
+                DefaultSupportedVersionsList,
+                ARRAYSIZE(DefaultSupportedVersionsList),
+                NULL,
+                &CompatibilityListByteLength));
+
+        ASSERT_EQ(CompatibilityListByteLength, sizeof(ExpectedDefaultCompatibleVersions));
+        ASSERT_LE(CompatibilityListByteLength, sizeof(Buffer));
+
+        ASSERT_EQ(
+            QUIC_STATUS_SUCCESS,
+            QuicVersionNegotiationExtGenerateCompatibleVersionsList(
+                QUIC_VERSION_LATEST,
+                DefaultSupportedVersionsList,
+                ARRAYSIZE(DefaultSupportedVersionsList),
+                Buffer,
+                &CompatibilityListByteLength));
+        ASSERT_EQ(
+            0,
+            memcmp(
+                ExpectedDefaultCompatibleVersions,
+                Buffer,
+                sizeof(ExpectedDefaultCompatibleVersions)));
+    }
+
+    {
+        //
+        // Version 2
+        //
+        const uint32_t ExpectedVersion2CompatibleVersions[] = {QUIC_VERSION_2};
+        uint32_t CompatibilityListByteLength = 0;
+        ASSERT_EQ(
+            QUIC_STATUS_BUFFER_TOO_SMALL,
+            QuicVersionNegotiationExtGenerateCompatibleVersionsList(
+                QUIC_VERSION_2,
+                DefaultSupportedVersionsList,
+                ARRAYSIZE(DefaultSupportedVersionsList),
+                NULL,
+                &CompatibilityListByteLength));
+
+        ASSERT_EQ(CompatibilityListByteLength, sizeof(ExpectedVersion2CompatibleVersions));
+        ASSERT_LE(CompatibilityListByteLength, sizeof(Buffer));
+
+        ASSERT_EQ(
+            QUIC_STATUS_SUCCESS,
+            QuicVersionNegotiationExtGenerateCompatibleVersionsList(
+                QUIC_VERSION_2,
+                DefaultSupportedVersionsList,
+                ARRAYSIZE(DefaultSupportedVersionsList),
+                Buffer,
+                &CompatibilityListByteLength));
+        ASSERT_EQ(
+            0,
+            memcmp(
+                ExpectedVersion2CompatibleVersions,
+                Buffer,
+                sizeof(ExpectedVersion2CompatibleVersions)));
+    }
+
+    {
+        //
+        // Version 1
+        //
+        const uint32_t ExpectedVersion1CompatibleVersions[] = {QUIC_VERSION_1, QUIC_VERSION_2, QUIC_VERSION_MS_1};
+        uint32_t CompatibilityListByteLength = 0;
+        ASSERT_EQ(
+            QUIC_STATUS_BUFFER_TOO_SMALL,
+            QuicVersionNegotiationExtGenerateCompatibleVersionsList(
+                QUIC_VERSION_1,
+                DefaultSupportedVersionsList,
+                ARRAYSIZE(DefaultSupportedVersionsList),
+                NULL,
+                &CompatibilityListByteLength));
+
+        ASSERT_EQ(CompatibilityListByteLength, sizeof(ExpectedVersion1CompatibleVersions));
+        ASSERT_LE(CompatibilityListByteLength, sizeof(Buffer));
+
+        ASSERT_EQ(
+            QUIC_STATUS_SUCCESS,
+            QuicVersionNegotiationExtGenerateCompatibleVersionsList(
+                QUIC_VERSION_1,
+                DefaultSupportedVersionsList,
+                ARRAYSIZE(DefaultSupportedVersionsList),
+                Buffer,
+                &CompatibilityListByteLength));
+        ASSERT_EQ(
+            0,
+            memcmp(
+                ExpectedVersion1CompatibleVersions,
+                Buffer,
+                sizeof(ExpectedVersion1CompatibleVersions)));
+    }
+
+    {
+        //
+        // Version MS 1
+        //
+        const uint32_t ExpectedVersionMS1CompatibleVersions[] = {QUIC_VERSION_MS_1, QUIC_VERSION_1};
+        uint32_t CompatibilityListByteLength = 0;
+        ASSERT_EQ(
+            QUIC_STATUS_BUFFER_TOO_SMALL,
+            QuicVersionNegotiationExtGenerateCompatibleVersionsList(
+                QUIC_VERSION_MS_1,
+                DefaultSupportedVersionsList,
+                ARRAYSIZE(DefaultSupportedVersionsList),
+                NULL,
+                &CompatibilityListByteLength));
+
+        ASSERT_EQ(CompatibilityListByteLength, sizeof(ExpectedVersionMS1CompatibleVersions));
+        ASSERT_LE(CompatibilityListByteLength, sizeof(Buffer));
+
+        ASSERT_EQ(
+            QUIC_STATUS_SUCCESS,
+            QuicVersionNegotiationExtGenerateCompatibleVersionsList(
+                QUIC_VERSION_MS_1,
+                DefaultSupportedVersionsList,
+                ARRAYSIZE(DefaultSupportedVersionsList),
+                Buffer,
+                &CompatibilityListByteLength));
+        ASSERT_EQ(
+            0,
+            memcmp(
+                ExpectedVersionMS1CompatibleVersions,
+                Buffer,
+                sizeof(ExpectedVersionMS1CompatibleVersions)));
+    }
+
+    {
+        //
+        // Draft 29 Version
+        //
+        const uint32_t ExpectedVersionDraft29CompatibleVersions[] = {QUIC_VERSION_DRAFT_29};
+        uint32_t CompatibilityListByteLength = 0;
+        ASSERT_EQ(
+            QUIC_STATUS_BUFFER_TOO_SMALL,
+            QuicVersionNegotiationExtGenerateCompatibleVersionsList(
+                QUIC_VERSION_DRAFT_29,
+                DefaultSupportedVersionsList,
+                ARRAYSIZE(DefaultSupportedVersionsList),
+                NULL,
+                &CompatibilityListByteLength));
+
+        ASSERT_EQ(CompatibilityListByteLength, sizeof(ExpectedVersionDraft29CompatibleVersions));
+        ASSERT_LE(CompatibilityListByteLength, sizeof(Buffer));
+
+        ASSERT_EQ(
+            QUIC_STATUS_SUCCESS,
+            QuicVersionNegotiationExtGenerateCompatibleVersionsList(
+                QUIC_VERSION_DRAFT_29,
+                DefaultSupportedVersionsList,
+                ARRAYSIZE(DefaultSupportedVersionsList),
+                Buffer,
+                &CompatibilityListByteLength));
+        ASSERT_EQ(
+            0,
+            memcmp(
+                ExpectedVersionDraft29CompatibleVersions,
+                Buffer,
+                sizeof(ExpectedVersionDraft29CompatibleVersions)));
+    }
+
+    {
+        //
+        // No Versions in common
+        //
+        const uint32_t TestOriginalVersion = QUIC_VERSION_2;
+        const uint32_t TestSupportedVersions[] = {QUIC_VERSION_MS_1, QUIC_VERSION_DRAFT_29};
+        const uint32_t ExpectedNoCommonVersionsCompatibleVersions[] = {QUIC_VERSION_2};
+        uint32_t CompatibilityListByteLength = 0;
+        ASSERT_EQ(
+            QUIC_STATUS_BUFFER_TOO_SMALL,
+            QuicVersionNegotiationExtGenerateCompatibleVersionsList(
+                TestOriginalVersion,
+                TestSupportedVersions,
+                ARRAYSIZE(TestSupportedVersions),
+                NULL,
+                &CompatibilityListByteLength));
+
+        ASSERT_EQ(CompatibilityListByteLength, sizeof(ExpectedNoCommonVersionsCompatibleVersions));
+        ASSERT_LE(CompatibilityListByteLength, sizeof(Buffer));
+
+        ASSERT_EQ(
+            QUIC_STATUS_SUCCESS,
+            QuicVersionNegotiationExtGenerateCompatibleVersionsList(
+                TestOriginalVersion,
+                TestSupportedVersions,
+                ARRAYSIZE(TestSupportedVersions),
+                Buffer,
+                &CompatibilityListByteLength));
+        ASSERT_EQ(
+            0,
+            memcmp(
+                ExpectedNoCommonVersionsCompatibleVersions,
+                Buffer,
+                sizeof(ExpectedNoCommonVersionsCompatibleVersions)));
+    }
+}
+
 INSTANTIATE_TEST_SUITE_P(
     VersionNegExtTest,
     WithType,

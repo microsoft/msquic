@@ -61,6 +61,8 @@ namespace QuicTrace.DataModel
         RegistrationError,
         RegistrationErrorStatus,
         RegistrationShutdown,
+        RegistrationCreatedV2,
+        RegistrationRundownV2,
 
         WorkerCreated = 2048,
         WorkerStart,
@@ -153,6 +155,7 @@ namespace QuicTrace.DataModel
         ConnTimerSet,
         ConnTimerCancel,
         ConnTimerExpire,
+        ConnBbr,
 
         StreamCreated = 6144,
         StreamDestroyed,
@@ -172,6 +175,8 @@ namespace QuicTrace.DataModel
         StreamAppReceive,
         StreamAppReceiveComplete,
         StreamAppSend,
+        StreamReceiveFrameComplete,
+        StreamAppReceiveCompleteCall,
 
         BindingCreated = 7168,
         BindingRundown,

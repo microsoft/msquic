@@ -461,6 +461,20 @@ size_t QUIC_IOCTL_BUFFER_SIZES[] =
     0,
     sizeof(INT32),
     0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    sizeof(QUIC_RUN_ODD_SIZE_VN_TP_PARAMS),
 };
 
 CXPLAT_STATIC_ASSERT(
@@ -493,6 +507,7 @@ typedef union {
     QUIC_RUN_REBIND_PARAMS RebindParams;
     UINT8 RejectByClosing;
     QUIC_RUN_CIBIR_EXTENSION CibirParams;
+    QUIC_RUN_ODD_SIZE_VN_TP_PARAMS OddSizeVnTpParams;
 
 } QUIC_IOCTL_PARAMS;
 
@@ -683,6 +698,7 @@ QuicTestCtlEvtIoDeviceControl(
                 Params->Params1.ServerStatelessRetry != 0,
                 Params->Params1.ClientUsesOldVersion != 0,
                 Params->Params1.MultipleALPNs != 0,
+                Params->Params1.GreaseQuicBitExtension != 0,
                 (QUIC_TEST_ASYNC_CONFIG_MODE)Params->Params1.AsyncConfiguration,
                 Params->Params1.MultiPacketClientInitial != 0,
                 (QUIC_TEST_RESUMPTION_MODE)Params->Params1.SessionResumption,
@@ -750,10 +766,12 @@ QuicTestCtlEvtIoDeviceControl(
         QuicTestCtlRun(QuicTestValidateStreamEvents(Params->Test));
         break;
 
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
     case IOCTL_QUIC_RUN_VERSION_NEGOTIATION:
         CXPLAT_FRE_ASSERT(Params != nullptr);
         QuicTestCtlRun(QuicTestVersionNegotiation(Params->Family));
         break;
+#endif
 
     case IOCTL_QUIC_RUN_KEY_UPDATE:
         CXPLAT_FRE_ASSERT(Params != nullptr);
@@ -902,6 +920,7 @@ QuicTestCtlEvtIoDeviceControl(
                 Params->CustomCertValidationParams.AsyncValidation));
         break;
 
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
     case IOCTL_QUIC_RUN_VERSION_NEGOTIATION_RETRY:
         CXPLAT_FRE_ASSERT(Params != nullptr);
         QuicTestCtlRun(QuicTestVersionNegotiationRetry(Params->Family));
@@ -952,6 +971,7 @@ QuicTestCtlEvtIoDeviceControl(
     case IOCTL_QUIC_RUN_VALIDATE_VERSION_SETTINGS_SETTINGS:
         QuicTestCtlRun(QuicTestVersionSettings());
         break;
+#endif // QUIC_API_ENABLE_PREVIEW_FEATURES
 
     case IOCTL_QUIC_RUN_CONNECT_CLIENT_CERT:
         CXPLAT_FRE_ASSERT(Params != nullptr);
@@ -1177,6 +1197,7 @@ QuicTestCtlEvtIoDeviceControl(
                 &Params->CredValidationParams.CredConfig));
         break;
 
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
     case IOCTL_QUIC_RUN_CIBIR_EXTENSION:
         CXPLAT_FRE_ASSERT(Params != nullptr);
         QuicTestCtlRun(
@@ -1184,6 +1205,7 @@ QuicTestCtlEvtIoDeviceControl(
                 Params->CibirParams.Family,
                 Params->CibirParams.Mode));
         break;
+#endif
 
     case IOCTL_QUIC_RUN_STREAM_PRIORITY_INFINITE_LOOP:
         QuicTestCtlRun(QuicTestStreamPriorityInfiniteLoop());
@@ -1202,6 +1224,68 @@ QuicTestCtlEvtIoDeviceControl(
 
     case IOCTL_QUIC_RUN_STORAGE:
         QuicTestCtlRun(QuicTestStorage());
+        break;
+
+    case IOCTL_QUIC_RUN_VALIDATE_GLOBAL_PARAM:
+        QuicTestCtlRun(QuicTestGlobalParam());
+        break;
+
+    case IOCTL_QUIC_RUN_VALIDATE_COMMON_PARAM:
+        QuicTestCtlRun(QuicTestCommonParam());
+        break;
+
+    case IOCTL_QUIC_RUN_VALIDATE_REGISTRATION_PARAM:
+        QuicTestCtlRun(QuicTestRegistrationParam());
+        break;
+
+    case IOCTL_QUIC_RUN_VALIDATE_CONFIGURATION_PARAM:
+        QuicTestCtlRun(QuicTestConfigurationParam());
+        break;
+
+    case IOCTL_QUIC_RUN_VALIDATE_LISTENER_PARAM:
+        QuicTestCtlRun(QuicTestListenerParam());
+        break;
+
+    case IOCTL_QUIC_RUN_VALIDATE_CONNECTION_PARAM:
+        QuicTestCtlRun(QuicTestConnectionParam());
+        break;
+
+    case IOCTL_QUIC_RUN_VALIDATE_TLS_PARAM:
+        QuicTestCtlRun(QuicTestTlsParam());
+        break;
+
+    case IOCTL_QUIC_RUN_VALIDATE_STREAM_PARAM:
+        QuicTestCtlRun(QuicTestStreamParam());
+        break;
+
+    case IOCTL_QUIC_RUN_CONNECTION_CLOSE_FROM_CALLBACK:
+        QuicTestCtlRun(QuicTestConnectionCloseFromCallback());
+        break;
+
+    case IOCTL_QUIC_RUN_CLOSE_CONN_BEFORE_STREAM_FLUSH:
+        QuicTestCtlRun(QuicTestCloseConnBeforeStreamFlush());
+        break;
+
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
+    case IOCTL_QUIC_RUN_VERSION_STORAGE:
+        QuicTestCtlRun(QuicTestVersionStorage());
+        break;
+#endif
+
+    case IOCTL_QUIC_RUN_CONNECT_AND_IDLE_FOR_DEST_CID_CHANGE:
+        QuicTestCtlRun(QuicTestConnectAndIdleForDestCidChange());
+        break;
+
+    case IOCTL_QUIC_RUN_CHANGE_ALPN:
+        QuicTestCtlRun(QuicTestChangeAlpn());
+        break;
+
+    case IOCTL_QUIC_RUN_ODD_SIZE_VN_TP:
+        CXPLAT_FRE_ASSERT(Params != nullptr);
+        QuicTestCtlRun(
+            QuicTestOddSizeVNTP(
+                Params->OddSizeVnTpParams.TestServer,
+                Params->OddSizeVnTpParams.VnTpSize));
         break;
 
     default:

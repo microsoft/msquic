@@ -206,10 +206,9 @@ typedef struct QUIC_LIBRARY {
     CXPLAT_STORAGE* Storage;
 
     //
-    // Processor candidates for raw datapath threads.
+    // Configuration for execution of the library (optionally set by the app).
     //
-    uint16_t* DataPathProcList;
-    uint32_t DataPathProcListLength;
+    QUIC_EXECUTION_CONFIG* ExecutionConfig;
 
     //
     // Datapath instance for the library.
@@ -519,6 +518,15 @@ _IRQL_requires_max_(DISPATCH_LEVEL)
 BOOLEAN
 QuicLibraryTryAddRefBinding(
     _In_ QUIC_BINDING* Binding
+    );
+
+//
+// The function initializes the library execution context if not already done.
+//
+_IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_STATUS
+QuicLibraryEnsureExecutionContext(
+    void
     );
 
 //

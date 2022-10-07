@@ -2,6 +2,22 @@
 
 
 /*----------------------------------------------------------
+// Decoder Ring for PlatformThreadCreateFailed
+// [ lib] pthread_create failed, retrying without affinitization
+// QuicTraceLogWarning(
+            PlatformThreadCreateFailed,
+            "[ lib] pthread_create failed, retrying without affinitization");
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_PLATFORM_POSIX_C, PlatformThreadCreateFailed,
+    TP_ARGS(
+), 
+    TP_FIELDS(
+    )
+)
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for PosixLoaded
 // [ dso] Loaded
 // QuicTraceLogInfo(
@@ -74,9 +90,9 @@ TRACEPOINT_EVENT(CLOG_PLATFORM_POSIX_C, PosixUninitialized,
 // QuicTraceEvent(
             LibraryErrorStatus,
             "[ lib] ERROR, %u, %s.",
-            Status,
+            errno,
             "open(/dev/urandom, O_RDONLY|O_CLOEXEC) failed");
-// arg2 = arg2 = Status = arg2
+// arg2 = arg2 = errno = arg2
 // arg3 = arg3 = "open(/dev/urandom, O_RDONLY|O_CLOEXEC) failed" = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_PLATFORM_POSIX_C, LibraryErrorStatus,

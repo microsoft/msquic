@@ -69,10 +69,10 @@ tracepoint(CLOG_WORKER_C, AbandonOnLibShutdown , arg1);\
         "[wrkr][%p] Created, IdealProc=%hu Owner=%p",
         Worker,
         IdealProcessor,
-        Owner);
+        Registration);
 // arg2 = arg2 = Worker = arg2
 // arg3 = arg3 = IdealProcessor = arg3
-// arg4 = arg4 = Owner = arg4
+// arg4 = arg4 = Registration = arg4
 ----------------------------------------------------------*/
 #ifndef _clog_5_ARGS_TRACE_WorkerCreated
 #define _clog_5_ARGS_TRACE_WorkerCreated(uniqueId, encoded_arg_string, arg2, arg3, arg4)\
@@ -87,11 +87,11 @@ tracepoint(CLOG_WORKER_C, WorkerCreated , arg2, arg3, arg4);\
 // Decoder Ring for WorkerErrorStatus
 // [wrkr][%p] ERROR, %u, %s.
 // QuicTraceEvent(
-            WorkerErrorStatus,
-            "[wrkr][%p] ERROR, %u, %s.",
-            Worker,
-            Status,
-            "CxPlatThreadCreate");
+                WorkerErrorStatus,
+                "[wrkr][%p] ERROR, %u, %s.",
+                Worker,
+                Status,
+                "CxPlatThreadCreate");
 // arg2 = arg2 = Worker = arg2
 // arg3 = arg3 = Status = arg3
 // arg4 = arg4 = "CxPlatThreadCreate" = arg4
@@ -266,9 +266,9 @@ tracepoint(CLOG_WORKER_C, WorkerStop , arg2);\
             AllocFailure,
             "Allocation of '%s' failed. (%llu bytes)",
             "QUIC_WORKER_POOL",
-            sizeof(QUIC_WORKER_POOL) + WorkerCount * sizeof(QUIC_WORKER));
+            WorkerPoolSize);
 // arg2 = arg2 = "QUIC_WORKER_POOL" = arg2
-// arg3 = arg3 = sizeof(QUIC_WORKER_POOL) + WorkerCount * sizeof(QUIC_WORKER) = arg3
+// arg3 = arg3 = WorkerPoolSize = arg3
 ----------------------------------------------------------*/
 #ifndef _clog_4_ARGS_TRACE_AllocFailure
 #define _clog_4_ARGS_TRACE_AllocFailure(uniqueId, encoded_arg_string, arg2, arg3)\

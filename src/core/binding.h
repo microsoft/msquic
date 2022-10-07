@@ -321,7 +321,7 @@ QuicBindingGetListener(
 // Attempts to register a listener with the binding.
 //
 _IRQL_requires_max_(PASSIVE_LEVEL)
-BOOLEAN
+QUIC_STATUS
 QuicBindingRegisterListener(
     _In_ QUIC_BINDING* Binding,
     _In_ QUIC_LISTENER* Listener

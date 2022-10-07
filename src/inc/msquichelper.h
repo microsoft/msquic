@@ -20,6 +20,10 @@ Environment:
 #include "msquicp.h"
 #include <stdio.h>
 #include <stdlib.h>
+#ifdef _WIN32
+#include <share.h>
+#endif // _WIN32
+
 
 typedef struct QUIC_CREDENTIAL_CONFIG_HELPER {
     QUIC_CREDENTIAL_CONFIG CredConfig;
@@ -561,10 +565,7 @@ WriteSslKeyLogFile(
 {
     FILE* File = nullptr;
 #ifdef _WIN32
-    if (fopen_s(&File, FileName, "ab")) {
-        printf("Failed to open sslkeylogfile %s\n", FileName);
-        return;
-    }
+    File = _fsopen(FileName, "ab", _SH_DENYNO);
 #else
     File = fopen(FileName, "ab");
 #endif

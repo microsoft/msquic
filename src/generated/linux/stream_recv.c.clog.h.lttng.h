@@ -138,9 +138,9 @@ TRACEPOINT_EVENT(CLOG_STREAM_RECV_C, TreatFinAsReset,
 // Decoder Ring for QueueRecvFlush
 // [strm][%p] Queuing recv flush
 // QuicTraceLogStreamVerbose(
-            QueueRecvFlush,
-            Stream,
-            "Queuing recv flush");
+                QueueRecvFlush,
+                Stream,
+                "Queuing recv flush");
 // arg1 = arg1 = Stream = arg1
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_STREAM_RECV_C, QueueRecvFlush,
@@ -429,10 +429,10 @@ TRACEPOINT_EVENT(CLOG_STREAM_RECV_C, StreamRecvState,
 // Decoder Ring for AllocFailure
 // Allocation of '%s' failed. (%llu bytes)
 // QuicTraceEvent(
-                AllocFailure,
-                "Allocation of '%s' failed. (%llu bytes)",
-                "Flush Stream Recv operation",
-                0);
+                    AllocFailure,
+                    "Allocation of '%s' failed. (%llu bytes)",
+                    "Flush Stream Recv operation",
+                    0);
 // arg2 = arg2 = "Flush Stream Recv operation" = arg2
 // arg3 = arg3 = 0 = arg3
 ----------------------------------------------------------*/
@@ -489,6 +489,25 @@ TRACEPOINT_EVENT(CLOG_STREAM_RECV_C, StreamReceiveFrame,
     TP_FIELDS(
         ctf_integer_hex(uint64_t, arg2, arg2)
         ctf_integer(uint64_t, arg3, arg3)
+    )
+)
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for StreamReceiveFrameComplete
+// [strm][%p] Done processing frame
+// QuicTraceEvent(
+        StreamReceiveFrameComplete,
+        "[strm][%p] Done processing frame",
+        Stream);
+// arg2 = arg2 = Stream = arg2
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_STREAM_RECV_C, StreamReceiveFrameComplete,
+    TP_ARGS(
+        const void *, arg2), 
+    TP_FIELDS(
+        ctf_integer_hex(uint64_t, arg2, arg2)
     )
 )
 

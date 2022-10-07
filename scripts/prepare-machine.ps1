@@ -80,6 +80,9 @@ param (
     [switch]$InstallXdpSdk,
 
     [Parameter(Mandatory = $false)]
+    [switch]$InstallArm64Toolchain,
+
+    [Parameter(Mandatory = $false)]
     [switch]$InstallXdpDriver,
 
     [Parameter(Mandatory = $false)]
@@ -505,19 +508,6 @@ if ($IsLinux) {
         Install-Clog2Text
     }
 
-    if ($ForOneBranch) {
-        sh -c "wget -O - https://apt.kitware.com/keys/kitware-archive-latest.asc 2>/dev/null | gpg --dearmor - | sudo tee /usr/share/keyrings/kitware-archive-keyring.gpg >/dev/null"
-        sh -c "echo 'deb [signed-by=/usr/share/keyrings/kitware-archive-keyring.gpg] https://apt.kitware.com/ubuntu/ bionic main' | sudo tee /etc/apt/sources.list.d/kitware.list >/dev/null"
-        $ForBuild = $true
-    }
-
-    if ($ForOneBranchPackage) {
-        sudo apt-get update
-        # used for packaging
-        sudo apt-get install -y ruby ruby-dev rpm
-        sudo gem install fpm
-    }
-
     if ($ForBuild) {
         sudo apt-add-repository ppa:lttng/stable-2.12
         sudo apt-get update
@@ -525,10 +515,16 @@ if ($IsLinux) {
         sudo apt-get install -y build-essential
         sudo apt-get install -y liblttng-ust-dev
         sudo apt-get install -y libssl-dev
+        if ($InstallArm64Toolchain) {
+            sudo apt-get install -y gcc-aarch64-linux-gnu
+            sudo apt-get install -y binutils-aarch64-linux-gnu
+            sudo apt-get install -y g++-aarch64-linux-gnu
+        }
         # only used for the codecheck CI run:
         sudo apt-get install -y cppcheck clang-tidy
         # used for packaging
         sudo apt-get install -y ruby ruby-dev rpm
+        sudo gem install public_suffix -v 4.0.7
         sudo gem install fpm
     }
 

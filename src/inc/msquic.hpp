@@ -312,11 +312,11 @@ public:
 
 extern const MsQuicApi* MsQuic;
 
-class MsQuicRegistration {
+struct MsQuicRegistration {
     bool CloseAllConnectionsOnDelete {false};
     HQUIC Handle {nullptr};
     QUIC_STATUS InitStatus;
-public:
+
     operator HQUIC () const noexcept { return Handle; }
     MsQuicRegistration(
         _In_ bool AutoCleanUp = false
@@ -378,10 +378,35 @@ public:
 class MsQuicVersionSettings : public QUIC_VERSION_SETTINGS {
 public:
     MsQuicVersionSettings() noexcept {}
+    MsQuicVersionSettings(const uint32_t* Versions, uint32_t Length) noexcept {
+        AcceptableVersions = OfferedVersions = FullyDeployedVersions = Versions;
+        AcceptableVersionsLength = OfferedVersionsLength = FullyDeployedVersionsLength = Length;
+    }
     MsQuicVersionSettings& SetAllVersionLists(const uint32_t* Versions, uint32_t Length) {
-        AcceptableVersions = OfferedVersions = FullyDeployedVersions = (uint32_t*)Versions;
+        AcceptableVersions = OfferedVersions = FullyDeployedVersions = Versions;
         AcceptableVersionsLength = OfferedVersionsLength = FullyDeployedVersionsLength = Length;
         return *this;
+    }
+    QUIC_STATUS
+    SetGlobal() const noexcept {
+        const QUIC_VERSION_SETTINGS* Settings = this;
+        return
+            MsQuic->SetParam(
+                nullptr,
+                QUIC_PARAM_GLOBAL_VERSION_SETTINGS,
+                sizeof(*Settings),
+                Settings);
+    }
+    QUIC_STATUS
+    GetGlobal() noexcept {
+        QUIC_VERSION_SETTINGS* Settings = this;
+        uint32_t Size = sizeof(*Settings);
+        return
+            MsQuic->GetParam(
+                nullptr,
+                QUIC_PARAM_GLOBAL_VERSION_SETTINGS,
+                &Size,
+                Settings);
     }
 };
 
@@ -410,6 +435,9 @@ public:
     MsQuicSettings& SetMtuDiscoveryMissingProbeCount(uint8_t Count) { MtuDiscoveryMissingProbeCount = Count; IsSet.MtuDiscoveryMissingProbeCount = TRUE; return *this; }
     MsQuicSettings& SetKeepAlive(uint32_t Time) { KeepAliveIntervalMs = Time; IsSet.KeepAliveIntervalMs = TRUE; return *this; }
     MsQuicSettings& SetConnFlowControlWindow(uint32_t Window) { ConnFlowControlWindow = Window; IsSet.ConnFlowControlWindow = TRUE; return *this; }
+    MsQuicSettings& SetCongestionControlAlgorithm(QUIC_CONGESTION_CONTROL_ALGORITHM Cc) { CongestionControlAlgorithm = (uint8_t)Cc; IsSet.CongestionControlAlgorithm = TRUE; return *this; }
+    MsQuicSettings& SetDestCidUpdateIdleTimeoutMs(uint32_t Value) { DestCidUpdateIdleTimeoutMs = Value; IsSet.DestCidUpdateIdleTimeoutMs = TRUE; return *this; }
+    MsQuicSettings& SetGreaseQuicBitEnabled(bool Value) { GreaseQuicBitEnabled = Value; IsSet.GreaseQuicBitEnabled = TRUE; return *this; }
 
     QUIC_STATUS
     SetGlobal() const noexcept {
@@ -469,11 +497,11 @@ public:
     }
 };
 
-class MsQuicConfiguration {
+struct MsQuicConfiguration {
     HQUIC Handle {nullptr};
     QUIC_STATUS InitStatus;
-public:
     operator HQUIC () const noexcept { return Handle; }
+
     MsQuicConfiguration(
         _In_ const MsQuicRegistration& Reg,
         _In_ const MsQuicAlpn& Alpns
@@ -614,12 +642,26 @@ public:
     }
 
     QUIC_STATUS
-    SetVersionNegotiationExtEnabled(_In_ const BOOLEAN Value) noexcept {
+    GetVersionSettings(
+        _Out_ MsQuicVersionSettings& Settings,
+        _Inout_ uint32_t* SettingsLength) noexcept {
+        QUIC_VERSION_SETTINGS* VSettings = &Settings;
+        return
+            MsQuic->GetParam(
+                Handle,
+                QUIC_PARAM_CONFIGURATION_VERSION_SETTINGS,
+                SettingsLength,
+                VSettings);
+    }
+
+    QUIC_STATUS
+    SetVersionNegotiationExtEnabled(_In_ const bool Value = true) noexcept {
+        BOOLEAN _Value = Value;
         return MsQuic->SetParam(
             Handle,
             QUIC_PARAM_CONFIGURATION_VERSION_NEG_ENABLED,
-            sizeof(Value),
-            &Value);
+            sizeof(_Value),
+            &_Value);
     }
 #endif
 };
@@ -786,9 +828,7 @@ struct MsQuicConnection {
     }
 
     ~MsQuicConnection() noexcept {
-        if (Handle) {
-            MsQuic->ConnectionClose(Handle);
-        }
+        Close();
         delete[] ResumptionTicket;
     }
 
@@ -798,6 +838,19 @@ struct MsQuicConnection {
         _In_ QUIC_CONNECTION_SHUTDOWN_FLAGS Flags = QUIC_CONNECTION_SHUTDOWN_FLAG_NONE
         ) noexcept {
         MsQuic->ConnectionShutdown(Handle, Flags, ErrorCode);
+    }
+
+    void
+    Close(
+    ) noexcept {
+#ifdef _WIN32
+        auto HandleToClose = (HQUIC)InterlockedExchangePointer((PVOID*)&Handle, NULL);
+#else
+        auto HandleToClose = (HQUIC)__sync_fetch_and_and(&Handle, 0);
+#endif
+        if (HandleToClose) {
+            MsQuic->ConnectionClose(HandleToClose);
+        }
     }
 
     QUIC_STATUS
@@ -1182,7 +1235,7 @@ struct MsQuicStream {
     MsQuicStream(
         _In_ HQUIC StreamHandle,
         _In_ MsQuicCleanUpMode CleanUpMode,
-        _In_ MsQuicStreamCallback* Callback,
+        _In_ MsQuicStreamCallback* Callback = NoOpCallback,
         _In_ void* Context = nullptr
         ) noexcept : CleanUpMode(CleanUpMode), Callback(Callback), Context(Context) {
         Handle = StreamHandle;
@@ -1191,9 +1244,7 @@ struct MsQuicStream {
     }
 
     ~MsQuicStream() noexcept {
-        if (Handle) {
-            MsQuic->StreamClose(Handle);
-        }
+        Close();
     }
 
     QUIC_STATUS
@@ -1209,6 +1260,19 @@ struct MsQuicStream {
         _In_ QUIC_STREAM_SHUTDOWN_FLAGS Flags = QUIC_STREAM_SHUTDOWN_FLAG_ABORT
         ) noexcept {
         return MsQuic->StreamShutdown(Handle, Flags, ErrorCode);
+    }
+
+    void
+    Close(
+    ) noexcept {
+#ifdef _WIN32
+        auto HandleToClose = (HQUIC)InterlockedExchangePointer((PVOID*)&Handle, NULL);
+#else
+        HQUIC HandleToClose = (HQUIC)__sync_fetch_and_and(&Handle, 0);
+#endif
+        if (HandleToClose) {
+            MsQuic->StreamClose(HandleToClose);
+        }
     }
 
     void

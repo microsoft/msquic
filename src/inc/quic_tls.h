@@ -326,6 +326,12 @@ typedef struct CXPLAT_TLS_PROCESS_STATE {
     //
     QUIC_PACKET_KEY* WriteKeys[QUIC_PACKET_KEY_COUNT];
 
+    //
+    // (Server-Connection-Only) ClientAlpnList cache params (in TLS format)
+    //
+    const uint8_t* ClientAlpnList;
+    uint16_t ClientAlpnListLength;
+
 } CXPLAT_TLS_PROCESS_STATE;
 
 typedef
@@ -340,6 +346,15 @@ void
     );
 
 typedef CXPLAT_SEC_CONFIG_CREATE_COMPLETE *CXPLAT_SEC_CONFIG_CREATE_COMPLETE_HANDLER;
+
+//
+// Returns the type of TLS provider in use.
+//
+_IRQL_requires_max_(DISPATCH_LEVEL)
+QUIC_TLS_PROVIDER
+CxPlatTlsGetProvider(
+    void
+    );
 
 //
 // Creates a new TLS security configuration.

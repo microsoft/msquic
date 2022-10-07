@@ -26,11 +26,25 @@ jobs:
 
     steps:
       - name: Harden Runner
-        uses: step-security/harden-runner@248ae51c2e8cc9622ecf50685c8bf7150c6e8813
+        uses: step-security/harden-runner@2e205a28d0e1da00c5f53b161f4067b052c61f34
         with:
-          egress-policy: audit
+          egress-policy: block
+          allowed-endpoints: >
+            api.github.com:443
+            auth.docker.io:443
+            boringssl.googlesource.com:443
+            ghcr.io:443
+            github.com:443
+            pkg-containers.githubusercontent.com:443
+            production.cloudflare.docker.com:443
+            registry-1.docker.io:443
+            archive.ubuntu.com:80
+            security.ubuntu.com:80
+            packages.microsoft.com:443
+            api.nuget.org:443
+            dc.services.visualstudio.com:443
       - name: Checkout repository
-        uses: actions/checkout@629c2de402a417ea7690ca6ce3f33229e27606a5
+        uses: actions/checkout@2541b1294d2704b0964813337f33b291d3f8596b
         with:
           submodules: recursive
 
@@ -55,7 +69,7 @@ jobs:
       # Build and push Docker image with Buildx (don't push on PR)
       # https://github.com/docker/build-push-action
       - name: Build and push Docker image
-        uses: docker/build-push-action@e551b19e49efd4e98792db7592c17c09b89db8d8
+        uses: docker/build-push-action@c84f38281176d4c9cdb1626ffafcd6b3911b5d94
         with:
           context: .
           file: scripts/qns.Dockerfile

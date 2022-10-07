@@ -17,12 +17,9 @@ body:
       label: Affected OS
       description: What operating systems are affected by this bug?
       options:
-        - label: All
-        - label: Windows Server 2022
-        - label: Windows 11
-        - label: Windows Insider Preview (specify affected build below)
-        - label: Ubuntu
-        - label: Debian
+        - label: Windows
+        - label: Linux
+        - label: macOS
         - label: Other (specify below)
   - type: textarea
     attributes:
@@ -40,6 +37,7 @@ body:
         - release/1.0
         - release/1.1
         - release/2.0
+        - release/2.1
   - type: textarea
     validations:
       required: true

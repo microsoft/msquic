@@ -31,7 +31,7 @@ The valid handle to an open registration object.
 
 `AlpnBuffers`
 
-An array of `QUIC_BUFFER` structs that each contain a pointer and length to a different [Application Layer Protocol Negotiation](https://tools.ietf.org/html/rfc7301) (ALPN) buffer.
+An array of `QUIC_BUFFER` structs that each contain a pointer and length to a different [Application Layer Protocol Negotiation](https://www.rfc-editor.org/rfc/rfc7301) (ALPN) buffer.
 
 `AlpnBufferCount`
 

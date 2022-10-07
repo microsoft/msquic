@@ -246,6 +246,7 @@ CubicCongestionControlOnCongestionEvent(
     //
     // Save previous state, just in case this ends up being spurious.
     //
+    Cubic->PrevWindowPrior = Cubic->WindowPrior;
     Cubic->PrevWindowMax = Cubic->WindowMax;
     Cubic->PrevWindowLastMax = Cubic->WindowLastMax;
     Cubic->PrevKCubic = Cubic->KCubic;
@@ -265,6 +266,7 @@ CubicCongestionControlOnCongestionEvent(
         Connection->Paths[0].Route.State = RouteSuspected;
 #endif
         Cubic->IsInPersistentCongestion = TRUE;
+        Cubic->WindowPrior =
         Cubic->WindowMax =
         Cubic->WindowLastMax =
         Cubic->SlowStartThreshold =
@@ -276,7 +278,9 @@ CubicCongestionControlOnCongestionEvent(
 
     } else {
 
-        Cubic->WindowMax = Cubic->CongestionWindow;
+        Cubic->WindowPrior =
+        Cubic->WindowMax =
+            Cubic->CongestionWindow;
         if (Cubic->WindowLastMax > Cubic->WindowMax) {
             //
             // Fast convergence.
@@ -376,7 +380,7 @@ CubicCongestionControlOnDataAcknowledged(
     Cubic->BytesInFlight -= BytesAcked;
 
     if (Cubic->IsInRecovery) {
-        if (AckEvent->LargestPacketNumberAcked > Cubic->RecoverySentPacketNumber) {
+        if (AckEvent->LargestAck > Cubic->RecoverySentPacketNumber) {
             //
             // Done recovering. Note that completion of recovery is defined a
             // bit differently here than in TCP: we simply require an ACK for a
@@ -494,16 +498,16 @@ CubicCongestionControlOnDataAcknowledged(
         // The required slope is derived in RFC 8312 to be [3*(1-BETA)/(1+BETA)].
         // For BETA=0.7, [3*(1-BETA)/(1+BETA)] ~= 0.5.
         //
-        // This slope of 0.5MSS/RTT is used until AimdWindow reaches WindowMax, and then
+        // This slope of 0.5MSS/RTT is used until AimdWindow reaches WindowPrior, and then
         // the slope is increased to 1MSS/RTT to match the aggressiveness of Reno.
         //
         // Algorithm adapted from RFC3465 (Appropriate Byte Counting). The idea here is to grow only by
         // multiples of MTU: we record ACKed bytes in an accumulator until at least a window
-        // (or two window, if AimdWindow < WindowMax) worth of bytes are ACKed, and then increase
+        // (or two windows, if AimdWindow < WindowPrior) worth of bytes are ACKed, and then increase
         // the window by 1 MTU.
         //
         CXPLAT_STATIC_ASSERT(TEN_TIMES_BETA_CUBIC == 7, "TEN_TIMES_BETA_CUBIC must be 7 for simplified calculation.");
-        if (Cubic->AimdWindow < Cubic->WindowMax) {
+        if (Cubic->AimdWindow < Cubic->WindowPrior) {
             Cubic->AimdAccumulator += BytesAcked / 2;
         } else {
             Cubic->AimdAccumulator += BytesAcked;
@@ -567,7 +571,7 @@ CubicCongestionControlOnDataLost(
     if (!Cubic->HasHadCongestionEvent ||
         LossEvent->LargestPacketNumberLost > Cubic->RecoverySentPacketNumber) {
 
-        Cubic->RecoverySentPacketNumber = LossEvent->LargestPacketNumberSent;
+        Cubic->RecoverySentPacketNumber = LossEvent->LargestSentPacketNumber;
         CubicCongestionControlOnCongestionEvent(
             Cc,
             LossEvent->PersistentCongestion);
@@ -603,6 +607,7 @@ CubicCongestionControlOnSpuriousCongestionEvent(
     //
     // Revert to previous state.
     //
+    Cubic->WindowPrior = Cubic->PrevWindowPrior;
     Cubic->WindowMax = Cubic->PrevWindowMax;
     Cubic->WindowLastMax = Cubic->PrevWindowLastMax;
     Cubic->KCubic = Cubic->PrevKCubic;
@@ -667,6 +672,25 @@ CubicCongestionControlGetCongestionWindow(
     return Cc->Cubic.CongestionWindow;
 }
 
+_IRQL_requires_max_(DISPATCH_LEVEL)
+BOOLEAN
+CubicCongestionControlIsAppLimited(
+    _In_ const QUIC_CONGESTION_CONTROL* Cc
+    )
+{
+    UNREFERENCED_PARAMETER(Cc);
+    return FALSE;
+}
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+void
+CubicCongestionControlSetAppLimited(
+    _In_ struct QUIC_CONGESTION_CONTROL* Cc
+    )
+{
+    UNREFERENCED_PARAMETER(Cc);
+}
+
 static const QUIC_CONGESTION_CONTROL QuicCongestionControlCubic = {
     .Name = "Cubic",
     .QuicCongestionControlCanSend = CubicCongestionControlCanSend,
@@ -681,6 +705,8 @@ static const QUIC_CONGESTION_CONTROL QuicCongestionControlCubic = {
     .QuicCongestionControlLogOutFlowStatus = CubicCongestionControlLogOutFlowStatus,
     .QuicCongestionControlGetExemptions = CubicCongestionControlGetExemptions,
     .QuicCongestionControlGetBytesInFlightMax = CubicCongestionControlGetBytesInFlightMax,
+    .QuicCongestionControlIsAppLimited = CubicCongestionControlIsAppLimited,
+    .QuicCongestionControlSetAppLimited = CubicCongestionControlSetAppLimited,
     .QuicCongestionControlGetCongestionWindow = CubicCongestionControlGetCongestionWindow,
 };
 

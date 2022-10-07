@@ -120,6 +120,7 @@ class RpsClient : public PerfBase {
 public:
 
     RpsClient() {
+        CxPlatZeroMemory(LocalAddresses, sizeof(LocalAddresses));
         for (uint32_t i = 0; i < PERF_MAX_THREAD_COUNT; ++i) {
             Workers[i].Client = this;
         }
@@ -158,7 +159,7 @@ public:
 
     MsQuicRegistration Registration {
         "secnetperf-client-rps",
-        QUIC_EXECUTION_PROFILE_LOW_LATENCY,
+        PerfDefaultExecutionProfile,
         true};
     MsQuicConfiguration Configuration {
         Registration,
@@ -166,16 +167,19 @@ public:
         MsQuicSettings()
             .SetDisconnectTimeoutMs(PERF_DEFAULT_DISCONNECT_TIMEOUT)
             .SetIdleTimeoutMs(PERF_DEFAULT_IDLE_TIMEOUT)
-            .SetSendBufferingEnabled(false),
+            .SetSendBufferingEnabled(false)
+            .SetCongestionControlAlgorithm(PerfDefaultCongestionControl),
         MsQuicCredentialConfig(
             QUIC_CREDENTIAL_FLAG_CLIENT |
             QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION)};
     uint32_t WorkerCount;
+    QUIC_ADDR LocalIpAddr;
     uint16_t Port {PERF_DEFAULT_PORT};
     QUIC_ADDRESS_FAMILY RemoteFamily {QUIC_ADDRESS_FAMILY_UNSPEC};
     UniquePtr<char[]> Target;
     uint8_t UseEncryption {TRUE};
     uint8_t SendInline {FALSE};
+    uint8_t PrintStats {FALSE};
     uint32_t RunTime {RPS_DEFAULT_RUN_TIME};
     uint32_t ConnectionCount {RPS_DEFAULT_CONNECTION_COUNT};
     uint32_t RequestCount {RPS_DEFAULT_CONNECTION_COUNT * 2};
@@ -194,6 +198,7 @@ public:
     QuicBufferScopeQuicAlloc RequestBuffer;
     CXPLAT_EVENT* CompletionEvent {nullptr};
     QUIC_ADDR LocalAddresses[RPS_MAX_CLIENT_PORT_COUNT];
+    uint32_t LocalAddressCount {RPS_MAX_CLIENT_PORT_COUNT};
     uint32_t ActiveConnections {0};
     CxPlatEvent AllConnected {true};
     uint64_t StartedRequests {0};
@@ -207,4 +212,5 @@ public:
     UniquePtr<RpsConnectionContext[]> Connections {nullptr};
     bool Running {true};
     bool AffinitizeWorkers {false};
+    bool SpecificLocalAddresses {false};
 };

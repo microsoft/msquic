@@ -211,7 +211,8 @@ QuicPacketValidateLongHeaderV1(
     _Inout_ CXPLAT_RECV_PACKET* Packet,
     _Outptr_result_buffer_maybenull_(*TokenLength)
         const uint8_t** Token,
-    _Out_ uint16_t* TokenLength
+    _Out_ uint16_t* TokenLength,
+    _In_ BOOLEAN IgnoreFixedBit
     )
 {
     //
@@ -241,9 +242,9 @@ QuicPacketValidateLongHeaderV1(
     }
 
     //
-    // Check the Fixed bit to ensure it is set to 1.
+    // Check the Fixed bit to ensure it is set to 1, unless we ignore it.
     //
-    if (Packet->LH->FixedBit == 0) {
+    if (IgnoreFixedBit == FALSE && Packet->LH->FixedBit == 0) {
         QuicPacketLogDrop(Owner, Packet, "Invalid LH FixedBit bits values");
         return FALSE;
     }
@@ -565,7 +566,8 @@ _Success_(return != FALSE)
 BOOLEAN
 QuicPacketValidateShortHeaderV1(
     _In_ const void* Owner, // Binding or Connection depending on state
-    _Inout_ CXPLAT_RECV_PACKET* Packet
+    _Inout_ CXPLAT_RECV_PACKET* Packet,
+    _In_ BOOLEAN IgnoreFixedBit
     )
 {
     //
@@ -577,9 +579,9 @@ QuicPacketValidateShortHeaderV1(
     CXPLAT_DBG_ASSERT(Packet->BufferLength >= Packet->HeaderLength);
 
     //
-    // Check the Fixed bit to ensure it is set to 1.
+    // Check the Fixed bit to ensure it is set to 1, unless we ignore it.
     //
-    if (Packet->SH->FixedBit == 0) {
+    if (IgnoreFixedBit == FALSE && Packet->SH->FixedBit == 0) {
         QuicPacketLogDrop(Owner, Packet, "Invalid SH FixedBit bits values");
         return FALSE;
     }
@@ -696,7 +698,7 @@ QuicPacketLogHeader(
                 }
                 Offset += (uint16_t)TokenLength;
 
-            } else if ((LongHdr->Version != QUIC_VERSION_2 && LongHdr->Type == QUIC_RETRY_V1) || 
+            } else if ((LongHdr->Version != QUIC_VERSION_2 && LongHdr->Type == QUIC_RETRY_V1) ||
                 (LongHdr->Version == QUIC_VERSION_2 && LongHdr->Type == QUIC_RETRY_V2)) {
 
                 QuicTraceLogVerbose(

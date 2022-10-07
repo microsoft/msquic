@@ -37,19 +37,20 @@ A release branch will be created (forked) for each release of MsQuic. Official r
 
 This table describes all MsQuic releases, both officially supported (LTSC or SAC) and unsupported (PRE).
 
-| [Type](Release.md#release-support-policies) | Branch | Windows | Fork Date | Release Date | End of Support |
-| -- | -- | -- | -- | -- | -- |
-| LTSC | [release/1.0](https://github.com/microsoft/msquic/tree/release/1.0) | [Server 2022](https://docs.microsoft.com/en-us/windows/release-health/status-windows-server-2022) | Nov 13 2020 | Jan 5 2021 | Jan 4 2026 |
-| SAC | [release/1.1](https://github.com/microsoft/msquic/tree/release/1.1) | Windows 11 | Feb 10 2021 | Oct 5 2021 | Apr 5 2023 |
-| PRE | [prerelease/1.2](https://github.com/microsoft/msquic/tree/prerelease/1.2) | N/A | Mar 26 2021 | N/A | N/A |
-| PRE | [prerelease/1.3](https://github.com/microsoft/msquic/tree/prerelease/1.3) | N/A | Apr 27 2021 | N/A | N/A |
-| PRE | [prerelease/1.4](https://github.com/microsoft/msquic/tree/prerelease/1.4) | N/A | Jun 1 2021 | N/A | N/A |
-| PRE | [prerelease/1.5](https://github.com/microsoft/msquic/tree/prerelease/1.5) | N/A | Jul 16 2021 | N/A | N/A |
-| PRE | [prerelease/1.6](https://github.com/microsoft/msquic/tree/prerelease/1.6) | N/A | Jul 28 2021 | N/A | N/A |
-| PRE | [prerelease/1.7](https://github.com/microsoft/msquic/tree/prerelease/1.7) | N/A | Aug 13 2021 | N/A | N/A |
-| PRE | [prerelease/1.8](https://github.com/microsoft/msquic/tree/prerelease/1.8) | N/A | Sep 13 2021 | N/A | N/A |
-| PRE | [prerelease/1.9](https://github.com/microsoft/msquic/tree/prerelease/1.9) | N/A | Oct 20 2021 | N/A | N/A |
-| SAC | [release/2.0](https://github.com/microsoft/msquic/tree/release/2.0) | Client | Mar 1 2022 | May 1 2022 | Nov 1 2023 |
+| [Type](Release.md#release-support-policies) | Branch | Consumer | Fork Date | Release Date | End of Support | Supported Platforms |
+| -- | -- | -- | -- | -- | -- | -- |
+| LTSC | [release/1.0](https://github.com/microsoft/msquic/tree/release/1.0) | [Server 2022](https://docs.microsoft.com/en-us/windows/release-health/status-windows-server-2022) | Nov 13 2020 | Jan 5 2021 | Jan 4 2026 | Windows |
+| SAC | [release/1.1](https://github.com/microsoft/msquic/tree/release/1.1) | Windows 11 v21H2 | Feb 10 2021 | Oct 5 2021 | Apr 5 2023 | Windows |
+| PRE | [prerelease/1.2](https://github.com/microsoft/msquic/tree/prerelease/1.2) | N/A | Mar 26 2021 | N/A | N/A | N/A |
+| PRE | [prerelease/1.3](https://github.com/microsoft/msquic/tree/prerelease/1.3) | N/A | Apr 27 2021 | N/A | N/A | N/A |
+| PRE | [prerelease/1.4](https://github.com/microsoft/msquic/tree/prerelease/1.4) | N/A | Jun 1 2021 | N/A | N/A | N/A |
+| PRE | [prerelease/1.5](https://github.com/microsoft/msquic/tree/prerelease/1.5) | N/A | Jul 16 2021 | N/A | N/A | N/A |
+| PRE | [prerelease/1.6](https://github.com/microsoft/msquic/tree/prerelease/1.6) | N/A | Jul 28 2021 | N/A | N/A | N/A |
+| PRE | [prerelease/1.7](https://github.com/microsoft/msquic/tree/prerelease/1.7) | N/A | Aug 13 2021 | N/A | N/A | N/A |
+| PRE | [prerelease/1.8](https://github.com/microsoft/msquic/tree/prerelease/1.8) | N/A | Sep 13 2021 | N/A | N/A | N/A |
+| PRE | [prerelease/1.9](https://github.com/microsoft/msquic/tree/prerelease/1.9) | N/A | Oct 20 2021 | N/A | N/A | N/A |
+| SAC | [release/2.0](https://github.com/microsoft/msquic/tree/release/2.0) | Windows 11 v22H2 | Mar 1 2022 | May 1 2022 | Nov 1 2023 | Windows, Linux |
+| SAC | [release/2.1](https://github.com/microsoft/msquic/tree/release/2.1) | .NET 7 | Aug 5 2022 | Oct 5 2022 | Apr 5 2024 | Windows, Linux |
 
 <br>\* Future **Release Dates** are subject to change.
 <br>\** **End of Support** dates do not include possible [extended support](https://docs.microsoft.com/en-us/windows-server/get-started-19/servicing-channels-19#long-term-servicing-channel-ltsc) extensions.
@@ -300,3 +301,76 @@ The following changes will be necessary for apps that upgrade from v1.* to v2.0:
 - Added scorecard and dependabot support (#2310)
 - Fix macOS datapath asserting in an initialization race (#2398)
 - Add QUIC_STATISTICS_V2 parameter (#2386)
+
+## MsQuic v2.1 (SAC)
+
+[MsQuic v2.1](https://github.com/microsoft/msquic/releases/tag/v2.1.1) is an official release. Signed Windows binaries and [NuGet packages](https://www.nuget.org/profiles/msquic) are available. Signed Linux package are also available.
+
+Official (v1) RFC, v2 (WG-LC) and draft-29 are supported by this release.
+
+### Changes
+
+- Various bug fixes (#2451, #2608, #2612, #2695, #2694, #2696, #2738, #2746, #2870, #2685, #2929)
+- Various minor features and API improvements (#2702, #2724, #2729, #2730, #2740, #2852, #2872, #2883, #2907, #2785, #2932, #2876, #2936)
+- Block well-known reflection ports (#2613, #2675)
+- Update CUBIC to rfc8312bis (#2877)
+- Add Stream statistics (#2873)
+- Various infra and automation improvements (many)
+- Various documentation improvements (many)
+- Various test improvements (many)
+- CIBIR extension preview support (#2445)
+- Windows XDP preview support (many)
+
+# Publishing a Release
+
+## Create a New Release Branch
+
+1. Add (via PR) notes above for the new release.
+2. Fork `main` branch to `release/X.Y` where `X` is the major version and `Y` is the minor version.
+3. Update (via PR) the minor version for the `main` branch:
+   - Run `./scripts/update-version.ps1 -Part Minor` to generate the relavent changes.
+
+## Servicing a Release Branch
+
+1. Changes first go into the `main` branch, and then are cherry-picked into the relavent `release/X.Y` branches.
+2. Update (via PR) the patch version for the release branches:
+   - Run `./scripts/update-version.ps1 -Part Patch` to generate the relavent changes.
+
+## Publishing a Release Branch
+
+1. Create a [new GitHub release](https://github.com/microsoft/msquic/releases/new) along with the corresponding tag.
+   - Make sure to pick the correct `release/X.Y` branch
+   - The tag should be the full version number: `vX.Y.Z`
+   - The release title should be `MsQuic vX.Y.Z`
+   - Put relavent information in the notes of the release (see previous releases for examples)
+2. Wait for [msquic-Official](https://mscodehub.visualstudio.com/msquic/_build?definitionId=1738&_a=summary) pipeline to run for the newly created tag.
+3. Download the signed Linux packages (under `drop_package_linux_distribution`), upload them to the GitHub release and publish them (via [MsQuic-Publish](https://mscodehub.visualstudio.com/msquic/_build?definitionId=2068)) to https://packages.microsoft.com:
+   - libmsquic-X.Y.Z-1-aarch64.rpm
+   - libmsquic-X.Y.Z-1-armhf.rpm
+   - libmsquic-X.Y.Z-1-x86_64.rpm
+   - libmsquic-X.Y.Z-amd64.deb
+   - libmsquic-X.Y.Z-arm64.deb
+   - libmsquic-X.Y.Z-armhf.deb
+4. Download the signed Windows NuGet packages (under `drop_package_windows_nuget`) and upload them to [NuGet](https://www.nuget.org/packages/manage/upload):
+   - Microsoft.Native.Quic.MsQuic.OpenSSL.X.Y.Z.BUILD.nupkg
+   - Microsoft.Native.Quic.MsQuic.Schannel.X.Y.Z.BUILD.nupkg
+   - Use https://raw.githubusercontent.com/microsoft/msquic/vX.Y.Z/README.md as package description URL.
+5. Wait for [msquic-Official-Tests](https://mscodehub.visualstudio.com/msquic/_build?definitionId=1824&_a=summary) pipeline to run for the newly created tag.
+6. Download the distribution packages from the artifacts and upload them to the GitHub release:
+   - msquic_gamecore_console_x64_Release_schannel.zip
+   - msquic_linux_x64_Release_openssl.zip
+   - msquic_linux_x64_Release_openssl_test.zip
+   - msquic_windows_arm64_Release_openssl.zip
+   - msquic_windows_arm64_Release_schannel.zip
+   - msquic_windows_arm_Release_openssl.zip
+   - msquic_windows_arm_Release_schannel.zip
+   - msquic_windows_x64_Release_openssl.zip
+   - msquic_windows_x64_Release_schannel.zip
+   - msquic_windows_x64_Release_schannel_test.zip
+   - msquic_windows_x86_Release_openssl.zip
+   - msquic_windows_x86_Release_schannel.zip
+7. The macOS distribution package isn't generated from the internal pipelines. Grab it from the public [CI](https://dev.azure.com/ms/msquic/_build?definitionId=347&_a=summary) from the latest run of the release branch (under `distribution`), and upload it to the GitHub release:
+   - msquic_macos_universal_Release_openssl.zip
+8. From Linux (use GitHub Codespace) to publish the latest Rust Crate.
+   - Run `cargo publish` from the `release/X.Y` branch.
+9. Update (via PR) `main` branch's `test-down-level.yml` to point the newly uploaded `*_test.zip` release binaries.

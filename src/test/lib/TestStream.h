@@ -104,6 +104,12 @@ class TestStream
     bool RecvShutdown       : 1;
     bool IsShutdown         : 1;
 
+    bool ConnectionShutdown       : 1;
+    bool ConnectionShutdownByApp  : 1;
+    bool ConnectionClosedRemotely : 1;
+    QUIC_UINT62 ConnectionErrorCode;
+    QUIC_STATUS ConnectionCloseStatus;
+
     volatile int64_t BytesToSend;
     volatile long OutstandingSendRequestCount;
     uint64_t BytesReceived;
@@ -189,7 +195,8 @@ public:
 
     bool
     StartPing(
-        _In_ uint64_t PayloadLength
+        _In_ uint64_t PayloadLength,
+        _In_ bool SendFin = true
         );
 
     bool WaitForSendShutdownComplete();
@@ -209,6 +216,12 @@ public:
     bool GetAllDataReceived() const { return AllDataReceived; }
     bool GetSendShutdown() const { return SendShutdown; }
     bool GetIsShutdown() const { return IsShutdown; }
+
+    bool GetConnectionShutdown() const { return ConnectionShutdown; }
+    bool GetShutdownByApp() const { return ConnectionShutdownByApp; }
+    bool GetClosedRemotely() const { return ConnectionClosedRemotely; }
+    QUIC_UINT62 GetConnectionErrorCode() const { return ConnectionErrorCode; }
+    QUIC_STATUS GetConnectionCloseStatus() const { return ConnectionCloseStatus; }
 
     uint64_t GetBytesToSend() const { return (uint64_t)BytesToSend; }
     uint32_t GetOutstandingSendRequestCount() const { return OutstandingSendRequestCount; };

@@ -41,6 +41,8 @@ Abstract:
 #include "tls_openssl.c.clog.h"
 #endif
 
+extern EVP_CIPHER *CXPLAT_AES_256_CBC_ALG_HANDLE;
+
 uint16_t CxPlatTlsTPHeaderSize = 0;
 
 const size_t OpenSslFilePrefixLength = sizeof("..\\..\\..\\..\\..\\..\\submodules");
@@ -106,6 +108,11 @@ typedef struct CXPLAT_TLS {
     // Indicates if the peer sent a certificate.
     //
     BOOLEAN PeerCertReceived : 1;
+
+    //
+    // Indicates whether the peer's TP has been received.
+    //
+    BOOLEAN PeerTPReceived : 1;
 
     //
     // The TLS extension type for the QUIC transport parameters.
@@ -290,7 +297,7 @@ CxPlatTlsCertificateVerifyCallback(
                (TlsContext->SecConfig->Flags & QUIC_CREDENTIAL_FLAG_USE_PORTABLE_CERTIFICATES)) {
         //
         // We need to get certificates provided by peer if we going to pass them via Callbacks.CertificateReceived.
-        // We don't really care about validation status but without calling X509_verify_cert() x509_ctx has 
+        // We don't really care about validation status but without calling X509_verify_cert() x509_ctx has
         // no certificates attached to it and that impacts validation of custom certificate chains.
         //
         // OpenSSL 3 has X509_build_chain() to build just the chain.
@@ -763,7 +770,7 @@ CxPlatTlsOnSessionTicketKeyNeeded(
     )
 {
 #ifdef IS_OPENSSL_3
-    OSSL_PARAM params[3];
+    OSSL_PARAM params[2];
 #endif
     CXPLAT_TLS* TlsContext = SSL_get_app_data(Ssl);
     QUIC_TICKET_KEY_CONFIG* TicketKey = TlsContext->SecConfig->TicketKey;
@@ -787,7 +794,7 @@ CxPlatTlsOnSessionTicketKeyNeeded(
             return -1; // Insufficient random
         }
         CxPlatCopyMemory(key_name, TicketKey->Id, 16);
-        EVP_EncryptInit_ex(ctx, EVP_aes_256_cbc(), NULL, TicketKey->Material, iv);
+        EVP_EncryptInit_ex(ctx, CXPLAT_AES_256_CBC_ALG_HANDLE, NULL, TicketKey->Material, iv);
 
 #ifdef IS_OPENSSL_3
         params[0] =
@@ -796,11 +803,6 @@ CxPlatTlsOnSessionTicketKeyNeeded(
                 TicketKey->Material,
                 32);
         params[1] =
-            OSSL_PARAM_construct_utf8_string(
-                OSSL_MAC_PARAM_DIGEST,
-                "sha256",
-                0);
-        params[2] =
             OSSL_PARAM_construct_end();
          EVP_MAC_CTX_set_params(hctx, params);
 #else
@@ -822,17 +824,12 @@ CxPlatTlsOnSessionTicketKeyNeeded(
                 TicketKey->Material,
                 32);
         params[1] =
-            OSSL_PARAM_construct_utf8_string(
-                OSSL_MAC_PARAM_DIGEST,
-                "sha256",
-                0);
-        params[2] =
             OSSL_PARAM_construct_end();
          EVP_MAC_CTX_set_params(hctx, params);
 #else
         HMAC_Init_ex(hctx, TicketKey->Material, 32, EVP_sha256(), NULL);
 #endif
-        EVP_DecryptInit_ex(ctx, EVP_aes_256_cbc(), NULL, TicketKey->Material, iv);
+        EVP_DecryptInit_ex(ctx, CXPLAT_AES_256_CBC_ALG_HANDLE, NULL, TicketKey->Material, iv);
     }
 
     return 1; // This indicates that the ctx and hctx have been set and the
@@ -927,6 +924,15 @@ CXPLAT_STATIC_ASSERT(
     FIELD_OFFSET(QUIC_CERTIFICATE_FILE, CertificateFile) == FIELD_OFFSET(QUIC_CERTIFICATE_FILE_PROTECTED, CertificateFile),
     "Mismatch (certificate file) in certificate file structs");
 
+_IRQL_requires_max_(DISPATCH_LEVEL)
+QUIC_TLS_PROVIDER
+CxPlatTlsGetProvider(
+    void
+    )
+{
+    return QUIC_TLS_PROVIDER_OPENSSL;
+}
+
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 CxPlatTlsSecConfigCreate(
@@ -946,7 +952,8 @@ CxPlatTlsSecConfigCreate(
 
     if (CredConfigFlags & QUIC_CREDENTIAL_FLAG_ENABLE_OCSP ||
         CredConfigFlags & QUIC_CREDENTIAL_FLAG_USE_SUPPLIED_CREDENTIALS ||
-        CredConfigFlags & QUIC_CREDENTIAL_FLAG_USE_SYSTEM_MAPPER) {
+        CredConfigFlags & QUIC_CREDENTIAL_FLAG_USE_SYSTEM_MAPPER ||
+        CredConfigFlags & QUIC_CREDENTIAL_FLAG_INPROC_PEER_CERTIFICATE) {
         return QUIC_STATUS_NOT_SUPPORTED; // Not supported by this TLS implementation
     }
 
@@ -1923,6 +1930,25 @@ CxPlatTlsProcessData(
             switch (Err) {
             case SSL_ERROR_WANT_READ:
             case SSL_ERROR_WANT_WRITE:
+                //
+                // Best effort to get the server's transport params as early as possible.
+                //
+                if (!TlsContext->IsServer && TlsContext->PeerTPReceived == FALSE) {
+                    const uint8_t* TransportParams;
+                    size_t TransportParamLen;
+                    SSL_get_peer_quic_transport_params(
+                            TlsContext->Ssl, &TransportParams, &TransportParamLen);
+                    if (TransportParams != NULL && TransportParamLen != 0) {
+                        TlsContext->PeerTPReceived = TRUE;
+                        if (!TlsContext->SecConfig->Callbacks.ReceiveTP(
+                                TlsContext->Connection,
+                                (uint16_t)TransportParamLen,
+                                TransportParams)) {
+                            TlsContext->ResultFlags |= CXPLAT_TLS_RESULT_ERROR;
+                            goto Exit;
+                        }
+                    }
+                }
                 goto Exit;
 
             case SSL_ERROR_SSL: {
@@ -2044,7 +2070,10 @@ CxPlatTlsProcessData(
         if (TlsContext->IsServer) {
             TlsContext->State->ReadKey = QUIC_PACKET_KEY_1_RTT;
             TlsContext->ResultFlags |= CXPLAT_TLS_RESULT_READ_KEY_UPDATED;
-        } else {
+        } else if (!TlsContext->PeerTPReceived) {
+            //
+            // Last chance to get the server's transport params.
+            //
             const uint8_t* TransportParams;
             size_t TransportParamLen;
             SSL_get_peer_quic_transport_params(
@@ -2057,6 +2086,7 @@ CxPlatTlsProcessData(
                 TlsContext->ResultFlags |= CXPLAT_TLS_RESULT_ERROR;
                 goto Exit;
             }
+            TlsContext->PeerTPReceived = TRUE;
             if (!TlsContext->SecConfig->Callbacks.ReceiveTP(
                     TlsContext->Connection,
                     (uint16_t)TransportParamLen,

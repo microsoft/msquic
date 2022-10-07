@@ -37,5 +37,8 @@ QuicCongestionControlInitialize(
     case QUIC_CONGESTION_CONTROL_ALGORITHM_CUBIC:
         CubicCongestionControlInitialize(Cc, Settings);
         break;
+    case QUIC_CONGESTION_CONTROL_ALGORITHM_BBR:
+        BbrCongestionControlInitialize(Cc, Settings);
+        break;
     }
 }

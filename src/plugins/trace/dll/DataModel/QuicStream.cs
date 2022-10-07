@@ -24,11 +24,13 @@ namespace QuicTrace.DataModel
 
         public uint ProcessId { get; }
 
-        public ulong StreamId { get; private set; }
+        public ulong StreamId { get; private set; } = ulong.MaxValue;
 
         public Timestamp InitialTimeStamp { get; private set; }
 
         public Timestamp FinalTimeStamp { get; private set; }
+
+        public QuicStreamTiming Timings { get; } = new QuicStreamTiming();
 
         public QuicConnection? Connection { get; private set; }
 
@@ -82,6 +84,8 @@ namespace QuicTrace.DataModel
             if (InitialTimeStamp == Timestamp.MaxValue)
             {
                 InitialTimeStamp = evt.TimeStamp;
+                Timings.InitialStateTime = evt.TimeStamp;
+                Timings.LastStateChangeTime = evt.TimeStamp;
             }
 
             switch (evt.EventId)
@@ -91,15 +95,172 @@ namespace QuicTrace.DataModel
                     {
                         var _evt = evt as QuicStreamCreatedEvent;
                         StreamId = _evt!.StreamID;
-                        Connection = state.FindOrCreateConnection(new QuicObjectKey(evt.PointerSize, _evt!.Connection, evt.ProcessId));
-                        Connection.OnStreamAdded(this);
+                        Timings.IsServer = _evt!.IsLocalOwned == 0; // TODO - Rename to IsCreator?
+                        if (Connection == null)
+                        {
+                            Connection = state.FindOrCreateConnection(new QuicObjectKey(evt.PointerSize, _evt!.Connection, evt.ProcessId));
+                            Connection.OnStreamAdded(this);
+                        }
                     }
                     break;
+                case QuicEventId.StreamDestroyed:
+                    Timings.FinalizeState(evt.TimeStamp);
+                    break;
                 case QuicEventId.StreamOutFlowBlocked:
+                    state.DataAvailableFlags |= QuicDataAvailableFlags.StreamFlowBlocked;
+                    break;
+                case QuicEventId.StreamSendState:
                     {
-                        state.DataAvailableFlags |= QuicDataAvailableFlags.StreamFlowBlocked;
-                        break;
+                        var sendState = (evt as QuicStreamSendStateEvent)!.SendState;
+                        if (sendState == QuicSendState.Disabled || sendState == QuicSendState.FinAcked || sendState == QuicSendState.ResetAcked)
+                        {
+                            Timings.SendShutdown = true;
+                            if (Timings.RecvShutdown && Timings.State == QuicStreamState.IdleBoth)
+                            {
+                                Timings.UpdateToIdle(evt.TimeStamp);
+                            }
+                        }
                     }
+                    break;
+                case QuicEventId.StreamRecvState:
+                    {
+                        var recvState = (evt as QuicStreamRecvStateEvent)!.ReceiveState;
+                        if (recvState == QuicReceiveState.Disabled || recvState == QuicReceiveState.Fin || recvState == QuicReceiveState.Reset)
+                        {
+                            Timings.RecvShutdown = true;
+                            if (Timings.SendShutdown && Timings.State == QuicStreamState.IdleBoth)
+                            {
+                                Timings.UpdateToIdle(evt.TimeStamp);
+                            }
+                        }
+                    }
+                    break;
+                case QuicEventId.StreamAlloc:
+                    {
+                        var _evt = evt as QuicStreamAllocEvent;
+                        if (Connection == null)
+                        {
+                            Connection = state.FindOrCreateConnection(new QuicObjectKey(evt.PointerSize, _evt!.Connection, evt.ProcessId));
+                            Connection.OnStreamAdded(this);
+                        }
+                    }
+                    break;
+                case QuicEventId.StreamWriteFrames:
+                    {
+                        var OldSendPacket = Timings.SendPacket;
+                        Timings.SendPacket = state.SendPacketSet.FindActive(new QuicObjectKey(evt.PointerSize, (evt as QuicStreamWriteFramesEvent)!.ID, evt.ProcessId));
+                        if (Timings.SendPacket == null)
+                        {
+                            Timings.EncounteredError = true;
+                            break;
+                        }
+
+                        if (Timings.SendPacket != OldSendPacket)
+                        {
+                            if (Connection != null)
+                            {
+                                Timings.UpdateToState(QuicStreamState.ProcessSend, Connection.LastScheduleStateTimeStamp, true);
+                            }
+                            Timings.UpdateToState(QuicStreamState.Frame, Timings.SendPacket.PacketCreate);
+
+                            if (Timings.SendPacket.PacketFirstWrite == Timestamp.Zero)
+                            {
+                                Timings.SendPacket.PacketFirstWrite = evt.TimeStamp;
+                            }
+                            else
+                            {
+                                foreach (var Stream in Timings.SendPacket.Streams)
+                                {
+                                    Stream.Timings.UpdateToState(QuicStreamState.WriteOther, evt.TimeStamp);
+                                }
+                                Timings.UpdateToState(QuicStreamState.WriteOther, Timings.SendPacket.PacketFirstWrite);
+                            }
+
+                            Timings.SendPacket.Streams.Add(this);
+                        }
+
+                        Timings.UpdateToState(QuicStreamState.Write, evt.TimeStamp);
+                    }
+                    break;
+                case QuicEventId.StreamReceiveFrame:
+                    {
+                        var OldRecvPacket = Timings.RecvPacket;
+                        Timings.RecvPacket = state.ReceivePacketSet.FindActive(new QuicObjectKey(evt.PointerSize, (evt as QuicStreamReceiveFrameEvent)!.ID, evt.ProcessId));
+                        if (Timings.RecvPacket == null)
+                        {
+                            Timings.EncounteredError = true;
+                            break;
+                        }
+
+                        if (Timings.FirstPacketRecv == Timestamp.Zero)
+                        {
+                            Timings.FirstPacketRecv = Timings.RecvPacket.PacketReceive;
+                        }
+
+                        if (OldRecvPacket != Timings.RecvPacket)
+                        {
+                            Timings.UpdateToState(QuicStreamState.QueueRecv, Timings.RecvPacket.PacketReceive, true);
+                            if (Connection != null)
+                            {
+                                Timings.UpdateToState(QuicStreamState.ProcessRecv, Connection.LastScheduleStateTimeStamp, true);
+                            }
+                            if (Timings.RecvPacket.PacketDecrypt != Timestamp.Zero) {
+                                Timings.UpdateToState(QuicStreamState.Decrypt, Timings.RecvPacket.PacketDecrypt);
+
+                                if (Timings.RecvPacket.PacketDecryptComplete == Timestamp.Zero)
+                                {
+                                    Timings.RecvPacket.PacketDecryptComplete = evt.TimeStamp;
+                                }
+                                else
+                                {
+                                    Timings.UpdateToState(QuicStreamState.ReadOther, Timings.RecvPacket.PacketDecryptComplete);
+                                }
+                            }
+                        }
+
+                        Timings.UpdateToState(QuicStreamState.Read, evt.TimeStamp);
+                    }
+                    break;
+                case QuicEventId.StreamAppSend:
+                    if (Connection?.SchedulingState == QuicScheduleState.Processing)
+                    {
+                        Timings.UpdateToState(QuicStreamState.ProcessSend, evt.TimeStamp);
+                    }
+                    else
+                    {
+                        Timings.UpdateToState(QuicStreamState.QueueSend, evt.TimeStamp);
+                    }
+                    break;
+                case QuicEventId.StreamReceiveFrameComplete:
+                    if (Timings.InAppRecv)
+                    {
+                        Timings.UpdateToState(QuicStreamState.AppRecv, evt.TimeStamp);
+                    }
+                    else
+                    {
+                        Timings.UpdateToIdle(evt.TimeStamp);
+                    }
+                    break;
+                case QuicEventId.StreamAppReceive:
+                    Timings.InAppRecv = true;
+                    Timings.UpdateToState(QuicStreamState.AppRecv, evt.TimeStamp);
+                    Timings.AppRecvCompletion = Timestamp.Zero;
+                    break;
+                case QuicEventId.StreamAppReceiveComplete:
+                    Timings.InAppRecv = false;
+                    if (Timings.State == QuicStreamState.AppRecv)
+                    {
+                        if (Timings.AppRecvCompletion != Timestamp.Zero)
+                        {
+                            Timings.UpdateToState(QuicStreamState.ProcessAppRecv, Timings.AppRecvCompletion);
+                        }
+                        Timings.UpdateToIdle(evt.TimeStamp);
+                    }
+                    Timings.AppRecvCompletion = Timestamp.Zero;
+                    break;
+                case QuicEventId.StreamAppReceiveCompleteCall:
+                    Timings.AppRecvCompletion = evt.TimeStamp;
+                    break;
                 default:
                     break;
             }

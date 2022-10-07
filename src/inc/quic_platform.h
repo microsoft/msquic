@@ -143,7 +143,7 @@ typedef struct CXPLAT_SLIST_ENTRY {
 #define QUIC_POOL_PLATFORM_WORKER           '94cQ' // Qc49 - QUIC platform worker
 #define QUIC_POOL_ROUTE_RESOLUTION_WORKER   'A4cQ' // Qc4A - QUIC route resolution worker
 #define QUIC_POOL_ROUTE_RESOLUTION_OPER     'B4cQ' // Qc4B - QUIC route resolution operation
-#define QUIC_POOL_RAW_DATAPATH_PROCS        'C4cQ' // Qc4C - QUIC raw datapath procs
+#define QUIC_POOL_EXECUTION_CONFIG          'C4cQ' // Qc4C - QUIC execution config
 
 typedef enum CXPLAT_THREAD_FLAGS {
     CXPLAT_THREAD_FLAG_NONE               = 0x0000,
@@ -422,7 +422,16 @@ CxPlatGetAllocFailDenominator(
 // loops.
 //
 
+typedef struct QUIC_EXECUTION_CONFIG QUIC_EXECUTION_CONFIG;
+
 typedef struct CXPLAT_EXECUTION_CONTEXT CXPLAT_EXECUTION_CONTEXT;
+
+typedef struct CXPLAT_EXECUTION_STATE {
+    uint64_t TimeNow;           // in microseconds.
+    uint32_t WaitTime;
+    uint32_t NoWorkCount;
+    CXPLAT_THREAD_ID ThreadID;
+} CXPLAT_EXECUTION_STATE;
 
 //
 // Returns FALSE when it's time to cleanup.
@@ -431,9 +440,8 @@ typedef
 _IRQL_requires_max_(PASSIVE_LEVEL)
 BOOLEAN
 (*CXPLAT_EXECUTION_FN)(
-    _Inout_ CXPLAT_EXECUTION_CONTEXT* Context,
-    _Inout_ uint64_t* TimeNowUs,    // The current time, in microseconds.
-    _In_ CXPLAT_THREAD_ID ThreadID  // The current thread ID.
+    _Inout_ void* Context,
+    _Inout_ CXPLAT_EXECUTION_STATE* State
     );
 
 typedef
@@ -450,14 +458,14 @@ typedef struct CXPLAT_EXECUTION_CONTEXT {
     void* CxPlatContext;
     CXPLAT_EXECUTION_FN Callback;
     uint64_t NextTimeUs;
-    BOOLEAN Ready;
+    volatile BOOLEAN Ready;
 
 } CXPLAT_EXECUTION_CONTEXT;
 
-#ifdef QUIC_USE_EXECUTION_CONTEXTS
-
-typedef struct CXPLAT_DATAPATH CXPLAT_DATAPATH;
-
+#ifdef _KERNEL_MODE // Not supported on kernel mode
+#define CxPlatAddExecutionContext(Context, IdealProcessor) CXPLAT_FRE_ASSERT(FALSE)
+#define CxPlatWakeExecutionContext(Context) CXPLAT_FRE_ASSERT(FALSE)
+#else
 void
 CxPlatAddExecutionContext(
     _Inout_ CXPLAT_EXECUTION_CONTEXT* Context,
@@ -468,8 +476,19 @@ void
 CxPlatWakeExecutionContext(
     _In_ CXPLAT_EXECUTION_CONTEXT* Context
     );
+#endif
 
-#endif // QUIC_USE_EXECUTION_CONTEXTS
+//
+// The "type" of the completion queue event is stored as the first uint32_t of
+// the user data. Everything after that in the user data is type-specific.
+//
+#define CxPlatCqeType(cqe) (*(uint32_t*)CxPlatCqeUserData(cqe))
+
+//
+// All QUIC (and lower layer) completion queue events have a type starting with
+// 0x8000.
+//
+#define CXPLAT_CQE_TYPE_QUIC_BASE                 0x8000 // to 0xFFFF
 
 //
 // Test Interface for loading a self-signed certificate.

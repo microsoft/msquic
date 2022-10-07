@@ -65,6 +65,7 @@ MsQuicConnectionOpen(
         QuicConnAlloc(
             Registration,
             NULL,
+            NULL,
             &Connection);
     if (QUIC_FAILED(Status)) {
         goto Error;
@@ -72,8 +73,6 @@ MsQuicConnectionOpen(
 
     Connection->ClientCallbackHandler = Handler;
     Connection->ClientContext = Context;
-
-    QuicRegistrationQueueNewConnection(Registration, Connection);
 
     *NewConnection = (HQUIC)Connection;
     Status = QUIC_STATUS_SUCCESS;
@@ -1262,6 +1261,29 @@ MsQuicStreamReceiveComplete(
             ApiError,
             "[ api] Error %u",
             (uint32_t)QUIC_STATUS_INVALID_STATE);
+        goto Exit;
+    }
+
+    QuicTraceEvent(
+        StreamAppReceiveCompleteCall,
+        "[strm][%p] Receive complete call [%llu bytes]",
+        Stream,
+        BufferLength);
+
+    if (Connection->WorkerThreadID == CxPlatCurThreadID() &&
+        Stream->Flags.ReceiveCallActive) {
+
+        CXPLAT_PASSIVE_CODE();
+
+        BOOLEAN AlreadyInline = Connection->State.InlineApiExecution;
+        if (!AlreadyInline) {
+            Connection->State.InlineApiExecution = TRUE;
+        }
+        QuicStreamReceiveCompleteInline(Stream, BufferLength);
+        if (!AlreadyInline) {
+            Connection->State.InlineApiExecution = FALSE;
+        }
+
         goto Exit;
     }
 
