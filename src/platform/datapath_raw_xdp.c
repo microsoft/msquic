@@ -1161,7 +1161,7 @@ CxPlatDpRawInitialize(
             Queue = Queue->Next;
         }
 
-        CxPlatAddExecutionContext(Worker, Worker->ProcIndex);
+        CxPlatAddExecutionContext((CXPLAT_EXECUTION_CONTEXT*)Worker, Worker->ProcIndex);
     }
     Status = QUIC_STATUS_SUCCESS;
 
