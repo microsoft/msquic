@@ -2706,7 +2706,7 @@ QuicConnProcessPeerVersionNegotiationTP(
                 "Client Chosen Version doesn't match long header. 0x%x != 0x%x",
                 ClientVI.ChosenVersion,
                 Connection->Stats.QuicVersion);
-            QuicConnTransportError(Connection, QUIC_ERROR_VERSION_NEGOTIATION_ERROR);
+            QuicConnTransportError(Connection, QUIC_ERROR_TRANSPORT_PARAMETER_ERROR);
             return QUIC_STATUS_PROTOCOL_ERROR;
         }
 
@@ -2770,7 +2770,7 @@ QuicConnProcessPeerVersionNegotiationTP(
                 "Server Chosen Version doesn't match long header. 0x%x != 0x%x",
                 ServerVI.ChosenVersion,
                 Connection->Stats.QuicVersion);
-            QuicConnTransportError(Connection, QUIC_ERROR_VERSION_NEGOTIATION_ERROR);
+            QuicConnTransportError(Connection, QUIC_ERROR_TRANSPORT_PARAMETER_ERROR);
             return QUIC_STATUS_PROTOCOL_ERROR;
         }
 

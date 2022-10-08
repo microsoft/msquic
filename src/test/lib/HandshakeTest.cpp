@@ -3281,36 +3281,15 @@ ListenerAcceptConnectionTestTP(
 }
 
 void
-QuicTestOddSizeVNTP(
+QuicTestCustomVNTP(
     _In_ bool TestServer,
-    _In_ uint16_t VNTPSize
+    _In_ QUIC_PRIVATE_TRANSPORT_PARAMETER* TestTP
     )
 {
-#define QUIC_TP_ID_VERSION_NEGOTIATION_EXT                  0xFF73DB
     MsQuicRegistration Registration;
     TEST_QUIC_SUCCEEDED(Registration.GetInitStatus());
 
     MsQuicAlpn Alpn("MsQuicTest");
-
-    QUIC_PRIVATE_TRANSPORT_PARAMETER TestTP;
-    TestTP.Type = QUIC_TP_ID_VERSION_NEGOTIATION_EXT;
-    TestTP.Length = VNTPSize;
-    UniquePtr<uint8_t[]> TPData(
-        VNTPSize ? new(std::nothrow) uint8_t[VNTPSize] : nullptr);
-    TestTP.Buffer = TPData.get();
-
-    if (VNTPSize > 0) {
-        TEST_TRUE(TPData.get());
-        CxPlatZeroMemory(TPData.get(), VNTPSize);
-    }
-
-    if (VNTPSize >= sizeof(uint32_t)) {
-        uint32_t Latest = QUIC_VERSION_LATEST;
-        //
-        // Ensure that if a chosen_version can fit, it is a valid version.
-        //
-        CxPlatCopyMemory(TPData.get(), &Latest, sizeof(uint32_t));
-    }
 
     ClearGlobalVersionListScope ClearVersionsScope;
     BOOLEAN Enabled = TRUE;
@@ -3342,11 +3321,11 @@ QuicTestOddSizeVNTP(
             ServerAcceptContext ServerAcceptCtx((TestConnection**)&Server);
             ServerAcceptCtx.ExpectedTransportCloseStatus = QUIC_STATUS_INTERNAL_ERROR;
             Listener.Context = &ServerAcceptCtx;
-            ServerAcceptCtx.TestTP = &TestTP;
+            ServerAcceptCtx.TestTP = TestTP;
             {
                 TestConnection Client(Registration);
                 if (!TestServer) {
-                    Client.SetTestTransportParameter(&TestTP);
+                    Client.SetTestTransportParameter(TestTP);
                     BOOLEAN Disable = TRUE;
                     TEST_QUIC_SUCCEEDED(
                         MsQuic->SetParam(
@@ -3381,5 +3360,58 @@ QuicTestOddSizeVNTP(
 
         }
     }
+}
+
+void
+QuicTestVNTPOddSize(
+    _In_ bool TestServer,
+    _In_ uint16_t VNTPSize
+    )
+{
+#define QUIC_TP_ID_VERSION_NEGOTIATION_EXT                  0xFF73DB
+
+    QUIC_PRIVATE_TRANSPORT_PARAMETER TestTP;
+    TestTP.Type = QUIC_TP_ID_VERSION_NEGOTIATION_EXT;
+    TestTP.Length = VNTPSize;
+    UniquePtr<uint8_t[]> TPData(
+        VNTPSize ? new(std::nothrow) uint8_t[VNTPSize] : nullptr);
+    TestTP.Buffer = TPData.get();
+
+    if (VNTPSize > 0) {
+        TEST_TRUE(TPData.get());
+        CxPlatZeroMemory(TPData.get(), VNTPSize);
+    }
+
+    if (VNTPSize >= sizeof(uint32_t)) {
+        uint32_t Latest = QUIC_VERSION_LATEST;
+        //
+        // Ensure that if a chosen_version can fit, it is a valid version.
+        //
+        CxPlatCopyMemory(TPData.get(), &Latest, sizeof(uint32_t));
+    }
+
+    QuicTestCustomVNTP(TestServer, &TestTP);
+}
+
+void
+QuicTestVNTPChosenVersionMismatch(
+    _In_ bool TestServer
+    )
+{
+    #define QUIC_TP_ID_VERSION_NEGOTIATION_EXT                  0xFF73DB
+    const uint32_t VNTPSize = 8;
+
+    QUIC_PRIVATE_TRANSPORT_PARAMETER TestTP;
+    TestTP.Type = QUIC_TP_ID_VERSION_NEGOTIATION_EXT;
+    TestTP.Length = VNTPSize;
+    UniquePtr<uint8_t[]> TPData(new(std::nothrow) uint8_t[VNTPSize]);
+    TestTP.Buffer = TPData.get();
+
+    const uint32_t WrongVersion = QUIC_VERSION_MS_1;
+
+    CxPlatCopyMemory(TPData.get(), &WrongVersion, sizeof(WrongVersion));
+    CxPlatCopyMemory(TPData.get() + sizeof(WrongVersion), &WrongVersion, sizeof(WrongVersion));
+
+    QuicTestCustomVNTP(TestServer, &TestTP);
 }
 #endif // QUIC_API_ENABLE_PREVIEW_FEATURES
