@@ -51,7 +51,7 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@2541b1294d2704b0964813337f33b291d3f8596b
     - name: Setup .NET
-      uses: actions/setup-dotnet@c7e7147fd3e41056e75a761416c06f5fa781b5fb
+      uses: actions/setup-dotnet@45c9f236cf9a0c09d11298348f6ed06bd81914c0
       with:
         dotnet-version: 6.0.x
     - name: Build
