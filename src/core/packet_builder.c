@@ -253,12 +253,21 @@ QuicPacketBuilderPrepare(
         //
         BOOLEAN SendDataAllocated = FALSE;
         if (Builder->SendData == NULL) {
+            CXPLAT_ECN_TYPE EcnType = CXPLAT_ECN_NON_ECT;
+            if (Builder->Path->EcnValidationState == ECN_VALIDATION_CAPABLE ||
+                (Builder->Path->EcnValidationState == ECN_VALIDATION_TESTING &&
+                 Builder->Path->EcnTestingCount > 0)) {
+                EcnType = CXPLAT_ECN_ECT_0;
+                --Builder->Path->EcnTestingCount;
+                Builder->Metadata->Flags.EcnType = EcnType;
+            }
+
             Builder->BatchId =
                 ProcShifted | InterlockedIncrement64((int64_t*)&MsQuicLib.PerProc[Proc].SendBatchId);
             Builder->SendData =
                 CxPlatSendDataAlloc(
                     Builder->Path->Binding->Socket,
-                    CXPLAT_ECN_NON_ECT,
+                    EcnType,
                     IsPathMtuDiscovery ?
                         0 :
                         MaxUdpPayloadSizeForFamily(

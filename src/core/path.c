@@ -31,6 +31,7 @@ QuicPathInitialize(
     Path->Mtu = Connection->Settings.MinimumMtu;
     Path->SmoothedRtt = MS_TO_US(Connection->Settings.InitialRttMs);
     Path->RttVariance = Path->SmoothedRtt / 2;
+    CXPLAT_DBG_ASSERT(Path->EcnValidationState == ECN_VALIDATION_TESTING);
 
     QuicTraceLogConnInfo(
         PathInitialized,

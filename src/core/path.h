@@ -6,6 +6,16 @@
 --*/
 
 //
+// Different state of ECN validation for the network path.
+//
+typedef enum ECN_VALIDATION_STATE {
+    ECN_VALIDATION_TESTING,
+    ECN_VALIDATION_UNKNOWN,
+    ECN_VALIDATION_CAPABLE,
+    ECN_VALIDATION_FAILED,
+} ECN_VALIDATION_STATE;
+
+//
 // Represents all the per-path information of a connection.
 //
 typedef struct QUIC_PATH {
@@ -66,6 +76,16 @@ typedef struct QUIC_PATH {
     // Indicates the partition has updated for this path.
     //
     uint8_t PartitionUpdated : 1;
+
+    //
+    // ECN validation state.
+    //
+    uint8_t EcnValidationState : 2;
+
+    //
+    // The number of packets that carry ECT bit in ECN validation testing state.
+    //
+    uint8_t EcnTestingCount : 4;
 
     //
     // The currently calculated path MTU.
