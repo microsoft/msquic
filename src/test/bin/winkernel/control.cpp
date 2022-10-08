@@ -1282,6 +1282,7 @@ QuicTestCtlEvtIoDeviceControl(
         QuicTestCtlRun(QuicTestChangeAlpn());
         break;
 
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
     case IOCTL_QUIC_RUN_VN_TP_ODD_SIZE:
         CXPLAT_FRE_ASSERT(Params != nullptr);
         QuicTestCtlRun(
@@ -1289,6 +1290,13 @@ QuicTestCtlEvtIoDeviceControl(
                 Params->OddSizeVnTpParams.TestServer,
                 Params->OddSizeVnTpParams.VnTpSize));
         break;
+
+    case IOCTL_QUIC_RUN_VN_TP_CHOSEN_VERSION_MISMATCH:
+        CXPLAT_FRE_ASSERT(Params != nullptr);
+        QuicTestCtlRun(
+            QuicTestVNTPChosenVersionMismatch(Params->TestServerVNTP != 0));
+        break;
+#endif
 
     default:
         Status = STATUS_NOT_IMPLEMENTED;
