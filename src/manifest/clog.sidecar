@@ -11292,6 +11292,70 @@
       ],
       "macroName": "QuicTraceLogVerbose"
     },
+    "XdpQueueAsyncIoRx": {
+      "ModuleProperites": {},
+      "TraceString": "[ xdp][%p] XDP async IO (RX)",
+      "UniqueId": "XdpQueueAsyncIoRx",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceLogVerbose"
+    },
+    "XdpQueueAsyncIoRxComplete": {
+      "ModuleProperites": {},
+      "TraceString": "[ xdp][%p] XDP async IO (RX)",
+      "UniqueId": "XdpQueueAsyncIoRxComplete",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceLogVerbose"
+    },
+    "XdpQueueAsyncIoTx": {
+      "ModuleProperites": {},
+      "TraceString": "[ xdp][%p] XDP async IO (TX)",
+      "UniqueId": "XdpQueueAsyncIoTx",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceLogVerbose"
+    },
+    "XdpQueueAsyncIoTxComplete": {
+      "ModuleProperites": {},
+      "TraceString": "[ xdp][%p] XDP async IO (TX)",
+      "UniqueId": "XdpQueueAsyncIoTxComplete",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceLogVerbose"
+    },
+    "XdpQueueStart": {
+      "ModuleProperites": {},
+      "TraceString": "[ xdp][%p] XDP queue start on worker %p",
+      "UniqueId": "XdpQueueStart",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macroName": "QuicTraceLogVerbose"
+    },
     "XdpRelease": {
       "ModuleProperites": {},
       "TraceString": "[ xdp][%p] XDP release",
@@ -15480,6 +15544,31 @@
         "UniquenessHash": "0a2db04c-0b5e-388d-18a0-2842ccb8d3ed",
         "TraceID": "XdpInitialize",
         "EncodingString": "[ xdp][%p] XDP initialized, %u procs"
+      },
+      {
+        "UniquenessHash": "b2f7025b-9c38-86e2-f0e9-d64718b4b999",
+        "TraceID": "XdpQueueAsyncIoRx",
+        "EncodingString": "[ xdp][%p] XDP async IO (RX)"
+      },
+      {
+        "UniquenessHash": "6a3c7b8c-3487-e09d-2dce-9b1b9ead53e7",
+        "TraceID": "XdpQueueAsyncIoRxComplete",
+        "EncodingString": "[ xdp][%p] XDP async IO (RX)"
+      },
+      {
+        "UniquenessHash": "3eaf69e7-6776-a515-1223-6d25caa0c6c7",
+        "TraceID": "XdpQueueAsyncIoTx",
+        "EncodingString": "[ xdp][%p] XDP async IO (TX)"
+      },
+      {
+        "UniquenessHash": "fef480c1-0ffc-207c-4883-a0b43dcf2113",
+        "TraceID": "XdpQueueAsyncIoTxComplete",
+        "EncodingString": "[ xdp][%p] XDP async IO (TX)"
+      },
+      {
+        "UniquenessHash": "47259da7-3712-0125-8cab-83d0114d2313",
+        "TraceID": "XdpQueueStart",
+        "EncodingString": "[ xdp][%p] XDP queue start on worker %p"
       },
       {
         "UniquenessHash": "a886933d-ba2f-8adb-8440-ef3146cc27fc",

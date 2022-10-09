@@ -1166,6 +1166,11 @@ CxPlatDpRawInitialize(
                     GetLastError(),
                     "CreateIoCompletionPort(TX)");
             }
+            QuicTraceLogVerbose(
+                XdpQueueStart,
+                "[ xdp][%p] XDP queue start on worker %p",
+                Queue,
+                Worker);
             ++QueueCount;
             Queue = Queue->Next;
         }
@@ -1715,18 +1720,24 @@ CxPlatXdpExecute(
     } else if (!PollingExpired) {
         Worker->Ec.Ready = TRUE;
     } else {
-        QuicTraceLogVerbose(
-            XdpWorkerAsyncIO,
-            "[ xdp][%p] XDP async IO",
-            Worker);
         Queue = Worker->Queues;
         while (Queue) {
             if (!Queue->RxQueued) {
+                QuicTraceLogVerbose(
+                    XdpQueueAsyncIoRx,
+                    "[ xdp][%p] XDP async IO (RX)",
+                    Queue);
                 Queue->RxQueued = TRUE;
+                CxPlatZeroMemory(&Queue->RxOv, sizeof(Queue->RxOv));
                 XskNotifyAsync(Queue->RxXsk, XSK_NOTIFY_FLAG_WAIT_RX, &Queue->RxOv);
             }
             if (!Queue->TxQueued) {
+                QuicTraceLogVerbose(
+                    XdpQueueAsyncIoTx,
+                    "[ xdp][%p] XDP async IO (TX)",
+                    Queue);
                 Queue->TxQueued = TRUE;
+                CxPlatZeroMemory(&Queue->TxOv, sizeof(Queue->TxOv));
                 XskNotifyAsync(Queue->TxXsk, XSK_NOTIFY_FLAG_WAIT_TX, &Queue->TxOv);
             }
             Queue = Queue->Next;
@@ -1745,8 +1756,16 @@ CxPlatDataPathProcessCqe(
         XDP_QUEUE* Queue =
             CONTAINING_RECORD(CxPlatCqeUserData(Cqe), XDP_QUEUE, IoSqe);
         if (Cqe->lpOverlapped == &Queue->RxOv) {
+            QuicTraceLogVerbose(
+                XdpQueueAsyncIoRxComplete,
+                "[ xdp][%p] XDP async IO (RX)",
+                Queue);
             Queue->RxQueued = FALSE;
         } else {
+            QuicTraceLogVerbose(
+                XdpQueueAsyncIoTxComplete,
+                "[ xdp][%p] XDP async IO (TX)",
+                Queue);
             Queue->TxQueued = FALSE;
         }
         Queue->Worker->Ec.Ready = TRUE;

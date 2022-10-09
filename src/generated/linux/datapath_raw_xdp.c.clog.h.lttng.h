@@ -25,6 +25,29 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_C, XdpInitialize,
 
 
 /*----------------------------------------------------------
+// Decoder Ring for XdpQueueStart
+// [ xdp][%p] XDP queue start on worker %p
+// QuicTraceLogVerbose(
+                XdpQueueStart,
+                "[ xdp][%p] XDP queue start on worker %p",
+                Queue,
+                Worker);
+// arg2 = arg2 = Queue = arg2
+// arg3 = arg3 = Worker = arg3
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_C, XdpQueueStart,
+    TP_ARGS(
+        const void *, arg2,
+        const void *, arg3), 
+    TP_FIELDS(
+        ctf_integer_hex(uint64_t, arg2, arg2)
+        ctf_integer_hex(uint64_t, arg3, arg3)
+    )
+)
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for XdpWorkerStart
 // [ xdp][%p] XDP worker start, %u queues
 // QuicTraceLogVerbose(
@@ -124,15 +147,72 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_C, XdpWorkerShutdown,
 
 
 /*----------------------------------------------------------
-// Decoder Ring for XdpWorkerAsyncIO
-// [ xdp][%p] XDP async IO
+// Decoder Ring for XdpQueueAsyncIoRx
+// [ xdp][%p] XDP async IO (RX)
 // QuicTraceLogVerbose(
-            XdpWorkerAsyncIO,
-            "[ xdp][%p] XDP async IO",
-            Worker);
-// arg2 = arg2 = Worker = arg2
+                    XdpQueueAsyncIoRx,
+                    "[ xdp][%p] XDP async IO (RX)",
+                    Queue);
+// arg2 = arg2 = Queue = arg2
 ----------------------------------------------------------*/
-TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_C, XdpWorkerAsyncIO,
+TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_C, XdpQueueAsyncIoRx,
+    TP_ARGS(
+        const void *, arg2), 
+    TP_FIELDS(
+        ctf_integer_hex(uint64_t, arg2, arg2)
+    )
+)
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for XdpQueueAsyncIoTx
+// [ xdp][%p] XDP async IO (TX)
+// QuicTraceLogVerbose(
+                    XdpQueueAsyncIoTx,
+                    "[ xdp][%p] XDP async IO (TX)",
+                    Queue);
+// arg2 = arg2 = Queue = arg2
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_C, XdpQueueAsyncIoTx,
+    TP_ARGS(
+        const void *, arg2), 
+    TP_FIELDS(
+        ctf_integer_hex(uint64_t, arg2, arg2)
+    )
+)
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for XdpQueueAsyncIoRxComplete
+// [ xdp][%p] XDP async IO (RX)
+// QuicTraceLogVerbose(
+                XdpQueueAsyncIoRxComplete,
+                "[ xdp][%p] XDP async IO (RX)",
+                Queue);
+// arg2 = arg2 = Queue = arg2
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_C, XdpQueueAsyncIoRxComplete,
+    TP_ARGS(
+        const void *, arg2), 
+    TP_FIELDS(
+        ctf_integer_hex(uint64_t, arg2, arg2)
+    )
+)
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for XdpQueueAsyncIoTxComplete
+// [ xdp][%p] XDP async IO (TX)
+// QuicTraceLogVerbose(
+                XdpQueueAsyncIoTxComplete,
+                "[ xdp][%p] XDP async IO (TX)",
+                Queue);
+// arg2 = arg2 = Queue = arg2
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_C, XdpQueueAsyncIoTxComplete,
     TP_ARGS(
         const void *, arg2), 
     TP_FIELDS(
