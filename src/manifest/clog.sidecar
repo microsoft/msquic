@@ -11306,7 +11306,7 @@
     },
     "XdpQueueAsyncIoRxComplete": {
       "ModuleProperites": {},
-      "TraceString": "[ xdp][%p] XDP async IO (RX)",
+      "TraceString": "[ xdp][%p] XDP async IO complete (RX)",
       "UniqueId": "XdpQueueAsyncIoRxComplete",
       "splitArgs": [
         {
@@ -11330,7 +11330,7 @@
     },
     "XdpQueueAsyncIoTxComplete": {
       "ModuleProperites": {},
-      "TraceString": "[ xdp][%p] XDP async IO (TX)",
+      "TraceString": "[ xdp][%p] XDP async IO complete (TX)",
       "UniqueId": "XdpQueueAsyncIoTxComplete",
       "splitArgs": [
         {
@@ -15551,9 +15551,9 @@
         "EncodingString": "[ xdp][%p] XDP async IO (RX)"
       },
       {
-        "UniquenessHash": "6a3c7b8c-3487-e09d-2dce-9b1b9ead53e7",
+        "UniquenessHash": "20e8449d-b268-d353-a485-6cca83bdaa63",
         "TraceID": "XdpQueueAsyncIoRxComplete",
-        "EncodingString": "[ xdp][%p] XDP async IO (RX)"
+        "EncodingString": "[ xdp][%p] XDP async IO complete (RX)"
       },
       {
         "UniquenessHash": "3eaf69e7-6776-a515-1223-6d25caa0c6c7",
@@ -15561,9 +15561,9 @@
         "EncodingString": "[ xdp][%p] XDP async IO (TX)"
       },
       {
-        "UniquenessHash": "fef480c1-0ffc-207c-4883-a0b43dcf2113",
+        "UniquenessHash": "05261b9b-1ea1-1a33-9be4-81dce91a7810",
         "TraceID": "XdpQueueAsyncIoTxComplete",
-        "EncodingString": "[ xdp][%p] XDP async IO (TX)"
+        "EncodingString": "[ xdp][%p] XDP async IO complete (TX)"
       },
       {
         "UniquenessHash": "47259da7-3712-0125-8cab-83d0114d2313",

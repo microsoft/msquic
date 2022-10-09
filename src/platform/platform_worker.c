@@ -430,7 +430,7 @@ CXPLAT_THREAD_CALLBACK(CxPlatWorkerThread, Context)
         "[ lib][%p] Worker start",
         Worker);
 
-    CXPLAT_EXECUTION_STATE State = { 0, 0, UINT32_MAX, 0, CxPlatCurThreadID() };
+    CXPLAT_EXECUTION_STATE State = { 0, CxPlatTimeUs64(), UINT32_MAX, 0, CxPlatCurThreadID() };
 
     while (TRUE) {
 

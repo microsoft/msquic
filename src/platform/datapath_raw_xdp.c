@@ -1725,7 +1725,7 @@ CxPlatXdpExecute(
             if (!Queue->RxQueued) {
                 QuicTraceLogVerbose(
                     XdpQueueAsyncIoRx,
-                    "[ xdp][%p] XDP async IO (RX)",
+                    "[ xdp][%p] XDP async IO start (RX)",
                     Queue);
                 Queue->RxQueued = TRUE;
                 CxPlatZeroMemory(&Queue->RxOv, sizeof(Queue->RxOv));
@@ -1734,7 +1734,7 @@ CxPlatXdpExecute(
             if (!Queue->TxQueued) {
                 QuicTraceLogVerbose(
                     XdpQueueAsyncIoTx,
-                    "[ xdp][%p] XDP async IO (TX)",
+                    "[ xdp][%p] XDP async IO start (TX)",
                     Queue);
                 Queue->TxQueued = TRUE;
                 CxPlatZeroMemory(&Queue->TxOv, sizeof(Queue->TxOv));
@@ -1758,13 +1758,13 @@ CxPlatDataPathProcessCqe(
         if (Cqe->lpOverlapped == &Queue->RxOv) {
             QuicTraceLogVerbose(
                 XdpQueueAsyncIoRxComplete,
-                "[ xdp][%p] XDP async IO (RX)",
+                "[ xdp][%p] XDP async IO complete (RX)",
                 Queue);
             Queue->RxQueued = FALSE;
         } else {
             QuicTraceLogVerbose(
                 XdpQueueAsyncIoTxComplete,
-                "[ xdp][%p] XDP async IO (TX)",
+                "[ xdp][%p] XDP async IO complete (TX)",
                 Queue);
             Queue->TxQueued = FALSE;
         }
