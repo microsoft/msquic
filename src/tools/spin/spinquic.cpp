@@ -126,9 +126,11 @@ struct SpinQuicGlobals {
 #endif
             MsQuicClose(MsQuic);
         }
+#ifndef FUZZING
         for (size_t j = 0; j < BufferCount; ++j) {
             free(Buffers[j].Buffer);
         }
+#endif
     }
 };
 
@@ -931,16 +933,20 @@ void PrintHelpText(void)
 
 CXPLAT_THREAD_CALLBACK(RunThread, Context)
 {
-    UNREFERENCED_PARAMETER(Context);
     SpinQuicWatchdog Watchdog((uint32_t)Settings.RunTimeMs + WATCHDOG_WIGGLE_ROOM);
 
     do {
         Gbs Gb;
 
         for (size_t j = 0; j < BufferCount; ++j) {
+#ifdef FUZZING
+            Gb.Buffers[j].Buffer = ((QUIC_BUFFER*)Context)->Buffer;
+            Gb.Buffers[j].Length = ((QUIC_BUFFER*)Context)->Length;
+#else
             Gb.Buffers[j].Length = MaxBufferSizes[j]; // TODO - Randomize?
             Gb.Buffers[j].Buffer = (uint8_t*)malloc(Gb.Buffers[j].Length);
             ASSERT_ON_NOT(Gb.Buffers[j].Buffer);
+#endif
         }
 
 #ifdef QUIC_BUILD_STATIC
