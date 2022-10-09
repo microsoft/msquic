@@ -934,7 +934,7 @@ void PrintHelpText(void)
 CXPLAT_THREAD_CALLBACK(RunThread, Context)
 {
 #ifndef FUZZING
-    UNREFERENCED_PARAMETER(Context)
+    UNREFERENCED_PARAMETER(Context);
 #endif
     SpinQuicWatchdog Watchdog((uint32_t)Settings.RunTimeMs + WATCHDOG_WIGGLE_ROOM);
 
