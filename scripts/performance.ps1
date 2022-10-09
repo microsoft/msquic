@@ -428,8 +428,8 @@ function Invoke-Test {
     }
 
     if ($XDP) {
-        $RemoteArguments += " -cpu:-1 -pollidle:10000"
-        $LocalArguments += " -cpu:-1 -pollidle:10000"
+        $RemoteArguments += " -pollidle:10000"
+        $LocalArguments += " -pollidle:10000"
     }
 
     if ($Kernel) {

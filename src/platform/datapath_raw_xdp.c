@@ -1686,13 +1686,15 @@ CxPlatXdpExecute(
             Worker);
         XDP_QUEUE* Queue = Worker->Queues;
         while (Queue) {
+            CancelIoEx(Queue->RxXsk, NULL);
             CloseHandle(Queue->RxXsk);
             Queue->RxXsk = NULL;
+            CancelIoEx(Queue->TxXsk, NULL);
             CloseHandle(Queue->TxXsk);
             Queue->TxXsk = NULL;
             Queue = Queue->Next;
         }
-        CxPlatEventQEnqueue(Worker->EventQ, &Worker->ShutdownSqe.Sqe, Worker);
+        CxPlatEventQEnqueue(Worker->EventQ, &Worker->ShutdownSqe.Sqe, &Worker->ShutdownSqe);
         return FALSE;
     }
 
