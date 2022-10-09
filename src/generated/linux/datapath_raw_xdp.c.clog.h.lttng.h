@@ -148,10 +148,10 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_C, XdpWorkerShutdown,
 
 /*----------------------------------------------------------
 // Decoder Ring for XdpQueueAsyncIoRx
-// [ xdp][%p] XDP async IO (RX)
+// [ xdp][%p] XDP async IO start (RX)
 // QuicTraceLogVerbose(
                     XdpQueueAsyncIoRx,
-                    "[ xdp][%p] XDP async IO (RX)",
+                    "[ xdp][%p] XDP async IO start (RX)",
                     Queue);
 // arg2 = arg2 = Queue = arg2
 ----------------------------------------------------------*/
@@ -167,10 +167,10 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_C, XdpQueueAsyncIoRx,
 
 /*----------------------------------------------------------
 // Decoder Ring for XdpQueueAsyncIoTx
-// [ xdp][%p] XDP async IO (TX)
+// [ xdp][%p] XDP async IO start (TX)
 // QuicTraceLogVerbose(
                     XdpQueueAsyncIoTx,
-                    "[ xdp][%p] XDP async IO (TX)",
+                    "[ xdp][%p] XDP async IO start (TX)",
                     Queue);
 // arg2 = arg2 = Queue = arg2
 ----------------------------------------------------------*/
