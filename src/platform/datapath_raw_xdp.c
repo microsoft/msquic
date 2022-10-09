@@ -1147,6 +1147,7 @@ CxPlatDpRawInitialize(
         CxPlatRefIncrement(&Xdp->RefCount);
         Worker->EventQ = CxPlatWorkerGetEventQ(Worker->ProcIndex);
 
+        uint32_t QueueCount = 0;
         XDP_QUEUE* Queue = Worker->Queues;
         while (Queue) {
             if (*Worker->EventQ !=
@@ -1165,13 +1166,16 @@ CxPlatDpRawInitialize(
                     GetLastError(),
                     "CreateIoCompletionPort(TX)");
             }
+            ++QueueCount;
             Queue = Queue->Next;
         }
 
         QuicTraceLogVerbose(
             XdpWorkerStart,
-            "[ xdp][%p] XDP worker start",
-            Worker);
+            "[ xdp][%p] XDP worker start, %u queues",
+            Worker,
+            QueueCount);
+        UNREFERENCED_PARAMETER(QueueCount);
 
         CxPlatAddExecutionContext(&Worker->Ec, Worker->ProcIndex);
     }
@@ -1229,10 +1233,8 @@ CxPlatDpRawUninitialize(
         Xdp);
     Xdp->Running = FALSE;
     for (uint32_t i = 0; i < Xdp->WorkerCount; i++) {
-        CxPlatEventQEnqueue(
-            Xdp->Workers[i].EventQ,
-            &Xdp->Workers[i].ShutdownSqe.Sqe,
-            &Xdp->Workers[i].ShutdownSqe);
+        Xdp->Workers[i].Ec.Ready = TRUE;
+        CxPlatWakeExecutionContext(&Xdp->Workers[i].Ec);
     }
     CxPlatDpRawRelease(Xdp);
 }

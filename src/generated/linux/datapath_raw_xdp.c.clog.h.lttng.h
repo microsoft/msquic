@@ -26,18 +26,22 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_C, XdpInitialize,
 
 /*----------------------------------------------------------
 // Decoder Ring for XdpWorkerStart
-// [ xdp][%p] XDP worker start
+// [ xdp][%p] XDP worker start, %u queues
 // QuicTraceLogVerbose(
             XdpWorkerStart,
-            "[ xdp][%p] XDP worker start",
-            Worker);
+            "[ xdp][%p] XDP worker start, %u queues",
+            Worker,
+            QueueCount);
 // arg2 = arg2 = Worker = arg2
+// arg3 = arg3 = QueueCount = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_C, XdpWorkerStart,
     TP_ARGS(
-        const void *, arg2), 
+        const void *, arg2,
+        unsigned int, arg3), 
     TP_FIELDS(
         ctf_integer_hex(uint64_t, arg2, arg2)
+        ctf_integer(unsigned int, arg3, arg3)
     )
 )
 

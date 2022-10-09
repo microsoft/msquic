@@ -11366,12 +11366,16 @@
     },
     "XdpWorkerStart": {
       "ModuleProperites": {},
-      "TraceString": "[ xdp][%p] XDP worker start",
+      "TraceString": "[ xdp][%p] XDP worker start, %u queues",
       "UniqueId": "XdpWorkerStart",
       "splitArgs": [
         {
           "DefinationEncoding": "p",
           "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg3"
         }
       ],
       "macroName": "QuicTraceLogVerbose"
@@ -15508,9 +15512,9 @@
         "EncodingString": "[ xdp][%p] XDP worker shutdown complete"
       },
       {
-        "UniquenessHash": "e69762f5-ca2b-4af1-1f05-0453e6fd7c81",
+        "UniquenessHash": "f93ab876-1534-945f-953a-527996af298d",
         "TraceID": "XdpWorkerStart",
-        "EncodingString": "[ xdp][%p] XDP worker start"
+        "EncodingString": "[ xdp][%p] XDP worker start, %u queues"
       },
       {
         "UniquenessHash": "544776e8-4877-d5da-4fa0-fc664dd8fd98",
