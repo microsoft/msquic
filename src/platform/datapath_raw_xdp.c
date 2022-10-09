@@ -465,15 +465,6 @@ CxPlatDpRawInterfaceUninitialize(
         XDP_QUEUE *Queue = &Interface->Queues[i];
 
         if (Queue->TxXsk != NULL) {
-#if DEBUG
-            QUIC_STATUS Status;
-            XSK_STATISTICS Stats;
-            uint32_t StatsSize = sizeof(Stats);
-            Status = XskGetSockopt(Queue->TxXsk, XSK_SOCKOPT_STATISTICS, &Stats, &StatsSize);
-            if (QUIC_SUCCEEDED(Status)) {
-                printf("[%u-%u]txInvalidDescriptors: %llu\n", Interface->IfIndex, i, Stats.txInvalidDescriptors);
-            }
-#endif
             CloseHandle(Queue->TxXsk);
         }
 
@@ -486,16 +477,6 @@ CxPlatDpRawInterfaceUninitialize(
         }
 
         if (Queue->RxXsk != NULL) {
-#if DEBUG
-            QUIC_STATUS Status;
-            XSK_STATISTICS Stats;
-            uint32_t StatsSize = sizeof(Stats);
-            Status = XskGetSockopt(Queue->RxXsk, XSK_SOCKOPT_STATISTICS, &Stats, &StatsSize);
-            if (QUIC_SUCCEEDED(Status)) {
-                printf("[%u-%u]rxDropped: %llu\n", Interface->IfIndex, i, Stats.rxDropped);
-                printf("[%u-%u]rxInvalidDescriptors: %llu\n", Interface->IfIndex, i, Stats.rxInvalidDescriptors);
-            }
-#endif
             CloseHandle(Queue->RxXsk);
         }
 
@@ -1095,11 +1076,6 @@ CxPlatDpRawInitialize(
                     CxPlatFree(Interface, IF_TAG);
                     continue;
                 }
-#if DEBUG
-                printf(
-                    "Bound XDP to interface %u (%wS) with %u RSS procs \n",
-                    Adapter->IfIndex, Adapter->Description, Interface->QueueCount);
-#endif
                 CxPlatListInsertTail(&Xdp->Interfaces, &Interface->Link);
             }
         }
@@ -1501,14 +1477,14 @@ CxPlatXdpRx(
         CxPlatDpRawRxEthernet((CXPLAT_DATAPATH*)Xdp, Buffers, (uint16_t)PacketCount);
     }
 
-    if (XskRingError(&Queue->RxRing) && !Queue->Error) {
+    /*if (XskRingError(&Queue->RxRing) && !Queue->Error) {
         XSK_ERROR ErrorStatus;
         QUIC_STATUS XskStatus;
         uint32_t ErrorSize = sizeof(ErrorStatus);
         XskStatus = XskGetSockopt(Queue->RxXsk, XSK_SOCKOPT_RX_ERROR, &ErrorStatus, &ErrorSize);
         printf("RX ring error: 0x%x\n", SUCCEEDED(XskStatus) ? ErrorStatus : XskStatus);
         Queue->Error = TRUE;
-    }
+    }*/
 
     return ProdCount > 0 || PacketCount > 0;
 }
@@ -1662,14 +1638,14 @@ CxPlatXdpTx(
         }
     }
 
-    if (XskRingError(&Queue->TxRing) && !Queue->Error) {
+    /*if (XskRingError(&Queue->TxRing) && !Queue->Error) {
         XSK_ERROR ErrorStatus;
         QUIC_STATUS XskStatus;
         uint32_t ErrorSize = sizeof(ErrorStatus);
         XskStatus = XskGetSockopt(Queue->TxXsk, XSK_SOCKOPT_TX_ERROR, &ErrorStatus, &ErrorSize);
         printf("TX ring error: 0x%x\n", SUCCEEDED(XskStatus) ? ErrorStatus : XskStatus);
         Queue->Error = TRUE;
-    }
+    }*/
 
     return ProdCount > 0 || CompCount > 0;
 }
@@ -1727,18 +1703,38 @@ CxPlatXdpExecute(
                     XdpQueueAsyncIoRx,
                     "[ xdp][%p] XDP async IO start (RX)",
                     Queue);
-                Queue->RxQueued = TRUE;
                 CxPlatZeroMemory(&Queue->RxOv, sizeof(Queue->RxOv));
-                XskNotifyAsync(Queue->RxXsk, XSK_NOTIFY_FLAG_WAIT_RX, &Queue->RxOv);
+                HRESULT hr = XskNotifyAsync(Queue->RxXsk, XSK_NOTIFY_FLAG_WAIT_RX, &Queue->RxOv);
+                if (hr == HRESULT_FROM_WIN32(ERROR_IO_PENDING)) {
+                    Queue->RxQueued = TRUE;
+                } else if (hr == S_OK) {
+                    Worker->Ec.Ready = TRUE;
+                } else {
+                    QuicTraceEvent(
+                        LibraryErrorStatus,
+                        "[ lib] ERROR, %u, %s.",
+                        hr,
+                        "XskNotifyAsync(RX)");
+                }
             }
             if (!Queue->TxQueued) {
                 QuicTraceLogVerbose(
                     XdpQueueAsyncIoTx,
                     "[ xdp][%p] XDP async IO start (TX)",
                     Queue);
-                Queue->TxQueued = TRUE;
                 CxPlatZeroMemory(&Queue->TxOv, sizeof(Queue->TxOv));
-                XskNotifyAsync(Queue->TxXsk, XSK_NOTIFY_FLAG_WAIT_TX, &Queue->TxOv);
+                HRESULT hr = XskNotifyAsync(Queue->TxXsk, XSK_NOTIFY_FLAG_WAIT_TX, &Queue->TxOv);
+                if (hr == HRESULT_FROM_WIN32(ERROR_IO_PENDING)) {
+                    Queue->TxQueued = TRUE;
+                } else if (hr == S_OK) {
+                    Worker->Ec.Ready = TRUE;
+                } else {
+                    QuicTraceEvent(
+                        LibraryErrorStatus,
+                        "[ lib] ERROR, %u, %s.",
+                        hr,
+                        "XskNotifyAsync(TX)");
+                }
             }
             Queue = Queue->Next;
         }
