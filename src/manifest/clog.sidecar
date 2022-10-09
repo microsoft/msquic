@@ -11276,6 +11276,106 @@
       ],
       "macroName": "QuicTraceEvent"
     },
+    "XdpInitialize": {
+      "ModuleProperites": {},
+      "TraceString": "[ xdp][%p] XDP initialized, %u procs",
+      "UniqueId": "XdpInitialize",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macroName": "QuicTraceLogVerbose"
+    },
+    "XdpRelease": {
+      "ModuleProperites": {},
+      "TraceString": "[ xdp][%p] XDP release",
+      "UniqueId": "XdpRelease",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceLogVerbose"
+    },
+    "XdpUninitialize": {
+      "ModuleProperites": {},
+      "TraceString": "[ xdp][%p] XDP uninitialize",
+      "UniqueId": "XdpUninitialize",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceLogVerbose"
+    },
+    "XdpUninitializeComplete": {
+      "ModuleProperites": {},
+      "TraceString": "[ xdp][%p] XDP uninitialize complete",
+      "UniqueId": "XdpUninitializeComplete",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceLogVerbose"
+    },
+    "XdpWorkerAsyncIO": {
+      "ModuleProperites": {},
+      "TraceString": "[ xdp][%p] XDP async IO",
+      "UniqueId": "XdpWorkerAsyncIO",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceLogVerbose"
+    },
+    "XdpWorkerShutdown": {
+      "ModuleProperites": {},
+      "TraceString": "[ xdp][%p] XDP worker shutdown",
+      "UniqueId": "XdpWorkerShutdown",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceLogVerbose"
+    },
+    "XdpWorkerShutdownComplete": {
+      "ModuleProperites": {},
+      "TraceString": "[ xdp][%p] XDP worker shutdown complete",
+      "UniqueId": "XdpWorkerShutdownComplete",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceLogVerbose"
+    },
+    "XdpWorkerStart": {
+      "ModuleProperites": {},
+      "TraceString": "[ xdp][%p] XDP worker start",
+      "UniqueId": "XdpWorkerStart",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceLogVerbose"
+    },
     "ZeroLengthCidRetire": {
       "ModuleProperites": {},
       "TraceString": "[conn][%p] Can't retire current CID because it's zero length",
@@ -15371,6 +15471,46 @@
         "UniquenessHash": "2a4c81a8-bf45-5d2a-fa79-dc075733386b",
         "TraceID": "WorkerStop",
         "EncodingString": "[wrkr][%p] Stop"
+      },
+      {
+        "UniquenessHash": "0a2db04c-0b5e-388d-18a0-2842ccb8d3ed",
+        "TraceID": "XdpInitialize",
+        "EncodingString": "[ xdp][%p] XDP initialized, %u procs"
+      },
+      {
+        "UniquenessHash": "a886933d-ba2f-8adb-8440-ef3146cc27fc",
+        "TraceID": "XdpRelease",
+        "EncodingString": "[ xdp][%p] XDP release"
+      },
+      {
+        "UniquenessHash": "d75a0e64-de8c-65d3-12ee-03cc24d2a875",
+        "TraceID": "XdpUninitialize",
+        "EncodingString": "[ xdp][%p] XDP uninitialize"
+      },
+      {
+        "UniquenessHash": "0b96925f-2b93-58f9-3664-c710e5f865b6",
+        "TraceID": "XdpUninitializeComplete",
+        "EncodingString": "[ xdp][%p] XDP uninitialize complete"
+      },
+      {
+        "UniquenessHash": "17a6a609-27f6-4335-a281-9dbfea21f6a3",
+        "TraceID": "XdpWorkerAsyncIO",
+        "EncodingString": "[ xdp][%p] XDP async IO"
+      },
+      {
+        "UniquenessHash": "3b3e0ae9-eaa0-90cb-adeb-37f9029cdfab",
+        "TraceID": "XdpWorkerShutdown",
+        "EncodingString": "[ xdp][%p] XDP worker shutdown"
+      },
+      {
+        "UniquenessHash": "f570dc1c-9f33-49d9-1556-ff41dd00a190",
+        "TraceID": "XdpWorkerShutdownComplete",
+        "EncodingString": "[ xdp][%p] XDP worker shutdown complete"
+      },
+      {
+        "UniquenessHash": "e69762f5-ca2b-4af1-1f05-0453e6fd7c81",
+        "TraceID": "XdpWorkerStart",
+        "EncodingString": "[ xdp][%p] XDP worker start"
       },
       {
         "UniquenessHash": "544776e8-4877-d5da-4fa0-fc664dd8fd98",
