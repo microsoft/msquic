@@ -757,13 +757,7 @@ TEST_P(DataPathTest, UdpData)
     memcpy(ClientBuffer->Buffer, ExpectedData, ExpectedDataSize);
 
     VERIFY_QUIC_SUCCESS(Client.Send(ClientSendData));
-    auto success = CxPlatEventWaitWithTimeout(RecvContext.ClientCompletion, 2000);
-#ifdef WIN32
-    if (!success && GetParam() == 4) { // Generate live dump
-        system("pwsh -Command 'Get-StorageDiagnosticInfo -StorageSubSystemFriendlyName (Get-StorageSubSystem)[0].FriendlyName -IncludeLiveDump -DestinationPath D:\\a\\1\\s\\artifacts\\logs\\msquicplatformtest.exe_Xdp'");
-    }
-#endif
-    ASSERT_TRUE(success);
+    ASSERT_TRUE(CxPlatEventWaitWithTimeout(RecvContext.ClientCompletion, 2000));
 }
 
 TEST_P(DataPathTest, UdpDataPolling)
