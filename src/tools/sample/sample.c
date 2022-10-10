@@ -816,7 +816,7 @@ RunClient(
         // If provided at the command line, set the resumption ticket that can
         // be used to resume a previous session.
         //
-        uint8_t ResumptionTicket[1024];
+        uint8_t ResumptionTicket[10240];
         uint16_t TicketLength = (uint16_t)DecodeHexBuffer(ResumptionTicketString, sizeof(ResumptionTicket), ResumptionTicket);
         if (QUIC_FAILED(Status = MsQuic->SetParam(Connection, QUIC_PARAM_CONN_RESUMPTION_TICKET, TicketLength, ResumptionTicket))) {
             printf("SetParam(QUIC_PARAM_CONN_RESUMPTION_TICKET) failed, 0x%x!\n", Status);
