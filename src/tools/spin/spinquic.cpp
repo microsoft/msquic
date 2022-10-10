@@ -93,7 +93,8 @@ static QUIC_API_TABLE MsQuic;
 CXPLAT_LOCK RunThreadLock;
 
 const uint32_t MaxBufferSizes[] = { 0, 1, 2, 32, 50, 256, 500, 1000, 1024, 1400, 5000, 10000, 64000, 10000000 };
-static const size_t BufferCount = ARRAYSIZE(MaxBufferSizes);
+//static const size_t BufferCount = ARRAYSIZE(MaxBufferSizes);
+static const size_t BufferCount = 1;
 
 struct SpinQuicGlobals {
     uint64_t StartTimeMs;
