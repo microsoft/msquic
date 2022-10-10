@@ -1571,10 +1571,14 @@ CxPlatDpRawTxEnqueue(
     )
 {
     XDP_TX_PACKET* Packet = (XDP_TX_PACKET*)SendData;
+    XDP_WORKER* Worker = Packet->Queue->Worker;
 
     CxPlatLockAcquire(&Packet->Queue->TxLock);
     CxPlatListInsertTail(&Packet->Queue->TxQueue, &Packet->Link);
     CxPlatLockRelease(&Packet->Queue->TxLock);
+
+    Worker->Ec.Ready = TRUE;
+    CxPlatWakeExecutionContext(&Worker->Ec);
 }
 
 static
