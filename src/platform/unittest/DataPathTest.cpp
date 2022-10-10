@@ -760,7 +760,7 @@ TEST_P(DataPathTest, UdpData)
     auto success = CxPlatEventWaitWithTimeout(RecvContext.ClientCompletion, 2000);
 #ifdef WIN32
     if (!success && GetParam() == 4) { // Generate live dump
-        system("pwsh -Command 'Get-StorageDiagnosticInfo -StorageSubSystemFriendlyName (Get-StorageSubSystem)[0].FriendlyName -IncludeLiveDump -DestinationPath D:\\a\\1\\s\\artifacts\\logs\\msquicplatformtest.exe_Xdp'")
+        system("pwsh -Command 'Get-StorageDiagnosticInfo -StorageSubSystemFriendlyName (Get-StorageSubSystem)[0].FriendlyName -IncludeLiveDump -DestinationPath D:\\a\\1\\s\\artifacts\\logs\\msquicplatformtest.exe_Xdp'");
     }
 #endif
     ASSERT_TRUE(success);
