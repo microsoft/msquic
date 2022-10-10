@@ -28,13 +28,13 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
 	for (uint32_t Param = QUIC_PARAM_GLOBAL_RETRY_MEMORY_PERCENT;
 		Param <= QUIC_PARAM_GLOBAL_TLS_PROVIDER;
 		Param++) {
-			if (Param == QUIC_PARAM_GLOBAL_VERSION_SETTINGS)
-				continue;
-			MsQuic->SetParam(
-				nullptr,
-				Param,
-				size,
-				data);
+	if (Param != QUIC_PARAM_GLOBAL_VERSION_SETTINGS) {
+	    MsQuic->SetParam(
+		    nullptr,
+		    Param,
+		    size,
+		    data);
+    }
 	}
 
 	delete MsQuic;
