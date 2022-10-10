@@ -107,8 +107,9 @@ void PrintUsage()
         "\n"
         "Usage:\n"
         "\n"
-        "  quicsample.exe -client -target:<...> [-unsecure]\n"
-        "  quicsample.exe -server -cert_hash:<...> or (-cert_file:<...> and -key_file:<...> (and optionally -password:<...>))\n"
+        "  quicsample.exe -client -unsecure -target:{IPAddress|Hostname} [-ticket:<ticket>]\n"
+        "  quicsample.exe -server -cert_hash:<...>\n"
+        "  quicsample.exe -server -cert_file:<...> -key_file:<...> [-password:<...>]\n"
         );
 }
 
