@@ -185,6 +185,10 @@ CxPlatWorkersLazyStart(
         }
         CxPlatWorkers[i].InitializedUpdatePollSqe = TRUE;
 #endif
+#ifdef WIN32
+        CxPlatWorkers[i].EventQ.WakeEvent = &CxPlatWorkers[i].WakeSqe;
+        CxPlatWorkers[i].EventQ.WakeEventUserData = (void*)&WorkerWakeEventPayload;
+#endif
         if (QUIC_FAILED(
             CxPlatThreadCreate(&ThreadConfig, &CxPlatWorkers[i].Thread))) {
             goto Error;
@@ -314,7 +318,11 @@ CxPlatWakeExecutionContext(
     )
 {
     CXPLAT_WORKER* Worker = (CXPLAT_WORKER*)Context->CxPlatContext;
+#ifdef WIN32
+    CxPlatEventQWake(&Worker->EventQ);
+#else
     CxPlatEventQEnqueue(&Worker->EventQ, &Worker->WakeSqe, (void*)&WorkerWakeEventPayload);
+#endif
 }
 
 void
@@ -432,6 +440,10 @@ CXPLAT_THREAD_CALLBACK(CxPlatWorkerThread, Context)
 
     CXPLAT_EXECUTION_STATE State = { 0, CxPlatTimeUs64(), UINT32_MAX, 0, CxPlatCurThreadID() };
 
+#ifdef WIN32
+    CxPlatEventQSetRunning(&Worker->EventQ, State.ThreadID);
+#endif
+
     while (TRUE) {
 
         State.TimeNow = CxPlatTimeUs64();
@@ -452,6 +464,10 @@ CXPLAT_THREAD_CALLBACK(CxPlatWorkerThread, Context)
     }
 
 Shutdown:
+
+#ifdef WIN32
+    CxPlatEventQSetIdle(&Worker->EventQ);
+#endif
 
     QuicTraceLogInfo(
         PlatformWorkerThreadStop,

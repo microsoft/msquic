@@ -1126,16 +1126,14 @@ CxPlatDpRawInitialize(
         uint32_t QueueCount = 0;
         XDP_QUEUE* Queue = Worker->Queues;
         while (Queue) {
-            if (*Worker->EventQ !=
-                CreateIoCompletionPort(Queue->RxXsk, *Worker->EventQ, (ULONG_PTR)&Queue->IoSqe, 0)) {
+            if (!CxPlatEventQAssociateHandle(Worker->EventQ, Queue->RxXsk, &Queue->IoSqe)) {
                 QuicTraceEvent(
                     LibraryErrorStatus,
                     "[ lib] ERROR, %u, %s.",
                     GetLastError(),
                     "CreateIoCompletionPort(RX)");
             }
-            if (*Worker->EventQ !=
-                CreateIoCompletionPort(Queue->TxXsk, *Worker->EventQ, (ULONG_PTR)&Queue->IoSqe, 0)) {
+            if (!CxPlatEventQAssociateHandle(Worker->EventQ, Queue->TxXsk, &Queue->IoSqe)) {
                 QuicTraceEvent(
                     LibraryErrorStatus,
                     "[ lib] ERROR, %u, %s.",
