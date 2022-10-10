@@ -236,6 +236,7 @@
           <EventProviders>
             <EventProviderId Value="EP_MsQuicEtw" />
             <EventProviderId Value="EP_TaefEtw" />
+            <EventProviderId Value="EP_XdpEtwPerFrame" />
           </EventProviders>
         </EventCollectorId>
       </Collectors>
