@@ -758,7 +758,7 @@ TEST_P(DataPathTest, UdpData)
 
     VERIFY_QUIC_SUCCESS(Client.Send(ClientSendData));
     auto success = CxPlatEventWaitWithTimeout(RecvContext.ClientCompletion, 2000);
-#ifndef WIN32
+#ifdef WIN32
     if (!success && GetParam() == 4) { // Generate live dump
         system("pwsh -Command 'Get-StorageDiagnosticInfo -StorageSubSystemFriendlyName (Get-StorageSubSystem)[0].FriendlyName -IncludeLiveDump -DestinationPath D:\\a\\1\\s\\artifacts\\logs\\msquicplatformtest.exe_Xdp'")
     }
