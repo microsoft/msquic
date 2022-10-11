@@ -255,11 +255,12 @@ QuicPacketBuilderPrepare(
         if (Builder->SendData == NULL) {
             CXPLAT_ECN_TYPE EcnType = CXPLAT_ECN_NON_ECT;
             if (Builder->Path->EcnValidationState == ECN_VALIDATION_CAPABLE ||
-                (Builder->Path->EcnValidationState == ECN_VALIDATION_TESTING &&
-                 Builder->Path->EcnTestingCount > 0)) {
+                Builder->Path->EcnValidationState == ECN_VALIDATION_TESTING) {
                 EcnType = CXPLAT_ECN_ECT_0;
-                --Builder->Path->EcnTestingCount;
                 Builder->Metadata->Flags.EcnEctSet = TRUE;
+                if (--Builder->Path->EcnTestingCount == 0) {
+                    Builder->Path->EcnValidationState = ECN_VALIDATION_UNKNOWN;
+                }
             }
 
             Builder->BatchId =

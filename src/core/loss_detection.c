@@ -1502,19 +1502,23 @@ QuicLossDetectionProcessAckBlocks(
         // Per RFC 9000, we validate ECN counts from received ACK frames
         // when the largest acked packet number increases.
         //
-        BOOLEAN EcnValidationFailed = FALSE;
+        BOOLEAN EcnValidated = TRUE;
         if (Ecn != NULL) {
             int64_t EctCeDeltaSum = 0;
             EctCeDeltaSum +=
                 Ecn->CE_Count - LossDetection->EcnCeCounters[EncryptLevel];
             EctCeDeltaSum +=
                 Ecn->ECT_0_Count - LossDetection->EcnEctCounters[EncryptLevel];
-            if (EctCeDeltaSum >= 0) {
-                if (EctCeDeltaSum < EcnEctCounter) {
-                    EcnValidationFailed = TRUE;
+            if (EctCeDeltaSum < 0 || EctCeDeltaSum < EcnEctCounter) {
+                EcnValidated = FALSE;
+            }
+
+            if (EcnValidated) {
+                LossDetection->EcnCeCounters[EncryptLevel] = Ecn->CE_Count;
+                LossDetection->EcnEctCounters[EncryptLevel] = Ecn->ECT_0_Count;
+                if (Path->EcnValidationState == ECN_VALIDATION_UNKNOWN) {
+                    Path->EcnValidationState = ECN_VALIDATION_CAPABLE;
                 }
-            } else {
-                EcnValidationFailed = TRUE;
             }
         } else {
             // 
@@ -1523,19 +1527,12 @@ QuicLossDetectionProcessAckBlocks(
             // if the corresponding ECN counts are not present in the ACK frame.
             //
             if (EcnEctCounter != 0) {
-                EcnValidationFailed = TRUE;
+                EcnValidated = FALSE;
             }
         }
 
-        if (EcnValidationFailed) {
+        if (!EcnValidated) {
             Path->EcnValidationState = ECN_VALIDATION_FAILED;
-        } else {
-            LossDetection->EcnCeCounters[EncryptLevel] = Ecn->CE_Count;
-            LossDetection->EcnEctCounters[EncryptLevel] = Ecn->ECT_0_Count;
-
-            if (Path->EcnValidationState == ECN_VALIDATION_UNKNOWN) {
-                Path->EcnValidationState = ECN_VALIDATION_CAPABLE;
-            }
         }
 
         //
