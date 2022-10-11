@@ -315,6 +315,7 @@ typedef struct QUIC_CREDENTIAL_CONFIG {
         QUIC_CERTIFICATE_FILE_PROTECTED* CertificateFileProtected;
         QUIC_CERTIFICATE_PKCS12* CertificatePkcs12;
     };
+    const char* CaCertificateFile;
     const char* Principal;
     void* Reserved; // Currently unused
     QUIC_CREDENTIAL_LOAD_COMPLETE_HANDLER AsyncHandler; // Optional
