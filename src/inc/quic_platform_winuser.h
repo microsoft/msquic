@@ -243,6 +243,15 @@ InterlockedFetchAndClearBoolean(
     return (BOOLEAN)InterlockedAnd8((char*)Target, 0);
 }
 
+inline
+BOOLEAN
+InterlockedFetchAndSetBoolean(
+    _Inout_ _Interlocked_operand_ BOOLEAN volatile *Target
+    )
+{
+    return (BOOLEAN)InterlockedOr8((char*)Target, 1);
+}
+
 //
 // CloseHandle has an incorrect SAL annotation, so call through a wrapper.
 //
@@ -623,7 +632,7 @@ CxPlatEventQSetRunning(
     )
 {
     queue->OwningThread = OwningThread;
-    queue->Running = TRUE;
+    InterlockedFetchAndSetBoolean(&queue->Running);
 }
 
 inline
@@ -633,7 +642,7 @@ CxPlatEventQSetIdle(
     )
 {
     queue->OwningThread = 0;
-    queue->Running = FALSE;
+    InterlockedFetchAndClearBoolean(&queue->Running);
 }
 
 inline
@@ -678,7 +687,10 @@ CxPlatEventQWake(
     _In_ CXPLAT_EVENTQ* queue
     )
 {
-    return queue->Running ? TRUE : CxPlatEventQEnqueue(queue, queue->WakeEvent, queue->WakeEventUserData);
+    return
+        InterlockedFetchAndSetBoolean(&queue->Running) ?
+            TRUE : // Already running
+            CxPlatEventQEnqueue(queue, queue->WakeEvent, queue->WakeEventUserData);
 }
 
 inline
@@ -691,10 +703,14 @@ CxPlatEventQDequeue(
     )
 {
     ULONG out_count = 0;
-    if (wait_time) queue->Running = FALSE;
-    BOOL Result = GetQueuedCompletionStatusEx(queue->Iocp, events, count, &out_count, wait_time, FALSE);
-    if (wait_time) queue->Running = TRUE;
-    if (!Result) return FALSE;
+    if (wait_time) {
+        InterlockedFetchAndClearBoolean(&queue->Running);
+        BOOL Result = GetQueuedCompletionStatusEx(queue->Iocp, events, count, &out_count, wait_time, FALSE);
+        InterlockedFetchAndSetBoolean(&queue->Running);
+        if (!Result) return FALSE;
+    } else {
+        if (!GetQueuedCompletionStatusEx(queue->Iocp, events, count, &out_count, 0, FALSE)) return FALSE;
+    }
     CXPLAT_DBG_ASSERT(out_count != 0);
     CXPLAT_DBG_ASSERT(events[0].lpOverlapped != NULL || out_count == 1);
     return events[0].lpOverlapped == NULL ? 0 : (uint32_t)out_count;
