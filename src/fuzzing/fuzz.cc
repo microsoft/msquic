@@ -9,6 +9,7 @@ Abstract:
 
 --*/
 
+#define QUIC_API_ENABLE_PREVIEW_FEATURES 1
 #define CX_PLATFORM_LINUX 1
 #define QUIC_TEST_APIS 1
 
@@ -19,7 +20,6 @@ Abstract:
 #include "msquic.hpp"
 #include "quic_platform.h"
 
-
 extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
 {
 	const MsQuicApi* MsQuic = new(std::nothrow) MsQuicApi();
@@ -27,11 +27,13 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
 	for (uint32_t Param = QUIC_PARAM_GLOBAL_RETRY_MEMORY_PERCENT;
 		Param <= QUIC_PARAM_GLOBAL_TLS_PROVIDER;
 		Param++) {
-		MsQuic->SetParam(
-			nullptr,
-			Param,
-			size,
-			&data);
+        if (Param != QUIC_PARAM_GLOBAL_VERSION_SETTINGS) {
+            MsQuic->SetParam(
+                nullptr,
+                Param,
+                size,
+                data);
+        }
 	}
 
 	delete MsQuic;
