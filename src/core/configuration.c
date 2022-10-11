@@ -559,6 +559,18 @@ QuicConfigurationParamSet(
 
         return QUIC_STATUS_SUCCESS;
 
+    case QUIC_PARAM_CONFIGURATION_CACERTFILE:
+        if (Buffer == NULL || BufferLength == 0) {
+            return QUIC_STATUS_INVALID_PARAMETER;
+        }
+
+        return
+            CxPlatSecConfigParamSet(
+                Configuration->SecurityConfig,
+                Param,
+                BufferLength,
+                Buffer);
+
 #ifdef WIN32
     case QUIC_PARAM_CONFIGURATION_SCHANNEL_CREDENTIAL_ATTRIBUTE_W:
 

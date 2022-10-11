@@ -2145,11 +2145,32 @@ CxPlatSecConfigParamSet(
         const void* Buffer
     )
 {
-    UNREFERENCED_PARAMETER(TlsContext);
-    UNREFERENCED_PARAMETER(Param);
+    QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
+
     UNREFERENCED_PARAMETER(BufferLength);
-    UNREFERENCED_PARAMETER(Buffer);
-    return QUIC_STATUS_NOT_SUPPORTED;
+
+    switch(Param) {
+    case QUIC_PARAM_CONFIGURATION_CACERTFILE:
+        CXPLAT_SEC_CONFIG* SecurityConfig = (CXPLAT_SEC_CONFIG*) TlsContext;
+
+        int Ret = SSL_CTX_load_verify_locations(SecurityConfig->SSLCtx, Buffer, NULL);
+        if (Ret != 1) {
+            QuicTraceEvent(
+                LibraryErrorStatus,
+                "[ lib] ERROR, %u, %s.",
+                ERR_get_error(),
+                "SSL_CTX_load_verify_locations failed");
+            Status = QUIC_STATUS_TLS_ERROR;
+        } else
+            Status = QUIC_STATUS_SUCCESS;
+        break;
+
+    default:
+        Status = QUIC_STATUS_NOT_SUPPORTED;
+        break;
+    }
+
+    return Status;
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
