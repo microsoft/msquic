@@ -1006,6 +1006,10 @@ CxPlatTlsSecConfigCreate(
         return QUIC_STATUS_INVALID_PARAMETER;
     }
 
+    if (CredConfig->Flags & QUIC_CREDENTIAL_FLAG_SET_CA_CERTIFICATE_FILE) {
+        return  QUIC_STATUS_NOT_SUPPORTED;
+    }
+
 #ifdef _KERNEL_MODE
     if (CredConfig->Flags & QUIC_CREDENTIAL_FLAG_USE_PORTABLE_CERTIFICATES) {
        return QUIC_STATUS_NOT_SUPPORTED;    // Not supported in kernel mode.
@@ -1107,10 +1111,6 @@ CxPlatTlsSecConfigCreate(
     }
     if (CredConfig->Flags & QUIC_CREDENTIAL_FLAG_REVOCATION_CHECK_CACHE_ONLY) {
         Credentials->dwFlags |= SCH_CRED_REVOCATION_CHECK_CACHE_ONLY;
-    }
-    if (CredConfig->Flags & QUIC_CREDENTIAL_FLAG_SET_CA_CERTIFICATE_FILE) {
-        Status = QUIC_STATUS_NOT_SUPPORTED;
-        goto Error;
     }
     if (IsClient) {
         Credentials->dwFlags |= SCH_CRED_NO_DEFAULT_CREDS;
