@@ -1475,14 +1475,18 @@ CxPlatXdpRx(
         CxPlatDpRawRxEthernet((CXPLAT_DATAPATH*)Xdp, Buffers, (uint16_t)PacketCount);
     }
 
-    /*if (XskRingError(&Queue->RxRing) && !Queue->Error) {
+    if (XskRingError(&Queue->RxRing) && !Queue->Error) {
         XSK_ERROR ErrorStatus;
         QUIC_STATUS XskStatus;
         uint32_t ErrorSize = sizeof(ErrorStatus);
         XskStatus = XskGetSockopt(Queue->RxXsk, XSK_SOCKOPT_RX_ERROR, &ErrorStatus, &ErrorSize);
-        printf("RX ring error: 0x%x\n", SUCCEEDED(XskStatus) ? ErrorStatus : XskStatus);
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            SUCCEEDED(XskStatus) ? ErrorStatus : XskStatus,
+            "XSK_SOCKOPT_RX_ERROR");
         Queue->Error = TRUE;
-    }*/
+    }
 
     return ProdCount > 0 || PacketCount > 0;
 }
@@ -1640,14 +1644,18 @@ CxPlatXdpTx(
         }
     }
 
-    /*if (XskRingError(&Queue->TxRing) && !Queue->Error) {
+    if (XskRingError(&Queue->TxRing) && !Queue->Error) {
         XSK_ERROR ErrorStatus;
         QUIC_STATUS XskStatus;
         uint32_t ErrorSize = sizeof(ErrorStatus);
         XskStatus = XskGetSockopt(Queue->TxXsk, XSK_SOCKOPT_TX_ERROR, &ErrorStatus, &ErrorSize);
-        printf("TX ring error: 0x%x\n", SUCCEEDED(XskStatus) ? ErrorStatus : XskStatus);
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            SUCCEEDED(XskStatus) ? ErrorStatus : XskStatus,
+            "XSK_SOCKOPT_TX_ERROR");
         Queue->Error = TRUE;
-    }*/
+    }
 
     return ProdCount > 0 || CompCount > 0;
 }
