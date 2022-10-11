@@ -3362,13 +3362,14 @@ QuicTestCustomVNTP(
     }
 }
 
+#define QUIC_TP_ID_VERSION_NEGOTIATION_EXT                  0xFF73DB
+
 void
 QuicTestVNTPOddSize(
     _In_ bool TestServer,
     _In_ uint16_t VNTPSize
     )
 {
-#define QUIC_TP_ID_VERSION_NEGOTIATION_EXT                  0xFF73DB
 
     QUIC_PRIVATE_TRANSPORT_PARAMETER TestTP;
     TestTP.Type = QUIC_TP_ID_VERSION_NEGOTIATION_EXT;
@@ -3398,7 +3399,6 @@ QuicTestVNTPChosenVersionMismatch(
     _In_ bool TestServer
     )
 {
-    #define QUIC_TP_ID_VERSION_NEGOTIATION_EXT                  0xFF73DB
     const uint32_t VNTPSize = 8;
 
     QUIC_PRIVATE_TRANSPORT_PARAMETER TestTP;
