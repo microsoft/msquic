@@ -122,6 +122,7 @@ typedef enum QUIC_CREDENTIAL_FLAGS {
     QUIC_CREDENTIAL_FLAG_CACHE_ONLY_URL_RETRIEVAL               = 0x00020000, // Windows only currently
     QUIC_CREDENTIAL_FLAG_REVOCATION_CHECK_CACHE_ONLY            = 0x00040000, // Windows only currently
     QUIC_CREDENTIAL_FLAG_INPROC_PEER_CERTIFICATE                = 0x00080000, // Schannel only
+    QUIC_CREDENTIAL_FLAG_USE_CACERTFILE                         = 0x00100000, // OpenSSL only currently
 } QUIC_CREDENTIAL_FLAGS;
 
 DEFINE_ENUM_FLAG_OPERATORS(QUIC_CREDENTIAL_FLAGS)
@@ -315,11 +316,11 @@ typedef struct QUIC_CREDENTIAL_CONFIG {
         QUIC_CERTIFICATE_FILE_PROTECTED* CertificateFileProtected;
         QUIC_CERTIFICATE_PKCS12* CertificatePkcs12;
     };
-    const char* CaCertificateFile;
     const char* Principal;
     void* Reserved; // Currently unused
     QUIC_CREDENTIAL_LOAD_COMPLETE_HANDLER AsyncHandler; // Optional
     QUIC_ALLOWED_CIPHER_SUITE_FLAGS AllowedCipherSuites;// Optional
+    const char* CaCertificateFile;
 } QUIC_CREDENTIAL_CONFIG;
 
 //
