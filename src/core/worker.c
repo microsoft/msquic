@@ -40,11 +40,12 @@ QuicWorkerThreadWake(
     _In_ QUIC_WORKER* Worker
     )
 {
-    Worker->ExecutionContext.Ready = TRUE; // Run the execution context
-    if (Worker->IsExternal) {
-        CxPlatWakeExecutionContext(&Worker->ExecutionContext);
-    } else {
-        CxPlatEventSet(Worker->Ready);
+    if (!InterlockedFetchAndSetBoolean(&Worker->ExecutionContext.Ready)) {
+        if (Worker->IsExternal) {
+            CxPlatWakeExecutionContext(&Worker->ExecutionContext);
+        } else {
+            CxPlatEventSet(Worker->Ready);
+        }
     }
 }
 
