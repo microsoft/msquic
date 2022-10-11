@@ -1462,25 +1462,19 @@ CxPlatTlsSecConfigCreate(
         }
     }
 
-    if (CredConfigFlags & QUIC_CREDENTIAL_FLAG_USE_CACERTFILE) {
-        if (CredConfig->CaCertificateFile) {
-            Ret = SSL_CTX_load_verify_locations(SecurityConfig->SSLCtx,
-                                                CredConfig->CaCertificateFile,
-                                                NULL);
-            if (Ret != 1) {
-                QuicTraceEvent(
-                    LibraryErrorStatus,
-                    "[ lib] ERROR, %u, %s.",
-                    ERR_get_error(),
-                    "SSL_CTX_load_verify_locations failed");
-                Status = QUIC_STATUS_TLS_ERROR;
-                goto Exit;
-            }
-        } else {
+    if (CredConfigFlags & QUIC_CREDENTIAL_FLAG_SET_CA_CERTIFICATE_FILE &&
+        CredConfig->CaCertificateFile) {
+        Ret =
+            SSL_CTX_load_verify_locations(
+                SecurityConfig->SSLCtx,
+                CredConfig->CaCertificateFile,
+                NULL);
+        if (Ret != 1) {
             QuicTraceEvent(
                 LibraryErrorStatus,
-                "QUIC_CREDENTIAL_FLAG_USE_CACERTFILE is set but "
-                "CaCertificateFile is not set.");
+                "[ lib] ERROR, %u, %s.",
+                ERR_get_error(),
+                "SSL_CTX_load_verify_locations failed");
             Status = QUIC_STATUS_TLS_ERROR;
             goto Exit;
         }

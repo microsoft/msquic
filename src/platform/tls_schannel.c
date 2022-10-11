@@ -1108,6 +1108,10 @@ CxPlatTlsSecConfigCreate(
     if (CredConfig->Flags & QUIC_CREDENTIAL_FLAG_REVOCATION_CHECK_CACHE_ONLY) {
         Credentials->dwFlags |= SCH_CRED_REVOCATION_CHECK_CACHE_ONLY;
     }
+    if (CredConfig->Flags & QUIC_CREDENTIAL_FLAG_SET_CA_CERTIFICATE_FILE) {
+        Status = QUIC_STATUS_NOT_SUPPORTED;
+        goto Error;
+    }
     if (IsClient) {
         Credentials->dwFlags |= SCH_CRED_NO_DEFAULT_CREDS;
         Credentials->pTlsParameters->grbitDisabledProtocols = (DWORD)~SP_PROT_TLS1_3_CLIENT;
