@@ -87,6 +87,12 @@ typedef struct QUIC_LOSS_DETECTION {
     //
     uint16_t ProbeCount;
 
+    //
+    // ECT and CE counters for different packet number spaces.
+    //
+    uint64_t EcnEctCounters[QUIC_ENCRYPT_LEVEL_COUNT];
+    uint64_t EcnCeCounters[QUIC_ENCRYPT_LEVEL_COUNT]; // maps to ecn_ce_counters in RFC 9002.
+
 } QUIC_LOSS_DETECTION;
 
 _IRQL_requires_max_(PASSIVE_LEVEL)

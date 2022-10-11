@@ -259,7 +259,7 @@ QuicPacketBuilderPrepare(
                  Builder->Path->EcnTestingCount > 0)) {
                 EcnType = CXPLAT_ECN_ECT_0;
                 --Builder->Path->EcnTestingCount;
-                Builder->Metadata->Flags.EcnType = EcnType;
+                Builder->Metadata->Flags.EcnEctSet = TRUE;
             }
 
             Builder->BatchId =
