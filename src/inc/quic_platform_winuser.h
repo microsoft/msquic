@@ -595,16 +595,9 @@ typedef HANDLE CXPLAT_EVENT;
 // Event Queue Interfaces
 //
 
+typedef HANDLE CXPLAT_EVENTQ;
 #define CXPLAT_SQE OVERLAPPED
 typedef OVERLAPPED_ENTRY CXPLAT_CQE;
-
-typedef struct CXPLAT_EVENTQ {
-    HANDLE Iocp;
-    uint8_t Running;
-    uint32_t OwningThread;
-    CXPLAT_SQE* WakeEvent;
-    void* WakeEventUserData;
-} CXPLAT_EVENTQ;
 
 inline
 BOOLEAN
@@ -612,7 +605,7 @@ CxPlatEventQInitialize(
     _Out_ CXPLAT_EVENTQ* queue
     )
 {
-    return (queue->Iocp = CreateIoCompletionPort(INVALID_HANDLE_VALUE, NULL, 0, 1)) != NULL;
+    return (*queue = CreateIoCompletionPort(INVALID_HANDLE_VALUE, NULL, 0, 1)) != NULL;
 }
 
 inline
@@ -621,28 +614,7 @@ CxPlatEventQCleanup(
     _In_ CXPLAT_EVENTQ* queue
     )
 {
-    CloseHandle(queue->Iocp);
-}
-
-inline
-void
-CxPlatEventQSetRunning(
-    _In_ CXPLAT_EVENTQ* queue,
-    _In_ uint32_t OwningThread
-    )
-{
-    queue->OwningThread = OwningThread;
-    InterlockedFetchAndSetBoolean(&queue->Running);
-}
-
-inline
-void
-CxPlatEventQSetIdle(
-    _In_ CXPLAT_EVENTQ* queue
-    )
-{
-    queue->OwningThread = 0;
-    InterlockedFetchAndClearBoolean(&queue->Running);
+    CloseHandle(*queue);
 }
 
 inline
@@ -653,7 +625,7 @@ CxPlatEventQAssociateHandle(
     _In_opt_ void* user_data
     )
 {
-    return queue->Iocp == CreateIoCompletionPort(fileHandle, queue->Iocp, (ULONG_PTR)user_data, 0);
+    return *queue == CreateIoCompletionPort(fileHandle, *queue, (ULONG_PTR)user_data, 0);
 }
 
 inline
@@ -665,7 +637,7 @@ CxPlatEventQEnqueue(
     )
 {
     CxPlatZeroMemory(sqe, sizeof(*sqe));
-    return PostQueuedCompletionStatus(queue->Iocp, 0, (ULONG_PTR)user_data, sqe) != 0;
+    return PostQueuedCompletionStatus(*queue, 0, (ULONG_PTR)user_data, sqe) != 0;
 }
 
 inline
@@ -678,19 +650,7 @@ CxPlatEventQEnqueueEx( // Windows specific extension
     )
 {
     CxPlatZeroMemory(sqe, sizeof(*sqe));
-    return PostQueuedCompletionStatus(queue->Iocp, num_bytes, (ULONG_PTR)user_data, sqe) != 0;
-}
-
-inline
-BOOLEAN
-CxPlatEventQWake(
-    _In_ CXPLAT_EVENTQ* queue
-    )
-{
-    return
-        InterlockedFetchAndSetBoolean(&queue->Running) ?
-            TRUE : // Already running
-            CxPlatEventQEnqueue(queue, queue->WakeEvent, queue->WakeEventUserData);
+    return PostQueuedCompletionStatus(*queue, num_bytes, (ULONG_PTR)user_data, sqe) != 0;
 }
 
 inline
@@ -703,14 +663,7 @@ CxPlatEventQDequeue(
     )
 {
     ULONG out_count = 0;
-    if (wait_time) {
-        InterlockedFetchAndClearBoolean(&queue->Running);
-        BOOL Result = GetQueuedCompletionStatusEx(queue->Iocp, events, count, &out_count, wait_time, FALSE);
-        InterlockedFetchAndSetBoolean(&queue->Running);
-        if (!Result) return FALSE;
-    } else {
-        if (!GetQueuedCompletionStatusEx(queue->Iocp, events, count, &out_count, 0, FALSE)) return FALSE;
-    }
+    if (!GetQueuedCompletionStatusEx(*queue, events, count, &out_count, wait_time, FALSE)) return FALSE;
     CXPLAT_DBG_ASSERT(out_count != 0);
     CXPLAT_DBG_ASSERT(events[0].lpOverlapped != NULL || out_count == 1);
     return events[0].lpOverlapped == NULL ? 0 : (uint32_t)out_count;

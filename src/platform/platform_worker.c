@@ -79,6 +79,11 @@ typedef struct QUIC_CACHEALIGN CXPLAT_WORKER {
     BOOLEAN InitializedThread : 1;
     BOOLEAN InitializedECLock : 1;
 
+    //
+    // Must not be bitfield.
+    //
+    BOOLEAN Running;
+
 } CXPLAT_WORKER;
 
 CXPLAT_LOCK CxPlatWorkerLock;
@@ -184,10 +189,6 @@ CxPlatWorkersLazyStart(
             goto Error;
         }
         CxPlatWorkers[i].InitializedUpdatePollSqe = TRUE;
-#endif
-#ifdef WIN32
-        CxPlatWorkers[i].EventQ.WakeEvent = &CxPlatWorkers[i].WakeSqe;
-        CxPlatWorkers[i].EventQ.WakeEventUserData = (void*)&WorkerWakeEventPayload;
 #endif
         if (QUIC_FAILED(
             CxPlatThreadCreate(&ThreadConfig, &CxPlatWorkers[i].Thread))) {
@@ -318,11 +319,9 @@ CxPlatWakeExecutionContext(
     )
 {
     CXPLAT_WORKER* Worker = (CXPLAT_WORKER*)Context->CxPlatContext;
-#ifdef WIN32
-    CxPlatEventQWake(&Worker->EventQ);
-#else
-    CxPlatEventQEnqueue(&Worker->EventQ, &Worker->WakeSqe, (void*)&WorkerWakeEventPayload);
-#endif
+    if (!InterlockedFetchAndSetBoolean(&Worker->Running)) {
+        CxPlatEventQEnqueue(&Worker->EventQ, &Worker->WakeSqe, (void*)&WorkerWakeEventPayload);
+    }
 }
 
 void
@@ -401,6 +400,7 @@ CxPlatProcessEvents(
 {
     CXPLAT_CQE Cqes[16];
     uint32_t CqeCount = CxPlatEventQDequeue(&Worker->EventQ, Cqes, ARRAYSIZE(Cqes), State->WaitTime);
+    InterlockedFetchAndSetBoolean(&Worker->Running);
     if (CqeCount != 0) {
         State->NoWorkCount = 0;
         for (uint32_t i = 0; i < CqeCount; ++i) {
@@ -440,9 +440,7 @@ CXPLAT_THREAD_CALLBACK(CxPlatWorkerThread, Context)
 
     CXPLAT_EXECUTION_STATE State = { 0, CxPlatTimeUs64(), UINT32_MAX, 0, CxPlatCurThreadID() };
 
-#ifdef WIN32
-    CxPlatEventQSetRunning(&Worker->EventQ, State.ThreadID);
-#endif
+    Worker->Running = TRUE;
 
     while (TRUE) {
 
@@ -450,7 +448,10 @@ CXPLAT_THREAD_CALLBACK(CxPlatWorkerThread, Context)
         State.WaitTime = UINT32_MAX;
         ++State.NoWorkCount;
 
-        CxPlatRunExecutionContexts(Worker, &State);
+        do {
+            CxPlatRunExecutionContexts(Worker, &State);
+        } while (State.WaitTime && InterlockedFetchAndClearBoolean(&Worker->Running));
+
         if (CxPlatProcessEvents(Worker, &State)) {
             goto Shutdown;
         }
@@ -465,9 +466,7 @@ CXPLAT_THREAD_CALLBACK(CxPlatWorkerThread, Context)
 
 Shutdown:
 
-#ifdef WIN32
-    CxPlatEventQSetIdle(&Worker->EventQ);
-#endif
+    Worker->Running = FALSE;
 
     QuicTraceLogInfo(
         PlatformWorkerThreadStop,
