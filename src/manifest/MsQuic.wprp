@@ -176,7 +176,6 @@
         <EventCollectorId Value="EC_LowVolume">
           <EventProviders>
             <EventProviderId Value="EP_MsQuicEtw_LowVolume" />
-            <EventProviderId Value="EP_XdpEtwPerFrame" />
           </EventProviders>
         </EventCollectorId>
       </Collectors>
@@ -236,7 +235,6 @@
           <EventProviders>
             <EventProviderId Value="EP_MsQuicEtw" />
             <EventProviderId Value="EP_TaefEtw" />
-            <EventProviderId Value="EP_XdpEtwPerFrame" />
           </EventProviders>
         </EventCollectorId>
       </Collectors>
