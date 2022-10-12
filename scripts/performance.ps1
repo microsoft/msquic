@@ -571,7 +571,8 @@ try {
     Remove-PerfServices
 
     if ($IsWindows) {
-        Cancel-RemoteLogs -RemoteDirectory $RemoteDirectory
+        # Best effort, try to cancel any outstanding logs
+        try { Cancel-RemoteLogs -RemoteDirectory $RemoteDirectory } catch { }
 
         try {
             $CopyToDirectory = "C:\RunningTests"
