@@ -18,11 +18,11 @@ The platform abstraction layer (or PAL) supports the following platforms:
 
 ### Basic OS Interfaces
 
-The most important and fundamental part of the PAL is the (mostly inline) definitions of may of the basic constructs exposed. Things like locks, event, interlocked operations, threads, time and more are all exposed. As mentioned above, most of these definitions are contained inline in a set of C headers, using `#define` macros. The goal here is for there to be little to no extra overhead from this layer; simply a minimal abstraction for the various interfaces.
+The most fundamental part of the PAL is definitions of basic constructs like locks, events, interlocked operations, threads, and time. Most of these definitions are implemented inline in C macros. The goal is to minimize overhead and simply be a minimal abstraction for various interfaces.
 
-### Data Path
+### Datapath
 
-Another large piece of the PAL is the abstraction of UDP and TCP sockets, named the "data path" layer. This layer is designed to be highly parallelized and as performant as possible on the various platforms supported.
+Another large piece of the PAL is the abstraction of UDP and TCP sockets, named the "datapath" layer. This layer is designed to be highly parallelized and performant.
 
 It uses asynchronous callbacks driven by the current execution model (see [below](#execution-model)) threads.
 
@@ -38,7 +38,7 @@ Related to Crypto, the TLS layer abstracts the necessary TLS functionality requi
 
 ### Platform Initialization
 
-The platform layer isn't completely stateless, and requires some setup and cleanup. This are split into two separate layers:
+The platform layer isn't completely stateless, and requires some setup and cleanup. This is split into two layers:
 
 #### Library Load
 
