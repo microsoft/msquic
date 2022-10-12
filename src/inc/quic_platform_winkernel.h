@@ -121,6 +121,15 @@ InterlockedFetchAndClearBoolean(
     return (BOOLEAN)InterlockedAnd8((char*)Target, 0);
 }
 
+inline
+BOOLEAN
+InterlockedFetchAndSetBoolean(
+    _Inout_ _Interlocked_operand_ BOOLEAN volatile *Target
+    )
+{
+    return (BOOLEAN)InterlockedOr8((char*)Target, 1);
+}
+
 //
 // Static Analysis Interfaces
 //

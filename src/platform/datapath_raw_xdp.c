@@ -33,20 +33,27 @@ Abstract:
 #define PORT_SET_TAG  'PpdX' // XdpP
 
 typedef struct XDP_INTERFACE XDP_INTERFACE;
+typedef struct XDP_WORKER XDP_WORKER;
 
 typedef struct XDP_QUEUE {
     const XDP_INTERFACE* Interface;
+    XDP_WORKER* Worker;
     struct XDP_QUEUE* Next;
+    DATAPATH_SQE IoSqe;
     uint8_t* RxBuffers;
     HANDLE RxXsk;
+    OVERLAPPED RxOv;
     XSK_RING RxFillRing;
     XSK_RING RxRing;
     HANDLE RxProgram;
     uint8_t* TxBuffers;
     HANDLE TxXsk;
+    OVERLAPPED TxOv;
     XSK_RING TxRing;
     XSK_RING TxCompletionRing;
-    BOOL Error;
+    BOOLEAN RxQueued;
+    BOOLEAN TxQueued;
+    BOOLEAN Error;
 
     CXPLAT_LIST_ENTRY WorkerTxQueue;
     CXPLAT_SLIST_ENTRY WorkerRxPool;
@@ -72,8 +79,10 @@ typedef struct XDP_INTERFACE {
 } XDP_INTERFACE;
 
 typedef struct QUIC_CACHEALIGN XDP_WORKER {
-    CXPLAT_EXECUTION_CONTEXT;
+    CXPLAT_EXECUTION_CONTEXT Ec;
+    DATAPATH_SQE ShutdownSqe;
     const struct XDP_DATAPATH* Xdp;
+    CXPLAT_EVENTQ* EventQ;
     XDP_QUEUE* Queues; // A linked list of queues, accessed by Next.
     uint16_t ProcIndex;
 } XDP_WORKER;
@@ -85,6 +94,7 @@ void XdpWorkerAddQueue(_In_ XDP_WORKER* Worker, _In_ XDP_QUEUE* Queue) {
     }
     *Tail = Queue;
     Queue->Next = NULL;
+    Queue->Worker = Worker;
 }
 
 typedef struct XDP_DATAPATH {
@@ -99,6 +109,7 @@ typedef struct XDP_DATAPATH {
     uint32_t RxRingSize;
     uint32_t TxBufferCount;
     uint32_t TxRingSize;
+    uint32_t PollingIdleTimeoutUs;
     BOOLEAN TxAlwaysPoke;
     BOOLEAN SkipXsum;
     BOOLEAN Running;        // Signal to stop workers.
@@ -454,15 +465,6 @@ CxPlatDpRawInterfaceUninitialize(
         XDP_QUEUE *Queue = &Interface->Queues[i];
 
         if (Queue->TxXsk != NULL) {
-#if DEBUG
-            QUIC_STATUS Status;
-            XSK_STATISTICS Stats;
-            uint32_t StatsSize = sizeof(Stats);
-            Status = XskGetSockopt(Queue->TxXsk, XSK_SOCKOPT_STATISTICS, &Stats, &StatsSize);
-            if (QUIC_SUCCEEDED(Status)) {
-                printf("[%u-%u]txInvalidDescriptors: %llu\n", Interface->IfIndex, i, Stats.txInvalidDescriptors);
-            }
-#endif
             CloseHandle(Queue->TxXsk);
         }
 
@@ -475,16 +477,6 @@ CxPlatDpRawInterfaceUninitialize(
         }
 
         if (Queue->RxXsk != NULL) {
-#if DEBUG
-            QUIC_STATUS Status;
-            XSK_STATISTICS Stats;
-            uint32_t StatsSize = sizeof(Stats);
-            Status = XskGetSockopt(Queue->RxXsk, XSK_SOCKOPT_STATISTICS, &Stats, &StatsSize);
-            if (QUIC_SUCCEEDED(Status)) {
-                printf("[%u-%u]rxDropped: %llu\n", Interface->IfIndex, i, Stats.rxDropped);
-                printf("[%u-%u]rxInvalidDescriptors: %llu\n", Interface->IfIndex, i, Stats.rxInvalidDescriptors);
-            }
-#endif
             CloseHandle(Queue->RxXsk);
         }
 
@@ -568,6 +560,7 @@ CxPlatDpRawInterfaceInitialize(
         CxPlatLockInitialize(&Queue->TxLock);
         CxPlatListInitializeHead(&Queue->TxQueue);
         CxPlatListInitializeHead(&Queue->WorkerTxQueue);
+        Queue->IoSqe.CqeType = CXPLAT_CQE_TYPE_SOCKET_IO;
 
         //
         // RX datapath.
@@ -788,9 +781,7 @@ CxPlatDpRawInterfaceInitialize(
     // Add each queue to a worker (round robin).
     //
     for (uint8_t i = 0; i < Interface->QueueCount; i++) {
-        XdpWorkerAddQueue(
-            &Xdp->Workers[i % Xdp->WorkerCount],
-            &Interface->Queues[i]);
+        XdpWorkerAddQueue(&Xdp->Workers[i % Xdp->WorkerCount], &Interface->Queues[i]);
     }
 
 Error:
@@ -999,6 +990,7 @@ CxPlatDpRawInitialize(
 
     CxPlatXdpReadConfig(Xdp);
     CxPlatListInitializeHead(&Xdp->Interfaces);
+    Xdp->PollingIdleTimeoutUs = Config ? Config->PollingIdleTimeoutUs : 0;
 
     if (Config && Config->ProcessorCount) {
         Xdp->WorkerCount = Config->ProcessorCount;
@@ -1007,6 +999,12 @@ CxPlatDpRawInitialize(
         Xdp->WorkerCount = CxPlatProcMaxCount();
         ProcessorList = NULL;
     }
+
+    QuicTraceLogVerbose(
+        XdpInitialize,
+        "[ xdp][%p] XDP initialized, %u procs",
+        Xdp,
+        Xdp->WorkerCount);
 
     PIP_ADAPTER_ADDRESSES Adapters = NULL;
     ULONG Error;
@@ -1078,11 +1076,6 @@ CxPlatDpRawInitialize(
                     CxPlatFree(Interface, IF_TAG);
                     continue;
                 }
-#if DEBUG
-                printf(
-                    "Bound XDP to interface %u (%wS) with %u RSS procs \n",
-                    Adapter->IfIndex, Adapter->Description, Interface->QueueCount);
-#endif
                 CxPlatListInsertTail(&Xdp->Interfaces, &Interface->Link);
             }
         }
@@ -1108,23 +1101,62 @@ CxPlatDpRawInitialize(
     Xdp->Running = TRUE;
     CxPlatRefInitialize(&Xdp->RefCount);
     for (uint32_t i = 0; i < Xdp->WorkerCount; i++) {
-        if (Xdp->Workers->Queues == NULL) {
+
+        XDP_WORKER* Worker = &Xdp->Workers[i];
+        if (Worker->Queues == NULL) {
             //
-            // Becasue queues are assigned in a round-robin manner, subsequent workers will not
-            // have a queue assigned. Stop the loop and update worker count.
+            // Because queues are assigned in a round-robin manner, subsequent
+            // workers will not have a queue assigned. Stop the loop and update
+            // worker count.
             //
             Xdp->WorkerCount = i;
             break;
         }
-        Xdp->Workers[i].Xdp = Xdp;
-        Xdp->Workers[i].ProcIndex = ProcessorList ? ProcessorList[i] : (uint16_t)i;
-        Xdp->Workers[i].Ready = TRUE;
-        Xdp->Workers[i].NextTimeUs = UINT64_MAX;
-        Xdp->Workers[i].Callback = CxPlatXdpExecute;
-        Xdp->Workers[i].Context = &Xdp->Workers[i];
+
+        Worker->Xdp = Xdp;
+        Worker->ProcIndex = ProcessorList ? ProcessorList[i] : (uint16_t)i;
+        Worker->Ec.Ready = TRUE;
+        Worker->Ec.NextTimeUs = UINT64_MAX;
+        Worker->Ec.Callback = CxPlatXdpExecute;
+        Worker->Ec.Context = &Xdp->Workers[i];
+        Worker->ShutdownSqe.CqeType = CXPLAT_CQE_TYPE_SOCKET_SHUTDOWN;
         CxPlatRefIncrement(&Xdp->RefCount);
-        CxPlatAddExecutionContext(
-            (CXPLAT_EXECUTION_CONTEXT*)&Xdp->Workers[i], Xdp->Workers[i].ProcIndex);
+        Worker->EventQ = CxPlatWorkerGetEventQ(Worker->ProcIndex);
+
+        uint32_t QueueCount = 0;
+        XDP_QUEUE* Queue = Worker->Queues;
+        while (Queue) {
+            if (!CxPlatEventQAssociateHandle(Worker->EventQ, Queue->RxXsk, &Queue->IoSqe)) {
+                QuicTraceEvent(
+                    LibraryErrorStatus,
+                    "[ lib] ERROR, %u, %s.",
+                    GetLastError(),
+                    "CreateIoCompletionPort(RX)");
+            }
+            if (!CxPlatEventQAssociateHandle(Worker->EventQ, Queue->TxXsk, &Queue->IoSqe)) {
+                QuicTraceEvent(
+                    LibraryErrorStatus,
+                    "[ lib] ERROR, %u, %s.",
+                    GetLastError(),
+                    "CreateIoCompletionPort(TX)");
+            }
+            QuicTraceLogVerbose(
+                XdpQueueStart,
+                "[ xdp][%p] XDP queue start on worker %p",
+                Queue,
+                Worker);
+            ++QueueCount;
+            Queue = Queue->Next;
+        }
+
+        QuicTraceLogVerbose(
+            XdpWorkerStart,
+            "[ xdp][%p] XDP worker start, %u queues",
+            Worker,
+            QueueCount);
+        UNREFERENCED_PARAMETER(QueueCount);
+
+        CxPlatAddExecutionContext(&Worker->Ec, Worker->ProcIndex);
     }
     Status = QUIC_STATUS_SUCCESS;
 
@@ -1148,7 +1180,15 @@ CxPlatDpRawRelease(
     _In_ XDP_DATAPATH* Xdp
     )
 {
+    QuicTraceLogVerbose(
+        XdpRelease,
+        "[ xdp][%p] XDP release",
+        Xdp);
     if (CxPlatRefDecrement(&Xdp->RefCount)) {
+        QuicTraceLogVerbose(
+            XdpUninitializeComplete,
+            "[ xdp][%p] XDP uninitialize complete",
+            Xdp);
         while (!CxPlatListIsEmpty(&Xdp->Interfaces)) {
             XDP_INTERFACE* Interface =
                 CONTAINING_RECORD(CxPlatListRemoveHead(&Xdp->Interfaces), XDP_INTERFACE, Link);
@@ -1166,7 +1206,15 @@ CxPlatDpRawUninitialize(
     )
 {
     XDP_DATAPATH* Xdp = (XDP_DATAPATH*)Datapath;
+    QuicTraceLogVerbose(
+        XdpUninitialize,
+        "[ xdp][%p] XDP uninitialize",
+        Xdp);
     Xdp->Running = FALSE;
+    for (uint32_t i = 0; i < Xdp->WorkerCount; i++) {
+        Xdp->Workers[i].Ec.Ready = TRUE;
+        CxPlatWakeExecutionContext(&Xdp->Workers[i].Ec);
+    }
     CxPlatDpRawRelease(Xdp);
 }
 
@@ -1432,7 +1480,11 @@ CxPlatXdpRx(
         QUIC_STATUS XskStatus;
         uint32_t ErrorSize = sizeof(ErrorStatus);
         XskStatus = XskGetSockopt(Queue->RxXsk, XSK_SOCKOPT_RX_ERROR, &ErrorStatus, &ErrorSize);
-        printf("RX ring error: 0x%x\n", SUCCEEDED(XskStatus) ? ErrorStatus : XskStatus);
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            SUCCEEDED(XskStatus) ? ErrorStatus : XskStatus,
+            "XSK_SOCKOPT_RX_ERROR");
         Queue->Error = TRUE;
     }
 
@@ -1521,10 +1573,14 @@ CxPlatDpRawTxEnqueue(
     )
 {
     XDP_TX_PACKET* Packet = (XDP_TX_PACKET*)SendData;
+    XDP_WORKER* Worker = Packet->Queue->Worker;
 
     CxPlatLockAcquire(&Packet->Queue->TxLock);
     CxPlatListInsertTail(&Packet->Queue->TxQueue, &Packet->Link);
     CxPlatLockRelease(&Packet->Queue->TxLock);
+
+    Worker->Ec.Ready = TRUE;
+    CxPlatWakeExecutionContext(&Worker->Ec);
 }
 
 static
@@ -1593,7 +1649,11 @@ CxPlatXdpTx(
         QUIC_STATUS XskStatus;
         uint32_t ErrorSize = sizeof(ErrorStatus);
         XskStatus = XskGetSockopt(Queue->TxXsk, XSK_SOCKOPT_TX_ERROR, &ErrorStatus, &ErrorSize);
-        printf("TX ring error: 0x%x\n", SUCCEEDED(XskStatus) ? ErrorStatus : XskStatus);
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            SUCCEEDED(XskStatus) ? ErrorStatus : XskStatus,
+            "XSK_SOCKOPT_TX_ERROR");
         Queue->Error = TRUE;
     }
 
@@ -1611,9 +1671,26 @@ CxPlatXdpExecute(
     const XDP_DATAPATH* Xdp = Worker->Xdp;
 
     if (!Xdp->Running) {
-        CxPlatDpRawRelease((XDP_DATAPATH*)Xdp);
+        QuicTraceLogVerbose(
+            XdpWorkerShutdown,
+            "[ xdp][%p] XDP worker shutdown",
+            Worker);
+        XDP_QUEUE* Queue = Worker->Queues;
+        while (Queue) {
+            CancelIoEx(Queue->RxXsk, NULL);
+            CloseHandle(Queue->RxXsk);
+            Queue->RxXsk = NULL;
+            CancelIoEx(Queue->TxXsk, NULL);
+            CloseHandle(Queue->TxXsk);
+            Queue->TxXsk = NULL;
+            Queue = Queue->Next;
+        }
+        CxPlatEventQEnqueue(Worker->EventQ, &Worker->ShutdownSqe.Sqe, &Worker->ShutdownSqe);
         return FALSE;
     }
+
+    const BOOLEAN PollingExpired =
+        CxPlatTimeDiff64(State->LastWorkTime, State->TimeNow) >= Xdp->PollingIdleTimeoutUs;
 
     BOOLEAN DidWork = FALSE;
     XDP_QUEUE* Queue = Worker->Queues;
@@ -1623,9 +1700,54 @@ CxPlatXdpExecute(
         Queue = Queue->Next;
     }
 
-    Worker->Ready = TRUE;
     if (DidWork) {
+        Worker->Ec.Ready = TRUE;
         State->NoWorkCount = 0;
+    } else if (!PollingExpired) {
+        Worker->Ec.Ready = TRUE;
+    } else {
+        Queue = Worker->Queues;
+        while (Queue) {
+            if (!Queue->RxQueued) {
+                QuicTraceLogVerbose(
+                    XdpQueueAsyncIoRx,
+                    "[ xdp][%p] XDP async IO start (RX)",
+                    Queue);
+                CxPlatZeroMemory(&Queue->RxOv, sizeof(Queue->RxOv));
+                HRESULT hr = XskNotifyAsync(Queue->RxXsk, XSK_NOTIFY_FLAG_WAIT_RX, &Queue->RxOv);
+                if (hr == HRESULT_FROM_WIN32(ERROR_IO_PENDING)) {
+                    Queue->RxQueued = TRUE;
+                } else if (hr == S_OK) {
+                    Worker->Ec.Ready = TRUE;
+                } else {
+                    QuicTraceEvent(
+                        LibraryErrorStatus,
+                        "[ lib] ERROR, %u, %s.",
+                        hr,
+                        "XskNotifyAsync(RX)");
+                }
+            }
+            if (!Queue->TxQueued) {
+                QuicTraceLogVerbose(
+                    XdpQueueAsyncIoTx,
+                    "[ xdp][%p] XDP async IO start (TX)",
+                    Queue);
+                CxPlatZeroMemory(&Queue->TxOv, sizeof(Queue->TxOv));
+                HRESULT hr = XskNotifyAsync(Queue->TxXsk, XSK_NOTIFY_FLAG_WAIT_TX, &Queue->TxOv);
+                if (hr == HRESULT_FROM_WIN32(ERROR_IO_PENDING)) {
+                    Queue->TxQueued = TRUE;
+                } else if (hr == S_OK) {
+                    Worker->Ec.Ready = TRUE;
+                } else {
+                    QuicTraceEvent(
+                        LibraryErrorStatus,
+                        "[ lib] ERROR, %u, %s.",
+                        hr,
+                        "XskNotifyAsync(TX)");
+                }
+            }
+            Queue = Queue->Next;
+        }
     }
 
     return TRUE;
@@ -1636,6 +1758,30 @@ CxPlatDataPathProcessCqe(
     _In_ CXPLAT_CQE* Cqe
     )
 {
-    // No events (yet)
-    UNREFERENCED_PARAMETER(Cqe);
+    if (CxPlatCqeType(Cqe) == CXPLAT_CQE_TYPE_SOCKET_IO) {
+        XDP_QUEUE* Queue =
+            CONTAINING_RECORD(CxPlatCqeUserData(Cqe), XDP_QUEUE, IoSqe);
+        if (Cqe->lpOverlapped == &Queue->RxOv) {
+            QuicTraceLogVerbose(
+                XdpQueueAsyncIoRxComplete,
+                "[ xdp][%p] XDP async IO complete (RX)",
+                Queue);
+            Queue->RxQueued = FALSE;
+        } else {
+            QuicTraceLogVerbose(
+                XdpQueueAsyncIoTxComplete,
+                "[ xdp][%p] XDP async IO complete (TX)",
+                Queue);
+            Queue->TxQueued = FALSE;
+        }
+        Queue->Worker->Ec.Ready = TRUE;
+    } else if (CxPlatCqeType(Cqe) == CXPLAT_CQE_TYPE_SOCKET_SHUTDOWN) {
+        XDP_WORKER* Worker =
+            CONTAINING_RECORD(CxPlatCqeUserData(Cqe), XDP_WORKER, ShutdownSqe);
+        QuicTraceLogVerbose(
+            XdpWorkerShutdownComplete,
+            "[ xdp][%p] XDP worker shutdown complete",
+            Worker);
+        CxPlatDpRawRelease((XDP_DATAPATH*)Worker->Xdp);
+    }
 }

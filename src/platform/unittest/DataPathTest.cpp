@@ -430,7 +430,8 @@ struct CxPlatDataPath {
     CxPlatDataPath(
         _In_opt_ const CXPLAT_UDP_DATAPATH_CALLBACKS* UdpCallbacks,
         _In_opt_ const CXPLAT_TCP_DATAPATH_CALLBACKS* TcpCallbacks = nullptr,
-        _In_ uint32_t ClientRecvContextLength = 0
+        _In_ uint32_t ClientRecvContextLength = 0,
+        _In_opt_ QUIC_EXECUTION_CONFIG* Config = nullptr
         ) noexcept
     {
         InitStatus =
@@ -438,7 +439,7 @@ struct CxPlatDataPath {
                 ClientRecvContextLength,
                 UdpCallbacks,
                 TcpCallbacks,
-                nullptr,
+                Config,
                 &Datapath);
     }
     ~CxPlatDataPath() noexcept {
@@ -652,6 +653,30 @@ TEST_F(DataPathTest, Initialize)
         VERIFY_QUIC_SUCCESS(Datapath.GetInitStatus());
         ASSERT_NE(nullptr, Datapath.Datapath);
     }
+    {
+        QUIC_EXECUTION_CONFIG Config = { QUIC_EXECUTION_CONFIG_FLAG_NONE, UINT32_MAX, 0 };
+        CxPlatDataPath Datapath(&EmptyUdpCallbacks, nullptr, 0, &Config);
+        VERIFY_QUIC_SUCCESS(Datapath.GetInitStatus());
+        ASSERT_NE(nullptr, Datapath.Datapath);
+    }
+    {
+        QUIC_EXECUTION_CONFIG Config = { QUIC_EXECUTION_CONFIG_FLAG_NONE, 0, 0 };
+        CxPlatDataPath Datapath(&EmptyUdpCallbacks, nullptr, 0, &Config);
+        VERIFY_QUIC_SUCCESS(Datapath.GetInitStatus());
+        ASSERT_NE(nullptr, Datapath.Datapath);
+    }
+    {
+        QUIC_EXECUTION_CONFIG Config = { QUIC_EXECUTION_CONFIG_FLAG_NONE, UINT32_MAX, 1, {0} };
+        CxPlatDataPath Datapath(&EmptyUdpCallbacks, nullptr, 0, &Config);
+        VERIFY_QUIC_SUCCESS(Datapath.GetInitStatus());
+        ASSERT_NE(nullptr, Datapath.Datapath);
+    }
+    {
+        QUIC_EXECUTION_CONFIG Config = { QUIC_EXECUTION_CONFIG_FLAG_NONE, 0, 1, {0} };
+        CxPlatDataPath Datapath(&EmptyUdpCallbacks, nullptr, 0, &Config);
+        VERIFY_QUIC_SUCCESS(Datapath.GetInitStatus());
+        ASSERT_NE(nullptr, Datapath.Datapath);
+    }
 }
 
 TEST_F(DataPathTest, InitializeInvalid)
@@ -704,6 +729,42 @@ TEST_P(DataPathTest, UdpData)
 {
     UdpRecvContext RecvContext;
     CxPlatDataPath Datapath(&UdpRecvCallbacks);
+    VERIFY_QUIC_SUCCESS(Datapath.GetInitStatus());
+    ASSERT_NE(nullptr, Datapath.Datapath);
+
+    auto unspecAddress = GetNewUnspecAddr();
+    CxPlatSocket Server(Datapath, &unspecAddress.SockAddr, nullptr, &RecvContext);
+    while (Server.GetInitStatus() == QUIC_STATUS_ADDRESS_IN_USE) {
+        unspecAddress.SockAddr.Ipv4.sin_port = GetNextPort();
+        Server.CreateUdp(Datapath, &unspecAddress.SockAddr, nullptr, &RecvContext);
+    }
+    VERIFY_QUIC_SUCCESS(Server.GetInitStatus());
+    ASSERT_NE(nullptr, Server.Socket);
+
+    auto serverAddress = GetNewLocalAddr();
+    RecvContext.DestinationAddress = serverAddress.SockAddr;
+    RecvContext.DestinationAddress.Ipv4.sin_port = Server.GetLocalAddress().Ipv4.sin_port;
+    ASSERT_NE(RecvContext.DestinationAddress.Ipv4.sin_port, (uint16_t)0);
+
+    CxPlatSocket Client(Datapath, nullptr, &RecvContext.DestinationAddress, &RecvContext);
+    VERIFY_QUIC_SUCCESS(Client.GetInitStatus());
+    ASSERT_NE(nullptr, Client.Socket);
+
+    auto ClientSendData = CxPlatSendDataAlloc(Client, CXPLAT_ECN_NON_ECT, 0, &Client.Route);
+    ASSERT_NE(nullptr, ClientSendData);
+    auto ClientBuffer = CxPlatSendDataAllocBuffer(ClientSendData, ExpectedDataSize);
+    ASSERT_NE(nullptr, ClientBuffer);
+    memcpy(ClientBuffer->Buffer, ExpectedData, ExpectedDataSize);
+
+    VERIFY_QUIC_SUCCESS(Client.Send(ClientSendData));
+    ASSERT_TRUE(CxPlatEventWaitWithTimeout(RecvContext.ClientCompletion, 2000));
+}
+
+TEST_P(DataPathTest, UdpDataPolling)
+{
+    QUIC_EXECUTION_CONFIG Config = { QUIC_EXECUTION_CONFIG_FLAG_NONE, UINT32_MAX, 0 };
+    UdpRecvContext RecvContext;
+    CxPlatDataPath Datapath(&UdpRecvCallbacks, nullptr, 0, &Config);
     VERIFY_QUIC_SUCCESS(Datapath.GetInitStatus());
     ASSERT_NE(nullptr, Datapath.Datapath);
 
