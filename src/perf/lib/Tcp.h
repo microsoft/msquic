@@ -118,7 +118,7 @@ class TcpWorker {
     bool Initialize(TcpEngine* _Engine);
     void Shutdown();
     static CXPLAT_THREAD_CALLBACK(WorkerThread, Context);
-    void QueueConnection(TcpConnection* Connection);
+    bool QueueConnection(TcpConnection* Connection);
 };
 
 class TcpServer {
@@ -235,7 +235,7 @@ class TcpConnection {
         _In_reads_(TicketLength) const uint8_t* Ticket
         );
     ~TcpConnection();
-    void Queue() { Worker->QueueConnection(this); }
+    bool Queue() { return Worker->QueueConnection(this); }
     void Process();
     bool InitializeTls();
     bool ProcessTls(const uint8_t* Buffer, uint32_t BufferLength);
@@ -249,7 +249,7 @@ class TcpConnection {
     QUIC_BUFFER* NewSendBuffer();
     void FreeSendBuffer(QUIC_BUFFER* SendBuffer);
     bool FinalizeSendBuffer(QUIC_BUFFER* SendBuffer);
-    void AddRef() { CxPlatRefIncrement(&Ref); }
+    bool TryAddRef() { return CxPlatRefIncrementNonZero(&Ref, 1) != FALSE; }
     void Release() { if (CxPlatRefDecrement(&Ref)) delete this; }
 public:
     void* Context{nullptr}; // App context
