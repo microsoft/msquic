@@ -752,7 +752,6 @@ CXPLAT_THREAD_CALLBACK(QuicWorkerThread, Context)
         if (State.NoWorkCount == 0) {
             State.LastWorkTime = State.TimeNow;
         }
-        State.TimeNow = CxPlatTimeUs64();
     }
 
     QuicTraceEvent(
