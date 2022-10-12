@@ -40,11 +40,12 @@ QuicWorkerThreadWake(
     _In_ QUIC_WORKER* Worker
     )
 {
-    Worker->ExecutionContext.Ready = TRUE; // Run the execution context
-    if (Worker->IsExternal) {
-        CxPlatWakeExecutionContext(&Worker->ExecutionContext);
-    } else {
-        CxPlatEventSet(Worker->Ready);
+    if (!InterlockedFetchAndSetBoolean(&Worker->ExecutionContext.Ready)) {
+        if (Worker->IsExternal) {
+            CxPlatWakeExecutionContext(&Worker->ExecutionContext);
+        } else {
+            CxPlatEventSet(Worker->Ready);
+        }
     }
 }
 
@@ -666,7 +667,7 @@ QuicWorkerLoop(
     QUIC_CONNECTION* Connection = QuicWorkerGetNextConnection(Worker);
     if (Connection != NULL) {
         QuicWorkerProcessConnection(Worker, Connection, State->ThreadID, &State->TimeNow);
-        Worker->ExecutionContext.Ready = TRUE;
+        InterlockedFetchAndSetBoolean(&Worker->ExecutionContext.Ready);
         State->TimeNow = CxPlatTimeUs64();
         State->NoWorkCount = 0;
     }
@@ -678,7 +679,7 @@ QuicWorkerLoop(
             Operation->STATELESS.Context);
         QuicOperationFree(Worker, Operation);
         QuicPerfCounterIncrement(QUIC_PERF_COUNTER_WORK_OPER_COMPLETED);
-        Worker->ExecutionContext.Ready = TRUE;
+        InterlockedFetchAndSetBoolean(&Worker->ExecutionContext.Ready);
         State->TimeNow = CxPlatTimeUs64();
         State->NoWorkCount = 0;
     }
@@ -696,7 +697,7 @@ QuicWorkerLoop(
         // Busy loop for a while to keep the thread hot in case new work comes
         // in.
         //
-        Worker->ExecutionContext.Ready = TRUE;
+        InterlockedFetchAndSetBoolean(&Worker->ExecutionContext.Ready);
         State->TimeNow = CxPlatTimeUs64();
         return TRUE;
     }
