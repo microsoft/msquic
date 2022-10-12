@@ -89,6 +89,8 @@ public:
 };
 
 static QUIC_API_TABLE MsQuic;
+// This locks MsQuicOpen2 in RunThread when statically linked with libmsquic
+CXPLAT_LOCK RunThreadLock;
 
 const uint32_t MaxBufferSizes[] = { 0, 1, 2, 32, 50, 256, 500, 1000, 1024, 1400, 5000, 10000, 64000, 10000000 };
 static const size_t BufferCount = ARRAYSIZE(MaxBufferSizes);
@@ -938,7 +940,9 @@ CXPLAT_THREAD_CALLBACK(RunThread, Context)
             ASSERT_ON_NOT(Gb.Buffers[j].Buffer);
         }
 
+        CxPlatLockAcquire(&RunThreadLock);
         QUIC_STATUS Status = MsQuicOpen2(&Gb.MsQuic);
+        CxPlatLockRelease(&RunThreadLock);
         if (QUIC_FAILED(Status)) {
             break;
         }
@@ -1074,6 +1078,7 @@ main(int argc, char **argv)
         PrintHelpText();
     }
 
+    CxPlatLockInitialize(&RunThreadLock);
     CxPlatSystemLoad();
     CxPlatInitialize();
 
