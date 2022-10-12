@@ -440,8 +440,11 @@ TcpConnection::ReceiveCallback(
     *Tail = RecvDataChain;
     CxPlatDispatchLockRelease(&This->Lock);
     if (!This->Queue()) {
-        CxPlatRecvDataReturn(This->ReceiveData); // No need to lock since the other thread is blocked in delete.
+        CxPlatDispatchLockAcquire(&This->Lock);
+        RecvDataChain = This->ReceiveData;
         This->ReceiveData = nullptr;
+        CxPlatDispatchLockRelease(&This->Lock);
+        CxPlatRecvDataReturn(RecvDataChain);
     }
 }
 
