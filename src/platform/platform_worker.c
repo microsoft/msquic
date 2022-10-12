@@ -352,8 +352,11 @@ CxPlatRunExecutionContexts(
     )
 {
     if (Worker->ExecutionContexts == NULL) {
+        State->WaitTime = UINT32_MAX;
         return;
     }
+
+    State->TimeNow = CxPlatTimeUs64();
 
     uint64_t NextTime = UINT64_MAX;
     CXPLAT_SLIST_ENTRY** EC = &Worker->ExecutionContexts;
@@ -389,6 +392,8 @@ CxPlatRunExecutionContexts(
         } else {
             State->WaitTime = UINT32_MAX-1;
         }
+    } else {
+        State->WaitTime = UINT32_MAX;
     }
 }
 
@@ -444,13 +449,12 @@ CXPLAT_THREAD_CALLBACK(CxPlatWorkerThread, Context)
 
     while (TRUE) {
 
-        State.TimeNow = CxPlatTimeUs64();
-        State.WaitTime = UINT32_MAX;
         ++State.NoWorkCount;
 
-        do {
-            CxPlatRunExecutionContexts(Worker, &State);
-        } while (State.WaitTime && InterlockedFetchAndClearBoolean(&Worker->Running));
+        CxPlatRunExecutionContexts(Worker, &State);
+        if (State.WaitTime && InterlockedFetchAndClearBoolean(&Worker->Running)) {
+            CxPlatRunExecutionContexts(Worker, &State); // Run once more to handle race conditions
+        }
 
         if (CxPlatProcessEvents(Worker, &State)) {
             goto Shutdown;
