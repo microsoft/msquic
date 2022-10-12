@@ -46,13 +46,6 @@ typedef struct QUIC_CACHEALIGN QUIC_WORKER {
     //
     uint32_t AverageQueueDelay;
 
-#ifdef QUIC_WORKER_POLLING
-    //
-    // The number of poll loops that have been executed.
-    //
-    uint32_t PollCount;
-#endif // QUIC_WORKER_POLLING
-
     //
     // Timers for the worker's connections.
     //
