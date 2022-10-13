@@ -1078,9 +1078,9 @@ main(int argc, char **argv)
         PrintHelpText();
     }
 
-    CxPlatLockInitialize(&RunThreadLock);
     CxPlatSystemLoad();
     CxPlatInitialize();
+    CxPlatLockInitialize(&RunThreadLock);
 
     uint32_t RepeatCount = 1;
 
@@ -1173,5 +1173,6 @@ main(int argc, char **argv)
         }
     }
 
+    CxPlatLockUninitialize(&RunThreadLock);
     return 0;
 }
