@@ -320,7 +320,7 @@ typedef struct QUIC_CREDENTIAL_CONFIG {
     void* Reserved; // Currently unused
     QUIC_CREDENTIAL_LOAD_COMPLETE_HANDLER AsyncHandler; // Optional
     QUIC_ALLOWED_CIPHER_SUITE_FLAGS AllowedCipherSuites;// Optional
-    char* CaCertificateFile;
+    const char* CaCertificateFile;
 } QUIC_CREDENTIAL_CONFIG;
 
 //

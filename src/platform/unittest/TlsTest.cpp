@@ -216,7 +216,7 @@ protected:
         // We need to switch the ca roots around since the server must
         // validate the client certificate and the client the server
         // certificate.
-        char *CaServerCaCertificateFile = CaSelfSignedCertParams->CaCertificateFile;
+        const char *CaServerCaCertificateFile = CaSelfSignedCertParams->CaCertificateFile;
         CaSelfSignedCertParams->CaCertificateFile = CaClientCertParams->CaCertificateFile;
         CaClientCertParams->CaCertificateFile = CaServerCaCertificateFile;
         CaClientCertParams->Flags |= QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION;

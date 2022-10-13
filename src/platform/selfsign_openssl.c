@@ -879,7 +879,7 @@ CxPlatGetSelfSignedCert(
             CaFileName,
             Params->CertFilepath,
             Params->PrivateKeyFilepath,
-            Params->CaCertificateFile)) {
+            (CreateCA ? Params->CaFilepath : NULL))) {
         goto Error;
     }
 
@@ -888,7 +888,7 @@ CxPlatGetSelfSignedCert(
             Params->CertFilepath,
             Params->PrivateKeyFilepath,
             CreateCA ?
-                Params->CaCertificateFile:
+                Params->CaFilepath:
                 NULL,
             ClientCertificate ?
                 (char *)"MsQuicClient":

@@ -1644,7 +1644,6 @@ CxPlatTlsInitialize(
     uint16_t ServerNameLength = 0;
     UNREFERENCED_PARAMETER(State);
 
-
     CXPLAT_DBG_ASSERT(Config->HkdfLabels);
 
     TlsContext = CXPLAT_ALLOC_NONPAGED(sizeof(CXPLAT_TLS), QUIC_POOL_TLS_CTX);
