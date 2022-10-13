@@ -478,7 +478,7 @@ function Invoke-Test {
     try {
         1..$NumIterations | ForEach-Object {
             Write-LogAndDebug "Running Local: $LocalExe Args: $LocalArguments"
-            $LocalResults = Invoke-LocalExe -Exe $LocalExe -RunArgs $LocalArguments -Timeout $Timeout -OutputDir $OutputDir
+            $LocalResults = Invoke-LocalExe -Exe $LocalExe -RunArgs $LocalArguments -Timeout $Timeout -OutputDir $OutputDir -ExtraFileName "histogram_$($_)_$Test.txt"
             Write-LogAndDebug $LocalResults
             $AllLocalParsedResults = Get-TestResult -Results $LocalResults -Matcher $Test.ResultsMatcher -FailureDefault $Test.FailureDefault
             $AllRunsResults += $AllLocalParsedResults
