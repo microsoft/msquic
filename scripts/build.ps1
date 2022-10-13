@@ -51,6 +51,9 @@ This script provides helpers for building msquic.
 .PARAMETER DynamicCRT
     Builds msquic with dynamic C runtime (Windows-only).
 
+.PARAMETER StaticCRT
+    Builds msquic with static C runtime (Windows-only).
+
 .PARAMETER PGO
     Builds msquic with profile guided optimization support (Windows-only).
 
@@ -159,6 +162,9 @@ param (
 
     [Parameter(Mandatory = $false)]
     [switch]$DynamicCRT = $false,
+
+    [Parameter(Mandatory = $false)]
+    [switch]$StaticCRT = $false,
 
     [Parameter(Mandatory = $false)]
     [switch]$PGO = $false,
@@ -417,8 +423,13 @@ function CMake-Generate {
         }
         $Arguments += " -DCMAKE_BUILD_TYPE=" + $ConfigToBuild
     }
-    if ($DynamicCRT) {
-        $Arguments += " -DQUIC_STATIC_LINK_CRT=off -DQUIC_STATIC_LINK_PARTIAL_CRT=off"
+    if ($IsWindows) {
+        if ($DynamicCRT) {
+            $Arguments += " -DQUIC_STATIC_LINK_CRT=off -DQUIC_STATIC_LINK_PARTIAL_CRT=off"
+        }
+        if ($StaticCRT) {
+            $Arguments += " -DQUIC_STATIC_LINK_CRT=on -DQUIC_STATIC_LINK_PARTIAL_CRT=off"
+        }
     }
     if ($PGO) {
         $Arguments += " -DQUIC_PGO=on"

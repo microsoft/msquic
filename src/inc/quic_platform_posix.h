@@ -186,6 +186,15 @@ InterlockedFetchAndClearBoolean(
 }
 
 inline
+BOOLEAN
+InterlockedFetchAndSetBoolean(
+    _Inout_ _Interlocked_operand_ BOOLEAN volatile *Target
+    )
+{
+    return __sync_fetch_and_or(Target, 1);
+}
+
+inline
 void*
 InterlockedFetchAndClearPointer(
     _Inout_ _Interlocked_operand_ void* volatile *Target

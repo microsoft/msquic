@@ -109,10 +109,10 @@ QuicSettingsSetDefault(
         Settings->VersionNegotiationExtEnabled = QUIC_DEFAULT_VERSION_NEGOTIATION_EXT_ENABLED;
     }
     if (!Settings->IsSet.MinimumMtu) {
-        Settings->MinimumMtu = QUIC_DPLPMUTD_DEFAULT_MIN_MTU;
+        Settings->MinimumMtu = QUIC_DPLPMTUD_DEFAULT_MIN_MTU;
     }
     if (!Settings->IsSet.MaximumMtu) {
-        Settings->MaximumMtu = QUIC_DPLPMUTD_DEFAULT_MAX_MTU;
+        Settings->MaximumMtu = QUIC_DPLPMTUD_DEFAULT_MAX_MTU;
     }
     if (!Settings->IsSet.MtuDiscoveryMissingProbeCount) {
         Settings->MtuDiscoveryMissingProbeCount = QUIC_DPLPMTUD_MAX_PROBES;
@@ -501,21 +501,21 @@ QuicSettingApply(
 
     if (AllowMtuChanges) {
         uint16_t MinimumMtu =
-            Destination->IsSet.MinimumMtu ? Destination->MinimumMtu : QUIC_DPLPMUTD_MIN_MTU;
+            Destination->IsSet.MinimumMtu ? Destination->MinimumMtu : QUIC_DPLPMTUD_MIN_MTU;
         uint16_t MaximumMtu =
             Destination->IsSet.MaximumMtu ? Destination->MaximumMtu : CXPLAT_MAX_MTU;
         if (Source->IsSet.MinimumMtu && (!Destination->IsSet.MinimumMtu || OverWrite)) {
             MinimumMtu = Source->MinimumMtu;
-            if (MinimumMtu < QUIC_DPLPMUTD_MIN_MTU) {
-                MinimumMtu = QUIC_DPLPMUTD_MIN_MTU;
+            if (MinimumMtu < QUIC_DPLPMTUD_MIN_MTU) {
+                MinimumMtu = QUIC_DPLPMTUD_MIN_MTU;
             } else if (MinimumMtu > CXPLAT_MAX_MTU) {
                 MinimumMtu = CXPLAT_MAX_MTU;
             }
         }
         if (Source->IsSet.MaximumMtu && (!Destination->IsSet.MaximumMtu || OverWrite)) {
             MaximumMtu = Source->MaximumMtu;
-            if (MaximumMtu < QUIC_DPLPMUTD_MIN_MTU) {
-                MaximumMtu = QUIC_DPLPMUTD_MIN_MTU;
+            if (MaximumMtu < QUIC_DPLPMTUD_MIN_MTU) {
+                MaximumMtu = QUIC_DPLPMTUD_MIN_MTU;
             } else if (MaximumMtu > CXPLAT_MAX_MTU) {
                 MaximumMtu = CXPLAT_MAX_MTU;
             }
@@ -1045,13 +1045,13 @@ VersionSettingsFail:
     }
     if (MaximumMtu > CXPLAT_MAX_MTU) {
         MaximumMtu = CXPLAT_MAX_MTU;
-    } else if (MaximumMtu < QUIC_DPLPMUTD_MIN_MTU) {
-        MaximumMtu = QUIC_DPLPMUTD_MIN_MTU;
+    } else if (MaximumMtu < QUIC_DPLPMTUD_MIN_MTU) {
+        MaximumMtu = QUIC_DPLPMTUD_MIN_MTU;
     }
     if (MinimumMtu > CXPLAT_MAX_MTU) {
         MinimumMtu = CXPLAT_MAX_MTU;
-    } else if (MinimumMtu < QUIC_DPLPMUTD_MIN_MTU) {
-        MinimumMtu = QUIC_DPLPMUTD_MIN_MTU;
+    } else if (MinimumMtu < QUIC_DPLPMTUD_MIN_MTU) {
+        MinimumMtu = QUIC_DPLPMTUD_MIN_MTU;
     }
     if (MinimumMtu <= MaximumMtu) {
         Settings->MaximumMtu = MaximumMtu;

@@ -44,6 +44,25 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, PacketRxNotAcked,
 
 
 /*----------------------------------------------------------
+// Decoder Ring for VersionInfoChosenVersionZero
+// [conn][%p] Version Info Chosen Version is zero!
+// QuicTraceLogConnError(
+                VersionInfoChosenVersionZero,
+                Connection,
+                "Version Info Chosen Version is zero!");
+// arg1 = arg1 = Connection = arg1
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_CONNECTION_C, VersionInfoChosenVersionZero,
+    TP_ARGS(
+        const void *, arg1), 
+    TP_FIELDS(
+        ctf_integer_hex(uint64_t, arg1, arg1)
+    )
+)
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for ClientVersionInfoVersionMismatch
 // [conn][%p] Client Chosen Version doesn't match long header. 0x%x != 0x%x
 // QuicTraceLogConnError(
@@ -65,6 +84,29 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, ClientVersionInfoVersionMismatch,
         ctf_integer_hex(uint64_t, arg1, arg1)
         ctf_integer(unsigned int, arg3, arg3)
         ctf_integer(unsigned int, arg4, arg4)
+    )
+)
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for VersionInfoOtherVersionZero
+// [conn][%p] Version Info.OtherVersions contains a zero version! Index = %u
+// QuicTraceLogConnError(
+                        VersionInfoOtherVersionZero,
+                        Connection,
+                        "Version Info.OtherVersions contains a zero version! Index = %u",
+                        ClientVersionIdx);
+// arg1 = arg1 = Connection = arg1
+// arg3 = arg3 = ClientVersionIdx = arg3
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_CONNECTION_C, VersionInfoOtherVersionZero,
+    TP_ARGS(
+        const void *, arg1,
+        unsigned int, arg3), 
+    TP_FIELDS(
+        ctf_integer_hex(uint64_t, arg1, arg1)
+        ctf_integer(unsigned int, arg3, arg3)
     )
 )
 

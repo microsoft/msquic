@@ -526,7 +526,6 @@ if(WIN32)
     if(QUIC_STATIC_LINK_PARTIAL_CRT)
         message(STATUS "Configuring for partially statically-linked CRT")
         set(CMAKE_SHARED_LINKER_FLAGS_RELEASE "${CMAKE_SHARED_LINKER_FLAGS_RELEASE} /NODEFAULTLIB:libucrt.lib /DEFAULTLIB:ucrt.lib")
-        set(CMAKE_SHARED_LINKER_FLAGS_DEBUG "${CMAKE_SHARED_LINKER_FLAGS_DEBUG} /NODEFAULTLIB:libucrtd.lib /DEFAULTLIB:ucrtd.lib")
     endif()
 
 else() #!WIN32

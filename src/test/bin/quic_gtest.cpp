@@ -914,15 +914,51 @@ TEST_P(WithHandshakeArgs7, CibirExtension) {
 #ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
 #if QUIC_TEST_DISABLE_VNE_TP_GENERATION
 TEST_P(WithHandshakeArgs8, OddSizeVnTp) {
-    TestLoggerT<ParamType> Logger("QuicTestOddSizeVNTP", GetParam());
+    TestLoggerT<ParamType> Logger("QuicTestVNTPOddSize", GetParam());
     if (TestingKernelMode) {
-        QUIC_RUN_ODD_SIZE_VN_TP_PARAMS Params = {
+        QUIC_RUN_VN_TP_ODD_SIZE_PARAMS Params = {
             GetParam().TestServer,
             GetParam().VnTpSize
         };
-        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_ODD_SIZE_VN_TP, Params));
+        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_VN_TP_ODD_SIZE, Params));
     } else {
-        QuicTestOddSizeVNTP(GetParam().TestServer, GetParam().VnTpSize);
+        QuicTestVNTPOddSize(GetParam().TestServer, GetParam().VnTpSize);
+    }
+}
+
+TEST_P(WithHandshakeArgs9, VnTpChosenVersionMismatch) {
+    TestLoggerT<ParamType> Logger("QuicTestVNTPChosenVersionMismatch", GetParam());
+    if (TestingKernelMode) {
+        ASSERT_TRUE(
+            DriverClient.Run(
+                IOCTL_QUIC_RUN_VN_TP_CHOSEN_VERSION_MISMATCH,
+                (uint8_t)GetParam()));
+    } else {
+        QuicTestVNTPChosenVersionMismatch(GetParam());
+    }
+}
+
+TEST_P(WithHandshakeArgs9, VnTpChosenVersionZero) {
+    TestLoggerT<ParamType> Logger("QuicTestVNTPChosenVersionZero", GetParam());
+    if (TestingKernelMode) {
+        ASSERT_TRUE(
+            DriverClient.Run(
+                IOCTL_QUIC_RUN_VN_TP_CHOSEN_VERSION_ZERO,
+                (uint8_t)GetParam()));
+    } else {
+        QuicTestVNTPChosenVersionZero(GetParam());
+    }
+}
+
+TEST_P(WithHandshakeArgs9, VnTpOtherVersionZero) {
+    TestLoggerT<ParamType> Logger("QuicTestVNTPOtherVersionZero", GetParam());
+    if (TestingKernelMode) {
+        ASSERT_TRUE(
+            DriverClient.Run(
+                IOCTL_QUIC_RUN_VN_TP_OTHER_VERSION_ZERO,
+                (uint8_t)GetParam()));
+    } else {
+        QuicTestVNTPOtherVersionZero(GetParam());
     }
 }
 #endif
@@ -1980,6 +2016,11 @@ INSTANTIATE_TEST_SUITE_P(
     Handshake,
     WithHandshakeArgs8,
     testing::ValuesIn(HandshakeArgs8::Generate()));
+
+INSTANTIATE_TEST_SUITE_P(
+    Handshake,
+    WithHandshakeArgs9,
+    ::testing::Values(false, true));
 #endif
 #endif
 

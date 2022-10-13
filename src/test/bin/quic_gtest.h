@@ -292,6 +292,10 @@ class WithHandshakeArgs8 : public testing::Test,
     public testing::WithParamInterface<HandshakeArgs8> {
 };
 
+class WithHandshakeArgs9 : public testing::Test,
+    public testing::WithParamInterface<bool> {
+};
+
 struct SendArgs1 {
     int Family;
     uint64_t Length;
