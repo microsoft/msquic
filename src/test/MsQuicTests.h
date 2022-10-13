@@ -304,6 +304,16 @@ void
 QuicTestVNTPChosenVersionMismatch(
     _In_ bool TestServer
     );
+
+void
+QuicTestVNTPChosenVersionZero(
+    _In_ bool TestServer
+    );
+
+void
+QuicTestVNTPOtherVersionZero(
+    _In_ bool TestServer
+    );
 #endif
 
 //
@@ -1122,4 +1132,10 @@ typedef struct {
 #define IOCTL_QUIC_RUN_VN_TP_CHOSEN_VERSION_MISMATCH \
     QUIC_CTL_CODE(104, METHOD_BUFFERED, FILE_WRITE_DATA)
 
-#define QUIC_MAX_IOCTL_FUNC_CODE 104
+#define IOCTL_QUIC_RUN_VN_TP_CHOSEN_VERSION_ZERO \
+    QUIC_CTL_CODE(105, METHOD_BUFFERED, FILE_WRITE_DATA)
+
+#define IOCTL_QUIC_RUN_VN_TP_OTHER_VERSION_ZERO \
+    QUIC_CTL_CODE(106, METHOD_BUFFERED, FILE_WRITE_DATA)
+
+#define QUIC_MAX_IOCTL_FUNC_CODE 106

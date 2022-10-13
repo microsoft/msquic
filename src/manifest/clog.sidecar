@@ -11010,6 +11010,18 @@
       ],
       "macroName": "QuicTraceLogConnVerbose"
     },
+    "VersionInfoChosenVersionZero": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] Version Info Chosen Version is zero!",
+      "UniqueId": "VersionInfoChosenVersionZero",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        }
+      ],
+      "macroName": "QuicTraceLogConnError"
+    },
     "VersionInfoDecodeFailed1": {
       "ModuleProperites": {},
       "TraceString": "[conn][%p] Version info too short to contain Chosen Version (%hu bytes)",
@@ -11037,6 +11049,22 @@
         },
         {
           "DefinationEncoding": "hu",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macroName": "QuicTraceLogConnError"
+    },
+    "VersionInfoOtherVersionZero": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] Version Info.OtherVersions contains a zero version! Index = %u",
+      "UniqueId": "VersionInfoOtherVersionZero",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        },
+        {
+          "DefinationEncoding": "u",
           "MacroVariableName": "arg3"
         }
       ],
@@ -15441,6 +15469,11 @@
         "EncodingString": "[conn][%p]   Ver[%d]: 0x%x"
       },
       {
+        "UniquenessHash": "0c7aa55b-0fac-8bf3-13f4-2a80e4a8b2ba",
+        "TraceID": "VersionInfoChosenVersionZero",
+        "EncodingString": "[conn][%p] Version Info Chosen Version is zero!"
+      },
+      {
         "UniquenessHash": "2222c403-3ef4-09ef-5b3c-aca16af3616d",
         "TraceID": "VersionInfoDecodeFailed1",
         "EncodingString": "[conn][%p] Version info too short to contain Chosen Version (%hu bytes)"
@@ -15449,6 +15482,11 @@
         "UniquenessHash": "3e7b261f-8077-d6f3-18ee-188f5cfe6b6b",
         "TraceID": "VersionInfoDecodeFailed2",
         "EncodingString": "[conn][%p] Version info too short to contain any Other Versions (%hu bytes)"
+      },
+      {
+        "UniquenessHash": "50beefb7-296c-9d5f-eecd-8a24023ac56e",
+        "TraceID": "VersionInfoOtherVersionZero",
+        "EncodingString": "[conn][%p] Version Info.OtherVersions contains a zero version! Index = %u"
       },
       {
         "UniquenessHash": "09622250-6902-8f51-16a4-41a81d9cfc14",

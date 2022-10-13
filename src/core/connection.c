@@ -2695,6 +2695,15 @@ QuicConnProcessPeerVersionNegotiationTP(
             return QUIC_STATUS_PROTOCOL_ERROR;
         }
 
+        if (ClientVI.ChosenVersion == 0) {
+            QuicTraceLogConnError(
+                VersionInfoChosenVersionZero,
+                Connection,
+                "Version Info Chosen Version is zero!");
+            QuicConnTransportError(Connection, QUIC_ERROR_TRANSPORT_PARAMETER_ERROR);
+            return QUIC_STATUS_PROTOCOL_ERROR;
+        }
+
         //
         // Assume QuicVersion on the Connection is the long header value
         // and verify it matches the VNE TP.
@@ -2710,11 +2719,6 @@ QuicConnProcessPeerVersionNegotiationTP(
             return QUIC_STATUS_PROTOCOL_ERROR;
         }
 
-        if (ClientVI.ChosenVersion == 0) {
-            QuicConnTransportError(Connection, QUIC_ERROR_TRANSPORT_PARAMETER_ERROR);
-            return QUIC_STATUS_PROTOCOL_ERROR;
-        }
-
         //
         // Attempt to upgrade the connection to a compatible version the server prefers.
         //
@@ -2723,6 +2727,15 @@ QuicConnProcessPeerVersionNegotiationTP(
                 continue;
             }
             for (uint32_t ClientVersionIdx = 0; ClientVersionIdx < ClientVI.OtherVersionsCount; ++ClientVersionIdx) {
+                if (ClientVI.OtherVersions[ClientVersionIdx] == 0) {
+                    QuicTraceLogConnError(
+                        VersionInfoOtherVersionZero,
+                        Connection,
+                        "Version Info.OtherVersions contains a zero version! Index = %u",
+                        ClientVersionIdx);
+                    QuicConnTransportError(Connection, QUIC_ERROR_TRANSPORT_PARAMETER_ERROR);
+                    return QUIC_STATUS_PROTOCOL_ERROR;
+                }
                 if (!QuicIsVersionReserved(ClientVI.OtherVersions[ClientVersionIdx]) &&
                     ClientVI.OtherVersions[ClientVersionIdx] == SupportedVersions[ServerVersionIdx] &&
                     QuicVersionNegotiationExtAreVersionsCompatible(
@@ -2763,6 +2776,16 @@ QuicConnProcessPeerVersionNegotiationTP(
             QuicConnTransportError(Connection, QUIC_ERROR_TRANSPORT_PARAMETER_ERROR);
             return QUIC_STATUS_PROTOCOL_ERROR;
         }
+
+        if (ServerVI.ChosenVersion == 0) {
+            QuicTraceLogConnError(
+                VersionInfoChosenVersionZero,
+                Connection,
+                "Version Info Chosen Version is zero!");
+            QuicConnTransportError(Connection, QUIC_ERROR_TRANSPORT_PARAMETER_ERROR);
+            return QUIC_STATUS_PROTOCOL_ERROR;
+        }
+
         if (Connection->Stats.QuicVersion != ServerVI.ChosenVersion) {
             QuicTraceLogConnError(
                 ServerVersionInfoVersionMismatch,
@@ -2774,14 +2797,15 @@ QuicConnProcessPeerVersionNegotiationTP(
             return QUIC_STATUS_PROTOCOL_ERROR;
         }
 
-        if (ServerVI.ChosenVersion == 0) {
-            QuicConnTransportError(Connection, QUIC_ERROR_TRANSPORT_PARAMETER_ERROR);
-            return QUIC_STATUS_PROTOCOL_ERROR;
-        }
         uint32_t ClientChosenVersion = 0;
         BOOLEAN OriginalVersionFound = FALSE;
         for (uint32_t i = 0; i < ServerVI.OtherVersionsCount; ++i) {
-            if (ServerVI.OtherVersions[i] == 0){
+            if (ServerVI.OtherVersions[i] == 0) {
+                QuicTraceLogConnError(
+                    VersionInfoOtherVersionZero,
+                    Connection,
+                    "Version Info Other Versions contains a zero version! Index = %u",
+                    i);
                 QuicConnTransportError(Connection, QUIC_ERROR_TRANSPORT_PARAMETER_ERROR);
                 return QUIC_STATUS_PROTOCOL_ERROR;
             }
