@@ -51,11 +51,11 @@ tracepoint(CLOG_VERSION_NEG_C, VersionInfoDecodeFailed1 , arg1, arg3);\
 
 /*----------------------------------------------------------
 // Decoder Ring for VersionInfoDecodeFailed2
-// [conn][%p] Version info too short to contain any Other Versions (%hu bytes)
+// [conn][%p] Version info too short to contain any Available Versions (%hu bytes)
 // QuicTraceLogConnError(
                 VersionInfoDecodeFailed2,
                 Connection,
-                "Version info too short to contain any Other Versions (%hu bytes)",
+                "Version info too short to contain any Available Versions (%hu bytes)",
                 (unsigned)(BufferLength - Offset));
 // arg1 = arg1 = Connection = arg1
 // arg3 = arg3 = (unsigned)(BufferLength - Offset) = arg3
@@ -121,10 +121,10 @@ tracepoint(CLOG_VERSION_NEG_C, ServerVersionInfoDecodeFailed4 , arg1, arg3, arg4
         Connection,
         "VerInfo Decoded: Chosen Ver:%x Other Ver Count:%u",
         VersionInfo->ChosenVersion,
-        VersionInfo->OtherVersionsCount);
+        VersionInfo->AvailableVersionsCount);
 // arg1 = arg1 = Connection = arg1
 // arg3 = arg3 = VersionInfo->ChosenVersion = arg3
-// arg4 = arg4 = VersionInfo->OtherVersionsCount = arg4
+// arg4 = arg4 = VersionInfo->AvailableVersionsCount = arg4
 ----------------------------------------------------------*/
 #ifndef _clog_5_ARGS_TRACE_ServerVersionInfoDecoded
 #define _clog_5_ARGS_TRACE_ServerVersionInfoDecoded(uniqueId, arg1, encoded_arg_string, arg3, arg4)\
@@ -143,10 +143,10 @@ tracepoint(CLOG_VERSION_NEG_C, ServerVersionInfoDecoded , arg1, arg3, arg4);\
             Connection,
             "Server VI Encoded: Chosen Ver:%x Other Ver Count:%u",
             Connection->Stats.QuicVersion,
-            OtherVersionsListLength);
+            AvailableVersionsListLength);
 // arg1 = arg1 = Connection = arg1
 // arg3 = arg3 = Connection->Stats.QuicVersion = arg3
-// arg4 = arg4 = OtherVersionsListLength = arg4
+// arg4 = arg4 = AvailableVersionsListLength = arg4
 ----------------------------------------------------------*/
 #ifndef _clog_5_ARGS_TRACE_ServerVersionNegotiationInfoEncoded
 #define _clog_5_ARGS_TRACE_ServerVersionNegotiationInfoEncoded(uniqueId, arg1, encoded_arg_string, arg3, arg4)\
@@ -187,14 +187,14 @@ tracepoint(CLOG_VERSION_NEG_C, ClientVersionInfoEncoded , arg1, arg3, arg4, arg5
 
 /*----------------------------------------------------------
 // Decoder Ring for ConnVNEOtherVersionList
-// [conn][%p] VerInfo Other Versions List: %!VNL!
+// [conn][%p] VerInfo Available Versions List: %!VNL!
 // QuicTraceEvent(
         ConnVNEOtherVersionList,
-        "[conn][%p] VerInfo Other Versions List: %!VNL!",
+        "[conn][%p] VerInfo Available Versions List: %!VNL!",
         Connection,
-        CASTED_CLOG_BYTEARRAY(VersionInfo->OtherVersionsCount * sizeof(uint32_t), VersionInfo->OtherVersions));
+        CASTED_CLOG_BYTEARRAY(VersionInfo->AvailableVersionsCount * sizeof(uint32_t), VersionInfo->AvailableVersions));
 // arg2 = arg2 = Connection = arg2
-// arg3 = arg3 = CASTED_CLOG_BYTEARRAY(VersionInfo->OtherVersionsCount * sizeof(uint32_t), VersionInfo->OtherVersions) = arg3
+// arg3 = arg3 = CASTED_CLOG_BYTEARRAY(VersionInfo->AvailableVersionsCount * sizeof(uint32_t), VersionInfo->AvailableVersions) = arg3
 ----------------------------------------------------------*/
 #ifndef _clog_5_ARGS_TRACE_ConnVNEOtherVersionList
 #define _clog_5_ARGS_TRACE_ConnVNEOtherVersionList(uniqueId, encoded_arg_string, arg2, arg3, arg3_len)\

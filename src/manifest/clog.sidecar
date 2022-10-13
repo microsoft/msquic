@@ -2061,7 +2061,7 @@
     },
     "ConnVNEOtherVersionList": {
       "ModuleProperites": {},
-      "TraceString": "[conn][%p] VerInfo Other Versions List: %!VNL!",
+      "TraceString": "[conn][%p] VerInfo Available Versions List: %!VNL!",
       "UniqueId": "ConnVNEOtherVersionList",
       "splitArgs": [
         {
@@ -9397,7 +9397,7 @@
     },
     "ServerVersionInformationPreviousVersionInOtherVerList": {
       "ModuleProperites": {},
-      "TraceString": "[conn][%p] Previous Client Version in Server Other Versions list: 0x%x",
+      "TraceString": "[conn][%p] Previous Client Version in Server Available Versions list: 0x%x",
       "UniqueId": "ServerVersionInformationPreviousVersionInOtherVerList",
       "splitArgs": [
         {
@@ -11040,7 +11040,7 @@
     },
     "VersionInfoDecodeFailed2": {
       "ModuleProperites": {},
-      "TraceString": "[conn][%p] Version info too short to contain any Other Versions (%hu bytes)",
+      "TraceString": "[conn][%p] Version info too short to contain any Available Versions (%hu bytes)",
       "UniqueId": "VersionInfoDecodeFailed2",
       "splitArgs": [
         {
@@ -11056,7 +11056,7 @@
     },
     "VersionInfoOtherVersionZero": {
       "ModuleProperites": {},
-      "TraceString": "[conn][%p] Version Info.OtherVersions contains a zero version! Index = %u",
+      "TraceString": "[conn][%p] Version Info.AvailableVersions contains a zero version! Index = %u",
       "UniqueId": "VersionInfoOtherVersionZero",
       "splitArgs": [
         {
@@ -12629,9 +12629,9 @@
         "EncodingString": "[conn][%p] QUIC Version: %u"
       },
       {
-        "UniquenessHash": "d94a73fc-1f40-d653-9753-35f107a8db2a",
+        "UniquenessHash": "6a04dcf8-d84b-933c-ab7a-6f700e5111d2",
         "TraceID": "ConnVNEOtherVersionList",
-        "EncodingString": "[conn][%p] VerInfo Other Versions List: %!VNL!"
+        "EncodingString": "[conn][%p] VerInfo Available Versions List: %!VNL!"
       },
       {
         "UniquenessHash": "15379a50-c581-3086-043e-53167a6b3fd6",
@@ -14894,9 +14894,9 @@
         "EncodingString": "[conn][%p] Version info parsed less than full buffer (%hu bytes vs. %hu bytes"
       },
       {
-        "UniquenessHash": "c0975309-af60-f767-e139-f7cb6071e863",
+        "UniquenessHash": "fea7982a-008a-d6fb-3186-2b404861c5a2",
         "TraceID": "ServerVersionInformationPreviousVersionInOtherVerList",
-        "EncodingString": "[conn][%p] Previous Client Version in Server Other Versions list: 0x%x"
+        "EncodingString": "[conn][%p] Previous Client Version in Server Available Versions list: 0x%x"
       },
       {
         "UniquenessHash": "e3311a70-0df4-e618-3d6e-779ed92d435f",
@@ -15479,14 +15479,14 @@
         "EncodingString": "[conn][%p] Version info too short to contain Chosen Version (%hu bytes)"
       },
       {
-        "UniquenessHash": "3e7b261f-8077-d6f3-18ee-188f5cfe6b6b",
+        "UniquenessHash": "a80c3a79-ae2d-cb56-44b9-7f2fe5a7eea1",
         "TraceID": "VersionInfoDecodeFailed2",
-        "EncodingString": "[conn][%p] Version info too short to contain any Other Versions (%hu bytes)"
+        "EncodingString": "[conn][%p] Version info too short to contain any Available Versions (%hu bytes)"
       },
       {
-        "UniquenessHash": "50beefb7-296c-9d5f-eecd-8a24023ac56e",
+        "UniquenessHash": "585e07b4-a7b7-09ab-37fa-54d702126880",
         "TraceID": "VersionInfoOtherVersionZero",
-        "EncodingString": "[conn][%p] Version Info.OtherVersions contains a zero version! Index = %u"
+        "EncodingString": "[conn][%p] Version Info.AvailableVersions contains a zero version! Index = %u"
       },
       {
         "UniquenessHash": "09622250-6902-8f51-16a4-41a81d9cfc14",

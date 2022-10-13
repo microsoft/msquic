@@ -3680,7 +3680,7 @@
             />
         <string
             id="Etw.ConnVNEOtherVersionList"
-            value="[conn][%1] VerInfo Other Versions List: %3"
+            value="[conn][%1] VerInfo Available Versions List: %3"
             />
         <string
             id="Etw.ConnClientReceivedVersionList"
