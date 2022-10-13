@@ -300,6 +300,55 @@ tracepoint(CLOG_LOSS_DETECTION_C, PathValidationTimeout , arg1, arg3);\
 
 
 /*----------------------------------------------------------
+// Decoder Ring for EcnValidationSuccess
+// [conn][%p] ECN validation succeeded
+// QuicTraceLogConnInfo(
+                        EcnValidationSuccess,
+                        Connection,
+                        "ECN validation succeeded");
+// arg1 = arg1 = Connection = arg1
+----------------------------------------------------------*/
+#ifndef _clog_3_ARGS_TRACE_EcnValidationSuccess
+#define _clog_3_ARGS_TRACE_EcnValidationSuccess(uniqueId, arg1, encoded_arg_string)\
+tracepoint(CLOG_LOSS_DETECTION_C, EcnValidationSuccess , arg1);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for EcnValidationFailure
+// [conn][%p] ECN validation failed: EncryptLevel %d EcnEctCounter %llu EcnCeCounters %llu"
+                "NumPacketsSentWithEct %llu EctCeDeltaSum %lld EcnValidationState %u
+// QuicTraceLogConnInfo(
+                EcnValidationFailure,
+                Connection,
+                "ECN validation failed: EncryptLevel %d EcnEctCounter %llu EcnCeCounters %llu"
+                "NumPacketsSentWithEct %llu EctCeDeltaSum %lld EcnValidationState %u",
+                EncryptLevel,
+                Connection->EcnEctCounters[EncryptLevel], Connection->EcnCeCounters[EncryptLevel],
+                Connection->NumPacketsSentWithEct,
+                EctCeDeltaSum,
+                Path->EcnValidationState);
+// arg1 = arg1 = Connection = arg1
+// arg3 = arg3 = EncryptLevel = arg3
+// arg4 = arg4 = Connection->EcnEctCounters[EncryptLevel] = arg4
+// arg5 = arg5 = Connection->EcnCeCounters[EncryptLevel] = arg5
+// arg6 = arg6 = Connection->NumPacketsSentWithEct = arg6
+// arg7 = arg7 = EctCeDeltaSum = arg7
+// arg8 = arg8 = Path->EcnValidationState = arg8
+----------------------------------------------------------*/
+#ifndef _clog_9_ARGS_TRACE_EcnValidationFailure
+#define _clog_9_ARGS_TRACE_EcnValidationFailure(uniqueId, arg1, encoded_arg_string, arg3, arg4, arg5, arg6, arg7, arg8)\
+tracepoint(CLOG_LOSS_DETECTION_C, EcnValidationFailure , arg1, arg3, arg4, arg5, arg6, arg7, arg8);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for ScheduleProbe
 // [conn][%p] probe round %hu
 // QuicTraceLogConnInfo(

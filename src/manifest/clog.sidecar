@@ -3455,6 +3455,54 @@
       ],
       "macroName": "QuicTraceLogConnVerbose"
     },
+    "EcnValidationFailure": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] ECN validation failed: EncryptLevel %d EcnEctCounter %llu EcnCeCounters %llu\"\r\n                \"NumPacketsSentWithEct %llu EctCeDeltaSum %lld EcnValidationState %u",
+      "UniqueId": "EcnValidationFailure",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        },
+        {
+          "DefinationEncoding": "d",
+          "MacroVariableName": "arg3"
+        },
+        {
+          "DefinationEncoding": "llu",
+          "MacroVariableName": "arg4"
+        },
+        {
+          "DefinationEncoding": "llu",
+          "MacroVariableName": "arg5"
+        },
+        {
+          "DefinationEncoding": "llu",
+          "MacroVariableName": "arg6"
+        },
+        {
+          "DefinationEncoding": "lld",
+          "MacroVariableName": "arg7"
+        },
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg8"
+        }
+      ],
+      "macroName": "QuicTraceLogConnInfo"
+    },
+    "EcnValidationSuccess": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] ECN validation succeeded",
+      "UniqueId": "EcnValidationSuccess",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        }
+      ],
+      "macroName": "QuicTraceLogConnInfo"
+    },
     "EncodeMaxDatagramFrameSize": {
       "ModuleProperites": {},
       "TraceString": "[conn][%p] TP: Max Datagram Frame Size (%llu bytes)",
@@ -12901,6 +12949,16 @@
         "UniquenessHash": "c53376e2-b465-d6a1-047c-4e5e64c263af",
         "TraceID": "DrainCrypto",
         "EncodingString": "[conn][%p] Draining %u crypto bytes"
+      },
+      {
+        "UniquenessHash": "2929bbf7-7336-366a-38f0-3492c60786c5",
+        "TraceID": "EcnValidationFailure",
+        "EncodingString": "[conn][%p] ECN validation failed: EncryptLevel %d EcnEctCounter %llu EcnCeCounters %llu\"\r\n                \"NumPacketsSentWithEct %llu EctCeDeltaSum %lld EcnValidationState %u"
+      },
+      {
+        "UniquenessHash": "026f0da6-44f6-602b-ae19-36d46d70e59d",
+        "TraceID": "EcnValidationSuccess",
+        "EncodingString": "[conn][%p] ECN validation succeeded"
       },
       {
         "UniquenessHash": "d276c997-5dfb-645e-b54a-7ec567967851",

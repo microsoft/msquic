@@ -313,6 +313,69 @@ TRACEPOINT_EVENT(CLOG_LOSS_DETECTION_C, PathValidationTimeout,
 
 
 /*----------------------------------------------------------
+// Decoder Ring for EcnValidationSuccess
+// [conn][%p] ECN validation succeeded
+// QuicTraceLogConnInfo(
+                        EcnValidationSuccess,
+                        Connection,
+                        "ECN validation succeeded");
+// arg1 = arg1 = Connection = arg1
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_LOSS_DETECTION_C, EcnValidationSuccess,
+    TP_ARGS(
+        const void *, arg1), 
+    TP_FIELDS(
+        ctf_integer_hex(uint64_t, arg1, arg1)
+    )
+)
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for EcnValidationFailure
+// [conn][%p] ECN validation failed: EncryptLevel %d EcnEctCounter %llu EcnCeCounters %llu"
+                "NumPacketsSentWithEct %llu EctCeDeltaSum %lld EcnValidationState %u
+// QuicTraceLogConnInfo(
+                EcnValidationFailure,
+                Connection,
+                "ECN validation failed: EncryptLevel %d EcnEctCounter %llu EcnCeCounters %llu"
+                "NumPacketsSentWithEct %llu EctCeDeltaSum %lld EcnValidationState %u",
+                EncryptLevel,
+                Connection->EcnEctCounters[EncryptLevel], Connection->EcnCeCounters[EncryptLevel],
+                Connection->NumPacketsSentWithEct,
+                EctCeDeltaSum,
+                Path->EcnValidationState);
+// arg1 = arg1 = Connection = arg1
+// arg3 = arg3 = EncryptLevel = arg3
+// arg4 = arg4 = Connection->EcnEctCounters[EncryptLevel] = arg4
+// arg5 = arg5 = Connection->EcnCeCounters[EncryptLevel] = arg5
+// arg6 = arg6 = Connection->NumPacketsSentWithEct = arg6
+// arg7 = arg7 = EctCeDeltaSum = arg7
+// arg8 = arg8 = Path->EcnValidationState = arg8
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_LOSS_DETECTION_C, EcnValidationFailure,
+    TP_ARGS(
+        const void *, arg1,
+        int, arg3,
+        unsigned long long, arg4,
+        unsigned long long, arg5,
+        unsigned long long, arg6,
+        long long, arg7,
+        unsigned int, arg8), 
+    TP_FIELDS(
+        ctf_integer_hex(uint64_t, arg1, arg1)
+        ctf_integer(int, arg3, arg3)
+        ctf_integer(uint64_t, arg4, arg4)
+        ctf_integer(uint64_t, arg5, arg5)
+        ctf_integer(uint64_t, arg6, arg6)
+        ctf_integer(int64_t, arg7, arg7)
+        ctf_integer(unsigned int, arg8, arg8)
+    )
+)
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for ScheduleProbe
 // [conn][%p] probe round %hu
 // QuicTraceLogConnInfo(
