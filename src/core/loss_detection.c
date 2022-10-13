@@ -1503,21 +1503,29 @@ QuicLossDetectionProcessAckBlocks(
         // when the largest acked packet number increases.
         //
         BOOLEAN EcnValidated = TRUE;
+        int64_t EctCeDeltaSum = 0;
         if (Ecn != NULL) {
-            int64_t EctCeDeltaSum = 0;
             EctCeDeltaSum +=
-                Ecn->CE_Count - LossDetection->EcnCeCounters[EncryptLevel];
+                Ecn->CE_Count - Connection->EcnCeCounters[EncryptLevel];
             EctCeDeltaSum +=
-                Ecn->ECT_0_Count - LossDetection->EcnEctCounters[EncryptLevel];
-            if (EctCeDeltaSum < 0 || EctCeDeltaSum < EcnEctCounter) {
+                Ecn->ECT_0_Count - Connection->EcnEctCounters[EncryptLevel];
+            if (EctCeDeltaSum < 0 ||
+                EctCeDeltaSum < EcnEctCounter ||
+                Ecn->ECT_1_Count != 0 ||
+                Connection->NumPacketsSentWithEct < Ecn->ECT_0_Count) {
+
                 EcnValidated = FALSE;
             }
 
             if (EcnValidated) {
-                LossDetection->EcnCeCounters[EncryptLevel] = Ecn->CE_Count;
-                LossDetection->EcnEctCounters[EncryptLevel] = Ecn->ECT_0_Count;
+                Connection->EcnCeCounters[EncryptLevel] = Ecn->CE_Count;
+                Connection->EcnEctCounters[EncryptLevel] = Ecn->ECT_0_Count;
                 if (Path->EcnValidationState == ECN_VALIDATION_UNKNOWN) {
                     Path->EcnValidationState = ECN_VALIDATION_CAPABLE;
+                    QuicTraceLogConnInfo(
+                        EcnValidationSuccess,
+                        Connection,
+                        "ECN validation succeeded");
                 }
             }
         } else {
@@ -1532,6 +1540,16 @@ QuicLossDetectionProcessAckBlocks(
         }
 
         if (!EcnValidated) {
+            QuicTraceLogConnInfo(
+                EcnValidationFailure,
+                Connection,
+                "ECN validation failed: EncryptLevel %d EcnEctCounter %llu EcnCeCounters %llu"
+                "NumPacketsSentWithEct %llu EctCeDeltaSum %lld EcnValidationState %u",
+                EncryptLevel,
+                Connection->EcnEctCounters[EncryptLevel], Connection->EcnCeCounters[EncryptLevel],
+                Connection->NumPacketsSentWithEct,
+                EctCeDeltaSum,
+                Path->EcnValidationState);
             Path->EcnValidationState = ECN_VALIDATION_FAILED;
         }
 

@@ -261,6 +261,8 @@ QuicPacketBuilderPrepare(
                 if (--Builder->Path->EcnTestingCount == 0) {
                     Builder->Path->EcnValidationState = ECN_VALIDATION_UNKNOWN;
                 }
+
+                ++Connection->NumPacketsSentWithEct;
             }
 
             Builder->BatchId =
