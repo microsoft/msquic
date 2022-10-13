@@ -35,6 +35,9 @@ protected:
     static QUIC_CREDENTIAL_FLAGS SelfSignedCertParamsFlags;
     static QUIC_CREDENTIAL_CONFIG* SelfSignedCertParams;
     static QUIC_CREDENTIAL_CONFIG* ClientCertParams;
+    static QUIC_CREDENTIAL_FLAGS CaSelfSignedCertParamsFlags;
+    static QUIC_CREDENTIAL_CONFIG* CaSelfSignedCertParams;
+    static QUIC_CREDENTIAL_CONFIG* CaClientCertParams;
     static QUIC_CREDENTIAL_CONFIG* CertParamsFromFile;
 
     struct CxPlatSecConfig {
@@ -100,11 +103,49 @@ protected:
                 nullptr,
                 nullptr,
                 nullptr,
-                QUIC_ALLOWED_CIPHER_SUITE_NONE};
+                QUIC_ALLOWED_CIPHER_SUITE_NONE,
+                nullptr
+            };
             CredConfig.Flags |= CredFlags;
             CredConfig.AllowedCipherSuites = CipherFlags;
             Load(&CredConfig, TlsFlags);
         }
+
+    };
+
+    struct CxPlatServerSecConfigCa : public CxPlatSecConfig {
+        CxPlatServerSecConfigCa(
+            _In_ QUIC_CREDENTIAL_FLAGS CredFlags = QUIC_CREDENTIAL_FLAG_NONE,
+            _In_ QUIC_ALLOWED_CIPHER_SUITE_FLAGS CipherFlags = QUIC_ALLOWED_CIPHER_SUITE_NONE,
+            _In_ CXPLAT_TLS_CREDENTIAL_FLAGS TlsFlags = CXPLAT_TLS_CREDENTIAL_FLAG_NONE
+            ) {
+            CaSelfSignedCertParams->Flags = CaSelfSignedCertParamsFlags | CredFlags;
+            CaSelfSignedCertParams->AllowedCipherSuites = CipherFlags;
+            Load(CaSelfSignedCertParams, TlsFlags);
+        }
+    };
+
+    struct CxPlatClientSecConfigCa : public CxPlatSecConfig {
+        CxPlatClientSecConfigCa(
+            _In_ QUIC_CREDENTIAL_FLAGS CredFlags = QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION,
+            _In_ QUIC_ALLOWED_CIPHER_SUITE_FLAGS CipherFlags = QUIC_ALLOWED_CIPHER_SUITE_NONE,
+            _In_ CXPLAT_TLS_CREDENTIAL_FLAGS TlsFlags = CXPLAT_TLS_CREDENTIAL_FLAG_NONE
+            ) {
+            QUIC_CREDENTIAL_CONFIG CredConfig = {
+                QUIC_CREDENTIAL_TYPE_NONE,
+                QUIC_CREDENTIAL_FLAG_CLIENT,
+                nullptr,
+                nullptr,
+                nullptr,
+                nullptr,
+                QUIC_ALLOWED_CIPHER_SUITE_NONE,
+                CaClientCertParams->CaCertificateFile
+            };
+            CredConfig.Flags |= CredFlags;
+            CredConfig.AllowedCipherSuites = CipherFlags;
+            Load(&CredConfig, TlsFlags);
+        }
+
     };
 
     TlsTest() { }
@@ -165,6 +206,21 @@ protected:
         SelfSignedCertParamsFlags = SelfSignedCertParams->Flags;
         ClientCertParams = (QUIC_CREDENTIAL_CONFIG*)CxPlatGetSelfSignedCert(CXPLAT_SELF_SIGN_CERT_USER, TRUE);
         ASSERT_NE(nullptr, ClientCertParams);
+
+        CaSelfSignedCertParams = (QUIC_CREDENTIAL_CONFIG*)CxPlatGetSelfSignedCert(CXPLAT_SELF_SIGN_CA_CERT_USER, FALSE);
+        ASSERT_NE(nullptr, CaSelfSignedCertParams);
+        CaSelfSignedCertParamsFlags = CaSelfSignedCertParams->Flags;
+        CaClientCertParams = (QUIC_CREDENTIAL_CONFIG*)CxPlatGetSelfSignedCert(CXPLAT_SELF_SIGN_CA_CERT_USER, TRUE);
+        ASSERT_NE(nullptr, ClientCertParams);
+
+        // We need to switch the ca roots around since the server must
+        // validate the client certificate and the client the server
+        // certificate.
+        char *CaServerCaCertificateFile = CaSelfSignedCertParams->CaCertificateFile;
+        CaSelfSignedCertParams->CaCertificateFile = CaClientCertParams->CaCertificateFile;
+        CaClientCertParams->CaCertificateFile = CaServerCaCertificateFile;
+        CaClientCertParams->Flags |= QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION;
+
         ClientCertParams->Flags |= QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION;
 #ifndef QUIC_DISABLE_PFX_TESTS
         if (PfxPath != nullptr) {
@@ -776,6 +832,10 @@ QUIC_CREDENTIAL_CONFIG* TlsTest::SelfSignedCertParams = nullptr;
 QUIC_CREDENTIAL_CONFIG* TlsTest::ClientCertParams = nullptr;
 QUIC_CREDENTIAL_CONFIG* TlsTest::CertParamsFromFile = nullptr;
 
+QUIC_CREDENTIAL_FLAGS TlsTest::CaSelfSignedCertParamsFlags = QUIC_CREDENTIAL_FLAG_NONE;
+QUIC_CREDENTIAL_CONFIG* TlsTest::CaSelfSignedCertParams = nullptr;
+QUIC_CREDENTIAL_CONFIG* TlsTest::CaClientCertParams = nullptr;
+
 TEST_F(TlsTest, Initialize)
 {
     CxPlatClientSecConfig ClientConfig;
@@ -1326,6 +1386,38 @@ TEST_F(TlsTest, DeferredCertificateValidationAllow)
     }
 }
 
+TEST_F(TlsTest, DeferredCertificateValidationAllowCa)
+{
+    CxPlatClientSecConfigCa ClientConfig(
+        QUIC_CREDENTIAL_FLAG_INDICATE_CERTIFICATE_RECEIVED |
+        QUIC_CREDENTIAL_FLAG_SET_CA_CERTIFICATE_FILE |
+        QUIC_CREDENTIAL_FLAG_DEFER_CERTIFICATE_VALIDATION);
+    CxPlatServerSecConfigCa ServerConfig(
+        QUIC_CREDENTIAL_FLAG_NONE |
+        QUIC_CREDENTIAL_FLAG_SET_CA_CERTIFICATE_FILE);
+    TlsContext ServerContext, ClientContext;
+    ClientContext.InitializeClient(ClientConfig);
+    ServerContext.InitializeServer(ServerConfig);
+#ifdef _WIN32
+    ClientContext.ExpectedErrorFlags = CERT_TRUST_IS_UNTRUSTED_ROOT;
+#else
+    // TODO - Add platform specific values if support is added.
+#endif
+    {
+        auto Result = ClientContext.ProcessData(nullptr);
+        ASSERT_TRUE(Result & CXPLAT_TLS_RESULT_DATA);
+
+        Result = ServerContext.ProcessData(&ClientContext.State);
+        ASSERT_TRUE(Result & CXPLAT_TLS_RESULT_DATA);
+        ASSERT_NE(nullptr, ServerContext.State.WriteKeys[QUIC_PACKET_KEY_1_RTT]);
+
+        Result = ClientContext.ProcessData(&ServerContext.State, DefaultFragmentSize, true);
+        ASSERT_TRUE(ClientContext.ReceivedPeerCertificate);
+        ASSERT_TRUE(Result & CXPLAT_TLS_RESULT_HANDSHAKE_COMPLETE);
+    }
+}
+
+
 TEST_F(TlsTest, DeferredCertificateValidationReject)
 {
     CxPlatClientSecConfig ClientConfig(
@@ -1498,7 +1590,6 @@ TEST_F(TlsTest, InProcPortableCertificateValidation)
         ASSERT_TRUE(Result & CXPLAT_TLS_RESULT_HANDSHAKE_COMPLETE);
     }
 }
-#endif
 
 TEST_F(TlsTest, InProcCertificateValidation)
 {
@@ -1523,6 +1614,7 @@ TEST_F(TlsTest, InProcCertificateValidation)
         ASSERT_TRUE(Result & CXPLAT_TLS_RESULT_HANDSHAKE_COMPLETE);
     }
 }
+#endif
 
 TEST_P(TlsTest, One1RttKey)
 {
@@ -1832,6 +1924,21 @@ TEST_F(TlsTest, ClientCertificateDeferValidation)
     ClientContext.InitializeClient(ClientConfig);
     ServerContext.InitializeServer(ServerConfig);
     ServerContext.ExpectedValidationStatus = QUIC_STATUS_CERT_UNTRUSTED_ROOT;
+    DoHandshake(ServerContext, ClientContext);
+}
+
+TEST_F(TlsTest, ClientCertificateDeferValidationCa)
+{
+    CxPlatSecConfig ClientConfig;
+    ClientConfig.Load(CaClientCertParams);
+    CxPlatServerSecConfigCa ServerConfig(
+        QUIC_CREDENTIAL_FLAG_SET_CA_CERTIFICATE_FILE |
+        QUIC_CREDENTIAL_FLAG_REQUIRE_CLIENT_AUTHENTICATION |
+        QUIC_CREDENTIAL_FLAG_DEFER_CERTIFICATE_VALIDATION |
+        QUIC_CREDENTIAL_FLAG_INDICATE_CERTIFICATE_RECEIVED);
+    TlsContext ServerContext, ClientContext;
+    ClientContext.InitializeClient(ClientConfig);
+    ServerContext.InitializeServer(ServerConfig);
     DoHandshake(ServerContext, ClientContext);
 }
 
