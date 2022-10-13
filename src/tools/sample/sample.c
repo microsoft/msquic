@@ -107,8 +107,9 @@ void PrintUsage()
         "\n"
         "Usage:\n"
         "\n"
-        "  quicsample.exe -client -target:<...> [-unsecure]\n"
-        "  quicsample.exe -server -cert_hash:<...> or (-cert_file:<...> and -key_file:<...> (and optionally -password:<...>))\n"
+        "  quicsample.exe -client -unsecure -target:{IPAddress|Hostname} [-ticket:<ticket>]\n"
+        "  quicsample.exe -server -cert_hash:<...>\n"
+        "  quicsample.exe -server -cert_file:<...> -key_file:<...> [-password:<...>]\n"
         );
 }
 
@@ -816,7 +817,7 @@ RunClient(
         // If provided at the command line, set the resumption ticket that can
         // be used to resume a previous session.
         //
-        uint8_t ResumptionTicket[1024];
+        uint8_t ResumptionTicket[10240];
         uint16_t TicketLength = (uint16_t)DecodeHexBuffer(ResumptionTicketString, sizeof(ResumptionTicket), ResumptionTicket);
         if (QUIC_FAILED(Status = MsQuic->SetParam(Connection, QUIC_PARAM_CONN_RESUMPTION_TICKET, TicketLength, ResumptionTicket))) {
             printf("SetParam(QUIC_PARAM_CONN_RESUMPTION_TICKET) failed, 0x%x!\n", Status);

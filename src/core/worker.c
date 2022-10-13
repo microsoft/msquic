@@ -659,7 +659,6 @@ QuicWorkerLoop(
     if (Worker->TimerWheel.NextExpirationTime != UINT64_MAX &&
         Worker->TimerWheel.NextExpirationTime <= State->TimeNow) {
         QuicWorkerProcessTimers(Worker, State->ThreadID, State->TimeNow);
-        State->TimeNow = CxPlatTimeUs64();
         State->NoWorkCount = 0;
     }
 
@@ -667,7 +666,6 @@ QuicWorkerLoop(
     if (Connection != NULL) {
         QuicWorkerProcessConnection(Worker, Connection, State->ThreadID, &State->TimeNow);
         Worker->ExecutionContext.Ready = TRUE;
-        State->TimeNow = CxPlatTimeUs64();
         State->NoWorkCount = 0;
     }
 
@@ -679,7 +677,6 @@ QuicWorkerLoop(
         QuicOperationFree(Worker, Operation);
         QuicPerfCounterIncrement(QUIC_PERF_COUNTER_WORK_OPER_COMPLETED);
         Worker->ExecutionContext.Ready = TRUE;
-        State->TimeNow = CxPlatTimeUs64();
         State->NoWorkCount = 0;
     }
 
@@ -690,18 +687,16 @@ QuicWorkerLoop(
         return TRUE;
     }
 
-#ifdef QUIC_WORKER_POLLING
-    if (Worker->PollCount++ < QUIC_WORKER_POLLING) {
+    if (MsQuicLib.ExecutionConfig &&
+        (uint64_t)MsQuicLib.ExecutionConfig->PollingIdleTimeoutUs >
+            CxPlatTimeDiff64(State->LastWorkTime, State->TimeNow)) {
         //
         // Busy loop for a while to keep the thread hot in case new work comes
         // in.
         //
         Worker->ExecutionContext.Ready = TRUE;
-        State->TimeNow = CxPlatTimeUs64();
         return TRUE;
     }
-    Worker->PollCount = 0; // Reset the counter.
-#endif // QUIC_WORKER_POLLING
 
     //
     // We have no other work to process at the moment. Wait for work to come in
@@ -725,7 +720,7 @@ CXPLAT_THREAD_CALLBACK(QuicWorkerThread, Context)
     CXPLAT_EXECUTION_CONTEXT* EC = &Worker->ExecutionContext;
 
     CXPLAT_EXECUTION_STATE State = {
-        0, UINT32_MAX, 0, CxPlatCurThreadID()
+        0, CxPlatTimeUs64(), UINT32_MAX, 0, CxPlatCurThreadID()
     };
 
     QuicTraceEvent(
@@ -733,13 +728,18 @@ CXPLAT_THREAD_CALLBACK(QuicWorkerThread, Context)
         "[wrkr][%p] Start",
         Worker);
 
-    State.TimeNow = CxPlatTimeUs64();
-    while (QuicWorkerLoop(EC, &State)) {
+    while (TRUE) {
+
+        ++State.NoWorkCount;
+        State.TimeNow = CxPlatTimeUs64();
+        if (!QuicWorkerLoop(EC, &State)) {
+            break;
+        }
+
         BOOLEAN Ready = InterlockedFetchAndClearBoolean(&EC->Ready);
         if (!Ready) {
             if (EC->NextTimeUs == UINT64_MAX) {
                 CxPlatEventWaitForever(Worker->Ready);
-                State.TimeNow = CxPlatTimeUs64();
 
             } else if (EC->NextTimeUs > State.TimeNow) {
                 uint64_t Delay = US_TO_MS(EC->NextTimeUs - State.TimeNow) + 1;
@@ -747,8 +747,10 @@ CXPLAT_THREAD_CALLBACK(QuicWorkerThread, Context)
                     Delay = UINT32_MAX - 1; // Max has special meaning for most platforms.
                 }
                 CxPlatEventWaitWithTimeout(Worker->Ready, (uint32_t)Delay);
-                State.TimeNow = CxPlatTimeUs64();
             }
+        }
+        if (State.NoWorkCount == 0) {
+            State.LastWorkTime = State.TimeNow;
         }
     }
 

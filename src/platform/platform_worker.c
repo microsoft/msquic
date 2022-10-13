@@ -79,6 +79,11 @@ typedef struct QUIC_CACHEALIGN CXPLAT_WORKER {
     BOOLEAN InitializedThread : 1;
     BOOLEAN InitializedECLock : 1;
 
+    //
+    // Must not be bitfield.
+    //
+    BOOLEAN Running;
+
 } CXPLAT_WORKER;
 
 CXPLAT_LOCK CxPlatWorkerLock;
@@ -314,7 +319,9 @@ CxPlatWakeExecutionContext(
     )
 {
     CXPLAT_WORKER* Worker = (CXPLAT_WORKER*)Context->CxPlatContext;
-    CxPlatEventQEnqueue(&Worker->EventQ, &Worker->WakeSqe, (void*)&WorkerWakeEventPayload);
+    if (!InterlockedFetchAndSetBoolean(&Worker->Running)) {
+        CxPlatEventQEnqueue(&Worker->EventQ, &Worker->WakeSqe, (void*)&WorkerWakeEventPayload);
+    }
 }
 
 void
@@ -345,6 +352,7 @@ CxPlatRunExecutionContexts(
     )
 {
     if (Worker->ExecutionContexts == NULL) {
+        State->WaitTime = UINT32_MAX;
         return;
     }
 
@@ -384,7 +392,40 @@ CxPlatRunExecutionContexts(
         } else {
             State->WaitTime = UINT32_MAX-1;
         }
+    } else {
+        State->WaitTime = UINT32_MAX;
     }
+}
+
+BOOLEAN
+CxPlatProcessEvents(
+    _In_ CXPLAT_WORKER* Worker,
+    _Inout_ CXPLAT_EXECUTION_STATE* State
+    )
+{
+    CXPLAT_CQE Cqes[16];
+    uint32_t CqeCount = CxPlatEventQDequeue(&Worker->EventQ, Cqes, ARRAYSIZE(Cqes), State->WaitTime);
+    InterlockedFetchAndSetBoolean(&Worker->Running);
+    if (CqeCount != 0) {
+        State->NoWorkCount = 0;
+        for (uint32_t i = 0; i < CqeCount; ++i) {
+            if (CxPlatCqeUserData(&Cqes[i]) == NULL) {
+                return TRUE; // NULL user data means shutdown.
+            }
+            switch (CxPlatCqeType(&Cqes[i])) {
+            case CXPLAT_CQE_TYPE_WORKER_WAKE:
+                break; // No-op, just wake up to do polling stuff.
+            case CXPLAT_CQE_TYPE_WORKER_UPDATE_POLL:
+                CxPlatUpdateExecutionContexts(Worker);
+                break;
+            default: // Pass the rest to the datapath
+                CxPlatDataPathProcessCqe(&Cqes[i]);
+                break;
+            }
+        }
+        CxPlatEventQReturn(&Worker->EventQ, CqeCount);
+    }
+    return FALSE;
 }
 
 //
@@ -402,38 +443,25 @@ CXPLAT_THREAD_CALLBACK(CxPlatWorkerThread, Context)
         "[ lib][%p] Worker start",
         Worker);
 
-    uint32_t CqeCount;
-    CXPLAT_CQE Cqes[16];
-    CXPLAT_EXECUTION_STATE State = { 0, UINT32_MAX, 0, CxPlatCurThreadID() };
+    CXPLAT_EXECUTION_STATE State = { 0, CxPlatTimeUs64(), UINT32_MAX, 0, CxPlatCurThreadID() };
+
+    Worker->Running = TRUE;
 
     while (TRUE) {
 
-        State.WaitTime = UINT32_MAX;
         ++State.NoWorkCount;
 
         CxPlatRunExecutionContexts(Worker, &State);
+        if (State.WaitTime && InterlockedFetchAndClearBoolean(&Worker->Running)) {
+            CxPlatRunExecutionContexts(Worker, &State); // Run once more to handle race conditions
+        }
 
-        CqeCount = CxPlatEventQDequeue(&Worker->EventQ, Cqes, ARRAYSIZE(Cqes), State.WaitTime);
+        if (CxPlatProcessEvents(Worker, &State)) {
+            goto Shutdown;
+        }
 
-        if (CqeCount != 0) {
-            State.NoWorkCount = 0;
-            for (uint32_t i = 0; i < CqeCount; ++i) {
-                if (CxPlatCqeUserData(&Cqes[i]) == NULL) {
-                    goto Shutdown; // NULL user data means shutdown.
-                }
-                switch (CxPlatCqeType(&Cqes[i])) {
-                case CXPLAT_CQE_TYPE_WORKER_WAKE:
-                    break; // No-op, just wake up to do polling stuff.
-                case CXPLAT_CQE_TYPE_WORKER_UPDATE_POLL:
-                    CxPlatUpdateExecutionContexts(Worker);
-                    break;
-                default: // Pass the rest to the datapath
-                    CxPlatDataPathProcessCqe(&Cqes[i]);
-                    break;
-                }
-            }
-            CxPlatEventQReturn(&Worker->EventQ, CqeCount);
-
+        if (State.NoWorkCount == 0) {
+            State.LastWorkTime = State.TimeNow;
         } else if (State.NoWorkCount > CXPLAT_WORKER_IDLE_WORK_THRESHOLD_COUNT) {
             CxPlatSchedulerYield();
             State.NoWorkCount = 0;
@@ -441,6 +469,8 @@ CXPLAT_THREAD_CALLBACK(CxPlatWorkerThread, Context)
     }
 
 Shutdown:
+
+    Worker->Running = FALSE;
 
     QuicTraceLogInfo(
         PlatformWorkerThreadStop,

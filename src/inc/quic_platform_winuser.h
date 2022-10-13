@@ -243,6 +243,15 @@ InterlockedFetchAndClearBoolean(
     return (BOOLEAN)InterlockedAnd8((char*)Target, 0);
 }
 
+inline
+BOOLEAN
+InterlockedFetchAndSetBoolean(
+    _Inout_ _Interlocked_operand_ BOOLEAN volatile *Target
+    )
+{
+    return (BOOLEAN)InterlockedOr8((char*)Target, 1);
+}
+
 //
 // CloseHandle has an incorrect SAL annotation, so call through a wrapper.
 //
@@ -606,6 +615,17 @@ CxPlatEventQCleanup(
     )
 {
     CloseHandle(*queue);
+}
+
+inline
+BOOLEAN
+CxPlatEventQAssociateHandle(
+    _In_ CXPLAT_EVENTQ* queue,
+    _In_ HANDLE fileHandle,
+    _In_opt_ void* user_data
+    )
+{
+    return *queue == CreateIoCompletionPort(fileHandle, *queue, (ULONG_PTR)user_data, 0);
 }
 
 inline

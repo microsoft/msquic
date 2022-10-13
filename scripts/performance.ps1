@@ -428,8 +428,8 @@ function Invoke-Test {
     }
 
     if ($XDP) {
-        $RemoteArguments += " -cpu:-1"
-        $LocalArguments += " -cpu:-1"
+        $RemoteArguments += " -pollidle:10000"
+        $LocalArguments += " -pollidle:10000"
     }
 
     if ($Kernel) {
@@ -571,7 +571,8 @@ try {
     Remove-PerfServices
 
     if ($IsWindows) {
-        Cancel-RemoteLogs -RemoteDirectory $RemoteDirectory
+        # Best effort, try to cancel any outstanding logs
+        try { Cancel-RemoteLogs -RemoteDirectory $RemoteDirectory } catch { }
 
         try {
             $CopyToDirectory = "C:\RunningTests"

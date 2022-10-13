@@ -214,17 +214,26 @@ CXPLAT_THREAD_CALLBACK(TcpWorker::WorkerThread, Context)
     CXPLAT_THREAD_RETURN(0);
 }
 
-void TcpWorker::QueueConnection(TcpConnection* Connection)
+bool TcpWorker::QueueConnection(TcpConnection* Connection)
 {
+    bool Result = true;
     CxPlatDispatchLockAcquire(&Lock);
+    //
+    // Try to queue the connection if we can add a ref. If we're shutting down
+    // the socket, it's possible a receive happens that would fail to add ref.
+    //
     if (!Connection->QueuedOnWorker) {
-        Connection->QueuedOnWorker = true;
-        Connection->AddRef();
-        *ConnectionsTail = Connection;
-        ConnectionsTail = &Connection->Next;
-        CxPlatEventSet(WakeEvent);
+        if (Connection->TryAddRef()) {
+            Connection->QueuedOnWorker = true;
+            *ConnectionsTail = Connection;
+            ConnectionsTail = &Connection->Next;
+            CxPlatEventSet(WakeEvent);
+        } else {
+            Result = false;
+        }
     }
     CxPlatDispatchLockRelease(&Lock);
+    return Result;
 }
 
 // ############################# SERVER #############################
@@ -371,6 +380,12 @@ TcpConnection::~TcpConnection()
         CxPlatTlsUninitialize(Tls);
     }
     if (Socket) {
+        CxPlatDispatchLockAcquire(&Lock);
+        CXPLAT_RECV_DATA* RecvDataChain = ReceiveData;
+        ReceiveData = nullptr;
+        CxPlatDispatchLockRelease(&Lock);
+        CxPlatRecvDataReturn(RecvDataChain);
+
         CxPlatSocketDelete(Socket);
     }
     if (!IsServer && SecConfig) {
@@ -424,11 +439,17 @@ TcpConnection::ReceiveCallback(
     }
     *Tail = RecvDataChain;
     CxPlatDispatchLockRelease(&This->Lock);
-    This->Queue();
+    if (!This->Queue()) {
+        CxPlatDispatchLockAcquire(&This->Lock);
+        RecvDataChain = This->ReceiveData;
+        This->ReceiveData = nullptr;
+        CxPlatDispatchLockRelease(&This->Lock);
+        CxPlatRecvDataReturn(RecvDataChain);
+    }
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
-    _Function_class_(CXPLAT_DATAPATH_SEND_COMPLETE_CALLBACK)
+_Function_class_(CXPLAT_DATAPATH_SEND_COMPLETE_CALLBACK)
 void
 TcpConnection::SendCompleteCallback(
     _In_ CXPLAT_SOCKET* /* Socket */,
