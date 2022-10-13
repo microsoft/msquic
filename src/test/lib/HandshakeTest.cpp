@@ -3430,11 +3430,18 @@ QuicTestVNTPChosenVersionZero(
 
     const uint32_t ZeroVersion = 0;
     const uint32_t Version1 = QUIC_VERSION_1;
+    const uint32_t Version2 = QUIC_VERSION_2;
     uint8_t* Cursor = TPData.get();
 
     CxPlatCopyMemory(Cursor, &ZeroVersion, sizeof(ZeroVersion));
     Cursor += sizeof(uint32_t);
-    CxPlatCopyMemory(Cursor, &Version1, sizeof(Version1));
+    //
+    // Use Version 2 when testing server because the server will perform
+    // Compatible Version Negotiation, and if using Version1, the client
+    // will fail for the wrong reason: Long Header Version/Chosen Version
+    // mismatch.
+    //
+    CxPlatCopyMemory(Cursor, TestServer ? &Version2 : &Version1, sizeof(Version1));
     Cursor += sizeof(uint32_t);
     CxPlatCopyMemory(Cursor, &ZeroVersion, sizeof(ZeroVersion));
 

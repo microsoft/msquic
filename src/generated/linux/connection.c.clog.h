@@ -80,6 +80,24 @@ tracepoint(CLOG_CONNECTION_C, PacketRxNotAcked , arg2, arg3);\
 
 
 /*----------------------------------------------------------
+// Decoder Ring for VersionInfoChosenVersionZero
+// [conn][%p] Version Info Chosen Version is zero!
+// QuicTraceLogConnError(
+                VersionInfoChosenVersionZero,
+                Connection,
+                "Version Info Chosen Version is zero!");
+// arg1 = arg1 = Connection = arg1
+----------------------------------------------------------*/
+#ifndef _clog_3_ARGS_TRACE_VersionInfoChosenVersionZero
+#define _clog_3_ARGS_TRACE_VersionInfoChosenVersionZero(uniqueId, arg1, encoded_arg_string)\
+tracepoint(CLOG_CONNECTION_C, VersionInfoChosenVersionZero , arg1);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for ClientVersionInfoVersionMismatch
 // [conn][%p] Client Chosen Version doesn't match long header. 0x%x != 0x%x
 // QuicTraceLogConnError(
@@ -95,6 +113,26 @@ tracepoint(CLOG_CONNECTION_C, PacketRxNotAcked , arg2, arg3);\
 #ifndef _clog_5_ARGS_TRACE_ClientVersionInfoVersionMismatch
 #define _clog_5_ARGS_TRACE_ClientVersionInfoVersionMismatch(uniqueId, arg1, encoded_arg_string, arg3, arg4)\
 tracepoint(CLOG_CONNECTION_C, ClientVersionInfoVersionMismatch , arg1, arg3, arg4);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for VersionInfoOtherVersionZero
+// [conn][%p] Version Info.OtherVersions contains a zero version! Index = %u
+// QuicTraceLogConnError(
+                        VersionInfoOtherVersionZero,
+                        Connection,
+                        "Version Info.OtherVersions contains a zero version! Index = %u",
+                        ClientVersionIdx);
+// arg1 = arg1 = Connection = arg1
+// arg3 = arg3 = ClientVersionIdx = arg3
+----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_VersionInfoOtherVersionZero
+#define _clog_4_ARGS_TRACE_VersionInfoOtherVersionZero(uniqueId, arg1, encoded_arg_string, arg3)\
+tracepoint(CLOG_CONNECTION_C, VersionInfoOtherVersionZero , arg1, arg3);\
 
 #endif
 
