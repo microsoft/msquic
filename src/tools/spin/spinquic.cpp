@@ -940,9 +940,13 @@ CXPLAT_THREAD_CALLBACK(RunThread, Context)
             ASSERT_ON_NOT(Gb.Buffers[j].Buffer);
         }
 
+#ifdef QUIC_BUILD_STATIC
         CxPlatLockAcquire(&RunThreadLock);
         QUIC_STATUS Status = MsQuicOpen2(&Gb.MsQuic);
         CxPlatLockRelease(&RunThreadLock);
+#else
+        QUIC_STATUS Status = MsQuicOpen2(&Gb.MsQuic);
+#endif
         if (QUIC_FAILED(Status)) {
             break;
         }
