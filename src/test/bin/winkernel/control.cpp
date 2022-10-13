@@ -476,6 +476,8 @@ size_t QUIC_IOCTL_BUFFER_SIZES[] =
     0,
     sizeof(QUIC_RUN_VN_TP_ODD_SIZE_PARAMS),
     sizeof(UINT8),
+    sizeof(UINT8),
+    sizeof(UINT8),
 };
 
 CXPLAT_STATIC_ASSERT(
@@ -1295,6 +1297,18 @@ QuicTestCtlEvtIoDeviceControl(
         CXPLAT_FRE_ASSERT(Params != nullptr);
         QuicTestCtlRun(
             QuicTestVNTPChosenVersionMismatch(Params->TestServerVNTP != 0));
+        break;
+
+    case IOCTL_QUIC_RUN_VN_TP_CHOSEN_VERSION_ZERO:
+        CXPLAT_FRE_ASSERT(Params != nullptr);
+        QuicTestCtlRun(
+            QuicTestVNTPChosenVersionZero(Params->TestServerVNTP != 0));
+        break;
+
+    case IOCTL_QUIC_RUN_VN_TP_OTHER_VERSION_MISMATCH:
+        CXPLAT_FRE_ASSERT(Params != nullptr);
+        QuicTestCtlRun(
+            QuicTestVNTPOtherVersionZero(Params->TestServerVNTP != 0));
         break;
 #endif
 

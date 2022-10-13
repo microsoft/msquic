@@ -3414,4 +3414,56 @@ QuicTestVNTPChosenVersionMismatch(
 
     QuicTestCustomVNTP(TestServer, &TestTP);
 }
+
+void
+QuicTestVNTPChosenVersionZero(
+    _In_ bool TestServer
+    )
+{
+    const uint32_t VNTPSize = 3 * sizeof(uint32_t);
+
+    QUIC_PRIVATE_TRANSPORT_PARAMETER TestTP;
+    TestTP.Type = QUIC_TP_ID_VERSION_NEGOTIATION_EXT;
+    TestTP.Length = VNTPSize;
+    UniquePtr<uint8_t[]> TPData(new(std::nothrow) uint8_t[VNTPSize]);
+    TestTP.Buffer = TPData.get();
+
+    const uint32_t ZeroVersion = 0;
+    const uint32_t Version1 = QUIC_VERSION_1;
+    uint8_t* Cursor = TPData.get();
+
+    CxPlatCopyMemory(Cursor, &ZeroVersion, sizeof(ZeroVersion));
+    Cursor += sizeof(uint32_t);
+    CxPlatCopyMemory(Cursor, &Version1, sizeof(Version1));
+    Cursor += sizeof(uint32_t);
+    CxPlatCopyMemory(Cursor, &ZeroVersion, sizeof(ZeroVersion));
+
+    QuicTestCustomVNTP(TestServer, &TestTP);
+}
+
+void
+QuicTestVNTPOtherVersionZero(
+    _In_ bool TestServer
+    )
+{
+    const uint32_t VNTPSize = 3 * sizeof(uint32_t);
+
+    QUIC_PRIVATE_TRANSPORT_PARAMETER TestTP;
+    TestTP.Type = QUIC_TP_ID_VERSION_NEGOTIATION_EXT;
+    TestTP.Length = VNTPSize;
+    UniquePtr<uint8_t[]> TPData(new(std::nothrow) uint8_t[VNTPSize]);
+    TestTP.Buffer = TPData.get();
+
+    const uint32_t ZeroVersion = 0;
+    const uint32_t Version1 = QUIC_VERSION_1;
+    uint8_t* Cursor = TPData.get();
+
+    CxPlatCopyMemory(Cursor, &Version1, sizeof(Version1));
+    Cursor += sizeof(uint32_t);
+    CxPlatCopyMemory(Cursor, &Version1, sizeof(Version1));
+    Cursor += sizeof(uint32_t);
+    CxPlatCopyMemory(Cursor, &ZeroVersion, sizeof(ZeroVersion));
+
+    QuicTestCustomVNTP(TestServer, &TestTP);
+}
 #endif // QUIC_API_ENABLE_PREVIEW_FEATURES

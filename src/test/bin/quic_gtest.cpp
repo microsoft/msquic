@@ -937,6 +937,30 @@ TEST_P(WithHandshakeArgs9, VnTpChosenVersionMismatch) {
         QuicTestVNTPChosenVersionMismatch(GetParam());
     }
 }
+
+TEST_P(WithHandshakeArgs9, VnTpChosenVersionZero) {
+    TestLoggerT<ParamType> Logger("QuicTestVNTPChosenVersionZero", GetParam());
+    if (TestingKernelMode) {
+        ASSERT_TRUE(
+            DriverClient.Run(
+                IOCTL_QUIC_RUN_VN_TP_CHOSEN_VERSION_ZERO,
+                (uint8_t)GetParam()));
+    } else {
+        QuicTestVNTPChosenVersionZero(GetParam());
+    }
+}
+
+TEST_P(WithHandshakeArgs9, VnTpOtherVersionZero) {
+    TestLoggerT<ParamType> Logger("QuicTestVNTPOtherVersionZero", GetParam());
+    if (TestingKernelMode) {
+        ASSERT_TRUE(
+            DriverClient.Run(
+                IOCTL_QUIC_RUN_VN_TP_OTHER_VERSION_ZERO,
+                (uint8_t)GetParam()));
+    } else {
+        QuicTestVNTPOtherVersionZero(GetParam());
+    }
+}
 #endif
 #endif
 
