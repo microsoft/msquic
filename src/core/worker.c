@@ -40,11 +40,12 @@ QuicWorkerThreadWake(
     _In_ QUIC_WORKER* Worker
     )
 {
-    if (!InterlockedFetchAndSetBoolean(&Worker->ExecutionContext.Ready)) {
-        if (Worker->IsExternal) {
-            CxPlatWakeExecutionContext(&Worker->ExecutionContext);
-        } else {
-            CxPlatEventSet(Worker->Ready);
+    Worker->ExecutionContext.Ready = TRUE;
+    if (Worker->IsExternal) {
+        CxPlatWakeExecutionContext(&Worker->ExecutionContext);
+    } else {
+        if (!InterlockedFetchAndSetBoolean(&Worker->Running)) {
+            CxPlatEventSet(Worker->WakeEvent);
         }
     }
 }
@@ -75,7 +76,7 @@ QuicWorkerInitialize(
     Worker->IdealProcessor = IdealProcessor;
     CxPlatDispatchLockInitialize(&Worker->Lock);
     CxPlatEventInitialize(&Worker->Done, TRUE, FALSE);
-    CxPlatEventInitialize(&Worker->Ready, FALSE, FALSE);
+    CxPlatEventInitialize(&Worker->WakeEvent, FALSE, FALSE);
     CxPlatListInitializeHead(&Worker->Connections);
     CxPlatListInitializeHead(&Worker->Operations);
     CxPlatPoolInitialize(FALSE, sizeof(QUIC_STREAM), QUIC_POOL_STREAM, &Worker->StreamPool);
@@ -166,7 +167,7 @@ QuicWorkerUninitialize(
             CxPlatThreadWait(&Worker->Thread);
             CxPlatThreadDelete(&Worker->Thread);
         }
-        CxPlatEventUninitialize(Worker->Ready);
+        CxPlatEventUninitialize(Worker->WakeEvent);
     }
 
     CXPLAT_TEL_ASSERT(CxPlatListIsEmpty(&Worker->Connections));
@@ -715,6 +716,41 @@ QuicWorkerLoop(
     return TRUE;
 }
 
+void
+QuicWorkerRunExecutionContext(
+    _In_ QUIC_WORKER* Worker,
+    _Inout_ CXPLAT_EXECUTION_STATE* State
+    )
+{
+    CXPLAT_EXECUTION_CONTEXT* Context = &Worker->ExecutionContext;
+
+    State->TimeNow = CxPlatTimeUs64();
+
+    BOOLEAN Ready = InterlockedFetchAndClearBoolean(&Context->Ready);
+    if (Ready || Context->NextTimeUs <= State->TimeNow) {
+        if (!QuicWorkerLoop(Context, State)) {
+            State->WaitTime = 0;
+            return;
+        }
+    }
+
+    if (Context->Ready) {
+        State->WaitTime = 0;
+    } else if (Context->NextTimeUs != UINT64_MAX) {
+        uint64_t Diff = Context->NextTimeUs - State->TimeNow;
+        Diff = US_TO_MS(Diff);
+        if (Diff == 0) {
+            State->WaitTime = 1;
+        } else if (Diff < UINT32_MAX) {
+            State->WaitTime = (uint32_t)Diff;
+        } else {
+            State->WaitTime = UINT32_MAX-1;
+        }
+    } else {
+        State->WaitTime = UINT32_MAX;
+    }
+}
+
 CXPLAT_THREAD_CALLBACK(QuicWorkerThread, Context)
 {
     QUIC_WORKER* Worker = (QUIC_WORKER*)Context;
@@ -729,31 +765,35 @@ CXPLAT_THREAD_CALLBACK(QuicWorkerThread, Context)
         "[wrkr][%p] Start",
         Worker);
 
-    while (TRUE) {
+    Worker->Running = TRUE;
+
+    while (Worker->Enabled) {
 
         ++State.NoWorkCount;
-        State.TimeNow = CxPlatTimeUs64();
-        if (!QuicWorkerLoop(EC, &State)) {
-            break;
-        }
 
-        BOOLEAN Ready = InterlockedFetchAndClearBoolean(&EC->Ready);
-        if (!Ready) {
+        QuicWorkerRunExecutionContext(Worker, &State);
+        if (State.WaitTime) {
+            CXPLAT_DBG_ASSERT(Worker->Running);
+            InterlockedFetchAndClearBoolean(&Worker->Running);
+            QuicWorkerRunExecutionContext(Worker, &State); // Run once more to handle race conditions
+
             if (EC->NextTimeUs == UINT64_MAX) {
-                CxPlatEventWaitForever(Worker->Ready);
-
-            } else if (EC->NextTimeUs > State.TimeNow) {
-                uint64_t Delay = US_TO_MS(EC->NextTimeUs - State.TimeNow) + 1;
-                if (Delay >= (uint64_t)UINT32_MAX) {
-                    Delay = UINT32_MAX - 1; // Max has special meaning for most platforms.
-                }
-                CxPlatEventWaitWithTimeout(Worker->Ready, (uint32_t)Delay);
+                CxPlatEventWaitForever(Worker->WakeEvent);
+            } else {
+                CxPlatEventWaitWithTimeout(Worker->WakeEvent, State.WaitTime);
             }
+            InterlockedFetchAndSetBoolean(&Worker->Running);
         }
+
         if (State.NoWorkCount == 0) {
             State.LastWorkTime = State.TimeNow;
+        } else if (State.NoWorkCount > CXPLAT_WORKER_IDLE_WORK_THRESHOLD_COUNT) {
+            CxPlatSchedulerYield();
+            State.NoWorkCount = 0;
         }
     }
+
+    Worker->Running = FALSE;
 
     QuicTraceEvent(
         WorkerStop,
