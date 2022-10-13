@@ -34,9 +34,9 @@ TEST_P(WithType, ParseVersionInfoFail)
 {
     const uint8_t ValidVI[] = {
         0,0,0,1,        // Chosen Version
-        0,0,0,1,        // Other Versions List[0]
-        0xab,0xcd,0,0,  // Other Versions List[1]
-        0xff,0,0,0x1d   // Other Versions List[2]
+        0,0,0,1,        // Available Versions List[0]
+        0xab,0xcd,0,0,  // Available Versions List[1]
+        0xff,0,0,0x1d   // Available Versions List[2]
     };
 
     QUIC_VERSION_INFORMATION_V1 ParsedVI = {0};
@@ -67,7 +67,7 @@ TEST_P(WithType, ParseVersionInfoFail)
                 &ParsedVI));
     }
 
-    // Partial Other Versions List
+    // Partial Available Versions List
     ASSERT_EQ(
         QUIC_STATUS_INVALID_PARAMETER,
         QuicVersionNegotiationExtParseVersionInfo(
@@ -76,7 +76,7 @@ TEST_P(WithType, ParseVersionInfoFail)
             5,
             &ParsedVI));
 
-    // Partial Other Versions List
+    // Partial Available Versions List
     ASSERT_EQ(
         QUIC_STATUS_INVALID_PARAMETER,
         QuicVersionNegotiationExtParseVersionInfo(
@@ -85,7 +85,7 @@ TEST_P(WithType, ParseVersionInfoFail)
             6,
             &ParsedVI));
 
-    // Partial Other Versions List
+    // Partial Available Versions List
     ASSERT_EQ(
         QUIC_STATUS_INVALID_PARAMETER,
         QuicVersionNegotiationExtParseVersionInfo(
@@ -94,7 +94,7 @@ TEST_P(WithType, ParseVersionInfoFail)
             11,
             &ParsedVI));
 
-    // Partial Other Versions List
+    // Partial Available Versions List
     ASSERT_EQ(
         QUIC_STATUS_INVALID_PARAMETER,
         QuicVersionNegotiationExtParseVersionInfo(
@@ -142,11 +142,11 @@ TEST_P(WithType, EncodeDecodeVersionInfo)
             &ParsedVI));
 
     ASSERT_EQ(ParsedVI.ChosenVersion, Connection.Stats.QuicVersion);
-    ASSERT_EQ(ParsedVI.OtherVersionsCount, ARRAYSIZE(TestVersions));
+    ASSERT_EQ(ParsedVI.AvailableVersionsCount, ARRAYSIZE(TestVersions));
     ASSERT_EQ(
         memcmp(
             TestVersions,
-            ParsedVI.OtherVersions,
+            ParsedVI.AvailableVersions,
             sizeof(TestVersions)), 0);
 
     CXPLAT_FREE(VersionInfo, QUIC_POOL_VERSION_INFO);

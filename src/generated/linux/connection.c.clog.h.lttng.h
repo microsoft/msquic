@@ -91,11 +91,11 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, ClientVersionInfoVersionMismatch,
 
 /*----------------------------------------------------------
 // Decoder Ring for VersionInfoOtherVersionZero
-// [conn][%p] Version Info.OtherVersions contains a zero version! Index = %u
+// [conn][%p] Version Info.AvailableVersions contains a zero version! Index = %u
 // QuicTraceLogConnError(
                         VersionInfoOtherVersionZero,
                         Connection,
-                        "Version Info.OtherVersions contains a zero version! Index = %u",
+                        "Version Info.AvailableVersions contains a zero version! Index = %u",
                         ClientVersionIdx);
 // arg1 = arg1 = Connection = arg1
 // arg3 = arg3 = ClientVersionIdx = arg3
@@ -191,11 +191,11 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, ServerVersionInformationPreviousVersionIsCho
 
 /*----------------------------------------------------------
 // Decoder Ring for ServerVersionInformationPreviousVersionInOtherVerList
-// [conn][%p] Previous Client Version in Server Other Versions list: 0x%x
+// [conn][%p] Previous Client Version in Server Available Versions list: 0x%x
 // QuicTraceLogConnError(
                             ServerVersionInformationPreviousVersionInOtherVerList,
                             Connection,
-                            "Previous Client Version in Server Other Versions list: 0x%x",
+                            "Previous Client Version in Server Available Versions list: 0x%x",
                             Connection->PreviousQuicVersion);
 // arg1 = arg1 = Connection = arg1
 // arg3 = arg3 = Connection->PreviousQuicVersion = arg3

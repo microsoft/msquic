@@ -194,13 +194,13 @@ QuicVersionNegotiationExtParseVersionInfo(
 
     if (QuicConnIsServer(Connection)) {
         //
-        // Client-sent Version Info *MUST* contain OtherVersions.
+        // Client-sent Version Info *MUST* contain AvailableVersions.
         //
         if ((unsigned)(BufferLength - Offset) < sizeof(uint32_t)) {
             QuicTraceLogConnError(
                 VersionInfoDecodeFailed2,
                 Connection,
-                "Version info too short to contain any Other Versions (%hu bytes)",
+                "Version info too short to contain any Available Versions (%hu bytes)",
                 (unsigned)(BufferLength - Offset));
             return QUIC_STATUS_INVALID_PARAMETER;
         }
@@ -216,9 +216,9 @@ QuicVersionNegotiationExtParseVersionInfo(
         return QUIC_STATUS_INVALID_PARAMETER;
     }
 
-    VersionInfo->OtherVersionsCount = (BufferLength - Offset) / sizeof(uint32_t);
-    VersionInfo->OtherVersions = (uint32_t*)(Buffer + Offset);
-    Offset += (uint16_t)(VersionInfo->OtherVersionsCount * sizeof(uint32_t));
+    VersionInfo->AvailableVersionsCount = (BufferLength - Offset) / sizeof(uint32_t);
+    VersionInfo->AvailableVersions = (uint32_t*)(Buffer + Offset);
+    Offset += (uint16_t)(VersionInfo->AvailableVersionsCount * sizeof(uint32_t));
 
     if (Offset != BufferLength) {
         QuicTraceLogConnError(
@@ -235,13 +235,13 @@ QuicVersionNegotiationExtParseVersionInfo(
         Connection,
         "VerInfo Decoded: Chosen Ver:%x Other Ver Count:%u",
         VersionInfo->ChosenVersion,
-        VersionInfo->OtherVersionsCount);
+        VersionInfo->AvailableVersionsCount);
 
     QuicTraceEvent(
         ConnVNEOtherVersionList,
-        "[conn][%p] VerInfo Other Versions List: %!VNL!",
+        "[conn][%p] VerInfo Available Versions List: %!VNL!",
         Connection,
-        CASTED_CLOG_BYTEARRAY(VersionInfo->OtherVersionsCount * sizeof(uint32_t), VersionInfo->OtherVersions));
+        CASTED_CLOG_BYTEARRAY(VersionInfo->AvailableVersionsCount * sizeof(uint32_t), VersionInfo->AvailableVersions));
 
     return QUIC_STATUS_SUCCESS;
 }
@@ -262,20 +262,20 @@ QuicVersionNegotiationExtEncodeVersionInfo(
     uint8_t* VersionInfo = NULL;
     *VerInfoLength = 0;
     if (QuicConnIsServer(Connection)) {
-        const uint32_t* OtherVersionsList = NULL;
-        uint32_t OtherVersionsListLength = 0;
+        const uint32_t* AvailableVersionsList = NULL;
+        uint32_t AvailableVersionsListLength = 0;
         if (MsQuicLib.Settings.IsSet.VersionSettings) {
-            OtherVersionsList = MsQuicLib.Settings.VersionSettings->FullyDeployedVersions;
-            OtherVersionsListLength = MsQuicLib.Settings.VersionSettings->FullyDeployedVersionsLength;
+            AvailableVersionsList = MsQuicLib.Settings.VersionSettings->FullyDeployedVersions;
+            AvailableVersionsListLength = MsQuicLib.Settings.VersionSettings->FullyDeployedVersionsLength;
         } else {
-            OtherVersionsList = DefaultSupportedVersionsList;
-            OtherVersionsListLength = ARRAYSIZE(DefaultSupportedVersionsList);
+            AvailableVersionsList = DefaultSupportedVersionsList;
+            AvailableVersionsListLength = ARRAYSIZE(DefaultSupportedVersionsList);
         }
         //
         // Generate Server Version Info.
         //
-        VILen = sizeof(uint32_t) + (OtherVersionsListLength * sizeof(uint32_t));
-        CXPLAT_DBG_ASSERT((OtherVersionsListLength * sizeof(uint32_t)) + sizeof(uint32_t) > OtherVersionsListLength + sizeof(uint32_t));
+        VILen = sizeof(uint32_t) + (AvailableVersionsListLength * sizeof(uint32_t));
+        CXPLAT_DBG_ASSERT((AvailableVersionsListLength * sizeof(uint32_t)) + sizeof(uint32_t) > AvailableVersionsListLength + sizeof(uint32_t));
 
         VersionInfo = CXPLAT_ALLOC_NONPAGED(VILen, QUIC_POOL_VERSION_INFO);
         if (VersionInfo == NULL) {
@@ -291,24 +291,24 @@ QuicVersionNegotiationExtEncodeVersionInfo(
         CXPLAT_DBG_ASSERT(VILen >= sizeof(uint32_t));
         CxPlatCopyMemory(VIBuf, &Connection->Stats.QuicVersion, sizeof(Connection->Stats.QuicVersion));
         VIBuf += sizeof(Connection->Stats.QuicVersion);
-        CXPLAT_DBG_ASSERT(VILen - sizeof(uint32_t) == OtherVersionsListLength * sizeof(uint32_t));
+        CXPLAT_DBG_ASSERT(VILen - sizeof(uint32_t) == AvailableVersionsListLength * sizeof(uint32_t));
         CxPlatCopyMemory(
             VIBuf,
-            OtherVersionsList,
-            OtherVersionsListLength * sizeof(uint32_t));
+            AvailableVersionsList,
+            AvailableVersionsListLength * sizeof(uint32_t));
 
         QuicTraceLogConnInfo(
             ServerVersionNegotiationInfoEncoded,
             Connection,
             "Server VI Encoded: Chosen Ver:%x Other Ver Count:%u",
             Connection->Stats.QuicVersion,
-            OtherVersionsListLength);
+            AvailableVersionsListLength);
 
         QuicTraceEvent(
             ConnVNEOtherVersionList,
-            "[conn][%p] VerInfo Other Versions List: %!VNL!",
+            "[conn][%p] VerInfo Available Versions List: %!VNL!",
             Connection,
-            CASTED_CLOG_BYTEARRAY(OtherVersionsListLength * sizeof(uint32_t), VIBuf));
+            CASTED_CLOG_BYTEARRAY(AvailableVersionsListLength * sizeof(uint32_t), VIBuf));
     } else {
         //
         // Generate Client Version Info.
@@ -371,7 +371,7 @@ QuicVersionNegotiationExtEncodeVersionInfo(
 
         QuicTraceEvent(
             ConnVNEOtherVersionList,
-            "[conn][%p] VerInfo Other Versions List: %!VNL!",
+            "[conn][%p] VerInfo Available Versions List: %!VNL!",
             Connection,
             CASTED_CLOG_BYTEARRAY(
                 CompatibilityListByteLength == 0 ?
