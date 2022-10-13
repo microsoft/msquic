@@ -1305,7 +1305,7 @@ QuicTestCtlEvtIoDeviceControl(
             QuicTestVNTPChosenVersionZero(Params->TestServerVNTP != 0));
         break;
 
-    case IOCTL_QUIC_RUN_VN_TP_OTHER_VERSION_MISMATCH:
+    case IOCTL_QUIC_RUN_VN_TP_OTHER_VERSION_ZERO:
         CXPLAT_FRE_ASSERT(Params != nullptr);
         QuicTestCtlRun(
             QuicTestVNTPOtherVersionZero(Params->TestServerVNTP != 0));
