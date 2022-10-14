@@ -102,6 +102,7 @@ option(QUIC_HIGH_RES_TIMERS "Configure the system to use high resolution timers"
 option(QUIC_USE_XDP "Uses XDP instead of socket APIs" OFF)
 option(QUIC_DISABLE_POSIX_GSO "Disable GSO for systems that say they support it but don't" OFF)
 option(QUIC_OFFICIAL_RELEASE "Configured the build for an official release" OFF)
+option(QUIC_USE_SYMCRYPT "Uses Symcrypt instead of platform crypto" OFF)
 set(QUIC_FOLDER_PREFIX "" CACHE STRING "Optional prefix for source group folders when using an IDE generator")
 set(QUIC_LIBRARY_NAME "msquic" CACHE STRING "Override the output library name")
 

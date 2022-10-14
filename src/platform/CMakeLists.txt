@@ -27,9 +27,15 @@ else()
     endif()
 endif()
 
+if(QUIC_USE_SYMCRYPT)
+    set(SOURCES ${SOURCES} crypt_symcrypt.c)
+else()
+    set(SOURCES ${SOURCES} crypt_bcrypt.c)
+endif()
+
 if (QUIC_TLS STREQUAL "schannel")
     message(STATUS "Configuring for Schannel")
-    set(SOURCES ${SOURCES} cert_capi.c crypt_symcrypt.c selfsign_capi.c tls_schannel.c)
+    set(SOURCES ${SOURCES} cert_capi.c selfsign_capi.c tls_schannel.c)
 elseif(QUIC_TLS STREQUAL "openssl")
     message(STATUS "Configuring for OpenSSL")
     set(SOURCES ${SOURCES} tls_openssl.c crypt_openssl.c)
@@ -57,13 +63,19 @@ else()
     target_link_libraries(platform PUBLIC inc)
 endif()
 
-if("${CX_PLATFORM}" STREQUAL "windows")
-    target_link_libraries(platform PUBLIC winmm)
-    target_link_libraries(platform PUBLIC ${PROJECT_SOURCE_DIR}/artifacts/symcrypt/symcrypt.lib)
+if(QUIC_USE_SYMCRYPT)
+    target_link_libraries(
+        platform
+        PUBLIC
+        ${PROJECT_SOURCE_DIR}/artifacts/symcrypt/symcrypt.lib)
     target_include_directories(
         platform
         PRIVATE
         ${PROJECT_SOURCE_DIR}/artifacts/symcrypt)
+endif()
+
+if("${CX_PLATFORM}" STREQUAL "windows")
+    target_link_libraries(platform PUBLIC winmm)
 endif()
 
 target_link_libraries(platform PRIVATE warnings main_binary_link_args)
