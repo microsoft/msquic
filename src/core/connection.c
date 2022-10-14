@@ -5923,7 +5923,7 @@ QuicConnResetIdleTimeout(
             //
             // Give ECN validation enough time to test ECN capability on the path.
             //
-            IdleTimeoutMs += CxPlatTimeDiff64(Path->EcnTestingEndingTime, Now);
+            IdleTimeoutMs += CxPlatTimeDiff64(Now, Path->EcnTestingEndingTime);
         }
     }
 
