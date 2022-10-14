@@ -6480,15 +6480,14 @@ QuicConnParamSet(
             break;
         }
 
-        Connection->Settings.EcnEnabled = *(BOOLEAN*)Buffer;
-        Connection->Settings.IsSet.EcnEnabled = TRUE;
+        Connection->State.EcnEnabled = *(BOOLEAN*)Buffer;
         Status = QUIC_STATUS_SUCCESS;
 
         QuicTraceLogConnVerbose(
             EcnEnabled,
             Connection,
             "Updated ECN enabled to %hhu",
-            Connection->Settings.EcnEnabled);
+            Connection->State.EcnEnabled);
 
         break;
 
@@ -7122,7 +7121,7 @@ QuicConnParamGet(
         }
 
         *BufferLength = sizeof(BOOLEAN);
-        *(BOOLEAN*)Buffer = Connection->Settings.EcnEnabled;
+        *(BOOLEAN*)Buffer = Connection->State.EcnEnabled;
 
         Status = QUIC_STATUS_SUCCESS;
         break;

@@ -1016,6 +1016,36 @@ void QuicTestValidateConnection()
     }
 
     //
+    // Successful set ECN parameter
+    //
+    {
+        TestScopeLogger logScope("Successful set ECN");
+        ConnectionScope Connection;
+        TEST_QUIC_SUCCEEDED(
+            MsQuic->ConnectionOpen(
+                Registration,
+                DummyConnectionCallback,
+                nullptr,
+                &Connection.Handle));
+
+        BOOLEAN EcnEnabled = TRUE;
+        TEST_QUIC_SUCCEEDED(
+            MsQuic->SetParam(
+                Connection.Handle,
+                QUIC_PARAM_CONN_ECN,
+                sizeof(EcnEnabled),
+                &EcnEnabled));
+
+        EcnEnabled = FALSE;
+        TEST_QUIC_SUCCEEDED(
+            MsQuic->SetParam(
+                Connection.Handle,
+                QUIC_PARAM_CONN_ECN,
+                sizeof(EcnEnabled),
+                &EcnEnabled));
+    }
+
+    //
     // Invalid send resumption, server-side
     // Some of these cases require an actual connection to succeed, so
     // they won't work on Schannel in AZP.
@@ -4207,6 +4237,54 @@ void QuicTestConnectionParam()
             MsQuicConnection Connection(Registration);
             TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
             SimpleGetParamTest(Connection.Handle, QUIC_PARAM_CONN_STATISTICS_V2_PLAT, sizeof(QUIC_STATISTICS_V2), nullptr);
+        }
+    }
+
+    //
+    // QUIC_PARAM_CONN_ECN
+    //
+    {
+        TestScopeLogger LogScope0("QUIC_PARAM_CONN_ECN");
+        MsQuicConnection Connection(Registration);
+        TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
+        BOOLEAN Flag = TRUE;
+        {
+            TestScopeLogger LogScope1("SetParam");
+            //
+            // QUIC_CONN_BAD_START_STATE
+            //
+            {
+                TestScopeLogger LogScope2("QUIC_CONN_BAD_START_STATE");
+                MsQuicConnection ConnInval(Registration);
+                TEST_QUIC_SUCCEEDED(ConnInval.GetInitStatus());
+                SimulateConnBadStartState(ConnInval, ClientConfiguration);
+
+                TEST_QUIC_STATUS(
+                    QUIC_STATUS_INVALID_STATE,
+                    ConnInval.SetParam(
+                        QUIC_PARAM_CONN_ECN,
+                        sizeof(Flag),
+                        &Flag));
+            }
+
+            //
+            // Good
+            //
+            {
+                TEST_QUIC_SUCCEEDED(
+                    Connection.SetParam(
+                        QUIC_PARAM_CONN_ECN,
+                        sizeof(Flag),
+                        &Flag));
+            }
+        }
+
+        //
+        // GetParam
+        //
+        {
+            TestScopeLogger LogScope1("GetParam");
+            SimpleGetParamTest(Connection.Handle, QUIC_PARAM_CONN_ECN, sizeof(BOOLEAN), &Flag);
         }
     }
 }
