@@ -747,3 +747,10 @@ Error:
 
     return NtStatusToQuicStatus(Status);
 }
+
+BOOLEAN
+CxPlatCryptIsChaCha20Poly1305Supported(
+    )
+{
+    return CXPLAT_CHACHA20_POLY1305_ALG_HANDLE == NULL;
+}

@@ -386,7 +386,7 @@ typedef struct _SecPkgCred_SessionTicketKeys
 #define BCRYPT_CHACHA20_POLY1305_ALGORITHM L"CHACHA20_POLY1305"
 #endif
 
-extern BCRYPT_ALG_HANDLE CXPLAT_CHACHA20_POLY1305_ALG_HANDLE;
+BOOLEAN CxPlatCryptIsChaCha20Poly1305Supported();
 
 uint16_t CxPlatTlsTPHeaderSize = FIELD_OFFSET(SEND_GENERIC_TLS_EXTENSION, Buffer);
 
@@ -3140,7 +3140,7 @@ CxPlatParseTrafficSecrets(
             return FALSE;
         }
     } else if (wcscmp(TrafficSecrets->SymmetricAlgId, BCRYPT_CHACHA20_POLY1305_ALGORITHM) == 0) {
-        if (CXPLAT_CHACHA20_POLY1305_ALG_HANDLE == NULL) {
+        if (CxPlatCryptIsChaCha20Poly1305Supported()) {
             QuicTraceEvent(
                 TlsError,
                 "[ tls][%p] ERROR, %s.",
