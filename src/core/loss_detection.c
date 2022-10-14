@@ -1518,6 +1518,9 @@ QuicLossDetectionProcessAckBlocks(
             }
 
             if (EcnValidated) {
+                //
+                // TODO: Notify CC of the ECN signal before we update the CE counts.
+                //
                 Connection->EcnCeCounters[EncryptLevel] = Ecn->CE_Count;
                 Connection->EcnEctCounters[EncryptLevel] = Ecn->ECT_0_Count;
                 if (Path->EcnValidationState == ECN_VALIDATION_UNKNOWN) {
@@ -1767,7 +1770,7 @@ QuicLossDetectionProcessTimerOperation(
     )
 {
     QUIC_CONNECTION* Connection = QuicLossDetectionGetConnection(LossDetection);
-
+    QUIC_PATH* Path = &Connection->Paths[0];
     const QUIC_SENT_PACKET_METADATA* OldestPacket = // Oldest retransmittable packet.
         QuicLossDetectionOldestOutstandingPacket(LossDetection);
 
@@ -1797,12 +1800,15 @@ QuicLossDetectionProcessTimerOperation(
 
     if (OldestPacket != NULL &&
         CxPlatTimeDiff32(OldestPacket->SentTime, TimeNow) >=
-            MS_TO_US(Connection->Settings.DisconnectTimeoutMs)) {
+            MS_TO_US(Connection->Settings.DisconnectTimeoutMs) &&
+        (Path->EcnValidationState != ECN_VALIDATION_TESTING ||
+            !OldestPacket->Flags.EcnEctSet)) {
         //
         // OldestPacket has been in the SentPackets list for at least
         // DisconnectTimeoutUs without an ACK for either OldestPacket or for any
         // packets sent more than the reordering threshold after it. Assume the
-        // path is dead and close the connection.
+        // path is dead and close the connection unless we are validating ECN
+        // capability on the path.
         //
         QuicConnCloseLocally(
             Connection,

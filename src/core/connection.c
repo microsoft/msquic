@@ -5902,6 +5902,7 @@ QuicConnResetIdleTimeout(
     )
 {
     uint64_t IdleTimeoutMs;
+    QUIC_PATH* Path = &Connection->Paths[0];
     if (Connection->State.Connected) {
         //
         // Use the (non-zero) min value between local and peer's configuration.
@@ -5916,6 +5917,16 @@ QuicConnResetIdleTimeout(
         IdleTimeoutMs = Connection->Settings.HandshakeIdleTimeoutMs;
     }
 
+    if (Path->EcnValidationState == ECN_VALIDATION_TESTING) {
+        uint64_t Now = CxPlatTimeUs64();
+        if (CxPlatTimeAtOrBefore64(Now, Path->EcnTestingEndingTime)) {
+            //
+            // Give ECN validation enough time to test ECN capability on the path.
+            //
+            IdleTimeoutMs += CxPlatTimeDiff64(Path->EcnTestingEndingTime, Now);
+        }
+    }
+
     if (IdleTimeoutMs != 0) {
         if (Connection->State.Connected) {
             //
@@ -5924,7 +5935,7 @@ QuicConnResetIdleTimeout(
             uint32_t MinIdleTimeoutMs =
                 US_TO_MS(QuicLossDetectionComputeProbeTimeout(
                     &Connection->LossDetection,
-                    &Connection->Paths[0],
+                    Path,
                     QUIC_CLOSE_PTO_COUNT));
             if (IdleTimeoutMs < MinIdleTimeoutMs) {
                 IdleTimeoutMs = MinIdleTimeoutMs;

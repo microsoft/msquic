@@ -258,8 +258,20 @@ QuicPacketBuilderPrepare(
                 Builder->Path->EcnValidationState == ECN_VALIDATION_TESTING) {
                 EcnType = CXPLAT_ECN_ECT_0;
                 Builder->Metadata->Flags.EcnEctSet = TRUE;
-                if (--Builder->Path->EcnTestingCount == 0) {
-                    Builder->Path->EcnValidationState = ECN_VALIDATION_UNKNOWN;
+                if (Builder->Path->EcnTestingEndingTimeSet) {
+                    if (!CxPlatTimeAtOrBefore64(
+                            CxPlatTimeUs64(), Builder->Path->EcnTestingEndingTime)) {
+                        Builder->Path->EcnValidationState = ECN_VALIDATION_UNKNOWN;
+                    }
+                } else {
+                    uint64_t TimeNow = CxPlatTimeUs64();
+                    uint32_t ThreePtosInUs =
+                        QuicLossDetectionComputeProbeTimeout(
+                            &Connection->LossDetection,
+                            &Connection->Paths[0],
+                            QUIC_CLOSE_PTO_COUNT);
+                    Builder->Path->EcnTestingEndingTime = TimeNow + ThreePtosInUs;
+                    Builder->Path->EcnTestingEndingTimeSet = TRUE;
                 }
 
                 ++Connection->NumPacketsSentWithEct;

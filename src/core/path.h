@@ -12,7 +12,7 @@ typedef enum ECN_VALIDATION_STATE {
     ECN_VALIDATION_TESTING,
     ECN_VALIDATION_UNKNOWN,
     ECN_VALIDATION_CAPABLE,
-    ECN_VALIDATION_FAILED,
+    ECN_VALIDATION_FAILED, // or not enabled by the app.
 } ECN_VALIDATION_STATE;
 
 //
@@ -83,9 +83,14 @@ typedef struct QUIC_PATH {
     uint8_t EcnValidationState : 2;
 
     //
-    // The number of packets that carry ECT bit in ECN validation testing state.
+    // Indicates whether EcnTestingEndingTime is set.
     //
-    uint8_t EcnTestingCount : 4;
+    BOOLEAN EcnTestingEndingTimeSet : 1;
+
+    //
+    // The ending time of ECN validation testing state in microseconds.
+    //
+    uint64_t EcnTestingEndingTime;
 
     //
     // The currently calculated path MTU.
