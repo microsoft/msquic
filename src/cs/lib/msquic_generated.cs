@@ -2859,6 +2859,9 @@ namespace Microsoft.Quic
         [NativeTypeName("#define QUIC_PARAM_CONN_STATISTICS_V2_PLAT 0x05000017")]
         internal const uint QUIC_PARAM_CONN_STATISTICS_V2_PLAT = 0x05000017;
 
+        [NativeTypeName("#define QUIC_PARAM_CONN_ECN 0x05000018")]
+        internal const uint QUIC_PARAM_CONN_ECN = 0x05000018;
+
         [NativeTypeName("#define QUIC_PARAM_TLS_HANDSHAKE_INFO 0x06000000")]
         internal const uint QUIC_PARAM_TLS_HANDSHAKE_INFO = 0x06000000;
 

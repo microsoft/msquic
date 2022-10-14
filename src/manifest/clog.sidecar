@@ -3455,6 +3455,22 @@
       ],
       "macroName": "QuicTraceLogConnVerbose"
     },
+    "EcnEnabled": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] Updated ECN enabled to %hhu",
+      "UniqueId": "EcnEnabled",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        },
+        {
+          "DefinationEncoding": "hhu",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macroName": "QuicTraceLogConnVerbose"
+    },
     "EcnValidationFailure": {
       "ModuleProperites": {},
       "TraceString": "[conn][%p] ECN validation failed: EncryptLevel %d EcnEctCounter %llu EcnCeCounters %llu\"\r\n                \"NumPacketsSentWithEct %llu EctCeDeltaSum %lld EcnValidationState %u",
@@ -13145,6 +13161,11 @@
         "UniquenessHash": "c53376e2-b465-d6a1-047c-4e5e64c263af",
         "TraceID": "DrainCrypto",
         "EncodingString": "[conn][%p] Draining %u crypto bytes"
+      },
+      {
+        "UniquenessHash": "b978c2f3-b3a9-e423-d442-4860da0dc056",
+        "TraceID": "EcnEnabled",
+        "EncodingString": "[conn][%p] Updated ECN enabled to %hhu"
       },
       {
         "UniquenessHash": "2929bbf7-7336-366a-38f0-3492c60786c5",

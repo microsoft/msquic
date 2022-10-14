@@ -1411,6 +1411,26 @@ tracepoint(CLOG_CONNECTION_C, Disable1RttEncrytionUpdated , arg1, arg3);\
 
 
 /*----------------------------------------------------------
+// Decoder Ring for EcnEnabled
+// [conn][%p] Updated ECN enabled to %hhu
+// QuicTraceLogConnVerbose(
+            EcnEnabled,
+            Connection,
+            "Updated ECN enabled to %hhu",
+            Connection->Settings.EcnEnabled);
+// arg1 = arg1 = Connection = arg1
+// arg3 = arg3 = Connection->Settings.EcnEnabled = arg3
+----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_EcnEnabled
+#define _clog_4_ARGS_TRACE_EcnEnabled(uniqueId, arg1, encoded_arg_string, arg3)\
+tracepoint(CLOG_CONNECTION_C, EcnEnabled , arg1, arg3);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for ForceKeyUpdate
 // [conn][%p] Forcing key update
 // QuicTraceLogConnVerbose(
