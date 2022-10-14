@@ -166,16 +166,13 @@ Out-File -FilePath $CommitsFile -InputObject $NewCommitsContents -Force
 
 $HistogramOutDir = Join-Path $CommitFolder "RpsLatency"
 New-Item -Path $HistogramOutDir -ItemType "directory" -Force | Out-Null
+Write-Debug "Copying histogram files to $HistogramOutDir"
 
-if (Test-Path (Join-Path $RootDir "artifacts/PerfDataResults/histogram")) {
-    $HistogramFilesPaths = Join-Path $RootDir "artifacts/PerfDataResults/histogram/*.txt"
-    $HistogramFiles = Get-ChildItem -Path $HistogramFilesPaths -Recurse -File
-    $HistogramFiles | Copy-Item -Destination $HistogramOutDir
-} else {
-    $HistogramFilesPaths = Join-Path $RootDir "artifacts/PerfDataResults/histogram*.txt"
-    $HistogramFiles = Get-ChildItem -Path $HistogramFilesPaths -Recurse -File
-    $HistogramFiles | Copy-Item -Destination $HistogramOutDir
-}
+$HistogramFilesPaths = Join-Path $RootDir "artifacts/PerfDataResults/performance/*.txt"
+$HistogramFiles = Get-ChildItem -Path $HistogramFilesPaths -Recurse -File -Exclude *Log*
+Write-Debug "Found $($HistogramFiles.Length) files"
+#Write-Debug $HistogramFiles
+$HistogramFiles | Copy-Item -Destination $HistogramOutDir
 
 $GraphScript = Join-Path $PSScriptRoot generate-graphs.ps1
 
