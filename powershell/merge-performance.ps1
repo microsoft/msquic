@@ -170,11 +170,11 @@ New-Item -Path $HistogramOutDir -ItemType "directory" -Force | Out-Null
 if (Test-Path (Join-Path $RootDir "artifacts/PerfDataResults/histogram")) {
     $HistogramFilesPaths = Join-Path $RootDir "artifacts/PerfDataResults/histogram/*.txt"
     $HistogramFiles = Get-ChildItem -Path $HistogramFilesPaths -Recurse -File
-    $HistogramFiles | Copy-Item -Destination $HistogramDir
+    $HistogramFiles | Copy-Item -Destination $HistogramOutDir
 } else {
     $HistogramFilesPaths = Join-Path $RootDir "artifacts/PerfDataResults/histogram*.txt"
     $HistogramFiles = Get-ChildItem -Path $HistogramFilesPaths -Recurse -File
-    $HistogramFiles | Copy-Item -Destination $HistogramDir
+    $HistogramFiles | Copy-Item -Destination $HistogramOutDir
 }
 
 $GraphScript = Join-Path $PSScriptRoot generate-graphs.ps1
