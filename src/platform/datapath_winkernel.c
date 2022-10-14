@@ -3001,11 +3001,13 @@ CxPlatSocketSend(
     //
     // Build up message header to indicate local address to send from.
     //
-    BYTE CMsgBuffer[WSA_CMSG_SPACE(sizeof(IN6_PKTINFO)) + WSA_CMSG_SPACE(sizeof(*SegmentSize))];
+    BYTE CMsgBuffer[
+        WSA_CMSG_SPACE(sizeof(IN6_PKTINFO)) +   // IP_PKTINFO
+        WSA_CMSG_SPACE(sizeof(INT)) +           // IP_ECN
+        WSA_CMSG_SPACE(sizeof(*SegmentSize))    // UDP_SEND_MSG_SIZE
+        ];
     PWSACMSGHDR CMsg = (PWSACMSGHDR)CMsgBuffer;
     ULONG CMsgLen = 0;
-
-    // TODO - Use SendData->ECN if not CXPLAT_ECN_NON_ECT
 
     if (!Binding->Connected) {
         if (Route->LocalAddress.si_family == QUIC_ADDRESS_FAMILY_INET) {
@@ -3030,6 +3032,18 @@ CxPlatSocketSend(
             PktInfo6->ipi6_ifindex = Route->LocalAddress.Ipv6.sin6_scope_id;
             PktInfo6->ipi6_addr = Route->LocalAddress.Ipv6.sin6_addr;
         }
+    }
+
+    if (SendData->ECN != CXPLAT_ECN_NON_ECT) {
+        CMsg = (PWSACMSGHDR)&CMsgBuffer[CMsgLen];
+        CMsgLen += WSA_CMSG_SPACE(sizeof(INT));
+        CMsg->cmsg_level =
+            Route->LocalAddress.si_family == QUIC_ADDRESS_FAMILY_INET ?
+                IPPROTO_IP : IPPROTO_IPV6;
+        CMsg->cmsg_type = IP_ECN; // == IPV6_ECN
+        CMsg->cmsg_len = WSA_CMSG_LEN(sizeof(INT));
+
+        *(PINT)WSA_CMSG_DATA(CMsg) = SendData->ECN;
     }
 
     if (SendData->SegmentSize > 0) {
