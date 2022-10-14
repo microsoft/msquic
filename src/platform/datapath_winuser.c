@@ -3856,13 +3856,15 @@ CxPlatSocketSendInline(
             PktInfo->ipi_addr = LocalAddress->Ipv4.sin_addr;
         }
 
-        WSAMhdr.Control.len += WSA_CMSG_SPACE(sizeof(INT));
-        CMsg = WSA_CMSG_NXTHDR(&WSAMhdr, CMsg);
-        CXPLAT_DBG_ASSERT(CMsg != NULL);
-        CMsg->cmsg_level = IPPROTO_IP;
-        CMsg->cmsg_type = IP_ECN;
-        CMsg->cmsg_len = WSA_CMSG_LEN(sizeof(INT));
-        *(PINT)WSA_CMSG_DATA(CMsg) = SendData->ECN;
+        if (SendData->ECN != CXPLAT_ECN_NON_ECT) {
+            WSAMhdr.Control.len += WSA_CMSG_SPACE(sizeof(INT));
+            CMsg = WSA_CMSG_NXTHDR(&WSAMhdr, CMsg);
+            CXPLAT_DBG_ASSERT(CMsg != NULL);
+            CMsg->cmsg_level = IPPROTO_IP;
+            CMsg->cmsg_type = IP_ECN;
+            CMsg->cmsg_len = WSA_CMSG_LEN(sizeof(INT));
+            *(PINT)WSA_CMSG_DATA(CMsg) = SendData->ECN;
+        }
 
     } else {
 
@@ -3877,13 +3879,15 @@ CxPlatSocketSendInline(
             PktInfo6->ipi6_addr = LocalAddress->Ipv6.sin6_addr;
         }
 
-        WSAMhdr.Control.len += WSA_CMSG_SPACE(sizeof(INT));
-        CMsg = WSA_CMSG_NXTHDR(&WSAMhdr, CMsg);
-        CXPLAT_DBG_ASSERT(CMsg != NULL);
-        CMsg->cmsg_level = IPPROTO_IPV6;
-        CMsg->cmsg_type = IPV6_ECN;
-        CMsg->cmsg_len = WSA_CMSG_LEN(sizeof(INT));
-        *(PINT)WSA_CMSG_DATA(CMsg) = SendData->ECN;
+        if (SendData->ECN != CXPLAT_ECN_NON_ECT) {
+            WSAMhdr.Control.len += WSA_CMSG_SPACE(sizeof(INT));
+            CMsg = WSA_CMSG_NXTHDR(&WSAMhdr, CMsg);
+            CXPLAT_DBG_ASSERT(CMsg != NULL);
+            CMsg->cmsg_level = IPPROTO_IPV6;
+            CMsg->cmsg_type = IPV6_ECN;
+            CMsg->cmsg_len = WSA_CMSG_LEN(sizeof(INT));
+            *(PINT)WSA_CMSG_DATA(CMsg) = SendData->ECN;
+        }
     }
 
     if (SendData->SegmentSize > 0) {
