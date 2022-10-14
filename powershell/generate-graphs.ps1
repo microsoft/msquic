@@ -491,6 +491,60 @@ function Get-LatencyData {
     return $Results
 }
 
+function Get-PercentileFromLatencyFile {
+    param (
+        [Parameter(Mandatory = $true)]
+        [string]$FilePath,
+
+        [Parameter(Mandatory = $true)]
+        [double]$Percentile # as a fraction (i.e. 0.9 for 90%)
+    )
+
+    $LatencyResults = Get-LatencyData $LatencyFile
+    $LatencyResults = $LatencyResults | Where-Object {[double]$_[0] -ge $Percentile} | Select-Object -First 1 # Find P90
+    return [double]$LatencyResults[1]
+}
+
+function Get-MedianLatencyFile {
+    param (
+        [Parameter(Mandatory = $true)]
+        [string]$BranchFolder,
+
+        [Parameter(Mandatory = $true)]
+        [string]$CommitHash,
+
+        [Parameter(Mandatory = $true)]
+        [string]$TestName,
+
+        [Parameter(Mandatory = $true)]
+        [double]$Percentile # as a fraction (i.e. 0.9 for 90%)
+    )
+
+    $LatencyFolder = Join-Path $BranchFolder $CommitHash "RpsLatency"
+
+    if (Test-Path (Join-Path $LatencyFolder "histogram_$TestName.txt")) {
+        # This is the old (single file) model
+        return Join-Path $LatencyFolder "histogram_$TestName.txt"
+    }
+
+    if (!(Test-Path (Join-Path $LatencyFolder "$($TestName)_run1.txt"))) {
+        return $null # Data is just missing
+    }
+
+    # Get all the different runs
+    $LatencyFilesPaths = Join-Path $LatencyFolder "$($TestName)_run*.txt"
+    $LatencyFiles = Get-ChildItem -Path $LatencyFilesPaths -Recurse -File
+
+    # Find all the percentiles for the runs
+    $Percentiles = [System.Collections.ArrayList]@();
+    foreach ($File in $LatencyFiles) {
+        $Percentiles.Add(@((Get-PercentileFromLatencyFile $File $Percentile), $File));
+    }
+
+    $Sorted = $Percentiles | Sort-Object {$_[0]}
+    return $Sorted[[int](($Sorted.Length - 1) / 2)][1] # Assumes an odd Length
+}
+
 function Get-PerCommitLatencyDataJs {
     param (
         [Parameter(Mandatory = $true)]
@@ -513,14 +567,12 @@ function Get-PerCommitLatencyDataJs {
         $platformResults = [System.Collections.ArrayList]@();
         foreach ($SingleCommitHis in $CommitHistory) {
             foreach ($connCount in $connCounts) {
-                $LatencyFolder = Join-Path $BranchFolder $SingleCommitHis.CommitHash "RpsLatency"
-                $LatencyFile = Join-Path $LatencyFolder "histogram_RPS_${platformName}_ConnectionCount_${connCount}.txt"
-                if (!(Test-Path $LatencyFile)) {
+                $LatencyFile = Get-MedianLatencyFile $BranchFolder $SingleCommitHis.CommitHash "RPS_${platformName}_ConnectionCount_${connCount}" 0.9
+                if ($null -eq $LatencyFile) {
                     continue;
                 }
-                $LatencyResults = Get-LatencyData $LatencyFile
-                $LatencyResults = $LatencyResults | Where-Object {[double]$_[0] -ge 0.9} | Select-Object -First 1 # Find P90
-                $null = $platformResults.Add("{c:${connCount},x:$($CommitIndexMap[$SingleCommitHis.CommitHash]),y:$($LatencyResults[1])}");
+                $Latency = Get-PercentileFromLatencyFile $File 0.9
+                $null = $platformResults.Add("{c:${connCount},x:$($CommitIndexMap[$SingleCommitHis.CommitHash]),y:$Latency}");
             }
         }
         $DataStrings[$platformName] = "[$($platformResults -Join ",")]";
@@ -552,7 +604,7 @@ function Get-LatestLatencyData {
             continue
         }
         #$XVal = 100.0 - (100.0 / $XVal);
-        $ToWrite = "{x:$XVal, y:$YVal}"
+        $ToWrite = "{x:$XVal,y:$YVal}"
         $null = $Results.Add($ToWrite);
     }
     # [{x: ..., y: ...}, {}]
@@ -570,12 +622,11 @@ function Get-LatestLatencyDataJs {
 
     # Grab Latency Data
     $LatestCommit = Get-LatestCommit -BranchFolder $BranchFolder
-    $LatencyFolder = Join-Path $BranchFolder $LatestCommit.CommitHash "RpsLatency"
-    $LinuxOpenSslLatencyFile = Join-Path $LatencyFolder "histogram_RPS_linux_x64_openssl_ConnectionCount_1.txt"
-    $WinOpenSslLatencyFile = Join-Path $LatencyFolder "histogram_RPS_Windows_x64_openssl_ConnectionCount_1.txt"
-    $WinSchannelLatencyFile = Join-Path $LatencyFolder "histogram_RPS_Windows_x64_schannel_ConnectionCount_1.txt"
-    $WinKernelLatencyFile = Join-Path $LatencyFolder "histogram_RPS_Winkernel_x64_schannel_ConnectionCount_1.txt"
-    $WinXDPLatencyFile = Join-Path $LatencyFolder "histogram_RPS_WinXDP_x64_schannel_ConnectionCount_1.txt"
+    $LinuxOpenSslLatencyFile = Get-MedianLatencyFile $BranchFolder $LatestCommit.CommitHash "RPS_linux_x64_openssl_ConnectionCount_1" 0.9
+    $WinOpenSslLatencyFile = Get-MedianLatencyFile $BranchFolder $LatestCommit.CommitHash "RPS_Windows_x64_openssl_ConnectionCount" 0.9
+    $WinSchannelLatencyFile = Get-MedianLatencyFile $BranchFolder $LatestCommit.CommitHash "RPS_Windows_x64_schannel_ConnectionCount_1" 0.9
+    $WinKernelLatencyFile = Get-MedianLatencyFile $BranchFolder $LatestCommit.CommitHash "RPS_Winkernel_x64_schannel_ConnectionCount_1" 0.9
+    $WinXDPLatencyFile = Get-MedianLatencyFile $BranchFolder $LatestCommit.CommitHash "RPS_WinXDP_x64_schannel_ConnectionCount_1" 0.9
 
     $LinuxOpenSslData = Get-LatestLatencyData $LinuxOpenSslLatencyFile
     $WinOpenSslData = Get-LatestLatencyData $WinOpenSslLatencyFile
