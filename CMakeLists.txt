@@ -632,12 +632,14 @@ if(QUIC_CODE_CHECK)
             -altera-*
             -android-cloexec-fopen
             -android-cloexec-socket
+            -bugprone-assignment-in-if-condition
             -bugprone-easily-swappable-parameters
             -bugprone-implicit-widening-of-multiplication-result
             -bugprone-macro-parentheses
             -bugprone-narrowing-conversions
             -bugprone-reserved-identifier
             -bugprone-sizeof-expression
+            -modernize-macro-to-enum
             -cert-dcl37-c
             -cert-dcl51-cpp
             -cert-err33-c

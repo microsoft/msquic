@@ -521,7 +521,7 @@ MsQuicConnectionSendResumptionTicket(
         goto Error;
     }
 
-    if (Flags > (QUIC_SEND_RESUMPTION_FLAG_FINAL | QUIC_SEND_RESUMPTION_FLAG_NONE)) { // cppcheck-suppress badBitmaskCheck
+    if (Flags > QUIC_SEND_RESUMPTION_FLAG_FINAL) {
         Status = QUIC_STATUS_INVALID_PARAMETER;
         goto Error;
     }

@@ -841,9 +841,9 @@ Return Value:
         Signature = CXPLAT_HASH_ALT_SIGNATURE;
     }
 
-    CXPLAT_HASHTABLE_LOOKUP_CONTEXT LocalContext = {0};
+    CXPLAT_HASHTABLE_LOOKUP_CONTEXT LocalContext;
     CXPLAT_HASHTABLE_LOOKUP_CONTEXT* ContextPtr =
-        (Context != NULL) ? Context : &LocalContext;
+        (Context != NULL) ? Context : &LocalContext; // cppcheck-suppress uninitvar
 
     CxPlatPopulateContext(HashTable, ContextPtr, Signature);
 
