@@ -428,8 +428,8 @@ function Invoke-Test {
     }
 
     if ($XDP) {
-        $RemoteArguments += " -cpu:-1"
-        $LocalArguments += " -cpu:-1"
+        $RemoteArguments += " -pollidle:10000"
+        $LocalArguments += " -pollidle:10000"
     }
 
     if ($Kernel) {
@@ -478,7 +478,7 @@ function Invoke-Test {
     try {
         1..$NumIterations | ForEach-Object {
             Write-LogAndDebug "Running Local: $LocalExe Args: $LocalArguments"
-            $LocalResults = Invoke-LocalExe -Exe $LocalExe -RunArgs $LocalArguments -Timeout $Timeout -OutputDir $OutputDir
+            $LocalResults = Invoke-LocalExe -Exe $LocalExe -RunArgs $LocalArguments -Timeout $Timeout -OutputDir $OutputDir -HistogramFileName "$($Test)_run$($_).txt"
             Write-LogAndDebug $LocalResults
             $AllLocalParsedResults = Get-TestResult -Results $LocalResults -Matcher $Test.ResultsMatcher -FailureDefault $Test.FailureDefault
             $AllRunsResults += $AllLocalParsedResults
@@ -571,7 +571,8 @@ try {
     Remove-PerfServices
 
     if ($IsWindows) {
-        Cancel-RemoteLogs -RemoteDirectory $RemoteDirectory
+        # Best effort, try to cancel any outstanding logs
+        try { Cancel-RemoteLogs -RemoteDirectory $RemoteDirectory } catch { }
 
         try {
             $CopyToDirectory = "C:\RunningTests"

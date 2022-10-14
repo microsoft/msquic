@@ -1717,12 +1717,10 @@ QUIC_DISABLED_BY_FUZZER_START;
             CxPlatDataPathGetProc(Datapath, AffinitizedProcessor);
         CxPlatRefIncrement(&SocketProc->DatapathProc->RefCount);
 
-        if (*SocketProc->DatapathProc->EventQ !=
-            CreateIoCompletionPort(
+        if (!CxPlatEventQAssociateHandle(
+                SocketProc->DatapathProc->EventQ,
                 (HANDLE)SocketProc->Socket,
-                *SocketProc->DatapathProc->EventQ,
-                (ULONG_PTR)&SocketProc->IoSqe,
-                0)) {
+                &SocketProc->IoSqe)) {
             DWORD LastError = GetLastError();
             QuicTraceEvent(
                 DatapathErrorStatus,
@@ -2073,12 +2071,10 @@ CxPlatSocketCreateTcpInternal(
             CxPlatDataPathGetProc(Datapath, AffinitizedProcessor);
         CxPlatRefIncrement(&SocketProc->DatapathProc->RefCount);
 
-        if (*SocketProc->DatapathProc->EventQ !=
-            CreateIoCompletionPort(
+        if (!CxPlatEventQAssociateHandle(
+                SocketProc->DatapathProc->EventQ,
                 (HANDLE)SocketProc->Socket,
-                *SocketProc->DatapathProc->EventQ,
-                (ULONG_PTR)&SocketProc->IoSqe,
-                0)) {
+                &SocketProc->IoSqe)) {
             DWORD LastError = GetLastError();
             QuicTraceEvent(
                 DatapathErrorStatus,
@@ -2347,12 +2343,10 @@ CxPlatSocketCreateTcpListener(
     SocketProc->DatapathProc = &Datapath->Processors[0]; // TODO - Something better?
     CxPlatRefIncrement(&SocketProc->DatapathProc->RefCount);
 
-    if (*SocketProc->DatapathProc->EventQ !=
-        CreateIoCompletionPort(
+    if (!CxPlatEventQAssociateHandle(
+            SocketProc->DatapathProc->EventQ,
             (HANDLE)SocketProc->Socket,
-            *SocketProc->DatapathProc->EventQ,
-            (ULONG_PTR)&SocketProc->IoSqe,
-            0)) {
+            &SocketProc->IoSqe)) {
         DWORD LastError = GetLastError();
         QuicTraceEvent(
             DatapathErrorStatus,
@@ -2810,12 +2804,10 @@ CxPlatDataPathAcceptComplete(
             CxPlatDataPathGetProc(ListenerSocketProc->Parent->Datapath, AffinitizedProcessor);
         CxPlatRefIncrement(&AcceptSocketProc->DatapathProc->RefCount);
 
-        if (*AcceptSocketProc->DatapathProc->EventQ !=
-            CreateIoCompletionPort(
+        if (!CxPlatEventQAssociateHandle(
+                AcceptSocketProc->DatapathProc->EventQ,
                 (HANDLE)AcceptSocketProc->Socket,
-                *AcceptSocketProc->DatapathProc->EventQ,
-                (ULONG_PTR)&AcceptSocketProc->IoSqe,
-                0)) {
+                &AcceptSocketProc->IoSqe)) {
             DWORD LastError = GetLastError();
             QuicTraceEvent(
                 DatapathErrorStatus,

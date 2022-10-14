@@ -53,7 +53,7 @@ The following settings are available via registry as well as via [QUIC_SETTINGS]
 | Datagram Receive Support           | uint8_t    | DatagramReceiveEnabled      |         0 (FALSE) | Advertise support for QUIC datagram extension.                                                                                |
 | Server Resumption Level            | uint8_t    | ServerResumptionLevel       | 0 (No resumption) | Server only. Controls resumption tickets and/or 0-RTT server support.                                                         |
 | Grease Quic Bit Support            | uint8_t    | GreaseQuicBitEnabled        |         0 (FALSE) | Advertise support for Grease QUIC Bit extension.                                                                              |
-| Minimum MTU                        | uint16_t   | MinimumMtu                  |              1248 | The minimum MTU supported by a connection. This will be used as the starting MTU.                                             |
+| Minimum MTU                        | uint16_t   | MinimumMtu                  |              1288 | The minimum MTU supported by a connection. This will be used as the starting MTU.                                             |
 | Maximum MTU                        | uint16_t   | MaximumMtu                  |              1500 | The maximum MTU supported by a connection. This will be the maximum probed value.                                             |
 | MTU Discovery Search Timeout       | uint64_t   | MtuDiscoverySearchCompleteTimeoutUs | 600000000 | The time in microseconds to wait before reattempting MTU probing if max was not reached.                                      |
 | MTU Discovery Missing Probe Count  | uint8_t    | MtuDiscoveryMissingProbeCount  |              3 | The number of MTU probes to retry before exiting MTU probing.                                                                 |
@@ -73,7 +73,7 @@ The following settings are available via registry as well as via [QUIC_VERSION_S
 |-----------------------------------|------------|--------------------------|-------------------|-------------------------------------------------------------------------------------------------------------------------------|
 | Acceptable Versions List          | uint32_t[] | AcceptableVersions       | Unset             | Sets the list of versions that a given server instance will use if a client sends a first flight using them. |
 | Offered Versions List             | uint32_t[] | OfferedVersions          | Unset             | Sets the list of versions that a given server instance will send in a Version Negotiation packet if it receives a first flight from an unknown version. This list will most often be equal to the Acceptable Versions list. |
-| Fully-Deployed Versions List      | uint32_t[] | FullyDeployedVersions    | Unset             | Sets the list of QUIC versions that is supported and negotiated by every single QUIC server instance in this deployment. Used to generate the OtherVersions list in the Version Negotiation Extension Transport Parameter. |
+| Fully-Deployed Versions List      | uint32_t[] | FullyDeployedVersions    | Unset             | Sets the list of QUIC versions that is supported and negotiated by every single QUIC server instance in this deployment. Used to generate the AvailableVersions list in the Version Negotiation Extension Transport Parameter. |
 
 The `uint32_t[]` type is a `REG_BINARY` blob of the versions list, with each version in little-endian format.
 

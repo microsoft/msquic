@@ -170,6 +170,11 @@ InterlockedFetchAndClearBoolean(
     _Inout_ _Interlocked_operand_ BOOLEAN volatile *Target
     );
 
+BOOLEAN
+InterlockedFetchAndSetBoolean(
+    _Inout_ _Interlocked_operand_ BOOLEAN volatile *Target
+    );
+
 short
 InterlockedIncrement16(
     _Inout_ _Interlocked_operand_ short volatile *Addend

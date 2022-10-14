@@ -522,14 +522,18 @@ function Log($msg) {
 
 function Invoke-LocalExe {
     [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSAvoidUsingInvokeExpression', '')]
-    param ($Exe, $RunArgs, $Timeout, $OutputDir)
+    param ($Exe, $RunArgs, $Timeout, $OutputDir, $HistogramFileName)
     $BasePath = Split-Path $Exe -Parent
     if (!$IsWindows) {
         $env:LD_LIBRARY_PATH = $BasePath
         chmod +x $Exe | Out-Null
     }
-    $LocalExtraFile = Join-Path $BasePath "ExtraRunFile.txt"
-    $RunArgs = """--extraOutputFile:$LocalExtraFile"" $RunArgs"
+    $HistogramDir = Join-Path $OutputDir "histogram"
+    if (!(Test-Path $HistogramDir)) {
+        mkdir $HistogramDir | Out-Null
+    }
+    $HistogramFilePath = Join-Path $HistogramDir $HistogramFileName
+    $RunArgs = """--extraOutputFile:$HistogramFilePath"" $RunArgs"
     $TimeoutMs = ($Timeout - 5) * 1000;
     $RunArgs = "-watchdog:$TimeoutMs $RunArgs"
 
@@ -950,15 +954,6 @@ function Publish-RPSTestResults {
     param ([TestRunDefinition]$Test, $AllRunsFullResults, $CurrentCommitHash, $CurrentCommitDate, $PreviousResults, $OutputDir, $ExePath)
 
     $Request = [RPSRequest]::new($Test)
-
-    $BasePath = Split-Path $ExePath -Parent
-    $LocalExtraFile = Join-Path $BasePath "ExtraRunFile.txt"
-    if (Test-Path $LocalExtraFile -PathType Leaf) {
-        $ResultFile = Join-Path $OutputDir "histogram_$Test.txt"
-        Copy-Item -Path $LocalExtraFile -Destination $ResultFile
-    } else {
-        Write-Host "Extra file $LocalExtraFile not found when expected"
-    }
 
     $AllRunsResults = Get-TestResultAtIndex -FullResults $AllRunsFullResults -Index 1
     $MedianCurrentResult = Get-MedianTestResults -FullResults $AllRunsResults
