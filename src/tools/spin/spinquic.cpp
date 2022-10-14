@@ -1184,7 +1184,7 @@ int start(void* Context) {
         CXPLAT_THREAD Threads[4];
         const uint32_t Count = (uint32_t)(rand() % (ARRAYSIZE(Threads) - 1) + 1);
         if (Context) {
-            if (!((FuzzingData*)Context)->Initialize(Count * (Settings.RunServer + Settings.RunClient))) {
+            if (!((FuzzingData*)Context)->Initialize((uint16_t)(Count * (Settings.RunServer + Settings.RunClient)))) {
                 return 0;
             }
         }
