@@ -172,7 +172,7 @@
                 "Tls": ["schannel", "openssl"],
                 "Arch": ["x64", "x86", "arm", "arm64"],
                 "Exe": "secnetperf",
-                "Arguments": "-exec:lowlat -test:RPS -target:$RemoteAddress"
+                "Arguments": "-exec:lowlat -test:RPS -target:$RemoteAddress -runtime:45000"
             },
             "Variables": [
                 {
@@ -204,7 +204,7 @@
                 }
             ],
             "AllowLoopback": false,
-            "Iterations": 5,
+            "Iterations": 1,
             "RemoteReadyMatcher": "Started!",
             "ResultsMatcher": "Result: (.*) RPS, Min: (.*), Max: (.*), 50th: (.*), 90th: (.*), 99th: (.*), 99.9th: (.*), 99.99th: (.*), 99.999th: (.*), 99.9999th: (.*), StdErr: (.*)",
             "Formats": ["{0} RPS", "Minimum: {0}", "Maximum: {0}", "Percentiles: 50th: {0}", "90th: {0}", "99th: {0}", "99.9th: {0}", "99.99th: {0}", "99.999th: {0}", "99.9999th: {0}", "Standard Error: {0}"],
@@ -217,7 +217,7 @@
                 "Tls": ["openssl"],
                 "Arch": ["x64", "arm"],
                 "Exe": "secnetperf",
-                "Arguments": "-exec:lowlat -test:RPS -target:$RemoteAddress"
+                "Arguments": "-exec:lowlat -test:RPS -target:$RemoteAddress -runtime:45000"
             },
             "Variables": [
                 {
@@ -249,7 +249,7 @@
                 }
             ],
             "AllowLoopback": false,
-            "Iterations": 5,
+            "Iterations": 1,
             "RemoteReadyMatcher": "Started!",
             "ResultsMatcher": "Result: (.*) RPS, Min: (.*), Max: (.*), 50th: (.*), 90th: (.*), 99th: (.*), 99.9th: (.*), 99.99th: (.*), 99.999th: (.*), 99.9999th: (.*), StdErr: (.*)",
             "Formats": ["{0} RPS", "Minimum: {0}", "Maximum: {0}", "Percentiles: 50th: {0}", "90th: {0}", "99th: {0}", "99.9th: {0}", "99.99th: {0}", "99.999th: {0}", "99.9999th: {0}", "Standard Error: {0}"],
