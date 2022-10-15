@@ -297,6 +297,12 @@ Advertise support for QUIC Grease Bit Extension. Both sides of a connection need
 
 **Default value:** 0 (`FALSE`)
 
+`EcnEnabled`
+
+Enable sender-side ECN support. The connection will validate and react to ECN feedback from peer.
+
+**Default value:** 0 (`FALSE`)
+
 # Remarks
 
 When setting new values for the settings, the app must set the corresponding `.IsSet.*` parameter for each actual parameter that is being set or updated. For example:
