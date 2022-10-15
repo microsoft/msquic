@@ -3473,7 +3473,7 @@
     },
     "EcnValidationFailure": {
       "ModuleProperites": {},
-      "TraceString": "[conn][%p] ECN validation failed: EncryptLevel %d EcnEctCounter %llu EcnCeCounters %llu\"\r\n                \"NumPacketsSentWithEct %llu EctCeDeltaSum %lld EcnValidationState %u",
+      "TraceString": "[conn][%p] ECN validation failed: EncryptLevel %d EcnEctCounter %llu EcnCeCounters %llu NumPacketsSentWithEct %llu EctCeDeltaSum %lld EcnValidationState %u",
       "UniqueId": "EcnValidationFailure",
       "splitArgs": [
         {
@@ -3509,7 +3509,7 @@
     },
     "EcnValidationSuccess": {
       "ModuleProperites": {},
-      "TraceString": "[conn][%p] ECN validation succeeded",
+      "TraceString": "[conn][%p] ECN validation succeeded.",
       "UniqueId": "EcnValidationSuccess",
       "splitArgs": [
         {
@@ -10059,6 +10059,18 @@
       ],
       "macroName": "QuicTraceLogVerbose"
     },
+    "SettingEcnEnabled": {
+      "ModuleProperites": {},
+      "TraceString": "[sett] EcnEnabled   = %hhu",
+      "UniqueId": "SettingEcnEnabled",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "hhu",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceLogVerbose"
+    },
     "SettingGreaseQuicBitEnabled": {
       "ModuleProperites": {},
       "TraceString": "[sett] GreaseQuicBitEnabled   = %hhu",
@@ -13168,14 +13180,14 @@
         "EncodingString": "[conn][%p] Updated ECN enabled to %hhu"
       },
       {
-        "UniquenessHash": "2929bbf7-7336-366a-38f0-3492c60786c5",
+        "UniquenessHash": "9f5ebd0c-d2f8-c5b0-cc5f-35e00b37434f",
         "TraceID": "EcnValidationFailure",
-        "EncodingString": "[conn][%p] ECN validation failed: EncryptLevel %d EcnEctCounter %llu EcnCeCounters %llu\"\r\n                \"NumPacketsSentWithEct %llu EctCeDeltaSum %lld EcnValidationState %u"
+        "EncodingString": "[conn][%p] ECN validation failed: EncryptLevel %d EcnEctCounter %llu EcnCeCounters %llu NumPacketsSentWithEct %llu EctCeDeltaSum %lld EcnValidationState %u"
       },
       {
-        "UniquenessHash": "026f0da6-44f6-602b-ae19-36d46d70e59d",
+        "UniquenessHash": "accf3f26-b536-b51f-0706-b687b6424c7f",
         "TraceID": "EcnValidationSuccess",
-        "EncodingString": "[conn][%p] ECN validation succeeded"
+        "EncodingString": "[conn][%p] ECN validation succeeded."
       },
       {
         "UniquenessHash": "d276c997-5dfb-645e-b54a-7ec567967851",
@@ -15201,6 +15213,11 @@
         "UniquenessHash": "5611e76a-6d7c-35b7-9562-f67e5c2e3aa1",
         "TraceID": "SettingDumpVersionNegoExtEnabled",
         "EncodingString": "[sett] Version Negotiation Ext Enabled = %hhu"
+      },
+      {
+        "UniquenessHash": "cc1f6bd7-f0a0-d7f9-2294-c5320ddaeb8a",
+        "TraceID": "SettingEcnEnabled",
+        "EncodingString": "[sett] EcnEnabled   = %hhu"
       },
       {
         "UniquenessHash": "eb526b83-28f4-1046-57bf-7727ba70f36d",

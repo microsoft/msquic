@@ -194,10 +194,7 @@ typedef union QUIC_CONNECTION_STATE {
         //
         BOOLEAN DisableVneTp : 1;
 #endif
-        //
-        // Whether to enable sender-side ECN support.
-        //
-        BOOLEAN EcnEnabled : 1;
+
     };
 } QUIC_CONNECTION_STATE;
 

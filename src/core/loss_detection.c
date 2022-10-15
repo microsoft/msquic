@@ -1498,62 +1498,63 @@ QuicLossDetectionProcessAckBlocks(
     }
 
     if (NewLargestAck) {
-        //
-        // Per RFC 9000, we validate ECN counts from received ACK frames
-        // when the largest acked packet number increases.
-        //
-        BOOLEAN EcnValidated = TRUE;
-        int64_t EctCeDeltaSum = 0;
-        if (Ecn != NULL) {
-            EctCeDeltaSum +=
-                Ecn->CE_Count - Connection->EcnCeCounters[EncryptLevel];
-            EctCeDeltaSum +=
-                Ecn->ECT_0_Count - Connection->EcnEctCounters[EncryptLevel];
-            if (EctCeDeltaSum < 0 ||
-                EctCeDeltaSum < EcnEctCounter ||
-                Ecn->ECT_1_Count != 0 ||
-                Connection->NumPacketsSentWithEct < Ecn->ECT_0_Count) {
+        if (Connection->Settings.EcnEnabled) {
+            //
+            // Per RFC 9000, we validate ECN counts from received ACK frames
+            // when the largest acked packet number increases.
+            //
+            BOOLEAN EcnValidated = TRUE;
+            int64_t EctCeDeltaSum = 0;
+            if (Ecn != NULL) {
+                EctCeDeltaSum +=
+                    Ecn->CE_Count - Connection->EcnCeCounters[EncryptLevel];
+                EctCeDeltaSum +=
+                    Ecn->ECT_0_Count - Connection->EcnEctCounters[EncryptLevel];
+                if (EctCeDeltaSum < 0 ||
+                    EctCeDeltaSum < EcnEctCounter ||
+                    Ecn->ECT_1_Count != 0 ||
+                    Connection->NumPacketsSentWithEct < Ecn->ECT_0_Count) {
 
-                EcnValidated = FALSE;
-            }
+                    EcnValidated = FALSE;
+                }
 
-            if (EcnValidated) {
+                if (EcnValidated) {
+                    //
+                    // TODO: Notify CC of the ECN signal before we update the CE counts.
+                    //
+                    Connection->EcnCeCounters[EncryptLevel] = Ecn->CE_Count;
+                    Connection->EcnEctCounters[EncryptLevel] = Ecn->ECT_0_Count;
+                    if (Path->EcnValidationState == ECN_VALIDATION_UNKNOWN) {
+                        Path->EcnValidationState = ECN_VALIDATION_CAPABLE;
+                        QuicTraceLogConnInfo(
+                            EcnValidationSuccess,
+                            Connection,
+                            "ECN validation succeeded.");
+                    }
+                }
+            } else {
+                // 
+                // If an ACK frame newly acknowledges a packet that the endpoint sent
+                // with either the ECT(0) or ECT(1) codepoint set, ECN validation fails
+                // if the corresponding ECN counts are not present in the ACK frame.
                 //
-                // TODO: Notify CC of the ECN signal before we update the CE counts.
-                //
-                Connection->EcnCeCounters[EncryptLevel] = Ecn->CE_Count;
-                Connection->EcnEctCounters[EncryptLevel] = Ecn->ECT_0_Count;
-                if (Path->EcnValidationState == ECN_VALIDATION_UNKNOWN) {
-                    Path->EcnValidationState = ECN_VALIDATION_CAPABLE;
-                    QuicTraceLogConnInfo(
-                        EcnValidationSuccess,
-                        Connection,
-                        "ECN validation succeeded");
+                if (EcnEctCounter != 0) {
+                    EcnValidated = FALSE;
                 }
             }
-        } else {
-            // 
-            // If an ACK frame newly acknowledges a packet that the endpoint sent
-            // with either the ECT(0) or ECT(1) codepoint set, ECN validation fails
-            // if the corresponding ECN counts are not present in the ACK frame.
-            //
-            if (EcnEctCounter != 0) {
-                EcnValidated = FALSE;
-            }
-        }
 
-        if (!EcnValidated) {
-            QuicTraceLogConnInfo(
-                EcnValidationFailure,
-                Connection,
-                "ECN validation failed: EncryptLevel %d EcnEctCounter %llu EcnCeCounters %llu"
-                "NumPacketsSentWithEct %llu EctCeDeltaSum %lld EcnValidationState %u",
-                EncryptLevel,
-                Connection->EcnEctCounters[EncryptLevel], Connection->EcnCeCounters[EncryptLevel],
-                Connection->NumPacketsSentWithEct,
-                EctCeDeltaSum,
-                Path->EcnValidationState);
-            Path->EcnValidationState = ECN_VALIDATION_FAILED;
+            if (!EcnValidated) {
+                QuicTraceLogConnInfo(
+                    EcnValidationFailure,
+                    Connection,
+                    "ECN validation failed: EncryptLevel %d EcnEctCounter %llu EcnCeCounters %llu NumPacketsSentWithEct %llu EctCeDeltaSum %lld EcnValidationState %u",
+                    EncryptLevel,
+                    Connection->EcnEctCounters[EncryptLevel], Connection->EcnCeCounters[EncryptLevel],
+                    Connection->NumPacketsSentWithEct,
+                    EctCeDeltaSum,
+                    Path->EcnValidationState);
+                Path->EcnValidationState = ECN_VALIDATION_FAILED;
+            }
         }
 
         //

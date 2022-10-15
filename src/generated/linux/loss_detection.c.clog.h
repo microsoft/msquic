@@ -301,11 +301,11 @@ tracepoint(CLOG_LOSS_DETECTION_C, PathValidationTimeout , arg1, arg3);\
 
 /*----------------------------------------------------------
 // Decoder Ring for EcnValidationSuccess
-// [conn][%p] ECN validation succeeded
+// [conn][%p] ECN validation succeeded.
 // QuicTraceLogConnInfo(
-                        EcnValidationSuccess,
-                        Connection,
-                        "ECN validation succeeded");
+                            EcnValidationSuccess,
+                            Connection,
+                            "ECN validation succeeded.");
 // arg1 = arg1 = Connection = arg1
 ----------------------------------------------------------*/
 #ifndef _clog_3_ARGS_TRACE_EcnValidationSuccess
@@ -319,18 +319,16 @@ tracepoint(CLOG_LOSS_DETECTION_C, EcnValidationSuccess , arg1);\
 
 /*----------------------------------------------------------
 // Decoder Ring for EcnValidationFailure
-// [conn][%p] ECN validation failed: EncryptLevel %d EcnEctCounter %llu EcnCeCounters %llu"
-                "NumPacketsSentWithEct %llu EctCeDeltaSum %lld EcnValidationState %u
+// [conn][%p] ECN validation failed: EncryptLevel %d EcnEctCounter %llu EcnCeCounters %llu NumPacketsSentWithEct %llu EctCeDeltaSum %lld EcnValidationState %u
 // QuicTraceLogConnInfo(
-                EcnValidationFailure,
-                Connection,
-                "ECN validation failed: EncryptLevel %d EcnEctCounter %llu EcnCeCounters %llu"
-                "NumPacketsSentWithEct %llu EctCeDeltaSum %lld EcnValidationState %u",
-                EncryptLevel,
-                Connection->EcnEctCounters[EncryptLevel], Connection->EcnCeCounters[EncryptLevel],
-                Connection->NumPacketsSentWithEct,
-                EctCeDeltaSum,
-                Path->EcnValidationState);
+                    EcnValidationFailure,
+                    Connection,
+                    "ECN validation failed: EncryptLevel %d EcnEctCounter %llu EcnCeCounters %llu NumPacketsSentWithEct %llu EctCeDeltaSum %lld EcnValidationState %u",
+                    EncryptLevel,
+                    Connection->EcnEctCounters[EncryptLevel], Connection->EcnCeCounters[EncryptLevel],
+                    Connection->NumPacketsSentWithEct,
+                    EctCeDeltaSum,
+                    Path->EcnValidationState);
 // arg1 = arg1 = Connection = arg1
 // arg3 = arg3 = EncryptLevel = arg3
 // arg4 = arg4 = Connection->EcnEctCounters[EncryptLevel] = arg4

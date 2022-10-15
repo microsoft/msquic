@@ -135,6 +135,9 @@ QuicSettingsSetDefault(
     if (!Settings->IsSet.GreaseQuicBitEnabled) {
         Settings->GreaseQuicBitEnabled = QUIC_DEFAULT_GREASE_QUIC_BIT_ENABLED;
     }
+    if (!Settings->IsSet.EcnEnabled) {
+        Settings->EcnEnabled = QUIC_DEFAULT_ECN_ENABLED;
+    }
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -270,6 +273,9 @@ QuicSettingsCopy(
     if (!Destination->IsSet.GreaseQuicBitEnabled) {
         Destination->GreaseQuicBitEnabled = Source->GreaseQuicBitEnabled;
     }
+    if (!Destination->IsSet.EcnEnabled) {
+        Destination->EcnEnabled = Source->EcnEnabled;
+    }
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -343,7 +349,7 @@ BOOLEAN
 QuicSettingApply(
     _Inout_ QUIC_SETTINGS_INTERNAL* Destination,
     _In_ BOOLEAN OverWrite,
-    _In_ BOOLEAN AllowMtuChanges,
+    _In_ BOOLEAN AllowMtuAndEcnChanges,
     _In_reads_bytes_(sizeof(QUIC_SETTINGS_INTERNAL))
         const QUIC_SETTINGS_INTERNAL* Source
     )
@@ -499,7 +505,7 @@ QuicSettingApply(
         }
     }
 
-    if (AllowMtuChanges) {
+    if (AllowMtuAndEcnChanges) {
         uint16_t MinimumMtu =
             Destination->IsSet.MinimumMtu ? Destination->MinimumMtu : QUIC_DPLPMTUD_MIN_MTU;
         uint16_t MaximumMtu =
@@ -566,6 +572,15 @@ QuicSettingApply(
     if (Source->IsSet.GreaseQuicBitEnabled && (!Destination->IsSet.GreaseQuicBitEnabled || OverWrite)) {
         Destination->GreaseQuicBitEnabled = Source->GreaseQuicBitEnabled;
         Destination->IsSet.GreaseQuicBitEnabled = TRUE;
+    }
+
+    if (AllowMtuAndEcnChanges) {
+        if (Source->IsSet.EcnEnabled && (!Destination->IsSet.EcnEnabled || OverWrite)) {
+            Destination->EcnEnabled = Source->EcnEnabled;
+            Destination->IsSet.EcnEnabled = TRUE;
+        }
+    } else if (Source->IsSet.EcnEnabled) {
+        return FALSE;
     }
 
     return TRUE;
@@ -1129,6 +1144,16 @@ VersionSettingsFail:
             &ValueLen);
         Settings->GreaseQuicBitEnabled = !!Value;
     }
+    if (!Settings->IsSet.EcnEnabled) {
+        Value = QUIC_DEFAULT_GREASE_QUIC_BIT_ENABLED;
+        ValueLen = sizeof(Value);
+        CxPlatStorageReadValue(
+            Storage,
+            QUIC_SETTING_ECN_ENABLED,
+            (uint8_t*)&Value,
+            &ValueLen);
+        Settings->EcnEnabled = !!Value;
+    }
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -1188,6 +1213,7 @@ QuicSettingsDump(
     QuicTraceLogVerbose(SettingCongestionControlAlgorithm,  "[sett] CongestionControlAlgorithm = %hu", Settings->CongestionControlAlgorithm);
     QuicTraceLogVerbose(SettingDestCidUpdateIdleTimeoutMs,  "[sett] DestCidUpdateIdleTimeoutMs = %u", Settings->DestCidUpdateIdleTimeoutMs);
     QuicTraceLogVerbose(SettingGreaseQuicBitEnabled,        "[sett] GreaseQuicBitEnabled   = %hhu", Settings->GreaseQuicBitEnabled);
+    QuicTraceLogVerbose(SettingEcnEnabled,                  "[sett] EcnEnabled   = %hhu", Settings->EcnEnabled);
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -1318,6 +1344,9 @@ QuicSettingsDumpNew(
     }
     if (Settings->IsSet.GreaseQuicBitEnabled) {
         QuicTraceLogVerbose(SettingGreaseQuicBitEnabled,            "[sett] GreaseQuicBitEnabled   = %hhu", Settings->GreaseQuicBitEnabled);
+    }
+    if (Settings->IsSet.EcnEnabled) {
+        QuicTraceLogVerbose(SettingEcnEnabled,                      "[sett] EcnEnabled   = %hhu", Settings->EcnEnabled);
     }
 }
 
@@ -1478,7 +1507,8 @@ QuicSettingsSettingsToInternal(
     SETTING_COPY_TO_INTERNAL(MigrationEnabled, Settings, InternalSettings);
     SETTING_COPY_TO_INTERNAL(DatagramReceiveEnabled, Settings, InternalSettings);
     SETTING_COPY_TO_INTERNAL(ServerResumptionLevel, Settings, InternalSettings);
-    SETTING_COPY_TO_INTERNAL(GreaseQuicBitEnabled, Settings, InternalSettings); // We can't copy it via sized version due to bit field operation not allowed on it.
+    SETTING_COPY_TO_INTERNAL(GreaseQuicBitEnabled, Settings, InternalSettings);
+    SETTING_COPY_TO_INTERNAL(EcnEnabled, Settings, InternalSettings);
 
     //
     // N.B. Anything after this needs to be size checked
@@ -1571,7 +1601,8 @@ QuicSettingsGetSettings(
     SETTING_COPY_FROM_INTERNAL(MigrationEnabled, Settings, InternalSettings);
     SETTING_COPY_FROM_INTERNAL(DatagramReceiveEnabled, Settings, InternalSettings);
     SETTING_COPY_FROM_INTERNAL(ServerResumptionLevel, Settings, InternalSettings);
-    SETTING_COPY_FROM_INTERNAL(GreaseQuicBitEnabled, Settings, InternalSettings); // We can't copy it via sized version due to bit field operation not allowed on it.
+    SETTING_COPY_FROM_INTERNAL(GreaseQuicBitEnabled, Settings, InternalSettings);
+    SETTING_COPY_FROM_INTERNAL(EcnEnabled, Settings, InternalSettings);
 
     //
     // N.B. Anything after this needs to be size checked

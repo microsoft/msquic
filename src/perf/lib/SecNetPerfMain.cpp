@@ -27,6 +27,7 @@ char Buffer[BufferLength];
 PerfBase* TestToRun;
 QUIC_EXECUTION_PROFILE PerfDefaultExecutionProfile = QUIC_EXECUTION_PROFILE_LOW_LATENCY;
 QUIC_CONGESTION_CONTROL_ALGORITHM PerfDefaultCongestionControl = QUIC_CONGESTION_CONTROL_ALGORITHM_CUBIC;
+uint8_t PerfDefaultEcnEnabled = false;
 
 #include "quic_datapath.h"
 
@@ -97,6 +98,7 @@ PrintHelp(
         "  -exec:<profile>             Execution profile to use {lowlat, maxtput, scavenger, realtime}.\n"
         "  -cc:<algo>                  Congestion control algorithm to use {cubic, bbr}.\n"
         "  -pollidle:<time_us>         Amount of time to poll while idle before sleeping (default: 0).\n"
+        "  -ecn:<0/1>                  Enables/disables sender-side ECN support. (def:0)\n"
 #ifndef _KERNEL_MODE
         "  -cpu:<cpu_index>            Specify the processor(s) to use.\n"
         "  -cipher:<value>             Decimal value of 1 or more QUIC_ALLOWED_CIPHER_SUITE_FLAGS.\n"
@@ -251,6 +253,8 @@ QuicMainStart(
             WriteOutput("Failed to parse congestion control algorithm[%s], use cubic as default\n", CcName);
         }
     }
+
+    TryGetValue(argc, argv, "ecn", &PerfDefaultEcnEnabled);
 
     if (ServerMode) {
         TestToRun = new(std::nothrow) PerfServer(SelfSignedCredConfig);

@@ -6468,29 +6468,6 @@ QuicConnParamSet(
         Status = QUIC_STATUS_SUCCESS;
         break;
 
-    case QUIC_PARAM_CONN_ECN:
-
-        if (BufferLength != sizeof(BOOLEAN)) {
-            Status = QUIC_STATUS_INVALID_PARAMETER;
-            break;
-        }
-
-        if (QUIC_CONN_BAD_START_STATE(Connection)) {
-            Status = QUIC_STATUS_INVALID_STATE;
-            break;
-        }
-
-        Connection->State.EcnEnabled = *(BOOLEAN*)Buffer;
-        Status = QUIC_STATUS_SUCCESS;
-
-        QuicTraceLogConnVerbose(
-            EcnEnabled,
-            Connection,
-            "Updated ECN enabled to %hhu",
-            Connection->State.EcnEnabled);
-
-        break;
-
     case QUIC_PARAM_CONN_CIBIR_ID: {
 
         if (QuicConnIsServer(Connection) ||
@@ -7106,25 +7083,6 @@ QuicConnParamGet(
                 (QUIC_STATISTICS_V2*)Buffer);
         break;
     }
-
-    case QUIC_PARAM_CONN_ECN:
-
-        if (*BufferLength < sizeof(BOOLEAN)) {
-            *BufferLength = sizeof(BOOLEAN);
-            Status = QUIC_STATUS_BUFFER_TOO_SMALL;
-            break;
-        }
-
-        if (Buffer == NULL) {
-            Status = QUIC_STATUS_INVALID_PARAMETER;
-            break;
-        }
-
-        *BufferLength = sizeof(BOOLEAN);
-        *(BOOLEAN*)Buffer = Connection->State.EcnEnabled;
-
-        Status = QUIC_STATUS_SUCCESS;
-        break;
 
     default:
         Status = QUIC_STATUS_INVALID_PARAMETER;

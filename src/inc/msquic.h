@@ -629,7 +629,8 @@ typedef struct QUIC_SETTINGS {
             uint64_t MtuDiscoveryMissingProbeCount          : 1;
             uint64_t DestCidUpdateIdleTimeoutMs             : 1;
             uint64_t GreaseQuicBitEnabled                   : 1;
-            uint64_t RESERVED                               : 31;
+            uint64_t EcnEnabled                             : 1;
+            uint64_t RESERVED                               : 30;
         } IsSet;
     };
 
@@ -663,7 +664,7 @@ typedef struct QUIC_SETTINGS {
     uint8_t DatagramReceiveEnabled          : 1;
     uint8_t ServerResumptionLevel           : 2;    // QUIC_SERVER_RESUMPTION_LEVEL
     uint8_t GreaseQuicBitEnabled            : 1;
-    uint8_t RESERVED                        : 1;
+    uint8_t EcnEnabled                      : 1;
     uint8_t MaxOperationsPerDrain;
     uint8_t MtuDiscoveryMissingProbeCount;
     uint32_t DestCidUpdateIdleTimeoutMs;
@@ -834,7 +835,6 @@ typedef struct QUIC_SCHANNEL_CREDENTIAL_ATTRIBUTE_W {
 #endif
 #define QUIC_PARAM_CONN_STATISTICS_V2                   0x05000016  // QUIC_STATISTICS_V2
 #define QUIC_PARAM_CONN_STATISTICS_V2_PLAT              0x05000017  // QUIC_STATISTICS_V2
-#define QUIC_PARAM_CONN_ECN                             0x05000018  // uint8_t (BOOLEAN)
 
 //
 // Parameters for TLS.

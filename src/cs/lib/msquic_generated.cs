@@ -1145,7 +1145,7 @@ namespace Microsoft.Quic
         }
 
         [NativeTypeName("uint8_t : 1")]
-        internal byte RESERVED
+        internal byte EcnEnabled
         {
             get
             {
@@ -1660,17 +1660,31 @@ namespace Microsoft.Quic
                     }
                 }
 
-                [NativeTypeName("uint64_t : 31")]
-                internal ulong RESERVED
+                [NativeTypeName("uint64_t : 1")]
+                internal ulong EcnEnabled
                 {
                     get
                     {
-                        return (_bitfield >> 33) & 0x7FFFFFFFUL;
+                        return (_bitfield >> 33) & 0x1UL;
                     }
 
                     set
                     {
-                        _bitfield = (_bitfield & ~(0x7FFFFFFFUL << 33)) | ((value & 0x7FFFFFFFUL) << 33);
+                        _bitfield = (_bitfield & ~(0x1UL << 33)) | ((value & 0x1UL) << 33);
+                    }
+                }
+
+                [NativeTypeName("uint64_t : 30")]
+                internal ulong RESERVED
+                {
+                    get
+                    {
+                        return (_bitfield >> 34) & 0x3FFFFFFFUL;
+                    }
+
+                    set
+                    {
+                        _bitfield = (_bitfield & ~(0x3FFFFFFFUL << 34)) | ((value & 0x3FFFFFFFUL) << 34);
                     }
                 }
             }
@@ -2858,9 +2872,6 @@ namespace Microsoft.Quic
 
         [NativeTypeName("#define QUIC_PARAM_CONN_STATISTICS_V2_PLAT 0x05000017")]
         internal const uint QUIC_PARAM_CONN_STATISTICS_V2_PLAT = 0x05000017;
-
-        [NativeTypeName("#define QUIC_PARAM_CONN_ECN 0x05000018")]
-        internal const uint QUIC_PARAM_CONN_ECN = 0x05000018;
 
         [NativeTypeName("#define QUIC_PARAM_TLS_HANDSHAKE_INFO 0x06000000")]
         internal const uint QUIC_PARAM_TLS_HANDSHAKE_INFO = 0x06000000;
