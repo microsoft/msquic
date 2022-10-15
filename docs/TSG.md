@@ -56,7 +56,7 @@ ulimit -n newValue
 ## Why is the connection shutting down?
 
 1. [What does this QUIC_CONNECTION_EVENT_SHUTDOWN_INITIATED_BY_TRANSPORT event mean?](#understanding-shutdown-by-transport)
-2. [What does this QUIC_CONNECTION_EVENT_SHUTDOWN_INITIATED_BY_APP event mean?](#understanding-shutdown-by-app)
+2. [What does this QUIC_CONNECTION_EVENT_SHUTDOWN_INITIATED_BY_PEER event mean?](#understanding-shutdown-by-peer)
 
 ### Understanding shutdown by Transport.
 
@@ -68,9 +68,9 @@ There are two ways for a connection to be shutdown, either by the application la
 
 Above is an example event collected during an attempt to connect to a non-existent server. Eventually the connection failed and the transport indicated the event with the appropriate error code. This error code (`18446744071566327813`) maps to `0xFFFFFFFF80410005`, which specifically refers to the `QUIC_STATUS` (indicated by `QS=1`) for `0x80410005`; which indicates `ERROR_QUIC_CONNECTION_IDLE`. For more details for understanding error codes see [here](#understanding-error-codes).
 
-### Understanding shutdown by App.
+### Understanding shutdown by Peer.
 
-As indicated in [Understanding shutdown by Transport](#understanding-shutdown-by-transport), there are two ways for connections to be shutdown. The `QUIC_CONNECTION_EVENT_SHUTDOWN_INITIATED_BY_APP` event occurs when the peer application has explicitly shut down the connection. In MsQuic API terms, this would mean the app called [ConnectionShutdown](./api/connectionshutdown.md).
+As indicated in [Understanding shutdown by Transport](#understanding-shutdown-by-transport), there are two ways for connections to be shutdown. The `QUIC_CONNECTION_EVENT_SHUTDOWN_INITIATED_BY_PEER` event occurs when the peer application has explicitly shut down the connection. In MsQuic API terms, this would mean the app called [ConnectionShutdown](./api/ConnectionShutdown.md).
 
 > TODO - Add an example event
 
@@ -150,7 +150,7 @@ This clearly shows that listener `7f30ac0dcff0` failed to register with the bind
 First, a bit of background. The MsQuic API has two types of APIs:
 
 - **Blocking / Synchronous** - These APIs run to completion and only return once finished. When running in the Windows kernel, these **MUST NOT** be called at `DISPATCH_LEVEL`. They are denoted by the `_IRQL_requires_max_(PASSIVE_LEVEL)` annotation. For example, [ConnectionClose](./api/ConnectionClose.md).
-- **Nonblocking / Asynchronous** - These APIs merely queue work and return immediately. When running in the Windows kernel, these may be called at `DISPATCH_LEVEL`. They are denoted by the `_IRQL_requires_max_(DISPATCH_LEVEL)` annotation. For example, [StreamSend][./api/StreamSend.md].
+- **Nonblocking / Asynchronous** - These APIs merely queue work and return immediately. When running in the Windows kernel, these may be called at `DISPATCH_LEVEL`. They are denoted by the `_IRQL_requires_max_(DISPATCH_LEVEL)` annotation. For example, [StreamSend](./api/StreamSend.md).
 
 Additional documentation on the MsQuic execution model is available [here](./API.md#execution-mode).
 
