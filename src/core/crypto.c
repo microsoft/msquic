@@ -1719,6 +1719,38 @@ QuicCryptoCustomCertValidationComplete(
             "Custom cert validation failed.");
         QuicConnTransportError(
             QuicCryptoGetConnection(Crypto),
+            QUIC_ERROR_CRYPTO_ERROR(0xFF & CXPLAT_TLS_ALERT_CODE_BAD_CERTIFICATE)); //
+    }
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+QuicCryptoCustomTicketValidationComplete(
+    _In_ QUIC_CRYPTO* Crypto,
+    _In_ BOOLEAN Result
+    )
+{
+    if (!Crypto->TicketValidationPending) {
+        return;
+    }
+
+    Crypto->TicketValidationPending = FALSE;
+    if (Result) {
+        // QuicTraceLogConnInfo(
+        //     CustomCertValidationSuccess,
+        //     QuicCryptoGetConnection(Crypto),
+        //     "Custom cert validation succeeded");
+        QuicCryptoProcessTlsCompletion(Crypto);
+
+    } else {
+        // QuicTraceEvent(
+        //     ConnError,
+        //     "[conn][%p] ERROR, %s.",
+        //     QuicCryptoGetConnection(Crypto),
+        //     "Custom cert validation failed.");
+        // TODO: change the constant, but the value seems to have meaning. Check with someone
+        QuicConnTransportError(
+            QuicCryptoGetConnection(Crypto),
             QUIC_ERROR_CRYPTO_ERROR(0xFF & CXPLAT_TLS_ALERT_CODE_BAD_CERTIFICATE));
     }
 }

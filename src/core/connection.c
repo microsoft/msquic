@@ -2231,7 +2231,10 @@ QuicConnRecvResumptionTicket(
                 IndicateResumptionTicketReceived,
                 Connection,
                 "Indicating QUIC_CONNECTION_EVENT_RESUMPTION_TICKET_RECEIVED");
-            (void)QuicConnIndicateEvent(Connection, &Event);
+            QUIC_STATUS Status = QuicConnIndicateEvent(Connection, &Event);
+            if (Status == QUIC_STATUS_PENDING) {
+                Connection->Crypto.TicketValidationPending = TRUE;
+            }
 
             CXPLAT_FREE(ClientTicket, QUIC_POOL_CLIENT_CRYPTO_TICKET);
             ResumptionAccepted = TRUE;

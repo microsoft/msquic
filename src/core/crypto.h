@@ -40,6 +40,11 @@ typedef struct QUIC_CRYPTO {
     BOOLEAN CertValidationPending : 1;
 
     //
+    // Indicates custom cert validation (by the app) is outstanding.
+    //
+    BOOLEAN TicketValidationPending : 1;
+
+    //
     // The TLS context for processing handshake messages.
     //
     CXPLAT_TLS* TLS;
@@ -263,6 +268,16 @@ QuicCryptoProcessAppData(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicCryptoCustomCertValidationComplete(
+    _In_ QUIC_CRYPTO* Crypto,
+    _In_ BOOLEAN Result
+    );
+
+//
+// Invoked when the app has completed its custom resumption ticket validation.
+//
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+QuicCryptoCustomTicketValidationComplete(
     _In_ QUIC_CRYPTO* Crypto,
     _In_ BOOLEAN Result
     );
