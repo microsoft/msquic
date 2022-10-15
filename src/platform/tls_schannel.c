@@ -3140,7 +3140,7 @@ CxPlatParseTrafficSecrets(
             return FALSE;
         }
     } else if (wcscmp(TrafficSecrets->SymmetricAlgId, BCRYPT_CHACHA20_POLY1305_ALGORITHM) == 0) {
-        if (CxPlatCryptIsChaCha20Poly1305Supported()) {
+        if (!CxPlatCryptIsChaCha20Poly1305Supported()) {
             QuicTraceEvent(
                 TlsError,
                 "[ tls][%p] ERROR, %s.",
