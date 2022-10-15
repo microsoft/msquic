@@ -3498,6 +3498,16 @@ CxPlatDataPathSocketProcessReceiveCompletion(
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 _Success_(return != NULL)
+BOOLEAN
+CxPlatSendDataEctSet(
+    _In_ CXPLAT_SEND_DATA* SendData
+    )
+{
+    return (SendData->ECN == CXPLAT_ECN_ECT_1 || SendData->ECN == CXPLAT_ECN_ECT_0);
+}
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+_Success_(return != NULL)
 CXPLAT_SEND_DATA*
 CxPlatSendDataAlloc(
     _In_ CXPLAT_SOCKET* Socket,

@@ -1498,7 +1498,7 @@ QuicLossDetectionProcessAckBlocks(
     }
 
     if (NewLargestAck) {
-        if (Connection->Settings.EcnEnabled) {
+        if (Connection->Settings.EcnEnabled && Path->EcnValidationState != ECN_VALIDATION_FAILED) {
             //
             // Per RFC 9000, we validate ECN counts from received ACK frames
             // when the largest acked packet number increases.
@@ -1514,7 +1514,6 @@ QuicLossDetectionProcessAckBlocks(
                     EctCeDeltaSum < EcnEctCounter ||
                     Ecn->ECT_1_Count != 0 ||
                     Connection->NumPacketsSentWithEct < Ecn->ECT_0_Count) {
-
                     EcnValidated = FALSE;
                 }
 

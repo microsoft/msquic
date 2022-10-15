@@ -574,6 +574,7 @@ typedef struct QUIC_CONNECTION {
     // The total number of packets sent with each corresponding ECT codepoint.
     //
     uint64_t NumPacketsSentWithEct;
+    uint64_t NumPacketsSentWithEctEx;
 
     //
     // Per-encryption level packet space information.

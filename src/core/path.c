@@ -33,7 +33,6 @@ QuicPathInitialize(
     Path->RttVariance = Path->SmoothedRtt / 2;
     Path->EcnValidationState =
         Connection->Settings.EcnEnabled ? ECN_VALIDATION_TESTING : ECN_VALIDATION_FAILED;
-
     QuicTraceLogConnInfo(
         PathInitialized,
         Connection,

@@ -257,7 +257,6 @@ QuicPacketBuilderPrepare(
             if (Builder->Path->EcnValidationState == ECN_VALIDATION_CAPABLE ||
                 Builder->Path->EcnValidationState == ECN_VALIDATION_TESTING) {
                 EcnType = CXPLAT_ECN_ECT_0;
-                Builder->Metadata->Flags.EcnEctSet = TRUE;
                 if (Builder->Path->EcnTestingEndingTimeSet) {
                     if (!CxPlatTimeAtOrBefore64(
                             CxPlatTimeUs64(), Builder->Path->EcnTestingEndingTime)) {
@@ -273,8 +272,6 @@ QuicPacketBuilderPrepare(
                     Builder->Path->EcnTestingEndingTime = TimeNow + ThreePtosInUs;
                     Builder->Path->EcnTestingEndingTimeSet = TRUE;
                 }
-
-                ++Connection->NumPacketsSentWithEct;
             }
 
             Builder->BatchId =
@@ -951,7 +948,7 @@ QuicPacketBuilderFinalize(
     Builder->Metadata->SentTime = CxPlatTimeUs32();
     Builder->Metadata->PacketLength =
         Builder->HeaderLength + PayloadLength;
-
+    Builder->Metadata->Flags.EcnEctSet = CxPlatSendDataEctSet(Builder->SendData);
     QuicTraceEvent(
         ConnPacketSent,
         "[conn][%p][TX][%llu] %hhu (%hu bytes)",
@@ -987,6 +984,9 @@ Exit:
 
     if (FinalQuicPacket) {
         if (Builder->Datagram != NULL) {
+            if (Builder->Metadata->Flags.EcnEctSet) {
+                ++Connection->NumPacketsSentWithEct;
+            }
             Builder->Datagram->Length = Builder->DatagramLength;
             Builder->Datagram = NULL;
             ++Builder->TotalCountDatagrams;

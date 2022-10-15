@@ -5947,7 +5947,7 @@ QuicConnResetIdleTimeout(
             //
             // Give ECN validation enough time to test ECN capability on the path.
             //
-            IdleTimeoutMs += CxPlatTimeDiff64(Now, Path->EcnTestingEndingTime);
+            IdleTimeoutMs += US_TO_MS(CxPlatTimeDiff64(Now, Path->EcnTestingEndingTime));
         }
     }
 
@@ -7164,6 +7164,11 @@ QuicConnApplyNewSettings(
             (void) CxPlatRandom(sizeof(RandomValue), &RandomValue);
             Connection->State.FixedBit = (RandomValue % 2);
             Connection->Stats.GreaseBitNegotiated = TRUE;
+        }
+
+        if (Connection->Settings.EcnEnabled) {
+            QUIC_PATH* Path = &Connection->Paths[0];
+            Path->EcnValidationState = ECN_VALIDATION_TESTING;
         }
     }
 
