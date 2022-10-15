@@ -91,11 +91,11 @@ static uint8_t* ReadPkcs12(const char* Name, uint32_t* Length) {
 
 
 QUIC_STATUS
-CxPlatTlsGenerateSignedCert(
-    _In_opt_z_ X509 *CaX509,
-    _In_opt_z_ EVP_PKEY *CaPKey,
+GenerateX509Cert(
+    _In_opt_ X509 *CaX509,
+    _In_opt_ EVP_PKEY *CaPKey,
     _In_z_ char *SNI,
-    _In_z_ BOOLEAN GenCaCert,
+    _In_ BOOLEAN GenCaCert,
     _Out_ X509 **OutCert,
     _Out_ EVP_PKEY **PrivKey
     )
@@ -343,14 +343,14 @@ CxPlatTlsGenerateSelfSignedCert(
 
     if (CaFileName != NULL) {
         // Generate CA certificate
-        Status = CxPlatTlsGenerateSignedCert(
+        Status = GenerateX509Cert(
             NULL, NULL, "CA Cert", TRUE, &CaX509, &CaPKey);
 
         if (Status != QUIC_STATUS_SUCCESS)
             goto Exit;
     }
 
-    Status = CxPlatTlsGenerateSignedCert(
+    Status = GenerateX509Cert(
         CaX509, CaPKey, SNI, FALSE, &X509, &PKey);
 
     if (Status != QUIC_STATUS_SUCCESS)
