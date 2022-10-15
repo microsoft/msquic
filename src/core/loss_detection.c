@@ -1529,6 +1529,7 @@ QuicLossDetectionProcessAckBlocks(
                             EcnValidationSuccess,
                             Connection,
                             "ECN validation succeeded.");
+                        printf("ECN capable!!!!!!!!!!!!!!!!!!\n");
                     }
                 }
             } else {

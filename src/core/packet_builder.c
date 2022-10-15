@@ -253,24 +253,27 @@ QuicPacketBuilderPrepare(
         //
         BOOLEAN SendDataAllocated = FALSE;
         if (Builder->SendData == NULL) {
-            CXPLAT_ECN_TYPE EcnType = CXPLAT_ECN_NON_ECT;
-            if (Builder->Path->EcnValidationState == ECN_VALIDATION_CAPABLE ||
-                Builder->Path->EcnValidationState == ECN_VALIDATION_TESTING) {
+            CXPLAT_ECN_TYPE EcnType =
+                Builder->Path->EcnValidationState == ECN_VALIDATION_CAPABLE ?
+                    CXPLAT_ECN_ECT_0 : CXPLAT_ECN_NON_ECT;
+            if (Builder->Path->EcnValidationState == ECN_VALIDATION_TESTING) {
                 EcnType = CXPLAT_ECN_ECT_0;
-                if (Builder->Path->EcnTestingEndingTimeSet) {
-                    if (!CxPlatTimeAtOrBefore64(
-                            CxPlatTimeUs64(), Builder->Path->EcnTestingEndingTime)) {
-                        Builder->Path->EcnValidationState = ECN_VALIDATION_UNKNOWN;
+                if (Builder->Path->EcnValidationState == ECN_VALIDATION_TESTING) {
+                    if (Builder->Path->EcnTestingEndingTimeSet) {
+                        if (!CxPlatTimeAtOrBefore64(
+                                CxPlatTimeUs64(), Builder->Path->EcnTestingEndingTime)) {
+                            Builder->Path->EcnValidationState = ECN_VALIDATION_UNKNOWN;
+                        }
+                    } else {
+                        uint64_t TimeNow = CxPlatTimeUs64();
+                        uint32_t ThreePtosInUs =
+                            QuicLossDetectionComputeProbeTimeout(
+                                &Connection->LossDetection,
+                                &Connection->Paths[0],
+                                QUIC_CLOSE_PTO_COUNT);
+                        Builder->Path->EcnTestingEndingTime = TimeNow + ThreePtosInUs;
+                        Builder->Path->EcnTestingEndingTimeSet = TRUE;
                     }
-                } else {
-                    uint64_t TimeNow = CxPlatTimeUs64();
-                    uint32_t ThreePtosInUs =
-                        QuicLossDetectionComputeProbeTimeout(
-                            &Connection->LossDetection,
-                            &Connection->Paths[0],
-                            QUIC_CLOSE_PTO_COUNT);
-                    Builder->Path->EcnTestingEndingTime = TimeNow + ThreePtosInUs;
-                    Builder->Path->EcnTestingEndingTimeSet = TRUE;
                 }
             }
 
