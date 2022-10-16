@@ -40,7 +40,7 @@ public:
     FuzzingData(const uint8_t* data, size_t size) : data(data), size(size), Ptrs({}), Cyclic(true), NumThread(65535) {}
     bool Initialize(uint16_t NumSpinThread) {
         // TODO: support non divisible size
-        if (size % NumSpinThread != 0) {
+        if (size % NumSpinThread != 0 || size < NumSpinThread * 8) {
             return false;
         }
 
@@ -53,7 +53,7 @@ public:
     }
     bool TryGetByte(uint8_t* Val, uint16_t ThreadId = 0) {
         if (EachSize < Ptrs[ThreadId] + 1) {
-            if (Cyclic) {
+            if (!Cyclic) {
                 return false;
             }
             Ptrs[ThreadId] = 0;
@@ -74,7 +74,7 @@ public:
         int type_size = sizeof(T);
         // TODO: efficient cyclic access
         if (EachSize < Ptrs[ThreadId] + type_size) {
-            if (Cyclic) {
+            if (!Cyclic) {
                 return false;
             }
             Ptrs[ThreadId] = 0;
@@ -93,7 +93,7 @@ T GetRandom(T UpperBound, uint16_t ThreadID = std::numeric_limits<uint16_t>::max
     if (!FuzzData || ThreadID == std::numeric_limits<uint16_t>::max()) {
         return (T)(rand() % (int)UpperBound);
     }
-    T out;
+    T out = std::numeric_limits<T>::max();
     (void)FuzzData->TryGetRandom(UpperBound, &out, ThreadID);
     return out;
 }
