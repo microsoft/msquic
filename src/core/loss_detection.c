@@ -1523,7 +1523,7 @@ QuicLossDetectionProcessAckBlocks(
                     //
                     Connection->EcnCeCounters[EncryptLevel] = Ecn->CE_Count;
                     Connection->EcnEctCounters[EncryptLevel] = Ecn->ECT_0_Count;
-                    if (Path->EcnValidationState == ECN_VALIDATION_UNKNOWN) {
+                    if (Path->EcnValidationState <= ECN_VALIDATION_UNKNOWN) {
                         Path->EcnValidationState = ECN_VALIDATION_CAPABLE;
                         QuicTraceLogConnInfo(
                             EcnValidationSuccess,
@@ -1554,6 +1554,7 @@ QuicLossDetectionProcessAckBlocks(
                     EctCeDeltaSum,
                     Path->EcnValidationState);
                 Path->EcnValidationState = ECN_VALIDATION_FAILED;
+                printf("ECN NOT capable!!!!!!!!!!!!!!!!!!\n");
             }
         }
 

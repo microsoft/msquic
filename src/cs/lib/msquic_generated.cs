@@ -723,17 +723,31 @@ namespace Microsoft.Quic
             }
         }
 
-        [NativeTypeName("uint32_t : 27")]
-        internal uint RESERVED
+        [NativeTypeName("uint32_t : 1")]
+        internal uint EcnCapable
         {
             get
             {
-                return (_bitfield >> 5) & 0x7FFFFFFu;
+                return (_bitfield >> 5) & 0x1u;
             }
 
             set
             {
-                _bitfield = (_bitfield & ~(0x7FFFFFFu << 5)) | ((value & 0x7FFFFFFu) << 5);
+                _bitfield = (_bitfield & ~(0x1u << 5)) | ((value & 0x1u) << 5);
+            }
+        }
+
+        [NativeTypeName("uint32_t : 26")]
+        internal uint RESERVED
+        {
+            get
+            {
+                return (_bitfield >> 6) & 0x3FFFFFFu;
+            }
+
+            set
+            {
+                _bitfield = (_bitfield & ~(0x3FFFFFFu << 6)) | ((value & 0x3FFFFFFu) << 6);
             }
         }
 

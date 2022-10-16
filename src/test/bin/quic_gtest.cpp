@@ -1826,6 +1826,15 @@ TEST(Misc, StreamAbortConnFlowControl) {
     }
 }
 
+TEST(Misc, Ecn) {
+    TestLogger Logger("Ecn");
+    if (TestingKernelMode) {
+        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_ECN));
+    } else {
+        QuicTestEcn();
+    }
+}
+
 TEST(Drill, VarIntEncoder) {
     TestLogger Logger("QuicDrillTestVarIntEncoder");
     if (TestingKernelMode) {

@@ -418,6 +418,23 @@ TestConnection::SetSettings(
             &value);
 }
 
+bool
+TestConnection::GetEcnEnabled()
+{
+    return GetSettings().EcnEnabled;
+}
+
+QUIC_STATUS
+TestConnection::SetEcnEnabled(
+    bool value
+    )
+{
+    QUIC_SETTINGS Settings{0};
+    Settings.EcnEnabled = value;
+    Settings.IsSet.EcnEnabled = TRUE;
+    return SetSettings(Settings);
+}
+
 uint64_t
 TestConnection::GetIdleTimeout()
 {

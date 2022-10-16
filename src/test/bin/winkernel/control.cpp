@@ -1310,6 +1310,9 @@ QuicTestCtlEvtIoDeviceControl(
         QuicTestCtlRun(
             QuicTestVNTPOtherVersionZero(Params->TestServerVNTP != 0));
         break;
+    case IOCTL_QUIC_RUN_ECN:
+        QuicTestCtlRun(QuicTestEcn());
+        break;
 #endif
 
     default:

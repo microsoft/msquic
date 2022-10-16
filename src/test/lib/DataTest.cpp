@@ -2190,6 +2190,14 @@ struct SlowRecvTestContext {
 };
 
 void
+QuicTestEcn(
+    void
+    )
+{
+
+}
+
+void
 QuicTestSlowReceive(
     void
     )
