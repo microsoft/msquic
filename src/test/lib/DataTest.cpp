@@ -2194,7 +2194,34 @@ QuicTestEcn(
     void
     )
 {
+    {
+        MsQuicRegistration Registration;
+        TEST_QUIC_SUCCEEDED(Registration.GetInitStatus());
 
+        MsQuicConfiguration ServerConfiguration(Registration, "MsQuicTest", MsQuicSettings().SetPeerUnidiStreamCount(1), ServerSelfSignedCredConfig);
+        TEST_QUIC_SUCCEEDED(ServerConfiguration.GetInitStatus());
+
+        MsQuicConfiguration ClientConfiguration(Registration, "MsQuicTest", MsQuicSettings().SetEcnEnabled(true), MsQuicCredentialConfig());
+        TEST_QUIC_SUCCEEDED(ClientConfiguration.GetInitStatus());
+
+        SlowRecvTestContext Context;
+        MsQuicAutoAcceptListener Listener(Registration, ServerConfiguration, SlowRecvTestContext::ConnCallback, &Context);
+        TEST_QUIC_SUCCEEDED(Listener.GetInitStatus());
+        TEST_QUIC_SUCCEEDED(Listener.Start("MsQuicTest"));
+        QuicAddr ServerLocalAddr;
+        TEST_QUIC_SUCCEEDED(Listener.GetLocalAddr(ServerLocalAddr));
+
+        MsQuicConnection Connection(Registration);
+        TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
+        TEST_QUIC_SUCCEEDED(Connection.Start(ClientConfiguration, ServerLocalAddr.GetFamily(), QUIC_TEST_LOOPBACK_FOR_AF(ServerLocalAddr.GetFamily()), ServerLocalAddr.GetPort()));
+
+        MsQuicStream Stream(Connection, QUIC_STREAM_OPEN_FLAG_UNIDIRECTIONAL);
+        TEST_QUIC_SUCCEEDED(Stream.GetInitStatus());
+
+        QUIC_STATISTICS_V2 Stats;
+        Connection.GetStatistics(&Stats);
+        TEST_TRUE(Stats.EcnCapable);
+    }
 }
 
 void

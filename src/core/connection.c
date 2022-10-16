@@ -6662,6 +6662,7 @@ QuicConnGetV2Statistics(
     Stats->ResumptionAttempted = Connection->Stats.ResumptionAttempted;
     Stats->ResumptionSucceeded = Connection->Stats.ResumptionSucceeded;
     Stats->GreaseBitNegotiated = Connection->Stats.GreaseBitNegotiated;
+    Stats->EcnCapable = Path->EcnValidationState == ECN_VALIDATION_CAPABLE;
     Stats->Rtt = Path->SmoothedRtt;
     Stats->MinRtt = Path->MinRtt;
     Stats->MaxRtt = Path->MaxRtt;
