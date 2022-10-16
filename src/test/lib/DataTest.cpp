@@ -2218,6 +2218,14 @@ QuicTestEcn(
         MsQuicStream Stream(Connection, QUIC_STREAM_OPEN_FLAG_UNIDIRECTIONAL);
         TEST_QUIC_SUCCEEDED(Stream.GetInitStatus());
 
+        //
+        // Open a stream, send some data and a FIN.
+        //
+        uint8_t RawBuffer[100];
+        QUIC_BUFFER Buffer { sizeof(RawBuffer), RawBuffer };
+        TEST_QUIC_SUCCEEDED(Stream.Send(&Buffer, 1, QUIC_SEND_FLAG_START | QUIC_SEND_FLAG_FIN));
+
+        CxPlatSleep(50);
         QUIC_STATISTICS_V2 Stats;
         Connection.GetStatistics(&Stats);
         TEST_TRUE(Stats.EcnCapable);
