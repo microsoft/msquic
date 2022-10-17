@@ -220,7 +220,7 @@ QuicPacketKeyDerive(
     if (Key == NULL) {
         QuicTraceEvent(
             AllocFailure,
-            "Allocation of '%s' failed. (%llu bytes)",
+            "Allocation of '%s' failed. (%" PRIu16 " bytes)",
             "QUIC_PACKET_KEY",
             PacketKeyLength);
         return QUIC_STATUS_OUT_OF_MEMORY;

@@ -200,8 +200,8 @@ QuicVersionNegotiationExtParseVersionInfo(
             QuicTraceLogConnError(
                 VersionInfoDecodeFailed2,
                 Connection,
-                "Version info too short to contain any Available Versions (%hu bytes)",
-                (unsigned)(BufferLength - Offset));
+                "Version info too short to contain any Available Versions (%" PRId32 " bytes)",
+                BufferLength - Offset);
             return QUIC_STATUS_INVALID_PARAMETER;
         }
     }
@@ -210,9 +210,9 @@ QuicVersionNegotiationExtParseVersionInfo(
         QuicTraceLogConnError(
             ServerVersionInfoDecodeFailed3,
             Connection,
-            "Version info contains partial Other Version (%hu bytes vs. %u bytes)",
-            (unsigned)(BufferLength - Offset),
-            (BufferLength - Offset) / (unsigned)sizeof(uint32_t));
+            "Version info contains partial Other Version (%" PRId32 " bytes vs. %zu bytes)",
+            BufferLength - Offset,
+            (BufferLength - Offset) / sizeof(uint32_t));
         return QUIC_STATUS_INVALID_PARAMETER;
     }
 
@@ -281,7 +281,7 @@ QuicVersionNegotiationExtEncodeVersionInfo(
         if (VersionInfo == NULL) {
             QuicTraceEvent(
                 AllocFailure,
-                "Allocation of '%s' failed. (%llu bytes)",
+                "Allocation of '%s' failed. (%" PRIu32 " bytes)",
                 "Server Version Info",
                 VILen);
             return NULL;
@@ -332,7 +332,7 @@ QuicVersionNegotiationExtEncodeVersionInfo(
         if (VersionInfo == NULL) {
             QuicTraceEvent(
                 AllocFailure,
-                "Allocation of '%s' failed. (%llu bytes)",
+                "Allocation of '%s' failed. (%" PRIu32 " bytes)",
                 "Client Version Info",
                 VILen);
             return NULL;

@@ -858,7 +858,7 @@ QuicCryptoTlsEncodeTransportParameters(
     if (TPBufBase == NULL) {
         QuicTraceEvent(
             AllocFailure,
-            "Allocation of '%s' failed. (%llu bytes)",
+            "Allocation of '%s' failed. (%zu bytes)",
             "TP buffer",
             CxPlatTlsTPHeaderSize + RequiredTPLen);
         return NULL;
@@ -1161,7 +1161,7 @@ QuicCryptoTlsEncodeTransportParameters(
         QuicTraceLogConnVerbose(
             EncodeTPTest,
             Connection,
-            "TP: TEST TP (Type %hu, Length %hu)",
+            "TP: TEST TP (Type %" PRIu32 ", Length %" PRIu16 ")",
             TestParam->Type,
             TestParam->Length);
     }
@@ -1748,7 +1748,7 @@ QuicCryptoTlsDecodeTransportParameters( // NOLINT(readability-function-size, goo
                 if (TransportParams->VersionInfo == NULL) {
                     QuicTraceEvent(
                         AllocFailure,
-                        "Allocation of '%s' failed. (%llu bytes)",
+                        "Allocation of '%s' failed. (%" PRIu16 " bytes)",
                         "Version Negotiation Info",
                         Length);
                     break;
@@ -1770,7 +1770,7 @@ QuicCryptoTlsDecodeTransportParameters( // NOLINT(readability-function-size, goo
             if (!TRY_READ_VAR_INT(TransportParams->MinAckDelay)) {
                 QuicTraceEvent(
                     ConnErrorStatus,
-                    "[conn][%p] ERROR, %u, %s.",
+                    "[conn][%p] ERROR, %" PRIu16 ", %s.",
                     Connection,
                     Length,
                     "Invalid length of QUIC_TP_MIN_ACK_DELAY");
@@ -1862,7 +1862,7 @@ QuicCryptoTlsCopyTransportParameters(
         if (Destination->VersionInfo == NULL) {
             QuicTraceEvent(
                 AllocFailure,
-                "Allocation of '%s' failed. (%llu bytes)",
+                "Allocation of '%s' failed. (%" PRIu32 " bytes)",
                 "Version Negotiation Info",
                 Source->VersionInfoLength);
             return QUIC_STATUS_OUT_OF_MEMORY;

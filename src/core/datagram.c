@@ -370,7 +370,7 @@ QuicDatagramQueueSend(
             Status = QUIC_STATUS_OUT_OF_MEMORY;
             QuicTraceEvent(
                 AllocFailure,
-                "Allocation of '%s' failed. (%llu bytes)",
+                "Allocation of '%s' failed. (%d bytes)",
                 "DATAGRAM_SEND operation",
                 0);
             goto Exit;

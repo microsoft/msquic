@@ -778,7 +778,7 @@ QuicWorkerPoolInitialize(
     if (WorkerPool == NULL) {
         QuicTraceEvent(
             AllocFailure,
-            "Allocation of '%s' failed. (%llu bytes)",
+            "Allocation of '%s' failed. (%zu bytes)",
             "QUIC_WORKER_POOL",
             WorkerPoolSize);
         return QUIC_STATUS_OUT_OF_MEMORY;

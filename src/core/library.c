@@ -294,7 +294,7 @@ MsQuicLibraryInitialize(
     if (MsQuicLib.DefaultCompatibilityList == NULL) {
         QuicTraceEvent(
             AllocFailure,
-            "Allocation of '%s' failed. (%llu bytes)", "default compatibility list",
+            "Allocation of '%s' failed. (%" PRIu32 " bytes)", "default compatibility list",
             CompatibilityListByteLength);
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         goto Error;
@@ -338,7 +338,7 @@ MsQuicLibraryInitialize(
     if (MsQuicLib.PerProc == NULL) {
         QuicTraceEvent(
             AllocFailure,
-            "Allocation of '%s' failed. (%llu bytes)", "connection pools",
+            "Allocation of '%s' failed. (%zu bytes)", "connection pools",
             MsQuicLib.ProcessorCount * sizeof(QUIC_LIBRARY_PP));
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         goto Error;
@@ -981,7 +981,7 @@ QuicLibrarySetGlobalParam(
         if (NewConfig == NULL) {
             QuicTraceEvent(
                 AllocFailure,
-                "Allocation of '%s' failed. (%llu bytes)",
+                "Allocation of '%s' failed. (%" PRIu32 " bytes)",
                 "Execution config",
                 BufferLength);
             Status = QUIC_STATUS_OUT_OF_MEMORY;

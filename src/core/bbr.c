@@ -287,7 +287,7 @@ QuicConnLogBbr(
 
     QuicTraceEvent(
             ConnBbr,
-            "[conn][%p] BBR: State=%u RState=%u CongestionWindow=%u BytesInFlight=%u BytesInFlightMax=%u MinRttEst=%lu EstBw=%lu AppLimited=%u",
+            "[conn][%p] BBR: State=%u RState=%u CongestionWindow=%u BytesInFlight=%u BytesInFlightMax=%u MinRttEst=%" PRIu32 " EstBw=%" PRIu64 " AppLimited=%u",
             Connection,
             Bbr->BbrState,
             Bbr->RecoveryState,

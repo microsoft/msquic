@@ -378,7 +378,7 @@ QuicLossDetectionUpdateTimer(
     } else {
         QuicTraceEvent(
             ConnLossDetectionTimerSet,
-            "[conn][%p] Setting loss detection %hhu timer for %u us. (ProbeCount=%hu)",
+            "[conn][%p] Setting loss detection %d timer for %u us. (ProbeCount=%hu)",
             Connection,
             TimeoutType,
             Delay,
@@ -412,7 +412,7 @@ QuicLossDetectionOnPacketSent(
         //
         QuicTraceEvent(
             AllocFailure,
-            "Allocation of '%s' failed. (%llu bytes)",
+            "Allocation of '%s' failed. (%zu bytes)",
             "Sent packet metadata",
             SIZEOF_QUIC_SENT_PACKET_METADATA(TempSentPacket->FrameCount));
         QuicLossDetectionRetransmitFrames(LossDetection, TempSentPacket, FALSE);
@@ -996,7 +996,7 @@ QuicLossDetectionDetectAndHandleLostPackets(
                         LossDetection->LargestAck - Packet->PacketNumber);
                     QuicTraceEvent(
                         ConnPacketLost,
-                        "[conn][%p][TX][%llu] %hhu Lost: %hhu",
+                        "[conn][%p][TX][%llu] %hhu Lost: %d",
                         Connection,
                         Packet->PacketNumber,
                         QuicPacketTraceType(Packet),
@@ -1013,7 +1013,7 @@ QuicLossDetectionDetectAndHandleLostPackets(
                         CxPlatTimeDiff32(Packet->SentTime, TimeNow));
                     QuicTraceEvent(
                         ConnPacketLost,
-                        "[conn][%p][TX][%llu] %hhu Lost: %hhu",
+                        "[conn][%p][TX][%llu] %hhu Lost: %d",
                         Connection,
                         Packet->PacketNumber,
                         QuicPacketTraceType(Packet),
@@ -1682,7 +1682,7 @@ QuicLossDetectionScheduleProbe(
                 Packet->PacketNumber);
             QuicTraceEvent(
                 ConnPacketLost,
-                "[conn][%p][TX][%llu] %hhu Lost: %hhu",
+                "[conn][%p][TX][%llu] %hhu Lost: %d",
                 Connection,
                 Packet->PacketNumber,
                 QuicPacketTraceType(Packet),

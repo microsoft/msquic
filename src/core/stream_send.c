@@ -242,7 +242,7 @@ Exit:
 
     QuicTraceEvent(
         StreamSendState,
-        "[strm][%p] Send State: %hhu",
+        "[strm][%p] Send State: %d",
         Stream,
         QuicStreamSendGetState(Stream));
 
@@ -1433,7 +1433,7 @@ QuicStreamOnAck(
                 Stream->Flags.LocalCloseAcked = TRUE;
                 QuicTraceEvent(
                     StreamSendState,
-                    "[strm][%p] Send State: %hhu",
+                    "[strm][%p] Send State: %d",
                     Stream,
                     QuicStreamSendGetState(Stream));
                 QuicStreamIndicateSendShutdownComplete(Stream, TRUE);
@@ -1505,7 +1505,7 @@ QuicStreamOnResetAck(
         Stream->Flags.LocalCloseAcked = TRUE;
         QuicTraceEvent(
             StreamSendState,
-            "[strm][%p] Send State: %hhu",
+            "[strm][%p] Send State: %d",
             Stream,
             QuicStreamSendGetState(Stream));
         QuicStreamIndicateSendShutdownComplete(Stream, FALSE);

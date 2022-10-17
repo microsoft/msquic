@@ -48,7 +48,7 @@ QuicBindingInitialize(
     if (Binding == NULL) {
         QuicTraceEvent(
             AllocFailure,
-            "Allocation of '%s' failed. (%llu bytes)",
+            "Allocation of '%s' failed. (%zu bytes)",
             "QUIC_BINDING",
             sizeof(QUIC_BINDING));
         Status = QUIC_STATUS_OUT_OF_MEMORY;
@@ -531,7 +531,7 @@ QuicBindingAcceptConnection(
         if (NegotiatedAlpn == NULL) {
             QuicTraceEvent(
                 AllocFailure,
-                "Allocation of '%s' failed. (%llu bytes)",
+                "Allocation of '%s' failed. (%" PRIu16 " bytes)",
                 "NegotiatedAlpn",
                 NegotiatedAlpnLength);
             QuicConnTransportError(
@@ -775,7 +775,7 @@ QuicBindingQueueStatelessOperation(
     if (Oper == NULL) {
         QuicTraceEvent(
             AllocFailure,
-            "Allocation of '%s' failed. (%llu bytes)",
+            "Allocation of '%s' failed. (%zu bytes)",
             "stateless operation",
             sizeof(QUIC_OPERATION));
         QuicPacketLogDrop(
@@ -822,7 +822,7 @@ QuicBindingProcessStatelessOperation(
     if (SendData == NULL) {
         QuicTraceEvent(
             AllocFailure,
-            "Allocation of '%s' failed. (%llu bytes)",
+            "Allocation of '%s' failed. (%d bytes)",
             "stateless send data",
             0);
         goto Exit;
@@ -856,7 +856,7 @@ QuicBindingProcessStatelessOperation(
         if (SendDatagram == NULL) {
             QuicTraceEvent(
                 AllocFailure,
-                "Allocation of '%s' failed. (%llu bytes)",
+                "Allocation of '%s' failed. (%" PRIu16 " bytes)",
                 "vn datagram",
                 PacketLength);
             goto Exit;
@@ -943,7 +943,7 @@ QuicBindingProcessStatelessOperation(
         if (SendDatagram == NULL) {
             QuicTraceEvent(
                 AllocFailure,
-                "Allocation of '%s' failed. (%llu bytes)",
+                "Allocation of '%s' failed. (%" PRIu16 " bytes)",
                 "reset datagram",
                 PacketLength);
             goto Exit;
@@ -984,7 +984,7 @@ QuicBindingProcessStatelessOperation(
         if (SendDatagram == NULL) {
             QuicTraceEvent(
                 AllocFailure,
-                "Allocation of '%s' failed. (%llu bytes)",
+                "Allocation of '%s' failed. (%" PRIu16 " bytes)",
                 "retry datagram",
                 PacketLength);
             goto Exit;

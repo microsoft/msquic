@@ -351,7 +351,7 @@ MsQuicConnectionStart(
             Status = QUIC_STATUS_OUT_OF_MEMORY;
             QuicTraceEvent(
                 AllocFailure,
-                "Allocation of '%s' failed. (%llu bytes)",
+                "Allocation of '%s' failed. (%zu bytes)",
                 "Server name",
                 ServerNameLength + 1);
             goto Error;
@@ -368,7 +368,7 @@ MsQuicConnectionStart(
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         QuicTraceEvent(
             AllocFailure,
-            "Allocation of '%s' failed. (%llu bytes)",
+            "Allocation of '%s' failed. (%d bytes)",
             "CONN_START operation",
             0);
         goto Error;
@@ -467,7 +467,7 @@ MsQuicConnectionSetConfiguration(
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         QuicTraceEvent(
             AllocFailure,
-            "Allocation of '%s' failed. (%llu bytes)",
+            "Allocation of '%s' failed. (%d bytes)",
             "CONN_SET_CONFIGURATION operation",
             0);
         goto Error;
@@ -561,7 +561,7 @@ MsQuicConnectionSendResumptionTicket(
             Status = QUIC_STATUS_OUT_OF_MEMORY;
             QuicTraceEvent(
                 AllocFailure,
-                "Allocation of '%s' failed. (%llu bytes)",
+                "Allocation of '%s' failed. (%" PRIu16 " bytes)",
                 "Resumption data copy",
                 DataLength);
             goto Error;
@@ -574,7 +574,7 @@ MsQuicConnectionSendResumptionTicket(
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         QuicTraceEvent(
             AllocFailure,
-            "Allocation of '%s' failed. (%llu bytes)",
+            "Allocation of '%s' failed. (%d bytes)",
             "CONN_SEND_RESUMPTION_TICKET operation",
             0);
         goto Error;
@@ -841,7 +841,7 @@ MsQuicStreamStart(
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         QuicTraceEvent(
             AllocFailure,
-            "Allocation of '%s' failed. (%llu bytes)",
+            "Allocation of '%s' failed. (%d bytes)",
             "STRM_START operation",
             0);
         goto Exit;
@@ -961,7 +961,7 @@ MsQuicStreamShutdown(
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         QuicTraceEvent(
             AllocFailure,
-            "Allocation of '%s' failed. (%llu bytes)",
+            "Allocation of '%s' failed. (%d bytes)",
             "STRM_SHUTDOWN operation",
             0);
         goto Error;
@@ -1065,7 +1065,7 @@ MsQuicStreamSend(
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         QuicTraceEvent(
             AllocFailure,
-            "Allocation of '%s' failed. (%llu bytes)",
+            "Allocation of '%s' failed. (%d bytes)",
             "Stream Send request",
             0);
         goto Exit;
@@ -1114,7 +1114,7 @@ MsQuicStreamSend(
             Status = QUIC_STATUS_OUT_OF_MEMORY;
             QuicTraceEvent(
                 AllocFailure,
-                "Allocation of '%s' failed. (%llu bytes)",
+                "Allocation of '%s' failed. (%d bytes)",
                 "STRM_SEND operation",
                 0);
             goto Exit;
@@ -1189,7 +1189,7 @@ MsQuicStreamReceiveSetEnabled(
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         QuicTraceEvent(
             AllocFailure,
-            "Allocation of '%s' failed. (%llu bytes)",
+            "Allocation of '%s' failed. (%d bytes)",
             "STRM_RECV_SET_ENABLED, operation",
             0);
         goto Error;

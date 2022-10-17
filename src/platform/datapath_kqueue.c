@@ -493,7 +493,7 @@ CxPlatDataPathInitialize(
     if (Datapath == NULL) {
         QuicTraceEvent(
             AllocFailure,
-            "Allocation of '%s' failed. (%llu bytes)",
+            "Allocation of '%s' failed. (%zu bytes)",
             "CXPLAT_DATAPATH",
             DatapathLength);
         return QUIC_STATUS_OUT_OF_MEMORY;
@@ -600,7 +600,7 @@ CxPlatDataPathAllocRecvBlock(
     if (RecvBlock == NULL) {
         QuicTraceEvent(
             AllocFailure,
-            "Allocation of '%s' failed. (%llu bytes)",
+            "Allocation of '%s' failed. (%d bytes)",
             "CXPLAT_DATAPATH_RECV_BLOCK",
             0);
     } else {
@@ -1178,7 +1178,7 @@ CxPlatSocketContextPrepareReceive(
         if (SocketContext->CurrentRecvBlock == NULL) {
             QuicTraceEvent(
                 AllocFailure,
-                "Allocation of '%s' failed. (%llu bytes)",
+                "Allocation of '%s' failed. (%d bytes)",
                 "CXPLAT_DATAPATH_RECV_BLOCK",
                 0);
             return QUIC_STATUS_OUT_OF_MEMORY;
@@ -1330,10 +1330,10 @@ CxPlatSocketContextRecvComplete(
 
     QuicTraceEvent(
         DatapathRecv,
-        "[data][%p] Recv %u bytes (segment=%hu) Src=%!ADDR! Dst=%!ADDR!",
+        "[data][%p] Recv %zd bytes (segment=%zd) Src=%!ADDR! Dst=%!ADDR!",
         SocketContext->Binding,
-        (uint32_t)BytesTransferred,
-        (uint32_t)BytesTransferred,
+        BytesTransferred,
+        BytesTransferred,
         CASTED_CLOG_BYTEARRAY(sizeof(*LocalAddr), LocalAddr),
         CASTED_CLOG_BYTEARRAY(sizeof(*RemoteAddr), RemoteAddr));
 
@@ -1548,7 +1548,7 @@ CxPlatSocketCreateUdp(
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         QuicTraceEvent(
             AllocFailure,
-            "Allocation of '%s' failed. (%llu bytes)",
+            "Allocation of '%s' failed. (%zu bytes)",
             "CXPLAT_SOCKET",
             BindingLength);
         goto Exit;
@@ -1775,7 +1775,7 @@ CxPlatSendDataAlloc(
     if (SendData == NULL) {
         QuicTraceEvent(
             AllocFailure,
-            "Allocation of '%s' failed. (%llu bytes)",
+            "Allocation of '%s' failed. (%d bytes)",
             "CXPLAT_SEND_DATA",
             0);
         goto Exit;
@@ -2040,7 +2040,7 @@ CxPlatSendDataComplete(
     if (IoResult != QUIC_STATUS_SUCCESS) {
         QuicTraceEvent(
             DatapathErrorStatus,
-            "[data][%p] ERROR, %u, %s.",
+            "[data][%p] ERROR, %" PRIu64 ", %s.",
             SocketContext->Binding,
             IoResult,
             "sendmmsg completion");
@@ -2099,7 +2099,7 @@ CxPlatSocketSendInternal(
         }
         QuicTraceEvent(
             DatapathSend,
-            "[data][%p] Send %u bytes in %hhu buffers (segment=%hu) Dst=%!ADDR!, Src=%!ADDR!",
+            "[data][%p] Send %u bytes in %" PRIu32 " buffers (segment=%hu) Dst=%!ADDR!, Src=%!ADDR!",
             Socket,
             SendData->TotalSize,
             SendData->BufferCount,

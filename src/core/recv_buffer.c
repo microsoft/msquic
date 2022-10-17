@@ -72,7 +72,7 @@ QuicRecvBufferInitialize(
         if (RecvBuffer->Buffer == NULL) {
             QuicTraceEvent(
                 AllocFailure,
-                "Allocation of '%s' failed. (%llu bytes)",
+                "Allocation of '%s' failed. (%" PRIu32 " bytes)",
                 "recv_buffer",
                 AllocBufferLength);
             Status = QUIC_STATUS_OUT_OF_MEMORY;
@@ -320,7 +320,7 @@ QuicRecvBufferWrite(
     if (!UpdatedRange) {
         QuicTraceEvent(
             AllocFailure,
-            "Allocation of '%s' failed. (%llu bytes)",
+            "Allocation of '%s' failed. (%d bytes)",
             "recv_buffer range",
             0);
         Status = QUIC_STATUS_OUT_OF_MEMORY;

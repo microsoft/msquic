@@ -278,19 +278,19 @@ QuicStreamStart(
 
     QuicTraceEvent(
         StreamCreated,
-        "[strm][%p] Created, Conn=%p ID=%llu IsLocal=%hhu",
+        "[strm][%p] Created, Conn=%p ID=%llu IsLocal=%d",
         Stream,
         Stream->Connection,
         Stream->ID,
         !IsRemoteStream);
     QuicTraceEvent(
         StreamSendState,
-        "[strm][%p] Send State: %hhu",
+        "[strm][%p] Send State: %d",
         Stream,
         QuicStreamSendGetState(Stream));
     QuicTraceEvent(
         StreamRecvState,
-        "[strm][%p] Recv State: %hhu",
+        "[strm][%p] Recv State: %d",
         Stream,
         QuicStreamRecvGetState(Stream));
 
@@ -399,7 +399,7 @@ QuicStreamTraceRundown(
 {
     QuicTraceEvent(
         StreamRundown,
-        "[strm][%p] Rundown, Conn=%p ID=%llu IsLocal=%hhu",
+        "[strm][%p] Rundown, Conn=%p ID=%llu IsLocal=%" PRIu64,
         Stream,
         Stream->Connection,
         Stream->ID,

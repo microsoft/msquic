@@ -72,7 +72,7 @@ MsQuicConfigurationOpen(
     if (Configuration == NULL) {
         QuicTraceEvent(
             AllocFailure,
-            "Allocation of '%s' failed. (%llu bytes)",
+            "Allocation of '%s' failed. (%zu bytes)",
             "QUIC_CONFIGURATION" ,
             sizeof(QUIC_CONFIGURATION));
         Status = QUIC_STATUS_OUT_OF_MEMORY;

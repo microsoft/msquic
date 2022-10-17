@@ -111,7 +111,7 @@ Exit:
 
     QuicTraceEvent(
         StreamRecvState,
-        "[strm][%p] Recv State: %hhu",
+        "[strm][%p] Recv State: %d",
         Stream,
         QuicStreamRecvGetState(Stream));
 
@@ -154,7 +154,7 @@ QuicStreamRecvQueueFlush(
             } else {
                 QuicTraceEvent(
                     AllocFailure,
-                    "Allocation of '%s' failed. (%llu bytes)",
+                    "Allocation of '%s' failed. (%d bytes)",
                     "Flush Stream Recv operation",
                     0);
             }
@@ -236,7 +236,7 @@ QuicStreamProcessResetFrame(
 
         QuicTraceEvent(
             StreamRecvState,
-            "[strm][%p] Recv State: %hhu",
+            "[strm][%p] Recv State: %d",
             Stream,
             QuicStreamRecvGetState(Stream));
 
@@ -1009,7 +1009,7 @@ QuicStreamReceiveComplete(
         //
         QuicTraceEvent(
             StreamRecvState,
-            "[strm][%p] Recv State: %hhu",
+            "[strm][%p] Recv State: %d",
             Stream,
             QuicStreamRecvGetState(Stream));
         return FALSE;
@@ -1034,7 +1034,7 @@ QuicStreamReceiveComplete(
 
         QuicTraceEvent(
             StreamRecvState,
-            "[strm][%p] Recv State: %hhu",
+            "[strm][%p] Recv State: %d",
             Stream,
             QuicStreamRecvGetState(Stream));
 
@@ -1090,7 +1090,7 @@ QuicStreamRecvSetEnabledState(
             //
             QuicTraceEvent(
                 StreamRecvState,
-                "[strm][%p] Recv State: %hhu",
+                "[strm][%p] Recv State: %d",
                 Stream,
                 QuicStreamRecvGetState(Stream));
             QuicStreamRecvQueueFlush(Stream, TRUE);

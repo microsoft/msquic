@@ -136,7 +136,7 @@ QuicCryptoInitialize(
     if (Crypto->TlsState.Buffer == NULL) {
         QuicTraceEvent(
             AllocFailure,
-            "Allocation of '%s' failed. (%llu bytes)",
+            "Allocation of '%s' failed. (%" PRIu16 " bytes)",
             "crypto send buffer",
             SendBufferLength);
         Status = QUIC_STATUS_OUT_OF_MEMORY;
@@ -1410,7 +1410,7 @@ QuicCryptoProcessTlsCompletion(
     if (Crypto->ResultFlags & CXPLAT_TLS_RESULT_WRITE_KEY_UPDATED) {
         QuicTraceEvent(
             ConnWriteKeyUpdated,
-            "[conn][%p] Write Key Updated, %hhu.",
+            "[conn][%p] Write Key Updated, %u.",
             Connection,
             Crypto->TlsState.WriteKey);
         CXPLAT_DBG_ASSERT(Crypto->TlsState.WriteKey <= QUIC_PACKET_KEY_1_RTT);
@@ -1473,7 +1473,7 @@ QuicCryptoProcessTlsCompletion(
         Crypto->RecvEncryptLevelStartOffset = Crypto->RecvTotalConsumed;
         QuicTraceEvent(
             ConnReadKeyUpdated,
-            "[conn][%p] Read Key Updated, %hhu.",
+            "[conn][%p] Read Key Updated, %u.",
             Connection,
             Crypto->TlsState.ReadKey);
 
@@ -2114,7 +2114,7 @@ QuicCryptoEncodeServerTicket(
     if (TicketBuffer == NULL) {
         QuicTraceEvent(
             AllocFailure,
-            "Allocation of '%s' failed. (%llu bytes)",
+            "Allocation of '%s' failed. (%" PRIu32 " bytes)",
             "Server resumption ticket",
             TotalTicketLength);
         Status = QUIC_STATUS_OUT_OF_MEMORY;
@@ -2374,7 +2374,7 @@ QuicCryptoEncodeClientTicket(
     if (ClientTicketBuffer == NULL) {
         QuicTraceEvent(
             AllocFailure,
-            "Allocation of '%s' failed. (%llu bytes)",
+            "Allocation of '%s' failed. (%" PRIu32 " bytes)",
             "Client resumption ticket",
             ClientTicketBufferLength);
         Status = QUIC_STATUS_OUT_OF_MEMORY;
@@ -2607,7 +2607,7 @@ QuicCryptoReNegotiateAlpn(
         if (NegotiatedAlpn == NULL) {
             QuicTraceEvent(
                 AllocFailure,
-                "Allocation of '%s' failed. (%llu bytes)",
+                "Allocation of '%s' failed. (%" PRIu8 " bytes)",
                 "NegotiatedAlpn",
                 NegotiatedAlpnLength);
             QuicConnTransportError(

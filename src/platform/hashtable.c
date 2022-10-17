@@ -483,7 +483,7 @@ Return Value:
         if (Table == NULL) {
             QuicTraceEvent(
                 AllocFailure,
-                "Allocation of '%s' failed. (%llu bytes)",
+                "Allocation of '%s' failed. (%zu bytes)",
                 "CXPLAT_HASHTABLE",
                 sizeof(CXPLAT_HASHTABLE));
             return FALSE;
@@ -521,7 +521,7 @@ Return Value:
         if (Table->SecondLevelDir == NULL) {
             QuicTraceEvent(
                 AllocFailure,
-                "Allocation of '%s' failed. (%llu bytes)",
+                "Allocation of '%s' failed. (%zu bytes)",
                 "second level dir (0)",
                 CxPlatComputeSecondLevelDirSize(0) * sizeof(CXPLAT_LIST_ENTRY));
             CxPlatHashtableUninitialize(Table);
@@ -561,7 +561,7 @@ Return Value:
             if (Table->FirstLevelDir[i] == NULL) {
                 QuicTraceEvent(
                     AllocFailure,
-                    "Allocation of '%s' failed. (%llu bytes)",
+                    "Allocation of '%s' failed. (%zu bytes)",
                     "second level dir (i)",
                     CxPlatComputeSecondLevelDirSize(i) * sizeof(CXPLAT_LIST_ENTRY));
                 CxPlatHashtableUninitialize(Table);

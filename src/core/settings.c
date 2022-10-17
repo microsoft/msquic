@@ -292,7 +292,7 @@ QuicSettingsCopyVersionSettings(
     if (Destination == NULL) {
         QuicTraceEvent(
             AllocFailure,
-            "Allocation of '%s' failed. (%llu bytes)",
+            "Allocation of '%s' failed. (%zu bytes)",
             "VersionSettings",
             AllocSize);
         return Destination;
@@ -923,7 +923,7 @@ QuicSettingsLoad(
             if (VersionSettings == NULL) {
                 QuicTraceEvent(
                     AllocFailure,
-                    "Allocation of '%s' failed. (%llu bytes)",
+                    "Allocation of '%s' failed. (%zu bytes)",
                     "VersionSettings",
                     AllocSize);
                 goto VersionSettingsFail;

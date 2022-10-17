@@ -268,7 +268,7 @@ QuicPacketBuilderPrepare(
             if (Builder->SendData == NULL) {
                 QuicTraceEvent(
                     AllocFailure,
-                    "Allocation of '%s' failed. (%llu bytes)",
+                    "Allocation of '%s' failed. (%d bytes)",
                     "packet send context",
                     0);
                 goto Error;
@@ -292,7 +292,7 @@ QuicPacketBuilderPrepare(
         if (Builder->Datagram == NULL) {
             QuicTraceEvent(
                 AllocFailure,
-                "Allocation of '%s' failed. (%llu bytes)",
+                "Allocation of '%s' failed. (%" PRIu16 " bytes)",
                 "packet datagram",
                 NewDatagramLength);
             if (SendDataAllocated) {
