@@ -82,7 +82,7 @@ public:
             }
             Ptrs[ThreadId] = 0;
         }
-        memcpy(Val, &data[Ptrs[ThreadId]], type_size);
+        memcpy(Val, &data[Ptrs[ThreadId]] + EachSize * ThreadId, type_size);
         *Val = (T)(*Val % UpperBound);
         Ptrs[ThreadId] += type_size;
         return true;
