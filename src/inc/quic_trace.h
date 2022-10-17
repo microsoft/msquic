@@ -132,7 +132,8 @@ extern QUIC_TRACE_RUNDOWN_CALLBACK* QuicTraceRundownCallback;
 #include "msquichelper.h"
 #include <stdio.h>
 
-static inline void clog_stdout(const char * format, ...)
+static inline void //__attribute__((format(printf, 1, 2)))
+clog_stdout(const char * format, ...)
 {
     static const char * repls[] = {"!CID!", "!ADDR!"};
     char * reformat = strdup(format);

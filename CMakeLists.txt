@@ -300,7 +300,6 @@ else()
     endif()
     set(QUIC_WARNING_FLAGS -Werror -Wall -Wextra -Wformat=2 -Wno-type-limits
         -Wno-unknown-pragmas -Wno-multichar -Wno-missing-field-initializers
-        -Wno-format-invalid-specifier -Wno-format-extra-args
         CACHE INTERNAL "")
     if (CMAKE_COMPILER_IS_GNUCC AND CMAKE_CXX_COMPILER_VERSION VERSION_LESS 7.0)
         list(APPEND QUIC_WARNING_FLAGS -Wno-strict-aliasing)
