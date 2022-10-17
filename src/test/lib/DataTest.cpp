@@ -2752,7 +2752,7 @@ QuicTestStreamBlockUnblockConnFlowControl(
     TEST_QUIC_SUCCEEDED(Registration.GetInitStatus());
 
     // Server flow control: UnidirectionalStream : 0, BidirectionalStream : 0
-    MsQuicConfiguration ServerConfiguration(Registration, "MsQuicTest", MsQuicSettings().SetPeerBidiStreamCount(0).SetPeerUnidiStreamCount(0).SetConnFlowControlWindow(200), ServerSelfSignedCredConfig);
+    MsQuicConfiguration ServerConfiguration(Registration, "MsQuicTest", MsQuicSettings().SetConnFlowControlWindow(200), ServerSelfSignedCredConfig);
     TEST_QUIC_SUCCEEDED(ServerConfiguration.GetInitStatus());
 
     MsQuicConfiguration ClientConfiguration(Registration, "MsQuicTest", MsQuicCredentialConfig());
