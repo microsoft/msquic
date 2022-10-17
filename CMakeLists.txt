@@ -300,6 +300,7 @@ else()
     endif()
     set(QUIC_WARNING_FLAGS -Werror -Wall -Wextra -Wformat=2 -Wno-type-limits
         -Wno-unknown-pragmas -Wno-multichar -Wno-missing-field-initializers
+        -Wno-format-invalid-specifier -Wno-format-extra-args
         CACHE INTERNAL "")
     if (CMAKE_COMPILER_IS_GNUCC AND CMAKE_CXX_COMPILER_VERSION VERSION_LESS 7.0)
         list(APPEND QUIC_WARNING_FLAGS -Wno-strict-aliasing)
@@ -574,9 +575,8 @@ else() #!WIN32
 
     if(QUIC_ENABLE_LOGGING)
         if (APPLE)
-            set (QUIC_ENABLE_LOGGING OFF)
-            message(STATUS "Disabling all tracing on macos")
-            list(APPEND QUIC_COMMON_DEFINES QUIC_EVENTS_STUB QUIC_LOGS_STUB)
+            message(STATUS "Configuring for stdio tracing")
+            list(APPEND QUIC_COMMON_DEFINES QUIC_EVENTS_STDOUT QUIC_LOGS_STDOUT)
         else()
             message(STATUS "Configuring for LTTng tracing")
             list(APPEND QUIC_COMMON_DEFINES QUIC_CLOG)

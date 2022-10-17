@@ -800,3 +800,10 @@ QuicMtuDiscoveryCheckSearchCompleteTimeout(
     _In_ QUIC_CONNECTION* Connection,
     _In_ uint64_t TimeNow
     );
+
+void
+EncodeHexBuffer(
+    _In_reads_(BufferLen) uint8_t* Buffer,
+    _In_ uint8_t BufferLen,
+    _Out_writes_bytes_(2*BufferLen) char* HexString
+    );

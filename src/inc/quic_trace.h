@@ -21,9 +21,11 @@ Abstract:
 
     QUIC_EVENTS_STUB            No-op all Events
     QUIC_EVENTS_MANIFEST_ETW    Write to Windows ETW framework
+    QUIC_EVENTS_STDOUT          Write to stdout
 
     QUIC_LOGS_STUB              No-op all Logs
     QUIC_LOGS_MANIFEST_ETW      Write to Windows ETW framework
+    QUIC_LOGS_STDOUT            Write to Windows ETW framework
 
     QUIC_CLOG                   Bypasses these mechanisms and uses CLOG to generate logging
 
@@ -32,11 +34,11 @@ Abstract:
 #pragma once
 
 #if !defined(QUIC_CLOG)
-#if !defined(QUIC_EVENTS_STUB) && !defined(QUIC_EVENTS_MANIFEST_ETW)
+#if !defined(QUIC_EVENTS_STUB) && !defined(QUIC_EVENTS_MANIFEST_ETW) && !defined(QUIC_EVENTS_STDOUT)
 #error "Must define one QUIC_EVENTS_*"
 #endif
 
-#if !defined(QUIC_LOGS_STUB) && !defined(QUIC_LOGS_MANIFEST_ETW)
+#if !defined(QUIC_LOGS_STUB) && !defined(QUIC_LOGS_MANIFEST_ETW) && !defined(QUIC_LOGS_STDOUT)
 #error "Must define one QUIC_LOGS_*"
 #endif
 #endif
@@ -126,6 +128,31 @@ extern QUIC_TRACE_RUNDOWN_CALLBACK* QuicTraceRundownCallback;
 #define CASTED_CLOG_BYTEARRAY(Len, Data) CLOG_BYTEARRAY((unsigned char)(Len), (const unsigned char*)(Data))
 #else
 
+#if defined(QUIC_EVENTS_STDOUT) || defined(QUIC_LOGS_STDOUT)
+
+#include "msquichelper.h"
+#include <stdio.h>
+
+#endif
+
+#ifdef QUIC_EVENTS_STDOUT
+
+#define QuicTraceEventEnabled(Name) TRUE
+
+#define QuicTraceEvent(Name, Fmt, ...) printf((Fmt), ##__VA_ARGS__)
+
+#define QUIC_CLOG_BYTEARRAY_MAX_LEN 256
+
+#define CASTED_CLOG_BYTEARRAY(Len, Data)                                       \
+  ({                                                                           \
+    char _HexString[QUIC_CLOG_BYTEARRAY_MAX_LEN + 1];                          \
+    EncodeHexBuffer((uint8_t *)(Data), (Len), _HexString);                     \
+    _HexString[QUIC_CLOG_BYTEARRAY_MAX_LEN] = 0;                               \
+    _HexString;                                                                \
+  })
+
+#endif // QUIC_EVENTS_STDOUT
+
 #ifdef QUIC_EVENTS_STUB
 
 #define QuicTraceEventEnabled(Name) FALSE
@@ -193,6 +220,48 @@ QuicEtwCallback(
 
 
 #endif // QUIC_EVENTS_MANIFEST_ETW
+
+#ifdef QUIC_LOGS_STDOUT
+
+#define QuicTraceLogErrorEnabled() TRUE
+#define QuicTraceLogWarningEnabled() TRUE
+#define QuicTraceLogInfoEnabled() TRUE
+#define QuicTraceLogVerboseEnabled() TRUE
+
+#define QuicTraceLogError(A, Fmt, ...) printf((Fmt), ##__VA_ARGS__)
+#define QuicTraceLogWarning(A, Fmt, ...) printf((Fmt), ##__VA_ARGS__)
+#define QuicTraceLogInfo(A, Fmt, ...) printf((Fmt), ##__VA_ARGS__)
+#define QuicTraceLogVerbose(A, Fmt, ...) printf((Fmt), ##__VA_ARGS__)
+
+#define QuicTraceLogConnError(A, B, Fmt, ...)                                  \
+  do {                                                                         \
+    UNREFERENCED_PARAMETER(B);                                                 \
+    printf((Fmt), ##__VA_ARGS__);                                              \
+  } while (0)
+#define QuicTraceLogConnWarning(A, B, Fmt, ...)                                \
+  do {                                                                         \
+    UNREFERENCED_PARAMETER(B);                                                 \
+    printf((Fmt), ##__VA_ARGS__);                                              \
+  } while (0)
+#define QuicTraceLogConnInfo(A, B, Fmt, ...)                                   \
+  do {                                                                         \
+    UNREFERENCED_PARAMETER(B);                                                 \
+    printf((Fmt), ##__VA_ARGS__);                                              \
+  } while (0)
+#define QuicTraceLogConnVerbose(A, B, Fmt, ...)                                \
+  do {                                                                         \
+    UNREFERENCED_PARAMETER(B);                                                 \
+    printf((Fmt), ##__VA_ARGS__);                                              \
+  } while (0)
+
+#define QuicTraceLogStreamVerboseEnabled() TRUE
+
+#define QuicTraceLogStreamError(A, B, Fmt, ...) printf((Fmt), ##__VA_ARGS__)
+#define QuicTraceLogStreamWarning(A, B, Fmt, ...) printf((Fmt), ##__VA_ARGS__)
+#define QuicTraceLogStreamInfo(A, B, Fmt, ...) printf((Fmt), ##__VA_ARGS__)
+#define QuicTraceLogStreamVerbose(A, B, Fmt, ...) printf((Fmt), ##__VA_ARGS__)
+
+#endif // QUIC_LOGS_STDOUT
 
 #ifdef QUIC_LOGS_STUB
 
