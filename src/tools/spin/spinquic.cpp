@@ -35,13 +35,13 @@ class FuzzingData {
     size_t EachSize;
     std::vector<size_t> Ptrs;
     bool Cyclic;
-    uint16_t NumThread;
+    size_t NumThread;
 public:
     short int IncrementalThreadId;
 
     FuzzingData() : data(nullptr), size(0), Ptrs({}), Cyclic(true), NumThread(65535) {}
     FuzzingData(const uint8_t* data, size_t size) : data(data), size(size), Ptrs({}), Cyclic(true), NumThread(65535) {}
-    bool Initialize(uint16_t NumSpinThread) {
+    bool Initialize(size_t NumSpinThread) {
         // TODO: support non divisible size
         if (size % NumSpinThread != 0 || size < NumSpinThread * 8) {
             return false;
@@ -83,7 +83,7 @@ public:
             Ptrs[ThreadId] = 0;
         }
         memcpy(Val, &data[Ptrs[ThreadId]], type_size);
-        *(uint64_t*)Val %= (uint64_t)UpperBound;
+        *Val = (T)(*Val % UpperBound);
         Ptrs[ThreadId] += type_size;
         return true;
     }
@@ -1194,7 +1194,7 @@ int start(void* Context) {
         CXPLAT_THREAD Threads[4];
         const uint32_t Count = (uint32_t)(rand() % (ARRAYSIZE(Threads) - 1) + 1);
         if (FuzzData) {
-            if (!(FuzzData->Initialize((uint16_t)(Count * (Settings.RunServer + Settings.RunClient))))) {
+            if (!(FuzzData->Initialize((size_t)(Count * (Settings.RunServer + Settings.RunClient))))) {
                 return 0;
             }
         }
