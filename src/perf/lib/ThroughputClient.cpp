@@ -536,9 +536,6 @@ ThroughputClient::ConnectionCallback(
     ) {
     switch (Event->Type) {
     case QUIC_CONNECTION_EVENT_SHUTDOWN_COMPLETE:
-        if (PrintStats) {
-            QuicPrintConnectionStatistics(MsQuic, ConnectionHandle);
-        }
         MsQuic->ConnectionClose(ConnectionHandle);
         CxPlatEventSet(*StopEvent);
         break;
@@ -615,6 +612,9 @@ ThroughputClient::StreamCallback(
         }
         break;
     case QUIC_STREAM_EVENT_SHUTDOWN_COMPLETE:
+        if (PrintStats) {
+            QuicPrintConnectionStatistics(MsQuic, StreamHandle);
+        }
         OnStreamShutdownComplete(StrmContext);
         break;
     case QUIC_STREAM_EVENT_IDEAL_SEND_BUFFER_SIZE:
