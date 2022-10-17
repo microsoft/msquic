@@ -1400,19 +1400,27 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, PeerStreamFCBlocked,
 
 
 /*----------------------------------------------------------
-// Decoder Ring for IndicatePeerNeedStreams
-// [conn][%p] Indicating QUIC_CONNECTION_EVENT_PEER_NEEDS_STREAMS
+// Decoder Ring for IndicatePeerNeedStreamsV2
+// [conn][%p] Indicating QUIC_CONNECTION_EVENT_PEER_NEEDS_STREAMS type: %s, limit (%llu)
 // QuicTraceLogConnVerbose(
-                IndicatePeerNeedStreams,
+                IndicatePeerNeedStreamsV2,
                 Connection,
-                "Indicating QUIC_CONNECTION_EVENT_PEER_NEEDS_STREAMS");
+                "Indicating QUIC_CONNECTION_EVENT_PEER_NEEDS_STREAMS type: %s, limit (%llu)",
+                Frame.BidirectionalStreams ? "Bidi" : "Unidi",
+                Frame.StreamLimit);
 // arg1 = arg1 = Connection = arg1
+// arg3 = arg3 = Frame.BidirectionalStreams ? "Bidi" : "Unidi" = arg3
+// arg4 = arg4 = Frame.StreamLimit = arg4
 ----------------------------------------------------------*/
-TRACEPOINT_EVENT(CLOG_CONNECTION_C, IndicatePeerNeedStreams,
+TRACEPOINT_EVENT(CLOG_CONNECTION_C, IndicatePeerNeedStreamsV2,
     TP_ARGS(
-        const void *, arg1), 
+        const void *, arg1,
+        const char *, arg3,
+        unsigned long long, arg4), 
     TP_FIELDS(
         ctf_integer_hex(uint64_t, arg1, arg1)
+        ctf_string(arg3, arg3)
+        ctf_integer(uint64_t, arg4, arg4)
     )
 )
 

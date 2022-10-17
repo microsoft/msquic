@@ -2771,7 +2771,7 @@ QuicTestStreamBlockUnblockConnFlowControl(
     uint8_t RawBuffer[100];
     QUIC_BUFFER Buffer { sizeof(RawBuffer), RawBuffer };
 
-    QUIC_STREAM_OPEN_FLAGS StreamOpenFlags = Bidirectional?QUIC_STREAM_OPEN_FLAG_NONE:QUIC_STREAM_OPEN_FLAG_UNIDIRECTIONAL;
+    QUIC_STREAM_OPEN_FLAGS StreamOpenFlags = Bidirectional ? QUIC_STREAM_OPEN_FLAG_NONE : QUIC_STREAM_OPEN_FLAG_UNIDIRECTIONAL;
 
     MsQuicStream Stream1(Connection, StreamOpenFlags, CleanUpManual, StreamBlockUnblockConnFlowControl::ClientStreamCallback, &Context);
     TEST_QUIC_SUCCEEDED(Stream1.GetInitStatus());
