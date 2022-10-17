@@ -2161,6 +2161,98 @@ QuicTestAbortReceive(
     TEST_TRUE(RecvContext.ServerStreamShutdown.WaitTimeout(TestWaitTimeout));
 }
 
+struct EcnTestContext {
+    CxPlatEvent ServerStreamRecv;
+    CxPlatEvent ServerStreamShutdown;
+    MsQuicStream* ServerStream {nullptr};
+    bool ServerStreamHasShutdown {false};
+
+    static QUIC_STATUS StreamCallback(_In_ MsQuicStream* Stream, _In_opt_ void* Context, _Inout_ QUIC_STREAM_EVENT* Event) {
+        auto TestContext = (EcnTestContext*)Context;
+        if (Event->Type == QUIC_STREAM_EVENT_RECEIVE) {
+            TestContext->ServerStreamRecv.Set();
+            return QUIC_STATUS_PENDING;
+        } else if (Event->Type == QUIC_STREAM_EVENT_SHUTDOWN_COMPLETE) {
+            TestContext->ServerStreamHasShutdown = true;
+            TestContext->ServerStreamShutdown.Set();
+            Stream->ConnectionShutdown(1);
+        }
+        return QUIC_STATUS_SUCCESS;
+    }
+
+    static QUIC_STATUS ConnCallback(_In_ MsQuicConnection*, _In_opt_ void* Context, _Inout_ QUIC_CONNECTION_EVENT* Event) {
+        auto TestContext = (EcnTestContext*)Context;
+        if (Event->Type == QUIC_CONNECTION_EVENT_PEER_STREAM_STARTED) {
+            TestContext->ServerStream = new(std::nothrow) MsQuicStream(Event->PEER_STREAM_STARTED.Stream, CleanUpAutoDelete, StreamCallback, Context);
+        }
+        return QUIC_STATUS_SUCCESS;
+    }
+};
+
+void
+QuicTestEcn(
+    void
+    )
+{
+    //
+    // Postive ECN test.
+    //
+    {
+        CXPLAT_ECN_TYPE EcnType;
+        EcnType = CXPLAT_ECN_ECT_1;
+        MsQuicRegistration Registration;
+        TEST_QUIC_SUCCEEDED(Registration.GetInitStatus());
+
+        MsQuicConfiguration ServerConfiguration(Registration, "MsQuicTest", MsQuicSettings().SetPeerUnidiStreamCount(1), ServerSelfSignedCredConfig);
+        TEST_QUIC_SUCCEEDED(ServerConfiguration.GetInitStatus());
+
+        MsQuicConfiguration ClientConfiguration(Registration, "MsQuicTest", MsQuicSettings().SetEcnEnabled(true), MsQuicCredentialConfig());
+        TEST_QUIC_SUCCEEDED(ClientConfiguration.GetInitStatus());
+
+        EcnTestContext Context;
+        MsQuicAutoAcceptListener Listener(Registration, ServerConfiguration, EcnTestContext::ConnCallback, &Context);
+        TEST_QUIC_SUCCEEDED(Listener.GetInitStatus());
+        TEST_QUIC_SUCCEEDED(Listener.Start("MsQuicTest"));
+        QuicAddr ServerLocalAddr;
+        TEST_QUIC_SUCCEEDED(Listener.GetLocalAddr(ServerLocalAddr));
+
+        MsQuicConnection Connection(Registration);
+        TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
+        TEST_QUIC_SUCCEEDED(Connection.Start(ClientConfiguration, ServerLocalAddr.GetFamily(), QUIC_TEST_LOOPBACK_FOR_AF(ServerLocalAddr.GetFamily()), ServerLocalAddr.GetPort()));
+
+        MsQuicStream Stream(Connection, QUIC_STREAM_OPEN_FLAG_UNIDIRECTIONAL);
+        TEST_QUIC_SUCCEEDED(Stream.GetInitStatus());
+
+        //
+        // Open a stream, send some data and a FIN.
+        //
+        uint8_t RawBuffer[100];
+        QUIC_BUFFER Buffer { sizeof(RawBuffer), RawBuffer };
+        TEST_QUIC_SUCCEEDED(Stream.Send(&Buffer, 1, QUIC_SEND_FLAG_START | QUIC_SEND_FLAG_FIN));
+
+        //
+        // Wait for the first received data on the server side. The handler always
+        // returns pending, so make sure that pending is respected (no shutdown).
+        //
+        TEST_TRUE(Context.ServerStreamRecv.WaitTimeout(TestWaitTimeout));
+        CxPlatSleep(50);
+        TEST_FALSE(Context.ServerStreamHasShutdown);
+
+        //
+        // Complete the receive and drain only the first half of the data, and then
+        // repeat the steps above to make sure we get another receive and it doesn't
+        // shutdown the stream.
+        //
+        Context.ServerStream->ReceiveComplete(100);
+        TEST_TRUE(Context.ServerStreamShutdown.WaitTimeout(TestWaitTimeout));
+        TEST_TRUE(Context.ServerStreamHasShutdown);
+
+        QUIC_STATISTICS_V2 Stats;
+        Connection.GetStatistics(&Stats);
+        TEST_TRUE(Stats.EcnCapable);
+    }
+}
+
 struct SlowRecvTestContext {
     CxPlatEvent ServerStreamRecv;
     CxPlatEvent ServerStreamShutdown;
@@ -2188,49 +2280,6 @@ struct SlowRecvTestContext {
         return QUIC_STATUS_SUCCESS;
     }
 };
-
-void
-QuicTestEcn(
-    void
-    )
-{
-    {
-        MsQuicRegistration Registration;
-        TEST_QUIC_SUCCEEDED(Registration.GetInitStatus());
-
-        MsQuicConfiguration ServerConfiguration(Registration, "MsQuicTest", MsQuicSettings().SetPeerUnidiStreamCount(1), ServerSelfSignedCredConfig);
-        TEST_QUIC_SUCCEEDED(ServerConfiguration.GetInitStatus());
-
-        MsQuicConfiguration ClientConfiguration(Registration, "MsQuicTest", MsQuicSettings().SetEcnEnabled(true), MsQuicCredentialConfig());
-        TEST_QUIC_SUCCEEDED(ClientConfiguration.GetInitStatus());
-
-        SlowRecvTestContext Context;
-        MsQuicAutoAcceptListener Listener(Registration, ServerConfiguration, SlowRecvTestContext::ConnCallback, &Context);
-        TEST_QUIC_SUCCEEDED(Listener.GetInitStatus());
-        TEST_QUIC_SUCCEEDED(Listener.Start("MsQuicTest"));
-        QuicAddr ServerLocalAddr;
-        TEST_QUIC_SUCCEEDED(Listener.GetLocalAddr(ServerLocalAddr));
-
-        MsQuicConnection Connection(Registration);
-        TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
-        TEST_QUIC_SUCCEEDED(Connection.Start(ClientConfiguration, ServerLocalAddr.GetFamily(), QUIC_TEST_LOOPBACK_FOR_AF(ServerLocalAddr.GetFamily()), ServerLocalAddr.GetPort()));
-
-        MsQuicStream Stream(Connection, QUIC_STREAM_OPEN_FLAG_UNIDIRECTIONAL);
-        TEST_QUIC_SUCCEEDED(Stream.GetInitStatus());
-
-        //
-        // Open a stream, send some data and a FIN.
-        //
-        uint8_t RawBuffer[100];
-        QUIC_BUFFER Buffer { sizeof(RawBuffer), RawBuffer };
-        TEST_QUIC_SUCCEEDED(Stream.Send(&Buffer, 1, QUIC_SEND_FLAG_START | QUIC_SEND_FLAG_FIN));
-
-        CxPlatSleep(50);
-        QUIC_STATISTICS_V2 Stats;
-        Connection.GetStatistics(&Stats);
-        TEST_TRUE(Stats.EcnCapable);
-    }
-}
 
 void
 QuicTestSlowReceive(

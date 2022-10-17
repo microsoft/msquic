@@ -581,6 +581,24 @@ public:
     }
 };
 
+struct EcnModifyHelper : public DatapathHook
+{
+    CXPLAT_ECN_TYPE EcnType;
+    EcnModifyHelper() {
+        DatapathHooks::Instance->AddHook(this);
+    }
+    ~EcnModifyHelper() {
+        DatapathHooks::Instance->RemoveHook(this);
+    }
+    _IRQL_requires_max_(DISPATCH_LEVEL)
+    BOOLEAN
+    Receive(
+        _Inout_ struct CXPLAT_RECV_DATA* /* Datagram */
+        ) {
+        return true;
+    }
+};
+
 struct RandomLossHelper : public DatapathHook
 {
     uint8_t LossPercentage;
