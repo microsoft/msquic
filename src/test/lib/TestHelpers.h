@@ -590,6 +590,7 @@ struct EcnModifyHelper : public DatapathHook
     ~EcnModifyHelper() {
         DatapathHooks::Instance->RemoveHook(this);
     }
+    void SetEcnType(CXPLAT_ECN_TYPE Type) { EcnType = Type; }
     _IRQL_requires_max_(DISPATCH_LEVEL)
     BOOLEAN
     Receive(
