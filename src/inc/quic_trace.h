@@ -139,7 +139,7 @@ extern QUIC_TRACE_RUNDOWN_CALLBACK* QuicTraceRundownCallback;
 
 #define QuicTraceEventEnabled(Name) TRUE
 
-#define QuicTraceEvent(Name, Fmt, ...) printf((Fmt), ##__VA_ARGS__)
+#define QuicTraceEvent(Name, Fmt, ...) printf((Fmt "\n"), ##__VA_ARGS__)
 
 #define QUIC_CLOG_BYTEARRAY_MAX_LEN 256
 
@@ -228,38 +228,41 @@ QuicEtwCallback(
 #define QuicTraceLogInfoEnabled() TRUE
 #define QuicTraceLogVerboseEnabled() TRUE
 
-#define QuicTraceLogError(A, Fmt, ...) printf((Fmt), ##__VA_ARGS__)
-#define QuicTraceLogWarning(A, Fmt, ...) printf((Fmt), ##__VA_ARGS__)
-#define QuicTraceLogInfo(A, Fmt, ...) printf((Fmt), ##__VA_ARGS__)
-#define QuicTraceLogVerbose(A, Fmt, ...) printf((Fmt), ##__VA_ARGS__)
+#define QuicTraceLogError(A, Fmt, ...) printf((Fmt "\n"), ##__VA_ARGS__)
+#define QuicTraceLogWarning(A, Fmt, ...) printf((Fmt "\n"), ##__VA_ARGS__)
+#define QuicTraceLogInfo(A, Fmt, ...) printf((Fmt "\n"), ##__VA_ARGS__)
+#define QuicTraceLogVerbose(A, Fmt, ...) printf((Fmt "\n"), ##__VA_ARGS__)
 
 #define QuicTraceLogConnError(A, B, Fmt, ...)                                  \
   do {                                                                         \
     UNREFERENCED_PARAMETER(B);                                                 \
-    printf((Fmt), ##__VA_ARGS__);                                              \
+    printf((Fmt "\n"), ##__VA_ARGS__);                                         \
   } while (0)
 #define QuicTraceLogConnWarning(A, B, Fmt, ...)                                \
   do {                                                                         \
     UNREFERENCED_PARAMETER(B);                                                 \
-    printf((Fmt), ##__VA_ARGS__);                                              \
+    printf((Fmt "\n"), ##__VA_ARGS__);                                         \
   } while (0)
 #define QuicTraceLogConnInfo(A, B, Fmt, ...)                                   \
   do {                                                                         \
     UNREFERENCED_PARAMETER(B);                                                 \
-    printf((Fmt), ##__VA_ARGS__);                                              \
+    printf((Fmt "\n"), ##__VA_ARGS__);                                         \
   } while (0)
 #define QuicTraceLogConnVerbose(A, B, Fmt, ...)                                \
   do {                                                                         \
     UNREFERENCED_PARAMETER(B);                                                 \
-    printf((Fmt), ##__VA_ARGS__);                                              \
+    printf((Fmt "\n"), ##__VA_ARGS__);                                         \
   } while (0)
 
 #define QuicTraceLogStreamVerboseEnabled() TRUE
 
-#define QuicTraceLogStreamError(A, B, Fmt, ...) printf((Fmt), ##__VA_ARGS__)
-#define QuicTraceLogStreamWarning(A, B, Fmt, ...) printf((Fmt), ##__VA_ARGS__)
-#define QuicTraceLogStreamInfo(A, B, Fmt, ...) printf((Fmt), ##__VA_ARGS__)
-#define QuicTraceLogStreamVerbose(A, B, Fmt, ...) printf((Fmt), ##__VA_ARGS__)
+#define QuicTraceLogStreamError(A, B, Fmt, ...)                                \
+  printf((Fmt "\n"), ##__VA_ARGS__)
+#define QuicTraceLogStreamWarning(A, B, Fmt, ...)                              \
+  printf((Fmt "\n"), ##__VA_ARGS__)
+#define QuicTraceLogStreamInfo(A, B, Fmt, ...) printf((Fmt "\n"), ##__VA_ARGS__)
+#define QuicTraceLogStreamVerbose(A, B, Fmt, ...)                              \
+  printf((Fmt "\n"), ##__VA_ARGS__)
 
 #endif // QUIC_LOGS_STDOUT
 
