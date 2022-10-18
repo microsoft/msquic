@@ -2152,6 +2152,7 @@ CxPlatDataPathSocketReceive(
         SOCKADDR_INET LocalAddr = { 0 };
         SOCKADDR_INET RemoteAddr;
         UINT16 MessageLength = 0;
+        INT ECN = 0;
 
         //
         // Parse the ancillary data for all the per datagram information that we
@@ -2180,6 +2181,9 @@ CxPlatDataPathSocketReceive(
                         IsUnreachableError = TRUE;
                         break;
                     }
+                } else if (CMsg->cmsg_type == IPV6_ECN) {
+                    ECN = *(PINT)WSA_CMSG_DATA(CMsg);
+                    CXPLAT_DBG_ASSERT(ECN < UINT8_MAX);
                 }
             } else if (CMsg->cmsg_level == IPPROTO_IP) {
                 if (CMsg->cmsg_type == IP_PKTINFO) {
@@ -2196,6 +2200,9 @@ CxPlatDataPathSocketReceive(
                         IsUnreachableError = TRUE;
                         break;
                     }
+                } else if (CMsg->cmsg_type == IP_ECN) {
+                    ECN = *(PINT)WSA_CMSG_DATA(CMsg);
+                    CXPLAT_DBG_ASSERT(ECN < UINT8_MAX);
                 }
             } else if (CMsg->cmsg_level == IPPROTO_UDP) {
                 if (CMsg->cmsg_type == UDP_COALESCED_INFO) {
@@ -2358,7 +2365,7 @@ CxPlatDataPathSocketReceive(
             CXPLAT_DBG_ASSERT(Datagram != NULL);
             Datagram->Next = NULL;
             Datagram->PartitionIndex = (uint8_t)CurProcNumber;
-            Datagram->TypeOfService = 0; // TODO - Support ToS/ECN
+            Datagram->TypeOfService = (uint8_t)ECN;
             Datagram->Allocated = TRUE;
             Datagram->QueuedOnConnection = FALSE;
 

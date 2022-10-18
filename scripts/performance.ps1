@@ -419,6 +419,10 @@ function Invoke-Test {
         $RemoteArguments += " -stats:1"
     }
 
+    if ($LocalArguments.Contains("-sstats:1")) {
+        $RemoteArguments += " -sstats:1"
+    }
+
     if ($LocalArguments.Contains("-exec:maxtput")) {
         $RemoteArguments += " -exec:maxtput"
     }
