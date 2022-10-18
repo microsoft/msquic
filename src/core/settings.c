@@ -1145,7 +1145,7 @@ VersionSettingsFail:
         Settings->GreaseQuicBitEnabled = !!Value;
     }
     if (!Settings->IsSet.EcnEnabled) {
-        Value = QUIC_DEFAULT_GREASE_QUIC_BIT_ENABLED;
+        Value = QUIC_DEFAULT_ECN_ENABLED;
         ValueLen = sizeof(Value);
         CxPlatStorageReadValue(
             Storage,
