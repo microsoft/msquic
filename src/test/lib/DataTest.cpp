@@ -2198,6 +2198,7 @@ QuicTestEcn(
     // Postive ECN test.
     //
     {
+        TestScopeLogger logScope("Postive ECN test");
         MsQuicRegistration Registration;
         TEST_QUIC_SUCCEEDED(Registration.GetInitStatus());
 
@@ -2244,6 +2245,7 @@ QuicTestEcn(
     //
     // Negative ECN test: network erasing ECT bit or incorrectly modifying ECT bit.
     //
+    TestScopeLogger logScope1("network erasing ECT bit or incorrectly modifying ECT bit");
     for (int EcnType = CXPLAT_ECN_NON_ECT; EcnType <= CXPLAT_ECN_ECT_1; ++EcnType) {
         EcnModifyHelper EctEraser;
         MsQuicRegistration Registration;
@@ -2292,6 +2294,7 @@ QuicTestEcn(
     //
     // Negative ECN test: network erasing ECT bit or incorrectly modifying ECT bit after successful ECN validation.
     //
+    TestScopeLogger logScope2("network erasing ECT bit or incorrectly modifying ECT bit successful ECN validation");
     for (int EcnType = CXPLAT_ECN_NON_ECT; EcnType <= CXPLAT_ECN_ECT_1; ++EcnType) {
         MsQuicRegistration Registration;
         TEST_QUIC_SUCCEEDED(Registration.GetInitStatus());
