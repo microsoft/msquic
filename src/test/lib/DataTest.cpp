@@ -2228,19 +2228,10 @@ QuicTestEcn(
         QUIC_BUFFER Buffer { sizeof(RawBuffer), RawBuffer };
         TEST_QUIC_SUCCEEDED(Stream.Send(&Buffer, 1, QUIC_SEND_FLAG_START | QUIC_SEND_FLAG_FIN));
 
-        //
-        // Wait for the first received data on the server side. The handler always
-        // returns pending, so make sure that pending is respected (no shutdown).
-        //
         TEST_TRUE(Context.ServerStreamRecv.WaitTimeout(TestWaitTimeout));
         CxPlatSleep(50);
         TEST_FALSE(Context.ServerStreamHasShutdown);
 
-        //
-        // Complete the receive and drain only the first half of the data, and then
-        // repeat the steps above to make sure we get another receive and it doesn't
-        // shutdown the stream.
-        //
         Context.ServerStream->ReceiveComplete(100);
         TEST_TRUE(Context.ServerStreamShutdown.WaitTimeout(TestWaitTimeout));
         TEST_TRUE(Context.ServerStreamHasShutdown);
@@ -2329,19 +2320,10 @@ QuicTestEcn(
         QUIC_BUFFER Buffer { sizeof(RawBuffer), RawBuffer };
         TEST_QUIC_SUCCEEDED(Stream.Send(&Buffer, 1, QUIC_SEND_FLAG_START | QUIC_SEND_FLAG_FIN));
 
-        //
-        // Wait for the first received data on the server side. The handler always
-        // returns pending, so make sure that pending is respected (no shutdown).
-        //
         TEST_TRUE(Context.ServerStreamRecv.WaitTimeout(TestWaitTimeout));
         CxPlatSleep(50);
         TEST_FALSE(Context.ServerStreamHasShutdown);
 
-        //
-        // Complete the receive and drain only the first half of the data, and then
-        // repeat the steps above to make sure we get another receive and it doesn't
-        // shutdown the stream.
-        //
         Context.ServerStream->ReceiveComplete(100);
         TEST_TRUE(Context.ServerStreamShutdown.WaitTimeout(TestWaitTimeout));
         TEST_TRUE(Context.ServerStreamHasShutdown);
