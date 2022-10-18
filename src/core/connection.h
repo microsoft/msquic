@@ -571,10 +571,10 @@ typedef struct QUIC_CONNECTION {
     uint64_t EcnCeCounters[QUIC_ENCRYPT_LEVEL_COUNT]; // maps to ecn_ce_counters in RFC 9002.
 
     //
-    // The total number of packets sent with each corresponding ECT codepoint.
+    // The total number of packets sent with each corresponding ECT codepoint in all encryption
+    // level.
     //
     uint64_t NumPacketsSentWithEct;
-    uint64_t NumPacketsSentWithEctEx;
 
     //
     // Per-encryption level packet space information.

@@ -6,6 +6,31 @@
 --*/
 
 //
+// ECN validation state transition:
+//
+// ECN_VALIDATION_TESTING: when a new path is created.
+//
+// ECN_VALIDATION_TESTING -> ECN_VALIDATION_UNKNOWN: after sending
+// packets with ECT bit set for 3 PTOs.
+//
+// {ECN_VALIDATION_TESTING | ECN_VALIDATION_UNKNOWN} -> ECN_VALIDATION_CAPABLE:
+// when ECN validation passes.
+//
+// {ANY} -> ECN_VALIDATION_FAILED: when ECN validation fails.
+//
+// In ECN_VALIDATION_TESTING or ECN_VALIDATION_CAPABLE state, we send packets with ECT bit set.
+//
+// This algorithm is a slightly simplified and relaxed version of the sample ECN validation in
+// RFC9000 A.4. The main difference are listed below:
+//
+// 1. Our algorithm can transition into capable state right from testing state if we see green light
+// from any ECN validation.
+//
+// 2. The sample algirhtm fails when all packets sent in testing are considered lost. Our algorithm
+// does not do that.
+//
+
+//
 // Different state of ECN validation for the network path.
 //
 typedef enum ECN_VALIDATION_STATE {
