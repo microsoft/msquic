@@ -1247,15 +1247,15 @@ CxPlatSocketContextRecvComplete(
     _In_ ssize_t BytesTransferred
     )
 {
-    QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
+    QUIC_STATUS Status = QUIC_STATUS_SUCCESS; // cppcheck-suppress unreadVariable
 
     CXPLAT_DBG_ASSERT(SocketContext->CurrentRecvBlock != NULL);
     CXPLAT_RECV_DATA* RecvPacket = &SocketContext->CurrentRecvBlock->RecvPacket;
     SocketContext->CurrentRecvBlock = NULL;
 
-    BOOLEAN FoundLocalAddr = FALSE;
-    BOOLEAN FoundTOS = FALSE;
-    BOOLEAN FoundIfIdx = FALSE;
+    BOOLEAN FoundLocalAddr = FALSE; // cppcheck-suppress unreadVariable
+    BOOLEAN FoundTOS = FALSE; // cppcheck-suppress unreadVariable
+    BOOLEAN FoundIfIdx = FALSE; // cppcheck-suppress unreadVariable
     QUIC_ADDR* LocalAddr = &RecvPacket->Route->LocalAddress;
     if (LocalAddr->Ipv6.sin6_family == AF_INET6) {
         LocalAddr->Ipv6.sin6_family = QUIC_ADDRESS_FAMILY_INET6;
@@ -1282,11 +1282,11 @@ CxPlatSocketContextRecvComplete(
                 CxPlatConvertFromMappedV6(LocalAddr, LocalAddr);
 
                 LocalAddr->Ipv6.sin6_scope_id = PktInfo6->ipi6_ifindex;
-                FoundLocalAddr = TRUE;
-                FoundIfIdx = TRUE;
+                FoundLocalAddr = TRUE; // cppcheck-suppress unreadVariable
+                FoundIfIdx = TRUE; // cppcheck-suppress unreadVariable
             } else if (CMsg->cmsg_type == IPV6_TCLASS) {
                 RecvPacket->TypeOfService = *(uint8_t *)CMSG_DATA(CMsg);
-                FoundTOS = TRUE;
+                FoundTOS = TRUE; // cppcheck-suppress unreadVariable
             }
         } else if (CMsg->cmsg_level == IPPROTO_IP) {
 #if defined(IP_PKTINFO)
@@ -1319,7 +1319,7 @@ CxPlatSocketContextRecvComplete(
 #endif
             else if (CMsg->cmsg_type == IP_TOS || CMsg->cmsg_type == IP_RECVTOS) {
                 RecvPacket->TypeOfService = *(uint8_t *)CMSG_DATA(CMsg);
-                FoundTOS = TRUE;
+                FoundTOS = TRUE; // cppcheck-suppress unreadVariable
             }
         }
     }

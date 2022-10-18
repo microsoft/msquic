@@ -536,9 +536,6 @@ ThroughputClient::ConnectionCallback(
     ) {
     switch (Event->Type) {
     case QUIC_CONNECTION_EVENT_SHUTDOWN_COMPLETE:
-        if (PrintStats) {
-            QuicPrintConnectionStatistics(MsQuic, ConnectionHandle);
-        }
         MsQuic->ConnectionClose(ConnectionHandle);
         CxPlatEventSet(*StopEvent);
         break;
@@ -582,33 +579,41 @@ ThroughputClient::StreamCallback(
         }
         MsQuic->StreamShutdown(StreamHandle, QUIC_STREAM_SHUTDOWN_FLAG_ABORT, 0);
         break;
-    case QUIC_STREAM_EVENT_SHUTDOWN_COMPLETE:
+    case QUIC_STREAM_EVENT_SEND_SHUTDOWN_COMPLETE:
         if (PrintStreamStats) {
             QUIC_STREAM_STATISTICS Stats = {0};
             uint32_t BufferLength = sizeof(Stats);
             MsQuic->GetParam(StreamHandle, QUIC_PARAM_STREAM_STATISTICS, &BufferLength, &Stats);
             WriteOutput("Flow blocked timing:\n");
             WriteOutput(
-                "Reason: QUIC_FLOW_BLOCKED_SCHEDULING Time: %llu us\n",
+                "SCHEDULING:             %llu us\n",
                 (unsigned long long)Stats.ConnBlockedBySchedulingUs);
             WriteOutput(
-                "Reason: QUIC_FLOW_BLOCKED_PACING Time: %llu us\n",
+                "PACING:                 %llu us\n",
                 (unsigned long long)Stats.ConnBlockedByPacingUs);
             WriteOutput(
-                "Reason: QUIC_FLOW_BLOCKED_AMPLIFICATION_PROT Time: %llu us\n",
+                "AMPLIFICATION_PROT:     %llu us\n",
                 (unsigned long long)Stats.ConnBlockedByAmplificationProtUs);
             WriteOutput(
-                "Reason: QUIC_FLOW_BLOCKED_CONN_FLOW_CONTROL Time: %llu us\n",
+                "CONGESTION_CONTROL:     %llu us\n",
+                (unsigned long long)Stats.ConnBlockedByCongestionControlUs);
+            WriteOutput(
+                "CONN_FLOW_CONTROL:      %llu us\n",
                 (unsigned long long)Stats.ConnBlockedByFlowControlUs);
             WriteOutput(
-                "Reason: QUIC_FLOW_BLOCKED_STREAM_ID_FLOW_CONTROL Time: %llu us\n",
+                "STREAM_ID_FLOW_CONTROL: %llu us\n",
                 (unsigned long long)Stats.StreamBlockedByIdFlowControlUs);
             WriteOutput(
-                "Reason: QUIC_FLOW_BLOCKED_STREAM_FLOW_CONTROL Time: %llu us\n",
+                "STREAM_FLOW_CONTROL:    %llu us\n",
                 (unsigned long long)Stats.StreamBlockedByFlowControlUs);
             WriteOutput(
-                "Reason: QUIC_FLOW_BLOCKED_APP Time: %llu us\n",
+                "APP:                    %llu us\n",
                 (unsigned long long)Stats.StreamBlockedByAppUs);
+        }
+        break;
+    case QUIC_STREAM_EVENT_SHUTDOWN_COMPLETE:
+        if (PrintStats) {
+            QuicPrintConnectionStatistics(MsQuic, StreamHandle);
         }
         OnStreamShutdownComplete(StrmContext);
         break;

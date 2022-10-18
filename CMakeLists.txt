@@ -632,14 +632,17 @@ if(QUIC_CODE_CHECK)
             -altera-*
             -android-cloexec-fopen
             -android-cloexec-socket
+            -bugprone-assignment-in-if-condition
             -bugprone-easily-swappable-parameters
             -bugprone-implicit-widening-of-multiplication-result
             -bugprone-macro-parentheses
             -bugprone-narrowing-conversions
             -bugprone-reserved-identifier
             -bugprone-sizeof-expression
+            -modernize-macro-to-enum
             -cert-dcl37-c
             -cert-dcl51-cpp
+            -cert-err33-c
             -clang-analyzer-security.insecureAPI.DeprecatedOrUnsafeBufferHandling
             -clang-diagnostic-microsoft-anon-tag
             -concurrency-mt-unsafe
@@ -653,7 +656,9 @@ if(QUIC_CODE_CHECK)
             -llvmlibc-restrict-system-libc-headers
             -misc-no-recursion # do you really need recursion?
             -readability-avoid-const-params-in-decls
+            -readability-duplicate-include
             -readability-function-cognitive-complexity
+            -readability-identifier-length
             -readability-isolate-declaration
             -readability-magic-numbers
             -readability-non-const-parameter

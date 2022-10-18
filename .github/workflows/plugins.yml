@@ -27,7 +27,7 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@93ea575cb5d8a053eaa0ac8fa3b40d7e05a33cc8
     - name: Setup MSBuild.exe
-      uses: microsoft/setup-msbuild@ab534842b4bdf384b8aaf93765dc6f721d9f5fab
+      uses: microsoft/setup-msbuild@34cfbaee7f672c76950673338facd8a73f637506
     - name: Build
       run: msbuild src\plugins\msquic.windbg.sln /p:configuration=${{ matrix.configuration }} /p:platform=${{ matrix.platform }}
     - uses: actions/upload-artifact@3cea5372237819ed00197afe530f5a7ea3e805c8
@@ -51,7 +51,7 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@93ea575cb5d8a053eaa0ac8fa3b40d7e05a33cc8
     - name: Setup .NET
-      uses: actions/setup-dotnet@45c9f236cf9a0c09d11298348f6ed06bd81914c0
+      uses: actions/setup-dotnet@4d4a70f4a5b2a5a5329f13be4ac933f2c9206ac0
       with:
         dotnet-version: 6.0.x
     - name: Build
