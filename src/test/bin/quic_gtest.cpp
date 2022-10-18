@@ -1826,6 +1826,7 @@ TEST(Misc, StreamAbortConnFlowControl) {
     }
 }
 
+#ifdef QUIC_TEST_DATAPATH_HOOKS_ENABLED
 TEST(Misc, Ecn) {
     TestLogger Logger("Ecn");
     if (TestingKernelMode) {
@@ -1834,6 +1835,7 @@ TEST(Misc, Ecn) {
         QuicTestEcn();
     }
 }
+#endif // QUIC_TEST_DATAPATH_HOOKS_ENABLED
 
 TEST(Drill, VarIntEncoder) {
     TestLogger Logger("QuicDrillTestVarIntEncoder");
