@@ -33,7 +33,7 @@ struct in_pktinfo {
 
 // Check options
 #if !defined(IP_PKTINFO) && !defined(IP_RECVDSTADDR)
-#warning "No socket option specified"
+#error "No socket option specified"
 #endif
 #if defined(IP_RECVDSTADDR) && defined(IP_RECVIF)
 #include <net/if_dl.h>
@@ -894,7 +894,7 @@ CxPlatSocketContextInitialize(
 #elif defined(IP_RECVDSTADDR)
             ForceIpv4 ? IP_RECVDSTADDR : IPV6_RECVPKTINFO,
 #else
-#warning "No socket option specified"
+#error "No socket option specified"
 #endif
             (const void*)&Option,
             sizeof(Option));
@@ -1308,7 +1308,7 @@ CxPlatSocketContextRecvComplete(
                 FoundLocalAddr = TRUE;
             }
 #else
-#warning "No socket option specified"
+#error "No socket option specified"
 #endif
 #if defined(IP_RECVDSTADDR) && defined(IP_RECVIF)
             else if (CMsg->cmsg_type == IP_RECVIF) {
@@ -2166,7 +2166,7 @@ CxPlatSocketSendInternal(
             CMsg->cmsg_type = IP_RECVDSTADDR;
             CMsg->cmsg_len = CMSG_LEN(sizeof(struct in_addr));
 #else
-#warning "No socket option specified"
+#error "No socket option specified"
 #endif
             PktInfo = (struct in_pktinfo*) CMSG_DATA(CMsg);
             // TODO: Use Ipv4 instead of Ipv6.

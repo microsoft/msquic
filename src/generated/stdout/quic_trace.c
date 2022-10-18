@@ -30,9 +30,8 @@ void clog_stdout(const char * const format, ...)
             match = strstr(match, repls[i]);
 
             // break if no match
-            if (match == 0) {
+            if (match == 0)
                 break;
-            }
 
             // replace match with 's' and shift rest of string
             *match++ = 's';
@@ -44,10 +43,7 @@ void clog_stdout(const char * const format, ...)
 
     va_list ap;
     va_start(ap, format);
-    // #pragma clang diagnostic push
-    // #pragma clang diagnostic ignored "-Wformat-nonliteral"
     vprintf(reformat, ap);
-    // #pragma clang diagnostic pop
     va_end(ap);
     free(reformat);
 }
