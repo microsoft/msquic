@@ -2263,9 +2263,6 @@ namespace Microsoft.Quic
             {
                 [NativeTypeName("BOOLEAN")]
                 internal byte Bidirectional;
-
-                [NativeTypeName("uint64_t")]
-                internal ulong StreamLimit;
             }
 
             internal partial struct _IDEAL_PROCESSOR_CHANGED_e__Struct

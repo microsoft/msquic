@@ -1276,20 +1276,19 @@ tracepoint(CLOG_CONNECTION_C, PeerStreamFCBlocked , arg1, arg3, arg4);\
 
 /*----------------------------------------------------------
 // Decoder Ring for IndicatePeerNeedStreamsV2
-// [conn][%p] Indicating QUIC_CONNECTION_EVENT_PEER_NEEDS_STREAMS type: %s, limit (%llu)
+// [conn][%p] Indicating QUIC_CONNECTION_EVENT_PEER_NEEDS_STREAMS type: %s
 // QuicTraceLogConnVerbose(
                 IndicatePeerNeedStreamsV2,
                 Connection,
-                "Indicating QUIC_CONNECTION_EVENT_PEER_NEEDS_STREAMS type: %s, limit (%llu)",
-                Frame.BidirectionalStreams ? "Bidi" : "Unidi",
-                Frame.StreamLimit);
+                "Indicating QUIC_CONNECTION_EVENT_PEER_NEEDS_STREAMS type: %s",
+                Frame.BidirectionalStreams ? "Bidi" : "Unidi"
+                );
 // arg1 = arg1 = Connection = arg1
 // arg3 = arg3 = Frame.BidirectionalStreams ? "Bidi" : "Unidi" = arg3
-// arg4 = arg4 = Frame.StreamLimit = arg4
 ----------------------------------------------------------*/
-#ifndef _clog_5_ARGS_TRACE_IndicatePeerNeedStreamsV2
-#define _clog_5_ARGS_TRACE_IndicatePeerNeedStreamsV2(uniqueId, arg1, encoded_arg_string, arg3, arg4)\
-tracepoint(CLOG_CONNECTION_C, IndicatePeerNeedStreamsV2 , arg1, arg3, arg4);\
+#ifndef _clog_4_ARGS_TRACE_IndicatePeerNeedStreamsV2
+#define _clog_4_ARGS_TRACE_IndicatePeerNeedStreamsV2(uniqueId, arg1, encoded_arg_string, arg3)\
+tracepoint(CLOG_CONNECTION_C, IndicatePeerNeedStreamsV2 , arg1, arg3);\
 
 #endif
 

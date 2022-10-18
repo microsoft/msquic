@@ -4848,13 +4848,12 @@ QuicConnRecvFrames(
             QUIC_CONNECTION_EVENT Event;
             Event.Type = QUIC_CONNECTION_EVENT_PEER_NEEDS_STREAMS;
             Event.PEER_NEEDS_STREAMS.Bidirectional = Frame.BidirectionalStreams;
-            Event.PEER_NEEDS_STREAMS.StreamLimit = Info->MaxCurrentStreamCount;
             QuicTraceLogConnVerbose(
                 IndicatePeerNeedStreamsV2,
                 Connection,
-                "Indicating QUIC_CONNECTION_EVENT_PEER_NEEDS_STREAMS type: %s, limit (%llu)",
-                Frame.BidirectionalStreams ? "Bidi" : "Unidi",
-                Frame.StreamLimit);
+                "Indicating QUIC_CONNECTION_EVENT_PEER_NEEDS_STREAMS type: %s",
+                Frame.BidirectionalStreams ? "Bidi" : "Unidi"
+                );
             (void)QuicConnIndicateEvent(Connection, &Event);
 
             Packet->HasNonProbingFrame = TRUE;

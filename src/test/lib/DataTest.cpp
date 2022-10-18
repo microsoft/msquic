@@ -2701,7 +2701,7 @@ struct StreamBlockUnblockConnFlowControl {
     CxPlatEvent ClientStreamSendComplete;
     CxPlatEvent ServerStreamReceive;
     CxPlatEvent ServerConnectionPeerNeedsStreams;
-    uint32_t NeedsStreamCount {0};
+    uint16_t NeedsStreamCount {0};
 
     static QUIC_STATUS ClientStreamCallback(_In_ MsQuicStream*, _In_opt_ void* Context, _Inout_ QUIC_STREAM_EVENT* Event) {
         auto TestContext = (StreamBlockUnblockConnFlowControl*)Context;
@@ -2714,10 +2714,13 @@ struct StreamBlockUnblockConnFlowControl {
         return QUIC_STATUS_SUCCESS;
     }
 
-    static QUIC_STATUS ServerStreamCallback(_In_ MsQuicStream*, _In_opt_ void* Context, _Inout_ QUIC_STREAM_EVENT* Event) {
+    static QUIC_STATUS ServerStreamCallback(_In_ MsQuicStream* Stream, _In_opt_ void* Context, _Inout_ QUIC_STREAM_EVENT* Event) {
         auto TestContext = (StreamBlockUnblockConnFlowControl*)Context;
         if (Event->Type == QUIC_STREAM_EVENT_RECEIVE) {
             TestContext->ServerStreamReceive.Set();
+        } else if (Event->Type == QUIC_STREAM_EVENT_PEER_SEND_SHUTDOWN)
+        {
+            Stream->Shutdown(0, QUIC_STREAM_SHUTDOWN_FLAG_GRACEFUL);
         }
         return QUIC_STATUS_SUCCESS;
     }
@@ -2730,12 +2733,10 @@ struct StreamBlockUnblockConnFlowControl {
         } else if (Event->Type == QUIC_CONNECTION_EVENT_PEER_NEEDS_STREAMS) {
             TestContext->NeedsStreamCount += 1;
             TestContext->ServerConnectionPeerNeedsStreams.Set();
-            uint16_t count = (uint16_t)(Event->PEER_NEEDS_STREAMS.StreamLimit + 1);
-
             if(Event->PEER_NEEDS_STREAMS.Bidirectional) {
-                Connection->SetSettings(MsQuicSettings{}.SetPeerBidiStreamCount(count));
+                Connection->SetSettings(MsQuicSettings{}.SetPeerBidiStreamCount(TestContext->NeedsStreamCount));
             } else {
-                Connection->SetSettings(MsQuicSettings{}.SetPeerUnidiStreamCount(count));
+                Connection->SetSettings(MsQuicSettings{}.SetPeerUnidiStreamCount(TestContext->NeedsStreamCount));
             }
         }
         return QUIC_STATUS_SUCCESS;
@@ -2804,6 +2805,11 @@ QuicTestStreamBlockUnblockConnFlowControl(
     // Shutdown 1st Stream
     Stream1.Shutdown(0, QUIC_STREAM_SHUTDOWN_FLAG_GRACEFUL);
     TEST_TRUE(Context.ClientStreamShutdownComplete.WaitTimeout(1000));
+
+    Context.ClientStreamSendComplete.Reset();
+    Context.ServerStreamReceive.Reset();
+    Context.ServerConnectionPeerNeedsStreams.Reset();
+    TEST_FALSE(Context.ServerConnectionPeerNeedsStreams.WaitTimeout(TestWaitTimeout));
 
     // 3rd Stream
     MsQuicStream Stream3(Connection, StreamOpenFlags, CleanUpManual, StreamBlockUnblockConnFlowControl::ClientStreamCallback, &Context);

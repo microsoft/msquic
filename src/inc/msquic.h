@@ -1124,7 +1124,6 @@ typedef struct QUIC_CONNECTION_EVENT {
         } STREAMS_AVAILABLE;
         struct {
             BOOLEAN Bidirectional;
-            uint64_t StreamLimit;
         } PEER_NEEDS_STREAMS;
         struct {
             uint16_t IdealProcessor;

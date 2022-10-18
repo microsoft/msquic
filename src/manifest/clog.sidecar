@@ -5453,7 +5453,7 @@
     },
     "IndicatePeerNeedStreamsV2": {
       "ModuleProperites": {},
-      "TraceString": "[conn][%p] Indicating QUIC_CONNECTION_EVENT_PEER_NEEDS_STREAMS type: %s, limit (%llu)",
+      "TraceString": "[conn][%p] Indicating QUIC_CONNECTION_EVENT_PEER_NEEDS_STREAMS type: %s",
       "UniqueId": "IndicatePeerNeedStreamsV2",
       "splitArgs": [
         {
@@ -5463,10 +5463,6 @@
         {
           "DefinationEncoding": "s",
           "MacroVariableName": "arg3"
-        },
-        {
-          "DefinationEncoding": "llu",
-          "MacroVariableName": "arg4"
         }
       ],
       "macroName": "QuicTraceLogConnVerbose"
@@ -13634,9 +13630,9 @@
         "EncodingString": "[conn][%p] Indicating QUIC_CONNECTION_EVENT_PEER_NEEDS_STREAMS"
       },
       {
-        "UniquenessHash": "d8ba907f-4361-dbfe-9974-ba99939887e6",
+        "UniquenessHash": "11de3e8f-a75b-1030-5f71-f5065bee2aef",
         "TraceID": "IndicatePeerNeedStreamsV2",
-        "EncodingString": "[conn][%p] Indicating QUIC_CONNECTION_EVENT_PEER_NEEDS_STREAMS type: %s, limit (%llu)"
+        "EncodingString": "[conn][%p] Indicating QUIC_CONNECTION_EVENT_PEER_NEEDS_STREAMS type: %s"
       },
       {
         "UniquenessHash": "87c746b1-6bb4-6173-0f4e-f918641d4b80",
