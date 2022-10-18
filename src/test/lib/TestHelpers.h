@@ -594,9 +594,10 @@ struct EcnModifyHelper : public DatapathHook
     _IRQL_requires_max_(DISPATCH_LEVEL)
     BOOLEAN
     Receive(
-        _Inout_ struct CXPLAT_RECV_DATA* /* Datagram */
+        _Inout_ struct CXPLAT_RECV_DATA* Datagram
         ) {
-        return true;
+        Datagram->TypeOfService = (uint8_t)EcnType;
+        return false;
     }
 };
 
