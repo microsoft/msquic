@@ -86,7 +86,9 @@ static uint8_t* ReadPkcs12(const char* Name, uint32_t* Length) {
 }
 
 //
-// Generates a (self) signed cert using low level OpenSSL APIs.
+// Generates a signed cert using low level OpenSSL APIs.
+// Issue certificate from provided CA, or create self-signed
+// certificate.
 //
 
 
@@ -108,6 +110,19 @@ GenerateX509Cert(
     X509_NAME *Name = NULL;
     X509_NAME *IssuerName = NULL;
 
+    // Using OpenSSL 3.0 the key generation code can be simplified to:
+    //
+    // PKey = EVP_EC_gen("secp521r1"); // or EVP_RSA_gen(2048)
+    // if (PKey == NULL) {
+    //     QuicTraceEvent(
+    //         LibraryError,
+    //         "[ lib] ERROR, %s.",
+    //         "EVP_EC_gen failed");
+    //     Status = QUIC_STATUS_TLS_ERROR;
+    //     goto Exit;
+    // }
+
+    // Generate private key (RSA)
     PKey = EVP_PKEY_new();
     if (PKey == NULL) {
         QuicTraceEvent(
@@ -148,6 +163,7 @@ GenerateX509Cert(
         goto Exit;
     }
 
+    // Generate X509 certificate
     Cert = X509_new();
     if (Cert == NULL) {
         QuicTraceEvent(
@@ -231,6 +247,7 @@ GenerateX509Cert(
         goto Exit;
     }
 
+    // Issue certificate from CA cert, or create self-signed cert
     if (CaX509 != NULL) {
         IssuerName = X509_get_subject_name(CaX509);
     }
@@ -279,6 +296,7 @@ GenerateX509Cert(
         }
     }
 
+    // Self signed or issued by CA
     if (CaPKey != NULL) {
         Ret = X509_sign(Cert, CaPKey, EVP_sha256());
     } else {
