@@ -478,6 +478,7 @@ size_t QUIC_IOCTL_BUFFER_SIZES[] =
     sizeof(UINT8),
     sizeof(UINT8),
     sizeof(UINT8),
+    0,
 };
 
 CXPLAT_STATIC_ASSERT(
