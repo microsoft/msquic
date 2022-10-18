@@ -2635,7 +2635,7 @@
               />
           <event
               keywords="ut:Connection ut:DataFlow"
-              level="win:Verbose"
+              level="win:Informational"
               message="$(string.Etw.CongestionEvent)"
               opcode="Connection"
               symbol="QuicConnCongestion"
@@ -2644,7 +2644,7 @@
               />
           <event
               keywords="ut:Connection ut:DataFlow ut:LowVolume"
-              level="win:Informational"
+              level="win:Error"
               message="$(string.Etw.PersistentCongestionEvent)"
               opcode="Connection"
               symbol="QuicConnPersistentCongestion"
