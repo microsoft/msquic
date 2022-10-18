@@ -220,9 +220,9 @@ QuicPacketKeyDerive(
     if (Key == NULL) {
         QuicTraceEvent(
             AllocFailure,
-            "Allocation of '%s' failed. (%" PRIu16 " bytes)",
+            "Allocation of '%s' failed. (%llu bytes)",
             "QUIC_PACKET_KEY",
-            PacketKeyLength);
+            (uint64_t)PacketKeyLength);
         return QUIC_STATUS_OUT_OF_MEMORY;
     }
     CxPlatZeroMemory(Key, sizeof(QUIC_PACKET_KEY));

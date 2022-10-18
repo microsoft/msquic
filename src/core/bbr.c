@@ -287,15 +287,15 @@ QuicConnLogBbr(
 
     QuicTraceEvent(
             ConnBbr,
-            "[conn][%p] BBR: State=%u RState=%u CongestionWindow=%u BytesInFlight=%u BytesInFlightMax=%u MinRttEst=%" PRIu32 " EstBw=%" PRIu64 " AppLimited=%u",
+            "[conn][%p] BBR: State=%u RState=%u CongestionWindow=%u BytesInFlight=%u BytesInFlightMax=%u MinRttEst=%lu EstBw=%lu AppLimited=%u",
             Connection,
             Bbr->BbrState,
             Bbr->RecoveryState,
             BbrCongestionControlGetCongestionWindow(Cc),
             Bbr->BytesInFlight,
             Bbr->BytesInFlightMax,
-            Bbr->MinRtt,
-            BbrCongestionControlGetBandwidth(Cc) / BW_UNIT,
+            (unsigned long)Bbr->MinRtt,
+            (unsigned long)(BbrCongestionControlGetBandwidth(Cc) / BW_UNIT),
             BbrCongestionControlIsAppLimited(Cc));
 }
 

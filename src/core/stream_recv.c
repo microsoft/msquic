@@ -111,9 +111,9 @@ Exit:
 
     QuicTraceEvent(
         StreamRecvState,
-        "[strm][%p] Recv State: %d",
+        "[strm][%p] Recv State: %hhu",
         Stream,
-        QuicStreamRecvGetState(Stream));
+        (uint8_t)QuicStreamRecvGetState(Stream));
 
     if (Silent) {
         QuicStreamTryCompleteShutdown(Stream);
@@ -154,9 +154,9 @@ QuicStreamRecvQueueFlush(
             } else {
                 QuicTraceEvent(
                     AllocFailure,
-                    "Allocation of '%s' failed. (%d bytes)",
+                    "Allocation of '%s' failed. (%llu bytes)",
                     "Flush Stream Recv operation",
-                    0);
+                    UINT64_C(0));
             }
         }
     }
@@ -236,9 +236,9 @@ QuicStreamProcessResetFrame(
 
         QuicTraceEvent(
             StreamRecvState,
-            "[strm][%p] Recv State: %d",
+            "[strm][%p] Recv State: %hhu",
             Stream,
-            QuicStreamRecvGetState(Stream));
+            (uint8_t)QuicStreamRecvGetState(Stream));
 
         if (!Stream->Flags.SentStopSending) {
             QuicTraceLogStreamInfo(
@@ -1009,9 +1009,9 @@ QuicStreamReceiveComplete(
         //
         QuicTraceEvent(
             StreamRecvState,
-            "[strm][%p] Recv State: %d",
+            "[strm][%p] Recv State: %hhu",
             Stream,
-            QuicStreamRecvGetState(Stream));
+            (uint8_t)QuicStreamRecvGetState(Stream));
         return FALSE;
     }
 
@@ -1034,9 +1034,9 @@ QuicStreamReceiveComplete(
 
         QuicTraceEvent(
             StreamRecvState,
-            "[strm][%p] Recv State: %d",
+            "[strm][%p] Recv State: %hhu",
             Stream,
-            QuicStreamRecvGetState(Stream));
+            (uint8_t)QuicStreamRecvGetState(Stream));
 
         QUIC_STREAM_EVENT Event;
         Event.Type = QUIC_STREAM_EVENT_PEER_SEND_SHUTDOWN;
@@ -1090,9 +1090,9 @@ QuicStreamRecvSetEnabledState(
             //
             QuicTraceEvent(
                 StreamRecvState,
-                "[strm][%p] Recv State: %d",
+                "[strm][%p] Recv State: %hhu",
                 Stream,
-                QuicStreamRecvGetState(Stream));
+                (uint8_t)QuicStreamRecvGetState(Stream));
             QuicStreamRecvQueueFlush(Stream, TRUE);
         }
     }

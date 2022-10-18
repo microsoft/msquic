@@ -370,9 +370,9 @@ QuicDatagramQueueSend(
             Status = QUIC_STATUS_OUT_OF_MEMORY;
             QuicTraceEvent(
                 AllocFailure,
-                "Allocation of '%s' failed. (%d bytes)",
+                "Allocation of '%s' failed. (%llu bytes)",
                 "DATAGRAM_SEND operation",
-                0);
+                UINT64_C(0));
             goto Exit;
         }
         Oper->API_CALL.Context->Type = QUIC_API_TYPE_DATAGRAM_SEND;

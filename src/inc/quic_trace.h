@@ -129,75 +129,53 @@ extern QUIC_TRACE_RUNDOWN_CALLBACK* QuicTraceRundownCallback;
 #else
 
 #if defined(QUIC_EVENTS_STDOUT) || defined(QUIC_LOGS_STDOUT)
-#include "msquichelper.h"
-#include <stdio.h>
 
-static inline void //__attribute__((format(printf, 1, 2)))
-clog_stdout(const char * format, ...)
-{
-    static const char * repls[] = {"!CID!", "!ADDR!"};
-    char * reformat = strdup(format);
+extern
+#ifdef __cplusplus
+"C"
+#endif
+void __attribute__((no_instrument_function, format(printf, 1, 2)))
+clog_stdout(const char * format, ...);
 
-    for (size_t i = 0; i < ARRAYSIZE(repls); i++) {
-        char * match = reformat;
+#define clog(Fmt, ...)                                                         \
+    _Pragma("clang diagnostic push");                                          \
+    _Pragma("clang diagnostic ignored \"-Wformat-invalid-specifier\"");        \
+    _Pragma("clang diagnostic ignored \"-Wformat-extra-args\"");               \
+    _Pragma("GCC diagnostic push");                                            \
+    _Pragma("GCC diagnostic ignored \"-Wformat\"");                            \
+    _Pragma("GCC diagnostic ignored \"-Wformat-extra-args\"");                 \
+    clog_stdout((Fmt), ##__VA_ARGS__);                                         \
+    _Pragma("GCC diagnostic pop");                                             \
+    _Pragma("clang diagnostic pop")
 
-        while (1) {
-            // find next match
-            match = strstr(match, repls[i]);
-
-            // break if no match
-            if (match == 0) {
-                break;
-            }
-
-            // replace match with 's' and shift rest of string
-            *match++ = 's';
-            const size_t repl_len = strlen(repls[i]) - 1;
-            const size_t match_len = strlen(match + repl_len);
-            memmove(match, match + repl_len, match_len + 1);
-        }
-    }
-
-    va_list ap;
-    va_start(ap, format);
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wformat-nonliteral"
-    vprintf(reformat, ap);
-#pragma clang diagnostic pop
-    va_end(ap);
-    free(reformat);
-}
 
 #endif
 
 #ifdef QUIC_EVENTS_STDOUT
-
 #define QuicTraceEventEnabled(Name) TRUE
 
-#define QuicTraceEvent(Name, Fmt, ...) clog_stdout((Fmt "\n"), ##__VA_ARGS__)
+#define QuicTraceEvent(Name, Fmt, ...) clog((Fmt "\n"), ##__VA_ARGS__)
 
 #define QUIC_CLOG_BYTEARRAY_MAX_LEN 256
 
-#define DIAG_PUSH                                                              \
-    _Pragma("clang diagnostic push")                                           \
-    _Pragma("clang diagnostic ignored \"-Wtautological-constant-out-of-range-compare\"") \
+extern
+#ifdef __cplusplus
+"C"
+#endif
+char * __attribute__((no_instrument_function))
+hex2str(const uint8_t * const src,
+        const size_t len_src,
+        char * const dst,
+        const size_t len_dst);
 
-#define DIAG_POP _Pragma("clang diagnostic pop")
 
 // TODO: This just prints CASTED_CLOG_BYTEARRAYs as hexdumps. It would be nice
 // to print the individual datatypes in better ways.
 
 #define CASTED_CLOG_BYTEARRAY(Len, Data)                                       \
-    ({                                                                         \
-        DIAG_PUSH;                                                             \
-        char _HexString[QUIC_CLOG_BYTEARRAY_MAX_LEN + 1] = "[buf too short]";  \
-        if ((Len) < QUIC_CLOG_BYTEARRAY_MAX_LEN) {                             \
-            EncodeHexBuffer((uint8_t *)(Data), (Len), _HexString);             \
-            _HexString[QUIC_CLOG_BYTEARRAY_MAX_LEN] = 0;                       \
-        }                                                                      \
-        DIAG_POP;                                                              \
-        _HexString;                                                            \
-    })
+    hex2str((const uint8_t *)(Data), (Len),                                    \
+            (char[QUIC_CLOG_BYTEARRAY_MAX_LEN]){""},                           \
+            CXPLAT_MAX(QUIC_CLOG_BYTEARRAY_MAX_LEN - 1, (Len)*2 + 1))
 
 #endif // QUIC_EVENTS_STDOUT
 
@@ -276,42 +254,40 @@ QuicEtwCallback(
 #define QuicTraceLogInfoEnabled() TRUE
 #define QuicTraceLogVerboseEnabled() TRUE
 
-#define QuicTraceLogError(A, Fmt, ...) clog_stdout((Fmt "\n"), ##__VA_ARGS__)
-#define QuicTraceLogWarning(A, Fmt, ...) clog_stdout((Fmt "\n"), ##__VA_ARGS__)
-#define QuicTraceLogInfo(A, Fmt, ...) clog_stdout((Fmt "\n"), ##__VA_ARGS__)
-#define QuicTraceLogVerbose(A, Fmt, ...) clog_stdout((Fmt "\n"), ##__VA_ARGS__)
+#define QuicTraceLogError(A, Fmt, ...) clog((Fmt "\n"), ##__VA_ARGS__)
+#define QuicTraceLogWarning(A, Fmt, ...) clog((Fmt "\n"), ##__VA_ARGS__)
+#define QuicTraceLogInfo(A, Fmt, ...) clog((Fmt "\n"), ##__VA_ARGS__)
+#define QuicTraceLogVerbose(A, Fmt, ...) clog((Fmt "\n"), ##__VA_ARGS__)
 
 #define QuicTraceLogConnError(A, B, Fmt, ...)                                  \
     do {                                                                       \
         UNREFERENCED_PARAMETER(B);                                             \
-        clog_stdout((Fmt "\n"), ##__VA_ARGS__);                                \
+        clog((Fmt "\n"), ##__VA_ARGS__);                                       \
     } while (0)
 #define QuicTraceLogConnWarning(A, B, Fmt, ...)                                \
     do {                                                                       \
         UNREFERENCED_PARAMETER(B);                                             \
-        clog_stdout((Fmt "\n"), ##__VA_ARGS__);                                \
+        clog((Fmt "\n"), ##__VA_ARGS__);                                       \
     } while (0)
 #define QuicTraceLogConnInfo(A, B, Fmt, ...)                                   \
     do {                                                                       \
         UNREFERENCED_PARAMETER(B);                                             \
-        clog_stdout((Fmt "\n"), ##__VA_ARGS__);                                \
+        clog((Fmt "\n"), ##__VA_ARGS__);                                       \
     } while (0)
 #define QuicTraceLogConnVerbose(A, B, Fmt, ...)                                \
     do {                                                                       \
         UNREFERENCED_PARAMETER(B);                                             \
-        clog_stdout((Fmt "\n"), ##__VA_ARGS__);                                \
+        clog((Fmt "\n"), ##__VA_ARGS__);                                       \
     } while (0)
 
 #define QuicTraceLogStreamVerboseEnabled() TRUE
 
-#define QuicTraceLogStreamError(A, B, Fmt, ...)                                \
-    clog_stdout((Fmt "\n"), ##__VA_ARGS__)
+#define QuicTraceLogStreamError(A, B, Fmt, ...) clog((Fmt "\n"), ##__VA_ARGS__)
 #define QuicTraceLogStreamWarning(A, B, Fmt, ...)                              \
-    clog_stdout((Fmt "\n"), ##__VA_ARGS__)
-#define QuicTraceLogStreamInfo(A, B, Fmt, ...)                                 \
-    clog_stdout((Fmt "\n"), ##__VA_ARGS__)
+    clog((Fmt "\n"), ##__VA_ARGS__)
+#define QuicTraceLogStreamInfo(A, B, Fmt, ...) clog((Fmt "\n"), ##__VA_ARGS__)
 #define QuicTraceLogStreamVerbose(A, B, Fmt, ...)                              \
-    clog_stdout((Fmt "\n"), ##__VA_ARGS__)
+    clog((Fmt "\n"), ##__VA_ARGS__)
 
 #endif // QUIC_LOGS_STDOUT
 

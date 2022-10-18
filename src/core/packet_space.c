@@ -28,9 +28,9 @@ QuicPacketSpaceInitialize(
     if (Packets == NULL) {
         QuicTraceEvent(
             AllocFailure,
-            "Allocation of '%s' failed. (%zu bytes)",
+            "Allocation of '%s' failed. (%llu bytes)",
             "packet space",
-            sizeof(QUIC_PACKET_SPACE));
+            (uint64_t)sizeof(QUIC_PACKET_SPACE));
         return QUIC_STATUS_OUT_OF_MEMORY;
     }
 

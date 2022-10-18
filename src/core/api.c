@@ -351,9 +351,9 @@ MsQuicConnectionStart(
             Status = QUIC_STATUS_OUT_OF_MEMORY;
             QuicTraceEvent(
                 AllocFailure,
-                "Allocation of '%s' failed. (%zu bytes)",
+                "Allocation of '%s' failed. (%llu bytes)",
                 "Server name",
-                ServerNameLength + 1);
+                (uint64_t)(ServerNameLength + 1));
             goto Error;
         }
 
@@ -368,9 +368,9 @@ MsQuicConnectionStart(
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         QuicTraceEvent(
             AllocFailure,
-            "Allocation of '%s' failed. (%d bytes)",
+            "Allocation of '%s' failed. (%llu bytes)",
             "CONN_START operation",
-            0);
+            UINT64_C(0));
         goto Error;
     }
 
@@ -467,9 +467,9 @@ MsQuicConnectionSetConfiguration(
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         QuicTraceEvent(
             AllocFailure,
-            "Allocation of '%s' failed. (%d bytes)",
+            "Allocation of '%s' failed. (%llu bytes)",
             "CONN_SET_CONFIGURATION operation",
-            0);
+            UINT64_C(0));
         goto Error;
     }
 
@@ -561,9 +561,9 @@ MsQuicConnectionSendResumptionTicket(
             Status = QUIC_STATUS_OUT_OF_MEMORY;
             QuicTraceEvent(
                 AllocFailure,
-                "Allocation of '%s' failed. (%" PRIu16 " bytes)",
+                "Allocation of '%s' failed. (%llu bytes)",
                 "Resumption data copy",
-                DataLength);
+                (uint64_t)DataLength);
             goto Error;
         }
         CxPlatCopyMemory(ResumptionDataCopy, ResumptionData, DataLength);
@@ -574,9 +574,9 @@ MsQuicConnectionSendResumptionTicket(
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         QuicTraceEvent(
             AllocFailure,
-            "Allocation of '%s' failed. (%d bytes)",
+            "Allocation of '%s' failed. (%llu bytes)",
             "CONN_SEND_RESUMPTION_TICKET operation",
-            0);
+            UINT64_C(0));
         goto Error;
     }
     Oper->API_CALL.Context->Type = QUIC_API_TYPE_CONN_SEND_RESUMPTION_TICKET;
@@ -841,9 +841,9 @@ MsQuicStreamStart(
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         QuicTraceEvent(
             AllocFailure,
-            "Allocation of '%s' failed. (%d bytes)",
+            "Allocation of '%s' failed. (%llu bytes)",
             "STRM_START operation",
-            0);
+            UINT64_C(0));
         goto Exit;
     }
     Oper->API_CALL.Context->Type = QUIC_API_TYPE_STRM_START;
@@ -961,9 +961,9 @@ MsQuicStreamShutdown(
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         QuicTraceEvent(
             AllocFailure,
-            "Allocation of '%s' failed. (%d bytes)",
+            "Allocation of '%s' failed. (%llu bytes)",
             "STRM_SHUTDOWN operation",
-            0);
+            UINT64_C(0));
         goto Error;
     }
     Oper->API_CALL.Context->Type = QUIC_API_TYPE_STRM_SHUTDOWN;
@@ -1065,9 +1065,9 @@ MsQuicStreamSend(
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         QuicTraceEvent(
             AllocFailure,
-            "Allocation of '%s' failed. (%d bytes)",
+            "Allocation of '%s' failed. (%llu bytes)",
             "Stream Send request",
-            0);
+            UINT64_C(0));
         goto Exit;
     }
 
@@ -1114,9 +1114,9 @@ MsQuicStreamSend(
             Status = QUIC_STATUS_OUT_OF_MEMORY;
             QuicTraceEvent(
                 AllocFailure,
-                "Allocation of '%s' failed. (%d bytes)",
+                "Allocation of '%s' failed. (%llu bytes)",
                 "STRM_SEND operation",
-                0);
+                UINT64_C(0));
             goto Exit;
         }
         Oper->API_CALL.Context->Type = QUIC_API_TYPE_STRM_SEND;
@@ -1189,9 +1189,9 @@ MsQuicStreamReceiveSetEnabled(
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         QuicTraceEvent(
             AllocFailure,
-            "Allocation of '%s' failed. (%d bytes)",
+            "Allocation of '%s' failed. (%llu bytes)",
             "STRM_RECV_SET_ENABLED, operation",
-            0);
+            UINT64_C(0));
         goto Error;
     }
     Oper->API_CALL.Context->Type = QUIC_API_TYPE_STRM_RECV_SET_ENABLED;

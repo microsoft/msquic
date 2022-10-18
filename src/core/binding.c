@@ -48,9 +48,9 @@ QuicBindingInitialize(
     if (Binding == NULL) {
         QuicTraceEvent(
             AllocFailure,
-            "Allocation of '%s' failed. (%zu bytes)",
+            "Allocation of '%s' failed. (%llu bytes)",
             "QUIC_BINDING",
-            sizeof(QUIC_BINDING));
+            (uint64_t)sizeof(QUIC_BINDING));
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         goto Error;
     }
@@ -531,9 +531,9 @@ QuicBindingAcceptConnection(
         if (NegotiatedAlpn == NULL) {
             QuicTraceEvent(
                 AllocFailure,
-                "Allocation of '%s' failed. (%" PRIu16 " bytes)",
+                "Allocation of '%s' failed. (%llu bytes)",
                 "NegotiatedAlpn",
-                NegotiatedAlpnLength);
+                (uint64_t)NegotiatedAlpnLength);
             QuicConnTransportError(
                 Connection,
                 QUIC_ERROR_INTERNAL_ERROR);
@@ -775,9 +775,9 @@ QuicBindingQueueStatelessOperation(
     if (Oper == NULL) {
         QuicTraceEvent(
             AllocFailure,
-            "Allocation of '%s' failed. (%zu bytes)",
+            "Allocation of '%s' failed. (%llu bytes)",
             "stateless operation",
-            sizeof(QUIC_OPERATION));
+            (uint64_t)sizeof(QUIC_OPERATION));
         QuicPacketLogDrop(
             Binding,
             CxPlatDataPathRecvDataToRecvPacket(Datagram),
@@ -822,9 +822,9 @@ QuicBindingProcessStatelessOperation(
     if (SendData == NULL) {
         QuicTraceEvent(
             AllocFailure,
-            "Allocation of '%s' failed. (%d bytes)",
+            "Allocation of '%s' failed. (%llu bytes)",
             "stateless send data",
-            0);
+            UINT64_C(0));
         goto Exit;
     }
 
@@ -856,9 +856,9 @@ QuicBindingProcessStatelessOperation(
         if (SendDatagram == NULL) {
             QuicTraceEvent(
                 AllocFailure,
-                "Allocation of '%s' failed. (%" PRIu16 " bytes)",
+                "Allocation of '%s' failed. (%llu bytes)",
                 "vn datagram",
-                PacketLength);
+                (uint64_t)PacketLength);
             goto Exit;
         }
 
@@ -943,9 +943,9 @@ QuicBindingProcessStatelessOperation(
         if (SendDatagram == NULL) {
             QuicTraceEvent(
                 AllocFailure,
-                "Allocation of '%s' failed. (%" PRIu16 " bytes)",
+                "Allocation of '%s' failed. (%llu bytes)",
                 "reset datagram",
-                PacketLength);
+                (uint64_t)PacketLength);
             goto Exit;
         }
 
@@ -984,9 +984,9 @@ QuicBindingProcessStatelessOperation(
         if (SendDatagram == NULL) {
             QuicTraceEvent(
                 AllocFailure,
-                "Allocation of '%s' failed. (%" PRIu16 " bytes)",
+                "Allocation of '%s' failed. (%llu bytes)",
                 "retry datagram",
-                PacketLength);
+                (uint64_t)PacketLength);
             goto Exit;
         }
 

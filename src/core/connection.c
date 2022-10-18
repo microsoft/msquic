@@ -85,9 +85,9 @@ QuicConnAlloc(
     if (Connection == NULL) {
         QuicTraceEvent(
             AllocFailure,
-            "Allocation of '%s' failed. (%zu bytes)",
+            "Allocation of '%s' failed. (%llu bytes)",
             "connection",
-            sizeof(QUIC_CONNECTION));
+            (uint64_t)sizeof(QUIC_CONNECTION));
         return QUIC_STATUS_OUT_OF_MEMORY;
     }
 
@@ -611,9 +611,9 @@ QuicConnQueueTraceRundown(
     } else {
         QuicTraceEvent(
             AllocFailure,
-            "Allocation of '%s' failed. (%d bytes)",
+            "Allocation of '%s' failed. (%llu bytes)",
             "trace rundown operation",
-            0);
+            UINT64_C(0));
     }
 }
 
@@ -881,9 +881,9 @@ QuicConnGenerateNewSourceCid(
         if (SourceCid == NULL) {
             QuicTraceEvent(
                 AllocFailure,
-                "Allocation of '%s' failed. (%zu bytes)",
+                "Allocation of '%s' failed. (%llu bytes)",
                 "new Src CID",
-                sizeof(QUIC_CID_HASH_ENTRY) + MsQuicLib.CidTotalLength);
+                (uint64_t)(sizeof(QUIC_CID_HASH_ENTRY) + MsQuicLib.CidTotalLength));
             QuicConnFatalError(Connection, QUIC_STATUS_INTERNAL_ERROR, NULL);
             return NULL;
         }
@@ -1370,9 +1370,9 @@ QuicConnTimerExpired(
             } else {
                 QuicTraceEvent(
                     AllocFailure,
-                    "Allocation of '%s' failed. (%d bytes)",
+                    "Allocation of '%s' failed. (%llu bytes)",
                     "expired timer operation",
-                    0);
+                    UINT64_C(0));
             }
         }
     }
@@ -1695,9 +1695,9 @@ QuicConnTryClose(
             } else {
                 QuicTraceEvent(
                     AllocFailure,
-                    "Allocation of '%s' failed. (%" PRIu32 " bytes)",
+                    "Allocation of '%s' failed. (%llu bytes)",
                     "close reason",
-                    RemoteReasonPhraseLength + 1);
+                    (uint64_t)(RemoteReasonPhraseLength + 1));
             }
         }
 
@@ -1715,11 +1715,11 @@ QuicConnTryClose(
         } else {
             QuicTraceEvent(
                 ConnTransportShutdown,
-                "[conn][%p] Transport Shutdown: %llu (Remote=%hhu) (QS=%d)",
+                "[conn][%p] Transport Shutdown: %llu (Remote=%hhu) (QS=%hhu)",
                 Connection,
                 ErrorCode,
                 ClosedRemotely,
-                !!(Flags & QUIC_CLOSE_QUIC_STATUS));
+                (uint8_t)!!(Flags & QUIC_CLOSE_QUIC_STATUS));
         }
 
         //
@@ -2507,9 +2507,9 @@ QuicConnSetConfiguration(
         if (Connection->OrigDestCID == NULL) {
             QuicTraceEvent(
                 AllocFailure,
-                "Allocation of '%s' failed. (%zu bytes)",
+                "Allocation of '%s' failed. (%llu bytes)",
                 "OrigDestCID",
-                sizeof(QUIC_CID) + DestCid->CID.Length);
+                (uint64_t)(sizeof(QUIC_CID) + DestCid->CID.Length));
             return QUIC_STATUS_OUT_OF_MEMORY;
         }
 
@@ -3188,9 +3188,9 @@ QuicConnQueueRecvDatagrams(
         } else {
             QuicTraceEvent(
                 AllocFailure,
-                "Allocation of '%s' failed. (%d bytes)",
+                "Allocation of '%s' failed. (%llu bytes)",
                 "Flush Recv operation",
-                0);
+                UINT64_C(0));
         }
     }
 }
@@ -3222,9 +3222,9 @@ QuicConnQueueUnreachable(
     } else {
         QuicTraceEvent(
             AllocFailure,
-            "Allocation of '%s' failed. (%d bytes)",
+            "Allocation of '%s' failed. (%llu bytes)",
             "Unreachable operation",
-            0);
+            UINT64_C(0));
     }
 }
 
@@ -3553,9 +3553,9 @@ QuicConnRecvRetry(
     if (Connection->Send.InitialToken == NULL) {
         QuicTraceEvent(
             AllocFailure,
-            "Allocation of '%s' failed. (%" PRIu16 " bytes)",
+            "Allocation of '%s' failed. (%llu bytes)",
             "InitialToken",
-            TokenLength);
+            (uint64_t)TokenLength);
         QuicPacketLogDrop(Connection, Packet, "InitialToken alloc failed");
         return;
     }
@@ -3837,9 +3837,9 @@ QuicConnRecvHeader(
                 if (Connection->OrigDestCID == NULL) {
                     QuicTraceEvent(
                         AllocFailure,
-                        "Allocation of '%s' failed. (%zu bytes)",
+                        "Allocation of '%s' failed. (%llu bytes)",
                         "OrigDestCID",
-                        sizeof(QUIC_CID) + Token.Encrypted.OrigConnIdLength);
+                        (uint64_t)(sizeof(QUIC_CID) + Token.Encrypted.OrigConnIdLength));
                     QuicPacketLogDrop(Connection, Packet, "OrigDestCID from Retry OOM");
                     return FALSE;
                 }
@@ -3865,9 +3865,9 @@ QuicConnRecvHeader(
             if (Connection->OrigDestCID == NULL) {
                 QuicTraceEvent(
                     AllocFailure,
-                    "Allocation of '%s' failed. (%zu bytes)",
+                    "Allocation of '%s' failed. (%llu bytes)",
                     "OrigDestCID",
-                    sizeof(QUIC_CID) + Packet->DestCidLen);
+                    (uint64_t)(sizeof(QUIC_CID) + Packet->DestCidLen));
                 QuicPacketLogDrop(Connection, Packet, "OrigDestCID OOM");
                 return FALSE;
             }
@@ -4261,11 +4261,11 @@ QuicConnRecvDecryptAndAuthenticate(
 
     QuicTraceEvent(
         ConnPacketRecv,
-        "[conn][%p][RX][%" PRIu64 "] %c (%" PRIu32 " bytes)",
+        "[conn][%p][RX][%llu] %c (%hu bytes)",
         Connection,
         Packet->PacketNumber,
         Packet->IsShortHeader ? QUIC_TRACE_PACKET_ONE_RTT : (Packet->LH->Type + 1),
-        Packet->HeaderLength + Packet->PayloadLength);
+        (uint16_t)(Packet->HeaderLength + Packet->PayloadLength));
 
     //
     // Process any connection ID updates as necessary.
@@ -4874,9 +4874,9 @@ QuicConnRecvFrames(
                 if (DestCid == NULL) {
                     QuicTraceEvent(
                         AllocFailure,
-                        "Allocation of '%s' failed. (%zu bytes)",
+                        "Allocation of '%s' failed. (%llu bytes)",
                         "new DestCid",
-                        sizeof(QUIC_CID_LIST_ENTRY) + Frame.Length);
+                        (uint64_t)(sizeof(QUIC_CID_LIST_ENTRY) + Frame.Length));
                     if (ReplaceRetiredCids) {
                         QuicConnSilentlyAbort(Connection);
                     } else {
@@ -7116,9 +7116,9 @@ QuicConnApplyNewSettings(
             if (Connection->HandshakeTP == NULL) {
                 QuicTraceEvent(
                     AllocFailure,
-                    "Allocation of '%s' failed. (%zu bytes)",
+                    "Allocation of '%s' failed. (%llu bytes)",
                     "handshake TP",
-                    sizeof(*Connection->HandshakeTP));
+                    (uint64_t)sizeof(*Connection->HandshakeTP));
             } else {
                 CxPlatZeroMemory(Connection->HandshakeTP, sizeof(*Connection->HandshakeTP));
                 Connection->State.ResumptionEnabled = TRUE;

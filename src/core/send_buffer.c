@@ -92,9 +92,9 @@ QuicSendBufferAlloc(
     } else {
         QuicTraceEvent(
             AllocFailure,
-            "Allocation of '%s' failed. (%" PRIu32 " bytes)",
+            "Allocation of '%s' failed. (%llu bytes)",
             "sendbuffer",
-            Size);
+            (uint64_t)Size);
     }
 
     return Buf;

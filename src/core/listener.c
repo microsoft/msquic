@@ -55,9 +55,9 @@ MsQuicListenerOpen(
     if (Listener == NULL) {
         QuicTraceEvent(
             AllocFailure,
-            "Allocation of '%s' failed. (%zu bytes)",
+            "Allocation of '%s' failed. (%llu bytes)",
             "listener",
-            sizeof(QUIC_LISTENER));
+            (uint64_t)sizeof(QUIC_LISTENER));
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         goto Error;
     }
@@ -247,9 +247,9 @@ MsQuicListenerStart(
     if (AlpnList == NULL) {
         QuicTraceEvent(
             AllocFailure,
-            "Allocation of '%s' failed. (%" PRIu32 " bytes)",
+            "Allocation of '%s' failed. (%llu bytes)",
             "AlpnList" ,
-            AlpnListLength);
+            (uint64_t)AlpnListLength);
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         goto Exit;
     }

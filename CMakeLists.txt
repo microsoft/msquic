@@ -638,7 +638,6 @@ if(QUIC_CODE_CHECK)
             -bugprone-narrowing-conversions
             -bugprone-reserved-identifier
             -bugprone-sizeof-expression
-            -modernize-macro-to-enum
             -cert-dcl37-c
             -cert-dcl51-cpp
             -cert-err33-c
@@ -649,14 +648,18 @@ if(QUIC_CODE_CHECK)
             -cppcoreguidelines-avoid-non-const-global-variables
             -cppcoreguidelines-init-variables
             -cppcoreguidelines-narrowing-conversions
+            -google-readability-function-size
             -google-readability-todo
+            -hicpp-function-size
             -hicpp-no-assembler
             -hicpp-signed-bitwise
             -llvmlibc-restrict-system-libc-headers
             -misc-no-recursion # do you really need recursion?
+            -modernize-macro-to-enum
             -readability-avoid-const-params-in-decls
             -readability-duplicate-include
             -readability-function-cognitive-complexity
+            -readability-function-size
             -readability-identifier-length
             -readability-isolate-declaration
             -readability-magic-numbers

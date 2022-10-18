@@ -166,9 +166,9 @@ CxPlatPcpInitialize(
     if (PcpContext == NULL) {
         QuicTraceEvent(
             AllocFailure,
-            "Allocation of '%s' failed. (%" PRIu32 " bytes)",
+            "Allocation of '%s' failed. (%llu bytes)",
             "CXPLAT_PCP",
-            PcpContextSize);
+            (uint64_t)PcpContextSize);
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         goto Exit;
     }

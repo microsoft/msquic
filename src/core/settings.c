@@ -292,9 +292,9 @@ QuicSettingsCopyVersionSettings(
     if (Destination == NULL) {
         QuicTraceEvent(
             AllocFailure,
-            "Allocation of '%s' failed. (%zu bytes)",
+            "Allocation of '%s' failed. (%llu bytes)",
             "VersionSettings",
-            AllocSize);
+            (uint64_t)AllocSize);
         return Destination;
     }
     Destination->AcceptableVersions = (uint32_t*)(Destination + 1);
@@ -923,9 +923,9 @@ QuicSettingsLoad(
             if (VersionSettings == NULL) {
                 QuicTraceEvent(
                     AllocFailure,
-                    "Allocation of '%s' failed. (%zu bytes)",
+                    "Allocation of '%s' failed. (%llu bytes)",
                     "VersionSettings",
-                    AllocSize);
+                    (uint64_t)AllocSize);
                 goto VersionSettingsFail;
             }
             VersionSettings->AcceptableVersions = (uint32_t*)(VersionSettings + 1);

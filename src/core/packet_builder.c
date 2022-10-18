@@ -268,9 +268,9 @@ QuicPacketBuilderPrepare(
             if (Builder->SendData == NULL) {
                 QuicTraceEvent(
                     AllocFailure,
-                    "Allocation of '%s' failed. (%d bytes)",
+                    "Allocation of '%s' failed. (%llu bytes)",
                     "packet send context",
-                    0);
+                    UINT64_C(0));
                 goto Error;
             }
             SendDataAllocated = TRUE;
@@ -292,9 +292,9 @@ QuicPacketBuilderPrepare(
         if (Builder->Datagram == NULL) {
             QuicTraceEvent(
                 AllocFailure,
-                "Allocation of '%s' failed. (%" PRIu16 " bytes)",
+                "Allocation of '%s' failed. (%llu bytes)",
                 "packet datagram",
-                NewDatagramLength);
+                (uint64_t)NewDatagramLength);
             if (SendDataAllocated) {
                 CxPlatSendDataFree(Builder->SendData);
                 Builder->SendData = NULL;

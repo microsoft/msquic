@@ -33,7 +33,7 @@ struct in_pktinfo {
 
 // Check options
 #if !defined(IP_PKTINFO) && !defined(IP_RECVDSTADDR)
-#error "No socket option specified"
+#warning "No socket option specified"
 #endif
 #if defined(IP_RECVDSTADDR) && defined(IP_RECVIF)
 #include <net/if_dl.h>
@@ -493,9 +493,9 @@ CxPlatDataPathInitialize(
     if (Datapath == NULL) {
         QuicTraceEvent(
             AllocFailure,
-            "Allocation of '%s' failed. (%zu bytes)",
+            "Allocation of '%s' failed. (%llu bytes)",
             "CXPLAT_DATAPATH",
-            DatapathLength);
+            (uint64_t)DatapathLength);
         return QUIC_STATUS_OUT_OF_MEMORY;
     }
 
@@ -600,9 +600,9 @@ CxPlatDataPathAllocRecvBlock(
     if (RecvBlock == NULL) {
         QuicTraceEvent(
             AllocFailure,
-            "Allocation of '%s' failed. (%d bytes)",
+            "Allocation of '%s' failed. (%llu bytes)",
             "CXPLAT_DATAPATH_RECV_BLOCK",
-            0);
+            UINT64_C(0));
     } else {
         CxPlatZeroMemory(RecvBlock, sizeof(*RecvBlock));
         RecvBlock->OwningPool = &DatapathProc->RecvBlockPool;
@@ -894,7 +894,7 @@ CxPlatSocketContextInitialize(
 #elif defined(IP_RECVDSTADDR)
             ForceIpv4 ? IP_RECVDSTADDR : IPV6_RECVPKTINFO,
 #else
-#error "No socket option specified"
+#warning "No socket option specified"
 #endif
             (const void*)&Option,
             sizeof(Option));
@@ -1178,9 +1178,9 @@ CxPlatSocketContextPrepareReceive(
         if (SocketContext->CurrentRecvBlock == NULL) {
             QuicTraceEvent(
                 AllocFailure,
-                "Allocation of '%s' failed. (%d bytes)",
+                "Allocation of '%s' failed. (%llu bytes)",
                 "CXPLAT_DATAPATH_RECV_BLOCK",
-                0);
+                UINT64_C(0));
             return QUIC_STATUS_OUT_OF_MEMORY;
         }
     }
@@ -1308,7 +1308,7 @@ CxPlatSocketContextRecvComplete(
                 FoundLocalAddr = TRUE;
             }
 #else
-#error "No socket option specified"
+#warning "No socket option specified"
 #endif
 #if defined(IP_RECVDSTADDR) && defined(IP_RECVIF)
             else if (CMsg->cmsg_type == IP_RECVIF) {
@@ -1330,10 +1330,10 @@ CxPlatSocketContextRecvComplete(
 
     QuicTraceEvent(
         DatapathRecv,
-        "[data][%p] Recv %zd bytes (segment=%zd) Src=%!ADDR! Dst=%!ADDR!",
+        "[data][%p] Recv %u bytes (segment=%hu) Src=%!ADDR! Dst=%!ADDR!",
         SocketContext->Binding,
-        BytesTransferred,
-        BytesTransferred,
+        (uint32_t)BytesTransferred,
+        (uint16_t)BytesTransferred,
         CASTED_CLOG_BYTEARRAY(sizeof(*LocalAddr), LocalAddr),
         CASTED_CLOG_BYTEARRAY(sizeof(*RemoteAddr), RemoteAddr));
 
@@ -1548,9 +1548,9 @@ CxPlatSocketCreateUdp(
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         QuicTraceEvent(
             AllocFailure,
-            "Allocation of '%s' failed. (%zu bytes)",
+            "Allocation of '%s' failed. (%llu bytes)",
             "CXPLAT_SOCKET",
-            BindingLength);
+            (uint64_t)BindingLength);
         goto Exit;
     }
 
@@ -1775,9 +1775,9 @@ CxPlatSendDataAlloc(
     if (SendData == NULL) {
         QuicTraceEvent(
             AllocFailure,
-            "Allocation of '%s' failed. (%d bytes)",
+            "Allocation of '%s' failed. (%llu bytes)",
             "CXPLAT_SEND_DATA",
-            0);
+            UINT64_C(0));
         goto Exit;
     }
 
@@ -2040,9 +2040,9 @@ CxPlatSendDataComplete(
     if (IoResult != QUIC_STATUS_SUCCESS) {
         QuicTraceEvent(
             DatapathErrorStatus,
-            "[data][%p] ERROR, %" PRIu64 ", %s.",
+            "[data][%p] ERROR, %u, %s.",
             SocketContext->Binding,
-            IoResult,
+            (uint32_t)IoResult,
             "sendmmsg completion");
     }
 
@@ -2099,10 +2099,10 @@ CxPlatSocketSendInternal(
         }
         QuicTraceEvent(
             DatapathSend,
-            "[data][%p] Send %u bytes in %" PRIu32 " buffers (segment=%hu) Dst=%!ADDR!, Src=%!ADDR!",
+            "[data][%p] Send %u bytes in %hhu buffers (segment=%hu) Dst=%!ADDR!, Src=%!ADDR!",
             Socket,
             SendData->TotalSize,
-            SendData->BufferCount,
+            (uint8_t)SendData->BufferCount,
             SendData->SegmentSize,
             CASTED_CLOG_BYTEARRAY(sizeof(*RemoteAddress), RemoteAddress),
             CASTED_CLOG_BYTEARRAY(sizeof(*LocalAddress), LocalAddress));
@@ -2166,7 +2166,7 @@ CxPlatSocketSendInternal(
             CMsg->cmsg_type = IP_RECVDSTADDR;
             CMsg->cmsg_len = CMSG_LEN(sizeof(struct in_addr));
 #else
-#error "No socket option specified"
+#warning "No socket option specified"
 #endif
             PktInfo = (struct in_pktinfo*) CMSG_DATA(CMsg);
             // TODO: Use Ipv4 instead of Ipv6.

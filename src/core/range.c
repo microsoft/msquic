@@ -76,9 +76,9 @@ QuicRangeGrow(
     if (NewSubRanges == NULL) {
         QuicTraceEvent(
             AllocFailure,
-            "Allocation of '%s' failed. (%" PRIu32" bytes)",
+            "Allocation of '%s' failed. (%llu bytes)",
             "range (realloc)",
-            NewAllocLength);
+            (uint64_t)NewAllocLength);
         return FALSE;
     }
 

@@ -104,9 +104,9 @@ QuicStreamSetInsertStream(
         if (!CxPlatHashtableInitialize(&StreamSet->StreamTable, CXPLAT_HASH_MIN_SIZE)) {
             QuicTraceEvent(
                 AllocFailure,
-                "Allocation of '%s' failed. (%d bytes)",
+                "Allocation of '%s' failed. (%llu bytes)",
                 "streamset hash table",
-                0);
+                UINT64_C(0));
             return FALSE;
         }
     }

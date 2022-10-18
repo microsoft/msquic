@@ -81,8 +81,8 @@ QuicTimerWheelInitialize(
     if (TimerWheel->Slots == NULL) {
         QuicTraceEvent(
             AllocFailure,
-            "Allocation of '%s' failed. (%zu bytes)", "timerwheel slots",
-            QUIC_TIMER_WHEEL_INITIAL_SLOT_COUNT * sizeof(CXPLAT_LIST_ENTRY));
+            "Allocation of '%s' failed. (%llu bytes)", "timerwheel slots",
+            (uint64_t)(QUIC_TIMER_WHEEL_INITIAL_SLOT_COUNT * sizeof(CXPLAT_LIST_ENTRY)));
         return QUIC_STATUS_OUT_OF_MEMORY;
     }
 
@@ -141,8 +141,8 @@ QuicTimerWheelResize(
     if (NewSlots == NULL) {
         QuicTraceEvent(
             AllocFailure,
-            "Allocation of '%s' failed. (%zu bytes)", "timerwheel slots (realloc)",
-            NewSlotCount * sizeof(CXPLAT_LIST_ENTRY));
+            "Allocation of '%s' failed. (%llu bytes)", "timerwheel slots (realloc)",
+            (uint64_t)(NewSlotCount * sizeof(CXPLAT_LIST_ENTRY)));
         return;
     }
 

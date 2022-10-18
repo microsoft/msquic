@@ -858,9 +858,9 @@ QuicCryptoTlsEncodeTransportParameters(
     if (TPBufBase == NULL) {
         QuicTraceEvent(
             AllocFailure,
-            "Allocation of '%s' failed. (%zu bytes)",
+            "Allocation of '%s' failed. (%llu bytes)",
             "TP buffer",
-            CxPlatTlsTPHeaderSize + RequiredTPLen);
+            (uint64_t)(CxPlatTlsTPHeaderSize + RequiredTPLen));
         return NULL;
     }
 
@@ -1161,8 +1161,8 @@ QuicCryptoTlsEncodeTransportParameters(
         QuicTraceLogConnVerbose(
             EncodeTPTest,
             Connection,
-            "TP: TEST TP (Type %" PRIu32 ", Length %" PRIu16 ")",
-            TestParam->Type,
+            "TP: TEST TP (Type %hu, Length %hu)",
+            (uint16_t)TestParam->Type,
             TestParam->Length);
     }
 
@@ -1748,9 +1748,9 @@ QuicCryptoTlsDecodeTransportParameters( // NOLINT(readability-function-size, goo
                 if (TransportParams->VersionInfo == NULL) {
                     QuicTraceEvent(
                         AllocFailure,
-                        "Allocation of '%s' failed. (%" PRIu16 " bytes)",
+                        "Allocation of '%s' failed. (%llu bytes)",
                         "Version Negotiation Info",
-                        Length);
+                        (uint64_t)Length);
                     break;
                 }
                 CxPlatCopyMemory((uint8_t*)TransportParams->VersionInfo, TPBuf + Offset, Length);
@@ -1770,7 +1770,7 @@ QuicCryptoTlsDecodeTransportParameters( // NOLINT(readability-function-size, goo
             if (!TRY_READ_VAR_INT(TransportParams->MinAckDelay)) {
                 QuicTraceEvent(
                     ConnErrorStatus,
-                    "[conn][%p] ERROR, %" PRIu16 ", %s.",
+                    "[conn][%p] ERROR, %u, %s.",
                     Connection,
                     Length,
                     "Invalid length of QUIC_TP_MIN_ACK_DELAY");
@@ -1862,9 +1862,9 @@ QuicCryptoTlsCopyTransportParameters(
         if (Destination->VersionInfo == NULL) {
             QuicTraceEvent(
                 AllocFailure,
-                "Allocation of '%s' failed. (%" PRIu32 " bytes)",
+                "Allocation of '%s' failed. (%llu bytes)",
                 "Version Negotiation Info",
-                Source->VersionInfoLength);
+                (uint64_t)Source->VersionInfoLength);
             return QUIC_STATUS_OUT_OF_MEMORY;
         }
         Destination->Flags |= QUIC_TP_FLAG_VERSION_NEGOTIATION;
