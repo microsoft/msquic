@@ -422,9 +422,9 @@ tracepoint(CLOG_STREAM_RECV_C, StreamRecvState , arg2, arg3);\
                     AllocFailure,
                     "Allocation of '%s' failed. (%llu bytes)",
                     "Flush Stream Recv operation",
-                    UINT64_C(0));
+                    0ULL);
 // arg2 = arg2 = "Flush Stream Recv operation" = arg2
-// arg3 = arg3 = UINT64_C(0) = arg3
+// arg3 = arg3 = 0ULL = arg3
 ----------------------------------------------------------*/
 #ifndef _clog_4_ARGS_TRACE_AllocFailure
 #define _clog_4_ARGS_TRACE_AllocFailure(uniqueId, encoded_arg_string, arg2, arg3)\

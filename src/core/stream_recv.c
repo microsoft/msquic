@@ -156,7 +156,7 @@ QuicStreamRecvQueueFlush(
                     AllocFailure,
                     "Allocation of '%s' failed. (%llu bytes)",
                     "Flush Stream Recv operation",
-                    UINT64_C(0));
+                    0ULL);
             }
         }
     }

@@ -432,9 +432,9 @@ TRACEPOINT_EVENT(CLOG_STREAM_RECV_C, StreamRecvState,
                     AllocFailure,
                     "Allocation of '%s' failed. (%llu bytes)",
                     "Flush Stream Recv operation",
-                    UINT64_C(0));
+                    0ULL);
 // arg2 = arg2 = "Flush Stream Recv operation" = arg2
-// arg3 = arg3 = UINT64_C(0) = arg3
+// arg3 = arg3 = 0ULL = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_STREAM_RECV_C, AllocFailure,
     TP_ARGS(

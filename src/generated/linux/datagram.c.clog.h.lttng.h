@@ -154,9 +154,9 @@ TRACEPOINT_EVENT(CLOG_DATAGRAM_C, ConnError,
                 AllocFailure,
                 "Allocation of '%s' failed. (%llu bytes)",
                 "DATAGRAM_SEND operation",
-                UINT64_C(0));
+                0ULL);
 // arg2 = arg2 = "DATAGRAM_SEND operation" = arg2
-// arg3 = arg3 = UINT64_C(0) = arg3
+// arg3 = arg3 = 0ULL = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_DATAGRAM_C, AllocFailure,
     TP_ARGS(

@@ -322,7 +322,7 @@ QuicRecvBufferWrite(
             AllocFailure,
             "Allocation of '%s' failed. (%llu bytes)",
             "recv_buffer range",
-            UINT64_C(0));
+            0ULL);
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         goto Error;
     } else if (!WrittenRangesUpdated) {

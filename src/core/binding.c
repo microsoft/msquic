@@ -824,7 +824,7 @@ QuicBindingProcessStatelessOperation(
             AllocFailure,
             "Allocation of '%s' failed. (%llu bytes)",
             "stateless send data",
-            UINT64_C(0));
+            0ULL);
         goto Exit;
     }
 

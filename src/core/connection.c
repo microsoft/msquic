@@ -613,7 +613,7 @@ QuicConnQueueTraceRundown(
             AllocFailure,
             "Allocation of '%s' failed. (%llu bytes)",
             "trace rundown operation",
-            UINT64_C(0));
+            0ULL);
     }
 }
 
@@ -1372,7 +1372,7 @@ QuicConnTimerExpired(
                     AllocFailure,
                     "Allocation of '%s' failed. (%llu bytes)",
                     "expired timer operation",
-                    UINT64_C(0));
+                    0ULL);
             }
         }
     }
@@ -3190,7 +3190,7 @@ QuicConnQueueRecvDatagrams(
                 AllocFailure,
                 "Allocation of '%s' failed. (%llu bytes)",
                 "Flush Recv operation",
-                UINT64_C(0));
+                0ULL);
         }
     }
 }
@@ -3224,7 +3224,7 @@ QuicConnQueueUnreachable(
             AllocFailure,
             "Allocation of '%s' failed. (%llu bytes)",
             "Unreachable operation",
-            UINT64_C(0));
+            0ULL);
     }
 }
 

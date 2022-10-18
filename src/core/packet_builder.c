@@ -270,7 +270,7 @@ QuicPacketBuilderPrepare(
                     AllocFailure,
                     "Allocation of '%s' failed. (%llu bytes)",
                     "packet send context",
-                    UINT64_C(0));
+                    0ULL);
                 goto Error;
             }
             SendDataAllocated = TRUE;
