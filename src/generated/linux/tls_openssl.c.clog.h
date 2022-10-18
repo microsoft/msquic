@@ -62,9 +62,9 @@ tracepoint(CLOG_TLS_OPENSSL_C, OpenSslAlert , arg1, arg3, arg4);\
                 OpenSslQuicDataErrorStr,
                 TlsContext->Connection,
                 "SSL_provide_quic_data failed: %s",
-                ERR_error_string(ERR_get_error(), buf));
+                ERR_error_string((uint32_t)ERR_get_error(), buf));
 // arg1 = arg1 = TlsContext->Connection = arg1
-// arg3 = arg3 = ERR_error_string(ERR_get_error(), buf) = arg3
+// arg3 = arg3 = ERR_error_string((uint32_t)ERR_get_error(), buf) = arg3
 ----------------------------------------------------------*/
 #ifndef _clog_4_ARGS_TRACE_OpenSslQuicDataErrorStr
 #define _clog_4_ARGS_TRACE_OpenSslQuicDataErrorStr(uniqueId, arg1, encoded_arg_string, arg3)\
@@ -510,9 +510,9 @@ tracepoint(CLOG_TLS_OPENSSL_C, LibraryError , arg2);\
                 AllocFailure,
                 "Allocation of '%s' failed. (%llu bytes)",
                 "New crypto buffer",
-                NewBufferAllocLength);
+                (uint64_t)NewBufferAllocLength);
 // arg2 = arg2 = "New crypto buffer" = arg2
-// arg3 = arg3 = NewBufferAllocLength = arg3
+// arg3 = arg3 = (uint64_t)NewBufferAllocLength = arg3
 ----------------------------------------------------------*/
 #ifndef _clog_4_ARGS_TRACE_AllocFailure
 #define _clog_4_ARGS_TRACE_AllocFailure(uniqueId, encoded_arg_string, arg2, arg3)\
@@ -530,10 +530,10 @@ tracepoint(CLOG_TLS_OPENSSL_C, AllocFailure , arg2, arg3);\
                 TlsErrorStatus,
                 "[ tls][%p] ERROR, %u, %s.",
                 TlsContext->Connection,
-                ERR_get_error(),
+                (uint32_t)ERR_get_error(),
                 "PEM_write_bio_SSL_SESSION failed");
 // arg2 = arg2 = TlsContext->Connection = arg2
-// arg3 = arg3 = ERR_get_error() = arg3
+// arg3 = arg3 = (uint32_t)ERR_get_error() = arg3
 // arg4 = arg4 = "PEM_write_bio_SSL_SESSION failed" = arg4
 ----------------------------------------------------------*/
 #ifndef _clog_5_ARGS_TRACE_TlsErrorStatus

@@ -127,9 +127,9 @@ TRACEPOINT_EVENT(CLOG_LISTENER_C, ApiEnter,
             AllocFailure,
             "Allocation of '%s' failed. (%llu bytes)",
             "listener",
-            sizeof(QUIC_LISTENER));
+            (uint64_t)sizeof(QUIC_LISTENER));
 // arg2 = arg2 = "listener" = arg2
-// arg3 = arg3 = sizeof(QUIC_LISTENER) = arg3
+// arg3 = arg3 = (uint64_t)sizeof(QUIC_LISTENER) = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_LISTENER_C, AllocFailure,
     TP_ARGS(

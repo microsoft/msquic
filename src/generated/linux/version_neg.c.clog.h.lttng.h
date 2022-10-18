@@ -31,9 +31,9 @@ TRACEPOINT_EVENT(CLOG_VERSION_NEG_C, VersionInfoDecodeFailed1,
                 VersionInfoDecodeFailed2,
                 Connection,
                 "Version info too short to contain any Available Versions (%hu bytes)",
-                (unsigned)(BufferLength - Offset));
+                (uint16_t)(BufferLength - Offset));
 // arg1 = arg1 = Connection = arg1
-// arg3 = arg3 = (unsigned)(BufferLength - Offset) = arg3
+// arg3 = arg3 = (uint16_t)(BufferLength - Offset) = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_VERSION_NEG_C, VersionInfoDecodeFailed2,
     TP_ARGS(
@@ -54,10 +54,10 @@ TRACEPOINT_EVENT(CLOG_VERSION_NEG_C, VersionInfoDecodeFailed2,
             ServerVersionInfoDecodeFailed3,
             Connection,
             "Version info contains partial Other Version (%hu bytes vs. %u bytes)",
-            (unsigned)(BufferLength - Offset),
+            (uint16_t)(BufferLength - Offset),
             (BufferLength - Offset) / (unsigned)sizeof(uint32_t));
 // arg1 = arg1 = Connection = arg1
-// arg3 = arg3 = (unsigned)(BufferLength - Offset) = arg3
+// arg3 = arg3 = (uint16_t)(BufferLength - Offset) = arg3
 // arg4 = arg4 = (BufferLength - Offset) / (unsigned)sizeof(uint32_t) = arg4
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_VERSION_NEG_C, ServerVersionInfoDecodeFailed3,
@@ -222,9 +222,9 @@ TRACEPOINT_EVENT(CLOG_VERSION_NEG_C, ConnVNEOtherVersionList,
                 AllocFailure,
                 "Allocation of '%s' failed. (%llu bytes)",
                 "Server Version Info",
-                VILen);
+                (uint64_t)VILen);
 // arg2 = arg2 = "Server Version Info" = arg2
-// arg3 = arg3 = VILen = arg3
+// arg3 = arg3 = (uint64_t)VILen = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_VERSION_NEG_C, AllocFailure,
     TP_ARGS(

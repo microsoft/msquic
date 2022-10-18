@@ -82,9 +82,9 @@ TRACEPOINT_EVENT(CLOG_API_C, ApiExit,
                 AllocFailure,
                 "Allocation of '%s' failed. (%llu bytes)",
                 "Server name",
-                ServerNameLength + 1);
+                (uint64_t)(ServerNameLength + 1));
 // arg2 = arg2 = "Server name" = arg2
-// arg3 = arg3 = ServerNameLength + 1 = arg3
+// arg3 = arg3 = (uint64_t)(ServerNameLength + 1) = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_API_C, AllocFailure,
     TP_ARGS(

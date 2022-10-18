@@ -28,9 +28,9 @@ extern "C" {
             AllocFailure,
             "Allocation of '%s' failed. (%llu bytes)",
             "CXPLAT_PCP",
-            PcpContextSize);
+            (uint64_t)PcpContextSize);
 // arg2 = arg2 = "CXPLAT_PCP" = arg2
-// arg3 = arg3 = PcpContextSize = arg3
+// arg3 = arg3 = (uint64_t)PcpContextSize = arg3
 ----------------------------------------------------------*/
 #ifndef _clog_4_ARGS_TRACE_AllocFailure
 #define _clog_4_ARGS_TRACE_AllocFailure(uniqueId, encoded_arg_string, arg2, arg3)\

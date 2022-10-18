@@ -54,9 +54,9 @@ tracepoint(CLOG_CRYPT_C, TlsLogSecret , arg2, arg3, arg4);\
             AllocFailure,
             "Allocation of '%s' failed. (%llu bytes)",
             "QUIC_PACKET_KEY",
-            PacketKeyLength);
+            (uint64_t)PacketKeyLength);
 // arg2 = arg2 = "QUIC_PACKET_KEY" = arg2
-// arg3 = arg3 = PacketKeyLength = arg3
+// arg3 = arg3 = (uint64_t)PacketKeyLength = arg3
 ----------------------------------------------------------*/
 #ifndef _clog_4_ARGS_TRACE_AllocFailure
 #define _clog_4_ARGS_TRACE_AllocFailure(uniqueId, encoded_arg_string, arg2, arg3)\

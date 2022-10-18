@@ -297,9 +297,9 @@ TRACEPOINT_EVENT(CLOG_LIBRARY_C, LibraryLoadBalancingModeSetAfterInUse,
 // QuicTraceEvent(
             AllocFailure,
             "Allocation of '%s' failed. (%llu bytes)", "default compatibility list",
-            CompatibilityListByteLength);
+            (uint64_t)CompatibilityListByteLength);
 // arg2 = arg2 = "default compatibility list" = arg2
-// arg3 = arg3 = CompatibilityListByteLength = arg3
+// arg3 = arg3 = (uint64_t)CompatibilityListByteLength = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_LIBRARY_C, AllocFailure,
     TP_ARGS(

@@ -50,9 +50,9 @@ TRACEPOINT_EVENT(CLOG_REGISTRATION_C, ApiEnter,
             AllocFailure,
             "Allocation of '%s' failed. (%llu bytes)",
             "registration",
-            sizeof(QUIC_REGISTRATION) + AppNameLength + 1);
+            (uint64_t)(sizeof(QUIC_REGISTRATION) + AppNameLength + 1));
 // arg2 = arg2 = "registration" = arg2
-// arg3 = arg3 = sizeof(QUIC_REGISTRATION) + AppNameLength + 1 = arg3
+// arg3 = arg3 = (uint64_t)(sizeof(QUIC_REGISTRATION) + AppNameLength + 1) = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_REGISTRATION_C, AllocFailure,
     TP_ARGS(

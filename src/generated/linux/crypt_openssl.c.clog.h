@@ -27,9 +27,9 @@ extern "C" {
 // QuicTraceEvent(
             LibraryErrorStatus,
             "[ lib] ERROR, %u, %s.",
-            ERR_get_error(),
+            (uint32_t)ERR_get_error(),
             cipher_name);
-// arg2 = arg2 = ERR_get_error() = arg2
+// arg2 = arg2 = (uint32_t)ERR_get_error() = arg2
 // arg3 = arg3 = cipher_name = arg3
 ----------------------------------------------------------*/
 #ifndef _clog_4_ARGS_TRACE_LibraryErrorStatus

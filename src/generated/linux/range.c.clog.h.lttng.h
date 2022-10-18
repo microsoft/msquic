@@ -8,9 +8,9 @@
             AllocFailure,
             "Allocation of '%s' failed. (%llu bytes)",
             "range (realloc)",
-            NewAllocLength);
+            (uint64_t)NewAllocLength);
 // arg2 = arg2 = "range (realloc)" = arg2
-// arg3 = arg3 = NewAllocLength = arg3
+// arg3 = arg3 = (uint64_t)NewAllocLength = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_RANGE_C, AllocFailure,
     TP_ARGS(

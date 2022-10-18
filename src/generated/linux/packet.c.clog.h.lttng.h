@@ -289,9 +289,9 @@ TRACEPOINT_EVENT(CLOG_PACKET_C, LogPacketShortHeader,
             AllocFailure,
             "Allocation of '%s' failed. (%llu bytes)",
             "RetryPseudoPacket",
-            RetryPseudoPacketLength);
+            (uint64_t)RetryPseudoPacketLength);
 // arg2 = arg2 = "RetryPseudoPacket" = arg2
-// arg3 = arg3 = RetryPseudoPacketLength = arg3
+// arg3 = arg3 = (uint64_t)RetryPseudoPacketLength = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_PACKET_C, AllocFailure,
     TP_ARGS(

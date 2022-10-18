@@ -35,9 +35,9 @@ TRACEPOINT_EVENT(CLOG_CRYPT_C, TlsLogSecret,
             AllocFailure,
             "Allocation of '%s' failed. (%llu bytes)",
             "QUIC_PACKET_KEY",
-            PacketKeyLength);
+            (uint64_t)PacketKeyLength);
 // arg2 = arg2 = "QUIC_PACKET_KEY" = arg2
-// arg3 = arg3 = PacketKeyLength = arg3
+// arg3 = arg3 = (uint64_t)PacketKeyLength = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CRYPT_C, AllocFailure,
     TP_ARGS(

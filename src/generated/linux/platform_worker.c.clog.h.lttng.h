@@ -46,9 +46,9 @@ TRACEPOINT_EVENT(CLOG_PLATFORM_WORKER_C, PlatformWorkerThreadStop,
             AllocFailure,
             "Allocation of '%s' failed. (%llu bytes)",
             "CXPLAT_WORKER",
-            WorkersSize);
+            (uint64_t)WorkersSize);
 // arg2 = arg2 = "CXPLAT_WORKER" = arg2
-// arg3 = arg3 = WorkersSize = arg3
+// arg3 = arg3 = (uint64_t)WorkersSize = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_PLATFORM_WORKER_C, AllocFailure,
     TP_ARGS(

@@ -390,9 +390,9 @@ tracepoint(CLOG_CRYPTO_C, CryptoNotReady , arg1);\
             AllocFailure,
             "Allocation of '%s' failed. (%llu bytes)",
             "crypto send buffer",
-            SendBufferLength);
+            (uint64_t)SendBufferLength);
 // arg2 = arg2 = "crypto send buffer" = arg2
-// arg3 = arg3 = SendBufferLength = arg3
+// arg3 = arg3 = (uint64_t)SendBufferLength = arg3
 ----------------------------------------------------------*/
 #ifndef _clog_4_ARGS_TRACE_AllocFailure
 #define _clog_4_ARGS_TRACE_AllocFailure(uniqueId, encoded_arg_string, arg2, arg3)\
@@ -452,9 +452,9 @@ tracepoint(CLOG_CRYPTO_C, ConnError , arg2, arg3);\
             ConnWriteKeyUpdated,
             "[conn][%p] Write Key Updated, %hhu.",
             Connection,
-            Crypto->TlsState.WriteKey);
+            (uint8_t)Crypto->TlsState.WriteKey);
 // arg2 = arg2 = Connection = arg2
-// arg3 = arg3 = Crypto->TlsState.WriteKey = arg3
+// arg3 = arg3 = (uint8_t)Crypto->TlsState.WriteKey = arg3
 ----------------------------------------------------------*/
 #ifndef _clog_4_ARGS_TRACE_ConnWriteKeyUpdated
 #define _clog_4_ARGS_TRACE_ConnWriteKeyUpdated(uniqueId, encoded_arg_string, arg2, arg3)\
@@ -472,9 +472,9 @@ tracepoint(CLOG_CRYPTO_C, ConnWriteKeyUpdated , arg2, arg3);\
             ConnReadKeyUpdated,
             "[conn][%p] Read Key Updated, %hhu.",
             Connection,
-            Crypto->TlsState.ReadKey);
+            (uint8_t)Crypto->TlsState.ReadKey);
 // arg2 = arg2 = Connection = arg2
-// arg3 = arg3 = Crypto->TlsState.ReadKey = arg3
+// arg3 = arg3 = (uint8_t)Crypto->TlsState.ReadKey = arg3
 ----------------------------------------------------------*/
 #ifndef _clog_4_ARGS_TRACE_ConnReadKeyUpdated
 #define _clog_4_ARGS_TRACE_ConnReadKeyUpdated(uniqueId, encoded_arg_string, arg2, arg3)\

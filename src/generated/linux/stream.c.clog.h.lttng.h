@@ -183,11 +183,11 @@ TRACEPOINT_EVENT(CLOG_STREAM_C, StreamDestroyed,
         Stream,
         Stream->Connection,
         Stream->ID,
-        !IsRemoteStream);
+        (uint8_t)!IsRemoteStream);
 // arg2 = arg2 = Stream = arg2
 // arg3 = arg3 = Stream->Connection = arg3
 // arg4 = arg4 = Stream->ID = arg4
-// arg5 = arg5 = !IsRemoteStream = arg5
+// arg5 = arg5 = (uint8_t)!IsRemoteStream = arg5
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_STREAM_C, StreamCreated,
     TP_ARGS(
@@ -212,9 +212,9 @@ TRACEPOINT_EVENT(CLOG_STREAM_C, StreamCreated,
         StreamSendState,
         "[strm][%p] Send State: %hhu",
         Stream,
-        QuicStreamSendGetState(Stream));
+        (uint8_t)QuicStreamSendGetState(Stream));
 // arg2 = arg2 = Stream = arg2
-// arg3 = arg3 = QuicStreamSendGetState(Stream) = arg3
+// arg3 = arg3 = (uint8_t)QuicStreamSendGetState(Stream) = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_STREAM_C, StreamSendState,
     TP_ARGS(
@@ -235,9 +235,9 @@ TRACEPOINT_EVENT(CLOG_STREAM_C, StreamSendState,
         StreamRecvState,
         "[strm][%p] Recv State: %hhu",
         Stream,
-        QuicStreamRecvGetState(Stream));
+        (uint8_t)QuicStreamRecvGetState(Stream));
 // arg2 = arg2 = Stream = arg2
-// arg3 = arg3 = QuicStreamRecvGetState(Stream) = arg3
+// arg3 = arg3 = (uint8_t)QuicStreamRecvGetState(Stream) = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_STREAM_C, StreamRecvState,
     TP_ARGS(
@@ -260,11 +260,11 @@ TRACEPOINT_EVENT(CLOG_STREAM_C, StreamRecvState,
         Stream,
         Stream->Connection,
         Stream->ID,
-        ((QuicConnIsClient(Stream->Connection)) ^ (Stream->ID & STREAM_ID_FLAG_IS_SERVER)));
+        (uint8_t)((QuicConnIsClient(Stream->Connection)) ^ (Stream->ID & STREAM_ID_FLAG_IS_SERVER)));
 // arg2 = arg2 = Stream = arg2
 // arg3 = arg3 = Stream->Connection = arg3
 // arg4 = arg4 = Stream->ID = arg4
-// arg5 = arg5 = ((QuicConnIsClient(Stream->Connection)) ^ (Stream->ID & STREAM_ID_FLAG_IS_SERVER)) = arg5
+// arg5 = arg5 = (uint8_t)((QuicConnIsClient(Stream->Connection)) ^ (Stream->ID & STREAM_ID_FLAG_IS_SERVER)) = arg5
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_STREAM_C, StreamRundown,
     TP_ARGS(

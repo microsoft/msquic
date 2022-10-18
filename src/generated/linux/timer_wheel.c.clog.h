@@ -153,9 +153,9 @@ tracepoint(CLOG_TIMER_WHEEL_C, StillInTimerWheel , arg1);\
 // QuicTraceEvent(
             AllocFailure,
             "Allocation of '%s' failed. (%llu bytes)", "timerwheel slots",
-            QUIC_TIMER_WHEEL_INITIAL_SLOT_COUNT * sizeof(CXPLAT_LIST_ENTRY));
+            (uint64_t)(QUIC_TIMER_WHEEL_INITIAL_SLOT_COUNT * sizeof(CXPLAT_LIST_ENTRY)));
 // arg2 = arg2 = "timerwheel slots" = arg2
-// arg3 = arg3 = QUIC_TIMER_WHEEL_INITIAL_SLOT_COUNT * sizeof(CXPLAT_LIST_ENTRY) = arg3
+// arg3 = arg3 = (uint64_t)(QUIC_TIMER_WHEEL_INITIAL_SLOT_COUNT * sizeof(CXPLAT_LIST_ENTRY)) = arg3
 ----------------------------------------------------------*/
 #ifndef _clog_4_ARGS_TRACE_AllocFailure
 #define _clog_4_ARGS_TRACE_AllocFailure(uniqueId, encoded_arg_string, arg2, arg3)\

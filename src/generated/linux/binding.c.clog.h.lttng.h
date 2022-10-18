@@ -148,9 +148,9 @@ TRACEPOINT_EVENT(CLOG_BINDING_C, BindingSendTestDrop,
             AllocFailure,
             "Allocation of '%s' failed. (%llu bytes)",
             "QUIC_BINDING",
-            sizeof(QUIC_BINDING));
+            (uint64_t)sizeof(QUIC_BINDING));
 // arg2 = arg2 = "QUIC_BINDING" = arg2
-// arg3 = arg3 = sizeof(QUIC_BINDING) = arg3
+// arg3 = arg3 = (uint64_t)sizeof(QUIC_BINDING) = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_BINDING_C, AllocFailure,
     TP_ARGS(

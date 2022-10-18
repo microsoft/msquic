@@ -1643,9 +1643,9 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, AbandonInternallyClosed,
             AllocFailure,
             "Allocation of '%s' failed. (%llu bytes)",
             "connection",
-            sizeof(QUIC_CONNECTION));
+            (uint64_t)sizeof(QUIC_CONNECTION));
 // arg2 = arg2 = "connection" = arg2
-// arg3 = arg3 = sizeof(QUIC_CONNECTION) = arg3
+// arg3 = arg3 = (uint64_t)sizeof(QUIC_CONNECTION) = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CONNECTION_C, AllocFailure,
     TP_ARGS(
@@ -2196,11 +2196,11 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, ConnAppShutdown,
                 Connection,
                 ErrorCode,
                 ClosedRemotely,
-                !!(Flags & QUIC_CLOSE_QUIC_STATUS));
+                (uint8_t)!!(Flags & QUIC_CLOSE_QUIC_STATUS));
 // arg2 = arg2 = Connection = arg2
 // arg3 = arg3 = ErrorCode = arg3
 // arg4 = arg4 = ClosedRemotely = arg4
-// arg5 = arg5 = !!(Flags & QUIC_CLOSE_QUIC_STATUS) = arg5
+// arg5 = arg5 = (uint8_t)!!(Flags & QUIC_CLOSE_QUIC_STATUS) = arg5
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CONNECTION_C, ConnTransportShutdown,
     TP_ARGS(
@@ -2310,11 +2310,11 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, PacketDecrypt,
         Connection,
         Packet->PacketNumber,
         Packet->IsShortHeader ? QUIC_TRACE_PACKET_ONE_RTT : (Packet->LH->Type + 1),
-        Packet->HeaderLength + Packet->PayloadLength);
+        (uint16_t)(Packet->HeaderLength + Packet->PayloadLength));
 // arg2 = arg2 = Connection = arg2
 // arg3 = arg3 = Packet->PacketNumber = arg3
 // arg4 = arg4 = Packet->IsShortHeader ? QUIC_TRACE_PACKET_ONE_RTT : (Packet->LH->Type + 1) = arg4
-// arg5 = arg5 = Packet->HeaderLength + Packet->PayloadLength = arg5
+// arg5 = arg5 = (uint16_t)(Packet->HeaderLength + Packet->PayloadLength) = arg5
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CONNECTION_C, ConnPacketRecv,
     TP_ARGS(

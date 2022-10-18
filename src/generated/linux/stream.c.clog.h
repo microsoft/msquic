@@ -188,11 +188,11 @@ tracepoint(CLOG_STREAM_C, StreamDestroyed , arg2);\
         Stream,
         Stream->Connection,
         Stream->ID,
-        !IsRemoteStream);
+        (uint8_t)!IsRemoteStream);
 // arg2 = arg2 = Stream = arg2
 // arg3 = arg3 = Stream->Connection = arg3
 // arg4 = arg4 = Stream->ID = arg4
-// arg5 = arg5 = !IsRemoteStream = arg5
+// arg5 = arg5 = (uint8_t)!IsRemoteStream = arg5
 ----------------------------------------------------------*/
 #ifndef _clog_6_ARGS_TRACE_StreamCreated
 #define _clog_6_ARGS_TRACE_StreamCreated(uniqueId, encoded_arg_string, arg2, arg3, arg4, arg5)\
@@ -210,9 +210,9 @@ tracepoint(CLOG_STREAM_C, StreamCreated , arg2, arg3, arg4, arg5);\
         StreamSendState,
         "[strm][%p] Send State: %hhu",
         Stream,
-        QuicStreamSendGetState(Stream));
+        (uint8_t)QuicStreamSendGetState(Stream));
 // arg2 = arg2 = Stream = arg2
-// arg3 = arg3 = QuicStreamSendGetState(Stream) = arg3
+// arg3 = arg3 = (uint8_t)QuicStreamSendGetState(Stream) = arg3
 ----------------------------------------------------------*/
 #ifndef _clog_4_ARGS_TRACE_StreamSendState
 #define _clog_4_ARGS_TRACE_StreamSendState(uniqueId, encoded_arg_string, arg2, arg3)\
@@ -230,9 +230,9 @@ tracepoint(CLOG_STREAM_C, StreamSendState , arg2, arg3);\
         StreamRecvState,
         "[strm][%p] Recv State: %hhu",
         Stream,
-        QuicStreamRecvGetState(Stream));
+        (uint8_t)QuicStreamRecvGetState(Stream));
 // arg2 = arg2 = Stream = arg2
-// arg3 = arg3 = QuicStreamRecvGetState(Stream) = arg3
+// arg3 = arg3 = (uint8_t)QuicStreamRecvGetState(Stream) = arg3
 ----------------------------------------------------------*/
 #ifndef _clog_4_ARGS_TRACE_StreamRecvState
 #define _clog_4_ARGS_TRACE_StreamRecvState(uniqueId, encoded_arg_string, arg2, arg3)\
@@ -252,11 +252,11 @@ tracepoint(CLOG_STREAM_C, StreamRecvState , arg2, arg3);\
         Stream,
         Stream->Connection,
         Stream->ID,
-        ((QuicConnIsClient(Stream->Connection)) ^ (Stream->ID & STREAM_ID_FLAG_IS_SERVER)));
+        (uint8_t)((QuicConnIsClient(Stream->Connection)) ^ (Stream->ID & STREAM_ID_FLAG_IS_SERVER)));
 // arg2 = arg2 = Stream = arg2
 // arg3 = arg3 = Stream->Connection = arg3
 // arg4 = arg4 = Stream->ID = arg4
-// arg5 = arg5 = ((QuicConnIsClient(Stream->Connection)) ^ (Stream->ID & STREAM_ID_FLAG_IS_SERVER)) = arg5
+// arg5 = arg5 = (uint8_t)((QuicConnIsClient(Stream->Connection)) ^ (Stream->ID & STREAM_ID_FLAG_IS_SERVER)) = arg5
 ----------------------------------------------------------*/
 #ifndef _clog_6_ARGS_TRACE_StreamRundown
 #define _clog_6_ARGS_TRACE_StreamRundown(uniqueId, encoded_arg_string, arg2, arg3, arg4, arg5)\

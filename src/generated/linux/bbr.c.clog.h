@@ -33,8 +33,8 @@ extern "C" {
             BbrCongestionControlGetCongestionWindow(Cc),
             Bbr->BytesInFlight,
             Bbr->BytesInFlightMax,
-            Bbr->MinRtt,
-            BbrCongestionControlGetBandwidth(Cc) / BW_UNIT,
+            (unsigned long)Bbr->MinRtt,
+            (unsigned long)(BbrCongestionControlGetBandwidth(Cc) / BW_UNIT),
             BbrCongestionControlIsAppLimited(Cc));
 // arg2 = arg2 = Connection = arg2
 // arg3 = arg3 = Bbr->BbrState = arg3
@@ -42,8 +42,8 @@ extern "C" {
 // arg5 = arg5 = BbrCongestionControlGetCongestionWindow(Cc) = arg5
 // arg6 = arg6 = Bbr->BytesInFlight = arg6
 // arg7 = arg7 = Bbr->BytesInFlightMax = arg7
-// arg8 = arg8 = Bbr->MinRtt = arg8
-// arg9 = arg9 = BbrCongestionControlGetBandwidth(Cc) / BW_UNIT = arg9
+// arg8 = arg8 = (unsigned long)Bbr->MinRtt = arg8
+// arg9 = arg9 = (unsigned long)(BbrCongestionControlGetBandwidth(Cc) / BW_UNIT) = arg9
 // arg10 = arg10 = BbrCongestionControlIsAppLimited(Cc) = arg10
 ----------------------------------------------------------*/
 #ifndef _clog_11_ARGS_TRACE_ConnBbr

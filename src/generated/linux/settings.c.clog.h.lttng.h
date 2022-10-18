@@ -811,9 +811,9 @@ TRACEPOINT_EVENT(CLOG_SETTINGS_C, SettingsInvalidFullyDeployedVersion,
             AllocFailure,
             "Allocation of '%s' failed. (%llu bytes)",
             "VersionSettings",
-            AllocSize);
+            (uint64_t)AllocSize);
 // arg2 = arg2 = "VersionSettings" = arg2
-// arg3 = arg3 = AllocSize = arg3
+// arg3 = arg3 = (uint64_t)AllocSize = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_SETTINGS_C, AllocFailure,
     TP_ARGS(

@@ -8,9 +8,9 @@
                 AllocFailure,
                 "Allocation of '%s' failed. (%llu bytes)",
                 "CXPLAT_HASHTABLE",
-                sizeof(CXPLAT_HASHTABLE));
+                (uint64_t)sizeof(CXPLAT_HASHTABLE));
 // arg2 = arg2 = "CXPLAT_HASHTABLE" = arg2
-// arg3 = arg3 = sizeof(CXPLAT_HASHTABLE) = arg3
+// arg3 = arg3 = (uint64_t)sizeof(CXPLAT_HASHTABLE) = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_HASHTABLE_C, AllocFailure,
     TP_ARGS(

@@ -402,9 +402,9 @@ tracepoint(CLOG_STREAM_RECV_C, IndicatePeerSendShutdown , arg1);\
         StreamRecvState,
         "[strm][%p] Recv State: %hhu",
         Stream,
-        QuicStreamRecvGetState(Stream));
+        (uint8_t)QuicStreamRecvGetState(Stream));
 // arg2 = arg2 = Stream = arg2
-// arg3 = arg3 = QuicStreamRecvGetState(Stream) = arg3
+// arg3 = arg3 = (uint8_t)QuicStreamRecvGetState(Stream) = arg3
 ----------------------------------------------------------*/
 #ifndef _clog_4_ARGS_TRACE_StreamRecvState
 #define _clog_4_ARGS_TRACE_StreamRecvState(uniqueId, encoded_arg_string, arg2, arg3)\
@@ -422,9 +422,9 @@ tracepoint(CLOG_STREAM_RECV_C, StreamRecvState , arg2, arg3);\
                     AllocFailure,
                     "Allocation of '%s' failed. (%llu bytes)",
                     "Flush Stream Recv operation",
-                    0);
+                    UINT64_C(0));
 // arg2 = arg2 = "Flush Stream Recv operation" = arg2
-// arg3 = arg3 = 0 = arg3
+// arg3 = arg3 = UINT64_C(0) = arg3
 ----------------------------------------------------------*/
 #ifndef _clog_4_ARGS_TRACE_AllocFailure
 #define _clog_4_ARGS_TRACE_AllocFailure(uniqueId, encoded_arg_string, arg2, arg3)\
