@@ -370,7 +370,7 @@ MsQuicConnectionStart(
             AllocFailure,
             "Allocation of '%s' failed. (%llu bytes)",
             "CONN_START operation",
-            0ULL);
+            0);
         goto Error;
     }
 
