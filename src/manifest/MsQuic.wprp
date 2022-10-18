@@ -198,6 +198,9 @@
 
     <Profile Id="Basic.Light.File" Name="Basic" Description="Low Volume MsQuic ETW Events" LoggingMode="File" DetailLevel="Light">
       <Collectors>
+        <SystemCollectorId Value="SC_HighVolume">
+          <SystemProviderId Value="SP_SystemThreadExecution" />
+        </SystemCollectorId>
         <EventCollectorId Value="EC_LowVolume">
           <EventProviders>
             <EventProviderId Value="EP_MsQuicEtw_LowVolume" />
@@ -209,6 +212,9 @@
 
     <Profile Id="Basic.Verbose.File" Name="Basic" Description="All MsQuic ETW Events" LoggingMode="File" DetailLevel="Verbose">
       <Collectors>
+        <SystemCollectorId Value="SC_HighVolume">
+          <SystemProviderId Value="SP_SystemThreadExecution" />
+        </SystemCollectorId>
         <EventCollectorId Value="EC_HighVolume">
           <EventProviders>
             <EventProviderId Value="EP_MsQuicEtw" />
@@ -254,11 +260,8 @@
     </Profile>
     <Profile Id="Datapath.Verbose.Memory" Base="Datapath.Verbose.File" Name="Datapath" Description="Used for debugging datapath" LoggingMode="Memory" DetailLevel="Verbose"/>
 
-    <Profile Id="Full.Light.File" Name="Full" Description="All MsQuic Events and Stacks" LoggingMode="File" DetailLevel="Light">
+    <Profile Id="Full.Light.File" Name="Full" Description="All MsQuic and TAEF Events" LoggingMode="File" DetailLevel="Light">
       <Collectors>
-        <SystemCollectorId Value="SC_HighVolume">
-          <SystemProviderId Value="SP_SystemThreadExecution" />
-        </SystemCollectorId>
         <EventCollectorId Value="EC_LowVolume">
           <EventProviders>
             <EventProviderId Value="EP_MsQuicEtw" />
@@ -267,7 +270,7 @@
         </EventCollectorId>
       </Collectors>
     </Profile>
-    <Profile Id="Full.Light.Memory" Base="Full.Light.File" Name="Full" Description="All MsQuic Events and Stacks" LoggingMode="Memory" DetailLevel="Light"/>
+    <Profile Id="Full.Light.Memory" Base="Full.Light.File" Name="Full" Description="All MsQuic and TAEF Events" LoggingMode="Memory" DetailLevel="Light"/>
 
     <Profile Id="Full.Verbose.File" Name="Full" Description="Everything" LoggingMode="File" DetailLevel="Verbose">
       <Collectors>
