@@ -2289,50 +2289,6 @@ QuicTestEcn(
         TEST_FALSE(Stats.EcnCapable);
     }
 
-    {
-        MsQuicRegistration Registration;
-        TEST_QUIC_SUCCEEDED(Registration.GetInitStatus());
-
-        MsQuicConfiguration ServerConfiguration(Registration, "MsQuicTest", MsQuicSettings().SetPeerUnidiStreamCount(1), ServerSelfSignedCredConfig);
-        TEST_QUIC_SUCCEEDED(ServerConfiguration.GetInitStatus());
-
-        MsQuicConfiguration ClientConfiguration(Registration, "MsQuicTest", MsQuicSettings().SetEcnEnabled(true), MsQuicCredentialConfig());
-        TEST_QUIC_SUCCEEDED(ClientConfiguration.GetInitStatus());
-
-        EcnTestContext Context;
-        MsQuicAutoAcceptListener Listener(Registration, ServerConfiguration, EcnTestContext::ConnCallback, &Context);
-        TEST_QUIC_SUCCEEDED(Listener.GetInitStatus());
-        TEST_QUIC_SUCCEEDED(Listener.Start("MsQuicTest"));
-        QuicAddr ServerLocalAddr;
-        TEST_QUIC_SUCCEEDED(Listener.GetLocalAddr(ServerLocalAddr));
-
-        MsQuicConnection Connection(Registration);
-        TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
-        TEST_QUIC_SUCCEEDED(Connection.Start(ClientConfiguration, ServerLocalAddr.GetFamily(), QUIC_TEST_LOOPBACK_FOR_AF(ServerLocalAddr.GetFamily()), ServerLocalAddr.GetPort()));
-
-        MsQuicStream Stream(Connection, QUIC_STREAM_OPEN_FLAG_UNIDIRECTIONAL);
-        TEST_QUIC_SUCCEEDED(Stream.GetInitStatus());
-
-        //
-        // Open a stream, send some data and a FIN.
-        //
-        uint8_t RawBuffer[100];
-        QUIC_BUFFER Buffer { sizeof(RawBuffer), RawBuffer };
-        TEST_QUIC_SUCCEEDED(Stream.Send(&Buffer, 1, QUIC_SEND_FLAG_START | QUIC_SEND_FLAG_FIN));
-
-        TEST_TRUE(Context.ServerStreamRecv.WaitTimeout(TestWaitTimeout));
-        CxPlatSleep(50);
-        TEST_FALSE(Context.ServerStreamHasShutdown);
-
-        Context.ServerStream->ReceiveComplete(100);
-        TEST_TRUE(Context.ServerStreamShutdown.WaitTimeout(TestWaitTimeout));
-        TEST_TRUE(Context.ServerStreamHasShutdown);
-
-        QUIC_STATISTICS_V2 Stats;
-        Connection.GetStatistics(&Stats);
-        TEST_TRUE(Stats.EcnCapable);
-    }
-
     //
     // Negative ECN test: network erasing ECT bit or incorrectly modifying ECT bit after successful ECN validation.
     //
