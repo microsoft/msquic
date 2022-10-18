@@ -2796,7 +2796,21 @@ QuicTestStreamBlockUnblockConnFlowControl(
     TEST_QUIC_SUCCEEDED(Stream2.Send(&Buffer, 1, QUIC_SEND_FLAG_START));
     // Server should indicate PeerNeedStreams for Stream2
     TEST_TRUE(Context.ServerConnectionPeerNeedsStreams.WaitTimeout(TestWaitTimeout));
-    // 2nd Stream is aborted
+    // 2nd Stream
+    TEST_TRUE(Context.ClientStreamSendComplete.WaitTimeout(TestWaitTimeout));
+    TEST_TRUE(Context.ServerStreamReceive.WaitTimeout(TestWaitTimeout));
+    TEST_TRUE(Context.NeedsStreamCount == 2);
+
+    // Shutdown 1st Stream
+    Stream1.Shutdown(0, QUIC_STREAM_SHUTDOWN_FLAG_GRACEFUL);
+    TEST_TRUE(Context.ClientStreamShutdownComplete.WaitTimeout(1000));
+
+    // 3rd Stream
+    MsQuicStream Stream3(Connection, StreamOpenFlags, CleanUpManual, StreamBlockUnblockConnFlowControl::ClientStreamCallback, &Context);
+    TEST_QUIC_SUCCEEDED(Stream3.GetInitStatus());
+    TEST_QUIC_SUCCEEDED(Stream3.Send(&Buffer, 1, QUIC_SEND_FLAG_START));
+    // Server should not indicate PeerNeedStreams
+    TEST_FALSE(Context.ServerConnectionPeerNeedsStreams.WaitTimeout(TestWaitTimeout));
     TEST_TRUE(Context.ClientStreamSendComplete.WaitTimeout(TestWaitTimeout));
     TEST_TRUE(Context.ServerStreamReceive.WaitTimeout(TestWaitTimeout));
     TEST_TRUE(Context.NeedsStreamCount == 2);

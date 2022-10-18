@@ -4823,6 +4823,20 @@ QuicConnRecvFrames(
                 break; // Ignore frame if we are closed.
             }
 
+            uint8_t Type =
+                (QuicConnIsServer(Connection) ? // Peer's role, so flip
+                STREAM_ID_FLAG_IS_CLIENT : STREAM_ID_FLAG_IS_SERVER)
+                |
+                (Frame.BidirectionalStreams ?
+                 STREAM_ID_FLAG_IS_BI_DIR : STREAM_ID_FLAG_IS_UNI_DIR);
+
+            const QUIC_STREAM_TYPE_INFO* Info = &Connection->Streams.Types[Type];
+
+            if (Info->MaxTotalStreamCount > Frame.StreamLimit)
+            {
+                break;
+            }
+
             QuicTraceLogConnVerbose(
                 PeerStreamFCBlocked,
                 Connection,
@@ -4834,7 +4848,7 @@ QuicConnRecvFrames(
             QUIC_CONNECTION_EVENT Event;
             Event.Type = QUIC_CONNECTION_EVENT_PEER_NEEDS_STREAMS;
             Event.PEER_NEEDS_STREAMS.Bidirectional = Frame.BidirectionalStreams;
-            Event.PEER_NEEDS_STREAMS.StreamLimit = Frame.StreamLimit;
+            Event.PEER_NEEDS_STREAMS.StreamLimit = Info->MaxCurrentStreamCount;
             QuicTraceLogConnVerbose(
                 IndicatePeerNeedStreamsV2,
                 Connection,
