@@ -1510,6 +1510,11 @@ QuicLossDetectionProcessAckBlocks(
                     Ecn->CE_Count - Connection->EcnCeCounters[EncryptLevel];
                 EctCeDeltaSum +=
                     Ecn->ECT_0_Count - Connection->EcnEctCounters[EncryptLevel];
+                //
+                // Conditions where ECN validation fails:
+                // 1. Reneging ECN counts from the peer.
+                // 2. ECN counts do not match the marks that were applied to the packets sent.
+                //
                 if (EctCeDeltaSum < 0 ||
                     EctCeDeltaSum < EcnEctCounter ||
                     Ecn->ECT_1_Count != 0 ||
@@ -1529,7 +1534,6 @@ QuicLossDetectionProcessAckBlocks(
                             EcnValidationSuccess,
                             Connection,
                             "ECN validation succeeded.");
-                        printf("ECN capable!!!!!!!!!!!!!!!!!!\n");
                     }
                 }
             } else {
@@ -1554,7 +1558,6 @@ QuicLossDetectionProcessAckBlocks(
                     EctCeDeltaSum,
                     Path->EcnValidationState);
                 Path->EcnValidationState = ECN_VALIDATION_FAILED;
-                printf("ECN NOT capable!!!!!!!!!!!!!!!!!!\n");
             }
         }
 
