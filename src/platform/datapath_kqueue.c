@@ -495,7 +495,7 @@ CxPlatDataPathInitialize(
             AllocFailure,
             "Allocation of '%s' failed. (%llu bytes)",
             "CXPLAT_DATAPATH",
-            (uint64_t)DatapathLength);
+            DatapathLength);
         return QUIC_STATUS_OUT_OF_MEMORY;
     }
 
@@ -602,7 +602,7 @@ CxPlatDataPathAllocRecvBlock(
             AllocFailure,
             "Allocation of '%s' failed. (%llu bytes)",
             "CXPLAT_DATAPATH_RECV_BLOCK",
-            UINT64_C(0));
+            0);
     } else {
         CxPlatZeroMemory(RecvBlock, sizeof(*RecvBlock));
         RecvBlock->OwningPool = &DatapathProc->RecvBlockPool;
@@ -1180,7 +1180,7 @@ CxPlatSocketContextPrepareReceive(
                 AllocFailure,
                 "Allocation of '%s' failed. (%llu bytes)",
                 "CXPLAT_DATAPATH_RECV_BLOCK",
-                UINT64_C(0));
+                0);
             return QUIC_STATUS_OUT_OF_MEMORY;
         }
     }
@@ -1333,7 +1333,7 @@ CxPlatSocketContextRecvComplete(
         "[data][%p] Recv %u bytes (segment=%hu) Src=%!ADDR! Dst=%!ADDR!",
         SocketContext->Binding,
         (uint32_t)BytesTransferred,
-        (uint16_t)BytesTransferred,
+        (uint32_t)BytesTransferred,
         CASTED_CLOG_BYTEARRAY(sizeof(*LocalAddr), LocalAddr),
         CASTED_CLOG_BYTEARRAY(sizeof(*RemoteAddr), RemoteAddr));
 
@@ -1550,7 +1550,7 @@ CxPlatSocketCreateUdp(
             AllocFailure,
             "Allocation of '%s' failed. (%llu bytes)",
             "CXPLAT_SOCKET",
-            (uint64_t)BindingLength);
+            BindingLength);
         goto Exit;
     }
 
@@ -1777,7 +1777,7 @@ CxPlatSendDataAlloc(
             AllocFailure,
             "Allocation of '%s' failed. (%llu bytes)",
             "CXPLAT_SEND_DATA",
-            UINT64_C(0));
+            0);
         goto Exit;
     }
 
@@ -2042,7 +2042,7 @@ CxPlatSendDataComplete(
             DatapathErrorStatus,
             "[data][%p] ERROR, %u, %s.",
             SocketContext->Binding,
-            (uint32_t)IoResult,
+            IoResult,
             "sendmmsg completion");
     }
 
@@ -2102,7 +2102,7 @@ CxPlatSocketSendInternal(
             "[data][%p] Send %u bytes in %hhu buffers (segment=%hu) Dst=%!ADDR!, Src=%!ADDR!",
             Socket,
             SendData->TotalSize,
-            (uint8_t)SendData->BufferCount,
+            SendData->BufferCount,
             SendData->SegmentSize,
             CASTED_CLOG_BYTEARRAY(sizeof(*RemoteAddress), RemoteAddress),
             CASTED_CLOG_BYTEARRAY(sizeof(*LocalAddress), LocalAddress));

@@ -134,9 +134,9 @@ tracepoint(CLOG_CONFIGURATION_C, ApiEnter , arg2, arg3);\
             AllocFailure,
             "Allocation of '%s' failed. (%llu bytes)",
             "QUIC_CONFIGURATION" ,
-            (uint64_t)sizeof(QUIC_CONFIGURATION));
+            sizeof(QUIC_CONFIGURATION));
 // arg2 = arg2 = "QUIC_CONFIGURATION" = arg2
-// arg3 = arg3 = (uint64_t)sizeof(QUIC_CONFIGURATION) = arg3
+// arg3 = arg3 = sizeof(QUIC_CONFIGURATION) = arg3
 ----------------------------------------------------------*/
 #ifndef _clog_4_ARGS_TRACE_AllocFailure
 #define _clog_4_ARGS_TRACE_AllocFailure(uniqueId, encoded_arg_string, arg2, arg3)\

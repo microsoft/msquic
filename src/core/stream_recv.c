@@ -113,7 +113,7 @@ Exit:
         StreamRecvState,
         "[strm][%p] Recv State: %hhu",
         Stream,
-        (uint8_t)QuicStreamRecvGetState(Stream));
+        QuicStreamRecvGetState(Stream));
 
     if (Silent) {
         QuicStreamTryCompleteShutdown(Stream);
@@ -156,7 +156,7 @@ QuicStreamRecvQueueFlush(
                     AllocFailure,
                     "Allocation of '%s' failed. (%llu bytes)",
                     "Flush Stream Recv operation",
-                    0ULL);
+                    0);
             }
         }
     }
@@ -238,7 +238,7 @@ QuicStreamProcessResetFrame(
             StreamRecvState,
             "[strm][%p] Recv State: %hhu",
             Stream,
-            (uint8_t)QuicStreamRecvGetState(Stream));
+            QuicStreamRecvGetState(Stream));
 
         if (!Stream->Flags.SentStopSending) {
             QuicTraceLogStreamInfo(
@@ -1011,7 +1011,7 @@ QuicStreamReceiveComplete(
             StreamRecvState,
             "[strm][%p] Recv State: %hhu",
             Stream,
-            (uint8_t)QuicStreamRecvGetState(Stream));
+            QuicStreamRecvGetState(Stream));
         return FALSE;
     }
 
@@ -1036,7 +1036,7 @@ QuicStreamReceiveComplete(
             StreamRecvState,
             "[strm][%p] Recv State: %hhu",
             Stream,
-            (uint8_t)QuicStreamRecvGetState(Stream));
+            QuicStreamRecvGetState(Stream));
 
         QUIC_STREAM_EVENT Event;
         Event.Type = QUIC_STREAM_EVENT_PEER_SEND_SHUTDOWN;
@@ -1092,7 +1092,7 @@ QuicStreamRecvSetEnabledState(
                 StreamRecvState,
                 "[strm][%p] Recv State: %hhu",
                 Stream,
-                (uint8_t)QuicStreamRecvGetState(Stream));
+                QuicStreamRecvGetState(Stream));
             QuicStreamRecvQueueFlush(Stream, TRUE);
         }
     }

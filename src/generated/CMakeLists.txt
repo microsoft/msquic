@@ -9,7 +9,6 @@ if(QUIC_ENABLE_LOGGING)
         target_link_libraries(inc INTERFACE MsQuicEtw_Header)
         add_library(logging INTERFACE)
     elseif(APPLE)
-        # entirely handled in quic_trace.h
         FILE(GLOB LOGGING_FILES ${CMAKE_CURRENT_SOURCE_DIR}/stdout/*.c)
         add_library(logging STATIC ${LOGGING_FILES})
     else()

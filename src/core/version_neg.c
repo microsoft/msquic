@@ -201,7 +201,7 @@ QuicVersionNegotiationExtParseVersionInfo(
                 VersionInfoDecodeFailed2,
                 Connection,
                 "Version info too short to contain any Available Versions (%hu bytes)",
-                (uint16_t)(BufferLength - Offset));
+                (unsigned)(BufferLength - Offset));
             return QUIC_STATUS_INVALID_PARAMETER;
         }
     }
@@ -211,7 +211,7 @@ QuicVersionNegotiationExtParseVersionInfo(
             ServerVersionInfoDecodeFailed3,
             Connection,
             "Version info contains partial Other Version (%hu bytes vs. %u bytes)",
-            (uint16_t)(BufferLength - Offset),
+            (unsigned)(BufferLength - Offset),
             (BufferLength - Offset) / (unsigned)sizeof(uint32_t));
         return QUIC_STATUS_INVALID_PARAMETER;
     }
@@ -283,7 +283,7 @@ QuicVersionNegotiationExtEncodeVersionInfo(
                 AllocFailure,
                 "Allocation of '%s' failed. (%llu bytes)",
                 "Server Version Info",
-                (uint64_t)VILen);
+                VILen);
             return NULL;
         }
         VIBuf = VersionInfo;
@@ -334,7 +334,7 @@ QuicVersionNegotiationExtEncodeVersionInfo(
                 AllocFailure,
                 "Allocation of '%s' failed. (%llu bytes)",
                 "Client Version Info",
-                (uint64_t)VILen);
+                VILen);
             return NULL;
         }
         VIBuf = VersionInfo;

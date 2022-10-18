@@ -31,9 +31,9 @@ TRACEPOINT_EVENT(CLOG_SEND_BUFFER_C, IndicateIdealSendBuffer,
             AllocFailure,
             "Allocation of '%s' failed. (%llu bytes)",
             "sendbuffer",
-            (uint64_t)Size);
+            Size);
 // arg2 = arg2 = "sendbuffer" = arg2
-// arg3 = arg3 = (uint64_t)Size = arg3
+// arg3 = arg3 = Size = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_SEND_BUFFER_C, AllocFailure,
     TP_ARGS(

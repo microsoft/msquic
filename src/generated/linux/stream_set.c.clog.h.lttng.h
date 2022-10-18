@@ -158,9 +158,9 @@ TRACEPOINT_EVENT(CLOG_STREAM_SET_C, IndicatePeerStreamStarted,
                 AllocFailure,
                 "Allocation of '%s' failed. (%llu bytes)",
                 "streamset hash table",
-                0ULL);
+                0);
 // arg2 = arg2 = "streamset hash table" = arg2
-// arg3 = arg3 = 0ULL = arg3
+// arg3 = arg3 = 0 = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_STREAM_SET_C, AllocFailure,
     TP_ARGS(

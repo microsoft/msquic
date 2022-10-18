@@ -78,7 +78,7 @@ QuicRangeGrow(
             AllocFailure,
             "Allocation of '%s' failed. (%llu bytes)",
             "range (realloc)",
-            (uint64_t)NewAllocLength);
+            NewAllocLength);
         return FALSE;
     }
 

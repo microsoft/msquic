@@ -272,9 +272,9 @@ TRACEPOINT_EVENT(CLOG_WORKER_C, WorkerStop,
             AllocFailure,
             "Allocation of '%s' failed. (%llu bytes)",
             "QUIC_WORKER_POOL",
-            (uint64_t)WorkerPoolSize);
+            WorkerPoolSize);
 // arg2 = arg2 = "QUIC_WORKER_POOL" = arg2
-// arg3 = arg3 = (uint64_t)WorkerPoolSize = arg3
+// arg3 = arg3 = WorkerPoolSize = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_WORKER_C, AllocFailure,
     TP_ARGS(

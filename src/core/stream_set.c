@@ -106,7 +106,7 @@ QuicStreamSetInsertStream(
                 AllocFailure,
                 "Allocation of '%s' failed. (%llu bytes)",
                 "streamset hash table",
-                0ULL);
+                0);
             return FALSE;
         }
     }

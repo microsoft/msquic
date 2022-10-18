@@ -361,11 +361,11 @@ TRACEPOINT_EVENT(CLOG_LOSS_DETECTION_C, KeyChangeConfirmed,
             ConnLossDetectionTimerSet,
             "[conn][%p] Setting loss detection %hhu timer for %u us. (ProbeCount=%hu)",
             Connection,
-            (uint8_t)TimeoutType,
+            TimeoutType,
             Delay,
             LossDetection->ProbeCount);
 // arg2 = arg2 = Connection = arg2
-// arg3 = arg3 = (uint8_t)TimeoutType = arg3
+// arg3 = arg3 = TimeoutType = arg3
 // arg4 = arg4 = Delay = arg4
 // arg5 = arg5 = LossDetection->ProbeCount = arg5
 ----------------------------------------------------------*/
@@ -392,9 +392,9 @@ TRACEPOINT_EVENT(CLOG_LOSS_DETECTION_C, ConnLossDetectionTimerSet,
             AllocFailure,
             "Allocation of '%s' failed. (%llu bytes)",
             "Sent packet metadata",
-            (uint64_t)SIZEOF_QUIC_SENT_PACKET_METADATA(TempSentPacket->FrameCount));
+            SIZEOF_QUIC_SENT_PACKET_METADATA(TempSentPacket->FrameCount));
 // arg2 = arg2 = "Sent packet metadata" = arg2
-// arg3 = arg3 = (uint64_t)SIZEOF_QUIC_SENT_PACKET_METADATA(TempSentPacket->FrameCount) = arg3
+// arg3 = arg3 = SIZEOF_QUIC_SENT_PACKET_METADATA(TempSentPacket->FrameCount) = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_LOSS_DETECTION_C, AllocFailure,
     TP_ARGS(
@@ -417,11 +417,11 @@ TRACEPOINT_EVENT(CLOG_LOSS_DETECTION_C, AllocFailure,
                         Connection,
                         Packet->PacketNumber,
                         QuicPacketTraceType(Packet),
-                        (uint8_t)QUIC_TRACE_PACKET_LOSS_FACK);
+                        QUIC_TRACE_PACKET_LOSS_FACK);
 // arg2 = arg2 = Connection = arg2
 // arg3 = arg3 = Packet->PacketNumber = arg3
 // arg4 = arg4 = QuicPacketTraceType(Packet) = arg4
-// arg5 = arg5 = (uint8_t)QUIC_TRACE_PACKET_LOSS_FACK = arg5
+// arg5 = arg5 = QUIC_TRACE_PACKET_LOSS_FACK = arg5
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_LOSS_DETECTION_C, ConnPacketLost,
     TP_ARGS(

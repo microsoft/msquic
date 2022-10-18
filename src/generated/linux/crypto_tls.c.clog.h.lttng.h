@@ -637,10 +637,10 @@ TRACEPOINT_EVENT(CLOG_CRYPTO_TLS_C, EncodeTPGreaseQuicBit,
             EncodeTPTest,
             Connection,
             "TP: TEST TP (Type %hu, Length %hu)",
-            (uint16_t)TestParam->Type,
+            TestParam->Type,
             TestParam->Length);
 // arg1 = arg1 = Connection = arg1
-// arg3 = arg3 = (uint16_t)TestParam->Type = arg3
+// arg3 = arg3 = TestParam->Type = arg3
 // arg4 = arg4 = TestParam->Length = arg4
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CRYPTO_TLS_C, EncodeTPTest,
@@ -1270,9 +1270,9 @@ TRACEPOINT_EVENT(CLOG_CRYPTO_TLS_C, ConnError,
             AllocFailure,
             "Allocation of '%s' failed. (%llu bytes)",
             "TP buffer",
-            (uint64_t)(CxPlatTlsTPHeaderSize + RequiredTPLen));
+            CxPlatTlsTPHeaderSize + RequiredTPLen);
 // arg2 = arg2 = "TP buffer" = arg2
-// arg3 = arg3 = (uint64_t)(CxPlatTlsTPHeaderSize + RequiredTPLen) = arg3
+// arg3 = arg3 = CxPlatTlsTPHeaderSize + RequiredTPLen = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CRYPTO_TLS_C, AllocFailure,
     TP_ARGS(

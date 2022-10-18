@@ -7,9 +7,9 @@
 // QuicTraceEvent(
             LibraryErrorStatus,
             "[ lib] ERROR, %u, %s.",
-            (uint32_t)ERR_get_error(),
+            ERR_get_error(),
             cipher_name);
-// arg2 = arg2 = (uint32_t)ERR_get_error() = arg2
+// arg2 = arg2 = ERR_get_error() = arg2
 // arg3 = arg3 = cipher_name = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CRYPT_OPENSSL_C, LibraryErrorStatus,

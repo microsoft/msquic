@@ -136,26 +136,17 @@ extern
 #ifdef __cplusplus
     "C"
 #endif
-    void __attribute__((format(printf, 1, 2)))
-    clog_stdout(const char * format, ...);
+void //__attribute__((format(printf, 1, 2)))
+clog_stdout(const char * format, ...);
 #else
-inline void __attribute__((format(printf, 1, 2)))
+inline void //__attribute__((format(printf, 1, 2)))
 clog_stdout(const char * format, ...)
 {
     UNREFERENCED_PARAMETER(format);
 }
 #endif
 
-#define clog(Fmt, ...)                                                         \
-    _Pragma("clang diagnostic push");                                          \
-    _Pragma("clang diagnostic ignored \"-Wformat-invalid-specifier\"");        \
-    _Pragma("clang diagnostic ignored \"-Wformat-extra-args\"");               \
-    _Pragma("GCC diagnostic push");                                            \
-    _Pragma("GCC diagnostic warning \"-Wformat=2\"");                 \
-    _Pragma("GCC diagnostic ignored \"-Wformat-extra-args\"");                 \
-    clog_stdout((Fmt), ##__VA_ARGS__);                                         \
-    _Pragma("GCC diagnostic pop");                                             \
-    _Pragma("clang diagnostic pop")
+#define clog(Fmt, ...) clog_stdout((Fmt), ##__VA_ARGS__)
 
 
 #endif
@@ -172,11 +163,11 @@ extern
 #ifdef __cplusplus
     "C"
 #endif
-    char * __attribute__((no_instrument_function))
-    hex2str(const uint8_t * const src,
-            const size_t len_src,
-            char * const dst,
-            const size_t len_dst);
+char * __attribute__((no_instrument_function))
+hex2str(const uint8_t * const src,
+        const size_t len_src,
+        char * const dst,
+        const size_t len_dst);
 #else
 inline char * __attribute__((no_instrument_function))
 hex2str(const uint8_t * const src,

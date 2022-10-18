@@ -222,7 +222,7 @@ QuicPacketKeyDerive(
             AllocFailure,
             "Allocation of '%s' failed. (%llu bytes)",
             "QUIC_PACKET_KEY",
-            (uint64_t)PacketKeyLength);
+            PacketKeyLength);
         return QUIC_STATUS_OUT_OF_MEMORY;
     }
     CxPlatZeroMemory(Key, sizeof(QUIC_PACKET_KEY));

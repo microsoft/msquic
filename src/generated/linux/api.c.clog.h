@@ -98,9 +98,9 @@ tracepoint(CLOG_API_C, ApiExit );\
                 AllocFailure,
                 "Allocation of '%s' failed. (%llu bytes)",
                 "Server name",
-                (uint64_t)(ServerNameLength + 1));
+                ServerNameLength + 1);
 // arg2 = arg2 = "Server name" = arg2
-// arg3 = arg3 = (uint64_t)(ServerNameLength + 1) = arg3
+// arg3 = arg3 = ServerNameLength + 1 = arg3
 ----------------------------------------------------------*/
 #ifndef _clog_4_ARGS_TRACE_AllocFailure
 #define _clog_4_ARGS_TRACE_AllocFailure(uniqueId, encoded_arg_string, arg2, arg3)\

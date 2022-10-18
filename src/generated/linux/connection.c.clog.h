@@ -1493,9 +1493,9 @@ tracepoint(CLOG_CONNECTION_C, AbandonInternallyClosed , arg1);\
             AllocFailure,
             "Allocation of '%s' failed. (%llu bytes)",
             "connection",
-            (uint64_t)sizeof(QUIC_CONNECTION));
+            sizeof(QUIC_CONNECTION));
 // arg2 = arg2 = "connection" = arg2
-// arg3 = arg3 = (uint64_t)sizeof(QUIC_CONNECTION) = arg3
+// arg3 = arg3 = sizeof(QUIC_CONNECTION) = arg3
 ----------------------------------------------------------*/
 #ifndef _clog_4_ARGS_TRACE_AllocFailure
 #define _clog_4_ARGS_TRACE_AllocFailure(uniqueId, encoded_arg_string, arg2, arg3)\
@@ -1961,11 +1961,11 @@ tracepoint(CLOG_CONNECTION_C, ConnAppShutdown , arg2, arg3, arg4);\
                 Connection,
                 ErrorCode,
                 ClosedRemotely,
-                (uint8_t)!!(Flags & QUIC_CLOSE_QUIC_STATUS));
+                !!(Flags & QUIC_CLOSE_QUIC_STATUS));
 // arg2 = arg2 = Connection = arg2
 // arg3 = arg3 = ErrorCode = arg3
 // arg4 = arg4 = ClosedRemotely = arg4
-// arg5 = arg5 = (uint8_t)!!(Flags & QUIC_CLOSE_QUIC_STATUS) = arg5
+// arg5 = arg5 = !!(Flags & QUIC_CLOSE_QUIC_STATUS) = arg5
 ----------------------------------------------------------*/
 #ifndef _clog_6_ARGS_TRACE_ConnTransportShutdown
 #define _clog_6_ARGS_TRACE_ConnTransportShutdown(uniqueId, encoded_arg_string, arg2, arg3, arg4, arg5)\
@@ -2060,11 +2060,11 @@ tracepoint(CLOG_CONNECTION_C, PacketDecrypt , arg2);\
         Connection,
         Packet->PacketNumber,
         Packet->IsShortHeader ? QUIC_TRACE_PACKET_ONE_RTT : (Packet->LH->Type + 1),
-        (uint16_t)(Packet->HeaderLength + Packet->PayloadLength));
+        Packet->HeaderLength + Packet->PayloadLength);
 // arg2 = arg2 = Connection = arg2
 // arg3 = arg3 = Packet->PacketNumber = arg3
 // arg4 = arg4 = Packet->IsShortHeader ? QUIC_TRACE_PACKET_ONE_RTT : (Packet->LH->Type + 1) = arg4
-// arg5 = arg5 = (uint16_t)(Packet->HeaderLength + Packet->PayloadLength) = arg5
+// arg5 = arg5 = Packet->HeaderLength + Packet->PayloadLength = arg5
 ----------------------------------------------------------*/
 #ifndef _clog_6_ARGS_TRACE_ConnPacketRecv
 #define _clog_6_ARGS_TRACE_ConnPacketRecv(uniqueId, encoded_arg_string, arg2, arg3, arg4, arg5)\

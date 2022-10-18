@@ -353,7 +353,7 @@ MsQuicConnectionStart(
                 AllocFailure,
                 "Allocation of '%s' failed. (%llu bytes)",
                 "Server name",
-                (uint64_t)(ServerNameLength + 1));
+                ServerNameLength + 1);
             goto Error;
         }
 
@@ -370,7 +370,7 @@ MsQuicConnectionStart(
             AllocFailure,
             "Allocation of '%s' failed. (%llu bytes)",
             "CONN_START operation",
-            0ULL);
+            0);
         goto Error;
     }
 
@@ -469,7 +469,7 @@ MsQuicConnectionSetConfiguration(
             AllocFailure,
             "Allocation of '%s' failed. (%llu bytes)",
             "CONN_SET_CONFIGURATION operation",
-            0ULL);
+            0);
         goto Error;
     }
 
@@ -563,7 +563,7 @@ MsQuicConnectionSendResumptionTicket(
                 AllocFailure,
                 "Allocation of '%s' failed. (%llu bytes)",
                 "Resumption data copy",
-                (uint64_t)DataLength);
+                DataLength);
             goto Error;
         }
         CxPlatCopyMemory(ResumptionDataCopy, ResumptionData, DataLength);
@@ -576,7 +576,7 @@ MsQuicConnectionSendResumptionTicket(
             AllocFailure,
             "Allocation of '%s' failed. (%llu bytes)",
             "CONN_SEND_RESUMPTION_TICKET operation",
-            0ULL);
+            0);
         goto Error;
     }
     Oper->API_CALL.Context->Type = QUIC_API_TYPE_CONN_SEND_RESUMPTION_TICKET;
@@ -843,7 +843,7 @@ MsQuicStreamStart(
             AllocFailure,
             "Allocation of '%s' failed. (%llu bytes)",
             "STRM_START operation",
-            0ULL);
+            0);
         goto Exit;
     }
     Oper->API_CALL.Context->Type = QUIC_API_TYPE_STRM_START;
@@ -963,7 +963,7 @@ MsQuicStreamShutdown(
             AllocFailure,
             "Allocation of '%s' failed. (%llu bytes)",
             "STRM_SHUTDOWN operation",
-            0ULL);
+            0);
         goto Error;
     }
     Oper->API_CALL.Context->Type = QUIC_API_TYPE_STRM_SHUTDOWN;
@@ -1067,7 +1067,7 @@ MsQuicStreamSend(
             AllocFailure,
             "Allocation of '%s' failed. (%llu bytes)",
             "Stream Send request",
-            0ULL);
+            0);
         goto Exit;
     }
 
@@ -1116,7 +1116,7 @@ MsQuicStreamSend(
                 AllocFailure,
                 "Allocation of '%s' failed. (%llu bytes)",
                 "STRM_SEND operation",
-                0ULL);
+                0);
             goto Exit;
         }
         Oper->API_CALL.Context->Type = QUIC_API_TYPE_STRM_SEND;
@@ -1191,7 +1191,7 @@ MsQuicStreamReceiveSetEnabled(
             AllocFailure,
             "Allocation of '%s' failed. (%llu bytes)",
             "STRM_RECV_SET_ENABLED, operation",
-            0ULL);
+            0);
         goto Error;
     }
     Oper->API_CALL.Context->Type = QUIC_API_TYPE_STRM_RECV_SET_ENABLED;

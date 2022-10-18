@@ -67,7 +67,7 @@ MsQuicRegistrationOpen(
             AllocFailure,
             "Allocation of '%s' failed. (%llu bytes)",
             "registration",
-            (uint64_t)(sizeof(QUIC_REGISTRATION) + AppNameLength + 1));
+            sizeof(QUIC_REGISTRATION) + AppNameLength + 1);
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         goto Error;
     }

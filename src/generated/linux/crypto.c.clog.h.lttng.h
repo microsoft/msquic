@@ -419,9 +419,9 @@ TRACEPOINT_EVENT(CLOG_CRYPTO_C, CryptoNotReady,
             AllocFailure,
             "Allocation of '%s' failed. (%llu bytes)",
             "crypto send buffer",
-            (uint64_t)SendBufferLength);
+            SendBufferLength);
 // arg2 = arg2 = "crypto send buffer" = arg2
-// arg3 = arg3 = (uint64_t)SendBufferLength = arg3
+// arg3 = arg3 = SendBufferLength = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CRYPTO_C, AllocFailure,
     TP_ARGS(
@@ -492,9 +492,9 @@ TRACEPOINT_EVENT(CLOG_CRYPTO_C, ConnError,
             ConnWriteKeyUpdated,
             "[conn][%p] Write Key Updated, %hhu.",
             Connection,
-            (uint8_t)Crypto->TlsState.WriteKey);
+            Crypto->TlsState.WriteKey);
 // arg2 = arg2 = Connection = arg2
-// arg3 = arg3 = (uint8_t)Crypto->TlsState.WriteKey = arg3
+// arg3 = arg3 = Crypto->TlsState.WriteKey = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CRYPTO_C, ConnWriteKeyUpdated,
     TP_ARGS(
@@ -515,9 +515,9 @@ TRACEPOINT_EVENT(CLOG_CRYPTO_C, ConnWriteKeyUpdated,
             ConnReadKeyUpdated,
             "[conn][%p] Read Key Updated, %hhu.",
             Connection,
-            (uint8_t)Crypto->TlsState.ReadKey);
+            Crypto->TlsState.ReadKey);
 // arg2 = arg2 = Connection = arg2
-// arg3 = arg3 = (uint8_t)Crypto->TlsState.ReadKey = arg3
+// arg3 = arg3 = Crypto->TlsState.ReadKey = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CRYPTO_C, ConnReadKeyUpdated,
     TP_ARGS(

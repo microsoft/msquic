@@ -583,7 +583,7 @@ CxPlatTlsAddHandshakeDataCallback(
                 AllocFailure,
                 "Allocation of '%s' failed. (%llu bytes)",
                 "New crypto buffer",
-                (uint64_t)NewBufferAllocLength);
+                NewBufferAllocLength);
             TlsContext->ResultFlags |= CXPLAT_TLS_RESULT_ERROR;
             return -1;
         }
@@ -730,7 +730,7 @@ CxPlatTlsOnClientSessionTicketReceived(
                 TlsErrorStatus,
                 "[ tls][%p] ERROR, %u, %s.",
                 TlsContext->Connection,
-                (uint32_t)ERR_get_error(),
+                ERR_get_error(),
                 "PEM_write_bio_SSL_SESSION failed");
         }
         BIO_free(Bio);
@@ -739,7 +739,7 @@ CxPlatTlsOnClientSessionTicketReceived(
             TlsErrorStatus,
             "[ tls][%p] ERROR, %u, %s.",
             TlsContext->Connection,
-            (uint32_t)ERR_get_error(),
+            ERR_get_error(),
             "BIO_new_mem_buf failed");
     }
 
@@ -1057,7 +1057,7 @@ CxPlatTlsSecConfigCreate(
             AllocFailure,
             "Allocation of '%s' failed. (%llu bytes)",
             "CXPLAT_SEC_CONFIG",
-            (uint64_t)sizeof(CXPLAT_SEC_CONFIG));
+            sizeof(CXPLAT_SEC_CONFIG));
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         goto Exit;
     }
@@ -1076,7 +1076,7 @@ CxPlatTlsSecConfigCreate(
         QuicTraceEvent(
             LibraryErrorStatus,
             "[ lib] ERROR, %u, %s.",
-            (uint32_t)ERR_get_error(),
+            ERR_get_error(),
             "SSL_CTX_new failed");
         Status = QUIC_STATUS_TLS_ERROR;
         goto Exit;
@@ -1091,7 +1091,7 @@ CxPlatTlsSecConfigCreate(
         QuicTraceEvent(
             LibraryErrorStatus,
             "[ lib] ERROR, %u, %s.",
-            (uint32_t)ERR_get_error(),
+            ERR_get_error(),
             "SSL_CTX_set_min_proto_version failed");
         Status = QUIC_STATUS_TLS_ERROR;
         goto Exit;
@@ -1102,7 +1102,7 @@ CxPlatTlsSecConfigCreate(
         QuicTraceEvent(
             LibraryErrorStatus,
             "[ lib] ERROR, %u, %s.",
-            (uint32_t)ERR_get_error(),
+            ERR_get_error(),
             "SSL_CTX_set_max_proto_version failed");
         Status = QUIC_STATUS_TLS_ERROR;
         goto Exit;
@@ -1134,7 +1134,7 @@ CxPlatTlsSecConfigCreate(
                 AllocFailure,
                 "Allocation of '%s' failed. (%llu bytes)",
                 "CipherSuiteString",
-                (uint64_t)CipherSuiteStringLength);
+                CipherSuiteStringLength);
             Status = QUIC_STATUS_OUT_OF_MEMORY;
             goto Exit;
         }
@@ -1184,7 +1184,7 @@ CxPlatTlsSecConfigCreate(
         QuicTraceEvent(
             LibraryErrorStatus,
             "[ lib] ERROR, %u, %s.",
-            (uint32_t)ERR_get_error(),
+            ERR_get_error(),
             "SSL_CTX_set_ciphersuites failed");
         Status = QUIC_STATUS_TLS_ERROR;
         goto Exit;
@@ -1196,7 +1196,7 @@ CxPlatTlsSecConfigCreate(
             QuicTraceEvent(
                 LibraryErrorStatus,
                 "[ lib] ERROR, %u, %s.",
-                (uint32_t)ERR_get_error(),
+                ERR_get_error(),
                 "SSL_CTX_set_default_verify_paths failed");
             Status = QUIC_STATUS_TLS_ERROR;
             goto Exit;
@@ -1208,7 +1208,7 @@ CxPlatTlsSecConfigCreate(
         QuicTraceEvent(
             LibraryErrorStatus,
             "[ lib] ERROR, %u, %s.",
-            (uint32_t)ERR_get_error(),
+            ERR_get_error(),
             "SSL_CTX_set_quic_method failed");
         Status = QUIC_STATUS_TLS_ERROR;
         goto Exit;
@@ -1231,7 +1231,7 @@ CxPlatTlsSecConfigCreate(
                 QuicTraceEvent(
                     LibraryErrorStatus,
                     "[ lib] ERROR, %u, %s.",
-                    (uint32_t)ERR_get_error(),
+                    ERR_get_error(),
                     "SSL_CTX_set_max_early_data failed");
                 Status = QUIC_STATUS_TLS_ERROR;
                 goto Exit;
@@ -1246,7 +1246,7 @@ CxPlatTlsSecConfigCreate(
                 QuicTraceEvent(
                     LibraryErrorStatus,
                     "[ lib] ERROR, %u, %s.",
-                    (uint32_t)ERR_get_error(),
+                    ERR_get_error(),
                     "SSL_CTX_set_session_ticket_cb failed");
                 Status = QUIC_STATUS_TLS_ERROR;
                 goto Exit;
@@ -1258,7 +1258,7 @@ CxPlatTlsSecConfigCreate(
             QuicTraceEvent(
                 LibraryErrorStatus,
                 "[ lib] ERROR, %u, %s.",
-                (uint32_t)ERR_get_error(),
+                ERR_get_error(),
                 "SSL_CTX_set_num_tickets failed");
             Status = QUIC_STATUS_TLS_ERROR;
             goto Exit;
@@ -1286,7 +1286,7 @@ CxPlatTlsSecConfigCreate(
             QuicTraceEvent(
                 LibraryErrorStatus,
                 "[ lib] ERROR, %u, %s.",
-                (uint32_t)ERR_get_error(),
+                ERR_get_error(),
                 "SSL_CTX_use_PrivateKey_file failed");
             Status = QUIC_STATUS_TLS_ERROR;
             goto Exit;
@@ -1300,7 +1300,7 @@ CxPlatTlsSecConfigCreate(
             QuicTraceEvent(
                 LibraryErrorStatus,
                 "[ lib] ERROR, %u, %s.",
-                (uint32_t)ERR_get_error(),
+                ERR_get_error(),
                 "SSL_CTX_use_certificate_chain_file failed");
             Status = QUIC_STATUS_TLS_ERROR;
             goto Exit;
@@ -1315,7 +1315,7 @@ CxPlatTlsSecConfigCreate(
             QuicTraceEvent(
                 LibraryErrorStatus,
                 "[ lib] ERROR, %u, %s.",
-                (uint32_t)ERR_get_error(),
+                ERR_get_error(),
                 "BIO_new failed");
             Status = QUIC_STATUS_TLS_ERROR;
             goto Exit;
@@ -1334,7 +1334,7 @@ CxPlatTlsSecConfigCreate(
                 QuicTraceEvent(
                     LibraryErrorStatus,
                     "[ lib] ERROR, %u, %s.",
-                    (uint32_t)ERR_get_error(),
+                    ERR_get_error(),
                     "BIO_write failed");
                 Status = QUIC_STATUS_TLS_ERROR;
                 goto Exit;
@@ -1369,7 +1369,7 @@ CxPlatTlsSecConfigCreate(
                 QuicTraceEvent(
                     LibraryErrorStatus,
                     "[ lib] ERROR, %u, %s.",
-                    (uint32_t)ERR_get_error(),
+                    ERR_get_error(),
                     "BIO_write failed");
                 Status = QUIC_STATUS_TLS_ERROR;
                 goto Exit;
@@ -1384,7 +1384,7 @@ CxPlatTlsSecConfigCreate(
             QuicTraceEvent(
                 LibraryErrorStatus,
                 "[ lib] ERROR, %u, %s.",
-                (uint32_t)ERR_get_error(),
+                ERR_get_error(),
                 "d2i_PKCS12_bio failed");
             Status = QUIC_STATUS_TLS_ERROR;
             goto Exit;
@@ -1414,7 +1414,7 @@ CxPlatTlsSecConfigCreate(
             QuicTraceEvent(
                 LibraryErrorStatus,
                 "[ lib] ERROR, %u, %s.",
-                (uint32_t)ERR_get_error(),
+                ERR_get_error(),
                 "PKCS12_parse failed");
             Status = QUIC_STATUS_TLS_ERROR;
             goto Exit;
@@ -1428,7 +1428,7 @@ CxPlatTlsSecConfigCreate(
             QuicTraceEvent(
                 LibraryErrorStatus,
                 "[ lib] ERROR, %u, %s.",
-                (uint32_t)ERR_get_error(),
+                ERR_get_error(),
                 "SSL_CTX_use_PrivateKey_file failed");
             Status = QUIC_STATUS_TLS_ERROR;
             goto Exit;
@@ -1442,7 +1442,7 @@ CxPlatTlsSecConfigCreate(
             QuicTraceEvent(
                 LibraryErrorStatus,
                 "[ lib] ERROR, %u, %s.",
-                (uint32_t)ERR_get_error(),
+                ERR_get_error(),
                 "SSL_CTX_use_certificate failed");
             Status = QUIC_STATUS_TLS_ERROR;
             goto Exit;
@@ -1455,7 +1455,7 @@ CxPlatTlsSecConfigCreate(
             QuicTraceEvent(
                 LibraryErrorStatus,
                 "[ lib] ERROR, %u, %s.",
-                (uint32_t)ERR_get_error(),
+                ERR_get_error(),
                 "SSL_CTX_check_private_key failed");
             Status = QUIC_STATUS_TLS_ERROR;
             goto Exit;
@@ -1590,7 +1590,7 @@ CxPlatTlsSecConfigSetTicketKeys(
                 AllocFailure,
                 "Allocation of '%s' failed. (%llu bytes)",
                 "QUIC_TICKET_KEY_CONFIG",
-                (uint64_t)sizeof(QUIC_TICKET_KEY_CONFIG));
+                sizeof(QUIC_TICKET_KEY_CONFIG));
             return QUIC_STATUS_OUT_OF_MEMORY;
         }
     }
@@ -1634,7 +1634,7 @@ CxPlatTlsInitialize(
             AllocFailure,
             "Allocation of '%s' failed. (%llu bytes)",
             "CXPLAT_TLS",
-            (uint64_t)sizeof(CXPLAT_TLS));
+            sizeof(CXPLAT_TLS));
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         goto Exit;
     }
@@ -1676,7 +1676,7 @@ CxPlatTlsInitialize(
                     AllocFailure,
                     "Allocation of '%s' failed. (%llu bytes)",
                     "SNI",
-                    (uint64_t)(ServerNameLength + 1));
+                    ServerNameLength + 1);
                 Status = QUIC_STATUS_OUT_OF_MEMORY;
                 goto Exit;
             }
@@ -1732,7 +1732,7 @@ CxPlatTlsInitialize(
                             TlsErrorStatus,
                             "[ tls][%p] ERROR, %u, %s.",
                             TlsContext->Connection,
-                            (uint32_t)ERR_get_error(),
+                            ERR_get_error(),
                             "SSL_set_session failed");
                     }
                     SSL_SESSION_free(Session);
@@ -1741,7 +1741,7 @@ CxPlatTlsInitialize(
                         TlsErrorStatus,
                         "[ tls][%p] ERROR, %u, %s.",
                         TlsContext->Connection,
-                        (uint32_t)ERR_get_error(),
+                        ERR_get_error(),
                         "PEM_read_bio_SSL_SESSION failed");
                 }
                 BIO_free(Bio);
@@ -1750,7 +1750,7 @@ CxPlatTlsInitialize(
                     TlsErrorStatus,
                     "[ tls][%p] ERROR, %u, %s.",
                     TlsContext->Connection,
-                    (uint32_t)ERR_get_error(),
+                    ERR_get_error(),
                     "BIO_new_mem_buf failed");
             }
         }
@@ -1868,7 +1868,7 @@ CxPlatTlsProcessData(
                 TlsErrorStatus,
                 "[ tls][%p] ERROR, %u, %s.",
                 TlsContext->Connection,
-                (uint32_t)ERR_get_error(),
+                ERR_get_error(),
                 "SSL_SESSION_set1_ticket_appdata failed");
             TlsContext->ResultFlags |= CXPLAT_TLS_RESULT_ERROR;
             goto Exit;
@@ -1879,7 +1879,7 @@ CxPlatTlsProcessData(
                 TlsErrorStatus,
                 "[ tls][%p] ERROR, %u, %s.",
                 TlsContext->Connection,
-                (uint32_t)ERR_get_error(),
+                ERR_get_error(),
                 "SSL_new_session_ticket failed");
             TlsContext->ResultFlags |= CXPLAT_TLS_RESULT_ERROR;
             goto Exit;
@@ -1917,7 +1917,7 @@ CxPlatTlsProcessData(
                 OpenSslQuicDataErrorStr,
                 TlsContext->Connection,
                 "SSL_provide_quic_data failed: %s",
-                ERR_error_string((uint32_t)ERR_get_error(), buf));
+                ERR_error_string(ERR_get_error(), buf));
             TlsContext->ResultFlags |= CXPLAT_TLS_RESULT_ERROR;
             goto Exit;
         }
@@ -2102,7 +2102,7 @@ CxPlatTlsProcessData(
                 TlsErrorStatus,
                 "[ tls][%p] ERROR, %u, %s.",
                 TlsContext->Connection,
-                (uint32_t)ERR_get_error(),
+                ERR_get_error(),
                 "SSL_process_quic_post_handshake failed");
             TlsContext->ResultFlags |= CXPLAT_TLS_RESULT_ERROR;
             goto Exit;

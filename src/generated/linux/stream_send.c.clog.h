@@ -352,9 +352,9 @@ tracepoint(CLOG_STREAM_SEND_C, SendDumpAck , arg1, arg3, arg4);\
         StreamSendState,
         "[strm][%p] Send State: %hhu",
         Stream,
-        (uint8_t)QuicStreamSendGetState(Stream));
+        QuicStreamSendGetState(Stream));
 // arg2 = arg2 = Stream = arg2
-// arg3 = arg3 = (uint8_t)QuicStreamSendGetState(Stream) = arg3
+// arg3 = arg3 = QuicStreamSendGetState(Stream) = arg3
 ----------------------------------------------------------*/
 #ifndef _clog_4_ARGS_TRACE_StreamSendState
 #define _clog_4_ARGS_TRACE_StreamSendState(uniqueId, encoded_arg_string, arg2, arg3)\

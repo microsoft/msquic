@@ -168,7 +168,7 @@ CxPlatPcpInitialize(
             AllocFailure,
             "Allocation of '%s' failed. (%llu bytes)",
             "CXPLAT_PCP",
-            (uint64_t)PcpContextSize);
+            PcpContextSize);
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         goto Exit;
     }

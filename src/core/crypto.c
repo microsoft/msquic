@@ -138,7 +138,7 @@ QuicCryptoInitialize(
             AllocFailure,
             "Allocation of '%s' failed. (%llu bytes)",
             "crypto send buffer",
-            (uint64_t)SendBufferLength);
+            SendBufferLength);
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         goto Exit;
     }
@@ -1412,7 +1412,7 @@ QuicCryptoProcessTlsCompletion(
             ConnWriteKeyUpdated,
             "[conn][%p] Write Key Updated, %hhu.",
             Connection,
-            (uint8_t)Crypto->TlsState.WriteKey);
+            Crypto->TlsState.WriteKey);
         CXPLAT_DBG_ASSERT(Crypto->TlsState.WriteKey <= QUIC_PACKET_KEY_1_RTT);
         _Analysis_assume_(Crypto->TlsState.WriteKey >= 0);
         CXPLAT_TEL_ASSERT(Crypto->TlsState.WriteKeys[Crypto->TlsState.WriteKey] != NULL);
@@ -1475,7 +1475,7 @@ QuicCryptoProcessTlsCompletion(
             ConnReadKeyUpdated,
             "[conn][%p] Read Key Updated, %hhu.",
             Connection,
-            (uint8_t)Crypto->TlsState.ReadKey);
+            Crypto->TlsState.ReadKey);
 
         //
         // If we have the read key, we must also have the write key.
@@ -2116,7 +2116,7 @@ QuicCryptoEncodeServerTicket(
             AllocFailure,
             "Allocation of '%s' failed. (%llu bytes)",
             "Server resumption ticket",
-            (uint64_t)TotalTicketLength);
+            TotalTicketLength);
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         goto Error;
     }
@@ -2376,7 +2376,7 @@ QuicCryptoEncodeClientTicket(
             AllocFailure,
             "Allocation of '%s' failed. (%llu bytes)",
             "Client resumption ticket",
-            (uint64_t)ClientTicketBufferLength);
+            ClientTicketBufferLength);
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         goto Error;
     }
@@ -2609,7 +2609,7 @@ QuicCryptoReNegotiateAlpn(
                 AllocFailure,
                 "Allocation of '%s' failed. (%llu bytes)",
                 "NegotiatedAlpn",
-                (uint64_t)NegotiatedAlpnLength);
+                NegotiatedAlpnLength);
             QuicConnTransportError(
                 Connection,
                 QUIC_ERROR_INTERNAL_ERROR);

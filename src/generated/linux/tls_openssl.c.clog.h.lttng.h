@@ -35,9 +35,9 @@ TRACEPOINT_EVENT(CLOG_TLS_OPENSSL_C, OpenSslAlert,
                 OpenSslQuicDataErrorStr,
                 TlsContext->Connection,
                 "SSL_provide_quic_data failed: %s",
-                ERR_error_string((uint32_t)ERR_get_error(), buf));
+                ERR_error_string(ERR_get_error(), buf));
 // arg1 = arg1 = TlsContext->Connection = arg1
-// arg3 = arg3 = ERR_error_string((uint32_t)ERR_get_error(), buf) = arg3
+// arg3 = arg3 = ERR_error_string(ERR_get_error(), buf) = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_TLS_OPENSSL_C, OpenSslQuicDataErrorStr,
     TP_ARGS(
@@ -540,9 +540,9 @@ TRACEPOINT_EVENT(CLOG_TLS_OPENSSL_C, LibraryError,
                 AllocFailure,
                 "Allocation of '%s' failed. (%llu bytes)",
                 "New crypto buffer",
-                (uint64_t)NewBufferAllocLength);
+                NewBufferAllocLength);
 // arg2 = arg2 = "New crypto buffer" = arg2
-// arg3 = arg3 = (uint64_t)NewBufferAllocLength = arg3
+// arg3 = arg3 = NewBufferAllocLength = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_TLS_OPENSSL_C, AllocFailure,
     TP_ARGS(
@@ -563,10 +563,10 @@ TRACEPOINT_EVENT(CLOG_TLS_OPENSSL_C, AllocFailure,
                 TlsErrorStatus,
                 "[ tls][%p] ERROR, %u, %s.",
                 TlsContext->Connection,
-                (uint32_t)ERR_get_error(),
+                ERR_get_error(),
                 "PEM_write_bio_SSL_SESSION failed");
 // arg2 = arg2 = TlsContext->Connection = arg2
-// arg3 = arg3 = (uint32_t)ERR_get_error() = arg3
+// arg3 = arg3 = ERR_get_error() = arg3
 // arg4 = arg4 = "PEM_write_bio_SSL_SESSION failed" = arg4
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_TLS_OPENSSL_C, TlsErrorStatus,

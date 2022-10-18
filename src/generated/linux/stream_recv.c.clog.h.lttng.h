@@ -409,9 +409,9 @@ TRACEPOINT_EVENT(CLOG_STREAM_RECV_C, IndicatePeerSendShutdown,
         StreamRecvState,
         "[strm][%p] Recv State: %hhu",
         Stream,
-        (uint8_t)QuicStreamRecvGetState(Stream));
+        QuicStreamRecvGetState(Stream));
 // arg2 = arg2 = Stream = arg2
-// arg3 = arg3 = (uint8_t)QuicStreamRecvGetState(Stream) = arg3
+// arg3 = arg3 = QuicStreamRecvGetState(Stream) = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_STREAM_RECV_C, StreamRecvState,
     TP_ARGS(
@@ -432,9 +432,9 @@ TRACEPOINT_EVENT(CLOG_STREAM_RECV_C, StreamRecvState,
                     AllocFailure,
                     "Allocation of '%s' failed. (%llu bytes)",
                     "Flush Stream Recv operation",
-                    0ULL);
+                    0);
 // arg2 = arg2 = "Flush Stream Recv operation" = arg2
-// arg3 = arg3 = 0ULL = arg3
+// arg3 = arg3 = 0 = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_STREAM_RECV_C, AllocFailure,
     TP_ARGS(

@@ -50,7 +50,7 @@ QuicBindingInitialize(
             AllocFailure,
             "Allocation of '%s' failed. (%llu bytes)",
             "QUIC_BINDING",
-            (uint64_t)sizeof(QUIC_BINDING));
+            sizeof(QUIC_BINDING));
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         goto Error;
     }
@@ -533,7 +533,7 @@ QuicBindingAcceptConnection(
                 AllocFailure,
                 "Allocation of '%s' failed. (%llu bytes)",
                 "NegotiatedAlpn",
-                (uint64_t)NegotiatedAlpnLength);
+                NegotiatedAlpnLength);
             QuicConnTransportError(
                 Connection,
                 QUIC_ERROR_INTERNAL_ERROR);
@@ -777,7 +777,7 @@ QuicBindingQueueStatelessOperation(
             AllocFailure,
             "Allocation of '%s' failed. (%llu bytes)",
             "stateless operation",
-            (uint64_t)sizeof(QUIC_OPERATION));
+            sizeof(QUIC_OPERATION));
         QuicPacketLogDrop(
             Binding,
             CxPlatDataPathRecvDataToRecvPacket(Datagram),
@@ -824,7 +824,7 @@ QuicBindingProcessStatelessOperation(
             AllocFailure,
             "Allocation of '%s' failed. (%llu bytes)",
             "stateless send data",
-            0ULL);
+            0);
         goto Exit;
     }
 
@@ -858,7 +858,7 @@ QuicBindingProcessStatelessOperation(
                 AllocFailure,
                 "Allocation of '%s' failed. (%llu bytes)",
                 "vn datagram",
-                (uint64_t)PacketLength);
+                PacketLength);
             goto Exit;
         }
 
@@ -945,7 +945,7 @@ QuicBindingProcessStatelessOperation(
                 AllocFailure,
                 "Allocation of '%s' failed. (%llu bytes)",
                 "reset datagram",
-                (uint64_t)PacketLength);
+                PacketLength);
             goto Exit;
         }
 
@@ -986,7 +986,7 @@ QuicBindingProcessStatelessOperation(
                 AllocFailure,
                 "Allocation of '%s' failed. (%llu bytes)",
                 "retry datagram",
-                (uint64_t)PacketLength);
+                PacketLength);
             goto Exit;
         }
 

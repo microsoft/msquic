@@ -780,7 +780,7 @@ QuicWorkerPoolInitialize(
             AllocFailure,
             "Allocation of '%s' failed. (%llu bytes)",
             "QUIC_WORKER_POOL",
-            (uint64_t)WorkerPoolSize);
+            WorkerPoolSize);
         return QUIC_STATUS_OUT_OF_MEMORY;
     }
 

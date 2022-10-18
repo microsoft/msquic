@@ -393,9 +393,9 @@ TRACEPOINT_EVENT(CLOG_STREAM_SEND_C, SendDumpAck,
         StreamSendState,
         "[strm][%p] Send State: %hhu",
         Stream,
-        (uint8_t)QuicStreamSendGetState(Stream));
+        QuicStreamSendGetState(Stream));
 // arg2 = arg2 = Stream = arg2
-// arg3 = arg3 = (uint8_t)QuicStreamSendGetState(Stream) = arg3
+// arg3 = arg3 = QuicStreamSendGetState(Stream) = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_STREAM_SEND_C, StreamSendState,
     TP_ARGS(

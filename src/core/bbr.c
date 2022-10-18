@@ -294,8 +294,8 @@ QuicConnLogBbr(
             BbrCongestionControlGetCongestionWindow(Cc),
             Bbr->BytesInFlight,
             Bbr->BytesInFlightMax,
-            (unsigned long)Bbr->MinRtt,
-            (unsigned long)(BbrCongestionControlGetBandwidth(Cc) / BW_UNIT),
+            Bbr->MinRtt,
+            BbrCongestionControlGetBandwidth(Cc) / BW_UNIT,
             BbrCongestionControlIsAppLimited(Cc));
 }
 

@@ -860,7 +860,7 @@ QuicCryptoTlsEncodeTransportParameters(
             AllocFailure,
             "Allocation of '%s' failed. (%llu bytes)",
             "TP buffer",
-            (uint64_t)(CxPlatTlsTPHeaderSize + RequiredTPLen));
+            CxPlatTlsTPHeaderSize + RequiredTPLen);
         return NULL;
     }
 
@@ -1162,7 +1162,7 @@ QuicCryptoTlsEncodeTransportParameters(
             EncodeTPTest,
             Connection,
             "TP: TEST TP (Type %hu, Length %hu)",
-            (uint16_t)TestParam->Type,
+            TestParam->Type,
             TestParam->Length);
     }
 
@@ -1750,7 +1750,7 @@ QuicCryptoTlsDecodeTransportParameters( // NOLINT(readability-function-size, goo
                         AllocFailure,
                         "Allocation of '%s' failed. (%llu bytes)",
                         "Version Negotiation Info",
-                        (uint64_t)Length);
+                        Length);
                     break;
                 }
                 CxPlatCopyMemory((uint8_t*)TransportParams->VersionInfo, TPBuf + Offset, Length);
@@ -1864,7 +1864,7 @@ QuicCryptoTlsCopyTransportParameters(
                 AllocFailure,
                 "Allocation of '%s' failed. (%llu bytes)",
                 "Version Negotiation Info",
-                (uint64_t)Source->VersionInfoLength);
+                Source->VersionInfoLength);
             return QUIC_STATUS_OUT_OF_MEMORY;
         }
         Destination->Flags |= QUIC_TP_FLAG_VERSION_NEGOTIATION;

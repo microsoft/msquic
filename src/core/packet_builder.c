@@ -270,7 +270,7 @@ QuicPacketBuilderPrepare(
                     AllocFailure,
                     "Allocation of '%s' failed. (%llu bytes)",
                     "packet send context",
-                    0ULL);
+                    0);
                 goto Error;
             }
             SendDataAllocated = TRUE;
@@ -294,7 +294,7 @@ QuicPacketBuilderPrepare(
                 AllocFailure,
                 "Allocation of '%s' failed. (%llu bytes)",
                 "packet datagram",
-                (uint64_t)NewDatagramLength);
+                NewDatagramLength);
             if (SendDataAllocated) {
                 CxPlatSendDataFree(Builder->SendData);
                 Builder->SendData = NULL;

@@ -66,7 +66,7 @@ CxPlatLoadCipher(
         QuicTraceEvent(
             LibraryErrorStatus,
             "[ lib] ERROR, %u, %s.",
-            (uint32_t)ERR_get_error(),
+            ERR_get_error(),
             cipher_name);
         return 0;
     }
@@ -84,7 +84,7 @@ CxPlatLoadMAC(
         QuicTraceEvent(
             LibraryErrorStatus,
             "[ lib] ERROR, %u, %s.",
-            (uint32_t)ERR_get_error(),
+            ERR_get_error(),
             "EVP_MAC_fetch failed");
         return 0;
     }
@@ -249,7 +249,7 @@ CxPlatKeyCreate(
             AllocFailure,
             "Allocation of '%s' failed. (%llu bytes)",
             "EVP_CIPHER_CTX_new",
-            UINT64_C(0));
+            0);
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         goto Exit;
     }
@@ -296,7 +296,7 @@ CxPlatKeyCreate(
         QuicTraceEvent(
             LibraryErrorStatus,
             "[ lib] ERROR, %u, %s.",
-            (uint32_t)ERR_get_error(),
+            ERR_get_error(),
             "EVP_CIPHER_CTX_ctrl (SET_IVLEN) failed");
         Status = QUIC_STATUS_TLS_ERROR;
         goto Exit;
@@ -434,7 +434,7 @@ CxPlatDecrypt(
         QuicTraceEvent(
             LibraryErrorStatus,
             "[ lib] ERROR, %u, %s.",
-            (uint32_t)ERR_get_error(),
+            ERR_get_error(),
             "EVP_DecryptInit_ex failed");
         return QUIC_STATUS_TLS_ERROR;
     }
@@ -444,7 +444,7 @@ CxPlatDecrypt(
         QuicTraceEvent(
             LibraryErrorStatus,
             "[ lib] ERROR, %u, %s.",
-            (uint32_t)ERR_get_error(),
+            ERR_get_error(),
             "EVP_DecryptUpdate (AD) failed");
         return QUIC_STATUS_TLS_ERROR;
     }
@@ -453,7 +453,7 @@ CxPlatDecrypt(
         QuicTraceEvent(
             LibraryErrorStatus,
             "[ lib] ERROR, %u, %s.",
-            (uint32_t)ERR_get_error(),
+            ERR_get_error(),
             "EVP_DecryptUpdate (Cipher) failed");
         return QUIC_STATUS_TLS_ERROR;
     }
@@ -474,7 +474,7 @@ CxPlatDecrypt(
         QuicTraceEvent(
             LibraryErrorStatus,
             "[ lib] ERROR, %u, %s.",
-            (uint32_t)ERR_get_error(),
+            ERR_get_error(),
             "EVP_CIPHER_CTX_ctrl (SET_TAG) failed");
         return QUIC_STATUS_TLS_ERROR;
     }
@@ -484,7 +484,7 @@ CxPlatDecrypt(
         QuicTraceEvent(
             LibraryErrorStatus,
             "[ lib] ERROR, %u, %s.",
-            (uint32_t)ERR_get_error(),
+            ERR_get_error(),
             "EVP_DecryptFinal_ex failed");
         return QUIC_STATUS_TLS_ERROR;
     }
@@ -511,7 +511,7 @@ CxPlatHpKeyCreate(
             AllocFailure,
             "Allocation of '%s' failed. (%llu bytes)",
             "CXPLAT_HP_KEY",
-            (uint64_t)sizeof(CXPLAT_HP_KEY));
+            sizeof(CXPLAT_HP_KEY));
         return QUIC_STATUS_OUT_OF_MEMORY;
     }
 
@@ -523,7 +523,7 @@ CxPlatHpKeyCreate(
             AllocFailure,
             "Allocation of '%s' failed. (%llu bytes)",
             "EVP_CIPHER_CTX_new",
-            UINT64_C(0));
+            0);
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         goto Exit;
     }

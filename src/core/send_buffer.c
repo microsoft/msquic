@@ -94,7 +94,7 @@ QuicSendBufferAlloc(
             AllocFailure,
             "Allocation of '%s' failed. (%llu bytes)",
             "sendbuffer",
-            (uint64_t)Size);
+            Size);
     }
 
     return Buf;

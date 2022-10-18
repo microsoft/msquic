@@ -28,9 +28,9 @@ extern "C" {
             AllocFailure,
             "Allocation of '%s' failed. (%llu bytes)",
             "packet space",
-            (uint64_t)sizeof(QUIC_PACKET_SPACE));
+            sizeof(QUIC_PACKET_SPACE));
 // arg2 = arg2 = "packet space" = arg2
-// arg3 = arg3 = (uint64_t)sizeof(QUIC_PACKET_SPACE) = arg3
+// arg3 = arg3 = sizeof(QUIC_PACKET_SPACE) = arg3
 ----------------------------------------------------------*/
 #ifndef _clog_4_ARGS_TRACE_AllocFailure
 #define _clog_4_ARGS_TRACE_AllocFailure(uniqueId, encoded_arg_string, arg2, arg3)\

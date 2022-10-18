@@ -96,9 +96,9 @@ TRACEPOINT_EVENT(CLOG_PACKET_BUILDER_C, ConnError,
                     AllocFailure,
                     "Allocation of '%s' failed. (%llu bytes)",
                     "packet send context",
-                    0ULL);
+                    0);
 // arg2 = arg2 = "packet send context" = arg2
-// arg3 = arg3 = 0ULL = arg3
+// arg3 = arg3 = 0 = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_PACKET_BUILDER_C, AllocFailure,
     TP_ARGS(

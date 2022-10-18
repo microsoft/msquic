@@ -244,7 +244,7 @@ Exit:
         StreamSendState,
         "[strm][%p] Send State: %hhu",
         Stream,
-        (uint8_t)QuicStreamSendGetState(Stream));
+        QuicStreamSendGetState(Stream));
 
     if (Silent) {
         QuicStreamTryCompleteShutdown(Stream);
@@ -1435,7 +1435,7 @@ QuicStreamOnAck(
                     StreamSendState,
                     "[strm][%p] Send State: %hhu",
                     Stream,
-                    (uint8_t)QuicStreamSendGetState(Stream));
+                    QuicStreamSendGetState(Stream));
                 QuicStreamIndicateSendShutdownComplete(Stream, TRUE);
                 QuicStreamTryCompleteShutdown(Stream);
             }
@@ -1507,7 +1507,7 @@ QuicStreamOnResetAck(
             StreamSendState,
             "[strm][%p] Send State: %hhu",
             Stream,
-            (uint8_t)QuicStreamSendGetState(Stream));
+            QuicStreamSendGetState(Stream));
         QuicStreamIndicateSendShutdownComplete(Stream, FALSE);
         QuicStreamTryCompleteShutdown(Stream);
     }

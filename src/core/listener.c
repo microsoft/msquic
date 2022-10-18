@@ -57,7 +57,7 @@ MsQuicListenerOpen(
             AllocFailure,
             "Allocation of '%s' failed. (%llu bytes)",
             "listener",
-            (uint64_t)sizeof(QUIC_LISTENER));
+            sizeof(QUIC_LISTENER));
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         goto Error;
     }
@@ -249,7 +249,7 @@ MsQuicListenerStart(
             AllocFailure,
             "Allocation of '%s' failed. (%llu bytes)",
             "AlpnList" ,
-            (uint64_t)AlpnListLength);
+            AlpnListLength);
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         goto Exit;
     }

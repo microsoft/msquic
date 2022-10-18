@@ -52,9 +52,9 @@ tracepoint(CLOG_SEND_BUFFER_C, IndicateIdealSendBuffer , arg1, arg3);\
             AllocFailure,
             "Allocation of '%s' failed. (%llu bytes)",
             "sendbuffer",
-            (uint64_t)Size);
+            Size);
 // arg2 = arg2 = "sendbuffer" = arg2
-// arg3 = arg3 = (uint64_t)Size = arg3
+// arg3 = arg3 = Size = arg3
 ----------------------------------------------------------*/
 #ifndef _clog_4_ARGS_TRACE_AllocFailure
 #define _clog_4_ARGS_TRACE_AllocFailure(uniqueId, encoded_arg_string, arg2, arg3)\

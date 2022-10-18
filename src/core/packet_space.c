@@ -30,7 +30,7 @@ QuicPacketSpaceInitialize(
             AllocFailure,
             "Allocation of '%s' failed. (%llu bytes)",
             "packet space",
-            (uint64_t)sizeof(QUIC_PACKET_SPACE));
+            sizeof(QUIC_PACKET_SPACE));
         return QUIC_STATUS_OUT_OF_MEMORY;
     }
 

@@ -369,7 +369,7 @@ QuicPacketGenerateRetryIntegrity(
             AllocFailure,
             "Allocation of '%s' failed. (%llu bytes)",
             "RetryPseudoPacket",
-            (uint64_t)RetryPseudoPacketLength);
+            RetryPseudoPacketLength);
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         goto Exit;
     }

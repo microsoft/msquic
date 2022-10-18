@@ -119,9 +119,9 @@ TRACEPOINT_EVENT(CLOG_CONFIGURATION_C, ApiEnter,
             AllocFailure,
             "Allocation of '%s' failed. (%llu bytes)",
             "QUIC_CONFIGURATION" ,
-            (uint64_t)sizeof(QUIC_CONFIGURATION));
+            sizeof(QUIC_CONFIGURATION));
 // arg2 = arg2 = "QUIC_CONFIGURATION" = arg2
-// arg3 = arg3 = (uint64_t)sizeof(QUIC_CONFIGURATION) = arg3
+// arg3 = arg3 = sizeof(QUIC_CONFIGURATION) = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CONFIGURATION_C, AllocFailure,
     TP_ARGS(

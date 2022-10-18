@@ -578,7 +578,7 @@ CxPlatDataPathInitialize(
             AllocFailure,
             "Allocation of '%s' failed. (%llu bytes)",
             "CXPLAT_DATAPATH",
-            (uint64_t)DatapathLength);
+            DatapathLength);
         return QUIC_STATUS_OUT_OF_MEMORY;
     }
 
@@ -697,7 +697,7 @@ CxPlatDataPathAllocRecvBlock(
             AllocFailure,
             "Allocation of '%s' failed. (%llu bytes)",
             "CXPLAT_DATAPATH_RECV_BLOCK",
-            0ULL);
+            0);
     } else {
         CxPlatZeroMemory(RecvBlock, sizeof(*RecvBlock));
         RecvBlock->OwningPool = &DatapathProc->RecvBlockPool;
@@ -1404,7 +1404,7 @@ CxPlatSocketContextPrepareReceive(
                     AllocFailure,
                     "Allocation of '%s' failed. (%llu bytes)",
                     "CXPLAT_DATAPATH_RECV_BLOCK",
-                    0ULL);
+                    0);
                 return QUIC_STATUS_OUT_OF_MEMORY;
             }
         }
@@ -1550,8 +1550,8 @@ CxPlatSocketContextRecvComplete(
             DatapathRecv,
             "[data][%p] Recv %u bytes (segment=%hu) Src=%!ADDR! Dst=%!ADDR!",
             SocketContext->Binding,
-            RecvPacket->BufferLength,
-            RecvPacket->BufferLength,
+            (uint32_t)RecvPacket->BufferLength,
+            (uint32_t)RecvPacket->BufferLength,
             CASTED_CLOG_BYTEARRAY(sizeof(*LocalAddr), LocalAddr),
             CASTED_CLOG_BYTEARRAY(sizeof(*RemoteAddr), RemoteAddr));
     }
@@ -1818,7 +1818,7 @@ CxPlatSocketCreateUdp(
             AllocFailure,
             "Allocation of '%s' failed. (%llu bytes)",
             "CXPLAT_SOCKET",
-            (uint64_t)BindingLength);
+            BindingLength);
         goto Exit;
     }
 
@@ -2058,7 +2058,7 @@ CxPlatSendDataAlloc(
             AllocFailure,
             "Allocation of '%s' failed. (%llu bytes)",
             "CXPLAT_SEND_DATA",
-            0ULL);
+            0);
         goto Exit;
     }
 

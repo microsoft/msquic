@@ -588,10 +588,10 @@ tracepoint(CLOG_CRYPTO_TLS_C, EncodeTPGreaseQuicBit , arg1);\
             EncodeTPTest,
             Connection,
             "TP: TEST TP (Type %hu, Length %hu)",
-            (uint16_t)TestParam->Type,
+            TestParam->Type,
             TestParam->Length);
 // arg1 = arg1 = Connection = arg1
-// arg3 = arg3 = (uint16_t)TestParam->Type = arg3
+// arg3 = arg3 = TestParam->Type = arg3
 // arg4 = arg4 = TestParam->Length = arg4
 ----------------------------------------------------------*/
 #ifndef _clog_5_ARGS_TRACE_EncodeTPTest
@@ -1142,9 +1142,9 @@ tracepoint(CLOG_CRYPTO_TLS_C, ConnError , arg2, arg3);\
             AllocFailure,
             "Allocation of '%s' failed. (%llu bytes)",
             "TP buffer",
-            (uint64_t)(CxPlatTlsTPHeaderSize + RequiredTPLen));
+            CxPlatTlsTPHeaderSize + RequiredTPLen);
 // arg2 = arg2 = "TP buffer" = arg2
-// arg3 = arg3 = (uint64_t)(CxPlatTlsTPHeaderSize + RequiredTPLen) = arg3
+// arg3 = arg3 = CxPlatTlsTPHeaderSize + RequiredTPLen = arg3
 ----------------------------------------------------------*/
 #ifndef _clog_4_ARGS_TRACE_AllocFailure
 #define _clog_4_ARGS_TRACE_AllocFailure(uniqueId, encoded_arg_string, arg2, arg3)\

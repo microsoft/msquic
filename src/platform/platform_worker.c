@@ -132,7 +132,7 @@ CxPlatWorkersLazyStart(
             AllocFailure,
             "Allocation of '%s' failed. (%llu bytes)",
             "CXPLAT_WORKER",
-            (uint64_t)WorkersSize);
+            WorkersSize);
         CxPlatWorkerCount = 0;
         goto Error;
     }

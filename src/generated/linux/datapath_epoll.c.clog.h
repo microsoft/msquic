@@ -110,9 +110,9 @@ tracepoint(CLOG_DATAPATH_EPOLL_C, DatapathResolveHostNameFailed , arg2, arg3);\
             AllocFailure,
             "Allocation of '%s' failed. (%llu bytes)",
             "CXPLAT_DATAPATH",
-            (uint64_t)DatapathLength);
+            DatapathLength);
 // arg2 = arg2 = "CXPLAT_DATAPATH" = arg2
-// arg3 = arg3 = (uint64_t)DatapathLength = arg3
+// arg3 = arg3 = DatapathLength = arg3
 ----------------------------------------------------------*/
 #ifndef _clog_4_ARGS_TRACE_AllocFailure
 #define _clog_4_ARGS_TRACE_AllocFailure(uniqueId, encoded_arg_string, arg2, arg3)\
@@ -172,13 +172,13 @@ tracepoint(CLOG_DATAPATH_EPOLL_C, DatapathErrorStatus , arg2, arg3, arg4);\
             DatapathRecv,
             "[data][%p] Recv %u bytes (segment=%hu) Src=%!ADDR! Dst=%!ADDR!",
             SocketContext->Binding,
-            RecvPacket->BufferLength,
-            RecvPacket->BufferLength,
+            (uint32_t)RecvPacket->BufferLength,
+            (uint32_t)RecvPacket->BufferLength,
             CASTED_CLOG_BYTEARRAY(sizeof(*LocalAddr), LocalAddr),
             CASTED_CLOG_BYTEARRAY(sizeof(*RemoteAddr), RemoteAddr));
 // arg2 = arg2 = SocketContext->Binding = arg2
-// arg3 = arg3 = RecvPacket->BufferLength = arg3
-// arg4 = arg4 = RecvPacket->BufferLength = arg4
+// arg3 = arg3 = (uint32_t)RecvPacket->BufferLength = arg3
+// arg4 = arg4 = (uint32_t)RecvPacket->BufferLength = arg4
 // arg5 = arg5 = CASTED_CLOG_BYTEARRAY(sizeof(*LocalAddr), LocalAddr) = arg5
 // arg6 = arg6 = CASTED_CLOG_BYTEARRAY(sizeof(*RemoteAddr), RemoteAddr) = arg6
 ----------------------------------------------------------*/

@@ -52,9 +52,9 @@ tracepoint(CLOG_DATAPATH_KQUEUE_C, DatapathResolveHostNameFailed , arg2, arg3);\
             AllocFailure,
             "Allocation of '%s' failed. (%llu bytes)",
             "CXPLAT_DATAPATH",
-            (uint64_t)DatapathLength);
+            DatapathLength);
 // arg2 = arg2 = "CXPLAT_DATAPATH" = arg2
-// arg3 = arg3 = (uint64_t)DatapathLength = arg3
+// arg3 = arg3 = DatapathLength = arg3
 ----------------------------------------------------------*/
 #ifndef _clog_4_ARGS_TRACE_AllocFailure
 #define _clog_4_ARGS_TRACE_AllocFailure(uniqueId, encoded_arg_string, arg2, arg3)\
@@ -115,12 +115,12 @@ tracepoint(CLOG_DATAPATH_KQUEUE_C, DatapathErrorStatus , arg2, arg3, arg4);\
         "[data][%p] Recv %u bytes (segment=%hu) Src=%!ADDR! Dst=%!ADDR!",
         SocketContext->Binding,
         (uint32_t)BytesTransferred,
-        (uint16_t)BytesTransferred,
+        (uint32_t)BytesTransferred,
         CASTED_CLOG_BYTEARRAY(sizeof(*LocalAddr), LocalAddr),
         CASTED_CLOG_BYTEARRAY(sizeof(*RemoteAddr), RemoteAddr));
 // arg2 = arg2 = SocketContext->Binding = arg2
 // arg3 = arg3 = (uint32_t)BytesTransferred = arg3
-// arg4 = arg4 = (uint16_t)BytesTransferred = arg4
+// arg4 = arg4 = (uint32_t)BytesTransferred = arg4
 // arg5 = arg5 = CASTED_CLOG_BYTEARRAY(sizeof(*LocalAddr), LocalAddr) = arg5
 // arg6 = arg6 = CASTED_CLOG_BYTEARRAY(sizeof(*RemoteAddr), RemoteAddr) = arg6
 ----------------------------------------------------------*/
@@ -181,13 +181,13 @@ tracepoint(CLOG_DATAPATH_KQUEUE_C, DatapathDestroyed , arg2);\
             "[data][%p] Send %u bytes in %hhu buffers (segment=%hu) Dst=%!ADDR!, Src=%!ADDR!",
             Socket,
             SendData->TotalSize,
-            (uint8_t)SendData->BufferCount,
+            SendData->BufferCount,
             SendData->SegmentSize,
             CASTED_CLOG_BYTEARRAY(sizeof(*RemoteAddress), RemoteAddress),
             CASTED_CLOG_BYTEARRAY(sizeof(*LocalAddress), LocalAddress));
 // arg2 = arg2 = Socket = arg2
 // arg3 = arg3 = SendData->TotalSize = arg3
-// arg4 = arg4 = (uint8_t)SendData->BufferCount = arg4
+// arg4 = arg4 = SendData->BufferCount = arg4
 // arg5 = arg5 = SendData->SegmentSize = arg5
 // arg6 = arg6 = CASTED_CLOG_BYTEARRAY(sizeof(*RemoteAddress), RemoteAddress) = arg6
 // arg7 = arg7 = CASTED_CLOG_BYTEARRAY(sizeof(*LocalAddress), LocalAddress) = arg7

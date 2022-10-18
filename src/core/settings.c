@@ -294,7 +294,7 @@ QuicSettingsCopyVersionSettings(
             AllocFailure,
             "Allocation of '%s' failed. (%llu bytes)",
             "VersionSettings",
-            (uint64_t)AllocSize);
+            AllocSize);
         return Destination;
     }
     Destination->AcceptableVersions = (uint32_t*)(Destination + 1);
@@ -925,7 +925,7 @@ QuicSettingsLoad(
                     AllocFailure,
                     "Allocation of '%s' failed. (%llu bytes)",
                     "VersionSettings",
-                    (uint64_t)AllocSize);
+                    AllocSize);
                 goto VersionSettingsFail;
             }
             VersionSettings->AcceptableVersions = (uint32_t*)(VersionSettings + 1);

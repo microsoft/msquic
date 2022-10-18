@@ -295,7 +295,7 @@ MsQuicLibraryInitialize(
         QuicTraceEvent(
             AllocFailure,
             "Allocation of '%s' failed. (%llu bytes)", "default compatibility list",
-            (uint64_t)CompatibilityListByteLength);
+            CompatibilityListByteLength);
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         goto Error;
     }
@@ -339,7 +339,7 @@ MsQuicLibraryInitialize(
         QuicTraceEvent(
             AllocFailure,
             "Allocation of '%s' failed. (%llu bytes)", "connection pools",
-            (uint64_t)(MsQuicLib.ProcessorCount * sizeof(QUIC_LIBRARY_PP)));
+            MsQuicLib.ProcessorCount * sizeof(QUIC_LIBRARY_PP));
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         goto Error;
     }
@@ -983,7 +983,7 @@ QuicLibrarySetGlobalParam(
                 AllocFailure,
                 "Allocation of '%s' failed. (%llu bytes)",
                 "Execution config",
-                (uint64_t)BufferLength);
+                BufferLength);
             Status = QUIC_STATUS_OUT_OF_MEMORY;
             break;
         }

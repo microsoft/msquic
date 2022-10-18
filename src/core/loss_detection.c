@@ -380,7 +380,7 @@ QuicLossDetectionUpdateTimer(
             ConnLossDetectionTimerSet,
             "[conn][%p] Setting loss detection %hhu timer for %u us. (ProbeCount=%hu)",
             Connection,
-            (uint8_t)TimeoutType,
+            TimeoutType,
             Delay,
             LossDetection->ProbeCount);
         UNREFERENCED_PARAMETER(TimeoutType);
@@ -414,7 +414,7 @@ QuicLossDetectionOnPacketSent(
             AllocFailure,
             "Allocation of '%s' failed. (%llu bytes)",
             "Sent packet metadata",
-            (uint64_t)SIZEOF_QUIC_SENT_PACKET_METADATA(TempSentPacket->FrameCount));
+            SIZEOF_QUIC_SENT_PACKET_METADATA(TempSentPacket->FrameCount));
         QuicLossDetectionRetransmitFrames(LossDetection, TempSentPacket, FALSE);
         QuicSentPacketMetadataReleaseFrames(TempSentPacket);
         return;
@@ -1000,7 +1000,7 @@ QuicLossDetectionDetectAndHandleLostPackets(
                         Connection,
                         Packet->PacketNumber,
                         QuicPacketTraceType(Packet),
-                        (uint8_t)QUIC_TRACE_PACKET_LOSS_FACK);
+                        QUIC_TRACE_PACKET_LOSS_FACK);
                 }
             } else if (Packet->PacketNumber < LossDetection->LargestAck &&
                         CxPlatTimeAtOrBefore32(Packet->SentTime + TimeReorderThreshold, TimeNow)) {
@@ -1017,7 +1017,7 @@ QuicLossDetectionDetectAndHandleLostPackets(
                         Connection,
                         Packet->PacketNumber,
                         QuicPacketTraceType(Packet),
-                        (uint8_t)QUIC_TRACE_PACKET_LOSS_RACK);
+                        QUIC_TRACE_PACKET_LOSS_RACK);
                 }
             } else {
                 break;
@@ -1686,7 +1686,7 @@ QuicLossDetectionScheduleProbe(
                 Connection,
                 Packet->PacketNumber,
                 QuicPacketTraceType(Packet),
-                (uint8_t)QUIC_TRACE_PACKET_LOSS_PROBE);
+                QUIC_TRACE_PACKET_LOSS_PROBE);
             if (QuicLossDetectionRetransmitFrames(LossDetection, Packet, FALSE) &&
                 --NumPackets == 0) {
                 return;

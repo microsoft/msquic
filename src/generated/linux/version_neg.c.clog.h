@@ -56,9 +56,9 @@ tracepoint(CLOG_VERSION_NEG_C, VersionInfoDecodeFailed1 , arg1, arg3);\
                 VersionInfoDecodeFailed2,
                 Connection,
                 "Version info too short to contain any Available Versions (%hu bytes)",
-                (uint16_t)(BufferLength - Offset));
+                (unsigned)(BufferLength - Offset));
 // arg1 = arg1 = Connection = arg1
-// arg3 = arg3 = (uint16_t)(BufferLength - Offset) = arg3
+// arg3 = arg3 = (unsigned)(BufferLength - Offset) = arg3
 ----------------------------------------------------------*/
 #ifndef _clog_4_ARGS_TRACE_VersionInfoDecodeFailed2
 #define _clog_4_ARGS_TRACE_VersionInfoDecodeFailed2(uniqueId, arg1, encoded_arg_string, arg3)\
@@ -76,10 +76,10 @@ tracepoint(CLOG_VERSION_NEG_C, VersionInfoDecodeFailed2 , arg1, arg3);\
             ServerVersionInfoDecodeFailed3,
             Connection,
             "Version info contains partial Other Version (%hu bytes vs. %u bytes)",
-            (uint16_t)(BufferLength - Offset),
+            (unsigned)(BufferLength - Offset),
             (BufferLength - Offset) / (unsigned)sizeof(uint32_t));
 // arg1 = arg1 = Connection = arg1
-// arg3 = arg3 = (uint16_t)(BufferLength - Offset) = arg3
+// arg3 = arg3 = (unsigned)(BufferLength - Offset) = arg3
 // arg4 = arg4 = (BufferLength - Offset) / (unsigned)sizeof(uint32_t) = arg4
 ----------------------------------------------------------*/
 #ifndef _clog_5_ARGS_TRACE_ServerVersionInfoDecodeFailed3
@@ -212,9 +212,9 @@ tracepoint(CLOG_VERSION_NEG_C, ConnVNEOtherVersionList , arg2, arg3_len, arg3);\
                 AllocFailure,
                 "Allocation of '%s' failed. (%llu bytes)",
                 "Server Version Info",
-                (uint64_t)VILen);
+                VILen);
 // arg2 = arg2 = "Server Version Info" = arg2
-// arg3 = arg3 = (uint64_t)VILen = arg3
+// arg3 = arg3 = VILen = arg3
 ----------------------------------------------------------*/
 #ifndef _clog_4_ARGS_TRACE_AllocFailure
 #define _clog_4_ARGS_TRACE_AllocFailure(uniqueId, encoded_arg_string, arg2, arg3)\
