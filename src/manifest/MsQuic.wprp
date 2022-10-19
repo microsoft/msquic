@@ -20,6 +20,8 @@
         <Keyword Value="Loader"/>
         <Keyword Value="ProcessThread"/>
         <Keyword Value="SampledProfile"/>
+        <Keyword Value="DPC"/>
+        <Keyword Value="Interrupt"/>
       </Keywords>
       <Stacks>
         <Stack Value="SampledProfile"/>
@@ -119,6 +121,15 @@
     </Profile>
     <Profile Id="Stacks.Light.Memory" Base="Stacks.Light.File" Name="Stacks" Description="CPU Stacks" LoggingMode="Memory" DetailLevel="Light"/>
 
+    <Profile Id="Stacks.Verbose.File" Name="Stacks" Description="Detailed CPU Stacks" LoggingMode="File" DetailLevel="Verbose">
+      <Collectors>
+        <SystemCollectorId Value="SC_HighVolume">
+          <SystemProviderId Value="SP_SystemThreadExecutionDetail" />
+        </SystemCollectorId>
+      </Collectors>
+    </Profile>
+    <Profile Id="Stacks.Verbose.Memory" Base="Stacks.Light.File" Name="Stacks" Description="CPU Stacks" LoggingMode="Memory" DetailLevel="Verbose"/>
+
     <Profile Id="RPS.Light.File" Name="RPS" Description="RPS related MsQuic ETW Events" LoggingMode="File" DetailLevel="Light">
       <Collectors>
         <EventCollectorId Value="EC_HighVolume">
@@ -173,6 +184,9 @@
 
     <Profile Id="Basic.Light.File" Name="Basic" Description="Low Volume MsQuic ETW Events" LoggingMode="File" DetailLevel="Light">
       <Collectors>
+        <SystemCollectorId Value="SC_HighVolume">
+          <SystemProviderId Value="SP_SystemThreadExecution" />
+        </SystemCollectorId>
         <EventCollectorId Value="EC_LowVolume">
           <EventProviders>
             <EventProviderId Value="EP_MsQuicEtw_LowVolume" />
@@ -184,6 +198,9 @@
 
     <Profile Id="Basic.Verbose.File" Name="Basic" Description="All MsQuic ETW Events" LoggingMode="File" DetailLevel="Verbose">
       <Collectors>
+        <SystemCollectorId Value="SC_HighVolume">
+          <SystemProviderId Value="SP_SystemThreadExecution" />
+        </SystemCollectorId>
         <EventCollectorId Value="EC_HighVolume">
           <EventProviders>
             <EventProviderId Value="EP_MsQuicEtw" />
