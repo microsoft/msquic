@@ -595,8 +595,6 @@ BOOLEAN
 CxPlatSendDataEctSet(
     _In_ CXPLAT_SEND_DATA* SendData
     );
-
-
 //
 // Frees a send context returned from a previous call to QuicSendDataAlloc.
 //
