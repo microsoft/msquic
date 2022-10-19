@@ -3473,7 +3473,7 @@
     },
     "EcnValidationFailure": {
       "ModuleProperites": {},
-      "TraceString": "[conn][%p] ECN validation failed: EncryptLevel %d EcnEctCounter %llu EcnCeCounters %llu NumPacketsSentWithEct %llu EctCeDeltaSum %lld EcnValidationState %u",
+      "TraceString": "[conn][%p] ECN failed: EL %d EctCnt %llu CeCnt %llu TxEct %llu DeltaSum %lld State %u",
       "UniqueId": "EcnValidationFailure",
       "splitArgs": [
         {
@@ -3509,8 +3509,20 @@
     },
     "EcnValidationSuccess": {
       "ModuleProperites": {},
-      "TraceString": "[conn][%p] ECN validation succeeded.",
+      "TraceString": "[conn][%p] ECN succeeded.",
       "UniqueId": "EcnValidationSuccess",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        }
+      ],
+      "macroName": "QuicTraceLogConnInfo"
+    },
+    "EcnValidationUnknown": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] ECN unknown.",
+      "UniqueId": "EcnValidationUnknown",
       "splitArgs": [
         {
           "DefinationEncoding": "p",
@@ -13180,14 +13192,19 @@
         "EncodingString": "[conn][%p] Updated ECN enabled to %hhu"
       },
       {
-        "UniquenessHash": "9f5ebd0c-d2f8-c5b0-cc5f-35e00b37434f",
+        "UniquenessHash": "d9d92498-f1e0-c26d-b532-74c2311b607c",
         "TraceID": "EcnValidationFailure",
-        "EncodingString": "[conn][%p] ECN validation failed: EncryptLevel %d EcnEctCounter %llu EcnCeCounters %llu NumPacketsSentWithEct %llu EctCeDeltaSum %lld EcnValidationState %u"
+        "EncodingString": "[conn][%p] ECN failed: EL %d EctCnt %llu CeCnt %llu TxEct %llu DeltaSum %lld State %u"
       },
       {
-        "UniquenessHash": "accf3f26-b536-b51f-0706-b687b6424c7f",
+        "UniquenessHash": "2fd085ac-656c-8e23-9f2f-a7c4116dbe83",
         "TraceID": "EcnValidationSuccess",
-        "EncodingString": "[conn][%p] ECN validation succeeded."
+        "EncodingString": "[conn][%p] ECN succeeded."
+      },
+      {
+        "UniquenessHash": "59a602dd-2f8a-6b1d-4fe2-2ac0c1316f05",
+        "TraceID": "EcnValidationUnknown",
+        "EncodingString": "[conn][%p] ECN unknown."
       },
       {
         "UniquenessHash": "d276c997-5dfb-645e-b54a-7ec567967851",

@@ -1157,6 +1157,10 @@ QuicSendFlush(
             if (!CxPlatTimeAtOrBefore64(
                     CxPlatTimeUs64(), Builder.Path->EcnTestingEndingTime)) {
                 Builder.Path->EcnValidationState = ECN_VALIDATION_UNKNOWN;
+                QuicTraceLogConnInfo(
+                    EcnValidationUnknown,
+                    Connection,
+                    "ECN unknown.");
             }
         } else {
             uint32_t ThreePtosInUs =
