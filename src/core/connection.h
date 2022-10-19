@@ -194,7 +194,6 @@ typedef union QUIC_CONNECTION_STATE {
         //
         BOOLEAN DisableVneTp : 1;
 #endif
-
     };
 } QUIC_CONNECTION_STATE;
 

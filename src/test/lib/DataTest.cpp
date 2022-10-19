@@ -2171,7 +2171,6 @@ struct EcnTestContext {
         auto TestContext = (EcnTestContext*)Context;
         if (Event->Type == QUIC_STREAM_EVENT_RECEIVE) {
             TestContext->ServerStreamRecv.Set();
-            return QUIC_STATUS_PENDING;
         } else if (Event->Type == QUIC_STREAM_EVENT_SHUTDOWN_COMPLETE) {
             TestContext->ServerStreamHasShutdown = true;
             TestContext->ServerStreamShutdown.Set();
@@ -2231,9 +2230,7 @@ QuicTestEcn(
 
         TEST_TRUE(Context.ServerStreamRecv.WaitTimeout(TestWaitTimeout));
         CxPlatSleep(50);
-        TEST_FALSE(Context.ServerStreamHasShutdown);
 
-        Context.ServerStream->ReceiveComplete(100);
         TEST_TRUE(Context.ServerStreamShutdown.WaitTimeout(TestWaitTimeout));
         TEST_TRUE(Context.ServerStreamHasShutdown);
 
@@ -2281,10 +2278,7 @@ QuicTestEcn(
 
         TEST_TRUE(Context.ServerStreamRecv.WaitTimeout(TestWaitTimeout));
         CxPlatSleep(50);
-        TEST_FALSE(Context.ServerStreamHasShutdown);
-        Context.ServerStream->ReceiveComplete(100);
         TEST_TRUE(Context.ServerStreamShutdown.WaitTimeout(TestWaitTimeout));
-        TEST_TRUE(Context.ServerStreamHasShutdown);
 
         QUIC_STATISTICS_V2 Stats;
         Connection.GetStatistics(&Stats);
@@ -2327,7 +2321,6 @@ QuicTestEcn(
         TEST_QUIC_SUCCEEDED(Stream.Send(&Buffer, 1, QUIC_SEND_FLAG_START));
         TEST_TRUE(Context.ServerStreamRecv.WaitTimeout(TestWaitTimeout));
         CxPlatSleep(50);
-        Context.ServerStream->ReceiveComplete(100);
         QUIC_STATISTICS_V2 Stats;
         Connection.GetStatistics(&Stats);
         TEST_TRUE(Stats.EcnCapable);
@@ -2341,7 +2334,6 @@ QuicTestEcn(
         TEST_QUIC_SUCCEEDED(Stream.Send(&AnotherBuffer, 1, QUIC_SEND_FLAG_FIN));
         TEST_TRUE(Context.ServerStreamRecv.WaitTimeout(TestWaitTimeout));
         CxPlatSleep(50);
-        Context.ServerStream->ReceiveComplete(100);
         TEST_TRUE(Context.ServerStreamShutdown.WaitTimeout(TestWaitTimeout));
         TEST_TRUE(Context.ServerStreamHasShutdown);
         Connection.GetStatistics(&Stats);

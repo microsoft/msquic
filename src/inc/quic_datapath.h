@@ -587,15 +587,6 @@ CxPlatSendDataAlloc(
     );
 
 //
-// Returns whether ECT bit is set in the send context.
-//
-_IRQL_requires_max_(DISPATCH_LEVEL)
-_Success_(return != NULL)
-BOOLEAN
-CxPlatSendDataEctSet(
-    _In_ CXPLAT_SEND_DATA* SendData
-    );
-//
 // Frees a send context returned from a previous call to QuicSendDataAlloc.
 //
 _IRQL_requires_max_(DISPATCH_LEVEL)

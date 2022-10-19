@@ -1213,7 +1213,7 @@ QuicSettingsDump(
     QuicTraceLogVerbose(SettingCongestionControlAlgorithm,  "[sett] CongestionControlAlgorithm = %hu", Settings->CongestionControlAlgorithm);
     QuicTraceLogVerbose(SettingDestCidUpdateIdleTimeoutMs,  "[sett] DestCidUpdateIdleTimeoutMs = %u", Settings->DestCidUpdateIdleTimeoutMs);
     QuicTraceLogVerbose(SettingGreaseQuicBitEnabled,        "[sett] GreaseQuicBitEnabled   = %hhu", Settings->GreaseQuicBitEnabled);
-    QuicTraceLogVerbose(SettingEcnEnabled,                  "[sett] EcnEnabled   = %hhu", Settings->EcnEnabled);
+    QuicTraceLogVerbose(SettingEcnEnabled,                  "[sett] EcnEnabled             = %hhu", Settings->EcnEnabled);
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
