@@ -322,6 +322,24 @@ tracepoint(CLOG_LIBRARY_C, LibraryLoadBalancingModeSetAfterInUse );\
 
 
 /*----------------------------------------------------------
+// Decoder Ring for PerfCountersRundown
+// [ lib] Perf counters Rundown, Counters=%!CID!
+// QuicTraceEvent(
+        PerfCountersRundown,
+        "[ lib] Perf counters Rundown, Counters=%!CID!",
+        CASTED_CLOG_BYTEARRAY(sizeof(PerfCounterSamples), PerfCounterSamples));
+// arg2 = arg2 = CASTED_CLOG_BYTEARRAY(sizeof(PerfCounterSamples), PerfCounterSamples) = arg2
+----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_PerfCountersRundown
+#define _clog_4_ARGS_TRACE_PerfCountersRundown(uniqueId, encoded_arg_string, arg2, arg2_len)\
+tracepoint(CLOG_LIBRARY_C, PerfCountersRundown , arg2_len, arg2);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for AllocFailure
 // Allocation of '%s' failed. (%llu bytes)
 // QuicTraceEvent(
@@ -570,24 +588,6 @@ tracepoint(CLOG_LIBRARY_C, DataPathRundown , arg2);\
 #ifndef _clog_3_ARGS_TRACE_LibrarySendRetryStateUpdated
 #define _clog_3_ARGS_TRACE_LibrarySendRetryStateUpdated(uniqueId, encoded_arg_string, arg2)\
 tracepoint(CLOG_LIBRARY_C, LibrarySendRetryStateUpdated , arg2);\
-
-#endif
-
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for PerfCountersRundown
-// [ lib] Perf counters Rundown, Counters=%!CID!
-// QuicTraceEvent(
-            PerfCountersRundown,
-            "[ lib] Perf counters Rundown, Counters=%!CID!",
-            CASTED_CLOG_BYTEARRAY(sizeof(PerfCounters), PerfCounters));
-// arg2 = arg2 = CASTED_CLOG_BYTEARRAY(sizeof(PerfCounters), PerfCounters) = arg2
-----------------------------------------------------------*/
-#ifndef _clog_4_ARGS_TRACE_PerfCountersRundown
-#define _clog_4_ARGS_TRACE_PerfCountersRundown(uniqueId, encoded_arg_string, arg2, arg2_len)\
-tracepoint(CLOG_LIBRARY_C, PerfCountersRundown , arg2_len, arg2);\
 
 #endif
 

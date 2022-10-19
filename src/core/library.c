@@ -159,6 +159,11 @@ QuicPerfCounterSnapShot(
         (uint8_t*)PerfCounterSamples,
         sizeof(PerfCounterSamples));
 
+    QuicTraceEvent(
+        PerfCountersRundown,
+        "[ lib] Perf counters Rundown, Counters=%!CID!",
+        CASTED_CLOG_BYTEARRAY(sizeof(PerfCounterSamples), PerfCounterSamples));
+
 // Ensure a perf counter stays below a given max Hz/frequency.
 #define QUIC_COUNTER_LIMIT_HZ(TYPE, LIMIT_PER_SECOND) \
     CXPLAT_TEL_ASSERT( \
