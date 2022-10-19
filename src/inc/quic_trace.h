@@ -131,23 +131,32 @@ extern QUIC_TRACE_RUNDOWN_CALLBACK* QuicTraceRundownCallback;
 #if defined(QUIC_EVENTS_STDOUT) || defined(QUIC_LOGS_STDOUT) ||                \
     defined(QUIC_EVENTS_STUB) || defined(QUIC_LOGS_STUB)
 
+struct clog_param {
+    char * str;
+    struct clog_param * next;
+};
+
 #if defined(QUIC_EVENTS_STDOUT) || defined(QUIC_LOGS_STDOUT)
 extern
 #ifdef __cplusplus
     "C"
 #endif
-void //__attribute__((format(printf, 1, 2)))
-clog_stdout(const char * format, ...);
+void //__attribute__((format(printf, 2, 3)))
+clog_stdout(struct clog_param * head, const char * format, ...);
 #else
-inline void //__attribute__((format(printf, 1, 2)))
-clog_stdout(const char * format, ...)
+inline void //__attribute__((format(printf, 2, 3)))
+clog_stdout(struct clog_param * head, const char * format, ...)
 {
+    UNREFERENCED_PARAMETER(head);
     UNREFERENCED_PARAMETER(format);
 }
 #endif
 
-#define clog(Fmt, ...) clog_stdout((Fmt), ##__VA_ARGS__)
-
+#define clog(Fmt, ...)                                                         \
+    do {                                                                       \
+        struct clog_param * __head = 0;                                        \
+        clog_stdout(__head, (Fmt), ##__VA_ARGS__);                             \
+    } while (0)
 
 #endif
 
@@ -156,40 +165,30 @@ clog_stdout(const char * format, ...)
 
 #define QuicTraceEvent(Name, Fmt, ...) clog((Fmt "\n"), ##__VA_ARGS__)
 
-#define QUIC_CLOG_BYTEARRAY_MAX_LEN 256
-
 #if defined(QUIC_EVENTS_STDOUT)
 extern
 #ifdef __cplusplus
     "C"
 #endif
 char * __attribute__((no_instrument_function))
-hex2str(const uint8_t * const src,
-        const size_t len_src,
-        char * const dst,
-        const size_t len_dst);
+casted_clog_bytearray(const uint8_t * const data,
+                      const size_t len,
+                      struct clog_param ** head);
 #else
 inline char * __attribute__((no_instrument_function))
-hex2str(const uint8_t * const src,
-        const size_t len_src,
-        char * const dst,
-        const size_t len_dst)
+casted_clog_bytearray(const uint8_t * const data,
+                      const size_t len,
+                      struct clog_param ** head)
 {
-    UNREFERENCED_PARAMETER(src);
-    UNREFERENCED_PARAMETER(len_src);
-    UNREFERENCED_PARAMETER(dst);
-    UNREFERENCED_PARAMETER(len_dst);
-    return dst;
+    UNREFERENCED_PARAMETER(data);
+    UNREFERENCED_PARAMETER(len);
+    UNREFERENCED_PARAMETER(head);
+    return 0;
 }
 #endif
 
-// TODO: This just prints CASTED_CLOG_BYTEARRAYs as hexdumps. It would be nice
-// to print the individual datatypes in better ways.
-
 #define CASTED_CLOG_BYTEARRAY(Len, Data)                                       \
-    hex2str((const uint8_t *)(Data), (Len),                                    \
-            (char[QUIC_CLOG_BYTEARRAY_MAX_LEN]){""},                           \
-            CXPLAT_MAX(QUIC_CLOG_BYTEARRAY_MAX_LEN - 1, (Len)*2 + 1))
+    casted_clog_bytearray((const uint8_t *)(Data), (Len), &__head)
 
 #endif
 

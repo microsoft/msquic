@@ -567,7 +567,7 @@ else() #!WIN32
         list(APPEND QUIC_COMMON_DEFINES DISABLE_POSIX_GSO)
     endif()
 
-    if (QUIC_ENABLE_SANITIZERS)
+    if (QUIC_ENABLE_SANITIZERS AND NOT APPLE)
         set(QUIC_ENABLE_LOGGING OFF)
         message(WARNING "LTTng logging is incompatible with sanitizers. Skipping logging")
     endif()
