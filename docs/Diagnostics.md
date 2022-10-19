@@ -99,7 +99,7 @@ wpr.exe -start MsQuic.wprp!PROFILE -filemode
 You must replace `PROFILE` with the name of the profile you want to run. Some of the useful profiles are:
 
 - `Stacks.Light`- Collects CPU callstacks.
-- `Stacks.Verbose`- Collects CPU callstacks, DPUs and interrupts.
+- `Stacks.Verbose`- Collects CPU callstacks, DPCs and interrupts.
 - `Performance.Light` - Collects performance related events useful for automated tool processing.
 - `Performance.Verbose` - Collects `Performance.Light` plus CPU callstacks.
 - `Basic.Light` - Collects general, "low volume" MsQuic events. Useful for a "big picture" understanding, with as few events collected as possible.
