@@ -19,6 +19,11 @@ Abstract:
 #include <quic_trace.h>
 
 
+void EncodeHexBuffer(_In_reads_(BufferLen) uint8_t * Buffer,
+                     _In_ uint8_t BufferLen,
+                     _Out_writes_bytes_(2 * BufferLen) char * HexString);
+
+
 char * casted_clog_bytearray(const uint8_t * const data,
                              const size_t len,
                              struct clog_param ** head)
