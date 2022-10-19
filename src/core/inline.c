@@ -800,3 +800,10 @@ QuicMtuDiscoveryCheckSearchCompleteTimeout(
     _In_ QUIC_CONNECTION* Connection,
     _In_ uint64_t TimeNow
     );
+
+char * __attribute__((no_instrument_function))
+casted_clog_bytearray(const uint8_t * const data,
+                      const size_t len,
+                      struct clog_param ** head);
+
+void clog_stdout(struct clog_param * head, const char * format, ...);
