@@ -2190,9 +2190,11 @@ struct EcnTestContext {
 
 void
 QuicTestEcn(
-    void
+    _In_ int Family
     )
 {
+    QUIC_ADDRESS_FAMILY QuicAddrFamily = (Family == 4) ? QUIC_ADDRESS_FAMILY_INET : QUIC_ADDRESS_FAMILY_INET6;
+
     //
     // Postive ECN test.
     //
@@ -2216,7 +2218,7 @@ QuicTestEcn(
 
         MsQuicConnection Connection(Registration);
         TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
-        TEST_QUIC_SUCCEEDED(Connection.Start(ClientConfiguration, ServerLocalAddr.GetFamily(), QUIC_TEST_LOOPBACK_FOR_AF(ServerLocalAddr.GetFamily()), ServerLocalAddr.GetPort()));
+        TEST_QUIC_SUCCEEDED(Connection.Start(ClientConfiguration, QuicAddrFamily, QUIC_TEST_LOOPBACK_FOR_AF(QuicAddrFamily), ServerLocalAddr.GetPort()));
 
         MsQuicStream Stream(Connection, QUIC_STREAM_OPEN_FLAG_UNIDIRECTIONAL);
         TEST_QUIC_SUCCEEDED(Stream.GetInitStatus());

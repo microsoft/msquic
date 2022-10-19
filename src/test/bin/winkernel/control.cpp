@@ -478,7 +478,7 @@ size_t QUIC_IOCTL_BUFFER_SIZES[] =
     sizeof(UINT8),
     sizeof(UINT8),
     sizeof(UINT8),
-    0,
+    sizeof(INT32),
 };
 
 CXPLAT_STATIC_ASSERT(
@@ -1312,7 +1312,8 @@ QuicTestCtlEvtIoDeviceControl(
             QuicTestVNTPOtherVersionZero(Params->TestServerVNTP != 0));
         break;
     case IOCTL_QUIC_RUN_ECN:
-        QuicTestCtlRun(QuicTestEcn());
+        CXPLAT_FRE_ASSERT(Params != nullptr);
+        QuicTestCtlRun(QuicTestEcn(Params->Family));
         break;
 #endif
 

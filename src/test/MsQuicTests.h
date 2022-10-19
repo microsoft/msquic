@@ -511,7 +511,7 @@ QuicTestStreamAbortConnFlowControl(
 
 void
 QuicTestEcn(
-    void
+    _In_ int Family
     );
 
 //
