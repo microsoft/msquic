@@ -28,20 +28,6 @@
       </Stacks>
     </SystemProvider>
 
-    <SystemProvider Id="SP_SystemThreadExecutionMedium">
-      <Keywords>
-        <Keyword Value="CpuConfig"/>
-        <Keyword Value="Loader"/>
-        <Keyword Value="ProcessThread"/>
-        <Keyword Value="SampledProfile"/>
-        <Keyword Value="DPC"/>
-        <Keyword Value="Interrupt"/>
-      </Keywords>
-      <Stacks>
-        <Stack Value="SampledProfile"/>
-      </Stacks>
-    </SystemProvider>
-
     <SystemProvider Id="SP_SystemThreadExecutionDetail">
       <Keywords>
           <Keyword Value="ProcessThread"/>
