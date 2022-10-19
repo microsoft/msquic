@@ -14,23 +14,9 @@ Abstract:
 #include <stdlib.h>
 #include <string.h>
 
+#include <msquichelper.h>
 #include <quic_platform.h>
 #include <quic_trace.h>
-
-
-char *
-hex2str(const uint8_t * const src, const size_t len_src, char * const dst)
-{
-    static const char hex[] = "0123456789abcdef";
-
-    for (size_t i = 0; i < len_src; i++) {
-        dst[i * 2] = hex[(src[i] >> 4) & 0x0f];
-        dst[i * 2 + 1] = hex[src[i] & 0x0f];
-    }
-    dst[len_src * 2 + 1] = 0;
-
-    return dst;
-}
 
 
 char * casted_clog_bytearray(const uint8_t * const data,
@@ -53,7 +39,8 @@ char * casted_clog_bytearray(const uint8_t * const data,
         // unsure what this is, just hexdump it
         param->str = CXPLAT_ALLOC_PAGED(len * 2 + 1, QUIC_POOL_TMP_ALLOC);
         CXPLAT_FRE_ASSERT(param->str);
-        hex2str(data, len, param->str);
+        EncodeHexBuffer((uint8_t *)data, len, param->str);
+        param->str[len * 2 + 1] = 0;
 
     } else {
         param->str = 0;
