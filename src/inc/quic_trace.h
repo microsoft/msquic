@@ -25,7 +25,7 @@ Abstract:
 
     QUIC_LOGS_STUB              No-op all Logs
     QUIC_LOGS_MANIFEST_ETW      Write to Windows ETW framework
-    QUIC_LOGS_STDOUT            Write to Windows ETW framework
+    QUIC_LOGS_STDOUT            Write to stdout
 
     QUIC_CLOG                   Bypasses these mechanisms and uses CLOG to generate logging
 
