@@ -30,22 +30,27 @@ char * casted_clog_bytearray(const uint8_t * const data,
 {
     struct clog_param * const param =
         CXPLAT_ALLOC_PAGED(sizeof(*param), QUIC_POOL_TMP_ALLOC);
-    CXPLAT_FRE_ASSERT(param);
+    if (param == 0) {
+        return 0;
+    }
 
     // try to be clever about how to print this thing
     if (len == sizeof(QUIC_ADDR)) {
         // this seems to be a QUIC_ADDR, so print it nicely
         param->str =
             CXPLAT_ALLOC_PAGED(sizeof(QUIC_ADDR_STR), QUIC_POOL_TMP_ALLOC);
-        CXPLAT_FRE_ASSERT(param->str);
-        QuicAddrToString((const QUIC_ADDR *)data, (QUIC_ADDR_STR *)param->str);
+        if (param->str) {
+            QuicAddrToString((const QUIC_ADDR *)data,
+                             (QUIC_ADDR_STR *)param->str);
+        }
 
     } else if (len) {
         // unsure what this is, just hexdump it
         param->str = CXPLAT_ALLOC_PAGED(len * 2 + 1, QUIC_POOL_TMP_ALLOC);
-        CXPLAT_FRE_ASSERT(param->str);
-        EncodeHexBuffer((uint8_t *)data, len, param->str);
-        param->str[len * 2 + 1] = 0;
+        if (param->str) {
+            EncodeHexBuffer((uint8_t *)data, len, param->str);
+            param->str[len * 2 + 1] = 0;
+        }
 
     } else {
         param->str = 0;
