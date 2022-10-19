@@ -67,9 +67,21 @@ char * casted_clog_bytearray(const uint8_t * const data,
 
 void clog_stdout(struct clog_param * head, const char * const format, ...)
 {
+    char * reformat;
+
+    if (strstr(format, "%!") == 0) {
+        // if there are no clog specifiers, just print
+        reformat = (char *)format;
+        goto JustPrint;
+    }
+
     // replace clog specifiers in the format string
     const char * repls[] = {"!CID!", "!ADDR!", "!VNL!", "!ALPN!"};
-    char * reformat = strdup(format);
+    reformat = strdup(format);
+    if (reformat == 0) {
+        printf("[Could not reformat log entry: %s]\n", format);
+        goto Exit;
+    }
 
     for (size_t i = 0; i < ARRAYSIZE(repls); i++) {
         char * match = reformat;
@@ -90,13 +102,17 @@ void clog_stdout(struct clog_param * head, const char * const format, ...)
         }
     }
 
+JustPrint:
     // print the log line
     va_list ap;
     va_start(ap, format);
     vprintf(reformat, ap);
     va_end(ap);
-    free(reformat);
+    if (reformat != format) {
+        free(reformat);
+    }
 
+Exit:
     // free the param structure
     while (head) {
         struct clog_param * const next = head->next;
