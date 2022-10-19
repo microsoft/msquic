@@ -2707,8 +2707,7 @@ struct StreamBlockUnblockConnFlowControl {
         auto TestContext = (StreamBlockUnblockConnFlowControl*)Context;
         if (Event->Type == QUIC_STREAM_EVENT_SEND_COMPLETE && !Event->SEND_COMPLETE.Canceled) {
             TestContext->ClientStreamSendComplete.Set();
-        }
-        else if (Event->Type == QUIC_STREAM_EVENT_SHUTDOWN_COMPLETE) {
+        } else if (Event->Type == QUIC_STREAM_EVENT_SHUTDOWN_COMPLETE) {
             TestContext->ClientStreamShutdownComplete.Set();
         }
         return QUIC_STATUS_SUCCESS;
@@ -2718,8 +2717,7 @@ struct StreamBlockUnblockConnFlowControl {
         auto TestContext = (StreamBlockUnblockConnFlowControl*)Context;
         if (Event->Type == QUIC_STREAM_EVENT_RECEIVE) {
             TestContext->ServerStreamReceive.Set();
-        } else if (Event->Type == QUIC_STREAM_EVENT_PEER_SEND_SHUTDOWN)
-        {
+        } else if (Event->Type == QUIC_STREAM_EVENT_PEER_SEND_SHUTDOWN) {
             Stream->Shutdown(0, QUIC_STREAM_SHUTDOWN_FLAG_GRACEFUL);
         }
         return QUIC_STATUS_SUCCESS;
@@ -2733,7 +2731,7 @@ struct StreamBlockUnblockConnFlowControl {
         } else if (Event->Type == QUIC_CONNECTION_EVENT_PEER_NEEDS_STREAMS) {
             TestContext->NeedsStreamCount += 1;
             TestContext->ServerConnectionPeerNeedsStreams.Set();
-            if(Event->PEER_NEEDS_STREAMS.Bidirectional) {
+            if (Event->PEER_NEEDS_STREAMS.Bidirectional) {
                 Connection->SetSettings(MsQuicSettings{}.SetPeerBidiStreamCount(TestContext->NeedsStreamCount));
             } else {
                 Connection->SetSettings(MsQuicSettings{}.SetPeerUnidiStreamCount(TestContext->NeedsStreamCount));
