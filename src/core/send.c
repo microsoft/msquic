@@ -1154,8 +1154,7 @@ QuicSendFlush(
         Builder.EcnEctSet = TRUE;
     } else if (Builder.Path->EcnValidationState == ECN_VALIDATION_TESTING) {
         if (Builder.Path->EcnTestingEndingTime != 0) {
-            if (!CxPlatTimeAtOrBefore64(
-                    CxPlatTimeUs64(), Builder.Path->EcnTestingEndingTime)) {
+            if (!CxPlatTimeAtOrBefore64(TimeNow, Builder.Path->EcnTestingEndingTime)) {
                 Builder.Path->EcnValidationState = ECN_VALIDATION_UNKNOWN;
                 QuicTraceLogConnInfo(
                     EcnValidationUnknown,
