@@ -340,14 +340,14 @@ TRACEPOINT_EVENT(CLOG_LOSS_DETECTION_C, EcnValidationSuccess,
                     "ECN failed: EL %d EctCnt %llu CeCnt %llu TxEct %llu DeltaSum %lld State %u",
                     EncryptLevel,
                     Packets->EcnEctCounter, Packets->EcnCeCounter,
-                    Connection->NumPacketsSentWithEct,
+                    Connection->Send.NumPacketsSentWithEct,
                     EctCeDeltaSum,
                     Path->EcnValidationState);
 // arg1 = arg1 = Connection = arg1
 // arg3 = arg3 = EncryptLevel = arg3
 // arg4 = arg4 = Packets->EcnEctCounter = arg4
 // arg5 = arg5 = Packets->EcnCeCounter = arg5
-// arg6 = arg6 = Connection->NumPacketsSentWithEct = arg6
+// arg6 = arg6 = Connection->Send.NumPacketsSentWithEct = arg6
 // arg7 = arg7 = EctCeDeltaSum = arg7
 // arg8 = arg8 = Path->EcnValidationState = arg8
 ----------------------------------------------------------*/
