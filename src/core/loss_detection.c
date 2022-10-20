@@ -1519,9 +1519,7 @@ QuicLossDetectionProcessAckBlocks(
                     Ecn->ECT_1_Count != 0 ||
                     Connection->Send.NumPacketsSentWithEct < Ecn->ECT_0_Count) {
                     EcnValidated = FALSE;
-                }
-
-                if (EcnValidated) {
+                } else {
                     //
                     // TODO: Notify CC of the ECN signal before we update the CE counts.
                     //
