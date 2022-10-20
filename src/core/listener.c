@@ -201,7 +201,6 @@ MsQuicListenerStart(
     BOOLEAN PortUnspecified;
     QUIC_ADDR BindingLocalAddress = {0};
 
-    printf("sizeof(QUIC_SENT_PACKET_METADATA) %llu\n", sizeof(QUIC_SENT_PACKET_METADATA));
     QuicTraceEvent(
         ApiEnter,
         "[ api] Enter %u (%p).",

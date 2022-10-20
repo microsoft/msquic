@@ -1313,14 +1313,15 @@ QuicTestCtlEvtIoDeviceControl(
         QuicTestCtlRun(
             QuicTestVNTPOtherVersionZero(Params->TestServerVNTP != 0));
         break;
-    case IOCTL_QUIC_RUN_ECN:
-        CXPLAT_FRE_ASSERT(Params != nullptr);
-        QuicTestCtlRun(QuicTestEcn(Params->Family));
-        break;
 #endif
     case IOCTL_QUIC_RUN_STREAM_BLOCK_UNBLOCK_CONN_FLOW_CONTROL:
         CXPLAT_FRE_ASSERT(Params != nullptr);
         QuicTestCtlRun(QuicTestStreamBlockUnblockConnFlowControl(Params->Bidirectional));
+        break;
+
+    case IOCTL_QUIC_RUN_ECN:
+        CXPLAT_FRE_ASSERT(Params != nullptr);
+        QuicTestCtlRun(QuicTestEcn(Params->Family));
         break;
 
     default:
