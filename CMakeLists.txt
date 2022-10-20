@@ -104,7 +104,7 @@ option(QUIC_DISABLE_POSIX_GSO "Disable GSO for systems that say they support it 
 option(QUIC_OFFICIAL_RELEASE "Configured the build for an official release" OFF)
 set(QUIC_FOLDER_PREFIX "" CACHE STRING "Optional prefix for source group folders when using an IDE generator")
 set(QUIC_LIBRARY_NAME "msquic" CACHE STRING "Override the output library name")
-set(QUIC_ENABLE_LOGGING_STDOUT 0 CACHE STRING "Enables logging on stdout at given verbosity (0=off, 5=debug)")
+set(QUIC_ENABLE_LOGGING_STDOUT 0 CACHE STRING "Enables logging on stdout at given verbosity (0=off, 4=debug)")
 if(NOT QUIC_ENABLE_LOGGING_STDOUT MATCHES "^[0-4]$")
     message(FATAL_ERROR "QUIC_ENABLE_LOGGING_STDOUT must be between 0 and 4, not '${QUIC_ENABLE_LOGGING_STDOUT}'")
 endif()

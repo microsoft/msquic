@@ -141,10 +141,10 @@ extern
 #ifdef __cplusplus
     "C"
 #endif
-void //__attribute__((format(printf, 2, 3)))
+void //__attribute__((no_instrument_function, format(printf, 2, 3)))
 clog_stdout(struct clog_param * head, const char * format, ...);
 #else
-inline void //__attribute__((format(printf, 2, 3)))
+inline void //__attribute__((no_instrument_function, format(printf, 2, 3)))
 clog_stdout(struct clog_param * head, const char * format, ...)
 {
     UNREFERENCED_PARAMETER(head);
@@ -243,6 +243,10 @@ QuicEtwCallback(
 #endif // QUIC_EVENTS_MANIFEST_ETW
 
 #if defined(QUIC_LOGS_STDOUT) || defined(QUIC_LOGS_STUB)
+
+#if defined(QUIC_LOGS_STUB)
+#define QUIC_LOGS_STDOUT 0
+#endif
 
 #define QuicTraceLogErrorEnabled() (QUIC_LOGS_STDOUT >= 1)
 #define QuicTraceLogWarningEnabled() (QUIC_LOGS_STDOUT >= 2)
