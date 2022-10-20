@@ -107,11 +107,6 @@ typedef struct QUIC_PATH {
     uint8_t EcnValidationState : 2;
 
     //
-    // Indicates whether EcnTestingEndingTime is set.
-    //
-    BOOLEAN EcnTestingEndingTimeSet : 1;
-
-    //
     // The ending time of ECN validation testing state in microseconds.
     //
     uint64_t EcnTestingEndingTime;

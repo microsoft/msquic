@@ -1517,7 +1517,7 @@ QuicLossDetectionProcessAckBlocks(
                 if (EctCeDeltaSum < 0 ||
                     EctCeDeltaSum < EcnEctCounter ||
                     Ecn->ECT_1_Count != 0 ||
-                    Connection->NumPacketsSentWithEct < Ecn->ECT_0_Count) {
+                    Connection->Send.NumPacketsSentWithEct < Ecn->ECT_0_Count) {
                     EcnValidated = FALSE;
                 }
 
@@ -1553,7 +1553,7 @@ QuicLossDetectionProcessAckBlocks(
                     "ECN failed: EL %d EctCnt %llu CeCnt %llu TxEct %llu DeltaSum %lld State %u",
                     EncryptLevel,
                     Packets->EcnEctCounter, Packets->EcnCeCounter,
-                    Connection->NumPacketsSentWithEct,
+                    Connection->Send.NumPacketsSentWithEct,
                     EctCeDeltaSum,
                     Path->EcnValidationState);
                 Path->EcnValidationState = ECN_VALIDATION_FAILED;
@@ -1804,9 +1804,7 @@ QuicLossDetectionProcessTimerOperation(
 
     if (OldestPacket != NULL &&
         CxPlatTimeDiff32(OldestPacket->SentTime, TimeNow) >=
-            MS_TO_US(Connection->Settings.DisconnectTimeoutMs) &&
-        (Path->EcnValidationState != ECN_VALIDATION_TESTING ||
-            !OldestPacket->Flags.EcnEctSet)) {
+            MS_TO_US(Connection->Settings.DisconnectTimeoutMs)) {
         //
         // OldestPacket has been in the SentPackets list for at least
         // DisconnectTimeoutUs without an ACK for either OldestPacket or for any

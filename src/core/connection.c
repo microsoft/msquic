@@ -5941,16 +5941,6 @@ QuicConnResetIdleTimeout(
         IdleTimeoutMs = Connection->Settings.HandshakeIdleTimeoutMs;
     }
 
-    if (Path->EcnValidationState == ECN_VALIDATION_TESTING) {
-        uint64_t Now = CxPlatTimeUs64();
-        if (CxPlatTimeAtOrBefore64(Now, Path->EcnTestingEndingTime)) {
-            //
-            // Give ECN validation enough time to test ECN capability on the path.
-            //
-            IdleTimeoutMs += US_TO_MS(CxPlatTimeDiff64(Now, Path->EcnTestingEndingTime));
-        }
-    }
-
     if (IdleTimeoutMs != 0) {
         if (Connection->State.Connected) {
             //

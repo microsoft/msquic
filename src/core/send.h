@@ -300,6 +300,12 @@ typedef struct QUIC_SEND {
     //
     uint16_t InitialTokenLength;
 
+    //
+    // The total number of packets sent with each corresponding ECT codepoint in all encryption
+    // level.
+    //
+    uint64_t NumPacketsSentWithEct;
+
 } QUIC_SEND;
 
 //

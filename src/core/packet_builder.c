@@ -964,7 +964,7 @@ Exit:
     if (FinalQuicPacket) {
         if (Builder->Datagram != NULL) {
             if (Builder->Metadata->Flags.EcnEctSet) {
-                ++Connection->NumPacketsSentWithEct;
+                ++Connection->Send.NumPacketsSentWithEct;
             }
             Builder->Datagram->Length = Builder->DatagramLength;
             Builder->Datagram = NULL;

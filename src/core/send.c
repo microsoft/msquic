@@ -1153,7 +1153,7 @@ QuicSendFlush(
     if (Builder.Path->EcnValidationState == ECN_VALIDATION_CAPABLE) {
         Builder.EcnEctSet = TRUE;
     } else if (Builder.Path->EcnValidationState == ECN_VALIDATION_TESTING) {
-        if (Builder.Path->EcnTestingEndingTimeSet) {
+        if (Builder.Path->EcnTestingEndingTime != 0) {
             if (!CxPlatTimeAtOrBefore64(
                     CxPlatTimeUs64(), Builder.Path->EcnTestingEndingTime)) {
                 Builder.Path->EcnValidationState = ECN_VALIDATION_UNKNOWN;
@@ -1169,7 +1169,6 @@ QuicSendFlush(
                     &Connection->Paths[0],
                     QUIC_CLOSE_PTO_COUNT);
             Builder.Path->EcnTestingEndingTime = TimeNow + ThreePtosInUs;
-            Builder.Path->EcnTestingEndingTimeSet = TRUE;
         }
         Builder.EcnEctSet = TRUE;
     }
