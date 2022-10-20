@@ -700,8 +700,8 @@ QuicSettingsLoad(
         CxPlatStorageReadValue(
             Storage,
             QUIC_SETTING_FIXED_SERVER_ID,
-            (uint8_t*)&Value,
-            &Settings->FixedServerID);
+            (uint8_t*)&Settings->FixedServerID,
+            &ValueLen);
     }
 
     if (!Settings->IsSet.MaxWorkerQueueDelayUs) {
