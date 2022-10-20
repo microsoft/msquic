@@ -758,11 +758,9 @@ QuicLibApplyLoadBalancingSetting(
     default:
         MsQuicLib.CidServerIdLength = 0;
         break;
-    case QUIC_LOAD_BALANCING_SERVER_ID_IP:
-        MsQuicLib.CidServerIdLength = 5; // 4 for v4 IP address
-        break;
-    case QUIC_LOAD_BALANCING_SERVER_ID_FIXED:
-        MsQuicLib.CidServerIdLength = 5; // 1 + 4-byte fixed Server ID
+    case QUIC_LOAD_BALANCING_SERVER_ID_IP:    // 1 + 4 for IP address/suffix
+    case QUIC_LOAD_BALANCING_SERVER_ID_FIXED: // 1 + 4 for fixed value
+        MsQuicLib.CidServerIdLength = 5;
         break;
     }
 
