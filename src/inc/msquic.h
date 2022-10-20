@@ -1125,6 +1125,9 @@ typedef struct QUIC_CONNECTION_EVENT {
             uint16_t UnidirectionalCount;
         } STREAMS_AVAILABLE;
         struct {
+            BOOLEAN Bidirectional;
+        } PEER_NEEDS_STREAMS;
+        struct {
             uint16_t IdealProcessor;
         } IDEAL_PROCESSOR_CHANGED;
         struct {
