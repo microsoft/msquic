@@ -315,6 +315,11 @@ QuicStreamSetInitializeTransportParameters(
                 Stream->OutFlowBlockedReasons & QUIC_FLOW_BLOCKED_STREAM_ID_FLOW_CONTROL) {
                 FlowBlockedFlagsToRemove |= QUIC_FLOW_BLOCKED_STREAM_ID_FLOW_CONTROL;
                 QuicStreamIndicatePeerAccepted(Stream);
+            } else {
+                QuicSendSetSendFlag(
+                    &Stream->Connection->Send,
+                    STREAM_ID_IS_UNI_DIR(Stream->ID) ?
+                        QUIC_CONN_SEND_FLAG_UNI_STREAMS_BLOCKED : QUIC_CONN_SEND_FLAG_BIDI_STREAMS_BLOCKED);
             }
 
             uint64_t NewMaxAllowedSendOffset =
@@ -525,6 +530,12 @@ QuicStreamSetNewLocalStream(
     BOOLEAN NewStreamBlocked = Info->TotalStreamCount >= Info->MaxTotalStreamCount;
 
     if (FailOnBlocked && NewStreamBlocked) {
+        if (Stream->Connection->State.PeerTransportParameterValid) {
+            QuicSendSetSendFlag(
+                &Stream->Connection->Send,
+                STREAM_ID_IS_UNI_DIR(Stream->ID) ?
+                    QUIC_CONN_SEND_FLAG_UNI_STREAMS_BLOCKED : QUIC_CONN_SEND_FLAG_BIDI_STREAMS_BLOCKED);
+        }
         Status = QUIC_STATUS_STREAM_LIMIT_REACHED;
         goto Exit;
     }
@@ -545,6 +556,12 @@ QuicStreamSetNewLocalStream(
         //
         Stream->OutFlowBlockedReasons |= QUIC_FLOW_BLOCKED_STREAM_ID_FLOW_CONTROL;
         Stream->BlockedTimings.StreamIdFlowControl.LastStartTimeUs = CxPlatTimeUs64();
+        if (Stream->Connection->State.PeerTransportParameterValid) {
+            QuicSendSetSendFlag(
+                &Stream->Connection->Send,
+                STREAM_ID_IS_UNI_DIR(Stream->ID) ?
+                    QUIC_CONN_SEND_FLAG_UNI_STREAMS_BLOCKED : QUIC_CONN_SEND_FLAG_BIDI_STREAMS_BLOCKED);
+        }
     }
 
     Info->CurrentStreamCount++;

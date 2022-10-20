@@ -2025,6 +2025,14 @@ namespace Microsoft.Quic
             }
         }
 
+        internal ref _Anonymous_e__Union._PEER_NEEDS_STREAMS_e__Struct PEER_NEEDS_STREAMS
+        {
+            get
+            {
+                return ref MemoryMarshal.GetReference(MemoryMarshal.CreateSpan(ref Anonymous.PEER_NEEDS_STREAMS, 1));
+            }
+        }
+
         internal ref _Anonymous_e__Union._IDEAL_PROCESSOR_CHANGED_e__Struct IDEAL_PROCESSOR_CHANGED
         {
             get
@@ -2115,6 +2123,10 @@ namespace Microsoft.Quic
             [FieldOffset(0)]
             [NativeTypeName("struct (anonymous struct)")]
             internal _STREAMS_AVAILABLE_e__Struct STREAMS_AVAILABLE;
+
+            [FieldOffset(0)]
+            [NativeTypeName("struct (anonymous struct)")]
+            internal _PEER_NEEDS_STREAMS_e__Struct PEER_NEEDS_STREAMS;
 
             [FieldOffset(0)]
             [NativeTypeName("struct (anonymous struct)")]
@@ -2245,6 +2257,12 @@ namespace Microsoft.Quic
 
                 [NativeTypeName("uint16_t")]
                 internal ushort UnidirectionalCount;
+            }
+
+            internal partial struct _PEER_NEEDS_STREAMS_e__Struct
+            {
+                [NativeTypeName("BOOLEAN")]
+                internal byte Bidirectional;
             }
 
             internal partial struct _IDEAL_PROCESSOR_CHANGED_e__Struct

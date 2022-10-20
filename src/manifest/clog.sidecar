@@ -5451,6 +5451,22 @@
       ],
       "macroName": "QuicTraceLogConnVerbose"
     },
+    "IndicatePeerNeedStreamsV2": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] Indicating QUIC_CONNECTION_EVENT_PEER_NEEDS_STREAMS type: %s",
+      "UniqueId": "IndicatePeerNeedStreamsV2",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        },
+        {
+          "DefinationEncoding": "s",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macroName": "QuicTraceLogConnVerbose"
+    },
     "IndicatePeerReceiveAborted": {
       "ModuleProperites": {},
       "TraceString": "[strm][%p] Indicating QUIC_STREAM_EVENT_PEER_RECEIVE_ABORTED (0x%llX)",
@@ -13612,6 +13628,11 @@
         "UniquenessHash": "df8cd7bd-ef29-fc9c-b3e0-7dc89bee82d5",
         "TraceID": "IndicatePeerNeedStreams",
         "EncodingString": "[conn][%p] Indicating QUIC_CONNECTION_EVENT_PEER_NEEDS_STREAMS"
+      },
+      {
+        "UniquenessHash": "11de3e8f-a75b-1030-5f71-f5065bee2aef",
+        "TraceID": "IndicatePeerNeedStreamsV2",
+        "EncodingString": "[conn][%p] Indicating QUIC_CONNECTION_EVENT_PEER_NEEDS_STREAMS type: %s"
       },
       {
         "UniquenessHash": "87c746b1-6bb4-6173-0f4e-f918641d4b80",
