@@ -1772,7 +1772,6 @@ QuicLossDetectionProcessTimerOperation(
     )
 {
     QUIC_CONNECTION* Connection = QuicLossDetectionGetConnection(LossDetection);
-    QUIC_PATH* Path = &Connection->Paths[0];
     const QUIC_SENT_PACKET_METADATA* OldestPacket = // Oldest retransmittable packet.
         QuicLossDetectionOldestOutstandingPacket(LossDetection);
 
