@@ -135,6 +135,21 @@ tracepoint(CLOG_SETTINGS_C, SettingDumpLoadBalancingMode , arg2);\
 
 
 /*----------------------------------------------------------
+// Decoder Ring for SettingDumpFixedServerID
+// [sett] FixedServerID          = %u
+// QuicTraceLogVerbose(SettingDumpFixedServerID,           "[sett] FixedServerID          = %u", Settings->FixedServerID);
+// arg2 = arg2 = Settings->FixedServerID = arg2
+----------------------------------------------------------*/
+#ifndef _clog_3_ARGS_TRACE_SettingDumpFixedServerID
+#define _clog_3_ARGS_TRACE_SettingDumpFixedServerID(uniqueId, encoded_arg_string, arg2)\
+tracepoint(CLOG_SETTINGS_C, SettingDumpFixedServerID , arg2);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for SettingDumpMaxStatelessOperations
 // [sett] MaxStatelessOperations = %u
 // QuicTraceLogVerbose(SettingDumpMaxStatelessOperations,  "[sett] MaxStatelessOperations = %u", Settings->MaxStatelessOperations);
@@ -641,6 +656,21 @@ tracepoint(CLOG_SETTINGS_C, SettingDestCidUpdateIdleTimeoutMs , arg2);\
 #ifndef _clog_3_ARGS_TRACE_SettingGreaseQuicBitEnabled
 #define _clog_3_ARGS_TRACE_SettingGreaseQuicBitEnabled(uniqueId, encoded_arg_string, arg2)\
 tracepoint(CLOG_SETTINGS_C, SettingGreaseQuicBitEnabled , arg2);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for SettingDumpLFixedServerID
+// [sett] FixedServerID          = %u
+// QuicTraceLogVerbose(SettingDumpLFixedServerID,              "[sett] FixedServerID          = %u", Settings->FixedServerID);
+// arg2 = arg2 = Settings->FixedServerID = arg2
+----------------------------------------------------------*/
+#ifndef _clog_3_ARGS_TRACE_SettingDumpLFixedServerID
+#define _clog_3_ARGS_TRACE_SettingDumpLFixedServerID(uniqueId, encoded_arg_string, arg2)\
+tracepoint(CLOG_SETTINGS_C, SettingDumpLFixedServerID , arg2);\
 
 #endif
 
