@@ -1184,7 +1184,7 @@ CXPLAT_THREAD_CALLBACK(RunThread, Context)
 }
 
 
-int start(void* Context) {
+void start() {
     CxPlatSystemLoad();
     CxPlatInitialize();
     CxPlatLockInitialize(&RunThreadLock);
@@ -1225,14 +1225,14 @@ int start(void* Context) {
     for (uint32_t i = 0; i < Settings.RepeatCount; i++) {
 
         CXPLAT_THREAD_CONFIG Config = {
-            0, 0, "spin_run", RunThread, Context
+            0, 0, "spin_run", RunThread, nullptr
         };
         CXPLAT_THREAD Threads[4];
         uint32_t Count = (uint32_t)(rand() % (ARRAYSIZE(Threads) - 1) + 1);
         if (FuzzData) {
             Count = 1; // launch 1 pair of thread to reduce randomness
             if (!(FuzzData->Initialize((size_t)(Count * (Settings.RunServer + Settings.RunClient))))) {
-                return 0;
+                return;
             }
         }
 
@@ -1247,7 +1247,6 @@ int start(void* Context) {
     }
 
     CxPlatLockUninitialize(&RunThreadLock);
-    return 0;
 }
 
 #ifdef FUZZING
@@ -1272,7 +1271,7 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
     Settings.RepeatCount = 1;
 
     FuzzData = new FuzzingData(data, size);
-    start(nullptr);
+    start();
     delete FuzzData;
     return 0;
 }
@@ -1337,8 +1336,9 @@ main(int argc, char **argv)
     }
     printf("Using seed value: %u\n", RngSeed);
     srand(RngSeed);
+    start();
 
-    return start(nullptr);
+    return 0;
 }
 
 #endif
