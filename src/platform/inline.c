@@ -448,3 +448,12 @@ void*
 CxPlatCqeUserData(
     _In_ const CXPLAT_CQE* cqe
     );
+
+struct clog_param;
+
+char *
+casted_clog_bytearray(const uint8_t * const data, // NOLINT(readability-redundant-declaration)
+                      const size_t len,
+                      struct clog_param ** head);
+
+void clog_stdout(struct clog_param * head, const char * format, ...); // NOLINT(readability-redundant-declaration)
