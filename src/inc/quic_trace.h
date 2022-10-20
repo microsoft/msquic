@@ -163,7 +163,10 @@ clog_stdout(struct clog_param * head, const char * format, ...)
 #if defined(QUIC_EVENTS_STDOUT) || defined(QUIC_LOGS_STUB)
 #define QuicTraceEventEnabled(Name) TRUE
 
-#define QuicTraceEvent(Name, Fmt, ...) clog((Fmt "\n"), ##__VA_ARGS__)
+#define QuicTrace(Name, Fmt, ...)                                              \
+    clog((Fmt " [" #Name ":%s:%d]\n"), ##__VA_ARGS__, __FILE__, __LINE__)
+
+#define QuicTraceEvent(Name, Fmt, ...) QuicTrace(Name, Fmt, ##__VA_ARGS__)
 
 #if defined(QUIC_EVENTS_STDOUT)
 extern
@@ -241,45 +244,47 @@ QuicEtwCallback(
 
 #if defined(QUIC_LOGS_STDOUT) || defined(QUIC_LOGS_STUB)
 
-#define QuicTraceLogErrorEnabled() TRUE
-#define QuicTraceLogWarningEnabled() TRUE
-#define QuicTraceLogInfoEnabled() TRUE
-#define QuicTraceLogVerboseEnabled() TRUE
+#define QuicTraceLogErrorEnabled() (QUIC_LOGS_STDOUT >= 1)
+#define QuicTraceLogWarningEnabled() (QUIC_LOGS_STDOUT >= 2)
+#define QuicTraceLogInfoEnabled() (QUIC_LOGS_STDOUT >= 3)
+#define QuicTraceLogVerboseEnabled() (QUIC_LOGS_STDOUT >= 4)
 
-#define QuicTraceLogError(X, Fmt, ...) clog((Fmt "\n"), ##__VA_ARGS__)
-#define QuicTraceLogWarning(X, Fmt, ...) clog((Fmt "\n"), ##__VA_ARGS__)
-#define QuicTraceLogInfo(X, Fmt, ...) clog((Fmt "\n"), ##__VA_ARGS__)
-#define QuicTraceLogVerbose(X, Fmt, ...) clog((Fmt "\n"), ##__VA_ARGS__)
+#define QuicTraceLogError(Name, Fmt, ...) QuicTrace(Name, Fmt, ##__VA_ARGS__)
+#define QuicTraceLogWarning(Name, Fmt, ...) QuicTrace(Name, Fmt, ##__VA_ARGS__)
+#define QuicTraceLogInfo(Name, Fmt, ...) QuicTrace(Name, Fmt, ##__VA_ARGS__)
+#define QuicTraceLogVerbose(Name, Fmt, ...) QuicTrace(Name, Fmt, ##__VA_ARGS__)
 
-#define QuicTraceLogConnError(X, Y, Fmt, ...)                                  \
+#define QuicTraceLogConnError(Name, X, Fmt, ...)                               \
     do {                                                                       \
-        UNREFERENCED_PARAMETER(Y);                                             \
-        clog((Fmt "\n"), ##__VA_ARGS__);                                       \
+        UNREFERENCED_PARAMETER(X);                                             \
+        QuicTrace(Name, Fmt, ##__VA_ARGS__);                                   \
     } while (0)
-#define QuicTraceLogConnWarning(X, Y, Fmt, ...)                                \
+#define QuicTraceLogConnWarning(Name, X, Fmt, ...)                             \
     do {                                                                       \
-        UNREFERENCED_PARAMETER(Y);                                             \
-        clog((Fmt "\n"), ##__VA_ARGS__);                                       \
+        UNREFERENCED_PARAMETER(X);                                             \
+        QuicTrace(Name, Fmt, ##__VA_ARGS__);                                   \
     } while (0)
-#define QuicTraceLogConnInfo(X, Y, Fmt, ...)                                   \
+#define QuicTraceLogConnInfo(Name, X, Fmt, ...)                                \
     do {                                                                       \
-        UNREFERENCED_PARAMETER(Y);                                             \
-        clog((Fmt "\n"), ##__VA_ARGS__);                                       \
+        UNREFERENCED_PARAMETER(X);                                             \
+        QuicTrace(Name, Fmt, ##__VA_ARGS__);                                   \
     } while (0)
-#define QuicTraceLogConnVerbose(X, Y, Fmt, ...)                                \
+#define QuicTraceLogConnVerbose(Name, X, Fmt, ...)                             \
     do {                                                                       \
-        UNREFERENCED_PARAMETER(Y);                                             \
-        clog((Fmt "\n"), ##__VA_ARGS__);                                       \
+        UNREFERENCED_PARAMETER(X);                                             \
+        QuicTrace(Name, Fmt, ##__VA_ARGS__);                                   \
     } while (0)
 
 #define QuicTraceLogStreamVerboseEnabled() TRUE
 
-#define QuicTraceLogStreamError(X, Y, Fmt, ...) clog((Fmt "\n"), ##__VA_ARGS__)
-#define QuicTraceLogStreamWarning(X, Y, Fmt, ...)                              \
-    clog((Fmt "\n"), ##__VA_ARGS__)
-#define QuicTraceLogStreamInfo(X, Y, Fmt, ...) clog((Fmt "\n"), ##__VA_ARGS__)
-#define QuicTraceLogStreamVerbose(X, Y, Fmt, ...)                              \
-    clog((Fmt "\n"), ##__VA_ARGS__)
+#define QuicTraceLogStreamError(Name, X, Fmt, ...)                             \
+    QuicTrace(Name, Fmt, ##__VA_ARGS__)
+#define QuicTraceLogStreamWarning(Name, X, Fmt, ...)                           \
+    QuicTrace(Name, Fmt, ##__VA_ARGS__)
+#define QuicTraceLogStreamInfo(Name, X, Fmt, ...)                              \
+    QuicTrace(Name, Fmt, ##__VA_ARGS__)
+#define QuicTraceLogStreamVerbose(Name, X, Fmt, ...)                           \
+    QuicTrace(Name, Fmt, ##__VA_ARGS__)
 
 #endif
 

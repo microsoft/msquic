@@ -406,7 +406,7 @@ function CMake-Generate {
         $Arguments += " -DQUIC_ENABLE_LOGGING=on"
     }
     if ($StdoutLogs) {
-        $Arguments += " -DQUIC_ENABLE_LOGGING_STDOUT=on"
+        $Arguments += " -DQUIC_ENABLE_LOGGING_STDOUT=4"
     }
     if ($SanitizeAddress) {
         $Arguments += " -DQUIC_ENABLE_SANITIZERS=on"
