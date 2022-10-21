@@ -1752,6 +1752,26 @@ tracepoint(CLOG_CONNECTION_C, ConnAssignWorker , arg2, arg3);\
 
 
 /*----------------------------------------------------------
+// Decoder Ring for ConnEcnCapable
+// [conn][%p] Ecn: IsCapable=%hu
+// QuicTraceEvent(
+        ConnEcnCapable,
+        "[conn][%p] Ecn: IsCapable=%hu",
+        Connection,
+        Connection->Paths[0].EcnValidationState == ECN_VALIDATION_CAPABLE);
+// arg2 = arg2 = Connection = arg2
+// arg3 = arg3 = Connection->Paths[0].EcnValidationState == ECN_VALIDATION_CAPABLE = arg3
+----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_ConnEcnCapable
+#define _clog_4_ARGS_TRACE_ConnEcnCapable(uniqueId, encoded_arg_string, arg2, arg3)\
+tracepoint(CLOG_CONNECTION_C, ConnEcnCapable , arg2, arg3);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for ConnVersionSet
 // [conn][%p] QUIC Version: %u
 // QuicTraceEvent(

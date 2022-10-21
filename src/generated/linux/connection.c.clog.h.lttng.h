@@ -1953,6 +1953,29 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, ConnAssignWorker,
 
 
 /*----------------------------------------------------------
+// Decoder Ring for ConnEcnCapable
+// [conn][%p] Ecn: IsCapable=%hu
+// QuicTraceEvent(
+        ConnEcnCapable,
+        "[conn][%p] Ecn: IsCapable=%hu",
+        Connection,
+        Connection->Paths[0].EcnValidationState == ECN_VALIDATION_CAPABLE);
+// arg2 = arg2 = Connection = arg2
+// arg3 = arg3 = Connection->Paths[0].EcnValidationState == ECN_VALIDATION_CAPABLE = arg3
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_CONNECTION_C, ConnEcnCapable,
+    TP_ARGS(
+        const void *, arg2,
+        unsigned short, arg3), 
+    TP_FIELDS(
+        ctf_integer_hex(uint64_t, arg2, arg2)
+        ctf_integer(unsigned short, arg3, arg3)
+    )
+)
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for ConnVersionSet
 // [conn][%p] QUIC Version: %u
 // QuicTraceEvent(

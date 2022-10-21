@@ -1223,6 +1223,22 @@
       ],
       "macroName": "QuicTraceEvent"
     },
+    "ConnEcnCapable": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] Ecn: IsCapable=%hu",
+      "UniqueId": "ConnEcnCapable",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "hu",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macroName": "QuicTraceEvent"
+    },
     "ConnError": {
       "ModuleProperites": {},
       "TraceString": "[conn][%p] ERROR, %s.",
@@ -12506,6 +12522,11 @@
         "UniquenessHash": "7b8fcbcd-b097-9b8b-3d56-a2ca2d8b5cb8",
         "TraceID": "ConnDropPacketEx",
         "EncodingString": "[conn][%p] DROP packet Value=%llu Dst=%!ADDR! Src=%!ADDR! Reason=%s."
+      },
+      {
+        "UniquenessHash": "9c10f710-84bf-766d-0da5-9e31796cf450",
+        "TraceID": "ConnEcnCapable",
+        "EncodingString": "[conn][%p] Ecn: IsCapable=%hu"
       },
       {
         "UniquenessHash": "0ebbffbe-69d8-3f2b-949d-d93cdd7f8b99",
