@@ -63,6 +63,12 @@ typedef struct QUIC_PACKET_SPACE {
     uint64_t NextRecvPacketNumber;
 
     //
+    // ECT and CE counters.
+    //
+    uint64_t EcnEctCounter;
+    uint64_t EcnCeCounter; // maps to ecn_ce_counters in RFC 9002.
+
+    //
     // Owning connection of this packet space.
     //
     QUIC_CONNECTION* Connection;

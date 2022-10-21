@@ -253,36 +253,12 @@ QuicPacketBuilderPrepare(
         //
         BOOLEAN SendDataAllocated = FALSE;
         if (Builder->SendData == NULL) {
-            CXPLAT_ECN_TYPE EcnType =
-                Builder->Path->EcnValidationState == ECN_VALIDATION_CAPABLE ?
-                    CXPLAT_ECN_ECT_0 : CXPLAT_ECN_NON_ECT;
-            if (Builder->Path->EcnValidationState == ECN_VALIDATION_TESTING) {
-                EcnType = CXPLAT_ECN_ECT_0;
-                if (Builder->Path->EcnValidationState == ECN_VALIDATION_TESTING) {
-                    if (Builder->Path->EcnTestingEndingTimeSet) {
-                        if (!CxPlatTimeAtOrBefore64(
-                                CxPlatTimeUs64(), Builder->Path->EcnTestingEndingTime)) {
-                            Builder->Path->EcnValidationState = ECN_VALIDATION_UNKNOWN;
-                        }
-                    } else {
-                        uint64_t TimeNow = CxPlatTimeUs64();
-                        uint32_t ThreePtosInUs =
-                            QuicLossDetectionComputeProbeTimeout(
-                                &Connection->LossDetection,
-                                &Connection->Paths[0],
-                                QUIC_CLOSE_PTO_COUNT);
-                        Builder->Path->EcnTestingEndingTime = TimeNow + ThreePtosInUs;
-                        Builder->Path->EcnTestingEndingTimeSet = TRUE;
-                    }
-                }
-            }
-
             Builder->BatchId =
                 ProcShifted | InterlockedIncrement64((int64_t*)&MsQuicLib.PerProc[Proc].SendBatchId);
             Builder->SendData =
                 CxPlatSendDataAlloc(
                     Builder->Path->Binding->Socket,
-                    EcnType,
+                    Builder->EcnEctSet ? CXPLAT_ECN_ECT_0 : CXPLAT_ECN_NON_ECT,
                     IsPathMtuDiscovery ?
                         0 :
                         MaxUdpPayloadSizeForFamily(
@@ -951,7 +927,7 @@ QuicPacketBuilderFinalize(
     Builder->Metadata->SentTime = CxPlatTimeUs32();
     Builder->Metadata->PacketLength =
         Builder->HeaderLength + PayloadLength;
-    Builder->Metadata->Flags.EcnEctSet = CxPlatSendDataEctSet(Builder->SendData);
+    Builder->Metadata->Flags.EcnEctSet = Builder->EcnEctSet;
     QuicTraceEvent(
         ConnPacketSent,
         "[conn][%p][TX][%llu] %hhu (%hu bytes)",
@@ -988,7 +964,7 @@ Exit:
     if (FinalQuicPacket) {
         if (Builder->Datagram != NULL) {
             if (Builder->Metadata->Flags.EcnEctSet) {
-                ++Connection->NumPacketsSentWithEct;
+                ++Connection->Send.NumPacketsSentWithEct;
             }
             Builder->Datagram->Length = Builder->DatagramLength;
             Builder->Datagram = NULL;

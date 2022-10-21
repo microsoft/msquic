@@ -4831,12 +4831,28 @@ QuicConnRecvFrames(
                 Frame.StreamLimit);
             AckEliciting = TRUE;
 
+            uint8_t Type =
+                (QuicConnIsServer(Connection) ? // Peer's role, so flip
+                STREAM_ID_FLAG_IS_CLIENT : STREAM_ID_FLAG_IS_SERVER)
+                |
+                (Frame.BidirectionalStreams ?
+                 STREAM_ID_FLAG_IS_BI_DIR : STREAM_ID_FLAG_IS_UNI_DIR);
+
+            const QUIC_STREAM_TYPE_INFO* Info = &Connection->Streams.Types[Type];
+
+            if (Info->MaxTotalStreamCount > Frame.StreamLimit) {
+                break;
+            }
+
             QUIC_CONNECTION_EVENT Event;
-            Event.Type = QUIC_CONNECTION_EVENT_PEER_NEEDS_STREAMS; // TODO - Uni/Bidi
+            Event.Type = QUIC_CONNECTION_EVENT_PEER_NEEDS_STREAMS;
+            Event.PEER_NEEDS_STREAMS.Bidirectional = Frame.BidirectionalStreams;
             QuicTraceLogConnVerbose(
-                IndicatePeerNeedStreams,
+                IndicatePeerNeedStreamsV2,
                 Connection,
-                "Indicating QUIC_CONNECTION_EVENT_PEER_NEEDS_STREAMS");
+                "Indicating QUIC_CONNECTION_EVENT_PEER_NEEDS_STREAMS type: %s",
+                Frame.BidirectionalStreams ? "Bidi" : "Unidi"
+                );
             (void)QuicConnIndicateEvent(Connection, &Event);
 
             Packet->HasNonProbingFrame = TRUE;
@@ -5939,16 +5955,6 @@ QuicConnResetIdleTimeout(
         }
     } else {
         IdleTimeoutMs = Connection->Settings.HandshakeIdleTimeoutMs;
-    }
-
-    if (Path->EcnValidationState == ECN_VALIDATION_TESTING) {
-        uint64_t Now = CxPlatTimeUs64();
-        if (CxPlatTimeAtOrBefore64(Now, Path->EcnTestingEndingTime)) {
-            //
-            // Give ECN validation enough time to test ECN capability on the path.
-            //
-            IdleTimeoutMs += US_TO_MS(CxPlatTimeDiff64(Now, Path->EcnTestingEndingTime));
-        }
     }
 
     if (IdleTimeoutMs != 0) {

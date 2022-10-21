@@ -668,8 +668,8 @@ TRACEPOINT_EVENT(CLOG_SETTINGS_C, SettingGreaseQuicBitEnabled,
 
 /*----------------------------------------------------------
 // Decoder Ring for SettingEcnEnabled
-// [sett] EcnEnabled   = %hhu
-// QuicTraceLogVerbose(SettingEcnEnabled,                  "[sett] EcnEnabled   = %hhu", Settings->EcnEnabled);
+// [sett] EcnEnabled             = %hhu
+// QuicTraceLogVerbose(SettingEcnEnabled,                  "[sett] EcnEnabled             = %hhu", Settings->EcnEnabled);
 // arg2 = arg2 = Settings->EcnEnabled = arg2
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_SETTINGS_C, SettingEcnEnabled,

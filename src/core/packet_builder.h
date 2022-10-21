@@ -74,6 +74,11 @@ typedef struct QUIC_PACKET_BUILDER {
     uint8_t BatchCount : 4;
 
     //
+    // Indicates whether ECN ECT bit is set on the packets to be sent.
+    //
+    uint8_t EcnEctSet : 1;
+
+    //
     // The total number of datagrams that have been created.
     //
     uint8_t TotalCountDatagrams;

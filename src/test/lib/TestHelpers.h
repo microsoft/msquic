@@ -583,7 +583,7 @@ public:
 
 struct EcnModifyHelper : public DatapathHook
 {
-    CXPLAT_ECN_TYPE EcnType;
+    CXPLAT_ECN_TYPE EcnType = CXPLAT_ECN_NON_ECT;
     EcnModifyHelper() {
         DatapathHooks::Instance->AddHook(this);
     }

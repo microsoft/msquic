@@ -509,7 +509,7 @@ CXPLAT_STATIC_ASSERT(
 //
 // The default value for enabling sender-side ECN support.
 //
-#define QUIC_DEFAULT_ECN_ENABLED         FALSE
+#define QUIC_DEFAULT_ECN_ENABLED                     FALSE
 
 /*************************************************************
                   TRANSPORT PARAMETERS

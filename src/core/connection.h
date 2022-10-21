@@ -194,7 +194,6 @@ typedef union QUIC_CONNECTION_STATE {
         //
         BOOLEAN DisableVneTp : 1;
 #endif
-
     };
 } QUIC_CONNECTION_STATE;
 
@@ -563,18 +562,6 @@ typedef struct QUIC_CONNECTION {
     // Manages all the information for outstanding sent packets.
     //
     QUIC_LOSS_DETECTION LossDetection;
-
-    //
-    // ECT and CE counters for different packet number spaces.
-    //
-    uint64_t EcnEctCounters[QUIC_ENCRYPT_LEVEL_COUNT];
-    uint64_t EcnCeCounters[QUIC_ENCRYPT_LEVEL_COUNT]; // maps to ecn_ce_counters in RFC 9002.
-
-    //
-    // The total number of packets sent with each corresponding ECT codepoint in all encryption
-    // level.
-    //
-    uint64_t NumPacketsSentWithEct;
 
     //
     // Per-encryption level packet space information.

@@ -508,6 +508,14 @@ TEST_P(WithBool, RejectConnection) {
 }
 
 #ifdef QUIC_TEST_DATAPATH_HOOKS_ENABLED
+TEST_P(WithFamilyArgs, Ecn) {
+    TestLoggerT<ParamType> Logger("Ecn", GetParam());
+    if (TestingKernelMode) {
+        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_ECN, GetParam().Family));
+    } else {
+        QuicTestEcn(GetParam().Family);
+    }
+}
 
 TEST_P(WithFamilyArgs, LocalPathChanges) {
     TestLoggerT<ParamType> Logger("QuicTestLocalPathChanges", GetParam());
@@ -1817,21 +1825,30 @@ TEST(Misc, StreamAbortRecvFinRace) {
     }
 }
 
+TEST(Misc, StreamBlockUnblockBidiConnFlowControl) {
+    TestLogger Logger("StreamBlockUnblockBidiConnFlowControl");
+    if (TestingKernelMode) {
+        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_STREAM_BLOCK_UNBLOCK_CONN_FLOW_CONTROL, TRUE));
+    } else {
+        QuicTestStreamBlockUnblockConnFlowControl(TRUE);
+    }
+}
+
+TEST(Misc, StreamBlockUnblockUnidiConnFlowControl) {
+    TestLogger Logger("StreamBlockUnblockUnidiConnFlowControl");
+    if (TestingKernelMode) {
+        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_STREAM_BLOCK_UNBLOCK_CONN_FLOW_CONTROL, FALSE));
+    } else {
+        QuicTestStreamBlockUnblockConnFlowControl(FALSE);
+    }
+}
+
 TEST(Misc, StreamAbortConnFlowControl) {
     TestLogger Logger("StreamAbortConnFlowControl");
     if (TestingKernelMode) {
         ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_STREAM_ABORT_CONN_FLOW_CONTROL));
     } else {
         QuicTestStreamAbortConnFlowControl();
-    }
-}
-
-TEST(Misc, Ecn) {
-    TestLogger Logger("Ecn");
-    if (TestingKernelMode) {
-        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_ECN));
-    } else {
-        QuicTestEcn();
     }
 }
 

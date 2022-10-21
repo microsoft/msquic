@@ -1618,6 +1618,44 @@ CxPlatSocketCreateUdp(
         CxPlatDataPathSetControlSocket(
             Binding,
             WskSetOption,
+            IPV6_ECN,
+            IPPROTO_IPV6,
+            sizeof(Option),
+            &Option);
+    if (QUIC_FAILED(Status)) {
+        QuicTraceEvent(
+            DatapathErrorStatus,
+            "[data][%p] ERROR, %u, %s.",
+            Binding,
+            Status,
+            "Set IPV6_ECN");
+        goto Error;
+    }
+
+    Option = TRUE;
+    Status =
+        CxPlatDataPathSetControlSocket(
+            Binding,
+            WskSetOption,
+            IP_ECN,
+            IPPROTO_IP,
+            sizeof(Option),
+            &Option);
+    if (QUIC_FAILED(Status)) {
+        QuicTraceEvent(
+            DatapathErrorStatus,
+            "[data][%p] ERROR, %u, %s.",
+            Binding,
+            Status,
+            "Set IP_ECN");
+        goto Error;
+    }
+
+    Option = TRUE;
+    Status =
+        CxPlatDataPathSetControlSocket(
+            Binding,
+            WskSetOption,
             IPV6_RECVERR,
             IPPROTO_IPV6,
             sizeof(Option),
@@ -2544,16 +2582,6 @@ CxPlatRecvDataReturn(
         CXPLAT_DBG_ASSERT(Binding != NULL);
         Binding->DgrmSocket->Dispatch->WskRelease(Binding->Socket, DataIndications);
     }
-}
-
-_IRQL_requires_max_(DISPATCH_LEVEL)
-_Success_(return != NULL)
-BOOLEAN
-CxPlatSendDataEctSet(
-    _In_ CXPLAT_SEND_DATA* SendData
-    )
-{
-    return (SendData->ECN == CXPLAT_ECN_ECT_1 || SendData->ECN == CXPLAT_ECN_ECT_0);
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
