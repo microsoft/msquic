@@ -1946,6 +1946,36 @@
                 name="IsCapable"
                 />
           </template>
+          <template tid="tid_CONN_ECN_FAILED">
+            <data
+                inType="win:Pointer"
+                name="Connection"
+                />
+            <data
+                inType="win:UInt32"
+                name="EncryptLevel"
+                />
+            <data
+                inType="win:UInt64"
+                name="EcnEctCounter"
+                />
+            <data
+                inType="win:UInt64"
+                name="EcnCeCounter"
+                />
+            <data
+                inType="win:UInt64"
+                name="NumPacketsSentWithEct"
+                />
+            <data
+                inType="win:Int64"
+                name="EctCeDeltaSum"
+                />
+            <data
+                inType="win:UInt8"
+                name="State"
+                />
+          </template>
         </templates>
         <events>
           <!-- Don't use value=0 as some parsers don't like it -->
@@ -3038,6 +3068,15 @@
               symbol="QuicConnEcnCapable"
               template="tid_CONN_ECN_CAPABLE"
               value="5187"
+              />
+          <event
+              keywords="ut:Connection ut:LowVolume"
+              level="win:Informational"
+              message="$(string.Etw.ConnEcnFailed)"
+              opcode="Connection"
+              symbol="QuicConnEcnFailed"
+              template="tid_CONN_ECN_FAILED"
+              value="5188"
               />
           <!-- 6144 - 7167 | Stream Events -->
           <event
@@ -4521,6 +4560,10 @@
         <string
             id="Etw.ConnEcnCapable"
             value="[conn][%1] Ecn: IsCapable=%2"
+            />
+        <string
+            id="Etw.ConnEcnFailed"
+            value="[conn][%1][%2] ECN failed: EctCnt %3 CeCnt %4 TxEct %5 DeltaSum %6 State %7"
             />
       </stringTable>
     </resources>

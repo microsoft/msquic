@@ -1545,10 +1545,10 @@ QuicLossDetectionProcessAckBlocks(
             }
 
             if (!EcnValidated) {
-                QuicTraceLogConnInfo(
-                    EcnValidationFailure,
+                QuicTraceEvent(
+                    ConnEcnFailed,
+                    "[conn][%p][%d] ECN failed: EctCnt %llu CeCnt %llu TxEct %llu DeltaSum %lld State %hu",
                     Connection,
-                    "ECN failed: EL %d EctCnt %llu CeCnt %llu TxEct %llu DeltaSum %lld State %u",
                     EncryptLevel,
                     Packets->EcnEctCounter, Packets->EcnCeCounter,
                     Connection->Send.NumPacketsSentWithEct,
