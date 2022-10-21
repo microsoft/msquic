@@ -292,8 +292,6 @@ else()
         endif()
     endif()
 
-    # for reproducible builds: https://reproducible-builds.org/docs/build-path/
-    set(QUIC_COMMON_FLAGS "-ffile-prefix-map=${CMAKE_SOURCE_DIR}=.")
     set(QUIC_COMMON_DEFINES _GNU_SOURCE)
     if (HAS_SENDMMSG)
         list(APPEND QUIC_COMMON_DEFINES HAS_SENDMMSG)
