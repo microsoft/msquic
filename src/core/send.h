@@ -256,6 +256,12 @@ typedef struct QUIC_SEND {
     uint64_t LastFlushTime;
 
     //
+    // The total number of packets sent with each corresponding ECT codepoint in all encryption
+    // level.
+    //
+    uint64_t NumPacketsSentWithEct;
+
+    //
     // The value we send in MAX_DATA frames.
     //
     uint64_t MaxData;
@@ -303,12 +309,6 @@ typedef struct QUIC_SEND {
     // Length of the InitialToken variable.
     //
     uint16_t InitialTokenLength;
-
-    //
-    // The total number of packets sent with each corresponding ECT codepoint in all encryption
-    // level.
-    //
-    uint64_t NumPacketsSentWithEct;
 
 } QUIC_SEND;
 

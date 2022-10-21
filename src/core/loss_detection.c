@@ -1772,6 +1772,7 @@ QuicLossDetectionProcessTimerOperation(
     )
 {
     QUIC_CONNECTION* Connection = QuicLossDetectionGetConnection(LossDetection);
+
     const QUIC_SENT_PACKET_METADATA* OldestPacket = // Oldest retransmittable packet.
         QuicLossDetectionOldestOutstandingPacket(LossDetection);
 
@@ -1806,8 +1807,7 @@ QuicLossDetectionProcessTimerOperation(
         // OldestPacket has been in the SentPackets list for at least
         // DisconnectTimeoutUs without an ACK for either OldestPacket or for any
         // packets sent more than the reordering threshold after it. Assume the
-        // path is dead and close the connection unless we are validating ECN
-        // capability on the path.
+        // path is dead and close the connection.
         //
         QuicConnCloseLocally(
             Connection,
