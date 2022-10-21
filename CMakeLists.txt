@@ -395,6 +395,9 @@ if(QUIC_ENABLE_LOGGING)
 
 else()
     message(STATUS "QUIC_ENABLE_LOGGING is false. Disabling logging")
+endif()
+
+if (NOT QUIC_ENABLE_LOGGING)
     list(APPEND QUIC_COMMON_DEFINES QUIC_EVENTS_STUB QUIC_LOGS_STUB)
 endif()
 
