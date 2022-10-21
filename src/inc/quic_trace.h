@@ -161,9 +161,10 @@ clog_stdout(struct clog_param * head, const char * format, ...)
 #endif
 
 #if defined(QUIC_EVENTS_STDOUT) || defined(QUIC_LOGS_STUB)
-#define QuicTraceEventEnabled(Name) TRUE
+#define QuicTraceEventEnabled(Name) (QUIC_LOGS_STDOUT >= 5)
 
 #define QuicTrace(Name, Fmt, ...)                                              \
+    if (QuicTraceEventEnabled(Name))                                           \
     clog((Fmt " [" #Name ":%s:%d]\n"), ##__VA_ARGS__, __FILE__, __LINE__)
 
 #define QuicTraceEvent(Name, Fmt, ...) QuicTrace(Name, Fmt, ##__VA_ARGS__)
@@ -253,41 +254,57 @@ QuicEtwCallback(
 #define QuicTraceLogInfoEnabled() (QUIC_LOGS_STDOUT >= 3)
 #define QuicTraceLogVerboseEnabled() (QUIC_LOGS_STDOUT >= 4)
 
-#define QuicTraceLogError(Name, Fmt, ...) QuicTrace(Name, Fmt, ##__VA_ARGS__)
-#define QuicTraceLogWarning(Name, Fmt, ...) QuicTrace(Name, Fmt, ##__VA_ARGS__)
-#define QuicTraceLogInfo(Name, Fmt, ...) QuicTrace(Name, Fmt, ##__VA_ARGS__)
-#define QuicTraceLogVerbose(Name, Fmt, ...) QuicTrace(Name, Fmt, ##__VA_ARGS__)
+#define QuicTraceLogError(Name, Fmt, ...)                                      \
+    if (QuicTraceLogErrorEnabled())                                            \
+    QuicTrace(Name, Fmt, ##__VA_ARGS__)
+#define QuicTraceLogWarning(Name, Fmt, ...)                                    \
+    if (QuicTraceLogWarningEnabled())                                          \
+    QuicTrace(Name, Fmt, ##__VA_ARGS__)
+#define QuicTraceLogInfo(Name, Fmt, ...)                                       \
+    if (QuicTraceLogInfoEnabled())                                             \
+    QuicTrace(Name, Fmt, ##__VA_ARGS__)
+#define QuicTraceLogVerbose(Name, Fmt, ...)                                    \
+    if (QuicTraceLogVerboseEnabled())                                          \
+    QuicTrace(Name, Fmt, ##__VA_ARGS__)
 
 #define QuicTraceLogConnError(Name, X, Fmt, ...)                               \
     do {                                                                       \
         UNREFERENCED_PARAMETER(X);                                             \
-        QuicTrace(Name, Fmt, ##__VA_ARGS__);                                   \
+        if (QuicTraceLogErrorEnabled())                                        \
+            QuicTrace(Name, Fmt, ##__VA_ARGS__);                               \
     } while (0)
 #define QuicTraceLogConnWarning(Name, X, Fmt, ...)                             \
     do {                                                                       \
         UNREFERENCED_PARAMETER(X);                                             \
-        QuicTrace(Name, Fmt, ##__VA_ARGS__);                                   \
+        if (QuicTraceLogWarningEnabled())                                      \
+            QuicTrace(Name, Fmt, ##__VA_ARGS__);                               \
     } while (0)
 #define QuicTraceLogConnInfo(Name, X, Fmt, ...)                                \
     do {                                                                       \
         UNREFERENCED_PARAMETER(X);                                             \
-        QuicTrace(Name, Fmt, ##__VA_ARGS__);                                   \
+        if (QuicTraceLogInfoEnabled())                                         \
+            QuicTrace(Name, Fmt, ##__VA_ARGS__);                               \
     } while (0)
 #define QuicTraceLogConnVerbose(Name, X, Fmt, ...)                             \
     do {                                                                       \
         UNREFERENCED_PARAMETER(X);                                             \
-        QuicTrace(Name, Fmt, ##__VA_ARGS__);                                   \
+        if (QuicTraceLogVerboseEnabled())                                      \
+            QuicTrace(Name, Fmt, ##__VA_ARGS__);                               \
     } while (0)
 
-#define QuicTraceLogStreamVerboseEnabled() TRUE
+#define QuicTraceLogStreamVerboseEnabled() (QUIC_LOGS_STDOUT >= 4)
 
 #define QuicTraceLogStreamError(Name, X, Fmt, ...)                             \
+    if (QuicTraceLogErrorEnabled())                                            \
     QuicTrace(Name, Fmt, ##__VA_ARGS__)
 #define QuicTraceLogStreamWarning(Name, X, Fmt, ...)                           \
+    if (QuicTraceLogWarningEnabled())                                          \
     QuicTrace(Name, Fmt, ##__VA_ARGS__)
 #define QuicTraceLogStreamInfo(Name, X, Fmt, ...)                              \
+    if (QuicTraceLogInfoEnabled())                                             \
     QuicTrace(Name, Fmt, ##__VA_ARGS__)
 #define QuicTraceLogStreamVerbose(Name, X, Fmt, ...)                           \
+    if (QuicTraceLogVerboseEnabled())                                          \
     QuicTrace(Name, Fmt, ##__VA_ARGS__)
 
 #endif
