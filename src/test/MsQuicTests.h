@@ -509,6 +509,11 @@ void
 QuicTestStreamAbortConnFlowControl(
     );
 
+void
+QuicTestStreamBlockUnblockConnFlowControl(
+    _In_ BOOLEAN Bidirectional
+    );
+
 //
 // QuicDrill tests
 //
@@ -1138,4 +1143,7 @@ typedef struct {
 #define IOCTL_QUIC_RUN_VN_TP_OTHER_VERSION_ZERO \
     QUIC_CTL_CODE(106, METHOD_BUFFERED, FILE_WRITE_DATA)
 
-#define QUIC_MAX_IOCTL_FUNC_CODE 106
+#define IOCTL_QUIC_RUN_STREAM_BLOCK_UNBLOCK_CONN_FLOW_CONTROL \
+    QUIC_CTL_CODE(107, METHOD_BUFFERED, FILE_WRITE_DATA)
+
+#define QUIC_MAX_IOCTL_FUNC_CODE 107
