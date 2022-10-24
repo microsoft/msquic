@@ -723,17 +723,31 @@ namespace Microsoft.Quic
             }
         }
 
-        [NativeTypeName("uint32_t : 27")]
-        internal uint RESERVED
+        [NativeTypeName("uint32_t : 1")]
+        internal uint EcnCapable
         {
             get
             {
-                return (_bitfield >> 5) & 0x7FFFFFFu;
+                return (_bitfield >> 5) & 0x1u;
             }
 
             set
             {
-                _bitfield = (_bitfield & ~(0x7FFFFFFu << 5)) | ((value & 0x7FFFFFFu) << 5);
+                _bitfield = (_bitfield & ~(0x1u << 5)) | ((value & 0x1u) << 5);
+            }
+        }
+
+        [NativeTypeName("uint32_t : 26")]
+        internal uint RESERVED
+        {
+            get
+            {
+                return (_bitfield >> 6) & 0x3FFFFFFu;
+            }
+
+            set
+            {
+                _bitfield = (_bitfield & ~(0x3FFFFFFu << 6)) | ((value & 0x3FFFFFFu) << 6);
             }
         }
 
@@ -1145,7 +1159,7 @@ namespace Microsoft.Quic
         }
 
         [NativeTypeName("uint8_t : 1")]
-        internal byte RESERVED
+        internal byte EcnEnabled
         {
             get
             {
@@ -1660,17 +1674,31 @@ namespace Microsoft.Quic
                     }
                 }
 
-                [NativeTypeName("uint64_t : 31")]
-                internal ulong RESERVED
+                [NativeTypeName("uint64_t : 1")]
+                internal ulong EcnEnabled
                 {
                     get
                     {
-                        return (_bitfield >> 33) & 0x7FFFFFFFUL;
+                        return (_bitfield >> 33) & 0x1UL;
                     }
 
                     set
                     {
-                        _bitfield = (_bitfield & ~(0x7FFFFFFFUL << 33)) | ((value & 0x7FFFFFFFUL) << 33);
+                        _bitfield = (_bitfield & ~(0x1UL << 33)) | ((value & 0x1UL) << 33);
+                    }
+                }
+
+                [NativeTypeName("uint64_t : 30")]
+                internal ulong RESERVED
+                {
+                    get
+                    {
+                        return (_bitfield >> 34) & 0x3FFFFFFFUL;
+                    }
+
+                    set
+                    {
+                        _bitfield = (_bitfield & ~(0x3FFFFFFFUL << 34)) | ((value & 0x3FFFFFFFUL) << 34);
                     }
                 }
             }

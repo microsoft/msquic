@@ -1223,6 +1223,58 @@
       ],
       "macroName": "QuicTraceEvent"
     },
+    "ConnEcnCapable": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] Ecn: IsCapable=%hu",
+      "UniqueId": "ConnEcnCapable",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "hu",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macroName": "QuicTraceEvent"
+    },
+    "ConnEcnFailed": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p][%d] ECN failed: EctCnt %llu CeCnt %llu TxEct %llu DeltaSum %lld State %hu",
+      "UniqueId": "ConnEcnFailed",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "d",
+          "MacroVariableName": "arg3"
+        },
+        {
+          "DefinationEncoding": "llu",
+          "MacroVariableName": "arg4"
+        },
+        {
+          "DefinationEncoding": "llu",
+          "MacroVariableName": "arg5"
+        },
+        {
+          "DefinationEncoding": "llu",
+          "MacroVariableName": "arg6"
+        },
+        {
+          "DefinationEncoding": "lld",
+          "MacroVariableName": "arg7"
+        },
+        {
+          "DefinationEncoding": "hu",
+          "MacroVariableName": "arg8"
+        }
+      ],
+      "macroName": "QuicTraceEvent"
+    },
     "ConnError": {
       "ModuleProperites": {},
       "TraceString": "[conn][%p] ERROR, %s.",
@@ -3454,6 +3506,46 @@
         }
       ],
       "macroName": "QuicTraceLogConnVerbose"
+    },
+    "EcnEnabled": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] Updated ECN enabled to %hhu",
+      "UniqueId": "EcnEnabled",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        },
+        {
+          "DefinationEncoding": "hhu",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macroName": "QuicTraceLogConnVerbose"
+    },
+    "EcnValidationSuccess": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] ECN succeeded.",
+      "UniqueId": "EcnValidationSuccess",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        }
+      ],
+      "macroName": "QuicTraceLogConnInfo"
+    },
+    "EcnValidationUnknown": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] ECN unknown.",
+      "UniqueId": "EcnValidationUnknown",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        }
+      ],
+      "macroName": "QuicTraceLogConnInfo"
     },
     "EncodeMaxDatagramFrameSize": {
       "ModuleProperites": {},
@@ -10011,6 +10103,18 @@
       ],
       "macroName": "QuicTraceLogVerbose"
     },
+    "SettingEcnEnabled": {
+      "ModuleProperites": {},
+      "TraceString": "[sett] EcnEnabled             = %hhu",
+      "UniqueId": "SettingEcnEnabled",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "hhu",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceLogVerbose"
+    },
     "SettingGreaseQuicBitEnabled": {
       "ModuleProperites": {},
       "TraceString": "[sett] GreaseQuicBitEnabled   = %hhu",
@@ -12420,6 +12524,16 @@
         "EncodingString": "[conn][%p] DROP packet Value=%llu Dst=%!ADDR! Src=%!ADDR! Reason=%s."
       },
       {
+        "UniquenessHash": "9c10f710-84bf-766d-0da5-9e31796cf450",
+        "TraceID": "ConnEcnCapable",
+        "EncodingString": "[conn][%p] Ecn: IsCapable=%hu"
+      },
+      {
+        "UniquenessHash": "5d7016bf-5f7f-7469-48f6-6212e8c8572b",
+        "TraceID": "ConnEcnFailed",
+        "EncodingString": "[conn][%p][%d] ECN failed: EctCnt %llu CeCnt %llu TxEct %llu DeltaSum %lld State %hu"
+      },
+      {
         "UniquenessHash": "0ebbffbe-69d8-3f2b-949d-d93cdd7f8b99",
         "TraceID": "ConnError",
         "EncodingString": "[conn][%p] ERROR, %s."
@@ -13113,6 +13227,21 @@
         "UniquenessHash": "c53376e2-b465-d6a1-047c-4e5e64c263af",
         "TraceID": "DrainCrypto",
         "EncodingString": "[conn][%p] Draining %u crypto bytes"
+      },
+      {
+        "UniquenessHash": "b978c2f3-b3a9-e423-d442-4860da0dc056",
+        "TraceID": "EcnEnabled",
+        "EncodingString": "[conn][%p] Updated ECN enabled to %hhu"
+      },
+      {
+        "UniquenessHash": "2fd085ac-656c-8e23-9f2f-a7c4116dbe83",
+        "TraceID": "EcnValidationSuccess",
+        "EncodingString": "[conn][%p] ECN succeeded."
+      },
+      {
+        "UniquenessHash": "59a602dd-2f8a-6b1d-4fe2-2ac0c1316f05",
+        "TraceID": "EcnValidationUnknown",
+        "EncodingString": "[conn][%p] ECN unknown."
       },
       {
         "UniquenessHash": "d276c997-5dfb-645e-b54a-7ec567967851",
@@ -15143,6 +15272,11 @@
         "UniquenessHash": "5611e76a-6d7c-35b7-9562-f67e5c2e3aa1",
         "TraceID": "SettingDumpVersionNegoExtEnabled",
         "EncodingString": "[sett] Version Negotiation Ext Enabled = %hhu"
+      },
+      {
+        "UniquenessHash": "12ca7216-75fc-41d7-f9ce-3e93bd2fea64",
+        "TraceID": "SettingEcnEnabled",
+        "EncodingString": "[sett] EcnEnabled             = %hhu"
       },
       {
         "UniquenessHash": "eb526b83-28f4-1046-57bf-7727ba70f36d",

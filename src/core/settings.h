@@ -51,7 +51,8 @@ typedef struct QUIC_SETTINGS_INTERNAL {
             uint64_t CongestionControlAlgorithm             : 1;
             uint64_t DestCidUpdateIdleTimeoutMs             : 1;
             uint64_t GreaseQuicBitEnabled                   : 1;
-            uint64_t RESERVED                               : 27;
+            uint64_t EcnEnabled                             : 1;
+            uint64_t RESERVED                               : 26;
         } IsSet;
     };
 
@@ -84,6 +85,7 @@ typedef struct QUIC_SETTINGS_INTERNAL {
     uint8_t ServerResumptionLevel           : 2;    // QUIC_SERVER_RESUMPTION_LEVEL
     uint8_t VersionNegotiationExtEnabled    : 1;
     uint8_t GreaseQuicBitEnabled            : 1;
+    uint8_t EcnEnabled                      : 1;
     QUIC_VERSION_SETTINGS* VersionSettings;
     uint16_t MinimumMtu;
     uint16_t MaximumMtu;
@@ -123,7 +125,7 @@ BOOLEAN
 QuicSettingApply(
     _Inout_ QUIC_SETTINGS_INTERNAL* Destination,
     _In_ BOOLEAN OverWrite,
-    _In_ BOOLEAN AllowMtuChanges,
+    _In_ BOOLEAN AllowMtuAndEcnChanges,
     _In_reads_bytes_(sizeof(QUIC_SETTINGS_INTERNAL))
         const QUIC_SETTINGS_INTERNAL* Source
     );

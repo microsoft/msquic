@@ -2165,6 +2165,188 @@ QuicTestAbortReceive(
     TEST_TRUE(RecvContext.ServerStreamShutdown.WaitTimeout(TestWaitTimeout));
 }
 
+struct EcnTestContext {
+    CxPlatEvent ServerStreamRecv;
+    CxPlatEvent ServerStreamShutdown;
+    MsQuicStream* ServerStream {nullptr};
+    bool ServerStreamHasShutdown {false};
+
+    static QUIC_STATUS StreamCallback(_In_ MsQuicStream* Stream, _In_opt_ void* Context, _Inout_ QUIC_STREAM_EVENT* Event) {
+        auto TestContext = (EcnTestContext*)Context;
+        if (Event->Type == QUIC_STREAM_EVENT_RECEIVE) {
+            TestContext->ServerStreamRecv.Set();
+        } else if (Event->Type == QUIC_STREAM_EVENT_SHUTDOWN_COMPLETE) {
+            TestContext->ServerStreamHasShutdown = true;
+            TestContext->ServerStreamShutdown.Set();
+            Stream->ConnectionShutdown(1);
+        }
+        return QUIC_STATUS_SUCCESS;
+    }
+
+    static QUIC_STATUS ConnCallback(_In_ MsQuicConnection*, _In_opt_ void* Context, _Inout_ QUIC_CONNECTION_EVENT* Event) {
+        auto TestContext = (EcnTestContext*)Context;
+        if (Event->Type == QUIC_CONNECTION_EVENT_PEER_STREAM_STARTED) {
+            TestContext->ServerStream = new(std::nothrow) MsQuicStream(Event->PEER_STREAM_STARTED.Stream, CleanUpAutoDelete, StreamCallback, Context);
+        }
+        return QUIC_STATUS_SUCCESS;
+    }
+};
+
+void
+QuicTestEcn(
+    _In_ int Family
+    )
+{
+    QUIC_ADDRESS_FAMILY QuicAddrFamily = (Family == 4) ? QUIC_ADDRESS_FAMILY_INET : QUIC_ADDRESS_FAMILY_INET6;
+
+    //
+    // Postive ECN test.
+    //
+    {
+        TestScopeLogger logScope("Postive ECN test");
+        MsQuicRegistration Registration;
+        TEST_QUIC_SUCCEEDED(Registration.GetInitStatus());
+
+        MsQuicConfiguration ServerConfiguration(Registration, "MsQuicTest", MsQuicSettings().SetPeerUnidiStreamCount(1), ServerSelfSignedCredConfig);
+        TEST_QUIC_SUCCEEDED(ServerConfiguration.GetInitStatus());
+
+        MsQuicConfiguration ClientConfiguration(Registration, "MsQuicTest", MsQuicSettings().SetEcnEnabled(true), MsQuicCredentialConfig());
+        TEST_QUIC_SUCCEEDED(ClientConfiguration.GetInitStatus());
+
+        EcnTestContext Context;
+        MsQuicAutoAcceptListener Listener(Registration, ServerConfiguration, EcnTestContext::ConnCallback, &Context);
+        TEST_QUIC_SUCCEEDED(Listener.GetInitStatus());
+        TEST_QUIC_SUCCEEDED(Listener.Start("MsQuicTest"));
+        QuicAddr ServerLocalAddr;
+        TEST_QUIC_SUCCEEDED(Listener.GetLocalAddr(ServerLocalAddr));
+
+        MsQuicConnection Connection(Registration);
+        TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
+        TEST_QUIC_SUCCEEDED(Connection.Start(ClientConfiguration, QuicAddrFamily, QUIC_TEST_LOOPBACK_FOR_AF(QuicAddrFamily), ServerLocalAddr.GetPort()));
+
+        MsQuicStream Stream(Connection, QUIC_STREAM_OPEN_FLAG_UNIDIRECTIONAL);
+        TEST_QUIC_SUCCEEDED(Stream.GetInitStatus());
+
+        //
+        // Open a stream, send some data and a FIN.
+        //
+        uint8_t RawBuffer[100];
+        QUIC_BUFFER Buffer { sizeof(RawBuffer), RawBuffer };
+        TEST_QUIC_SUCCEEDED(Stream.Send(&Buffer, 1, QUIC_SEND_FLAG_START | QUIC_SEND_FLAG_FIN));
+
+        TEST_TRUE(Context.ServerStreamRecv.WaitTimeout(TestWaitTimeout));
+        CxPlatSleep(50);
+
+        TEST_TRUE(Context.ServerStreamShutdown.WaitTimeout(TestWaitTimeout));
+        TEST_TRUE(Context.ServerStreamHasShutdown);
+
+        QUIC_STATISTICS_V2 Stats;
+        Connection.GetStatistics(&Stats);
+        TEST_TRUE(Stats.EcnCapable);
+    }
+
+    //
+    // Negative ECN test: network erasing ECT bit or incorrectly modifying ECT bit.
+    //
+    TestScopeLogger logScope1("network erasing ECT bit or incorrectly modifying ECT bit");
+    for (int EcnType = CXPLAT_ECN_NON_ECT; EcnType <= CXPLAT_ECN_ECT_1; ++EcnType) {
+        EcnModifyHelper EctEraser;
+        MsQuicRegistration Registration;
+        TEST_QUIC_SUCCEEDED(Registration.GetInitStatus());
+
+        MsQuicConfiguration ServerConfiguration(Registration, "MsQuicTest", MsQuicSettings().SetPeerUnidiStreamCount(1), ServerSelfSignedCredConfig);
+        TEST_QUIC_SUCCEEDED(ServerConfiguration.GetInitStatus());
+
+        MsQuicConfiguration ClientConfiguration(Registration, "MsQuicTest", MsQuicSettings().SetEcnEnabled(true), MsQuicCredentialConfig());
+        TEST_QUIC_SUCCEEDED(ClientConfiguration.GetInitStatus());
+
+        EcnTestContext Context;
+        MsQuicAutoAcceptListener Listener(Registration, ServerConfiguration, EcnTestContext::ConnCallback, &Context);
+        TEST_QUIC_SUCCEEDED(Listener.GetInitStatus());
+        TEST_QUIC_SUCCEEDED(Listener.Start("MsQuicTest"));
+        QuicAddr ServerLocalAddr;
+        TEST_QUIC_SUCCEEDED(Listener.GetLocalAddr(ServerLocalAddr));
+
+        EctEraser.SetEcnType((CXPLAT_ECN_TYPE)EcnType);
+        MsQuicConnection Connection(Registration);
+        TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
+        TEST_QUIC_SUCCEEDED(Connection.Start(ClientConfiguration, QuicAddrFamily, QUIC_TEST_LOOPBACK_FOR_AF(QuicAddrFamily), ServerLocalAddr.GetPort()));
+
+        MsQuicStream Stream(Connection, QUIC_STREAM_OPEN_FLAG_UNIDIRECTIONAL);
+        TEST_QUIC_SUCCEEDED(Stream.GetInitStatus());
+
+        //
+        // Open a stream, send some data and a FIN.
+        //
+        uint8_t RawBuffer[100];
+        QUIC_BUFFER Buffer { sizeof(RawBuffer), RawBuffer };
+        TEST_QUIC_SUCCEEDED(Stream.Send(&Buffer, 1, QUIC_SEND_FLAG_START | QUIC_SEND_FLAG_FIN));
+
+        TEST_TRUE(Context.ServerStreamRecv.WaitTimeout(TestWaitTimeout));
+        CxPlatSleep(50);
+        TEST_TRUE(Context.ServerStreamShutdown.WaitTimeout(TestWaitTimeout));
+
+        QUIC_STATISTICS_V2 Stats;
+        Connection.GetStatistics(&Stats);
+        TEST_FALSE(Stats.EcnCapable);
+    }
+
+    //
+    // Negative ECN test: network erasing ECT bit or incorrectly modifying ECT bit after successful ECN validation.
+    //
+    TestScopeLogger logScope2("network erasing ECT bit or incorrectly modifying ECT bit successful ECN validation");
+    for (int EcnType = CXPLAT_ECN_NON_ECT; EcnType <= CXPLAT_ECN_ECT_1; ++EcnType) {
+        MsQuicRegistration Registration;
+        TEST_QUIC_SUCCEEDED(Registration.GetInitStatus());
+
+        MsQuicConfiguration ServerConfiguration(Registration, "MsQuicTest", MsQuicSettings().SetPeerUnidiStreamCount(1), ServerSelfSignedCredConfig);
+        TEST_QUIC_SUCCEEDED(ServerConfiguration.GetInitStatus());
+
+        MsQuicConfiguration ClientConfiguration(Registration, "MsQuicTest", MsQuicSettings().SetEcnEnabled(true), MsQuicCredentialConfig());
+        TEST_QUIC_SUCCEEDED(ClientConfiguration.GetInitStatus());
+
+        EcnTestContext Context;
+        MsQuicAutoAcceptListener Listener(Registration, ServerConfiguration, EcnTestContext::ConnCallback, &Context);
+        TEST_QUIC_SUCCEEDED(Listener.GetInitStatus());
+        TEST_QUIC_SUCCEEDED(Listener.Start("MsQuicTest"));
+        QuicAddr ServerLocalAddr;
+        TEST_QUIC_SUCCEEDED(Listener.GetLocalAddr(ServerLocalAddr));
+
+        MsQuicConnection Connection(Registration);
+        TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
+        TEST_QUIC_SUCCEEDED(Connection.Start(ClientConfiguration, QuicAddrFamily, QUIC_TEST_LOOPBACK_FOR_AF(QuicAddrFamily), ServerLocalAddr.GetPort()));
+
+        MsQuicStream Stream(Connection, QUIC_STREAM_OPEN_FLAG_UNIDIRECTIONAL);
+        TEST_QUIC_SUCCEEDED(Stream.GetInitStatus());
+
+        //
+        // Open a stream, send some data.
+        //
+        uint8_t RawBuffer[100];
+        QUIC_BUFFER Buffer { sizeof(RawBuffer), RawBuffer };
+        TEST_QUIC_SUCCEEDED(Stream.Send(&Buffer, 1, QUIC_SEND_FLAG_START));
+        TEST_TRUE(Context.ServerStreamRecv.WaitTimeout(TestWaitTimeout));
+        CxPlatSleep(50);
+        QUIC_STATISTICS_V2 Stats;
+        Connection.GetStatistics(&Stats);
+        TEST_TRUE(Stats.EcnCapable);
+
+        //
+        // Send some more data.
+        //
+        EcnModifyHelper EctEraser;
+        EctEraser.SetEcnType((CXPLAT_ECN_TYPE)EcnType);
+        QUIC_BUFFER AnotherBuffer { sizeof(RawBuffer), RawBuffer };
+        TEST_QUIC_SUCCEEDED(Stream.Send(&AnotherBuffer, 1, QUIC_SEND_FLAG_FIN));
+        TEST_TRUE(Context.ServerStreamRecv.WaitTimeout(TestWaitTimeout));
+        CxPlatSleep(50);
+        TEST_TRUE(Context.ServerStreamShutdown.WaitTimeout(TestWaitTimeout));
+        TEST_TRUE(Context.ServerStreamHasShutdown);
+        Connection.GetStatistics(&Stats);
+        TEST_FALSE(Stats.EcnCapable);
+    }
+}
+
 struct SlowRecvTestContext {
     CxPlatEvent ServerStreamRecv;
     CxPlatEvent ServerStreamShutdown;

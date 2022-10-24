@@ -473,7 +473,8 @@ typedef struct QUIC_STATISTICS_V2 {
     uint32_t ResumptionAttempted    : 1;
     uint32_t ResumptionSucceeded    : 1;
     uint32_t GreaseBitNegotiated    : 1;    // Set if we negotiated the GREASE bit.
-    uint32_t RESERVED               : 27;
+    uint32_t EcnCapable             : 1;
+    uint32_t RESERVED               : 26;
     uint32_t Rtt;                           // In microseconds
     uint32_t MinRtt;                        // In microseconds
     uint32_t MaxRtt;                        // In microseconds
@@ -629,7 +630,8 @@ typedef struct QUIC_SETTINGS {
             uint64_t MtuDiscoveryMissingProbeCount          : 1;
             uint64_t DestCidUpdateIdleTimeoutMs             : 1;
             uint64_t GreaseQuicBitEnabled                   : 1;
-            uint64_t RESERVED                               : 31;
+            uint64_t EcnEnabled                             : 1;
+            uint64_t RESERVED                               : 30;
         } IsSet;
     };
 
@@ -663,7 +665,7 @@ typedef struct QUIC_SETTINGS {
     uint8_t DatagramReceiveEnabled          : 1;
     uint8_t ServerResumptionLevel           : 2;    // QUIC_SERVER_RESUMPTION_LEVEL
     uint8_t GreaseQuicBitEnabled            : 1;
-    uint8_t RESERVED                        : 1;
+    uint8_t EcnEnabled                      : 1;
     uint8_t MaxOperationsPerDrain;
     uint8_t MtuDiscoveryMissingProbeCount;
     uint32_t DestCidUpdateIdleTimeoutMs;

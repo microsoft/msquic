@@ -1299,7 +1299,8 @@ QuicLossDetectionProcessAckBlocks(
     _In_ QUIC_ENCRYPT_LEVEL EncryptLevel,
     _In_ uint64_t AckDelay,
     _In_ QUIC_RANGE* AckBlocks,
-    _Out_ BOOLEAN* InvalidAckBlock
+    _Out_ BOOLEAN* InvalidAckBlock,
+    _In_opt_ QUIC_ACK_ECN_EX* Ecn
     )
 {
     QUIC_SENT_PACKET_METADATA* AckedPackets = NULL;
@@ -1432,7 +1433,7 @@ QuicLossDetectionProcessAckBlocks(
 
     uint64_t LargestAckedPacketNum = 0;
     BOOLEAN IsLargestAckedPacketAppLimited = FALSE;
-
+    int64_t EcnEctCounter = 0;
     QUIC_SENT_PACKET_METADATA* AckedPacketsIterator = AckedPackets;
 
     while (AckedPacketsIterator != NULL) {
@@ -1475,6 +1476,7 @@ QuicLossDetectionProcessAckBlocks(
             IsLargestAckedPacketAppLimited = Packet->Flags.IsAppLimited;
         }
 
+        EcnEctCounter += Packet->Flags.EcnEctSet;
         QuicLossDetectionOnPacketAcknowledged(LossDetection, EncryptLevel, Packet, FALSE, (uint32_t)TimeNow, AckDelay);
     }
 
@@ -1496,6 +1498,67 @@ QuicLossDetectionProcessAckBlocks(
     }
 
     if (NewLargestAck) {
+        if (Path->EcnValidationState != ECN_VALIDATION_FAILED) {
+            //
+            // Per RFC 9000, we validate ECN counts from received ACK frames
+            // when the largest acked packet number increases.
+            //
+            QUIC_PACKET_SPACE* Packets = Connection->Packets[EncryptLevel];
+            BOOLEAN EcnValidated = TRUE;
+            int64_t EctCeDeltaSum = 0;
+            if (Ecn != NULL) {
+                EctCeDeltaSum += Ecn->CE_Count - Packets->EcnCeCounter;
+                EctCeDeltaSum += Ecn->ECT_0_Count - Packets->EcnEctCounter;
+                //
+                // Conditions where ECN validation fails:
+                // 1. Reneging ECN counts from the peer.
+                // 2. ECN counts do not match the marks that were applied to the packets sent.
+                //
+                if (EctCeDeltaSum < 0 ||
+                    EctCeDeltaSum < EcnEctCounter ||
+                    Ecn->ECT_1_Count != 0 ||
+                    Connection->Send.NumPacketsSentWithEct < Ecn->ECT_0_Count) {
+                    EcnValidated = FALSE;
+                } else {
+                    //
+                    // TODO: Notify CC of the ECN signal before we update the CE counts.
+                    //
+                    Packets->EcnCeCounter = Ecn->CE_Count;
+                    Packets->EcnEctCounter = Ecn->ECT_0_Count;
+                    if (Path->EcnValidationState <= ECN_VALIDATION_UNKNOWN) {
+                        Path->EcnValidationState = ECN_VALIDATION_CAPABLE;
+                        QuicTraceEvent(
+                            ConnEcnCapable,
+                            "[conn][%p] Ecn: IsCapable=%hu",
+                            Connection,
+                            TRUE);
+                    }
+                }
+            } else {
+                // 
+                // If an ACK frame newly acknowledges a packet that the endpoint sent
+                // with either the ECT(0) or ECT(1) codepoint set, ECN validation fails
+                // if the corresponding ECN counts are not present in the ACK frame.
+                //
+                if (EcnEctCounter != 0) {
+                    EcnValidated = FALSE;
+                }
+            }
+
+            if (!EcnValidated) {
+                QuicTraceEvent(
+                    ConnEcnFailed,
+                    "[conn][%p][%d] ECN failed: EctCnt %llu CeCnt %llu TxEct %llu DeltaSum %lld State %hu",
+                    Connection,
+                    EncryptLevel,
+                    Packets->EcnEctCounter, Packets->EcnCeCounter,
+                    Connection->Send.NumPacketsSentWithEct,
+                    EctCeDeltaSum,
+                    Path->EcnValidationState);
+                Path->EcnValidationState = ECN_VALIDATION_FAILED;
+            }
+        }
+
         //
         // Handle packet loss (and any possible congestion events) before
         // data acknowledgement so that we have an accurate bytes in flight
@@ -1595,7 +1658,6 @@ QuicLossDetectionProcessAckFrame(
 
         } else {
 
-            // TODO - Use ECN information.
             AckDelay <<= Connection->PeerTransportParams.AckDelayExponent;
 
             QuicLossDetectionProcessAckBlocks(
@@ -1604,7 +1666,8 @@ QuicLossDetectionProcessAckFrame(
                 EncryptLevel,
                 AckDelay,
                 &Connection->DecodedAckRanges,
-                InvalidFrame);
+                InvalidFrame,
+                FrameType == QUIC_FRAME_ACK_1 ? &Ecn : NULL);
         }
     }
 

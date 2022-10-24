@@ -258,7 +258,7 @@ QuicPacketBuilderPrepare(
             Builder->SendData =
                 CxPlatSendDataAlloc(
                     Builder->Path->Binding->Socket,
-                    CXPLAT_ECN_NON_ECT,
+                    Builder->EcnEctSet ? CXPLAT_ECN_ECT_0 : CXPLAT_ECN_NON_ECT,
                     IsPathMtuDiscovery ?
                         0 :
                         MaxUdpPayloadSizeForFamily(
@@ -927,7 +927,7 @@ QuicPacketBuilderFinalize(
     Builder->Metadata->SentTime = CxPlatTimeUs32();
     Builder->Metadata->PacketLength =
         Builder->HeaderLength + PayloadLength;
-
+    Builder->Metadata->Flags.EcnEctSet = Builder->EcnEctSet;
     QuicTraceEvent(
         ConnPacketSent,
         "[conn][%p][TX][%llu] %hhu (%hu bytes)",
@@ -963,6 +963,9 @@ Exit:
 
     if (FinalQuicPacket) {
         if (Builder->Datagram != NULL) {
+            if (Builder->Metadata->Flags.EcnEctSet) {
+                ++Connection->Send.NumPacketsSentWithEct;
+            }
             Builder->Datagram->Length = Builder->DatagramLength;
             Builder->Datagram = NULL;
             ++Builder->TotalCountDatagrams;

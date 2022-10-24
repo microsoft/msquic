@@ -94,6 +94,7 @@ typedef struct QUIC_SEND_PACKET_FLAGS {
     //
     BOOLEAN IsAppLimited            : 1;
     BOOLEAN HasLastAckedPacketInfo  : 1;
+    BOOLEAN EcnEctSet               : 1;
 #if DEBUG
     BOOLEAN Freed                   : 1;
 #endif

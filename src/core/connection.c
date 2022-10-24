@@ -634,6 +634,11 @@ QuicConnTraceRundownOper(
         "[conn][%p] Assigned worker: %p",
         Connection,
         Connection->Worker);
+    QuicTraceEvent(
+        ConnEcnCapable,
+        "[conn][%p] Ecn: IsCapable=%hu",
+        Connection,
+        Connection->Paths[0].EcnValidationState == ECN_VALIDATION_CAPABLE);
     CXPLAT_DBG_ASSERT(Connection->Registration);
     QuicTraceEvent(
         ConnRegistered,
@@ -5942,6 +5947,7 @@ QuicConnResetIdleTimeout(
     )
 {
     uint64_t IdleTimeoutMs;
+    QUIC_PATH* Path = &Connection->Paths[0];
     if (Connection->State.Connected) {
         //
         // Use the (non-zero) min value between local and peer's configuration.
@@ -5964,7 +5970,7 @@ QuicConnResetIdleTimeout(
             uint32_t MinIdleTimeoutMs =
                 US_TO_MS(QuicLossDetectionComputeProbeTimeout(
                     &Connection->LossDetection,
-                    &Connection->Paths[0],
+                    Path,
                     QUIC_CLOSE_PTO_COUNT));
             if (IdleTimeoutMs < MinIdleTimeoutMs) {
                 IdleTimeoutMs = MinIdleTimeoutMs;
@@ -6667,6 +6673,7 @@ QuicConnGetV2Statistics(
     Stats->ResumptionAttempted = Connection->Stats.ResumptionAttempted;
     Stats->ResumptionSucceeded = Connection->Stats.ResumptionSucceeded;
     Stats->GreaseBitNegotiated = Connection->Stats.GreaseBitNegotiated;
+    Stats->EcnCapable = Path->EcnValidationState == ECN_VALIDATION_CAPABLE;
     Stats->Rtt = Path->SmoothedRtt;
     Stats->MinRtt = Path->MinRtt;
     Stats->MaxRtt = Path->MaxRtt;
@@ -7169,6 +7176,11 @@ QuicConnApplyNewSettings(
             (void) CxPlatRandom(sizeof(RandomValue), &RandomValue);
             Connection->State.FixedBit = (RandomValue % 2);
             Connection->Stats.GreaseBitNegotiated = TRUE;
+        }
+
+        if (Connection->Settings.EcnEnabled) {
+            QUIC_PATH* Path = &Connection->Paths[0];
+            Path->EcnValidationState = ECN_VALIDATION_TESTING;
         }
     }
 

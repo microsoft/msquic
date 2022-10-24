@@ -648,6 +648,21 @@ tracepoint(CLOG_SETTINGS_C, SettingGreaseQuicBitEnabled , arg2);\
 
 
 /*----------------------------------------------------------
+// Decoder Ring for SettingEcnEnabled
+// [sett] EcnEnabled             = %hhu
+// QuicTraceLogVerbose(SettingEcnEnabled,                  "[sett] EcnEnabled             = %hhu", Settings->EcnEnabled);
+// arg2 = arg2 = Settings->EcnEnabled = arg2
+----------------------------------------------------------*/
+#ifndef _clog_3_ARGS_TRACE_SettingEcnEnabled
+#define _clog_3_ARGS_TRACE_SettingEcnEnabled(uniqueId, encoded_arg_string, arg2)\
+tracepoint(CLOG_SETTINGS_C, SettingEcnEnabled , arg2);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for SettingsLoadInvalidAcceptableVersion
 // Invalid AcceptableVersion loaded from storage! 0x%x at position %d
 // QuicTraceLogError(
