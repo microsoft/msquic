@@ -858,6 +858,7 @@ CxPlatTlsOnServerSessionTicketDecrypted(
     _In_ void *arg
     )
 {
+    fprintf(stderr, "CxPlatTlsOnServerSessionTicketDecrypted\n");
     CXPLAT_TLS* TlsContext = SSL_get_app_data(Ssl);
     UNREFERENCED_PARAMETER(keyname);
     UNREFERENCED_PARAMETER(keyname_length);
@@ -900,10 +901,13 @@ CxPlatTlsOnServerSessionTicketDecrypted(
                 "ReceiveTicket failed");
             if (status == SSL_TICKET_SUCCESS_RENEW) {
                 Result = SSL_TICKET_RETURN_IGNORE_RENEW;
+                fprintf(stderr, "ReceiveTicketCallback fasle, 0\n");
             } else {
                 Result = SSL_TICKET_RETURN_IGNORE;
+                fprintf(stderr, "ReceiveTicketCallback fasle, 1\n");                
             }
         }
+        fprintf(stderr, "ReceiveTicketCallback Status:%d, Result:%d\n", status, Result);
     }
 
     return Result;

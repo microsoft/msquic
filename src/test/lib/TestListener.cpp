@@ -110,6 +110,7 @@ TestListener::HandleListenerEvent(
     switch (Event->Type) {
 
     case QUIC_LISTENER_EVENT_NEW_CONNECTION:
+        fprintf(stderr, "%p QUIC_LISTENER_EVENT_NEW_CONNECTION\n", Event->NEW_CONNECTION.Connection);
         if (Event->NEW_CONNECTION.Info->ServerName != nullptr &&
             _strnicmp(
                 QUIC_TEST_LOOPBACK_FOR_AF(QUIC_ADDRESS_FAMILY_INET),

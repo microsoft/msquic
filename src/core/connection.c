@@ -2016,13 +2016,6 @@ Exit:
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
-QUIC_STATUS
-QuicConnGenerateLocalTransportParameters(
-    _In_ QUIC_CONNECTION* Connection,
-    _Out_ QUIC_TRANSPORT_PARAMETERS* LocalTP
-    );
-
-_IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicConnRestart(
     _In_ QUIC_CONNECTION* Connection,
@@ -2139,6 +2132,7 @@ QuicConnRecvResumptionTicket(
         const uint8_t* Ticket
     )
 {
+    fprintf(stderr, "%p receiving resumption ticket length:%d\n", Connection, TicketLength);
     BOOLEAN ResumptionAccepted = FALSE;
     QUIC_TRANSPORT_PARAMETERS ResumedTP;
     CxPlatZeroMemory(&ResumedTP, sizeof(ResumedTP));
@@ -2190,20 +2184,26 @@ QuicConnRecvResumptionTicket(
             IndicateResumed,
             Connection,
             "Indicating QUIC_CONNECTION_EVENT_RESUMED");
-        ResumptionAccepted =
-            QUIC_SUCCEEDED(QuicConnIndicateEvent(Connection, &Event));
+        Status = QuicConnIndicateEvent(Connection, &Event);
 
-        if (ResumptionAccepted) {
+        if (Status == QUIC_STATUS_SUCCESS) {
             QuicTraceEvent(
                 ConnServerResumeTicket,
                 "[conn][%p] Server app accepted resumption ticket",
                 Connection);
+            fprintf(stderr, "%p Server app accepted resumption ticket length:%d\n", Connection, TicketLength);
+            ResumptionAccepted = TRUE;
+        } else if (Status == QUIC_STATUS_PENDING) {
+            Connection->Crypto.TicketValidationPending = TRUE;
+            Connection->Crypto.RecvBuffer.ExternalBufferReference = FALSE;
+            ResumptionAccepted = FALSE;
         } else {
             QuicTraceEvent(
                 ConnError,
                 "[conn][%p] ERROR, %s.",
                 Connection,
                 "Resumption Ticket rejected by server app");
+            ResumptionAccepted = FALSE;
         }
 
     } else {
@@ -6450,6 +6450,16 @@ QuicConnParamSet(
         }
 
         QuicCryptoCustomCertValidationComplete(&Connection->Crypto, *(BOOLEAN*)Buffer);
+        Status = QUIC_STATUS_SUCCESS;
+        break;
+
+    case QUIC_PARAM_CONN_RESUMPTION_TICKET_VALID:
+        if (BufferLength != sizeof(BOOLEAN) || Buffer == NULL) {
+            Status = QUIC_STATUS_INVALID_PARAMETER;
+            break;
+        }
+
+        QuicCryptoCustomTicketValidationComplete(&Connection->Crypto, *(BOOLEAN*)Buffer);
         Status = QUIC_STATUS_SUCCESS;
         break;
 

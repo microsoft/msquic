@@ -352,6 +352,11 @@ QuicCryptoInitializeTls(
     Crypto->ResumptionTicket = NULL; // Owned by TLS now.
     Crypto->ResumptionTicketLength = 0;
     Status = QuicCryptoProcessData(Crypto, !IsServer);
+    // This is if SetParam comes directly to this func
+    // if (Crypto->TicketValidationPending) {
+    //     Crypto->ResumptionTicket = TlsConfig.ResumptionTicketBuffer;
+    //     Crypto->ResumptionTicketLength = TlsConfig.ResumptionTicketLength;
+    // }
 
 Error:
 
@@ -1675,7 +1680,7 @@ QuicCryptoProcessDataComplete(
     _In_ uint32_t RecvBufferConsumed
     )
 {
-    if (RecvBufferConsumed != 0) {
+    if (RecvBufferConsumed != 0 && !Crypto->TicketValidationPending) {
         Crypto->RecvTotalConsumed += RecvBufferConsumed;
         QuicTraceLogConnVerbose(
             DrainCrypto,
@@ -1687,7 +1692,7 @@ QuicCryptoProcessDataComplete(
 
     QuicCryptoValidate(Crypto);
 
-    if (!Crypto->CertValidationPending) {
+    if (!Crypto->CertValidationPending && !Crypto->TicketValidationPending) {
         QuicCryptoProcessTlsCompletion(Crypto);
     }
 }
@@ -1736,22 +1741,34 @@ QuicCryptoCustomTicketValidationComplete(
 
     Crypto->TicketValidationPending = FALSE;
     if (Result) {
-        // QuicTraceLogConnInfo(
-        //     CustomCertValidationSuccess,
-        //     QuicCryptoGetConnection(Crypto),
-        //     "Custom cert validation succeeded");
-        QuicCryptoProcessTlsCompletion(Crypto);
+        //1.         
+        // QUIC_CONNECTION* Connection = QuicCryptoGetConnection(Crypto);
+        // QUIC_CONFIGURATION* Configuration = Connection->Configuration;
+        // Connection->Configuration = NULL;
+        // QuicConnSetConfiguration(Connection, Configuration);
+        // ->    Connection->Crypto.TlsState.ClientAlpnList = NULL;
+        //       Connection->Crypto.TlsState.ClientAlpnListLength = 0;
+        //       affects processing
+
+        //
+        // 2.
+        QUIC_TRANSPORT_PARAMETERS LocalTP = { 0 };
+        if (Crypto->TLS != NULL) {
+            CxPlatTlsUninitialize(Crypto->TLS);
+            Crypto->TLS = NULL;
+        }
+        QUIC_CONNECTION* Connection = QuicCryptoGetConnection(Crypto);
+        QUIC_CONFIGURATION* Configuration = Connection->Configuration;
+        QuicConnGenerateLocalTransportParameters(Connection, &LocalTP);
+        QuicCryptoInitializeTls(Crypto, Configuration->SecurityConfig, &LocalTP);
+        //QuicCryptoInitializeTls(Crypto, Configuration->SecurityConfig, Connection->HandshakeTP);
+
+        // 3.
+        // QuicCryptoProcessData(Crypto, FALSE);
+        // -> CxPlatTlsProcessData -> SSL_do_handshake returns error
 
     } else {
-        // QuicTraceEvent(
-        //     ConnError,
-        //     "[conn][%p] ERROR, %s.",
-        //     QuicCryptoGetConnection(Crypto),
-        //     "Custom cert validation failed.");
-        // TODO: change the constant, but the value seems to have meaning. Check with someone
-        QuicConnTransportError(
-            QuicCryptoGetConnection(Crypto),
-            QUIC_ERROR_CRYPTO_ERROR(0xFF & CXPLAT_TLS_ALERT_CODE_BAD_CERTIFICATE));
+        // TODO: start normal handshake.
     }
 }
 
@@ -1866,6 +1883,8 @@ QuicCryptoProcessData(
 
     QuicCryptoValidate(Crypto);
 
+    QUIC_CONNECTION* Connection = QuicCryptoGetConnection(Crypto);
+    fprintf(stderr, "%p QuicCryptoProcessData -> CxPlatTlsProcessData Length: %d\n", Connection, Buffer.Length);
     Crypto->ResultFlags =
         CxPlatTlsProcessData(
             Crypto->TLS,
@@ -1873,6 +1892,7 @@ QuicCryptoProcessData(
             Buffer.Buffer,
             &Buffer.Length,
             &Crypto->TlsState);
+    fprintf(stderr, "CxPlatTlsProcessData ResultFlags:%d\n", Crypto->ResultFlags);
 
     QuicCryptoProcessDataComplete(Crypto, Buffer.Length);
 
@@ -1897,6 +1917,8 @@ QuicCryptoProcessAppData(
 {
     QUIC_STATUS Status;
 
+    QUIC_CONNECTION* Connection = QuicCryptoGetConnection(Crypto);
+    fprintf(stderr, "%p QuicCryptoProcessAppData (ticket) -> CxPlatTlsProcessData Length: %d\n", Connection, DataLength);
     Crypto->ResultFlags =
         CxPlatTlsProcessData(
             Crypto->TLS,

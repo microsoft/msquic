@@ -297,6 +297,8 @@ public:
 
     QUIC_STATUS SetCustomValidationResult(bool AcceptCert);
 
+    QUIC_STATUS SetCustomTicketValidationResult(bool AcceptTicket);
+
     uint32_t GetDestCidUpdateCount();
 
     const uint8_t* GetNegotiatedAlpn() const;

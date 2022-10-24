@@ -54,9 +54,11 @@ QuicTestPrimeResumption(
             PrimeResumption* Ctx = static_cast<PrimeResumption*>(Context);
             Ctx->Connection = Conn;
             if (Event->Type == QUIC_CONNECTION_EVENT_SHUTDOWN_COMPLETE) {
+                fprintf(stderr, "%p QUIC_CONNECTION_EVENT_SHUTDOWN_COMPLETE\n", Conn->Handle);
                 Ctx->Connection = nullptr;
                 Ctx->ShutdownEvent.Set();
             } else if (Event->Type == QUIC_CONNECTION_EVENT_CONNECTED) {
+                fprintf(stderr, "%p QUIC_CONNECTION_EVENT_CONNECTED: Send Resumption ticket\n", Conn->Handle);
                 MsQuic->ConnectionSendResumptionTicket(Conn->Handle, QUIC_SEND_RESUMPTION_FLAG_FINAL, 0, nullptr);
             }
             return QUIC_STATUS_SUCCESS;
@@ -193,6 +195,7 @@ QuicTestConnect(
 
     QUIC_BUFFER* ResumptionTicket = nullptr;
     if (SessionResumption != QUIC_TEST_RESUMPTION_DISABLED) {
+        fprintf(stderr, "prime client ============\n");
         QuicTestPrimeResumption(
             QuicAddrFamily,
             Registration,
@@ -202,7 +205,9 @@ QuicTestConnect(
         if (!ResumptionTicket) {
             return;
         }
+        fprintf(stderr, "============ prime client\n");
     }
+    CxPlatSleep(100);
 
     StatelessRetryHelper RetryHelper(ServerStatelessRetry);
     PrivateTransportHelper TpHelper(MultiPacketClientInitial);
@@ -263,6 +268,12 @@ QuicTestConnect(
                         QuicAddrFamily,
                         QUIC_LOCALHOST_FOR_AF(QuicAddrFamily),
                         ServerLocalAddr.GetPort()));
+
+                if (TRUE) {
+                    CxPlatSleep(1000);
+                    fprintf(stderr, "SetCustomTicketValidationResult\n");
+                    TEST_QUIC_SUCCEEDED(Server->SetCustomTicketValidationResult(TRUE));
+                }
 
                 if (AsyncConfiguration) {
                     if (!CxPlatEventWaitWithTimeout(ServerAcceptCtx.NewConnectionReady, TestWaitTimeout)) {
