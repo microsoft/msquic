@@ -32,6 +32,7 @@ class FuzzingData {
     const uint8_t* data;
     size_t size;
     std::vector<size_t> EachSize;
+    std::mutex mux;
     // TODO: support bit level pointers
     std::vector<size_t> Ptrs;
     std::vector<size_t> NumIterated;
@@ -91,6 +92,10 @@ public:
     }
     template<typename T>
     bool TryGetRandom(T UpperBound, T* Val, uint16_t ThreadId = 0) {
+        if (ThreadId == IncrementalThreadId) {
+            // utility area access from Connection/Stream callbacks
+            mux.lock();
+        }
         int type_size = sizeof(T);
         if (!CheckBoundary(ThreadId, type_size)) {
             return false;
@@ -98,6 +103,9 @@ public:
         memcpy(Val, &data[Ptrs[ThreadId]] + EachSize[ThreadId] * ThreadId, type_size);
         *Val = (T)(*Val % UpperBound);
         Ptrs[ThreadId] += type_size;
+        if (ThreadId == IncrementalThreadId) {
+            mux.unlock();
+        }
         return true;
     }
     size_t GetIterateCount(uint16_t ThreadId) {
