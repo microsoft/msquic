@@ -405,7 +405,7 @@ function CMake-Generate {
     if (!$DisableLogs) {
         $Arguments += " -DQUIC_ENABLE_LOGGING=on"
     }
-    if ($LoggingType) {
+    if ($LoggingType -ne "") {
         $Arguments += " -DQUIC_ENABLE_LOGGING=on -DQUIC_LOGGING_TYPE=" + $LoggingType
     }
     if ($SanitizeAddress) {
