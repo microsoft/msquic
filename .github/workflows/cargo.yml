@@ -45,12 +45,12 @@ jobs:
       shell: pwsh
     - name: Install Perl
       if: runner.os == 'Windows'
-      uses: shogo82148/actions-setup-perl@b77e9a544f1cd528203e7cc8959f86d01f32824a
+      uses: shogo82148/actions-setup-perl@fea527751744018e1c34cde4cc6f3656130d862c
       with:
         perl-version: '5.34'
     - name: Install NASM
       if: runner.os == 'Windows'
-      uses: ilammy/setup-nasm@ed078c2faa70c05013f5704d917316e0800af2a2
+      uses: ilammy/setup-nasm@321e6ed62a1fc77024a3bd853deb33645e8b22c4
     - name: Install Cargo
       if: runner.os == 'Linux'
       run: curl https://sh.rustup.rs -sSf | sh -s -- -y
