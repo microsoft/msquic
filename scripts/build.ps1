@@ -143,7 +143,7 @@ param (
     [switch]$DisableLogs = $false,
 
     [Parameter(Mandatory = $false)]
-    [switch]$LoggingType = "",
+    [string]$LoggingType = "",
 
     [Parameter(Mandatory = $false)]
     [switch]$SanitizeAddress = $false,
