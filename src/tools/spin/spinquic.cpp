@@ -31,8 +31,7 @@
 class FuzzingData {
     const uint8_t* data;
     size_t size;
-    // TODO: multiple EachSize for non divisible size
-    size_t EachSize;
+    std::vector<size_t> EachSize;
     // TODO: support bit level pointers
     std::vector<size_t> Ptrs;
     std::vector<size_t> NumIterated;
@@ -41,7 +40,7 @@ class FuzzingData {
 
     bool CheckBoundary(uint16_t ThreadId, size_t Adding) {
         // TODO: efficient cyclic access
-        if (EachSize < Ptrs[ThreadId] + Adding) {
+        if (EachSize[ThreadId] < Ptrs[ThreadId] + Adding) {
             if (!Cyclic) {
                 return false;
             }
@@ -51,10 +50,13 @@ class FuzzingData {
         return true;
     }
 public:
+    // 128 for main data, 20 for callback's issue workaround
+    static const size_t MinDataSize = 148;
+    static const size_t UtilityDataSize = 20;
     short int IncrementalThreadId;
 
     FuzzingData() : data(nullptr), size(0), Ptrs({}), NumIterated({}), Cyclic(true), NumThread(0) {}
-    FuzzingData(const uint8_t* data, size_t size) : data(data), size(size), Ptrs({}), NumIterated({}), Cyclic(true), NumThread(0) {}
+    FuzzingData(const uint8_t* data, size_t size) : data(data), size(size - UtilityDataSize), Ptrs({}), NumIterated({}), Cyclic(true), NumThread(0) {}
     bool Initialize(size_t NumSpinThread) {
         // TODO: support non divisible size
         if (size % NumSpinThread != 0 || size < NumSpinThread * 8) {
@@ -63,10 +65,12 @@ public:
 
         IncrementalThreadId = 0;
         NumThread = NumSpinThread;
-        EachSize = size / NumThread;
-        Ptrs.resize(NumThread);
+        EachSize.resize(NumThread + 1);
+        std::fill(EachSize.begin(), EachSize.end(), size / NumThread);
+        EachSize.back() = UtilityDataSize;
+        Ptrs.resize(NumThread + 1);
         std::fill(Ptrs.begin(), Ptrs.end(), 0);
-        NumIterated.resize(NumThread);
+        NumIterated.resize(NumThread + 1);
         std::fill(NumIterated.begin(), NumIterated.end(), 0);
         return true;
     }
@@ -74,7 +78,7 @@ public:
         if (!CheckBoundary(ThreadId, 1)) {
             return false;
         }
-        *Val = data[Ptrs[ThreadId]++ + EachSize * ThreadId];
+        *Val = data[Ptrs[ThreadId]++ + EachSize[ThreadId] * ThreadId];
         return true;
     }
     bool TryGetBool(bool* Flag, uint16_t ThreadId = 0) {
@@ -91,7 +95,7 @@ public:
         if (!CheckBoundary(ThreadId, type_size)) {
             return false;
         }
-        memcpy(Val, &data[Ptrs[ThreadId]] + EachSize * ThreadId, type_size);
+        memcpy(Val, &data[Ptrs[ThreadId]] + EachSize[ThreadId] * ThreadId, type_size);
         *Val = (T)(*Val % UpperBound);
         Ptrs[ThreadId] += type_size;
         return true;
@@ -329,8 +333,8 @@ static struct {
 
 QUIC_STATUS QUIC_API SpinQuicHandleStreamEvent(HQUIC Stream, void * /* Context */, QUIC_STREAM_EVENT *Event)
 {
-    // TODO: avoid context overwite
-    uint16_t ThreadID = 0;
+    // TODO: hacky way to avoid Context overwrite
+    uint16_t ThreadID = FuzzData ? FuzzData->IncrementalThreadId : 0; // *(uint16_t*)Context;
     switch (Event->Type) {
     case QUIC_STREAM_EVENT_PEER_SEND_SHUTDOWN:
         MsQuic.StreamShutdown(Stream, (QUIC_STREAM_SHUTDOWN_FLAGS)GetRandom(16), 0);
@@ -358,7 +362,7 @@ QUIC_STATUS QUIC_API SpinQuicHandleStreamEvent(HQUIC Stream, void * /* Context *
 QUIC_STATUS QUIC_API SpinQuicHandleConnectionEvent(HQUIC Connection, void *Context, QUIC_CONNECTION_EVENT *Event)
 {
     // TODO: avoid context overwite
-    uint16_t ThreadID = 0; // *(uint16_t*)Context;
+    uint16_t ThreadID = FuzzData ? FuzzData->IncrementalThreadId : 0; // *(uint16_t*)Context;
     switch (Event->Type) {
     case QUIC_CONNECTION_EVENT_CONNECTED: {
         int Selector = GetRandom(3);
@@ -1253,7 +1257,7 @@ void start() {
 
 extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
 {
-    if (size < 128 || size % 2 == 1) {
+    if (size < FuzzingData::MinDataSize || size % 2 == 1) {
         return 0;
     }
 
@@ -1265,7 +1269,7 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
     Settings.Ports = std::vector<uint16_t>({9998, 9999});
     Settings.AlpnPrefix = "spin";
     Settings.MaxOperationCount = UINT64_MAX;
-    Settings.MaxFuzzIterationCount = 10;
+    Settings.MaxFuzzIterationCount = 2;
     Settings.LossPercent = 1;
     Settings.AllocFailDenominator = 0;
     Settings.RepeatCount = 1;
