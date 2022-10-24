@@ -104,6 +104,11 @@ option(QUIC_DISABLE_POSIX_GSO "Disable GSO for systems that say they support it 
 option(QUIC_OFFICIAL_RELEASE "Configured the build for an official release" OFF)
 set(QUIC_FOLDER_PREFIX "" CACHE STRING "Optional prefix for source group folders when using an IDE generator")
 set(QUIC_LIBRARY_NAME "msquic" CACHE STRING "Override the output library name")
+set(QUIC_LOGGING_TYPE "" CACHE STRING "Explicitly choose logging backend (\"etw\", \"lttng\" or \"stdout\")")
+string(TOLOWER "${QUIC_LOGGING_TYPE}" QUIC_LOGGING_TYPE)
+if(NOT "${QUIC_LOGGING_TYPE}" MATCHES "^(etw|lttng|stdout|)$")
+    message(FATAL_ERROR "QUIC_LOGGING_TYPE must be \"etw\", \"lttng\" or \"stdout\", not \"${QUIC_LOGGING_TYPE}\"")
+endif()
 
 if (QUIC_UWP_BUILD OR QUIC_GAMECORE_BUILD)
     message(STATUS "UWP And GameCore builds disable all executables, and force shared CRT")
@@ -123,12 +128,6 @@ if (NOT QUIC_BUILD_SHARED)
 endif()
 
 set(BUILD_SHARED_LIBS ${QUIC_BUILD_SHARED})
-
-# FindLTTngUST does not exist before CMake 3.6, so disable logging for older cmake versions
-if (${CMAKE_VERSION} VERSION_LESS "3.6.0")
-    message(WARNING "Logging unsupported on this version of CMake. Please upgrade to 3.6 or later.")
-    set(QUIC_ENABLE_LOGGING OFF)
-endif()
 
 if (QUIC_PDBALTPATH AND MSVC)
 #    Disabled in all cases because generation is broken.
@@ -226,6 +225,11 @@ if (WIN32)
         list(APPEND QUIC_COMMON_FLAGS /MP)
     endif()
     set(QUIC_COMMON_DEFINES WIN32_LEAN_AND_MEAN SECURITY_WIN32)
+
+    if(QUIC_ENABLE_LOGGING AND QUIC_LOGGING_TYPE STREQUAL "")
+        set(QUIC_LOGGING_TYPE "etw")
+        message(STATUS "Choosing etw as default logging type for platform")
+    endif()
 else()
 
     include(CheckSymbolExists)
@@ -263,25 +267,21 @@ else()
             endif()
         endif()
 
-        if (QUIC_ENABLE_LOGGING)
-            check_include_file(lttng/ust-config.h HAS_LTTNG)
-            if (NOT HAS_LTTNG)
-                message(STATUS "LTTng logging not found. Disabling logging")
-                set(QUIC_ENABLE_LOGGING OFF)
-            endif()
-        endif()
-
-        # Check to see if lttng will work
-        if(QUIC_ENABLE_LOGGING)
-            check_symbol_exists(LTTNG_UST_HAVE_SDT_INTEGRATION lttng/ust-config.h HAS_LTTNG_SDT)
-            if(HAS_LTTNG_SDT)
-                message(WARNING "LTTng with SDT integration does not work. Disabling logging")
-                set(QUIC_ENABLE_LOGGING OFF)
-            endif()
+        if(QUIC_ENABLE_LOGGING AND QUIC_LOGGING_TYPE STREQUAL "")
+            set(QUIC_LOGGING_TYPE "lttng")
+            message(STATUS "Choosing lttng as default logging type for platform")
         endif()
 
     elseif(CX_PLATFORM STREQUAL "darwin")
         check_function_exists(sysctl HAS_SYSCTL)
+        if(QUIC_ENABLE_LOGGING)
+            if(QUIC_LOGGING_TYPE STREQUAL "stdout")
+                message(STATUS "Choosing stdout as logging type for platform")
+            elseif(QUIC_LOGGING_TYPE STREQUAL "")
+                message(WARNING "Must explicitly set QUIC_LOGGING_TYPE to \"stdout\" to enable due to performance overhead; disabling logging")
+                set(QUIC_ENABLE_LOGGING OFF)
+            endif()
+        endif()
     endif()
 
     set(QUIC_COMMON_FLAGS "")
@@ -349,6 +349,57 @@ endif()
 if(QUIC_TLS STREQUAL "openssl")
     message(STATUS "Enabling OpenSsl configuration tests")
     list(APPEND QUIC_COMMON_DEFINES QUIC_TEST_OPENSSL_FLAGS=1)
+endif()
+
+if(QUIC_ENABLE_LOGGING)
+    if (QUIC_LOGGING_TYPE STREQUAL "etw")
+        if (WIN32)
+            message(STATUS "Configuring for manifested ETW logging")
+            list(APPEND QUIC_COMMON_DEFINES QUIC_EVENTS_MANIFEST_ETW QUIC_LOGS_MANIFEST_ETW)
+        else()
+            message(WARNING "ETW logging is only available on WIN32. Disabling logging")
+            set(QUIC_ENABLE_LOGGING OFF)
+        endif()
+
+    elseif (QUIC_LOGGING_TYPE STREQUAL "lttng")
+        if (QUIC_ENABLE_SANITIZERS)
+            message(WARNING "LTTng logging is incompatible with sanitizers. Skipping logging")
+            set(QUIC_ENABLE_LOGGING OFF)
+        else()
+            # FindLTTngUST does not exist before CMake 3.6, so disable logging for older cmake versions
+            if (${CMAKE_VERSION} VERSION_LESS "3.6.0")
+                message(WARNING "Logging unsupported on this version of CMake. Please upgrade to 3.6 or later.")
+                set(QUIC_ENABLE_LOGGING OFF)
+            else()
+                check_include_file(lttng/ust-config.h HAS_LTTNG)
+                if (NOT HAS_LTTNG)
+                    message(WARNING "LTTng logging not found. Disabling logging")
+                    set(QUIC_ENABLE_LOGGING OFF)
+                else()
+                    check_symbol_exists(LTTNG_UST_HAVE_SDT_INTEGRATION lttng/ust-config.h HAS_LTTNG_SDT)
+                    if(HAS_LTTNG_SDT)
+                        message(WARNING "LTTng with SDT integration does not work. Disabling logging")
+                        set(QUIC_ENABLE_LOGGING OFF)
+                    else()
+                        message(STATUS "Configuring for LTTng logging")
+                        list(APPEND QUIC_COMMON_DEFINES QUIC_CLOG)
+                        include(FindLTTngUST)
+                    endif()
+                endif()
+            endif()
+        endif()
+
+    elseif (QUIC_LOGGING_TYPE STREQUAL "stdout")
+        message(STATUS "Configuring for stdout logging")
+        list(APPEND QUIC_COMMON_DEFINES QUIC_EVENTS_STDOUT QUIC_LOGS_STDOUT)
+    endif()
+
+else()
+    message(STATUS "QUIC_ENABLE_LOGGING is false. Disabling logging")
+endif()
+
+if (NOT QUIC_ENABLE_LOGGING)
+    list(APPEND QUIC_COMMON_DEFINES QUIC_EVENTS_STUB QUIC_LOGS_STUB)
 endif()
 
 if(WIN32)
@@ -452,14 +503,6 @@ if(WIN32)
 
         message(STATUS "Chosing ${XdkEditionTarget} with root ${Console_EndpointLibRoot}")
 
-    endif()
-
-    if(QUIC_ENABLE_LOGGING)
-        message(STATUS "Configuring for manifested ETW tracing")
-        list(APPEND QUIC_COMMON_DEFINES QUIC_EVENTS_MANIFEST_ETW QUIC_LOGS_MANIFEST_ETW)
-    else()
-        message(STATUS "QUIC_ENABLE_LOGGING is false. Disabling logging")
-        list(APPEND QUIC_COMMON_DEFINES QUIC_EVENTS_STUB QUIC_LOGS_STUB)
     endif()
 
     if(QUIC_ENABLE_SANITIZERS)
@@ -567,27 +610,6 @@ else() #!WIN32
         list(APPEND QUIC_COMMON_DEFINES DISABLE_POSIX_GSO)
     endif()
 
-    if (QUIC_ENABLE_SANITIZERS)
-        set(QUIC_ENABLE_LOGGING OFF)
-        message(WARNING "LTTng logging is incompatible with sanitizers. Skipping logging")
-    endif()
-
-    if(QUIC_ENABLE_LOGGING)
-        if (APPLE)
-            set (QUIC_ENABLE_LOGGING OFF)
-            message(STATUS "Disabling all tracing on macos")
-            list(APPEND QUIC_COMMON_DEFINES QUIC_EVENTS_STUB QUIC_LOGS_STUB)
-        else()
-            message(STATUS "Configuring for LTTng tracing")
-            list(APPEND QUIC_COMMON_DEFINES QUIC_CLOG)
-            set (QUIC_LINUX_LOGGING_METHOD linux)
-            include(FindLTTngUST)
-        endif()
-    else()
-        message(STATUS "QUIC_ENABLE_LOGGING is false. Disabling logging")
-        list(APPEND QUIC_COMMON_DEFINES QUIC_EVENTS_STUB QUIC_LOGS_STUB)
-    endif()
-
     if(QUIC_ENABLE_SANITIZERS)
         message(STATUS "Configuring sanitizers")
         list(APPEND QUIC_COMMON_FLAGS -fsanitize=address,leak,undefined,alignment -fsanitize-address-use-after-scope -Og -fno-omit-frame-pointer -fno-optimize-sibling-calls)
@@ -639,7 +661,6 @@ if(QUIC_CODE_CHECK)
             -bugprone-narrowing-conversions
             -bugprone-reserved-identifier
             -bugprone-sizeof-expression
-            -modernize-macro-to-enum
             -cert-dcl37-c
             -cert-dcl51-cpp
             -cert-err33-c
@@ -650,14 +671,18 @@ if(QUIC_CODE_CHECK)
             -cppcoreguidelines-avoid-non-const-global-variables
             -cppcoreguidelines-init-variables
             -cppcoreguidelines-narrowing-conversions
+            -google-readability-function-size
             -google-readability-todo
+            -hicpp-function-size
             -hicpp-no-assembler
             -hicpp-signed-bitwise
             -llvmlibc-restrict-system-libc-headers
             -misc-no-recursion # do you really need recursion?
+            -modernize-macro-to-enum
             -readability-avoid-const-params-in-decls
             -readability-duplicate-include
             -readability-function-cognitive-complexity
+            -readability-function-size
             -readability-identifier-length
             -readability-isolate-declaration
             -readability-magic-numbers
