@@ -300,24 +300,6 @@ tracepoint(CLOG_LOSS_DETECTION_C, PathValidationTimeout , arg1, arg3);\
 
 
 /*----------------------------------------------------------
-// Decoder Ring for EcnValidationSuccess
-// [conn][%p] ECN succeeded.
-// QuicTraceLogConnInfo(
-                            EcnValidationSuccess,
-                            Connection,
-                            "ECN succeeded.");
-// arg1 = arg1 = Connection = arg1
-----------------------------------------------------------*/
-#ifndef _clog_3_ARGS_TRACE_EcnValidationSuccess
-#define _clog_3_ARGS_TRACE_EcnValidationSuccess(uniqueId, arg1, encoded_arg_string)\
-tracepoint(CLOG_LOSS_DETECTION_C, EcnValidationSuccess , arg1);\
-
-#endif
-
-
-
-
-/*----------------------------------------------------------
 // Decoder Ring for ScheduleProbe
 // [conn][%p] probe round %hu
 // QuicTraceLogConnInfo(
@@ -459,6 +441,26 @@ tracepoint(CLOG_LOSS_DETECTION_C, ConnPacketACKed , arg2, arg3, arg4);\
 #ifndef _clog_4_ARGS_TRACE_ConnError
 #define _clog_4_ARGS_TRACE_ConnError(uniqueId, encoded_arg_string, arg2, arg3)\
 tracepoint(CLOG_LOSS_DETECTION_C, ConnError , arg2, arg3);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for ConnEcnCapable
+// [conn][%p] Ecn: IsCapable=%hu
+// QuicTraceEvent(
+                            ConnEcnCapable,
+                            "[conn][%p] Ecn: IsCapable=%hu",
+                            Connection,
+                            TRUE);
+// arg2 = arg2 = Connection = arg2
+// arg3 = arg3 = TRUE = arg3
+----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_ConnEcnCapable
+#define _clog_4_ARGS_TRACE_ConnEcnCapable(uniqueId, encoded_arg_string, arg2, arg3)\
+tracepoint(CLOG_LOSS_DETECTION_C, ConnEcnCapable , arg2, arg3);\
 
 #endif
 

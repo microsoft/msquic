@@ -1527,10 +1527,11 @@ QuicLossDetectionProcessAckBlocks(
                     Packets->EcnEctCounter = Ecn->ECT_0_Count;
                     if (Path->EcnValidationState <= ECN_VALIDATION_UNKNOWN) {
                         Path->EcnValidationState = ECN_VALIDATION_CAPABLE;
-                        QuicTraceLogConnInfo(
-                            EcnValidationSuccess,
+                        QuicTraceEvent(
+                            ConnEcnCapable,
+                            "[conn][%p] Ecn: IsCapable=%hu",
                             Connection,
-                            "ECN succeeded.");
+                            TRUE);
                     }
                 }
             } else {

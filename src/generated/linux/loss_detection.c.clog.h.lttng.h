@@ -313,25 +313,6 @@ TRACEPOINT_EVENT(CLOG_LOSS_DETECTION_C, PathValidationTimeout,
 
 
 /*----------------------------------------------------------
-// Decoder Ring for EcnValidationSuccess
-// [conn][%p] ECN succeeded.
-// QuicTraceLogConnInfo(
-                            EcnValidationSuccess,
-                            Connection,
-                            "ECN succeeded.");
-// arg1 = arg1 = Connection = arg1
-----------------------------------------------------------*/
-TRACEPOINT_EVENT(CLOG_LOSS_DETECTION_C, EcnValidationSuccess,
-    TP_ARGS(
-        const void *, arg1), 
-    TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg1, arg1)
-    )
-)
-
-
-
-/*----------------------------------------------------------
 // Decoder Ring for ScheduleProbe
 // [conn][%p] probe round %hu
 // QuicTraceLogConnInfo(
@@ -503,6 +484,29 @@ TRACEPOINT_EVENT(CLOG_LOSS_DETECTION_C, ConnError,
     TP_FIELDS(
         ctf_integer_hex(uint64_t, arg2, arg2)
         ctf_string(arg3, arg3)
+    )
+)
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for ConnEcnCapable
+// [conn][%p] Ecn: IsCapable=%hu
+// QuicTraceEvent(
+                            ConnEcnCapable,
+                            "[conn][%p] Ecn: IsCapable=%hu",
+                            Connection,
+                            TRUE);
+// arg2 = arg2 = Connection = arg2
+// arg3 = arg3 = TRUE = arg3
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_LOSS_DETECTION_C, ConnEcnCapable,
+    TP_ARGS(
+        const void *, arg2,
+        unsigned short, arg3), 
+    TP_FIELDS(
+        ctf_integer_hex(uint64_t, arg2, arg2)
+        ctf_integer(unsigned short, arg3, arg3)
     )
 )
 
