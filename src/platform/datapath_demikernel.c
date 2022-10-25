@@ -15,6 +15,8 @@ Long term TODOs:
 
 --*/
 
+#define _POSIX_C_SOURCE 199309L
+
 #include "platform_internal.h"
 #include <demi/libos.h>
 #include <demi/wait.h>
@@ -769,7 +771,7 @@ CxPlatDemiExecute(
             assert(demi_pop(&Socket->popqt, Socket->sockqd) == 0);
             Socket->popqt_set = TRUE;
         }
-        result = demi_wait_timeout(&qr, Socket->popqt, 0);
+        result = demi_timedwait(&qr, Socket->popqt, NULL);
         CxPlatLockRelease(&Datapath->Lock);
 
         if (result == 0) {

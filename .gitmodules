@@ -11,4 +11,4 @@
 [submodule "submodules/demikernel"]
 	path = submodules/demikernel
 	url = https://github.com/demikernel/demikernel.git
-	branch = wip-feature-msquic-integration
+	branch = master
