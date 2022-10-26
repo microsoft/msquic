@@ -90,17 +90,17 @@ MsQuic currently supports load balancing modes where the server encodes informat
 This encoding is **not enabled by default**. Please set the `LoadBalancingMode` setting accordingly to configure the desired load balancing mode. By default, <todo>.
 
 > **Note**
-> Any time the `LoadBalancingMode` is updates, the server must be restarted for this setting to take effect.
+> Any time the `LoadBalancingMode` is updated, the server must be restarted for this setting to take effect.
 
 ## IP Address Encoded Server ID
 
-MsQuic supports encoding the local IPv4 address or IPv6 suffix into Server ID. With this load balancing model, the load balancer can use this encoded IP address/suffix to directly route received QUIC packets to the appropriate server.
+MsQuic supports encoding the local IPv4 address or IPv6 suffix into Server ID. The load balancer can use this encoded IP address/suffix to directly route received QUIC packets to the appropriate server.
 
 To configure this mode, set the `LoadBalancingMode` setting to `1`.
 
 ## Fixed Server ID
 
-MsQuic supports encoding a fixed, 4-byte value into Server ID. With this load balancing model, the load balancer can use this value to lookup and route received QUIC packets to the appropriate server.
+MsQuic supports encoding a fixed, 4-byte value into Server ID. The load balancer can use this value to look up and route received QUIC packets to the appropriate server.
 
 To configure this mode, set the `LoadBalancingMode` setting to `2` and the `FixedServerID` setting to your desired value.
 
