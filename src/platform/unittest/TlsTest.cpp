@@ -213,9 +213,19 @@ protected:
         CaClientCertParams = (QUIC_CREDENTIAL_CONFIG*)CxPlatGetSelfSignedCert(CXPLAT_SELF_SIGN_CA_CERT_USER, TRUE);
         ASSERT_NE(nullptr, ClientCertParams);
 
-        // We need to switch the ca roots around since the server must
+        // We need to switch the ca certs around since the server must
         // validate the client certificate and the client the server
         // certificate.
+        //
+        // The client certificate parameters contains the ca cert that
+        // was used to generate the client cert, however, in order to
+        // validate the server cert it needs the ca cert that was used
+        // to create the server certificate as ca cert parameter.
+        //
+        // Similarly, the server side needs the client side ca certificate
+        // as ca cert in the parameters, but has it's own ca cert there
+        // when populated from CxPlatGetSelfSignedCert.
+        // 
         const char *CaServerCaCertificateFile = CaSelfSignedCertParams->CaCertificateFile;
         CaSelfSignedCertParams->CaCertificateFile = CaClientCertParams->CaCertificateFile;
         CaClientCertParams->CaCertificateFile = CaServerCaCertificateFile;
