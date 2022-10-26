@@ -816,14 +816,166 @@ FindOrCreateTempFiles(
     return TRUE;
 }
 
+_Success_(return)
+BOOLEAN
+FindOrCreateTempCaFile(
+    const char* const CaFileName,
+    char* CaFilePath
+    )
+{
+#ifdef _WIN32
+    char TempPath [MAX_PATH] = {0};
+    char TempCaPath[MAX_PATH] = {0};
+    DWORD PathLength = GetTempPathA(sizeof(TempPath), TempPath);
+    if (PathLength > MAX_PATH || PathLength <= 0) {
+        QuicTraceEvent(
+            LibraryError,
+            "[ lib] ERROR, %s.",
+            "GetTempPathA failed");
+        return FALSE;
+    }
+
+    if (CaFileName != NULL && CaFilePath != NULL) {
+        CxPlatCopyMemory(
+            TempCaPath,
+            TempPath,
+            PathLength);
+        CxPlatCopyMemory(
+            TempCaPath + PathLength,
+            CaFileName,
+            strlen(CaFileName));
+        CxPlatCopyMemory(
+            TempCaPath + PathLength + strlen(CaFileName),
+            "*\0",
+            2);
+
+        WIN32_FIND_DATAA FindData = {0};
+        HANDLE FindHandle = FindFirstFileA(TempCaPath, &FindData);
+        if (FindHandle == INVALID_HANDLE_VALUE) {
+            FindClose(FindHandle);
+            //
+            // File doesn't exist, create it
+            //
+            UINT TempFileStatus =
+                GetTempFileNameA(
+                    TempPath,
+                    CaFileName,
+                    0,
+                    CaFilePath);
+            if (TempFileStatus == 0) {
+                QuicTraceEvent(
+                    LibraryError,
+                    "[ lib] ERROR, %s.",
+                    "GetTempFileNameA Key Path failed");
+                return FALSE;
+            }
+        } else {
+            CxPlatCopyMemory(CaFilePath, TempPath, PathLength);
+            CxPlatCopyMemory(
+                CaFilePath + PathLength,
+                FindData.cFileName,
+                strnlen(FindData.cFileName, sizeof(FindData.cFileName)));
+            FindClose(FindHandle);
+            FindHandle = INVALID_HANDLE_VALUE;
+        }
+    }
+
+#else
+
+    char TempPath[MAX_PATH] = {0};
+    char* TempDir = NULL;
+
+    glob_t GlobData = {0};
+    if (glob(TEMP_DIR_SEARCH, 0, NULL, &GlobData) != 0 || GlobData.gl_pathc == 0) {
+        globfree(&GlobData);
+        //
+        // Temp dir not found, create it
+        //
+        CxPlatCopyMemory(TempPath, TEMP_DIR_TEMPLATE, sizeof(TEMP_DIR_TEMPLATE));
+
+        TempDir = mkdtemp(TempPath);
+        if (TempDir == NULL) {
+            QuicTraceEvent(
+                LibraryError,
+                "[ lib] ERROR, %s.",
+                "mkdtemp failed");
+            return FALSE;
+        }
+    } else {
+        //
+        // Assume the first result is the desired folder
+        //
+        strncpy(
+            TempPath,
+            GlobData.gl_pathv[0],
+            strnlen(GlobData.gl_pathv[0], sizeof(TempPath)));
+        globfree(&GlobData);
+        TempDir = TempPath;
+    }
+
+    if (CaFilePath != NULL && CaFileName != NULL) {
+        CxPlatCopyMemory(
+            CaFilePath,
+            TempDir,
+            strlen(TempDir));
+        CxPlatCopyMemory(
+            CaFilePath + strlen(TempDir),
+            "/",
+            1);
+        CxPlatCopyMemory(
+            CaFilePath + strlen(TempDir) + 1,
+            CaFileName,
+            strlen(CaFileName) + 1);
+    }
+
+#endif
+
+    return TRUE;
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+const char*
+CxPlatGetSelfSignedCertCaCertificateFileName(
+    _In_ BOOLEAN ClientCertificate
+    )
+{
+    const char* CaFileName = NULL;
+
+    if (ClientCertificate) {
+#ifdef _WIN32
+        CaFileName = "msquicopensslclientcacert";
+#else
+        CaFileName = QuicTestClientCaCertFilename;
+#endif
+    } else {
+#ifdef _WIN32
+        CaFileName = "msquicopensslservercacert";
+#else
+        CaFileName = QuicTestServerCaCertFilename;
+#endif
+    }
+
+    char* CaFilePath = malloc(sizeof(char)*MAX_PATH);
+    if (CaFilePath == NULL) {
+        return NULL;
+    }
+
+    if (!FindOrCreateTempCaFile(CaFileName, CaFilePath)) {
+        free(CaFilePath);
+        return NULL;
+    }
+
+    return CaFilePath;
+}
+
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_CREDENTIAL_CONFIG*
 CxPlatGetSelfSignedCert(
     _In_ CXPLAT_SELF_SIGN_CERT_TYPE Type,
-    _In_ BOOLEAN ClientCertificate
+    _In_ BOOLEAN ClientCertificate,
+    _In_z_ const char* CaCertificateFile
     )
 {
-    UNREFERENCED_PARAMETER(Type);
     const char* CertFileName = NULL;
     const char* KeyFileName = NULL;
     const char* CaFileName = NULL;
@@ -886,7 +1038,10 @@ CxPlatGetSelfSignedCert(
     Params->CertFile.PrivateKeyFile = Params->PrivateKeyFilepath;
 
     if (CreateCA) {
-        Params->CaCertificateFile = Params->CaFilepath;
+        if (CaCertificateFile)
+            Params->CaCertificateFile = CaCertificateFile;
+        else
+            Params->CaCertificateFile = Params->CaFilepath;
     } else {
         Params->CaCertificateFile = NULL;
     }
@@ -1151,4 +1306,17 @@ CxPlatFreeSelfSignedCert(
 #endif
 
     free(Params);
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+CxPlatFreeSelfSignedCertCaFile(
+    _In_z_ const char* CaFile
+    )
+{
+#ifdef TARGET_OS_IOS
+    UNREFERENCED_PARAMETER(CaFile);
+#endif
+
+    free((char*) CaFile);
 }

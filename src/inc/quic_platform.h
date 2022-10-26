@@ -527,10 +527,18 @@ typedef enum CXPLAT_TEST_CERT_TYPE {
 } CXPLAT_TEST_CERT_TYPE;
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
+const char*
+CxPlatGetSelfSignedCertCaCertificateFileName(
+    _In_ BOOLEAN ClientCertificate
+    );
+
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_CREDENTIAL_CONFIG*
 CxPlatGetSelfSignedCert(
     _In_ CXPLAT_SELF_SIGN_CERT_TYPE Type,
-    _In_ BOOLEAN ClientCertificate
+    _In_ BOOLEAN ClientCertificate,
+    _In_z_ const char* CaCertificateFile
     );
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -565,6 +573,12 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 CxPlatFreeSelfSignedCert(
     _In_ const QUIC_CREDENTIAL_CONFIG* CredConfig
+    );
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+CxPlatFreeSelfSignedCertCaFile(
+    _In_z_ const char* CaFile
     );
 
 _IRQL_requires_max_(PASSIVE_LEVEL)

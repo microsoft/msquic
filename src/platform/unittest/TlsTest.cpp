@@ -39,6 +39,8 @@ protected:
     static QUIC_CREDENTIAL_CONFIG* CaSelfSignedCertParams;
     static QUIC_CREDENTIAL_CONFIG* CaClientCertParams;
     static QUIC_CREDENTIAL_CONFIG* CertParamsFromFile;
+    static const char* ServerCaCertificateFile;
+    static const char* ClientCaCertificateFile;
 
     struct CxPlatSecConfig {
         CXPLAT_SEC_CONFIG* SecConfig {nullptr};
@@ -201,37 +203,23 @@ protected:
 
     static void SetUpTestSuite()
     {
-        SelfSignedCertParams = (QUIC_CREDENTIAL_CONFIG*)CxPlatGetSelfSignedCert(CXPLAT_SELF_SIGN_CERT_USER, FALSE);
+        SelfSignedCertParams = (QUIC_CREDENTIAL_CONFIG*)CxPlatGetSelfSignedCert(CXPLAT_SELF_SIGN_CERT_USER, FALSE, NULL);
         ASSERT_NE(nullptr, SelfSignedCertParams);
         SelfSignedCertParamsFlags = SelfSignedCertParams->Flags;
-        ClientCertParams = (QUIC_CREDENTIAL_CONFIG*)CxPlatGetSelfSignedCert(CXPLAT_SELF_SIGN_CERT_USER, TRUE);
+        ClientCertParams = (QUIC_CREDENTIAL_CONFIG*)CxPlatGetSelfSignedCert(CXPLAT_SELF_SIGN_CERT_USER, TRUE, NULL);
         ASSERT_NE(nullptr, ClientCertParams);
 
-        CaSelfSignedCertParams = (QUIC_CREDENTIAL_CONFIG*)CxPlatGetSelfSignedCert(CXPLAT_SELF_SIGN_CA_CERT_USER, FALSE);
+        ServerCaCertificateFile = CxPlatGetSelfSignedCertCaCertificateFileName(FALSE);
+        ClientCaCertificateFile = CxPlatGetSelfSignedCertCaCertificateFileName(TRUE);
+        CaSelfSignedCertParams = (QUIC_CREDENTIAL_CONFIG*)CxPlatGetSelfSignedCert(CXPLAT_SELF_SIGN_CA_CERT_USER, FALSE, ClientCaCertificateFile);
         ASSERT_NE(nullptr, CaSelfSignedCertParams);
         CaSelfSignedCertParamsFlags = CaSelfSignedCertParams->Flags;
-        CaClientCertParams = (QUIC_CREDENTIAL_CONFIG*)CxPlatGetSelfSignedCert(CXPLAT_SELF_SIGN_CA_CERT_USER, TRUE);
+        CaClientCertParams = (QUIC_CREDENTIAL_CONFIG*)CxPlatGetSelfSignedCert(CXPLAT_SELF_SIGN_CA_CERT_USER, TRUE, ServerCaCertificateFile);
         ASSERT_NE(nullptr, ClientCertParams);
 
-        // We need to switch the ca certs around since the server must
-        // validate the client certificate and the client the server
-        // certificate.
-        //
-        // The client certificate parameters contains the ca cert that
-        // was used to generate the client cert, however, in order to
-        // validate the server cert it needs the ca cert that was used
-        // to create the server certificate as ca cert parameter.
-        //
-        // Similarly, the server side needs the client side ca certificate
-        // as ca cert in the parameters, but has it's own ca cert there
-        // when populated from CxPlatGetSelfSignedCert.
-        // 
-        const char *CaServerCaCertificateFile = CaSelfSignedCertParams->CaCertificateFile;
-        CaSelfSignedCertParams->CaCertificateFile = CaClientCertParams->CaCertificateFile;
-        CaClientCertParams->CaCertificateFile = CaServerCaCertificateFile;
         CaClientCertParams->Flags |= QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION;
-
         ClientCertParams->Flags |= QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION;
+
 #ifndef QUIC_DISABLE_PFX_TESTS
         if (PfxPath != nullptr) {
             CertParamsFromFile = (QUIC_CREDENTIAL_CONFIG*)CXPLAT_ALLOC_NONPAGED(sizeof(QUIC_CREDENTIAL_CONFIG), QUIC_POOL_TEST);
@@ -255,6 +243,10 @@ protected:
         SelfSignedCertParams = nullptr;
         CxPlatFreeSelfSignedCert(ClientCertParams);
         ClientCertParams = nullptr;
+        CxPlatFreeSelfSignedCertCaFile(ServerCaCertificateFile);
+        ServerCaCertificateFile = nullptr;
+        CxPlatFreeSelfSignedCertCaFile(ClientCaCertificateFile);
+        ClientCaCertificateFile = nullptr;
 #ifndef QUIC_DISABLE_PFX_TESTS
         if (CertParamsFromFile != nullptr) {
             if (CertParamsFromFile->CertificatePkcs12->Asn1Blob) {
@@ -845,6 +837,8 @@ QUIC_CREDENTIAL_CONFIG* TlsTest::CertParamsFromFile = nullptr;
 QUIC_CREDENTIAL_FLAGS TlsTest::CaSelfSignedCertParamsFlags = QUIC_CREDENTIAL_FLAG_NONE;
 QUIC_CREDENTIAL_CONFIG* TlsTest::CaSelfSignedCertParams = nullptr;
 QUIC_CREDENTIAL_CONFIG* TlsTest::CaClientCertParams = nullptr;
+const char* TlsTest::ServerCaCertificateFile = nullptr;
+const char* TlsTest::ClientCaCertificateFile = nullptr;
 
 TEST_F(TlsTest, Initialize)
 {
