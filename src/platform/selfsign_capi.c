@@ -1037,6 +1037,7 @@ CxPlatGetSelfSignedCertCaCertificateFileName(
     _In_ BOOLEAN ClientCertificate
     )
 {
+    UNREFERENCED_PARAMETER(ClientCertificate);
     return NULL;
 }
 
