@@ -438,6 +438,7 @@ public:
     MsQuicSettings& SetCongestionControlAlgorithm(QUIC_CONGESTION_CONTROL_ALGORITHM Cc) { CongestionControlAlgorithm = (uint8_t)Cc; IsSet.CongestionControlAlgorithm = TRUE; return *this; }
     MsQuicSettings& SetDestCidUpdateIdleTimeoutMs(uint32_t Value) { DestCidUpdateIdleTimeoutMs = Value; IsSet.DestCidUpdateIdleTimeoutMs = TRUE; return *this; }
     MsQuicSettings& SetGreaseQuicBitEnabled(bool Value) { GreaseQuicBitEnabled = Value; IsSet.GreaseQuicBitEnabled = TRUE; return *this; }
+    MsQuicSettings& SetEcnEnabled(bool Value) { EcnEnabled = Value; IsSet.EcnEnabled = TRUE; return *this; }
 
     QUIC_STATUS
     SetGlobal() const noexcept {

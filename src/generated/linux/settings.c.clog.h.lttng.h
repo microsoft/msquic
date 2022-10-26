@@ -683,6 +683,22 @@ TRACEPOINT_EVENT(CLOG_SETTINGS_C, SettingGreaseQuicBitEnabled,
 
 
 /*----------------------------------------------------------
+// Decoder Ring for SettingEcnEnabled
+// [sett] EcnEnabled             = %hhu
+// QuicTraceLogVerbose(SettingEcnEnabled,                  "[sett] EcnEnabled             = %hhu", Settings->EcnEnabled);
+// arg2 = arg2 = Settings->EcnEnabled = arg2
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_SETTINGS_C, SettingEcnEnabled,
+    TP_ARGS(
+        unsigned char, arg2), 
+    TP_FIELDS(
+        ctf_integer(unsigned char, arg2, arg2)
+    )
+)
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for SettingDumpLFixedServerID
 // [sett] FixedServerID          = %u
 // QuicTraceLogVerbose(SettingDumpLFixedServerID,              "[sett] FixedServerID          = %u", Settings->FixedServerID);

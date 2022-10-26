@@ -478,6 +478,8 @@ size_t QUIC_IOCTL_BUFFER_SIZES[] =
     sizeof(UINT8),
     sizeof(UINT8),
     sizeof(UINT8),
+    sizeof(BOOLEAN),
+    sizeof(INT32),
 };
 
 CXPLAT_STATIC_ASSERT(
@@ -512,6 +514,7 @@ typedef union {
     QUIC_RUN_CIBIR_EXTENSION CibirParams;
     QUIC_RUN_VN_TP_ODD_SIZE_PARAMS OddSizeVnTpParams;
     UINT8 TestServerVNTP;
+    BOOLEAN Bidirectional;
 
 } QUIC_IOCTL_PARAMS;
 
@@ -1311,6 +1314,15 @@ QuicTestCtlEvtIoDeviceControl(
             QuicTestVNTPOtherVersionZero(Params->TestServerVNTP != 0));
         break;
 #endif
+    case IOCTL_QUIC_RUN_STREAM_BLOCK_UNBLOCK_CONN_FLOW_CONTROL:
+        CXPLAT_FRE_ASSERT(Params != nullptr);
+        QuicTestCtlRun(QuicTestStreamBlockUnblockConnFlowControl(Params->Bidirectional));
+        break;
+
+    case IOCTL_QUIC_RUN_ECN:
+        CXPLAT_FRE_ASSERT(Params != nullptr);
+        QuicTestCtlRun(QuicTestEcn(Params->Family));
+        break;
 
     default:
         Status = STATUS_NOT_IMPLEMENTED;

@@ -251,6 +251,9 @@ public:
     QUIC_STATUS GetRemoteAddr(_Out_ QuicAddr &remoteAddr);
     QUIC_STATUS SetRemoteAddr(_In_ const QuicAddr &remoteAddr);
 
+    bool GetEcnEnabled();
+    QUIC_STATUS SetEcnEnabled(bool value);
+
     uint64_t GetIdleTimeout();                          // milliseconds
     QUIC_STATUS SetIdleTimeout(uint64_t value);         // milliseconds
 

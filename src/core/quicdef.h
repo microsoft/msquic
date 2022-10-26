@@ -506,6 +506,11 @@ CXPLAT_STATIC_ASSERT(
 //
 #define QUIC_DEFAULT_GREASE_QUIC_BIT_ENABLED         FALSE
 
+//
+// The default value for enabling sender-side ECN support.
+//
+#define QUIC_DEFAULT_ECN_ENABLED                     FALSE
+
 /*************************************************************
                   TRANSPORT PARAMETERS
 *************************************************************/
@@ -576,6 +581,7 @@ CXPLAT_STATIC_ASSERT(
 #define QUIC_SETTING_MIGRATION_ENABLED              "MigrationEnabled"
 #define QUIC_SETTING_DATAGRAM_RECEIVE_ENABLED       "DatagramReceiveEnabled"
 #define QUIC_SETTING_GREASE_QUIC_BIT_ENABLED        "GreaseQuicBitEnabled"
+#define QUIC_SETTING_ECN_ENABLED                    "EcnEnabled"
 
 #define QUIC_SETTING_INITIAL_WINDOW_PACKETS         "InitialWindowPackets"
 #define QUIC_SETTING_SEND_IDLE_TIMEOUT_MS           "SendIdleTimeoutMs"

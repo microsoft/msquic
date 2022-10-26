@@ -21,7 +21,9 @@ void
 
 # Remarks
 
-**TODO**
+This is an asynchronous API but can run inline if called in a callback.
+The application must ensure that one `StreamReceiveComplete` call corresponds to one `QUIC_STREAM_EVENT_RECEIVE` event.
+Duplicate `StreamReceiveComplete` calls after one `QUIC_STREAM_EVENT_RECEIVE` event are ignored silently even with different `BufferLength`.
 
 # See Also
 

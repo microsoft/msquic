@@ -1903,7 +1903,7 @@ public:
     }
 };
 
-void SettingApplyTests(HQUIC Handle, uint32_t Param, bool AllowMtuChange = true) {
+void SettingApplyTests(HQUIC Handle, uint32_t Param, bool AllowMtuEcnChanges = true) {
     struct TestSpec {
         uint64_t Value;
         QUIC_STATUS Status;
@@ -2055,8 +2055,22 @@ void SettingApplyTests(HQUIC Handle, uint32_t Param, bool AllowMtuChange = true)
                 sizeof(QUIC_SETTINGS),
                 &Settings);
 
-        TEST_TRUE((AllowMtuChange && Status == QUIC_STATUS_SUCCESS) ||
-                    (!AllowMtuChange && Status == QUIC_STATUS_INVALID_PARAMETER));
+        TEST_TRUE((AllowMtuEcnChanges && Status == QUIC_STATUS_SUCCESS) ||
+                    (!AllowMtuEcnChanges && Status == QUIC_STATUS_INVALID_PARAMETER));
+    }
+
+    {
+        QUIC_SETTINGS Settings{0};
+        Settings.IsSet.EcnEnabled = TRUE;
+        Settings.EcnEnabled = TRUE;
+        QUIC_STATUS Status = 
+            MsQuic->SetParam(
+                Handle,
+                Param,
+                sizeof(QUIC_SETTINGS),
+                &Settings);
+        TEST_TRUE((AllowMtuEcnChanges && Status == QUIC_STATUS_SUCCESS) ||
+                    (!AllowMtuEcnChanges && Status == QUIC_STATUS_INVALID_PARAMETER));
     }
 
     //
@@ -3458,7 +3472,7 @@ void QuicTestConnectionParam()
                 //
                 {
                     TestScopeLogger LogScope3("After ConnectionStart");
-                    // Internally AllowMtuChanges become FALSE
+                    // Internally AllowMtuEcnChanges become FALSE
                     MsQuicConnection Connection(Registration);
                     TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
                     TEST_QUIC_SUCCEEDED(
