@@ -41,6 +41,7 @@ namespace Microsoft.Quic
         DISABLED,
         SERVER_ID_IP,
         SERVER_ID_FIXED,
+        COUNT,
     }
 
     internal enum QUIC_CREDENTIAL_TYPE

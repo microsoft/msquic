@@ -385,7 +385,7 @@ QuicSettingApply(
         Destination->IsSet.RetryMemoryLimit = TRUE;
     }
     if (Source->IsSet.LoadBalancingMode && (!Destination->IsSet.LoadBalancingMode || OverWrite)) {
-        if (Source->LoadBalancingMode > QUIC_LOAD_BALANCING_SERVER_ID_FIXED) {
+        if (Source->LoadBalancingMode >= QUIC_LOAD_BALANCING_COUNT) {
             return FALSE;
         }
         Destination->LoadBalancingMode = Source->LoadBalancingMode;
@@ -704,7 +704,7 @@ QuicSettingsLoad(
             QUIC_SETTING_LOAD_BALANCING_MODE,
             (uint8_t*)&Value,
             &ValueLen);
-        if (Value <= QUIC_LOAD_BALANCING_SERVER_ID_FIXED) {
+        if (Value < QUIC_LOAD_BALANCING_COUNT) {
             Settings->LoadBalancingMode = (uint16_t)Value;
         }
     }
