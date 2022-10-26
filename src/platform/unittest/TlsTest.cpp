@@ -2302,7 +2302,9 @@ ValidateSecConfigStatusOpenSsl(
 
 TEST_F(TlsTest, PlatformSpecificFlagsOpenSsl)
 {
-    for (auto TestFlag : { QUIC_CREDENTIAL_FLAG_USE_TLS_BUILTIN_CERTIFICATE_VALIDATION }) {
+    for (auto TestFlag : { QUIC_CREDENTIAL_FLAG_USE_TLS_BUILTIN_CERTIFICATE_VALIDATION,
+                           QUIC_CREDENTIAL_FLAG_SET_CA_CERTIFICATE_FILE
+      }) {
 
         QUIC_CREDENTIAL_CONFIG TestClientCredConfig = {
             QUIC_CREDENTIAL_TYPE_NONE,
