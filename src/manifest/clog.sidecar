@@ -9711,6 +9711,18 @@
       ],
       "macroName": "QuicTraceLogVerbose"
     },
+    "SettingDumpFixedServerID": {
+      "ModuleProperites": {},
+      "TraceString": "[sett] FixedServerID          = %u",
+      "UniqueId": "SettingDumpFixedServerID",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceLogVerbose"
+    },
     "SettingDumpFullyDeployedVersions": {
       "ModuleProperites": {},
       "TraceString": "[sett] FullyDeployedVersion[%u]= 0x%x",
@@ -9779,6 +9791,18 @@
       "ModuleProperites": {},
       "TraceString": "[sett] KeepAliveIntervalMs    = %u",
       "UniqueId": "SettingDumpKeepAliveIntervalMs",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceLogVerbose"
+    },
+    "SettingDumpLFixedServerID": {
+      "ModuleProperites": {},
+      "TraceString": "[sett] FixedServerID          = %u",
+      "UniqueId": "SettingDumpLFixedServerID",
       "splitArgs": [
         {
           "DefinationEncoding": "u",
@@ -15114,6 +15138,11 @@
         "EncodingString": "[sett] DisconnectTimeoutMs    = %u"
       },
       {
+        "UniquenessHash": "b9200240-8e93-f516-bb6f-43d17f7f930b",
+        "TraceID": "SettingDumpFixedServerID",
+        "EncodingString": "[sett] FixedServerID          = %u"
+      },
+      {
         "UniquenessHash": "a4fc8178-7f43-f558-f37c-273bfb44ad5f",
         "TraceID": "SettingDumpFullyDeployedVersions",
         "EncodingString": "[sett] FullyDeployedVersion[%u]= 0x%x"
@@ -15142,6 +15171,11 @@
         "UniquenessHash": "c8a2ca5b-f27d-192b-af01-605c5ea507f0",
         "TraceID": "SettingDumpKeepAliveIntervalMs",
         "EncodingString": "[sett] KeepAliveIntervalMs    = %u"
+      },
+      {
+        "UniquenessHash": "db21df01-2a7f-c422-cbe7-e2ade2b06ed0",
+        "TraceID": "SettingDumpLFixedServerID",
+        "EncodingString": "[sett] FixedServerID          = %u"
       },
       {
         "UniquenessHash": "e4bd36f1-b2c4-a817-647c-b81bdaa7d40d",

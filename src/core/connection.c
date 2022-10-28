@@ -178,6 +178,12 @@ QuicConnAlloc(
                     ((uint8_t*)&Datagram->Route->LocalAddress.Ipv6.sin6_addr) + 12,
                     4);
             }
+        } else if (MsQuicLib.Settings.LoadBalancingMode == QUIC_LOAD_BALANCING_SERVER_ID_FIXED) {
+            CxPlatRandom(1, Connection->ServerID); // Randomize the first byte.
+            CxPlatCopyMemory(
+                Connection->ServerID + 1,
+                &MsQuicLib.Settings.FixedServerID,
+                sizeof(MsQuicLib.Settings.FixedServerID));
         }
 
         Connection->Stats.QuicVersion = Packet->Invariant->LONG_HDR.Version;

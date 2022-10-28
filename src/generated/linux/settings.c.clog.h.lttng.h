@@ -114,6 +114,22 @@ TRACEPOINT_EVENT(CLOG_SETTINGS_C, SettingDumpLoadBalancingMode,
 
 
 /*----------------------------------------------------------
+// Decoder Ring for SettingDumpFixedServerID
+// [sett] FixedServerID          = %u
+// QuicTraceLogVerbose(SettingDumpFixedServerID,           "[sett] FixedServerID          = %u", Settings->FixedServerID);
+// arg2 = arg2 = Settings->FixedServerID = arg2
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_SETTINGS_C, SettingDumpFixedServerID,
+    TP_ARGS(
+        unsigned int, arg2), 
+    TP_FIELDS(
+        ctf_integer(unsigned int, arg2, arg2)
+    )
+)
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for SettingDumpMaxStatelessOperations
 // [sett] MaxStatelessOperations = %u
 // QuicTraceLogVerbose(SettingDumpMaxStatelessOperations,  "[sett] MaxStatelessOperations = %u", Settings->MaxStatelessOperations);
@@ -677,6 +693,22 @@ TRACEPOINT_EVENT(CLOG_SETTINGS_C, SettingEcnEnabled,
         unsigned char, arg2), 
     TP_FIELDS(
         ctf_integer(unsigned char, arg2, arg2)
+    )
+)
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for SettingDumpLFixedServerID
+// [sett] FixedServerID          = %u
+// QuicTraceLogVerbose(SettingDumpLFixedServerID,              "[sett] FixedServerID          = %u", Settings->FixedServerID);
+// arg2 = arg2 = Settings->FixedServerID = arg2
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_SETTINGS_C, SettingDumpLFixedServerID,
+    TP_ARGS(
+        unsigned int, arg2), 
+    TP_FIELDS(
+        ctf_integer(unsigned int, arg2, arg2)
     )
 )
 

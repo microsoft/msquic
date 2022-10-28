@@ -85,6 +85,9 @@ typedef enum QUIC_EXECUTION_PROFILE {
 typedef enum QUIC_LOAD_BALANCING_MODE {
     QUIC_LOAD_BALANCING_DISABLED,               // Default
     QUIC_LOAD_BALANCING_SERVER_ID_IP,           // Encodes IP address in Server ID
+    QUIC_LOAD_BALANCING_SERVER_ID_FIXED,        // Encodes a fixed 4-byte value in Server ID
+    QUIC_LOAD_BALANCING_COUNT,                  // The number of supported load balancing modes
+                                                // MUST BE LAST
 } QUIC_LOAD_BALANCING_MODE;
 
 typedef enum QUIC_CREDENTIAL_TYPE {
@@ -585,11 +588,13 @@ typedef struct QUIC_GLOBAL_SETTINGS {
         struct {
             uint64_t RetryMemoryLimit                       : 1;
             uint64_t LoadBalancingMode                      : 1;
-            uint64_t RESERVED                               : 62;
+            uint64_t FixedServerID                          : 1;
+            uint64_t RESERVED                               : 61;
         } IsSet;
     };
     uint16_t RetryMemoryLimit;
     uint16_t LoadBalancingMode;
+    uint32_t FixedServerID;
 } QUIC_GLOBAL_SETTINGS;
 
 typedef struct QUIC_SETTINGS {
