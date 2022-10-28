@@ -830,7 +830,7 @@ QuicTestValidateStreamEvents3(
             ServerLocalAddr.GetPort()));
     TEST_TRUE(Client.HandshakeComplete.WaitTimeout(1000));
 
-    CxPlatSleep(100);
+    CxPlatSleep(200);
     TEST_QUIC_SUCCEEDED(
         MsQuic->StreamSend(
             ClientStream.Handle,
@@ -838,7 +838,7 @@ QuicTestValidateStreamEvents3(
             1,
             QUIC_SEND_FLAG_NONE,
             nullptr));
-    CxPlatSleep(20);
+    CxPlatSleep(200);
     TEST_QUIC_SUCCEEDED(
         MsQuic->StreamSend(
             ClientStream.Handle,
@@ -847,7 +847,7 @@ QuicTestValidateStreamEvents3(
             QUIC_SEND_FLAG_NONE,
             nullptr));
 
-    CxPlatSleep(100);
+    CxPlatSleep(200);
     TEST_QUIC_SUCCEEDED(
         MsQuic->StreamShutdown(
             ClientStream.Handle,
@@ -953,7 +953,7 @@ QuicTestValidateStreamEvents4(
             ServerLocalAddr.GetPort()));
     TEST_TRUE(Client.HandshakeComplete.WaitTimeout(1000));
 
-    CxPlatSleep(100);
+    CxPlatSleep(200);
     TEST_QUIC_SUCCEEDED(
         MsQuic->StreamSend(
             ClientStream.Handle,
@@ -961,7 +961,7 @@ QuicTestValidateStreamEvents4(
             1,
             QUIC_SEND_FLAG_DELAY_SEND,
             nullptr));
-    CxPlatSleep(20);
+    CxPlatSleep(200);
     TEST_QUIC_SUCCEEDED(
         MsQuic->StreamSend(
             ClientStream.Handle,
@@ -970,7 +970,7 @@ QuicTestValidateStreamEvents4(
             QUIC_SEND_FLAG_NONE,
             nullptr));
 
-    CxPlatSleep(100);
+    CxPlatSleep(200);
     TEST_QUIC_SUCCEEDED(
         MsQuic->StreamShutdown(
             ClientStream.Handle,
@@ -1188,7 +1188,7 @@ QuicTestValidateStreamEvents6(
             ServerLocalAddr.GetPort()));
     TEST_TRUE(Client.HandshakeComplete.WaitTimeout(1000));
 
-    CxPlatSleep(100);
+    CxPlatSleep(200);
     TEST_QUIC_SUCCEEDED(
         MsQuic->StreamSend(
             ClientStream.Handle,
@@ -1408,7 +1408,7 @@ QuicTestValidateStreamEvents8(
             ServerLocalAddr.GetPort()));
     TEST_TRUE(Client.HandshakeComplete.WaitTimeout(1000));
 
-    CxPlatSleep(100);
+    CxPlatSleep(200);
     TEST_QUIC_SUCCEEDED(
         MsQuic->StreamSend(
             ClientStream.Handle,
@@ -1416,7 +1416,7 @@ QuicTestValidateStreamEvents8(
             1,
             QUIC_SEND_FLAG_START,
             nullptr));
-    CxPlatSleep(20);
+    CxPlatSleep(200);
     TEST_QUIC_SUCCEEDED(
         MsQuic->StreamSend(
             ClientStream.Handle,
@@ -1425,7 +1425,7 @@ QuicTestValidateStreamEvents8(
             QUIC_SEND_FLAG_START,
             nullptr));
 
-    CxPlatSleep(100);
+    CxPlatSleep(200);
     TEST_QUIC_SUCCEEDED(
         MsQuic->StreamShutdown(
             ClientStream.Handle,
