@@ -110,18 +110,6 @@ GenerateX509Cert(
     X509_NAME *Name = NULL;
     X509_NAME *IssuerName = NULL;
 
-    // Using OpenSSL 3.0 the key generation code can be simplified to:
-    //
-    // PKey = EVP_EC_gen("secp521r1"); // or EVP_RSA_gen(2048)
-    // if (PKey == NULL) {
-    //     QuicTraceEvent(
-    //         LibraryError,
-    //         "[ lib] ERROR, %s.",
-    //         "EVP_EC_gen failed");
-    //     Status = QUIC_STATUS_TLS_ERROR;
-    //     goto Exit;
-    // }
-
     // Generate private key (RSA)
     PKey = EVP_PKEY_new();
     if (PKey == NULL) {

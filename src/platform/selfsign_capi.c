@@ -1046,7 +1046,7 @@ QUIC_CREDENTIAL_CONFIG*
 CxPlatGetSelfSignedCert(
     _In_ CXPLAT_SELF_SIGN_CERT_TYPE Type,
     _In_ BOOLEAN IsClient,
-    _In_z_ const char *CaCertificateFile;
+    _In_z_ const char *CaCertificateFile
     )
 {
     UNREFERENCED_PARAMETER(CaCertificateFile);
