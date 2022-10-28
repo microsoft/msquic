@@ -187,12 +187,14 @@ namespace QuicTrace.Tables
             table.AddColumn(txDelayColumnConfig, dataProjection.Compose(ProjectTxDelay));
 
             tableConfig1.AddColumnRole(ColumnRole.StartTime, timeColumnConfig);
+            tableConfig1.InitialFilterShouldKeep = false;
             tableConfig1.InitialSelectionQuery = "[Type]:=\"Tx\" OR [Type]:=\"Rx\"";
             tableConfig1.InitialFilterQuery = "[Type]:<>\"Tx\" AND [Type]:<>\"PktCreate\" AND [Type]:<>\"TxAck\" AND [Type]:<>\"Rx\"";
             tableBuilder.AddTableConfiguration(tableConfig1);
 
             tableConfig2.AddColumnRole(ColumnRole.StartTime, timeColumnConfig);
             tableConfig2.AddColumnRole(ColumnRole.Duration, durationColumnConfig);
+            tableConfig2.InitialFilterShouldKeep = false;
             tableConfig2.InitialSelectionQuery = "[Type]:=\"InFlight\"";
             tableConfig2.InitialFilterQuery =
                 "[Type]:=\"Tx\" OR [Type]:=\"TxAck\" OR [Type]:=\"PktCreate\" OR [Type]:=\"Rx\" OR [Type]:=\"Rtt\" OR [Type]:=\"TxDelay\"";
@@ -200,16 +202,19 @@ namespace QuicTrace.Tables
 
             tableConfig3.AddColumnRole(ColumnRole.StartTime, timeColumnConfig);
             tableConfig3.AddColumnRole(ColumnRole.Duration, durationColumnConfig);
+            tableConfig3.InitialFilterShouldKeep = false;
             tableConfig3.InitialFilterQuery = "[Type]:<>\"Rtt\"";
             tableBuilder.AddTableConfiguration(tableConfig3);
 
             tableConfig4.AddColumnRole(ColumnRole.StartTime, timeColumnConfig);
+            tableConfig4.InitialFilterShouldKeep = false;
             tableConfig4.InitialSelectionQuery = "[Type]:=\"Tx\" OR [Type]:=\"Rx\"";
             tableConfig4.InitialFilterQuery =
                 "[Type]:<>\"Tx\" AND [Type]:<>\"TxAck\" AND [Type]:<>\"PktCreate\" AND [Type]:<>\"Rx\"";
             tableBuilder.AddTableConfiguration(tableConfig4);
 
             tableConfig5.AddColumnRole(ColumnRole.StartTime, timeColumnConfig);
+            tableConfig5.InitialFilterShouldKeep = false;
             tableConfig5.InitialFilterQuery = "[Type]:<>\"TxDelay\"";
             tableBuilder.AddTableConfiguration(tableConfig5);
 

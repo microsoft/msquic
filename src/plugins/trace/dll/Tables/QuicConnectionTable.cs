@@ -134,6 +134,7 @@ namespace QuicTrace.Tables
 
             tableConfig1.AddColumnRole(ColumnRole.StartTime, timeColumnConfig);
             tableConfig1.AddColumnRole(ColumnRole.Duration, durationColumnConfig);
+            tableConfig1.InitialFilterShouldKeep = false;
             tableConfig1.InitialExpansionQuery = "[Series Name]:=\"Process (ID)\"";
             tableConfig1.InitialSelectionQuery = "[Series Name]:=\"Connection\"";
             tableBuilder.AddTableConfiguration(tableConfig1);

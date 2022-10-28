@@ -1,5 +1,4 @@
-﻿using System;
-using System.Reflection;
+﻿using System.Reflection;
 using Microsoft.Performance.SDK;
 using Microsoft.Performance.SDK.Runtime;
 
@@ -7,7 +6,7 @@ namespace QuicTrace
 {
     internal class SingleFileAssemblyLoader : IAssemblyLoader
     {
-        private readonly string CurrentExePath = Environment.ProcessPath!;
+        private readonly string CurrentExePath = Assembly.GetExecutingAssembly().CodeBase!; // Environment.ProcessPath!;
 
         public bool SupportsIsolation => false;
 
