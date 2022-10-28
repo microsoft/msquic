@@ -177,11 +177,13 @@ namespace QuicTrace.Tables
 
             tableConfig1.AddColumnRole(ColumnRole.StartTime, timeColumnConfig);
             tableConfig1.AddColumnRole(ColumnRole.Duration, durationColumnConfig);
+            tableConfig1.InitialFilterShouldKeep = false;
             tableConfig1.InitialSelectionQuery = "[Series Name]:=\"Connection\" OR [Series Name]:=\"Reason\"";
             tableBuilder.AddTableConfiguration(tableConfig1);
 
             tableConfig2.AddColumnRole(ColumnRole.StartTime, timeColumnConfig);
             tableConfig2.AddColumnRole(ColumnRole.Duration, durationColumnConfig);
+            tableConfig2.InitialFilterShouldKeep = false;
             tableConfig2.InitialSelectionQuery = "[Series Name]:=\"Reason\"";
             tableBuilder.AddTableConfiguration(tableConfig2);
 
