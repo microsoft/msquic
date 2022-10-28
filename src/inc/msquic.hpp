@@ -1145,6 +1145,7 @@ private:
 struct MsQuicAutoAcceptListener : public MsQuicListener {
     const MsQuicConfiguration& Configuration;
     MsQuicConnectionCallback* ConnectionHandler;
+    MsQuicConnection* LastConnection {nullptr};
     void* ConnectionContext;
 #ifdef CX_PLATFORM_TYPE
     uint32_t AcceptedConnectionCount {0};
@@ -1187,6 +1188,7 @@ private:
                     Connection->Handle = nullptr;
                     delete Connection;
                 } else {
+                    pThis->LastConnection = Connection;
 #ifdef CX_PLATFORM_TYPE
                     InterlockedIncrement((long*)&pThis->AcceptedConnectionCount);
 #endif

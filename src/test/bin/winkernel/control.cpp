@@ -480,6 +480,7 @@ size_t QUIC_IOCTL_BUFFER_SIZES[] =
     sizeof(UINT8),
     sizeof(BOOLEAN),
     sizeof(INT32),
+    sizeof(INT32),
 };
 
 CXPLAT_STATIC_ASSERT(
@@ -1322,6 +1323,11 @@ QuicTestCtlEvtIoDeviceControl(
     case IOCTL_QUIC_RUN_ECN:
         CXPLAT_FRE_ASSERT(Params != nullptr);
         QuicTestCtlRun(QuicTestEcn(Params->Family));
+        break;
+
+    case IOCTL_QUIC_RUN_HANDSHAKE_SPECIFIC_LOSS_PATTERNS:
+        CXPLAT_FRE_ASSERT(Params != nullptr);
+        QuicTestCtlRun(QuicTestHandshakeSpecificLossPatterns(Params->Family));
         break;
 
     default:
