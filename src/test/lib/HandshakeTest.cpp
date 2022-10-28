@@ -3499,7 +3499,7 @@ QuicTestHandshakeSpecificLossPatterns(
     TEST_QUIC_SUCCEEDED(Listener.GetLocalAddr(ServerLocalAddr));
 
     for (uint64_t Bitmap = 1; Bitmap < 128; ++Bitmap) {
-        char Name[64]; sprintf_s(Name, sizeof(Name), "DoHandshake %llu", Bitmap);
+        char Name[64]; sprintf_s(Name, sizeof(Name), "DoHandshake %llu", (unsigned long long)Bitmap);
         TestScopeLogger logScope(Name);
         BitmapLossHelper LossHelper(Bitmap);
         MsQuicConnection Connection(Registration);

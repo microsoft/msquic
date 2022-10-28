@@ -10640,6 +10640,13 @@
       "splitArgs": [],
       "macroName": "QuicTraceLogVerbose"
     },
+    "TestHookDropPacketBitmap": {
+      "ModuleProperites": {},
+      "TraceString": "[test][hook] Bitmap packet drop",
+      "UniqueId": "TestHookDropPacketBitmap",
+      "splitArgs": [],
+      "macroName": "QuicTraceLogVerbose"
+    },
     "TestHookDropPacketRandom": {
       "ModuleProperites": {},
       "TraceString": "[test][hook] Random packet drop",
@@ -15476,6 +15483,11 @@
         "UniquenessHash": "861bbb4e-e371-4334-b45d-03199c1cacda",
         "TraceID": "TestHookDropOldAddrSend",
         "EncodingString": "[test][hook] Dropping send to old addr"
+      },
+      {
+        "UniquenessHash": "a5664948-8711-00da-6c95-520e7c6ebab0",
+        "TraceID": "TestHookDropPacketBitmap",
+        "EncodingString": "[test][hook] Bitmap packet drop"
       },
       {
         "UniquenessHash": "ccf24f92-4b3c-0f17-5c84-1d454a788837",
