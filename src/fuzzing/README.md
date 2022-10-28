@@ -16,7 +16,7 @@ $ cd $PATH_TO_OSS_FUZZ
 # build Docker image
 $ python infra/helper.py build_image msquic
 # build fuzzing code, memory sanitizer is not supported yet
-$ python infra/helper.py build_fuzzers --sanitizer <address/memory/undefined> msquic 
+$ python infra/helper.py build_fuzzers --sanitizer <address/memory/undefined> msquic
 # run fuzzing
 $ python infra/helper.py run_fuzzer msquic $YOUR_COOL_FUZZING
 ```
