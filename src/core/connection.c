@@ -2196,7 +2196,7 @@ QuicConnRecvResumptionTicket(
         } else if (Status == QUIC_STATUS_PENDING) {
             Connection->Crypto.TicketValidationPending = TRUE;
             Connection->Crypto.RecvBuffer.ExternalBufferReference = FALSE;
-            ResumptionAccepted = FALSE;
+            ResumptionAccepted = TRUE;
         } else {
             QuicTraceEvent(
                 ConnError,
@@ -3124,6 +3124,7 @@ QuicConnPeerCertReceived(
     _In_ QUIC_STATUS DeferredStatus
     )
 {
+    fprintf(stderr, "%p QuicConnPeerCertReceived\n", Connection);
     QUIC_CONNECTION_EVENT Event;
     Event.Type = QUIC_CONNECTION_EVENT_PEER_CERTIFICATE_RECEIVED;
     Event.PEER_CERTIFICATE_RECEIVED.Certificate = Certificate;
@@ -5599,7 +5600,7 @@ QuicConnRecvDatagrams(
                 // validated (which indicates the actual length);
                 //
                 Packet->BufferLength =
-                    Datagram->BufferLength - (uint16_t)(Packet->Buffer - Datagram->Buffer);
+                    Datagram->BufferLength - (uint16_t)(Packet->Buffer - Datagram->Buffer); // 1075, 1081
             }
 
             if (!QuicConnRecvHeader(
@@ -5659,7 +5660,7 @@ QuicConnRecvDatagrams(
 
         NextPacket:
 
-            Packet->Buffer += Packet->BufferLength;
+            Packet->Buffer += Packet->BufferLength; // 145, 139
 
             Packet->ValidatedHeaderInv = FALSE;
             Packet->ValidatedHeaderVer = FALSE;

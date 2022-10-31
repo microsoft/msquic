@@ -208,6 +208,7 @@ CxPlatTlsAlpnSelectCallback(
     UNREFERENCED_PARAMETER(Arg);
 
     CXPLAT_TLS* TlsContext = SSL_get_app_data(Ssl);
+    fprintf(stderr, "%p CxPlatTlsAlpnSelectCallback\n", TlsContext->Connection);
 
     //
     // QUIC already parsed and picked the ALPN to use and set it in the
@@ -237,6 +238,7 @@ CxPlatTlsCertificateVerifyCallback(
     X509* Cert = X509_STORE_CTX_get0_cert(x509_ctx);
     SSL *Ssl = X509_STORE_CTX_get_ex_data(x509_ctx, SSL_get_ex_data_X509_STORE_CTX_idx());
     CXPLAT_TLS* TlsContext = SSL_get_app_data(Ssl);
+    fprintf(stderr, "%p CxPlatTlsCertificateVerifyCallback\n", TlsContext->Connection);
     int ValidationResult = X509_V_OK;
     BOOLEAN IsDeferredValidationOrClientAuth =
         (TlsContext->SecConfig->Flags & QUIC_CREDENTIAL_FLAG_REQUIRE_CLIENT_AUTHENTICATION ||
@@ -424,6 +426,7 @@ CxPlatTlsSetEncryptionSecretsCallback(
     CXPLAT_TLS_PROCESS_STATE* TlsState = TlsContext->State;
     QUIC_PACKET_KEY_TYPE KeyType = (QUIC_PACKET_KEY_TYPE)Level;
     QUIC_STATUS Status;
+    fprintf(stderr, "%p CxPlatTlsSetEncryptionSecretsCallback SecretLen: %ld\n", TlsContext->Connection, SecretLen);
 
     QuicTraceLogConnVerbose(
         OpenSslNewEncryptionSecrets,
@@ -542,6 +545,7 @@ CxPlatTlsAddHandshakeDataCallback(
 {
     CXPLAT_TLS* TlsContext = SSL_get_app_data(Ssl);
     CXPLAT_TLS_PROCESS_STATE* TlsState = TlsContext->State;
+    fprintf(stderr, "%p CxPlatTlsAddHandshakeDataCallback Length: %ld\n", TlsContext->Connection, Length);
 
     QUIC_PACKET_KEY_TYPE KeyType = (QUIC_PACKET_KEY_TYPE)Level;
     if (TlsContext->ResultFlags & CXPLAT_TLS_RESULT_ERROR) {
@@ -653,7 +657,7 @@ CxPlatTlsSendAlertCallback(
     UNREFERENCED_PARAMETER(Level);
 
     CXPLAT_TLS* TlsContext = SSL_get_app_data(Ssl);
-
+    fprintf(stderr, "%p CxPlatTlsSendAlertCallback\n", TlsContext->Connection);
     QuicTraceLogConnError(
         OpenSslAlert,
         TlsContext->Connection,
@@ -678,6 +682,7 @@ CxPlatTlsClientHelloCallback(
 {
     UNREFERENCED_PARAMETER(arg);
     CXPLAT_TLS* TlsContext = SSL_get_app_data(Ssl);
+    fprintf(stderr, "%p CxPlatTlsClientHelloCallback\n", TlsContext->Connection);
 
     const uint8_t* TransportParams;
     size_t TransportParamLen;

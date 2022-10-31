@@ -114,6 +114,7 @@ ListenerAcceptConnection(
 {
     ServerAcceptContext* AcceptContext = (ServerAcceptContext*)Listener->Context;
     *AcceptContext->NewConnection = new(std::nothrow) TestConnection(ConnectionHandle);
+    (*AcceptContext->NewConnection)->SetAsyncCustomTicketValidationResult(AcceptContext->AsyncCustomTicketValidation);
     if (*AcceptContext->NewConnection == nullptr || !(*AcceptContext->NewConnection)->IsValid()) {
         TEST_FAILURE("Failed to accept new TestConnection.");
         delete *AcceptContext->NewConnection;
@@ -229,8 +230,10 @@ QuicTestConnect(
         TEST_QUIC_SUCCEEDED(Listener.GetLocalAddr(ServerLocalAddr));
 
         {
+            bool AsyncValidation = true;
             UniquePtr<TestConnection> Server;
             ServerAcceptContext ServerAcceptCtx((TestConnection**)&Server);
+            ServerAcceptCtx.AsyncCustomTicketValidation = AsyncValidation;
             Listener.Context = &ServerAcceptCtx;
 
             {
@@ -269,7 +272,7 @@ QuicTestConnect(
                         QUIC_LOCALHOST_FOR_AF(QuicAddrFamily),
                         ServerLocalAddr.GetPort()));
 
-                if (TRUE) {
+                if (AsyncValidation) {
                     CxPlatSleep(1000);
                     fprintf(stderr, "SetCustomTicketValidationResult\n");
                     TEST_QUIC_SUCCEEDED(Server->SetCustomTicketValidationResult(TRUE));

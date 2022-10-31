@@ -502,7 +502,7 @@ CxPlatPoolUninitialize(
         CXPLAT_FRE_ASSERT(Pool->ListDepth > 0);
         Pool->ListDepth--;
         CxPlatLockRelease(&Pool->Lock);
-        CxPlatFree(Entry, Pool->Tag);
+        // CxPlatFree(Entry, Pool->Tag);
         CxPlatLockAcquire(&Pool->Lock);
     }
     CxPlatLockRelease(&Pool->Lock);
