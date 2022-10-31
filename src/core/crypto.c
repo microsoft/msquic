@@ -352,11 +352,6 @@ QuicCryptoInitializeTls(
     Crypto->ResumptionTicket = NULL; // Owned by TLS now.
     Crypto->ResumptionTicketLength = 0;
     Status = QuicCryptoProcessData(Crypto, !IsServer);
-    // This is if SetParam comes directly to this func
-    // if (Crypto->TicketValidationPending) {
-    //     Crypto->ResumptionTicket = TlsConfig.ResumptionTicketBuffer;
-    //     Crypto->ResumptionTicketLength = TlsConfig.ResumptionTicketLength;
-    // }
 
 Error:
 
