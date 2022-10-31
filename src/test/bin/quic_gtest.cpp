@@ -78,7 +78,9 @@ public:
                 QUIC_CREDENTIAL_FLAG_DEFER_CERTIFICATE_VALIDATION |
                 QUIC_CREDENTIAL_FLAG_INDICATE_CERTIFICATE_RECEIVED;
             memcpy(&ClientCertCredConfig, ClientCertParams, sizeof(QUIC_CREDENTIAL_CONFIG));
-            ClientCertCredConfig.Flags |= QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION;
+            ClientCertCredConfig.Flags |=
+                QUIC_CREDENTIAL_FLAG_CLIENT |
+                QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION;
             QuicTestInitialize();
         }
     }

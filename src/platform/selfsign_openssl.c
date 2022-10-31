@@ -619,6 +619,10 @@ CxPlatGetSelfSignedCert(
     Params->CertFile.CertificateFile = Params->CertFilepath;
     Params->CertFile.PrivateKeyFile = Params->PrivateKeyFilepath;
 
+    if (ClientCertificate) {
+        Params->Flags |= QUIC_CREDENTIAL_FLAG_CLIENT;
+    }
+
     if (!FindOrCreateTempFiles(
             CertFileName,
             KeyFileName,
