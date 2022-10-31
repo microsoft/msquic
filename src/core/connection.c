@@ -2132,7 +2132,6 @@ QuicConnRecvResumptionTicket(
         const uint8_t* Ticket
     )
 {
-    fprintf(stderr, "%p receiving resumption ticket length:%d\n", Connection, TicketLength);
     BOOLEAN ResumptionAccepted = FALSE;
     QUIC_TRANSPORT_PARAMETERS ResumedTP;
     CxPlatZeroMemory(&ResumedTP, sizeof(ResumedTP));
@@ -2191,7 +2190,6 @@ QuicConnRecvResumptionTicket(
                 ConnServerResumeTicket,
                 "[conn][%p] Server app accepted resumption ticket",
                 Connection);
-            fprintf(stderr, "%p Server app accepted resumption ticket length:%d\n", Connection, TicketLength);
             ResumptionAccepted = TRUE;
         } else if (Status == QUIC_STATUS_PENDING) {
             Connection->Crypto.TicketValidationPending = TRUE;
@@ -3124,7 +3122,6 @@ QuicConnPeerCertReceived(
     _In_ QUIC_STATUS DeferredStatus
     )
 {
-    fprintf(stderr, "%p QuicConnPeerCertReceived\n", Connection);
     QUIC_CONNECTION_EVENT Event;
     Event.Type = QUIC_CONNECTION_EVENT_PEER_CERTIFICATE_RECEIVED;
     Event.PEER_CERTIFICATE_RECEIVED.Certificate = Certificate;
