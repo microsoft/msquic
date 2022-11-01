@@ -370,7 +370,7 @@ CxPlatResolveRoute(
         Socket,
         CASTED_CLOG_BYTEARRAY(sizeof(LocalAddress), &LocalAddress));
 
-    if (State == RouteSuspected && !QuicAddrCompare(&LocalAddress, &Route->LocalAddress)) {
+    if (State == RouteSuspected && !QuicAddrCompareIp(&LocalAddress, &Route->LocalAddress)) {
         //
         // We can't handle local address change here easily due to lack of full migration support.
         //
