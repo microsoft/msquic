@@ -1920,6 +1920,48 @@
                 outType="win:SocketAddress"
                 />
           </template>
+          <template tid="tid_UDP_ADDRESSES">
+            <data
+                inType="win:Pointer"
+                name="UdpBinding"
+                />
+            <data
+                inType="win:UInt8"
+                name="LocalAddrLength"
+                />
+            <data
+                inType="win:Binary"
+                length="LocalAddrLength"
+                name="LocalAddr"
+                outType="win:SocketAddress"
+                />
+            <data
+                inType="win:UInt8"
+                name="RemoteAddrLength"
+                />
+            <data
+                inType="win:Binary"
+                length="RemoteAddrLength"
+                name="RemoteAddr"
+                outType="win:SocketAddress"
+                />
+          </template>
+          <template tid="tid_UDP_ADDRESS">
+            <data
+                inType="win:Pointer"
+                name="UdpBinding"
+                />
+            <data
+                inType="win:UInt8"
+                name="LocalAddrLength"
+                />
+            <data
+                inType="win:Binary"
+                length="LocalAddrLength"
+                name="LocalAddr"
+                outType="win:SocketAddress"
+                />
+          </template>
           <template tid="tid_ID">
             <data
                 inType="win:UInt64"
@@ -3424,6 +3466,24 @@
               template="tid_UDP"
               value="9222"
               />
+          <event
+              keywords="ut:UDP ut:LowVolume"
+              level="win:Informational"
+              message="$(string.Etw.DatapathGetRouteStart)"
+              opcode="Datapath"
+              symbol="QuicDatapathGetRouteStart"
+              template="tid_UDP_ADDRESSES"
+              value="9223"
+              />
+          <event
+              keywords="ut:UDP ut:LowVolume"
+              level="win:Informational"
+              message="$(string.Etw.DatapathGetRouteComplete)"
+              opcode="Datapath"
+              symbol="QuicDatapathGetRouteComplete"
+              template="tid_UDP_ADDRESS"
+              value="9224"
+              />
           <!-- 10240 - 11263 | Logs (not events) -->
           <event
               keywords="ut:Log"
@@ -4067,6 +4127,14 @@
         <string
             id="Etw.DatapathDestroyed"
             value="[data][%1] Destroyed"
+            />
+        <string
+            id="Etw.DatapathGetRouteStart"
+            value="[data][%1] Querying route, local=%3, remote=%5"
+            />
+        <string
+            id="Etw.DatapathGetRouteComplete"
+            value="[data][%1] Query route result: %3"
             />
         <string
             id="Etw.ApiEnter"

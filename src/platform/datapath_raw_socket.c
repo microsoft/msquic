@@ -334,6 +334,13 @@ CxPlatResolveRoute(
 
     Route->State = RouteResolving;
 
+    QuicTraceEvent(
+        DatapathGetRouteStart,
+        "[data][%p] Querying route, local=%!ADDR!, remote=%!ADDR!",
+        Socket,
+        CASTED_CLOG_BYTEARRAY(sizeof(Route->LocalAddress), &Route->LocalAddress),
+        CASTED_CLOG_BYTEARRAY(sizeof(Route->RemoteAddress), &Route->RemoteAddress));
+
     //
     // Find the best next hop IP address.
     //
@@ -356,6 +363,12 @@ CxPlatResolveRoute(
             "GetBestRoute2");
         goto Done;
     }
+
+    QuicTraceEvent(
+        DatapathGetRouteComplete,
+        "[data][%p] Query route result: %!ADDR!",
+        Socket,
+        CASTED_CLOG_BYTEARRAY(sizeof(LocalAddress), &LocalAddress));
 
     if (State == RouteSuspected && !QuicAddrCompare(&LocalAddress, &Route->LocalAddress)) {
         //

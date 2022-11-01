@@ -122,6 +122,48 @@ tracepoint(CLOG_DATAPATH_RAW_SOCKET_C, DatapathErrorStatus , arg2, arg3, arg4);\
 
 
 /*----------------------------------------------------------
+// Decoder Ring for DatapathGetRouteStart
+// [data][%p] Querying route, local=%!ADDR!, remote=%!ADDR!
+// QuicTraceEvent(
+        DatapathGetRouteStart,
+        "[data][%p] Querying route, local=%!ADDR!, remote=%!ADDR!",
+        Socket,
+        CASTED_CLOG_BYTEARRAY(sizeof(Route->LocalAddress), &Route->LocalAddress),
+        CASTED_CLOG_BYTEARRAY(sizeof(Route->RemoteAddress), &Route->RemoteAddress));
+// arg2 = arg2 = Socket = arg2
+// arg3 = arg3 = CASTED_CLOG_BYTEARRAY(sizeof(Route->LocalAddress), &Route->LocalAddress) = arg3
+// arg4 = arg4 = CASTED_CLOG_BYTEARRAY(sizeof(Route->RemoteAddress), &Route->RemoteAddress) = arg4
+----------------------------------------------------------*/
+#ifndef _clog_7_ARGS_TRACE_DatapathGetRouteStart
+#define _clog_7_ARGS_TRACE_DatapathGetRouteStart(uniqueId, encoded_arg_string, arg2, arg3, arg3_len, arg4, arg4_len)\
+tracepoint(CLOG_DATAPATH_RAW_SOCKET_C, DatapathGetRouteStart , arg2, arg3_len, arg3, arg4_len, arg4);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for DatapathGetRouteComplete
+// [data][%p] Query route result: %!ADDR!
+// QuicTraceEvent(
+        DatapathGetRouteComplete,
+        "[data][%p] Query route result: %!ADDR!",
+        Socket,
+        CASTED_CLOG_BYTEARRAY(sizeof(LocalAddress), &LocalAddress));
+// arg2 = arg2 = Socket = arg2
+// arg3 = arg3 = CASTED_CLOG_BYTEARRAY(sizeof(LocalAddress), &LocalAddress) = arg3
+----------------------------------------------------------*/
+#ifndef _clog_5_ARGS_TRACE_DatapathGetRouteComplete
+#define _clog_5_ARGS_TRACE_DatapathGetRouteComplete(uniqueId, encoded_arg_string, arg2, arg3, arg3_len)\
+tracepoint(CLOG_DATAPATH_RAW_SOCKET_C, DatapathGetRouteComplete , arg2, arg3_len, arg3);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for DatapathError
 // [data][%p] ERROR, %s.
 // QuicTraceEvent(

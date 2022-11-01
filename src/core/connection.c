@@ -1179,13 +1179,14 @@ QuicConnReplaceRetiredCids(
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
-QuicConnTimerSet(
+QuicConnTimerSetEx(
     _Inout_ QUIC_CONNECTION* Connection,
     _In_ QUIC_CONN_TIMER_TYPE Type,
-    _In_ uint64_t Delay
+    _In_ uint64_t Delay,
+    _In_ uint64_t TimeNow
     )
 {
-    const uint64_t NewExpirationTime = CxPlatTimeUs64() + Delay;
+    const uint64_t NewExpirationTime = TimeNow + Delay;
 
     QuicTraceEvent(
         ConnSetTimer,
