@@ -1390,6 +1390,8 @@ TEST_F(TlsTest, DeferredCertificateValidationAllow)
     }
 }
 
+#ifndef _WIN32
+
 TEST_F(TlsTest, DeferredCertificateValidationAllowCa)
 {
     CxPlatClientSecConfigCa ClientConfig(
@@ -1402,11 +1404,6 @@ TEST_F(TlsTest, DeferredCertificateValidationAllowCa)
     TlsContext ServerContext, ClientContext;
     ClientContext.InitializeClient(ClientConfig);
     ServerContext.InitializeServer(ServerConfig);
-#ifdef _WIN32
-    ClientContext.ExpectedErrorFlags = CERT_TRUST_IS_UNTRUSTED_ROOT;
-#else
-    // TODO - Add platform specific values if support is added.
-#endif
     {
         auto Result = ClientContext.ProcessData(nullptr);
         ASSERT_TRUE(Result & CXPLAT_TLS_RESULT_DATA);
@@ -1420,6 +1417,8 @@ TEST_F(TlsTest, DeferredCertificateValidationAllowCa)
         ASSERT_TRUE(Result & CXPLAT_TLS_RESULT_HANDSHAKE_COMPLETE);
     }
 }
+
+#endif
 
 
 TEST_F(TlsTest, DeferredCertificateValidationReject)
@@ -1931,6 +1930,8 @@ TEST_F(TlsTest, ClientCertificateDeferValidation)
     DoHandshake(ServerContext, ClientContext);
 }
 
+#ifndef _WIN32
+
 TEST_F(TlsTest, ClientCertificateDeferValidationCa)
 {
     CxPlatSecConfig ClientConfig;
@@ -1945,6 +1946,8 @@ TEST_F(TlsTest, ClientCertificateDeferValidationCa)
     ServerContext.InitializeServer(ServerConfig);
     DoHandshake(ServerContext, ClientContext);
 }
+
+#endif
 
 #ifdef QUIC_ENABLE_ANON_CLIENT_AUTH_TESTS
 TEST_F(TlsTest, ClientCertificateDeferValidationNoCertSchannel)

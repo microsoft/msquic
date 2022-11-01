@@ -303,6 +303,11 @@ GenerateX509Cert(
     *OutCert = Cert;
     *PrivKey = PKey;
 
+    if (EcKeyCtx != NULL) {
+        EVP_PKEY_CTX_free(EcKeyCtx);
+        EcKeyCtx = NULL;
+    }
+
     return Status;
 
 Exit:
@@ -339,10 +344,8 @@ CxPlatTlsGenerateSelfSignedCert(
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
     int Ret = 0;
     EVP_PKEY *CaPKey = NULL;
-    EVP_PKEY_CTX *CaEcKeyCtx = NULL;
     X509 *CaX509 = NULL;
     EVP_PKEY *PKey = NULL;
-    EVP_PKEY_CTX *EcKeyCtx = NULL;
     X509 *X509 = NULL;
     PKCS12 *Pkcs12 = NULL;
     FILE *Fd = NULL;
@@ -352,15 +355,17 @@ CxPlatTlsGenerateSelfSignedCert(
         Status = GenerateX509Cert(
             NULL, NULL, "CA Cert", TRUE, &CaX509, &CaPKey);
 
-        if (Status != QUIC_STATUS_SUCCESS)
+        if (Status != QUIC_STATUS_SUCCESS) {
             goto Exit;
+        }
     }
 
     Status = GenerateX509Cert(
         CaX509, CaPKey, SNI, FALSE, &X509, &PKey);
 
-    if (Status != QUIC_STATUS_SUCCESS)
+    if (Status != QUIC_STATUS_SUCCESS) {
         goto Exit;
+    }
 
     if (CaFileName != NULL) {
         Fd = fopen(CaFileName, "wb");
@@ -496,11 +501,6 @@ Exit:
         CaPKey= NULL;
     }
 
-    if (CaEcKeyCtx != NULL) {
-        EVP_PKEY_CTX_free(CaEcKeyCtx);
-        CaEcKeyCtx = NULL;
-    }
-
     if (CaX509 != NULL) {
         X509_free(CaX509);
         CaX509 = NULL;
@@ -509,11 +509,6 @@ Exit:
     if (PKey != NULL) {
         EVP_PKEY_free(PKey);
         PKey= NULL;
-    }
-
-    if (EcKeyCtx != NULL) {
-        EVP_PKEY_CTX_free(EcKeyCtx);
-        EcKeyCtx = NULL;
     }
 
     if (X509 != NULL) {
@@ -1026,10 +1021,11 @@ CxPlatGetSelfSignedCert(
     Params->CertFile.PrivateKeyFile = Params->PrivateKeyFilepath;
 
     if (CreateCA) {
-        if (CaCertificateFile)
+        if (CaCertificateFile) {
             Params->CaCertificateFile = CaCertificateFile;
-        else
+        } else {
             Params->CaCertificateFile = Params->CaFilepath;
+        }
     } else {
         Params->CaCertificateFile = NULL;
     }
@@ -1159,6 +1155,10 @@ CxPlatGetTestCertificate(
 
             CertFilePath = malloc(MAX_PATH * 2);
             if (CertFilePath == NULL) {
+                if (CaFilePath != NULL) {
+                    free(CaFilePath);
+                    CaFilePath = NULL;
+                }
                 return FALSE;
             }
             KeyFilePath = CertFilePath + MAX_PATH;
@@ -1189,6 +1189,10 @@ CxPlatGetTestCertificate(
             CertFilePath =
                 malloc((MAX_PATH * 2) + sizeof(TEST_PASS));
             if (CertFilePath == NULL) {
+                if (CaFilePath != NULL) {
+                    free(CaFilePath);
+                    CaFilePath = NULL;
+                }
                 return FALSE;
             }
             KeyFilePath = CertFilePath + MAX_PATH;
@@ -1206,6 +1210,10 @@ CxPlatGetTestCertificate(
             }
             CertFilePath = malloc(MAX_PATH);
             if (CertFilePath == NULL) {
+                if (CaFilePath != NULL) {
+                    free(CaFilePath);
+                    CaFilePath = NULL;
+                }
                 return FALSE;
             }
         }
