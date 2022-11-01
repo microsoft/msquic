@@ -294,7 +294,7 @@ QuicLossDetectionUpdateTimer(
         return;
     }
 
-    uint32_t TimeNow = CxPlatTimeUs32();
+    uint64_t TimeNow = CxPlatTimeUs64();
 
     CXPLAT_DBG_ASSERT(Path->SmoothedRtt != 0);
 
@@ -334,7 +334,7 @@ QuicLossDetectionUpdateTimer(
     //
     // The units for the delay values start in microseconds.
     //
-    uint32_t Delay = CxPlatTimeDiff32(TimeNow, TimeFires);
+    uint32_t Delay = CxPlatTimeDiff32((uint32_t)TimeNow, TimeFires);
 
     //
     // Limit the timeout to the remainder of the disconnect timeout if there is
@@ -344,7 +344,7 @@ QuicLossDetectionUpdateTimer(
     if (OldestPacket != NULL) {
         MaxDelay =
             CxPlatTimeDiff32(
-                TimeNow,
+                (uint32_t)TimeNow,
                 OldestPacket->SentTime + MS_TO_US(Connection->Settings.DisconnectTimeoutMs));
     } else {
         MaxDelay = (UINT32_MAX >> 1) - 1;
@@ -384,7 +384,7 @@ QuicLossDetectionUpdateTimer(
             Delay,
             LossDetection->ProbeCount);
         UNREFERENCED_PARAMETER(TimeoutType);
-        QuicConnTimerSet(Connection, QUIC_CONN_TIMER_LOSS_DETECTION, Delay);
+        QuicConnTimerSetEx(Connection, QUIC_CONN_TIMER_LOSS_DETECTION, Delay, TimeNow);
     }
 }
 
@@ -467,7 +467,7 @@ QuicLossDetectionOnPacketSent(
         (Entry != &(Connection->Send.SendStreams)) ?
           CXPLAT_CONTAINING_RECORD(Entry, QUIC_STREAM, SendLink) :
           NULL;
-    
+
     if (SendPostedBytes < Path->Mtu &&
         QuicCongestionControlCanSend(&Connection->CongestionControl) &&
         !QuicCryptoHasPendingCryptoFrame(&Connection->Crypto) &&
@@ -1535,7 +1535,7 @@ QuicLossDetectionProcessAckBlocks(
                     }
                 }
             } else {
-                // 
+                //
                 // If an ACK frame newly acknowledges a packet that the endpoint sent
                 // with either the ECT(0) or ECT(1) codepoint set, ECN validation fails
                 // if the corresponding ECN counts are not present in the ACK frame.

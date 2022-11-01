@@ -763,6 +763,13 @@ QuicConnGetDestCidFromSeq(
     _In_ BOOLEAN RemoveFromList
     );
 
+void
+QuicConnTimerSet(
+    _Inout_ QUIC_CONNECTION* Connection,
+    _In_ QUIC_CONN_TIMER_TYPE Type,
+    _In_ uint64_t DelayUs
+    );
+
 uint8_t
 QuicPacketTraceType(
     _In_ const QUIC_SENT_PACKET_METADATA* Metadata

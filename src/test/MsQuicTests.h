@@ -240,6 +240,11 @@ QuicTestChangeAlpn(
     void
     );
 
+void
+QuicTestHandshakeSpecificLossPatterns(
+    _In_ int Family
+    );
+
 //
 // Negative Handshake Tests
 //
@@ -1154,4 +1159,8 @@ typedef struct {
 #define IOCTL_QUIC_RUN_ECN \
     QUIC_CTL_CODE(108, METHOD_BUFFERED, FILE_WRITE_DATA)
 
-#define QUIC_MAX_IOCTL_FUNC_CODE 108
+#define IOCTL_QUIC_RUN_HANDSHAKE_SPECIFIC_LOSS_PATTERNS \
+    QUIC_CTL_CODE(109, METHOD_BUFFERED, FILE_WRITE_DATA)
+    // int - Family
+
+#define QUIC_MAX_IOCTL_FUNC_CODE 109

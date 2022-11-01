@@ -120,6 +120,22 @@ TRACEPOINT_EVENT(CLOG_TESTHELPERS_H, TestHookDropPacketSelective,
 
 
 /*----------------------------------------------------------
+// Decoder Ring for TestHookDropPacketBitmap
+// [test][hook] Bitmap packet drop
+// QuicTraceLogVerbose(
+            TestHookDropPacketBitmap,
+            "[test][hook] Bitmap packet drop");
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_TESTHELPERS_H, TestHookDropPacketBitmap,
+    TP_ARGS(
+), 
+    TP_FIELDS(
+    )
+)
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for TestHookReplaceAddrRecv
 // [test][hook] Recv Addr :%hu => :%hu
 // QuicTraceLogVerbose(

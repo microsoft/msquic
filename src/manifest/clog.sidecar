@@ -2491,6 +2491,42 @@
       ],
       "macroName": "QuicTraceLogWarning"
     },
+    "DatapathGetRouteComplete": {
+      "ModuleProperites": {},
+      "TraceString": "[data][%p] Query route result: %!ADDR!",
+      "UniqueId": "DatapathGetRouteComplete",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "!ADDR!",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macroName": "QuicTraceEvent"
+    },
+    "DatapathGetRouteStart": {
+      "ModuleProperites": {},
+      "TraceString": "[data][%p] Querying route, local=%!ADDR!, remote=%!ADDR!",
+      "UniqueId": "DatapathGetRouteStart",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "!ADDR!",
+          "MacroVariableName": "arg3"
+        },
+        {
+          "DefinationEncoding": "!ADDR!",
+          "MacroVariableName": "arg4"
+        }
+      ],
+      "macroName": "QuicTraceEvent"
+    },
     "DatapathInitialize": {
       "ModuleProperites": {},
       "TraceString": "[data][%p] Datapath initialize",
@@ -10640,6 +10676,13 @@
       "splitArgs": [],
       "macroName": "QuicTraceLogVerbose"
     },
+    "TestHookDropPacketBitmap": {
+      "ModuleProperites": {},
+      "TraceString": "[test][hook] Bitmap packet drop",
+      "UniqueId": "TestHookDropPacketBitmap",
+      "splitArgs": [],
+      "macroName": "QuicTraceLogVerbose"
+    },
     "TestHookDropPacketRandom": {
       "ModuleProperites": {},
       "TraceString": "[test][hook] Random packet drop",
@@ -12901,6 +12944,16 @@
         "UniquenessHash": "b940eb8b-74ec-f569-8167-e95ccc36510e",
         "TraceID": "DatapathFragmented",
         "EncodingString": "[%p] Dropping datagram with fragmented MDL."
+      },
+      {
+        "UniquenessHash": "0bf5791c-23b4-4100-a2ba-d7bd2cf64ea2",
+        "TraceID": "DatapathGetRouteComplete",
+        "EncodingString": "[data][%p] Query route result: %!ADDR!"
+      },
+      {
+        "UniquenessHash": "68173a72-1154-a450-6efe-ccd2fbeab3f9",
+        "TraceID": "DatapathGetRouteStart",
+        "EncodingString": "[data][%p] Querying route, local=%!ADDR!, remote=%!ADDR!"
       },
       {
         "UniquenessHash": "b88fe9ef-f6ed-09b0-1711-28ec0fc2ab52",
@@ -15476,6 +15529,11 @@
         "UniquenessHash": "861bbb4e-e371-4334-b45d-03199c1cacda",
         "TraceID": "TestHookDropOldAddrSend",
         "EncodingString": "[test][hook] Dropping send to old addr"
+      },
+      {
+        "UniquenessHash": "a5664948-8711-00da-6c95-520e7c6ebab0",
+        "TraceID": "TestHookDropPacketBitmap",
+        "EncodingString": "[test][hook] Bitmap packet drop"
       },
       {
         "UniquenessHash": "ccf24f92-4b3c-0f17-5c84-1d454a788837",
