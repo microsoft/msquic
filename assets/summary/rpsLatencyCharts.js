@@ -41,10 +41,11 @@ function createLatencyChart(test, dataFilter) {
                         maxTicksLimit: commitCount + 10,
                         stepSize: 1,
                         callback: function(value) {
-                            if (value % 1 !== 0) {
+                            value = maxIndex - 1 - value
+                            if (value % 10 !== 0) {
                                 return "";
                             } else {
-                                return maxIndex - 1 - value;
+                                return value;
                             }
                         }
                     }
