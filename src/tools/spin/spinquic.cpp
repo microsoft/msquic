@@ -37,7 +37,6 @@ class FuzzingData {
     std::vector<size_t> Ptrs;
     std::vector<size_t> NumIterated;
     bool Cyclic;
-    size_t NumThread;
 
     bool CheckBoundary(uint16_t ThreadId, size_t Adding) {
         // TODO: efficient cyclic access
@@ -55,24 +54,22 @@ public:
     static const size_t MinDataSize = 148;
     static const size_t UtilityDataSize = 20;
     // hard code for determinisity
-    static const size_t NumSpinThread = 2;
-    short int IncrementalThreadId;
+    static const uint16_t NumSpinThread = 2;
 
-    FuzzingData() : data(nullptr), size(0), Ptrs({}), NumIterated({}), Cyclic(true), NumThread(0) {}
-    FuzzingData(const uint8_t* data, size_t size) : data(data), size(size - UtilityDataSize), Ptrs({}), NumIterated({}), Cyclic(true), NumThread(NumSpinThread) {}
+    FuzzingData() : data(nullptr), size(0), Ptrs({}), NumIterated({}), Cyclic(true) {}
+    FuzzingData(const uint8_t* data, size_t size) : data(data), size(size - UtilityDataSize), Ptrs({}), NumIterated({}), Cyclic(true) {}
     bool Initialize() {
         // TODO: support non divisible size
-        if (size % NumThread != 0 || size < NumThread * 8) {
+        if (size % (size_t)NumSpinThread != 0 || size < (size_t)NumSpinThread * 8) {
             return false;
         }
 
-        IncrementalThreadId = 0;
-        EachSize.resize(NumThread + 1);
-        std::fill(EachSize.begin(), EachSize.end(), size / NumThread);
+        EachSize.resize(NumSpinThread + 1);
+        std::fill(EachSize.begin(), EachSize.end(), size / (size_t)NumSpinThread);
         EachSize.back() = UtilityDataSize;
-        Ptrs.resize(NumThread + 1);
+        Ptrs.resize(NumSpinThread + 1);
         std::fill(Ptrs.begin(), Ptrs.end(), 0);
-        NumIterated.resize(NumThread + 1);
+        NumIterated.resize(NumSpinThread + 1);
         std::fill(NumIterated.begin(), NumIterated.end(), 0);
         return true;
     }
@@ -93,7 +90,7 @@ public:
     }
     template<typename T>
     bool TryGetRandom(T UpperBound, T* Val, uint16_t ThreadId = 0) {
-        if (ThreadId == IncrementalThreadId) {
+        if (ThreadId == NumSpinThread) {
             // utility area access from Connection/Stream callbacks
             mux.lock();
         }
@@ -104,7 +101,7 @@ public:
         memcpy(Val, &data[Ptrs[ThreadId]] + EachSize[ThreadId] * ThreadId, type_size);
         *Val = (T)(*Val % UpperBound);
         Ptrs[ThreadId] += type_size;
-        if (ThreadId == IncrementalThreadId) {
+        if (ThreadId == NumSpinThread) {
             mux.unlock();
         }
         return true;
@@ -343,7 +340,7 @@ static struct {
 QUIC_STATUS QUIC_API SpinQuicHandleStreamEvent(HQUIC Stream, void * /* Context */, QUIC_STREAM_EVENT *Event)
 {
     // TODO: hacky way to avoid Context overwrite
-    uint16_t ThreadID = FuzzData ? FuzzData->IncrementalThreadId : UINT16_MAX; // *(uint16_t*)Context;
+    uint16_t ThreadID = FuzzData ? FuzzingData::NumSpinThread : UINT16_MAX; // *(uint16_t*)Context;
     switch (Event->Type) {
     case QUIC_STREAM_EVENT_PEER_SEND_SHUTDOWN:
         MsQuic.StreamShutdown(Stream, (QUIC_STREAM_SHUTDOWN_FLAGS)GetRandom(16), 0);
@@ -371,7 +368,7 @@ QUIC_STATUS QUIC_API SpinQuicHandleStreamEvent(HQUIC Stream, void * /* Context *
 QUIC_STATUS QUIC_API SpinQuicHandleConnectionEvent(HQUIC Connection, void *Context, QUIC_CONNECTION_EVENT *Event)
 {
     // TODO: avoid context overwite
-    uint16_t ThreadID = FuzzData ? FuzzData->IncrementalThreadId : UINT16_MAX; // *(uint16_t*)Context;
+    uint16_t ThreadID = FuzzData ? FuzzingData::NumSpinThread : UINT16_MAX; // *(uint16_t*)Context;
     switch (Event->Type) {
     case QUIC_CONNECTION_EVENT_CONNECTED: {
         int Selector = GetRandom(3);
@@ -877,7 +874,7 @@ CXPLAT_THREAD_CALLBACK(ServerSpin, Context)
 {
     uint16_t ThreadID = UINT16_MAX;
     if (FuzzData) {
-        ThreadID = InterlockedIncrement16(&FuzzData->IncrementalThreadId) - 1;
+        ThreadID = 1;
     }
 
     Gbs& Gb = *(Gbs*)Context;
@@ -985,7 +982,7 @@ CXPLAT_THREAD_CALLBACK(ClientSpin, Context)
 {
     uint16_t ThreadID = UINT16_MAX;
     if (FuzzData) {
-        ThreadID = InterlockedIncrement16(&FuzzData->IncrementalThreadId) - 1;
+        ThreadID = 0;
     }
 
     Gbs& Gb = *(Gbs*)Context;
@@ -1064,7 +1061,7 @@ CXPLAT_THREAD_CALLBACK(RunThread, Context)
 {
     UNREFERENCED_PARAMETER(Context);
     SpinQuicWatchdog Watchdog((uint32_t)Settings.RunTimeMs + WATCHDOG_WIGGLE_ROOM);
-    uint16_t ThreadID = FuzzData ? (uint16_t)FuzzingData::NumSpinThread : UINT16_MAX;
+    uint16_t ThreadID = FuzzData ? FuzzingData::NumSpinThread : UINT16_MAX;
     do {
         Gbs Gb;
 
@@ -1241,7 +1238,7 @@ void start() {
             0, 0, "spin_run", RunThread, nullptr
         };
         CXPLAT_THREAD Threads[4];
-        uint32_t Count = FuzzData ? FuzzingData::NumSpinThread / 2 : (uint32_t)(rand() % (ARRAYSIZE(Threads) - 1) + 1);
+        uint32_t Count = FuzzData ? (uint32_t)FuzzingData::NumSpinThread / 2 : (uint32_t)(rand() % (ARRAYSIZE(Threads) - 1) + 1);
 
         for (uint32_t j = 0; j < Count; ++j) {
             ASSERT_ON_FAILURE(CxPlatThreadCreate(&Config, &Threads[j]));
