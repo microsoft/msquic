@@ -62,6 +62,14 @@ typedef struct QUIC_LOSS_EVENT {
 
 } QUIC_LOSS_EVENT;
 
+typedef struct QUIC_ECN_EVENT {
+
+    uint64_t LargestPacketNumberAcked;
+
+    uint64_t LargestSentPacketNumber;
+
+} QUIC_ECN_EVENT;
+
 typedef struct QUIC_CONGESTION_CONTROL {
 
     //
@@ -107,6 +115,11 @@ typedef struct QUIC_CONGESTION_CONTROL {
     void (*QuicCongestionControlOnDataLost)(
         _In_ struct QUIC_CONGESTION_CONTROL* Cc,
         _In_ const QUIC_LOSS_EVENT* LossEvent
+        );
+
+    void (*QuicCongestionControlOnEcn)(
+        _In_ struct QUIC_CONGESTION_CONTROL* Cc,
+        _In_ const QUIC_ECN_EVENT* LossEvent
         );
 
     BOOLEAN (*QuicCongestionControlOnSpuriousCongestionEvent)(
@@ -262,6 +275,22 @@ QuicCongestionControlOnDataLost(
     )
 {
     Cc->QuicCongestionControlOnDataLost(Cc, LossEvent);
+}
+
+//
+// Called when data is determined lost.
+//
+_IRQL_requires_max_(DISPATCH_LEVEL)
+inline
+void
+QuicCongestionControlOnEcn(
+    _In_ QUIC_CONGESTION_CONTROL* Cc,
+    _In_ const QUIC_ECN_EVENT* EcnEvent
+    )
+{
+    if (Cc->QuicCongestionControlOnEcn) {
+        Cc->QuicCongestionControlOnEcn(Cc, EcnEvent);
+    }
 }
 
 //

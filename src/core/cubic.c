@@ -226,7 +226,8 @@ _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 CubicCongestionControlOnCongestionEvent(
     _In_ QUIC_CONGESTION_CONTROL* Cc,
-    _In_ BOOLEAN IsPersistentCongestion
+    _In_ BOOLEAN IsPersistentCongestion,
+    _In_ BOOLEAN Ecn
     )
 {
     QUIC_CONGESTION_CONTROL_CUBIC* Cubic = &Cc->Cubic;
@@ -244,15 +245,18 @@ CubicCongestionControlOnCongestionEvent(
     Cubic->HasHadCongestionEvent = TRUE;
 
     //
-    // Save previous state, just in case this ends up being spurious.
+    // If the congestion event is not triggered by ECN, save previous state,
+    // just in case this ends up being spurious.
     //
-    Cubic->PrevWindowPrior = Cubic->WindowPrior;
-    Cubic->PrevWindowMax = Cubic->WindowMax;
-    Cubic->PrevWindowLastMax = Cubic->WindowLastMax;
-    Cubic->PrevKCubic = Cubic->KCubic;
-    Cubic->PrevSlowStartThreshold = Cubic->SlowStartThreshold;
-    Cubic->PrevCongestionWindow = Cubic->CongestionWindow;
-    Cubic->PrevAimdWindow = Cubic->AimdWindow;
+    if (!Ecn) {
+        Cubic->PrevWindowPrior = Cubic->WindowPrior;
+        Cubic->PrevWindowMax = Cubic->WindowMax;
+        Cubic->PrevWindowLastMax = Cubic->WindowLastMax;
+        Cubic->PrevKCubic = Cubic->KCubic;
+        Cubic->PrevSlowStartThreshold = Cubic->SlowStartThreshold;
+        Cubic->PrevCongestionWindow = Cubic->CongestionWindow;
+        Cubic->PrevAimdWindow = Cubic->AimdWindow;
+    }
 
     if (IsPersistentCongestion && !Cubic->IsInPersistentCongestion) {
 
@@ -574,11 +578,42 @@ CubicCongestionControlOnDataLost(
         Cubic->RecoverySentPacketNumber = LossEvent->LargestSentPacketNumber;
         CubicCongestionControlOnCongestionEvent(
             Cc,
-            LossEvent->PersistentCongestion);
+            LossEvent->PersistentCongestion,
+            FALSE);
     }
 
     CXPLAT_DBG_ASSERT(Cubic->BytesInFlight >= LossEvent->NumRetransmittableBytes);
     Cubic->BytesInFlight -= LossEvent->NumRetransmittableBytes;
+
+    CubicCongestionControlUpdateBlockedState(Cc, PreviousCanSendState);
+    QuicConnLogCubic(QuicCongestionControlGetConnection(Cc));
+}
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+void
+CubicCongestionControlOnEcn(
+    _In_ QUIC_CONGESTION_CONTROL* Cc,
+    _In_ const QUIC_ECN_EVENT* EcnEvent
+    )
+{
+    QUIC_CONGESTION_CONTROL_CUBIC* Cubic = &Cc->Cubic;
+
+    BOOLEAN PreviousCanSendState = CubicCongestionControlCanSend(Cc);
+
+    //
+    // If data is lost after the most recent congestion event (or if there
+    // hasn't been a congestion event yet) then treat this loss as a new
+    // congestion event.
+    //
+    if (!Cubic->HasHadCongestionEvent ||
+        EcnEvent->LargestPacketNumberAcked > Cubic->RecoverySentPacketNumber) {
+
+        Cubic->RecoverySentPacketNumber = EcnEvent->LargestSentPacketNumber;
+        CubicCongestionControlOnCongestionEvent(
+            Cc,
+            FALSE,
+            TRUE);
+    }
 
     CubicCongestionControlUpdateBlockedState(Cc, PreviousCanSendState);
     QuicConnLogCubic(QuicCongestionControlGetConnection(Cc));
@@ -700,6 +735,7 @@ static const QUIC_CONGESTION_CONTROL QuicCongestionControlCubic = {
     .QuicCongestionControlOnDataSent = CubicCongestionControlOnDataSent,
     .QuicCongestionControlOnDataInvalidated = CubicCongestionControlOnDataInvalidated,
     .QuicCongestionControlOnDataAcknowledged = CubicCongestionControlOnDataAcknowledged,
+    .QuicCongestionControlOnDataLost = CubicCongestionControlOnDataLost,
     .QuicCongestionControlOnDataLost = CubicCongestionControlOnDataLost,
     .QuicCongestionControlOnSpuriousCongestionEvent = CubicCongestionControlOnSpuriousCongestionEvent,
     .QuicCongestionControlLogOutFlowStatus = CubicCongestionControlLogOutFlowStatus,

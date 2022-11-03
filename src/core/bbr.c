@@ -1023,6 +1023,7 @@ static const QUIC_CONGESTION_CONTROL QuicCongestionControlBbr = {
     .QuicCongestionControlOnDataInvalidated = BbrCongestionControlOnDataInvalidated,
     .QuicCongestionControlOnDataAcknowledged = BbrCongestionControlOnDataAcknowledged,
     .QuicCongestionControlOnDataLost = BbrCongestionControlOnDataLost,
+    .QuicCongestionControlOnEcn = NULL,
     .QuicCongestionControlOnSpuriousCongestionEvent = BbrCongestionControlOnSpuriousCongestionEvent,
     .QuicCongestionControlLogOutFlowStatus = BbrCongestionControlLogOutFlowStatus,
     .QuicCongestionControlGetExemptions = BbrCongestionControlGetExemptions,
