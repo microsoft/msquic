@@ -1008,8 +1008,7 @@ CxPlatGetSelfSignedCert(
     }
 
     CXPLAT_CREDENTIAL_CONFIG_INTERNAL* Params =
-        malloc(sizeof(CXPLAT_CREDENTIAL_CONFIG_INTERNAL) +
-               sizeof(TEMP_DIR_TEMPLATE));
+        malloc(sizeof(CXPLAT_CREDENTIAL_CONFIG_INTERNAL) + sizeof(TEMP_DIR_TEMPLATE));
     if (Params == NULL) {
         return NULL;
     }
