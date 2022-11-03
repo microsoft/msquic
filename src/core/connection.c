@@ -1228,7 +1228,7 @@ QuicConnTimerSet(
         NewIndex = CurIndex;
     }
 
-    if (NewIndex == 0) {
+    if (NewIndex == 0 || CurIndex == 0) {
         //
         // The first timer was updated, so make sure the timer wheel is updated.
         //
