@@ -349,6 +349,7 @@ endif()
 if(QUIC_TLS STREQUAL "openssl")
     message(STATUS "Enabling OpenSsl configuration tests")
     list(APPEND QUIC_COMMON_DEFINES QUIC_TEST_OPENSSL_FLAGS=1)
+    list(APPEND QUIC_COMMON_DEFINES QUIC_ENABLE_CA_CERTIFICATE_FILE_TESTS)
 endif()
 
 if(QUIC_ENABLE_LOGGING)

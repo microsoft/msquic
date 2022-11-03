@@ -1389,7 +1389,7 @@ TEST_F(TlsTest, DeferredCertificateValidationAllow)
     }
 }
 
-#ifdef QUIC_ENABLE_CA_CERTIFICATE_FILE
+#ifdef QUIC_ENABLE_CA_CERTIFICATE_FILE_TESTS
 TEST_F(TlsTest, DeferredCertificateValidationAllowCa)
 {
     CxPlatClientSecConfigCa ClientConfig(
@@ -1926,7 +1926,7 @@ TEST_F(TlsTest, ClientCertificateDeferValidation)
     DoHandshake(ServerContext, ClientContext);
 }
 
-#ifdef QUIC_ENABLE_CA_CERTIFICATE_FILE
+#ifdef QUIC_ENABLE_CA_CERTIFICATE_FILE_TESTS
 TEST_F(TlsTest, ClientCertificateDeferValidationCa)
 {
     CxPlatSecConfig ClientConfig;
