@@ -40,6 +40,8 @@ namespace Microsoft.Quic
     {
         DISABLED,
         SERVER_ID_IP,
+        SERVER_ID_FIXED,
+        COUNT,
     }
 
     internal enum QUIC_CREDENTIAL_TYPE
@@ -856,6 +858,9 @@ namespace Microsoft.Quic
         [NativeTypeName("uint16_t")]
         internal ushort LoadBalancingMode;
 
+        [NativeTypeName("uint32_t")]
+        internal uint FixedServerID;
+
         internal ref ulong IsSetFlags
         {
             get
@@ -915,17 +920,31 @@ namespace Microsoft.Quic
                     }
                 }
 
-                [NativeTypeName("uint64_t : 62")]
-                internal ulong RESERVED
+                [NativeTypeName("uint64_t : 1")]
+                internal ulong FixedServerID
                 {
                     get
                     {
-                        return (_bitfield >> 2) & 0x3FFFFFFFUL;
+                        return (_bitfield >> 2) & 0x1UL;
                     }
 
                     set
                     {
-                        _bitfield = (_bitfield & ~(0x3FFFFFFFUL << 2)) | ((value & 0x3FFFFFFFUL) << 2);
+                        _bitfield = (_bitfield & ~(0x1UL << 2)) | ((value & 0x1UL) << 2);
+                    }
+                }
+
+                [NativeTypeName("uint64_t : 61")]
+                internal ulong RESERVED
+                {
+                    get
+                    {
+                        return (_bitfield >> 3) & 0x1FFFFFFFUL;
+                    }
+
+                    set
+                    {
+                        _bitfield = (_bitfield & ~(0x1FFFFFFFUL << 3)) | ((value & 0x1FFFFFFFUL) << 3);
                     }
                 }
             }

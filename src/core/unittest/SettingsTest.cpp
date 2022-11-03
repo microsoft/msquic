@@ -128,6 +128,7 @@ TEST(SettingsTest, TestAllGlobalSettingsFieldsSet)
 
     SETTINGS_FEATURE_SET_TEST(RetryMemoryLimit, QuicSettingsGlobalSettingsToInternal);
     SETTINGS_FEATURE_SET_TEST(LoadBalancingMode, QuicSettingsGlobalSettingsToInternal);
+    SETTINGS_FEATURE_SET_TEST(FixedServerID, QuicSettingsGlobalSettingsToInternal);
 
     Settings.IsSetFlags = 0;
     Settings.IsSet.RESERVED = ~Settings.IsSet.RESERVED;
@@ -203,6 +204,7 @@ TEST(SettingsTest, TestAllGlobalSettingsFieldsGet)
 
     SETTINGS_FEATURE_GET_TEST(RetryMemoryLimit, QuicSettingsGetGlobalSettings);
     SETTINGS_FEATURE_GET_TEST(LoadBalancingMode, QuicSettingsGetGlobalSettings);
+    SETTINGS_FEATURE_GET_TEST(FixedServerID, QuicSettingsGetGlobalSettings);
 
     Settings.IsSetFlags = 0;
     Settings.IsSet.RESERVED = ~Settings.IsSet.RESERVED;

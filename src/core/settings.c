@@ -48,6 +48,9 @@ QuicSettingsSetDefault(
     if (!Settings->IsSet.LoadBalancingMode) {
         Settings->LoadBalancingMode = QUIC_DEFAULT_LOAD_BALANCING_MODE;
     }
+    if (!Settings->IsSet.FixedServerID) {
+        Settings->FixedServerID = 0;
+    }
     if (!Settings->IsSet.MaxWorkerQueueDelayUs) {
         Settings->MaxWorkerQueueDelayUs = MS_TO_US(QUIC_MAX_WORKER_QUEUE_DELAY);
     }
@@ -161,6 +164,9 @@ QuicSettingsCopy(
     }
     if (!Destination->IsSet.LoadBalancingMode) {
         Destination->LoadBalancingMode = Source->LoadBalancingMode;
+    }
+    if (!Destination->IsSet.FixedServerID) {
+        Destination->FixedServerID = Source->FixedServerID;
     }
     if (!Destination->IsSet.MaxWorkerQueueDelayUs) {
         Destination->MaxWorkerQueueDelayUs = Source->MaxWorkerQueueDelayUs;
@@ -367,11 +373,15 @@ QuicSettingApply(
         Destination->IsSet.RetryMemoryLimit = TRUE;
     }
     if (Source->IsSet.LoadBalancingMode && (!Destination->IsSet.LoadBalancingMode || OverWrite)) {
-        if (Source->LoadBalancingMode > QUIC_LOAD_BALANCING_SERVER_ID_IP) {
+        if (Source->LoadBalancingMode >= QUIC_LOAD_BALANCING_COUNT) {
             return FALSE;
         }
         Destination->LoadBalancingMode = Source->LoadBalancingMode;
         Destination->IsSet.LoadBalancingMode = TRUE;
+    }
+    if (Source->IsSet.FixedServerID && (!Destination->IsSet.FixedServerID || OverWrite)) {
+        Destination->FixedServerID = Source->FixedServerID;
+        Destination->IsSet.FixedServerID = TRUE;
     }
     if (Source->IsSet.MaxWorkerQueueDelayUs && (!Destination->IsSet.MaxWorkerQueueDelayUs || OverWrite)) {
         Destination->MaxWorkerQueueDelayUs = Source->MaxWorkerQueueDelayUs;
@@ -668,9 +678,19 @@ QuicSettingsLoad(
             QUIC_SETTING_LOAD_BALANCING_MODE,
             (uint8_t*)&Value,
             &ValueLen);
-        if (Value <= QUIC_LOAD_BALANCING_SERVER_ID_IP) {
+        if (Value < QUIC_LOAD_BALANCING_COUNT) {
             Settings->LoadBalancingMode = (uint16_t)Value;
         }
+    }
+
+    if (!Settings->IsSet.FixedServerID &&
+        !MsQuicLib.InUse) {
+        ValueLen = sizeof(Settings->FixedServerID);
+        CxPlatStorageReadValue(
+            Storage,
+            QUIC_SETTING_FIXED_SERVER_ID,
+            (uint8_t*)&Settings->FixedServerID,
+            &ValueLen);
     }
 
     if (!Settings->IsSet.MaxWorkerQueueDelayUs) {
@@ -1124,6 +1144,7 @@ QuicSettingsDump(
     QuicTraceLogVerbose(SettingDumpMaxOperationsPerDrain,   "[sett] MaxOperationsPerDrain  = %hhu", Settings->MaxOperationsPerDrain);
     QuicTraceLogVerbose(SettingDumpRetryMemoryLimit,        "[sett] RetryMemoryLimit       = %hu", Settings->RetryMemoryLimit);
     QuicTraceLogVerbose(SettingDumpLoadBalancingMode,       "[sett] LoadBalancingMode      = %hu", Settings->LoadBalancingMode);
+    QuicTraceLogVerbose(SettingDumpFixedServerID,           "[sett] FixedServerID          = %u", Settings->FixedServerID);
     QuicTraceLogVerbose(SettingDumpMaxStatelessOperations,  "[sett] MaxStatelessOperations = %u", Settings->MaxStatelessOperations);
     QuicTraceLogVerbose(SettingDumpMaxWorkerQueueDelayUs,   "[sett] MaxWorkerQueueDelayUs  = %u", Settings->MaxWorkerQueueDelayUs);
     QuicTraceLogVerbose(SettingDumpInitialWindowPackets,    "[sett] InitialWindowPackets   = %u", Settings->InitialWindowPackets);
@@ -1195,6 +1216,9 @@ QuicSettingsDumpNew(
     }
     if (Settings->IsSet.LoadBalancingMode) {
         QuicTraceLogVerbose(SettingDumpLoadBalancingMode,           "[sett] LoadBalancingMode      = %hu", Settings->LoadBalancingMode);
+    }
+    if (Settings->IsSet.FixedServerID) {
+        QuicTraceLogVerbose(SettingDumpLFixedServerID,              "[sett] FixedServerID          = %u", Settings->FixedServerID);
     }
     if (Settings->IsSet.MaxStatelessOperations) {
         QuicTraceLogVerbose(SettingDumpMaxStatelessOperations,      "[sett] MaxStatelessOperations = %u", Settings->MaxStatelessOperations);
@@ -1332,6 +1356,12 @@ QuicSettingsGlobalSettingsToInternal(
     //
     // N.B. Anything after this needs to be size checked
     //
+    SETTING_COPY_TO_INTERNAL_SIZED(
+        FixedServerID,
+        QUIC_GLOBAL_SETTINGS,
+        Settings,
+        SettingsSize,
+        InternalSettings);
 
     return QUIC_STATUS_SUCCESS;
 }
@@ -1581,7 +1611,7 @@ QuicSettingsGetGlobalSettings(
         QUIC_GLOBAL_SETTINGS* Settings
     )
 {
-    uint32_t MinimumSettingsSize = (uint32_t)SETTINGS_SIZE_THRU_FIELD(QUIC_GLOBAL_SETTINGS, LoadBalancingMode);
+    const uint32_t MinimumSettingsSize = (uint32_t)SETTINGS_SIZE_THRU_FIELD(QUIC_GLOBAL_SETTINGS, LoadBalancingMode);
 
     if (*SettingsLength == 0) {
         *SettingsLength = sizeof(QUIC_GLOBAL_SETTINGS);
@@ -1604,6 +1634,12 @@ QuicSettingsGetGlobalSettings(
     //
     // N.B. Anything after this needs to be size checked
     //
+    SETTING_COPY_FROM_INTERNAL_SIZED(
+        FixedServerID,
+        QUIC_GLOBAL_SETTINGS,
+        Settings,
+        *SettingsLength,
+        InternalSettings);
 
     *SettingsLength = CXPLAT_MIN(*SettingsLength, sizeof(QUIC_GLOBAL_SETTINGS));
 
