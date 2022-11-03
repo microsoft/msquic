@@ -147,7 +147,6 @@ protected:
             CredConfig.AllowedCipherSuites = CipherFlags;
             Load(&CredConfig, TlsFlags);
         }
-
     };
 
     TlsTest() { }
@@ -1390,8 +1389,7 @@ TEST_F(TlsTest, DeferredCertificateValidationAllow)
     }
 }
 
-#ifndef _WIN32
-
+#ifdef QUIC_ENABLE_CA_CERTIFICATE_FILE
 TEST_F(TlsTest, DeferredCertificateValidationAllowCa)
 {
     CxPlatClientSecConfigCa ClientConfig(
@@ -1417,9 +1415,7 @@ TEST_F(TlsTest, DeferredCertificateValidationAllowCa)
         ASSERT_TRUE(Result & CXPLAT_TLS_RESULT_HANDSHAKE_COMPLETE);
     }
 }
-
 #endif
-
 
 TEST_F(TlsTest, DeferredCertificateValidationReject)
 {
@@ -1930,8 +1926,7 @@ TEST_F(TlsTest, ClientCertificateDeferValidation)
     DoHandshake(ServerContext, ClientContext);
 }
 
-#ifndef _WIN32
-
+#ifdef QUIC_ENABLE_CA_CERTIFICATE_FILE
 TEST_F(TlsTest, ClientCertificateDeferValidationCa)
 {
     CxPlatSecConfig ClientConfig;
@@ -1946,7 +1941,6 @@ TEST_F(TlsTest, ClientCertificateDeferValidationCa)
     ServerContext.InitializeServer(ServerConfig);
     DoHandshake(ServerContext, ClientContext);
 }
-
 #endif
 
 #ifdef QUIC_ENABLE_ANON_CLIENT_AUTH_TESTS

@@ -1007,7 +1007,7 @@ CxPlatTlsSecConfigCreate(
     }
 
     if (CredConfig->Flags & QUIC_CREDENTIAL_FLAG_SET_CA_CERTIFICATE_FILE) {
-        return  QUIC_STATUS_NOT_SUPPORTED;
+        return QUIC_STATUS_NOT_SUPPORTED;
     }
 
 #ifdef _KERNEL_MODE
