@@ -118,9 +118,18 @@ T GetRandom(T UpperBound, uint16_t ThreadID = UINT16_MAX) {
     if (!FuzzData || ThreadID == UINT16_MAX) {
         return (T)(rand() % (int)UpperBound);
     }
-    T out = std::numeric_limits<T>::max();
-    (void)FuzzData->TryGetRandom(UpperBound, &out, ThreadID);
-    return out;
+    uint64_t out = 0;
+
+    if ((uint64_t)UpperBound <= 0xff) {
+        (void)FuzzData->TryGetRandom((uint8_t)UpperBound, (uint8_t*)&out, ThreadID);
+    } else if ((uint64_t)UpperBound <= 0xffff) {
+        (void)FuzzData->TryGetRandom((uint16_t)UpperBound, (uint16_t*)&out, ThreadID);
+    } else if ((uint64_t)UpperBound <= 0xffffffff) {
+        (void)FuzzData->TryGetRandom((uint32_t)UpperBound, (uint32_t*)&out, ThreadID);
+    } else {
+        (void)FuzzData->TryGetRandom((uint64_t)UpperBound, &out, ThreadID);
+    }
+    return (T)out;
 }
 #define GetRandom(UpperBound) GetRandom(UpperBound, ThreadID)
 
