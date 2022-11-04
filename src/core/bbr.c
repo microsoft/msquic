@@ -867,9 +867,8 @@ BbrCongestionControlOnDataLost(
 
     QuicTraceEvent(
         ConnCongestion,
-        "[conn][%p] Congestion event: IsEcn=%hu",
-        Connection,
-        FALSE);
+        "[conn][%p] Congestion event",
+        Connection);
     Connection->Stats.Send.CongestionCount++;
 
     BOOLEAN PreviousCanSendState = BbrCongestionControlCanSend(Cc);

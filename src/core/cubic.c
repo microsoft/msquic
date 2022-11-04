@@ -237,9 +237,8 @@ CubicCongestionControlOnCongestionEvent(
         QuicPathGetDatagramPayloadSize(&Connection->Paths[0]);
     QuicTraceEvent(
         ConnCongestion,
-        "[conn][%p] Congestion event: IsEcn=%hu",
-        Connection,
-        Ecn);
+        "[conn][%p] Congestion event",
+        Connection);
     if (Ecn) {
         Connection->Stats.Send.EcnCongestionCount++;
     }

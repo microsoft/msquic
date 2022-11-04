@@ -1266,10 +1266,6 @@
                 inType="win:AnsiString"
                 name="Cc"
                 />
-            <data
-                inType="win:UInt32"
-                name="EcnCongestionCount"
-                />
           </template>
           <template tid="tid_CONN_PACKET_STATISTICS">
             <data
@@ -1980,16 +1976,6 @@
                 name="State"
                 />
           </template>
-          <template tid="tid_CONN_CONGESTION">
-            <data
-                inType="win:Pointer"
-                name="Connection"
-                />
-            <data
-                inType="win:UInt8"
-                name="IsEcn"
-                />
-          </template>
         </templates>
         <events>
           <!-- Don't use value=0 as some parsers don't like it -->
@@ -2693,7 +2679,7 @@
               message="$(string.Etw.CongestionEvent)"
               opcode="Connection"
               symbol="QuicConnCongestion"
-              template="tid_CONN_CONGESTION"
+              template="tid_CONN"
               value="5144"
               />
           <event
@@ -3660,7 +3646,7 @@
             />
         <string
             id="Etw.CongestionEvent"
-            value="[conn][%1] Congestion event: Ecn=%2"
+            value="[conn][%1] Congestion event"
             />
         <string
             id="Etw.PersistentCongestionEvent"
@@ -3708,7 +3694,7 @@
             />
         <string
             id="Etw.ConnStats"
-            value="[conn][%1] STATS: SRtt=%2 CongestionCount=%3 PersistentCongestionCount=%4 SendTotalBytes=%5 RecvTotalBytes=%6 CongestionWindow=%7 Cc=%8 EcnCongestionCount=%9"
+            value="[conn][%1] STATS: SRtt=%2 CongestionCount=%3 PersistentCongestionCount=%4 SendTotalBytes=%5 RecvTotalBytes=%6 CongestionWindow=%7 Cc=%8"
             />
         <string
             id="Etw.ConnPacketStats"
