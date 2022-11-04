@@ -49,16 +49,18 @@ tracepoint(CLOG_CUBIC_C, ConnCubic , arg2, arg3, arg4, arg5, arg6);\
 
 /*----------------------------------------------------------
 // Decoder Ring for ConnCongestion
-// [conn][%p] Congestion event
+// [conn][%p] Congestion event: IsEcn=%hu
 // QuicTraceEvent(
         ConnCongestion,
-        "[conn][%p] Congestion event",
-        Connection);
+        "[conn][%p] Congestion event: IsEcn=%hu",
+        Connection,
+        Ecn);
 // arg2 = arg2 = Connection = arg2
+// arg3 = arg3 = Ecn = arg3
 ----------------------------------------------------------*/
-#ifndef _clog_3_ARGS_TRACE_ConnCongestion
-#define _clog_3_ARGS_TRACE_ConnCongestion(uniqueId, encoded_arg_string, arg2)\
-tracepoint(CLOG_CUBIC_C, ConnCongestion , arg2);\
+#ifndef _clog_4_ARGS_TRACE_ConnCongestion
+#define _clog_4_ARGS_TRACE_ConnCongestion(uniqueId, encoded_arg_string, arg2, arg3)\
+tracepoint(CLOG_CUBIC_C, ConnCongestion , arg2, arg3);\
 
 #endif
 

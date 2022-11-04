@@ -1061,12 +1061,16 @@
     },
     "ConnCongestion": {
       "ModuleProperites": {},
-      "TraceString": "[conn][%p] Congestion event",
+      "TraceString": "[conn][%p] Congestion event: IsEcn=%hu",
       "UniqueId": "ConnCongestion",
       "splitArgs": [
         {
           "DefinationEncoding": "p",
           "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "hu",
+          "MacroVariableName": "arg3"
         }
       ],
       "macroName": "QuicTraceEvent"
@@ -2017,7 +2021,7 @@
     },
     "ConnStats": {
       "ModuleProperites": {},
-      "TraceString": "[conn][%p] STATS: SRtt=%u CongestionCount=%u PersistentCongestionCount=%u SendTotalBytes=%llu RecvTotalBytes=%llu CongestionWindow=%u Cc=%s",
+      "TraceString": "[conn][%p] STATS: SRtt=%u CongestionCount=%u PersistentCongestionCount=%u SendTotalBytes=%llu RecvTotalBytes=%llu CongestionWindow=%u Cc=%s EcnCongestionCount=%u",
       "UniqueId": "ConnStats",
       "splitArgs": [
         {
@@ -2051,6 +2055,10 @@
         {
           "DefinationEncoding": "s",
           "MacroVariableName": "arg9"
+        },
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg10"
         }
       ],
       "macroName": "QuicTraceEvent"
@@ -12508,9 +12516,9 @@
         "EncodingString": "[conn][%p] Canceling %hhu"
       },
       {
-        "UniquenessHash": "49757e31-cd50-7e77-6853-034e81817918",
+        "UniquenessHash": "1ba77489-7234-8b64-59a9-09e06557a5e4",
         "TraceID": "ConnCongestion",
-        "EncodingString": "[conn][%p] Congestion event"
+        "EncodingString": "[conn][%p] Congestion event: IsEcn=%hu"
       },
       {
         "UniquenessHash": "aed1e684-1268-09f6-9232-3b0ad19349f5",
@@ -12763,9 +12771,9 @@
         "EncodingString": "[conn][%p] Spurious congestion event"
       },
       {
-        "UniquenessHash": "dca59082-cdf8-b1a4-60f1-a5e1c25e8263",
+        "UniquenessHash": "9a04cabf-b002-b187-b0b4-8a8bbb62320a",
         "TraceID": "ConnStats",
-        "EncodingString": "[conn][%p] STATS: SRtt=%u CongestionCount=%u PersistentCongestionCount=%u SendTotalBytes=%llu RecvTotalBytes=%llu CongestionWindow=%u Cc=%s"
+        "EncodingString": "[conn][%p] STATS: SRtt=%u CongestionCount=%u PersistentCongestionCount=%u SendTotalBytes=%llu RecvTotalBytes=%llu CongestionWindow=%u Cc=%s EcnCongestionCount=%u"
       },
       {
         "UniquenessHash": "421b9353-bbea-5599-f173-5911d85a776e",

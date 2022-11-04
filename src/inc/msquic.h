@@ -515,6 +515,8 @@ typedef struct QUIC_STATISTICS_V2 {
 
     uint32_t DestCidUpdateCount;            // Number of times the destionation CID changed.
 
+    uint32_t SendEcnCongestionCount;        // Number of congestion events caused by ECN.
+
     // N.B. New fields must be appended to end
 
 } QUIC_STATISTICS_V2;
@@ -524,6 +526,7 @@ typedef struct QUIC_STATISTICS_V2 {
 
 #define QUIC_STATISTICS_V2_SIZE_1   QUIC_STRUCT_SIZE_THRU_FIELD(QUIC_STATISTICS_V2, KeyUpdateCount)         // v2.0 final size
 #define QUIC_STATISTICS_V2_SIZE_2   QUIC_STRUCT_SIZE_THRU_FIELD(QUIC_STATISTICS_V2, DestCidUpdateCount)     // v2.1 final size
+#define QUIC_STATISTICS_V2_SIZE_3   QUIC_STRUCT_SIZE_THRU_FIELD(QUIC_STATISTICS_V2, SendEcnCongestionCount)
 
 typedef struct QUIC_LISTENER_STATISTICS {
 

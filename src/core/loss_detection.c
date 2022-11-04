@@ -1520,6 +1520,7 @@ QuicLossDetectionProcessAckBlocks(
                     Connection->Send.NumPacketsSentWithEct < Ecn->ECT_0_Count) {
                     EcnValidated = FALSE;
                 } else {
+                    BOOLEAN NewCE = Ecn->CE_Count > Packets->EcnCeCounter;
                     Packets->EcnCeCounter = Ecn->CE_Count;
                     Packets->EcnEctCounter = Ecn->ECT_0_Count;
                     if (Path->EcnValidationState <= ECN_VALIDATION_UNKNOWN) {
@@ -1532,12 +1533,11 @@ QuicLossDetectionProcessAckBlocks(
                     }
 
                     if (Path->EcnValidationState == ECN_VALIDATION_CAPABLE &&
-                        EctCeDeltaSum > 0) {
+                        NewCE) {
                         QUIC_ECN_EVENT EcnEvent = {
                             .LargestPacketNumberAcked = LargestAckedPacketNum,
                             .LargestSentPacketNumber = LossDetection->LargestSentPacketNumber,
-                        }; 
-
+                        };
                         QuicCongestionControlOnEcn(&Connection->CongestionControl, &EcnEvent);
                     }
                 }

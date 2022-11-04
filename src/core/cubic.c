@@ -237,8 +237,12 @@ CubicCongestionControlOnCongestionEvent(
         QuicPathGetDatagramPayloadSize(&Connection->Paths[0]);
     QuicTraceEvent(
         ConnCongestion,
-        "[conn][%p] Congestion event",
-        Connection);
+        "[conn][%p] Congestion event: IsEcn=%hu",
+        Connection,
+        Ecn);
+    if (Ecn) {
+        Connection->Stats.Send.EcnCongestionCount++;
+    }
     Connection->Stats.Send.CongestionCount++;
 
     Cubic->IsInRecovery = TRUE;
@@ -736,7 +740,7 @@ static const QUIC_CONGESTION_CONTROL QuicCongestionControlCubic = {
     .QuicCongestionControlOnDataInvalidated = CubicCongestionControlOnDataInvalidated,
     .QuicCongestionControlOnDataAcknowledged = CubicCongestionControlOnDataAcknowledged,
     .QuicCongestionControlOnDataLost = CubicCongestionControlOnDataLost,
-    .QuicCongestionControlOnDataLost = CubicCongestionControlOnDataLost,
+    .QuicCongestionControlOnEcn = CubicCongestionControlOnEcn,
     .QuicCongestionControlOnSpuriousCongestionEvent = CubicCongestionControlOnSpuriousCongestionEvent,
     .QuicCongestionControlLogOutFlowStatus = CubicCongestionControlLogOutFlowStatus,
     .QuicCongestionControlGetExemptions = CubicCongestionControlGetExemptions,

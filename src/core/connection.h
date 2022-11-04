@@ -280,6 +280,7 @@ typedef struct QUIC_CONN_STATS {
         uint64_t TotalStreamBytes;      // Sum of stream payloads
 
         uint32_t CongestionCount;
+        uint32_t EcnCongestionCount;
         uint32_t PersistentCongestionCount;
     } Send;
 
@@ -848,7 +849,7 @@ QuicConnLogStatistics(
 
     QuicTraceEvent(
         ConnStats,
-        "[conn][%p] STATS: SRtt=%u CongestionCount=%u PersistentCongestionCount=%u SendTotalBytes=%llu RecvTotalBytes=%llu CongestionWindow=%u Cc=%s",
+        "[conn][%p] STATS: SRtt=%u CongestionCount=%u PersistentCongestionCount=%u SendTotalBytes=%llu RecvTotalBytes=%llu CongestionWindow=%u Cc=%s EcnCongestionCount=%u",
         Connection,
         Path->SmoothedRtt,
         Connection->Stats.Send.CongestionCount,
@@ -856,7 +857,8 @@ QuicConnLogStatistics(
         Connection->Stats.Send.TotalBytes,
         Connection->Stats.Recv.TotalBytes,
         QuicCongestionControlGetCongestionWindow(&Connection->CongestionControl),
-        Connection->CongestionControl.Name);
+        Connection->CongestionControl.Name,
+        Connection->Stats.Send.EcnCongestionCount);
 
     QuicTraceEvent(
         ConnPacketStats,
