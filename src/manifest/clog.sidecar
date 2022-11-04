@@ -1075,6 +1075,22 @@
       ],
       "macroName": "QuicTraceEvent"
     },
+    "ConnCongestionV2": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] Congestion event: IsEcn=%hu",
+      "UniqueId": "ConnCongestionV2",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "hu",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macroName": "QuicTraceEvent"
+    },
     "ConnCreated": {
       "ModuleProperites": {},
       "TraceString": "[conn][%p] Created, IsServer=%hhu, CorrelationId=%llu",
@@ -2021,7 +2037,7 @@
     },
     "ConnStats": {
       "ModuleProperites": {},
-      "TraceString": "[conn][%p] STATS: SRtt=%u CongestionCount=%u PersistentCongestionCount=%u SendTotalBytes=%llu RecvTotalBytes=%llu CongestionWindow=%u Cc=%s EcnCongestionCount=%u",
+      "TraceString": "[conn][%p] STATS: SRtt=%u CongestionCount=%u PersistentCongestionCount=%u SendTotalBytes=%llu RecvTotalBytes=%llu CongestionWindow=%u Cc=%s",
       "UniqueId": "ConnStats",
       "splitArgs": [
         {
@@ -2055,10 +2071,6 @@
         {
           "DefinationEncoding": "s",
           "MacroVariableName": "arg9"
-        },
-        {
-          "DefinationEncoding": "u",
-          "MacroVariableName": "arg10"
         }
       ],
       "macroName": "QuicTraceEvent"
@@ -12521,6 +12533,11 @@
         "EncodingString": "[conn][%p] Congestion event: IsEcn=%hu"
       },
       {
+        "UniquenessHash": "631f94ef-27ad-9be6-98cf-966dbce8bad9",
+        "TraceID": "ConnCongestionV2",
+        "EncodingString": "[conn][%p] Congestion event: IsEcn=%hu"
+      },
+      {
         "UniquenessHash": "aed1e684-1268-09f6-9232-3b0ad19349f5",
         "TraceID": "ConnCreated",
         "EncodingString": "[conn][%p] Created, IsServer=%hhu, CorrelationId=%llu"
@@ -12771,9 +12788,9 @@
         "EncodingString": "[conn][%p] Spurious congestion event"
       },
       {
-        "UniquenessHash": "9a04cabf-b002-b187-b0b4-8a8bbb62320a",
+        "UniquenessHash": "dca59082-cdf8-b1a4-60f1-a5e1c25e8263",
         "TraceID": "ConnStats",
-        "EncodingString": "[conn][%p] STATS: SRtt=%u CongestionCount=%u PersistentCongestionCount=%u SendTotalBytes=%llu RecvTotalBytes=%llu CongestionWindow=%u Cc=%s EcnCongestionCount=%u"
+        "EncodingString": "[conn][%p] STATS: SRtt=%u CongestionCount=%u PersistentCongestionCount=%u SendTotalBytes=%llu RecvTotalBytes=%llu CongestionWindow=%u Cc=%s"
       },
       {
         "UniquenessHash": "421b9353-bbea-5599-f173-5911d85a776e",

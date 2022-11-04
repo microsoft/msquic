@@ -211,6 +211,8 @@ namespace QuicTrace.DataModel.ETW
                     return new QuicConnectionInFlowStatsEvent(timestamp, processor, processId, threadId, pointerSize, data.ReadPointer(), data.ReadULong());
                 case QuicEventId.ConnCongestion:
                     return new QuicConnectionCongestionEvent(timestamp, processor, processId, threadId, pointerSize, data.ReadPointer());
+                case QuicEventId.ConnCongestionV2:
+                    return new QuicConnectionCongestionV2Event(timestamp, processor, processId, threadId, pointerSize, data.ReadPointer(), data.ReadByte());
                 case QuicEventId.ConnSourceCidAdded:
                     return new QuicConnectionSourceCidAddedEvent(timestamp, processor, processId, threadId, pointerSize, data.ReadPointer(), data.ReadULong(), data.ReadBytes());
                 case QuicEventId.ConnDestCidAdded:

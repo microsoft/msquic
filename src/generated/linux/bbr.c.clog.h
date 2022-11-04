@@ -110,19 +110,19 @@ tracepoint(CLOG_BBR_C, ConnRecoveryExit , arg2);\
 
 
 /*----------------------------------------------------------
-// Decoder Ring for ConnCongestion
+// Decoder Ring for ConnCongestionV2
 // [conn][%p] Congestion event: IsEcn=%hu
 // QuicTraceEvent(
-        ConnCongestion,
+        ConnCongestionV2,
         "[conn][%p] Congestion event: IsEcn=%hu",
         Connection,
         FALSE);
 // arg2 = arg2 = Connection = arg2
 // arg3 = arg3 = FALSE = arg3
 ----------------------------------------------------------*/
-#ifndef _clog_4_ARGS_TRACE_ConnCongestion
-#define _clog_4_ARGS_TRACE_ConnCongestion(uniqueId, encoded_arg_string, arg2, arg3)\
-tracepoint(CLOG_BBR_C, ConnCongestion , arg2, arg3);\
+#ifndef _clog_4_ARGS_TRACE_ConnCongestionV2
+#define _clog_4_ARGS_TRACE_ConnCongestionV2(uniqueId, encoded_arg_string, arg2, arg3)\
+tracepoint(CLOG_BBR_C, ConnCongestionV2 , arg2, arg3);\
 
 #endif
 

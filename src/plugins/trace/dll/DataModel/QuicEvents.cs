@@ -800,6 +800,18 @@ namespace QuicTrace.DataModel
         }
     }
 
+    public class QuicConnectionCongestionV2Event : QuicEvent
+    {
+        public byte IsEcn { get; }
+        public override string PayloadString => string.Format("Congestion event IsEcn={0}", IsEcn);
+
+        internal QuicConnectionCongestionV2Event(Timestamp timestamp, ushort processor, uint processId, uint threadId, int pointerSize, ulong objectPointer, byte isEcn) :
+            base(QuicEventId.ConnCongestion, QuicObjectType.Connection, timestamp, processor, processId, threadId, pointerSize, objectPointer)
+        {
+            IsEcn = isEcn;
+        }
+    }
+
     public class QuicConnectionSourceCidAddedEvent : QuicEvent
     {
         public ulong SequenceNumber { get; }

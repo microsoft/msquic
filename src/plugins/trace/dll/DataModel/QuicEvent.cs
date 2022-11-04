@@ -158,6 +158,7 @@ namespace QuicTrace.DataModel
         ConnBbr,
         ConnEcnCapable,
         ConnEcnFailed,
+        ConnCongestionV2,
 
         StreamCreated = 6144,
         StreamDestroyed,

@@ -37,17 +37,17 @@ TRACEPOINT_EVENT(CLOG_CUBIC_C, ConnCubic,
 
 
 /*----------------------------------------------------------
-// Decoder Ring for ConnCongestion
+// Decoder Ring for ConnCongestionV2
 // [conn][%p] Congestion event: IsEcn=%hu
 // QuicTraceEvent(
-        ConnCongestion,
+        ConnCongestionV2,
         "[conn][%p] Congestion event: IsEcn=%hu",
         Connection,
         Ecn);
 // arg2 = arg2 = Connection = arg2
 // arg3 = arg3 = Ecn = arg3
 ----------------------------------------------------------*/
-TRACEPOINT_EVENT(CLOG_CUBIC_C, ConnCongestion,
+TRACEPOINT_EVENT(CLOG_CUBIC_C, ConnCongestionV2,
     TP_ARGS(
         const void *, arg2,
         unsigned short, arg3), 
