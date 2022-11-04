@@ -210,13 +210,13 @@ namespace QuicTrace.DataModel.ETW
                 case QuicEventId.ConnInFlowStats:
                     return new QuicConnectionInFlowStatsEvent(timestamp, processor, processId, threadId, pointerSize, data.ReadPointer(), data.ReadULong());
                 case QuicEventId.ConnCongestion:
-                    return new QuicConnectionCongestionEvent(timestamp, processor, processId, threadId, pointerSize, data.ReadPointer(), data.ReadByte());
+                    return new QuicConnectionCongestionEvent(timestamp, processor, processId, threadId, pointerSize, data.ReadPointer());
                 case QuicEventId.ConnSourceCidAdded:
                     return new QuicConnectionSourceCidAddedEvent(timestamp, processor, processId, threadId, pointerSize, data.ReadPointer(), data.ReadULong(), data.ReadBytes());
                 case QuicEventId.ConnDestCidAdded:
                     return new QuicConnectionDestinationCidAddedEvent(timestamp, processor, processId, threadId, pointerSize, data.ReadPointer(), data.ReadULong(), data.ReadBytes());
                 case QuicEventId.ConnStats:
-                    return new QuicConnectionStatsEvent(timestamp, processor, processId, threadId, pointerSize, data.ReadPointer(), data.ReadUInt(), data.ReadUInt(), data.ReadUInt(), data.ReadULong(), data.ReadULong(), data.ReadString(), data.ReadUInt());
+                    return new QuicConnectionStatsEvent(timestamp, processor, processId, threadId, pointerSize, data.ReadPointer(), data.ReadUInt(), data.ReadUInt(), data.ReadUInt(), data.ReadULong(), data.ReadULong());
                 case QuicEventId.ConnOutFlowStreamStats:
                     return new QuicConnectionOutFlowStreamStatsEvent(timestamp, processor, processId, threadId, pointerSize, data.ReadPointer(), data.ReadULong(), data.ReadULong());
                 case QuicEventId.ConnLogError:

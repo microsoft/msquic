@@ -1976,6 +1976,16 @@
                 name="State"
                 />
           </template>
+          <template tid="tid_CONN_CONGESTION">
+            <data
+                inType="win:Pointer"
+                name="Connection"
+                />
+            <data
+                inType="win:UInt8"
+                name="IsEcn"
+                />
+          </template>
         </templates>
         <events>
           <!-- Don't use value=0 as some parsers don't like it -->
@@ -3077,6 +3087,15 @@
               symbol="QuicConnEcnFailed"
               template="tid_CONN_ECN_FAILED"
               value="5188"
+              />
+          <event
+              keywords="ut:Connection ut:DataFlow ut:LowVolume"
+              level="win:Informational"
+              message="$(string.Etw.CongestionEventV2)"
+              opcode="Connection"
+              symbol="QuicConnCongestionV2"
+              template="tid_CONN_CONGESTION"
+              value="5189"
               />
           <!-- 6144 - 7167 | Stream Events -->
           <event
@@ -4564,6 +4583,10 @@
         <string
             id="Etw.ConnEcnFailed"
             value="[conn][%1][%2] ECN failed: EctCnt %3 CeCnt %4 TxEct %5 DeltaSum %6 State %7"
+            />
+        <string
+            id="Etw.CongestionEventV2"
+            value="[conn][%1] Congestion event IsEcn=%2"
             />
       </stringTable>
     </resources>
