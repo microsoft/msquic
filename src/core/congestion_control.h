@@ -278,7 +278,7 @@ QuicCongestionControlOnDataLost(
 }
 
 //
-// Called when data is determined lost.
+// Called when congestion is signaled by ECN.
 //
 _IRQL_requires_max_(DISPATCH_LEVEL)
 inline
