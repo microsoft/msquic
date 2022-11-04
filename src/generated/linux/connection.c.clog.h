@@ -121,11 +121,11 @@ tracepoint(CLOG_CONNECTION_C, ClientVersionInfoVersionMismatch , arg1, arg3, arg
 
 /*----------------------------------------------------------
 // Decoder Ring for VersionInfoOtherVersionZero
-// [conn][%p] Version Info.OtherVersions contains a zero version! Index = %u
+// [conn][%p] Version Info.AvailableVersions contains a zero version! Index = %u
 // QuicTraceLogConnError(
                         VersionInfoOtherVersionZero,
                         Connection,
-                        "Version Info.OtherVersions contains a zero version! Index = %u",
+                        "Version Info.AvailableVersions contains a zero version! Index = %u",
                         ClientVersionIdx);
 // arg1 = arg1 = Connection = arg1
 // arg3 = arg3 = ClientVersionIdx = arg3
@@ -205,11 +205,11 @@ tracepoint(CLOG_CONNECTION_C, ServerVersionInformationPreviousVersionIsChosenVer
 
 /*----------------------------------------------------------
 // Decoder Ring for ServerVersionInformationPreviousVersionInOtherVerList
-// [conn][%p] Previous Client Version in Server Other Versions list: 0x%x
+// [conn][%p] Previous Client Version in Server Available Versions list: 0x%x
 // QuicTraceLogConnError(
                             ServerVersionInformationPreviousVersionInOtherVerList,
                             Connection,
-                            "Previous Client Version in Server Other Versions list: 0x%x",
+                            "Previous Client Version in Server Available Versions list: 0x%x",
                             Connection->PreviousQuicVersion);
 // arg1 = arg1 = Connection = arg1
 // arg3 = arg3 = Connection->PreviousQuicVersion = arg3
@@ -1275,17 +1275,20 @@ tracepoint(CLOG_CONNECTION_C, PeerStreamFCBlocked , arg1, arg3, arg4);\
 
 
 /*----------------------------------------------------------
-// Decoder Ring for IndicatePeerNeedStreams
-// [conn][%p] Indicating QUIC_CONNECTION_EVENT_PEER_NEEDS_STREAMS
+// Decoder Ring for IndicatePeerNeedStreamsV2
+// [conn][%p] Indicating QUIC_CONNECTION_EVENT_PEER_NEEDS_STREAMS type: %s
 // QuicTraceLogConnVerbose(
-                IndicatePeerNeedStreams,
+                IndicatePeerNeedStreamsV2,
                 Connection,
-                "Indicating QUIC_CONNECTION_EVENT_PEER_NEEDS_STREAMS");
+                "Indicating QUIC_CONNECTION_EVENT_PEER_NEEDS_STREAMS type: %s",
+                Frame.BidirectionalStreams ? "Bidi" : "Unidi"
+                );
 // arg1 = arg1 = Connection = arg1
+// arg3 = arg3 = Frame.BidirectionalStreams ? "Bidi" : "Unidi" = arg3
 ----------------------------------------------------------*/
-#ifndef _clog_3_ARGS_TRACE_IndicatePeerNeedStreams
-#define _clog_3_ARGS_TRACE_IndicatePeerNeedStreams(uniqueId, arg1, encoded_arg_string)\
-tracepoint(CLOG_CONNECTION_C, IndicatePeerNeedStreams , arg1);\
+#ifndef _clog_4_ARGS_TRACE_IndicatePeerNeedStreamsV2
+#define _clog_4_ARGS_TRACE_IndicatePeerNeedStreamsV2(uniqueId, arg1, encoded_arg_string, arg3)\
+tracepoint(CLOG_CONNECTION_C, IndicatePeerNeedStreamsV2 , arg1, arg3);\
 
 #endif
 
@@ -1742,6 +1745,26 @@ tracepoint(CLOG_CONNECTION_C, ConnRundown , arg2, arg3, arg4);\
 #ifndef _clog_4_ARGS_TRACE_ConnAssignWorker
 #define _clog_4_ARGS_TRACE_ConnAssignWorker(uniqueId, encoded_arg_string, arg2, arg3)\
 tracepoint(CLOG_CONNECTION_C, ConnAssignWorker , arg2, arg3);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for ConnEcnCapable
+// [conn][%p] Ecn: IsCapable=%hu
+// QuicTraceEvent(
+        ConnEcnCapable,
+        "[conn][%p] Ecn: IsCapable=%hu",
+        Connection,
+        Connection->Paths[0].EcnValidationState == ECN_VALIDATION_CAPABLE);
+// arg2 = arg2 = Connection = arg2
+// arg3 = arg3 = Connection->Paths[0].EcnValidationState == ECN_VALIDATION_CAPABLE = arg3
+----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_ConnEcnCapable
+#define _clog_4_ARGS_TRACE_ConnEcnCapable(uniqueId, encoded_arg_string, arg2, arg3)\
+tracepoint(CLOG_CONNECTION_C, ConnEcnCapable , arg2, arg3);\
 
 #endif
 

@@ -208,10 +208,10 @@ TRACEPOINT_EVENT(CLOG_WORKER_C, WorkerQueueDelayUpdated,
             "[wrkr][%p] IsActive = %hhu, Arg = %u",
             Worker,
             Worker->IsActive,
-            1);
+            (uint32_t)State->TimeNow);
 // arg2 = arg2 = Worker = arg2
 // arg3 = arg3 = Worker->IsActive = arg3
-// arg4 = arg4 = 1 = arg4
+// arg4 = arg4 = (uint32_t)State->TimeNow = arg4
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_WORKER_C, WorkerActivityStateUpdated,
     TP_ARGS(

@@ -1618,6 +1618,44 @@ CxPlatSocketCreateUdp(
         CxPlatDataPathSetControlSocket(
             Binding,
             WskSetOption,
+            IPV6_ECN,
+            IPPROTO_IPV6,
+            sizeof(Option),
+            &Option);
+    if (QUIC_FAILED(Status)) {
+        QuicTraceEvent(
+            DatapathErrorStatus,
+            "[data][%p] ERROR, %u, %s.",
+            Binding,
+            Status,
+            "Set IPV6_ECN");
+        goto Error;
+    }
+
+    Option = TRUE;
+    Status =
+        CxPlatDataPathSetControlSocket(
+            Binding,
+            WskSetOption,
+            IP_ECN,
+            IPPROTO_IP,
+            sizeof(Option),
+            &Option);
+    if (QUIC_FAILED(Status)) {
+        QuicTraceEvent(
+            DatapathErrorStatus,
+            "[data][%p] ERROR, %u, %s.",
+            Binding,
+            Status,
+            "Set IP_ECN");
+        goto Error;
+    }
+
+    Option = TRUE;
+    Status =
+        CxPlatDataPathSetControlSocket(
+            Binding,
+            WskSetOption,
             IPV6_RECVERR,
             IPPROTO_IPV6,
             sizeof(Option),
@@ -2152,6 +2190,7 @@ CxPlatDataPathSocketReceive(
         SOCKADDR_INET LocalAddr = { 0 };
         SOCKADDR_INET RemoteAddr;
         UINT16 MessageLength = 0;
+        INT ECN = 0;
 
         //
         // Parse the ancillary data for all the per datagram information that we
@@ -2180,6 +2219,9 @@ CxPlatDataPathSocketReceive(
                         IsUnreachableError = TRUE;
                         break;
                     }
+                } else if (CMsg->cmsg_type == IPV6_ECN) {
+                    ECN = *(PINT)WSA_CMSG_DATA(CMsg);
+                    CXPLAT_DBG_ASSERT(ECN < UINT8_MAX);
                 }
             } else if (CMsg->cmsg_level == IPPROTO_IP) {
                 if (CMsg->cmsg_type == IP_PKTINFO) {
@@ -2196,6 +2238,9 @@ CxPlatDataPathSocketReceive(
                         IsUnreachableError = TRUE;
                         break;
                     }
+                } else if (CMsg->cmsg_type == IP_ECN) {
+                    ECN = *(PINT)WSA_CMSG_DATA(CMsg);
+                    CXPLAT_DBG_ASSERT(ECN < UINT8_MAX);
                 }
             } else if (CMsg->cmsg_level == IPPROTO_UDP) {
                 if (CMsg->cmsg_type == UDP_COALESCED_INFO) {
@@ -2358,7 +2403,7 @@ CxPlatDataPathSocketReceive(
             CXPLAT_DBG_ASSERT(Datagram != NULL);
             Datagram->Next = NULL;
             Datagram->PartitionIndex = (uint8_t)CurProcNumber;
-            Datagram->TypeOfService = 0; // TODO - Support ToS/ECN
+            Datagram->TypeOfService = (uint8_t)ECN;
             Datagram->Allocated = TRUE;
             Datagram->QueuedOnConnection = FALSE;
 
@@ -3001,11 +3046,13 @@ CxPlatSocketSend(
     //
     // Build up message header to indicate local address to send from.
     //
-    BYTE CMsgBuffer[WSA_CMSG_SPACE(sizeof(IN6_PKTINFO)) + WSA_CMSG_SPACE(sizeof(*SegmentSize))];
+    BYTE CMsgBuffer[
+        WSA_CMSG_SPACE(sizeof(IN6_PKTINFO)) +   // IP_PKTINFO
+        WSA_CMSG_SPACE(sizeof(INT)) +           // IP_ECN
+        WSA_CMSG_SPACE(sizeof(*SegmentSize))    // UDP_SEND_MSG_SIZE
+        ];
     PWSACMSGHDR CMsg = (PWSACMSGHDR)CMsgBuffer;
     ULONG CMsgLen = 0;
-
-    // TODO - Use SendData->ECN if not CXPLAT_ECN_NON_ECT
 
     if (!Binding->Connected) {
         if (Route->LocalAddress.si_family == QUIC_ADDRESS_FAMILY_INET) {
@@ -3030,6 +3077,18 @@ CxPlatSocketSend(
             PktInfo6->ipi6_ifindex = Route->LocalAddress.Ipv6.sin6_scope_id;
             PktInfo6->ipi6_addr = Route->LocalAddress.Ipv6.sin6_addr;
         }
+    }
+
+    if (SendData->ECN != CXPLAT_ECN_NON_ECT) {
+        CMsg = (PWSACMSGHDR)&CMsgBuffer[CMsgLen];
+        CMsgLen += WSA_CMSG_SPACE(sizeof(INT));
+        CMsg->cmsg_level =
+            Route->LocalAddress.si_family == QUIC_ADDRESS_FAMILY_INET ?
+                IPPROTO_IP : IPPROTO_IPV6;
+        CMsg->cmsg_type = IP_ECN; // == IPV6_ECN
+        CMsg->cmsg_len = WSA_CMSG_LEN(sizeof(INT));
+
+        *(PINT)WSA_CMSG_DATA(CMsg) = SendData->ECN;
     }
 
     if (SendData->SegmentSize > 0) {

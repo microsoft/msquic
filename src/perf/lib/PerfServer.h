@@ -140,7 +140,8 @@ private:
             .SetIdleTimeoutMs(PERF_DEFAULT_IDLE_TIMEOUT)
             .SetSendBufferingEnabled(false)
             .SetServerResumptionLevel(QUIC_SERVER_RESUME_AND_ZERORTT)
-            .SetCongestionControlAlgorithm(PerfDefaultCongestionControl)};
+            .SetCongestionControlAlgorithm(PerfDefaultCongestionControl)
+            .SetEcnEnabled(PerfDefaultEcnEnabled)};
     MsQuicListener Listener {Registration, ListenerCallbackStatic, this};
     QUIC_ADDR LocalAddr;
     CXPLAT_EVENT* StopEvent {nullptr};

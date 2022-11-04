@@ -640,7 +640,7 @@ QuicWorkerLoop(
             "[wrkr][%p] IsActive = %hhu, Arg = %u",
             Worker,
             Worker->IsActive,
-            1);
+            (uint32_t)State->TimeNow);
     }
 
     //
@@ -709,7 +709,7 @@ QuicWorkerLoop(
         "[wrkr][%p] IsActive = %hhu, Arg = %u",
         Worker,
         Worker->IsActive,
-        UINT32_MAX);
+        (uint32_t)Worker->TimerWheel.NextExpirationTime);
     QuicWorkerResetQueueDelay(Worker);
     return TRUE;
 }

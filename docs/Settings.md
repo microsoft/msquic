@@ -60,6 +60,7 @@ The following settings are available via registry as well as via [QUIC_SETTINGS]
 | Max Binding Stateless Operations   | uint16_t   | MaxBindingStatelessOperations  |            100 | The maximum number of stateless operations that may be queued on a binding at any one time.                                   |
 | Stateless Operation Expiration     | uint16_t   | StatelessOperationExpirationMs |            100 | The time limit between operations for the same endpoint, in milliseconds.                                                     |
 | Congestion Control Algorithm       | uint16_t   | CongestionControlAlgorithm  |         0 (Cubic) | The congestion control algorithm used for the connection.                                                                     |
+| ECN                                | uint8_t    | EcnEnabled                  |         0 (FALSE) | Enable sender-side ECN support.                                                                                               |
 
 The types map to registry types as follows:
   - `uint64_t` is a `REG_QWORD`.
@@ -73,7 +74,7 @@ The following settings are available via registry as well as via [QUIC_VERSION_S
 |-----------------------------------|------------|--------------------------|-------------------|-------------------------------------------------------------------------------------------------------------------------------|
 | Acceptable Versions List          | uint32_t[] | AcceptableVersions       | Unset             | Sets the list of versions that a given server instance will use if a client sends a first flight using them. |
 | Offered Versions List             | uint32_t[] | OfferedVersions          | Unset             | Sets the list of versions that a given server instance will send in a Version Negotiation packet if it receives a first flight from an unknown version. This list will most often be equal to the Acceptable Versions list. |
-| Fully-Deployed Versions List      | uint32_t[] | FullyDeployedVersions    | Unset             | Sets the list of QUIC versions that is supported and negotiated by every single QUIC server instance in this deployment. Used to generate the OtherVersions list in the Version Negotiation Extension Transport Parameter. |
+| Fully-Deployed Versions List      | uint32_t[] | FullyDeployedVersions    | Unset             | Sets the list of QUIC versions that is supported and negotiated by every single QUIC server instance in this deployment. Used to generate the AvailableVersions list in the Version Negotiation Extension Transport Parameter. |
 
 The `uint32_t[]` type is a `REG_BINARY` blob of the versions list, with each version in little-endian format.
 

@@ -134,14 +134,13 @@ BbrBandwidthFilterOnPacketAcked(
 
         uint64_t SendRate = UINT64_MAX;
         uint64_t AckRate = UINT64_MAX;
-        uint32_t AckElapsed = 0;
-        uint32_t SendElapsed = 0;
 
         if (AckedPacket->Flags.HasLastAckedPacketInfo) {
             CXPLAT_DBG_ASSERT(AckedPacket->TotalBytesSent >= AckedPacket->LastAckedPacketInfo.TotalBytesSent);
             CXPLAT_DBG_ASSERT(CxPlatTimeAtOrBefore32(AckedPacket->LastAckedPacketInfo.SentTime, AckedPacket->SentTime));
             
-            SendElapsed = CxPlatTimeDiff32(AckedPacket->LastAckedPacketInfo.SentTime, AckedPacket->SentTime);
+            uint32_t AckElapsed = 0;
+            uint32_t SendElapsed = CxPlatTimeDiff32(AckedPacket->LastAckedPacketInfo.SentTime, AckedPacket->SentTime);
 
             if (SendElapsed) {
                 SendRate = (kMicroSecsInSec * BW_UNIT *

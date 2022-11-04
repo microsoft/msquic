@@ -1291,11 +1291,25 @@ QuicConnUpdateRtt(
 //
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
+QuicConnTimerSetEx(
+    _Inout_ QUIC_CONNECTION* Connection,
+    _In_ QUIC_CONN_TIMER_TYPE Type,
+    _In_ uint64_t DelayUs,
+    _In_ uint64_t TimeNow
+    );
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+inline
+void
 QuicConnTimerSet(
     _Inout_ QUIC_CONNECTION* Connection,
     _In_ QUIC_CONN_TIMER_TYPE Type,
     _In_ uint64_t DelayUs
-    );
+    )
+{
+    const uint64_t TimeNow = CxPlatTimeUs64();
+    QuicConnTimerSetEx(Connection, Type, DelayUs, TimeNow);
+}
 
 //
 // Cancels a timer.

@@ -209,10 +209,10 @@ tracepoint(CLOG_WORKER_C, WorkerQueueDelayUpdated , arg2, arg3);\
             "[wrkr][%p] IsActive = %hhu, Arg = %u",
             Worker,
             Worker->IsActive,
-            1);
+            (uint32_t)State->TimeNow);
 // arg2 = arg2 = Worker = arg2
 // arg3 = arg3 = Worker->IsActive = arg3
-// arg4 = arg4 = 1 = arg4
+// arg4 = arg4 = (uint32_t)State->TimeNow = arg4
 ----------------------------------------------------------*/
 #ifndef _clog_5_ARGS_TRACE_WorkerActivityStateUpdated
 #define _clog_5_ARGS_TRACE_WorkerActivityStateUpdated(uniqueId, encoded_arg_string, arg2, arg3, arg4)\

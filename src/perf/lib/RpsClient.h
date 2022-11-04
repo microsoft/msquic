@@ -168,7 +168,8 @@ public:
             .SetDisconnectTimeoutMs(PERF_DEFAULT_DISCONNECT_TIMEOUT)
             .SetIdleTimeoutMs(PERF_DEFAULT_IDLE_TIMEOUT)
             .SetSendBufferingEnabled(false)
-            .SetCongestionControlAlgorithm(PerfDefaultCongestionControl),
+            .SetCongestionControlAlgorithm(PerfDefaultCongestionControl)
+            .SetEcnEnabled(PerfDefaultEcnEnabled),
         MsQuicCredentialConfig(
             QUIC_CREDENTIAL_FLAG_CLIENT |
             QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION)};

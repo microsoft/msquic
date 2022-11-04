@@ -159,6 +159,11 @@ QuicPerfCounterSnapShot(
         (uint8_t*)PerfCounterSamples,
         sizeof(PerfCounterSamples));
 
+    QuicTraceEvent(
+        PerfCountersRundown,
+        "[ lib] Perf counters Rundown, Counters=%!CID!",
+        CASTED_CLOG_BYTEARRAY(sizeof(PerfCounterSamples), PerfCounterSamples));
+
 // Ensure a perf counter stays below a given max Hz/frequency.
 #define QUIC_COUNTER_LIMIT_HZ(TYPE, LIMIT_PER_SECOND) \
     CXPLAT_TEL_ASSERT( \
@@ -753,8 +758,9 @@ QuicLibApplyLoadBalancingSetting(
     default:
         MsQuicLib.CidServerIdLength = 0;
         break;
-    case QUIC_LOAD_BALANCING_SERVER_ID_IP:
-        MsQuicLib.CidServerIdLength = 5; // 1 + 4 for v4 IP address
+    case QUIC_LOAD_BALANCING_SERVER_ID_IP:    // 1 + 4 for IP address/suffix
+    case QUIC_LOAD_BALANCING_SERVER_ID_FIXED: // 1 + 4 for fixed value
+        MsQuicLib.CidServerIdLength = 5;
         break;
     }
 

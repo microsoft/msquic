@@ -508,6 +508,14 @@ TEST_P(WithBool, RejectConnection) {
 }
 
 #ifdef QUIC_TEST_DATAPATH_HOOKS_ENABLED
+TEST_P(WithFamilyArgs, Ecn) {
+    TestLoggerT<ParamType> Logger("Ecn", GetParam());
+    if (TestingKernelMode) {
+        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_ECN, GetParam().Family));
+    } else {
+        QuicTestEcn(GetParam().Family);
+    }
+}
 
 TEST_P(WithFamilyArgs, LocalPathChanges) {
     TestLoggerT<ParamType> Logger("QuicTestLocalPathChanges", GetParam());
@@ -1377,6 +1385,15 @@ TEST_P(WithFamilyArgs, LoadBalanced) {
         QuicTestLoadBalancedHandshake(GetParam().Family);
     }
 }
+
+TEST_P(WithFamilyArgs, HandshakeSpecificLossPatterns) {
+    TestLoggerT<ParamType> Logger("QuicTestHandshakeSpecificLossPatterns", GetParam());
+    if (TestingKernelMode) {
+        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_HANDSHAKE_SPECIFIC_LOSS_PATTERNS, GetParam().Family));
+    } else {
+        QuicTestHandshakeSpecificLossPatterns(GetParam().Family);
+    }
+}
 #endif // QUIC_TEST_DATAPATH_HOOKS_ENABLED
 
 TEST_P(WithSendArgs1, Send) {
@@ -1814,6 +1831,24 @@ TEST(Misc, StreamAbortRecvFinRace) {
         ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_STREAM_ABORT_RECV_FIN_RACE));
     } else {
         QuicTestStreamAbortRecvFinRace();
+    }
+}
+
+TEST(Misc, StreamBlockUnblockBidiConnFlowControl) {
+    TestLogger Logger("StreamBlockUnblockBidiConnFlowControl");
+    if (TestingKernelMode) {
+        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_STREAM_BLOCK_UNBLOCK_CONN_FLOW_CONTROL, TRUE));
+    } else {
+        QuicTestStreamBlockUnblockConnFlowControl(TRUE);
+    }
+}
+
+TEST(Misc, StreamBlockUnblockUnidiConnFlowControl) {
+    TestLogger Logger("StreamBlockUnblockUnidiConnFlowControl");
+    if (TestingKernelMode) {
+        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_STREAM_BLOCK_UNBLOCK_CONN_FLOW_CONTROL, FALSE));
+    } else {
+        QuicTestStreamBlockUnblockConnFlowControl(FALSE);
     }
 }
 

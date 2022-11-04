@@ -126,6 +126,62 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_SOCKET_C, DatapathErrorStatus,
 
 
 /*----------------------------------------------------------
+// Decoder Ring for DatapathGetRouteStart
+// [data][%p] Querying route, local=%!ADDR!, remote=%!ADDR!
+// QuicTraceEvent(
+        DatapathGetRouteStart,
+        "[data][%p] Querying route, local=%!ADDR!, remote=%!ADDR!",
+        Socket,
+        CASTED_CLOG_BYTEARRAY(sizeof(Route->LocalAddress), &Route->LocalAddress),
+        CASTED_CLOG_BYTEARRAY(sizeof(Route->RemoteAddress), &Route->RemoteAddress));
+// arg2 = arg2 = Socket = arg2
+// arg3 = arg3 = CASTED_CLOG_BYTEARRAY(sizeof(Route->LocalAddress), &Route->LocalAddress) = arg3
+// arg4 = arg4 = CASTED_CLOG_BYTEARRAY(sizeof(Route->RemoteAddress), &Route->RemoteAddress) = arg4
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_SOCKET_C, DatapathGetRouteStart,
+    TP_ARGS(
+        const void *, arg2,
+        unsigned int, arg3_len,
+        const void *, arg3,
+        unsigned int, arg4_len,
+        const void *, arg4), 
+    TP_FIELDS(
+        ctf_integer_hex(uint64_t, arg2, arg2)
+        ctf_integer(unsigned int, arg3_len, arg3_len)
+        ctf_sequence(char, arg3, arg3, unsigned int, arg3_len)
+        ctf_integer(unsigned int, arg4_len, arg4_len)
+        ctf_sequence(char, arg4, arg4, unsigned int, arg4_len)
+    )
+)
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for DatapathGetRouteComplete
+// [data][%p] Query route result: %!ADDR!
+// QuicTraceEvent(
+        DatapathGetRouteComplete,
+        "[data][%p] Query route result: %!ADDR!",
+        Socket,
+        CASTED_CLOG_BYTEARRAY(sizeof(LocalAddress), &LocalAddress));
+// arg2 = arg2 = Socket = arg2
+// arg3 = arg3 = CASTED_CLOG_BYTEARRAY(sizeof(LocalAddress), &LocalAddress) = arg3
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_SOCKET_C, DatapathGetRouteComplete,
+    TP_ARGS(
+        const void *, arg2,
+        unsigned int, arg3_len,
+        const void *, arg3), 
+    TP_FIELDS(
+        ctf_integer_hex(uint64_t, arg2, arg2)
+        ctf_integer(unsigned int, arg3_len, arg3_len)
+        ctf_sequence(char, arg3, arg3, unsigned int, arg3_len)
+    )
+)
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for DatapathError
 // [data][%p] ERROR, %s.
 // QuicTraceEvent(

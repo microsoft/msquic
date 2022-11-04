@@ -3474,3 +3474,39 @@ QuicTestVNTPOtherVersionZero(
     QuicTestCustomVNTP(TestServer, &TestTP);
 }
 #endif // QUIC_API_ENABLE_PREVIEW_FEATURES
+
+void
+QuicTestHandshakeSpecificLossPatterns(
+    _In_ int Family
+    )
+{
+    MsQuicRegistration Registration;
+    TEST_QUIC_SUCCEEDED(Registration.GetInitStatus());
+
+    MsQuicSettings Settings;
+    Settings.SetIdleTimeoutMs(60000).SetDisconnectTimeoutMs(60000).SetInitialRttMs(20);
+
+    MsQuicConfiguration ServerConfiguration(Registration, "MsQuicTest", Settings, ServerSelfSignedCredConfig);
+    TEST_QUIC_SUCCEEDED(ServerConfiguration.GetInitStatus());
+
+    MsQuicConfiguration ClientConfiguration(Registration, "MsQuicTest", Settings, MsQuicCredentialConfig());
+    TEST_QUIC_SUCCEEDED(ClientConfiguration.GetInitStatus());
+
+    QuicAddr ServerLocalAddr((Family == 4) ? QUIC_ADDRESS_FAMILY_INET : QUIC_ADDRESS_FAMILY_INET6);
+    MsQuicAutoAcceptListener Listener(Registration, ServerConfiguration, MsQuicConnection::NoOpCallback);
+    TEST_QUIC_SUCCEEDED(Listener.Start("MsQuicTest", &ServerLocalAddr.SockAddr));
+    TEST_QUIC_SUCCEEDED(Listener.GetInitStatus());
+    TEST_QUIC_SUCCEEDED(Listener.GetLocalAddr(ServerLocalAddr));
+
+    for (uint64_t Bitmap = 1; Bitmap < 128; ++Bitmap) {
+        char Name[64]; sprintf_s(Name, sizeof(Name), "DoHandshake %llu", (unsigned long long)Bitmap);
+        TestScopeLogger logScope(Name);
+        BitmapLossHelper LossHelper(Bitmap);
+        MsQuicConnection Connection(Registration);
+        TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
+        TEST_QUIC_SUCCEEDED(Connection.Start(ClientConfiguration, ServerLocalAddr.GetFamily(), QUIC_TEST_LOOPBACK_FOR_AF(ServerLocalAddr.GetFamily()), ServerLocalAddr.GetPort()));
+        TEST_TRUE(Connection.HandshakeCompleteEvent.WaitTimeout(TestWaitTimeout*20));
+        TEST_TRUE(Connection.HandshakeComplete);
+        Listener.LastConnection->Shutdown(0, QUIC_CONNECTION_SHUTDOWN_FLAG_SILENT);
+    }
+}

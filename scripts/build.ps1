@@ -24,6 +24,9 @@ This script provides helpers for building msquic.
 .PARAMETER DisableLogs
     Disables log collection.
 
+.PARAMETER LoggingType
+    Set logging type
+
 .PARAMETER SanitizeAddress
     Enables address sanitizer.
 
@@ -138,6 +141,9 @@ param (
 
     [Parameter(Mandatory = $false)]
     [switch]$DisableLogs = $false,
+
+    [Parameter(Mandatory = $false)]
+    [string]$LoggingType = "",
 
     [Parameter(Mandatory = $false)]
     [switch]$SanitizeAddress = $false,
@@ -398,6 +404,9 @@ function CMake-Generate {
     }
     if (!$DisableLogs) {
         $Arguments += " -DQUIC_ENABLE_LOGGING=on"
+    }
+    if ($LoggingType -ne "") {
+        $Arguments += " -DQUIC_ENABLE_LOGGING=on -DQUIC_LOGGING_TYPE=" + $LoggingType
     }
     if ($SanitizeAddress) {
         $Arguments += " -DQUIC_ENABLE_SANITIZERS=on"

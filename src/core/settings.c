@@ -48,6 +48,9 @@ QuicSettingsSetDefault(
     if (!Settings->IsSet.LoadBalancingMode) {
         Settings->LoadBalancingMode = QUIC_DEFAULT_LOAD_BALANCING_MODE;
     }
+    if (!Settings->IsSet.FixedServerID) {
+        Settings->FixedServerID = 0;
+    }
     if (!Settings->IsSet.MaxWorkerQueueDelayUs) {
         Settings->MaxWorkerQueueDelayUs = MS_TO_US(QUIC_MAX_WORKER_QUEUE_DELAY);
     }
@@ -135,6 +138,9 @@ QuicSettingsSetDefault(
     if (!Settings->IsSet.GreaseQuicBitEnabled) {
         Settings->GreaseQuicBitEnabled = QUIC_DEFAULT_GREASE_QUIC_BIT_ENABLED;
     }
+    if (!Settings->IsSet.EcnEnabled) {
+        Settings->EcnEnabled = QUIC_DEFAULT_ECN_ENABLED;
+    }
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -164,6 +170,9 @@ QuicSettingsCopy(
     }
     if (!Destination->IsSet.LoadBalancingMode) {
         Destination->LoadBalancingMode = Source->LoadBalancingMode;
+    }
+    if (!Destination->IsSet.FixedServerID) {
+        Destination->FixedServerID = Source->FixedServerID;
     }
     if (!Destination->IsSet.MaxWorkerQueueDelayUs) {
         Destination->MaxWorkerQueueDelayUs = Source->MaxWorkerQueueDelayUs;
@@ -270,6 +279,9 @@ QuicSettingsCopy(
     if (!Destination->IsSet.GreaseQuicBitEnabled) {
         Destination->GreaseQuicBitEnabled = Source->GreaseQuicBitEnabled;
     }
+    if (!Destination->IsSet.EcnEnabled) {
+        Destination->EcnEnabled = Source->EcnEnabled;
+    }
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -343,7 +355,7 @@ BOOLEAN
 QuicSettingApply(
     _Inout_ QUIC_SETTINGS_INTERNAL* Destination,
     _In_ BOOLEAN OverWrite,
-    _In_ BOOLEAN AllowMtuChanges,
+    _In_ BOOLEAN AllowMtuAndEcnChanges,
     _In_reads_bytes_(sizeof(QUIC_SETTINGS_INTERNAL))
         const QUIC_SETTINGS_INTERNAL* Source
     )
@@ -373,11 +385,15 @@ QuicSettingApply(
         Destination->IsSet.RetryMemoryLimit = TRUE;
     }
     if (Source->IsSet.LoadBalancingMode && (!Destination->IsSet.LoadBalancingMode || OverWrite)) {
-        if (Source->LoadBalancingMode > QUIC_LOAD_BALANCING_SERVER_ID_IP) {
+        if (Source->LoadBalancingMode >= QUIC_LOAD_BALANCING_COUNT) {
             return FALSE;
         }
         Destination->LoadBalancingMode = Source->LoadBalancingMode;
         Destination->IsSet.LoadBalancingMode = TRUE;
+    }
+    if (Source->IsSet.FixedServerID && (!Destination->IsSet.FixedServerID || OverWrite)) {
+        Destination->FixedServerID = Source->FixedServerID;
+        Destination->IsSet.FixedServerID = TRUE;
     }
     if (Source->IsSet.MaxWorkerQueueDelayUs && (!Destination->IsSet.MaxWorkerQueueDelayUs || OverWrite)) {
         Destination->MaxWorkerQueueDelayUs = Source->MaxWorkerQueueDelayUs;
@@ -499,7 +515,7 @@ QuicSettingApply(
         }
     }
 
-    if (AllowMtuChanges) {
+    if (AllowMtuAndEcnChanges) {
         uint16_t MinimumMtu =
             Destination->IsSet.MinimumMtu ? Destination->MinimumMtu : QUIC_DPLPMTUD_MIN_MTU;
         uint16_t MaximumMtu =
@@ -566,6 +582,15 @@ QuicSettingApply(
     if (Source->IsSet.GreaseQuicBitEnabled && (!Destination->IsSet.GreaseQuicBitEnabled || OverWrite)) {
         Destination->GreaseQuicBitEnabled = Source->GreaseQuicBitEnabled;
         Destination->IsSet.GreaseQuicBitEnabled = TRUE;
+    }
+
+    if (AllowMtuAndEcnChanges) {
+        if (Source->IsSet.EcnEnabled && (!Destination->IsSet.EcnEnabled || OverWrite)) {
+            Destination->EcnEnabled = Source->EcnEnabled;
+            Destination->IsSet.EcnEnabled = TRUE;
+        }
+    } else if (Source->IsSet.EcnEnabled) {
+        return FALSE;
     }
 
     return TRUE;
@@ -679,9 +704,19 @@ QuicSettingsLoad(
             QUIC_SETTING_LOAD_BALANCING_MODE,
             (uint8_t*)&Value,
             &ValueLen);
-        if (Value <= QUIC_LOAD_BALANCING_SERVER_ID_IP) {
+        if (Value < QUIC_LOAD_BALANCING_COUNT) {
             Settings->LoadBalancingMode = (uint16_t)Value;
         }
+    }
+
+    if (!Settings->IsSet.FixedServerID &&
+        !MsQuicLib.InUse) {
+        ValueLen = sizeof(Settings->FixedServerID);
+        CxPlatStorageReadValue(
+            Storage,
+            QUIC_SETTING_FIXED_SERVER_ID,
+            (uint8_t*)&Settings->FixedServerID,
+            &ValueLen);
     }
 
     if (!Settings->IsSet.MaxWorkerQueueDelayUs) {
@@ -1129,6 +1164,16 @@ VersionSettingsFail:
             &ValueLen);
         Settings->GreaseQuicBitEnabled = !!Value;
     }
+    if (!Settings->IsSet.EcnEnabled) {
+        Value = QUIC_DEFAULT_ECN_ENABLED;
+        ValueLen = sizeof(Value);
+        CxPlatStorageReadValue(
+            Storage,
+            QUIC_SETTING_ECN_ENABLED,
+            (uint8_t*)&Value,
+            &ValueLen);
+        Settings->EcnEnabled = !!Value;
+    }
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -1145,6 +1190,7 @@ QuicSettingsDump(
     QuicTraceLogVerbose(SettingDumpMaxOperationsPerDrain,   "[sett] MaxOperationsPerDrain  = %hhu", Settings->MaxOperationsPerDrain);
     QuicTraceLogVerbose(SettingDumpRetryMemoryLimit,        "[sett] RetryMemoryLimit       = %hu", Settings->RetryMemoryLimit);
     QuicTraceLogVerbose(SettingDumpLoadBalancingMode,       "[sett] LoadBalancingMode      = %hu", Settings->LoadBalancingMode);
+    QuicTraceLogVerbose(SettingDumpFixedServerID,           "[sett] FixedServerID          = %u", Settings->FixedServerID);
     QuicTraceLogVerbose(SettingDumpMaxStatelessOperations,  "[sett] MaxStatelessOperations = %u", Settings->MaxStatelessOperations);
     QuicTraceLogVerbose(SettingDumpMaxWorkerQueueDelayUs,   "[sett] MaxWorkerQueueDelayUs  = %u", Settings->MaxWorkerQueueDelayUs);
     QuicTraceLogVerbose(SettingDumpInitialWindowPackets,    "[sett] InitialWindowPackets   = %u", Settings->InitialWindowPackets);
@@ -1188,6 +1234,7 @@ QuicSettingsDump(
     QuicTraceLogVerbose(SettingCongestionControlAlgorithm,  "[sett] CongestionControlAlgorithm = %hu", Settings->CongestionControlAlgorithm);
     QuicTraceLogVerbose(SettingDestCidUpdateIdleTimeoutMs,  "[sett] DestCidUpdateIdleTimeoutMs = %u", Settings->DestCidUpdateIdleTimeoutMs);
     QuicTraceLogVerbose(SettingGreaseQuicBitEnabled,        "[sett] GreaseQuicBitEnabled   = %hhu", Settings->GreaseQuicBitEnabled);
+    QuicTraceLogVerbose(SettingEcnEnabled,                  "[sett] EcnEnabled             = %hhu", Settings->EcnEnabled);
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -1217,6 +1264,9 @@ QuicSettingsDumpNew(
     }
     if (Settings->IsSet.LoadBalancingMode) {
         QuicTraceLogVerbose(SettingDumpLoadBalancingMode,           "[sett] LoadBalancingMode      = %hu", Settings->LoadBalancingMode);
+    }
+    if (Settings->IsSet.FixedServerID) {
+        QuicTraceLogVerbose(SettingDumpLFixedServerID,              "[sett] FixedServerID          = %u", Settings->FixedServerID);
     }
     if (Settings->IsSet.MaxStatelessOperations) {
         QuicTraceLogVerbose(SettingDumpMaxStatelessOperations,      "[sett] MaxStatelessOperations = %u", Settings->MaxStatelessOperations);
@@ -1319,6 +1369,9 @@ QuicSettingsDumpNew(
     if (Settings->IsSet.GreaseQuicBitEnabled) {
         QuicTraceLogVerbose(SettingGreaseQuicBitEnabled,            "[sett] GreaseQuicBitEnabled   = %hhu", Settings->GreaseQuicBitEnabled);
     }
+    if (Settings->IsSet.EcnEnabled) {
+        QuicTraceLogVerbose(SettingEcnEnabled,                      "[sett] EcnEnabled   = %hhu", Settings->EcnEnabled);
+    }
 }
 
 #define SETTINGS_SIZE_THRU_FIELD(SettingsType, Field) \
@@ -1357,6 +1410,12 @@ QuicSettingsGlobalSettingsToInternal(
     //
     // N.B. Anything after this needs to be size checked
     //
+    SETTING_COPY_TO_INTERNAL_SIZED(
+        FixedServerID,
+        QUIC_GLOBAL_SETTINGS,
+        Settings,
+        SettingsSize,
+        InternalSettings);
 
     return QUIC_STATUS_SUCCESS;
 }
@@ -1478,7 +1537,8 @@ QuicSettingsSettingsToInternal(
     SETTING_COPY_TO_INTERNAL(MigrationEnabled, Settings, InternalSettings);
     SETTING_COPY_TO_INTERNAL(DatagramReceiveEnabled, Settings, InternalSettings);
     SETTING_COPY_TO_INTERNAL(ServerResumptionLevel, Settings, InternalSettings);
-    SETTING_COPY_TO_INTERNAL(GreaseQuicBitEnabled, Settings, InternalSettings); // We can't copy it via sized version due to bit field operation not allowed on it.
+    SETTING_COPY_TO_INTERNAL(GreaseQuicBitEnabled, Settings, InternalSettings);
+    SETTING_COPY_TO_INTERNAL(EcnEnabled, Settings, InternalSettings);
 
     //
     // N.B. Anything after this needs to be size checked
@@ -1571,7 +1631,8 @@ QuicSettingsGetSettings(
     SETTING_COPY_FROM_INTERNAL(MigrationEnabled, Settings, InternalSettings);
     SETTING_COPY_FROM_INTERNAL(DatagramReceiveEnabled, Settings, InternalSettings);
     SETTING_COPY_FROM_INTERNAL(ServerResumptionLevel, Settings, InternalSettings);
-    SETTING_COPY_FROM_INTERNAL(GreaseQuicBitEnabled, Settings, InternalSettings); // We can't copy it via sized version due to bit field operation not allowed on it.
+    SETTING_COPY_FROM_INTERNAL(GreaseQuicBitEnabled, Settings, InternalSettings);
+    SETTING_COPY_FROM_INTERNAL(EcnEnabled, Settings, InternalSettings);
 
     //
     // N.B. Anything after this needs to be size checked
@@ -1608,7 +1669,7 @@ QuicSettingsGetGlobalSettings(
         QUIC_GLOBAL_SETTINGS* Settings
     )
 {
-    uint32_t MinimumSettingsSize = (uint32_t)SETTINGS_SIZE_THRU_FIELD(QUIC_GLOBAL_SETTINGS, LoadBalancingMode);
+    const uint32_t MinimumSettingsSize = (uint32_t)SETTINGS_SIZE_THRU_FIELD(QUIC_GLOBAL_SETTINGS, LoadBalancingMode);
 
     if (*SettingsLength == 0) {
         *SettingsLength = sizeof(QUIC_GLOBAL_SETTINGS);
@@ -1631,6 +1692,12 @@ QuicSettingsGetGlobalSettings(
     //
     // N.B. Anything after this needs to be size checked
     //
+    SETTING_COPY_FROM_INTERNAL_SIZED(
+        FixedServerID,
+        QUIC_GLOBAL_SETTINGS,
+        Settings,
+        *SettingsLength,
+        InternalSettings);
 
     *SettingsLength = CXPLAT_MIN(*SettingsLength, sizeof(QUIC_GLOBAL_SETTINGS));
 

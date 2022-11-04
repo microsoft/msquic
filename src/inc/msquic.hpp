@@ -438,6 +438,7 @@ public:
     MsQuicSettings& SetCongestionControlAlgorithm(QUIC_CONGESTION_CONTROL_ALGORITHM Cc) { CongestionControlAlgorithm = (uint8_t)Cc; IsSet.CongestionControlAlgorithm = TRUE; return *this; }
     MsQuicSettings& SetDestCidUpdateIdleTimeoutMs(uint32_t Value) { DestCidUpdateIdleTimeoutMs = Value; IsSet.DestCidUpdateIdleTimeoutMs = TRUE; return *this; }
     MsQuicSettings& SetGreaseQuicBitEnabled(bool Value) { GreaseQuicBitEnabled = Value; IsSet.GreaseQuicBitEnabled = TRUE; return *this; }
+    MsQuicSettings& SetEcnEnabled(bool Value) { EcnEnabled = Value; IsSet.EcnEnabled = TRUE; return *this; }
 
     QUIC_STATUS
     SetGlobal() const noexcept {
@@ -1144,6 +1145,7 @@ private:
 struct MsQuicAutoAcceptListener : public MsQuicListener {
     const MsQuicConfiguration& Configuration;
     MsQuicConnectionCallback* ConnectionHandler;
+    MsQuicConnection* LastConnection {nullptr};
     void* ConnectionContext;
 #ifdef CX_PLATFORM_TYPE
     uint32_t AcceptedConnectionCount {0};
@@ -1186,6 +1188,7 @@ private:
                     Connection->Handle = nullptr;
                     delete Connection;
                 } else {
+                    pThis->LastConnection = Connection;
 #ifdef CX_PLATFORM_TYPE
                     InterlockedIncrement((long*)&pThis->AcceptedConnectionCount);
 #endif

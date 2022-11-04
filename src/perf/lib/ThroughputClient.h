@@ -117,7 +117,8 @@ private:
         MsQuicSettings()
             .SetConnFlowControlWindow(PERF_DEFAULT_CONN_FLOW_CONTROL)
             .SetIdleTimeoutMs(TPUT_DEFAULT_IDLE_TIMEOUT)
-            .SetCongestionControlAlgorithm(PerfDefaultCongestionControl),
+            .SetCongestionControlAlgorithm(PerfDefaultCongestionControl)
+            .SetEcnEnabled(PerfDefaultEcnEnabled),
         MsQuicCredentialConfig(
             QUIC_CREDENTIAL_FLAG_CLIENT |
             QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION)};

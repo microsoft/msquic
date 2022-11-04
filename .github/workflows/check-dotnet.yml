@@ -20,7 +20,7 @@ jobs:
     runs-on: windows-latest
     steps:
     - name: Setup .NET
-      uses: actions/setup-dotnet@45c9f236cf9a0c09d11298348f6ed06bd81914c0
+      uses: actions/setup-dotnet@607fce577a46308457984d59e4954e075820f10a
       with:
         dotnet-version: 6.0.x
     - name: Checkout repository

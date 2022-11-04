@@ -21,9 +21,11 @@ Abstract:
 
     QUIC_EVENTS_STUB            No-op all Events
     QUIC_EVENTS_MANIFEST_ETW    Write to Windows ETW framework
+    QUIC_EVENTS_STDOUT          Write to stdout
 
     QUIC_LOGS_STUB              No-op all Logs
     QUIC_LOGS_MANIFEST_ETW      Write to Windows ETW framework
+    QUIC_LOGS_STDOUT            Write to stdout
 
     QUIC_CLOG                   Bypasses these mechanisms and uses CLOG to generate logging
 
@@ -32,11 +34,11 @@ Abstract:
 #pragma once
 
 #if !defined(QUIC_CLOG)
-#if !defined(QUIC_EVENTS_STUB) && !defined(QUIC_EVENTS_MANIFEST_ETW)
+#if !defined(QUIC_EVENTS_STUB) && !defined(QUIC_EVENTS_MANIFEST_ETW) && !defined(QUIC_EVENTS_STDOUT)
 #error "Must define one QUIC_EVENTS_*"
 #endif
 
-#if !defined(QUIC_LOGS_STUB) && !defined(QUIC_LOGS_MANIFEST_ETW)
+#if !defined(QUIC_LOGS_STUB) && !defined(QUIC_LOGS_MANIFEST_ETW) && !defined(QUIC_LOGS_STDOUT)
 #error "Must define one QUIC_LOGS_*"
 #endif
 #endif
@@ -126,26 +128,72 @@ extern QUIC_TRACE_RUNDOWN_CALLBACK* QuicTraceRundownCallback;
 #define CASTED_CLOG_BYTEARRAY(Len, Data) CLOG_BYTEARRAY((unsigned char)(Len), (const unsigned char*)(Data))
 #else
 
-#ifdef QUIC_EVENTS_STUB
+#if defined(QUIC_EVENTS_STDOUT) || defined(QUIC_LOGS_STDOUT) ||                \
+    defined(QUIC_EVENTS_STUB) || defined(QUIC_LOGS_STUB)
 
-#define QuicTraceEventEnabled(Name) FALSE
+struct clog_param {
+    char * str;
+    struct clog_param * next;
+};
 
-inline
-void
-QuicTraceEventStubVarArgs(
-    _In_ const void* Fmt,
-    ...
-    )
+#if defined(QUIC_EVENTS_STDOUT) || defined(QUIC_LOGS_STDOUT)
+extern
+#ifdef __cplusplus
+    "C"
+#endif
+void //__attribute__((no_instrument_function, format(printf, 2, 3)))
+clog_stdout(struct clog_param * head, const char * format, ...);
+#else
+inline void //__attribute__((no_instrument_function, format(printf, 2, 3)))
+clog_stdout(struct clog_param * head, const char * format, ...)
 {
-    UNREFERENCED_PARAMETER(Fmt);
+    UNREFERENCED_PARAMETER(head);
+    UNREFERENCED_PARAMETER(format);
 }
+#endif
 
-#define QuicTraceEvent(Name, ...) QuicTraceEventStubVarArgs("", __VA_ARGS__)
+#define clog(Fmt, ...)                                                         \
+    do {                                                                       \
+        struct clog_param * __head = 0;                                        \
+        clog_stdout(__head, (Fmt), ##__VA_ARGS__);                             \
+    } while (0)
 
-#define CLOG_BYTEARRAY(Len, Data) (Len)
-#define CASTED_CLOG_BYTEARRAY(Len, Data) (Len)
+#endif
 
-#endif // QUIC_EVENTS_STUB
+#if defined(QUIC_EVENTS_STDOUT) || defined(QUIC_LOGS_STUB)
+#define QuicTraceEventEnabled(Name) TRUE
+
+#define QuicTrace(Name, Fmt, ...)                                              \
+    clog((Fmt " [" #Name ":%s:%d]\n"), ##__VA_ARGS__, __FILE__, __LINE__)
+
+#define QuicTraceEvent(Name, Fmt, ...) QuicTrace(Name, Fmt, ##__VA_ARGS__)
+
+#if defined(QUIC_EVENTS_STDOUT)
+extern
+#ifdef __cplusplus
+    "C"
+#endif
+char * __attribute__((no_instrument_function))
+casted_clog_bytearray(const uint8_t * const data,
+                      const size_t len,
+                      struct clog_param ** head);
+#else
+inline char * __attribute__((no_instrument_function))
+casted_clog_bytearray(const uint8_t * const data,
+                      const size_t len,
+                      struct clog_param ** head)
+{
+    UNREFERENCED_PARAMETER(data);
+    UNREFERENCED_PARAMETER(len);
+    UNREFERENCED_PARAMETER(head);
+    return 0;
+}
+#endif
+
+#define CASTED_CLOG_BYTEARRAY(Len, Data)                                       \
+    casted_clog_bytearray((const uint8_t *)(Data), (Len), &__head)
+
+#endif
 
 #ifdef QUIC_EVENTS_MANIFEST_ETW
 
@@ -194,41 +242,51 @@ QuicEtwCallback(
 
 #endif // QUIC_EVENTS_MANIFEST_ETW
 
-#ifdef QUIC_LOGS_STUB
+#if defined(QUIC_LOGS_STDOUT) || defined(QUIC_LOGS_STUB)
 
-#define QuicTraceLogErrorEnabled()   FALSE
-#define QuicTraceLogWarningEnabled() FALSE
-#define QuicTraceLogInfoEnabled()    FALSE
-#define QuicTraceLogVerboseEnabled() FALSE
+#define QuicTraceLogErrorEnabled() TRUE
+#define QuicTraceLogWarningEnabled() TRUE
+#define QuicTraceLogInfoEnabled() TRUE
+#define QuicTraceLogVerboseEnabled() TRUE
 
-inline
-void
-QuicTraceStubVarArgs(
-    _In_ const void* Fmt,
-    ...
-    )
-{
-    UNREFERENCED_PARAMETER(Fmt);
-}
+#define QuicTraceLogError(Name, Fmt, ...) QuicTrace(Name, Fmt, ##__VA_ARGS__)
+#define QuicTraceLogWarning(Name, Fmt, ...) QuicTrace(Name, Fmt, ##__VA_ARGS__)
+#define QuicTraceLogInfo(Name, Fmt, ...) QuicTrace(Name, Fmt, ##__VA_ARGS__)
+#define QuicTraceLogVerbose(Name, Fmt, ...) QuicTrace(Name, Fmt, ##__VA_ARGS__)
 
-#define QuicTraceLogError(X,...)            QuicTraceStubVarArgs(__VA_ARGS__)
-#define QuicTraceLogWarning(X,...)          QuicTraceStubVarArgs(__VA_ARGS__)
-#define QuicTraceLogInfo(X,...)             QuicTraceStubVarArgs(__VA_ARGS__)
-#define QuicTraceLogVerbose(X,...)          QuicTraceStubVarArgs(__VA_ARGS__)
+#define QuicTraceLogConnError(Name, X, Fmt, ...)                               \
+    do {                                                                       \
+        UNREFERENCED_PARAMETER(X);                                             \
+        QuicTrace(Name, Fmt, ##__VA_ARGS__);                                   \
+    } while (0)
+#define QuicTraceLogConnWarning(Name, X, Fmt, ...)                             \
+    do {                                                                       \
+        UNREFERENCED_PARAMETER(X);                                             \
+        QuicTrace(Name, Fmt, ##__VA_ARGS__);                                   \
+    } while (0)
+#define QuicTraceLogConnInfo(Name, X, Fmt, ...)                                \
+    do {                                                                       \
+        UNREFERENCED_PARAMETER(X);                                             \
+        QuicTrace(Name, Fmt, ##__VA_ARGS__);                                   \
+    } while (0)
+#define QuicTraceLogConnVerbose(Name, X, Fmt, ...)                             \
+    do {                                                                       \
+        UNREFERENCED_PARAMETER(X);                                             \
+        QuicTrace(Name, Fmt, ##__VA_ARGS__);                                   \
+    } while (0)
 
-#define QuicTraceLogConnError(X,...)        QuicTraceStubVarArgs(__VA_ARGS__)
-#define QuicTraceLogConnWarning(X,...)      QuicTraceStubVarArgs(__VA_ARGS__)
-#define QuicTraceLogConnInfo(X,...)         QuicTraceStubVarArgs(__VA_ARGS__)
-#define QuicTraceLogConnVerbose(X,...)      QuicTraceStubVarArgs(__VA_ARGS__)
+#define QuicTraceLogStreamVerboseEnabled() TRUE
 
-#define QuicTraceLogStreamVerboseEnabled() FALSE
+#define QuicTraceLogStreamError(Name, X, Fmt, ...)                             \
+    QuicTrace(Name, Fmt, ##__VA_ARGS__)
+#define QuicTraceLogStreamWarning(Name, X, Fmt, ...)                           \
+    QuicTrace(Name, Fmt, ##__VA_ARGS__)
+#define QuicTraceLogStreamInfo(Name, X, Fmt, ...)                              \
+    QuicTrace(Name, Fmt, ##__VA_ARGS__)
+#define QuicTraceLogStreamVerbose(Name, X, Fmt, ...)                           \
+    QuicTrace(Name, Fmt, ##__VA_ARGS__)
 
-#define QuicTraceLogStreamError(X,...)      QuicTraceStubVarArgs(__VA_ARGS__)
-#define QuicTraceLogStreamWarning(X,...)    QuicTraceStubVarArgs(__VA_ARGS__)
-#define QuicTraceLogStreamInfo(X,...)       QuicTraceStubVarArgs(__VA_ARGS__)
-#define QuicTraceLogStreamVerbose(X,...)    QuicTraceStubVarArgs(__VA_ARGS__)
-
-#endif // QUIC_LOGS_STUB
+#endif
 
 #ifdef QUIC_LOGS_MANIFEST_ETW
 

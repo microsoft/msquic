@@ -143,6 +143,8 @@ QuicPacketTypeToEncryptLevelV2(
 #define QUIC_CONN_SEND_FLAG_HANDSHAKE_DONE          0x00002000U
 #define QUIC_CONN_SEND_FLAG_DATAGRAM                0x00004000U
 #define QUIC_CONN_SEND_FLAG_ACK_FREQUENCY           0x00008000U
+#define QUIC_CONN_SEND_FLAG_BIDI_STREAMS_BLOCKED    0x00010000U
+#define QUIC_CONN_SEND_FLAG_UNI_STREAMS_BLOCKED     0x00020000U
 #define QUIC_CONN_SEND_FLAG_DPLPMTUD                0x80000000U
 
 //
@@ -172,7 +174,9 @@ QuicPacketTypeToEncryptLevelV2(
     QUIC_CONN_SEND_FLAG_PING | \
     QUIC_CONN_SEND_FLAG_DATAGRAM | \
     QUIC_CONN_SEND_FLAG_ACK_FREQUENCY | \
-    QUIC_CONN_SEND_FLAG_DPLPMTUD \
+    QUIC_CONN_SEND_FLAG_DPLPMTUD | \
+    QUIC_CONN_SEND_FLAG_BIDI_STREAMS_BLOCKED | \
+    QUIC_CONN_SEND_FLAG_UNI_STREAMS_BLOCKED \
 )
 
 //
@@ -250,6 +254,12 @@ typedef struct QUIC_SEND {
     // Last time send flush occurred. Used for pacing calculations.
     //
     uint64_t LastFlushTime;
+
+    //
+    // The total number of packets sent with each corresponding ECT codepoint in all encryption
+    // level.
+    //
+    uint64_t NumPacketsSentWithEct;
 
     //
     // The value we send in MAX_DATA frames.

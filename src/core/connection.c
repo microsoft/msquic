@@ -178,6 +178,12 @@ QuicConnAlloc(
                     ((uint8_t*)&Datagram->Route->LocalAddress.Ipv6.sin6_addr) + 12,
                     4);
             }
+        } else if (MsQuicLib.Settings.LoadBalancingMode == QUIC_LOAD_BALANCING_SERVER_ID_FIXED) {
+            CxPlatRandom(1, Connection->ServerID); // Randomize the first byte.
+            CxPlatCopyMemory(
+                Connection->ServerID + 1,
+                &MsQuicLib.Settings.FixedServerID,
+                sizeof(MsQuicLib.Settings.FixedServerID));
         }
 
         Connection->Stats.QuicVersion = Packet->Invariant->LONG_HDR.Version;
@@ -634,6 +640,11 @@ QuicConnTraceRundownOper(
         "[conn][%p] Assigned worker: %p",
         Connection,
         Connection->Worker);
+    QuicTraceEvent(
+        ConnEcnCapable,
+        "[conn][%p] Ecn: IsCapable=%hu",
+        Connection,
+        Connection->Paths[0].EcnValidationState == ECN_VALIDATION_CAPABLE);
     CXPLAT_DBG_ASSERT(Connection->Registration);
     QuicTraceEvent(
         ConnRegistered,
@@ -1168,13 +1179,14 @@ QuicConnReplaceRetiredCids(
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
-QuicConnTimerSet(
+QuicConnTimerSetEx(
     _Inout_ QUIC_CONNECTION* Connection,
     _In_ QUIC_CONN_TIMER_TYPE Type,
-    _In_ uint64_t Delay
+    _In_ uint64_t Delay,
+    _In_ uint64_t TimeNow
     )
 {
-    const uint64_t NewExpirationTime = CxPlatTimeUs64() + Delay;
+    const uint64_t NewExpirationTime = TimeNow + Delay;
 
     QuicTraceEvent(
         ConnSetTimer,
@@ -1229,7 +1241,7 @@ QuicConnTimerSet(
         NewIndex = CurIndex;
     }
 
-    if (NewIndex == 0) {
+    if (NewIndex == 0 || CurIndex == 0) {
         //
         // The first timer was updated, so make sure the timer wheel is updated.
         //
@@ -2726,21 +2738,21 @@ QuicConnProcessPeerVersionNegotiationTP(
             if (QuicIsVersionReserved(SupportedVersions[ServerVersionIdx])) {
                 continue;
             }
-            for (uint32_t ClientVersionIdx = 0; ClientVersionIdx < ClientVI.OtherVersionsCount; ++ClientVersionIdx) {
-                if (ClientVI.OtherVersions[ClientVersionIdx] == 0) {
+            for (uint32_t ClientVersionIdx = 0; ClientVersionIdx < ClientVI.AvailableVersionsCount; ++ClientVersionIdx) {
+                if (ClientVI.AvailableVersions[ClientVersionIdx] == 0) {
                     QuicTraceLogConnError(
                         VersionInfoOtherVersionZero,
                         Connection,
-                        "Version Info.OtherVersions contains a zero version! Index = %u",
+                        "Version Info.AvailableVersions contains a zero version! Index = %u",
                         ClientVersionIdx);
                     QuicConnTransportError(Connection, QUIC_ERROR_TRANSPORT_PARAMETER_ERROR);
                     return QUIC_STATUS_PROTOCOL_ERROR;
                 }
-                if (!QuicIsVersionReserved(ClientVI.OtherVersions[ClientVersionIdx]) &&
-                    ClientVI.OtherVersions[ClientVersionIdx] == SupportedVersions[ServerVersionIdx] &&
+                if (!QuicIsVersionReserved(ClientVI.AvailableVersions[ClientVersionIdx]) &&
+                    ClientVI.AvailableVersions[ClientVersionIdx] == SupportedVersions[ServerVersionIdx] &&
                     QuicVersionNegotiationExtAreVersionsCompatible(
                         ClientVI.ChosenVersion,
-                        ClientVI.OtherVersions[ClientVersionIdx])) {
+                        ClientVI.AvailableVersions[ClientVersionIdx])) {
                     QuicTraceLogConnVerbose(
                         ClientVersionNegotiationCompatibleVersionUpgrade,
                         Connection,
@@ -2799,12 +2811,12 @@ QuicConnProcessPeerVersionNegotiationTP(
 
         uint32_t ClientChosenVersion = 0;
         BOOLEAN OriginalVersionFound = FALSE;
-        for (uint32_t i = 0; i < ServerVI.OtherVersionsCount; ++i) {
-            if (ServerVI.OtherVersions[i] == 0) {
+        for (uint32_t i = 0; i < ServerVI.AvailableVersionsCount; ++i) {
+            if (ServerVI.AvailableVersions[i] == 0) {
                 QuicTraceLogConnError(
                     VersionInfoOtherVersionZero,
                     Connection,
-                    "Version Info Other Versions contains a zero version! Index = %u",
+                    "Version Info Available Versions contains a zero version! Index = %u",
                     i);
                 QuicConnTransportError(Connection, QUIC_ERROR_TRANSPORT_PARAMETER_ERROR);
                 return QUIC_STATUS_PROTOCOL_ERROR;
@@ -2814,10 +2826,10 @@ QuicConnProcessPeerVersionNegotiationTP(
             //
             if (Connection->Stats.VersionNegotiation &&
                 ClientChosenVersion == 0 &&
-                QuicVersionNegotiationExtIsVersionClientSupported(Connection, ServerVI.OtherVersions[i])) {
-                ClientChosenVersion = ServerVI.OtherVersions[i];
+                QuicVersionNegotiationExtIsVersionClientSupported(Connection, ServerVI.AvailableVersions[i])) {
+                ClientChosenVersion = ServerVI.AvailableVersions[i];
             }
-            if (Connection->OriginalQuicVersion == ServerVI.OtherVersions[i]) {
+            if (Connection->OriginalQuicVersion == ServerVI.AvailableVersions[i]) {
                 OriginalVersionFound = TRUE;
             }
         }
@@ -2851,15 +2863,15 @@ QuicConnProcessPeerVersionNegotiationTP(
                 return QUIC_STATUS_PROTOCOL_ERROR;
             }
             //
-            // Ensure the version which generated a VN packet is not in the OtherVersions.
+            // Ensure the version which generated a VN packet is not in the AvailableVersions.
             //
             if (!QuicIsVersionReserved(Connection->PreviousQuicVersion)) {
-                for (uint32_t i = 0; i < ServerVI.OtherVersionsCount; ++i) {
-                    if (Connection->PreviousQuicVersion == ServerVI.OtherVersions[i]) {
+                for (uint32_t i = 0; i < ServerVI.AvailableVersionsCount; ++i) {
+                    if (Connection->PreviousQuicVersion == ServerVI.AvailableVersions[i]) {
                         QuicTraceLogConnError(
                             ServerVersionInformationPreviousVersionInOtherVerList,
                             Connection,
-                            "Previous Client Version in Server Other Versions list: 0x%x",
+                            "Previous Client Version in Server Available Versions list: 0x%x",
                             Connection->PreviousQuicVersion);
                         QuicConnTransportError(Connection, QUIC_ERROR_VERSION_NEGOTIATION_ERROR);
                         return QUIC_STATUS_PROTOCOL_ERROR;
@@ -4831,12 +4843,28 @@ QuicConnRecvFrames(
                 Frame.StreamLimit);
             AckEliciting = TRUE;
 
+            uint8_t Type =
+                (QuicConnIsServer(Connection) ? // Peer's role, so flip
+                STREAM_ID_FLAG_IS_CLIENT : STREAM_ID_FLAG_IS_SERVER)
+                |
+                (Frame.BidirectionalStreams ?
+                 STREAM_ID_FLAG_IS_BI_DIR : STREAM_ID_FLAG_IS_UNI_DIR);
+
+            const QUIC_STREAM_TYPE_INFO* Info = &Connection->Streams.Types[Type];
+
+            if (Info->MaxTotalStreamCount > Frame.StreamLimit) {
+                break;
+            }
+
             QUIC_CONNECTION_EVENT Event;
-            Event.Type = QUIC_CONNECTION_EVENT_PEER_NEEDS_STREAMS; // TODO - Uni/Bidi
+            Event.Type = QUIC_CONNECTION_EVENT_PEER_NEEDS_STREAMS;
+            Event.PEER_NEEDS_STREAMS.Bidirectional = Frame.BidirectionalStreams;
             QuicTraceLogConnVerbose(
-                IndicatePeerNeedStreams,
+                IndicatePeerNeedStreamsV2,
                 Connection,
-                "Indicating QUIC_CONNECTION_EVENT_PEER_NEEDS_STREAMS");
+                "Indicating QUIC_CONNECTION_EVENT_PEER_NEEDS_STREAMS type: %s",
+                Frame.BidirectionalStreams ? "Bidi" : "Unidi"
+                );
             (void)QuicConnIndicateEvent(Connection, &Event);
 
             Packet->HasNonProbingFrame = TRUE;
@@ -5926,6 +5954,7 @@ QuicConnResetIdleTimeout(
     )
 {
     uint64_t IdleTimeoutMs;
+    QUIC_PATH* Path = &Connection->Paths[0];
     if (Connection->State.Connected) {
         //
         // Use the (non-zero) min value between local and peer's configuration.
@@ -5948,7 +5977,7 @@ QuicConnResetIdleTimeout(
             uint32_t MinIdleTimeoutMs =
                 US_TO_MS(QuicLossDetectionComputeProbeTimeout(
                     &Connection->LossDetection,
-                    &Connection->Paths[0],
+                    Path,
                     QUIC_CLOSE_PTO_COUNT));
             if (IdleTimeoutMs < MinIdleTimeoutMs) {
                 IdleTimeoutMs = MinIdleTimeoutMs;
@@ -6651,6 +6680,7 @@ QuicConnGetV2Statistics(
     Stats->ResumptionAttempted = Connection->Stats.ResumptionAttempted;
     Stats->ResumptionSucceeded = Connection->Stats.ResumptionSucceeded;
     Stats->GreaseBitNegotiated = Connection->Stats.GreaseBitNegotiated;
+    Stats->EcnCapable = Path->EcnValidationState == ECN_VALIDATION_CAPABLE;
     Stats->Rtt = Path->SmoothedRtt;
     Stats->MinRtt = Path->MinRtt;
     Stats->MaxRtt = Path->MaxRtt;
@@ -7153,6 +7183,11 @@ QuicConnApplyNewSettings(
             (void) CxPlatRandom(sizeof(RandomValue), &RandomValue);
             Connection->State.FixedBit = (RandomValue % 2);
             Connection->Stats.GreaseBitNegotiated = TRUE;
+        }
+
+        if (Connection->Settings.EcnEnabled) {
+            QUIC_PATH* Path = &Connection->Paths[0];
+            Path->EcnValidationState = ECN_VALIDATION_TESTING;
         }
     }
 

@@ -581,6 +581,26 @@ public:
     }
 };
 
+struct EcnModifyHelper : public DatapathHook
+{
+    CXPLAT_ECN_TYPE EcnType = CXPLAT_ECN_NON_ECT;
+    EcnModifyHelper() {
+        DatapathHooks::Instance->AddHook(this);
+    }
+    ~EcnModifyHelper() {
+        DatapathHooks::Instance->RemoveHook(this);
+    }
+    void SetEcnType(CXPLAT_ECN_TYPE Type) { EcnType = Type; }
+    _IRQL_requires_max_(DISPATCH_LEVEL)
+    BOOLEAN
+    Receive(
+        _Inout_ struct CXPLAT_RECV_DATA* Datagram
+        ) {
+        Datagram->TypeOfService = (uint8_t)EcnType;
+        return false;
+    }
+};
+
 struct RandomLossHelper : public DatapathHook
 {
     uint8_t LossPercentage;
@@ -633,6 +653,32 @@ struct SelectiveLossHelper : public DatapathHook
             TestHookDropPacketSelective,
             "[test][hook] Selective packet drop");
         DropPacketCount--;
+        return TRUE;
+    }
+};
+
+struct BitmapLossHelper : public DatapathHook
+{
+    long RxCount {0};
+    uint64_t LossBitmap; // a 1 indicates drop
+    BitmapLossHelper(uint64_t Bitmap) : LossBitmap(Bitmap) {
+        DatapathHooks::Instance->AddHook(this);
+    }
+    ~BitmapLossHelper() {
+        DatapathHooks::Instance->RemoveHook(this);
+    }
+    _IRQL_requires_max_(DISPATCH_LEVEL)
+    BOOLEAN
+    Receive(
+        _Inout_ struct CXPLAT_RECV_DATA* /* Datagram */
+        ) {
+        uint32_t RxNumber = (uint32_t)(InterlockedIncrement(&RxCount) - 1);
+        if (RxNumber >= 64 || !(LossBitmap & (uint64_t)(1ull << RxNumber))) {
+            return FALSE;
+        }
+        QuicTraceLogVerbose(
+            TestHookDropPacketBitmap,
+            "[test][hook] Bitmap packet drop");
         return TRUE;
     }
 };

@@ -85,6 +85,9 @@ typedef enum QUIC_EXECUTION_PROFILE {
 typedef enum QUIC_LOAD_BALANCING_MODE {
     QUIC_LOAD_BALANCING_DISABLED,               // Default
     QUIC_LOAD_BALANCING_SERVER_ID_IP,           // Encodes IP address in Server ID
+    QUIC_LOAD_BALANCING_SERVER_ID_FIXED,        // Encodes a fixed 4-byte value in Server ID
+    QUIC_LOAD_BALANCING_COUNT,                  // The number of supported load balancing modes
+                                                // MUST BE LAST
 } QUIC_LOAD_BALANCING_MODE;
 
 typedef enum QUIC_CREDENTIAL_TYPE {
@@ -473,7 +476,8 @@ typedef struct QUIC_STATISTICS_V2 {
     uint32_t ResumptionAttempted    : 1;
     uint32_t ResumptionSucceeded    : 1;
     uint32_t GreaseBitNegotiated    : 1;    // Set if we negotiated the GREASE bit.
-    uint32_t RESERVED               : 27;
+    uint32_t EcnCapable             : 1;
+    uint32_t RESERVED               : 26;
     uint32_t Rtt;                           // In microseconds
     uint32_t MinRtt;                        // In microseconds
     uint32_t MaxRtt;                        // In microseconds
@@ -584,11 +588,13 @@ typedef struct QUIC_GLOBAL_SETTINGS {
         struct {
             uint64_t RetryMemoryLimit                       : 1;
             uint64_t LoadBalancingMode                      : 1;
-            uint64_t RESERVED                               : 62;
+            uint64_t FixedServerID                          : 1;
+            uint64_t RESERVED                               : 61;
         } IsSet;
     };
     uint16_t RetryMemoryLimit;
     uint16_t LoadBalancingMode;
+    uint32_t FixedServerID;
 } QUIC_GLOBAL_SETTINGS;
 
 typedef struct QUIC_SETTINGS {
@@ -629,7 +635,8 @@ typedef struct QUIC_SETTINGS {
             uint64_t MtuDiscoveryMissingProbeCount          : 1;
             uint64_t DestCidUpdateIdleTimeoutMs             : 1;
             uint64_t GreaseQuicBitEnabled                   : 1;
-            uint64_t RESERVED                               : 31;
+            uint64_t EcnEnabled                             : 1;
+            uint64_t RESERVED                               : 30;
         } IsSet;
     };
 
@@ -663,7 +670,7 @@ typedef struct QUIC_SETTINGS {
     uint8_t DatagramReceiveEnabled          : 1;
     uint8_t ServerResumptionLevel           : 2;    // QUIC_SERVER_RESUMPTION_LEVEL
     uint8_t GreaseQuicBitEnabled            : 1;
-    uint8_t RESERVED                        : 1;
+    uint8_t EcnEnabled                      : 1;
     uint8_t MaxOperationsPerDrain;
     uint8_t MtuDiscoveryMissingProbeCount;
     uint32_t DestCidUpdateIdleTimeoutMs;
@@ -1122,6 +1129,9 @@ typedef struct QUIC_CONNECTION_EVENT {
             uint16_t BidirectionalCount;
             uint16_t UnidirectionalCount;
         } STREAMS_AVAILABLE;
+        struct {
+            BOOLEAN Bidirectional;
+        } PEER_NEEDS_STREAMS;
         struct {
             uint16_t IdealProcessor;
         } IDEAL_PROCESSOR_CHANGED;

@@ -506,6 +506,11 @@ CXPLAT_STATIC_ASSERT(
 //
 #define QUIC_DEFAULT_GREASE_QUIC_BIT_ENABLED         FALSE
 
+//
+// The default value for enabling sender-side ECN support.
+//
+#define QUIC_DEFAULT_ECN_ENABLED                     FALSE
+
 /*************************************************************
                   TRANSPORT PARAMETERS
 *************************************************************/
@@ -564,6 +569,7 @@ CXPLAT_STATIC_ASSERT(
 #define QUIC_SETTING_MAX_PARTITION_COUNT            "MaxPartitionCount"
 #define QUIC_SETTING_RETRY_MEMORY_FRACTION          "RetryMemoryFraction"
 #define QUIC_SETTING_LOAD_BALANCING_MODE            "LoadBalancingMode"
+#define QUIC_SETTING_FIXED_SERVER_ID                "FixedServerID"
 #define QUIC_SETTING_MAX_WORKER_QUEUE_DELAY         "MaxWorkerQueueDelayMs"
 #define QUIC_SETTING_MAX_STATELESS_OPERATIONS       "MaxStatelessOperations"
 #define QUIC_SETTING_MAX_BINDING_STATELESS_OPERATIONS "MaxBindingStatelessOperations"
@@ -575,6 +581,7 @@ CXPLAT_STATIC_ASSERT(
 #define QUIC_SETTING_MIGRATION_ENABLED              "MigrationEnabled"
 #define QUIC_SETTING_DATAGRAM_RECEIVE_ENABLED       "DatagramReceiveEnabled"
 #define QUIC_SETTING_GREASE_QUIC_BIT_ENABLED        "GreaseQuicBitEnabled"
+#define QUIC_SETTING_ECN_ENABLED                    "EcnEnabled"
 
 #define QUIC_SETTING_INITIAL_WINDOW_PACKETS         "InitialWindowPackets"
 #define QUIC_SETTING_SEND_IDLE_TIMEOUT_MS           "SendIdleTimeoutMs"

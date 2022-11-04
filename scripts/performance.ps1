@@ -95,7 +95,7 @@ param (
     [string]$ComputerName = "quic-server",
 
     [Parameter(Mandatory = $false)]
-    [ValidateSet("Basic.Light", "Datapath.Light", "Datapath.Verbose", "Stacks.Light", "RPS.Light", "RPS.Verbose", "Performance.Light", "Basic.Verbose", "Performance.Light", "Performance.Verbose", "Full.Light", "Full.Verbose", "SpinQuic.Light", "None")]
+    [ValidateSet("Basic.Light", "Datapath.Light", "Datapath.Verbose", "Stacks.Light", "Stacks.Verbose", "RPS.Light", "RPS.Verbose", "Performance.Light", "Basic.Verbose", "Performance.Light", "Performance.Verbose", "Full.Light", "Full.Verbose", "SpinQuic.Light", "None")]
     [string]$LogProfile = "None",
 
     [Parameter(Mandatory = $false)]
@@ -419,6 +419,10 @@ function Invoke-Test {
         $RemoteArguments += " -stats:1"
     }
 
+    if ($LocalArguments.Contains("-sstats:1")) {
+        $RemoteArguments += " -sstats:1"
+    }
+
     if ($LocalArguments.Contains("-exec:maxtput")) {
         $RemoteArguments += " -exec:maxtput"
     }
@@ -478,7 +482,7 @@ function Invoke-Test {
     try {
         1..$NumIterations | ForEach-Object {
             Write-LogAndDebug "Running Local: $LocalExe Args: $LocalArguments"
-            $LocalResults = Invoke-LocalExe -Exe $LocalExe -RunArgs $LocalArguments -Timeout $Timeout -OutputDir $OutputDir
+            $LocalResults = Invoke-LocalExe -Exe $LocalExe -RunArgs $LocalArguments -Timeout $Timeout -OutputDir $OutputDir -HistogramFileName "$($Test)_run$($_).txt"
             Write-LogAndDebug $LocalResults
             $AllLocalParsedResults = Get-TestResult -Results $LocalResults -Matcher $Test.ResultsMatcher -FailureDefault $Test.FailureDefault
             $AllRunsResults += $AllLocalParsedResults

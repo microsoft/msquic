@@ -447,6 +447,55 @@ tracepoint(CLOG_LOSS_DETECTION_C, ConnError , arg2, arg3);\
 
 
 
+/*----------------------------------------------------------
+// Decoder Ring for ConnEcnCapable
+// [conn][%p] Ecn: IsCapable=%hu
+// QuicTraceEvent(
+                            ConnEcnCapable,
+                            "[conn][%p] Ecn: IsCapable=%hu",
+                            Connection,
+                            TRUE);
+// arg2 = arg2 = Connection = arg2
+// arg3 = arg3 = TRUE = arg3
+----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_ConnEcnCapable
+#define _clog_4_ARGS_TRACE_ConnEcnCapable(uniqueId, encoded_arg_string, arg2, arg3)\
+tracepoint(CLOG_LOSS_DETECTION_C, ConnEcnCapable , arg2, arg3);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for ConnEcnFailed
+// [conn][%p][%d] ECN failed: EctCnt %llu CeCnt %llu TxEct %llu DeltaSum %lld State %hu
+// QuicTraceEvent(
+                    ConnEcnFailed,
+                    "[conn][%p][%d] ECN failed: EctCnt %llu CeCnt %llu TxEct %llu DeltaSum %lld State %hu",
+                    Connection,
+                    EncryptLevel,
+                    Packets->EcnEctCounter, Packets->EcnCeCounter,
+                    Connection->Send.NumPacketsSentWithEct,
+                    EctCeDeltaSum,
+                    Path->EcnValidationState);
+// arg2 = arg2 = Connection = arg2
+// arg3 = arg3 = EncryptLevel = arg3
+// arg4 = arg4 = Packets->EcnEctCounter = arg4
+// arg5 = arg5 = Packets->EcnCeCounter = arg5
+// arg6 = arg6 = Connection->Send.NumPacketsSentWithEct = arg6
+// arg7 = arg7 = EctCeDeltaSum = arg7
+// arg8 = arg8 = Path->EcnValidationState = arg8
+----------------------------------------------------------*/
+#ifndef _clog_9_ARGS_TRACE_ConnEcnFailed
+#define _clog_9_ARGS_TRACE_ConnEcnFailed(uniqueId, encoded_arg_string, arg2, arg3, arg4, arg5, arg6, arg7, arg8)\
+tracepoint(CLOG_LOSS_DETECTION_C, ConnEcnFailed , arg2, arg3, arg4, arg5, arg6, arg7, arg8);\
+
+#endif
+
+
+
+
 #ifdef __cplusplus
 }
 #endif

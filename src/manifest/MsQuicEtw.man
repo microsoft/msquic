@@ -1920,6 +1920,48 @@
                 outType="win:SocketAddress"
                 />
           </template>
+          <template tid="tid_UDP_ADDRESSES">
+            <data
+                inType="win:Pointer"
+                name="UdpBinding"
+                />
+            <data
+                inType="win:UInt8"
+                name="LocalAddrLength"
+                />
+            <data
+                inType="win:Binary"
+                length="LocalAddrLength"
+                name="LocalAddr"
+                outType="win:SocketAddress"
+                />
+            <data
+                inType="win:UInt8"
+                name="RemoteAddrLength"
+                />
+            <data
+                inType="win:Binary"
+                length="RemoteAddrLength"
+                name="RemoteAddr"
+                outType="win:SocketAddress"
+                />
+          </template>
+          <template tid="tid_UDP_ADDRESS">
+            <data
+                inType="win:Pointer"
+                name="UdpBinding"
+                />
+            <data
+                inType="win:UInt8"
+                name="LocalAddrLength"
+                />
+            <data
+                inType="win:Binary"
+                length="LocalAddrLength"
+                name="LocalAddr"
+                outType="win:SocketAddress"
+                />
+          </template>
           <template tid="tid_ID">
             <data
                 inType="win:UInt64"
@@ -1934,6 +1976,46 @@
             <data
                 inType="win:UInt64"
                 name="ID2"
+                />
+          </template>
+          <template tid="tid_CONN_ECN_CAPABLE">
+            <data
+                inType="win:Pointer"
+                name="Connection"
+                />
+            <data
+                inType="win:UInt32"
+                name="IsCapable"
+                />
+          </template>
+          <template tid="tid_CONN_ECN_FAILED">
+            <data
+                inType="win:Pointer"
+                name="Connection"
+                />
+            <data
+                inType="win:UInt32"
+                name="EncryptLevel"
+                />
+            <data
+                inType="win:UInt64"
+                name="EcnEctCounter"
+                />
+            <data
+                inType="win:UInt64"
+                name="EcnCeCounter"
+                />
+            <data
+                inType="win:UInt64"
+                name="NumPacketsSentWithEct"
+                />
+            <data
+                inType="win:Int64"
+                name="EctCeDeltaSum"
+                />
+            <data
+                inType="win:UInt8"
+                name="State"
                 />
           </template>
         </templates>
@@ -2634,8 +2716,8 @@
               value="5143"
               />
           <event
-              keywords="ut:Connection ut:DataFlow"
-              level="win:Verbose"
+              keywords="ut:Connection ut:DataFlow ut:LowVolume"
+              level="win:Informational"
               message="$(string.Etw.CongestionEvent)"
               opcode="Connection"
               symbol="QuicConnCongestion"
@@ -2644,7 +2726,7 @@
               />
           <event
               keywords="ut:Connection ut:DataFlow ut:LowVolume"
-              level="win:Informational"
+              level="win:Error"
               message="$(string.Etw.PersistentCongestionEvent)"
               opcode="Connection"
               symbol="QuicConnPersistentCongestion"
@@ -2787,7 +2869,7 @@
               value="5160"
               />
           <event
-              keywords="ut:Connection"
+              keywords="ut:Connection ut:LowVolume"
               level="win:Informational"
               message="$(string.Etw.ConnShutdownComplete)"
               opcode="Connection"
@@ -2949,8 +3031,8 @@
               value="5178"
               />
           <event
-              keywords="ut:Connection ut:DataFlow"
-              level="win:Verbose"
+              keywords="ut:Connection ut:DataFlow ut:LowVolume"
+              level="win:Informational"
               message="$(string.Etw.SpuriousCongestionEvent)"
               opcode="Connection"
               symbol="QuicConnSpuriousCongestion"
@@ -3019,6 +3101,24 @@
               symbol="QuicConnBbr"
               template="tid_CONN_BBR"
               value="5186"
+              />
+          <event
+              keywords="ut:Connection ut:LowVolume"
+              level="win:Informational"
+              message="$(string.Etw.ConnEcnCapable)"
+              opcode="Connection"
+              symbol="QuicConnEcnCapable"
+              template="tid_CONN_ECN_CAPABLE"
+              value="5187"
+              />
+          <event
+              keywords="ut:Connection ut:LowVolume"
+              level="win:Informational"
+              message="$(string.Etw.ConnEcnFailed)"
+              opcode="Connection"
+              symbol="QuicConnEcnFailed"
+              template="tid_CONN_ECN_FAILED"
+              value="5188"
               />
           <!-- 6144 - 7167 | Stream Events -->
           <event
@@ -3366,6 +3466,24 @@
               template="tid_UDP"
               value="9222"
               />
+          <event
+              keywords="ut:UDP ut:LowVolume"
+              level="win:Informational"
+              message="$(string.Etw.DatapathGetRouteStart)"
+              opcode="Datapath"
+              symbol="QuicDatapathGetRouteStart"
+              template="tid_UDP_ADDRESSES"
+              value="9223"
+              />
+          <event
+              keywords="ut:UDP ut:LowVolume"
+              level="win:Informational"
+              message="$(string.Etw.DatapathGetRouteComplete)"
+              opcode="Datapath"
+              symbol="QuicDatapathGetRouteComplete"
+              template="tid_UDP_ADDRESS"
+              value="9224"
+              />
           <!-- 10240 - 11263 | Logs (not events) -->
           <event
               keywords="ut:Log"
@@ -3680,7 +3798,7 @@
             />
         <string
             id="Etw.ConnVNEOtherVersionList"
-            value="[conn][%1] VerInfo Other Versions List: %3"
+            value="[conn][%1] VerInfo Available Versions List: %3"
             />
         <string
             id="Etw.ConnClientReceivedVersionList"
@@ -4009,6 +4127,14 @@
         <string
             id="Etw.DatapathDestroyed"
             value="[data][%1] Destroyed"
+            />
+        <string
+            id="Etw.DatapathGetRouteStart"
+            value="[data][%1] Querying route, local=%3, remote=%5"
+            />
+        <string
+            id="Etw.DatapathGetRouteComplete"
+            value="[data][%1] Query route result: %3"
             />
         <string
             id="Etw.ApiEnter"
@@ -4498,6 +4624,14 @@
         <string
             id="Etw.Bbr"
             value="[conn][%1] BBR: State=%2 RState=%3 CongestionWindow=%4 BytesInFlight=%5 BytesInFlightMax=%6 MinRttEst=%7 EstBw=%8 AppLimited=%9"
+            />
+        <string
+            id="Etw.ConnEcnCapable"
+            value="[conn][%1] Ecn: IsCapable=%2"
+            />
+        <string
+            id="Etw.ConnEcnFailed"
+            value="[conn][%1][%2] ECN failed: EctCnt %3 CeCnt %4 TxEct %5 DeltaSum %6 State %7"
             />
       </stringTable>
     </resources>

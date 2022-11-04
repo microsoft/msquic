@@ -1223,6 +1223,58 @@
       ],
       "macroName": "QuicTraceEvent"
     },
+    "ConnEcnCapable": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] Ecn: IsCapable=%hu",
+      "UniqueId": "ConnEcnCapable",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "hu",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macroName": "QuicTraceEvent"
+    },
+    "ConnEcnFailed": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p][%d] ECN failed: EctCnt %llu CeCnt %llu TxEct %llu DeltaSum %lld State %hu",
+      "UniqueId": "ConnEcnFailed",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "d",
+          "MacroVariableName": "arg3"
+        },
+        {
+          "DefinationEncoding": "llu",
+          "MacroVariableName": "arg4"
+        },
+        {
+          "DefinationEncoding": "llu",
+          "MacroVariableName": "arg5"
+        },
+        {
+          "DefinationEncoding": "llu",
+          "MacroVariableName": "arg6"
+        },
+        {
+          "DefinationEncoding": "lld",
+          "MacroVariableName": "arg7"
+        },
+        {
+          "DefinationEncoding": "hu",
+          "MacroVariableName": "arg8"
+        }
+      ],
+      "macroName": "QuicTraceEvent"
+    },
     "ConnError": {
       "ModuleProperites": {},
       "TraceString": "[conn][%p] ERROR, %s.",
@@ -2061,7 +2113,7 @@
     },
     "ConnVNEOtherVersionList": {
       "ModuleProperites": {},
-      "TraceString": "[conn][%p] VerInfo Other Versions List: %!VNL!",
+      "TraceString": "[conn][%p] VerInfo Available Versions List: %!VNL!",
       "UniqueId": "ConnVNEOtherVersionList",
       "splitArgs": [
         {
@@ -2438,6 +2490,42 @@
         }
       ],
       "macroName": "QuicTraceLogWarning"
+    },
+    "DatapathGetRouteComplete": {
+      "ModuleProperites": {},
+      "TraceString": "[data][%p] Query route result: %!ADDR!",
+      "UniqueId": "DatapathGetRouteComplete",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "!ADDR!",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macroName": "QuicTraceEvent"
+    },
+    "DatapathGetRouteStart": {
+      "ModuleProperites": {},
+      "TraceString": "[data][%p] Querying route, local=%!ADDR!, remote=%!ADDR!",
+      "UniqueId": "DatapathGetRouteStart",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "!ADDR!",
+          "MacroVariableName": "arg3"
+        },
+        {
+          "DefinationEncoding": "!ADDR!",
+          "MacroVariableName": "arg4"
+        }
+      ],
+      "macroName": "QuicTraceEvent"
     },
     "DatapathInitialize": {
       "ModuleProperites": {},
@@ -3454,6 +3542,46 @@
         }
       ],
       "macroName": "QuicTraceLogConnVerbose"
+    },
+    "EcnEnabled": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] Updated ECN enabled to %hhu",
+      "UniqueId": "EcnEnabled",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        },
+        {
+          "DefinationEncoding": "hhu",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macroName": "QuicTraceLogConnVerbose"
+    },
+    "EcnValidationSuccess": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] ECN succeeded.",
+      "UniqueId": "EcnValidationSuccess",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        }
+      ],
+      "macroName": "QuicTraceLogConnInfo"
+    },
+    "EcnValidationUnknown": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] ECN unknown.",
+      "UniqueId": "EcnValidationUnknown",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        }
+      ],
+      "macroName": "QuicTraceLogConnInfo"
     },
     "EncodeMaxDatagramFrameSize": {
       "ModuleProperites": {},
@@ -5447,6 +5575,22 @@
         {
           "DefinationEncoding": "p",
           "MacroVariableName": "arg1"
+        }
+      ],
+      "macroName": "QuicTraceLogConnVerbose"
+    },
+    "IndicatePeerNeedStreamsV2": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] Indicating QUIC_CONNECTION_EVENT_PEER_NEEDS_STREAMS type: %s",
+      "UniqueId": "IndicatePeerNeedStreamsV2",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        },
+        {
+          "DefinationEncoding": "s",
+          "MacroVariableName": "arg3"
         }
       ],
       "macroName": "QuicTraceLogConnVerbose"
@@ -9397,7 +9541,7 @@
     },
     "ServerVersionInformationPreviousVersionInOtherVerList": {
       "ModuleProperites": {},
-      "TraceString": "[conn][%p] Previous Client Version in Server Other Versions list: 0x%x",
+      "TraceString": "[conn][%p] Previous Client Version in Server Available Versions list: 0x%x",
       "UniqueId": "ServerVersionInformationPreviousVersionInOtherVerList",
       "splitArgs": [
         {
@@ -9603,6 +9747,18 @@
       ],
       "macroName": "QuicTraceLogVerbose"
     },
+    "SettingDumpFixedServerID": {
+      "ModuleProperites": {},
+      "TraceString": "[sett] FixedServerID          = %u",
+      "UniqueId": "SettingDumpFixedServerID",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceLogVerbose"
+    },
     "SettingDumpFullyDeployedVersions": {
       "ModuleProperites": {},
       "TraceString": "[sett] FullyDeployedVersion[%u]= 0x%x",
@@ -9671,6 +9827,18 @@
       "ModuleProperites": {},
       "TraceString": "[sett] KeepAliveIntervalMs    = %u",
       "UniqueId": "SettingDumpKeepAliveIntervalMs",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceLogVerbose"
+    },
+    "SettingDumpLFixedServerID": {
+      "ModuleProperites": {},
+      "TraceString": "[sett] FixedServerID          = %u",
+      "UniqueId": "SettingDumpLFixedServerID",
       "splitArgs": [
         {
           "DefinationEncoding": "u",
@@ -9987,6 +10155,18 @@
       "ModuleProperites": {},
       "TraceString": "[sett] Version Negotiation Ext Enabled = %hhu",
       "UniqueId": "SettingDumpVersionNegoExtEnabled",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "hhu",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceLogVerbose"
+    },
+    "SettingEcnEnabled": {
+      "ModuleProperites": {},
+      "TraceString": "[sett] EcnEnabled             = %hhu",
+      "UniqueId": "SettingEcnEnabled",
       "splitArgs": [
         {
           "DefinationEncoding": "hhu",
@@ -10493,6 +10673,13 @@
       "ModuleProperites": {},
       "TraceString": "[test][hook] Dropping send to old addr",
       "UniqueId": "TestHookDropOldAddrSend",
+      "splitArgs": [],
+      "macroName": "QuicTraceLogVerbose"
+    },
+    "TestHookDropPacketBitmap": {
+      "ModuleProperites": {},
+      "TraceString": "[test][hook] Bitmap packet drop",
+      "UniqueId": "TestHookDropPacketBitmap",
       "splitArgs": [],
       "macroName": "QuicTraceLogVerbose"
     },
@@ -11040,7 +11227,7 @@
     },
     "VersionInfoDecodeFailed2": {
       "ModuleProperites": {},
-      "TraceString": "[conn][%p] Version info too short to contain any Other Versions (%hu bytes)",
+      "TraceString": "[conn][%p] Version info too short to contain any Available Versions (%hu bytes)",
       "UniqueId": "VersionInfoDecodeFailed2",
       "splitArgs": [
         {
@@ -11056,7 +11243,7 @@
     },
     "VersionInfoOtherVersionZero": {
       "ModuleProperites": {},
-      "TraceString": "[conn][%p] Version Info.OtherVersions contains a zero version! Index = %u",
+      "TraceString": "[conn][%p] Version Info.AvailableVersions contains a zero version! Index = %u",
       "UniqueId": "VersionInfoOtherVersionZero",
       "splitArgs": [
         {
@@ -12404,6 +12591,16 @@
         "EncodingString": "[conn][%p] DROP packet Value=%llu Dst=%!ADDR! Src=%!ADDR! Reason=%s."
       },
       {
+        "UniquenessHash": "9c10f710-84bf-766d-0da5-9e31796cf450",
+        "TraceID": "ConnEcnCapable",
+        "EncodingString": "[conn][%p] Ecn: IsCapable=%hu"
+      },
+      {
+        "UniquenessHash": "5d7016bf-5f7f-7469-48f6-6212e8c8572b",
+        "TraceID": "ConnEcnFailed",
+        "EncodingString": "[conn][%p][%d] ECN failed: EctCnt %llu CeCnt %llu TxEct %llu DeltaSum %lld State %hu"
+      },
+      {
         "UniquenessHash": "0ebbffbe-69d8-3f2b-949d-d93cdd7f8b99",
         "TraceID": "ConnError",
         "EncodingString": "[conn][%p] ERROR, %s."
@@ -12629,9 +12826,9 @@
         "EncodingString": "[conn][%p] QUIC Version: %u"
       },
       {
-        "UniquenessHash": "d94a73fc-1f40-d653-9753-35f107a8db2a",
+        "UniquenessHash": "6a04dcf8-d84b-933c-ab7a-6f700e5111d2",
         "TraceID": "ConnVNEOtherVersionList",
-        "EncodingString": "[conn][%p] VerInfo Other Versions List: %!VNL!"
+        "EncodingString": "[conn][%p] VerInfo Available Versions List: %!VNL!"
       },
       {
         "UniquenessHash": "15379a50-c581-3086-043e-53167a6b3fd6",
@@ -12747,6 +12944,16 @@
         "UniquenessHash": "b940eb8b-74ec-f569-8167-e95ccc36510e",
         "TraceID": "DatapathFragmented",
         "EncodingString": "[%p] Dropping datagram with fragmented MDL."
+      },
+      {
+        "UniquenessHash": "0bf5791c-23b4-4100-a2ba-d7bd2cf64ea2",
+        "TraceID": "DatapathGetRouteComplete",
+        "EncodingString": "[data][%p] Query route result: %!ADDR!"
+      },
+      {
+        "UniquenessHash": "68173a72-1154-a450-6efe-ccd2fbeab3f9",
+        "TraceID": "DatapathGetRouteStart",
+        "EncodingString": "[data][%p] Querying route, local=%!ADDR!, remote=%!ADDR!"
       },
       {
         "UniquenessHash": "b88fe9ef-f6ed-09b0-1711-28ec0fc2ab52",
@@ -13097,6 +13304,21 @@
         "UniquenessHash": "c53376e2-b465-d6a1-047c-4e5e64c263af",
         "TraceID": "DrainCrypto",
         "EncodingString": "[conn][%p] Draining %u crypto bytes"
+      },
+      {
+        "UniquenessHash": "b978c2f3-b3a9-e423-d442-4860da0dc056",
+        "TraceID": "EcnEnabled",
+        "EncodingString": "[conn][%p] Updated ECN enabled to %hhu"
+      },
+      {
+        "UniquenessHash": "2fd085ac-656c-8e23-9f2f-a7c4116dbe83",
+        "TraceID": "EcnValidationSuccess",
+        "EncodingString": "[conn][%p] ECN succeeded."
+      },
+      {
+        "UniquenessHash": "59a602dd-2f8a-6b1d-4fe2-2ac0c1316f05",
+        "TraceID": "EcnValidationUnknown",
+        "EncodingString": "[conn][%p] ECN unknown."
       },
       {
         "UniquenessHash": "d276c997-5dfb-645e-b54a-7ec567967851",
@@ -13612,6 +13834,11 @@
         "UniquenessHash": "df8cd7bd-ef29-fc9c-b3e0-7dc89bee82d5",
         "TraceID": "IndicatePeerNeedStreams",
         "EncodingString": "[conn][%p] Indicating QUIC_CONNECTION_EVENT_PEER_NEEDS_STREAMS"
+      },
+      {
+        "UniquenessHash": "11de3e8f-a75b-1030-5f71-f5065bee2aef",
+        "TraceID": "IndicatePeerNeedStreamsV2",
+        "EncodingString": "[conn][%p] Indicating QUIC_CONNECTION_EVENT_PEER_NEEDS_STREAMS type: %s"
       },
       {
         "UniquenessHash": "87c746b1-6bb4-6173-0f4e-f918641d4b80",
@@ -14894,9 +15121,9 @@
         "EncodingString": "[conn][%p] Version info parsed less than full buffer (%hu bytes vs. %hu bytes"
       },
       {
-        "UniquenessHash": "c0975309-af60-f767-e139-f7cb6071e863",
+        "UniquenessHash": "fea7982a-008a-d6fb-3186-2b404861c5a2",
         "TraceID": "ServerVersionInformationPreviousVersionInOtherVerList",
-        "EncodingString": "[conn][%p] Previous Client Version in Server Other Versions list: 0x%x"
+        "EncodingString": "[conn][%p] Previous Client Version in Server Available Versions list: 0x%x"
       },
       {
         "UniquenessHash": "e3311a70-0df4-e618-3d6e-779ed92d435f",
@@ -14964,6 +15191,11 @@
         "EncodingString": "[sett] DisconnectTimeoutMs    = %u"
       },
       {
+        "UniquenessHash": "b9200240-8e93-f516-bb6f-43d17f7f930b",
+        "TraceID": "SettingDumpFixedServerID",
+        "EncodingString": "[sett] FixedServerID          = %u"
+      },
+      {
         "UniquenessHash": "a4fc8178-7f43-f558-f37c-273bfb44ad5f",
         "TraceID": "SettingDumpFullyDeployedVersions",
         "EncodingString": "[sett] FullyDeployedVersion[%u]= 0x%x"
@@ -14992,6 +15224,11 @@
         "UniquenessHash": "c8a2ca5b-f27d-192b-af01-605c5ea507f0",
         "TraceID": "SettingDumpKeepAliveIntervalMs",
         "EncodingString": "[sett] KeepAliveIntervalMs    = %u"
+      },
+      {
+        "UniquenessHash": "db21df01-2a7f-c422-cbe7-e2ade2b06ed0",
+        "TraceID": "SettingDumpLFixedServerID",
+        "EncodingString": "[sett] FixedServerID          = %u"
       },
       {
         "UniquenessHash": "e4bd36f1-b2c4-a817-647c-b81bdaa7d40d",
@@ -15122,6 +15359,11 @@
         "UniquenessHash": "5611e76a-6d7c-35b7-9562-f67e5c2e3aa1",
         "TraceID": "SettingDumpVersionNegoExtEnabled",
         "EncodingString": "[sett] Version Negotiation Ext Enabled = %hhu"
+      },
+      {
+        "UniquenessHash": "12ca7216-75fc-41d7-f9ce-3e93bd2fea64",
+        "TraceID": "SettingEcnEnabled",
+        "EncodingString": "[sett] EcnEnabled             = %hhu"
       },
       {
         "UniquenessHash": "eb526b83-28f4-1046-57bf-7727ba70f36d",
@@ -15287,6 +15529,11 @@
         "UniquenessHash": "861bbb4e-e371-4334-b45d-03199c1cacda",
         "TraceID": "TestHookDropOldAddrSend",
         "EncodingString": "[test][hook] Dropping send to old addr"
+      },
+      {
+        "UniquenessHash": "a5664948-8711-00da-6c95-520e7c6ebab0",
+        "TraceID": "TestHookDropPacketBitmap",
+        "EncodingString": "[test][hook] Bitmap packet drop"
       },
       {
         "UniquenessHash": "ccf24f92-4b3c-0f17-5c84-1d454a788837",
@@ -15479,14 +15726,14 @@
         "EncodingString": "[conn][%p] Version info too short to contain Chosen Version (%hu bytes)"
       },
       {
-        "UniquenessHash": "3e7b261f-8077-d6f3-18ee-188f5cfe6b6b",
+        "UniquenessHash": "a80c3a79-ae2d-cb56-44b9-7f2fe5a7eea1",
         "TraceID": "VersionInfoDecodeFailed2",
-        "EncodingString": "[conn][%p] Version info too short to contain any Other Versions (%hu bytes)"
+        "EncodingString": "[conn][%p] Version info too short to contain any Available Versions (%hu bytes)"
       },
       {
-        "UniquenessHash": "50beefb7-296c-9d5f-eecd-8a24023ac56e",
+        "UniquenessHash": "585e07b4-a7b7-09ab-37fa-54d702126880",
         "TraceID": "VersionInfoOtherVersionZero",
-        "EncodingString": "[conn][%p] Version Info.OtherVersions contains a zero version! Index = %u"
+        "EncodingString": "[conn][%p] Version Info.AvailableVersions contains a zero version! Index = %u"
       },
       {
         "UniquenessHash": "09622250-6902-8f51-16a4-41a81d9cfc14",

@@ -52,6 +52,25 @@ TRACEPOINT_EVENT(CLOG_SEND_C, ClearSendFlags,
 
 
 /*----------------------------------------------------------
+// Decoder Ring for EcnValidationUnknown
+// [conn][%p] ECN unknown.
+// QuicTraceLogConnInfo(
+                    EcnValidationUnknown,
+                    Connection,
+                    "ECN unknown.");
+// arg1 = arg1 = Connection = arg1
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_SEND_C, EcnValidationUnknown,
+    TP_ARGS(
+        const void *, arg1), 
+    TP_FIELDS(
+        ctf_integer_hex(uint64_t, arg1, arg1)
+    )
+)
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for ScheduleSendFlags
 // [conn][%p] Scheduling flags 0x%x to 0x%x
 // QuicTraceLogConnVerbose(
