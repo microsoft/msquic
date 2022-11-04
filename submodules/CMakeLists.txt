@@ -36,7 +36,7 @@ set(OPENSSL_CONFIG_FLAGS
     no-weak-ssl-ciphers no-shared no-tests)
 
 if (QUIC_USE_OPENSSL3)
-    list(APPEND OPENSSL_CONFIG_FLAGS no-uplink no-cmp no-fips no-padlockeng no-siv --libdir=lib)
+    list(APPEND OPENSSL_CONFIG_FLAGS no-uplink no-cmp no-fips no-padlockeng no-siv no-legacy --libdir=lib)
 endif()
 
 if (WIN32)
