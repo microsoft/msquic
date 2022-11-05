@@ -605,9 +605,9 @@ CubicCongestionControlOnEcn(
     BOOLEAN PreviousCanSendState = CubicCongestionControlCanSend(Cc);
 
     //
-    // If data is lost after the most recent congestion event (or if there
-    // hasn't been a congestion event yet) then treat this loss as a new
-    // congestion event.
+    // If the ECN signal is received after the most recent congestion event
+    // (or if there hasn't been a congestion event yet) then treat it as a
+    // new congestion event.
     //
     if (!Cubic->HasHadCongestionEvent ||
         EcnEvent->LargestPacketNumberAcked > Cubic->RecoverySentPacketNumber) {
