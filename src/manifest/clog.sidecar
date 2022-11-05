@@ -2075,6 +2075,50 @@
       ],
       "macroName": "QuicTraceEvent"
     },
+    "ConnStatsV2": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] STATS: SRtt=%u CongestionCount=%u PersistentCongestionCount=%u SendTotalBytes=%llu RecvTotalBytes=%llu CongestionWindow=%u Cc=%s EcnCongestionCount=%u",
+      "UniqueId": "ConnStatsV2",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg3"
+        },
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg4"
+        },
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg5"
+        },
+        {
+          "DefinationEncoding": "llu",
+          "MacroVariableName": "arg6"
+        },
+        {
+          "DefinationEncoding": "llu",
+          "MacroVariableName": "arg7"
+        },
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg8"
+        },
+        {
+          "DefinationEncoding": "s",
+          "MacroVariableName": "arg9"
+        },
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg10"
+        }
+      ],
+      "macroName": "QuicTraceEvent"
+    },
     "ConnTransportShutdown": {
       "ModuleProperites": {},
       "TraceString": "[conn][%p] Transport Shutdown: %llu (Remote=%hhu) (QS=%hhu)",
@@ -12791,6 +12835,11 @@
         "UniquenessHash": "dca59082-cdf8-b1a4-60f1-a5e1c25e8263",
         "TraceID": "ConnStats",
         "EncodingString": "[conn][%p] STATS: SRtt=%u CongestionCount=%u PersistentCongestionCount=%u SendTotalBytes=%llu RecvTotalBytes=%llu CongestionWindow=%u Cc=%s"
+      },
+      {
+        "UniquenessHash": "08f10184-5cf8-584f-cff9-1574f1c32b4f",
+        "TraceID": "ConnStatsV2",
+        "EncodingString": "[conn][%p] STATS: SRtt=%u CongestionCount=%u PersistentCongestionCount=%u SendTotalBytes=%llu RecvTotalBytes=%llu CongestionWindow=%u Cc=%s EcnCongestionCount=%u"
       },
       {
         "UniquenessHash": "421b9353-bbea-5599-f173-5911d85a776e",

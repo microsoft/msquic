@@ -1986,6 +1986,44 @@
                 name="IsEcn"
                 />
           </template>
+          <template tid="tid_CONN_STATISTICS_V2">
+            <data
+                inType="win:Pointer"
+                name="Connection"
+                />
+            <data
+                inType="win:UInt32"
+                name="SmoothedRtt"
+                />
+            <data
+                inType="win:UInt32"
+                name="CongestionCount"
+                />
+            <data
+                inType="win:UInt32"
+                name="PersistentCongestionCount"
+                />
+            <data
+                inType="win:UInt64"
+                name="SendTotalBytes"
+                />
+            <data
+                inType="win:UInt64"
+                name="RecvTotalBytes"
+                />
+			<data
+                inType="win:UInt32"
+                name="CongestionWindow"
+                />
+            <data
+                inType="win:AnsiString"
+                name="Cc"
+                />
+            <data
+                inType="win:UInt32"
+                name="EcnCongestionCount"
+                />
+          </template>
         </templates>
         <events>
           <!-- Don't use value=0 as some parsers don't like it -->
@@ -3096,6 +3134,15 @@
               symbol="QuicConnCongestionV2"
               template="tid_CONN_CONGESTION"
               value="5189"
+              />
+          <event
+              keywords="ut:Connection ut:LowVolume"
+              level="win:Informational"
+              message="$(string.Etw.ConnStatsV2)"
+              opcode="Connection"
+              symbol="QuicConnStatsV2"
+              template="tid_CONN_STATISTICS_V2"
+              value="5190"
               />
           <!-- 6144 - 7167 | Stream Events -->
           <event
@@ -4587,6 +4634,10 @@
         <string
             id="Etw.CongestionEventV2"
             value="[conn][%1] Congestion event IsEcn=%2"
+            />
+        <string
+            id="Etw.ConnStatsV2"
+            value="[conn][%1] STATS: SRtt=%2 CongestionCount=%3 PersistentCongestionCount=%4 SendTotalBytes=%5 RecvTotalBytes=%6 CongestionWindow=%7 Cc=%8 EcnCongestionCount=%8"
             />
       </stringTable>
     </resources>
