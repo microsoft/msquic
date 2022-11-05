@@ -359,6 +359,14 @@ QuicCongestionControlOnDataLost(
     );
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
+inline
+void
+QuicCongestionControlOnEcn(
+    _In_ QUIC_CONGESTION_CONTROL* Cc,
+    _In_ const QUIC_ECN_EVENT* EcnEvent
+    );
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
 BOOLEAN
 QuicCongestionControlOnSpuriousCongestionEvent(
     _In_ QUIC_CONGESTION_CONTROL* Cc
