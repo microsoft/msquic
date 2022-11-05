@@ -359,7 +359,6 @@ QuicCongestionControlOnDataLost(
     );
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
-inline
 void
 QuicCongestionControlOnEcn(
     _In_ QUIC_CONGESTION_CONTROL* Cc,
