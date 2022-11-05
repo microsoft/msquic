@@ -334,7 +334,7 @@ QuicPrintConnectionStatistics(
             &StatsSize,
             &Statistics))) {
         WriteOutput(
-            "[conn][%p] STATS: EcnCapable=%hu RTT=%u us SendTotalPackets=%llu SendSuspectedLostPackets=%llu SendSpuriousLostPackets=%llu SendCongestionCount=%u SendEcnCongestionCount=%u RecvTotalPackets=%llu RecvReorderedPackets=%llu RecvDroppedPackets=%llu RecvDuplicatePackets=%llu RecvDecryptionFailures=%llu\n",
+            "[conn][%p] STATS: EcnCapable=%u RTT=%u us SendTotalPackets=%llu SendSuspectedLostPackets=%llu SendSpuriousLostPackets=%llu SendCongestionCount=%u SendEcnCongestionCount=%u RecvTotalPackets=%llu RecvReorderedPackets=%llu RecvDroppedPackets=%llu RecvDuplicatePackets=%llu RecvDecryptionFailures=%llu\n",
             Connection,
             Statistics.EcnCapable,
             Statistics.Rtt,
