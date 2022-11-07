@@ -240,9 +240,6 @@ CubicCongestionControlOnCongestionEvent(
         "[conn][%p] Congestion event: IsEcn=%hu",
         Connection,
         Ecn);
-    if (Ecn) {
-        Connection->Stats.Send.EcnCongestionCount++;
-    }
     Connection->Stats.Send.CongestionCount++;
 
     Cubic->IsInRecovery = TRUE;
@@ -613,6 +610,7 @@ CubicCongestionControlOnEcn(
         EcnEvent->LargestPacketNumberAcked > Cubic->RecoverySentPacketNumber) {
 
         Cubic->RecoverySentPacketNumber = EcnEvent->LargestSentPacketNumber;
+        QuicCongestionControlGetConnection(Cc)->Stats.Send.EcnCongestionCount++;
         CubicCongestionControlOnCongestionEvent(
             Cc,
             FALSE,
