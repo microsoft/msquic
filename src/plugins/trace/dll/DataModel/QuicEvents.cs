@@ -800,6 +800,18 @@ namespace QuicTrace.DataModel
         }
     }
 
+    public class QuicConnectionCongestionV2Event : QuicEvent
+    {
+        public byte IsEcn { get; }
+        public override string PayloadString => string.Format("Congestion event IsEcn={0}", IsEcn);
+
+        internal QuicConnectionCongestionV2Event(Timestamp timestamp, ushort processor, uint processId, uint threadId, int pointerSize, ulong objectPointer, byte isEcn) :
+            base(QuicEventId.ConnCongestion, QuicObjectType.Connection, timestamp, processor, processId, threadId, pointerSize, objectPointer)
+        {
+            IsEcn = isEcn;
+        }
+    }
+
     public class QuicConnectionSourceCidAddedEvent : QuicEvent
     {
         public ulong SequenceNumber { get; }
@@ -861,6 +873,37 @@ namespace QuicTrace.DataModel
             PersistentCongestionCount = persistentCongestionCount;
             SendTotalBytes = sendTotalBytes;
             RecvTotalBytes = recvTotalBytes;
+        }
+    }
+
+    public class QuicConnectionStatsV2Event : QuicEvent
+    {
+        public uint SmoothedRtt { get; }
+
+        public uint CongestionCount { get; }
+
+        public uint PersistentCongestionCount { get; }
+
+        public ulong SendTotalBytes { get; }
+
+        public ulong RecvTotalBytes { get; }
+
+        public uint EcnCongestionCount { get; }
+
+        public override string PayloadString =>
+            string.Format("STATS: SmoothedRtt={0} CongestionCount={1} PersistentCongestionCount={2} SendTotalBytes={3} RecvTotalBytes={4} EcnCongestionCount={5}",
+                SmoothedRtt, CongestionCount, PersistentCongestionCount, SendTotalBytes, RecvTotalBytes, EcnCongestionCount);
+
+        internal QuicConnectionStatsV2Event(Timestamp timestamp, ushort processor, uint processId, uint threadId, int pointerSize, ulong objectPointer,
+                                          uint smoothedRtt, uint congestionCount, uint persistentCongestionCount, ulong sendTotalBytes, ulong recvTotalBytes, uint ecnCongestionCount) :
+            base(QuicEventId.ConnStats, QuicObjectType.Connection, timestamp, processor, processId, threadId, pointerSize, objectPointer)
+        {
+            SmoothedRtt = smoothedRtt;
+            CongestionCount = congestionCount;
+            PersistentCongestionCount = persistentCongestionCount;
+            SendTotalBytes = sendTotalBytes;
+            RecvTotalBytes = recvTotalBytes;
+            EcnCongestionCount = ecnCongestionCount;
         }
     }
 

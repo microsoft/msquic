@@ -127,19 +127,23 @@ TRACEPOINT_EVENT(CLOG_BBR_C, ConnRecoveryExit,
 
 
 /*----------------------------------------------------------
-// Decoder Ring for ConnCongestion
-// [conn][%p] Congestion event
+// Decoder Ring for ConnCongestionV2
+// [conn][%p] Congestion event: IsEcn=%hu
 // QuicTraceEvent(
-        ConnCongestion,
-        "[conn][%p] Congestion event",
-        Connection);
+        ConnCongestionV2,
+        "[conn][%p] Congestion event: IsEcn=%hu",
+        Connection,
+        FALSE);
 // arg2 = arg2 = Connection = arg2
+// arg3 = arg3 = FALSE = arg3
 ----------------------------------------------------------*/
-TRACEPOINT_EVENT(CLOG_BBR_C, ConnCongestion,
+TRACEPOINT_EVENT(CLOG_BBR_C, ConnCongestionV2,
     TP_ARGS(
-        const void *, arg2), 
+        const void *, arg2,
+        unsigned short, arg3), 
     TP_FIELDS(
         ctf_integer_hex(uint64_t, arg2, arg2)
+        ctf_integer(unsigned short, arg3, arg3)
     )
 )
 

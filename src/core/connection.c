@@ -6732,6 +6732,9 @@ QuicConnGetV2Statistics(
     if (STATISTICS_HAS_FIELD(*StatsLength, DestCidUpdateCount)) {
         Stats->DestCidUpdateCount = Connection->Stats.Misc.DestCidUpdateCount;
     }
+    if (STATISTICS_HAS_FIELD(*StatsLength, SendEcnCongestionCount)) {
+        Stats->SendEcnCongestionCount = Connection->Stats.Send.EcnCongestionCount;
+    }
 
     *StatsLength = CXPLAT_MIN(*StatsLength, sizeof(QUIC_STATISTICS_V2));
 

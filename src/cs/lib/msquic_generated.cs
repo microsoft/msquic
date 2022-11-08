@@ -839,6 +839,9 @@ namespace Microsoft.Quic
 
         [NativeTypeName("uint32_t")]
         internal uint DestCidUpdateCount;
+
+        [NativeTypeName("uint32_t")]
+        internal uint SendEcnCongestionCount;
     }
 
     internal partial struct QUIC_LISTENER_STATISTICS

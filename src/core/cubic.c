@@ -226,7 +226,8 @@ _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 CubicCongestionControlOnCongestionEvent(
     _In_ QUIC_CONGESTION_CONTROL* Cc,
-    _In_ BOOLEAN IsPersistentCongestion
+    _In_ BOOLEAN IsPersistentCongestion,
+    _In_ BOOLEAN Ecn
     )
 {
     QUIC_CONGESTION_CONTROL_CUBIC* Cubic = &Cc->Cubic;
@@ -235,24 +236,28 @@ CubicCongestionControlOnCongestionEvent(
     const uint16_t DatagramPayloadLength =
         QuicPathGetDatagramPayloadSize(&Connection->Paths[0]);
     QuicTraceEvent(
-        ConnCongestion,
-        "[conn][%p] Congestion event",
-        Connection);
+        ConnCongestionV2,
+        "[conn][%p] Congestion event: IsEcn=%hu",
+        Connection,
+        Ecn);
     Connection->Stats.Send.CongestionCount++;
 
     Cubic->IsInRecovery = TRUE;
     Cubic->HasHadCongestionEvent = TRUE;
 
     //
-    // Save previous state, just in case this ends up being spurious.
+    // If the congestion event is not triggered by ECN, save previous state,
+    // just in case this ends up being spurious.
     //
-    Cubic->PrevWindowPrior = Cubic->WindowPrior;
-    Cubic->PrevWindowMax = Cubic->WindowMax;
-    Cubic->PrevWindowLastMax = Cubic->WindowLastMax;
-    Cubic->PrevKCubic = Cubic->KCubic;
-    Cubic->PrevSlowStartThreshold = Cubic->SlowStartThreshold;
-    Cubic->PrevCongestionWindow = Cubic->CongestionWindow;
-    Cubic->PrevAimdWindow = Cubic->AimdWindow;
+    if (!Ecn) {
+        Cubic->PrevWindowPrior = Cubic->WindowPrior;
+        Cubic->PrevWindowMax = Cubic->WindowMax;
+        Cubic->PrevWindowLastMax = Cubic->WindowLastMax;
+        Cubic->PrevKCubic = Cubic->KCubic;
+        Cubic->PrevSlowStartThreshold = Cubic->SlowStartThreshold;
+        Cubic->PrevCongestionWindow = Cubic->CongestionWindow;
+        Cubic->PrevAimdWindow = Cubic->AimdWindow;
+    }
 
     if (IsPersistentCongestion && !Cubic->IsInPersistentCongestion) {
 
@@ -574,11 +579,43 @@ CubicCongestionControlOnDataLost(
         Cubic->RecoverySentPacketNumber = LossEvent->LargestSentPacketNumber;
         CubicCongestionControlOnCongestionEvent(
             Cc,
-            LossEvent->PersistentCongestion);
+            LossEvent->PersistentCongestion,
+            FALSE);
     }
 
     CXPLAT_DBG_ASSERT(Cubic->BytesInFlight >= LossEvent->NumRetransmittableBytes);
     Cubic->BytesInFlight -= LossEvent->NumRetransmittableBytes;
+
+    CubicCongestionControlUpdateBlockedState(Cc, PreviousCanSendState);
+    QuicConnLogCubic(QuicCongestionControlGetConnection(Cc));
+}
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+void
+CubicCongestionControlOnEcn(
+    _In_ QUIC_CONGESTION_CONTROL* Cc,
+    _In_ const QUIC_ECN_EVENT* EcnEvent
+    )
+{
+    QUIC_CONGESTION_CONTROL_CUBIC* Cubic = &Cc->Cubic;
+
+    BOOLEAN PreviousCanSendState = CubicCongestionControlCanSend(Cc);
+
+    //
+    // If the ECN signal is received after the most recent congestion event
+    // (or if there hasn't been a congestion event yet) then treat it as a
+    // new congestion event.
+    //
+    if (!Cubic->HasHadCongestionEvent ||
+        EcnEvent->LargestPacketNumberAcked > Cubic->RecoverySentPacketNumber) {
+
+        Cubic->RecoverySentPacketNumber = EcnEvent->LargestSentPacketNumber;
+        QuicCongestionControlGetConnection(Cc)->Stats.Send.EcnCongestionCount++;
+        CubicCongestionControlOnCongestionEvent(
+            Cc,
+            FALSE,
+            TRUE);
+    }
 
     CubicCongestionControlUpdateBlockedState(Cc, PreviousCanSendState);
     QuicConnLogCubic(QuicCongestionControlGetConnection(Cc));
@@ -701,6 +738,7 @@ static const QUIC_CONGESTION_CONTROL QuicCongestionControlCubic = {
     .QuicCongestionControlOnDataInvalidated = CubicCongestionControlOnDataInvalidated,
     .QuicCongestionControlOnDataAcknowledged = CubicCongestionControlOnDataAcknowledged,
     .QuicCongestionControlOnDataLost = CubicCongestionControlOnDataLost,
+    .QuicCongestionControlOnEcn = CubicCongestionControlOnEcn,
     .QuicCongestionControlOnSpuriousCongestionEvent = CubicCongestionControlOnSpuriousCongestionEvent,
     .QuicCongestionControlLogOutFlowStatus = CubicCongestionControlLogOutFlowStatus,
     .QuicCongestionControlGetExemptions = CubicCongestionControlGetExemptions,
