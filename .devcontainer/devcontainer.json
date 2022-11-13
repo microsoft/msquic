@@ -4,5 +4,5 @@
         "cpus": 4,
         "memory": "8gb"
     },
-    "postStartCommand": "pwsh -c './scripts/prepare-machine.ps1 -ForOneBranch -InitSubmodules';pwsh"
+    "onCreateCommand": "pwsh -c './scripts/prepare-machine.ps1 -ForOneBranch -InitSubmodules'"
 }
