@@ -2,7 +2,7 @@
     "image":  "ghcr.io/microsoft/msquic/linux-build-xcomp",
     "hostRequirements": {
         "cpus": 4,
-        "memory": "8gb"
+        "memory": "4gb"
     },
     "onCreateCommand": "pwsh -c './scripts/prepare-machine.ps1 -ForOneBranch -InitSubmodules'"
 }
