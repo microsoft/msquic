@@ -1,3 +1,8 @@
 {
-    "image":  "ghcr.io/microsoft/msquic/linux-build-xcomp"
+    "image":  "ghcr.io/microsoft/msquic/linux-build-xcomp",
+    "hostRequirements": {
+        "cpus": 4,
+        "memory": "8gb"
+    },
+    "postStartCommand": "pwsh -c './scripts/prepare-machine.ps1 -ForOneBranch -InitSubmodules';pwsh"
 }
