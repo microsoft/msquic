@@ -478,19 +478,18 @@ if ($InitSubmodules) {
 
     Write-Host "Initializing clog submodule"
     git submodule init submodules/clog
-    git submodule update
 
     if ($Tls -eq "openssl") {
         Write-Host "Initializing openssl submodule"
         git submodule init submodules/openssl
-        git submodule update
     }
 
     if (!$DisableTest) {
         Write-Host "Initializing googletest submodule"
         git submodule init submodules/googletest
-        git submodule update
     }
+
+    git submodule update --jobs=4
 }
 
 if ($InstallDuoNic) { Install-DuoNic }
