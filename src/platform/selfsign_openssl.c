@@ -965,6 +965,7 @@ CxPlatGetSelfSignedCert(
     BOOLEAN CreateCA = (Type == CXPLAT_SELF_SIGN_CA_CERT_USER ||
                         Type == CXPLAT_SELF_SIGN_CA_CERT_MACHINE);
 
+    // Different architectures store files in different locations
     if (CreateCA) {
         if (ClientCertificate) {
 #ifdef _WIN32
@@ -1007,6 +1008,8 @@ CxPlatGetSelfSignedCert(
         }
     }
 
+    // Hack to allocate space for filepaths that will be properly
+    // deallocated without explicit deallocation
     CXPLAT_CREDENTIAL_CONFIG_INTERNAL* Params =
         malloc(sizeof(CXPLAT_CREDENTIAL_CONFIG_INTERNAL) + sizeof(TEMP_DIR_TEMPLATE));
     if (Params == NULL) {
@@ -1067,6 +1070,8 @@ Error:
     return NULL;
 }
 
+// Generate certificates for testing, either self-signed certificates
+// or from a self-signed CA certificate.
 _IRQL_requires_max_(PASSIVE_LEVEL)
 _Success_(return == TRUE)
 BOOLEAN
@@ -1121,6 +1126,8 @@ CxPlatGetTestCertificate(
                         Type == CXPLAT_TEST_CERT_CA_SERVER);
 
 
+        // Optionally generate self-signed CA certificate to use when
+        // generate test certificate
         if (IsCa) {
             if (Type == CXPLAT_TEST_CERT_CA_CLIENT) {
                 CaFileName = QuicTestClientCaCertFilename;
@@ -1134,6 +1141,7 @@ CxPlatGetTestCertificate(
         }
 
         if (CredType == QUIC_CREDENTIAL_TYPE_CERTIFICATE_FILE) {
+            // Generate plaintext certificate files
             if (IsCa) {
                 if (IsClient) {
                     CertFileName = QuicTestClientCertFilename;
@@ -1166,6 +1174,7 @@ CxPlatGetTestCertificate(
             CertFile->CertificateFile = CertFilePath;
             CertFile->PrivateKeyFile = KeyFilePath;
         } else if (CredType == QUIC_CREDENTIAL_TYPE_CERTIFICATE_FILE_PROTECTED) {
+            // Generate password protected certificate files
             if (IsCa) {
                 if (IsClient) {
                     CertFileName = QuicTestClientCertFilename;
@@ -1217,10 +1226,12 @@ CxPlatGetTestCertificate(
             }
         }
 
+        // Ensure files can be created and find temporary directory for them
         if (!FindOrCreateTempFiles(CertFileName, KeyFileName, CaFileName, CertFilePath, KeyFilePath, CaFilePath)) {
             goto Error;
         }
 
+        // Generate certificate, optionally provide CA to generate from
         if (QUIC_FAILED(
                 CxPlatTlsGenerateSelfSignedCert(
                     CertFilePath,
@@ -1233,6 +1244,7 @@ CxPlatGetTestCertificate(
         }
 
         if (IsCa) {
+            // Save location of CA in parameter
             Params->CaCertificateFile = CaFilePath;
             CaFilePath = NULL;
         }
