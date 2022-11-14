@@ -489,7 +489,7 @@ if ($InitSubmodules) {
         git submodule init submodules/googletest
     }
 
-    git submodule update --jobs=4
+    git submodule update --jobs=8
 }
 
 if ($InstallDuoNic) { Install-DuoNic }
