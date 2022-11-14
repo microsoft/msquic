@@ -62,7 +62,7 @@ Only valid for OpenSSL.
 `QUIC_CREDENTIAL_TYPE_CERTIFICATE_PKCS12`
 
 Provide an in-memory ASN.1 blob of a PKCS12 (PFX) certificate and private, with optional private key password, pointed to by the `CertificatePkcs12` member.
-Not currently supported.
+Only valid for OpenSSL.
 
 #### `Flags`
 
