@@ -2465,6 +2465,7 @@ QuicConnSetConfiguration(
         Configuration);
 
     QuicConfigurationAddRef(Configuration);
+    QuicConfigurationAttachSilo(Configuration);
     Connection->Configuration = Configuration;
     QuicConnApplyNewSettings(
         Connection,
@@ -2482,7 +2483,7 @@ QuicConnSetConfiguration(
             QuicConnOnQuicVersionSet(Connection);
             Status = QuicCryptoOnVersionChange(&Connection->Crypto);
             if (QUIC_FAILED(Status)) {
-                return Status;
+                goto Error;
             }
         }
 
@@ -2507,7 +2508,8 @@ QuicConnSetConfiguration(
                 "Allocation of '%s' failed. (%llu bytes)",
                 "OrigDestCID",
                 sizeof(QUIC_CID) + DestCid->CID.Length);
-            return QUIC_STATUS_OUT_OF_MEMORY;
+            Status = QUIC_STATUS_OUT_OF_MEMORY;
+            goto Error;
         }
 
         Connection->OrigDestCID->Length = DestCid->CID.Length;
@@ -2520,13 +2522,13 @@ QuicConnSetConfiguration(
         if (!QuicConnPostAcceptValidatePeerTransportParameters(Connection)) {
             QuicConnTransportError(Connection, QUIC_ERROR_CONNECTION_REFUSED);
             Status = QUIC_STATUS_INVALID_PARAMETER;
-            goto Error;
+            goto Cleanup;
         }
     }
 
     Status = QuicConnGenerateLocalTransportParameters(Connection, &LocalTP);
     if (QUIC_FAILED(Status)) {
-        goto Error;
+        goto Cleanup;
     }
 
     //
@@ -2551,9 +2553,13 @@ QuicConnSetConfiguration(
             Configuration->SecurityConfig,
             &LocalTP);
 
-Error:
+Cleanup:
 
     QuicCryptoTlsCleanupTransportParameters(&LocalTP);
+
+Error:
+
+    QuicConfigurationDetachSilo();
 
     return Status;
 }
