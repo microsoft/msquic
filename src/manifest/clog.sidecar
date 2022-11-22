@@ -1447,6 +1447,30 @@
       ],
       "macroName": "QuicTraceEvent"
     },
+    "ConnHyStartStateChange": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] HyStart: State=%u CongestionWindow=%u SlowStartThreshold=%u",
+      "UniqueId": "ConnHyStartStateChange",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg3"
+        },
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg4"
+        },
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg5"
+        }
+      ],
+      "macroName": "QuicTraceEvent"
+    },
     "ConnInFlowStats": {
       "ModuleProperites": {},
       "TraceString": "[conn][%p] IN: BytesRecv=%llu",
@@ -12718,6 +12742,11 @@
         "UniquenessHash": "01d5a727-8287-c441-9ff0-0ebbd899549f",
         "TraceID": "ConnHandshakeStart",
         "EncodingString": "[conn][%p] Handshake start"
+      },
+      {
+        "UniquenessHash": "5c03d63d-00df-2d44-8395-29a5c83a3fc2",
+        "TraceID": "ConnHyStartStateChange",
+        "EncodingString": "[conn][%p] HyStart: State=%u CongestionWindow=%u SlowStartThreshold=%u"
       },
       {
         "UniquenessHash": "5e524dd5-fea0-3816-a291-92ed85eab29d",
