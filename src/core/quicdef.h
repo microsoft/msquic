@@ -511,6 +511,32 @@ CXPLAT_STATIC_ASSERT(
 //
 #define QUIC_DEFAULT_ECN_ENABLED                     FALSE
 
+//
+// The number of rounds in Cubic Slow Start to sample RTT.
+//
+#define QUIC_HYSTART_DEFAULT_N_SAMPLING             8
+
+//
+// The minimum RTT threshold to exit Cubic Slow Start (in microseconds).
+//
+#define QUIC_HYSTART_DEFAULT_MIN_ETA 4000
+
+//
+// The maximum RTT threshold to exit Cubic Slow Start (in microseconds).
+//
+#define QUIC_HYSTART_DEFAULT_MAX_ETA 16000
+
+//
+// The number of rounds to spend in Conservative Slow Start before switching
+// to Congestion Avoidance.
+//
+#define QUIC_CONSERVATIVE_SLOW_START_DEFAULT_ROUNDS 5
+
+//
+// The Congestion Window growth divisor during Conservative Slow Start.
+//
+#define QUIC_CONSERVATIVE_SLOW_START_DEFAULT_GROWTH_DIVISOR 4
+
 /*************************************************************
                   TRANSPORT PARAMETERS
 *************************************************************/

@@ -7,11 +7,11 @@
 
 #pragma once
 
-typedef enum HYSTART_STATE {
-    HYSTART_NOT_FOUND = 0,
-    HYSTART_FOUND = 1,
+typedef enum QUIC_CUBIC_HYSTART_STATE {
+    HYSTART_NOT_STARTED = 0,
+    HYSTART_ACTIVE = 1,
     HYSTART_DONE = 2
-} HYSTART_STATE;
+} QUIC_CUBIC_HYSTART_STATE;
 
 typedef struct QUIC_CONGESTION_CONTROL_CUBIC {
 
@@ -37,11 +37,6 @@ typedef struct QUIC_CONGESTION_CONTROL_CUBIC {
     // TRUE if there has been at least one ACK.
     //
     BOOLEAN TimeOfLastAckValid : 1;
-
-    //
-    // HyStart state.
-    //
-    HYSTART_STATE HyStartState : 2;
 
     //
     // The size of the initial congestion window, in packets.
@@ -96,14 +91,17 @@ typedef struct QUIC_CONGESTION_CONTROL_CUBIC {
     uint32_t WindowLastMax; // bytes (W_last_max from rfc8312bis)
     uint32_t PrevWindowLastMax; // bytes
 
-    uint32_t HyStartAckCount; // Count
-    uint32_t MinRttInLastRound; // millisec
-    uint32_t MinRttInCurrentRound; // millisec
+    //
+    // HyStart state.
+    //
+    QUIC_CUBIC_HYSTART_STATE HyStartState;
+    uint32_t HyStartAckCount;
+    uint32_t MinRttInLastRound; // microseconds
+    uint32_t MinRttInCurrentRound; // microseconds
     uint64_t HyStartRoundEnd; // Packet Number
-    uint32_t HyStartCongestionWindow;
     uint32_t CWndSlowStartGrowthDivisor;
     uint32_t ConservativeSlowStartRounds;
-    uint32_t CssBaselineMinRtt;
+    uint32_t CssBaselineMinRtt; // microseconds
 
     //
     // This variable tracks the largest packet that was outstanding at the time

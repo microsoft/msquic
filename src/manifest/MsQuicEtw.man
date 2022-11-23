@@ -555,11 +555,11 @@
           </valueMap>
           <valueMap name="map_QUIC_CONN_CUBIC_HYSTART_STATE">
             <map
-                message="$(string.Enum.QUIC_CUBIC_HYSTART_STATE.NOT_FOUND)"
+                message="$(string.Enum.QUIC_CUBIC_HYSTART_STATE.NOT_STARTED)"
                 value="0"
                 />
             <map
-                message="$(string.Enum.QUIC_CUBIC_HYSTART_STATE.FOUND)"
+                message="$(string.Enum.QUIC_CUBIC_HYSTART_STATE.ACTIVE)"
                 value="1"
                 />
             <map
@@ -1200,7 +1200,7 @@
                 name="Connection"
                 />
             <data
-                inType="win:UInt8"
+                inType="win:UInt32"
                 map="map_QUIC_CONN_CUBIC_HYSTART_STATE"
                 name="HyStartState"
                 />
@@ -4710,12 +4710,12 @@
             value="REAL_TIME"
             />
         <string
-            id="Enum.QUIC_CUBIC_HYSTART_STATE.NOT_FOUND"
-            value="NotFound"
+            id="Enum.QUIC_CUBIC_HYSTART_STATE.NOT_STARTED"
+            value="NotStarted"
             />
         <string
-            id="Enum.QUIC_CUBIC_HYSTART_STATE.FOUND"
-            value="Found"
+            id="Enum.QUIC_CUBIC_HYSTART_STATE.ACTIVE"
+            value="Active"
             />
         <string
             id="Enum.QUIC_CUBIC_HYSTART_STATE.DONE"
