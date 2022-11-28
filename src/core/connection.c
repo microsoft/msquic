@@ -2193,7 +2193,6 @@ QuicConnRecvResumptionTicket(
             ResumptionAccepted = TRUE;
         } else if (Status == QUIC_STATUS_PENDING) {
             Connection->Crypto.TicketValidationPending = TRUE;
-            Connection->Crypto.RecvBuffer.ExternalBufferReference = FALSE;
             ResumptionAccepted = TRUE;
         } else {
             QuicTraceEvent(

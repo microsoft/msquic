@@ -1761,11 +1761,9 @@ QuicCryptoCustomTicketValidationComplete(
         Crypto->Initialized = FALSE;
         uint8_t* Buffer = Crypto->RecvBuffer.Buffer;
         QuicCryptoInitialize(Crypto);
-        Crypto->RecvBuffer.WrittenRanges.UsedLength = 1;
-        Crypto->RecvBuffer.Buffer = Buffer;
-        QUIC_TRANSPORT_PARAMETERS LocalTP = { 0 };
-        QuicConnGenerateLocalTransportParameters(Connection, &LocalTP);
-        QuicCryptoInitializeTls(Crypto, Configuration->SecurityConfig, &LocalTP);
+        Crypto->RecvBuffer.WrittenRanges.UsedLength = 1; // To pass QuicRecvBufferRead
+        Crypto->RecvBuffer.Buffer = Buffer; // To pass "if" next to QuicCryptoTlsGetCompleteTlsMessageLength
+        QuicCryptoInitializeTls(Crypto, Configuration->SecurityConfig, Connection->HandshakeTP);
     } else {
         // TODO: start normal handshake.
     }
