@@ -257,7 +257,7 @@ QuicCryptoUninitialize(
     if (Crypto->Initialized) {
         QuicRecvBufferUninitialize(&Crypto->RecvBuffer);
         QuicRangeUninitialize(&Crypto->SparseAckRanges);
-        //CXPLAT_FREE(Crypto->TlsState.Buffer, QUIC_POOL_TLS_BUFFER);
+        CXPLAT_FREE(Crypto->TlsState.Buffer, QUIC_POOL_TLS_BUFFER);
         Crypto->TlsState.Buffer = NULL;
         Crypto->Initialized = FALSE;
     }
@@ -1675,7 +1675,14 @@ QuicCryptoProcessDataComplete(
     _In_ uint32_t RecvBufferConsumed
     )
 {
-    if (RecvBufferConsumed != 0 && !Crypto->TicketValidationPending) {
+    if (Crypto->CertValidationPending || Crypto->TicketValidationPending) {
+        if (Crypto->TicketValidationPending) {
+            Crypto->TicketValidationPendingBufferLength = RecvBufferConsumed;
+        }
+        return;
+    }
+
+    if (RecvBufferConsumed != 0) {
         Crypto->RecvTotalConsumed += RecvBufferConsumed;
         QuicTraceLogConnVerbose(
             DrainCrypto,
@@ -1687,9 +1694,7 @@ QuicCryptoProcessDataComplete(
 
     QuicCryptoValidate(Crypto);
 
-    if (!Crypto->CertValidationPending && !Crypto->TicketValidationPending) {
-        QuicCryptoProcessTlsCompletion(Crypto);
-    }
+    QuicCryptoProcessTlsCompletion(Crypto);
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -1736,34 +1741,7 @@ QuicCryptoCustomTicketValidationComplete(
 
     Crypto->TicketValidationPending = FALSE;
     if (Result) {
-        Crypto->TlsState.ReadKey = QUIC_PACKET_KEY_INITIAL;
-        Crypto->TlsState.WriteKey = QUIC_PACKET_KEY_INITIAL;
-        
-        Crypto->TlsState.BufferLength = 0;
-        Crypto->TlsState.BufferTotalLength = 0;
-        Crypto->TlsState.BufferOffsetHandshake = 0;
-        Crypto->TlsState.BufferOffset1Rtt = 0;
-        Crypto->TlsState.ReadKeys[1] = NULL;
-        Crypto->TlsState.ReadKeys[2] = NULL;
-        Crypto->TlsState.ReadKeys[3] = NULL;
-        Crypto->TlsState.ReadKeys[4] = NULL;
-        Crypto->TlsState.ReadKeys[5] = NULL;
-
-        Crypto->TlsState.WriteKeys[1] = NULL;
-        Crypto->TlsState.WriteKeys[2] = NULL;
-        Crypto->TlsState.WriteKeys[3] = NULL;
-        Crypto->TlsState.WriteKeys[4] = NULL;
-        Crypto->TlsState.WriteKeys[5] = NULL;
-        Crypto->ResultFlags = 0;
-
-        QUIC_CONNECTION* Connection = QuicCryptoGetConnection(Crypto);
-        QUIC_CONFIGURATION* Configuration = Connection->Configuration;
-        Crypto->Initialized = FALSE;
-        uint8_t* Buffer = Crypto->RecvBuffer.Buffer;
-        QuicCryptoInitialize(Crypto);
-        Crypto->RecvBuffer.WrittenRanges.UsedLength = 1; // To pass QuicRecvBufferRead
-        Crypto->RecvBuffer.Buffer = Buffer; // To pass "if" next to QuicCryptoTlsGetCompleteTlsMessageLength
-        QuicCryptoInitializeTls(Crypto, Configuration->SecurityConfig, Connection->HandshakeTP);
+        QuicCryptoProcessDataComplete(Crypto, Crypto->TicketValidationPendingBufferLength);
     } else {
         // TODO: start normal handshake.
     }

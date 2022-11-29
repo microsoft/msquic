@@ -40,9 +40,10 @@ typedef struct QUIC_CRYPTO {
     BOOLEAN CertValidationPending : 1;
 
     //
-    // Indicates custom cert validation (by the app) is outstanding.
+    // Indicates Resumption ticket validation is under validation asynchronously
     //
     BOOLEAN TicketValidationPending : 1;
+    uint32_t TicketValidationPendingBufferLength;
 
     //
     // The TLS context for processing handshake messages.

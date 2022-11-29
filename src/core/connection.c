@@ -2192,6 +2192,10 @@ QuicConnRecvResumptionTicket(
                 Connection);
             ResumptionAccepted = TRUE;
         } else if (Status == QUIC_STATUS_PENDING) {
+            QuicTraceEvent(
+                ConnServerResumeTicket,
+                "[conn][%p] Server app asynchronously validating resumption ticket",
+                Connection);
             Connection->Crypto.TicketValidationPending = TRUE;
             ResumptionAccepted = TRUE;
         } else {
