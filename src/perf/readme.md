@@ -65,19 +65,19 @@ Argument | Usage | Meaning
 --- | --- | ---
 bind | `-bind:<address>` | Binds to the specified local address.
 cc | `-cc:<cubic,bbr>` | Congestion control algorithm used.
+cibir | `-cibir:<hex_bytes>` | The well-known CIBIR identifier.
 comp | `-comp:<####>` | The compartment ID to run in. **Windows Only**
 core | `-core:<####>` | The CPU to use for the main thread.
-port | `-port:<####>` | The UDP port of the server.
-ip | `-ip:<0,4,6> ` | A hint for the resolving the hostname to an IP address.
-cibir | `-cibir:<hex_bytes>` | The well-known CIBIR identifier.
 encrypt | `-encrypt:<0,1>` | Enables/disables encryption.
-sendbuf | `-sendbuf:<0,1>` | Whether to use send buffering.
-pacing | `-pacing:<0,1>` | Whether to use pacing.
-timed | `-timed:<0,1>` | Indicates the `upload` & `download` arg represent time (ms).
 iosize | `-iosize:<####>` | The size of each send request queued.
-tcp | `-tcp:<0,1>` | Indicates TCP/TLS should be used instead of QUIC. **Windows Only**
-stats | `-stats:<0,1>` | Prints out statistics at the end of each connection.
+ip | `-ip:<0,4,6> ` | A hint for the resolving the hostname to an IP address.
+pacing | `-pacing:<0,1>` | Whether to use pacing.
+port | `-port:<####>` | The UDP port of the server.
+sendbuf | `-sendbuf:<0,1>` | Whether to use send buffering.
 sstats | `-sstats:<0,1>` | Prints out stream-level statistics at the end of each stream.
+stats | `-stats:<0,1>` | Prints out statistics at the end of each connection.
+tcp | `-tcp:<0,1>` | Indicates TCP/TLS should be used instead of QUIC. **Windows Only**
+timed | `-timed:<0,1>` | Indicates the `upload` & `download` arg represent time (ms).
 
 ## RPS Test
 
@@ -103,22 +103,22 @@ target,server | `-target:<hostname_or_IP>` | The target server to connect to. Ma
 
 Argument | Usage | Meaning
 --- | --- | ---
-bind | `-bind:<address>` | Binds to the specified local address.
 addrs | `-addrs:<####>` | The number of local addresses to use.
-runtime | `-runtime:<####>` | The total runtime (in ms).
-encrypt | `-encrypt:<0,1>` | Enables/disables encryption.
-inline | `-inline:<0,1>` | Configured sending requests inline.
-port | `-port:<####>` | The UDP port of the server.
-ip | `-ip:<0,4,6> ` | A hint for the resolving the hostname to an IP address.
+affinitize | `-affinitize:<0,1>` | Affinitizes threads to a core.
+bind | `-bind:<address>` | Binds to the specified local address.
 cibir | `-cibir:<hex_bytes>` | The well-known CIBIR identifier.
 conns | `-conns:<####>` | The number of connections to use.
+encrypt | `-encrypt:<0,1>` | Enables/disables encryption.
+inline | `-inline:<0,1>` | Configured sending requests inline.
+ip | `-ip:<0,4,6> ` | A hint for the resolving the hostname to an IP address.
+port | `-port:<####>` | The UDP port of the server.
 requests | `-requests:<####>` | The number of requests to send at a time.
 request | `-request:<####>` | The length of request payloads.
 response | `-response:<####>` | The length of request payloads.
-threads | `-threads:<####>` | The number of threads to use (capped to number of cores).
-affinitize | `-affinitize:<0,1>` | Affinitizes threads to a core.
+runtime | `-runtime:<####>` | The total runtime (in ms).
 sendbuf | `-sendbuf:<0,1>` | Whether to use send buffering.
 stats | `-stats:<0,1>` | Prints out statistics at the end of each connection.
+threads | `-threads:<####>` | The number of threads to use (capped to number of cores).
 
 ## HPS Test
 
@@ -145,8 +145,8 @@ target,server | `-target:<hostname_or_IP>` | The target server to connect to. Ma
 Argument | Usage | Meaning
 --- | --- | ---
 bind | `-bind:<address>` | Binds to the specified local address.
-runtime | `-runtime:<####>` | The total runtime (in ms).
-port | `-port:<####>` | The UDP port of the server.
-parallel | `-parallel:<####>` | The number of parallel connections per core.
-threads | `-threads:<####>` | The number of threads to use (capped to number of cores).
 incrementtarget | `-incrementtarget<0,1>` | Set to 1 to append core index to target.
+parallel | `-parallel:<####>` | The number of parallel connections per core.
+port | `-port:<####>` | The UDP port of the server.
+runtime | `-runtime:<####>` | The total runtime (in ms).
+threads | `-threads:<####>` | The number of threads to use (capped to number of cores).
