@@ -210,14 +210,22 @@ typedef struct CXPLAT_DATAPATH_INTERNAL_RECV_BUFFER_CONTEXT {
 } CXPLAT_DATAPATH_INTERNAL_RECV_BUFFER_CONTEXT;
 
 //
-// Send context.
+// TODO: comments
 //
-typedef struct CXPLAT_SEND_DATA {
+typedef struct DECLSPEC_ALIGN(MEMORY_ALLOCATION_ALIGNMENT) CXPLAT_RIO_SEND_BUFFER_HEADER {
     //
     // Common IO header.
     //
     CXPLAT_DATAPATH_INTERNAL_IO_HEADER IoHeader;
+    RIO_BUFFERID RioBufferId;
+    CXPLAT_DATAPATH* Datapath;
+    CXPLAT_SEND_DATA* SendData;
+} CXPLAT_RIO_SEND_BUFFER_HEADER;
 
+//
+// Send context.
+//
+typedef struct CXPLAT_SEND_DATA {
     //
     // The submission queue entry for the send completion.
     //
@@ -227,11 +235,6 @@ typedef struct CXPLAT_SEND_DATA {
     // The owning processor context.
     //
     CXPLAT_DATAPATH_PROC* Owner;
-
-    //
-    // The per-processor socket for this send IO.
-    //
-    CXPLAT_SOCKET_PROC* SocketProc;
 
     //
     // The total buffer size for WsaBuffers.
@@ -278,6 +281,10 @@ typedef struct CXPLAT_SEND_DATA {
     //
     QUIC_ADDR RemoteAddress;
 
+    //
+    // The V6-mapped remote address to send to.
+    //
+    SOCKADDR_INET MappedRemoteAddress;
 } CXPLAT_SEND_DATA;
 
 //
@@ -355,6 +362,7 @@ typedef struct QUIC_CACHEALIGN CXPLAT_SOCKET_PROC {
     RIO_RQ RioRq;
     ULONG RioRecvCount;
     ULONG RioSendCount;
+    CXPLAT_LIST_ENTRY RioSendOverflow;
 } CXPLAT_SOCKET_PROC;
 
 //
@@ -467,18 +475,34 @@ typedef struct QUIC_CACHEALIGN CXPLAT_DATAPATH_PROC {
     //
     // Pool of send contexts to be shared by all sockets on this core.
     //
-    CXPLAT_POOL SendDataPool;
+    CXPLAT_LOOKASIDE SendDataPool;
+
+    //
+    // Pool of send contexts to be shared by all RIO sockets on this core.
+    //
+    CXPLAT_LOOKASIDE RioSendDataPool;
 
     //
     // Pool of send buffers to be shared by all sockets on this core.
     //
-    CXPLAT_POOL SendBufferPool;
+    CXPLAT_LOOKASIDE SendBufferPool;
 
     //
     // Pool of large segmented send buffers to be shared by all sockets on this
     // core.
     //
-    CXPLAT_POOL LargeSendBufferPool;
+    CXPLAT_LOOKASIDE LargeSendBufferPool;
+
+    //
+    // Pool of send buffers to be shared by all RIO sockets on this core.
+    //
+    CXPLAT_LOOKASIDE RioSendBufferPool;
+
+    //
+    // Pool of large segmented send buffers to be shared by all RIO sockets on
+    // this core.
+    //
+    CXPLAT_LOOKASIDE RioLargeSendBufferPool;
 
     //
     // Pool of receive datagram contexts and buffers to be shared by all sockets
@@ -705,6 +729,36 @@ RioRecvBufferAllocate(
 
 void
 RioRecvBufferFree(
+    _In_ void* Entry,
+    _In_ uint32_t Tag,
+    _Inout_ CXPLAT_LOOKASIDE* Lookaside
+    );
+
+void*
+RioSendDataAllocate(
+    _In_ BOOLEAN IsPaged,
+    _In_ uint32_t Size,
+    _In_ uint32_t Tag,
+    _Inout_ CXPLAT_LOOKASIDE* Lookaside
+    );
+
+void
+RioSendDataFree(
+    _In_ void* Entry,
+    _In_ uint32_t Tag,
+    _Inout_ CXPLAT_LOOKASIDE* Lookaside
+    );
+
+void*
+RioSendBufferAllocate(
+    _In_ BOOLEAN IsPaged,
+    _In_ uint32_t Size,
+    _In_ uint32_t Tag,
+    _Inout_ CXPLAT_LOOKASIDE* Lookaside
+    );
+
+void
+RioSendBufferFree(
     _In_ void* Entry,
     _In_ uint32_t Tag,
     _Inout_ CXPLAT_LOOKASIDE* Lookaside
@@ -1115,23 +1169,59 @@ CxPlatDataPathInitialize(
             CxPlatWorkerGetEventQ(Datapath->Processors[i].IdealProcessor);
         CxPlatRefInitialize(&Datapath->Processors[i].RefCount);
 
-        CxPlatPoolInitialize(
+        CxPlatLookasideInitialize(
             FALSE,
             sizeof(CXPLAT_SEND_DATA),
             QUIC_POOL_PLATFORM_SENDCTX,
+            0,
+            NULL,
+            NULL,
             &Datapath->Processors[i].SendDataPool);
 
-        CxPlatPoolInitialize(
+        CxPlatLookasideInitialize(
+            FALSE,
+            sizeof(CXPLAT_SEND_DATA),
+            QUIC_POOL_PLATFORM_SENDCTX,
+            0,
+            RioSendDataAllocate,
+            RioSendDataFree,
+            &Datapath->Processors[i].RioSendDataPool);
+
+        CxPlatLookasideInitialize(
             FALSE,
             MAX_UDP_PAYLOAD_LENGTH,
             QUIC_POOL_DATA,
+            0,
+            NULL,
+            NULL,
             &Datapath->Processors[i].SendBufferPool);
 
-        CxPlatPoolInitialize(
+        CxPlatLookasideInitialize(
             FALSE,
             CXPLAT_LARGE_SEND_BUFFER_SIZE,
             QUIC_POOL_DATA,
+            0,
+            NULL,
+            NULL,
             &Datapath->Processors[i].LargeSendBufferPool);
+
+        CxPlatLookasideInitialize(
+            FALSE,
+            MAX_UDP_PAYLOAD_LENGTH,
+            QUIC_POOL_DATA,
+            0,
+            RioSendBufferAllocate,
+            RioSendBufferFree,
+            &Datapath->Processors[i].RioSendBufferPool);
+
+        CxPlatLookasideInitialize(
+            FALSE,
+            CXPLAT_LARGE_SEND_BUFFER_SIZE,
+            QUIC_POOL_DATA,
+            0,
+            RioSendBufferAllocate,
+            RioSendBufferFree,
+            &Datapath->Processors[i].RioLargeSendBufferPool);
 
         CxPlatLookasideInitialize(
             FALSE,
@@ -1201,9 +1291,12 @@ CxPlatProcessorContextRelease(
         CXPLAT_DBG_ASSERT(!DatapathProc->Uninitialized);
         DatapathProc->Uninitialized = TRUE;
 #endif
-        CxPlatPoolUninitialize(&DatapathProc->SendDataPool);
-        CxPlatPoolUninitialize(&DatapathProc->SendBufferPool);
-        CxPlatPoolUninitialize(&DatapathProc->LargeSendBufferPool);
+        CxPlatLookasideUninitialize(&DatapathProc->SendDataPool);
+        CxPlatLookasideUninitialize(&DatapathProc->RioSendDataPool);
+        CxPlatLookasideUninitialize(&DatapathProc->SendBufferPool);
+        CxPlatLookasideUninitialize(&DatapathProc->LargeSendBufferPool);
+        CxPlatLookasideUninitialize(&DatapathProc->RioSendBufferPool);
+        CxPlatLookasideUninitialize(&DatapathProc->RioLargeSendBufferPool);
         CxPlatLookasideUninitialize(&DatapathProc->RecvDatagramPool);
         CxPlatLookasideUninitialize(&DatapathProc->RioRecvPool);
         CxPlatDataPathRelease(DatapathProc->Datapath);
@@ -1642,6 +1735,7 @@ CxPlatSocketCreateUdp(
         CxPlatRundownInitialize(&Socket->Processors[i].UpcallRundown);
         Socket->Processors[i].RioCq = RIO_INVALID_CQ;
         Socket->Processors[i].RioRq = RIO_INVALID_RQ;
+        CxPlatListInitializeHead(&Socket->Processors[i].RioSendOverflow);
     }
 
     for (uint16_t i = 0; i < SocketCount; i++) {
@@ -3722,6 +3816,27 @@ CxPlatDataPathStartReceive(
 }
 
 void
+CxPlatDataPathRestartRioUdpSends(
+    _In_ CXPLAT_SOCKET_PROC* SocketProc
+    )
+{
+    while (!CxPlatListIsEmpty(&SocketProc->RioSendOverflow) &&
+        SocketProc->RioSendCount < RIO_SEND_QUEUE_DEPTH) {
+        CXPLAT_LIST_ENTRY* Entry = CxPlatListRemoveHead(&SocketProc->RioSendOverflow);
+        CXPLAT_SEND_DATA* SendData = CONTAINING_RECORD(Entry, CXPLAT_SEND_DATA, RioOverflowEntry);
+
+        //
+        // RIO always queues sends.
+        //
+        CxPlatSocketSendInline(
+            SocketProc,
+            &SendData->LocalAddress,
+            &SendData->RemoteAddress,
+            SendData);
+    }
+}
+
+void
 CxPlatDataPathRioUdpCompletion(
     _In_ CXPLAT_SOCKET_PROC* SocketProc,
     _In_ ULONG IoResult
@@ -3730,32 +3845,50 @@ CxPlatDataPathRioUdpCompletion(
     CXPLAT_DATAPATH* Datapath = SocketProc->DatapathProc->Datapath;
     RIORESULT Results[32];
     ULONG ResultCount;
+    ULONG NotifyResult;
 
-    ResultCount =
-        Datapath->RioDispatch.RIODequeueCompletion(
-            SocketProc->RioCq, Results, RTL_NUMBER_OF(Results));
+    do {
+        ResultCount =
+            Datapath->RioDispatch.RIODequeueCompletion(
+                SocketProc->RioCq, Results, RTL_NUMBER_OF(Results));
 
-    CXPLAT_FRE_ASSERT(ResultCount != RIO_CORRUPT_CQ);
+        CXPLAT_FRE_ASSERT(ResultCount != RIO_CORRUPT_CQ);
 
-    for (ULONG i = 0; i < ResultCount; i++) {
-        CXPLAT_DATAPATH_INTERNAL_IO_HEADER* IoHeader =
-            (CXPLAT_DATAPATH_INTERNAL_IO_HEADER*)Results[i].RequestContext;
+        for (ULONG i = 0; i < ResultCount; i++) {
+            CXPLAT_DATAPATH_INTERNAL_IO_HEADER* IoHeader =
+                (CXPLAT_DATAPATH_INTERNAL_IO_HEADER*)Results[i].RequestContext;
 
-        if (IoHeader->IoType == CXPLAT_IO_RECV) {
-            CXPLAT_DBG_ASSERT(Results[i].BytesTransferred <= UINT16_MAX);
+            if (IoHeader->IoType == CXPLAT_IO_RECV) {
+                CXPLAT_DBG_ASSERT(Results[i].BytesTransferred <= UINT16_MAX);
 
-            CxPlatDataPathUdpRecvComplete(
-                SocketProc,
-                CONTAINING_RECORD(IoHeader, CXPLAT_DATAPATH_INTERNAL_RECV_CONTEXT, IoHeader),
-                Results[i].Status, (UINT16)Results[i].BytesTransferred);
+                CxPlatDataPathUdpRecvComplete(
+                    SocketProc,
+                    CONTAINING_RECORD(IoHeader, CXPLAT_DATAPATH_INTERNAL_RECV_CONTEXT, IoHeader),
+                    Results[i].Status, (UINT16)Results[i].BytesTransferred);
 
-            SocketProc->RioRecvCount--;
-        } else {
-            CXPLAT_DBG_ASSERT(FALSE);
+                SocketProc->RioRecvCount--;
+            } else if (IoHeader->IoType == CXPLAT_IO_SEND) {
+                CXPLAT_RIO_SEND_BUFFER_HEADER* SendHeader =
+                    CONTAINING_RECORD(IoHeader, CXPLAT_RIO_SEND_BUFFER_HEADER, IoHeader);
+                CXPLAT_SEND_DATA* SendData = SendHeader->SendData;
+
+                CxPlatSendDataComplete(SocketProc, SendData, Results[i].Status);
+
+                SocketProc->RioSendCount--;
+            } else {
+                CXPLAT_DBG_ASSERT(FALSE);
+            }
         }
-    }
+    } while (ResultCount > 0);
 
     CxPlatDataPathRestartUdpReceives(SocketProc);
+    CxPlatDataPathRestartRioUdpSends(SocketProc);
+
+    //
+    // Re-arm completion notifications.
+    //
+    NotifyResult = Datapath->RioDispatch.RIONotify(SocketProc->RioCq);
+    CXPLAT_FRE_ASSERT(NotifyResult == ERROR_SUCCESS);   // TODO: what if this fails?
 }
 
 BOOLEAN
@@ -3964,6 +4097,48 @@ CxPlatDataPathSocketProcessReceiveCompletion(
     CxPlatRundownRelease(&SocketProc->UpcallRundown);
 }
 
+void*
+RioSendDataAllocate(
+    _In_ BOOLEAN IsPaged,
+    _In_ uint32_t Size,
+    _In_ uint32_t Tag,
+    _Inout_ CXPLAT_LOOKASIDE* Lookaside
+    )
+{
+    UNREFERENCED_PARAMETER(IsPaged);
+    CXPLAT_DATAPATH_PROC* DatapathProc =
+        CXPLAT_CONTAINING_RECORD(Lookaside, CXPLAT_DATAPATH_PROC, RioRecvPool);
+    CXPLAT_DATAPATH* Datapath = DatapathProc->Datapath;
+    CXPLAT_SEND_DATA* SendData;
+
+    SendData = CxPlatAlloc(Size, Tag);
+
+    if (SendData != NULL) {
+        SendData->RioBufferId = Datapath->RioDispatch.RIORegisterBuffer(SendData, Size);
+        if (SendData->RioBufferId == RIO_INVALID_BUFFERID) {
+            CxPlatFree(SendData, Tag);
+            SendData = NULL;
+        }
+    }
+
+    return SendData;
+}
+
+void
+RioSendDataFree(
+    _In_ void* Entry,
+    _In_ uint32_t Tag,
+    _Inout_ CXPLAT_LOOKASIDE* Lookaside
+    )
+{
+    CXPLAT_SEND_DATA* SendData = Entry;
+    CXPLAT_DATAPATH* Datapath = SendData->Owner->Datapath;
+
+    CXPLAT_DBG_ASSERT(SendData->RioBufferId != RIO_INVALID_BUFFERID);
+    Datapath->RioDispatch.RIODeregisterBuffer(SendData->RioBufferId);
+    CxPlatFree(SendData, Tag);
+}
+
 _IRQL_requires_max_(DISPATCH_LEVEL)
 _Success_(return != NULL)
 CXPLAT_SEND_DATA*
@@ -3974,16 +4149,17 @@ CxPlatSendDataAlloc(
 {
     CXPLAT_DBG_ASSERT(Socket != NULL);
 
-    if (Config->Route->Queue == NULL) {
-        Config->Route->Queue = &Socket->Processors[0];
-    }
+    CXPLAT_DATAPATH_PROC* DatapathProc =
+        CxPlatDataPathGetProc(Socket->Datapath, (uint16_t)GetCurrentProcessorNumber());
+    CXPLAT_LOOKASIDE* SendDataPool =
+        Socket->UseRio ? &DatapathProc->RioSendDataPool : &DatapathProc->SendDataPool;
 
-    CXPLAT_SOCKET_PROC* SocketProc = Config->Route->Queue;
-    CXPLAT_SEND_DATA* SendData = CxPlatPoolAlloc(&SocketProc->DatapathProc->SendDataPool);
+    CXPLAT_SEND_DATA* SendData = CxPlatLookasideAlloc(SendDataPool);
+
     if (SendData != NULL) {
-        SendData->Owner = SocketProc->DatapathProc;
-        SendData->ECN = Config->ECN;
-        SendData->SendFlags = Config->Flags;
+        SendData->Owner = DatapathProc;
+        SendData->SendDataPool = SendDataPool;
+        SendData->ECN = ECN;
         SendData->SegmentSize =
             (Socket->Type != CXPLAT_SOCKET_UDP ||
              Socket->Datapath->Features & CXPLAT_DATAPATH_FEATURE_SEND_SEGMENTATION)
@@ -3992,9 +4168,18 @@ CxPlatSendDataAlloc(
         SendData->WsaBufferCount = 0;
         SendData->ClientBuffer.len = 0;
         SendData->ClientBuffer.buf = NULL;
-#if DEBUG
-        SendData->Sqe.IoType = 0;
-#endif
+
+        if (Socket->UseRio) {
+            SendData->BufferPool =
+                SendData->SegmentSize > 0 ?
+                    &DatapathProc->RioLargeSendBufferPool :
+                    &DatapathProc->RioSendBufferPool;
+        } else {
+            SendData->BufferPool =
+                SendData->SegmentSize > 0 ?
+                    &DatapathProc->LargeSendBufferPool :
+                    &DatapathProc->SendBufferPool;
+        }
     }
 
     return SendData;
@@ -4007,15 +4192,68 @@ CxPlatSendDataFree(
     )
 {
     CXPLAT_DATAPATH_PROC* DatapathProc = SendData->Owner;
-    CXPLAT_POOL* BufferPool =
-        SendData->SegmentSize > 0 ?
-            &DatapathProc->LargeSendBufferPool : &DatapathProc->SendBufferPool;
 
     for (UINT8 i = 0; i < SendData->WsaBufferCount; ++i) {
-        CxPlatPoolFree(BufferPool, SendData->WsaBuffers[i].buf);
+        CxPlatLookasideFree(SendData->BufferPool, SendData->WsaBuffers[i].buf);
     }
 
-    CxPlatPoolFree(&DatapathProc->SendDataPool, SendData);
+    CxPlatLookasideFree(SendData->SendDataPool, SendData);
+}
+
+CXPLAT_RIO_SEND_BUFFER_HEADER*
+RioSendBufferHeaderFromBuffer(
+    _In_ char* Buffer
+    )
+{
+    return ((CXPLAT_RIO_SEND_BUFFER_HEADER*)Buffer) - 1;
+}
+
+void*
+RioSendBufferAllocate(
+    _In_ BOOLEAN IsPaged,
+    _In_ uint32_t Size,
+    _In_ uint32_t Tag,
+    _Inout_ CXPLAT_LOOKASIDE* Lookaside
+    )
+{
+    UNREFERENCED_PARAMETER(IsPaged);
+    CXPLAT_DATAPATH_PROC* DatapathProc =
+        CXPLAT_CONTAINING_RECORD(Lookaside, CXPLAT_DATAPATH_PROC, RioRecvPool);
+    CXPLAT_DATAPATH* Datapath = DatapathProc->Datapath;
+    CXPLAT_RIO_SEND_BUFFER_HEADER* RioHeader;
+    void* Buffer = NULL;
+
+    CXPLAT_DBG_ASSERT(Size + sizeof(*RioHeader) > Size);
+    RioHeader = CxPlatAlloc(Size + sizeof(*RioHeader), Tag);
+
+    if (RioHeader != NULL) {
+        Buffer = RioHeader + 1;
+
+        RioHeader->Datapath = Datapath;
+        RioHeader->RioBufferId = Datapath->RioDispatch.RIORegisterBuffer(Buffer, Size);
+        if (RioHeader->RioBufferId == RIO_INVALID_BUFFERID) {
+            CxPlatFree(RioHeader, Tag);
+            RioHeader = NULL;
+            Buffer = NULL;
+        }
+    }
+
+    return Buffer;
+}
+
+void
+RioSendBufferFree(
+    _In_ void* Entry,
+    _In_ uint32_t Tag,
+    _Inout_ CXPLAT_LOOKASIDE* Lookaside
+    )
+{
+    CXPLAT_RIO_SEND_BUFFER_HEADER* RioHeader = RioSendBufferHeaderFromBuffer(Entry);
+    CXPLAT_DATAPATH* Datapath = RioHeader->Datapath;
+
+    CXPLAT_DBG_ASSERT(RioHeader->RioBufferId != RIO_INVALID_BUFFERID);
+    Datapath->RioDispatch.RIODeregisterBuffer(RioHeader->RioBufferId);
+    CxPlatFree(RioHeader, Tag);
 }
 
 static
@@ -4098,14 +4336,13 @@ _Success_(return != NULL)
 static
 WSABUF*
 CxPlatSendDataAllocDataBuffer(
-    _In_ CXPLAT_SEND_DATA* SendData,
-    _In_ CXPLAT_POOL* BufferPool
+    _In_ CXPLAT_SEND_DATA* SendData
     )
 {
     CXPLAT_DBG_ASSERT(SendData->WsaBufferCount < SendData->Owner->Datapath->MaxSendBatchSize);
 
     WSABUF* WsaBuffer = &SendData->WsaBuffers[SendData->WsaBufferCount];
-    WsaBuffer->buf = CxPlatPoolAlloc(BufferPool);
+    WsaBuffer->buf = CxPlatLookasideAlloc(SendData->BufferPool);
     if (WsaBuffer->buf == NULL) {
         return NULL;
     }
@@ -4122,8 +4359,7 @@ CxPlatSendDataAllocPacketBuffer(
     _In_ UINT16 MaxBufferLength
     )
 {
-    WSABUF* WsaBuffer =
-        CxPlatSendDataAllocDataBuffer(SendData, &SendData->Owner->SendBufferPool);
+    WSABUF* WsaBuffer = CxPlatSendDataAllocDataBuffer(SendData);
     if (WsaBuffer != NULL) {
         WsaBuffer->len = MaxBufferLength;
     }
@@ -4149,7 +4385,7 @@ CxPlatSendDataAllocSegmentBuffer(
         return (QUIC_BUFFER*)&SendData->ClientBuffer;
     }
 
-    WSABUF* WsaBuffer = CxPlatSendDataAllocDataBuffer(SendData, &SendData->Owner->LargeSendBufferPool);
+    WSABUF* WsaBuffer = CxPlatSendDataAllocDataBuffer(SendData);
     if (WsaBuffer == NULL) {
         return NULL;
     }
@@ -4205,14 +4441,14 @@ CxPlatSendDataFreeBuffer(
     if (SendData->SegmentSize == 0) {
         CXPLAT_DBG_ASSERT(Buffer->Buffer == (uint8_t*)TailBuffer);
 
-        CxPlatPoolFree(&DatapathProc->SendBufferPool, Buffer->Buffer);
+        CxPlatLookasideFree(SendData->BufferPool, Buffer->Buffer);
         --SendData->WsaBufferCount;
     } else {
         TailBuffer += SendData->WsaBuffers[SendData->WsaBufferCount - 1].len;
         CXPLAT_DBG_ASSERT(Buffer->Buffer == (uint8_t*)TailBuffer);
 
         if (SendData->WsaBuffers[SendData->WsaBufferCount - 1].len == 0) {
-            CxPlatPoolFree(&DatapathProc->LargeSendBufferPool, Buffer->Buffer);
+            CxPlatLookasideFree(SendData->BufferPool, Buffer->Buffer);
             --SendData->WsaBufferCount;
         }
 
@@ -4275,6 +4511,11 @@ CxPlatSocketSendInline(
     Datapath = SocketProc->Parent->Datapath;
     Socket = SocketProc->Parent;
 
+    if (SocketProc->RioSendCount == RIO_SEND_QUEUE_DEPTH) {
+        CxPlatListInsertTail(&SocketProc->RioSendOverflow, &SendData->RioOverflowEntry);
+        return QUIC_STATUS_SUCCESS;
+    }
+
     QuicTraceEvent(
         DatapathSend,
         "[data][%p] Send %u bytes in %hhu buffers (segment=%hu) Dst=%!ADDR!, Src=%!ADDR!",
@@ -4288,14 +4529,7 @@ CxPlatSocketSendInline(
     //
     // Map V4 address to dual-stack socket format.
     //
-    SOCKADDR_INET MappedRemoteAddress = { 0 };
-    CxPlatConvertToMappedV6(RemoteAddress, &MappedRemoteAddress);
-
-    BYTE CtrlBuf[
-        WSA_CMSG_SPACE(sizeof(IN6_PKTINFO)) +   // IP_PKTINFO
-        WSA_CMSG_SPACE(sizeof(INT)) +           // IP_ECN
-        WSA_CMSG_SPACE(sizeof(DWORD))           // UDP_SEND_MSG_SIZE
-        ];
+    CxPlatConvertToMappedV6(RemoteAddress, &SendData->MappedRemoteAddress);
 
     WSAMSG WSAMhdr;
     WSAMhdr.dwFlags = 0;
@@ -4303,12 +4537,12 @@ CxPlatSocketSendInline(
         WSAMhdr.name = NULL;
         WSAMhdr.namelen = 0;
     } else {
-        WSAMhdr.name = (LPSOCKADDR)&MappedRemoteAddress;
-        WSAMhdr.namelen = sizeof(MappedRemoteAddress);
+        WSAMhdr.name = (LPSOCKADDR)&SendData->MappedRemoteAddress;
+        WSAMhdr.namelen = sizeof(SendData->MappedRemoteAddress);
     }
     WSAMhdr.lpBuffers = SendData->WsaBuffers;
     WSAMhdr.dwBufferCount = SendData->WsaBufferCount;
-    WSAMhdr.Control.buf = (PCHAR)CtrlBuf;
+    WSAMhdr.Control.buf = SendData->CtrlBuf;
     WSAMhdr.Control.len = 0;
 
     PWSACMSGHDR CMsg = NULL;
@@ -4372,14 +4606,59 @@ CxPlatSocketSendInline(
     CxPlatStartDatapathIo(&SendData->Sqe, DATAPATH_IO_SEND);
 
     if (Socket->Type == CXPLAT_SOCKET_UDP) {
-        Result =
-            Datapath->WSASendMsg(
-                SocketProc->Socket,
-                &WSAMhdr,
-                0,
-                &BytesSent,
-                &SendData->Sqe.DatapathSqe.Sqe.Overlapped,
-                NULL);
+        if (Socket->UseRio) {
+            RIO_BUF RemoteAddr = {0};
+            RIO_BUF Control = {0};
+
+            RemoteAddr.BufferId = SendData->RioBufferId;
+            RemoteAddr.Offset = FIELD_OFFSET(CXPLAT_SEND_DATA, MappedRemoteAddress);
+            RemoteAddr.Length = sizeof(SendData->MappedRemoteAddress);
+
+            Control.BufferId = SendData->RioBufferId;
+            Control.Offset = FIELD_OFFSET(CXPLAT_SEND_DATA, CtrlBuf);
+            Control.Length = WSAMhdr.Control.len;
+
+            //
+            // TODO: refcount the send data for each buffer, since RIO does not
+            // support sending more than one buffer at a time yet.
+            //
+            CXPLAT_FRE_ASSERT(SendData->WsaBufferCount == 1);
+            for (UINT8 i = 0; i < SendData->WsaBufferCount; i++) {
+                RIO_BUF Data = {0};
+                CXPLAT_RIO_SEND_BUFFER_HEADER *SendHeader =
+                    RioSendBufferHeaderFromBuffer(SendData->WsaBuffers[i].buf);
+
+                Data.BufferId = SendHeader->RioBufferId;
+                Data.Length = SendData->WsaBuffers[i].len;
+                SendHeader->IoHeader.IoType = CXPLAT_IO_SEND;
+                SendHeader->SendData = SendData;
+
+                if (!Datapath->RioDispatch.RIOSendEx(
+                        SocketProc->RioRq, &Data, 1, NULL, &RemoteAddr,
+                        &Control, NULL, 0, &SendHeader->IoHeader)) {
+                    int WsaError = WSAGetLastError();
+                    QuicTraceEvent(
+                        DatapathErrorStatus,
+                        "[data][%p] ERROR, %u, %s.",
+                        SocketProc->Parent,
+                        WsaError,
+                        "RIOSendEx");
+                    Status = HRESULT_FROM_WIN32(WsaError);
+                    goto Exit;
+                }
+
+                SocketProc->RioSendCount++;
+            }
+        } else {
+            Result =
+                Datapath->WSASendMsg(
+                    SocketProc->Socket,
+                    &WSAMhdr,
+                    0,
+                    &BytesSent,
+                    &SendData->Sqe.DatapathSqe.Sqe.Overlapped,
+                    NULL);
+        }
     } else {
         Result =
             WSASend(
@@ -4425,35 +4704,13 @@ Exit:
     return Status;
 }
 
-_IRQL_requires_max_(DISPATCH_LEVEL)
 QUIC_STATUS
-CxPlatSocketSend(
-    _In_ CXPLAT_SOCKET* Socket,
+CxPlatSocketSendEnqueue(
+    _In_ CXPLAT_SOCKET_PROC* SocketProc,
     _In_ const CXPLAT_ROUTE* Route,
     _In_ CXPLAT_SEND_DATA* SendData
     )
 {
-    CXPLAT_DBG_ASSERT(Socket != NULL && Route != NULL && SendData != NULL);
-
-    CXPLAT_DBG_ASSERT(Route->Queue);
-    CXPLAT_SOCKET_PROC* SocketProc = Route->Queue;
-
-    SendData->SocketProc = SocketProc;
-    CxPlatSendDataFinalizeSendBuffer(SendData);
-
-    if ((Socket->Type != CXPLAT_SOCKET_UDP) ||
-        !(SendData->SendFlags & CXPLAT_SEND_FLAGS_MAX_THROUGHPUT)) {
-        //
-        // Currently TCP always sends inline.
-        //
-        return
-            CxPlatSocketSendInline(
-                SocketProc,
-                &Route->LocalAddress,
-                &Route->RemoteAddress,
-                SendData);
-    }
-
     CxPlatCopyMemory(
         &SendData->LocalAddress,
         &Route->LocalAddress,
@@ -4488,6 +4745,45 @@ CxPlatSocketSend(
     return QUIC_STATUS_SUCCESS;
 }
 
+_IRQL_requires_max_(DISPATCH_LEVEL)
+QUIC_STATUS
+CxPlatSocketSend(
+    _In_ CXPLAT_SOCKET* Socket,
+    _In_ const CXPLAT_ROUTE* Route,
+    _In_ CXPLAT_SEND_DATA* SendData
+    )
+{
+    CXPLAT_DBG_ASSERT(Socket != NULL && Route != NULL && SendData != NULL);
+
+    CXPLAT_DBG_ASSERT(Route->Queue);
+    CXPLAT_SOCKET_PROC* SocketProc = Route->Queue;
+
+    SendData->SocketProc = SocketProc;
+    CxPlatSendDataFinalizeSendBuffer(SendData);
+
+    if (Socket->UseRio) {
+        //
+        // Currently RIO always queues sends.
+        //
+        return CxPlatSocketSendEnqueue(SocketProc, Route, SendData);
+    }
+
+    if ((Socket->Type != CXPLAT_SOCKET_UDP) ||
+        !(SendData->SendFlags & CXPLAT_SEND_FLAGS_MAX_THROUGHPUT)) {
+        //
+        // Currently TCP always sends inline.
+        //
+        return
+            CxPlatSocketSendInline(
+                SocketProc,
+                &Route->LocalAddress,
+                &Route->RemoteAddress,
+                SendData);
+    }
+
+    return CxPlatSocketSendEnqueue(SocketProc, Route, SendData);
+}
+
 void
 CxPlatDataPathSocketProcessQueuedSend(
     _In_ DATAPATH_IO_SQE* Sqe,
@@ -4498,34 +4794,23 @@ CxPlatDataPathSocketProcessQueuedSend(
     CXPLAT_SEND_DATA* SendData = CONTAINING_RECORD(Sqe, CXPLAT_SEND_DATA, Sqe);
     CXPLAT_SOCKET_PROC* SocketProc = SendData->SocketProc;
 
-    if (CxPlatRundownAcquire(&SocketProc->UpcallRundown)) {
+#ifdef CXPLAT_DATAPATH_QUEUE_SENDS
+    if (Cqe->dwNumberOfBytesTransferred == UINT32_MAX &&
+        CxPlatRundownAcquire(&SocketProc->UpcallRundown)) {
         CxPlatSocketSendInline(
             SocketProc,
             &SendData->LocalAddress,
             &SendData->RemoteAddress,
             SendData);
         CxPlatRundownRelease(&SocketProc->UpcallRundown);
-    } else {
+    } else
+#endif // CXPLAT_DATAPATH_QUEUE_SENDS
+    {
         CxPlatSendDataComplete(
             SocketProc,
             SendData,
-            WSAESHUTDOWN);
+            RtlNtStatusToDosError((NTSTATUS)Cqe->Internal));
     }
-}
-
-void
-CxPlatDataPathSocketProcessSendCompletion(
-    _In_ DATAPATH_IO_SQE* Sqe,
-    _In_ CXPLAT_CQE* Cqe
-    )
-{
-    CXPLAT_SEND_DATA* SendData = CONTAINING_RECORD(Sqe, CXPLAT_SEND_DATA, Sqe);
-    CXPLAT_SOCKET_PROC* SocketProc = SendData->SocketProc;
-
-    CxPlatSendDataComplete(
-        SocketProc,
-        SendData,
-        RtlNtStatusToDosError((NTSTATUS)Cqe->Internal));
 }
 
 void
