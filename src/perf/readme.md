@@ -26,7 +26,7 @@ stats | `-stats:<0,1>` | Prints out statistics at the end of each connection.
 
 # Client
 
-Since tests are client, the client side of secnetperf generally has several arguments passed in. Many of the arguments are also test specific, but the following (overlap with server) do apply to all:
+Since tests are client-driven, the client side of secnetperf generally has several arguments passed in to specify which test to run. Many of the arguments are also test specific, but the following (overlap with server) do apply to all:
 
 Argument | Usage | Meaning
 --- | --- | ---
@@ -56,8 +56,8 @@ To run the throughput test, you must specify the `-test:tput` option, followed b
 Argument | Usage | Meaning
 --- | --- | ---
 target,server | `-target:<hostname_or_IP>` | The target server to connect to. May be a hostname or an IP address.
-download | `-download:<####>` | The length of data (or time with `-timed:1` arg) to receive. Mutually exclusive with `-upload` arg.
-upload | `-upload:<####>` | The length of data (or time with `-timed:1` arg) to send. Mutually exclusive with `-download` arg.
+download | `-download:<####>` | The length of data in bytes (or time with `-timed:1` arg) to receive. Mutually exclusive with `-upload` arg.
+upload | `-upload:<####>` | The length of data in bytes (or time with `-timed:1` arg) to send. Mutually exclusive with `-download` arg.
 
 ### Optional
 
@@ -66,7 +66,7 @@ Argument | Usage | Meaning
 bind | `-bind:<address>` | Binds to the specified local address.
 cc | `-cc:<cubic,bbr>` | Congestion control algorithm used.
 comp | `-comp:<####>` | The compartment ID to run in. **Windows Only**
-core | `-core:<####>` | The CPU core to use for the main thread.
+core | `-core:<####>` | The CPU to use for the main thread.
 port | `-port:<####>` | The UDP port of the server.
 ip | `-ip:<0,4,6> ` | A hint for the resolving the hostname to an IP address.
 cibir | `-cibir:<hex_bytes>` | The well-known CIBIR identifier.
@@ -77,7 +77,7 @@ timed | `-timed:<0,1>` | Indicates the `upload` & `download` arg represent time 
 iosize | `-iosize:<####>` | The size of each send request queued.
 tcp | `-tcp:<0,1>` | Indicates TCP/TLS should be used instead of QUIC. **Windows Only**
 stats | `-stats:<0,1>` | Prints out statistics at the end of each connection.
-sstats | `-sstats:<0,1>` | Prints out statistics at the end of each stream.
+sstats | `-sstats:<0,1>` | Prints out stream-level statistics at the end of each stream.
 
 ## RPS Test
 

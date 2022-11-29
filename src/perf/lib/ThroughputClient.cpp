@@ -27,7 +27,7 @@ PrintHelp(
 #if _WIN32
         "  -comp:<####>                 The compartment ID to run in.\n"
 #endif
-        "  -core:<####>                 The CPU core to use for the main thread.\n"
+        "  -core:<####>                 The CPU to use for the main thread.\n"
         "  -bind:<addr>                 A local IP address to bind to.\n"
         "  -port:<####>                 The UDP port of the server. (def:%u)\n"
         "  -ip:<0/4/6>                  A hint for the resolving the hostname to an IP address. (def:0)\n"
