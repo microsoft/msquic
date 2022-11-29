@@ -1745,6 +1745,7 @@ QuicCryptoCustomTicketValidationComplete(
     } else {
         // TODO: start normal handshake.
     }
+    Crypto->TicketValidationPendingBufferLength = 0;
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
