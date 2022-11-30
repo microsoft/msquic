@@ -2924,14 +2924,14 @@ CxPlatSocketContextUninitializeComplete(
     _In_ CXPLAT_SOCKET_PROC* SocketProc
     )
 {
-    CXPLAT_DATAPATH* Datapath = SocketProc->DatapathProc->Datapath;
 #if DEBUG
     CXPLAT_DBG_ASSERT(!SocketProc->Freed);
     SocketProc->Freed = TRUE;
 #endif
 
     if (SocketProc->RioCq != RIO_INVALID_CQ) {
-        Datapath->RioDispatch.RIOCloseCompletionQueue(SocketProc->RioCq);
+        SocketProc->DatapathProc->Datapath->RioDispatch.
+            RIOCloseCompletionQueue(SocketProc->RioCq);
     }
     if (SocketProc->Parent->Type == CXPLAT_SOCKET_TCP_LISTENER) {
         if (SocketProc->AcceptSocket != NULL) {
