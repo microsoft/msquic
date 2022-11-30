@@ -765,6 +765,18 @@ RioSendBufferFree(
     );
 
 void
+CxPlatDataPathRestartRioUdpSends(
+    _In_ CXPLAT_SOCKET_PROC* SocketProc
+    );
+
+void
+CxPlatSendDataComplete(
+    _In_ CXPLAT_SOCKET_PROC* SocketProc,
+    _In_ CXPLAT_SEND_DATA* SendData,
+    _In_ ULONG IoResult
+    );
+
+void
 CxPlatDataPathQueryRssScalabilityInfo(
     _Inout_ CXPLAT_DATAPATH* Datapath
     )
@@ -2053,12 +2065,13 @@ QUIC_DISABLED_BY_FUZZER_START;
                 goto Error;
             }
 
+            #pragma warning(suppress:6387) // _Param_(8)' could be '0' - by design.
             SocketProc->RioRq =
                 Datapath->RioDispatch.RIOCreateRequestQueue(
                     SocketProc->Socket, RIO_RECV_QUEUE_DEPTH, 1,
                     RIO_SEND_QUEUE_DEPTH, 1, SocketProc->RioCq,
                     SocketProc->RioCq, NULL);
-            if (SocketProc->RioCq == RIO_INVALID_RQ) {
+            if (SocketProc->RioRq == RIO_INVALID_RQ) {
                 int WsaError = WSAGetLastError();
                 QuicTraceEvent(
                     DatapathErrorStatus,
@@ -2990,7 +3003,7 @@ RioRecvBufferAllocate(
     if (RecvContext != NULL) {
         RecvContext->RioBufferId =
             Datapath->RioDispatch.RIORegisterBuffer(
-                RecvContext,
+                (char*)RecvContext,
                 Datapath->RecvPayloadOffset + MAX_URO_PAYLOAD_LENGTH);
 
         if (RecvContext->RioBufferId == RIO_INVALID_BUFFERID) {
@@ -3025,7 +3038,6 @@ CxPlatSocketAllocRecvContext(
     )
 {
     CXPLAT_DATAPATH_PROC* DatapathProc = SocketProc->DatapathProc;
-    CXPLAT_DATAPATH* Datapath = DatapathProc->Datapath;
     CXPLAT_DATAPATH_INTERNAL_RECV_CONTEXT* RecvContext;
     CXPLAT_LOOKASIDE* OwningPool;
 
@@ -3412,6 +3424,7 @@ CxPlatSocketStartRioReceives(
 Error:
 
     if (NeedCommit) {
+        #pragma warning(suppress:6387) // _Param_(9)' could be '0' - by design.
         if (!Datapath->RioDispatch.RIOReceiveEx(
                 SocketProc->RioRq, NULL, 0, NULL, NULL, NULL, NULL,
                 RIO_MSG_COMMIT_ONLY, NULL)) {
@@ -3816,27 +3829,6 @@ CxPlatDataPathStartReceive(
 }
 
 void
-CxPlatDataPathRestartRioUdpSends(
-    _In_ CXPLAT_SOCKET_PROC* SocketProc
-    )
-{
-    while (!CxPlatListIsEmpty(&SocketProc->RioSendOverflow) &&
-        SocketProc->RioSendCount < RIO_SEND_QUEUE_DEPTH) {
-        CXPLAT_LIST_ENTRY* Entry = CxPlatListRemoveHead(&SocketProc->RioSendOverflow);
-        CXPLAT_SEND_DATA* SendData = CONTAINING_RECORD(Entry, CXPLAT_SEND_DATA, RioOverflowEntry);
-
-        //
-        // RIO always queues sends.
-        //
-        CxPlatSocketSendInline(
-            SocketProc,
-            &SendData->LocalAddress,
-            &SendData->RemoteAddress,
-            SendData);
-    }
-}
-
-void
 CxPlatDataPathRioUdpCompletion(
     _In_ CXPLAT_SOCKET_PROC* SocketProc,
     _In_ ULONG IoResult
@@ -3846,6 +3838,8 @@ CxPlatDataPathRioUdpCompletion(
     RIORESULT Results[32];
     ULONG ResultCount;
     ULONG NotifyResult;
+
+    UNREFERENCED_PARAMETER(IoResult);
 
     do {
         ResultCount =
@@ -4114,7 +4108,8 @@ RioSendDataAllocate(
     SendData = CxPlatAlloc(Size, Tag);
 
     if (SendData != NULL) {
-        SendData->RioBufferId = Datapath->RioDispatch.RIORegisterBuffer(SendData, Size);
+        SendData->RioBufferId =
+            Datapath->RioDispatch.RIORegisterBuffer((char*)SendData, Size);
         if (SendData->RioBufferId == RIO_INVALID_BUFFERID) {
             CxPlatFree(SendData, Tag);
             SendData = NULL;
@@ -4133,6 +4128,8 @@ RioSendDataFree(
 {
     CXPLAT_SEND_DATA* SendData = Entry;
     CXPLAT_DATAPATH* Datapath = SendData->Owner->Datapath;
+
+    UNREFERENCED_PARAMETER(Lookaside);
 
     CXPLAT_DBG_ASSERT(SendData->RioBufferId != RIO_INVALID_BUFFERID);
     Datapath->RioDispatch.RIODeregisterBuffer(SendData->RioBufferId);
@@ -4191,8 +4188,6 @@ CxPlatSendDataFree(
     _In_ CXPLAT_SEND_DATA* SendData
     )
 {
-    CXPLAT_DATAPATH_PROC* DatapathProc = SendData->Owner;
-
     for (UINT8 i = 0; i < SendData->WsaBufferCount; ++i) {
         CxPlatLookasideFree(SendData->BufferPool, SendData->WsaBuffers[i].buf);
     }
@@ -4223,7 +4218,7 @@ RioSendBufferAllocate(
     CXPLAT_RIO_SEND_BUFFER_HEADER* RioHeader;
     void* Buffer = NULL;
 
-    CXPLAT_DBG_ASSERT(Size + sizeof(*RioHeader) > Size);
+    CXPLAT_DBG_ASSERT(Size + (uint32_t)sizeof(*RioHeader) > Size);
     RioHeader = CxPlatAlloc(Size + sizeof(*RioHeader), Tag);
 
     if (RioHeader != NULL) {
@@ -4250,6 +4245,8 @@ RioSendBufferFree(
 {
     CXPLAT_RIO_SEND_BUFFER_HEADER* RioHeader = RioSendBufferHeaderFromBuffer(Entry);
     CXPLAT_DATAPATH* Datapath = RioHeader->Datapath;
+
+    UNREFERENCED_PARAMETER(Lookaside);
 
     CXPLAT_DBG_ASSERT(RioHeader->RioBufferId != RIO_INVALID_BUFFERID);
     Datapath->RioDispatch.RIODeregisterBuffer(RioHeader->RioBufferId);
@@ -4435,7 +4432,6 @@ CxPlatSendDataFreeBuffer(
     //
     // This must be the final send buffer; intermediate buffers cannot be freed.
     //
-    CXPLAT_DATAPATH_PROC* DatapathProc = SendData->Owner;
     PCHAR TailBuffer = SendData->WsaBuffers[SendData->WsaBufferCount - 1].buf;
 
     if (SendData->SegmentSize == 0) {
@@ -4649,6 +4645,9 @@ CxPlatSocketSendInline(
 
                 SocketProc->RioSendCount++;
             }
+
+            WSASetLastError(WSA_IO_PENDING);
+            Result = SOCKET_ERROR;
         } else {
             Result =
                 Datapath->WSASendMsg(
@@ -4810,6 +4809,27 @@ CxPlatDataPathSocketProcessQueuedSend(
             SocketProc,
             SendData,
             RtlNtStatusToDosError((NTSTATUS)Cqe->Internal));
+    }
+}
+
+void
+CxPlatDataPathRestartRioUdpSends(
+    _In_ CXPLAT_SOCKET_PROC* SocketProc
+    )
+{
+    while (!CxPlatListIsEmpty(&SocketProc->RioSendOverflow) &&
+        SocketProc->RioSendCount < RIO_SEND_QUEUE_DEPTH) {
+        CXPLAT_LIST_ENTRY* Entry = CxPlatListRemoveHead(&SocketProc->RioSendOverflow);
+        CXPLAT_SEND_DATA* SendData = CONTAINING_RECORD(Entry, CXPLAT_SEND_DATA, RioOverflowEntry);
+
+        //
+        // RIO always queues sends.
+        //
+        CxPlatSocketSendInline(
+            SocketProc,
+            &SendData->LocalAddress,
+            &SendData->RemoteAddress,
+            SendData);
     }
 }
 
