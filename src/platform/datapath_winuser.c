@@ -81,12 +81,24 @@ CxPlatFuzzerRecvMsg(
 #define URO_MAX_DATAGRAMS_PER_INDICATION    64
 
 //
-// TODO: RIO tunables.
+// The number of entries in each RIO socket's receive request queue (RQ).
 //
 #define RIO_RECV_QUEUE_DEPTH 256
-#define RIO_RECV_BUFFER_COUNT 8192
+
+//
+// The maximum number of RIO receive buffers held in each per-processor pool.
+//
+#define RIO_MAX_RECV_POOL_SIZE 8192
+
+//
+// The number of entries in each RIO socket's send request queue (RQ).
+//
 #define RIO_SEND_QUEUE_DEPTH 256
-#define RIO_SEND_BUFFER_COUNT 8192
+
+//
+// The maximum number of RIO send buffers held in each per-processor pool.
+//
+#define RIO_MAX_SEND_POOL_SIZE 8192
 
 CXPLAT_STATIC_ASSERT(
     sizeof(QUIC_BUFFER) == sizeof(WSABUF),
@@ -1252,7 +1264,7 @@ CxPlatDataPathInitialize(
             FALSE,
             MAX_UDP_PAYLOAD_LENGTH,
             QUIC_POOL_DATA,
-            0,
+            RIO_MAX_SEND_POOL_SIZE,
             RioSendBufferAllocate,
             RioSendBufferFree,
             &Datapath->Processors[i].RioSendBufferPool);
@@ -1261,7 +1273,7 @@ CxPlatDataPathInitialize(
             FALSE,
             CXPLAT_LARGE_SEND_BUFFER_SIZE,
             QUIC_POOL_DATA,
-            0,
+            RIO_MAX_SEND_POOL_SIZE,
             RioSendLargeBufferAllocate,
             RioSendBufferFree,
             &Datapath->Processors[i].RioLargeSendBufferPool);
@@ -1276,7 +1288,7 @@ CxPlatDataPathInitialize(
             FALSE,
             RecvDatagramLength,
             QUIC_POOL_DATA,
-            RIO_RECV_BUFFER_COUNT,
+            RIO_MAX_RECV_POOL_SIZE,
             RioRecvBufferAllocate,
             RioRecvBufferFree,
             &Datapath->Processors[i].RioRecvPool);
