@@ -21,8 +21,9 @@ TestConnection::TestConnection(
     QuicConnection(Handle),
     IsServer(true), IsStarted(true), IsConnected(false), Resumed(false),
     PeerAddrChanged(false), PeerClosed(false), TransportClosed(false),
-    IsShutdown(false), ShutdownTimedOut(false), AutoDelete(false), AsyncCustomValidation(false), AsyncCustomTicketValidation(false),
-    CustomValidationResultSet(false), ExpectedResumed(false),
+    IsShutdown(false), ShutdownTimedOut(false), AutoDelete(false), AsyncCustomValidation(false),
+    CustomValidationResultSet(false), CustomTicketValidationResultSet(false),
+    ExpectedResumed(false), ExpectedCustomTicketValidationResult(QUIC_STATUS_SUCCESS),
     ExpectedTransportCloseStatus(QUIC_STATUS_SUCCESS), ExpectedPeerCloseErrorCode(QUIC_TEST_NO_ERROR),
     ExpectedClientCertValidationResult{}, ExpectedClientCertValidationResultCount(0),
     ExpectedCustomValidationResult(false), PeerCertEventReturnStatus(QUIC_STATUS_SUCCESS),
@@ -51,8 +52,9 @@ TestConnection::TestConnection(
     QuicConnection(nullptr),
     IsServer(false), IsStarted(false), IsConnected(false), Resumed(false),
     PeerAddrChanged(false), PeerClosed(false), TransportClosed(false),
-    IsShutdown(false), ShutdownTimedOut(false), AutoDelete(false), AsyncCustomValidation(false), AsyncCustomTicketValidation(false),
-    CustomValidationResultSet(false), ExpectedResumed(false),
+    IsShutdown(false), ShutdownTimedOut(false), AutoDelete(false), AsyncCustomValidation(false),
+    CustomValidationResultSet(false), CustomTicketValidationResultSet(false),
+    ExpectedResumed(false), ExpectedCustomTicketValidationResult(QUIC_STATUS_SUCCESS),
     ExpectedTransportCloseStatus(QUIC_STATUS_SUCCESS), ExpectedPeerCloseErrorCode(QUIC_TEST_NO_ERROR),
     ExpectedClientCertValidationResult{}, ExpectedClientCertValidationResultCount(0),
     ExpectedCustomValidationResult(false), PeerCertEventReturnStatus(QUIC_STATUS_SUCCESS),
@@ -950,12 +952,7 @@ TestConnection::HandleConnectionEvent(
         }
         break;
     case QUIC_CONNECTION_EVENT_RESUMED:
-        if (AsyncCustomTicketValidation) {
-            AsyncCustomTicketValidation = false;
-            return QUIC_STATUS_PENDING;
-        }
-
-        break;
+        return ExpectedCustomTicketValidationResult;
 
     default:
         break;

@@ -112,7 +112,7 @@ ListenerAcceptConnection(
 {
     ServerAcceptContext* AcceptContext = (ServerAcceptContext*)Listener->Context;
     *AcceptContext->NewConnection = new(std::nothrow) TestConnection(ConnectionHandle);
-    (*AcceptContext->NewConnection)->SetAsyncCustomTicketValidationResult(AcceptContext->AsyncCustomTicketValidation);
+    (*AcceptContext->NewConnection)->SetExpectedCustomTicketValidationResult(AcceptContext->ExpectedCustomTicketValidationResult);
     if (*AcceptContext->NewConnection == nullptr || !(*AcceptContext->NewConnection)->IsValid()) {
         TEST_FAILURE("Failed to accept new TestConnection.");
         delete *AcceptContext->NewConnection;
@@ -152,7 +152,8 @@ QuicTestConnect(
     )
 {
     QUIC_ADDRESS_FAMILY QuicAddrFamily = (Family == 4) ? QUIC_ADDRESS_FAMILY_INET : QUIC_ADDRESS_FAMILY_INET6;
-    MsQuicRegistration Registration;
+    MsQuicRegistration Registration(nullptr, QUIC_EXECUTION_PROFILE_TYPE_SCAVENGER);
+    bool AsyncValidation = true;
     TEST_TRUE(Registration.IsValid());
 
     MsQuicAlpn Alpn1("MsQuicTest");
@@ -225,10 +226,18 @@ QuicTestConnect(
         TEST_QUIC_SUCCEEDED(Listener.GetLocalAddr(ServerLocalAddr));
 
         {
-            bool AsyncValidation = true;
             UniquePtr<TestConnection> Server;
             ServerAcceptContext ServerAcceptCtx((TestConnection**)&Server);
-            ServerAcceptCtx.AsyncCustomTicketValidation = AsyncValidation;
+            if (AsyncValidation) {
+                ServerAcceptCtx.ExpectedCustomTicketValidationResult = QUIC_STATUS_PENDING;
+            } else {
+                if (SessionResumption == QUIC_TEST_RESUMPTION_ENABLED) {
+                    ServerAcceptCtx.ExpectedCustomTicketValidationResult = QUIC_STATUS_SUCCESS;
+                } else if (SessionResumption == QUIC_TEST_RESUMPTION_REJECTED_BY_SERVER_APP) {
+                    ServerAcceptCtx.ExpectedCustomTicketValidationResult = QUIC_STATUS_INTERNAL_ERROR;
+                }
+            }
+
             Listener.Context = &ServerAcceptCtx;
 
             {
@@ -267,9 +276,10 @@ QuicTestConnect(
                         QUIC_LOCALHOST_FOR_AF(QuicAddrFamily),
                         ServerLocalAddr.GetPort()));
 
-                if (AsyncValidation) {
+                if (AsyncValidation &&
+                    (SessionResumption == QUIC_TEST_RESUMPTION_ENABLED || SessionResumption == QUIC_TEST_RESUMPTION_REJECTED_BY_SERVER_APP)) {
                     CxPlatSleep(1000);
-                    TEST_QUIC_SUCCEEDED(Server->SetCustomTicketValidationResult(TRUE));
+                    TEST_QUIC_SUCCEEDED(Server->SetCustomTicketValidationResult(SessionResumption == QUIC_TEST_RESUMPTION_ENABLED));
                 }
 
                 if (AsyncConfiguration) {
@@ -310,7 +320,9 @@ QuicTestConnect(
                 if (SessionResumption == QUIC_TEST_RESUMPTION_ENABLED) {
                     TEST_TRUE(Client.GetResumed());
                     TEST_TRUE(Server->GetResumed());
-                } else if (SessionResumption == QUIC_TEST_RESUMPTION_REJECTED) {
+                } else if (SessionResumption == QUIC_TEST_RESUMPTION_REJECTED ||
+                           SessionResumption == QUIC_TEST_RESUMPTION_REJECTED_BY_SERVER_APP) {
+                    // This means connected, but not resumed
                     TEST_FALSE(Client.GetResumed());
                     TEST_FALSE(Server->GetResumed());
                 }
