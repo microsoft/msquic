@@ -194,6 +194,11 @@ typedef struct CXPLAT_DATAPATH_INTERNAL_RECV_CONTEXT {
 
     //
     // Contains the control data resulting from the receive.
+    // The Winsock receive message header.
+    //
+    WSAMSG WsaMsgHdr;
+
+    //
     // Contains the received control data.
     //
     char ControlBuf[
@@ -223,15 +228,27 @@ typedef struct CXPLAT_DATAPATH_INTERNAL_RECV_BUFFER_CONTEXT {
 } CXPLAT_DATAPATH_INTERNAL_RECV_BUFFER_CONTEXT;
 
 //
-// TODO: comments
+// Header prefixed to each RIO send buffer.
 //
 typedef struct DECLSPEC_ALIGN(MEMORY_ALLOCATION_ALIGNMENT) CXPLAT_RIO_SEND_BUFFER_HEADER {
     //
     // Common IO header.
     //
     CXPLAT_DATAPATH_INTERNAL_IO_HEADER IoHeader;
+
+    //
+    // The RIO buffer ID.
+    //
     RIO_BUFFERID RioBufferId;
+
+    //
+    // This send buffer's datapath.
+    //
     CXPLAT_DATAPATH* Datapath;
+
+    //
+    // This send buffer's send data.
+    //
     CXPLAT_SEND_DATA* SendData;
 } CXPLAT_RIO_SEND_BUFFER_HEADER;
 
@@ -387,6 +404,16 @@ typedef struct QUIC_CACHEALIGN CXPLAT_SOCKET_PROC {
 
     union {
     //
+    // Normal TCP/UDP socket data
+    //
+    struct {
+    RIO_CQ RioCq;
+    RIO_RQ RioRq;
+    ULONG RioRecvCount;
+    ULONG RioSendCount;
+    CXPLAT_LIST_ENTRY RioSendOverflow;
+    };
+    //
     // TCP Listener socket data
     //
     struct {
@@ -397,15 +424,6 @@ typedef struct QUIC_CACHEALIGN CXPLAT_SOCKET_PROC {
         ];
     };
     };
-
-    //
-    // RIO state. TODO: merge into union above.
-    //
-    RIO_CQ RioCq;
-    RIO_RQ RioRq;
-    ULONG RioRecvCount;
-    ULONG RioSendCount;
-    CXPLAT_LIST_ENTRY RioSendOverflow;
 } CXPLAT_SOCKET_PROC;
 
 //
@@ -3511,6 +3529,7 @@ CxPlatSocketStartReceive(
     CXPLAT_DATAPATH_INTERNAL_RECV_CONTEXT* RecvContext;
     WSAMSG RecvWsaMsgHdr = {0};
     int Result;
+    WSABUF WsaBuf = {0};
     DWORD BytesRecv = 0;
     WSABUF WsaBuf;
 
@@ -3540,19 +3559,25 @@ CxPlatSocketStartReceive(
         &SocketProc->IoSqe.Sqe,
         sizeof(SocketProc->IoSqe.Sqe));
 
-    SocketProc->RecvWsaBuf.buf =
+    WsaBuf.buf =
         ((CHAR*)SocketProc->CurrentRecvContext) + Datapath->RecvPayloadOffset;
+    WsaBuf.len = SocketProc->RecvBufLen;
 
-    RecvWsaMsgHdr.name =
+    RtlZeroMemory(
+        &SocketProc->CurrentRecvContext->WsaMsgHdr,
+        sizeof(SocketProc->CurrentRecvContext->WsaMsgHdr));
+    SocketProc->CurrentRecvContext->WsaMsgHdr.name =
         (PSOCKADDR)&SocketProc->CurrentRecvContext->Route.RemoteAddress;
-    RecvWsaMsgHdr.namelen =
+    SocketProc->CurrentRecvContext->WsaMsgHdr.namelen =
         sizeof(SocketProc->CurrentRecvContext->Route.RemoteAddress);
 
-    RecvWsaMsgHdr.lpBuffers = &SocketProc->RecvWsaBuf;
-    RecvWsaMsgHdr.dwBufferCount = 1;
+    SocketProc->CurrentRecvContext->WsaMsgHdr.lpBuffers = &WsaBuf;
+    SocketProc->CurrentRecvContext->WsaMsgHdr.dwBufferCount = 1;
 
-    RecvWsaMsgHdr.Control.buf = SocketProc->CurrentRecvContext->ControlBuf;
-    RecvWsaMsgHdr.Control.len = sizeof(SocketProc->CurrentRecvContext->ControlBuf);
+    SocketProc->CurrentRecvContext->WsaMsgHdr.Control.buf =
+        SocketProc->CurrentRecvContext->ControlBuf;
+    SocketProc->CurrentRecvContext->WsaMsgHdr.Control.len =
+        sizeof(SocketProc->CurrentRecvContext->ControlBuf);
 
 Retry_recv:
 
@@ -3560,7 +3585,7 @@ Retry_recv:
         Result =
             SocketProc->Parent->Datapath->WSARecvMsg(
                 SocketProc->Socket,
-                &RecvWsaMsgHdr,
+                &SocketProc->CurrentRecvContext->WsaMsgHdr,
                 &BytesRecv,
                 &RecvContext->Sqe.DatapathSqe.Sqe.Overlapped,
                 NULL);
@@ -3694,15 +3719,16 @@ CxPlatDataPathUdpRecvComplete(
         ULONG MessageCount = 0;
         BOOLEAN IsCoalesced = FALSE;
         INT ECN = 0;
-        PRIO_CMSG_BUFFER RioRcvMsg = (PRIO_CMSG_BUFFER)RecvContext->ControlBuf;
 
-        if (!SocketProc->Parent->UseRio) {
-            RioRcvMsg->TotalLength = sizeof(RecvContext->ControlBuf);
+        if (SocketProc->Parent->UseRio) {
+            PRIO_CMSG_BUFFER RioRcvMsg = (PRIO_CMSG_BUFFER)RecvContext->ControlBuf;
+            RecvContext->WsaMsgHdr.Control.buf = (char*)(RioRcvMsg + 1);
+            RecvContext->WsaMsgHdr.Control.len = RioRcvMsg->TotalLength;
         }
 
-        for (WSACMSGHDR *CMsg = RIO_CMSG_FIRSTHDR(RioRcvMsg);
+        for (WSACMSGHDR *CMsg = CMSG_FIRSTHDR(&RecvContext->WsaMsgHdr);
             CMsg != NULL;
-            CMsg = RIO_CMSG_NEXTHDR(RioRcvMsg, CMsg)) {
+            CMsg = CMSG_NXTHDR(&RecvContext->WsaMsgHdr, CMsg)) {
 
             if (CMsg->cmsg_level == IPPROTO_IPV6) {
                 if (CMsg->cmsg_type == IPV6_PKTINFO) {
@@ -4719,13 +4745,18 @@ CxPlatSocketSendInline(
             Control.Length = RioCmsg->TotalLength;
 
             //
-            // TODO: refcount the send data for each buffer, since RIO does not
-            // support sending more than one buffer at a time yet.
+            // RIO does not yet natively support sending more than one buffer at
+            // a time. Since this module also does not implement send batching,
+            // instead of correctly reference counting buffers (adding runtime
+            // and code complexity cost) simply assert exactly one send buffer
+            // is requested.
             //
+            CXPLAT_STATIC_ASSERT(CXPLAT_MAX_BATCH_SEND == 1, "RIO doesn't support batched sends");
             CXPLAT_FRE_ASSERT(SendData->WsaBufferCount == 1);
+
             for (UINT8 i = 0; i < SendData->WsaBufferCount; i++) {
                 RIO_BUF Data = {0};
-                CXPLAT_RIO_SEND_BUFFER_HEADER *SendHeader =
+                CXPLAT_RIO_SEND_BUFFER_HEADER* SendHeader =
                     RioSendBufferHeaderFromBuffer(SendData->WsaBuffers[i].buf);
 
                 Data.BufferId = SendHeader->RioBufferId;
