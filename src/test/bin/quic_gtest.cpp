@@ -662,6 +662,35 @@ TEST_P(WithHandshakeArgs1, Resume) {
     }
 }
 
+TEST_P(WithHandshakeArgs1, ResumeAsync) {
+    TestLoggerT<ParamType> Logger("QuicTestConnect-ResumeAsync", GetParam());
+    if (TestingKernelMode) {
+        QUIC_RUN_CONNECT_PARAMS Params = {
+            GetParam().Family,
+            (uint8_t)GetParam().ServerStatelessRetry,
+            0,  // ClientUsesOldVersion
+            (uint8_t)GetParam().MultipleALPNs,
+            (uint8_t)GetParam().GreaseQuicBitExtension,
+            QUIC_TEST_ASYNC_CONFIG_DISABLED,
+            (uint8_t)GetParam().MultiPacketClientInitial,
+            QUIC_TEST_RESUMPTION_ENABLED_ASYNC,
+            0   // RandomLossPercentage
+        };
+        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_CONNECT, Params));
+    } else {
+        QuicTestConnect(
+            GetParam().Family,
+            GetParam().ServerStatelessRetry,
+            false,  // ClientUsesOldVersion
+            GetParam().MultipleALPNs,
+            GetParam().GreaseQuicBitExtension,
+            QUIC_TEST_ASYNC_CONFIG_DISABLED,
+            GetParam().MultiPacketClientInitial,
+            QUIC_TEST_RESUMPTION_ENABLED_ASYNC,
+            0);     // RandomLossPercentage
+    }
+}
+
 TEST_P(WithHandshakeArgs1, ResumeRejection) {
     TestLoggerT<ParamType> Logger("QuicTestConnect-ResumeRejection", GetParam());
     if (TestingKernelMode) {
@@ -687,6 +716,64 @@ TEST_P(WithHandshakeArgs1, ResumeRejection) {
             QUIC_TEST_ASYNC_CONFIG_DISABLED,
             GetParam().MultiPacketClientInitial,
             QUIC_TEST_RESUMPTION_REJECTED,
+            0);     // RandomLossPercentage
+    }
+}
+
+TEST_P(WithHandshakeArgs1, ResumeRejectionByServerApp) {
+    TestLoggerT<ParamType> Logger("QuicTestConnect-ResumeRejectionByServerApp", GetParam());
+    if (TestingKernelMode) {
+        QUIC_RUN_CONNECT_PARAMS Params = {
+            GetParam().Family,
+            (uint8_t)GetParam().ServerStatelessRetry,
+            0,  // ClientUsesOldVersion
+            (uint8_t)GetParam().MultipleALPNs,
+            (uint8_t)GetParam().GreaseQuicBitExtension,
+            QUIC_TEST_ASYNC_CONFIG_DISABLED,
+            (uint8_t)GetParam().MultiPacketClientInitial,
+            QUIC_TEST_RESUMPTION_REJECTED_BY_SERVER_APP,
+            0   // RandomLossPercentage
+        };
+        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_CONNECT, Params));
+    } else {
+        QuicTestConnect(
+            GetParam().Family,
+            GetParam().ServerStatelessRetry,
+            false,  // ClientUsesOldVersion
+            GetParam().MultipleALPNs,
+            GetParam().GreaseQuicBitExtension,
+            QUIC_TEST_ASYNC_CONFIG_DISABLED,
+            GetParam().MultiPacketClientInitial,
+            QUIC_TEST_RESUMPTION_REJECTED_BY_SERVER_APP,
+            0);     // RandomLossPercentage
+    }
+}
+
+TEST_P(WithHandshakeArgs1, ResumeRejectionByServerAppAsync) {
+    TestLoggerT<ParamType> Logger("QuicTestConnect-ResumeRejectionByServerAppAsync", GetParam());
+    if (TestingKernelMode) {
+        QUIC_RUN_CONNECT_PARAMS Params = {
+            GetParam().Family,
+            (uint8_t)GetParam().ServerStatelessRetry,
+            0,  // ClientUsesOldVersion
+            (uint8_t)GetParam().MultipleALPNs,
+            (uint8_t)GetParam().GreaseQuicBitExtension,
+            QUIC_TEST_ASYNC_CONFIG_DISABLED,
+            (uint8_t)GetParam().MultiPacketClientInitial,
+            QUIC_TEST_RESUMPTION_REJECTED_BY_SERVER_APP_ASYNC,
+            0   // RandomLossPercentage
+        };
+        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_CONNECT, Params));
+    } else {
+        QuicTestConnect(
+            GetParam().Family,
+            GetParam().ServerStatelessRetry,
+            false,  // ClientUsesOldVersion
+            GetParam().MultipleALPNs,
+            GetParam().GreaseQuicBitExtension,
+            QUIC_TEST_ASYNC_CONFIG_DISABLED,
+            GetParam().MultiPacketClientInitial,
+            QUIC_TEST_RESUMPTION_REJECTED_BY_SERVER_APP_ASYNC,
             0);     // RandomLossPercentage
     }
 }

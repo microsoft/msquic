@@ -2136,6 +2136,15 @@ QuicConnRecvResumptionTicket(
     QUIC_TRANSPORT_PARAMETERS ResumedTP;
     CxPlatZeroMemory(&ResumedTP, sizeof(ResumedTP));
     if (QuicConnIsServer(Connection)) {
+        if (Connection->Crypto.TicketValidationReject) {
+            QuicTraceEvent(
+                ConnError,
+                "[conn][%p] ERROR, %s.",
+                Connection,
+                "Resumption Ticket rejected by server app asynchronously");
+            goto Error;
+        }
+
         const uint8_t* AppData = NULL;
         uint32_t AppDataLength = 0;
 
@@ -2197,6 +2206,7 @@ QuicConnRecvResumptionTicket(
                 "[conn][%p] Server app asynchronously validating resumption ticket",
                 Connection);
             Connection->Crypto.TicketValidationPending = TRUE;
+            Connection->Crypto.TicketValidationReject = FALSE;
             ResumptionAccepted = TRUE;
         } else {
             QuicTraceEvent(
@@ -2232,10 +2242,7 @@ QuicConnRecvResumptionTicket(
                 IndicateResumptionTicketReceived,
                 Connection,
                 "Indicating QUIC_CONNECTION_EVENT_RESUMPTION_TICKET_RECEIVED");
-            QUIC_STATUS Status = QuicConnIndicateEvent(Connection, &Event);
-            if (Status == QUIC_STATUS_PENDING) {
-                Connection->Crypto.TicketValidationPending = TRUE;
-            }
+            QuicConnIndicateEvent(Connection, &Event);
 
             CXPLAT_FREE(ClientTicket, QUIC_POOL_CLIENT_CRYPTO_TICKET);
             ResumptionAccepted = TRUE;

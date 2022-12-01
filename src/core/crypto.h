@@ -43,7 +43,8 @@ typedef struct QUIC_CRYPTO {
     // Indicates Resumption ticket validation is under validation asynchronously
     //
     BOOLEAN TicketValidationPending : 1;
-    uint32_t TicketValidationPendingBufferLength;
+    BOOLEAN TicketValidationReject : 1;
+    uint32_t PendingValidationBufferLength;
 
     //
     // The TLS context for processing handshake messages.

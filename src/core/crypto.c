@@ -105,7 +105,7 @@ QuicCryptoInitialize(
     )
 {
     CXPLAT_DBG_ASSERT(Crypto->Initialized == FALSE);
-    QUIC_STATUS Status;
+    QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
     QUIC_CONNECTION* Connection = QuicCryptoGetConnection(Crypto);
     uint16_t SendBufferLength =
         QuicConnIsServer(Connection) ?
@@ -147,15 +147,18 @@ QuicCryptoInitialize(
         QUIC_MAX_RANGE_ALLOC_SIZE,
         &Crypto->SparseAckRanges);
 
-    Status =
-        QuicRecvBufferInitialize(
-            &Crypto->RecvBuffer,
-            InitialRecvBufferLength,
-            QUIC_DEFAULT_STREAM_FC_WINDOW_SIZE / 2,
-            TRUE,
-            NULL);
-    if (QUIC_FAILED(Status)) {
-        goto Exit;
+    //if (!(QuicConnIsServer(Connection) && Crypto->TicketValidationPending))
+    {
+        Status =
+            QuicRecvBufferInitialize(
+                &Crypto->RecvBuffer,
+                InitialRecvBufferLength,
+                QUIC_DEFAULT_STREAM_FC_WINDOW_SIZE / 2,
+                TRUE,
+                NULL);
+        if (QUIC_FAILED(Status)) {
+            goto Exit;
+        }
     }
     RecvBufferInitialized = TRUE;
 
@@ -1679,7 +1682,7 @@ QuicCryptoProcessDataComplete(
 {
     if (Crypto->CertValidationPending || Crypto->TicketValidationPending) {
         if (Crypto->TicketValidationPending) {
-            Crypto->TicketValidationPendingBufferLength = RecvBufferConsumed;
+            Crypto->PendingValidationBufferLength = RecvBufferConsumed;
         }
         return;
     }
@@ -1741,13 +1744,38 @@ QuicCryptoCustomTicketValidationComplete(
         return;
     }
 
-    Crypto->TicketValidationPending = FALSE;
     if (Result) {
-        QuicCryptoProcessDataComplete(Crypto, Crypto->TicketValidationPendingBufferLength);
+        Crypto->TicketValidationPending = FALSE;
+        QuicCryptoProcessDataComplete(Crypto, Crypto->PendingValidationBufferLength);
     } else {
-        // TODO: start normal handshake.
+        Crypto->TlsState.ReadKey = QUIC_PACKET_KEY_INITIAL;
+        Crypto->TlsState.WriteKey = QUIC_PACKET_KEY_INITIAL;
+        
+        Crypto->TlsState.BufferLength = 0;
+        Crypto->TlsState.BufferTotalLength = 0;
+        Crypto->TlsState.BufferOffsetHandshake = 0;
+        Crypto->TlsState.BufferOffset1Rtt = 0;
+        for (uint8_t i = QUIC_PACKET_KEY_0_RTT; i < QUIC_PACKET_KEY_COUNT; ++i) {
+            QuicPacketKeyFree(Crypto->TlsState.ReadKeys[i]);
+            QuicPacketKeyFree(Crypto->TlsState.WriteKeys[i]);
+            Crypto->TlsState.ReadKeys[i] = NULL;
+            Crypto->TlsState.WriteKeys[i] = NULL;
+        }
+        Crypto->ResultFlags = 0;
+        Crypto->Initialized = FALSE;
+        uint8_t* Buffer = Crypto->RecvBuffer.Buffer;
+        QuicCryptoInitialize(Crypto);
+        Crypto->RecvBuffer.WrittenRanges.UsedLength = 1;
+        CXPLAT_FREE(Crypto->RecvBuffer.Buffer, QUIC_POOL_RECVBUF);
+        Crypto->RecvBuffer.Buffer = Buffer;
+
+        Crypto->TicketValidationPending = FALSE;
+        Crypto->TicketValidationReject = TRUE;
+        QUIC_CONNECTION* Connection = QuicCryptoGetConnection(Crypto);
+        QuicCryptoInitializeTls(Crypto, Connection->Configuration->SecurityConfig, Connection->HandshakeTP);
+        Crypto->TicketValidationReject = TRUE;
     }
-    Crypto->TicketValidationPendingBufferLength = 0;
+    Crypto->PendingValidationBufferLength = 0;
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
