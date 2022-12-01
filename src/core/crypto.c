@@ -182,23 +182,25 @@ QuicCryptoInitialize(
         HandshakeCidLength = DestCid->CID.Length;
     }
 
-    Status =
-        QuicPacketKeyCreateInitial(
-            QuicConnIsServer(Connection),
-            &VersionInfo->HkdfLabels,
-            VersionInfo->Salt,
-            HandshakeCidLength,
-            HandshakeCid,
-            &Crypto->TlsState.ReadKeys[QUIC_PACKET_KEY_INITIAL],
-            &Crypto->TlsState.WriteKeys[QUIC_PACKET_KEY_INITIAL]);
-    if (QUIC_FAILED(Status)) {
-        QuicTraceEvent(
-            ConnErrorStatus,
-            "[conn][%p] ERROR, %u, %s.",
-            Connection,
-            Status,
-            "Creating initial keys");
-        goto Exit;
+    if (!Connection->Crypto.TicketValidationPending) {
+        Status =
+            QuicPacketKeyCreateInitial(
+                QuicConnIsServer(Connection),
+                &VersionInfo->HkdfLabels,
+                VersionInfo->Salt,
+                HandshakeCidLength,
+                HandshakeCid,
+                &Crypto->TlsState.ReadKeys[QUIC_PACKET_KEY_INITIAL],
+                &Crypto->TlsState.WriteKeys[QUIC_PACKET_KEY_INITIAL]);
+        if (QUIC_FAILED(Status)) {
+            QuicTraceEvent(
+                ConnErrorStatus,
+                "[conn][%p] ERROR, %u, %s.",
+                Connection,
+                Status,
+                "Creating initial keys");
+            goto Exit;
+        }
     }
     CXPLAT_DBG_ASSERT(Crypto->TlsState.ReadKeys[QUIC_PACKET_KEY_INITIAL] != NULL);
     CXPLAT_DBG_ASSERT(Crypto->TlsState.WriteKeys[QUIC_PACKET_KEY_INITIAL] != NULL);
