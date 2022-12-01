@@ -42,8 +42,7 @@ typedef struct QUIC_CRYPTO {
     //
     // Indicates Resumption ticket validation is under validation asynchronously
     //
-    BOOLEAN TicketValidationPending : 1;
-    BOOLEAN TicketValidationReject : 1;
+    QUIC_SERVER_APP_TICKET_VALIDATION_STATUS TicketValidationStatus : 2;
     uint32_t PendingValidationBufferLength;
 
     //

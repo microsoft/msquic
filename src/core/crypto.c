@@ -147,7 +147,7 @@ QuicCryptoInitialize(
         QUIC_MAX_RANGE_ALLOC_SIZE,
         &Crypto->SparseAckRanges);
 
-    //if (!(QuicConnIsServer(Connection) && Crypto->TicketValidationPending))
+    //if (Connection->Crypto.TicketValidationStatus != QUIC_SERVER_VALIDATION_REJECTING) {
     {
         Status =
             QuicRecvBufferInitialize(
@@ -185,7 +185,7 @@ QuicCryptoInitialize(
         HandshakeCidLength = DestCid->CID.Length;
     }
 
-    if (!Connection->Crypto.TicketValidationPending) {
+    if (Connection->Crypto.TicketValidationStatus != QUIC_SERVER_VALIDATION_REJECTING) {
         Status =
             QuicPacketKeyCreateInitial(
                 QuicConnIsServer(Connection),
@@ -1680,8 +1680,8 @@ QuicCryptoProcessDataComplete(
     _In_ uint32_t RecvBufferConsumed
     )
 {
-    if (Crypto->CertValidationPending || Crypto->TicketValidationPending) {
-        if (Crypto->TicketValidationPending) {
+    if (Crypto->CertValidationPending || Crypto->TicketValidationStatus == QUIC_SERVER_VALIDATION_PENDING) {
+        if (Crypto->TicketValidationStatus == QUIC_SERVER_VALIDATION_PENDING) {
             Crypto->PendingValidationBufferLength = RecvBufferConsumed;
         }
         return;
@@ -1740,17 +1740,18 @@ QuicCryptoCustomTicketValidationComplete(
     _In_ BOOLEAN Result
     )
 {
-    if (!Crypto->TicketValidationPending) {
+    if (Crypto->TicketValidationStatus != QUIC_SERVER_VALIDATION_PENDING) {
         return;
     }
 
     if (Result) {
-        Crypto->TicketValidationPending = FALSE;
+        Crypto->TicketValidationStatus = QUIC_SERVER_VALIDATION_DONE;
         QuicCryptoProcessDataComplete(Crypto, Crypto->PendingValidationBufferLength);
     } else {
+        Crypto->TicketValidationStatus = QUIC_SERVER_VALIDATION_REJECTING;
+
         Crypto->TlsState.ReadKey = QUIC_PACKET_KEY_INITIAL;
         Crypto->TlsState.WriteKey = QUIC_PACKET_KEY_INITIAL;
-        
         Crypto->TlsState.BufferLength = 0;
         Crypto->TlsState.BufferTotalLength = 0;
         Crypto->TlsState.BufferOffsetHandshake = 0;
@@ -1769,11 +1770,8 @@ QuicCryptoCustomTicketValidationComplete(
         CXPLAT_FREE(Crypto->RecvBuffer.Buffer, QUIC_POOL_RECVBUF);
         Crypto->RecvBuffer.Buffer = Buffer;
 
-        Crypto->TicketValidationPending = FALSE;
-        Crypto->TicketValidationReject = TRUE;
         QUIC_CONNECTION* Connection = QuicCryptoGetConnection(Crypto);
         QuicCryptoInitializeTls(Crypto, Connection->Configuration->SecurityConfig, Connection->HandshakeTP);
-        Crypto->TicketValidationReject = TRUE;
     }
     Crypto->PendingValidationBufferLength = 0;
 }
