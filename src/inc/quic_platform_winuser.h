@@ -292,7 +292,6 @@ typedef struct CXPLAT_POOL CXPLAT_POOL;
 typedef
 void*
 (*CXPLAT_POOL_ALLOC_FN)(
-    _In_ BOOLEAN IsPaged,
     _In_ uint32_t Size,
     _In_ uint32_t Tag,
     _Inout_ CXPLAT_POOL* Pool
@@ -315,7 +314,8 @@ typedef struct CXPLAT_POOL {
     CXPLAT_POOL_FREE_FN Free;
 } CXPLAT_POOL;
 
-#define CXPLAT_POOL_MAXIMUM_DEPTH   256 // Copied from EX_MAXIMUM_LOOKASIDE_DEPTH_BASE
+#define CXPLAT_POOL_MAXIMUM_DEPTH       0x4000  // 16384
+#define CXPLAT_POOL_DEFAULT_MAX_DEPTH   256     // Copied from EX_MAXIMUM_LOOKASIDE_DEPTH_BASE
 
 #if DEBUG
 typedef struct CXPLAT_POOL_ENTRY {
@@ -332,13 +332,11 @@ CxPlatGetAllocFailDenominator(
 inline
 void*
 CxPlatPoolGenericAlloc(
-    _In_ BOOLEAN IsPaged,
     _In_ uint32_t Size,
     _In_ uint32_t Tag,
     _Inout_ CXPLAT_POOL* Pool
     )
 {
-    UNREFERENCED_PARAMETER(IsPaged);
     UNREFERENCED_PARAMETER(Pool);
     return CxPlatAlloc(Size, Tag);
 }
@@ -369,7 +367,7 @@ CxPlatPoolInitialize(
 #endif
     Pool->Size = Size;
     Pool->Tag = Tag;
-    Pool->MaxDepth = CXPLAT_POOL_MAXIMUM_DEPTH;
+    Pool->MaxDepth = CXPLAT_POOL_DEFAULT_MAX_DEPTH;
     Pool->Allocate = CxPlatPoolGenericAlloc;
     Pool->Free = CxPlatPoolGenericFree;
     InitializeSListHead(&(Pool)->ListHead);
@@ -393,15 +391,14 @@ CxPlatPoolInitializeEx(
 #endif
     Pool->Size = Size;
     Pool->Tag = Tag;
-    Pool->MaxDepth = CXPLAT_POOL_MAXIMUM_DEPTH;
     Pool->Allocate = Allocate ? Allocate : CxPlatPoolGenericAlloc;
     Pool->Free = Free ? Free : CxPlatPoolGenericFree;
     InitializeSListHead(&(Pool)->ListHead);
     UNREFERENCED_PARAMETER(IsPaged);
     if (MaxDepth != 0) {
-        Lookaside->MaxDepth = CXPLAT_MIN(MaxDepth, CXPLAT_POOL_MAXIMUM_DEPTH);
+        Pool->MaxDepth = CXPLAT_MIN(MaxDepth, CXPLAT_POOL_MAXIMUM_DEPTH);
     } else {
-        Lookaside->MaxDepth = CXPLAT_POOL_MAXIMUM_DEPTH;
+        Pool->MaxDepth = CXPLAT_POOL_DEFAULT_MAX_DEPTH;
     }
 }
 
