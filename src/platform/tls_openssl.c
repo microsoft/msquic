@@ -653,6 +653,7 @@ CxPlatTlsSendAlertCallback(
     UNREFERENCED_PARAMETER(Level);
 
     CXPLAT_TLS* TlsContext = SSL_get_app_data(Ssl);
+
     QuicTraceLogConnError(
         OpenSslAlert,
         TlsContext->Connection,

@@ -2244,7 +2244,7 @@ QuicConnRecvResumptionTicket(
                 IndicateResumptionTicketReceived,
                 Connection,
                 "Indicating QUIC_CONNECTION_EVENT_RESUMPTION_TICKET_RECEIVED");
-            QuicConnIndicateEvent(Connection, &Event);
+            (void)QuicConnIndicateEvent(Connection, &Event);
 
             CXPLAT_FREE(ClientTicket, QUIC_POOL_CLIENT_CRYPTO_TICKET);
             ResumptionAccepted = TRUE;
@@ -5609,7 +5609,7 @@ QuicConnRecvDatagrams(
                 // validated (which indicates the actual length);
                 //
                 Packet->BufferLength =
-                    Datagram->BufferLength - (uint16_t)(Packet->Buffer - Datagram->Buffer); // 1075, 1081
+                    Datagram->BufferLength - (uint16_t)(Packet->Buffer - Datagram->Buffer);
             }
 
             if (!QuicConnRecvHeader(
@@ -5669,7 +5669,7 @@ QuicConnRecvDatagrams(
 
         NextPacket:
 
-            Packet->Buffer += Packet->BufferLength; // 145, 139
+            Packet->Buffer += Packet->BufferLength;
 
             Packet->ValidatedHeaderInv = FALSE;
             Packet->ValidatedHeaderVer = FALSE;

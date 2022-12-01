@@ -790,7 +790,6 @@ TestConnection::HandleConnectionEvent(
         if (IsServer) {
             MsQuic->ConnectionSendResumptionTicket(QuicConnection, QUIC_SEND_RESUMPTION_FLAG_FINAL, 0, nullptr);
         }
-
         NegotiatedAlpn = Event->CONNECTED.NegotiatedAlpn;
         NegotiatedAlpnLength = Event->CONNECTED.NegotiatedAlpnLength;
         CxPlatEventSet(EventConnectionComplete);
