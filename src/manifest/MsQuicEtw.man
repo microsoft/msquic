@@ -3221,7 +3221,7 @@
               />
           <event
               keywords="ut:Connection ut:DataFlow"
-              level="win:Verbose"
+              level="win:Informational"
               message="$(string.Etw.CubicHyStart)"
               opcode="Connection"
               symbol="QuicConnHyStartStateChange"
