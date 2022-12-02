@@ -168,6 +168,7 @@ These parameters are accessed by calling [GetParam](./api/GetParam.md) or [SetPa
 | `QUIC_PARAM_CONN_CIBIR_ID`<br> 21                 | uint8_t[]                     | Set-only  | The CIBIR well-known identifier.                                                          |
 | `QUIC_PARAM_CONN_STATISTICS_V2`<br> 5             | QUIC_STATISTICS_V2            | Get-only  | Connection-level statistics, version 2.                                                   |
 | `QUIC_PARAM_CONN_STATISTICS_V2_PLAT`<br> 6        | QUIC_STATISTICS_V2            | Get-only  | Connection-level statistics with platform-specific time format, version 2.                |
+| `QUIC_PARAM_CONN_RESUMPTION_TICKET_VALID`<br> 24  | uint8_t (BOOLEAN)             | Set-only  | Used for asynchronous custom ticket validation.                                      |
 
 ### QUIC_PARAM_CONN_STATISTICS_V2
 

@@ -1749,7 +1749,7 @@ QuicCryptoCustomTicketValidationComplete(
         Crypto->TlsState.WriteKey = QUIC_PACKET_KEY_INITIAL;
         Crypto->TlsState.BufferOffsetHandshake = 0;
         Crypto->TlsState.BufferOffset1Rtt = 0;
-        for (uint8_t i = QUIC_PACKET_KEY_0_RTT; i < QUIC_PACKET_KEY_COUNT; ++i) {
+        for (size_t i = QUIC_PACKET_KEY_0_RTT; i < QUIC_PACKET_KEY_COUNT; ++i) {
             QuicPacketKeyFree(Crypto->TlsState.ReadKeys[i]);
             Crypto->TlsState.ReadKeys[i] = NULL;
             QuicPacketKeyFree(Crypto->TlsState.WriteKeys[i]);
