@@ -153,13 +153,13 @@ typedef enum CXPLAT_ROUTE_STATE {
 //
 typedef struct CXPLAT_ROUTE {
 
+    void* Queue;
     QUIC_ADDR RemoteAddress;
     QUIC_ADDR LocalAddress;
 
 #ifdef QUIC_USE_RAW_DATAPATH
     uint8_t LocalLinkLayerAddress[6];
     uint8_t NextHopLinkLayerAddress[6];
-    void* Queue;
 
     //
     // QuicCopyRouteInfo copies memory up to this point (not including State).

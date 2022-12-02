@@ -1741,33 +1741,31 @@ CxPlatSendDataAlloc(
     _Inout_ CXPLAT_ROUTE* Route
     )
 {
-    UNREFERENCED_PARAMETER(Route);
     CXPLAT_DBG_ASSERT(Socket != NULL);
+    CXPLAT_DBG_ASSERT(Route != NULL);
 
-    CXPLAT_DATAPATH_PROC* DatapathProc =
-        CxPlatDataPathGetProc(Socket->Datapath, CxPlatProcCurrentNumber());
+    if (Route->Queue == NULL) {
+        Route->Queue = Datapath->Processors[0]; // Use something else initially for client?
+    }
 
-    CXPLAT_SEND_DATA* SendData =
-        CxPlatPoolAlloc(&DatapathProc->SendDataPool);
-
+    CXPLAT_DATAPATH_PROC* DatapathProc = Route->Queue;
+    CXPLAT_SEND_DATA* SendData = CxPlatPoolAlloc(&DatapathProc->SendDataPool);
     if (SendData == NULL) {
         QuicTraceEvent(
             AllocFailure,
             "Allocation of '%s' failed. (%llu bytes)",
             "CXPLAT_SEND_DATA",
             0);
-        goto Exit;
+        return NULL;
     }
 
     CxPlatZeroMemory(SendData, sizeof(*SendData));
-
     SendData->Owner = DatapathProc;
     SendData->ECN = ECN;
     SendData->SegmentSize =
         (Socket->Datapath->Features & CXPLAT_DATAPATH_FEATURE_SEND_SEGMENTATION)
             ? MaxPacketSize : 0;
 
-Exit:
     return SendData;
 }
 
