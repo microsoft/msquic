@@ -844,7 +844,7 @@ CxPlatSocketConfigureRss(
 
     const struct sock_fprog BpfConfig = {
         .len = ARRAYSIZE(BpfCode),
-        .filter = BpfCode
+        .filter = (struct sock_filter*)BpfCode
     };
 
     int Result =
@@ -855,7 +855,7 @@ CxPlatSocketConfigureRss(
             (const void*)&BpfConfig,
             sizeof(BpfConfig));
     if (Result == SOCKET_ERROR) {
-        Status = errno;
+        QUIC_STATUS Status = errno;
         QuicTraceEvent(
             DatapathErrorStatus,
             "[data][%p] ERROR, %u, %s.",
@@ -882,8 +882,7 @@ QUIC_STATUS
 CxPlatSocketContextInitialize(
     _Inout_ CXPLAT_SOCKET_CONTEXT* SocketContext,
     _In_ const QUIC_ADDR* LocalAddress,
-    _In_ const QUIC_ADDR* RemoteAddress,
-    _In_ BOOLEAN ForceShare
+    _In_ const QUIC_ADDR* RemoteAddress
     )
 {
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
@@ -1145,31 +1144,25 @@ CxPlatSocketContextInitialize(
     }
 
     //
-    // Only set SO_REUSEPORT on a server socket, otherwise the client could be
-    // assigned a server port (unless it's forcing sharing).
+    // The port is shared across processors.
     //
-    if (ForceShare || RemoteAddress == NULL) {
-        //
-        // The port is shared across processors.
-        //
-        Option = TRUE;
-        Result =
-            setsockopt(
-                SocketContext->SocketFd,
-                SOL_SOCKET,
-                SO_REUSEPORT,
-                (const void*)&Option,
-                sizeof(Option));
-        if (Result == SOCKET_ERROR) {
-            Status = errno;
-            QuicTraceEvent(
-                DatapathErrorStatus,
-                "[data][%p] ERROR, %u, %s.",
-                Binding,
-                Status,
-                "setsockopt(SO_REUSEPORT) failed");
-            goto Exit;
-        }
+    Option = TRUE;
+    Result =
+        setsockopt(
+            SocketContext->SocketFd,
+            SOL_SOCKET,
+            SO_REUSEPORT,
+            (const void*)&Option,
+            sizeof(Option));
+    if (Result == SOCKET_ERROR) {
+        Status = errno;
+        QuicTraceEvent(
+            DatapathErrorStatus,
+            "[data][%p] ERROR, %u, %s.",
+            Binding,
+            Status,
+            "setsockopt(SO_REUSEPORT) failed");
+        goto Exit;
     }
 
     CxPlatCopyMemory(&MappedAddress, &Binding->LocalAddress, sizeof(MappedAddress));
@@ -1366,46 +1359,6 @@ CxPlatSocketContextUninitialize(
 }
 
 QUIC_STATUS
-CxPlatSocketContextPrepareReceive(
-    _In_ CXPLAT_SOCKET_CONTEXT* SocketContext
-    )
-{
-    CxPlatZeroMemory(&SocketContext->RecvMsgHdr, sizeof(SocketContext->RecvMsgHdr));
-    CxPlatZeroMemory(&SocketContext->RecvMsgControl, sizeof(SocketContext->RecvMsgControl));
-
-    for (ssize_t i = 0; i < CXPLAT_MAX_BATCH_RECEIVE; i++) {
-        if (SocketContext->CurrentRecvBlocks[i] == NULL) {
-            SocketContext->CurrentRecvBlocks[i] =
-                CxPlatDataPathAllocRecvBlock(SocketContext->DatapathProc);
-            if (SocketContext->CurrentRecvBlocks[i] == NULL) {
-                QuicTraceEvent(
-                    AllocFailure,
-                    "Allocation of '%s' failed. (%llu bytes)",
-                    "CXPLAT_DATAPATH_RECV_BLOCK",
-                    0);
-                return QUIC_STATUS_OUT_OF_MEMORY;
-            }
-        }
-        CXPLAT_DATAPATH_RECV_BLOCK* CurrentBlock = SocketContext->CurrentRecvBlocks[i];
-        struct msghdr* MsgHdr = &SocketContext->RecvMsgHdr[i].msg_hdr;
-
-        SocketContext->RecvIov[i].iov_base = CurrentBlock->RecvPacket.Buffer;
-        CurrentBlock->RecvPacket.BufferLength = SocketContext->RecvIov[i].iov_len;
-        CurrentBlock->RecvPacket.Route = &CurrentBlock->Route;
-
-        MsgHdr->msg_name = &CurrentBlock->RecvPacket.Route->RemoteAddress;
-        MsgHdr->msg_namelen = sizeof(CurrentBlock->RecvPacket.Route->RemoteAddress);
-        MsgHdr->msg_iov = &SocketContext->RecvIov[i];
-        MsgHdr->msg_iovlen = 1;
-        MsgHdr->msg_control = &SocketContext->RecvMsgControl[i].Data;
-        MsgHdr->msg_controllen = sizeof(SocketContext->RecvMsgControl[i].Data);
-        MsgHdr->msg_flags = 0;
-    }
-
-    return QUIC_STATUS_SUCCESS;
-}
-
-QUIC_STATUS
 CxPlatSocketContextStartReceive(
     _In_ CXPLAT_SOCKET_CONTEXT* SocketContext
     )
@@ -1420,7 +1373,7 @@ CxPlatSocketContextStartReceive(
             SocketContext->SocketFd,
             &SockFdEpEvt);
     if (Ret != 0) {
-        Status = Ret;
+        QUIC_STATUS Status = Ret;
         QuicTraceEvent(
             DatapathErrorStatus,
             "[data][%p] ERROR, %u, %s.",
@@ -1439,35 +1392,19 @@ CxPlatSocketContextRecvComplete(
     _In_ int MessagesReceived
     )
 {
-    QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
     uint32_t BytesTransferred = 0;
-
-    int32_t RetryCount = 0;
-    do {
-        Status = CxPlatSocketContextPrepareReceive(SocketContext);
-    } while (!QUIC_SUCCEEDED(Status) && ++RetryCount < 10);
-
-    if (!QUIC_SUCCEEDED(Status)) {
-        CXPLAT_DBG_ASSERT(Status == QUIC_STATUS_OUT_OF_MEMORY);
-        QuicTraceEvent(
-            DatapathErrorStatus,
-            "[data][%p] ERROR, %u, %s.",
-            SocketContext->Binding,
-            Status,
-            "CxPlatSocketContextPrepareReceive failed multiple times. Receive will no longer work.");
-        return;
-    }
-
-    CXPLAT_FRE_ASSERT(MessagesReceived <= CXPLAT_MAX_BATCH_RECEIVE);
-
     CXPLAT_RECV_DATA* DatagramHead = NULL;
     CXPLAT_RECV_DATA* DatagramTail = NULL;
 
+    CXPLAT_FRE_ASSERT(MessagesReceived <= CXPLAT_MAX_BATCH_RECEIVE);
+
     for (int CurrentMessage = 0; CurrentMessage < MessagesReceived; CurrentMessage++) {
-        CXPLAT_DATAPATH_RECV_BLOCK* CurrentBlock = SocketContext->CurrentRecvBlocks[CurrentMessage];
+        CXPLAT_DATAPATH_RECV_BLOCK* RecvBlock = SocketContext->CurrentRecvBlocks[CurrentMessage];
         SocketContext->CurrentRecvBlocks[CurrentMessage] = NULL;
-        CXPLAT_RECV_DATA* RecvPacket = &CurrentBlock->RecvPacket;
-        RecvPacket->Route->Owner = SocketContext;
+
+        CXPLAT_RECV_DATA* RecvPacket = &RecvBlock->RecvPacket;
+        RecvPacket->Route = &RecvBlock->Route;
+        RecvPacket->Route->Queue = SocketContext;
 
         if (DatagramHead == NULL) {
             DatagramHead = RecvPacket;
@@ -1721,13 +1658,46 @@ CxPlatDataPathSocketProcessIoCompletion(
     }
 
     if (EPOLLIN & Cqe->events) {
-        //
-        // Read up to 4 receives before moving to another event.
-        //
-        for (int i = 0; i < 4; i++) {
 
-            for (ssize_t i = 0; i < CXPLAT_MAX_BATCH_RECEIVE; i++) {
-                CXPLAT_DBG_ASSERT(SocketContext->CurrentRecvBlocks[i] != NULL);
+        do {
+            uint32_t RetryCount = 0;
+            for (uint32_t i = 0;
+                 i < CXPLAT_MAX_BATCH_RECEIVE && SocketContext->CurrentRecvBlocks[i] == NULL;
+                 ++i) {
+            RetryAlloc:
+                SocketContext->CurrentRecvBlocks[i] =
+                    CxPlatDataPathAllocRecvBlock(SocketContext->DatapathProc);
+                if (SocketContext->CurrentRecvBlocks[i] == NULL) {
+                    QuicTraceEvent(
+                        AllocFailure,
+                        "Allocation of '%s' failed. (%llu bytes)",
+                        "CXPLAT_DATAPATH_RECV_BLOCK",
+                        0);
+                    if (++RetryCount < 10) {
+                        goto RetryAlloc;
+                    }
+                    QuicTraceEvent(
+                        DatapathErrorStatus,
+                        "[data][%p] ERROR, %u, %s.",
+                        SocketContext->Binding,
+                        QUIC_STATUS_OUT_OF_MEMORY,
+                        "CxPlatSocketContextPrepareReceive failed multiple times. Receive will no longer work.");
+                    goto Exit;
+                }
+
+                CXPLAT_DATAPATH_RECV_BLOCK* RecvBlock = SocketContext->CurrentRecvBlocks[i];
+                CXPLAT_RECV_MSG_CONTROL_BUFFER* MsgControl = &SocketContext->RecvMsgControl[i];
+                struct iovec* IoVec = &SocketContext->RecvIov[i];
+                struct msghdr* MsgHdr = &SocketContext->RecvMsgHdr[i].msg_hdr;
+
+                IoVec->iov_base = RecvBlock->RecvPacket.Buffer;
+                MsgHdr->msg_name = &RecvBlock->Route.RemoteAddress;
+                MsgHdr->msg_namelen = sizeof(RecvBlock->Route.RemoteAddress);
+                MsgHdr->msg_iov = IoVec;
+                MsgHdr->msg_iovlen = 1;
+                MsgHdr->msg_control = &MsgControl->Data;
+                MsgHdr->msg_controllen = sizeof(MsgControl->Data);
+                MsgHdr->msg_flags = 0;
             }
 
             int Ret =
@@ -1748,13 +1718,17 @@ CxPlatDataPathSocketProcessIoCompletion(
                 }
                 break;
             }
+
             CxPlatSocketContextRecvComplete(SocketContext, Ret);
-        }
+
+        } while (TRUE);
     }
 
     if (EPOLLOUT & Cqe->events) {
         CxPlatSocketContextSendComplete(SocketContext);
     }
+
+Exit:
 
     CxPlatRundownRelease(&SocketContext->UpcallRundown);
 }
@@ -1832,8 +1806,7 @@ CxPlatSocketCreateUdp(
             CxPlatSocketContextInitialize(
                 &Binding->SocketContexts[i],
                 Config->LocalAddress,
-                Config->RemoteAddress,
-                Config->Flags & CXPLAT_SOCKET_FLAG_SHARE);
+                Config->RemoteAddress);
         if (QUIC_FAILED(Status)) {
             goto Exit;
         }
@@ -2008,10 +1981,10 @@ CxPlatSendDataAlloc(
     CXPLAT_DBG_ASSERT(Route != NULL);
 
     if (Route->Queue == NULL) {
-        Route->Queue = Socket->SocketContexts[0]; // Use something else initially for client?
+        Route->Queue = &Socket->SocketContexts[0]; // Use something else initially for client?
     }
 
-    CXPLAT_SOCKET_PROC* SocketContext = Route->Queue;
+    CXPLAT_SOCKET_CONTEXT* SocketContext = Route->Queue;
     CXPLAT_DATAPATH_PROC* DatapathProc = SocketContext->DatapathProc;
     CXPLAT_SEND_DATA* SendData = CxPlatPoolAlloc(&DatapathProc->SendDataPool);
     if (SendData == NULL) {
