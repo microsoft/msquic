@@ -3512,9 +3512,6 @@ CxPlatSocketStartRioReceives(
 
         if (SocketProc->RioRecvCount < RIO_RECV_QUEUE_DEPTH - 1) {
             RioFlags |= RIO_MSG_DEFER;
-            NeedCommit = TRUE;
-        } else {
-            NeedCommit = FALSE;
         }
 
         Data.BufferId = RecvContext->RioBufferId;
@@ -3543,9 +3540,14 @@ CxPlatSocketStartRioReceives(
             goto Error;
         }
 
+        if (RioFlags & RIO_MSG_DEFER) {
+            NeedCommit = TRUE;
+        }
+
         SocketProc->RioRecvCount++;
     }
 
+    NeedCommit = FALSE;
     Status = QUIC_STATUS_SUCCESS;
 
 Error:
@@ -3563,6 +3565,12 @@ Error:
                 WsaError,
                 "RIOReceiveEx");
             Status = HRESULT_FROM_WIN32(WsaError);
+        } else {
+            //
+            // At least one receive was posted and committed, guaranteeing
+            // forward progress, so indicate the partial success.
+            //
+            Status = QUIC_STATUS_SUCCESS;
         }
     }
 
