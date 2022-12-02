@@ -3997,6 +3997,7 @@ CxPlatDataPathRioCompletion(
                         SocketProc,
                         RecvContext,
                         Results[i].Status, (UINT16)Results[i].BytesTransferred);
+                    CxPlatRundownRelease(&SocketProc->UpcallRundown);
                 } else {
                     CxPlatFreeRecvContext(RecvContext);
                 }
