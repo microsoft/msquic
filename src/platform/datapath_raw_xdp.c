@@ -576,10 +576,14 @@ CxPlatDpRawInterfaceInitialize(
         CxPlatLockInitialize(&Queue->TxLock);
         CxPlatListInitializeHead(&Queue->TxQueue);
         CxPlatListInitializeHead(&Queue->WorkerTxQueue);
+<<<<<<< HEAD
         CxPlatDatapathSqeInitialize(&Queue->RxIoSqe.DatapathSqe, CXPLAT_CQE_TYPE_SOCKET_IO);
         Queue->RxIoSqe.IoType = DATAPATH_IO_RECV;
         CxPlatDatapathSqeInitialize(&Queue->TxIoSqe.DatapathSqe, CXPLAT_CQE_TYPE_SOCKET_IO);
         Queue->TxIoSqe.IoType = DATAPATH_IO_SEND;
+=======
+        CxPlatDatapathSqeInitialize(&Queue->IoSqe, CXPLAT_CQE_TYPE_SOCKET_IO);
+>>>>>>> 9d479c5c3 (fix XDP)
 
         //
         // RX datapath.
