@@ -1675,10 +1675,8 @@ QuicCryptoProcessDataComplete(
     _In_ uint32_t RecvBufferConsumed
     )
 {
-    if (Crypto->CertValidationPending || Crypto->TicketValidationStatus == QUIC_SERVER_VALIDATION_PENDING) {
-        if (Crypto->TicketValidationStatus == QUIC_SERVER_VALIDATION_PENDING) {
-            Crypto->PendingValidationBufferLength = RecvBufferConsumed;
-        }
+    if (Crypto->CertValidationPending || Crypto->TicketValidationPending) {
+        Crypto->PendingValidationBufferLength = RecvBufferConsumed;
         return;
     }
 
@@ -1714,8 +1712,7 @@ QuicCryptoCustomCertValidationComplete(
             CustomCertValidationSuccess,
             QuicCryptoGetConnection(Crypto),
             "Custom cert validation succeeded");
-        QuicCryptoProcessTlsCompletion(Crypto);
-
+        QuicCryptoProcessDataComplete(Crypto, Crypto->PendingValidationBufferLength);
     } else {
         QuicTraceEvent(
             ConnError,
@@ -1726,24 +1723,45 @@ QuicCryptoCustomCertValidationComplete(
             QuicCryptoGetConnection(Crypto),
             QUIC_ERROR_CRYPTO_ERROR(0xFF & CXPLAT_TLS_ALERT_CODE_BAD_CERTIFICATE)); //
     }
+    Crypto->PendingValidationBufferLength = 0;
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
-void
+QUIC_STATUS
 QuicCryptoCustomTicketValidationComplete(
     _In_ QUIC_CRYPTO* Crypto,
     _In_ BOOLEAN Result
     )
 {
-    if (Crypto->TicketValidationStatus != QUIC_SERVER_VALIDATION_PENDING) {
-        return;
+    //
+    // Finalizes server side resumption ticket validation in case
+    // server app decide to validate it asynchronously
+    // Need to set TicketValidationPending = FALSE to drain packet and continue handshake
+    // 
+    QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
+    if (!Crypto->TicketValidationPending || Crypto->TicketValidationRejecting) {
+        Status = QUIC_STATUS_INVALID_STATE;
+        goto Error;
     }
 
     if (Result) {
-        Crypto->TicketValidationStatus = QUIC_SERVER_VALIDATION_DONE;
+        //
+        // Just call completion.
+        // Outgoing buffer was already prepared during previous initial packet processing
+        //
+        Crypto->TicketValidationPending = FALSE;
         QuicCryptoProcessDataComplete(Crypto, Crypto->PendingValidationBufferLength);
     } else {
-        Crypto->TicketValidationStatus = QUIC_SERVER_VALIDATION_REJECTING;
+        //
+        // Need to rollback status before processing client's initial packet, because outgoing buffer and
+        // related status was speculatively set for successfull case as above
+        //
+
+        //
+        // TicketValidationRejecting is for intuitive naming purpose in QuicConnRecvResumptionTicket
+        // TicketValidationPending = FALSE will be set at QuicConnRecvResumptionTicket
+        //
+        Crypto->TicketValidationRejecting = TRUE;
 
         Crypto->TlsState.ReadKey = QUIC_PACKET_KEY_INITIAL;
         Crypto->TlsState.WriteKey = QUIC_PACKET_KEY_INITIAL;
@@ -1757,9 +1775,13 @@ QuicCryptoCustomTicketValidationComplete(
         }
         Crypto->RecvBuffer.ExternalBufferReference = FALSE;
         QUIC_CONNECTION* Connection = QuicCryptoGetConnection(Crypto);
-        QuicCryptoInitializeTls(Crypto, Connection->Configuration->SecurityConfig, Connection->HandshakeTP);
+        Status = QuicCryptoInitializeTls(Crypto, Connection->Configuration->SecurityConfig, Connection->HandshakeTP);
     }
     Crypto->PendingValidationBufferLength = 0;
+
+Error:
+
+    return Status;
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)

@@ -156,12 +156,6 @@ typedef enum QUIC_SERVER_RESUMPTION_LEVEL {
     QUIC_SERVER_RESUME_AND_ZERORTT,
 } QUIC_SERVER_RESUMPTION_LEVEL;
 
-typedef enum QUIC_SERVER_APP_TICKET_VALIDATION_STATUS {
-    QUIC_SERVER_VALIDATION_DONE,
-    QUIC_SERVER_VALIDATION_PENDING,
-    QUIC_SERVER_VALIDATION_REJECTING,
-} QUIC_SERVER_APP_TICKET_VALIDATION_STATUS;
-
 typedef enum QUIC_SEND_RESUMPTION_FLAGS {
     QUIC_SEND_RESUMPTION_FLAG_NONE          = 0x0000,
     QUIC_SEND_RESUMPTION_FLAG_FINAL         = 0x0001,   // Free TLS state after sending this ticket.
@@ -852,7 +846,6 @@ typedef struct QUIC_SCHANNEL_CREDENTIAL_ATTRIBUTE_W {
 #endif
 #define QUIC_PARAM_CONN_STATISTICS_V2                   0x05000016  // QUIC_STATISTICS_V2
 #define QUIC_PARAM_CONN_STATISTICS_V2_PLAT              0x05000017  // QUIC_STATISTICS_V2
-#define QUIC_PARAM_CONN_RESUMPTION_TICKET_VALID         0x05000018  // uint8_t (BOOLEAN)
 
 //
 // Parameters for TLS.
@@ -1274,6 +1267,19 @@ QUIC_STATUS
     );
 
 //
+// Uses the QUIC (server) handle to complete resumption ticket validation.
+// This must be called after server app handles ticket validation and then
+// return QUIC_STATUS_PENDING.
+//
+typedef
+_IRQL_requires_max_(DISPATCH_LEVEL)
+QUIC_STATUS
+(QUIC_API * QUIC_CONNECTION_COMP_RESUMPTION_FN)(
+    _In_ _Pre_defensive_ HQUIC Connection,
+    _In_ BOOLEAN Result
+    );
+
+//
 // Streams
 //
 
@@ -1489,6 +1495,7 @@ typedef struct QUIC_API_TABLE {
     QUIC_CONNECTION_SET_CONFIGURATION_FN
                                         ConnectionSetConfiguration;
     QUIC_CONNECTION_SEND_RESUMPTION_FN  ConnectionSendResumptionTicket;
+    QUIC_CONNECTION_COMP_RESUMPTION_FN  ConnectionResumptionTicketValidationComplete;
 
     QUIC_STREAM_OPEN_FN                 StreamOpen;
     QUIC_STREAM_CLOSE_FN                StreamClose;

@@ -42,7 +42,8 @@ typedef struct QUIC_CRYPTO {
     //
     // Indicates Resumption ticket validation is under validation asynchronously
     //
-    QUIC_SERVER_APP_TICKET_VALIDATION_STATUS TicketValidationStatus : 2;
+    BOOLEAN TicketValidationPending : 1;
+    BOOLEAN TicketValidationRejecting : 1;
     uint32_t PendingValidationBufferLength;
 
     //
@@ -277,7 +278,7 @@ QuicCryptoCustomCertValidationComplete(
 // Invoked when the app has completed its custom resumption ticket validation.
 //
 _IRQL_requires_max_(PASSIVE_LEVEL)
-void
+QUIC_STATUS
 QuicCryptoCustomTicketValidationComplete(
     _In_ QUIC_CRYPTO* Crypto,
     _In_ BOOLEAN Result

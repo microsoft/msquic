@@ -49,6 +49,7 @@ typedef enum QUIC_API_TYPE {
     QUIC_API_TYPE_CONN_START,
     QUIC_API_TYPE_CONN_SET_CONFIGURATION,
     QUIC_API_TYPE_CONN_SEND_RESUMPTION_TICKET,
+    QUIC_API_TYPE_CONN_COMPLETE_RESUMPTION_TICKET_VALIDATION,
 
     QUIC_API_TYPE_STRM_CLOSE,
     QUIC_API_TYPE_STRM_SHUTDOWN,
@@ -113,6 +114,10 @@ typedef struct QUIC_API_CONTEXT {
             uint8_t* ResumptionAppData;
             uint16_t AppDataLength;
         } CONN_SEND_RESUMPTION_TICKET;
+
+        struct {
+            BOOLEAN Result;
+        } CONN_COMPLETE_RESUMPTION_TICKET_VALIDATION;
 
         struct {
             QUIC_STREAM_OPEN_FLAGS Flags;

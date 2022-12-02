@@ -63,7 +63,6 @@ class TestConnection
     bool HasRandomLoss      : 1;
     bool AsyncCustomValidation : 1;
     bool CustomValidationResultSet : 1;
-    bool CustomTicketValidationResultSet : 1; // might not be needed
 
     bool ExpectedResumed    : 1;
     QUIC_STATUS ExpectedCustomTicketValidationResult;
@@ -213,7 +212,7 @@ public:
     QUIC_UINT62 GetExpectedCustomValidationResult() const { return ExpectedCustomValidationResult; };
     void SetExpectedCustomValidationResult(bool AcceptCert) { CustomValidationResultSet = true; ExpectedCustomValidationResult = AcceptCert; }
     void SetAsyncCustomValidationResult(bool Async) { AsyncCustomValidation = Async; }
-    void SetExpectedCustomTicketValidationResult(QUIC_STATUS Status) { CustomTicketValidationResultSet = true; ExpectedCustomTicketValidationResult = Status; }
+    void SetExpectedCustomTicketValidationResult(QUIC_STATUS Status) { ExpectedCustomTicketValidationResult = Status; }
 
     const QUIC_STATUS* GetExpectedClientCertValidationResult() const { return ExpectedClientCertValidationResult; }
     void AddExpectedClientCertValidationResult(QUIC_STATUS Status) {

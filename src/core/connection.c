@@ -2136,13 +2136,14 @@ QuicConnRecvResumptionTicket(
     QUIC_TRANSPORT_PARAMETERS ResumedTP;
     CxPlatZeroMemory(&ResumedTP, sizeof(ResumedTP));
     if (QuicConnIsServer(Connection)) {
-        if (Connection->Crypto.TicketValidationStatus == QUIC_SERVER_VALIDATION_REJECTING) {
+        if (Connection->Crypto.TicketValidationRejecting) {
             QuicTraceEvent(
                 ConnError,
                 "[conn][%p] ERROR, %s.",
                 Connection,
                 "Resumption Ticket rejected by server app asynchronously");
-            Connection->Crypto.TicketValidationStatus = QUIC_SERVER_VALIDATION_DONE;
+            Connection->Crypto.TicketValidationRejecting = FALSE;
+            Connection->Crypto.TicketValidationPending = FALSE;
             goto Error;
         }
 
@@ -2200,14 +2201,13 @@ QuicConnRecvResumptionTicket(
                 ConnServerResumeTicket,
                 "[conn][%p] Server app accepted resumption ticket",
                 Connection);
-            Connection->Crypto.TicketValidationStatus = QUIC_SERVER_VALIDATION_DONE;
             ResumptionAccepted = TRUE;
         } else if (Status == QUIC_STATUS_PENDING) {
             QuicTraceEvent(
                 ConnServerResumeTicket,
                 "[conn][%p] Server app asynchronously validating resumption ticket",
                 Connection);
-            Connection->Crypto.TicketValidationStatus = QUIC_SERVER_VALIDATION_PENDING;
+            Connection->Crypto.TicketValidationPending = TRUE;
             ResumptionAccepted = TRUE;
         } else {
             QuicTraceEvent(
@@ -2215,7 +2215,6 @@ QuicConnRecvResumptionTicket(
                 "[conn][%p] ERROR, %s.",
                 Connection,
                 "Resumption Ticket rejected by server app");
-            Connection->Crypto.TicketValidationStatus = QUIC_SERVER_VALIDATION_DONE;
             ResumptionAccepted = FALSE;
         }
 
@@ -6463,16 +6462,6 @@ QuicConnParamSet(
         Status = QUIC_STATUS_SUCCESS;
         break;
 
-    case QUIC_PARAM_CONN_RESUMPTION_TICKET_VALID:
-        if (BufferLength != sizeof(BOOLEAN) || Buffer == NULL) {
-            Status = QUIC_STATUS_INVALID_PARAMETER;
-            break;
-        }
-
-        QuicCryptoCustomTicketValidationComplete(&Connection->Crypto, *(BOOLEAN*)Buffer);
-        Status = QUIC_STATUS_SUCCESS;
-        break;
-
     case QUIC_PARAM_CONN_LOCAL_INTERFACE:
 
         if (BufferLength != sizeof(uint32_t)) {
@@ -7308,6 +7297,15 @@ QuicConnProcessApiOperation(
         if (ApiCtx->CONN_SEND_RESUMPTION_TICKET.Flags & QUIC_SEND_RESUMPTION_FLAG_FINAL) {
             Connection->State.ResumptionEnabled = FALSE;
         }
+        break;
+
+    case QUIC_API_TYPE_CONN_COMPLETE_RESUMPTION_TICKET_VALIDATION:
+        CXPLAT_DBG_ASSERT(QuicConnIsServer(Connection));
+
+        Status = 
+            QuicCryptoCustomTicketValidationComplete(
+                &Connection->Crypto,
+                ApiCtx->CONN_COMPLETE_RESUMPTION_TICKET_VALIDATION.Result);
         break;
 
     case QUIC_API_TYPE_STRM_CLOSE:
