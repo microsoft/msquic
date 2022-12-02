@@ -129,7 +129,7 @@ typedef enum CXPLAT_SOCKET_TYPE {
 } CXPLAT_SOCKET_TYPE;
 
 //
-// TODO comment
+// Type of IO.
 //
 typedef enum DATAPATH_IO_TYPE {
     DATAPATH_IO_RECV              = 0,
@@ -865,6 +865,11 @@ CxPlatSendDataComplete(
 void
 CxPlatFreeRecvContext(
     _In_ CXPLAT_DATAPATH_INTERNAL_RECV_CONTEXT* RecvContext
+    );
+
+void
+CxPlatDataPathRioWorker(
+    _In_ CXPLAT_SOCKET_PROC* SocketProc
     );
 
 void
@@ -2366,10 +2371,11 @@ QUIC_DISABLED_BY_FUZZER_END;
 
         if (Socket->UseRio) {
             //
-            // Arm completion notifications. TODO: what if this fails?
+            // Arm completion notifications.
             //
-            CXPLAT_FRE_ASSERT(
-                Datapath->RioDispatch.RIONotify(Socket->Processors[i].RioCq) == ERROR_SUCCESS);
+            ULONG NotifyResult = Datapath->RioDispatch.RIONotify(Socket->Processors[i].RioCq);
+            CXPLAT_TEL_ASSERT(NotifyResult == ERROR_SUCCESS);
+            DBG_UNREFERENCED_LOCAL_VARIABLE(NotifyResult);
         }
 
         Socket->Processors[i].IoStarted = TRUE;
@@ -3035,8 +3041,20 @@ CxPlatSocketContextUninitializeComplete(
     }
 
     if (SocketProc->RioCq != RIO_INVALID_CQ) {
+        if (SocketProc->IoStarted) {
+            //
+            // Drain any RIO completions.
+            //
+            CXPLAT_DBG_ASSERT(!CxPlatRundownAcquire(&SocketProc->UpcallRundown));
+            CxPlatDataPathRioWorker(SocketProc);
+        }
         SocketProc->DatapathProc->Datapath->RioDispatch.
             RIOCloseCompletionQueue(SocketProc->RioCq);
+        SocketProc->RioCq = RIO_INVALID_CQ;
+
+        CXPLAT_DBG_ASSERT(SocketProc->RioRecvCount == 0);
+        CXPLAT_DBG_ASSERT(SocketProc->RioSendCount == 0);
+        CXPLAT_DBG_ASSERT(CxPlatListIsEmpty(&SocketProc->RioSendOverflow));
     }
     if (SocketProc->Parent->Type == CXPLAT_SOCKET_TCP_LISTENER) {
         if (SocketProc->AcceptSocket != NULL) {
@@ -3962,18 +3980,15 @@ CxPlatDataPathStartReceive(
 }
 
 void
-CxPlatDataPathRioCompletion(
-    _In_ CXPLAT_CQE* Cqe,
-    _In_ DATAPATH_IO_SQE* Sqe
+CxPlatDataPathRioWorker(
+    _In_ CXPLAT_SOCKET_PROC* SocketProc
     )
 {
-    CXPLAT_SOCKET_PROC* SocketProc = CONTAINING_RECORD(Sqe, CXPLAT_SOCKET_PROC, RioSqe);
     CXPLAT_DATAPATH* Datapath = SocketProc->DatapathProc->Datapath;
     RIORESULT Results[32];
     ULONG ResultCount;
     ULONG NotifyResult;
 
-    UNREFERENCED_PARAMETER(Cqe);
     ASSERT(SocketProc->Parent->Type == CXPLAT_SOCKET_UDP);
 
     do {
@@ -4025,13 +4040,25 @@ CxPlatDataPathRioCompletion(
         // Re-arm completion notifications.
         //
         NotifyResult = Datapath->RioDispatch.RIONotify(SocketProc->RioCq);
-        CXPLAT_FRE_ASSERT(NotifyResult == ERROR_SUCCESS);   // TODO: what if this fails?
+        CXPLAT_TEL_ASSERT(NotifyResult == ERROR_SUCCESS);
+        DBG_UNREFERENCED_LOCAL_VARIABLE(NotifyResult);
 
         CxPlatRundownRelease(&SocketProc->UpcallRundown);
     }
 }
 
-BOOLEAN
+void
+CxPlatDataPathRioCompletion(
+    _In_ CXPLAT_CQE* Cqe,
+    _In_ DATAPATH_IO_SQE* Sqe
+    )
+{
+    CXPLAT_SOCKET_PROC* SocketProc = CONTAINING_RECORD(Sqe, CXPLAT_SOCKET_PROC, RioSqe);
+    UNREFERENCED_PARAMETER(Cqe);
+    CxPlatDataPathRioWorker(SocketProc);
+}
+
+void
 CxPlatDataPathTcpRecvComplete(
     _In_ CXPLAT_SOCKET_PROC* SocketProc,
     _In_ CXPLAT_DATAPATH_INTERNAL_RECV_CONTEXT* RecvContext,
