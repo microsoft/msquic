@@ -3753,7 +3753,7 @@ CxPlatDataPathUdpRecvComplete(
             RecvContext->WsaMsgHdr.Control.len = RioRcvMsg->TotalLength - RIO_CMSG_BASE_SIZE;
         }
 
-        for (WSACMSGHDR *CMsg = CMSG_FIRSTHDR(&RecvContext->WsaMsgHdr);
+        for (WSACMSGHDR* CMsg = CMSG_FIRSTHDR(&RecvContext->WsaMsgHdr);
             CMsg != NULL;
             CMsg = CMSG_NXTHDR(&RecvContext->WsaMsgHdr, CMsg)) {
 
@@ -3982,7 +3982,7 @@ CxPlatDataPathRioCompletion(
 
         for (ULONG i = 0; i < ResultCount; i++) {
             CXPLAT_DATAPATH_INTERNAL_IO_HEADER* IoHeader =
-                (CXPLAT_DATAPATH_INTERNAL_IO_HEADER*)Results[i].RequestContext;
+                (CXPLAT_DATAPATH_INTERNAL_IO_HEADER*)(ULONG_PTR)Results[i].RequestContext;
 
             if (IoHeader->IoType == DATAPATH_IO_RIO_RECV) {
                 CXPLAT_DBG_ASSERT(Results[i].BytesTransferred <= UINT16_MAX);
