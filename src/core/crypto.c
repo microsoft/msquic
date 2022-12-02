@@ -105,7 +105,7 @@ QuicCryptoInitialize(
     )
 {
     CXPLAT_DBG_ASSERT(Crypto->Initialized == FALSE);
-    QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
+    QUIC_STATUS Status;
     QUIC_CONNECTION* Connection = QuicCryptoGetConnection(Crypto);
     uint16_t SendBufferLength =
         QuicConnIsServer(Connection) ?
@@ -147,18 +147,15 @@ QuicCryptoInitialize(
         QUIC_MAX_RANGE_ALLOC_SIZE,
         &Crypto->SparseAckRanges);
 
-    //if (Connection->Crypto.TicketValidationStatus != QUIC_SERVER_VALIDATION_REJECTING) {
-    {
-        Status =
-            QuicRecvBufferInitialize(
-                &Crypto->RecvBuffer,
-                InitialRecvBufferLength,
-                QUIC_DEFAULT_STREAM_FC_WINDOW_SIZE / 2,
-                TRUE,
-                NULL);
-        if (QUIC_FAILED(Status)) {
-            goto Exit;
-        }
+    Status =
+        QuicRecvBufferInitialize(
+            &Crypto->RecvBuffer,
+            InitialRecvBufferLength,
+            QUIC_DEFAULT_STREAM_FC_WINDOW_SIZE / 2,
+            TRUE,
+            NULL);
+    if (QUIC_FAILED(Status)) {
+        goto Exit;
     }
     RecvBufferInitialized = TRUE;
 
@@ -185,25 +182,23 @@ QuicCryptoInitialize(
         HandshakeCidLength = DestCid->CID.Length;
     }
 
-    if (Connection->Crypto.TicketValidationStatus != QUIC_SERVER_VALIDATION_REJECTING) {
-        Status =
-            QuicPacketKeyCreateInitial(
-                QuicConnIsServer(Connection),
-                &VersionInfo->HkdfLabels,
-                VersionInfo->Salt,
-                HandshakeCidLength,
-                HandshakeCid,
-                &Crypto->TlsState.ReadKeys[QUIC_PACKET_KEY_INITIAL],
-                &Crypto->TlsState.WriteKeys[QUIC_PACKET_KEY_INITIAL]);
-        if (QUIC_FAILED(Status)) {
-            QuicTraceEvent(
-                ConnErrorStatus,
-                "[conn][%p] ERROR, %u, %s.",
-                Connection,
-                Status,
-                "Creating initial keys");
-            goto Exit;
-        }
+    Status =
+        QuicPacketKeyCreateInitial(
+            QuicConnIsServer(Connection),
+            &VersionInfo->HkdfLabels,
+            VersionInfo->Salt,
+            HandshakeCidLength,
+            HandshakeCid,
+            &Crypto->TlsState.ReadKeys[QUIC_PACKET_KEY_INITIAL],
+            &Crypto->TlsState.WriteKeys[QUIC_PACKET_KEY_INITIAL]);
+    if (QUIC_FAILED(Status)) {
+        QuicTraceEvent(
+            ConnErrorStatus,
+            "[conn][%p] ERROR, %u, %s.",
+            Connection,
+            Status,
+            "Creating initial keys");
+        goto Exit;
     }
     CXPLAT_DBG_ASSERT(Crypto->TlsState.ReadKeys[QUIC_PACKET_KEY_INITIAL] != NULL);
     CXPLAT_DBG_ASSERT(Crypto->TlsState.WriteKeys[QUIC_PACKET_KEY_INITIAL] != NULL);
@@ -1752,24 +1747,15 @@ QuicCryptoCustomTicketValidationComplete(
 
         Crypto->TlsState.ReadKey = QUIC_PACKET_KEY_INITIAL;
         Crypto->TlsState.WriteKey = QUIC_PACKET_KEY_INITIAL;
-        Crypto->TlsState.BufferLength = 0;
-        Crypto->TlsState.BufferTotalLength = 0;
         Crypto->TlsState.BufferOffsetHandshake = 0;
         Crypto->TlsState.BufferOffset1Rtt = 0;
         for (uint8_t i = QUIC_PACKET_KEY_0_RTT; i < QUIC_PACKET_KEY_COUNT; ++i) {
             QuicPacketKeyFree(Crypto->TlsState.ReadKeys[i]);
-            QuicPacketKeyFree(Crypto->TlsState.WriteKeys[i]);
             Crypto->TlsState.ReadKeys[i] = NULL;
+            QuicPacketKeyFree(Crypto->TlsState.WriteKeys[i]);
             Crypto->TlsState.WriteKeys[i] = NULL;
         }
-        Crypto->ResultFlags = 0;
-        Crypto->Initialized = FALSE;
-        uint8_t* Buffer = Crypto->RecvBuffer.Buffer;
-        QuicCryptoInitialize(Crypto);
-        Crypto->RecvBuffer.WrittenRanges.UsedLength = 1;
-        CXPLAT_FREE(Crypto->RecvBuffer.Buffer, QUIC_POOL_RECVBUF);
-        Crypto->RecvBuffer.Buffer = Buffer;
-
+        Crypto->RecvBuffer.ExternalBufferReference = FALSE;
         QUIC_CONNECTION* Connection = QuicCryptoGetConnection(Crypto);
         QuicCryptoInitializeTls(Crypto, Connection->Configuration->SecurityConfig, Connection->HandshakeTP);
     }
