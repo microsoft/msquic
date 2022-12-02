@@ -143,7 +143,7 @@ typedef enum DATAPATH_IO_TYPE {
 } DATAPATH_IO_TYPE;
 
 //
-// TODO comment
+// IO header for SQE->CQE based completions.
 //
 typedef struct CXPLAT_DATAPATH_INTERNAL_IO_HEADER {
     DATAPATH_IO_TYPE IoType;
@@ -169,6 +169,13 @@ typedef struct DATAPATH_IO_SQE {
     DATAPATH_IO_TYPE IoType;
     DATAPATH_SQE DatapathSqe;
 } DATAPATH_IO_SQE;
+
+//
+// Minimal IO header for non-overlapped/SQE entries, such as RIO.
+//
+typedef struct CXPLAT_DATAPATH_INTERNAL_IO_HEADER {
+    DATAPATH_IO_TYPE IoType;
+} CXPLAT_DATAPATH_INTERNAL_IO_HEADER;
 
 //
 // Internal receive context.
