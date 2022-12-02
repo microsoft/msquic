@@ -3989,11 +3989,17 @@ CxPlatDataPathRioCompletion(
 
             if (IoHeader->IoType == DATAPATH_IO_RIO_RECV) {
                 CXPLAT_DBG_ASSERT(Results[i].BytesTransferred <= UINT16_MAX);
+                CXPLAT_DATAPATH_INTERNAL_RECV_CONTEXT* RecvContext =
+                    CONTAINING_RECORD(IoHeader, CXPLAT_DATAPATH_INTERNAL_RECV_CONTEXT, IoHeader);
 
-                CxPlatDataPathUdpRecvComplete(
-                    SocketProc,
-                    CONTAINING_RECORD(IoHeader, CXPLAT_DATAPATH_INTERNAL_RECV_CONTEXT, IoHeader),
-                    Results[i].Status, (UINT16)Results[i].BytesTransferred);
+                if (CxPlatRundownAcquire(&SocketProc->UpcallRundown)) {
+                    CxPlatDataPathUdpRecvComplete(
+                        SocketProc,
+                        RecvContext,
+                        Results[i].Status, (UINT16)Results[i].BytesTransferred);
+                } else {
+                    CxPlatFreeRecvContext(RecvContext);
+                }
 
                 SocketProc->RioRecvCount--;
             } else if (IoHeader->IoType == DATAPATH_IO_RIO_SEND) {
