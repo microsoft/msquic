@@ -2166,12 +2166,6 @@ QUIC_DISABLED_BY_FUZZER_START;
                 Status = HRESULT_FROM_WIN32(WsaError);
                 goto Error;
             }
-
-            //
-            // Arm RIO notifications.
-            // TODO: what if this fails? Can it fail?
-            //
-            CXPLAT_FRE_ASSERT(Datapath->RioDispatch.RIONotify(SocketProc->RioCq) == ERROR_SUCCESS);
         }
 
         if (Config->InterfaceIndex != 0) {
@@ -2369,6 +2363,15 @@ QUIC_DISABLED_BY_FUZZER_END;
         if (QUIC_FAILED(Status)) {
             goto Error;
         }
+
+        if (Socket->UseRio) {
+            //
+            // Arm completion notifications. TODO: what if this fails?
+            //
+            CXPLAT_FRE_ASSERT(
+                Datapath->RioDispatch.RIONotify(Socket->Processors[i].RioCq) == ERROR_SUCCESS);
+        }
+
         Socket->Processors[i].IoStarted = TRUE;
     }
 
