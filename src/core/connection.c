@@ -7302,7 +7302,7 @@ QuicConnProcessApiOperation(
     case QUIC_API_TYPE_CONN_COMPLETE_RESUMPTION_TICKET_VALIDATION:
         CXPLAT_DBG_ASSERT(QuicConnIsServer(Connection));
 
-        Status = 
+        Status =
             QuicCryptoCustomTicketValidationComplete(
                 &Connection->Crypto,
                 ApiCtx->CONN_COMPLETE_RESUMPTION_TICKET_VALIDATION.Result);

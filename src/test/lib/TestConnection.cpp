@@ -22,7 +22,7 @@ TestConnection::TestConnection(
     IsServer(true), IsStarted(true), IsConnected(false), Resumed(false),
     PeerAddrChanged(false), PeerClosed(false), TransportClosed(false),
     IsShutdown(false), ShutdownTimedOut(false), AutoDelete(false), AsyncCustomValidation(false),
-    CustomValidationResultSet(false), ExpectedResumed(false),ExpectedCustomTicketValidationResult(QUIC_STATUS_SUCCESS),
+    CustomValidationResultSet(false), ExpectedResumed(false), ExpectedCustomTicketValidationResult(QUIC_STATUS_SUCCESS),
     ExpectedTransportCloseStatus(QUIC_STATUS_SUCCESS), ExpectedPeerCloseErrorCode(QUIC_TEST_NO_ERROR),
     ExpectedClientCertValidationResult{}, ExpectedClientCertValidationResultCount(0),
     ExpectedCustomValidationResult(false), PeerCertEventReturnStatus(QUIC_STATUS_SUCCESS),

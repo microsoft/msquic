@@ -1737,7 +1737,7 @@ QuicCryptoCustomTicketValidationComplete(
     // Finalizes server side resumption ticket validation in case
     // server app decide to validate it asynchronously
     // Need to set TicketValidationPending = FALSE to drain packet and continue handshake
-    // 
+    //
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
     if (!Crypto->TicketValidationPending || Crypto->TicketValidationRejecting) {
         Status = QUIC_STATUS_INVALID_STATE;
