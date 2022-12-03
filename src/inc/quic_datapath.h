@@ -153,7 +153,7 @@ typedef enum CXPLAT_ROUTE_STATE {
 //
 typedef struct CXPLAT_ROUTE {
 
-    void* Queue;
+    void* Queue; // Internal datapath bookmark for fast lookup
     QUIC_ADDR RemoteAddress;
     QUIC_ADDR LocalAddress;
 

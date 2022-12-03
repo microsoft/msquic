@@ -110,7 +110,7 @@ typedef struct CXPLAT_DATAPATH_RECV_BLOCK {
 
 typedef struct CXPLAT_SEND_DATA {
     //
-    // The socket proc context owning this send context.
+    // The socket context owning this send context.
     //
     struct CXPLAT_SOCKET_CONTEXT *Owner;
 
@@ -1405,6 +1405,9 @@ CxPlatSocketContextRecvComplete(
         CXPLAT_RECV_DATA* RecvPacket = &RecvBlock->RecvPacket;
         RecvPacket->Route = &RecvBlock->Route;
         RecvPacket->Route->Queue = SocketContext;
+        RecvPacket->PartitionIndex = SocketContext->DatapathProc->IdealProcessor;
+        RecvPacket->BufferLength = SocketContext->RecvMsgHdr[CurrentMessage].msg_len;
+        BytesTransferred += RecvPacket->BufferLength;
 
         if (DatagramHead == NULL) {
             DatagramHead = RecvPacket;
@@ -1414,8 +1417,6 @@ CxPlatSocketContextRecvComplete(
             DatagramTail = DatagramTail->Next;
         }
 
-        BOOLEAN FoundLocalAddr = FALSE;
-        BOOLEAN FoundTOS = FALSE;
         QUIC_ADDR* LocalAddr = &RecvPacket->Route->LocalAddress;
         if (LocalAddr->Ipv6.sin6_family == AF_INET6) {
             LocalAddr->Ipv6.sin6_family = QUIC_ADDRESS_FAMILY_INET6;
@@ -1423,14 +1424,11 @@ CxPlatSocketContextRecvComplete(
         QUIC_ADDR* RemoteAddr = &RecvPacket->Route->RemoteAddress;
         if (RemoteAddr->Ipv6.sin6_family == AF_INET6) {
             RemoteAddr->Ipv6.sin6_family = QUIC_ADDRESS_FAMILY_INET6;
+            CxPlatConvertFromMappedV6(RemoteAddr, RemoteAddr);
         }
-        CxPlatConvertFromMappedV6(RemoteAddr, RemoteAddr);
 
-        RecvPacket->BufferLength = SocketContext->RecvMsgHdr[CurrentMessage].msg_len;
-        BytesTransferred += RecvPacket->BufferLength;
-
-        RecvPacket->TypeOfService = 0;
-
+        BOOLEAN FoundLocalAddr = FALSE;
+        BOOLEAN FoundTOS = FALSE;
         struct cmsghdr *CMsg;
         struct msghdr* Msg = &SocketContext->RecvMsgHdr[CurrentMessage].msg_hdr;
         for (CMsg = CMSG_FIRSTHDR(Msg);
@@ -1468,8 +1466,6 @@ CxPlatSocketContextRecvComplete(
 
         CXPLAT_FRE_ASSERT(FoundLocalAddr);
         CXPLAT_FRE_ASSERT(FoundTOS);
-
-        RecvPacket->PartitionIndex = SocketContext->DatapathProc->IdealProcessor;
 
         QuicTraceEvent(
             DatapathRecv,
@@ -1681,7 +1677,7 @@ CxPlatDataPathSocketProcessIoCompletion(
                         "[data][%p] ERROR, %u, %s.",
                         SocketContext->Binding,
                         QUIC_STATUS_OUT_OF_MEMORY,
-                        "CxPlatSocketContextPrepareReceive failed multiple times. Receive will no longer work.");
+                        "CxPlatDataPathAllocRecvBlock failed multiple times. Receive will no longer work.");
                     goto Exit;
                 }
 
