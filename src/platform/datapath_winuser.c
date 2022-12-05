@@ -3966,11 +3966,11 @@ CxPlatSocketSend(
     _In_ uint16_t IdealProcessor
     )
 {
+    UNREFERENCED_PARAMETER(IdealProcessor);
     CXPLAT_DBG_ASSERT(
         Socket != NULL && Route != NULL &&
         SendData != NULL);
 
-    CXPLAT_DATAPATH* Datapath = Socket->Datapath;
     CXPLAT_SOCKET_PROC* SocketProc = SendData->Owner;
     CXPLAT_DBG_ASSERT(SocketProc != NULL);
 
