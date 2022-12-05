@@ -2,6 +2,25 @@
 
 
 /*----------------------------------------------------------
+// Decoder Ring for DatapathRecvEmpty
+// [data][%p] Dropping datagram with empty payload.
+// QuicTraceLogWarning(
+            DatapathRecvEmpty,
+            "[data][%p] Dropping datagram with empty payload.",
+            SocketContext->Binding);
+// arg2 = arg2 = SocketContext->Binding = arg2
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_DATAPATH_KQUEUE_C, DatapathRecvEmpty,
+    TP_ARGS(
+        const void *, arg2), 
+    TP_FIELDS(
+        ctf_integer_hex(uint64_t, arg2, arg2)
+    )
+)
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for DatapathResolveHostNameFailed
 // [%p] Couldn't resolve hostname '%s' to an IP address
 // QuicTraceLogError(
