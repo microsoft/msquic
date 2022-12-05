@@ -2729,9 +2729,6 @@ namespace Microsoft.Quic
         [NativeTypeName("QUIC_CONNECTION_SEND_RESUMPTION_FN")]
         internal delegate* unmanaged[Cdecl]<QUIC_HANDLE*, QUIC_SEND_RESUMPTION_FLAGS, ushort, byte*, int> ConnectionSendResumptionTicket;
 
-        [NativeTypeName("QUIC_CONNECTION_COMP_RESUMPTION_FN")]
-        internal delegate* unmanaged[Cdecl]<QUIC_HANDLE*, byte, int> ConnectionResumptionTicketValidationComplete;
-
         [NativeTypeName("QUIC_STREAM_OPEN_FN")]
         internal delegate* unmanaged[Cdecl]<QUIC_HANDLE*, QUIC_STREAM_OPEN_FLAGS, delegate* unmanaged[Cdecl]<QUIC_HANDLE*, void*, QUIC_STREAM_EVENT*, int>, void*, QUIC_HANDLE**, int> StreamOpen;
 
@@ -2755,6 +2752,9 @@ namespace Microsoft.Quic
 
         [NativeTypeName("QUIC_DATAGRAM_SEND_FN")]
         internal delegate* unmanaged[Cdecl]<QUIC_HANDLE*, QUIC_BUFFER*, uint, QUIC_SEND_FLAGS, void*, int> DatagramSend;
+
+        [NativeTypeName("QUIC_CONNECTION_COMP_RESUMPTION_FN")]
+        internal delegate* unmanaged[Cdecl]<QUIC_HANDLE*, byte, int> ConnectionResumptionTicketValidationComplete;
     }
 
     internal static unsafe partial class MsQuic
