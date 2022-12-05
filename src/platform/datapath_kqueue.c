@@ -1183,8 +1183,6 @@ CxPlatSocketContextRecvComplete(
     _In_ ssize_t BytesTransferred
     )
 {
-    QUIC_STATUS Status = QUIC_STATUS_SUCCESS; // cppcheck-suppress unreadVariable
-
     CXPLAT_DATAPATH_RECV_BLOCK* RecvBlock = SocketContext->CurrentRecvBlock;
     SocketContext->CurrentRecvBlock = NULL;
 
@@ -1422,7 +1420,7 @@ CxPlatDataPathSocketProcessIoCompletion(
 
                 CXPLAT_DATAPATH_RECV_BLOCK* RecvBlock = SocketContext->CurrentRecvBlock;
                 struct iovec* IoVec = &SocketContext->RecvIov;
-                struct msghdr* MsgHdr = &SocketContext->RecvMsgHdr.msg_hdr;
+                struct msghdr* MsgHdr = &SocketContext->RecvMsgHdr;
 
                 IoVec->iov_base = RecvBlock->RecvPacket.Buffer;
                 MsgHdr->msg_name = &RecvBlock->Route.RemoteAddress;
@@ -1721,7 +1719,7 @@ CxPlatSendDataAlloc(
     CXPLAT_DBG_ASSERT(Route != NULL);
 
     if (Route->Queue == NULL) {
-        Route->Queue = Datapath->Processors[0]; // Use something else initially for client?
+        Route->Queue = &Socket->SocketContexts[0]; // Use something else initially for client?
     }
 
     CXPLAT_SOCKET_CONTEXT* SocketContext = Route->Queue;
