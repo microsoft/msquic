@@ -103,7 +103,7 @@ CubicCongestionHyStartChangeState(
             ConnHyStartStateChange,
             "[conn][%p] HyStart: State=%u CongestionWindow=%u SlowStartThreshold=%u",
             Connection,
-            Cubic->HyStartState,
+            NewHyStartState,
             Cubic->CongestionWindow,
             Cubic->SlowStartThreshold);
     }
