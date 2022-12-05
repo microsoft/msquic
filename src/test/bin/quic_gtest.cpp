@@ -663,6 +663,9 @@ TEST_P(WithHandshakeArgs1, Resume) {
 }
 
 TEST_P(WithHandshakeArgs1, ResumeAsync) {
+#ifdef QUIC_DISABLE_0RTT_TESTS
+    GTEST_SKIP_("Schannel doesn't support 0RTT yet");
+#endif
     TestLoggerT<ParamType> Logger("QuicTestConnect-ResumeAsync", GetParam());
     if (TestingKernelMode) {
         QUIC_RUN_CONNECT_PARAMS Params = {
@@ -721,6 +724,9 @@ TEST_P(WithHandshakeArgs1, ResumeRejection) {
 }
 
 TEST_P(WithHandshakeArgs1, ResumeRejectionByServerApp) {
+#ifdef QUIC_DISABLE_0RTT_TESTS
+    GTEST_SKIP_("Schannel doesn't support 0RTT yet");
+#endif
     TestLoggerT<ParamType> Logger("QuicTestConnect-ResumeRejectionByServerApp", GetParam());
     if (TestingKernelMode) {
         QUIC_RUN_CONNECT_PARAMS Params = {
@@ -750,6 +756,9 @@ TEST_P(WithHandshakeArgs1, ResumeRejectionByServerApp) {
 }
 
 TEST_P(WithHandshakeArgs1, ResumeRejectionByServerAppAsync) {
+#ifdef QUIC_DISABLE_0RTT_TESTS
+    GTEST_SKIP_("Schannel doesn't support 0RTT yet");
+#endif
     TestLoggerT<ParamType> Logger("QuicTestConnect-ResumeRejectionByServerAppAsync", GetParam());
     if (TestingKernelMode) {
         QUIC_RUN_CONNECT_PARAMS Params = {

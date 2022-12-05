@@ -1722,12 +1722,12 @@ QuicCryptoCustomCertValidationComplete(
             "Custom cert validation failed.");
         QuicConnTransportError(
             QuicCryptoGetConnection(Crypto),
-            QUIC_ERROR_CRYPTO_ERROR(0xFF & CXPLAT_TLS_ALERT_CODE_BAD_CERTIFICATE)); //
+            QUIC_ERROR_CRYPTO_ERROR(0xFF & CXPLAT_TLS_ALERT_CODE_BAD_CERTIFICATE));
     }
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
-QUIC_STATUS
+void
 QuicCryptoCustomTicketValidationComplete(
     _In_ QUIC_CRYPTO* Crypto,
     _In_ BOOLEAN Result
@@ -1738,10 +1738,8 @@ QuicCryptoCustomTicketValidationComplete(
     // server app decide to validate it asynchronously
     // Need to set TicketValidationPending = FALSE to drain packet and continue handshake
     //
-    QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
     if (!Crypto->TicketValidationPending || Crypto->TicketValidationRejecting) {
-        Status = QUIC_STATUS_INVALID_STATE;
-        goto Error;
+        return;
     }
 
     if (Result) {
@@ -1775,13 +1773,12 @@ QuicCryptoCustomTicketValidationComplete(
         }
         Crypto->RecvBuffer.ExternalBufferReference = FALSE;
         QUIC_CONNECTION* Connection = QuicCryptoGetConnection(Crypto);
-        Status = QuicCryptoInitializeTls(Crypto, Connection->Configuration->SecurityConfig, Connection->HandshakeTP);
+        QUIC_STATUS Status = QuicCryptoInitializeTls(Crypto, Connection->Configuration->SecurityConfig, Connection->HandshakeTP);
+        if (Status != QUIC_STATUS_SUCCESS) {
+            QuicConnFatalError(Connection, Status, "Failed finalizing resumption ticket rejection");
+        }
     }
     Crypto->PendingValidationBufferLength = 0;
-
-Error:
-
-    return Status;
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)

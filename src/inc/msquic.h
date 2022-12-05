@@ -1495,7 +1495,6 @@ typedef struct QUIC_API_TABLE {
     QUIC_CONNECTION_SET_CONFIGURATION_FN
                                         ConnectionSetConfiguration;
     QUIC_CONNECTION_SEND_RESUMPTION_FN  ConnectionSendResumptionTicket;
-    QUIC_CONNECTION_COMP_RESUMPTION_FN  ConnectionResumptionTicketValidationComplete;
 
     QUIC_STREAM_OPEN_FN                 StreamOpen;
     QUIC_STREAM_CLOSE_FN                StreamClose;
@@ -1506,6 +1505,7 @@ typedef struct QUIC_API_TABLE {
     QUIC_STREAM_RECEIVE_SET_ENABLED_FN  StreamReceiveSetEnabled;
 
     QUIC_DATAGRAM_SEND_FN               DatagramSend;
+    QUIC_CONNECTION_COMP_RESUMPTION_FN  ConnectionResumptionTicketValidationComplete;
 
 } QUIC_API_TABLE;
 

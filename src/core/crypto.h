@@ -40,13 +40,6 @@ typedef struct QUIC_CRYPTO {
     BOOLEAN CertValidationPending : 1;
 
     //
-    // Indicates Resumption ticket validation is under validation asynchronously
-    //
-    BOOLEAN TicketValidationPending : 1;
-    BOOLEAN TicketValidationRejecting : 1;
-    uint32_t PendingValidationBufferLength;
-
-    //
     // The TLS context for processing handshake messages.
     //
     CXPLAT_TLS* TLS;
@@ -98,6 +91,13 @@ typedef struct QUIC_CRYPTO {
     // The total amount of data consumed by TLS.
     //
     uint32_t RecvTotalConsumed;
+
+    //
+    // Indicates Resumption ticket validation is under validation asynchronously
+    //
+    BOOLEAN TicketValidationPending : 1;
+    BOOLEAN TicketValidationRejecting : 1;
+    uint32_t PendingValidationBufferLength;
 
     //
     // The offset the current receive encryption level starts.
@@ -278,7 +278,7 @@ QuicCryptoCustomCertValidationComplete(
 // Invoked when the app has completed its custom resumption ticket validation.
 //
 _IRQL_requires_max_(PASSIVE_LEVEL)
-QUIC_STATUS
+void
 QuicCryptoCustomTicketValidationComplete(
     _In_ QUIC_CRYPTO* Crypto,
     _In_ BOOLEAN Result

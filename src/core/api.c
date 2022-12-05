@@ -1652,7 +1652,14 @@ MsQuicConnectionResumptionTicketValidationComplete(
         Handle);
 
     if (IS_CONN_HANDLE(Handle)) {
+#pragma prefast(suppress: __WARNING_25024, "Pointer cast already validated.")
         Connection = (QUIC_CONNECTION*)Handle;
+    } else if (IS_STREAM_HANDLE(Handle)) {
+#pragma prefast(suppress: __WARNING_25024, "Pointer cast already validated.")
+        QUIC_STREAM* Stream = (QUIC_STREAM*)Handle;
+        CXPLAT_TEL_ASSERT(!Stream->Flags.HandleClosed);
+        CXPLAT_TEL_ASSERT(!Stream->Flags.Freed);
+        Connection = Stream->Connection;
     } else {
         Status = QUIC_STATUS_INVALID_PARAMETER;
         goto Error;
@@ -1665,8 +1672,7 @@ MsQuicConnectionResumptionTicketValidationComplete(
         goto Error;
     }
 
-    if (!Connection->Crypto.TicketValidationPending ||
-        Connection->Crypto.TlsState.HandshakeComplete ||
+    if (Connection->Crypto.TlsState.HandshakeComplete ||
         Connection->Crypto.TlsState.SessionResumed) {
         Status = QUIC_STATUS_INVALID_STATE;
         goto Error;
