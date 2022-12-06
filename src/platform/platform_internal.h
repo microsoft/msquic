@@ -108,6 +108,9 @@ typedef struct CX_PLATFORM {
 
     void* Reserved; // Nothing right now.
 
+    uint32_t KernelVersionMajor;
+    uint32_t KernelVersionMinor;
+
 #ifdef DEBUG
     //
     // 1/Denominator of allocations to fail.

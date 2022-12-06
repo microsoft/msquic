@@ -487,6 +487,15 @@ CxPlatDataPathQuerySockoptSupport(
         Datapath->Features |= CXPLAT_DATAPATH_FEATURE_SEND_SEGMENTATION;
     }
 
+    //
+    // According to documentation, Generic Receive Offload (GRO) is suppsed to
+    // work with recvmsg in Linux kernel 5.12 or later.
+    //
+    if (CxPlatform.KernelVersionMajor > 5 ||
+        (CxPlatform.KernelVersionMajor == 5 && CxPlatform.KernelVersionMinor >= 12)) {
+        Datapath->Features |= CXPLAT_DATAPATH_FEATURE_RECV_COALESCING;
+    }
+
 Error:
     if (UdpSocket != INVALID_SOCKET) {
         close(UdpSocket);

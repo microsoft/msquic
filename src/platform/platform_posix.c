@@ -26,6 +26,7 @@ Environment:
 #include <limits.h>
 #include <sched.h>
 #include <syslog.h>
+#include <sys/utsname.h>
 #define QUIC_VERSION_ONLY 1
 #include "msquic.ver"
 #ifdef QUIC_CLOG
@@ -106,6 +107,16 @@ CxPlatSystemLoad(
     CxPlatform.AllocFailDenominator = 0;
     CxPlatform.AllocCounter = 0;
 #endif
+
+    //
+    // Get the major and minor versions from the Linux release string
+    //
+    struct utsname sysinfo;
+    uname(&sysinfo);
+    sscanf(sysinfo.release, "%d.%d", &CxPlatform.KernelVersionMajor, &CxPlatform.KernelVersionMinor);
+
+    printf("release: %s\n", sysinfo.release);
+    printf("version: %s\n", sysinfo.version);
 
     //
     // N.B.
