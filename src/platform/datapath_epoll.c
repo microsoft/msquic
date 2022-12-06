@@ -449,6 +449,113 @@ CxPlatSocketSendInternal(
     );
 
 #ifdef UDP_SEGMENT
+BOOLEAN
+CxPlatDatapathTestGRO()
+{
+    BOOLEAN Result = FALSE;
+    int SendSocket = INVALID_SOCKET, RecvSocket = INVALID_SOCKET;
+    struct sockaddr_in RecvAddr = {0}, RecvAddr2 = {0}, SendAddr = {0};
+    socklen_t RecvAddrSize = sizeof(RecvAddr), RecvAddr2Size = sizeof(RecvAddr2), SendAddrSize = sizeof(SendAddr);
+    int PktInfoEnabled = 1, TosEnabled = 1, GroEnabled = 1;
+    // Send State
+    uint8_t SendBuffer[8 * 1476];
+    char SendControlBuffer[
+        CMSG_SPACE(sizeof(int)) +               // IP_TOS
+        CMSG_SPACE(sizeof(uint16_t))            // UDP_SEGMENT
+        ] = {0};
+    struct iovec SendIoVec;
+    SendIoVec.iov_base = SendBuffer;
+    SendIoVec.iov_len = sizeof(SendBuffer);
+    struct msghdr SendMsg = {0};
+    SendMsg.msg_name = &RecvAddr;
+    SendMsg.msg_namelen = RecvAddrSize;
+    SendMsg.msg_iov = &SendIoVec;
+    SendMsg.msg_iovlen = 1;
+    SendMsg.msg_control = SendControlBuffer;
+    SendMsg.msg_controllen = sizeof(SendControlBuffer);
+    struct cmsghdr *CMsg = CMSG_FIRSTHDR(&SendMsg);
+    CMsg->cmsg_level = IPPROTO_IP;
+    CMsg->cmsg_type = IP_TOS;
+    CMsg->cmsg_len = CMSG_LEN(sizeof(int));
+    *(int*)CMSG_DATA(CMsg) = 0x1;
+    CMsg = CMSG_NXTHDR(&SendMsg, CMsg);
+    CMsg->cmsg_level = SOL_UDP;
+    CMsg->cmsg_type = UDP_SEGMENT;
+    CMsg->cmsg_len = CMSG_LEN(sizeof(uint16_t));
+    *((uint16_t*)CMSG_DATA(CMsg)) = 1476;
+    // RecvState
+    RecvAddr.sin_family = AF_INET;
+    RecvAddr.sin_addr.s_addr = inet_addr("127.0.0.1");
+    uint8_t RecvBuffer[8 * 1476];
+    char RecvControlBuffer[
+        CMSG_SPACE(sizeof(int)) +               // IP_TOS
+        CMSG_SPACE(sizeof(int)) +               //
+        CMSG_SPACE(sizeof(uint16_t)) +          // UDP_GRO
+        CMSG_SPACE(sizeof(struct in6_pktinfo)) +// UDP_SEGMENT
+        CMSG_SPACE(sizeof(struct in_pktinfo))   // UDP_SEGMENT
+        ] = {0};
+    struct iovec RecvIoVec;
+    RecvIoVec.iov_base = RecvBuffer;
+    RecvIoVec.iov_len = sizeof(RecvBuffer);
+    struct msghdr RecvMsg = {0};
+    RecvMsg.msg_name = &RecvAddr2;
+    RecvMsg.msg_namelen = RecvAddr2Size;
+    RecvMsg.msg_iov = &RecvIoVec;
+    RecvMsg.msg_iovlen = 1;
+    RecvMsg.msg_control = RecvControlBuffer;
+    RecvMsg.msg_controllen = sizeof(RecvControlBuffer);
+
+    //
+    // Open up two sockets and send with GSO and receive with GRO.
+    //
+#define VERIFY(X) if (!(X)) { printf(#X " failed\n"); goto Error; }
+    SendSocket = socket(AF_INET, SOCK_DGRAM | SOCK_NONBLOCK, IPPROTO_UDP);
+    VERIFY(SendSocket != INVALID_SOCKET)
+    RecvSocket = socket(AF_INET, SOCK_DGRAM | SOCK_NONBLOCK, IPPROTO_UDP);
+    VERIFY(RecvSocket != INVALID_SOCKET)
+    VERIFY(setsockopt(SendSocket, IPPROTO_IP, IP_PKTINFO, &PktInfoEnabled, sizeof(PktInfoEnabled)) != SOCKET_ERROR)
+    VERIFY(setsockopt(RecvSocket, IPPROTO_IP, IP_PKTINFO, &PktInfoEnabled, sizeof(PktInfoEnabled)) != SOCKET_ERROR)
+    VERIFY(setsockopt(SendSocket, IPPROTO_IP, IP_RECVTOS, &TosEnabled, sizeof(TosEnabled)) != SOCKET_ERROR)
+    VERIFY(setsockopt(RecvSocket, IPPROTO_IP, IP_RECVTOS, &TosEnabled, sizeof(TosEnabled)) != SOCKET_ERROR)
+    VERIFY(bind(RecvSocket, (struct sockaddr*)&RecvAddr, RecvAddrSize) != SOCKET_ERROR)
+    VERIFY(setsockopt(RecvSocket, SOL_UDP, UDP_GRO, &GroEnabled, sizeof(GroEnabled)) != SOCKET_ERROR)
+    VERIFY(getsockname(RecvSocket, (struct sockaddr*)&RecvAddr, &RecvAddrSize) != SOCKET_ERROR)
+    VERIFY(connect(SendSocket, (struct sockaddr*)&RecvAddr, RecvAddrSize) != SOCKET_ERROR)
+    VERIFY(getsockname(SendSocket, (struct sockaddr*)&SendAddr, &SendAddrSize) != SOCKET_ERROR)
+    VERIFY(sendmsg(SendSocket, &SendMsg, 0) == sizeof(SendBuffer))
+    VERIFY(recvmsg(RecvSocket, &RecvMsg, 0) == sizeof(SendBuffer))
+    CMsg = CMSG_FIRSTHDR(&RecvMsg);
+    BOOLEAN FoundPKTINFO = FALSE, FoundTOS = FALSE, FoundGRO = FALSE;
+    for (CMsg = CMSG_FIRSTHDR(&RecvMsg);
+        CMsg != NULL;
+        CMsg = CMSG_NXTHDR(&RecvMsg, CMsg)) {
+        if (CMsg->cmsg_level == IPPROTO_IP) {
+            if (CMsg->cmsg_type == IP_PKTINFO) {
+                //struct in_pktinfo* PktInfo = (struct in_pktinfo*)CMSG_DATA(CMsg);
+                // TODO - Compare address
+                FoundPKTINFO = TRUE;
+            } else if (CMsg->cmsg_type == IP_TOS) {
+                VERIFY(0x1 == *(uint8_t*)CMSG_DATA(CMsg))
+                FoundTOS = TRUE;
+            }
+        } else if (CMsg->cmsg_type == IPPROTO_UDP) {
+            if (CMsg->cmsg_type == UDP_GRO) {
+                VERIFY(1476 == *(uint16_t*)CMSG_DATA(CMsg))
+                FoundGRO = TRUE;
+            }
+        }
+    }
+    VERIFY(FoundPKTINFO)
+    VERIFY(FoundTOS)
+    VERIFY(FoundGRO)
+    Result = TRUE;
+Error:
+    if (RecvSocket != INVALID_SOCKET) close(RecvSocket);
+    if (SendSocket != INVALID_SOCKET) close(SendSocket);
+    printf("CxPlatDatapathTestGRO = %hhu\n", Result);
+    return Result;
+}
+
 QUIC_STATUS
 CxPlatDataPathQuerySockoptSupport(
     _Inout_ CXPLAT_DATAPATH* Datapath
@@ -485,15 +592,9 @@ CxPlatDataPathQuerySockoptSupport(
             SockError);
     } else {
         Datapath->Features |= CXPLAT_DATAPATH_FEATURE_SEND_SEGMENTATION;
-    }
-
-    //
-    // According to documentation, Generic Receive Offload (GRO) is suppsed to
-    // work with recvmsg in Linux kernel 5.12 or later.
-    //
-    if (CxPlatform.KernelVersionMajor > 5 ||
-        (CxPlatform.KernelVersionMajor == 5 && CxPlatform.KernelVersionMinor >= 12)) {
-        Datapath->Features |= CXPLAT_DATAPATH_FEATURE_RECV_COALESCING;
+        if (CxPlatDatapathTestGRO()) {
+            Datapath->Features |= CXPLAT_DATAPATH_FEATURE_RECV_COALESCING;
+        }
     }
 
 Error:
