@@ -1675,7 +1675,7 @@ QuicCryptoProcessDataComplete(
     _In_ uint32_t RecvBufferConsumed
     )
 {
-    if (Crypto->TicketValidationPending) {
+    if (Crypto->TicketValidationPending || Crypto->CertValidationPending) {
         Crypto->PendingValidationBufferLength = RecvBufferConsumed;
         return;
     }
@@ -1691,9 +1691,7 @@ QuicCryptoProcessDataComplete(
     }
 
     QuicCryptoValidate(Crypto);
-    if (!Crypto->CertValidationPending) {
-        QuicCryptoProcessTlsCompletion(Crypto);
-    }
+    QuicCryptoProcessTlsCompletion(Crypto);
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -1713,7 +1711,7 @@ QuicCryptoCustomCertValidationComplete(
             CustomCertValidationSuccess,
             QuicCryptoGetConnection(Crypto),
             "Custom cert validation succeeded");
-        QuicCryptoProcessTlsCompletion(Crypto);
+        QuicCryptoProcessDataComplete(Crypto, Crypto->PendingValidationBufferLength);
     } else {
         QuicTraceEvent(
             ConnError,
@@ -1724,6 +1722,7 @@ QuicCryptoCustomCertValidationComplete(
             QuicCryptoGetConnection(Crypto),
             QUIC_ERROR_CRYPTO_ERROR(0xFF & CXPLAT_TLS_ALERT_CODE_BAD_CERTIFICATE));
     }
+    Crypto->PendingValidationBufferLength = 0;
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
