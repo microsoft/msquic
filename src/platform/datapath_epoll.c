@@ -461,11 +461,7 @@ CxPlatDatapathTestGRO()
     struct iovec IoVec;
     IoVec.iov_base = Buffer;
     IoVec.iov_len = sizeof(Buffer);
-    // Send State
-    char SendControlBuffer[
-        CMSG_SPACE(sizeof(int)) +               // IP_TOS
-        CMSG_SPACE(sizeof(uint16_t))            // UDP_SEGMENT
-        ] = {0};
+    char SendControlBuffer[CMSG_SPACE(sizeof(int)) + CMSG_SPACE(sizeof(uint16_t))] = {0};
     struct msghdr SendMsg = {0};
     SendMsg.msg_name = &RecvAddr;
     SendMsg.msg_namelen = RecvAddrSize;
@@ -483,16 +479,9 @@ CxPlatDatapathTestGRO()
     CMsg->cmsg_type = UDP_SEGMENT;
     CMsg->cmsg_len = CMSG_LEN(sizeof(uint16_t));
     *((uint16_t*)CMSG_DATA(CMsg)) = 1476;
-    // RecvState
     RecvAddr.sin_family = AF_INET;
     RecvAddr.sin_addr.s_addr = inet_addr("127.0.0.1");
-    char RecvControlBuffer[
-        CMSG_SPACE(sizeof(int)) +               // IP_TOS
-        CMSG_SPACE(sizeof(int)) +               //
-        CMSG_SPACE(sizeof(uint16_t)) +          // UDP_GRO
-        CMSG_SPACE(sizeof(struct in6_pktinfo)) +// UDP_SEGMENT
-        CMSG_SPACE(sizeof(struct in_pktinfo))   // UDP_SEGMENT
-        ] = {0};
+    char RecvControlBuffer[CMSG_SPACE(sizeof(int)) + CMSG_SPACE(sizeof(uint16_t)) + CMSG_SPACE(sizeof(struct in6_pktinfo))] = {0};
     struct msghdr RecvMsg = {0};
     RecvMsg.msg_name = &RecvAddr2;
     RecvMsg.msg_namelen = RecvAddr2Size;
@@ -522,9 +511,7 @@ CxPlatDatapathTestGRO()
     VERIFY(sendmsg(SendSocket, &SendMsg, 0) == sizeof(Buffer))
     VERIFY(recvmsg(RecvSocket, &RecvMsg, 0) == sizeof(Buffer))
     BOOLEAN FoundPKTINFO = FALSE, FoundTOS = FALSE, FoundGRO = FALSE;
-    for (CMsg = CMSG_FIRSTHDR(&RecvMsg);
-        CMsg != NULL;
-        CMsg = CMSG_NXTHDR(&RecvMsg, CMsg)) {
+    for (CMsg = CMSG_FIRSTHDR(&RecvMsg); CMsg != NULL; CMsg = CMSG_NXTHDR(&RecvMsg, CMsg)) {
         if (CMsg->cmsg_level == IPPROTO_IP) {
             if (CMsg->cmsg_type == IP_PKTINFO) {
                 FoundPKTINFO = TRUE;
