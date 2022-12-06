@@ -504,11 +504,12 @@ CxPlatDatapathTestGRO()
     RecvMsg.msg_iovlen = 1;
     RecvMsg.msg_control = RecvControlBuffer;
     RecvMsg.msg_controllen = sizeof(RecvControlBuffer);
-
     //
-    // Open up two sockets and send with GSO and receive with GRO.
+    // Open up two sockets and send with GSO and receive with GRO, and make sure
+    // everything **actually** works, so that we can be sure we can leverage
+    // GRO.
     //
-#define VERIFY(X) if (!(X)) { printf(#X " failed\n"); goto Error; }
+#define VERIFY(X) if (!(X)) { goto Error; }
     SendSocket = socket(AF_INET, SOCK_DGRAM | SOCK_NONBLOCK, IPPROTO_UDP);
     VERIFY(SendSocket != INVALID_SOCKET)
     RecvSocket = socket(AF_INET, SOCK_DGRAM | SOCK_NONBLOCK, IPPROTO_UDP);
@@ -531,24 +532,16 @@ CxPlatDatapathTestGRO()
         CMsg = CMSG_NXTHDR(&RecvMsg, CMsg)) {
         if (CMsg->cmsg_level == IPPROTO_IP) {
             if (CMsg->cmsg_type == IP_PKTINFO) {
-                //struct in_pktinfo* PktInfo = (struct in_pktinfo*)CMSG_DATA(CMsg);
-                // TODO - Compare address
                 FoundPKTINFO = TRUE;
             } else if (CMsg->cmsg_type == IP_TOS) {
                 VERIFY(0x1 == *(uint8_t*)CMSG_DATA(CMsg))
                 FoundTOS = TRUE;
-            } else {
-                printf("Found unexpected IPPROTO_IP type=%d\n", CMsg->cmsg_type);
             }
         } else if (CMsg->cmsg_level == IPPROTO_UDP) {
             if (CMsg->cmsg_type == UDP_GRO) {
                 VERIFY(1476 == *(uint16_t*)CMSG_DATA(CMsg))
                 FoundGRO = TRUE;
-            } else {
-                printf("Found unexpected IPPROTO_UDP type=%d\n", CMsg->cmsg_type);
             }
-        } else {
-            printf("Found unexpected level=%d, type=%d\n", CMsg->cmsg_level, CMsg->cmsg_type);
         }
     }
     VERIFY(FoundPKTINFO)
@@ -558,7 +551,6 @@ CxPlatDatapathTestGRO()
 Error:
     if (RecvSocket != INVALID_SOCKET) close(RecvSocket);
     if (SendSocket != INVALID_SOCKET) close(SendSocket);
-    printf("CxPlatDatapathTestGRO = %hhu\n", Result);
     return Result;
 }
 

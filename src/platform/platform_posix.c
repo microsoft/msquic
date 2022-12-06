@@ -109,16 +109,6 @@ CxPlatSystemLoad(
 #endif
 
     //
-    // Get the major and minor versions from the Linux release string
-    //
-    struct utsname sysinfo;
-    uname(&sysinfo);
-    sscanf(sysinfo.release, "%d.%d", &CxPlatform.KernelVersionMajor, &CxPlatform.KernelVersionMinor);
-
-    printf("release: %s\n", sysinfo.release);
-    printf("version: %s\n", sysinfo.version);
-
-    //
     // N.B.
     // Do not place any initialization code below this point.
     //
