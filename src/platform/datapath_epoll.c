@@ -516,7 +516,7 @@ CxPlatDatapathTestGRO()
             if (CMsg->cmsg_type == IP_PKTINFO) {
                 FoundPKTINFO = TRUE;
             } else if (CMsg->cmsg_type == IP_TOS) {
-                VERIFY(0x1 == *(uint8_t*)CMSG_DATA(CMsg))
+                VERIFY(0x1 == *(int*)CMSG_DATA(CMsg))
                 FoundTOS = TRUE;
             }
         } else if (CMsg->cmsg_level == IPPROTO_UDP) {
