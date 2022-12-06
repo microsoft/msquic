@@ -540,7 +540,7 @@ CxPlatDatapathTestGRO()
             } else {
                 printf("Found unexpected IPPROTO_IP type=%d\n", CMsg->cmsg_type);
             }
-        } else if (CMsg->cmsg_type == IPPROTO_UDP) {
+        } else if (CMsg->cmsg_level == IPPROTO_UDP) {
             if (CMsg->cmsg_type == UDP_GRO) {
                 VERIFY(1476 == *(uint16_t*)CMSG_DATA(CMsg))
                 FoundGRO = TRUE;
