@@ -26,7 +26,6 @@ Environment:
 #include <limits.h>
 #include <sched.h>
 #include <syslog.h>
-#include <sys/utsname.h>
 #define QUIC_VERSION_ONLY 1
 #include "msquic.ver"
 #ifdef QUIC_CLOG
