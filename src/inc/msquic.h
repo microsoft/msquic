@@ -1505,6 +1505,10 @@ typedef struct QUIC_API_TABLE {
     QUIC_STREAM_RECEIVE_SET_ENABLED_FN  StreamReceiveSetEnabled;
 
     QUIC_DATAGRAM_SEND_FN               DatagramSend;
+
+    //
+    // This API is available from MsQuic v2.1.6
+    //
     QUIC_CONNECTION_COMP_RESUMPTION_FN  ConnectionResumptionTicketValidationComplete;
 
 } QUIC_API_TABLE;
