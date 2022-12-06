@@ -537,12 +537,18 @@ CxPlatDatapathTestGRO()
             } else if (CMsg->cmsg_type == IP_TOS) {
                 VERIFY(0x1 == *(uint8_t*)CMSG_DATA(CMsg))
                 FoundTOS = TRUE;
+            } else {
+                printf("Found unexpected IPPROTO_IP type=%d\n", CMsg->cmsg_type);
             }
         } else if (CMsg->cmsg_type == IPPROTO_UDP) {
             if (CMsg->cmsg_type == UDP_GRO) {
                 VERIFY(1476 == *(uint16_t*)CMSG_DATA(CMsg))
                 FoundGRO = TRUE;
+            } else {
+                printf("Found unexpected IPPROTO_UDP type=%d\n", CMsg->cmsg_type);
             }
+        } else {
+            printf("Found unexpected level=%d, type=%d\n", CMsg->cmsg_level, CMsg->cmsg_type);
         }
     }
     VERIFY(FoundPKTINFO)
