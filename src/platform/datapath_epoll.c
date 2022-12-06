@@ -457,19 +457,19 @@ CxPlatDatapathTestGRO()
     struct sockaddr_in RecvAddr = {0}, RecvAddr2 = {0}, SendAddr = {0};
     socklen_t RecvAddrSize = sizeof(RecvAddr), RecvAddr2Size = sizeof(RecvAddr2), SendAddrSize = sizeof(SendAddr);
     int PktInfoEnabled = 1, TosEnabled = 1, GroEnabled = 1;
+    uint8_t Buffer[8 * 1476];
+    struct iovec IoVec;
+    IoVec.iov_base = Buffer;
+    IoVec.iov_len = sizeof(Buffer);
     // Send State
-    uint8_t SendBuffer[8 * 1476];
     char SendControlBuffer[
         CMSG_SPACE(sizeof(int)) +               // IP_TOS
         CMSG_SPACE(sizeof(uint16_t))            // UDP_SEGMENT
         ] = {0};
-    struct iovec SendIoVec;
-    SendIoVec.iov_base = SendBuffer;
-    SendIoVec.iov_len = sizeof(SendBuffer);
     struct msghdr SendMsg = {0};
     SendMsg.msg_name = &RecvAddr;
     SendMsg.msg_namelen = RecvAddrSize;
-    SendMsg.msg_iov = &SendIoVec;
+    SendMsg.msg_iov = &IoVec;
     SendMsg.msg_iovlen = 1;
     SendMsg.msg_control = SendControlBuffer;
     SendMsg.msg_controllen = sizeof(SendControlBuffer);
@@ -486,7 +486,6 @@ CxPlatDatapathTestGRO()
     // RecvState
     RecvAddr.sin_family = AF_INET;
     RecvAddr.sin_addr.s_addr = inet_addr("127.0.0.1");
-    uint8_t RecvBuffer[8 * 1476];
     char RecvControlBuffer[
         CMSG_SPACE(sizeof(int)) +               // IP_TOS
         CMSG_SPACE(sizeof(int)) +               //
@@ -494,13 +493,10 @@ CxPlatDatapathTestGRO()
         CMSG_SPACE(sizeof(struct in6_pktinfo)) +// UDP_SEGMENT
         CMSG_SPACE(sizeof(struct in_pktinfo))   // UDP_SEGMENT
         ] = {0};
-    struct iovec RecvIoVec;
-    RecvIoVec.iov_base = RecvBuffer;
-    RecvIoVec.iov_len = sizeof(RecvBuffer);
     struct msghdr RecvMsg = {0};
     RecvMsg.msg_name = &RecvAddr2;
     RecvMsg.msg_namelen = RecvAddr2Size;
-    RecvMsg.msg_iov = &RecvIoVec;
+    RecvMsg.msg_iov = &IoVec;
     RecvMsg.msg_iovlen = 1;
     RecvMsg.msg_control = RecvControlBuffer;
     RecvMsg.msg_controllen = sizeof(RecvControlBuffer);
@@ -523,9 +519,8 @@ CxPlatDatapathTestGRO()
     VERIFY(getsockname(RecvSocket, (struct sockaddr*)&RecvAddr, &RecvAddrSize) != SOCKET_ERROR)
     VERIFY(connect(SendSocket, (struct sockaddr*)&RecvAddr, RecvAddrSize) != SOCKET_ERROR)
     VERIFY(getsockname(SendSocket, (struct sockaddr*)&SendAddr, &SendAddrSize) != SOCKET_ERROR)
-    VERIFY(sendmsg(SendSocket, &SendMsg, 0) == sizeof(SendBuffer))
-    VERIFY(recvmsg(RecvSocket, &RecvMsg, 0) == sizeof(SendBuffer))
-    CMsg = CMSG_FIRSTHDR(&RecvMsg);
+    VERIFY(sendmsg(SendSocket, &SendMsg, 0) == sizeof(Buffer))
+    VERIFY(recvmsg(RecvSocket, &RecvMsg, 0) == sizeof(Buffer))
     BOOLEAN FoundPKTINFO = FALSE, FoundTOS = FALSE, FoundGRO = FALSE;
     for (CMsg = CMSG_FIRSTHDR(&RecvMsg);
         CMsg != NULL;
