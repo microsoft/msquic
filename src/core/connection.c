@@ -5611,7 +5611,9 @@ QuicConnRecvDatagrams(
                     Datagram->BufferLength - (uint16_t)(Packet->Buffer - Datagram->Buffer);
             }
 
-            if (!QuicConnRecvHeader(
+            if (Connection->Crypto.CertValidationPending ||
+                Connection->Crypto.TicketValidationPending ||
+                !QuicConnRecvHeader(
                     Connection,
                     Packet,
                     Cipher + BatchCount * CXPLAT_HP_SAMPLE_LENGTH)) {
@@ -5656,10 +5658,6 @@ QuicConnRecvDatagrams(
                 Cipher,
                 &RecvState);
             BatchCount = 0;
-
-            if (Connection->Crypto.CertValidationPending || Connection->Crypto.TicketValidationPending) {
-                return;
-            }
 
             if (Packet->IsShortHeader) {
                 break; // Short header packets aren't followed by additional packets.
@@ -5781,9 +5779,6 @@ QuicConnFlushRecv(
     BOOLEAN FlushedAll;
     uint32_t ReceiveQueueCount;
     CXPLAT_RECV_DATA* ReceiveQueue;
-    if (Connection->Crypto.CertValidationPending || Connection->Crypto.TicketValidationPending) {
-        return FALSE;
-    }
 
     CxPlatDispatchLockAcquire(&Connection->ReceiveQueueLock);
     ReceiveQueue = Connection->ReceiveQueue;
