@@ -2196,13 +2196,13 @@ QuicConnRecvResumptionTicket(
             Connection,
             "Indicating QUIC_CONNECTION_EVENT_RESUMED");
         Status = QuicConnIndicateEvent(Connection, &Event);
-        Connection->Crypto.TicketValidationPending = Status == QUIC_STATUS_PENDING;
         if (Status == QUIC_STATUS_SUCCESS) {
             QuicTraceEvent(
                 ConnServerResumeTicket,
                 "[conn][%p] Server app accepted resumption ticket",
                 Connection);
             ResumptionAccepted = TRUE;
+            Connection->Crypto.TicketValidationPending = FALSE;
         } else if (Status == QUIC_STATUS_PENDING) {
             QuicTraceEvent(
                 ConnServerResumeTicket,
@@ -2216,6 +2216,7 @@ QuicConnRecvResumptionTicket(
                 Connection,
                 "Resumption Ticket rejected by server app");
             ResumptionAccepted = FALSE;
+            Connection->Crypto.TicketValidationPending = FALSE;
         }
 
     } else {
@@ -3147,20 +3148,21 @@ QuicConnPeerCertReceived(
         DeferredErrorFlags,
         DeferredStatus);
     QUIC_STATUS Status = QuicConnIndicateEvent(Connection, &Event);
-    Connection->Crypto.CertValidationPending = Status == QUIC_STATUS_PENDING;
     if (QUIC_FAILED(Status)) {
         QuicTraceEvent(
             ConnError,
             "[conn][%p] ERROR, %s.",
             Connection,
             "Custom cert validation failed.");
+        Connection->Crypto.CertValidationPending = FALSE;
         return FALSE;
-    }
-    if (Status == QUIC_STATUS_PENDING) {
+    } else if (Status == QUIC_STATUS_PENDING) {
         QuicTraceLogConnInfo(
             CustomCertValidationPending,
             Connection,
             "Custom cert validation is pending");
+    } else if (Status == QUIC_STATUS_SUCCESS) {
+        Connection->Crypto.CertValidationPending = FALSE;
     }
     return TRUE; // Treat pending as success to the TLS layer.
 }

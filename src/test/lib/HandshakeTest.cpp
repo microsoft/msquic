@@ -276,23 +276,24 @@ QuicTestConnect(
                         QUIC_LOCALHOST_FOR_AF(QuicAddrFamily),
                         ServerLocalAddr.GetPort()));
 
-                if (AsyncConfiguration) {
+                if (AsyncConfiguration || AsyncTicketValidation) {
                     if (!CxPlatEventWaitWithTimeout(ServerAcceptCtx.NewConnectionReady, TestWaitTimeout)) {
                         TEST_FAILURE("Timed out waiting for server accept.");
                     } else if (Server == nullptr) {
                         TEST_FAILURE("Failed to accept server connection.");
                     } else {
-                        if (AsyncConfiguration == QUIC_TEST_ASYNC_CONFIG_DELAYED) {
-                            CxPlatSleep(1000);
+                        if (AsyncConfiguration) {
+                            if (AsyncConfiguration == QUIC_TEST_ASYNC_CONFIG_DELAYED) {
+                                CxPlatSleep(1000);
+                            }
+                            TEST_QUIC_SUCCEEDED(
+                                Server->SetConfiguration(ServerConfiguration));
                         }
-                        TEST_QUIC_SUCCEEDED(
-                            Server->SetConfiguration(ServerConfiguration));
+                        if (AsyncTicketValidation) {
+                            CxPlatSleep(1000);
+                            TEST_QUIC_SUCCEEDED(Server->SetCustomTicketValidationResult(SessionResumption == QUIC_TEST_RESUMPTION_ENABLED_ASYNC));
+                        }
                     }
-                }
-
-                if (AsyncTicketValidation) {
-                    CxPlatSleep(1000);
-                    TEST_QUIC_SUCCEEDED(Server->SetCustomTicketValidationResult(SessionResumption == QUIC_TEST_RESUMPTION_ENABLED_ASYNC));
                 }
 
                 if (!Client.WaitForConnectionComplete()) {
