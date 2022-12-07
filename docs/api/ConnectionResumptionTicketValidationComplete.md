@@ -33,6 +33,7 @@ The function returns a [QUIC_STATUS](QUIC_STATUS.md). The app may use `QUIC_FAIL
 
 - Schannel doesn't support this feature.
 - Available from v2.2
+
 # See Also
 
 [ConnectionOpen](ConnectionStart.md)<br>
