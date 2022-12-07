@@ -79,6 +79,7 @@ namespace Microsoft.Quic
         CACHE_ONLY_URL_RETRIEVAL = 0x00020000,
         REVOCATION_CHECK_CACHE_ONLY = 0x00040000,
         INPROC_PEER_CERTIFICATE = 0x00080000,
+        SET_CA_CERTIFICATE_FILE = 0x00100000,
     }
 
     [System.Flags]
@@ -281,6 +282,9 @@ namespace Microsoft.Quic
         internal delegate* unmanaged[Cdecl]<QUIC_HANDLE*, void*, int, void> AsyncHandler;
 
         internal QUIC_ALLOWED_CIPHER_SUITE_FLAGS AllowedCipherSuites;
+
+        [NativeTypeName("const char *")]
+        internal sbyte* CaCertificateFile;
 
         internal ref QUIC_CERTIFICATE_HASH* CertificateHash
         {

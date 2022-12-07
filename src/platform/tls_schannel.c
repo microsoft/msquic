@@ -1006,6 +1006,10 @@ CxPlatTlsSecConfigCreate(
         return QUIC_STATUS_INVALID_PARAMETER;
     }
 
+    if (CredConfig->Flags & QUIC_CREDENTIAL_FLAG_SET_CA_CERTIFICATE_FILE) {
+        return QUIC_STATUS_NOT_SUPPORTED;
+    }
+
 #ifdef _KERNEL_MODE
     if (CredConfig->Flags & QUIC_CREDENTIAL_FLAG_USE_PORTABLE_CERTIFICATES) {
        return QUIC_STATUS_NOT_SUPPORTED;    // Not supported in kernel mode.
