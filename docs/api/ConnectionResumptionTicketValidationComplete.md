@@ -32,7 +32,7 @@ The function returns a [QUIC_STATUS](QUIC_STATUS.md). The app may use `QUIC_FAIL
 # Remarks
 
 - Schannel doesn't support this feature.
-- Available from MsQuic v2.1.6
+- Available from v2.2
 
 
 

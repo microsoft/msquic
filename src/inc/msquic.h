@@ -1506,10 +1506,7 @@ typedef struct QUIC_API_TABLE {
 
     QUIC_DATAGRAM_SEND_FN               DatagramSend;
 
-    //
-    // This API is available from MsQuic v2.1.6
-    //
-    QUIC_CONNECTION_COMP_RESUMPTION_FN  ConnectionResumptionTicketValidationComplete;
+    QUIC_CONNECTION_COMP_RESUMPTION_FN  ConnectionResumptionTicketValidationComplete; // Available from v2.2
 
 } QUIC_API_TABLE;
 
