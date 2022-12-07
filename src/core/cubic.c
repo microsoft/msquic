@@ -157,6 +157,7 @@ CubicCongestionControlReset(
     Cubic->MinRttInCurrentRound = UINT32_MAX;
     Cubic->HyStartRoundEnd = Connection->Send.NextPacketNumber;
     CubicCongestionHyStartResetPerRttRound(Cubic);
+    CubicCongestionHyStartChangeState(Cc, HYSTART_NOT_STARTED);
     Cubic->IsInRecovery = FALSE;
     Cubic->HasHadCongestionEvent = FALSE;
     Cubic->CongestionWindow = DatagramPayloadLength * Cubic->InitialWindowPackets;
@@ -321,6 +322,7 @@ CubicCongestionControlOnCongestionEvent(
         Cubic->CongestionWindow =
             DatagramPayloadLength * QUIC_PERSISTENT_CONGESTION_WINDOW_PACKETS;
         Cubic->KCubic = 0;
+        CubicCongestionHyStartChangeState(Cc, HYSTART_DONE);
 
     } else {
 
@@ -450,8 +452,6 @@ CubicCongestionControlOnDataAcknowledged(
     // Update HyStart++ RTT sample.
     //
     if (AckEvent->MinRttValid) {
-        uint32_t Eta;
-
         if (Cubic->HyStartState != HYSTART_DONE) {
             //
             // Update Min RTT for the first N ACKs.
@@ -463,7 +463,7 @@ CubicCongestionControlOnDataAcknowledged(
                         AckEvent->MinRtt);
                 Cubic->HyStartAckCount++;
             } else {
-                Eta =
+                uint32_t Eta =
                     CXPLAT_MIN(
                         QUIC_HYSTART_DEFAULT_MAX_ETA,
                         CXPLAT_MAX(

@@ -519,12 +519,12 @@ CXPLAT_STATIC_ASSERT(
 //
 // The minimum RTT threshold to exit Cubic Slow Start (in microseconds).
 //
-#define QUIC_HYSTART_DEFAULT_MIN_ETA 4000
+#define QUIC_HYSTART_DEFAULT_MIN_ETA                4000
 
 //
 // The maximum RTT threshold to exit Cubic Slow Start (in microseconds).
 //
-#define QUIC_HYSTART_DEFAULT_MAX_ETA 16000
+#define QUIC_HYSTART_DEFAULT_MAX_ETA                16000
 
 //
 // The number of rounds to spend in Conservative Slow Start before switching

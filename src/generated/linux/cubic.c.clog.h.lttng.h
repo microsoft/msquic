@@ -43,11 +43,11 @@ TRACEPOINT_EVENT(CLOG_CUBIC_C, ConnCubic,
             ConnHyStartStateChange,
             "[conn][%p] HyStart: State=%u CongestionWindow=%u SlowStartThreshold=%u",
             Connection,
-            Cubic->HyStartState,
+            NewHyStartState,
             Cubic->CongestionWindow,
             Cubic->SlowStartThreshold);
 // arg2 = arg2 = Connection = arg2
-// arg3 = arg3 = Cubic->HyStartState = arg3
+// arg3 = arg3 = NewHyStartState = arg3
 // arg4 = arg4 = Cubic->CongestionWindow = arg4
 // arg5 = arg5 = Cubic->SlowStartThreshold = arg5
 ----------------------------------------------------------*/
