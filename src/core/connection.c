@@ -3156,7 +3156,8 @@ QuicConnPeerCertReceived(
             "Custom cert validation failed.");
         Connection->Crypto.CertValidationPending = FALSE;
         return FALSE;
-    } else if (Status == QUIC_STATUS_PENDING) {
+    }
+    if (Status == QUIC_STATUS_PENDING) {
         QuicTraceLogConnInfo(
             CustomCertValidationPending,
             Connection,
