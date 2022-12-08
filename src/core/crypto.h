@@ -93,6 +93,13 @@ typedef struct QUIC_CRYPTO {
     uint32_t RecvTotalConsumed;
 
     //
+    // Indicates Resumption ticket validation is under validation asynchronously
+    //
+    BOOLEAN TicketValidationPending : 1;
+    BOOLEAN TicketValidationRejecting : 1;
+    uint32_t PendingValidationBufferLength;
+
+    //
     // The offset the current receive encryption level starts.
     //
     uint32_t RecvEncryptLevelStartOffset;
@@ -263,6 +270,16 @@ QuicCryptoProcessAppData(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicCryptoCustomCertValidationComplete(
+    _In_ QUIC_CRYPTO* Crypto,
+    _In_ BOOLEAN Result
+    );
+
+//
+// Invoked when the app has completed its custom resumption ticket validation.
+//
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+QuicCryptoCustomTicketValidationComplete(
     _In_ QUIC_CRYPTO* Crypto,
     _In_ BOOLEAN Result
     );

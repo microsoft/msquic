@@ -1267,6 +1267,19 @@ QUIC_STATUS
     );
 
 //
+// Uses the QUIC (server) handle to complete resumption ticket validation.
+// This must be called after server app handles ticket validation and then
+// return QUIC_STATUS_PENDING.
+//
+typedef
+_IRQL_requires_max_(DISPATCH_LEVEL)
+QUIC_STATUS
+(QUIC_API * QUIC_CONNECTION_COMP_RESUMPTION_FN)(
+    _In_ _Pre_defensive_ HQUIC Connection,
+    _In_ BOOLEAN Result
+    );
+
+//
 // Streams
 //
 
@@ -1492,6 +1505,8 @@ typedef struct QUIC_API_TABLE {
     QUIC_STREAM_RECEIVE_SET_ENABLED_FN  StreamReceiveSetEnabled;
 
     QUIC_DATAGRAM_SEND_FN               DatagramSend;
+
+    QUIC_CONNECTION_COMP_RESUMPTION_FN  ConnectionResumptionTicketValidationComplete; // Available from v2.2
 
 } QUIC_API_TABLE;
 
