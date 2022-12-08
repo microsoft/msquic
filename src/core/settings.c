@@ -141,6 +141,9 @@ QuicSettingsSetDefault(
     if (!Settings->IsSet.EcnEnabled) {
         Settings->EcnEnabled = QUIC_DEFAULT_ECN_ENABLED;
     }
+    if (!Settings->IsSet.HyStartEnabled) {
+        Settings->HyStartEnabled = QUIC_DEFAULT_HYSTART_ENABLED;
+    }
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -281,6 +284,9 @@ QuicSettingsCopy(
     }
     if (!Destination->IsSet.EcnEnabled) {
         Destination->EcnEnabled = Source->EcnEnabled;
+    }
+    if (!Destination->IsSet.HyStartEnabled) {
+        Destination->HyStartEnabled = Source->HyStartEnabled;
     }
 }
 
@@ -1174,6 +1180,16 @@ VersionSettingsFail:
             &ValueLen);
         Settings->EcnEnabled = !!Value;
     }
+    if (!Settings->IsSet.HyStartEnabled) {
+        Value = QUIC_DEFAULT_HYSTART_ENABLED;
+        ValueLen = sizeof(Value);
+        CxPlatStorageReadValue(
+            Storage,
+            QUIC_SETTING_HYSTART_ENABLED,
+            (uint8_t*)&Value,
+            &ValueLen);
+        Settings->HyStartEnabled = !!Value;
+    }
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -1235,6 +1251,7 @@ QuicSettingsDump(
     QuicTraceLogVerbose(SettingDestCidUpdateIdleTimeoutMs,  "[sett] DestCidUpdateIdleTimeoutMs = %u", Settings->DestCidUpdateIdleTimeoutMs);
     QuicTraceLogVerbose(SettingGreaseQuicBitEnabled,        "[sett] GreaseQuicBitEnabled   = %hhu", Settings->GreaseQuicBitEnabled);
     QuicTraceLogVerbose(SettingEcnEnabled,                  "[sett] EcnEnabled             = %hhu", Settings->EcnEnabled);
+    QuicTraceLogVerbose(SettingHyStartEnabled,              "[sett] HyStartEnabled         = %hhu", Settings->HyStartEnabled);
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -1370,7 +1387,10 @@ QuicSettingsDumpNew(
         QuicTraceLogVerbose(SettingGreaseQuicBitEnabled,            "[sett] GreaseQuicBitEnabled   = %hhu", Settings->GreaseQuicBitEnabled);
     }
     if (Settings->IsSet.EcnEnabled) {
-        QuicTraceLogVerbose(SettingEcnEnabled,                      "[sett] EcnEnabled   = %hhu", Settings->EcnEnabled);
+        QuicTraceLogVerbose(SettingEcnEnabled,                      "[sett] EcnEnabled             = %hhu", Settings->EcnEnabled);
+    }
+    if (Settings->IsSet.HyStartEnabled) {
+        QuicTraceLogVerbose(SettingHyStartEnabled,                  "[sett] HyStartEnabled         = %hhu", Settings->HyStartEnabled);
     }
 }
 

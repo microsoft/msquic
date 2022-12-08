@@ -86,6 +86,9 @@ CubicCongestionHyStartChangeState(
     )
 {
     QUIC_CONNECTION* Connection = QuicCongestionControlGetConnection(Cc);
+    if (!Connection->Settings.HyStartEnabled) {
+        return;
+    }
     QUIC_CONGESTION_CONTROL_CUBIC* Cubic = &Cc->Cubic;
     switch (NewHyStartState) {
     case HYSTART_ACTIVE:
@@ -106,9 +109,9 @@ CubicCongestionHyStartChangeState(
             NewHyStartState,
             Cubic->CongestionWindow,
             Cubic->SlowStartThreshold);
-    }
 
-    Cubic->HyStartState = NewHyStartState;
+        Cubic->HyStartState = NewHyStartState;
+    }
 }
 
 void
@@ -451,8 +454,8 @@ CubicCongestionControlOnDataAcknowledged(
     //
     // Update HyStart++ RTT sample.
     //
-    if (AckEvent->MinRttValid) {
-        if (Cubic->HyStartState != HYSTART_DONE) {
+    if (Cubic->HyStartState != HYSTART_DONE && Connection->Settings.HyStartEnabled) {
+        if (AckEvent->MinRttValid) {
             //
             // Update Min RTT for the first N ACKs.
             //
@@ -468,7 +471,7 @@ CubicCongestionControlOnDataAcknowledged(
                         QUIC_HYSTART_DEFAULT_MAX_ETA,
                         CXPLAT_MAX(
                             QUIC_HYSTART_DEFAULT_MIN_ETA,
-                            Cubic->MinRttInLastRound / 8));
+                            Cubic->MinRttInLastRound / 8)); // Use 1/8th RTT from HyStart spec.
 
                 if (Cubic->HyStartState == HYSTART_NOT_STARTED) {
                     //
@@ -498,25 +501,25 @@ CubicCongestionControlOnDataAcknowledged(
                 }
             }
         }
-    }
 
-    //
-    // Reset HyStart parameters for each RTT round.
-    //
-    if (Cubic->HyStartState != HYSTART_DONE && AckEvent->LargestAck >= Cubic->HyStartRoundEnd) {
-        Cubic->HyStartRoundEnd = Connection->Send.NextPacketNumber;
-        if (Cubic->HyStartState == HYSTART_ACTIVE) {
-            if (--Cubic->ConservativeSlowStartRounds == 0) {
-                //
-                // Exit Conservative Slow Start and enter Congestion Avoidance now.
-                //
-                Cubic->SlowStartThreshold = Cubic->CongestionWindow;
-                Cubic->TimeOfCongAvoidStart = TimeNowUs;
-                Cubic->AimdWindow = Cubic->CongestionWindow;
-                CubicCongestionHyStartChangeState(Cc, HYSTART_DONE);
+        //
+        // Reset HyStart parameters for each RTT round.
+        //
+        if (AckEvent->LargestAck >= Cubic->HyStartRoundEnd) {
+            Cubic->HyStartRoundEnd = Connection->Send.NextPacketNumber;
+            if (Cubic->HyStartState == HYSTART_ACTIVE) {
+                if (--Cubic->ConservativeSlowStartRounds == 0) {
+                    //
+                    // Exit Conservative Slow Start and enter Congestion Avoidance now.
+                    //
+                    Cubic->SlowStartThreshold = Cubic->CongestionWindow;
+                    Cubic->TimeOfCongAvoidStart = TimeNowUs;
+                    Cubic->AimdWindow = Cubic->CongestionWindow;
+                    CubicCongestionHyStartChangeState(Cc, HYSTART_DONE);
+                }
             }
+            CubicCongestionHyStartResetPerRttRound(Cubic);
         }
-        CubicCongestionHyStartResetPerRttRound(Cubic);
     }
 
     if (Cubic->CongestionWindow < Cubic->SlowStartThreshold) {

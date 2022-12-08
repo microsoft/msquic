@@ -678,6 +678,21 @@ tracepoint(CLOG_SETTINGS_C, SettingEcnEnabled , arg2);\
 
 
 /*----------------------------------------------------------
+// Decoder Ring for SettingHyStartEnabled
+// [sett] HyStartEnabled         = %hhu
+// QuicTraceLogVerbose(SettingHyStartEnabled,              "[sett] HyStartEnabled         = %hhu", Settings->HyStartEnabled);
+// arg2 = arg2 = Settings->HyStartEnabled = arg2
+----------------------------------------------------------*/
+#ifndef _clog_3_ARGS_TRACE_SettingHyStartEnabled
+#define _clog_3_ARGS_TRACE_SettingHyStartEnabled(uniqueId, encoded_arg_string, arg2)\
+tracepoint(CLOG_SETTINGS_C, SettingHyStartEnabled , arg2);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for SettingDumpLFixedServerID
 // [sett] FixedServerID          = %u
 // QuicTraceLogVerbose(SettingDumpLFixedServerID,              "[sett] FixedServerID          = %u", Settings->FixedServerID);
