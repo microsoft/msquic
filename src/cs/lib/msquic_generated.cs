@@ -2752,6 +2752,9 @@ namespace Microsoft.Quic
 
         [NativeTypeName("QUIC_DATAGRAM_SEND_FN")]
         internal delegate* unmanaged[Cdecl]<QUIC_HANDLE*, QUIC_BUFFER*, uint, QUIC_SEND_FLAGS, void*, int> DatagramSend;
+
+        [NativeTypeName("QUIC_CONNECTION_COMP_RESUMPTION_FN")]
+        internal delegate* unmanaged[Cdecl]<QUIC_HANDLE*, byte, int> ConnectionResumptionTicketValidationComplete;
     }
 
     internal static unsafe partial class MsQuic

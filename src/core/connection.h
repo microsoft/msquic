@@ -1351,6 +1351,13 @@ QuicConnOnLocalAddressChanged(
     _In_ QUIC_CONNECTION* Connection
     );
 
+_IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_STATUS
+QuicConnGenerateLocalTransportParameters(
+    _In_ QUIC_CONNECTION* Connection,
+    _Out_ QUIC_TRANSPORT_PARAMETERS* LocalTP
+    );
+
 //
 // Restarts the connection with the current configuration.
 //
