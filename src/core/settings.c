@@ -1581,6 +1581,13 @@ QuicSettingsSettingsToInternal(
         SettingsSize,
         InternalSettings);
 
+    SETTING_COPY_TO_INTERNAL_SIZED(
+        HyStartEnabled,
+        QUIC_SETTINGS,
+        Settings,
+        SettingsSize,
+        InternalSettings);
+
     return QUIC_STATUS_SUCCESS;
 }
 
@@ -1670,6 +1677,13 @@ QuicSettingsGetSettings(
 
     SETTING_COPY_FROM_INTERNAL_SIZED(
         DestCidUpdateIdleTimeoutMs,
+        QUIC_SETTINGS,
+        Settings,
+        *SettingsLength,
+        InternalSettings);
+
+    SETTING_COPY_FROM_INTERNAL_SIZED(
+        HyStartEnabled,
         QUIC_SETTINGS,
         Settings,
         *SettingsLength,
