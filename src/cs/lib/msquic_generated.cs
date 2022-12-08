@@ -1207,6 +1207,9 @@ namespace Microsoft.Quic
         [NativeTypeName("uint32_t")]
         internal uint DestCidUpdateIdleTimeoutMs;
 
+        [NativeTypeName("uint8_t")]
+        internal byte HyStartEnabled;
+
         internal ref ulong IsSetFlags
         {
             get
@@ -1714,17 +1717,31 @@ namespace Microsoft.Quic
                     }
                 }
 
-                [NativeTypeName("uint64_t : 30")]
-                internal ulong RESERVED
+                [NativeTypeName("uint64_t : 1")]
+                internal ulong HyStartEnabled
                 {
                     get
                     {
-                        return (_bitfield >> 34) & 0x3FFFFFFFUL;
+                        return (_bitfield >> 34) & 0x1UL;
                     }
 
                     set
                     {
-                        _bitfield = (_bitfield & ~(0x3FFFFFFFUL << 34)) | ((value & 0x3FFFFFFFUL) << 34);
+                        _bitfield = (_bitfield & ~(0x1UL << 34)) | ((value & 0x1UL) << 34);
+                    }
+                }
+
+                [NativeTypeName("uint64_t : 29")]
+                internal ulong RESERVED
+                {
+                    get
+                    {
+                        return (_bitfield >> 35) & 0x1FFFFFFFUL;
+                    }
+
+                    set
+                    {
+                        _bitfield = (_bitfield & ~(0x1FFFFFFFUL << 35)) | ((value & 0x1FFFFFFFUL) << 35);
                     }
                 }
             }
