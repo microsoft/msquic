@@ -98,6 +98,15 @@ $TempDir = $null
 if ($IsLinux) {
     $InstanceName = $InstanceName.Replace(".", "_")
     $TempDir = Join-Path $HOME "QUICLogs" $InstanceName
+
+    try { lttng version | Out-Null }
+    catch {
+        Write-Host "Installing lttng"
+        sudo apt-add-repository ppa:lttng/stable-2.12
+        sudo apt-get update
+        sudo apt-get install -y lttng-tools
+        sudo apt-get install -y liblttng-ust-dev
+    }
 }
 
 # Start log collection.
