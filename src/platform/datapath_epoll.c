@@ -2388,7 +2388,10 @@ CxPlatDataPathProcessCqe(
     case CXPLAT_CQE_TYPE_SOCKET_FLUSH_TX: {
         CXPLAT_SOCKET_CONTEXT* SocketContext =
             CXPLAT_CONTAINING_RECORD(CxPlatCqeUserData(Cqe), CXPLAT_SOCKET_CONTEXT, FlushTxSqe);
-        CxPlatSocketContextFlushTxQueue(SocketContext, FALSE);
+        if (CxPlatRundownAcquire(&SocketContext->UpcallRundown)) {
+            CxPlatSocketContextFlushTxQueue(SocketContext, FALSE);
+            CxPlatRundownRelease(&SocketContext->UpcallRundown);
+        }
         break;
     }
     }
