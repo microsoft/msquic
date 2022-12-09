@@ -2220,7 +2220,7 @@ CxPlatSocketSend(
     CxPlatSendDataFinalizeSendBuffer(SendData);
     QuicTraceEvent(
         DatapathSend,
-        "[data][%p] Send %u bytes in %hhu Iovs (segment=%hu) Dst=%!ADDR!, Src=%!ADDR!",
+        "[data][%p] Send %u bytes in %hhu buffers (segment=%hu) Dst=%!ADDR!, Src=%!ADDR!",
         Socket,
         SendData->TotalSize,
         SendData->BufferCount,
