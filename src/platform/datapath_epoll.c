@@ -1984,6 +1984,18 @@ CxPlatSendDataComplete(
     CxPlatSendDataFree(SendData);
 }
 
+//
+// This is defined and used instead of CMSG_NXTHDR because (1) we've already
+// done the work to ensure the necessary space is available and (2) CMSG_NXTHDR
+// apparently not only checks there is enough space to move to the next pointer
+// but somehow assumes the next pointer has been writen already (?!) and tries
+// to validate its length as well. That would work if you're reading an already
+// populated buffer, but not if you're building one up (unless you've zero-init
+// the entire buffer).
+//
+#define CXPLAT_CMSG_NXTHDR(cmsg) \
+    (struct cmsghdr*)((uint8_t*)cmsg + CMSG_ALIGN(cmsg->cmsg_len))
+
 void
 CxPlatSendDataPopulateAncillaryData(
     _In_ CXPLAT_SEND_DATA* SendData,
@@ -1991,19 +2003,16 @@ CxPlatSendDataPopulateAncillaryData(
     )
 {
     Mhdr->msg_controllen = CMSG_SPACE(sizeof(int));
-    struct cmsghdr *CMsg = CMSG_FIRSTHDR(Mhdr); CXPLAT_DBG_ASSERT(CMsg != NULL);
+    struct cmsghdr *CMsg = CMSG_FIRSTHDR(Mhdr);
     CMsg->cmsg_level = SendData->LocalAddress.Ip.sa_family == AF_INET ? IPPROTO_IP : IPPROTO_IPV6;
     CMsg->cmsg_type = SendData->LocalAddress.Ip.sa_family == AF_INET ? IP_TOS : IPV6_TCLASS;
     CMsg->cmsg_len = CMSG_LEN(sizeof(int));
     *(int*)CMSG_DATA(CMsg) = SendData->ECN;
 
     if (!SendData->OnConnectedSocket) {
-        Mhdr->msg_controllen +=
-            SendData->LocalAddress.Ip.sa_family == AF_INET
-                ? CMSG_SPACE(sizeof(struct in_pktinfo))
-                : CMSG_SPACE(sizeof(struct in6_pktinfo));
-        CMsg = CMSG_NXTHDR(Mhdr, CMsg); CXPLAT_DBG_ASSERT(CMsg != NULL);
         if (SendData->LocalAddress.Ip.sa_family == AF_INET) {
+            Mhdr->msg_controllen += CMSG_SPACE(sizeof(struct in_pktinfo));
+            CMsg = CXPLAT_CMSG_NXTHDR(CMsg);
             CMsg->cmsg_level = IPPROTO_IP;
             CMsg->cmsg_type = IP_PKTINFO;
             CMsg->cmsg_len = CMSG_LEN(sizeof(struct in_pktinfo));
@@ -2011,6 +2020,8 @@ CxPlatSendDataPopulateAncillaryData(
             PktInfo->ipi_ifindex = SendData->LocalAddress.Ipv6.sin6_scope_id;
             PktInfo->ipi_addr = SendData->LocalAddress.Ipv4.sin_addr;
         } else {
+            Mhdr->msg_controllen += CMSG_SPACE(sizeof(struct in6_pktinfo));
+            CMsg = CXPLAT_CMSG_NXTHDR(CMsg);
             CMsg->cmsg_level = IPPROTO_IPV6;
             CMsg->cmsg_type = IPV6_PKTINFO;
             CMsg->cmsg_len = CMSG_LEN(sizeof(struct in6_pktinfo));
@@ -2023,7 +2034,7 @@ CxPlatSendDataPopulateAncillaryData(
 #ifdef UDP_SEGMENT
     if (SendData->SegmentationSupported && SendData->SegmentSize > 0) {
         Mhdr->msg_controllen += CMSG_SPACE(sizeof(uint16_t));
-        CMsg = CMSG_NXTHDR(Mhdr, CMsg); CXPLAT_DBG_ASSERT(CMsg != NULL);
+        CMsg = CXPLAT_CMSG_NXTHDR(CMsg);
         CMsg->cmsg_level = SOL_UDP;
         CMsg->cmsg_type = UDP_SEGMENT;
         CMsg->cmsg_len = CMSG_LEN(sizeof(uint16_t));
