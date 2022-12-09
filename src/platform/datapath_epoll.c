@@ -172,6 +172,7 @@ typedef struct CXPLAT_SEND_DATA {
     //
     // Space for ancillary control data.
     //
+    alignas(8)
     char ControlBuffer[
         CMSG_SPACE(sizeof(int)) +               // IP_TOS || IPV6_TCLASS
         CMSG_SPACE(sizeof(struct in6_pktinfo))  // IP_PKTINFO || IPV6_PKTINFO
