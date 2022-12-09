@@ -14,21 +14,6 @@ Abstract:
 #include "MtuTest.cpp.clog.h"
 #endif
 
-struct MtuTestContext {
-    CxPlatEvent ShutdownEvent;
-    MsQuicConnection* Connection {nullptr};
-
-    static QUIC_STATUS ConnCallback(_In_ MsQuicConnection* Conn, _In_opt_ void* Context, _Inout_ QUIC_CONNECTION_EVENT* Event) {
-        MtuTestContext* Ctx = static_cast<MtuTestContext*>(Context);
-        Ctx->Connection = Conn;
-        if (Event->Type == QUIC_CONNECTION_EVENT_SHUTDOWN_COMPLETE) {
-            Ctx->Connection = nullptr;
-            Ctx->ShutdownEvent.Set();
-        }
-        return QUIC_STATUS_SUCCESS;
-    }
-};
-
 static QUIC_STATUS MtuStreamCallback(_In_ MsQuicStream*, _In_opt_ void*, _Inout_ QUIC_STREAM_EVENT*) {
     return QUIC_STATUS_SUCCESS;
 }
@@ -333,8 +318,7 @@ QuicTestMtuDiscovery(
     MsQuicConfiguration ClientConfiguration(Registration, Alpn, Settings, ClientCredConfig);
     TEST_QUIC_SUCCEEDED(ClientConfiguration.GetInitStatus());
 
-    MtuTestContext Context;
-    MsQuicAutoAcceptListener Listener(Registration, ServerConfiguration, MtuTestContext::ConnCallback, &Context);
+    MsQuicAutoAcceptListener Listener(Registration, ServerConfiguration, MsQuicConnection::NoOpCallback);
     TEST_QUIC_SUCCEEDED(Listener.GetInitStatus());
     QUIC_ADDRESS_FAMILY QuicAddrFamily = (Family == 4) ? QUIC_ADDRESS_FAMILY_INET : QUIC_ADDRESS_FAMILY_INET6;
     QuicAddr ServerLocalAddr(QuicAddrFamily);
@@ -350,28 +334,16 @@ QuicTestMtuDiscovery(
 
     MsQuicConnection Connection(Registration);
     TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
-
     TEST_QUIC_SUCCEEDED(Connection.Start(ClientConfiguration, ServerLocalAddr.GetFamily(), QUIC_TEST_LOOPBACK_FOR_AF(ServerLocalAddr.GetFamily()), ServerLocalAddr.GetPort()));
 
-    CxPlatSleep(4000); // Wait for the first idle period to expire.
-    TEST_NOT_EQUAL(nullptr, Context.Connection);
+    CxPlatSleep(1000); // TODO - Make this event based.
+    TEST_NOT_EQUAL(nullptr, Listener.LastConnection);
 
-    //
-    // Assert our maximum MTUs
-    //
     QUIC_STATISTICS_V2 ClientStats;
-    QUIC_STATUS ClientSuccess = Connection.GetStatistics(&ClientStats);
-    QUIC_STATISTICS_V2 ServerStats;
-    QUIC_STATUS ServerSuccess = Context.Connection->GetStatistics(&ServerStats);
-
-    Connection.Shutdown(1);
-    Context.Connection->Shutdown(1);
-
-    TEST_QUIC_SUCCEEDED(ClientSuccess);
-    TEST_QUIC_SUCCEEDED(ServerSuccess);
-
+    TEST_QUIC_SUCCEEDED(Connection.GetStatistics(&ClientStats));
     TEST_EQUAL(ClientExpectedMtu, ClientStats.SendPathMtu);
-    TEST_EQUAL(ServerExpectedMtu, ServerStats.SendPathMtu);
 
-    Context.ShutdownEvent.WaitTimeout(2000);
+    QUIC_STATISTICS_V2 ServerStats;
+    TEST_QUIC_SUCCEEDED(Listener.LastConnection->GetStatistics(&ServerStats));
+    TEST_EQUAL(ServerExpectedMtu, ServerStats.SendPathMtu);
 }

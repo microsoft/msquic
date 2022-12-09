@@ -1850,6 +1850,7 @@ CxPlatSendDataAlloc(
         SendData->SegmentSize = MaxPacketSize;
         SendData->BufferCount = 0;
         SendData->AlreadySentCount = 0;
+        SendData->ControlBufferLength = 0;
         SendData->ECN = ECN;
         SendData->OnConnectedSocket = Socket->Connected;
         SendData->SegmentationSupported =
@@ -2042,7 +2043,7 @@ CxPlatSendDataPopulateAncillaryData(
     }
 #endif
 
-    CXPLAT_DBG_ASSERT(Mhdr->msg_controllen < sizeof(SendData->ControlBuffer));
+    CXPLAT_DBG_ASSERT(Mhdr->msg_controllen <= sizeof(SendData->ControlBuffer));
     SendData->ControlBufferLength = (uint8_t)Mhdr->msg_controllen;
 }
 
@@ -2210,6 +2211,9 @@ CxPlatSocketSend(
     _In_ uint16_t IdealProcessor
     )
 {
+    UNREFERENCED_PARAMETER(Socket);
+    UNREFERENCED_PARAMETER(IdealProcessor);
+
     //
     // Finalize the state of the send data and log the send.
     //
