@@ -236,6 +236,11 @@ typedef struct QUIC_CACHEALIGN CXPLAT_SOCKET_CONTEXT {
     DATAPATH_SQE IoSqe;
 
     //
+    // The submission queue event for flushing the send queue.
+    //
+    DATAPATH_SQE FlushTxSqe;
+
+    //
     // The I/O vector for receive datagrams.
     //
     struct iovec RecvIov[CXPLAT_MAX_BATCH_RECEIVE];
@@ -878,6 +883,7 @@ CxPlatSocketContextInitialize(
     socklen_t AssignedLocalAddressLength = 0;
     BOOLEAN ShutdownSqeInitialized = FALSE;
     BOOLEAN IoSqeInitialized = FALSE;
+    BOOLEAN FlushTxInitialized = FALSE;
 
     CXPLAT_SOCKET* Binding = SocketContext->Binding;
 
@@ -910,6 +916,21 @@ CxPlatSocketContextInitialize(
         goto Exit;
     }
     IoSqeInitialized = TRUE;
+
+    if (!CxPlatSqeInitialize(
+            SocketContext->DatapathProc->EventQ,
+            &SocketContext->FlushTxSqe.Sqe,
+            &SocketContext->FlushTxSqe)) {
+        Status = errno;
+        QuicTraceEvent(
+            DatapathErrorStatus,
+            "[data][%p] ERROR, %u, %s.",
+            Binding,
+            Status,
+            "CxPlatSqeInitialize failed");
+        goto Exit;
+    }
+    FlushTxInitialized = TRUE;
 
     //
     // Create datagram socket.
@@ -1258,6 +1279,9 @@ Exit:
         if (IoSqeInitialized) {
             CxPlatSqeCleanup(SocketContext->DatapathProc->EventQ, &SocketContext->IoSqe.Sqe);
         }
+        if (FlushTxInitialized) {
+            CxPlatSqeCleanup(SocketContext->DatapathProc->EventQ, &SocketContext->FlushTxSqe.Sqe);
+        }
     }
 
     return Status;
@@ -1311,6 +1335,7 @@ CxPlatSocketContextUninitializeComplete(
     if (SocketContext->SqeInitialized) {
         CxPlatSqeCleanup(SocketContext->DatapathProc->EventQ, &SocketContext->ShutdownSqe.Sqe);
         CxPlatSqeCleanup(SocketContext->DatapathProc->EventQ, &SocketContext->IoSqe.Sqe);
+        CxPlatSqeCleanup(SocketContext->DatapathProc->EventQ, &SocketContext->FlushTxSqe.Sqe);
     }
 
     CxPlatLockUninitialize(&SocketContext->PendingSendDataLock);
@@ -1615,6 +1640,7 @@ CxPlatSocketCreateUdp(
         Binding->SocketContexts[i].SocketFd = INVALID_SOCKET;
         Binding->SocketContexts[i].ShutdownSqe.CqeType = CXPLAT_CQE_TYPE_SOCKET_SHUTDOWN;
         Binding->SocketContexts[i].IoSqe.CqeType = CXPLAT_CQE_TYPE_SOCKET_IO;
+        Binding->SocketContexts[i].FlushTxSqe.CqeType = CXPLAT_CQE_TYPE_SOCKET_FLUSH_TX;
         for (ssize_t j = 0; j < CXPLAT_MAX_BATCH_RECEIVE; j++) {
             Binding->SocketContexts[i].RecvIov[j].iov_len =
                 Binding->Mtu - CXPLAT_MIN_IPV4_HEADER_SIZE - CXPLAT_UDP_HEADER_SIZE;
@@ -2117,16 +2143,13 @@ CxPlatSendDataSendMessages(
 
 QUIC_STATUS
 CxPlatSendDataSend(
-    _In_ CXPLAT_SEND_DATA* SendData,
-    _In_ BOOLEAN IsPendedSend
+    _In_ CXPLAT_SEND_DATA* SendData
     )
 {
     CXPLAT_DBG_ASSERT(SendData != NULL);
     CXPLAT_DBG_ASSERT(SendData->AlreadySentCount < CXPLAT_MAX_BATCH_SEND);
-    CXPLAT_DBG_ASSERT(IsPendedSend || SendData->AlreadySentCount == 0);
 
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
-    BOOLEAN SendPending = FALSE;
     CXPLAT_SOCKET_CONTEXT* SocketContext = SendData->SocketContext;
     BOOLEAN Success =
 #ifdef UDP_SEGMENT
@@ -2136,14 +2159,6 @@ CxPlatSendDataSend(
             CxPlatSendDataSendMessages(SendData);
     if (!Success) {
         if (errno == EAGAIN || errno == EWOULDBLOCK) {
-            if (!IsPendedSend) {
-                CxPlatLockAcquire(&SocketContext->PendingSendDataLock);
-                CxPlatListInsertTail(
-                    &SocketContext->PendingSendDataHead,
-                    &SendData->PendingSendEntry);
-                CxPlatLockRelease(&SocketContext->PendingSendDataLock);
-            }
-            SendPending = TRUE;
             struct epoll_event SockFdEpEvt = {
                 .events = EPOLLIN | EPOLLOUT, .data = { .ptr = &SocketContext->IoSqe, } };
 
@@ -2160,12 +2175,8 @@ CxPlatSendDataSend(
                     SocketContext->Binding,
                     errno,
                     "epoll_ctl failed");
-                Status = errno;
-                goto Exit;
             }
             Status = QUIC_STATUS_PENDING;
-            goto Exit;
-
         } else {
             Status = errno;
             QuicTraceEvent(
@@ -2190,14 +2201,7 @@ CxPlatSendDataSend(
                         &SocketContext->Binding->RemoteAddress);
                 }
             }
-            goto Exit;
         }
-    }
-
-Exit:
-
-    if (!SendPending && !IsPendedSend) {
-        CxPlatSendDataComplete(SendData, Status);
     }
 
     return Status;
@@ -2235,56 +2239,32 @@ CxPlatSocketSend(
     SendData->LocalAddress = Route->LocalAddress;
 
     //
-    // Check to see if we need to pend because there's already queue.
+    // Queue the send and flush if necessary.
     //
-    BOOLEAN SendPending = FALSE;
-    CxPlatLockAcquire(&SendData->SocketContext->PendingSendDataLock);
-    if (!CxPlatListIsEmpty(&SendData->SocketContext->PendingSendDataHead)) {
-        CxPlatListInsertTail(
-            &SendData->SocketContext->PendingSendDataHead,
-            &SendData->PendingSendEntry);
-        SendPending = TRUE;
-    }
-    CxPlatLockRelease(&SendData->SocketContext->PendingSendDataLock);
-    if (SendPending) {
-        return QUIC_STATUS_SUCCESS;
+    CXPLAT_SOCKET_CONTEXT* SocketContext = SendData->SocketContext;
+    CxPlatLockAcquire(&SocketContext->PendingSendDataLock);
+    BOOLEAN FlushQueue = CxPlatListIsEmpty(&SocketContext->PendingSendDataHead);
+    CxPlatListInsertTail(
+        &SocketContext->PendingSendDataHead,
+        &SendData->PendingSendEntry);
+    CxPlatLockRelease(&SocketContext->PendingSendDataLock);
+
+    if (FlushQueue) {
+        CXPLAT_FRE_ASSERT(
+            CxPlatEventQEnqueue(
+                SocketContext->DatapathProc->EventQ,
+                &SocketContext->FlushTxSqe.Sqe,
+                &SocketContext->FlushTxSqe));
     }
 
-    //
-    // Go ahead and try to send on the socket.
-    //
-    QUIC_STATUS Status = CxPlatSendDataSend(SendData, FALSE);
-    if (Status == QUIC_STATUS_PENDING) {
-        Status = QUIC_STATUS_SUCCESS;
-    }
-
-    return Status;
+    return QUIC_STATUS_SUCCESS;
 }
 
 void
-CxPlatSocketContextSendComplete(
+CxPlatSocketContextFlushSendQueue(
     _In_ CXPLAT_SOCKET_CONTEXT* SocketContext
     )
 {
-    struct epoll_event SockFdEpEvt = {
-        .events = EPOLLIN, .data = { .ptr = &SocketContext->IoSqe, } };
-
-    int Ret =
-        epoll_ctl(
-            *SocketContext->DatapathProc->EventQ,
-            EPOLL_CTL_MOD,
-            SocketContext->SocketFd,
-            &SockFdEpEvt);
-    if (Ret != 0) {
-        QuicTraceEvent(
-            DatapathErrorStatus,
-            "[data][%p] ERROR, %u, %s.",
-            SocketContext->Binding,
-            Ret,
-            "epoll_ctl failed");
-        return;
-    }
-
     CXPLAT_SEND_DATA* SendData = NULL;
     CxPlatLockAcquire(&SocketContext->PendingSendDataLock);
     if (!CxPlatListIsEmpty(&SocketContext->PendingSendDataHead)) {
@@ -2301,7 +2281,7 @@ CxPlatSocketContextSendComplete(
 
     QUIC_STATUS Status;
     do {
-        Status = CxPlatSendDataSend(SendData, TRUE);
+        Status = CxPlatSendDataSend(SendData);
         CxPlatLockAcquire(&SocketContext->PendingSendDataLock);
         if (Status != QUIC_STATUS_PENDING) {
             CxPlatListRemoveHead(&SocketContext->PendingSendDataHead);
@@ -2405,7 +2385,30 @@ CxPlatDataPathSocketProcessIoCompletion(
     }
 
     if (EPOLLOUT & Cqe->events) {
-        CxPlatSocketContextSendComplete(SocketContext);
+        //
+        // TODO - Is this necessary? I *think* this is essentially removing the
+        // EPOLLOUT event from the events registered on the socket, but perhaps
+        // we should only do that if we don't still have anything pending after
+        // we try to flush?
+        //
+        struct epoll_event SockFdEpEvt = {
+            .events = EPOLLIN, .data = { .ptr = &SocketContext->IoSqe, } };
+        int Ret =
+            epoll_ctl(
+                *SocketContext->DatapathProc->EventQ,
+                EPOLL_CTL_MOD,
+                SocketContext->SocketFd,
+                &SockFdEpEvt);
+        if (Ret != 0) {
+            QuicTraceEvent(
+                DatapathErrorStatus,
+                "[data][%p] ERROR, %u, %s.",
+                SocketContext->Binding,
+                Ret,
+                "epoll_ctl failed");
+        }
+
+        CxPlatSocketContextFlushSendQueue(SocketContext);
     }
 
     CxPlatRundownRelease(&SocketContext->UpcallRundown);
@@ -2427,6 +2430,12 @@ CxPlatDataPathProcessCqe(
         CXPLAT_SOCKET_CONTEXT* SocketContext =
             CXPLAT_CONTAINING_RECORD(CxPlatCqeUserData(Cqe), CXPLAT_SOCKET_CONTEXT, IoSqe);
         CxPlatDataPathSocketProcessIoCompletion(SocketContext, Cqe);
+        break;
+    }
+    case CXPLAT_CQE_TYPE_SOCKET_FLUSH_TX: {
+        CXPLAT_SOCKET_CONTEXT* SocketContext =
+            CXPLAT_CONTAINING_RECORD(CxPlatCqeUserData(Cqe), CXPLAT_SOCKET_CONTEXT, FlushTxSqe);
+        CxPlatSocketContextFlushSendQueue(SocketContext);
         break;
     }
     }
