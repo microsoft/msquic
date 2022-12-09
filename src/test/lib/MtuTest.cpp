@@ -301,7 +301,7 @@ QuicTestMtuDiscovery(
     _In_ BOOLEAN RaiseMinimumMtu
     )
 {
-    MsQuicRegistration Registration;
+    MsQuicRegistration Registration(true);
     TEST_QUIC_SUCCEEDED(Registration.GetInitStatus());
 
     const uint16_t MinimumMtu = RaiseMinimumMtu ? 1360 : 1248;
