@@ -151,24 +151,21 @@ function Log-Start {
 # Cancels log collection, discarding any logs.
 function Log-Cancel {
     if ($IsWindows) {
-        try {
-            wpr.exe -cancel -instancename $InstanceName 2>&1
-        } catch {
-        }
-        $global:LASTEXITCODE = 0
+        try { wpr.exe -cancel -instancename $InstanceName 2>&1 } catch { }
     } elseif ($IsMacOS) {
     } else {
         if (!(Test-Path $TempDir)) {
             Write-Debug "LTTng session ($InstanceName) not currently running"
         } else {
-            Invoke-Expression "lttng destroy -n $InstanceName" | Write-Debug
-            Remove-Item -Path $TempDir -Recurse -Force | Out-Null
+            try { Invoke-Expression "lttng destroy -n $InstanceName" | Write-Debug } catch { }
+            try { Remove-Item -Path $TempDir -Recurse -Force | Out-Null } catch { }
             Write-Debug "Destroyed LTTng session ($InstanceName) and deleted $TempDir"
         }
     }
+    $global:LASTEXITCODE = 0
 }
 
-# Stops log collection, keeping the logs.
+# Stops log colllttnection, keeping the logs.
 function Log-Stop {
     if ($IsWindows) {
         $EtlPath = $OutputPath + ".etl"
