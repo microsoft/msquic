@@ -2210,15 +2210,6 @@ CxPlatSocketSend(
     _In_ uint16_t IdealProcessor
     )
 {
-    CXPLAT_SOCKET_CONTEXT* SocketContext;
-    if (Socket->HasFixedRemoteAddress) {
-        SocketContext = &Socket->SocketContexts[0];
-    } else {
-        UNREFERENCED_PARAMETER(IdealProcessor);
-        uint32_t ProcNumber = CxPlatProcCurrentNumber() % Socket->Datapath->ProcCount;
-        SocketContext = &Socket->SocketContexts[ProcNumber];
-    }
-
     //
     // Finalize the state of the send data and log the send.
     //
@@ -2243,14 +2234,14 @@ CxPlatSocketSend(
     // Check to see if we need to pend because there's already queue.
     //
     BOOLEAN SendPending = FALSE;
-    CxPlatLockAcquire(&SocketContext->PendingSendDataLock);
-    if (!CxPlatListIsEmpty(&SocketContext->PendingSendDataHead)) {
+    CxPlatLockAcquire(&SendData->SocketContext->PendingSendDataLock);
+    if (!CxPlatListIsEmpty(&SendData->SocketContext->PendingSendDataHead)) {
         CxPlatListInsertTail(
-            &SocketContext->PendingSendDataHead,
+            &SendData->SocketContext->PendingSendDataHead,
             &SendData->PendingSendEntry);
         SendPending = TRUE;
     }
-    CxPlatLockRelease(&SocketContext->PendingSendDataLock);
+    CxPlatLockRelease(&SendData->SocketContext->PendingSendDataLock);
     if (SendPending) {
         return QUIC_STATUS_SUCCESS;
     }
