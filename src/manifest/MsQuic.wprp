@@ -136,6 +136,7 @@
           <EventProviders>
             <EventProviderId Value="EP_MsQuicEtw_RPS" />
             <EventProviderId Value="EP_XdpEtwPerFrame" />
+            <EventProviderId Value="EP_WinSockEtw" />
           </EventProviders>
         </EventCollectorId>
       </Collectors>
