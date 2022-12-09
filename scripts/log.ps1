@@ -165,7 +165,7 @@ function Log-Cancel {
     $global:LASTEXITCODE = 0
 }
 
-# Stops log colllttnection, keeping the logs.
+# Stops log collection, keeping the logs.
 function Log-Stop {
     if ($IsWindows) {
         $EtlPath = $OutputPath + ".etl"
