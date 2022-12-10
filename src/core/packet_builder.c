@@ -218,9 +218,6 @@ QuicPacketBuilderPrepare(
     // the current one doesn't match, finalize it and then start a new one.
     //
 
-    uint32_t Proc = CxPlatProcCurrentNumber();
-    uint64_t ProcShifted = ((uint64_t)Proc + 1) << 40;
-
     BOOLEAN NewQuicPacket = FALSE;
     if (Builder->PacketType != NewPacketType || IsPathMtuDiscovery ||
         (Builder->Datagram != NULL && (Builder->Datagram->Length - Builder->DatagramLength) < QUIC_MIN_PACKET_SPARE_SPACE)) {
@@ -253,8 +250,6 @@ QuicPacketBuilderPrepare(
         //
         BOOLEAN SendDataAllocated = FALSE;
         if (Builder->SendData == NULL) {
-            Builder->BatchId =
-                ProcShifted | InterlockedIncrement64((int64_t*)&MsQuicLib.PerProc[Proc].SendBatchId);
             Builder->SendData =
                 CxPlatSendDataAlloc(
                     Builder->Path->Binding->Socket,
@@ -273,6 +268,7 @@ QuicPacketBuilderPrepare(
                     0);
                 goto Error;
             }
+            Builder->BatchId = CxPlatSendDataGetCorrelationID(Builder->SendData);
             SendDataAllocated = TRUE;
         }
 
@@ -365,6 +361,9 @@ QuicPacketBuilderPrepare(
             Connection->State.Disable1RttEncrytion) {
             Builder->EncryptionOverhead = 0;
         }
+
+        const uint32_t Proc = CxPlatProcCurrentNumber();
+        const uint64_t ProcShifted = ((uint64_t)Proc + 1) << 40;
 
         Builder->Metadata->PacketId =
             ProcShifted | InterlockedIncrement64((int64_t*)&MsQuicLib.PerProc[Proc].SendPacketId);

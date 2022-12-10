@@ -1830,6 +1830,48 @@
                 outType="win:SocketAddress"
                 />
           </template>
+          <template tid="tid_DATA_SEND_V2">
+            <data
+                inType="win:Pointer"
+                name="Socket"
+                />
+            <data
+                inType="win:UInt32"
+                name="TotalSize"
+                />
+            <data
+                inType="win:UInt8"
+                name="BufferCount"
+                />
+            <data
+                inType="win:UInt16"
+                name="SegmentSize"
+                />
+            <data
+                inType="win:UInt8"
+                name="RemoteAddrLength"
+                />
+            <data
+                inType="win:Binary"
+                length="RemoteAddrLength"
+                name="RemoteAddr"
+                outType="win:SocketAddress"
+                />
+            <data
+                inType="win:UInt8"
+                name="LocalAddrLength"
+                />
+            <data
+                inType="win:Binary"
+                length="LocalAddrLength"
+                name="LocalAddr"
+                outType="win:SocketAddress"
+                />
+            <data
+                inType="win:UInt64"
+                name="CorrelationID"
+                />
+          </template>
           <template tid="tid_DATA_SEND_RECV">
             <data
                 inType="win:Pointer"
@@ -1862,6 +1904,44 @@
                 length="RemoteAddrLength"
                 name="RemoteAddr"
                 outType="win:SocketAddress"
+                />
+          </template>
+          <template tid="tid_DATA_RECV_V2">
+            <data
+                inType="win:Pointer"
+                name="Socket"
+                />
+            <data
+                inType="win:UInt32"
+                name="TotalSize"
+                />
+            <data
+                inType="win:UInt16"
+                name="SegmentSize"
+                />
+            <data
+                inType="win:UInt8"
+                name="LocalAddrLength"
+                />
+            <data
+                inType="win:Binary"
+                length="LocalAddrLength"
+                name="LocalAddr"
+                outType="win:SocketAddress"
+                />
+            <data
+                inType="win:UInt8"
+                name="RemoteAddrLength"
+                />
+            <data
+                inType="win:Binary"
+                length="RemoteAddrLength"
+                name="RemoteAddr"
+                outType="win:SocketAddress"
+                />
+            <data
+                inType="win:UInt64"
+                name="CorrelationID"
                 />
           </template>
           <template tid="tid_UDP">
@@ -3550,6 +3630,24 @@
               template="tid_UDP_ADDRESS"
               value="9224"
               />
+          <event
+              keywords="ut:UDP ut:DataFlow ut:RPS"
+              level="win:Verbose"
+              message="$(string.Etw.DatapathSendV2)"
+              opcode="Datapath"
+              symbol="QuicDatapathSendV2"
+              template="tid_DATA_SEND_V2"
+              value="9225"
+              />
+          <event
+              keywords="ut:UDP ut:DataFlow ut:RPS"
+              level="win:Verbose"
+              message="$(string.Etw.DatapathRecvV2)"
+              opcode="Datapath"
+              symbol="QuicDatapathRecvV2"
+              template="tid_DATA_RECV_V2"
+              value="9226"
+              />
           <!-- 10240 - 11263 | Logs (not events) -->
           <event
               keywords="ut:Log"
@@ -3641,6 +3739,15 @@
               symbol="QuicPacketDecrypt"
               template="tid_ID"
               value="11269"
+              />
+          <event
+              keywords="ut:RPS"
+              level="win:Verbose"
+              message="$(string.Etw.PacketReceiveV2)"
+              opcode="Global"
+              symbol="QuicPacketReceiveV2"
+              template="tid_ID_ID"
+              value="11270"
               />
         </events>
       </provider>
@@ -4175,8 +4282,16 @@
             value="[data][%1] Send %2 bytes in %3 buffers (segment=%4) Dst=%6 Src=%8"
             />
         <string
+            id="Etw.DatapathSendV2"
+            value="[data][%1] Send %2 bytes in %3 buffers (segment=%4) Dst=%6 Src=%8 CorrID=%9"
+            />
+        <string
             id="Etw.DatapathRecv"
             value="[data][%1] Recv %2 bytes (segment=%3) Src=%5 Dst=%7"
+            />
+        <string
+            id="Etw.DatapathRecvV2"
+            value="[data][%1] Recv %2 bytes (segment=%3) Src=%5 Dst=%7 CorrID=%8"
             />
         <string
             id="Etw.DatapathError"
@@ -4253,6 +4368,10 @@
         <string
             id="Etw.PacketReceive"
             value="[pack][%1] Received"
+            />
+        <string
+            id="Etw.PacketReceiveV2"
+            value="[pack][%1] Received CorrID=%2"
             />
         <string
             id="Etw.PacketDecrypt"

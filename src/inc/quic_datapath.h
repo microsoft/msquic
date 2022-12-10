@@ -192,6 +192,11 @@ typedef struct CXPLAT_RECV_DATA {
     uint8_t* Buffer;
 
     //
+    // Semi-unique identifier used to correlate across layers.
+    //
+    uint64_t CorrelationID;
+
+    //
     // Length of the valid data in Buffer.
     //
     uint16_t BufferLength;
@@ -592,6 +597,16 @@ CxPlatSendDataAlloc(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 CxPlatSendDataFree(
+    _In_ CXPLAT_SEND_DATA* SendData
+    );
+
+//
+// Returns semi-unique (will eventually roll over) ID for the send data that can
+// be used for correlation.
+//
+_IRQL_requires_max_(DISPATCH_LEVEL)
+uint64_t
+CxPlatSendDataGetCorrelationID(
     _In_ CXPLAT_SEND_DATA* SendData
     );
 

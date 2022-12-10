@@ -1639,8 +1639,7 @@ QuicBindingReceive(
     // connection it was delivered to.
     //
 
-    uint32_t Proc = CxPlatProcCurrentNumber();
-    uint64_t ProcShifted = ((uint64_t)Proc + 1) << 40;
+    const uint64_t ProcShifted = ((uint64_t)DatagramChain->PartitionIndex + 1) << 40;
 
     CXPLAT_RECV_DATA* Datagram;
     while ((Datagram = DatagramChain) != NULL) {
@@ -1657,15 +1656,17 @@ QuicBindingReceive(
             CxPlatDataPathRecvDataToRecvPacket(Datagram);
         CxPlatZeroMemory(Packet, sizeof(CXPLAT_RECV_PACKET));
         Packet->PacketId =
-            ProcShifted | InterlockedIncrement64((int64_t*)&MsQuicLib.PerProc[Proc].ReceivePacketId);
+            ProcShifted |
+            InterlockedIncrement64((int64_t*)&MsQuicLib.PerProc[Datagram->PartitionIndex].ReceivePacketId);
         Packet->Buffer = Datagram->Buffer;
         Packet->BufferLength = Datagram->BufferLength;
 
         CXPLAT_DBG_ASSERT(Packet->PacketId != 0);
         QuicTraceEvent(
-            PacketReceive,
-            "[pack][%llu] Received",
-            Packet->PacketId);
+            PacketReceiveV2,
+            "[pack][%llu] Received CorrID=%llu",
+            Packet->PacketId,
+            Datagram->CorrelationID);
 
 #if QUIC_TEST_DATAPATH_HOOKS_ENABLED
         //

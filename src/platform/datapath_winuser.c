@@ -158,6 +158,11 @@ typedef struct CXPLAT_SEND_DATA {
     CXPLAT_DATAPATH_PROC* Owner;
 
     //
+    // Semi-unique identifier to allow for correlation across layers.
+    //
+    uint64_t CorrelationID;
+
+    //
     // The total buffer size for WsaBuffers.
     //
     uint32_t TotalSize;
@@ -373,6 +378,12 @@ typedef struct QUIC_CACHEALIGN CXPLAT_DATAPATH_PROC {
     CXPLAT_REF_COUNT RefCount;
 
     //
+    // Identifiers for correlating sends and receives across layers.
+    //
+    uint64_t SendDataCorrelationID;
+    uint64_t RecvDataCorrelationID;
+
+    //
     // The index of ideal processor for this datapath.
     //
     uint16_t IdealProcessor;
@@ -530,9 +541,11 @@ CxPlatDataPathGetProc(
     return NULL;
 }
 
+_Success_(return == QUIC_STATUS_SUCCESS)
 QUIC_STATUS
 CxPlatSocketStartReceive(
-    _In_ CXPLAT_SOCKET_PROC* SocketProc
+    _In_ CXPLAT_SOCKET_PROC* SocketProc,
+    _Out_opt_ uint16_t* SyncBytesReceived
     );
 
 QUIC_STATUS
@@ -1925,7 +1938,7 @@ QUIC_DISABLED_BY_FUZZER_END;
     *NewSocket = Socket;
 
     for (uint16_t i = 0; i < SocketCount; i++) {
-        Status = CxPlatSocketStartReceive(&Socket->Processors[i]);
+        Status = CxPlatSocketStartReceive(&Socket->Processors[i], NULL);
         if (QUIC_FAILED(Status)) {
             goto Error;
         }
@@ -2818,7 +2831,7 @@ CxPlatDataPathAcceptComplete(
             goto Error;
         }
 
-        if (QUIC_FAILED(CxPlatSocketStartReceive(AcceptSocketProc))) {
+        if (QUIC_FAILED(CxPlatSocketStartReceive(AcceptSocketProc, NULL))) {
             goto Error;
         }
 
@@ -2886,7 +2899,7 @@ CxPlatDataPathConnectComplete(
         //
         // Try to start a new receive.
         //
-        (void)CxPlatSocketStartReceive(SocketProc);
+        (void)CxPlatSocketStartReceive(SocketProc, NULL);
 
     } else {
         QuicTraceEvent(
@@ -2930,12 +2943,14 @@ CxPlatSocketHandleUnreachableError(
         RemoteAddr);
 }
 
+_Success_(return == QUIC_STATUS_SUCCESS)
 QUIC_STATUS
 CxPlatSocketStartReceive(
-    _In_ CXPLAT_SOCKET_PROC* SocketProc
+    _In_ CXPLAT_SOCKET_PROC* SocketProc,
+    _Out_opt_ uint16_t* SyncBytesReceived
     )
 {
-    QUIC_STATUS Status;
+    QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
     CXPLAT_DATAPATH* Datapath = SocketProc->Parent->Datapath;
     int Result;
     DWORD BytesRecv = 0;
@@ -3003,6 +3018,7 @@ Retry_recv:
                 &SocketProc->IoSqe.Sqe,
                 NULL);
     }
+
     if (Result == SOCKET_ERROR) {
         int WsaError = WSAGetLastError();
         if (WsaError != WSA_IO_PENDING) {
@@ -3021,7 +3037,9 @@ Retry_recv:
                 goto Error;
             }
         }
-    } else {
+        Status = QUIC_STATUS_PENDING;
+
+    } else if (SyncBytesReceived == NULL) {
         //
         // Manually post IO completion if receive completed synchronously.
         //
@@ -3040,9 +3058,12 @@ Retry_recv:
             Status = HRESULT_FROM_WIN32(LastError);
             goto Error;
         }
-    }
+        Status = QUIC_STATUS_PENDING;
 
-    Status = QUIC_STATUS_SUCCESS;
+    } else {
+        CXPLAT_DBG_ASSERT(BytesRecv < UINT16_MAX);
+        *SyncBytesReceived = (uint16_t)BytesRecv;
+    }
 
 Error:
 
@@ -3056,6 +3077,7 @@ CxPlatDataPathUdpRecvComplete(
     _In_ UINT16 NumberOfBytesTransferred
     )
 {
+RecvAgain:
     //
     // Copy the current receive buffer locally. On error cases, we leave the
     // buffer set as the current receive buffer because we are only using it
@@ -3115,6 +3137,10 @@ CxPlatDataPathUdpRecvComplete(
         ULONG MessageCount = 0;
         BOOLEAN IsCoalesced = FALSE;
         INT ECN = 0;
+
+        const uint64_t CorrelationID =
+            (((uint64_t)SocketProc->DatapathProc->IdealProcessor + 1)) << 40 |
+            InterlockedIncrement64((int64_t*)&SocketProc->DatapathProc->RecvDataCorrelationID);
 
         for (WSACMSGHDR *CMsg = WSA_CMSG_FIRSTHDR(&SocketProc->RecvWsaMsgHdr);
             CMsg != NULL;
@@ -3177,13 +3203,14 @@ CxPlatDataPathUdpRecvComplete(
         CxPlatConvertFromMappedV6(RemoteAddr, RemoteAddr);
 
         QuicTraceEvent(
-            DatapathRecv,
-            "[data][%p] Recv %u bytes (segment=%hu) Src=%!ADDR! Dst=%!ADDR!",
-            SocketProc->Parent,
+            DatapathRecvV2,
+            "[data][%p] Recv %u bytes (segment=%hu) Src=%!ADDR! Dst=%!ADDR! CorrID=%llu",
+            (void*)SocketProc->Socket,
             NumberOfBytesTransferred,
             MessageLength,
             CASTED_CLOG_BYTEARRAY(sizeof(*LocalAddr), LocalAddr),
-            CASTED_CLOG_BYTEARRAY(sizeof(*RemoteAddr), RemoteAddr));
+            CASTED_CLOG_BYTEARRAY(sizeof(*RemoteAddr), RemoteAddr),
+            CorrelationID);
 
         CXPLAT_DBG_ASSERT(NumberOfBytesTransferred <= SocketProc->RecvWsaBuf.len);
 
@@ -3205,6 +3232,7 @@ CxPlatDataPathUdpRecvComplete(
             }
 
             Datagram->Next = NULL;
+            Datagram->CorrelationID = CorrelationID;
             Datagram->Buffer = RecvPayload;
             Datagram->BufferLength = MessageLength;
             Datagram->Route = &RecvContext->Route;
@@ -3279,7 +3307,7 @@ Drop:
     int32_t RetryCount = 0;
     QUIC_STATUS Status;
     do {
-        Status = CxPlatSocketStartReceive(SocketProc);
+        Status = CxPlatSocketStartReceive(SocketProc, &NumberOfBytesTransferred);
     } while (!QUIC_SUCCEEDED(Status) && ++RetryCount < 10);
 
     if (!QUIC_SUCCEEDED(Status)) {
@@ -3290,8 +3318,11 @@ Drop:
             SocketProc->Parent,
             Status,
             "CxPlatSocketStartReceive failed multiple times. Receive will no longer work.");
-    }
 
+    } else if (Status != QUIC_STATUS_PENDING) {
+        IoResult = QUIC_STATUS_SUCCESS;
+        goto RecvAgain;
+    }
 }
 
 void
@@ -3392,7 +3423,7 @@ Drop:
     //
     // Try to start a new receive.
     //
-    (void)CxPlatSocketStartReceive(SocketProc);
+    (void)CxPlatSocketStartReceive(SocketProc, NULL);
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -3526,6 +3557,9 @@ CxPlatSendDataAlloc(
         SendData->WsaBufferCount = 0;
         SendData->ClientBuffer.len = 0;
         SendData->ClientBuffer.buf = NULL;
+        SendData->CorrelationID =
+            (((uint64_t)DatapathProc->IdealProcessor + 1)) << 40 |
+            InterlockedIncrement64((int64_t*)&DatapathProc->SendDataCorrelationID);
     }
 
     return SendData;
@@ -3547,6 +3581,15 @@ CxPlatSendDataFree(
     }
 
     CxPlatPoolFree(&DatapathProc->SendDataPool, SendData);
+}
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+uint64_t
+CxPlatSendDataGetCorrelationID(
+    _In_ CXPLAT_SEND_DATA* SendData
+    )
+{
+    return SendData->CorrelationID;
 }
 
 static
@@ -3807,14 +3850,15 @@ CxPlatSocketSendInline(
     Socket = SocketProc->Parent;
 
     QuicTraceEvent(
-        DatapathSend,
-        "[data][%p] Send %u bytes in %hhu buffers (segment=%hu) Dst=%!ADDR!, Src=%!ADDR!",
-        Socket,
+        DatapathSendV2,
+        "[data][%p] Send %u bytes in %hhu buffers (segment=%hu) Dst=%!ADDR! Src=%!ADDR! CorrID=%llu",
+        (void*)SocketProc->Socket,
         SendData->TotalSize,
         SendData->WsaBufferCount,
         SendData->SegmentSize,
         CASTED_CLOG_BYTEARRAY(sizeof(*RemoteAddress), RemoteAddress),
-        CASTED_CLOG_BYTEARRAY(sizeof(*LocalAddress), LocalAddress));
+        CASTED_CLOG_BYTEARRAY(sizeof(*LocalAddress), LocalAddress),
+        SendData->CorrelationID);
 
     //
     // Map V4 address to dual-stack socket format.
