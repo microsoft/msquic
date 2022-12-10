@@ -32,11 +32,18 @@ var dataRpsLatency_Windows_x64_OpenSsl = RPS_LATENCY_WINDOWS_X64_OPENSSL
 var dataRpsLatency_Linux_x64_OpenSsl = RPS_LATENCY_LINUX_X64_OPENSSL
 
 // Arrays of {x:X, y:Y}
-var dataRpsLatencyLatest_WinKernel_x64_Schannel = RPS_LATENCY_LATEST_WINKERNEL_X64_SCHANNEL
-var dataRpsLatencyLatest_WinXDP_x64_Schannel = RPS_LATENCY_LATEST_WINXDP_X64_SCHANNEL
-var dataRpsLatencyLatest_Windows_x64_Schannel = RPS_LATENCY_LATEST_WINDOWS_X64_SCHANNEL
-var dataRpsLatencyLatest_Windows_x64_OpenSsl = RPS_LATENCY_LATEST_WINDOWS_X64_OPENSSL
-var dataRpsLatencyLatest_Linux_x64_OpenSsl = RPS_LATENCY_LATEST_LINUX_X64_OPENSSL
+var dataRpsLatency1Latest_WinKernel_x64_Schannel = RPS_LATENCY_1_LATEST_WINKERNEL_X64_SCHANNEL
+var dataRpsLatency1Latest_WinXDP_x64_Schannel = RPS_LATENCY_1_LATEST_WINXDP_X64_SCHANNEL
+var dataRpsLatency1Latest_Windows_x64_Schannel = RPS_LATENCY_1_LATEST_WINDOWS_X64_SCHANNEL
+var dataRpsLatency1Latest_Windows_x64_OpenSsl = RPS_LATENCY_1_LATEST_WINDOWS_X64_OPENSSL
+var dataRpsLatency1Latest_Linux_x64_OpenSsl = RPS_LATENCY_1_LATEST_LINUX_X64_OPENSSL
+
+// Arrays of {x:X, y:Y}
+var dataRpsLatency40Latest_WinKernel_x64_Schannel = RPS_LATENCY_40_LATEST_WINKERNEL_X64_SCHANNEL
+var dataRpsLatency40Latest_WinXDP_x64_Schannel = RPS_LATENCY_40_LATEST_WINXDP_X64_SCHANNEL
+var dataRpsLatency40Latest_Windows_x64_Schannel = RPS_LATENCY_40_LATEST_WINDOWS_X64_SCHANNEL
+var dataRpsLatency40Latest_Windows_x64_OpenSsl = RPS_LATENCY_40_LATEST_WINDOWS_X64_OPENSSL
+var dataRpsLatency40Latest_Linux_x64_OpenSsl = RPS_LATENCY_40_LATEST_LINUX_X64_OPENSSL
 
 // Map of {N: {h:'H', t:T}}
 var recentCommits = RECENT_COMMITS

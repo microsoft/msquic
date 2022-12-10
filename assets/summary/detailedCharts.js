@@ -209,5 +209,6 @@ window.onload = function() {
     testTypes.forEach(x => createChart(x))
     createLatencyChart("RpsLatency", (data) => maxIndex - 1 - data.x < commitCount);
     createLatencyChart("RpsLatencyMultiConn", (data) => maxIndex - 1 - data.x < commitCount);
-    createLatestLatencyChart("RpsLatencyLatest");
+    createLatestLatencyChart("RpsLatency1Latest");
+    createLatestLatencyChart("RpsLatency40Latest");
 };

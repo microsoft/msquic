@@ -639,31 +639,34 @@ function Get-LatestLatencyDataJs {
         [string]$BranchFolder
     )
 
-    Write-Debug "Generating LatestLatencyDataJs"
+    $connCounts = @("1", "40");
+    foreach ($c in $connCounts) {
+        Write-Debug "Generating LatestLatencyDataJs"
 
-    # Grab Latency Data
-    $LatestCommit = Get-LatestCommit -BranchFolder $BranchFolder
-    $LinuxOpenSslLatencyFile = Get-MedianLatencyFile $BranchFolder $LatestCommit.CommitHash "RPS_linux_x64_openssl_ConnectionCount_1" 0.9
-    $WinOpenSslLatencyFile = Get-MedianLatencyFile $BranchFolder $LatestCommit.CommitHash "RPS_Windows_x64_openssl_ConnectionCount_1" 0.9
-    $WinSchannelLatencyFile = Get-MedianLatencyFile $BranchFolder $LatestCommit.CommitHash "RPS_Windows_x64_schannel_ConnectionCount_1" 0.9
-    $WinKernelLatencyFile = Get-MedianLatencyFile $BranchFolder $LatestCommit.CommitHash "RPS_Winkernel_x64_schannel_ConnectionCount_1" 0.9
-    $WinXDPLatencyFile = Get-MedianLatencyFile $BranchFolder $LatestCommit.CommitHash "RPS_WinXDP_x64_schannel_ConnectionCount_1" 0.9
+        # Grab Latency Data
+        $LatestCommit = Get-LatestCommit -BranchFolder $BranchFolder
+        $LinuxOpenSslLatencyFile = Get-MedianLatencyFile $BranchFolder $LatestCommit.CommitHash "RPS_linux_x64_openssl_ConnectionCount_$c" 0.9
+        $WinOpenSslLatencyFile = Get-MedianLatencyFile $BranchFolder $LatestCommit.CommitHash "RPS_Windows_x64_openssl_ConnectionCount_$c" 0.9
+        $WinSchannelLatencyFile = Get-MedianLatencyFile $BranchFolder $LatestCommit.CommitHash "RPS_Windows_x64_schannel_ConnectionCount_$c" 0.9
+        $WinKernelLatencyFile = Get-MedianLatencyFile $BranchFolder $LatestCommit.CommitHash "RPS_Winkernel_x64_schannel_ConnectionCount_$c" 0.9
+        $WinXDPLatencyFile = Get-MedianLatencyFile $BranchFolder $LatestCommit.CommitHash "RPS_WinXDP_x64_schannel_ConnectionCount_$c" 0.9
 
-    Write-Debug "Generating data for median files"
+        Write-Debug "Generating data for median files"
 
-    $LinuxOpenSslData = Get-LatestLatencyData $LinuxOpenSslLatencyFile
-    $WinOpenSslData = Get-LatestLatencyData $WinOpenSslLatencyFile
-    $WinSchannelData = Get-LatestLatencyData $WinSchannelLatencyFile
-    $WinKernelData = Get-LatestLatencyData $WinKernelLatencyFile
-    $WinXDPData = Get-LatestLatencyData $WinXDPLatencyFile
+        $LinuxOpenSslData = Get-LatestLatencyData $LinuxOpenSslLatencyFile
+        $WinOpenSslData = Get-LatestLatencyData $WinOpenSslLatencyFile
+        $WinSchannelData = Get-LatestLatencyData $WinSchannelLatencyFile
+        $WinKernelData = Get-LatestLatencyData $WinKernelLatencyFile
+        $WinXDPData = Get-LatestLatencyData $WinXDPLatencyFile
 
-    Write-Debug "Writing data for median files"
+        Write-Debug "Writing data for median files"
 
-    $DataFile = $DataFile.Replace("RPS_LATENCY_LATEST_LINUX_X64_OPENSSL", $LinuxOpenSslData)
-    $DataFile = $DataFile.Replace("RPS_LATENCY_LATEST_WINDOWS_X64_OPENSSL", $WinOpenSslData)
-    $DataFile = $DataFile.Replace("RPS_LATENCY_LATEST_WINDOWS_X64_SCHANNEL", $WinSchannelData)
-    $DataFile = $DataFile.Replace("RPS_LATENCY_LATEST_WINKERNEL_X64_SCHANNEL", $WinKernelData)
-    $DataFile = $DataFile.Replace("RPS_LATENCY_LATEST_WINXDP_X64_SCHANNEL", $WinXDPData)
+        $DataFile = $DataFile.Replace("RPS_LATENCY_$($c)_LATEST_LINUX_X64_OPENSSL", $LinuxOpenSslData)
+        $DataFile = $DataFile.Replace("RPS_LATENCY_$($c)_LATEST_WINDOWS_X64_OPENSSL", $WinOpenSslData)
+        $DataFile = $DataFile.Replace("RPS_LATENCY_$($c)_LATEST_WINDOWS_X64_SCHANNEL", $WinSchannelData)
+        $DataFile = $DataFile.Replace("RPS_LATENCY_$($c)_LATEST_WINKERNEL_X64_SCHANNEL", $WinKernelData)
+        $DataFile = $DataFile.Replace("RPS_LATENCY_$($c)_LATEST_WINXDP_X64_SCHANNEL", $WinXDPData)
+    }
 
     return $DataFile
 }
