@@ -535,9 +535,11 @@ CxPlatDataPathGetProc(
     return NULL;
 }
 
+_Success_(return == QUIC_STATUS_SUCCESS)
 QUIC_STATUS
 CxPlatSocketStartReceive(
-    _In_ CXPLAT_SOCKET_PROC* SocketProc
+    _In_ CXPLAT_SOCKET_PROC* SocketProc,
+    _Out_opt_ uint16_t* SyncBytesReceived
     );
 
 QUIC_STATUS
@@ -1930,7 +1932,7 @@ QUIC_DISABLED_BY_FUZZER_END;
     *NewSocket = Socket;
 
     for (uint16_t i = 0; i < SocketCount; i++) {
-        Status = CxPlatSocketStartReceive(&Socket->Processors[i]);
+        Status = CxPlatSocketStartReceive(&Socket->Processors[i], NULL);
         if (QUIC_FAILED(Status)) {
             goto Error;
         }
@@ -2823,7 +2825,7 @@ CxPlatDataPathAcceptComplete(
             goto Error;
         }
 
-        if (QUIC_FAILED(CxPlatSocketStartReceive(AcceptSocketProc))) {
+        if (QUIC_FAILED(CxPlatSocketStartReceive(AcceptSocketProc, NULL))) {
             goto Error;
         }
 
@@ -2891,7 +2893,7 @@ CxPlatDataPathConnectComplete(
         //
         // Try to start a new receive.
         //
-        (void)CxPlatSocketStartReceive(SocketProc);
+        (void)CxPlatSocketStartReceive(SocketProc, NULL);
 
     } else {
         QuicTraceEvent(
@@ -2935,12 +2937,14 @@ CxPlatSocketHandleUnreachableError(
         RemoteAddr);
 }
 
+_Success_(return == QUIC_STATUS_SUCCESS)
 QUIC_STATUS
 CxPlatSocketStartReceive(
-    _In_ CXPLAT_SOCKET_PROC* SocketProc
+    _In_ CXPLAT_SOCKET_PROC* SocketProc,
+    _Out_opt_ uint16_t* SyncBytesReceived
     )
 {
-    QUIC_STATUS Status;
+    QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
     CXPLAT_DATAPATH* Datapath = SocketProc->Parent->Datapath;
     int Result;
     DWORD BytesRecv = 0;
@@ -3008,6 +3012,7 @@ Retry_recv:
                 &SocketProc->IoSqe.Sqe,
                 NULL);
     }
+
     if (Result == SOCKET_ERROR) {
         int WsaError = WSAGetLastError();
         if (WsaError != WSA_IO_PENDING) {
@@ -3026,7 +3031,9 @@ Retry_recv:
                 goto Error;
             }
         }
-    } else {
+        Status = QUIC_STATUS_PENDING;
+
+    } else if (SyncBytesReceived == NULL) {
         //
         // Manually post IO completion if receive completed synchronously.
         //
@@ -3045,9 +3052,11 @@ Retry_recv:
             Status = HRESULT_FROM_WIN32(LastError);
             goto Error;
         }
+        Status = QUIC_STATUS_PENDING;
+    } else {
+        CXPLAT_DBG_ASSERT(BytesRecv < UINT16_MAX);
+        *SyncBytesReceived = (uint16_t)BytesRecv;
     }
-
-    Status = QUIC_STATUS_SUCCESS;
 
 Error:
 
@@ -3061,6 +3070,9 @@ CxPlatDataPathUdpRecvComplete(
     _In_ UINT16 NumberOfBytesTransferred
     )
 {
+#define MAX_INLINE_RECV_COUNT 10
+    uint32_t ReceiveCount = 0;
+RecvAgain:
     //
     // Copy the current receive buffer locally. On error cases, we leave the
     // buffer set as the current receive buffer because we are only using it
@@ -3284,10 +3296,13 @@ Drop:
     int32_t RetryCount = 0;
     QUIC_STATUS Status;
     do {
-        Status = CxPlatSocketStartReceive(SocketProc);
-    } while (!QUIC_SUCCEEDED(Status) && ++RetryCount < 10);
+        Status =
+            CxPlatSocketStartReceive(
+                SocketProc,
+                ReceiveCount < MAX_INLINE_RECV_COUNT ? &NumberOfBytesTransferred : NULL);
+    } while (QUIC_FAILED(Status) && ++RetryCount < 10);
 
-    if (!QUIC_SUCCEEDED(Status)) {
+    if (QUIC_FAILED(Status)) {
         CXPLAT_DBG_ASSERT(Status == QUIC_STATUS_OUT_OF_MEMORY);
         QuicTraceEvent(
             DatapathErrorStatus,
@@ -3295,8 +3310,11 @@ Drop:
             SocketProc->Parent,
             Status,
             "CxPlatSocketStartReceive failed multiple times. Receive will no longer work.");
+    } else if (Status != QUIC_STATUS_PENDING) {
+        IoResult = QUIC_STATUS_SUCCESS;
+        ReceiveCount++;
+        goto RecvAgain;
     }
-
 }
 
 void
@@ -3397,7 +3415,7 @@ Drop:
     //
     // Try to start a new receive.
     //
-    (void)CxPlatSocketStartReceive(SocketProc);
+    (void)CxPlatSocketStartReceive(SocketProc, NULL);
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
