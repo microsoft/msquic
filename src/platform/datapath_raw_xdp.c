@@ -1538,7 +1538,7 @@ CxPlatDpRawTxAlloc(
 {
     QUIC_ADDRESS_FAMILY Family = QuicAddrGetFamily(&Config->Route->RemoteAddress);
     XDP_QUEUE* Queue = Config->Route->Queue;
-    XDP_TX_PACKET* Packet = (XDP_TX_PACKET*)InterlockedPopEntrySList(&Config->Queue->TxPool);
+    XDP_TX_PACKET* Packet = (XDP_TX_PACKET*)InterlockedPopEntrySList(&Queue->TxPool);
 
     UNREFERENCED_PARAMETER(Datapath);
 
