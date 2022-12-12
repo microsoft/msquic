@@ -35,20 +35,35 @@ Abstract:
 typedef struct XDP_INTERFACE XDP_INTERFACE;
 typedef struct XDP_WORKER XDP_WORKER;
 
+//
+// Type of IO.
+//
+typedef enum DATAPATH_IO_TYPE {
+    DATAPATH_IO_RECV              = 0,
+    DATAPATH_IO_SEND              = 1
+} DATAPATH_IO_TYPE;
+
+//
+// IO header for SQE->CQE based completions.
+//
+typedef struct DATAPATH_IO_SQE {
+    DATAPATH_IO_TYPE IoType;
+    DATAPATH_SQE DatapathSqe;
+} DATAPATH_IO_SQE;
+
 typedef struct XDP_QUEUE {
     const XDP_INTERFACE* Interface;
     XDP_WORKER* Worker;
     struct XDP_QUEUE* Next;
-    DATAPATH_SQE IoSqe;
     uint8_t* RxBuffers;
     HANDLE RxXsk;
-    OVERLAPPED RxOv;
+    DATAPATH_IO_SQE RxIoSqe;
     XSK_RING RxFillRing;
     XSK_RING RxRing;
     HANDLE RxProgram;
     uint8_t* TxBuffers;
     HANDLE TxXsk;
-    OVERLAPPED TxOv;
+    DATAPATH_IO_SQE TxIoSqe;
     XSK_RING TxRing;
     XSK_RING TxCompletionRing;
     BOOLEAN RxQueued;
@@ -560,7 +575,10 @@ CxPlatDpRawInterfaceInitialize(
         CxPlatLockInitialize(&Queue->TxLock);
         CxPlatListInitializeHead(&Queue->TxQueue);
         CxPlatListInitializeHead(&Queue->WorkerTxQueue);
-        Queue->IoSqe.CqeType = CXPLAT_CQE_TYPE_SOCKET_IO;
+        CxPlatDatapathSqeInitialize(&Queue->RxIoSqe.DatapathSqe, CXPLAT_CQE_TYPE_SOCKET_IO);
+        Queue->RxIoSqe.IoType = DATAPATH_IO_RECV;
+        CxPlatDatapathSqeInitialize(&Queue->TxIoSqe.DatapathSqe, CXPLAT_CQE_TYPE_SOCKET_IO);
+        Queue->TxIoSqe.IoType = DATAPATH_IO_SEND;
 
         //
         // RX datapath.
@@ -1126,14 +1144,14 @@ CxPlatDpRawInitialize(
         uint32_t QueueCount = 0;
         XDP_QUEUE* Queue = Worker->Queues;
         while (Queue) {
-            if (!CxPlatEventQAssociateHandle(Worker->EventQ, Queue->RxXsk, &Queue->IoSqe)) {
+            if (!CxPlatEventQAssociateHandle(Worker->EventQ, Queue->RxXsk)) {
                 QuicTraceEvent(
                     LibraryErrorStatus,
                     "[ lib] ERROR, %u, %s.",
                     GetLastError(),
                     "CreateIoCompletionPort(RX)");
             }
-            if (!CxPlatEventQAssociateHandle(Worker->EventQ, Queue->TxXsk, &Queue->IoSqe)) {
+            if (!CxPlatEventQAssociateHandle(Worker->EventQ, Queue->TxXsk)) {
                 QuicTraceEvent(
                     LibraryErrorStatus,
                     "[ lib] ERROR, %u, %s.",
@@ -1713,8 +1731,13 @@ CxPlatXdpExecute(
                     XdpQueueAsyncIoRx,
                     "[ xdp][%p] XDP async IO start (RX)",
                     Queue);
-                CxPlatZeroMemory(&Queue->RxOv, sizeof(Queue->RxOv));
-                HRESULT hr = XskNotifyAsync(Queue->RxXsk, XSK_NOTIFY_FLAG_WAIT_RX, &Queue->RxOv);
+                CxPlatZeroMemory(
+                    &Queue->RxIoSqe.DatapathSqe.Sqe.Overlapped,
+                    sizeof(Queue->RxIoSqe.DatapathSqe.Sqe.Overlapped));
+                HRESULT hr =
+                    XskNotifyAsync(
+                        Queue->RxXsk, XSK_NOTIFY_FLAG_WAIT_RX,
+                        &Queue->RxIoSqe.DatapathSqe.Sqe.Overlapped);
                 if (hr == HRESULT_FROM_WIN32(ERROR_IO_PENDING)) {
                     Queue->RxQueued = TRUE;
                 } else if (hr == S_OK) {
@@ -1732,8 +1755,13 @@ CxPlatXdpExecute(
                     XdpQueueAsyncIoTx,
                     "[ xdp][%p] XDP async IO start (TX)",
                     Queue);
-                CxPlatZeroMemory(&Queue->TxOv, sizeof(Queue->TxOv));
-                HRESULT hr = XskNotifyAsync(Queue->TxXsk, XSK_NOTIFY_FLAG_WAIT_TX, &Queue->TxOv);
+                CxPlatZeroMemory(
+                    &Queue->TxIoSqe.DatapathSqe.Sqe.Overlapped,
+                    sizeof(Queue->TxIoSqe.DatapathSqe.Sqe.Overlapped));
+                HRESULT hr =
+                    XskNotifyAsync(
+                        Queue->TxXsk, XSK_NOTIFY_FLAG_WAIT_TX,
+                        &Queue->TxIoSqe.DatapathSqe.Sqe.Overlapped);
                 if (hr == HRESULT_FROM_WIN32(ERROR_IO_PENDING)) {
                     Queue->TxQueued = TRUE;
                 } else if (hr == S_OK) {
@@ -1759,15 +1787,21 @@ CxPlatDataPathProcessCqe(
     )
 {
     if (CxPlatCqeType(Cqe) == CXPLAT_CQE_TYPE_SOCKET_IO) {
-        XDP_QUEUE* Queue =
-            CONTAINING_RECORD(CxPlatCqeUserData(Cqe), XDP_QUEUE, IoSqe);
-        if (Cqe->lpOverlapped == &Queue->RxOv) {
+        DATAPATH_IO_SQE* Sqe =
+            CONTAINING_RECORD(CxPlatCqeUserData(Cqe), DATAPATH_IO_SQE, DatapathSqe);
+        XDP_QUEUE* Queue;
+
+        if (Sqe->IoType == DATAPATH_IO_RECV) {
+            Queue = CONTAINING_RECORD(Sqe, XDP_QUEUE, RxIoSqe);
+
             QuicTraceLogVerbose(
                 XdpQueueAsyncIoRxComplete,
                 "[ xdp][%p] XDP async IO complete (RX)",
                 Queue);
             Queue->RxQueued = FALSE;
         } else {
+            CXPLAT_DBG_ASSERT(Sqe->IoType == DATAPATH_IO_SEND);
+            Queue = CONTAINING_RECORD(Sqe, XDP_QUEUE, TxIoSqe);
             QuicTraceLogVerbose(
                 XdpQueueAsyncIoTxComplete,
                 "[ xdp][%p] XDP async IO complete (TX)",
