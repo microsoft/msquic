@@ -39,8 +39,9 @@ typedef struct XDP_WORKER XDP_WORKER;
 // Type of IO.
 //
 typedef enum DATAPATH_IO_TYPE {
-    DATAPATH_IO_RECV              = 0,
-    DATAPATH_IO_SEND              = 1
+    DATAPATH_IO_SIGNATURE         = 'XDPD',
+    DATAPATH_IO_RECV              = DATAPATH_IO_SIGNATURE + 1,
+    DATAPATH_IO_SEND              = DATAPATH_IO_SIGNATURE + 2
 } DATAPATH_IO_TYPE;
 
 //
@@ -688,6 +689,21 @@ CxPlatDpRawInterfaceInitialize(
         }
 
         //
+        // Disable automatic IO completions being queued if the call completes
+        // synchronously.
+        //
+        if (!SetFileCompletionNotificationModes(
+                (HANDLE)Queue->RxXsk,
+                FILE_SKIP_COMPLETION_PORT_ON_SUCCESS | FILE_SKIP_SET_EVENT_ON_HANDLE)) {
+            QuicTraceEvent(
+                LibraryErrorStatus,
+                "[ lib] ERROR, %u, %s.",
+                Status,
+                "SetFileCompletionNotificationModes");
+            goto Error;
+        }
+
+        //
         // TX datapath.
         //
 
@@ -792,6 +808,21 @@ CxPlatDpRawInterfaceInitialize(
         for (uint32_t j = 0; j < Xdp->TxBufferCount; j++) {
             InterlockedPushEntrySList(
                 &Queue->TxPool, (PSLIST_ENTRY)&Queue->TxBuffers[j * sizeof(XDP_TX_PACKET)]);
+        }
+
+        //
+        // Disable automatic IO completions being queued if the call completes
+        // synchronously.
+        //
+        if (!SetFileCompletionNotificationModes(
+                (HANDLE)Queue->TxXsk,
+                FILE_SKIP_COMPLETION_PORT_ON_SUCCESS | FILE_SKIP_SET_EVENT_ON_HANDLE)) {
+            QuicTraceEvent(
+                LibraryErrorStatus,
+                "[ lib] ERROR, %u, %s.",
+                Status,
+                "SetFileCompletionNotificationModes");
+            goto Error;
         }
     }
 
@@ -1793,7 +1824,6 @@ CxPlatDataPathProcessCqe(
 
         if (Sqe->IoType == DATAPATH_IO_RECV) {
             Queue = CONTAINING_RECORD(Sqe, XDP_QUEUE, RxIoSqe);
-
             QuicTraceLogVerbose(
                 XdpQueueAsyncIoRxComplete,
                 "[ xdp][%p] XDP async IO complete (RX)",

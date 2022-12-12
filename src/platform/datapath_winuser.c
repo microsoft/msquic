@@ -112,11 +112,12 @@ typedef enum CXPLAT_SOCKET_TYPE {
 // Type of IO.
 //
 typedef enum DATAPATH_IO_TYPE {
-    DATAPATH_IO_RECV              = 0,
-    DATAPATH_IO_SEND              = 1,
-    DATAPATH_IO_QUEUE_SEND        = 2,
-    DATAPATH_IO_ACCEPTEX          = 3,
-    DATAPATH_IO_CONNECTEX         = 4
+    DATAPATH_IO_SIGNATURE         = 'WINU',
+    DATAPATH_IO_RECV              = DATAPATH_IO_SIGNATURE + 1,
+    DATAPATH_IO_SEND              = DATAPATH_IO_SIGNATURE + 2,
+    DATAPATH_IO_QUEUE_SEND        = DATAPATH_IO_SIGNATURE + 3,
+    DATAPATH_IO_ACCEPTEX          = DATAPATH_IO_SIGNATURE + 4,
+    DATAPATH_IO_CONNECTEX         = DATAPATH_IO_SIGNATURE + 5
 } DATAPATH_IO_TYPE;
 
 //
@@ -4127,6 +4128,10 @@ CxPlatDataPathProcessCqe(
         case DATAPATH_IO_SEND:
         case DATAPATH_IO_QUEUE_SEND:
             CxPlatDataPathSocketProcessSendCompletion(Sqe, Cqe);
+            break;
+
+        default:
+            CXPLAT_DBG_ASSERT(FALSE);
             break;
         }
         break;
