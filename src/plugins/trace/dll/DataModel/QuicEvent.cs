@@ -202,6 +202,10 @@ namespace QuicTrace.DataModel
         DatapathErrorStatus,
         DatapathCreated,
         DatapathDestroyed,
+        DatapathGetRouteStart,
+        DatapathGetRouteComplete,
+        DatapathSendV2,
+        DatapathRecvV2,
 
         LogError = 10240,
         LogWarning,
@@ -213,7 +217,8 @@ namespace QuicTrace.DataModel
         PacketFinalize,
         PacketBatchSent,
         PacketReceive,
-        PacketDecrypt
+        PacketDecrypt,
+        PacketReceiveV2
     }
 
     //

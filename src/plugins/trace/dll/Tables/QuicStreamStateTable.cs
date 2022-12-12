@@ -101,10 +101,12 @@ namespace QuicTrace.Tables
                 return;
             }
 
-            var data = streams.Take(1000)
+            var data = streams
+                .OrderByDescending(s => s.FinalTimeStamp - s.InitialTimeStamp)
+                .Take(1000)
                 .Where(s => s.StreamId != ulong.MaxValue)
                 .SelectMany(
-                    s => s.Timings.StateChangeDeltas
+                    s => s.Timings.SimpleStateChangeDeltas
                     .Select(y => (s, y.Item1, y.Item2, y.Item3))).ToArray();
 
             var table = tableBuilder.SetRowCount(data.Length);

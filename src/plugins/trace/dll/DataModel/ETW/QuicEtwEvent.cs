@@ -280,6 +280,10 @@ namespace QuicTrace.DataModel.ETW
                     return new QuicDatapathCreatedEvent(timestamp, processor, processId, threadId, pointerSize, data.ReadPointer(), data.ReadAddress(), data.ReadAddress());
                 case QuicEventId.DatapathDestroyed:
                     return new QuicDatapathDestroyedEvent(timestamp, processor, processId, threadId, pointerSize, data.ReadPointer());
+                case QuicEventId.DatapathSendV2:
+                    return new QuicDatapathSendV2Event(timestamp, processor, processId, threadId, pointerSize, data.ReadPointer(), data.ReadUInt(), data.ReadByte(), data.ReadUShort(), data.ReadAddress(), data.ReadAddress(), data.ReadULong());
+                case QuicEventId.DatapathRecvV2:
+                    return new QuicDatapathRecvV2Event(timestamp, processor, processId, threadId, pointerSize, data.ReadPointer(), data.ReadUInt(), data.ReadUShort(), data.ReadAddress(), data.ReadAddress(), data.ReadULong());
 
                 case QuicEventId.LogError:
                 case QuicEventId.LogWarning:
@@ -300,6 +304,8 @@ namespace QuicTrace.DataModel.ETW
                     return new QuicPacketReceiveEvent(timestamp, processor, processId, threadId, pointerSize, data.ReadULong());
                 case QuicEventId.PacketDecrypt:
                     return new QuicPacketDecryptEvent(timestamp, processor, processId, threadId, pointerSize, data.ReadULong());
+                case QuicEventId.PacketReceiveV2:
+                    return new QuicPacketReceiveV2Event(timestamp, processor, processId, threadId, pointerSize, data.ReadULong(), data.ReadULong());
 
                 default:
                     return null;

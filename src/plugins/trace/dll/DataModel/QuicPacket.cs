@@ -86,6 +86,8 @@ namespace QuicTrace.DataModel
 
         public uint ProcessId { get; }
 
+        public ulong CorrelationId { get; private set; }
+
         public Timestamp PacketReceive { get; internal set; }
         public Timestamp PacketDecrypt { get; internal set; }
         public Timestamp PacketDecryptComplete { get; internal set; }
@@ -95,6 +97,7 @@ namespace QuicTrace.DataModel
             Id = packetID;
             Pointer = packetID;
             ProcessId = processId;
+            CorrelationId = ulong.MaxValue;
         }
 
         internal void AddEvent(QuicEvent evt, QuicState state)
@@ -106,6 +109,10 @@ namespace QuicTrace.DataModel
                     break;
                 case QuicEventId.PacketDecrypt:
                     PacketDecrypt = evt.TimeStamp;
+                    break;
+                case QuicEventId.PacketReceiveV2:
+                    PacketReceive = evt.TimeStamp;
+                    CorrelationId = (evt as QuicPacketReceiveV2Event)!.CorrelationID;
                     break;
                 default:
                     break;

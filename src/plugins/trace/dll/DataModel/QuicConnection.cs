@@ -290,6 +290,12 @@ namespace QuicTrace.DataModel
                     tx.Update(_evt!.TotalSize, evt.TimeStamp, ref tputEvents);
                     txDelay.Update((ulong)evt.TimeStamp.ToMicroseconds, evt.TimeStamp, ref tputEvents);
                 }
+                else if (evt.EventId == QuicEventId.DatapathSendV2)
+                {
+                    var _evt = evt as QuicDatapathSendV2Event;
+                    tx.Update(_evt!.TotalSize, evt.TimeStamp, ref tputEvents);
+                    txDelay.Update((ulong)evt.TimeStamp.ToMicroseconds, evt.TimeStamp, ref tputEvents);
+                }
             }
 
             var FinalTimeStamp = Events[Events.Count - 1].TimeStamp;

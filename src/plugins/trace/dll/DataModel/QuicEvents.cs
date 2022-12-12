@@ -1167,6 +1167,37 @@ namespace QuicTrace.DataModel
         }
     }
 
+    public class QuicDatapathSendV2Event : QuicEvent
+    {
+        public uint TotalSize { get; }
+
+        public byte BufferCount { get; }
+
+        public ushort SegmentSize { get; }
+
+        public IPEndPoint RemoteAddress { get; }
+
+        public IPEndPoint LocalAddress { get; }
+
+        public ulong CorrelationID { get; }
+
+        public override string PayloadString =>
+            string.Format("Send {0} bytes in {1} buffers (segment={2}) Src={3} Dst={4} CorrID={5}",
+                TotalSize, BufferCount, SegmentSize, LocalAddress, RemoteAddress, CorrelationID);
+
+        internal QuicDatapathSendV2Event(Timestamp timestamp, ushort processor, uint processId, uint threadId, int pointerSize, ulong objectPointer,
+                                       uint totalSize, byte bufferCount, ushort segmentSize, IPEndPoint remoteAddress, IPEndPoint localAddress, ulong correlationID) :
+            base(QuicEventId.DatapathSendV2, QuicObjectType.Datapath, timestamp, processor, processId, threadId, pointerSize, objectPointer)
+        {
+            TotalSize = totalSize;
+            BufferCount = bufferCount;
+            SegmentSize = segmentSize;
+            RemoteAddress = remoteAddress;
+            LocalAddress = localAddress;
+            CorrelationID = correlationID;
+        }
+    }
+
     public class QuicDatapathRecvEvent : QuicEvent
     {
         public uint TotalSize { get; }
@@ -1189,6 +1220,34 @@ namespace QuicTrace.DataModel
             SegmentSize = segmentSize;
             RemoteAddress = remoteAddress;
             LocalAddress = localAddress;
+        }
+    }
+
+    public class QuicDatapathRecvV2Event : QuicEvent
+    {
+        public uint TotalSize { get; }
+
+        public ushort SegmentSize { get; }
+
+        public IPEndPoint LocalAddress { get; }
+
+        public IPEndPoint RemoteAddress { get; }
+
+        public ulong CorrelationID { get; }
+
+        public override string PayloadString =>
+            string.Format("Recv {0} bytes (segment={1}) Src={2} Dst={3} CorrId={4}",
+                TotalSize, SegmentSize, RemoteAddress, LocalAddress, CorrelationID);
+
+        internal QuicDatapathRecvV2Event(Timestamp timestamp, ushort processor, uint processId, uint threadId, int pointerSize, ulong objectPointer,
+                                       uint totalSize, ushort segmentSize, IPEndPoint remoteAddress, IPEndPoint localAddress, ulong correlationID) :
+            base(QuicEventId.DatapathRecvV2, QuicObjectType.Datapath, timestamp, processor, processId, threadId, pointerSize, objectPointer)
+        {
+            TotalSize = totalSize;
+            SegmentSize = segmentSize;
+            RemoteAddress = remoteAddress;
+            LocalAddress = localAddress;
+            CorrelationID = correlationID;
         }
     }
 
@@ -1275,6 +1334,19 @@ namespace QuicTrace.DataModel
         internal QuicPacketReceiveEvent(Timestamp timestamp, ushort processor, uint processId, uint threadId, int pointerSize, ulong id) :
             base(QuicEventId.PacketReceive, QuicObjectType.Global, timestamp, processor, processId, threadId, pointerSize, id)
         {
+        }
+    }
+
+    public class QuicPacketReceiveV2Event : QuicEvent
+    {
+        public ulong ID => ObjectPointer;
+
+        public ulong CorrelationID { get; }
+
+        internal QuicPacketReceiveV2Event(Timestamp timestamp, ushort processor, uint processId, uint threadId, int pointerSize, ulong id, ulong correlationID) :
+            base(QuicEventId.PacketReceiveV2, QuicObjectType.Global, timestamp, processor, processId, threadId, pointerSize, id)
+        {
+            CorrelationID = correlationID;
         }
     }
 

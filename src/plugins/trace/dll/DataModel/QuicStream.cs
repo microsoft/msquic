@@ -12,7 +12,7 @@ namespace QuicTrace.DataModel
     {
         public static QuicStream New(ulong pointer, uint processId) => new QuicStream(pointer, processId);
 
-        public static ushort CreateEventId => (ushort)QuicEventId.StreamCreated;
+        public static ushort CreateEventId => (ushort)QuicEventId.StreamAlloc;
 
         public static ushort DestroyedEventId => (ushort)QuicEventId.StreamDestroyed;
 

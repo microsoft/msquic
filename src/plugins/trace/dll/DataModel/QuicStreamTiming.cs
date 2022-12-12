@@ -141,6 +141,25 @@ namespace QuicTrace.DataModel
             }
         }
 
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Performance", "CA1819:Properties should not return arrays", Justification = "<Pending>")]
+        public (QuicStreamState, Timestamp, TimestampDelta)[] SimpleStateChangeDeltas // No cleanup
+        {
+            get
+            {
+                var previousTime = InitialStateTime;
+                var states = new List<(QuicStreamState, Timestamp, TimestampDelta)>(StateChanges.Count);
+                foreach (var item in StateChanges)
+                {
+                    if (item.Item1 != QuicStreamState.CleanUp) // We don't care about clean up
+                    {
+                        states.Add((item.Item1, previousTime, item.Item2 - previousTime));
+                        previousTime = item.Item2;
+                    }
+                }
+                return states.ToArray();
+            }
+        }
+
         //
         // The corresponding peer's timings.
         //

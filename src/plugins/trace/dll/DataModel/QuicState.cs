@@ -73,7 +73,7 @@ namespace QuicTrace.DataModel
                         SendPacketSet.FindOrCreateActive(evt).AddEvent(evt, this);
                     }
                     else if (evt.EventId >= QuicEventId.PacketReceive &&
-                        evt.EventId <= QuicEventId.PacketDecrypt)
+                        evt.EventId <= QuicEventId.PacketReceiveV2)
                     {
                         DataAvailableFlags |= QuicDataAvailableFlags.Packet;
                         ReceivePacketSet.FindOrCreateActive(evt).AddEvent(evt, this);
@@ -95,7 +95,7 @@ namespace QuicTrace.DataModel
                     break;
                 case QuicObjectType.Datapath:
                     DatapathSet.FindOrCreateActive(evt).AddEvent(evt, this);
-                    if (evt.EventId == QuicEventId.DatapathSend &&
+                    if ((evt.EventId == QuicEventId.DatapathSend || evt.EventId == QuicEventId.DatapathSendV2) &&
                         LastConnections.TryGetValue(evt.ThreadId, out var LastConn))
                     {
                         LastConn.AddEvent(evt, this);

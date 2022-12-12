@@ -4,8 +4,6 @@
 //
 
 using System;
-using System.Collections.Generic;
-using Microsoft.Performance.SDK.Extensibility;
 using Microsoft.Performance.SDK.Extensibility.SourceParsing;
 using Microsoft.Performance.SDK.Processing;
 using QuicTrace.DataModel;
