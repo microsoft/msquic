@@ -153,9 +153,9 @@ typedef struct CXPLAT_SEND_DATA {
     CXPLAT_SQE Sqe;
 
     //
-    // The owning processor context.
+    // The owning socket processor.
     //
-    CXPLAT_DATAPATH_PROC* Owner;
+    CXPLAT_SOCKET_PROC* SocketProc;
 
     //
     // The total buffer size for WsaBuffers.
@@ -171,6 +171,11 @@ typedef struct CXPLAT_SEND_DATA {
     // The type of ECN markings needed for send.
     //
     CXPLAT_ECN_TYPE ECN;
+
+    //
+    // Set of flags set to configure the send behavior.
+    //
+    UINT8 SendFlags; // CXPLAT_SEND_FLAGS
 
     //
     // The current number of WsaBuffers used.
@@ -3501,27 +3506,34 @@ _Success_(return != NULL)
 CXPLAT_SEND_DATA*
 CxPlatSendDataAlloc(
     _In_ CXPLAT_SOCKET* Socket,
-    _In_ CXPLAT_ECN_TYPE ECN,
-    _In_ uint16_t MaxPacketSize,
-    _Inout_ CXPLAT_ROUTE* Route
+    _Inout_ CXPLAT_SEND_CONFIG* Config
     )
 {
-    UNREFERENCED_PARAMETER(Route);
     CXPLAT_DBG_ASSERT(Socket != NULL);
 
     CXPLAT_DATAPATH_PROC* DatapathProc =
         CxPlatDataPathGetProc(Socket->Datapath, (uint16_t)GetCurrentProcessorNumber());
 
-    CXPLAT_SEND_DATA* SendData =
-        CxPlatPoolAlloc(&DatapathProc->SendDataPool);
+    CXPLAT_SOCKET_PROC* SocketProc = &Socket->Processors[0];
+    if (!Socket->HasFixedRemoteAddress) {
+        const uint16_t ProcNumber = (uint16_t)CxPlatProcCurrentNumber();
+        for (uint16_t i = 0; i < Socket->Datapath->ProcCount; ++i) {
+            if (Socket->Processors[i].DatapathProc->IdealProcessor == ProcNumber) {
+                SocketProc = &Socket->Processors[i];
+                break;
+            }
+        }
+    }
 
+    CXPLAT_SEND_DATA* SendData = CxPlatPoolAlloc(&DatapathProc->SendDataPool);
     if (SendData != NULL) {
-        SendData->Owner = DatapathProc;
-        SendData->ECN = ECN;
+        SendData->SocketProc = SocketProc;
+        SendData->ECN = Config->ECN;
+        SendData->SendFlags = Config->Flags;
         SendData->SegmentSize =
             (Socket->Type != CXPLAT_SOCKET_UDP ||
              Socket->Datapath->Features & CXPLAT_DATAPATH_FEATURE_SEND_SEGMENTATION)
-                ? MaxPacketSize : 0;
+                ? Config->MaxPacketSize : 0;
         SendData->TotalSize = 0;
         SendData->WsaBufferCount = 0;
         SendData->ClientBuffer.len = 0;
@@ -3537,7 +3549,7 @@ CxPlatSendDataFree(
     _In_ CXPLAT_SEND_DATA* SendData
     )
 {
-    CXPLAT_DATAPATH_PROC* DatapathProc = SendData->Owner;
+    CXPLAT_DATAPATH_PROC* DatapathProc = SendData->SocketProc->DatapathProc;
     CXPLAT_POOL* BufferPool =
         SendData->SegmentSize > 0 ?
             &DatapathProc->LargeSendBufferPool : &DatapathProc->SendBufferPool;
@@ -3579,7 +3591,7 @@ CxPlatSendDataCanAllocSend(
     )
 {
     return
-        (SendData->WsaBufferCount < SendData->Owner->Datapath->MaxSendBatchSize) ||
+        (SendData->WsaBufferCount < SendData->SocketProc->DatapathProc->Datapath->MaxSendBatchSize) ||
         ((SendData->SegmentSize > 0) &&
             CxPlatSendDataCanAllocSendSegment(SendData, MaxBufferLength));
 }
@@ -3633,7 +3645,7 @@ CxPlatSendDataAllocDataBuffer(
     _In_ CXPLAT_POOL* BufferPool
     )
 {
-    CXPLAT_DBG_ASSERT(SendData->WsaBufferCount < SendData->Owner->Datapath->MaxSendBatchSize);
+    CXPLAT_DBG_ASSERT(SendData->WsaBufferCount < SendData->SocketProc->DatapathProc->Datapath->MaxSendBatchSize);
 
     WSABUF* WsaBuffer = &SendData->WsaBuffers[SendData->WsaBufferCount];
     WsaBuffer->buf = CxPlatPoolAlloc(BufferPool);
@@ -3654,7 +3666,7 @@ CxPlatSendDataAllocPacketBuffer(
     )
 {
     WSABUF* WsaBuffer =
-        CxPlatSendDataAllocDataBuffer(SendData, &SendData->Owner->SendBufferPool);
+        CxPlatSendDataAllocDataBuffer(SendData, &SendData->SocketProc->DatapathProc->SendBufferPool);
     if (WsaBuffer != NULL) {
         WsaBuffer->len = MaxBufferLength;
     }
@@ -3680,7 +3692,7 @@ CxPlatSendDataAllocSegmentBuffer(
         return (QUIC_BUFFER*)&SendData->ClientBuffer;
     }
 
-    WSABUF* WsaBuffer = CxPlatSendDataAllocDataBuffer(SendData, &SendData->Owner->LargeSendBufferPool);
+    WSABUF* WsaBuffer = CxPlatSendDataAllocDataBuffer(SendData, &SendData->SocketProc->DatapathProc->LargeSendBufferPool);
     if (WsaBuffer == NULL) {
         return NULL;
     }
@@ -3730,7 +3742,7 @@ CxPlatSendDataFreeBuffer(
     //
     // This must be the final send buffer; intermediate buffers cannot be freed.
     //
-    CXPLAT_DATAPATH_PROC* DatapathProc = SendData->Owner;
+    CXPLAT_DATAPATH_PROC* DatapathProc = SendData->SocketProc->DatapathProc;
     PCHAR TailBuffer = SendData->WsaBuffers[SendData->WsaBufferCount - 1].buf;
 
     if (SendData->SegmentSize == 0) {
@@ -3959,33 +3971,18 @@ QUIC_STATUS
 CxPlatSocketSend(
     _In_ CXPLAT_SOCKET* Socket,
     _In_ const CXPLAT_ROUTE* Route,
-    _In_ CXPLAT_SEND_DATA* SendData,
-    _In_ uint16_t IdealProcessor
+    _In_ CXPLAT_SEND_DATA* SendData
     )
 {
-    CXPLAT_DBG_ASSERT(
-        Socket != NULL && Route != NULL &&
-        SendData != NULL);
+    CXPLAT_DBG_ASSERT(Socket != NULL && Route != NULL && SendData != NULL);
 
-    CXPLAT_DATAPATH* Datapath = Socket->Datapath;
-    CXPLAT_SOCKET_PROC* SocketProc;
-    if (Socket->HasFixedRemoteAddress) {
-        SocketProc = &Socket->Processors[0];
-    } else {
-        SocketProc = NULL;
-        for (uint16_t i = 0; i < Datapath->ProcCount; i++) {
-            if (Socket->Processors[i].DatapathProc->IdealProcessor == IdealProcessor) {
-                SocketProc = &Socket->Processors[i];
-                break;
-            }
-        }
-        CXPLAT_FRE_ASSERT(SocketProc != NULL);
-    }
+    CXPLAT_SOCKET_PROC* SocketProc = SendData->SocketProc;
 
     CxPlatSendDataFinalizeSendBuffer(SendData);
 
 #ifdef CXPLAT_DATAPATH_QUEUE_SENDS
-    if ((Socket->Type != CXPLAT_SOCKET_UDP)) {
+    if ((Socket->Type != CXPLAT_SOCKET_UDP) ||
+        !(SendData->SendFlags & CXPLAT_SEND_FLAGS_MAX_THROUGHPUT)) {
         //
         // Currently TCP always sends inline.
         //

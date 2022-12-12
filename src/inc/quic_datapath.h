@@ -572,6 +572,18 @@ CxPlatRecvDataReturn(
     _In_opt_ CXPLAT_RECV_DATA* RecvDataChain
     );
 
+typedef enum CXPLAT_SEND_FLAGS {
+    CXPLAT_SEND_FLAGS_NONE = 0,
+    CXPLAT_SEND_FLAGS_MAX_THROUGHPUT = 1,
+} CXPLAT_SEND_FLAGS;
+
+typedef struct CXPLAT_SEND_CONFIG {
+    CXPLAT_ROUTE* Route;
+    uint16_t MaxPacketSize;
+    uint8_t ECN; // CXPLAT_ECN_TYPE
+    uint8_t Flags; // CXPLAT_SEND_FLAGS
+} CXPLAT_SEND_CONFIG;
+
 //
 // Allocates a new send context to be used to call QuicSocketSend. It
 // can be freed with QuicSendDataFree too.
@@ -581,9 +593,7 @@ _Success_(return != NULL)
 CXPLAT_SEND_DATA*
 CxPlatSendDataAlloc(
     _In_ CXPLAT_SOCKET* Socket,
-    _In_ CXPLAT_ECN_TYPE ECN,
-    _In_ uint16_t MaxPacketSize,
-    _Inout_ CXPLAT_ROUTE* Route
+    _Inout_ CXPLAT_SEND_CONFIG* Config
     );
 
 //
@@ -633,8 +643,7 @@ QUIC_STATUS
 CxPlatSocketSend(
     _In_ CXPLAT_SOCKET* Socket,
     _In_ const CXPLAT_ROUTE* Route,
-    _In_ CXPLAT_SEND_DATA* SendData,
-    _In_ uint16_t PartitionId
+    _In_ CXPLAT_SEND_DATA* SendData
     );
 
 #ifdef QUIC_USE_RAW_DATAPATH

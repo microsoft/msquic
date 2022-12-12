@@ -2589,12 +2589,9 @@ _Success_(return != NULL)
 CXPLAT_SEND_DATA*
 CxPlatSendDataAlloc(
     _In_ CXPLAT_SOCKET* Binding,
-    _In_ CXPLAT_ECN_TYPE ECN,
-    _In_ UINT16 MaxPacketSize,
-    _Inout_ CXPLAT_ROUTE* Route
+    _Inout_ CXPLAT_SEND_CONFIG* Config
     )
 {
-    UNREFERENCED_PARAMETER(Route);
     CXPLAT_DBG_ASSERT(Binding != NULL);
 
     CXPLAT_DATAPATH_PROC_CONTEXT* ProcContext =
@@ -2605,14 +2602,14 @@ CxPlatSendDataAlloc(
 
     if (SendData != NULL) {
         SendData->Owner = ProcContext;
-        SendData->ECN = ECN;
+        SendData->ECN = Config->ECN;
         SendData->WskBufs = NULL;
         SendData->TailBuf = NULL;
         SendData->TotalSize = 0;
         SendData->WskBufferCount = 0;
         SendData->SegmentSize =
             (Binding->Datapath->Features & CXPLAT_DATAPATH_FEATURE_SEND_SEGMENTATION)
-                ? MaxPacketSize : 0;
+                ? Config->MaxPacketSize : 0;
         SendData->ClientBuffer.Length = 0;
         SendData->ClientBuffer.Buffer = NULL;
     }
@@ -3009,14 +3006,12 @@ QUIC_STATUS
 CxPlatSocketSend(
     _In_ CXPLAT_SOCKET* Binding,
     _In_ const CXPLAT_ROUTE* Route,
-    _In_ CXPLAT_SEND_DATA* SendData,
-    _In_ uint16_t IdealProcessor
+    _In_ CXPLAT_SEND_DATA* SendData
     )
 {
     QUIC_STATUS Status;
     PDWORD SegmentSize;
 
-    UNREFERENCED_PARAMETER(IdealProcessor);
     CXPLAT_DBG_ASSERT(
         Binding != NULL && Route != NULL && SendData != NULL);
 

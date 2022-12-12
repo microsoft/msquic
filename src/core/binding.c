@@ -813,12 +813,8 @@ QuicBindingProcessStatelessOperation(
         Binding,
         OperationType);
 
-    CXPLAT_SEND_DATA* SendData =
-        CxPlatSendDataAlloc(
-            Binding->Socket,
-            CXPLAT_ECN_NON_ECT,
-            0,
-            RecvDatagram->Route);
+    CXPLAT_SEND_CONFIG SendConfig = { RecvDatagram->Route, 0, CXPLAT_ECN_NON_ECT, 0 };
+    CXPLAT_SEND_DATA* SendData = CxPlatSendDataAlloc(Binding->Socket, &SendConfig);
     if (SendData == NULL) {
         QuicTraceEvent(
             AllocFailure,
@@ -1829,8 +1825,7 @@ QuicBindingSend(
                 CxPlatSocketSend(
                     Binding->Socket,
                     &RouteCopy,
-                    SendData,
-                    IdealProcessor);
+                    SendData);
             if (QUIC_FAILED(Status)) {
                 QuicTraceLogWarning(
                     BindingSendFailed,
@@ -1845,8 +1840,7 @@ QuicBindingSend(
             CxPlatSocketSend(
                 Binding->Socket,
                 Route,
-                SendData,
-                IdealProcessor);
+                SendData);
         if (QUIC_FAILED(Status)) {
             QuicTraceLogWarning(
                 BindingSendFailed,
