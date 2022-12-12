@@ -1035,8 +1035,7 @@ QuicPacketBuilderSendBatch(
         &Builder->Path->Route,
         Builder->SendData,
         Builder->TotalDatagramsLength,
-        Builder->TotalCountDatagrams,
-        Builder->Connection->Worker->IdealProcessor);
+        Builder->TotalCountDatagrams);
 
     Builder->PacketBatchSent = TRUE;
     Builder->SendData = NULL;

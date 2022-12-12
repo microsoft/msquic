@@ -1065,8 +1065,7 @@ QuicBindingProcessStatelessOperation(
         RecvDatagram->Route,
         SendData,
         SendDatagram->Length,
-        1,
-        RecvDatagram->PartitionIndex % MsQuicLib.PartitionCount);
+        1);
     SendData = NULL;
 
 Exit:
@@ -1795,8 +1794,7 @@ QuicBindingSend(
     _In_ const CXPLAT_ROUTE* Route,
     _In_ CXPLAT_SEND_DATA* SendData,
     _In_ uint32_t BytesToSend,
-    _In_ uint32_t DatagramsToSend,
-    _In_ uint16_t IdealProcessor
+    _In_ uint32_t DatagramsToSend
     )
 {
     QUIC_STATUS Status;
