@@ -354,11 +354,6 @@ typedef struct CXPLAT_SOCKET {
     uint8_t HasFixedRemoteAddress : 1;
 
     //
-    // Flag indicates the socket successfully connected.
-    //
-    uint8_t ConnectComplete : 1;
-
-    //
     // Flag indicates the socket indicated a disconnect event.
     //
     uint8_t DisconnectIndicated : 1;
@@ -1976,8 +1971,6 @@ QUIC_DISABLED_BY_FUZZER_END;
         Socket->RemoteAddress.Ipv4.sin_port = 0;
     }
 
-    Socket->ConnectComplete = TRUE;
-
     //
     // Must set output pointer before starting receive path, as the receive path
     // will try to use the output.
@@ -2821,8 +2814,6 @@ CxPlatDataPathSocketProcessAcceptCompletion(
         SOCKET_PROCESSOR_AFFINITY RssAffinity = { 0 };
         uint16_t AffinitizedProcessor = 0;
 
-        AcceptSocketProc->Parent->ConnectComplete = TRUE;
-
         QuicTraceEvent(
             DatapathErrorStatus,
             "[data][%p] ERROR, %u, %s.",
@@ -2948,7 +2939,6 @@ CxPlatDataPathSocketProcessConnectCompletion(
             0,
             "ConnectEx Completed!");
 
-        SocketProc->Parent->ConnectComplete = TRUE;
         SocketProc->Parent->Datapath->TcpHandlers.Connect(
             SocketProc->Parent,
             SocketProc->Parent->ClientContext,
