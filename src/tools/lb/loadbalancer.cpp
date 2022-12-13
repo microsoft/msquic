@@ -61,7 +61,7 @@ struct LbInterface {
             CxPlatSocketGetRemoteAddress(Socket, &RemoteAddress);
             PeerAddress = &RemoteAddress;
         }
-        CXPLAT_ROUTE Route;
+        CXPLAT_ROUTE Route = {0};
         Route.LocalAddress = LocalAddress;
         Route.RemoteAddress = *PeerAddress;
         CXPLAT_SEND_DATA* Send = nullptr;

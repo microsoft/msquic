@@ -195,7 +195,7 @@ struct DrillSender {
         CXPLAT_FRE_ASSERT(PacketBuffer->size() <= UINT16_MAX);
         const uint16_t DatagramLength = (uint16_t) PacketBuffer->size();
 
-        CXPLAT_ROUTE Route;
+        CXPLAT_ROUTE Route = {0};
         CxPlatSocketGetLocalAddress(Binding, &Route.LocalAddress);
         Route.RemoteAddress = ServerAddress;
 

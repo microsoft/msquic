@@ -108,7 +108,7 @@ UdpUnreachCallback(
 
 void RunAttackRandom(CXPLAT_SOCKET* Binding, uint16_t Length, bool ValidQuic)
 {
-    CXPLAT_ROUTE Route;
+    CXPLAT_ROUTE Route = {0};
     CxPlatSocketGetLocalAddress(Binding, &Route.LocalAddress);
     Route.RemoteAddress = ServerAddress;
 
@@ -185,7 +185,7 @@ void RunAttackValidInitial(CXPLAT_SOCKET* Binding)
     const uint16_t DatagramLength = QUIC_MIN_INITIAL_LENGTH;
     const uint64_t PacketNumber = 0;
 
-    CXPLAT_ROUTE Route;
+    CXPLAT_ROUTE Route = {0};
     CxPlatSocketGetLocalAddress(Binding, &Route.LocalAddress);
     Route.RemoteAddress = ServerAddress;
 

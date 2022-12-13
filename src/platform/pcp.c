@@ -382,7 +382,7 @@ CxPlatPcpSendMapRequestInternal(
     _In_ uint32_t Lifetime          // Zero indicates delete Nonce must match.
     )
 {
-    CXPLAT_ROUTE Route;
+    CXPLAT_ROUTE Route = {0};
     CxPlatSocketGetLocalAddress(Socket, &Route.LocalAddress);
     CxPlatSocketGetRemoteAddress(Socket, &Route.RemoteAddress);
 
@@ -478,7 +478,7 @@ CxPlatPcpSendPeerRequestInternal(
     _In_ uint32_t Lifetime          // Zero indicates delete. Nonce must match.
     )
 {
-    CXPLAT_ROUTE Route;
+    CXPLAT_ROUTE Route = {0};
     CxPlatSocketGetLocalAddress(Socket, &Route.LocalAddress);
     CxPlatSocketGetRemoteAddress(Socket, &Route.RemoteAddress);
 
