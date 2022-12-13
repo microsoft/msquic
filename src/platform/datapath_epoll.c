@@ -2039,12 +2039,9 @@ _Success_(return != NULL)
 CXPLAT_SEND_DATA*
 CxPlatSendDataAlloc(
     _In_ CXPLAT_SOCKET* Socket,
-    _In_ CXPLAT_ECN_TYPE ECN,
-    _In_ uint16_t MaxPacketSize,
-    _Inout_ CXPLAT_ROUTE* Route
+    _Inout_ CXPLAT_SEND_CONFIG* Config
     )
 {
-    UNREFERENCED_PARAMETER(Route);
     CXPLAT_DBG_ASSERT(Socket != NULL);
 
     CXPLAT_DATAPATH_PROC* DatapathProc =
@@ -2065,10 +2062,10 @@ CxPlatSendDataAlloc(
     CxPlatZeroMemory(SendData, sizeof(*SendData));
 
     SendData->Owner = DatapathProc;
-    SendData->ECN = ECN;
+    SendData->ECN = Config->ECN;
     SendData->SegmentSize =
         (Socket->Datapath->Features & CXPLAT_DATAPATH_FEATURE_SEND_SEGMENTATION)
-            ? MaxPacketSize : 0;
+            ? Config->MaxPacketSize : 0;
 
 Exit:
     return SendData;
@@ -2575,11 +2572,9 @@ QUIC_STATUS
 CxPlatSocketSend(
     _In_ CXPLAT_SOCKET* Socket,
     _In_ const CXPLAT_ROUTE* Route,
-    _In_ CXPLAT_SEND_DATA* SendData,
-    _In_ uint16_t IdealProcessor
+    _In_ CXPLAT_SEND_DATA* SendData
     )
 {
-    UNREFERENCED_PARAMETER(IdealProcessor);
     QUIC_STATUS Status =
         CxPlatSocketSendInternal(
             Socket,
