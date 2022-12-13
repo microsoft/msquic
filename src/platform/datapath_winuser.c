@@ -3104,6 +3104,7 @@ Retry_recv:
     } else {
         CXPLAT_DBG_ASSERT(BytesRecv < UINT16_MAX);
         *SyncBytesReceived = (uint16_t)BytesRecv;
+        CxPlatStopDatapathIo(&SocketProc->IoSqe);
     }
 
 Error:
