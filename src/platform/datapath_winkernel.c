@@ -2594,12 +2594,12 @@ CxPlatSendDataAlloc(
 {
     CXPLAT_DBG_ASSERT(Binding != NULL);
 
-    CXPLAT_DATAPATH_PROC_CONTEXT* ProcContext =
-        &Binding->Datapath->ProcContexts[CxPlatProcCurrentNumber()];
+    if (Config->Route->Queue == NULL) {
+        Config->Route->Queue = Binding->Datapath->ProcContexts[CxPlatProcCurrentNumber()];
+    }
 
-    CXPLAT_SEND_DATA* SendData =
-        CxPlatPoolAlloc(&ProcContext->SendDataPool);
-
+    CXPLAT_DATAPATH_PROC_CONTEXT* ProcContext = Config->Route->Queue;
+    CXPLAT_SEND_DATA* SendData = CxPlatPoolAlloc(&ProcContext->SendDataPool);
     if (SendData != NULL) {
         SendData->Owner = ProcContext;
         SendData->ECN = Config->ECN;

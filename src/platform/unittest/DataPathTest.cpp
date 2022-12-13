@@ -291,7 +291,7 @@ protected:
 
                 ASSERT_EQ((CXPLAT_ECN_TYPE)RecvData->TypeOfService, RecvContext->EcnType);
 
-                CXPLAT_SEND_CONFIG SendConfig = { RecvData->Route, 0, RecvContext->EcnType, 0 };
+                CXPLAT_SEND_CONFIG SendConfig = { RecvData->Route, 0, (uint8_t)RecvContext->EcnType, 0 };
                 auto ServerSendData = CxPlatSendDataAlloc(Socket, &SendConfig);
                 ASSERT_NE(nullptr, ServerSendData);
                 auto ServerBuffer = CxPlatSendDataAllocBuffer(ServerSendData, ExpectedDataSize);
@@ -604,8 +604,7 @@ struct CxPlatSocket {
     QUIC_STATUS
     Send(
         _In_ const CXPLAT_ROUTE& _Route,
-        _In_ CXPLAT_SEND_DATA* SendData,
-        _In_ uint16_t PartitionId = 0
+        _In_ CXPLAT_SEND_DATA* SendData
         ) const noexcept
     {
         return
@@ -617,21 +616,19 @@ struct CxPlatSocket {
     QUIC_STATUS
     Send(
         _In_ const QUIC_ADDR& RemoteAddress,
-        _In_ CXPLAT_SEND_DATA* SendData,
-        _In_ uint16_t PartitionId = 0
+        _In_ CXPLAT_SEND_DATA* SendData
         ) const noexcept
     {
         CXPLAT_ROUTE _Route = Route;
         _Route.RemoteAddress = RemoteAddress;
-        return Send(_Route, SendData, PartitionId);
+        return Send(_Route, SendData);
     }
     QUIC_STATUS
     Send(
-        _In_ CXPLAT_SEND_DATA* SendData,
-        _In_ uint16_t PartitionId = 0
+        _In_ CXPLAT_SEND_DATA* SendData
         ) const noexcept
     {
-        return Send(Route, SendData, PartitionId);
+        return Send(Route, SendData);
     }
 };
 
@@ -925,7 +922,7 @@ TEST_P(DataPathTest, UdpShareClientSocket)
     CxPlatSocket Client2(Datapath, &clientAddress, &serverAddress.SockAddr, &RecvContext, CXPLAT_SOCKET_FLAG_SHARE);
     VERIFY_QUIC_SUCCESS(Client2.GetInitStatus());
 
-    CXPLAT_SEND_CONFIG SendConfig = { &Client.Route, 0, CXPLAT_ECN_NON_ECT, 0 };
+    CXPLAT_SEND_CONFIG SendConfig = { &Client1.Route, 0, CXPLAT_ECN_NON_ECT, 0 };
     auto ClientSendData = CxPlatSendDataAlloc(Client1, &SendConfig);
     ASSERT_NE(nullptr, ClientSendData);
     auto ClientBuffer = CxPlatSendDataAllocBuffer(ClientSendData, ExpectedDataSize);
