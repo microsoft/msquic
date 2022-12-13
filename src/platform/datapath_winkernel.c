@@ -2595,7 +2595,7 @@ CxPlatSendDataAlloc(
     CXPLAT_DBG_ASSERT(Binding != NULL);
 
     if (Config->Route->Queue == NULL) {
-        Config->Route->Queue = Binding->Datapath->ProcContexts[CxPlatProcCurrentNumber()];
+        Config->Route->Queue = &Binding->Datapath->ProcContexts[CxPlatProcCurrentNumber()];
     }
 
     CXPLAT_DATAPATH_PROC_CONTEXT* ProcContext = Config->Route->Queue;
