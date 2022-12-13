@@ -2793,16 +2793,23 @@ Error:
 }
 
 void
-CxPlatDataPathAcceptComplete(
-    _In_ CXPLAT_SOCKET_PROC* ListenerSocketProc,
-    _In_ ULONG IoResult
+CxPlatDataPathSocketProcessAcceptCompletion(
+    _In_ DATAPATH_IO_SQE* Sqe,
+    _In_ CXPLAT_CQE* Cqe
     )
 {
+    CXPLAT_SOCKET_PROC* ListenerSocketProc = CONTAINING_RECORD(Sqe, CXPLAT_SOCKET_PROC, IoSqe);
+    ULONG IoResult = RtlNtStatusToDosError((NTSTATUS)Cqe->Internal);
+
     if (IoResult == WSAENOTSOCK || IoResult == WSA_OPERATION_ABORTED) {
         //
         // Error from shutdown, silently ignore. Return immediately so the
         // receive doesn't get reposted.
         //
+        return;
+    }
+
+    if (!CxPlatRundownAcquire(&ListenerSocketProc->UpcallRundown)) {
         return;
     }
 
@@ -2907,14 +2914,19 @@ Error:
     // Try to start a new accept.
     //
     (void)CxPlatSocketStartAccept(ListenerSocketProc);
+
+    CxPlatRundownRelease(&ListenerSocketProc->UpcallRundown);
 }
 
 void
-CxPlatDataPathConnectComplete(
-    _In_ CXPLAT_SOCKET_PROC* SocketProc,
-    _In_ ULONG IoResult
+CxPlatDataPathSocketProcessConnectCompletion(
+    _In_ DATAPATH_IO_SQE* Sqe,
+    _In_ CXPLAT_CQE* Cqe
     )
 {
+    CXPLAT_SOCKET_PROC* SocketProc = CONTAINING_RECORD(Sqe, CXPLAT_SOCKET_PROC, IoSqe);
+    ULONG IoResult = RtlNtStatusToDosError((NTSTATUS)Cqe->Internal);
+
     if (IoResult == WSAENOTSOCK || IoResult == WSA_OPERATION_ABORTED) {
         //
         // Error from shutdown, silently ignore. Return immediately so the
@@ -2923,7 +2935,9 @@ CxPlatDataPathConnectComplete(
         return;
     }
 
-    // TODO - Upcall to the app
+    if (!CxPlatRundownAcquire(&SocketProc->UpcallRundown)) {
+        return;
+    }
 
     if (IoResult == QUIC_STATUS_SUCCESS) {
 
@@ -2958,6 +2972,8 @@ CxPlatDataPathConnectComplete(
             SocketProc->Parent->ClientContext,
             FALSE);
     }
+
+    CxPlatRundownRelease(&SocketProc->UpcallRundown);
 }
 
 void
@@ -3544,19 +3560,6 @@ CxPlatDataPathSocketProcessReceiveCompletion(
             IoResult,
             (UINT16)Cqe->dwNumberOfBytesTransferred);
 
-    } else if (SocketProc->Parent->Type == CXPLAT_SOCKET_TCP_LISTENER) {
-        //
-        // Handle the accept indication and queue a new accept.
-        //
-        CxPlatDataPathAcceptComplete(SocketProc, IoResult);
-
-    } else if (!SocketProc->Parent->ConnectComplete) {
-
-        //
-        // Handle the accept indication and queue a new accept.
-        //
-        CxPlatDataPathConnectComplete(SocketProc, IoResult);
-
     } else {
         //
         // Handle the receive indication and queue a new receive.
@@ -4078,7 +4081,7 @@ CxPlatSocketSend(
         CxPlatEventQEnqueueEx(
             SocketProc->DatapathProc->EventQ,
             &SendData->Sqe.DatapathSqe.Sqe,
-            UINT32_MAX,
+            0,
             &SendData->Sqe.DatapathSqe);
     if (!Result) {
         int LastError = GetLastError();
@@ -4096,6 +4099,31 @@ CxPlatSocketSend(
 }
 
 void
+CxPlatDataPathSocketProcessQueuedSend(
+    _In_ DATAPATH_IO_SQE* Sqe,
+    _In_ CXPLAT_CQE* Cqe
+    )
+{
+    UNREFERENCED_PARAMETER(Cqe);
+    CXPLAT_SEND_DATA* SendData = CONTAINING_RECORD(Sqe, CXPLAT_SEND_DATA, Sqe);
+    CXPLAT_SOCKET_PROC* SocketProc = SendData->SocketProc;
+
+    if (CxPlatRundownAcquire(&SocketProc->UpcallRundown)) {
+        CxPlatSocketSendInline(
+            SocketProc,
+            &SendData->LocalAddress,
+            &SendData->RemoteAddress,
+            SendData);
+        CxPlatRundownRelease(&SocketProc->UpcallRundown);
+    } else {
+        CxPlatSendDataComplete(
+            SocketProc,
+            SendData,
+            WSAESHUTDOWN);
+    }
+}
+
+void
 CxPlatDataPathSocketProcessSendCompletion(
     _In_ DATAPATH_IO_SQE* Sqe,
     _In_ CXPLAT_CQE* Cqe
@@ -4104,23 +4132,10 @@ CxPlatDataPathSocketProcessSendCompletion(
     CXPLAT_SEND_DATA* SendData = CONTAINING_RECORD(Sqe, CXPLAT_SEND_DATA, Sqe);
     CXPLAT_SOCKET_PROC* SocketProc = SendData->SocketProc;
 
-#ifdef CXPLAT_DATAPATH_QUEUE_SENDS
-    if (Cqe->dwNumberOfBytesTransferred == UINT32_MAX &&
-        CxPlatRundownAcquire(&SocketProc->UpcallRundown)) {
-        CxPlatSocketSendInline(
-            SocketProc,
-            &SendData->LocalAddress,
-            &SendData->RemoteAddress,
-            SendData);
-        CxPlatRundownRelease(&SocketProc->UpcallRundown);
-    } else
-#endif // CXPLAT_DATAPATH_QUEUE_SENDS
-    {
-        CxPlatSendDataComplete(
-            SocketProc,
-            SendData,
-            RtlNtStatusToDosError((NTSTATUS)Cqe->Internal));
-    }
+    CxPlatSendDataComplete(
+        SocketProc,
+        SendData,
+        RtlNtStatusToDosError((NTSTATUS)Cqe->Internal));
 }
 
 void
@@ -4143,15 +4158,24 @@ CxPlatDataPathProcessCqe(
         CxPlatStopDatapathIo(Sqe);
 
         switch (IoType) {
-        case DATAPATH_IO_ACCEPTEX:
-        case DATAPATH_IO_CONNECTEX:
         case DATAPATH_IO_RECV:
             CxPlatDataPathSocketProcessReceiveCompletion(Sqe, Cqe);
             break;
 
         case DATAPATH_IO_SEND:
-        case DATAPATH_IO_QUEUE_SEND:
             CxPlatDataPathSocketProcessSendCompletion(Sqe, Cqe);
+            break;
+
+        case DATAPATH_IO_QUEUE_SEND:
+            CxPlatDataPathSocketProcessQueuedSend(Sqe, Cqe);
+            break;
+
+        case DATAPATH_IO_ACCEPTEX:
+            CxPlatDataPathSocketProcessAcceptCompletion(Sqe, Cqe);
+            break;
+
+        case DATAPATH_IO_CONNECTEX:
+            CxPlatDataPathSocketProcessConnectCompletion(Sqe, Cqe);
             break;
 
         default:
