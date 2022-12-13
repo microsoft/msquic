@@ -61,19 +61,20 @@ struct LbInterface {
             CxPlatSocketGetRemoteAddress(Socket, &RemoteAddress);
             PeerAddress = &RemoteAddress;
         }
-        CXPLAT_ROUTE Route;
+        CXPLAT_ROUTE Route = {0};
         Route.LocalAddress = LocalAddress;
         Route.RemoteAddress = *PeerAddress;
         CXPLAT_SEND_DATA* Send = nullptr;
+        CXPLAT_SEND_CONFIG SendConfig = { &Route, MAX_UDP_PAYLOAD_LENGTH, CXPLAT_ECN_NON_ECT, 0 };
         while (RecvDataChain) {
             if (!Send) {
-                Send = CxPlatSendDataAlloc(Socket, CXPLAT_ECN_NON_ECT, MAX_UDP_PAYLOAD_LENGTH, &Route);
+                Send = CxPlatSendDataAlloc(Socket, &SendConfig);
             }
             if (Send) {
                 auto Buffer = CxPlatSendDataAllocBuffer(Send, MAX_UDP_PAYLOAD_LENGTH);
                 if (!Buffer) {
-                    (void)CxPlatSocketSend(Socket, &Route, Send, 0);
-                    Send = CxPlatSendDataAlloc(Socket, CXPLAT_ECN_NON_ECT, MAX_UDP_PAYLOAD_LENGTH, &Route);
+                    (void)CxPlatSocketSend(Socket, &Route, Send);
+                    Send = CxPlatSendDataAlloc(Socket, &SendConfig);
                     if (Send) {
                         Buffer = CxPlatSendDataAllocBuffer(Send, MAX_UDP_PAYLOAD_LENGTH);
                     }
@@ -86,7 +87,7 @@ struct LbInterface {
             RecvDataChain = RecvDataChain->Next;
         }
         if (Send) {
-            (void)CxPlatSocketSend(Socket, &Route, Send, 0);
+            (void)CxPlatSocketSend(Socket, &Route, Send);
         }
     }
 };
