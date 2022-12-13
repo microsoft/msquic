@@ -3128,6 +3128,7 @@ CxPlatDataPathUdpRecvComplete(
 {
     PSOCKADDR_INET RemoteAddr = &RecvContext->Route.RemoteAddress;
     PSOCKADDR_INET LocalAddr = &RecvContext->Route.LocalAddress;
+    BOOLEAN NeedReceive = TRUE;
     RecvContext->Route.Queue = SocketProc;
 
     if (IoResult == WSAENOTSOCK || IoResult == WSA_OPERATION_ABORTED) {
@@ -3135,7 +3136,8 @@ CxPlatDataPathUdpRecvComplete(
         // Error from shutdown, silently ignore. Return immediately so the
         // receive doesn't get reposted.
         //
-        return FALSE;
+        NeedReceive = FALSE;
+        goto Drop;
 
     } else if (IsUnreachableErrorCode(IoResult)) {
 
@@ -3333,7 +3335,7 @@ CxPlatDataPathUdpRecvComplete(
 
 Drop:
 
-    return TRUE;
+    return NeedReceive;
 }
 
 BOOLEAN
@@ -3378,6 +3380,8 @@ CxPlatDataPathTcpRecvComplete(
     _In_ UINT16 NumberOfBytesTransferred
     )
 {
+    BOOLEAN NeedReceive = TRUE;
+
     PSOCKADDR_INET RemoteAddr = &RecvContext->Route.RemoteAddress;
     PSOCKADDR_INET LocalAddr = &RecvContext->Route.LocalAddress;
 
@@ -3397,7 +3401,8 @@ CxPlatDataPathTcpRecvComplete(
                 FALSE);
         }
 
-        return FALSE;
+        NeedReceive = FALSE;
+        goto Drop;
 
     } else if (IoResult == QUIC_STATUS_SUCCESS) {
 
@@ -3409,6 +3414,8 @@ CxPlatDataPathTcpRecvComplete(
                     SocketProc->Parent->ClientContext,
                     FALSE);
             }
+
+            NeedReceive = FALSE;
             goto Drop;
         }
 
@@ -3456,7 +3463,7 @@ CxPlatDataPathTcpRecvComplete(
 
 Drop:
 
-    return TRUE;
+    return NeedReceive;
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
