@@ -382,15 +382,15 @@ CxPlatPcpSendMapRequestInternal(
     _In_ uint32_t Lifetime          // Zero indicates delete Nonce must match.
     )
 {
-    CXPLAT_ROUTE Route;
+    CXPLAT_ROUTE Route = {0};
     CxPlatSocketGetLocalAddress(Socket, &Route.LocalAddress);
     CxPlatSocketGetRemoteAddress(Socket, &Route.RemoteAddress);
 
     QUIC_ADDR LocalMappedAddress;
     CxPlatConvertToMappedV6(&Route.LocalAddress, &LocalMappedAddress);
 
-    CXPLAT_SEND_DATA* SendData =
-        CxPlatSendDataAlloc(Socket, CXPLAT_ECN_NON_ECT, PCP_MAP_REQUEST_SIZE, &Route);
+    CXPLAT_SEND_CONFIG SendConfig = { &Route, PCP_MAP_REQUEST_SIZE, CXPLAT_ECN_NON_ECT, 0 };
+    CXPLAT_SEND_DATA* SendData = CxPlatSendDataAlloc(Socket, &SendConfig);
     if (SendData == NULL) {
         return QUIC_STATUS_OUT_OF_MEMORY;
     }
@@ -426,8 +426,7 @@ CxPlatPcpSendMapRequestInternal(
         CxPlatSocketSend(
             Socket,
             &Route,
-            SendData,
-            (uint16_t)CxPlatProcCurrentNumber());
+            SendData);
     if (QUIC_FAILED(Status)) {
         return Status;
     }
@@ -479,7 +478,7 @@ CxPlatPcpSendPeerRequestInternal(
     _In_ uint32_t Lifetime          // Zero indicates delete. Nonce must match.
     )
 {
-    CXPLAT_ROUTE Route;
+    CXPLAT_ROUTE Route = {0};
     CxPlatSocketGetLocalAddress(Socket, &Route.LocalAddress);
     CxPlatSocketGetRemoteAddress(Socket, &Route.RemoteAddress);
 
@@ -489,8 +488,8 @@ CxPlatPcpSendPeerRequestInternal(
     QUIC_ADDR RemotePeerMappedAddress;
     CxPlatConvertToMappedV6(RemotePeerAddress, &RemotePeerMappedAddress);
 
-    CXPLAT_SEND_DATA* SendData =
-        CxPlatSendDataAlloc(Socket, CXPLAT_ECN_NON_ECT, PCP_PEER_REQUEST_SIZE, &Route);
+    CXPLAT_SEND_CONFIG SendConfig = { &Route, PCP_MAP_REQUEST_SIZE, CXPLAT_ECN_NON_ECT, 0 };
+    CXPLAT_SEND_DATA* SendData = CxPlatSendDataAlloc(Socket, &SendConfig);
     if (SendData == NULL) {
         return QUIC_STATUS_OUT_OF_MEMORY;
     }
@@ -531,8 +530,7 @@ CxPlatPcpSendPeerRequestInternal(
         CxPlatSocketSend(
             Socket,
             &Route,
-            SendData,
-            (uint16_t)CxPlatProcCurrentNumber());
+            SendData);
     if (QUIC_FAILED(Status)) {
         return Status;
     }

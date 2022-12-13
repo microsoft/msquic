@@ -1533,24 +1533,22 @@ _IRQL_requires_max_(DISPATCH_LEVEL)
 CXPLAT_SEND_DATA*
 CxPlatDpRawTxAlloc(
     _In_ CXPLAT_DATAPATH* Datapath,
-    _In_ CXPLAT_ECN_TYPE ECN,
-    _In_ uint16_t MaxPacketSize,
-    _Inout_ CXPLAT_ROUTE* Route
+    _Inout_ CXPLAT_SEND_CONFIG* Config
     )
 {
-    QUIC_ADDRESS_FAMILY Family = QuicAddrGetFamily(&Route->RemoteAddress);
-    XDP_QUEUE* Queue = Route->Queue;
+    QUIC_ADDRESS_FAMILY Family = QuicAddrGetFamily(&Config->Route->RemoteAddress);
+    XDP_QUEUE* Queue = Config->Route->Queue;
     XDP_TX_PACKET* Packet = (XDP_TX_PACKET*)InterlockedPopEntrySList(&Queue->TxPool);
 
     UNREFERENCED_PARAMETER(Datapath);
 
     if (Packet) {
         HEADER_BACKFILL HeaderBackfill = CxPlatDpRawCalculateHeaderBackFill(Family); // TODO - Cache in Route?
-        CXPLAT_DBG_ASSERT(MaxPacketSize <= sizeof(Packet->FrameBuffer) - HeaderBackfill.AllLayer);
+        CXPLAT_DBG_ASSERT(Config->MaxPacketSize <= sizeof(Packet->FrameBuffer) - HeaderBackfill.AllLayer);
         Packet->Queue = Queue;
-        Packet->Buffer.Length = MaxPacketSize;
+        Packet->Buffer.Length = Config->MaxPacketSize;
         Packet->Buffer.Buffer = &Packet->FrameBuffer[HeaderBackfill.AllLayer];
-        Packet->ECN = ECN;
+        Packet->ECN = Config->ECN;
     }
 
     return (CXPLAT_SEND_DATA*)Packet;

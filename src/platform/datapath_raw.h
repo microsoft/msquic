@@ -225,9 +225,7 @@ _IRQL_requires_max_(DISPATCH_LEVEL)
 CXPLAT_SEND_DATA*
 CxPlatDpRawTxAlloc(
     _In_ CXPLAT_DATAPATH* Datapath,
-    _In_ CXPLAT_ECN_TYPE ECN,
-    _In_ uint16_t MaxPacketSize,
-    _Inout_ CXPLAT_ROUTE* Route
+    _Inout_ CXPLAT_SEND_CONFIG* Config
     );
 
 //

@@ -170,17 +170,22 @@ typedef struct CXPLAT_SEND_DATA {
     //
     // The send segmentation size; zero if segmentation is not performed.
     //
-    UINT16 SegmentSize;
+    uint16_t SegmentSize;
 
     //
     // The type of ECN markings needed for send.
     //
-    CXPLAT_ECN_TYPE ECN;
+    uint8_t ECN; // CXPLAT_ECN_TYPE
+
+    //
+    // Set of flags set to configure the send behavior.
+    //
+    uint8_t SendFlags; // CXPLAT_SEND_FLAGS
 
     //
     // The current number of WsaBuffers used.
     //
-    UINT8 WsaBufferCount;
+    uint8_t WsaBufferCount;
 
     //
     // Contains all the datagram buffers to pass to the socket.
@@ -192,7 +197,6 @@ typedef struct CXPLAT_SEND_DATA {
     //
     WSABUF ClientBuffer;
 
-#ifdef CXPLAT_DATAPATH_QUEUE_SENDS
     //
     // The local address to bind to.
     //
@@ -202,7 +206,6 @@ typedef struct CXPLAT_SEND_DATA {
     // The remote address to send to.
     //
     QUIC_ADDR RemoteAddress;
-#endif
 
 } CXPLAT_SEND_DATA;
 
@@ -3059,7 +3062,6 @@ Retry_recv:
             goto Error;
         }
         Status = QUIC_STATUS_PENDING;
-
     } else {
         CXPLAT_DBG_ASSERT(BytesRecv < UINT16_MAX);
         *SyncBytesReceived = (uint16_t)BytesRecv;
@@ -3077,6 +3079,8 @@ CxPlatDataPathUdpRecvComplete(
     _In_ UINT16 NumberOfBytesTransferred
     )
 {
+#define MAX_INLINE_RECV_COUNT 10
+    uint32_t ReceiveCount = 0;
 RecvAgain:
     //
     // Copy the current receive buffer locally. On error cases, we leave the
@@ -3092,6 +3096,7 @@ RecvAgain:
 
     PSOCKADDR_INET RemoteAddr = &RecvContext->Route.RemoteAddress;
     PSOCKADDR_INET LocalAddr = &RecvContext->Route.LocalAddress;
+    RecvContext->Route.Queue = SocketProc;
 
     if (IoResult == WSAENOTSOCK || IoResult == WSA_OPERATION_ABORTED) {
         //
@@ -3307,10 +3312,13 @@ Drop:
     int32_t RetryCount = 0;
     QUIC_STATUS Status;
     do {
-        Status = CxPlatSocketStartReceive(SocketProc, &NumberOfBytesTransferred);
-    } while (!QUIC_SUCCEEDED(Status) && ++RetryCount < 10);
+        Status =
+            CxPlatSocketStartReceive(
+                SocketProc,
+                ReceiveCount < MAX_INLINE_RECV_COUNT ? &NumberOfBytesTransferred : NULL);
+    } while (QUIC_FAILED(Status) && ++RetryCount < 10);
 
-    if (!QUIC_SUCCEEDED(Status)) {
+    if (QUIC_FAILED(Status)) {
         CXPLAT_DBG_ASSERT(Status == QUIC_STATUS_OUT_OF_MEMORY);
         QuicTraceEvent(
             DatapathErrorStatus,
@@ -3318,9 +3326,9 @@ Drop:
             SocketProc->Parent,
             Status,
             "CxPlatSocketStartReceive failed multiple times. Receive will no longer work.");
-
     } else if (Status != QUIC_STATUS_PENDING) {
         IoResult = QUIC_STATUS_SUCCESS;
+        ReceiveCount++;
         goto RecvAgain;
     }
 }
@@ -3532,27 +3540,25 @@ _Success_(return != NULL)
 CXPLAT_SEND_DATA*
 CxPlatSendDataAlloc(
     _In_ CXPLAT_SOCKET* Socket,
-    _In_ CXPLAT_ECN_TYPE ECN,
-    _In_ uint16_t MaxPacketSize,
-    _Inout_ CXPLAT_ROUTE* Route
+    _Inout_ CXPLAT_SEND_CONFIG* Config
     )
 {
-    UNREFERENCED_PARAMETER(Route);
     CXPLAT_DBG_ASSERT(Socket != NULL);
 
-    CXPLAT_DATAPATH_PROC* DatapathProc =
-        CxPlatDataPathGetProc(Socket->Datapath, (uint16_t)GetCurrentProcessorNumber());
+    if (Config->Route->Queue == NULL) {
+        Config->Route->Queue = &Socket->Processors[0];
+    }
 
-    CXPLAT_SEND_DATA* SendData =
-        CxPlatPoolAlloc(&DatapathProc->SendDataPool);
-
+    CXPLAT_SOCKET_PROC* SocketProc = Config->Route->Queue;
+    CXPLAT_SEND_DATA* SendData = CxPlatPoolAlloc(&SocketProc->DatapathProc->SendDataPool);
     if (SendData != NULL) {
-        SendData->Owner = DatapathProc;
-        SendData->ECN = ECN;
+        SendData->Owner = SocketProc->DatapathProc;
+        SendData->ECN = Config->ECN;
+        SendData->SendFlags = Config->Flags;
         SendData->SegmentSize =
             (Socket->Type != CXPLAT_SOCKET_UDP ||
              Socket->Datapath->Features & CXPLAT_DATAPATH_FEATURE_SEND_SEGMENTATION)
-                ? MaxPacketSize : 0;
+                ? Config->MaxPacketSize : 0;
         SendData->TotalSize = 0;
         SendData->WsaBufferCount = 0;
         SendData->ClientBuffer.len = 0;
@@ -4003,33 +4009,18 @@ QUIC_STATUS
 CxPlatSocketSend(
     _In_ CXPLAT_SOCKET* Socket,
     _In_ const CXPLAT_ROUTE* Route,
-    _In_ CXPLAT_SEND_DATA* SendData,
-    _In_ uint16_t IdealProcessor
+    _In_ CXPLAT_SEND_DATA* SendData
     )
 {
-    CXPLAT_DBG_ASSERT(
-        Socket != NULL && Route != NULL &&
-        SendData != NULL);
+    CXPLAT_DBG_ASSERT(Socket != NULL && Route != NULL && SendData != NULL);
 
-    CXPLAT_DATAPATH* Datapath = Socket->Datapath;
-    CXPLAT_SOCKET_PROC* SocketProc;
-    if (Socket->HasFixedRemoteAddress) {
-        SocketProc = &Socket->Processors[0];
-    } else {
-        SocketProc = NULL;
-        for (uint16_t i = 0; i < Datapath->ProcCount; i++) {
-            if (Socket->Processors[i].DatapathProc->IdealProcessor == IdealProcessor) {
-                SocketProc = &Socket->Processors[i];
-                break;
-            }
-        }
-        CXPLAT_FRE_ASSERT(SocketProc != NULL);
-    }
+    CXPLAT_DBG_ASSERT(Route->Queue);
+    CXPLAT_SOCKET_PROC* SocketProc = Route->Queue;
 
     CxPlatSendDataFinalizeSendBuffer(SendData);
 
-#ifdef CXPLAT_DATAPATH_QUEUE_SENDS
-    if ((Socket->Type != CXPLAT_SOCKET_UDP)) {
+    if ((Socket->Type != CXPLAT_SOCKET_UDP) ||
+        !(SendData->SendFlags & CXPLAT_SEND_FLAGS_MAX_THROUGHPUT)) {
         //
         // Currently TCP always sends inline.
         //
@@ -4071,17 +4062,6 @@ CxPlatSocketSend(
     }
 
     return QUIC_STATUS_SUCCESS;
-
-#else // CXPLAT_DATAPATH_QUEUE_SENDS
-
-    return
-        CxPlatSocketSendInline(
-            SocketProc,
-            &Route->LocalAddress,
-            &Route->RemoteAddress,
-            SendData);
-
-#endif // CXPLAT_DATAPATH_QUEUE_SENDS
 }
 
 void

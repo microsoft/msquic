@@ -250,16 +250,19 @@ QuicPacketBuilderPrepare(
         //
         BOOLEAN SendDataAllocated = FALSE;
         if (Builder->SendData == NULL) {
+            CXPLAT_SEND_CONFIG SendConfig = {
+                &Builder->Path->Route,
+                IsPathMtuDiscovery ?
+                    0 :
+                    MaxUdpPayloadSizeForFamily(
+                        QuicAddrGetFamily(&Builder->Path->Route.RemoteAddress),
+                        DatagramSize),
+                Builder->EcnEctSet ? CXPLAT_ECN_ECT_0 : CXPLAT_ECN_NON_ECT,
+                Builder->Connection->Registration->ExecProfile == QUIC_EXECUTION_PROFILE_TYPE_MAX_THROUGHPUT ?
+                    CXPLAT_SEND_FLAGS_MAX_THROUGHPUT : CXPLAT_SEND_FLAGS_NONE
+            };
             Builder->SendData =
-                CxPlatSendDataAlloc(
-                    Builder->Path->Binding->Socket,
-                    Builder->EcnEctSet ? CXPLAT_ECN_ECT_0 : CXPLAT_ECN_NON_ECT,
-                    IsPathMtuDiscovery ?
-                        0 :
-                        MaxUdpPayloadSizeForFamily(
-                            QuicAddrGetFamily(&Builder->Path->Route.RemoteAddress),
-                            DatagramSize),
-                    &Builder->Path->Route);
+                CxPlatSendDataAlloc(Builder->Path->Binding->Socket, &SendConfig);
             if (Builder->SendData == NULL) {
                 QuicTraceEvent(
                     AllocFailure,
@@ -1031,8 +1034,7 @@ QuicPacketBuilderSendBatch(
         &Builder->Path->Route,
         Builder->SendData,
         Builder->TotalDatagramsLength,
-        Builder->TotalCountDatagrams,
-        Builder->Connection->Worker->IdealProcessor);
+        Builder->TotalCountDatagrams);
 
     Builder->PacketBatchSent = TRUE;
     Builder->SendData = NULL;
