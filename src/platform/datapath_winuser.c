@@ -532,7 +532,7 @@ CxPlatStopDatapathIo(
     CXPLAT_DBG_ASSERT(Sqe->DatapathSqe.Sqe.UserData == &Sqe->DatapathSqe);
     CXPLAT_DBG_ASSERT(Sqe->DatapathSqe.Sqe.Overlapped.Internal != 0x103); // STATUS_PENDING
     CXPLAT_DBG_ASSERT(Sqe->IoType > DATAPATH_IO_SIGNATURE && Sqe->IoType < DATAPATH_IO_MAX);
-
+    DBG_UNREFERENCED_PARAMETER(Sqe);
 #if DEBUG
     Sqe->IoType = 0;
 #endif
@@ -3376,13 +3376,15 @@ CxPlatDataPathStartReceive(
     } while (QUIC_FAILED(Status) && ++RetryCount < 10);
 
     if (QUIC_FAILED(Status)) {
-        CXPLAT_DBG_ASSERT(Status == QUIC_STATUS_OUT_OF_MEMORY);
-        QuicTraceEvent(
-            DatapathErrorStatus,
-            "[data][%p] ERROR, %u, %s.",
-            SocketProc->Parent,
-            Status,
-            "CxPlatSocketStartReceive failed multiple times. Receive will no longer work.");
+        if (!SocketProc->Parent->DisconnectIndicated) {
+            CXPLAT_DBG_ASSERT(Status == QUIC_STATUS_OUT_OF_MEMORY);
+            QuicTraceEvent(
+                DatapathErrorStatus,
+                "[data][%p] ERROR, %u, %s.",
+                SocketProc->Parent,
+                Status,
+                "CxPlatSocketStartReceive failed multiple times. Receive will no longer work.");
+        }
         return FALSE;
     } else if (Status == QUIC_STATUS_PENDING) {
         return FALSE;
