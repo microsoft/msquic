@@ -533,7 +533,26 @@ CxPlatStopDatapathIo(
     CXPLAT_DBG_ASSERT(Sqe->DatapathSqe.Sqe.Overlapped.Internal != 0x103); // STATUS_PENDING
     CXPLAT_DBG_ASSERT(Sqe->IoType > DATAPATH_IO_SIGNATURE && Sqe->IoType < DATAPATH_IO_MAX);
 
+#if DEBUG
     Sqe->IoType = 0;
+#endif
+}
+
+VOID
+CxPlatStopInlineDatapathIo(
+    _Inout_ DATAPATH_IO_SQE* Sqe
+    )
+{
+    //
+    // We want to assert the overlapped result is not pending below, but Winsock
+    // and the Windows kernel may leave the overlapped struct in the pending
+    // state if an IO completes inline. Ignore the overlapped result in this
+    // case.
+    //
+#if DEBUG
+    Sqe->DatapathSqe.Sqe.Overlapped.Internal = 0;
+#endif
+    CxPlatStopDatapathIo(Sqe);
 }
 
 CXPLAT_RECV_DATA*
@@ -3081,7 +3100,7 @@ Retry_recv:
                     WsaError,
                     "WSARecvMsg");
                 Status = HRESULT_FROM_WIN32(WsaError);
-                CxPlatStopDatapathIo(&SocketProc->IoSqe);
+                CxPlatStopInlineDatapathIo(&SocketProc->IoSqe);
                 goto Error;
             }
         }
@@ -3110,7 +3129,7 @@ Retry_recv:
     } else {
         CXPLAT_DBG_ASSERT(BytesRecv < UINT16_MAX);
         *SyncBytesReceived = (uint16_t)BytesRecv;
-        CxPlatStopDatapathIo(&SocketProc->IoSqe);
+        CxPlatStopInlineDatapathIo(&SocketProc->IoSqe);
     }
 
 Error:
