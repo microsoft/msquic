@@ -97,6 +97,8 @@ typedef struct CXPLAT_SEND_DATA {
 
     QUIC_BUFFER Buffer;
 
+    uint64_t CorrelationID;
+
 } CXPLAT_SEND_DATA;
 
 //

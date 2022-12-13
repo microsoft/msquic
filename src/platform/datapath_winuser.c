@@ -3564,8 +3564,8 @@ CxPlatSendDataAlloc(
         SendData->ClientBuffer.len = 0;
         SendData->ClientBuffer.buf = NULL;
         SendData->CorrelationID =
-            (((uint64_t)DatapathProc->IdealProcessor + 1)) << 40 |
-            InterlockedIncrement64((int64_t*)&DatapathProc->SendDataCorrelationID);
+            (((uint64_t)SocketProc->DatapathProc->IdealProcessor + 1)) << 40 |
+            InterlockedIncrement64((int64_t*)&SocketProc->DatapathProc->SendDataCorrelationID);
     }
 
     return SendData;

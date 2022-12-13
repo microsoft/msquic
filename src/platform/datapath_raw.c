@@ -548,13 +548,14 @@ CxPlatDpRawRxEthernet(
             //
             while (i < PacketCount) {
                 QuicTraceEvent(
-                    DatapathRecv,
-                    "[data][%p] Recv %u bytes (segment=%hu) Src=%!ADDR! Dst=%!ADDR!",
+                    DatapathRecvV2,
+                    "[data][%p] Recv %u bytes (segment=%hu) Src=%!ADDR! Dst=%!ADDR! CorrID=%llu",
                     Socket,
                     Packets[i]->BufferLength,
                     Packets[i]->BufferLength,
                     CASTED_CLOG_BYTEARRAY(sizeof(Packets[i]->Route->LocalAddress), &Packets[i]->Route->LocalAddress),
-                    CASTED_CLOG_BYTEARRAY(sizeof(Packets[i]->Route->RemoteAddress), &Packets[i]->Route->RemoteAddress));
+                    CASTED_CLOG_BYTEARRAY(sizeof(Packets[i]->Route->RemoteAddress), &Packets[i]->Route->RemoteAddress),
+                    Packets[i]->CorrelationID);
                 if (i == PacketCount - 1 ||
                     Packets[i+1]->Reserved != L4_TYPE_UDP ||
                     Packets[i+1]->Route->LocalAddress.Ipv4.sin_port != Socket->LocalAddress.Ipv4.sin_port ||
@@ -615,6 +616,15 @@ CxPlatSendDataFree(
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
+uint64_t
+CxPlatSendDataGetCorrelationID(
+    _In_ CXPLAT_SEND_DATA* SendData
+    )
+{
+    return SendData->CorrelationID;
+}
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
 void
 CxPlatSendDataFreeBuffer(
     _In_ CXPLAT_SEND_DATA* SendData,
@@ -642,14 +652,15 @@ CxPlatSocketSend(
     )
 {
     QuicTraceEvent(
-        DatapathSend,
-        "[data][%p] Send %u bytes in %hhu buffers (segment=%hu) Dst=%!ADDR!, Src=%!ADDR!",
+        DatapathSendV2,
+        "[data][%p] Send %u bytes in %hhu buffers (segment=%hu) Dst=%!ADDR!, Src=%!ADDR! CorrID=%llu",
         Socket,
         SendData->Buffer.Length,
         1,
         (uint16_t)SendData->Buffer.Length,
         CASTED_CLOG_BYTEARRAY(sizeof(Route->RemoteAddress), &Route->RemoteAddress),
-        CASTED_CLOG_BYTEARRAY(sizeof(Route->LocalAddress), &Route->LocalAddress));
+        CASTED_CLOG_BYTEARRAY(sizeof(Route->LocalAddress), &Route->LocalAddress),
+        SendData->CorrelationID);
     CXPLAT_DBG_ASSERT(Route->State == RouteResolved);
     CXPLAT_DBG_ASSERT(Route->Queue != NULL);
     const CXPLAT_INTERFACE* Interface = CxPlatDpRawGetInterfaceFromQueue(Route->Queue);

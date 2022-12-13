@@ -84,6 +84,8 @@ typedef struct QUIC_CACHEALIGN XDP_WORKER {
     const struct XDP_DATAPATH* Xdp;
     CXPLAT_EVENTQ* EventQ;
     XDP_QUEUE* Queues; // A linked list of queues, accessed by Next.
+    uint64_t SendDataCorrelationID;
+    uint64_t RecvDataCorrelationID;
     uint16_t ProcIndex;
 } XDP_WORKER;
 
@@ -1122,6 +1124,8 @@ CxPlatDpRawInitialize(
         Worker->ShutdownSqe.CqeType = CXPLAT_CQE_TYPE_SOCKET_SHUTDOWN;
         CxPlatRefIncrement(&Xdp->RefCount);
         Worker->EventQ = CxPlatWorkerGetEventQ(Worker->ProcIndex);
+        Worker->SendDataCorrelationID = 0;
+        Worker->RecvDataCorrelationID = 0;
 
         uint32_t QueueCount = 0;
         XDP_QUEUE* Queue = Worker->Queues;
@@ -1412,8 +1416,8 @@ CxPlatXdpRx(
     uint32_t FillIndex;
     uint32_t ProdCount = 0;
     uint32_t PacketCount = 0;
-    const uint32_t BuffersCount = XskRingConsumerReserve(&Queue->RxRing, RX_BATCH_SIZE, &RxIndex);
-
+    const uint32_t BuffersCount =
+        XskRingConsumerReserve(&Queue->RxRing, RX_BATCH_SIZE, &RxIndex);
     for (uint32_t i = 0; i < BuffersCount; i++) {
         XSK_BUFFER_DESCRIPTOR* Buffer = XskRingGetElement(&Queue->RxRing, RxIndex++);
         XDP_RX_PACKET* Packet =
@@ -1424,6 +1428,9 @@ CxPlatXdpRx(
         Packet->Route = &Packet->RouteStorage;
         Packet->RouteStorage.Queue = Queue;
         Packet->PartitionIndex = ProcIndex;
+        Packet->CorrelationID =
+            (((uint64_t)Queue->Worker->ProcIndex + 1)) << 40 |
+            InterlockedIncrement64((int64_t*)&Queue->Worker->RecvDataCorrelationID);
 
         CxPlatDpRawParseEthernet(
             (CXPLAT_DATAPATH*)Xdp,
@@ -1538,6 +1545,7 @@ CxPlatDpRawTxAlloc(
 {
     QUIC_ADDRESS_FAMILY Family = QuicAddrGetFamily(&Config->Route->RemoteAddress);
     XDP_QUEUE* Queue = Config->Route->Queue;
+    XDP_WORKER* Worker = Queue->Worker;
     XDP_TX_PACKET* Packet = (XDP_TX_PACKET*)InterlockedPopEntrySList(&Queue->TxPool);
 
     UNREFERENCED_PARAMETER(Datapath);
@@ -1549,6 +1557,9 @@ CxPlatDpRawTxAlloc(
         Packet->Buffer.Length = Config->MaxPacketSize;
         Packet->Buffer.Buffer = &Packet->FrameBuffer[HeaderBackfill.AllLayer];
         Packet->ECN = Config->ECN;
+        Packet->CorrelationID =
+            (((uint64_t)Worker->ProcIndex + 1)) << 40 |
+            InterlockedIncrement64((int64_t*)&Worker->SendDataCorrelationID);
     }
 
     return (CXPLAT_SEND_DATA*)Packet;
