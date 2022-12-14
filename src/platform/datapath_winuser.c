@@ -549,9 +549,7 @@ CxPlatStopInlineDatapathIo(
     // state if an IO completes inline. Ignore the overlapped result in this
     // case.
     //
-#if DEBUG
     Sqe->DatapathSqe.Sqe.Overlapped.Internal = 0;
-#endif
     CxPlatStopDatapathIo(Sqe);
 }
 
@@ -605,6 +603,7 @@ _Success_(return == QUIC_STATUS_SUCCESS)
 QUIC_STATUS
 CxPlatSocketStartReceive(
     _In_ CXPLAT_SOCKET_PROC* SocketProc,
+    _Out_opt_ ULONG* SyncIoResult,
     _Out_opt_ uint16_t* SyncBytesReceived
     );
 
@@ -1997,7 +1996,7 @@ QUIC_DISABLED_BY_FUZZER_END;
     *NewSocket = Socket;
 
     for (uint16_t i = 0; i < SocketCount; i++) {
-        Status = CxPlatSocketStartReceive(&Socket->Processors[i], NULL);
+        Status = CxPlatSocketStartReceive(&Socket->Processors[i], NULL, NULL);
         if (QUIC_FAILED(Status)) {
             goto Error;
         }
@@ -2892,7 +2891,7 @@ CxPlatDataPathSocketProcessAcceptCompletion(
             goto Error;
         }
 
-        if (QUIC_FAILED(CxPlatSocketStartReceive(AcceptSocketProc, NULL))) {
+        if (QUIC_FAILED(CxPlatSocketStartReceive(AcceptSocketProc, NULL, NULL))) {
             goto Error;
         }
 
@@ -2966,7 +2965,7 @@ CxPlatDataPathSocketProcessConnectCompletion(
         //
         // Try to start a new receive.
         //
-        (void)CxPlatSocketStartReceive(SocketProc, NULL);
+        (void)CxPlatSocketStartReceive(SocketProc, NULL, NULL);
 
     } else {
         QuicTraceEvent(
@@ -3016,6 +3015,7 @@ _Success_(return == QUIC_STATUS_SUCCESS)
 QUIC_STATUS
 CxPlatSocketStartReceive(
     _In_ CXPLAT_SOCKET_PROC* SocketProc,
+    _Out_opt_ ULONG* SyncIoResult,
     _Out_opt_ uint16_t* SyncBytesReceived
     )
 {
@@ -3025,6 +3025,7 @@ CxPlatSocketStartReceive(
     int Result;
     DWORD BytesRecv = 0;
 
+    CXPLAT_DBG_ASSERT((SyncIoResult != NULL) == (SyncBytesReceived != NULL));
     CXPLAT_DBG_ASSERT(SocketProc->Parent->Type != CXPLAT_SOCKET_TCP_LISTENER);
 
     //
@@ -3100,6 +3101,10 @@ Retry_recv:
                     WsaError,
                     "WSARecvMsg");
                 Status = HRESULT_FROM_WIN32(WsaError);
+                if (SyncBytesReceived != NULL) {
+                    *SyncBytesReceived = 0;
+                    *SyncIoResult = WsaError;
+                }
                 CxPlatStopInlineDatapathIo(&SocketProc->IoSqe);
                 goto Error;
             }
@@ -3129,6 +3134,7 @@ Retry_recv:
     } else {
         CXPLAT_DBG_ASSERT(BytesRecv < UINT16_MAX);
         *SyncBytesReceived = (uint16_t)BytesRecv;
+        *SyncIoResult = NO_ERROR;
         CxPlatStopInlineDatapathIo(&SocketProc->IoSqe);
     }
 
@@ -3360,6 +3366,7 @@ Drop:
 BOOLEAN
 CxPlatDataPathStartReceive(
     _In_ CXPLAT_SOCKET_PROC* SocketProc,
+    _Out_opt_ ULONG* IoResult,
     _Out_opt_ uint16_t* InlineBytesTransferred
     )
 {
@@ -3372,8 +3379,9 @@ CxPlatDataPathStartReceive(
         Status =
             CxPlatSocketStartReceive(
                 SocketProc,
+                IoResult,
                 InlineBytesTransferred);
-    } while (QUIC_FAILED(Status) && ++RetryCount < 10);
+    } while (Status == QUIC_STATUS_OUT_OF_MEMORY && ++RetryCount < 10);
 
     if (QUIC_FAILED(Status)) {
         if (!SocketProc->Parent->DisconnectIndicated) {
@@ -3436,7 +3444,6 @@ CxPlatDataPathTcpRecvComplete(
                     FALSE);
             }
 
-            NeedReceive = FALSE;
             goto Drop;
         }
 
@@ -3586,12 +3593,11 @@ CxPlatDataPathSocketProcessReceiveCompletion(
                     BytesTransferred);
         }
 
-        if (StartReceive &&
-            CxPlatDataPathStartReceive(
-                SocketProc, InlineReceiveCount > 1 ? &BytesTransferred : NULL)) {
-            CXPLAT_DBG_ASSERT(InlineReceiveCount > 1);
-            IoResult = NO_ERROR;
-        } else {
+        if (!StartReceive ||
+            !CxPlatDataPathStartReceive(
+                SocketProc,
+                InlineReceiveCount > 1 ? &IoResult : NULL,
+                InlineReceiveCount > 1 ? &BytesTransferred : NULL)) {
             break;
         }
     }
