@@ -2396,7 +2396,7 @@ CxPlatDataPathSocketReceive(
                 RecvContext->Binding = Binding;
                 RecvContext->ReferenceCount = 0;
                 RecvContext->Route.Queue =
-                    Binding->Datapath->ProcContexts[CurProcNumber % Binding->Datapath->ProcCount];
+                    &Binding->Datapath->ProcContexts[CurProcNumber % Binding->Datapath->ProcCount];
                 RecvContext->Route.LocalAddress = LocalAddr;
                 RecvContext->Route.RemoteAddress = RemoteAddr;
                 Datagram = (CXPLAT_RECV_DATA*)(RecvContext + 1);
