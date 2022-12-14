@@ -2737,6 +2737,9 @@ CxPlatSocketAllocRecvContext(
         RecvContext->OwningPool = &DatapathProc->RecvDatagramPool;
         RecvContext->SocketProc = SocketProc;
         RecvContext->ReferenceCount = 0;
+#if DEBUG
+        RecvContext->Sqe.IoType = 0;
+#endif
     }
 
     return RecvContext;
@@ -3348,6 +3351,7 @@ CxPlatDataPathUdpRecvComplete(
             }
         }
 
+        RecvContext = NULL;
         CXPLAT_DBG_ASSERT(RecvDataChain);
 
 #ifdef QUIC_FUZZER
@@ -3386,6 +3390,10 @@ CxPlatDataPathUdpRecvComplete(
     }
 
 Drop:
+
+    if (RecvContext != NULL) {
+        CxPlatSocketFreeRecvContext(RecvContext);
+    }
 
     return NeedReceive;
 }
@@ -3502,6 +3510,7 @@ CxPlatDataPathTcpRecvComplete(
         Data->Allocated = TRUE;
         Data->QueuedOnConnection = FALSE;
         RecvContext->ReferenceCount++;
+        RecvContext = NULL;
 
         SocketProc->Parent->Datapath->TcpHandlers.Receive(
             SocketProc->Parent,
@@ -3518,6 +3527,10 @@ CxPlatDataPathTcpRecvComplete(
     }
 
 Drop:
+
+    if (RecvContext != NULL) {
+        CxPlatSocketFreeRecvContext(RecvContext);
+    }
 
     return NeedReceive;
 }
@@ -3551,9 +3564,7 @@ CxPlatRecvDataReturn(
                 //
                 // Clean up the data indication.
                 //
-                CxPlatPoolFree(
-                    BatchedInternalContext->OwningPool,
-                    BatchedInternalContext);
+                CxPlatSocketFreeRecvContext(BatchedInternalContext);
             }
 
             BatchedInternalContext = InternalContext;
@@ -3568,9 +3579,7 @@ CxPlatRecvDataReturn(
         //
         // Clean up the data indication.
         //
-        CxPlatPoolFree(
-            BatchedInternalContext->OwningPool,
-            BatchedInternalContext);
+        CxPlatSocketFreeRecvContext(BatchedInternalContext);
     }
 }
 
@@ -4258,7 +4267,7 @@ CxPlatFuzzerReceiveInject(
     }
 
     CXPLAT_DATAPATH_INTERNAL_RECV_CONTEXT* RecvContext =
-        CxPlatSocketAllocRecvContext(Socket->SocketProc->DatapathProc);
+        CxPlatSocketAllocRecvContext(Socket->SocketProc);
     if (!RecvContext) {
         return;
     }
