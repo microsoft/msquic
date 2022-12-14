@@ -39,14 +39,9 @@ typedef struct XDP_WORKER XDP_WORKER;
 // Type of IO.
 //
 typedef enum DATAPATH_IO_TYPE {
-<<<<<<< HEAD
     DATAPATH_IO_SIGNATURE         = 'XDPD',
     DATAPATH_IO_RECV              = DATAPATH_IO_SIGNATURE + 1,
     DATAPATH_IO_SEND              = DATAPATH_IO_SIGNATURE + 2
-=======
-    DATAPATH_IO_RECV              = 0,
-    DATAPATH_IO_SEND              = 1
->>>>>>> 787dc73a0 (actually fix xdp (probably))
 } DATAPATH_IO_TYPE;
 
 //
@@ -581,20 +576,10 @@ CxPlatDpRawInterfaceInitialize(
         CxPlatLockInitialize(&Queue->TxLock);
         CxPlatListInitializeHead(&Queue->TxQueue);
         CxPlatListInitializeHead(&Queue->WorkerTxQueue);
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
->>>>>>> 787dc73a0 (actually fix xdp (probably))
         CxPlatDatapathSqeInitialize(&Queue->RxIoSqe.DatapathSqe, CXPLAT_CQE_TYPE_SOCKET_IO);
         Queue->RxIoSqe.IoType = DATAPATH_IO_RECV;
         CxPlatDatapathSqeInitialize(&Queue->TxIoSqe.DatapathSqe, CXPLAT_CQE_TYPE_SOCKET_IO);
         Queue->TxIoSqe.IoType = DATAPATH_IO_SEND;
-<<<<<<< HEAD
-=======
-        CxPlatDatapathSqeInitialize(&Queue->IoSqe, CXPLAT_CQE_TYPE_SOCKET_IO);
->>>>>>> 9d479c5c3 (fix XDP)
-=======
->>>>>>> 787dc73a0 (actually fix xdp (probably))
 
         //
         // RX datapath.
@@ -1837,10 +1822,6 @@ CxPlatDataPathProcessCqe(
 
         if (Sqe->IoType == DATAPATH_IO_RECV) {
             Queue = CONTAINING_RECORD(Sqe, XDP_QUEUE, RxIoSqe);
-<<<<<<< HEAD
-=======
-
->>>>>>> 787dc73a0 (actually fix xdp (probably))
             QuicTraceLogVerbose(
                 XdpQueueAsyncIoRxComplete,
                 "[ xdp][%p] XDP async IO complete (RX)",
