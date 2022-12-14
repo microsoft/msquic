@@ -2246,6 +2246,7 @@ CxPlatSocketSend(
     _In_ CXPLAT_SEND_DATA* SendData
     )
 {
+    UNREFERENCED_PARAMETER(Socket);
     CXPLAT_DBG_ASSERT(Route->Queue);
     CXPLAT_SOCKET_CONTEXT* SocketContext = Route->Queue;
     QUIC_STATUS Status =
