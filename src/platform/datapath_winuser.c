@@ -270,6 +270,11 @@ typedef struct QUIC_CACHEALIGN CXPLAT_SOCKET_PROC {
     //
     BOOLEAN IoStarted : 1;
 
+    //
+    // Flag indicates a persistent out-of-memory failure for the receive path.
+    //
+    BOOLEAN RecvFailure : 1;
+
 #if DEBUG
     uint8_t Uninitialized : 1;
     uint8_t Freed : 1;
@@ -3371,8 +3376,10 @@ CxPlatDataPathStartReceive(
     )
 {
     //
-    // Try to start a new receive. Returns TRUE if the receive succeeded inline.
+    // Try to start a new receive. Returns TRUE if the receive completed inline.
     //
+
+    const int32_t MAX_RECV_RETRIES = 10;
     int32_t RetryCount = 0;
     QUIC_STATUS Status;
     do {
@@ -3381,24 +3388,21 @@ CxPlatDataPathStartReceive(
                 SocketProc,
                 IoResult,
                 InlineBytesTransferred);
-    } while (Status == QUIC_STATUS_OUT_OF_MEMORY && ++RetryCount < 10);
+    } while (Status == QUIC_STATUS_OUT_OF_MEMORY && ++RetryCount < MAX_RECV_RETRIES);
 
-    if (QUIC_FAILED(Status)) {
-        if (!SocketProc->Parent->DisconnectIndicated) {
-            CXPLAT_DBG_ASSERT(Status == QUIC_STATUS_OUT_OF_MEMORY);
-            QuicTraceEvent(
-                DatapathErrorStatus,
-                "[data][%p] ERROR, %u, %s.",
-                SocketProc->Parent,
-                Status,
-                "CxPlatSocketStartReceive failed multiple times. Receive will no longer work.");
-        }
-        return FALSE;
-    } else if (Status == QUIC_STATUS_PENDING) {
-        return FALSE;
-    } else {
-        return TRUE;
+    if (Status == QUIC_STATUS_OUT_OF_MEMORY) {
+        CXPLAT_DBG_ASSERT(RetryCount == MAX_RECV_RETRIES);
+        SocketProc->RecvFailure = TRUE;
+        QuicTraceEvent(
+            DatapathErrorStatus,
+            "[data][%p] ERROR, %u, %s.",
+            SocketProc->Parent,
+            Status,
+            "CxPlatSocketStartReceive failed multiple times. Receive will no longer work.");
+        Status = QUIC_STATUS_PENDING;
     }
+
+    return Status != QUIC_STATUS_PENDING;
 }
 
 BOOLEAN
