@@ -499,6 +499,7 @@ Error:
 void
 CxPlatProcessorContextInitialize(
     _In_ CXPLAT_DATAPATH* Datapath,
+    _In_ uint16_t ProcessorIndex,
     _In_ uint16_t IdealProcessor,
     _In_ uint32_t ClientRecvContextLength,
     _Out_ CXPLAT_DATAPATH_PROC* DatapathProc
@@ -510,7 +511,7 @@ CxPlatProcessorContextInitialize(
     CXPLAT_DBG_ASSERT(Datapath != NULL);
     DatapathProc->Datapath = Datapath;
     DatapathProc->IdealProcessor = IdealProcessor;
-    DatapathProc->EventQ = CxPlatWorkerGetEventQ(IdealProcessor);
+    DatapathProc->EventQ = CxPlatWorkerGetEventQ(ProcessorIndex);
     CxPlatRefInitialize(&DatapathProc->RefCount);
 
     CxPlatPoolInitialize(
@@ -604,6 +605,7 @@ CxPlatDataPathInitialize(
     for (uint32_t i = 0; i < Datapath->ProcCount; i++) {
         CxPlatProcessorContextInitialize(
             Datapath,
+            i,
             ProcessorList ? ProcessorList[i] : (uint16_t)i,
             ClientRecvContextLength,
             &Datapath->Processors[i]);

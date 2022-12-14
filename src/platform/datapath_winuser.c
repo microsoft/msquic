@@ -567,21 +567,6 @@ CxPlatDataPathDatagramToInternalDatagramContext(
         (((PUCHAR)Datagram) + sizeof(CXPLAT_RECV_DATA));
 }
 
-CXPLAT_DATAPATH_PROC*
-CxPlatDataPathGetProc(
-    _In_ CXPLAT_DATAPATH* Datapath,
-    _In_ uint16_t Processor
-    )
-{
-    for (uint16_t i = 0; i < Datapath->ProcCount; ++i) {
-        if (Datapath->Processors[i].IdealProcessor == Processor) {
-            return &Datapath->Processors[i];
-        }
-    }
-    CXPLAT_FRE_ASSERT(FALSE); // TODO - What now?!
-    return NULL;
-}
-
 _Success_(return == QUIC_STATUS_SUCCESS)
 QUIC_STATUS
 CxPlatSocketStartReceive(
@@ -984,8 +969,7 @@ CxPlatDataPathInitialize(
         Datapath->Processors[i].Datapath = Datapath;
         Datapath->Processors[i].IdealProcessor =
             ProcessorList ? ProcessorList[i] : (uint16_t)i;
-        Datapath->Processors[i].EventQ =
-            CxPlatWorkerGetEventQ(Datapath->Processors[i].IdealProcessor);
+        Datapath->Processors[i].EventQ = CxPlatWorkerGetEventQ(i);
         CxPlatRefInitialize(&Datapath->Processors[i].RefCount);
 
         CxPlatPoolInitialize(
@@ -1444,7 +1428,7 @@ CxPlatSocketCreateUdp(
     int Result;
     int Option;
     BOOLEAN IsServerSocket = Config->RemoteAddress == NULL;
-    uint16_t SocketCount = IsServerSocket ? Datapath->ProcCount : 1;
+    uint16_t SocketCount = IsServerSocket ? CxPlatProcMaxCount() : 1;
     INET_PORT_RESERVATION_INSTANCE PortReservation;
 
     CXPLAT_DBG_ASSERT(Datapath->UdpHandlers.Receive != NULL || Config->Flags & CXPLAT_SOCKET_FLAG_PCP);
@@ -1769,8 +1753,7 @@ CxPlatSocketCreateUdp(
 
 QUIC_DISABLED_BY_FUZZER_START;
 
-        SocketProc->DatapathProc =
-            CxPlatDataPathGetProc(Datapath, AffinitizedProcessor);
+        SocketProc->DatapathProc = &Datapath->Processors[i % Datapath->ProcCount];
         CxPlatRefIncrement(&SocketProc->DatapathProc->RefCount);
 
         if (!CxPlatEventQAssociateHandle(
@@ -2046,8 +2029,7 @@ CxPlatSocketCreateTcpInternal(
     } else {
         Socket->LocalAddress.si_family = QUIC_ADDRESS_FAMILY_INET6;
     }
-    AffinitizedProcessor = RemoteAddress ?
-        (((uint16_t)CxPlatProcCurrentNumber()) % Datapath->ProcCount) : 0;
+    AffinitizedProcessor = RemoteAddress ? ((uint16_t)CxPlatProcCurrentNumber()) : 0;
     Socket->Mtu = CXPLAT_MAX_MTU;
     CxPlatRefInitializeEx(&Socket->RefCount, 1);
 
@@ -2121,7 +2103,7 @@ CxPlatSocketCreateTcpInternal(
     if (Type != CXPLAT_SOCKET_TCP_SERVER) {
 
         SocketProc->DatapathProc =
-            CxPlatDataPathGetProc(Datapath, AffinitizedProcessor);
+            &Datapath->Processors[AffinitizedProcessor % Datapath->ProcCount];
         CxPlatRefIncrement(&SocketProc->DatapathProc->RefCount);
 
         if (!CxPlatEventQAssociateHandle(
@@ -2513,7 +2495,7 @@ CxPlatSocketDelete(
 
     const uint16_t SocketCount =
         (Socket->Type == CXPLAT_SOCKET_UDP && !Socket->HasFixedRemoteAddress) ?
-            Socket->Datapath->ProcCount : 1;
+            CxPlatProcMaxCount() : 1;
 
     for (uint16_t i = 0; i < SocketCount; ++i) {
         CxPlatSocketContextUninitialize(&Socket->Processors[i]);
