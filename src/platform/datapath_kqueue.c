@@ -407,7 +407,7 @@ CxPlatDataPathGetProc(
 
 QUIC_STATUS
 CxPlatSocketSendInternal(
-    _In_ CXPLAT_SOCKET* Socket,
+    _In_ CXPLAT_SOCKET_CONTEXT* SocketContext,
     _In_ const QUIC_ADDR* LocalAddress,
     _In_ const QUIC_ADDR* RemoteAddress,
     _In_ CXPLAT_SEND_DATA* SendData,
@@ -1431,7 +1431,7 @@ CxPlatSocketContextSendComplete(
     do {
         Status =
             CxPlatSocketSendInternal(
-                SocketContext->Binding,
+                SocketContext,
                 SendData->Bind ? &SendData->LocalAddress : NULL,
                 &SendData->RemoteAddress,
                 SendData,
@@ -2049,7 +2049,7 @@ CxPlatSendDataComplete(
 
 QUIC_STATUS
 CxPlatSocketSendInternal(
-    _In_ CXPLAT_SOCKET* Socket,
+    _In_ CXPLAT_SOCKET_CONTEXT* SocketContext,
     _In_ const QUIC_ADDR* LocalAddress,
     _In_ const QUIC_ADDR* RemoteAddress,
     _In_ CXPLAT_SEND_DATA* SendData,
@@ -2057,8 +2057,6 @@ CxPlatSocketSendInternal(
     )
 {
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
-    CXPLAT_DBG_ASSERT(Route->Queue);
-    CXPLAT_SOCKET_CONTEXT* SocketContext = Route->Queue;
     ssize_t SentByteCount = 0;
     QUIC_ADDR MappedRemoteAddress = {0};
     struct cmsghdr *CMsg = NULL;
@@ -2072,7 +2070,7 @@ CxPlatSocketSendInternal(
 
     char ControlBuffer[CMSG_SPACE(sizeof(struct in6_pktinfo)) + CMSG_SPACE(sizeof(int))] = {0};
 
-    CXPLAT_DBG_ASSERT(Socket != NULL && RemoteAddress != NULL && SendData != NULL);
+    CXPLAT_DBG_ASSERT(SocketContext != NULL && RemoteAddress != NULL && SendData != NULL);
 
     if (!IsPendedSend) {
         CxPlatSendDataFinalizeSendBuffer(SendData);
@@ -2083,7 +2081,7 @@ CxPlatSocketSendInternal(
         QuicTraceEvent(
             DatapathSend,
             "[data][%p] Send %u bytes in %hhu buffers (segment=%hu) Dst=%!ADDR!, Src=%!ADDR!",
-            Socket,
+            SocketContext->Binding,
             SendData->TotalSize,
             SendData->BufferCount,
             SendData->SegmentSize,
@@ -2133,7 +2131,7 @@ CxPlatSocketSendInternal(
     CMsg->cmsg_len = CMSG_LEN(sizeof(int));
     *(int *)CMSG_DATA(CMsg) = SendData->ECN;
 
-    if (!Socket->Connected) {
+    if (!SocketContext->Binding->Connected) {
         Mhdr.msg_name = &MappedRemoteAddress;
         Mhdr.msg_namelen = sizeof(MappedRemoteAddress);
         Mhdr.msg_controllen += CMSG_SPACE(sizeof(struct in6_pktinfo));
@@ -2248,9 +2246,11 @@ CxPlatSocketSend(
     _In_ CXPLAT_SEND_DATA* SendData
     )
 {
+    CXPLAT_DBG_ASSERT(Route->Queue);
+    CXPLAT_SOCKET_CONTEXT* SocketContext = Route->Queue;
     QUIC_STATUS Status =
         CxPlatSocketSendInternal(
-            Socket,
+            SocketContext,
             &Route->LocalAddress,
             &Route->RemoteAddress,
             SendData,
