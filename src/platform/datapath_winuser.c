@@ -1779,7 +1779,7 @@ CxPlatSocketCreateUdp(
     Socket->ClientContext = Config->CallbackContext;
     Socket->HasFixedRemoteAddress = (Config->RemoteAddress != NULL);
     Socket->Type = CXPLAT_SOCKET_UDP;
-    Socket->UseRio = IsServerSocket;
+    Socket->UseRio = TRUE;
     if (Config->LocalAddress) {
         CxPlatConvertToMappedV6(Config->LocalAddress, &Socket->LocalAddress);
     } else {
