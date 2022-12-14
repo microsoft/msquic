@@ -1428,7 +1428,7 @@ CxPlatSocketCreateUdp(
     int Result;
     int Option;
     BOOLEAN IsServerSocket = Config->RemoteAddress == NULL;
-    uint16_t SocketCount = IsServerSocket ? CxPlatProcMaxCount() : 1;
+    uint16_t SocketCount = IsServerSocket ? (uint16_t)CxPlatProcMaxCount() : 1;
     INET_PORT_RESERVATION_INSTANCE PortReservation;
 
     CXPLAT_DBG_ASSERT(Datapath->UdpHandlers.Receive != NULL || Config->Flags & CXPLAT_SOCKET_FLAG_PCP);
@@ -2495,7 +2495,7 @@ CxPlatSocketDelete(
 
     const uint16_t SocketCount =
         (Socket->Type == CXPLAT_SOCKET_UDP && !Socket->HasFixedRemoteAddress) ?
-            CxPlatProcMaxCount() : 1;
+            (uint16_t)CxPlatProcMaxCount() : 1;
 
     for (uint16_t i = 0; i < SocketCount; ++i) {
         CxPlatSocketContextUninitialize(&Socket->Processors[i]);
@@ -2838,8 +2838,9 @@ CxPlatDataPathSocketProcessAcceptCompletion(
                 (uint16_t)RssAffinity.Processor.Number;
         }
 
+        CXPLAT_DATAPATH* Datapath = ListenerSocketProc->Parent->Datapath;
         AcceptSocketProc->DatapathProc =
-            CxPlatDataPathGetProc(ListenerSocketProc->Parent->Datapath, AffinitizedProcessor);
+            &Datapath->Processors[AffinitizedProcessor % Datapath->ProcCount]; // TODO - Fix
         CxPlatRefIncrement(&AcceptSocketProc->DatapathProc->RefCount);
 
         if (!CxPlatEventQAssociateHandle(
