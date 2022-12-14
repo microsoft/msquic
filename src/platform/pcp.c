@@ -14,6 +14,8 @@ Abstract:
 #include "pcp.c.clog.h"
 #endif
 
+#pragma warning(disable:4221)  // nonstandard extension used: 'Route': cannot be initialized using address of automatic variable 'Route'
+
 const uint16_t CXPLAT_PCP_PORT = 5351;
 
 const uint16_t PCP_MAX_UDP_PAYLOAD = 1100;
