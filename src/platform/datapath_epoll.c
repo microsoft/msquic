@@ -1501,6 +1501,7 @@ CxPlatSocketContextRecvComplete(
         }
         CxPlatConvertFromMappedV6(RemoteAddr, RemoteAddr);
 
+        RecvPacket->Route->Queue = SocketContext;
         RecvPacket->BufferLength = SocketContext->RecvMsgHdr[CurrentMessage].msg_len;
         BytesTransferred += RecvPacket->BufferLength;
 
@@ -2044,30 +2045,21 @@ CxPlatSendDataAlloc(
 {
     CXPLAT_DBG_ASSERT(Socket != NULL);
 
-    CXPLAT_DATAPATH_PROC* DatapathProc =
-        CxPlatDataPathGetProc(Socket->Datapath, CxPlatProcCurrentNumber());
-
-    CXPLAT_SEND_DATA* SendData =
-        CxPlatPoolAlloc(&DatapathProc->SendDataPool);
-
-    if (SendData == NULL) {
-        QuicTraceEvent(
-            AllocFailure,
-            "Allocation of '%s' failed. (%llu bytes)",
-            "CXPLAT_SEND_DATA",
-            0);
-        goto Exit;
+    if (Config->Route->Queue == NULL) {
+        Config->Route->Queue = &Socket->SocketContexts[0];
     }
 
-    CxPlatZeroMemory(SendData, sizeof(*SendData));
+    CXPLAT_SOCKET_CONTEXT* SocketContext = Config->Route->Queue;
+    CXPLAT_SEND_DATA* SendData = CxPlatPoolAlloc(&SocketContext->DatapathProc->SendDataPool);
+    if (SendData != NULL) {
+        CxPlatZeroMemory(SendData, sizeof(*SendData));
+        SendData->Owner = SocketContext->DatapathProc;
+        SendData->ECN = Config->ECN;
+        SendData->SegmentSize =
+            (Socket->Datapath->Features & CXPLAT_DATAPATH_FEATURE_SEND_SEGMENTATION)
+                ? Config->MaxPacketSize : 0;
+    }
 
-    SendData->Owner = DatapathProc;
-    SendData->ECN = Config->ECN;
-    SendData->SegmentSize =
-        (Socket->Datapath->Features & CXPLAT_DATAPATH_FEATURE_SEND_SEGMENTATION)
-            ? Config->MaxPacketSize : 0;
-
-Exit:
     return SendData;
 }
 
@@ -2346,7 +2338,8 @@ CxPlatSocketSendInternal(
     )
 {
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
-    CXPLAT_SOCKET_CONTEXT* SocketContext = NULL;
+    CXPLAT_DBG_ASSERT(Route->Queue);
+    CXPLAT_SOCKET_CONTEXT* SocketContext = Route->Queue;
     QUIC_ADDR MappedRemoteAddress = {0};
     struct cmsghdr *CMsg = NULL;
     struct in_pktinfo *PktInfo = NULL;
@@ -2368,13 +2361,6 @@ CxPlatSocketSendInternal(
         + CMSG_SPACE(sizeof(uint16_t))
     #endif
         ] = {0};
-
-    if (Socket->HasFixedRemoteAddress) {
-        SocketContext = &Socket->SocketContexts[0];
-    } else {
-        uint32_t ProcNumber = CxPlatProcCurrentNumber() % Socket->Datapath->ProcCount;
-        SocketContext = &Socket->SocketContexts[ProcNumber];
-    }
 
     if (!IsPendedSend) {
         CxPlatSendDataFinalizeSendBuffer(SendData);
