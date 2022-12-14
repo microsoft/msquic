@@ -1526,9 +1526,9 @@ CxPlatSocketCreateUdp(
     CxPlatRefInitializeEx(&Socket->RefCount, SocketCount);
 
     Socket->RecvBufLen =
-    (Datapath->Features & CXPLAT_DATAPATH_FEATURE_RECV_COALESCING) ?
-        MAX_URO_PAYLOAD_LENGTH :
-        Socket->Mtu - CXPLAT_MIN_IPV4_HEADER_SIZE - CXPLAT_UDP_HEADER_SIZE;
+        (Datapath->Features & CXPLAT_DATAPATH_FEATURE_RECV_COALESCING) ?
+            MAX_URO_PAYLOAD_LENGTH :
+            Socket->Mtu - CXPLAT_MIN_IPV4_HEADER_SIZE - CXPLAT_UDP_HEADER_SIZE;
 
     for (uint16_t i = 0; i < SocketCount; i++) {
         Socket->Processors[i].Parent = Socket;
