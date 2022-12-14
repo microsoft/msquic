@@ -1921,7 +1921,7 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 CxPlatSocketDeleteComplete(
     _In_ CXPLAT_SOCKET* Binding
-)
+    )
 {
     IoCleanupIrp(&Binding->Irp);
     for (uint32_t i = 0; i < CxPlatProcMaxCount(); ++i) {
@@ -1941,7 +1941,7 @@ CxPlatDataPathCloseSocketIoCompletion(
     PDEVICE_OBJECT DeviceObject,
     PIRP Irp,
     void* Context
-)
+    )
 {
     UNREFERENCED_PARAMETER(DeviceObject);
     NT_ASSERT(Context);
@@ -2395,6 +2395,8 @@ CxPlatDataPathSocketReceive(
 
                 RecvContext->Binding = Binding;
                 RecvContext->ReferenceCount = 0;
+                RecvContext->Route.Queue =
+                    Binding->Datapath->ProcContexts[CurProcNumber % Binding->Datapath->ProcCount];
                 RecvContext->Route.LocalAddress = LocalAddr;
                 RecvContext->Route.RemoteAddress = RemoteAddr;
                 Datagram = (CXPLAT_RECV_DATA*)(RecvContext + 1);
