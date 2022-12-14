@@ -336,8 +336,8 @@ QuicTestMtuDiscovery(
     TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
     TEST_QUIC_SUCCEEDED(Connection.Start(ClientConfiguration, ServerLocalAddr.GetFamily(), QUIC_TEST_LOOPBACK_FOR_AF(ServerLocalAddr.GetFamily()), ServerLocalAddr.GetPort()));
 
-    CxPlatSleep(4000); // Wait for the first idle period to expire.
-    TEST_NOT_EQUAL(nullptr, Context.Connection);
+    CxPlatSleep(1000); // TODO - Make this event based.
+    TEST_NOT_EQUAL(nullptr, Listener.LastConnection);
 
     QUIC_STATISTICS_V2 ClientStats;
     TEST_QUIC_SUCCEEDED(Connection.GetStatistics(&ClientStats));
