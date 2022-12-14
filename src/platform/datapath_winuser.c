@@ -4031,9 +4031,9 @@ CxPlatDataPathRioWorker(
 }
 
 void
-CxPlatDataPathRioCompletion(
-    _In_ CXPLAT_CQE* Cqe,
-    _In_ DATAPATH_IO_SQE* Sqe
+CxPlatDataPathSocketProcessRioCompletion(
+    _In_ DATAPATH_IO_SQE* Sqe,
+    _In_ CXPLAT_CQE* Cqe
     )
 {
     CXPLAT_SOCKET_PROC* SocketProc = CONTAINING_RECORD(Sqe, CXPLAT_SOCKET_PROC, RioSqe);
@@ -5072,6 +5072,10 @@ CxPlatDataPathProcessCqe(
 
         case DATAPATH_IO_CONNECTEX:
             CxPlatDataPathSocketProcessConnectCompletion(Sqe, Cqe);
+            break;
+
+        case DATAPATH_IO_RIO_NOTIFY:
+            CxPlatDataPathSocketProcessRioCompletion(Sqe, Cqe);
             break;
 
         default:
