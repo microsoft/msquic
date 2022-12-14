@@ -174,6 +174,7 @@ RpsClient::Init(
     MaxLatencyIndex = ((uint64_t)RunTime / 1000) * RPS_MAX_REQUESTS_PER_SECOND;
     if (MaxLatencyIndex > (UINT32_MAX / sizeof(uint32_t))) {
         MaxLatencyIndex = UINT32_MAX / sizeof(uint32_t);
+        WriteOutput("Warning! Limiting request latency tracking to %llu requests\n", MaxLatencyIndex);
     }
 
     LatencyValues = UniquePtr<uint32_t[]>(new(std::nothrow) uint32_t[(size_t)MaxLatencyIndex]);
@@ -389,6 +390,7 @@ RpsClient::Wait(
         Workers[i].Uninitialize();
     }
 
+    WriteOutput("Completed %llu requests!\n", CompletedRequests);
     CachedCompletedRequests = CompletedRequests;
     return QUIC_STATUS_SUCCESS;
 }
