@@ -1167,6 +1167,17 @@ QuicSendFlush(
         return TRUE;
     }
 
+    if (Connection->PeerTransportParams.Flags & QUIC_TP_FLAG_MIN_ACK_DELAY &&
+        Connection->Stats.Send.TotalPackets > QUIC_INCREASED_ACK_TOLERANCE_THRESHOLD &&
+        Connection->PeerPacketTolerance < QUIC_INCREASED_ACK_TOLERANCE_VALUE) {
+        //
+        // Increase the packet tolerance a little higher once we've
+        // significantly used the connection, as to reduce the overhead of
+        // sending and receiving ACKs.
+        //
+        QuicConnUpdatePeerPacketTolerance(Connection, QUIC_INCREASED_ACK_TOLERANCE_VALUE);
+    }
+
     //
     // Connection CID changes on idle state after an amount of time
     //
@@ -1426,7 +1437,8 @@ QuicSendFlush(
         //
         QuicSendQueueFlush(&Connection->Send, REASON_SCHEDULING);
 
-        if (Builder.TotalCountDatagrams + 1 > Connection->PeerPacketTolerance) {
+        if (Connection->PeerTransportParams.Flags & QUIC_TP_FLAG_MIN_ACK_DELAY &&
+            Builder.TotalCountDatagrams + 1 > Connection->PeerPacketTolerance) {
             //
             // We're scheduling limited, so we should tell the peer to use our
             // (max) batch size + 1 as the peer tolerance as a hint that they
@@ -1435,15 +1447,6 @@ QuicSendFlush(
             //
             QuicConnUpdatePeerPacketTolerance(Connection, Builder.TotalCountDatagrams + 1);
         }
-
-    } else if (Builder.TotalCountDatagrams > Connection->PeerPacketTolerance) {
-        //
-        // If we aren't scheduling limited, we should just use the current batch
-        // size as the packet tolerance for the peer to use for acknowledging
-        // packets.
-        //
-        // Temporarily disabled for now.
-        //QuicConnUpdatePeerPacketTolerance(Connection, Builder.TotalCountDatagrams);
     }
 
     return Result != QUIC_SEND_INCOMPLETE;

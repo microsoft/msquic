@@ -6069,8 +6069,8 @@ QuicConnUpdatePeerPacketTolerance(
     _In_ uint8_t NewPacketTolerance
     )
 {
-    if (Connection->PeerTransportParams.Flags & QUIC_TP_FLAG_MIN_ACK_DELAY &&
-        Connection->PeerPacketTolerance != NewPacketTolerance) {
+    CXPLAT_DBG_ASSERT(Connection->PeerTransportParams.Flags & QUIC_TP_FLAG_MIN_ACK_DELAY);
+    if (Connection->PeerPacketTolerance != NewPacketTolerance) {
         QuicTraceLogConnInfo(
             UpdatePeerPacketTolerance,
             Connection,

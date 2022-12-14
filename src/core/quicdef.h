@@ -415,6 +415,21 @@ CXPLAT_STATIC_ASSERT(
 #define QUIC_ACK_DELAY_EXPONENT                 8
 
 //
+// The number of packets we should send before trying to increase the ACK
+// threshold, to reduce the overhead of ACKs. We want to wait a while into the
+// connection lifetime so as to not adversely effect the ramp up of the
+// connection.
+//
+#define QUIC_INCREASED_ACK_TOLERANCE_THRESHOLD  50
+
+//
+// An increased ACK threshold (more than QUIC_MIN_ACK_SEND_NUMBER) to reduce the
+// frequency of immediate ACKs being generated, sent and received, so as to
+// reduce their processing and network overhead.
+//
+#define QUIC_INCREASED_ACK_TOLERANCE_VALUE      5
+
+//
 // The lifetime of a QUIC stateless retry token encryption key.
 // This is also the interval that generates new keys.
 //
