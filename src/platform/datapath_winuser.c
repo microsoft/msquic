@@ -4055,8 +4055,10 @@ CxPlatDataPathRioWorker(
     CXPLAT_DATAPATH* Datapath = SocketProc->DatapathProc->Datapath;
     RIORESULT Results[32];
     ULONG ResultCount;
+    ULONG TotalResultCount = 0;
     ULONG NotifyResult;
     BOOLEAN NeedReceive = TRUE;
+    BOOLEAN NeedNotify = FALSE;
 
     ASSERT(SocketProc->Parent->Type == CXPLAT_SOCKET_UDP);
 
@@ -4107,15 +4109,24 @@ CxPlatDataPathRioWorker(
                 break;
             }
         }
-    } while (ResultCount > 0);
 
-    if (CxPlatRundownAcquire(&SocketProc->UpcallRundown)) {
-        if (NeedReceive) {
-            CxPlatDataPathStartReceiveAsync(SocketProc);
+        if (ResultCount > 0 && CxPlatRundownAcquire(&SocketProc->UpcallRundown)) {
+            if (NeedReceive) {
+                CxPlatDataPathStartReceiveAsync(SocketProc);
+                NeedReceive = FALSE;
+            }
+
+            CxPlatDataPathStartRioSends(SocketProc);
+
+            NeedNotify = TRUE;
+
+            CxPlatRundownRelease(&SocketProc->UpcallRundown);
         }
 
-        CxPlatDataPathStartRioSends(SocketProc);
+        TotalResultCount += ResultCount;
+    } while (ResultCount > 0 && TotalResultCount < 256);
 
+    if (NeedNotify) {
         //
         // Re-arm completion notifications.
         //
@@ -4123,8 +4134,6 @@ CxPlatDataPathRioWorker(
         NotifyResult = Datapath->RioDispatch.RIONotify(SocketProc->RioCq);
         CXPLAT_TEL_ASSERT(NotifyResult == ERROR_SUCCESS);
         DBG_UNREFERENCED_LOCAL_VARIABLE(NotifyResult);
-
-        CxPlatRundownRelease(&SocketProc->UpcallRundown);
     }
 }
 
