@@ -16,32 +16,37 @@ using System.Diagnostics;
 
 namespace QuicTrace
 {
-    public class LTTngGenericEventDataCooker : LTTngBaseSourceCooker
+    public sealed class QuicLTTngEventCooker : CookedDataReflector, ISourceDataCooker<LTTngEvent, LTTngContext, string>
     {
-        public const string Identifier = "QUIC";
+        public static readonly DataCookerPath CookerPath = DataCookerPath.ForSource(LTTngConstants.SourceId, "QUIC");
 
-        public override string Description => "All events reported in the source.";
+        public ReadOnlyHashSet<string> DataKeys => new ReadOnlyHashSet<string>(new HashSet<string>());
 
-        public LTTngGenericEventDataCooker()
-            : base(Identifier)
-        {
-            //this.Events = new ProcessedEventData<LTTngGenericEvent>();
-        }
+        public DataCookerPath Path => CookerPath;
 
-        /// <summary>
-        /// No specific data keys for generic events, rather, the ReceiveAllEvents option is set.
-        /// </summary>
-        public override ReadOnlyHashSet<string> DataKeys => EmptyDataKeys;
+        public string Description => "MsQuic Event Cooker";
 
-        /// <summary>
-        /// This data cooker receives all data elements.
-        /// </summary>
-        public override SourceDataCookerOptions Options => SourceDataCookerOptions.ReceiveAllDataElements;
+        public IReadOnlyDictionary<DataCookerPath, DataCookerDependencyType> DependencyTypes =>
+            new Dictionary<DataCookerPath, DataCookerDependencyType>();
+
+        public IReadOnlyCollection<DataCookerPath> RequiredDataCookers => new HashSet<DataCookerPath>();
+
+        public DataProductionStrategy DataProductionStrategy { get; }
+
+        public SourceDataCookerOptions Options => SourceDataCookerOptions.ReceiveAllDataElements;
 
         [DataOutput]
         public QuicState State { get; } = new QuicState();
 
-        public override DataProcessingResult CookDataElement(
+        public QuicLTTngEventCooker() : base(CookerPath)
+        {
+        }
+
+        public void BeginDataCooking(ICookedDataRetrieval dependencyRetrieval, CancellationToken cancellationToken)
+        {
+        }
+
+        public DataProcessingResult CookDataElement(
             LTTngEvent data,
             LTTngContext context,
             CancellationToken cancellationToken)
@@ -57,7 +62,7 @@ namespace QuicTrace
             return DataProcessingResult.Processed;
         }
 
-        public override void EndDataCooking(CancellationToken cancellationToken)
+        public void EndDataCooking(CancellationToken cancellationToken)
         {
             if (!cancellationToken.IsCancellationRequested)
             {
