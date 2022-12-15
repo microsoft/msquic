@@ -1860,7 +1860,7 @@ CxPlatSocketCreateUdp(
         Binding->SocketContexts[i].DatapathProc =
             IsServerSocket ?
                 &Datapath->Processors[i] :
-                CxPlatDataPathGetProc(Datapath, CurrentProc);
+                Config->PartitionIndex;
         CxPlatRefIncrement(&Binding->SocketContexts[i].DatapathProc->RefCount);
         CxPlatListInitializeHead(&Binding->SocketContexts[i].PendingSendDataHead);
         CxPlatLockInitialize(&Binding->SocketContexts[i].PendingSendDataLock);
