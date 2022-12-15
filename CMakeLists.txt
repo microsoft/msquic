@@ -439,9 +439,6 @@ if(WIN32)
     message(STATUS "Disabling (client) shared port support")
     list(APPEND QUIC_COMMON_DEFINES QUIC_DISABLE_SHARED_PORT_TESTS)
 
-    message(STATUS "Enabling UDP Send Queuing")
-    list(APPEND QUIC_COMMON_DEFINES CXPLAT_DATAPATH_QUEUE_SENDS=1)
-
     if (QUIC_UWP_BUILD)
         list(APPEND QUIC_COMMON_DEFINES QUIC_UWP_BUILD QUIC_RESTRICTED_BUILD)
         set(CMAKE_CXX_STANDARD_LIBRARIES "")
@@ -619,7 +616,7 @@ else() #!WIN32
 
     if(QUIC_ENABLE_SANITIZERS)
         message(STATUS "Configuring sanitizers")
-        list(APPEND QUIC_COMMON_FLAGS -fsanitize=address,leak,undefined,alignment -fsanitize-address-use-after-scope -Og -fno-omit-frame-pointer -fno-optimize-sibling-calls)
+        list(APPEND QUIC_COMMON_FLAGS -fsanitize=address,leak,undefined,alignment -fsanitize-address-use-after-scope -Og -fno-omit-frame-pointer -fno-optimize-sibling-calls -fno-var-tracking-assignments)
         if (CX_PLATFORM STREQUAL "darwin")
             list(APPEND QUIC_COMMON_FLAGS -gdwarf)
         else()
