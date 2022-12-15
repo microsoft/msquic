@@ -356,6 +356,11 @@ typedef struct QUIC_CACHEALIGN CXPLAT_DATAPATH_PROC {
     //
     // The ideal processor of the context.
     //
+    uint16_t PartitionIndex;
+
+    //
+    // The ideal processor of the context.
+    //
     uint16_t IdealProcessor;
 
 #if DEBUG
@@ -510,6 +515,7 @@ CxPlatProcessorContextInitialize(
 
     CXPLAT_DBG_ASSERT(Datapath != NULL);
     DatapathProc->Datapath = Datapath;
+    DatapathProc->ProcessorIndex = ProcessorIndex;
     DatapathProc->IdealProcessor = IdealProcessor;
     DatapathProc->EventQ = CxPlatWorkerGetEventQ(ProcessorIndex);
     CxPlatRefInitialize(&DatapathProc->RefCount);
@@ -1546,7 +1552,7 @@ CxPlatSocketContextRecvComplete(
         CXPLAT_FRE_ASSERT(FoundLocalAddr);
         CXPLAT_FRE_ASSERT(FoundTOS);
 
-        RecvPacket->PartitionIndex = SocketContext->DatapathProc->IdealProcessor;
+        RecvPacket->PartitionIndex = SocketContext->DatapathProc->PartitionIndex;
 
         QuicTraceEvent(
             DatapathRecv,
