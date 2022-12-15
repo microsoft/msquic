@@ -2050,6 +2050,7 @@ CxPlatSendDataAlloc(
     }
 
     CXPLAT_SOCKET_CONTEXT* SocketContext = Config->Route->Queue;
+    CXPLAT_FRE_ASSERT(SocketContext->Binding->Datapath == SocketContext->DatapathProc->Datapath);
     CXPLAT_SEND_DATA* SendData = CxPlatPoolAlloc(&SocketContext->DatapathProc->SendDataPool);
     if (SendData != NULL) {
         CxPlatZeroMemory(SendData, sizeof(*SendData));
@@ -2562,6 +2563,7 @@ CxPlatSocketSend(
     UNREFERENCED_PARAMETER(Socket);
     CXPLAT_DBG_ASSERT(Route->Queue);
     CXPLAT_SOCKET_CONTEXT* SocketContext = Route->Queue;
+    CXPLAT_FRE_ASSERT(SocketContext->Binding->Datapath == SocketContext->DatapathProc->Datapath);
     QUIC_STATUS Status =
         CxPlatSocketSendInternal(
             SocketContext,
