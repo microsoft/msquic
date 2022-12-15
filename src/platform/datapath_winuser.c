@@ -655,6 +655,62 @@ typedef struct CXPLAT_DATAPATH {
 
 } CXPLAT_DATAPATH;
 
+#ifdef DEBUG
+#ifndef AllocOffset
+#define AllocOffset (sizeof(void*) * 2)
+#endif
+#endif
+
+_Ret_maybenull_
+_Post_writable_byte_size_(ByteCount)
+DECLSPEC_ALLOCATOR
+void*
+CxPlatLargeAlloc(
+    _In_ size_t ByteCount,
+    _In_ uint32_t Tag
+    )
+{
+#ifdef DEBUG
+    uint32_t Rand;
+    if ((CxPlatform.AllocFailDenominator > 0 && (CxPlatRandom(sizeof(Rand), &Rand), Rand % CxPlatform.AllocFailDenominator) == 1) ||
+        (CxPlatform.AllocFailDenominator < 0 && InterlockedIncrement(&CxPlatform.AllocCounter) % CxPlatform.AllocFailDenominator == 0)) {
+        return NULL;
+    }
+
+    void* Alloc =
+        VirtualAlloc(NULL, ByteCount + AllocOffset, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
+    if (Alloc == NULL) {
+        return NULL;
+    }
+    *((uint32_t*)Alloc) = Tag;
+    return (void*)((uint8_t*)Alloc + AllocOffset);
+#else
+    UNREFERENCED_PARAMETER(Tag);
+    return VirtualAlloc(NULL, ByteCount, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
+#endif
+}
+
+void
+CxPlatLargeFree(
+    __drv_freesMem(Mem) _Frees_ptr_ void* Mem,
+    _In_ uint32_t Tag
+    )
+{
+#ifdef DEBUG
+    void* ActualAlloc = (void*)((uint8_t*)Mem - AllocOffset);
+    if (Mem != NULL) {
+        uint32_t TagToCheck = *((uint32_t*)ActualAlloc);
+        CXPLAT_DBG_ASSERT(TagToCheck == Tag);
+    } else {
+        ActualAlloc = NULL;
+    }
+    (void)VirtualFree(ActualAlloc, 0, MEM_RELEASE);
+#else
+    UNREFERENCED_PARAMETER(Tag);
+    (void)VirtualFree(Mem, 0, MEM_RELEASE);
+#endif
+}
+
 VOID
 CxPlatStartDatapathIo(
     _Inout_ DATAPATH_IO_SQE* Sqe,
@@ -3102,14 +3158,14 @@ RioRecvBufferAllocate(
         CXPLAT_CONTAINING_RECORD(Pool, CXPLAT_DATAPATH_PROC, RioRecvPool);
     CXPLAT_DATAPATH* Datapath = DatapathProc->Datapath;
 
-    CXPLAT_DATAPATH_INTERNAL_RECV_CONTEXT* RecvContext = CxPlatAlloc(Size, Tag);
+    CXPLAT_DATAPATH_INTERNAL_RECV_CONTEXT* RecvContext = CxPlatLargeAlloc(Size, Tag);
 
     if (RecvContext != NULL) {
         RecvContext->RioBufferId =
             Datapath->RioDispatch.RIORegisterBuffer((char*)RecvContext, Size);
 
         if (RecvContext->RioBufferId == RIO_INVALID_BUFFERID) {
-            CxPlatFree(RecvContext, Tag);
+            CxPlatLargeFree(RecvContext, Tag);
             RecvContext = NULL;
         }
     }
@@ -3131,7 +3187,7 @@ RioRecvBufferFree(
 
     CXPLAT_DBG_ASSERT(RecvContext->RioBufferId != RIO_INVALID_BUFFERID);
     Datapath->RioDispatch.RIODeregisterBuffer(RecvContext->RioBufferId);
-    CxPlatFree(RecvContext, Tag);
+    CxPlatLargeFree(RecvContext, Tag);
 }
 
 CXPLAT_DATAPATH_INTERNAL_RECV_CONTEXT*
@@ -4054,6 +4110,7 @@ CxPlatDataPathRioWorker(
         if (NeedReceive) {
             CxPlatDataPathStartReceiveAsync(SocketProc);
         }
+
         CxPlatDataPathStartRioSends(SocketProc);
 
         //
@@ -4308,13 +4365,13 @@ RioSendDataAllocate(
     CXPLAT_DATAPATH* Datapath = DatapathProc->Datapath;
     CXPLAT_SEND_DATA* SendData;
 
-    SendData = CxPlatAlloc(Size, Tag);
+    SendData = CxPlatLargeAlloc(Size, Tag);
 
     if (SendData != NULL) {
         SendData->RioBufferId =
             Datapath->RioDispatch.RIORegisterBuffer((char*)SendData, Size);
         if (SendData->RioBufferId == RIO_INVALID_BUFFERID) {
-            CxPlatFree(SendData, Tag);
+            CxPlatLargeFree(SendData, Tag);
             SendData = NULL;
         }
     }
@@ -4336,7 +4393,7 @@ RioSendDataFree(
 
     CXPLAT_DBG_ASSERT(SendData->RioBufferId != RIO_INVALID_BUFFERID);
     Datapath->RioDispatch.RIODeregisterBuffer(SendData->RioBufferId);
-    CxPlatFree(SendData, Tag);
+    CxPlatLargeFree(SendData, Tag);
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -4425,7 +4482,7 @@ RioSendBufferAllocateInternal(
     void* Buffer = NULL;
 
     CXPLAT_DBG_ASSERT(Size + (uint32_t)sizeof(*RioHeader) > Size);
-    RioHeader = CxPlatAlloc(Size + sizeof(*RioHeader), Tag);
+    RioHeader = CxPlatLargeAlloc(Size + sizeof(*RioHeader), Tag);
 
     if (RioHeader != NULL) {
         Buffer = RioHeader + 1;
@@ -4433,7 +4490,7 @@ RioSendBufferAllocateInternal(
         RioHeader->Datapath = Datapath;
         RioHeader->RioBufferId = Datapath->RioDispatch.RIORegisterBuffer(Buffer, Size);
         if (RioHeader->RioBufferId == RIO_INVALID_BUFFERID) {
-            CxPlatFree(RioHeader, Tag);
+            CxPlatLargeFree(RioHeader, Tag);
             RioHeader = NULL;
             Buffer = NULL;
         }
@@ -4484,7 +4541,7 @@ RioSendBufferFree(
 
     CXPLAT_DBG_ASSERT(RioHeader->RioBufferId != RIO_INVALID_BUFFERID);
     Datapath->RioDispatch.RIODeregisterBuffer(RioHeader->RioBufferId);
-    CxPlatFree(RioHeader, Tag);
+    CxPlatLargeFree(RioHeader, Tag);
 }
 
 static
