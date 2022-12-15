@@ -22,7 +22,7 @@ namespace QuicTrace.Tables
            "QUIC API Calls",
            "QUIC API Calls",
            category: "System Activity",
-           requiredDataCookers: new List<DataCookerPath> { QuicEtwEventCooker.CookerPath });
+           requiredDataCookers: new List<DataCookerPath> { QuicLTTngEventCooker.CookerPath });
 
         private static readonly ColumnConfiguration typeColumnConfig =
             new ColumnConfiguration(
@@ -114,7 +114,7 @@ namespace QuicTrace.Tables
         public static bool IsDataAvailable(IDataExtensionRetrieval tableData)
         {
             Debug.Assert(!(tableData is null));
-            var quicState = tableData.QueryOutput<QuicState>(new DataOutputPath(QuicEtwEventCooker.CookerPath, "State"));
+            var quicState = tableData.QueryOutput<QuicState>(new DataOutputPath(QuicLTTngEventCooker.CookerPath, "State"));
             return quicState != null && quicState.DataAvailableFlags.HasFlag(QuicDataAvailableFlags.Api);
         }
 
@@ -122,7 +122,7 @@ namespace QuicTrace.Tables
         {
             Debug.Assert(!(tableBuilder is null) && !(tableData is null));
 
-            var quicState = tableData.QueryOutput<QuicState>(new DataOutputPath(QuicEtwEventCooker.CookerPath, "State"));
+            var quicState = tableData.QueryOutput<QuicState>(new DataOutputPath(QuicLTTngEventCooker.CookerPath, "State"));
             if (quicState == null)
             {
                 return;
