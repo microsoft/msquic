@@ -1142,7 +1142,7 @@ CxPlatDataPathQuerySockoptSupport(
             "[data] Query for UDP_RECV_MAX_COALESCED_SIZE failed, 0x%x",
             WsaError);
     } else {
-        Datapath->Features |= CXPLAT_DATAPATH_FEATURE_RECV_COALESCING;
+        //Datapath->Features |= CXPLAT_DATAPATH_FEATURE_RECV_COALESCING;
     }
 }
 
@@ -1306,7 +1306,7 @@ CxPlatDataPathInitialize(
         MessageCount * Datapath->DatagramStride;
 
     const uint32_t RecvDatagramLength =
-        Datapath->RecvPayloadOffset + MAX_URO_PAYLOAD_LENGTH;
+        Datapath->RecvPayloadOffset + CXPLAT_MAX_MTU - CXPLAT_MIN_IPV4_HEADER_SIZE - CXPLAT_UDP_HEADER_SIZE;
 
     for (uint16_t i = 0; i < Datapath->ProcCount; i++) {
 
@@ -2482,7 +2482,10 @@ CxPlatSocketCreateTcpInternal(
     AffinitizedProcessor = RemoteAddress ?
         (((uint16_t)CxPlatProcCurrentNumber()) % Datapath->ProcCount) : 0;
     Socket->Mtu = CXPLAT_MAX_MTU;
-    Socket->RecvBufLen = MAX_URO_PAYLOAD_LENGTH;
+    Socket->RecvBufLen =
+        (Datapath->Features & CXPLAT_DATAPATH_FEATURE_RECV_COALESCING) ?
+            MAX_URO_PAYLOAD_LENGTH :
+            Socket->Mtu - CXPLAT_MIN_IPV4_HEADER_SIZE - CXPLAT_UDP_HEADER_SIZE; // TODO adjust for TCP.
     CxPlatRefInitializeEx(&Socket->RefCount, 1);
 
     SocketProc = &Socket->Processors[0];
@@ -3535,7 +3538,7 @@ CxPlatSocketStartRioReceives(
                 AllocFailure,
                 "Allocation of '%s' failed. (%llu bytes)",
                 "Socket Receive Buffer",
-                Datapath->RecvPayloadOffset + MAX_URO_PAYLOAD_LENGTH);
+                Datapath->RecvPayloadOffset + SocketProc->Parent->RecvBufLen);
             goto Error;
         }
 
@@ -3545,7 +3548,7 @@ CxPlatSocketStartRioReceives(
 
         Data.BufferId = RecvContext->RioBufferId;
         Data.Offset = Datapath->RecvPayloadOffset;
-        Data.Length = MAX_URO_PAYLOAD_LENGTH;
+        Data.Length = SocketProc->Parent->RecvBufLen;
         RemoteAddr.BufferId = RecvContext->RioBufferId;
         RemoteAddr.Offset =
             FIELD_OFFSET(CXPLAT_DATAPATH_INTERNAL_RECV_CONTEXT, Route.RemoteAddress);
@@ -3636,7 +3639,7 @@ CxPlatSocketStartWinsockReceive(
             AllocFailure,
             "Allocation of '%s' failed. (%llu bytes)",
             "Socket Receive Buffer",
-            SocketProc->Parent->Datapath->RecvPayloadOffset + MAX_URO_PAYLOAD_LENGTH);
+            SocketProc->Parent->Datapath->RecvPayloadOffset + SocketProc->Parent->RecvBufLen);
         goto Error;
     }
 
@@ -3862,7 +3865,7 @@ CxPlatDataPathUdpRecvComplete(
                 }
             } else if (CMsg->cmsg_level == IPPROTO_UDP) {
                 if (CMsg->cmsg_type == UDP_COALESCED_INFO) {
-                    CXPLAT_DBG_ASSERT(*(PDWORD)WSA_CMSG_DATA(CMsg) <= MAX_URO_PAYLOAD_LENGTH);
+                    CXPLAT_DBG_ASSERT(*(PDWORD)WSA_CMSG_DATA(CMsg) <= SocketProc->Parent->RecvBufLen);
                     MessageLength = (UINT16)*(PDWORD)WSA_CMSG_DATA(CMsg);
                     IsCoalesced = TRUE;
                 }
