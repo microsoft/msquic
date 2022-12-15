@@ -330,14 +330,9 @@ typedef struct CXPLAT_SEND_DATA {
     QUIC_ADDR LocalAddress;
 
     //
-    // The remote address to send to.
-    //
-    QUIC_ADDR RemoteAddress;
-
-    //
     // The V6-mapped remote address to send to.
     //
-    SOCKADDR_INET MappedRemoteAddress;
+    QUIC_ADDR MappedRemoteAddress;
 } CXPLAT_SEND_DATA;
 
 //
@@ -4732,7 +4727,6 @@ _IRQL_requires_max_(DISPATCH_LEVEL)
 QUIC_STATUS
 CxPlatSocketSendInline(
     _In_ const QUIC_ADDR* LocalAddress,
-    _In_ const QUIC_ADDR* RemoteAddress,
     _In_ CXPLAT_SEND_DATA* SendData
     )
 {
@@ -4759,13 +4753,8 @@ CxPlatSocketSendInline(
         SendData->TotalSize,
         SendData->WsaBufferCount,
         SendData->SegmentSize,
-        CASTED_CLOG_BYTEARRAY(sizeof(*RemoteAddress), RemoteAddress),
+        CASTED_CLOG_BYTEARRAY(sizeof(SendData->MappedRemoteAddress), &SendData->MappedRemoteAddress),
         CASTED_CLOG_BYTEARRAY(sizeof(*LocalAddress), LocalAddress));
-
-    //
-    // Map V4 address to dual-stack socket format.
-    //
-    CxPlatConvertToMappedV6(RemoteAddress, &SendData->MappedRemoteAddress);
 
     WSAMSG WSAMhdr;
     WSAMhdr.dwFlags = 0;
@@ -4963,11 +4952,6 @@ CxPlatSocketSendEnqueue(
         &Route->LocalAddress,
         sizeof(Route->LocalAddress));
 
-    CxPlatCopyMemory(
-        &SendData->RemoteAddress,
-        &Route->RemoteAddress,
-        sizeof(Route->RemoteAddress));
-
     CxPlatDatapathSqeInitialize(&SendData->Sqe.DatapathSqe, CXPLAT_CQE_TYPE_SOCKET_IO);
     CxPlatStartDatapathIo(&SendData->Sqe, DATAPATH_IO_QUEUE_SEND);
 
@@ -5008,6 +4992,11 @@ CxPlatSocketSend(
     SendData->SocketProc = SocketProc;
     CxPlatSendDataFinalizeSendBuffer(SendData);
 
+    //
+    // Map V4 address to dual-stack socket format.
+    //
+    CxPlatConvertToMappedV6(&Route->RemoteAddress, &SendData->MappedRemoteAddress);
+
     if (Socket->UseRio) {
         //
         // Currently RIO always queues sends.
@@ -5023,7 +5012,6 @@ CxPlatSocketSend(
         return
             CxPlatSocketSendInline(
                 &Route->LocalAddress,
-                &Route->RemoteAddress,
                 SendData);
     }
 
@@ -5043,7 +5031,6 @@ CxPlatDataPathSocketProcessQueuedSend(
     if (CxPlatRundownAcquire(&SocketProc->UpcallRundown)) {
         CxPlatSocketSendInline(
             &SendData->LocalAddress,
-            &SendData->RemoteAddress,
             SendData);
         CxPlatRundownRelease(&SocketProc->UpcallRundown);
     } else {
@@ -5069,7 +5056,6 @@ CxPlatDataPathStartRioSends(
         //
         CxPlatSocketSendInline(
             &SendData->LocalAddress,
-            &SendData->RemoteAddress,
             SendData);
     }
 }
