@@ -147,6 +147,7 @@ typedef enum DATAPATH_IO_TYPE {
     DATAPATH_IO_RIO_NOTIFY        = DATAPATH_IO_SIGNATURE + 6,
     DATAPATH_IO_RIO_RECV          = DATAPATH_IO_SIGNATURE + 7,
     DATAPATH_IO_RIO_SEND          = DATAPATH_IO_SIGNATURE + 8,
+    DATAPATH_IO_RECV_FAILURE      = DATAPATH_IO_SIGNATURE + 9,
     DATAPATH_IO_MAX
 } DATAPATH_IO_TYPE;
 
@@ -3699,16 +3700,35 @@ Retry_recv:
                     WsaError,
                     "WSARecvMsg");
                 Status = HRESULT_FROM_WIN32(WsaError);
+                CxPlatStopInlineDatapathIo(&RecvContext->Sqe);
+
                 if (SyncBytesReceived != NULL) {
                     *SyncBytesReceived = 0;
                     *SyncIoResult = WsaError;
                     *SyncRecvContext = RecvContext;
                 } else {
-                    //
-                    // TODO Post IO completion...
-                    //
+                    CxPlatStartDatapathIo(&RecvContext->Sqe, DATAPATH_IO_RECV_FAILURE);
+                    RecvContext->Sqe.DatapathSqe.Sqe.Overlapped.Internal = WsaError;
+
+                    if (!CxPlatEventQEnqueueEx(
+                            SocketProc->DatapathProc->EventQ,
+                            &RecvContext->Sqe.DatapathSqe.Sqe,
+                            0,
+                            &RecvContext->Sqe.DatapathSqe)) {
+                        DWORD LastError = GetLastError();
+                        QuicTraceEvent(
+                            DatapathErrorStatus,
+                            "[data][%p] ERROR, %u, %s.",
+                            SocketProc->Parent,
+                            LastError,
+                            "CxPlatEventQEnqueueEx");
+                        Status = HRESULT_FROM_WIN32(LastError);
+                        goto Error;
+                    }
+
+                    Status = QUIC_STATUS_PENDING;
                 }
-                CxPlatStopInlineDatapathIo(&RecvContext->Sqe);
+
                 goto Error;
             }
         }
@@ -4331,22 +4351,17 @@ CxPlatDataPathRecvComplete(
 }
 
 void
-CxPlatDataPathSocketProcessReceiveCompletion(
-    _In_ DATAPATH_IO_SQE* Sqe,
-    _In_ CXPLAT_CQE* Cqe
+CxPlatDataPathSocketProcessReceiveInternal(
+    _In_ CXPLAT_DATAPATH_INTERNAL_RECV_CONTEXT* RecvContext,
+    _In_ uint16_t BytesTransferred,
+    _In_ ULONG IoResult
     )
 {
-    CXPLAT_DATAPATH_INTERNAL_RECV_CONTEXT* RecvContext =
-        CONTAINING_RECORD(Sqe, CXPLAT_DATAPATH_INTERNAL_RECV_CONTEXT, Sqe);
     CXPLAT_SOCKET_PROC* SocketProc = RecvContext->SocketProc;
 
     if (!CxPlatRundownAcquire(&SocketProc->UpcallRundown)) {
         return;
     }
-
-    CXPLAT_DBG_ASSERT(Cqe->dwNumberOfBytesTransferred <= UINT16_MAX);
-    uint16_t BytesTransferred = (uint16_t)Cqe->dwNumberOfBytesTransferred;
-    ULONG IoResult = RtlNtStatusToDosError((NTSTATUS)Cqe->Internal);
 
     for (ULONG InlineReceiveCount = 10; InlineReceiveCount > 0; InlineReceiveCount--) {
         BOOLEAN StartReceive =
@@ -4364,6 +4379,38 @@ CxPlatDataPathSocketProcessReceiveCompletion(
     }
 
     CxPlatRundownRelease(&SocketProc->UpcallRundown);
+}
+
+void
+CxPlatDataPathSocketProcessReceiveCompletion(
+    _In_ DATAPATH_IO_SQE* Sqe,
+    _In_ CXPLAT_CQE* Cqe
+    )
+{
+    CXPLAT_DATAPATH_INTERNAL_RECV_CONTEXT* RecvContext =
+        CONTAINING_RECORD(Sqe, CXPLAT_DATAPATH_INTERNAL_RECV_CONTEXT, Sqe);
+
+    CXPLAT_DBG_ASSERT(Cqe->dwNumberOfBytesTransferred <= UINT16_MAX);
+    uint16_t BytesTransferred = (uint16_t)Cqe->dwNumberOfBytesTransferred;
+    ULONG IoResult = RtlNtStatusToDosError((NTSTATUS)Cqe->Internal);
+
+    CxPlatDataPathSocketProcessReceiveInternal(RecvContext, BytesTransferred, IoResult);
+}
+
+void
+CxPlatDataPathSocketProcessReceiveFailure(
+    _In_ DATAPATH_IO_SQE* Sqe,
+    _In_ CXPLAT_CQE* Cqe
+    )
+{
+    CXPLAT_DATAPATH_INTERNAL_RECV_CONTEXT* RecvContext =
+        CONTAINING_RECORD(Sqe, CXPLAT_DATAPATH_INTERNAL_RECV_CONTEXT, Sqe);
+
+    CXPLAT_DBG_ASSERT(Cqe->dwNumberOfBytesTransferred == 0);
+    uint16_t BytesTransferred = (uint16_t)Cqe->dwNumberOfBytesTransferred;
+    ULONG IoResult = (ULONG)Cqe->Internal;
+
+    CxPlatDataPathSocketProcessReceiveInternal(RecvContext, BytesTransferred, IoResult);
 }
 
 void*
@@ -5187,6 +5234,10 @@ CxPlatDataPathProcessCqe(
 
         case DATAPATH_IO_RIO_NOTIFY:
             CxPlatDataPathSocketProcessRioCompletion(Sqe, Cqe);
+            break;
+
+        case DATAPATH_IO_RECV_FAILURE:
+            CxPlatDataPathSocketProcessReceiveFailure(Sqe, Cqe);
             break;
 
         default:
