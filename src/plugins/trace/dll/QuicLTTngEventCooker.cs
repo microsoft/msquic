@@ -11,7 +11,7 @@ using Microsoft.Performance.SDK;
 using System.Threading;
 using QuicTrace.DataModel;
 using Dia2Lib;
-using QuicTrace.DataModel.ETW;
+using QuicTrace.DataModel.LTTng;
 using System.Diagnostics;
 
 namespace QuicTrace
@@ -53,7 +53,7 @@ namespace QuicTrace
         {
 
             Debug.Assert(!(data is null));
-            var evt = QuicEtwEvent.TryCreate(data);
+            var evt = QuicLTTngEvent.TryCreate(data);
             if (evt != null)
             {
                 State.AddEvent(evt);

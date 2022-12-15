@@ -9,103 +9,12 @@ using Microsoft.Diagnostics.Tracing;
 using Microsoft.Performance.SDK;
 using QuicTrace.DataModel.LTTng;
 
-namespace QuicTrace.DataModel.ETW
+namespace QuicTrace.DataModel.LTTng
 {
-    [Flags]
-    internal enum QuicEtwEventKeywords : ulong
+    internal static class QuicLTTngEvent
     {
-        Registration  = 0x0000000000000001ul,
-        Configuration = 0x0000000000000002ul,
-        Listener      = 0x0000000000000004ul,
-        Worker        = 0x0000000000000008ul,
-        Binding       = 0x0000000000000010ul,
-        Connection    = 0x0000000000000020ul,
-        Stream        = 0x0000000000000040ul,
-        UDP           = 0x0000000000000080ul,
-        Packet        = 0x0000000000000100ul,
-        TLS           = 0x0000000000000200ul,
-        Platform      = 0x0000000000000400ul,
-        Api           = 0x0000000000000800ul,
-        Log           = 0x0000000000001000ul,
-        RPS           = 0x0000000000002000ul,
-        LowVolume     = 0x0000000080000000ul,
-        DataFlow      = 0x0000000040000000ul,
-        Scheduling    = 0x0000000020000000ul,
-    }
 
-    internal enum QuicEtwEventOpcode : byte
-    {
-        Global = 11,
-        Registration,
-        Configuration,
-        Worker,
-        Listener,
-        Binding,
-        Connection,
-        Stream,
-        Datapath
-    }
-
-    internal static class QuicEtwEvent
-    {
-        private static QuicObjectType ComputeObjectType(TraceEvent evt)
-        {
-            if ((byte)evt.Opcode >= (byte)QuicEtwEventOpcode.Global)
-            {
-                //
-                // If using the new opcodes, calculate object type from opcode. (fast method)
-                //
-                return (QuicObjectType)((byte)evt.Opcode - (byte)QuicEtwEventOpcode.Global);
-            }
-            else
-            {
-                var keywords = (QuicEtwEventKeywords)evt.Keywords;
-
-                //
-                // If using the old opcodes, calculate object type from keyword flags. (slow method)
-                //
-                if (keywords.HasFlag(QuicEtwEventKeywords.Registration))
-                {
-                    return QuicObjectType.Registration;
-                }
-                else if (keywords.HasFlag(QuicEtwEventKeywords.Configuration))
-                {
-                    return QuicObjectType.Configuration;
-                }
-                else if (keywords.HasFlag(QuicEtwEventKeywords.Listener))
-                {
-                    return QuicObjectType.Listener;
-                }
-                else if (keywords.HasFlag(QuicEtwEventKeywords.Worker))
-                {
-                    return QuicObjectType.Worker;
-                }
-                else if (keywords.HasFlag(QuicEtwEventKeywords.Binding))
-                {
-                    return QuicObjectType.Binding;
-                }
-                else if (keywords.HasFlag(QuicEtwEventKeywords.Connection) || keywords.HasFlag(QuicEtwEventKeywords.TLS))
-                {
-                    return QuicObjectType.Connection;
-                }
-                else if (keywords.HasFlag(QuicEtwEventKeywords.Stream))
-                {
-                    return QuicObjectType.Stream;
-                }
-                else if (keywords.HasFlag(QuicEtwEventKeywords.UDP))
-                {
-                    return QuicObjectType.Datapath;
-                }
-                else
-                {
-                    return QuicObjectType.Global;
-                }
-            }
-        }
-
-        // TODO: QuicEtwDataReader to IDataReader
-        [System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE2001:Embedded statements must be on their own line", Justification = "<Pending>")]
-        internal static unsafe QuicEvent? TryCreate(Timestamp timestamp, QuicEventId id, ushort processor, uint processId, uint threadId, int pointerSize, QuicEtwDataReader data)
+        internal static unsafe QuicEvent? TryCreate(Timestamp timestamp, QuicEventId id, ushort processor, uint processId, uint threadId, int pointerSize, QuicLTTngDataReader data)
         {
             switch (id.ToString())
             {
@@ -303,15 +212,18 @@ namespace QuicTrace.DataModel.ETW
             }
         }
 
-        [System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE2001:Embedded statements must be on their own line", Justification = "<Pending>")]
-        internal static unsafe QuicEvent? TryCreate(TraceEvent evt, Timestamp timestamp)
+        internal static unsafe QuicEvent? TryCreate(LTTngEvent evt)
         {
-            var processor = (ushort)evt.ProcessorNumber;
-            var processId = (uint)evt.ProcessID;
-            var threadId = (uint)evt.ThreadID;
-            var pointerSize = evt.PointerSize;
-            var data = new QuicEtwDataReader(evt.DataStart.ToPointer(), evt.EventDataLength, pointerSize);
-            return TryCreate(timestamp, (QuicEventId)evt.ID, processor, processId, threadId, pointerSize, data);
+            var idstring = evt.Name.Substring(evt.Name.IndexOf(':') + 1);
+            QuicEventId id;
+            if (!Enum.TryParse(idstring, out id))
+                return null;
+            var timestamp = evt.Timestamp;
+            var processId = UInt32.Parse(evt.StreamDefinedEventContext.FieldsByName["_vpid"].GetValueAsString());
+            var threadId = UInt32.Parse(evt.StreamDefinedEventContext.FieldsByName["_vtid"].GetValueAsString());
+            int pointerSize = 8;
+            var data = new QuicLTTngDataReader(evt.Payload, pointerSize);
+            return TryCreate(timestamp, id, 0, processId, threadId, pointerSize, data);
         }
     }
 }
