@@ -13,7 +13,6 @@ namespace QuicTrace.DataModel.LTTng
 {
     internal static class QuicLTTngEvent
     {
-
         internal static unsafe QuicEvent? TryCreate(Timestamp timestamp, QuicEventId id, ushort processor, uint processId, uint threadId, int pointerSize, QuicLTTngDataReader data)
         {
             switch (id.ToString())
@@ -223,7 +222,11 @@ namespace QuicTrace.DataModel.LTTng
             var threadId = UInt32.Parse(evt.StreamDefinedEventContext.FieldsByName["_vtid"].GetValueAsString());
             int pointerSize = 8;
             var data = new QuicLTTngDataReader(evt.Payload, pointerSize);
-            return TryCreate(timestamp, id, 0, processId, threadId, pointerSize, data);
+
+            // processor is not supported.
+            // data is logged as stream.packet.context = { cpu_id = X }, but not reflected in LTTngEvent
+            ushort processor = 0;
+            return TryCreate(timestamp, id, processor, processId, threadId, pointerSize, data);
         }
     }
 }
