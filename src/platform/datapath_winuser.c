@@ -397,9 +397,9 @@ typedef struct QUIC_CACHEALIGN CXPLAT_DATAPATH_PROC {
     CXPLAT_REF_COUNT RefCount;
 
     //
-    // The index of ideal processor for this datapath.
+    // The index into the execution config processor array.
     //
-    uint16_t IdealProcessor;
+    uint16_t PartitionIndex;
 
 #if DEBUG
     uint8_t Uninitialized : 1;
@@ -830,8 +830,7 @@ CxPlatDataPathInitialize(
     int WsaError;
     QUIC_STATUS Status;
     WSADATA WsaData;
-    const uint16_t* ProcessorList;
-    uint32_t ProcessorCount;
+    uint32_t ProcessorCount = CxPlatProcMaxCount();
     uint32_t DatapathLength;
     CXPLAT_DATAPATH* Datapath = NULL;
     BOOLEAN WsaInitialized = FALSE;
@@ -874,10 +873,6 @@ CxPlatDataPathInitialize(
 
     if (Config && Config->ProcessorCount) {
         ProcessorCount = Config->ProcessorCount;
-        ProcessorList = Config->ProcessorList;
-    } else {
-        ProcessorCount = CxPlatProcMaxCount();
-        ProcessorList = NULL;
     }
 
     DatapathLength =
@@ -967,8 +962,7 @@ CxPlatDataPathInitialize(
     for (uint16_t i = 0; i < Datapath->ProcCount; i++) {
 
         Datapath->Processors[i].Datapath = Datapath;
-        Datapath->Processors[i].IdealProcessor =
-            ProcessorList ? ProcessorList[i] : (uint16_t)i;
+        Datapath->Processors[i].PartitionIndex = (uint16_t)i;
         Datapath->Processors[i].EventQ = CxPlatWorkerGetEventQ(i);
         CxPlatRefInitialize(&Datapath->Processors[i].RefCount);
 
@@ -2840,7 +2834,7 @@ CxPlatDataPathSocketProcessAcceptCompletion(
 
         CXPLAT_DATAPATH* Datapath = ListenerSocketProc->Parent->Datapath;
         AcceptSocketProc->DatapathProc =
-            &Datapath->Processors[AffinitizedProcessor % Datapath->ProcCount]; // TODO - Fix
+            &Datapath->Processors[AffinitizedProcessor % Datapath->ProcCount]; // TODO - Something better?
         CxPlatRefIncrement(&AcceptSocketProc->DatapathProc->RefCount);
 
         if (!CxPlatEventQAssociateHandle(
@@ -3264,7 +3258,7 @@ RecvAgain:
             Datagram->Buffer = RecvPayload;
             Datagram->BufferLength = MessageLength;
             Datagram->Route = &RecvContext->Route;
-            Datagram->PartitionIndex = SocketProc->DatapathProc->IdealProcessor;
+            Datagram->PartitionIndex = SocketProc->DatapathProc->PartitionIndex;
             Datagram->TypeOfService = (uint8_t)ECN;
             Datagram->Allocated = TRUE;
             Datagram->QueuedOnConnection = FALSE;
@@ -3430,7 +3424,7 @@ CxPlatDataPathTcpRecvComplete(
         Data->Buffer = ((PUCHAR)RecvContext) + Datapath->RecvPayloadOffset;
         Data->BufferLength = NumberOfBytesTransferred;
         Data->Route = &RecvContext->Route;
-        Data->PartitionIndex = SocketProc->DatapathProc->IdealProcessor;
+        Data->PartitionIndex = SocketProc->DatapathProc->PartitionIndex;
         Data->TypeOfService = 0;
         Data->Allocated = TRUE;
         Data->QueuedOnConnection = FALSE;

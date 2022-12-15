@@ -139,9 +139,18 @@ QuicIsVersionSupported(
     _In_ uint32_t Version // Network Byte Order
     );
 
-_IRQL_requires_max_(DISPATCH_LEVEL)
 uint16_t
-QuicLibraryGetCurrentPartition(
+QuicLibraryGetCurrentProcessor(
+    void
+    );
+
+uint16_t
+QuicLibraryGetPartitionProcessor(
+    uint16_t PartitionIndex
+    );
+
+QUIC_LIBRARY_PP*
+QuicLibraryGetPerProc(
     void
     );
 

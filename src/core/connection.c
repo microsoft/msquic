@@ -64,7 +64,7 @@ QuicConnAlloc(
     )
 {
     BOOLEAN IsServer = Datagram != NULL;
-    uint32_t CurProcIndex = CxPlatProcCurrentNumber();
+    uint16_t CurProcIndex = QuicLibraryGetCurrentProcessor();
     *NewConnection = NULL;
     QUIC_STATUS Status;
 
@@ -73,10 +73,7 @@ QuicConnAlloc(
     // the current processor for now. Once the connection receives a packet the
     // partition can be updated accordingly.
     //
-    uint16_t BasePartitionId =
-        IsServer ?
-            (Datagram->PartitionIndex % MsQuicLib.PartitionCount) :
-            CurProcIndex % MsQuicLib.PartitionCount;
+    uint16_t BasePartitionId = IsServer ? Datagram->PartitionIndex : CurProcIndex;
     uint16_t PartitionId = QuicPartitionIdCreate(BasePartitionId);
     CXPLAT_DBG_ASSERT(BasePartitionId == QuicPartitionIdGetIndex(PartitionId));
 
@@ -402,7 +399,7 @@ QuicConnFree(
     if (Connection->HandshakeTP != NULL) {
         QuicCryptoTlsCleanupTransportParameters(Connection->HandshakeTP);
         CxPlatPoolFree(
-            &MsQuicLib.PerProc[CxPlatProcCurrentNumber()].TransportParamPool,
+            &QuicLibraryGetPerProc()->TransportParamPool,
             Connection->HandshakeTP);
         Connection->HandshakeTP = NULL;
     }
@@ -422,9 +419,7 @@ QuicConnFree(
         ConnDestroyed,
         "[conn][%p] Destroyed",
         Connection);
-    CxPlatPoolFree(
-        &MsQuicLib.PerProc[CxPlatProcCurrentNumber()].ConnectionPool,
-        Connection);
+    CxPlatPoolFree(&QuicLibraryGetPerProc()->ConnectionPool, Connection);
 
 #if DEBUG
     InterlockedDecrement(&MsQuicLib.ConnectionCount);
@@ -2268,7 +2263,7 @@ QuicConnCleanupServerResumptionState(
         if (Connection->HandshakeTP != NULL) {
             QuicCryptoTlsCleanupTransportParameters(Connection->HandshakeTP);
             CxPlatPoolFree(
-                &MsQuicLib.PerProc[CxPlatProcCurrentNumber()].TransportParamPool,
+                &QuicLibraryGetPerProc()->TransportParamPool,
                 Connection->HandshakeTP);
             Connection->HandshakeTP = NULL;
         }
@@ -6868,7 +6863,7 @@ QuicConnParamGet(
         }
 
         *BufferLength = sizeof(uint16_t);
-        *(uint16_t*)Buffer = Connection->Worker->IdealProcessor;
+        *(uint16_t*)Buffer = QuicLibraryGetPartitionProcessor(Connection->Worker->PartitionIndex);
 
         Status = QUIC_STATUS_SUCCESS;
         break;
@@ -7169,7 +7164,7 @@ QuicConnApplyNewSettings(
             Connection->HandshakeTP == NULL) {
             CXPLAT_DBG_ASSERT(!Connection->State.Started);
             Connection->HandshakeTP =
-                CxPlatPoolAlloc(&MsQuicLib.PerProc[CxPlatProcCurrentNumber()].TransportParamPool);
+                CxPlatPoolAlloc(&QuicLibraryGetPerProc()->TransportParamPool);
             if (Connection->HandshakeTP == NULL) {
                 QuicTraceEvent(
                     AllocFailure,
@@ -7207,7 +7202,7 @@ QuicConnApplyNewSettings(
             // assigns specific meaning to the value of the bit.
             //
             uint8_t RandomValue;
-            (void) CxPlatRandom(sizeof(RandomValue), &RandomValue);
+            (void)CxPlatRandom(sizeof(RandomValue), &RandomValue);
             Connection->State.FixedBit = (RandomValue % 2);
             Connection->Stats.GreaseBitNegotiated = TRUE;
         }
@@ -7237,7 +7232,7 @@ QuicConnApplyNewSettings(
 
     if (NewSettings->IsSet.KeepAliveIntervalMs && Connection->State.Started) {
         if (Connection->Settings.KeepAliveIntervalMs != 0) {
-            QuicConnProcessKeepAliveOperation(Connection);;
+            QuicConnProcessKeepAliveOperation(Connection);
         } else {
             QuicConnTimerCancel(Connection, QUIC_CONN_TIMER_KEEP_ALIVE);
         }
