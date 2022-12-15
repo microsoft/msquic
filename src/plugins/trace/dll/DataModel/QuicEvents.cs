@@ -32,6 +32,7 @@ namespace QuicTrace.DataModel
         ConnectionStart,
         ConnectionSetConfiguration,
         ConnectionSendResumptionTicket,
+        ConnectionCompleteResumptionTicketValidation,
         StreamOpen,
         StreamClose,
         StreamStart,
