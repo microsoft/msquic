@@ -66,6 +66,12 @@ CxPlatFuzzerRecvMsg(
 #define CXPLAT_MAX_BATCH_SEND                 1
 
 //
+// The maximum receive payload size.
+//
+#define MAX_RECV_PAYLOAD_LENGTH \
+    (CXPLAT_MAX_MTU - CXPLAT_MIN_IPV4_HEADER_SIZE - CXPLAT_UDP_HEADER_SIZE)
+
+//
 // The maximum UDP receive coalescing payload.
 //
 #define MAX_URO_PAYLOAD_LENGTH              (UINT16_MAX - CXPLAT_UDP_HEADER_SIZE)
@@ -1142,7 +1148,7 @@ CxPlatDataPathQuerySockoptSupport(
             "[data] Query for UDP_RECV_MAX_COALESCED_SIZE failed, 0x%x",
             WsaError);
     } else {
-        //Datapath->Features |= CXPLAT_DATAPATH_FEATURE_RECV_COALESCING;
+        Datapath->Features |= CXPLAT_DATAPATH_FEATURE_RECV_COALESCING;
     }
 }
 
@@ -1306,7 +1312,9 @@ CxPlatDataPathInitialize(
         MessageCount * Datapath->DatagramStride;
 
     const uint32_t RecvDatagramLength =
-        Datapath->RecvPayloadOffset + CXPLAT_MAX_MTU - CXPLAT_MIN_IPV4_HEADER_SIZE - CXPLAT_UDP_HEADER_SIZE;
+        Datapath->RecvPayloadOffset +
+            ((Datapath->Features & CXPLAT_DATAPATH_FEATURE_RECV_COALESCING) ?
+                MAX_URO_PAYLOAD_LENGTH : MAX_RECV_PAYLOAD_LENGTH);
 
     for (uint16_t i = 0; i < Datapath->ProcCount; i++) {
 
@@ -2484,8 +2492,7 @@ CxPlatSocketCreateTcpInternal(
     Socket->Mtu = CXPLAT_MAX_MTU;
     Socket->RecvBufLen =
         (Datapath->Features & CXPLAT_DATAPATH_FEATURE_RECV_COALESCING) ?
-            MAX_URO_PAYLOAD_LENGTH :
-            Socket->Mtu - CXPLAT_MIN_IPV4_HEADER_SIZE - CXPLAT_UDP_HEADER_SIZE; // TODO adjust for TCP.
+            MAX_URO_PAYLOAD_LENGTH : MAX_RECV_PAYLOAD_LENGTH;
     CxPlatRefInitializeEx(&Socket->RefCount, 1);
 
     SocketProc = &Socket->Processors[0];
