@@ -16,15 +16,14 @@ using QuicTrace.DataModel;
 namespace QuicTrace.Tables
 {
     [Table]
-    [RequiresSourceCooker(LTTngConstants.SourceId, LTTngGenericEventDataCooker.Identifier)]
     public sealed class QuicApiTable
     {
         public static readonly TableDescriptor TableDescriptor = new TableDescriptor(
            Guid.Parse("{99e857d1-db91-4ed1-87ff-0e1491e9edbf}"),
            "QUIC API Calls",
            "QUIC API Calls",
-           category: "System Activity");
-           //,requiredDataCookers: new List<DataCookerPath> { QuicEventCooker.CookerPath });
+           category: "System Activity",
+           requiredDataCookers: new List<DataCookerPath> { QuicEventCooker.CookerPath });
 
         private static readonly ColumnConfiguration typeColumnConfig =
             new ColumnConfiguration(
