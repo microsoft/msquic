@@ -145,6 +145,11 @@ QuicLibraryGetCurrentProcessor(
     );
 
 uint16_t
+QuicLibraryGetCurrentPartition(
+    void
+    );
+
+uint16_t
 QuicLibraryGetPartitionProcessor(
     uint16_t PartitionIndex
     );

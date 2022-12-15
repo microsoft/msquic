@@ -28,6 +28,9 @@
     } while (0)
 #define ASSERT_ON_NOT(x) CXPLAT_FRE_ASSERT(x)
 
+QUIC_EXECUTION_CONFIG* ExecConfig = nullptr;
+uint32_t ExecConfigSize = 0;
+
 class FuzzingData {
     const uint8_t* data;
     size_t size;
@@ -1099,6 +1102,10 @@ CXPLAT_THREAD_CALLBACK(RunThread, Context)
             break;
         }
 
+        if (ExecConfig) {
+            MsQuic.SetParam(nullptr, QUIC_PARAM_GLOBAL_EXECUTION_CONFIG, ExecConfigSize, ExecConfig);
+        }
+
         QUIC_SETTINGS QuicSettings{0};
         CXPLAT_THREAD_CONFIG Config = { 0 };
 
@@ -1248,6 +1255,28 @@ void start() {
 
     MsQuicClose(TempMsQuic);
 
+#ifndef FUZZING
+    uint16_t ThreadID = UINT16_MAX;
+    if (ExecConfig) {
+        free(ExecConfig);
+        ExecConfig = nullptr;
+        ExecConfigSize = 0;
+    }
+
+    if (GetRandom(2) == 0) {
+        uint32_t ProcCount = 1 + GetRandom(CxPlatProcMaxCount() - 1);
+        printf("Using %u partitions...\n", ProcCount);
+        ExecConfigSize = QUIC_EXECUTION_CONFIG_MIN_SIZE + sizeof(uint16_t)*ProcCount;
+        ExecConfig = (QUIC_EXECUTION_CONFIG*)malloc(ExecConfigSize);
+        ExecConfig->Flags = QUIC_EXECUTION_CONFIG_FLAG_NONE;
+        ExecConfig->PollingIdleTimeoutUs = 0; // TODO - Randomize?
+        ExecConfig->ProcessorCount = ProcCount;
+        for (uint32_t i = 0; i < ProcCount; ++i) {
+            ExecConfig->ProcessorList[i] = (uint16_t)i;
+        }
+    }
+#endif
+
     Settings.RunTimeMs = Settings.RunTimeMs / Settings.RepeatCount;
     for (uint32_t i = 0; i < Settings.RepeatCount; i++) {
 
@@ -1299,6 +1328,7 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
     delete FuzzData;
     return 0;
 }
+
 #else
 
 int

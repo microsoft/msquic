@@ -64,7 +64,6 @@ QuicConnAlloc(
     )
 {
     BOOLEAN IsServer = Datagram != NULL;
-    uint16_t CurProcIndex = QuicLibraryGetCurrentProcessor();
     *NewConnection = NULL;
     QUIC_STATUS Status;
 
@@ -73,12 +72,13 @@ QuicConnAlloc(
     // the current processor for now. Once the connection receives a packet the
     // partition can be updated accordingly.
     //
-    uint16_t BasePartitionId = IsServer ? Datagram->PartitionIndex : CurProcIndex;
-    uint16_t PartitionId = QuicPartitionIdCreate(BasePartitionId);
-    CXPLAT_DBG_ASSERT(BasePartitionId == QuicPartitionIdGetIndex(PartitionId));
+    const uint16_t PartitionIndex =
+        IsServer ? Datagram->PartitionIndex : QuicLibraryGetCurrentPartition();
+    const uint16_t PartitionId = QuicPartitionIdCreate(PartitionIndex);
+    CXPLAT_DBG_ASSERT(PartitionIndex == QuicPartitionIdGetIndex(PartitionId));
 
     QUIC_CONNECTION* Connection =
-        CxPlatPoolAlloc(&MsQuicLib.PerProc[CurProcIndex].ConnectionPool);
+        CxPlatPoolAlloc(&QuicLibraryGetPerProc()->ConnectionPool);
     if (Connection == NULL) {
         QuicTraceEvent(
             AllocFailure,
@@ -1904,6 +1904,7 @@ QuicConnStart(
     UdpConfig.RemoteAddress = &Path->Route.RemoteAddress;
     UdpConfig.Flags = Connection->State.ShareBinding ? CXPLAT_SOCKET_FLAG_SHARE : 0;
     UdpConfig.InterfaceIndex = Connection->State.LocalInterfaceSet ? (uint32_t)Path->Route.LocalAddress.Ipv6.sin6_scope_id : 0, // NOLINT(google-readability-casting)
+    UdpConfig.PartitionIndex = QuicPartitionIdGetIndex(Connection->PartitionID);
 #ifdef QUIC_COMPARTMENT_ID
     UdpConfig.CompartmentId = Configuration->CompartmentId;
 #endif

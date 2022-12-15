@@ -1482,7 +1482,7 @@ CxPlatSocketCreateUdp(
     for (uint16_t i = 0; i < SocketCount; i++) {
 
         CXPLAT_SOCKET_PROC* SocketProc = &Socket->Processors[i];
-        uint16_t AffinitizedProcessor = (uint16_t)i;
+        const uint16_t PartitionIndex = Config->RemoteAddress ? Config->PartitionIndex : i;
         DWORD BytesReturned;
 
         SocketProc->Socket =
@@ -1740,14 +1740,10 @@ CxPlatSocketCreateUdp(
             goto Error;
         }
 
-        if (Config->RemoteAddress != NULL) {
-            AffinitizedProcessor =
-                ((uint16_t)CxPlatProcCurrentNumber()) % Datapath->ProcCount;
-        }
-
 QUIC_DISABLED_BY_FUZZER_START;
 
-        SocketProc->DatapathProc = &Datapath->Processors[i % Datapath->ProcCount];
+        CXPLAT_DBG_ASSERT(PartitionIndex < Datapath->ProcCount);
+        SocketProc->DatapathProc = &Datapath->Processors[PartitionIndex];
         CxPlatRefIncrement(&SocketProc->DatapathProc->RefCount);
 
         if (!CxPlatEventQAssociateHandle(
@@ -1989,7 +1985,7 @@ CxPlatSocketCreateTcpInternal(
     int Result;
     int Option;
     DWORD BytesReturned;
-    uint16_t AffinitizedProcessor;
+    uint16_t PartitionIndex;
 
     CXPLAT_DBG_ASSERT(Datapath->TcpHandlers.Receive != NULL);
 
@@ -2023,7 +2019,7 @@ CxPlatSocketCreateTcpInternal(
     } else {
         Socket->LocalAddress.si_family = QUIC_ADDRESS_FAMILY_INET6;
     }
-    AffinitizedProcessor = RemoteAddress ? ((uint16_t)CxPlatProcCurrentNumber()) : 0;
+    PartitionIndex = RemoteAddress ? ((uint16_t)CxPlatProcCurrentNumber()) : 0;
     Socket->Mtu = CXPLAT_MAX_MTU;
     CxPlatRefInitializeEx(&Socket->RefCount, 1);
 
@@ -2097,7 +2093,7 @@ CxPlatSocketCreateTcpInternal(
     if (Type != CXPLAT_SOCKET_TCP_SERVER) {
 
         SocketProc->DatapathProc =
-            &Datapath->Processors[AffinitizedProcessor % Datapath->ProcCount];
+            &Datapath->Processors[PartitionIndex % Datapath->ProcCount];
         CxPlatRefIncrement(&SocketProc->DatapathProc->RefCount);
 
         if (!CxPlatEventQAssociateHandle(
@@ -2788,7 +2784,7 @@ CxPlatDataPathSocketProcessAcceptCompletion(
         CXPLAT_DBG_ASSERT(ListenerSocketProc->AcceptSocket == AcceptSocketProc->Parent);
         DWORD BytesReturned;
         SOCKET_PROCESSOR_AFFINITY RssAffinity = { 0 };
-        uint16_t AffinitizedProcessor = 0;
+        uint16_t PartitionIndex = 0;
 
         QuicTraceEvent(
             DatapathErrorStatus,
@@ -2827,14 +2823,14 @@ CxPlatDataPathSocketProcessAcceptCompletion(
                 NULL,
                 NULL);
         if (Result == NO_ERROR) {
-            AffinitizedProcessor =
+            PartitionIndex =
                 (uint16_t)CxPlatProcessorGroupOffsets[RssAffinity.Processor.Group] +
                 (uint16_t)RssAffinity.Processor.Number;
         }
 
         CXPLAT_DATAPATH* Datapath = ListenerSocketProc->Parent->Datapath;
         AcceptSocketProc->DatapathProc =
-            &Datapath->Processors[AffinitizedProcessor % Datapath->ProcCount]; // TODO - Something better?
+            &Datapath->Processors[PartitionIndex % Datapath->ProcCount]; // TODO - Something better?
         CxPlatRefIncrement(&AcceptSocketProc->DatapathProc->RefCount);
 
         if (!CxPlatEventQAssociateHandle(

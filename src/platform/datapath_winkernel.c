@@ -2150,7 +2150,7 @@ CxPlatDataPathSocketReceive(
 
     CXPLAT_SOCKET* Binding = (CXPLAT_SOCKET*)Context;
 
-    uint32_t CurProcNumber = CxPlatProcCurrentNumber();
+    const uint32_t CurProcNumber = CxPlatProcCurrentNumber();
     if (!CxPlatRundownAcquire(&Binding->Rundown[CurProcNumber])) {
         return STATUS_DEVICE_NOT_READY;
     }

@@ -299,6 +299,29 @@ QuicLibraryGetCurrentProcessor(
     return ((uint16_t)CxPlatProcCurrentNumber()) % MsQuicLib.ProcessorCount;
 }
 
+_IRQL_requires_max_(DISPATCH_LEVEL)
+inline
+uint16_t
+QuicLibraryGetCurrentPartition(
+    void
+    )
+{
+    CXPLAT_DBG_ASSERT(MsQuicLib.PerProc != NULL);
+    const uint16_t CurrentProc = (uint16_t)CxPlatProcCurrentNumber();
+    if (MsQuicLib.ExecutionConfig && MsQuicLib.ExecutionConfig->ProcessorCount) {
+        CXPLAT_DBG_ASSERT(MsQuicLib.ExecutionConfig->ProcessorList);
+        //
+        // Try to find a partition close to the current processor.
+        //
+        for (uint32_t i = 0; i < MsQuicLib.ExecutionConfig->ProcessorCount; ++i) {
+            if (CurrentProc <= MsQuicLib.ExecutionConfig->ProcessorList[i]) {
+                return (uint16_t)i;
+            }
+        }
+        return (uint16_t)MsQuicLib.ExecutionConfig->ProcessorCount - 1;
+    }
+    return CurrentProc % MsQuicLib.PartitionCount;
+}
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 inline
