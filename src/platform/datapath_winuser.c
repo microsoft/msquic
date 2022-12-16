@@ -3046,6 +3046,12 @@ CxPlatSocketContextUninitialize(
 
 QUIC_DISABLED_BY_FUZZER_START;
 
+    if (SocketProc->Parent->Type == CXPLAT_SOCKET_UDP) {
+        CancelIoEx((HANDLE)SocketProc->Socket, NULL);
+    } else {
+        CancelIo((HANDLE)SocketProc->Socket);
+    }
+
     if (closesocket(SocketProc->Socket) == SOCKET_ERROR) {
         int WsaError = WSAGetLastError();
         QuicTraceEvent(
@@ -4131,7 +4137,8 @@ CxPlatDataPathRioWorker(
             }
         }
 
-        if (ResultCount > 0 && CxPlatRundownAcquire(&SocketProc->UpcallRundown)) {
+        if (ResultCount > 0  && TotalResultCount < 256 &&
+            CxPlatRundownAcquire(&SocketProc->UpcallRundown)) {
             if (NeedReceive) {
                 CxPlatDataPathStartReceiveAsync(SocketProc);
                 NeedReceive = FALSE;
@@ -4145,7 +4152,7 @@ CxPlatDataPathRioWorker(
         }
 
         TotalResultCount += ResultCount;
-    } while (ResultCount > 0 && TotalResultCount < 256);
+    } while (ResultCount > 0);
 
     if (NeedNotify) {
         //
