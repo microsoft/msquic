@@ -1,11 +1,6 @@
-﻿//
-// Copyright (c) Microsoft Corporation.
-// Licensed under the MIT License.
-//
-
-using System;
+﻿using System;
 using System.Collections.Generic;
-using System.Diagnostics;
+using System.Text;
 using System.Threading;
 using Microsoft.Performance.SDK;
 using Microsoft.Performance.SDK.Extensibility;
@@ -13,17 +8,15 @@ using Microsoft.Performance.SDK.Extensibility.DataCooking;
 using Microsoft.Performance.SDK.Extensibility.DataCooking.SourceDataCooking;
 using QuicTrace.DataModel;
 
-namespace QuicTrace
+namespace QuicTrace.Cookers
 {
-    public sealed class QuicEventCooker : CookedDataReflector, ISourceDataCooker<QuicEvent, object, Guid>
+    public abstract class BaseEventCooker<T, TContext, TKey> : CookedDataReflector, ISourceDataCooker<T, TContext, TKey> where T : IKeyedDataType<TKey>
     {
-        public static readonly DataCookerPath CookerPath = DataCookerPath.ForSource(QuicEventParser.SourceId, "QUIC");
+        public ReadOnlyHashSet<TKey> DataKeys => new ReadOnlyHashSet<TKey>(new HashSet<TKey>());
 
-        public ReadOnlyHashSet<Guid> DataKeys => new ReadOnlyHashSet<Guid>(new HashSet<Guid>());
+        public virtual DataCookerPath Path { get; }
 
-        public DataCookerPath Path => CookerPath;
-
-        public string Description => "MsQuic Event Cooker";
+        public virtual string Description => "MsQuic Base Event Cooker";
 
         public IReadOnlyDictionary<DataCookerPath, DataCookerDependencyType> DependencyTypes =>
             new Dictionary<DataCookerPath, DataCookerDependencyType>();
@@ -37,21 +30,13 @@ namespace QuicTrace
         [DataOutput]
         public QuicState State { get; } = new QuicState();
 
-        public QuicEventCooker() : base(CookerPath)
+        public BaseEventCooker(DataCookerPath dataCookerPath) : base(dataCookerPath)
         {
+            Path = dataCookerPath;
         }
 
-        public void BeginDataCooking(ICookedDataRetrieval dependencyRetrieval, CancellationToken cancellationToken)
-        {
-        }
-
-        public DataProcessingResult CookDataElement(QuicEvent data, object context, CancellationToken cancellationToken)
-        {
-            Debug.Assert(!(data is null));
-            State.AddEvent(data);
-            return DataProcessingResult.Processed;
-        }
-
+        public void BeginDataCooking(ICookedDataRetrieval dependencyRetrieval, CancellationToken cancellationToken) { }
+        public virtual DataProcessingResult CookDataElement(T data, TContext context, CancellationToken cancellationToken) => throw new NotImplementedException();
         public void EndDataCooking(CancellationToken cancellationToken)
         {
             if (!cancellationToken.IsCancellationRequested)

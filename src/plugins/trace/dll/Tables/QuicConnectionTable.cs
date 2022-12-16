@@ -9,6 +9,7 @@ using System.Diagnostics;
 using Microsoft.Performance.SDK;
 using Microsoft.Performance.SDK.Extensibility;
 using Microsoft.Performance.SDK.Processing;
+using QuicTrace.Cookers;
 using QuicTrace.DataModel;
 
 namespace QuicTrace.Tables
@@ -21,7 +22,7 @@ namespace QuicTrace.Tables
            "QUIC Connections",
            "QUIC Connections",
            category: "System Activity",
-           requiredDataCookers: new List<DataCookerPath> { QuicEventCooker.CookerPath });
+           requiredDataCookers: new List<DataCookerPath> { QuicEtwEventCooker.CookerPath });
 
         private static readonly ColumnConfiguration connectionColumnConfig =
             new ColumnConfiguration(
@@ -98,7 +99,7 @@ namespace QuicTrace.Tables
         public static bool IsDataAvailable(IDataExtensionRetrieval tableData)
         {
             Debug.Assert(!(tableData is null));
-            var quicState = tableData.QueryOutput<QuicState>(new DataOutputPath(QuicEventCooker.CookerPath, "State"));
+            var quicState = tableData.QueryOutput<QuicState>(new DataOutputPath(QuicEtwEventCooker.CookerPath, "State"));
             return quicState != null && quicState.DataAvailableFlags.HasFlag(QuicDataAvailableFlags.Connection);
         }
 
@@ -106,7 +107,7 @@ namespace QuicTrace.Tables
         {
             Debug.Assert(!(tableBuilder is null) && !(tableData is null));
 
-            var quicState = tableData.QueryOutput<QuicState>(new DataOutputPath(QuicEventCooker.CookerPath, "State"));
+            var quicState = tableData.QueryOutput<QuicState>(new DataOutputPath(QuicEtwEventCooker.CookerPath, "State"));
             if (quicState == null)
             {
                 return;

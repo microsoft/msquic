@@ -11,6 +11,7 @@ using System.Threading;
 using Microsoft.Diagnostics.Tracing.Session;
 using Microsoft.Performance.SDK.Extensibility;
 using Microsoft.Performance.Toolkit.Engine;
+using QuicTrace.Cookers;
 using QuicTrace.DataModel;
 
 namespace QuicTrace
@@ -87,7 +88,7 @@ namespace QuicTrace
                 dataSources.AddFile(filePath);
                 var info = new EngineCreateInfo(dataSources.AsReadOnly());
                 using var runtime = Engine.Create(info);
-                runtime.EnableCooker(QuicEventCooker.CookerPath);
+                runtime.EnableCooker(QuicEtwEventCooker.CookerPath);
                 //Console.Write("Processing {0}...", filePath);
                 var results = runtime.Process();
                 //Console.WriteLine("Done.\n");
@@ -95,7 +96,7 @@ namespace QuicTrace
                 //
                 // Return our 'cooked' data.
                 //
-                quicStates.Add(results.QueryOutput<QuicState>(new DataOutputPath(QuicEventCooker.CookerPath, "State")));
+                quicStates.Add(results.QueryOutput<QuicState>(new DataOutputPath(QuicEtwEventCooker.CookerPath, "State")));
             }
 
             return quicStates.ToArray();
