@@ -587,12 +587,10 @@ _Success_(return != NULL)
 CXPLAT_SEND_DATA*
 CxPlatSendDataAlloc(
     _In_ CXPLAT_SOCKET* Socket,
-    _In_ CXPLAT_ECN_TYPE ECN,
-    _In_ uint16_t MaxPacketSize,
-    _Inout_ CXPLAT_ROUTE* Route
+    _Inout_ CXPLAT_SEND_CONFIG* Config
     )
 {
-    return CxPlatDpRawTxAlloc(Socket->Datapath, ECN, MaxPacketSize, Route);
+    return CxPlatDpRawTxAlloc(Socket->Datapath, Config);
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -640,8 +638,7 @@ QUIC_STATUS
 CxPlatSocketSend(
     _In_ CXPLAT_SOCKET* Socket,
     _In_ const CXPLAT_ROUTE* Route,
-    _In_ CXPLAT_SEND_DATA* SendData,
-    _In_ uint16_t IdealProcessor
+    _In_ CXPLAT_SEND_DATA* SendData
     )
 {
     QuicTraceEvent(

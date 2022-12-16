@@ -65,6 +65,7 @@ class TestConnection
     bool CustomValidationResultSet : 1;
 
     bool ExpectedResumed    : 1;
+    QUIC_STATUS ExpectedCustomTicketValidationResult;
     QUIC_STATUS ExpectedTransportCloseStatus;
     QUIC_UINT62 ExpectedPeerCloseErrorCode;
     QUIC_STATUS ExpectedClientCertValidationResult[2];
@@ -211,6 +212,7 @@ public:
     QUIC_UINT62 GetExpectedCustomValidationResult() const { return ExpectedCustomValidationResult; };
     void SetExpectedCustomValidationResult(bool AcceptCert) { CustomValidationResultSet = true; ExpectedCustomValidationResult = AcceptCert; }
     void SetAsyncCustomValidationResult(bool Async) { AsyncCustomValidation = Async; }
+    void SetExpectedCustomTicketValidationResult(QUIC_STATUS Status) { ExpectedCustomTicketValidationResult = Status; }
 
     const QUIC_STATUS* GetExpectedClientCertValidationResult() const { return ExpectedClientCertValidationResult; }
     void AddExpectedClientCertValidationResult(QUIC_STATUS Status) {
@@ -296,6 +298,8 @@ public:
     QUIC_STATUS SetResumptionTicket(const QUIC_BUFFER* ResumptionTicket) const;
 
     QUIC_STATUS SetCustomValidationResult(bool AcceptCert);
+
+    QUIC_STATUS SetCustomTicketValidationResult(bool AcceptTicket);
 
     uint32_t GetDestCidUpdateCount();
 

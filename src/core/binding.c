@@ -813,12 +813,8 @@ QuicBindingProcessStatelessOperation(
         Binding,
         OperationType);
 
-    CXPLAT_SEND_DATA* SendData =
-        CxPlatSendDataAlloc(
-            Binding->Socket,
-            CXPLAT_ECN_NON_ECT,
-            0,
-            RecvDatagram->Route);
+    CXPLAT_SEND_CONFIG SendConfig = { RecvDatagram->Route, 0, CXPLAT_ECN_NON_ECT, 0 };
+    CXPLAT_SEND_DATA* SendData = CxPlatSendDataAlloc(Binding->Socket, &SendConfig);
     if (SendData == NULL) {
         QuicTraceEvent(
             AllocFailure,
@@ -1069,8 +1065,7 @@ QuicBindingProcessStatelessOperation(
         RecvDatagram->Route,
         SendData,
         SendDatagram->Length,
-        1,
-        RecvDatagram->PartitionIndex % MsQuicLib.PartitionCount);
+        1);
     SendData = NULL;
 
 Exit:
@@ -1629,6 +1624,8 @@ QuicBindingReceive(
     uint32_t TotalChainLength = 0;
     uint32_t TotalDatagramBytes = 0;
 
+    CXPLAT_DBG_ASSERT(Socket == Binding->Socket);
+
     //
     // Breaks the chain of datagrams into subchains by destination CID and
     // delivers the subchains.
@@ -1799,8 +1796,7 @@ QuicBindingSend(
     _In_ const CXPLAT_ROUTE* Route,
     _In_ CXPLAT_SEND_DATA* SendData,
     _In_ uint32_t BytesToSend,
-    _In_ uint32_t DatagramsToSend,
-    _In_ uint16_t IdealProcessor
+    _In_ uint32_t DatagramsToSend
     )
 {
     QUIC_STATUS Status;
@@ -1829,8 +1825,7 @@ QuicBindingSend(
                 CxPlatSocketSend(
                     Binding->Socket,
                     &RouteCopy,
-                    SendData,
-                    IdealProcessor);
+                    SendData);
             if (QUIC_FAILED(Status)) {
                 QuicTraceLogWarning(
                     BindingSendFailed,
@@ -1845,8 +1840,7 @@ QuicBindingSend(
             CxPlatSocketSend(
                 Binding->Socket,
                 Route,
-                SendData,
-                IdealProcessor);
+                SendData);
         if (QUIC_FAILED(Status)) {
             QuicTraceLogWarning(
                 BindingSendFailed,

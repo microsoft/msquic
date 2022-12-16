@@ -22,7 +22,7 @@ TestConnection::TestConnection(
     IsServer(true), IsStarted(true), IsConnected(false), Resumed(false),
     PeerAddrChanged(false), PeerClosed(false), TransportClosed(false),
     IsShutdown(false), ShutdownTimedOut(false), AutoDelete(false), AsyncCustomValidation(false),
-    CustomValidationResultSet(false), ExpectedResumed(false),
+    CustomValidationResultSet(false), ExpectedResumed(false), ExpectedCustomTicketValidationResult(QUIC_STATUS_SUCCESS),
     ExpectedTransportCloseStatus(QUIC_STATUS_SUCCESS), ExpectedPeerCloseErrorCode(QUIC_TEST_NO_ERROR),
     ExpectedClientCertValidationResult{}, ExpectedClientCertValidationResultCount(0),
     ExpectedCustomValidationResult(false), PeerCertEventReturnStatus(QUIC_STATUS_SUCCESS),
@@ -52,7 +52,7 @@ TestConnection::TestConnection(
     IsServer(false), IsStarted(false), IsConnected(false), Resumed(false),
     PeerAddrChanged(false), PeerClosed(false), TransportClosed(false),
     IsShutdown(false), ShutdownTimedOut(false), AutoDelete(false), AsyncCustomValidation(false),
-    CustomValidationResultSet(false), ExpectedResumed(false),
+    CustomValidationResultSet(false), ExpectedResumed(false), ExpectedCustomTicketValidationResult(QUIC_STATUS_SUCCESS),
     ExpectedTransportCloseStatus(QUIC_STATUS_SUCCESS), ExpectedPeerCloseErrorCode(QUIC_TEST_NO_ERROR),
     ExpectedClientCertValidationResult{}, ExpectedClientCertValidationResultCount(0),
     ExpectedCustomValidationResult(false), PeerCertEventReturnStatus(QUIC_STATUS_SUCCESS),
@@ -759,6 +759,18 @@ TestConnection::SetCustomValidationResult(
 }
 
 QUIC_STATUS
+TestConnection::SetCustomTicketValidationResult(
+    bool AcceptTicket
+    )
+{
+    BOOLEAN Result = AcceptTicket ? TRUE : FALSE;
+    return
+        MsQuic->ConnectionResumptionTicketValidationComplete(
+            QuicConnection,
+            Result);
+}
+
+QUIC_STATUS
 TestConnection::HandleConnectionEvent(
     _Inout_ QUIC_CONNECTION_EVENT* Event
     )
@@ -934,6 +946,8 @@ TestConnection::HandleConnectionEvent(
             return PeerCertEventReturnStatus;
         }
         break;
+    case QUIC_CONNECTION_EVENT_RESUMED:
+        return ExpectedCustomTicketValidationResult;
 
     default:
         break;

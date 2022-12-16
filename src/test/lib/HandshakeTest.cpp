@@ -112,6 +112,7 @@ ListenerAcceptConnection(
 {
     ServerAcceptContext* AcceptContext = (ServerAcceptContext*)Listener->Context;
     *AcceptContext->NewConnection = new(std::nothrow) TestConnection(ConnectionHandle);
+    (*AcceptContext->NewConnection)->SetExpectedCustomTicketValidationResult(AcceptContext->ExpectedCustomTicketValidationResult);
     if (*AcceptContext->NewConnection == nullptr || !(*AcceptContext->NewConnection)->IsValid()) {
         TEST_FAILURE("Failed to accept new TestConnection.");
         delete *AcceptContext->NewConnection;
@@ -152,6 +153,8 @@ QuicTestConnect(
 {
     QUIC_ADDRESS_FAMILY QuicAddrFamily = (Family == 4) ? QUIC_ADDRESS_FAMILY_INET : QUIC_ADDRESS_FAMILY_INET6;
     MsQuicRegistration Registration;
+    bool AsyncTicketValidation = SessionResumption == QUIC_TEST_RESUMPTION_ENABLED_ASYNC ||
+                                 SessionResumption == QUIC_TEST_RESUMPTION_REJECTED_BY_SERVER_APP_ASYNC;
     TEST_TRUE(Registration.IsValid());
 
     MsQuicAlpn Alpn1("MsQuicTest");
@@ -226,6 +229,16 @@ QuicTestConnect(
         {
             UniquePtr<TestConnection> Server;
             ServerAcceptContext ServerAcceptCtx((TestConnection**)&Server);
+            if (AsyncTicketValidation) {
+                ServerAcceptCtx.ExpectedCustomTicketValidationResult = QUIC_STATUS_PENDING;
+            } else {
+                if (SessionResumption == QUIC_TEST_RESUMPTION_ENABLED) {
+                    ServerAcceptCtx.ExpectedCustomTicketValidationResult = QUIC_STATUS_SUCCESS;
+                } else if (SessionResumption == QUIC_TEST_RESUMPTION_REJECTED_BY_SERVER_APP) {
+                    ServerAcceptCtx.ExpectedCustomTicketValidationResult = QUIC_STATUS_INTERNAL_ERROR;
+                }
+            }
+
             Listener.Context = &ServerAcceptCtx;
 
             {
@@ -246,9 +259,8 @@ QuicTestConnect(
                 if (SessionResumption != QUIC_TEST_RESUMPTION_DISABLED) {
                     Client.SetResumptionTicket(ResumptionTicket);
                     CXPLAT_FREE(ResumptionTicket, QUIC_POOL_TEST);
-                    if (SessionResumption == QUIC_TEST_RESUMPTION_ENABLED) {
-                        Client.SetExpectedResumed(true);
-                    }
+                    Client.SetExpectedResumed(SessionResumption == QUIC_TEST_RESUMPTION_ENABLED ||
+                                              SessionResumption == QUIC_TEST_RESUMPTION_ENABLED_ASYNC);
                 }
 
                 if (UseDuoNic) {
@@ -264,17 +276,23 @@ QuicTestConnect(
                         QUIC_LOCALHOST_FOR_AF(QuicAddrFamily),
                         ServerLocalAddr.GetPort()));
 
-                if (AsyncConfiguration) {
+                if (AsyncConfiguration || AsyncTicketValidation) {
                     if (!CxPlatEventWaitWithTimeout(ServerAcceptCtx.NewConnectionReady, TestWaitTimeout)) {
                         TEST_FAILURE("Timed out waiting for server accept.");
                     } else if (Server == nullptr) {
                         TEST_FAILURE("Failed to accept server connection.");
                     } else {
-                        if (AsyncConfiguration == QUIC_TEST_ASYNC_CONFIG_DELAYED) {
-                            CxPlatSleep(1000);
+                        if (AsyncConfiguration) {
+                            if (AsyncConfiguration == QUIC_TEST_ASYNC_CONFIG_DELAYED) {
+                                CxPlatSleep(1000);
+                            }
+                            TEST_QUIC_SUCCEEDED(
+                                Server->SetConfiguration(ServerConfiguration));
                         }
-                        TEST_QUIC_SUCCEEDED(
-                            Server->SetConfiguration(ServerConfiguration));
+                        if (AsyncTicketValidation) {
+                            CxPlatSleep(1000);
+                            TEST_QUIC_SUCCEEDED(Server->SetCustomTicketValidationResult(SessionResumption == QUIC_TEST_RESUMPTION_ENABLED_ASYNC));
+                        }
                     }
                 }
 
@@ -299,10 +317,13 @@ QuicTestConnect(
                     TEST_TRUE(Client.GetStatistics().StatelessRetry);
                 }
 
-                if (SessionResumption == QUIC_TEST_RESUMPTION_ENABLED) {
+                if (SessionResumption == QUIC_TEST_RESUMPTION_ENABLED ||
+                    SessionResumption == QUIC_TEST_RESUMPTION_ENABLED_ASYNC) {
                     TEST_TRUE(Client.GetResumed());
                     TEST_TRUE(Server->GetResumed());
-                } else if (SessionResumption == QUIC_TEST_RESUMPTION_REJECTED) {
+                } else if (SessionResumption == QUIC_TEST_RESUMPTION_REJECTED ||
+                           SessionResumption == QUIC_TEST_RESUMPTION_REJECTED_BY_SERVER_APP ||
+                           SessionResumption == QUIC_TEST_RESUMPTION_REJECTED_BY_SERVER_APP_ASYNC) {
                     TEST_FALSE(Client.GetResumed());
                     TEST_FALSE(Server->GetResumed());
                 }

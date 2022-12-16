@@ -84,6 +84,8 @@ struct ServerAcceptContext {
     uint32_t ExpectedClientCertValidationResultCount{0};
     QUIC_STATUS PeerCertEventReturnStatus{false};
     QUIC_PRIVATE_TRANSPORT_PARAMETER* TestTP{nullptr};
+    bool AsyncCustomTicketValidation{false};
+    QUIC_STATUS ExpectedCustomTicketValidationResult{QUIC_STATUS_SUCCESS};
     ServerAcceptContext(TestConnection** _NewConnection) :
         NewConnection(_NewConnection) {
         CxPlatEventInitialize(&NewConnectionReady, TRUE, FALSE);
