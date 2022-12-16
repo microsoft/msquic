@@ -918,6 +918,8 @@ CxPlatSocketContextInitialize(
 
     CXPLAT_SOCKET* Binding = SocketContext->Binding;
 
+    CXPLAT_DBG_ASSERT(SocketContext->Binding->Datapath == SocketContext->DatapathProc->Datapath);
+
     if (!CxPlatSqeInitialize(
             SocketContext->DatapathProc->EventQ,
             &SocketContext->ShutdownSqe.Sqe,
@@ -1475,6 +1477,8 @@ CxPlatSocketContextRecvComplete(
 
     CXPLAT_RECV_DATA* DatagramHead = NULL;
     CXPLAT_RECV_DATA* DatagramTail = NULL;
+
+    CXPLAT_DBG_ASSERT(SocketContext->Binding->Datapath == SocketContext->DatapathProc->Datapath);
 
     for (int CurrentMessage = 0; CurrentMessage < MessagesReceived; CurrentMessage++) {
         CXPLAT_DATAPATH_RECV_BLOCK* CurrentBlock = SocketContext->CurrentRecvBlocks[CurrentMessage];
@@ -2050,6 +2054,7 @@ CxPlatSendDataAlloc(
     }
 
     CXPLAT_SOCKET_CONTEXT* SocketContext = Config->Route->Queue;
+    CXPLAT_DBG_ASSERT(SocketContext->Binding == Socket);
     CXPLAT_DBG_ASSERT(SocketContext->Binding->Datapath == SocketContext->DatapathProc->Datapath);
     CXPLAT_SEND_DATA* SendData = CxPlatPoolAlloc(&SocketContext->DatapathProc->SendDataPool);
     if (SendData != NULL) {
