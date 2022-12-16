@@ -6162,6 +6162,7 @@ QuicConnParamSet(
                 Connection->Paths[0].Binding = OldBinding;
                 break;
             }
+            Connection->Paths[0].Route.Queue = NULL;
 
             //
             // TODO - Need to free any queued recv packets from old binding.

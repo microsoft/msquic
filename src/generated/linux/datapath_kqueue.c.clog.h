@@ -179,13 +179,13 @@ tracepoint(CLOG_DATAPATH_KQUEUE_C, DatapathDestroyed , arg2);\
 // QuicTraceEvent(
             DatapathSend,
             "[data][%p] Send %u bytes in %hhu buffers (segment=%hu) Dst=%!ADDR!, Src=%!ADDR!",
-            Socket,
+            SocketContext->Binding,
             SendData->TotalSize,
             SendData->BufferCount,
             SendData->SegmentSize,
             CASTED_CLOG_BYTEARRAY(sizeof(*RemoteAddress), RemoteAddress),
             CASTED_CLOG_BYTEARRAY(sizeof(*LocalAddress), LocalAddress));
-// arg2 = arg2 = Socket = arg2
+// arg2 = arg2 = SocketContext->Binding = arg2
 // arg3 = arg3 = SendData->TotalSize = arg3
 // arg4 = arg4 = SendData->BufferCount = arg4
 // arg5 = arg5 = SendData->SegmentSize = arg5
