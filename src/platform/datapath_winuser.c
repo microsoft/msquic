@@ -4138,7 +4138,7 @@ CxPlatDataPathRioWorker(
         }
 
         if (ResultCount > 0  && TotalResultCount < 256 &&
-            CxPlatRundownAcquire(&SocketProc->UpcallRundown)) {
+            (NeedNotify || CxPlatRundownAcquire(&SocketProc->UpcallRundown))) {
             if (NeedReceive) {
                 CxPlatDataPathStartReceiveAsync(SocketProc);
                 NeedReceive = FALSE;
@@ -4147,8 +4147,6 @@ CxPlatDataPathRioWorker(
             CxPlatDataPathStartRioSends(SocketProc);
 
             NeedNotify = TRUE;
-
-            CxPlatRundownRelease(&SocketProc->UpcallRundown);
         }
 
         TotalResultCount += ResultCount;
@@ -4162,6 +4160,7 @@ CxPlatDataPathRioWorker(
         ULONG NotifyResult = Datapath->RioDispatch.RIONotify(SocketProc->RioCq);
         CXPLAT_TEL_ASSERT(NotifyResult == ERROR_SUCCESS);
         DBG_UNREFERENCED_LOCAL_VARIABLE(NotifyResult);
+        CxPlatRundownRelease(&SocketProc->UpcallRundown);
     }
 }
 
