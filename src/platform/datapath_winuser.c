@@ -1818,6 +1818,7 @@ CxPlatSocketArmRioNotify(
 {
     if (!SocketProc->RioNotifyArmed) {
         SocketProc->RioNotifyArmed = TRUE;
+        CxPlatRefIncrement(&SocketProc->RefCount);
         CxPlatStartDatapathIo(&SocketProc->RioSqe, DATAPATH_IO_RIO_NOTIFY);
         ULONG NotifyResult = SocketProc->DatapathProc->Datapath->
             RioDispatch.RIONotify(SocketProc->RioCq);
@@ -2429,14 +2430,6 @@ QUIC_DISABLED_BY_FUZZER_END;
     *NewSocket = Socket;
 
     for (uint16_t i = 0; i < SocketCount; i++) {
-        if (Socket->UseRio) {
-            //
-            // Take a reference for the RIO data path. This will be released
-            // once all RIO IOs are comlete.
-            //
-            CxPlatRefIncrement(&Socket->Processors[i].RefCount);
-        }
-
         CxPlatDataPathStartReceiveAsync(&Socket->Processors[i]);
         Socket->Processors[i].IoStarted = TRUE;
     }
@@ -4162,19 +4155,14 @@ CxPlatDataPathSocketProcessRioCompletion(
 
     if (SocketProc->RioRecvCount > 0 || SocketProc->RioSendCount > 0) {
         CxPlatSocketArmRioNotify(SocketProc);
-    } else if (!UpcallAcquired) {
-        //
-        // There are no RIO requests outstanding and the socket is shutting
-        // down. Since no more RIO requests can be submitted, release the RIO
-        // data path reference.
-        //
-        if (CxPlatRefDecrement(&SocketProc->RefCount)) {
-            CxPlatSocketContextUninitializeComplete(SocketProc);
-        }
     }
 
     if (UpcallAcquired) {
         CxPlatRundownRelease(&SocketProc->UpcallRundown);
+    }
+
+    if (CxPlatRefDecrement(&SocketProc->RefCount)) {
+        CxPlatSocketContextUninitializeComplete(SocketProc);
     }
 }
 
