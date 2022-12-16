@@ -4140,7 +4140,7 @@ CxPlatDataPathRioWorker(
             }
         }
 
-        if (ResultCount > 0  && TotalResultCount < 256 && UpcallAcquired) {
+        if (ResultCount > 0  && UpcallAcquired) {
             if (NeedReceive) {
                 CxPlatDataPathStartReceiveAsync(SocketProc);
                 NeedReceive = FALSE;
@@ -4150,7 +4150,7 @@ CxPlatDataPathRioWorker(
         }
 
         TotalResultCount += ResultCount;
-    } while (ResultCount > 0);
+    } while (ResultCount > 0 && (TotalResultCount < 256 || !UpcallAcquired));
 
     if (SocketProc->RioRecvCount > 0 || SocketProc->RioSendCount > 0) {
         CxPlatSocketArmRioNotify(SocketProc);
