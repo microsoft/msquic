@@ -882,6 +882,8 @@ CxPlatSocketContextInitialize(
 
     CXPLAT_SOCKET* Binding = SocketContext->Binding;
 
+    CXPLAT_DBG_ASSERT(SocketContext->Binding->Datapath == SocketContext->DatapathProc->Datapath);
+
     if (!CxPlatSqeInitialize(
             SocketContext->DatapathProc->EventQ,
             &SocketContext->ShutdownSqe.Sqe,
@@ -1443,6 +1445,8 @@ CxPlatSocketContextRecvComplete(
     CXPLAT_RECV_DATA* DatagramHead = NULL;
     CXPLAT_RECV_DATA* DatagramTail = NULL;
 
+    CXPLAT_DBG_ASSERT(SocketContext->Binding->Datapath == SocketContext->DatapathProc->Datapath);
+
     for (int CurrentMessage = 0; CurrentMessage < MessagesReceived; CurrentMessage++) {
         CXPLAT_DATAPATH_RECV_BLOCK* CurrentBlock = SocketContext->CurrentRecvBlocks[CurrentMessage];
         SocketContext->CurrentRecvBlocks[CurrentMessage] = NULL;
@@ -1468,6 +1472,7 @@ CxPlatSocketContextRecvComplete(
         }
         CxPlatConvertFromMappedV6(RemoteAddr, RemoteAddr);
 
+        RecvPacket->Route->Queue = SocketContext;
         RecvPacket->BufferLength = SocketContext->RecvMsgHdr[CurrentMessage].msg_len;
         BytesTransferred += RecvPacket->BufferLength;
 
@@ -1821,14 +1826,11 @@ _Success_(return != NULL)
 CXPLAT_SEND_DATA*
 CxPlatSendDataAlloc(
     _In_ CXPLAT_SOCKET* Socket,
-    _In_ CXPLAT_ECN_TYPE ECN,
-    _In_ uint16_t MaxPacketSize,
-    _Inout_ CXPLAT_ROUTE* Route
+    _Inout_ CXPLAT_SEND_CONFIG* Config
     )
 {
-    UNREFERENCED_PARAMETER(Route);
     CXPLAT_DBG_ASSERT(Socket != NULL);
-    CXPLAT_DBG_ASSERT(MaxPacketSize <= MAX_UDP_PAYLOAD_LENGTH);
+    CXPLAT_DBG_ASSERT(Config->MaxPacketSize <= MAX_UDP_PAYLOAD_LENGTH);
 
     CXPLAT_SOCKET_CONTEXT* SocketContext;
     if (Socket->HasFixedRemoteAddress) {
@@ -1851,11 +1853,11 @@ CxPlatSendDataAlloc(
         SendData->ClientBuffer.Buffer = SendData->Buffer;
         SendData->ClientBuffer.Length = 0;
         SendData->TotalSize = 0;
-        SendData->SegmentSize = MaxPacketSize;
+        SendData->SegmentSize = Config->MaxPacketSize;
         SendData->BufferCount = 0;
         SendData->AlreadySentCount = 0;
         SendData->ControlBufferLength = 0;
-        SendData->ECN = ECN;
+        SendData->ECN = Config->ECN;
         SendData->OnConnectedSocket = Socket->Connected;
         SendData->SegmentationSupported =
             !!(Socket->Datapath->Features & CXPLAT_DATAPATH_FEATURE_SEND_SEGMENTATION);
