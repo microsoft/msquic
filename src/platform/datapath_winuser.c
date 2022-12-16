@@ -411,6 +411,7 @@ typedef struct QUIC_CACHEALIGN CXPLAT_SOCKET_PROC {
     ULONG RioRecvCount;
     ULONG RioSendCount;
     CXPLAT_LIST_ENTRY RioSendOverflow;
+    BOOLEAN RioNotifyArmed;
     };
     //
     // TCP Listener socket data
@@ -1810,6 +1811,21 @@ Exit:
     return Status;
 }
 
+void
+CxPlatSocketArmRioNotify(
+    _In_ CXPLAT_SOCKET_PROC* SocketProc
+    )
+{
+    if (!SocketProc->RioNotifyArmed) {
+        SocketProc->RioNotifyArmed = TRUE;
+        CxPlatStartDatapathIo(&SocketProc->RioSqe, DATAPATH_IO_RIO_NOTIFY);
+        ULONG NotifyResult = SocketProc->DatapathProc->Datapath->
+            RioDispatch.RIONotify(SocketProc->RioCq);
+        CXPLAT_TEL_ASSERT(NotifyResult == ERROR_SUCCESS);
+        DBG_UNREFERENCED_LOCAL_VARIABLE(NotifyResult);
+    }
+}
+
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 CxPlatSocketCreateUdp(
@@ -2413,17 +2429,6 @@ QUIC_DISABLED_BY_FUZZER_END;
 
     for (uint16_t i = 0; i < SocketCount; i++) {
         CxPlatDataPathStartReceiveAsync(&Socket->Processors[i]);
-
-        if (Socket->UseRio) {
-            //
-            // Arm completion notifications.
-            //
-            CxPlatStartDatapathIo(&Socket->Processors[i].RioSqe, DATAPATH_IO_RIO_NOTIFY);
-            ULONG NotifyResult = Datapath->RioDispatch.RIONotify(Socket->Processors[i].RioCq);
-            CXPLAT_TEL_ASSERT(NotifyResult == ERROR_SUCCESS);
-            DBG_UNREFERENCED_LOCAL_VARIABLE(NotifyResult);
-        }
-
         Socket->Processors[i].IoStarted = TRUE;
     }
 
@@ -3046,12 +3051,6 @@ CxPlatSocketContextUninitialize(
 
 QUIC_DISABLED_BY_FUZZER_START;
 
-    if (SocketProc->Parent->Type == CXPLAT_SOCKET_UDP) {
-        CancelIoEx((HANDLE)SocketProc->Socket, NULL);
-    } else {
-        CancelIo((HANDLE)SocketProc->Socket);
-    }
-
     if (closesocket(SocketProc->Socket) == SOCKET_ERROR) {
         int WsaError = WSAGetLastError();
         QuicTraceEvent(
@@ -3083,6 +3082,10 @@ CxPlatSocketContextUninitializeComplete(
 #endif
 
     if (SocketProc->Parent->Type != CXPLAT_SOCKET_TCP_LISTENER) {
+        CXPLAT_DBG_ASSERT(SocketProc->RioRecvCount == 0);
+        CXPLAT_DBG_ASSERT(SocketProc->RioSendCount == 0);
+        CXPLAT_DBG_ASSERT(SocketProc->RioSqe.IoType == 0);
+
         while (!CxPlatListIsEmpty(&SocketProc->RioSendOverflow)) {
             CXPLAT_LIST_ENTRY* Entry = CxPlatListRemoveHead(&SocketProc->RioSendOverflow);
             CXPLAT_SEND_DATA* SendData =
@@ -3091,21 +3094,9 @@ CxPlatSocketContextUninitializeComplete(
         }
 
         if (SocketProc->RioCq != RIO_INVALID_CQ) {
-            if (SocketProc->IoStarted) {
-                //
-                // Drain any RIO completions.
-                //
-                CXPLAT_DBG_ASSERT(!CxPlatRundownAcquire(&SocketProc->UpcallRundown));
-                CxPlatDataPathRioWorker(SocketProc);
-            }
             SocketProc->DatapathProc->Datapath->RioDispatch.
                 RIOCloseCompletionQueue(SocketProc->RioCq);
             SocketProc->RioCq = RIO_INVALID_CQ;
-
-            CXPLAT_DBG_ASSERT(SocketProc->RioRecvCount == 0);
-            CXPLAT_DBG_ASSERT(SocketProc->RioSendCount == 0);
-            CXPLAT_DBG_ASSERT(CxPlatListIsEmpty(&SocketProc->RioSendOverflow));
-            CXPLAT_DBG_ASSERT(SocketProc->RioSqe.IoType == 0);
         }
     } else {
         if (SocketProc->AcceptSocket != NULL) {
@@ -3615,6 +3606,10 @@ Error:
         }
     }
 
+    if (QUIC_SUCCEEDED(Status)) {
+        CxPlatSocketArmRioNotify(SocketProc);
+    }
+
     return Status;
 }
 
@@ -4083,9 +4078,7 @@ CxPlatDataPathRioWorker(
     CXPLAT_DATAPATH* Datapath = SocketProc->DatapathProc->Datapath;
     ULONG ResultCount;
     ULONG TotalResultCount = 0;
-    BOOLEAN NeedNotify = FALSE;
-
-    ASSERT(SocketProc->Parent->Type == CXPLAT_SOCKET_UDP);
+    BOOLEAN UpcallAcquired = CxPlatRundownAcquire(&SocketProc->UpcallRundown);
 
     do {
         BOOLEAN NeedReceive = FALSE;
@@ -4107,14 +4100,13 @@ CxPlatDataPathRioWorker(
                 CXPLAT_DATAPATH_INTERNAL_RECV_CONTEXT* RecvContext =
                     CONTAINING_RECORD(IoType, CXPLAT_DATAPATH_INTERNAL_RECV_CONTEXT, Sqe.IoType);
 
-                if (CxPlatRundownAcquire(&SocketProc->UpcallRundown)) {
+                if (UpcallAcquired) {
                     NeedReceive =
                         CxPlatDataPathRecvComplete(
                             SocketProc,
                             RecvContext,
                             Results[i].Status,
                             (UINT16)Results[i].BytesTransferred);
-                    CxPlatRundownRelease(&SocketProc->UpcallRundown);
                 } else {
                     CxPlatFreeRecvContext(RecvContext);
                 }
@@ -4138,29 +4130,23 @@ CxPlatDataPathRioWorker(
             }
         }
 
-        if (ResultCount > 0  && TotalResultCount < 256 &&
-            (NeedNotify || CxPlatRundownAcquire(&SocketProc->UpcallRundown))) {
+        if (ResultCount > 0  && TotalResultCount < 256 && UpcallAcquired) {
             if (NeedReceive) {
                 CxPlatDataPathStartReceiveAsync(SocketProc);
                 NeedReceive = FALSE;
             }
 
             CxPlatDataPathStartRioSends(SocketProc);
-
-            NeedNotify = TRUE;
         }
 
         TotalResultCount += ResultCount;
     } while (ResultCount > 0);
 
-    if (NeedNotify) {
-        //
-        // Re-arm completion notifications.
-        //
-        CxPlatStartDatapathIo(&SocketProc->RioSqe, DATAPATH_IO_RIO_NOTIFY);
-        ULONG NotifyResult = Datapath->RioDispatch.RIONotify(SocketProc->RioCq);
-        CXPLAT_TEL_ASSERT(NotifyResult == ERROR_SUCCESS);
-        DBG_UNREFERENCED_LOCAL_VARIABLE(NotifyResult);
+    if (SocketProc->RioRecvCount > 0 || SocketProc->RioSendCount > 0) {
+        CxPlatSocketArmRioNotify(SocketProc);
+    }
+
+    if (UpcallAcquired) {
         CxPlatRundownRelease(&SocketProc->UpcallRundown);
     }
 }
@@ -4173,6 +4159,7 @@ CxPlatDataPathSocketProcessRioCompletion(
 {
     CXPLAT_SOCKET_PROC* SocketProc = CONTAINING_RECORD(Sqe, CXPLAT_SOCKET_PROC, RioSqe);
     UNREFERENCED_PARAMETER(Cqe);
+    SocketProc->RioNotifyArmed = FALSE;
     CxPlatDataPathRioWorker(SocketProc);
 }
 
@@ -5004,6 +4991,8 @@ CxPlatSocketSendInline(
                 }
 
                 SocketProc->RioSendCount++;
+
+                CxPlatSocketArmRioNotify(SocketProc);
             }
 
             WSASetLastError(WSA_IO_PENDING);
