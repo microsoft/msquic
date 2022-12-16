@@ -3105,6 +3105,7 @@ CxPlatSocketContextUninitializeComplete(
             CXPLAT_DBG_ASSERT(SocketProc->RioRecvCount == 0);
             CXPLAT_DBG_ASSERT(SocketProc->RioSendCount == 0);
             CXPLAT_DBG_ASSERT(CxPlatListIsEmpty(&SocketProc->RioSendOverflow));
+            CXPLAT_DBG_ASSERT(SocketProc->RioSqe.IoType == 0);
         }
     } else {
         if (SocketProc->AcceptSocket != NULL) {
