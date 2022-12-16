@@ -4140,7 +4140,7 @@ CxPlatDataPathRioWorker(
             }
         }
 
-        if (ResultCount > 0 && UpcallAcquired) {
+        if (UpcallAcquired) {
             if (NeedReceive) {
                 CxPlatDataPathStartReceiveAsync(SocketProc);
                 NeedReceive = FALSE;
