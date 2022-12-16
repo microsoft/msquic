@@ -4087,7 +4087,7 @@ CxPlatDataPathRioWorker(
     ASSERT(SocketProc->Parent->Type == CXPLAT_SOCKET_UDP);
 
     do {
-        BOOLEAN NeedReceive = TRUE;
+        BOOLEAN NeedReceive = FALSE;
         RIORESULT Results[32];
 
         ResultCount =
@@ -4107,7 +4107,7 @@ CxPlatDataPathRioWorker(
                     CONTAINING_RECORD(IoType, CXPLAT_DATAPATH_INTERNAL_RECV_CONTEXT, Sqe.IoType);
 
                 if (CxPlatRundownAcquire(&SocketProc->UpcallRundown)) {
-                    NeedReceive &=
+                    NeedReceive =
                         CxPlatDataPathRecvComplete(
                             SocketProc,
                             RecvContext,
@@ -4141,7 +4141,6 @@ CxPlatDataPathRioWorker(
             CxPlatRundownAcquire(&SocketProc->UpcallRundown)) {
             if (NeedReceive) {
                 CxPlatDataPathStartReceiveAsync(SocketProc);
-                NeedReceive = FALSE;
             }
 
             CxPlatDataPathStartRioSends(SocketProc);
