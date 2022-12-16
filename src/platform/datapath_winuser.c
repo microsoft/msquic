@@ -4080,16 +4080,16 @@ CxPlatDataPathRioWorker(
     )
 {
     CXPLAT_DATAPATH* Datapath = SocketProc->DatapathProc->Datapath;
-    RIORESULT Results[32];
     ULONG ResultCount;
     ULONG TotalResultCount = 0;
-    ULONG NotifyResult;
-    BOOLEAN NeedReceive = TRUE;
     BOOLEAN NeedNotify = FALSE;
 
     ASSERT(SocketProc->Parent->Type == CXPLAT_SOCKET_UDP);
 
     do {
+        BOOLEAN NeedReceive = TRUE;
+        RIORESULT Results[32];
+
         ResultCount =
             Datapath->RioDispatch.RIODequeueCompletion(
                 SocketProc->RioCq, Results, RTL_NUMBER_OF(Results));
@@ -4159,7 +4159,7 @@ CxPlatDataPathRioWorker(
         // Re-arm completion notifications.
         //
         CxPlatStartDatapathIo(&SocketProc->RioSqe, DATAPATH_IO_RIO_NOTIFY);
-        NotifyResult = Datapath->RioDispatch.RIONotify(SocketProc->RioCq);
+        ULONG NotifyResult = Datapath->RioDispatch.RIONotify(SocketProc->RioCq);
         CXPLAT_TEL_ASSERT(NotifyResult == ERROR_SUCCESS);
         DBG_UNREFERENCED_LOCAL_VARIABLE(NotifyResult);
     }
