@@ -1831,24 +1831,15 @@ CxPlatSendDataAlloc(
 {
     CXPLAT_DBG_ASSERT(Socket != NULL);
     CXPLAT_DBG_ASSERT(Config->MaxPacketSize <= MAX_UDP_PAYLOAD_LENGTH);
-
-    CXPLAT_SOCKET_CONTEXT* SocketContext;
-    if (Socket->HasFixedRemoteAddress) {
-        SocketContext = &Socket->SocketContexts[0];
-    } else {
-        uint32_t ProcNumber = CxPlatProcCurrentNumber() % Socket->Datapath->ProcCount;
-        SocketContext = &Socket->SocketContexts[ProcNumber];
+    if (Config->Route->Queue == NULL) {
+        Config->Route->Queue = &Socket->SocketContexts[0];
     }
 
-    CXPLAT_SEND_DATA* SendData =
-        CxPlatPoolAlloc(&SocketContext->DatapathProc->SendBlockPool);
-    if (SendData == NULL) {
-        QuicTraceEvent(
-            AllocFailure,
-            "Allocation of '%s' failed. (%llu bytes)",
-            "CXPLAT_SEND_DATA",
-            Socket->Datapath->SendDataSize);
-    } else {
+    CXPLAT_SOCKET_CONTEXT* SocketContext = Config->Route->Queue;
+    CXPLAT_DBG_ASSERT(SocketContext->Binding == Socket);
+    CXPLAT_DBG_ASSERT(SocketContext->Binding->Datapath == SocketContext->DatapathProc->Datapath);
+    CXPLAT_SEND_DATA* SendData = CxPlatPoolAlloc(&SocketContext->DatapathProc->SendBlockPool);
+    if (SendData != NULL) {
         SendData->SocketContext = SocketContext;
         SendData->ClientBuffer.Buffer = SendData->Buffer;
         SendData->ClientBuffer.Length = 0;
@@ -1973,12 +1964,10 @@ QUIC_STATUS
 CxPlatSocketSend(
     _In_ CXPLAT_SOCKET* Socket,
     _In_ const CXPLAT_ROUTE* Route,
-    _In_ CXPLAT_SEND_DATA* SendData,
-    _In_ uint16_t IdealProcessor
+    _In_ CXPLAT_SEND_DATA* SendData
     )
 {
     UNREFERENCED_PARAMETER(Socket);
-    UNREFERENCED_PARAMETER(IdealProcessor);
 
     //
     // Finalize the state of the send data and log the send.
