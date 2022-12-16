@@ -160,6 +160,11 @@ typedef struct CXPLAT_SEND_DATA {
     uint8_t ECN; // CXPLAT_ECN_TYPE
 
     //
+    // Set of flags set to configure the send behavior.
+    //
+    uint8_t Flags; // CXPLAT_SEND_FLAGS
+
+    //
     // Indicates that send is on a connected socket.
     //
     uint8_t OnConnectedSocket : 1;
@@ -235,6 +240,11 @@ typedef struct QUIC_CACHEALIGN CXPLAT_SOCKET_CONTEXT {
     // The submission queue event for IO.
     //
     DATAPATH_SQE IoSqe;
+
+    //
+    // The submission queue event for flushing the send queue.
+    //
+    DATAPATH_SQE FlushTxSqe;
 
     //
     // The I/O vector for receive datagrams.
@@ -879,6 +889,7 @@ CxPlatSocketContextInitialize(
     socklen_t AssignedLocalAddressLength = 0;
     BOOLEAN ShutdownSqeInitialized = FALSE;
     BOOLEAN IoSqeInitialized = FALSE;
+    BOOLEAN FlushTxInitialized = FALSE;
 
     CXPLAT_SOCKET* Binding = SocketContext->Binding;
 
@@ -913,6 +924,21 @@ CxPlatSocketContextInitialize(
         goto Exit;
     }
     IoSqeInitialized = TRUE;
+
+    if (!CxPlatSqeInitialize(
+            SocketContext->DatapathProc->EventQ,
+            &SocketContext->FlushTxSqe.Sqe,
+            &SocketContext->FlushTxSqe)) {
+        Status = errno;
+        QuicTraceEvent(
+            DatapathErrorStatus,
+            "[data][%p] ERROR, %u, %s.",
+            Binding,
+            Status,
+            "CxPlatSqeInitialize failed");
+        goto Exit;
+    }
+    FlushTxInitialized = TRUE;
 
     //
     // Create datagram socket.
@@ -1261,6 +1287,9 @@ Exit:
         if (IoSqeInitialized) {
             CxPlatSqeCleanup(SocketContext->DatapathProc->EventQ, &SocketContext->IoSqe.Sqe);
         }
+        if (FlushTxInitialized) {
+            CxPlatSqeCleanup(SocketContext->DatapathProc->EventQ, &SocketContext->FlushTxSqe.Sqe);
+        }
     }
 
     return Status;
@@ -1314,6 +1343,7 @@ CxPlatSocketContextUninitializeComplete(
     if (SocketContext->SqeInitialized) {
         CxPlatSqeCleanup(SocketContext->DatapathProc->EventQ, &SocketContext->ShutdownSqe.Sqe);
         CxPlatSqeCleanup(SocketContext->DatapathProc->EventQ, &SocketContext->IoSqe.Sqe);
+        CxPlatSqeCleanup(SocketContext->DatapathProc->EventQ, &SocketContext->FlushTxSqe.Sqe);
     }
 
     CxPlatLockUninitialize(&SocketContext->TxQueueLock);
@@ -1624,6 +1654,7 @@ CxPlatSocketCreateUdp(
         Binding->SocketContexts[i].SocketFd = INVALID_SOCKET;
         Binding->SocketContexts[i].ShutdownSqe.CqeType = CXPLAT_CQE_TYPE_SOCKET_SHUTDOWN;
         Binding->SocketContexts[i].IoSqe.CqeType = CXPLAT_CQE_TYPE_SOCKET_IO;
+        Binding->SocketContexts[i].FlushTxSqe.CqeType = CXPLAT_CQE_TYPE_SOCKET_FLUSH_TX;
         for (ssize_t j = 0; j < CXPLAT_MAX_BATCH_RECEIVE; j++) {
             Binding->SocketContexts[i].RecvIov[j].iov_len =
                 Binding->Mtu - CXPLAT_MIN_IPV4_HEADER_SIZE - CXPLAT_UDP_HEADER_SIZE;
@@ -1849,6 +1880,7 @@ CxPlatSendDataAlloc(
         SendData->AlreadySentCount = 0;
         SendData->ControlBufferLength = 0;
         SendData->ECN = Config->ECN;
+        SendData->Flags = Config->Flags;
         SendData->OnConnectedSocket = Socket->Connected;
         SendData->SegmentationSupported =
             !!(Socket->Datapath->Features & CXPLAT_DATAPATH_FEATURE_SEND_SEGMENTATION);
@@ -1992,15 +2024,24 @@ CxPlatSocketSend(
     //
     // Check to see if we need to pend because there's already queue.
     //
-    BOOLEAN SendPending = FALSE;
+    BOOLEAN SendPending = FALSE, FlushTxQueue = FALSE;
     CXPLAT_SOCKET_CONTEXT* SocketContext = SendData->SocketContext;
     CxPlatLockAcquire(&SocketContext->TxQueueLock);
-    if (!CxPlatListIsEmpty(&SocketContext->TxQueue)) {
+    if (SendData->Flags & CXPLAT_SEND_FLAGS_MAX_THROUGHPUT ||
+        !CxPlatListIsEmpty(&SocketContext->TxQueue)) {
+        FlushTxQueue = CxPlatListIsEmpty(&SocketContext->TxQueue);
         CxPlatListInsertTail(&SocketContext->TxQueue, &SendData->TxEntry);
         SendPending = TRUE;
     }
     CxPlatLockRelease(&SocketContext->TxQueueLock);
     if (SendPending) {
+        if (FlushTxQueue) {
+            CXPLAT_FRE_ASSERT(
+                CxPlatEventQEnqueue(
+                    SocketContext->DatapathProc->EventQ,
+                    &SocketContext->FlushTxSqe.Sqe,
+                    &SocketContext->FlushTxSqe));
+        }
         return QUIC_STATUS_SUCCESS;
     }
 
@@ -2367,6 +2408,12 @@ CxPlatDataPathProcessCqe(
         CXPLAT_SOCKET_CONTEXT* SocketContext =
             CXPLAT_CONTAINING_RECORD(CxPlatCqeUserData(Cqe), CXPLAT_SOCKET_CONTEXT, IoSqe);
         CxPlatDataPathSocketProcessIoCompletion(SocketContext, Cqe);
+        break;
+    }
+    case CXPLAT_CQE_TYPE_SOCKET_FLUSH_TX: {
+        CXPLAT_SOCKET_CONTEXT* SocketContext =
+            CXPLAT_CONTAINING_RECORD(CxPlatCqeUserData(Cqe), CXPLAT_SOCKET_CONTEXT, FlushTxSqe);
+        CxPlatSocketContextFlushTxQueue(SocketContext, FALSE);
         break;
     }
     }
