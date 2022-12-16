@@ -198,12 +198,12 @@ typedef struct CXPLAT_SEND_DATA {
     DATAPATH_IO_SQE Sqe;
 
     //
-    // The socket processor owning this send context.
+    // The owning processor context.
     //
     CXPLAT_DATAPATH_PROC* Owner;
 
     //
-    // The owning processor context.
+    // The per-processor socket for this send IO.
     //
     CXPLAT_SOCKET_PROC* SocketProc;
 
