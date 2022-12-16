@@ -3082,9 +3082,7 @@ CxPlatSocketContextUninitializeComplete(
 #endif
 
     if (SocketProc->Parent->Type != CXPLAT_SOCKET_TCP_LISTENER) {
-        CXPLAT_DBG_ASSERT(SocketProc->RioRecvCount == 0);
-        CXPLAT_DBG_ASSERT(SocketProc->RioSendCount == 0);
-        CXPLAT_DBG_ASSERT(SocketProc->RioSqe.IoType == 0);
+        CXPLAT_DBG_ASSERT(SocketProc->RioNotifyArmed == FALSE);
 
         while (!CxPlatListIsEmpty(&SocketProc->RioSendOverflow)) {
             CXPLAT_LIST_ENTRY* Entry = CxPlatListRemoveHead(&SocketProc->RioSendOverflow);
@@ -3092,6 +3090,16 @@ CxPlatSocketContextUninitializeComplete(
                 CONTAINING_RECORD(Entry, CXPLAT_SEND_DATA, RioOverflowEntry);
             CxPlatSendDataComplete(SocketProc, SendData, WSA_OPERATION_ABORTED);
         }
+
+        if (SocketProc->IoStarted) {
+            CXPLAT_DBG_ASSERT(!CxPlatRundownAcquire(&SocketProc->UpcallRundown));
+            CxPlatDataPathRioWorker(SocketProc);
+        }
+
+        CXPLAT_DBG_ASSERT(CxPlatListIsEmpty(&SocketProc->RioSendOverflow));
+        CXPLAT_DBG_ASSERT(SocketProc->RioRecvCount == 0);
+        CXPLAT_DBG_ASSERT(SocketProc->RioSendCount == 0);
+        CXPLAT_DBG_ASSERT(SocketProc->RioNotifyArmed == FALSE);
 
         if (SocketProc->RioCq != RIO_INVALID_CQ) {
             SocketProc->DatapathProc->Datapath->RioDispatch.
@@ -4079,6 +4087,8 @@ CxPlatDataPathRioWorker(
     ULONG ResultCount;
     ULONG TotalResultCount = 0;
     BOOLEAN UpcallAcquired = CxPlatRundownAcquire(&SocketProc->UpcallRundown);
+
+    CXPLAT_DBG_ASSERT(SocketProc->RioNotifyArmed == FALSE);
 
     do {
         BOOLEAN NeedReceive = FALSE;
