@@ -89,9 +89,9 @@ typedef struct CXPLAT_DATAPATH_RECV_BLOCK {
 
 typedef struct CXPLAT_SEND_DATA {
     //
-    // The socket context owning this send context.
+    // The proc context owning this send context.
     //
-    struct CXPLAT_SOCKET_CONTEXT *Owner;
+    struct CXPLAT_DATAPATH_PROC* Owner;
 
     //
     // Indicates if the send should be bound to a local address.
@@ -1714,7 +1714,6 @@ CxPlatSendDataAlloc(
     )
 {
     CXPLAT_DBG_ASSERT(Socket != NULL);
-    CXPLAT_DBG_ASSERT(Route != NULL);
 
     if (Config->Route->Queue == NULL) {
         Config->Route->Queue = &Socket->SocketContexts[0];
@@ -1740,7 +1739,7 @@ CxPlatSendDataFree(
     _In_ CXPLAT_SEND_DATA* SendData
     )
 {
-    CXPLAT_DATAPATH_PROC* DatapathProc = SendData->Owner->DatapathProc;
+    CXPLAT_DATAPATH_PROC* DatapathProc = SendData->Owner;
     CXPLAT_POOL* BufferPool =
         SendData->SegmentSize > 0 ?
             &DatapathProc->LargeSendBufferPool : &DatapathProc->SendBufferPool;
@@ -1857,7 +1856,7 @@ CxPlatSendDataAllocPacketBuffer(
     )
 {
     QUIC_BUFFER* Buffer =
-        CxPlatSendDataAllocDataBuffer(SendData, &SendData->Owner->DatapathProc->SendBufferPool);
+        CxPlatSendDataAllocDataBuffer(SendData, &SendData->Owner->SendBufferPool);
     if (Buffer != NULL) {
         Buffer->Length = MaxBufferLength;
     }
@@ -1884,7 +1883,7 @@ CxPlatSendDataAllocSegmentBuffer(
         return &SendData->ClientBuffer;
     }
 
-    QUIC_BUFFER* Buffer = CxPlatSendDataAllocDataBuffer(SendData, &SendData->Owner->DatapathProc->LargeSendBufferPool);
+    QUIC_BUFFER* Buffer = CxPlatSendDataAllocDataBuffer(SendData, &SendData->Owner->LargeSendBufferPool);
     if (Buffer == NULL) {
         return NULL;
     }
@@ -1934,7 +1933,7 @@ CxPlatSendDataFreeBuffer(
     //
     // This must be the final send buffer; intermediate buffers cannot be freed.
     //
-    CXPLAT_DATAPATH_PROC* DatapathProc = SendData->Owner->DatapathProc;
+    CXPLAT_DATAPATH_PROC* DatapathProc = SendData->Owner;
 #ifdef DEBUG
     uint8_t* TailBuffer = SendData->Buffers[SendData->BufferCount - 1].Buffer;
 #endif
