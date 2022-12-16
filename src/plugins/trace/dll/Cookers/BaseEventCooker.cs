@@ -1,6 +1,10 @@
-﻿using System;
+﻿//
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT License.
+//
+
+using System;
 using System.Collections.Generic;
-using System.Text;
 using System.Threading;
 using Microsoft.Performance.SDK;
 using Microsoft.Performance.SDK.Extensibility;

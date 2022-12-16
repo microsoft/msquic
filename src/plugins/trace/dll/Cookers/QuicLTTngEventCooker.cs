@@ -1,4 +1,9 @@
-﻿using LTTngCds.CookerData;
+﻿//
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT License.
+//
+
+using LTTngCds.CookerData;
 using Microsoft.Performance.SDK.Extensibility;
 using System.Threading;
 using QuicTrace.DataModel.LTTng;
@@ -20,7 +25,6 @@ namespace QuicTrace.Cookers
             LTTngContext context,
             CancellationToken cancellationToken)
         {
-
             Debug.Assert(!(data is null));
             var evt = QuicLTTngEvent.TryCreate(data);
             if (evt != null)

@@ -5,9 +5,7 @@
 
 using System;
 using LTTngCds.CookerData;
-using Microsoft.Diagnostics.Tracing;
 using Microsoft.Performance.SDK;
-using QuicTrace.DataModel.LTTng;
 
 namespace QuicTrace.DataModel.LTTng
 {

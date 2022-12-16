@@ -107,195 +107,195 @@ namespace QuicTrace.DataModel.ETW
         [System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE2001:Embedded statements must be on their own line", Justification = "<Pending>")]
         internal static unsafe QuicEvent? TryCreate(Timestamp timestamp, QuicEventId id, ushort processor, uint processId, uint threadId, int pointerSize, QuicEtwDataReader data)
         {
-            switch (id.ToString())
+            switch (id)
             {
-                case nameof(QuicEventId.LibraryInitialized):
+                case QuicEventId.LibraryInitialized:
                     if (QuicEvent.ParseMode != QuicEventParseMode.Full) return null;
                     return new QuicLibraryInitializedEvent(timestamp, processor, processId, threadId, pointerSize, data.ReadUInt(), data.ReadUInt());
-                case nameof(QuicEventId.LibraryInitializedV2):
+                case QuicEventId.LibraryInitializedV2:
                     if (QuicEvent.ParseMode != QuicEventParseMode.Full) return null;
                     return new QuicLibraryInitializedV2Event(timestamp, processor, processId, threadId, pointerSize, data.ReadUInt());
-                case nameof(QuicEventId.DataPathInitialized):
+                case QuicEventId.DataPathInitialized:
                     if (QuicEvent.ParseMode != QuicEventParseMode.Full) return null;
                     return new QuicDataPathInitializedEvent(timestamp, processor, processId, threadId, pointerSize, data.ReadUInt());
-                case nameof(QuicEventId.LibraryUninitialized):
+                case QuicEventId.LibraryUninitialized:
                     if (QuicEvent.ParseMode != QuicEventParseMode.Full) return null;
                     return new QuicLibraryUninitializedEvent(timestamp, processor, processId, threadId, pointerSize);
-                case nameof(QuicEventId.LibraryAddRef):
+                case QuicEventId.LibraryAddRef:
                     if (QuicEvent.ParseMode != QuicEventParseMode.Full) return null;
                     return new QuicLibraryAddRefEvent(timestamp, processor, processId, threadId, pointerSize);
-                case nameof(QuicEventId.LibraryRelease):
+                case QuicEventId.LibraryRelease:
                     if (QuicEvent.ParseMode != QuicEventParseMode.Full) return null;
                     return new QuicLibraryReleaseEvent(timestamp, processor, processId, threadId, pointerSize);
-                case nameof(QuicEventId.LibraryServerInit):
+                case QuicEventId.LibraryServerInit:
                     if (QuicEvent.ParseMode != QuicEventParseMode.Full) return null;
                     return new QuicLibraryServerInitEvent(timestamp, processor, processId, threadId, pointerSize);
-                case nameof(QuicEventId.AllocFailure):
+                case QuicEventId.AllocFailure:
                     if (QuicEvent.ParseMode != QuicEventParseMode.Full) return null;
                     return new QuicAllocFailureEvent(timestamp, processor, processId, threadId, pointerSize, data.ReadString(), data.ReadULong());
-                case nameof(QuicEventId.DataPathRundown):
+                case QuicEventId.DataPathRundown:
                     if (QuicEvent.ParseMode != QuicEventParseMode.Full) return null;
                     return new QuicDataPathRundownEvent(timestamp, processor, processId, threadId, pointerSize, data.ReadUInt());
-                case nameof(QuicEventId.LibraryRundown):
+                case QuicEventId.LibraryRundown:
                     if (QuicEvent.ParseMode != QuicEventParseMode.Full) return null;
                     return new QuicLibraryRundownEvent(timestamp, processor, processId, threadId, pointerSize, data.ReadUInt(), data.ReadUInt());
-                case nameof(QuicEventId.LibraryRundownV2):
+                case QuicEventId.LibraryRundownV2:
                     if (QuicEvent.ParseMode != QuicEventParseMode.Full) return null;
                     return new QuicLibraryRundownV2Event(timestamp, processor, processId, threadId, pointerSize, data.ReadUInt());
-                case nameof(QuicEventId.LibraryError):
+                case QuicEventId.LibraryError:
                     if (QuicEvent.ParseMode != QuicEventParseMode.Full) return null;
                     return new QuicLibraryErrorEvent(timestamp, processor, processId, threadId, pointerSize, data.ReadString());
-                case nameof(QuicEventId.LibraryErrorStatus):
+                case QuicEventId.LibraryErrorStatus:
                     if (QuicEvent.ParseMode != QuicEventParseMode.Full) return null;
                     return new QuicLibraryErrorStatusEvent(timestamp, processor, processId, threadId, pointerSize, data.ReadUInt(), data.ReadString());
-                case nameof(QuicEventId.LibraryAssert):
+                case QuicEventId.LibraryAssert:
                     if (QuicEvent.ParseMode != QuicEventParseMode.Full) return null;
                     return new QuicLibraryAssertEvent(timestamp, processor, processId, threadId, pointerSize, data.ReadUInt(), data.ReadString(), data.ReadString());
-                case nameof(QuicEventId.ApiEnter):
+                case QuicEventId.ApiEnter:
                     return new QuicApiEnterEvent(timestamp, processor, processId, threadId, pointerSize, data.ReadUInt(), data.ReadPointer());
-                case nameof(QuicEventId.ApiExit):
+                case QuicEventId.ApiExit:
                     return new QuicApiExitEvent(timestamp, processor, processId, threadId, pointerSize);
-                case nameof(QuicEventId.ApiExitStatus):
+                case QuicEventId.ApiExitStatus:
                     return new QuicApiExitStatusEvent(timestamp, processor, processId, threadId, pointerSize, data.ReadUInt());
-                case nameof(QuicEventId.ApiWaitOperation):
+                case QuicEventId.ApiWaitOperation:
                     if (QuicEvent.ParseMode != QuicEventParseMode.Full) return null;
                     return new QuicApiWaitOperationEvent(timestamp, processor, processId, threadId, pointerSize);
-                case nameof(QuicEventId.PerfCountersRundown):
+                case QuicEventId.PerfCountersRundown:
                     if (QuicEvent.ParseMode != QuicEventParseMode.Full) return null;
                     return new QuicPerfCountersRundownEvent(timestamp, processor, processId, threadId, pointerSize);
-                case nameof(QuicEventId.LibrarySendRetryStateUpdated):
+                case QuicEventId.LibrarySendRetryStateUpdated:
                     if (QuicEvent.ParseMode != QuicEventParseMode.Full) return null;
                     return new QuicLibrarySendRetryStateUpdatedEvent(timestamp, processor, processId, threadId, pointerSize, data.ReadByte());
-                case nameof(QuicEventId.LibraryVersion):
+                case QuicEventId.LibraryVersion:
                     if (QuicEvent.ParseMode != QuicEventParseMode.Full) return null;
                     return new QuicLibraryVersionEvent(timestamp, processor, processId, threadId, pointerSize, data.ReadUInt(), data.ReadUInt(), data.ReadUInt(), data.ReadUInt());
 
-                case nameof(QuicEventId.WorkerCreated):
+                case QuicEventId.WorkerCreated:
                     return new QuicWorkerCreatedEvent(timestamp, processor, processId, threadId, pointerSize, data.ReadPointer(), data.ReadUShort(), data.ReadPointer());
-                case nameof(QuicEventId.WorkerActivityStateUpdated):
+                case QuicEventId.WorkerActivityStateUpdated:
                     return new QuicWorkerActivityStateUpdatedEvent(timestamp, processor, processId, threadId, pointerSize, data.ReadPointer(), data.ReadByte(), data.ReadUInt());
-                case nameof(QuicEventId.WorkerQueueDelayUpdated):
+                case QuicEventId.WorkerQueueDelayUpdated:
                     return new QuicWorkerQueueDelayUpdatedEvent(timestamp, processor, processId, threadId, pointerSize, data.ReadPointer(), data.ReadUInt());
 
-                case nameof(QuicEventId.ConnCreated):
-                case nameof(QuicEventId.ConnRundown):
+                case QuicEventId.ConnCreated:
+                case QuicEventId.ConnRundown:
                     return new QuicConnectionCreatedEvent(id, timestamp, processor, processId, threadId, pointerSize, data.ReadPointer(), data.ReadUInt(), data.ReadULong());
-                case nameof(QuicEventId.ConnDestroyed):
+                case QuicEventId.ConnDestroyed:
                     return new QuicConnectionDestroyedEvent(timestamp, processor, processId, threadId, pointerSize, data.ReadPointer());
-                case nameof(QuicEventId.ConnHandshakeComplete):
+                case QuicEventId.ConnHandshakeComplete:
                     return new QuicConnectionHandshakeCompleteEvent(timestamp, processor, processId, threadId, pointerSize, data.ReadPointer());
-                case nameof(QuicEventId.ConnScheduleState):
+                case QuicEventId.ConnScheduleState:
                     return new QuicConnectionScheduleStateEvent(timestamp, processor, processId, threadId, pointerSize, data.ReadPointer(), data.ReadUInt());
-                case nameof(QuicEventId.ConnExecOper):
+                case QuicEventId.ConnExecOper:
                     return new QuicConnectionExecOperEvent(timestamp, processor, processId, threadId, pointerSize, data.ReadPointer(), data.ReadUInt());
-                case nameof(QuicEventId.ConnExecApiOper):
+                case QuicEventId.ConnExecApiOper:
                     return new QuicConnectionExecApiOperEvent(timestamp, processor, processId, threadId, pointerSize, data.ReadPointer(), data.ReadUInt());
-                case nameof(QuicEventId.ConnExecTimerOper):
+                case QuicEventId.ConnExecTimerOper:
                     return new QuicConnectionExecTimerOperEvent(timestamp, processor, processId, threadId, pointerSize, data.ReadPointer(), data.ReadUInt());
-                case nameof(QuicEventId.ConnAssignWorker):
+                case QuicEventId.ConnAssignWorker:
                     return new QuicConnectionAssignWorkerEvent(timestamp, processor, processId, threadId, pointerSize, data.ReadPointer(), data.ReadPointer());
-                case nameof(QuicEventId.ConnTransportShutdown):
+                case QuicEventId.ConnTransportShutdown:
                     return new QuicConnectionTransportShutdownEvent(timestamp, processor, processId, threadId, pointerSize, data.ReadPointer(), data.ReadULong(), data.ReadByte(), data.ReadByte());
-                case nameof(QuicEventId.ConnAppShutdown):
+                case QuicEventId.ConnAppShutdown:
                     return new QuicConnectionAppShutdownEvent(timestamp, processor, processId, threadId, pointerSize, data.ReadPointer(), data.ReadULong(), data.ReadByte());
-                case nameof(QuicEventId.ConnHandleClosed):
+                case QuicEventId.ConnHandleClosed:
                     return new QuicConnectionHandleClosedEvent(timestamp, processor, processId, threadId, pointerSize, data.ReadPointer());
-                case nameof(QuicEventId.ConnOutFlowStats):
+                case QuicEventId.ConnOutFlowStats:
                     return new QuicConnectionOutFlowStatsEvent(timestamp, processor, processId, threadId, pointerSize, data.ReadPointer(), data.ReadULong(), data.ReadUInt(), data.ReadUInt(), data.ReadUInt(), data.ReadUInt(), data.ReadULong(), data.ReadULong(), data.ReadULong(), data.ReadUInt());
-                case nameof(QuicEventId.ConnOutFlowBlocked):
+                case QuicEventId.ConnOutFlowBlocked:
                     return new QuicConnectionOutFlowBlockedEvent(timestamp, processor, processId, threadId, pointerSize, data.ReadPointer(), data.ReadByte());
-                case nameof(QuicEventId.ConnInFlowStats):
+                case QuicEventId.ConnInFlowStats:
                     return new QuicConnectionInFlowStatsEvent(timestamp, processor, processId, threadId, pointerSize, data.ReadPointer(), data.ReadULong());
-                case nameof(QuicEventId.ConnCongestion):
+                case QuicEventId.ConnCongestion:
                     return new QuicConnectionCongestionEvent(timestamp, processor, processId, threadId, pointerSize, data.ReadPointer());
-                case nameof(QuicEventId.ConnCongestionV2):
+                case QuicEventId.ConnCongestionV2:
                     return new QuicConnectionCongestionV2Event(timestamp, processor, processId, threadId, pointerSize, data.ReadPointer(), data.ReadByte());
-                case nameof(QuicEventId.ConnSourceCidAdded):
+                case QuicEventId.ConnSourceCidAdded:
                     return new QuicConnectionSourceCidAddedEvent(timestamp, processor, processId, threadId, pointerSize, data.ReadPointer(), data.ReadULong(), data.ReadBytes());
-                case nameof(QuicEventId.ConnDestCidAdded):
+                case QuicEventId.ConnDestCidAdded:
                     return new QuicConnectionDestinationCidAddedEvent(timestamp, processor, processId, threadId, pointerSize, data.ReadPointer(), data.ReadULong(), data.ReadBytes());
-                case nameof(QuicEventId.ConnStats):
+                case QuicEventId.ConnStats:
                     return new QuicConnectionStatsEvent(timestamp, processor, processId, threadId, pointerSize, data.ReadPointer(), data.ReadUInt(), data.ReadUInt(), data.ReadUInt(), data.ReadULong(), data.ReadULong());
-                case nameof(QuicEventId.ConnStatsV2):
+                case QuicEventId.ConnStatsV2:
                     return new QuicConnectionStatsV2Event(timestamp, processor, processId, threadId, pointerSize, data.ReadPointer(), data.ReadUInt(), data.ReadUInt(), data.ReadUInt(), data.ReadULong(), data.ReadULong(), data.ReadUInt());
-                case nameof(QuicEventId.ConnOutFlowStreamStats):
+                case QuicEventId.ConnOutFlowStreamStats:
                     return new QuicConnectionOutFlowStreamStatsEvent(timestamp, processor, processId, threadId, pointerSize, data.ReadPointer(), data.ReadULong(), data.ReadULong());
-                case nameof(QuicEventId.ConnLogError):
-                case nameof(QuicEventId.ConnLogWarning):
-                case nameof(QuicEventId.ConnLogInfo):
-                case nameof(QuicEventId.ConnLogVerbose):
+                case QuicEventId.ConnLogError:
+                case QuicEventId.ConnLogWarning:
+                case QuicEventId.ConnLogInfo:
+                case QuicEventId.ConnLogVerbose:
                     if (QuicEvent.ParseMode != QuicEventParseMode.Full) return null;
                     return new QuicConnectionMessageEvent(id, timestamp, processor, processId, threadId, pointerSize, data.ReadPointer(), data.ReadString());
 
-                case nameof(QuicEventId.StreamCreated):
-                case nameof(QuicEventId.StreamRundown):
+                case QuicEventId.StreamCreated:
+                case QuicEventId.StreamRundown:
                     return new QuicStreamCreatedEvent(timestamp, processor, processId, threadId, pointerSize, data.ReadPointer(), data.ReadPointer(), data.ReadULong(), data.ReadByte());
-                case nameof(QuicEventId.StreamDestroyed):
+                case QuicEventId.StreamDestroyed:
                     return new QuicStreamDestroyedEvent(timestamp, processor, processId, threadId, pointerSize, data.ReadPointer());
-                case nameof(QuicEventId.StreamOutFlowBlocked):
+                case QuicEventId.StreamOutFlowBlocked:
                     return new QuicStreamOutFlowBlockedEvent(timestamp, processor, processId, threadId, pointerSize, data.ReadPointer(), data.ReadByte());
-                case nameof(QuicEventId.StreamSendState):
+                case QuicEventId.StreamSendState:
                     return new QuicStreamSendStateEvent(timestamp, processor, processId, threadId, pointerSize, data.ReadPointer(), data.ReadByte());
-                case nameof(QuicEventId.StreamRecvState):
+                case QuicEventId.StreamRecvState:
                     return new QuicStreamRecvStateEvent(timestamp, processor, processId, threadId, pointerSize, data.ReadPointer(), data.ReadByte());
-                case nameof(QuicEventId.StreamError):
+                case QuicEventId.StreamError:
                     if (QuicEvent.ParseMode != QuicEventParseMode.Full) return null;
                     return new QuicStreamErrorEvent(timestamp, processor, processId, threadId, pointerSize, data.ReadPointer(), data.ReadString());
-                case nameof(QuicEventId.StreamErrorStatus):
+                case QuicEventId.StreamErrorStatus:
                     if (QuicEvent.ParseMode != QuicEventParseMode.Full) return null;
                     return new QuicStreamErrorStatusEvent(timestamp, processor, processId, threadId, pointerSize, data.ReadPointer(), data.ReadUInt(), data.ReadString());
-                case nameof(QuicEventId.StreamAlloc):
+                case QuicEventId.StreamAlloc:
                     return new QuicStreamAllocEvent(timestamp, processor, processId, threadId, pointerSize, data.ReadPointer(), data.ReadULong());
-                case nameof(QuicEventId.StreamWriteFrames):
+                case QuicEventId.StreamWriteFrames:
                     return new QuicStreamWriteFramesEvent(timestamp, processor, processId, threadId, pointerSize, data.ReadPointer(), data.ReadULong());
-                case nameof(QuicEventId.StreamReceiveFrame):
+                case QuicEventId.StreamReceiveFrame:
                     return new QuicStreamReceiveFrameEvent(timestamp, processor, processId, threadId, pointerSize, data.ReadPointer(), data.ReadULong());
-                case nameof(QuicEventId.StreamAppReceive):
+                case QuicEventId.StreamAppReceive:
                     return new QuicStreamAppReceiveEvent(timestamp, processor, processId, threadId, pointerSize, data.ReadPointer());
-                case nameof(QuicEventId.StreamAppReceiveComplete):
+                case QuicEventId.StreamAppReceiveComplete:
                     return new QuicStreamAppReceiveCompleteEvent(timestamp, processor, processId, threadId, pointerSize, data.ReadPointer());
-                case nameof(QuicEventId.StreamAppSend):
+                case QuicEventId.StreamAppSend:
                     return new QuicStreamAppSendEvent(timestamp, processor, processId, threadId, pointerSize, data.ReadPointer());
-                case nameof(QuicEventId.StreamReceiveFrameComplete):
+                case QuicEventId.StreamReceiveFrameComplete:
                     return new QuicStreamReceiveFrameCompleteEvent(timestamp, processor, processId, threadId, pointerSize, data.ReadPointer());
-                case nameof(QuicEventId.StreamAppReceiveCompleteCall):
+                case QuicEventId.StreamAppReceiveCompleteCall:
                     return new QuicStreamAppReceiveCompleteCallEvent(timestamp, processor, processId, threadId, pointerSize, data.ReadPointer());
 
-                case nameof(QuicEventId.Temporal):
+                case QuicEventId.Temporal:
                     return new QuicDatapathSendEvent(timestamp, processor, processId, threadId, pointerSize, data.ReadPointer(), data.ReadUInt(), data.ReadByte(), data.ReadUShort(), data.ReadAddress(), new System.Net.IPEndPoint(0, 0));
-                case nameof(QuicEventId.DatapathSend):
+                case QuicEventId.DatapathSend:
                     return new QuicDatapathSendEvent(timestamp, processor, processId, threadId, pointerSize, data.ReadPointer(), data.ReadUInt(), data.ReadByte(), data.ReadUShort(), data.ReadAddress(), data.ReadAddress());
-                case nameof(QuicEventId.DatapathRecv):
+                case QuicEventId.DatapathRecv:
                     return new QuicDatapathRecvEvent(timestamp, processor, processId, threadId, pointerSize, data.ReadPointer(), data.ReadUInt(), data.ReadUShort(), data.ReadAddress(), data.ReadAddress());
-                case nameof(QuicEventId.DatapathError):
+                case QuicEventId.DatapathError:
                     if (QuicEvent.ParseMode != QuicEventParseMode.Full) return null;
                     return new QuicDatapathErrorEvent(timestamp, processor, processId, threadId, pointerSize, data.ReadPointer(), data.ReadString());
-                case nameof(QuicEventId.DatapathErrorStatus):
+                case QuicEventId.DatapathErrorStatus:
                     if (QuicEvent.ParseMode != QuicEventParseMode.Full) return null;
                     return new QuicDatapathErrorStatusEvent(timestamp, processor, processId, threadId, pointerSize, data.ReadPointer(), data.ReadUInt(), data.ReadString());
-                case nameof(QuicEventId.DatapathCreated):
+                case QuicEventId.DatapathCreated:
                     return new QuicDatapathCreatedEvent(timestamp, processor, processId, threadId, pointerSize, data.ReadPointer(), data.ReadAddress(), data.ReadAddress());
-                case nameof(QuicEventId.DatapathDestroyed):
+                case QuicEventId.DatapathDestroyed:
                     return new QuicDatapathDestroyedEvent(timestamp, processor, processId, threadId, pointerSize, data.ReadPointer());
 
-                case nameof(QuicEventId.LogError):
-                case nameof(QuicEventId.LogWarning):
-                case nameof(QuicEventId.LogInfo):
-                case nameof(QuicEventId.LogVerbose):
+                case QuicEventId.LogError:
+                case QuicEventId.LogWarning:
+                case QuicEventId.LogInfo:
+                case QuicEventId.LogVerbose:
                     if (QuicEvent.ParseMode != QuicEventParseMode.Full) return null;
                     return new QuicLibraryMessageEvent(id, timestamp, processor, processId, threadId, pointerSize, data.ReadString());
 
-                case nameof(QuicEventId.PacketCreated):
+                case QuicEventId.PacketCreated:
                     return new QuicPacketCreatedEvent(timestamp, processor, processId, threadId, pointerSize, data.ReadULong(), data.ReadULong());
-                case nameof(QuicEventId.PacketEncrypt):
+                case QuicEventId.PacketEncrypt:
                     return new QuicPacketEncryptEvent(timestamp, processor, processId, threadId, pointerSize, data.ReadULong());
-                case nameof(QuicEventId.PacketFinalize):
+                case QuicEventId.PacketFinalize:
                     return new QuicPacketFinalizeEvent(timestamp, processor, processId, threadId, pointerSize, data.ReadULong());
-                case nameof(QuicEventId.PacketBatchSent):
+                case QuicEventId.PacketBatchSent:
                     return new QuicPacketBatchSentEvent(timestamp, processor, processId, threadId, pointerSize, data.ReadULong());
-                case nameof(QuicEventId.PacketReceive):
+                case QuicEventId.PacketReceive:
                     return new QuicPacketReceiveEvent(timestamp, processor, processId, threadId, pointerSize, data.ReadULong());
-                case nameof(QuicEventId.PacketDecrypt):
+                case QuicEventId.PacketDecrypt:
                     return new QuicPacketDecryptEvent(timestamp, processor, processId, threadId, pointerSize, data.ReadULong());
 
                 default:
