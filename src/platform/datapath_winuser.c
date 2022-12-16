@@ -4141,6 +4141,7 @@ CxPlatDataPathRioWorker(
             CxPlatRundownAcquire(&SocketProc->UpcallRundown)) {
             if (NeedReceive) {
                 CxPlatDataPathStartReceiveAsync(SocketProc);
+                NeedReceive = FALSE;
             }
 
             CxPlatDataPathStartRioSends(SocketProc);
