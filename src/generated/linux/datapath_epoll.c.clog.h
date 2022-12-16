@@ -199,15 +199,15 @@ tracepoint(CLOG_DATAPATH_EPOLL_C, DatapathDestroyed , arg2);\
 // Decoder Ring for DatapathSend
 // [data][%p] Send %u bytes in %hhu buffers (segment=%hu) Dst=%!ADDR!, Src=%!ADDR!
 // QuicTraceEvent(
-            DatapathSend,
-            "[data][%p] Send %u bytes in %hhu buffers (segment=%hu) Dst=%!ADDR!, Src=%!ADDR!",
-            SocketContext->Binding,
-            SendData->TotalSize,
-            SendData->BufferCount,
-            SendData->SegmentSize,
-            CASTED_CLOG_BYTEARRAY(sizeof(*RemoteAddress), RemoteAddress),
-            CASTED_CLOG_BYTEARRAY(sizeof(*LocalAddress), LocalAddress));
-// arg2 = arg2 = SocketContext->Binding = arg2
+        DatapathSend,
+        "[data][%p] Send %u bytes in %hhu buffers (segment=%hu) Dst=%!ADDR!, Src=%!ADDR!",
+        Socket,
+        SendData->TotalSize,
+        SendData->BufferCount,
+        SendData->SegmentSize,
+        CASTED_CLOG_BYTEARRAY(sizeof(Route->RemoteAddress), &Route->RemoteAddress),
+        CASTED_CLOG_BYTEARRAY(sizeof(Route->LocalAddress), &Route->LocalAddress));
+// arg2 = arg2 = Socket = arg2
 // arg3 = arg3 = SendData->TotalSize = arg3
 // arg4 = arg4 = SendData->BufferCount = arg4
 // arg5 = arg5 = SendData->SegmentSize = arg5

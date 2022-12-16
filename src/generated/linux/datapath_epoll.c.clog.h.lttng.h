@@ -12,7 +12,7 @@
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_DATAPATH_EPOLL_C, DatapathRecvEmpty,
     TP_ARGS(
-        const void *, arg2),
+        const void *, arg2), 
     TP_FIELDS(
         ctf_integer_hex(uint64_t, arg2, arg2)
     )
@@ -34,7 +34,7 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_EPOLL_C, DatapathRecvEmpty,
 TRACEPOINT_EVENT(CLOG_DATAPATH_EPOLL_C, DatapathResolveHostNameFailed,
     TP_ARGS(
         const void *, arg2,
-        const char *, arg3),
+        const char *, arg3), 
     TP_FIELDS(
         ctf_integer_hex(uint64_t, arg2, arg2)
         ctf_string(arg3, arg3)
@@ -57,7 +57,7 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_EPOLL_C, DatapathResolveHostNameFailed,
 TRACEPOINT_EVENT(CLOG_DATAPATH_EPOLL_C, AllocFailure,
     TP_ARGS(
         const char *, arg2,
-        unsigned long long, arg3),
+        unsigned long long, arg3), 
     TP_FIELDS(
         ctf_string(arg2, arg2)
         ctf_integer(uint64_t, arg3, arg3)
@@ -80,7 +80,7 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_EPOLL_C, AllocFailure,
 TRACEPOINT_EVENT(CLOG_DATAPATH_EPOLL_C, LibraryErrorStatus,
     TP_ARGS(
         unsigned int, arg2,
-        const char *, arg3),
+        const char *, arg3), 
     TP_FIELDS(
         ctf_integer(unsigned int, arg2, arg2)
         ctf_string(arg3, arg3)
@@ -106,7 +106,7 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_EPOLL_C, DatapathErrorStatus,
     TP_ARGS(
         const void *, arg2,
         unsigned int, arg3,
-        const char *, arg4),
+        const char *, arg4), 
     TP_FIELDS(
         ctf_integer_hex(uint64_t, arg2, arg2)
         ctf_integer(unsigned int, arg3, arg3)
@@ -141,7 +141,7 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_EPOLL_C, DatapathRecv,
         unsigned int, arg5_len,
         const void *, arg5,
         unsigned int, arg6_len,
-        const void *, arg6),
+        const void *, arg6), 
     TP_FIELDS(
         ctf_integer_hex(uint64_t, arg2, arg2)
         ctf_integer(unsigned int, arg3, arg3)
@@ -174,7 +174,7 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_EPOLL_C, DatapathCreated,
         unsigned int, arg3_len,
         const void *, arg3,
         unsigned int, arg4_len,
-        const void *, arg4),
+        const void *, arg4), 
     TP_FIELDS(
         ctf_integer_hex(uint64_t, arg2, arg2)
         ctf_integer(unsigned int, arg3_len, arg3_len)
@@ -197,7 +197,7 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_EPOLL_C, DatapathCreated,
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_DATAPATH_EPOLL_C, DatapathDestroyed,
     TP_ARGS(
-        const void *, arg2),
+        const void *, arg2), 
     TP_FIELDS(
         ctf_integer_hex(uint64_t, arg2, arg2)
     )
@@ -209,15 +209,15 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_EPOLL_C, DatapathDestroyed,
 // Decoder Ring for DatapathSend
 // [data][%p] Send %u bytes in %hhu buffers (segment=%hu) Dst=%!ADDR!, Src=%!ADDR!
 // QuicTraceEvent(
-            DatapathSend,
-            "[data][%p] Send %u bytes in %hhu buffers (segment=%hu) Dst=%!ADDR!, Src=%!ADDR!",
-            SocketContext->Binding,
-            SendData->TotalSize,
-            SendData->BufferCount,
-            SendData->SegmentSize,
-            CASTED_CLOG_BYTEARRAY(sizeof(*RemoteAddress), RemoteAddress),
-            CASTED_CLOG_BYTEARRAY(sizeof(*LocalAddress), LocalAddress));
-// arg2 = arg2 = SocketContext->Binding = arg2
+        DatapathSend,
+        "[data][%p] Send %u bytes in %hhu buffers (segment=%hu) Dst=%!ADDR!, Src=%!ADDR!",
+        Socket,
+        SendData->TotalSize,
+        SendData->BufferCount,
+        SendData->SegmentSize,
+        CASTED_CLOG_BYTEARRAY(sizeof(Route->RemoteAddress), &Route->RemoteAddress),
+        CASTED_CLOG_BYTEARRAY(sizeof(Route->LocalAddress), &Route->LocalAddress));
+// arg2 = arg2 = Socket = arg2
 // arg3 = arg3 = SendData->TotalSize = arg3
 // arg4 = arg4 = SendData->BufferCount = arg4
 // arg5 = arg5 = SendData->SegmentSize = arg5
@@ -233,7 +233,7 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_EPOLL_C, DatapathSend,
         unsigned int, arg6_len,
         const void *, arg6,
         unsigned int, arg7_len,
-        const void *, arg7),
+        const void *, arg7), 
     TP_FIELDS(
         ctf_integer_hex(uint64_t, arg2, arg2)
         ctf_integer(unsigned int, arg3, arg3)
