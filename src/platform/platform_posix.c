@@ -32,14 +32,11 @@ Environment:
 #include "platform_posix.c.clog.h"
 #endif
 
-#if !defined(CX_PLATFORM_DARWIN) && !defined(__ANDROID__)
-//#ifdef NUMA_NUM_CONFIGURED_NODES
-#define CXPLAT_NUMA_AWARE 1
+#ifdef CXPLAT_NUMA_AWARE
 #include <numa.h>
 uint32_t CxPlatNumaNodeCount;
 cpu_set_t* CxPlatNumaNodeMasks;
-//#endif // NUMA_NUM_CONFIGURED_NODES
-#endif
+#endif // CXPLAT_NUMA_AWARE
 
 #define CXPLAT_MAX_LOG_MSG_LEN        1024 // Bytes
 
