@@ -32,6 +32,10 @@ Environment:
 #include "platform_posix.c.clog.h"
 #endif
 
+#ifdef __aarch64__
+#undef CXPLAT_NUMA_AWARE
+#endif
+
 #ifdef CXPLAT_NUMA_AWARE
 #include <numa.h>
 uint32_t CxPlatNumaNodeCount;
