@@ -469,6 +469,11 @@ CxPlatDataPathCalculateFeatureSupport(
     )
 {
 #ifdef UDP_SEGMENT
+    //
+    // Open up two sockets and send with GSO and receive with GRO, and make sure
+    // everything **actually** works, so that we can be sure we can leverage
+    // GRO.
+    //
     int SendSocket = INVALID_SOCKET, RecvSocket = INVALID_SOCKET;
     struct sockaddr_in RecvAddr = {0}, RecvAddr2 = {0};
     socklen_t RecvAddrSize = sizeof(RecvAddr), RecvAddr2Size = sizeof(RecvAddr2);
@@ -505,11 +510,6 @@ CxPlatDataPathCalculateFeatureSupport(
     RecvMsg.msg_iovlen = 1;
     RecvMsg.msg_control = RecvControlBuffer;
     RecvMsg.msg_controllen = sizeof(RecvControlBuffer);
-    //
-    // Open up two sockets and send with GSO and receive with GRO, and make sure
-    // everything **actually** works, so that we can be sure we can leverage
-    // GRO.
-    //
 #define VERIFY(X) if (!(X)) { goto Error; }
     SendSocket = socket(AF_INET, SOCK_DGRAM | SOCK_NONBLOCK, IPPROTO_UDP);
     VERIFY(SendSocket != INVALID_SOCKET)
@@ -520,13 +520,19 @@ CxPlatDataPathCalculateFeatureSupport(
     VERIFY(setsockopt(SendSocket, IPPROTO_IP, IP_RECVTOS, &TosEnabled, sizeof(TosEnabled)) != SOCKET_ERROR)
     VERIFY(setsockopt(RecvSocket, IPPROTO_IP, IP_RECVTOS, &TosEnabled, sizeof(TosEnabled)) != SOCKET_ERROR)
     VERIFY(bind(RecvSocket, (struct sockaddr*)&RecvAddr, RecvAddrSize) != SOCKET_ERROR)
+#ifdef UDP_GRO
+    VERIFY(setsockopt(RecvSocket, SOL_UDP, UDP_GRO, &GroEnabled, sizeof(GroEnabled)) != SOCKET_ERROR)
+#endif
     VERIFY(getsockname(RecvSocket, (struct sockaddr*)&RecvAddr, &RecvAddrSize) != SOCKET_ERROR)
     VERIFY(connect(SendSocket, (struct sockaddr*)&RecvAddr, RecvAddrSize) != SOCKET_ERROR)
     VERIFY(sendmsg(SendSocket, &SendMsg, 0) == sizeof(Buffer))
+    //
+    // We were able to at least send successfully, so indicate the send
+    // segmentation feature as available.
+    //
     Datapath->Features |= CXPLAT_DATAPATH_FEATURE_SEND_SEGMENTATION;
     printf("GSO supported!\n");
 #ifdef UDP_GRO
-    VERIFY(setsockopt(RecvSocket, SOL_UDP, UDP_GRO, &GroEnabled, sizeof(GroEnabled)) != SOCKET_ERROR)
     VERIFY(recvmsg(RecvSocket, &RecvMsg, 0) == sizeof(Buffer))
     BOOLEAN FoundPKTINFO = FALSE, FoundTOS = FALSE, FoundGRO = FALSE;
     for (CMsg = CMSG_FIRSTHDR(&RecvMsg); CMsg != NULL; CMsg = CMSG_NXTHDR(&RecvMsg, CMsg)) {
@@ -547,15 +553,27 @@ CxPlatDataPathCalculateFeatureSupport(
     VERIFY(FoundPKTINFO)
     VERIFY(FoundTOS)
     VERIFY(FoundGRO)
+    //
+    // We were able receive everything successfully so we can indicate the
+    // receive coalescing feature as available.
+    //
     Datapath->Features |= CXPLAT_DATAPATH_FEATURE_RECV_COALESCING;
     printf("GRO supported!\n");
 #endif // UDP_GRO
 Error:
     if (RecvSocket != INVALID_SOCKET) close(RecvSocket);
     if (SendSocket != INVALID_SOCKET) close(SendSocket);
-#else // UDP_SEGMENT
-    UNREFERENCED_PARAMETER(Datapath);
 #endif // UDP_SEGMENT
+
+    if (Datapath->Features & CXPLAT_DATAPATH_FEATURE_SEND_SEGMENTATION) {
+        Datapath->SendDataSize = sizeof(CXPLAT_SEND_DATA);
+        Datapath->SendIoVecCount = 1;
+    } else {
+        const uint32_t SendDataSize =
+            sizeof(CXPLAT_SEND_DATA) + (CXPLAT_MAX_BATCH_SEND - 1) * sizeof(struct iovec);
+        Datapath->SendDataSize = SendDataSize;
+        Datapath->SendIoVecCount = CXPLAT_MAX_BATCH_SEND;
+    }
 }
 
 void
@@ -633,16 +651,6 @@ CxPlatDataPathInitialize(
     Datapath->Features = CXPLAT_DATAPATH_FEATURE_LOCAL_PORT_SHARING;
     CxPlatRefInitializeEx(&Datapath->RefCount, Datapath->ProcCount);
     CxPlatDataPathCalculateFeatureSupport(Datapath);
-
-    if (Datapath->Features & CXPLAT_DATAPATH_FEATURE_SEND_SEGMENTATION) {
-        Datapath->SendDataSize = sizeof(CXPLAT_SEND_DATA);
-        Datapath->SendIoVecCount = 1;
-    } else {
-        const uint32_t SendDataSize =
-            sizeof(CXPLAT_SEND_DATA) + (CXPLAT_MAX_BATCH_SEND - 1) * sizeof(struct iovec);
-        Datapath->SendDataSize = SendDataSize;
-        Datapath->SendIoVecCount = CXPLAT_MAX_BATCH_SEND;
-    }
 
     //
     // Initialize the per processor contexts.
