@@ -55,6 +55,8 @@ if(WIN32)
     if (_MSVC_CXX_ARCHITECTURE_FAMILY STREQUAL "ARM64EC")
         target_link_libraries(base_link INTERFACE softintrin)
     endif()
+else()
+    target_link_libraries(base_link INTERFACE libnuma.so)
 endif()
 
 add_library(warnings INTERFACE)
