@@ -31,6 +31,13 @@ if (NOT MSVC AND NOT APPLE AND NOT ANDROID)
     else()
         message(STATUS "libatomic not found. If build fails, install libatomic")
     endif()
+
+    find_library(NUMA NAMES NUMA libnuma.so.1)
+    if (NUMA)
+        message(STATUS "Found libnuma: ${NUMA}")
+    else()
+        message(STATUS "libnuma not found. If build fails, install libnuma")
+    endif()
 endif()
 
 set(THREADS_PREFER_PTHREAD_FLAG ON)
@@ -39,6 +46,10 @@ target_link_libraries(base_link INTERFACE Threads::Threads ${CMAKE_DL_LIBS})
 
 if (ATOMIC)
     target_link_libraries(base_link INTERFACE ${ATOMIC})
+endif()
+
+if (NUMA)
+    target_link_libraries(base_link INTERFACE ${NUMA})
 endif()
 
 if(WIN32)
@@ -55,8 +66,6 @@ if(WIN32)
     if (_MSVC_CXX_ARCHITECTURE_FAMILY STREQUAL "ARM64EC")
         target_link_libraries(base_link INTERFACE softintrin)
     endif()
-else()
-    target_link_libraries(base_link INTERFACE libnuma.so)
 endif()
 
 add_library(warnings INTERFACE)

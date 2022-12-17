@@ -32,7 +32,7 @@ Environment:
 #include "platform_posix.c.clog.h"
 #endif
 
-#if !defined(__ANDROID__)
+#if !defined(CX_PLATFORM_DARWIN) && !defined(__ANDROID__)
 //#ifdef NUMA_NUM_CONFIGURED_NODES
 #define CXPLAT_NUMA_AWARE 1
 #include <numa.h>
