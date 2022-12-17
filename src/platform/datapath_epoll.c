@@ -56,12 +56,6 @@ cxplat_sendmmsg_shim(
 //
 #define CXPLAT_LARGE_SEND_BUFFER_SIZE         0xFFFF
 
-#ifdef DISABLE_POSIX_GSO
-#ifdef UDP_SEGMENT
-#undef UDP_SEGMENT
-#endif
-#endif
-
 const uint16_t CXPLAT_MAX_BATCH_SEND =
     (CXPLAT_LARGE_SEND_BUFFER_SIZE / (CXPLAT_MAX_MTU - CXPLAT_MIN_IPV6_HEADER_SIZE - CXPLAT_UDP_HEADER_SIZE));
 #define CXPLAT_MAX_BATCH_RECEIVE 43
@@ -530,6 +524,7 @@ CxPlatDataPathCalculateFeatureSupport(
     VERIFY(connect(SendSocket, (struct sockaddr*)&RecvAddr, RecvAddrSize) != SOCKET_ERROR)
     VERIFY(sendmsg(SendSocket, &SendMsg, 0) == sizeof(Buffer))
     Datapath->Features |= CXPLAT_DATAPATH_FEATURE_SEND_SEGMENTATION;
+    printf("GSO supported!\n");
 #ifdef UDP_GRO
     VERIFY(setsockopt(RecvSocket, SOL_UDP, UDP_GRO, &GroEnabled, sizeof(GroEnabled)) != SOCKET_ERROR)
     VERIFY(recvmsg(RecvSocket, &RecvMsg, 0) == sizeof(Buffer))
@@ -553,6 +548,7 @@ CxPlatDataPathCalculateFeatureSupport(
     VERIFY(FoundTOS)
     VERIFY(FoundGRO)
     Datapath->Features |= CXPLAT_DATAPATH_FEATURE_RECV_COALESCING;
+    printf("GRO supported!\n");
 #endif // UDP_GRO
 Error:
     if (RecvSocket != INVALID_SOCKET) close(RecvSocket);
