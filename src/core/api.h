@@ -261,3 +261,11 @@ MsQuicDatagramSend(
     _In_ QUIC_SEND_FLAGS Flags,
     _In_opt_ void* ClientSendContext
     );
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+QUIC_STATUS
+QUIC_API
+MsQuicConnectionResumptionTicketValidationComplete(
+    _In_ _Pre_defensive_ HQUIC Handle,
+    _In_ BOOLEAN Result
+    );

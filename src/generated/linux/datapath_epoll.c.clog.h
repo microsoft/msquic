@@ -30,42 +30,6 @@
 extern "C" {
 #endif
 /*----------------------------------------------------------
-// Decoder Ring for DatapathOpenUdpSocketFailed
-// [data] UDP send segmentation helper socket failed to open, 0x%x
-// QuicTraceLogWarning(
-            DatapathOpenUdpSocketFailed,
-            "[data] UDP send segmentation helper socket failed to open, 0x%x",
-            SockError);
-// arg2 = arg2 = SockError = arg2
-----------------------------------------------------------*/
-#ifndef _clog_3_ARGS_TRACE_DatapathOpenUdpSocketFailed
-#define _clog_3_ARGS_TRACE_DatapathOpenUdpSocketFailed(uniqueId, encoded_arg_string, arg2)\
-tracepoint(CLOG_DATAPATH_EPOLL_C, DatapathOpenUdpSocketFailed , arg2);\
-
-#endif
-
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for DatapathQueryUdpSegmentFailed
-// [data] Query for UDP_SEGMENT failed, 0x%x
-// QuicTraceLogWarning(
-            DatapathQueryUdpSegmentFailed,
-            "[data] Query for UDP_SEGMENT failed, 0x%x",
-            SockError);
-// arg2 = arg2 = SockError = arg2
-----------------------------------------------------------*/
-#ifndef _clog_3_ARGS_TRACE_DatapathQueryUdpSegmentFailed
-#define _clog_3_ARGS_TRACE_DatapathQueryUdpSegmentFailed(uniqueId, encoded_arg_string, arg2)\
-tracepoint(CLOG_DATAPATH_EPOLL_C, DatapathQueryUdpSegmentFailed , arg2);\
-
-#endif
-
-
-
-
-/*----------------------------------------------------------
 // Decoder Ring for DatapathRecvEmpty
 // [data][%p] Dropping datagram with empty payload.
 // QuicTraceLogWarning(
@@ -235,20 +199,20 @@ tracepoint(CLOG_DATAPATH_EPOLL_C, DatapathDestroyed , arg2);\
 // Decoder Ring for DatapathSend
 // [data][%p] Send %u bytes in %hhu buffers (segment=%hu) Dst=%!ADDR!, Src=%!ADDR!
 // QuicTraceEvent(
-            DatapathSend,
-            "[data][%p] Send %u bytes in %hhu buffers (segment=%hu) Dst=%!ADDR!, Src=%!ADDR!",
-            Socket,
-            SendData->TotalSize,
-            SendData->BufferCount,
-            SendData->SegmentSize,
-            CASTED_CLOG_BYTEARRAY(sizeof(*RemoteAddress), RemoteAddress),
-            CASTED_CLOG_BYTEARRAY(sizeof(*LocalAddress), LocalAddress));
+        DatapathSend,
+        "[data][%p] Send %u bytes in %hhu buffers (segment=%hu) Dst=%!ADDR!, Src=%!ADDR!",
+        Socket,
+        SendData->TotalSize,
+        SendData->BufferCount,
+        SendData->SegmentSize,
+        CASTED_CLOG_BYTEARRAY(sizeof(Route->RemoteAddress), &Route->RemoteAddress),
+        CASTED_CLOG_BYTEARRAY(sizeof(Route->LocalAddress), &Route->LocalAddress));
 // arg2 = arg2 = Socket = arg2
 // arg3 = arg3 = SendData->TotalSize = arg3
 // arg4 = arg4 = SendData->BufferCount = arg4
 // arg5 = arg5 = SendData->SegmentSize = arg5
-// arg6 = arg6 = CASTED_CLOG_BYTEARRAY(sizeof(*RemoteAddress), RemoteAddress) = arg6
-// arg7 = arg7 = CASTED_CLOG_BYTEARRAY(sizeof(*LocalAddress), LocalAddress) = arg7
+// arg6 = arg6 = CASTED_CLOG_BYTEARRAY(sizeof(Route->RemoteAddress), &Route->RemoteAddress) = arg6
+// arg7 = arg7 = CASTED_CLOG_BYTEARRAY(sizeof(Route->LocalAddress), &Route->LocalAddress) = arg7
 ----------------------------------------------------------*/
 #ifndef _clog_10_ARGS_TRACE_DatapathSend
 #define _clog_10_ARGS_TRACE_DatapathSend(uniqueId, encoded_arg_string, arg2, arg3, arg4, arg5, arg6, arg6_len, arg7, arg7_len)\

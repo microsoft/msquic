@@ -1108,7 +1108,21 @@ MsQuicStreamSend(
         goto Exit;
     }
 
-    if (QueueOper) {
+    if (!Connection->Settings.SendBufferingEnabled &&
+        Connection->WorkerThreadID == CxPlatCurThreadID()) {
+
+        CXPLAT_PASSIVE_CODE();
+
+        BOOLEAN AlreadyInline = Connection->State.InlineApiExecution;
+        if (!AlreadyInline) {
+            Connection->State.InlineApiExecution = TRUE;
+        }
+        QuicStreamSendFlush(Stream);
+        if (!AlreadyInline) {
+            Connection->State.InlineApiExecution = FALSE;
+        }
+
+    } else if (QueueOper) {
         Oper = QuicOperationAlloc(Connection->Worker, QUIC_OPER_TYPE_API_CALL);
         if (Oper == NULL) {
             Status = QUIC_STATUS_OUT_OF_MEMORY;
@@ -1622,6 +1636,81 @@ MsQuicDatagramSend(
     SendRequest->ClientContext = ClientSendContext;
 
     Status = QuicDatagramQueueSend(&Connection->Datagram, SendRequest);
+
+Error:
+
+    QuicTraceEvent(
+        ApiExitStatus,
+        "[ api] Exit %u",
+        Status);
+
+    return Status;
+}
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+QUIC_STATUS
+QUIC_API
+MsQuicConnectionResumptionTicketValidationComplete(
+    _In_ _Pre_defensive_ HQUIC Handle,
+    _In_ BOOLEAN Result
+    )
+{
+    QUIC_STATUS Status;
+    QUIC_CONNECTION* Connection;
+    QUIC_OPERATION* Oper;
+
+    QuicTraceEvent(
+        ApiEnter,
+        "[ api] Enter %u (%p).",
+        QUIC_TRACE_API_CONNECTION_COMPLETE_RESUMPTION_TICKET_VALIDATION,
+        Handle);
+
+    if (IS_CONN_HANDLE(Handle)) {
+#pragma prefast(suppress: __WARNING_25024, "Pointer cast already validated.")
+        Connection = (QUIC_CONNECTION*)Handle;
+    } else if (IS_STREAM_HANDLE(Handle)) {
+#pragma prefast(suppress: __WARNING_25024, "Pointer cast already validated.")
+        QUIC_STREAM* Stream = (QUIC_STREAM*)Handle;
+        CXPLAT_TEL_ASSERT(!Stream->Flags.HandleClosed);
+        CXPLAT_TEL_ASSERT(!Stream->Flags.Freed);
+        Connection = Stream->Connection;
+    } else {
+        Status = QUIC_STATUS_INVALID_PARAMETER;
+        goto Error;
+    }
+
+    QUIC_CONN_VERIFY(Connection, !Connection->State.Freed);
+
+    if (QuicConnIsClient(Connection)) {
+        Status = QUIC_STATUS_INVALID_PARAMETER;
+        goto Error;
+    }
+
+    if (Connection->Crypto.TlsState.HandshakeComplete ||
+        Connection->Crypto.TlsState.SessionResumed) {
+        Status = QUIC_STATUS_INVALID_STATE;
+        goto Error;
+    }
+
+    Oper = QuicOperationAlloc(Connection->Worker, QUIC_OPER_TYPE_API_CALL);
+    if (Oper == NULL) {
+        Status = QUIC_STATUS_OUT_OF_MEMORY;
+        QuicTraceEvent(
+            AllocFailure,
+            "Allocation of '%s' failed. (%llu bytes)",
+            "CONN_COMPLETE_RESUMPTION_TICKET_VALIDATION operation",
+            0);
+        goto Error;
+    }
+
+    Oper->API_CALL.Context->Type = QUIC_API_TYPE_CONN_COMPLETE_RESUMPTION_TICKET_VALIDATION;
+    Oper->API_CALL.Context->CONN_COMPLETE_RESUMPTION_TICKET_VALIDATION.Result = Result;
+
+    //
+    // Queue the operation but don't wait for the completion.
+    //
+    QuicConnQueueOper(Connection, Oper);
+    Status = QUIC_STATUS_PENDING;
 
 Error:
 
