@@ -550,8 +550,8 @@ CxPlatDataPathCalculateFeatureSupport(
     Datapath->Features |= CXPLAT_DATAPATH_FEATURE_RECV_COALESCING;
 #endif // UDP_GRO
 Error:
-    if (RecvSocket != INVALID_SOCKET) close(RecvSocket);
-    if (SendSocket != INVALID_SOCKET) close(SendSocket);
+    if (RecvSocket != INVALID_SOCKET) { close(RecvSocket); }
+    if (SendSocket != INVALID_SOCKET) { close(SendSocket); }
 #endif // UDP_SEGMENT
 
     if (Datapath->Features & CXPLAT_DATAPATH_FEATURE_SEND_SEGMENTATION) {
@@ -1902,7 +1902,6 @@ CxPlatSocketReceiveCoalesced(
 
     do {
         uint32_t RetryCount = 0;
-        CXPLAT_RECV_BLOCK* RecvBlock;
         do {
             RecvBlock = CxPlatPoolAlloc(&DatapathProc->RecvBlockPool);
         } while (RecvBlock == NULL && ++RetryCount < 10);
