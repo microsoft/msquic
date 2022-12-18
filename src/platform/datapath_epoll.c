@@ -192,7 +192,7 @@ typedef struct CXPLAT_SEND_DATA {
 typedef struct CXPLAT_RECV_MSG_CONTROL_BUFFER {
     char Data[CMSG_SPACE(sizeof(struct in6_pktinfo)) +  // IP_PKTINFO
               CMSG_SPACE(sizeof(int)) +                 // IP_TOS
-              CMSG_SPACE(sizeof(uint16_t))];            // UDP_GRO
+              CMSG_SPACE(sizeof(int))];                 // UDP_GRO
 } CXPLAT_RECV_MSG_CONTROL_BUFFER;
 
 typedef struct CXPLAT_DATAPATH_PROC CXPLAT_DATAPATH_PROC;
@@ -1782,6 +1782,10 @@ CxPlatSocketContextRecvComplete(
         CxPlatConvertFromMappedV6(RemoteAddr, RemoteAddr);
         RecvBlock->Route.Queue = SocketContext;
 
+        //
+        // Process the ancillary control messages to get the local address,
+        // type of service and possibly the GRO segmentation length.
+        //
         struct msghdr* Msg = &RecvMsgHdr[CurrentMessage].msg_hdr;
         for (struct cmsghdr *CMsg = CMSG_FIRSTHDR(Msg); CMsg != NULL; CMsg = CMSG_NXTHDR(Msg, CMsg)) {
             if (CMsg->cmsg_level == IPPROTO_IPV6) {
@@ -1794,7 +1798,7 @@ CxPlatSocketContextRecvComplete(
                     LocalAddr->Ipv6.sin6_scope_id = PktInfo6->ipi6_ifindex;
                     FoundLocalAddr = TRUE;
                 } else if (CMsg->cmsg_type == IPV6_TCLASS) {
-                    TOS = (uint8_t)*(int*)CMSG_DATA(CMsg);
+                    TOS = *(uint8_t*)CMSG_DATA(CMsg);
                     FoundTOS = TRUE;
                 }
             } else if (CMsg->cmsg_level == IPPROTO_IP) {
@@ -1806,7 +1810,7 @@ CxPlatSocketContextRecvComplete(
                     LocalAddr->Ipv6.sin6_scope_id = PktInfo->ipi_ifindex;
                     FoundLocalAddr = TRUE;
                 } else if (CMsg->cmsg_type == IP_TOS) {
-                    TOS = (uint8_t)*(int*)CMSG_DATA(CMsg);
+                    TOS = *(uint8_t*)CMSG_DATA(CMsg);
                     FoundTOS = TRUE;
                 }
             } else if (CMsg->cmsg_level == IPPROTO_UDP) {
@@ -1837,6 +1841,9 @@ CxPlatSocketContextRecvComplete(
             (uint8_t*)RecvBlock + SocketContext->DatapathProc->Datapath->RecvBlockBufferOffset;
         RecvBlock->RefCount = 0;
 
+        //
+        // Build up the chain of receive packets to indicate up to the app.
+        //
         uint32_t Offset = 0;
         while (Offset < RecvMsgHdr[CurrentMessage].msg_len &&
                RecvBlock->RefCount < CXPLAT_MAX_IO_BATCH_SIZE) {
@@ -1895,7 +1902,7 @@ CxPlatSocketReceiveCoalesced(
     )
 {
     CXPLAT_DATAPATH_PROC* DatapathProc = SocketContext->DatapathProc;
-    CXPLAT_RECV_BLOCK* RecvBlock;
+    CXPLAT_RECV_BLOCK* RecvBlock = NULL;
     struct mmsghdr RecvMsgHdr;
     CXPLAT_RECV_MSG_CONTROL_BUFFER RecvMsgControl;
     struct iovec RecvIov;
