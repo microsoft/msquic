@@ -1779,6 +1779,7 @@ CxPlatSocketContextRecvComplete(
         BOOLEAN FoundLocalAddr = FALSE, FoundTOS = FALSE;
         QUIC_ADDR* LocalAddr = &RecvBlock->Route.LocalAddress;
         QUIC_ADDR* RemoteAddr = &RecvBlock->Route.RemoteAddress;
+        CxPlatConvertFromMappedV6(RemoteAddr, RemoteAddr);
         RecvBlock->Route.Queue = SocketContext;
 
         struct msghdr* Msg = &RecvMsgHdr[CurrentMessage].msg_hdr;
