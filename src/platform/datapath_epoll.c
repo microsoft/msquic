@@ -565,7 +565,7 @@ Error:
     }
 
     Datapath->RecvBlockStride =
-        sizeof(CXPLAT_RECV_BLOCK*) + sizeof(CXPLAT_RECV_DATA) + ClientRecvContextLength;
+        sizeof(CXPLAT_RECV_SUBBLOCK) + ClientRecvContextLength;
     if (Datapath->Features & CXPLAT_DATAPATH_FEATURE_RECV_COALESCING) {
         Datapath->RecvBlockBufferOffset =
             sizeof(CXPLAT_RECV_BLOCK) +
@@ -1838,7 +1838,8 @@ CxPlatSocketContextRecvComplete(
         RecvBlock->RefCount = 0;
 
         uint32_t Offset = 0;
-        while (Offset < RecvMsgHdr[CurrentMessage].msg_len) {
+        while (Offset < RecvMsgHdr[CurrentMessage].msg_len &&
+               RecvBlock->RefCount < CXPLAT_MAX_IO_BATCH_SIZE) {
             RecvBlock->RefCount++;
             SubBlock->RecvBlock = RecvBlock;
 
@@ -2057,7 +2058,7 @@ CxPlatRecvDataReturn(
         RecvDataChain = RecvDataChain->Next;
         CXPLAT_RECV_SUBBLOCK* SubBlock =
             CXPLAT_CONTAINING_RECORD(Datagram, CXPLAT_RECV_SUBBLOCK, RecvData);
-        if (InterlockedDecrement((long*)&SubBlock->RecvBlock->RefCount)) {
+        if (InterlockedDecrement((long*)&SubBlock->RecvBlock->RefCount) == 0) {
             CxPlatPoolFree(SubBlock->RecvBlock->OwningPool, SubBlock->RecvBlock);
         }
     }
