@@ -117,45 +117,6 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_EPOLL_C, DatapathErrorStatus,
 
 
 /*----------------------------------------------------------
-// Decoder Ring for DatapathRecv
-// [data][%p] Recv %u bytes (segment=%hu) Src=%!ADDR! Dst=%!ADDR!
-// QuicTraceEvent(
-            DatapathRecv,
-            "[data][%p] Recv %u bytes (segment=%hu) Src=%!ADDR! Dst=%!ADDR!",
-            SocketContext->Binding,
-            (uint32_t)RecvPacket->BufferLength,
-            (uint32_t)RecvPacket->BufferLength,
-            CASTED_CLOG_BYTEARRAY(sizeof(*LocalAddr), LocalAddr),
-            CASTED_CLOG_BYTEARRAY(sizeof(*RemoteAddr), RemoteAddr));
-// arg2 = arg2 = SocketContext->Binding = arg2
-// arg3 = arg3 = (uint32_t)RecvPacket->BufferLength = arg3
-// arg4 = arg4 = (uint32_t)RecvPacket->BufferLength = arg4
-// arg5 = arg5 = CASTED_CLOG_BYTEARRAY(sizeof(*LocalAddr), LocalAddr) = arg5
-// arg6 = arg6 = CASTED_CLOG_BYTEARRAY(sizeof(*RemoteAddr), RemoteAddr) = arg6
-----------------------------------------------------------*/
-TRACEPOINT_EVENT(CLOG_DATAPATH_EPOLL_C, DatapathRecv,
-    TP_ARGS(
-        const void *, arg2,
-        unsigned int, arg3,
-        unsigned short, arg4,
-        unsigned int, arg5_len,
-        const void *, arg5,
-        unsigned int, arg6_len,
-        const void *, arg6), 
-    TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg2, arg2)
-        ctf_integer(unsigned int, arg3, arg3)
-        ctf_integer(unsigned short, arg4, arg4)
-        ctf_integer(unsigned int, arg5_len, arg5_len)
-        ctf_sequence(char, arg5, arg5, unsigned int, arg5_len)
-        ctf_integer(unsigned int, arg6_len, arg6_len)
-        ctf_sequence(char, arg6, arg6, unsigned int, arg6_len)
-    )
-)
-
-
-
-/*----------------------------------------------------------
 // Decoder Ring for DatapathCreated
 // [data][%p] Created, local=%!ADDR!, remote=%!ADDR!
 // QuicTraceEvent(
@@ -200,6 +161,45 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_EPOLL_C, DatapathDestroyed,
         const void *, arg2), 
     TP_FIELDS(
         ctf_integer_hex(uint64_t, arg2, arg2)
+    )
+)
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for DatapathRecv
+// [data][%p] Recv %u bytes (segment=%hu) Src=%!ADDR! Dst=%!ADDR!
+// QuicTraceEvent(
+            DatapathRecv,
+            "[data][%p] Recv %u bytes (segment=%hu) Src=%!ADDR! Dst=%!ADDR!",
+            SocketContext->Binding,
+            RecvMsgHdr[CurrentMessage].msg_len,
+            SegmentLength,
+            CASTED_CLOG_BYTEARRAY(sizeof(*LocalAddr), LocalAddr),
+            CASTED_CLOG_BYTEARRAY(sizeof(*RemoteAddr), RemoteAddr));
+// arg2 = arg2 = SocketContext->Binding = arg2
+// arg3 = arg3 = RecvMsgHdr[CurrentMessage].msg_len = arg3
+// arg4 = arg4 = SegmentLength = arg4
+// arg5 = arg5 = CASTED_CLOG_BYTEARRAY(sizeof(*LocalAddr), LocalAddr) = arg5
+// arg6 = arg6 = CASTED_CLOG_BYTEARRAY(sizeof(*RemoteAddr), RemoteAddr) = arg6
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_DATAPATH_EPOLL_C, DatapathRecv,
+    TP_ARGS(
+        const void *, arg2,
+        unsigned int, arg3,
+        unsigned short, arg4,
+        unsigned int, arg5_len,
+        const void *, arg5,
+        unsigned int, arg6_len,
+        const void *, arg6), 
+    TP_FIELDS(
+        ctf_integer_hex(uint64_t, arg2, arg2)
+        ctf_integer(unsigned int, arg3, arg3)
+        ctf_integer(unsigned short, arg4, arg4)
+        ctf_integer(unsigned int, arg5_len, arg5_len)
+        ctf_sequence(char, arg5, arg5, unsigned int, arg5_len)
+        ctf_integer(unsigned int, arg6_len, arg6_len)
+        ctf_sequence(char, arg6, arg6, unsigned int, arg6_len)
     )
 )
 

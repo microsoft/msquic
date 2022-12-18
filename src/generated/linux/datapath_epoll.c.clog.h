@@ -130,32 +130,6 @@ tracepoint(CLOG_DATAPATH_EPOLL_C, DatapathErrorStatus , arg2, arg3, arg4);\
 
 
 /*----------------------------------------------------------
-// Decoder Ring for DatapathRecv
-// [data][%p] Recv %u bytes (segment=%hu) Src=%!ADDR! Dst=%!ADDR!
-// QuicTraceEvent(
-            DatapathRecv,
-            "[data][%p] Recv %u bytes (segment=%hu) Src=%!ADDR! Dst=%!ADDR!",
-            SocketContext->Binding,
-            (uint32_t)RecvPacket->BufferLength,
-            (uint32_t)RecvPacket->BufferLength,
-            CASTED_CLOG_BYTEARRAY(sizeof(*LocalAddr), LocalAddr),
-            CASTED_CLOG_BYTEARRAY(sizeof(*RemoteAddr), RemoteAddr));
-// arg2 = arg2 = SocketContext->Binding = arg2
-// arg3 = arg3 = (uint32_t)RecvPacket->BufferLength = arg3
-// arg4 = arg4 = (uint32_t)RecvPacket->BufferLength = arg4
-// arg5 = arg5 = CASTED_CLOG_BYTEARRAY(sizeof(*LocalAddr), LocalAddr) = arg5
-// arg6 = arg6 = CASTED_CLOG_BYTEARRAY(sizeof(*RemoteAddr), RemoteAddr) = arg6
-----------------------------------------------------------*/
-#ifndef _clog_9_ARGS_TRACE_DatapathRecv
-#define _clog_9_ARGS_TRACE_DatapathRecv(uniqueId, encoded_arg_string, arg2, arg3, arg4, arg5, arg5_len, arg6, arg6_len)\
-tracepoint(CLOG_DATAPATH_EPOLL_C, DatapathRecv , arg2, arg3, arg4, arg5_len, arg5, arg6_len, arg6);\
-
-#endif
-
-
-
-
-/*----------------------------------------------------------
 // Decoder Ring for DatapathCreated
 // [data][%p] Created, local=%!ADDR!, remote=%!ADDR!
 // QuicTraceEvent(
@@ -189,6 +163,32 @@ tracepoint(CLOG_DATAPATH_EPOLL_C, DatapathCreated , arg2, arg3_len, arg3, arg4_l
 #ifndef _clog_3_ARGS_TRACE_DatapathDestroyed
 #define _clog_3_ARGS_TRACE_DatapathDestroyed(uniqueId, encoded_arg_string, arg2)\
 tracepoint(CLOG_DATAPATH_EPOLL_C, DatapathDestroyed , arg2);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for DatapathRecv
+// [data][%p] Recv %u bytes (segment=%hu) Src=%!ADDR! Dst=%!ADDR!
+// QuicTraceEvent(
+            DatapathRecv,
+            "[data][%p] Recv %u bytes (segment=%hu) Src=%!ADDR! Dst=%!ADDR!",
+            SocketContext->Binding,
+            RecvMsgHdr[CurrentMessage].msg_len,
+            SegmentLength,
+            CASTED_CLOG_BYTEARRAY(sizeof(*LocalAddr), LocalAddr),
+            CASTED_CLOG_BYTEARRAY(sizeof(*RemoteAddr), RemoteAddr));
+// arg2 = arg2 = SocketContext->Binding = arg2
+// arg3 = arg3 = RecvMsgHdr[CurrentMessage].msg_len = arg3
+// arg4 = arg4 = SegmentLength = arg4
+// arg5 = arg5 = CASTED_CLOG_BYTEARRAY(sizeof(*LocalAddr), LocalAddr) = arg5
+// arg6 = arg6 = CASTED_CLOG_BYTEARRAY(sizeof(*RemoteAddr), RemoteAddr) = arg6
+----------------------------------------------------------*/
+#ifndef _clog_9_ARGS_TRACE_DatapathRecv
+#define _clog_9_ARGS_TRACE_DatapathRecv(uniqueId, encoded_arg_string, arg2, arg3, arg4, arg5, arg5_len, arg6, arg6_len)\
+tracepoint(CLOG_DATAPATH_EPOLL_C, DatapathRecv , arg2, arg3, arg4, arg5_len, arg5, arg6_len, arg6);\
 
 #endif
 
