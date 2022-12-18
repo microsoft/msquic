@@ -1961,7 +1961,7 @@ CxPlatSocketReceiveCoalesced(
 Exit:
 
     if (RecvBlock) {
-        CxPlatPoolFree(&DatapathProc->RecvBlockPool, &RecvBlock);
+        CxPlatPoolFree(&DatapathProc->RecvBlockPool, RecvBlock);
     }
 }
 
