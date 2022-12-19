@@ -537,8 +537,11 @@ CxPlatDataPathCalculateFeatureSupport(
             }
         } else if (CMsg->cmsg_level == IPPROTO_UDP) {
             if (CMsg->cmsg_type == UDP_GRO) {
-                CXPLAT_DBG_ASSERT(CMsg->cmsg_len == CMSG_LEN(sizeof(uint16_t)));
-                VERIFY(1476 == *(uint16_t*)CMSG_DATA(CMsg))
+                if (CMsg->cmsg_len != CMSG_LEN(sizeof(int))) {
+                    printf("UDP_GRO CMsg->cmsg_len == %u\n", (uint32_t)CMsg->cmsg_len);
+                }
+                CXPLAT_DBG_ASSERT(CMsg->cmsg_len == CMSG_LEN(sizeof(int)));
+                VERIFY(1476 == *(int*)CMSG_DATA(CMsg))
                 FoundGRO = TRUE;
             }
         }
@@ -1824,8 +1827,8 @@ CxPlatSocketContextRecvComplete(
                 }
             } else if (CMsg->cmsg_level == IPPROTO_UDP) {
                 if (CMsg->cmsg_type == UDP_GRO) {
-                    CXPLAT_DBG_ASSERT(CMsg->cmsg_len == CMSG_LEN(sizeof(uint16_t)));
-                    SegmentLength = *(uint16_t*)CMSG_DATA(CMsg);
+                    CXPLAT_DBG_ASSERT(CMsg->cmsg_len == CMSG_LEN(sizeof(int)));
+                    SegmentLength = *(int*)CMSG_DATA(CMsg);
                 }
             } else {
                 CXPLAT_DBG_ASSERT(FALSE);
