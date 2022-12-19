@@ -100,7 +100,6 @@ option(QUIC_TELEMETRY_ASSERTS "Enable telemetry asserts in release builds" OFF)
 option(QUIC_USE_SYSTEM_LIBCRYPTO "Use system libcrypto if openssl TLS" OFF)
 option(QUIC_HIGH_RES_TIMERS "Configure the system to use high resolution timers" OFF)
 option(QUIC_USE_XDP "Uses XDP instead of socket APIs" OFF)
-option(QUIC_DISABLE_POSIX_GSO "Disable GSO for systems that say they support it but don't" OFF)
 option(QUIC_OFFICIAL_RELEASE "Configured the build for an official release" OFF)
 set(QUIC_FOLDER_PREFIX "" CACHE STRING "Optional prefix for source group folders when using an IDE generator")
 set(QUIC_LIBRARY_NAME "msquic" CACHE STRING "Override the output library name")
@@ -625,10 +624,6 @@ else() #!WIN32
         list(APPEND QUIC_COMMON_DEFINES CX_PLATFORM_LINUX)
         message(STATUS "Enabling shared ephemeral port work around")
         list(APPEND QUIC_COMMON_DEFINES QUIC_SHARED_EPHEMERAL_WORKAROUND)
-    endif()
-
-    if (QUIC_DISABLE_POSIX_GSO)
-        list(APPEND QUIC_COMMON_DEFINES DISABLE_POSIX_GSO)
     endif()
 
     if(QUIC_ENABLE_SANITIZERS)
