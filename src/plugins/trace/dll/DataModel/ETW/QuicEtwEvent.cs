@@ -103,8 +103,6 @@ namespace QuicTrace.DataModel.ETW
             }
         }
 
-        // TODO: QuicEtwDataReader to IDataReader
-        [System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE2001:Embedded statements must be on their own line", Justification = "<Pending>")]
         internal static unsafe QuicEvent? TryCreate(Timestamp timestamp, QuicEventId id, ushort processor, uint processId, uint threadId, int pointerSize, QuicEtwDataReader data)
         {
             switch (id)
@@ -303,7 +301,6 @@ namespace QuicTrace.DataModel.ETW
             }
         }
 
-        [System.Diagnostics.CodeAnalysis.SuppressMessage("Style", "IDE2001:Embedded statements must be on their own line", Justification = "<Pending>")]
         internal static unsafe QuicEvent? TryCreate(TraceEvent evt, Timestamp timestamp)
         {
             var processor = (ushort)evt.ProcessorNumber;
