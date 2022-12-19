@@ -5,6 +5,7 @@ RUN     apt-get update -y \
             build-essential \
             cmake \
             liblttng-ust-dev \
+            libnuma-dev \
             && apt-get clean
 COPY    . /src
 
