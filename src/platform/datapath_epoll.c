@@ -68,7 +68,7 @@ typedef struct CXPLAT_RECV_BLOCK {
     //
     // Ref count of receive data/packets that are using this block.
     //
-    uint32_t RefCount;
+    long RefCount;
 
     //
     // An array of sub-blocks to represent the datagram and metadata returned to
@@ -192,7 +192,8 @@ typedef struct CXPLAT_SEND_DATA {
 typedef struct CXPLAT_RECV_MSG_CONTROL_BUFFER {
     char Data[CMSG_SPACE(sizeof(struct in6_pktinfo)) +  // IP_PKTINFO
               CMSG_SPACE(sizeof(int)) +                 // IP_TOS
-              CMSG_SPACE(sizeof(int))];                 // UDP_GRO
+              CMSG_SPACE(sizeof(int)) +                 // UDP_GRO
+              CMSG_SPACE(sizeof(int))];                 // extra space??
 } CXPLAT_RECV_MSG_CONTROL_BUFFER;
 
 typedef struct CXPLAT_DATAPATH_PROC CXPLAT_DATAPATH_PROC;
@@ -530,11 +531,13 @@ CxPlatDataPathCalculateFeatureSupport(
             if (CMsg->cmsg_type == IP_PKTINFO) {
                 FoundPKTINFO = TRUE;
             } else if (CMsg->cmsg_type == IP_TOS) {
-                VERIFY(0x1 == *(int*)CMSG_DATA(CMsg))
+                CXPLAT_DBG_ASSERT(CMsg->cmsg_len == CMSG_LEN(sizeof(uint8_t)));
+                VERIFY(0x1 == *(uint8_t*)CMSG_DATA(CMsg))
                 FoundTOS = TRUE;
             }
         } else if (CMsg->cmsg_level == IPPROTO_UDP) {
             if (CMsg->cmsg_type == UDP_GRO) {
+                CXPLAT_DBG_ASSERT(CMsg->cmsg_len == CMSG_LEN(sizeof(uint16_t)));
                 VERIFY(1476 == *(uint16_t*)CMSG_DATA(CMsg))
                 FoundGRO = TRUE;
             }
@@ -1798,8 +1801,11 @@ CxPlatSocketContextRecvComplete(
                     LocalAddr->Ipv6.sin6_scope_id = PktInfo6->ipi6_ifindex;
                     FoundLocalAddr = TRUE;
                 } else if (CMsg->cmsg_type == IPV6_TCLASS) {
-                    TOS = *(uint8_t*)CMSG_DATA(CMsg);
+                    CXPLAT_DBG_ASSERT(CMsg->cmsg_len == CMSG_LEN(sizeof(int)));
+                    TOS = (uint8_t)*(int*)CMSG_DATA(CMsg);
                     FoundTOS = TRUE;
+                } else {
+                    CXPLAT_DBG_ASSERT(FALSE);
                 }
             } else if (CMsg->cmsg_level == IPPROTO_IP) {
                 if (CMsg->cmsg_type == IP_PKTINFO) {
@@ -1810,13 +1816,19 @@ CxPlatSocketContextRecvComplete(
                     LocalAddr->Ipv6.sin6_scope_id = PktInfo->ipi_ifindex;
                     FoundLocalAddr = TRUE;
                 } else if (CMsg->cmsg_type == IP_TOS) {
+                    CXPLAT_DBG_ASSERT(CMsg->cmsg_len == CMSG_LEN(sizeof(uint8_t)));
                     TOS = *(uint8_t*)CMSG_DATA(CMsg);
                     FoundTOS = TRUE;
+                } else {
+                    CXPLAT_DBG_ASSERT(FALSE);
                 }
             } else if (CMsg->cmsg_level == IPPROTO_UDP) {
                 if (CMsg->cmsg_type == UDP_GRO) {
+                    CXPLAT_DBG_ASSERT(CMsg->cmsg_len == CMSG_LEN(sizeof(uint16_t)));
                     SegmentLength = *(uint16_t*)CMSG_DATA(CMsg);
                 }
+            } else {
+                CXPLAT_DBG_ASSERT(FALSE);
             }
         }
 
@@ -2064,7 +2076,7 @@ CxPlatRecvDataReturn(
         RecvDataChain = RecvDataChain->Next;
         CXPLAT_RECV_SUBBLOCK* SubBlock =
             CXPLAT_CONTAINING_RECORD(Datagram, CXPLAT_RECV_SUBBLOCK, RecvData);
-        if (InterlockedDecrement((long*)&SubBlock->RecvBlock->RefCount) == 0) {
+        if (InterlockedDecrement(&SubBlock->RecvBlock->RefCount) == 0) {
             CxPlatPoolFree(SubBlock->RecvBlock->OwningPool, SubBlock->RecvBlock);
         }
     }
