@@ -454,6 +454,18 @@ CxPlatDataPathGetProc(
     return NULL;
 }
 
+#ifdef DEBUG
+#define CXPLAT_DBG_ASSERT_CMSG(CMsg, type) \
+    if (CMsg->cmsg_len < CMSG_LEN(sizeof(type))) { \
+        printf("%u: cmsg[%u:%u] len (%u) < exp_len (%u)\n", \
+            (uint32_t)__LINE__, \
+            (uint32_t)CMsg->cmsg_level, (uint32_t)CMsg->cmsg_type, \
+            (uint32_t)CMsg->cmsg_len, (uint32_t)CMSG_LEN(sizeof(type))); \
+    }
+#else
+#define CXPLAT_DBG_ASSERT_CMSG(CMsg, type)
+#endif
+
 void
 CxPlatDataPathCalculateFeatureSupport(
     _Inout_ CXPLAT_DATAPATH* Datapath,
@@ -531,17 +543,14 @@ CxPlatDataPathCalculateFeatureSupport(
             if (CMsg->cmsg_type == IP_PKTINFO) {
                 FoundPKTINFO = TRUE;
             } else if (CMsg->cmsg_type == IP_TOS) {
-                CXPLAT_DBG_ASSERT(CMsg->cmsg_len == CMSG_LEN(sizeof(uint8_t)));
+                CXPLAT_DBG_ASSERT_CMSG(CMsg, uint8_t);
                 VERIFY(0x1 == *(uint8_t*)CMSG_DATA(CMsg))
                 FoundTOS = TRUE;
             }
         } else if (CMsg->cmsg_level == IPPROTO_UDP) {
             if (CMsg->cmsg_type == UDP_GRO) {
-                if (CMsg->cmsg_len != CMSG_LEN(sizeof(int))) {
-                    printf("UDP_GRO CMsg->cmsg_len == %u\n", (uint32_t)CMsg->cmsg_len);
-                }
-                CXPLAT_DBG_ASSERT(CMsg->cmsg_len == CMSG_LEN(sizeof(int)));
-                VERIFY(1476 == *(int*)CMSG_DATA(CMsg))
+                CXPLAT_DBG_ASSERT_CMSG(CMsg, uint16_t);
+                VERIFY(1476 == *(uint16_t*)CMSG_DATA(CMsg))
                 FoundGRO = TRUE;
             }
         }
@@ -1796,7 +1805,7 @@ CxPlatSocketContextRecvComplete(
         for (struct cmsghdr *CMsg = CMSG_FIRSTHDR(Msg); CMsg != NULL; CMsg = CMSG_NXTHDR(Msg, CMsg)) {
             if (CMsg->cmsg_level == IPPROTO_IPV6) {
                 if (CMsg->cmsg_type == IPV6_PKTINFO) {
-                    struct in6_pktinfo* PktInfo6 = (struct in6_pktinfo*) CMSG_DATA(CMsg);
+                    struct in6_pktinfo* PktInfo6 = (struct in6_pktinfo*)CMSG_DATA(CMsg);
                     LocalAddr->Ip.sa_family = QUIC_ADDRESS_FAMILY_INET6;
                     LocalAddr->Ipv6.sin6_addr = PktInfo6->ipi6_addr;
                     LocalAddr->Ipv6.sin6_port = SocketContext->Binding->LocalAddress.Ipv6.sin6_port;
@@ -1804,8 +1813,8 @@ CxPlatSocketContextRecvComplete(
                     LocalAddr->Ipv6.sin6_scope_id = PktInfo6->ipi6_ifindex;
                     FoundLocalAddr = TRUE;
                 } else if (CMsg->cmsg_type == IPV6_TCLASS) {
-                    CXPLAT_DBG_ASSERT(CMsg->cmsg_len == CMSG_LEN(sizeof(int)));
-                    TOS = (uint8_t)*(int*)CMSG_DATA(CMsg);
+                    CXPLAT_DBG_ASSERT_CMSG(CMsg, uint8_t);
+                    TOS = *(uint8_t*)CMSG_DATA(CMsg);
                     FoundTOS = TRUE;
                 } else {
                     CXPLAT_DBG_ASSERT(FALSE);
@@ -1819,7 +1828,7 @@ CxPlatSocketContextRecvComplete(
                     LocalAddr->Ipv6.sin6_scope_id = PktInfo->ipi_ifindex;
                     FoundLocalAddr = TRUE;
                 } else if (CMsg->cmsg_type == IP_TOS) {
-                    CXPLAT_DBG_ASSERT(CMsg->cmsg_len == CMSG_LEN(sizeof(uint8_t)));
+                    CXPLAT_DBG_ASSERT_CMSG(CMsg, uint8_t);
                     TOS = *(uint8_t*)CMSG_DATA(CMsg);
                     FoundTOS = TRUE;
                 } else {
@@ -1827,8 +1836,8 @@ CxPlatSocketContextRecvComplete(
                 }
             } else if (CMsg->cmsg_level == IPPROTO_UDP) {
                 if (CMsg->cmsg_type == UDP_GRO) {
-                    CXPLAT_DBG_ASSERT(CMsg->cmsg_len == CMSG_LEN(sizeof(int)));
-                    SegmentLength = *(int*)CMSG_DATA(CMsg);
+                    CXPLAT_DBG_ASSERT_CMSG(CMsg, uint16_t);
+                    SegmentLength = *(uint16_t*)CMSG_DATA(CMsg);
                 }
             } else {
                 CXPLAT_DBG_ASSERT(FALSE);
