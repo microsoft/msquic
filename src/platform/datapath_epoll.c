@@ -190,10 +190,9 @@ typedef struct CXPLAT_SEND_DATA {
 } CXPLAT_SEND_DATA;
 
 typedef struct CXPLAT_RECV_MSG_CONTROL_BUFFER {
-    char Data[CMSG_SPACE(sizeof(struct in6_pktinfo)) +  // IP_PKTINFO
-              CMSG_SPACE(sizeof(int)) +                 // IP_TOS
-              CMSG_SPACE(sizeof(int)) +                 // UDP_GRO
-              CMSG_SPACE(sizeof(int))];                 // extra space??
+    char Data[CMSG_SPACE(sizeof(struct in6_pktinfo)) +
+              CMSG_SPACE(sizeof(struct in_pktinfo)) +
+              2 * CMSG_SPACE(sizeof(int))];
 } CXPLAT_RECV_MSG_CONTROL_BUFFER;
 
 typedef struct CXPLAT_DATAPATH_PROC CXPLAT_DATAPATH_PROC;
