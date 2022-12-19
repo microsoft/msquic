@@ -494,7 +494,7 @@ CxPlatDataPathCalculateFeatureSupport(
     *((uint16_t*)CMSG_DATA(CMsg)) = 1476;
     RecvAddr.sin_family = AF_INET;
     RecvAddr.sin_addr.s_addr = inet_addr("127.0.0.1");
-    char RecvControlBuffer[CMSG_SPACE(sizeof(int)) + CMSG_SPACE(sizeof(uint16_t)) + CMSG_SPACE(sizeof(struct in6_pktinfo))] = {0};
+    char RecvControlBuffer[CMSG_SPACE(sizeof(int)) + CMSG_SPACE(sizeof(int)) + CMSG_SPACE(sizeof(struct in6_pktinfo))] = {0};
     struct msghdr RecvMsg = {0};
     RecvMsg.msg_name = &RecvAddr2;
     RecvMsg.msg_namelen = RecvAddr2Size;
