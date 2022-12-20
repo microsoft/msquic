@@ -1533,10 +1533,7 @@ CxPlatSocketCreateUdp(
         Binding->SocketContexts[i].ShutdownSqe.CqeType = CXPLAT_CQE_TYPE_SOCKET_SHUTDOWN;
         Binding->SocketContexts[i].IoSqe.CqeType = CXPLAT_CQE_TYPE_SOCKET_IO;
         Binding->SocketContexts[i].FlushTxSqe.CqeType = CXPLAT_CQE_TYPE_SOCKET_FLUSH_TX;
-        Binding->SocketContexts[i].DatapathProc =
-            IsServerSocket ?
-                &Datapath->Processors[i] :
-                CxPlatDataPathGetProc(Datapath, CurrentProc);
+        Binding->SocketContexts[i].DatapathProc = &Datapath->Processors[i % Datapath->ProcCount];
         CxPlatRefIncrement(&Binding->SocketContexts[i].DatapathProc->RefCount);
         CxPlatListInitializeHead(&Binding->SocketContexts[i].TxQueue);
         CxPlatLockInitialize(&Binding->SocketContexts[i].TxQueueLock);
