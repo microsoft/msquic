@@ -1581,7 +1581,7 @@ CxPlatSocketCreateUdp(
     //
     *NewBinding = Binding;
 
-    for (uint32_t i = 0; i < SocketCount; i++) {
+    for (uint32_t i = 0; i < AllProcCount; i++) {
         CxPlatSocketContextSetEvents(&Binding->SocketContexts[i], EPOLL_CTL_ADD, EPOLLIN);
         Binding->SocketContexts[i].IoStarted = TRUE;
     }
