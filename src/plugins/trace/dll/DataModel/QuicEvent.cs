@@ -196,7 +196,8 @@ namespace QuicTrace.DataModel
         TlsErrorStatus,
         TlsMessage,
 
-        DatapathSend = 9217,
+        Temporal = 9216, // Temporary, while there are still builds out there generating this old event
+        DatapathSend,
         DatapathRecv,
         DatapathError,
         DatapathErrorStatus,
