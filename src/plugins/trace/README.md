@@ -24,6 +24,19 @@ The easiest way to use WPA is via the `./scripts/wpa.ps1` script, but additional
 
 WPA is extremely powerful. It can operate very quickly on multi-gigabyte trace files and let you slice & dice the data many different ways to really drill down into what's going on.
 
+## Load trace file
+### ETW trace
+Select and Open .etl file
+
+### LTTng trace
+- Directory
+    - Select directory which includes traces. WPA automatically traverses and find trace files.
+- File
+  1. Compress the directory as zip
+  2. change the extension to .ctf
+  3. Select the .ctf file
+
+
 ## Stacks CPU Usage
 
 ![](images/flame.png)

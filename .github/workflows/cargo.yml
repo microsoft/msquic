@@ -39,13 +39,13 @@ jobs:
           static.rust-lang.org:443
           www.cloudflare.com:443
     - name: Checkout repository
-      uses: actions/checkout@93ea575cb5d8a053eaa0ac8fa3b40d7e05a33cc8
+      uses: actions/checkout@755da8c3cf115ac066823e79a1e1788f8940201b
     - name: Prepare Machine
       run: scripts/prepare-machine.ps1 -Tls openssl -ForBuild
       shell: pwsh
     - name: Install Perl
       if: runner.os == 'Windows'
-      uses: shogo82148/actions-setup-perl@8fd249c1f0abbacb17760228b7fdc7a6622829a0
+      uses: shogo82148/actions-setup-perl@e0737ade83f9863f9f5c00d8470b6d7bec207fee
       with:
         perl-version: '5.34'
     - name: Install NASM
