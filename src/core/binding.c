@@ -1624,6 +1624,8 @@ QuicBindingReceive(
     uint32_t TotalChainLength = 0;
     uint32_t TotalDatagramBytes = 0;
 
+    CXPLAT_DBG_ASSERT(Socket == Binding->Socket);
+
     //
     // Breaks the chain of datagrams into subchains by destination CID and
     // delivers the subchains.

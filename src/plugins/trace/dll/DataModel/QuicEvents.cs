@@ -32,6 +32,7 @@ namespace QuicTrace.DataModel
         ConnectionStart,
         ConnectionSetConfiguration,
         ConnectionSendResumptionTicket,
+        ConnectionCompleteResumptionTicketValidation,
         StreamOpen,
         StreamClose,
         StreamStart,
@@ -896,7 +897,7 @@ namespace QuicTrace.DataModel
 
         internal QuicConnectionStatsV2Event(Timestamp timestamp, ushort processor, uint processId, uint threadId, int pointerSize, ulong objectPointer,
                                           uint smoothedRtt, uint congestionCount, uint persistentCongestionCount, ulong sendTotalBytes, ulong recvTotalBytes, uint ecnCongestionCount) :
-            base(QuicEventId.ConnStats, QuicObjectType.Connection, timestamp, processor, processId, threadId, pointerSize, objectPointer)
+            base(QuicEventId.ConnStatsV2, QuicObjectType.Connection, timestamp, processor, processId, threadId, pointerSize, objectPointer)
         {
             SmoothedRtt = smoothedRtt;
             CongestionCount = congestionCount;
