@@ -26,7 +26,7 @@ namespace QuicTrace.Cookers
             CancellationToken cancellationToken)
         {
             Debug.Assert(!(data is null));
-            var evt = QuicLTTngEvent.TryCreate(data);
+            var evt = QuicLTTngEvent.TryCreate(data, context);
             if (evt != null)
             {
                 State.AddEvent(evt);

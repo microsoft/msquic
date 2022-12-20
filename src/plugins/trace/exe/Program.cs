@@ -20,6 +20,13 @@ namespace QuicTrace
     {
         static bool VerboseMode = false;
 
+        internal enum FileType : ushort
+        {
+            None = 0,
+            ETL,
+            CTF, // lttng
+        }
+
         static void PrintCommands()
         {
             Console.WriteLine(
@@ -64,9 +71,10 @@ namespace QuicTrace
             return fileName;
         }
 
-        static QuicState[] ProcessTraceFiles(IEnumerable<string> filePaths)
+        static QuicState[] ProcessTraceFiles(IEnumerable<string> filePaths, FileType fileType)
         {
             var quicStates = new List<QuicState>();
+            var cookerPath = fileType == FileType.ETL ? QuicEtwEventCooker.CookerPath : QuicLTTngEventCooker.CookerPath;
             foreach (var filePath in filePaths)
             {
                 //
@@ -88,7 +96,7 @@ namespace QuicTrace
                 dataSources.AddFile(filePath);
                 var info = new EngineCreateInfo(dataSources.AsReadOnly());
                 using var runtime = Engine.Create(info);
-                runtime.EnableCooker(QuicEtwEventCooker.CookerPath);
+                runtime.EnableCooker(cookerPath);
                 //Console.Write("Processing {0}...", filePath);
                 var results = runtime.Process();
                 //Console.WriteLine("Done.\n");
@@ -96,7 +104,7 @@ namespace QuicTrace
                 //
                 // Return our 'cooked' data.
                 //
-                quicStates.Add(results.QueryOutput<QuicState>(new DataOutputPath(QuicEtwEventCooker.CookerPath, "State")));
+                quicStates.Add(results.QueryOutput<QuicState>(new DataOutputPath(cookerPath, "State")));
             }
 
             return quicStates.ToArray();
@@ -413,6 +421,7 @@ namespace QuicTrace
         {
             var i = 0;
             var traceFiles = new List<string>();
+            var fileType = FileType.None;
 
             //
             // Process input args for initial 'option' values.
@@ -427,6 +436,7 @@ namespace QuicTrace
                         return;
                     }
                     traceFiles.Add(traceFile);
+                    fileType = FileType.ETL;
                 }
                 else if (args[i] == "--file" || args[i] == "-f")
                 {
@@ -438,6 +448,15 @@ namespace QuicTrace
 
                     ++i;
                     traceFiles.Add(args[i]);
+                    if (fileType == FileType.ETL && traceFiles.Last().EndsWith(".ctf") ||
+                        fileType == FileType.CTF && traceFiles.Last().EndsWith(".etl") ||
+                        (!traceFiles.Last().EndsWith(".ctf") && !traceFiles.Last().EndsWith(".etl")))
+                    {
+                        Console.WriteLine("Invalid file extension. Use .etl or .ctf. Use same if using multiple files");
+                        return;
+                    }
+
+                    fileType = traceFiles.Last().EndsWith(".etl") ? FileType.ETL : FileType.CTF;
                 }
                 else if (args[i] == "--help" || args[i] == "-h" || args[i] == "-?")
                 {
@@ -473,7 +492,7 @@ namespace QuicTrace
             //
             // Process the trace files to generate the QUIC state.
             //
-            var quicStates = ProcessTraceFiles(traceFiles);
+            var quicStates = ProcessTraceFiles(traceFiles, fileType);
 
             if (i == args.Length)
             {
