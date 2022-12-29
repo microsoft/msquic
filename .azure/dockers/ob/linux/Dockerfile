@@ -1,5 +1,7 @@
 FROM ubuntu:20.04
 
+LABEL org.opencontainers.image.source https://github.com/microsoft/msquic
+
 ENV DEBIAN_FRONTEND=noninteractive
 
 RUN apt-get update && apt-get install -y apt-transport-https \
@@ -30,6 +32,7 @@ RUN apt-get update && apt-get install -y apt-transport-https \
     ruby-dev \
     rpm \
     libssl-dev \
+    libnuma-dev \
     cppcheck \
     clang-tidy \
     gdb \
@@ -59,4 +62,6 @@ RUN apt-get install -y liblttng-ust-dev:arm64 \
     liblttng-ust-dev:armhf \
     libssl-dev:arm64 \
     libssl-dev:armhf \
+    libnuma-dev:arm64 \
+    libnuma-dev:armhf \
     && rm -rf /var/lib/apt/lists/*
