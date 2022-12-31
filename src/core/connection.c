@@ -7313,6 +7313,13 @@ QuicConnProcessApiOperation(
             ApiCtx->CONN_COMPLETE_RESUMPTION_TICKET_VALIDATION.Result);
         break;
 
+    case QUIC_API_TYPE_CONN_COMPLETE_CERTIFICATE_VALIDATION:
+        CXPLAT_DBG_ASSERT(QuicConnIsClient(Connection));
+        QuicCryptoCustomCertValidationComplete(
+            &Connection->Crypto,
+            ApiCtx->CONN_COMPLETE_CERTIFICATE_VALIDATION.Result);
+        break;
+
     case QUIC_API_TYPE_STRM_CLOSE:
         QuicStreamClose(ApiCtx->STRM_CLOSE.Stream);
         break;
