@@ -12,19 +12,48 @@ Refer [Libfuzzer] official document if you want more detail.
 You can build and run code by yourself. [OSS-Fuzz] offers convenient scripts
 
 ```sh
-$ cd $PATH_TO_OSS_FUZZ
+cd $PATH_TO_OSS_FUZZ
 # build Docker image
-$ python infra/helper.py build_image msquic
+python infra/helper.py build_image msquic
 # build fuzzing code, memory sanitizer is not supported yet
-$ python infra/helper.py build_fuzzers --sanitizer <address/memory/undefined> msquic
+python infra/helper.py build_fuzzers --sanitizer <address/memory/undefined> msquic
 # run fuzzing
-$ python infra/helper.py run_fuzzer msquic $YOUR_COOL_FUZZING
+python infra/helper.py run_fuzzer msquic $YOUR_COOL_FUZZING
 ```
 Refer [OSS-Fuzz official document] for more detail
 
 ## Reproduce and debug issue
-[Reproduce]  
-[Debug]
+### Prep
+Download test case file from oss-fuzz issue ticket from [OSS-Fuzz issues]  
+Build base image for repro and debug
+```sh
+export TESTFILE=$YOUR_TEST_FILE
+git clone --depth=1 https://github.com/google/oss-fuzz.git
+cd oss-fuzz
+python infra/helper.py pull_images
+python infra/helper.py build_image msquic
+python infra/helper.py build_fuzzers --sanitizer <address/memory/undefined> msquic
+```
+### Reproduce issue
+Reproduce issue with spinquic
+```sh
+cd oss-fuzz
+python infra/helper.py reproduce msquic spinquic $TESTFILE
+```
+
+### Debug issue
+```sh
+cd oss-fuzz
+cp $TESTFILE build/out/msquic/testcase
+# Launch docker container
+python3 infra/helper.py shell base-runner-debug
+# Run gdb in the container
+gdb --args /out/msquic/spinquic /out/msquic/testcase
+```
+
+Refer links for more details
+- [Reproduce]
+- [Debug]
 
 ## Monitor your fuzzing
 Once fuzzing is deployed on OSS-Fuzz infra, it continuously run and report issue if it detects  
@@ -44,6 +73,7 @@ You might need to change `Dockerfile` and/or `build.sh` for installing libraries
 [OSS-Fuzz]: https://github.com/google/oss-fuzz
 [OSS-Fuzz official document]: https://google.github.io/oss-fuzz
 [msquic project directory]: https://github.com/google/oss-fuzz/tree/master/projects/msquic
+[OSS-Fuzz issues]: https://bugs.chromium.org/p/oss-fuzz/issues/list?q=msquic
 [LibFuzzer]: https://llvm.org/LibFuzzer
 [Reproduce]: https://google.github.io/oss-fuzz/advanced-topics/reproducing/
 [Debug]: https://google.github.io/oss-fuzz/advanced-topics/debugging/
