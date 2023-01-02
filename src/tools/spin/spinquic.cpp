@@ -258,7 +258,6 @@ typedef enum {
     SpinQuicAPICallGetParamStream,
     SpinQuicAPICallDatagramSend,
     SpinQuicAPICallCompleteTicketValidation,
-    SpinQuicAPICallCompleteCertificateValidation,
     SpinQuicAPICallStreamReceiveSetEnabled,
     SpinQuicAPICallStreamReceiveComplete,
     SpinQuicAPICallCount    // Always the last element
@@ -880,12 +879,6 @@ void Spin(Gbs& Gb, LockableVector<HQUIC>& Connections, std::vector<HQUIC>* Liste
             auto Connection = Connections.TryGetRandom();
             BAIL_ON_NULL_CONNECTION(Connection);
             MsQuic.ConnectionResumptionTicketValidationComplete(Connection, GetRandom(2) == 0);
-            break;
-        }
-        case SpinQuicAPICallCompleteCertificateValidation: {
-            auto Connection = Connections.TryGetRandom();
-            BAIL_ON_NULL_CONNECTION(Connection);
-            MsQuic.ConnectionCertificateValidationComplete(Connection, GetRandom(2) == 0);
             break;
         }
         default:

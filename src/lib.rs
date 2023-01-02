@@ -1082,10 +1082,6 @@ struct ApiTable {
         connection: Handle,
         result: BOOLEAN,
     ) -> u32,
-    certificate_validation_complete: extern "C" fn(
-        connection: Handle,
-        result: BOOLEAN,
-    ) -> u32,
 }
 
 #[link(name = "msquic")]
@@ -1534,21 +1530,6 @@ impl Connection {
     ) {
         let status = unsafe {
             ((*self.table).resumption_ticket_validation_complete)(
-                self.handle,
-                result,
-            )
-        };
-        if Status::failed(status) {
-            panic!("ticket validation completion failure 0x{:x}", status);
-        }
-    }
-
-    pub fn certificate_validation_complete(
-        &self,
-        result: BOOLEAN,
-    ) {
-        let status = unsafe {
-            ((*self.table).certificate_validation_complete)(
                 self.handle,
                 result,
             )

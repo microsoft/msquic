@@ -751,9 +751,11 @@ TestConnection::SetCustomValidationResult(
 {
     BOOLEAN Result = AcceptCert ? TRUE : FALSE;
     return
-        MsQuic->ConnectionCertificateValidationComplete(
+        MsQuic->SetParam(
             QuicConnection,
-            Result);
+            QUIC_PARAM_CONN_PEER_CERTIFICATE_VALID,
+            sizeof(Result),
+            &Result);
 }
 
 QUIC_STATUS
