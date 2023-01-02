@@ -161,7 +161,7 @@ These parameters are accessed by calling [GetParam](./api/GetParam.md) or [SetPa
 | `QUIC_PARAM_CONN_DATAGRAM_SEND_ENABLED`<br> 14    | uint8_t (BOOLEAN)             | Get-only  | Indicates peer advertised support for QUIC datagram extension. Call after connected.      |
 | `QUIC_PARAM_CONN_DISABLE_1RTT_ENCRYPTION`<br> 15  | uint8_t (BOOLEAN)             | Both      | Application must `#define QUIC_API_ENABLE_INSECURE_FEATURES` before including msquic.h.   |
 | `QUIC_PARAM_CONN_RESUMPTION_TICKET`<br> 16        | uint8_t[]                     | Set-only  | Must be set on client before starting connection.                                         |
-| `QUIC_PARAM_CONN_PEER_CERTIFICATE_VALID`<br> 17   | uint8_t (BOOLEAN)             | Set-only  | Used for asynchronous custom certificate validation.                                      |
+| `QUIC_PARAM_CONN_PEER_CERTIFICATE_VALID`<br> 17   | uint8_t (BOOLEAN)             | Set-only  | Used for asynchronous custom certificate validation. *Deprecated soon*                                     |
 | `QUIC_PARAM_CONN_LOCAL_INTERFACE`<br> 18          | uint32_t                      | Set-only  | The local interface index to bind to.                                                     |
 | `QUIC_PARAM_CONN_TLS_SECRETS`<br> 19              | QUIC_TLS_SECRETS              | Set-only  | The TLS secrets struct to be populated by MsQuic.                                         |
 | `QUIC_PARAM_CONN_VERSION_SETTINGS`<br> 20         | QUIC_VERSION_SETTINGS         | Both      | The desired QUIC versions for the connection.                                             |
