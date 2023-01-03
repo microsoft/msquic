@@ -3055,12 +3055,6 @@ CxPlatSocketContextUninitialize(
 
 QUIC_DISABLED_BY_FUZZER_START;
 
-    // if (SocketProc->Parent->Type == CXPLAT_SOCKET_UDP) {
-    //     CancelIoEx((HANDLE)SocketProc->Socket, NULL);
-    // } else {
-    //     CancelIo((HANDLE)SocketProc->Socket);
-    // }
-
     if (closesocket(SocketProc->Socket) == SOCKET_ERROR) {
         int WsaError = WSAGetLastError();
         QuicTraceEvent(
