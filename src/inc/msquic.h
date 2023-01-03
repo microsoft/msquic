@@ -680,7 +680,14 @@ typedef struct QUIC_SETTINGS {
     uint8_t MaxOperationsPerDrain;
     uint8_t MtuDiscoveryMissingProbeCount;
     uint32_t DestCidUpdateIdleTimeoutMs;
-    uint8_t HyStartEnabled;
+    union {
+        uint64_t Flags;
+        struct {
+            uint64_t HyStartEnabled : 1;
+            uint64_t ReservedFlags : 63;
+        };
+    };
+
 
 } QUIC_SETTINGS;
 

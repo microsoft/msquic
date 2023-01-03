@@ -1410,6 +1410,12 @@ QuicSettingsDumpNew(
         InternalSettings->Field = Settings->Field;                                                      \
     }
 
+#define SETTING_COPY_FLAG_TO_INTERNAL_SIZED(FlagField, Flag, SettingsType, Settings, SettingsSize, InternalSettings)    \
+    if (SETTING_HAS_FIELD(SettingsType, SettingsSize, FlagField)) {                                                     \
+        InternalSettings->IsSet.Flag = !!Settings->IsSet.Flag;                                                          \
+        InternalSettings->Flag = !!Settings->Flag;                                                                      \
+    }
+
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 QuicSettingsGlobalSettingsToInternal(
@@ -1581,7 +1587,8 @@ QuicSettingsSettingsToInternal(
         SettingsSize,
         InternalSettings);
 
-    SETTING_COPY_TO_INTERNAL_SIZED(
+    SETTING_COPY_FLAG_TO_INTERNAL_SIZED(
+        Flags,
         HyStartEnabled,
         QUIC_SETTINGS,
         Settings,
@@ -1599,6 +1606,12 @@ QuicSettingsSettingsToInternal(
     if (SETTING_HAS_FIELD(SettingsType, SettingsSize, Field)) {                                         \
         Settings->IsSet.Field = InternalSettings->IsSet.Field;                                          \
         Settings->Field = InternalSettings->Field;                                                      \
+    }
+
+#define SETTING_COPY_FLAG_FROM_INTERNAL_SIZED(FlagField, Flag, SettingsType, Settings, SettingsSize, InternalSettings)  \
+    if (SETTING_HAS_FIELD(SettingsType, SettingsSize, FlagField)) {                                                     \
+        Settings->IsSet.Flag = InternalSettings->IsSet.Flag;                                                            \
+        Settings->Flag = InternalSettings->Flag;                                                                        \
     }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -1682,7 +1695,8 @@ QuicSettingsGetSettings(
         *SettingsLength,
         InternalSettings);
 
-    SETTING_COPY_FROM_INTERNAL_SIZED(
+    SETTING_COPY_FLAG_FROM_INTERNAL_SIZED(
+        Flags,
         HyStartEnabled,
         QUIC_SETTINGS,
         Settings,
