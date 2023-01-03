@@ -1761,11 +1761,6 @@ MsQuicConnectionCertificateValidationComplete(
         goto Error;
     }
 
-    if (Connection->Crypto.TlsState.HandshakeComplete) {
-        Status = QUIC_STATUS_INVALID_STATE;
-        goto Error;
-    }
-
     Oper = QuicOperationAlloc(Connection->Worker, QUIC_OPER_TYPE_API_CALL);
     if (Oper == NULL) {
         Status = QUIC_STATUS_OUT_OF_MEMORY;
