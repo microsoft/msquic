@@ -121,7 +121,10 @@ CXPLAT_STATIC_ASSERT(
     ErrorCode == ERROR_NETWORK_UNREACHABLE || \
     ErrorCode == ERROR_HOST_UNREACHABLE || \
     ErrorCode == ERROR_PROTOCOL_UNREACHABLE || \
-    ErrorCode == ERROR_PORT_UNREACHABLE \
+    ErrorCode == ERROR_PORT_UNREACHABLE || \
+    ErrorCode == WSAENETUNREACH || \
+    ErrorCode == WSAEHOSTUNREACH || \
+    ErrorCode == WSAECONNRESET \
 )
 
 typedef struct CXPLAT_DATAPATH_PROC CXPLAT_DATAPATH_PROC;   // Per-processor datapath state.
