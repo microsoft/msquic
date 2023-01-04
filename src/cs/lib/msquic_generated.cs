@@ -2851,6 +2851,9 @@ namespace Microsoft.Quic
 
         [NativeTypeName("QUIC_CONNECTION_COMP_RESUMPTION_FN")]
         internal delegate* unmanaged[Cdecl]<QUIC_HANDLE*, byte, int> ConnectionResumptionTicketValidationComplete;
+
+        [NativeTypeName("QUIC_CONNECTION_COMP_CERT_FN")]
+        internal delegate* unmanaged[Cdecl]<QUIC_HANDLE*, byte, int> ConnectionCertificateValidationComplete;
     }
 
     internal static unsafe partial class MsQuic

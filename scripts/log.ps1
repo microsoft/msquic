@@ -98,6 +98,15 @@ $TempDir = $null
 if ($IsLinux) {
     $InstanceName = $InstanceName.Replace(".", "_")
     $TempDir = Join-Path $HOME "QUICLogs" $InstanceName
+
+    try { lttng version | Out-Null }
+    catch {
+        Write-Host "Installing lttng"
+        sudo apt-add-repository ppa:lttng/stable-2.12
+        sudo apt-get update
+        sudo apt-get install -y lttng-tools
+        sudo apt-get install -y liblttng-ust-dev
+    }
 }
 
 # Start log collection.
@@ -142,21 +151,18 @@ function Log-Start {
 # Cancels log collection, discarding any logs.
 function Log-Cancel {
     if ($IsWindows) {
-        try {
-            wpr.exe -cancel -instancename $InstanceName 2>&1
-        } catch {
-        }
-        $global:LASTEXITCODE = 0
+        try { wpr.exe -cancel -instancename $InstanceName 2>&1 } catch { }
     } elseif ($IsMacOS) {
     } else {
         if (!(Test-Path $TempDir)) {
             Write-Debug "LTTng session ($InstanceName) not currently running"
         } else {
-            Invoke-Expression "lttng destroy -n $InstanceName" | Write-Debug
-            Remove-Item -Path $TempDir -Recurse -Force | Out-Null
+            try { Invoke-Expression "lttng destroy -n $InstanceName" | Write-Debug } catch { }
+            try { Remove-Item -Path $TempDir -Recurse -Force | Out-Null } catch { }
             Write-Debug "Destroyed LTTng session ($InstanceName) and deleted $TempDir"
         }
     }
+    $global:LASTEXITCODE = 0
 }
 
 # Stops log collection, keeping the logs.

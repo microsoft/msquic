@@ -6162,6 +6162,7 @@ QuicConnParamSet(
                 Connection->Paths[0].Binding = OldBinding;
                 break;
             }
+            Connection->Paths[0].Route.Queue = NULL;
 
             //
             // TODO - Need to free any queued recv packets from old binding.
@@ -7310,6 +7311,13 @@ QuicConnProcessApiOperation(
         QuicCryptoCustomTicketValidationComplete(
             &Connection->Crypto,
             ApiCtx->CONN_COMPLETE_RESUMPTION_TICKET_VALIDATION.Result);
+        break;
+
+    case QUIC_API_TYPE_CONN_COMPLETE_CERTIFICATE_VALIDATION:
+        CXPLAT_DBG_ASSERT(QuicConnIsClient(Connection));
+        QuicCryptoCustomCertValidationComplete(
+            &Connection->Crypto,
+            ApiCtx->CONN_COMPLETE_CERTIFICATE_VALIDATION.Result);
         break;
 
     case QUIC_API_TYPE_STRM_CLOSE:

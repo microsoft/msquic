@@ -314,8 +314,13 @@ typedef struct CXPLAT_POOL {
     CXPLAT_POOL_FREE_FN Free;
 } CXPLAT_POOL;
 
+#ifndef DISABLE_CXPLAT_POOL
 #define CXPLAT_POOL_MAXIMUM_DEPTH       0x4000  // 16384
 #define CXPLAT_POOL_DEFAULT_MAX_DEPTH   256     // Copied from EX_MAXIMUM_LOOKASIDE_DEPTH_BASE
+#else
+#define CXPLAT_POOL_MAXIMUM_DEPTH       0
+#define CXPLAT_POOL_DEFAULT_MAX_DEPTH   0
+#endif
 
 #if DEBUG
 typedef struct CXPLAT_POOL_ENTRY {
@@ -673,8 +678,12 @@ typedef HANDLE CXPLAT_EVENT;
 //
 
 typedef HANDLE CXPLAT_EVENTQ;
-#define CXPLAT_SQE OVERLAPPED
 typedef OVERLAPPED_ENTRY CXPLAT_CQE;
+#define CXPLAT_SQE CXPLAT_SQE
+typedef struct CXPLAT_SQE {
+    void* UserData;
+    OVERLAPPED Overlapped;
+} CXPLAT_SQE;
 
 inline
 BOOLEAN
@@ -698,11 +707,10 @@ inline
 BOOLEAN
 CxPlatEventQAssociateHandle(
     _In_ CXPLAT_EVENTQ* queue,
-    _In_ HANDLE fileHandle,
-    _In_opt_ void* user_data
+    _In_ HANDLE fileHandle
     )
 {
-    return *queue == CreateIoCompletionPort(fileHandle, *queue, (ULONG_PTR)user_data, 0);
+    return *queue == CreateIoCompletionPort(fileHandle, *queue, 0, 0);
 }
 
 inline
@@ -714,7 +722,8 @@ CxPlatEventQEnqueue(
     )
 {
     CxPlatZeroMemory(sqe, sizeof(*sqe));
-    return PostQueuedCompletionStatus(*queue, 0, (ULONG_PTR)user_data, sqe) != 0;
+    sqe->UserData = user_data;
+    return PostQueuedCompletionStatus(*queue, 0, 0, &sqe->Overlapped) != 0;
 }
 
 inline
@@ -727,7 +736,8 @@ CxPlatEventQEnqueueEx( // Windows specific extension
     )
 {
     CxPlatZeroMemory(sqe, sizeof(*sqe));
-    return PostQueuedCompletionStatus(*queue, num_bytes, (ULONG_PTR)user_data, sqe) != 0;
+    sqe->UserData = user_data;
+    return PostQueuedCompletionStatus(*queue, num_bytes, 0, &sqe->Overlapped) != 0;
 }
 
 inline
@@ -763,8 +773,16 @@ CxPlatCqeUserData(
     _In_ const CXPLAT_CQE* cqe
     )
 {
-    return (void*)cqe->lpCompletionKey;
+    return CONTAINING_RECORD(cqe->lpOverlapped, CXPLAT_SQE, Overlapped)->UserData;
 }
+
+typedef struct DATAPATH_SQE DATAPATH_SQE;
+
+void
+CxPlatDatapathSqeInitialize(
+    _Out_ DATAPATH_SQE* DatapathSqe,
+    _In_ uint32_t CqeType
+    );
 
 //
 // Time Measurement Interfaces
