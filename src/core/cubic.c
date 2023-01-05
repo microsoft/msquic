@@ -527,7 +527,7 @@ CubicCongestionControlOnDataAcknowledged(
         // Slow Start
         //
 
-        Cubic->CongestionWindow += BytesAcked; //(BytesAcked / Cubic->CWndSlowStartGrowthDivisor);
+        Cubic->CongestionWindow += (BytesAcked / Cubic->CWndSlowStartGrowthDivisor);
         BytesAcked = 0;
         if (Cubic->CongestionWindow >= Cubic->SlowStartThreshold) {
             Cubic->TimeOfCongAvoidStart = TimeNowUs;
