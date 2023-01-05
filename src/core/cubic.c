@@ -454,7 +454,7 @@ CubicCongestionControlOnDataAcknowledged(
     //
     // Update HyStart++ RTT sample.
     //
-    if (Cubic->HyStartState != HYSTART_DONE && Connection->Settings.HyStartEnabled) {
+    if (Connection->Settings.HyStartEnabled && Cubic->HyStartState != HYSTART_DONE) {
         if (AckEvent->MinRttValid) {
             //
             // Update Min RTT for the first N ACKs.
@@ -466,14 +466,13 @@ CubicCongestionControlOnDataAcknowledged(
                         AckEvent->MinRtt);
                 Cubic->HyStartAckCount++;
             } else {
-                uint32_t Eta =
-                    CXPLAT_MIN(
-                        QUIC_HYSTART_DEFAULT_MAX_ETA,
-                        CXPLAT_MAX(
-                            QUIC_HYSTART_DEFAULT_MIN_ETA,
-                            Cubic->MinRttInLastRound / 8)); // Use 1/8th RTT from HyStart spec.
-
                 if (Cubic->HyStartState == HYSTART_NOT_STARTED) {
+                    uint32_t Eta =
+                        CXPLAT_MIN(
+                            QUIC_HYSTART_DEFAULT_MAX_ETA,
+                            CXPLAT_MAX(
+                                QUIC_HYSTART_DEFAULT_MIN_ETA,
+                                Cubic->MinRttInLastRound / 8)); // Use 1/8th RTT from HyStart spec.
                     //
                     // Looking for delay increase.
                     //
@@ -528,7 +527,7 @@ CubicCongestionControlOnDataAcknowledged(
         // Slow Start
         //
 
-        Cubic->CongestionWindow += (BytesAcked / Cubic->CWndSlowStartGrowthDivisor);
+        Cubic->CongestionWindow += BytesAcked; //(BytesAcked / Cubic->CWndSlowStartGrowthDivisor);
         BytesAcked = 0;
         if (Cubic->CongestionWindow >= Cubic->SlowStartThreshold) {
             Cubic->TimeOfCongAvoidStart = TimeNowUs;
