@@ -120,7 +120,8 @@ function Log-Start {
         }
 
         try {
-            perf record -F max -a -g &
+            $PerfPath = $OutputPath + ".perf"
+            perf record -F max -a -g -o $PerfPath &
 
             if ($Stream) {
                 lttng -q create msquiclive --live
