@@ -23,6 +23,7 @@ RUN     apt-get update -y \
             libatomic1 \
             liblttng-ust-dev \
             lttng-tools \
+            linux-tools-`uname -r` \
             && apt-get clean
 COPY    --from=build /src/Debug/bin/Release /bin
 COPY    --from=build /src/Debug/bin/Release/*.so /lib/x86_64-linux-gnu/
