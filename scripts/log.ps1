@@ -120,6 +120,8 @@ function Log-Start {
         }
 
         try {
+            perf record -F max -a -g &
+
             if ($Stream) {
                 lttng -q create msquiclive --live
             } else {
@@ -180,6 +182,10 @@ function Log-Stop {
         }
     } elseif ($IsMacOS) {
     } else {
+        $PerfPath = $OutputPath + ".perf"
+        pkill perf -SIGINT
+        perf script > $PerfPath
+
         $ClogOutputDecodeFile = $OutputPath + ".log"
 
         if (!(Test-Path $OutputPath)) {
