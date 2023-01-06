@@ -219,13 +219,13 @@ function Log-Stop {
             }
         }
 
-        $OUTPUT = ls -lh
-        Write-Host "AAAAAA" $OUTPUT
+        $OUTPUT = ls -lh $TempDir
+        Write-Host "TempDir: " $OUTPUT
 
         pkill perf -SIGINT
 
-        $OUTPUT = ls -lh
-        Write-Host "BBBBBB" $OUTPUT
+        $OUTPUT = ls -lh artifacts/bin/serverlogs/
+        Write-Host "serverlogs" $OUTPUT
         $PerfPath = $OutputPath + ".perf"
 
         # perf script > $PerfPath
