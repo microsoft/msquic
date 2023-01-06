@@ -37,6 +37,37 @@ TRACEPOINT_EVENT(CLOG_CUBIC_C, ConnCubic,
 
 
 /*----------------------------------------------------------
+// Decoder Ring for ConnHyStartStateChange
+// [conn][%p] HyStart: State=%u CongestionWindow=%u SlowStartThreshold=%u
+// QuicTraceEvent(
+            ConnHyStartStateChange,
+            "[conn][%p] HyStart: State=%u CongestionWindow=%u SlowStartThreshold=%u",
+            Connection,
+            NewHyStartState,
+            Cubic->CongestionWindow,
+            Cubic->SlowStartThreshold);
+// arg2 = arg2 = Connection = arg2
+// arg3 = arg3 = NewHyStartState = arg3
+// arg4 = arg4 = Cubic->CongestionWindow = arg4
+// arg5 = arg5 = Cubic->SlowStartThreshold = arg5
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_CUBIC_C, ConnHyStartStateChange,
+    TP_ARGS(
+        const void *, arg2,
+        unsigned int, arg3,
+        unsigned int, arg4,
+        unsigned int, arg5), 
+    TP_FIELDS(
+        ctf_integer_hex(uint64_t, arg2, arg2)
+        ctf_integer(unsigned int, arg3, arg3)
+        ctf_integer(unsigned int, arg4, arg4)
+        ctf_integer(unsigned int, arg5, arg5)
+    )
+)
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for ConnCongestionV2
 // [conn][%p] Congestion event: IsEcn=%hu
 // QuicTraceEvent(

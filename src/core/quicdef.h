@@ -511,6 +511,37 @@ CXPLAT_STATIC_ASSERT(
 //
 #define QUIC_DEFAULT_ECN_ENABLED                     FALSE
 
+//
+// The default settings for enabling HyStart support.
+//
+#define QUIC_DEFAULT_HYSTART_ENABLED                FALSE
+
+//
+// The number of rounds in Cubic Slow Start to sample RTT.
+//
+#define QUIC_HYSTART_DEFAULT_N_SAMPLING             8
+
+//
+// The minimum RTT threshold to exit Cubic Slow Start (in microseconds).
+//
+#define QUIC_HYSTART_DEFAULT_MIN_ETA                4000
+
+//
+// The maximum RTT threshold to exit Cubic Slow Start (in microseconds).
+//
+#define QUIC_HYSTART_DEFAULT_MAX_ETA                16000
+
+//
+// The number of rounds to spend in Conservative Slow Start before switching
+// to Congestion Avoidance.
+//
+#define QUIC_CONSERVATIVE_SLOW_START_DEFAULT_ROUNDS 5
+
+//
+// The Congestion Window growth divisor during Conservative Slow Start.
+//
+#define QUIC_CONSERVATIVE_SLOW_START_DEFAULT_GROWTH_DIVISOR 4
+
 /*************************************************************
                   TRANSPORT PARAMETERS
 *************************************************************/
@@ -582,6 +613,7 @@ CXPLAT_STATIC_ASSERT(
 #define QUIC_SETTING_DATAGRAM_RECEIVE_ENABLED       "DatagramReceiveEnabled"
 #define QUIC_SETTING_GREASE_QUIC_BIT_ENABLED        "GreaseQuicBitEnabled"
 #define QUIC_SETTING_ECN_ENABLED                    "EcnEnabled"
+#define QUIC_SETTING_HYSTART_ENABLED                "HyStartEnabled"
 
 #define QUIC_SETTING_INITIAL_WINDOW_PACKETS         "InitialWindowPackets"
 #define QUIC_SETTING_SEND_IDLE_TIMEOUT_MS           "SendIdleTimeoutMs"

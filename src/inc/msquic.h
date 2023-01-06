@@ -641,7 +641,8 @@ typedef struct QUIC_SETTINGS {
             uint64_t DestCidUpdateIdleTimeoutMs             : 1;
             uint64_t GreaseQuicBitEnabled                   : 1;
             uint64_t EcnEnabled                             : 1;
-            uint64_t RESERVED                               : 30;
+            uint64_t HyStartEnabled                         : 1;
+            uint64_t RESERVED                               : 29;
         } IsSet;
     };
 
@@ -679,6 +680,14 @@ typedef struct QUIC_SETTINGS {
     uint8_t MaxOperationsPerDrain;
     uint8_t MtuDiscoveryMissingProbeCount;
     uint32_t DestCidUpdateIdleTimeoutMs;
+    union {
+        uint64_t Flags;
+        struct {
+            uint64_t HyStartEnabled : 1;
+            uint64_t ReservedFlags : 63;
+        };
+    };
+
 
 } QUIC_SETTINGS;
 

@@ -553,6 +553,20 @@
                 value="3"
                 />
           </valueMap>
+          <valueMap name="map_QUIC_CONN_CUBIC_HYSTART_STATE">
+            <map
+                message="$(string.Enum.QUIC_CUBIC_HYSTART_STATE.NOT_STARTED)"
+                value="0"
+                />
+            <map
+                message="$(string.Enum.QUIC_CUBIC_HYSTART_STATE.ACTIVE)"
+                value="1"
+                />
+            <map
+                message="$(string.Enum.QUIC_CUBIC_HYSTART_STATE.DONE)"
+                value="2"
+                />
+          </valueMap>
         </maps>
         <templates>
           <template tid="tid_MESSAGE">
@@ -1178,6 +1192,25 @@
             <data
                 inType="win:UInt32"
                 name="WindowLastMax"
+                />
+          </template>
+          <template tid="tid_CONN_CUBIC_HYSTART">
+            <data
+                inType="win:Pointer"
+                name="Connection"
+                />
+            <data
+                inType="win:UInt32"
+                map="map_QUIC_CONN_CUBIC_HYSTART_STATE"
+                name="HyStartState"
+                />
+            <data
+                inType="win:UInt32"
+                name="CongestionWindow"
+                />
+            <data
+                inType="win:UInt32"
+                name="SlowStartThreshold"
                 />
           </template>
           <template tid="tid_CONN_LOSS_TIMER">
@@ -3186,6 +3219,15 @@
               template="tid_CONN_STATISTICS_V2"
               value="5190"
               />
+          <event
+              keywords="ut:Connection ut:DataFlow"
+              level="win:Informational"
+              message="$(string.Etw.CubicHyStart)"
+              opcode="Connection"
+              symbol="QuicConnHyStartStateChange"
+              template="tid_CONN_CUBIC_HYSTART"
+              value="5191"
+              />
           <!-- 6144 - 7167 | Stream Events -->
           <event
               keywords="ut:Stream ut:LowVolume ut:RPS"
@@ -3769,6 +3811,10 @@
         <string
             id="Etw.Cubic"
             value="[conn][%1] CUBIC: SlowStartThreshold=%2 K=%3 WindowMax=%4 WindowLastMax=%5"
+            />
+        <string
+            id="Etw.CubicHyStart"
+            value="[conn][%1] HyStart: State=%2 CongestionWindow=%3 SlowStartThreshold=%4"
             />
         <string
             id="Etw.CongestionEvent"
@@ -4662,6 +4708,18 @@
         <string
             id="Enum.QUIC_EXECUTION_PROFILE.QUIC_EXECUTION_PROFILE_TYPE_REAL_TIME"
             value="REAL_TIME"
+            />
+        <string
+            id="Enum.QUIC_CUBIC_HYSTART_STATE.NOT_STARTED"
+            value="NotStarted"
+            />
+        <string
+            id="Enum.QUIC_CUBIC_HYSTART_STATE.ACTIVE"
+            value="Active"
+            />
+        <string
+            id="Enum.QUIC_CUBIC_HYSTART_STATE.DONE"
+            value="Done"
             />
         <string
             id="Etw.ConnNoListenerIp"

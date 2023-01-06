@@ -699,6 +699,22 @@ TRACEPOINT_EVENT(CLOG_SETTINGS_C, SettingEcnEnabled,
 
 
 /*----------------------------------------------------------
+// Decoder Ring for SettingHyStartEnabled
+// [sett] HyStartEnabled         = %hhu
+// QuicTraceLogVerbose(SettingHyStartEnabled,              "[sett] HyStartEnabled         = %hhu", Settings->HyStartEnabled);
+// arg2 = arg2 = Settings->HyStartEnabled = arg2
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_SETTINGS_C, SettingHyStartEnabled,
+    TP_ARGS(
+        unsigned char, arg2), 
+    TP_FIELDS(
+        ctf_integer(unsigned char, arg2, arg2)
+    )
+)
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for SettingDumpLFixedServerID
 // [sett] FixedServerID          = %u
 // QuicTraceLogVerbose(SettingDumpLFixedServerID,              "[sett] FixedServerID          = %u", Settings->FixedServerID);
