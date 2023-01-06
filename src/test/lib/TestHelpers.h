@@ -149,7 +149,7 @@ void SimulateConnBadStartState(MsQuicConnection& Connection, MsQuicConfiguration
 // 3. call again to get actual value in Buffer
 //
 inline
-void SimpleGetParamTest(HQUIC Handle, uint32_t Param, size_t ExpectedLength, void* ExpectedData) {
+void SimpleGetParamTest(HQUIC Handle, uint32_t Param, size_t ExpectedLength, void* ExpectedData, bool GreaterOrEqualLength = false) {
     uint32_t Length = 0;
     TEST_QUIC_STATUS(
         QUIC_STATUS_BUFFER_TOO_SMALL,
@@ -158,9 +158,16 @@ void SimpleGetParamTest(HQUIC Handle, uint32_t Param, size_t ExpectedLength, voi
                 Param,
                 &Length,
                 nullptr));
-    if (ExpectedLength != Length) {
-        TEST_FAILURE("ExpectedLength (%u) != Length (%u)", ExpectedLength, Length);
-        return;
+    if (GreaterOrEqualLength) {
+        if (Length < ExpectedLength) {
+            TEST_FAILURE("ExpectedLength (%u) > Length (%u)", ExpectedLength, Length);
+            return;
+        }
+    } else {
+        if (ExpectedLength != Length) {
+            TEST_FAILURE("ExpectedLength (%u) != Length (%u)", ExpectedLength, Length);
+            return;
+        }
     }
 
     void* Value = CXPLAT_ALLOC_NONPAGED(Length, QUIC_POOL_TEST);

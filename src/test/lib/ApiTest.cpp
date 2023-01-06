@@ -2755,7 +2755,17 @@ void QuicTestConfigurationParam()
                     QUIC_PARAM_CONFIGURATION_SETTINGS,
                     &Length,
                     nullptr));
-            TEST_EQUAL(Length, sizeof(QUIC_SETTINGS));
+            TEST_TRUE(Length >= sizeof(QUIC_SETTINGS));
+
+            Length = 1;
+            TEST_QUIC_STATUS(
+                QUIC_STATUS_BUFFER_TOO_SMALL,
+                MsQuic->GetParam(
+                    Configuration.Handle,
+                    QUIC_PARAM_CONFIGURATION_SETTINGS,
+                    &Length,
+                    nullptr));
+            TEST_EQUAL(Length, RTL_SIZEOF_THROUGH_FIELD(QUIC_SETTINGS, MtuDiscoveryMissingProbeCount));
 
             QUIC_SETTINGS Settings{0};
             TEST_QUIC_SUCCEEDED(
@@ -3512,7 +3522,7 @@ void QuicTestConnectionParam()
             TestScopeLogger LogScope1("GetParam");
             MsQuicConnection Connection(Registration);
             TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
-            SimpleGetParamTest(Connection.Handle, QUIC_PARAM_CONN_SETTINGS, sizeof(QUIC_SETTINGS), nullptr);
+            SimpleGetParamTest(Connection.Handle, QUIC_PARAM_CONN_SETTINGS, sizeof(QUIC_SETTINGS), nullptr, true);
         }
     }
 
