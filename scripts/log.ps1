@@ -182,17 +182,6 @@ function Log-Stop {
         }
     } elseif ($IsMacOS) {
     } else {
-        $OUTPUT = ls -lh
-        Write-Host "AAAAAA" $OUTPUT
-
-        pkill perf -SIGINT
-
-        $OUTPUT = ls -lh
-        Write-Host "BBBBBB" $OUTPUT
-        $PerfPath = $OutputPath + ".perf"
-
-        # perf script > $PerfPath
-
         $ClogOutputDecodeFile = $OutputPath + ".log"
 
         if (!(Test-Path $OutputPath)) {
@@ -228,6 +217,17 @@ function Log-Stop {
                 Write-Host $err
             }
         }
+
+        $OUTPUT = ls -lh
+        Write-Host "AAAAAA" $OUTPUT
+
+        pkill perf -SIGINT
+
+        $OUTPUT = ls -lh
+        Write-Host "BBBBBB" $OUTPUT
+        $PerfPath = $OutputPath + ".perf"
+
+        # perf script > $PerfPath
 
         Invoke-Expression "lttng destroy $InstanceName" | Write-Debug
         Remove-Item -Path $TempDir -Recurse -Force | Out-Null
