@@ -465,38 +465,36 @@ CubicCongestionControlOnDataAcknowledged(
                         Cubic->MinRttInCurrentRound,
                         AckEvent->MinRtt);
                 Cubic->HyStartAckCount++;
+            } else if (Cubic->HyStartState == HYSTART_NOT_STARTED) {
+                const uint32_t Eta =
+                    CXPLAT_MIN(
+                        QUIC_HYSTART_DEFAULT_MAX_ETA,
+                        CXPLAT_MAX(
+                            QUIC_HYSTART_DEFAULT_MIN_ETA,
+                            Cubic->MinRttInLastRound / 8)); // Use 1/8th RTT from HyStart spec.
+                //
+                // Looking for delay increase.
+                //
+                if (Cubic->MinRttInLastRound != UINT32_MAX &&
+                    Cubic->MinRttInCurrentRound != UINT32_MAX &&
+                    (Cubic->MinRttInCurrentRound >= Cubic->MinRttInLastRound + Eta)) {
+                    //
+                    // Exit Slow Start. Now we are going to do Conservative Slow Start for
+                    // ConservativeSlowStartRounds rounds.
+                    //
+                    CubicCongestionHyStartChangeState(Cc, HYSTART_ACTIVE);
+                    Cubic->CWndSlowStartGrowthDivisor =
+                        QUIC_CONSERVATIVE_SLOW_START_DEFAULT_GROWTH_DIVISOR;
+                    Cubic->ConservativeSlowStartRounds =
+                        QUIC_CONSERVATIVE_SLOW_START_DEFAULT_ROUNDS;
+                    Cubic->CssBaselineMinRtt = Cubic->MinRttInCurrentRound;
+                }
             } else {
-                if (Cubic->HyStartState == HYSTART_NOT_STARTED) {
-                    uint32_t Eta =
-                        CXPLAT_MIN(
-                            QUIC_HYSTART_DEFAULT_MAX_ETA,
-                            CXPLAT_MAX(
-                                QUIC_HYSTART_DEFAULT_MIN_ETA,
-                                Cubic->MinRttInLastRound / 8)); // Use 1/8th RTT from HyStart spec.
-                    //
-                    // Looking for delay increase.
-                    //
-                    if (Cubic->MinRttInLastRound != UINT32_MAX &&
-                        Cubic->MinRttInCurrentRound != UINT32_MAX &&
-                        (Cubic->MinRttInCurrentRound >= Cubic->MinRttInLastRound + Eta)) {
-                        //
-                        // Exit Slow Start. Now we are going to do Conservative Slow Start for
-                        // ConservativeSlowStartRounds rounds.
-                        //
-                        CubicCongestionHyStartChangeState(Cc, HYSTART_ACTIVE);
-                        Cubic->CWndSlowStartGrowthDivisor =
-                            QUIC_CONSERVATIVE_SLOW_START_DEFAULT_GROWTH_DIVISOR;
-                        Cubic->ConservativeSlowStartRounds =
-                            QUIC_CONSERVATIVE_SLOW_START_DEFAULT_ROUNDS;
-                        Cubic->CssBaselineMinRtt = Cubic->MinRttInCurrentRound;
-                    }
-                } else {
-                    //
-                    // RTT decreased. Resume SlowStart since we assume the SlowStart exit was spurious.
-                    //
-                    if (Cubic->MinRttInCurrentRound < Cubic->CssBaselineMinRtt) {
-                        CubicCongestionHyStartChangeState(Cc, HYSTART_NOT_STARTED);
-                    }
+                //
+                // RTT decreased. Resume SlowStart since we assume the SlowStart exit was spurious.
+                //
+                if (Cubic->MinRttInCurrentRound < Cubic->CssBaselineMinRtt) {
+                    CubicCongestionHyStartChangeState(Cc, HYSTART_NOT_STARTED);
                 }
             }
         }
