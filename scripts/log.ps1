@@ -120,7 +120,7 @@ function Log-Start {
         }
 
         try {
-            $PerfPath = $OutputPath + ".perf"
+            $PerfPath = $OutputPath + ".perf.data"
             perf record -F max -a -g -o $PerfPath &
 
             if ($Stream) {
@@ -219,14 +219,19 @@ function Log-Stop {
             }
         }
 
-        $OUTPUT = ls -lh $TempDir
-        Write-Host "TempDir: " $OUTPUT
+        $OUTPUT = ls -lh $TempDir/ust
+        Write-Host "TempDir: " $TempDir
+        Write-Host "ust: " $OUTPUT
 
         pkill perf -SIGINT
+        $PerfDataPath = $OutputPath + ".perf.data"
+        $PerfPath = $OutputPath + ".perf"
+        perf script -i $PerfDataPath > $PerfPath
 
         $OUTPUT = ls -lh artifacts/bin/serverlogs/
-        Write-Host "serverlogs" $OUTPUT
-        $PerfPath = $OutputPath + ".perf"
+        Write-Host "serverlogs: " $OUTPUT
+        Write-Host "OutputPath: " $OutputPath
+        #$PerfPath = $OutputPath + ".perf"
 
         # perf script > $PerfPath
 
