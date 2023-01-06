@@ -183,8 +183,8 @@ function Log-Stop {
     } elseif ($IsMacOS) {
     } else {
         $PerfPath = $OutputPath + ".perf"
-        pkill perf -SIGINT
         perf script > $PerfPath
+        pkill perf -SIGINT
 
         $ClogOutputDecodeFile = $OutputPath + ".log"
 
