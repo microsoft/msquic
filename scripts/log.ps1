@@ -182,13 +182,16 @@ function Log-Stop {
         }
     } elseif ($IsMacOS) {
     } else {
-        Write-Host "AAAAAA"
-        ls -lh
-        Write-Debug "DDDDDD"
+        $OUTPUT = ls -lh
+        Write-Host "AAAAAA" $OUTPUT
+
+        pkill perf -SIGINT
+
+        $OUTPUT = ls -lh
+        Write-Host "BBBBBB" $OUTPUT
         $PerfPath = $OutputPath + ".perf"
 
         # perf script > $PerfPath
-        pkill perf -SIGINT
 
         $ClogOutputDecodeFile = $OutputPath + ".log"
 
