@@ -269,3 +269,11 @@ MsQuicConnectionResumptionTicketValidationComplete(
     _In_ _Pre_defensive_ HQUIC Handle,
     _In_ BOOLEAN Result
     );
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+QUIC_STATUS
+QUIC_API
+MsQuicConnectionCertificateValidationComplete(
+    _In_ _Pre_defensive_ HQUIC Handle,
+    _In_ BOOLEAN Result
+    );

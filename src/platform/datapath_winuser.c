@@ -121,7 +121,10 @@ CXPLAT_STATIC_ASSERT(
     ErrorCode == ERROR_NETWORK_UNREACHABLE || \
     ErrorCode == ERROR_HOST_UNREACHABLE || \
     ErrorCode == ERROR_PROTOCOL_UNREACHABLE || \
-    ErrorCode == ERROR_PORT_UNREACHABLE \
+    ErrorCode == ERROR_PORT_UNREACHABLE || \
+    ErrorCode == WSAENETUNREACH || \
+    ErrorCode == WSAEHOSTUNREACH || \
+    ErrorCode == WSAECONNRESET \
 )
 
 typedef struct CXPLAT_DATAPATH_PROC CXPLAT_DATAPATH_PROC;   // Per-processor datapath state.
@@ -3026,12 +3029,6 @@ CxPlatSocketContextUninitialize(
     CxPlatRundownReleaseAndWait(&SocketProc->UpcallRundown);
 
 QUIC_DISABLED_BY_FUZZER_START;
-
-    if (SocketProc->Parent->Type == CXPLAT_SOCKET_UDP) {
-        CancelIoEx((HANDLE)SocketProc->Socket, NULL);
-    } else {
-        CancelIo((HANDLE)SocketProc->Socket);
-    }
 
     if (closesocket(SocketProc->Socket) == SOCKET_ERROR) {
         int WsaError = WSAGetLastError();
