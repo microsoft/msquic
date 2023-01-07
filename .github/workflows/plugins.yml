@@ -25,7 +25,7 @@ jobs:
         platform: [x86, x64]
     steps:
     - name: Checkout repository
-      uses: actions/checkout@755da8c3cf115ac066823e79a1e1788f8940201b
+      uses: actions/checkout@ac593985615ec2ede58e132d2e21d2b1cbd6127c
     - name: Setup MSBuild.exe
       uses: microsoft/setup-msbuild@34cfbaee7f672c76950673338facd8a73f637506
     - name: Build
@@ -49,7 +49,7 @@ jobs:
         configuration: [Release, Debug]
     steps:
     - name: Checkout repository
-      uses: actions/checkout@755da8c3cf115ac066823e79a1e1788f8940201b
+      uses: actions/checkout@ac593985615ec2ede58e132d2e21d2b1cbd6127c
     - name: Setup .NET
       uses: actions/setup-dotnet@607fce577a46308457984d59e4954e075820f10a
       with:
