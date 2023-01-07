@@ -226,13 +226,17 @@ function Log-Stop {
         Write-Host "ust: " $OUTPUT
 
         pkill perf -SIGINT
+        do {
+            pgrep perf
+        } while ($? -eq 0)
         $PerfDataPath = $OutputPath + ".perf.data"
         $PerfPath = $OutputPath + ".perf"
         $OUT_PERF = ls -lh $PerfDataPath
-        Write-Host "******" $OUT_PERF
-        $OUT_PERF = ls -lh $PerfPath
-        Write-Host "******" $OUT_PERF
+        Write-Host "******" $PerfDataPath " => " $OUT_PERF
         perf script -i $PerfDataPath > $PerfPath
+
+        $OUT_PERF = ls -lh $PerfPath
+        Write-Host "******" $PerfPath " => " $OUT_PERF
 
         $OUTPUT = ls -lh artifacts/bin/serverlogs/
         Write-Host "serverlogs: " $OUTPUT
