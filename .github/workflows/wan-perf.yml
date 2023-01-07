@@ -42,7 +42,7 @@ jobs:
     - name: Prepare Machine
       shell: pwsh
       run: scripts/build.ps1 -Config Release -DisableTest -DisableTools
-    - uses: actions/upload-artifact@83fd05a356d7e2593de66fc9913b3002723633cb
+    - uses: actions/upload-artifact@0b7f8abb1508181956e8e162db84b466c27e18ce
       with:
         name: bin
         path: |
@@ -100,12 +100,12 @@ jobs:
       shell: pwsh
       run: scripts/emulated-performance.ps1 -Debug -Protocol ('QUIC','TCPTLS') -LogProfile Performance.Light -NoDateLogDir -NumIterations ${{ env.iterations }} -DurationMs ${{ env.duration }} -Pacing ${{ env.pacing }} -BottleneckMbps ${{ matrix.rate }} -RttMs ${{ matrix.rtt }} -BottleneckQueueRatio ${{ matrix.queueRatio }} -RandomLossDenominator ${{ env.loss }} -RandomReorderDenominator ${{ env.reorder }} -ReorderDelayDeltaMs ${{ env.delay }} -BaseRandomSeed ${{ env.seed }} -CongestionControl ${{ env.congestionControl }}
     - name: Upload Results
-      uses: actions/upload-artifact@83fd05a356d7e2593de66fc9913b3002723633cb
+      uses: actions/upload-artifact@0b7f8abb1508181956e8e162db84b466c27e18ce
       with:
         name: data
         path: artifacts/PerfDataResults/windows/x64_Release_schannel/WAN/*.json
     - name: Upload Logs
-      uses: actions/upload-artifact@83fd05a356d7e2593de66fc9913b3002723633cb
+      uses: actions/upload-artifact@0b7f8abb1508181956e8e162db84b466c27e18ce
       with:
         name: ${{ format('logs.{0}mbps.{1}ms', matrix.rate, matrix.rtt) }}
         path: artifacts/logs/wanperf/*.etl
@@ -127,7 +127,7 @@ jobs:
       shell: pwsh
       run: scripts/emulated-performance.ps1 -MergeDataFiles
     - name: Upload CSV
-      uses: actions/upload-artifact@83fd05a356d7e2593de66fc9913b3002723633cb
+      uses: actions/upload-artifact@0b7f8abb1508181956e8e162db84b466c27e18ce
       with:
         name: csv
         path: artifacts\PerfDataResults\windows\x64_Release_schannel\WAN\wan_data.csv
