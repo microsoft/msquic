@@ -98,7 +98,8 @@ $TempDir = $null
 if ($IsLinux) {
     $InstanceName = $InstanceName.Replace(".", "_")
     $TempDir = Join-Path $HOME "QUICLogs" $InstanceName
-
+    Write-Host "=============================================================================!!"
+    sudo apt-get install -y linux-tools-$(uname -r)
     try { lttng version | Out-Null }
     catch {
         Write-Host "Installing lttng"
@@ -106,7 +107,6 @@ if ($IsLinux) {
         sudo apt-get update
         sudo apt-get install -y lttng-tools
         sudo apt-get install -y liblttng-ust-dev
-        sudo apt-get install -y linux-tools-$(uname -r)        
     }
 }
 
