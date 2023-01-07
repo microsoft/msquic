@@ -20,7 +20,6 @@ RUN apt-get update && apt-get install -y apt-transport-https \
     gcc-aarch64-linux-gnu \
     g++-aarch64-linux-gnu \
     binutils-aarch64-linux-gnu \
-    linux-tools-`uname -r` \
     cmake \
     git \
     make \

@@ -122,6 +122,7 @@ function Log-Start {
 
         try {
             $PerfPath = $OutputPath + ".perf.data"
+            Write-Host "******* perf write to" $PerfPath
             perf record -F max -a -g -o $PerfPath &
 
             if ($Stream) {
@@ -227,6 +228,10 @@ function Log-Stop {
         pkill perf -SIGINT
         $PerfDataPath = $OutputPath + ".perf.data"
         $PerfPath = $OutputPath + ".perf"
+        $OUT_PERF = ls -lh $PerfDataPath
+        Write-Host "******" $OUT_PERF
+        $OUT_PERF = ls -lh $PerfPath
+        Write-Host "******" $OUT_PERF
         perf script -i $PerfDataPath > $PerfPath
 
         $OUTPUT = ls -lh artifacts/bin/serverlogs/
