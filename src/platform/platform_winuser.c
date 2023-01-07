@@ -343,7 +343,7 @@ CxPlatInitialize(
 
     CxPlatTotalMemory = memInfo.ullTotalPageFile;
 
-#ifdef TIMERR_NOERROR
+#if defined(TIMERR_NOERROR) && !defined(QUIC_GAMECORE_BUILD)
     MMRESULT mmResult;
     if ((mmResult = timeGetDevCaps(&CxPlatTimerCapabilities, sizeof(TIMECAPS))) != TIMERR_NOERROR) {
         QuicTraceEvent(
@@ -366,7 +366,7 @@ CxPlatInitialize(
         goto Error;
     }
 #endif // QUIC_HIGH_RES_TIMERS
-#endif // TIMERR_NOERROR
+#endif // defined(TIMERR_NOERROR) && !defined(QUIC_GAMECORE_BUILD)
 
     Status = CxPlatCryptInitialize();
     if (QUIC_FAILED(Status)) {
@@ -376,19 +376,19 @@ CxPlatInitialize(
 
     CxPlatWorkersInit();
 
-#ifdef TIMERR_NOERROR
+#if defined(TIMERR_NOERROR) && !defined(QUIC_GAMECORE_BUILD)
     QuicTraceLogInfo(
         WindowsUserInitialized2,
         "[ dll] Initialized (AvailMem = %llu bytes, TimerResolution = [%u, %u])",
         CxPlatTotalMemory,
         CxPlatTimerCapabilities.wPeriodMin,
         CxPlatTimerCapabilities.wPeriodMax);
-#else // TIMERR_NOERROR
+#else // defined(TIMERR_NOERROR) && !defined(QUIC_GAMECORE_BUILD)
     QuicTraceLogInfo(
         WindowsUserInitialized,
         "[ dll] Initialized (AvailMem = %llu bytes)",
         CxPlatTotalMemory);
-#endif // TIMERR_NOERROR
+#endif // defined(TIMERR_NOERROR) && !defined(QUIC_GAMECORE_BUILD)
 
 Error:
 
