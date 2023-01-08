@@ -123,7 +123,7 @@ function Log-Start {
         try {
             $PerfPath = $OutputPath + ".perf.data"
             Write-Host "******* perf write to" $PerfPath
-            perf record -F max -a -g -o $PerfPath &
+            perf record -F 100 -a -g -o $PerfPath &
 
             if ($Stream) {
                 lttng -q create msquiclive --live
