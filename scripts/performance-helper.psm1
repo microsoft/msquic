@@ -474,7 +474,7 @@ function Start-Tracing {
     param($LocalDirectory)
     if ($Record -and !$Local) {
         $LogScript = Join-Path $LocalDirectory log.ps1
-        & $LogScript -Start -Profile $LogProfile -ProfileInScriptDirectory -InstanceName msquicperf | Out-Null
+        & $LogScript -Start -Profile $LogProfile -ProfileInScriptDirectory -InstanceName msquicperf #| Out-Null
     }
 }
 
@@ -488,7 +488,7 @@ function Stop-Tracing {
     param($LocalDirectory, $OutputDir, $Test)
     if ($Record -and !$Local) {
         $LogScript = Join-Path $LocalDirectory log.ps1
-        & $LogScript -Stop -OutputPath (Join-Path $OutputDir $Test.ToString() client) -RawLogOnly -ProfileInScriptDirectory -InstanceName msquicperf | Out-Null
+        & $LogScript -Stop -OutputPath (Join-Path $OutputDir $Test.ToString() client) -RawLogOnly -ProfileInScriptDirectory -InstanceName msquicperf #| Out-Null
     }
 }
 
