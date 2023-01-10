@@ -793,8 +793,8 @@ Arguments:
 
             RestructAttempts--;
 
-        } while ((HashTable->NumEntries > CXPLAT_HASHTABLE_MAX_CHAIN_LENGTH * HashTable->NonEmptyBuckets) &&
-                 (RestructAttempts > 0));
+        } while ((RestructAttempts > 0) &&
+                 (HashTable->NumEntries > CXPLAT_HASHTABLE_MAX_CHAIN_LENGTH * HashTable->NonEmptyBuckets));
     }
 }
 
@@ -873,10 +873,10 @@ Arguments:
             EmptyBuckets = RtlEmptyBucketsHashTable(HashTable);
             RestructAttempts--;
 
-        } while ((EmptyBuckets >
-                     (CXPLAT_HASHTABLE_MAX_EMPTY_BUCKET_PERCENTAGE *
-                      HashTable->TableSize / 100)) &&
-                 (RestructAttempts > 0));
+        } while ((RestructAttempts > 0) &&
+                 (EmptyBuckets >
+                  (CXPLAT_HASHTABLE_MAX_EMPTY_BUCKET_PERCENTAGE *
+                   HashTable->TableSize / 100)));
     }
 #endif // CXPLAT_HASHTABLE_CONTRACT_SUPPORT
 }
