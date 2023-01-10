@@ -82,7 +82,7 @@ CXPLAT_STATIC_ASSERT(
     "Hash table sizes should match!");
 
 //
-// The maximum number of hash table restructions allowed at a time. This limits
+// The maximum number of hash table resizes allowed at a time. This limits
 // the time spent expanding/contracting a hash table at dispatch.
 //
 #define CXPLAT_HASHTABLE_MAX_RESTRUCT_ATTEMPTS          1
