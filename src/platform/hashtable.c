@@ -89,7 +89,7 @@ CXPLAT_STATIC_ASSERT(
 
 //
 // The maximum average chain length in a hash table bucket. If a hash table's
-// average chain length goes above this limit, it needs to be restructured.
+// average chain length goes above this limit, it needs to be expanded.
 //
 #define CXPLAT_HASHTABLE_MAX_CHAIN_LENGTH               4
 
