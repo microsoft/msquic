@@ -165,6 +165,7 @@ Arguments:
     CXPLAT_DBG_ASSERT(BucketIndex < MAX_HASH_TABLE_SIZE);
 
     uint32_t AbsoluteIndex = BucketIndex + HT_SECOND_LEVEL_DIR_MIN_SIZE;
+    CXPLAT_DBG_ASSERT(AbsoluteIndex != 0);
 
     //
     // Find the most significant set bit. Since AbsoluteIndex is always nonzero,
@@ -1176,7 +1177,7 @@ CxPlatHashTableExpand(
     // the hash table is increased by one, the highest bucket index will be the
     // current table size, which is what we use in the calculations below
     //
-    uint32_t FirstLevelIndex, SecondLevelIndex;
+    uint32_t FirstLevelIndex = 0, SecondLevelIndex;
     CxPlatComputeDirIndices(
         HashTable->TableSize, &FirstLevelIndex, &SecondLevelIndex);
 
@@ -1189,7 +1190,7 @@ CxPlatHashTableExpand(
     CXPLAT_LIST_ENTRY** FirstLevelDir;
     if (HT_SECOND_LEVEL_DIR_MIN_SIZE == HashTable->TableSize) {
 
-        SecondLevelDir = (CXPLAT_LIST_ENTRY*)HashTable->SecondLevelDir;
+        SecondLevelDir = HashTable->SecondLevelDir;
         FirstLevelDir =
             CXPLAT_ALLOC_NONPAGED(
                 sizeof(CXPLAT_LIST_ENTRY*) * HT_FIRST_LEVEL_DIR_SIZE,
@@ -1384,7 +1385,7 @@ CxPlatHashTableContract(
     // Finally free any extra memory if possible.
     //
 
-    uint32_t FirstLevelIndex, SecondLevelIndex;
+    uint32_t FirstLevelIndex = 0, SecondLevelIndex;
     CxPlatComputeDirIndices(
         HashTable->TableSize, &FirstLevelIndex, &SecondLevelIndex);
 
