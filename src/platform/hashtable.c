@@ -166,11 +166,6 @@ Return Value:
 #define CxPlatBitScanReverse(A, B) BitScanReverse((ULONG*)A, (ULONG)B)
 #endif // BitScanReverse
 
-void
-CxPlatHashTableRestructure(
-    _Inout_ CXPLAT_HASHTABLE* HashTable
-    );
-
 static
 void
 CxPlatComputeDirIndices(
