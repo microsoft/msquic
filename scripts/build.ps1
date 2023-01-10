@@ -433,6 +433,7 @@ function CMake-Generate {
         $Arguments += " -DCMAKE_BUILD_TYPE=" + $ConfigToBuild
     }
     if ($IsWindows) {
+        $Arguments += " -DCMAKE_SYSTEM_VERSION=10.0"
         if ($DynamicCRT) {
             $Arguments += " -DQUIC_STATIC_LINK_CRT=off -DQUIC_STATIC_LINK_PARTIAL_CRT=off"
         }
@@ -444,7 +445,7 @@ function CMake-Generate {
         $Arguments += " -DQUIC_PGO=on"
     }
     if ($Platform -eq "uwp") {
-        $Arguments += " -DCMAKE_SYSTEM_NAME=WindowsStore -DCMAKE_SYSTEM_VERSION=10.0 -DQUIC_UWP_BUILD=on"
+        $Arguments += " -DCMAKE_SYSTEM_NAME=WindowsStore -DQUIC_UWP_BUILD=on"
     }
     if ($Platform -eq "gamecore_console") {
         $Arguments += " -DQUIC_GAMECORE_BUILD=on"
