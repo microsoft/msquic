@@ -85,7 +85,7 @@ CXPLAT_STATIC_ASSERT(
 // The maximum number of hash table resizes allowed at a time. This limits
 // the time spent expanding/contracting a hash table at dispatch.
 //
-#define CXPLAT_HASHTABLE_MAX_RESTRUCT_ATTEMPTS          1
+#define CXPLAT_HASHTABLE_MAX_RESIZE_ATTEMPTS            1
 
 //
 // The maximum average chain length in a hash table bucket. If a hash table's
@@ -778,7 +778,7 @@ Arguments:
     // Expand the table if necessary.
     //
     if (HashTable->NumEntries > CXPLAT_HASHTABLE_MAX_CHAIN_LENGTH * HashTable->NonEmptyBuckets) {
-        uint32_t RestructAttempts = CXPLAT_HASHTABLE_MAX_RESTRUCT_ATTEMPTS;
+        uint32_t RestructAttempts = CXPLAT_HASHTABLE_MAX_RESIZE_ATTEMPTS;
         do {
             if (!CxPlatHashTableExpand(HashTable)) {
                 break;
@@ -857,7 +857,7 @@ Arguments:
     if (EmptyBuckets >
         (CXPLAT_HASHTABLE_MAX_EMPTY_BUCKET_PERCENTAGE * HashTable->TableSize / 100)) {
 
-        uint32_t RestructAttempts = CXPLAT_HASHTABLE_MAX_RESTRUCT_ATTEMPTS;
+        uint32_t RestructAttempts = CXPLAT_HASHTABLE_MAX_RESIZE_ATTEMPTS;
         do {
             if (!CxPlatHashTableContract(HashTable)) {
                 break;
