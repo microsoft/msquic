@@ -1393,7 +1393,7 @@ CxPlatHashTableContract(
         CXPLAT_LIST_ENTRY** FirstLevelDir = HashTable->FirstLevelDir;
         CXPLAT_LIST_ENTRY* SecondLevelDir = FirstLevelDir[FirstLevelIndex];
 
-        CXPLAT_FREE(SecondLevelDir);
+        CXPLAT_FREE(SecondLevelDir, QUIC_POOL_HASHTABLE);
         FirstLevelDir[FirstLevelIndex] = NULL;
 
         //
@@ -1402,7 +1402,7 @@ CxPlatHashTableContract(
 
         if (HT_SECOND_LEVEL_DIR_MIN_SIZE == HashTable->TableSize) {
             HashTable->SecondLevelDir = FirstLevelDir[0];
-            CXPLAT_FREE(FirstLevelDir);
+            CXPLAT_FREE(FirstLevelDir, QUIC_POOL_HASHTABLE);
         }
     }
 
@@ -1471,7 +1471,6 @@ CxPlatHashTableRestructure(
                 break;
             }
 
-            TableSize = RtlTotalBucketsHashTable(HashTable);
             EmptyBuckets = RtlEmptyBucketsHashTable(HashTable);
             RestructAttempts--;
 
