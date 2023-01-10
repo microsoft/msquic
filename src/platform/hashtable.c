@@ -390,15 +390,10 @@ Return Value:
 --*/
 
 {
-#ifdef CXPLAT_HASHTABLE_RESIZE_SUPPORT
     uint32_t BucketIndex = ((uint32_t)Signature) & HashTable->DivisorMask;
     if (BucketIndex < HashTable->Pivot) {
         BucketIndex = ((uint32_t)Signature) & ((HashTable->DivisorMask << 1) | 1);
     }
-#else
-    uint32_t BucketIndex = ((uint32_t)Signature) & (HashTable->TableSize - 1);
-#endif
-
     return BucketIndex;
 }
 
@@ -538,10 +533,8 @@ Return Value:
     CxPlatZeroMemory(Table, sizeof(CXPLAT_HASHTABLE));
     Table->Flags = LocalFlags;
     Table->TableSize = InitialSize;
-#ifdef CXPLAT_HASHTABLE_RESIZE_SUPPORT
     Table->DivisorMask = Table->TableSize - 1;
     Table->Pivot = 0;
-#endif
 
     //
     // Now we allocate the second level entries.
