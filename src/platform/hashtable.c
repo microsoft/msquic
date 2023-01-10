@@ -127,6 +127,11 @@ Return Value:
 #define CxPlatBitScanReverse(A, B) BitScanReverse((ULONG*)A, (ULONG)B)
 #endif // BitScanReverse
 
+void
+CxPlatHashTableRestructure(
+    _Inout_ CXPLAT_HASHTABLE* HashTable
+    );
+
 static
 void
 CxPlatComputeDirIndices(
@@ -740,6 +745,7 @@ Arguments:
     }
 
     CxPlatListInsertHead(ContextPtr->PrevLinkage, &Entry->Linkage);
+    CxPlatHashTableRestructure(HashTable);
 }
 
 void
@@ -799,6 +805,10 @@ Arguments:
             CXPLAT_DBG_ASSERT(Signature == Context->Signature);
         }
     }
+
+#if CXPLAT_HASHTABLE_CONTRACT_SUPPORT
+    CxPlatHashTableRestructure(HashTable);
+#endif // CXPLAT_HASHTABLE_CONTRACT_SUPPORT
 }
 
 _Must_inspect_result_
@@ -1143,8 +1153,6 @@ Arguments:
     Enumerator->ChainHead = FALSE;
 }
 
-#ifdef CXPLAT_HASHTABLE_RESIZE_SUPPORT
-
 BOOLEAN
 CxPlatHashTableExpand(
     _Inout_ CXPLAT_HASHTABLE* HashTable
@@ -1182,8 +1190,10 @@ CxPlatHashTableExpand(
     if (HT_SECOND_LEVEL_DIR_MIN_SIZE == HashTable->TableSize) {
 
         SecondLevelDir = (CXPLAT_LIST_ENTRY*)HashTable->SecondLevelDir;
-        FirstLevelDir = CXPLAT_ALLOC_NONPAGED(sizeof(CXPLAT_LIST_ENTRY*) * HT_FIRST_LEVEL_DIR_SIZE);
-
+        FirstLevelDir =
+            CXPLAT_ALLOC_NONPAGED(
+                sizeof(CXPLAT_LIST_ENTRY*) * HT_FIRST_LEVEL_DIR_SIZE,
+                QUIC_POOL_HASHTABLE);
         if (FirstLevelDir == NULL) {
             return FALSE;
         }
@@ -1207,7 +1217,8 @@ CxPlatHashTableExpand(
         //
         SecondLevelDir =
             CXPLAT_ALLOC_NONPAGED(
-                CxPlatComputeSecondLevelDirSize(FirstLevelIndex) * sizeof(CXPLAT_LIST_ENTRY));
+                CxPlatComputeSecondLevelDirSize(FirstLevelIndex) * sizeof(CXPLAT_LIST_ENTRY),
+                QUIC_POOL_HASHTABLE);
         if (NULL == SecondLevelDir) {
 
             //
@@ -1220,7 +1231,7 @@ CxPlatHashTableExpand(
                 CXPLAT_DBG_ASSERT(FirstLevelIndex == 1);
 
                 HashTable->SecondLevelDir = FirstLevelDir[0];
-                CXPLAT_FREE(FirstLevelDir);
+                CXPLAT_FREE(FirstLevelDir, QUIC_POOL_HASHTABLE);
             }
 
             return FALSE;
@@ -1292,6 +1303,8 @@ CxPlatHashTableExpand(
 
     return TRUE;
 }
+
+#ifdef CXPLAT_HASHTABLE_CONTRACT_SUPPORT
 
 BOOLEAN
 CxPlatHashTableContract(
@@ -1396,4 +1409,76 @@ CxPlatHashTableContract(
     return TRUE;
 }
 
-#endif // CXPLAT_HASHTABLE_RESIZE_SUPPORT
+#endif // CXPLAT_HASHTABLE_CONTRACT_SUPPORT
+
+//
+// The maximum percentage of empty buckets in the hash table. If a hash table
+// has more empty buckets, it needs to be restructured.
+//
+#define CXPLAT_HASHTABLE_MAX_EMPTY_BUCKET_PERCENTAGE    25
+
+//
+// The maximum number of hash table restructions allowed at a time. This limits
+// the time spent expanding/contracting a hash table at dispatch.
+//
+#define CXPLAT_HASHTABLE_MAX_RESTRUCT_ATTEMPTS          8
+
+//
+// The maximum average chain length in a hash table bucket. If a hash table's
+// average chain length goes above this limit, it needs to be restructured.
+//
+#define CXPLAT_HASHTABLE_MAX_CHAIN_LENGTH               4
+
+#if CXPLAT_HASHTABLE_CONTRACT_SUPPORT
+uint32_t
+CxPlatHashtableGetEmptyBuckets(
+    _In_ const CXPLAT_HASHTABLE* HashTable
+    )
+{
+    CXPLAT_DBG_ASSERT(HashTable->TableSize >= HashTable->NonEmptyBuckets);
+    return HashTable->TableSize - HashTable->NonEmptyBuckets;
+}
+#endif // CXPLAT_HASHTABLE_CONTRACT_SUPPORT
+
+void
+CxPlatHashTableRestructure(
+    _Inout_ CXPLAT_HASHTABLE* HashTable
+    )
+{
+    uint32_t RestructAttempts = CXPLAT_HASHTABLE_MAX_RESTRUCT_ATTEMPTS;
+#if CXPLAT_HASHTABLE_CONTRACT_SUPPORT
+    uint32_t EmptyBuckets = CxPlatHashtableGetEmptyBuckets(HashTable);
+#endif // CXPLAT_HASHTABLE_CONTRACT_SUPPORT
+
+    if (HashTable->NumEntries > CXPLAT_HASHTABLE_MAX_CHAIN_LENGTH * HashTable->NonEmptyBuckets) {
+
+        do {
+            if (!CxPlatHashTableExpand(HashTable)) {
+                break;
+            }
+
+            RestructAttempts--;
+
+        } while ((HashTable->NumEntries > CXPLAT_HASHTABLE_MAX_CHAIN_LENGTH * HashTable->NonEmptyBuckets) &&
+                 (RestructAttempts > 0));
+    }
+#if CXPLAT_HASHTABLE_CONTRACT_SUPPORT
+    else if (EmptyBuckets >
+             (CXPLAT_HASHTABLE_MAX_EMPTY_BUCKET_PERCENTAGE * HashTable->TableSize / 100)) {
+
+        do {
+            if (!CxPlatHashTableContract(HashTable)) {
+                break;
+            }
+
+            TableSize = RtlTotalBucketsHashTable(HashTable);
+            EmptyBuckets = RtlEmptyBucketsHashTable(HashTable);
+            RestructAttempts--;
+
+        } while ((EmptyBuckets >
+                     (CXPLAT_HASHTABLE_MAX_EMPTY_BUCKET_PERCENTAGE *
+                      HashTable->TableSize / 100)) &&
+                 (RestructAttempts > 0));
+    }
+#endif // CXPLAT_HASHTABLE_CONTRACT_SUPPORT
+}
