@@ -1256,7 +1256,7 @@ CxPlatHashTableExpand(
         FirstLevelDir =
             CXPLAT_ALLOC_NONPAGED(
                 sizeof(CXPLAT_LIST_ENTRY*) * HT_FIRST_LEVEL_DIR_SIZE,
-                QUIC_POOL_HASHTABLE);
+                QUIC_POOL_HASHTABLE_MEMBER);
         if (FirstLevelDir == NULL) {
             return FALSE;
         }
@@ -1281,7 +1281,7 @@ CxPlatHashTableExpand(
         SecondLevelDir =
             CXPLAT_ALLOC_NONPAGED(
                 CxPlatComputeSecondLevelDirSize(FirstLevelIndex) * sizeof(CXPLAT_LIST_ENTRY),
-                QUIC_POOL_HASHTABLE);
+                QUIC_POOL_HASHTABLE_MEMBER);
         if (NULL == SecondLevelDir) {
 
             //
@@ -1294,7 +1294,7 @@ CxPlatHashTableExpand(
                 CXPLAT_DBG_ASSERT(FirstLevelIndex == 1);
 
                 HashTable->SecondLevelDir = FirstLevelDir[0];
-                CXPLAT_FREE(FirstLevelDir, QUIC_POOL_HASHTABLE);
+                CXPLAT_FREE(FirstLevelDir, QUIC_POOL_HASHTABLE_MEMBER);
             }
 
             return FALSE;
