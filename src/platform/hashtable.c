@@ -81,6 +81,45 @@ CXPLAT_STATIC_ASSERT(
     CXPLAT_HASH_MIN_SIZE == BASE_HASH_TABLE_SIZE,
     "Hash table sizes should match!");
 
+//
+// The maximum number of hash table restructions allowed at a time. This limits
+// the time spent expanding/contracting a hash table at dispatch.
+//
+#define CXPLAT_HASHTABLE_MAX_RESTRUCT_ATTEMPTS          1
+
+//
+// The maximum average chain length in a hash table bucket. If a hash table's
+// average chain length goes above this limit, it needs to be restructured.
+//
+#define CXPLAT_HASHTABLE_MAX_CHAIN_LENGTH               4
+
+//
+// The maximum percentage of empty buckets in the hash table. If a hash table
+// has more empty buckets, it needs to be restructured.
+//
+#define CXPLAT_HASHTABLE_MAX_EMPTY_BUCKET_PERCENTAGE    25
+
+#if CXPLAT_HASHTABLE_CONTRACT_SUPPORT
+uint32_t
+CxPlatHashtableGetEmptyBuckets(
+    _In_ const CXPLAT_HASHTABLE* HashTable
+    )
+{
+    CXPLAT_DBG_ASSERT(HashTable->TableSize >= HashTable->NonEmptyBuckets);
+    return HashTable->TableSize - HashTable->NonEmptyBuckets;
+}
+
+BOOLEAN
+CxPlatHashTableContract(
+    _Inout_ CXPLAT_HASHTABLE* HashTable
+    );
+#endif // CXPLAT_HASHTABLE_CONTRACT_SUPPORT
+
+BOOLEAN
+CxPlatHashTableExpand(
+    _Inout_ CXPLAT_HASHTABLE* HashTable
+    );
+
 #ifndef BitScanReverse
 static
 uint8_t
@@ -746,7 +785,22 @@ Arguments:
     }
 
     CxPlatListInsertHead(ContextPtr->PrevLinkage, &Entry->Linkage);
-    CxPlatHashTableRestructure(HashTable);
+
+    //
+    // Expand the table if necessary.
+    //
+    if (HashTable->NumEntries > CXPLAT_HASHTABLE_MAX_CHAIN_LENGTH * HashTable->NonEmptyBuckets) {
+        uint32_t RestructAttempts = CXPLAT_HASHTABLE_MAX_RESTRUCT_ATTEMPTS;
+        do {
+            if (!CxPlatHashTableExpand(HashTable)) {
+                break;
+            }
+
+            RestructAttempts--;
+
+        } while ((HashTable->NumEntries > CXPLAT_HASHTABLE_MAX_CHAIN_LENGTH * HashTable->NonEmptyBuckets) &&
+                 (RestructAttempts > 0));
+    }
 }
 
 void
@@ -808,7 +862,27 @@ Arguments:
     }
 
 #if CXPLAT_HASHTABLE_CONTRACT_SUPPORT
-    CxPlatHashTableRestructure(HashTable);
+    //
+    // Contract the table if necessary.
+    //
+    uint32_t EmptyBuckets = CxPlatHashtableGetEmptyBuckets(HashTable);
+    if (EmptyBuckets >
+        (CXPLAT_HASHTABLE_MAX_EMPTY_BUCKET_PERCENTAGE * HashTable->TableSize / 100)) {
+
+        uint32_t RestructAttempts = CXPLAT_HASHTABLE_MAX_RESTRUCT_ATTEMPTS;
+        do {
+            if (!CxPlatHashTableContract(HashTable)) {
+                break;
+            }
+
+            EmptyBuckets = RtlEmptyBucketsHashTable(HashTable);
+            RestructAttempts--;
+
+        } while ((EmptyBuckets >
+                     (CXPLAT_HASHTABLE_MAX_EMPTY_BUCKET_PERCENTAGE *
+                      HashTable->TableSize / 100)) &&
+                 (RestructAttempts > 0));
+    }
 #endif // CXPLAT_HASHTABLE_CONTRACT_SUPPORT
 }
 
@@ -1411,74 +1485,3 @@ CxPlatHashTableContract(
 }
 
 #endif // CXPLAT_HASHTABLE_CONTRACT_SUPPORT
-
-//
-// The maximum percentage of empty buckets in the hash table. If a hash table
-// has more empty buckets, it needs to be restructured.
-//
-#define CXPLAT_HASHTABLE_MAX_EMPTY_BUCKET_PERCENTAGE    25
-
-//
-// The maximum number of hash table restructions allowed at a time. This limits
-// the time spent expanding/contracting a hash table at dispatch.
-//
-#define CXPLAT_HASHTABLE_MAX_RESTRUCT_ATTEMPTS          8
-
-//
-// The maximum average chain length in a hash table bucket. If a hash table's
-// average chain length goes above this limit, it needs to be restructured.
-//
-#define CXPLAT_HASHTABLE_MAX_CHAIN_LENGTH               4
-
-#if CXPLAT_HASHTABLE_CONTRACT_SUPPORT
-uint32_t
-CxPlatHashtableGetEmptyBuckets(
-    _In_ const CXPLAT_HASHTABLE* HashTable
-    )
-{
-    CXPLAT_DBG_ASSERT(HashTable->TableSize >= HashTable->NonEmptyBuckets);
-    return HashTable->TableSize - HashTable->NonEmptyBuckets;
-}
-#endif // CXPLAT_HASHTABLE_CONTRACT_SUPPORT
-
-void
-CxPlatHashTableRestructure(
-    _Inout_ CXPLAT_HASHTABLE* HashTable
-    )
-{
-    uint32_t RestructAttempts = CXPLAT_HASHTABLE_MAX_RESTRUCT_ATTEMPTS;
-#if CXPLAT_HASHTABLE_CONTRACT_SUPPORT
-    uint32_t EmptyBuckets = CxPlatHashtableGetEmptyBuckets(HashTable);
-#endif // CXPLAT_HASHTABLE_CONTRACT_SUPPORT
-
-    if (HashTable->NumEntries > CXPLAT_HASHTABLE_MAX_CHAIN_LENGTH * HashTable->NonEmptyBuckets) {
-
-        do {
-            if (!CxPlatHashTableExpand(HashTable)) {
-                break;
-            }
-
-            RestructAttempts--;
-
-        } while ((HashTable->NumEntries > CXPLAT_HASHTABLE_MAX_CHAIN_LENGTH * HashTable->NonEmptyBuckets) &&
-                 (RestructAttempts > 0));
-    }
-#if CXPLAT_HASHTABLE_CONTRACT_SUPPORT
-    else if (EmptyBuckets >
-             (CXPLAT_HASHTABLE_MAX_EMPTY_BUCKET_PERCENTAGE * HashTable->TableSize / 100)) {
-
-        do {
-            if (!CxPlatHashTableContract(HashTable)) {
-                break;
-            }
-
-            EmptyBuckets = RtlEmptyBucketsHashTable(HashTable);
-            RestructAttempts--;
-
-        } while ((EmptyBuckets >
-                     (CXPLAT_HASHTABLE_MAX_EMPTY_BUCKET_PERCENTAGE *
-                      HashTable->TableSize / 100)) &&
-                 (RestructAttempts > 0));
-    }
-#endif // CXPLAT_HASHTABLE_CONTRACT_SUPPORT
-}
