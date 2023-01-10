@@ -95,7 +95,7 @@ CXPLAT_STATIC_ASSERT(
 
 //
 // The maximum percentage of empty buckets in the hash table. If a hash table
-// has more empty buckets, it needs to be restructured.
+// has more empty buckets, it needs to be contracted.
 //
 #define CXPLAT_HASHTABLE_MAX_EMPTY_BUCKET_PERCENTAGE    25
 
