@@ -170,6 +170,7 @@ void SimpleGetParamTest(HQUIC Handle, uint32_t Param, size_t ExpectedLength, voi
         }
     }
 
+    Length = (uint32_t)ExpectedLength; // Only query the expected size, which might be less.
     void* Value = CXPLAT_ALLOC_NONPAGED(Length, QUIC_POOL_TEST);
     if (Value == nullptr) {
         TEST_FAILURE("Out of memory for testing SetParam for global parameter");
