@@ -94,7 +94,7 @@ extern "C" {
 #define QUIC_ERROR_CRYPTO_USER_CANCELED             QUIC_ERROR_CRYPTO_ERROR(90)  // TLS error code for 'user_canceled'
 #define QUIC_ERROR_CRYPTO_NO_APPLICATION_PROTOCOL   QUIC_ERROR_CRYPTO_ERROR(120) // TLS error code for 'no_application_protocol'
 
-#define QUIC_ERROR_VERSION_NEGOTIATION_ERROR    0x53F8
+#define QUIC_ERROR_VERSION_NEGOTIATION_ERROR    0x11
 
 //
 // Used for determining which errors to count for performance counters.

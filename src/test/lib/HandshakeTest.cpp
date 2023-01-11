@@ -3383,7 +3383,7 @@ QuicTestCustomVNTP(
     }
 }
 
-#define QUIC_TP_ID_VERSION_NEGOTIATION_EXT                  0xFF73DB
+#define QUIC_TP_ID_VERSION_NEGOTIATION_EXT                  0x11
 
 void
 QuicTestVNTPOddSize(
