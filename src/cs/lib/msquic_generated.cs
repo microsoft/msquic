@@ -1024,7 +1024,7 @@ namespace Microsoft.Quic
     internal partial struct QUIC_SETTINGS
     {
         [NativeTypeName("QUIC_SETTINGS::(anonymous union)")]
-        internal _Anonymous_e__Union Anonymous;
+        internal _Anonymous1_e__Union Anonymous1;
 
         [NativeTypeName("uint64_t")]
         internal ulong MaxBytesPerKey;
@@ -1207,24 +1207,61 @@ namespace Microsoft.Quic
         [NativeTypeName("uint32_t")]
         internal uint DestCidUpdateIdleTimeoutMs;
 
+        [NativeTypeName("QUIC_SETTINGS::(anonymous union)")]
+        internal _Anonymous2_e__Union Anonymous2;
+
         internal ref ulong IsSetFlags
         {
             get
             {
-                return ref MemoryMarshal.GetReference(MemoryMarshal.CreateSpan(ref Anonymous.IsSetFlags, 1));
+                return ref MemoryMarshal.GetReference(MemoryMarshal.CreateSpan(ref Anonymous1.IsSetFlags, 1));
             }
         }
 
-        internal ref _Anonymous_e__Union._IsSet_e__Struct IsSet
+        internal ref _Anonymous1_e__Union._IsSet_e__Struct IsSet
         {
             get
             {
-                return ref MemoryMarshal.GetReference(MemoryMarshal.CreateSpan(ref Anonymous.IsSet, 1));
+                return ref MemoryMarshal.GetReference(MemoryMarshal.CreateSpan(ref Anonymous1.IsSet, 1));
+            }
+        }
+
+        internal ref ulong Flags
+        {
+            get
+            {
+                return ref MemoryMarshal.GetReference(MemoryMarshal.CreateSpan(ref Anonymous2.Flags, 1));
+            }
+        }
+
+        internal ulong HyStartEnabled
+        {
+            get
+            {
+                return Anonymous2.Anonymous.HyStartEnabled;
+            }
+
+            set
+            {
+                Anonymous2.Anonymous.HyStartEnabled = value;
+            }
+        }
+
+        internal ulong ReservedFlags
+        {
+            get
+            {
+                return Anonymous2.Anonymous.ReservedFlags;
+            }
+
+            set
+            {
+                Anonymous2.Anonymous.ReservedFlags = value;
             }
         }
 
         [StructLayout(LayoutKind.Explicit)]
-        internal partial struct _Anonymous_e__Union
+        internal partial struct _Anonymous1_e__Union
         {
             [FieldOffset(0)]
             [NativeTypeName("uint64_t")]
@@ -1714,17 +1751,76 @@ namespace Microsoft.Quic
                     }
                 }
 
-                [NativeTypeName("uint64_t : 30")]
-                internal ulong RESERVED
+                [NativeTypeName("uint64_t : 1")]
+                internal ulong HyStartEnabled
                 {
                     get
                     {
-                        return (_bitfield >> 34) & 0x3FFFFFFFUL;
+                        return (_bitfield >> 34) & 0x1UL;
                     }
 
                     set
                     {
-                        _bitfield = (_bitfield & ~(0x3FFFFFFFUL << 34)) | ((value & 0x3FFFFFFFUL) << 34);
+                        _bitfield = (_bitfield & ~(0x1UL << 34)) | ((value & 0x1UL) << 34);
+                    }
+                }
+
+                [NativeTypeName("uint64_t : 29")]
+                internal ulong RESERVED
+                {
+                    get
+                    {
+                        return (_bitfield >> 35) & 0x1FFFFFFFUL;
+                    }
+
+                    set
+                    {
+                        _bitfield = (_bitfield & ~(0x1FFFFFFFUL << 35)) | ((value & 0x1FFFFFFFUL) << 35);
+                    }
+                }
+            }
+        }
+
+        [StructLayout(LayoutKind.Explicit)]
+        internal partial struct _Anonymous2_e__Union
+        {
+            [FieldOffset(0)]
+            [NativeTypeName("uint64_t")]
+            internal ulong Flags;
+
+            [FieldOffset(0)]
+            [NativeTypeName("QUIC_SETTINGS::(anonymous struct)")]
+            internal _Anonymous_e__Struct Anonymous;
+
+            internal partial struct _Anonymous_e__Struct
+            {
+                internal ulong _bitfield;
+
+                [NativeTypeName("uint64_t : 1")]
+                internal ulong HyStartEnabled
+                {
+                    get
+                    {
+                        return _bitfield & 0x1UL;
+                    }
+
+                    set
+                    {
+                        _bitfield = (_bitfield & ~0x1UL) | (value & 0x1UL);
+                    }
+                }
+
+                [NativeTypeName("uint64_t : 63")]
+                internal ulong ReservedFlags
+                {
+                    get
+                    {
+                        return (_bitfield >> 1) & 0x7FFFFFFFUL;
+                    }
+
+                    set
+                    {
+                        _bitfield = (_bitfield & ~(0x7FFFFFFFUL << 1)) | ((value & 0x7FFFFFFFUL) << 1);
                     }
                 }
             }
