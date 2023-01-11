@@ -444,10 +444,10 @@ function CMake-Generate {
         $Arguments += " -DQUIC_PGO=on"
     }
     if ($Platform -eq "uwp") {
-        $Arguments += " -DCMAKE_SYSTEM_NAME=WindowsStore -DCMAKE_SYSTEM_VERSION=10 -DQUIC_UWP_BUILD=on"
+        $Arguments += " -DCMAKE_SYSTEM_NAME=WindowsStore -DCMAKE_SYSTEM_VERSION=10.0 -DQUIC_UWP_BUILD=on"
     }
     if ($Platform -eq "gamecore_console") {
-        $Arguments += " -DQUIC_GAMECORE_BUILD=on"
+        $Arguments += " -DCMAKE_SYSTEM_VERSION=10.0 -DQUIC_GAMECORE_BUILD=on"
     }
     if ($ToolchainFile -ne "") {
         $Arguments += " -DCMAKE_TOOLCHAIN_FILE=""$ToolchainFile"""
