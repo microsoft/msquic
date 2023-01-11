@@ -2185,7 +2185,7 @@ void QuicTestGlobalParam()
         // in src/core/packet.h QUIC_VERSION_INFO and QuicSupportedVersionList are defined
         // but dependency issue happen when including it.
         // sizeof(QUIC_VERSION_INFO[4]) is 88 * 4
-        SimpleGetParamTest(nullptr, QUIC_PARAM_GLOBAL_SUPPORTED_VERSIONS, 88 * 4, nullptr);
+        SimpleGetParamTest(nullptr, QUIC_PARAM_GLOBAL_SUPPORTED_VERSIONS, 88 * 4, nullptr, true);
     }
 
     //
@@ -2251,7 +2251,7 @@ void QuicTestGlobalParam()
             TestScopeLogger LogScope1("GetParam");
             {
                 int64_t Buffer[QUIC_PERF_COUNTER_MAX] = {};
-                SimpleGetParamTest(nullptr, QUIC_PARAM_GLOBAL_PERF_COUNTERS, QUIC_PERF_COUNTER_MAX * sizeof(int64_t), &Buffer);
+                SimpleGetParamTest(nullptr, QUIC_PARAM_GLOBAL_PERF_COUNTERS, QUIC_PERF_COUNTER_MAX * sizeof(int64_t), &Buffer, true);
             }
 
             //
@@ -2354,7 +2354,7 @@ void QuicTestGlobalParam()
 
         {
             TestScopeLogger LogScope1("GetParam");
-            SimpleGetParamTest(nullptr, QUIC_PARAM_GLOBAL_SETTINGS, sizeof(QUIC_SETTINGS), nullptr);
+            SimpleGetParamTest(nullptr, QUIC_PARAM_GLOBAL_SETTINGS, sizeof(QUIC_SETTINGS), nullptr, true);
         }
     }
 
@@ -3551,7 +3551,7 @@ void QuicTestConnectionParam()
             TestScopeLogger LogScope1("GetParam");
             MsQuicConnection Connection(Registration);
             TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
-            SimpleGetParamTest(Connection.Handle, QUIC_PARAM_CONN_STATISTICS, sizeof(QUIC_STATISTICS), nullptr);
+            SimpleGetParamTest(Connection.Handle, QUIC_PARAM_CONN_STATISTICS, sizeof(QUIC_STATISTICS), nullptr, true);
         }
     }
 
@@ -3580,7 +3580,7 @@ void QuicTestConnectionParam()
             TestScopeLogger LogScope1("GetParam");
             MsQuicConnection Connection(Registration);
             TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
-            SimpleGetParamTest(Connection.Handle, QUIC_PARAM_CONN_STATISTICS_PLAT, sizeof(QUIC_STATISTICS), nullptr);
+            SimpleGetParamTest(Connection.Handle, QUIC_PARAM_CONN_STATISTICS_PLAT, sizeof(QUIC_STATISTICS), nullptr, true);
         }
     }
 
@@ -4204,7 +4204,7 @@ void QuicTestConnectionParam()
             TestScopeLogger LogScope1("GetParam");
             MsQuicConnection Connection(Registration);
             TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
-            SimpleGetParamTest(Connection.Handle, QUIC_PARAM_CONN_STATISTICS_V2, sizeof(QUIC_STATISTICS_V2), nullptr);
+            SimpleGetParamTest(Connection.Handle, QUIC_PARAM_CONN_STATISTICS_V2, sizeof(QUIC_STATISTICS_V2), nullptr, true);
         }
     }
 
@@ -4230,7 +4230,7 @@ void QuicTestConnectionParam()
             TestScopeLogger LogScope1("GetParam");
             MsQuicConnection Connection(Registration);
             TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
-            SimpleGetParamTest(Connection.Handle, QUIC_PARAM_CONN_STATISTICS_V2_PLAT, sizeof(QUIC_STATISTICS_V2), nullptr);
+            SimpleGetParamTest(Connection.Handle, QUIC_PARAM_CONN_STATISTICS_V2_PLAT, sizeof(QUIC_STATISTICS_V2), nullptr, true);
         }
     }
 }
