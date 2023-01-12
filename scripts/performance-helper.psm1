@@ -379,7 +379,7 @@ function Invoke-RemoteExe {
             if ($IsLinux -and $Record) {
                 & $LogScript -PerfRun -Command "$Exe $RunArgs" -Remote
             } else  {
-                & $Exe ($RunArgs).Aplit(" ")
+                & $Exe ($RunArgs).Split(" ")
             }
         } finally {
             # Uninstall the kernel mode test drivers.
