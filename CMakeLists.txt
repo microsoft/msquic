@@ -108,8 +108,8 @@ set(QUIC_FOLDER_PREFIX "" CACHE STRING "Optional prefix for source group folders
 set(QUIC_LIBRARY_NAME "msquic" CACHE STRING "Override the output library name")
 
 if (QUIC_GAMECORE_BUILD)
-    if(${CMAKE_VS_WINDOWS_TARGET_PLATFORM_VERSION} VERSION_LESS "10.0.19041.0")
-        message(ERROR "gamecore builds require Windows 10 SDK version 19041 or later.")
+    if(${CMAKE_VS_WINDOWS_TARGET_PLATFORM_VERSION} VERSION_LESS "10.0.20348.0")
+        message(ERROR "gamecore builds require Windows 10 SDK version 20348 or later.")
     endif()
 endif()
 
