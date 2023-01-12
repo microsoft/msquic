@@ -436,7 +436,6 @@ TEST(SettingsTest, GlobalSettingsSizesSet)
     }
 }
 
-#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
 TEST(SettingsTest, GlobalExecutionConfigSetAndGet)
 {
     uint8_t RawConfig[QUIC_EXECUTION_CONFIG_MIN_SIZE + 2 * sizeof(uint16_t)] = {0};
@@ -510,7 +509,7 @@ TEST(SettingsTest, GlobalRawDataPathProcsSetAfterDataPathInit)
     Config->ProcessorCount = 2;
     Config->ProcessorList[0] = 0;
     Config->ProcessorList[1] = 1;
-    MsQuicLib.Datapath = (CXPLAT_DATAPATH*)1; // Pretend datapath has been initialized
+    MsQuicLib.PerProc = (QUIC_LIBRARY_PP*)1; // Pretend already initialized
     ASSERT_EQ(
         QUIC_STATUS_INVALID_STATE,
         QuicLibrarySetGlobalParam(
@@ -518,4 +517,3 @@ TEST(SettingsTest, GlobalRawDataPathProcsSetAfterDataPathInit)
             sizeof(RawConfig),
             Config));
 }
-#endif
