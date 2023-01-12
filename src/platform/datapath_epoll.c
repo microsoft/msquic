@@ -191,7 +191,6 @@ typedef struct CXPLAT_SEND_DATA {
 
 typedef struct CXPLAT_RECV_MSG_CONTROL_BUFFER {
     char Data[CMSG_SPACE(sizeof(struct in6_pktinfo)) +
-              CMSG_SPACE(sizeof(struct in_pktinfo)) +
               2 * CMSG_SPACE(sizeof(int))];
 } CXPLAT_RECV_MSG_CONTROL_BUFFER;
 
@@ -1151,25 +1150,6 @@ CxPlatSocketContextInitialize(
         goto Exit;
     }
 
-    Option = TRUE;
-    Result =
-        setsockopt(
-            SocketContext->SocketFd,
-            IPPROTO_IP,
-            IP_PKTINFO,
-            (const void*)&Option,
-            sizeof(Option));
-    if (Result == SOCKET_ERROR) {
-        Status = errno;
-        QuicTraceEvent(
-            DatapathErrorStatus,
-            "[data][%p] ERROR, %u, %s.",
-            Binding,
-            Status,
-            "setsockopt(IP_PKTINFO) failed");
-        goto Exit;
-    }
-
     //
     // Set socket option to receive TOS (= DSCP + ECN) information from the
     // incoming packet.
@@ -1827,14 +1807,7 @@ CxPlatSocketContextRecvComplete(
                     CXPLAT_DBG_ASSERT(FALSE);
                 }
             } else if (CMsg->cmsg_level == IPPROTO_IP) {
-                if (CMsg->cmsg_type == IP_PKTINFO) {
-                    struct in_pktinfo* PktInfo = (struct in_pktinfo*)CMSG_DATA(CMsg);
-                    LocalAddr->Ip.sa_family = QUIC_ADDRESS_FAMILY_INET;
-                    LocalAddr->Ipv4.sin_addr = PktInfo->ipi_addr;
-                    LocalAddr->Ipv4.sin_port = SocketContext->Binding->LocalAddress.Ipv6.sin6_port;
-                    LocalAddr->Ipv6.sin6_scope_id = PktInfo->ipi_ifindex;
-                    FoundLocalAddr = TRUE;
-                } else if (CMsg->cmsg_type == IP_TOS) {
+                if (CMsg->cmsg_type == IP_TOS) {
                     CXPLAT_DBG_ASSERT_CMSG(CMsg, uint8_t);
                     TOS = *(uint8_t*)CMSG_DATA(CMsg);
                     FoundTOS = TRUE;
