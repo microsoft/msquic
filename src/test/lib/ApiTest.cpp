@@ -2702,6 +2702,9 @@ void QuicTestRegistrationParam()
     }
 }
 
+#define SETTINGS_SIZE_THRU_FIELD(SettingsType, Field) \
+    (FIELD_OFFSET(SettingsType, Field) + sizeof(((SettingsType*)0)->Field))
+
 void QuicTestConfigurationParam()
 {
     MsQuicRegistration Registration;
