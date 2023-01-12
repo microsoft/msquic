@@ -15,6 +15,15 @@ This script provides helpers for starting, stopping and canceling log collection
 .PARAMETER Stop
     Stops the logs from being collected and saves them to the -Output location.
 
+.PARAMETER PerfRun
+    Use perf command to wrap exe
+
+.PARAMETER Command
+    COmmand to be wrapped by PerfRun
+
+.PARAMETER PerfGraph
+    Use perf command to generate flamegraph
+
 .PARAMETER Output
     The output file name or directory for the logs.
 
@@ -26,6 +35,9 @@ This script provides helpers for starting, stopping and canceling log collection
 
 .PARAMETER ProfileInScriptDirectory
     Flag for if the MsQuic wprp file is in the same directory as the script.
+
+.PARAMETER Remote
+    Flag for if the logging is for Local/Remote
 
 .EXAMPLE
     logs.ps1 -Start -Profile Basic.Light
@@ -55,7 +67,17 @@ param (
     [Parameter(Mandatory = $false, ParameterSetName='Stop')]
     [switch]$Stop = $false,
 
+    [Parameter(Mandatory = $false, ParameterSetName='PerfRun')]
+    [switch]$PerfRun = $false,
+
+    [Parameter(Mandatory = $false, ParameterSetName='PerfRun')]
+    [string]$Command = "",
+
+    [Parameter(Mandatory = $false, ParameterSetName='PerfGraph')]
+    [switch]$PerfGraph = $false,
+
     [Parameter(Mandatory = $true, ParameterSetName='Stop')]
+    [Parameter(Mandatory = $true, ParameterSetName='PerfGraph')]
     [string]$OutputPath = "",
 
     [Parameter(Mandatory = $false, ParameterSetName='Stop')]
@@ -74,10 +96,13 @@ param (
     [string]$WorkingDirectory,
 
     [Parameter(Mandatory = $false)]
+    [switch]$ProfileInScriptDirectory = $false,
+        
+    [Parameter(Mandatory = $false)]
     [string]$InstanceName = "msquic",
 
     [Parameter(Mandatory = $false)]
-    [switch]$ProfileInScriptDirectory = $false
+    [switch]$Remote = $false
 )
 
 Set-StrictMode -Version 'Latest'
@@ -95,11 +120,15 @@ $SideCar = Join-Path $RootDir "src/manifest/clog.sidecar"
 $Clog2Text_lttng = "$HOME/.dotnet/tools/clog2text_lttng"
 
 $TempDir = $null
+$TempLTTngDir = $null
+$TempPerfDir = $null
+# currently only for perf log on linux
+$FilePrefix = $Remote ? "server" : "client"
 if ($IsLinux) {
     $InstanceName = $InstanceName.Replace(".", "_")
-    $TempDir = Join-Path $HOME "QUICLogs" $InstanceName
-    Write-Host "=============================================================================!!"
-    sudo apt-get install -y linux-tools-$(uname -r)
+    $TempDir = Join-Path $HOME "QUICLogs"
+    $TempLTTngDir = Join-Path $TempDir $InstanceName
+    $TempPerfDir = Join-Path $TempDir "Perf"
     try { lttng version | Out-Null }
     catch {
         Write-Host "Installing lttng"
@@ -107,6 +136,50 @@ if ($IsLinux) {
         sudo apt-get update
         sudo apt-get install -y lttng-tools
         sudo apt-get install -y liblttng-ust-dev
+    }
+    try { perf version | Out-Null}
+    catch {
+        Write-Host "Installing perf"
+        sudo apt-get install -y linux-tools-$(uname -r)
+        wget https://raw.githubusercontent.com/brendangregg/FlameGraph/master/stackcollapse-perf.pl -O /usr/bin/stackcollapse-perf.pl
+        wget https://raw.githubusercontent.com/brendangregg/FlameGraph/master/flamegraph.pl -O /usr/bin/flamegraph.pl
+    }
+}
+
+function Perf-Run {
+    if (!$IsLinux) {
+        # error
+    } else {
+        New-Item -Path $TempPerfDir -ItemType Directory -Force
+        $CommandSplit = $Command.Split(" ")
+        $OutFile = "server.perf.data"
+        if (!$Remote) {
+            $count = @(Get-ChildItem $TempPerfDir "client_*.perf.data").count
+            $OutFile = "client_$count.perf.data"
+        }
+        perf record -F 10 -a -g -o $(Join-Path $TempPerfDir $OutFile) $CommandSplit[0] $CommandSplit[1..$($CommandSplit.count-1)]
+    }
+}
+
+function Perf-Graph {
+    if (!$IsLinux) {
+        # error
+    } else {
+        New-Item -ItemType Directory $OutputPath -Force | Out-Null
+        if ($Remote) {
+            $InputPath = $(Join-Path $TempPerfDir "server.perf.data")
+            perf script -i $InputPath | stackcollapse-perf.pl | flamegraph.pl > $(Join-Path $OutputPath "server.svg")
+            Remove-Item -Path $InputPath -Recurse -Force | Out-Null
+        } else {
+            $InputPath = $(Join-Path $TempPerfDir "client_*.perf.data")
+            foreach ($FileName in (Get-Item $(Join-Path $TempPerfDir "client_*.perf.data")).name) {
+                perf script -i $(Join-Path $TempPerfDir $FileName) | stackcollapse-perf.pl | flamegraph.pl > $(Join-Path $OutputPath ($FileName.Split(".")[0] + ".svg"))
+            }
+            Remove-Item -Path $InputPath -Recurse -Force | Out-Null
+        }
+        if ($(Get-ChildItem $TempPerfDir).count -eq 0) {
+            Remove-Item -Path $TempPerfDir -Recurse -Force | Out-Null
+        }
     }
 }
 
@@ -116,20 +189,16 @@ function Log-Start {
         wpr.exe -start "$($WprpFile)!$($Profile)" -filemode -instancename $InstanceName 2>&1
     } elseif ($IsMacOS) {
     } else {
-        if (Test-Path $TempDir) {
-            Write-Error "LTTng session ($InstanceName) already running! ($TempDir)"
+        if (Test-Path $TempLTTngDir) {
+            Write-Error "LTTng session ($InstanceName) already running! ($TempLTTngDir)"
         }
 
         try {
-            $PerfPath = $OutputPath + ".perf.data"
-            Write-Host "******* perf write to" $PerfPath
-            perf record -F 100 -a -g -o $PerfPath &
-
             if ($Stream) {
                 lttng -q create msquiclive --live
             } else {
-                New-Item -Path $TempDir -ItemType Directory -Force | Out-Null
-                $Command = "lttng create $InstanceName -o=$TempDir"
+                New-Item -Path $TempLTTngDir -ItemType Directory -Force | Out-Null
+                $Command = "lttng create $InstanceName -o=$TempLTTngDir"
                 Invoke-Expression $Command | Write-Debug
             }
             lttng enable-event --userspace CLOG_* | Write-Debug
@@ -159,12 +228,12 @@ function Log-Cancel {
         try { wpr.exe -cancel -instancename $InstanceName 2>&1 } catch { }
     } elseif ($IsMacOS) {
     } else {
-        if (!(Test-Path $TempDir)) {
+        if (!(Test-Path $TempLTTngDir)) {
             Write-Debug "LTTng session ($InstanceName) not currently running"
         } else {
             try { Invoke-Expression "lttng destroy -n $InstanceName" | Write-Debug } catch { }
-            try { Remove-Item -Path $TempDir -Recurse -Force | Out-Null } catch { }
-            Write-Debug "Destroyed LTTng session ($InstanceName) and deleted $TempDir"
+            try { Remove-Item -Path $TempLTTngDir -Recurse -Force | Out-Null } catch { }
+            Write-Debug "Destroyed LTTng session ($InstanceName) and deleted $TempLTTngDir"
         }
     }
     $global:LASTEXITCODE = 0
@@ -191,7 +260,7 @@ function Log-Stop {
             New-Item -Path $OutputPath -ItemType Directory -Force | Out-Null
         }
 
-        if (!(Test-Path $TempDir)) {
+        if (!(Test-Path $TempLTTngDir)) {
             Write-Error "LTTng session ($InstanceName) not currently running!"
         }
 
@@ -201,11 +270,11 @@ function Log-Stop {
         $BableTraceFile = $OutputPath + ".babel.txt"
 
         Write-Host "tar/gzip LTTng log files: $LTTNGTarFile"
-        tar -cvzf $LTTNGTarFile $TempDir | Write-Debug
+        tar -cvzf $LTTNGTarFile $TempLTTngDir | Write-Debug
 
         if (!$RawLogOnly) {
-            Write-Debug "Decoding LTTng into BabelTrace format ($BableTraceFile)"
-            babeltrace --names all $TempDir/* > $BableTraceFile
+            Write-Host "Decoding LTTng into BabelTrace format ($BableTraceFile)"
+            babeltrace --names all $TempLTTngDir/* > $BableTraceFile
             Write-Host "Decoding into human-readable text: $ClogOutputDecodeFile"
             $Command = "$Clog2Text_lttng -i $BableTraceFile -s $SideCar -o $ClogOutputDecodeFile --showTimestamp --showCpuInfo"
             Write-Host $Command
@@ -221,33 +290,9 @@ function Log-Stop {
             }
         }
 
-        $OUTPUT = ls -lh $TempDir/ust
-        Write-Host "TempDir: " $TempDir
-        Write-Host "ust: " $OUTPUT
-
-        pkill perf -SIGINT
-        do {
-            pgrep perf
-        } while ($? -eq 0)
-        $PerfDataPath = $OutputPath + ".perf.data"
-        $PerfPath = $OutputPath + ".perf"
-        $OUT_PERF = ls -lh $PerfDataPath
-        Write-Host "******" $PerfDataPath " => " $OUT_PERF
-        perf script -i $PerfDataPath > $PerfPath
-
-        $OUT_PERF = ls -lh $PerfPath
-        Write-Host "******" $PerfPath " => " $OUT_PERF
-
-        $OUTPUT = ls -lh artifacts/bin/serverlogs/
-        Write-Host "serverlogs: " $OUTPUT
-        Write-Host "OutputPath: " $OutputPath
-        #$PerfPath = $OutputPath + ".perf"
-
-        # perf script > $PerfPath
-
         Invoke-Expression "lttng destroy $InstanceName" | Write-Debug
-        Remove-Item -Path $TempDir -Recurse -Force | Out-Null
-        Write-Debug "Destroyed LTTng session ($InstanceName) and deleted $TempDir"
+        Remove-Item -Path $TempLTTngDir -Recurse -Force | Out-Null
+        Write-Debug "Destroyed LTTng session ($InstanceName) and deleted $TempLTTngDir"
     }
 }
 # Decodes a log file.
@@ -299,3 +344,5 @@ if ($Start)  { Log-Start }
 if ($Cancel) { Log-Cancel }
 if ($Stop)   { Log-Stop }
 if ($Decode) { Log-Decode }
+if ($PerfRun) { Perf-Run }
+if ($PerfGraph) { Perf-Graph }

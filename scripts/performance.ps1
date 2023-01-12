@@ -143,10 +143,6 @@ Set-StrictMode -Version 'Latest'
 $PSDefaultParameterValues['*:ErrorAction'] = 'Stop'
 $ProgressPreference = 'SilentlyContinue'
 
-echo "=========="
-Get-Variable
-echo "=========="
-
 # Validate the the switches.
 if ($Kernel) {
     if (!$IsWindows) {
@@ -510,7 +506,8 @@ function Invoke-Test {
             $LocalResults | Write-LogAndDebug
         }
     } finally {
-        $RemoteResults = Wait-ForRemote -Job $RemoteJob
+        # -ErrorAction Continue for "perf" to return error when stop
+        $RemoteResults = Wait-ForRemote -Job $RemoteJob -ErrorAction Continue
         Write-LogAndDebug $RemoteResults.ToString()
 
         Stop-RemoteLogs -RemoteDirectory $RemoteDirectory

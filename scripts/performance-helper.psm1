@@ -156,7 +156,7 @@ function Wait-ForRemoteReady {
 }
 
 function Wait-ForRemote {
-    param ($Job)
+    param ($Job, $ErrorAction = "Stop")
     # Ping sidechannel socket on 9999 to tell the app to die
     $Socket = New-Object System.Net.Sockets.UDPClient
     $BytesToSend = @(
@@ -172,7 +172,7 @@ function Wait-ForRemote {
     }
 
     Stop-Job -Job $Job | Out-Null
-    $RetVal = Receive-Job -Job $Job
+    $RetVal = Receive-Job -Job $Job -ErrorAction $ErrorAction
     return $RetVal -join "`n"
 }
 
@@ -376,7 +376,11 @@ function Invoke-RemoteExe {
         }
 
         try {
-            & $Exe ($RunArgs).Split(" ")
+            if ($IsLinux -and $Record) {
+                & $LogScript -PerfRun -Command "$Exe $RunArgs" -Remote
+            } else  {
+                & $Exe ($RunArgs).Aplit(" ")
+            }
         } finally {
             # Uninstall the kernel mode test drivers.
             if ($Kernel) {
@@ -410,6 +414,9 @@ function Stop-RemoteLogs {
 
         if ($Record) {
             & $LogScript -Stop -OutputPath (Join-Path $RemoteDirectory serverlogs server) -RawLogOnly -ProfileInScriptDirectory -InstanceName msquicperf | Out-Null
+            if ($IsLinux) {
+                & $LogScript -PerfGraph -OutputPath (Join-Path $RemoteDirectory serverlogs) -Remote
+            }
         }
     } -ArgumentList $Record, $RemoteDirectory
 }
@@ -474,7 +481,7 @@ function Start-Tracing {
     param($LocalDirectory)
     if ($Record -and !$Local) {
         $LogScript = Join-Path $LocalDirectory log.ps1
-        & $LogScript -Start -Profile $LogProfile -ProfileInScriptDirectory -InstanceName msquicperf #| Out-Null
+        & $LogScript -Start -Profile $LogProfile -ProfileInScriptDirectory -InstanceName msquicperf | Out-Null
     }
 }
 
@@ -486,9 +493,12 @@ function Cancel-LocalTracing {
 
 function Stop-Tracing {
     param($LocalDirectory, $OutputDir, $Test)
-    if ($Record -and !$Local) {
-        $LogScript = Join-Path $LocalDirectory log.ps1
-        & $LogScript -Stop -OutputPath (Join-Path $OutputDir $Test.ToString() client) -RawLogOnly -ProfileInScriptDirectory -InstanceName msquicperf #| Out-Null
+    $LogScript = Join-Path $LocalDirectory log.ps1
+    if ($Record) {
+        if (!$Local) {
+            & $LogScript -Stop -OutputPath (Join-Path $OutputDir $Test.ToString() client) -RawLogOnly -ProfileInScriptDirectory -InstanceName msquicperf | Out-Null
+        }
+        & $LogScript -PerfGraph -OutputPath (Join-Path $OutputDir $Test.ToString())
     }
 }
 
@@ -561,7 +571,13 @@ function Invoke-LocalExe {
     $LocalJob = $null
 
     try {
-        $LocalJob = Start-Job -ScriptBlock { & $Using:Exe ($Using:RunArgs).Split(" ") }
+        $LocalJob = $null
+        if ($IsLinux -and $Record) {
+            $LogScript = Join-Path $RemoteDirectory log.ps1
+            $LocalJob = Start-Job -ScriptBlock { & $Using:LogScript -PerfRun -Command $Using:FullCommand }
+        } else  {
+            $LocalJob = Start-Job -ScriptBlock { & $Using:Exe ($Using:RunArgs).Split(" ") }
+        }
     } finally {
         if ($null -ne $LocalJob) {
             # Wait for the job to finish
@@ -570,8 +586,8 @@ function Invoke-LocalExe {
         }
     }
 
-    $RetVal = Receive-Job -Job $LocalJob
-
+    # -ErrorAction Continue for "perf" to return error when stop
+    $RetVal = Receive-Job -Job $LocalJob -ErrorAction Continue
     $Stopwatch.Stop()
 
     if ($IsWindows) {
