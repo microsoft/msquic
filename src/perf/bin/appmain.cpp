@@ -114,6 +114,8 @@ QuicUserMain(
 
     QUIC_STATUS Status;
 
+    static int counter = 0;
+    fprintf(stderr, "MMMMMMMMMMMMMMMMMMMM : %d\n", counter++);
     Status = QuicMainStart(argc, argv, &StopEvent.Handle, SelfSignedCredConfig);
     if (QUIC_FAILED(Status)) {
         QuicMainFree();
@@ -384,11 +386,14 @@ main(
 
     UniquePtr<char*[]> ArgValues = UniquePtr<char*[]>(new char*[argc]);
 
+    static int counter = 0;
+    fprintf(stderr, "PPPPPPPPPPPPPPPPPPPPP : %d\n", counter++);
     if (ArgValues.get() == nullptr) {
         return QUIC_STATUS_OUT_OF_MEMORY;
     }
     int ArgCount = 0;
 
+    fprintf(stderr, "PPPPPPPPPPPPPPPPPPPPP : %d\n", counter++);
     CxPlatSystemLoad();
     if (QUIC_FAILED(Status = CxPlatInitialize())) {
         printf("Platform failed to initialize\n");
@@ -396,6 +401,7 @@ main(
         return Status;
     }
 
+    fprintf(stderr, "PPPPPPPPPPPPPPPPPPPPP : %d, argc: %d\n", counter++, argc);
     for (int i = 0; i < argc; ++i) {
 
         if (_strnicmp(argv[i] + 1, DriverSearch, DriverLen) == 0) {
@@ -426,6 +432,7 @@ main(
         }
     }
 
+    fprintf(stderr, "PPPPPPPPPPPPPPPPPPPPP : %d\n", counter++);
     SelfSignedCredConfig =
         CxPlatGetSelfSignedCert(
             DriverName != nullptr ?
@@ -438,6 +445,7 @@ main(
         goto Exit;
     }
 
+    fprintf(stderr, "PPPPPPPPPPPPPPPPPPPPP : %d\n", counter++);
     if (TryGetValue(argc, argv, "cipher", &CipherSuite)) {
         SelfSignedCredConfig->Flags |= QUIC_CREDENTIAL_FLAG_SET_ALLOWED_CIPHER_SUITES;
         SelfSignedCredConfig->AllowedCipherSuites = (QUIC_ALLOWED_CIPHER_SUITE_FLAGS)CipherSuite;
@@ -452,6 +460,7 @@ main(
         CXPLAT_FRE_ASSERT(FALSE);
 #endif
     } else {
+        fprintf(stderr, "PPPPPPPPPPPPPPPPPPPPP : %d\n", counter++);
         RetVal = QuicUserMain(ArgCount, ArgValues.get(), KeyboardWait, SelfSignedCredConfig, FileName);
     }
 
