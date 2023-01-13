@@ -507,33 +507,24 @@ if ($IsLinux) {
         Install-Clog2Text
     }
 
+    # Workaround for Azure mirror issues. Use closest country instead.
+    sudo sed -i 's/azure\./us/g' /etc/apt/sources.list
+
     if ($ForBuild) {
         sudo apt-add-repository ppa:lttng/stable-2.12
-        sudo apt-get update
-        sudo apt-get install -y cmake
-        sudo apt-get install -y build-essential
-        sudo apt-get install -y liblttng-ust-dev
-        sudo apt-get install -y libssl-dev
-        sudo apt-get install -y libnuma-dev
+        sudo apt-get update -y
+        sudo apt-get install -y cmake build-essential liblttng-ust-dev libssl-dev libnuma-dev cppcheck clang-tidy ruby ruby-dev rpm
         if ($InstallArm64Toolchain) {
-            sudo apt-get install -y gcc-aarch64-linux-gnu
-            sudo apt-get install -y binutils-aarch64-linux-gnu
-            sudo apt-get install -y g++-aarch64-linux-gnu
+            sudo apt-get install -y gcc-aarch64-linux-gnu binutils-aarch64-linux-gnu g++-aarch64-linux-gnu
         }
-        # only used for the codecheck CI run:
-        sudo apt-get install -y cppcheck clang-tidy
-        # used for packaging
-        sudo apt-get install -y ruby ruby-dev rpm
         sudo gem install public_suffix -v 4.0.7
         sudo gem install fpm
     }
 
     if ($ForTest) {
         sudo apt-add-repository ppa:lttng/stable-2.12
-        sudo apt-get update
-        sudo apt-get install -y lttng-tools
-        sudo apt-get install -y liblttng-ust-dev
-        sudo apt-get install -y gdb
+        sudo apt-get update -y
+        sudo apt-get install -y lttng-tools liblttng-ust-dev gdb
 
         # Enable core dumps for the system.
         Write-Host "Setting core dump size limit"
