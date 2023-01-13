@@ -1170,7 +1170,7 @@ CxPlatDpRawInitialize(
         Worker->Ec.Context = &Xdp->Workers[i];
         Worker->ShutdownSqe.CqeType = CXPLAT_CQE_TYPE_SOCKET_SHUTDOWN;
         CxPlatRefIncrement(&Xdp->RefCount);
-        Worker->EventQ = CxPlatWorkerGetEventQ(i);
+        Worker->EventQ = CxPlatWorkerGetEventQ((uint16_t)i);
 
         uint32_t QueueCount = 0;
         XDP_QUEUE* Queue = Worker->Queues;
