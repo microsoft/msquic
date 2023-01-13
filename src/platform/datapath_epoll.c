@@ -601,16 +601,14 @@ Error:
 void
 CxPlatProcessorContextInitialize(
     _In_ CXPLAT_DATAPATH* Datapath,
-    _In_ uint16_t ProcessorIndex,
-    _In_ uint16_t IdealProcessor,
+    _In_ uint16_t PartitionIndex,
     _Out_ CXPLAT_DATAPATH_PROC* DatapathProc
     )
 {
     CXPLAT_DBG_ASSERT(Datapath != NULL);
     DatapathProc->Datapath = Datapath;
-    DatapathProc->ProcessorIndex = ProcessorIndex;
-    DatapathProc->IdealProcessor = IdealProcessor;
-    DatapathProc->EventQ = CxPlatWorkerGetEventQ(ProcessorIndex);
+    DatapathProc->PartitionIndex = PartitionIndex;
+    DatapathProc->EventQ = CxPlatWorkerGetEventQ(PartitionIndex);
     CxPlatRefInitialize(&DatapathProc->RefCount);
     CxPlatPoolInitialize(TRUE, Datapath->RecvBlockSize, QUIC_POOL_DATA, &DatapathProc->RecvBlockPool);
     CxPlatPoolInitialize(TRUE, Datapath->SendDataSize, QUIC_POOL_DATA, &DatapathProc->SendBlockPool);
@@ -639,15 +637,8 @@ CxPlatDataPathInitialize(
         return QUIC_STATUS_OUT_OF_MEMORY;
     }
 
-    const uint16_t* ProcessorList;
-    uint32_t ProcessorCount;
-    if (Config && Config->ProcessorCount) {
-        ProcessorCount = Config->ProcessorCount;
-        ProcessorList = Config->ProcessorList;
-    } else {
-        ProcessorCount = CxPlatProcMaxCount();
-        ProcessorList = NULL;
-    }
+    const uint32_t ProcessorCount = (Config && Config->ProcessorCount)
+        ? Config->ProcessorCount : CxPlatProcMaxCount();
 
     const size_t DatapathLength =
         sizeof(CXPLAT_DATAPATH) + ProcessorCount * sizeof(CXPLAT_DATAPATH_PROC);
@@ -677,10 +668,7 @@ CxPlatDataPathInitialize(
     //
     for (uint32_t i = 0; i < Datapath->ProcCount; i++) {
         CxPlatProcessorContextInitialize(
-            Datapath,
-            i,
-            ProcessorList ? ProcessorList[i] : (uint16_t)i,
-            &Datapath->Processors[i]);
+            Datapath, i, &Datapath->Processors[i]);
     }
 
     CXPLAT_FRE_ASSERT(CxPlatRundownAcquire(&CxPlatWorkerRundown));
@@ -953,9 +941,8 @@ CxPlatSocketConfigureRss(
 QUIC_STATUS
 CxPlatSocketContextInitialize(
     _Inout_ CXPLAT_SOCKET_CONTEXT* SocketContext,
-    _In_ const QUIC_ADDR* LocalAddress,
-    _In_ const QUIC_ADDR* RemoteAddress,
-    _In_ BOOLEAN ForceShare
+    _In_ const CXPLAT_UDP_CONFIG* Config,
+    _In_ const uint16_t PartitionIndex
     )
 {
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
@@ -968,8 +955,11 @@ CxPlatSocketContextInitialize(
     BOOLEAN FlushTxInitialized = FALSE;
 
     CXPLAT_SOCKET* Binding = SocketContext->Binding;
+    CXPLAT_DATAPATH* Datapath = Binding->Datapath;
 
-    CXPLAT_DBG_ASSERT(SocketContext->Binding->Datapath == SocketContext->DatapathProc->Datapath);
+    CXPLAT_DBG_ASSERT(PartitionIndex < Datapath->ProcCount);
+    SocketContext->DatapathProc = &Datapath->Processors[PartitionIndex];
+    CxPlatRefIncrement(&SocketContext->DatapathProc->RefCount);
 
     if (!CxPlatSqeInitialize(
             SocketContext->DatapathProc->EventQ,
@@ -1240,7 +1230,7 @@ CxPlatSocketContextInitialize(
     // Only set SO_REUSEPORT on a server socket, otherwise the client could be
     // assigned a server port (unless it's forcing sharing).
     //
-    if (ForceShare || RemoteAddress == NULL) {
+    if (Config->Flags & CXPLAT_SOCKET_FLAG_SHARE || Config->RemoteAddress == NULL) {
         //
         // The port is shared across processors.
         //
@@ -1285,9 +1275,9 @@ CxPlatSocketContextInitialize(
         goto Exit;
     }
 
-    if (RemoteAddress != NULL) {
+    if (Config->RemoteAddress != NULL) {
         CxPlatZeroMemory(&MappedAddress, sizeof(MappedAddress));
-        CxPlatConvertToMappedV6(RemoteAddress, &MappedAddress);
+        CxPlatConvertToMappedV6(Config->RemoteAddress, &MappedAddress);
 
         if (MappedAddress.Ipv6.sin6_family == QUIC_ADDRESS_FAMILY_INET6) {
             MappedAddress.Ipv6.sin6_family = AF_INET6;
@@ -1298,7 +1288,6 @@ CxPlatSocketContextInitialize(
                 SocketContext->SocketFd,
                 &MappedAddress.Ip,
                 sizeof(MappedAddress));
-
         if (Result == SOCKET_ERROR) {
             Status = errno;
             QuicTraceEvent(
@@ -1335,17 +1324,15 @@ CxPlatSocketContextInitialize(
     }
 
 #if DEBUG
-    if (LocalAddress && LocalAddress->Ipv4.sin_port != 0) {
-        CXPLAT_DBG_ASSERT(LocalAddress->Ipv4.sin_port == Binding->LocalAddress.Ipv4.sin_port);
-    } else if (RemoteAddress && LocalAddress && LocalAddress->Ipv4.sin_port == 0) {
+    if (Config->LocalAddress && Config->LocalAddress->Ipv4.sin_port != 0) {
+        CXPLAT_DBG_ASSERT(Config->LocalAddress->Ipv4.sin_port == Binding->LocalAddress.Ipv4.sin_port);
+    } else if (Config->RemoteAddress && Config->LocalAddress && Config->LocalAddress->Ipv4.sin_port == 0) {
         //
         // A client socket being assigned the same port as a remote socket causes issues later
         // in the datapath and binding paths. Check to make sure this case was not given to us.
         //
-        CXPLAT_DBG_ASSERT(Binding->LocalAddress.Ipv4.sin_port != RemoteAddress->Ipv4.sin_port);
+        CXPLAT_DBG_ASSERT(Binding->LocalAddress.Ipv4.sin_port != Config->RemoteAddress->Ipv4.sin_port);
     }
-#else
-    UNREFERENCED_PARAMETER(LocalAddress);
 #endif
 
     if (Binding->LocalAddress.Ipv6.sin6_family == AF_INET6) {
@@ -1494,15 +1481,12 @@ CxPlatSocketCreateUdp(
 {
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
     BOOLEAN IsServerSocket = Config->RemoteAddress == NULL;
+    uint16_t SocketCount = IsServerSocket ? (uint16_t)CxPlatProcMaxCount() : 1;
 
     CXPLAT_DBG_ASSERT(Datapath->UdpHandlers.Receive != NULL || Config->Flags & CXPLAT_SOCKET_FLAG_PCP);
 
-    const uint32_t SocketCount = IsServerSocket ? Datapath->ProcCount : 1;
-    CXPLAT_FRE_ASSERT(SocketCount > 0);
-    const uint32_t CurrentProc = CxPlatProcCurrentNumber() % Datapath->ProcCount;
     const size_t BindingLength =
         sizeof(CXPLAT_SOCKET) + SocketCount * sizeof(CXPLAT_SOCKET_CONTEXT);
-
     CXPLAT_SOCKET* Binding =
         (CXPLAT_SOCKET*)CXPLAT_ALLOC_PAGED(BindingLength, QUIC_POOL_SOCKET);
     if (Binding == NULL) {
@@ -1533,33 +1517,26 @@ CxPlatSocketCreateUdp(
     } else {
         Binding->LocalAddress.Ip.sa_family = QUIC_ADDRESS_FAMILY_INET6;
     }
+    if (Config->Flags & CXPLAT_SOCKET_FLAG_PCP) {
+        Binding->PcpBinding = TRUE;
+    }
+
     for (uint32_t i = 0; i < SocketCount; i++) {
         Binding->SocketContexts[i].Binding = Binding;
         Binding->SocketContexts[i].SocketFd = INVALID_SOCKET;
         Binding->SocketContexts[i].ShutdownSqe.CqeType = CXPLAT_CQE_TYPE_SOCKET_SHUTDOWN;
         Binding->SocketContexts[i].IoSqe.CqeType = CXPLAT_CQE_TYPE_SOCKET_IO;
         Binding->SocketContexts[i].FlushTxSqe.CqeType = CXPLAT_CQE_TYPE_SOCKET_FLUSH_TX;
-        Binding->SocketContexts[i].DatapathProc =
-            IsServerSocket ?
-                &Datapath->Processors[i] :
-                Config->PartitionIndex;
-        CxPlatRefIncrement(&Binding->SocketContexts[i].DatapathProc->RefCount);
         CxPlatListInitializeHead(&Binding->SocketContexts[i].TxQueue);
         CxPlatLockInitialize(&Binding->SocketContexts[i].TxQueueLock);
         CxPlatRundownInitialize(&Binding->SocketContexts[i].UpcallRundown);
     }
 
-    if (Config->Flags & CXPLAT_SOCKET_FLAG_PCP) {
-        Binding->PcpBinding = TRUE;
-    }
-
     for (uint32_t i = 0; i < SocketCount; i++) {
-        Status =
-            CxPlatSocketContextInitialize(
-                &Binding->SocketContexts[i],
-                Config->LocalAddress,
-                Config->RemoteAddress,
-                Config->Flags & CXPLAT_SOCKET_FLAG_SHARE);
+        Status = CxPlatSocketContextInitialize(
+            &Binding->SocketContexts[i],
+            Config,
+            Config->RemoteAddress ? Config->PartitionIndex : i);
         if (QUIC_FAILED(Status)) {
             goto Exit;
         }

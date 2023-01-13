@@ -1817,11 +1817,10 @@ CxPlatSocketCreateUdp(
     )
 {
     QUIC_STATUS Status;
-    int Result;
-    int Option;
     BOOLEAN IsServerSocket = Config->RemoteAddress == NULL;
     uint16_t SocketCount = IsServerSocket ? (uint16_t)CxPlatProcMaxCount() : 1;
     INET_PORT_RESERVATION_INSTANCE PortReservation;
+    int Result, Option;
 
     CXPLAT_DBG_ASSERT(Datapath->UdpHandlers.Receive != NULL || Config->Flags & CXPLAT_SOCKET_FLAG_PCP);
 
@@ -1870,9 +1869,7 @@ CxPlatSocketCreateUdp(
     for (uint16_t i = 0; i < SocketCount; i++) {
         CxPlatRefInitialize(&Socket->Processors[i].RefCount);
         Socket->Processors[i].Parent = Socket;
-        Socket->Processors[i].DatapathProc = NULL;
         Socket->Processors[i].Socket = INVALID_SOCKET;
-        Socket->Processors[i].IoStarted = FALSE;
         Socket->Processors[i].ShutdownSqe.CqeType = CXPLAT_CQE_TYPE_SOCKET_SHUTDOWN;
         CxPlatDatapathSqeInitialize(
             &Socket->Processors[i].IoSqe.DatapathSqe, CXPLAT_CQE_TYPE_SOCKET_IO);
