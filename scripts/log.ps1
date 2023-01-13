@@ -154,14 +154,15 @@ function Perf-Run {
     if (!$IsLinux) {
         # error
     } else {
-        New-Item -Path $TempPerfDir -ItemType Directory -Force
+        New-Item -Path $TempPerfDir -ItemType Directory -Force 2>&1
         $CommandSplit = $Command.Split(" ")
         $OutFile = "server.perf.data"
+        Write-Host "Perf-Run $CommandSplit $OutFile"
         if (!$Remote) {
             $count = @(Get-ChildItem $TempPerfDir "client_*.perf.data").count
             $OutFile = "client_$count.perf.data"
         }
-        perf record -F 10 -a -g -o $(Join-Path $TempPerfDir $OutFile) $CommandSplit[0] $CommandSplit[1..$($CommandSplit.count-1)]
+        perf record -F 10 -a -g -o $(Join-Path $TempPerfDir $OutFile) $CommandSplit[0] $CommandSplit[1..$($CommandSplit.count-1)] 2>&1
     }
 }
 
@@ -194,24 +195,26 @@ function Log-Start {
     } elseif ($IsMacOS) {
     } else {
         if (Test-Path $TempLTTngDir) {
-            Write-Error "LTTng session ($InstanceName) already running! ($TempLTTngDir)"
+            Write-Error "LTTng session ($InstanceName) already running! ($TempLTTngDir)" 2>&1
         }
 
         try {
+            Write-Host "Stream: $Stream"
             if ($Stream) {
-                lttng -q create msquiclive --live
+                lttng -q create msquiclive --live  2>&1
             } else {
-                New-Item -Path $TempLTTngDir -ItemType Directory -Force #| Out-Null
+                New-Item -Path $TempLTTngDir -ItemType Directory -Force 2>&1 #| Out-Null
                 $Command = "lttng create $InstanceName -o=$TempLTTngDir"
                 Invoke-Expression $Command #| Write-Debug
             }
-            lttng enable-event --userspace CLOG_* #| Write-Debug
-            lttng add-context --userspace --type=vpid --type=vtid #| Write-Debug
-            lttng start #| Write-Debug
+
+            lttng enable-event --userspace CLOG_* 2>&1 #| Write-Debug
+            lttng add-context --userspace --type=vpid --type=vtid 2>&1 #| Write-Debug
+            lttng start 2>&1 #| Write-Debug
 
             if ($Stream) {
-                lttng list #| Write-Debug
-                babeltrace -i lttng-live net://localhost #| Write-Debug
+                lttng list 2>&1 #| Write-Debug
+                babeltrace -i lttng-live net://localhost 2>&1 #| Write-Debug
                 $myHostName = hostname
                 Write-Host "Now decoding LTTng events in realtime on host=$myHostName...`n"
                 $args = "babeltrace --names all -i lttng-live net://localhost/host/$myHostName/msquiclive | $Clog2Text_lttng  -s $SideCar --showTimestamp --showCpuInfo"

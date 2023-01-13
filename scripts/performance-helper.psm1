@@ -384,7 +384,7 @@ function Invoke-RemoteExe {
         try {
             Write-Host "SSSS try-catch"
             if ($IsLinux -and $Record) {
-                Write-Host "SSSS log.ps PerfRun"
+                Write-Host "SSSS log.ps PerfRun $Exe $RunArgs"
                 & $LogScript -PerfRun -Command "$Exe $RunArgs" -Remote
                 Write-Host "SSSS log.ps PerfRun Done"
             } else  {
