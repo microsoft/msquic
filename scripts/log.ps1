@@ -138,9 +138,8 @@ if ($IsLinux) {
         sudo apt-get install -y liblttng-ust-dev
     }
     Write-Host "Checking perf command......"
-    # try catch does not work
-    perf version | Out-Null
-    if ($? -eq $false) {
+    try { perf version | Out-Null }
+    catch {
         Write-Host "Installing perf"
         sudo apt-get install -y linux-tools-$(uname -r)
         wget https://raw.githubusercontent.com/brendangregg/FlameGraph/master/stackcollapse-perf.pl -O /usr/bin/stackcollapse-perf.pl
