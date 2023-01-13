@@ -351,6 +351,7 @@ function Invoke-RemoteExe {
     }
 
     Write-LogAndDebug "Running Remote: $Exe $RunArgs"
+    Write-Host "Running Remote: $IsLinux, $Record, $Exe, $RunArgs"
 
     return Invoke-TestCommand -Session $Session -ScriptBlock {
         param ($Exe, $RunArgs, $BasePath, $Record, $LogProfile, $Kernel, $RemoteDirectory)
@@ -361,7 +362,7 @@ function Invoke-RemoteExe {
         $LogScript = Join-Path $RemoteDirectory log.ps1
 
         if ($Record) {
-            & $LogScript -Start -Profile $LogProfile -ProfileInScriptDirectory -InstanceName msquicperf | Out-Null
+            & $LogScript -Start -Profile $LogProfile -ProfileInScriptDirectory -InstanceName msquicperf #| Out-Null
         }
 
         $Arch = Split-Path (Split-Path $Exe -Parent) -Leaf

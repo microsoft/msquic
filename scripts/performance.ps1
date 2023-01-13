@@ -461,6 +461,7 @@ function Invoke-Test {
     # Starting the server
     Write-Host "Invoke-RemoteExe"
     $RemoteJob = Invoke-RemoteExe -Exe $RemoteExe -RunArgs $RemoteArguments -RemoteDirectory $RemoteDirectory
+    Write-Host "Wait-ForRemoteReady"
     $ReadyToStart = Wait-ForRemoteReady -Job $RemoteJob -Matcher $Test.RemoteReadyMatcher
     Write-Host "Invoke-RemoteExe Done"
 
