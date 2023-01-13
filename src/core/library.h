@@ -382,18 +382,6 @@ QuicPartitionIdGetIndex(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 inline
 uint16_t
-QuicPartitionIndexIncrement(
-    uint16_t PartitionIndex,
-    uint16_t Increment
-    )
-{
-    CXPLAT_DBG_ASSERT(Increment < MsQuicLib.PartitionCount);
-    return (PartitionIndex + Increment) % MsQuicLib.PartitionCount;
-}
-
-_IRQL_requires_max_(DISPATCH_LEVEL)
-inline
-uint16_t
 QuicPartitionIndexDecrement(
     uint16_t PartitionIndex,
     uint16_t Decrement

@@ -173,13 +173,6 @@ QuicPartitionIdGetIndex(
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 uint16_t
-QuicPartitionIndexIncrement(
-    uint16_t PartitionIndex,
-    uint16_t Increment
-    );
-
-_IRQL_requires_max_(DISPATCH_LEVEL)
-uint16_t
 QuicPartitionIndexDecrement(
     uint16_t PartitionIndex,
     uint16_t Decrement
