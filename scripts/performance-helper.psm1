@@ -498,7 +498,9 @@ function Stop-Tracing {
         if (!$Local) {
             & $LogScript -Stop -OutputPath (Join-Path $OutputDir $Test.ToString() client) -RawLogOnly -ProfileInScriptDirectory -InstanceName msquicperf | Out-Null
         }
-        & $LogScript -PerfGraph -OutputPath (Join-Path $OutputDir $Test.ToString())
+        if ($IsLinux) {
+            & $LogScript -PerfGraph -OutputPath (Join-Path $OutputDir $Test.ToString())
+        }
     }
 }
 
