@@ -507,15 +507,12 @@ if ($IsLinux) {
         Install-Clog2Text
     }
 
-    # Workaround for Azure mirror issues. Use closest country instead.
-    sudo sed -i 's/azure\./us/g' /etc/apt/sources.list
-
     if ($ForBuild) {
         sudo apt-add-repository ppa:lttng/stable-2.12
-        sudo apt-get update -y
-        sudo apt-get install -y cmake build-essential liblttng-ust-dev libssl-dev libnuma-dev cppcheck clang-tidy ruby ruby-dev rpm
+        sudo apt-get --option="APT::Acquire::Retries=3" update -y
+        sudo apt-get --option="APT::Acquire::Retries=3" install -y cmake build-essential liblttng-ust-dev libssl-dev libnuma-dev cppcheck clang-tidy ruby ruby-dev rpm
         if ($InstallArm64Toolchain) {
-            sudo apt-get install -y gcc-aarch64-linux-gnu binutils-aarch64-linux-gnu g++-aarch64-linux-gnu
+            sudo apt-get --option="APT::Acquire::Retries=3" install -y gcc-aarch64-linux-gnu binutils-aarch64-linux-gnu g++-aarch64-linux-gnu
         }
         sudo gem install public_suffix -v 4.0.7
         sudo gem install fpm
@@ -523,8 +520,8 @@ if ($IsLinux) {
 
     if ($ForTest) {
         sudo apt-add-repository ppa:lttng/stable-2.12
-        sudo apt-get update -y
-        sudo apt-get install -y lttng-tools liblttng-ust-dev gdb
+        sudo apt-get update --option="APT::Acquire::Retries=3" -y
+        sudo apt-get install --option="APT::Acquire::Retries=3" -y lttng-tools liblttng-ust-dev gdb
 
         # Enable core dumps for the system.
         Write-Host "Setting core dump size limit"
