@@ -35,6 +35,7 @@ RUN apt-get update && apt-get install -y apt-transport-https \
     libnuma-dev \
     cppcheck \
     clang-tidy \
+    clang \
     gdb \
   && rm -rf /var/lib/apt/lists/*
 
