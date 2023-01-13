@@ -137,6 +137,7 @@ if ($IsLinux) {
         sudo apt-get install -y lttng-tools
         sudo apt-get install -y liblttng-ust-dev
     }
+    Write-Host "Checking perf command......"
     # try catch does not work
     perf version | Out-Null
     if ($? -eq $false) {
@@ -147,6 +148,7 @@ if ($IsLinux) {
         chmod +x /usr/bin/stackcollapse-perf.pl
         chmod +x /usr/bin/flamegraph.pl
     }
+    Write-Host "Checking perf command...... Done"
 }
 
 function Perf-Run {
@@ -170,23 +172,18 @@ function Perf-Graph {
     } else {
         New-Item -ItemType Directory $OutputPath -Force | Out-Null
         if ($Remote) {
-            Write-Host "@@@@@@ Remote Graph"
             $InputPath = $(Join-Path $TempPerfDir "server.perf.data")
             perf script -i $InputPath | stackcollapse-perf.pl | flamegraph.pl > $(Join-Path $OutputPath "server.svg")
-            Remove-Item -Path $InputPath -Recurse -Force | Out-Null
+            Remove-Item -Path $InputPath -Recurse -Force # | Out-Null
         } else {
-            Write-Host "@@@@@@ Local Graph"
             $InputPath = $(Join-Path $TempPerfDir "client_*.perf.data")
             foreach ($FileName in (Get-Item $(Join-Path $TempPerfDir "client_*.perf.data")).name) {
                 perf script -i $(Join-Path $TempPerfDir $FileName) | stackcollapse-perf.pl | flamegraph.pl > $(Join-Path $OutputPath ($FileName.Split(".")[0] + ".svg"))
             }
-            Write-Host "@@@@@@ Local Graph done"
-            Remove-Item -Path $InputPath -Recurse -Force | Out-Null
-            Write-Host "@@@@@@ Local file removed"
+            Remove-Item -Path $InputPath -Recurse -Force #| Out-Null
         }
-        if ($(Get-ChildItem $TempPerfDir).count -eq 0) {
-            Write-Host "@@@@@@ All file removed"
-            Remove-Item -Path $TempPerfDir -Recurse -Force | Out-Null
+        if (@(Get-ChildItem $TempPerfDir).count -eq 0) {
+            Remove-Item -Path $TempPerfDir -Recurse -Force #| Out-Null
         }
     }
 }
