@@ -144,6 +144,8 @@ if ($IsLinux) {
         sudo apt-get install -y linux-tools-$(uname -r)
         wget https://raw.githubusercontent.com/brendangregg/FlameGraph/master/stackcollapse-perf.pl -O /usr/bin/stackcollapse-perf.pl
         wget https://raw.githubusercontent.com/brendangregg/FlameGraph/master/flamegraph.pl -O /usr/bin/flamegraph.pl
+        chmod +x /usr/bin/stackcollapse-perf.pl
+        chmod +x /usr/bin/flamegraph.pl
     }
 }
 
@@ -168,17 +170,22 @@ function Perf-Graph {
     } else {
         New-Item -ItemType Directory $OutputPath -Force | Out-Null
         if ($Remote) {
+            Write-Host "@@@@@@ Remote Graph"
             $InputPath = $(Join-Path $TempPerfDir "server.perf.data")
             perf script -i $InputPath | stackcollapse-perf.pl | flamegraph.pl > $(Join-Path $OutputPath "server.svg")
             Remove-Item -Path $InputPath -Recurse -Force | Out-Null
         } else {
+            Write-Host "@@@@@@ Local Graph"
             $InputPath = $(Join-Path $TempPerfDir "client_*.perf.data")
             foreach ($FileName in (Get-Item $(Join-Path $TempPerfDir "client_*.perf.data")).name) {
                 perf script -i $(Join-Path $TempPerfDir $FileName) | stackcollapse-perf.pl | flamegraph.pl > $(Join-Path $OutputPath ($FileName.Split(".")[0] + ".svg"))
             }
+            Write-Host "@@@@@@ Local Graph done"
             Remove-Item -Path $InputPath -Recurse -Force | Out-Null
+            Write-Host "@@@@@@ Local file removed"
         }
         if ($(Get-ChildItem $TempPerfDir).count -eq 0) {
+            Write-Host "@@@@@@ All file removed"
             Remove-Item -Path $TempPerfDir -Recurse -Force | Out-Null
         }
     }

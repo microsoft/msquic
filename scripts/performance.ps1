@@ -459,8 +459,10 @@ function Invoke-Test {
     Write-LogAndDebug "Running Remote: $RemoteExe Args: $RemoteArguments"
 
     # Starting the server
+    Write-Host "Invoke-RemoteExe"
     $RemoteJob = Invoke-RemoteExe -Exe $RemoteExe -RunArgs $RemoteArguments -RemoteDirectory $RemoteDirectory
     $ReadyToStart = Wait-ForRemoteReady -Job $RemoteJob -Matcher $Test.RemoteReadyMatcher
+    Write-Host "Invoke-RemoteExe Done"
 
     if (!$ReadyToStart) {
         Stop-Job -Job $RemoteJob
@@ -472,7 +474,9 @@ function Invoke-Test {
 
     $AllRunsResults = @()
 
+    Write-Host "Start-Tracing"
     Start-Tracing -LocalDirectory $LocalDirectory
+    Write-Host "Start-Tracing Done"
 
     $NumIterations = $Test.Iterations
     if ($ForceIterations -gt 0) {
@@ -481,9 +485,9 @@ function Invoke-Test {
 
     try {
         1..$NumIterations | ForEach-Object {
-            Write-LogAndDebug "Running Local: $LocalExe Args: $LocalArguments"
+            Write-Host "Running Local: $LocalExe Args: $LocalArguments"
             $LocalResults = Invoke-LocalExe -Exe $LocalExe -RunArgs $LocalArguments -Timeout $Timeout -OutputDir $OutputDir -HistogramFileName "$($Test)_run$($_).txt"
-            Write-LogAndDebug $LocalResults
+            Write-Host $LocalResults
             $AllLocalParsedResults = Get-TestResult -Results $LocalResults -Matcher $Test.ResultsMatcher -FailureDefault $Test.FailureDefault
             $AllRunsResults += $AllLocalParsedResults
             if ($PGO) {
@@ -510,6 +514,7 @@ function Invoke-Test {
         $RemoteResults = Wait-ForRemote -Job $RemoteJob -ErrorAction Continue
         Write-LogAndDebug $RemoteResults.ToString()
 
+        Write-Host "Invoke-Test -> Stop-RemoteLogs"
         Stop-RemoteLogs -RemoteDirectory $RemoteDirectory
 
         if ($Kernel) {
@@ -519,7 +524,9 @@ function Invoke-Test {
             sc.exe delete msquicpriv | Out-Null
         }
 
+        Write-Host "Invoke-Test -> Stop-Tracing"
         Stop-Tracing -LocalDirectory $LocalDirectory -OutputDir $OutputDir -Test $Test
+        Write-Host "Invoke-Test -> Stop-Tracing Done"
 
         if ($Record) {
             if ($Local) {
