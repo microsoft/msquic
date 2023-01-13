@@ -383,15 +383,16 @@ function Invoke-RemoteExe {
 
         try {
             Write-Host "SSSS try-catch"
-            if ($IsLinux -and $Record) {
-                Write-Host "SSSS log.ps PerfRun $Exe $RunArgs"
-                & $LogScript -PerfRun -Command "$Exe $RunArgs" -Remote
-                Write-Host "SSSS log.ps PerfRun Done"
-            } else  {
-                Write-Host "SSSS log.ps PerfRun normal"
-                & $Exe ($RunArgs).Split(" ")
-                Write-Host "SSSS log.ps PerfRun normal done"
-            }
+            # if ($IsLinux -and $Record) {
+            #     Write-Host "SSSS log.ps PerfRun $Exe $RunArgs"
+            #     & $LogScript -PerfRun -Command "$Exe $RunArgs" -Remote
+            #     Write-Host "SSSS log.ps PerfRun Done"
+            # } else  {
+            #     Write-Host "SSSS log.ps PerfRun normal"
+            #     & $Exe ($RunArgs).Split(" ")
+            #     Write-Host "SSSS log.ps PerfRun normal done"
+            # }
+            & $Exe ($RunArgs).Split(" ")
             Write-Host "SSSS try-catch done"
         } finally {
             # Uninstall the kernel mode test drivers.
