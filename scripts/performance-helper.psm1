@@ -143,7 +143,7 @@ function Wait-ForRemoteReady {
     param ($Job, $Matcher)
     $StopWatch =  [system.diagnostics.stopwatch]::StartNew()
     while ($StopWatch.ElapsedMilliseconds -lt 20000) {
-        $CurrentResults = Receive-Job -Job $Job -Keep
+        $CurrentResults = Receive-Job -Job $Job -Keep -ErrorAction Continue
         Write-Host $CurrentResults
         if (![string]::IsNullOrWhiteSpace($CurrentResults)) {
             $DidMatch = $CurrentResults -match $Matcher
