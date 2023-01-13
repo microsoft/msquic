@@ -363,7 +363,7 @@ static struct {
 QUIC_STATUS QUIC_API SpinQuicHandleStreamEvent(HQUIC Stream, void* , QUIC_STREAM_EVENT *Event)
 {
     auto ctx = SpinQuicStream::Get(Stream);
-    auto ThreadID = Stream->Connection.ThreadID;
+    auto ThreadID = ctx->Connection.ThreadID;
 
     switch (Event->Type) {
     case QUIC_STREAM_EVENT_PEER_SEND_SHUTDOWN:
