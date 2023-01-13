@@ -144,13 +144,15 @@ function Wait-ForRemoteReady {
     $StopWatch =  [system.diagnostics.stopwatch]::StartNew()
     while ($StopWatch.ElapsedMilliseconds -lt 20000) {
         $CurrentResults = Receive-Job -Job $Job -Keep
+        Write-Host $CurrentResults
         if (![string]::IsNullOrWhiteSpace($CurrentResults)) {
             $DidMatch = $CurrentResults -match $Matcher
             if ($DidMatch) {
+                Write-Host "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! Match"
                 return $true
             }
         }
-        Start-Sleep -Seconds 0.1 | Out-Null
+        Start-Sleep -Seconds 0.1 #| Out-Null
     }
     return $false
 }
@@ -355,6 +357,7 @@ function Invoke-RemoteExe {
 
     return Invoke-TestCommand -Session $Session -ScriptBlock {
         param ($Exe, $RunArgs, $BasePath, $Record, $LogProfile, $Kernel, $RemoteDirectory)
+        Write-Host "SSSS In RemoteExe"
         if ($null -ne $BasePath) {
             $env:LD_LIBRARY_PATH = $BasePath
         }
@@ -362,7 +365,9 @@ function Invoke-RemoteExe {
         $LogScript = Join-Path $RemoteDirectory log.ps1
 
         if ($Record) {
+            Write-Host "SSSS log.ps -Start"
             & $LogScript -Start -Profile $LogProfile -ProfileInScriptDirectory -InstanceName msquicperf #| Out-Null
+            Write-Host "SSSS log.ps -Start Done"
         }
 
         $Arch = Split-Path (Split-Path $Exe -Parent) -Leaf
@@ -377,11 +382,17 @@ function Invoke-RemoteExe {
         }
 
         try {
+            Write-Host "SSSS try-catch"
             if ($IsLinux -and $Record) {
+                Write-Host "SSSS log.ps PerfRun"
                 & $LogScript -PerfRun -Command "$Exe $RunArgs" -Remote
+                Write-Host "SSSS log.ps PerfRun Done"
             } else  {
+                Write-Host "SSSS log.ps PerfRun normal"
                 & $Exe ($RunArgs).Split(" ")
+                Write-Host "SSSS log.ps PerfRun normal done"
             }
+            Write-Host "SSSS try-catch done"
         } finally {
             # Uninstall the kernel mode test drivers.
             if ($Kernel) {
@@ -391,7 +402,7 @@ function Invoke-RemoteExe {
                 sc.exe delete msquicpriv | Out-Null
             }
         }
-
+        Write-Host "SSSS finish RemoteExe"
     } -AsJob -ArgumentList $Exe, $RunArgs, $BasePath, $Record, $LogProfile, $Kernel, $RemoteDirectory
 }
 

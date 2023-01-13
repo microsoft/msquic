@@ -137,7 +137,7 @@ if ($IsLinux) {
         sudo apt-get install -y lttng-tools
         sudo apt-get install -y liblttng-ust-dev
     }
-    Write-Host "Checking perf command......"
+    #Write-Host "Checking perf command......"
     try { perf version | Out-Null }
     catch {
         Write-Host "Installing perf"
@@ -147,7 +147,7 @@ if ($IsLinux) {
         chmod +x /usr/bin/stackcollapse-perf.pl
         chmod +x /usr/bin/flamegraph.pl
     }
-    Write-Host "Checking perf command...... Done"
+    #Write-Host "Checking perf command...... Done"
 }
 
 function Perf-Run {
@@ -201,17 +201,17 @@ function Log-Start {
             if ($Stream) {
                 lttng -q create msquiclive --live
             } else {
-                New-Item -Path $TempLTTngDir -ItemType Directory -Force | Out-Null
+                New-Item -Path $TempLTTngDir -ItemType Directory -Force #| Out-Null
                 $Command = "lttng create $InstanceName -o=$TempLTTngDir"
-                Invoke-Expression $Command | Write-Debug
+                Invoke-Expression $Command #| Write-Debug
             }
-            lttng enable-event --userspace CLOG_* | Write-Debug
-            lttng add-context --userspace --type=vpid --type=vtid | Write-Debug
-            lttng start | Write-Debug
+            lttng enable-event --userspace CLOG_* #| Write-Debug
+            lttng add-context --userspace --type=vpid --type=vtid #| Write-Debug
+            lttng start #| Write-Debug
 
             if ($Stream) {
-                lttng list | Write-Debug
-                babeltrace -i lttng-live net://localhost | Write-Debug
+                lttng list #| Write-Debug
+                babeltrace -i lttng-live net://localhost #| Write-Debug
                 $myHostName = hostname
                 Write-Host "Now decoding LTTng events in realtime on host=$myHostName...`n"
                 $args = "babeltrace --names all -i lttng-live net://localhost/host/$myHostName/msquiclive | $Clog2Text_lttng  -s $SideCar --showTimestamp --showCpuInfo"
@@ -220,7 +220,7 @@ function Log-Start {
             }
         } finally {
             if ($Stream) {
-                Invoke-Expression "lttng destroy msquiclive" | Write-Debug
+                Invoke-Expression "lttng destroy msquiclive" #| Write-Debug
             }
         }
     }
