@@ -129,8 +129,8 @@ if ($IsWindows) {
     $SpinQuic = Join-Path $RootArtifactDir "spinquic.exe"
 } elseif ($IsLinux) {
     $SpinQuic = Join-Path $RootArtifactDir "spinquic"
-    $QuicInteropRootDir = Split-Path $QuicInterop -Parent
-    $env:LD_LIBRARY_PATH = "${QuicInteropRootDir}:$env:LD_LIBRARY_PATH"
+    $SpinQuicRootDir = Split-Path $SpinQuic -Parent
+    $env:LD_LIBRARY_PATH = "${SpinQuicRootDir}:$env:LD_LIBRARY_PATH"
 } elseif ($IsMacOS) {
     $SpinQuic = Join-Path $RootArtifactDir "spinquic"
 } else {
