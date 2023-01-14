@@ -139,6 +139,8 @@ if (!(Test-Path $QuicInterop)) {
     Write-Error "Build does not exist!`n `nRun the following to generate it:`n `n    $(Join-Path $RootDir "scripts" "build.ps1") -Config $Config -Arch $Arch -Tls $Tls`n"
 }
 
+Get-ChildItem -Recurse
+
 # Build up all the arguments to pass to the Powershell script.
 $Arguments = "-Path $($QuicInterop) -ShowOutput"
 if ($KeepOutputOnSuccess) {
