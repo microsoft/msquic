@@ -128,6 +128,8 @@ if ($IsWindows) {
     $QuicInterop = Join-Path $RootDir "\artifacts\bin\windows\$($Arch)_$($Config)_$($Tls)\quicinterop.exe"
 } elseif ($IsLinux) {
     $QuicInterop = Join-Path $RootDir "/artifacts/bin/linux/$($Arch)_$($Config)_$($Tls)/quicinterop"
+    $QuicInteropRootDir = Split-Path $QuicInterop -Parent
+    $env:LD_LIBRARY_PATH = "${QuicInteropRootDir}:$env:LD_LIBRARY_PATH"
 } elseif ($IsMacOS) {
     $QuicInterop = Join-Path $RootDir "/artifacts/bin/macos/$($Arch)_$($Config)_$($Tls)/quicinterop"
 } else {
@@ -138,9 +140,6 @@ if ($IsWindows) {
 if (!(Test-Path $QuicInterop)) {
     Write-Error "Build does not exist!`n `nRun the following to generate it:`n `n    $(Join-Path $RootDir "scripts" "build.ps1") -Config $Config -Arch $Arch -Tls $Tls`n"
 }
-
-$QuicInteropRootDir = Split-Path $QuicInterop -Parent
-$env:LD_LIBRARY_PATH = "${QuicInteropRootDir}:$env:LD_LIBRARY_PATH"
 
 # Build up all the arguments to pass to the Powershell script.
 $Arguments = "-Path $($QuicInterop) -ShowOutput"

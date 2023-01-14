@@ -127,7 +127,11 @@ if ($CodeCoverage) {
 $SpinQuic = $null
 if ($IsWindows) {
     $SpinQuic = Join-Path $RootArtifactDir "spinquic.exe"
-} elseif ($IsLinux -or $IsMacOS) {
+} elseif ($IsLinux) {
+    $SpinQuic = Join-Path $RootArtifactDir "spinquic"
+    $QuicInteropRootDir = Split-Path $QuicInterop -Parent
+    $env:LD_LIBRARY_PATH = "${QuicInteropRootDir}:$env:LD_LIBRARY_PATH"
+} elseif ($IsMacOS) {
     $SpinQuic = Join-Path $RootArtifactDir "spinquic"
 } else {
     Write-Error "Unsupported platform type!"
