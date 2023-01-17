@@ -107,6 +107,7 @@ param (
 
 Set-StrictMode -Version 'Latest'
 $PSDefaultParameterValues['*:ErrorAction'] = 'Stop'
+$DebugPreference = 'Continue'
 
 # Root directory of the project.
 $RootDir = Split-Path $PSScriptRoot -Parent
