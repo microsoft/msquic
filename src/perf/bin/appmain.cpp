@@ -389,6 +389,7 @@ main(
     static int counter = 0;
     fprintf(stderr, "PPPPPPPPPPPPPPPPPPPPP : %d\n", counter++);
     if (ArgValues.get() == nullptr) {
+        fprintf(stderr, "PPPPPPPPPPPPPPPPPPPPP : OUT_OF_MEMORY\n");
         return QUIC_STATUS_OUT_OF_MEMORY;
     }
     int ArgCount = 0;
