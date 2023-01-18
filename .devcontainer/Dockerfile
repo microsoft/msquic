@@ -1,4 +1,4 @@
-FROM ghcr.io/microsoft/msquic/linux-build-xcomp
+FROM ghcr.io/microsoft/msquic/linux-build-xcomp@sha256:6cf1ae79dd1951d117d932402ffd35bcbe416f98471e456694bb48ab625945d6
 
 ARG username=test
 ARG useruid=1000
