@@ -172,13 +172,13 @@ function Perf-Graph {
     if (!$IsLinux) {
         # error
     } else {
-        wget https://raw.githubusercontent.com/brendangregg/FlameGraph/master/stackcollapse-perf.pl -O /usr/bin/stackcollapse-perf.pl
-        chmod +x /usr/bin/stackcollapse-perf.pl
+        sudo wget https://raw.githubusercontent.com/brendangregg/FlameGraph/master/stackcollapse-perf.pl -O /usr/bin/stackcollapse-perf.pl
+        sudo chmod +x /usr/bin/stackcollapse-perf.pl
         ls /usr/bin/stackcollapse-perf.pl
-        wget https://raw.githubusercontent.com/brendangregg/FlameGraph/master/flamegraph.pl -O /usr/bin/flamegraph.pl
-        chmod +x /usr/bin/flamegraph.pl
+        sudo wget https://raw.githubusercontent.com/brendangregg/FlameGraph/master/flamegraph.pl -O /usr/bin/flamegraph.pl
+        sudo chmod +x /usr/bin/flamegraph.pl
         ls /usr/bin/flamegraph.pl
-        echo -1 > /proc/sys/kernel/perf_event_paranoid
+        sudo echo -1 > /proc/sys/kernel/perf_event_paranoid
         Write-Host "perf_event_paranoid: " $(cat /proc/sys/kernel/perf_event_paranoid)
 
         New-Item -ItemType Directory $OutputPath -Force | Out-Null
