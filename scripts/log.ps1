@@ -163,7 +163,8 @@ function Perf-Run {
             $OutFile = "client_$count.perf.data"
         }
         Write-Host "Perf-Run $CommandSplit $OutFile"
-        sudo -E perf record -F 10 -a -g -o $(Join-Path $TempPerfDir $OutFile) $CommandSplit[0] $CommandSplit[1..$($CommandSplit.count-1)] 2>&1
+        $BasePath = Split-Path $CommandSplit[0] -Parent
+        sudo LD_LIBRARY_PATH=$BasePath perf record -F 10 -a -g -o $(Join-Path $TempPerfDir $OutFile) $CommandSplit[0] $CommandSplit[1..$($CommandSplit.count-1)] 2>&1
     }
 }
 
