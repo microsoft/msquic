@@ -144,11 +144,11 @@ if ($IsLinux) {
         Write-Host "Installing perf"
         sudo apt-get install -y linux-tools-$(uname -r)
     }
-    if (Test-Path -Path /usr/bin/stackcollapse-perf.pl) {
+    if (!(Test-Path -Path /usr/bin/stackcollapse-perf.pl)) {
         wget https://raw.githubusercontent.com/brendangregg/FlameGraph/master/stackcollapse-perf.pl -O /usr/bin/stackcollapse-perf.pl
         chmod +x /usr/bin/stackcollapse-perf.pl
     }
-    if (Test-Path -Path /usr/bin/flamegraph.pl) {
+    if (!(Test-Path -Path /usr/bin/flamegraph.pl)) {
         wget https://raw.githubusercontent.com/brendangregg/FlameGraph/master/flamegraph.pl -O /usr/bin/flamegraph.pl
         chmod +x /usr/bin/flamegraph.pl
     }
