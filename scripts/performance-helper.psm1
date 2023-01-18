@@ -385,16 +385,16 @@ function Invoke-RemoteExe {
 
         try {
             Write-Host "SSSS try-catch"
-            if ($IsLinux -and $Record) {
-                Write-Host "SSSS log.ps PerfRun $Exe $RunArgs"
-                & $LogScript -PerfRun -Command "$Exe $RunArgs" -Remote
-                Write-Host "SSSS log.ps PerfRun Done"
-            } else  {
-                Write-Host "SSSS log.ps PerfRun normal"
-                & $Exe ($RunArgs).Split(" ")
-                Write-Host "SSSS log.ps PerfRun normal done"
-            }
-            # & $Exe ($RunArgs).Split(" ")
+            # if ($IsLinux -and $Record) {
+            #     Write-Host "SSSS log.ps PerfRun $Exe $RunArgs"
+            #     & $LogScript -PerfRun -Command "$Exe $RunArgs" -Remote
+            #     Write-Host "SSSS log.ps PerfRun Done"
+            # } else  {
+            #     Write-Host "SSSS log.ps PerfRun normal"
+            #     & $Exe ($RunArgs).Split(" ")
+            #     Write-Host "SSSS log.ps PerfRun normal done"
+            # }
+            & $Exe ($RunArgs).Split(" ")
             Write-Host "SSSS try-catch done"
         } finally {
             # Uninstall the kernel mode test drivers.
@@ -430,7 +430,7 @@ function Stop-RemoteLogs {
         if ($Record) {
             & $LogScript -Stop -OutputPath (Join-Path $RemoteDirectory serverlogs server) -RawLogOnly -ProfileInScriptDirectory -InstanceName msquicperf #| Out-Null
             if ($IsLinux) {
-                & $LogScript -PerfGraph -OutputPath (Join-Path $RemoteDirectory serverlogs) -Remote
+                # & $LogScript -PerfGraph -OutputPath (Join-Path $RemoteDirectory serverlogs) -Remote
             }
         }
     } -ArgumentList $Record, $RemoteDirectory
