@@ -167,7 +167,7 @@ function Perf-Run {
         Write-Debug "Perf-Run BasePath: $BasePath"
         $out = ls -lh $BasePath
         Write-Debug "$out"
-        sudo LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$BasePath perf record -F 10 -a -g -o $(Join-Path $TempPerfDir $OutFile) $CommandSplit[0] $CommandSplit[1..$($CommandSplit.count-1)] 2>&1 #| Write-Debug
+        sudo LD_LIBRARY_PATH=$BasePath perf record -F 10 -a -g -o $(Join-Path $TempPerfDir $OutFile) $CommandSplit[0] $CommandSplit[1..$($CommandSplit.count-1)] 2>&1 #| Write-Debug
     }
 }
 
