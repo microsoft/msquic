@@ -147,7 +147,7 @@ if ($IsLinux) {
         chmod +x /usr/bin/stackcollapse-perf.pl
         wget https://raw.githubusercontent.com/brendangregg/FlameGraph/master/flamegraph.pl -O /usr/bin/flamegraph.pl
         chmod +x /usr/bin/flamegraph.pl
-        echo -1 > /proc/sys/kernel/perf_event_paranoid
+        #echo -1 > /proc/sys/kernel/perf_event_paranoid
     }
     #Write-Host "Checking perf command...... Done"
 }
@@ -178,18 +178,18 @@ function Perf-Graph {
         sudo wget https://raw.githubusercontent.com/brendangregg/FlameGraph/master/flamegraph.pl -O /usr/bin/flamegraph.pl
         sudo chmod +x /usr/bin/flamegraph.pl
         ls /usr/bin/flamegraph.pl
-        sudo echo -1 > /proc/sys/kernel/perf_event_paranoid
-        Write-Host "perf_event_paranoid: " $(cat /proc/sys/kernel/perf_event_paranoid)
+        #sudo echo -1 > /proc/sys/kernel/perf_event_paranoid
+        #Write-Host "perf_event_paranoid: " $(cat /proc/sys/kernel/perf_event_paranoid)
 
         New-Item -ItemType Directory $OutputPath -Force | Out-Null
         if ($Remote) {
             $InputPath = $(Join-Path $TempPerfDir "server.perf.data")
-            perf script -i $InputPath | /usr/bin/stackcollapse-perf.pl | /usr/bin/flamegraph.pl > $(Join-Path $OutputPath "server.svg")
+            sudo perf script -i $InputPath | /usr/bin/stackcollapse-perf.pl | /usr/bin/flamegraph.pl > $(Join-Path $OutputPath "server.svg")
             Remove-Item -Path $InputPath -Recurse -Force # | Out-Null
         } else {
             $InputPath = $(Join-Path $TempPerfDir "client_*.perf.data")
             foreach ($FileName in (Get-Item $(Join-Path $TempPerfDir "client_*.perf.data")).name) {
-                perf script -i $(Join-Path $TempPerfDir $FileName) | /usr/bin/stackcollapse-perf.pl | /usr/bin/flamegraph.pl > $(Join-Path $OutputPath ($FileName.Split(".")[0] + ".svg"))
+                sudo perf script -i $(Join-Path $TempPerfDir $FileName) | /usr/bin/stackcollapse-perf.pl | /usr/bin/flamegraph.pl > $(Join-Path $OutputPath ($FileName.Split(".")[0] + ".svg"))
             }
             Remove-Item -Path $InputPath -Recurse -Force #| Out-Null
         }
