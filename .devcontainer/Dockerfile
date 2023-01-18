@@ -9,4 +9,4 @@ RUN wget https://packages.microsoft.com/config/ubuntu/20.04/packages-microsoft-p
     software-properties-common \
     # to connect from GitHub CLI
     openssh-server
-RUN pwsh ./scripts/prepare-machine.ps1
+RUN pwsh -c './scripts/prepare-machine.ps1'
