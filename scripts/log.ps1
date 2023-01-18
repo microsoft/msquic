@@ -163,7 +163,7 @@ function Perf-Run {
             $OutFile = "client_$count.perf.data"
         }
         Write-Host "Perf-Run $CommandSplit $OutFile"
-        sudo perf record -F 10 -a -g -o $(Join-Path $TempPerfDir $OutFile) $CommandSplit[0] $CommandSplit[1..$($CommandSplit.count-1)] 2>&1
+        sudo -E perf record -F 10 -a -g -o $(Join-Path $TempPerfDir $OutFile) $CommandSplit[0] $CommandSplit[1..$($CommandSplit.count-1)] 2>&1
     }
 }
 
@@ -177,12 +177,12 @@ function Perf-Graph {
         New-Item -ItemType Directory $OutputPath -Force | Out-Null
         if ($Remote) {
             $InputPath = $(Join-Path $TempPerfDir "server.perf.data")
-            sudo perf script -i $InputPath | /usr/bin/stackcollapse-perf.pl | /usr/bin/flamegraph.pl > $(Join-Path $OutputPath "server.svg")
+            sudo -E perf script -i $InputPath | /usr/bin/stackcollapse-perf.pl | /usr/bin/flamegraph.pl > $(Join-Path $OutputPath "server.svg")
             Remove-Item -Path $InputPath -Recurse -Force # | Out-Null
         } else {
             $InputPath = $(Join-Path $TempPerfDir "client_*.perf.data")
             foreach ($FileName in (Get-Item $(Join-Path $TempPerfDir "client_*.perf.data")).name) {
-                sudo perf script -i $(Join-Path $TempPerfDir $FileName) | /usr/bin/stackcollapse-perf.pl | /usr/bin/flamegraph.pl > $(Join-Path $OutputPath ($FileName.Split(".")[0] + ".svg"))
+                sudo -E perf script -i $(Join-Path $TempPerfDir $FileName) | /usr/bin/stackcollapse-perf.pl | /usr/bin/flamegraph.pl > $(Join-Path $OutputPath ($FileName.Split(".")[0] + ".svg"))
             }
             ls -lh $TempPerfDir
             ls -lh $OutputPath
