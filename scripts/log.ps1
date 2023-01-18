@@ -143,11 +143,10 @@ if ($IsLinux) {
     catch {
         Write-Host "Installing perf"
         sudo apt-get install -y linux-tools-$(uname -r)
-        wget https://raw.githubusercontent.com/brendangregg/FlameGraph/master/stackcollapse-perf.pl -O /usr/bin/stackcollapse-perf.pl
-        chmod +x /usr/bin/stackcollapse-perf.pl
-        wget https://raw.githubusercontent.com/brendangregg/FlameGraph/master/flamegraph.pl -O /usr/bin/flamegraph.pl
-        chmod +x /usr/bin/flamegraph.pl
-        #echo -1 > /proc/sys/kernel/perf_event_paranoid
+        sudo wget https://raw.githubusercontent.com/brendangregg/FlameGraph/master/stackcollapse-perf.pl -O /usr/bin/stackcollapse-perf.pl
+        sudo chmod +x /usr/bin/stackcollapse-perf.pl
+        sudo wget https://raw.githubusercontent.com/brendangregg/FlameGraph/master/flamegraph.pl -O /usr/bin/flamegraph.pl
+        sudo chmod +x /usr/bin/flamegraph.pl
     }
     #Write-Host "Checking perf command...... Done"
 }
@@ -159,11 +158,11 @@ function Perf-Run {
         New-Item -Path $TempPerfDir -ItemType Directory -Force 2>&1
         $CommandSplit = $Command.Split(" ")
         $OutFile = "server.perf.data"
-        Write-Host "Perf-Run $CommandSplit $OutFile"
         if (!$Remote) {
             $count = @(Get-ChildItem $TempPerfDir "client_*.perf.data").count
             $OutFile = "client_$count.perf.data"
         }
+        Write-Host "Perf-Run $CommandSplit $OutFile"
         sudo perf record -F 10 -a -g -o $(Join-Path $TempPerfDir $OutFile) $CommandSplit[0] $CommandSplit[1..$($CommandSplit.count-1)] 2>&1
     }
 }
@@ -172,12 +171,6 @@ function Perf-Graph {
     if (!$IsLinux) {
         # error
     } else {
-        sudo wget https://raw.githubusercontent.com/brendangregg/FlameGraph/master/stackcollapse-perf.pl -O /usr/bin/stackcollapse-perf.pl
-        sudo chmod +x /usr/bin/stackcollapse-perf.pl
-        ls /usr/bin/stackcollapse-perf.pl
-        sudo wget https://raw.githubusercontent.com/brendangregg/FlameGraph/master/flamegraph.pl -O /usr/bin/flamegraph.pl
-        sudo chmod +x /usr/bin/flamegraph.pl
-        ls /usr/bin/flamegraph.pl
         #sudo echo -1 > /proc/sys/kernel/perf_event_paranoid
         #Write-Host "perf_event_paranoid: " $(cat /proc/sys/kernel/perf_event_paranoid)
 
@@ -191,6 +184,10 @@ function Perf-Graph {
             foreach ($FileName in (Get-Item $(Join-Path $TempPerfDir "client_*.perf.data")).name) {
                 sudo perf script -i $(Join-Path $TempPerfDir $FileName) | /usr/bin/stackcollapse-perf.pl | /usr/bin/flamegraph.pl > $(Join-Path $OutputPath ($FileName.Split(".")[0] + ".svg"))
             }
+            ls -lh $TempPerfDir
+            ls -lh $OutputPath
+            whoami
+            sudo whoami
             Remove-Item -Path $InputPath -Recurse -Force #| Out-Null
         }
         if (@(Get-ChildItem $TempPerfDir).count -eq 0) {
