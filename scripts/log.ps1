@@ -174,7 +174,6 @@ function Perf-Graph {
     } else {
         #sudo echo -1 > /proc/sys/kernel/perf_event_paranoid
         #Write-Host "perf_event_paranoid: " $(cat /proc/sys/kernel/perf_event_paranoid)
-
         New-Item -ItemType Directory $OutputPath -Force | Out-Null
         if ($Remote) {
             $InputPath = $(Join-Path $TempPerfDir "server.perf.data")
