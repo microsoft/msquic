@@ -141,7 +141,7 @@ if ($IsLinux) {
     #Write-Host "Checking perf command......"
     try { perf version | Out-Null }
     catch {
-        Write-Host "Installing perf"
+        Write-Debug "Installing perf"
         sudo apt-get install -y linux-tools-$(uname -r)
         sudo wget https://raw.githubusercontent.com/brendangregg/FlameGraph/master/stackcollapse-perf.pl -O /usr/bin/stackcollapse-perf.pl
         sudo chmod +x /usr/bin/stackcollapse-perf.pl
@@ -155,16 +155,19 @@ function Perf-Run {
     if (!$IsLinux) {
         # error
     } else {
-        New-Item -Path $TempPerfDir -ItemType Directory -Force 2>&1
+        New-Item -Path $TempPerfDir -ItemType Directory -Force | Write-Debug
         $CommandSplit = $Command.Split(" ")
         $OutFile = "server.perf.data"
         if (!$Remote) {
             $count = @(Get-ChildItem $TempPerfDir "client_*.perf.data").count
             $OutFile = "client_$count.perf.data"
         }
-        Write-Host "Perf-Run $CommandSplit $OutFile"
+        Write-Debug "Perf-Run $CommandSplit $OutFile"
         $BasePath = Split-Path $CommandSplit[0] -Parent
-        sudo LD_LIBRARY_PATH=$BasePath perf record -F 10 -a -g -o $(Join-Path $TempPerfDir $OutFile) $CommandSplit[0] $CommandSplit[1..$($CommandSplit.count-1)] 2>&1
+        Write-Debug "Perf-Run BasePath: $BasePath"
+        $out = ls -lh $BasePath
+        Write-Debug "$out"
+        sudo LD_LIBRARY_PATH=$BasePath perf record -F 10 -a -g -o $(Join-Path $TempPerfDir $OutFile) $CommandSplit[0] $CommandSplit[1..$($CommandSplit.count-1)] 2>&1 #| Write-Debug
     }
 }
 
@@ -203,26 +206,26 @@ function Log-Start {
     } elseif ($IsMacOS) {
     } else {
         if (Test-Path $TempLTTngDir) {
-            Write-Error "LTTng session ($InstanceName) already running! ($TempLTTngDir)" 2>&1
+            Write-Error "LTTng session ($InstanceName) already running! ($TempLTTngDir)"
         }
 
         try {
             Write-Host "Stream: $Stream"
             if ($Stream) {
-                lttng -q create msquiclive --live  2>&1
+                lttng -q create msquiclive --live | Write-Debug
             } else {
-                New-Item -Path $TempLTTngDir -ItemType Directory -Force 2>&1 #| Out-Null
+                New-Item -Path $TempLTTngDir -ItemType Directory -Force 2>&1 | Write-Debug
                 $Command = "lttng create $InstanceName -o=$TempLTTngDir"
-                Invoke-Expression $Command #| Write-Debug
+                Invoke-Expression $Command 2>&1 | Write-Debug
             }
 
-            lttng enable-event --userspace CLOG_* 2>&1 #| Write-Debug
-            lttng add-context --userspace --type=vpid --type=vtid 2>&1 #| Write-Debug
-            lttng start 2>&1 #| Write-Debug
+            lttng enable-event --userspace CLOG_* 2>&1 | Write-Debug
+            lttng add-context --userspace --type=vpid --type=vtid 2>&1 | Write-Debug
+            lttng start 2>&1 | Write-Debug
 
             if ($Stream) {
-                lttng list 2>&1 #| Write-Debug
-                babeltrace -i lttng-live net://localhost 2>&1 #| Write-Debug
+                lttng list 2>&1 | Write-Debug
+                babeltrace -i lttng-live net://localhost 2>&1 | Write-Debug
                 $myHostName = hostname
                 Write-Host "Now decoding LTTng events in realtime on host=$myHostName...`n"
                 $args = "babeltrace --names all -i lttng-live net://localhost/host/$myHostName/msquiclive | $Clog2Text_lttng  -s $SideCar --showTimestamp --showCpuInfo"
@@ -231,7 +234,7 @@ function Log-Start {
             }
         } finally {
             if ($Stream) {
-                Invoke-Expression "lttng destroy msquiclive" #| Write-Debug
+                Invoke-Expression "lttng destroy msquiclive" | Write-Debug
             }
         }
     }

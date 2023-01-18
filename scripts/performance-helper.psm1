@@ -145,7 +145,7 @@ function Wait-ForRemoteReady {
     $StopWatch =  [system.diagnostics.stopwatch]::StartNew()
     while ($StopWatch.ElapsedMilliseconds -lt 20000) {
         $CurrentResults = Receive-Job -Job $Job -Keep -ErrorAction Continue
-        Write-Host "[ " $CurrentResults " ]"
+        Write-Host "Remote: [ " $CurrentResults " ]"
         if (![string]::IsNullOrWhiteSpace($CurrentResults)) {
             $DidMatch = $CurrentResults -match $Matcher
             if ($DidMatch) {
@@ -348,6 +348,7 @@ function Invoke-RemoteExe {
         }
         return $null
     } -ArgumentList $Exe
+    Write-Host "Invoke-RemtoeExe BasePath: $BasePath"
 
     if ($Kernel) {
         $RunArgs = "-driverNamePriv:secnetperfdrvpriv $RunArgs"
