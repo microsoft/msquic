@@ -429,7 +429,7 @@ function Stop-RemoteLogs {
         if ($Record) {
             & $LogScript -Stop -OutputPath (Join-Path $RemoteDirectory serverlogs server) -RawLogOnly -ProfileInScriptDirectory -InstanceName msquicperf #| Out-Null
             if ($IsLinux) {
-                & $LogScript -PerfGraph -OutputPath (Join-Path $RemoteDirectory serverlogs) -Remote
+                # & $LogScript -PerfGraph -OutputPath (Join-Path $RemoteDirectory serverlogs) -Remote
             }
         }
     } -ArgumentList $Record, $RemoteDirectory
