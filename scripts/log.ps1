@@ -164,7 +164,7 @@ function Perf-Run {
             $count = @(Get-ChildItem $TempPerfDir "client_*.perf.data").count
             $OutFile = "client_$count.perf.data"
         }
-        perf record -F 10 -a -g -o $(Join-Path $TempPerfDir $OutFile) $CommandSplit[0] $CommandSplit[1..$($CommandSplit.count-1)] 2>&1
+        sudo perf record -F 10 -a -g -o $(Join-Path $TempPerfDir $OutFile) $CommandSplit[0] $CommandSplit[1..$($CommandSplit.count-1)] 2>&1
     }
 }
 
