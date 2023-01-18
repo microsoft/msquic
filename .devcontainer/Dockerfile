@@ -9,6 +9,8 @@ RUN wget https://packages.microsoft.com/config/ubuntu/20.04/packages-microsoft-p
     && rm packages-microsoft-prod.deb \
     && apt-get update -y \
     && apt-get install -y \
+    # prepare-machine.ps1 needs dotnet
+    && dotnet-sdk-6.0 \
     # prep for perf command
     software-properties-common \
     # to connect from GitHub CLI
