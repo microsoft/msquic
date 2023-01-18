@@ -178,12 +178,12 @@ function Perf-Graph {
         New-Item -ItemType Directory $OutputPath -Force | Out-Null
         if ($Remote) {
             $InputPath = $(Join-Path $TempPerfDir "server.perf.data")
-            perf script -i $InputPath | stackcollapse-perf.pl | flamegraph.pl > $(Join-Path $OutputPath "server.svg")
+            perf script -i $InputPath | /usr/bin/stackcollapse-perf.pl | /usr/bin/flamegraph.pl > $(Join-Path $OutputPath "server.svg")
             Remove-Item -Path $InputPath -Recurse -Force # | Out-Null
         } else {
             $InputPath = $(Join-Path $TempPerfDir "client_*.perf.data")
             foreach ($FileName in (Get-Item $(Join-Path $TempPerfDir "client_*.perf.data")).name) {
-                perf script -i $(Join-Path $TempPerfDir $FileName) | stackcollapse-perf.pl | flamegraph.pl > $(Join-Path $OutputPath ($FileName.Split(".")[0] + ".svg"))
+                perf script -i $(Join-Path $TempPerfDir $FileName) | /usr/bin/stackcollapse-perf.pl | /usr/bin/flamegraph.pl > $(Join-Path $OutputPath ($FileName.Split(".")[0] + ".svg"))
             }
             Remove-Item -Path $InputPath -Recurse -Force #| Out-Null
         }
