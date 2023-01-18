@@ -4,5 +4,6 @@
         "cpus": 4,
         "memory": "2gb"
     },
+    "onCreateCommand": "pwsh -c './scripts/prepare-machine.ps1'",
     "runArgs": ["--init", "--privileged"]
 }
