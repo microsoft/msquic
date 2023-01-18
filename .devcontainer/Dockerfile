@@ -4,18 +4,18 @@ ARG username=test
 ARG useruid=1000
 ARG usergid=${useruid}
 
-RUN wget https://packages.microsoft.com/config/ubuntu/20.04/packages-microsoft-prod.deb -O packages-microsoft-prod.deb && \
-    dpkg -i packages-microsoft-prod.deb && \
-    rm packages-microsoft-prod.deb && \
-    apt-get update -y && \
-    apt-get install -y && \
+RUN wget https://packages.microsoft.com/config/ubuntu/20.04/packages-microsoft-prod.deb -O packages-microsoft-prod.deb \
+    && dpkg -i packages-microsoft-prod.deb \
+    && rm packages-microsoft-prod.deb \
+    && apt-get update -y \
+    && apt-get install -y \
     # prep for perf command
     software-properties-common \
     # to connect from GitHub CLI
     openssh-server \
-    groupadd --gid ${usergid} ${username} && \
-    useradd -s /bin/bash --uid ${useruid} --gid ${usergid} -m ${username} && \
-    echo ${username} ALL=\(root\) NOPASSWD:ALL > /etc/sudoers.d/${username} && \
-    chmod 0440 /etc/sudoers.d/${username}
+    && groupadd --gid ${usergid} ${username} \
+    && useradd -s /bin/bash --uid ${useruid} --gid ${usergid} -m ${username} \
+    && echo ${username} ALL=\(root\) NOPASSWD:ALL > /etc/sudoers.d/${username} \
+    && chmod 0440 /etc/sudoers.d/${username}
 
 USER ${username}
