@@ -145,15 +145,14 @@ function Wait-ForRemoteReady {
     $StopWatch =  [system.diagnostics.stopwatch]::StartNew()
     while ($StopWatch.ElapsedMilliseconds -lt 20000) {
         $CurrentResults = Receive-Job -Job $Job -Keep -ErrorAction Continue
-        Write-Host "Remote: [ " $CurrentResults " ]"
         if (![string]::IsNullOrWhiteSpace($CurrentResults)) {
             $DidMatch = $CurrentResults -match $Matcher
             if ($DidMatch) {
-                Write-Host "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! Match"
+                Write-Host "Remote: [ " $CurrentResults " ] Match"
                 return $true
             }
         }
-        Start-Sleep -Seconds 0.1 #| Out-Null
+        Start-Sleep -Seconds 0.1 | Out-Null
     }
     return $false
 }
@@ -368,7 +367,7 @@ function Invoke-RemoteExe {
 
         if ($Record) {
             Write-Host "SSSS log.ps -Start"
-            & $LogScript -Start -Profile $LogProfile -ProfileInScriptDirectory -InstanceName msquicperf #| Out-Null
+            & $LogScript -Start -Profile $LogProfile -ProfileInScriptDirectory -InstanceName msquicperf | Out-Null
             Write-Host "SSSS log.ps -Start Done"
         }
 
@@ -386,15 +385,10 @@ function Invoke-RemoteExe {
         try {
             Write-Host "SSSS try-catch"
             if ($IsLinux -and $Record) {
-                Write-Host "SSSS log.ps PerfRun $Exe $RunArgs"
                 & $LogScript -PerfRun -Command "$Exe $RunArgs" -Remote
-                Write-Host "SSSS log.ps PerfRun Done"
             } else  {
-                Write-Host "SSSS log.ps PerfRun normal"
                 & $Exe ($RunArgs).Split(" ")
-                Write-Host "SSSS log.ps PerfRun normal done"
             }
-            #& $Exe ($RunArgs).Split(" ")
             Write-Host "SSSS try-catch done"
         } finally {
             # Uninstall the kernel mode test drivers.
@@ -428,7 +422,7 @@ function Stop-RemoteLogs {
         $LogScript = Join-Path $RemoteDirectory log.ps1
 
         if ($Record) {
-            & $LogScript -Stop -OutputPath (Join-Path $RemoteDirectory serverlogs server) -RawLogOnly -ProfileInScriptDirectory -InstanceName msquicperf #| Out-Null
+            & $LogScript -Stop -OutputPath (Join-Path $RemoteDirectory serverlogs server) -RawLogOnly -ProfileInScriptDirectory -InstanceName msquicperf | Out-Debug
             if ($IsLinux) {
                 & $LogScript -PerfGraph -OutputPath (Join-Path $RemoteDirectory serverlogs) -Remote
             }
@@ -496,7 +490,7 @@ function Start-Tracing {
     param($LocalDirectory)
     if ($Record -and !$Local) {
         $LogScript = Join-Path $LocalDirectory log.ps1
-        & $LogScript -Start -Profile $LogProfile -ProfileInScriptDirectory -InstanceName msquicperf #| Out-Null
+        & $LogScript -Start -Profile $LogProfile -ProfileInScriptDirectory -InstanceName msquicperf | Out-Null
     }
 }
 
@@ -511,7 +505,7 @@ function Stop-Tracing {
     $LogScript = Join-Path $LocalDirectory log.ps1
     if ($Record) {
         if (!$Local) {
-            & $LogScript -Stop -OutputPath (Join-Path $OutputDir $Test.ToString() client) -RawLogOnly -ProfileInScriptDirectory -InstanceName msquicperf #| Out-Null
+            & $LogScript -Stop -OutputPath (Join-Path $OutputDir $Test.ToString() client) -RawLogOnly -ProfileInScriptDirectory -InstanceName msquicperf | Out-Null
         }
         if ($IsLinux) {
             & $LogScript -PerfGraph -OutputPath (Join-Path $OutputDir $Test.ToString())

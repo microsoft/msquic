@@ -97,7 +97,7 @@ param (
 
     [Parameter(Mandatory = $false)]
     [switch]$ProfileInScriptDirectory = $false,
-        
+
     [Parameter(Mandatory = $false)]
     [string]$InstanceName = "msquic",
 
@@ -155,18 +155,14 @@ function Perf-Run {
     if (!$IsLinux) {
         # error
     } else {
-        New-Item -Path $TempPerfDir -ItemType Directory -Force | Write-Debug
+        New-Item -Path $TempPerfDir -ItemType Directory -Force
         $CommandSplit = $Command.Split(" ")
         $OutFile = "server.perf.data"
         if (!$Remote) {
             $count = @(Get-ChildItem $TempPerfDir "client_*.perf.data").count
             $OutFile = "client_$count.perf.data"
         }
-        Write-Debug "Perf-Run $CommandSplit $OutFile"
         $BasePath = Split-Path $CommandSplit[0] -Parent
-        Write-Debug "Perf-Run BasePath: $BasePath"
-        $out = ls -lh $BasePath
-        Write-Debug "$out"
         sudo LD_LIBRARY_PATH=$BasePath perf record -F 10 -a -g -o $(Join-Path $TempPerfDir $OutFile) $CommandSplit[0] $CommandSplit[1..$($CommandSplit.count-1)] 2>&1 #| Write-Debug
     }
 }
@@ -187,10 +183,6 @@ function Perf-Graph {
             foreach ($FileName in (Get-Item $(Join-Path $TempPerfDir "client_*.perf.data")).name) {
                 sudo -E perf script -i $(Join-Path $TempPerfDir $FileName) | /usr/bin/stackcollapse-perf.pl | /usr/bin/flamegraph.pl > $(Join-Path $OutputPath ($FileName.Split(".")[0] + ".svg"))
             }
-            ls -lh $TempPerfDir
-            ls -lh $OutputPath
-            whoami
-            sudo whoami
             Remove-Item -Path $InputPath -Recurse -Force #| Out-Null
         }
         if (@(Get-ChildItem $TempPerfDir).count -eq 0) {
@@ -210,22 +202,20 @@ function Log-Start {
         }
 
         try {
-            Write-Host "Stream: $Stream"
             if ($Stream) {
                 lttng -q create msquiclive --live | Write-Debug
             } else {
-                New-Item -Path $TempLTTngDir -ItemType Directory -Force 2>&1 | Write-Debug
+                New-Item -Path $TempLTTngDir -ItemType Directory -Force | Out-Null
                 $Command = "lttng create $InstanceName -o=$TempLTTngDir"
-                Invoke-Expression $Command 2>&1 | Write-Debug
+                Invoke-Expression $Command | Write-Debug
             }
-
-            lttng enable-event --userspace CLOG_* 2>&1 | Write-Debug
-            lttng add-context --userspace --type=vpid --type=vtid 2>&1 | Write-Debug
-            lttng start 2>&1 | Write-Debug
+            lttng enable-event --userspace CLOG_* | Write-Debug
+            lttng add-context --userspace --type=vpid --type=vtid | Write-Debug
+            lttng start | Write-Debug
 
             if ($Stream) {
-                lttng list 2>&1 | Write-Debug
-                babeltrace -i lttng-live net://localhost 2>&1 | Write-Debug
+                lttng list | Write-Debug
+                babeltrace -i lttng-live net://localhost | Write-Debug
                 $myHostName = hostname
                 Write-Host "Now decoding LTTng events in realtime on host=$myHostName...`n"
                 $args = "babeltrace --names all -i lttng-live net://localhost/host/$myHostName/msquiclive | $Clog2Text_lttng  -s $SideCar --showTimestamp --showCpuInfo"
@@ -287,8 +277,9 @@ function Log-Stop {
         $LTTNGTarFile = $OutputPath + ".tgz"
         $BableTraceFile = $OutputPath + ".babel.txt"
 
-        Write-Host "tar/gzip LTTng log files: $LTTNGTarFile"
+        Write-Debug "tar/gzip LTTng log files: $LTTNGTarFile RawLogOnly:$RawLogOnly "
         tar -cvzf $LTTNGTarFile $TempLTTngDir | Write-Debug
+        Write-Debug "After tar/gzip"
 
         if (!$RawLogOnly) {
             Write-Host "Decoding LTTng into BabelTrace format ($BableTraceFile)"
