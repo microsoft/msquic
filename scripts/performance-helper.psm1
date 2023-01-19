@@ -591,7 +591,7 @@ function Invoke-LocalExe {
     try {
         $LocalJob = $null
         if ($IsLinux -and $Record) {
-            $LogScript = Join-Path $RemoteDirectory log.ps1
+            $LogScript = Join-Path $LocalDirectory log.ps1
             $LocalJob = Start-Job -ScriptBlock { & $Using:LogScript -PerfRun -Command $Using:FullCommand }
         } else  {
             $LocalJob = Start-Job -ScriptBlock { & $Using:Exe ($Using:RunArgs).Split(" ") }
