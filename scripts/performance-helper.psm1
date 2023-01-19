@@ -422,7 +422,7 @@ function Stop-RemoteLogs {
         $LogScript = Join-Path $RemoteDirectory log.ps1
 
         if ($Record) {
-            & $LogScript -Stop -OutputPath (Join-Path $RemoteDirectory serverlogs server) -RawLogOnly -ProfileInScriptDirectory -InstanceName msquicperf | Out-Debug
+            & $LogScript -Stop -OutputPath (Join-Path $RemoteDirectory serverlogs server) -RawLogOnly -ProfileInScriptDirectory -InstanceName msquicperf | Out-Null
             if ($IsLinux) {
                 & $LogScript -PerfGraph -OutputPath (Join-Path $RemoteDirectory serverlogs) -Remote
             }
