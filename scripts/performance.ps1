@@ -534,7 +534,11 @@ function Invoke-Test {
                 }
             } else {
                 try {
-                    Get-RemoteLogDirectory -Local (Join-Path $OutputDir $Test.ToString()) -Remote (Join-Path $RemoteDirectory serverlogs) -SmbDir (Join-Path $RemoteDirectorySMB serverlogs) -Cleanup
+                    $SmbDir = ""
+                    if ($IsWindows) {
+                        $SmbDir = (Join-Path $RemoteDirectorySMB serverlogs)
+                    }
+                    Get-RemoteLogDirectory -Local (Join-Path $OutputDir $Test.ToString()) -Remote (Join-Path $RemoteDirectory serverlogs) -SmbDir $SmbDir -Cleanup
                 } catch {
                     Write-Host "Failed to get remote logs"
                 }
