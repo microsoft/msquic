@@ -390,7 +390,6 @@ function Invoke-RemoteExe {
                 sc.exe delete msquicpriv | Out-Null
             }
         }
-        Write-Host "SSSS finish RemoteExe"
     } -AsJob -ArgumentList $Exe, $RunArgs, $BasePath, $Record, $LogProfile, $Kernel, $RemoteDirectory
 }
 

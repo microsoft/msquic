@@ -148,7 +148,7 @@ if ($IsLinux) {
 
 function Perf-Run {
     if (!$IsLinux) {
-        # error
+        throw "perf command wrapper is only for Linux"
     } else {
         New-Item -Path $TempPerfDir -ItemType Directory -Force
         $CommandSplit = $Command.Split(" ")
@@ -164,7 +164,7 @@ function Perf-Run {
 
 function Perf-Graph {
     if (!$IsLinux) {
-        # error
+        throw "perf command wapper is only for Linux"
     } else {
         New-Item -ItemType Directory $OutputPath -Force | Out-Null
         if ($Remote) {
