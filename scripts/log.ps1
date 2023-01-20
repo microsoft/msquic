@@ -158,7 +158,12 @@ function Perf-Run {
             $OutFile = "client_$count.perf.data"
         }
         $BasePath = Split-Path $CommandSplit[0] -Parent
-        sudo LD_LIBRARY_PATH=$BasePath perf record -F 10 -a -g -o $(Join-Path $TempPerfDir $OutFile) $CommandSplit[0] $CommandSplit[1..$($CommandSplit.count-1)]
+        # FIXME: When to run Remote case and command bellow generates stderr, server side stop its operation
+        #        e.g. - `-F max`'s warning
+        #             - `perf`'s graceful stop generates two lines of stderr. the first line stops the operation (no essential effect)
+        # WARN: because `Wait-ForRemoteReady` function waits stdout from server, redirecting to Out-Null stucks operation
+        $Freq = $(cat /proc/sys/kernel/perf_event_max_sample_rate)
+        sudo LD_LIBRARY_PATH=$BasePath perf record -F $Freq -a -g -o $(Join-Path $TempPerfDir $OutFile) $CommandSplit[0] $CommandSplit[1..$($CommandSplit.count-1)]
     }
 }
 
@@ -270,11 +275,11 @@ function Log-Stop {
         $LTTNGTarFile = $OutputPath + ".tgz"
         $BableTraceFile = $OutputPath + ".babel.txt"
 
-        Write-Debug "tar/gzip LTTng log files: $LTTNGTarFile"
+        Write-Host "tar/gzip LTTng log files: $LTTNGTarFile"
         tar -cvzf $LTTNGTarFile -P $TempLTTngDir | Write-Debug
 
         if (!$RawLogOnly) {
-            Write-Host "Decoding LTTng into BabelTrace format ($BableTraceFile)"
+            Write-Debug "Decoding LTTng into BabelTrace format ($BableTraceFile)"
             babeltrace --names all $TempLTTngDir/* > $BableTraceFile
             Write-Host "Decoding into human-readable text: $ClogOutputDecodeFile"
             $Command = "$Clog2Text_lttng -i $BableTraceFile -s $SideCar -o $ClogOutputDecodeFile --showTimestamp --showCpuInfo"

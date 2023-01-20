@@ -545,6 +545,10 @@ function Invoke-LocalExe {
     }
     $HistogramFilePath = Join-Path $HistogramDir $HistogramFileName
     $RunArgs = """--extraOutputFile:$HistogramFilePath"" $RunArgs"
+    if ($IsLinux -and $Record) {
+        # `perf record -F max` generates too big data to finish within default Timeout (120s)
+        $Timeout = 1000
+    }
     $TimeoutMs = ($Timeout - 5) * 1000;
     $RunArgs = "-watchdog:$TimeoutMs $RunArgs"
 
