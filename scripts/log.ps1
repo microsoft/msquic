@@ -123,8 +123,6 @@ $Clog2Text_lttng = "$HOME/.dotnet/tools/clog2text_lttng"
 $TempDir = $null
 $TempLTTngDir = $null
 $TempPerfDir = $null
-# currently only for perf log on linux
-$FilePrefix = $Remote ? "server" : "client"
 if ($IsLinux) {
     $InstanceName = $InstanceName.Replace(".", "_")
     $TempDir = Join-Path $HOME "QUICLogs"
@@ -138,7 +136,6 @@ if ($IsLinux) {
         sudo apt-get install -y lttng-tools
         sudo apt-get install -y liblttng-ust-dev
     }
-    #Write-Host "Checking perf command......"
     try { perf version | Out-Null }
     catch {
         Write-Debug "Installing perf"
@@ -148,7 +145,6 @@ if ($IsLinux) {
         sudo wget https://raw.githubusercontent.com/brendangregg/FlameGraph/master/flamegraph.pl -O /usr/bin/flamegraph.pl
         sudo chmod +x /usr/bin/flamegraph.pl
     }
-    #Write-Host "Checking perf command...... Done"
 }
 
 function Perf-Run {
@@ -163,7 +159,7 @@ function Perf-Run {
             $OutFile = "client_$count.perf.data"
         }
         $BasePath = Split-Path $CommandSplit[0] -Parent
-        sudo LD_LIBRARY_PATH=$BasePath perf record -F 10 -a -g -o $(Join-Path $TempPerfDir $OutFile) $CommandSplit[0] $CommandSplit[1..$($CommandSplit.count-1)] 2>&1 #| Write-Debug
+        sudo LD_LIBRARY_PATH=$BasePath perf record -F 10 -a -g -o $(Join-Path $TempPerfDir $OutFile) $CommandSplit[0] $CommandSplit[1..$($CommandSplit.count-1)] | Write-Debug
     }
 }
 
@@ -171,22 +167,20 @@ function Perf-Graph {
     if (!$IsLinux) {
         # error
     } else {
-        #sudo echo -1 > /proc/sys/kernel/perf_event_paranoid
-        #Write-Host "perf_event_paranoid: " $(cat /proc/sys/kernel/perf_event_paranoid)
         New-Item -ItemType Directory $OutputPath -Force | Out-Null
         if ($Remote) {
             $InputPath = $(Join-Path $TempPerfDir "server.perf.data")
             sudo -E perf script -i $InputPath | /usr/bin/stackcollapse-perf.pl | /usr/bin/flamegraph.pl > $(Join-Path $OutputPath "server.svg")
-            Remove-Item -Path $InputPath -Recurse -Force # | Out-Null
+            Remove-Item -Path $InputPath -Recurse -Force | Out-Null
         } else {
             $InputPath = $(Join-Path $TempPerfDir "client_*.perf.data")
             foreach ($FileName in (Get-Item $(Join-Path $TempPerfDir "client_*.perf.data")).name) {
                 sudo -E perf script -i $(Join-Path $TempPerfDir $FileName) | /usr/bin/stackcollapse-perf.pl | /usr/bin/flamegraph.pl > $(Join-Path $OutputPath ($FileName.Split(".")[0] + ".svg"))
             }
-            Remove-Item -Path $InputPath -Recurse -Force #| Out-Null
+            Remove-Item -Path $InputPath -Recurse -Force | Out-Null
         }
         if (@(Get-ChildItem $TempPerfDir).count -eq 0) {
-            Remove-Item -Path $TempPerfDir -Recurse -Force #| Out-Null
+            Remove-Item -Path $TempPerfDir -Recurse -Force | Out-Null
         }
     }
 }
@@ -203,7 +197,7 @@ function Log-Start {
 
         try {
             if ($Stream) {
-                lttng -q create msquiclive --live | Write-Debug
+                lttng -q create msquiclive --live
             } else {
                 New-Item -Path $TempLTTngDir -ItemType Directory -Force | Out-Null
                 $Command = "lttng create $InstanceName -o=$TempLTTngDir"
@@ -277,9 +271,8 @@ function Log-Stop {
         $LTTNGTarFile = $OutputPath + ".tgz"
         $BableTraceFile = $OutputPath + ".babel.txt"
 
-        Write-Debug "tar/gzip LTTng log files: $LTTNGTarFile RawLogOnly:$RawLogOnly "
-        tar -cvzf $LTTNGTarFile $TempLTTngDir | Write-Debug
-        Write-Debug "After tar/gzip"
+        Write-Debug "tar/gzip LTTng log files: $LTTNGTarFile"
+        tar -cvzf $LTTNGTarFile -P $TempLTTngDir | Write-Debug
 
         if (!$RawLogOnly) {
             Write-Host "Decoding LTTng into BabelTrace format ($BableTraceFile)"

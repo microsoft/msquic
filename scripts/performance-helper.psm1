@@ -148,7 +148,6 @@ function Wait-ForRemoteReady {
         if (![string]::IsNullOrWhiteSpace($CurrentResults)) {
             $DidMatch = $CurrentResults -match $Matcher
             if ($DidMatch) {
-                Write-Host "Remote: [ " $CurrentResults " ] Match"
                 return $true
             }
         }
@@ -347,18 +346,15 @@ function Invoke-RemoteExe {
         }
         return $null
     } -ArgumentList $Exe
-    Write-Host "Invoke-RemtoeExe BasePath: $BasePath"
 
     if ($Kernel) {
         $RunArgs = "-driverNamePriv:secnetperfdrvpriv $RunArgs"
     }
 
     Write-LogAndDebug "Running Remote: $Exe $RunArgs"
-    Write-Host "Running Remote: $IsLinux, $Record, $Exe, $RunArgs"
 
     return Invoke-TestCommand -Session $Session -ScriptBlock {
         param ($Exe, $RunArgs, $BasePath, $Record, $LogProfile, $Kernel, $RemoteDirectory)
-        Write-Host "SSSS In RemoteExe"
         if ($null -ne $BasePath) {
             $env:LD_LIBRARY_PATH = $BasePath
         }
@@ -366,9 +362,7 @@ function Invoke-RemoteExe {
         $LogScript = Join-Path $RemoteDirectory log.ps1
 
         if ($Record) {
-            Write-Host "SSSS log.ps -Start"
             & $LogScript -Start -Profile $LogProfile -ProfileInScriptDirectory -InstanceName msquicperf | Out-Null
-            Write-Host "SSSS log.ps -Start Done"
         }
 
         $Arch = Split-Path (Split-Path $Exe -Parent) -Leaf
@@ -383,13 +377,11 @@ function Invoke-RemoteExe {
         }
 
         try {
-            Write-Host "SSSS try-catch"
             if ($IsLinux -and $Record) {
                 & $LogScript -PerfRun -Command "$Exe $RunArgs" -Remote
             } else  {
                 & $Exe ($RunArgs).Split(" ")
             }
-            Write-Host "SSSS try-catch done"
         } finally {
             # Uninstall the kernel mode test drivers.
             if ($Kernel) {
@@ -509,7 +501,6 @@ function Stop-Tracing {
         }
         if ($IsLinux) {
             & $LogScript -PerfGraph -OutputPath (Join-Path $OutputDir $Test.ToString())
-            
         }
     }
 }
@@ -583,7 +574,6 @@ function Invoke-LocalExe {
     $LocalJob = $null
 
     try {
-        $LocalJob = $null
         if ($IsLinux -and $Record) {
             $LogScript = Join-Path $LocalDirectory log.ps1
             $LocalJob = Start-Job -ScriptBlock { & $Using:LogScript -PerfRun -Command $Using:FullCommand }
