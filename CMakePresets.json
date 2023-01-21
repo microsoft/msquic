@@ -1,0 +1,99 @@
+{
+    "version": 3,
+    "cmakeMinimumRequired": {
+        "major": 3,
+        "minor": 21,
+        "patch": 0
+    },
+    "configurePresets": [
+        {
+            "name": "win-base",
+            "description": "Base settings for all windows builds",
+            "hidden": true,
+            "generator": "Ninja",
+            "binaryDir": "${sourceDir}/build/windows",
+            "cacheVariables": {
+                "QUIC_ENABLE_LOGGING": "on",
+                "QUIC_BUILD_TOOLS": "on",
+                "QUIC_BUILD_TEST": "on",
+                "QUIC_BUILD_PERF": "on",
+                "QUIC_LIBRARY_NAME": "msquic",
+                "CMAKE_C_COMPILER": "cl.exe",
+                "CMAKE_CXX_COMPILER": "cl.exe"
+            },
+            "condition": {
+                "type": "equals",
+                "lhs": "${hostSystemName}",
+                "rhs": "Windows"
+            }
+        },
+        {
+            "name": "lin-base",
+            "description": "Base settings for all Linux builds",
+            "hidden": true,
+            "generator": "Ninja",
+            "binaryDir": "${sourceDir}/build/linux",
+            "cacheVariables": {
+                "QUIC_LINUX_LOG_ENCODER": "lttng",
+                "QUIC_ENABLE_LOGGING": "on",
+                "QUIC_BUILD_TOOLS": "on",
+                "QUIC_BUILD_TEST": "on",
+                "QUIC_BUILD_PERF": "on",
+                "QUIC_LIBRARY_NAME": "msquic"
+            },
+            "condition": {
+                "type": "equals",
+                "lhs": "${hostSystemName}",
+                "rhs": "Linux"
+            }
+        },
+        {
+            "name": "windows-schannel-debug",
+            "displayName": "Windows Schannel Debug",
+            "inherits": "win-base",
+            "binaryDir": "${sourceDir}/build/windows/x64_schannel",
+            "architecture": {
+                "value": "x64",
+                "strategy": "external"
+            },
+            "cacheVariables": {
+                "QUIC_OUTPUT_DIR": "${sourceDir}/artifacts/bin/windows/x64_Debug_schannel",
+                "CMAKE_BUILD_TYPE": "Debug",
+                "QUIC_TLS": "schannel"
+            }
+        },
+        {
+            "name": "linux-openssl-debug",
+            "displayName": "Linux OpenSSL Debug",
+            "inherits": "lin-base",
+            "binaryDir": "${sourceDir}/build/linux/x64_openssl",
+            "architecture": {
+                "value": "x64",
+                "strategy": "external"
+            },
+            "cacheVariables": {
+                "QUIC_OUTPUT_DIR": "${sourceDir}/artifacts/bin/linux/x64_Debug_openssl",
+                "CMAKE_BUILD_TYPE": "Debug",
+                "QUIC_TLS": "openssl"
+            }
+        }
+    ],
+    "buildPresets" : [
+        {
+            "name": "windows-debug",
+            "displayName": "Windows Debug",
+            "configurePreset": "windows-schannel-debug"
+        },
+        {
+            "name": "windows-debug-clean",
+            "displayName": "Windows Debug (clean)",
+            "cleanFirst": true,
+            "configurePreset": "windows-schannel-debug"
+        },
+        {
+            "name": "linux-debug",
+            "displayName": "Linux Debug",
+            "configurePreset": "linux-openssl-debug"
+        }
+    ]
+}
