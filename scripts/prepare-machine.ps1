@@ -218,6 +218,9 @@ function Install-Xdp-Driver {
 
     Write-Host "Installing XDP driver"
     netcfg.exe -l "$XdpPath\bin\xdp.inf" -c s -i ms_xdp
+
+    Write-Host "Setting XDP XskDisableTxBounce=1"
+    reg.exe add HKLM\SYSTEM\CurrentControlSet\Services\xdp\Parameters /v XskDisableTxBounce /d 1 /t REG_DWORD /f
 }
 
 # Completely removes the XDP driver and SDK.
