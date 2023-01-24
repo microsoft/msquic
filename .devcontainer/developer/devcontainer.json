@@ -1,5 +1,4 @@
 {
-    "name": "dev",
     "dockerFile": "Dockerfile",
     "hostRequirements": {
         "cpus": 4,
