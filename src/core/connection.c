@@ -2016,13 +2016,6 @@ Exit:
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
-QUIC_STATUS
-QuicConnGenerateLocalTransportParameters(
-    _In_ QUIC_CONNECTION* Connection,
-    _Out_ QUIC_TRANSPORT_PARAMETERS* LocalTP
-    );
-
-_IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicConnRestart(
     _In_ QUIC_CONNECTION* Connection,
@@ -2143,6 +2136,18 @@ QuicConnRecvResumptionTicket(
     QUIC_TRANSPORT_PARAMETERS ResumedTP;
     CxPlatZeroMemory(&ResumedTP, sizeof(ResumedTP));
     if (QuicConnIsServer(Connection)) {
+        if (Connection->Crypto.TicketValidationRejecting) {
+            QuicTraceEvent(
+                ConnError,
+                "[conn][%p] ERROR, %s.",
+                Connection,
+                "Resumption Ticket rejected by server app asynchronously");
+            Connection->Crypto.TicketValidationRejecting = FALSE;
+            Connection->Crypto.TicketValidationPending = FALSE;
+            goto Error;
+        }
+        Connection->Crypto.TicketValidationPending = TRUE;
+
         const uint8_t* AppData = NULL;
         uint32_t AppDataLength = 0;
 
@@ -2190,20 +2195,28 @@ QuicConnRecvResumptionTicket(
             IndicateResumed,
             Connection,
             "Indicating QUIC_CONNECTION_EVENT_RESUMED");
-        ResumptionAccepted =
-            QUIC_SUCCEEDED(QuicConnIndicateEvent(Connection, &Event));
-
-        if (ResumptionAccepted) {
+        Status = QuicConnIndicateEvent(Connection, &Event);
+        if (Status == QUIC_STATUS_SUCCESS) {
             QuicTraceEvent(
                 ConnServerResumeTicket,
                 "[conn][%p] Server app accepted resumption ticket",
                 Connection);
+            ResumptionAccepted = TRUE;
+            Connection->Crypto.TicketValidationPending = FALSE;
+        } else if (Status == QUIC_STATUS_PENDING) {
+            QuicTraceEvent(
+                ConnServerResumeTicket,
+                "[conn][%p] Server app asynchronously validating resumption ticket",
+                Connection);
+            ResumptionAccepted = TRUE;
         } else {
             QuicTraceEvent(
                 ConnError,
                 "[conn][%p] ERROR, %s.",
                 Connection,
                 "Resumption Ticket rejected by server app");
+            ResumptionAccepted = FALSE;
+            Connection->Crypto.TicketValidationPending = FALSE;
         }
 
     } else {
@@ -2480,6 +2493,7 @@ QuicConnSetConfiguration(
         Configuration);
 
     QuicConfigurationAddRef(Configuration);
+    QuicConfigurationAttachSilo(Configuration);
     Connection->Configuration = Configuration;
     QuicConnApplyNewSettings(
         Connection,
@@ -2497,7 +2511,7 @@ QuicConnSetConfiguration(
             QuicConnOnQuicVersionSet(Connection);
             Status = QuicCryptoOnVersionChange(&Connection->Crypto);
             if (QUIC_FAILED(Status)) {
-                return Status;
+                goto Error;
             }
         }
 
@@ -2522,7 +2536,8 @@ QuicConnSetConfiguration(
                 "Allocation of '%s' failed. (%llu bytes)",
                 "OrigDestCID",
                 sizeof(QUIC_CID) + DestCid->CID.Length);
-            return QUIC_STATUS_OUT_OF_MEMORY;
+            Status = QUIC_STATUS_OUT_OF_MEMORY;
+            goto Error;
         }
 
         Connection->OrigDestCID->Length = DestCid->CID.Length;
@@ -2535,7 +2550,7 @@ QuicConnSetConfiguration(
         if (!QuicConnPostAcceptValidatePeerTransportParameters(Connection)) {
             QuicConnTransportError(Connection, QUIC_ERROR_CONNECTION_REFUSED);
             Status = QUIC_STATUS_INVALID_PARAMETER;
-            goto Error;
+            goto Cleanup;
         }
 
         Status =
@@ -2544,7 +2559,7 @@ QuicConnSetConfiguration(
                 Connection->Configuration->AlpnListLength,
                 Connection->Configuration->AlpnList);
         if (QUIC_FAILED(Status)) {
-            goto Error;
+            goto Cleanup;
         }
         Connection->Crypto.TlsState.ClientAlpnList = NULL;
         Connection->Crypto.TlsState.ClientAlpnListLength = 0;
@@ -2552,7 +2567,7 @@ QuicConnSetConfiguration(
 
     Status = QuicConnGenerateLocalTransportParameters(Connection, &LocalTP);
     if (QUIC_FAILED(Status)) {
-        goto Error;
+        goto Cleanup;
     }
 
     //
@@ -2577,9 +2592,13 @@ QuicConnSetConfiguration(
             Configuration->SecurityConfig,
             &LocalTP);
 
-Error:
+Cleanup:
 
     QuicCryptoTlsCleanupTransportParameters(&LocalTP);
+
+Error:
+
+    QuicConfigurationDetachSilo();
 
     return Status;
 }
@@ -3116,6 +3135,7 @@ QuicConnPeerCertReceived(
     )
 {
     QUIC_CONNECTION_EVENT Event;
+    Connection->Crypto.CertValidationPending = TRUE;
     Event.Type = QUIC_CONNECTION_EVENT_PEER_CERTIFICATE_RECEIVED;
     Event.PEER_CERTIFICATE_RECEIVED.Certificate = Certificate;
     Event.PEER_CERTIFICATE_RECEIVED.Chain = Chain;
@@ -3134,6 +3154,7 @@ QuicConnPeerCertReceived(
             "[conn][%p] ERROR, %s.",
             Connection,
             "Custom cert validation failed.");
+        Connection->Crypto.CertValidationPending = FALSE;
         return FALSE;
     }
     if (Status == QUIC_STATUS_PENDING) {
@@ -3141,7 +3162,8 @@ QuicConnPeerCertReceived(
             CustomCertValidationPending,
             Connection,
             "Custom cert validation is pending");
-        Connection->Crypto.CertValidationPending = TRUE;
+    } else if (Status == QUIC_STATUS_SUCCESS) {
+        Connection->Crypto.CertValidationPending = FALSE;
     }
     return TRUE; // Treat pending as success to the TLS layer.
 }
@@ -5593,7 +5615,9 @@ QuicConnRecvDatagrams(
                     Datagram->BufferLength - (uint16_t)(Packet->Buffer - Datagram->Buffer);
             }
 
-            if (!QuicConnRecvHeader(
+            if (Connection->Crypto.CertValidationPending ||
+                Connection->Crypto.TicketValidationPending ||
+                !QuicConnRecvHeader(
                     Connection,
                     Packet,
                     Cipher + BatchCount * CXPLAT_HP_SAMPLE_LENGTH)) {
@@ -6138,6 +6162,7 @@ QuicConnParamSet(
                 Connection->Paths[0].Binding = OldBinding;
                 break;
             }
+            Connection->Paths[0].Route.Queue = NULL;
 
             //
             // TODO - Need to free any queued recv packets from old binding.
@@ -6732,6 +6757,9 @@ QuicConnGetV2Statistics(
     if (STATISTICS_HAS_FIELD(*StatsLength, DestCidUpdateCount)) {
         Stats->DestCidUpdateCount = Connection->Stats.Misc.DestCidUpdateCount;
     }
+    if (STATISTICS_HAS_FIELD(*StatsLength, SendEcnCongestionCount)) {
+        Stats->SendEcnCongestionCount = Connection->Stats.Send.EcnCongestionCount;
+    }
 
     *StatsLength = CXPLAT_MIN(*StatsLength, sizeof(QUIC_STATISTICS_V2));
 
@@ -7276,6 +7304,20 @@ QuicConnProcessApiOperation(
         if (ApiCtx->CONN_SEND_RESUMPTION_TICKET.Flags & QUIC_SEND_RESUMPTION_FLAG_FINAL) {
             Connection->State.ResumptionEnabled = FALSE;
         }
+        break;
+
+    case QUIC_API_TYPE_CONN_COMPLETE_RESUMPTION_TICKET_VALIDATION:
+        CXPLAT_DBG_ASSERT(QuicConnIsServer(Connection));
+        QuicCryptoCustomTicketValidationComplete(
+            &Connection->Crypto,
+            ApiCtx->CONN_COMPLETE_RESUMPTION_TICKET_VALIDATION.Result);
+        break;
+
+    case QUIC_API_TYPE_CONN_COMPLETE_CERTIFICATE_VALIDATION:
+        CXPLAT_DBG_ASSERT(QuicConnIsClient(Connection));
+        QuicCryptoCustomCertValidationComplete(
+            &Connection->Crypto,
+            ApiCtx->CONN_COMPLETE_CERTIFICATE_VALIDATION.Result);
         break;
 
     case QUIC_API_TYPE_STRM_CLOSE:

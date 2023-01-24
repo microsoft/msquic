@@ -202,7 +202,11 @@ function Start-Executable {
             }
         }
         if ($Debugger) {
-            $pinfo.FileName = "windbgx"
+            if (Get-Command "windbgx.exe" -ErrorAction SilentlyContinue) {
+                $pinfo.FileName = "windbgx.exe"
+            } else {
+                $pinfo.FileName = "windbg.exe"
+            }
             if ($InitialBreak) {
                 $pinfo.Arguments = "-G $($Path) $($Arguments)"
             } else {

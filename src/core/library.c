@@ -1668,6 +1668,8 @@ MsQuicOpenVersion(
     Api->ConnectionStart = MsQuicConnectionStart;
     Api->ConnectionSetConfiguration = MsQuicConnectionSetConfiguration;
     Api->ConnectionSendResumptionTicket = MsQuicConnectionSendResumptionTicket;
+    Api->ConnectionResumptionTicketValidationComplete = MsQuicConnectionResumptionTicketValidationComplete;
+    Api->ConnectionCertificateValidationComplete = MsQuicConnectionCertificateValidationComplete;
 
     Api->StreamOpen = MsQuicStreamOpen;
     Api->StreamClose = MsQuicStreamClose;

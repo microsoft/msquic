@@ -478,19 +478,18 @@ if ($InitSubmodules) {
 
     Write-Host "Initializing clog submodule"
     git submodule init submodules/clog
-    git submodule update
 
     if ($Tls -eq "openssl") {
         Write-Host "Initializing openssl submodule"
         git submodule init submodules/openssl
-        git submodule update
     }
 
     if (!$DisableTest) {
         Write-Host "Initializing googletest submodule"
         git submodule init submodules/googletest
-        git submodule update
     }
+
+    git submodule update --jobs=8
 }
 
 if ($InstallDuoNic) { Install-DuoNic }
@@ -515,6 +514,7 @@ if ($IsLinux) {
         sudo apt-get install -y build-essential
         sudo apt-get install -y liblttng-ust-dev
         sudo apt-get install -y libssl-dev
+        sudo apt-get install -y libnuma-dev
         if ($InstallArm64Toolchain) {
             sudo apt-get install -y gcc-aarch64-linux-gnu
             sudo apt-get install -y binutils-aarch64-linux-gnu

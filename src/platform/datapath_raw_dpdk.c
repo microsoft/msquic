@@ -613,15 +613,13 @@ _IRQL_requires_max_(DISPATCH_LEVEL)
 CXPLAT_SEND_DATA*
 CxPlatDpRawTxAlloc(
     _In_ CXPLAT_DATAPATH* Datapath,
-    _In_ CXPLAT_ECN_TYPE ECN, // unused currently
-    _In_ uint16_t MaxPacketSize,
-    _Inout_ CXPLAT_ROUTE* Route
+    _Inout_ CXPLAT_SEND_CONFIG* Config
     )
 {
     DPDK_DATAPATH* Dpdk = (DPDK_DATAPATH*)Datapath;
     DPDK_TX_PACKET* Packet = CxPlatPoolAlloc(&Dpdk->AdditionalInfoPool);
-    QUIC_ADDRESS_FAMILY Family = QuicAddrGetFamily(&Route->RemoteAddress);
-    DPDK_INTERFACE* Interface = (DPDK_INTERFACE*)Route->Queue;
+    QUIC_ADDRESS_FAMILY Family = QuicAddrGetFamily(&Config->Route->RemoteAddress);
+    DPDK_INTERFACE* Interface = (DPDK_INTERFACE*)Config->Route->Queue;
 
     if (likely(Packet)) {
         Packet->Interface = Interface;
@@ -629,7 +627,7 @@ CxPlatDpRawTxAlloc(
         if (likely(Packet->Mbuf)) {
             HEADER_BACKFILL HeaderFill = CxPlatDpRawCalculateHeaderBackFill(Family);
             Packet->Dpdk = Dpdk;
-            Packet->Buffer.Length = MaxPacketSize;
+            Packet->Buffer.Length = Config->MaxPacketSize;
             Packet->Mbuf->data_off = 0;
             Packet->Buffer.Buffer = ((uint8_t*)Packet->Mbuf->buf_addr) + HeaderFill.AllLayer;
             Packet->Mbuf->l2_len = HeaderFill.LinkLayer;

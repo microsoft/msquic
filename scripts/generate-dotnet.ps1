@@ -45,6 +45,7 @@ $Arguments = @(
     "-e QUIC_STRUCT_SIZE_THRU_FIELD" # Cannot generate macro functions
     "-e QUIC_STATISTICS_V2_SIZE_1" # Inconsistent definitions across platforms
     "-e QUIC_STATISTICS_V2_SIZE_2" # Inconsistent definitions across platforms
+    "-e QUIC_STATISTICS_V2_SIZE_3" # Inconsistent definitions across platforms
 )
 
 $FullArgs = $Arguments -join " "

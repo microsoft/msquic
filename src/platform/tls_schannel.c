@@ -329,13 +329,11 @@ typedef struct _SecPkgContext_ConnectionInfo
 
 #if (defined(QUIC_GAMECORE_BUILD))
 #include <sdkddkver.h>
-#ifdef NTDDI_WIN10_CO
 typedef struct _UNICODE_STRING {
     USHORT Length;
     USHORT MaximumLength;
     PWSTR Buffer;
 } UNICODE_STRING, *PUNICODE_STRING;
-#endif
 #endif
 
 #include <schannel.h>
@@ -1004,6 +1002,10 @@ CxPlatTlsSecConfigCreate(
 
     if (CredConfig->Flags & QUIC_CREDENTIAL_FLAG_USE_TLS_BUILTIN_CERTIFICATE_VALIDATION) {
         return QUIC_STATUS_INVALID_PARAMETER;
+    }
+
+    if (CredConfig->Flags & QUIC_CREDENTIAL_FLAG_SET_CA_CERTIFICATE_FILE) {
+        return QUIC_STATUS_NOT_SUPPORTED;
     }
 
 #ifdef _KERNEL_MODE

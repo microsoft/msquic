@@ -79,6 +79,7 @@ namespace Microsoft.Quic
         CACHE_ONLY_URL_RETRIEVAL = 0x00020000,
         REVOCATION_CHECK_CACHE_ONLY = 0x00040000,
         INPROC_PEER_CERTIFICATE = 0x00080000,
+        SET_CA_CERTIFICATE_FILE = 0x00100000,
     }
 
     [System.Flags]
@@ -281,6 +282,9 @@ namespace Microsoft.Quic
         internal delegate* unmanaged[Cdecl]<QUIC_HANDLE*, void*, int, void> AsyncHandler;
 
         internal QUIC_ALLOWED_CIPHER_SUITE_FLAGS AllowedCipherSuites;
+
+        [NativeTypeName("const char *")]
+        internal sbyte* CaCertificateFile;
 
         internal ref QUIC_CERTIFICATE_HASH* CertificateHash
         {
@@ -839,6 +843,9 @@ namespace Microsoft.Quic
 
         [NativeTypeName("uint32_t")]
         internal uint DestCidUpdateCount;
+
+        [NativeTypeName("uint32_t")]
+        internal uint SendEcnCongestionCount;
     }
 
     internal partial struct QUIC_LISTENER_STATISTICS
@@ -1017,7 +1024,7 @@ namespace Microsoft.Quic
     internal partial struct QUIC_SETTINGS
     {
         [NativeTypeName("QUIC_SETTINGS::(anonymous union)")]
-        internal _Anonymous_e__Union Anonymous;
+        internal _Anonymous1_e__Union Anonymous1;
 
         [NativeTypeName("uint64_t")]
         internal ulong MaxBytesPerKey;
@@ -1200,24 +1207,61 @@ namespace Microsoft.Quic
         [NativeTypeName("uint32_t")]
         internal uint DestCidUpdateIdleTimeoutMs;
 
+        [NativeTypeName("QUIC_SETTINGS::(anonymous union)")]
+        internal _Anonymous2_e__Union Anonymous2;
+
         internal ref ulong IsSetFlags
         {
             get
             {
-                return ref MemoryMarshal.GetReference(MemoryMarshal.CreateSpan(ref Anonymous.IsSetFlags, 1));
+                return ref MemoryMarshal.GetReference(MemoryMarshal.CreateSpan(ref Anonymous1.IsSetFlags, 1));
             }
         }
 
-        internal ref _Anonymous_e__Union._IsSet_e__Struct IsSet
+        internal ref _Anonymous1_e__Union._IsSet_e__Struct IsSet
         {
             get
             {
-                return ref MemoryMarshal.GetReference(MemoryMarshal.CreateSpan(ref Anonymous.IsSet, 1));
+                return ref MemoryMarshal.GetReference(MemoryMarshal.CreateSpan(ref Anonymous1.IsSet, 1));
+            }
+        }
+
+        internal ref ulong Flags
+        {
+            get
+            {
+                return ref MemoryMarshal.GetReference(MemoryMarshal.CreateSpan(ref Anonymous2.Flags, 1));
+            }
+        }
+
+        internal ulong HyStartEnabled
+        {
+            get
+            {
+                return Anonymous2.Anonymous.HyStartEnabled;
+            }
+
+            set
+            {
+                Anonymous2.Anonymous.HyStartEnabled = value;
+            }
+        }
+
+        internal ulong ReservedFlags
+        {
+            get
+            {
+                return Anonymous2.Anonymous.ReservedFlags;
+            }
+
+            set
+            {
+                Anonymous2.Anonymous.ReservedFlags = value;
             }
         }
 
         [StructLayout(LayoutKind.Explicit)]
-        internal partial struct _Anonymous_e__Union
+        internal partial struct _Anonymous1_e__Union
         {
             [FieldOffset(0)]
             [NativeTypeName("uint64_t")]
@@ -1707,17 +1751,76 @@ namespace Microsoft.Quic
                     }
                 }
 
-                [NativeTypeName("uint64_t : 30")]
-                internal ulong RESERVED
+                [NativeTypeName("uint64_t : 1")]
+                internal ulong HyStartEnabled
                 {
                     get
                     {
-                        return (_bitfield >> 34) & 0x3FFFFFFFUL;
+                        return (_bitfield >> 34) & 0x1UL;
                     }
 
                     set
                     {
-                        _bitfield = (_bitfield & ~(0x3FFFFFFFUL << 34)) | ((value & 0x3FFFFFFFUL) << 34);
+                        _bitfield = (_bitfield & ~(0x1UL << 34)) | ((value & 0x1UL) << 34);
+                    }
+                }
+
+                [NativeTypeName("uint64_t : 29")]
+                internal ulong RESERVED
+                {
+                    get
+                    {
+                        return (_bitfield >> 35) & 0x1FFFFFFFUL;
+                    }
+
+                    set
+                    {
+                        _bitfield = (_bitfield & ~(0x1FFFFFFFUL << 35)) | ((value & 0x1FFFFFFFUL) << 35);
+                    }
+                }
+            }
+        }
+
+        [StructLayout(LayoutKind.Explicit)]
+        internal partial struct _Anonymous2_e__Union
+        {
+            [FieldOffset(0)]
+            [NativeTypeName("uint64_t")]
+            internal ulong Flags;
+
+            [FieldOffset(0)]
+            [NativeTypeName("QUIC_SETTINGS::(anonymous struct)")]
+            internal _Anonymous_e__Struct Anonymous;
+
+            internal partial struct _Anonymous_e__Struct
+            {
+                internal ulong _bitfield;
+
+                [NativeTypeName("uint64_t : 1")]
+                internal ulong HyStartEnabled
+                {
+                    get
+                    {
+                        return _bitfield & 0x1UL;
+                    }
+
+                    set
+                    {
+                        _bitfield = (_bitfield & ~0x1UL) | (value & 0x1UL);
+                    }
+                }
+
+                [NativeTypeName("uint64_t : 63")]
+                internal ulong ReservedFlags
+                {
+                    get
+                    {
+                        return (_bitfield >> 1) & 0x7FFFFFFFUL;
+                    }
+
+                    set
+                    {
+                        _bitfield = (_bitfield & ~(0x7FFFFFFFUL << 1)) | ((value & 0x7FFFFFFFUL) << 1);
                     }
                 }
             }
@@ -2745,6 +2848,12 @@ namespace Microsoft.Quic
 
         [NativeTypeName("QUIC_DATAGRAM_SEND_FN")]
         internal delegate* unmanaged[Cdecl]<QUIC_HANDLE*, QUIC_BUFFER*, uint, QUIC_SEND_FLAGS, void*, int> DatagramSend;
+
+        [NativeTypeName("QUIC_CONNECTION_COMP_RESUMPTION_FN")]
+        internal delegate* unmanaged[Cdecl]<QUIC_HANDLE*, byte, int> ConnectionResumptionTicketValidationComplete;
+
+        [NativeTypeName("QUIC_CONNECTION_COMP_CERT_FN")]
+        internal delegate* unmanaged[Cdecl]<QUIC_HANDLE*, byte, int> ConnectionCertificateValidationComplete;
     }
 
     internal static unsafe partial class MsQuic

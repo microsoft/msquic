@@ -122,6 +122,7 @@ typedef enum QUIC_CREDENTIAL_FLAGS {
     QUIC_CREDENTIAL_FLAG_CACHE_ONLY_URL_RETRIEVAL               = 0x00020000, // Windows only currently
     QUIC_CREDENTIAL_FLAG_REVOCATION_CHECK_CACHE_ONLY            = 0x00040000, // Windows only currently
     QUIC_CREDENTIAL_FLAG_INPROC_PEER_CERTIFICATE                = 0x00080000, // Schannel only
+    QUIC_CREDENTIAL_FLAG_SET_CA_CERTIFICATE_FILE                = 0x00100000, // OpenSSL only currently
 } QUIC_CREDENTIAL_FLAGS;
 
 DEFINE_ENUM_FLAG_OPERATORS(QUIC_CREDENTIAL_FLAGS)
@@ -319,6 +320,7 @@ typedef struct QUIC_CREDENTIAL_CONFIG {
     void* Reserved; // Currently unused
     QUIC_CREDENTIAL_LOAD_COMPLETE_HANDLER AsyncHandler; // Optional
     QUIC_ALLOWED_CIPHER_SUITE_FLAGS AllowedCipherSuites;// Optional
+    const char* CaCertificateFile;                      // Optional
 } QUIC_CREDENTIAL_CONFIG;
 
 //
@@ -515,6 +517,8 @@ typedef struct QUIC_STATISTICS_V2 {
 
     uint32_t DestCidUpdateCount;            // Number of times the destionation CID changed.
 
+    uint32_t SendEcnCongestionCount;        // Number of congestion events caused by ECN.
+
     // N.B. New fields must be appended to end
 
 } QUIC_STATISTICS_V2;
@@ -524,6 +528,7 @@ typedef struct QUIC_STATISTICS_V2 {
 
 #define QUIC_STATISTICS_V2_SIZE_1   QUIC_STRUCT_SIZE_THRU_FIELD(QUIC_STATISTICS_V2, KeyUpdateCount)         // v2.0 final size
 #define QUIC_STATISTICS_V2_SIZE_2   QUIC_STRUCT_SIZE_THRU_FIELD(QUIC_STATISTICS_V2, DestCidUpdateCount)     // v2.1 final size
+#define QUIC_STATISTICS_V2_SIZE_3   QUIC_STRUCT_SIZE_THRU_FIELD(QUIC_STATISTICS_V2, SendEcnCongestionCount) // v2.2 final size
 
 typedef struct QUIC_LISTENER_STATISTICS {
 
@@ -636,7 +641,8 @@ typedef struct QUIC_SETTINGS {
             uint64_t DestCidUpdateIdleTimeoutMs             : 1;
             uint64_t GreaseQuicBitEnabled                   : 1;
             uint64_t EcnEnabled                             : 1;
-            uint64_t RESERVED                               : 30;
+            uint64_t HyStartEnabled                         : 1;
+            uint64_t RESERVED                               : 29;
         } IsSet;
     };
 
@@ -674,6 +680,14 @@ typedef struct QUIC_SETTINGS {
     uint8_t MaxOperationsPerDrain;
     uint8_t MtuDiscoveryMissingProbeCount;
     uint32_t DestCidUpdateIdleTimeoutMs;
+    union {
+        uint64_t Flags;
+        struct {
+            uint64_t HyStartEnabled : 1;
+            uint64_t ReservedFlags : 63;
+        };
+    };
+
 
 } QUIC_SETTINGS;
 
@@ -1262,6 +1276,32 @@ QUIC_STATUS
     );
 
 //
+// Uses the QUIC (server) handle to complete resumption ticket validation.
+// This must be called after server app handles ticket validation and then
+// return QUIC_STATUS_PENDING.
+//
+typedef
+_IRQL_requires_max_(DISPATCH_LEVEL)
+QUIC_STATUS
+(QUIC_API * QUIC_CONNECTION_COMP_RESUMPTION_FN)(
+    _In_ _Pre_defensive_ HQUIC Connection,
+    _In_ BOOLEAN Result
+    );
+
+//
+// Uses the QUIC (client) handle to complete certificate validation.
+// This must be called after client app handles certificate validation
+// and then return QUIC_STATUS_PENDING.
+//
+typedef
+_IRQL_requires_max_(DISPATCH_LEVEL)
+QUIC_STATUS
+(QUIC_API * QUIC_CONNECTION_COMP_CERT_FN)(
+    _In_ _Pre_defensive_ HQUIC Connection,
+    _In_ BOOLEAN Result
+    );
+
+//
 // Streams
 //
 
@@ -1487,6 +1527,9 @@ typedef struct QUIC_API_TABLE {
     QUIC_STREAM_RECEIVE_SET_ENABLED_FN  StreamReceiveSetEnabled;
 
     QUIC_DATAGRAM_SEND_FN               DatagramSend;
+
+    QUIC_CONNECTION_COMP_RESUMPTION_FN  ConnectionResumptionTicketValidationComplete; // Available from v2.2
+    QUIC_CONNECTION_COMP_CERT_FN        ConnectionCertificateValidationComplete;      // Available from v2.2
 
 } QUIC_API_TABLE;
 

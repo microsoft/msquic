@@ -257,6 +257,8 @@ typedef enum {
     SpinQuicAPICallSetParamStream,
     SpinQuicAPICallGetParamStream,
     SpinQuicAPICallDatagramSend,
+    SpinQuicAPICallCompleteTicketValidation,
+    SpinQuicAPICallCompleteCertificateValidation,
     SpinQuicAPICallStreamReceiveSetEnabled,
     SpinQuicAPICallStreamReceiveComplete,
     SpinQuicAPICallCount    // Always the last element
@@ -872,6 +874,19 @@ void Spin(Gbs& Gb, LockableVector<HQUIC>& Connections, std::vector<HQUIC>* Liste
             BAIL_ON_NULL_CONNECTION(Connection);
             auto Buffer = &Gb.Buffers[GetRandom(BufferCount)];
             MsQuic.DatagramSend(Connection, Buffer, 1, (QUIC_SEND_FLAGS)GetRandom(8), nullptr);
+            break;
+        }
+        case SpinQuicAPICallCompleteTicketValidation: {
+            auto Connection = Connections.TryGetRandom();
+            BAIL_ON_NULL_CONNECTION(Connection);
+            MsQuic.ConnectionResumptionTicketValidationComplete(Connection, GetRandom(2) == 0);
+            break;
+        }
+        case SpinQuicAPICallCompleteCertificateValidation: {
+            auto Connection = Connections.TryGetRandom();
+            BAIL_ON_NULL_CONNECTION(Connection);
+            MsQuic.ConnectionCertificateValidationComplete(Connection, GetRandom(2) == 0);
+            break;
         }
         default:
             break;
@@ -904,7 +919,7 @@ CXPLAT_THREAD_CALLBACK(ServerSpin, Context)
         QuicSettings.IsSet.PeerUnidiStreamCount = TRUE;
         // TODO - Randomize more of the settings.
 
-        auto CredConfig = CxPlatGetSelfSignedCert(CXPLAT_SELF_SIGN_CERT_USER, FALSE);
+        auto CredConfig = CxPlatGetSelfSignedCert(CXPLAT_SELF_SIGN_CERT_USER, FALSE, NULL);
         if (!CredConfig) {
             continue;
         }

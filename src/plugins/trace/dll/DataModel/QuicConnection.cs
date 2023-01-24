@@ -451,6 +451,14 @@ namespace QuicTrace.DataModel
                         BytesReceived = _evt!.RecvTotalBytes;
                         break;
                     }
+                case QuicEventId.ConnStatsV2:
+                    {
+                        state.DataAvailableFlags |= QuicDataAvailableFlags.ConnectionTput;
+                        var _evt = evt as QuicConnectionStatsV2Event;
+                        BytesSent = _evt!.SendTotalBytes;
+                        BytesReceived = _evt!.RecvTotalBytes;
+                        break;
+                    }
                 default:
                     break;
             }
