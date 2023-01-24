@@ -18,6 +18,8 @@ Optionally, `msquic.dll` can be built with OpenSSL (see below for more details) 
 
 On Linux, MsQuic relies on [OpenSSL](https://www.openssl.org/) for TLS 1.3 functionality.
 
+> **Important** MsQuic does not currently support OpenSSL 3.x. In particular, MsQuic is incompatible with Alpine 3.17+, Debian 12+, and Ubuntu 22.04+ since they exclusively offer OpenSSL 3.x. Recent versions of other distros may be similar.
+
 > **Important** This configuration relies on a [fork of OpenSSL](https://github.com/quictls/openssl) for QUIC/TLS support. It is still currently unknown as to when mainline will support QUIC. See [here](https://www.openssl.org/blog/blog/2020/02/17/QUIC-and-OpenSSL/) for more details. MsQuic with OpenSSL **does** fully support 0-RTT.
 
 ## Other
