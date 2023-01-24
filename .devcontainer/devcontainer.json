@@ -1,4 +1,5 @@
 {
+    "name": "default",
     "image":  "ghcr.io/microsoft/msquic/linux-build-xcomp",
     "hostRequirements": {
         "cpus": 4,
