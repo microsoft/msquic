@@ -94,7 +94,7 @@ namespace QuicTrace.DataModel
         TLS_CERTIFICATE_REQUIRED = 0x174,
         TLS_NO_APPLICATION_PROTOCOL = 0x178,
 
-        QUIC_VERSION_NEGOTIATION_ERROR = 0x53F8
+        QUIC_VERSION_NEGOTIATION_ERROR = 0x11
     }
 
     public enum QuicExecutionType

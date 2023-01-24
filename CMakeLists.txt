@@ -22,8 +22,9 @@ set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 message(STATUS "Source Dir: ${CMAKE_CURRENT_SOURCE_DIR}")
 message(STATUS "Host System name: ${CMAKE_HOST_SYSTEM_NAME}")
 if ("${CMAKE_HOST_SYSTEM_NAME}" STREQUAL "Windows")
-    set(CMAKE_SYSTEM_VERSION 10.0.18362.0 CACHE STRING INTERNAL FORCE)
-    set(CMAKE_VS_WINDOWS_TARGET_PLATFORM_VERSION 10.0.18362.0 CACHE STRING INTERNAL FORCE)
+    if (NOT DEFINED CMAKE_SYSTEM_VERSION)
+        set(CMAKE_SYSTEM_VERSION 10.0.18362 CACHE STRING INTERNAL FORCE)
+    endif()
 endif()
 
 if(POLICY CMP0091)
@@ -55,7 +56,7 @@ message(STATUS "Platform version: ${CMAKE_VS_WINDOWS_TARGET_PLATFORM_VERSION}")
 message(STATUS "Build type: ${CMAKE_BUILD_TYPE}")
 
 set(QUIC_MAJOR_VERSION 2)
-set(QUIC_FULL_VERSION 2.1.6)
+set(QUIC_FULL_VERSION 2.1.7)
 
 if (WIN32)
     set(CX_PLATFORM "windows")
@@ -105,6 +106,12 @@ option(QUIC_DISABLE_POSIX_GSO "Disable GSO for systems that say they support it 
 option(QUIC_OFFICIAL_RELEASE "Configured the build for an official release" OFF)
 set(QUIC_FOLDER_PREFIX "" CACHE STRING "Optional prefix for source group folders when using an IDE generator")
 set(QUIC_LIBRARY_NAME "msquic" CACHE STRING "Override the output library name")
+
+if (QUIC_GAMECORE_BUILD)
+    if(${CMAKE_VS_WINDOWS_TARGET_PLATFORM_VERSION} VERSION_LESS "10.0.20348.0")
+        message(FATAL_ERROR "gamecore builds require Windows 10 SDK version 20348 or later.")
+    endif()
+endif()
 
 if (QUIC_UWP_BUILD OR QUIC_GAMECORE_BUILD)
     message(STATUS "UWP And GameCore builds disable all executables, and force shared CRT")
@@ -641,14 +648,17 @@ if(QUIC_CODE_CHECK)
             -altera-*
             -android-cloexec-fopen
             -android-cloexec-socket
+            -bugprone-assignment-in-if-condition
             -bugprone-easily-swappable-parameters
             -bugprone-implicit-widening-of-multiplication-result
             -bugprone-macro-parentheses
             -bugprone-narrowing-conversions
             -bugprone-reserved-identifier
             -bugprone-sizeof-expression
+            -modernize-macro-to-enum
             -cert-dcl37-c
             -cert-dcl51-cpp
+            -cert-err33-c
             -clang-analyzer-security.insecureAPI.DeprecatedOrUnsafeBufferHandling
             -clang-diagnostic-microsoft-anon-tag
             -concurrency-mt-unsafe
@@ -662,7 +672,9 @@ if(QUIC_CODE_CHECK)
             -llvmlibc-restrict-system-libc-headers
             -misc-no-recursion # do you really need recursion?
             -readability-avoid-const-params-in-decls
+            -readability-duplicate-include
             -readability-function-cognitive-complexity
+            -readability-identifier-length
             -readability-isolate-declaration
             -readability-magic-numbers
             -readability-non-const-parameter
