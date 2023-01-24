@@ -50,9 +50,9 @@ Linux perf command is one of the way to collect such information.
 # on Linux
 sudo apt-get install -y linux-tools-`uname -r`
 # use your own options
-perf record -a -g -F 10 -o data.perf.data
-# ".txt" extension is required for later visualize on WPA
-perf script -i data.perf.data > data.perf.txt
+perf record -a -g -F 10 -o out.perf.data
+# ".perf.data.txt" extension is required for later visualize on WPA
+perf script -i out.perf.data > out.perf.data.txt
 ```
 
 #### Visualize perf artifact on WPA
@@ -67,7 +67,7 @@ cd .\Microsoft-Performance-Tools-Linux-Android\PerfDataExtensions
 dotnet build
 # use absolute path
 wpa.exe -addsearchdir ${WORKDIR}\Microsoft-Performance-Tools-Linux-Android\PerfDataExtensions\bin\Debug\netstandard2.1\
-# Open data.perf.txt on WPA. You might need to open multiple time if you see error at opening (known issue?)
+# Open out.perf.data.txt on WPA. You might need to open multiple time if you see error at opening (known issue?)
 ```
 Change visualization type by drop down menu as shown in image below. Also you can filter in data for each CPU etc.
 ![](images/wpa_perf_line.png)
