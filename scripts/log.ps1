@@ -162,7 +162,7 @@ function Perf-Run {
         #        e.g. - `-F max`'s warning
         #             - `perf`'s graceful stop generates two lines of stderr. the first line stops the operation (no essential effect)
         # WARN: because `Wait-ForRemoteReady` function waits stdout from server, redirecting to Out-Null stucks operation
-        $Freq = $(cat /proc/sys/kernel/perf_event_max_sample_rate)
+        $Freq = $(cat /proc/sys/kernel/perf_event_max_sample_rate) / 2
         sudo LD_LIBRARY_PATH=$BasePath perf record -F $Freq -a -g -o $(Join-Path $TempPerfDir $OutFile) $CommandSplit[0] $CommandSplit[1..$($CommandSplit.count-1)]
     }
 }
