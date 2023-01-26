@@ -508,8 +508,8 @@ if ($IsLinux) {
     }
 
     if ($ForBuild) {
-        sudo apt-add-repository ppa:lttng/stable-2.12
-        sudo apt-get update
+        sudo apt-add-repository ppa:lttng/stable-2.12 -y
+        sudo apt-get update -y
         sudo apt-get install -y cmake
         sudo apt-get install -y build-essential
         sudo apt-get install -y liblttng-ust-dev
@@ -529,8 +529,8 @@ if ($IsLinux) {
     }
 
     if ($ForTest) {
-        sudo apt-add-repository ppa:lttng/stable-2.12
-        sudo apt-get update
+        sudo apt-add-repository ppa:lttng/stable-2.12 -y
+        sudo apt-get update -y
         sudo apt-get install -y lttng-tools
         sudo apt-get install -y liblttng-ust-dev
         sudo apt-get install -y gdb
