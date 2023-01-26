@@ -150,7 +150,9 @@ function Perf-Run {
     if (!$IsLinux) {
         throw "perf command wrapper is only for Linux"
     } else {
-        Remove-Item -Path $TempPerfDir -Recurse -Force | Out-Null
+        if (Test-Path $TempPerfDir) {
+            Remove-Item -Path $TempPerfDir -Recurse -Force | Out-Null
+        }
         New-Item -Path $TempPerfDir -ItemType Directory -Force
         $CommandSplit = $Command.Split(" ")
         $OutFile = "server.perf.data"
