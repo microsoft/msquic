@@ -150,15 +150,15 @@ function Perf-Run {
     if (!$IsLinux) {
         throw "perf command wrapper is only for Linux"
     } else {
-        if (Test-Path $TempPerfDir) {
-            Remove-Item -Path $TempPerfDir -Recurse -Force | Out-Null
-        }
         New-Item -Path $TempPerfDir -ItemType Directory -Force
         $CommandSplit = $Command.Split(" ")
         $OutFile = "server.perf.data"
         if (!$Remote) {
+            Remove-Item "$TempPerfDir/client*" -Force | Out-Null
             $count = @(Get-ChildItem $TempPerfDir "client_*.perf.data").count
             $OutFile = "client_$count.perf.data"
+        } else {
+            Remove-Item "$TempPerfDir/server*" -Force | Out-Null
         }
         $BasePath = Split-Path $CommandSplit[0] -Parent
         # FIXME: When to run Remote case and command bellow generates stderr, server side stop its operation
