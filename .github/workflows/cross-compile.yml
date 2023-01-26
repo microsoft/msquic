@@ -19,6 +19,7 @@ on:
     branches:
     - main
     paths:
+    - .azure/dockers/ob/*
     - .github/workflows/cross-compile.yml
     - src/core/*
     - src/platform/*
