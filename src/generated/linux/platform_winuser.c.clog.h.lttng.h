@@ -62,12 +62,12 @@ TRACEPOINT_EVENT(CLOG_PLATFORM_WINUSER_C, WindowsUserProcessorState,
 // Decoder Ring for ProcessorInfo
 // [ dll] Proc[%u] Group[%hu] Index[%u] NUMA[%u]
 // QuicTraceLogInfo(
-                        ProcessorInfo,
-                        "[ dll] Proc[%u] Group[%hu] Index[%u] NUMA[%u]",
-                        Index,
-                        CxPlatProcessorInfo[Index].Group,
-                        CxPlatProcessorInfo[Index].Index,
-                        CxPlatProcessorInfo[Index].NumaNode);
+            ProcessorInfo,
+            "[ dll] Proc[%u] Group[%hu] Index[%u] NUMA[%u]",
+            Index,
+            CxPlatProcessorInfo[Index].Group,
+            CxPlatProcessorInfo[Index].Index,
+            CxPlatProcessorInfo[Index].NumaNode);
 // arg2 = arg2 = Index = arg2
 // arg3 = arg3 = CxPlatProcessorInfo[Index].Group = arg3
 // arg4 = arg4 = CxPlatProcessorInfo[Index].Index = arg4
