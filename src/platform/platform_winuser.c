@@ -150,13 +150,12 @@ CxPlatProcessorInfoInit(
         goto Error;
     }
 
-    CXPLAT_DBG_ASSERT(NumaNodeCount != 0);
     if (NumaNodeCount == 0) {
-        QuicTraceEvent(
-            LibraryError,
-            "[ lib] ERROR, %s.",
-            "Failed to determine NUMA node count");
-        goto Error;
+        //
+        // There are some cases where RelationNumaNode isn't returned. Treat
+        // these as single NUMA node.
+        //
+        NumaNodeCount = 1;
     }
 
     CXPLAT_DBG_ASSERT(CxPlatProcessorGroupOffsets == NULL);
@@ -231,6 +230,11 @@ CxPlatProcessorInfoInit(
 
 FindNumaNode:
 
+        if (NumaNodeCount == 1) {
+            CxPlatProcessorInfo[Index].NumaNode = 0;
+            goto Next;
+        }
+
         Offset = 0;
         while (Offset < BufferLength) {
             PSYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX Info =
@@ -239,13 +243,6 @@ FindNumaNode:
                 if (Info->NumaNode.GroupMask.Group == CxPlatProcessorInfo[Index].Group &&
                     (Info->NumaNode.GroupMask.Mask & CxPlatProcessorInfo[Index].MaskInGroup) != 0) {
                     CxPlatProcessorInfo[Index].NumaNode = Info->NumaNode.NodeNumber;
-                    QuicTraceLogInfo(
-                        ProcessorInfo,
-                        "[ dll] Proc[%u] Group[%hu] Index[%u] NUMA[%u]",
-                        Index,
-                        CxPlatProcessorInfo[Index].Group,
-                        CxPlatProcessorInfo[Index].Index,
-                        CxPlatProcessorInfo[Index].NumaNode);
                     goto Next;
                 }
             }
@@ -259,7 +256,13 @@ FindNumaNode:
         goto Error;
 
 Next:
-        ;
+        QuicTraceLogInfo(
+            ProcessorInfo,
+            "[ dll] Proc[%u] Group[%hu] Index[%u] NUMA[%u]",
+            Index,
+            CxPlatProcessorInfo[Index].Group,
+            CxPlatProcessorInfo[Index].Index,
+            CxPlatProcessorInfo[Index].NumaNode);
     }
 
     Result = TRUE;
