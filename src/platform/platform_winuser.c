@@ -23,7 +23,6 @@ uint64_t CxPlatPerfFreq;
 uint64_t CxPlatTotalMemory;
 CX_PLATFORM CxPlatform = { NULL };
 CXPLAT_PROCESSOR_INFO* CxPlatProcessorInfo;
-uint64_t* CxPlatNumaMasks;
 uint32_t* CxPlatProcessorGroupOffsets;
 #ifdef TIMERR_NOERROR
 TIMECAPS CxPlatTimerCapabilities;
@@ -91,7 +90,6 @@ CxPlatProcessorInfoInit(
     const uint32_t ActiveProcessorCount = CxPlatProcActiveCount();
     uint32_t ProcessorGroupCount = 0;
     uint32_t ProcessorsPerGroup = 0;
-    uint32_t NumaNodeCount = 1; // Always at least one
 
     CXPLAT_DBG_ASSERT(ActiveProcessorCount > 0);
     CXPLAT_DBG_ASSERT(ActiveProcessorCount <= UINT16_MAX);
@@ -120,11 +118,7 @@ CxPlatProcessorInfoInit(
     while (Offset < BufferLength) {
         PSYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX Info =
             (PSYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX)(Buffer + Offset);
-        if (Info->Relationship == RelationNumaNode) {
-            if (Info->NumaNode.NodeNumber + 1 > NumaNodeCount) {
-                NumaNodeCount = Info->NumaNode.NodeNumber + 1;
-            }
-        } else if (Info->Relationship == RelationGroup) {
+        if (Info->Relationship == RelationGroup) {
             if (ProcessorGroupCount == 0) {
                 CXPLAT_DBG_ASSERT(Info->Group.ActiveGroupCount != 0);
                 ProcessorGroupCount = Info->Group.ActiveGroupCount;
@@ -167,40 +161,10 @@ CxPlatProcessorInfoInit(
         CxPlatProcessorGroupOffsets[i] = i * ProcessorsPerGroup;
     }
 
-    CXPLAT_DBG_ASSERT(CxPlatNumaMasks == NULL);
-    CxPlatNumaMasks = CXPLAT_ALLOC_NONPAGED(NumaNodeCount * sizeof(uint64_t), QUIC_POOL_PLATFORM_PROC);
-    if (CxPlatNumaMasks == NULL) {
-        QuicTraceEvent(
-            AllocFailure,
-            "Allocation of '%s' failed. (%llu bytes)",
-            "CxPlatNumaMasks",
-            NumaNodeCount * sizeof(uint64_t));
-        goto Error;
-    }
-
     QuicTraceLogInfo(
-        WindowsUserProcessorState,
-        "[ dll] Processors:%u, Groups:%u, NUMA Nodes:%u",
-        ActiveProcessorCount, ProcessorGroupCount, NumaNodeCount);
-
-    if (NumaNodeCount == 1) {
-        //
-        // All processors belong to the one NUMA node.
-        //
-        CXPLAT_DBG_ASSERT(ActiveProcessorCount <= 64);
-        CxPlatNumaMasks[0] =
-            ActiveProcessorCount >= 64 ? UINT64_MAX : (1ull << ActiveProcessorCount) - 1;
-    } else {
-        Offset = 0;
-        while (Offset < BufferLength) {
-            PSYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX Info =
-                (PSYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX)(Buffer + Offset);
-            if (Info->Relationship == RelationNumaNode) {
-                CxPlatNumaMasks[Info->NumaNode.NodeNumber] = (uint64_t)Info->NumaNode.GroupMask.Mask;
-            }
-            Offset += Info->Size;
-        }
-    }
+        WindowsUserProcessorStateV2,
+        "[ dll] Processors:%u, Groups:%u",
+        ActiveProcessorCount, ProcessorGroupCount);
 
     for (uint32_t Index = 0; Index < ActiveProcessorCount; ++Index) {
 
@@ -211,13 +175,19 @@ CxPlatProcessorInfoInit(
             if (Info->Relationship == RelationGroup) {
                 uint32_t ProcessorOffset = 0;
                 for (WORD i = 0; i < Info->Group.ActiveGroupCount; ++i) {
-                    uint32_t IndexToSet = Index - ProcessorOffset;
+                    const uint32_t IndexToSet = Index - ProcessorOffset;
                     if (IndexToSet < Info->Group.GroupInfo[i].ActiveProcessorCount) {
                         CXPLAT_DBG_ASSERT(IndexToSet < 64);
                         CxPlatProcessorInfo[Index].Group = i;
                         CxPlatProcessorInfo[Index].Index = IndexToSet;
-                        CxPlatProcessorInfo[Index].MaskInGroup = 1ull << IndexToSet;
-                        goto FindNumaNode;
+                        CxPlatProcessorInfo[Index].GroupMask = Info->Group.GroupInfo[i].ActiveProcessorMask;
+                        QuicTraceLogInfo(
+                            ProcessorInfo,
+                            "[ dll] Proc[%u] Group[%hu] Index[%u]",
+                            Index,
+                            i,
+                            IndexToSet);
+                        goto Next;
                     }
                     ProcessorOffset += Info->Group.GroupInfo[i].ActiveProcessorCount;
                 }
@@ -231,41 +201,8 @@ CxPlatProcessorInfoInit(
             "Failed to determine processor group");
         goto Error;
 
-FindNumaNode:
-
-        if (NumaNodeCount == 1) {
-            CxPlatProcessorInfo[Index].NumaNode = 0;
-            goto Next;
-        }
-
-        Offset = 0;
-        while (Offset < BufferLength) {
-            PSYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX Info =
-                (PSYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX)(Buffer + Offset);
-            if (Info->Relationship == RelationNumaNode) {
-                if (Info->NumaNode.GroupMask.Group == CxPlatProcessorInfo[Index].Group &&
-                    (Info->NumaNode.GroupMask.Mask & CxPlatProcessorInfo[Index].MaskInGroup) != 0) {
-                    CxPlatProcessorInfo[Index].NumaNode = Info->NumaNode.NodeNumber;
-                    goto Next;
-                }
-            }
-            Offset += Info->Size;
-        }
-
-        QuicTraceEvent(
-            LibraryError,
-            "[ lib] ERROR, %s.",
-            "Failed to determine NUMA node");
-        goto Error;
-
 Next:
-        QuicTraceLogInfo(
-            ProcessorInfo,
-            "[ dll] Proc[%u] Group[%hu] Index[%u] NUMA[%u]",
-            Index,
-            CxPlatProcessorInfo[Index].Group,
-            CxPlatProcessorInfo[Index].Index,
-            CxPlatProcessorInfo[Index].NumaNode);
+        ;
     }
 
     Result = TRUE;
@@ -277,10 +214,6 @@ Error:
     }
 
     if (!Result) {
-        if (CxPlatNumaMasks) {
-            CXPLAT_FREE(CxPlatNumaMasks, QUIC_POOL_PLATFORM_PROC);
-            CxPlatNumaMasks = NULL;
-        }
         if (CxPlatProcessorGroupOffsets) {
             CXPLAT_FREE(CxPlatProcessorGroupOffsets, QUIC_POOL_PLATFORM_PROC);
             CxPlatProcessorGroupOffsets = NULL;
@@ -300,8 +233,6 @@ CxPlatProcessorInfoUnInit(
     void
     )
 {
-    CXPLAT_FREE(CxPlatNumaMasks, QUIC_POOL_PLATFORM_PROC);
-    CxPlatNumaMasks = NULL;
     CXPLAT_FREE(CxPlatProcessorGroupOffsets, QUIC_POOL_PLATFORM_PROC);
     CxPlatProcessorGroupOffsets = NULL;
     CXPLAT_FREE(CxPlatProcessorInfo, QUIC_POOL_PLATFORM_PROC);

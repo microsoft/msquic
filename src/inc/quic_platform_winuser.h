@@ -960,15 +960,13 @@ CxPlatTimeAtOrBefore32(
 
 typedef struct {
 
+    KAFFINITY GroupMask;
+    uint32_t Index;
     uint16_t Group;
-    uint32_t Index; // In Group;
-    uint32_t NumaNode;
-    uint64_t MaskInGroup;
 
 } CXPLAT_PROCESSOR_INFO;
 
 extern CXPLAT_PROCESSOR_INFO* CxPlatProcessorInfo;
-extern uint64_t* CxPlatNumaMasks;
 extern uint32_t* CxPlatProcessorGroupOffsets;
 
 #if defined(QUIC_RESTRICTED_BUILD)
@@ -1119,7 +1117,7 @@ CxPlatThreadCreate(
     if (Config->Flags & CXPLAT_THREAD_FLAG_SET_AFFINITIZE) {
         Group.Mask = (KAFFINITY)(1ull << ProcInfo->Index);          // Fixed processor
     } else {
-        Group.Mask = (KAFFINITY)CxPlatNumaMasks[ProcInfo->NumaNode];  // Fixed NUMA node
+        Group.Mask = ProcInfo->GroupMask;
     }
     Group.Group = ProcInfo->Group;
     SetThreadGroupAffinity(*Thread, &Group, NULL);

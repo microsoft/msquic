@@ -34,25 +34,22 @@ TRACEPOINT_EVENT(CLOG_PLATFORM_WINUSER_C, WindowsUserUnloaded,
 
 
 /*----------------------------------------------------------
-// Decoder Ring for WindowsUserProcessorState
-// [ dll] Processors:%u, Groups:%u, NUMA Nodes:%u
+// Decoder Ring for WindowsUserProcessorStateV2
+// [ dll] Processors:%u, Groups:%u
 // QuicTraceLogInfo(
-        WindowsUserProcessorState,
-        "[ dll] Processors:%u, Groups:%u, NUMA Nodes:%u",
-        ActiveProcessorCount, ProcessorGroupCount, NumaNodeCount);
+        WindowsUserProcessorStateV2,
+        "[ dll] Processors:%u, Groups:%u",
+        ActiveProcessorCount, ProcessorGroupCount);
 // arg2 = arg2 = ActiveProcessorCount = arg2
 // arg3 = arg3 = ProcessorGroupCount = arg3
-// arg4 = arg4 = NumaNodeCount = arg4
 ----------------------------------------------------------*/
-TRACEPOINT_EVENT(CLOG_PLATFORM_WINUSER_C, WindowsUserProcessorState,
+TRACEPOINT_EVENT(CLOG_PLATFORM_WINUSER_C, WindowsUserProcessorStateV2,
     TP_ARGS(
         unsigned int, arg2,
-        unsigned int, arg3,
-        unsigned int, arg4), 
+        unsigned int, arg3), 
     TP_FIELDS(
         ctf_integer(unsigned int, arg2, arg2)
         ctf_integer(unsigned int, arg3, arg3)
-        ctf_integer(unsigned int, arg4, arg4)
     )
 )
 
@@ -60,30 +57,26 @@ TRACEPOINT_EVENT(CLOG_PLATFORM_WINUSER_C, WindowsUserProcessorState,
 
 /*----------------------------------------------------------
 // Decoder Ring for ProcessorInfo
-// [ dll] Proc[%u] Group[%hu] Index[%u] NUMA[%u]
+// [ dll] Proc[%u] Group[%hu] Index[%u]
 // QuicTraceLogInfo(
-            ProcessorInfo,
-            "[ dll] Proc[%u] Group[%hu] Index[%u] NUMA[%u]",
-            Index,
-            CxPlatProcessorInfo[Index].Group,
-            CxPlatProcessorInfo[Index].Index,
-            CxPlatProcessorInfo[Index].NumaNode);
+                            ProcessorInfo,
+                            "[ dll] Proc[%u] Group[%hu] Index[%u]",
+                            Index,
+                            i,
+                            IndexToSet);
 // arg2 = arg2 = Index = arg2
-// arg3 = arg3 = CxPlatProcessorInfo[Index].Group = arg3
-// arg4 = arg4 = CxPlatProcessorInfo[Index].Index = arg4
-// arg5 = arg5 = CxPlatProcessorInfo[Index].NumaNode = arg5
+// arg3 = arg3 = i = arg3
+// arg4 = arg4 = IndexToSet = arg4
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_PLATFORM_WINUSER_C, ProcessorInfo,
     TP_ARGS(
         unsigned int, arg2,
         unsigned short, arg3,
-        unsigned int, arg4,
-        unsigned int, arg5), 
+        unsigned int, arg4), 
     TP_FIELDS(
         ctf_integer(unsigned int, arg2, arg2)
         ctf_integer(unsigned short, arg3, arg3)
         ctf_integer(unsigned int, arg4, arg4)
-        ctf_integer(unsigned int, arg5, arg5)
     )
 )
 
