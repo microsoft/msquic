@@ -88,11 +88,13 @@ CxPlatProcessorInfoInit(
     uint8_t* Buffer = NULL;
     uint32_t Offset;
 
-    uint32_t ActiveProcessorCount = CxPlatProcActiveCount();
+    const uint32_t ActiveProcessorCount = CxPlatProcActiveCount();
     uint32_t ProcessorGroupCount = 0;
     uint32_t ProcessorsPerGroup = 0;
-    uint32_t NumaNodeCount = 0;
+    uint32_t NumaNodeCount = 1; // Always at least one
 
+    CXPLAT_DBG_ASSERT(ActiveProcessorCount > 0);
+    CXPLAT_DBG_ASSERT(ActiveProcessorCount <= UINT16_MAX);
     CXPLAT_DBG_ASSERT(CxPlatProcessorInfo == NULL);
     CxPlatProcessorInfo =
         CXPLAT_ALLOC_NONPAGED(
@@ -150,14 +152,6 @@ CxPlatProcessorInfoInit(
         goto Error;
     }
 
-    if (NumaNodeCount == 0) {
-        //
-        // There are some cases where RelationNumaNode isn't returned. Treat
-        // these as single NUMA node.
-        //
-        NumaNodeCount = 1;
-    }
-
     CXPLAT_DBG_ASSERT(CxPlatProcessorGroupOffsets == NULL);
     CxPlatProcessorGroupOffsets = CXPLAT_ALLOC_NONPAGED(ProcessorGroupCount * sizeof(uint32_t), QUIC_POOL_PLATFORM_PROC);
     if (CxPlatProcessorGroupOffsets == NULL) {
@@ -193,7 +187,9 @@ CxPlatProcessorInfoInit(
         //
         // All processors belong to the one NUMA node.
         //
-        CxPlatNumaMasks[0] = (1 << ActiveProcessorCount) - 1;
+        CXPLAT_DBG_ASSERT(ActiveProcessorCount <= 64);
+        CxPlatNumaMasks[0] =
+            ActiveProcessorCount >= 64 ? UINT64_MAX : (1ull << ActiveProcessorCount) - 1;
     } else {
         Offset = 0;
         while (Offset < BufferLength) {
