@@ -189,14 +189,21 @@ CxPlatProcessorInfoInit(
         "[ dll] Processors:%u, Groups:%u, NUMA Nodes:%u",
         ActiveProcessorCount, ProcessorGroupCount, NumaNodeCount);
 
-    Offset = 0;
-    while (Offset < BufferLength) {
-        PSYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX Info =
-            (PSYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX)(Buffer + Offset);
-        if (Info->Relationship == RelationNumaNode) {
-            CxPlatNumaMasks[Info->NumaNode.NodeNumber] = (uint64_t)Info->NumaNode.GroupMask.Mask;
+    if (NumaNodeCount == 1) {
+        //
+        // All processors belong to the one NUMA node.
+        //
+        CxPlatNumaMasks[0] = (1 << ActiveProcessorCount) - 1;
+    } else {
+        Offset = 0;
+        while (Offset < BufferLength) {
+            PSYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX Info =
+                (PSYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX)(Buffer + Offset);
+            if (Info->Relationship == RelationNumaNode) {
+                CxPlatNumaMasks[Info->NumaNode.NodeNumber] = (uint64_t)Info->NumaNode.GroupMask.Mask;
+            }
+            Offset += Info->Size;
         }
-        Offset += Info->Size;
     }
 
     for (uint32_t Index = 0; Index < ActiveProcessorCount; ++Index) {
