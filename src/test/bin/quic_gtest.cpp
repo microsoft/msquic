@@ -986,9 +986,9 @@ TEST_P(WithHandshakeArgs5, CustomClientCertificateValidation) {
             GetParam().AcceptCert,
             GetParam().AsyncValidation
         };
-        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_CUSTOM_SERVER_CERT_VALIDATION, Params));
+        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_CUSTOM_CLIENT_CERT_VALIDATION, Params));
     } else {
-        QuicTestCustomClientCertificateValidation(true, true);
+        QuicTestCustomClientCertificateValidation(GetParam().AcceptCert, GetParam().AsyncValidation);
     }
 }
 
