@@ -111,8 +111,9 @@ ListenerAcceptConnection(
     )
 {
     ServerAcceptContext* AcceptContext = (ServerAcceptContext*)Listener->Context;
-    *AcceptContext->NewConnection = new(std::nothrow) TestConnection(ConnectionHandle);
+    *AcceptContext->NewConnection = new(std::nothrow) TestConnection(ConnectionHandle, (NEW_STREAM_CALLBACK_HANDLER)AcceptContext->NewStreamHandler);
     (*AcceptContext->NewConnection)->SetExpectedCustomTicketValidationResult(AcceptContext->ExpectedCustomTicketValidationResult);
+    (*AcceptContext->NewConnection)->SetAsyncCustomValidationResult(AcceptContext->AsyncCustomCertValidation);
     if (*AcceptContext->NewConnection == nullptr || !(*AcceptContext->NewConnection)->IsValid()) {
         TEST_FAILURE("Failed to accept new TestConnection.");
         delete *AcceptContext->NewConnection;
@@ -744,7 +745,7 @@ QuicTestConnectAndIdle(
 }
 
 void
-QuicTestCustomCertificateValidation(
+QuicTestCustomServerCertificateValidation(
     _In_ bool AcceptCert,
     _In_ bool AsyncValidation
     )
@@ -807,6 +808,122 @@ QuicTestCustomCertificateValidation(
                     return;
                 }
                 TEST_EQUAL(AcceptCert, Client.GetIsConnected());
+
+                if (AcceptCert) { // Server will be deleted on reject case, so can't validate.
+                    TEST_NOT_EQUAL(nullptr, Server);
+                    if (!Server->WaitForConnectionComplete()) {
+                        return;
+                    }
+                    TEST_TRUE(Server->GetIsConnected());
+                }
+            }
+        }
+    }
+}
+
+void
+NoOpStreamShutdownCallback(
+    _In_ TestStream* Stream
+    )
+{
+    UNREFERENCED_PARAMETER(Stream);
+}
+
+void
+NewStreamCallbackTestFail(
+    _In_ TestConnection* Connection,
+    _In_ HQUIC StreamHandle,
+    _In_ QUIC_STREAM_OPEN_FLAGS Flags
+    )
+{
+    UNREFERENCED_PARAMETER(Connection);
+    UNREFERENCED_PARAMETER(Flags);
+    MsQuic->StreamClose(StreamHandle);
+    TEST_FAILURE("Unexpected new Stream received");
+}
+
+void
+QuicTestCustomClientCertificateValidation(
+    _In_ bool AcceptCert,
+    _In_ bool AsyncValidation
+    )
+{
+    MsQuicRegistration Registration;
+    TEST_TRUE(Registration.IsValid());
+
+    MsQuicAlpn Alpn("MsQuicTest");
+
+    MsQuicSettings Settings;
+    Settings.SetPeerBidiStreamCount(1);
+    Settings.SetIdleTimeoutMs(3000);
+
+    MsQuicConfiguration ServerConfiguration(Registration, Alpn, Settings, ServerSelfSignedCredConfigClientAuth);
+    TEST_TRUE(ServerConfiguration.IsValid());
+
+    MsQuicConfiguration ClientConfiguration(Registration, Alpn, Settings, ClientCertCredConfig);
+    TEST_TRUE(ClientConfiguration.IsValid());
+
+    {
+        TestListener Listener(Registration, ListenerAcceptConnection, ServerConfiguration);
+        TEST_TRUE(Listener.IsValid());
+        TEST_QUIC_SUCCEEDED(Listener.Start(Alpn));
+
+        QuicAddr ServerLocalAddr;
+        TEST_QUIC_SUCCEEDED(Listener.GetLocalAddr(ServerLocalAddr));
+
+        {
+            UniquePtr<TestConnection> Server;
+            ServerAcceptContext ServerAcceptCtx((TestConnection**)&Server);
+            if (!AcceptCert) {
+                ServerAcceptCtx.ExpectedTransportCloseStatus = QUIC_STATUS_BAD_CERTIFICATE;
+                ServerAcceptCtx.NewStreamHandler = NewStreamCallbackTestFail;
+            }
+            ServerAcceptCtx.AsyncCustomCertValidation = AsyncValidation;
+            Listener.Context = &ServerAcceptCtx;
+
+            {
+                TestConnection Client(Registration);
+                TEST_TRUE(Client.IsValid());
+
+                if (!AcceptCert) {
+                    Client.SetExpectedTransportCloseStatus(QUIC_STATUS_BAD_CERTIFICATE);
+                }
+
+                UniquePtr<TestStream> ClientStream(
+                    TestStream::FromConnectionHandle(
+                        Client.GetConnection(),
+                        NoOpStreamShutdownCallback,
+                        QUIC_STREAM_OPEN_FLAG_NONE));
+
+                TEST_QUIC_SUCCEEDED(ClientStream->Start(QUIC_STREAM_START_FLAG_IMMEDIATE));
+
+                TEST_QUIC_SUCCEEDED(
+                    Client.Start(
+                        ClientConfiguration,
+                        QUIC_ADDRESS_FAMILY_UNSPEC,
+                        QUIC_TEST_LOOPBACK_FOR_AF(
+                            QuicAddrGetFamily(&ServerLocalAddr.SockAddr)),
+                        ServerLocalAddr.GetPort()));
+
+                if (!CxPlatEventWaitWithTimeout(ServerAcceptCtx.NewConnectionReady, TestWaitTimeout)) {
+                    TEST_FAILURE("Timed out waiting for server accept.");
+                }
+
+                if (AsyncValidation) {
+                    CxPlatSleep(2000);
+                    BOOLEAN Value = !!AcceptCert;
+                    TEST_QUIC_SUCCEEDED(
+                        MsQuic->SetParam(
+                            Server->GetConnection(),
+                            QUIC_PARAM_CONN_PEER_CERTIFICATE_VALID,
+                            sizeof(Value),
+                            &Value));
+                    // TEST_QUIC_SUCCEEDED(Server->SetCustomValidationResult(AcceptCert));
+                }
+
+                if (!Client.WaitForConnectionComplete()) {
+                    return;
+                }
 
                 if (AcceptCert) { // Server will be deleted on reject case, so can't validate.
                     TEST_NOT_EQUAL(nullptr, Server);

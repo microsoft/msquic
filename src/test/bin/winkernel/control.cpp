@@ -481,6 +481,7 @@ size_t QUIC_IOCTL_BUFFER_SIZES[] =
     sizeof(BOOLEAN),
     sizeof(INT32),
     sizeof(INT32),
+    sizeof(QUIC_RUN_CUSTOM_CERT_VALIDATION),
 };
 
 CXPLAT_STATIC_ASSERT(
@@ -920,10 +921,10 @@ QuicTestCtlEvtIoDeviceControl(
             QuicTestAckSendDelay(Params->Family));
         break;
 
-    case IOCTL_QUIC_RUN_CUSTOM_CERT_VALIDATION:
+    case IOCTL_QUIC_RUN_CUSTOM_SERVER_CERT_VALIDATION:
         CXPLAT_FRE_ASSERT(Params != nullptr);
         QuicTestCtlRun(
-            QuicTestCustomCertificateValidation(
+            QuicTestCustomServerCertificateValidation(
                 Params->CustomCertValidationParams.AcceptCert,
                 Params->CustomCertValidationParams.AsyncValidation));
         break;
@@ -1328,6 +1329,14 @@ QuicTestCtlEvtIoDeviceControl(
     case IOCTL_QUIC_RUN_HANDSHAKE_SPECIFIC_LOSS_PATTERNS:
         CXPLAT_FRE_ASSERT(Params != nullptr);
         QuicTestCtlRun(QuicTestHandshakeSpecificLossPatterns(Params->Family));
+        break;
+
+    case IOCTL_QUIC_RUN_CUSTOM_CLIENT_CERT_VALIDATION:
+        CXPLAT_FRE_ASSERT(Params != nullptr);
+        QuicTestCtlRun(
+            QuicTestCustomClientCertificateValidation(
+                Params->CustomCertValidationParams.AcceptCert,
+                Params->CustomCertValidationParams.AsyncValidation));
         break;
 
     default:
