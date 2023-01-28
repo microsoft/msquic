@@ -879,6 +879,7 @@ QuicTestCustomClientCertificateValidation(
                 ServerAcceptCtx.NewStreamHandler = NewStreamCallbackTestFail;
             }
             ServerAcceptCtx.AsyncCustomCertValidation = AsyncValidation;
+            ServerAcceptCtx.AddExpectedClientCertValidationResult(QUIC_STATUS_CERT_UNTRUSTED_ROOT);
             Listener.Context = &ServerAcceptCtx;
 
             {
@@ -932,6 +933,8 @@ QuicTestCustomClientCertificateValidation(
                     }
                     TEST_TRUE(Server->GetIsConnected());
                 }
+                // In all cases, the client "connects", but in the rejection case, it gets disconnected.
+                TEST_TRUE(Client.GetIsConnected());
             }
         }
     }
