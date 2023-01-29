@@ -68,8 +68,7 @@ CxPlatSystemUnload(
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 _Must_inspect_result_
-_Success_(return != FALSE)
-BOOLEAN
+QUIC_STATUS
 CxPlatProcessorGroupInfo(
     _In_ LOGICAL_PROCESSOR_RELATIONSHIP Relationship,
     _Outptr_ _At_(*Buffer, __drv_allocatesMem(Mem)) _Pre_defensive_
@@ -77,12 +76,12 @@ CxPlatProcessorGroupInfo(
     _Out_ PDWORD BufferLength
     );
 
-BOOLEAN
+QUIC_STATUS
 CxPlatProcessorInfoInit(
     void
     )
 {
-    BOOLEAN Result = FALSE;
+    QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
     DWORD BufferLength = 0;
     uint8_t* Buffer = NULL;
     uint32_t Offset;
@@ -104,13 +103,16 @@ CxPlatProcessorInfoInit(
             "Allocation of '%s' failed. (%llu bytes)",
             "CxPlatProcessorInfo",
             ActiveProcessorCount * sizeof(CXPLAT_PROCESSOR_INFO));
+        Status = QUIC_STATUS_OUT_OF_MEMORY;
         goto Error;
     }
 
-    if (!CxPlatProcessorGroupInfo(
+    Status =
+        CxPlatProcessorGroupInfo(
             RelationAll,
             (PSYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX*)&Buffer,
-            &BufferLength)) {
+            &BufferLength);
+    if (QUIC_FAILED(Status)) {
         goto Error;
     }
 
@@ -119,11 +121,11 @@ CxPlatProcessorInfoInit(
         PSYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX Info =
             (PSYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX)(Buffer + Offset);
         if (Info->Relationship == RelationGroup) {
-            if (ProcessorGroupCount == 0) {
-                CXPLAT_DBG_ASSERT(Info->Group.ActiveGroupCount != 0);
-                ProcessorGroupCount = Info->Group.ActiveGroupCount;
-                ProcessorsPerGroup = Info->Group.GroupInfo[0].ActiveProcessorCount;
-            }
+            CXPLAT_DBG_ASSERT(ProcessorGroupCount == 0);
+            CXPLAT_DBG_ASSERT(Info->Group.ActiveGroupCount != 0);
+            ProcessorGroupCount = Info->Group.ActiveGroupCount;
+            ProcessorsPerGroup = Info->Group.GroupInfo[0].ActiveProcessorCount;
+            break;
         }
         Offset += Info->Size;
     }
@@ -134,6 +136,7 @@ CxPlatProcessorInfoInit(
             LibraryError,
             "[ lib] ERROR, %s.",
             "Failed to determine processor group count");
+        Status = QUIC_STATUS_INTERNAL_ERROR;
         goto Error;
     }
 
@@ -143,6 +146,7 @@ CxPlatProcessorInfoInit(
             LibraryError,
             "[ lib] ERROR, %s.",
             "Failed to determine processors per group count");
+        Status = QUIC_STATUS_INTERNAL_ERROR;
         goto Error;
     }
 
@@ -154,6 +158,7 @@ CxPlatProcessorInfoInit(
             "Allocation of '%s' failed. (%llu bytes)",
             "CxPlatProcessorGroupOffsets",
             ProcessorGroupCount * sizeof(uint32_t));
+        Status = QUIC_STATUS_OUT_OF_MEMORY;
         goto Error;
     }
 
@@ -205,7 +210,7 @@ Next:
         ;
     }
 
-    Result = TRUE;
+    Status = QUIC_STATUS_SUCCESS;
 
 Error:
 
@@ -213,7 +218,7 @@ Error:
         CXPLAT_FREE(Buffer, QUIC_POOL_PLATFORM_TMP_ALLOC);
     }
 
-    if (!Result) {
+    if (QUIC_FAILED(Status)) {
         if (CxPlatProcessorGroupOffsets) {
             CXPLAT_FREE(CxPlatProcessorGroupOffsets, QUIC_POOL_PLATFORM_PROC);
             CxPlatProcessorGroupOffsets = NULL;
@@ -224,7 +229,7 @@ Error:
         }
     }
 
-    return Result;
+    return Status;
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -257,12 +262,11 @@ CxPlatInitialize(
         goto Error;
     }
 
-    if (!CxPlatProcessorInfoInit()) {
+    if (QUIC_FAILED(Status = CxPlatProcessorInfoInit())) {
         QuicTraceEvent(
             LibraryError,
             "[ lib] ERROR, %s.",
             "CxPlatProcessorInfoInit failed");
-        Status = QUIC_STATUS_OUT_OF_MEMORY;
         goto Error;
     }
     ProcInfoInitialized = TRUE;
@@ -556,8 +560,7 @@ Error:
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 _Must_inspect_result_
-_Success_(return != FALSE)
-BOOLEAN
+QUIC_STATUS
 CxPlatProcessorGroupInfo(
     _In_ LOGICAL_PROCESSOR_RELATIONSHIP Relationship,
     _Outptr_ _At_(*Buffer, __drv_allocatesMem(Mem)) _Pre_defensive_
@@ -572,7 +575,7 @@ CxPlatProcessorGroupInfo(
             LibraryError,
             "[ lib] ERROR, %s.",
             "Failed to determine PSYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX size");
-        goto Error;
+        return HRESULT_FROM_WIN32(GetLastError());
     }
 
     *Buffer = CXPLAT_ALLOC_NONPAGED(*BufferLength, QUIC_POOL_PLATFORM_TMP_ALLOC);
@@ -582,7 +585,7 @@ CxPlatProcessorGroupInfo(
             "Allocation of '%s' failed. (%llu bytes)",
             "PSYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX",
             *BufferLength);
-        goto Error;
+        return QUIC_STATUS_OUT_OF_MEMORY;
     }
 
     if (!GetLogicalProcessorInformationEx(
@@ -595,16 +598,10 @@ CxPlatProcessorGroupInfo(
             GetLastError(),
             "GetLogicalProcessorInformationEx failed");
         CXPLAT_FREE(*Buffer, QUIC_POOL_PLATFORM_TMP_ALLOC);
-        goto Error;
+        return HRESULT_FROM_WIN32(GetLastError());
     }
 
-    return TRUE;
-
-Error:
-
-    *Buffer = NULL;
-    *BufferLength = 0;
-    return FALSE;
+    return QUIC_STATUS_SUCCESS;
 }
 
 void
@@ -644,7 +641,7 @@ CxPlatProcActiveCount(
     DWORD ProcLength;
     DWORD Count;
 
-    if (!CxPlatProcessorGroupInfo(RelationGroup, &ProcInfo, &ProcLength)) {
+    if (QUIC_FAILED(CxPlatProcessorGroupInfo(RelationGroup, &ProcInfo, &ProcLength))) {
         CXPLAT_DBG_ASSERT(FALSE);
         return 0;
     }
@@ -666,7 +663,7 @@ CxPlatProcMaxCount(
     DWORD ProcLength;
     DWORD Count;
 
-    if (!CxPlatProcessorGroupInfo(RelationGroup, &ProcInfo, &ProcLength)) {
+    if (QUIC_FAILED(CxPlatProcessorGroupInfo(RelationGroup, &ProcInfo, &ProcLength))) {
         CXPLAT_DBG_ASSERT(FALSE);
         return 0;
     }
