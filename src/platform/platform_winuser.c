@@ -23,7 +23,7 @@ uint64_t CxPlatPerfFreq;
 uint64_t CxPlatTotalMemory;
 CX_PLATFORM CxPlatform = { NULL };
 CXPLAT_PROCESSOR_INFO* CxPlatProcessorInfo;
-uint32_t* CxPlatProcessorGroupOffsets;
+CXPLAT_PROCESSOR_GROUP_INFO* CxPlatProcessorGroupInfo;
 #ifdef TIMERR_NOERROR
 TIMECAPS CxPlatTimerCapabilities;
 #endif // TIMERR_NOERROR
@@ -69,7 +69,7 @@ CxPlatSystemUnload(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 _Must_inspect_result_
 QUIC_STATUS
-CxPlatProcessorGroupInfo(
+CxPlatGetProcessorGroupInfo(
     _In_ LOGICAL_PROCESSOR_RELATIONSHIP Relationship,
     _Outptr_ _At_(*Buffer, __drv_allocatesMem(Mem)) _Pre_defensive_
         PSYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX* Buffer,
@@ -82,13 +82,11 @@ CxPlatProcessorInfoInit(
     )
 {
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
-    DWORD BufferLength = 0;
-    uint8_t* Buffer = NULL;
-    uint32_t Offset;
+    DWORD InfoLength = 0;
+    SYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX* Info = NULL;
+    uint32_t CurrentProcessorCount;
 
     const uint32_t ActiveProcessorCount = CxPlatProcActiveCount();
-    uint32_t ProcessorGroupCount = 0;
-    uint32_t ProcessorsPerGroup = 0;
 
     CXPLAT_DBG_ASSERT(ActiveProcessorCount > 0);
     CXPLAT_DBG_ASSERT(ActiveProcessorCount <= UINT16_MAX);
@@ -108,30 +106,18 @@ CxPlatProcessorInfoInit(
     }
 
     Status =
-        CxPlatProcessorGroupInfo(
-            RelationAll,
-            (PSYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX*)&Buffer,
-            &BufferLength);
+        CxPlatGetProcessorGroupInfo(
+            RelationGroup,
+            &Info,
+            &InfoLength);
     if (QUIC_FAILED(Status)) {
         goto Error;
     }
 
-    Offset = 0;
-    while (Offset < BufferLength) {
-        PSYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX Info =
-            (PSYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX)(Buffer + Offset);
-        if (Info->Relationship == RelationGroup) {
-            CXPLAT_DBG_ASSERT(ProcessorGroupCount == 0);
-            CXPLAT_DBG_ASSERT(Info->Group.ActiveGroupCount != 0);
-            ProcessorGroupCount = Info->Group.ActiveGroupCount;
-            ProcessorsPerGroup = Info->Group.GroupInfo[0].ActiveProcessorCount;
-            break;
-        }
-        Offset += Info->Size;
-    }
-
-    CXPLAT_DBG_ASSERT(ProcessorGroupCount != 0);
-    if (ProcessorGroupCount == 0) {
+    CXPLAT_DBG_ASSERT(InfoLength != 0);
+    CXPLAT_DBG_ASSERT(Info->Relationship == RelationGroup);
+    CXPLAT_DBG_ASSERT(Info->Group.ActiveGroupCount != 0);
+    if (Info->Group.ActiveGroupCount == 0) {
         QuicTraceEvent(
             LibraryError,
             "[ lib] ERROR, %s.",
@@ -140,88 +126,62 @@ CxPlatProcessorInfoInit(
         goto Error;
     }
 
-    CXPLAT_DBG_ASSERT(ProcessorsPerGroup != 0);
-    if (ProcessorsPerGroup == 0) {
-        QuicTraceEvent(
-            LibraryError,
-            "[ lib] ERROR, %s.",
-            "Failed to determine processors per group count");
-        Status = QUIC_STATUS_INTERNAL_ERROR;
-        goto Error;
-    }
+    QuicTraceLogInfo(
+        WindowsUserProcessorStateV2,
+        "[ dll] Processors:%u, Groups:%u",
+        ActiveProcessorCount, (uint32_t)Info->Group.ActiveGroupCount);
 
-    CXPLAT_DBG_ASSERT(CxPlatProcessorGroupOffsets == NULL);
-    CxPlatProcessorGroupOffsets = CXPLAT_ALLOC_NONPAGED(ProcessorGroupCount * sizeof(uint32_t), QUIC_POOL_PLATFORM_PROC);
-    if (CxPlatProcessorGroupOffsets == NULL) {
+    CXPLAT_DBG_ASSERT(CxPlatProcessorGroupInfo == NULL);
+    CxPlatProcessorGroupInfo =
+        CXPLAT_ALLOC_NONPAGED(
+            Info->Group.ActiveGroupCount * sizeof(CXPLAT_PROCESSOR_GROUP_INFO),
+            QUIC_POOL_PLATFORM_PROC);
+    if (CxPlatProcessorGroupInfo == NULL) {
         QuicTraceEvent(
             AllocFailure,
             "Allocation of '%s' failed. (%llu bytes)",
-            "CxPlatProcessorGroupOffsets",
-            ProcessorGroupCount * sizeof(uint32_t));
+            "CxPlatProcessorGroupInfo",
+            Info->Group.ActiveGroupCount * sizeof(CXPLAT_PROCESSOR_GROUP_INFO));
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         goto Error;
     }
 
-    for (uint32_t i = 0; i < ProcessorGroupCount; ++i) {
-        CxPlatProcessorGroupOffsets[i] = i * ProcessorsPerGroup;
+    CurrentProcessorCount = 0;
+    for (WORD i = 0; i < Info->Group.ActiveGroupCount; ++i) {
+        CxPlatProcessorGroupInfo[i].Mask = Info->Group.GroupInfo[i].ActiveProcessorMask;
+        CxPlatProcessorGroupInfo[i].Offset = CurrentProcessorCount;
+        CurrentProcessorCount += Info->Group.GroupInfo[i].ActiveProcessorCount;
     }
 
-    QuicTraceLogInfo(
-        WindowsUserProcessorStateV2,
-        "[ dll] Processors:%u, Groups:%u",
-        ActiveProcessorCount, ProcessorGroupCount);
-
-    for (uint32_t Index = 0; Index < ActiveProcessorCount; ++Index) {
-
-        Offset = 0;
-        while (Offset < BufferLength) {
-            PSYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX Info =
-                (PSYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX)(Buffer + Offset);
-            if (Info->Relationship == RelationGroup) {
-                uint32_t ProcessorOffset = 0;
-                for (WORD i = 0; i < Info->Group.ActiveGroupCount; ++i) {
-                    const uint32_t IndexToSet = Index - ProcessorOffset;
-                    if (IndexToSet < Info->Group.GroupInfo[i].ActiveProcessorCount) {
-                        CXPLAT_DBG_ASSERT(IndexToSet < 64);
-                        CxPlatProcessorInfo[Index].Group = i;
-                        CxPlatProcessorInfo[Index].Index = IndexToSet;
-                        CxPlatProcessorInfo[Index].GroupMask = Info->Group.GroupInfo[i].ActiveProcessorMask;
-                        QuicTraceLogInfo(
-                            ProcessorInfo,
-                            "[ dll] Proc[%u] Group[%hu] Index[%u]",
-                            Index,
-                            i,
-                            IndexToSet);
-                        goto Next;
-                    }
-                    ProcessorOffset += Info->Group.GroupInfo[i].ActiveProcessorCount;
-                }
+    for (uint32_t Proc = 0; Proc < ActiveProcessorCount; ++Proc) {
+        for (WORD Group = 0; Group < Info->Group.ActiveGroupCount; ++Group) {
+            if (Proc >= CxPlatProcessorGroupInfo[Group].Offset &&
+                Proc < CxPlatProcessorGroupInfo[Group].Offset + Info->Group.GroupInfo[Group].ActiveProcessorCount) {
+                CxPlatProcessorInfo[Proc].Group = Group;
+                CxPlatProcessorInfo[Proc].Index = (Proc - CxPlatProcessorGroupInfo[Group].Offset);
+                QuicTraceLogInfo(
+                    ProcessorInfo,
+                    "[ dll] Proc[%u] Group[%hu] Index[%u]",
+                    Proc,
+                    Group,
+                    CxPlatProcessorInfo[Proc].Index);
+                break;
             }
-            Offset += Info->Size;
         }
-
-        QuicTraceEvent(
-            LibraryError,
-            "[ lib] ERROR, %s.",
-            "Failed to determine processor group");
-        goto Error;
-
-Next:
-        ;
     }
 
     Status = QUIC_STATUS_SUCCESS;
 
 Error:
 
-    if (Buffer) {
-        CXPLAT_FREE(Buffer, QUIC_POOL_PLATFORM_TMP_ALLOC);
+    if (Info) {
+        CXPLAT_FREE(Info, QUIC_POOL_PLATFORM_TMP_ALLOC);
     }
 
     if (QUIC_FAILED(Status)) {
-        if (CxPlatProcessorGroupOffsets) {
-            CXPLAT_FREE(CxPlatProcessorGroupOffsets, QUIC_POOL_PLATFORM_PROC);
-            CxPlatProcessorGroupOffsets = NULL;
+        if (CxPlatProcessorGroupInfo) {
+            CXPLAT_FREE(CxPlatProcessorGroupInfo, QUIC_POOL_PLATFORM_PROC);
+            CxPlatProcessorGroupInfo = NULL;
         }
         if (CxPlatProcessorInfo) {
             CXPLAT_FREE(CxPlatProcessorInfo, QUIC_POOL_PLATFORM_PROC);
@@ -238,8 +198,8 @@ CxPlatProcessorInfoUnInit(
     void
     )
 {
-    CXPLAT_FREE(CxPlatProcessorGroupOffsets, QUIC_POOL_PLATFORM_PROC);
-    CxPlatProcessorGroupOffsets = NULL;
+    CXPLAT_FREE(CxPlatProcessorGroupInfo, QUIC_POOL_PLATFORM_PROC);
+    CxPlatProcessorGroupInfo = NULL;
     CXPLAT_FREE(CxPlatProcessorInfo, QUIC_POOL_PLATFORM_PROC);
     CxPlatProcessorInfo = NULL;
 }
@@ -561,7 +521,7 @@ Error:
 _IRQL_requires_max_(PASSIVE_LEVEL)
 _Must_inspect_result_
 QUIC_STATUS
-CxPlatProcessorGroupInfo(
+CxPlatGetProcessorGroupInfo(
     _In_ LOGICAL_PROCESSOR_RELATIONSHIP Relationship,
     _Outptr_ _At_(*Buffer, __drv_allocatesMem(Mem)) _Pre_defensive_
         PSYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX* Buffer,
@@ -641,7 +601,7 @@ CxPlatProcActiveCount(
     DWORD ProcLength;
     DWORD Count;
 
-    if (QUIC_FAILED(CxPlatProcessorGroupInfo(RelationGroup, &ProcInfo, &ProcLength))) {
+    if (QUIC_FAILED(CxPlatGetProcessorGroupInfo(RelationGroup, &ProcInfo, &ProcLength))) {
         CXPLAT_DBG_ASSERT(FALSE);
         return 0;
     }
@@ -663,7 +623,7 @@ CxPlatProcMaxCount(
     DWORD ProcLength;
     DWORD Count;
 
-    if (QUIC_FAILED(CxPlatProcessorGroupInfo(RelationGroup, &ProcInfo, &ProcLength))) {
+    if (QUIC_FAILED(CxPlatGetProcessorGroupInfo(RelationGroup, &ProcInfo, &ProcLength))) {
         CXPLAT_DBG_ASSERT(FALSE);
         return 0;
     }
