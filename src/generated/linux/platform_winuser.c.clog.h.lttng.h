@@ -39,9 +39,9 @@ TRACEPOINT_EVENT(CLOG_PLATFORM_WINUSER_C, WindowsUserUnloaded,
 // QuicTraceLogInfo(
         WindowsUserProcessorStateV2,
         "[ dll] Processors:%u, Groups:%u",
-        ActiveProcessorCount, ProcessorGroupCount);
+        ActiveProcessorCount, (uint32_t)Info->Group.ActiveGroupCount);
 // arg2 = arg2 = ActiveProcessorCount = arg2
-// arg3 = arg3 = ProcessorGroupCount = arg3
+// arg3 = arg3 = (uint32_t)Info->Group.ActiveGroupCount = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_PLATFORM_WINUSER_C, WindowsUserProcessorStateV2,
     TP_ARGS(
@@ -59,14 +59,14 @@ TRACEPOINT_EVENT(CLOG_PLATFORM_WINUSER_C, WindowsUserProcessorStateV2,
 // Decoder Ring for ProcessorInfo
 // [ dll] Proc[%u] Group[%hu] Index[%u]
 // QuicTraceLogInfo(
-                            ProcessorInfo,
-                            "[ dll] Proc[%u] Group[%hu] Index[%u]",
-                            Index,
-                            i,
-                            IndexToSet);
-// arg2 = arg2 = Index = arg2
-// arg3 = arg3 = i = arg3
-// arg4 = arg4 = IndexToSet = arg4
+                    ProcessorInfo,
+                    "[ dll] Proc[%u] Group[%hu] Index[%u]",
+                    Proc,
+                    Group,
+                    CxPlatProcessorInfo[Proc].Index);
+// arg2 = arg2 = Proc = arg2
+// arg3 = arg3 = Group = arg3
+// arg4 = arg4 = CxPlatProcessorInfo[Proc].Index = arg4
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_PLATFORM_WINUSER_C, ProcessorInfo,
     TP_ARGS(
