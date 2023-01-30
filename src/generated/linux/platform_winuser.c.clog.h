@@ -58,19 +58,18 @@ tracepoint(CLOG_PLATFORM_WINUSER_C, WindowsUserUnloaded );\
 
 
 /*----------------------------------------------------------
-// Decoder Ring for WindowsUserProcessorState
-// [ dll] Processors:%u, Groups:%u, NUMA Nodes:%u
+// Decoder Ring for WindowsUserProcessorStateV2
+// [ dll] Processors:%u, Groups:%u
 // QuicTraceLogInfo(
-        WindowsUserProcessorState,
-        "[ dll] Processors:%u, Groups:%u, NUMA Nodes:%u",
-        ActiveProcessorCount, ProcessorGroupCount, NumaNodeCount);
+        WindowsUserProcessorStateV2,
+        "[ dll] Processors:%u, Groups:%u",
+        ActiveProcessorCount, (uint32_t)Info->Group.ActiveGroupCount);
 // arg2 = arg2 = ActiveProcessorCount = arg2
-// arg3 = arg3 = ProcessorGroupCount = arg3
-// arg4 = arg4 = NumaNodeCount = arg4
+// arg3 = arg3 = (uint32_t)Info->Group.ActiveGroupCount = arg3
 ----------------------------------------------------------*/
-#ifndef _clog_5_ARGS_TRACE_WindowsUserProcessorState
-#define _clog_5_ARGS_TRACE_WindowsUserProcessorState(uniqueId, encoded_arg_string, arg2, arg3, arg4)\
-tracepoint(CLOG_PLATFORM_WINUSER_C, WindowsUserProcessorState , arg2, arg3, arg4);\
+#ifndef _clog_4_ARGS_TRACE_WindowsUserProcessorStateV2
+#define _clog_4_ARGS_TRACE_WindowsUserProcessorStateV2(uniqueId, encoded_arg_string, arg2, arg3)\
+tracepoint(CLOG_PLATFORM_WINUSER_C, WindowsUserProcessorStateV2 , arg2, arg3);\
 
 #endif
 
@@ -79,22 +78,20 @@ tracepoint(CLOG_PLATFORM_WINUSER_C, WindowsUserProcessorState , arg2, arg3, arg4
 
 /*----------------------------------------------------------
 // Decoder Ring for ProcessorInfo
-// [ dll] Proc[%u] Group[%hu] Index[%u] NUMA[%u]
+// [ dll] Proc[%u] Group[%hu] Index[%u]
 // QuicTraceLogInfo(
-                        ProcessorInfo,
-                        "[ dll] Proc[%u] Group[%hu] Index[%u] NUMA[%u]",
-                        Index,
-                        CxPlatProcessorInfo[Index].Group,
-                        CxPlatProcessorInfo[Index].Index,
-                        CxPlatProcessorInfo[Index].NumaNode);
-// arg2 = arg2 = Index = arg2
-// arg3 = arg3 = CxPlatProcessorInfo[Index].Group = arg3
-// arg4 = arg4 = CxPlatProcessorInfo[Index].Index = arg4
-// arg5 = arg5 = CxPlatProcessorInfo[Index].NumaNode = arg5
+                    ProcessorInfo,
+                    "[ dll] Proc[%u] Group[%hu] Index[%u]",
+                    Proc,
+                    Group,
+                    CxPlatProcessorInfo[Proc].Index);
+// arg2 = arg2 = Proc = arg2
+// arg3 = arg3 = Group = arg3
+// arg4 = arg4 = CxPlatProcessorInfo[Proc].Index = arg4
 ----------------------------------------------------------*/
-#ifndef _clog_6_ARGS_TRACE_ProcessorInfo
-#define _clog_6_ARGS_TRACE_ProcessorInfo(uniqueId, encoded_arg_string, arg2, arg3, arg4, arg5)\
-tracepoint(CLOG_PLATFORM_WINUSER_C, ProcessorInfo , arg2, arg3, arg4, arg5);\
+#ifndef _clog_5_ARGS_TRACE_ProcessorInfo
+#define _clog_5_ARGS_TRACE_ProcessorInfo(uniqueId, encoded_arg_string, arg2, arg3, arg4)\
+tracepoint(CLOG_PLATFORM_WINUSER_C, ProcessorInfo , arg2, arg3, arg4);\
 
 #endif
 

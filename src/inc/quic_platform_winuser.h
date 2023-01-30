@@ -958,18 +958,18 @@ CxPlatTimeAtOrBefore32(
 // Processor Count and Index
 //
 
-typedef struct {
-
-    uint16_t Group;
-    uint32_t Index; // In Group;
-    uint32_t NumaNode;
-    uint64_t MaskInGroup;
-
+typedef struct CXPLAT_PROCESSOR_INFO {
+    uint32_t Index;  // Index in the current group
+    uint16_t Group;  // The group number this processor is a part of
 } CXPLAT_PROCESSOR_INFO;
 
+typedef struct CXPLAT_PROCESSOR_GROUP_INFO {
+    KAFFINITY Mask;  // Bit mask of active processors in the group
+    uint32_t Offset; // Base process index offset this group starts at
+} CXPLAT_PROCESSOR_GROUP_INFO;
+
 extern CXPLAT_PROCESSOR_INFO* CxPlatProcessorInfo;
-extern uint64_t* CxPlatNumaMasks;
-extern uint32_t* CxPlatProcessorGroupOffsets;
+extern CXPLAT_PROCESSOR_GROUP_INFO* CxPlatProcessorGroupInfo;
 
 #if defined(QUIC_RESTRICTED_BUILD)
 DWORD CxPlatProcMaxCount();
@@ -987,7 +987,7 @@ CxPlatProcCurrentNumber(
     ) {
     PROCESSOR_NUMBER ProcNumber;
     GetCurrentProcessorNumberEx(&ProcNumber);
-    return CxPlatProcessorGroupOffsets[ProcNumber.Group] + ProcNumber.Number;
+    return CxPlatProcessorGroupInfo[ProcNumber.Group].Offset + ProcNumber.Number;
 }
 
 
@@ -1119,7 +1119,7 @@ CxPlatThreadCreate(
     if (Config->Flags & CXPLAT_THREAD_FLAG_SET_AFFINITIZE) {
         Group.Mask = (KAFFINITY)(1ull << ProcInfo->Index);          // Fixed processor
     } else {
-        Group.Mask = (KAFFINITY)CxPlatNumaMasks[ProcInfo->NumaNode];  // Fixed NUMA node
+        Group.Mask = CxPlatProcessorGroupInfo[ProcInfo->Group].Mask;
     }
     Group.Group = ProcInfo->Group;
     SetThreadGroupAffinity(*Thread, &Group, NULL);
