@@ -164,9 +164,15 @@ function Perf-Run {
         # FIXME: When to run Remote case and command bellow generates stderr, server side stop its operation
         #        e.g. - `-F max`'s warning
         #             - `perf`'s graceful stop generates two lines of stderr. the first line stops the operation (no essential effect)
-        # WARN: because `Wait-ForRemoteReady` function waits stdout from server, redirecting to Out-Null stucks operation
-        $Freq = $(cat /proc/sys/kernel/perf_event_max_sample_rate) / 2
-        sudo LD_LIBRARY_PATH=$BasePath perf record -F $Freq -a -g -o $(Join-Path $TempPerfDir $OutFile) $CommandSplit[0] $CommandSplit[1..$($CommandSplit.count-1)]
+        # FIXME: Small frequency for now. Higher (e.g. max) freq (with -a) generates big data which causes host machine to be overloaded,
+        #        cause timeout and/or WPA becomes too slow to load/convert trace
+        # FIXME: Make WPA to load trace which is collected without -a option. this is PerfView design.
+        #        https://github.com/microsoft/perfview/issues/1793
+        # FIXME: Run only single `perf` in case of using -a option for Loopback test as it collects trace from entire system
+        #
+        # WARN: Must not redirect output to Out-Debug and Out-Null as client watches server's stdout
+        $Freq = 299
+        sudo LD_LIBRARY_PATH=$BasePath perf record -F $Freq -g -o $(Join-Path $TempPerfDir $OutFile) $CommandSplit[0] $CommandSplit[1..$($CommandSplit.count-1)]
     }
 }
 
