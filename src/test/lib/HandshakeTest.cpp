@@ -876,7 +876,7 @@ QuicTestCustomClientCertificateValidation(
             ServerAcceptContext ServerAcceptCtx((TestConnection**)&Server);
             if (!AcceptCert) {
                 ServerAcceptCtx.ExpectedTransportCloseStatus = QUIC_STATUS_BAD_CERTIFICATE;
-                ServerAcceptCtx.NewStreamHandler = NewStreamCallbackTestFail;
+                ServerAcceptCtx.NewStreamHandler = (void*)NewStreamCallbackTestFail;
             }
             ServerAcceptCtx.AsyncCustomCertValidation = AsyncValidation;
             ServerAcceptCtx.AddExpectedClientCertValidationResult(QUIC_STATUS_CERT_UNTRUSTED_ROOT);
