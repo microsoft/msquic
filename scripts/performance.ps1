@@ -510,7 +510,8 @@ function Invoke-Test {
         $RemoteResults = Wait-ForRemote -Job $RemoteJob -ErrorAction Continue
         Write-LogAndDebug $RemoteResults.ToString()
 
-        Stop-RemoteLogs -RemoteDirectory $RemoteDirectory
+        # parallelize post processing with client
+        $StoppingRemoteJob = Stop-RemoteLogs -RemoteDirectory $RemoteDirectory
 
         if ($Kernel) {
             net.exe stop secnetperfdrvpriv /y | Out-Null
@@ -519,7 +520,9 @@ function Invoke-Test {
             sc.exe delete msquicpriv | Out-Null
         }
 
+        # FIXME: Using Start-Job in this func cause program hang for some reason
         Stop-Tracing -LocalDirectory $LocalDirectory -OutputDir $OutputDir -Test $Test -NumIterations $NumIterations
+        $StoppingRemoteJob | Wait-Job | Receive-Job
 
         if ($Record) {
             if ($Local) {

@@ -406,7 +406,7 @@ function Cancel-RemoteLogs {
 
 function Stop-RemoteLogs {
     param ($RemoteDirectory)
-    Invoke-TestCommand -Session $Session -ScriptBlock {
+    return Invoke-TestCommand -AsJob -Session $Session -ScriptBlock {
         param ($Record, $RemoteDirectory)
 
         $LogScript = Join-Path $RemoteDirectory log.ps1

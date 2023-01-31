@@ -179,7 +179,7 @@ function Perf-Run {
         # FIXME: Run only single `perf` in case of using -a option for Loopback test as it collects trace from entire system
         #
         # WARN: Must not redirect output to Out-Debug and Out-Null as client watches server's stdout
-        $Freq = 199
+        $Freq = 99
         sudo LD_LIBRARY_PATH=$BasePath perf record -F $Freq -g -o $(Join-Path $TempPerfDir $OutFile) $CommandSplit[0] $CommandSplit[1..$($CommandSplit.count-1)]
     }
 }
