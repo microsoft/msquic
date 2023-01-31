@@ -414,7 +414,7 @@ function Stop-RemoteLogs {
         if ($Record) {
             & $LogScript -Stop -OutputPath (Join-Path $RemoteDirectory serverlogs server) -RawLogOnly -ProfileInScriptDirectory -InstanceName msquicperf | Out-Null
             if ($IsLinux) {
-                & $LogScript -PerfGraph -OutputPath (Join-Path $RemoteDirectory serverlogs) -Remote
+                & $LogScript -PerfGraph -OutputPath (Join-Path $RemoteDirectory serverlogs) -Remote | Write-Debug
             }
         }
     } -ArgumentList $Record, $RemoteDirectory
@@ -498,7 +498,7 @@ function Stop-Tracing {
             & $LogScript -Stop -OutputPath (Join-Path $OutputDir $Test.ToString() client) -RawLogOnly -ProfileInScriptDirectory -InstanceName msquicperf | Out-Null
         }
         if ($IsLinux) {
-            & $LogScript -PerfGraph -OutputPath (Join-Path $OutputDir $Test.ToString()) -NumIterations $NumIterations
+            & $LogScript -PerfGraph -OutputPath (Join-Path $OutputDir $Test.ToString()) -NumIterations $NumIterations | Write-Debug
         }
     }
 }

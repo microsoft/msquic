@@ -522,7 +522,7 @@ function Invoke-Test {
 
         # FIXME: Using Start-Job in this func cause program hang for some reason
         Stop-Tracing -LocalDirectory $LocalDirectory -OutputDir $OutputDir -Test $Test -NumIterations $NumIterations
-        $StoppingRemoteJob | Wait-Job | Receive-Job
+        $StoppingRemoteJob | Wait-Job | Receive-Job -ErrorAction Continue
 
         if ($Record) {
             if ($Local) {
