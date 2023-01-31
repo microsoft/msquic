@@ -195,13 +195,15 @@ function Perf-Graph {
             cat $(Join-Path $OutputPath "server.perf.data.txt") | stackcollapse-perf.pl | flamegraph.pl > $(Join-Path $OutputPath "server.svg")
             Remove-Item -Path $InputPath -Force | Out-Null
         } else {
-            1..$NumIterations | ForEach-Object {
-                $FileName = "client_$_.perf.data"
-                $InputPath = $(Join-Path $TempPerfDir $FileName)
-                sudo -E perf script -i $InputPath > $(Join-Path $OutputPath ($FileName.Split(".")[0] + ".perf.data.txt"))
-                cat $(Join-Path $OutputPath ($FileName.Split(".")[0] + ".perf.data.txt")) | stackcollapse-perf.pl | flamegraph.pl > $(Join-Path $OutputPath ($FileName.Split(".")[0] + ".svg"))
-                Remove-Item -Path $InputPath -Force | Out-Null
-            }
+            1..$NumIterations | ForEach {
+                Start-Job -ScriptBlock {
+                    $FileName = "client_$using:_.perf.data"
+                    $InputPath = $(Join-Path $using:TempPerfDir $FileName)
+                    sudo -E perf script -i $InputPath > $(Join-Path $using:OutputPath ($FileName.Split(".")[0] + ".perf.data.txt"))
+                    cat $(Join-Path $using:OutputPath ($FileName.Split(".")[0] + ".perf.data.txt")) | stackcollapse-perf.pl | flamegraph.pl > $(Join-Path $using:OutputPath ($FileName.Split(".")[0] + ".svg"))
+                    Remove-Item -Path $InputPath -Force | Out-Null
+                }
+            } | Wait-Job | Receive-Job -ErrorAction Continue
         }
         if (@(Get-ChildItem $TempPerfDir).count -eq 0) {
             Remove-Item -Path $TempPerfDir -Recurse -Force | Out-Null
