@@ -1368,6 +1368,7 @@ QuicCryptoProcessTlsCompletion(
     _In_ QUIC_CRYPTO* Crypto
     )
 {
+    CXPLAT_DBG_ASSERT(!Crypto->TicketValidationPending && !Crypto->CertValidationPending);
     QUIC_CONNECTION* Connection = QuicCryptoGetConnection(Crypto);
 
     if (Crypto->ResultFlags & CXPLAT_TLS_RESULT_ERROR) {
@@ -1556,6 +1557,7 @@ QuicCryptoProcessTlsCompletion(
     if (Crypto->ResultFlags & CXPLAT_TLS_RESULT_HANDSHAKE_COMPLETE) {
         CXPLAT_DBG_ASSERT(!(Crypto->ResultFlags & CXPLAT_TLS_RESULT_ERROR));
         CXPLAT_TEL_ASSERT(!Connection->State.Connected);
+        CXPLAT_DBG_ASSERT(!Crypto->TicketValidationPending && !Crypto->CertValidationPending);
 
         QuicTraceEvent(
             ConnHandshakeComplete,

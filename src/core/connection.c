@@ -3158,6 +3158,9 @@ QuicConnPeerCertReceived(
         return FALSE;
     }
     if (Status == QUIC_STATUS_PENDING) {
+        //
+        // Don't set pending here because validation may have completed in the callback.
+        //
         QuicTraceLogConnInfo(
             CustomCertValidationPending,
             Connection,
