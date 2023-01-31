@@ -491,14 +491,14 @@ function Cancel-LocalTracing {
 }
 
 function Stop-Tracing {
-    param($LocalDirectory, $OutputDir, $Test)
+    param($LocalDirectory, $OutputDir, $Test, $NumIterations)
     $LogScript = Join-Path $LocalDirectory log.ps1
     if ($Record) {
         if (!$Local) {
             & $LogScript -Stop -OutputPath (Join-Path $OutputDir $Test.ToString() client) -RawLogOnly -ProfileInScriptDirectory -InstanceName msquicperf | Out-Null
         }
         if ($IsLinux) {
-            & $LogScript -PerfGraph -OutputPath (Join-Path $OutputDir $Test.ToString())
+            & $LogScript -PerfGraph -OutputPath (Join-Path $OutputDir $Test.ToString()) -NumIterations $NumIterations
         }
     }
 }
@@ -533,7 +533,7 @@ function Log($msg) {
 
 function Invoke-LocalExe {
     [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSAvoidUsingInvokeExpression', '')]
-    param ($Exe, $RunArgs, $Timeout, $OutputDir, $HistogramFileName)
+    param ($Exe, $RunArgs, $Timeout, $OutputDir, $HistogramFileName, $Iteration)
     $BasePath = Split-Path $Exe -Parent
     if (!$IsWindows) {
         $env:LD_LIBRARY_PATH = $BasePath
@@ -578,7 +578,7 @@ function Invoke-LocalExe {
     try {
         if ($IsLinux -and $Record) {
             $LogScript = Join-Path $LocalDirectory log.ps1
-            $LocalJob = Start-Job -ScriptBlock { & $Using:LogScript -PerfRun -Command $Using:FullCommand }
+            $LocalJob = Start-Job -ScriptBlock { & $Using:LogScript -PerfRun -Command $Using:FullCommand -Iteration $Using:Iteration }
         } else  {
             $LocalJob = Start-Job -ScriptBlock { & $Using:Exe ($Using:RunArgs).Split(" ") }
         }

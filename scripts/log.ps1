@@ -19,10 +19,16 @@ This script provides helpers for starting, stopping and canceling log collection
     Use perf command to wrap exe
 
 .PARAMETER Command
-    COmmand to be wrapped by PerfRun
+    Command to be wrapped by PerfRun
+
+.PARAMETER Iteration
+    Current test iteration from client
 
 .PARAMETER PerfGraph
     Use perf command to generate flamegraph
+
+.PARAMETER NumIterations
+    The number of test iterations from client
 
 .PARAMETER Output
     The output file name or directory for the logs.
@@ -73,8 +79,14 @@ param (
     [Parameter(Mandatory = $false, ParameterSetName='PerfRun')]
     [string]$Command = "",
 
+    [Parameter(Mandatory = $false, ParameterSetName='PerfRun')]
+    [int]$Iteration = 1,
+
     [Parameter(Mandatory = $false, ParameterSetName='PerfGraph')]
     [switch]$PerfGraph = $false,
+
+    [Parameter(Mandatory = $false, ParameterSetName='PerfGraph')]
+    [int]$NumIterations = 1,
 
     [Parameter(Mandatory = $true, ParameterSetName='Stop')]
     [Parameter(Mandatory = $true, ParameterSetName='PerfGraph')]
@@ -154,11 +166,7 @@ function Perf-Run {
         $CommandSplit = $Command.Split(" ")
         $OutFile = "server.perf.data"
         if (!$Remote) {
-            Remove-Item "$TempPerfDir/client*" -Force | Out-Null
-            $count = @(Get-ChildItem $TempPerfDir "client_*.perf.data").count
-            $OutFile = "client_$count.perf.data"
-        } else {
-            Remove-Item "$TempPerfDir/server*" -Force | Out-Null
+            $OutFile = "client_$Iteration.perf.data"
         }
         $BasePath = Split-Path $CommandSplit[0] -Parent
         # FIXME: When to run Remote case and command bellow generates stderr, server side stop its operation
@@ -171,7 +179,7 @@ function Perf-Run {
         # FIXME: Run only single `perf` in case of using -a option for Loopback test as it collects trace from entire system
         #
         # WARN: Must not redirect output to Out-Debug and Out-Null as client watches server's stdout
-        $Freq = 299
+        $Freq = 199
         sudo LD_LIBRARY_PATH=$BasePath perf record -F $Freq -g -o $(Join-Path $TempPerfDir $OutFile) $CommandSplit[0] $CommandSplit[1..$($CommandSplit.count-1)]
     }
 }
@@ -184,15 +192,16 @@ function Perf-Graph {
         if ($Remote) {
             $InputPath = $(Join-Path $TempPerfDir "server.perf.data")
             sudo -E perf script -i $InputPath > $(Join-Path $OutputPath "server.perf.data.txt")
-            cat $(Join-Path $OutputPath "server.perf.data.txt") | /usr/bin/stackcollapse-perf.pl | /usr/bin/flamegraph.pl > $(Join-Path $OutputPath "server.svg")
-            Remove-Item -Path $InputPath -Recurse -Force | Out-Null
+            cat $(Join-Path $OutputPath "server.perf.data.txt") | stackcollapse-perf.pl | flamegraph.pl > $(Join-Path $OutputPath "server.svg")
+            Remove-Item -Path $InputPath -Force | Out-Null
         } else {
-            $InputPath = $(Join-Path $TempPerfDir "client_*.perf.data")
-            foreach ($FileName in (Get-Item $(Join-Path $TempPerfDir "client_*.perf.data")).name) {
-                sudo -E perf script -i $(Join-Path $TempPerfDir $FileName) > $(Join-Path $OutputPath ($FileName.Split(".")[0] + ".perf.data.txt"))
-                cat $(Join-Path $OutputPath ($FileName.Split(".")[0] + ".perf.data.txt")) | /usr/bin/stackcollapse-perf.pl | /usr/bin/flamegraph.pl > $(Join-Path $OutputPath ($FileName.Split(".")[0] + ".svg"))
+            1..$NumIterations | ForEach-Object {
+                $FileName = "client_$_.perf.data"
+                $InputPath = $(Join-Path $TempPerfDir $FileName)
+                sudo -E perf script -i $InputPath > $(Join-Path $OutputPath ($FileName.Split(".")[0] + ".perf.data.txt"))
+                cat $(Join-Path $OutputPath ($FileName.Split(".")[0] + ".perf.data.txt")) | stackcollapse-perf.pl | flamegraph.pl > $(Join-Path $OutputPath ($FileName.Split(".")[0] + ".svg"))
+                Remove-Item -Path $InputPath -Force | Out-Null
             }
-            Remove-Item -Path $InputPath -Recurse -Force | Out-Null
         }
         if (@(Get-ChildItem $TempPerfDir).count -eq 0) {
             Remove-Item -Path $TempPerfDir -Recurse -Force | Out-Null

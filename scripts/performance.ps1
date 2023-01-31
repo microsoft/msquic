@@ -482,7 +482,7 @@ function Invoke-Test {
     try {
         1..$NumIterations | ForEach-Object {
             Write-LogAndDebug "Running Local: $LocalExe Args: $LocalArguments"
-            $LocalResults = Invoke-LocalExe -Exe $LocalExe -RunArgs $LocalArguments -Timeout $Timeout -OutputDir $OutputDir -HistogramFileName "$($Test)_run$($_).txt"
+            $LocalResults = Invoke-LocalExe -Exe $LocalExe -RunArgs $LocalArguments -Timeout $Timeout -OutputDir $OutputDir -HistogramFileName "$($Test)_run$($_).txt" -Iteration $_
             Write-LogAndDebug $LocalResults
             $AllLocalParsedResults = Get-TestResult -Results $LocalResults -Matcher $Test.ResultsMatcher -FailureDefault $Test.FailureDefault
             $AllRunsResults += $AllLocalParsedResults
@@ -519,7 +519,7 @@ function Invoke-Test {
             sc.exe delete msquicpriv | Out-Null
         }
 
-        Stop-Tracing -LocalDirectory $LocalDirectory -OutputDir $OutputDir -Test $Test
+        Stop-Tracing -LocalDirectory $LocalDirectory -OutputDir $OutputDir -Test $Test -NumIterations $NumIterations
 
         if ($Record) {
             if ($Local) {
