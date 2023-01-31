@@ -184,6 +184,15 @@ function Perf-Run {
     }
 }
 
+function Perf-Cancel {
+    if (!$IsLinux) {
+        throw "perf command wapper is only for Linux"
+    } else {
+        sudo pkill perf
+        try { Remove-Item -Path $TempPerfDir -Recurse -Force | Out-Null } catch { }
+    }
+}
+
 function Perf-Graph {
     if (!$IsLinux) {
         throw "perf command wapper is only for Linux"
@@ -263,6 +272,7 @@ function Log-Cancel {
             try { Remove-Item -Path $TempLTTngDir -Recurse -Force | Out-Null } catch { }
             Write-Debug "Destroyed LTTng session ($InstanceName) and deleted $TempLTTngDir"
         }
+        Perf-Cancel
     }
     $global:LASTEXITCODE = 0
 }
