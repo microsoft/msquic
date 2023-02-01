@@ -484,6 +484,11 @@ if ($InitSubmodules) {
         git submodule init submodules/openssl
     }
 
+    if ($Tls -eq "openssl3") {
+        Write-Host "Initializing openssl3 submodule"
+        git submodule init submodules/openssl3
+    }
+
     if (!$DisableTest) {
         Write-Host "Initializing googletest submodule"
         git submodule init submodules/googletest

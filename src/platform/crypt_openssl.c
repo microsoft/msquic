@@ -55,6 +55,7 @@ EVP_MAC_CTX *CXPLAT_HMAC_SHA256_CTX_HANDLE;
 EVP_MAC_CTX *CXPLAT_HMAC_SHA384_CTX_HANDLE;
 EVP_MAC_CTX *CXPLAT_HMAC_SHA512_CTX_HANDLE;
 
+_Success_(return != 0)
 int
 CxPlatLoadCipher(
     _In_ char *cipher_name,
@@ -73,6 +74,7 @@ CxPlatLoadCipher(
     return 1;
 }
 
+_Success_(return != 0)
 int
 CxPlatLoadMAC(
     _In_ char *name,
@@ -91,6 +93,7 @@ CxPlatLoadMAC(
     return 1;
 }
 
+_Success_(return != 0)
 int
 CxPlatLoadHMACCTX(
     _In_ EVP_MAC *mac,

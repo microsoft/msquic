@@ -174,8 +174,8 @@ GenerateX509Cert(
         goto Exit;
     }
 
-    X509_gmtime_adj(X509_get_notBefore(Cert), 0);
-    X509_gmtime_adj(X509_get_notAfter(Cert), 31536000L);
+    X509_gmtime_adj(X509_getm_notBefore(Cert), 0);
+    X509_gmtime_adj(X509_getm_notAfter(Cert), 31536000L);
 
     X509_set_pubkey(Cert, PKey);
 

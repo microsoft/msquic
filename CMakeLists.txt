@@ -650,7 +650,7 @@ else() #!WIN32
     set(QUIC_CXX_FLAGS ${QUIC_COMMON_FLAGS})
 endif()
 
-if(QUIC_TLS STREQUAL "openssl")
+if(QUIC_TLS STREQUAL "openssl" OR  QUIC_TLS STREQUAL "openssl3")
     add_library(OpenSSL INTERFACE)
 
     include(FetchContent)
