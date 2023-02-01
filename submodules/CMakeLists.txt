@@ -124,7 +124,7 @@ if (WIN32)
     add_custom_command(
         WORKING_DIRECTORY $<IF:$<CONFIG:Debug>,${QUIC_BUILD_DIR}/submodules/${QUIC_OPENSSL}/debug,${QUIC_BUILD_DIR}/submodules/${QUIC_OPENSSL}/release>
         OUTPUT $<IF:$<CONFIG:Debug>,${QUIC_BUILD_DIR}/submodules/${QUIC_OPENSSL}/debug/makefile,${QUIC_BUILD_DIR}/submodules/${QUIC_OPENSSL}/release/makefile>
-        COMMAND perl ${CMAKE_CURRENT_SOURCE_DIR}/openssl/Configure ${OPENSSL_CONFIG_FLAGS} $<$<CONFIG:Debug>:--debug> $<$<CONFIG:Debug>:--prefix=${OPENSSL_DIR}/debug> $<$<NOT:$<CONFIG:Debug>>:--prefix=${OPENSSL_DIR}/release>
+        COMMAND perl ${CMAKE_CURRENT_SOURCE_DIR}/${QUIC_OPENSSL}/Configure ${OPENSSL_CONFIG_FLAGS} $<$<CONFIG:Debug>:--debug> $<$<CONFIG:Debug>:--prefix=${OPENSSL_DIR}/debug> $<$<NOT:$<CONFIG:Debug>>:--prefix=${OPENSSL_DIR}/release>
 
         COMMENT "OpenSSL configure"
     )
@@ -300,7 +300,7 @@ else()
     if (QUIC_USE_OPENSSL3 AND QUIC_USE_SYSTEM_LIBCRYPTO)
         # OpenSSL 3 uses different sources for static and dynamic libraries.
         # That is ok if you use either one consistently but it fails to link when we use dynamic crypto with static ssl.
-        # To fix that we need little hackery - see openssl3/ssl/build.info 
+        # To fix that we need little hackery - see openssl3/ssl/build.info
         add_custom_command(
             OUTPUT ${LIBSSL_PATH}
             OUTPUT ${LIBCRYPTO_PATH}
