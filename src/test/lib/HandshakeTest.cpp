@@ -919,14 +919,7 @@ QuicTestCustomClientCertificateValidation(
 
                 if (AsyncValidation) {
                     CxPlatSleep(2000);
-                    BOOLEAN Value = !!AcceptCert;
-                    TEST_QUIC_SUCCEEDED(
-                        MsQuic->SetParam(
-                            Server->GetConnection(),
-                            QUIC_PARAM_CONN_PEER_CERTIFICATE_VALID,
-                            sizeof(Value),
-                            &Value));
-                    // TEST_QUIC_SUCCEEDED(Server->SetCustomValidationResult(AcceptCert));
+                    TEST_QUIC_SUCCEEDED(Server->SetCustomValidationResult(AcceptCert));
                 }
 
                 if (!Client.WaitForConnectionComplete()) {

@@ -7317,7 +7317,6 @@ QuicConnProcessApiOperation(
         break;
 
     case QUIC_API_TYPE_CONN_COMPLETE_CERTIFICATE_VALIDATION:
-        CXPLAT_DBG_ASSERT(QuicConnIsClient(Connection));
         QuicCryptoCustomCertValidationComplete(
             &Connection->Crypto,
             ApiCtx->CONN_COMPLETE_CERTIFICATE_VALIDATION.Result);
