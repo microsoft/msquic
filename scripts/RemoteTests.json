@@ -63,7 +63,7 @@
             "TestName": "ThroughputUp",
             "Local" : {
                 "Platform": "linux",
-                "Tls": ["openssl"],
+                "Tls": ["openssl", "openssl3"],
                 "Arch": ["x64", "arm"],
                 "Exe": "secnetperf",
                 "Arguments": "-exec:maxtput -test:Throughput -target:$RemoteAddress -uni:1 -timed:1 -upload:12000 -stats:1 -sstats:1"
@@ -143,7 +143,7 @@
             "TestName": "ThroughputDown",
             "Local" : {
                 "Platform": "linux",
-                "Tls": ["openssl"],
+                "Tls": ["openssl", "openssl3"],
                 "Arch": ["x64", "arm"],
                 "Exe": "secnetperf",
                 "Arguments": "-exec:maxtput -test:Throughput -target:$RemoteAddress -uni:1 -timed:1 -download:12000 -stats:1"
@@ -214,7 +214,7 @@
             "TestName": "RPS",
             "Local": {
                 "Platform": "linux",
-                "Tls": ["openssl"],
+                "Tls": ["openssl", "openssl3"],
                 "Arch": ["x64", "arm"],
                 "Exe": "secnetperf",
                 "Arguments": "-exec:lowlat -test:RPS -target:$RemoteAddress"
@@ -276,7 +276,7 @@
             "TestName": "HPS",
             "Local": {
                 "Platform": "linux",
-                "Tls": ["openssl"],
+                "Tls": ["openssl", "openssl3"],
                 "Arch": ["x64", "arm"],
                 "Exe": "secnetperf",
                 "Arguments": "-exec:maxtput -test:HPS -target:$RemoteAddress"
