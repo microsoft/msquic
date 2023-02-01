@@ -88,6 +88,7 @@ struct ServerAcceptContext {
     bool AsyncCustomTicketValidation{false};
     QUIC_STATUS ExpectedCustomTicketValidationResult{QUIC_STATUS_SUCCESS};
     bool AsyncCustomCertValidation{false};
+    bool IsCustomCertValidationResultSet{false};
     bool CustomCertValidationResult{false};
     ServerAcceptContext(TestConnection** _NewConnection) :
         NewConnection(_NewConnection) {

@@ -114,7 +114,9 @@ ListenerAcceptConnection(
     *AcceptContext->NewConnection = new(std::nothrow) TestConnection(ConnectionHandle, (NEW_STREAM_CALLBACK_HANDLER)AcceptContext->NewStreamHandler);
     (*AcceptContext->NewConnection)->SetExpectedCustomTicketValidationResult(AcceptContext->ExpectedCustomTicketValidationResult);
     (*AcceptContext->NewConnection)->SetAsyncCustomValidationResult(AcceptContext->AsyncCustomCertValidation);
-    (*AcceptContext->NewConnection)->SetExpectedCustomValidationResult(AcceptContext->CustomCertValidationResult);
+    if (AcceptContext->IsCustomCertValidationResultSet) {
+        (*AcceptContext->NewConnection)->SetExpectedCustomValidationResult(AcceptContext->CustomCertValidationResult);
+    }
     if (*AcceptContext->NewConnection == nullptr || !(*AcceptContext->NewConnection)->IsValid()) {
         TEST_FAILURE("Failed to accept new TestConnection.");
         delete *AcceptContext->NewConnection;
@@ -880,7 +882,10 @@ QuicTestCustomClientCertificateValidation(
                 ServerAcceptCtx.NewStreamHandler = (void*)NewStreamCallbackTestFail;
             }
             ServerAcceptCtx.AsyncCustomCertValidation = AsyncValidation;
-            ServerAcceptCtx.CustomCertValidationResult = AcceptCert;
+            if (!AsyncValidation) {
+                ServerAcceptCtx.IsCustomCertValidationResultSet = true;
+                ServerAcceptCtx.CustomCertValidationResult = AcceptCert;
+            }
             ServerAcceptCtx.AddExpectedClientCertValidationResult(QUIC_STATUS_CERT_UNTRUSTED_ROOT);
             Listener.Context = &ServerAcceptCtx;
 
