@@ -75,10 +75,12 @@ typedef struct QUIC_TEST_DATAPATH_HOOKS {
 //
 #define QUIC_TEST_DATAPATH_HOOKS_ENABLED 1
 
+#ifndef QUIC_TEST_OPENSSL_FLAGS // Not supported on OpenSSL currently
 //
 // Failing test certificates are only available for debug builds
 //
 #define QUIC_TEST_FAILING_TEST_CERTIFICATES 1
+#endif
 
 //
 // Allocation failures are currently only enabled on debug builds.
