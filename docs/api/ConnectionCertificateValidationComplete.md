@@ -11,7 +11,8 @@ _IRQL_requires_max_(DISPATCH_LEVEL)
 QUIC_STATUS
 (QUIC_API * QUIC_CONNECTION_COMP_CERT_FN)(
     _In_ _Pre_defensive_ HQUIC Connection,
-    _In_ BOOLEAN Result
+    _In_ BOOLEAN Result,
+    _In_ QUIC_TLS_ALERT_CODES TlsAlert
     );
 ```
 

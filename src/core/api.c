@@ -1652,7 +1652,8 @@ QUIC_STATUS
 QUIC_API
 MsQuicConnectionResumptionTicketValidationComplete(
     _In_ _Pre_defensive_ HQUIC Handle,
-    _In_ BOOLEAN Result
+    _In_ BOOLEAN Result,
+    _In_ QUIC_TLS_ALERT_CODES TlsAlert
     )
 {
     QUIC_STATUS Status;
@@ -1686,6 +1687,11 @@ MsQuicConnectionResumptionTicketValidationComplete(
         goto Error;
     }
 
+    if (!Result && TlsAlert > QUIC_TLS_ALERT_CODE_MAX) {
+        Status = QUIC_STATUS_INVALID_PARAMETER;
+        goto Error;
+    }
+
     if (Connection->Crypto.TlsState.HandshakeComplete ||
         Connection->Crypto.TlsState.SessionResumed) {
         Status = QUIC_STATUS_INVALID_STATE;
@@ -1704,6 +1710,7 @@ MsQuicConnectionResumptionTicketValidationComplete(
     }
 
     Oper->API_CALL.Context->Type = QUIC_API_TYPE_CONN_COMPLETE_RESUMPTION_TICKET_VALIDATION;
+    Oper->API_CALL.Context->CONN_COMPLETE_RESUMPTION_TICKET_VALIDATION.TlsAlert = TlsAlert;
     Oper->API_CALL.Context->CONN_COMPLETE_RESUMPTION_TICKET_VALIDATION.Result = Result;
 
     //

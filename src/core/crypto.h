@@ -271,7 +271,8 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicCryptoCustomCertValidationComplete(
     _In_ QUIC_CRYPTO* Crypto,
-    _In_ BOOLEAN Result
+    _In_ BOOLEAN Result,
+    _In_ QUIC_TLS_ALERT_CODES TlsAlert
     );
 
 //

@@ -117,6 +117,7 @@ typedef struct QUIC_API_CONTEXT {
         } CONN_SEND_RESUMPTION_TICKET;
 
         struct {
+            QUIC_TLS_ALERT_CODES TlsAlert;
             BOOLEAN Result;
         } CONN_COMPLETE_RESUMPTION_TICKET_VALIDATION;
 
