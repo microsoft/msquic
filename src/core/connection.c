@@ -6468,7 +6468,7 @@ QuicConnParamSet(
         QuicCryptoCustomCertValidationComplete(
             &Connection->Crypto,
             *(BOOLEAN*)Buffer,
-            CXPLAT_TLS_ALERT_CODE_BAD_CERTIFICATE);
+            QUIC_TLS_ALERT_CODE_BAD_CERTIFICATE);
         Status = QUIC_STATUS_SUCCESS;
         break;
 
