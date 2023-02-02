@@ -1884,6 +1884,7 @@ TEST(Misc, SlowReceive) {
 }
 
 #ifdef QUIC_TEST_ALLOC_FAILURES_ENABLED
+#ifndef QUIC_TEST_OPENSSL_FLAGS // Not supported on OpenSSL
 TEST(Misc, NthAllocFail) {
     TestLogger Logger("NthAllocFail");
     if (TestingKernelMode) {
@@ -1892,7 +1893,8 @@ TEST(Misc, NthAllocFail) {
         QuicTestNthAllocFail();
     }
 }
-#endif
+#endif // QUIC_TEST_OPENSSL_FLAGS
+#endif // QUIC_TEST_ALLOC_FAILURES_ENABLED
 
 TEST(Misc, StreamPriority) {
     TestLogger Logger("StreamPriority");

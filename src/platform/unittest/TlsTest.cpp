@@ -1540,7 +1540,6 @@ TEST_F(TlsTest, ExtraCertificateValidation)
     }
 }
 
-#ifndef QUIC_DISABLE_PORTABLE_CERTIFICATE_TESTS
 TEST_F(TlsTest, PortableCertificateValidation)
 {
     CxPlatClientSecConfig ClientConfig(
@@ -1565,6 +1564,7 @@ TEST_F(TlsTest, PortableCertificateValidation)
     }
 }
 
+#ifndef QUIC_TEST_OPENSSL_FLAGS // Not supported on OpenSSL
 TEST_F(TlsTest, InProcPortableCertificateValidation)
 {
     CxPlatClientSecConfig ClientConfig(
