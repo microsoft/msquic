@@ -178,8 +178,10 @@ function Perf-Run {
         #        https://github.com/microsoft/perfview/issues/1793
         # FIXME: Run only single `perf` in case of using -a option for Loopback test as it collects trace from entire system
         #
+        # WARN: If all test cases runs, timeout need to be more than 90 min with Freq of 99.
+        #       Especially HPS/RPS tests are heavy
         # WARN: Must not redirect output to Out-Debug and Out-Null as client watches server's stdout
-        $Freq = 99
+        $Freq = 399
         sudo LD_LIBRARY_PATH=$BasePath perf record -F $Freq -g -o $(Join-Path $TempPerfDir $OutFile) $CommandSplit[0] $CommandSplit[1..$($CommandSplit.count-1)]
     }
 }
