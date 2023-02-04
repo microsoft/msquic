@@ -339,7 +339,11 @@ else()
     if (QUIC_USE_SYSTEM_LIBCRYPTO)
         include(FindOpenSSL)
         if (OPENSSL_FOUND)
-            if (OPENSSL_VERSION VERSION_EQUAL EXPECTED_OPENSSL_VERSION OR OPENSSL_VERSION VERSION_GREATER EXPECTED_OPENSSL_VERSION)
+            # Get Major.Minor so 3.0 can match 3.0.2.
+            # We cannot use VERSION_GREATER as 3.0 would work for 1.1.1 but they are not compatible.
+            string(FIND ${OPENSSL_VERSION} "." VERSIONLEN REVERSE)
+            string(SUBSTRING ${OPENSSL_VERSION} 0 ${VERSIONLEN}  OPENSSL_MAJORMINOR)
+            if (OPENSSL_VERSION VERSION_EQUAL EXPECTED_OPENSSL_VERSION OR OPENSSL_MAJORMINOR VERSION_EQUAL EXPECTED_OPENSSL_VERSION)
                 target_link_libraries(OpenSSLQuic INTERFACE OpenSSL::Crypto)
             else()
                 message(FATAL_ERROR "OpenSSL ${EXPECTED_OPENSSL_VERSION} not found, found ${OPENSSL_VERSION}")
