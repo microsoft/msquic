@@ -44,6 +44,25 @@ namespace Microsoft.Quic
         COUNT,
     }
 
+    internal enum QUIC_TLS_ALERT_CODES
+    {
+        SUCCESS = 0xFFFF,
+        UNEXPECTED_MESSAGE = 10,
+        BAD_CERTIFICATE = 42,
+        UNSUPPORTED_CERTIFICATE = 43,
+        CERTIFICATE_REVOKED = 44,
+        CERTIFICATE_EXPIRED = 45,
+        CERTIFICATE_UNKNOWN = 46,
+        ILLEGAL_PARAMETER = 47,
+        UNKNOWN_CA = 48,
+        ACCESS_DENIED = 49,
+        INSUFFICIENT_SECURITY = 71,
+        INTERNAL_ERROR = 80,
+        USER_CANCELED = 90,
+        CERTIFICATE_REQUIRED = 116,
+        MAX = 255,
+    }
+
     internal enum QUIC_CREDENTIAL_TYPE
     {
         NONE,
@@ -2853,7 +2872,7 @@ namespace Microsoft.Quic
         internal delegate* unmanaged[Cdecl]<QUIC_HANDLE*, byte, int> ConnectionResumptionTicketValidationComplete;
 
         [NativeTypeName("QUIC_CONNECTION_COMP_CERT_FN")]
-        internal delegate* unmanaged[Cdecl]<QUIC_HANDLE*, byte, int> ConnectionCertificateValidationComplete;
+        internal delegate* unmanaged[Cdecl]<QUIC_HANDLE*, byte, QUIC_TLS_ALERT_CODES, int> ConnectionCertificateValidationComplete;
     }
 
     internal static unsafe partial class MsQuic
