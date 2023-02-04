@@ -175,12 +175,18 @@ extern
 #ifdef __cplusplus
     "C"
 #endif
-char * __attribute__((no_instrument_function))
+char *
+#ifndef _WIN32
+__attribute__((no_instrument_function))
+#endif
 casted_clog_bytearray(const uint8_t * const data,
                       const size_t len,
                       struct clog_param ** head);
 #else
-inline char * __attribute__((no_instrument_function))
+inline char *
+#ifndef _WIN32
+__attribute__((no_instrument_function))
+#endif
 casted_clog_bytearray(const uint8_t * const data,
                       const size_t len,
                       struct clog_param ** head)

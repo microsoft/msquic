@@ -1757,11 +1757,6 @@ MsQuicConnectionCertificateValidationComplete(
 
     QUIC_CONN_VERIFY(Connection, !Connection->State.Freed);
 
-    if (QuicConnIsServer(Connection)) {
-        Status = QUIC_STATUS_INVALID_PARAMETER;
-        goto Error;
-    }
-
     if (!Result && TlsAlert > QUIC_TLS_ALERT_CODE_MAX) {
         Status = QUIC_STATUS_INVALID_PARAMETER;
         goto Error;
