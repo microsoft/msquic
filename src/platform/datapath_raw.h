@@ -267,6 +267,7 @@ typedef struct CXPLAT_SOCKET {
     uint8_t CibirIdOffsetSrc;   // CIBIR ID offset in source CID
     uint8_t CibirIdOffsetDst;   // CIBIR ID offset in destination CID
     uint8_t CibirId[6];         // CIBIR ID data
+    BOOLEAN UseTcp;             // Quic over TCP
 
 } CXPLAT_SOCKET;
 

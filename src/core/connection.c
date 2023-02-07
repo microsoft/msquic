@@ -1915,6 +1915,9 @@ QuicConnStart(
 #ifdef QUIC_OWNING_PROCESS
     UdpConfig.OwningProcess = Configuration->OwningProcess;
 #endif
+#ifdef QUIC_USE_RAW_DATAPATH
+    UdpConfig.UseTcp = Path->Route.UseTcp;
+#endif
 
     //
     // Get the binding for the current local & remote addresses.
@@ -6157,7 +6160,9 @@ QuicConnParamSet(
 #ifdef QUIC_OWNING_PROCESS
             UdpConfig.OwningProcess = Connection->Configuration->OwningProcess;
 #endif
-
+#ifdef QUIC_USE_RAW_DATAPATH
+            UdpConfig.UseTcp = Connection->Paths[0].Route.UseTcp;
+#endif
             Status =
                 QuicLibraryGetBinding(
                     &UdpConfig,

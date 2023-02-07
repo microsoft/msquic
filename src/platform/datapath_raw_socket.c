@@ -112,8 +112,8 @@ CxPlatTryAddSocket(
     Socket->AuxSocket =
         socket(
             AF_INET6,
-            SOCK_DGRAM,
-            IPPROTO_UDP);
+            Socket->UseTcp ? SOCK_STREAM : SOCK_DGRAM,
+            Socket->UseTcp ? IPPROTO_TCP : IPPROTO_UDP);
     if (Socket->AuxSocket == INVALID_SOCKET) {
         int WsaError = SocketError();
         QuicTraceEvent(
@@ -195,7 +195,7 @@ CxPlatTryAddSocket(
         goto Error;
     }
 
-    if (Socket->Connected) {
+    if (Socket->Connected && !Socket->UseTcp) {
         CxPlatZeroMemory(&MappedAddress, sizeof(MappedAddress));
         CxPlatConvertToMappedV6(&Socket->RemoteAddress, &MappedAddress);
 

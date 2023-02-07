@@ -406,6 +406,7 @@ CxPlatSocketCreateUdp(
     (*NewSocket)->CibirIdLength = Config->CibirIdLength;
     (*NewSocket)->CibirIdOffsetSrc = Config->CibirIdOffsetSrc;
     (*NewSocket)->CibirIdOffsetDst = Config->CibirIdOffsetDst;
+    (*NewSocket)->UseTcp = Config->UseTcp;
     if (Config->CibirIdLength) {
         memcpy((*NewSocket)->CibirId, Config->CibirId, Config->CibirIdLength);
     }
