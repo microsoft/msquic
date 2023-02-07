@@ -62,11 +62,12 @@ uint16_t
 QuicCalculateDatagramLength(
     _In_ QUIC_ADDRESS_FAMILY Family,
     _In_ uint16_t Mtu,
-    _In_ uint8_t CidLength
+    _In_ uint8_t CidLength,
+    _In_ BOOLEAN IsTcp
     )
 {
     return
-        MaxUdpPayloadSizeForFamily(Family, Mtu) -
+        MaxUdpPayloadSizeForFamily(Family, Mtu, IsTcp) -
         QUIC_DATAGRAM_OVERHEAD(CidLength) -
         CXPLAT_ENCRYPTION_OVERHEAD;
 }
@@ -270,14 +271,16 @@ QuicDatagramOnSendStateChanged(
                 QuicCalculateDatagramLength(
                     QUIC_ADDRESS_FAMILY_INET6,
                     QUIC_DPLPMTUD_MIN_MTU,
-                    QUIC_MIN_INITIAL_CONNECTION_ID_LENGTH);
+                    QUIC_MIN_INITIAL_CONNECTION_ID_LENGTH,
+                    Connection->Settings.QuicOverTcpEnabled);
         } else {
             const QUIC_PATH* Path = &Connection->Paths[0];
             MtuMaxSendLength =
                 QuicCalculateDatagramLength(
                     QuicAddrGetFamily(&Path->Route.RemoteAddress),
                     Path->Mtu,
-                    Path->DestCid->CID.Length);
+                    Path->DestCid->CID.Length,
+                    Path->Route.UseTcp);
         }
         if (NewMaxSendLength > MtuMaxSendLength) {
             NewMaxSendLength = MtuMaxSendLength;

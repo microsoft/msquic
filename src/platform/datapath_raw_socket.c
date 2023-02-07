@@ -546,6 +546,20 @@ typedef struct UDP_HEADER {
     uint8_t Data[0];
 } UDP_HEADER;
 
+typedef struct TCP_HEADER {
+    uint16_t SourcePort;
+    uint16_t DestinationPort;
+    uint32_t Seq;
+    uint32_t Ack;
+    uint8_t X2     : 4;
+    uint8_t HdrLen : 4;
+    uint8_t Flags;
+    uint16_t Win;
+    uint16_t Checksum;
+    uint16_t UrgentPointer;
+    uint8_t Data[0];
+} TCP_HEADER;
+
 #pragma pack(pop)
 
 //
@@ -777,11 +791,12 @@ CxPlatDpRawParseEthernet(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 HEADER_BACKFILL
 CxPlatDpRawCalculateHeaderBackFill(
-    _In_ QUIC_ADDRESS_FAMILY Family
+    _In_ QUIC_ADDRESS_FAMILY Family,
+    _In_ BOOLEAN UseTcp
     )
 {
     HEADER_BACKFILL HeaderBackFill;
-    HeaderBackFill.TransportLayer = sizeof(UDP_HEADER);
+    HeaderBackFill.TransportLayer = UseTcp ? sizeof(TCP_HEADER) : sizeof(UDP_HEADER);
     HeaderBackFill.NetworkLayer =
         Family == QUIC_ADDRESS_FAMILY_INET ? sizeof(IPV4_HEADER) : sizeof(IPV6_HEADER);
     HeaderBackFill.LinkLayer = sizeof(ETHERNET_HEADER);

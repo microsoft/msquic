@@ -1073,6 +1073,21 @@ QuicLibrarySetGlobalParam(
         Status = QUIC_STATUS_SUCCESS;
         break;
 
+#ifdef QUIC_USE_RAW_DATAPATH
+    case QUIC_PARAM_GLOBAL_QUIC_OVER_TCP:
+        if (Buffer == NULL ||
+            BufferLength < sizeof(BOOLEAN)) {
+            Status = QUIC_STATUS_INVALID_PARAMETER;
+            break;
+        }
+
+        MsQuicLib.Settings.IsSet.QuicOverTcpEnabled = TRUE;
+        MsQuicLib.Settings.QuicOverTcpEnabled = *(BOOLEAN*)Buffer;
+
+        Status = QUIC_STATUS_SUCCESS;
+        break;
+#endif
+
     default:
         Status = QUIC_STATUS_INVALID_PARAMETER;
         break;
@@ -1321,6 +1336,26 @@ QuicLibraryGetGlobalParam(
 
         Status = QUIC_STATUS_SUCCESS;
         break;
+
+#ifdef QUIC_USE_RAW_DATAPATH
+    case QUIC_PARAM_GLOBAL_QUIC_OVER_TCP:
+        if (*BufferLength < sizeof(BOOLEAN)) {
+            *BufferLength = sizeof(BOOLEAN);
+            Status = QUIC_STATUS_BUFFER_TOO_SMALL;
+            break;
+        }
+
+        if (Buffer == NULL) {
+            Status = QUIC_STATUS_INVALID_PARAMETER;
+            break;
+        }
+
+        *BufferLength = sizeof(BOOLEAN);
+        *(BOOLEAN*)Buffer = MsQuicLib.Settings.QuicOverTcpEnabled;
+
+        Status = QUIC_STATUS_SUCCESS;
+        break;
+#endif
 
     default:
         Status = QUIC_STATUS_INVALID_PARAMETER;

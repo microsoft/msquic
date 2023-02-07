@@ -1053,7 +1053,7 @@ QuicSendPathChallenges(
             Builder.MinimumDatagramLength =
                 MaxUdpPayloadSizeForFamily(
                     QuicAddrGetFamily(&Builder.Path->Route.RemoteAddress),
-                    Builder.Path->Mtu);
+                    Builder.Path->Mtu, Builder.Path->Route.UseTcp);
 
             if ((uint32_t)Builder.MinimumDatagramLength > Builder.Datagram->Length) {
                 //

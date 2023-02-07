@@ -181,7 +181,8 @@ typedef struct HEADER_BACKFILL {
 _IRQL_requires_max_(DISPATCH_LEVEL)
 HEADER_BACKFILL
 CxPlatDpRawCalculateHeaderBackFill(
-    _In_ QUIC_ADDRESS_FAMILY Family
+    _In_ QUIC_ADDRESS_FAMILY Family,
+    _In_ BOOLEAN UseTcp
     );
 
 //

@@ -33,6 +33,9 @@ QuicPathInitialize(
     Path->RttVariance = Path->SmoothedRtt / 2;
     Path->EcnValidationState =
         Connection->Settings.EcnEnabled ? ECN_VALIDATION_TESTING : ECN_VALIDATION_FAILED;
+#ifdef QUIC_USE_RAW_DATAPATH
+    Path->Route.UseTcp = Connection->Settings.QuicOverTcpEnabled;
+#endif
     QuicTraceLogConnInfo(
         PathInitialized,
         Connection,

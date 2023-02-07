@@ -1605,7 +1605,7 @@ CxPlatDpRawTxAlloc(
     UNREFERENCED_PARAMETER(Datapath);
 
     if (Packet) {
-        HEADER_BACKFILL HeaderBackfill = CxPlatDpRawCalculateHeaderBackFill(Family); // TODO - Cache in Route?
+        HEADER_BACKFILL HeaderBackfill = CxPlatDpRawCalculateHeaderBackFill(Family, Config->Route->UseTcp); // TODO - Cache in Route?
         CXPLAT_DBG_ASSERT(Config->MaxPacketSize <= sizeof(Packet->FrameBuffer) - HeaderBackfill.AllLayer);
         Packet->Queue = Queue;
         Packet->Buffer.Length = Config->MaxPacketSize;

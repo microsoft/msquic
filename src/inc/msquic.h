@@ -812,6 +812,9 @@ void
 #define QUIC_PARAM_GLOBAL_EXECUTION_CONFIG              0x01000009  // QUIC_EXECUTION_CONFIG
 #endif
 #define QUIC_PARAM_GLOBAL_TLS_PROVIDER                  0x0100000A  // QUIC_TLS_PROVIDER
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
+#define QUIC_PARAM_GLOBAL_QUIC_OVER_TCP                 0x0100000B  // uint8_t
+#endif
 
 //
 // Parameters for Registration.
