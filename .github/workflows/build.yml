@@ -28,6 +28,10 @@ jobs:
         tls: [schannel, openssl, openssl3]
         exclude:
         - os: ubuntu-20.04
+          arch: arm64     # Linux doesn't support arm64
+        - os: ubuntu-22.04
+          arch: arm64     # Linux doesn't support arm64
+        - os: ubuntu-20.04
           tls: schannel     # Linux doesn't support Schannel
         - os: ubuntu-22.04
           tls: schannel     # Linux doesn't support Schannel
