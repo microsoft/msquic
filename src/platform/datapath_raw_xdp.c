@@ -1371,7 +1371,6 @@ CxPlatDpRawPlumbRulesOnSocket(
         //
         // TODO - Optimization: apply only to the correct interface.
         //
-
         CXPLAT_LIST_ENTRY* Entry;
         XDP_MATCH_TYPE MatchType;
         uint8_t* IpAddress;
