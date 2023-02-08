@@ -536,7 +536,7 @@ CxPlatDpRawRxEthernet(
         CXPLAT_RECV_DATA* PacketChain = Packets[i];
         CXPLAT_DBG_ASSERT(PacketChain->Next == NULL);
 
-        if (PacketChain->Reserved == L4_TYPE_UDP) {
+        if (PacketChain->Reserved == L4_TYPE_UDP || PacketChain->Reserved == L4_TYPE_TCP) {
             Socket =
                 CxPlatGetSocket(
                     &Datapath->SocketPool,
@@ -544,6 +544,8 @@ CxPlatDpRawRxEthernet(
                     &PacketChain->Route->RemoteAddress);
         }
         if (Socket) {
+            uint8_t SocketType = Socket->UseTcp ? L4_TYPE_TCP : L4_TYPE_UDP;
+
             //
             // Found a match. Chain and deliver contiguous packets with the same 4-tuple.
             //
@@ -557,7 +559,7 @@ CxPlatDpRawRxEthernet(
                     CASTED_CLOG_BYTEARRAY(sizeof(Packets[i]->Route->LocalAddress), &Packets[i]->Route->LocalAddress),
                     CASTED_CLOG_BYTEARRAY(sizeof(Packets[i]->Route->RemoteAddress), &Packets[i]->Route->RemoteAddress));
                 if (i == PacketCount - 1 ||
-                    Packets[i+1]->Reserved != L4_TYPE_UDP ||
+                    Packets[i+1]->Reserved != SocketType ||
                     Packets[i+1]->Route->LocalAddress.Ipv4.sin_port != Socket->LocalAddress.Ipv4.sin_port ||
                     !CxPlatSocketCompare(Socket, &Packets[i+1]->Route->LocalAddress, &Packets[i+1]->Route->RemoteAddress)) {
                     break;
