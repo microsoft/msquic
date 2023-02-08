@@ -1,0 +1,60 @@
+name: Build
+
+on:
+  push:
+    branches:
+    - main
+    - release/*
+  pull_request:
+    branches:
+    - main
+    - release/*
+
+concurrency:
+  # Cancel any workflow currently in progress for the same PR.
+  # Allow running concurrently with any other commits.
+  group: build-${{ github.event.pull_request.number || github.sha }}
+  cancel-in-progress: true
+
+permissions: read-all
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-20.04, ubuntu-22.04, windows-2019, windows-2022, macos-12]
+        arch: [x86, x64, arm64]
+        tls: [schannel, openssl, openssl3]
+        exclude:
+        - os: ubuntu-20.04
+          tls: schannel     # Linux doesn't support Schannel
+        - os: ubuntu-22.04
+          tls: schannel     # Linux doesn't support Schannel
+        - os: macos-12
+          tls: schannel     # macOS doesn't support Schannel
+    runs-on: ${{ matrix.os }}
+    name: Build
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@ac593985615ec2ede58e132d2e21d2b1cbd6127c
+    - name: Prepare Machine
+      run: scripts/prepare-machine.ps1 -ForBuild -Tls ${{ matrix.tls }}
+      shell: pwsh
+    - name: Build Debug
+      shell: pwsh
+      run: scripts/build.ps1 -Config Debug -Arch ${{ matrix.arch }} -Tls ${{ matrix.tls }}
+    - name: Build Release
+      shell: pwsh
+      run: scripts/build.ps1 -Config Release -Arch ${{ matrix.arch }} -Tls ${{ matrix.tls }}
+    - uses: actions/upload-artifact@0b7f8abb1508181956e8e162db84b466c27e18ce
+      with:
+        name: bin
+        path: |
+          artifacts/bin
+          !artifacts/bin/**/*.ilk
+          !artifacts/bin/**/*.cer
+          !artifacts/bin/**/*.exp
+          !artifacts/bin/**/*.lastcodeanalysissucceeded
+          !artifacts/bin/**/*.pgd
+          !artifacts/bin/**/*.lib
