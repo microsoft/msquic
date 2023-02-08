@@ -144,6 +144,9 @@ QuicSettingsSetDefault(
     if (!Settings->IsSet.HyStartEnabled) {
         Settings->HyStartEnabled = QUIC_DEFAULT_HYSTART_ENABLED;
     }
+    if (!Settings->IsSet.QuicOverTcpEnabled) {
+        Settings->QuicOverTcpEnabled = QUIC_DEFAULT_QUIC_OVER_TCP_ENABLED;
+    }
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -287,6 +290,9 @@ QuicSettingsCopy(
     }
     if (!Destination->IsSet.HyStartEnabled) {
         Destination->HyStartEnabled = Source->HyStartEnabled;
+    }
+    if (!Destination->IsSet.QuicOverTcpEnabled) {
+        Destination->QuicOverTcpEnabled = Source->QuicOverTcpEnabled;
     }
 }
 

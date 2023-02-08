@@ -517,6 +517,11 @@ CXPLAT_STATIC_ASSERT(
 #define QUIC_DEFAULT_HYSTART_ENABLED                FALSE
 
 //
+// The default settings for enabling Quic over TCP.
+//
+#define QUIC_DEFAULT_QUIC_OVER_TCP_ENABLED          FALSE
+
+//
 // The number of rounds in Cubic Slow Start to sample RTT.
 //
 #define QUIC_HYSTART_DEFAULT_N_SAMPLING             8

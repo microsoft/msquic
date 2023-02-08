@@ -673,7 +673,7 @@ CxPlatDpRawParseIPv4(
             "[data][%p] ERROR, %u, %s.",
             Datapath,
             Length,
-            "unexpected IPv4 packet size (UDP)");
+            "unexpected IPv4 packet size");
         return;
     }
 
@@ -970,7 +970,7 @@ CxPlatFramingWriteHeaders(
         IPv4->VersionAndHeaderLength = IPV4_DEFAULT_VERHLEN;
         IPv4->TypeOfService = 0;
         IPv4->EcnField = ECN;
-        IPv4->TotalLength = htons(sizeof(IPV4_HEADER) + sizeof(UDP_HEADER) + (uint16_t)Buffer->Length);
+        IPv4->TotalLength = htons(sizeof(IPV4_HEADER) + TransportLength + (uint16_t)Buffer->Length);
         IPv4->Identification = 0;
         IPv4->FlagsAndFragmentOffset = 0;
         IPv4->TimeToLive = IP_DEFAULT_HOP_LIMIT;
@@ -1021,7 +1021,7 @@ CxPlatFramingWriteHeaders(
         VersionClassEcnFlow.Flow = (uint32_t)(uintptr_t)Socket;
 
         IPv6->VersionClassEcnFlow = CxPlatByteSwapUint32(VersionClassEcnFlow.Value);
-        IPv6->PayloadLength = htons(sizeof(UDP_HEADER) + (uint16_t)Buffer->Length);
+        IPv6->PayloadLength = htons(TransportLength + (uint16_t)Buffer->Length);
         IPv6->HopLimit = IP_DEFAULT_HOP_LIMIT;
         IPv6->NextHeader = TransportProtocol;
         CxPlatCopyMemory(IPv6->Source, &Route->LocalAddress.Ipv6.sin6_addr, sizeof(Route->LocalAddress.Ipv6.sin6_addr));
