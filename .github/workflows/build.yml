@@ -28,9 +28,9 @@ jobs:
         tls: [schannel, openssl, openssl3]
         exclude:
         - os: ubuntu-20.04
-          arch: arm64     # Linux doesn't support arm64
+          arch: arm64       # Linux doesn't support arm64
         - os: ubuntu-22.04
-          arch: arm64     # Linux doesn't support arm64
+          arch: arm64       # Linux doesn't support arm64
         - os: ubuntu-20.04
           tls: schannel     # Linux doesn't support Schannel
         - os: ubuntu-22.04
@@ -61,7 +61,7 @@ jobs:
       run: scripts/build.ps1 -Config Release -Arch ${{ matrix.arch }} -Tls ${{ matrix.tls }}
     - uses: actions/upload-artifact@0b7f8abb1508181956e8e162db84b466c27e18ce
       with:
-        name: bin
+        name: bin-${{ matrix.os }}-${{ matrix.arch }}-${{ matrix.tls }}
         path: |
           artifacts/bin
           !artifacts/bin/**/*.ilk
