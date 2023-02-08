@@ -102,6 +102,7 @@ PrintHelp(
 #ifndef _KERNEL_MODE
         "  -cpu:<cpu_index>            Specify the processor(s) to use.\n"
         "  -cipher:<value>             Decimal value of 1 or more QUIC_ALLOWED_CIPHER_SUITE_FLAGS.\n"
+        "  -qtip:<0/1>                 Enables/disables Quic over TCP support. (def:0)\n"
 #endif // _KERNEL_MODE
         "\n"
         );
@@ -188,6 +189,22 @@ QuicMainStart(
         WriteOutput("MsQuic Failed To Initialize: %d\n", Status);
         return Status;
     }
+
+#ifndef _KERNEL_MODE
+    uint8_t QuicOverTcpEnabled;
+    if (TryGetValue(argc, argv, "qtip", &QuicOverTcpEnabled)) {
+        Status =
+            MsQuic->SetParam(
+                nullptr,
+                QUIC_PARAM_GLOBAL_QUIC_OVER_TCP,
+                sizeof(QuicOverTcpEnabled),
+                &QuicOverTcpEnabled);
+        if (QUIC_FAILED(Status)) {
+            WriteOutput("MsQuic Failed To Set QuicOverTcpEnabled: %d\n", Status);
+            return Status;
+        }
+    }
+#endif
 
     uint8_t RawConfig[QUIC_EXECUTION_CONFIG_MIN_SIZE + 256 * sizeof(uint16_t)] = {0};
     QUIC_EXECUTION_CONFIG* Config = (QUIC_EXECUTION_CONFIG*)RawConfig;
