@@ -120,12 +120,21 @@ extern QUIC_TRACE_RUNDOWN_CALLBACK* QuicTraceRundownCallback;
 
 #ifdef QUIC_CLOG
 
+#if DEBUG
+#define QuicTraceLogStreamVerboseEnabled() TRUE
+#define QuicTraceLogErrorEnabled()   TRUE
+#define QuicTraceLogWarningEnabled() TRUE
+#define QuicTraceLogInfoEnabled()    TRUE
+#define QuicTraceLogVerboseEnabled() TRUE
+#define QuicTraceEventEnabled(x) TRUE
+#else
 #define QuicTraceLogStreamVerboseEnabled() FALSE
 #define QuicTraceLogErrorEnabled()   FALSE
 #define QuicTraceLogWarningEnabled() FALSE
 #define QuicTraceLogInfoEnabled()    FALSE
 #define QuicTraceLogVerboseEnabled() FALSE
 #define QuicTraceEventEnabled(x) FALSE
+#endif
 
 #define CASTED_CLOG_BYTEARRAY(Len, Data) CLOG_BYTEARRAY((unsigned char)(Len), (const unsigned char*)(Data))
 #else
