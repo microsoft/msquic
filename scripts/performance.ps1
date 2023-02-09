@@ -142,6 +142,7 @@ param (
 Set-StrictMode -Version 'Latest'
 $PSDefaultParameterValues['*:ErrorAction'] = 'Stop'
 $ProgressPreference = 'SilentlyContinue'
+$DebugPreference = 'Continue'
 
 # Validate the the switches.
 if ($Kernel) {

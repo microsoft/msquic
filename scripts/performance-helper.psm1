@@ -3,6 +3,7 @@
 Set-StrictMode -Version 'Latest'
 $PSDefaultParameterValues['*:ErrorAction'] = 'Stop'
 $ProgressPreference = 'SilentlyContinue'
+$DebugPreference = 'Continue'
 
 function Set-ScriptVariables {
     [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseShouldProcessForStateChangingFunctions', '')]
@@ -379,6 +380,7 @@ function Invoke-RemoteExe {
             if ($IsLinux -and $Record) {
                 & $LogScript -PerfRun -Command "$Exe $RunArgs" -Remote
             } else  {
+                Write-Output "Server Run: $Exe $RunArgs"
                 & $Exe ($RunArgs).Split(" ")
             }
         } finally {
@@ -580,6 +582,7 @@ function Invoke-LocalExe {
             $LogScript = Join-Path $LocalDirectory log.ps1
             $LocalJob = Start-Job -ScriptBlock { & $Using:LogScript -PerfRun -Command $Using:FullCommand -Iteration $Using:Iteration }
         } else  {
+            Write-Output "Client Run: $Exe $RunArgs"
             $LocalJob = Start-Job -ScriptBlock { & $Using:Exe ($Using:RunArgs).Split(" ") }
         }
     } finally {
