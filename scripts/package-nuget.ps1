@@ -87,6 +87,9 @@ $Architectures = "x64","x86","arm64"
 if ($XDP) {
     # XDP only supports x64
     $Architectures = "x64"
+} elseif ($Tls -ne "schannel") {
+    # OpenSSL doesn't support arm64 currently
+    $Architectures = "x64","x86"
 }
 
 # Copy artifacts to correct folders
