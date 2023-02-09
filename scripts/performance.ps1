@@ -485,19 +485,24 @@ function Invoke-Test {
             Write-LogAndDebug "Running Local: $LocalExe Args: $LocalArguments"
             $LocalResults = Invoke-LocalExe -Exe $LocalExe -RunArgs $LocalArguments -Timeout $Timeout -OutputDir $OutputDir -HistogramFileName "$($Test)_run$($_).txt" -Iteration $_
             Write-LogAndDebug $LocalResults
+            Write-Host "1"
             $AllLocalParsedResults = Get-TestResult -Results $LocalResults -Matcher $Test.ResultsMatcher -FailureDefault $Test.FailureDefault
+            Write-Host "2" $AllRunsResults.GetType().Name $AllLocalParsedResults.GetType().Name
             $AllRunsResults += $AllLocalParsedResults
+            Write-Host "3"
             if ($PGO) {
                 # Merge client PGO Counts
                 Merge-PGOCounts -Path $LocalExePath
             }
 
             $FormattedStrings = @()
-
+            Write-Host "4"
             for ($i = 1; $i -lt $AllLocalParsedResults.Count; $i++) {
                 $Formatted = [string]::Format($Test.Formats[$i - 1], $AllLocalParsedResults[$i])
+                Write-Host "5" $i
                 $FormattedStrings += $Formatted
             }
+            Write-Host "6"
 
             $Joined = [string]::Join(", ", $FormattedStrings)
 

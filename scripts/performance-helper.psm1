@@ -380,7 +380,7 @@ function Invoke-RemoteExe {
             if ($IsLinux -and $Record) {
                 & $LogScript -PerfRun -Command "$Exe $RunArgs" -Remote
             } else  {
-                Write-Output "Server Run: $Exe $RunArgs"
+                Write-Host "Server Run: $Exe $RunArgs"
                 & $Exe ($RunArgs).Split(" ")
             }
         } finally {
@@ -582,7 +582,7 @@ function Invoke-LocalExe {
             $LogScript = Join-Path $LocalDirectory log.ps1
             $LocalJob = Start-Job -ScriptBlock { & $Using:LogScript -PerfRun -Command $Using:FullCommand -Iteration $Using:Iteration }
         } else  {
-            Write-Output "Client Run: $Exe $RunArgs"
+            Write-Host "Client Run: $Exe $RunArgs"
             $LocalJob = Start-Job -ScriptBlock { & $Using:Exe ($Using:RunArgs).Split(" ") }
         }
     } finally {
