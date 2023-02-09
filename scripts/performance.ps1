@@ -485,12 +485,12 @@ function Invoke-Test {
             Write-LogAndDebug "Running Local: $LocalExe Args: $LocalArguments"
             $LocalResults = Invoke-LocalExe -Exe $LocalExe -RunArgs $LocalArguments -Timeout $Timeout -OutputDir $OutputDir -HistogramFileName "$($Test)_run$($_).txt" -Iteration $_
             Write-LogAndDebug $LocalResults
-            Write-Host "1"
+            #Write-Host "1"
             $AllLocalParsedResults = Get-TestResult -Results $LocalResults -Matcher $Test.ResultsMatcher -FailureDefault $Test.FailureDefault
-            Write-Host "2"
+            #Write-Host "2"
             #Write-Host "2" $AllRunsResults.GetType().Name $AllLocalParsedResults.GetType().Name
             $AllRunsResults += $AllLocalParsedResults
-            Write-Host "3"
+            #Write-Host "3"
             if ($PGO) {
                 # Merge client PGO Counts
                 Merge-PGOCounts -Path $LocalExePath
