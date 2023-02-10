@@ -1368,6 +1368,7 @@ QuicCryptoProcessTlsCompletion(
     _In_ QUIC_CRYPTO* Crypto
     )
 {
+    CXPLAT_DBG_ASSERT(!Crypto->TicketValidationPending && !Crypto->CertValidationPending);
     QUIC_CONNECTION* Connection = QuicCryptoGetConnection(Crypto);
 
     if (Crypto->ResultFlags & CXPLAT_TLS_RESULT_ERROR) {
@@ -1556,6 +1557,7 @@ QuicCryptoProcessTlsCompletion(
     if (Crypto->ResultFlags & CXPLAT_TLS_RESULT_HANDSHAKE_COMPLETE) {
         CXPLAT_DBG_ASSERT(!(Crypto->ResultFlags & CXPLAT_TLS_RESULT_ERROR));
         CXPLAT_TEL_ASSERT(!Connection->State.Connected);
+        CXPLAT_DBG_ASSERT(!Crypto->TicketValidationPending && !Crypto->CertValidationPending);
 
         QuicTraceEvent(
             ConnHandshakeComplete,
@@ -1698,7 +1700,8 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicCryptoCustomCertValidationComplete(
     _In_ QUIC_CRYPTO* Crypto,
-    _In_ BOOLEAN Result
+    _In_ BOOLEAN Result,
+    _In_ QUIC_TLS_ALERT_CODES TlsAlert
     )
 {
     if (!Crypto->CertValidationPending) {
@@ -1718,9 +1721,10 @@ QuicCryptoCustomCertValidationComplete(
             "[conn][%p] ERROR, %s.",
             QuicCryptoGetConnection(Crypto),
             "Custom cert validation failed.");
+        CXPLAT_DBG_ASSERT(TlsAlert <= QUIC_TLS_ALERT_CODE_MAX);
         QuicConnTransportError(
             QuicCryptoGetConnection(Crypto),
-            QUIC_ERROR_CRYPTO_ERROR(0xFF & CXPLAT_TLS_ALERT_CODE_BAD_CERTIFICATE));
+            QUIC_ERROR_CRYPTO_ERROR(0xFF & TlsAlert));
     }
     Crypto->PendingValidationBufferLength = 0;
 }

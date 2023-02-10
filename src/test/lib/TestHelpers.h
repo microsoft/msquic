@@ -79,6 +79,7 @@ class TestConnection;
 struct ServerAcceptContext {
     CXPLAT_EVENT NewConnectionReady;
     TestConnection** NewConnection;
+    void* NewStreamHandler{nullptr};
     QUIC_STATUS ExpectedTransportCloseStatus{QUIC_STATUS_SUCCESS};
     QUIC_STATUS ExpectedClientCertValidationResult[2]{};
     uint32_t ExpectedClientCertValidationResultCount{0};
@@ -86,6 +87,9 @@ struct ServerAcceptContext {
     QUIC_PRIVATE_TRANSPORT_PARAMETER* TestTP{nullptr};
     bool AsyncCustomTicketValidation{false};
     QUIC_STATUS ExpectedCustomTicketValidationResult{QUIC_STATUS_SUCCESS};
+    bool AsyncCustomCertValidation{false};
+    bool IsCustomCertValidationResultSet{false};
+    bool CustomCertValidationResult{false};
     ServerAcceptContext(TestConnection** _NewConnection) :
         NewConnection(_NewConnection) {
         CxPlatEventInitialize(&NewConnectionReady, TRUE, FALSE);

@@ -966,16 +966,29 @@ TEST_P(WithFamilyArgs, FailedVersionNegotiation) {
 }
 #endif // QUIC_API_ENABLE_PREVIEW_FEATURES
 
-TEST_P(WithHandshakeArgs5, CustomCertificateValidation) {
-    TestLoggerT<ParamType> Logger("QuicTestCustomCertificateValidation", GetParam());
+TEST_P(WithHandshakeArgs5, CustomServerCertificateValidation) {
+    TestLoggerT<ParamType> Logger("QuicTestCustomServerCertificateValidation", GetParam());
     if (TestingKernelMode) {
         QUIC_RUN_CUSTOM_CERT_VALIDATION Params = {
             GetParam().AcceptCert,
             GetParam().AsyncValidation
         };
-        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_CUSTOM_CERT_VALIDATION, Params));
+        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_CUSTOM_SERVER_CERT_VALIDATION, Params));
     } else {
-        QuicTestCustomCertificateValidation(GetParam().AcceptCert, GetParam().AsyncValidation);
+        QuicTestCustomServerCertificateValidation(GetParam().AcceptCert, GetParam().AsyncValidation);
+    }
+}
+
+TEST_P(WithHandshakeArgs5, CustomClientCertificateValidation) {
+    TestLoggerT<ParamType> Logger("QuicTestCustomClientCertificateValidation", GetParam());
+    if (TestingKernelMode) {
+        QUIC_RUN_CUSTOM_CERT_VALIDATION Params = {
+            GetParam().AcceptCert,
+            GetParam().AsyncValidation
+        };
+        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_CUSTOM_CLIENT_CERT_VALIDATION, Params));
+    } else {
+        QuicTestCustomClientCertificateValidation(GetParam().AcceptCert, GetParam().AsyncValidation);
     }
 }
 
@@ -1884,6 +1897,7 @@ TEST(Misc, SlowReceive) {
 }
 
 #ifdef QUIC_TEST_ALLOC_FAILURES_ENABLED
+#ifndef QUIC_TEST_OPENSSL_FLAGS // Not supported on OpenSSL
 TEST(Misc, NthAllocFail) {
     TestLogger Logger("NthAllocFail");
     if (TestingKernelMode) {
@@ -1892,7 +1906,8 @@ TEST(Misc, NthAllocFail) {
         QuicTestNthAllocFail();
     }
 }
-#endif
+#endif // QUIC_TEST_OPENSSL_FLAGS
+#endif // QUIC_TEST_ALLOC_FAILURES_ENABLED
 
 TEST(Misc, StreamPriority) {
     TestLogger Logger("StreamPriority");

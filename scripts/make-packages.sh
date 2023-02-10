@@ -119,6 +119,9 @@ if [ "$OS" == "linux" ]; then
   if [ -e "$ARTIFACTS/libmsquic.lttng.${LIBEXT}.${VER_MAJOR}.${VER_MINOR}.${VER_PATCH}" ]; then
      FILES="${FILES} ${ARTIFACTS}/libmsquic.lttng.${LIBEXT}.${VER_MAJOR}.${VER_MINOR}.${VER_PATCH}=/usr/${LIBDIR}/libmsquic.lttng.${LIBEXT}.${VER_MAJOR}.${VER_MINOR}.${VER_PATCH}"
   fi
+  if [ "$PKGARCH" == 'aarch64' ] || [ "$PKGARCH" == 'x86_64' ]; then
+      BITS='64bit'
+  fi
   fpm \
     --force \
     --input-type dir \
@@ -126,6 +129,7 @@ if [ "$OS" == "linux" ]; then
     --architecture ${PKGARCH} \
     --name ${NAME} \
     --provides ${NAME} \
+    --depends "libcrypto.so.1.1()(${BITS})" \
     --conflicts ${CONFLICTS} \
     --version ${VER_MAJOR}.${VER_MINOR}.${VER_PATCH} \
     --description "${DESCRIPTION}" \

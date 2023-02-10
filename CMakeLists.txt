@@ -356,10 +356,11 @@ if(QUIC_TLS STREQUAL "schannel")
     list(APPEND QUIC_COMMON_DEFINES QUIC_ENABLE_ANON_CLIENT_AUTH_TESTS)
 endif()
 
-if(QUIC_TLS STREQUAL "openssl")
+if(QUIC_TLS STREQUAL "openssl" OR  QUIC_TLS STREQUAL "openssl3")
     message(STATUS "Enabling OpenSsl configuration tests")
     list(APPEND QUIC_COMMON_DEFINES QUIC_TEST_OPENSSL_FLAGS=1)
     if (NOT WIN32)
+       message(STATUS "Enabling CA file tests")
        list(APPEND QUIC_COMMON_DEFINES QUIC_ENABLE_CA_CERTIFICATE_FILE_TESTS)
     endif()
 endif()
@@ -605,9 +606,9 @@ else() #!WIN32
         set(MARCH -march=native)
     endif()
 
-    set(CMAKE_C_FLAGS_DEBUG "-Og")
+    set(CMAKE_C_FLAGS_DEBUG "-Og -fno-omit-frame-pointer")
     set(CMAKE_C_FLAGS_MINSIZEREL "-Os -DNDEBUG")
-    set(CMAKE_C_FLAGS_RELWITHDEBINFO "-O3 ${MARCH} -DNDEBUG")
+    set(CMAKE_C_FLAGS_RELWITHDEBINFO "-O3 -fno-omit-frame-pointer ${MARCH} -DNDEBUG")
     set(CMAKE_C_FLAGS_RELEASE "-O3 ${MARCH} -DNDEBUG")
     if (CX_PLATFORM STREQUAL "darwin")
         set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -gdwarf")
@@ -650,7 +651,7 @@ else() #!WIN32
     set(QUIC_CXX_FLAGS ${QUIC_COMMON_FLAGS})
 endif()
 
-if(QUIC_TLS STREQUAL "openssl")
+if(QUIC_TLS STREQUAL "openssl" OR  QUIC_TLS STREQUAL "openssl3")
     add_library(OpenSSL INTERFACE)
 
     include(FetchContent)

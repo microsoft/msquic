@@ -472,7 +472,10 @@ function Install-Clog2Text {
 }
 
 # We remove OpenSSL path for kernel builds because it's not needed.
-if ($ForKernel) { git rm submodules/openssl }
+if ($ForKernel) {
+    git rm submodules/openssl
+    git rm submodules/openssl3
+}
 
 if ($InitSubmodules) {
 
@@ -482,6 +485,11 @@ if ($InitSubmodules) {
     if ($Tls -eq "openssl") {
         Write-Host "Initializing openssl submodule"
         git submodule init submodules/openssl
+    }
+
+    if ($Tls -eq "openssl3") {
+        Write-Host "Initializing openssl3 submodule"
+        git submodule init submodules/openssl3
     }
 
     if (!$DisableTest) {

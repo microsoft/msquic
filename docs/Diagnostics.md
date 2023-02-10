@@ -15,6 +15,7 @@ On Windows, MsQuic leverages manifested [ETW](https://docs.microsoft.com/en-us/w
 
 ### Linux
 
+#### LTTng
 On Linux, MsQuic leverages [LTTng](https://lttng.org/features/) for its logging. Some dependencies, such as babeltrace, lttng, and clog2text_lttng are required. The simplest way to install all dependencies is by running `./scripts/prepare-machine.ps1 -ForTest`, but if you only want to collect the traces on the machine, the **minimal dependencies** are:
 
 ```
@@ -22,6 +23,9 @@ sudo apt-add-repository ppa:lttng/stable-2.12
 sudo apt-get update
 sudo apt-get install -y lttng-tools
 ```
+
+#### Perf
+For general tracing, refer [Stacks and CPU usage](../src/plugins/trace/README.md#linux)
 
 ### macOS
 

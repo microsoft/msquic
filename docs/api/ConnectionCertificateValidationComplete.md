@@ -1,7 +1,7 @@
 ConnectionCertificateValidationComplete function
 ======
 
-Uses the QUIC (client) handle to complete resumption ticket validation. This must be called after client app handles certificate validation and then return QUIC_STATUS_PENDING.
+Uses the QUIC handle to complete certificate validation. This must be called after the app receives `QUIC_CONNECTION_EVENT_PEER_CERTIFICATE_RECEIVED` and returns QUIC_STATUS_PENDING. The app should complete certificate validation and call this before the idle timeout and disconnect timeouts occur.
 
 # Syntax
 
@@ -11,7 +11,8 @@ _IRQL_requires_max_(DISPATCH_LEVEL)
 QUIC_STATUS
 (QUIC_API * QUIC_CONNECTION_COMP_CERT_FN)(
     _In_ _Pre_defensive_ HQUIC Connection,
-    _In_ BOOLEAN Result
+    _In_ BOOLEAN Result,
+    _In_ QUIC_TLS_ALERT_CODES TlsAlert
     );
 ```
 
@@ -23,7 +24,7 @@ The valid handle to an open connection object.
 
 `Result`
 
-Ticket validation result.
+Certificate validation result.
 
 # Return Value
 

@@ -1184,6 +1184,7 @@ CxPlatSocketContextInitialize(
         goto Exit;
     }
 
+#ifdef UDP_GRO
     if (SocketContext->DatapathProc->Datapath->Features & CXPLAT_DATAPATH_FEATURE_RECV_COALESCING) {
         Option = TRUE;
         Result =
@@ -1204,6 +1205,7 @@ CxPlatSocketContextInitialize(
             goto Exit;
         }
     }
+#endif
 
     //
     // The socket is shared by multiple QUIC endpoints, so increase the receive
@@ -1807,10 +1809,12 @@ CxPlatSocketContextRecvComplete(
                     CXPLAT_DBG_ASSERT(FALSE);
                 }
             } else if (CMsg->cmsg_level == IPPROTO_UDP) {
+#ifdef UDP_GRO
                 if (CMsg->cmsg_type == UDP_GRO) {
                     CXPLAT_DBG_ASSERT_CMSG(CMsg, uint16_t);
                     SegmentLength = *(uint16_t*)CMSG_DATA(CMsg);
                 }
+#endif
             } else {
                 CXPLAT_DBG_ASSERT(FALSE);
             }
