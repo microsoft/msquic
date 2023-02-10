@@ -24,11 +24,11 @@ jobs:
       fail-fast: false
       matrix:
         release: ['2.0.5']
-        os: [ubuntu-latest, windows-latest]
+        os: [ubuntu-20.04, windows-latest]
         arch: [x64]
         tls: [schannel, openssl]
         exclude:
-        - os: ubuntu-latest
+        - os: ubuntu-20.04
           tls: schannel
         - os: windows-latest
           tls: openssl

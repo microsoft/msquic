@@ -87,6 +87,9 @@ $Architectures = "x64","x86","arm64"
 if ($XDP) {
     # XDP only supports x64
     $Architectures = "x64"
+} elseif ($Tls -ne "schannel") {
+    # OpenSSL doesn't support arm64 currently
+    $Architectures = "x64","x86"
 }
 
 # Copy artifacts to correct folders
@@ -155,7 +158,7 @@ $DistDir = Join-Path $BaseArtifactsDir "dist"
 $CurrentCommitHash = Get-GitHash -RepoDir $RootDir
 $RepoRemote = Get-GitRemote -RepoDir $RootDir
 
-$Version = "2.1.7"
+$Version = "2.1.8"
 
 $BuildId = $env:BUILD_BUILDID
 if ($null -ne $BuildId) {
