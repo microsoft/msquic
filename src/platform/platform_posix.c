@@ -32,12 +32,8 @@ Environment:
 #include "platform_posix.c.clog.h"
 #endif
 
-#ifdef __aarch64__
-#undef CXPLAT_NUMA_AWARE
-#endif
-
 #ifdef CXPLAT_NUMA_AWARE
-#include <numa.h>
+#include <numa.h>               // If missing: `apt-get install -y libnuma-dev`
 uint32_t CxPlatNumaNodeCount;
 cpu_set_t* CxPlatNumaNodeMasks;
 #endif // CXPLAT_NUMA_AWARE
