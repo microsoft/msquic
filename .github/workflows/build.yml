@@ -23,11 +23,14 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-20.04, ubuntu-22.04]
         plat: [linux, android]
+        os: ['20.04', '22.04']
         arch: [x86, x64] # arm64?
         tls: [openssl, openssl3]
-    runs-on: ${{ matrix.os }}
+        exclude:
+        - plat: android
+          arch: x86       # Android doesn't support x86
+    runs-on: ubuntu-${{ matrix.os }}
     name: Build
     steps:
     - name: Checkout repository
@@ -57,11 +60,11 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [macos-12]
-        plat: [macos, iso]
+        plat: [macos, ios]
+        os: ['12']
         arch: [x86, x64, arm64]
         tls: [openssl, openssl3]
-    runs-on: ${{ matrix.os }}
+    runs-on: macos-${{ matrix.os }}
     name: Build
     steps:
     - name: Checkout repository
@@ -91,8 +94,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [windows-2019, windows-2022]
-        plat: [gamecore_console, uwp, windows]
+        plat: [windows, uwp] # gamecore_console
+        os: ['2019', '2022']
         arch: [x86, x64, arm64]
         tls: [schannel, openssl, openssl3]
         exclude:
@@ -100,7 +103,7 @@ jobs:
           arch: arm64       # OpenSSL doesn't support arm64
         - tls: openssl3
           arch: arm64       # OpenSSL3 doesn't support arm64
-    runs-on: ${{ matrix.os }}
+    runs-on: windows-${{ matrix.os }}
     name: Build
     steps:
     - name: Checkout repository
