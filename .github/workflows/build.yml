@@ -153,13 +153,13 @@ jobs:
       run: msbuild msquic.kernel.sln -t:restore /p:RestorePackagesConfig=true /p:Configuration=Debug /p:Platform=${{ matrix.arch }}
     - name: Build Debug
       shell: pwsh
-      run: msbuild msquic.kernel.sln /p:Configuration=Debug /p:Platform${{ matrix.arch }} /p:QUIC_VER_SUFFIX=-official
+      run: msbuild msquic.kernel.sln /p:Configuration=Debug /p:Platform=${{ matrix.arch }} /p:QUIC_VER_SUFFIX=-official
     - name: Nuget Restore Release
       shell: pwsh
       run: msbuild msquic.kernel.sln -t:restore /p:RestorePackagesConfig=true /p:Configuration=Release /p:Platform=${{ matrix.arch }}
     - name: Build Release
       shell: pwsh
-      run: msbuild msquic.kernel.sln /p:Configuration=Release /p:Platform${{ matrix.arch }} /p:QUIC_VER_SUFFIX=-official
+      run: msbuild msquic.kernel.sln /p:Configuration=Release /p:Platform=${{ matrix.arch }} /p:QUIC_VER_SUFFIX=-official
     - uses: actions/upload-artifact@0b7f8abb1508181956e8e162db84b466c27e18ce
       with:
         name: ${{ matrix.plat }}-${{ matrix.os }}-${{ matrix.arch }}-${{ matrix.tls }}
