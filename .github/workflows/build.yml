@@ -116,10 +116,10 @@ jobs:
       run: scripts/prepare-machine.ps1 -ForOneBranch -InitSubmodules
     - name: Build Debug
       shell: pwsh
-      run: scripts/build.ps1 -Config Debug -Arch ${{ matrix.arch }} -ToolchainFile ${{ matrix.toolchain }} -Tls ${{ matrix.tls }} ${{ matrix.static }}
+      run: scripts/build.ps1 -Config Debug -Arch ${{ matrix.arch }} -ToolchainFile ${{ matrix.toolchain }} -Tls ${{ matrix.tls }} -DisableLogs -OneBranch ${{ matrix.static }}
     - name: Build Release
       shell: pwsh
-      run: scripts/build.ps1 -Config Release -Arch ${{ matrix.arch }} -ToolchainFile ${{ matrix.toolchain }} -Tls ${{ matrix.tls }} ${{ matrix.static }}
+      run: scripts/build.ps1 -Config Release -Arch ${{ matrix.arch }} -ToolchainFile ${{ matrix.toolchain }} -Tls ${{ matrix.tls }} -DisableLogs -OneBranch ${{ matrix.static }}
     - uses: actions/upload-artifact@0b7f8abb1508181956e8e162db84b466c27e18ce
       with:
         name: ${{ matrix.plat }}-${{ matrix.os }}-${{ matrix.arch }}-${{ matrix.tls }}${{ matrix.static }}
