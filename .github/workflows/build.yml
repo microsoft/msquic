@@ -54,6 +54,12 @@ jobs:
         # Android doesn't use CodeCheck
         - plat: android
           codecheck: '-CodeCheck'
+        # No need to combine Static and CodeCheck
+        - static: '-Static'
+          codecheck: '-CodeCheck'
+        # No need to combine Clang and CodeCheck
+        - clang: '-Clang'
+          codecheck: '-CodeCheck'
     runs-on: ubuntu-${{ matrix.os }}
     name: Build
     steps:
