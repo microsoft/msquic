@@ -90,8 +90,8 @@ jobs:
         plat: [linux]
         os: ['20.04', '22.04']
         arch: [arm, arm64]
-        toolchain: ['cmake/toolchains/arm-linux.cmake', 'cmake/toolchains/aarch64-linux.cmake']
         tls: [openssl, openssl3]
+        toolchain: ['cmake/toolchains/arm-linux.cmake', 'cmake/toolchains/aarch64-linux.cmake']
         static: ['', '-Static']
         exclude:
         - arch: arm
@@ -104,13 +104,16 @@ jobs:
     steps:
     - name: Checkout repository
       uses: actions/checkout@ac593985615ec2ede58e132d2e21d2b1cbd6127c
+      with:
+        fetch-depth: 2
+        submodules: 'recursive'
     - name: Set ownership
       run: |
         # this is to fix GIT not liking owner of the checkout dir
         chown -R $(id -u):$(id -g) $PWD
     - name: Prepare Machine
       shell: pwsh
-      run: scripts/prepare-machine.ps1 -ForBuild -Tls ${{ matrix.tls }} -ForOneBranch
+      run: scripts/prepare-machine.ps1 -ForOneBranch -InitSubmodules
     - name: Build Debug
       shell: pwsh
       run: scripts/build.ps1 -Config Debug -Arch ${{ matrix.arch }} -ToolchainFile ${{ matrix.toolchain }} -Tls ${{ matrix.tls }} ${{ matrix.static }}
