@@ -91,6 +91,7 @@ jobs:
         os: ['20.04', '22.04']
         arch: [arm, arm64]
         toolchain: ['cmake/toolchains/arm-linux.cmake', 'cmake/toolchains/aarch64-linux.cmake']
+        tls: [openssl, openssl3]
         static: ['', '-Static']
         exclude:
         - arch: arm
