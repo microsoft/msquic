@@ -17,7 +17,6 @@ concurrency:
   cancel-in-progress: true
 
 permissions: read-all
-        plat: [gamecore_console, uwp, windows, linux, macos, android, ios]
 
 jobs:
   build-ubuntu:
