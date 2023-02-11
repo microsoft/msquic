@@ -200,7 +200,7 @@ param (
     [switch]$OfficialRelease = $false,
 
     [Parameter(Mandatory = $false)]
-    [switch]$EnableTelemetryAsserts = $false,
+    [switch]$EnableTelemetryAsserts = $true,
 
     [Parameter(Mandatory = $false)]
     [switch]$UseSystemOpenSSLCrypto = $false,

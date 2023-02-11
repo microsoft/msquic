@@ -28,11 +28,14 @@ jobs:
         arch: [x86, x64] # arm64?
         tls: [openssl, openssl3]
         clang: ['', '-Clang']
+        codecheck: ['', '-CodeCheck']
         exclude:
         - plat: android
           arch: x86       # Android doesn't support x86
         - plat: android
           clang: '-Clang' # Android doesn't use Clang
+        - plat: android
+          codecheck: '-CodeCheck' # Android doesn't use CodeCheck
     runs-on: ubuntu-${{ matrix.os }}
     name: Build
     steps:
@@ -102,6 +105,10 @@ jobs:
           tls: openssl3     # OpenSSL3 build fails with UWP
         - plat: uwp
           xdp: '-UseXdp'    # XDP not supported in UWP
+        - arch: x86
+          xdp: '-UseXdp'    # XDP only supports x64 currently
+        - arch: arm64
+          xdp: '-UseXdp'    # XDP only supports x64 currently
     runs-on: windows-${{ matrix.os }}
     name: Build
     steps:
