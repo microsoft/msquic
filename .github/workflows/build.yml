@@ -27,9 +27,12 @@ jobs:
         os: ['20.04', '22.04']
         arch: [x86, x64] # arm64?
         tls: [openssl, openssl3]
+        clang: ['', '-Clang']
         exclude:
         - plat: android
           arch: x86       # Android doesn't support x86
+        - plat: android
+          clang: '-Clang' # Android doesn't use Clang
     runs-on: ubuntu-${{ matrix.os }}
     name: Build
     steps:
@@ -40,13 +43,13 @@ jobs:
       run: scripts/prepare-machine.ps1 -ForBuild -Tls ${{ matrix.tls }}
     - name: Build Debug
       shell: pwsh
-      run: scripts/build.ps1 -Config Debug -Platform ${{ matrix.plat }} -Arch ${{ matrix.arch }} -Tls ${{ matrix.tls }}
+      run: scripts/build.ps1 -Config Debug -Platform ${{ matrix.plat }} -Arch ${{ matrix.arch }} -Tls ${{ matrix.tls }} ${{ matrix.clang }}
     - name: Build Release
       shell: pwsh
-      run: scripts/build.ps1 -Config Release -Platform ${{ matrix.plat }} -Arch ${{ matrix.arch }} -Tls ${{ matrix.tls }}
+      run: scripts/build.ps1 -Config Release -Platform ${{ matrix.plat }} -Arch ${{ matrix.arch }} -Tls ${{ matrix.tls }} ${{ matrix.clang }}
     - uses: actions/upload-artifact@0b7f8abb1508181956e8e162db84b466c27e18ce
       with:
-        name: ${{ matrix.os }}-${{ matrix.plat }}-${{ matrix.arch }}-${{ matrix.tls }}
+        name: ${{ matrix.os }}-${{ matrix.plat }}-${{ matrix.arch }}-${{ matrix.tls }}${{ matrix.clang }}
         path: artifacts/bin
 
   build-macOS:
@@ -89,6 +92,7 @@ jobs:
         os: ['2019', '2022']
         arch: [x86, x64, arm64]
         tls: [schannel, openssl, openssl3]
+        xdp: ['', '-UseXdp']
         exclude:
         - tls: openssl
           arch: arm64       # OpenSSL doesn't support arm64
@@ -96,6 +100,8 @@ jobs:
           arch: arm64       # OpenSSL3 doesn't support arm64
         - plat: uwp
           tls: openssl3     # OpenSSL3 build fails with UWP
+        - plat: uwp
+          xdp: '-UseXdp'    # XDP not supported in UWP
     runs-on: windows-${{ matrix.os }}
     name: Build
     steps:
@@ -112,13 +118,13 @@ jobs:
       run: scripts/prepare-machine.ps1 -ForBuild -Tls ${{ matrix.tls }}
     - name: Build Debug
       shell: pwsh
-      run: scripts/build.ps1 -Config Debug -Platform ${{ matrix.plat }} -Arch ${{ matrix.arch }} -Tls ${{ matrix.tls }}
+      run: scripts/build.ps1 -Config Debug -Platform ${{ matrix.plat }} -Arch ${{ matrix.arch }} -Tls ${{ matrix.tls }} ${{ matrix.xdp }}
     - name: Build Release
       shell: pwsh
-      run: scripts/build.ps1 -Config Release -Platform ${{ matrix.plat }} -Arch ${{ matrix.arch }} -Tls ${{ matrix.tls }}
+      run: scripts/build.ps1 -Config Release -Platform ${{ matrix.plat }} -Arch ${{ matrix.arch }} -Tls ${{ matrix.tls }} ${{ matrix.xdp }}
     - uses: actions/upload-artifact@0b7f8abb1508181956e8e162db84b466c27e18ce
       with:
-        name: ${{ matrix.plat }}-${{ matrix.os }}-${{ matrix.arch }}-${{ matrix.tls }}
+        name: ${{ matrix.plat }}-${{ matrix.os }}-${{ matrix.arch }}-${{ matrix.tls }}${{ matrix.xdp }}
         path: |
           artifacts/bin
           !artifacts/bin/xdp
