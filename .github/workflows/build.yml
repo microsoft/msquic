@@ -27,6 +27,7 @@ jobs:
         os: ['20.04', '22.04']
         arch: [x86, x64] # arm64?
         tls: [openssl, openssl3]
+        static: ['', '-Static']
         clang: ['', '-Clang']
         codecheck: ['', '-CodeCheck']
         exclude:
@@ -46,13 +47,13 @@ jobs:
       run: scripts/prepare-machine.ps1 -ForBuild -Tls ${{ matrix.tls }}
     - name: Build Debug
       shell: pwsh
-      run: scripts/build.ps1 -Config Debug -Platform ${{ matrix.plat }} -Arch ${{ matrix.arch }} -Tls ${{ matrix.tls }} ${{ matrix.clang }}
+      run: scripts/build.ps1 -Config Debug -Platform ${{ matrix.plat }} -Arch ${{ matrix.arch }} -Tls ${{ matrix.tls }} ${{ matrix.static }} ${{ matrix.clang }} ${{ matrix.codecheck }}
     - name: Build Release
       shell: pwsh
-      run: scripts/build.ps1 -Config Release -Platform ${{ matrix.plat }} -Arch ${{ matrix.arch }} -Tls ${{ matrix.tls }} ${{ matrix.clang }}
+      run: scripts/build.ps1 -Config Release -Platform ${{ matrix.plat }} -Arch ${{ matrix.arch }} -Tls ${{ matrix.tls }} ${{ matrix.static }} ${{ matrix.clang }} ${{ matrix.codecheck }}
     - uses: actions/upload-artifact@0b7f8abb1508181956e8e162db84b466c27e18ce
       with:
-        name: ${{ matrix.os }}-${{ matrix.plat }}-${{ matrix.arch }}-${{ matrix.tls }}${{ matrix.clang }}
+        name: ${{ matrix.os }}-${{ matrix.plat }}-${{ matrix.arch }}-${{ matrix.tls }}${{ matrix.static }}${{ matrix.clang }}${{ matrix.codecheck }}
         path: artifacts/bin
 
   build-macOS:
@@ -64,6 +65,7 @@ jobs:
         os: ['12']
         arch: [x86, x64, arm64]
         tls: [openssl, openssl3]
+        static: ['', '-Static']
         exclude:
         - plat: ios
           arch: x86       # iOS doesn't support x86
@@ -77,13 +79,13 @@ jobs:
       run: scripts/prepare-machine.ps1 -ForBuild -Tls ${{ matrix.tls }}
     - name: Build Debug
       shell: pwsh
-      run: scripts/build.ps1 -Config Debug -Platform ${{ matrix.plat }} -Arch ${{ matrix.arch }} -Tls ${{ matrix.tls }}
+      run: scripts/build.ps1 -Config Debug -Platform ${{ matrix.plat }} -Arch ${{ matrix.arch }} -Tls ${{ matrix.tls }} ${{ matrix.static }}
     - name: Build Release
       shell: pwsh
-      run: scripts/build.ps1 -Config Release -Platform ${{ matrix.plat }} -Arch ${{ matrix.arch }} -Tls ${{ matrix.tls }}
+      run: scripts/build.ps1 -Config Release -Platform ${{ matrix.plat }} -Arch ${{ matrix.arch }} -Tls ${{ matrix.tls }} ${{ matrix.static }}
     - uses: actions/upload-artifact@0b7f8abb1508181956e8e162db84b466c27e18ce
       with:
-        name: ${{ matrix.os }}-${{ matrix.plat }}-${{ matrix.arch }}-${{ matrix.tls }}
+        name: ${{ matrix.os }}-${{ matrix.plat }}-${{ matrix.arch }}-${{ matrix.tls }}${{ matrix.static }}
         path: artifacts/bin
 
   build-windows:
@@ -95,6 +97,7 @@ jobs:
         os: ['2019', '2022']
         arch: [x86, x64, arm64]
         tls: [schannel, openssl, openssl3]
+        static: ['', '-Static']
         xdp: ['', '-UseXdp']
         exclude:
         - tls: openssl
@@ -125,13 +128,13 @@ jobs:
       run: scripts/prepare-machine.ps1 -ForBuild -Tls ${{ matrix.tls }}
     - name: Build Debug
       shell: pwsh
-      run: scripts/build.ps1 -Config Debug -Platform ${{ matrix.plat }} -Arch ${{ matrix.arch }} -Tls ${{ matrix.tls }} ${{ matrix.xdp }}
+      run: scripts/build.ps1 -Config Debug -Platform ${{ matrix.plat }} -Arch ${{ matrix.arch }} -Tls ${{ matrix.tls }} ${{ matrix.static }} ${{ matrix.xdp }}
     - name: Build Release
       shell: pwsh
-      run: scripts/build.ps1 -Config Release -Platform ${{ matrix.plat }} -Arch ${{ matrix.arch }} -Tls ${{ matrix.tls }} ${{ matrix.xdp }}
+      run: scripts/build.ps1 -Config Release -Platform ${{ matrix.plat }} -Arch ${{ matrix.arch }} -Tls ${{ matrix.tls }} ${{ matrix.static }} ${{ matrix.xdp }}
     - uses: actions/upload-artifact@0b7f8abb1508181956e8e162db84b466c27e18ce
       with:
-        name: ${{ matrix.plat }}-${{ matrix.os }}-${{ matrix.arch }}-${{ matrix.tls }}${{ matrix.xdp }}
+        name: ${{ matrix.plat }}-${{ matrix.os }}-${{ matrix.arch }}-${{ matrix.tls }}${{ matrix.static }}${{ matrix.xdp }}
         path: |
           artifacts/bin
           !artifacts/bin/xdp
