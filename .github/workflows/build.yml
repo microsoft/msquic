@@ -1,6 +1,7 @@
 name: Build
 
 on:
+  workflow_dispatch:
   push:
     branches:
     - main
@@ -20,12 +21,13 @@ permissions: read-all
 
 jobs:
   build-ubuntu:
+    name: Build
     strategy:
       fail-fast: false
       matrix:
         plat: [linux, android]
         os: ['20.04', '22.04']
-        arch: [x86, x64] # arm64?
+        arch: [x86, x64]
         tls: [openssl, openssl3]
         systemcrypto: ['', '-UseSystemOpenSSLCrypto']
         static: ['', '-Static']
@@ -61,7 +63,6 @@ jobs:
         - clang: '-Clang'
           codecheck: '-CodeCheck'
     runs-on: ubuntu-${{ matrix.os }}
-    name: Build
     steps:
     - name: Checkout repository
       uses: actions/checkout@ac593985615ec2ede58e132d2e21d2b1cbd6127c
@@ -80,7 +81,48 @@ jobs:
         name: ${{ matrix.plat }}-${{ matrix.os }}-${{ matrix.arch }}-${{ matrix.tls }}${{ matrix.systemcrypto }}${{ matrix.static }}${{ matrix.clang }}${{ matrix.codecheck }}
         path: artifacts/bin
 
+  build-ubuntu-cross-compile:
+    name: Build
+    needs: []
+    strategy:
+      fail-fast: false
+      matrix:
+        plat: [linux]
+        os: ['20.04', '22.04']
+        arch: [arm, arm64]
+        toolchain: ['cmake/toolchains/arm-linux.cmake', 'cmake/toolchains/aarch64-linux.cmake']
+        static: ['', '-Static']
+        exclude:
+        - arch: arm
+          toolchain: 'cmake/toolchains/aarch64-linux.cmake'
+        - arch: arm64
+          toolchain: 'cmake/toolchains/arm-linux.cmake'
+    runs-on: ubuntu-${{ matrix.os }}
+    container:
+      image: ghcr.io/microsoft/msquic/linux-build-xcomp
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@ac593985615ec2ede58e132d2e21d2b1cbd6127c
+    - name: Set ownership
+      run: |
+        # this is to fix GIT not liking owner of the checkout dir
+        chown -R $(id -u):$(id -g) $PWD
+    - name: Prepare Machine
+      shell: pwsh
+      run: scripts/prepare-machine.ps1 -ForBuild -Tls ${{ matrix.tls }} -ForOneBranch
+    - name: Build Debug
+      shell: pwsh
+      run: scripts/build.ps1 -Config Debug -Arch ${{ matrix.arch }} -ToolchainFile ${{ matrix.toolchain }} -Tls ${{ matrix.tls }} ${{ matrix.static }}
+    - name: Build Release
+      shell: pwsh
+      run: scripts/build.ps1 -Config Release -Arch ${{ matrix.arch }} -ToolchainFile ${{ matrix.toolchain }} -Tls ${{ matrix.tls }} ${{ matrix.static }}
+    - uses: actions/upload-artifact@0b7f8abb1508181956e8e162db84b466c27e18ce
+      with:
+        name: ${{ matrix.plat }}-${{ matrix.os }}-${{ matrix.arch }}-${{ matrix.tls }}${{ matrix.static }}
+        path: artifacts/bin
+
   build-macOS:
+    name: Build
     needs: []
     strategy:
       fail-fast: false
@@ -95,7 +137,6 @@ jobs:
         - plat: ios
           arch: x86
     runs-on: macos-${{ matrix.os }}
-    name: Build
     steps:
     - name: Checkout repository
       uses: actions/checkout@ac593985615ec2ede58e132d2e21d2b1cbd6127c
@@ -114,6 +155,7 @@ jobs:
         path: artifacts/bin
 
   build-windows:
+    name: Build
     needs: []
     strategy:
       fail-fast: false
@@ -147,7 +189,6 @@ jobs:
         - arch: arm64
           xdp: '-UseXdp'
     runs-on: windows-${{ matrix.os }}
-    name: Build
     steps:
     - name: Checkout repository
       uses: actions/checkout@ac593985615ec2ede58e132d2e21d2b1cbd6127c
@@ -180,6 +221,7 @@ jobs:
           !artifacts/bin/**/*.lib
 
   build-windows-kernel:
+    name: Build
     needs: []
     strategy:
       fail-fast: false
@@ -189,7 +231,6 @@ jobs:
         arch: [x64, arm64]
         tls: [schannel]
     runs-on: windows-${{ matrix.os }}
-    name: Build
     steps:
     - name: Checkout repository
       uses: actions/checkout@ac593985615ec2ede58e132d2e21d2b1cbd6127c
