@@ -134,7 +134,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        plat: [windows]
+        plat: [winkernel]
         os: ['2019'] # '2022'?
         arch: [x64, arm64]
         tls: [schannel]
