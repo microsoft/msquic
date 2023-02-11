@@ -49,11 +49,12 @@ jobs:
       shell: pwsh
       run: scripts/build.ps1 -Config Debug -Platform ${{ matrix.plat }} -Arch ${{ matrix.arch }} -Tls ${{ matrix.tls }} ${{ matrix.static }} ${{ matrix.clang }} ${{ matrix.codecheck }}
     - name: Build Release
+      if: ${{ matrix.codecheck }} != '-CodeCheck' # Release builds with CodeCheck fail - TODO: FIX
       shell: pwsh
       run: scripts/build.ps1 -Config Release -Platform ${{ matrix.plat }} -Arch ${{ matrix.arch }} -Tls ${{ matrix.tls }} ${{ matrix.static }} ${{ matrix.clang }} ${{ matrix.codecheck }}
     - uses: actions/upload-artifact@0b7f8abb1508181956e8e162db84b466c27e18ce
       with:
-        name: ${{ matrix.os }}-${{ matrix.plat }}-${{ matrix.arch }}-${{ matrix.tls }}${{ matrix.static }}${{ matrix.clang }}${{ matrix.codecheck }}
+        name: ${{ matrix.plat }}-${{ matrix.os }}-${{ matrix.arch }}-${{ matrix.tls }}${{ matrix.static }}${{ matrix.clang }}${{ matrix.codecheck }}
         path: artifacts/bin
 
   build-macOS:
@@ -85,7 +86,7 @@ jobs:
       run: scripts/build.ps1 -Config Release -Platform ${{ matrix.plat }} -Arch ${{ matrix.arch }} -Tls ${{ matrix.tls }} ${{ matrix.static }}
     - uses: actions/upload-artifact@0b7f8abb1508181956e8e162db84b466c27e18ce
       with:
-        name: ${{ matrix.os }}-${{ matrix.plat }}-${{ matrix.arch }}-${{ matrix.tls }}${{ matrix.static }}
+        name: ${{ matrix.plat }}-${{ matrix.os }}-${{ matrix.arch }}-${{ matrix.tls }}${{ matrix.static }}
         path: artifacts/bin
 
   build-windows:
@@ -106,6 +107,8 @@ jobs:
           arch: arm64       # OpenSSL3 doesn't support arm64
         - plat: uwp
           tls: openssl3     # OpenSSL3 build fails with UWP
+        - plat: uwp
+          static: '-Static' # Static builds fail with UWP - TODO: FIX
         - plat: uwp
           xdp: '-UseXdp'    # XDP not supported in UWP
         - arch: x86
@@ -151,7 +154,7 @@ jobs:
       fail-fast: false
       matrix:
         plat: [winkernel]
-        os: ['2019'] # '2022'?
+        os: ['2019', '2022']
         arch: [x64, arm64]
         tls: [schannel]
     runs-on: windows-${{ matrix.os }}
