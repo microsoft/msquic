@@ -1134,8 +1134,7 @@ CxPlatTlsSecConfigCreate(
             AllowedCipherSuitesCount++;
         }
         if (CredConfig->AllowedCipherSuites & QUIC_ALLOWED_CIPHER_SUITE_CHACHA20_POLY1305_SHA256) {
-            if (!CxPlatTlsSupportsChaCha && AllowedCipherSuitesCount == 0)
-            {
+            if (!CxPlatTlsSupportsChaCha && AllowedCipherSuitesCount == 0) {
                 Status = QUIC_STATUS_NOT_SUPPORTED;
                 goto Exit;
             }
