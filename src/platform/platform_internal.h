@@ -203,6 +203,11 @@ CxPlatCryptInitialize(
     void
     );
 
+BOOLEAN
+CxPlatCryptSupports(
+    CXPLAT_AEAD_TYPE AeadType
+    );
+
 void
 CxPlatCryptUninitialize(
     void

@@ -158,11 +158,13 @@ CxPlatCryptInitialize(
         !CxPlatLoadCipher("AES-256-GCM", &CXPLAT_AES_256_GCM_ALG_HANDLE) ||
         !CxPlatLoadCipher("AES-256-CBC", &CXPLAT_AES_256_CBC_ALG_HANDLE) ||
         !CxPlatLoadCipher("AES-128-ECB", &CXPLAT_AES_128_ECB_ALG_HANDLE) ||
-        !CxPlatLoadCipher("AES-256-ECB", &CXPLAT_AES_256_ECB_ALG_HANDLE) ||
-        !CxPlatLoadCipher("ChaCha20", &CXPLAT_CHACHA20_ALG_HANDLE) ||
-        !CxPlatLoadCipher("ChaCha20-Poly1305", &CXPLAT_CHACHA20_POLY1305_ALG_HANDLE)) {
+        !CxPlatLoadCipher("AES-256-ECB", &CXPLAT_AES_256_ECB_ALG_HANDLE)) {
         goto Error;
     }
+
+    // load ChaCha if it exist.
+    CxPlatLoadCipher("ChaCha20", &CXPLAT_CHACHA20_ALG_HANDLE);
+    CxPlatLoadCipher("ChaCha20-Poly1305", &CXPLAT_CHACHA20_POLY1305_ALG_HANDLE);
 
     //
     // Preload HMAC
@@ -193,11 +195,40 @@ Error:
     CXPLAT_AES_256_CBC_ALG_HANDLE = (EVP_CIPHER *)EVP_aes_256_cbc();
     CXPLAT_AES_128_ECB_ALG_HANDLE = (EVP_CIPHER *)EVP_aes_128_ecb();
     CXPLAT_AES_256_ECB_ALG_HANDLE = (EVP_CIPHER *)EVP_aes_256_ecb();
-    CXPLAT_CHACHA20_ALG_HANDLE = (EVP_CIPHER *)EVP_chacha20();
-    CXPLAT_CHACHA20_POLY1305_ALG_HANDLE = (EVP_CIPHER *)EVP_chacha20_poly1305();
+    CXPLAT_CHACHA20_ALG_HANDLE = NULL;
+    CXPLAT_CHACHA20_POLY1305_ALG_HANDLE = NULL;
+
+    // try to load chacha dynamically. They may or may not exist
+    EVP_CIPHER* (*func)(void) = NULL;
+    func = dlsym(NULL, "EVP_chacha20");
+    if (func != NULL) {
+        CXPLAT_CHACHA20_ALG_HANDLE = (*func)();
+    }
+
+    func = dlsym(NULL, "EVP_chacha20_poly1305");
+    if (func != NULL) {
+        CXPLAT_CHACHA20_POLY1305_ALG_HANDLE = (*func)();
+    }
 
     return QUIC_STATUS_SUCCESS;
 #endif
+}
+
+BOOLEAN
+CxPlatCryptSupports(
+    CXPLAT_AEAD_TYPE AeadType
+    )
+{
+    switch (AeadType) {
+    case CXPLAT_AEAD_AES_128_GCM:
+        return CXPLAT_AES_128_GCM_ALG_HANDLE != NULL;
+    case CXPLAT_AEAD_AES_256_GCM:
+        return CXPLAT_AES_256_GCM_ALG_HANDLE != NULL;
+    case CXPLAT_AEAD_CHACHA20_POLY1305:
+        return  CXPLAT_CHACHA20_ALG_HANDLE != NULL;
+    default:
+        return FALSE;
+    }
 }
 
 void
@@ -214,10 +245,14 @@ CxPlatCryptUninitialize(
     CXPLAT_AES_128_ECB_ALG_HANDLE = NULL;
     EVP_CIPHER_free(CXPLAT_AES_256_ECB_ALG_HANDLE);
     CXPLAT_AES_256_ECB_ALG_HANDLE = NULL;
-    EVP_CIPHER_free(CXPLAT_CHACHA20_ALG_HANDLE);
-    CXPLAT_CHACHA20_ALG_HANDLE = NULL;
-    EVP_CIPHER_free(CXPLAT_CHACHA20_POLY1305_ALG_HANDLE);
-    CXPLAT_CHACHA20_POLY1305_ALG_HANDLE = NULL;
+    if (CXPLAT_CHACHA20_ALG_HANDLE != NULL) {
+        EVP_CIPHER_free(CXPLAT_CHACHA20_ALG_HANDLE);
+        CXPLAT_CHACHA20_ALG_HANDLE = NULL;
+    }
+    if (CXPLAT_CHACHA20_POLY1305_ALG_HANDLE != NULL) {
+        EVP_CIPHER_free(CXPLAT_CHACHA20_POLY1305_ALG_HANDLE);
+        CXPLAT_CHACHA20_POLY1305_ALG_HANDLE = NULL;
+    }
 
     EVP_MAC_CTX_free(CXPLAT_HMAC_SHA256_CTX_HANDLE);
     CXPLAT_HMAC_SHA256_CTX_HANDLE = NULL;
@@ -265,6 +300,11 @@ CxPlatKeyCreate(
         Aead = CXPLAT_AES_256_GCM_ALG_HANDLE;
         break;
     case CXPLAT_AEAD_CHACHA20_POLY1305:
+        if (CXPLAT_CHACHA20_POLY1305_ALG_HANDLE == NULL)
+        {
+            Status = QUIC_STATUS_NOT_SUPPORTED;
+            goto Exit;
+        }
         Aead = CXPLAT_CHACHA20_POLY1305_ALG_HANDLE;
         break;
     default:
@@ -539,6 +579,11 @@ CxPlatHpKeyCreate(
         Aead = CXPLAT_AES_256_ECB_ALG_HANDLE;
         break;
     case CXPLAT_AEAD_CHACHA20_POLY1305:
+        if (CXPLAT_CHACHA20_ALG_HANDLE == NULL)
+        {
+            Status = QUIC_STATUS_NOT_SUPPORTED;
+            goto Exit;
+        }
         Aead = CXPLAT_CHACHA20_ALG_HANDLE;
         break;
     default:

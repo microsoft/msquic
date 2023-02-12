@@ -306,6 +306,7 @@ protected:
             uint16_t TPLen = 64
             )
         {
+            ASSERT_NE(nullptr, SecConfiguration);
             CXPLAT_TLS_CONFIG Config = {0};
             Config.IsServer = TRUE;
             Config.SecConfig = (CXPLAT_SEC_CONFIG*)SecConfiguration;
@@ -334,6 +335,7 @@ protected:
             QUIC_BUFFER* Ticket = nullptr
             )
         {
+            ASSERT_NE(nullptr, SecConfiguration);
             CXPLAT_TLS_CONFIG Config = {0};
             Config.IsServer = FALSE;
             Config.SecConfig = SecConfiguration;

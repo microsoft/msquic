@@ -45,6 +45,8 @@ extern EVP_CIPHER *CXPLAT_AES_256_CBC_ALG_HANDLE;
 
 uint16_t CxPlatTlsTPHeaderSize = 0;
 
+BOOLEAN CxPlatTlsSupportsChaCha = 0;
+
 const size_t OpenSslFilePrefixLength = sizeof("..\\..\\..\\..\\..\\..\\submodules");
 
 #define PFX_PASSWORD_LENGTH 33
@@ -1027,17 +1029,25 @@ CxPlatTlsSecConfigCreate(
         return QUIC_STATUS_NOT_SUPPORTED;
     }
 
-    if (CredConfigFlags & QUIC_CREDENTIAL_FLAG_SET_ALLOWED_CIPHER_SUITES &&
-        ((CredConfig->AllowedCipherSuites &
+    if (CredConfigFlags & QUIC_CREDENTIAL_FLAG_SET_ALLOWED_CIPHER_SUITES) {
+        if ((CredConfig->AllowedCipherSuites &
             (QUIC_ALLOWED_CIPHER_SUITE_AES_128_GCM_SHA256 |
             QUIC_ALLOWED_CIPHER_SUITE_AES_256_GCM_SHA384 |
-            QUIC_ALLOWED_CIPHER_SUITE_CHACHA20_POLY1305_SHA256)) == 0)) {
-        QuicTraceEvent(
-            LibraryErrorStatus,
-            "[ lib] ERROR, %u, %s.",
-            CredConfig->AllowedCipherSuites,
-            "No valid cipher suites presented");
-        return QUIC_STATUS_INVALID_PARAMETER;
+            QUIC_ALLOWED_CIPHER_SUITE_CHACHA20_POLY1305_SHA256)) == 0) {
+            QuicTraceEvent(
+                LibraryErrorStatus,
+                "[ lib] ERROR, %u, %s.",
+                CredConfig->AllowedCipherSuites,
+                "No valid cipher suites presented");
+            return QUIC_STATUS_INVALID_PARAMETER;
+        } else if (CredConfig->AllowedCipherSuites == QUIC_ALLOWED_CIPHER_SUITE_CHACHA20_POLY1305_SHA256 && !CxPlatTlsSupportsChaCha) {
+            QuicTraceEvent(
+                LibraryErrorStatus,
+                "[ lib] ERROR, %u, %s.",
+                CredConfig->AllowedCipherSuites,
+                "Only CHACHA requested but not available");
+            return QUIC_STATUS_NOT_SUPPORTED;
+        }
     }
 
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
@@ -1124,6 +1134,11 @@ CxPlatTlsSecConfigCreate(
             AllowedCipherSuitesCount++;
         }
         if (CredConfig->AllowedCipherSuites & QUIC_ALLOWED_CIPHER_SUITE_CHACHA20_POLY1305_SHA256) {
+            if (!CxPlatTlsSupportsChaCha && AllowedCipherSuitesCount == 0)
+            {
+                Status = QUIC_STATUS_NOT_SUPPORTED;
+                goto Exit;
+            }
             CipherSuiteStringLength += (uint8_t)sizeof(CXPLAT_TLS_CHACHA20_POLY1305_SHA256);
             AllowedCipherSuitesCount++;
         }
@@ -1801,6 +1816,8 @@ CxPlatTlsInitialize(
 
     *NewTlsContext = TlsContext;
     TlsContext = NULL;
+
+    CxPlatTlsSupportsChaCha = CxPlatCryptSupports(CXPLAT_AEAD_CHACHA20_POLY1305);
 
 Exit:
 
