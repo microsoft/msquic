@@ -47,6 +47,7 @@ Supported Environments:
 
 typedef struct CXPLAT_LIST_ENTRY {
     struct CXPLAT_LIST_ENTRY* Flink;
+    char padding[64];
     struct CXPLAT_LIST_ENTRY* Blink;
 } CXPLAT_LIST_ENTRY;
 
