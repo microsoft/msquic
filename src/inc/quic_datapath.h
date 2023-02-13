@@ -172,6 +172,15 @@ typedef enum CXPLAT_ROUTE_STATE {
     RouteResolved,
 } CXPLAT_ROUTE_STATE;
 
+typedef struct CXPLAT_RAW_TCP_STATE {
+    BOOLEAN Syncd;
+    //
+    // All numbers are in host order.
+    //
+    uint32_t AckNumber;
+    uint32_t Isn;
+} CXPLAT_RAW_TCP_STATE;
+
 //
 // Structure to represent a network route.
 //
@@ -194,6 +203,7 @@ typedef struct CXPLAT_ROUTE {
     //
 
     CXPLAT_ROUTE_STATE State;
+    CXPLAT_RAW_TCP_STATE TcpState;
 #endif // QUIC_USE_RAW_DATAPATH
     BOOLEAN UseTcp;
 
@@ -239,9 +249,10 @@ typedef struct CXPLAT_RECV_DATA {
     //
     // Flags.
     //
-    uint8_t Allocated : 1;          // Used for debugging. Set to FALSE on free.
-    uint8_t QueuedOnConnection : 1; // Used for debugging.
-    uint8_t Reserved : 6;
+    uint16_t Allocated : 1;          // Used for debugging. Set to FALSE on free.
+    uint16_t QueuedOnConnection : 1; // Used for debugging.
+    uint16_t Reserved : 6;
+    uint16_t ReservedEx : 8;
 
 } CXPLAT_RECV_DATA;
 

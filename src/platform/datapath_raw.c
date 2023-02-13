@@ -524,6 +524,19 @@ CxPlatSocketGetRemoteAddress(
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
+CxPlatDpRawSocketAckSyn(
+    _In_ CXPLAT_SOCKET* Socket,
+    _In_ CXPLAT_RECV_DATA *Packet
+    )
+{
+    CXPLAT_DBG_ASSERT(Socket->UseTcp);
+
+    CXPLAT_SEND_CONFIG SendConfig = { &Packet->Route, 0, CXPLAT_ECN_NON_ECT, 0 };
+    CXPLAT_RECV_DATA *Response = CxPlatSendDataAlloc(Socket, &SendConfig);
+}
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+void
 CxPlatDpRawRxEthernet(
     _In_ const CXPLAT_DATAPATH* Datapath,
     _In_reads_(PacketCount)
@@ -536,42 +549,50 @@ CxPlatDpRawRxEthernet(
         CXPLAT_RECV_DATA* PacketChain = Packets[i];
         CXPLAT_DBG_ASSERT(PacketChain->Next == NULL);
 
-        if (PacketChain->Reserved == L4_TYPE_UDP || PacketChain->Reserved == L4_TYPE_TCP) {
+        if (PacketChain->Reserved >= L4_TYPE_UDP) {
             Socket =
                 CxPlatGetSocket(
                     &Datapath->SocketPool,
                     &PacketChain->Route->LocalAddress,
                     &PacketChain->Route->RemoteAddress);
-        }
-        if (Socket) {
-            uint8_t SocketType = Socket->UseTcp ? L4_TYPE_TCP : L4_TYPE_UDP;
+            if (Socket) {
+                if (PacketChain->Reserved == L4_TYPE_UDP || PacketChain->Reserved == L4_TYPE_TCP) {
+                    uint8_t SocketType = Socket->UseTcp ? L4_TYPE_TCP : L4_TYPE_UDP;
 
-            //
-            // Found a match. Chain and deliver contiguous packets with the same 4-tuple.
-            //
-            while (i < PacketCount) {
-                QuicTraceEvent(
-                    DatapathRecv,
-                    "[data][%p] Recv %u bytes (segment=%hu) Src=%!ADDR! Dst=%!ADDR!",
-                    Socket,
-                    Packets[i]->BufferLength,
-                    Packets[i]->BufferLength,
-                    CASTED_CLOG_BYTEARRAY(sizeof(Packets[i]->Route->LocalAddress), &Packets[i]->Route->LocalAddress),
-                    CASTED_CLOG_BYTEARRAY(sizeof(Packets[i]->Route->RemoteAddress), &Packets[i]->Route->RemoteAddress));
-                if (i == PacketCount - 1 ||
-                    Packets[i+1]->Reserved != SocketType ||
-                    Packets[i+1]->Route->LocalAddress.Ipv4.sin_port != Socket->LocalAddress.Ipv4.sin_port ||
-                    !CxPlatSocketCompare(Socket, &Packets[i+1]->Route->LocalAddress, &Packets[i+1]->Route->RemoteAddress)) {
-                    break;
+                    //
+                    // Found a match. Chain and deliver contiguous packets with the same 4-tuple.
+                    //
+                    while (i < PacketCount) {
+                        QuicTraceEvent(
+                            DatapathRecv,
+                            "[data][%p] Recv %u bytes (segment=%hu) Src=%!ADDR! Dst=%!ADDR!",
+                            Socket,
+                            Packets[i]->BufferLength,
+                            Packets[i]->BufferLength,
+                            CASTED_CLOG_BYTEARRAY(sizeof(Packets[i]->Route->LocalAddress), &Packets[i]->Route->LocalAddress),
+                            CASTED_CLOG_BYTEARRAY(sizeof(Packets[i]->Route->RemoteAddress), &Packets[i]->Route->RemoteAddress));
+                        if (i == PacketCount - 1 ||
+                            Packets[i+1]->Reserved != SocketType ||
+                            Packets[i+1]->Route->LocalAddress.Ipv4.sin_port != Socket->LocalAddress.Ipv4.sin_port ||
+                            !CxPlatSocketCompare(Socket, &Packets[i+1]->Route->LocalAddress, &Packets[i+1]->Route->RemoteAddress)) {
+                            break;
+                        }
+                        Packets[i]->Next = Packets[i+1];
+                        CXPLAT_DBG_ASSERT(Packets[i+1]->Next == NULL);
+                        i++;
+                    }
+                    Datapath->UdpHandlers.Receive(Socket, Socket->CallbackContext, (CXPLAT_RECV_DATA*)PacketChain);
+                } else if (PacketChain->Reserved == L4_TYPE_TCP_SYN) {
+
+                } else {
+                    CXPLAT_DBG_ASSERT(PacketChain->Reserved == L4_TYPE_TCP_SYNACK);
+
                 }
-                Packets[i]->Next = Packets[i+1];
-                CXPLAT_DBG_ASSERT(Packets[i+1]->Next == NULL);
-                i++;
+
+                CxPlatRundownRelease(&Socket->Rundown);
+            } else {
+                CxPlatDpRawRxFree(PacketChain);
             }
-            Datapath->UdpHandlers.Receive(Socket, Socket->CallbackContext, (CXPLAT_RECV_DATA*)PacketChain);
-            CxPlatRundownRelease(&Socket->Rundown);
-        } else {
-            CxPlatDpRawRxFree(PacketChain);
         }
     }
 }

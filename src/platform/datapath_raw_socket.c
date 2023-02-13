@@ -600,7 +600,6 @@ typedef struct TCP_HEADER {
     uint16_t Window;
     uint16_t Checksum;
     uint16_t UrgentPointer;
-    uint8_t Data[0];
 } TCP_HEADER;
 
 #pragma pack(pop)
@@ -663,17 +662,32 @@ CxPlatDpRawParseTcp(
     _In_ uint16_t Length
     )
 {
+    uint16_t HeaderLength;
     if (Length < sizeof(TCP_HEADER)) {
         return;
     }
-    Length -= sizeof(TCP_HEADER);
+
+    HeaderLength = Tcp->HeaderLength * sizeof(uint32_t);
+    if (HeaderLength < Length) {
+        return;
+    }
+
+    Length -= HeaderLength;
     Packet->Reserved = L4_TYPE_TCP;
+    if (Tcp->Flags & TH_SYN) {
+        if (Tcp->Flags & TH_ACK) {
+            Packet->Reserved = L4_TYPE_TCP_SYNACK;
+        } else {
+            Packet->Reserved = L4_TYPE_TCP_SYN;
+        }
+    }
 
     Packet->Route->RemoteAddress.Ipv4.sin_port = Tcp->SourcePort;
     Packet->Route->LocalAddress.Ipv4.sin_port = Tcp->DestinationPort;
 
-    Packet->Buffer = (uint8_t*)Tcp->Data;
+    Packet->Buffer = (uint8_t*)(Tcp + 1) + HeaderLength;
     Packet->BufferLength = Length;
+    Packet->ReservedEx = HeaderLength;
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -982,14 +996,32 @@ CxPlatFramingWriteHeaders(
         TCP = (TCP_HEADER*)(Buffer->Buffer - sizeof(TCP_HEADER));
         TCP->DestinationPort = Route->RemoteAddress.Ipv4.sin_port;
         TCP->SourcePort = Route->LocalAddress.Ipv4.sin_port;
-        TCP->SequenceNumber = 0;
-        TCP->AckNumber = 0;
-        TCP->HeaderLength = sizeof(TCP_HEADER) / sizeof(uint32_t);
-        TCP->Flags = TH_ACK;
-        TCP->Window = 0;
+        TCP->Window = QuicNetByteSwapShort(65535);
         TCP->X2 = 0;
         TCP->Checksum = 0;
         TCP->UrgentPointer = 0;
+        TCP->HeaderLength = sizeof(TCP_HEADER) / sizeof(uint32_t);
+        TCP->SequenceNumber =
+            Route->TcpState.Syncd ?
+                CxPlatByteSwapUint32(Route->TcpState.Isn + 2) :
+                CxPlatByteSwapUint32(Route->TcpState.Isn); // Isn + 1 is for RST.
+        TCP->AckNumber = CxPlatByteSwapUint32(Route->TcpState.AckNumber);
+
+        if (Socket->Connected) {
+            if (Route->TcpState.Syncd) {
+                TCP->Flags = TH_ACK;
+            } else {
+                TCP->Flags = TH_SYN;
+                //
+                // Discard data written in this packet, which turns it into a pure SYN.
+                //
+                Buffer->Length = 0;
+            }
+        } else {
+            CXPLAT_DBG_ASSERT(Route->TcpState.Syncd);
+            TCP->Flags = TH_ACK;
+        }
+
         Transport = (uint8_t*)TCP;
         TransportLength = sizeof(TCP_HEADER);
     } else {

@@ -337,8 +337,10 @@ CxPlatRemoveSocket(
 typedef enum PACKET_TYPE {
     L3_TYPE_ICMPV4,
     L3_TYPE_ICMPV6,
-    L4_TYPE_TCP,
     L4_TYPE_UDP,
+    L4_TYPE_TCP,
+    L4_TYPE_TCP_SYN,
+    L4_TYPE_TCP_SYNACK,
 } PACKET_TYPE;
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
