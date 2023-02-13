@@ -56,6 +56,9 @@ jobs:
         # Android doesn't use CodeCheck
         - plat: android
           codecheck: '-CodeCheck'
+        # No need to combine SystemCrypto and CodeCheck
+        - systemcrypto: '-UseSystemOpenSSLCrypto'
+          codecheck: '-CodeCheck'
         # No need to combine Static and CodeCheck
         - static: '-Static'
           codecheck: '-CodeCheck'
@@ -177,7 +180,7 @@ jobs:
         # OpenSSL3 doesn't support arm64
         - tls: openssl3
           arch: arm64
-        # OpenSSL3 build fails with UWP
+        # TODO: FIX: OpenSSL3 build fails with UWP
         - plat: uwp
           tls: openssl3
         # TODO: FIX: Static builds fail with UWP
