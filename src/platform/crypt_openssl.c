@@ -197,14 +197,14 @@ Error:
     CXPLAT_AES_256_CBC_ALG_HANDLE = (EVP_CIPHER *)EVP_aes_256_cbc();
     CXPLAT_AES_128_ECB_ALG_HANDLE = (EVP_CIPHER *)EVP_aes_128_ecb();
     CXPLAT_AES_256_ECB_ALG_HANDLE = (EVP_CIPHER *)EVP_aes_256_ecb();
-#ifdef _WIN32
+#if defined _WIN32 || !defined CXPLAT_SYSTEM_CRYPTO
     CXPLAT_CHACHA20_ALG_HANDLE = (EVP_CIPHER *)EVP_chacha20();
     CXPLAT_CHACHA20_POLY1305_ALG_HANDLE = (EVP_CIPHER *)EVP_chacha20_poly1305();
 #else
     CXPLAT_CHACHA20_ALG_HANDLE = NULL;
     CXPLAT_CHACHA20_POLY1305_ALG_HANDLE = NULL;
 
-    // try to load chacha dynamically. They may or may not exist
+    // try to load chacha dynamically. They may or may not exist when using system crypto
     EVP_CIPHER* (*func)(void) = NULL;
     func = dlsym(NULL, "EVP_chacha20");
     if (func != NULL) {
