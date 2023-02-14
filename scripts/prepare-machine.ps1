@@ -103,6 +103,9 @@ Set-StrictMode -Version 'Latest'
 $PSDefaultParameterValues['*:ErrorAction'] = 'Stop'
 $ProgressPreference = 'SilentlyContinue'
 
+$PrepConfig = & (Join-Path $PSScriptRoot get-buildconfig.ps1) -Tls $Tls
+$Tls = $PrepConfig.Tls
+
 if ($PSVersionTable.PSVersion.Major -lt 7) {
     # This script requires PowerShell core (mostly for xplat stuff).
     Write-Error ("`nPowerShell v7.x or greater is needed for this script to work. " +
@@ -116,7 +119,6 @@ if (!$ForOneBranch -and !$ForOneBranchPackage -and !$ForBuild -and !$ForTest -an
     Write-Host "No arguments passed, defaulting -ForBuild and -ForTest"
     $ForBuild = $true
     $ForTest = $true
-    if ("" -eq $Tls -and !$ForKernel) { $Tls = "openssl" }
 }
 
 if ($ForBuild) {
@@ -144,12 +146,6 @@ if ($ForTest) {
 if ($InstallXdpDriver) {
     # The XDP SDK contains XDP driver, so ensure it's downloaded.
     $InstallXdpSdk = $true
-}
-
-# Default TLS based on current platform.
-if ("" -eq $Tls) {
-    if ($IsWindows) { $Tls = "schannel" }
-    else            { $Tls = "openssl" }
 }
 
 # Root directory of the project.
