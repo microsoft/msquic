@@ -268,7 +268,8 @@ typedef struct CXPLAT_SOCKET {
     uint8_t CibirIdOffsetDst;   // CIBIR ID offset in destination CID
     uint8_t CibirId[6];         // CIBIR ID data
     BOOLEAN UseTcp;             // Quic over TCP
-
+    BOOLEAN TcpConnected;       // Quic over TCP connection is established
+    uint32_t TcpAckNumber;      // TCP ACK number to be populated to route object
 } CXPLAT_SOCKET;
 
 BOOLEAN
@@ -345,11 +346,19 @@ typedef enum PACKET_TYPE {
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
+CxPlatDpRawSocketAckSyn(
+    _In_ CXPLAT_SOCKET* Socket,
+    _In_ CXPLAT_RECV_DATA* Packet
+    );
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+void
 CxPlatFramingWriteHeaders(
-    _In_ const CXPLAT_SOCKET* Socket,
+    _In_ CXPLAT_SOCKET* Socket,
     _In_ const CXPLAT_ROUTE* Route,
     _Inout_ QUIC_BUFFER* Buffer,
     _In_ CXPLAT_ECN_TYPE ECN,
     _In_ BOOLEAN SkipNetworkLayerXsum,
-    _In_ BOOLEAN SkipTransportLayerXsum
+    _In_ BOOLEAN SkipTransportLayerXsum,
+    _In_opt_ const CXPLAT_RECV_DATA* ReceivedTcpPacket
     );

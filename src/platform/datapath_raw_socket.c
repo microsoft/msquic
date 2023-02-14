@@ -668,7 +668,7 @@ CxPlatDpRawParseTcp(
     }
 
     HeaderLength = Tcp->HeaderLength * sizeof(uint32_t);
-    if (HeaderLength < Length) {
+    if (Length < HeaderLength) {
         return;
     }
 
@@ -680,12 +680,19 @@ CxPlatDpRawParseTcp(
         } else {
             Packet->Reserved = L4_TYPE_TCP_SYN;
         }
+    } else {
+        //
+        // Acking the peer's ISN + 1.
+        //
+        Packet->Route->TcpState.Syncd = TRUE;
+        Packet->Route->TcpState.AckNumber = CxPlatByteSwapUint32(CxPlatByteSwapUint32(Tcp->SequenceNumber) - 1);
+        Packet->Route->TcpState.Isn = CxPlatByteSwapUint32(CxPlatByteSwapUint32(Tcp->AckNumber));
     }
 
     Packet->Route->RemoteAddress.Ipv4.sin_port = Tcp->SourcePort;
     Packet->Route->LocalAddress.Ipv4.sin_port = Tcp->DestinationPort;
 
-    Packet->Buffer = (uint8_t*)(Tcp + 1) + HeaderLength;
+    Packet->Buffer = (uint8_t*)(Tcp) + HeaderLength;
     Packet->BufferLength = Length;
     Packet->ReservedEx = HeaderLength;
 }
@@ -967,13 +974,49 @@ CxPlatFramingTransportChecksum(
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
+CxPlatDpRawSocketAckSyn(
+    _In_ CXPLAT_SOCKET* Socket,
+    _In_ CXPLAT_RECV_DATA* Packet
+    )
+{
+    CXPLAT_DBG_ASSERT(Socket->UseTcp);
+
+    CXPLAT_ROUTE* Route = Packet->Route;
+    CXPLAT_SEND_CONFIG SendConfig = { Route, 0, CXPLAT_ECN_NON_ECT, 0 };
+    CXPLAT_SEND_DATA *SendData = CxPlatSendDataAlloc(Socket, &SendConfig);
+    if (SendData == NULL) {
+        return;
+    }
+
+    QuicTraceEvent(
+        DatapathSend,
+        "[data][%p] Send %u bytes in %hhu buffers (segment=%hu) Dst=%!ADDR!, Src=%!ADDR!",
+        Socket,
+        SendData->Buffer.Length,
+        1,
+        (uint16_t)SendData->Buffer.Length,
+        CASTED_CLOG_BYTEARRAY(sizeof(Route->RemoteAddress), &Route->RemoteAddress),
+        CASTED_CLOG_BYTEARRAY(sizeof(Route->LocalAddress), &Route->LocalAddress));
+    CXPLAT_DBG_ASSERT(Route->State == RouteResolved);
+    CXPLAT_DBG_ASSERT(Route->Queue != NULL);
+    const CXPLAT_INTERFACE* Interface = CxPlatDpRawGetInterfaceFromQueue(Route->Queue);
+    CxPlatFramingWriteHeaders(
+        Socket, Route, &SendData->Buffer, SendData->ECN,
+        Interface->OffloadStatus.Transmit.NetworkLayerXsum,
+        Interface->OffloadStatus.Transmit.TransportLayerXsum, Packet);
+    CxPlatDpRawTxEnqueue(SendData);
+}
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+void
 CxPlatFramingWriteHeaders(
-    _In_ const CXPLAT_SOCKET* Socket,
+    _In_ CXPLAT_SOCKET* Socket,
     _In_ const CXPLAT_ROUTE* Route,
     _Inout_ QUIC_BUFFER* Buffer,
     _In_ CXPLAT_ECN_TYPE ECN,
     _In_ BOOLEAN SkipNetworkLayerXsum,
-    _In_ BOOLEAN SkipTransportLayerXsum
+    _In_ BOOLEAN SkipTransportLayerXsum,
+    _In_opt_ const CXPLAT_RECV_DATA* ReceivedTcpPacket
     )
 {
     uint8_t *Transport;
@@ -1001,25 +1044,47 @@ CxPlatFramingWriteHeaders(
         TCP->Checksum = 0;
         TCP->UrgentPointer = 0;
         TCP->HeaderLength = sizeof(TCP_HEADER) / sizeof(uint32_t);
-        TCP->SequenceNumber =
-            Route->TcpState.Syncd ?
-                CxPlatByteSwapUint32(Route->TcpState.Isn + 2) :
-                CxPlatByteSwapUint32(Route->TcpState.Isn); // Isn + 1 is for RST.
-        TCP->AckNumber = CxPlatByteSwapUint32(Route->TcpState.AckNumber);
-
-        if (Socket->Connected) {
-            if (Route->TcpState.Syncd) {
+        if (ReceivedTcpPacket) {
+            TCP_HEADER* ReceivedTcpHeader = (TCP_HEADER*)(ReceivedTcpPacket->Buffer - ReceivedTcpPacket->ReservedEx);
+            CXPLAT_DBG_ASSERT(Buffer->Length == 0);
+            CXPLAT_DBG_ASSERT(ReceivedTcpHeader->HeaderLength * sizeof(uint32_t) == ReceivedTcpPacket->ReservedEx);
+            if ((ReceivedTcpHeader->Flags & (TH_SYN | TH_ACK)) == (TH_SYN | TH_ACK)) {
+                CXPLAT_DBG_ASSERT(ReceivedTcpPacket->Reserved == L4_TYPE_TCP_SYNACK);
+                TCP->SequenceNumber = ReceivedTcpHeader->AckNumber;
+                TCP->AckNumber = CxPlatByteSwapUint32(CxPlatByteSwapUint32(ReceivedTcpHeader->SequenceNumber) + 1);
                 TCP->Flags = TH_ACK;
+                Socket->TcpAckNumber = CxPlatByteSwapUint32(TCP->AckNumber);
+                Socket->TcpConnected = TRUE;
+                printf("Framing ACK for SYN+ACK\n");
             } else {
-                TCP->Flags = TH_SYN;
-                //
-                // Discard data written in this packet, which turns it into a pure SYN.
-                //
-                Buffer->Length = 0;
+                CXPLAT_DBG_ASSERT(ReceivedTcpPacket->Reserved == L4_TYPE_TCP_SYN);
+                CXPLAT_DBG_ASSERT((ReceivedTcpHeader->Flags & (TH_SYN | TH_ACK)) == TH_SYN);
+                TCP->SequenceNumber = 0;
+                TCP->AckNumber = CxPlatByteSwapUint32(CxPlatByteSwapUint32(ReceivedTcpHeader->SequenceNumber) + 1);
+                TCP->Flags = TH_SYN | TH_ACK;
+                printf("Framing SYN+ACK\n");
             }
         } else {
-            CXPLAT_DBG_ASSERT(Route->TcpState.Syncd);
-            TCP->Flags = TH_ACK;
+            TCP->SequenceNumber =
+                Route->TcpState.Syncd ?
+                    CxPlatByteSwapUint32(Route->TcpState.Isn + 2) :
+                    CxPlatByteSwapUint32(Route->TcpState.Isn); // Isn + 1 is for RST.
+            TCP->AckNumber = CxPlatByteSwapUint32(Route->TcpState.AckNumber);
+
+            if (Socket->Connected) {
+                if (Route->TcpState.Syncd) {
+                    TCP->Flags = TH_ACK;
+                } else {
+                    TCP->Flags = TH_SYN;
+                    //
+                    // Discard data written in this packet, which turns it into a pure SYN.
+                    //
+                    Buffer->Length = 0;
+                }
+            } else {
+                CXPLAT_DBG_ASSERT(Route->TcpState.Syncd);
+                TCP->Flags = TH_ACK;
+            }
         }
 
         Transport = (uint8_t*)TCP;

@@ -524,19 +524,6 @@ CxPlatSocketGetRemoteAddress(
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
-CxPlatDpRawSocketAckSyn(
-    _In_ CXPLAT_SOCKET* Socket,
-    _In_ CXPLAT_RECV_DATA *Packet
-    )
-{
-    CXPLAT_DBG_ASSERT(Socket->UseTcp);
-
-    CXPLAT_SEND_CONFIG SendConfig = { &Packet->Route, 0, CXPLAT_ECN_NON_ECT, 0 };
-    CXPLAT_RECV_DATA *Response = CxPlatSendDataAlloc(Socket, &SendConfig);
-}
-
-_IRQL_requires_max_(DISPATCH_LEVEL)
-void
 CxPlatDpRawRxEthernet(
     _In_ const CXPLAT_DATAPATH* Datapath,
     _In_reads_(PacketCount)
@@ -582,11 +569,10 @@ CxPlatDpRawRxEthernet(
                         i++;
                     }
                     Datapath->UdpHandlers.Receive(Socket, Socket->CallbackContext, (CXPLAT_RECV_DATA*)PacketChain);
-                } else if (PacketChain->Reserved == L4_TYPE_TCP_SYN) {
-
-                } else {
-                    CXPLAT_DBG_ASSERT(PacketChain->Reserved == L4_TYPE_TCP_SYNACK);
-
+                } else if (PacketChain->Reserved == L4_TYPE_TCP_SYN || PacketChain->Reserved == L4_TYPE_TCP_SYNACK) {
+                    PacketChain->Route->UseTcp = TRUE; 
+                    CxPlatDpRawSocketAckSyn(Socket, PacketChain);
+                    CxPlatDpRawRxFree(PacketChain);
                 }
 
                 CxPlatRundownRelease(&Socket->Rundown);
@@ -677,10 +663,20 @@ CxPlatSocketSend(
     CXPLAT_DBG_ASSERT(Route->State == RouteResolved);
     CXPLAT_DBG_ASSERT(Route->Queue != NULL);
     const CXPLAT_INTERFACE* Interface = CxPlatDpRawGetInterfaceFromQueue(Route->Queue);
+    //
+    // TODO: prevent memory reordering and need a better way to notify a QTIP connection is
+    // established.
+    //
+    if (Socket->Connected && Route->TcpState.Syncd == FALSE && Socket->TcpConnected) {
+        CXPLAT_RAW_TCP_STATE* TcpState = &((CXPLAT_ROUTE*)Route)->TcpState;
+        TcpState->Syncd = TRUE;
+        TcpState->AckNumber = Socket->TcpAckNumber;
+        printf("Connection established\n");
+    }
     CxPlatFramingWriteHeaders(
         Socket, Route, &SendData->Buffer, SendData->ECN,
         Interface->OffloadStatus.Transmit.NetworkLayerXsum,
-        Interface->OffloadStatus.Transmit.TransportLayerXsum);
+        Interface->OffloadStatus.Transmit.TransportLayerXsum, NULL);
     CxPlatDpRawTxEnqueue(SendData);
     return QUIC_STATUS_SUCCESS;
 }

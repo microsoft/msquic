@@ -180,6 +180,11 @@ QuicCopyRouteInfo(
 {
 #ifdef QUIC_USE_RAW_DATAPATH
     CxPlatCopyMemory(DstRoute, SrcRoute, (uint8_t*)&SrcRoute->State - (uint8_t*)SrcRoute);
+    if (!DstRoute->TcpState.Syncd) {
+        DstRoute->TcpState.Syncd = TRUE;
+        DstRoute->TcpState.AckNumber = SrcRoute->TcpState.AckNumber;
+        DstRoute->TcpState.Isn = SrcRoute->TcpState.Isn;
+    }
 #else
     *DstRoute = *SrcRoute;
 #endif
