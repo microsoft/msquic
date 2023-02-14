@@ -685,8 +685,8 @@ CxPlatDpRawParseTcp(
         // Acking the peer's ISN + 1.
         //
         Packet->Route->TcpState.Syncd = TRUE;
-        Packet->Route->TcpState.AckNumber = CxPlatByteSwapUint32(CxPlatByteSwapUint32(Tcp->SequenceNumber) - 1);
-        Packet->Route->TcpState.Isn = CxPlatByteSwapUint32(CxPlatByteSwapUint32(Tcp->AckNumber));
+        Packet->Route->TcpState.AckNumber = CxPlatByteSwapUint32(Tcp->SequenceNumber) - 1;
+        Packet->Route->TcpState.Isn = CxPlatByteSwapUint32(Tcp->AckNumber);
     }
 
     Packet->Route->RemoteAddress.Ipv4.sin_port = Tcp->SourcePort;
