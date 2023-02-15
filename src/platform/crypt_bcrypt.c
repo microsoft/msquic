@@ -281,6 +281,23 @@ Error:
 #endif
 }
 
+BOOLEAN
+CxPlatCryptSupports(
+    CXPLAT_AEAD_TYPE AeadType
+    )
+{
+    switch (AeadType) {
+    case CXPLAT_AEAD_AES_128_GCM:
+        return TRUE;
+    case CXPLAT_AEAD_AES_256_GCM:
+        return TRUE;
+    case CXPLAT_AEAD_CHACHA20_POLY1305:
+        return  CXPLAT_CHACHA20_POLY1305_ALG_HANDLE != NULL;
+    default:
+        return FALSE;
+    }
+}
+
 void
 CxPlatCryptUninitialize(
     void

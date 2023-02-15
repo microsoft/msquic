@@ -549,10 +549,10 @@ tracepoint(CLOG_TLS_OPENSSL_C, TlsErrorStatus , arg2, arg3, arg4);\
 // Decoder Ring for LibraryErrorStatus
 // [ lib] ERROR, %u, %s.
 // QuicTraceEvent(
-            LibraryErrorStatus,
-            "[ lib] ERROR, %u, %s.",
-            CredConfig->AllowedCipherSuites,
-            "No valid cipher suites presented");
+                LibraryErrorStatus,
+                "[ lib] ERROR, %u, %s.",
+                CredConfig->AllowedCipherSuites,
+                "No valid cipher suites presented");
 // arg2 = arg2 = CredConfig->AllowedCipherSuites = arg2
 // arg3 = arg3 = "No valid cipher suites presented" = arg3
 ----------------------------------------------------------*/

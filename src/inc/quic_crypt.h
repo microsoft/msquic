@@ -372,6 +372,11 @@ CxPlatHashCompute(
         uint8_t* const Output
     );
 
+BOOLEAN
+CxPlatCryptSupports(
+    CXPLAT_AEAD_TYPE AeadType
+    );
+
 #if defined(__cplusplus)
 }
 #endif
