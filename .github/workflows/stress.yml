@@ -33,9 +33,12 @@ jobs:
     runs-on: ${{ matrix.os }}
     name: Stress
     env:
-      timeout: 60000
-      repeat: 20
-      allocfail: 100
+      main-timeout: 3600000
+      main-repeat: 20
+      main-allocfail: 100
+      pr-timeout: 600000
+      pr-repeat: 20
+      pr-allocfail: 100
     steps:
     - name: Checkout repository
       uses: actions/checkout@ac593985615ec2ede58e132d2e21d2b1cbd6127c
@@ -53,12 +56,17 @@ jobs:
     - name: Build
       shell: pwsh
       run: scripts/build.ps1 -Config Debug -Arch ${{ matrix.arch }} -Tls ${{ matrix.tls }} -DisableTest -DisablePerf -DynamicCRT -Sanitize
-    - name: Test
-      id: test
+    - name: spinquic (PR)
+      if: github.event_name == 'pull_request'
       shell: pwsh
-      run: scripts/spin.ps1 -AZP -Config Debug -Arch ${{ matrix.arch }} -Tls ${{ matrix.tls }} -Timeout ${{ env.timeout }} -RepeatCount ${{ env.repeat }} -AllocFail ${{ env.allocfail }}
-    - uses: actions/upload-artifact@0b7f8abb1508181956e8e162db84b466c27e18ce
-      if: always() && steps.test.outcome == 'failure'
+      run: scripts/spin.ps1 -AZP -Config Debug -Arch ${{ matrix.arch }} -Tls ${{ matrix.tls }} -Timeout ${{ env.pr-timeout }} -RepeatCount ${{ env.pr-repeat }} -AllocFail ${{ env.pr-allocfail }}
+    - name: spinquic (Official)
+      if: github.event_name != 'pull_request'
+      shell: pwsh
+      run: scripts/spin.ps1 -AZP -Config Debug -Arch ${{ matrix.arch }} -Tls ${{ matrix.tls }} -Timeout ${{ env.main-timeout }} -RepeatCount ${{ env.main-repeat }} -AllocFail ${{ env.main-allocfail }}
+    - name: Upload on Failure
+      uses: actions/upload-artifact@0b7f8abb1508181956e8e162db84b466c27e18ce
+      if: failure()
       with:
         name: ${{ matrix.os }}-${{ matrix.arch }}-${{ matrix.tls }}
         path: artifacts
