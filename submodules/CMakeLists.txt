@@ -351,7 +351,6 @@ else()
         else()
             message(FATAL_ERROR "System OpenSSL not found when requested")
         endif()
-        list(APPEND QUIC_COMMON_DEFINES CXPLAT_SYSTEM_CRYPTO)
     else()
         target_link_libraries(
             OpenSSLQuic
