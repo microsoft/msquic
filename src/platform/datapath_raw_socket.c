@@ -686,7 +686,7 @@ CxPlatDpRawParseTcp(
         //
         Packet->Route->TcpState.Syncd = TRUE;
         Packet->Route->TcpState.AckNumber = CxPlatByteSwapUint32(Tcp->SequenceNumber) - 1;
-        Packet->Route->TcpState.Isn = CxPlatByteSwapUint32(Tcp->AckNumber);
+        Packet->Route->TcpState.SequenceNumber = CxPlatByteSwapUint32(Tcp->AckNumber);
     }
 
     Packet->Route->RemoteAddress.Ipv4.sin_port = Tcp->SourcePort;
@@ -1054,7 +1054,8 @@ CxPlatFramingWriteHeaders(
                 TCP->AckNumber = CxPlatByteSwapUint32(CxPlatByteSwapUint32(ReceivedTcpHeader->SequenceNumber) + 1);
                 TCP->Flags = TH_ACK;
                 Socket->TcpAckNumber = CxPlatByteSwapUint32(TCP->AckNumber);
-                WriteRelease8(&Socket->TcpConnected, TRUE);
+                Socket->TcpSequenceNumber = CxPlatByteSwapUint32(TCP->SequenceNumber) + 1;
+                WriteRelease8((CHAR*)&Socket->TcpConnected, TRUE);
             } else {
                 CXPLAT_DBG_ASSERT(ReceivedTcpPacket->Reserved == L4_TYPE_TCP_SYN);
                 CXPLAT_DBG_ASSERT((ReceivedTcpHeader->Flags & (TH_SYN | TH_ACK)) == TH_SYN);
@@ -1063,10 +1064,7 @@ CxPlatFramingWriteHeaders(
                 TCP->Flags = TH_SYN | TH_ACK;
             }
         } else {
-            TCP->SequenceNumber =
-                Route->TcpState.Syncd ?
-                    CxPlatByteSwapUint32(Route->TcpState.Isn + 2) :
-                    CxPlatByteSwapUint32(Route->TcpState.Isn); // Isn + 1 is for RST.
+            TCP->SequenceNumber = CxPlatByteSwapUint32(Route->TcpState.SequenceNumber);
             TCP->AckNumber = CxPlatByteSwapUint32(Route->TcpState.AckNumber);
 
             if (Socket->Connected) {

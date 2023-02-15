@@ -666,10 +666,15 @@ CxPlatSocketSend(
     //
     // TODO: need a better way to notify a QTIP connection is established.
     //
-    if (Route->UseTcp && Socket->Connected && Route->TcpState.Syncd == FALSE && ReadAcquire8(&Socket->TcpConnected)) {
-        CXPLAT_RAW_TCP_STATE* TcpState = &((CXPLAT_ROUTE*)Route)->TcpState;
+    if (Route->UseTcp &&
+        Socket->Connected &&
+        Route->TcpState.Syncd == FALSE &&
+        ReadAcquire8((CHAR*)&Socket->TcpConnected)) {
+
+        CXPLAT_RAW_TCP_STATE* TcpState = &((CXPLAT_ROUTE*)Route)->TcpState; // Hack around const
         TcpState->Syncd = TRUE;
         TcpState->AckNumber = Socket->TcpAckNumber;
+        TcpState->SequenceNumber = Socket->TcpSequenceNumber;
     }
 
     CxPlatFramingWriteHeaders(

@@ -178,7 +178,7 @@ typedef struct CXPLAT_RAW_TCP_STATE {
     // All numbers are in host order.
     //
     uint32_t AckNumber;
-    uint32_t Isn;
+    uint32_t SequenceNumber;
 } CXPLAT_RAW_TCP_STATE;
 
 //

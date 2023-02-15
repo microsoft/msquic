@@ -35,6 +35,9 @@ QuicPathInitialize(
         Connection->Settings.EcnEnabled ? ECN_VALIDATION_TESTING : ECN_VALIDATION_FAILED;
 #ifdef QUIC_USE_RAW_DATAPATH
     Path->Route.UseTcp = Connection->Settings.QuicOverTcpEnabled;
+    if (Path->Route.UseTcp) {
+        CxPlatRandom(sizeof(Path->Route.TcpState.SequenceNumber), &Path->Route.TcpState.SequenceNumber);
+    }
 #endif
     QuicTraceLogConnInfo(
         PathInitialized,
@@ -183,7 +186,7 @@ QuicCopyRouteInfo(
     if (!DstRoute->TcpState.Syncd) {
         DstRoute->TcpState.Syncd = TRUE;
         DstRoute->TcpState.AckNumber = SrcRoute->TcpState.AckNumber;
-        DstRoute->TcpState.Isn = SrcRoute->TcpState.Isn;
+        DstRoute->TcpState.SequenceNumber = SrcRoute->TcpState.SequenceNumber;
     }
 #else
     *DstRoute = *SrcRoute;

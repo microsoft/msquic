@@ -269,7 +269,8 @@ typedef struct CXPLAT_SOCKET {
     uint8_t CibirId[6];         // CIBIR ID data
     BOOLEAN UseTcp;             // Quic over TCP
     BOOLEAN TcpConnected;       // Quic over TCP connection is established
-    uint32_t TcpAckNumber;      // TCP ACK number to be populated to route object
+    uint32_t TcpAckNumber;      // TCP ACK number to be populated to the route object
+    uint32_t TcpSequenceNumber; // TCP sequence number to be populated to the route object
 } CXPLAT_SOCKET;
 
 BOOLEAN
