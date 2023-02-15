@@ -639,6 +639,10 @@ if(QUIC_TLS STREQUAL "openssl")
     )
 endif()
 
+if (QUIC_USE_SYSTEM_LIBCRYPTO)
+    list(APPEND QUIC_COMMON_DEFINES CXPLAT_SYSTEM_CRYPTO)
+endif()
+
 if(QUIC_CODE_CHECK)
     find_program(CLANGTIDY NAMES clang-tidy)
     if(CLANGTIDY)

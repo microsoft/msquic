@@ -964,9 +964,11 @@ TEST_F(TlsTest, HandshakeParamInfoChaCha20)
     CxPlatServerSecConfig ServerConfig(
         QUIC_CREDENTIAL_FLAG_SET_ALLOWED_CIPHER_SUITES,
         QUIC_ALLOWED_CIPHER_SUITE_CHACHA20_POLY1305_SHA256);
+
     TlsContext ServerContext, ClientContext;
     ClientContext.InitializeClient(ClientConfig);
     ServerContext.InitializeServer(ServerConfig);
+    ASSERT_NE(ServerConfig.SecConfig, nullptr);
     DoHandshake(ServerContext, ClientContext);
 
     QUIC_HANDSHAKE_INFO HandshakeInfo;
