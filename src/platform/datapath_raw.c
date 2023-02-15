@@ -664,15 +664,14 @@ CxPlatSocketSend(
     CXPLAT_DBG_ASSERT(Route->Queue != NULL);
     const CXPLAT_INTERFACE* Interface = CxPlatDpRawGetInterfaceFromQueue(Route->Queue);
     //
-    // TODO: prevent memory reordering and need a better way to notify a QTIP connection is
-    // established.
+    // TODO: need a better way to notify a QTIP connection is established.
     //
-    if (Socket->Connected && Route->TcpState.Syncd == FALSE && Socket->TcpConnected) {
+    if (Route->UseTcp && Socket->Connected && Route->TcpState.Syncd == FALSE && ReadAcquire8(&Socket->TcpConnected)) {
         CXPLAT_RAW_TCP_STATE* TcpState = &((CXPLAT_ROUTE*)Route)->TcpState;
         TcpState->Syncd = TRUE;
         TcpState->AckNumber = Socket->TcpAckNumber;
-        printf("Connection established\n");
     }
+
     CxPlatFramingWriteHeaders(
         Socket, Route, &SendData->Buffer, SendData->ECN,
         Interface->OffloadStatus.Transmit.NetworkLayerXsum,

@@ -1054,15 +1054,13 @@ CxPlatFramingWriteHeaders(
                 TCP->AckNumber = CxPlatByteSwapUint32(CxPlatByteSwapUint32(ReceivedTcpHeader->SequenceNumber) + 1);
                 TCP->Flags = TH_ACK;
                 Socket->TcpAckNumber = CxPlatByteSwapUint32(TCP->AckNumber);
-                Socket->TcpConnected = TRUE;
-                printf("Framing ACK for SYN+ACK\n");
+                WriteRelease8(&Socket->TcpConnected, TRUE);
             } else {
                 CXPLAT_DBG_ASSERT(ReceivedTcpPacket->Reserved == L4_TYPE_TCP_SYN);
                 CXPLAT_DBG_ASSERT((ReceivedTcpHeader->Flags & (TH_SYN | TH_ACK)) == TH_SYN);
                 TCP->SequenceNumber = 0;
                 TCP->AckNumber = CxPlatByteSwapUint32(CxPlatByteSwapUint32(ReceivedTcpHeader->SequenceNumber) + 1);
                 TCP->Flags = TH_SYN | TH_ACK;
-                printf("Framing SYN+ACK\n");
             }
         } else {
             TCP->SequenceNumber =
