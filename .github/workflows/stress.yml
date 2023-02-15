@@ -1,0 +1,85 @@
+name: Stress
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+    - main
+    - release/*
+  pull_request:
+    branches:
+    - main
+    - release/*
+
+concurrency:
+  # Cancel any workflow currently in progress for the same PR.
+  # Allow running concurrently with any other commits.
+  group: stress-${{ github.event.pull_request.number || github.sha }}
+  cancel-in-progress: true
+
+permissions: read-all
+
+jobs:
+  stress:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-20.04, windows-2022]
+        arch: [x64]
+        tls: [schannel, openssl, openssl3]
+        sanitize: ['', '-Sanitize']
+        exclude:
+        - os: ubuntu-20.04
+          tls: schannel
+        # Linux and Windows Schannel use ASAN
+        - os: ubuntu-20.04
+          sanitize: ''
+        - tls: schannel
+          sanitize: ''
+        # OpenSSL on Windows doesn't work with ASAN
+        - os: windows-2022
+          tls: openssl
+          sanitize: '-Sanitize'
+        - os: windows-2022
+          tls: openssl3
+          sanitize: '-Sanitize'
+    runs-on: ${{ matrix.os }}
+    name: Stress
+    env:
+      main-timeout: 3600000
+      main-repeat: 20
+      main-allocfail: 100
+      pr-timeout: 600000
+      pr-repeat: 20
+      pr-allocfail: 100
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@ac593985615ec2ede58e132d2e21d2b1cbd6127c
+    - name: Install Perl
+      if: runner.os == 'Windows'
+      uses: shogo82148/actions-setup-perl@e0737ade83f9863f9f5c00d8470b6d7bec207fee
+      with:
+        perl-version: '5.34'
+    - name: Install NASM
+      if: runner.os == 'Windows'
+      uses: ilammy/setup-nasm@321e6ed62a1fc77024a3bd853deb33645e8b22c4
+    - name: Prepare Machine
+      run: scripts/prepare-machine.ps1 -Tls ${{ matrix.tls }} -ForBuild -ForTest
+      shell: pwsh
+    - name: Build
+      shell: pwsh
+      run: scripts/build.ps1 -Config Debug -Arch ${{ matrix.arch }} -Tls ${{ matrix.tls }} -DisableTest -DisablePerf -DynamicCRT ${{ matrix.sanitize }}
+    - name: spinquic (PR)
+      if: github.event_name == 'pull_request'
+      shell: pwsh
+      run: scripts/spin.ps1 -AZP -Config Debug -Arch ${{ matrix.arch }} -Tls ${{ matrix.tls }} -Timeout ${{ env.pr-timeout }} -RepeatCount ${{ env.pr-repeat }} -AllocFail ${{ env.pr-allocfail }}
+    - name: spinquic (Official)
+      if: github.event_name != 'pull_request'
+      shell: pwsh
+      run: scripts/spin.ps1 -AZP -Config Debug -Arch ${{ matrix.arch }} -Tls ${{ matrix.tls }} -Timeout ${{ env.main-timeout }} -RepeatCount ${{ env.main-repeat }} -AllocFail ${{ env.main-allocfail }}
+    - name: Upload on Failure
+      uses: actions/upload-artifact@0b7f8abb1508181956e8e162db84b466c27e18ce
+      if: failure()
+      with:
+        name: ${{ matrix.os }}-${{ matrix.arch }}-${{ matrix.tls }}
+        path: artifacts
