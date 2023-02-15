@@ -1,0 +1,50 @@
+name: Stress
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+    - main
+    - release/*
+  pull_request:
+    branches:
+    - main
+    - release/*
+
+concurrency:
+  # Cancel any workflow currently in progress for the same PR.
+  # Allow running concurrently with any other commits.
+  group: stress-${{ github.event.pull_request.number || github.sha }}
+  cancel-in-progress: true
+
+permissions: read-all
+
+jobs:
+  stress:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-20.04, windows-2022]
+        arch: [x64]
+        tls: [schannel, openssl, openssl3]
+        exclude:
+        - os: ubuntu-20.04
+          tls: schannel
+    runs-on: ${{ matrix.os }}
+    name: Stress
+    env:
+      timeout: 60000
+      repeat: 20
+      allocfail: 100
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@ac593985615ec2ede58e132d2e21d2b1cbd6127c
+    - name: Prepare Machine
+      run: scripts/prepare-machine.ps1 -Tls ${{ matrix.tls }} -ForBuild -ForTest
+      shell: pwsh
+    - name: Build
+      shell: pwsh
+      run: scripts/build.ps1 -Config Debug -Arch ${{ matrix.arch }} -Tls ${{ matrix.tls }} -Sanitize
+    - name: Test
+      shell: pwsh
+      run: scripts/spin.ps1 -AZP -Config Debug -Arch ${{ matrix.arch }} -Tls ${{ matrix.tls }} -Timeout ${{ env.timeout }} -RepeatCount ${{ env.repeat }} -AllocFail ${{ env.allocfail }}
