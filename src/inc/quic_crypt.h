@@ -377,7 +377,6 @@ CxPlatCryptSupports(
     CXPLAT_AEAD_TYPE AeadType
     );
 
-
 #if defined(__cplusplus)
 }
 #endif

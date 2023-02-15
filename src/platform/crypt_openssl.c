@@ -164,7 +164,9 @@ CxPlatCryptInitialize(
         goto Error;
     }
 
-    // load ChaCha if it exist.
+    //
+    // Load ChaCha20 ciphers if they exist.
+    //
     CxPlatLoadCipher("ChaCha20", &CXPLAT_CHACHA20_ALG_HANDLE);
     CxPlatLoadCipher("ChaCha20-Poly1305", &CXPLAT_CHACHA20_POLY1305_ALG_HANDLE);
 
@@ -204,7 +206,9 @@ Error:
     CXPLAT_CHACHA20_ALG_HANDLE = NULL;
     CXPLAT_CHACHA20_POLY1305_ALG_HANDLE = NULL;
 
-    // try to load chacha dynamically. They may or may not exist when using system crypto
+    //
+    // Try to load ChaCha20 ciphers dynamically. They may or may not exist when using system crypto.
+    //
     EVP_CIPHER* (*func)(void) = NULL;
     func = dlsym(NULL, "EVP_chacha20");
     if (func != NULL) {
