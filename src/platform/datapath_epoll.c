@@ -946,7 +946,8 @@ QUIC_STATUS
 CxPlatSocketContextInitialize(
     _Inout_ CXPLAT_SOCKET_CONTEXT* SocketContext,
     _In_ const QUIC_ADDR* LocalAddress,
-    _In_ const QUIC_ADDR* RemoteAddress)
+    _In_ const QUIC_ADDR* RemoteAddress
+    )
 {
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
     int Result = 0;
