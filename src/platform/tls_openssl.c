@@ -1039,7 +1039,8 @@ CxPlatTlsSecConfigCreate(
                 "No valid cipher suites presented");
             return QUIC_STATUS_INVALID_PARAMETER;
         }
-        if (CredConfig->AllowedCipherSuites == QUIC_ALLOWED_CIPHER_SUITE_CHACHA20_POLY1305_SHA256 && !CxPlatCryptSupports(CXPLAT_AEAD_CHACHA20_POLY1305)) {
+        if (CredConfig->AllowedCipherSuites == QUIC_ALLOWED_CIPHER_SUITE_CHACHA20_POLY1305_SHA256 &&
+            !CxPlatCryptSupports(CXPLAT_AEAD_CHACHA20_POLY1305)) {
             QuicTraceEvent(
                 LibraryErrorStatus,
                 "[ lib] ERROR, %u, %s.",

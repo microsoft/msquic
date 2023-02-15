@@ -231,7 +231,7 @@ CxPlatCryptSupports(
     case CXPLAT_AEAD_AES_256_GCM:
         return CXPLAT_AES_256_GCM_ALG_HANDLE != NULL;
     case CXPLAT_AEAD_CHACHA20_POLY1305:
-        return  CXPLAT_CHACHA20_ALG_HANDLE != NULL;
+        return CXPLAT_CHACHA20_ALG_HANDLE != NULL;
     default:
         return FALSE;
     }
@@ -584,8 +584,7 @@ CxPlatHpKeyCreate(
         Aead = CXPLAT_AES_256_ECB_ALG_HANDLE;
         break;
     case CXPLAT_AEAD_CHACHA20_POLY1305:
-        if (CXPLAT_CHACHA20_ALG_HANDLE == NULL)
-        {
+        if (CXPLAT_CHACHA20_ALG_HANDLE == NULL) {
             Status = QUIC_STATUS_NOT_SUPPORTED;
             goto Exit;
         }
