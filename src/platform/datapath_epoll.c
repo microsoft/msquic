@@ -946,9 +946,7 @@ QUIC_STATUS
 CxPlatSocketContextInitialize(
     _Inout_ CXPLAT_SOCKET_CONTEXT* SocketContext,
     _In_ const QUIC_ADDR* LocalAddress,
-    _In_ const QUIC_ADDR* RemoteAddress,
-    _In_ BOOLEAN ForceShare
-    )
+    _In_ const QUIC_ADDR* RemoteAddress)
 {
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
     int Result = 0;
@@ -1231,10 +1229,10 @@ CxPlatSocketContextInitialize(
     }
 
     //
-    // Only set SO_REUSEPORT on a server socket, otherwise the client could be
-    // assigned a server port (unless it's forcing sharing).
+    // Only set SO_REUSEPORT on a server socket (when RemoteAddress == NULL),
+    // otherwise the client could be assigned a server port.
     //
-    if (ForceShare && RemoteAddress == NULL) {
+    if (RemoteAddress == NULL) {
         //
         // The port is shared across processors.
         //
@@ -1552,8 +1550,7 @@ CxPlatSocketCreateUdp(
             CxPlatSocketContextInitialize(
                 &Binding->SocketContexts[i],
                 Config->LocalAddress,
-                Config->RemoteAddress,
-                Config->Flags & CXPLAT_SOCKET_FLAG_SHARE);
+                Config->RemoteAddress);
         if (QUIC_FAILED(Status)) {
             goto Exit;
         }
