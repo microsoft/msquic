@@ -1553,7 +1553,7 @@ CxPlatSocketCreateUdp(
                 &Binding->SocketContexts[i],
                 Config->LocalAddress,
                 Config->RemoteAddress,
-                Config->Flags & CXPLAT_SOCKET_FLAG_SHARE & IsServerSocket);
+                Config->Flags & CXPLAT_SOCKET_FLAG_SHARE);
         if (QUIC_FAILED(Status)) {
             goto Exit;
         }
