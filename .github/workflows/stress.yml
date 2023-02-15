@@ -44,7 +44,7 @@ jobs:
       shell: pwsh
     - name: Build
       shell: pwsh
-      run: scripts/build.ps1 -Config Debug -Arch ${{ matrix.arch }} -Tls ${{ matrix.tls }} -Sanitize
+      run: scripts/build.ps1 -Config Debug -Arch ${{ matrix.arch }} -Tls ${{ matrix.tls }} -DynamicCRT -Sanitize
     - name: Test
       shell: pwsh
       run: scripts/spin.ps1 -AZP -Config Debug -Arch ${{ matrix.arch }} -Tls ${{ matrix.tls }} -Timeout ${{ env.timeout }} -RepeatCount ${{ env.repeat }} -AllocFail ${{ env.allocfail }}
