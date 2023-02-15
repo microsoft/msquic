@@ -1234,7 +1234,7 @@ CxPlatSocketContextInitialize(
     // Only set SO_REUSEPORT on a server socket, otherwise the client could be
     // assigned a server port (unless it's forcing sharing).
     //
-    if (ForceShare || RemoteAddress == NULL) {
+    if (ForceShare && RemoteAddress == NULL) {
         //
         // The port is shared across processors.
         //
