@@ -477,7 +477,7 @@ CXPLAT_THREAD_CALLBACK(CxPlatWorkerThread, Context)
 
         ++State.NoWorkCount;
 #if DEBUG // Debug statistics
-        ++Worker.LoopCount;
+        ++Worker->LoopCount;
 #endif
 
         CxPlatRunExecutionContexts(Worker, &State);
