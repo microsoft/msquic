@@ -80,6 +80,9 @@ param (
     [switch]$InstallXdpSdk,
 
     [Parameter(Mandatory = $false)]
+    [switch]$UseXdp,
+
+    [Parameter(Mandatory = $false)]
     [switch]$InstallArm64Toolchain,
 
     [Parameter(Mandatory = $false)]
@@ -110,6 +113,16 @@ if ($PSVersionTable.PSVersion.Major -lt 7) {
     # This script requires PowerShell core (mostly for xplat stuff).
     Write-Error ("`nPowerShell v7.x or greater is needed for this script to work. " +
                  "Please visit https://github.com/microsoft/msquic/blob/main/docs/BUILD.md#powershell-usage")
+}
+
+if ($UseXdp) {
+    # Helper for XDP usage
+    if ($ForBuild) {
+        $InstallXdpSdk = $true;
+    }
+    if ($ForTest) {
+        $InstallXdpDriver = $true;
+    }
 }
 
 if (!$ForOneBranch -and !$ForOneBranchPackage -and !$ForBuild -and !$ForTest -and !$InstallXdpDriver -and !$UninstallXdp) {

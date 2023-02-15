@@ -79,10 +79,6 @@ jobs:
       if: matrix.codecheck != '-CodeCheck' # TODO: FIX: Release builds with CodeCheck fail
       shell: pwsh
       run: scripts/build.ps1 -Config Release -Platform ${{ matrix.plat }} -Arch ${{ matrix.arch }} -Tls ${{ matrix.tls }} ${{ matrix.static }} ${{ matrix.clang }} ${{ matrix.codecheck }}
-    - uses: actions/upload-artifact@0b7f8abb1508181956e8e162db84b466c27e18ce
-      with:
-        name: ${{ matrix.plat }}-${{ matrix.os }}-${{ matrix.arch }}-${{ matrix.tls }}${{ matrix.systemcrypto }}${{ matrix.static }}${{ matrix.clang }}${{ matrix.codecheck }}
-        path: artifacts/bin
 
   build-ubuntu-cross-compile:
     name: Build
@@ -123,10 +119,6 @@ jobs:
     - name: Build Release
       shell: pwsh
       run: scripts/build.ps1 -Config Release -Arch ${{ matrix.arch }} -ToolchainFile ${{ matrix.toolchain }} -Tls ${{ matrix.tls }} -DisableLogs -OneBranch ${{ matrix.static }}
-    - uses: actions/upload-artifact@0b7f8abb1508181956e8e162db84b466c27e18ce
-      with:
-        name: ${{ matrix.plat }}-${{ matrix.os }}-${{ matrix.arch }}-${{ matrix.tls }}${{ matrix.static }}
-        path: artifacts/bin
 
   build-macOS:
     name: Build
@@ -156,10 +148,6 @@ jobs:
     - name: Build Release
       shell: pwsh
       run: scripts/build.ps1 -Config Release -Platform ${{ matrix.plat }} -Arch ${{ matrix.arch }} -Tls ${{ matrix.tls }} ${{ matrix.static }}
-    - uses: actions/upload-artifact@0b7f8abb1508181956e8e162db84b466c27e18ce
-      with:
-        name: ${{ matrix.plat }}-${{ matrix.os }}-${{ matrix.arch }}-${{ matrix.tls }}${{ matrix.static }}
-        path: artifacts/bin
 
   build-windows:
     name: Build
@@ -214,18 +202,6 @@ jobs:
     - name: Build Release
       shell: pwsh
       run: scripts/build.ps1 -Config Release -Platform ${{ matrix.plat }} -Arch ${{ matrix.arch }} -Tls ${{ matrix.tls }} ${{ matrix.static }} ${{ matrix.xdp }}
-    - uses: actions/upload-artifact@0b7f8abb1508181956e8e162db84b466c27e18ce
-      with:
-        name: ${{ matrix.plat }}-${{ matrix.os }}-${{ matrix.arch }}-${{ matrix.tls }}${{ matrix.static }}${{ matrix.xdp }}
-        path: |
-          artifacts/bin
-          !artifacts/bin/xdp
-          !artifacts/bin/**/*.ilk
-          !artifacts/bin/**/*.cer
-          !artifacts/bin/**/*.exp
-          !artifacts/bin/**/*.lastcodeanalysissucceeded
-          !artifacts/bin/**/*.pgd
-          !artifacts/bin/**/*.lib
 
   build-windows-kernel:
     name: Build
@@ -258,15 +234,3 @@ jobs:
     - name: Build Release
       shell: pwsh
       run: msbuild msquic.kernel.sln /p:Configuration=Release /p:Platform=${{ matrix.arch }} /p:QUIC_VER_SUFFIX=-official
-    - uses: actions/upload-artifact@0b7f8abb1508181956e8e162db84b466c27e18ce
-      with:
-        name: ${{ matrix.plat }}-${{ matrix.os }}-${{ matrix.arch }}-${{ matrix.tls }}
-        path: |
-          artifacts/bin
-          !artifacts/bin/xdp
-          !artifacts/bin/**/*.ilk
-          !artifacts/bin/**/*.cer
-          !artifacts/bin/**/*.exp
-          !artifacts/bin/**/*.lastcodeanalysissucceeded
-          !artifacts/bin/**/*.pgd
-          !artifacts/bin/**/*.lib

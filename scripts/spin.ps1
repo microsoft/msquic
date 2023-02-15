@@ -92,7 +92,10 @@ param (
     [string]$ExtraArtifactDir = "",
 
     [Parameter(Mandatory = $false)]
-    [switch]$AZP = $false
+    [switch]$AZP = $false,
+
+    [Parameter(Mandatory = $false)]
+    [switch]$UseXdp
 )
 
 Set-StrictMode -Version 'Latest'
@@ -110,7 +113,12 @@ $RootDir = Split-Path $PSScriptRoot -Parent
 # Path to the run-executable Powershell script.
 $RunExecutable = Join-Path $RootDir "scripts/run-executable.ps1"
 
-#Validate the code coverage switch.
+# Helper for XDP usage.
+if ($UseXdp) {
+    $Target = "192.168.1.11"
+}
+
+# Validate the code coverage switch.
 if ($CodeCoverage) {
     if (!$IsWindows) {
         Write-Error "-CodeCoverage switch only supported on Windows";
