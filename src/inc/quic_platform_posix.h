@@ -995,6 +995,7 @@ CxPlatCqeUserData(
 
 typedef int CXPLAT_EVENTQ;
 #define CXPLAT_SQE int
+#define CXPLAT_SQE_DEFAULT 0
 typedef struct epoll_event CXPLAT_CQE;
 
 inline
@@ -1101,6 +1102,7 @@ CxPlatCqeUserData(
 
 typedef int CXPLAT_EVENTQ;
 #define CXPLAT_SQE int
+#define CXPLAT_SQE_DEFAULT 0
 typedef struct kevent CXPLAT_CQE;
 
 inline

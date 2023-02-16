@@ -680,6 +680,7 @@ typedef HANDLE CXPLAT_EVENT;
 typedef HANDLE CXPLAT_EVENTQ;
 typedef OVERLAPPED_ENTRY CXPLAT_CQE;
 #define CXPLAT_SQE CXPLAT_SQE
+#define CXPLAT_SQE_DEFAULT {0}
 typedef struct CXPLAT_SQE {
     void* UserData;
     OVERLAPPED Overlapped;
