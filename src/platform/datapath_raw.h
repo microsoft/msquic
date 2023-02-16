@@ -269,7 +269,8 @@ typedef struct CXPLAT_SOCKET {
     uint8_t CibirId[6];              // CIBIR ID data
     BOOLEAN UseTcp;                  // Quic over TCP
 
-    CXPLAT_SEND_DATA* PausedTcpSend; // Paused TCP send data before framing
+    CXPLAT_SEND_DATA* PausedTcpSend; // Paused TCP send data *before* framing
+    CXPLAT_SEND_DATA* CachedRstSend; // Cached TCP RST send data *after* framing
 } CXPLAT_SOCKET;
 
 BOOLEAN

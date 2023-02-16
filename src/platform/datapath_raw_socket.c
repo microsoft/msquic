@@ -689,8 +689,14 @@ CxPlatDpRawParseTcp(
     }
 
     Length -= HeaderLength;
-    Packet->Reserved = L4_TYPE_TCP;
-    if (Tcp->Flags & TH_SYN) {
+    if ((Tcp->Flags & TH_ACK) == TH_ACK && Length > HeaderLength) {
+        //
+        // Only data packets with only ACK flag set are indicated to QUIC core.
+        //
+        Packet->Reserved = L4_TYPE_TCP;
+        Packet->Route->TcpState.AckNumber = Tcp->SequenceNumber;
+        Packet->Route->TcpState.SequenceNumber = Tcp->AckNumber;
+    } else if (Tcp->Flags & TH_SYN) {
         if (Tcp->Flags & TH_ACK) {
             Packet->Reserved = L4_TYPE_TCP_SYNACK;
         } else {
@@ -698,9 +704,6 @@ CxPlatDpRawParseTcp(
         }
     } else if (Tcp->Flags & TH_FIN) { 
         Packet->Reserved = L4_TYPE_TCP_FIN;
-    } else {
-        Packet->Route->TcpState.AckNumber = Tcp->SequenceNumber;
-        Packet->Route->TcpState.SequenceNumber = Tcp->AckNumber;
     }
 
     Packet->Route->RemoteAddress.Ipv4.sin_port = Tcp->SourcePort;
@@ -1024,7 +1027,6 @@ CxPlatDpRawSocketAckFin(
         CxPlatByteSwapUint32(CxPlatByteSwapUint32(ReceivedTcpHeader->SequenceNumber) + 1),
         TH_FIN | TH_ACK);
     CxPlatDpRawTxEnqueue(SendData);
-    printf("FIN sent\n");
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -1069,6 +1071,15 @@ CxPlatDpRawSocketAckSyn(
     SendData = InterlockedFetchAndClearPointer(&Socket->PausedTcpSend);
     if (SendData) {
         CXPLAT_DBG_ASSERT(Socket->Connected);
+        QuicTraceEvent(
+            DatapathSend,
+            "[data][%p] Send %u bytes in %hhu buffers (segment=%hu) Dst=%!ADDR!, Src=%!ADDR!",
+            Socket,
+            SendData->Buffer.Length,
+            1,
+            (uint16_t)SendData->Buffer.Length,
+            CASTED_CLOG_BYTEARRAY(sizeof(Route->RemoteAddress), &Route->RemoteAddress),
+            CASTED_CLOG_BYTEARRAY(sizeof(Route->LocalAddress), &Route->LocalAddress));
         CxPlatFramingWriteHeaders(
             Socket, Route, &SendData->Buffer, SendData->ECN,
             Interface->OffloadStatus.Transmit.NetworkLayerXsum,
@@ -1077,6 +1088,29 @@ CxPlatDpRawSocketAckSyn(
             CxPlatByteSwapUint32(CxPlatByteSwapUint32(ReceivedTcpHeader->SequenceNumber) + 1),
             TH_ACK);
         CxPlatDpRawTxEnqueue(SendData);
+
+        SendData = CxPlatSendDataAlloc(Socket, &SendConfig);
+        if (SendData == NULL) {
+            return;
+        }
+
+        QuicTraceEvent(
+            DatapathSend,
+            "[data][%p] Send %u bytes in %hhu buffers (segment=%hu) Dst=%!ADDR!, Src=%!ADDR!",
+            Socket,
+            SendData->Buffer.Length,
+            1,
+            (uint16_t)SendData->Buffer.Length,
+            CASTED_CLOG_BYTEARRAY(sizeof(Route->RemoteAddress), &Route->RemoteAddress),
+            CASTED_CLOG_BYTEARRAY(sizeof(Route->LocalAddress), &Route->LocalAddress));
+        CxPlatFramingWriteHeaders(
+            Socket, Route, &SendData->Buffer, SendData->ECN,
+            Interface->OffloadStatus.Transmit.NetworkLayerXsum,
+            Interface->OffloadStatus.Transmit.TransportLayerXsum, 
+            ReceivedTcpHeader->AckNumber,
+            CxPlatByteSwapUint32(CxPlatByteSwapUint32(ReceivedTcpHeader->SequenceNumber) + 1),
+            TH_RST | TH_ACK);
+        Socket->CachedRstSend = SendData;
     }
 }
 

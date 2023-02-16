@@ -490,10 +490,14 @@ CxPlatSocketDelete(
     CxPlatDpRawPlumbRulesOnSocket(Socket, FALSE);
     CxPlatRemoveSocket(&Socket->Datapath->SocketPool, Socket);
     CxPlatRundownReleaseAndWait(&Socket->Rundown);
-    CXPLAT_SEND_DATA* PausedTcpPacket = InterlockedFetchAndClearPointer(&Socket->PausedTcpSend);
-    if (PausedTcpPacket != NULL) {
-        CxPlatDpRawTxFree(PausedTcpPacket);
+    if (Socket->PausedTcpSend) {
+        CxPlatDpRawTxFree(Socket->PausedTcpSend);
     }
+
+    if (Socket->CachedRstSend) {
+        CxPlatDpRawTxEnqueue(Socket->CachedRstSend);
+    }
+
     CXPLAT_FREE(Socket, QUIC_POOL_SOCKET);
 }
 
