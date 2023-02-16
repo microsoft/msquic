@@ -696,6 +696,8 @@ CxPlatDpRawParseTcp(
         } else {
             Packet->Reserved = L4_TYPE_TCP_SYN;
         }
+    } else if (Tcp->Flags & TH_FIN) { 
+        Packet->Reserved = L4_TYPE_TCP_FIN;
     } else {
         Packet->Route->TcpState.AckNumber = Tcp->SequenceNumber;
         Packet->Route->TcpState.SequenceNumber = Tcp->AckNumber;
@@ -982,6 +984,47 @@ CxPlatFramingTransportChecksum(
     // Pseudoheader is always in 32-bit words. So, cross 16-bit boundary adjustment isn't needed.
     //
     return ~CxPlatFramingChecksum(IPPayload, IPPayloadLength, Checksum);
+}
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+void
+CxPlatDpRawSocketAckFin(
+    _In_ CXPLAT_SOCKET* Socket,
+    _In_ CXPLAT_RECV_DATA* Packet
+    )
+{
+    CXPLAT_DBG_ASSERT(Socket->UseTcp);
+
+    CXPLAT_ROUTE* Route = Packet->Route;
+    CXPLAT_SEND_CONFIG SendConfig = { Route, 0, CXPLAT_ECN_NON_ECT, 0 };
+    CXPLAT_SEND_DATA *SendData = CxPlatSendDataAlloc(Socket, &SendConfig);
+    if (SendData == NULL) {
+        return;
+    }
+
+    QuicTraceEvent(
+        DatapathSend,
+        "[data][%p] Send %u bytes in %hhu buffers (segment=%hu) Dst=%!ADDR!, Src=%!ADDR!",
+        Socket,
+        SendData->Buffer.Length,
+        1,
+        (uint16_t)SendData->Buffer.Length,
+        CASTED_CLOG_BYTEARRAY(sizeof(Route->RemoteAddress), &Route->RemoteAddress),
+        CASTED_CLOG_BYTEARRAY(sizeof(Route->LocalAddress), &Route->LocalAddress));
+    CXPLAT_DBG_ASSERT(Route->State == RouteResolved);
+    CXPLAT_DBG_ASSERT(Route->Queue != NULL);
+    const CXPLAT_INTERFACE* Interface = CxPlatDpRawGetInterfaceFromQueue(Route->Queue);
+    TCP_HEADER* ReceivedTcpHeader = (TCP_HEADER*)(Packet->Buffer - Packet->ReservedEx);
+
+    CxPlatFramingWriteHeaders(
+        Socket, Route, &SendData->Buffer, SendData->ECN,
+        Interface->OffloadStatus.Transmit.NetworkLayerXsum,
+        Interface->OffloadStatus.Transmit.TransportLayerXsum,
+        ReceivedTcpHeader->AckNumber,
+        CxPlatByteSwapUint32(CxPlatByteSwapUint32(ReceivedTcpHeader->SequenceNumber) + 1),
+        TH_FIN | TH_ACK);
+    CxPlatDpRawTxEnqueue(SendData);
+    printf("FIN sent\n");
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)

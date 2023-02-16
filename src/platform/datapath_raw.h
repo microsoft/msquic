@@ -342,6 +342,7 @@ typedef enum PACKET_TYPE {
     L4_TYPE_TCP,
     L4_TYPE_TCP_SYN,
     L4_TYPE_TCP_SYNACK,
+    L4_TYPE_TCP_FIN,
 } PACKET_TYPE;
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -356,6 +357,13 @@ void
 CxPlatDpRawSocketSyn(
     _In_ CXPLAT_SOCKET* Socket,
     _In_ const CXPLAT_ROUTE* Route
+    );
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+void
+CxPlatDpRawSocketAckFin(
+    _In_ CXPLAT_SOCKET* Socket,
+    _In_ CXPLAT_RECV_DATA* Packet
     );
 
 _IRQL_requires_max_(DISPATCH_LEVEL)

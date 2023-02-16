@@ -574,8 +574,12 @@ CxPlatDpRawRxEthernet(
                     }
                     Datapath->UdpHandlers.Receive(Socket, Socket->CallbackContext, (CXPLAT_RECV_DATA*)PacketChain);
                 } else if (PacketChain->Reserved == L4_TYPE_TCP_SYN || PacketChain->Reserved == L4_TYPE_TCP_SYNACK) {
-                    PacketChain->Route->UseTcp = TRUE; 
+                    PacketChain->Route->UseTcp = TRUE;
                     CxPlatDpRawSocketAckSyn(Socket, PacketChain);
+                    CxPlatDpRawRxFree(PacketChain);
+                } else if (PacketChain->Reserved == L4_TYPE_TCP_FIN) {
+                    PacketChain->Route->UseTcp = TRUE;
+                    CxPlatDpRawSocketAckFin(Socket, PacketChain);
                     CxPlatDpRawRxFree(PacketChain);
                 }
 
