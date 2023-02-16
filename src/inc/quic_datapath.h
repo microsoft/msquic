@@ -619,7 +619,7 @@ typedef enum CXPLAT_SEND_FLAGS {
 } CXPLAT_SEND_FLAGS;
 
 typedef struct CXPLAT_SEND_CONFIG {
-    CXPLAT_ROUTE* Route;
+    const CXPLAT_ROUTE* Route;
     uint16_t MaxPacketSize;
     uint8_t ECN; // CXPLAT_ECN_TYPE
     uint8_t Flags; // CXPLAT_SEND_FLAGS
@@ -728,6 +728,13 @@ CxPlatResolveRoute(
     _In_ uint8_t PathId,
     _In_ void* Context,
     _In_ CXPLAT_ROUTE_RESOLUTION_CALLBACK_HANDLER Callback
+    );
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+CxPlatUpdateRouteTcpState(
+    _Inout_ CXPLAT_ROUTE* DstRoute,
+    _In_ CXPLAT_ROUTE* SrcRoute
     );
 
 #endif // QUIC_USE_RAW_DATAPATH

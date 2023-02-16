@@ -260,17 +260,16 @@ typedef struct CXPLAT_SOCKET {
     void* CallbackContext;
     QUIC_ADDR LocalAddress;
     QUIC_ADDR RemoteAddress;
-    BOOLEAN Wildcard;           // Using a wildcard local address. Optimization
-                                // to avoid always reading LocalAddress.
-    BOOLEAN Connected;          // Bound to a remote address
-    uint8_t CibirIdLength;      // CIBIR ID length. Value of 0 indicates CIBIR isn't used
-    uint8_t CibirIdOffsetSrc;   // CIBIR ID offset in source CID
-    uint8_t CibirIdOffsetDst;   // CIBIR ID offset in destination CID
-    uint8_t CibirId[6];         // CIBIR ID data
-    BOOLEAN UseTcp;             // Quic over TCP
-    BOOLEAN TcpConnected;       // Quic over TCP connection is established
-    uint32_t TcpAckNumber;      // TCP ACK number to be populated to the route object
-    uint32_t TcpSequenceNumber; // TCP sequence number to be populated to the route object
+    BOOLEAN Wildcard;                // Using a wildcard local address. Optimization
+                                     // to avoid always reading LocalAddress.
+    BOOLEAN Connected;               // Bound to a remote address
+    uint8_t CibirIdLength;           // CIBIR ID length. Value of 0 indicates CIBIR isn't used
+    uint8_t CibirIdOffsetSrc;        // CIBIR ID offset in source CID
+    uint8_t CibirIdOffsetDst;        // CIBIR ID offset in destination CID
+    uint8_t CibirId[6];              // CIBIR ID data
+    BOOLEAN UseTcp;                  // Quic over TCP
+
+    CXPLAT_SEND_DATA* PausedTcpSend; // Paused TCP send data before framing
 } CXPLAT_SOCKET;
 
 BOOLEAN
@@ -354,6 +353,13 @@ CxPlatDpRawSocketAckSyn(
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
+CxPlatDpRawSocketSyn(
+    _In_ CXPLAT_SOCKET* Socket,
+    _In_ const CXPLAT_ROUTE* Route
+    );
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+void
 CxPlatFramingWriteHeaders(
     _In_ CXPLAT_SOCKET* Socket,
     _In_ const CXPLAT_ROUTE* Route,
@@ -361,5 +367,7 @@ CxPlatFramingWriteHeaders(
     _In_ CXPLAT_ECN_TYPE ECN,
     _In_ BOOLEAN SkipNetworkLayerXsum,
     _In_ BOOLEAN SkipTransportLayerXsum,
-    _In_opt_ const CXPLAT_RECV_DATA* ReceivedTcpPacket
+    _In_ uint32_t TcpSeqNum,
+    _In_ uint32_t TcpAckNum,
+    _In_ uint8_t TcpFlags
     );

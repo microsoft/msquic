@@ -5574,6 +5574,8 @@ QuicConnRecvDatagrams(
             DatagramPath->Route.Queue != Datagram->Route->Queue) {
             DatagramPath->Route.Queue = Datagram->Route->Queue;
         }
+
+        CxPlatUpdateRouteTcpState(&DatagramPath->Route, Datagram->Route);
 #endif
 
         if (DatagramPath != CurrentPath) {

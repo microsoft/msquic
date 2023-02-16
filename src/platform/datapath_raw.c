@@ -643,6 +643,8 @@ CxPlatSendDataIsFull(
     return TRUE;
 }
 
+#define TH_ACK 0x10
+
 _IRQL_requires_max_(DISPATCH_LEVEL)
 QUIC_STATUS
 CxPlatSocketSend(
@@ -663,24 +665,23 @@ CxPlatSocketSend(
     CXPLAT_DBG_ASSERT(Route->State == RouteResolved);
     CXPLAT_DBG_ASSERT(Route->Queue != NULL);
     const CXPLAT_INTERFACE* Interface = CxPlatDpRawGetInterfaceFromQueue(Route->Queue);
-    //
-    // TODO: need a better way to notify a QTIP connection is established.
-    //
+
     if (Route->UseTcp &&
         Socket->Connected &&
-        Route->TcpState.Syncd == FALSE &&
-        ReadAcquire8((CHAR*)&Socket->TcpConnected)) {
-
-        CXPLAT_RAW_TCP_STATE* TcpState = &((CXPLAT_ROUTE*)Route)->TcpState; // Hack around const
-        TcpState->Syncd = TRUE;
-        TcpState->AckNumber = Socket->TcpAckNumber;
-        TcpState->SequenceNumber = Socket->TcpSequenceNumber;
+        Route->TcpState.Syncd == FALSE) {
+        Socket->PausedTcpSend = SendData;
+        printf("paused initial packet\n");
+        CxPlatDpRawSocketSyn(Socket, Route);
+        return QUIC_STATUS_SUCCESS;
     }
 
     CxPlatFramingWriteHeaders(
         Socket, Route, &SendData->Buffer, SendData->ECN,
         Interface->OffloadStatus.Transmit.NetworkLayerXsum,
-        Interface->OffloadStatus.Transmit.TransportLayerXsum, NULL);
+        Interface->OffloadStatus.Transmit.TransportLayerXsum,
+        Route->TcpState.SequenceNumber,
+        Route->TcpState.AckNumber,
+        TH_ACK);
     CxPlatDpRawTxEnqueue(SendData);
     return QUIC_STATUS_SUCCESS;
 }
