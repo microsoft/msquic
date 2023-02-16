@@ -619,7 +619,7 @@ typedef enum CXPLAT_SEND_FLAGS {
 } CXPLAT_SEND_FLAGS;
 
 typedef struct CXPLAT_SEND_CONFIG {
-    const CXPLAT_ROUTE* Route;
+    CXPLAT_ROUTE* Route;
     uint16_t MaxPacketSize;
     uint8_t ECN; // CXPLAT_ECN_TYPE
     uint8_t Flags; // CXPLAT_SEND_FLAGS

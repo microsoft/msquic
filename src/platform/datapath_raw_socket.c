@@ -764,7 +764,6 @@ CxPlatDpRawParseIPv4(
     Packet->Route->LocalAddress.Ipv4.sin_family = AF_INET;
     CxPlatCopyMemory(&Packet->Route->LocalAddress.Ipv4.sin_addr, IP->Destination, sizeof(IP->Destination));
 
-    
     if (IP->Protocol == IPPROTO_UDP) {
         CxPlatDpRawParseUdp(Datapath, Packet, (UDP_HEADER*)IP->Data, IPTotalLength - sizeof(IPV4_HEADER));
     } else if (IP->Protocol == IPPROTO_TCP) {
@@ -1123,7 +1122,7 @@ CxPlatDpRawSocketSyn(
 {
     CXPLAT_DBG_ASSERT(Socket->UseTcp);
 
-    CXPLAT_SEND_CONFIG SendConfig = { Route, 0, CXPLAT_ECN_NON_ECT, 0 };
+    CXPLAT_SEND_CONFIG SendConfig = { (CXPLAT_ROUTE*)Route, 0, CXPLAT_ECN_NON_ECT, 0 };
     CXPLAT_SEND_DATA *SendData = CxPlatSendDataAlloc(Socket, &SendConfig);
     if (SendData == NULL) {
         return;
