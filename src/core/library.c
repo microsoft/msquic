@@ -1749,7 +1749,8 @@ QuicLibraryLookupBinding(
             // For client/connected bindings we need to match on both local and
             // remote addresses/ports.
             //
-            if (QuicAddrCompare(LocalAddress, &BindingLocalAddr)) {
+            if (RemoteAddress &&
+                QuicAddrCompare(LocalAddress, &BindingLocalAddr)) {
                 QUIC_ADDR BindingRemoteAddr;
                 QuicBindingGetRemoteAddress(Binding, &BindingRemoteAddr);
                 if (QuicAddrCompare(RemoteAddress, &BindingRemoteAddr)) {
