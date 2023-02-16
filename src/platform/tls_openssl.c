@@ -770,7 +770,7 @@ CxPlatTlsOnSessionTicketKeyNeeded(
     )
 {
 #ifdef IS_OPENSSL_3
-    OSSL_PARAM params[2];
+    OSSL_PARAM params[3];
 #endif
     CXPLAT_TLS* TlsContext = SSL_get_app_data(Ssl);
     QUIC_TICKET_KEY_CONFIG* TicketKey = TlsContext->SecConfig->TicketKey;
@@ -803,6 +803,8 @@ CxPlatTlsOnSessionTicketKeyNeeded(
                 TicketKey->Material,
                 32);
         params[1] =
+            OSSL_PARAM_construct_utf8_string(OSSL_MAC_PARAM_DIGEST, "sha256", 0);
+        params[2] =
             OSSL_PARAM_construct_end();
          EVP_MAC_CTX_set_params(hctx, params);
 #else
@@ -824,6 +826,8 @@ CxPlatTlsOnSessionTicketKeyNeeded(
                 TicketKey->Material,
                 32);
         params[1] =
+            OSSL_PARAM_construct_utf8_string(OSSL_MAC_PARAM_DIGEST, "sha256", 0);
+        params[2] =
             OSSL_PARAM_construct_end();
          EVP_MAC_CTX_set_params(hctx, params);
 #else
