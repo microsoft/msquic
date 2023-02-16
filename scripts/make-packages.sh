@@ -85,7 +85,7 @@ while :; do
             shift
             OUTPUT=$1
             ;;
-       -t|-tls|--tls)
+        -t|-tls|--tls)
             shift
             TLS=$1
             case $TLS in
