@@ -653,6 +653,14 @@ CxPlatSocketSend(
     _In_ CXPLAT_SEND_DATA* SendData
     )
 {
+    if (Route->UseTcp &&
+        Socket->Connected &&
+        Route->TcpState.Syncd == FALSE) {
+        Socket->PausedTcpSend = SendData;
+        CxPlatDpRawSocketSyn(Socket, Route);
+        return QUIC_STATUS_SUCCESS;
+    }
+
     QuicTraceEvent(
         DatapathSend,
         "[data][%p] Send %u bytes in %hhu buffers (segment=%hu) Dst=%!ADDR!, Src=%!ADDR!",
@@ -665,15 +673,6 @@ CxPlatSocketSend(
     CXPLAT_DBG_ASSERT(Route->State == RouteResolved);
     CXPLAT_DBG_ASSERT(Route->Queue != NULL);
     const CXPLAT_INTERFACE* Interface = CxPlatDpRawGetInterfaceFromQueue(Route->Queue);
-
-    if (Route->UseTcp &&
-        Socket->Connected &&
-        Route->TcpState.Syncd == FALSE) {
-        Socket->PausedTcpSend = SendData;
-        printf("paused initial packet\n");
-        CxPlatDpRawSocketSyn(Socket, Route);
-        return QUIC_STATUS_SUCCESS;
-    }
 
     CxPlatFramingWriteHeaders(
         Socket, Route, &SendData->Buffer, SendData->ECN,
