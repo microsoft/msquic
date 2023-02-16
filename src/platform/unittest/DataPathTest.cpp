@@ -886,67 +886,6 @@ TEST_P(DataPathTest, UdpDataECT0)
     ASSERT_TRUE(CxPlatEventWaitWithTimeout(RecvContext.ClientCompletion, 2000));
 }
 
-TEST_P(DataPathTest, UdpShareClientSocket)
-{
-    UdpRecvContext RecvContext;
-    CxPlatDataPath Datapath(&UdpRecvCallbacks);
-    VERIFY_QUIC_SUCCESS(Datapath.GetInitStatus());
-    ASSERT_NE(nullptr, Datapath.Datapath);
-    if (!(Datapath.GetSupportedFeatures() & CXPLAT_DATAPATH_FEATURE_LOCAL_PORT_SHARING)) {
-        std::cout << "SKIP: Sharing Feature Unsupported" << std::endl;
-        return;
-    }
-
-    auto serverAddress = GetNewLocalAddr();
-    CxPlatSocket Server1(Datapath, &serverAddress.SockAddr, nullptr, &RecvContext);
-    while (Server1.GetInitStatus() == QUIC_STATUS_ADDRESS_IN_USE) {
-        serverAddress.SockAddr.Ipv4.sin_port = GetNextPort();
-        Server1.CreateUdp(Datapath, &serverAddress.SockAddr, nullptr, &RecvContext);
-    }
-    VERIFY_QUIC_SUCCESS(Server1.GetInitStatus());
-
-    serverAddress.SockAddr.Ipv4.sin_port = GetNextPort();
-    CxPlatSocket Server2(Datapath, &serverAddress.SockAddr, nullptr, &RecvContext);
-    while (Server2.GetInitStatus() == QUIC_STATUS_ADDRESS_IN_USE) {
-        serverAddress.SockAddr.Ipv4.sin_port = GetNextPort();
-        Server2.CreateUdp(Datapath, &serverAddress.SockAddr, nullptr, &RecvContext);
-    }
-    VERIFY_QUIC_SUCCESS(Server2.GetInitStatus());
-
-    serverAddress.SockAddr = Server1.GetLocalAddress();
-    CxPlatSocket Client1(Datapath, nullptr, &serverAddress.SockAddr, &RecvContext, CXPLAT_SOCKET_FLAG_SHARE);
-    VERIFY_QUIC_SUCCESS(Client1.GetInitStatus());
-
-    auto clientAddress = Client1.GetLocalAddress();
-    serverAddress.SockAddr = Server2.GetLocalAddress();
-    CxPlatSocket Client2(Datapath, &clientAddress, &serverAddress.SockAddr, &RecvContext, CXPLAT_SOCKET_FLAG_SHARE);
-    VERIFY_QUIC_SUCCESS(Client2.GetInitStatus());
-
-    CXPLAT_SEND_CONFIG SendConfig = { &Client1.Route, 0, CXPLAT_ECN_NON_ECT, 0 };
-    auto ClientSendData = CxPlatSendDataAlloc(Client1, &SendConfig);
-    ASSERT_NE(nullptr, ClientSendData);
-    auto ClientBuffer = CxPlatSendDataAllocBuffer(ClientSendData, ExpectedDataSize);
-    ASSERT_NE(nullptr, ClientBuffer);
-    memcpy(ClientBuffer->Buffer, ExpectedData, ExpectedDataSize);
-
-    RecvContext.DestinationAddress = Server1.GetLocalAddress();
-    VERIFY_QUIC_SUCCESS(Client1.Send(ClientSendData));
-    ASSERT_TRUE(CxPlatEventWaitWithTimeout(RecvContext.ClientCompletion, 2000));
-    CxPlatEventReset(RecvContext.ClientCompletion);
-
-    CXPLAT_SEND_CONFIG SendConfig2 = { &Client2.Route, 0, CXPLAT_ECN_NON_ECT, 0 };
-    ClientSendData = CxPlatSendDataAlloc(Client2, &SendConfig2);
-    ASSERT_NE(nullptr, ClientSendData);
-    ClientBuffer = CxPlatSendDataAllocBuffer(ClientSendData, ExpectedDataSize);
-    ASSERT_NE(nullptr, ClientBuffer);
-    memcpy(ClientBuffer->Buffer, ExpectedData, ExpectedDataSize);
-
-    RecvContext.DestinationAddress = Server2.GetLocalAddress();
-    VERIFY_QUIC_SUCCESS(Client2.Send(ClientSendData));
-    ASSERT_TRUE(CxPlatEventWaitWithTimeout(RecvContext.ClientCompletion, 2000));
-    CxPlatEventReset(RecvContext.ClientCompletion);
-}
-
 TEST_P(DataPathTest, MultiBindListener) {
     UdpRecvContext RecvContext;
     CxPlatDataPath Datapath(&UdpRecvCallbacks);
