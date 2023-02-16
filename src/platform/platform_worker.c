@@ -332,14 +332,17 @@ CxPlatAddExecutionContext(
 
     Context->CxPlatContext = Worker;
     CxPlatLockAcquire(&Worker->ECLock);
+    const BOOLEAN QueueEvent = Worker->PendingECs == NULL;
     Context->Entry.Next = Worker->PendingECs;
     Worker->PendingECs = &Context->Entry;
     CxPlatLockRelease(&Worker->ECLock);
 
-    CxPlatEventQEnqueue(
-        &Worker->EventQ,
-        &Worker->UpdatePollSqe,
-        (void*)&WorkerUpdatePollEventPayload);
+    if (QueueEvent) {
+        CxPlatEventQEnqueue(
+            &Worker->EventQ,
+            &Worker->UpdatePollSqe,
+            (void*)&WorkerUpdatePollEventPayload);
+    }
 }
 
 void
