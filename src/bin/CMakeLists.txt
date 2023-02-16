@@ -268,9 +268,7 @@ set(PUBLIC_HEADERS
 if(BUILD_SHARED_LIBS)
   install(TARGETS msquic EXPORT msquic DESTINATION lib)
 else()
-  install(FILES ${QUIC_STATIC_LIBRARY}
-    DESTINATION lib
-    )
+  install(FILES ${QUIC_STATIC_LIBRARY} DESTINATION lib)
 endif()
 install(FILES ${PUBLIC_HEADERS} DESTINATION include)
 
