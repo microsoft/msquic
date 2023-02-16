@@ -1243,58 +1243,64 @@ void start() {
     CxPlatInitialize();
     CxPlatLockInitialize(&RunThreadLock);
 
-    //
-    // Initial MsQuicOpen2 and initialization.
-    //
-    const QUIC_API_TABLE* TempMsQuic = nullptr;
-    ASSERT_ON_FAILURE(MsQuicOpen2(&TempMsQuic));
-    CxPlatCopyMemory(&MsQuic, TempMsQuic, sizeof(MsQuic));
+    {
+        SpinQuicWatchdog Watchdog((uint32_t)Settings.RunTimeMs + Settings.RepeatCount*WATCHDOG_WIGGLE_ROOM);
 
-    if (Settings.AllocFailDenominator > 0) {
-        if (QUIC_FAILED(
-            MsQuic.SetParam(
-                nullptr,
-                QUIC_PARAM_GLOBAL_ALLOC_FAIL_DENOMINATOR,
-                sizeof(Settings.AllocFailDenominator),
-                &Settings.AllocFailDenominator))) {
-            printf("Setting Allocation Failure Denominator failed.\n");
-        }
-    }
+        //
+        // Initial MsQuicOpen2 and initialization.
+        //
+        const QUIC_API_TABLE* TempMsQuic = nullptr;
+        ASSERT_ON_FAILURE(MsQuicOpen2(&TempMsQuic));
+        CxPlatCopyMemory(&MsQuic, TempMsQuic, sizeof(MsQuic));
 
-    if (Settings.LossPercent != 0) {
-        QUIC_TEST_DATAPATH_HOOKS* Value = &DataPathHooks;
-        if (QUIC_FAILED(
-            MsQuic.SetParam(
-                nullptr,
-                QUIC_PARAM_GLOBAL_TEST_DATAPATH_HOOKS,
-                sizeof(Value),
-                &Value))) {
-            printf("Setting Datapath hooks failed.\n");
-        }
-    }
-
-    MsQuicClose(TempMsQuic);
-
-    Settings.RunTimeMs = Settings.RunTimeMs / Settings.RepeatCount;
-    for (uint32_t i = 0; i < Settings.RepeatCount; i++) {
-
-        CXPLAT_THREAD_CONFIG Config = {
-            0, 0, "spin_run", RunThread, nullptr
-        };
-        CXPLAT_THREAD Threads[4];
-        uint32_t Count = FuzzData ? (uint32_t)FuzzingData::NumSpinThread / 2 : (uint32_t)(rand() % (ARRAYSIZE(Threads) - 1) + 1);
-
-        for (uint32_t j = 0; j < Count; ++j) {
-            ASSERT_ON_FAILURE(CxPlatThreadCreate(&Config, &Threads[j]));
+        if (Settings.AllocFailDenominator > 0) {
+            if (QUIC_FAILED(
+                MsQuic.SetParam(
+                    nullptr,
+                    QUIC_PARAM_GLOBAL_ALLOC_FAIL_DENOMINATOR,
+                    sizeof(Settings.AllocFailDenominator),
+                    &Settings.AllocFailDenominator))) {
+                printf("Setting Allocation Failure Denominator failed.\n");
+            }
         }
 
-        for (uint32_t j = 0; j < Count; ++j) {
-            CxPlatThreadWait(&Threads[j]);
-            CxPlatThreadDelete(&Threads[j]);
+        if (Settings.LossPercent != 0) {
+            QUIC_TEST_DATAPATH_HOOKS* Value = &DataPathHooks;
+            if (QUIC_FAILED(
+                MsQuic.SetParam(
+                    nullptr,
+                    QUIC_PARAM_GLOBAL_TEST_DATAPATH_HOOKS,
+                    sizeof(Value),
+                    &Value))) {
+                printf("Setting Datapath hooks failed.\n");
+            }
+        }
+
+        MsQuicClose(TempMsQuic);
+
+        Settings.RunTimeMs = Settings.RunTimeMs / Settings.RepeatCount;
+        for (uint32_t i = 0; i < Settings.RepeatCount; i++) {
+
+            CXPLAT_THREAD_CONFIG Config = {
+                0, 0, "spin_run", RunThread, nullptr
+            };
+            CXPLAT_THREAD Threads[4];
+            uint32_t Count = FuzzData ? (uint32_t)FuzzingData::NumSpinThread / 2 : (uint32_t)(rand() % (ARRAYSIZE(Threads) - 1) + 1);
+
+            for (uint32_t j = 0; j < Count; ++j) {
+                ASSERT_ON_FAILURE(CxPlatThreadCreate(&Config, &Threads[j]));
+            }
+
+            for (uint32_t j = 0; j < Count; ++j) {
+                CxPlatThreadWait(&Threads[j]);
+                CxPlatThreadDelete(&Threads[j]);
+            }
         }
     }
 
     CxPlatLockUninitialize(&RunThreadLock);
+    CxPlatUninitialize();
+    CxPlatSystemUnload();
 }
 
 #ifdef FUZZING
