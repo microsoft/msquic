@@ -87,6 +87,10 @@ typedef struct QUIC_CACHEALIGN CXPLAT_WORKER {
     BOOLEAN InitializedECLock : 1;
     BOOLEAN StoppingThread : 1;
     BOOLEAN DestroyedThread : 1;
+#if DEBUG // Debug flags - Must not be in the bitfield.
+    BOOLEAN ThreadStarted;
+    BOOLEAN ThreadFinished;
+#endif
 
     //
     // Must not be bitfield.
@@ -224,6 +228,10 @@ Error:
                     NULL);
                 CxPlatThreadWait(&CxPlatWorkers[i].Thread);
                 CxPlatThreadDelete(&CxPlatWorkers[i].Thread);
+#if DEBUG
+                CXPLAT_DBG_ASSERT(CxPlatWorkers[i].ThreadStarted);
+                CXPLAT_DBG_ASSERT(CxPlatWorkers[i].ThreadFinished);
+#endif
                 CxPlatWorkers[i].DestroyedThread = TRUE;
             }
 #ifdef CXPLAT_SQE_INIT
@@ -270,6 +278,10 @@ CxPlatWorkersUninit(
                 NULL);
             CxPlatThreadWait(&CxPlatWorkers[i].Thread);
             CxPlatThreadDelete(&CxPlatWorkers[i].Thread);
+#if DEBUG
+            CXPLAT_DBG_ASSERT(CxPlatWorkers[i].ThreadStarted);
+            CXPLAT_DBG_ASSERT(CxPlatWorkers[i].ThreadFinished);
+#endif
             CxPlatWorkers[i].DestroyedThread = TRUE;
 #ifdef CXPLAT_SQE_INIT
             CxPlatSqeCleanup(&CxPlatWorkers[i].EventQ, &CxPlatWorkers[i].UpdatePollSqe);
@@ -436,6 +448,9 @@ CxPlatProcessEvents(
         State->NoWorkCount = 0;
         for (uint32_t i = 0; i < CqeCount; ++i) {
             if (CxPlatCqeUserData(&Cqes[i]) == NULL) {
+#if DEBUG
+                CXPLAT_DBG_ASSERT(Worker->StoppingThread);
+#endif
                 return TRUE; // NULL user data means shutdown.
             }
             switch (CxPlatCqeType(&Cqes[i])) {
@@ -468,6 +483,9 @@ CXPLAT_THREAD_CALLBACK(CxPlatWorkerThread, Context)
         PlatformWorkerThreadStart,
         "[ lib][%p] Worker start",
         Worker);
+#if DEBUG
+    Worker->ThreadStarted = TRUE;
+#endif
 
     CXPLAT_EXECUTION_STATE State = { 0, CxPlatTimeUs64(), UINT32_MAX, 0, CxPlatCurThreadID() };
 
@@ -500,6 +518,10 @@ CXPLAT_THREAD_CALLBACK(CxPlatWorkerThread, Context)
 Shutdown:
 
     Worker->Running = FALSE;
+
+#if DEBUG
+    Worker->ThreadFinished = TRUE;
+#endif
 
     QuicTraceLogInfo(
         PlatformWorkerThreadStop,

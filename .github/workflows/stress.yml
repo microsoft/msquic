@@ -30,9 +30,12 @@ jobs:
         xdp: ['', '-UseXdp']
         sanitize: ['', '-Sanitize']
         exclude:
+        # Schannel only supported on windows-2022
         - os: ubuntu-20.04
           tls: schannel
         - os: macos-12
+          tls: schannel
+        - os: windows-2019
           tls: schannel
         # Linux and Windows Schannel use ASAN
         - os: ubuntu-20.04
