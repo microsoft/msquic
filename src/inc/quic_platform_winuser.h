@@ -683,6 +683,9 @@ typedef OVERLAPPED_ENTRY CXPLAT_CQE;
 typedef struct CXPLAT_SQE {
     void* UserData;
     OVERLAPPED Overlapped;
+#if DEBUG
+    BOOLEAN IsQueued; // Debug flag to catch double queueing.
+#endif
 } CXPLAT_SQE;
 
 inline
@@ -721,7 +724,11 @@ CxPlatEventQEnqueue(
     _In_opt_ void* user_data
     )
 {
-    CxPlatZeroMemory(sqe, sizeof(*sqe));
+#if DEBUG
+    CXPLAT_DBG_ASSERT(!sqe->IsQueued);
+    sqe->IsQueued;
+#endif
+    CxPlatZeroMemory(&sqe->Overlapped, sizeof(sqe->Overlapped));
     sqe->UserData = user_data;
     return PostQueuedCompletionStatus(*queue, 0, 0, &sqe->Overlapped) != 0;
 }
@@ -735,7 +742,11 @@ CxPlatEventQEnqueueEx( // Windows specific extension
     _In_opt_ void* user_data
     )
 {
-    CxPlatZeroMemory(sqe, sizeof(*sqe));
+#if DEBUG
+    CXPLAT_DBG_ASSERT(!sqe->IsQueued);
+    sqe->IsQueued;
+#endif
+    CxPlatZeroMemory(&sqe->Overlapped, sizeof(sqe->Overlapped));
     sqe->UserData = user_data;
     return PostQueuedCompletionStatus(*queue, num_bytes, 0, &sqe->Overlapped) != 0;
 }
@@ -753,6 +764,13 @@ CxPlatEventQDequeue(
     if (!GetQueuedCompletionStatusEx(*queue, events, count, &out_count, wait_time, FALSE)) return FALSE;
     CXPLAT_DBG_ASSERT(out_count != 0);
     CXPLAT_DBG_ASSERT(events[0].lpOverlapped != NULL || out_count == 1);
+#if DEBUG
+    if (events[0].lpOverlapped) {
+        for (uint32_t i = 0; i < (uint32_t)out_count; ++i) {
+            CXPLAT_CONTAINING_RECORD(events[i].lpOverlapped, CXPLAT_SQE, Overlapped)->IsQueued = FALSE;
+        }
+    }
+#endif
     return events[0].lpOverlapped == NULL ? 0 : (uint32_t)out_count;
 }
 
