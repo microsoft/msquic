@@ -693,10 +693,8 @@ CxPlatDpRawParseTcp(
     if (Tcp->Flags & TH_SYN) {
         if (Tcp->Flags & TH_ACK) {
             Packet->Reserved = L4_TYPE_TCP_SYNACK;
-            printf("syn+ACK received\n");
         } else {
             Packet->Reserved = L4_TYPE_TCP_SYN;
-            printf("syn received\n");
         }
     } else {
         Packet->Route->TcpState.AckNumber = Tcp->SequenceNumber;
@@ -1025,15 +1023,8 @@ CxPlatDpRawSocketAckSyn(
         Packet->Reserved == L4_TYPE_TCP_SYN ? (TH_SYN | TH_ACK) : TH_ACK);
     CxPlatDpRawTxEnqueue(SendData);
 
-    if (Packet->Reserved == L4_TYPE_TCP_SYN) {
-        printf("send syn ack\n");
-    } else {
-        printf("send ack for syn+ack\n");
-    }
-
     SendData = InterlockedFetchAndClearPointer(&Socket->PausedTcpSend);
     if (SendData) {
-        printf("resumed initial packet\n");
         CXPLAT_DBG_ASSERT(Socket->Connected);
         CxPlatFramingWriteHeaders(
             Socket, Route, &SendData->Buffer, SendData->ECN,
@@ -1079,7 +1070,6 @@ CxPlatDpRawSocketSyn(
         Interface->OffloadStatus.Transmit.TransportLayerXsum, 
         Route->TcpState.SequenceNumber, 0, TH_SYN);
     CxPlatDpRawTxEnqueue(SendData);
-    printf("sent SYN\n");
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
