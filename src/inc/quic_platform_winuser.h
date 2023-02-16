@@ -721,7 +721,7 @@ CxPlatEventQEnqueue(
     _In_opt_ void* user_data
     )
 {
-    CxPlatZeroMemory(sqe, sizeof(*sqe));
+    CxPlatZeroMemory(&sqe->Overlapped, sizeof(sqe->Overlapped));
     sqe->UserData = user_data;
     return PostQueuedCompletionStatus(*queue, 0, 0, &sqe->Overlapped) != 0;
 }
@@ -735,7 +735,7 @@ CxPlatEventQEnqueueEx( // Windows specific extension
     _In_opt_ void* user_data
     )
 {
-    CxPlatZeroMemory(sqe, sizeof(*sqe));
+    CxPlatZeroMemory(&sqe->Overlapped, sizeof(sqe->Overlapped));
     sqe->UserData = user_data;
     return PostQueuedCompletionStatus(*queue, num_bytes, 0, &sqe->Overlapped) != 0;
 }
