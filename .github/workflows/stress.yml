@@ -65,10 +65,12 @@ jobs:
     runs-on: ${{ matrix.os }}
     name: Stress
     env:
-      main-timeout: 3600000
+      main-timeout: 3600000 # milliseconds
+      main-step-timeout: 65 # minutes
       main-repeat: 100
       main-allocfail: 100
-      pr-timeout: 600000
+      pr-timeout: 600000 # milliseconds
+      pr-step-timeout: 15 # minutes
       pr-repeat: 20
       pr-allocfail: 100
     steps:
@@ -90,10 +92,12 @@ jobs:
       run: scripts/build.ps1 -Config Debug -Arch ${{ matrix.arch }} -Tls ${{ matrix.tls }} -DisableTest -DisablePerf -DynamicCRT ${{ matrix.xdp }} ${{ matrix.sanitize }}
     - name: spinquic (PR)
       if: github.event_name == 'pull_request'
+      timeout-minutes: ${{ env.pr-step-timeout }}
       shell: pwsh
       run: scripts/spin.ps1 -AZP -Config Debug -Arch ${{ matrix.arch }} -Tls ${{ matrix.tls }} -Timeout ${{ env.pr-timeout }} -RepeatCount ${{ env.pr-repeat }} -AllocFail ${{ env.pr-allocfail }} ${{ matrix.xdp }}
     - name: spinquic (Official)
       if: github.event_name != 'pull_request'
+      timeout-minutes: ${{ env.main-step-timeout }}
       shell: pwsh
       run: scripts/spin.ps1 -AZP -Config Debug -Arch ${{ matrix.arch }} -Tls ${{ matrix.tls }} -Timeout ${{ env.main-timeout }} -RepeatCount ${{ env.main-repeat }} -AllocFail ${{ env.main-allocfail }} ${{ matrix.xdp }}
     - name: Upload on Failure
