@@ -2279,7 +2279,7 @@ int main(int argc, char** argv) {
             }
         } else if (strcmp("--duoNic", argv[i]) == 0) {
             UseDuoNic = true;
-        } else if (strstr("--osRunner", argv[i])) {
+        } else if (strstr(argv[i], "--osRunner")) {
             OsRunner = argv[i] + sizeof("--osRunner");
         }
     }
