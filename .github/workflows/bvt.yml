@@ -113,9 +113,12 @@ jobs:
     - name: Nuget Restore
       shell: pwsh
       run: msbuild msquic.kernel.sln -t:restore /p:RestorePackagesConfig=true /p:Configuration=Debug /p:Platform=${{ matrix.arch }}
-    - name: Build
+    - name: Build Kernel
       shell: pwsh
       run: msbuild msquic.kernel.sln /p:Configuration=Debug /p:Platform=${{ matrix.arch }} /p:QUIC_VER_SUFFIX=-official
+    - name: Build User
+      shell: pwsh
+      run: scripts/build.ps1 -Config Debug -Arch ${{ matrix.arch }} -Tls ${{ matrix.tls }} -DisableTools -DisablePerf
     - name: Test
       shell: pwsh
       timeout-minutes: 90
