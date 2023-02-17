@@ -229,6 +229,7 @@ Error:
             func = dlsym(handle, "EVP_chacha20_poly1305");
             if (func != NULL) {
                 CXPLAT_CHACHA20_POLY1305_ALG_HANDLE = (*func)();
+                EVP_add_cipher(CXPLAT_CHACHA20_POLY1305_ALG_HANDLE);
             }
         } else {
             dlclose(handle);
