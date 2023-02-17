@@ -21,6 +21,11 @@ Abstract:
 #endif
 
 uint16_t
+TransportHeaderLength(
+    _In_ BOOLEAN IsTcp
+    );
+
+uint16_t
 MaxUdpPayloadSizeFromMTU(
     _In_ uint16_t Mtu,
     _In_ BOOLEAN IsTcp

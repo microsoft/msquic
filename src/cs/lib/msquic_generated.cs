@@ -2959,6 +2959,9 @@ namespace Microsoft.Quic
         [NativeTypeName("#define QUIC_PARAM_GLOBAL_TLS_PROVIDER 0x0100000A")]
         internal const uint QUIC_PARAM_GLOBAL_TLS_PROVIDER = 0x0100000A;
 
+        [NativeTypeName("#define QUIC_PARAM_GLOBAL_QUIC_OVER_TCP 0x0100000B")]
+        internal const uint QUIC_PARAM_GLOBAL_QUIC_OVER_TCP = 0x0100000B;
+
         [NativeTypeName("#define QUIC_PARAM_CONFIGURATION_SETTINGS 0x03000000")]
         internal const uint QUIC_PARAM_CONFIGURATION_SETTINGS = 0x03000000;
 
