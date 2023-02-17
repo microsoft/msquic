@@ -81,10 +81,18 @@ jobs:
     - name: Build
       shell: pwsh
       run: scripts/build.ps1 -Config Debug -Arch ${{ matrix.arch }} -Tls ${{ matrix.tls }} -DisableTools -DisablePerf -DynamicCRT ${{ matrix.xdp }} ${{ matrix.sanitize }}
+    - name: Install ETW Manifest
+      if: runner.os == 'Windows'
+      shell: pwsh
+      run: |
+        $MsQuicDll = ".\artifacts\bin\windows\${{ matrix.arch }}_Debug_${{ matrix.tls }}\msquic.dll"
+        $ManifestPath = ".\src\manifest\MsQuicEtw.man"
+        wevtutil.exe um $ManifestPath
+        wevtutil.exe im $ManifestPath /rf:$($MsQuicDll) /mf:$($MsQuicDll)
     - name: Test
       shell: pwsh
       timeout-minutes: 90
-      run: scripts/test.ps1 -Config Debug -Arch ${{ matrix.arch }} -Tls ${{ matrix.tls }} -LogProfile Basic.Light -GenerateXmlResults
+      run: scripts/test.ps1 -Config Debug -Arch ${{ matrix.arch }} -Tls ${{ matrix.tls }} -OsRunner ${{ matrix.os }} -LogProfile Basic.Light -GenerateXmlResults ${{ matrix.xdp }}
     - name: Upload on Failure
       uses: actions/upload-artifact@0b7f8abb1508181956e8e162db84b466c27e18ce
       if: failure()
@@ -119,6 +127,13 @@ jobs:
     - name: Build User
       shell: pwsh
       run: scripts/build.ps1 -Config Debug -Arch ${{ matrix.arch }} -Tls ${{ matrix.tls }} -DisableTools -DisablePerf
+    - name: Install ETW Manifest
+      shell: pwsh
+      run: |
+        $MsQuicDll = ".\artifacts\bin\windows\${{ matrix.arch }}_Debug_${{ matrix.tls }}\msquic.dll"
+        $ManifestPath = ".\src\manifest\MsQuicEtw.man"
+        wevtutil.exe um $ManifestPath
+        wevtutil.exe im $ManifestPath /rf:$($MsQuicDll) /mf:$($MsQuicDll)
     - name: Test
       shell: pwsh
       timeout-minutes: 90

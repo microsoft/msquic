@@ -122,6 +122,7 @@ if ($UseXdp) {
     }
     if ($ForTest) {
         $InstallXdpDriver = $true;
+        $InstallDuoNic = $true;
     }
 }
 

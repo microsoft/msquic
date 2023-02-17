@@ -128,7 +128,10 @@ param (
     [string]$ExtraArtifactDir = "",
 
     [Parameter(Mandatory = $false)]
-    [switch]$DuoNic = $false
+    [switch]$DuoNic = $false,
+
+    [Parameter(Mandatory = $false)]
+    [string]$OsRunner = ""
 )
 
 Set-StrictMode -Version 'Latest'
@@ -372,6 +375,9 @@ function Start-TestCase([String]$Name) {
     if ($DuoNic) {
         $Arguments += " --duoNic"
     }
+    if ("" -ne $OsRunner) {
+        $Arguments += " --osRunner=$OsRunner"
+    }
     if ($PfxPath -ne "") {
         $Arguments += " -PfxPath:$PfxPath"
     }
@@ -411,6 +417,9 @@ function Start-AllTestCases {
     }
     if ($DuoNic) {
         $Arguments += " --duoNic"
+    }
+    if ("" -ne $OsRunner) {
+        $Arguments += " --osRunner=$OsRunner"
     }
     if ($PfxPath -ne "") {
         $Arguments += " -PfxPath:$PfxPath"

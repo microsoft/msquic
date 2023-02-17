@@ -14,10 +14,15 @@ bool TestingKernelMode = false;
 bool PrivateTestLibrary = false;
 bool UseDuoNic = false;
 const MsQuicApi* MsQuic;
+const char* OsRunner = nullptr;
 QUIC_CREDENTIAL_CONFIG ServerSelfSignedCredConfig;
 QUIC_CREDENTIAL_CONFIG ServerSelfSignedCredConfigClientAuth;
 QUIC_CREDENTIAL_CONFIG ClientCertCredConfig;
 QuicDriverClient DriverClient;
+
+bool IsWindows2019() {
+    return OsRunner && strcmp(OsRunner, "windows-2019") == 0;
+}
 
 class QuicTestEnvironment : public ::testing::Environment {
     QuicDriverService DriverService;
@@ -1359,7 +1364,9 @@ TEST_P(WithHandshakeArgs4, RandomLossResumeRejection) {
 #endif // QUIC_DISABLE_RESUMPTION
 #endif // QUIC_TEST_DATAPATH_HOOKS_ENABLED
 
+#ifndef QUIC_USE_RAW_DATAPATH
 TEST_P(WithFamilyArgs, Unreachable) {
+    if (GetParam().Family == 4 && IsWindows2019()) return; // IPv4 unreachable doesn't work on 2019
     TestLoggerT<ParamType> Logger("QuicTestConnectUnreachable", GetParam());
     if (TestingKernelMode) {
         ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_CONNECT_UNREACHABLE, GetParam().Family));
@@ -1367,6 +1374,7 @@ TEST_P(WithFamilyArgs, Unreachable) {
         QuicTestConnectUnreachable(GetParam().Family);
     }
 }
+#endif // QUIC_USE_RAW_DATAPATH
 
 TEST(HandshakeTest, InvalidAddress) {
     TestLogger Logger("QuicTestConnectInvalidAddress");
@@ -2271,6 +2279,8 @@ int main(int argc, char** argv) {
             }
         } else if (strcmp("--duoNic", argv[i]) == 0) {
             UseDuoNic = true;
+        } else if (strstr("--osRunner", argv[i])) {
+            OsRunner = argv[i] + sizeof("--osRunner");
         }
     }
     ::testing::AddGlobalTestEnvironment(new QuicTestEnvironment);
