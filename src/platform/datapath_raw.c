@@ -149,6 +149,10 @@ CxPlatDataPathInitialize(
         DataPath->UdpHandlers = *UdpCallbacks;
     }
 
+    if (Config && (Config->Flags & QUIC_EXECUTION_CONFIG_FLAG_QTIP)) {
+        DataPath->UseTcp = TRUE;
+    }
+
     if (!CxPlatSockPoolInitialize(&DataPath->SocketPool)) {
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         goto Error;
@@ -406,7 +410,7 @@ CxPlatSocketCreateUdp(
     (*NewSocket)->CibirIdLength = Config->CibirIdLength;
     (*NewSocket)->CibirIdOffsetSrc = Config->CibirIdOffsetSrc;
     (*NewSocket)->CibirIdOffsetDst = Config->CibirIdOffsetDst;
-    (*NewSocket)->UseTcp = Config->Flags & CXPLAT_SOCKET_QTIP;
+    (*NewSocket)->UseTcp = Datapath->UseTcp;
     if (Config->CibirIdLength) {
         memcpy((*NewSocket)->CibirId, Config->CibirId, Config->CibirIdLength);
     }

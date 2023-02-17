@@ -314,9 +314,6 @@ MsQuicListenerStart(
             &Listener->CibirId[2],
             UdpConfig.CibirIdLength);
     }
-    if (MsQuicLib.ExecutionConfig->Flags & QUIC_EXECUTION_CONFIG_FLAG_QTIP) {
-        UdpConfig.Flags |= CXPLAT_SOCKET_QTIP;
-    }
 #endif
 
     CXPLAT_TEL_ASSERT(Listener->Binding == NULL);

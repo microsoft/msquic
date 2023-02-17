@@ -5,6 +5,8 @@
 
 --*/
 
+#define QUIC_API_ENABLE_PREVIEW_FEATURES 1
+
 #include "platform_internal.h"
 #include "quic_hashtable.h"
 
@@ -66,6 +68,9 @@ typedef struct CXPLAT_DATAPATH {
 #if DEBUG
     BOOLEAN Uninitialized : 1;
     BOOLEAN Freed : 1;
+#endif
+#ifdef QUIC_USE_RAW_DATAPATH
+    BOOLEAN UseTcp;
 #endif
 
 } CXPLAT_DATAPATH;
