@@ -90,10 +90,12 @@ jobs:
       run: scripts/build.ps1 -Config Debug -Arch ${{ matrix.arch }} -Tls ${{ matrix.tls }} -DisableTest -DisablePerf -DynamicCRT ${{ matrix.xdp }} ${{ matrix.sanitize }}
     - name: spinquic (PR)
       if: github.event_name == 'pull_request'
+      timeout-minutes: 15
       shell: pwsh
       run: scripts/spin.ps1 -AZP -Config Debug -Arch ${{ matrix.arch }} -Tls ${{ matrix.tls }} -Timeout ${{ env.pr-timeout }} -RepeatCount ${{ env.pr-repeat }} -AllocFail ${{ env.pr-allocfail }} ${{ matrix.xdp }}
     - name: spinquic (Official)
       if: github.event_name != 'pull_request'
+      timeout-minutes: 65
       shell: pwsh
       run: scripts/spin.ps1 -AZP -Config Debug -Arch ${{ matrix.arch }} -Tls ${{ matrix.tls }} -Timeout ${{ env.main-timeout }} -RepeatCount ${{ env.main-repeat }} -AllocFail ${{ env.main-allocfail }} ${{ matrix.xdp }}
     - name: Upload on Failure
