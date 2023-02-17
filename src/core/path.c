@@ -34,7 +34,8 @@ QuicPathInitialize(
     Path->EcnValidationState =
         Connection->Settings.EcnEnabled ? ECN_VALIDATION_TESTING : ECN_VALIDATION_FAILED;
 #ifdef QUIC_USE_RAW_DATAPATH
-    if (MsQuicLib.ExecutionConfig->Flags & QUIC_EXECUTION_CONFIG_FLAG_QTIP) {
+    if (MsQuicLib.ExecutionConfig &&
+        MsQuicLib.ExecutionConfig->Flags & QUIC_EXECUTION_CONFIG_FLAG_QTIP) {
         CxPlatRandom(sizeof(Path->Route.TcpState.SequenceNumber), &Path->Route.TcpState.SequenceNumber);
     }
 #endif
@@ -182,7 +183,7 @@ QuicCopyRouteInfo(
 {
 #ifdef QUIC_USE_RAW_DATAPATH
     CxPlatCopyMemory(DstRoute, SrcRoute, (uint8_t*)&SrcRoute->State - (uint8_t*)SrcRoute);
-    CxPlatUpdateRouteTcpState(DstRoute, SrcRoute);
+    CxPlatUpdateDataPathRoute(DstRoute, SrcRoute);
 #else
     *DstRoute = *SrcRoute;
 #endif

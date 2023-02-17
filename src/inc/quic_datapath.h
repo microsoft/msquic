@@ -711,7 +711,7 @@ CxPlatResolveRoute(
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
-CxPlatUpdateRouteTcpState(
+CxPlatUpdateDataPathRoute(
     _Inout_ CXPLAT_ROUTE* DstRoute,
     _In_ CXPLAT_ROUTE* SrcRoute
     );
