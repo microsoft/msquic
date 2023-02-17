@@ -507,7 +507,11 @@ CxPlatSocketGetLocalMtu(
     _In_ CXPLAT_SOCKET* Socket
     )
 {
-    return 1500;
+    if (Socket->UseTcp) {
+        return 1488; // Reserve space for TCP header.
+    } else {
+        return 1500;
+    }
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)

@@ -250,7 +250,7 @@ QuicPathGetDatagramPayloadSize(
 {
     return
         MaxUdpPayloadSizeForFamily(
-            QuicAddrGetFamily(&Path->Route.RemoteAddress), Path->Mtu, Path->Route.UseTcp);
+            QuicAddrGetFamily(&Path->Route.RemoteAddress), Path->Mtu);
 }
 
 typedef enum QUIC_PATH_VALID_REASON {

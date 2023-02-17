@@ -261,8 +261,7 @@ QuicPacketBuilderPrepare(
                     0 :
                     MaxUdpPayloadSizeForFamily(
                         QuicAddrGetFamily(&Builder->Path->Route.RemoteAddress),
-                        DatagramSize,
-                        Builder->Path->Route.UseTcp),
+                        DatagramSize),
                 Builder->EcnEctSet ? CXPLAT_ECN_ECT_0 : CXPLAT_ECN_NON_ECT,
                 Builder->Connection->Registration->ExecProfile == QUIC_EXECUTION_PROFILE_TYPE_MAX_THROUGHPUT ?
                     CXPLAT_SEND_FLAGS_MAX_THROUGHPUT : CXPLAT_SEND_FLAGS_NONE
@@ -283,8 +282,7 @@ QuicPacketBuilderPrepare(
         uint16_t NewDatagramLength =
             MaxUdpPayloadSizeForFamily(
                 QuicAddrGetFamily(&Builder->Path->Route.RemoteAddress),
-                IsPathMtuDiscovery ? Builder->Path->MtuDiscovery.ProbeSize : DatagramSize,
-                Builder->Path->Route.UseTcp);
+                IsPathMtuDiscovery ? Builder->Path->MtuDiscovery.ProbeSize : DatagramSize);
         if ((Connection->PeerTransportParams.Flags & QUIC_TP_FLAG_MAX_UDP_PAYLOAD_SIZE) &&
             NewDatagramLength > Connection->PeerTransportParams.MaxUdpPayloadSize) {
             NewDatagramLength = (uint16_t)Connection->PeerTransportParams.MaxUdpPayloadSize;
@@ -336,7 +334,7 @@ QuicPacketBuilderPrepare(
             Builder->MinimumDatagramLength =
                 MaxUdpPayloadSizeForFamily(
                     QuicAddrGetFamily(&Builder->Path->Route.RemoteAddress),
-                    Builder->Path->Mtu, Builder->Path->Route.UseTcp);
+                    Builder->Path->Mtu);
 
             if ((uint32_t)Builder->MinimumDatagramLength > Builder->Datagram->Length) {
                 //

@@ -722,8 +722,7 @@ struct MtuDropHelper : public DatapathHook
         uint16_t PacketMtu =
             PacketSizeFromUdpPayloadSize(
                 QuicAddrGetFamily(&Datagram->Route->RemoteAddress),
-                Datagram->BufferLength,
-                FALSE);
+                Datagram->BufferLength);
         if (ServerDropPacketSize != 0 && PacketMtu > ServerDropPacketSize &&
             QuicAddrGetPort(&Datagram->Route->RemoteAddress) == ServerDropPort) {
             return TRUE;

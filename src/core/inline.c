@@ -455,8 +455,7 @@ QuicKeyTypeToPacketTypeV2(
 uint16_t
 PacketSizeFromUdpPayloadSize(
     _In_ QUIC_ADDRESS_FAMILY Family,
-    _In_ uint16_t UdpPayloadSize,
-    _In_ BOOLEAN UseTcp
+    _In_ uint16_t UdpPayloadSize
     );
 
 QUIC_PACKET_SPACE*

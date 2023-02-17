@@ -21,21 +21,14 @@ Abstract:
 #endif
 
 uint16_t
-TransportHeaderLength(
-    _In_ BOOLEAN IsTcp
-    );
-
-uint16_t
 MaxUdpPayloadSizeFromMTU(
-    _In_ uint16_t Mtu,
-    _In_ BOOLEAN IsTcp
+    _In_ uint16_t Mtu
     );
 
 uint16_t
 MaxUdpPayloadSizeForFamily(
     _In_ QUIC_ADDRESS_FAMILY Family,
-    _In_ uint16_t Mtu,
-    _In_ BOOLEAN IsTcp
+    _In_ uint16_t Mtu
     );
 
 void

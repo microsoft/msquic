@@ -69,22 +69,6 @@ typedef enum CXPLAT_ECN_TYPE {
 //
 #define MAX_UDP_PAYLOAD_LENGTH (CXPLAT_MAX_MTU - CXPLAT_MIN_IPV4_HEADER_SIZE - CXPLAT_UDP_HEADER_SIZE)
 
-inline
-uint16_t
-TransportHeaderLength(
-    _In_ BOOLEAN IsTcp
-    )
-{
-    UNREFERENCED_PARAMETER(IsTcp);
-
-#ifdef QUIC_USE_RAW_DATAPATH
-    if (IsTcp) {
-        return CXPLAT_TCP_HEADER_SIZE;
-    }
-#endif
-    return CXPLAT_UDP_HEADER_SIZE;
-}
-
 //
 // Helper function for calculating the length of a UDP packet, for a given
 // MTU, on a dual-mode socket. It uses IPv4 header size since that is the
@@ -95,11 +79,10 @@ TransportHeaderLength(
 inline
 uint16_t
 MaxUdpPayloadSizeFromMTU(
-    _In_ uint16_t Mtu,
-    _In_ BOOLEAN IsTcp
+    _In_ uint16_t Mtu
     )
 {
-    return  Mtu - CXPLAT_MIN_IPV4_HEADER_SIZE - TransportHeaderLength(IsTcp);
+    return  Mtu - CXPLAT_MIN_IPV4_HEADER_SIZE - CXPLAT_UDP_HEADER_SIZE;
 }
 
 //
@@ -110,13 +93,12 @@ inline
 uint16_t
 MaxUdpPayloadSizeForFamily(
     _In_ QUIC_ADDRESS_FAMILY Family,
-    _In_ uint16_t Mtu,
-    _In_ BOOLEAN IsTcp
+    _In_ uint16_t Mtu
     )
 {
     return Family == QUIC_ADDRESS_FAMILY_INET ?
-        Mtu - CXPLAT_MIN_IPV4_HEADER_SIZE - TransportHeaderLength(IsTcp) :
-        Mtu - CXPLAT_MIN_IPV6_HEADER_SIZE - TransportHeaderLength(IsTcp);
+        Mtu - CXPLAT_MIN_IPV4_HEADER_SIZE - CXPLAT_UDP_HEADER_SIZE :
+        Mtu - CXPLAT_MIN_IPV6_HEADER_SIZE - CXPLAT_UDP_HEADER_SIZE;
 }
 
 //
@@ -127,13 +109,12 @@ inline
 uint16_t
 PacketSizeFromUdpPayloadSize(
     _In_ QUIC_ADDRESS_FAMILY Family,
-    _In_ uint16_t UdpPayloadSize,
-    _In_ BOOLEAN IsTcp
+    _In_ uint16_t UdpPayloadSize
     )
 {
     uint32_t PayloadSize = Family == QUIC_ADDRESS_FAMILY_INET ?
-        UdpPayloadSize + CXPLAT_MIN_IPV4_HEADER_SIZE + TransportHeaderLength(IsTcp) :
-        UdpPayloadSize + CXPLAT_MIN_IPV6_HEADER_SIZE + TransportHeaderLength(IsTcp);
+        UdpPayloadSize + CXPLAT_MIN_IPV4_HEADER_SIZE + CXPLAT_UDP_HEADER_SIZE :
+        UdpPayloadSize + CXPLAT_MIN_IPV6_HEADER_SIZE + CXPLAT_UDP_HEADER_SIZE;
     if (PayloadSize > UINT16_MAX) {
         PayloadSize = UINT16_MAX;
     }

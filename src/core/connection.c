@@ -2325,8 +2325,7 @@ QuicConnGenerateLocalTransportParameters(
     LocalTP->MaxUdpPayloadSize =
         MaxUdpPayloadSizeFromMTU(
             CxPlatSocketGetLocalMtu(
-                Connection->Paths[0].Binding->Socket),
-                Connection->Paths[0].Route.UseTcp);
+                Connection->Paths[0].Binding->Socket));
     LocalTP->MaxAckDelay =
         Connection->Settings.MaxAckDelayMs + MsQuicLib.TimerResolutionMs;
     LocalTP->MinAckDelay = MS_TO_US(MsQuicLib.TimerResolutionMs);
