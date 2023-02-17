@@ -205,87 +205,67 @@ CxPlatTryAddSocket(
         }
 #endif
 
-        if (Socket->UseTcp) {
-            MIB_IPFORWARD_ROW2 IpforwardRow = {0};
-            QUIC_ADDR AddressForPort = {0};
-            Status =
-                GetBestRoute2(
-                    NULL, // InterfaceLuid
-                    IFI_UNSPECIFIED, // InterfaceIndex
-                    NULL, // SourceAddress
-                    &Socket->RemoteAddress, // DestinationAddress
-                    0, // AddressSortOptions
-                    &IpforwardRow,
-                    &Socket->LocalAddress); // BestSourceAddress
-            if (Status != ERROR_SUCCESS) {
-                QuicTraceEvent(
-                    DatapathErrorStatus,
-                    "[data][%p] ERROR, %u, %s.",
-                    Socket,
-                    Status,
-                    "GetBestRoute2");
-                CxPlatRwLockReleaseExclusive(&Pool->Lock);
-                goto Error;
-            }
-
-            int AssignedLocalAddressLength = sizeof(AddressForPort);
-            Result =
-                getsockname(
-                    Socket->AuxSocket,
-                    (struct sockaddr*)&AddressForPort,
-                    &AssignedLocalAddressLength);
-            if (Result == SOCKET_ERROR) {
-                int WsaError = SocketError();
-                QuicTraceEvent(
-                    DatapathErrorStatus,
-                    "[data][%p] ERROR, %u, %s.",
-                    Socket,
-                    WsaError,
-                    "getsockname");
-                CxPlatRwLockReleaseExclusive(&Pool->Lock);
-                Status = HRESULT_FROM_WIN32(WsaError);
-                goto Error;
-            }
-            Socket->LocalAddress.Ipv4.sin_port = AddressForPort.Ipv4.sin_port;
-        } else {
-            Result =
-                connect(
-                    Socket->AuxSocket,
-                    (struct sockaddr*)&MappedAddress,
-                    sizeof(MappedAddress));
-            if (Result == SOCKET_ERROR) {
-                int WsaError = SocketError();
-                QuicTraceEvent(
-                    DatapathErrorStatus,
-                    "[data][%p] ERROR, %u, %s.",
-                    Socket,
-                    WsaError,
-                    "connect failed");
-                CxPlatRwLockReleaseExclusive(&Pool->Lock);
-                Status = HRESULT_FROM_WIN32(WsaError);
-                goto Error;
-            }
-
-            int AssignedLocalAddressLength = sizeof(Socket->LocalAddress);
-            Result =
-                getsockname(
-                    Socket->AuxSocket,
-                    (struct sockaddr*)&Socket->LocalAddress,
-                    &AssignedLocalAddressLength);
-            if (Result == SOCKET_ERROR) {
-                int WsaError = SocketError();
-                QuicTraceEvent(
-                    DatapathErrorStatus,
-                    "[data][%p] ERROR, %u, %s.",
-                    Socket,
-                    WsaError,
-                    "getsockname");
-                CxPlatRwLockReleaseExclusive(&Pool->Lock);
-                Status = HRESULT_FROM_WIN32(WsaError);
-                goto Error;
-            }
-            CxPlatConvertFromMappedV6(&Socket->LocalAddress, &Socket->LocalAddress);
+        MIB_IPFORWARD_ROW2 IpforwardRow = {0};
+        QUIC_ADDR AddressForPort = {0};
+        Status =
+            GetBestRoute2(
+                NULL, // InterfaceLuid
+                IFI_UNSPECIFIED, // InterfaceIndex
+                NULL, // SourceAddress
+                &Socket->RemoteAddress, // DestinationAddress
+                0, // AddressSortOptions
+                &IpforwardRow,
+                &Socket->LocalAddress); // BestSourceAddress
+        if (Status != ERROR_SUCCESS) {
+            QuicTraceEvent(
+                DatapathErrorStatus,
+                "[data][%p] ERROR, %u, %s.",
+                Socket,
+                Status,
+                "GetBestRoute2");
+            CxPlatRwLockReleaseExclusive(&Pool->Lock);
+            goto Error;
         }
+
+        int AssignedLocalAddressLength = sizeof(AddressForPort);
+        Result =
+            getsockname(
+                Socket->AuxSocket,
+                (struct sockaddr*)&AddressForPort,
+                &AssignedLocalAddressLength);
+        if (Result == SOCKET_ERROR) {
+            int WsaError = SocketError();
+            QuicTraceEvent(
+                DatapathErrorStatus,
+                "[data][%p] ERROR, %u, %s.",
+                Socket,
+                WsaError,
+                "getsockname");
+            CxPlatRwLockReleaseExclusive(&Pool->Lock);
+            Status = HRESULT_FROM_WIN32(WsaError);
+            goto Error;
+        }
+        Socket->LocalAddress.Ipv4.sin_port = AddressForPort.Ipv4.sin_port;
+    } else {
+        int AssignedLocalAddressLength = sizeof(Socket->LocalAddress);
+        Result =
+            getsockname(
+                Socket->AuxSocket,
+                (struct sockaddr*)&Socket->LocalAddress,
+                &AssignedLocalAddressLength);
+        if (Result == SOCKET_ERROR) {
+            int WsaError = SocketError();
+            QuicTraceEvent(
+                DatapathErrorStatus,
+                "[data][%p] ERROR, %u, %s.",
+                Socket,
+                WsaError,
+                "getsockname");
+            CxPlatRwLockReleaseExclusive(&Pool->Lock);
+            Status = HRESULT_FROM_WIN32(WsaError);
+            goto Error;
+        }
+        CxPlatConvertFromMappedV6(&Socket->LocalAddress, &Socket->LocalAddress);
     }
 
     Entry = CxPlatHashtableLookup(&Pool->Sockets, Socket->LocalAddress.Ipv4.sin_port, &Context);
