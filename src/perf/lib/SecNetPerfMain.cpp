@@ -190,28 +190,18 @@ QuicMainStart(
         return Status;
     }
 
-#ifndef _KERNEL_MODE
-    uint8_t QuicOverTcpEnabled;
-    if (TryGetValue(argc, argv, "qtip", &QuicOverTcpEnabled)) {
-        Status =
-            MsQuic->SetParam(
-                nullptr,
-                QUIC_PARAM_GLOBAL_QUIC_OVER_TCP,
-                sizeof(QuicOverTcpEnabled),
-                &QuicOverTcpEnabled);
-        if (QUIC_FAILED(Status)) {
-            WriteOutput("MsQuic Failed To Set QuicOverTcpEnabled: %d\n", Status);
-            return Status;
-        }
-    }
-#endif
-
     uint8_t RawConfig[QUIC_EXECUTION_CONFIG_MIN_SIZE + 256 * sizeof(uint16_t)] = {0};
     QUIC_EXECUTION_CONFIG* Config = (QUIC_EXECUTION_CONFIG*)RawConfig;
     Config->PollingIdleTimeoutUs = UINT32_MAX; // Default to no sleep.
     bool SetConfig = false;
 
 #ifndef _KERNEL_MODE
+    uint8_t QuicOverTcpEnabled;
+    if (TryGetValue(argc, argv, "qtip", &QuicOverTcpEnabled)) {
+        Config->Flags |= QUIC_EXECUTION_CONFIG_FLAG_QTIP;
+        SetConfig = true;
+    }
+
     const char* CpuStr;
     if ((CpuStr = GetValue(argc, argv, "cpu")) != nullptr) {
         SetConfig = true;

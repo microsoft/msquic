@@ -34,8 +34,7 @@ QuicPathInitialize(
     Path->EcnValidationState =
         Connection->Settings.EcnEnabled ? ECN_VALIDATION_TESTING : ECN_VALIDATION_FAILED;
 #ifdef QUIC_USE_RAW_DATAPATH
-    Path->Route.UseTcp = Connection->Settings.QuicOverTcpEnabled;
-    if (Path->Route.UseTcp) {
+    if (MsQuicLib.ExecutionConfig->Flags & QUIC_EXECUTION_CONFIG_FLAG_QTIP) {
         CxPlatRandom(sizeof(Path->Route.TcpState.SequenceNumber), &Path->Route.TcpState.SequenceNumber);
     }
 #endif

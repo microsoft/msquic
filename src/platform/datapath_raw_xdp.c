@@ -1595,7 +1595,7 @@ CxPlatDpRawRxFree(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 CXPLAT_SEND_DATA*
 CxPlatDpRawTxAlloc(
-    _In_ CXPLAT_DATAPATH* Datapath,
+    _In_ CXPLAT_SOCKET* Socket,
     _Inout_ CXPLAT_SEND_CONFIG* Config
     )
 {
@@ -1603,10 +1603,8 @@ CxPlatDpRawTxAlloc(
     XDP_QUEUE* Queue = Config->Route->Queue;
     XDP_TX_PACKET* Packet = (XDP_TX_PACKET*)InterlockedPopEntrySList(&Queue->TxPool);
 
-    UNREFERENCED_PARAMETER(Datapath);
-
     if (Packet) {
-        HEADER_BACKFILL HeaderBackfill = CxPlatDpRawCalculateHeaderBackFill(Family, Config->Route->UseTcp); // TODO - Cache in Route?
+        HEADER_BACKFILL HeaderBackfill = CxPlatDpRawCalculateHeaderBackFill(Family, Socket->UseTcp); // TODO - Cache in Route?
         CXPLAT_DBG_ASSERT(Config->MaxPacketSize <= sizeof(Packet->FrameBuffer) - HeaderBackfill.AllLayer);
         Packet->Queue = Queue;
         Packet->Buffer.Length = Config->MaxPacketSize;

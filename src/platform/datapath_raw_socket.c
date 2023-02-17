@@ -745,9 +745,7 @@ CxPlatDpRawParseIPv4(
         return;
     }
 
-    uint16_t IPTotalLength;
-    IPTotalLength = CxPlatByteSwapUint16(IP->TotalLength);
-
+    uint16_t IPTotalLength = CxPlatByteSwapUint16(IP->TotalLength);
     if (Length < IPTotalLength) {
         QuicTraceEvent(
             DatapathErrorStatus,
@@ -800,8 +798,7 @@ CxPlatDpRawParseIPv6(
         return;
     }
 
-    uint16_t IPPayloadLength;
-    IPPayloadLength = CxPlatByteSwapUint16(IP->PayloadLength);
+    uint16_t IPPayloadLength = CxPlatByteSwapUint16(IP->PayloadLength);
     if (IPPayloadLength + sizeof(IPV6_HEADER) > Length) {
         QuicTraceEvent(
             DatapathErrorStatus,
@@ -1164,7 +1161,7 @@ CxPlatFramingWriteHeaders(
 {
     uint8_t *Transport;
     uint16_t TransportLength;
-    uint8_t TransportProtocol = Route->UseTcp ? IPPROTO_TCP : IPPROTO_UDP;
+    uint8_t TransportProtocol = Socket->UseTcp ? IPPROTO_TCP : IPPROTO_UDP;
     TCP_HEADER* TCP = NULL;
     UDP_HEADER* UDP = NULL;
     ETHERNET_HEADER* Ethernet;
@@ -1175,7 +1172,7 @@ CxPlatFramingWriteHeaders(
     CXPLAT_DBG_ASSERT(
         Family == QUIC_ADDRESS_FAMILY_INET || Family == QUIC_ADDRESS_FAMILY_INET6);
 
-    if (Route->UseTcp) {
+    if (Socket->UseTcp) {
         //
         // Fill TCP header.
         //
@@ -1227,7 +1224,7 @@ CxPlatFramingWriteHeaders(
         Ethernet = (ETHERNET_HEADER*)(((uint8_t*)IPv4) - sizeof(ETHERNET_HEADER));
         IpHeaderLen = sizeof(IPV4_HEADER);
         if (!SkipTransportLayerXsum) {
-            if (Route->UseTcp) {
+            if (Socket->UseTcp) {
                 TCP->Checksum =
                     CxPlatFramingTransportChecksum(
                         IPv4->Source, IPv4->Destination,
@@ -1274,7 +1271,7 @@ CxPlatFramingWriteHeaders(
         Ethernet = (ETHERNET_HEADER*)(((uint8_t*)IPv6) - sizeof(ETHERNET_HEADER));
         IpHeaderLen = sizeof(IPV6_HEADER);
         if (!SkipTransportLayerXsum) {
-            if (Route->UseTcp) {
+            if (Socket->UseTcp) {
                 TCP->Checksum =
                     CxPlatFramingTransportChecksum(
                         IPv6->Source, IPv6->Destination,

@@ -406,7 +406,7 @@ CxPlatSocketCreateUdp(
     (*NewSocket)->CibirIdLength = Config->CibirIdLength;
     (*NewSocket)->CibirIdOffsetSrc = Config->CibirIdOffsetSrc;
     (*NewSocket)->CibirIdOffsetDst = Config->CibirIdOffsetDst;
-    (*NewSocket)->UseTcp = Config->UseTcp;
+    (*NewSocket)->UseTcp = Config->Flags & CXPLAT_SOCKET_QTIP;
     if (Config->CibirIdLength) {
         memcpy((*NewSocket)->CibirId, Config->CibirId, Config->CibirIdLength);
     }
@@ -582,11 +582,9 @@ CxPlatDpRawRxEthernet(
                     }
                     Datapath->UdpHandlers.Receive(Socket, Socket->CallbackContext, (CXPLAT_RECV_DATA*)PacketChain);
                 } else if (PacketChain->Reserved == L4_TYPE_TCP_SYN || PacketChain->Reserved == L4_TYPE_TCP_SYNACK) {
-                    PacketChain->Route->UseTcp = TRUE;
                     CxPlatDpRawSocketAckSyn(Socket, PacketChain);
                     CxPlatDpRawRxFree(PacketChain);
                 } else if (PacketChain->Reserved == L4_TYPE_TCP_FIN) {
-                    PacketChain->Route->UseTcp = TRUE;
                     CxPlatDpRawSocketAckFin(Socket, PacketChain);
                     CxPlatDpRawRxFree(PacketChain);
                 }
@@ -616,7 +614,7 @@ CxPlatSendDataAlloc(
     _Inout_ CXPLAT_SEND_CONFIG* Config
     )
 {
-    return CxPlatDpRawTxAlloc(Socket->Datapath, Config);
+    return CxPlatDpRawTxAlloc(Socket, Config);
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -669,7 +667,7 @@ CxPlatSocketSend(
     _In_ CXPLAT_SEND_DATA* SendData
     )
 {
-    if (Route->UseTcp &&
+    if (Socket->UseTcp &&
         Socket->Connected &&
         Route->TcpState.Syncd == FALSE) {
         Socket->PausedTcpSend = SendData;

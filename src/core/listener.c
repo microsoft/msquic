@@ -314,7 +314,9 @@ MsQuicListenerStart(
             &Listener->CibirId[2],
             UdpConfig.CibirIdLength);
     }
-    UdpConfig.UseTcp = MsQuicLib.Settings.QuicOverTcpEnabled;
+    if (MsQuicLib.ExecutionConfig->Flags & QUIC_EXECUTION_CONFIG_FLAG_QTIP) {
+        UdpConfig.Flags |= CXPLAT_SOCKET_QTIP;
+    }
 #endif
 
     CXPLAT_TEL_ASSERT(Listener->Binding == NULL);

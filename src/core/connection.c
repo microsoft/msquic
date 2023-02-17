@@ -1916,7 +1916,9 @@ QuicConnStart(
     UdpConfig.OwningProcess = Configuration->OwningProcess;
 #endif
 #ifdef QUIC_USE_RAW_DATAPATH
-    UdpConfig.UseTcp = Path->Route.UseTcp;
+    if (MsQuicLib.ExecutionConfig->Flags & QUIC_EXECUTION_CONFIG_FLAG_QTIP) {
+        UdpConfig.Flags |= CXPLAT_SOCKET_QTIP;
+    }
 #endif
 
     //
@@ -6162,7 +6164,9 @@ QuicConnParamSet(
             UdpConfig.OwningProcess = Connection->Configuration->OwningProcess;
 #endif
 #ifdef QUIC_USE_RAW_DATAPATH
-            UdpConfig.UseTcp = Connection->Paths[0].Route.UseTcp;
+            if (MsQuicLib.ExecutionConfig->Flags & QUIC_EXECUTION_CONFIG_FLAG_QTIP) {
+                UdpConfig.Flags |= CXPLAT_SOCKET_QTIP;
+            }
 #endif
             Status =
                 QuicLibraryGetBinding(
