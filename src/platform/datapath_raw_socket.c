@@ -103,6 +103,8 @@ CxPlatTryAddSocket(
     CXPLAT_HASHTABLE_LOOKUP_CONTEXT Context;
     CXPLAT_HASHTABLE_ENTRY* Entry;
     QUIC_ADDR MappedAddress = {0};
+    SOCKET TempUdpSocket = INVALID_SOCKET;
+    int AssignedLocalAddressLength;
 
     //
     // Get (and reserve) a transport layer port from the OS networking stack by
@@ -204,50 +206,145 @@ CxPlatTryAddSocket(
             MappedAddress.Ipv6.sin6_family = AF_INET6;
         }
 #endif
+        if (Socket->UseTcp) {
+            //
+            // Create a temporary UDP socket bound to a zero port
+            // and connect this socket to the remote address.
+            // By doing this, the OS will select a local address for us.
+            //
+            QUIC_ADDR LocalAddressPort = {0};
+            AssignedLocalAddressLength = sizeof(LocalAddressPort);
+            Result =
+                getsockname(
+                    Socket->AuxSocket,
+                    (struct sockaddr*)&LocalAddressPort,
+                    &AssignedLocalAddressLength);
+            if (Result == SOCKET_ERROR) {
+                int WsaError = SocketError();
+                QuicTraceEvent(
+                    DatapathErrorStatus,
+                    "[data][%p] ERROR, %u, %s.",
+                    Socket,
+                    WsaError,
+                    "getsockname");
+                CxPlatRwLockReleaseExclusive(&Pool->Lock);
+                Status = HRESULT_FROM_WIN32(WsaError);
+                goto Error;
+            }
 
-        MIB_IPFORWARD_ROW2 IpforwardRow = {0};
-        QUIC_ADDR AddressForPort = {0};
-        Status =
-            GetBestRoute2(
-                NULL, // InterfaceLuid
-                IFI_UNSPECIFIED, // InterfaceIndex
-                NULL, // SourceAddress
-                &Socket->RemoteAddress, // DestinationAddress
-                0, // AddressSortOptions
-                &IpforwardRow,
-                &Socket->LocalAddress); // BestSourceAddress
-        if (Status != ERROR_SUCCESS) {
-            QuicTraceEvent(
-                DatapathErrorStatus,
-                "[data][%p] ERROR, %u, %s.",
-                Socket,
-                Status,
-                "GetBestRoute2");
-            CxPlatRwLockReleaseExclusive(&Pool->Lock);
-            goto Error;
-        }
+            TempUdpSocket = socket(AF_INET6, SOCK_DGRAM, IPPROTO_UDP);
+            if (TempUdpSocket == INVALID_SOCKET) {
+                int WsaError = SocketError();
+                QuicTraceEvent(
+                    DatapathErrorStatus,
+                    "[data][%p] ERROR, %u, %s.",
+                    Socket,
+                    WsaError,
+                    "temp udp socket");
+                CxPlatRwLockReleaseExclusive(&Pool->Lock);
+                Status = HRESULT_FROM_WIN32(WsaError);
+                goto Error;
+            }
 
-        int AssignedLocalAddressLength = sizeof(AddressForPort);
-        Result =
-            getsockname(
-                Socket->AuxSocket,
-                (struct sockaddr*)&AddressForPort,
-                &AssignedLocalAddressLength);
-        if (Result == SOCKET_ERROR) {
-            int WsaError = SocketError();
-            QuicTraceEvent(
-                DatapathErrorStatus,
-                "[data][%p] ERROR, %u, %s.",
-                Socket,
-                WsaError,
-                "getsockname");
-            CxPlatRwLockReleaseExclusive(&Pool->Lock);
-            Status = HRESULT_FROM_WIN32(WsaError);
-            goto Error;
+            Option = FALSE;
+            Result =
+                setsockopt(
+                    TempUdpSocket,
+                    IPPROTO_IPV6,
+                    IPV6_V6ONLY,
+                    (char*)&Option,
+                    sizeof(Option));
+            if (Result == SOCKET_ERROR) {
+                int WsaError = SocketError();
+                QuicTraceEvent(
+                    DatapathErrorStatus,
+                    "[data][%p] ERROR, %u, %s.",
+                    Socket,
+                    WsaError,
+                    "Set IPV6_V6ONLY (temp udp socket)");
+                CxPlatRwLockReleaseExclusive(&Pool->Lock);
+                Status = HRESULT_FROM_WIN32(WsaError);
+                goto Error;
+            }
+
+            Result =
+                connect(
+                    TempUdpSocket,
+                    (struct sockaddr*)&MappedAddress,
+                    sizeof(MappedAddress));
+            if (Result == SOCKET_ERROR) {
+                int WsaError = SocketError();
+                QuicTraceEvent(
+                    DatapathErrorStatus,
+                    "[data][%p] ERROR, %u, %s.",
+                    Socket,
+                    WsaError,
+                    "connect failed (temp udp socket)");
+                CxPlatRwLockReleaseExclusive(&Pool->Lock);
+                Status = HRESULT_FROM_WIN32(WsaError);
+                goto Error;
+            }
+
+            AssignedLocalAddressLength = sizeof(Socket->LocalAddress);
+            Result =
+                getsockname(
+                    TempUdpSocket,
+                    (struct sockaddr*)&Socket->LocalAddress,
+                    &AssignedLocalAddressLength);
+            if (Result == SOCKET_ERROR) {
+                int WsaError = SocketError();
+                QuicTraceEvent(
+                    DatapathErrorStatus,
+                    "[data][%p] ERROR, %u, %s.",
+                    Socket,
+                    WsaError,
+                    "getsockname (temp udp socket)");
+                CxPlatRwLockReleaseExclusive(&Pool->Lock);
+                Status = HRESULT_FROM_WIN32(WsaError);
+                goto Error;
+            }
+            CxPlatConvertFromMappedV6(&Socket->LocalAddress, &Socket->LocalAddress);
+            Socket->LocalAddress.Ipv4.sin_port = LocalAddressPort.Ipv4.sin_port;
+        } else {
+            Result =
+                connect(
+                    Socket->AuxSocket,
+                    (struct sockaddr*)&MappedAddress,
+                    sizeof(MappedAddress));
+            if (Result == SOCKET_ERROR) {
+                int WsaError = SocketError();
+                QuicTraceEvent(
+                    DatapathErrorStatus,
+                    "[data][%p] ERROR, %u, %s.",
+                    Socket,
+                    WsaError,
+                    "connect failed");
+                CxPlatRwLockReleaseExclusive(&Pool->Lock);
+                Status = HRESULT_FROM_WIN32(WsaError);
+                goto Error;
+            }
+            AssignedLocalAddressLength = sizeof(Socket->LocalAddress);
+            Result =
+                getsockname(
+                    Socket->AuxSocket,
+                    (struct sockaddr*)&Socket->LocalAddress,
+                    &AssignedLocalAddressLength);
+            if (Result == SOCKET_ERROR) {
+                int WsaError = SocketError();
+                QuicTraceEvent(
+                    DatapathErrorStatus,
+                    "[data][%p] ERROR, %u, %s.",
+                    Socket,
+                    WsaError,
+                    "getsockname");
+                CxPlatRwLockReleaseExclusive(&Pool->Lock);
+                Status = HRESULT_FROM_WIN32(WsaError);
+                goto Error;
+            }
+            CxPlatConvertFromMappedV6(&Socket->LocalAddress, &Socket->LocalAddress);
         }
-        Socket->LocalAddress.Ipv4.sin_port = AddressForPort.Ipv4.sin_port;
     } else {
-        int AssignedLocalAddressLength = sizeof(Socket->LocalAddress);
+        AssignedLocalAddressLength = sizeof(Socket->LocalAddress);
         Result =
             getsockname(
                 Socket->AuxSocket,
@@ -268,6 +365,7 @@ CxPlatTryAddSocket(
         CxPlatConvertFromMappedV6(&Socket->LocalAddress, &Socket->LocalAddress);
     }
 
+
     Entry = CxPlatHashtableLookup(&Pool->Sockets, Socket->LocalAddress.Ipv4.sin_port, &Context);
     while (Entry != NULL) {
         CXPLAT_SOCKET* Temp = CONTAINING_RECORD(Entry, CXPLAT_SOCKET, Entry);
@@ -287,6 +385,10 @@ Error:
 
     if (QUIC_FAILED(Status) && Socket->AuxSocket != INVALID_SOCKET) {
         closesocket(Socket->AuxSocket);
+    }
+
+    if (TempUdpSocket != INVALID_SOCKET) {
+        closesocket(TempUdpSocket);
     }
 
     return Status;
