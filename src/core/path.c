@@ -183,7 +183,7 @@ QuicCopyRouteInfo(
 {
 #ifdef QUIC_USE_RAW_DATAPATH
     CxPlatCopyMemory(DstRoute, SrcRoute, (uint8_t*)&SrcRoute->State - (uint8_t*)SrcRoute);
-    CxPlatUpdateDataPathRoute(DstRoute, SrcRoute);
+    CxPlatUpdateRoute(DstRoute, SrcRoute);
 #else
     *DstRoute = *SrcRoute;
 #endif

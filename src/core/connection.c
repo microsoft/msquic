@@ -5566,7 +5566,7 @@ QuicConnRecvDatagrams(
         }
 
 #ifdef QUIC_USE_RAW_DATAPATH
-        CxPlatUpdateDataPathRoute(&DatagramPath->Route, Datagram->Route);
+        CxPlatUpdateRoute(&DatagramPath->Route, Datagram->Route);
 #endif
 
         if (DatagramPath != CurrentPath) {
