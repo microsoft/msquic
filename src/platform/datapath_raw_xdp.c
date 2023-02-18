@@ -1308,7 +1308,6 @@ CxPlatDpRawPlumbRulesOnSocket(
     )
 {
     XDP_DATAPATH* Xdp = (XDP_DATAPATH*)Socket->Datapath;
-    printf("plumb rules\n");
     if (Socket->Wildcard) {
         if (Socket->CibirIdLength) {
             //
