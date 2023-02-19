@@ -1128,12 +1128,14 @@ TEST_F(TlsTest, HandshakeParallel)
 
     CXPLAT_THREAD Threads[64];
     CxPlatZeroMemory(&Threads, sizeof(Threads));
+    const uint32_t ThreadCount =
+        CXPLAT_MIN(ARRAYSIZE(Threads), CxPlatProcActiveCount() * 4);
 
-    for (uint32_t i = 0; i < ARRAYSIZE(Threads); ++i) {
+    for (uint32_t i = 0; i < ThreadCount; ++i) {
         VERIFY_QUIC_SUCCESS(CxPlatThreadCreate(&Config, &Threads[i]));
     }
 
-    for (uint32_t i = 0; i < ARRAYSIZE(Threads); ++i) {
+    for (uint32_t i = 0; i < ThreadCount; ++i) {
         CxPlatThreadWait(&Threads[i]);
         CxPlatThreadDelete(&Threads[i]);
     }

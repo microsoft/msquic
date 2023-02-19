@@ -2250,6 +2250,7 @@ INSTANTIATE_TEST_SUITE_P(
     WithDatagramNegotiationArgs,
     testing::ValuesIn(DatagramNegotiationArgs::Generate()));
 
+#ifndef QUIC_USE_RAW_DATAPATH
 INSTANTIATE_TEST_SUITE_P(
     Drill,
     WithDrillInitialPacketCidArgs,
@@ -2259,6 +2260,7 @@ INSTANTIATE_TEST_SUITE_P(
     Drill,
     WithDrillInitialPacketTokenArgs,
     testing::ValuesIn(DrillInitialPacketTokenArgs::Generate()));
+#endif // QUIC_USE_RAW_DATAPATH
 
 int main(int argc, char** argv) {
 #ifdef _WIN32
