@@ -968,7 +968,7 @@ TEST_P(DataPathTest, MultiBindListener) {
 }
 
 #ifdef _WIN32
-#ifdef QUIC_USE_RAW_DATAPATH
+#ifndef QUIC_USE_RAW_DATAPATH
 TEST_F(DataPathTest, TcpListener)
 {
     CxPlatDataPath Datapath(nullptr, &EmptyTcpCallbacks);
