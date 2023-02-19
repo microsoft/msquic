@@ -28,6 +28,7 @@ jobs:
         os: [ubuntu-20.04, ubuntu-22.04, windows-2019, windows-2022] # TODO: Add macos-12
         arch: [x64]
         tls: [schannel, openssl, openssl3]
+        systemcrypto: ['', '-UseSystemOpenSSLCrypto']
         xdp: ['', '-UseXdp']
         sanitize: ['', '-Sanitize']
         exclude:
@@ -40,6 +41,19 @@ jobs:
           tls: schannel
         - os: windows-2019
           tls: schannel
+        # System crypto only suppored on Ubuntu
+        - os: macos-12
+          systemcrypto: '-UseSystemOpenSSLCrypto'
+        - os: windows-2019
+          systemcrypto: '-UseSystemOpenSSLCrypto'
+        - os: windows-2022
+          systemcrypto: '-UseSystemOpenSSLCrypto'
+        - os: ubuntu-20.04
+          tls: openssl3
+          systemcrypto: '-UseSystemOpenSSLCrypto'
+        - os: ubuntu-22.04
+          tls: openssl
+          systemcrypto: '-UseSystemOpenSSLCrypto'
         # Linux and Windows Schannel use ASAN
         - os: ubuntu-20.04
           sanitize: ''
@@ -88,7 +102,7 @@ jobs:
       shell: pwsh
     - name: Build
       shell: pwsh
-      run: scripts/build.ps1 -Config Debug -Arch ${{ matrix.arch }} -Tls ${{ matrix.tls }} -DisableTools -DisablePerf -DynamicCRT ${{ matrix.xdp }} ${{ matrix.sanitize }}
+      run: scripts/build.ps1 -Config Debug -Arch ${{ matrix.arch }} -Tls ${{ matrix.tls }} -DisableTools -DisablePerf -DynamicCRT ${{ matrix.systemcrypto }} ${{ matrix.xdp }} ${{ matrix.sanitize }}
     - name: Install ETW Manifest
       if: runner.os == 'Windows'
       shell: pwsh
@@ -105,9 +119,10 @@ jobs:
       uses: actions/upload-artifact@0b7f8abb1508181956e8e162db84b466c27e18ce
       if: failure()
       with:
-        name: ${{ matrix.os }}-${{ matrix.arch }}-${{ matrix.tls }}${{ matrix.xdp }}${{ matrix.sanitize }}
+        name: ${{ matrix.os }}-${{ matrix.arch }}-${{ matrix.tls }}${{ matrix.systemcrypto }}${{ matrix.xdp }}${{ matrix.sanitize }}
         path: artifacts
 
+  # TODO: Get this working
   # bvt-kernel:
   #   name: BVT Kernel
   #   needs: []
