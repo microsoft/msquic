@@ -172,15 +172,17 @@ QuicPerfCounterSnapShot(
 // Ensures a perf counter doesn't consistently (both samples) go above a give max value.
 #define QUIC_COUNTER_CAP(TYPE, MAX_LIMIT) \
     CXPLAT_TEL_ASSERT( \
-        PerfCounterSamples[TYPE] < MAX_LIMIT || \
+        PerfCounterSamples[TYPE] < MAX_LIMIT && \
         MsQuicLib.PerfCounterSamples[TYPE] < MAX_LIMIT)
 
+#ifndef DEBUG // Only in release mode
     //
     // Some heuristics to ensure that bad things aren't happening. TODO - these
     // values should be configurable dynamically, somehow.
     //
     QUIC_COUNTER_LIMIT_HZ(QUIC_PERF_COUNTER_CONN_HANDSHAKE_FAIL, 1000000); // Don't have 1 million failed handshakes per second
     QUIC_COUNTER_CAP(QUIC_PERF_COUNTER_CONN_QUEUE_DEPTH, 100000); // Don't maintain huge queue depths
+#endif
 
     CxPlatCopyMemory(
         MsQuicLib.PerfCounterSamples,
