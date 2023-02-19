@@ -1494,6 +1494,7 @@ TEST_P(WithFamilyArgs, ChangeMaxStreamIDs) {
 }
 
 #if QUIC_TEST_DATAPATH_HOOKS_ENABLED
+#ifndef QUIC_USE_RAW_DATAPATH
 TEST_P(WithFamilyArgs, LoadBalanced) {
     TestLoggerT<ParamType> Logger("QuicTestLoadBalancedHandshake", GetParam());
     if (TestingKernelMode) {
@@ -1502,6 +1503,7 @@ TEST_P(WithFamilyArgs, LoadBalanced) {
         QuicTestLoadBalancedHandshake(GetParam().Family);
     }
 }
+#endif // QUIC_USE_RAW_DATAPATH
 
 TEST_P(WithFamilyArgs, HandshakeSpecificLossPatterns) {
     TestLoggerT<ParamType> Logger("QuicTestHandshakeSpecificLossPatterns", GetParam());
@@ -1989,6 +1991,7 @@ TEST(Drill, VarIntEncoder) {
     }
 }
 
+#ifndef QUIC_USE_RAW_DATAPATH
 TEST_P(WithDrillInitialPacketCidArgs, DrillInitialPacketCids) {
     TestLoggerT<ParamType> Logger("QuicDrillInitialPacketCids", GetParam());
     if (TestingKernelMode) {
@@ -2018,6 +2021,7 @@ TEST_P(WithDrillInitialPacketTokenArgs, DrillInitialPacketToken) {
         QuicDrillTestInitialToken(GetParam().Family);
     }
 }
+#endif // QUIC_USE_RAW_DATAPATH
 
 TEST_P(WithDatagramNegotiationArgs, DatagramNegotiation) {
     TestLoggerT<ParamType> Logger("QuicTestDatagramNegotiation", GetParam());

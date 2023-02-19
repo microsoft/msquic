@@ -25,7 +25,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-20.04, windows-2019, windows-2022] # TODO: Add macos-12
+        os: [ubuntu-20.04, ubuntu-22.04, windows-2019, windows-2022] # TODO: Add macos-12
         arch: [x64]
         tls: [schannel, openssl, openssl3]
         xdp: ['', '-UseXdp']
@@ -34,12 +34,16 @@ jobs:
         # Schannel only supported on windows-2022
         - os: ubuntu-20.04
           tls: schannel
+        - os: ubuntu-22.04
+          tls: schannel
         - os: macos-12
           tls: schannel
         - os: windows-2019
           tls: schannel
         # Linux and Windows Schannel use ASAN
         - os: ubuntu-20.04
+          sanitize: ''
+        - os: ubuntu-22.04
           sanitize: ''
         - tls: schannel
           sanitize: ''
@@ -60,6 +64,8 @@ jobs:
           sanitize: '-Sanitize'
         # XDP stuff is on latest Windows only
         - os: ubuntu-20.04
+          xdp: '-UseXdp'
+        - os: ubuntu-22.04
           xdp: '-UseXdp'
         - os: macos-12
           xdp: '-UseXdp'
@@ -93,7 +99,7 @@ jobs:
         wevtutil.exe im $ManifestPath /rf:$($MsQuicDll) /mf:$($MsQuicDll)
     - name: Test
       shell: pwsh
-      timeout-minutes: 90
+      timeout-minutes: 120
       run: scripts/test.ps1 -Config Debug -Arch ${{ matrix.arch }} -Tls ${{ matrix.tls }} -OsRunner ${{ matrix.os }} -LogProfile Basic.Light -GenerateXmlResults ${{ matrix.xdp }}
     - name: Upload on Failure
       uses: actions/upload-artifact@0b7f8abb1508181956e8e162db84b466c27e18ce
