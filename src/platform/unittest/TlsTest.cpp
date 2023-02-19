@@ -22,7 +22,7 @@
 #endif
 
 const uint32_t DefaultFragmentSize = 1200;
-const char* OsRunner = nullptr;
+extern const char* OsRunner;
 
 const uint8_t Alpn[] = { 1, 'A' };
 const uint8_t MultiAlpn[] = { 1, 'C', 1, 'A', 1, 'B' };
@@ -2412,13 +2412,3 @@ TEST_F(TlsTest, PortableCertFlags)
 }
 
 INSTANTIATE_TEST_SUITE_P(TlsTest, TlsTest, ::testing::Bool());
-
-int main(int argc, char** argv) {
-    for (int i = 0; i < argc; ++i) {
-        if (strstr(argv[i], "--osRunner")) {
-            OsRunner = argv[i] + sizeof("--osRunner");
-        }
-    }
-    ::testing::InitGoogleTest(&argc, argv);
-    return RUN_ALL_TESTS();
-}
