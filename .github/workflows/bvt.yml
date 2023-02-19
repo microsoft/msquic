@@ -114,7 +114,7 @@ jobs:
     - name: Test
       shell: pwsh
       timeout-minutes: 120
-      run: scripts/test.ps1 -Config Debug -Arch ${{ matrix.arch }} -Tls ${{ matrix.tls }} -OsRunner ${{ matrix.os }} -LogProfile Basic.Light -GenerateXmlResults ${{ matrix.xdp }}
+      run: scripts/test.ps1 -Config Debug -Arch ${{ matrix.arch }} -Tls ${{ matrix.tls }} -OsRunner ${{ matrix.os }} -AZP -LogProfile Basic.Light -GenerateXmlResults ${{ matrix.xdp }}
     - name: Upload on Failure
       uses: actions/upload-artifact@0b7f8abb1508181956e8e162db84b466c27e18ce
       if: failure()
@@ -160,7 +160,7 @@ jobs:
   #   - name: Test
   #     shell: pwsh
   #     timeout-minutes: 90
-  #     run: scripts/test.ps1 -Config Debug -Arch ${{ matrix.arch }} -Tls ${{ matrix.tls }} -LogProfile Basic.Light -GenerateXmlResults -Kernel
+  #     run: scripts/test.ps1 -Config Debug -Arch ${{ matrix.arch }} -Tls ${{ matrix.tls }} -AZP -LogProfile Basic.Light -GenerateXmlResults -Kernel
   #   - name: Upload on Failure
   #     uses: actions/upload-artifact@0b7f8abb1508181956e8e162db84b466c27e18ce
   #     if: failure()

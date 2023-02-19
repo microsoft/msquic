@@ -20,9 +20,8 @@ QUIC_CREDENTIAL_CONFIG ServerSelfSignedCredConfigClientAuth;
 QUIC_CREDENTIAL_CONFIG ClientCertCredConfig;
 QuicDriverClient DriverClient;
 
-bool IsWindows2019() {
-    return OsRunner && strcmp(OsRunner, "windows-2019") == 0;
-}
+bool IsWindows2019() { return OsRunner && strcmp(OsRunner, "windows-2019") == 0; }
+bool IsWindows2022() { return OsRunner && strcmp(OsRunner, "windows-2022") == 0; }
 
 class QuicTestEnvironment : public ::testing::Environment {
     QuicDriverService DriverService;
@@ -212,6 +211,9 @@ TEST(ParameterValidation, ValidateRegistrationParam) {
 }
 
 TEST(ParameterValidation, ValidateConfigurationParam) {
+#ifdef QUIC_TEST_SCHANNEL_FLAGS
+    if (IsWindows2022()) return; // Not supported with Schannel on WS2022
+#endif
     TestLogger Logger("QuicTestValidateConfigurationParam");
     if (TestingKernelMode) {
         ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_VALIDATE_CONFIGURATION_PARAM));
@@ -563,6 +565,9 @@ TEST_P(WithMtuArgs, MtuDiscovery) {
 #endif // QUIC_TEST_DATAPATH_HOOKS_ENABLED
 
 TEST(Alpn, ValidAlpnLengths) {
+#ifdef QUIC_TEST_SCHANNEL_FLAGS
+    if (IsWindows2022()) return; // Not supported with Schannel on WS2022
+#endif
     TestLogger Logger("QuicTestValidAlpnLengths");
     if (TestingKernelMode) {
         ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_VALID_ALPN_LENGTHS));
@@ -700,6 +705,9 @@ TEST_P(WithHandshakeArgs1, ResumeAsync) {
 }
 
 TEST_P(WithHandshakeArgs1, ResumeRejection) {
+#ifdef QUIC_TEST_SCHANNEL_FLAGS
+    if (IsWindows2022()) return; // Not supported with Schannel on WS2022
+#endif
     TestLoggerT<ParamType> Logger("QuicTestConnect-ResumeRejection", GetParam());
     if (TestingKernelMode) {
         QUIC_RUN_CONNECT_PARAMS Params = {
@@ -998,6 +1006,9 @@ TEST_P(WithHandshakeArgs5, CustomClientCertificateValidation) {
 }
 
 TEST_P(WithHandshakeArgs6, ConnectClientCertificate) {
+#ifdef QUIC_TEST_SCHANNEL_FLAGS
+    if (IsWindows2022()) return; // Not supported with Schannel on WS2022
+#endif
     TestLoggerT<ParamType> Logger("QuicTestConnectClientCertificate", GetParam());
     if (TestingKernelMode) {
         QUIC_RUN_CONNECT_CLIENT_CERT Params = {
@@ -1334,6 +1345,9 @@ TEST_P(WithHandshakeArgs4, RandomLossResume) {
     }
 }
 TEST_P(WithHandshakeArgs4, RandomLossResumeRejection) {
+#ifdef QUIC_TEST_SCHANNEL_FLAGS
+    if (IsWindows2022()) return; // Not supported with Schannel on WS2022
+#endif
     TestLoggerT<ParamType> Logger("QuicTestConnect-RandomLossResumeRejection", GetParam());
     if (TestingKernelMode) {
         QUIC_RUN_CONNECT_PARAMS Params = {
@@ -1494,7 +1508,7 @@ TEST_P(WithFamilyArgs, ChangeMaxStreamIDs) {
 }
 
 #if QUIC_TEST_DATAPATH_HOOKS_ENABLED
-#ifndef QUIC_USE_RAW_DATAPATH
+#ifndef QUIC_USE_RAW_DATAPATH // TODO - Support this with raw datapath
 TEST_P(WithFamilyArgs, LoadBalanced) {
     TestLoggerT<ParamType> Logger("QuicTestLoadBalancedHandshake", GetParam());
     if (TestingKernelMode) {
@@ -1991,7 +2005,7 @@ TEST(Drill, VarIntEncoder) {
     }
 }
 
-#ifndef QUIC_USE_RAW_DATAPATH
+#ifndef QUIC_USE_RAW_DATAPATH // TODO - Support this with raw datapath
 TEST_P(WithDrillInitialPacketCidArgs, DrillInitialPacketCids) {
     TestLoggerT<ParamType> Logger("QuicDrillInitialPacketCids", GetParam());
     if (TestingKernelMode) {
