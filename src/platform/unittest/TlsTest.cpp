@@ -22,12 +22,16 @@
 #endif
 
 const uint32_t DefaultFragmentSize = 1200;
+const char* OsRunner = nullptr;
 
 const uint8_t Alpn[] = { 1, 'A' };
 const uint8_t MultiAlpn[] = { 1, 'C', 1, 'A', 1, 'B' };
 const char* PfxPass = "PLACEHOLDER";        // approved for cred scan
 extern const char* PfxPath;
 const QUIC_HKDF_LABELS HkdfLabels = { "quic key", "quic iv", "quic hp", "quic ku" };
+
+bool IsWindows2019() { return OsRunner && strcmp(OsRunner, "windows-2019") == 0; }
+bool IsWindows2022() { return OsRunner && strcmp(OsRunner, "windows-2022") == 0; }
 
 struct TlsTest : public ::testing::TestWithParam<bool>
 {
@@ -1569,6 +1573,8 @@ TEST_F(TlsTest, PortableCertificateValidation)
 #ifndef QUIC_TEST_OPENSSL_FLAGS // Not supported on OpenSSL
 TEST_F(TlsTest, InProcPortableCertificateValidation)
 {
+    if (IsWindows2019() || IsWindows2022()) return; // Not supported
+
     CxPlatClientSecConfig ClientConfig(
         QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION |
         QUIC_CREDENTIAL_FLAG_INDICATE_CERTIFICATE_RECEIVED |
@@ -1594,6 +1600,8 @@ TEST_F(TlsTest, InProcPortableCertificateValidation)
 
 TEST_F(TlsTest, InProcCertificateValidation)
 {
+    if (IsWindows2019() || IsWindows2022()) return; // Not supported
+
     CxPlatClientSecConfig ClientConfig(
         QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION |
         QUIC_CREDENTIAL_FLAG_INDICATE_CERTIFICATE_RECEIVED |
@@ -2404,3 +2412,13 @@ TEST_F(TlsTest, PortableCertFlags)
 }
 
 INSTANTIATE_TEST_SUITE_P(TlsTest, TlsTest, ::testing::Bool());
+
+int main(int argc, char** argv) {
+    for (int i = 0; i < argc; ++i) {
+        if (strstr(argv[i], "--osRunner")) {
+            OsRunner = argv[i] + sizeof("--osRunner");
+        }
+    }
+    ::testing::InitGoogleTest(&argc, argv);
+    return RUN_ALL_TESTS();
+}

@@ -968,6 +968,7 @@ TEST_P(DataPathTest, MultiBindListener) {
 }
 
 #ifdef _WIN32
+#ifdef QUIC_USE_RAW_DATAPATH
 TEST_F(DataPathTest, TcpListener)
 {
     CxPlatDataPath Datapath(nullptr, &EmptyTcpCallbacks);
@@ -1131,6 +1132,7 @@ TEST_P(DataPathTest, TcpDataServer)
             SendData));
     ASSERT_TRUE(CxPlatEventWaitWithTimeout(ClientContext.ReceiveEvent, 100));
 }
+#endif // QUIC_USE_RAW_DATAPATH
 #endif // WIN32
 
 INSTANTIATE_TEST_SUITE_P(DataPathTest, DataPathTest, ::testing::Values(4, 6), testing::PrintToStringParamName());
