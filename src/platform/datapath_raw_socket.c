@@ -212,12 +212,13 @@ CxPlatTryAddSocket(
             // and connect this socket to the remote address.
             // By doing this, the OS will select a local address for us.
             //
-            QUIC_ADDR LocalAddressPort = {0};
-            AssignedLocalAddressLength = sizeof(LocalAddressPort);
+            uint16_t LocalPortChosen = 0;
+            QUIC_ADDR TempLocalAddress = {0};
+            AssignedLocalAddressLength = sizeof(TempLocalAddress);
             Result =
                 getsockname(
                     Socket->AuxSocket,
-                    (struct sockaddr*)&LocalAddressPort,
+                    (struct sockaddr*)&TempLocalAddress,
                     &AssignedLocalAddressLength);
             if (Result == SOCKET_ERROR) {
                 int WsaError = SocketError();
@@ -231,7 +232,7 @@ CxPlatTryAddSocket(
                 Status = HRESULT_FROM_WIN32(WsaError);
                 goto Error;
             }
-
+            LocalPortChosen = TempLocalAddress.Ipv4.sin_port;
             TempUdpSocket = socket(AF_INET6, SOCK_DGRAM, IPPROTO_UDP);
             if (TempUdpSocket == INVALID_SOCKET) {
                 int WsaError = SocketError();
@@ -267,14 +268,14 @@ CxPlatTryAddSocket(
                 goto Error;
             }
 
-            QUIC_ADDR TempLocalMappedAddress = {0};
-            CxPlatConvertToMappedV6(&Socket->LocalAddress, &TempLocalMappedAddress);
-            TempLocalMappedAddress.Ipv4.sin_port = 0;
+            CxPlatZeroMemory(&TempLocalAddress, sizeof(TempLocalAddress));
+            CxPlatConvertToMappedV6(&Socket->LocalAddress, &TempLocalAddress);
+            TempLocalAddress.Ipv4.sin_port = 0;
             Result =
                 bind(
                     TempUdpSocket,
-                    (struct sockaddr*)&TempLocalMappedAddress,
-                    sizeof(TempLocalMappedAddress));
+                    (struct sockaddr*)&TempLocalAddress,
+                    sizeof(TempLocalAddress));
             if (Result == SOCKET_ERROR) {
                 int WsaError = SocketError();
                 QuicTraceEvent(
@@ -325,7 +326,8 @@ CxPlatTryAddSocket(
                 goto Error;
             }
             CxPlatConvertFromMappedV6(&Socket->LocalAddress, &Socket->LocalAddress);
-            Socket->LocalAddress.Ipv4.sin_port = LocalAddressPort.Ipv4.sin_port;
+            Socket->LocalAddress.Ipv4.sin_port = LocalPortChosen;
+            CXPLAT_FRE_ASSERT(Socket->LocalAddress.Ipv4.sin_port != 0);
         } else {
             Result =
                 connect(
