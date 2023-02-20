@@ -1508,6 +1508,7 @@ TEST_P(WithFamilyArgs, ChangeMaxStreamIDs) {
 }
 
 #if QUIC_TEST_DATAPATH_HOOKS_ENABLED
+#ifndef QUIC_USE_RAW_DATAPATH // TODO - Support this with raw datapath
 TEST_P(WithFamilyArgs, LoadBalanced) {
 #ifdef QUIC_TEST_SCHANNEL_FLAGS
     if (IsWindows2022()) GTEST_SKIP(); // Not supported with Schannel on WS2022
@@ -1519,6 +1520,7 @@ TEST_P(WithFamilyArgs, LoadBalanced) {
         QuicTestLoadBalancedHandshake(GetParam().Family);
     }
 }
+#endif // QUIC_USE_RAW_DATAPATH
 
 TEST_P(WithFamilyArgs, HandshakeSpecificLossPatterns) {
     TestLoggerT<ParamType> Logger("QuicTestHandshakeSpecificLossPatterns", GetParam());

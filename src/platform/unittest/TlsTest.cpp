@@ -1575,7 +1575,7 @@ TEST_F(TlsTest, PortableCertificateValidation)
 #ifndef QUIC_TEST_OPENSSL_FLAGS // Not supported on OpenSSL
 TEST_F(TlsTest, InProcPortableCertificateValidation)
 {
-    if (IsWindows2019() || IsWindows2022()) return; // Not supported
+    if (IsWindows2019() || IsWindows2022()) GTEST_SKIP(); // Not supported
 
     CxPlatClientSecConfig ClientConfig(
         QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION |
@@ -1602,7 +1602,7 @@ TEST_F(TlsTest, InProcPortableCertificateValidation)
 
 TEST_F(TlsTest, InProcCertificateValidation)
 {
-    if (IsWindows2019() || IsWindows2022()) return; // Not supported
+    if (IsWindows2019() || IsWindows2022()) GTEST_SKIP(); // Not supported
 
     CxPlatClientSecConfig ClientConfig(
         QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION |
