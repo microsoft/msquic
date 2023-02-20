@@ -266,7 +266,7 @@ TEST(ParameterValidation, ValidateGetPerfCounters) {
 
 TEST(ParameterValidation, ValidateConfiguration) {
 #ifdef QUIC_TEST_SCHANNEL_FLAGS
-    if (IsWindows2022()) return; // Not supported with Schannel on WS2022
+    if (IsWindows2022()) GTEST_SKIP(); // Not supported with Schannel on WS2022
 #endif
     TestLogger Logger("QuicTestValidateConfiguration");
     if (TestingKernelMode) {
@@ -566,7 +566,7 @@ TEST_P(WithMtuArgs, MtuDiscovery) {
 
 TEST(Alpn, ValidAlpnLengths) {
 #ifdef QUIC_TEST_SCHANNEL_FLAGS
-    if (IsWindows2022()) return; // Not supported with Schannel on WS2022
+    if (IsWindows2022()) GTEST_SKIP(); // Not supported with Schannel on WS2022
 #endif
     TestLogger Logger("QuicTestValidAlpnLengths");
     if (TestingKernelMode) {
@@ -706,7 +706,7 @@ TEST_P(WithHandshakeArgs1, ResumeAsync) {
 
 TEST_P(WithHandshakeArgs1, ResumeRejection) {
 #ifdef QUIC_TEST_SCHANNEL_FLAGS
-    if (IsWindows2022()) return; // Not supported with Schannel on WS2022
+    if (IsWindows2022()) GTEST_SKIP(); // Not supported with Schannel on WS2022
 #endif
     TestLoggerT<ParamType> Logger("QuicTestConnect-ResumeRejection", GetParam());
     if (TestingKernelMode) {
@@ -1007,7 +1007,7 @@ TEST_P(WithHandshakeArgs5, CustomClientCertificateValidation) {
 
 TEST_P(WithHandshakeArgs6, ConnectClientCertificate) {
 #ifdef QUIC_TEST_SCHANNEL_FLAGS
-    if (IsWindows2022()) return; // Not supported with Schannel on WS2022
+    if (IsWindows2022()) GTEST_SKIP(); // Not supported with Schannel on WS2022
 #endif
     TestLoggerT<ParamType> Logger("QuicTestConnectClientCertificate", GetParam());
     if (TestingKernelMode) {
@@ -1346,7 +1346,7 @@ TEST_P(WithHandshakeArgs4, RandomLossResume) {
 }
 TEST_P(WithHandshakeArgs4, RandomLossResumeRejection) {
 #ifdef QUIC_TEST_SCHANNEL_FLAGS
-    if (IsWindows2022()) return; // Not supported with Schannel on WS2022
+    if (IsWindows2022()) GTEST_SKIP(); // Not supported with Schannel on WS2022
 #endif
     TestLoggerT<ParamType> Logger("QuicTestConnect-RandomLossResumeRejection", GetParam());
     if (TestingKernelMode) {
@@ -1380,7 +1380,7 @@ TEST_P(WithHandshakeArgs4, RandomLossResumeRejection) {
 
 #ifndef QUIC_USE_RAW_DATAPATH
 TEST_P(WithFamilyArgs, Unreachable) {
-    if (GetParam().Family == 4 && IsWindows2019()) return; // IPv4 unreachable doesn't work on 2019
+    if (GetParam().Family == 4 && IsWindows2019()) GTEST_SKIP(); // IPv4 unreachable doesn't work on 2019
     TestLoggerT<ParamType> Logger("QuicTestConnectUnreachable", GetParam());
     if (TestingKernelMode) {
         ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_CONNECT_UNREACHABLE, GetParam().Family));
@@ -1508,8 +1508,10 @@ TEST_P(WithFamilyArgs, ChangeMaxStreamIDs) {
 }
 
 #if QUIC_TEST_DATAPATH_HOOKS_ENABLED
-#ifndef QUIC_USE_RAW_DATAPATH // TODO - Support this with raw datapath
 TEST_P(WithFamilyArgs, LoadBalanced) {
+#ifdef QUIC_TEST_SCHANNEL_FLAGS
+    if (IsWindows2022()) GTEST_SKIP(); // Not supported with Schannel on WS2022
+#endif
     TestLoggerT<ParamType> Logger("QuicTestLoadBalancedHandshake", GetParam());
     if (TestingKernelMode) {
         ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_LOAD_BALANCED_HANDSHAKE, GetParam().Family));
@@ -1517,7 +1519,6 @@ TEST_P(WithFamilyArgs, LoadBalanced) {
         QuicTestLoadBalancedHandshake(GetParam().Family);
     }
 }
-#endif // QUIC_USE_RAW_DATAPATH
 
 TEST_P(WithFamilyArgs, HandshakeSpecificLossPatterns) {
     TestLoggerT<ParamType> Logger("QuicTestHandshakeSpecificLossPatterns", GetParam());
@@ -2065,7 +2066,7 @@ static BOOLEAN CanRunStorageTests = FALSE;
 
 TEST(Basic, TestStorage) {
     if (!CanRunStorageTests) {
-        return;
+        GTEST_SKIP();
     }
 
     TestLogger Logger("QuicTestStorage");
@@ -2079,7 +2080,7 @@ TEST(Basic, TestStorage) {
 #ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
 TEST(Basic, TestVersionStorage) {
     if (!CanRunStorageTests) {
-        return;
+        GTEST_SKIP();
     }
 
     TestLogger Logger("QuicTestVersionStorage");
