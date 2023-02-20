@@ -153,7 +153,7 @@ function Log($msg) {
 function LogWrn($msg) {
     if ($AZP -and !$ErrorsAsWarnings) {
         Write-Host "##vso[task.LogIssue type=warning;][$(Get-Date)] $msg"
-    } elseif ($GHA -and !$ErrorsAsWarnings)
+    } elseif ($GHA -and !$ErrorsAsWarnings) {
         Write-Host "::warning::[$(Get-Date)] $msg"
     } else {
         Write-Warning "[$(Get-Date)] $msg"
@@ -163,7 +163,7 @@ function LogWrn($msg) {
 function LogErr($msg) {
     if ($AZP -and !$ErrorsAsWarnings) {
         Write-Host "##vso[task.LogIssue type=error;][$(Get-Date)] $msg"
-    } elseif ($GHA -and !$ErrorsAsWarnings)
+    } elseif ($GHA -and !$ErrorsAsWarnings) {
         Write-Host "::error::[$(Get-Date)] $msg"
     } else {
         Write-Warning "[$(Get-Date)] $msg"
