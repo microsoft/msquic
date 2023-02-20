@@ -208,7 +208,7 @@ CxPlatTryAddSocket(
 #endif
         if (Socket->UseTcp) {
             //
-            // Create a temporary UDP socket bound to a zero port
+            // Create a temporary UDP socket bound to a wildcard port
             // and connect this socket to the remote address.
             // By doing this, the OS will select a local address for us.
             //
@@ -262,6 +262,27 @@ CxPlatTryAddSocket(
                     Socket,
                     WsaError,
                     "Set IPV6_V6ONLY (temp udp socket)");
+                CxPlatRwLockReleaseExclusive(&Pool->Lock);
+                Status = HRESULT_FROM_WIN32(WsaError);
+                goto Error;
+            }
+
+            QUIC_ADDR TempLocalMappedAddress = {0};
+            CxPlatConvertToMappedV6(&Socket->LocalAddress, &TempLocalMappedAddress);
+            TempLocalMappedAddress.Ipv4.sin_port = 0;
+            Result =
+                bind(
+                    TempUdpSocket,
+                    (struct sockaddr*)&TempLocalMappedAddress,
+                    sizeof(TempLocalMappedAddress));
+            if (Result == SOCKET_ERROR) {
+                int WsaError = SocketError();
+                QuicTraceEvent(
+                    DatapathErrorStatus,
+                    "[data][%p] ERROR, %u, %s.",
+                    Socket,
+                    WsaError,
+                    "bind (temp udp socket)");
                 CxPlatRwLockReleaseExclusive(&Pool->Lock);
                 Status = HRESULT_FROM_WIN32(WsaError);
                 goto Error;
