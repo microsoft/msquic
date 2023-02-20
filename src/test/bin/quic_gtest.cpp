@@ -211,9 +211,6 @@ TEST(ParameterValidation, ValidateRegistrationParam) {
 }
 
 TEST(ParameterValidation, ValidateConfigurationParam) {
-#ifdef QUIC_TEST_SCHANNEL_FLAGS
-    if (IsWindows2022()) return; // Not supported with Schannel on WS2022
-#endif
     TestLogger Logger("QuicTestValidateConfigurationParam");
     if (TestingKernelMode) {
         ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_VALIDATE_CONFIGURATION_PARAM));
@@ -268,6 +265,9 @@ TEST(ParameterValidation, ValidateGetPerfCounters) {
 }
 
 TEST(ParameterValidation, ValidateConfiguration) {
+#ifdef QUIC_TEST_SCHANNEL_FLAGS
+    if (IsWindows2022()) return; // Not supported with Schannel on WS2022
+#endif
     TestLogger Logger("QuicTestValidateConfiguration");
     if (TestingKernelMode) {
         ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_VALIDATE_CONFIGURATION));
