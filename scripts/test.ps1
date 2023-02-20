@@ -154,6 +154,9 @@ param (
     [switch]$AZP = $false,
 
     [Parameter(Mandatory = $false)]
+    [switch]$GHA = $false,
+
+    [Parameter(Mandatory = $false)]
     [switch]$SkipUnitTests = $false,
 
     [Parameter(Mandatory = $false)]
@@ -320,6 +323,9 @@ if ($CodeCoverage) {
 }
 if ($AZP) {
     $TestArguments += " -AZP"
+}
+if ($GHA) {
+    $TestArguments += " -GHA"
 }
 if ($ErrorsAsWarnings) {
     $TestArguments += " -ErrorsAsWarnings"
