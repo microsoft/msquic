@@ -558,45 +558,46 @@ CxPlatDpRawRxEthernet(
                     &Datapath->SocketPool,
                     &PacketChain->Route->LocalAddress,
                     &PacketChain->Route->RemoteAddress);
-            if (Socket) {
-                if (PacketChain->Reserved == L4_TYPE_UDP || PacketChain->Reserved == L4_TYPE_TCP) {
-                    uint8_t SocketType = Socket->UseTcp ? L4_TYPE_TCP : L4_TYPE_UDP;
+        }
 
-                    //
-                    // Found a match. Chain and deliver contiguous packets with the same 4-tuple.
-                    //
-                    while (i < PacketCount) {
-                        QuicTraceEvent(
-                            DatapathRecv,
-                            "[data][%p] Recv %u bytes (segment=%hu) Src=%!ADDR! Dst=%!ADDR!",
-                            Socket,
-                            Packets[i]->BufferLength,
-                            Packets[i]->BufferLength,
-                            CASTED_CLOG_BYTEARRAY(sizeof(Packets[i]->Route->LocalAddress), &Packets[i]->Route->LocalAddress),
-                            CASTED_CLOG_BYTEARRAY(sizeof(Packets[i]->Route->RemoteAddress), &Packets[i]->Route->RemoteAddress));
-                        if (i == PacketCount - 1 ||
-                            Packets[i+1]->Reserved != SocketType ||
-                            Packets[i+1]->Route->LocalAddress.Ipv4.sin_port != Socket->LocalAddress.Ipv4.sin_port ||
-                            !CxPlatSocketCompare(Socket, &Packets[i+1]->Route->LocalAddress, &Packets[i+1]->Route->RemoteAddress)) {
-                            break;
-                        }
-                        Packets[i]->Next = Packets[i+1];
-                        CXPLAT_DBG_ASSERT(Packets[i+1]->Next == NULL);
-                        i++;
+        if (Socket) {
+            if (PacketChain->Reserved == L4_TYPE_UDP || PacketChain->Reserved == L4_TYPE_TCP) {
+                uint8_t SocketType = Socket->UseTcp ? L4_TYPE_TCP : L4_TYPE_UDP;
+
+                //
+                // Found a match. Chain and deliver contiguous packets with the same 4-tuple.
+                //
+                while (i < PacketCount) {
+                    QuicTraceEvent(
+                        DatapathRecv,
+                        "[data][%p] Recv %u bytes (segment=%hu) Src=%!ADDR! Dst=%!ADDR!",
+                        Socket,
+                        Packets[i]->BufferLength,
+                        Packets[i]->BufferLength,
+                        CASTED_CLOG_BYTEARRAY(sizeof(Packets[i]->Route->LocalAddress), &Packets[i]->Route->LocalAddress),
+                        CASTED_CLOG_BYTEARRAY(sizeof(Packets[i]->Route->RemoteAddress), &Packets[i]->Route->RemoteAddress));
+                    if (i == PacketCount - 1 ||
+                        Packets[i+1]->Reserved != SocketType ||
+                        Packets[i+1]->Route->LocalAddress.Ipv4.sin_port != Socket->LocalAddress.Ipv4.sin_port ||
+                        !CxPlatSocketCompare(Socket, &Packets[i+1]->Route->LocalAddress, &Packets[i+1]->Route->RemoteAddress)) {
+                        break;
                     }
-                    Datapath->UdpHandlers.Receive(Socket, Socket->CallbackContext, (CXPLAT_RECV_DATA*)PacketChain);
-                } else if (PacketChain->Reserved == L4_TYPE_TCP_SYN || PacketChain->Reserved == L4_TYPE_TCP_SYNACK) {
-                    CxPlatDpRawSocketAckSyn(Socket, PacketChain);
-                    CxPlatDpRawRxFree(PacketChain);
-                } else if (PacketChain->Reserved == L4_TYPE_TCP_FIN) {
-                    CxPlatDpRawSocketAckFin(Socket, PacketChain);
-                    CxPlatDpRawRxFree(PacketChain);
+                    Packets[i]->Next = Packets[i+1];
+                    CXPLAT_DBG_ASSERT(Packets[i+1]->Next == NULL);
+                    i++;
                 }
-
-                CxPlatRundownRelease(&Socket->Rundown);
-            } else {
+                Datapath->UdpHandlers.Receive(Socket, Socket->CallbackContext, (CXPLAT_RECV_DATA*)PacketChain);
+            } else if (PacketChain->Reserved == L4_TYPE_TCP_SYN || PacketChain->Reserved == L4_TYPE_TCP_SYNACK) {
+                CxPlatDpRawSocketAckSyn(Socket, PacketChain);
+                CxPlatDpRawRxFree(PacketChain);
+            } else if (PacketChain->Reserved == L4_TYPE_TCP_FIN) {
+                CxPlatDpRawSocketAckFin(Socket, PacketChain);
                 CxPlatDpRawRxFree(PacketChain);
             }
+
+            CxPlatRundownRelease(&Socket->Rundown);
+        } else {
+            CxPlatDpRawRxFree(PacketChain);
         }
     }
 }

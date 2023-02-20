@@ -798,7 +798,16 @@ CxPlatDpRawParseTcp(
     }
 
     Length -= HeaderLength;
-    if ((Tcp->Flags & TH_ACK) == TH_ACK && Length > HeaderLength) {
+
+    //
+    // We only handle 3 types of TCP packets:
+    // 1. Pure ACKs that carry at least one byte data.
+    // 2. SYNs and SYN+ACKs for TCP handshake.
+    // 3. FINs for graceful shutdown.
+    //
+    // Packets that don't match the rules above are discarded.
+    //
+    if (Tcp->Flags == TH_ACK && Length > HeaderLength) {
         //
         // Only data packets with only ACK flag set are indicated to QUIC core.
         //
@@ -813,6 +822,8 @@ CxPlatDpRawParseTcp(
         }
     } else if (Tcp->Flags & TH_FIN) { 
         Packet->Reserved = L4_TYPE_TCP_FIN;
+    } else {
+        return;
     }
 
     Packet->Route->RemoteAddress.Ipv4.sin_port = Tcp->SourcePort;
