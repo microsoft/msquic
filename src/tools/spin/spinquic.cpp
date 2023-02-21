@@ -264,7 +264,19 @@ typedef enum {
     SpinQuicAPICallCount    // Always the last element
 } SpinQuicAPICall;
 
-class SpinQuicConnection {
+struct SpinQuicStream {
+    struct SpinQuicConnection& Connection;
+    HQUIC Handle;
+    uint64_t PendingRecvLength {0};
+    SpinQuicStream(SpinQuicConnection& Connection, HQUIC Handle = nullptr) :
+        Connection(Connection), Handle(Handle) {}
+    ~SpinQuicStream() { MsQuic.StreamClose(Handle); }
+    static SpinQuicStream* Get(HQUIC Stream) {
+        return (SpinQuicStream*)MsQuic.GetContext(Stream);
+    }
+};
+
+struct SpinQuicConnection {
 public:
     std::mutex Lock;
     HQUIC Connection = nullptr;
@@ -312,7 +324,7 @@ public:
         while (StreamsCopy.size() > 0) {
             HQUIC Stream = StreamsCopy.back();
             StreamsCopy.pop_back();
-            MsQuic.StreamClose(Stream);
+            delete SpinQuicStream::Get(Stream);
         }
     }
     void AddStream(HQUIC Stream) {
@@ -348,10 +360,11 @@ static struct {
     uint32_t RepeatCount;
 } Settings;
 
-QUIC_STATUS QUIC_API SpinQuicHandleStreamEvent(HQUIC Stream, void * /* Context */, QUIC_STREAM_EVENT *Event)
+QUIC_STATUS QUIC_API SpinQuicHandleStreamEvent(HQUIC Stream, void* , QUIC_STREAM_EVENT *Event)
 {
-    // TODO: hacky way to avoid Context overwrite
-    uint16_t ThreadID = FuzzData ? FuzzingData::NumSpinThread : UINT16_MAX; // *(uint16_t*)Context;
+    auto ctx = SpinQuicStream::Get(Stream);
+    auto ThreadID = ctx->Connection.ThreadID;
+
     switch (Event->Type) {
     case QUIC_STREAM_EVENT_PEER_SEND_SHUTDOWN:
         MsQuic.StreamShutdown(Stream, (QUIC_STREAM_SHUTDOWN_FLAGS)GetRandom(16), 0);
@@ -359,7 +372,8 @@ QUIC_STATUS QUIC_API SpinQuicHandleStreamEvent(HQUIC Stream, void * /* Context *
     case QUIC_STREAM_EVENT_RECEIVE: {
         int Random = GetRandom(5);
         if (Random == 0) {
-            MsQuic.SetContext(Stream, (void*)Event->RECEIVE.TotalBufferLength);
+            std::lock_guard<std::mutex> Lock(ctx->Connection.Lock);
+            ctx->PendingRecvLength = Event->RECEIVE.TotalBufferLength;
             return QUIC_STATUS_PENDING; // Pend the receive, to be completed later.
         } else if (Random == 1 && Event->RECEIVE.TotalBufferLength > 0) {
             Event->RECEIVE.TotalBufferLength = GetRandom(Event->RECEIVE.TotalBufferLength + 1); // Partially (or fully) consume the data.
@@ -376,10 +390,11 @@ QUIC_STATUS QUIC_API SpinQuicHandleStreamEvent(HQUIC Stream, void * /* Context *
     return QUIC_STATUS_SUCCESS;
 }
 
-QUIC_STATUS QUIC_API SpinQuicHandleConnectionEvent(HQUIC Connection, void *Context, QUIC_CONNECTION_EVENT *Event)
+QUIC_STATUS QUIC_API SpinQuicHandleConnectionEvent(HQUIC Connection, void* , QUIC_CONNECTION_EVENT *Event)
 {
-    // TODO: avoid context overwite
-    uint16_t ThreadID = FuzzData ? FuzzingData::NumSpinThread : UINT16_MAX; // *(uint16_t*)Context;
+    auto ctx = SpinQuicConnection::Get(Connection);
+    auto ThreadID = ctx->ThreadID;
+
     switch (Event->Type) {
     case QUIC_CONNECTION_EVENT_CONNECTED: {
         int Selector = GetRandom(3);
@@ -414,10 +429,12 @@ QUIC_STATUS QUIC_API SpinQuicHandleConnectionEvent(HQUIC Connection, void *Conte
     case QUIC_CONNECTION_EVENT_SHUTDOWN_COMPLETE:
         SpinQuicConnection::Get(Connection)->OnShutdownComplete();
         break;
-    case QUIC_CONNECTION_EVENT_PEER_STREAM_STARTED:
-        MsQuic.SetCallbackHandler(Event->PEER_STREAM_STARTED.Stream, (void *)SpinQuicHandleStreamEvent, Context);
-        SpinQuicConnection::Get(Connection)->AddStream(Event->PEER_STREAM_STARTED.Stream);
+    case QUIC_CONNECTION_EVENT_PEER_STREAM_STARTED: {
+        auto StreamCtx = new SpinQuicStream(*ctx, Event->PEER_STREAM_STARTED.Stream);
+        MsQuic.SetCallbackHandler(Event->PEER_STREAM_STARTED.Stream, (void *)SpinQuicHandleStreamEvent, StreamCtx);
+        ctx->AddStream(Event->PEER_STREAM_STARTED.Stream);
         break;
+    }
     default:
         break;
     }
@@ -723,11 +740,15 @@ void Spin(Gbs& Gb, LockableVector<HQUIC>& Connections, std::vector<HQUIC>* Liste
             auto Connection = Connections.TryGetRandom();
             BAIL_ON_NULL_CONNECTION(Connection);
             HQUIC Stream;
-            QUIC_STATUS Status = MsQuic.StreamOpen(Connection, (QUIC_STREAM_OPEN_FLAGS)GetRandom(2), SpinQuicHandleStreamEvent, &ThreadID, &Stream);
+            auto ctx = new SpinQuicStream(*SpinQuicConnection::Get(Connection));
+            QUIC_STATUS Status = MsQuic.StreamOpen(Connection, (QUIC_STREAM_OPEN_FLAGS)GetRandom(2), SpinQuicHandleStreamEvent, ctx, &Stream);
             if (QUIC_SUCCEEDED(Status)) {
+                ctx->Handle = Stream;
                 SpinQuicGetRandomParam(Stream, ThreadID);
                 SpinQuicSetRandomStreamParam(Stream, ThreadID);
                 SpinQuicConnection::Get(Connection)->AddStream(Stream);
+            } else {
+                delete ctx;
             }
             break;
         }
@@ -776,14 +797,15 @@ void Spin(Gbs& Gb, LockableVector<HQUIC>& Connections, std::vector<HQUIC>* Liste
                 std::lock_guard<std::mutex> Lock(ctx->Lock);
                 auto Stream = ctx->TryGetStream();
                 if (Stream == nullptr) continue;
-                auto BytesRemaining = MsQuic.GetContext(Stream);
-                if (BytesRemaining != nullptr && GetRandom(10) == 0) {
-                    auto BytesConsumed = GetRandom((uint64_t)BytesRemaining);
-                    MsQuic.SetContext(Stream, (void*)((uint64_t)BytesRemaining - BytesConsumed));
+                auto StreamCtx = SpinQuicStream::Get(Stream);
+                auto BytesRemaining = StreamCtx->PendingRecvLength;
+                if (BytesRemaining != 0 && GetRandom(10) == 0) {
+                    auto BytesConsumed = GetRandom(StreamCtx->PendingRecvLength);
+                    StreamCtx->PendingRecvLength = BytesRemaining - BytesConsumed;
                     MsQuic.StreamReceiveComplete(Stream, BytesConsumed);
                 } else {
-                    MsQuic.SetContext(Stream, nullptr);
-                    MsQuic.StreamReceiveComplete(Stream, (uint64_t)BytesRemaining);
+                    StreamCtx->PendingRecvLength = 0;
+                    MsQuic.StreamReceiveComplete(Stream, StreamCtx->PendingRecvLength);
                 }
             }
             break;
@@ -810,7 +832,7 @@ void Spin(Gbs& Gb, LockableVector<HQUIC>& Connections, std::vector<HQUIC>* Liste
                 Stream = ctx->TryGetStream(true);
             }
             if (Stream == nullptr) continue;
-            MsQuic.StreamClose(Stream);
+            delete SpinQuicStream::Get(Stream);
             break;
         }
         case SpinQuicAPICallSetParamConnection: {
@@ -1223,58 +1245,64 @@ void start() {
     CxPlatInitialize();
     CxPlatLockInitialize(&RunThreadLock);
 
-    //
-    // Initial MsQuicOpen2 and initialization.
-    //
-    const QUIC_API_TABLE* TempMsQuic = nullptr;
-    ASSERT_ON_FAILURE(MsQuicOpen2(&TempMsQuic));
-    CxPlatCopyMemory(&MsQuic, TempMsQuic, sizeof(MsQuic));
+    {
+        SpinQuicWatchdog Watchdog((uint32_t)Settings.RunTimeMs + Settings.RepeatCount*WATCHDOG_WIGGLE_ROOM);
 
-    if (Settings.AllocFailDenominator > 0) {
-        if (QUIC_FAILED(
-            MsQuic.SetParam(
-                nullptr,
-                QUIC_PARAM_GLOBAL_ALLOC_FAIL_DENOMINATOR,
-                sizeof(Settings.AllocFailDenominator),
-                &Settings.AllocFailDenominator))) {
-            printf("Setting Allocation Failure Denominator failed.\n");
-        }
-    }
+        //
+        // Initial MsQuicOpen2 and initialization.
+        //
+        const QUIC_API_TABLE* TempMsQuic = nullptr;
+        ASSERT_ON_FAILURE(MsQuicOpen2(&TempMsQuic));
+        CxPlatCopyMemory(&MsQuic, TempMsQuic, sizeof(MsQuic));
 
-    if (Settings.LossPercent != 0) {
-        QUIC_TEST_DATAPATH_HOOKS* Value = &DataPathHooks;
-        if (QUIC_FAILED(
-            MsQuic.SetParam(
-                nullptr,
-                QUIC_PARAM_GLOBAL_TEST_DATAPATH_HOOKS,
-                sizeof(Value),
-                &Value))) {
-            printf("Setting Datapath hooks failed.\n");
-        }
-    }
-
-    MsQuicClose(TempMsQuic);
-
-    Settings.RunTimeMs = Settings.RunTimeMs / Settings.RepeatCount;
-    for (uint32_t i = 0; i < Settings.RepeatCount; i++) {
-
-        CXPLAT_THREAD_CONFIG Config = {
-            0, 0, "spin_run", RunThread, nullptr
-        };
-        CXPLAT_THREAD Threads[4];
-        uint32_t Count = FuzzData ? (uint32_t)FuzzingData::NumSpinThread / 2 : (uint32_t)(rand() % (ARRAYSIZE(Threads) - 1) + 1);
-
-        for (uint32_t j = 0; j < Count; ++j) {
-            ASSERT_ON_FAILURE(CxPlatThreadCreate(&Config, &Threads[j]));
+        if (Settings.AllocFailDenominator > 0) {
+            if (QUIC_FAILED(
+                MsQuic.SetParam(
+                    nullptr,
+                    QUIC_PARAM_GLOBAL_ALLOC_FAIL_DENOMINATOR,
+                    sizeof(Settings.AllocFailDenominator),
+                    &Settings.AllocFailDenominator))) {
+                printf("Setting Allocation Failure Denominator failed.\n");
+            }
         }
 
-        for (uint32_t j = 0; j < Count; ++j) {
-            CxPlatThreadWait(&Threads[j]);
-            CxPlatThreadDelete(&Threads[j]);
+        if (Settings.LossPercent != 0) {
+            QUIC_TEST_DATAPATH_HOOKS* Value = &DataPathHooks;
+            if (QUIC_FAILED(
+                MsQuic.SetParam(
+                    nullptr,
+                    QUIC_PARAM_GLOBAL_TEST_DATAPATH_HOOKS,
+                    sizeof(Value),
+                    &Value))) {
+                printf("Setting Datapath hooks failed.\n");
+            }
+        }
+
+        MsQuicClose(TempMsQuic);
+
+        Settings.RunTimeMs = Settings.RunTimeMs / Settings.RepeatCount;
+        for (uint32_t i = 0; i < Settings.RepeatCount; i++) {
+
+            CXPLAT_THREAD_CONFIG Config = {
+                0, 0, "spin_run", RunThread, nullptr
+            };
+            CXPLAT_THREAD Threads[4];
+            uint32_t Count = FuzzData ? (uint32_t)FuzzingData::NumSpinThread / 2 : (uint32_t)(rand() % (ARRAYSIZE(Threads) - 1) + 1);
+
+            for (uint32_t j = 0; j < Count; ++j) {
+                ASSERT_ON_FAILURE(CxPlatThreadCreate(&Config, &Threads[j]));
+            }
+
+            for (uint32_t j = 0; j < Count; ++j) {
+                CxPlatThreadWait(&Threads[j]);
+                CxPlatThreadDelete(&Threads[j]);
+            }
         }
     }
 
     CxPlatLockUninitialize(&RunThreadLock);
+    CxPlatUninitialize();
+    CxPlatSystemUnload();
 }
 
 #ifdef FUZZING
