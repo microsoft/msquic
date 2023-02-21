@@ -546,6 +546,7 @@ if(WIN32)
         endif()
         message(STATUS "Configuring sanitizers")
         list(APPEND QUIC_COMMON_FLAGS /fsanitize=address)
+        list(APPEND QUIC_COMMON_DEFINES _DISABLE_VECTOR_ANNOTATION) # For std:vector usage in tests
     endif()
 
     set(QUIC_C_FLAGS ${QUIC_COMMON_FLAGS})

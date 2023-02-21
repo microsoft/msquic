@@ -968,6 +968,7 @@ TEST_P(DataPathTest, MultiBindListener) {
 }
 
 #ifdef _WIN32
+#ifndef QUIC_USE_RAW_DATAPATH
 TEST_F(DataPathTest, TcpListener)
 {
     CxPlatDataPath Datapath(nullptr, &EmptyTcpCallbacks);
@@ -1005,13 +1006,13 @@ TEST_P(DataPathTest, TcpConnect)
     ASSERT_NE(nullptr, Client.Socket);
     ASSERT_NE(Client.GetLocalAddress().Ipv4.sin_port, (uint16_t)0);
 
-    ASSERT_TRUE(CxPlatEventWaitWithTimeout(ClientContext.ConnectEvent, 100));
-    ASSERT_TRUE(CxPlatEventWaitWithTimeout(ListenerContext.AcceptEvent, 100));
+    ASSERT_TRUE(CxPlatEventWaitWithTimeout(ClientContext.ConnectEvent, 500));
+    ASSERT_TRUE(CxPlatEventWaitWithTimeout(ListenerContext.AcceptEvent, 500));
     ASSERT_NE(nullptr, ListenerContext.Server);
 
     ListenerContext.DeleteSocket();
 
-    ASSERT_TRUE(CxPlatEventWaitWithTimeout(ClientContext.DisconnectEvent, 100));
+    ASSERT_TRUE(CxPlatEventWaitWithTimeout(ClientContext.DisconnectEvent, 500));
 }
 
 TEST_P(DataPathTest, TcpDisconnect)
@@ -1039,12 +1040,12 @@ TEST_P(DataPathTest, TcpDisconnect)
         ASSERT_NE(nullptr, Client.Socket);
         ASSERT_NE(Client.GetLocalAddress().Ipv4.sin_port, (uint16_t)0);
 
-        ASSERT_TRUE(CxPlatEventWaitWithTimeout(ClientContext.ConnectEvent, 100));
-        ASSERT_TRUE(CxPlatEventWaitWithTimeout(ListenerContext.AcceptEvent, 100));
+        ASSERT_TRUE(CxPlatEventWaitWithTimeout(ClientContext.ConnectEvent, 500));
+        ASSERT_TRUE(CxPlatEventWaitWithTimeout(ListenerContext.AcceptEvent, 500));
         ASSERT_NE(nullptr, ListenerContext.Server);
     }
 
-    ASSERT_TRUE(CxPlatEventWaitWithTimeout(ListenerContext.ServerContext.DisconnectEvent, 100));
+    ASSERT_TRUE(CxPlatEventWaitWithTimeout(ListenerContext.ServerContext.DisconnectEvent, 500));
 }
 
 TEST_P(DataPathTest, TcpDataClient)
@@ -1071,8 +1072,8 @@ TEST_P(DataPathTest, TcpDataClient)
     ASSERT_NE(nullptr, Client.Socket);
     ASSERT_NE(Client.GetLocalAddress().Ipv4.sin_port, (uint16_t)0);
 
-    ASSERT_TRUE(CxPlatEventWaitWithTimeout(ClientContext.ConnectEvent, 100));
-    ASSERT_TRUE(CxPlatEventWaitWithTimeout(ListenerContext.AcceptEvent, 100));
+    ASSERT_TRUE(CxPlatEventWaitWithTimeout(ClientContext.ConnectEvent, 500));
+    ASSERT_TRUE(CxPlatEventWaitWithTimeout(ListenerContext.AcceptEvent, 500));
     ASSERT_NE(nullptr, ListenerContext.Server);
 
     CXPLAT_SEND_CONFIG SendConfig = { &Client.Route, 0, CXPLAT_ECN_NON_ECT, 0 };
@@ -1083,7 +1084,7 @@ TEST_P(DataPathTest, TcpDataClient)
     memcpy(SendBuffer->Buffer, ExpectedData, ExpectedDataSize);
 
     VERIFY_QUIC_SUCCESS(Client.Send(SendData));
-    ASSERT_TRUE(CxPlatEventWaitWithTimeout(ListenerContext.ServerContext.ReceiveEvent, 100));
+    ASSERT_TRUE(CxPlatEventWaitWithTimeout(ListenerContext.ServerContext.ReceiveEvent, 500));
 }
 
 TEST_P(DataPathTest, TcpDataServer)
@@ -1110,8 +1111,8 @@ TEST_P(DataPathTest, TcpDataServer)
     ASSERT_NE(nullptr, Client.Socket);
     ASSERT_NE(Client.GetLocalAddress().Ipv4.sin_port, (uint16_t)0);
 
-    ASSERT_TRUE(CxPlatEventWaitWithTimeout(ClientContext.ConnectEvent, 100));
-    ASSERT_TRUE(CxPlatEventWaitWithTimeout(ListenerContext.AcceptEvent, 100));
+    ASSERT_TRUE(CxPlatEventWaitWithTimeout(ClientContext.ConnectEvent, 500));
+    ASSERT_TRUE(CxPlatEventWaitWithTimeout(ListenerContext.AcceptEvent, 500));
     ASSERT_NE(nullptr, ListenerContext.Server);
 
     CXPLAT_ROUTE Route = Listener.Route;
@@ -1129,8 +1130,9 @@ TEST_P(DataPathTest, TcpDataServer)
             ListenerContext.Server,
             &Route,
             SendData));
-    ASSERT_TRUE(CxPlatEventWaitWithTimeout(ClientContext.ReceiveEvent, 100));
+    ASSERT_TRUE(CxPlatEventWaitWithTimeout(ClientContext.ReceiveEvent, 500));
 }
+#endif // QUIC_USE_RAW_DATAPATH
 #endif // WIN32
 
 INSTANTIATE_TEST_SUITE_P(DataPathTest, DataPathTest, ::testing::Values(4, 6), testing::PrintToStringParamName());

@@ -154,13 +154,22 @@ param (
     [switch]$AZP = $false,
 
     [Parameter(Mandatory = $false)]
+    [switch]$GHA = $false,
+
+    [Parameter(Mandatory = $false)]
     [switch]$SkipUnitTests = $false,
 
     [Parameter(Mandatory = $false)]
     [switch]$ErrorsAsWarnings = $false,
 
     [Parameter(Mandatory = $false)]
-    [switch]$DuoNic = $false
+    [switch]$DuoNic = $false,
+
+    [Parameter(Mandatory = $false)]
+    [switch]$UseXdp = $false,
+
+    [Parameter(Mandatory = $false)]
+    [string]$OsRunner = ""
 )
 
 Set-StrictMode -Version 'Latest'
@@ -195,6 +204,11 @@ if ($CodeCoverage) {
     if (!(Test-Path "C:\Program Files\OpenCppCoverage\OpenCppCoverage.exe")) {
         Write-Error "Code coverage tools are not installed";
     }
+}
+
+if ($UseXdp) {
+    # Helper for XDP usage
+    $DuoNic = $true
 }
 
 $BuildConfig = & (Join-Path $PSScriptRoot get-buildconfig.ps1) -Tls $Tls -Arch $Arch -ExtraArtifactDir $ExtraArtifactDir -Config $Config
@@ -310,8 +324,14 @@ if ($CodeCoverage) {
 if ($AZP) {
     $TestArguments += " -AZP"
 }
+if ($GHA) {
+    $TestArguments += " -GHA"
+}
 if ($ErrorsAsWarnings) {
     $TestArguments += " -ErrorsAsWarnings"
+}
+if ("" -ne $OsRunner) {
+    $TestArguments += " -OsRunner $OsRunner"
 }
 
 if (![string]::IsNullOrWhiteSpace($ExtraArtifactDir)) {
