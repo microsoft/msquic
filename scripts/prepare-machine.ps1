@@ -270,7 +270,7 @@ function Update-Path($NewPath) {
 # Installs NASM from the public release.
 function Install-NASM {
     if (!$IsWindows) { return } # Windows only
-    $NasmVersion = "2.15.05"
+    $NasmVersion = "2.16.01"
     $NasmPath = Join-Path $env:Programfiles "nasm-$NasmVersion"
     $NasmExe = Join-Path $NasmPath "nasm.exe"
     if ($Force) { rm -Force -Recurse $NasmPath -ErrorAction Ignore }
