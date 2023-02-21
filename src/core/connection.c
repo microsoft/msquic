@@ -556,8 +556,6 @@ QuicConnRegister(
     _Inout_ QUIC_REGISTRATION* Registration
     )
 {
-    CXPLAT_DBG_ASSERT(!Connection->State.Registered);
-
     if (Connection->Registration != NULL) {
         CxPlatDispatchLockAcquire(&Connection->Registration->ConnectionLock);
         CxPlatListEntryRemove(&Connection->RegistrationLink);
@@ -570,6 +568,7 @@ QuicConnRegister(
             Connection,
             Connection->Registration);
         Connection->Registration = NULL;
+        Connection->State.Registered = FALSE;
     }
 
     BOOLEAN Success = CxPlatRundownAcquire(&Registration->Rundown);
