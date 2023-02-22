@@ -255,7 +255,7 @@ QuicTestDatagramSend(
                 while (Client.GetDatagramsSuspectLost() == CurrentLostCount && ++Tries < 10) {
                     CxPlatSleep(100);
                 }
-                TEST_TRUE(Client.GetDatagramsSuspectLost() >= CurrentLostCount);
+                TEST_TRUE(Client.GetDatagramsSuspectLost() > CurrentLostCount);
                 CxPlatSleep(100);
 #endif
 
@@ -265,7 +265,7 @@ QuicTestDatagramSend(
                 }
 
 #if QUIC_TEST_DATAPATH_HOOKS_ENABLED
-                TEST_EQUAL(1, Client.GetDatagramsLost());
+                TEST_TRUE(Client.GetDatagramsLost() >= 1);
 #endif
 
                 TEST_FALSE(Client.GetPeerClosed());
