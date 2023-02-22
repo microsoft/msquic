@@ -567,6 +567,8 @@ QuicConnRegister(
             "[conn][%p] Unregistered from %p",
             Connection,
             Connection->Registration);
+        Connection->Registration = NULL;
+        Connection->State.Registered = FALSE;
     }
 
     BOOLEAN Success = CxPlatRundownAcquire(&Registration->Rundown);
