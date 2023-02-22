@@ -593,6 +593,8 @@ CxPlatDpRawRxEthernet(
             } else if (PacketChain->Reserved == L4_TYPE_TCP_FIN) {
                 CxPlatDpRawSocketAckFin(Socket, PacketChain);
                 CxPlatDpRawRxFree(PacketChain);
+            } else {
+                CxPlatDpRawRxFree(PacketChain);
             }
 
             CxPlatRundownRelease(&Socket->Rundown);

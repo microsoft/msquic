@@ -764,8 +764,15 @@ CxPlatDpRawParseUdp(
     )
 {
     if (Length < sizeof(UDP_HEADER)) {
+        QuicTraceEvent(
+            DatapathErrorStatus,
+            "[data][%p] ERROR, %u, %s.",
+            Datapath,
+            Length,
+            "packet is too small for a UDP header");
         return;
     }
+
     Length -= sizeof(UDP_HEADER);
     Packet->Reserved = L4_TYPE_UDP;
 
@@ -789,11 +796,23 @@ CxPlatDpRawParseTcp(
 {
     uint16_t HeaderLength;
     if (Length < sizeof(TCP_HEADER)) {
+        QuicTraceEvent(
+            DatapathErrorStatus,
+            "[data][%p] ERROR, %u, %s.",
+            Datapath,
+            Length,
+            "packet is too small for a TCP header");
         return;
     }
 
     HeaderLength = Tcp->HeaderLength * sizeof(uint32_t);
     if (Length < HeaderLength) {
+        QuicTraceEvent(
+            DatapathErrorStatus,
+            "[data][%p] ERROR, %u, %s.",
+            Datapath,
+            Length,
+            "packet is too small for a TCP header");
         return;
     }
 
@@ -807,7 +826,7 @@ CxPlatDpRawParseTcp(
     //
     // Packets that don't match the rules above are discarded.
     //
-    if (Tcp->Flags == TH_ACK && Length > HeaderLength) {
+    if (Tcp->Flags == TH_ACK && Length > 0) {
         //
         // Only data packets with only ACK flag set are indicated to QUIC core.
         //
@@ -823,6 +842,12 @@ CxPlatDpRawParseTcp(
     } else if (Tcp->Flags & TH_FIN) { 
         Packet->Reserved = L4_TYPE_TCP_FIN;
     } else {
+        QuicTraceEvent(
+            DatapathErrorStatus,
+            "[data][%p] ERROR, %u, %s.",
+            Datapath,
+            Length,
+            "unexpected TCP packets");
         return;
     }
 
