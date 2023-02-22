@@ -91,15 +91,21 @@ CxPlatCryptInitialize(
     //
     // Try to load ChaCha20 ciphers dynamically. They may or may not exist when using system crypto.
     //
+    void* handle = dlopen("libcrypto.so.1.1", RTLD_LAZY | RTLD_GLOBAL);
     EVP_CIPHER* (*func)(void) = NULL;
-    func = dlsym(NULL, "EVP_chacha20");
-    if (func != NULL) {
-        CXPLAT_CHACHA20_ALG_HANDLE = (*func)();
-    }
+    if (handle != NULL) {
+        func = dlsym(handle, "EVP_chacha20");
+        if (func != NULL) {
+            CXPLAT_CHACHA20_ALG_HANDLE = (*func)();
 
-    func = dlsym(NULL, "EVP_chacha20_poly1305");
-    if (func != NULL) {
-        CXPLAT_CHACHA20_POLY1305_ALG_HANDLE = (*func)();
+            func = dlsym(handle, "EVP_chacha20_poly1305");
+            if (func != NULL) {
+                CXPLAT_CHACHA20_POLY1305_ALG_HANDLE = (*func)();
+                EVP_add_cipher(CXPLAT_CHACHA20_POLY1305_ALG_HANDLE);
+            }
+        } else {
+            dlclose(handle);
+        }
     }
 #endif
     return QUIC_STATUS_SUCCESS;
