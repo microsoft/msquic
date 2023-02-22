@@ -475,10 +475,19 @@ CxPlatUpdateRoute(
 
     if (!DstRoute->TcpState.Syncd) {
         DstRoute->TcpState.Syncd = TRUE;
+        //
+        // The sequence number and ACK number in the source route are
+        // taken from the received TCP packets.
+        //
+        // We are ACKing the peer's sequence number - 1 as if we never received
+        // any data packets from the peer. This creates one byte sequence space
+        // for the RST packet to be in-order.
+        // For the sequence number, we skip one byte as it's reserved for in-order RST.
+        //
         DstRoute->TcpState.AckNumber =
-            CxPlatByteSwapUint32(CxPlatByteSwapUint32(SrcRoute->TcpState.AckNumber) - 1);
+            CxPlatByteSwapUint32(CxPlatByteSwapUint32(SrcRoute->TcpState.SequenceNumber) - 1);
         DstRoute->TcpState.SequenceNumber =
-            CxPlatByteSwapUint32(CxPlatByteSwapUint32(SrcRoute->TcpState.SequenceNumber) + 1);
+            CxPlatByteSwapUint32(CxPlatByteSwapUint32(SrcRoute->TcpState.AckNumber) + 1);
     }
 }
 
@@ -831,8 +840,8 @@ CxPlatDpRawParseTcp(
         // Only data packets with only ACK flag set are indicated to QUIC core.
         //
         Packet->Reserved = L4_TYPE_TCP;
-        Packet->Route->TcpState.AckNumber = Tcp->SequenceNumber;
-        Packet->Route->TcpState.SequenceNumber = Tcp->AckNumber;
+        Packet->Route->TcpState.AckNumber = Tcp->AckNumber;
+        Packet->Route->TcpState.SequenceNumber = Tcp->SequenceNumber;
     } else if (Tcp->Flags & TH_SYN) {
         if (Tcp->Flags & TH_ACK) {
             Packet->Reserved = L4_TYPE_TCP_SYNACK;
@@ -1306,7 +1315,7 @@ CxPlatFramingWriteHeaders(
 {
     uint8_t* Transport;
     uint16_t TransportLength;
-    uint8_t TransportProtocol = Socket->UseTcp ? IPPROTO_TCP : IPPROTO_UDP;
+    uint8_t TransportProtocol;
     TCP_HEADER* TCP = NULL;
     UDP_HEADER* UDP = NULL;
     ETHERNET_HEADER* Ethernet;
@@ -1324,7 +1333,7 @@ CxPlatFramingWriteHeaders(
         TCP = (TCP_HEADER*)(Buffer->Buffer - sizeof(TCP_HEADER));
         TCP->DestinationPort = Route->RemoteAddress.Ipv4.sin_port;
         TCP->SourcePort = Route->LocalAddress.Ipv4.sin_port;
-        TCP->Window = QuicNetByteSwapShort(65535);
+        TCP->Window = 0xFFFF;
         TCP->X2 = 0;
         TCP->Checksum = 0;
         TCP->UrgentPointer = 0;
@@ -1335,6 +1344,7 @@ CxPlatFramingWriteHeaders(
 
         Transport = (uint8_t*)TCP;
         TransportLength = sizeof(TCP_HEADER);
+        TransportProtocol = IPPROTO_TCP;
     } else {
         //
         // Fill UDP header.
@@ -1346,6 +1356,7 @@ CxPlatFramingWriteHeaders(
         UDP->Checksum = 0;
         Transport = (uint8_t*)UDP;
         TransportLength = sizeof(UDP_HEADER);
+        TransportProtocol = IPPROTO_UDP;
     }
 
     //
