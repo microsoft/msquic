@@ -135,6 +135,16 @@ typedef struct CXPLAT_HP_KEY {
     CXPLAT_AEAD_TYPE Aead;
 } CXPLAT_HP_KEY;
 
+#if defined CXPLAT_SYSTEM_CRYPTO && !defined IS_OPENSSL_3 && !defined _WIN32
+// This is to fulfill link dependency in ssl_init.
+// If system OpenSSL has chacha support, we will redirect it to loaded handle.
+//
+const EVP_CIPHER *EVP_chacha20_poly1305(void)
+{
+    return CXPLAT_CHACHA20_POLY1305_ALG_HANDLE;
+}
+#endif
+
 QUIC_STATUS
 CxPlatCryptInitialize(
     void
@@ -209,15 +219,21 @@ Error:
     //
     // Try to load ChaCha20 ciphers dynamically. They may or may not exist when using system crypto.
     //
+    void* handle = dlopen("libcrypto.so.1.1", RTLD_LAZY | RTLD_GLOBAL);
     EVP_CIPHER* (*func)(void) = NULL;
-    func = dlsym(NULL, "EVP_chacha20");
-    if (func != NULL) {
-        CXPLAT_CHACHA20_ALG_HANDLE = (*func)();
-    }
+    if (handle != NULL) {
+        func = dlsym(handle, "EVP_chacha20");
+        if (func != NULL) {
+            CXPLAT_CHACHA20_ALG_HANDLE = (*func)();
 
-    func = dlsym(NULL, "EVP_chacha20_poly1305");
-    if (func != NULL) {
-        CXPLAT_CHACHA20_POLY1305_ALG_HANDLE = (*func)();
+            func = dlsym(handle, "EVP_chacha20_poly1305");
+            if (func != NULL) {
+                CXPLAT_CHACHA20_POLY1305_ALG_HANDLE = (*func)();
+                EVP_add_cipher(CXPLAT_CHACHA20_POLY1305_ALG_HANDLE);
+            }
+        } else {
+            dlclose(handle);
+        }
     }
 #endif
     return QUIC_STATUS_SUCCESS;
