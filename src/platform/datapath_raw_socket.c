@@ -1304,7 +1304,7 @@ CxPlatFramingWriteHeaders(
     _In_ uint8_t TcpFlags
     )
 {
-    uint8_t *Transport;
+    uint8_t* Transport;
     uint16_t TransportLength;
     uint8_t TransportProtocol = Socket->UseTcp ? IPPROTO_TCP : IPPROTO_UDP;
     TCP_HEADER* TCP = NULL;
@@ -1352,7 +1352,7 @@ CxPlatFramingWriteHeaders(
     // Fill IPv4/IPv6 header.
     //
     if (Family == QUIC_ADDRESS_FAMILY_INET) {
-        IPV4_HEADER* IPv4 = (IPV4_HEADER*)(((uint8_t*)Transport) - sizeof(IPV4_HEADER));
+        IPV4_HEADER* IPv4 = (IPV4_HEADER*)(Transport - sizeof(IPV4_HEADER));
         IPv4->VersionAndHeaderLength = IPV4_DEFAULT_VERHLEN;
         IPv4->TypeOfService = 0;
         IPv4->EcnField = ECN;
@@ -1386,7 +1386,7 @@ CxPlatFramingWriteHeaders(
             }
         }
     } else {
-        IPV6_HEADER* IPv6 = (IPV6_HEADER*)(((uint8_t*)Transport) - sizeof(IPV6_HEADER));
+        IPV6_HEADER* IPv6 = (IPV6_HEADER*)(Transport - sizeof(IPV6_HEADER));
         //
         // IPv6 Version, Traffic Class, ECN Field and Flow Label fields in host
         // byte order.

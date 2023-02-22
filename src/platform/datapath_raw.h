@@ -69,9 +69,7 @@ typedef struct CXPLAT_DATAPATH {
     BOOLEAN Uninitialized : 1;
     BOOLEAN Freed : 1;
 #endif
-#ifdef QUIC_USE_RAW_DATAPATH
     BOOLEAN UseTcp;
-#endif
 
 } CXPLAT_DATAPATH;
 
