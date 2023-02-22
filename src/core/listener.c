@@ -437,10 +437,16 @@ QuicListenerStopComplete(
         QuicListenerDetachSilo();
     }
 
+    const BOOLEAN CleanupOnExit = Listener->NeedsCleanup;
+
+    //
+    // If !Listener->NeedsCleanup, then another thread is waiting on this event
+    // and may immediately free the listener after setting the stop event.
+    //
     Listener->Stopped = TRUE;
     CxPlatEventSet(Listener->StopEvent);
 
-    if (Listener->NeedsCleanup) {
+    if (CleanupOnExit) {
         QuicListenerFree(Listener);
     }
 }

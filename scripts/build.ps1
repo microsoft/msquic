@@ -133,7 +133,7 @@ param (
     [switch]$Static = $false,
 
     [Parameter(Mandatory = $false)]
-    [ValidateSet("schannel", "openssl")]
+    [ValidateSet("schannel", "openssl", "openssl3")]
     [string]$Tls = "",
 
     [Parameter(Mandatory = $false)]
@@ -200,7 +200,7 @@ param (
     [switch]$OfficialRelease = $false,
 
     [Parameter(Mandatory = $false)]
-    [switch]$EnableTelemetryAsserts = $false,
+    [switch]$EnableTelemetryAsserts = $true,
 
     [Parameter(Mandatory = $false)]
     [switch]$UseSystemOpenSSLCrypto = $false,
@@ -267,7 +267,7 @@ if ($Arch -eq "arm64ec") {
     if (!$IsWindows) {
         Write-Error "Arm64EC is only supported on Windows"
     }
-    if ($Tls -eq "openssl") {
+    if ($Tls -eq "openssl" -Or $Tls -eq "openssl3") {
         Write-Error "Arm64EC does not support openssl"
     }
 }

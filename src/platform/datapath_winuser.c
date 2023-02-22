@@ -3352,7 +3352,7 @@ CxPlatDataPathSocketProcessAcceptCompletion(
                 NULL);
         if (Result == NO_ERROR) {
             PartitionIndex =
-                (uint16_t)CxPlatProcessorGroupOffsets[RssAffinity.Processor.Group] +
+                (uint16_t)CxPlatProcessorGroupInfo[RssAffinity.Processor.Group].Offset +
                 (uint16_t)RssAffinity.Processor.Number;
         }
 

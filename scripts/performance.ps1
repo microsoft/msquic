@@ -77,7 +77,7 @@ param (
     [string]$LocalArch = "x64",
 
     [Parameter(Mandatory = $false)]
-    [ValidateSet("schannel", "openssl")]
+    [ValidateSet("schannel", "openssl", "openssl3")]
     [string]$LocalTls = "",
 
     [Parameter(Mandatory = $false)]
@@ -88,7 +88,7 @@ param (
     [string]$ExtraArtifactDir = "",
 
     [Parameter(Mandatory = $false)]
-    [ValidateSet("schannel", "openssl")]
+    [ValidateSet("schannel", "openssl", "openssl3")]
     [string]$RemoteTls = "",
 
     [Parameter(Mandatory = $false)]
@@ -284,6 +284,7 @@ $LocalDirectory = Join-Path $RootDir "artifacts/bin"
 $RemoteDirectorySMB = $null
 
 # Copy manifest and log script to local directory
+Copy-Item -Path (Join-Path $RootDir scripts get-buildconfig.ps1) -Destination $LocalDirectory
 Copy-Item -Path (Join-Path $RootDir scripts log.ps1) -Destination $LocalDirectory
 Copy-Item -Path (Join-Path $RootDir scripts xdp-devkit.json) -Destination $LocalDirectory
 Copy-Item -Path (Join-Path $RootDir scripts prepare-machine.ps1) -Destination $LocalDirectory
@@ -482,7 +483,7 @@ function Invoke-Test {
     try {
         1..$NumIterations | ForEach-Object {
             Write-LogAndDebug "Running Local: $LocalExe Args: $LocalArguments"
-            $LocalResults = Invoke-LocalExe -Exe $LocalExe -RunArgs $LocalArguments -Timeout $Timeout -OutputDir $OutputDir -HistogramFileName "$($Test)_run$($_).txt"
+            $LocalResults = Invoke-LocalExe -Exe $LocalExe -RunArgs $LocalArguments -Timeout $Timeout -OutputDir $OutputDir -HistogramFileName "$($Test)_run$($_).txt" -Iteration $_
             Write-LogAndDebug $LocalResults
             $AllLocalParsedResults = Get-TestResult -Results $LocalResults -Matcher $Test.ResultsMatcher -FailureDefault $Test.FailureDefault
             $AllRunsResults += $AllLocalParsedResults
@@ -506,10 +507,12 @@ function Invoke-Test {
             $LocalResults | Write-LogAndDebug
         }
     } finally {
-        $RemoteResults = Wait-ForRemote -Job $RemoteJob
+        # -ErrorAction Continue for "perf" to return error when stop
+        $RemoteResults = Wait-ForRemote -Job $RemoteJob -ErrorAction Continue
         Write-LogAndDebug $RemoteResults.ToString()
 
-        Stop-RemoteLogs -RemoteDirectory $RemoteDirectory
+        # parallelize post processing with client
+        $StoppingRemoteJob = Stop-RemoteLogs -RemoteDirectory $RemoteDirectory
 
         if ($Kernel) {
             net.exe stop secnetperfdrvpriv /y | Out-Null
@@ -518,7 +521,9 @@ function Invoke-Test {
             sc.exe delete msquicpriv | Out-Null
         }
 
-        Stop-Tracing -LocalDirectory $LocalDirectory -OutputDir $OutputDir -Test $Test
+        # FIXME: Using Start-Job in this func cause program hang for some reason
+        Stop-Tracing -LocalDirectory $LocalDirectory -OutputDir $OutputDir -Test $Test -NumIterations $NumIterations
+        $StoppingRemoteJob | Wait-Job | Receive-Job -ErrorAction Continue
 
         if ($Record) {
             if ($Local) {
@@ -532,7 +537,11 @@ function Invoke-Test {
                 }
             } else {
                 try {
-                    Get-RemoteLogDirectory -Local (Join-Path $OutputDir $Test.ToString()) -Remote (Join-Path $RemoteDirectory serverlogs) -SmbDir (Join-Path $RemoteDirectorySMB serverlogs) -Cleanup
+                    $SmbDir = ""
+                    if ($IsWindows) {
+                        $SmbDir = (Join-Path $RemoteDirectorySMB serverlogs)
+                    }
+                    Get-RemoteLogDirectory -Local (Join-Path $OutputDir $Test.ToString()) -Remote (Join-Path $RemoteDirectory serverlogs) -SmbDir $SmbDir -Cleanup
                 } catch {
                     Write-Host "Failed to get remote logs"
                 }

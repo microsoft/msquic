@@ -265,7 +265,7 @@ CxPlatLogAssert(
 #define CXPLAT_DBG_ASSERTMSG(exp, msg)
 #endif
 
-#if DEBUG || QUIC_TELEMETRY_ASSERTS
+#if DEBUG // TODO - Do something with QUIC_TELEMETRY_ASSERTS
 #define CXPLAT_TEL_ASSERT(exp) CXPLAT_FRE_ASSERT(exp)
 #define CXPLAT_TEL_ASSERTMSG(exp, Y) CXPLAT_FRE_ASSERT(exp)
 #define CXPLAT_TEL_ASSERTMSG_ARGS(exp, _msg, _origin, _bucketArg1, _bucketArg2) CXPLAT_FRE_ASSERT(exp)
@@ -995,6 +995,7 @@ CxPlatCqeUserData(
 
 typedef int CXPLAT_EVENTQ;
 #define CXPLAT_SQE int
+#define CXPLAT_SQE_DEFAULT 0
 typedef struct epoll_event CXPLAT_CQE;
 
 inline
@@ -1101,6 +1102,7 @@ CxPlatCqeUserData(
 
 typedef int CXPLAT_EVENTQ;
 #define CXPLAT_SQE int
+#define CXPLAT_SQE_DEFAULT 0
 typedef struct kevent CXPLAT_CQE;
 
 inline

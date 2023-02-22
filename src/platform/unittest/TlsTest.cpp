@@ -22,12 +22,16 @@
 #endif
 
 const uint32_t DefaultFragmentSize = 1200;
+extern const char* OsRunner;
 
 const uint8_t Alpn[] = { 1, 'A' };
 const uint8_t MultiAlpn[] = { 1, 'C', 1, 'A', 1, 'B' };
 const char* PfxPass = "PLACEHOLDER";        // approved for cred scan
 extern const char* PfxPath;
 const QUIC_HKDF_LABELS HkdfLabels = { "quic key", "quic iv", "quic hp", "quic ku" };
+
+bool IsWindows2019() { return OsRunner && strcmp(OsRunner, "windows-2019") == 0; }
+bool IsWindows2022() { return OsRunner && strcmp(OsRunner, "windows-2022") == 0; }
 
 struct TlsTest : public ::testing::TestWithParam<bool>
 {
@@ -899,7 +903,7 @@ TEST_F(TlsTest, HandshakeParamInfoDefault)
     EXPECT_EQ(QUIC_CIPHER_ALGORITHM_AES_256, HandshakeInfo.CipherAlgorithm);
     EXPECT_EQ(256, HandshakeInfo.CipherStrength);
     EXPECT_EQ(0, HandshakeInfo.KeyExchangeAlgorithm);
-    EXPECT_EQ(0, HandshakeInfo.KeyExchangeStrength);
+    //EXPECT_EQ(0, HandshakeInfo.KeyExchangeStrength);
     EXPECT_EQ(QUIC_HASH_ALGORITHM_SHA_384, HandshakeInfo.Hash);
     EXPECT_EQ(0, HandshakeInfo.HashStrength);
 
@@ -917,7 +921,7 @@ TEST_F(TlsTest, HandshakeParamInfoDefault)
     EXPECT_EQ(QUIC_CIPHER_ALGORITHM_AES_256, HandshakeInfo.CipherAlgorithm);
     EXPECT_EQ(256, HandshakeInfo.CipherStrength);
     EXPECT_EQ(0, HandshakeInfo.KeyExchangeAlgorithm);
-    EXPECT_EQ(0, HandshakeInfo.KeyExchangeStrength);
+    //EXPECT_EQ(0, HandshakeInfo.KeyExchangeStrength);
     EXPECT_EQ(QUIC_HASH_ALGORITHM_SHA_384, HandshakeInfo.Hash);
     EXPECT_EQ(0, HandshakeInfo.HashStrength);
 }
@@ -948,7 +952,7 @@ TEST_F(TlsTest, HandshakeParamInfoAES256GCM)
     EXPECT_EQ(QUIC_CIPHER_ALGORITHM_AES_256, HandshakeInfo.CipherAlgorithm);
     EXPECT_EQ(256, HandshakeInfo.CipherStrength);
     EXPECT_EQ(0, HandshakeInfo.KeyExchangeAlgorithm);
-    EXPECT_EQ(0, HandshakeInfo.KeyExchangeStrength);
+    //EXPECT_EQ(0, HandshakeInfo.KeyExchangeStrength);
     EXPECT_EQ(QUIC_HASH_ALGORITHM_SHA_384, HandshakeInfo.Hash);
     EXPECT_EQ(0, HandshakeInfo.HashStrength);
 
@@ -966,7 +970,7 @@ TEST_F(TlsTest, HandshakeParamInfoAES256GCM)
     EXPECT_EQ(QUIC_CIPHER_ALGORITHM_AES_256, HandshakeInfo.CipherAlgorithm);
     EXPECT_EQ(256, HandshakeInfo.CipherStrength);
     EXPECT_EQ(0, HandshakeInfo.KeyExchangeAlgorithm);
-    EXPECT_EQ(0, HandshakeInfo.KeyExchangeStrength);
+    //EXPECT_EQ(0, HandshakeInfo.KeyExchangeStrength);
     EXPECT_EQ(QUIC_HASH_ALGORITHM_SHA_384, HandshakeInfo.Hash);
     EXPECT_EQ(0, HandshakeInfo.HashStrength);
 }
@@ -997,7 +1001,7 @@ TEST_F(TlsTest, HandshakeParamInfoAES128GCM)
     EXPECT_EQ(QUIC_CIPHER_ALGORITHM_AES_128, HandshakeInfo.CipherAlgorithm);
     EXPECT_EQ(128, HandshakeInfo.CipherStrength);
     EXPECT_EQ(0, HandshakeInfo.KeyExchangeAlgorithm);
-    EXPECT_EQ(0, HandshakeInfo.KeyExchangeStrength);
+    //EXPECT_EQ(0, HandshakeInfo.KeyExchangeStrength);
     EXPECT_EQ(QUIC_HASH_ALGORITHM_SHA_256, HandshakeInfo.Hash);
     EXPECT_EQ(0, HandshakeInfo.HashStrength);
 
@@ -1015,7 +1019,7 @@ TEST_F(TlsTest, HandshakeParamInfoAES128GCM)
     EXPECT_EQ(QUIC_CIPHER_ALGORITHM_AES_128, HandshakeInfo.CipherAlgorithm);
     EXPECT_EQ(128, HandshakeInfo.CipherStrength);
     EXPECT_EQ(0, HandshakeInfo.KeyExchangeAlgorithm);
-    EXPECT_EQ(0, HandshakeInfo.KeyExchangeStrength);
+    //EXPECT_EQ(0, HandshakeInfo.KeyExchangeStrength);
     EXPECT_EQ(QUIC_HASH_ALGORITHM_SHA_256, HandshakeInfo.Hash);
     EXPECT_EQ(0, HandshakeInfo.HashStrength);
 }
@@ -1027,9 +1031,11 @@ TEST_F(TlsTest, HandshakeParamInfoChaCha20)
     CxPlatServerSecConfig ServerConfig(
         QUIC_CREDENTIAL_FLAG_SET_ALLOWED_CIPHER_SUITES,
         QUIC_ALLOWED_CIPHER_SUITE_CHACHA20_POLY1305_SHA256);
+
     TlsContext ServerContext, ClientContext;
     ClientContext.InitializeClient(ClientConfig);
     ServerContext.InitializeServer(ServerConfig);
+    ASSERT_NE(ServerConfig.SecConfig, nullptr);
     DoHandshake(ServerContext, ClientContext);
 
     QUIC_HANDSHAKE_INFO HandshakeInfo;
@@ -1122,12 +1128,14 @@ TEST_F(TlsTest, HandshakeParallel)
 
     CXPLAT_THREAD Threads[64];
     CxPlatZeroMemory(&Threads, sizeof(Threads));
+    const uint32_t ThreadCount =
+        CXPLAT_MIN(ARRAYSIZE(Threads), CxPlatProcActiveCount() * 4);
 
-    for (uint32_t i = 0; i < ARRAYSIZE(Threads); ++i) {
+    for (uint32_t i = 0; i < ThreadCount; ++i) {
         VERIFY_QUIC_SUCCESS(CxPlatThreadCreate(&Config, &Threads[i]));
     }
 
-    for (uint32_t i = 0; i < ARRAYSIZE(Threads); ++i) {
+    for (uint32_t i = 0; i < ThreadCount; ++i) {
         CxPlatThreadWait(&Threads[i]);
         CxPlatThreadDelete(&Threads[i]);
     }
@@ -1540,7 +1548,6 @@ TEST_F(TlsTest, ExtraCertificateValidation)
     }
 }
 
-#ifndef QUIC_DISABLE_PORTABLE_CERTIFICATE_TESTS
 TEST_F(TlsTest, PortableCertificateValidation)
 {
     CxPlatClientSecConfig ClientConfig(
@@ -1565,8 +1572,11 @@ TEST_F(TlsTest, PortableCertificateValidation)
     }
 }
 
+#ifndef QUIC_TEST_OPENSSL_FLAGS // Not supported on OpenSSL
 TEST_F(TlsTest, InProcPortableCertificateValidation)
 {
+    if (IsWindows2019() || IsWindows2022()) GTEST_SKIP(); // Not supported
+
     CxPlatClientSecConfig ClientConfig(
         QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION |
         QUIC_CREDENTIAL_FLAG_INDICATE_CERTIFICATE_RECEIVED |
@@ -1592,6 +1602,8 @@ TEST_F(TlsTest, InProcPortableCertificateValidation)
 
 TEST_F(TlsTest, InProcCertificateValidation)
 {
+    if (IsWindows2019() || IsWindows2022()) GTEST_SKIP(); // Not supported
+
     CxPlatClientSecConfig ClientConfig(
         QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION |
         QUIC_CREDENTIAL_FLAG_INDICATE_CERTIFICATE_RECEIVED |

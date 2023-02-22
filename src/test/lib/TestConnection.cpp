@@ -746,14 +746,16 @@ TestConnection::SetResumptionTicket(
 
 QUIC_STATUS
 TestConnection::SetCustomValidationResult(
-    bool AcceptCert
+    bool AcceptCert,
+    QUIC_TLS_ALERT_CODES TlsAlert
     )
 {
     BOOLEAN Result = AcceptCert ? TRUE : FALSE;
     return
         MsQuic->ConnectionCertificateValidationComplete(
             QuicConnection,
-            Result);
+            Result,
+            TlsAlert);
 }
 
 QUIC_STATUS

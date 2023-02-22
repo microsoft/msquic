@@ -189,7 +189,13 @@ QuicTestFailedVersionNegotiation(
 #endif // QUIC_API_ENABLE_PREVIEW_FEATURES
 
 void
-QuicTestCustomCertificateValidation(
+QuicTestCustomServerCertificateValidation(
+    _In_ bool AcceptCert,
+    _In_ bool AsyncValidation
+    );
+
+void
+QuicTestCustomClientCertificateValidation(
     _In_ bool AcceptCert,
     _In_ bool AsyncValidation
     );
@@ -908,7 +914,7 @@ typedef struct {
     BOOLEAN AsyncValidation;
 } QUIC_RUN_CUSTOM_CERT_VALIDATION;
 
-#define IOCTL_QUIC_RUN_CUSTOM_CERT_VALIDATION \
+#define IOCTL_QUIC_RUN_CUSTOM_SERVER_CERT_VALIDATION \
     QUIC_CTL_CODE(47, METHOD_BUFFERED, FILE_WRITE_DATA)
     // QUIC_RUN_CUSTOM_CERT_VALIDATION
 
@@ -1166,4 +1172,8 @@ typedef struct {
     QUIC_CTL_CODE(109, METHOD_BUFFERED, FILE_WRITE_DATA)
     // int - Family
 
-#define QUIC_MAX_IOCTL_FUNC_CODE 109
+#define IOCTL_QUIC_RUN_CUSTOM_CLIENT_CERT_VALIDATION \
+    QUIC_CTL_CODE(110, METHOD_BUFFERED, FILE_WRITE_DATA)
+    // QUIC_RUN_CUSTOM_CERT_VALIDATION
+
+#define QUIC_MAX_IOCTL_FUNC_CODE 110

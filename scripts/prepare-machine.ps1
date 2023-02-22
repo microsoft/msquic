@@ -80,6 +80,9 @@ param (
     [switch]$InstallXdpSdk,
 
     [Parameter(Mandatory = $false)]
+    [switch]$UseXdp,
+
+    [Parameter(Mandatory = $false)]
     [switch]$InstallArm64Toolchain,
 
     [Parameter(Mandatory = $false)]
@@ -103,10 +106,24 @@ Set-StrictMode -Version 'Latest'
 $PSDefaultParameterValues['*:ErrorAction'] = 'Stop'
 $ProgressPreference = 'SilentlyContinue'
 
+$PrepConfig = & (Join-Path $PSScriptRoot get-buildconfig.ps1) -Tls $Tls
+$Tls = $PrepConfig.Tls
+
 if ($PSVersionTable.PSVersion.Major -lt 7) {
     # This script requires PowerShell core (mostly for xplat stuff).
     Write-Error ("`nPowerShell v7.x or greater is needed for this script to work. " +
                  "Please visit https://github.com/microsoft/msquic/blob/main/docs/BUILD.md#powershell-usage")
+}
+
+if ($UseXdp) {
+    # Helper for XDP usage
+    if ($ForBuild) {
+        $InstallXdpSdk = $true;
+    }
+    if ($ForTest) {
+        $InstallXdpDriver = $true;
+        $InstallDuoNic = $true;
+    }
 }
 
 if (!$ForOneBranch -and !$ForOneBranchPackage -and !$ForBuild -and !$ForTest -and !$InstallXdpDriver -and !$UninstallXdp) {
@@ -116,7 +133,6 @@ if (!$ForOneBranch -and !$ForOneBranchPackage -and !$ForBuild -and !$ForTest -an
     Write-Host "No arguments passed, defaulting -ForBuild and -ForTest"
     $ForBuild = $true
     $ForTest = $true
-    if ("" -eq $Tls -and !$ForKernel) { $Tls = "openssl" }
 }
 
 if ($ForBuild) {
@@ -144,12 +160,6 @@ if ($ForTest) {
 if ($InstallXdpDriver) {
     # The XDP SDK contains XDP driver, so ensure it's downloaded.
     $InstallXdpSdk = $true
-}
-
-# Default TLS based on current platform.
-if ("" -eq $Tls) {
-    if ($IsWindows) { $Tls = "schannel" }
-    else            { $Tls = "openssl" }
 }
 
 # Root directory of the project.
@@ -270,7 +280,7 @@ function Update-Path($NewPath) {
 # Installs NASM from the public release.
 function Install-NASM {
     if (!$IsWindows) { return } # Windows only
-    $NasmVersion = "2.15.05"
+    $NasmVersion = "2.16.01"
     $NasmPath = Join-Path $env:Programfiles "nasm-$NasmVersion"
     $NasmExe = Join-Path $NasmPath "nasm.exe"
     if ($Force) { rm -Force -Recurse $NasmPath -ErrorAction Ignore }
@@ -472,7 +482,10 @@ function Install-Clog2Text {
 }
 
 # We remove OpenSSL path for kernel builds because it's not needed.
-if ($ForKernel) { git rm submodules/openssl }
+if ($ForKernel) {
+    git rm submodules/openssl
+    git rm submodules/openssl3
+}
 
 if ($InitSubmodules) {
 
@@ -482,6 +495,11 @@ if ($InitSubmodules) {
     if ($Tls -eq "openssl") {
         Write-Host "Initializing openssl submodule"
         git submodule init submodules/openssl
+    }
+
+    if ($Tls -eq "openssl3") {
+        Write-Host "Initializing openssl3 submodule"
+        git submodule init submodules/openssl3
     }
 
     if (!$DisableTest) {
@@ -508,8 +526,8 @@ if ($IsLinux) {
     }
 
     if ($ForBuild) {
-        sudo apt-add-repository ppa:lttng/stable-2.12
-        sudo apt-get update
+        sudo apt-add-repository ppa:lttng/stable-2.12 -y
+        sudo apt-get update -y
         sudo apt-get install -y cmake
         sudo apt-get install -y build-essential
         sudo apt-get install -y liblttng-ust-dev
@@ -529,8 +547,8 @@ if ($IsLinux) {
     }
 
     if ($ForTest) {
-        sudo apt-add-repository ppa:lttng/stable-2.12
-        sudo apt-get update
+        sudo apt-add-repository ppa:lttng/stable-2.12 -y
+        sudo apt-get update -y
         sudo apt-get install -y lttng-tools
         sudo apt-get install -y liblttng-ust-dev
         sudo apt-get install -y gdb

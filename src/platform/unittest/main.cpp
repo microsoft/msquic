@@ -15,6 +15,7 @@
 const char* PfxPath = nullptr;
 bool UseDuoNic = false;
 uint32_t Timeout = UINT32_MAX;
+const char* OsRunner = nullptr;
 
 class QuicCoreTestEnvironment : public ::testing::Environment {
 public:
@@ -40,6 +41,8 @@ int main(int argc, char** argv) {
                 Timeout = atoi(argv[i + 1]);
                 ++i;
             }
+        } else if (strstr(argv[i], "--osRunner")) {
+            OsRunner = argv[i] + sizeof("--osRunner");
         }
     }
     ::testing::AddGlobalTestEnvironment(new QuicCoreTestEnvironment);

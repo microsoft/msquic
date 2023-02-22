@@ -14,10 +14,14 @@ bool TestingKernelMode = false;
 bool PrivateTestLibrary = false;
 bool UseDuoNic = false;
 const MsQuicApi* MsQuic;
+const char* OsRunner = nullptr;
 QUIC_CREDENTIAL_CONFIG ServerSelfSignedCredConfig;
 QUIC_CREDENTIAL_CONFIG ServerSelfSignedCredConfigClientAuth;
 QUIC_CREDENTIAL_CONFIG ClientCertCredConfig;
 QuicDriverClient DriverClient;
+
+bool IsWindows2019() { return OsRunner && strcmp(OsRunner, "windows-2019") == 0; }
+bool IsWindows2022() { return OsRunner && strcmp(OsRunner, "windows-2022") == 0; }
 
 class QuicTestEnvironment : public ::testing::Environment {
     QuicDriverService DriverService;
@@ -261,6 +265,9 @@ TEST(ParameterValidation, ValidateGetPerfCounters) {
 }
 
 TEST(ParameterValidation, ValidateConfiguration) {
+#ifdef QUIC_TEST_SCHANNEL_FLAGS
+    if (IsWindows2022()) GTEST_SKIP(); // Not supported with Schannel on WS2022
+#endif
     TestLogger Logger("QuicTestValidateConfiguration");
     if (TestingKernelMode) {
         ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_VALIDATE_CONFIGURATION));
@@ -558,6 +565,9 @@ TEST_P(WithMtuArgs, MtuDiscovery) {
 #endif // QUIC_TEST_DATAPATH_HOOKS_ENABLED
 
 TEST(Alpn, ValidAlpnLengths) {
+#ifdef QUIC_TEST_SCHANNEL_FLAGS
+    if (IsWindows2022()) GTEST_SKIP(); // Not supported with Schannel on WS2022
+#endif
     TestLogger Logger("QuicTestValidAlpnLengths");
     if (TestingKernelMode) {
         ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_VALID_ALPN_LENGTHS));
@@ -695,6 +705,9 @@ TEST_P(WithHandshakeArgs1, ResumeAsync) {
 }
 
 TEST_P(WithHandshakeArgs1, ResumeRejection) {
+#ifdef QUIC_TEST_SCHANNEL_FLAGS
+    if (IsWindows2022()) GTEST_SKIP(); // Not supported with Schannel on WS2022
+#endif
     TestLoggerT<ParamType> Logger("QuicTestConnect-ResumeRejection", GetParam());
     if (TestingKernelMode) {
         QUIC_RUN_CONNECT_PARAMS Params = {
@@ -966,20 +979,36 @@ TEST_P(WithFamilyArgs, FailedVersionNegotiation) {
 }
 #endif // QUIC_API_ENABLE_PREVIEW_FEATURES
 
-TEST_P(WithHandshakeArgs5, CustomCertificateValidation) {
-    TestLoggerT<ParamType> Logger("QuicTestCustomCertificateValidation", GetParam());
+TEST_P(WithHandshakeArgs5, CustomServerCertificateValidation) {
+    TestLoggerT<ParamType> Logger("QuicTestCustomServerCertificateValidation", GetParam());
     if (TestingKernelMode) {
         QUIC_RUN_CUSTOM_CERT_VALIDATION Params = {
             GetParam().AcceptCert,
             GetParam().AsyncValidation
         };
-        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_CUSTOM_CERT_VALIDATION, Params));
+        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_CUSTOM_SERVER_CERT_VALIDATION, Params));
     } else {
-        QuicTestCustomCertificateValidation(GetParam().AcceptCert, GetParam().AsyncValidation);
+        QuicTestCustomServerCertificateValidation(GetParam().AcceptCert, GetParam().AsyncValidation);
+    }
+}
+
+TEST_P(WithHandshakeArgs5, CustomClientCertificateValidation) {
+    TestLoggerT<ParamType> Logger("QuicTestCustomClientCertificateValidation", GetParam());
+    if (TestingKernelMode) {
+        QUIC_RUN_CUSTOM_CERT_VALIDATION Params = {
+            GetParam().AcceptCert,
+            GetParam().AsyncValidation
+        };
+        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_CUSTOM_CLIENT_CERT_VALIDATION, Params));
+    } else {
+        QuicTestCustomClientCertificateValidation(GetParam().AcceptCert, GetParam().AsyncValidation);
     }
 }
 
 TEST_P(WithHandshakeArgs6, ConnectClientCertificate) {
+#ifdef QUIC_TEST_SCHANNEL_FLAGS
+    if (IsWindows2022()) GTEST_SKIP(); // Not supported with Schannel on WS2022
+#endif
     TestLoggerT<ParamType> Logger("QuicTestConnectClientCertificate", GetParam());
     if (TestingKernelMode) {
         QUIC_RUN_CONNECT_CLIENT_CERT Params = {
@@ -1208,6 +1237,9 @@ TEST(CredValidation, ConnectExpiredClientCertificate) {
 }
 
 TEST(CredValidation, ConnectValidClientCertificate) {
+#ifdef QUIC_TEST_SCHANNEL_FLAGS
+    if (IsWindows2022()) GTEST_SKIP(); // Not supported with Schannel on WS2022
+#endif
     QUIC_RUN_CRED_VALIDATION Params;
     for (auto CredType : { QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH, QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH_STORE }) {
         ASSERT_TRUE(CxPlatGetTestCertificate(
@@ -1316,6 +1348,9 @@ TEST_P(WithHandshakeArgs4, RandomLossResume) {
     }
 }
 TEST_P(WithHandshakeArgs4, RandomLossResumeRejection) {
+#ifdef QUIC_TEST_SCHANNEL_FLAGS
+    if (IsWindows2022()) GTEST_SKIP(); // Not supported with Schannel on WS2022
+#endif
     TestLoggerT<ParamType> Logger("QuicTestConnect-RandomLossResumeRejection", GetParam());
     if (TestingKernelMode) {
         QUIC_RUN_CONNECT_PARAMS Params = {
@@ -1346,7 +1381,9 @@ TEST_P(WithHandshakeArgs4, RandomLossResumeRejection) {
 #endif // QUIC_DISABLE_RESUMPTION
 #endif // QUIC_TEST_DATAPATH_HOOKS_ENABLED
 
+#ifndef QUIC_USE_RAW_DATAPATH
 TEST_P(WithFamilyArgs, Unreachable) {
+    if (GetParam().Family == 4 && IsWindows2019()) GTEST_SKIP(); // IPv4 unreachable doesn't work on 2019
     TestLoggerT<ParamType> Logger("QuicTestConnectUnreachable", GetParam());
     if (TestingKernelMode) {
         ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_CONNECT_UNREACHABLE, GetParam().Family));
@@ -1354,6 +1391,7 @@ TEST_P(WithFamilyArgs, Unreachable) {
         QuicTestConnectUnreachable(GetParam().Family);
     }
 }
+#endif // QUIC_USE_RAW_DATAPATH
 
 TEST(HandshakeTest, InvalidAddress) {
     TestLogger Logger("QuicTestConnectInvalidAddress");
@@ -1473,7 +1511,11 @@ TEST_P(WithFamilyArgs, ChangeMaxStreamIDs) {
 }
 
 #if QUIC_TEST_DATAPATH_HOOKS_ENABLED
+#ifndef QUIC_USE_RAW_DATAPATH // TODO - Support this with raw datapath
 TEST_P(WithFamilyArgs, LoadBalanced) {
+#ifdef QUIC_TEST_SCHANNEL_FLAGS
+    if (IsWindows2022()) GTEST_SKIP(); // Not supported with Schannel on WS2022
+#endif
     TestLoggerT<ParamType> Logger("QuicTestLoadBalancedHandshake", GetParam());
     if (TestingKernelMode) {
         ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_LOAD_BALANCED_HANDSHAKE, GetParam().Family));
@@ -1481,6 +1523,7 @@ TEST_P(WithFamilyArgs, LoadBalanced) {
         QuicTestLoadBalancedHandshake(GetParam().Family);
     }
 }
+#endif // QUIC_USE_RAW_DATAPATH
 
 TEST_P(WithFamilyArgs, HandshakeSpecificLossPatterns) {
     TestLoggerT<ParamType> Logger("QuicTestHandshakeSpecificLossPatterns", GetParam());
@@ -1884,6 +1927,7 @@ TEST(Misc, SlowReceive) {
 }
 
 #ifdef QUIC_TEST_ALLOC_FAILURES_ENABLED
+#ifndef QUIC_TEST_OPENSSL_FLAGS // Not supported on OpenSSL
 TEST(Misc, NthAllocFail) {
     TestLogger Logger("NthAllocFail");
     if (TestingKernelMode) {
@@ -1892,7 +1936,8 @@ TEST(Misc, NthAllocFail) {
         QuicTestNthAllocFail();
     }
 }
-#endif
+#endif // QUIC_TEST_OPENSSL_FLAGS
+#endif // QUIC_TEST_ALLOC_FAILURES_ENABLED
 
 TEST(Misc, StreamPriority) {
     TestLogger Logger("StreamPriority");
@@ -1966,6 +2011,7 @@ TEST(Drill, VarIntEncoder) {
     }
 }
 
+#ifndef QUIC_USE_RAW_DATAPATH // TODO - Support this with raw datapath
 TEST_P(WithDrillInitialPacketCidArgs, DrillInitialPacketCids) {
     TestLoggerT<ParamType> Logger("QuicDrillInitialPacketCids", GetParam());
     if (TestingKernelMode) {
@@ -1995,6 +2041,7 @@ TEST_P(WithDrillInitialPacketTokenArgs, DrillInitialPacketToken) {
         QuicDrillTestInitialToken(GetParam().Family);
     }
 }
+#endif // QUIC_USE_RAW_DATAPATH
 
 TEST_P(WithDatagramNegotiationArgs, DatagramNegotiation) {
     TestLoggerT<ParamType> Logger("QuicTestDatagramNegotiation", GetParam());
@@ -2024,7 +2071,7 @@ static BOOLEAN CanRunStorageTests = FALSE;
 
 TEST(Basic, TestStorage) {
     if (!CanRunStorageTests) {
-        return;
+        GTEST_SKIP();
     }
 
     TestLogger Logger("QuicTestStorage");
@@ -2038,7 +2085,7 @@ TEST(Basic, TestStorage) {
 #ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
 TEST(Basic, TestVersionStorage) {
     if (!CanRunStorageTests) {
-        return;
+        GTEST_SKIP();
     }
 
     TestLogger Logger("QuicTestVersionStorage");
@@ -2223,6 +2270,7 @@ INSTANTIATE_TEST_SUITE_P(
     WithDatagramNegotiationArgs,
     testing::ValuesIn(DatagramNegotiationArgs::Generate()));
 
+#ifndef QUIC_USE_RAW_DATAPATH
 INSTANTIATE_TEST_SUITE_P(
     Drill,
     WithDrillInitialPacketCidArgs,
@@ -2232,6 +2280,7 @@ INSTANTIATE_TEST_SUITE_P(
     Drill,
     WithDrillInitialPacketTokenArgs,
     testing::ValuesIn(DrillInitialPacketTokenArgs::Generate()));
+#endif // QUIC_USE_RAW_DATAPATH
 
 int main(int argc, char** argv) {
 #ifdef _WIN32
@@ -2256,6 +2305,8 @@ int main(int argc, char** argv) {
             }
         } else if (strcmp("--duoNic", argv[i]) == 0) {
             UseDuoNic = true;
+        } else if (strstr(argv[i], "--osRunner")) {
+            OsRunner = argv[i] + sizeof("--osRunner");
         }
     }
     ::testing::AddGlobalTestEnvironment(new QuicTestEnvironment);

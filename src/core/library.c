@@ -276,15 +276,17 @@ QuicPerfCounterSnapShot(
 // Ensures a perf counter doesn't consistently (both samples) go above a give max value.
 #define QUIC_COUNTER_CAP(TYPE, MAX_LIMIT) \
     CXPLAT_TEL_ASSERT( \
-        PerfCounterSamples[TYPE] < MAX_LIMIT || \
+        PerfCounterSamples[TYPE] < MAX_LIMIT && \
         MsQuicLib.PerfCounterSamples[TYPE] < MAX_LIMIT)
 
+#ifndef DEBUG // Only in release mode
     //
     // Some heuristics to ensure that bad things aren't happening. TODO - these
     // values should be configurable dynamically, somehow.
     //
     QUIC_COUNTER_LIMIT_HZ(QUIC_PERF_COUNTER_CONN_HANDSHAKE_FAIL, 1000000); // Don't have 1 million failed handshakes per second
     QUIC_COUNTER_CAP(QUIC_PERF_COUNTER_CONN_QUEUE_DEPTH, 100000); // Don't maintain huge queue depths
+#endif
 
     CxPlatCopyMemory(
         MsQuicLib.PerfCounterSamples,
@@ -1745,26 +1747,35 @@ QuicLibraryLookupBinding(
         QUIC_ADDR BindingLocalAddr;
         QuicBindingGetLocalAddress(Binding, &BindingLocalAddr);
 
-        if (!QuicAddrCompare(LocalAddress, &BindingLocalAddr)) {
-            continue;
-        }
-
         if (Binding->Connected) {
-            if (RemoteAddress == NULL) {
-                continue;
+            //
+            // For client/connected bindings we need to match on both local and
+            // remote addresses/ports.
+            //
+            if (RemoteAddress &&
+                QuicAddrCompare(LocalAddress, &BindingLocalAddr)) {
+                QUIC_ADDR BindingRemoteAddr;
+                QuicBindingGetRemoteAddress(Binding, &BindingRemoteAddr);
+                if (QuicAddrCompare(RemoteAddress, &BindingRemoteAddr)) {
+                    return Binding;
+                }
             }
 
-            QUIC_ADDR BindingRemoteAddr;
-            QuicBindingGetRemoteAddress(Binding, &BindingRemoteAddr);
-            if (!QuicAddrCompare(RemoteAddress, &BindingRemoteAddr)) {
-                continue;
+        } else {
+            //
+            // For server (unconnected/listening) bindings we always use wildcard
+            // addresses, so we simply need to match on local port.
+            //
+            if (QuicAddrGetPort(&BindingLocalAddr) == QuicAddrGetPort(LocalAddress)) {
+                //
+                // Note: We don't check the remote address, because we want to
+                // return a match even if the caller is looking for a connected
+                // socket so that we can inform them there is already a listening
+                // socket using the local port.
+                //
+                return Binding;
             }
-
-        } else  if (RemoteAddress != NULL) {
-            continue;
         }
-
-        return Binding;
     }
 
     return NULL;
@@ -1780,9 +1791,10 @@ QuicLibraryGetBinding(
     QUIC_STATUS Status;
     QUIC_BINDING* Binding;
     QUIC_ADDR NewLocalAddress;
-    BOOLEAN PortUnspecified = UdpConfig->LocalAddress == NULL || QuicAddrGetPort(UdpConfig->LocalAddress) == 0;
-    BOOLEAN ShareBinding = !!(UdpConfig->Flags & CXPLAT_SOCKET_FLAG_SHARE);
-    BOOLEAN ServerOwned = !!(UdpConfig->Flags & CXPLAT_SOCKET_SERVER_OWNED);
+    const BOOLEAN PortUnspecified =
+        UdpConfig->LocalAddress == NULL || QuicAddrGetPort(UdpConfig->LocalAddress) == 0;
+    const BOOLEAN ShareBinding = !!(UdpConfig->Flags & CXPLAT_SOCKET_FLAG_SHARE);
+    const BOOLEAN ServerOwned = !!(UdpConfig->Flags & CXPLAT_SOCKET_SERVER_OWNED);
 
 #ifdef QUIC_SHARED_EPHEMERAL_WORKAROUND
     //

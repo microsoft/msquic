@@ -78,7 +78,7 @@ namespace Microsoft.Quic.Polyfill
     internal unsafe delegate int MsQuicConnectionCallbackDelegate(QUIC_HANDLE* Handle, void* Context, QUIC_CONNECTION_EVENT* Event);
 
     [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-    internal unsafe delegate int MsQuicStreamCallbackDelegate(QUIC_HANDLE* Handle, void* Context, QUIC_CONNECTION_EVENT* Event);
+    internal unsafe delegate int MsQuicStreamCallbackDelegate(QUIC_HANDLE* Handle, void* Context, QUIC_STREAM_EVENT* Event);
 
     [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
     internal unsafe delegate int MsQuicListenerCallbackDelegate(QUIC_HANDLE* Handle, void* Context, QUIC_LISTENER_EVENT* Event);

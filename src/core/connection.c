@@ -3154,6 +3154,9 @@ QuicConnPeerCertReceived(
         return FALSE;
     }
     if (Status == QUIC_STATUS_PENDING) {
+        //
+        // Don't set pending here because validation may have completed in the callback.
+        //
         QuicTraceLogConnInfo(
             CustomCertValidationPending,
             Connection,
@@ -6461,7 +6464,10 @@ QuicConnParamSet(
             break;
         }
 
-        QuicCryptoCustomCertValidationComplete(&Connection->Crypto, *(BOOLEAN*)Buffer);
+        QuicCryptoCustomCertValidationComplete(
+            &Connection->Crypto,
+            *(BOOLEAN*)Buffer,
+            QUIC_TLS_ALERT_CODE_BAD_CERTIFICATE);
         Status = QUIC_STATUS_SUCCESS;
         break;
 
@@ -7310,10 +7316,10 @@ QuicConnProcessApiOperation(
         break;
 
     case QUIC_API_TYPE_CONN_COMPLETE_CERTIFICATE_VALIDATION:
-        CXPLAT_DBG_ASSERT(QuicConnIsClient(Connection));
         QuicCryptoCustomCertValidationComplete(
             &Connection->Crypto,
-            ApiCtx->CONN_COMPLETE_CERTIFICATE_VALIDATION.Result);
+            ApiCtx->CONN_COMPLETE_CERTIFICATE_VALIDATION.Result,
+            ApiCtx->CONN_COMPLETE_CERTIFICATE_VALIDATION.TlsAlert);
         break;
 
     case QUIC_API_TYPE_STRM_CLOSE:

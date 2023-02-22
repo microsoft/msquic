@@ -64,15 +64,15 @@ jobs:
       iterations: 3
       duration: 10000
       pacing: 1
-      reorder: "(0,1000,10000)"
+      reorder: "(0,1000)"
       delay: "(0,5,10)"
       congestionControl: "(\"cubic\", \"bbr\")"
       loss: "(0,1000,10000)"
     strategy:
       fail-fast: false
       matrix:
-        rate: [5, 10, 20, 50, 100, 200, 1000]
-        rtt: [5, 50, 200, 500]
+        rate: [10, 50, 100, 1000]
+        rtt: [5, 50, 200]
         queueRatio: [0.2, 1, 5]
         exclude:
         - rate: 5

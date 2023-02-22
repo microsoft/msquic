@@ -533,7 +533,7 @@ QuicStreamSetNewLocalStream(
         if (Stream->Connection->State.PeerTransportParameterValid) {
             QuicSendSetSendFlag(
                 &Stream->Connection->Send,
-                STREAM_ID_IS_UNI_DIR(Stream->ID) ?
+                STREAM_ID_IS_UNI_DIR(Type) ?
                     QUIC_CONN_SEND_FLAG_UNI_STREAMS_BLOCKED : QUIC_CONN_SEND_FLAG_BIDI_STREAMS_BLOCKED);
         }
         Status = QUIC_STATUS_STREAM_LIMIT_REACHED;

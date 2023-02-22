@@ -680,9 +680,13 @@ typedef HANDLE CXPLAT_EVENT;
 typedef HANDLE CXPLAT_EVENTQ;
 typedef OVERLAPPED_ENTRY CXPLAT_CQE;
 #define CXPLAT_SQE CXPLAT_SQE
+#define CXPLAT_SQE_DEFAULT {0}
 typedef struct CXPLAT_SQE {
     void* UserData;
     OVERLAPPED Overlapped;
+#if DEBUG
+    BOOLEAN IsQueued; // Debug flag to catch double queueing.
+#endif
 } CXPLAT_SQE;
 
 inline
@@ -721,7 +725,11 @@ CxPlatEventQEnqueue(
     _In_opt_ void* user_data
     )
 {
-    CxPlatZeroMemory(sqe, sizeof(*sqe));
+#if DEBUG
+    CXPLAT_DBG_ASSERT(!sqe->IsQueued);
+    sqe->IsQueued;
+#endif
+    CxPlatZeroMemory(&sqe->Overlapped, sizeof(sqe->Overlapped));
     sqe->UserData = user_data;
     return PostQueuedCompletionStatus(*queue, 0, 0, &sqe->Overlapped) != 0;
 }
@@ -735,7 +743,11 @@ CxPlatEventQEnqueueEx( // Windows specific extension
     _In_opt_ void* user_data
     )
 {
-    CxPlatZeroMemory(sqe, sizeof(*sqe));
+#if DEBUG
+    CXPLAT_DBG_ASSERT(!sqe->IsQueued);
+    sqe->IsQueued;
+#endif
+    CxPlatZeroMemory(&sqe->Overlapped, sizeof(sqe->Overlapped));
     sqe->UserData = user_data;
     return PostQueuedCompletionStatus(*queue, num_bytes, 0, &sqe->Overlapped) != 0;
 }
@@ -753,6 +765,13 @@ CxPlatEventQDequeue(
     if (!GetQueuedCompletionStatusEx(*queue, events, count, &out_count, wait_time, FALSE)) return FALSE;
     CXPLAT_DBG_ASSERT(out_count != 0);
     CXPLAT_DBG_ASSERT(events[0].lpOverlapped != NULL || out_count == 1);
+#if DEBUG
+    if (events[0].lpOverlapped) {
+        for (uint32_t i = 0; i < (uint32_t)out_count; ++i) {
+            CXPLAT_CONTAINING_RECORD(events[i].lpOverlapped, CXPLAT_SQE, Overlapped)->IsQueued = FALSE;
+        }
+    }
+#endif
     return events[0].lpOverlapped == NULL ? 0 : (uint32_t)out_count;
 }
 
@@ -958,18 +977,18 @@ CxPlatTimeAtOrBefore32(
 // Processor Count and Index
 //
 
-typedef struct {
-
-    uint16_t Group;
-    uint32_t Index; // In Group;
-    uint32_t NumaNode;
-    uint64_t MaskInGroup;
-
+typedef struct CXPLAT_PROCESSOR_INFO {
+    uint32_t Index;  // Index in the current group
+    uint16_t Group;  // The group number this processor is a part of
 } CXPLAT_PROCESSOR_INFO;
 
+typedef struct CXPLAT_PROCESSOR_GROUP_INFO {
+    KAFFINITY Mask;  // Bit mask of active processors in the group
+    uint32_t Offset; // Base process index offset this group starts at
+} CXPLAT_PROCESSOR_GROUP_INFO;
+
 extern CXPLAT_PROCESSOR_INFO* CxPlatProcessorInfo;
-extern uint64_t* CxPlatNumaMasks;
-extern uint32_t* CxPlatProcessorGroupOffsets;
+extern CXPLAT_PROCESSOR_GROUP_INFO* CxPlatProcessorGroupInfo;
 
 #if defined(QUIC_RESTRICTED_BUILD)
 DWORD CxPlatProcMaxCount();
@@ -987,7 +1006,7 @@ CxPlatProcCurrentNumber(
     ) {
     PROCESSOR_NUMBER ProcNumber;
     GetCurrentProcessorNumberEx(&ProcNumber);
-    return CxPlatProcessorGroupOffsets[ProcNumber.Group] + ProcNumber.Number;
+    return CxPlatProcessorGroupInfo[ProcNumber.Group].Offset + ProcNumber.Number;
 }
 
 
@@ -1119,7 +1138,7 @@ CxPlatThreadCreate(
     if (Config->Flags & CXPLAT_THREAD_FLAG_SET_AFFINITIZE) {
         Group.Mask = (KAFFINITY)(1ull << ProcInfo->Index);          // Fixed processor
     } else {
-        Group.Mask = (KAFFINITY)CxPlatNumaMasks[ProcInfo->NumaNode];  // Fixed NUMA node
+        Group.Mask = CxPlatProcessorGroupInfo[ProcInfo->Group].Mask;
     }
     Group.Group = ProcInfo->Group;
     SetThreadGroupAffinity(*Thread, &Group, NULL);

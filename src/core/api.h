@@ -275,5 +275,6 @@ QUIC_STATUS
 QUIC_API
 MsQuicConnectionCertificateValidationComplete(
     _In_ _Pre_defensive_ HQUIC Handle,
-    _In_ BOOLEAN Result
+    _In_ BOOLEAN Result,
+    _In_ QUIC_TLS_ALERT_CODES TlsAlert
     );

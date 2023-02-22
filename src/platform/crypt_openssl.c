@@ -19,6 +19,8 @@ Abstract:
 #ifdef _WIN32
 #pragma warning(push)
 #pragma warning(disable:4100) // Unreferenced parameter errcode in inline function
+#else
+#include <dlfcn.h>
 #endif
 #include "openssl/bio.h"
 #ifdef IS_OPENSSL_3
@@ -55,6 +57,7 @@ EVP_MAC_CTX *CXPLAT_HMAC_SHA256_CTX_HANDLE;
 EVP_MAC_CTX *CXPLAT_HMAC_SHA384_CTX_HANDLE;
 EVP_MAC_CTX *CXPLAT_HMAC_SHA512_CTX_HANDLE;
 
+_Success_(return != 0)
 int
 CxPlatLoadCipher(
     _In_ char *cipher_name,
@@ -73,6 +76,7 @@ CxPlatLoadCipher(
     return 1;
 }
 
+_Success_(return != 0)
 int
 CxPlatLoadMAC(
     _In_ char *name,
@@ -91,6 +95,7 @@ CxPlatLoadMAC(
     return 1;
 }
 
+_Success_(return != 0)
 int
 CxPlatLoadHMACCTX(
     _In_ EVP_MAC *mac,
@@ -130,6 +135,16 @@ typedef struct CXPLAT_HP_KEY {
     CXPLAT_AEAD_TYPE Aead;
 } CXPLAT_HP_KEY;
 
+#if defined CXPLAT_SYSTEM_CRYPTO && !defined IS_OPENSSL_3 && !defined _WIN32
+// This is to fulfill link dependency in ssl_init.
+// If system OpenSSL has chacha support, we will redirect it to loaded handle.
+//
+const EVP_CIPHER *EVP_chacha20_poly1305(void)
+{
+    return CXPLAT_CHACHA20_POLY1305_ALG_HANDLE;
+}
+#endif
+
 QUIC_STATUS
 CxPlatCryptInitialize(
     void
@@ -155,11 +170,15 @@ CxPlatCryptInitialize(
         !CxPlatLoadCipher("AES-256-GCM", &CXPLAT_AES_256_GCM_ALG_HANDLE) ||
         !CxPlatLoadCipher("AES-256-CBC", &CXPLAT_AES_256_CBC_ALG_HANDLE) ||
         !CxPlatLoadCipher("AES-128-ECB", &CXPLAT_AES_128_ECB_ALG_HANDLE) ||
-        !CxPlatLoadCipher("AES-256-ECB", &CXPLAT_AES_256_ECB_ALG_HANDLE) ||
-        !CxPlatLoadCipher("ChaCha20", &CXPLAT_CHACHA20_ALG_HANDLE) ||
-        !CxPlatLoadCipher("ChaCha20-Poly1305", &CXPLAT_CHACHA20_POLY1305_ALG_HANDLE)) {
+        !CxPlatLoadCipher("AES-256-ECB", &CXPLAT_AES_256_ECB_ALG_HANDLE)) {
         goto Error;
     }
+
+    //
+    // Load ChaCha20 ciphers if they exist.
+    //
+    CxPlatLoadCipher("ChaCha20", &CXPLAT_CHACHA20_ALG_HANDLE);
+    CxPlatLoadCipher("ChaCha20-Poly1305", &CXPLAT_CHACHA20_POLY1305_ALG_HANDLE);
 
     //
     // Preload HMAC
@@ -190,11 +209,52 @@ Error:
     CXPLAT_AES_256_CBC_ALG_HANDLE = (EVP_CIPHER *)EVP_aes_256_cbc();
     CXPLAT_AES_128_ECB_ALG_HANDLE = (EVP_CIPHER *)EVP_aes_128_ecb();
     CXPLAT_AES_256_ECB_ALG_HANDLE = (EVP_CIPHER *)EVP_aes_256_ecb();
+#if defined _WIN32 || !defined CXPLAT_SYSTEM_CRYPTO
     CXPLAT_CHACHA20_ALG_HANDLE = (EVP_CIPHER *)EVP_chacha20();
     CXPLAT_CHACHA20_POLY1305_ALG_HANDLE = (EVP_CIPHER *)EVP_chacha20_poly1305();
+#else
+    CXPLAT_CHACHA20_ALG_HANDLE = NULL;
+    CXPLAT_CHACHA20_POLY1305_ALG_HANDLE = NULL;
 
+    //
+    // Try to load ChaCha20 ciphers dynamically. They may or may not exist when using system crypto.
+    //
+    void* handle = dlopen("libcrypto.so.1.1", RTLD_LAZY | RTLD_GLOBAL);
+    EVP_CIPHER* (*func)(void) = NULL;
+    if (handle != NULL) {
+        func = dlsym(handle, "EVP_chacha20");
+        if (func != NULL) {
+            CXPLAT_CHACHA20_ALG_HANDLE = (*func)();
+
+            func = dlsym(handle, "EVP_chacha20_poly1305");
+            if (func != NULL) {
+                CXPLAT_CHACHA20_POLY1305_ALG_HANDLE = (*func)();
+                EVP_add_cipher(CXPLAT_CHACHA20_POLY1305_ALG_HANDLE);
+            }
+        } else {
+            dlclose(handle);
+        }
+    }
+#endif
     return QUIC_STATUS_SUCCESS;
 #endif
+}
+
+BOOLEAN
+CxPlatCryptSupports(
+    CXPLAT_AEAD_TYPE AeadType
+    )
+{
+    switch (AeadType) {
+    case CXPLAT_AEAD_AES_128_GCM:
+        return CXPLAT_AES_128_GCM_ALG_HANDLE != NULL;
+    case CXPLAT_AEAD_AES_256_GCM:
+        return CXPLAT_AES_256_GCM_ALG_HANDLE != NULL;
+    case CXPLAT_AEAD_CHACHA20_POLY1305:
+        return CXPLAT_CHACHA20_ALG_HANDLE != NULL;
+    default:
+        return FALSE;
+    }
 }
 
 void
@@ -211,10 +271,14 @@ CxPlatCryptUninitialize(
     CXPLAT_AES_128_ECB_ALG_HANDLE = NULL;
     EVP_CIPHER_free(CXPLAT_AES_256_ECB_ALG_HANDLE);
     CXPLAT_AES_256_ECB_ALG_HANDLE = NULL;
-    EVP_CIPHER_free(CXPLAT_CHACHA20_ALG_HANDLE);
-    CXPLAT_CHACHA20_ALG_HANDLE = NULL;
-    EVP_CIPHER_free(CXPLAT_CHACHA20_POLY1305_ALG_HANDLE);
-    CXPLAT_CHACHA20_POLY1305_ALG_HANDLE = NULL;
+    if (CXPLAT_CHACHA20_ALG_HANDLE != NULL) {
+        EVP_CIPHER_free(CXPLAT_CHACHA20_ALG_HANDLE);
+        CXPLAT_CHACHA20_ALG_HANDLE = NULL;
+    }
+    if (CXPLAT_CHACHA20_POLY1305_ALG_HANDLE != NULL) {
+        EVP_CIPHER_free(CXPLAT_CHACHA20_POLY1305_ALG_HANDLE);
+        CXPLAT_CHACHA20_POLY1305_ALG_HANDLE = NULL;
+    }
 
     EVP_MAC_CTX_free(CXPLAT_HMAC_SHA256_CTX_HANDLE);
     CXPLAT_HMAC_SHA256_CTX_HANDLE = NULL;
@@ -262,6 +326,10 @@ CxPlatKeyCreate(
         Aead = CXPLAT_AES_256_GCM_ALG_HANDLE;
         break;
     case CXPLAT_AEAD_CHACHA20_POLY1305:
+        if (CXPLAT_CHACHA20_POLY1305_ALG_HANDLE == NULL) {
+            Status = QUIC_STATUS_NOT_SUPPORTED;
+            goto Exit;
+        }
         Aead = CXPLAT_CHACHA20_POLY1305_ALG_HANDLE;
         break;
     default:
@@ -536,6 +604,10 @@ CxPlatHpKeyCreate(
         Aead = CXPLAT_AES_256_ECB_ALG_HANDLE;
         break;
     case CXPLAT_AEAD_CHACHA20_POLY1305:
+        if (CXPLAT_CHACHA20_ALG_HANDLE == NULL) {
+            Status = QUIC_STATUS_NOT_SUPPORTED;
+            goto Exit;
+        }
         Aead = CXPLAT_CHACHA20_ALG_HANDLE;
         break;
     default:

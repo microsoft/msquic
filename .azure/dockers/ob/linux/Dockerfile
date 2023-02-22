@@ -21,9 +21,9 @@ RUN apt-get update && apt-get install -y apt-transport-https \
     g++-aarch64-linux-gnu \
     binutils-aarch64-linux-gnu \
     cmake \
-    git \
+    git=1:2.25.1-1ubuntu3.8 \
     make \
-    sudo \
+    sudo=1.8.31-1ubuntu1.4 \
     liblttng-ust-dev \
     lttng-tools \
     perl \
