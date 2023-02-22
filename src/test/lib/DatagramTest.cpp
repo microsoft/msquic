@@ -225,7 +225,7 @@ QuicTestDatagramSend(
                 TEST_EQUAL(1, Client.GetDatagramsAcknowledged());
 
 #if QUIC_TEST_DATAPATH_HOOKS_ENABLED
-                uint32_t CurrentLostCount = Client.GetDatagramsSuspectLost();
+                const uint32_t InitialLostCount = Client.GetDatagramsSuspectLost();
                 LossHelper.DropPackets(1);
 
                 TEST_QUIC_SUCCEEDED(
@@ -252,10 +252,10 @@ QuicTestDatagramSend(
                 //      state changes to LOST_SUSPECT before the first datagram acked (line 225)
                 //      However line 225 (DatagramsAcknowledged) becomes true by treating state 5 (ACKNOWLEDGED_SPURIOUS) as 4 (ACKNOWLEDGED)
                 Tries = 0;
-                while (Client.GetDatagramsSuspectLost() == CurrentLostCount && ++Tries < 10) {
+                while (Client.GetDatagramsSuspectLost() == InitialLostCount && ++Tries < 10) {
                     CxPlatSleep(100);
                 }
-                TEST_TRUE(Client.GetDatagramsSuspectLost() > CurrentLostCount);
+                TEST_TRUE(Client.GetDatagramsSuspectLost() > InitialLostCount);
                 CxPlatSleep(100);
 #endif
 
