@@ -242,15 +242,12 @@ QuicTestDatagramSend(
                 }
                 TEST_EQUAL(2, Client.GetDatagramsSent());
 
-
-                // NOTE:
-                // There are two cases of DATAGRAM_SEND_STATE_CHANGED
-                // 1. 1->4,   1->2->3
-                //      This is expected state changes. 99.99...% cases
-                // 2. 1->2-5, 1->2
-                //      This is unexpected. 0.0...1% cases
-                //      state changes to LOST_SUSPECT before the first datagram acked (line 225)
-                //      However line 225 (DatagramsAcknowledged) becomes true by treating state 5 (ACKNOWLEDGED_SPURIOUS) as 4 (ACKNOWLEDGED)
+                //
+                // Even though the test only drops a single packet, it is
+                // possible that an oversubscribed VM may result in additional
+                // packet drops. Account for this by ensuring at least one new
+                // packet is dropped by this test.
+                //
                 Tries = 0;
                 while (Client.GetDatagramsSuspectLost() == InitialLostCount && ++Tries < 10) {
                     CxPlatSleep(100);
