@@ -1296,7 +1296,10 @@ void start() {
         }
 
         if (GetRandom(2) == 0) {
-            uint32_t ProcCount = 1 + GetRandom(CxPlatProcMaxCount() - 1);
+            const uint32_t ProcCount =
+                CxPlatProcMaxCount() == 1 ?
+                    1 :
+                    1 + GetRandom(CxPlatProcMaxCount() - 1);
             printf("Using %u partitions...\n", ProcCount);
             ExecConfigSize = QUIC_EXECUTION_CONFIG_MIN_SIZE + sizeof(uint16_t)*ProcCount;
             ExecConfig = (QUIC_EXECUTION_CONFIG*)malloc(ExecConfigSize);
