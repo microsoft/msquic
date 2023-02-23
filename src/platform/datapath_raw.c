@@ -149,6 +149,10 @@ CxPlatDataPathInitialize(
         DataPath->UdpHandlers = *UdpCallbacks;
     }
 
+    if (Config && (Config->Flags & QUIC_EXECUTION_CONFIG_FLAG_QTIP)) {
+        DataPath->UseTcp = TRUE;
+    }
+
     if (!CxPlatSockPoolInitialize(&DataPath->SocketPool)) {
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         goto Error;
@@ -406,6 +410,7 @@ CxPlatSocketCreateUdp(
     (*NewSocket)->CibirIdLength = Config->CibirIdLength;
     (*NewSocket)->CibirIdOffsetSrc = Config->CibirIdOffsetSrc;
     (*NewSocket)->CibirIdOffsetDst = Config->CibirIdOffsetDst;
+    (*NewSocket)->UseTcp = Datapath->UseTcp;
     if (Config->CibirIdLength) {
         memcpy((*NewSocket)->CibirId, Config->CibirId, Config->CibirIdLength);
     }
@@ -489,6 +494,14 @@ CxPlatSocketDelete(
     CxPlatDpRawPlumbRulesOnSocket(Socket, FALSE);
     CxPlatRemoveSocket(&Socket->Datapath->SocketPool, Socket);
     CxPlatRundownReleaseAndWait(&Socket->Rundown);
+    if (Socket->PausedTcpSend) {
+        CxPlatDpRawTxFree(Socket->PausedTcpSend);
+    }
+
+    if (Socket->CachedRstSend) {
+        CxPlatDpRawTxEnqueue(Socket->CachedRstSend);
+    }
+
     CXPLAT_FREE(Socket, QUIC_POOL_SOCKET);
 }
 
@@ -498,7 +511,11 @@ CxPlatSocketGetLocalMtu(
     _In_ CXPLAT_SOCKET* Socket
     )
 {
-    return 1500;
+    if (Socket->UseTcp) {
+        return 1488; // Reserve space for TCP header.
+    } else {
+        return 1500;
+    }
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -535,37 +552,51 @@ CxPlatDpRawRxEthernet(
         CXPLAT_RECV_DATA* PacketChain = Packets[i];
         CXPLAT_DBG_ASSERT(PacketChain->Next == NULL);
 
-        if (PacketChain->Reserved == L4_TYPE_UDP) {
+        if (PacketChain->Reserved >= L4_TYPE_UDP) {
             Socket =
                 CxPlatGetSocket(
                     &Datapath->SocketPool,
                     &PacketChain->Route->LocalAddress,
                     &PacketChain->Route->RemoteAddress);
         }
+
         if (Socket) {
-            //
-            // Found a match. Chain and deliver contiguous packets with the same 4-tuple.
-            //
-            while (i < PacketCount) {
-                QuicTraceEvent(
-                    DatapathRecv,
-                    "[data][%p] Recv %u bytes (segment=%hu) Src=%!ADDR! Dst=%!ADDR!",
-                    Socket,
-                    Packets[i]->BufferLength,
-                    Packets[i]->BufferLength,
-                    CASTED_CLOG_BYTEARRAY(sizeof(Packets[i]->Route->LocalAddress), &Packets[i]->Route->LocalAddress),
-                    CASTED_CLOG_BYTEARRAY(sizeof(Packets[i]->Route->RemoteAddress), &Packets[i]->Route->RemoteAddress));
-                if (i == PacketCount - 1 ||
-                    Packets[i+1]->Reserved != L4_TYPE_UDP ||
-                    Packets[i+1]->Route->LocalAddress.Ipv4.sin_port != Socket->LocalAddress.Ipv4.sin_port ||
-                    !CxPlatSocketCompare(Socket, &Packets[i+1]->Route->LocalAddress, &Packets[i+1]->Route->RemoteAddress)) {
-                    break;
+            if (PacketChain->Reserved == L4_TYPE_UDP || PacketChain->Reserved == L4_TYPE_TCP) {
+                uint8_t SocketType = Socket->UseTcp ? L4_TYPE_TCP : L4_TYPE_UDP;
+
+                //
+                // Found a match. Chain and deliver contiguous packets with the same 4-tuple.
+                //
+                while (i < PacketCount) {
+                    QuicTraceEvent(
+                        DatapathRecv,
+                        "[data][%p] Recv %u bytes (segment=%hu) Src=%!ADDR! Dst=%!ADDR!",
+                        Socket,
+                        Packets[i]->BufferLength,
+                        Packets[i]->BufferLength,
+                        CASTED_CLOG_BYTEARRAY(sizeof(Packets[i]->Route->LocalAddress), &Packets[i]->Route->LocalAddress),
+                        CASTED_CLOG_BYTEARRAY(sizeof(Packets[i]->Route->RemoteAddress), &Packets[i]->Route->RemoteAddress));
+                    if (i == PacketCount - 1 ||
+                        Packets[i+1]->Reserved != SocketType ||
+                        Packets[i+1]->Route->LocalAddress.Ipv4.sin_port != Socket->LocalAddress.Ipv4.sin_port ||
+                        !CxPlatSocketCompare(Socket, &Packets[i+1]->Route->LocalAddress, &Packets[i+1]->Route->RemoteAddress)) {
+                        break;
+                    }
+                    Packets[i]->Next = Packets[i+1];
+                    CXPLAT_DBG_ASSERT(Packets[i+1]->Next == NULL);
+                    i++;
                 }
-                Packets[i]->Next = Packets[i+1];
-                CXPLAT_DBG_ASSERT(Packets[i+1]->Next == NULL);
-                i++;
+                Datapath->UdpHandlers.Receive(Socket, Socket->CallbackContext, (CXPLAT_RECV_DATA*)PacketChain);
+            } else if (PacketChain->Reserved == L4_TYPE_TCP_SYN || PacketChain->Reserved == L4_TYPE_TCP_SYNACK) {
+                CxPlatDpRawSocketAckSyn(Socket, PacketChain);
+                CxPlatDpRawRxFree(PacketChain);
+            } else if (PacketChain->Reserved == L4_TYPE_TCP_FIN) {
+                CxPlatDpRawSocketAckFin(Socket, PacketChain);
+                CxPlatDpRawRxFree(PacketChain);
+            } else {
+                CxPlatDpRawRxFree(PacketChain);
             }
-            Datapath->UdpHandlers.Receive(Socket, Socket->CallbackContext, (CXPLAT_RECV_DATA*)PacketChain);
+
             CxPlatRundownRelease(&Socket->Rundown);
         } else {
             CxPlatDpRawRxFree(PacketChain);
@@ -590,7 +621,7 @@ CxPlatSendDataAlloc(
     _Inout_ CXPLAT_SEND_CONFIG* Config
     )
 {
-    return CxPlatDpRawTxAlloc(Socket->Datapath, Config);
+    return CxPlatDpRawTxAlloc(Socket, Config);
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -633,6 +664,8 @@ CxPlatSendDataIsFull(
     return TRUE;
 }
 
+#define TH_ACK 0x10
+
 _IRQL_requires_max_(DISPATCH_LEVEL)
 QUIC_STATUS
 CxPlatSocketSend(
@@ -641,6 +674,14 @@ CxPlatSocketSend(
     _In_ CXPLAT_SEND_DATA* SendData
     )
 {
+    if (Socket->UseTcp &&
+        Socket->Connected &&
+        Route->TcpState.Syncd == FALSE) {
+        Socket->PausedTcpSend = SendData;
+        CxPlatDpRawSocketSyn(Socket, Route);
+        return QUIC_STATUS_SUCCESS;
+    }
+
     QuicTraceEvent(
         DatapathSend,
         "[data][%p] Send %u bytes in %hhu buffers (segment=%hu) Dst=%!ADDR!, Src=%!ADDR!",
@@ -653,10 +694,14 @@ CxPlatSocketSend(
     CXPLAT_DBG_ASSERT(Route->State == RouteResolved);
     CXPLAT_DBG_ASSERT(Route->Queue != NULL);
     const CXPLAT_INTERFACE* Interface = CxPlatDpRawGetInterfaceFromQueue(Route->Queue);
+
     CxPlatFramingWriteHeaders(
         Socket, Route, &SendData->Buffer, SendData->ECN,
         Interface->OffloadStatus.Transmit.NetworkLayerXsum,
-        Interface->OffloadStatus.Transmit.TransportLayerXsum);
+        Interface->OffloadStatus.Transmit.TransportLayerXsum,
+        Route->TcpState.SequenceNumber,
+        Route->TcpState.AckNumber,
+        TH_ACK);
     CxPlatDpRawTxEnqueue(SendData);
     return QUIC_STATUS_SUCCESS;
 }

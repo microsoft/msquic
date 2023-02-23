@@ -120,6 +120,9 @@ param (
     [switch]$XDP = $false,
 
     [Parameter(Mandatory = $false)]
+    [switch]$QTIP = $false,
+
+    [Parameter(Mandatory = $false)]
     [int]$Timeout = 120,
 
     [Parameter(Mandatory = $false)]
@@ -154,6 +157,9 @@ if ($Kernel) {
     if ($XDP) {
         Write-Error "'-XDP' is not supported in kernel mode!"
     }
+    if ($QTIP) {
+        Write-Error "'-QTIP' is not supported in kernel mode!"
+    }
 }
 if (!$IsWindows) {
     if ($PGO) {
@@ -161,6 +167,9 @@ if (!$IsWindows) {
     }
     if ($XDP) {
         Write-Error "'-XDP' is not supported on this platform!"
+    }
+    if ($QTIP) {
+        Write-Error "'-QTIP' is not supported on this platform!"
     }
 }
 
@@ -247,6 +256,7 @@ Set-ScriptVariables -Local $Local `
                     -RemoteTls $RemoteTls `
                     -RemoteArch $RemoteArch `
                     -XDP $XDP `
+                    -QTIP $QTIP `
                     -Config $Config `
                     -Publish $Publish `
                     -Record $Record `
@@ -435,6 +445,11 @@ function Invoke-Test {
     if ($XDP) {
         $RemoteArguments += " -pollidle:10000"
         $LocalArguments += " -pollidle:10000"
+    }
+
+    if ($QTIP) {
+        $RemoteArguments += " -qtip:1"
+        $LocalArguments += " -qtip:1"
     }
 
     if ($Kernel) {

@@ -1308,10 +1308,11 @@ CxPlatDpRawPlumbRulesOnSocket(
     )
 {
     XDP_DATAPATH* Xdp = (XDP_DATAPATH*)Socket->Datapath;
-
     if (Socket->Wildcard) {
-
         if (Socket->CibirIdLength) {
+            //
+            // TODO: Add support for TCP based CIBIR rules.
+            //
             XDP_RULE Rules[] = {
                 {
                 .Match = XDP_MATCH_QUIC_FLOW_SRC_CID,
@@ -1346,7 +1347,7 @@ CxPlatDpRawPlumbRulesOnSocket(
             }
         } else {
             const XDP_RULE Rule = {
-                .Match = XDP_MATCH_UDP_DST,
+                .Match = Socket->UseTcp ? XDP_MATCH_TCP_DST : XDP_MATCH_UDP_DST,
                 .Pattern.Port = Socket->LocalAddress.Ipv4.sin_port,
                 .Action = XDP_PROGRAM_ACTION_REDIRECT,
                 .Redirect.TargetType = XDP_REDIRECT_TARGET_TYPE_XSK,
@@ -1369,17 +1370,16 @@ CxPlatDpRawPlumbRulesOnSocket(
         //
         // TODO - Optimization: apply only to the correct interface.
         //
-
         CXPLAT_LIST_ENTRY* Entry;
         XDP_MATCH_TYPE MatchType;
         uint8_t* IpAddress;
         size_t IpAddressSize;
         if (Socket->LocalAddress.si_family == QUIC_ADDRESS_FAMILY_INET) {
-            MatchType = XDP_MATCH_IPV4_UDP_PORT_SET;
+            MatchType = Socket->UseTcp ? XDP_MATCH_IPV4_TCP_PORT_SET : XDP_MATCH_IPV4_UDP_PORT_SET;
             IpAddress = (uint8_t*)&Socket->LocalAddress.Ipv4.sin_addr;
             IpAddressSize = sizeof(IN_ADDR);
         } else {
-            MatchType = XDP_MATCH_IPV6_UDP_PORT_SET;
+            MatchType = Socket->UseTcp ? XDP_MATCH_IPV6_TCP_PORT_SET : XDP_MATCH_IPV6_UDP_PORT_SET;
             IpAddress = (uint8_t*)&Socket->LocalAddress.Ipv6.sin6_addr;
             IpAddressSize = sizeof(IN6_ADDR);
         }
@@ -1594,7 +1594,7 @@ CxPlatDpRawRxFree(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 CXPLAT_SEND_DATA*
 CxPlatDpRawTxAlloc(
-    _In_ CXPLAT_DATAPATH* Datapath,
+    _In_ CXPLAT_SOCKET* Socket,
     _Inout_ CXPLAT_SEND_CONFIG* Config
     )
 {
@@ -1602,10 +1602,8 @@ CxPlatDpRawTxAlloc(
     XDP_QUEUE* Queue = Config->Route->Queue;
     XDP_TX_PACKET* Packet = (XDP_TX_PACKET*)InterlockedPopEntrySList(&Queue->TxPool);
 
-    UNREFERENCED_PARAMETER(Datapath);
-
     if (Packet) {
-        HEADER_BACKFILL HeaderBackfill = CxPlatDpRawCalculateHeaderBackFill(Family); // TODO - Cache in Route?
+        HEADER_BACKFILL HeaderBackfill = CxPlatDpRawCalculateHeaderBackFill(Family, Socket->UseTcp); // TODO - Cache in Route?
         CXPLAT_DBG_ASSERT(Config->MaxPacketSize <= sizeof(Packet->FrameBuffer) - HeaderBackfill.AllLayer);
         Packet->Queue = Queue;
         Packet->Buffer.Length = Config->MaxPacketSize;
