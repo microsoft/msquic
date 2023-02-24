@@ -857,8 +857,6 @@ CxPlatDpRawInterfaceUpdateRules(
         .SubLayer = XDP_HOOK_INSPECT,
     };
 
-    const UINT32 Flags = XDP_CREATE_PROGRAM_FLAG_SHARE; // TODO: support native/generic forced flags.
-
     for (uint32_t i = 0; i < Interface->QueueCount; i++) {
 
         XDP_QUEUE* Queue = &Interface->Queues[i];
@@ -872,7 +870,7 @@ CxPlatDpRawInterfaceUpdateRules(
                 Interface->IfIndex,
                 &RxHook,
                 i,
-                Flags,
+                0,
                 Interface->Rules,
                 Interface->RuleCount,
                 &NewRxProgram);
@@ -976,7 +974,8 @@ CxPlatDpRawInterfaceRemoveRules(
                 if (Rules[j].Pattern.Port != Interface->Rules[i].Pattern.Port) {
                     continue;
                 }
-            } else if (Rules[j].Match == XDP_MATCH_QUIC_FLOW_SRC_CID || Rules[j].Match == XDP_MATCH_QUIC_FLOW_DST_CID) {
+            } else if (Rules[j].Match == XDP_MATCH_QUIC_FLOW_SRC_CID || Rules[j].Match == XDP_MATCH_QUIC_FLOW_DST_CID ||
+                       Rules[j].Match == XDP_MATCH_TCP_QUIC_FLOW_SRC_CID || Rules[j].Match == XDP_MATCH_TCP_QUIC_FLOW_DST_CID) {
                 if (Rules[j].Pattern.QuicFlow.UdpPort != Interface->Rules[i].Pattern.QuicFlow.UdpPort ||
                     Rules[j].Pattern.QuicFlow.CidLength != Interface->Rules[i].Pattern.QuicFlow.CidLength ||
                     Rules[j].Pattern.QuicFlow.CidOffset != Interface->Rules[i].Pattern.QuicFlow.CidOffset ||
@@ -1310,12 +1309,9 @@ CxPlatDpRawPlumbRulesOnSocket(
     XDP_DATAPATH* Xdp = (XDP_DATAPATH*)Socket->Datapath;
     if (Socket->Wildcard) {
         if (Socket->CibirIdLength) {
-            //
-            // TODO: Add support for TCP based CIBIR rules.
-            //
             XDP_RULE Rules[] = {
                 {
-                .Match = XDP_MATCH_QUIC_FLOW_SRC_CID,
+                .Match = Socket->UseTcp ? XDP_MATCH_TCP_QUIC_FLOW_SRC_CID : XDP_MATCH_QUIC_FLOW_SRC_CID,
                 .Pattern.QuicFlow.UdpPort = Socket->LocalAddress.Ipv4.sin_port,
                 .Pattern.QuicFlow.CidLength = Socket->CibirIdLength,
                 .Pattern.QuicFlow.CidOffset = Socket->CibirIdOffsetSrc,
@@ -1324,7 +1320,7 @@ CxPlatDpRawPlumbRulesOnSocket(
                 .Redirect.Target = NULL,
                 },
                 {
-                .Match = XDP_MATCH_QUIC_FLOW_DST_CID,
+                .Match = Socket->UseTcp ? XDP_MATCH_TCP_QUIC_FLOW_DST_CID : XDP_MATCH_QUIC_FLOW_DST_CID,
                 .Pattern.QuicFlow.UdpPort = Socket->LocalAddress.Ipv4.sin_port,
                 .Pattern.QuicFlow.CidLength = Socket->CibirIdLength,
                 .Pattern.QuicFlow.CidOffset = Socket->CibirIdOffsetDst,
