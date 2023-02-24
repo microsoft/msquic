@@ -134,7 +134,10 @@ param (
     [switch]$DuoNic = $false,
 
     [Parameter(Mandatory = $false)]
-    [string]$OsRunner = ""
+    [string]$OsRunner = "",
+
+    [Parameter(Mandatory = $false)]
+    [switch]$UseQtip = $false
 )
 
 Set-StrictMode -Version 'Latest'
@@ -382,6 +385,9 @@ function Start-TestCase([String]$Name) {
     if ($DuoNic) {
         $Arguments += " --duoNic"
     }
+    if ($UseQtip) {
+        $Arguments += " --useQTIP"
+    }
     if ("" -ne $OsRunner) {
         $Arguments += " --osRunner=$OsRunner"
     }
@@ -424,6 +430,9 @@ function Start-AllTestCases {
     }
     if ($DuoNic) {
         $Arguments += " --duoNic"
+    }
+    if ($UseQtip) {
+        $Arguments += " --useQTIP"
     }
     if ("" -ne $OsRunner) {
         $Arguments += " --osRunner=$OsRunner"

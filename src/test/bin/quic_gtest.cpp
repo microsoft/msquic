@@ -13,6 +13,7 @@
 bool TestingKernelMode = false;
 bool PrivateTestLibrary = false;
 bool UseDuoNic = false;
+bool UseQTIP = false;
 const MsQuicApi* MsQuic;
 const char* OsRunner = nullptr;
 QUIC_CREDENTIAL_CONFIG ServerSelfSignedCredConfig;
@@ -75,6 +76,17 @@ public:
             printf("Initializing for User Mode tests\n");
             MsQuic = new(std::nothrow) MsQuicApi();
             ASSERT_TRUE(QUIC_SUCCEEDED(MsQuic->GetInitStatus()));
+            if (UseQTIP) {
+                QUIC_EXECUTION_CONFIG Config = {0};
+                Config.PollingIdleTimeoutUs = UINT32_MAX;
+                Config.Flags |= QUIC_EXECUTION_CONFIG_FLAG_QTIP;
+                ASSERT_TRUE(QUIC_SUCCEEDED(
+                    MsQuic->SetParam(
+                        nullptr,
+                        QUIC_PARAM_GLOBAL_EXECUTION_CONFIG,
+                        sizeof(Config),
+                        &Config)));
+            }
             memcpy(&ServerSelfSignedCredConfig, SelfSignedCertParams, sizeof(QUIC_CREDENTIAL_CONFIG));
             memcpy(&ServerSelfSignedCredConfigClientAuth, SelfSignedCertParams, sizeof(QUIC_CREDENTIAL_CONFIG));
             ServerSelfSignedCredConfigClientAuth.Flags |=
@@ -2305,6 +2317,8 @@ int main(int argc, char** argv) {
             }
         } else if (strcmp("--duoNic", argv[i]) == 0) {
             UseDuoNic = true;
+        } else if (strcmp("--useQTIP", argv[i]) == 0) {
+            UseQTIP = true;
         } else if (strstr(argv[i], "--osRunner")) {
             OsRunner = argv[i] + sizeof("--osRunner");
         }

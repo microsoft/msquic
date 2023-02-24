@@ -169,6 +169,9 @@ param (
     [switch]$UseXdp = $false,
 
     [Parameter(Mandatory = $false)]
+    [switch]$UseQtip = $false,
+
+    [Parameter(Mandatory = $false)]
     [string]$OsRunner = ""
 )
 
@@ -332,6 +335,9 @@ if ($ErrorsAsWarnings) {
 }
 if ("" -ne $OsRunner) {
     $TestArguments += " -OsRunner $OsRunner"
+}
+if ($UseQtip) {
+    $TestArguments += " -UseQtip"
 }
 
 if (![string]::IsNullOrWhiteSpace($ExtraArtifactDir)) {
