@@ -77,9 +77,7 @@ public:
             MsQuic = new(std::nothrow) MsQuicApi();
             ASSERT_TRUE(QUIC_SUCCEEDED(MsQuic->GetInitStatus()));
             if (UseQTIP) {
-                QUIC_EXECUTION_CONFIG Config = {0};
-                Config.PollingIdleTimeoutUs = UINT32_MAX;
-                Config.Flags |= QUIC_EXECUTION_CONFIG_FLAG_QTIP;
+                QUIC_EXECUTION_CONFIG Config = {QUIC_EXECUTION_CONFIG_FLAG_QTIP, UINT32_MAX, 0};
                 ASSERT_TRUE(QUIC_SUCCEEDED(
                     MsQuic->SetParam(
                         nullptr,
