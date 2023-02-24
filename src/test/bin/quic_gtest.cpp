@@ -13,7 +13,9 @@
 bool TestingKernelMode = false;
 bool PrivateTestLibrary = false;
 bool UseDuoNic = false;
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
 bool UseQTIP = false;
+#endif
 const MsQuicApi* MsQuic;
 const char* OsRunner = nullptr;
 QUIC_CREDENTIAL_CONFIG ServerSelfSignedCredConfig;
@@ -76,6 +78,7 @@ public:
             printf("Initializing for User Mode tests\n");
             MsQuic = new(std::nothrow) MsQuicApi();
             ASSERT_TRUE(QUIC_SUCCEEDED(MsQuic->GetInitStatus()));
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
             if (UseQTIP) {
                 QUIC_EXECUTION_CONFIG Config = {QUIC_EXECUTION_CONFIG_FLAG_QTIP, UINT32_MAX, 0};
                 ASSERT_TRUE(QUIC_SUCCEEDED(
@@ -85,6 +88,7 @@ public:
                         sizeof(Config),
                         &Config)));
             }
+#endif // QUIC_API_ENABLE_PREVIEW_FEATURES
             memcpy(&ServerSelfSignedCredConfig, SelfSignedCertParams, sizeof(QUIC_CREDENTIAL_CONFIG));
             memcpy(&ServerSelfSignedCredConfigClientAuth, SelfSignedCertParams, sizeof(QUIC_CREDENTIAL_CONFIG));
             ServerSelfSignedCredConfigClientAuth.Flags |=
@@ -2316,7 +2320,12 @@ int main(int argc, char** argv) {
         } else if (strcmp("--duoNic", argv[i]) == 0) {
             UseDuoNic = true;
         } else if (strcmp("--useQTIP", argv[i]) == 0) {
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
             UseQTIP = true;
+#else
+            printf("QTIP is not supported in this build.\n");
+            return -1;
+#endif
         } else if (strstr(argv[i], "--osRunner")) {
             OsRunner = argv[i] + sizeof("--osRunner");
         }
