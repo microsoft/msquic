@@ -1341,23 +1341,23 @@ CxPlatDpRawPlumbRulesOnSocket(
                     CxPlatDpRawInterfaceRemoveRules(Interface, Rules, 2);
                 }
             }
-        } else {
-            const XDP_RULE Rule = {
-                .Match = Socket->UseTcp ? XDP_MATCH_TCP_DST : XDP_MATCH_UDP_DST,
-                .Pattern.Port = Socket->LocalAddress.Ipv4.sin_port,
-                .Action = XDP_PROGRAM_ACTION_REDIRECT,
-                .Redirect.TargetType = XDP_REDIRECT_TARGET_TYPE_XSK,
-                .Redirect.Target = NULL,
-            };
+        }
+        
+        const XDP_RULE Rule = {
+            .Match = Socket->UseTcp ? XDP_MATCH_TCP_DST : XDP_MATCH_UDP_DST,
+            .Pattern.Port = Socket->LocalAddress.Ipv4.sin_port,
+            .Action = XDP_PROGRAM_ACTION_REDIRECT,
+            .Redirect.TargetType = XDP_REDIRECT_TARGET_TYPE_XSK,
+            .Redirect.Target = NULL,
+        };
 
-            CXPLAT_LIST_ENTRY* Entry;
-            for (Entry = Xdp->Interfaces.Flink; Entry != &Xdp->Interfaces; Entry = Entry->Flink) {
-                XDP_INTERFACE* Interface = CONTAINING_RECORD(Entry, XDP_INTERFACE, Link);
-                if (IsCreated) {
-                    CxPlatDpRawInterfaceAddRules(Interface, &Rule, 1);
-                } else {
-                    CxPlatDpRawInterfaceRemoveRules(Interface, &Rule, 1);
-                }
+        CXPLAT_LIST_ENTRY* Entry;
+        for (Entry = Xdp->Interfaces.Flink; Entry != &Xdp->Interfaces; Entry = Entry->Flink) {
+            XDP_INTERFACE* Interface = CONTAINING_RECORD(Entry, XDP_INTERFACE, Link);
+            if (IsCreated) {
+                CxPlatDpRawInterfaceAddRules(Interface, &Rule, 1);
+            } else {
+                CxPlatDpRawInterfaceRemoveRules(Interface, &Rule, 1);
             }
         }
 
