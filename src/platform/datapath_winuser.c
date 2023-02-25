@@ -465,43 +465,49 @@ typedef struct CXPLAT_SOCKET {
     CXPLAT_REF_COUNT RefCount;
 
     //
-    // The local interface's MTU.
-    //
-    uint16_t Mtu;
-
-    //
     // The size of a receive buffer's payload.
     //
     uint32_t RecvBufLen;
 
     //
+    // The local interface's MTU.
+    //
+    uint16_t Mtu;
+
+    //
     // Socket type.
     //
-    uint8_t Type : 2; // CXPLAT_SOCKET_TYPE
+    uint16_t Type : 2; // CXPLAT_SOCKET_TYPE
+
+    //
+    // Flag indicates the socket has more than one socket, affinitized to all
+    // the processors.
+    //
+    uint16_t PerProcessorSockets : 1;
 
     //
     // Flag indicates the socket has a default remote destination.
     //
-    uint8_t HasFixedRemoteAddress : 1;
+    uint16_t HasFixedRemoteAddress : 1;
 
     //
     // Flag indicates the socket indicated a disconnect event.
     //
-    uint8_t DisconnectIndicated : 1;
+    uint16_t DisconnectIndicated : 1;
 
     //
     // Flag indicates the binding is being used for PCP.
     //
-    uint8_t PcpBinding : 1;
+    uint16_t PcpBinding : 1;
 
     //
     // Flag indicates the socket is using RIO instead of traditional Winsock.
     //
-    uint8_t UseRio : 1;
+    uint16_t UseRio : 1;
 
 #if DEBUG
-    uint8_t Uninitialized : 1;
-    uint8_t Freed : 1;
+    uint16_t Uninitialized : 1;
+    uint16_t Freed : 1;
 #endif
 
     //
@@ -1817,14 +1823,16 @@ CxPlatSocketCreateUdp(
     )
 {
     QUIC_STATUS Status;
-    BOOLEAN IsServerSocket = Config->RemoteAddress == NULL;
-    uint16_t SocketCount = IsServerSocket ? (uint16_t)CxPlatProcMaxCount() : 1;
+    const BOOLEAN IsServerSocket = Config->RemoteAddress == NULL;
+    const BOOLEAN PerProcessorSockets = IsServerSocket && Datapath->ProcCount > 1;
+    const uint16_t SocketCount = PerProcessorSockets ? (uint16_t)CxPlatProcMaxCount() : 1;
     INET_PORT_RESERVATION_INSTANCE PortReservation;
     int Result, Option;
 
     CXPLAT_DBG_ASSERT(Datapath->UdpHandlers.Receive != NULL || Config->Flags & CXPLAT_SOCKET_FLAG_PCP);
+    CXPLAT_DBG_ASSERT(IsServerSocket || Config->PartitionIndex < Datapath->ProcCount);
 
-    uint32_t SocketLength =
+    const uint32_t SocketLength =
         sizeof(CXPLAT_SOCKET) + SocketCount * sizeof(CXPLAT_SOCKET_PROC);
     CXPLAT_SOCKET* Socket = CXPLAT_ALLOC_PAGED(SocketLength, QUIC_POOL_SOCKET);
     if (Socket == NULL) {
@@ -1847,9 +1855,9 @@ CxPlatSocketCreateUdp(
     ZeroMemory(Socket, SocketLength);
     Socket->Datapath = Datapath;
     Socket->ClientContext = Config->CallbackContext;
+    Socket->PerProcessorSockets = PerProcessorSockets;
     Socket->HasFixedRemoteAddress = (Config->RemoteAddress != NULL);
     Socket->Type = CXPLAT_SOCKET_UDP;
-    Socket->UseRio = FALSE;
     if (Config->LocalAddress) {
         CxPlatConvertToMappedV6(Config->LocalAddress, &Socket->LocalAddress);
     } else {
@@ -1882,7 +1890,10 @@ CxPlatSocketCreateUdp(
     for (uint16_t i = 0; i < SocketCount; i++) {
 
         CXPLAT_SOCKET_PROC* SocketProc = &Socket->Processors[i];
-        const uint16_t PartitionIndex = Config->RemoteAddress ? Config->PartitionIndex : i;
+        const uint16_t PartitionIndex =
+            Config->RemoteAddress ?
+                Config->PartitionIndex :
+                i % Datapath->ProcCount;
         DWORD SocketFlags = WSA_FLAG_OVERLAPPED;
         DWORD BytesReturned;
 
@@ -2943,9 +2954,7 @@ CxPlatSocketDelete(
 #endif
 
     const uint16_t SocketCount =
-        (Socket->Type == CXPLAT_SOCKET_UDP && !Socket->HasFixedRemoteAddress) ?
-            (uint16_t)CxPlatProcMaxCount() : 1;
-
+        Socket->PerProcessorSockets ? (uint16_t)CxPlatProcMaxCount() : 1;
     for (uint16_t i = 0; i < SocketCount; ++i) {
         CxPlatSocketContextUninitialize(&Socket->Processors[i]);
     }
