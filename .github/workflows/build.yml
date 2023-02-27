@@ -68,7 +68,9 @@ jobs:
     runs-on: ubuntu-${{ matrix.os }}
     steps:
     - name: Checkout repository
-      uses: actions/checkout@ac593985615ec2ede58e132d2e21d2b1cbd6127c
+      uses: actions/checkout@v3
+      with:
+        fetch-depth: 0
     - name: Prepare Machine
       shell: pwsh
       run: scripts/prepare-machine.ps1 -ForBuild -Tls ${{ matrix.tls }}
@@ -102,9 +104,9 @@ jobs:
       image: ghcr.io/microsoft/msquic/linux-build-xcomp
     steps:
     - name: Checkout repository
-      uses: actions/checkout@ac593985615ec2ede58e132d2e21d2b1cbd6127c
+      uses: actions/checkout@v3
       with:
-        fetch-depth: 2
+        fetch-depth: 0
         submodules: 'recursive'
     - name: Set ownership
       run: |
@@ -138,7 +140,9 @@ jobs:
     runs-on: macos-${{ matrix.os }}
     steps:
     - name: Checkout repository
-      uses: actions/checkout@ac593985615ec2ede58e132d2e21d2b1cbd6127c
+      uses: actions/checkout@v3
+      with:
+        fetch-depth: 0
     - name: Prepare Machine
       shell: pwsh
       run: scripts/prepare-machine.ps1 -ForBuild -Tls ${{ matrix.tls }}
@@ -186,7 +190,9 @@ jobs:
     runs-on: windows-${{ matrix.os }}
     steps:
     - name: Checkout repository
-      uses: actions/checkout@ac593985615ec2ede58e132d2e21d2b1cbd6127c
+      uses: actions/checkout@v3
+      with:
+        fetch-depth: 0
     - name: Install Perl
       uses: shogo82148/actions-setup-perl@e0737ade83f9863f9f5c00d8470b6d7bec207fee
       with:
@@ -216,7 +222,9 @@ jobs:
     runs-on: windows-${{ matrix.os }}
     steps:
     - name: Checkout repository
-      uses: actions/checkout@ac593985615ec2ede58e132d2e21d2b1cbd6127c
+      uses: actions/checkout@v3
+      with:
+        fetch-depth: 0
     - name: Prepare Machine
       shell: pwsh
       run: scripts/prepare-machine.ps1 -ForBuild -ForKernel
