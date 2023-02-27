@@ -970,7 +970,7 @@ CxPlatDpRawInterfaceRemoveRules(
                 continue;
             }
 
-            if (Rules[j].Match == XDP_MATCH_UDP_DST || Rules[j].Match == XDP_MATCH_TCP_CONTROL_DST) {
+            if (Rules[j].Match == XDP_MATCH_UDP_DST || Rules[j].Match == XDP_MATCH_TCP_CONTROL_DST || Rules[j].Match == XDP_MATCH_TCP_DST) {
                 if (Rules[j].Pattern.Port != Interface->Rules[i].Pattern.Port) {
                     continue;
                 }
