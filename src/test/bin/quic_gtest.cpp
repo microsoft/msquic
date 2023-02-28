@@ -80,7 +80,7 @@ public:
             ASSERT_TRUE(QUIC_SUCCEEDED(MsQuic->GetInitStatus()));
 #ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
             if (UseQTIP) {
-                QUIC_EXECUTION_CONFIG Config = {QUIC_EXECUTION_CONFIG_FLAG_QTIP, UINT32_MAX, 0};
+                QUIC_EXECUTION_CONFIG Config = {QUIC_EXECUTION_CONFIG_FLAG_QTIP, 10000, 0};
                 ASSERT_TRUE(QUIC_SUCCEEDED(
                     MsQuic->SetParam(
                         nullptr,
