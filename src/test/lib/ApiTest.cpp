@@ -16,6 +16,8 @@ Abstract:
 
 #pragma warning(disable:6387)  // '_Param_(1)' could be '0':  this does not adhere to the specification for the function
 
+extern bool UseQTIP;
+
 void QuicTestValidateApi()
 {
     TEST_QUIC_STATUS(
@@ -2131,7 +2133,6 @@ void QuicTestStatefulGlobalSetParam()
     //
     {
         TestScopeLogger LogScope1("Set QUIC_PARAM_GLOBAL_EXECUTION_CONFIG when MsQuicLib.Datapath != NULL");
-        GlobalSettingScope ParamScope(QUIC_PARAM_GLOBAL_EXECUTION_CONFIG);
         uint16_t Data[QUIC_EXECUTION_CONFIG_MIN_SIZE] = {};
         TEST_QUIC_STATUS(
             QUIC_STATUS_INVALID_STATE,
@@ -2511,16 +2512,18 @@ void QuicTestGlobalParam()
             SimpleGetParamTest(nullptr, QUIC_PARAM_GLOBAL_EXECUTION_CONFIG, DataLength, Data);
         }
 
-        //
-        // Good GetParam with length == 0
-        //
-        uint32_t BufferLength = 0;
-        TEST_QUIC_SUCCEEDED(
-            MsQuic->GetParam(
-                nullptr,
-                QUIC_PARAM_GLOBAL_EXECUTION_CONFIG,
-                &BufferLength,
-                nullptr));
+        if (!UseQTIP) {
+            //
+            // Good GetParam with length == 0 when QTIP is not in use.
+            //
+            uint32_t BufferLength = 0;
+            TEST_QUIC_SUCCEEDED(
+                MsQuic->GetParam(
+                    nullptr,
+                    QUIC_PARAM_GLOBAL_EXECUTION_CONFIG,
+                    &BufferLength,
+                    nullptr));
+        }
     }
 #endif
 
