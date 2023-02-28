@@ -14,7 +14,9 @@ Abstract:
 #include "DataTest.cpp.clog.h"
 #endif
 
+#ifdef QUIC_USE_RAW_DATAPATH
 extern bool UseQTIP;
+#endif
 
 /*
     Helper function to estimate a maximum timeout for a test with a
@@ -473,18 +475,30 @@ QuicTestConnectAndPing(
                     }
                     TEST_QUIC_SUCCEEDED(Connections.get()[i]->SetRemoteAddr(RemoteAddr));
 
+#ifdef QUIC_USE_RAW_DATAPATH
                     if (!UseQTIP && i != 0) {
                         Connections.get()[i]->SetLocalAddr(LocalAddr);
                     }
+#else
+                    if (i != 0) {
+                        Connections.get()[i]->SetLocalAddr(LocalAddr);
+                    }
+#endif
                     TEST_QUIC_SUCCEEDED(
                         Connections.get()[i]->Start(
                             ClientConfiguration,
                             QuicAddrFamily,
                             ClientZeroRtt ? QUIC_LOCALHOST_FOR_AF(QuicAddrFamily) : nullptr,
                             ServerLocalAddr.GetPort()));
+#ifdef QUIC_USE_RAW_DATAPATH
                     if (!UseQTIP && i == 0) {
                         Connections.get()[i]->GetLocalAddr(LocalAddr);
                     }
+#else
+                    if (i == 0) {
+                        Connections.get()[i]->GetLocalAddr(LocalAddr);
+                    }
+#endif
                 }
             }
         }
