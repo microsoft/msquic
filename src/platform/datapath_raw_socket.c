@@ -851,6 +851,7 @@ CxPlatDpRawParseTcp(
     } else if (Tcp->Flags & TH_FIN) { 
         Packet->Reserved = L4_TYPE_TCP_FIN;
     } else {
+        printf("unexpected packet 0x%x\n", Tcp->Flags);
         QuicTraceEvent(
             DatapathErrorStatus,
             "[data][%p] ERROR, %u, %s.",

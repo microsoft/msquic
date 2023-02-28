@@ -14,6 +14,8 @@ Abstract:
 #include "DataTest.cpp.clog.h"
 #endif
 
+extern bool UseQTIP;
+
 /*
     Helper function to estimate a maximum timeout for a test with a
     particular payload length.
@@ -471,7 +473,7 @@ QuicTestConnectAndPing(
                     }
                     TEST_QUIC_SUCCEEDED(Connections.get()[i]->SetRemoteAddr(RemoteAddr));
 
-                    if (i != 0) {
+                    if (!UseQTIP && i != 0) {
                         Connections.get()[i]->SetLocalAddr(LocalAddr);
                     }
                     TEST_QUIC_SUCCEEDED(
@@ -480,7 +482,7 @@ QuicTestConnectAndPing(
                             QuicAddrFamily,
                             ClientZeroRtt ? QUIC_LOCALHOST_FOR_AF(QuicAddrFamily) : nullptr,
                             ServerLocalAddr.GetPort()));
-                    if (i == 0) {
+                    if (!UseQTIP && i == 0) {
                         Connections.get()[i]->GetLocalAddr(LocalAddr);
                     }
                 }
