@@ -50,9 +50,9 @@ void
 QuicTestMtuSettings()
 {
 #ifdef QUIC_USE_RAW_DATAPATH
-    uint16_t DefaultMaximumMtu = UseQTIP ? 1488 : 1500; // reserve 12B for TCP header
+    const uint16_t DefaultMaximumMtu = UseQTIP ? 1488 : 1500; // reserve 12B for TCP header
 #else
-    uint16_t DefaultMaximumMtu = 1500;
+    const uint16_t DefaultMaximumMtu = 1500;
 #endif
 
     {

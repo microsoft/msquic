@@ -1200,13 +1200,6 @@ CxPlatDpRawSocketAckSyn(
     const CXPLAT_INTERFACE* Interface = CxPlatDpRawGetInterfaceFromQueue(Route->Queue);
     TCP_HEADER* ReceivedTcpHeader = (TCP_HEADER*)(Packet->Buffer - Packet->ReservedEx);
 
-    CxPlatFramingWriteHeaders(
-        Socket, Route, &SendData->Buffer, SendData->ECN,
-        Interface->OffloadStatus.Transmit.NetworkLayerXsum,
-        Interface->OffloadStatus.Transmit.TransportLayerXsum,
-        ReceivedTcpHeader->AckNumber,
-        CxPlatByteSwapUint32(CxPlatByteSwapUint32(ReceivedTcpHeader->SequenceNumber) + 1),
-        TcpFlags);
     QuicTraceEvent(
         DatapathSendTcpControl,
         "[data][%p] Send %u bytes TCP control packet Flags=%hhu Dst=%!ADDR!, Src=%!ADDR!",
@@ -1215,18 +1208,19 @@ CxPlatDpRawSocketAckSyn(
         TcpFlags,
         CASTED_CLOG_BYTEARRAY(sizeof(Route->RemoteAddress), &Route->RemoteAddress),
         CASTED_CLOG_BYTEARRAY(sizeof(Route->LocalAddress), &Route->LocalAddress));
+
+    CxPlatFramingWriteHeaders(
+        Socket, Route, &SendData->Buffer, SendData->ECN,
+        Interface->OffloadStatus.Transmit.NetworkLayerXsum,
+        Interface->OffloadStatus.Transmit.TransportLayerXsum,
+        ReceivedTcpHeader->AckNumber,
+        CxPlatByteSwapUint32(CxPlatByteSwapUint32(ReceivedTcpHeader->SequenceNumber) + 1),
+        TcpFlags);
     CxPlatDpRawTxEnqueue(SendData);
 
     SendData = InterlockedFetchAndClearPointer(&Socket->PausedTcpSend);
     if (SendData) {
         CXPLAT_DBG_ASSERT(Socket->Connected);
-        CxPlatFramingWriteHeaders(
-            Socket, Route, &SendData->Buffer, SendData->ECN,
-            Interface->OffloadStatus.Transmit.NetworkLayerXsum,
-            Interface->OffloadStatus.Transmit.TransportLayerXsum,
-            CxPlatByteSwapUint32(CxPlatByteSwapUint32(ReceivedTcpHeader->AckNumber) + 1),
-            CxPlatByteSwapUint32(CxPlatByteSwapUint32(ReceivedTcpHeader->SequenceNumber) + 1),
-            TH_ACK);
         QuicTraceEvent(
             DatapathSendTcpControl,
             "[data][%p] Send %u bytes TCP control packet Flags=%hhu Dst=%!ADDR!, Src=%!ADDR!",
@@ -1235,6 +1229,13 @@ CxPlatDpRawSocketAckSyn(
             TH_ACK,
             CASTED_CLOG_BYTEARRAY(sizeof(Route->RemoteAddress), &Route->RemoteAddress),
             CASTED_CLOG_BYTEARRAY(sizeof(Route->LocalAddress), &Route->LocalAddress));
+        CxPlatFramingWriteHeaders(
+            Socket, Route, &SendData->Buffer, SendData->ECN,
+            Interface->OffloadStatus.Transmit.NetworkLayerXsum,
+            Interface->OffloadStatus.Transmit.TransportLayerXsum,
+            CxPlatByteSwapUint32(CxPlatByteSwapUint32(ReceivedTcpHeader->AckNumber) + 1),
+            CxPlatByteSwapUint32(CxPlatByteSwapUint32(ReceivedTcpHeader->SequenceNumber) + 1),
+            TH_ACK);
         CxPlatDpRawTxEnqueue(SendData);
 
         SendData = CxPlatSendDataAlloc(Socket, &SendConfig);

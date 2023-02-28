@@ -1669,6 +1669,16 @@ TEST_P(WithSendArgs3, SendIntermittently) {
 #ifndef QUIC_DISABLE_0RTT_TESTS
 
 TEST_P(WithSend0RttArgs1, Send0Rtt) {
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
+    if (UseQTIP) {
+        //
+        // QTIP doesn't work with 0-RTT. QTIP only pauses and caches 1 packet during
+        // TCP handshake.
+        //
+        return;
+    }
+#endif
+
     TestLoggerT<ParamType> Logger("Send0Rtt", GetParam());
     if (TestingKernelMode) {
         QUIC_RUN_CONNECT_AND_PING_PARAMS Params = {
@@ -1708,6 +1718,15 @@ TEST_P(WithSend0RttArgs1, Send0Rtt) {
 }
 
 TEST_P(WithSend0RttArgs2, Reject0Rtt) {
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
+    if (UseQTIP) {
+        //
+        // QTIP doesn't work with 0-RTT. QTIP only pauses and caches 1 packet during
+        // TCP handshake.
+        //
+        return;
+    }
+#endif
     TestLoggerT<ParamType> Logger("Reject0Rtt", GetParam());
     if (TestingKernelMode) {
         QUIC_RUN_CONNECT_AND_PING_PARAMS Params = {
