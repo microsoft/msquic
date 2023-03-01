@@ -228,17 +228,56 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_SOCKET_C, AllocFailure,
 
 
 /*----------------------------------------------------------
+// Decoder Ring for DatapathSendTcpControl
+// [data][%p] Send %u bytes TCP control packet Flags=%hhu Dst=%!ADDR!, Src=%!ADDR!
+// QuicTraceEvent(
+        DatapathSendTcpControl,
+        "[data][%p] Send %u bytes TCP control packet Flags=%hhu Dst=%!ADDR!, Src=%!ADDR!",
+        Socket,
+        SendData->Buffer.Length,
+        (uint8_t)(TH_FIN | TH_ACK),
+        CASTED_CLOG_BYTEARRAY(sizeof(Route->RemoteAddress), &Route->RemoteAddress),
+        CASTED_CLOG_BYTEARRAY(sizeof(Route->LocalAddress), &Route->LocalAddress));
+// arg2 = arg2 = Socket = arg2
+// arg3 = arg3 = SendData->Buffer.Length = arg3
+// arg4 = arg4 = (uint8_t)(TH_FIN | TH_ACK) = arg4
+// arg5 = arg5 = CASTED_CLOG_BYTEARRAY(sizeof(Route->RemoteAddress), &Route->RemoteAddress) = arg5
+// arg6 = arg6 = CASTED_CLOG_BYTEARRAY(sizeof(Route->LocalAddress), &Route->LocalAddress) = arg6
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_SOCKET_C, DatapathSendTcpControl,
+    TP_ARGS(
+        const void *, arg2,
+        unsigned int, arg3,
+        unsigned char, arg4,
+        unsigned int, arg5_len,
+        const void *, arg5,
+        unsigned int, arg6_len,
+        const void *, arg6), 
+    TP_FIELDS(
+        ctf_integer_hex(uint64_t, arg2, arg2)
+        ctf_integer(unsigned int, arg3, arg3)
+        ctf_integer(unsigned char, arg4, arg4)
+        ctf_integer(unsigned int, arg5_len, arg5_len)
+        ctf_sequence(char, arg5, arg5, unsigned int, arg5_len)
+        ctf_integer(unsigned int, arg6_len, arg6_len)
+        ctf_sequence(char, arg6, arg6, unsigned int, arg6_len)
+    )
+)
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for DatapathSend
 // [data][%p] Send %u bytes in %hhu buffers (segment=%hu) Dst=%!ADDR!, Src=%!ADDR!
 // QuicTraceEvent(
-        DatapathSend,
-        "[data][%p] Send %u bytes in %hhu buffers (segment=%hu) Dst=%!ADDR!, Src=%!ADDR!",
-        Socket,
-        SendData->Buffer.Length,
-        1,
-        (uint16_t)SendData->Buffer.Length,
-        CASTED_CLOG_BYTEARRAY(sizeof(Route->RemoteAddress), &Route->RemoteAddress),
-        CASTED_CLOG_BYTEARRAY(sizeof(Route->LocalAddress), &Route->LocalAddress));
+            DatapathSend,
+            "[data][%p] Send %u bytes in %hhu buffers (segment=%hu) Dst=%!ADDR!, Src=%!ADDR!",
+            Socket,
+            SendData->Buffer.Length,
+            1,
+            (uint16_t)SendData->Buffer.Length,
+            CASTED_CLOG_BYTEARRAY(sizeof(Route->RemoteAddress), &Route->RemoteAddress),
+            CASTED_CLOG_BYTEARRAY(sizeof(Route->LocalAddress), &Route->LocalAddress));
 // arg2 = arg2 = Socket = arg2
 // arg3 = arg3 = SendData->Buffer.Length = arg3
 // arg4 = arg4 = 1 = arg4

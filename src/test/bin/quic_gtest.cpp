@@ -13,6 +13,9 @@
 bool TestingKernelMode = false;
 bool PrivateTestLibrary = false;
 bool UseDuoNic = false;
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
+bool UseQTIP = false;
+#endif
 const MsQuicApi* MsQuic;
 const char* OsRunner = nullptr;
 QUIC_CREDENTIAL_CONFIG ServerSelfSignedCredConfig;
@@ -75,6 +78,17 @@ public:
             printf("Initializing for User Mode tests\n");
             MsQuic = new(std::nothrow) MsQuicApi();
             ASSERT_TRUE(QUIC_SUCCEEDED(MsQuic->GetInitStatus()));
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
+            if (UseQTIP) {
+                QUIC_EXECUTION_CONFIG Config = {QUIC_EXECUTION_CONFIG_FLAG_QTIP, 10000, 0};
+                ASSERT_TRUE(QUIC_SUCCEEDED(
+                    MsQuic->SetParam(
+                        nullptr,
+                        QUIC_PARAM_GLOBAL_EXECUTION_CONFIG,
+                        sizeof(Config),
+                        &Config)));
+            }
+#endif // QUIC_API_ENABLE_PREVIEW_FEATURES
             memcpy(&ServerSelfSignedCredConfig, SelfSignedCertParams, sizeof(QUIC_CREDENTIAL_CONFIG));
             memcpy(&ServerSelfSignedCredConfigClientAuth, SelfSignedCertParams, sizeof(QUIC_CREDENTIAL_CONFIG));
             ServerSelfSignedCredConfigClientAuth.Flags |=
@@ -1440,6 +1454,14 @@ TEST_P(WithFamilyArgs, ClientBlockedSourcePort) {
 
 #if QUIC_TEST_DATAPATH_HOOKS_ENABLED
 TEST_P(WithFamilyArgs, RebindPort) {
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
+    if (UseQTIP) {
+        //
+        // NAT rebind doesn't make sense for TCP and QTIP.
+        //
+        return;
+    }
+#endif
     TestLoggerT<ParamType> Logger("QuicTestNatPortRebind", GetParam());
     if (TestingKernelMode) {
         QUIC_RUN_REBIND_PARAMS Params = {
@@ -1453,6 +1475,14 @@ TEST_P(WithFamilyArgs, RebindPort) {
 }
 
 TEST_P(WithRebindPaddingArgs, RebindPortPadded) {
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
+    if (UseQTIP) {
+        //
+        // NAT rebind doesn't make sense for TCP and QTIP.
+        //
+        return;
+    }
+#endif
     TestLoggerT<ParamType> Logger("QuicTestNatPortRebind(pad)", GetParam());
     if (TestingKernelMode) {
         QUIC_RUN_REBIND_PARAMS Params = {
@@ -1466,6 +1496,14 @@ TEST_P(WithRebindPaddingArgs, RebindPortPadded) {
 }
 
 TEST_P(WithFamilyArgs, RebindAddr) {
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
+    if (UseQTIP) {
+        //
+        // NAT rebind doesn't make sense for TCP and QTIP.
+        //
+        return;
+    }
+#endif
     TestLoggerT<ParamType> Logger("QuicTestNatAddrRebind", GetParam());
     if (TestingKernelMode) {
         QUIC_RUN_REBIND_PARAMS Params = {
@@ -1479,6 +1517,14 @@ TEST_P(WithFamilyArgs, RebindAddr) {
 }
 
 TEST_P(WithRebindPaddingArgs, RebindAddrPadded) {
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
+    if (UseQTIP) {
+        //
+        // NAT rebind doesn't make sense for TCP and QTIP.
+        //
+        return;
+    }
+#endif
     TestLoggerT<ParamType> Logger("QuicTestNatAddrRebind(pad)", GetParam());
     if (TestingKernelMode) {
         QUIC_RUN_REBIND_PARAMS Params = {
@@ -1655,6 +1701,16 @@ TEST_P(WithSendArgs3, SendIntermittently) {
 #ifndef QUIC_DISABLE_0RTT_TESTS
 
 TEST_P(WithSend0RttArgs1, Send0Rtt) {
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
+    if (UseQTIP) {
+        //
+        // QTIP doesn't work with 0-RTT. QTIP only pauses and caches 1 packet during
+        // TCP handshake.
+        //
+        return;
+    }
+#endif
+
     TestLoggerT<ParamType> Logger("Send0Rtt", GetParam());
     if (TestingKernelMode) {
         QUIC_RUN_CONNECT_AND_PING_PARAMS Params = {
@@ -1694,6 +1750,15 @@ TEST_P(WithSend0RttArgs1, Send0Rtt) {
 }
 
 TEST_P(WithSend0RttArgs2, Reject0Rtt) {
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
+    if (UseQTIP) {
+        //
+        // QTIP doesn't work with 0-RTT. QTIP only pauses and caches 1 packet during
+        // TCP handshake.
+        //
+        return;
+    }
+#endif
     TestLoggerT<ParamType> Logger("Reject0Rtt", GetParam());
     if (TestingKernelMode) {
         QUIC_RUN_CONNECT_AND_PING_PARAMS Params = {
@@ -2305,6 +2370,13 @@ int main(int argc, char** argv) {
             }
         } else if (strcmp("--duoNic", argv[i]) == 0) {
             UseDuoNic = true;
+        } else if (strcmp("--useQTIP", argv[i]) == 0) {
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
+            UseQTIP = true;
+#else
+            printf("QTIP is not supported in this build.\n");
+            return -1;
+#endif
         } else if (strstr(argv[i], "--osRunner")) {
             OsRunner = argv[i] + sizeof("--osRunner");
         }

@@ -2931,6 +2931,34 @@
       ],
       "macroName": "QuicTraceEvent"
     },
+    "DatapathSendTcpControl": {
+      "ModuleProperites": {},
+      "TraceString": "[data][%p] Send %u bytes TCP control packet Flags=%hhu Dst=%!ADDR!, Src=%!ADDR!",
+      "UniqueId": "DatapathSendTcpControl",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg3"
+        },
+        {
+          "DefinationEncoding": "hhu",
+          "MacroVariableName": "arg4"
+        },
+        {
+          "DefinationEncoding": "!ADDR!",
+          "MacroVariableName": "arg5"
+        },
+        {
+          "DefinationEncoding": "!ADDR!",
+          "MacroVariableName": "arg6"
+        }
+      ],
+      "macroName": "QuicTraceEvent"
+    },
     "DatapathShutDownComplete": {
       "ModuleProperites": {},
       "TraceString": "[data][%p] Shut down (complete)",
@@ -13196,6 +13224,11 @@
         "UniquenessHash": "20cf52f5-ef36-a45b-6a54-29e5eaac7f19",
         "TraceID": "DatapathSend",
         "EncodingString": "[data][%p] Send %u bytes in %hhu buffers (segment=%hu) Dst=%!ADDR!, Src=%!ADDR!"
+      },
+      {
+        "UniquenessHash": "798b4c99-cb62-f6d9-178d-daf707dc6c10",
+        "TraceID": "DatapathSendTcpControl",
+        "EncodingString": "[data][%p] Send %u bytes TCP control packet Flags=%hhu Dst=%!ADDR!, Src=%!ADDR!"
       },
       {
         "UniquenessHash": "4f1e0892-0852-480e-71db-5b9bb377aabc",

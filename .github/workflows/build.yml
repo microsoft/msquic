@@ -69,6 +69,8 @@ jobs:
     steps:
     - name: Checkout repository
       uses: actions/checkout@ac593985615ec2ede58e132d2e21d2b1cbd6127c
+      with:
+        fetch-depth: 0
     - name: Prepare Machine
       shell: pwsh
       run: scripts/prepare-machine.ps1 -ForBuild -Tls ${{ matrix.tls }}
@@ -104,7 +106,7 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@ac593985615ec2ede58e132d2e21d2b1cbd6127c
       with:
-        fetch-depth: 2
+        fetch-depth: 0
         submodules: 'recursive'
     - name: Set ownership
       run: |
@@ -139,6 +141,8 @@ jobs:
     steps:
     - name: Checkout repository
       uses: actions/checkout@ac593985615ec2ede58e132d2e21d2b1cbd6127c
+      with:
+        fetch-depth: 0
     - name: Prepare Machine
       shell: pwsh
       run: scripts/prepare-machine.ps1 -ForBuild -Tls ${{ matrix.tls }}
@@ -187,6 +191,8 @@ jobs:
     steps:
     - name: Checkout repository
       uses: actions/checkout@ac593985615ec2ede58e132d2e21d2b1cbd6127c
+      with:
+        fetch-depth: 0
     - name: Install Perl
       uses: shogo82148/actions-setup-perl@e0737ade83f9863f9f5c00d8470b6d7bec207fee
       with:
@@ -217,6 +223,8 @@ jobs:
     steps:
     - name: Checkout repository
       uses: actions/checkout@ac593985615ec2ede58e132d2e21d2b1cbd6127c
+      with:
+        fetch-depth: 0
     - name: Prepare Machine
       shell: pwsh
       run: scripts/prepare-machine.ps1 -ForBuild -ForKernel

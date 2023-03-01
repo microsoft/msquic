@@ -857,8 +857,6 @@ CxPlatDpRawInterfaceUpdateRules(
         .SubLayer = XDP_HOOK_INSPECT,
     };
 
-    const UINT32 Flags = XDP_CREATE_PROGRAM_FLAG_SHARE; // TODO: support native/generic forced flags.
-
     for (uint32_t i = 0; i < Interface->QueueCount; i++) {
 
         XDP_QUEUE* Queue = &Interface->Queues[i];
@@ -872,7 +870,7 @@ CxPlatDpRawInterfaceUpdateRules(
                 Interface->IfIndex,
                 &RxHook,
                 i,
-                Flags,
+                0,
                 Interface->Rules,
                 Interface->RuleCount,
                 &NewRxProgram);
@@ -972,11 +970,12 @@ CxPlatDpRawInterfaceRemoveRules(
                 continue;
             }
 
-            if (Rules[j].Match == XDP_MATCH_UDP_DST) {
+            if (Rules[j].Match == XDP_MATCH_UDP_DST || Rules[j].Match == XDP_MATCH_TCP_CONTROL_DST || Rules[j].Match == XDP_MATCH_TCP_DST) {
                 if (Rules[j].Pattern.Port != Interface->Rules[i].Pattern.Port) {
                     continue;
                 }
-            } else if (Rules[j].Match == XDP_MATCH_QUIC_FLOW_SRC_CID || Rules[j].Match == XDP_MATCH_QUIC_FLOW_DST_CID) {
+            } else if (Rules[j].Match == XDP_MATCH_QUIC_FLOW_SRC_CID || Rules[j].Match == XDP_MATCH_QUIC_FLOW_DST_CID ||
+                       Rules[j].Match == XDP_MATCH_TCP_QUIC_FLOW_SRC_CID || Rules[j].Match == XDP_MATCH_TCP_QUIC_FLOW_DST_CID) {
                 if (Rules[j].Pattern.QuicFlow.UdpPort != Interface->Rules[i].Pattern.QuicFlow.UdpPort ||
                     Rules[j].Pattern.QuicFlow.CidLength != Interface->Rules[i].Pattern.QuicFlow.CidLength ||
                     Rules[j].Pattern.QuicFlow.CidOffset != Interface->Rules[i].Pattern.QuicFlow.CidOffset ||
@@ -1309,62 +1308,57 @@ CxPlatDpRawPlumbRulesOnSocket(
 {
     XDP_DATAPATH* Xdp = (XDP_DATAPATH*)Socket->Datapath;
     if (Socket->Wildcard) {
+        XDP_RULE Rules[3] = {0};
+        uint8_t RulesSize = 0;
         if (Socket->CibirIdLength) {
-            //
-            // TODO: Add support for TCP based CIBIR rules.
-            //
-            XDP_RULE Rules[] = {
-                {
-                .Match = XDP_MATCH_QUIC_FLOW_SRC_CID,
-                .Pattern.QuicFlow.UdpPort = Socket->LocalAddress.Ipv4.sin_port,
-                .Pattern.QuicFlow.CidLength = Socket->CibirIdLength,
-                .Pattern.QuicFlow.CidOffset = Socket->CibirIdOffsetSrc,
-                .Action = XDP_PROGRAM_ACTION_REDIRECT,
-                .Redirect.TargetType = XDP_REDIRECT_TARGET_TYPE_XSK,
-                .Redirect.Target = NULL,
-                },
-                {
-                .Match = XDP_MATCH_QUIC_FLOW_DST_CID,
-                .Pattern.QuicFlow.UdpPort = Socket->LocalAddress.Ipv4.sin_port,
-                .Pattern.QuicFlow.CidLength = Socket->CibirIdLength,
-                .Pattern.QuicFlow.CidOffset = Socket->CibirIdOffsetDst,
-                .Action = XDP_PROGRAM_ACTION_REDIRECT,
-                .Redirect.TargetType = XDP_REDIRECT_TARGET_TYPE_XSK,
-                .Redirect.Target = NULL,
-                }
-            };
+            Rules[0].Match = Socket->UseTcp ? XDP_MATCH_TCP_QUIC_FLOW_SRC_CID : XDP_MATCH_QUIC_FLOW_SRC_CID;
+            Rules[0].Pattern.QuicFlow.UdpPort = Socket->LocalAddress.Ipv4.sin_port;
+            Rules[0].Pattern.QuicFlow.CidLength = Socket->CibirIdLength;
+            Rules[0].Pattern.QuicFlow.CidOffset = Socket->CibirIdOffsetSrc;
+            Rules[0].Action = XDP_PROGRAM_ACTION_REDIRECT;
+            Rules[0].Redirect.TargetType = XDP_REDIRECT_TARGET_TYPE_XSK;
+            Rules[0].Redirect.Target = NULL;
+
+            Rules[1].Match = Socket->UseTcp ? XDP_MATCH_TCP_QUIC_FLOW_DST_CID : XDP_MATCH_QUIC_FLOW_DST_CID;
+            Rules[1].Pattern.QuicFlow.UdpPort = Socket->LocalAddress.Ipv4.sin_port;
+            Rules[1].Pattern.QuicFlow.CidLength = Socket->CibirIdLength;
+            Rules[1].Pattern.QuicFlow.CidOffset = Socket->CibirIdOffsetDst;
+            Rules[1].Action = XDP_PROGRAM_ACTION_REDIRECT;
+            Rules[1].Redirect.TargetType = XDP_REDIRECT_TARGET_TYPE_XSK;
+            Rules[1].Redirect.Target = NULL;
+
             memcpy(Rules[0].Pattern.QuicFlow.CidData, Socket->CibirId, Socket->CibirIdLength);
             memcpy(Rules[1].Pattern.QuicFlow.CidData, Socket->CibirId, Socket->CibirIdLength);
 
-            CXPLAT_LIST_ENTRY* Entry;
-            for (Entry = Xdp->Interfaces.Flink; Entry != &Xdp->Interfaces; Entry = Entry->Flink) {
-                XDP_INTERFACE* Interface = CONTAINING_RECORD(Entry, XDP_INTERFACE, Link);
-                if (IsCreated) {
-                    CxPlatDpRawInterfaceAddRules(Interface, Rules, 2);
-                } else {
-                    CxPlatDpRawInterfaceRemoveRules(Interface, Rules, 2);
-                }
+            RulesSize = 2;
+            if (Socket->UseTcp) {
+                Rules[2].Match = XDP_MATCH_TCP_CONTROL_DST;
+                Rules[2].Pattern.Port = Socket->LocalAddress.Ipv4.sin_port;
+                Rules[2].Action = XDP_PROGRAM_ACTION_REDIRECT;
+                Rules[2].Redirect.TargetType = XDP_REDIRECT_TARGET_TYPE_XSK;
+                Rules[2].Redirect.Target = NULL;
+                ++RulesSize;
             }
+            CXPLAT_DBG_ASSERT(RulesSize <= RTL_NUMBER_OF(Rules));
         } else {
-            const XDP_RULE Rule = {
-                .Match = Socket->UseTcp ? XDP_MATCH_TCP_DST : XDP_MATCH_UDP_DST,
-                .Pattern.Port = Socket->LocalAddress.Ipv4.sin_port,
-                .Action = XDP_PROGRAM_ACTION_REDIRECT,
-                .Redirect.TargetType = XDP_REDIRECT_TARGET_TYPE_XSK,
-                .Redirect.Target = NULL,
-            };
+            Rules[0].Match = Socket->UseTcp ? XDP_MATCH_TCP_DST : XDP_MATCH_UDP_DST;
+            Rules[0].Pattern.Port = Socket->LocalAddress.Ipv4.sin_port;
+            Rules[0].Action = XDP_PROGRAM_ACTION_REDIRECT;
+            Rules[0].Redirect.TargetType = XDP_REDIRECT_TARGET_TYPE_XSK;
+            Rules[0].Redirect.Target = NULL;
 
-            CXPLAT_LIST_ENTRY* Entry;
-            for (Entry = Xdp->Interfaces.Flink; Entry != &Xdp->Interfaces; Entry = Entry->Flink) {
-                XDP_INTERFACE* Interface = CONTAINING_RECORD(Entry, XDP_INTERFACE, Link);
-                if (IsCreated) {
-                    CxPlatDpRawInterfaceAddRules(Interface, &Rule, 1);
-                } else {
-                    CxPlatDpRawInterfaceRemoveRules(Interface, &Rule, 1);
-                }
-            }
+            RulesSize = 1;
         }
 
+        CXPLAT_LIST_ENTRY* Entry;
+        for (Entry = Xdp->Interfaces.Flink; Entry != &Xdp->Interfaces; Entry = Entry->Flink) {
+            XDP_INTERFACE* Interface = CONTAINING_RECORD(Entry, XDP_INTERFACE, Link);
+            if (IsCreated) {
+                CxPlatDpRawInterfaceAddRules(Interface, Rules, RulesSize);
+            } else {
+                CxPlatDpRawInterfaceRemoveRules(Interface, Rules, RulesSize);
+            }
+        }
     } else {
 
         //

@@ -20,6 +20,9 @@
 #endif
 
 extern bool TestingKernelMode;
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
+extern bool UseQTIP;
+#endif
 
 class WithBool : public testing::Test,
     public testing::WithParamInterface<bool> {
@@ -342,7 +345,14 @@ struct SendArgs2 {
 #else
         for (bool UseZeroRtt : { false })
 #endif
+        {
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
+            if (UseQTIP && UseZeroRtt) {
+                continue;
+            }
+#endif
             list.push_back({ Family, UseSendBuffer, UseZeroRtt });
+        }
         return list;
     }
 };
