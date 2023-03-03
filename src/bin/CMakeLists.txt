@@ -207,7 +207,7 @@ else()
     endif()
 
     add_custom_target(
-        msquic_lib
+        msquic_lib ALL
         DEPENDS
         ${QUIC_STATIC_LIBRARY}
     )
