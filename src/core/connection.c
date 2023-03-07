@@ -6208,19 +6208,15 @@ QuicConnParamSet(
 
     case QUIC_PARAM_CONN_REMOTE_ADDRESS:
 
-        if (BufferLength != sizeof(QUIC_ADDR) ||
-            QuicAddrIsWildCard((QUIC_ADDR*)Buffer)) {
-            Status = QUIC_STATUS_INVALID_PARAMETER;
-            break;
-        }
-
-        if (QuicConnIsServer(Connection)) {
-            Status = QUIC_STATUS_INVALID_PARAMETER;
-            break;
-        }
-
         if (QUIC_CONN_BAD_START_STATE(Connection)) {
             Status = QUIC_STATUS_INVALID_STATE;
+            break;
+        }
+
+        if (BufferLength != sizeof(QUIC_ADDR) ||
+            QuicAddrIsWildCard((QUIC_ADDR*)Buffer) ||
+            QuicConnIsServer(Connection)) {
+            Status = QUIC_STATUS_INVALID_PARAMETER;
             break;
         }
 
