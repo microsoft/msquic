@@ -1899,6 +1899,16 @@ QuicConnStart(
         Connection->State.RemoteAddressSet = TRUE;
     }
 
+    if (QuicAddrIsWildCard(&Path->Route.RemoteAddress)) {
+        Status = QUIC_STATUS_INVALID_PARAMETER;
+        QuicTraceEvent(
+            ConnError,
+            "[conn][%p] ERROR, %s.",
+            Connection,
+            "Invalid wildcard remote address in connection start");
+        goto Exit;
+    }
+
     QuicAddrSetPort(&Path->Route.RemoteAddress, ServerPort);
     QuicTraceEvent(
         ConnRemoteAddrAdded,
@@ -6198,7 +6208,8 @@ QuicConnParamSet(
 
     case QUIC_PARAM_CONN_REMOTE_ADDRESS:
 
-        if (BufferLength != sizeof(QUIC_ADDR)) {
+        if (BufferLength != sizeof(QUIC_ADDR) ||
+            QuicAddrIsWildCard((QUIC_ADDR*)Buffer)) {
             Status = QUIC_STATUS_INVALID_PARAMETER;
             break;
         }
