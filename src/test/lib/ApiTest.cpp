@@ -3359,7 +3359,7 @@ void QuicTestConnectionParam()
             TestScopeLogger LogScope1("SetParam");
             {
                 //
-                // QUIC_STATUS_INVALID_STATE
+                // QUIC_STATUS_INVALID_STATE (connection failed to started)
                 //
                 {
                     TestScopeLogger LogScope2("QUIC_CONN_BAD_START_STATE");
@@ -3367,13 +3367,14 @@ void QuicTestConnectionParam()
                     TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
                     SimulateConnBadStartState(Connection, ClientConfiguration);
 
-                    const QUIC_ADDR ZeroAddr = {0};
+                    QUIC_ADDR Dummy = {};
+                    TEST_TRUE(QuicAddrFromString("127.0.0.1", 0, &Dummy));
                     TEST_QUIC_STATUS(
                         QUIC_STATUS_INVALID_STATE,
                         Connection.SetParam(
                             QUIC_PARAM_CONN_REMOTE_ADDRESS,
-                            sizeof(ZeroAddr),
-                            &ZeroAddr));
+                            sizeof(Dummy),
+                            &Dummy));
                 }
 
                 //
