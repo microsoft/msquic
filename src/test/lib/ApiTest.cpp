@@ -2067,7 +2067,7 @@ void SettingApplyTests(HQUIC Handle, uint32_t Param, bool AllowMtuEcnChanges = t
         QUIC_SETTINGS Settings{0};
         Settings.IsSet.EcnEnabled = TRUE;
         Settings.EcnEnabled = TRUE;
-        QUIC_STATUS Status = 
+        QUIC_STATUS Status =
             MsQuic->SetParam(
                 Handle,
                 Param,
@@ -3359,7 +3359,7 @@ void QuicTestConnectionParam()
             TestScopeLogger LogScope1("SetParam");
             {
                 //
-                // QUIC_CONN_BAD_START_STATE
+                // QUIC_STATUS_INVALID_STATE
                 //
                 {
                     TestScopeLogger LogScope2("QUIC_CONN_BAD_START_STATE");
@@ -3367,12 +3367,43 @@ void QuicTestConnectionParam()
                     TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
                     SimulateConnBadStartState(Connection, ClientConfiguration);
 
-                    QUIC_ADDR Dummy = {};
+                    const QUIC_ADDR ZeroAddr = {0};
                     TEST_QUIC_STATUS(
                         QUIC_STATUS_INVALID_STATE,
                         Connection.SetParam(
                             QUIC_PARAM_CONN_REMOTE_ADDRESS,
-                            sizeof(Dummy),
+                            sizeof(ZeroAddr),
+                            &ZeroAddr));
+                }
+
+                //
+                // QUIC_STATUS_INVALID_PARAMETER (0.0.0.0)
+                //
+                {
+                    MsQuicConnection Connection(Registration);
+                    TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
+                    const QUIC_ADDR ZeroAddr = {0};
+                    TEST_QUIC_STATUS(
+                        QUIC_STATUS_INVALID_PARAMETER,
+                        Connection.SetParam(
+                            QUIC_PARAM_CONN_REMOTE_ADDRESS,
+                            sizeof(ZeroAddr),
+                            &ZeroAddr));
+                }
+
+                //
+                // QUIC_STATUS_INVALID_PARAMETER (too small)
+                //
+                {
+                    MsQuicConnection Connection(Registration);
+                    TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
+                    QUIC_ADDR Dummy = {};
+                    TEST_TRUE(QuicAddrFromString("127.0.0.1", 0, &Dummy));
+                    TEST_QUIC_STATUS(
+                        QUIC_STATUS_INVALID_PARAMETER,
+                        Connection.SetParam(
+                            QUIC_PARAM_CONN_REMOTE_ADDRESS,
+                            sizeof(Dummy)-1,
                             &Dummy));
                 }
 
@@ -3383,6 +3414,7 @@ void QuicTestConnectionParam()
                     MsQuicConnection Connection(Registration);
                     TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
                     QUIC_ADDR Dummy = {};
+                    TEST_TRUE(QuicAddrFromString("127.0.0.1", 0, &Dummy));
                     TEST_QUIC_SUCCEEDED(
                         Connection.SetParam(
                             QUIC_PARAM_CONN_REMOTE_ADDRESS,
