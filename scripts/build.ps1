@@ -322,7 +322,7 @@ if ($Clang) {
 }
 
 # Workaround for perl openssl build warnings.
-$env:TERM='dumb'
+$env:TERM='ansi'
 
 function Log($msg) {
     Write-Host "[$(Get-Date)] $msg"
