@@ -334,6 +334,28 @@ tracepoint(CLOG_DATAPATH_WINUSER_C, LibraryError , arg2);\
 
 
 /*----------------------------------------------------------
+// Decoder Ring for DatapathErrorStatus
+// [data][%p] ERROR, %u, %s.
+// QuicTraceEvent(
+            DatapathErrorStatus,
+            "[data][%p] ERROR, %u, %s.",
+            SocketProc->Parent,
+            LastError,
+            "CxPlatSocketEnqueueSqe");
+// arg2 = arg2 = SocketProc->Parent = arg2
+// arg3 = arg3 = LastError = arg3
+// arg4 = arg4 = "CxPlatSocketEnqueueSqe" = arg4
+----------------------------------------------------------*/
+#ifndef _clog_5_ARGS_TRACE_DatapathErrorStatus
+#define _clog_5_ARGS_TRACE_DatapathErrorStatus(uniqueId, encoded_arg_string, arg2, arg3, arg4)\
+tracepoint(CLOG_DATAPATH_WINUSER_C, DatapathErrorStatus , arg2, arg3, arg4);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for DatapathCreated
 // [data][%p] Created, local=%!ADDR!, remote=%!ADDR!
 // QuicTraceEvent(
@@ -349,28 +371,6 @@ tracepoint(CLOG_DATAPATH_WINUSER_C, LibraryError , arg2);\
 #ifndef _clog_7_ARGS_TRACE_DatapathCreated
 #define _clog_7_ARGS_TRACE_DatapathCreated(uniqueId, encoded_arg_string, arg2, arg3, arg3_len, arg4, arg4_len)\
 tracepoint(CLOG_DATAPATH_WINUSER_C, DatapathCreated , arg2, arg3_len, arg3, arg4_len, arg4);\
-
-#endif
-
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for DatapathErrorStatus
-// [data][%p] ERROR, %u, %s.
-// QuicTraceEvent(
-                DatapathErrorStatus,
-                "[data][%p] ERROR, %u, %s.",
-                Socket,
-                WsaError,
-                "WSASocketW");
-// arg2 = arg2 = Socket = arg2
-// arg3 = arg3 = WsaError = arg3
-// arg4 = arg4 = "WSASocketW" = arg4
-----------------------------------------------------------*/
-#ifndef _clog_5_ARGS_TRACE_DatapathErrorStatus
-#define _clog_5_ARGS_TRACE_DatapathErrorStatus(uniqueId, encoded_arg_string, arg2, arg3, arg4)\
-tracepoint(CLOG_DATAPATH_WINUSER_C, DatapathErrorStatus , arg2, arg3, arg4);\
 
 #endif
 
