@@ -3025,7 +3025,9 @@ CxPlatSocketContextUninitialize(
     _In_ CXPLAT_SOCKET_PROC* SocketProc
     )
 {
+#if DEBUG
     CXPLAT_DBG_ASSERT(!SocketProc->Uninitialized);
+#endif
 
     if (!SocketProc->IoStarted) {
         //
