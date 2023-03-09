@@ -4357,13 +4357,16 @@ CxPlatDataPathSocketProcessReceiveInternal(
     CXPLAT_SOCKET_PROC* SocketProc = RecvContext->SocketProc;
 
 #if DEBUG
-    CXPLAT_DBG_ASSERT(!SocketProc->Uninitialized);
     CXPLAT_DBG_ASSERT(!SocketProc->Freed);
 #endif
 
     if (!CxPlatRundownAcquire(&SocketProc->UpcallRundown)) {
         return;
     }
+
+#if DEBUG
+    CXPLAT_DBG_ASSERT(!SocketProc->Uninitialized);
+#endif
 
     for (ULONG InlineReceiveCount = 10; InlineReceiveCount > 0; InlineReceiveCount--) {
         BOOLEAN StartReceive =
