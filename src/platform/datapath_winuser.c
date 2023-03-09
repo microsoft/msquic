@@ -3739,6 +3739,7 @@ Retry_recv:
                     Status = QUIC_STATUS_PENDING;
                 }
 
+                RecvContext = NULL;
                 goto Error;
             }
         }
@@ -4354,6 +4355,11 @@ CxPlatDataPathSocketProcessReceiveInternal(
     )
 {
     CXPLAT_SOCKET_PROC* SocketProc = RecvContext->SocketProc;
+
+#if DEBUG
+    CXPLAT_DBG_ASSERT(!SocketProc->Uninitialized);
+    CXPLAT_DBG_ASSERT(!SocketProc->Freed);
+#endif
 
     if (!CxPlatRundownAcquire(&SocketProc->UpcallRundown)) {
         return;
@@ -5060,16 +5066,10 @@ CxPlatSocketSendEnqueue(
     _In_ CXPLAT_SEND_DATA* SendData
     )
 {
-    CXPLAT_SOCKET_PROC* SocketProc = SendData->SocketProc;
-
-    CxPlatCopyMemory(
-        &SendData->LocalAddress,
-        &Route->LocalAddress,
-        sizeof(Route->LocalAddress));
-
+    SendData->LocalAddress = Route->LocalAddress;
     CxPlatDatapathSqeInitialize(&SendData->Sqe.DatapathSqe, CXPLAT_CQE_TYPE_SOCKET_IO);
     CxPlatStartDatapathIo(&SendData->Sqe, DATAPATH_IO_QUEUE_SEND);
-    return CxPlatSocketEnqueueSqe(SocketProc, &SendData->Sqe, 0);
+    return CxPlatSocketEnqueueSqe(SendData->SocketProc, &SendData->Sqe, 0);
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
