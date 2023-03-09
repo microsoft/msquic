@@ -1837,8 +1837,10 @@ CxPlatSocketEnqueueSqe(
     _In_ uint32_t NumBytes
     )
 {
+#if DEBUG
     CXPLAT_DBG_ASSERT(!SocketProc->Uninitialized);
     CXPLAT_DBG_ASSERT(!SocketProc->Freed);
+#endif
     if (!CxPlatEventQEnqueueEx(
             SocketProc->DatapathProc->EventQ,
             &Sqe->DatapathSqe.Sqe,
