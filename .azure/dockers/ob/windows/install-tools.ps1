@@ -9,7 +9,7 @@ elseif (Test-Path "C:\win-installer-helper.psm1")
 }
 
 $JomVersion = "1_1_3"
-$NasmVersion = "2.15.05"
+$NasmVersion = "2.16.01"
 $ProgressPreference = 'SilentlyContinue'
 
 Start-Setup

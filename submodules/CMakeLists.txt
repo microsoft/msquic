@@ -32,7 +32,7 @@ set(OPENSSL_CONFIG_FLAGS
     no-comp no-cms no-ct no-srp no-srtp no-ts no-gost no-dso no-ec2m
     no-tls1 no-tls1_1 no-tls1_2 no-dtls no-dtls1 no-dtls1_2 no-ssl
     no-ssl3-method no-tls1-method no-tls1_1-method no-tls1_2-method no-dtls1-method no-dtls1_2-method
-    no-siphash no-whirlpool no-aria no-bf no-blake2 no-sm2 no-sm3 no-sm4 no-camellia no-cast no-md4 no-mdc2 no-ocb no-rc2 no-rmd160 no-scrypt
+    no-siphash no-whirlpool no-aria no-bf no-blake2 no-sm2 no-sm3 no-sm4 no-camellia no-cast no-md4 no-mdc2 no-ocb no-rc2 no-rmd160 no-scrypt no-seed
     no-weak-ssl-ciphers no-shared no-tests)
 
 if (QUIC_USE_OPENSSL3)
