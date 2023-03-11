@@ -118,9 +118,8 @@ CxPlatCryptSupports(
 {
     switch (AeadType) {
     case CXPLAT_AEAD_AES_128_GCM:
-        return true;
     case CXPLAT_AEAD_AES_256_GCM:
-        return true;
+        return TRUE;
     case CXPLAT_AEAD_CHACHA20_POLY1305:
         return CXPLAT_CHACHA20_ALG_HANDLE != NULL;
     default:
