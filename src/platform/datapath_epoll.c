@@ -304,11 +304,6 @@ typedef struct CXPLAT_SOCKET {
     BOOLEAN Connected : 1;
 
     //
-    // Flag indicates the socket has a default remote destination.
-    //
-    BOOLEAN HasFixedRemoteAddress : 1;
-
-    //
     // Flag indicates the binding is being used for PCP.
     //
     BOOLEAN PcpBinding : 1;
@@ -894,25 +889,22 @@ Exit:
 QUIC_STATUS
 CxPlatSocketConfigureRss(
     _In_ CXPLAT_SOCKET_CONTEXT* SocketContext,
-    _In_ uint32_t SocketCount
+    _In_ uint32_t CpuCount
     )
 {
 #ifdef SO_ATTACH_REUSEPORT_CBPF
-    QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
-    int Result = 0;
-
-    struct sock_filter BpfCode[] = {
+    const struct sock_filter BpfCode[] = {
         {BPF_LD | BPF_W | BPF_ABS, 0, 0, SKF_AD_OFF | SKF_AD_CPU},
-        {BPF_ALU | BPF_MOD, 0, 0, SocketCount},
+        {BPF_ALU | BPF_MOD, 0, 0, CpuCount},
         {BPF_RET | BPF_A, 0, 0, 0}
     };
 
-    struct sock_fprog BpfConfig = {
+    const struct sock_fprog BpfConfig = {
         .len = ARRAYSIZE(BpfCode),
-        .filter = BpfCode
+        .filter = (struct sock_filter*)BpfCode
     };
 
-    Result =
+    int Result =
         setsockopt(
             SocketContext->SocketFd,
             SOL_SOCKET,
@@ -920,19 +912,20 @@ CxPlatSocketConfigureRss(
             (const void*)&BpfConfig,
             sizeof(BpfConfig));
     if (Result == SOCKET_ERROR) {
-        Status = errno;
+        QUIC_STATUS Status = errno;
         QuicTraceEvent(
             DatapathErrorStatus,
             "[data][%p] ERROR, %u, %s.",
             SocketContext->Binding,
             Status,
             "setsockopt(SO_ATTACH_REUSEPORT_CBPF) failed");
+        return Status;
     }
 
-    return Status;
+    return QUIC_STATUS_SUCCESS;
 #else
     UNREFERENCED_PARAMETER(SocketContext);
-    UNREFERENCED_PARAMETER(SocketCount);
+    UNREFERENCED_PARAMETER(CpuCount);
     return QUIC_STATUS_NOT_SUPPORTED;
 #endif
 }
@@ -946,8 +939,7 @@ QUIC_STATUS
 CxPlatSocketContextInitialize(
     _Inout_ CXPLAT_SOCKET_CONTEXT* SocketContext,
     _In_ const QUIC_ADDR* LocalAddress,
-    _In_ const QUIC_ADDR* RemoteAddress,
-    _In_ BOOLEAN ForceShare
+    _In_ const QUIC_ADDR* RemoteAddress
     )
 {
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
@@ -1231,31 +1223,25 @@ CxPlatSocketContextInitialize(
     }
 
     //
-    // Only set SO_REUSEPORT on a server socket, otherwise the client could be
-    // assigned a server port (unless it's forcing sharing).
+    // The port is shared across processors.
     //
-    if (ForceShare || RemoteAddress == NULL) {
-        //
-        // The port is shared across processors.
-        //
-        Option = TRUE;
-        Result =
-            setsockopt(
-                SocketContext->SocketFd,
-                SOL_SOCKET,
-                SO_REUSEPORT,
-                (const void*)&Option,
-                sizeof(Option));
-        if (Result == SOCKET_ERROR) {
-            Status = errno;
-            QuicTraceEvent(
-                DatapathErrorStatus,
-                "[data][%p] ERROR, %u, %s.",
-                Binding,
-                Status,
-                "setsockopt(SO_REUSEPORT) failed");
-            goto Exit;
-        }
+    Option = TRUE;
+    Result =
+        setsockopt(
+            SocketContext->SocketFd,
+            SOL_SOCKET,
+            SO_REUSEPORT,
+            (const void*)&Option,
+            sizeof(Option));
+    if (Result == SOCKET_ERROR) {
+        Status = errno;
+        QuicTraceEvent(
+            DatapathErrorStatus,
+            "[data][%p] ERROR, %u, %s.",
+            Binding,
+            Status,
+            "setsockopt(SO_REUSEPORT) failed");
+        goto Exit;
     }
 
     CxPlatCopyMemory(&MappedAddress, &Binding->LocalAddress, sizeof(MappedAddress));
@@ -1487,15 +1473,12 @@ CxPlatSocketCreateUdp(
     )
 {
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
-    BOOLEAN IsServerSocket = Config->RemoteAddress == NULL;
 
     CXPLAT_DBG_ASSERT(Datapath->UdpHandlers.Receive != NULL || Config->Flags & CXPLAT_SOCKET_FLAG_PCP);
 
-    const uint32_t SocketCount = IsServerSocket ? Datapath->ProcCount : 1;
-    CXPLAT_FRE_ASSERT(SocketCount > 0);
-    const uint32_t CurrentProc = CxPlatProcCurrentNumber() % Datapath->ProcCount;
+    const uint16_t AllProcCount = (uint16_t)CxPlatProcMaxCount();
     const size_t BindingLength =
-        sizeof(CXPLAT_SOCKET) + SocketCount * sizeof(CXPLAT_SOCKET_CONTEXT);
+        sizeof(CXPLAT_SOCKET) + AllProcCount * sizeof(CXPLAT_SOCKET_CONTEXT);
 
     CXPLAT_SOCKET* Binding =
         (CXPLAT_SOCKET*)CXPLAT_ALLOC_PAGED(BindingLength, QUIC_POOL_SOCKET);
@@ -1519,24 +1502,20 @@ CxPlatSocketCreateUdp(
     CxPlatZeroMemory(Binding, BindingLength);
     Binding->Datapath = Datapath;
     Binding->ClientContext = Config->CallbackContext;
-    Binding->HasFixedRemoteAddress = (Config->RemoteAddress != NULL);
     Binding->Mtu = CXPLAT_MAX_MTU;
-    CxPlatRefInitializeEx(&Binding->RefCount, SocketCount);
+    CxPlatRefInitializeEx(&Binding->RefCount, AllProcCount);
     if (Config->LocalAddress) {
         CxPlatConvertToMappedV6(Config->LocalAddress, &Binding->LocalAddress);
     } else {
         Binding->LocalAddress.Ip.sa_family = QUIC_ADDRESS_FAMILY_INET6;
     }
-    for (uint32_t i = 0; i < SocketCount; i++) {
+    for (uint32_t i = 0; i < AllProcCount; i++) {
         Binding->SocketContexts[i].Binding = Binding;
         Binding->SocketContexts[i].SocketFd = INVALID_SOCKET;
         Binding->SocketContexts[i].ShutdownSqe.CqeType = CXPLAT_CQE_TYPE_SOCKET_SHUTDOWN;
         Binding->SocketContexts[i].IoSqe.CqeType = CXPLAT_CQE_TYPE_SOCKET_IO;
         Binding->SocketContexts[i].FlushTxSqe.CqeType = CXPLAT_CQE_TYPE_SOCKET_FLUSH_TX;
-        Binding->SocketContexts[i].DatapathProc =
-            IsServerSocket ?
-                &Datapath->Processors[i] :
-                CxPlatDataPathGetProc(Datapath, CurrentProc);
+        Binding->SocketContexts[i].DatapathProc = &Datapath->Processors[i % Datapath->ProcCount];
         CxPlatRefIncrement(&Binding->SocketContexts[i].DatapathProc->RefCount);
         CxPlatListInitializeHead(&Binding->SocketContexts[i].TxQueue);
         CxPlatLockInitialize(&Binding->SocketContexts[i].TxQueueLock);
@@ -1547,27 +1526,24 @@ CxPlatSocketCreateUdp(
         Binding->PcpBinding = TRUE;
     }
 
-    for (uint32_t i = 0; i < SocketCount; i++) {
+    for (uint32_t i = 0; i < AllProcCount; i++) {
         Status =
             CxPlatSocketContextInitialize(
                 &Binding->SocketContexts[i],
                 Config->LocalAddress,
-                Config->RemoteAddress,
-                Config->Flags & CXPLAT_SOCKET_FLAG_SHARE);
+                Config->RemoteAddress);
         if (QUIC_FAILED(Status)) {
             goto Exit;
         }
     }
 
-    if (IsServerSocket) {
-        //
-        // The return value is being ignored here, as if a system does not support
-        // bpf we still want the server to work. If this happens, the sockets will
-        // round robin, but each flow will be sent to the same socket, just not
-        // based on RSS.
-        //
-        (void)CxPlatSocketConfigureRss(&Binding->SocketContexts[0], SocketCount);
-    }
+    //
+    // The return value is being ignored here, as if a system does not support
+    // bpf we still want the server to work. If this happens, the sockets will
+    // round robin, but each flow will be sent to the same socket, just not
+    // based on RSS.
+    //
+    (void)CxPlatSocketConfigureRss(&Binding->SocketContexts[0], AllProcCount);
 
     CxPlatConvertFromMappedV6(&Binding->LocalAddress, &Binding->LocalAddress);
     Binding->LocalAddress.Ipv6.sin6_scope_id = 0;
@@ -1584,7 +1560,7 @@ CxPlatSocketCreateUdp(
     //
     *NewBinding = Binding;
 
-    for (uint32_t i = 0; i < SocketCount; i++) {
+    for (uint32_t i = 0; i < AllProcCount; i++) {
         CxPlatSocketContextSetEvents(&Binding->SocketContexts[i], EPOLL_CTL_ADD, EPOLLIN);
         Binding->SocketContexts[i].IoStarted = TRUE;
     }
@@ -1650,10 +1626,8 @@ CxPlatSocketDelete(
     Socket->Uninitialized = TRUE;
 #endif
 
-    const uint32_t SocketCount =
-        Socket->HasFixedRemoteAddress ? 1 : Socket->Datapath->ProcCount;
-
-    for (uint32_t i = 0; i < SocketCount; ++i) {
+    const uint16_t AllProcCount = (uint16_t)CxPlatProcMaxCount();
+    for (uint32_t i = 0; i < AllProcCount; ++i) {
         CxPlatSocketContextUninitialize(&Socket->SocketContexts[i]);
     }
 }
