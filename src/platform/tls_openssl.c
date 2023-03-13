@@ -1813,7 +1813,7 @@ CxPlatTlsInitialize(
     if (SSL_set_quic_transport_params(
             TlsContext->Ssl,
             Config->LocalTPBuffer,
-            Config->LocalTPLength) != 1) {
+            Config->LocalTPLength - CxPlatTlsTPHeaderSize) != 1) {
         QuicTraceEvent(
             TlsError,
             "[ tls][%p] ERROR, %s.",
