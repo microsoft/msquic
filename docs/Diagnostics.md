@@ -189,6 +189,17 @@ Replace `path\to` with the actual paths to the respective files. With the latest
 
 ## Linux
 
+NOTE: `msquic.lttng.so` must be built to enable lttng logging - see https://lttng.org/docs/v2.13/#doc-liblttng-ust-dl
+and it must be placed in the same directory as the `msquic.so`.
+
+Building `clog2text_lttng`:
+```
+apt install --no-install-recommends -y dotnet-runtime-6.0 dotnet-sdk-6.0 dotnet-host 
+git submodule update --init submodules/clog
+dotnet build submodules/clog/src/clog2text/clog2text_lttng/ -c Release
+export PATH=$PWD/submodules/clog/src/clog2text/clog2text_lttng/bin/Release/net6.0/:$PATH
+```
+
 To convert the trace, you can use the following commands:
 
 ```
