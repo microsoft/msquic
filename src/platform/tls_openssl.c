@@ -43,7 +43,7 @@ Abstract:
 
 extern EVP_CIPHER *CXPLAT_AES_256_CBC_ALG_HANDLE;
 
-uint16_t CxPlatTlsTPHeaderSize = 8;
+uint16_t CxPlatTlsTPHeaderSize = 0;
 
 const size_t OpenSslFilePrefixLength = sizeof("..\\..\\..\\..\\..\\..\\submodules");
 
@@ -1813,7 +1813,7 @@ CxPlatTlsInitialize(
     if (SSL_set_quic_transport_params(
             TlsContext->Ssl,
             Config->LocalTPBuffer,
-            Config->LocalTPLength - CxPlatTlsTPHeaderSize) != 1) {
+            Config->LocalTPLength) != 1) {
         QuicTraceEvent(
             TlsError,
             "[ tls][%p] ERROR, %s.",
