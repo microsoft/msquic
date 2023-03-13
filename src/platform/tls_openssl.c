@@ -43,7 +43,7 @@ Abstract:
 
 extern EVP_CIPHER *CXPLAT_AES_256_CBC_ALG_HANDLE;
 
-uint16_t CxPlatTlsTPHeaderSize = 0;
+uint16_t CxPlatTlsTPHeaderSize = 8;
 
 const size_t OpenSslFilePrefixLength = sizeof("..\\..\\..\\..\\..\\..\\submodules");
 
