@@ -64,7 +64,7 @@ QuicWorkerInitialize(
     )
 {
     QuicTraceEvent(
-        WorkerCreated, // TODO - Make v2
+        WorkerCreated,
         "[wrkr][%p] Created, IdealProc=%hu Owner=%p",
         Worker,
         QuicLibraryGetPartitionProcessor(PartitionIndex),

@@ -1534,10 +1534,11 @@ CxPlatSocketCreateUdp(
     }
 
     for (uint32_t i = 0; i < SocketCount; i++) {
-        Status = CxPlatSocketContextInitialize(
-            &Binding->SocketContexts[i],
-            Config,
-            Config->RemoteAddress ? Config->PartitionIndex : i);
+        Status =
+            CxPlatSocketContextInitialize(
+                &Binding->SocketContexts[i],
+                Config,
+                Config->RemoteAddress ? Config->PartitionIndex : i);
         if (QUIC_FAILED(Status)) {
             goto Exit;
         }
