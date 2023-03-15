@@ -5,6 +5,8 @@
 
 --*/
 
+#define QUIC_API_ENABLE_PREVIEW_FEATURES 1
+
 #include "platform_internal.h"
 #include "quic_hashtable.h"
 
@@ -67,6 +69,7 @@ typedef struct CXPLAT_DATAPATH {
     BOOLEAN Uninitialized : 1;
     BOOLEAN Freed : 1;
 #endif
+    BOOLEAN UseTcp;
 
 } CXPLAT_DATAPATH;
 
@@ -181,7 +184,8 @@ typedef struct HEADER_BACKFILL {
 _IRQL_requires_max_(DISPATCH_LEVEL)
 HEADER_BACKFILL
 CxPlatDpRawCalculateHeaderBackFill(
-    _In_ QUIC_ADDRESS_FAMILY Family
+    _In_ QUIC_ADDRESS_FAMILY Family,
+    _In_ BOOLEAN UseTcp
     );
 
 //
@@ -224,7 +228,7 @@ CxPlatDpRawRxFree(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 CXPLAT_SEND_DATA*
 CxPlatDpRawTxAlloc(
-    _In_ CXPLAT_DATAPATH* Datapath,
+    _In_ CXPLAT_SOCKET* Socket,
     _Inout_ CXPLAT_SEND_CONFIG* Config
     );
 
@@ -259,14 +263,17 @@ typedef struct CXPLAT_SOCKET {
     void* CallbackContext;
     QUIC_ADDR LocalAddress;
     QUIC_ADDR RemoteAddress;
-    BOOLEAN Wildcard;           // Using a wildcard local address. Optimization
-                                // to avoid always reading LocalAddress.
-    BOOLEAN Connected;          // Bound to a remote address
-    uint8_t CibirIdLength;      // CIBIR ID length. Value of 0 indicates CIBIR isn't used
-    uint8_t CibirIdOffsetSrc;   // CIBIR ID offset in source CID
-    uint8_t CibirIdOffsetDst;   // CIBIR ID offset in destination CID
-    uint8_t CibirId[6];         // CIBIR ID data
+    BOOLEAN Wildcard;                // Using a wildcard local address. Optimization
+                                     // to avoid always reading LocalAddress.
+    BOOLEAN Connected;               // Bound to a remote address
+    uint8_t CibirIdLength;           // CIBIR ID length. Value of 0 indicates CIBIR isn't used
+    uint8_t CibirIdOffsetSrc;        // CIBIR ID offset in source CID
+    uint8_t CibirIdOffsetDst;        // CIBIR ID offset in destination CID
+    uint8_t CibirId[6];              // CIBIR ID data
+    BOOLEAN UseTcp;                  // Quic over TCP
 
+    CXPLAT_SEND_DATA* PausedTcpSend; // Paused TCP send data *before* framing
+    CXPLAT_SEND_DATA* CachedRstSend; // Cached TCP RST send data *after* framing
 } CXPLAT_SOCKET;
 
 BOOLEAN
@@ -335,17 +342,44 @@ CxPlatRemoveSocket(
 typedef enum PACKET_TYPE {
     L3_TYPE_ICMPV4,
     L3_TYPE_ICMPV6,
-    L4_TYPE_TCP,
     L4_TYPE_UDP,
+    L4_TYPE_TCP,
+    L4_TYPE_TCP_SYN,
+    L4_TYPE_TCP_SYNACK,
+    L4_TYPE_TCP_FIN,
 } PACKET_TYPE;
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
+CxPlatDpRawSocketAckSyn(
+    _In_ CXPLAT_SOCKET* Socket,
+    _In_ CXPLAT_RECV_DATA* Packet
+    );
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+void
+CxPlatDpRawSocketSyn(
+    _In_ CXPLAT_SOCKET* Socket,
+    _In_ const CXPLAT_ROUTE* Route
+    );
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+void
+CxPlatDpRawSocketAckFin(
+    _In_ CXPLAT_SOCKET* Socket,
+    _In_ CXPLAT_RECV_DATA* Packet
+    );
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+void
 CxPlatFramingWriteHeaders(
-    _In_ const CXPLAT_SOCKET* Socket,
+    _In_ CXPLAT_SOCKET* Socket,
     _In_ const CXPLAT_ROUTE* Route,
     _Inout_ QUIC_BUFFER* Buffer,
     _In_ CXPLAT_ECN_TYPE ECN,
     _In_ BOOLEAN SkipNetworkLayerXsum,
-    _In_ BOOLEAN SkipTransportLayerXsum
+    _In_ BOOLEAN SkipTransportLayerXsum,
+    _In_ uint32_t TcpSeqNum,
+    _In_ uint32_t TcpAckNum,
+    _In_ uint8_t TcpFlags
     );

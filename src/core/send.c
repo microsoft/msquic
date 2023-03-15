@@ -42,7 +42,9 @@ QuicSendUninitialize(
     _In_ QUIC_SEND* Send
     )
 {
+    Send->Uninitialized = TRUE;
     Send->DelayedAckTimerActive = FALSE;
+    Send->SendFlags = 0;
 
     if (Send->InitialToken != NULL) {
         CXPLAT_FREE(Send->InitialToken, QUIC_POOL_INITIAL_TOKEN);
@@ -215,6 +217,10 @@ QuicSendValidate(
     _In_ QUIC_SEND* Send
     )
 {
+    if (Send->Uninitialized) {
+        return;
+    }
+
     QUIC_CONNECTION* Connection = QuicSendGetConnection(Send);
 
     BOOLEAN HasAckElicitingPacketsToAcknowledge = FALSE;

@@ -334,6 +334,33 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_WINUSER_C, LibraryError,
 
 
 /*----------------------------------------------------------
+// Decoder Ring for DatapathErrorStatus
+// [data][%p] ERROR, %u, %s.
+// QuicTraceEvent(
+            DatapathErrorStatus,
+            "[data][%p] ERROR, %u, %s.",
+            SocketProc->Parent,
+            LastError,
+            "CxPlatSocketEnqueueSqe");
+// arg2 = arg2 = SocketProc->Parent = arg2
+// arg3 = arg3 = LastError = arg3
+// arg4 = arg4 = "CxPlatSocketEnqueueSqe" = arg4
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_DATAPATH_WINUSER_C, DatapathErrorStatus,
+    TP_ARGS(
+        const void *, arg2,
+        unsigned int, arg3,
+        const char *, arg4), 
+    TP_FIELDS(
+        ctf_integer_hex(uint64_t, arg2, arg2)
+        ctf_integer(unsigned int, arg3, arg3)
+        ctf_string(arg4, arg4)
+    )
+)
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for DatapathCreated
 // [data][%p] Created, local=%!ADDR!, remote=%!ADDR!
 // QuicTraceEvent(
@@ -359,33 +386,6 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_WINUSER_C, DatapathCreated,
         ctf_sequence(char, arg3, arg3, unsigned int, arg3_len)
         ctf_integer(unsigned int, arg4_len, arg4_len)
         ctf_sequence(char, arg4, arg4, unsigned int, arg4_len)
-    )
-)
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for DatapathErrorStatus
-// [data][%p] ERROR, %u, %s.
-// QuicTraceEvent(
-                DatapathErrorStatus,
-                "[data][%p] ERROR, %u, %s.",
-                Socket,
-                WsaError,
-                "WSASocketW");
-// arg2 = arg2 = Socket = arg2
-// arg3 = arg3 = WsaError = arg3
-// arg4 = arg4 = "WSASocketW" = arg4
-----------------------------------------------------------*/
-TRACEPOINT_EVENT(CLOG_DATAPATH_WINUSER_C, DatapathErrorStatus,
-    TP_ARGS(
-        const void *, arg2,
-        unsigned int, arg3,
-        const char *, arg4), 
-    TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg2, arg2)
-        ctf_integer(unsigned int, arg3, arg3)
-        ctf_string(arg4, arg4)
     )
 )
 

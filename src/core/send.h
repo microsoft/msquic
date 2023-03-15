@@ -246,6 +246,11 @@ typedef struct QUIC_SEND {
     BOOLEAN TailLossProbeNeeded : 1;
 
     //
+    // Indicates the connection is cleaning up.
+    //
+    BOOLEAN Uninitialized : 1;
+
+    //
     // The next packet number to use.
     //
     uint64_t NextPacketNumber;

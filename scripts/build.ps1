@@ -321,6 +321,9 @@ if ($Clang) {
     $env:CXX = 'clang++'
 }
 
+# Workaround for perl openssl build warnings.
+$env:TERM='ansi'
+
 function Log($msg) {
     Write-Host "[$(Get-Date)] $msg"
 }

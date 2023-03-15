@@ -225,6 +225,7 @@ QuicTestDatagramSend(
                 TEST_EQUAL(1, Client.GetDatagramsAcknowledged());
 
 #if QUIC_TEST_DATAPATH_HOOKS_ENABLED
+                const uint32_t InitialLostCount = Client.GetDatagramsSuspectLost();
                 LossHelper.DropPackets(1);
 
                 TEST_QUIC_SUCCEEDED(
@@ -241,11 +242,17 @@ QuicTestDatagramSend(
                 }
                 TEST_EQUAL(2, Client.GetDatagramsSent());
 
+                //
+                // Even though the test only drops a single packet, it is
+                // possible that an oversubscribed VM may result in additional
+                // packet drops. Account for this by ensuring at least one new
+                // packet is dropped by this test.
+                //
                 Tries = 0;
-                while (Client.GetDatagramsSuspectLost() != 1 && ++Tries < 10) {
+                while (Client.GetDatagramsSuspectLost() == InitialLostCount && ++Tries < 10) {
                     CxPlatSleep(100);
                 }
-                TEST_EQUAL(1, Client.GetDatagramsSuspectLost());
+                TEST_TRUE(Client.GetDatagramsSuspectLost() > InitialLostCount);
                 CxPlatSleep(100);
 #endif
 
@@ -255,7 +262,7 @@ QuicTestDatagramSend(
                 }
 
 #if QUIC_TEST_DATAPATH_HOOKS_ENABLED
-                TEST_EQUAL(1, Client.GetDatagramsLost());
+                TEST_TRUE(Client.GetDatagramsLost() >= 1);
 #endif
 
                 TEST_FALSE(Client.GetPeerClosed());

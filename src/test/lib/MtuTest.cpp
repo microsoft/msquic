@@ -14,6 +14,10 @@ Abstract:
 #include "MtuTest.cpp.clog.h"
 #endif
 
+#ifdef QUIC_USE_RAW_DATAPATH
+extern bool UseQTIP;
+#endif
+
 static QUIC_STATUS MtuStreamCallback(_In_ MsQuicStream*, _In_opt_ void*, _Inout_ QUIC_STREAM_EVENT*) {
     return QUIC_STATUS_SUCCESS;
 }
@@ -45,6 +49,12 @@ struct ResetSettings {
 void
 QuicTestMtuSettings()
 {
+#ifdef QUIC_USE_RAW_DATAPATH
+    const uint16_t DefaultMaximumMtu = UseQTIP ? 1488 : 1500; // reserve 12B for TCP header
+#else
+    const uint16_t DefaultMaximumMtu = 1500;
+#endif
+
     {
         //
         // Test setting on library works
@@ -210,7 +220,7 @@ QuicTestMtuSettings()
     {
         MsQuicSettings ServerSettings;
         ServerSettings.
-            SetMaximumMtu(1500).
+            SetMaximumMtu(DefaultMaximumMtu).
             SetMinimumMtu(1280).
             SetPeerUnidiStreamCount(1).
             SetIdleTimeoutMs(30000).
@@ -227,7 +237,7 @@ QuicTestMtuSettings()
         {
             MsQuicSettings Settings;
             Settings.
-                SetMaximumMtu(1500).
+                SetMaximumMtu(DefaultMaximumMtu).
                 SetMinimumMtu(1280).
                 SetMtuDiscoveryMissingProbeCount(1).
                 SetPeerUnidiStreamCount(1).
@@ -244,7 +254,7 @@ QuicTestMtuSettings()
             MtuDropHelper ServerDropper(
                 0,
                 ServerLocalAddr.GetPort(),
-                1499);
+                DefaultMaximumMtu - 1);
             TEST_QUIC_SUCCEEDED(Connection.Start(ClientConfiguration, ServerLocalAddr.GetFamily(), QUIC_TEST_LOOPBACK_FOR_AF(ServerLocalAddr.GetFamily()), ServerLocalAddr.GetPort()));
             MsQuicStream Stream(Connection, QUIC_STREAM_OPEN_FLAG_UNIDIRECTIONAL);
             TEST_QUIC_SUCCEEDED(Stream.GetInitStatus());
@@ -266,7 +276,7 @@ QuicTestMtuSettings()
             //
             QUIC_STATISTICS_V2 Stats;
             TEST_QUIC_SUCCEEDED(Connection.GetStatistics(&Stats));
-            TEST_NOT_EQUAL(1500, Stats.SendPathMtu);
+            TEST_NOT_EQUAL(DefaultMaximumMtu, Stats.SendPathMtu);
             TEST_NOT_EQUAL(1280, Stats.SendPathMtu);
 
             ServerDropper.ClientDropPacketSize = 0xFFFF;
@@ -283,7 +293,7 @@ QuicTestMtuSettings()
             // Ensure our MTU is in the max
             //
             TEST_QUIC_SUCCEEDED(Connection.GetStatistics(&Stats));
-            TEST_EQUAL(1500, Stats.SendPathMtu);
+            TEST_EQUAL(DefaultMaximumMtu, Stats.SendPathMtu);
 
             TEST_QUIC_SUCCEEDED(Stream.Send(&Buffer, 1, QUIC_SEND_FLAG_FIN));
 
@@ -305,7 +315,11 @@ QuicTestMtuDiscovery(
     TEST_QUIC_SUCCEEDED(Registration.GetInitStatus());
 
     const uint16_t MinimumMtu = RaiseMinimumMtu ? 1360 : 1248;
+#ifdef QUIC_USE_RAW_DATAPATH
+    const uint16_t MaximumMtu = UseQTIP ? 1488 : 1500; // reserve 12B for TCP header
+#else
     const uint16_t MaximumMtu = 1500;
+#endif
 
     MsQuicAlpn Alpn("MsQuicTest");
     MsQuicSettings Settings;

@@ -543,8 +543,8 @@ Return Value:
     if (Table->TableSize <= HT_SECOND_LEVEL_DIR_MIN_SIZE) {
 
         //
-        // Directory pointer in the Table header structure points points directly
-        // directly points directly to the single second-level directory.
+        // Directory pointer in the Table header structure points directly to
+        // the single second-level directory.
         //
 
         Table->SecondLevelDir =

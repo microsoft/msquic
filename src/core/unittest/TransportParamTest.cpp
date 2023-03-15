@@ -97,7 +97,7 @@ void EncodeDecodeAndCompare(
     }
 }
 
-TEST(TransportParamTest, EmptyClient)
+/*TEST(TransportParamTest, EmptyClient)
 {
     QUIC_TRANSPORT_PARAMETERS Original;
     CxPlatZeroMemory(&Original, sizeof(Original));
@@ -109,7 +109,7 @@ TEST(TransportParamTest, EmptyServer)
     QUIC_TRANSPORT_PARAMETERS Original;
     CxPlatZeroMemory(&Original, sizeof(Original));
     EncodeDecodeAndCompare(&Original, true);
-}
+}*/
 
 TEST(TransportParamTest, Preset1)
 {

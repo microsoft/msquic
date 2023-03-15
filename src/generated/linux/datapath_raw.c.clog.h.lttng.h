@@ -124,13 +124,13 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_C, DatapathCreated,
 // Decoder Ring for DatapathRecv
 // [data][%p] Recv %u bytes (segment=%hu) Src=%!ADDR! Dst=%!ADDR!
 // QuicTraceEvent(
-                    DatapathRecv,
-                    "[data][%p] Recv %u bytes (segment=%hu) Src=%!ADDR! Dst=%!ADDR!",
-                    Socket,
-                    Packets[i]->BufferLength,
-                    Packets[i]->BufferLength,
-                    CASTED_CLOG_BYTEARRAY(sizeof(Packets[i]->Route->LocalAddress), &Packets[i]->Route->LocalAddress),
-                    CASTED_CLOG_BYTEARRAY(sizeof(Packets[i]->Route->RemoteAddress), &Packets[i]->Route->RemoteAddress));
+                        DatapathRecv,
+                        "[data][%p] Recv %u bytes (segment=%hu) Src=%!ADDR! Dst=%!ADDR!",
+                        Socket,
+                        Packets[i]->BufferLength,
+                        Packets[i]->BufferLength,
+                        CASTED_CLOG_BYTEARRAY(sizeof(Packets[i]->Route->LocalAddress), &Packets[i]->Route->LocalAddress),
+                        CASTED_CLOG_BYTEARRAY(sizeof(Packets[i]->Route->RemoteAddress), &Packets[i]->Route->RemoteAddress));
 // arg2 = arg2 = Socket = arg2
 // arg3 = arg3 = Packets[i]->BufferLength = arg3
 // arg4 = arg4 = Packets[i]->BufferLength = arg4

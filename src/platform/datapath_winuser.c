@@ -1814,6 +1814,34 @@ CxPlatSocketArmRioNotify(
     }
 }
 
+QUIC_STATUS
+CxPlatSocketEnqueueSqe(
+    _In_ CXPLAT_SOCKET_PROC* SocketProc,
+    _In_ DATAPATH_IO_SQE* Sqe,
+    _In_ uint32_t NumBytes
+    )
+{
+#if DEBUG
+    CXPLAT_DBG_ASSERT(!SocketProc->Uninitialized);
+    CXPLAT_DBG_ASSERT(!SocketProc->Freed);
+#endif
+    if (!CxPlatEventQEnqueueEx(
+            SocketProc->DatapathProc->EventQ,
+            &Sqe->DatapathSqe.Sqe,
+            NumBytes,
+            &Sqe->DatapathSqe)) {
+        const DWORD LastError = GetLastError();
+        QuicTraceEvent(
+            DatapathErrorStatus,
+            "[data][%p] ERROR, %u, %s.",
+            SocketProc->Parent,
+            LastError,
+            "CxPlatSocketEnqueueSqe");
+        return HRESULT_FROM_WIN32(LastError);
+    }
+    return QUIC_STATUS_SUCCESS;
+}
+
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 CxPlatSocketCreateUdp(
@@ -2624,19 +2652,8 @@ CxPlatSocketCreateTcpInternal(
                 //
                 // Manually post IO completion if connect completed synchronously.
                 //
-                if (!CxPlatEventQEnqueueEx(
-                        SocketProc->DatapathProc->EventQ,
-                        &SocketProc->IoSqe.DatapathSqe.Sqe,
-                        BytesReturned,
-                        &SocketProc->IoSqe.DatapathSqe)) {
-                    DWORD LastError = GetLastError();
-                    QuicTraceEvent(
-                        DatapathErrorStatus,
-                        "[data][%p] ERROR, %u, %s.",
-                        Socket,
-                        LastError,
-                        "CxPlatEventQEnqueueEx");
-                    Status = HRESULT_FROM_WIN32(LastError);
+                Status = CxPlatSocketEnqueueSqe(SocketProc, &SocketProc->IoSqe, BytesReturned);
+                if (QUIC_FAILED(Status)) {
                     goto Error;
                 }
             }
@@ -2988,7 +3005,6 @@ CxPlatSocketContextUninitialize(
 {
 #if DEBUG
     CXPLAT_DBG_ASSERT(!SocketProc->Uninitialized);
-    SocketProc->Uninitialized = TRUE;
 #endif
 
     if (!SocketProc->IoStarted) {
@@ -2996,6 +3012,9 @@ CxPlatSocketContextUninitialize(
         // IO never started for this socket, so just kill the socket and process
         // completion inline.
         //
+#if DEBUG
+        SocketProc->Uninitialized = TRUE;
+#endif
         if (SocketProc->Socket != INVALID_SOCKET &&
             closesocket(SocketProc->Socket) == SOCKET_ERROR) {
             int WsaError = WSAGetLastError();
@@ -3034,7 +3053,17 @@ CxPlatSocketContextUninitialize(
     //
     CxPlatRundownReleaseAndWait(&SocketProc->UpcallRundown);
 
+#if DEBUG
+    SocketProc->Uninitialized = TRUE;
+#endif
+
 QUIC_DISABLED_BY_FUZZER_START;
+
+    if (SocketProc->Parent->Type == CXPLAT_SOCKET_UDP) {
+        CancelIoEx((HANDLE)SocketProc->Socket, NULL);
+    } else {
+        CancelIo((HANDLE)SocketProc->Socket);
+    }
 
     if (closesocket(SocketProc->Socket) == SOCKET_ERROR) {
         int WsaError = WSAGetLastError();
@@ -3270,19 +3299,8 @@ CxPlatSocketStartAccept(
         //
         // Manually post IO completion if accept completed synchronously.
         //
-        if (!CxPlatEventQEnqueueEx(
-                ListenerSocketProc->DatapathProc->EventQ,
-                &ListenerSocketProc->IoSqe.DatapathSqe.Sqe,
-                BytesRecv,
-                &ListenerSocketProc->IoSqe.DatapathSqe)) {
-            DWORD LastError = GetLastError();
-            QuicTraceEvent(
-                DatapathErrorStatus,
-                "[data][%p] ERROR, %u, %s.",
-                ListenerSocketProc->Parent,
-                LastError,
-                "CxPlatEventQEnqueueEx");
-            Status = HRESULT_FROM_WIN32(LastError);
+        Status = CxPlatSocketEnqueueSqe(ListenerSocketProc, &ListenerSocketProc->IoSqe, BytesRecv);
+        if (QUIC_FAILED(Status)) {
             goto Error;
         }
     }
@@ -3511,13 +3529,13 @@ CxPlatSocketStartRioReceives(
     CXPLAT_DATAPATH* Datapath = SocketProc->Parent->Datapath;
 
     while (SocketProc->RioRecvCount < RIO_RECV_QUEUE_DEPTH) {
-        CXPLAT_DATAPATH_INTERNAL_RECV_CONTEXT* RecvContext =
-            CxPlatSocketAllocRecvContext(SocketProc);
         RIO_BUF Data = {0};
         RIO_BUF RemoteAddr = {0};
         RIO_BUF Control = {0};
         DWORD RioFlags = 0;
 
+        CXPLAT_DATAPATH_INTERNAL_RECV_CONTEXT* RecvContext =
+            CxPlatSocketAllocRecvContext(SocketProc);
         if (RecvContext == NULL) {
             Status = QUIC_STATUS_OUT_OF_MEMORY;
             QuicTraceEvent(
@@ -3555,6 +3573,7 @@ CxPlatSocketStartRioReceives(
                 WsaError,
                 "RIOReceiveEx");
             Status = HRESULT_FROM_WIN32(WsaError);
+            CxPlatSocketFreeRecvContext(RecvContext);
             goto Error;
         }
 
@@ -3698,59 +3717,44 @@ Retry_recv:
                     CxPlatStartDatapathIo(&RecvContext->Sqe, DATAPATH_IO_RECV_FAILURE);
                     RecvContext->Sqe.DatapathSqe.Sqe.Overlapped.Internal = WsaError;
 
-                    if (!CxPlatEventQEnqueueEx(
-                            SocketProc->DatapathProc->EventQ,
-                            &RecvContext->Sqe.DatapathSqe.Sqe,
-                            0,
-                            &RecvContext->Sqe.DatapathSqe)) {
-                        DWORD LastError = GetLastError();
-                        QuicTraceEvent(
-                            DatapathErrorStatus,
-                            "[data][%p] ERROR, %u, %s.",
-                            SocketProc->Parent,
-                            LastError,
-                            "CxPlatEventQEnqueueEx");
-                        Status = HRESULT_FROM_WIN32(LastError);
+                    Status = CxPlatSocketEnqueueSqe(SocketProc, &RecvContext->Sqe, 0);
+                    if (QUIC_FAILED(Status)) {
                         goto Error;
                     }
-
                     Status = QUIC_STATUS_PENDING;
                 }
 
+                RecvContext = NULL;
                 goto Error;
             }
         }
         Status = QUIC_STATUS_PENDING;
+        RecvContext = NULL;
 
     } else if (SyncBytesReceived == NULL) {
         //
         // Manually post IO completion if receive completed synchronously.
         //
-        if (!CxPlatEventQEnqueueEx(
-                SocketProc->DatapathProc->EventQ,
-                &RecvContext->Sqe.DatapathSqe.Sqe,
-                BytesRecv,
-                &RecvContext->Sqe.DatapathSqe)) {
-            DWORD LastError = GetLastError();
-            QuicTraceEvent(
-                DatapathErrorStatus,
-                "[data][%p] ERROR, %u, %s.",
-                SocketProc->Parent,
-                LastError,
-                "CxPlatEventQEnqueueEx");
-            Status = HRESULT_FROM_WIN32(LastError);
+        Status = CxPlatSocketEnqueueSqe(SocketProc, &RecvContext->Sqe, BytesRecv);
+        if (QUIC_FAILED(Status)) {
             goto Error;
         }
         Status = QUIC_STATUS_PENDING;
+        RecvContext = NULL;
     } else {
         CXPLAT_DBG_ASSERT(BytesRecv < UINT16_MAX);
         *SyncBytesReceived = (uint16_t)BytesRecv;
         *SyncIoResult = NO_ERROR;
         *SyncRecvContext = RecvContext;
         CxPlatStopInlineDatapathIo(&RecvContext->Sqe);
+        RecvContext = NULL;
     }
 
 Error:
+
+    if (RecvContext) {
+        CxPlatSocketFreeRecvContext(RecvContext);
+    }
 
     return Status;
 }
@@ -4252,7 +4256,6 @@ CxPlatFreeRecvContext(
     )
 {
     CXPLAT_DBG_ASSERT(RecvContext->ReferenceCount == 0);
-
     CxPlatPoolFree(RecvContext->OwningPool, RecvContext);
 }
 
@@ -4338,9 +4341,17 @@ CxPlatDataPathSocketProcessReceiveInternal(
 {
     CXPLAT_SOCKET_PROC* SocketProc = RecvContext->SocketProc;
 
+#if DEBUG
+    CXPLAT_DBG_ASSERT(!SocketProc->Freed);
+#endif
+
     if (!CxPlatRundownAcquire(&SocketProc->UpcallRundown)) {
         return;
     }
+
+#if DEBUG
+    CXPLAT_DBG_ASSERT(!SocketProc->Uninitialized);
+#endif
 
     for (ULONG InlineReceiveCount = 10; InlineReceiveCount > 0; InlineReceiveCount--) {
         BOOLEAN StartReceive =
@@ -5043,35 +5054,10 @@ CxPlatSocketSendEnqueue(
     _In_ CXPLAT_SEND_DATA* SendData
     )
 {
-    CXPLAT_SOCKET_PROC* SocketProc = SendData->SocketProc;
-
-    CxPlatCopyMemory(
-        &SendData->LocalAddress,
-        &Route->LocalAddress,
-        sizeof(Route->LocalAddress));
-
+    SendData->LocalAddress = Route->LocalAddress;
     CxPlatDatapathSqeInitialize(&SendData->Sqe.DatapathSqe, CXPLAT_CQE_TYPE_SOCKET_IO);
     CxPlatStartDatapathIo(&SendData->Sqe, DATAPATH_IO_QUEUE_SEND);
-
-    BOOL Result =
-        CxPlatEventQEnqueueEx(
-            SocketProc->DatapathProc->EventQ,
-            &SendData->Sqe.DatapathSqe.Sqe,
-            0,
-            &SendData->Sqe.DatapathSqe);
-    if (!Result) {
-        int LastError = GetLastError();
-        QuicTraceEvent(
-            DatapathErrorStatus,
-            "[data][%p] ERROR, %u, %s.",
-            SocketProc->Parent,
-            LastError,
-            "CxPlatEventQEnqueueEx");
-        CxPlatSendDataFree(SendData);
-        return HRESULT_FROM_WIN32(LastError);
-    }
-
-    return QUIC_STATUS_SUCCESS;
+    return CxPlatSocketEnqueueSqe(SendData->SocketProc, &SendData->Sqe, 0);
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)

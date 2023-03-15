@@ -567,8 +567,8 @@ protected:
             //std::cout << "==RecvTicket==" << std::endl;
             auto Context = (TlsContext*)Connection;
             if (Context->ReceivedSessionTicket.Buffer == nullptr) {
-                Context->ReceivedSessionTicket.Buffer =
-                    (uint8_t*)CXPLAT_ALLOC_NONPAGED(TicketLength, QUIC_POOL_CRYPTO_RESUMPTION_TICKET);
+                Context->ReceivedSessionTicket.Buffer = // N.B - Add one so we don't ever allocate zero bytes.
+                    (uint8_t*)CXPLAT_ALLOC_NONPAGED(TicketLength+1, QUIC_POOL_CRYPTO_RESUMPTION_TICKET);
                 Context->ReceivedSessionTicket.Length = TicketLength;
                 if (TicketLength != 0) {
                     CxPlatCopyMemory(

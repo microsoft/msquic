@@ -6,13 +6,14 @@ $ProgressPreference = 'SilentlyContinue'
 
 function Set-ScriptVariables {
     [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseShouldProcessForStateChangingFunctions', '')]
-    param ($Local, $LocalTls, $LocalArch, $RemoteTls, $RemoteArch, $XDP, $Config, $Publish, $Record, $LogProfile, $RemoteAddress, $Session, $Kernel, $FailOnRegression, $PGO)
+    param ($Local, $LocalTls, $LocalArch, $RemoteTls, $RemoteArch, $XDP, $QTIP, $Config, $Publish, $Record, $LogProfile, $RemoteAddress, $Session, $Kernel, $FailOnRegression, $PGO)
     $script:Local = $Local
     $script:LocalTls = $LocalTls
     $script:LocalArch = $LocalArch
     $script:RemoteTls = $RemoteTls
     $script:RemoteArch = $RemoteArch
     $script:XDP = $XDP
+    $script:QTIP = $QTIP
     $script:PGO = $PGO
     $script:Config = $Config
     $script:Publish = $Publish

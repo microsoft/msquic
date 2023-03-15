@@ -36,7 +36,7 @@ jobs:
     name: Test
     steps:
     - name: Harden Runner
-      uses: step-security/harden-runner@18bf8ad2ca49c14cbb28b91346d626ccfb00c518
+      uses: step-security/harden-runner@1f99358870fe1c846a3ccba386cc2b2246836776
       with:
         egress-policy: block
         allowed-endpoints: >
@@ -51,6 +51,8 @@ jobs:
           rubygems.org:443
     - name: Checkout repository
       uses: actions/checkout@ac593985615ec2ede58e132d2e21d2b1cbd6127c
+      with:
+        fetch-depth: 0
     - name: Prepare Machine
       run: scripts/prepare-machine.ps1 -Tls ${{ matrix.tls }} -DisableTest
       shell: pwsh

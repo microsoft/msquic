@@ -1863,6 +1863,41 @@
                 outType="win:SocketAddress"
                 />
           </template>
+          <template tid="tid_DATA_SEND_TCP_CONTROL">
+            <data
+                inType="win:Pointer"
+                name="UdpBinding"
+                />
+            <data
+                inType="win:UInt32"
+                name="SegmentSize"
+                />
+            <data
+                inType="win:UInt8"
+                name="TcpFlags"
+                outType="win:HexInt8"
+                />
+            <data
+                inType="win:UInt8"
+                name="RemoteAddrLength"
+                />
+            <data
+                inType="win:Binary"
+                length="RemoteAddrLength"
+                name="RemoteAddr"
+                outType="win:SocketAddress"
+                />
+            <data
+                inType="win:UInt8"
+                name="LocalAddrLength"
+                />
+            <data
+                inType="win:Binary"
+                length="LocalAddrLength"
+                name="LocalAddr"
+                outType="win:SocketAddress"
+                />
+          </template>
           <template tid="tid_DATA_SEND_RECV">
             <data
                 inType="win:Pointer"
@@ -3600,6 +3635,15 @@
               template="tid_UDP_ADDRESS"
               value="9224"
               />
+          <event
+              keywords="ut:UDP ut:LowVolume"
+              level="win:Informational"
+              message="$(string.Etw.DatapathSendTcpControl)"
+              opcode="Datapath"
+              symbol="QuicDatapathSendTcpControl"
+              template="tid_DATA_SEND_TCP_CONTROL"
+              value="9225"
+              />
           <!-- 10240 - 11263 | Logs (not events) -->
           <event
               keywords="ut:Log"
@@ -4776,6 +4820,10 @@
         <string
             id="Etw.ConnStatsV2"
             value="[conn][%1] STATS: SRtt=%2 CongestionCount=%3 PersistentCongestionCount=%4 SendTotalBytes=%5 RecvTotalBytes=%6 CongestionWindow=%7 Cc=%8 EcnCongestionCount=%8"
+            />
+        <string
+            id="Etw.DatapathSendTcpControl"
+            value="[data][%1] Send %2 bytes TCP control packet Flags=%3 Dst=%5 Src=%7"
             />
       </stringTable>
     </resources>

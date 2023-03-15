@@ -30,6 +30,7 @@ jobs:
         tls: [schannel, openssl, openssl3]
         systemcrypto: ['', '-UseSystemOpenSSLCrypto']
         xdp: ['', '-UseXdp']
+        qtip: ['', '-UseQtip']
         sanitize: ['', '-Sanitize']
         exclude:
         # Schannel only supported on windows-2022
@@ -85,10 +86,14 @@ jobs:
           xdp: '-UseXdp'
         - os: windows-2019
           xdp: '-UseXdp'
+        # QTIP only works with XDP
+        - xdp: ''
+          qtip: '-UseQtip'
     runs-on: ${{ matrix.os }}
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@ac593985615ec2ede58e132d2e21d2b1cbd6127c
+    - uses: actions/checkout@ac593985615ec2ede58e132d2e21d2b1cbd6127c
+      with:
+        fetch-depth: 0
     - name: Install Perl
       if: runner.os == 'Windows'
       uses: shogo82148/actions-setup-perl@e0737ade83f9863f9f5c00d8470b6d7bec207fee
@@ -114,12 +119,12 @@ jobs:
     - name: Test
       shell: pwsh
       timeout-minutes: 120
-      run: scripts/test.ps1 -Config Debug -Arch ${{ matrix.arch }} -Tls ${{ matrix.tls }} -OsRunner ${{ matrix.os }} -GHA -LogProfile Basic.Light -GenerateXmlResults ${{ matrix.xdp }}
+      run: scripts/test.ps1 -Config Debug -Arch ${{ matrix.arch }} -Tls ${{ matrix.tls }} -OsRunner ${{ matrix.os }} -GHA -LogProfile Basic.Light -GenerateXmlResults ${{ matrix.xdp }} ${{ matrix.qtip }}
     - name: Upload on Failure
       uses: actions/upload-artifact@0b7f8abb1508181956e8e162db84b466c27e18ce
       if: failure()
       with:
-        name: ${{ matrix.os }}-${{ matrix.arch }}-${{ matrix.tls }}${{ matrix.systemcrypto }}${{ matrix.xdp }}${{ matrix.sanitize }}
+        name: ${{ matrix.os }}-${{ matrix.arch }}-${{ matrix.tls }}${{ matrix.systemcrypto }}${{ matrix.xdp }}${{ matrix.qtip }}${{ matrix.sanitize }}
         path: artifacts
 
   # TODO: Get this working

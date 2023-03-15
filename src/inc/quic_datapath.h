@@ -37,6 +37,11 @@ extern "C" {
 #define CXPLAT_UDP_HEADER_SIZE 8
 
 //
+// The number of bytes in a TCP header.
+//
+#define CXPLAT_TCP_HEADER_SIZE 20
+
+//
 // Different types of Explicit Congestion Notifications
 //
 typedef enum CXPLAT_ECN_TYPE {
@@ -148,6 +153,15 @@ typedef enum CXPLAT_ROUTE_STATE {
     RouteResolved,
 } CXPLAT_ROUTE_STATE;
 
+typedef struct CXPLAT_RAW_TCP_STATE {
+    BOOLEAN Syncd;
+    //
+    // All numbers are in host order.
+    //
+    uint32_t AckNumber;
+    uint32_t SequenceNumber;
+} CXPLAT_RAW_TCP_STATE;
+
 //
 // Structure to represent a network route.
 //
@@ -170,6 +184,7 @@ typedef struct CXPLAT_ROUTE {
     //
 
     CXPLAT_ROUTE_STATE State;
+    CXPLAT_RAW_TCP_STATE TcpState;
 #endif // QUIC_USE_RAW_DATAPATH
 
 } CXPLAT_ROUTE;
@@ -214,9 +229,10 @@ typedef struct CXPLAT_RECV_DATA {
     //
     // Flags.
     //
-    uint8_t Allocated : 1;          // Used for debugging. Set to FALSE on free.
-    uint8_t QueuedOnConnection : 1; // Used for debugging.
-    uint8_t Reserved : 6;
+    uint16_t Allocated : 1;          // Used for debugging. Set to FALSE on free.
+    uint16_t QueuedOnConnection : 1; // Used for debugging.
+    uint16_t Reserved : 6;
+    uint16_t ReservedEx : 8;
 
 } CXPLAT_RECV_DATA;
 
@@ -692,6 +708,13 @@ CxPlatResolveRoute(
     _In_ uint8_t PathId,
     _In_ void* Context,
     _In_ CXPLAT_ROUTE_RESOLUTION_CALLBACK_HANDLER Callback
+    );
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+CxPlatUpdateRoute(
+    _Inout_ CXPLAT_ROUTE* DstRoute,
+    _In_ CXPLAT_ROUTE* SrcRoute
     );
 
 #endif // QUIC_USE_RAW_DATAPATH
