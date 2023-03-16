@@ -214,6 +214,7 @@ CxPlatInitialize(
     }
 
     if (!CxPlatWorkersInit()) {
+        CxPlatCryptUninitialize();
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         goto Exit;
     }
@@ -244,6 +245,7 @@ CxPlatUninitialize(
     )
 {
     CxPlatWorkersUninit();
+    CxPlatCryptUninitialize();
     close(RandomFd);
     QuicTraceLogInfo(
         PosixUninitialized,
