@@ -78,7 +78,7 @@ jobs:
         fetch-depth: 0
     - name: Install Perl
       if: runner.os == 'Windows'
-      uses: shogo82148/actions-setup-perl@e0737ade83f9863f9f5c00d8470b6d7bec207fee
+      uses: shogo82148/actions-setup-perl@795ea77474d1f81da5b0a04028a5b94d4118a9c2
       with:
         perl-version: '5.34'
     - name: Install NASM
