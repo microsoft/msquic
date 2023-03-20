@@ -97,15 +97,15 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_WINUSER_C, DatapathQueryRecvMaxCoalescedSizeFaile
 
 
 /*----------------------------------------------------------
-// Decoder Ring for DatapathMissingInfo
-// [data][%p] WSARecvMsg completion is missing IP_PKTINFO
+// Decoder Ring for DatapathRecvEmpty
+// [data][%p] Dropping datagram with empty payload.
 // QuicTraceLogWarning(
-                DatapathMissingInfo,
-                "[data][%p] WSARecvMsg completion is missing IP_PKTINFO",
+                DatapathRecvEmpty,
+                "[data][%p] Dropping datagram with empty payload.",
                 SocketProc->Parent);
 // arg2 = arg2 = SocketProc->Parent = arg2
 ----------------------------------------------------------*/
-TRACEPOINT_EVENT(CLOG_DATAPATH_WINUSER_C, DatapathMissingInfo,
+TRACEPOINT_EVENT(CLOG_DATAPATH_WINUSER_C, DatapathRecvEmpty,
     TP_ARGS(
         const void *, arg2), 
     TP_FIELDS(
@@ -116,15 +116,15 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_WINUSER_C, DatapathMissingInfo,
 
 
 /*----------------------------------------------------------
-// Decoder Ring for DatapathRecvEmpty
-// [data][%p] Dropping datagram with empty payload.
+// Decoder Ring for DatapathMissingInfo
+// [data][%p] WSARecvMsg completion is missing IP_PKTINFO
 // QuicTraceLogWarning(
-                DatapathRecvEmpty,
-                "[data][%p] Dropping datagram with empty payload.",
+                DatapathMissingInfo,
+                "[data][%p] WSARecvMsg completion is missing IP_PKTINFO",
                 SocketProc->Parent);
 // arg2 = arg2 = SocketProc->Parent = arg2
 ----------------------------------------------------------*/
-TRACEPOINT_EVENT(CLOG_DATAPATH_WINUSER_C, DatapathRecvEmpty,
+TRACEPOINT_EVENT(CLOG_DATAPATH_WINUSER_C, DatapathMissingInfo,
     TP_ARGS(
         const void *, arg2), 
     TP_FIELDS(
@@ -176,9 +176,9 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_WINUSER_C, DatapathShutDownComplete,
 // Decoder Ring for DatapathSocketContextComplete
 // [data][%p] Socket context shutdown
 // QuicTraceLogVerbose(
-        DatapathSocketContextComplete,
-        "[data][%p] Socket context shutdown",
-        SocketProc);
+            DatapathSocketContextComplete,
+            "[data][%p] Socket context shutdown",
+            SocketProc);
 // arg2 = arg2 = SocketProc = arg2
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_DATAPATH_WINUSER_C, DatapathSocketContextComplete,
@@ -195,11 +195,11 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_WINUSER_C, DatapathSocketContextComplete,
 // Decoder Ring for DatapathUnreachableWithError
 // [data][%p] Received unreachable error (0x%x) from %!ADDR!
 // QuicTraceLogVerbose(
-        DatapathUnreachableWithError,
-        "[data][%p] Received unreachable error (0x%x) from %!ADDR!",
-        SocketProc->Parent,
-        ErrorCode,
-        CASTED_CLOG_BYTEARRAY(sizeof(*RemoteAddr), RemoteAddr));
+                DatapathUnreachableWithError,
+                "[data][%p] Received unreachable error (0x%x) from %!ADDR!",
+                SocketProc->Parent,
+                ErrorCode,
+                CASTED_CLOG_BYTEARRAY(sizeof(*RemoteAddr), RemoteAddr));
 // arg2 = arg2 = SocketProc->Parent = arg2
 // arg3 = arg3 = ErrorCode = arg3
 // arg4 = arg4 = CASTED_CLOG_BYTEARRAY(sizeof(*RemoteAddr), RemoteAddr) = arg4
