@@ -127,6 +127,7 @@ typedef enum DATAPATH_IO_TYPE {
     DATAPATH_IO_RIO_NOTIFY        = DATAPATH_IO_SIGNATURE + 6,
     DATAPATH_IO_RIO_RECV          = DATAPATH_IO_SIGNATURE + 7,
     DATAPATH_IO_RIO_SEND          = DATAPATH_IO_SIGNATURE + 8,
+    DATAPATH_IO_RECV_FAILURE      = DATAPATH_IO_SIGNATURE + 9,
     DATAPATH_IO_MAX
 } DATAPATH_IO_TYPE;
 
@@ -173,6 +174,12 @@ typedef struct CXPLAT_DATAPATH_INTERNAL_RECV_CONTEXT {
     DATAPATH_IO_SQE Sqe;
 
     //
+    // Contains the input and output message data.
+    //
+    WSAMSG WsaMsgHdr;
+    WSABUF WsaControlBuf;
+
+    //
     // Contains the control data resulting from the receive.
     //
     char ControlBuf[
@@ -181,11 +188,6 @@ typedef struct CXPLAT_DATAPATH_INTERNAL_RECV_CONTEXT {
         WSA_CMSG_SPACE(sizeof(DWORD)) +         // UDP_COALESCED_INFO
         WSA_CMSG_SPACE(sizeof(INT))             // IP_ECN
         ];
-
-    //
-    // Contains the input and output message data.
-    //
-    WSAMSG WsaMsgHdr;
 
 } CXPLAT_DATAPATH_INTERNAL_RECV_CONTEXT;
 
@@ -889,7 +891,6 @@ CxPlatDataPathStartRioSends(
 
 void
 CxPlatSendDataComplete(
-    _In_ CXPLAT_SOCKET_PROC* SocketProc,
     _In_ CXPLAT_SEND_DATA* SendData,
     _In_ ULONG IoResult
     );
@@ -2989,9 +2990,9 @@ CxPlatSocketContextRelease(
 
             while (!CxPlatListIsEmpty(&SocketProc->RioSendOverflow)) {
                 CXPLAT_LIST_ENTRY* Entry = CxPlatListRemoveHead(&SocketProc->RioSendOverflow);
-                CXPLAT_SEND_DATA* SendData =
-                    CONTAINING_RECORD(Entry, CXPLAT_SEND_DATA, RioOverflowEntry);
-                CxPlatSendDataComplete(SocketProc, SendData, WSA_OPERATION_ABORTED);
+                CxPlatSendDataComplete(
+                    CONTAINING_RECORD(Entry, CXPLAT_SEND_DATA, RioOverflowEntry),
+                    WSA_OPERATION_ABORTED);
             }
 
             if (SocketProc->RioCq != RIO_INVALID_CQ) {
@@ -3460,33 +3461,6 @@ CxPlatDataPathSocketProcessConnectCompletion(
     CxPlatRundownRelease(&SocketProc->RundownRef);
 }
 
-void
-CxPlatSocketHandleUnreachableError(
-    _In_ CXPLAT_SOCKET_PROC* SocketProc,
-    _In_ CXPLAT_DATAPATH_INTERNAL_RECV_CONTEXT* RecvContext,
-    _In_ ULONG ErrorCode
-    )
-{
-    PSOCKADDR_INET RemoteAddr = &RecvContext->Route.RemoteAddress;
-    UNREFERENCED_PARAMETER(ErrorCode);
-
-    CxPlatConvertFromMappedV6(RemoteAddr, RemoteAddr);
-
-#if QUIC_CLOG
-    QuicTraceLogVerbose(
-        DatapathUnreachableWithError,
-        "[data][%p] Received unreachable error (0x%x) from %!ADDR!",
-        SocketProc->Parent,
-        ErrorCode,
-        CASTED_CLOG_BYTEARRAY(sizeof(*RemoteAddr), RemoteAddr));
-#endif
-
-    SocketProc->Parent->Datapath->UdpHandlers.Unreachable(
-        SocketProc->Parent,
-        SocketProc->Parent->ClientContext,
-        RemoteAddr);
-}
-
 QUIC_STATUS
 CxPlatSocketStartRioReceives(
     _In_ CXPLAT_SOCKET_PROC* SocketProc
@@ -3625,17 +3599,16 @@ CxPlatSocketStartWinsockReceive(
     CxPlatDatapathSqeInitialize(&RecvContext->Sqe.DatapathSqe, CXPLAT_CQE_TYPE_SOCKET_IO);
     CxPlatStartDatapathIo(SocketProc, &RecvContext->Sqe, DATAPATH_IO_RECV);
 
-    WSABUF WsaBuf;
-    WsaBuf.buf = ((CHAR*)RecvContext) + Datapath->RecvPayloadOffset;
-    WsaBuf.len = SocketProc->Parent->RecvBufLen;
+    RecvContext->WsaControlBuf.buf = ((CHAR*)RecvContext) + Datapath->RecvPayloadOffset;
+    RecvContext->WsaControlBuf.len = SocketProc->Parent->RecvBufLen;
 
-    RtlZeroMemory(&RecvContext->WsaMsgHdr, sizeof(RecvContext->WsaMsgHdr));
     RecvContext->WsaMsgHdr.name = (PSOCKADDR)&RecvContext->Route.RemoteAddress;
     RecvContext->WsaMsgHdr.namelen = sizeof(RecvContext->Route.RemoteAddress);
-    RecvContext->WsaMsgHdr.lpBuffers = &WsaBuf;
+    RecvContext->WsaMsgHdr.lpBuffers = &RecvContext->WsaControlBuf;
     RecvContext->WsaMsgHdr.dwBufferCount = 1;
     RecvContext->WsaMsgHdr.Control.buf = RecvContext->ControlBuf;
     RecvContext->WsaMsgHdr.Control.len = sizeof(RecvContext->ControlBuf);
+    RecvContext->WsaMsgHdr.dwFlags = 0;
 
     //
     // Call the appropriate WinSock API to start the receive. It may complete
@@ -3656,14 +3629,13 @@ CxPlatSocketStartWinsockReceive(
                 &RecvContext->Sqe.DatapathSqe.Sqe.Overlapped,
                 NULL);
     } else {
-        DWORD Flags = 0;
         Result =
             WSARecv(
                 SocketProc->Socket,
-                &WsaBuf,
+                &RecvContext->WsaControlBuf,
                 1,
                 &BytesRecv,
-                &Flags,
+                &RecvContext->WsaMsgHdr.dwFlags,
                 &RecvContext->Sqe.DatapathSqe.Sqe.Overlapped,
                 NULL);
     }
@@ -3671,16 +3643,17 @@ CxPlatSocketStartWinsockReceive(
     int WsaError = NO_ERROR;
     if (Result == SOCKET_ERROR) {
         WsaError = WSAGetLastError();
+        CXPLAT_DBG_ASSERT(WsaError != NO_ERROR);
         if (WsaError == WSA_IO_PENDING) {
             return QUIC_STATUS_PENDING;
         }
-        QuicTraceEvent(
-            DatapathErrorStatus,
-            "[data][%p] ERROR, %u, %s.",
-            SocketProc->Parent,
-            WsaError,
-            "WSARecvMsg");
-        RecvContext->Sqe.DatapathSqe.Sqe.Overlapped.Internal = WsaError;
+        //
+        // Update the SQE to indicate the failure.
+        //
+        if (SyncBytesReceived == NULL) {
+            RecvContext->Sqe.IoType = DATAPATH_IO_RECV_FAILURE;
+            BytesRecv = (DWORD)WsaError;
+        }
     }
 
     if (SyncBytesReceived != NULL) {
@@ -3747,30 +3720,39 @@ CxPlatDataPathUdpRecvComplete(
     _In_ UINT16 NumberOfBytesTransferred
     )
 {
-    PSOCKADDR_INET RemoteAddr = &RecvContext->Route.RemoteAddress;
-    PSOCKADDR_INET LocalAddr = &RecvContext->Route.LocalAddress;
-    BOOLEAN NeedReceive = TRUE;
-    RecvContext->Route.Queue = SocketProc;
-
     if (IoResult == WSAENOTSOCK || IoResult == WSA_OPERATION_ABORTED) {
         //
         // Error from shutdown, silently ignore. Return immediately so the
         // receive doesn't get reposted.
         //
-        NeedReceive = FALSE;
-        goto Drop;
+        CxPlatSocketFreeRecvContext(RecvContext);
+        return FALSE;
+    }
 
-    } else if (IsUnreachableErrorCode(IoResult)) {
+    PSOCKADDR_INET LocalAddr = &RecvContext->Route.LocalAddress;
+    PSOCKADDR_INET RemoteAddr = &RecvContext->Route.RemoteAddress;
+    CxPlatConvertFromMappedV6(RemoteAddr, RemoteAddr);
+    RecvContext->Route.Queue = SocketProc;
+
+    if (IsUnreachableErrorCode(IoResult)) {
 
         if (!SocketProc->Parent->PcpBinding) {
-            CxPlatSocketHandleUnreachableError(SocketProc, RecvContext, IoResult);
+#if QUIC_CLOG
+            QuicTraceLogVerbose(
+                DatapathUnreachableWithError,
+                "[data][%p] Received unreachable error (0x%x) from %!ADDR!",
+                SocketProc->Parent,
+                ErrorCode,
+                CASTED_CLOG_BYTEARRAY(sizeof(*RemoteAddr), RemoteAddr));
+#endif
+            SocketProc->Parent->Datapath->UdpHandlers.Unreachable(
+                SocketProc->Parent,
+                SocketProc->Parent->ClientContext,
+                RemoteAddr);
         }
 
     } else if (IoResult == ERROR_MORE_DATA ||
         (IoResult == NO_ERROR && SocketProc->Parent->RecvBufLen < NumberOfBytesTransferred)) {
-
-        CxPlatConvertFromMappedV6(RemoteAddr, RemoteAddr);
-
 #if QUIC_CLOG
         QuicTraceLogVerbose(
             DatapathTooLarge,
@@ -3778,12 +3760,20 @@ CxPlatDataPathUdpRecvComplete(
             SocketProc->Parent,
             CASTED_CLOG_BYTEARRAY(sizeof(*RemoteAddr), RemoteAddr));
 #endif
-
         //
         // TODO - Indicate to Core library.
         //
 
-    } else if (IoResult == QUIC_STATUS_SUCCESS) {
+    } else if (IoResult == NO_ERROR) {
+
+        if (NumberOfBytesTransferred == 0) {
+            CXPLAT_DBG_ASSERT(FALSE); // Not expected in tests
+            QuicTraceLogWarning(
+                DatapathRecvEmpty,
+                "[data][%p] Dropping datagram with empty payload.",
+                SocketProc->Parent);
+            goto Drop;
+        }
 
         CXPLAT_RECV_DATA* RecvDataChain = NULL;
         CXPLAT_RECV_DATA** DatagramChainTail = &RecvDataChain;
@@ -3847,22 +3837,13 @@ CxPlatDataPathUdpRecvComplete(
             // The underlying data path does not guarantee ancillary data for
             // enabled socket options when the system is under memory pressure.
             //
+            CXPLAT_DBG_ASSERT(FALSE); // Not expected in tests
             QuicTraceLogWarning(
                 DatapathMissingInfo,
                 "[data][%p] WSARecvMsg completion is missing IP_PKTINFO",
                 SocketProc->Parent);
             goto Drop;
         }
-
-        if (NumberOfBytesTransferred == 0) {
-            QuicTraceLogWarning(
-                DatapathRecvEmpty,
-                "[data][%p] Dropping datagram with empty payload.",
-                SocketProc->Parent);
-            goto Drop;
-        }
-
-        CxPlatConvertFromMappedV6(RemoteAddr, RemoteAddr);
 
         QuicTraceEvent(
             DatapathRecv,
@@ -3939,6 +3920,7 @@ CxPlatDataPathUdpRecvComplete(
         }
 
     } else {
+        CXPLAT_DBG_ASSERT(FALSE); // Not expected in test scenarios
         QuicTraceEvent(
             DatapathErrorStatus,
             "[data][%p] ERROR, %u, %s.",
@@ -3953,7 +3935,7 @@ Drop:
         CxPlatSocketFreeRecvContext(RecvContext);
     }
 
-    return NeedReceive;
+    return TRUE;
 }
 
 //
@@ -4056,10 +4038,7 @@ CxPlatDataPathSocketProcessRioCompletion(
             case DATAPATH_IO_RIO_SEND:
                 CXPLAT_RIO_SEND_BUFFER_HEADER* SendHeader =
                     CONTAINING_RECORD(IoType, CXPLAT_RIO_SEND_BUFFER_HEADER, IoType);
-                CXPLAT_SEND_DATA* SendData = SendHeader->SendData;
-
-                CxPlatSendDataComplete(SocketProc, SendData, Results[i].Status);
-
+                CxPlatSendDataComplete(SendHeader->SendData, Results[i].Status);
                 SocketProc->RioSendCount--;
                 break;
 
@@ -4271,7 +4250,7 @@ CxPlatDataPathRecvComplete(
 }
 
 void
-CxPlatDataPathSocketProcessReceiveInternal(
+CxPlatDataPathSocketProcessReceive(
     _In_ CXPLAT_DATAPATH_INTERNAL_RECV_CONTEXT* RecvContext,
     _In_ uint16_t BytesTransferred,
     _In_ ULONG IoResult
@@ -4312,19 +4291,6 @@ CxPlatDataPathSocketProcessReceiveInternal(
     }
 
     CxPlatRundownRelease(&SocketProc->RundownRef);
-}
-
-void
-CxPlatDataPathSocketProcessReceiveCompletion(
-    _In_ DATAPATH_IO_SQE* Sqe,
-    _In_ CXPLAT_CQE* Cqe
-    )
-{
-    CXPLAT_DBG_ASSERT(Cqe->dwNumberOfBytesTransferred <= UINT16_MAX);
-    CxPlatDataPathSocketProcessReceiveInternal(
-        CONTAINING_RECORD(Sqe, CXPLAT_DATAPATH_INTERNAL_RECV_CONTEXT, Sqe),
-        (uint16_t)Cqe->dwNumberOfBytesTransferred,
-        RtlNtStatusToDosError((NTSTATUS)Cqe->Internal));
 }
 
 void*
@@ -4729,11 +4695,12 @@ CxPlatSendDataIsFull(
 
 void
 CxPlatSendDataComplete(
-    _In_ CXPLAT_SOCKET_PROC* SocketProc,
     _In_ CXPLAT_SEND_DATA* SendData,
     _In_ ULONG IoResult
     )
 {
+    const CXPLAT_SOCKET_PROC* SocketProc = SendData->SocketProc;
+
     if (IoResult != QUIC_STATUS_SUCCESS) {
         QuicTraceEvent(
             DatapathErrorStatus,
@@ -4961,7 +4928,7 @@ CxPlatSocketSendInline(
     // Completed synchronously, so process the completion inline.
     //
     CxPlatCancelDatapathIo(SocketProc, &SendData->Sqe);
-    CxPlatSendDataComplete(SocketProc, SendData, WsaError);
+    CxPlatSendDataComplete(SendData, WsaError);
 
     return Status;
 }
@@ -5035,15 +5002,10 @@ CxPlatDataPathSocketProcessQueuedSend(
     CXPLAT_SOCKET_PROC* SocketProc = SendData->SocketProc;
 
     if (CxPlatRundownAcquire(&SocketProc->RundownRef)) {
-        CxPlatSocketSendInline(
-            &SendData->LocalAddress,
-            SendData);
+        CxPlatSocketSendInline(&SendData->LocalAddress, SendData);
         CxPlatRundownRelease(&SocketProc->RundownRef);
     } else {
-        CxPlatSendDataComplete(
-            SocketProc,
-            SendData,
-            WSAESHUTDOWN);
+        CxPlatSendDataComplete(SendData, WSAESHUTDOWN);
     }
 }
 
@@ -5067,21 +5029,6 @@ CxPlatDataPathStartRioSends(
 }
 
 void
-CxPlatDataPathSocketProcessSendCompletion(
-    _In_ DATAPATH_IO_SQE* Sqe,
-    _In_ CXPLAT_CQE* Cqe
-    )
-{
-    CXPLAT_SEND_DATA* SendData = CONTAINING_RECORD(Sqe, CXPLAT_SEND_DATA, Sqe);
-    CXPLAT_SOCKET_PROC* SocketProc = SendData->SocketProc;
-
-    CxPlatSendDataComplete(
-        SocketProc,
-        SendData,
-        RtlNtStatusToDosError((NTSTATUS)Cqe->Internal));
-}
-
-void
 CxPlatDataPathProcessCqe(
     _In_ CXPLAT_CQE* Cqe
     )
@@ -5101,12 +5048,18 @@ CxPlatDataPathProcessCqe(
             // N.B. We don't set SocketProc here because receive completions are
             // special (they loop internally).
             //
-            CxPlatDataPathSocketProcessReceiveCompletion(Sqe, Cqe);
+            CXPLAT_DBG_ASSERT(Cqe->dwNumberOfBytesTransferred <= UINT16_MAX);
+            CxPlatDataPathSocketProcessReceive(
+                CONTAINING_RECORD(Sqe, CXPLAT_DATAPATH_INTERNAL_RECV_CONTEXT, Sqe),
+                (uint16_t)Cqe->dwNumberOfBytesTransferred,
+                RtlNtStatusToDosError((NTSTATUS)Cqe->Internal));
             break;
 
         case DATAPATH_IO_SEND:
             SocketProc = CONTAINING_RECORD(Sqe, CXPLAT_SEND_DATA, Sqe)->SocketProc;
-            CxPlatDataPathSocketProcessSendCompletion(Sqe, Cqe);
+            CxPlatSendDataComplete(
+                CONTAINING_RECORD(Sqe, CXPLAT_SEND_DATA, Sqe),
+                RtlNtStatusToDosError((NTSTATUS)Cqe->Internal));
             break;
 
         case DATAPATH_IO_QUEUE_SEND:
@@ -5127,6 +5080,17 @@ CxPlatDataPathProcessCqe(
         case DATAPATH_IO_RIO_NOTIFY:
             SocketProc = CONTAINING_RECORD(Sqe, CXPLAT_SOCKET_PROC, RioSqe);
             CxPlatDataPathSocketProcessRioCompletion(Sqe, Cqe);
+            break;
+
+        case DATAPATH_IO_RECV_FAILURE:
+            //
+            // N.B. We don't set SocketProc here because receive completions are
+            // special (they loop internally).
+            //
+            CxPlatDataPathSocketProcessReceive(
+                CONTAINING_RECORD(Sqe, CXPLAT_DATAPATH_INTERNAL_RECV_CONTEXT, Sqe),
+                0,
+                (ULONG)Cqe->dwNumberOfBytesTransferred);
             break;
 
         default:
