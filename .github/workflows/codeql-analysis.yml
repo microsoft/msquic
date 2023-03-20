@@ -27,7 +27,7 @@ jobs:
 
     steps:
       - name: Harden Runner
-        uses: step-security/harden-runner@c8454efe5d0bdefd25384362fe217428ca277d57
+        uses: step-security/harden-runner@1f99358870fe1c846a3ccba386cc2b2246836776
         with:
           egress-policy: block
           allowed-endpoints: >
@@ -43,7 +43,7 @@ jobs:
             api.launchpad.net:443
             uploads.github.com:443
       - name: Checkout repository
-        uses: actions/checkout@ac593985615ec2ede58e132d2e21d2b1cbd6127c
+        uses: actions/checkout@24cb9080177205b6e8c946b17badbe402adc938f
         with:
           fetch-depth: 2
           submodules: 'recursive'
@@ -60,7 +60,7 @@ jobs:
          cmake --build . --target OpenSSL_Target
 
       - name: Initialize CodeQL
-        uses: github/codeql-action/init@32dc499307d133bb5085bae78498c0ac2cf762d5
+        uses: github/codeql-action/init@168b99b3c22180941ae7dbdd5f5c9678ede476ba
         with:
           languages: cpp
           config-file: ./.github/codeql/codeql-config.yml
@@ -71,4 +71,4 @@ jobs:
          cmake --build .
 
       - name: Perform CodeQL Analysis
-        uses: github/codeql-action/analyze@32dc499307d133bb5085bae78498c0ac2cf762d5
+        uses: github/codeql-action/analyze@168b99b3c22180941ae7dbdd5f5c9678ede476ba

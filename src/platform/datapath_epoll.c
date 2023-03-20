@@ -480,7 +480,7 @@ CxPlatDataPathCalculateFeatureSupport(
     struct sockaddr_in RecvAddr = {0}, RecvAddr2 = {0};
     socklen_t RecvAddrSize = sizeof(RecvAddr), RecvAddr2Size = sizeof(RecvAddr2);
     int PktInfoEnabled = 1, TosEnabled = 1, GroEnabled = 1;
-    uint8_t Buffer[8 * 1476];
+    uint8_t Buffer[8 * 1476] = {0};
     struct iovec IoVec;
     IoVec.iov_base = Buffer;
     IoVec.iov_len = sizeof(Buffer);
@@ -907,10 +907,9 @@ CxPlatSocketConfigureRss(
         {BPF_RET | BPF_A, 0, 0, 0}
     };
 
-    struct sock_fprog BpfConfig = {
-        .len = ARRAYSIZE(BpfCode),
-        .filter = BpfCode
-    };
+    struct sock_fprog BpfConfig = {0};
+	BpfConfig.len = ARRAYSIZE(BpfCode);
+    BpfConfig.filter = BpfCode;
 
     Result =
         setsockopt(

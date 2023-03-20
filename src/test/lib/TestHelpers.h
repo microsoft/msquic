@@ -212,23 +212,20 @@ struct GlobalSettingScope {
                 Parameter,
                 &BufferLength,
                 nullptr);
-#ifndef QUIC_API_ENABLE_PREVIEW_FEATURES
-        TEST_TRUE(Status == QUIC_STATUS_BUFFER_TOO_SMALL);
-#else
-        TEST_TRUE(Status == QUIC_STATUS_BUFFER_TOO_SMALL ||
-            (Parameter == QUIC_PARAM_GLOBAL_EXECUTION_CONFIG && Status == QUIC_STATUS_SUCCESS));
-#endif
+        TEST_TRUE(Status == QUIC_STATUS_BUFFER_TOO_SMALL || Status == QUIC_STATUS_SUCCESS);
 
-        OriginalValue = CXPLAT_ALLOC_NONPAGED(BufferLength, QUIC_POOL_TEST);
-        if (OriginalValue == nullptr) {
-            TEST_FAILURE("Out of memory for testing SetParam for global parameter");
+        if (BufferLength != 0) {
+            OriginalValue = CXPLAT_ALLOC_NONPAGED(BufferLength, QUIC_POOL_TEST);
+            if (OriginalValue == nullptr) {
+                TEST_FAILURE("Out of memory for testing SetParam for global parameter");
+            }
+            TEST_QUIC_SUCCEEDED(
+                MsQuic->GetParam(
+                    nullptr,
+                    Parameter,
+                    &BufferLength,
+                    OriginalValue));
         }
-        TEST_QUIC_SUCCEEDED(
-            MsQuic->GetParam(
-                nullptr,
-                Parameter,
-                &BufferLength,
-                OriginalValue));
     }
 
     ~GlobalSettingScope() {

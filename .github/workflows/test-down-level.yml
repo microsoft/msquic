@@ -23,7 +23,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        release: ['2.0.6','2.1.7']
+        release: ['2.0.6','2.1.8']
         os: [ubuntu-20.04, windows-latest]
         arch: [x64]
         tls: [schannel, openssl]
@@ -36,7 +36,7 @@ jobs:
     name: Test
     steps:
     - name: Harden Runner
-      uses: step-security/harden-runner@c8454efe5d0bdefd25384362fe217428ca277d57
+      uses: step-security/harden-runner@1f99358870fe1c846a3ccba386cc2b2246836776
       with:
         egress-policy: block
         allowed-endpoints: >
@@ -50,7 +50,7 @@ jobs:
           ppa.launchpad.net:80
           rubygems.org:443
     - name: Checkout repository
-      uses: actions/checkout@ac593985615ec2ede58e132d2e21d2b1cbd6127c
+      uses: actions/checkout@24cb9080177205b6e8c946b17badbe402adc938f
       with:
         fetch-depth: 0
     - name: Prepare Machine
