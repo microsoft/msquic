@@ -18,6 +18,7 @@ bool UseQTIP = false;
 #endif
 const MsQuicApi* MsQuic;
 const char* OsRunner = nullptr;
+uint32_t Timeout = UINT32_MAX;
 QUIC_CREDENTIAL_CONFIG ServerSelfSignedCredConfig;
 QUIC_CREDENTIAL_CONFIG ServerSelfSignedCredConfigClientAuth;
 QUIC_CREDENTIAL_CONFIG ClientCertCredConfig;
@@ -30,10 +31,12 @@ class QuicTestEnvironment : public ::testing::Environment {
     QuicDriverService DriverService;
     const QUIC_CREDENTIAL_CONFIG* SelfSignedCertParams;
     const QUIC_CREDENTIAL_CONFIG* ClientCertParams;
+    CxPlatWatchdog* watchdog {nullptr};
 public:
     void SetUp() override {
         CxPlatSystemLoad();
         ASSERT_TRUE(QUIC_SUCCEEDED(CxPlatInitialize()));
+        watchdog = new CxPlatWatchdog(Timeout);
         ASSERT_TRUE((SelfSignedCertParams =
             CxPlatGetSelfSignedCert(
                 TestingKernelMode ?
@@ -113,6 +116,7 @@ public:
 
         CxPlatUninitialize();
         CxPlatSystemUnload();
+        delete watchdog;
     }
 };
 
@@ -2379,6 +2383,11 @@ int main(int argc, char** argv) {
 #endif
         } else if (strstr(argv[i], "--osRunner")) {
             OsRunner = argv[i] + sizeof("--osRunner");
+        } else if (strcmp("--timeout", argv[i]) == 0) {
+            if (i + 1 < argc) {
+                Timeout = atoi(argv[i + 1]);
+                ++i;
+            }
         }
     }
     ::testing::AddGlobalTestEnvironment(new QuicTestEnvironment);
