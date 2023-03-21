@@ -375,7 +375,7 @@ function Start-TestCase([String]$Name) {
 
     # Build up the argument list.
     $ResultsPath = Join-Path $LocalLogDir "results.xml"
-    $Arguments = "--gtest_catch_exceptions=0 --gtest_filter=$($Name) --gtest_output=xml:$($ResultsPath) --timeout 30000"
+    $Arguments = "--gtest_catch_exceptions=0 --gtest_filter=$($Name) --gtest_output=xml:$($ResultsPath) --timeout 60000"
     if ($BreakOnFailure) {
         $Arguments += " --gtest_break_on_failure"
     }
@@ -400,6 +400,7 @@ function Start-TestCase([String]$Name) {
         Name = $Name
         InstanceName = $InstanceName
         LogDir = $LocalLogDir
+        StartTime = Get-Date
         Timestamp = (Get-Date -UFormat "%Y-%m-%dT%T")
         ResultsPath = $ResultsPath
         Process = (Start-TestExecutable $Arguments $LocalLogDir)
@@ -445,6 +446,7 @@ function Start-AllTestCases {
         Name = $Name
         InstanceName = $InstanceName
         LogDir = $LogDir
+        StartTime = Get-Date
         Timestamp = (Get-Date -UFormat "%Y-%m-%dT%T")
         ResultsPath = $FinalResultsPath
         Process = (Start-TestExecutable $Arguments $LogDir)
@@ -629,12 +631,13 @@ function Wait-TestCase($TestCase) {
             if ($StdOutTxt) { Write-Host $StdOutTxt }
             if ($StdErrorTxt) { Write-Host $StdErrorTxt }
         } else {
+            $Delta = (Get-Date) - $TestCase.StartTime
             if ($AnyTestFailed -or $ProcessCrashed) {
-                LogErr "$($TestCase.Name) failed:"
+                LogErr "$($TestCase.Name) failed (in $($Delta.TotalSeconds) sec):"
                 if ($StdOutTxt) { Write-Host $StdOutTxt }
                 if ($StdErrorTxt) { Write-Host $StdErrorTxt }
             } else {
-                Log "$($TestCase.Name) succeeded"
+                Log "$($TestCase.Name) succeeded (in $($Delta.TotalSeconds) sec)"
             }
         }
 
