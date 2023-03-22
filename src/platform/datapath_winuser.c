@@ -810,34 +810,10 @@ CxPlatDataPathDatagramToInternalDatagramContext(
         (((PUCHAR)Datagram) + sizeof(CXPLAT_RECV_DATA));
 }
 
-_Success_(return == QUIC_STATUS_SUCCESS)
-QUIC_STATUS
-CxPlatSocketStartReceive(
-    _In_ CXPLAT_SOCKET_PROC* SocketProc,
-    _Out_opt_ ULONG* SyncIoResult,
-    _Out_opt_ uint16_t* SyncBytesReceived,
-    _Out_opt_ CXPLAT_DATAPATH_INTERNAL_RECV_CONTEXT** SyncRecvContext
-    );
-
-CXPLAT_DATAPATH_PROC*
-CxPlatDataPathGetProc(
-    _In_ CXPLAT_DATAPATH* Datapath,
-    _In_ uint16_t Processor
-    )
-{
-    for (uint16_t i = 0; i < Datapath->ProcCount; ++i) {
-        if (Datapath->Processors[i].IdealProcessor == Processor) {
-            return &Datapath->Processors[i];
-        }
-    }
-    CXPLAT_FRE_ASSERT(FALSE); // TODO - What now?!
-    return NULL;
-}
-
 void
 CxPlatDataPathStartReceiveAsync(
     _In_ CXPLAT_SOCKET_PROC* SocketProc
-);
+    );
 
 QUIC_STATUS
 CxPlatSocketStartAccept(
