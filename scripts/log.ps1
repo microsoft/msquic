@@ -142,7 +142,7 @@ if ($IsLinux) {
     try { lttng version | Out-Null }
     catch {
         Write-Host "Installing lttng"
-        sudo apt-add-repository ppa:lttng/stable-2.12
+        sudo apt-add-repository ppa:lttng/stable-2.13
         sudo apt-get update
         sudo apt-get install -y lttng-tools
         sudo apt-get install -y liblttng-ust-dev

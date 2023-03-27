@@ -161,7 +161,7 @@ Note at minimum CMake 3.16 is required. Instructions for installing a the newest
 The following are generally required. Actual installations may vary.
 
 ```
-sudo apt-add-repository ppa:lttng/stable-2.12
+sudo apt-add-repository ppa:lttng/stable-2.13
 sudo apt-get update
 sudo apt-get install cmake
 sudo apt-get install build-essential

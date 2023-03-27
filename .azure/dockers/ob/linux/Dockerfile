@@ -11,7 +11,7 @@ RUN apt-get update && apt-get install -y apt-transport-https \
     wget && \
     wget -O - https://apt.kitware.com/keys/kitware-archive-latest.asc 2>/dev/null | gpg --dearmor - | tee /etc/apt/trusted.gpg.d/kitware.gpg >/dev/null && \
     apt-add-repository 'deb https://apt.kitware.com/ubuntu/ focal main' && \
-    apt-add-repository ppa:lttng/stable-2.12 && \
+    apt-add-repository ppa:lttng/stable-2.13 && \
     apt-get update && apt-get install -y tzdata && apt-get install -y \
     build-essential \
     gcc-arm-linux-gnueabihf \
