@@ -1881,10 +1881,12 @@ QuicCryptoProcessData(
                 Connection,
                 &Info);
 
-            if (!Connection->State.HandleClosed && Connection->State.ExternalOwner && Connection->TlsSecrets != NULL) {
+            if (!Connection->State.HandleClosed &&
+                Connection->State.ExternalOwner &&
+                Connection->TlsSecrets != NULL) {
                 //
-                // At this point, if the connection was accepted by the listener, and
-                // the app requests the TLS secrets, now they can be copied.
+                // At this point, the connection was accepted by the listener,
+                // and the app requests TLS secrets, so now they can be copied.
                 //
                 Status =
                     QuicCryptoTlsReadInitial(
