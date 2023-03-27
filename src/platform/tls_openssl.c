@@ -487,12 +487,6 @@ CxPlatTlsSetEncryptionSecretsCallback(
     }
 
     if (TlsContext->TlsSecrets != NULL) {
-        if (!TlsContext->TlsSecrets->IsSet.ClientRandom) {
-            if (SSL_get_client_random(Ssl, TlsContext->TlsSecrets->ClientRandom, sizeof(TlsContext->TlsSecrets->ClientRandom)) > 0) {
-                TlsContext->TlsSecrets->IsSet.ClientRandom = TRUE;
-            }
-        }
-
         TlsContext->TlsSecrets->SecretLength = (uint8_t)SecretLen;
         switch (KeyType) {
         case QUIC_PACKET_KEY_HANDSHAKE:
