@@ -557,6 +557,12 @@ CxPlatDpRawInterfaceInitialize(
         goto Error;
     }
 
+    QuicTraceLogInfo(
+        XdpInterfaceInitialize,
+        "[ xdp][%p] XDP interface initialize, %u queues",
+        Interface,
+        Interface->QueueCount);
+
     Interface->Queues = CxPlatAlloc(Interface->QueueCount * sizeof(*Interface->Queues), QUEUE_TAG);
     if (Interface->Queues == NULL) {
         QuicTraceEvent(
@@ -827,12 +833,22 @@ CxPlatDpRawInterfaceInitialize(
                 "SetFileCompletionNotificationModes");
             goto Error;
         }
+
+        QuicTraceLogInfo(
+            XdpQueueInitialized,
+            "[ xdp][%p] XDP queue initialized",
+            Queue);
     }
 
     //
     // Add each queue to a worker (round robin).
     //
     for (uint8_t i = 0; i < Interface->QueueCount; i++) {
+        QuicTraceLogInfo(
+            XdpQueueAdded,
+            "[ xdp][%p] XDP queue added to worker %p",
+            &Interface->Queues[i],
+            &Xdp->Workers[i % Xdp->WorkerCount]);
         XdpWorkerAddQueue(&Xdp->Workers[i % Xdp->WorkerCount], &Interface->Queues[i]);
     }
 
@@ -1056,7 +1072,7 @@ CxPlatDpRawInitialize(
         ProcessorList = NULL;
     }
 
-    QuicTraceLogVerbose(
+    QuicTraceLogInfo(
         XdpInitialize,
         "[ xdp][%p] XDP initialized, %u procs",
         Xdp,
@@ -1196,7 +1212,7 @@ CxPlatDpRawInitialize(
                     GetLastError(),
                     "CreateIoCompletionPort(TX)");
             }
-            QuicTraceLogVerbose(
+            QuicTraceLogInfo(
                 XdpQueueStart,
                 "[ xdp][%p] XDP queue start on worker %p",
                 Queue,
@@ -1205,7 +1221,7 @@ CxPlatDpRawInitialize(
             Queue = Queue->Next;
         }
 
-        QuicTraceLogVerbose(
+        QuicTraceLogInfo(
             XdpWorkerStart,
             "[ xdp][%p] XDP worker start, %u queues",
             Worker,
@@ -1245,7 +1261,7 @@ CxPlatDpRawRelease(
         "[ xdp][%p] XDP release",
         Xdp);
     if (CxPlatRefDecrement(&Xdp->RefCount)) {
-        QuicTraceLogVerbose(
+        QuicTraceLogInfo(
             XdpUninitializeComplete,
             "[ xdp][%p] XDP uninitialize complete",
             Xdp);
@@ -1723,7 +1739,7 @@ CxPlatXdpExecute(
     const XDP_DATAPATH* Xdp = Worker->Xdp;
 
     if (!Xdp->Running) {
-        QuicTraceLogVerbose(
+        QuicTraceLogInfo(
             XdpWorkerShutdown,
             "[ xdp][%p] XDP worker shutdown",
             Worker);
