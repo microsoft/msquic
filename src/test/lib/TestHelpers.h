@@ -80,6 +80,7 @@ struct ServerAcceptContext {
     CXPLAT_EVENT NewConnectionReady;
     TestConnection** NewConnection;
     void* NewStreamHandler{nullptr};
+    QUIC_TLS_SECRETS* TlsSecrets{nullptr};
     QUIC_STATUS ExpectedTransportCloseStatus{QUIC_STATUS_SUCCESS};
     QUIC_STATUS ExpectedClientCertValidationResult[2]{};
     uint32_t ExpectedClientCertValidationResultCount{0};

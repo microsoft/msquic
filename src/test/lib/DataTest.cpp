@@ -58,6 +58,8 @@ struct PingStats
 
     QUIC_BUFFER* ResumptionTicket {nullptr};
 
+    QUIC_TLS_SECRETS* TlsSecrets {nullptr};
+
     PingStats(
         uint64_t _PayloadLength,
         uint32_t _ConnectionCount,
@@ -274,6 +276,17 @@ ListenerAcceptPingConnection(
         }
     }
 
+    if (Stats->TlsSecrets) {
+        //
+        // This assumes a single server connection.
+        //
+        auto Status = Connection->SetTlsSecrets(Stats->TlsSecrets);
+        if (QUIC_FAILED(Status)) {
+            TEST_FAILURE("SetParam(QUIC_TLS_SECRETS) failed with 0x%x", Status);
+            return false;
+        }
+    }
+
     Connection->SetPriorityScheme(
         Stats->FifoScheduling ?
             QUIC_STREAM_SCHEDULING_SCHEME_FIFO :
@@ -369,6 +382,19 @@ QuicTestConnectAndPing(
         //
     }
 
+    UniquePtr<QUIC_TLS_SECRETS> ClientSecrets{}, ServerSecrets{};
+    if (ConnectionCount == 1 && ClientZeroRtt && !ServerRejectZeroRtt) {
+        //
+        // Currently only works with a single 0-RTT connection.
+        //
+        ClientSecrets.reset((QUIC_TLS_SECRETS*)malloc(sizeof(*ClientSecrets)));
+        ServerSecrets.reset((QUIC_TLS_SECRETS*)malloc(sizeof(*ServerSecrets)));
+        if (ClientSecrets == nullptr || ServerSecrets == nullptr) {
+            return;
+        }
+        ServerStats.TlsSecrets = ServerSecrets.get();
+    }
+
     MsQuicRegistration Registration(NULL, QUIC_EXECUTION_PROFILE_TYPE_MAX_THROUGHPUT, true);
     TEST_TRUE(Registration.IsValid());
 
@@ -451,6 +477,10 @@ QuicTestConnectAndPing(
             if (Connections.get()[i] == nullptr) {
                 return;
             }
+            if (ClientSecrets) {
+                TEST_QUIC_SUCCEEDED(
+                    Connections.get()[i]->SetTlsSecrets(ClientSecrets.get()));
+            }
         }
 
         QuicAddr LocalAddr;
@@ -511,6 +541,20 @@ QuicTestConnectAndPing(
         if (!CxPlatEventWaitWithTimeout(ServerStats.CompletionEvent, TimeoutMs)) {
             TEST_FAILURE("Wait for server to complete timed out after %u ms.", TimeoutMs);
             return;
+        }
+
+        if (ClientSecrets) {
+            TEST_EQUAL(
+                ClientSecrets->IsSet.ClientEarlyTrafficSecret,
+                ServerSecrets->IsSet.ClientEarlyTrafficSecret);
+            TEST_EQUAL(
+                ClientSecrets->SecretLength,
+                ServerSecrets->SecretLength);
+            TEST_TRUE(
+                !memcmp(
+                    ClientSecrets->ClientEarlyTrafficSecret,
+                    ServerSecrets->ClientEarlyTrafficSecret,
+                    ClientSecrets->SecretLength));
         }
     }
 }

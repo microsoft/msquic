@@ -138,6 +138,13 @@ ListenerAcceptConnection(
         (*AcceptContext->NewConnection)->SetPeerCertEventReturnStatus(
             AcceptContext->PeerCertEventReturnStatus);
     }
+    if (AcceptContext->TlsSecrets != NULL) {
+        auto Status = (*AcceptContext->NewConnection)->SetTlsSecrets(AcceptContext->TlsSecrets);
+        if (QUIC_FAILED(Status)) {
+            TEST_FAILURE("SetParam(QUIC_PARAM_CONN_TLS_SECRETS) returned 0x%x", Status);
+            return false;
+        }
+    }
     CxPlatEventSet(AcceptContext->NewConnectionReady);
     return true;
 }
@@ -163,6 +170,8 @@ QuicTestConnect(
 
     MsQuicAlpn Alpn1("MsQuicTest");
     MsQuicAlpn Alpn2("MsQuicTest2", "MsQuicTest");
+
+    QUIC_TLS_SECRETS ClientSecrets{}, ServerSecrets{};
 
     MsQuicSettings Settings;
     Settings.SetPeerBidiStreamCount(4);
@@ -242,6 +251,7 @@ QuicTestConnect(
                     ServerAcceptCtx.ExpectedCustomTicketValidationResult = QUIC_STATUS_INTERNAL_ERROR;
                 }
             }
+            ServerAcceptCtx.TlsSecrets = &ServerSecrets;
 
             Listener.Context = &ServerAcceptCtx;
 
@@ -249,6 +259,7 @@ QuicTestConnect(
                 TestConnection Client(Registration);
                 TEST_TRUE(Client.IsValid());
                 Client.SetHasRandomLoss(RandomLossPercentage != 0);
+                TEST_QUIC_SUCCEEDED(Client.SetTlsSecrets(&ClientSecrets));
 
                 if (ClientUsesOldVersion) {
                     TEST_QUIC_SUCCEEDED(
@@ -310,6 +321,54 @@ QuicTestConnect(
                     return;
                 }
                 TEST_TRUE(Server->GetIsConnected());
+
+                TEST_EQUAL(
+                    ServerSecrets.IsSet.ClientRandom,
+                    ClientSecrets.IsSet.ClientRandom);
+                TEST_TRUE(
+                    !memcmp(
+                        ServerSecrets.ClientRandom,
+                        ClientSecrets.ClientRandom,
+                        sizeof(ServerSecrets.ClientRandom)));
+
+                TEST_EQUAL(ServerSecrets.SecretLength, ClientSecrets.SecretLength);
+                TEST_TRUE(ServerSecrets.SecretLength <= QUIC_TLS_SECRETS_MAX_SECRET_LEN);
+
+                TEST_EQUAL(
+                    ServerSecrets.IsSet.ClientHandshakeTrafficSecret,
+                    ClientSecrets.IsSet.ClientHandshakeTrafficSecret);
+                TEST_TRUE(
+                    !memcmp(
+                        ServerSecrets.ClientHandshakeTrafficSecret,
+                        ClientSecrets.ClientHandshakeTrafficSecret,
+                        ServerSecrets.SecretLength));
+
+                TEST_EQUAL(
+                    ServerSecrets.IsSet.ServerHandshakeTrafficSecret,
+                    ClientSecrets.IsSet.ServerHandshakeTrafficSecret);
+                TEST_TRUE(
+                    !memcmp(
+                        ServerSecrets.ServerHandshakeTrafficSecret,
+                        ClientSecrets.ServerHandshakeTrafficSecret,
+                        ServerSecrets.SecretLength));
+
+                TEST_EQUAL(
+                    ServerSecrets.IsSet.ClientTrafficSecret0,
+                    ClientSecrets.IsSet.ClientTrafficSecret0);
+                TEST_TRUE(
+                    !memcmp(
+                        ServerSecrets.ClientTrafficSecret0,
+                        ClientSecrets.ClientTrafficSecret0,
+                        ServerSecrets.SecretLength));
+
+                TEST_EQUAL(
+                    ServerSecrets.IsSet.ServerTrafficSecret0,
+                    ClientSecrets.IsSet.ServerTrafficSecret0);
+                TEST_TRUE(
+                    !memcmp(
+                        ServerSecrets.ServerTrafficSecret0,
+                        ClientSecrets.ServerTrafficSecret0,
+                        ServerSecrets.SecretLength));
 
                 if (ClientUsesOldVersion) {
                     TEST_EQUAL(Server->GetQuicVersion(), OLD_SUPPORTED_VERSION);

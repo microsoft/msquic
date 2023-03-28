@@ -305,4 +305,6 @@ public:
 
     const uint8_t* GetNegotiatedAlpn() const;
     uint8_t GetNegotiatedAlpnLength() const;
+
+    QUIC_STATUS SetTlsSecrets(QUIC_TLS_SECRETS* Secrets);
 };

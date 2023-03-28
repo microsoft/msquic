@@ -518,7 +518,11 @@ CxPlatTlsSetEncryptionSecretsCallback(
             TlsContext->TlsSecrets = NULL;
             break;
         case QUIC_PACKET_KEY_0_RTT:
-            if (!TlsContext->IsServer) {
+            if (TlsContext->IsServer) {
+                CXPLAT_FRE_ASSERT(ReadSecret != NULL);
+                memcpy(TlsContext->TlsSecrets->ClientEarlyTrafficSecret, ReadSecret, SecretLen);
+                TlsContext->TlsSecrets->IsSet.ClientEarlyTrafficSecret = TRUE;
+            } else {
                 CXPLAT_FRE_ASSERT(WriteSecret != NULL);
                 memcpy(TlsContext->TlsSecrets->ClientEarlyTrafficSecret, WriteSecret, SecretLen);
                 TlsContext->TlsSecrets->IsSet.ClientEarlyTrafficSecret = TRUE;
