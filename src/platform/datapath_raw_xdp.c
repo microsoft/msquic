@@ -1186,7 +1186,7 @@ CxPlatDpRawInitialize(
         }
 
         Worker->Xdp = Xdp;
-        Worker->ProcIndex = ProcessorList ? ProcessorList[i] : (uint16_t)((i/Xdp->WorkerCount)*Xdp->WorkerCount);
+        Worker->ProcIndex = ProcessorList ? ProcessorList[i] : (uint16_t)((i/2)*2);
         Worker->Ec.Ready = TRUE;
         Worker->Ec.NextTimeUs = UINT64_MAX;
         Worker->Ec.Callback = CxPlatXdpExecute;
