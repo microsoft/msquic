@@ -377,6 +377,6 @@ Official (v1) RFC, v2 (WG-LC) and draft-29 are supported by this release.
 
 ## Synchronizing with Windows
 
-1. Once the release branch is created, run the pipeline [here](https://mscodehub.visualstudio.com/msquic/_build?definitionId=1868) to ingest the latest release into Windows.
-2. Once the pipeline finishes passes tests, it'll create a PR.
+1. Once the release branch is created, set the pipeline [here](https://mscodehub.visualstudio.com/msquic/_build?definitionId=1868) to ingest the release branch into Windows, and run it.
+2. When the pipeline passes tests, it'll create a PR.
 3. Review and merge the PR to complete the process.
