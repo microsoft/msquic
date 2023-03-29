@@ -1744,6 +1744,9 @@ QuicCryptoTlsDecodeTransportParameters( // NOLINT(readability-function-size, goo
 
         case QUIC_TP_ID_VERSION_NEGOTIATION_EXT:
             if (Length > 0) {
+                if (TransportParams->VersionInfo != NULL) {
+                    CXPLAT_FREE(TransportParams->VersionInfo, QUIC_POOL_VERSION_INFO);
+                }
                 TransportParams->VersionInfo = CXPLAT_ALLOC_NONPAGED(Length, QUIC_POOL_VERSION_INFO);
                 if (TransportParams->VersionInfo == NULL) {
                     QuicTraceEvent(
