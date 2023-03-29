@@ -1533,7 +1533,8 @@ QuicCryptoProcessTlsCompletion(
         //
         if (Connection->TlsSecrets != NULL &&
             QuicConnIsClient(Connection) &&
-            Crypto->TlsState.WriteKey == QUIC_PACKET_KEY_INITIAL &&
+            (Crypto->TlsState.WriteKey == QUIC_PACKET_KEY_INITIAL ||
+                Crypto->TlsState.WriteKey == QUIC_PACKET_KEY_0_RTT) &&
             Crypto->TlsState.BufferLength > 0) {
             QUIC_NEW_CONNECTION_INFO Info = { 0 };
             QuicCryptoTlsReadInitial(
@@ -1886,7 +1887,7 @@ QuicCryptoProcessData(
                 Connection->TlsSecrets != NULL) {
                 //
                 // At this point, the connection was accepted by the listener,
-                // and the app requests TLS secrets, so now they can be copied.
+                // so now the ClientRandom can be copied.
                 //
                 Status =
                     QuicCryptoTlsReadInitial(

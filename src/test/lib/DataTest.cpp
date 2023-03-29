@@ -53,6 +53,7 @@ struct PingStats
     const QUIC_STATUS ExpectedCloseStatus;
 
     volatile long ConnectionsComplete;
+    volatile long SecretsIndex;
 
     CXPLAT_EVENT CompletionEvent;
 
@@ -82,7 +83,8 @@ struct PingStats
         AllowDataIncomplete(_AllowDataIncomplete),
         ServerKeyUpdate(_ServerKeyUpdate),
         ExpectedCloseStatus(_ExpectedCloseStatus),
-        ConnectionsComplete(0)
+        ConnectionsComplete(0),
+        SecretsIndex(0)
     {
         CxPlatEventInitialize(&CompletionEvent, FALSE, FALSE);
     }
@@ -277,10 +279,8 @@ ListenerAcceptPingConnection(
     }
 
     if (Stats->TlsSecrets) {
-        //
-        // This assumes a single server connection.
-        //
-        auto Status = Connection->SetTlsSecrets(Stats->TlsSecrets);
+        auto Status = Connection->SetTlsSecrets(
+            &(Stats->TlsSecrets[InterlockedIncrement(&Stats->SecretsIndex) - 1]));
         if (QUIC_FAILED(Status)) {
             TEST_FAILURE("SetParam(QUIC_TLS_SECRETS) failed with 0x%x", Status);
             return false;
@@ -382,13 +382,13 @@ QuicTestConnectAndPing(
         //
     }
 
-    UniquePtr<QUIC_TLS_SECRETS> ClientSecrets{}, ServerSecrets{};
-    if (ConnectionCount == 1 && ClientZeroRtt && !ServerRejectZeroRtt) {
-        //
-        // Currently only works with a single 0-RTT connection.
-        //
-        ClientSecrets.reset(new(std::nothrow) QUIC_TLS_SECRETS);
-        ServerSecrets.reset(new(std::nothrow) QUIC_TLS_SECRETS);
+    UniquePtr<QUIC_TLS_SECRETS[]> ClientSecrets;
+    UniquePtr<QUIC_TLS_SECRETS[]> ServerSecrets;
+    if (ClientZeroRtt && !ServerRejectZeroRtt) {
+        ClientSecrets.reset(
+                new(std::nothrow) QUIC_TLS_SECRETS[ConnectionCount]);
+        ServerSecrets.reset(
+                new(std::nothrow) QUIC_TLS_SECRETS[ConnectionCount]);
         if (ClientSecrets == nullptr || ServerSecrets == nullptr) {
             return;
         }
@@ -479,7 +479,7 @@ QuicTestConnectAndPing(
             }
             if (ClientSecrets) {
                 TEST_QUIC_SUCCEEDED(
-                    Connections.get()[i]->SetTlsSecrets(ClientSecrets.get()));
+                    Connections.get()[i]->SetTlsSecrets(&ClientSecrets[i]));
             }
         }
 
@@ -544,17 +544,39 @@ QuicTestConnectAndPing(
         }
 
         if (ClientSecrets) {
-            TEST_EQUAL(
-                ClientSecrets->IsSet.ClientEarlyTrafficSecret,
-                ServerSecrets->IsSet.ClientEarlyTrafficSecret);
-            TEST_EQUAL(
-                ClientSecrets->SecretLength,
-                ServerSecrets->SecretLength);
-            TEST_TRUE(
-                !memcmp(
-                    ClientSecrets->ClientEarlyTrafficSecret,
-                    ServerSecrets->ClientEarlyTrafficSecret,
-                    ClientSecrets->SecretLength));
+            for (auto i = 0u; i < ConnectionCount; i++) {
+                auto ServerSecret = &ServerSecrets[i];
+                bool Match = false;
+                for (auto j = 0u; j < ConnectionCount; j++) {
+                    auto ClientSecret = &ClientSecrets[j];
+                    if (!memcmp(
+                            ServerSecret->ClientRandom,
+                            ClientSecret->ClientRandom,
+                            sizeof(ClientSecret->ClientRandom))) {
+                        if (Match) {
+                            TEST_FAILURE("Multiple clients with the same ClientRandom?!");
+                            return;
+                        }
+
+                        TEST_EQUAL(
+                            ClientSecret->IsSet.ClientEarlyTrafficSecret,
+                            ServerSecret->IsSet.ClientEarlyTrafficSecret);
+                        TEST_EQUAL(
+                            ClientSecret->SecretLength,
+                            ServerSecret->SecretLength);
+                        TEST_TRUE(
+                            !memcmp(
+                                ClientSecret->ClientEarlyTrafficSecret,
+                                ServerSecret->ClientEarlyTrafficSecret,
+                                ClientSecret->SecretLength));
+                        Match = true;
+                    }
+                }
+                if (!Match) {
+                    TEST_FAILURE("Failed to match Server Secrets to any Client Secrets!");
+                    return;
+                }
+            }
         }
     }
 }
