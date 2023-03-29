@@ -387,8 +387,8 @@ QuicTestConnectAndPing(
         //
         // Currently only works with a single 0-RTT connection.
         //
-        ClientSecrets.reset((QUIC_TLS_SECRETS*)malloc(sizeof(*ClientSecrets)));
-        ServerSecrets.reset((QUIC_TLS_SECRETS*)malloc(sizeof(*ServerSecrets)));
+        ClientSecrets.reset(new(std::nothrow) QUIC_TLS_SECRETS);
+        ServerSecrets.reset(new(std::nothrow) QUIC_TLS_SECRETS);
         if (ClientSecrets == nullptr || ServerSecrets == nullptr) {
             return;
         }
