@@ -1536,12 +1536,11 @@ QuicCryptoProcessTlsCompletion(
             (Crypto->TlsState.WriteKey == QUIC_PACKET_KEY_INITIAL ||
                 Crypto->TlsState.WriteKey == QUIC_PACKET_KEY_0_RTT) &&
             Crypto->TlsState.BufferLength > 0) {
-            QUIC_NEW_CONNECTION_INFO Info = { 0 };
-            QuicCryptoTlsReadInitial(
+
+            QuicCryptoTlsReadClientRandom(
                 Connection,
                 Crypto->TlsState.Buffer,
                 Crypto->TlsState.BufferLength,
-                &Info,
                 Connection->TlsSecrets);
             //
             // Connection is done with TlsSecrets, clean up.
@@ -1838,14 +1837,7 @@ QuicCryptoProcessData(
                     Connection,
                     Buffer.Buffer,
                     Buffer.Length,
-                    &Info,
-                    //
-                    // On server, TLS is initialized before the listener
-                    // is told about the connection, so TlsSecrets is still
-                    // NULL.
-                    //
-                    NULL
-                    );
+                    &Info);
             if (QUIC_FAILED(Status)) {
                 QuicConnTransportError(
                     Connection,
@@ -1889,13 +1881,11 @@ QuicCryptoProcessData(
                 // At this point, the connection was accepted by the listener,
                 // so now the ClientRandom can be copied.
                 //
-                Status =
-                    QuicCryptoTlsReadInitial(
-                        Connection,
-                        Buffer.Buffer,
-                        Buffer.Length,
-                        &Info,
-                        Connection->TlsSecrets);
+                QuicCryptoTlsReadClientRandom(
+                    Connection,
+                    Buffer.Buffer,
+                    Buffer.Length,
+                    Connection->TlsSecrets);
             }
             return Status;
         }
