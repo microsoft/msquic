@@ -1874,9 +1874,9 @@ QuicCryptoProcessData(
                 Connection,
                 &Info);
 
-            if (!Connection->State.HandleClosed &&
-                Connection->State.ExternalOwner &&
-                Connection->TlsSecrets != NULL) {
+            if (Connection->TlsSecrets != NULL &&
+                !Connection->State.HandleClosed &&
+                Connection->State.ExternalOwner) {
                 //
                 // At this point, the connection was accepted by the listener,
                 // so now the ClientRandom can be copied.
