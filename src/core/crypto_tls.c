@@ -666,14 +666,9 @@ QuicCryptoTlsReadClientRandom(
     _Inout_ QUIC_TLS_SECRETS* TlsSecrets
     )
 {
-    if (BufferLength < TLS_MESSAGE_HEADER_LENGTH + sizeof(uint16_t) + TLS_RANDOM_LENGTH) {
-        QuicTraceEvent(
-            ConnError,
-            "[conn][%p] ERROR, %s.",
-            Connection,
-            "TLS Initial too small to contain ClientRandom");
-        return QUIC_STATUS_INVALID_PARAMETER;
-    }
+    CXPLAT_DBG_ASSERT(
+        BufferLength >=
+        TLS_MESSAGE_HEADER_LENGTH + sizeof(uint16_t) + TLS_RANDOM_LENGTH);
 
     Buffer += TLS_MESSAGE_HEADER_LENGTH + sizeof(uint16_t);
     memcpy(TlsSecrets->ClientRandom, Buffer, TLS_RANDOM_LENGTH);
