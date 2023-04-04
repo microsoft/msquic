@@ -665,6 +665,7 @@ QuicCryptoTlsReadClientRandom(
     _Inout_ QUIC_TLS_SECRETS* TlsSecrets
     )
 {
+    UNREFERENCED_PARAMETER(BufferLength);
     CXPLAT_DBG_ASSERT(
         BufferLength >=
         TLS_MESSAGE_HEADER_LENGTH + sizeof(uint16_t) + TLS_RANDOM_LENGTH);
