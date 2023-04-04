@@ -659,7 +659,6 @@ QuicCryptoTlsReadInitial(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 QuicCryptoTlsReadClientRandom(
-    _In_ QUIC_CONNECTION* Connection,
     _In_reads_(BufferLength)
         const uint8_t* Buffer,
     _In_ uint32_t BufferLength,

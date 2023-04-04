@@ -1538,7 +1538,6 @@ QuicCryptoProcessTlsCompletion(
             Crypto->TlsState.BufferLength > 0) {
 
             QuicCryptoTlsReadClientRandom(
-                Connection,
                 Crypto->TlsState.Buffer,
                 Crypto->TlsState.BufferLength,
                 Connection->TlsSecrets);
@@ -1882,7 +1881,6 @@ QuicCryptoProcessData(
                 // so now the ClientRandom can be copied.
                 //
                 QuicCryptoTlsReadClientRandom(
-                    Connection,
                     Buffer.Buffer,
                     Buffer.Length,
                     Connection->TlsSecrets);
