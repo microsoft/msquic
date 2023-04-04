@@ -1049,7 +1049,6 @@ QuicSendPathChallenges(
         // We need to set the path challenge flag back on so that when route is resolved,
         // we know we need to continue to send the challenge.
         //
-        CXPLAT_DBG_ASSERT(Path->IsActive);
         CXPLAT_DBG_ASSERT(Path->Route.State != RouteSuspected);
         if (Path->Route.State == RouteUnresolved) {
             QuicConnAddRef(Connection, QUIC_CONN_REF_ROUTE);
