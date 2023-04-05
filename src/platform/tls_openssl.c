@@ -487,12 +487,6 @@ CxPlatTlsSetEncryptionSecretsCallback(
     }
 
     if (TlsContext->TlsSecrets != NULL) {
-        if (!TlsContext->TlsSecrets->IsSet.ClientRandom) {
-            if (SSL_get_client_random(Ssl, TlsContext->TlsSecrets->ClientRandom, sizeof(TlsContext->TlsSecrets->ClientRandom)) > 0) {
-                TlsContext->TlsSecrets->IsSet.ClientRandom = TRUE;
-            }
-        }
-
         TlsContext->TlsSecrets->SecretLength = (uint8_t)SecretLen;
         switch (KeyType) {
         case QUIC_PACKET_KEY_HANDSHAKE:
@@ -524,7 +518,11 @@ CxPlatTlsSetEncryptionSecretsCallback(
             TlsContext->TlsSecrets = NULL;
             break;
         case QUIC_PACKET_KEY_0_RTT:
-            if (!TlsContext->IsServer) {
+            if (TlsContext->IsServer) {
+                CXPLAT_FRE_ASSERT(ReadSecret != NULL);
+                memcpy(TlsContext->TlsSecrets->ClientEarlyTrafficSecret, ReadSecret, SecretLen);
+                TlsContext->TlsSecrets->IsSet.ClientEarlyTrafficSecret = TRUE;
+            } else {
                 CXPLAT_FRE_ASSERT(WriteSecret != NULL);
                 memcpy(TlsContext->TlsSecrets->ClientEarlyTrafficSecret, WriteSecret, SecretLen);
                 TlsContext->TlsSecrets->IsSet.ClientEarlyTrafficSecret = TRUE;

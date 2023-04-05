@@ -2398,6 +2398,15 @@ CxPlatTlsWriteDataToSchannel(
             Result |= CXPLAT_TLS_RESULT_READ_KEY_UPDATED;
             if (NewPeerTrafficSecrets[i]->TrafficSecretType == SecTrafficSecret_ClientEarlyData) {
                 CXPLAT_FRE_ASSERT(FALSE); // TODO - Finish the 0-RTT logic.
+                CXPLAT_FRE_ASSERT(TlsContext->IsServer);
+                if (TlsContext->TlsSecrets != NULL) {
+                    TlsContext->TlsSecrets->SecretLength = (uint8_t)NewPeerTrafficSecrets[i]->TrafficSecretSize;
+                    memcpy(
+                        TlsContext->TlsSecrets->ClientEarlyTrafficSecret,
+                        NewPeerTrafficSecrets[i]->TrafficSecret,
+                        NewPeerTrafficSecrets[i]->TrafficSecretSize);
+                    TlsContext->TlsSecrets->IsSet.ClientEarlyTrafficSecret = TRUE;
+                }
             } else {
                 if (State->ReadKey == QUIC_PACKET_KEY_INITIAL) {
                     if (!QuicPacketKeyCreate(
