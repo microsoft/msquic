@@ -2,7 +2,7 @@
 
 ## Running the Tests
 
-First [build](./BUILD.md). If you are trying to run the tests on a different machine from the one where you are building msquic, you can copy `artifacts` and `scripts` folders after building msquic over to that machine and run the below steps from there. Running kernel mode msquic and QUIC over XDP tests requires test signing enabled on the machine. It's also more convinient to be done on a machine/VM that's dedicated for testing in case something bugchecks the machine.
+First [build](./BUILD.md). If you are trying to run the tests on a different machine from the one where you are building msquic, you can copy `artifacts` and `scripts` folders after building msquic over to that machine and run the below steps from there. Running kernel mode msquic and QUIC over XDP tests requires test signing enabled on the machine. It's also more convenient to be done on a machine/VM that's dedicated for testing in case something bugchecks the machine.
 
 Prepare the machine:
 
