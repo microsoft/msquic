@@ -21,7 +21,7 @@ if("${CX_PLATFORM}" STREQUAL "windows")
 else()
     set(SOURCES ${SOURCES} inline.c platform_posix.c storage_posix.c cgroup.c)
     if(CX_PLATFORM STREQUAL "linux" AND NOT CMAKE_SYSTEM_NAME STREQUAL "FreeBSD")
-        set(SOURCES ${SOURCES} datapath_epoll.c)
+        set(SOURCES ${SOURCES} datapath_raw_xdp_epoll.c)
     else()
         set(SOURCES ${SOURCES} datapath_kqueue.c)
     endif()
@@ -45,6 +45,7 @@ else()
 endif()
 
 add_library(platform STATIC ${SOURCES})
+target_link_libraries(platform PRIVATE bpf)
 
 if(QUIC_USE_XDP)
     target_link_libraries(
