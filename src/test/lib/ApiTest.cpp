@@ -2273,7 +2273,14 @@ void QuicTestGlobalParam()
                         &Length,
                         ActualBuffer));
                 TEST_EQUAL(Length, sizeof(int64_t) * (QUIC_PERF_COUNTER_MAX / 2));
+#if DEBUG
+                //
+                // Only test this in debug mode, because release tests may be run on
+                // the installed binary that is actively being used, and the counters
+                // can be non-zero.
+                //
                 TEST_EQUAL(memcmp(ActualBuffer, ExpectedBuffer, Length), 0);
+#endif
             }
         }
     }
