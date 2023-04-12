@@ -2263,7 +2263,6 @@ void QuicTestGlobalParam()
             {
                 TestScopeLogger LogScope2("Truncate length case");
                 int64_t ActualBuffer[QUIC_PERF_COUNTER_MAX/2] = {1,2,3}; // 15
-                int64_t ExpectedBuffer[QUIC_PERF_COUNTER_MAX/2] = {}; // 15
                 uint32_t Length = sizeof(int64_t) * (QUIC_PERF_COUNTER_MAX/2) + 4; // truncated 124 -> 120
 
                 TEST_QUIC_SUCCEEDED(
@@ -2273,7 +2272,15 @@ void QuicTestGlobalParam()
                         &Length,
                         ActualBuffer));
                 TEST_EQUAL(Length, sizeof(int64_t) * (QUIC_PERF_COUNTER_MAX / 2));
+#if DEBUG
+                int64_t ExpectedBuffer[QUIC_PERF_COUNTER_MAX/2] = {}; // 15
+                //
+                // Only test this in debug mode, because release tests may be run on
+                // the installed binary that is actively being used, and the counters
+                // can be non-zero.
+                //
                 TEST_EQUAL(memcmp(ActualBuffer, ExpectedBuffer, Length), 0);
+#endif
             }
         }
     }
