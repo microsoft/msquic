@@ -2253,8 +2253,18 @@ void QuicTestGlobalParam()
         {
             TestScopeLogger LogScope1("GetParam");
             {
+#if DEBUG
+                //
+                // Only test this in debug mode, because release tests may be run on
+                // the installed binary that is actively being used, and the counters
+                // can be non-zero.
+                //
                 int64_t Buffer[QUIC_PERF_COUNTER_MAX] = {};
-                SimpleGetParamTest(nullptr, QUIC_PARAM_GLOBAL_PERF_COUNTERS, QUIC_PERF_COUNTER_MAX * sizeof(int64_t), &Buffer, true);
+                int64_t* ExpectedData = Buffer;
+#else
+                int64_t* ExpectedData = nullptr;
+#endif
+                SimpleGetParamTest(nullptr, QUIC_PARAM_GLOBAL_PERF_COUNTERS, QUIC_PERF_COUNTER_MAX * sizeof(int64_t), ExpectedData, true);
             }
 
             //
