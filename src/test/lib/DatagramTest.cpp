@@ -147,6 +147,7 @@ QuicTestDatagramSend(
 
     MsQuicSettings Settings;
     Settings.SetDatagramReceiveEnabled(true);
+    Settings.SetMinimumMtu(1280).SetMaximumMtu(1280);
 
     MsQuicCredentialConfig ClientCredConfig;
     MsQuicConfiguration ClientConfiguration(Registration, Alpn, Settings, ClientCredConfig);
