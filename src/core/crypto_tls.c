@@ -440,8 +440,7 @@ QuicCryptoTlsReadClientHello(
     _In_reads_(BufferLength)
         const uint8_t* Buffer,
     _In_ uint32_t BufferLength,
-    _Inout_ QUIC_NEW_CONNECTION_INFO* Info,
-    _Inout_opt_ QUIC_TLS_SECRETS* TlsSecrets
+    _Inout_ QUIC_NEW_CONNECTION_INFO* Info
     )
 {
     /*
@@ -485,10 +484,6 @@ QuicCryptoTlsReadClientHello(
             Connection,
             "Parse error. ReadTlsClientHello #2");
         return QUIC_STATUS_INVALID_PARAMETER;
-    }
-    if (TlsSecrets != NULL) {
-        memcpy(TlsSecrets->ClientRandom, Buffer, TLS_RANDOM_LENGTH);
-        TlsSecrets->IsSet.ClientRandom = TRUE;
     }
     BufferLength -= TLS_RANDOM_LENGTH;
     Buffer += TLS_RANDOM_LENGTH;
@@ -605,8 +600,7 @@ QuicCryptoTlsReadInitial(
     _In_reads_(BufferLength)
         const uint8_t* Buffer,
     _In_ uint32_t BufferLength,
-    _Inout_ QUIC_NEW_CONNECTION_INFO* Info,
-    _Inout_opt_ QUIC_TLS_SECRETS* TlsSecrets
+    _Inout_ QUIC_NEW_CONNECTION_INFO* Info
     )
 {
     do {
@@ -633,9 +627,7 @@ QuicCryptoTlsReadInitial(
                 Connection,
                 Buffer + TLS_MESSAGE_HEADER_LENGTH,
                 MessageLength,
-                Info,
-                TlsSecrets
-                );
+                Info);
         if (QUIC_FAILED(Status)) {
             return Status;
         }
@@ -660,6 +652,27 @@ QuicCryptoTlsReadInitial(
             Connection,
             "No SNI extension present");
     }
+
+    return QUIC_STATUS_SUCCESS;
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_STATUS
+QuicCryptoTlsReadClientRandom(
+    _In_reads_(BufferLength)
+        const uint8_t* Buffer,
+    _In_ uint32_t BufferLength,
+    _Inout_ QUIC_TLS_SECRETS* TlsSecrets
+    )
+{
+    UNREFERENCED_PARAMETER(BufferLength);
+    CXPLAT_DBG_ASSERT(
+        BufferLength >=
+        TLS_MESSAGE_HEADER_LENGTH + sizeof(uint16_t) + TLS_RANDOM_LENGTH);
+
+    Buffer += TLS_MESSAGE_HEADER_LENGTH + sizeof(uint16_t);
+    memcpy(TlsSecrets->ClientRandom, Buffer, TLS_RANDOM_LENGTH);
+    TlsSecrets->IsSet.ClientRandom = TRUE;
 
     return QUIC_STATUS_SUCCESS;
 }

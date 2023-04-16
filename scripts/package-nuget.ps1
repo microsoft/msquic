@@ -152,6 +152,7 @@ Copy-Item (Join-Path $NugetSourceFolder "$PackageName.nuspec") $PackagingDir
 Copy-Item (Join-Path $NugetSourceFolder "$PackageName.targets") $NativeDir
 
 Copy-Item (Join-Path $NugetSourceFolder "pkgicon.png") $PackagingDir
+Copy-Item (Join-Path $RootDir "README.md") $PackagingDir
 
 $DistDir = Join-Path $BaseArtifactsDir "dist"
 

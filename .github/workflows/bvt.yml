@@ -91,12 +91,12 @@ jobs:
           qtip: '-UseQtip'
     runs-on: ${{ matrix.os }}
     steps:
-    - uses: actions/checkout@ac593985615ec2ede58e132d2e21d2b1cbd6127c
+    - uses: actions/checkout@8e5e7e5ab8b370d6c329ec480221332ada57f0ab
       with:
         fetch-depth: 0
     - name: Install Perl
       if: runner.os == 'Windows'
-      uses: shogo82148/actions-setup-perl@e0737ade83f9863f9f5c00d8470b6d7bec207fee
+      uses: shogo82148/actions-setup-perl@795ea77474d1f81da5b0a04028a5b94d4118a9c2
       with:
         perl-version: '5.34'
     - name: Install NASM
@@ -119,7 +119,7 @@ jobs:
     - name: Test
       shell: pwsh
       timeout-minutes: 120
-      run: scripts/test.ps1 -Config Debug -Arch ${{ matrix.arch }} -Tls ${{ matrix.tls }} -OsRunner ${{ matrix.os }} -GHA -LogProfile Basic.Light -GenerateXmlResults ${{ matrix.xdp }} ${{ matrix.qtip }}
+      run: scripts/test.ps1 -Config Debug -Arch ${{ matrix.arch }} -Tls ${{ matrix.tls }} -OsRunner ${{ matrix.os }} -GHA -LogProfile Full.Light -GenerateXmlResults ${{ matrix.xdp }} ${{ matrix.qtip }}
     - name: Upload on Failure
       uses: actions/upload-artifact@0b7f8abb1508181956e8e162db84b466c27e18ce
       if: failure()
@@ -140,7 +140,7 @@ jobs:
   #   runs-on: ${{ matrix.os }}
   #   steps:
   #   - name: Checkout repository
-  #     uses: actions/checkout@ac593985615ec2ede58e132d2e21d2b1cbd6127c
+  #     uses: actions/checkout@8e5e7e5ab8b370d6c329ec480221332ada57f0ab
   #   - name: Prepare Machine
   #     shell: pwsh
   #     run: scripts/prepare-machine.ps1 -ForBuild -ForTest -ForKernel
@@ -165,7 +165,7 @@ jobs:
   #   - name: Test
   #     shell: pwsh
   #     timeout-minutes: 90
-  #     run: scripts/test.ps1 -Config Debug -Arch ${{ matrix.arch }} -Tls ${{ matrix.tls }} -GHA -LogProfile Basic.Light -GenerateXmlResults -Kernel
+  #     run: scripts/test.ps1 -Config Debug -Arch ${{ matrix.arch }} -Tls ${{ matrix.tls }} -GHA -LogProfile Full.Light -GenerateXmlResults -Kernel
   #   - name: Upload on Failure
   #     uses: actions/upload-artifact@0b7f8abb1508181956e8e162db84b466c27e18ce
   #     if: failure()
