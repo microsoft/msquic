@@ -12,11 +12,11 @@ On Windows, by default, MsQuic relies on built-in support from [Schannel](https:
 
 ### OpenSSL
 
-Optionally, `msquic.dll` can be built with OpenSSL (see below for more details) instead of Schannel on Windows. This removes the Windows OS dependency on TLS from MsQuic, so MsQuic should work on most Windows 10 based client and server versions (it may work on even older Windows releases but supporting them is not a goal for MsQuic).
+Optionally, `msquic.dll` can be built with OpenSSL (see below for more details) instead of Schannel on Windows. This removes the Windows OS dependency on TLS from MsQuic, so MsQuic should work on most Windows 10 based client and server versions (it may work on even older Windows releases but supporting them is not a goal for MsQuic). Both version 1.1 and 3.1 of OpenSSL are supported.
 
 ## Linux
 
-On Linux, MsQuic relies on [OpenSSL](https://www.openssl.org/) for TLS 1.3 functionality.
+On Linux, MsQuic relies on [OpenSSL](https://www.openssl.org/) for TLS 1.3 functionality. Both version 1.1 and 3.1 are supported. The libmsquic package will generally depend on the default OS installed OpenSSL version's libcrypto.
 
 > **Important** This configuration relies on a [fork of OpenSSL](https://github.com/quictls/openssl) for QUIC/TLS support. It is still currently unknown as to when mainline will support QUIC. See [here](https://www.openssl.org/blog/blog/2020/02/17/QUIC-and-OpenSSL/) for more details. MsQuic with OpenSSL **does** fully support 0-RTT.
 
