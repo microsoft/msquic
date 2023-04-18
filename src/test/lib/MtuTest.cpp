@@ -49,7 +49,7 @@ struct ResetSettings {
 void
 QuicTestMtuSettings()
 {
-#ifdef QUIC_USE_RAW_DATAPATH
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
     const uint16_t DefaultMaximumMtu = UseQTIP ? 1488 : 1500; // reserve 12B for TCP header
 #else
     const uint16_t DefaultMaximumMtu = 1500;
@@ -315,7 +315,7 @@ QuicTestMtuDiscovery(
     TEST_QUIC_SUCCEEDED(Registration.GetInitStatus());
 
     const uint16_t MinimumMtu = RaiseMinimumMtu ? 1360 : 1248;
-#ifdef QUIC_USE_RAW_DATAPATH
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
     const uint16_t MaximumMtu = UseQTIP ? 1488 : 1500; // reserve 12B for TCP header
 #else
     const uint16_t MaximumMtu = 1500;

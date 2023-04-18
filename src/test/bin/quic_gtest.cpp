@@ -81,7 +81,7 @@ public:
             printf("Initializing for User Mode tests\n");
             MsQuic = new(std::nothrow) MsQuicApi();
             ASSERT_TRUE(QUIC_SUCCEEDED(MsQuic->GetInitStatus()));
-#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
+#ifdef defined(QUIC_USE_RAW_DATAPATH) && defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
             if (UseQTIP) {
                 QUIC_EXECUTION_CONFIG Config = {QUIC_EXECUTION_CONFIG_FLAG_QTIP, 10000, 0};
                 ASSERT_TRUE(QUIC_SUCCEEDED(

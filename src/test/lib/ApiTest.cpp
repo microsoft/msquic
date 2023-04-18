@@ -16,7 +16,7 @@ Abstract:
 
 #pragma warning(disable:6387)  // '_Param_(1)' could be '0':  this does not adhere to the specification for the function
 
-#ifdef QUIC_USE_RAW_DATAPATH
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
 extern bool UseQTIP;
 #endif
 
@@ -2514,7 +2514,6 @@ void QuicTestGlobalParam()
             SimpleGetParamTest(nullptr, QUIC_PARAM_GLOBAL_EXECUTION_CONFIG, DataLength, Data);
         }
 
-#ifdef QUIC_USE_RAW_DATAPATH
         if (!UseQTIP) {
             //
             // Good GetParam with length == 0 when QTIP is not in use.
@@ -2527,18 +2526,6 @@ void QuicTestGlobalParam()
                     &BufferLength,
                     nullptr));
         }
-#else
-        //
-        // Good GetParam with length == 0
-        //
-        uint32_t BufferLength = 0;
-        TEST_QUIC_SUCCEEDED(
-            MsQuic->GetParam(
-                nullptr,
-                QUIC_PARAM_GLOBAL_EXECUTION_CONFIG,
-                &BufferLength,
-                nullptr));
-#endif
     }
 #endif
 

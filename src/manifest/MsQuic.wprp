@@ -145,7 +145,7 @@
     <Profile Id="RPS.Verbose.File" Name="RPS" Description="RPS related MsQuic ETW Events" LoggingMode="File" DetailLevel="Verbose">
       <Collectors>
         <SystemCollectorId Value="SC_HighVolume">
-          <SystemProviderId Value="SP_SystemThreadExecutionDetail" />
+          <SystemProviderId Value="SP_SystemThreadExecution" />
         </SystemCollectorId>
         <EventCollectorId Value="EC_HighVolume">
           <EventProviders>
