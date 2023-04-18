@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemDefinitionGroup>
+    <ClCompile>
+      <AdditionalIncludeDirectories>$(MSBuildThisFileDirectory)include/;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ClCompile>
+    <Link Condition="'$(Platform.ToLower())' == 'x64'">
+      <AdditionalDependencies>$(MSBuildThisFileDirectory)lib/x64/msquic.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+    <!-- <Link Condition="'$(Platform.ToLower())' == 'arm64'">
+      <AdditionalDependencies>$(MSBuildThisFileDirectory)lib/arm64/msquic.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link> -->
+  </ItemDefinitionGroup>
+  <Target Name="msquic_AfterBuild" AfterTargets="AfterBuild" />
+  <Target Name="msquic_AfterBuild_x64" Label="x64" Condition="'$(Platform.ToLower())' == 'x64'" AfterTargets="msquic_AfterBuild">
+    <Copy SourceFiles="$(MSBuildThisFileDirectory)bin/x64/msquic.dll" DestinationFolder="$(TargetDir)" SkipUnchangedFiles="true" />
+  </Target>
+  <!-- <Target Name="msquic_AfterBuild_arm64" Label="arm64" Condition="'$(Platform.ToLower())' == 'arm64'" AfterTargets="msquic_AfterBuild">
+    <Copy SourceFiles="$(MSBuildThisFileDirectory)bin/arm64/msquic.dll" DestinationFolder="$(TargetDir)" SkipUnchangedFiles="true" />
+  </Target> -->
+</Project>
