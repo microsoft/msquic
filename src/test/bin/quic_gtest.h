@@ -20,7 +20,7 @@
 #endif
 
 extern bool TestingKernelMode;
-#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
+#if defined(QUIC_USE_RAW_DATAPATH) && defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
 extern bool UseQTIP;
 #endif
 
@@ -346,7 +346,7 @@ struct SendArgs2 {
         for (bool UseZeroRtt : { false })
 #endif
         {
-#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
+#if defined(QUIC_USE_RAW_DATAPATH) && defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
             if (UseQTIP && UseZeroRtt) {
                 continue;
             }
