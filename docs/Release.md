@@ -55,6 +55,7 @@ This table describes all officially supported MsQuic releases.
 2. Fork `main` branch to `release/X.Y` where `X` is the major version and `Y` is the minor version.
 3. Update (via PR) the minor version for the `main` branch:
    - Run `./scripts/update-version.ps1 -Part Minor` to generate the relavent changes.
+   - Also add the new version to the bug_report.yaml issue template file.
 
 ## Servicing a Release Branch
 
