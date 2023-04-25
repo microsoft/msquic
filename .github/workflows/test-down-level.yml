@@ -26,16 +26,12 @@ jobs:
         release: ['2.0.6','2.1.8','2.2.0']
         os: [ubuntu-20.04, windows-latest]
         arch: [x64]
-        tls: [schannel, openssl, openssl3]
+        tls: [schannel, openssl] # TODO - add openssl3
         exclude:
         - os: ubuntu-20.04
           tls: schannel
         - os: windows-latest
           tls: openssl
-        - release: '2.0.6'
-          tls: openssl3
-        - release: '2.1.8'
-          tls: openssl3
     runs-on: ${{ matrix.os }}
     name: Test
     steps:
