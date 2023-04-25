@@ -175,6 +175,16 @@ typedef struct CXPLAT_ROUTE {
     QUIC_ADDR RemoteAddress;
     QUIC_ADDR LocalAddress;
 
+    uint8_t LocalLinkLayerAddress[6];
+    uint8_t NextHopLinkLayerAddress[6];
+
+    //
+    // QuicCopyRouteInfo copies memory up to this point (not including State).
+    //
+
+    CXPLAT_ROUTE_STATE State;
+    CXPLAT_RAW_TCP_STATE TcpState;
+
 #ifdef QUIC_USE_RAW_DATAPATH
     uint8_t LocalLinkLayerAddress[6];
     uint8_t NextHopLinkLayerAddress[6];

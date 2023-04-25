@@ -1,0 +1,151 @@
+sudo: required
+dist: bionic
+services:
+    - docker
+
+env:
+    global:
+        - AUTHOR_EMAIL="$(git log -1 --pretty=\"%aE\")"
+        - CI_MANAGERS="$TRAVIS_BUILD_DIR/travis-ci/managers"
+        - REPO_ROOT="$TRAVIS_BUILD_DIR"
+
+stages:
+    # Run Coverity periodically instead of for each PR for following reasons:
+    # 1) Coverity jobs are heavily rate-limited
+    # 2) Due to security restrictions of encrypted environment variables
+    #    in Travis CI, pull requests made from forks can't access encrypted
+    #    env variables, making Coverity unusable
+    #    See: https://docs.travis-ci.com/user/pull-requests#pull-requests-and-security-restrictions
+    - name: Coverity
+      if: type = cron
+
+jobs:
+    include:
+        - stage: Build & test
+          name: Debian Testing
+          language: bash
+          env:
+              - DEBIAN_RELEASE="testing"
+              - CONT_NAME="libbpf-debian-$DEBIAN_RELEASE"
+          before_install:
+              - sudo apt-get -y -o Dpkg::Options::="--force-confnew" install docker-ce
+              - docker --version
+          install:
+              - $CI_MANAGERS/debian.sh SETUP
+          script:
+              - $CI_MANAGERS/debian.sh RUN || travis_terminate
+          after_script:
+              - $CI_MANAGERS/debian.sh CLEANUP
+
+        - name: Debian Testing (ASan+UBSan)
+          language: bash
+          env:
+              - DEBIAN_RELEASE="testing"
+              - CONT_NAME="libbpf-debian-$DEBIAN_RELEASE"
+          before_install:
+              - sudo apt-get -y -o Dpkg::Options::="--force-confnew" install docker-ce
+              - docker --version
+          install:
+              - $CI_MANAGERS/debian.sh SETUP
+          script:
+              - $CI_MANAGERS/debian.sh RUN_ASAN || travis_terminate
+          after_script:
+              - $CI_MANAGERS/debian.sh CLEANUP
+
+        - name: Debian Testing (clang)
+          language: bash
+          env:
+              - DEBIAN_RELEASE="testing"
+              - CONT_NAME="libbpf-debian-$DEBIAN_RELEASE"
+          before_install:
+              - sudo apt-get -y -o Dpkg::Options::="--force-confnew" install docker-ce
+              - docker --version
+          install:
+              - $CI_MANAGERS/debian.sh SETUP
+          script:
+              - $CI_MANAGERS/debian.sh RUN_CLANG || travis_terminate
+          after_script:
+              - $CI_MANAGERS/debian.sh CLEANUP
+
+        - name: Debian Testing (clang ASan+UBSan)
+          language: bash
+          env:
+              - DEBIAN_RELEASE="testing"
+              - CONT_NAME="libbpf-debian-$DEBIAN_RELEASE"
+          before_install:
+              - sudo apt-get -y -o Dpkg::Options::="--force-confnew" install docker-ce
+              - docker --version
+          install:
+              - $CI_MANAGERS/debian.sh SETUP
+          script:
+              - $CI_MANAGERS/debian.sh RUN_CLANG_ASAN || travis_terminate
+          after_script:
+              - $CI_MANAGERS/debian.sh CLEANUP
+
+        - name: Debian Testing (gcc-8)
+          language: bash
+          env:
+              - DEBIAN_RELEASE="testing"
+              - CONT_NAME="libbpf-debian-$DEBIAN_RELEASE"
+          before_install:
+              - sudo apt-get -y -o Dpkg::Options::="--force-confnew" install docker-ce
+              - docker --version
+          install:
+              - $CI_MANAGERS/debian.sh SETUP
+          script:
+              - $CI_MANAGERS/debian.sh RUN_GCC8 || travis_terminate
+          after_script:
+              - $CI_MANAGERS/debian.sh CLEANUP
+
+        - name: Debian Testing (gcc-8 ASan+UBSan)
+          language: bash
+          env:
+              - DEBIAN_RELEASE="testing"
+              - CONT_NAME="libbpf-debian-$DEBIAN_RELEASE"
+          before_install:
+              - sudo apt-get -y -o Dpkg::Options::="--force-confnew" install docker-ce
+              - docker --version
+          install:
+              - $CI_MANAGERS/debian.sh SETUP
+          script:
+              - $CI_MANAGERS/debian.sh RUN_GCC8_ASAN || travis_terminate
+          after_script:
+              - $CI_MANAGERS/debian.sh CLEANUP
+
+        - name: Ubuntu Bionic
+          language: bash
+          script:
+              - sudo $CI_MANAGERS/ubuntu.sh || travis_terminate
+
+        - name: Ubuntu Bionic (arm)
+          arch: arm64
+          language: bash
+          script:
+              - sudo $CI_MANAGERS/ubuntu.sh || travis_terminate
+
+        - name: Ubuntu Bionic (s390x)
+          arch: s390x
+          language: bash
+          script:
+              - sudo $CI_MANAGERS/ubuntu.sh || travis_terminate
+
+        - stage: Coverity
+          language: bash
+          env:
+              # Coverity configuration
+              # COVERITY_SCAN_TOKEN=xxx
+              # Encrypted using `travis encrypt --repo libbpf/libbpf COVERITY_SCAN_TOKEN=xxx`
+              - secure: "I9OsMRHbb82IUivDp+I+w/jEQFOJgBDAqYqf1ollqCM1QhocxMcS9bwIAgfPhdXi2hohV7sRrVMZstahY67FAvJLGxNopi4tAPDIAaIFxgO0yDxMhaTMx5xDfMwlIm2FOP/9gB9BQsd6M7CmoQZgXYwBIv7xd1ooxoQrh2rOK1YrRl7UQu3+c3zPTjDfIYZzR3bFttMqZ9/c4U0v8Ry5IFXrel3hCshndHA1TtttJrUSrILlZcmVc1ch7JIy6zCbCU/2lGv0B/7rWXfF8MT7O9jPtFOhJ1DEcd2zhw2n4j9YT3a8OhtnM61LA6ask632mwCOsxpFLTun7AzuR1Cb5mdPHsxhxnCHcXXARa2mJjem0QG1NhwxwJE8sbRDapojexxCvweYlEN40ofwMDSnj/qNt95XIcrk0tiIhGFx0gVNWvAdmZwx+N4mwGPMTAN0AEOFjpgI+ZdB89m+tL/CbEgE1flc8QxUxJhcp5OhH6yR0z9qYOp0nXIbHsIaCiRvt/7LqFRQfheifztWVz4mdQlCdKS9gcOQ09oKicPevKO1L0Ue3cb7Ug7jOpMs+cdh3XokJtUeYEr1NijMHT9+CTAhhO5RToWXIZRon719z3fwoUBNDREATwVFMlVxqSO/pbYgaKminigYbl785S89YYaZ6E5UvaKRHM6KHKMDszs="
+              - COVERITY_SCAN_PROJECT_NAME="libbpf"
+              - COVERITY_SCAN_NOTIFICATION_EMAIL="${AUTHOR_EMAIL}"
+              - COVERITY_SCAN_BRANCH_PATTERN="$TRAVIS_BRANCH"
+              # Note: `make -C src/` as a BUILD_COMMAND will not work here
+              - COVERITY_SCAN_BUILD_COMMAND_PREPEND="cd src/"
+              - COVERITY_SCAN_BUILD_COMMAND="make"
+          install:
+              - sudo echo 'deb-src http://archive.ubuntu.com/ubuntu/ bionic main restricted universe multiverse' >>/etc/apt/sources.list
+              - sudo apt-get update
+              - sudo apt-get -y build-dep libelf-dev
+              - sudo apt-get install -y libelf-dev pkg-config
+          script:
+              - scripts/coverity.sh || travis_terminate

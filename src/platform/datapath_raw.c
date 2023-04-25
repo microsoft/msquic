@@ -232,6 +232,7 @@ CxPlatDataPathGetSupportedFeatures(
     _In_ CXPLAT_DATAPATH* Datapath
     )
 {
+    UNREFERENCED_PARAMETER(Datapath);    
     return 0;
 }
 

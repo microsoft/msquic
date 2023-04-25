@@ -21,7 +21,8 @@ if("${CX_PLATFORM}" STREQUAL "windows")
 else()
     set(SOURCES ${SOURCES} inline.c platform_posix.c storage_posix.c cgroup.c)
     if(CX_PLATFORM STREQUAL "linux" AND NOT CMAKE_SYSTEM_NAME STREQUAL "FreeBSD")
-        set(SOURCES ${SOURCES} datapath_raw_xdp_epoll.c)
+        set(SOURCES ${SOURCES} datapath_raw_framing.c datapath_raw_xdp_epoll.c)
+        #set(SOURCES ${SOURCES} datapath_raw.c datapath_raw_socket.c datapath_raw_xdp_epoll.c)
     else()
         set(SOURCES ${SOURCES} datapath_kqueue.c)
     endif()
@@ -44,8 +45,29 @@ else()
     message(FATAL_ERROR "TLS Provider not configured")
 endif()
 
+
+include(ExternalProject)
+ExternalProject_Add(libbpf
+  PREFIX ${PROJECT_SOURCE_DIR}/src/platform/libbpf
+  SOURCE_DIR ${PROJECT_SOURCE_DIR}/src/platform/libbpf/src
+  CONFIGURE_COMMAND ""
+  BUILD_IN_SOURCE 1
+  BUILD_COMMAND make
+  INSTALL_COMMAND ""
+  BUILD_BYPRODUCTS ${PROJECT_SOURCE_DIR}/src/platform/libbpf/src/libbpf.a
+)
+
 add_library(platform STATIC ${SOURCES})
-target_link_libraries(platform PRIVATE bpf)
+target_include_directories(platform PRIVATE /home/user/libbpf/include)
+add_dependencies(platform libbpf)
+target_link_libraries(platform PRIVATE ${PROJECT_SOURCE_DIR}/src/platform/libbpf/src/libbpf.a)
+#find_package(libelf REQUIRED)
+target_link_libraries(platform PRIVATE elf)
+#target_link_libraries(platform PRIVATE ${PROJECT_SOURCE_DIR}/src/platform/libbpf/src/libbpf.a)
+#add_subdirectory(${PROJECT_SOURCE_DIR}/src/platform/libbpf/src)
+
+#target_link_libraries(platform PRIVATE )
+#target_link_libraries(platform PRIVATE bpf)
 
 if(QUIC_USE_XDP)
     target_link_libraries(
