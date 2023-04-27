@@ -1,14 +1,14 @@
-name: Linux Build Docker Ubuntu 20.04
+name: Linux Build Docker Ubuntu 22.04
 
 on:
   push:
     branches: [ main ]
     paths:
-    - .azure/dockers/ob/linux-20.04
+    - .azure/dockers/ob/linux-22.04
   pull_request:
     branches: [ main ]
-    # paths:
-    # - .azure/dockers/ob/linux-20.04
+    paths:
+    - .azure/dockers/ob/linux-22.04
 
 permissions: read-all
 
@@ -76,8 +76,8 @@ jobs:
       - name: Build and push Docker image
         uses: docker/build-push-action@3b5e8027fcad23fda98b2e3ac259d8d67585f671
         with:
-          context: .azure/dockers/ob/linux-20.04
-          file: .azure/dockers/ob/linux-20.04/Dockerfile
+          context: .azure/dockers/ob/linux-22.04
+          file: .azure/dockers/ob/linux-22.04/Dockerfile
           push: ${{ github.event_name != 'pull_request' }}
-          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:20.04
+          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:22.04
           labels: ${{ steps.meta.outputs.labels }}
