@@ -4,7 +4,7 @@ LABEL org.opencontainers.image.source https://github.com/microsoft/msquic
 
 ENV DEBIAN_FRONTEND=noninteractive
 
-RUN apt-get update && apt-get install -y apt-transport-https \
+RUN apt-get update && apt-get install --no-install-recommends -y apt-transport-https \
     ca-certificates \
     gnupg \
     software-properties-common \
@@ -58,7 +58,7 @@ COPY arm-cross-compile-sources.list /etc/apt/sources.list.d/
 
 RUN apt-get update
 
-RUN apt-get install -y liblttng-ust-dev:arm64 \
+RUN apt-get install --no-install-recommends -y liblttng-ust-dev:arm64 \
     liblttng-ust-dev:armhf \
     libssl-dev:arm64 \
     libssl-dev:armhf \
