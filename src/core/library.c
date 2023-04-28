@@ -985,7 +985,7 @@ QuicLibrarySetGlobalParam(
                 Status = QUIC_STATUS_INVALID_STATE;
             } else {
                 MsQuicLib.ExecutionConfig->PollingIdleTimeoutUs = Config->PollingIdleTimeoutUs;
-                CxPlatDataPathUpdateConfig(MsQuicLib.Datapath, MsQuicLib.ExecutionConfig)
+                CxPlatDataPathUpdateConfig(MsQuicLib.Datapath, MsQuicLib.ExecutionConfig);
                 Status = QUIC_STATUS_SUCCESS;
             }
             break;
