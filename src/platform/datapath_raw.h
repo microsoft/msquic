@@ -142,6 +142,16 @@ CxPlatDataPathUninitializeComplete(
     );
 
 //
+// Updates the datapath configuration.
+//
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+CxPlatDpRawUpdateConfig(
+    _In_ CXPLAT_DATAPATH* Datapath,
+    _In_ QUIC_EXECUTION_CONFIG* Config
+    )
+
+//
 // Called on creation and deletion of a socket. It indicates to the raw datapath
 // that it should update any filtering rules as necessary.
 //

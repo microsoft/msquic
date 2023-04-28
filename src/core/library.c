@@ -976,11 +976,18 @@ QuicLibrarySetGlobalParam(
         }
 
         if (MsQuicLib.Datapath != NULL) {
-            QuicTraceEvent(
-                LibraryError,
-                "[ lib] ERROR, %s.",
-                "Tried to change execution config after datapath initialization");
-            Status = QUIC_STATUS_INVALID_STATE;
+            //
+            // We only allow for updating the polling idle timeout after the
+            // datapath has already been started; and only if the app set some
+            // custom config to begin with.
+            //
+            if (MsQuicLib.ExecutionConfig == NULL) {
+                Status = QUIC_STATUS_INVALID_STATE;
+            } else {
+                MsQuicLib.ExecutionConfig->PollingIdleTimeoutUs = Config->PollingIdleTimeoutUs;
+                CxPlatDataPathUpdateConfig(MsQuicLib.Datapath, MsQuicLib.ExecutionConfig)
+                Status = QUIC_STATUS_SUCCESS;
+            }
             break;
         }
 
