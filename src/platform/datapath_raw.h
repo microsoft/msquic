@@ -149,7 +149,7 @@ void
 CxPlatDpRawUpdateConfig(
     _In_ CXPLAT_DATAPATH* Datapath,
     _In_ QUIC_EXECUTION_CONFIG* Config
-    )
+    );
 
 //
 // Called on creation and deletion of a socket. It indicates to the raw datapath
