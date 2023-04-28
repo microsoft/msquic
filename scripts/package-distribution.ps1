@@ -163,12 +163,16 @@ foreach ($Build in $AllBuilds) {
         Write-Output "Packaging $Build"
         $OldLoc = Get-Location
         Set-Location $RootDir
+        $Tls = "openssl"
+        if ($BuildBaseName -like "*openssl3*") {
+            $Tls = "openssl3"
+        }
         if ($BuildBaseName -like "*arm64_*") {
-            & $RootDir/scripts/make-packages.sh --output $DistDir --arch arm64
+            & $RootDir/scripts/make-packages.sh --output $DistDir --arch arm64 --tls $Tls
         } elseif ($BuildBaseName -like "*arm_*") {
-            & $RootDir/scripts/make-packages.sh --output $DistDir --arch arm
+            & $RootDir/scripts/make-packages.sh --output $DistDir --arch arm --tls $Tls
         } else {
-            & $RootDir/scripts/make-packages.sh --output $DistDir # x64
+            & $RootDir/scripts/make-packages.sh --output $DistDir --tls $Tls # x64
         }
         Set-Location $OldLoc
     }
