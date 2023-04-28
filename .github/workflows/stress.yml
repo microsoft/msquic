@@ -46,14 +46,14 @@ jobs:
     - name: Start nested VM
       run: Start-VM -Name test-host
     - name: Wait for nested VM to start
-        run: |
-          while (1) {
-            $nested_vm_state = (Get-VM -Name test-host -ErrorAction SilentlyContinue).State
-            if ($nested_vm_state -eq 'Running') {
-              break
-            }
-            Start-Sleep -Seconds 5
+      run: |
+        while (1) {
+          $nested_vm_state = (Get-VM -Name test-host -ErrorAction SilentlyContinue).State
+          if ($nested_vm_state -eq 'Running') {
+            break
           }
+          Start-Sleep -Seconds 5
+        }
     - name: Prepare Machine
       run: scripts/prepare-machine.ps1 -Tls ${{ matrix.tls }} -ForBuild -ForTest ${{ matrix.xdp }}
       shell: pwsh
