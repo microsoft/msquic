@@ -44,7 +44,6 @@ jobs:
         Enable-WindowsOptionalFeature -Online -FeatureName Microsoft-Hyper-V -All
         Get-Service -Name "vmms"
         Get-PSRepository
-        Register-PSRepository -Default -Verbose
         Install-Module -Name Hyper-V -Verbose -Force
     - name: Start nested VM
       run: Start-VM -Name test-host
