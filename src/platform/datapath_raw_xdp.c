@@ -1287,7 +1287,7 @@ CxPlatDpRawUpdateConfig(
     )
 {
     XDP_DATAPATH* Xdp = (XDP_DATAPATH*)Datapath;
-    Xdp->PollingIdleTimeoutUs = Config->PollingIdleTimeoutMs;
+    Xdp->PollingIdleTimeoutUs = Config->PollingIdleTimeoutUs;
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
