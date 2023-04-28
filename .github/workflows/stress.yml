@@ -39,10 +39,6 @@ jobs:
       pr-repeat: 20
       pr-allocfail: 100
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@8e5e7e5ab8b370d6c329ec480221332ada57f0ab
-      with:
-        fetch-depth: 0
     - name: Install HyperV
       run: dism.exe /Online /Enable-Feature /All /FeatureName:Microsoft-Hyper-V /NoRestart
     - name: Start nested VM
@@ -56,6 +52,10 @@ jobs:
           }
           Start-Sleep -Seconds 5
         }
+    - name: Checkout repository
+      uses: actions/checkout@8e5e7e5ab8b370d6c329ec480221332ada57f0ab
+      with:
+        fetch-depth: 0
     - name: Prepare Machine
       run: scripts/prepare-machine.ps1 -Tls ${{ matrix.tls }} -ForBuild -ForTest ${{ matrix.xdp }}
       shell: pwsh
