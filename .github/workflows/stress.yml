@@ -43,8 +43,9 @@ jobs:
       run: |
         Enable-WindowsOptionalFeature -Online -FeatureName Microsoft-Hyper-V -All
         Get-Service -Name "vmms"
-        Get-PSRepository
-        Install-Module -Name Hyper-V -Verbose -Force
+    - name: Install Hyper-V PowerShell Module
+      run: |
+        Install-WindowsFeature -Name Hyper-V-PowerShell
     - name: Start nested VM
       run: Start-VM -Name test-host
     - name: Wait for nested VM to start
