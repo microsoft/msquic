@@ -40,7 +40,10 @@ jobs:
       pr-allocfail: 100
     steps:
     - name: Install HyperV
-      run: Enable-WindowsOptionalFeature -Online -FeatureName Microsoft-Hyper-V -All
+      run: |
+        Enable-WindowsOptionalFeature -Online -FeatureName Microsoft-Hyper-V -All
+        Get-Service -Name "vmms"
+        Start-Service -Name "vmms"
     - name: Start nested VM
       run: Start-VM -Name test-host
     - name: Wait for nested VM to start
