@@ -26,6 +26,9 @@ try {
     Expand-Archive -Path "C:\Downloads\nasm.zip" -DestinationPath "C:\ExtraTools" -Force
     Write-Host "Installed nasm"
 
+    Get-File -Url "https://strawberryperl.com/download/5.32.1.1/strawberry-perl-5.32.1.1-64bit.msi" -FileName "strawberry-perl-5.32.1.1-64bit.msi"
+    Install-FromMSI -Path "C:\Downloads\strawberry-perl-5.32.1.1-64bit.msi" -Arguments "/q INSTALLDIR=C:\strawberry"
+
     Update-Path -PathNodes @("C:\ExtraTools\jom;C:\ExtraTools\nasm-$NasmVersion\;C:\Program Files\CMake\bin;C:\strawberry\c\bin;C:\strawberry\perl\site\bin;C:\strawberry\perl\bin")
 
     # Removing PERL variable
