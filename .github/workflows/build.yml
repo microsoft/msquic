@@ -194,7 +194,7 @@ jobs:
       with:
         fetch-depth: 0
     - name: Install Perl
-      uses: shogo82148/actions-setup-perl@795ea77474d1f81da5b0a04028a5b94d4118a9c2
+      uses: shogo82148/actions-setup-perl@b9fdc2813ba5e0239dd7bce477e5f37e86d145cc
       with:
         perl-version: '5.34'
     - name: Install NASM
