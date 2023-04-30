@@ -1962,44 +1962,6 @@ CxPlatSendDataFree(
     free(SendData);
 }
 
-static
-void
-CxPlatSendDataFinalizeSendBuffer(
-    _In_ CXPLAT_SEND_DATA* SendData
-    )
-{
-    if (SendData->ClientBuffer.Length == 0) { // No buffer to finalize.
-        return;
-    }
-
-    CXPLAT_DBG_ASSERT(SendData->SegmentSize == 0 || SendData->ClientBuffer.Length <= SendData->SegmentSize);
-    CXPLAT_DBG_ASSERT(SendData->TotalSize + SendData->ClientBuffer.Length <= sizeof(SendData->Buffer));
-
-    SendData->BufferCount++;
-    SendData->TotalSize += SendData->ClientBuffer.Length;
-    if (SendData->SegmentationSupported) {
-        SendData->Iovs[0].iov_len += SendData->ClientBuffer.Length;
-        if (SendData->SegmentSize == 0 ||
-            SendData->ClientBuffer.Length < SendData->SegmentSize ||
-            SendData->TotalSize + SendData->SegmentSize > sizeof(SendData->Buffer)) {
-            SendData->ClientBuffer.Buffer = NULL;
-        } else {
-            SendData->ClientBuffer.Buffer += SendData->SegmentSize;
-        }
-    } else {
-        struct iovec* IoVec = &SendData->Iovs[SendData->BufferCount - 1];
-        IoVec->iov_base = SendData->ClientBuffer.Buffer;
-        IoVec->iov_len = SendData->ClientBuffer.Length;
-        if (SendData->TotalSize + SendData->SegmentSize > sizeof(SendData->Buffer) ||
-            SendData->BufferCount == SendData->SocketContext->Worker->Datapath->SendIoVecCount) {
-            SendData->ClientBuffer.Buffer = NULL;
-        } else {
-            SendData->ClientBuffer.Buffer += SendData->ClientBuffer.Length;
-        }
-    }
-    SendData->ClientBuffer.Length = 0;
-}
-
 _IRQL_requires_max_(DISPATCH_LEVEL)
 _Success_(return != NULL)
 QUIC_BUFFER*
@@ -2013,7 +1975,6 @@ CxPlatSendDataAllocBuffer(
 
     CXPLAT_DBG_ASSERT(SendData != NULL);
     CXPLAT_DBG_ASSERT(MaxBufferLength > 0);
-    CxPlatSendDataFinalizeSendBuffer(SendData);
     CXPLAT_DBG_ASSERT(SendData->SegmentSize == 0 || SendData->SegmentSize >= MaxBufferLength);
     // CXPLAT_DBG_ASSERT(SendData->TotalSize + MaxBufferLength <= sizeof(SendData->Buffer)); // TODO: use umem frame size?
     CXPLAT_DBG_ASSERT(
@@ -2048,7 +2009,6 @@ CxPlatSendDataIsFull(
     _In_ CXPLAT_SEND_DATA* SendData
     )
 {
-    CxPlatSendDataFinalizeSendBuffer(SendData);
     return SendData->ClientBuffer.Buffer == NULL;
 }
 
@@ -2069,7 +2029,6 @@ CxPlatSocketSend(
     //
     // Finalize the state of the send data and log the send.
     //
-    // CxPlatSendDataFinalizeSendBuffer(SendData);
     QuicTraceEvent(
         DatapathSend,
         "[data][%p] Send %u bytes in %hhu buffers (segment=%hu) Dst=%!ADDR!, Src=%!ADDR!",
