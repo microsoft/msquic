@@ -200,7 +200,7 @@ typedef struct CXPLAT_RECV_MSG_CONTROL_BUFFER {
               2 * CMSG_SPACE(sizeof(int))];
 } CXPLAT_RECV_MSG_CONTROL_BUFFER;
 
-typedef struct CXPLAT_DATAPATH_PROC CXPLAT_DATAPATH_PROC;
+typedef struct XDP_WORKER XDP_WORKER;
 
 //
 // Socket context.
@@ -215,7 +215,7 @@ typedef struct QUIC_CACHEALIGN CXPLAT_SOCKET_CONTEXT {
     //
     // The datapath proc context this socket belongs to.
     //
-    CXPLAT_DATAPATH_PROC* DatapathProc;
+    XDP_WORKER* Worker;
 
     //
     // The socket FD used by this socket context.
@@ -337,7 +337,7 @@ typedef struct CXPLAT_SOCKET {
 //
 // A per processor datapath context.
 //
-typedef struct QUIC_CACHEALIGN CXPLAT_DATAPATH_PROC {
+typedef struct QUIC_CACHEALIGN XDP_WORKER {
 
     //
     // A pointer to the datapath.
@@ -357,25 +357,13 @@ typedef struct QUIC_CACHEALIGN CXPLAT_DATAPATH_PROC {
     //
     // The ideal processor of the context.
     //
-    uint16_t IdealProcessor;
+    uint16_t ProcIndex;
 
 #if DEBUG
     uint8_t Uninitialized : 1;
 #endif
 
-    //
-    // Pool of receive packet contexts and buffers to be shared by all sockets
-    // on this core.
-    //
-    CXPLAT_POOL RecvBlockPool;
-
-    //
-    // Pool of send packet contexts and buffers to be shared by all sockets
-    // on this core.
-    //
-    CXPLAT_POOL SendBlockPool;
-
-} CXPLAT_DATAPATH_PROC;
+} XDP_WORKER;
 
 //
 // Represents a datapath object.
@@ -447,7 +435,8 @@ typedef struct CXPLAT_DATAPATH {
     //
     // The per proc datapath contexts.
     //
-    CXPLAT_DATAPATH_PROC Processors[];
+    XDP_WORKER Workers[];
+    // XDP_WORKER Workers[];
 
 } CXPLAT_DATAPATH;
 
@@ -486,15 +475,15 @@ struct xsk_umem_info {
 };
 
 
-CXPLAT_DATAPATH_PROC*
+XDP_WORKER*
 CxPlatDataPathGetProc(
     _In_ CXPLAT_DATAPATH* Datapath,
     _In_ uint16_t Processor
     )
 {
     for (uint32_t i = 0; i < Datapath->ProcCount; ++i) {
-        if (Datapath->Processors[i].IdealProcessor == Processor) {
-            return &Datapath->Processors[i];
+        if (Datapath->Workers[i].ProcIndex == Processor) {
+            return &Datapath->Workers[i];
         }
     }
     CXPLAT_FRE_ASSERT(FALSE); // TODO - What now?!
@@ -504,17 +493,15 @@ CxPlatDataPathGetProc(
 void
 CxPlatProcessorContextInitialize(
     _In_ CXPLAT_DATAPATH* Datapath,
-    _In_ uint16_t IdealProcessor,
-    _Out_ CXPLAT_DATAPATH_PROC* DatapathProc
+    _In_ uint16_t ProcIndex,
+    _Out_ XDP_WORKER* Worker
     )
 {
     CXPLAT_DBG_ASSERT(Datapath != NULL);
-    DatapathProc->Datapath = Datapath;
-    DatapathProc->IdealProcessor = IdealProcessor;
-    DatapathProc->EventQ = CxPlatWorkerGetEventQ(IdealProcessor);
-    CxPlatRefInitialize(&DatapathProc->RefCount);
-    CxPlatPoolInitialize(TRUE, Datapath->RecvBlockSize, QUIC_POOL_DATA, &DatapathProc->RecvBlockPool);
-    CxPlatPoolInitialize(TRUE, Datapath->SendDataSize, QUIC_POOL_DATA, &DatapathProc->SendBlockPool);
+    Worker->Datapath = Datapath;
+    Worker->ProcIndex = ProcIndex;
+    Worker->EventQ = CxPlatWorkerGetEventQ(ProcIndex);
+    CxPlatRefInitialize(&Worker->RefCount);
 }
 
 // TODO: use QUIC error code
@@ -833,7 +820,7 @@ CxPlatDataPathInitialize(
     }
 
     const size_t DatapathLength =
-        sizeof(CXPLAT_DATAPATH) + ProcessorCount * sizeof(CXPLAT_DATAPATH_PROC);
+        sizeof(CXPLAT_DATAPATH) + ProcessorCount * sizeof(XDP_WORKER);
 
     CXPLAT_DATAPATH* Datapath =
         (CXPLAT_DATAPATH*)CXPLAT_ALLOC_PAGED(DatapathLength, QUIC_POOL_DATAPATH);
@@ -872,7 +859,7 @@ CxPlatDataPathInitialize(
         CxPlatProcessorContextInitialize(
             Datapath,
             ProcessorList ? ProcessorList[i] : (uint16_t)i,
-            &Datapath->Processors[i]);
+            &Datapath->Workers[i]);
     }
 
     QUIC_STATUS Status = CxPlatDpRawInitialize(Datapath, ClientRecvContextLength, Config);
@@ -910,17 +897,15 @@ CxPlatDataPathRelease(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 CxPlatProcessorContextRelease(
-    _In_ CXPLAT_DATAPATH_PROC* DatapathProc
+    _In_ XDP_WORKER* Worker
     )
 {
-    if (CxPlatRefDecrement(&DatapathProc->RefCount)) {
+    if (CxPlatRefDecrement(&Worker->RefCount)) {
 #if DEBUG
-        CXPLAT_DBG_ASSERT(!DatapathProc->Uninitialized);
-        DatapathProc->Uninitialized = TRUE;
+        CXPLAT_DBG_ASSERT(!Worker->Uninitialized);
+        Worker->Uninitialized = TRUE;
 #endif
-        CxPlatPoolUninitialize(&DatapathProc->SendBlockPool);
-        CxPlatPoolUninitialize(&DatapathProc->RecvBlockPool);
-        CxPlatDataPathRelease(DatapathProc->Datapath);
+        CxPlatDataPathRelease(Worker->Datapath);
     }
 }
 
@@ -975,7 +960,7 @@ CxPlatDataPathUninitialize(
 #endif
         const uint16_t ProcCount = Datapath->ProcCount;
         for (uint32_t i = 0; i < ProcCount; i++) {
-            CxPlatProcessorContextRelease(&Datapath->Processors[i]);
+            CxPlatProcessorContextRelease(&Datapath->Workers[i]);
         }
     }
 
@@ -1171,10 +1156,10 @@ CxPlatSocketContextInitialize(
 
     CXPLAT_SOCKET* Binding = SocketContext->Binding;
 
-    CXPLAT_DBG_ASSERT(SocketContext->Binding->Datapath == SocketContext->DatapathProc->Datapath);
+    CXPLAT_DBG_ASSERT(SocketContext->Binding->Datapath == SocketContext->Worker->Datapath);
 
     if (!CxPlatSqeInitialize(
-            SocketContext->DatapathProc->EventQ,
+            SocketContext->Worker->EventQ,
             &SocketContext->ShutdownSqe.Sqe,
             &SocketContext->ShutdownSqe)) {
         Status = errno;
@@ -1189,7 +1174,7 @@ CxPlatSocketContextInitialize(
     ShutdownSqeInitialized = TRUE;
 
     if (!CxPlatSqeInitialize(
-            SocketContext->DatapathProc->EventQ,
+            SocketContext->Worker->EventQ,
             &SocketContext->IoSqe.Sqe,
             &SocketContext->IoSqe)) {
         Status = errno;
@@ -1204,7 +1189,7 @@ CxPlatSocketContextInitialize(
     IoSqeInitialized = TRUE;
 
     if (!CxPlatSqeInitialize(
-            SocketContext->DatapathProc->EventQ,
+            SocketContext->Worker->EventQ,
             &SocketContext->FlushTxSqe.Sqe,
             &SocketContext->FlushTxSqe)) {
         Status = errno;
@@ -1304,13 +1289,13 @@ Exit:
         }
         SocketContext->SocketFd = INVALID_SOCKET;
         if (ShutdownSqeInitialized) {
-            CxPlatSqeCleanup(SocketContext->DatapathProc->EventQ, &SocketContext->ShutdownSqe.Sqe);
+            CxPlatSqeCleanup(SocketContext->Worker->EventQ, &SocketContext->ShutdownSqe.Sqe);
         }
         if (IoSqeInitialized) {
-            CxPlatSqeCleanup(SocketContext->DatapathProc->EventQ, &SocketContext->IoSqe.Sqe);
+            CxPlatSqeCleanup(SocketContext->Worker->EventQ, &SocketContext->IoSqe.Sqe);
         }
         if (FlushTxInitialized) {
-            CxPlatSqeCleanup(SocketContext->DatapathProc->EventQ, &SocketContext->FlushTxSqe.Sqe);
+            CxPlatSqeCleanup(SocketContext->Worker->EventQ, &SocketContext->FlushTxSqe.Sqe);
         }
     }
 
@@ -1356,21 +1341,21 @@ CxPlatSocketContextUninitializeComplete(
     }
 
     if (SocketContext->SocketFd != INVALID_SOCKET) {
-        epoll_ctl(*SocketContext->DatapathProc->EventQ, EPOLL_CTL_DEL, SocketContext->SocketFd, NULL);
+        epoll_ctl(*SocketContext->Worker->EventQ, EPOLL_CTL_DEL, SocketContext->SocketFd, NULL);
         SocketContext->SocketFd = INVALID_SOCKET;
     }
 
     if (SocketContext->SqeInitialized) {
-        CxPlatSqeCleanup(SocketContext->DatapathProc->EventQ, &SocketContext->ShutdownSqe.Sqe);
-        CxPlatSqeCleanup(SocketContext->DatapathProc->EventQ, &SocketContext->IoSqe.Sqe);
-        CxPlatSqeCleanup(SocketContext->DatapathProc->EventQ, &SocketContext->FlushTxSqe.Sqe);
+        CxPlatSqeCleanup(SocketContext->Worker->EventQ, &SocketContext->ShutdownSqe.Sqe);
+        CxPlatSqeCleanup(SocketContext->Worker->EventQ, &SocketContext->IoSqe.Sqe);
+        CxPlatSqeCleanup(SocketContext->Worker->EventQ, &SocketContext->FlushTxSqe.Sqe);
     }
 
     CxPlatLockUninitialize(&SocketContext->TxQueueLock);
     CxPlatRundownUninitialize(&SocketContext->UpcallRundown);
 
-    if (SocketContext->DatapathProc) {
-        CxPlatProcessorContextRelease(SocketContext->DatapathProc);
+    if (SocketContext->Worker) {
+        CxPlatProcessorContextRelease(SocketContext->Worker);
     }
     CxPlatSocketRelease(SocketContext->Binding);
 }
@@ -1393,11 +1378,11 @@ CxPlatSocketContextUninitialize(
         //
         // Cancel and clean up any pending IO.
         //
-        epoll_ctl(*SocketContext->DatapathProc->EventQ, EPOLL_CTL_DEL, SocketContext->SocketFd, NULL);
+        epoll_ctl(*SocketContext->Worker->EventQ, EPOLL_CTL_DEL, SocketContext->SocketFd, NULL);
 
         CXPLAT_FRE_ASSERT(
             CxPlatEventQEnqueue(
-                SocketContext->DatapathProc->EventQ,
+                SocketContext->Worker->EventQ,
                 &SocketContext->ShutdownSqe.Sqe,
                 &SocketContext->ShutdownSqe));
     }
@@ -1415,7 +1400,7 @@ CxPlatSocketContextSetEvents(
 
     int Ret =
         epoll_ctl(
-            *SocketContext->DatapathProc->EventQ,
+            *SocketContext->Worker->EventQ,
             Operation,
             SocketContext->SocketFd,
             &SockFdEpEvt);
@@ -1486,13 +1471,13 @@ CxPlatSocketCreateUdp(
     Binding->SocketContexts[0].ShutdownSqe.CqeType = CXPLAT_CQE_TYPE_SOCKET_SHUTDOWN;
     Binding->SocketContexts[0].IoSqe.CqeType = CXPLAT_CQE_TYPE_SOCKET_IO;
     Binding->SocketContexts[0].FlushTxSqe.CqeType = CXPLAT_CQE_TYPE_SOCKET_FLUSH_TX;
-    Binding->SocketContexts[0].DatapathProc =
+    Binding->SocketContexts[0].Worker =
         IsServerSocket ?
-            &Datapath->Processors[0] :
+            &Datapath->Workers[0] :
             CxPlatDataPathGetProc(Datapath, CurrentProc);
     // NOTE: hack for loopback test. server: 0, client: 1
     Binding->SocketContexts[0].ActorIdx = !IsServerSocket;
-    CxPlatRefIncrement(&Binding->SocketContexts[0].DatapathProc->RefCount);
+    CxPlatRefIncrement(&Binding->SocketContexts[0].Worker->RefCount);
     CxPlatListInitializeHead(&Binding->SocketContexts[0].TxQueue);
     CxPlatLockInitialize(&Binding->SocketContexts[0].TxQueueLock);
     CxPlatRundownInitialize(&Binding->SocketContexts[0].UpcallRundown);
@@ -1774,7 +1759,7 @@ void handle_receive_packets(
     _In_ CXPLAT_SOCKET_CONTEXT* SocketContext
     )
 {
-    CXPLAT_DATAPATH *Datapath = SocketContext->DatapathProc->Datapath;
+    CXPLAT_DATAPATH *Datapath = SocketContext->Worker->Datapath;
     struct xsk_socket_info *xsk = Datapath->xsk_info[SocketContext->ActorIdx];
     unsigned int rcvd, stock_frames, i;
 	uint32_t idx_rx = 0, idx_fq = 0;
@@ -1902,8 +1887,9 @@ CxPlatDpRawTxAlloc(
 
     CXPLAT_SOCKET_CONTEXT* SocketContext = Config->Route->Queue;
     CXPLAT_DBG_ASSERT(SocketContext->Binding == Socket);
-    CXPLAT_DBG_ASSERT(SocketContext->Binding->Datapath == SocketContext->DatapathProc->Datapath);
-    CXPLAT_SEND_DATA* SendData = CxPlatPoolAlloc(&SocketContext->DatapathProc->SendBlockPool);
+    CXPLAT_DBG_ASSERT(SocketContext->Binding->Datapath == SocketContext->Worker->Datapath);
+    CXPLAT_SEND_DATA* SendData = calloc(1, sizeof(CXPLAT_SEND_DATA));
+
     if (SendData != NULL) {
         SendData->SocketContext = SocketContext;
 
@@ -1920,7 +1906,7 @@ CxPlatDpRawTxAlloc(
                 }
             }
 
-            CXPLAT_DATAPATH *Datapath = SocketContext->DatapathProc->Datapath;
+            CXPLAT_DATAPATH *Datapath = SocketContext->Worker->Datapath;
             struct xsk_socket_info* xsk_info = Datapath->xsk_info[SocketContext->ActorIdx];
             uint32_t tx_idx;
             if (xsk_ring_prod__reserve(&xsk_info->tx, 1, &tx_idx) != 1) {
@@ -1973,7 +1959,7 @@ CxPlatSendDataFree(
     )
 {
     // TODO: tx should be cleaned?
-    CxPlatPoolFree(&SendData->SocketContext->DatapathProc->SendBlockPool, SendData);
+    free(SendData);
 }
 
 static
@@ -2005,7 +1991,7 @@ CxPlatSendDataFinalizeSendBuffer(
         IoVec->iov_base = SendData->ClientBuffer.Buffer;
         IoVec->iov_len = SendData->ClientBuffer.Length;
         if (SendData->TotalSize + SendData->SegmentSize > sizeof(SendData->Buffer) ||
-            SendData->BufferCount == SendData->SocketContext->DatapathProc->Datapath->SendIoVecCount) {
+            SendData->BufferCount == SendData->SocketContext->Worker->Datapath->SendIoVecCount) {
             SendData->ClientBuffer.Buffer = NULL;
         } else {
             SendData->ClientBuffer.Buffer += SendData->ClientBuffer.Length;
@@ -2032,7 +2018,7 @@ CxPlatSendDataAllocBuffer(
     // CXPLAT_DBG_ASSERT(SendData->TotalSize + MaxBufferLength <= sizeof(SendData->Buffer)); // TODO: use umem frame size?
     CXPLAT_DBG_ASSERT(
         SendData->SegmentationSupported ||
-        SendData->BufferCount < SendData->SocketContext->DatapathProc->Datapath->SendIoVecCount);
+        SendData->BufferCount < SendData->SocketContext->Worker->Datapath->SendIoVecCount);
     UNREFERENCED_PARAMETER(MaxBufferLength);
     if (SendData->ClientBuffer.Buffer == NULL) {
         return NULL;
@@ -2118,7 +2104,7 @@ CxPlatSocketSend(
             // TODO: sendto for tx?
             CXPLAT_FRE_ASSERT(
                 CxPlatEventQEnqueue(
-                    SocketContext->DatapathProc->EventQ,
+                    SocketContext->Worker->EventQ,
                     &SocketContext->FlushTxSqe.Sqe,
                     &SocketContext->FlushTxSqe));
         }
@@ -2151,7 +2137,7 @@ XdpSend(
     _In_ CXPLAT_SEND_DATA* SendData
     )
 {
-    CXPLAT_DATAPATH *Datapath = SendData->SocketContext->DatapathProc->Datapath;
+    CXPLAT_DATAPATH *Datapath = SendData->SocketContext->Worker->Datapath;
     int ActorIdx = SendData->SocketContext->ActorIdx;
     struct xsk_socket_info* xsk_info = Datapath->xsk_info[ActorIdx];
     QUIC_BUFFER *buffer = &SendData->ClientBuffer;
