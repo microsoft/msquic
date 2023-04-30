@@ -30,9 +30,9 @@ CxPlatDpRawParseEthernet(
     );
 
 int framing_packet(
-    const uint8_t *buffer, size_t size,
+    size_t size,
     const uint8_t src_mac[ETH_ALEN], const uint8_t dst_mac[ETH_ALEN],
     QUIC_ADDR* LocalAddress, QUIC_ADDR* RemoteAddress,
     uint16_t src_port, uint16_t dst_port,
     CXPLAT_ECN_TYPE ECN,
-    struct ethhdr* eth, uint32_t* pkt_len);
+    struct ethhdr* eth);

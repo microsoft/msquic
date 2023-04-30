@@ -113,6 +113,11 @@ typedef struct CXPLAT_SEND_DATA {
     //
     QUIC_BUFFER ClientBuffer;
 
+    // eth + iph(ipv6h) + udph (tcph)
+    uint16_t HeaderOffset;
+
+    struct xdp_desc *tx_desc;
+
     //
     // The total buffer size for iovecs.
     //
@@ -178,7 +183,10 @@ typedef struct CXPLAT_SEND_DATA {
     //
     // Space for all the packet buffers.
     //
-    uint8_t Buffer[CXPLAT_LARGE_IO_BUFFER_SIZE];
+
+    // TODO: should be from umem?
+    //uint8_t Buffer[CXPLAT_LARGE_IO_BUFFER_SIZE];
+    uint8_t *Buffer;
 
     //
     // IO vectors used for sends on the socket.
@@ -1845,7 +1853,9 @@ CxPlatRecvDataReturn(
     )
 {
     // TODO: release data
-    UNREFERENCED_PARAMETER(RecvDataChain);
+    // UNREFERENCED_PARAMETER(RecvDataChain);
+    free(RecvDataChain->Route);
+    free(RecvDataChain);
     // CxPlatDpRawRxFree((const CXPLAT_RECV_DATA*)RecvDataChain);
     // CXPLAT_RECV_DATA* Datagram;
     // while ((Datagram = RecvDataChain) != NULL) {
@@ -1885,7 +1895,32 @@ CxPlatSendDataAlloc(
     CXPLAT_SEND_DATA* SendData = CxPlatPoolAlloc(&SocketContext->DatapathProc->SendBlockPool);
     if (SendData != NULL) {
         SendData->SocketContext = SocketContext;
-        SendData->ClientBuffer.Buffer = SendData->Buffer;
+
+        { //TODO: experimenting block
+            QUIC_ADDR RemoteAddress;
+            CxPlatSocketGetLocalAddress(Socket, &RemoteAddress);
+            if (SocketContext->ActorIdx == 0) { // TODO: better algo, server SocketContext doesn't haveRemoteAddress
+                SendData->HeaderOffset = sizeof(struct ethhdr) + sizeof(struct ipv6hdr) + sizeof(struct udphdr);
+            } else {
+                if (QuicAddrGetFamily(&RemoteAddress) == QUIC_ADDRESS_FAMILY_INET) {
+                    SendData->HeaderOffset = sizeof(struct ethhdr) + sizeof(struct iphdr) + sizeof(struct udphdr);
+                } else {
+                    SendData->HeaderOffset = sizeof(struct ethhdr) + sizeof(struct ipv6hdr) + sizeof(struct udphdr);
+                }
+            }
+
+            CXPLAT_DATAPATH *Datapath = SocketContext->DatapathProc->Datapath;
+            struct xsk_socket_info* xsk_info = Datapath->xsk_info[SocketContext->ActorIdx];
+            uint32_t tx_idx;
+            if (xsk_ring_prod__reserve(&xsk_info->tx, 1, &tx_idx) != 1) {
+                return FALSE;
+            }
+            struct xdp_desc *tx_desc = xsk_ring_prod__tx_desc(&xsk_info->tx, tx_idx);
+            void* PacketP = xsk_umem__get_data(xsk_info->umem->buffer, tx_desc->addr);
+            SendData->ClientBuffer.Buffer = PacketP + SendData->HeaderOffset;
+            SendData->tx_desc = tx_desc;
+        }
+
         SendData->ClientBuffer.Length = 0;
         SendData->TotalSize = 0;
         SendData->SegmentSize = Config->MaxPacketSize;
@@ -1910,8 +1945,7 @@ CxPlatSendDataFree(
     _In_ CXPLAT_SEND_DATA* SendData
     )
 {
-    // TODO: which should be freed?
-    //       need to wait completion queue?
+    // TODO: tx should be cleaned?
     CxPlatPoolFree(&SendData->SocketContext->DatapathProc->SendBlockPool, SendData);
 }
 
@@ -1968,7 +2002,7 @@ CxPlatSendDataAllocBuffer(
     CXPLAT_DBG_ASSERT(MaxBufferLength > 0);
     CxPlatSendDataFinalizeSendBuffer(SendData);
     CXPLAT_DBG_ASSERT(SendData->SegmentSize == 0 || SendData->SegmentSize >= MaxBufferLength);
-    CXPLAT_DBG_ASSERT(SendData->TotalSize + MaxBufferLength <= sizeof(SendData->Buffer));
+    // CXPLAT_DBG_ASSERT(SendData->TotalSize + MaxBufferLength <= sizeof(SendData->Buffer)); // TODO: use umem frame size?
     CXPLAT_DBG_ASSERT(
         SendData->SegmentationSupported ||
         SendData->BufferCount < SendData->SocketContext->DatapathProc->Datapath->SendIoVecCount);
@@ -2091,33 +2125,25 @@ XdpSend(
     )
 {
     CXPLAT_DATAPATH *Datapath = SendData->SocketContext->DatapathProc->Datapath;
-    struct xsk_socket_info* xsk_info = Datapath->xsk_info[SendData->SocketContext->ActorIdx];
-    QUIC_BUFFER *buffer = &SendData->ClientBuffer;
     int ActorIdx = SendData->SocketContext->ActorIdx;
+    struct xsk_socket_info* xsk_info = Datapath->xsk_info[ActorIdx];
+    QUIC_BUFFER *buffer = &SendData->ClientBuffer;
 
-    fprintf(stderr, "Actor[%d]: should be sending, errno:%d\n", SendData->SocketContext->ActorIdx, errno);
 
-    uint32_t tx_idx;
-    // Reserve space for the packet
-    if (xsk_ring_prod__reserve(&xsk_info->tx, 1, &tx_idx) != 1) {
-        return FALSE;
-    }
+    fprintf(stderr, "Actor[%d]: should be sending, errno:%d\n", ActorIdx, errno);
 
-    struct xdp_desc *tx_desc = xsk_ring_prod__tx_desc(&xsk_info->tx, tx_idx);
-    struct ethhdr* eth = xsk_umem__get_data(xsk_info->umem->buffer, tx_desc->addr);
-    uint32_t pkt_len = 0;
-
-    if (framing_packet(buffer->Buffer, buffer->Length,
+    if (framing_packet(buffer->Length,
             macs[ActorIdx], macs[ActorIdx ^ 1],
             &SendData->LocalAddress, &SendData->RemoteAddress,
             SendData->LocalAddress.Ipv4.sin_port, SendData->RemoteAddress.Ipv4.sin_port,
             SendData->ECN,
-            eth, &pkt_len) != 0) {
+            (struct ethhdr*) (buffer->Buffer - SendData->HeaderOffset)) != 0) { // TODO: remove pkt_len
         return FALSE;
     }
+    uint32_t pkt_len = buffer->Length + SendData->HeaderOffset;
 
     // Set the packet length and release the TX descriptor
-    tx_desc->len = sizeof(struct ethhdr) + pkt_len;
+    SendData->tx_desc->len = pkt_len;
     xsk_ring_prod__submit(&xsk_info->tx, 1);
 
     // TODO: how about move to flush tx

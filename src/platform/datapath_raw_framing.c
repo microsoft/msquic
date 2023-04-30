@@ -412,12 +412,12 @@ static uint16_t csum16(uint16_t *buf, int nwords) {
     return ~sum;
 }
 
-int framing_packet(const uint8_t *buffer, size_t size,
-                    const uint8_t src_mac[ETH_ALEN], const uint8_t dst_mac[ETH_ALEN],
-                    QUIC_ADDR* LocalAddress, QUIC_ADDR* RemoteAddress,
-                    uint16_t src_port, uint16_t dst_port,
-                    CXPLAT_ECN_TYPE ECN,
-                    struct ethhdr* eth, uint32_t* pkt_len) {
+int framing_packet(size_t size,
+                   const uint8_t src_mac[ETH_ALEN], const uint8_t dst_mac[ETH_ALEN],
+                   QUIC_ADDR* LocalAddress, QUIC_ADDR* RemoteAddress,
+                   uint16_t src_port, uint16_t dst_port,
+                   CXPLAT_ECN_TYPE ECN,
+                   struct ethhdr* eth) {
     QUIC_ADDR_STR LocalAddrStr;
     QUIC_ADDR_STR RemoteAddrStr;
     if (LocalAddress)
@@ -429,7 +429,6 @@ int framing_packet(const uint8_t *buffer, size_t size,
     struct iphdr *iph = NULL;
     struct ipv6hdr *ip6h = NULL;
     struct udphdr *udph;
-    char *payload;
 
     // Populate the Ethernet header
     memcpy(eth->h_dest, dst_mac, ETH_ALEN);
@@ -447,11 +446,10 @@ int framing_packet(const uint8_t *buffer, size_t size,
         udph = (struct udphdr *)((char *)iph + sizeof(struct iphdr));
 
         // Populate the IP header
-        *pkt_len = sizeof(struct iphdr) + sizeof(struct udphdr) + size;
         iph->ihl = sizeof(struct iphdr) / 4;
         iph->version = 4;
         iph->tos = ECN;
-        iph->tot_len = htons(*pkt_len);
+        iph->tot_len = htons(sizeof(struct iphdr) + sizeof(struct udphdr) + size);
         iph->id = 0;
         iph->frag_off = 0;
         iph->ttl = 64;
@@ -466,20 +464,18 @@ int framing_packet(const uint8_t *buffer, size_t size,
         udph = (struct udphdr *)((char *)ip6h + sizeof(struct ipv6hdr));
 
         // Populate the IPv6 header
-        *pkt_len = sizeof(struct ipv6hdr) + sizeof(struct udphdr) + size;
         ip6h->version = 6;
         ip6h->priority = (ECN >> 4) & 0x0F;
         ip6h->flow_lbl[0] = (ECN << 4) & 0xF0;
         ip6h->flow_lbl[1] = 0;
         ip6h->flow_lbl[2] = 0;
-        ip6h->payload_len = htons(*pkt_len - sizeof(struct ipv6hdr));
+        ip6h->payload_len = htons(sizeof(struct udphdr) + size);
         ip6h->nexthdr = IPPROTO_UDP;
         ip6h->hop_limit = 64;
         memcpy(&ip6h->saddr, &LocalAddress->Ipv6.sin6_addr, sizeof(struct in6_addr));
         memcpy(&ip6h->daddr, &RemoteAddress->Ipv6.sin6_addr, sizeof(struct in6_addr));
     }
 
-    payload = (char *)((char *)udph + sizeof(struct udphdr));
     // Populate the UDP header
     udph->source = src_port;
     udph->dest = dst_port;
@@ -487,9 +483,6 @@ int framing_packet(const uint8_t *buffer, size_t size,
     udph->check = 0; //
     // NOTE: For simplicity UDP checksum to zero
     //      In production code, it's recommended to calculate and set the correct checksum.
-
-    // Copy the payload data
-    memcpy(payload, buffer, size);
 
     return 0;
 }
