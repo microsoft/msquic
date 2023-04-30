@@ -184,8 +184,6 @@ typedef struct CXPLAT_SEND_DATA {
     // Space for all the packet buffers.
     //
 
-    // TODO: should be from umem?
-    //uint8_t Buffer[CXPLAT_LARGE_IO_BUFFER_SIZE];
     uint8_t *Buffer;
 
     //
@@ -677,6 +675,129 @@ static struct xsk_umem_info *configure_xsk_umem(void *buffer, uint64_t size)
 }
 
 
+_IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_STATUS
+CxPlatDpRawInitialize(
+    _Inout_ CXPLAT_DATAPATH* Datapath,
+    _In_ uint32_t ClientRecvContextLength,
+    _In_opt_ const QUIC_EXECUTION_CONFIG* Config
+    )
+{
+    UNREFERENCED_PARAMETER(ClientRecvContextLength);
+    UNREFERENCED_PARAMETER(Config);
+    QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
+    // XDP init area, 2 is for loopback test
+    // TODO: remove hacky part
+    for (int ii = 0; ii < 2; ii++)
+    {
+        // TODO: input via config?
+        const char* ifname = ifnames[ii];
+        int ifindex = if_nametoindex(ifname);
+        struct xsk_socket_config *xsk_cfg = (struct xsk_socket_config*)calloc(1, sizeof(struct xsk_socket_config)); // TODO: free
+        xsk_cfg->rx_size = XSK_RING_CONS__DEFAULT_NUM_DESCS;
+        xsk_cfg->tx_size = XSK_RING_PROD__DEFAULT_NUM_DESCS;
+        // TODO: auto detect?
+        xsk_cfg->libbpf_flags = 0;
+        // xsk_cfg.xdp_flags = XDP_FLAGS_SKB_MODE;
+        // xsk_cfg.bind_flags = XDP_COPY;
+        xsk_cfg->xdp_flags = 0;
+        xsk_cfg->bind_flags = 0;
+        uint32_t idx;
+        uint32_t prog_id = 0;
+        int i;
+        int ret;
+
+        struct bpf_object *bpf_obj = load_bpf_and_xdp_attach("./datapath_raw_xdp_kern.o", "xdp_prog", ifindex);
+        struct bpf_map *map = bpf_object__find_map_by_name(bpf_obj, "xsks_map");
+        int xsks_map_fd = bpf_map__fd(map);
+        if (xsks_map_fd < 0) {
+            fprintf(stderr, "ERROR: no xsks map found: %s\n",
+                strerror(xsks_map_fd));
+            exit(EXIT_FAILURE);
+        }
+
+        void *packet_buffer;
+        uint64_t packet_buffer_size;
+        /* Allocate memory for NUM_FRAMES of the default XDP frame size */
+        packet_buffer_size = NUM_FRAMES * FRAME_SIZE;
+        if (posix_memalign(&packet_buffer,
+                getpagesize(), /* PAGE_SIZE aligned */
+                packet_buffer_size)) {
+            fprintf(stderr, "ERROR: Can't allocate buffer memory \"%s\"\n",
+                strerror(errno));
+            exit(EXIT_FAILURE);
+        }
+
+        /* Initialize shared packet_buffer for umem usage */
+        struct xsk_umem_info *umem;
+        umem = configure_xsk_umem(packet_buffer, packet_buffer_size);
+        if (umem == NULL) {
+            fprintf(stderr, "ERROR: Can't create umem \"%s\"\n",
+                strerror(errno));
+            exit(EXIT_FAILURE);
+        }
+
+        //
+        // Create datagram socket.
+        //
+        struct xsk_socket_info *xsk_info = calloc(1, sizeof(*xsk_info)); // TODO: free
+        if (!xsk_info) {
+            return QUIC_STATUS_OUT_OF_MEMORY;
+        }
+
+        // TODO: share port from Binding->LocalAddress to BPF map
+        xsk_info->umem = umem;
+        int queue_id = 0; // TODO:check
+        ret = xsk_socket__create(&xsk_info->xsk, ifname,
+                    queue_id++, umem->umem, &xsk_info->rx,
+                    &xsk_info->tx, xsk_cfg);
+        fprintf(stderr, "xsk_socket__create:%d\n", ret);
+        if (ret) {
+            // Status = errno;
+            // QuicTraceEvent(
+            //     DatapathErrorStatus,
+            //     "[data] ERROR, %u, %s.",
+            //     Status,
+            //     "socket failed");
+            return QUIC_STATUS_INTERNAL_ERROR;
+        }
+        CxPlatSleep(20);
+
+        for (i = 0; i < NUM_FRAMES; i++)
+            xsk_info->umem_frame_addr[i] = i * FRAME_SIZE;
+
+        xsk_info->umem_frame_free = NUM_FRAMES;
+
+        ret = bpf_get_link_xdp_id(ifindex, &prog_id, xsk_cfg->xdp_flags);
+        if (ret) {
+            return QUIC_STATUS_INTERNAL_ERROR;
+        }
+
+        /* Stuff the receive path with buffers, we assume we have enough */
+        ret = xsk_ring_prod__reserve(&xsk_info->umem->fq,
+                        XSK_RING_PROD__DEFAULT_NUM_DESCS,
+                        &idx);
+        if (ret != XSK_RING_PROD__DEFAULT_NUM_DESCS) {
+            return QUIC_STATUS_OUT_OF_MEMORY;
+        }
+
+        for (i = 0; i < XSK_RING_PROD__DEFAULT_NUM_DESCS; i ++) {
+            *xsk_ring_prod__fill_addr(&xsk_info->umem->fq, idx++) =
+                xsk_alloc_umem_frame(xsk_info);
+        }
+
+        xsk_ring_prod__submit(&xsk_info->umem->fq,
+                    XSK_RING_PROD__DEFAULT_NUM_DESCS);
+
+        Datapath->xsk_info[ii] = xsk_info;
+        Datapath->xsk_cfg[ii] = xsk_cfg;
+        Datapath->bpf_objs[ii] = bpf_obj;
+        Datapath->ifindex[ii] = ifindex;
+    }
+    // TODO: creanup if error
+    return Status;
+}
+
 QUIC_STATUS
 CxPlatDataPathInitialize(
     _In_ uint32_t ClientRecvContextLength,
@@ -754,119 +875,16 @@ CxPlatDataPathInitialize(
             &Datapath->Processors[i]);
     }
 
-    // XDP init area, 2 is for loopback test
-    // TODO: remove hacky part
-    for (int ii = 0; ii < 2; ii++)
-    {
-        // TODO: input via config?
-        const char* ifname = ifnames[ii];
-        int ifindex = if_nametoindex(ifname);
-        struct xsk_socket_config *xsk_cfg = (struct xsk_socket_config*)calloc(1, sizeof(struct xsk_socket_config)); // TODO: free
-        xsk_cfg->rx_size = XSK_RING_CONS__DEFAULT_NUM_DESCS;
-        xsk_cfg->tx_size = XSK_RING_PROD__DEFAULT_NUM_DESCS;
-        // TODO: auto detect?
-        xsk_cfg->libbpf_flags = 0;
-        // xsk_cfg.xdp_flags = XDP_FLAGS_SKB_MODE;
-        // xsk_cfg.bind_flags = XDP_COPY;
-        xsk_cfg->xdp_flags = 0;
-        xsk_cfg->bind_flags = 0;
-        uint32_t idx;
-        uint32_t prog_id = 0;
-        int i;
-        int ret;
-
-        struct bpf_object *bpf_obj = load_bpf_and_xdp_attach("./datapath_raw_xdp_kern.o", "xdp_prog", ifindex);
-        struct bpf_map *map = bpf_object__find_map_by_name(bpf_obj, "xsks_map");
-        int xsks_map_fd = bpf_map__fd(map);
-        if (xsks_map_fd < 0) {
-            fprintf(stderr, "ERROR: no xsks map found: %s\n",
-                strerror(xsks_map_fd));
-            exit(EXIT_FAILURE);
-        }
-
-        void *packet_buffer;
-        uint64_t packet_buffer_size;
-        /* Allocate memory for NUM_FRAMES of the default XDP frame size */
-        packet_buffer_size = NUM_FRAMES * FRAME_SIZE;
-        if (posix_memalign(&packet_buffer,
-                getpagesize(), /* PAGE_SIZE aligned */
-                packet_buffer_size)) {
-            fprintf(stderr, "ERROR: Can't allocate buffer memory \"%s\"\n",
-                strerror(errno));
-            exit(EXIT_FAILURE);
-        }
-
-        /* Initialize shared packet_buffer for umem usage */
-        struct xsk_umem_info *umem;
-        umem = configure_xsk_umem(packet_buffer, packet_buffer_size);
-        if (umem == NULL) {
-            fprintf(stderr, "ERROR: Can't create umem \"%s\"\n",
-                strerror(errno));
-            exit(EXIT_FAILURE);
-        }
-
-        //
-        // Create datagram socket.
-        //
-        struct xsk_socket_info *xsk_info = calloc(1, sizeof(*xsk_info)); // TODO: free
-        if (!xsk_info) {
-            goto Exit;
-        }
-
-        // TODO: share port from Binding->LocalAddress to BPF map
-        xsk_info->umem = umem;
-        int queue_id = 0; // TODO:check
-        ret = xsk_socket__create(&xsk_info->xsk, ifname,
-                    queue_id++, umem->umem, &xsk_info->rx,
-                    &xsk_info->tx, xsk_cfg);
-        // fprintf(stderr, "xsk_socket__create:%d\n", ret);
-        if (ret) {
-            // Status = errno;
-            // QuicTraceEvent(
-            //     DatapathErrorStatus,
-            //     "[data] ERROR, %u, %s.",
-            //     Status,
-            //     "socket failed");
-            goto Exit;
-        }
-        CxPlatSleep(20);
-
-        for (i = 0; i < NUM_FRAMES; i++)
-            xsk_info->umem_frame_addr[i] = i * FRAME_SIZE;
-
-        xsk_info->umem_frame_free = NUM_FRAMES;
-
-        ret = bpf_get_link_xdp_id(ifindex, &prog_id, xsk_cfg->xdp_flags);
-        if (ret) {
-            goto Exit;
-        }
-
-        /* Stuff the receive path with buffers, we assume we have enough */
-        ret = xsk_ring_prod__reserve(&xsk_info->umem->fq,
-                        XSK_RING_PROD__DEFAULT_NUM_DESCS,
-                        &idx);
-        if (ret != XSK_RING_PROD__DEFAULT_NUM_DESCS) {
-            goto Exit;
-        }
-
-        for (i = 0; i < XSK_RING_PROD__DEFAULT_NUM_DESCS; i ++) {
-            *xsk_ring_prod__fill_addr(&xsk_info->umem->fq, idx++) =
-                xsk_alloc_umem_frame(xsk_info);
-        }
-
-        xsk_ring_prod__submit(&xsk_info->umem->fq,
-                    XSK_RING_PROD__DEFAULT_NUM_DESCS);        
-
-        Datapath->xsk_info[ii] = xsk_info;
-        Datapath->xsk_cfg[ii] = xsk_cfg;
-        Datapath->bpf_objs[ii] = bpf_obj;
-        Datapath->ifindex[ii] = ifindex;
+    QUIC_STATUS Status = CxPlatDpRawInitialize(Datapath, ClientRecvContextLength, Config);
+    if (Status != QUIC_STATUS_SUCCESS) {
+        // goto
+        return Status;
     }
 
     CXPLAT_FRE_ASSERT(CxPlatRundownAcquire(&CxPlatWorkerRundown));
     *NewDataPath = Datapath;
 
-Exit:
+// Exit:
     // TODO: cleanup
 
     return QUIC_STATUS_SUCCESS;
@@ -1869,20 +1887,13 @@ CxPlatRecvDataReturn(
     // }
 }
 
-//
-// Send Path
-//
-
 _IRQL_requires_max_(DISPATCH_LEVEL)
-_Success_(return != NULL)
 CXPLAT_SEND_DATA*
-CxPlatSendDataAlloc(
+CxPlatDpRawTxAlloc(
     _In_ CXPLAT_SOCKET* Socket,
     _Inout_ CXPLAT_SEND_CONFIG* Config
     )
 {
-    // TODO: xsk_ring_prod__reserve
-
     CXPLAT_DBG_ASSERT(Socket != NULL);
     CXPLAT_DBG_ASSERT(Config->MaxPacketSize <= MAX_UDP_PAYLOAD_LENGTH);
     if (Config->Route->Queue == NULL) {
@@ -1937,6 +1948,22 @@ CxPlatSendDataAlloc(
     }
 
     return SendData;
+}
+
+//
+// Send Path
+//
+// TODO: unify in datapath_raw_xdp.c,
+//       CxPlatDpRawTxAlloc should be diverged for each OS
+_IRQL_requires_max_(DISPATCH_LEVEL)
+_Success_(return != NULL)
+CXPLAT_SEND_DATA*
+CxPlatSendDataAlloc(
+    _In_ CXPLAT_SOCKET* Socket,
+    _Inout_ CXPLAT_SEND_CONFIG* Config
+    )
+{
+    return CxPlatDpRawTxAlloc(Socket, Config);
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
