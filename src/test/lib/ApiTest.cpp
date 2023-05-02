@@ -2136,8 +2136,7 @@ void QuicTestStatefulGlobalSetParam()
     {
         TestScopeLogger LogScope1("Set QUIC_PARAM_GLOBAL_EXECUTION_CONFIG when MsQuicLib.Datapath != NULL");
         uint16_t Data[QUIC_EXECUTION_CONFIG_MIN_SIZE] = {};
-        TEST_QUIC_STATUS(
-            QUIC_STATUS_INVALID_STATE,
+        TEST_QUIC_SUCCEEDED(
             MsQuic->SetParam(
                 nullptr,
                 QUIC_PARAM_GLOBAL_EXECUTION_CONFIG,
