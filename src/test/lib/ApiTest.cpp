@@ -2128,22 +2128,6 @@ void QuicTestStatefulGlobalSetParam()
                 sizeof(Mode),
                 &Mode));
     }
-
-#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
-    //
-    // Set QUIC_PARAM_GLOBAL_EXECUTION_CONFIG when MsQuicLib.Datapath != NULL
-    //
-    {
-        TestScopeLogger LogScope1("Set QUIC_PARAM_GLOBAL_EXECUTION_CONFIG when MsQuicLib.Datapath != NULL");
-        uint16_t Data[QUIC_EXECUTION_CONFIG_MIN_SIZE] = {};
-        TEST_QUIC_SUCCEEDED(
-            MsQuic->SetParam(
-                nullptr,
-                QUIC_PARAM_GLOBAL_EXECUTION_CONFIG,
-                sizeof(Data),
-                &Data));
-    }
-#endif
 }
 
 void QuicTestGlobalParam()
