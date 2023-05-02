@@ -756,7 +756,7 @@ TEST_F(DataPathTest, UdpQeo)
     ASSERT_TRUE(QuicAddrFromString("192.168.0.1:5555", 5555, &Offloads[1].Address));
     ASSERT_EQ(
         QUIC_STATUS_NOT_SUPPORTED,
-        CxPlatSocketUpdateQeo(Socket.Socket, &Offloads, 2));
+        CxPlatSocketUpdateQeo(Socket.Socket, Offloads, 2));
 }
 
 TEST_P(DataPathTest, UdpData)
