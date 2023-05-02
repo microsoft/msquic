@@ -1666,8 +1666,9 @@ CxPlatSocketUpdateQeo(
     _In_ uint32_t OffloadCount
     )
 {
-    UNREFERENCED_PARAMETER(Datapath);
-    UNREFERENCED_PARAMETER(LocalAddress);
+    UNREFERENCED_PARAMETER(Socket);
+    UNREFERENCED_PARAMETER(Offloads);
+    UNREFERENCED_PARAMETER(OffloadCount);
     return QUIC_STATUS_NOT_SUPPORTED;
 }
 
