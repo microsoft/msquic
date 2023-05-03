@@ -6,15 +6,12 @@ on:
     paths:
     - .github/workflows/plugins.yml
     - src/plugins/*
-    paths-ignore:
-    - .azure/*
+
   pull_request:
     branches: [ main ]
     paths:
     - .github/workflows/plugins.yml
     - src/plugins/*
-    paths-ignore:
-    - .azure/*
 
 permissions: read-all
 
