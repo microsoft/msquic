@@ -1570,7 +1570,6 @@ QuicSettingsSettingsToInternal(
     SETTING_COPY_TO_INTERNAL(ServerResumptionLevel, Settings, InternalSettings);
     SETTING_COPY_TO_INTERNAL(GreaseQuicBitEnabled, Settings, InternalSettings);
     SETTING_COPY_TO_INTERNAL(EcnEnabled, Settings, InternalSettings);
-    SETTING_COPY_TO_INTERNAL(EncryptionOffloadEnabled, Settings, InternalSettings);
 
     //
     // N.B. Anything after this needs to be size checked
@@ -1596,6 +1595,14 @@ QuicSettingsSettingsToInternal(
     SETTING_COPY_FLAG_TO_INTERNAL_SIZED(
         Flags,
         HyStartEnabled,
+        QUIC_SETTINGS,
+        Settings,
+        SettingsSize,
+        InternalSettings);
+
+    SETTING_COPY_FLAG_TO_INTERNAL_SIZED(
+        Flags,
+        EncryptionOffloadEnabled,
         QUIC_SETTINGS,
         Settings,
         SettingsSize,

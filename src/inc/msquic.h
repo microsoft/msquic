@@ -705,12 +705,11 @@ typedef struct QUIC_SETTINGS {
     union {
         uint64_t Flags;
         struct {
-            uint64_t HyStartEnabled : 1;
-            uint64_t ReservedFlags : 63;
+            uint64_t HyStartEnabled            : 1;
+            uint64_t EncryptionOffloadEnabled  : 1;
+            uint64_t ReservedFlags             : 62;
         };
     };
-
-    uint8_t EncryptionOffloadEnabled        : 1;
 
 } QUIC_SETTINGS;
 

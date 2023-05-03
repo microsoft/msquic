@@ -117,6 +117,7 @@ TEST(SettingsTest, TestAllSettingsFieldsSet)
     SETTINGS_FEATURE_SET_TEST(GreaseQuicBitEnabled, QuicSettingsSettingsToInternal);
     SETTINGS_FEATURE_SET_TEST(EcnEnabled, QuicSettingsSettingsToInternal);
     SETTINGS_FEATURE_SET_TEST(HyStartEnabled, QuicSettingsSettingsToInternal);
+    SETTINGS_FEATURE_SET_TEST(EncryptionOffloadEnabled, QuicSettingsSettingsToInternal);
 
     Settings.IsSetFlags = 0;
     Settings.IsSet.RESERVED = ~Settings.IsSet.RESERVED;
@@ -195,6 +196,7 @@ TEST(SettingsTest, TestAllSettingsFieldsGet)
     SETTINGS_FEATURE_GET_TEST(GreaseQuicBitEnabled, QuicSettingsGetSettings);
     SETTINGS_FEATURE_GET_TEST(EcnEnabled, QuicSettingsGetSettings);
     SETTINGS_FEATURE_GET_TEST(HyStartEnabled, QuicSettingsGetSettings);
+    SETTINGS_FEATURE_GET_TEST(EncryptionOffloadEnabled, QuicSettingsGetSettings);
 
     Settings.IsSetFlags = 0;
     Settings.IsSet.RESERVED = ~Settings.IsSet.RESERVED;
