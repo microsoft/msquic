@@ -194,6 +194,11 @@ typedef union QUIC_CONNECTION_STATE {
         //
         BOOLEAN DisableVneTp : 1;
 #endif
+
+        //
+        // Indicates whether this connection offloads encryption workload to HW
+        //
+        BOOLEAN EncryptionOffloading : 1;
     };
 } QUIC_CONNECTION_STATE;
 

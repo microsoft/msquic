@@ -663,7 +663,8 @@ typedef struct QUIC_SETTINGS {
             uint64_t GreaseQuicBitEnabled                   : 1;
             uint64_t EcnEnabled                             : 1;
             uint64_t HyStartEnabled                         : 1;
-            uint64_t RESERVED                               : 29;
+            uint64_t EncryptionOffloadEnabled               : 1;
+            uint64_t RESERVED                               : 28;
         } IsSet;
     };
 
@@ -709,6 +710,7 @@ typedef struct QUIC_SETTINGS {
         };
     };
 
+    uint8_t EncryptionOffloadEnabled        : 1;
 
 } QUIC_SETTINGS;
 

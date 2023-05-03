@@ -485,6 +485,30 @@ QuicConnUninitialize(
         QuicBindingRemoveConnection(Connection->Paths[0].Binding, Connection);
     }
 
+    if (Connection->State.EncryptionOffloading) {
+        CXPLAT_QEO_CONNECTION Offloads[] = {
+            {
+                CXPLAT_QEO_OPERATION_REMOVE,
+                CXPLAT_QEO_DIRECTION_TRANSMIT,
+                0,
+                0,
+                0,
+                0,
+                {0},
+            },
+            {
+                CXPLAT_QEO_OPERATION_REMOVE,
+                CXPLAT_QEO_DIRECTION_RECEIVE,
+                0,
+                0,
+                0,
+                0,
+                {0},
+            }
+        };
+        CxPlatSocketUpdateQeo(Connection->Paths[0].Binding->Socket, Offloads, 2);
+    }
+
     //
     // Clean up the packet space first, to return any deferred received
     // packets back to the binding.
@@ -2001,6 +2025,36 @@ QuicConnStart(
     Status = QuicConnSetConfiguration(Connection, Configuration);
     if (QUIC_FAILED(Status)) {
         goto Exit;
+    }
+
+    if (Connection->Settings.IsSet.EncryptionOffloadEnabled) {
+        CXPLAT_QEO_CONNECTION Offloads[] = {
+            {
+                CXPLAT_QEO_OPERATION_ADD,
+                CXPLAT_QEO_DIRECTION_TRANSMIT,
+                CXPLAT_QEO_DECRYPT_FAILURE_ACTION_DROP,
+                0,
+                0,
+                CXPLAT_QEO_CIPHER_TYPE_AEAD_AES_256_GCM,
+                8,
+                {0},
+            },
+            {
+                CXPLAT_QEO_OPERATION_ADD,
+                CXPLAT_QEO_DIRECTION_RECEIVE,
+                CXPLAT_QEO_DECRYPT_FAILURE_ACTION_DROP,
+                0,
+                0,
+                CXPLAT_QEO_CIPHER_TYPE_AEAD_AES_256_GCM,
+                0,
+                {0},
+            }
+        };
+        Status = CxPlatSocketUpdateQeo(Path->Binding->Socket, Offloads, 2);
+        if (QUIC_FAILED(Status)) {
+            goto Exit;
+        }
+        Connection->State.EncryptionOffloading = TRUE;
     }
 
     if (Connection->Settings.KeepAliveIntervalMs != 0) {
@@ -7228,6 +7282,11 @@ QuicConnApplyNewSettings(
             QUIC_PATH* Path = &Connection->Paths[0];
             Path->EcnValidationState = ECN_VALIDATION_TESTING;
         }
+    }
+
+    if (Connection->State.Started &&
+        (Connection->Settings.EncryptionOffloadEnabled ^ Connection->State.EncryptionOffloading)) {
+        // TODO: enable/disable after start
     }
 
     uint8_t PeerStreamType =

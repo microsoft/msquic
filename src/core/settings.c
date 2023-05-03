@@ -599,6 +599,11 @@ QuicSettingApply(
         return FALSE;
     }
 
+    if (Source->IsSet.EncryptionOffloadEnabled && (!Destination->IsSet.EncryptionOffloadEnabled || OverWrite)) {
+        Destination->EncryptionOffloadEnabled = Source->EncryptionOffloadEnabled;
+        Destination->IsSet.EncryptionOffloadEnabled = TRUE;
+    }
+
     return TRUE;
 }
 
@@ -1565,6 +1570,7 @@ QuicSettingsSettingsToInternal(
     SETTING_COPY_TO_INTERNAL(ServerResumptionLevel, Settings, InternalSettings);
     SETTING_COPY_TO_INTERNAL(GreaseQuicBitEnabled, Settings, InternalSettings);
     SETTING_COPY_TO_INTERNAL(EcnEnabled, Settings, InternalSettings);
+    SETTING_COPY_TO_INTERNAL(EncryptionOffloadEnabled, Settings, InternalSettings);
 
     //
     // N.B. Anything after this needs to be size checked
@@ -1673,6 +1679,7 @@ QuicSettingsGetSettings(
     SETTING_COPY_FROM_INTERNAL(ServerResumptionLevel, Settings, InternalSettings);
     SETTING_COPY_FROM_INTERNAL(GreaseQuicBitEnabled, Settings, InternalSettings);
     SETTING_COPY_FROM_INTERNAL(EcnEnabled, Settings, InternalSettings);
+    SETTING_COPY_FROM_INTERNAL(EncryptionOffloadEnabled, Settings, InternalSettings);
 
     //
     // N.B. Anything after this needs to be size checked
