@@ -5,8 +5,12 @@ on:
     branches: [ main ]
     # Publish semver tags as releases.
     tags: [ 'v*.*.*' ]
+    paths-ignore:
+    - .azure/*
   pull_request:
     branches: [ main ]
+    paths-ignore:
+    - .azure/*
 
 permissions: read-all
 

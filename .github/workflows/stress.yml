@@ -6,10 +6,14 @@ on:
     branches:
     - main
     - release/*
+    paths-ignore:
+    - .azure/*
   pull_request:
     branches:
     - main
     - release/*
+    paths-ignore:
+    - .azure/*
 
 concurrency:
   # Cancel any workflow currently in progress for the same PR.
