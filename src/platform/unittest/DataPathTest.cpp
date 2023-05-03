@@ -721,6 +721,44 @@ TEST_F(DataPathTest, UdpRebind)
     ASSERT_NE(Socket2.GetLocalAddress().Ipv4.sin_port, (uint16_t)0);
 }
 
+TEST_F(DataPathTest, UdpQeo)
+{
+    CxPlatDataPath Datapath(&EmptyUdpCallbacks);
+    VERIFY_QUIC_SUCCESS(Datapath.GetInitStatus());
+    ASSERT_NE(nullptr, Datapath.Datapath);
+
+    CxPlatSocket Socket(Datapath);
+    VERIFY_QUIC_SUCCESS(Socket.GetInitStatus());
+    ASSERT_NE(nullptr, Socket.Socket);
+
+    CXPLAT_QEO_CONNECTION Offloads[] = {
+        {
+            CXPLAT_QEO_OPERATION_ADD,
+            CXPLAT_QEO_DIRECTION_TRANSMIT,
+            CXPLAT_QEO_DECRYPT_FAILURE_ACTION_DROP,
+            0,
+            0,
+            CXPLAT_QEO_CIPHER_TYPE_AEAD_AES_256_GCM,
+            8,
+            {0}
+        },
+        {
+            CXPLAT_QEO_OPERATION_ADD,
+            CXPLAT_QEO_DIRECTION_RECEIVE,
+            CXPLAT_QEO_DECRYPT_FAILURE_ACTION_DROP,
+            0,
+            0,
+            CXPLAT_QEO_CIPHER_TYPE_AEAD_AES_256_GCM,
+            0
+        }
+    };
+    ASSERT_TRUE(QuicAddrFromString("192.168.0.1:443", 443, &Offloads[0].Address));
+    ASSERT_TRUE(QuicAddrFromString("192.168.0.1:5555", 5555, &Offloads[1].Address));
+    ASSERT_EQ(
+        QUIC_STATUS_NOT_SUPPORTED,
+        CxPlatSocketUpdateQeo(Socket.Socket, Offloads, 2));
+}
+
 TEST_P(DataPathTest, UdpData)
 {
     UdpRecvContext RecvContext;
