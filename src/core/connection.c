@@ -2029,7 +2029,6 @@ QuicConnStart(
         goto Exit;
     }
 
-#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
     if (Connection->Settings.IsSet.EncryptionOffloadAllowed) {
         CXPLAT_QEO_CONNECTION Offloads[] = {
             {
@@ -2060,7 +2059,6 @@ QuicConnStart(
             Connection->Paths[0].EncryptionOffloading = TRUE;
         }
     }
-#endif
 
     if (Connection->Settings.KeepAliveIntervalMs != 0) {
         QuicConnTimerSet(
@@ -7290,13 +7288,11 @@ QuicConnApplyNewSettings(
         }
     }
 
-#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
     if (Connection->State.Started &&
         (Connection->Settings.EncryptionOffloadAllowed ^ Connection->Paths[0].EncryptionOffloading)) {
         // TODO: enable/disable after start
         CXPLAT_FRE_ASSERT(FALSE);
     }
-#endif
 
     uint8_t PeerStreamType =
         QuicConnIsServer(Connection) ?
