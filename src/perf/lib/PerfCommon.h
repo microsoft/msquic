@@ -42,4 +42,4 @@ Abstract:
 extern QUIC_EXECUTION_PROFILE PerfDefaultExecutionProfile;
 extern QUIC_CONGESTION_CONTROL_ALGORITHM PerfDefaultCongestionControl;
 extern uint8_t PerfDefaultEcnEnabled;
-extern uint8_t PerfDefaultQeoEnabled;
+extern uint8_t PerfDefaultQeoAllowed;

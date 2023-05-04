@@ -142,7 +142,10 @@ private:
             .SetServerResumptionLevel(QUIC_SERVER_RESUME_AND_ZERORTT)
             .SetCongestionControlAlgorithm(PerfDefaultCongestionControl)
             .SetEcnEnabled(PerfDefaultEcnEnabled)
-            .SetEncryptionOffloadEnabled(PerfDefaultQeoEnabled)};
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
+            .SetEncryptionOffloadAllowed(PerfDefaultQeoAllowed)
+#endif
+            };
     MsQuicListener Listener {Registration, ListenerCallbackStatic, this};
     QUIC_ADDR LocalAddr;
     CXPLAT_EVENT* StopEvent {nullptr};
