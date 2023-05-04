@@ -439,6 +439,7 @@ public:
     MsQuicSettings& SetDestCidUpdateIdleTimeoutMs(uint32_t Value) { DestCidUpdateIdleTimeoutMs = Value; IsSet.DestCidUpdateIdleTimeoutMs = TRUE; return *this; }
     MsQuicSettings& SetGreaseQuicBitEnabled(bool Value) { GreaseQuicBitEnabled = Value; IsSet.GreaseQuicBitEnabled = TRUE; return *this; }
     MsQuicSettings& SetEcnEnabled(bool Value) { EcnEnabled = Value; IsSet.EcnEnabled = TRUE; return *this; }
+    MsQuicSettings& SetEncryptionOffloadEnabled(bool Value) { EncryptionOffloadEnabled = Value; IsSet.EncryptionOffloadEnabled = TRUE; return *this; }
 
     QUIC_STATUS
     SetGlobal() const noexcept {
