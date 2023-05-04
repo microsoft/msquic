@@ -173,6 +173,11 @@ typedef struct QUIC_PATH {
     //
     uint32_t PathValidationStartTime;
 
+    //
+    // Indicates whether this connection offloads encryption workload to HW
+    //
+    BOOLEAN EncryptionOffloading : 1;
+
 } QUIC_PATH;
 
 #if DEBUG

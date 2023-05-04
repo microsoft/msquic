@@ -485,7 +485,7 @@ QuicConnUninitialize(
         QuicBindingRemoveConnection(Connection->Paths[0].Binding, Connection);
     }
 
-    if (Connection->State.EncryptionOffloading) {
+    if (Connection->Paths[0].EncryptionOffloading) {
         CXPLAT_QEO_CONNECTION Offloads[] = {
             {
                 CXPLAT_QEO_OPERATION_REMOVE,
@@ -507,8 +507,8 @@ QuicConnUninitialize(
             }
         };
         CxPlatSocketUpdateQeo(Connection->Paths[0].Binding->Socket, Offloads, 2);
-        Connection->Stats.EncryptionOffloading = FALSE;
-        Connection->State.EncryptionOffloading = FALSE;
+        Connection->Stats.EncryptionOffloaded = FALSE;
+        Connection->Paths[0].EncryptionOffloading = FALSE;
     }
 
     //
@@ -2029,7 +2029,8 @@ QuicConnStart(
         goto Exit;
     }
 
-    if (Connection->Settings.IsSet.EncryptionOffloadEnabled) {
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
+    if (Connection->Settings.IsSet.EncryptionOffloadAllowed) {
         CXPLAT_QEO_CONNECTION Offloads[] = {
             {
                 CXPLAT_QEO_OPERATION_ADD,
@@ -2052,14 +2053,14 @@ QuicConnStart(
                 {0},
             }
         };
+        // TODO: query QEO capability and use before enabling
         Status = CxPlatSocketUpdateQeo(Path->Binding->Socket, Offloads, 2);
-        if (QUIC_FAILED(Status)) {
-            // TODO: query QEO capability, set CXPLAT_DATAPATH_FEATURE_ENCRYPTION_OFFLOAD
-            goto Exit;
+        if (QUIC_SUCCEEDED(Status)) {
+            Connection->Stats.EncryptionOffloaded = TRUE;
+            Connection->Paths[0].EncryptionOffloading = TRUE;
         }
-        Connection->Stats.EncryptionOffloading = TRUE;
-        Connection->State.EncryptionOffloading = TRUE;
     }
+#endif
 
     if (Connection->Settings.KeepAliveIntervalMs != 0) {
         QuicConnTimerSet(
@@ -3991,7 +3992,7 @@ QuicConnRecvHeader(
         } else {
             Packet->KeyType = QuicPacketTypeToKeyTypeV1(Packet->LH->Type);
         }
-        Packet->Encrypted = !Connection->State.EncryptionOffloading;
+        Packet->Encrypted = !Connection->Paths[0].EncryptionOffloading;
 
     } else {
 
@@ -6774,7 +6775,7 @@ QuicConnGetV2Statistics(
     Stats->ResumptionAttempted = Connection->Stats.ResumptionAttempted;
     Stats->ResumptionSucceeded = Connection->Stats.ResumptionSucceeded;
     Stats->GreaseBitNegotiated = Connection->Stats.GreaseBitNegotiated;
-    Stats->EncryptionOffloading = Connection->Stats.EncryptionOffloading;
+    Stats->EncryptionOffloaded = Connection->Stats.EncryptionOffloaded;
     Stats->EcnCapable = Path->EcnValidationState == ECN_VALIDATION_CAPABLE;
     Stats->Rtt = Path->SmoothedRtt;
     Stats->MinRtt = Path->MinRtt;
@@ -7289,10 +7290,13 @@ QuicConnApplyNewSettings(
         }
     }
 
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
     if (Connection->State.Started &&
-        (Connection->Settings.EncryptionOffloadEnabled ^ Connection->State.EncryptionOffloading)) {
+        (Connection->Settings.EncryptionOffloadAllowed ^ Connection->Paths[0].EncryptionOffloading)) {
         // TODO: enable/disable after start
+        CXPLAT_FRE_ASSERT(FALSE);
     }
+#endif
 
     uint8_t PeerStreamType =
         QuicConnIsServer(Connection) ?

@@ -144,6 +144,12 @@ QuicSettingsSetDefault(
     if (!Settings->IsSet.HyStartEnabled) {
         Settings->HyStartEnabled = QUIC_DEFAULT_HYSTART_ENABLED;
     }
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
+    if (!Settings->IsSet.EncryptionOffloadAllowed) {
+        Settings->EncryptionOffloadAllowed = QUIC_DEFAULT_ENCRYPTION_OFFLOAD_ALLOWED;
+    }
+#endif
+
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -288,6 +294,11 @@ QuicSettingsCopy(
     if (!Destination->IsSet.HyStartEnabled) {
         Destination->HyStartEnabled = Source->HyStartEnabled;
     }
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
+    if (!Destination->IsSet.EncryptionOffloadAllowed) {
+        Destination->EncryptionOffloadAllowed = Source->EncryptionOffloadAllowed;
+    }
+#endif
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -599,10 +610,12 @@ QuicSettingApply(
         return FALSE;
     }
 
-    if (Source->IsSet.EncryptionOffloadEnabled && (!Destination->IsSet.EncryptionOffloadEnabled || OverWrite)) {
-        Destination->EncryptionOffloadEnabled = Source->EncryptionOffloadEnabled;
-        Destination->IsSet.EncryptionOffloadEnabled = TRUE;
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
+    if (Source->IsSet.EncryptionOffloadAllowed && (!Destination->IsSet.EncryptionOffloadAllowed || OverWrite)) {
+        Destination->EncryptionOffloadAllowed = Source->EncryptionOffloadAllowed;
+        Destination->IsSet.EncryptionOffloadAllowed = TRUE;
     }
+#endif
 
     return TRUE;
 }
@@ -1195,6 +1208,18 @@ VersionSettingsFail:
             &ValueLen);
         Settings->HyStartEnabled = !!Value;
     }
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
+    if (!Settings->IsSet.EncryptionOffloadAllowed) {
+        Value = QUIC_DEFAULT_ENCRYPTION_OFFLOAD_ALLOWED;
+        ValueLen = sizeof(Value);
+        CxPlatStorageReadValue(
+            Storage,
+            QUIC_SETTING_ENCRYPTION_OFFLOAD_ALLOWED,
+            (uint8_t*)&Value,
+            &ValueLen);
+        Settings->EncryptionOffloadAllowed = !!Value;
+    }
+#endif
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -1257,6 +1282,9 @@ QuicSettingsDump(
     QuicTraceLogVerbose(SettingGreaseQuicBitEnabled,        "[sett] GreaseQuicBitEnabled   = %hhu", Settings->GreaseQuicBitEnabled);
     QuicTraceLogVerbose(SettingEcnEnabled,                  "[sett] EcnEnabled             = %hhu", Settings->EcnEnabled);
     QuicTraceLogVerbose(SettingHyStartEnabled,              "[sett] HyStartEnabled         = %hhu", Settings->HyStartEnabled);
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
+    QuicTraceLogVerbose(SettingEncryptionOffloadAllowed,    "[sett] EncryptionOffloadAllowed = %hhu", Settings->EncryptionOffloadAllowed);
+#endif
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -1397,6 +1425,11 @@ QuicSettingsDumpNew(
     if (Settings->IsSet.HyStartEnabled) {
         QuicTraceLogVerbose(SettingHyStartEnabled,                  "[sett] HyStartEnabled         = %hhu", Settings->HyStartEnabled);
     }
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
+    if (Settings->IsSet.EncryptionOffloadAllowed) {
+        QuicTraceLogVerbose(SettingEncryptionOffloadAllowed,        "[sett] EncryptionOffloadAllowed   = %hhu", Settings->EncryptionOffloadAllowed);
+    }
+#endif
 }
 
 #define SETTINGS_SIZE_THRU_FIELD(SettingsType, Field) \
@@ -1600,13 +1633,15 @@ QuicSettingsSettingsToInternal(
         SettingsSize,
         InternalSettings);
 
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
     SETTING_COPY_FLAG_TO_INTERNAL_SIZED(
         Flags,
-        EncryptionOffloadEnabled,
+        EncryptionOffloadAllowed,
         QUIC_SETTINGS,
         Settings,
         SettingsSize,
         InternalSettings);
+#endif
 
     return QUIC_STATUS_SUCCESS;
 }
@@ -1686,7 +1721,6 @@ QuicSettingsGetSettings(
     SETTING_COPY_FROM_INTERNAL(ServerResumptionLevel, Settings, InternalSettings);
     SETTING_COPY_FROM_INTERNAL(GreaseQuicBitEnabled, Settings, InternalSettings);
     SETTING_COPY_FROM_INTERNAL(EcnEnabled, Settings, InternalSettings);
-    SETTING_COPY_FROM_INTERNAL(EncryptionOffloadEnabled, Settings, InternalSettings);
 
     //
     // N.B. Anything after this needs to be size checked
@@ -1716,6 +1750,16 @@ QuicSettingsGetSettings(
         Settings,
         *SettingsLength,
         InternalSettings);
+
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
+    SETTING_COPY_FLAG_FROM_INTERNAL_SIZED(
+        Flags,
+        EncryptionOffloadAllowed,
+        QUIC_SETTINGS,
+        Settings,
+        *SettingsLength,
+        InternalSettings);
+#endif
 
     *SettingsLength = CXPLAT_MIN(*SettingsLength, sizeof(QUIC_SETTINGS));
 
