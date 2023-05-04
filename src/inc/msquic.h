@@ -500,7 +500,8 @@ typedef struct QUIC_STATISTICS_V2 {
     uint32_t ResumptionSucceeded    : 1;
     uint32_t GreaseBitNegotiated    : 1;    // Set if we negotiated the GREASE bit.
     uint32_t EcnCapable             : 1;
-    uint32_t RESERVED               : 26;
+    uint32_t EncryptionOffloading   : 1;
+    uint32_t RESERVED               : 25;
     uint32_t Rtt;                           // In microseconds
     uint32_t MinRtt;                        // In microseconds
     uint32_t MaxRtt;                        // In microseconds

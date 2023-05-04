@@ -507,6 +507,8 @@ QuicConnUninitialize(
             }
         };
         CxPlatSocketUpdateQeo(Connection->Paths[0].Binding->Socket, Offloads, 2);
+        Connection->Stats.EncryptionOffloading = FALSE;
+        Connection->State.EncryptionOffloading = FALSE;
     }
 
     //
@@ -2052,8 +2054,10 @@ QuicConnStart(
         };
         Status = CxPlatSocketUpdateQeo(Path->Binding->Socket, Offloads, 2);
         if (QUIC_FAILED(Status)) {
+            // TODO: query QEO capability, set CXPLAT_DATAPATH_FEATURE_ENCRYPTION_OFFLOAD
             goto Exit;
         }
+        Connection->Stats.EncryptionOffloading = TRUE;
         Connection->State.EncryptionOffloading = TRUE;
     }
 
@@ -3987,7 +3991,7 @@ QuicConnRecvHeader(
         } else {
             Packet->KeyType = QuicPacketTypeToKeyTypeV1(Packet->LH->Type);
         }
-        Packet->Encrypted = TRUE;
+        Packet->Encrypted = !Connection->State.EncryptionOffloading;
 
     } else {
 
@@ -6770,6 +6774,7 @@ QuicConnGetV2Statistics(
     Stats->ResumptionAttempted = Connection->Stats.ResumptionAttempted;
     Stats->ResumptionSucceeded = Connection->Stats.ResumptionSucceeded;
     Stats->GreaseBitNegotiated = Connection->Stats.GreaseBitNegotiated;
+    Stats->EncryptionOffloading = Connection->Stats.EncryptionOffloading;
     Stats->EcnCapable = Path->EcnValidationState == ECN_VALIDATION_CAPABLE;
     Stats->Rtt = Path->SmoothedRtt;
     Stats->MinRtt = Path->MinRtt;

@@ -248,6 +248,7 @@ typedef struct QUIC_CONN_STATS {
     uint32_t ResumptionAttempted    : 1;
     uint32_t ResumptionSucceeded    : 1;
     uint32_t GreaseBitNegotiated    : 1;
+    uint32_t EncryptionOffloading   : 1;
 
     //
     // QUIC protocol version used. Network byte order.
