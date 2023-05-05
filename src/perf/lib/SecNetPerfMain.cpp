@@ -28,6 +28,7 @@ PerfBase* TestToRun;
 QUIC_EXECUTION_PROFILE PerfDefaultExecutionProfile = QUIC_EXECUTION_PROFILE_LOW_LATENCY;
 QUIC_CONGESTION_CONTROL_ALGORITHM PerfDefaultCongestionControl = QUIC_CONGESTION_CONTROL_ALGORITHM_CUBIC;
 uint8_t PerfDefaultEcnEnabled = false;
+uint8_t PerfDefaultQeoAllowed = false;
 
 #include "quic_datapath.h"
 
@@ -99,6 +100,7 @@ PrintHelp(
         "  -cc:<algo>                  Congestion control algorithm to use {cubic, bbr}.\n"
         "  -pollidle:<time_us>         Amount of time to poll while idle before sleeping (default: 0).\n"
         "  -ecn:<0/1>                  Enables/disables sender-side ECN support. (def:0)\n"
+        "  -qeo:<0/1>                  Allows/disallowes QUIC encryption offload. (def:0)\n"
 #ifndef _KERNEL_MODE
         "  -cpu:<cpu_index>            Specify the processor(s) to use.\n"
         "  -cipher:<value>             Decimal value of 1 or more QUIC_ALLOWED_CIPHER_SUITE_FLAGS.\n"
@@ -262,6 +264,7 @@ QuicMainStart(
     }
 
     TryGetValue(argc, argv, "ecn", &PerfDefaultEcnEnabled);
+    TryGetValue(argc, argv, "qeo", &PerfDefaultQeoAllowed);
 
     if (ServerMode) {
         TestToRun = new(std::nothrow) PerfServer(SelfSignedCredConfig);
