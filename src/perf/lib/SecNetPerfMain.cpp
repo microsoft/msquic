@@ -100,9 +100,7 @@ PrintHelp(
         "  -cc:<algo>                  Congestion control algorithm to use {cubic, bbr}.\n"
         "  -pollidle:<time_us>         Amount of time to poll while idle before sleeping (default: 0).\n"
         "  -ecn:<0/1>                  Enables/disables sender-side ECN support. (def:0)\n"
-#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
         "  -qeo:<0/1>                  Allows/disallowes QUIC encryption offload. (def:0)\n"
-#endif
 #ifndef _KERNEL_MODE
         "  -cpu:<cpu_index>            Specify the processor(s) to use.\n"
         "  -cipher:<value>             Decimal value of 1 or more QUIC_ALLOWED_CIPHER_SUITE_FLAGS.\n"
@@ -266,9 +264,7 @@ QuicMainStart(
     }
 
     TryGetValue(argc, argv, "ecn", &PerfDefaultEcnEnabled);
-#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
     TryGetValue(argc, argv, "qeo", &PerfDefaultQeoAllowed);
-#endif
 
     if (ServerMode) {
         TestToRun = new(std::nothrow) PerfServer(SelfSignedCredConfig);

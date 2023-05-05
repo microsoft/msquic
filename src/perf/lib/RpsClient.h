@@ -170,10 +170,8 @@ public:
             .SetSendBufferingEnabled(false)
             .SetCongestionControlAlgorithm(PerfDefaultCongestionControl)
             .SetEcnEnabled(PerfDefaultEcnEnabled)
-#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
-            .SetEncryptionOffloadAllowed(PerfDefaultQeoAllowed)
-#endif
-        ,MsQuicCredentialConfig(
+            .SetEncryptionOffloadAllowed(PerfDefaultQeoAllowed),
+        MsQuicCredentialConfig(
             QUIC_CREDENTIAL_FLAG_CLIENT |
             QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION)};
     uint32_t WorkerCount;
