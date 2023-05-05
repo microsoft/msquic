@@ -492,20 +492,26 @@ QuicConnUninitialize(
                 CXPLAT_QEO_DIRECTION_TRANSMIT,
                 0,
                 0,
+                0, // Reserved:0
                 0,
                 0,
-                {0},
+                0,
+                Connection->OrigDestCID->Length,
             },
             {
                 CXPLAT_QEO_OPERATION_REMOVE,
                 CXPLAT_QEO_DIRECTION_RECEIVE,
                 0,
                 0,
+                0, // Reserved:0
                 0,
                 0,
-                {0},
+                0,
+                Connection->OrigDestCID->Length,
             }
         };
+        memcpy(Offloads[0].ConnectionId, Connection->OrigDestCID->Data, Connection->OrigDestCID->Length);
+        memcpy(Offloads[1].ConnectionId, Connection->OrigDestCID->Data, Connection->OrigDestCID->Length);
         CxPlatSocketUpdateQeo(Connection->Paths[0].Binding->Socket, Offloads, 2);
         Connection->Stats.EncryptionOffloaded = FALSE;
         Connection->Paths[0].EncryptionOffloading = FALSE;
@@ -2035,23 +2041,33 @@ QuicConnStart(
                 CXPLAT_QEO_OPERATION_ADD,
                 CXPLAT_QEO_DIRECTION_TRANSMIT,
                 CXPLAT_QEO_DECRYPT_FAILURE_ACTION_DROP,
-                0,
-                0,
+                0, // KeyPhase
+                0, // Reserved:0
                 CXPLAT_QEO_CIPHER_TYPE_AEAD_AES_256_GCM,
-                8,
-                {0},
+                Connection->Send.NextPacketNumber,
+                Family,
+                Connection->OrigDestCID->Length,
             },
             {
                 CXPLAT_QEO_OPERATION_ADD,
                 CXPLAT_QEO_DIRECTION_RECEIVE,
                 CXPLAT_QEO_DECRYPT_FAILURE_ACTION_DROP,
-                0,
-                0,
+                0, // KeyPhase
+                0, // Reserved:0
                 CXPLAT_QEO_CIPHER_TYPE_AEAD_AES_256_GCM,
                 0,
-                {0},
+                Family,
+                SourceCid->CID.Length,
             }
         };
+        memcpy(Offloads[0].ConnectionId, Connection->OrigDestCID->Data, Connection->OrigDestCID->Length);
+        memcpy(Offloads[0].PayloadKey, Connection->Crypto.TlsState.WriteKeys[QUIC_ENCRYPT_LEVEL_1_RTT]->PacketKey, 32);
+        memcpy(Offloads[0].HeaderKey, Connection->Crypto.TlsState.WriteKeys[QUIC_ENCRYPT_LEVEL_1_RTT]->HeaderKey, 32);
+        memcpy(Offloads[0].PayloadIv, Connection->Crypto.TlsState.WriteKeys[QUIC_ENCRYPT_LEVEL_INITIAL]->Iv, 12);
+        memcpy(Offloads[1].ConnectionId, SourceCid->CID.Data, SourceCid->CID.Length);
+        memcpy(Offloads[1].PayloadKey, Connection->Crypto.TlsState.ReadKeys[QUIC_ENCRYPT_LEVEL_1_RTT]->PacketKey, 32);
+        memcpy(Offloads[1].HeaderKey, Connection->Crypto.TlsState.ReadKeys[QUIC_ENCRYPT_LEVEL_1_RTT]->HeaderKey, 32);
+        memcpy(Offloads[1].PayloadIv, Connection->Crypto.TlsState.ReadKeys[QUIC_ENCRYPT_LEVEL_INITIAL]->Iv, 12);
         // TODO: query QEO capability and use before enabling
         Status = CxPlatSocketUpdateQeo(Path->Binding->Socket, Offloads, 2);
         if (QUIC_SUCCEEDED(Status)) {

@@ -740,7 +740,7 @@ TEST_F(DataPathTest, UdpQeo)
             0,
             CXPLAT_QEO_CIPHER_TYPE_AEAD_AES_256_GCM,
             8,
-            {0}
+            QUIC_ADDRESS_FAMILY_INET
         },
         {
             CXPLAT_QEO_OPERATION_ADD,
@@ -749,11 +749,10 @@ TEST_F(DataPathTest, UdpQeo)
             0,
             0,
             CXPLAT_QEO_CIPHER_TYPE_AEAD_AES_256_GCM,
-            0
+            0,
+            QUIC_ADDRESS_FAMILY_INET6
         }
     };
-    ASSERT_TRUE(QuicAddrFromString("192.168.0.1:443", 443, &Offloads[0].Address));
-    ASSERT_TRUE(QuicAddrFromString("192.168.0.1:5555", 5555, &Offloads[1].Address));
     ASSERT_EQ(
         QUIC_STATUS_NOT_SUPPORTED,
         CxPlatSocketUpdateQeo(Socket.Socket, Offloads, 2));

@@ -519,7 +519,7 @@ CXPLAT_STATIC_ASSERT(
 //
 // The default settings for allowing QEO support.
 //
-#define QUIC_DEFAULT_ENCRYPTION_OFFLOAD_ALLOWED      TRUE
+#define QUIC_DEFAULT_ENCRYPTION_OFFLOAD_ALLOWED      FALSE
 
 //
 // The number of rounds in Cubic Slow Start to sample RTT.
