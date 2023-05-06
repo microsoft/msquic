@@ -3280,7 +3280,7 @@
           <event
               keywords="ut:Connection ut:DataFlow"
               level="win:Informational"
-              message="$(string.Etw.RecvDatagrams)"
+              message="$(string.Etw.ConnRecvDatagrams)"
               opcode="Connection"
               symbol="QuicConnRecvDatagrams"
               template="tid_CONN_COUNT_COUNT"
