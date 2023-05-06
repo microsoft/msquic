@@ -240,7 +240,7 @@ namespace QuicTrace.Tables
             tableConfig1.AddColumnRole(ColumnRole.StartTime, timeColumnConfig);
             tableConfig1.InitialFilterShouldKeep = false;
             tableConfig1.InitialSelectionQuery = "[Type]:=\"Tx\" OR [Type]:=\"Rx\"";
-            tableConfig1.InitialFilterQuery = "[Type]:<>\"Tx\" AND [Type]:<>\"PktCreate\" AND [Type]:<>\"TxAck\" AND [Type]:<>\"Rx\"";
+            tableConfig1.InitialFilterQuery = "[Type]:<>\"Tx\" AND [Type]:<>\"PktCreate\" AND [Type]:<>\"TxAck\" AND [Type]:<>\"Rx\" AND [Type]:<>\"RxBatch\"";
             tableBuilder.AddTableConfiguration(tableConfig1);
 
             tableConfig2.AddColumnRole(ColumnRole.StartTime, timeColumnConfig);

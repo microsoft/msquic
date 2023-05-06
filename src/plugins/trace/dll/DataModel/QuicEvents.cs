@@ -925,6 +925,22 @@ namespace QuicTrace.DataModel
         }
     }
 
+    public class QuicConnectionRecvDatagramsEvent : QuicEvent
+    {
+        public uint DatagramCount { get; }
+    
+        public uint ByteCount { get; }
+
+        public override string PayloadString => string.Format("Recv {0} UDP datagrams, {1} bytes", DatagramCount, ByteCount);
+
+        internal QuicConnectionRecvDatagramsEvent(Timestamp timestamp, ushort processor, uint processId, uint threadId, int pointerSize, ulong objectPointer, uint datagramCount, uint byteCount) :
+            base(QuicEventId.ConnRecvDatagrams, QuicObjectType.Connection, timestamp, processor, processId, threadId, pointerSize, objectPointer)
+        {
+            DatagramCount = datagramCount;
+            ByteCount = byteCount;
+        }
+    }
+
     public class QuicConnectionMessageEvent : QuicEvent
     {
         public string Message { get; }

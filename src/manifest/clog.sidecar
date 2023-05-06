@@ -8618,6 +8618,26 @@
       ],
       "macroName": "QuicTraceLogStreamVerbose"
     },
+    "QuicConnRecvDatagrams": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] Recv %u UDP datagrams, %u bytes",
+      "UniqueId": "QuicConnRecvDatagrams",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg3"
+        },
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg4"
+        }
+      ],
+      "macroName": "QuicTraceEvent"
+    },
     "Receive": {
       "ModuleProperites": {},
       "TraceString": "[strm][%p] Received %hu bytes, offset=%llu Ready=%hhu",
@@ -14969,6 +14989,11 @@
         "UniquenessHash": "80596bbb-20e9-07e5-07f3-ebc7078fa612",
         "TraceID": "QueueRecvFlush",
         "EncodingString": "[strm][%p] Queuing recv flush"
+      },
+      {
+        "UniquenessHash": "d61a4398-ba19-c65b-995e-e71c9582edb4",
+        "TraceID": "QuicConnRecvDatagrams",
+        "EncodingString": "[conn][%p] Recv %u UDP datagrams, %u bytes"
       },
       {
         "UniquenessHash": "84eb0d5c-ea47-1349-64a1-66146e94d06e",

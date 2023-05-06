@@ -253,6 +253,7 @@ namespace QuicTrace.DataModel
             var txAck = new QuicRawTputSample(QuicTputDataType.TxAck, QuicSampleMode.Drop, true);
             var txDelay = new QuicRawTputSample(QuicTputDataType.TxDelay, QuicSampleMode.DiffTime, true);
             var rx = new QuicRawTputSample(QuicTputDataType.Rx, QuicSampleMode.Diff, true);
+            var rxBatch = new QuicRawTputSample(QuicTputDataType.RxBatch, QuicSampleMode.Value, true);
             var rtt = new QuicRawTputSample(QuicTputDataType.Rtt);
             var inFlight = new QuicRawTputSample(QuicTputDataType.InFlight);
             var cwnd = new QuicRawTputSample(QuicTputDataType.CWnd);
@@ -289,6 +290,11 @@ namespace QuicTrace.DataModel
                     var _evt = evt as QuicDatapathSendEvent;
                     tx.Update(_evt!.TotalSize, evt.TimeStamp, ref tputEvents);
                     txDelay.Update((ulong)evt.TimeStamp.ToMicroseconds, evt.TimeStamp, ref tputEvents);
+                }
+                else if (evt.EventId == QuicEventId.ConnRecvDatagrams)
+                {
+                    var _evt = evt as QuicConnectionRecvDatagramsEvent;
+                    rxBatch.Update(_evt!.ByteCount, evt.TimeStamp, ref tputEvents);
                 }
             }
 

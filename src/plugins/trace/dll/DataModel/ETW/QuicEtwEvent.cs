@@ -218,6 +218,8 @@ namespace QuicTrace.DataModel.ETW
                     return new QuicConnectionStatsV2Event(timestamp, processor, processId, threadId, pointerSize, data.ReadPointer(), data.ReadUInt(), data.ReadUInt(), data.ReadUInt(), data.ReadULong(), data.ReadULong(), data.ReadUInt());
                 case QuicEventId.ConnOutFlowStreamStats:
                     return new QuicConnectionOutFlowStreamStatsEvent(timestamp, processor, processId, threadId, pointerSize, data.ReadPointer(), data.ReadULong(), data.ReadULong());
+                case QuicEventId.ConnRecvDatagrams:
+                    return new QuicConnectionRecvDatagramsEvent(timestamp, processor, processId, threadId, pointerSize, data.ReadPointer(), data.ReadUInt(), data.ReadUInt());
                 case QuicEventId.ConnLogError:
                 case QuicEventId.ConnLogWarning:
                 case QuicEventId.ConnLogInfo:

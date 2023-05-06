@@ -1433,7 +1433,8 @@ BOOLEAN
 QuicBindingDeliverDatagrams(
     _In_ QUIC_BINDING* Binding,
     _In_ CXPLAT_RECV_DATA* DatagramChain,
-    _In_ uint32_t DatagramChainLength
+    _In_ uint32_t DatagramChainLength,
+    _In_ uint32_t DatagramChainByteLength
     )
 {
     CXPLAT_RECV_PACKET* Packet =
@@ -1595,7 +1596,8 @@ QuicBindingDeliverDatagrams(
         return FALSE;
     }
 
-    QuicConnQueueRecvDatagrams(Connection, DatagramChain, DatagramChainLength);
+    QuicConnQueueRecvDatagrams(
+        Connection, DatagramChain, DatagramChainLength, DatagramChainByteLength);
     QuicConnRelease(Connection, QUIC_CONN_REF_LOOKUP_RESULT);
 
     return TRUE;
@@ -1621,6 +1623,7 @@ QuicBindingReceive(
     CXPLAT_RECV_DATA** SubChainTail = &SubChain;
     CXPLAT_RECV_DATA** SubChainDataTail = &SubChain;
     uint32_t SubChainLength = 0;
+    uint32_t SubChainBytes = 0;
     uint32_t TotalChainLength = 0;
     uint32_t TotalDatagramBytes = 0;
 
@@ -1703,20 +1706,21 @@ QuicBindingReceive(
         // (If the binding is exclusively owned, all datagrams are delivered to
         // the same connection and this chain-splitting step is skipped.)
         //
-        CXPLAT_RECV_PACKET* SubChainPacket =
-            SubChain == NULL ?
-                NULL : CxPlatDataPathRecvDataToRecvPacket(SubChain);
-        if (!Binding->Exclusive && SubChain != NULL &&
-            (Packet->DestCidLen != SubChainPacket->DestCidLen ||
-             memcmp(Packet->DestCid, SubChainPacket->DestCid, Packet->DestCidLen) != 0)) {
-            if (!QuicBindingDeliverDatagrams(Binding, SubChain, SubChainLength)) {
-                *ReleaseChainTail = SubChain;
-                ReleaseChainTail = SubChainDataTail;
+        if (!Binding->Exclusive && SubChain != NULL) {
+            CXPLAT_RECV_PACKET* SubChainPacket =
+                CxPlatDataPathRecvDataToRecvPacket(SubChain);
+            if ((Packet->DestCidLen != SubChainPacket->DestCidLen ||
+                 memcmp(Packet->DestCid, SubChainPacket->DestCid, Packet->DestCidLen) != 0)) {
+                if (!QuicBindingDeliverDatagrams(Binding, SubChain, SubChainLength, SubChainBytes)) {
+                    *ReleaseChainTail = SubChain;
+                    ReleaseChainTail = SubChainDataTail;
+                }
+                SubChain = NULL;
+                SubChainTail = &SubChain;
+                SubChainDataTail = &SubChain;
+                SubChainLength = 0;
+                SubChainBytes = 0;
             }
-            SubChain = NULL;
-            SubChainTail = &SubChain;
-            SubChainDataTail = &SubChain;
-            SubChainLength = 0;
         }
 
         //
@@ -1728,6 +1732,7 @@ QuicBindingReceive(
         //
 
         SubChainLength++;
+        SubChainBytes += Datagram->BufferLength;
         if (!QuicPacketIsHandshake(Packet->Invariant)) {
             *SubChainDataTail = Datagram;
             SubChainDataTail = &Datagram->Next;
@@ -1748,7 +1753,7 @@ QuicBindingReceive(
         //
         // Deliver the last subchain.
         //
-        if (!QuicBindingDeliverDatagrams(Binding, SubChain, SubChainLength)) {
+        if (!QuicBindingDeliverDatagrams(Binding, SubChain, SubChainLength, SubChainBytes)) {
             *ReleaseChainTail = SubChain;
             ReleaseChainTail = SubChainTail; // cppcheck-suppress unreadVariable; NOLINT
         }

@@ -498,6 +498,7 @@ typedef struct QUIC_CONNECTION {
     // Receive packet queue.
     //
     uint32_t ReceiveQueueCount;
+    uint32_t ReceiveQueueByteCount;
     CXPLAT_RECV_DATA* ReceiveQueue;
     CXPLAT_RECV_DATA** ReceiveQueueTail;
     CXPLAT_DISPATCH_LOCK ReceiveQueueLock;
@@ -1500,7 +1501,8 @@ void
 QuicConnQueueRecvDatagrams(
     _In_ QUIC_CONNECTION* Connection,
     _In_ CXPLAT_RECV_DATA* DatagramChain,
-    _In_ uint32_t DatagramChainLength
+    _In_ uint32_t DatagramChainLength,
+    _In_ uint32_t DatagramChainByteLength
     );
 
 //

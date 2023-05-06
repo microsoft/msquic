@@ -3188,7 +3188,8 @@ void
 QuicConnQueueRecvDatagrams(
     _In_ QUIC_CONNECTION* Connection,
     _In_ CXPLAT_RECV_DATA* DatagramChain,
-    _In_ uint32_t DatagramChainLength
+    _In_ uint32_t DatagramChainLength,
+    _In_ uint32_t DatagramChainByteLength
     )
 {
     CXPLAT_RECV_DATA** DatagramChainTail = &DatagramChain->Next;
@@ -3216,6 +3217,7 @@ QuicConnQueueRecvDatagrams(
         DatagramChain = NULL;
         QueueOperation = (Connection->ReceiveQueueCount == 0);
         Connection->ReceiveQueueCount += DatagramChainLength;
+        Connection->ReceiveQueueByteCount += DatagramChainByteLength;
     }
     CxPlatDispatchLockRelease(&Connection->ReceiveQueueLock);
 
@@ -5519,6 +5521,7 @@ QuicConnRecvDatagrams(
     _In_ QUIC_CONNECTION* Connection,
     _In_ CXPLAT_RECV_DATA* DatagramChain,
     _In_ uint32_t DatagramChainCount,
+    _In_ uint32_t DatagramChainByteCount,
     _In_ BOOLEAN IsDeferred
     )
 {
@@ -5529,6 +5532,7 @@ QuicConnRecvDatagrams(
     RecvState.PartitionIndex = QuicPartitionIdGetIndex(Connection->PartitionID);
 
     UNREFERENCED_PARAMETER(DatagramChainCount);
+    UNREFERENCED_PARAMETER(DatagramChainByteCount);
 
     CXPLAT_PASSIVE_CODE();
 
@@ -5539,11 +5543,12 @@ QuicConnRecvDatagrams(
             "Recv %u deferred UDP datagrams",
             DatagramChainCount);
     } else {
-        QuicTraceLogConnVerbose(
-            UdpRecv,
+        QuicTraceEvent(
+            QuicConnRecvDatagrams,
+            "[conn][%p] Recv %u UDP datagrams, %u bytes",
             Connection,
-            "Recv %u UDP datagrams",
-            DatagramChainCount);
+            DatagramChainCount,
+            DatagramChainByteCount);
     }
 
     //
@@ -5793,7 +5798,7 @@ QuicConnFlushRecv(
     )
 {
     BOOLEAN FlushedAll;
-    uint32_t ReceiveQueueCount;
+    uint32_t ReceiveQueueCount, ReceiveQueueByteCount;
     CXPLAT_RECV_DATA* ReceiveQueue;
 
     CxPlatDispatchLockAcquire(&Connection->ReceiveQueueLock);
@@ -5803,7 +5808,9 @@ QuicConnFlushRecv(
         Connection->ReceiveQueueCount -= QUIC_MAX_RECEIVE_FLUSH_COUNT;
         CXPLAT_RECV_DATA* Tail = Connection->ReceiveQueue;
         ReceiveQueueCount = 0;
+        ReceiveQueueByteCount = 0;
         while (++ReceiveQueueCount < QUIC_MAX_RECEIVE_FLUSH_COUNT) {
+            ReceiveQueueByteCount += Tail->BufferLength;
             Tail = Connection->ReceiveQueue;
         }
         Connection->ReceiveQueue = Tail->Next;
@@ -5811,6 +5818,7 @@ QuicConnFlushRecv(
     } else {
         FlushedAll = TRUE;
         ReceiveQueueCount = Connection->ReceiveQueueCount;
+        ReceiveQueueByteCount = Connection->ReceiveQueueByteCount;
         Connection->ReceiveQueueCount = 0;
         Connection->ReceiveQueue = NULL;
         Connection->ReceiveQueueTail = &Connection->ReceiveQueue;
@@ -5818,7 +5826,7 @@ QuicConnFlushRecv(
     CxPlatDispatchLockRelease(&Connection->ReceiveQueueLock);
 
     QuicConnRecvDatagrams(
-        Connection, ReceiveQueue, ReceiveQueueCount, FALSE);
+        Connection, ReceiveQueue, ReceiveQueueCount, ReceiveQueueByteCount, FALSE);
 
     return FlushedAll;
 }
@@ -5887,6 +5895,7 @@ QuicConnFlushDeferred(
                 Connection,
                 DeferredDatagrams,
                 DeferredDatagramsCount,
+                0, // Unused for deferred datagrams
                 TRUE);
         }
     }
