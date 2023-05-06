@@ -693,6 +693,21 @@ tracepoint(CLOG_SETTINGS_C, SettingHyStartEnabled , arg2);\
 
 
 /*----------------------------------------------------------
+// Decoder Ring for SettingEncryptionOffloadAllowed
+// [sett] EncryptionOffloadAllowed             = %hhu
+// QuicTraceLogVerbose(SettingEncryptionOffloadAllowed,                  "[sett] SettingEncryptionOffloadAllowed             = %hhu", Settings->SettingEncryptionOffloadAllowed);
+// arg2 = arg2 = Settings->SettingEncryptionOffloadAllowed = arg2
+----------------------------------------------------------*/
+#ifndef _clog_3_ARGS_TRACE_SettingEncryptionOffloadAllowed
+#define _clog_3_ARGS_TRACE_SettingEncryptionOffloadAllowed(uniqueId, encoded_arg_string, arg2)\
+tracepoint(CLOG_SETTINGS_C, SettingEncryptionOffloadAllowed , arg2);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for SettingDumpLFixedServerID
 // [sett] FixedServerID          = %u
 // QuicTraceLogVerbose(SettingDumpLFixedServerID,              "[sett] FixedServerID          = %u", Settings->FixedServerID);

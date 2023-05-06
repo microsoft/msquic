@@ -10311,6 +10311,18 @@
       ],
       "macroName": "QuicTraceLogVerbose"
     },
+    "SettingEncryptionOffloadAllowed": {
+      "ModuleProperites": {},
+      "TraceString": "[sett] EncryptionOffloadAllowed         = %hhu",
+      "UniqueId": "SettingEncryptionOffloadAllowed",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "hhu",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceLogVerbose"
+    },
     "SettingsInvalidAcceptableVersion": {
       "ModuleProperites": {},
       "TraceString": "Invalid AcceptableVersion supplied to settings! 0x%x at position %d",
@@ -15534,6 +15546,11 @@
         "UniquenessHash": "3204077b-15dd-eacb-1594-51d66d8db668",
         "TraceID": "SettingHyStartEnabled",
         "EncodingString": "[sett] HyStartEnabled         = %hhu"
+      },
+      {
+        "UniquenessHash": "beecd2f7-2711-45c1-b7c4-b95954682cfd",
+        "TraceID": "SettingEncryptionOffloadAllowed",
+        "EncodingString": "[sett] EncryptionOffloadAllowed         = %hhu"
       },
       {
         "UniquenessHash": "e7d29156-fb54-8f96-f3e2-1aa999886c12",
