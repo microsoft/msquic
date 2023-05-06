@@ -641,8 +641,9 @@ static uint64_t xsk_alloc_umem_frame(struct xsk_socket_info *xsk)
 	return frame;
 }
 
-static struct xsk_umem_info *configure_xsk_umem(void *buffer, uint64_t size)
+static struct xsk_umem_info *configure_xsk_umem(void *buffer, uint64_t size, uint32_t ClientRecvContextLength)
 {
+    UNREFERENCED_PARAMETER(ClientRecvContextLength);
 	struct xsk_umem_info *umem;
 	int ret;
 
@@ -650,8 +651,15 @@ static struct xsk_umem_info *configure_xsk_umem(void *buffer, uint64_t size)
 	if (!umem)
 		return NULL;
 
-	ret = xsk_umem__create(&umem->umem, buffer, size, &umem->fq, &umem->cq,
-			       NULL);
+    struct xsk_umem_config umem_config = {
+        .fill_size = NUM_FRAMES,
+        .comp_size = NUM_FRAMES,
+        .frame_size = FRAME_SIZE,
+        .frame_headroom = 0,
+        .flags = 0
+    };
+
+	ret = xsk_umem__create(&umem->umem, buffer, size, &umem->fq, &umem->cq, &umem_config);
 	if (ret) {
 		errno = -ret;
 		return NULL;
@@ -670,7 +678,6 @@ CxPlatDpRawInitialize(
     _In_opt_ const QUIC_EXECUTION_CONFIG* Config
     )
 {
-    UNREFERENCED_PARAMETER(ClientRecvContextLength);
     UNREFERENCED_PARAMETER(Config);
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
     // XDP init area, 2 is for loopback test
@@ -717,7 +724,7 @@ CxPlatDpRawInitialize(
 
         /* Initialize shared packet_buffer for umem usage */
         struct xsk_umem_info *umem;
-        umem = configure_xsk_umem(packet_buffer, packet_buffer_size);
+        umem = configure_xsk_umem(packet_buffer, packet_buffer_size, sizeof(CXPLAT_RECV_SUBBLOCK) + sizeof(CXPLAT_RECV_BLOCK) + ClientRecvContextLength);
         if (umem == NULL) {
             fprintf(stderr, "ERROR: Can't create umem \"%s\"\n",
                 strerror(errno));
@@ -770,7 +777,7 @@ CxPlatDpRawInitialize(
 
         for (i = 0; i < XSK_RING_PROD__DEFAULT_NUM_DESCS; i ++) {
             *xsk_ring_prod__fill_addr(&xsk_info->umem->fq, idx++) =
-                xsk_alloc_umem_frame(xsk_info);
+                xsk_alloc_umem_frame(xsk_info) + sizeof(CXPLAT_RECV_SUBBLOCK) + sizeof(CXPLAT_RECV_BLOCK) + ClientRecvContextLength;
         }
 
         xsk_ring_prod__submit(&xsk_info->umem->fq,
@@ -1797,14 +1804,10 @@ void handle_receive_packets(
 		uint64_t addr = xsk_ring_cons__rx_desc(&xsk->rx, idx_rx)->addr;
 		uint32_t len = xsk_ring_cons__rx_desc(&xsk->rx, idx_rx++)->len;
 
-        CXPLAT_RECV_DATA* Packet = (CXPLAT_RECV_DATA*)malloc(sizeof(CXPLAT_RECV_DATA)); // TODO: free
-        CxPlatZeroMemory(Packet, sizeof(CXPLAT_RECV_DATA));
-        Packet->Route = (CXPLAT_ROUTE*)calloc(1, sizeof(CXPLAT_ROUTE)); // TODO: free
-        // Packet->Route->Queue
-        // Packet->RouteStorage.Queue = Queue;
-        // Packet->PartitionIndex = ProcIndex;
-
 	    uint8_t *FrameBuffer = xsk_umem__get_data(xsk->umem->buffer, addr);
+        CXPLAT_RECV_DATA* Packet = (CXPLAT_RECV_DATA*)(FrameBuffer - sizeof(CXPLAT_RECV_DATA));
+        Packet->Route = (CXPLAT_ROUTE*)calloc(1, sizeof(CXPLAT_ROUTE));
+
         // TODO xsk_free_umem_frame if parse error?
         CxPlatDpRawParseEthernet(
             (CXPLAT_DATAPATH*)SocketContext->Binding->Datapath,
@@ -1856,9 +1859,8 @@ CxPlatRecvDataReturn(
     )
 {
     // TODO: release data
-    // UNREFERENCED_PARAMETER(RecvDataChain);
     free(RecvDataChain->Route);
-    free(RecvDataChain);
+    // free(RecvDataChain);
     // CxPlatDpRawRxFree((const CXPLAT_RECV_DATA*)RecvDataChain);
     // CXPLAT_RECV_DATA* Datagram;
     // while ((Datagram = RecvDataChain) != NULL) {
