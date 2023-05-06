@@ -3243,3 +3243,53 @@ Error:
 
     return QUIC_SUCCEEDED(Status);
 }
+
+_Success_(return==TRUE)
+BOOLEAN
+QuicPacketKeyCreateOffload(
+    _Inout_ CXPLAT_TLS* TlsContext,
+    _In_z_ const char* const SecretName,
+    _Inout_updates_(OffloadCount)
+        CXPLAT_QEO_CONNECTION* Offloads,
+    _In_ uint32_t OffloadCount
+    )
+{
+    QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
+
+    uint32_t set = 0;
+    for (int i = 6; i >= 0 && set < OffloadCount; i--) {
+        if (TlsContext->Workspace.OutSecBuffers[i].BufferType != SECBUFFER_TRAFFIC_SECRETS) {
+            continue;
+        }
+        SEC_TRAFFIC_SECRETS* TrafficSecrets = (SEC_TRAFFIC_SECRETS*)TlsContext->Workspace.OutSecBuffers[i].pvBuffer;
+        if (TrafficSecrets->TrafficSecretType == SecTrafficSecret_None) {
+            continue;
+        }
+        CXPLAT_SECRET Secret = {0};
+        if (!CxPlatParseTrafficSecrets(TlsContext, TrafficSecrets, &Secret)) {
+            Status = QUIC_STATUS_INVALID_PARAMETER;
+            goto Error;
+        }
+        BOOL ToPeer = TlsContext->IsServer ^ (TrafficSecrets->TrafficSecretType == SecTrafficSecret_Server);
+        Status =
+            QuicPacketKeyDeriveOffload(
+                TlsContext->HkdfLabels,
+                &Secret,
+                SecretName,
+                &Offloads[!ToPeer]); // hack: expecting OffloadCount == 2 && Offloads[0] is TX Offlaods[1] is RX
+        if (!QUIC_SUCCEEDED(Status)) {
+            QuicTraceEvent(
+                TlsErrorStatus,
+                "[ tls][%p] ERROR, %u, %s.",
+                TlsContext->Connection,
+                Status,
+                "QuicPacketKeyCreateOffload");
+            goto Error;
+        }
+        set++;
+    }
+
+Error:
+
+    return QUIC_SUCCEEDED(Status);
+}

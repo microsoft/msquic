@@ -1362,6 +1362,15 @@ QuicConnReceiveTP(
     return TRUE;
 }
 
+_Success_(return==TRUE)
+BOOLEAN
+QuicPacketKeyCreateOffload(
+    _Inout_ CXPLAT_TLS* TlsContext,
+    _In_z_ const char* const SecretName,
+    _Out_ CXPLAT_QEO_CONNECTION* Offloads,
+    _In_ uint32_t OffloadCount
+    );
+
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicCryptoProcessTlsCompletion(
@@ -1647,21 +1656,13 @@ QuicCryptoProcessTlsCompletion(
         }
         Connection->Stats.ResumptionSucceeded = Crypto->TlsState.SessionResumed;
 
-        //
-        // A handshake complete means the peer has been validated. Trigger MTU
-        // discovery on path.
-        //
         CXPLAT_DBG_ASSERT(Connection->PathsCount == 1);
         QUIC_PATH* Path = &Connection->Paths[0];
-        QuicMtuDiscoveryPeerValidated(&Path->MtuDiscovery, Connection);
 
-        if (QuicConnIsServer(Connection) &&
-            Crypto->TlsState.BufferOffset1Rtt != 0 &&
-            Crypto->UnAckedOffset == Crypto->TlsState.BufferTotalLength) {
-            QuicConnCleanupServerResumptionState(Connection);
-        }
-
-        if (Path->IsActive && Connection->Settings.IsSet.EncryptionOffloadAllowed) {
+        if (Path->IsActive && Connection->Settings.IsSet.EncryptionOffloadAllowed)
+        {
+            QUIC_CID_HASH_ENTRY* SourceCid =
+                CXPLAT_CONTAINING_RECORD(Connection->SourceCids.Next, QUIC_CID_HASH_ENTRY, Link);
             CXPLAT_QEO_CONNECTION Offloads[] = {
                 {
                     CXPLAT_QEO_OPERATION_ADD,
@@ -1672,7 +1673,7 @@ QuicCryptoProcessTlsCompletion(
                     CXPLAT_QEO_CIPHER_TYPE_AEAD_AES_256_GCM,
                     Connection->Send.NextPacketNumber,
                     QuicAddrGetFamily(&Path->Route.LocalAddress),
-                    // Connection->OrigDestCID->Length,
+                    Path->DestCid->CID.Length,
                 },
                 {
                     CXPLAT_QEO_OPERATION_ADD,
@@ -1683,22 +1684,30 @@ QuicCryptoProcessTlsCompletion(
                     CXPLAT_QEO_CIPHER_TYPE_AEAD_AES_256_GCM,
                     0,
                     QuicAddrGetFamily(&Path->Route.LocalAddress),
-                    // SourceCid->CID.Length,
+                    SourceCid->CID.Length,
                 }
             };
-            // memcpy(Offloads[0].ConnectionId, Connection->OrigDestCID->Data, Connection->OrigDestCID->Length);
-            memcpy(Offloads[0].PayloadKey, Connection->Crypto.TlsState.WriteKeys[QUIC_ENCRYPT_LEVEL_1_RTT]->PacketKey, 32);
-            memcpy(Offloads[0].HeaderKey, Connection->Crypto.TlsState.WriteKeys[QUIC_ENCRYPT_LEVEL_1_RTT]->HeaderKey, 32);
-            memcpy(Offloads[0].PayloadIv, Connection->Crypto.TlsState.WriteKeys[QUIC_ENCRYPT_LEVEL_INITIAL]->Iv, 12);
-            // memcpy(Offloads[1].ConnectionId, SourceCid->CID.Data, SourceCid->CID.Length);
-            memcpy(Offloads[1].PayloadKey, Connection->Crypto.TlsState.ReadKeys[QUIC_ENCRYPT_LEVEL_1_RTT]->PacketKey, 32);
-            memcpy(Offloads[1].HeaderKey, Connection->Crypto.TlsState.ReadKeys[QUIC_ENCRYPT_LEVEL_1_RTT]->HeaderKey, 32);
-            memcpy(Offloads[1].PayloadIv, Connection->Crypto.TlsState.ReadKeys[QUIC_ENCRYPT_LEVEL_INITIAL]->Iv, 12);
+            memcpy(Offloads[0].ConnectionId, Path->DestCid->CID.Data, Path->DestCid->CID.Length);
+            memcpy(Offloads[1].ConnectionId, SourceCid->CID.Data, SourceCid->CID.Length);
             // TODO: query QEO capability and use before enabling
-            if (QUIC_SUCCEEDED(CxPlatSocketUpdateQeo(Path->Binding->Socket, Offloads, 2))) {
-                Connection->Stats.EncryptionOffloaded = TRUE;
-                Connection->Paths[0].EncryptionOffloading = TRUE;
+            if (QuicPacketKeyCreateOffload(Crypto->TLS, "testing", Offloads, 2)) {
+                if (QUIC_SUCCEEDED(CxPlatSocketUpdateQeo(Path->Binding->Socket, Offloads, 2))) {
+                    Connection->Stats.EncryptionOffloaded = TRUE;
+                    Connection->Paths[0].EncryptionOffloading = TRUE;
+                }
             }
+        }
+
+        //
+        // A handshake complete means the peer has been validated. Trigger MTU
+        // discovery on path.
+        //
+        QuicMtuDiscoveryPeerValidated(&Path->MtuDiscovery, Connection);
+
+        if (QuicConnIsServer(Connection) &&
+            Crypto->TlsState.BufferOffset1Rtt != 0 &&
+            Crypto->UnAckedOffset == Crypto->TlsState.BufferTotalLength) {
+            QuicConnCleanupServerResumptionState(Connection);
         }
     }
 

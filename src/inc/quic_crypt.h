@@ -231,6 +231,16 @@ QuicPacketKeyDerive(
     _Out_ QUIC_PACKET_KEY **NewKey
     );
 
+#include "quic_datapath.h"
+_IRQL_requires_max_(DISPATCH_LEVEL)
+QUIC_STATUS
+QuicPacketKeyDeriveOffload(
+    _In_ const QUIC_HKDF_LABELS* HkdfLabels,
+    _In_ const CXPLAT_SECRET* const Secret,
+    _In_z_ const char* const SecretName,
+    _Inout_ CXPLAT_QEO_CONNECTION* Offload
+    );
+
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 CxPlatKeyFree(

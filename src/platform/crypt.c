@@ -319,6 +319,82 @@ Error:
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
+QUIC_STATUS
+QuicPacketKeyDeriveOffload(
+    _In_ const QUIC_HKDF_LABELS* HkdfLabels,
+    _In_ const CXPLAT_SECRET* const Secret,
+    _In_z_ const char* const SecretName,
+    _Inout_ CXPLAT_QEO_CONNECTION* Offload
+    )
+{
+    const uint16_t SecretLength = CxPlatHashLength(Secret->Hash);
+    const uint16_t KeyLength = CxPlatKeyLength(Secret->Aead);
+
+    CXPLAT_DBG_ASSERT(SecretLength >= KeyLength);
+    CXPLAT_DBG_ASSERT(SecretLength >= CXPLAT_IV_LENGTH);
+    CXPLAT_DBG_ASSERT(SecretLength <= CXPLAT_HASH_MAX_SIZE);
+
+    CxPlatTlsLogSecret(SecretName, Secret->Secret, SecretLength);
+
+    CXPLAT_HASH* Hash = NULL;
+    uint8_t Temp[CXPLAT_HASH_MAX_SIZE];
+
+    QUIC_STATUS Status =
+        CxPlatHashCreate(
+            Secret->Hash,
+            Secret->Secret,
+            SecretLength,
+            &Hash);
+    if (QUIC_FAILED(Status)) {
+        goto Error;
+    }
+
+    Status =
+        CxPlatHkdfExpandLabel(
+            Hash,
+            HkdfLabels->IvLabel,
+            CXPLAT_IV_LENGTH,
+            SecretLength,
+            Temp);
+    if (QUIC_FAILED(Status)) {
+        goto Error;
+    }
+    memcpy(Offload->PayloadIv, Temp, CXPLAT_IV_LENGTH);
+
+    Status =
+        CxPlatHkdfExpandLabel(
+            Hash,
+            HkdfLabels->KeyLabel,
+            KeyLength,
+            SecretLength,
+            Temp);
+    if (QUIC_FAILED(Status)) {
+        goto Error;
+    }
+    memcpy(Offload->PayloadKey, Temp, KeyLength);
+
+    Status =
+        CxPlatHkdfExpandLabel(
+            Hash,
+            HkdfLabels->HpLabel,
+            KeyLength,
+            SecretLength,
+            Temp);
+    if (QUIC_FAILED(Status)) {
+        goto Error;
+    }
+    memcpy(Offload->HeaderKey, Temp, KeyLength);
+
+Error:
+
+    CxPlatHashFree(Hash);
+
+    CxPlatSecureZeroMemory(Temp, sizeof(Temp));
+
+    return Status;
+}
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
 _When_(NewReadKey != NULL, _At_(*NewReadKey, __drv_allocatesMem(Mem)))
 _When_(NewWriteKey != NULL, _At_(*NewWriteKey, __drv_allocatesMem(Mem)))
 QUIC_STATUS

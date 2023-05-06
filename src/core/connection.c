@@ -485,7 +485,11 @@ QuicConnUninitialize(
         QuicBindingRemoveConnection(Connection->Paths[0].Binding, Connection);
     }
 
-    if (Connection->Paths[0].EncryptionOffloading) {
+    CXPLAT_DBG_ASSERT(Connection->PathsCount >= 1);
+    QUIC_PATH* Path = &Connection->Paths[0];
+    if (Path->EncryptionOffloading) {
+        QUIC_CID_HASH_ENTRY* SourceCid =
+            CXPLAT_CONTAINING_RECORD(Connection->SourceCids.Next, QUIC_CID_HASH_ENTRY, Link);
         CXPLAT_QEO_CONNECTION Offloads[] = {
             {
                 CXPLAT_QEO_OPERATION_REMOVE,
@@ -496,7 +500,7 @@ QuicConnUninitialize(
                 0,
                 0,
                 0,
-                Connection->OrigDestCID->Length,
+                Path->DestCid->CID.Length,
             },
             {
                 CXPLAT_QEO_OPERATION_REMOVE,
@@ -507,14 +511,17 @@ QuicConnUninitialize(
                 0,
                 0,
                 0,
-                Connection->OrigDestCID->Length,
+                SourceCid->CID.Length,
             }
         };
-        memcpy(Offloads[0].ConnectionId, Connection->OrigDestCID->Data, Connection->OrigDestCID->Length);
-        memcpy(Offloads[1].ConnectionId, Connection->OrigDestCID->Data, Connection->OrigDestCID->Length);
-        CxPlatSocketUpdateQeo(Connection->Paths[0].Binding->Socket, Offloads, 2);
+
+        memcpy(Offloads[0].ConnectionId, Path->DestCid->CID.Data, Path->DestCid->CID.Length);
+        memcpy(Offloads[1].ConnectionId, SourceCid->CID.Data, SourceCid->CID.Length);
+        if (QUIC_SUCCEEDED(CxPlatSocketUpdateQeo(Path->Binding->Socket, Offloads, 2))) {
+            // Log
+        }
         Connection->Stats.EncryptionOffloaded = FALSE;
-        Connection->Paths[0].EncryptionOffloading = FALSE;
+        Path->EncryptionOffloading = FALSE;
     }
 
     //
