@@ -1362,6 +1362,7 @@ QuicConnReceiveTP(
     return TRUE;
 }
 
+#ifdef _WIN32
 _Success_(return==TRUE)
 BOOLEAN
 QuicPacketKeyCreateOffload(
@@ -1370,6 +1371,7 @@ QuicPacketKeyCreateOffload(
     _Out_ CXPLAT_QEO_CONNECTION* Offloads,
     _In_ uint32_t OffloadCount
     );
+#endif
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
@@ -1690,12 +1692,14 @@ QuicCryptoProcessTlsCompletion(
             memcpy(Offloads[0].ConnectionId, Path->DestCid->CID.Data, Path->DestCid->CID.Length);
             memcpy(Offloads[1].ConnectionId, SourceCid->CID.Data, SourceCid->CID.Length);
             // TODO: query QEO capability and use before enabling
+#ifdef _WIN32
             if (QuicPacketKeyCreateOffload(Crypto->TLS, "testing", Offloads, 2)) {
                 if (QUIC_SUCCEEDED(CxPlatSocketUpdateQeo(Path->Binding->Socket, Offloads, 2))) {
                     Connection->Stats.EncryptionOffloaded = TRUE;
                     Connection->Paths[0].EncryptionOffloading = TRUE;
                 }
             }
+#endif
         }
 
         //
