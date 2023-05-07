@@ -5813,6 +5813,7 @@ QuicConnFlushRecv(
             ReceiveQueueByteCount += Tail->BufferLength;
             Tail = Connection->ReceiveQueue;
         }
+        Connection->ReceiveQueueByteCount -= ReceiveQueueByteCount;
         Connection->ReceiveQueue = Tail->Next;
         Tail->Next = NULL;
     } else {
@@ -5820,6 +5821,7 @@ QuicConnFlushRecv(
         ReceiveQueueCount = Connection->ReceiveQueueCount;
         ReceiveQueueByteCount = Connection->ReceiveQueueByteCount;
         Connection->ReceiveQueueCount = 0;
+        Connection->ReceiveQueueByteCount = 0;
         Connection->ReceiveQueue = NULL;
         Connection->ReceiveQueueTail = &Connection->ReceiveQueue;
     }
