@@ -291,9 +291,9 @@ namespace QuicTrace.DataModel
                     tx.Update(_evt!.TotalSize, evt.TimeStamp, ref tputEvents);
                     txDelay.Update((ulong)evt.TimeStamp.ToMicroseconds, evt.TimeStamp, ref tputEvents);
                 }
-                else if (evt.EventId == QuicEventId.ConnRecvDatagrams)
+                else if (evt.EventId == QuicEventId.ConnRecvUdpDatagrams)
                 {
-                    var _evt = evt as QuicConnectionRecvDatagramsEvent;
+                    var _evt = evt as QuicConnectionRecvUdpDatagramsEvent;
                     rxBatch.Update(_evt!.ByteCount, evt.TimeStamp, ref tputEvents);
                 }
             }

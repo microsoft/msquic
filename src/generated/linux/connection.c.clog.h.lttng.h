@@ -2338,10 +2338,10 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, ConnPacketRecv,
 
 
 /*----------------------------------------------------------
-// Decoder Ring for QuicConnRecvDatagrams
+// Decoder Ring for QuicConnRecvUdpDatagrams
 // [conn][%p] Recv %u UDP datagrams, %u bytes
 // QuicTraceEvent(
-            QuicConnRecvDatagrams,
+            QuicConnRecvUdpDatagrams,
             "[conn][%p] Recv %u UDP datagrams, %u bytes",
             Connection,
             DatagramChainCount,
@@ -2350,7 +2350,7 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, ConnPacketRecv,
 // arg3 = arg3 = DatagramChainCount = arg3
 // arg4 = arg4 = DatagramChainByteCount = arg4
 ----------------------------------------------------------*/
-TRACEPOINT_EVENT(CLOG_CONNECTION_C, QuicConnRecvDatagrams,
+TRACEPOINT_EVENT(CLOG_CONNECTION_C, QuicConnRecvUdpDatagrams,
     TP_ARGS(
         const void *, arg2,
         unsigned int, arg3,

@@ -3280,9 +3280,9 @@
           <event
               keywords="ut:Connection ut:DataFlow"
               level="win:Informational"
-              message="$(string.Etw.ConnRecvDatagrams)"
+              message="$(string.Etw.ConnRecvUdpDatagrams)"
               opcode="Connection"
-              symbol="QuicConnRecvDatagrams"
+              symbol="QuicConnRecvUdpDatagrams"
               template="tid_CONN_COUNT_COUNT"
               value="5192"
               />
@@ -3988,7 +3988,7 @@
             value="[conn][%1] Server VI Supported Version List: %3"
             />
         <string
-            id="Etw.ConnRecvDatagrams"
+            id="Etw.ConnRecvUdpDatagrams"
             value="[conn][%1] Recv %2 UDP datagrams, %3 bytes"
             />
         <string

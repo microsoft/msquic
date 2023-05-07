@@ -2079,10 +2079,10 @@ tracepoint(CLOG_CONNECTION_C, ConnPacketRecv , arg2, arg3, arg4, arg5);\
 
 
 /*----------------------------------------------------------
-// Decoder Ring for QuicConnRecvDatagrams
+// Decoder Ring for QuicConnRecvUdpDatagrams
 // [conn][%p] Recv %u UDP datagrams, %u bytes
 // QuicTraceEvent(
-            QuicConnRecvDatagrams,
+            QuicConnRecvUdpDatagrams,
             "[conn][%p] Recv %u UDP datagrams, %u bytes",
             Connection,
             DatagramChainCount,
@@ -2091,9 +2091,9 @@ tracepoint(CLOG_CONNECTION_C, ConnPacketRecv , arg2, arg3, arg4, arg5);\
 // arg3 = arg3 = DatagramChainCount = arg3
 // arg4 = arg4 = DatagramChainByteCount = arg4
 ----------------------------------------------------------*/
-#ifndef _clog_5_ARGS_TRACE_QuicConnRecvDatagrams
-#define _clog_5_ARGS_TRACE_QuicConnRecvDatagrams(uniqueId, encoded_arg_string, arg2, arg3, arg4)\
-tracepoint(CLOG_CONNECTION_C, QuicConnRecvDatagrams , arg2, arg3, arg4);\
+#ifndef _clog_5_ARGS_TRACE_QuicConnRecvUdpDatagrams
+#define _clog_5_ARGS_TRACE_QuicConnRecvUdpDatagrams(uniqueId, encoded_arg_string, arg2, arg3, arg4)\
+tracepoint(CLOG_CONNECTION_C, QuicConnRecvUdpDatagrams , arg2, arg3, arg4);\
 
 #endif
 

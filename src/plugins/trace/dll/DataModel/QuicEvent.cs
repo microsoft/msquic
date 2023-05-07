@@ -161,7 +161,7 @@ namespace QuicTrace.DataModel
         ConnCongestionV2,
         ConnStatsV2,
         ConnCubicHyStart,
-        ConnRecvDatagrams,
+        ConnRecvUdpDatagrams,
 
         StreamCreated = 6144,
         StreamDestroyed,

@@ -5544,7 +5544,7 @@ QuicConnRecvDatagrams(
             DatagramChainCount);
     } else {
         QuicTraceEvent(
-            QuicConnRecvDatagrams,
+            ConnRecvUdpDatagrams,
             "[conn][%p] Recv %u UDP datagrams, %u bytes",
             Connection,
             DatagramChainCount,

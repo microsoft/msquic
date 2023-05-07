@@ -8638,6 +8638,26 @@
       ],
       "macroName": "QuicTraceEvent"
     },
+    "QuicConnRecvUdpDatagrams": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] Recv %u UDP datagrams, %u bytes",
+      "UniqueId": "QuicConnRecvUdpDatagrams",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg3"
+        },
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg4"
+        }
+      ],
+      "macroName": "QuicTraceEvent"
+    },
     "Receive": {
       "ModuleProperites": {},
       "TraceString": "[strm][%p] Received %hu bytes, offset=%llu Ready=%hhu",
@@ -14993,6 +15013,11 @@
       {
         "UniquenessHash": "d61a4398-ba19-c65b-995e-e71c9582edb4",
         "TraceID": "QuicConnRecvDatagrams",
+        "EncodingString": "[conn][%p] Recv %u UDP datagrams, %u bytes"
+      },
+      {
+        "UniquenessHash": "6ac0022e-511b-ec8a-4ef3-15735ee7c35d",
+        "TraceID": "QuicConnRecvUdpDatagrams",
         "EncodingString": "[conn][%p] Recv %u UDP datagrams, %u bytes"
       },
       {
