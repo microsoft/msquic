@@ -490,35 +490,17 @@ QuicConnUninitialize(
     if (Path->EncryptionOffloading) {
         QUIC_CID_HASH_ENTRY* SourceCid =
             CXPLAT_CONTAINING_RECORD(Connection->SourceCids.Next, QUIC_CID_HASH_ENTRY, Link);
-        CXPLAT_QEO_CONNECTION Offloads[] = {
-            {
-                CXPLAT_QEO_OPERATION_REMOVE,
-                CXPLAT_QEO_DIRECTION_TRANSMIT,
-                0,
-                0,
-                0, // Reserved:0
-                0,
-                0,
-                0,
-                Path->DestCid->CID.Length,
-            },
-            {
-                CXPLAT_QEO_OPERATION_REMOVE,
-                CXPLAT_QEO_DIRECTION_RECEIVE,
-                0,
-                0,
-                0, // Reserved:0
-                0,
-                0,
-                0,
-                SourceCid->CID.Length,
-            }
-        };
-
+        CXPLAT_QEO_CONNECTION Offloads[2] = {0};
+        Offloads[0].Operation = CXPLAT_QEO_OPERATION_REMOVE;
+        Offloads[0].Direction = CXPLAT_QEO_DIRECTION_TRANSMIT;
+        Offloads[0].ConnectionIdLength = Path->DestCid->CID.Length;
+        Offloads[1].Operation = CXPLAT_QEO_OPERATION_REMOVE;
+        Offloads[1].Direction = CXPLAT_QEO_DIRECTION_RECEIVE;
+        Offloads[1].ConnectionIdLength = SourceCid->CID.Length;
         memcpy(Offloads[0].ConnectionId, Path->DestCid->CID.Data, Path->DestCid->CID.Length);
         memcpy(Offloads[1].ConnectionId, SourceCid->CID.Data, SourceCid->CID.Length);
         if (QUIC_SUCCEEDED(CxPlatSocketUpdateQeo(Path->Binding->Socket, Offloads, 2))) {
-            // Log
+            // TODO: Log
         }
         Connection->Stats.EncryptionOffloaded = FALSE;
         Path->EncryptionOffloading = FALSE;
