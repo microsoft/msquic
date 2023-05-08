@@ -763,17 +763,31 @@ namespace Microsoft.Quic
             }
         }
 
-        [NativeTypeName("uint32_t : 26")]
-        internal uint RESERVED
+        [NativeTypeName("uint32_t : 1")]
+        internal uint EncryptionOffloaded
         {
             get
             {
-                return (_bitfield >> 6) & 0x3FFFFFFu;
+                return (_bitfield >> 6) & 0x1u;
             }
 
             set
             {
-                _bitfield = (_bitfield & ~(0x3FFFFFFu << 6)) | ((value & 0x3FFFFFFu) << 6);
+                _bitfield = (_bitfield & ~(0x1u << 6)) | ((value & 0x1u) << 6);
+            }
+        }
+
+        [NativeTypeName("uint32_t : 25")]
+        internal uint RESERVED
+        {
+            get
+            {
+                return (_bitfield >> 7) & 0x1FFFFFFu;
+            }
+
+            set
+            {
+                _bitfield = (_bitfield & ~(0x1FFFFFFu << 7)) | ((value & 0x1FFFFFFu) << 7);
             }
         }
 
@@ -1264,6 +1278,19 @@ namespace Microsoft.Quic
             set
             {
                 Anonymous2.Anonymous.HyStartEnabled = value;
+            }
+        }
+
+        internal ulong EncryptionOffloadAllowed
+        {
+            get
+            {
+                return Anonymous2.Anonymous.EncryptionOffloadAllowed;
+            }
+
+            set
+            {
+                Anonymous2.Anonymous.EncryptionOffloadAllowed = value;
             }
         }
 
@@ -1785,17 +1812,31 @@ namespace Microsoft.Quic
                     }
                 }
 
-                [NativeTypeName("uint64_t : 29")]
-                internal ulong RESERVED
+                [NativeTypeName("uint64_t : 1")]
+                internal ulong EncryptionOffloadAllowed
                 {
                     get
                     {
-                        return (_bitfield >> 35) & 0x1FFFFFFFUL;
+                        return (_bitfield >> 35) & 0x1UL;
                     }
 
                     set
                     {
-                        _bitfield = (_bitfield & ~(0x1FFFFFFFUL << 35)) | ((value & 0x1FFFFFFFUL) << 35);
+                        _bitfield = (_bitfield & ~(0x1UL << 35)) | ((value & 0x1UL) << 35);
+                    }
+                }
+
+                [NativeTypeName("uint64_t : 28")]
+                internal ulong RESERVED
+                {
+                    get
+                    {
+                        return (_bitfield >> 36) & 0xFFFFFFFUL;
+                    }
+
+                    set
+                    {
+                        _bitfield = (_bitfield & ~(0xFFFFFFFUL << 36)) | ((value & 0xFFFFFFFUL) << 36);
                     }
                 }
             }
@@ -1830,17 +1871,31 @@ namespace Microsoft.Quic
                     }
                 }
 
-                [NativeTypeName("uint64_t : 63")]
-                internal ulong ReservedFlags
+                [NativeTypeName("uint64_t : 1")]
+                internal ulong EncryptionOffloadAllowed
                 {
                     get
                     {
-                        return (_bitfield >> 1) & 0x7FFFFFFFUL;
+                        return (_bitfield >> 1) & 0x1UL;
                     }
 
                     set
                     {
-                        _bitfield = (_bitfield & ~(0x7FFFFFFFUL << 1)) | ((value & 0x7FFFFFFFUL) << 1);
+                        _bitfield = (_bitfield & ~(0x1UL << 1)) | ((value & 0x1UL) << 1);
+                    }
+                }
+
+                [NativeTypeName("uint64_t : 62")]
+                internal ulong ReservedFlags
+                {
+                    get
+                    {
+                        return (_bitfield >> 2) & 0x3FFFFFFFUL;
+                    }
+
+                    set
+                    {
+                        _bitfield = (_bitfield & ~(0x3FFFFFFFUL << 2)) | ((value & 0x3FFFFFFFUL) << 2);
                     }
                 }
             }

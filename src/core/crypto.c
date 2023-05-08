@@ -1696,7 +1696,7 @@ QuicCryptoProcessTlsCompletion(
             if (QuicPacketKeyCreateOffload(Crypto->TLS, "testing", Offloads, 2)) {
                 if (QUIC_SUCCEEDED(CxPlatSocketUpdateQeo(Path->Binding->Socket, Offloads, 2))) {
                     Connection->Stats.EncryptionOffloaded = TRUE;
-                    Connection->Paths[0].EncryptionOffloading = TRUE;
+                    Path->EncryptionOffloading = TRUE;
                 }
             }
 #endif

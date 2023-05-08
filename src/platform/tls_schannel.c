@@ -3255,9 +3255,25 @@ QuicPacketKeyCreateOffload(
     )
 {
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
+    // assuming the number of "Offloads" is enough small for linearly check
+    // When Offloads == {T, R, T, T, R, R, T};
+    //                  --- Tx --->                     <-- Rx --
+    // DirectionIdx == [0, 1, 2, 6, 0, 0, ...., 0, 0, 0, 5, 4, 1]
+    uint8_t DirectionIdx[256] = {0};
+    int IdxCap = 256;
+    int TxIdx = 0, RxIdx = OffloadCount - 1;
+    for (uint32_t j = 0; j < OffloadCount && TxIdx <= RxIdx; j++) {
+        if (Offloads[j].Direction == CXPLAT_QEO_DIRECTION_TRANSMIT) { // TX
+            DirectionIdx[TxIdx++] = (uint8_t)j;
+        } else if (Offloads[j].Direction == CXPLAT_QEO_DIRECTION_RECEIVE) { // RX
+            DirectionIdx[RxIdx--] = (uint8_t)j;
+        } else {
+            return FALSE;
+        }
+    }
 
-    uint32_t set = 0;
-    for (int i = 6; i >= 0 && set < OffloadCount; i--) {
+    uint32_t Set = 0;
+    for (int i = 6; i >= 0 && Set < OffloadCount; i--) {
         if (TlsContext->Workspace.OutSecBuffers[i].BufferType != SECBUFFER_TRAFFIC_SECRETS) {
             continue;
         }
@@ -3271,25 +3287,48 @@ QuicPacketKeyCreateOffload(
             goto Error;
         }
         BOOL ToPeer = TlsContext->IsServer ^ (TrafficSecrets->TrafficSecretType == SecTrafficSecret_Server);
-        Status =
-            QuicPacketKeyDeriveOffload(
-                TlsContext->HkdfLabels,
-                &Secret,
-                SecretName,
-                &Offloads[!ToPeer]); // hack: expecting OffloadCount == 2 && Offloads[0] is TX Offlaods[1] is RX
-        if (!QUIC_SUCCEEDED(Status)) {
-            QuicTraceEvent(
-                TlsErrorStatus,
-                "[ tls][%p] ERROR, %u, %s.",
-                TlsContext->Connection,
-                Status,
-                "QuicPacketKeyCreateOffload");
-            goto Error;
+        if (ToPeer) {
+            for (int j = 0; j < TxIdx; j++) {
+                Status =
+                    QuicPacketKeyDeriveOffload(
+                        TlsContext->HkdfLabels,
+                        &Secret,
+                        SecretName,
+                        &Offloads[DirectionIdx[j]]);
+                if (!QUIC_SUCCEEDED(Status)) {
+                    QuicTraceEvent(
+                        TlsErrorStatus,
+                        "[ tls][%p] ERROR, %u, %s.",
+                        TlsContext->Connection,
+                        Status,
+                        "QuicPacketKeyCreateOffload");
+                    goto Error;
+                }
+            }
+            Set += TxIdx;
+        } else {
+            for (int j = 0; j < (int)OffloadCount - RxIdx - 1; j++) {
+                Status =
+                    QuicPacketKeyDeriveOffload(
+                        TlsContext->HkdfLabels,
+                        &Secret,
+                        SecretName,
+                        &Offloads[DirectionIdx[IdxCap - 1 - j]]);
+                if (!QUIC_SUCCEEDED(Status)) {
+                    QuicTraceEvent(
+                        TlsErrorStatus,
+                        "[ tls][%p] ERROR, %u, %s.",
+                        TlsContext->Connection,
+                        Status,
+                        "QuicPacketKeyCreateOffload");
+                    goto Error;
+                }
+            }
+            Set += OffloadCount - RxIdx - 1;
         }
-        set++;
     }
 
 Error:
 
-    return QUIC_SUCCEEDED(Status);
+    return QUIC_SUCCEEDED(Status) && Set == OffloadCount;
 }
