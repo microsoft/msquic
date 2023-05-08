@@ -1891,6 +1891,26 @@
       ],
       "macroName": "QuicTraceEvent"
     },
+    "ConnRecvUdpDatagrams": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] Recv %u UDP datagrams, %u bytes",
+      "UniqueId": "ConnRecvUdpDatagrams",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg3"
+        },
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg4"
+        }
+      ],
+      "macroName": "QuicTraceEvent"
+    },
     "ConnRegistered": {
       "ModuleProperites": {},
       "TraceString": "[conn][%p] Registered with %p",
@@ -12944,6 +12964,11 @@
         "UniquenessHash": "5eef16d4-a574-2e5c-62c1-d561f0040322",
         "TraceID": "ConnRecoveryExit",
         "EncodingString": "[conn][%p] Recovery complete"
+      },
+      {
+        "UniquenessHash": "acc96e76-ae1e-91d0-d525-216dedbaf2f0",
+        "TraceID": "ConnRecvUdpDatagrams",
+        "EncodingString": "[conn][%p] Recv %u UDP datagrams, %u bytes"
       },
       {
         "UniquenessHash": "60a38bc0-4218-963b-507a-5d7cb5c08596",
