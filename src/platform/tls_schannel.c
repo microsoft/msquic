@@ -3258,7 +3258,7 @@ QuicPacketKeyCreateOffload(
     // assuming the number of "Offloads" is enough small for linearly check
     // When Offloads == {T, R, T, T, R, R, T};
     //                  --- Tx --->                     <-- Rx --
-    // DirectionIdx == [0, 1, 2, 6, 0, 0, ...., 0, 0, 0, 5, 4, 1]
+    // DirectionIdx == [0, 2, 3, 6, 0, 0, ...., 0, 0, 0, 5, 4, 1]
     uint8_t DirectionIdx[256] = {0};
     int IdxCap = 256;
     int TxIdx = 0, RxIdx = OffloadCount - 1;

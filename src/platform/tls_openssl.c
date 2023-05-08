@@ -2366,3 +2366,20 @@ CxPlatTlsParamGet(
 
     return Status;
 }
+
+_Success_(return==TRUE)
+BOOLEAN
+QuicPacketKeyCreateOffload(
+    _Inout_ CXPLAT_TLS* TlsContext,
+    _In_z_ const char* const SecretName,
+    _Inout_updates_(OffloadCount)
+        CXPLAT_QEO_CONNECTION* Offloads,
+    _In_ uint32_t OffloadCount
+    )
+{
+    UNREFERENCED_PARAMETER(TlsContext);
+    UNREFERENCED_PARAMETER(SecretName);
+    UNREFERENCED_PARAMETER(Offloads);
+    UNREFERENCED_PARAMETER(OffloadCount);
+    return FALSE;
+}
