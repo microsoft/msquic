@@ -716,13 +716,13 @@ TRACEPOINT_EVENT(CLOG_SETTINGS_C, SettingHyStartEnabled,
 
 /*----------------------------------------------------------
 // Decoder Ring for SettingEncryptionOffloadAllowed
-// [sett] EncryptionOffloadAllowed         = %hhu
-// QuicTraceLogVerbose(SettingEncryptionOffloadAllowed,              "[sett] EncryptionOffloadAllowed         = %hhu", Settings->EncryptionOffloadAllowed);
+// [sett] EncryptionOffloadAllowed = %hhu
+// QuicTraceLogVerbose(SettingEncryptionOffloadAllowed,    "[sett] EncryptionOffloadAllowed = %hhu", Settings->EncryptionOffloadAllowed);
 // arg2 = arg2 = Settings->EncryptionOffloadAllowed = arg2
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_SETTINGS_C, SettingEncryptionOffloadAllowed,
     TP_ARGS(
-        unsigned char, arg2),
+        unsigned char, arg2), 
     TP_FIELDS(
         ctf_integer(unsigned char, arg2, arg2)
     )

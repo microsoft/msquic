@@ -1668,7 +1668,7 @@ QuicCryptoProcessTlsCompletion(
                     0, // Reserved:0
                     CXPLAT_QEO_CIPHER_TYPE_AEAD_AES_256_GCM,
                     Connection->Send.NextPacketNumber,
-                    0,
+                    {0},
                     Path->DestCid->CID.Length,
                 },
                 {
@@ -1679,7 +1679,7 @@ QuicCryptoProcessTlsCompletion(
                     0, // Reserved:0
                     CXPLAT_QEO_CIPHER_TYPE_AEAD_AES_256_GCM,
                     0,
-                    0,
+                    {0},
                     SourceCid->CID.Length,
                 }
             };
@@ -1693,7 +1693,7 @@ QuicCryptoProcessTlsCompletion(
             memcpy(Offloads[1].PayloadIv, Path->TlsOffloadSecrets->Rx.PayloadIv, Path->TlsOffloadSecrets->Rx.PayloadIvLength);
             memcpy(Offloads[1].PayloadKey, Path->TlsOffloadSecrets->Rx.PayloadKey, Path->TlsOffloadSecrets->Rx.PayloadKeyLength);
             memcpy(Offloads[1].HeaderKey, Path->TlsOffloadSecrets->Rx.HeaderKey, Path->TlsOffloadSecrets->Rx.HeaderKeyLength);
-            if (QUIC_SUCCEEDED(CxPlatSocketUpdateQeo(Path->Binding->Socket, Offloads, 2))) {
+            if (Path->Binding != NULL && QUIC_SUCCEEDED(CxPlatSocketUpdateQeo(Path->Binding->Socket, Offloads, 2))) {
                 Connection->Stats.EncryptionOffloaded = TRUE;
                 Path->EncryptionOffloading = TRUE;
             }

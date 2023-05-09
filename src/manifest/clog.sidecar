@@ -10287,6 +10287,18 @@
       ],
       "macroName": "QuicTraceLogVerbose"
     },
+    "SettingEncryptionOffloadAllowed": {
+      "ModuleProperites": {},
+      "TraceString": "[sett] EncryptionOffloadAllowed         = %hhu",
+      "UniqueId": "SettingEncryptionOffloadAllowed",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "hhu",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceLogVerbose"
+    },
     "SettingGreaseQuicBitEnabled": {
       "ModuleProperites": {},
       "TraceString": "[sett] GreaseQuicBitEnabled   = %hhu",
@@ -10303,18 +10315,6 @@
       "ModuleProperites": {},
       "TraceString": "[sett] HyStartEnabled         = %hhu",
       "UniqueId": "SettingHyStartEnabled",
-      "splitArgs": [
-        {
-          "DefinationEncoding": "hhu",
-          "MacroVariableName": "arg2"
-        }
-      ],
-      "macroName": "QuicTraceLogVerbose"
-    },
-    "SettingEncryptionOffloadAllowed": {
-      "ModuleProperites": {},
-      "TraceString": "[sett] EncryptionOffloadAllowed         = %hhu",
-      "UniqueId": "SettingEncryptionOffloadAllowed",
       "splitArgs": [
         {
           "DefinationEncoding": "hhu",
@@ -15538,6 +15538,11 @@
         "EncodingString": "[sett] EcnEnabled             = %hhu"
       },
       {
+        "UniquenessHash": "9642e6a4-9b92-4c0f-bf85-2544a4d172cb",
+        "TraceID": "SettingEncryptionOffloadAllowed",
+        "EncodingString": "[sett] EncryptionOffloadAllowed = %hhu"
+      },
+      {
         "UniquenessHash": "eb526b83-28f4-1046-57bf-7727ba70f36d",
         "TraceID": "SettingGreaseQuicBitEnabled",
         "EncodingString": "[sett] GreaseQuicBitEnabled   = %hhu"
@@ -15546,11 +15551,6 @@
         "UniquenessHash": "3204077b-15dd-eacb-1594-51d66d8db668",
         "TraceID": "SettingHyStartEnabled",
         "EncodingString": "[sett] HyStartEnabled         = %hhu"
-      },
-      {
-        "UniquenessHash": "beecd2f7-2711-45c1-b7c4-b95954682cfd",
-        "TraceID": "SettingEncryptionOffloadAllowed",
-        "EncodingString": "[sett] EncryptionOffloadAllowed         = %hhu"
       },
       {
         "UniquenessHash": "e7d29156-fb54-8f96-f3e2-1aa999886c12",

@@ -2018,6 +2018,34 @@ namespace Microsoft.Quic
         }
     }
 
+    internal unsafe partial struct QUIC_TLS_OFFLOAD_SECRET
+    {
+        [NativeTypeName("uint8_t")]
+        internal byte PayloadKeyLength;
+
+        [NativeTypeName("uint8_t")]
+        internal byte HeaderKeyLength;
+
+        [NativeTypeName("uint8_t")]
+        internal byte PayloadIvLength;
+
+        [NativeTypeName("uint8_t [32]")]
+        internal fixed byte PayloadKey[32];
+
+        [NativeTypeName("uint8_t [32]")]
+        internal fixed byte HeaderKey[32];
+
+        [NativeTypeName("uint8_t [12]")]
+        internal fixed byte PayloadIv[12];
+    }
+
+    internal partial struct QUIC_TLS_OFFLOAD_SECRETS
+    {
+        internal QUIC_TLS_OFFLOAD_SECRET Tx;
+
+        internal QUIC_TLS_OFFLOAD_SECRET Rx;
+    }
+
     internal partial struct QUIC_STREAM_STATISTICS
     {
         [NativeTypeName("uint64_t")]

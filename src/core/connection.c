@@ -499,7 +499,9 @@ QuicConnUninitialize(
         Offloads[1].ConnectionIdLength = SourceCid->CID.Length;
         memcpy(Offloads[0].ConnectionId, Path->DestCid->CID.Data, Path->DestCid->CID.Length);
         memcpy(Offloads[1].ConnectionId, SourceCid->CID.Data, SourceCid->CID.Length);
-        (void)QUIC_SUCCEEDED(CxPlatSocketUpdateQeo(Path->Binding->Socket, Offloads, 2));
+        if (Path->Binding != NULL) {
+            (void)QUIC_SUCCEEDED(CxPlatSocketUpdateQeo(Path->Binding->Socket, Offloads, 2));
+        }
         Connection->Stats.EncryptionOffloaded = FALSE;
         Path->EncryptionOffloading = FALSE;
     }
