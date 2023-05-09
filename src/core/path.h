@@ -178,6 +178,12 @@ typedef struct QUIC_PATH {
     //
     BOOLEAN EncryptionOffloading : 1;
 
+    //
+    // Storage for TLS traffic secrets when the connection has the parameter set
+    // to allow encryption offloading
+    //
+    QUIC_TLS_OFFLOAD_SECRETS* TlsOffloadSecrets;
+
 } QUIC_PATH;
 
 #if DEBUG

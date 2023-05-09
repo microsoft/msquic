@@ -33,6 +33,10 @@ QuicPathInitialize(
     Path->RttVariance = Path->SmoothedRtt / 2;
     Path->EcnValidationState =
         Connection->Settings.EcnEnabled ? ECN_VALIDATION_TESTING : ECN_VALIDATION_FAILED;
+    if (Connection->Settings.EncryptionOffloadAllowed) {
+        // TODO: query QEO capability
+        Path->TlsOffloadSecrets = calloc(1, sizeof(QUIC_TLS_OFFLOAD_SECRETS));
+    }
 #ifdef QUIC_USE_RAW_DATAPATH
     if (MsQuicLib.ExecutionConfig &&
         MsQuicLib.ExecutionConfig->Flags & QUIC_EXECUTION_CONFIG_FLAG_QTIP) {
@@ -72,6 +76,10 @@ QuicPathRemove(
             Connection->Paths + Index,
             Connection->Paths + Index + 1,
             (Connection->PathsCount - Index - 1) * sizeof(QUIC_PATH));
+    }
+
+    if (Path->TlsOffloadSecrets != NULL) {
+        free(Path->TlsOffloadSecrets);
     }
 
     Connection->PathsCount--;

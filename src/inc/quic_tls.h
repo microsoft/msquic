@@ -198,6 +198,12 @@ typedef struct CXPLAT_TLS_CONFIG {
     //
     QUIC_TLS_SECRETS* TlsSecrets;
 
+    //
+    // Storage for TLS traffic secrets when the connection has the parameter set
+    // to allow encryption offloading
+    //
+    QUIC_TLS_OFFLOAD_SECRETS* TlsOffloadSecrets;
+
 } CXPLAT_TLS_CONFIG;
 
 //
@@ -516,16 +522,6 @@ CxPlatTlsAlpnFindInList(
     }
     return NULL;
 }
-
-_Success_(return==TRUE)
-BOOLEAN
-QuicPacketKeyCreateOffload(
-    _Inout_ CXPLAT_TLS* TlsContext,
-    _In_z_ const char* const SecretName,
-    _Inout_updates_(OffloadCount)
-        CXPLAT_QEO_CONNECTION* Offloads,
-    _In_ uint32_t OffloadCount
-    );
 
 #if defined(__cplusplus)
 }

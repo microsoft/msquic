@@ -332,6 +332,11 @@ QuicCryptoInitializeTls(
         goto Error;
     }
 
+    if (Connection->Settings.EncryptionOffloadAllowed &&
+        Connection->Paths[0].TlsOffloadSecrets != NULL) {
+        TlsConfig.TlsOffloadSecrets = Connection->Paths[0].TlsOffloadSecrets;
+    }
+
     if (Crypto->TLS != NULL) {
         CxPlatTlsUninitialize(Crypto->TLS);
         Crypto->TLS = NULL;
@@ -1679,13 +1684,16 @@ QuicCryptoProcessTlsCompletion(
                 }
             };
             memcpy(Offloads[0].ConnectionId, Path->DestCid->CID.Data, Path->DestCid->CID.Length);
+            memcpy(Offloads[0].PayloadIv, Path->TlsOffloadSecrets->Tx.PayloadIv, Path->TlsOffloadSecrets->Tx.PayloadIvLength);
+            memcpy(Offloads[0].PayloadKey, Path->TlsOffloadSecrets->Tx.PayloadKey, Path->TlsOffloadSecrets->Tx.PayloadKeyLength);
+            memcpy(Offloads[0].HeaderKey, Path->TlsOffloadSecrets->Tx.HeaderKey, Path->TlsOffloadSecrets->Tx.HeaderKeyLength);
             memcpy(Offloads[1].ConnectionId, SourceCid->CID.Data, SourceCid->CID.Length);
-            // TODO: query QEO capability and use before enabling
-            if (QuicPacketKeyCreateOffload(Crypto->TLS, "testing", Offloads, 2)) {
-                if (QUIC_SUCCEEDED(CxPlatSocketUpdateQeo(Path->Binding->Socket, Offloads, 2))) {
-                    Connection->Stats.EncryptionOffloaded = TRUE;
-                    Path->EncryptionOffloading = TRUE;
-                }
+            memcpy(Offloads[1].PayloadIv, Path->TlsOffloadSecrets->Rx.PayloadIv, Path->TlsOffloadSecrets->Rx.PayloadIvLength);
+            memcpy(Offloads[1].PayloadKey, Path->TlsOffloadSecrets->Rx.PayloadKey, Path->TlsOffloadSecrets->Rx.PayloadKeyLength);
+            memcpy(Offloads[1].HeaderKey, Path->TlsOffloadSecrets->Rx.HeaderKey, Path->TlsOffloadSecrets->Rx.HeaderKeyLength);
+            if (QUIC_SUCCEEDED(CxPlatSocketUpdateQeo(Path->Binding->Socket, Offloads, 2))) {
+                Connection->Stats.EncryptionOffloaded = TRUE;
+                Path->EncryptionOffloading = TRUE;
             }
         }
 

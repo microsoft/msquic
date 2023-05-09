@@ -746,6 +746,24 @@ typedef struct QUIC_TLS_SECRETS {
     uint8_t ServerTrafficSecret0[QUIC_TLS_SECRETS_MAX_SECRET_LEN];
 } QUIC_TLS_SECRETS;
 
+//
+// Struct to store tls secrets for quic encryption offload
+//
+
+typedef struct QUIC_TLS_OFFLOAD_SECRET {
+    uint8_t PayloadKeyLength;
+    uint8_t HeaderKeyLength;
+    uint8_t PayloadIvLength;
+    uint8_t PayloadKey[32];   // Length determined by CipherType
+    uint8_t HeaderKey[32];    // Length determined by CipherType
+    uint8_t PayloadIv[12];
+} QUIC_TLS_OFFLOAD_SECRET;
+
+typedef struct QUIC_TLS_OFFLOAD_SECRETS {
+    QUIC_TLS_OFFLOAD_SECRET Tx;
+    QUIC_TLS_OFFLOAD_SECRET Rx;
+} QUIC_TLS_OFFLOAD_SECRETS;
+
 typedef struct QUIC_STREAM_STATISTICS {
     uint64_t ConnBlockedBySchedulingUs;
     uint64_t ConnBlockedByPacingUs;

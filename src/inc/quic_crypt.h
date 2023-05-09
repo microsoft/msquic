@@ -228,7 +228,8 @@ QuicPacketKeyDerive(
     _In_ const CXPLAT_SECRET* const Secret,
     _In_z_ const char* const SecretName,
     _In_ BOOLEAN CreateHpKey,
-    _Out_ QUIC_PACKET_KEY **NewKey
+    _Out_ QUIC_PACKET_KEY **NewKey,
+    _Inout_opt_ QUIC_TLS_OFFLOAD_SECRET *TlsOffloadSecrets
     );
 
 #include "quic_datapath.h"

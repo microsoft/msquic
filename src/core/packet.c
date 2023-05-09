@@ -357,7 +357,8 @@ QuicPacketGenerateRetryIntegrity(
             &Secret,
             "RetryIntegrity",
             FALSE,
-            &RetryIntegrityKey);
+            &RetryIntegrityKey,
+            NULL);
     if (QUIC_FAILED(Status)) {
         goto Exit;
     }

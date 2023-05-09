@@ -304,7 +304,7 @@ struct CryptTest : public ::testing::TestWithParam<int32_t>
         ASSERT_EQ(sizeof(PacketBuffer), EncryptedPacket.Length);
         memcpy(PacketBuffer, EncryptedPacket.Data, sizeof(PacketBuffer));
 
-        VERIFY_QUIC_SUCCESS(QuicPacketKeyDerive(QUIC_PACKET_KEY_1_RTT, &Labels, &Secret, "WellKnownChaChaPoly", TRUE, &PacketKey));
+        VERIFY_QUIC_SUCCESS(QuicPacketKeyDerive(QUIC_PACKET_KEY_1_RTT, &Labels, &Secret, "WellKnownChaChaPoly", TRUE, &PacketKey, NULL));
 
         ASSERT_EQ(0, memcmp(ExpectedIv.Data, PacketKey->Iv, sizeof(PacketKey->Iv)));
 

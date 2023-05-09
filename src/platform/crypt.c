@@ -201,7 +201,8 @@ QuicPacketKeyDerive(
     _In_ const CXPLAT_SECRET* const Secret,
     _In_z_ const char* const SecretName,
     _In_ BOOLEAN CreateHpKey,
-    _Out_ QUIC_PACKET_KEY **NewKey
+    _Out_ QUIC_PACKET_KEY **NewKey,
+    _Inout_opt_ QUIC_TLS_OFFLOAD_SECRET* TlsOffloadSecret
     )
 {
     const uint16_t SecretLength = CxPlatHashLength(Secret->Hash);
@@ -253,6 +254,10 @@ QuicPacketKeyDerive(
     }
 
     memcpy(Key->Iv, Temp, CXPLAT_IV_LENGTH);
+    if (TlsOffloadSecret != NULL) {
+        memcpy(TlsOffloadSecret->PayloadIv, Temp, CXPLAT_IV_LENGTH);
+        TlsOffloadSecret->PayloadIvLength = CXPLAT_IV_LENGTH;
+    }
     CxPlatTlsLogSecret("static iv", Key->Iv, CXPLAT_IV_LENGTH);
 
     Status =
@@ -266,6 +271,10 @@ QuicPacketKeyDerive(
         goto Error;
     }
 
+    if (TlsOffloadSecret != NULL) {
+        memcpy(TlsOffloadSecret->PayloadKey, Temp, KeyLength);
+        TlsOffloadSecret->PayloadKeyLength = (uint8_t)KeyLength;
+    }
     CxPlatTlsLogSecret("key", Temp, KeyLength);
 
     Status =
@@ -289,6 +298,10 @@ QuicPacketKeyDerive(
             goto Error;
         }
 
+        if (TlsOffloadSecret != NULL) {
+            memcpy(TlsOffloadSecret->HeaderKey, Temp, KeyLength);
+            TlsOffloadSecret->HeaderKeyLength = (uint8_t)KeyLength;
+        }
         CxPlatTlsLogSecret("hp", Temp, KeyLength);
 
         Status =
@@ -433,7 +446,8 @@ QuicPacketKeyCreateInitial(
                 IsServer ? &ServerInitial : &ClientInitial,
                 IsServer ? "srv secret" : "cli secret",
                 TRUE,
-                &WriteKey);
+                &WriteKey,
+                NULL);
         if (QUIC_FAILED(Status)) {
             goto Error;
         }
@@ -447,7 +461,8 @@ QuicPacketKeyCreateInitial(
                 IsServer ? &ClientInitial : &ServerInitial,
                 IsServer ? "cli secret" : "srv secret",
                 TRUE,
-                &ReadKey);
+                &ReadKey,
+                NULL);
         if (QUIC_FAILED(Status)) {
             goto Error;
         }
@@ -538,7 +553,8 @@ QuicPacketKeyUpdate(
             &NewTrafficSecret,
             "update traffic secret",
             FALSE,
-            NewKey);
+            NewKey,
+            NULL);
 
     CxPlatSecureZeroMemory(&NewTrafficSecret, sizeof(CXPLAT_SECRET));
     CxPlatSecureZeroMemory(OldKey->TrafficSecret, sizeof(CXPLAT_SECRET));
