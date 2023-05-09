@@ -1668,7 +1668,7 @@ QuicCryptoProcessTlsCompletion(
                     0, // Reserved:0
                     CXPLAT_QEO_CIPHER_TYPE_AEAD_AES_256_GCM,
                     Connection->Send.NextPacketNumber,
-                    QuicAddrGetFamily(&Path->Route.LocalAddress),
+                    0,
                     Path->DestCid->CID.Length,
                 },
                 {
@@ -1679,14 +1679,16 @@ QuicCryptoProcessTlsCompletion(
                     0, // Reserved:0
                     CXPLAT_QEO_CIPHER_TYPE_AEAD_AES_256_GCM,
                     0,
-                    QuicAddrGetFamily(&Path->Route.LocalAddress),
+                    0,
                     SourceCid->CID.Length,
                 }
             };
+            memcpy(&Offloads[0].Address, &Path->Route.LocalAddress, sizeof(QUIC_ADDR));
             memcpy(Offloads[0].ConnectionId, Path->DestCid->CID.Data, Path->DestCid->CID.Length);
             memcpy(Offloads[0].PayloadIv, Path->TlsOffloadSecrets->Tx.PayloadIv, Path->TlsOffloadSecrets->Tx.PayloadIvLength);
             memcpy(Offloads[0].PayloadKey, Path->TlsOffloadSecrets->Tx.PayloadKey, Path->TlsOffloadSecrets->Tx.PayloadKeyLength);
             memcpy(Offloads[0].HeaderKey, Path->TlsOffloadSecrets->Tx.HeaderKey, Path->TlsOffloadSecrets->Tx.HeaderKeyLength);
+            memcpy(&Offloads[1].Address, &Path->Route.LocalAddress, sizeof(QUIC_ADDR));
             memcpy(Offloads[1].ConnectionId, SourceCid->CID.Data, SourceCid->CID.Length);
             memcpy(Offloads[1].PayloadIv, Path->TlsOffloadSecrets->Rx.PayloadIv, Path->TlsOffloadSecrets->Rx.PayloadIvLength);
             memcpy(Offloads[1].PayloadKey, Path->TlsOffloadSecrets->Rx.PayloadKey, Path->TlsOffloadSecrets->Rx.PayloadKeyLength);

@@ -270,7 +270,7 @@ typedef struct CXPLAT_QEO_CONNECTION {
     uint32_t RESERVED             : 12; // Must be set to 0. Don't read.
     uint32_t CipherType           : 16; // CXPLAT_QEO_CIPHER_TYPE
     uint64_t NextPacketNumber;
-    QUIC_ADDRESS_FAMILY Address;
+    QUIC_ADDR Address;
     uint8_t ConnectionIdLength;
     uint8_t ConnectionId[20]; // QUIC v1 and v2 max CID size
     uint8_t PayloadKey[32];   // Length determined by CipherType

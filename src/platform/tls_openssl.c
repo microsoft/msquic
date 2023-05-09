@@ -451,7 +451,8 @@ CxPlatTlsSetEncryptionSecretsCallback(
                 "write secret",
                 TRUE,
                 &TlsState->WriteKeys[KeyType],
-                KeyType == QUIC_PACKET_KEY_1_RTT ? &TlsContext->TlsOffloadSecrets->Tx : NULL);
+                KeyType == QUIC_PACKET_KEY_1_RTT && TlsContext->TlsOffloadSecrets != NULL ?
+                    &TlsContext->TlsOffloadSecrets->Tx : NULL);
         if (QUIC_FAILED(Status)) {
             TlsContext->ResultFlags |= CXPLAT_TLS_RESULT_ERROR;
             return -1;
@@ -477,7 +478,8 @@ CxPlatTlsSetEncryptionSecretsCallback(
                 "read secret",
                 TRUE,
                 &TlsState->ReadKeys[KeyType],
-                KeyType == QUIC_PACKET_KEY_1_RTT ? &TlsContext->TlsOffloadSecrets->Rx : NULL);
+                KeyType == QUIC_PACKET_KEY_1_RTT && TlsContext->TlsOffloadSecrets != NULL ?
+                    &TlsContext->TlsOffloadSecrets->Rx : NULL);
         if (QUIC_FAILED(Status)) {
             TlsContext->ResultFlags |= CXPLAT_TLS_RESULT_ERROR;
             return -1;
