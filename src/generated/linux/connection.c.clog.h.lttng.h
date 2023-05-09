@@ -466,6 +466,32 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, UnreachableInvalid,
 
 
 /*----------------------------------------------------------
+// Decoder Ring for OfflodingStop
+// [conn][%p] Path[%hhu] %s stop encryption offloading
+// QuicTraceLogConnInfo(
+                OfflodingStop,
+                Connection,
+                "Path[%hhu] %s stop encryption offloading",
+                Connection->Paths[0].ID, QUIC_SUCCEEDED(Status) ? "Successfully" : "Failed to");
+// arg1 = arg1 = Connection = arg1
+// arg3 = arg3 = Connection->Paths[0].ID = arg3
+// arg4 = arg4 = QUIC_SUCCEEDED(Status) ? "Successfully" : "Failed to" = arg4
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_CONNECTION_C, OfflodingStop,
+    TP_ARGS(
+        const void *, arg1,
+        unsigned char, arg3,
+        const char *, arg4), 
+    TP_FIELDS(
+        ctf_integer_hex(uint64_t, arg1, arg1)
+        ctf_integer(unsigned char, arg3, arg3)
+        ctf_string(arg4, arg4)
+    )
+)
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for CloseUserCanceled
 // [conn][%p] Connection close using user canceled error
 // QuicTraceLogConnInfo(

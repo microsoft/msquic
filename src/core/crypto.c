@@ -1655,8 +1655,7 @@ QuicCryptoProcessTlsCompletion(
         CXPLAT_DBG_ASSERT(Connection->PathsCount == 1);
         QUIC_PATH* Path = &Connection->Paths[0];
 
-        if (Path->IsActive && Connection->Settings.IsSet.EncryptionOffloadAllowed)
-        {
+        if (Path->IsActive && Connection->Settings.IsSet.EncryptionOffloadAllowed) {
             QUIC_CID_HASH_ENTRY* SourceCid =
                 CXPLAT_CONTAINING_RECORD(Connection->SourceCids.Next, QUIC_CID_HASH_ENTRY, Link);
             CXPLAT_QEO_CONNECTION Offloads[] = {
@@ -1694,6 +1693,11 @@ QuicCryptoProcessTlsCompletion(
             if (QUIC_SUCCEEDED(CxPlatSocketUpdateQeo(Path->Binding->Socket, Offloads, 2))) {
                 Connection->Stats.EncryptionOffloaded = TRUE;
                 Path->EncryptionOffloading = TRUE;
+                QuicTraceLogConnInfo(
+                    OfflodingStart,
+                    Connection,
+                    "Path[%hhu] Successfully start encryption offloading",
+                    Path->ID);
             }
         }
 

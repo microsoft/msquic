@@ -494,9 +494,14 @@ QuicConnUninitialize(
             Offloads[1].ConnectionIdLength = SourceCid->CID.Length;
             memcpy(Offloads[0].ConnectionId, Connection->Paths[0].DestCid->CID.Data, Connection->Paths[0].DestCid->CID.Length);
             memcpy(Offloads[1].ConnectionId, SourceCid->CID.Data, SourceCid->CID.Length);
-            (void)QUIC_SUCCEEDED(CxPlatSocketUpdateQeo(Connection->Paths[0].Binding->Socket, Offloads, 2));
+            QUIC_STATUS Status = CxPlatSocketUpdateQeo(Connection->Paths[0].Binding->Socket, Offloads, 2);
             Connection->Stats.EncryptionOffloaded = FALSE;
             Connection->Paths[0].EncryptionOffloading = FALSE;
+            QuicTraceLogConnInfo(
+                OfflodingStop,
+                Connection,
+                "Path[%hhu] %s stop encryption offloading",
+                Connection->Paths[0].ID, QUIC_SUCCEEDED(Status) ? "Successfully" : "Failed to");
         }
 
         QuicBindingRemoveConnection(Connection->Paths[0].Binding, Connection);

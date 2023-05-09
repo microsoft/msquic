@@ -35,7 +35,10 @@ QuicPathInitialize(
         Connection->Settings.EcnEnabled ? ECN_VALIDATION_TESTING : ECN_VALIDATION_FAILED;
     if (Connection->Settings.EncryptionOffloadAllowed) {
         // TODO: query QEO capability
-        Path->TlsOffloadSecrets = calloc(1, sizeof(QUIC_TLS_OFFLOAD_SECRETS));
+        Path->TlsOffloadSecrets = CXPLAT_ALLOC_NONPAGED(sizeof(QUIC_TLS_OFFLOAD_SECRETS), QUIC_POOL_TLS_EXTRAS);
+        if (Path->TlsOffloadSecrets != NULL) {
+            CxPlatZeroMemory(Path->TlsOffloadSecrets, sizeof(Path->TlsOffloadSecrets));
+        }
     }
 #ifdef QUIC_USE_RAW_DATAPATH
     if (MsQuicLib.ExecutionConfig &&
@@ -79,7 +82,7 @@ QuicPathRemove(
     }
 
     if (Path->TlsOffloadSecrets != NULL) {
-        free(Path->TlsOffloadSecrets);
+        CXPLAT_FREE(Path->TlsOffloadSecrets, QUIC_POOL_TLS_EXTRAS);
     }
 
     Connection->PathsCount--;

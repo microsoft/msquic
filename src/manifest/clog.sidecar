@@ -7156,6 +7156,42 @@
       ],
       "macroName": "QuicTraceLogStreamWarning"
     },
+    "OfflodingStart": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] Path[%hhu] Successfully start encryption offloading",
+      "UniqueId": "OfflodingStart",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        },
+        {
+          "DefinationEncoding": "hhu",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macroName": "QuicTraceLogConnInfo"
+    },
+    "OfflodingStop": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] Path[%hhu] %s stop encryption offloading",
+      "UniqueId": "OfflodingStop",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        },
+        {
+          "DefinationEncoding": "hhu",
+          "MacroVariableName": "arg3"
+        },
+        {
+          "DefinationEncoding": "s",
+          "MacroVariableName": "arg4"
+        }
+      ],
+      "macroName": "QuicTraceLogConnInfo"
+    },
     "OpenSsl1RttDataStart": {
       "ModuleProperites": {},
       "TraceString": "[conn][%p] Writing 1-RTT data starts at %u",
@@ -14476,6 +14512,16 @@
         "UniquenessHash": "48b0b691-89c1-4bb2-1ba4-5bc91586b2b3",
         "TraceID": "NotAccepted",
         "EncodingString": "[strm][%p] New stream wasn't accepted, 0x%x"
+      },
+      {
+        "UniquenessHash": "b841a4ba-b59c-322a-e3ea-abb11df15daf",
+        "TraceID": "OfflodingStart",
+        "EncodingString": "[conn][%p] Path[%hhu] Successfully start encryption offloading"
+      },
+      {
+        "UniquenessHash": "634f4128-8be3-479b-2764-13aabd810d83",
+        "TraceID": "OfflodingStop",
+        "EncodingString": "[conn][%p] Path[%hhu] %s stop encryption offloading"
       },
       {
         "UniquenessHash": "eaede67a-124b-3b3f-95ba-363d08546d2a",
