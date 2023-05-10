@@ -37,7 +37,7 @@ QuicPathInitialize(
         // TODO: query QEO capability
         Path->TlsOffloadSecrets = CXPLAT_ALLOC_NONPAGED(sizeof(QUIC_TLS_OFFLOAD_SECRETS), QUIC_POOL_TLS_EXTRAS);
         if (Path->TlsOffloadSecrets != NULL) {
-            CxPlatZeroMemory(Path->TlsOffloadSecrets, sizeof(Path->TlsOffloadSecrets));
+            CxPlatZeroMemory(Path->TlsOffloadSecrets, sizeof(QUIC_TLS_OFFLOAD_SECRETS));
         }
     }
 #ifdef QUIC_USE_RAW_DATAPATH
