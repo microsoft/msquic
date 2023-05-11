@@ -251,12 +251,10 @@ CxPlatDpRawParseIPv4(
     }
 
     Packet->TypeOfService = IP->EcnField;
-    // fprintf(stderr, "Packet->TypeOfService:%d\n", Packet->TypeOfService);
     Packet->Route->RemoteAddress.Ipv4.sin_family = AF_INET;
     CxPlatCopyMemory(&Packet->Route->RemoteAddress.Ipv4.sin_addr, IP->Source, sizeof(IP->Source));
     Packet->Route->LocalAddress.Ipv4.sin_family = AF_INET;
     CxPlatCopyMemory(&Packet->Route->LocalAddress.Ipv4.sin_addr, IP->Destination, sizeof(IP->Destination));
-
     if (IP->Protocol == IPPROTO_UDP) {
         CxPlatDpRawParseUdp(Datapath, Packet, (UDP_HEADER*)IP->Data, IPTotalLength - sizeof(IPV4_HEADER));
     } else if (IP->Protocol == IPPROTO_TCP) {
@@ -440,7 +438,7 @@ int framing_packet(size_t size,
             LocalAddress ? LocalAddrStr.Address : "NULL",
             FamilyR, dst_mac[0], dst_mac[1], dst_mac[2], dst_mac[3], dst_mac[4], dst_mac[5],
             RemoteAddress ? RemoteAddrStr.Address : "NULL");
-    if (FamilyR == QUIC_ADDRESS_FAMILY_INET) {
+    if (FamilyL == QUIC_ADDRESS_FAMILY_INET) {
         eth->h_proto = htons(ETH_P_IP);
         iph = (struct iphdr *)((char *)eth + sizeof(struct ethhdr));
         udph = (struct udphdr *)((char *)iph + sizeof(struct iphdr));

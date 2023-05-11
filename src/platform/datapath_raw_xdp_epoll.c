@@ -166,21 +166,6 @@ typedef struct CXPLAT_SEND_DATA {
     uint8_t SegmentationSupported : 1;
 
     //
-    // Space for ancillary control data.
-    //
-    alignas(8)
-    char ControlBuffer[
-        CMSG_SPACE(sizeof(int)) +               // IP_TOS || IPV6_TCLASS
-        CMSG_SPACE(sizeof(struct in6_pktinfo))  // IP_PKTINFO || IPV6_PKTINFO
-    #ifdef UDP_SEGMENT
-        + CMSG_SPACE(sizeof(uint16_t))          // UDP_SEGMENT
-    #endif
-        ];
-    CXPLAT_STATIC_ASSERT(
-        CMSG_SPACE(sizeof(struct in6_pktinfo)) >= CMSG_SPACE(sizeof(struct in_pktinfo)),
-        "sizeof(struct in6_pktinfo) >= sizeof(struct in_pktinfo) failed");
-
-    //
     // Space for all the packet buffers.
     //
 
@@ -194,11 +179,6 @@ typedef struct CXPLAT_SEND_DATA {
                           //   if GSO is not used, then N are needed
 
 } CXPLAT_SEND_DATA;
-
-typedef struct CXPLAT_RECV_MSG_CONTROL_BUFFER {
-    char Data[CMSG_SPACE(sizeof(struct in6_pktinfo)) +
-              2 * CMSG_SPACE(sizeof(int))];
-} CXPLAT_RECV_MSG_CONTROL_BUFFER;
 
 typedef struct XDP_WORKER XDP_WORKER;
 
@@ -391,37 +371,6 @@ typedef struct CXPLAT_DATAPATH {
     //
     uint32_t ProcCount;
 
-    //
-    // The length of the CXPLAT_SEND_DATA. Calculated based on the support level
-    // for GSO. No GSO support requires a larger send data to hold the extra
-    // iovec structs.
-    //
-    uint32_t SendDataSize;
-
-    //
-    // When not using GSO, we preallocate multiple iovec structs to use with
-    // sendmmsg (to simulate GSO).
-    //
-    uint32_t SendIoVecCount;
-
-    //
-    // The length of the CXPLAT_RECV_DATA and CXPLAT_RECV_PACKET part of the
-    // CXPLAT_RECV_BLOCK.
-    //
-    uint32_t RecvBlockStride;
-
-    //
-    // The offset of the raw buffer in the CXPLAT_RECV_BLOCK.
-    //
-    uint32_t RecvBlockBufferOffset;
-
-    //
-    // The total length of the CXPLAT_RECV_BLOCK. Calculated based on the
-    // support level for GRO. No GRO only uses a single CXPLAT_RECV_DATA and
-    // CXPLAT_RECV_PACKET, while GRO allows for multiple.
-    //
-    uint32_t RecvBlockSize;
-
 #if DEBUG
     uint8_t Uninitialized : 1;
     uint8_t Freed : 1;
@@ -436,7 +385,6 @@ typedef struct CXPLAT_DATAPATH {
     // The per proc datapath contexts.
     //
     XDP_WORKER Workers[];
-    // XDP_WORKER Workers[];
 
 } CXPLAT_DATAPATH;
 
@@ -845,18 +793,8 @@ CxPlatDataPathInitialize(
         Datapath->UdpHandlers = *UdpCallbacks;
     }
     Datapath->ProcCount = ProcessorCount;
-    Datapath->Features = CXPLAT_DATAPATH_FEATURE_LOCAL_PORT_SHARING;
+    Datapath->Features = 0;
     CxPlatRefInitializeEx(&Datapath->RefCount, Datapath->ProcCount);
-
-    // TODO: support segmentation/coalescing feature
-    Datapath->SendDataSize = sizeof(CXPLAT_SEND_DATA);
-    Datapath->SendIoVecCount = 1;
-    Datapath->RecvBlockStride =
-        sizeof(CXPLAT_RECV_SUBBLOCK) + ClientRecvContextLength;
-    Datapath->RecvBlockBufferOffset =
-        sizeof(CXPLAT_RECV_BLOCK) + Datapath->RecvBlockStride;
-    Datapath->RecvBlockSize =
-        Datapath->RecvBlockBufferOffset + CXPLAT_SMALL_IO_BUFFER_SIZE;
 
     // TODO: remove
     //
@@ -983,6 +921,7 @@ CxPlatDataPathUninitialize(
             free(Datapath->xsk_cfg[ii]);
         }
     }
+    CxPlatSleep(20);
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -1146,6 +1085,39 @@ Exit:
     return Status;
 }
 
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+#include <net/if.h>
+#include <ifaddrs.h>
+
+void get_interface_address(const char *interface_name, QUIC_ADDR *local_address, int TargetFamily) {
+    struct ifaddrs *ifaddr, *ifa;
+
+    if (getifaddrs(&ifaddr) == -1) {
+        perror("getifaddrs");
+        exit(1);
+    }
+
+    for (ifa = ifaddr; ifa != NULL; ifa = ifa->ifa_next) {
+        if (ifa->ifa_addr == NULL)
+            continue;
+
+        if (strcmp(ifa->ifa_name, interface_name) == 0) {
+            if (ifa->ifa_addr->sa_family == TargetFamily) {
+                memcpy(local_address, ifa->ifa_addr, sizeof(QUIC_ADDR));
+                break;
+            }
+        }
+    }
+
+    freeifaddrs(ifaddr);
+}
+
 //
 // Socket context interface. It abstracts a (generally per-processor) UDP socket
 // and the corresponding logic/functionality like send and receive processing.
@@ -1153,9 +1125,12 @@ Exit:
 
 QUIC_STATUS
 CxPlatSocketContextInitialize(
-    _Inout_ CXPLAT_SOCKET_CONTEXT* SocketContext
+    _Inout_ CXPLAT_SOCKET_CONTEXT* SocketContext,
+    _In_ const QUIC_ADDR* RemoteAddress,
+    _In_ const int TargetFamily
     )
 {
+    UNREFERENCED_PARAMETER(RemoteAddress);
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
     BOOLEAN ShutdownSqeInitialized = FALSE;
     BOOLEAN IoSqeInitialized = FALSE;
@@ -1212,15 +1187,15 @@ CxPlatSocketContextInitialize(
 
     SocketContext->SocketFd = xsk_socket__fd(Binding->Datapath->xsk_info[SocketContext->ActorIdx]->xsk);
     // // SocketContext->Binding->AuxSocket = xsk_socket__fd(SocketContext->xsk_info->xsk);
-	
+
     QUIC_ADDR MappedAddress = {0};
+    get_interface_address(ifnames[SocketContext->ActorIdx], &Binding->LocalAddress, TargetFamily);
     CxPlatCopyMemory(&MappedAddress, &Binding->LocalAddress, sizeof(MappedAddress));
     if (MappedAddress.Ipv6.sin6_family == QUIC_ADDRESS_FAMILY_INET6) {
         MappedAddress.Ipv6.sin6_family = AF_INET6;
     }
-
     // dummy sock for taking random ephemeral port
-    SocketContext->dummySock = socket(AF_INET6,
+    SocketContext->dummySock = socket(TargetFamily == QUIC_ADDRESS_FAMILY_INET6 ? AF_INET6 : AF_INET,
             SOCK_DGRAM | SOCK_NONBLOCK | SOCK_CLOEXEC,
             IPPROTO_UDP);
     if (SocketContext->dummySock == INVALID_SOCKET) {
@@ -1233,6 +1208,12 @@ CxPlatSocketContextInitialize(
             "socket failed");
         goto Exit;
     }
+
+    if (setsockopt(SocketContext->dummySock, SOL_SOCKET, SO_BINDTODEVICE, ifnames[SocketContext->ActorIdx], strlen(ifnames[SocketContext->ActorIdx])) < 0) {
+        perror("setsockopt");
+        goto Exit;
+    }
+
     int Result =
         bind(
             SocketContext->dummySock,
@@ -1249,16 +1230,44 @@ CxPlatSocketContextInitialize(
         goto Exit;
     }
 
+    if (RemoteAddress != NULL) {
+        CxPlatZeroMemory(&MappedAddress, sizeof(MappedAddress));
+        CxPlatConvertToMappedV6(RemoteAddress, &MappedAddress);
+
+        if (MappedAddress.Ipv6.sin6_family == QUIC_ADDRESS_FAMILY_INET6) {
+            MappedAddress.Ipv6.sin6_family = AF_INET6;
+        }
+
+        // Result =
+        //     connect(
+        //         SocketContext->dummySock,
+        //         &MappedAddress.Ip,
+        //         sizeof(MappedAddress));
+
+        // if (Result == SOCKET_ERROR) {
+        //     Status = errno;
+        //     QuicTraceEvent(
+        //         DatapathErrorStatus,
+        //         "[data][%p] ERROR, %u, %s.",
+        //         Binding,
+        //         Status,
+        //         "connect failed");
+        //     goto Exit;
+        // }
+        Binding->Connected = TRUE;
+    }
+
     //
     // If no specific local port was indicated, then the stack just
     // assigned this socket a port. We need to query it and use it for
     // all the other sockets we are going to create.
     //
     uint32_t AssignedLocalAddressLength = sizeof(Binding->LocalAddress);
+    QUIC_ADDR DummyAddress = {0};
     Result =
         getsockname(
             SocketContext->dummySock,
-            (struct sockaddr *)&Binding->LocalAddress,
+            (struct sockaddr *)&DummyAddress,
             &AssignedLocalAddressLength);
     if (Result == SOCKET_ERROR) {
         Status = errno;
@@ -1270,6 +1279,7 @@ CxPlatSocketContextInitialize(
             "getsockname failed");
         goto Exit;
     }
+    Binding->LocalAddress.Ipv4.sin_port = DummyAddress.Ipv4.sin_port;
 
     // share ephemeral port to XDP
     struct bpf_map *port_map = bpf_object__find_map_by_name(SocketContext->Binding->Datapath->bpf_objs[SocketContext->ActorIdx], "port_map");
@@ -1285,6 +1295,23 @@ CxPlatSocketContextInitialize(
         fprintf(stderr, "Failed to update BPF map\n");
         return 1;
     }
+
+    // NOTE: experimental
+    struct bpf_map *ifname_map = bpf_object__find_map_by_name(SocketContext->Binding->Datapath->bpf_objs[SocketContext->ActorIdx], "ifname_map");
+    if (!ifname_map) {
+        fprintf(stderr, "Failed to find BPF ifacename_map\n");
+        return 1;
+    }
+
+    // TODO: need to care until all packets received?
+    char info[64] = {0};
+    memcpy(info, ifnames[SocketContext->ActorIdx], 4);
+
+    if (bpf_map_update_elem(bpf_map__fd(ifname_map), &key, info, BPF_ANY)) {
+        fprintf(stderr, "Failed to update BPF map\n");
+        return 1;
+    }
+
 
     SocketContext->SqeInitialized = TRUE;
 
@@ -1493,13 +1520,22 @@ CxPlatSocketCreateUdp(
         Binding->PcpBinding = TRUE;
     }
 
-    Status = CxPlatSocketContextInitialize(&Binding->SocketContexts[0]);
+    Status = CxPlatSocketContextInitialize(&Binding->SocketContexts[0],
+                            Config->RemoteAddress,
+                            Config->RemoteAddress ?
+                                Config->RemoteAddress->Ipv6.sin6_family :
+                                Config->LocalAddress ?
+                                    Config->LocalAddress->Ipv6.sin6_family :
+                                    AF_INET6);
     if (QUIC_FAILED(Status)) {
         goto Exit;
     }
 
-    CxPlatConvertFromMappedV6(&Binding->LocalAddress, &Binding->LocalAddress);
-    Binding->LocalAddress.Ipv6.sin6_scope_id = 0;
+    // CxPlatConvertFromMappedV6(&Binding->LocalAddress, &Binding->LocalAddress);
+    // Binding->LocalAddress.Ipv6.sin6_scope_id = 0;
+    QUIC_ADDR_STR LocalStr = {0};
+    QuicAddrToString(&Binding->LocalAddress, &LocalStr);
+    fprintf(stderr, "Binding->LocalAddress:%s\n", LocalStr.Address);
 
     if (Config->RemoteAddress != NULL) {
         Binding->RemoteAddress = *Config->RemoteAddress;
@@ -1618,7 +1654,7 @@ CxPlatDataPathRecvPacketToRecvData(
     _In_ const CXPLAT_RECV_PACKET* const Packet
     )
 {
-    return (CXPLAT_RECV_DATA*)((char *)Packet - sizeof(CXPLAT_RECV_DATA));
+    return (CXPLAT_RECV_DATA*)((char *)Packet + 56);
 }
 
 CXPLAT_RECV_PACKET*
@@ -1626,7 +1662,7 @@ CxPlatDataPathRecvDataToRecvPacket(
     _In_ const CXPLAT_RECV_DATA* const RecvData
     )
 {
-    return (CXPLAT_RECV_PACKET*)(RecvData + 1);
+    return (CXPLAT_RECV_PACKET*)((char*)RecvData - 56);
 }
 
 void
@@ -1692,7 +1728,6 @@ static uint64_t xsk_umem_free_frames(struct xsk_socket_info *xsk)
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 CxPlatDpRawRxEthernet(
-    //_In_ const CXPLAT_DATAPATH* Datapath,
     _In_ const CXPLAT_SOCKET_CONTEXT* SocketContext,
     _In_reads_(PacketCount)
         CXPLAT_RECV_DATA** Packets,
@@ -1805,7 +1840,7 @@ void handle_receive_packets(
 		uint32_t len = xsk_ring_cons__rx_desc(&xsk->rx, idx_rx++)->len;
 
 	    uint8_t *FrameBuffer = xsk_umem__get_data(xsk->umem->buffer, addr);
-        CXPLAT_RECV_DATA* Packet = (CXPLAT_RECV_DATA*)(FrameBuffer - sizeof(CXPLAT_RECV_DATA));
+        CXPLAT_RECV_DATA* Packet = (CXPLAT_RECV_DATA*)(FrameBuffer - sizeof(CXPLAT_RECV_DATA) - 56);
         Packet->Route = (CXPLAT_ROUTE*)calloc(1, sizeof(CXPLAT_ROUTE));
 
         // TODO xsk_free_umem_frame if parse error?
@@ -1896,16 +1931,10 @@ CxPlatDpRawTxAlloc(
         SendData->SocketContext = SocketContext;
 
         { //TODO: experimenting block
-            QUIC_ADDR RemoteAddress;
-            CxPlatSocketGetLocalAddress(Socket, &RemoteAddress);
-            if (SocketContext->ActorIdx == 0) { // TODO: better algo, server SocketContext doesn't haveRemoteAddress
+            if (QuicAddrGetFamily(&Config->Route->LocalAddress) == QUIC_ADDRESS_FAMILY_INET) {
+                SendData->HeaderOffset = sizeof(struct ethhdr) + sizeof(struct iphdr) + sizeof(struct udphdr);
+            } else if (QuicAddrGetFamily(&Config->Route->LocalAddress) == QUIC_ADDRESS_FAMILY_INET6) {
                 SendData->HeaderOffset = sizeof(struct ethhdr) + sizeof(struct ipv6hdr) + sizeof(struct udphdr);
-            } else {
-                if (QuicAddrGetFamily(&RemoteAddress) == QUIC_ADDRESS_FAMILY_INET) {
-                    SendData->HeaderOffset = sizeof(struct ethhdr) + sizeof(struct iphdr) + sizeof(struct udphdr);
-                } else {
-                    SendData->HeaderOffset = sizeof(struct ethhdr) + sizeof(struct ipv6hdr) + sizeof(struct udphdr);
-                }
             }
 
             CXPLAT_DATAPATH *Datapath = SocketContext->Worker->Datapath;
@@ -1979,9 +2008,9 @@ CxPlatSendDataAllocBuffer(
     CXPLAT_DBG_ASSERT(MaxBufferLength > 0);
     CXPLAT_DBG_ASSERT(SendData->SegmentSize == 0 || SendData->SegmentSize >= MaxBufferLength);
     // CXPLAT_DBG_ASSERT(SendData->TotalSize + MaxBufferLength <= sizeof(SendData->Buffer)); // TODO: use umem frame size?
-    CXPLAT_DBG_ASSERT(
-        SendData->SegmentationSupported ||
-        SendData->BufferCount < SendData->SocketContext->Worker->Datapath->SendIoVecCount);
+    // CXPLAT_DBG_ASSERT(
+    //     SendData->SegmentationSupported ||
+    //     SendData->BufferCount < SendData->SocketContext->Worker->Datapath->SendIoVecCount);
     UNREFERENCED_PARAMETER(MaxBufferLength);
     if (SendData->ClientBuffer.Buffer == NULL) {
         return NULL;
@@ -2044,8 +2073,8 @@ CxPlatSocketSend(
     //
     // Cache the address, mapping the remote address as necessary.
     //
-    CxPlatConvertToMappedV6(&Route->RemoteAddress, &SendData->RemoteAddress);
     SendData->LocalAddress = Route->LocalAddress;
+    SendData->RemoteAddress = Route->RemoteAddress;
 
     //
     // Check to see if we need to pend because there's already queue.
@@ -2075,6 +2104,7 @@ CxPlatSocketSend(
     //
     // Go ahead and try to send on the socket.
     //
+    // TODO: pass Route to delete address info from CXPLAT_SEND_DATA
     QUIC_STATUS Status = CxPlatSendDataSend(SendData);
     if (Status == QUIC_STATUS_PENDING) {
         //

@@ -36,6 +36,13 @@ struct bpf_map_def SEC("maps") port_map = {
     .max_entries = 1,
 };
 
+struct bpf_map_def SEC("maps") ifname_map = {
+    .type = BPF_MAP_TYPE_ARRAY,
+    .key_size = sizeof(int),
+    .value_size = sizeof(char[64]),
+    .max_entries = 1,
+};
+
 static __always_inline bool to_quic_service(struct xdp_md *ctx, void *data, void *data_end) {
     struct ethhdr *eth = data;
     if ((void *)(eth + 1) > data_end)
@@ -61,16 +68,26 @@ static __always_inline bool to_quic_service(struct xdp_md *ctx, void *data, void
         // len = snprintf(srcstr, sizeof(srcstr), "%u.%u.%u.%u",
         //             iph->saddr & 0xFF, (iph->saddr >> 8) & 0xFF,
         //             (iph->saddr >> 16) & 0xFF, (iph->saddr >> 24) & 0xFF);
-        // len = snprintf(dststr, sizeof(dststr), "%u.%u.%u.%u",                    
+        // len = snprintf(dststr, sizeof(dststr), "%u.%u.%u.%u",
         //             iph->daddr & 0xFF, (iph->daddr >> 8) & 0xFF,
         //             (iph->daddr >> 16) & 0xFF, (iph->daddr >> 24) & 0xFF);
         // bpf_printk("\t\tis ipv4: src IP:%s, dst IP:%d", srcstr, dststr);
-        bpf_printk("\t\tis ipv4");
         iph = (struct iphdr *)(eth + 1);
         if (iph + 1 > data_end) {
             bpf_printk("\t\t\tip header violate size");
             return false;
         }
+
+        __u32 src_ip = bpf_ntohl(iph->saddr);
+        __u32 dst_ip = bpf_ntohl(iph->daddr);
+        bpf_printk("\t\tis ipv4");
+        bpf_printk("\t\t\tsrc: 192.%u.%u.%u",
+                (iph->saddr >> 8) & 0xff,
+                (iph->saddr >> 16) & 0xff, iph->saddr >> 24);
+        bpf_printk("\t\t\tdst: 192.%u.%u.%u",
+                (iph->daddr >> 8) & 0xff,
+                (iph->daddr >> 16) & 0xff, iph->daddr >> 24);
+
         if (iph->protocol != IPPROTO_UDP) {
             bpf_printk("\t\t\tnot UDP %d", iph->protocol);
             return false;
@@ -83,12 +100,17 @@ static __always_inline bool to_quic_service(struct xdp_md *ctx, void *data, void
         //             iph->daddr & 0xFF, (iph->daddr >> 8) & 0xFF,
         //             (iph->daddr >> 16) & 0xFF, (iph->daddr >> 24) & 0xFF);
         // bpf_printk("\t\tis ipv6: %s", output);
-        bpf_printk("\t\tis ipv6");
         ip6h = (struct ipv6hdr *)(eth + 1);
         if (ip6h + 1 > data_end) {
             bpf_printk("\t\t\tipv6 header violate size");
             return false;
         }
+        bpf_printk("\t\tis ipv6");
+        bpf_printk("\t\t\t from %x::%x:%x",
+            bpf_ntohs(ip6h->saddr.s6_addr16[0]), bpf_ntohs(ip6h->saddr.s6_addr16[6]), bpf_ntohs(ip6h->saddr.s6_addr16[7]));
+        bpf_printk("\t\t\t   to %x::%x:%x",
+            bpf_ntohs(ip6h->daddr.s6_addr16[0]), bpf_ntohs(ip6h->daddr.s6_addr16[6]), bpf_ntohs(ip6h->daddr.s6_addr16[7]));
+
         if (ip6h->nexthdr != IPPROTO_UDP) {
             bpf_printk("\t\t\tnot UDP %d", ip6h->nexthdr);
             return false;
@@ -118,12 +140,10 @@ SEC("xdp_prog")
 int xdp_main(struct xdp_md *ctx)
 {
     int index = ctx->rx_queue_index;
-    __u32 *pkt_count;
-
-    pkt_count = bpf_map_lookup_elem(&xdp_stats_map, &index);
-    if (pkt_count) {
-        bpf_printk("========> Packet %d ", *pkt_count);
-        pkt_count++;
+    char* ifname = NULL;
+    ifname = bpf_map_lookup_elem(&ifname_map, &index);
+    if (ifname) {
+        bpf_printk("========> To ifacename : %s ", ifname);
     }
 
     void *data_end = (void*)(long)ctx->data_end;
@@ -133,7 +153,7 @@ int xdp_main(struct xdp_md *ctx)
             bpf_printk("\t\t\t\tredirect to service");
             bpf_printk("");
             return bpf_redirect_map(&xsks_map, index, 0);
-        }        
+        }
     }
 
     bpf_printk("========> Pass through\n");
