@@ -466,26 +466,23 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, UnreachableInvalid,
 
 
 /*----------------------------------------------------------
-// Decoder Ring for OfflodingStop
-// [conn][%p] Path[%hhu] %s stop encryption offloading
+// Decoder Ring for PathQeoDisabled
+// [conn][%p] Path[%hhu] QEO disabled
 // QuicTraceLogConnInfo(
-                OfflodingStop,
+                PathQeoDisabled,
                 Connection,
-                "Path[%hhu] %s stop encryption offloading",
-                Connection->Paths[0].ID, QUIC_SUCCEEDED(Status) ? "Successfully" : "Failed to");
+                "Path[%hhu] QEO disabled",
+                Connection->Paths[0].ID);
 // arg1 = arg1 = Connection = arg1
 // arg3 = arg3 = Connection->Paths[0].ID = arg3
-// arg4 = arg4 = QUIC_SUCCEEDED(Status) ? "Successfully" : "Failed to" = arg4
 ----------------------------------------------------------*/
-TRACEPOINT_EVENT(CLOG_CONNECTION_C, OfflodingStop,
+TRACEPOINT_EVENT(CLOG_CONNECTION_C, PathQeoDisabled,
     TP_ARGS(
         const void *, arg1,
-        unsigned char, arg3,
-        const char *, arg4), 
+        unsigned char, arg3), 
     TP_FIELDS(
         ctf_integer_hex(uint64_t, arg1, arg1)
         ctf_integer(unsigned char, arg3, arg3)
-        ctf_string(arg4, arg4)
     )
 )
 

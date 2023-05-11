@@ -101,17 +101,17 @@ TRACEPOINT_EVENT(CLOG_CRYPTO_C, HandshakeConfirmedServer,
 
 
 /*----------------------------------------------------------
-// Decoder Ring for OfflodingStart
-// [conn][%p] Path[%hhu] Successfully start encryption offloading
+// Decoder Ring for PathQeoEnabled
+// [conn][%p] Path[%hhu] QEO enabled
 // QuicTraceLogConnInfo(
-                    OfflodingStart,
+                    PathQeoEnabled,
                     Connection,
-                    "Path[%hhu] Successfully start encryption offloading",
+                    "Path[%hhu] QEO enabled",
                     Path->ID);
 // arg1 = arg1 = Connection = arg1
 // arg3 = arg3 = Path->ID = arg3
 ----------------------------------------------------------*/
-TRACEPOINT_EVENT(CLOG_CRYPTO_C, OfflodingStart,
+TRACEPOINT_EVENT(CLOG_CRYPTO_C, PathQeoEnabled,
     TP_ARGS(
         const void *, arg1,
         unsigned char, arg3), 

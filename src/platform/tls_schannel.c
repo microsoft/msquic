@@ -611,12 +611,6 @@ typedef struct CXPLAT_TLS {
     //
     QUIC_TLS_SECRETS* TlsSecrets;
 
-    //
-    // Optional struct for TLS traffic secrets for encryption offloading
-    // Only non-null when the connection is configured to allow offloading
-    //
-    QUIC_TLS_OFFLOAD_SECRETS* TlsOffloadSecrets;
-
 } CXPLAT_TLS;
 
 typedef enum QUIC_CERT_BLOB_TYPE {
@@ -642,8 +636,7 @@ QuicPacketKeyCreate(
     _In_ QUIC_PACKET_KEY_TYPE KeyType,
     _In_z_ const char* const SecretName,
     _In_ const SEC_TRAFFIC_SECRETS* TrafficSecrets,
-    _Out_ QUIC_PACKET_KEY** Key,
-    _Inout_opt_ QUIC_TLS_OFFLOAD_SECRET* TlsOffloadSecrets
+    _Out_ QUIC_PACKET_KEY** Key
     );
 
 #define SecStatusToQuicStatus(x) (QUIC_STATUS)(x)
@@ -1578,7 +1571,6 @@ CxPlatTlsInitialize(
     TlsContext->SNI = Config->ServerName;
     TlsContext->SecConfig = Config->SecConfig;
     TlsContext->TlsSecrets = Config->TlsSecrets;
-    TlsContext->TlsOffloadSecrets = Config->TlsOffloadSecrets;
 
     QuicTraceLogConnVerbose(
         SchannelContextCreated,
@@ -2422,8 +2414,7 @@ CxPlatTlsWriteDataToSchannel(
                             QUIC_PACKET_KEY_HANDSHAKE,
                             "peer handshake traffic secret",
                             NewPeerTrafficSecrets[i],
-                            &State->ReadKeys[QUIC_PACKET_KEY_HANDSHAKE],
-                            NULL)) {
+                            &State->ReadKeys[QUIC_PACKET_KEY_HANDSHAKE])) {
                         Result |= CXPLAT_TLS_RESULT_ERROR;
                         break;
                     }
@@ -2454,8 +2445,7 @@ CxPlatTlsWriteDataToSchannel(
                             QUIC_PACKET_KEY_1_RTT,
                             "peer application traffic secret",
                             NewPeerTrafficSecrets[i],
-                            &State->ReadKeys[QUIC_PACKET_KEY_1_RTT],
-                            TlsContext->TlsOffloadSecrets != NULL ? &TlsContext->TlsOffloadSecrets->Rx : NULL)) {
+                            &State->ReadKeys[QUIC_PACKET_KEY_1_RTT])) {
                         Result |= CXPLAT_TLS_RESULT_ERROR;
                         break;
                     }
@@ -2507,8 +2497,7 @@ CxPlatTlsWriteDataToSchannel(
                             QUIC_PACKET_KEY_HANDSHAKE,
                             "own handshake traffic secret",
                             NewOwnTrafficSecrets[i],
-                            &State->WriteKeys[QUIC_PACKET_KEY_HANDSHAKE],
-                            NULL)) {
+                            &State->WriteKeys[QUIC_PACKET_KEY_HANDSHAKE])) {
                         Result |= CXPLAT_TLS_RESULT_ERROR;
                         break;
                     }
@@ -2548,8 +2537,7 @@ CxPlatTlsWriteDataToSchannel(
                                 QUIC_PACKET_KEY_1_RTT,
                                 "own application traffic secret",
                                 NewOwnTrafficSecrets[i],
-                                &State->WriteKeys[QUIC_PACKET_KEY_1_RTT],
-                                TlsContext->TlsOffloadSecrets != NULL ? &TlsContext->TlsOffloadSecrets->Tx : NULL)) {
+                                &State->WriteKeys[QUIC_PACKET_KEY_1_RTT])) {
                             Result |= CXPLAT_TLS_RESULT_ERROR;
                             break;
                         }
@@ -3222,8 +3210,7 @@ QuicPacketKeyCreate(
     _In_ QUIC_PACKET_KEY_TYPE KeyType,
     _In_z_ const char* const SecretName,
     _In_ const SEC_TRAFFIC_SECRETS* TrafficSecrets,
-    _Out_ QUIC_PACKET_KEY** Key,
-    _Inout_opt_ QUIC_TLS_OFFLOAD_SECRET* TlsOffloadSecret
+    _Out_ QUIC_PACKET_KEY** Key
     )
 {
     QUIC_STATUS Status;
@@ -3241,8 +3228,7 @@ QuicPacketKeyCreate(
             &Secret,
             SecretName,
             TRUE,
-            Key,
-            KeyType == QUIC_PACKET_KEY_1_RTT ? TlsOffloadSecret : NULL);
+            Key);
     if (!QUIC_SUCCEEDED(Status)) {
         QuicTraceEvent(
             TlsErrorStatus,
@@ -3250,6 +3236,36 @@ QuicPacketKeyCreate(
             TlsContext->Connection,
             Status,
             "QuicPacketKeyDerive");
+        goto Error;
+    }
+
+Error:
+
+    return QUIC_SUCCEEDED(Status);
+}
+
+_Success_(return==TRUE)
+BOOLEAN
+QuicPacketKeyCreateOffload(
+    _Inout_ CXPLAT_TLS* TlsContext,
+    _In_ const QUIC_PACKET_KEY* const PacketKey,
+    _In_z_ const char* const SecretName,
+    _Inout_ CXPLAT_QEO_CONNECTION* Offload
+    )
+{
+    QUIC_STATUS Status =
+        QuicPacketKeyDeriveOffload(
+            TlsContext->HkdfLabels,
+            PacketKey,
+            SecretName,
+            Offload);
+    if (!QUIC_SUCCEEDED(Status)) {
+        QuicTraceEvent(
+            TlsErrorStatus,
+            "[ tls][%p] ERROR, %u, %s.",
+            TlsContext->Connection,
+            Status,
+            "QuicPacketKeyCreateOffload");
         goto Error;
     }
 

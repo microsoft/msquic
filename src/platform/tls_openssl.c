@@ -154,12 +154,6 @@ typedef struct CXPLAT_TLS {
     //
     QUIC_TLS_SECRETS* TlsSecrets;
 
-    //
-    // Optional struct for TLS traffic secrets for encryption offloading
-    // Only non-null when the connection is configured to allow offloading
-    //
-    QUIC_TLS_OFFLOAD_SECRETS* TlsOffloadSecrets;
-
 } CXPLAT_TLS;
 
 //
@@ -450,9 +444,7 @@ CxPlatTlsSetEncryptionSecretsCallback(
                 &Secret,
                 "write secret",
                 TRUE,
-                &TlsState->WriteKeys[KeyType],
-                KeyType == QUIC_PACKET_KEY_1_RTT && TlsContext->TlsOffloadSecrets != NULL ?
-                    &TlsContext->TlsOffloadSecrets->Tx : NULL);
+                &TlsState->WriteKeys[KeyType]);
         if (QUIC_FAILED(Status)) {
             TlsContext->ResultFlags |= CXPLAT_TLS_RESULT_ERROR;
             return -1;
@@ -477,9 +469,7 @@ CxPlatTlsSetEncryptionSecretsCallback(
                 &Secret,
                 "read secret",
                 TRUE,
-                &TlsState->ReadKeys[KeyType],
-                KeyType == QUIC_PACKET_KEY_1_RTT && TlsContext->TlsOffloadSecrets != NULL ?
-                    &TlsContext->TlsOffloadSecrets->Rx : NULL);
+                &TlsState->ReadKeys[KeyType]);
         if (QUIC_FAILED(Status)) {
             TlsContext->ResultFlags |= CXPLAT_TLS_RESULT_ERROR;
             return -1;
@@ -1703,7 +1693,6 @@ CxPlatTlsInitialize(
     TlsContext->AlpnBufferLength = Config->AlpnBufferLength;
     TlsContext->AlpnBuffer = Config->AlpnBuffer;
     TlsContext->TlsSecrets = Config->TlsSecrets;
-    TlsContext->TlsOffloadSecrets = Config->TlsOffloadSecrets;
 
     QuicTraceLogConnVerbose(
         OpenSslContextCreated,
@@ -2376,4 +2365,34 @@ CxPlatTlsParamGet(
     }
 
     return Status;
+}
+
+_Success_(return==TRUE)
+BOOLEAN
+QuicPacketKeyCreateOffload(
+    _Inout_ CXPLAT_TLS* TlsContext,
+    _In_ const QUIC_PACKET_KEY* const PacketKey,
+    _In_z_ const char* const SecretName,
+    _Inout_ CXPLAT_QEO_CONNECTION* Offload
+    )
+{
+    QUIC_STATUS Status =
+        QuicPacketKeyDeriveOffload(
+            TlsContext->HkdfLabels,
+            PacketKey,
+            SecretName,
+            Offload);
+    if (!QUIC_SUCCEEDED(Status)) {
+        QuicTraceEvent(
+            TlsErrorStatus,
+            "[ tls][%p] ERROR, %u, %s.",
+            TlsContext->Connection,
+            Status,
+            "QuicPacketKeyCreateOffload");
+        goto Error;
+    }
+
+Error:
+
+    return QUIC_SUCCEEDED(Status);
 }

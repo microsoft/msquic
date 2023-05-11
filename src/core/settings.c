@@ -147,7 +147,6 @@ QuicSettingsSetDefault(
     if (!Settings->IsSet.EncryptionOffloadAllowed) {
         Settings->EncryptionOffloadAllowed = QUIC_DEFAULT_ENCRYPTION_OFFLOAD_ALLOWED;
     }
-
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)

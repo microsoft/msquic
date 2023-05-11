@@ -7979,6 +7979,38 @@
       ],
       "macroName": "QuicTraceLogConnInfo"
     },
+    "PathQeoDisabled": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] Path[%hhu] QEO disabled",
+      "UniqueId": "PathQeoDisabled",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        },
+        {
+          "DefinationEncoding": "hhu",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macroName": "QuicTraceLogConnInfo"
+    },
+    "PathQeoEnabled": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] Path[%hhu] QEO enabled",
+      "UniqueId": "PathQeoEnabled",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        },
+        {
+          "DefinationEncoding": "hhu",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macroName": "QuicTraceLogConnInfo"
+    },
     "PathRemoved": {
       "ModuleProperites": {},
       "TraceString": "[conn][%p] Path[%hhu] Removed",
@@ -14772,6 +14804,16 @@
         "UniquenessHash": "e4b7c3f7-0733-40b5-95d7-af81de6568ec",
         "TraceID": "PathMtuUpdated",
         "EncodingString": "[conn][%p] Path[%hhu] MTU updated to %hu bytes"
+      },
+      {
+        "UniquenessHash": "77bae646-5d83-b78d-08aa-24b36955b7e4",
+        "TraceID": "PathQeoDisabled",
+        "EncodingString": "[conn][%p] Path[%hhu] QEO disabled"
+      },
+      {
+        "UniquenessHash": "f27d6a99-3be1-a404-0883-01df858eb372",
+        "TraceID": "PathQeoEnabled",
+        "EncodingString": "[conn][%p] Path[%hhu] QEO enabled"
       },
       {
         "UniquenessHash": "2e3024b8-4329-c124-05b3-9801c51b9346",

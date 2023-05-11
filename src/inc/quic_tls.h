@@ -198,12 +198,6 @@ typedef struct CXPLAT_TLS_CONFIG {
     //
     QUIC_TLS_SECRETS* TlsSecrets;
 
-    //
-    // Storage for TLS traffic secrets when the connection has the parameter set
-    // to allow encryption offloading
-    //
-    QUIC_TLS_OFFLOAD_SECRETS* TlsOffloadSecrets;
-
 } CXPLAT_TLS_CONFIG;
 
 //

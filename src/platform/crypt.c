@@ -201,8 +201,7 @@ QuicPacketKeyDerive(
     _In_ const CXPLAT_SECRET* const Secret,
     _In_z_ const char* const SecretName,
     _In_ BOOLEAN CreateHpKey,
-    _Out_ QUIC_PACKET_KEY **NewKey,
-    _Inout_opt_ QUIC_TLS_OFFLOAD_SECRET* TlsOffloadSecret
+    _Out_ QUIC_PACKET_KEY **NewKey
     )
 {
     const uint16_t SecretLength = CxPlatHashLength(Secret->Hash);
@@ -254,10 +253,6 @@ QuicPacketKeyDerive(
     }
 
     memcpy(Key->Iv, Temp, CXPLAT_IV_LENGTH);
-    if (TlsOffloadSecret != NULL) {
-        memcpy(TlsOffloadSecret->PayloadIv, Temp, CXPLAT_IV_LENGTH);
-        TlsOffloadSecret->PayloadIvLength = CXPLAT_IV_LENGTH;
-    }
     CxPlatTlsLogSecret("static iv", Key->Iv, CXPLAT_IV_LENGTH);
 
     Status =
@@ -271,10 +266,6 @@ QuicPacketKeyDerive(
         goto Error;
     }
 
-    if (TlsOffloadSecret != NULL) {
-        memcpy(TlsOffloadSecret->PayloadKey, Temp, KeyLength);
-        TlsOffloadSecret->PayloadKeyLength = (uint8_t)KeyLength;
-    }
     CxPlatTlsLogSecret("key", Temp, KeyLength);
 
     Status =
@@ -298,10 +289,6 @@ QuicPacketKeyDerive(
             goto Error;
         }
 
-        if (TlsOffloadSecret != NULL) {
-            memcpy(TlsOffloadSecret->HeaderKey, Temp, KeyLength);
-            TlsOffloadSecret->HeaderKeyLength = (uint8_t)KeyLength;
-        }
         CxPlatTlsLogSecret("hp", Temp, KeyLength);
 
         Status =
@@ -335,11 +322,12 @@ _IRQL_requires_max_(DISPATCH_LEVEL)
 QUIC_STATUS
 QuicPacketKeyDeriveOffload(
     _In_ const QUIC_HKDF_LABELS* HkdfLabels,
-    _In_ const CXPLAT_SECRET* const Secret,
+    _In_ const QUIC_PACKET_KEY* const PacketKey,
     _In_z_ const char* const SecretName,
     _Inout_ CXPLAT_QEO_CONNECTION* Offload
     )
 {
+    const CXPLAT_SECRET* Secret = PacketKey->TrafficSecret;
     const uint16_t SecretLength = CxPlatHashLength(Secret->Hash);
     const uint16_t KeyLength = CxPlatKeyLength(Secret->Aead);
 
@@ -361,18 +349,7 @@ QuicPacketKeyDeriveOffload(
     if (QUIC_FAILED(Status)) {
         goto Error;
     }
-
-    Status =
-        CxPlatHkdfExpandLabel(
-            Hash,
-            HkdfLabels->IvLabel,
-            CXPLAT_IV_LENGTH,
-            SecretLength,
-            Temp);
-    if (QUIC_FAILED(Status)) {
-        goto Error;
-    }
-    memcpy(Offload->PayloadIv, Temp, CXPLAT_IV_LENGTH);
+    memcpy(Offload->PayloadIv, PacketKey->Iv, CXPLAT_IV_LENGTH);
 
     Status =
         CxPlatHkdfExpandLabel(
@@ -446,8 +423,7 @@ QuicPacketKeyCreateInitial(
                 IsServer ? &ServerInitial : &ClientInitial,
                 IsServer ? "srv secret" : "cli secret",
                 TRUE,
-                &WriteKey,
-                NULL);
+                &WriteKey);
         if (QUIC_FAILED(Status)) {
             goto Error;
         }
@@ -461,8 +437,7 @@ QuicPacketKeyCreateInitial(
                 IsServer ? &ClientInitial : &ServerInitial,
                 IsServer ? "cli secret" : "srv secret",
                 TRUE,
-                &ReadKey,
-                NULL);
+                &ReadKey);
         if (QUIC_FAILED(Status)) {
             goto Error;
         }
@@ -553,8 +528,7 @@ QuicPacketKeyUpdate(
             &NewTrafficSecret,
             "update traffic secret",
             FALSE,
-            NewKey,
-            NULL);
+            NewKey);
 
     CxPlatSecureZeroMemory(&NewTrafficSecret, sizeof(CXPLAT_SECRET));
     CxPlatSecureZeroMemory(OldKey->TrafficSecret, sizeof(CXPLAT_SECRET));

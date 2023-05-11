@@ -332,11 +332,6 @@ QuicCryptoInitializeTls(
         goto Error;
     }
 
-    if (Connection->Settings.EncryptionOffloadAllowed &&
-        Connection->Paths[0].TlsOffloadSecrets != NULL) {
-        TlsConfig.TlsOffloadSecrets = Connection->Paths[0].TlsOffloadSecrets;
-    }
-
     if (Crypto->TLS != NULL) {
         CxPlatTlsUninitialize(Crypto->TLS);
         Crypto->TLS = NULL;
@@ -1679,24 +1674,20 @@ QuicCryptoProcessTlsCompletion(
                 }
             };
             Offloads[0].ConnectionIdLength = Path->DestCid->CID.Length;
-            memcpy(&Offloads[0].Address, &Path->Route.LocalAddress, sizeof(QUIC_ADDR));
+            memcpy(&Offloads[0].Address, &Path->Route.RemoteAddress, sizeof(QUIC_ADDR));
             memcpy(Offloads[0].ConnectionId, Path->DestCid->CID.Data, Path->DestCid->CID.Length);
-            memcpy(Offloads[0].PayloadIv, Path->TlsOffloadSecrets->Tx.PayloadIv, Path->TlsOffloadSecrets->Tx.PayloadIvLength);
-            memcpy(Offloads[0].PayloadKey, Path->TlsOffloadSecrets->Tx.PayloadKey, Path->TlsOffloadSecrets->Tx.PayloadKeyLength);
-            memcpy(Offloads[0].HeaderKey, Path->TlsOffloadSecrets->Tx.HeaderKey, Path->TlsOffloadSecrets->Tx.HeaderKeyLength);
             Offloads[1].ConnectionIdLength = SourceCid->CID.Length;
             memcpy(&Offloads[1].Address, &Path->Route.LocalAddress, sizeof(QUIC_ADDR));
             memcpy(Offloads[1].ConnectionId, SourceCid->CID.Data, SourceCid->CID.Length);
-            memcpy(Offloads[1].PayloadIv, Path->TlsOffloadSecrets->Rx.PayloadIv, Path->TlsOffloadSecrets->Rx.PayloadIvLength);
-            memcpy(Offloads[1].PayloadKey, Path->TlsOffloadSecrets->Rx.PayloadKey, Path->TlsOffloadSecrets->Rx.PayloadKeyLength);
-            memcpy(Offloads[1].HeaderKey, Path->TlsOffloadSecrets->Rx.HeaderKey, Path->TlsOffloadSecrets->Rx.HeaderKeyLength);
-            if (QUIC_SUCCEEDED(CxPlatSocketUpdateQeo(Path->Binding->Socket, Offloads, 2))) {
+            if (QuicPacketKeyCreateOffload(Connection->Crypto.TLS, Connection->Crypto.TlsState.WriteKeys[QUIC_PACKET_KEY_1_RTT], "Tx offload", &Offloads[0]) &&
+                QuicPacketKeyCreateOffload(Connection->Crypto.TLS, Connection->Crypto.TlsState.ReadKeys[QUIC_PACKET_KEY_1_RTT],  "Rx offload", &Offloads[1]) &&
+                QUIC_SUCCEEDED(CxPlatSocketUpdateQeo(Path->Binding->Socket, Offloads, 2))) {
                 Connection->Stats.EncryptionOffloaded = TRUE;
                 Path->EncryptionOffloading = TRUE;
                 QuicTraceLogConnInfo(
-                    OfflodingStart,
+                    PathQeoEnabled,
                     Connection,
-                    "Path[%hhu] Successfully start encryption offloading",
+                    "Path[%hhu] QEO enabled",
                     Path->ID);
             }
         }

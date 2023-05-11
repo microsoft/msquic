@@ -453,20 +453,19 @@ tracepoint(CLOG_CONNECTION_C, UnreachableInvalid , arg1);\
 
 
 /*----------------------------------------------------------
-// Decoder Ring for OfflodingStop
-// [conn][%p] Path[%hhu] %s stop encryption offloading
+// Decoder Ring for PathQeoDisabled
+// [conn][%p] Path[%hhu] QEO disabled
 // QuicTraceLogConnInfo(
-                OfflodingStop,
+                PathQeoDisabled,
                 Connection,
-                "Path[%hhu] %s stop encryption offloading",
-                Connection->Paths[0].ID, QUIC_SUCCEEDED(Status) ? "Successfully" : "Failed to");
+                "Path[%hhu] QEO disabled",
+                Connection->Paths[0].ID);
 // arg1 = arg1 = Connection = arg1
 // arg3 = arg3 = Connection->Paths[0].ID = arg3
-// arg4 = arg4 = QUIC_SUCCEEDED(Status) ? "Successfully" : "Failed to" = arg4
 ----------------------------------------------------------*/
-#ifndef _clog_5_ARGS_TRACE_OfflodingStop
-#define _clog_5_ARGS_TRACE_OfflodingStop(uniqueId, arg1, encoded_arg_string, arg3, arg4)\
-tracepoint(CLOG_CONNECTION_C, OfflodingStop , arg1, arg3, arg4);\
+#ifndef _clog_4_ARGS_TRACE_PathQeoDisabled
+#define _clog_4_ARGS_TRACE_PathQeoDisabled(uniqueId, arg1, encoded_arg_string, arg3)\
+tracepoint(CLOG_CONNECTION_C, PathQeoDisabled , arg1, arg3);\
 
 #endif
 

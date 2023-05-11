@@ -498,10 +498,10 @@ QuicConnUninitialize(
             Connection->Stats.EncryptionOffloaded = FALSE;
             Connection->Paths[0].EncryptionOffloading = FALSE;
             QuicTraceLogConnInfo(
-                OfflodingStop,
+                PathQeoDisabled,
                 Connection,
-                "Path[%hhu] %s stop encryption offloading",
-                Connection->Paths[0].ID, QUIC_SUCCEEDED(Status) ? "Successfully" : "Failed to");
+                "Path[%hhu] QEO disabled",
+                Connection->Paths[0].ID);
         }
 
         QuicBindingRemoveConnection(Connection->Paths[0].Binding, Connection);
