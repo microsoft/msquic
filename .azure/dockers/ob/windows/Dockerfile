@@ -1,5 +1,5 @@
 # escape=`
-FROM onebranch.azurecr.io/windows/ltsc2022/vse2022:vnext
+FROM onebranch.azurecr.io/windows/ltsc2022/vse2022:latest
 
 # Default .NET FX images switch shell to PS. Switch it back.
 SHELL ["cmd", "/S", "/C"]
