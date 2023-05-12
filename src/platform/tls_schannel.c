@@ -3246,7 +3246,7 @@ Error:
 
 _Success_(return==TRUE)
 BOOLEAN
-QuicPacketKeyCreateOffload(
+QuicTlsPopulateOffloadKeys(
     _Inout_ CXPLAT_TLS* TlsContext,
     _In_ const QUIC_PACKET_KEY* const PacketKey,
     _In_z_ const char* const SecretName,
@@ -3265,7 +3265,7 @@ QuicPacketKeyCreateOffload(
             "[ tls][%p] ERROR, %u, %s.",
             TlsContext->Connection,
             Status,
-            "QuicPacketKeyCreateOffload");
+            "QuicTlsPopulateOffloadKeys");
         goto Error;
     }
 

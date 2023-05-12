@@ -1658,7 +1658,7 @@ QuicCryptoProcessTlsCompletion(
                     CXPLAT_QEO_OPERATION_ADD,
                     CXPLAT_QEO_DIRECTION_TRANSMIT,
                     CXPLAT_QEO_DECRYPT_FAILURE_ACTION_DROP,
-                    0, // KeyPhase
+                    Connection->Packets[QUIC_ENCRYPT_LEVEL_1_RTT]->CurrentKeyPhase,
                     0, // Reserved:0
                     CXPLAT_QEO_CIPHER_TYPE_AEAD_AES_256_GCM,
                     Connection->Send.NextPacketNumber,
@@ -1667,20 +1667,21 @@ QuicCryptoProcessTlsCompletion(
                     CXPLAT_QEO_OPERATION_ADD,
                     CXPLAT_QEO_DIRECTION_RECEIVE,
                     CXPLAT_QEO_DECRYPT_FAILURE_ACTION_DROP,
-                    0, // KeyPhase
+                    Connection->Packets[QUIC_ENCRYPT_LEVEL_1_RTT]->CurrentKeyPhase,
                     0, // Reserved:0
                     CXPLAT_QEO_CIPHER_TYPE_AEAD_AES_256_GCM,
-                    0,
+                    Connection->Packets[QUIC_ENCRYPT_LEVEL_1_RTT]->AckTracker.LargestPacketNumberAcknowledged,
                 }
             };
+
             Offloads[0].ConnectionIdLength = Path->DestCid->CID.Length;
-            memcpy(&Offloads[0].Address, &Path->Route.RemoteAddress, sizeof(QUIC_ADDR));
-            memcpy(Offloads[0].ConnectionId, Path->DestCid->CID.Data, Path->DestCid->CID.Length);
+            CxPlatCopyMemory(&Offloads[0].Address, &Path->Route.RemoteAddress, sizeof(QUIC_ADDR));
+            CxPlatCopyMemory(Offloads[0].ConnectionId, Path->DestCid->CID.Data, Path->DestCid->CID.Length);
             Offloads[1].ConnectionIdLength = SourceCid->CID.Length;
-            memcpy(&Offloads[1].Address, &Path->Route.LocalAddress, sizeof(QUIC_ADDR));
-            memcpy(Offloads[1].ConnectionId, SourceCid->CID.Data, SourceCid->CID.Length);
-            if (QuicPacketKeyCreateOffload(Connection->Crypto.TLS, Connection->Crypto.TlsState.WriteKeys[QUIC_PACKET_KEY_1_RTT], "Tx offload", &Offloads[0]) &&
-                QuicPacketKeyCreateOffload(Connection->Crypto.TLS, Connection->Crypto.TlsState.ReadKeys[QUIC_PACKET_KEY_1_RTT],  "Rx offload", &Offloads[1]) &&
+            CxPlatCopyMemory(&Offloads[1].Address, &Path->Route.LocalAddress, sizeof(QUIC_ADDR));
+            CxPlatCopyMemory(Offloads[1].ConnectionId, SourceCid->CID.Data, SourceCid->CID.Length);
+            if (QuicTlsPopulateOffloadKeys(Connection->Crypto.TLS, Connection->Crypto.TlsState.WriteKeys[QUIC_PACKET_KEY_1_RTT], "Tx offload", &Offloads[0]) &&
+                QuicTlsPopulateOffloadKeys(Connection->Crypto.TLS, Connection->Crypto.TlsState.ReadKeys[QUIC_PACKET_KEY_1_RTT],  "Rx offload", &Offloads[1]) &&
                 QUIC_SUCCEEDED(CxPlatSocketUpdateQeo(Path->Binding->Socket, Offloads, 2))) {
                 Connection->Stats.EncryptionOffloaded = TRUE;
                 Path->EncryptionOffloading = TRUE;
@@ -1690,6 +1691,7 @@ QuicCryptoProcessTlsCompletion(
                     "Path[%hhu] QEO enabled",
                     Path->ID);
             }
+            CxPlatSecureZeroMemory(Offloads, sizeof(Offloads));
         }
 
         //

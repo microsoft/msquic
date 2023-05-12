@@ -21,6 +21,7 @@ extern "C" {
 typedef struct CXPLAT_KEY CXPLAT_KEY;
 typedef struct CXPLAT_HP_KEY CXPLAT_HP_KEY;
 typedef struct CXPLAT_HASH CXPLAT_HASH;
+typedef struct CXPLAT_QEO_CONNECTION CXPLAT_QEO_CONNECTION;
 
 #define CXPLAT_HKDF_PREFIX        "tls13 "
 #define CXPLAT_HKDF_PREFIX_LEN    (sizeof(CXPLAT_HKDF_PREFIX) - 1)
@@ -231,7 +232,6 @@ QuicPacketKeyDerive(
     _Out_ QUIC_PACKET_KEY **NewKey
     );
 
-#include "quic_datapath.h"
 _IRQL_requires_max_(DISPATCH_LEVEL)
 QUIC_STATUS
 QuicPacketKeyDeriveOffload(
