@@ -53,7 +53,12 @@ QuicPathRemove(
     _In_ uint8_t Index
     )
 {
-    CXPLAT_DBG_ASSERT(Index < Connection->PathsCount);
+    CXPLAT_DBG_ASSERT(Connection->PathsCount > 0);
+    CXPLAT_TEL_ASSERTMSG(Index < Connection->PathsCount, "Invalid path removal!");
+    if (Index >= Connection->PathsCount) {
+        return;
+    }
+
     const QUIC_PATH* Path = &Connection->Paths[Index];
     QuicTraceLogConnInfo(
         PathRemoved,
@@ -250,6 +255,7 @@ QuicConnGetPathForDatagram(
             (Connection->PathsCount - 1) * sizeof(QUIC_PATH));
     }
 
+    CXPLAT_DBG_ASSERT(Connection->PathsCount < QUIC_MAX_PATH_COUNT);
     QUIC_PATH* Path = &Connection->Paths[1];
     QuicPathInitialize(Connection, Path);
     Connection->PathsCount++;
