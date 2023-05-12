@@ -21,8 +21,11 @@ if("${CX_PLATFORM}" STREQUAL "windows")
 else()
     set(SOURCES ${SOURCES} inline.c platform_posix.c storage_posix.c cgroup.c)
     if(CX_PLATFORM STREQUAL "linux" AND NOT CMAKE_SYSTEM_NAME STREQUAL "FreeBSD")
-        set(SOURCES ${SOURCES} datapath_raw_framing.c datapath_raw_xdp_epoll.c)
-        #set(SOURCES ${SOURCES} datapath_raw.c datapath_raw_socket.c datapath_raw_xdp_epoll.c)
+        if(QUIC_USE_XDP)
+            set(SOURCES ${SOURCES} datapath_raw_framing.c datapath_raw_xdp_epoll.c datapath_raw_socket.c)
+        else()
+            set(SOURCES ${SOURCES} datapath_epoll.c)
+        endif()
     else()
         set(SOURCES ${SOURCES} datapath_kqueue.c)
     endif()
@@ -69,31 +72,36 @@ target_link_libraries(platform PRIVATE elf)
 #target_link_libraries(platform PRIVATE )
 #target_link_libraries(platform PRIVATE bpf)
 
-if(QUIC_USE_XDP)
-    target_link_libraries(
-        platform
-        PUBLIC
-        inc
-        wbemuuid
-        ${PROJECT_SOURCE_DIR}/artifacts/xdp/lib/xdpapi.lib)
+if("${CX_PLATFORM}" STREQUAL "windows")
+    if(QUIC_USE_XDP)
+        target_link_libraries(
+            platform
+            PUBLIC
+            inc
+            wbemuuid
+            ${PROJECT_SOURCE_DIR}/artifacts/xdp/lib/xdpapi.lib)
+    else()
+        target_link_libraries(platform PUBLIC winmm)
+        target_link_libraries(platform PUBLIC inc)
+    endif()
 else()
     target_link_libraries(platform PUBLIC inc)
-endif()
-
-if("${CX_PLATFORM}" STREQUAL "windows")
-    target_link_libraries(platform PUBLIC winmm)
 endif()
 
 target_link_libraries(platform PRIVATE warnings main_binary_link_args)
 
 set_property(TARGET platform PROPERTY FOLDER "${QUIC_FOLDER_PREFIX}libraries")
 
-if(QUIC_USE_XDP)
-    target_include_directories(
-        platform
-        PRIVATE
-        ${EXTRA_PLATFORM_INCLUDE_DIRECTORIES}
-        ${PROJECT_SOURCE_DIR}/artifacts/xdp/include)
+if("${CX_PLATFORM}" STREQUAL "windows")
+    if(QUIC_USE_XDP)
+        target_include_directories(
+            platform
+            PRIVATE
+            ${EXTRA_PLATFORM_INCLUDE_DIRECTORIES}
+            ${PROJECT_SOURCE_DIR}/artifacts/xdp/include)
+    else()
+        target_include_directories(platform PRIVATE ${EXTRA_PLATFORM_INCLUDE_DIRECTORIES})
+    endif()
 else()
     target_include_directories(platform PRIVATE ${EXTRA_PLATFORM_INCLUDE_DIRECTORIES})
 endif()

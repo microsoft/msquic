@@ -23,6 +23,8 @@ Abstract:
 #define SocketError() WSAGetLastError()
 #else
 #define SocketError() errno
+#define HRESULT_FROM_WIN32 (QUIC_STATUS)
+#define closesocket close
 #endif // _WIN32
 
 //
@@ -79,7 +81,7 @@ CxPlatGetSocket(
     CxPlatRwLockAcquireShared(&((CXPLAT_SOCKET_POOL*)Pool)->Lock);
     Entry = CxPlatHashtableLookup(&Pool->Sockets, LocalAddress->Ipv4.sin_port, &Context);
     while (Entry != NULL) {
-        CXPLAT_SOCKET* Temp = CONTAINING_RECORD(Entry, CXPLAT_SOCKET, Entry);
+        CXPLAT_SOCKET* Temp = CXPLAT_CONTAINING_RECORD(Entry, CXPLAT_SOCKET, Entry);
         if (CxPlatSocketCompare(Temp, LocalAddress, RemoteAddress)) {
             if (CxPlatRundownAcquire(&Temp->Rundown)) {
                 Socket = Temp;
@@ -103,8 +105,8 @@ CxPlatTryAddSocket(
     CXPLAT_HASHTABLE_LOOKUP_CONTEXT Context;
     CXPLAT_HASHTABLE_ENTRY* Entry;
     QUIC_ADDR MappedAddress = {0};
-    SOCKET TempUdpSocket = INVALID_SOCKET;
-    int AssignedLocalAddressLength;
+    int TempUdpSocket = INVALID_SOCKET;
+    uint32_t AssignedLocalAddressLength;
 
     //
     // Get (and reserve) a transport layer port from the OS networking stack by
@@ -390,7 +392,7 @@ CxPlatTryAddSocket(
 
     Entry = CxPlatHashtableLookup(&Pool->Sockets, Socket->LocalAddress.Ipv4.sin_port, &Context);
     while (Entry != NULL) {
-        CXPLAT_SOCKET* Temp = CONTAINING_RECORD(Entry, CXPLAT_SOCKET, Entry);
+        CXPLAT_SOCKET* Temp = CXPLAT_CONTAINING_RECORD(Entry, CXPLAT_SOCKET, Entry);
         if (CxPlatSocketCompare(Temp, &Socket->LocalAddress, &Socket->RemoteAddress)) {
             Status = QUIC_STATUS_ADDRESS_IN_USE;
             break;
@@ -440,7 +442,7 @@ CxPlatRemoveSocket(
 
 void
 CxPlatResolveRouteComplete(
-    _In_ QUIC_CONNECTION* Connection,
+    _In_ void* Connection,
     _Inout_ CXPLAT_ROUTE* Route,
     _In_reads_bytes_(6) const uint8_t* PhysicalAddress,
     _In_ uint8_t PathId
@@ -450,7 +452,7 @@ CxPlatResolveRouteComplete(
     Route->State = RouteResolved;
     QuicTraceLogConnInfo(
         RouteResolutionEnd,
-        Connection,
+        (QUIC_CONNECTION*)Connection,
         "Route resolution completed on Path[%hhu] with L2 address %hhx:%hhx:%hhx:%hhx:%hhx:%hhx",
         PathId,
         Route->NextHopLinkLayerAddress[0],
@@ -659,6 +661,11 @@ Done:
         return HRESULT_FROM_WIN32(Status);
     }
 #else // _WIN32
+    UNREFERENCED_PARAMETER(Socket);
+    UNREFERENCED_PARAMETER(Route);
+    UNREFERENCED_PARAMETER(PathId);
+    UNREFERENCED_PARAMETER(Context);
+    UNREFERENCED_PARAMETER(Callback);
     return QUIC_STATUS_NOT_SUPPORTED;
 #endif // _WIN32
 }
@@ -1218,7 +1225,7 @@ CxPlatDpRawSocketAckSyn(
         TcpFlags);
     CxPlatDpRawTxEnqueue(SendData);
 
-    SendData = InterlockedFetchAndClearPointer(&Socket->PausedTcpSend);
+    SendData = InterlockedFetchAndClearPointer((void*)&Socket->PausedTcpSend);
     if (SendData) {
         CXPLAT_DBG_ASSERT(Socket->Connected);
         QuicTraceEvent(

@@ -560,8 +560,8 @@ if(WIN32)
 
     # Find the right PGO file.
     if(QUIC_USE_XDP)
-        set(QUIC_PGO_NAME "msquic.${QUIC_TLS}.xdp.pgd")
-        set(QUIC_PGO_FILE "${CMAKE_CURRENT_SOURCE_DIR}/src/bin/winuser/pgo_${SYSTEM_PROCESSOR}/${QUIC_PGO_NAME}")
+        #set(QUIC_PGO_NAME "msquic.${QUIC_TLS}.xdp.pgd")
+        #set(QUIC_PGO_FILE "${CMAKE_CURRENT_SOURCE_DIR}/src/bin/winuser/pgo_${SYSTEM_PROCESSOR}/${QUIC_PGO_NAME}")
     endif()
 
     if(NOT EXISTS "${QUIC_PGO_FILE}")

@@ -49,7 +49,9 @@ typedef struct CXPLAT_ROUTE_RESOLUTION_OPERATION {
     // N.B. Multi-threaded access, synchronized by worker's operation lock.
     //
     CXPLAT_LIST_ENTRY WorkerLink;
-    MIB_IPNET_ROW2 IpnetRow;
+#ifdef _WIN32 // Hack for Linux build
+    //MIB_IPNET_ROW2 IpnetRow;
+#endif
     void* Context;
     uint8_t PathId;
     CXPLAT_ROUTE_RESOLUTION_CALLBACK_HANDLER Callback;
@@ -78,7 +80,7 @@ typedef struct CXPLAT_DATAPATH {
 typedef struct CXPLAT_INTERFACE {
     CXPLAT_LIST_ENTRY Link;
     uint32_t IfIndex;
-    UCHAR PhysicalAddress[ETH_MAC_ADDR_LEN];
+    uint8_t PhysicalAddress[ETH_MAC_ADDR_LEN];
     struct {
         struct {
             BOOLEAN NetworkLayerXsum : 1;
@@ -259,7 +261,7 @@ typedef struct CXPLAT_SOCKET {
     CXPLAT_HASHTABLE_ENTRY Entry;
     CXPLAT_RUNDOWN_REF Rundown;
     CXPLAT_DATAPATH* Datapath;
-    SOCKET AuxSocket;
+    int AuxSocket;
     void* CallbackContext;
     QUIC_ADDR LocalAddress;
     QUIC_ADDR RemoteAddress;
@@ -292,7 +294,7 @@ CxPlatSockPoolUninitialize(
 // so it assumes that matches already.
 //
 inline
-BOOL
+BOOLEAN
 CxPlatSocketCompare(
     _In_ CXPLAT_SOCKET* Socket,
     _In_ const QUIC_ADDR* LocalAddress,
