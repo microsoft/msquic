@@ -54,8 +54,8 @@ QuicPathRemove(
     )
 {
     CXPLAT_DBG_ASSERT(Connection->PathsCount > 0);
-    CXPLAT_TEL_ASSERTMSG(Index < Connection->PathsCount, "Invalid path removal!");
     if (Index >= Connection->PathsCount) {
+        CXPLAT_TEL_ASSERTMSG(Index < Connection->PathsCount, "Invalid path removal!");
         return;
     }
 
