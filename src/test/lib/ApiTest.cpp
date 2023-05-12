@@ -2077,20 +2077,6 @@ void SettingApplyTests(HQUIC Handle, uint32_t Param, bool AllowMtuEcnChanges = t
                     (!AllowMtuEcnChanges && Status == QUIC_STATUS_INVALID_PARAMETER));
     }
 
-    {
-        QUIC_SETTINGS Settings{0};
-        Settings.IsSet.EncryptionOffloadAllowed = TRUE;
-        Settings.EncryptionOffloadAllowed = TRUE;
-        QUIC_STATUS Status =
-            MsQuic->SetParam(
-                Handle,
-                Param,
-                sizeof(QUIC_SETTINGS),
-                &Settings);
-        TEST_TRUE((AllowMtuEcnChanges && Status == QUIC_STATUS_SUCCESS) ||
-                    (!AllowMtuEcnChanges && Status == QUIC_STATUS_INVALID_PARAMETER));
-    }
-
     //
     // Good
     //
