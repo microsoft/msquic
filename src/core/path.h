@@ -50,6 +50,11 @@ typedef struct QUIC_PATH {
     uint8_t ID;
 
     //
+    // Indicates the path object is actively in use.
+    //
+    BOOLEAN InUse : 1;
+
+    //
     // Indicates this is the primary path being used by the connection.
     //
     BOOLEAN IsActive : 1;

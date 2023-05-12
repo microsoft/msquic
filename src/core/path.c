@@ -27,6 +27,7 @@ QuicPathInitialize(
 {
     CxPlatZeroMemory(Path, sizeof(QUIC_PATH));
     Path->ID = Connection->NextPathId++; // TODO - Check for duplicates after wrap around?
+    Path->InUse = TRUE;
     Path->MinRtt = UINT32_MAX;
     Path->Mtu = Connection->Settings.MinimumMtu;
     Path->SmoothedRtt = MS_TO_US(Connection->Settings.InitialRttMs);
@@ -53,8 +54,15 @@ QuicPathRemove(
     _In_ uint8_t Index
     )
 {
-    CXPLAT_DBG_ASSERT(Index < Connection->PathsCount);
+    CXPLAT_DBG_ASSERT(Connection->PathsCount > 0);
+    CXPLAT_DBG_ASSERT(Connection->PathsCount <= QUIC_MAX_PATH_COUNT);
+    if (Index >= Connection->PathsCount) {
+        CXPLAT_TEL_ASSERTMSG(Index < Connection->PathsCount, "Invalid path removal!");
+        return;
+    }
+
     const QUIC_PATH* Path = &Connection->Paths[Index];
+    CXPLAT_DBG_ASSERT(Path->InUse);
     QuicTraceLogConnInfo(
         PathRemoved,
         Connection,
@@ -75,6 +83,7 @@ QuicPathRemove(
     }
 
     Connection->PathsCount--;
+    Connection->Paths[Connection->PathsCount].InUse = FALSE;
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -250,6 +259,7 @@ QuicConnGetPathForDatagram(
             (Connection->PathsCount - 1) * sizeof(QUIC_PATH));
     }
 
+    CXPLAT_DBG_ASSERT(Connection->PathsCount < QUIC_MAX_PATH_COUNT);
     QUIC_PATH* Path = &Connection->Paths[1];
     QuicPathInitialize(Connection, Path);
     Connection->PathsCount++;
