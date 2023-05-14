@@ -14,10 +14,6 @@ Abstract:
 #include "datapath_raw_socket.c.clog.h"
 #endif
 
-#define SOCKET int
-#define SocketError() errno
-#define HRESULT_FROM_WIN32 (QUIC_STATUS)
-
 #pragma warning(disable:4116) // unnamed type definition in parentheses
 #pragma warning(disable:4100) // unreferenced formal parameter
 

@@ -9,7 +9,7 @@ Abstract:
 
 --*/
 
-#include "datapath_raw_socket.h"
+#include "datapath_raw.h"
 #ifdef QUIC_CLOG
 #include "datapath_raw_socket.c.clog.h"
 #endif
