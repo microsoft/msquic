@@ -7,41 +7,9 @@
 
 #define QUIC_API_ENABLE_PREVIEW_FEATURES 1
 
+#include "datapath_raw_common.h"
 #include "platform_internal.h"
 #include "quic_hashtable.h"
-
-typedef struct CXPLAT_SOCKET_POOL {
-
-    CXPLAT_RW_LOCK Lock;
-    CXPLAT_HASHTABLE Sockets;
-
-} CXPLAT_SOCKET_POOL;
-
-typedef struct CXPLAT_DATAPATH CXPLAT_DATAPATH;
-
-//
-// A worker thread for draining queued route resolution operations.
-//
-typedef struct QUIC_CACHEALIGN CXPLAT_ROUTE_RESOLUTION_WORKER {
-    //
-    // TRUE if the worker is currently running.
-    //
-    BOOLEAN Enabled;
-
-    //
-    // An event to kick the thread.
-    //
-    CXPLAT_EVENT Ready;
-
-    CXPLAT_THREAD Thread;
-    CXPLAT_POOL OperationPool;
-
-    //
-    // Serializes access to the route resolution opreations.
-    //
-    CXPLAT_DISPATCH_LOCK Lock;
-    CXPLAT_LIST_ENTRY Operations;
-} CXPLAT_ROUTE_RESOLUTION_WORKER;
 
 typedef struct CXPLAT_ROUTE_RESOLUTION_OPERATION {
     //
