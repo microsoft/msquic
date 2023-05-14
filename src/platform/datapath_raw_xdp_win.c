@@ -14,7 +14,7 @@ Abstract:
 #include "datapath_raw_win.h"
 #include "datapath_raw_xdp_win.h"
 #ifdef QUIC_CLOG
-#include "datapath_raw_xdp.c.clog.h"
+#include "datapath_raw_xdp_win.c.clog.h"
 #endif
 
 void XdpWorkerAddQueue(_In_ XDP_WORKER* Worker, _In_ XDP_QUEUE* Queue) {

@@ -11,7 +11,7 @@ Abstract:
 
 #include "datapath_raw_win.h"
 #ifdef QUIC_CLOG
-#include "datapath_raw_socket.c.clog.h"
+#include "datapath_raw_socket_win.c.clog.h"
 #endif
 
 #define SocketError() WSAGetLastError()
