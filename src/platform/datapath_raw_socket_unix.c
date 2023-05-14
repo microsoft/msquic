@@ -14,6 +14,13 @@ Abstract:
 #include "datapath_raw_socket.c.clog.h"
 #endif
 
+#define SOCKET int
+#define SocketError() errno
+#define HRESULT_FROM_WIN32 (QUIC_STATUS)
+
+#pragma warning(disable:4116) // unnamed type definition in parentheses
+#pragma warning(disable:4100) // unreferenced formal parameter
+
 //
 // Socket Pool Logic
 //
@@ -64,5 +71,18 @@ CxPlatResolveRoute(
     UNREFERENCED_PARAMETER(PathId);
     UNREFERENCED_PARAMETER(Context);
     UNREFERENCED_PARAMETER(Callback);
+    return QUIC_STATUS_NOT_SUPPORTED;
+}
+
+
+QUIC_STATUS
+CxPlatTryAddSocket(
+    _In_ CXPLAT_SOCKET_POOL* Pool,
+    _In_ CXPLAT_SOCKET* Socket
+    )
+{
+    UNREFERENCED_PARAMETER(Pool);
+    UNREFERENCED_PARAMETER(Socket);
+
     return QUIC_STATUS_NOT_SUPPORTED;
 }

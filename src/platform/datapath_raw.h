@@ -258,7 +258,7 @@ typedef struct CXPLAT_SOCKET {
     CXPLAT_HASHTABLE_ENTRY Entry;
     CXPLAT_RUNDOWN_REF Rundown;
     CXPLAT_DATAPATH* Datapath;
-    int AuxSocket;
+    SOCKET AuxSocket;
     void* CallbackContext;
     QUIC_ADDR LocalAddress;
     QUIC_ADDR RemoteAddress;
