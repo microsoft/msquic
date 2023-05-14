@@ -7,21 +7,41 @@
 
 #define QUIC_API_ENABLE_PREVIEW_FEATURES 1
 
-#include "datapath_raw_common.h"
 #include "platform_internal.h"
 #include "quic_hashtable.h"
 
-typedef struct CXPLAT_ROUTE_RESOLUTION_OPERATION {
+typedef struct CXPLAT_SOCKET_POOL {
+
+    CXPLAT_RW_LOCK Lock;
+    CXPLAT_HASHTABLE Sockets;
+
+} CXPLAT_SOCKET_POOL;
+
+typedef struct CXPLAT_DATAPATH CXPLAT_DATAPATH;
+
+//
+// A worker thread for draining queued route resolution operations.
+//
+typedef struct QUIC_CACHEALIGN CXPLAT_ROUTE_RESOLUTION_WORKER {
     //
-    // Link in the worker's operation queue.
-    // N.B. Multi-threaded access, synchronized by worker's operation lock.
+    // TRUE if the worker is currently running.
     //
-    CXPLAT_LIST_ENTRY WorkerLink;
-    MIB_IPNET_ROW2 IpnetRow;
-    void* Context;
-    uint8_t PathId;
-    CXPLAT_ROUTE_RESOLUTION_CALLBACK_HANDLER Callback;
-} CXPLAT_ROUTE_RESOLUTION_OPERATION;
+    BOOLEAN Enabled;
+
+    //
+    // An event to kick the thread.
+    //
+    CXPLAT_EVENT Ready;
+
+    CXPLAT_THREAD Thread;
+    CXPLAT_POOL OperationPool;
+
+    //
+    // Serializes access to the route resolution opreations.
+    //
+    CXPLAT_DISPATCH_LOCK Lock;
+    CXPLAT_LIST_ENTRY Operations;
+} CXPLAT_ROUTE_RESOLUTION_WORKER;
 
 typedef struct CXPLAT_DATAPATH {
 
@@ -47,7 +67,7 @@ typedef struct CXPLAT_INTERFACE {
     CXPLAT_LIST_ENTRY Link;
     uint32_t IfIndex;
     uint32_t ActualIfIndex;
-    UCHAR PhysicalAddress[ETH_MAC_ADDR_LEN];
+    uint8_t PhysicalAddress[ETH_MAC_ADDR_LEN];
     struct {
         struct {
             BOOLEAN NetworkLayerXsum : 1;
@@ -271,7 +291,7 @@ CxPlatSockPoolUninitialize(
 // so it assumes that matches already.
 //
 inline
-BOOL
+BOOLEAN
 CxPlatSocketCompare(
     _In_ CXPLAT_SOCKET* Socket,
     _In_ const QUIC_ADDR* LocalAddress,

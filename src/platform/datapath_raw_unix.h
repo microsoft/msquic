@@ -11,7 +11,7 @@
 #define SocketError() errno
 #define HRESULT_FROM_WIN32 (QUIC_STATUS)
 
-#include "datapath_raw_common.h"
+#include "datapath_raw.h"
 #include "platform_internal.h"
 #include "quic_hashtable.h"
 
