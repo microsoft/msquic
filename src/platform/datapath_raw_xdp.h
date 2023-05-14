@@ -9,7 +9,6 @@
 
 #include <stdio.h>
 #include "platform_internal.h"
-//#include "datapath_raw_common.h"
 
 #define RX_BATCH_SIZE 16
 #define MAX_ETH_FRAME_SIZE 1514
@@ -51,20 +50,3 @@ typedef struct QUIC_CACHEALIGN XDP_WORKER {
     XDP_QUEUE* Queues; // A linked list of queues, accessed by Next.
     uint16_t ProcIndex;
 } XDP_WORKER;
-
-// -> CxPlat
-typedef struct __attribute__((aligned(64))) XDP_RX_PACKET {
-    CXPLAT_RECV_DATA;
-    CXPLAT_ROUTE RouteStorage;
-    XDP_QUEUE* Queue;
-    // Followed by:
-    // uint8_t ClientContext[...];
-    // uint8_t FrameBuffer[MAX_ETH_FRAME_SIZE];
-} XDP_RX_PACKET;
-
-typedef struct __attribute__((aligned(64))) XDP_TX_PACKET {
-    CXPLAT_SEND_DATA;
-    XDP_QUEUE* Queue;
-    CXPLAT_LIST_ENTRY Link;
-    uint8_t FrameBuffer[MAX_ETH_FRAME_SIZE];
-} XDP_TX_PACKET;

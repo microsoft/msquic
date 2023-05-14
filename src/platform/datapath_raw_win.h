@@ -8,7 +8,7 @@
 #define QUIC_API_ENABLE_PREVIEW_FEATURES 1
 #define SocketError() WSAGetLastError()
 
-#include "datapath_raw_common.h"
+#include "datapath_raw.h"
 #include "platform_internal.h"
 #include "quic_hashtable.h"
 
