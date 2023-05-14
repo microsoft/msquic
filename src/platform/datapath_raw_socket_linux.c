@@ -9,9 +9,9 @@ Abstract:
 
 --*/
 
-#include "datapath_raw_unix.h"
+#include "datapath_raw_linux.h"
 #ifdef QUIC_CLOG
-#include "datapath_raw_socket.c.clog.h"
+#include "datapath_raw_socket_linux.c.clog.h"
 #endif
 
 #pragma warning(disable:4116) // unnamed type definition in parentheses

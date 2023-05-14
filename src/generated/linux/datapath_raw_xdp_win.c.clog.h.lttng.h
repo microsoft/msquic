@@ -39,7 +39,7 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_C, FoundVF,
 // arg2 = arg2 = Xdp = arg2
 // arg3 = arg3 = Xdp->WorkerCount = arg3
 ----------------------------------------------------------*/
-TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_C, XdpInitialize,
+TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_WIN_C, XdpInitialize,
     TP_ARGS(
         const void *, arg2,
         unsigned int, arg3), 
@@ -62,7 +62,7 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_C, XdpInitialize,
 // arg2 = arg2 = Queue = arg2
 // arg3 = arg3 = Worker = arg3
 ----------------------------------------------------------*/
-TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_C, XdpQueueStart,
+TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_WIN_C, XdpQueueStart,
     TP_ARGS(
         const void *, arg2,
         const void *, arg3), 
@@ -85,7 +85,7 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_C, XdpQueueStart,
 // arg2 = arg2 = Worker = arg2
 // arg3 = arg3 = QueueCount = arg3
 ----------------------------------------------------------*/
-TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_C, XdpWorkerStart,
+TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_WIN_C, XdpWorkerStart,
     TP_ARGS(
         const void *, arg2,
         unsigned int, arg3), 
@@ -106,7 +106,7 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_C, XdpWorkerStart,
         Xdp);
 // arg2 = arg2 = Xdp = arg2
 ----------------------------------------------------------*/
-TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_C, XdpRelease,
+TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_WIN_C, XdpRelease,
     TP_ARGS(
         const void *, arg2), 
     TP_FIELDS(
@@ -125,7 +125,7 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_C, XdpRelease,
             Xdp);
 // arg2 = arg2 = Xdp = arg2
 ----------------------------------------------------------*/
-TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_C, XdpUninitializeComplete,
+TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_WIN_C, XdpUninitializeComplete,
     TP_ARGS(
         const void *, arg2), 
     TP_FIELDS(
@@ -144,7 +144,7 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_C, XdpUninitializeComplete,
         Xdp);
 // arg2 = arg2 = Xdp = arg2
 ----------------------------------------------------------*/
-TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_C, XdpUninitialize,
+TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_WIN_C, XdpUninitialize,
     TP_ARGS(
         const void *, arg2), 
     TP_FIELDS(
@@ -163,7 +163,7 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_C, XdpUninitialize,
             Worker);
 // arg2 = arg2 = Worker = arg2
 ----------------------------------------------------------*/
-TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_C, XdpWorkerShutdown,
+TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_WIN_C, XdpWorkerShutdown,
     TP_ARGS(
         const void *, arg2), 
     TP_FIELDS(
@@ -182,7 +182,7 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_C, XdpWorkerShutdown,
                     Queue);
 // arg2 = arg2 = Queue = arg2
 ----------------------------------------------------------*/
-TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_C, XdpQueueAsyncIoRx,
+TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_WIN_C, XdpQueueAsyncIoRx,
     TP_ARGS(
         const void *, arg2), 
     TP_FIELDS(
@@ -201,7 +201,7 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_C, XdpQueueAsyncIoRx,
                     Queue);
 // arg2 = arg2 = Queue = arg2
 ----------------------------------------------------------*/
-TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_C, XdpQueueAsyncIoTx,
+TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_WIN_C, XdpQueueAsyncIoTx,
     TP_ARGS(
         const void *, arg2), 
     TP_FIELDS(
@@ -220,7 +220,7 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_C, XdpQueueAsyncIoTx,
                 Queue);
 // arg2 = arg2 = Queue = arg2
 ----------------------------------------------------------*/
-TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_C, XdpQueueAsyncIoRxComplete,
+TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_WIN_C, XdpQueueAsyncIoRxComplete,
     TP_ARGS(
         const void *, arg2), 
     TP_FIELDS(
@@ -239,7 +239,7 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_C, XdpQueueAsyncIoRxComplete,
                 Queue);
 // arg2 = arg2 = Queue = arg2
 ----------------------------------------------------------*/
-TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_C, XdpQueueAsyncIoTxComplete,
+TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_WIN_C, XdpQueueAsyncIoTxComplete,
     TP_ARGS(
         const void *, arg2), 
     TP_FIELDS(
@@ -258,7 +258,7 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_C, XdpQueueAsyncIoTxComplete,
             Worker);
 // arg2 = arg2 = Worker = arg2
 ----------------------------------------------------------*/
-TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_C, XdpWorkerShutdownComplete,
+TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_WIN_C, XdpWorkerShutdownComplete,
     TP_ARGS(
         const void *, arg2), 
     TP_FIELDS(
@@ -279,7 +279,7 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_C, XdpWorkerShutdownComplete,
 // arg2 = arg2 = ret = arg2
 // arg3 = arg3 = "ConvertInterfaceIndexToLuid" = arg3
 ----------------------------------------------------------*/
-TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_C, LibraryErrorStatus,
+TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_WIN_C, LibraryErrorStatus,
     TP_ARGS(
         unsigned int, arg2,
         const char *, arg3), 
@@ -302,7 +302,7 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_C, LibraryErrorStatus,
 // arg2 = arg2 = "XDP Queues" = arg2
 // arg3 = arg3 = Interface->QueueCount * sizeof(*Interface->Queues) = arg3
 ----------------------------------------------------------*/
-TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_C, AllocFailure,
+TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_WIN_C, AllocFailure,
     TP_ARGS(
         const char *, arg2,
         unsigned long long, arg3), 
@@ -323,7 +323,7 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_C, AllocFailure,
             "No more room for rules");
 // arg2 = arg2 = "No more room for rules" = arg2
 ----------------------------------------------------------*/
-TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_C, LibraryError,
+TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_WIN_C, LibraryError,
     TP_ARGS(
         const char *, arg2), 
     TP_FIELDS(

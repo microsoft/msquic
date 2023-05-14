@@ -2,29 +2,6 @@
 
 
 /*----------------------------------------------------------
-// Decoder Ring for DatapathResolveHostNameFailed
-// [%p] Couldn't resolve hostname '%s' to an IP address
-// QuicTraceLogError(
-        DatapathResolveHostNameFailed,
-        "[%p] Couldn't resolve hostname '%s' to an IP address",
-        Datapath,
-        HostName);
-// arg2 = arg2 = Datapath = arg2
-// arg3 = arg3 = HostName = arg3
-----------------------------------------------------------*/
-TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_C, DatapathResolveHostNameFailed,
-    TP_ARGS(
-        const void *, arg2,
-        const char *, arg3), 
-    TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg2, arg2)
-        ctf_string(arg3, arg3)
-    )
-)
-
-
-
-/*----------------------------------------------------------
 // Decoder Ring for AllocFailure
 // Allocation of '%s' failed. (%llu bytes)
 // QuicTraceEvent(
@@ -35,7 +12,7 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_C, DatapathResolveHostNameFailed,
 // arg2 = arg2 = "CXPLAT_DATAPATH" = arg2
 // arg3 = arg3 = sizeof(CXPLAT_ROUTE_RESOLUTION_WORKER) = arg3
 ----------------------------------------------------------*/
-TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_C, AllocFailure,
+TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_LINUX_C, AllocFailure,
     TP_ARGS(
         const char *, arg2,
         unsigned long long, arg3), 
@@ -58,32 +35,13 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_C, AllocFailure,
 // arg2 = arg2 = Status = arg2
 // arg3 = arg3 = "CxPlatThreadCreate" = arg3
 ----------------------------------------------------------*/
-TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_C, LibraryErrorStatus,
+TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_LINUX_C, LibraryErrorStatus,
     TP_ARGS(
         unsigned int, arg2,
         const char *, arg3), 
     TP_FIELDS(
         ctf_integer(unsigned int, arg2, arg2)
         ctf_string(arg3, arg3)
-    )
-)
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for LibraryError
-// [ lib] ERROR, %s.
-// QuicTraceEvent(
-        LibraryError,
-        "[ lib] ERROR, %s.",
-        "Resolving hostname to IP");
-// arg2 = arg2 = "Resolving hostname to IP" = arg2
-----------------------------------------------------------*/
-TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_C, LibraryError,
-    TP_ARGS(
-        const char *, arg2), 
-    TP_FIELDS(
-        ctf_string(arg2, arg2)
     )
 )
 
@@ -102,7 +60,7 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_C, LibraryError,
 // arg3 = arg3 = CASTED_CLOG_BYTEARRAY(Config->LocalAddress ? sizeof(*Config->LocalAddress) : 0, Config->LocalAddress) = arg3
 // arg4 = arg4 = CASTED_CLOG_BYTEARRAY(Config->RemoteAddress ? sizeof(*Config->RemoteAddress) : 0, Config->RemoteAddress) = arg4
 ----------------------------------------------------------*/
-TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_C, DatapathCreated,
+TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_LINUX_C, DatapathCreated,
     TP_ARGS(
         const void *, arg2,
         unsigned int, arg3_len,
@@ -137,7 +95,7 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_C, DatapathCreated,
 // arg5 = arg5 = CASTED_CLOG_BYTEARRAY(sizeof(Packets[i]->Route->LocalAddress), &Packets[i]->Route->LocalAddress) = arg5
 // arg6 = arg6 = CASTED_CLOG_BYTEARRAY(sizeof(Packets[i]->Route->RemoteAddress), &Packets[i]->Route->RemoteAddress) = arg6
 ----------------------------------------------------------*/
-TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_C, DatapathRecv,
+TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_LINUX_C, DatapathRecv,
     TP_ARGS(
         const void *, arg2,
         unsigned int, arg3,
@@ -178,7 +136,7 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_C, DatapathRecv,
 // arg6 = arg6 = CASTED_CLOG_BYTEARRAY(sizeof(Route->RemoteAddress), &Route->RemoteAddress) = arg6
 // arg7 = arg7 = CASTED_CLOG_BYTEARRAY(sizeof(Route->LocalAddress), &Route->LocalAddress) = arg7
 ----------------------------------------------------------*/
-TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_C, DatapathSend,
+TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_LINUX_C, DatapathSend,
     TP_ARGS(
         const void *, arg2,
         unsigned int, arg3,
@@ -197,32 +155,5 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_C, DatapathSend,
         ctf_sequence(char, arg6, arg6, unsigned int, arg6_len)
         ctf_integer(unsigned int, arg7_len, arg7_len)
         ctf_sequence(char, arg7, arg7, unsigned int, arg7_len)
-    )
-)
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for DatapathErrorStatus
-// [data][%p] ERROR, %u, %s.
-// QuicTraceEvent(
-                        DatapathErrorStatus,
-                        "[data][%p] ERROR, %u, %s.",
-                        Operation,
-                        Status,
-                        "ResolveIpNetEntry2");
-// arg2 = arg2 = Operation = arg2
-// arg3 = arg3 = Status = arg3
-// arg4 = arg4 = "ResolveIpNetEntry2" = arg4
-----------------------------------------------------------*/
-TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_C, DatapathErrorStatus,
-    TP_ARGS(
-        const void *, arg2,
-        unsigned int, arg3,
-        const char *, arg4), 
-    TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg2, arg2)
-        ctf_integer(unsigned int, arg3, arg3)
-        ctf_string(arg4, arg4)
     )
 )

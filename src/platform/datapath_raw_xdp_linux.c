@@ -11,10 +11,10 @@ Abstract:
 
 #define _CRT_SECURE_NO_WARNINGS 1 // TODO - Remove
 
-#include "datapath_raw_unix.h"
-#include "datapath_raw_xdp_unix.h"
+#include "datapath_raw_linux.h"
+#include "datapath_raw_xdp_linux.h"
 #ifdef QUIC_CLOG
-#include "datapath_raw_xdp.c.clog.h"
+#include "datapath_raw_xdp_linux.c.clog.h"
 #endif
 
 CXPLAT_RECV_DATA*
