@@ -85,6 +85,8 @@ extern "C" {
 #define SIZEOF_STRUCT_MEMBER(StructType, StructMember) sizeof(((StructType *)0)->StructMember)
 #define TYPEOF_STRUCT_MEMBER(StructType, StructMember) typeof(((StructType *)0)->StructMember)
 
+#define SOCKET int
+
 #if defined(__GNUC__) && __GNUC__ >= 7
 #define __fallthrough __attribute__((fallthrough))
 #else
