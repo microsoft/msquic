@@ -10,7 +10,7 @@
 #include <xdpapi.h>
 #include <stdio.h>
 #include "platform_internal.h"
-#include "datapath_raw_xdp_common.h"
+#include "datapath_raw_xdp.h"
 
 typedef struct XDP_DATAPATH {
     CXPLAT_DATAPATH;
@@ -75,3 +75,19 @@ typedef struct XDP_QUEUE {
     CXPLAT_LOCK TxLock;
     CXPLAT_LIST_ENTRY TxQueue;
 } XDP_QUEUE;
+
+typedef struct DECLSPEC_ALIGN(MEMORY_ALLOCATION_ALIGNMENT) XDP_RX_PACKET {
+    CXPLAT_RECV_DATA;
+    CXPLAT_ROUTE RouteStorage;
+    XDP_QUEUE* Queue;
+    // Followed by:
+    // uint8_t ClientContext[...];
+    // uint8_t FrameBuffer[MAX_ETH_FRAME_SIZE];
+} XDP_RX_PACKET;
+
+typedef struct DECLSPEC_ALIGN(MEMORY_ALLOCATION_ALIGNMENT) XDP_TX_PACKET {
+    CXPLAT_SEND_DATA;
+    XDP_QUEUE* Queue;
+    CXPLAT_LIST_ENTRY Link;
+    uint8_t FrameBuffer[MAX_ETH_FRAME_SIZE];
+} XDP_TX_PACKET;
