@@ -7,10 +7,6 @@
 
 #define QUIC_API_ENABLE_PREVIEW_FEATURES 1
 
-#define SOCKET int
-#define SocketError() errno
-#define HRESULT_FROM_WIN32 (QUIC_STATUS)
-
 #include "datapath_raw.h"
 #include "platform_internal.h"
 #include "quic_hashtable.h"
