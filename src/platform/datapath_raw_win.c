@@ -11,7 +11,7 @@ Abstract:
 
 #include "datapath_raw_win.h"
 #ifdef QUIC_CLOG
-#include "datapath_raw.c.clog.h"
+#include "datapath_raw_win.c.clog.h"
 #endif
 
 #pragma warning(disable:4116) // unnamed type definition in parentheses

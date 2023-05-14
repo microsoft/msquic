@@ -2,16 +2,16 @@
 #include <clog.h>
 #endif
 #undef TRACEPOINT_PROVIDER
-#define TRACEPOINT_PROVIDER CLOG_DATAPATH_RAW_XDP_C
+#define TRACEPOINT_PROVIDER CLOG_DATAPATH_RAW_XDP_WIN_C
 #undef TRACEPOINT_PROBE_DYNAMIC_LINKAGE
 #define  TRACEPOINT_PROBE_DYNAMIC_LINKAGE
 #undef TRACEPOINT_INCLUDE
-#define TRACEPOINT_INCLUDE "datapath_raw_xdp.c.clog.h.lttng.h"
-#if !defined(DEF_CLOG_DATAPATH_RAW_XDP_C) || defined(TRACEPOINT_HEADER_MULTI_READ)
-#define DEF_CLOG_DATAPATH_RAW_XDP_C
+#define TRACEPOINT_INCLUDE "datapath_raw_xdp_win.c.clog.h.lttng.h"
+#if !defined(DEF_CLOG_DATAPATH_RAW_XDP_WIN_C) || defined(TRACEPOINT_HEADER_MULTI_READ)
+#define DEF_CLOG_DATAPATH_RAW_XDP_WIN_C
 #include <lttng/tracepoint.h>
 #define __int64 __int64_t
-#include "datapath_raw_xdp.c.clog.h.lttng.h"
+#include "datapath_raw_xdp_win.c.clog.h.lttng.h"
 #endif
 #include <lttng/tracepoint-event.h>
 #ifndef _clog_MACRO_QuicTraceLogInfo
@@ -64,7 +64,7 @@ tracepoint(CLOG_DATAPATH_RAW_XDP_C, FoundVF , arg2, arg3, arg4);\
 ----------------------------------------------------------*/
 #ifndef _clog_4_ARGS_TRACE_XdpInitialize
 #define _clog_4_ARGS_TRACE_XdpInitialize(uniqueId, encoded_arg_string, arg2, arg3)\
-tracepoint(CLOG_DATAPATH_RAW_XDP_C, XdpInitialize , arg2, arg3);\
+tracepoint(CLOG_DATAPATH_RAW_XDP_WIN_C, XdpInitialize , arg2, arg3);\
 
 #endif
 
@@ -84,7 +84,7 @@ tracepoint(CLOG_DATAPATH_RAW_XDP_C, XdpInitialize , arg2, arg3);\
 ----------------------------------------------------------*/
 #ifndef _clog_4_ARGS_TRACE_XdpQueueStart
 #define _clog_4_ARGS_TRACE_XdpQueueStart(uniqueId, encoded_arg_string, arg2, arg3)\
-tracepoint(CLOG_DATAPATH_RAW_XDP_C, XdpQueueStart , arg2, arg3);\
+tracepoint(CLOG_DATAPATH_RAW_XDP_WIN_C, XdpQueueStart , arg2, arg3);\
 
 #endif
 
@@ -104,7 +104,7 @@ tracepoint(CLOG_DATAPATH_RAW_XDP_C, XdpQueueStart , arg2, arg3);\
 ----------------------------------------------------------*/
 #ifndef _clog_4_ARGS_TRACE_XdpWorkerStart
 #define _clog_4_ARGS_TRACE_XdpWorkerStart(uniqueId, encoded_arg_string, arg2, arg3)\
-tracepoint(CLOG_DATAPATH_RAW_XDP_C, XdpWorkerStart , arg2, arg3);\
+tracepoint(CLOG_DATAPATH_RAW_XDP_WIN_C, XdpWorkerStart , arg2, arg3);\
 
 #endif
 
@@ -122,7 +122,7 @@ tracepoint(CLOG_DATAPATH_RAW_XDP_C, XdpWorkerStart , arg2, arg3);\
 ----------------------------------------------------------*/
 #ifndef _clog_3_ARGS_TRACE_XdpRelease
 #define _clog_3_ARGS_TRACE_XdpRelease(uniqueId, encoded_arg_string, arg2)\
-tracepoint(CLOG_DATAPATH_RAW_XDP_C, XdpRelease , arg2);\
+tracepoint(CLOG_DATAPATH_RAW_XDP_WIN_C, XdpRelease , arg2);\
 
 #endif
 
@@ -140,7 +140,7 @@ tracepoint(CLOG_DATAPATH_RAW_XDP_C, XdpRelease , arg2);\
 ----------------------------------------------------------*/
 #ifndef _clog_3_ARGS_TRACE_XdpUninitializeComplete
 #define _clog_3_ARGS_TRACE_XdpUninitializeComplete(uniqueId, encoded_arg_string, arg2)\
-tracepoint(CLOG_DATAPATH_RAW_XDP_C, XdpUninitializeComplete , arg2);\
+tracepoint(CLOG_DATAPATH_RAW_XDP_WIN_C, XdpUninitializeComplete , arg2);\
 
 #endif
 
@@ -158,7 +158,7 @@ tracepoint(CLOG_DATAPATH_RAW_XDP_C, XdpUninitializeComplete , arg2);\
 ----------------------------------------------------------*/
 #ifndef _clog_3_ARGS_TRACE_XdpUninitialize
 #define _clog_3_ARGS_TRACE_XdpUninitialize(uniqueId, encoded_arg_string, arg2)\
-tracepoint(CLOG_DATAPATH_RAW_XDP_C, XdpUninitialize , arg2);\
+tracepoint(CLOG_DATAPATH_RAW_XDP_WIN_C, XdpUninitialize , arg2);\
 
 #endif
 
@@ -176,7 +176,7 @@ tracepoint(CLOG_DATAPATH_RAW_XDP_C, XdpUninitialize , arg2);\
 ----------------------------------------------------------*/
 #ifndef _clog_3_ARGS_TRACE_XdpWorkerShutdown
 #define _clog_3_ARGS_TRACE_XdpWorkerShutdown(uniqueId, encoded_arg_string, arg2)\
-tracepoint(CLOG_DATAPATH_RAW_XDP_C, XdpWorkerShutdown , arg2);\
+tracepoint(CLOG_DATAPATH_RAW_XDP_WIN_C, XdpWorkerShutdown , arg2);\
 
 #endif
 
@@ -194,7 +194,7 @@ tracepoint(CLOG_DATAPATH_RAW_XDP_C, XdpWorkerShutdown , arg2);\
 ----------------------------------------------------------*/
 #ifndef _clog_3_ARGS_TRACE_XdpQueueAsyncIoRx
 #define _clog_3_ARGS_TRACE_XdpQueueAsyncIoRx(uniqueId, encoded_arg_string, arg2)\
-tracepoint(CLOG_DATAPATH_RAW_XDP_C, XdpQueueAsyncIoRx , arg2);\
+tracepoint(CLOG_DATAPATH_RAW_XDP_WIN_C, XdpQueueAsyncIoRx , arg2);\
 
 #endif
 
@@ -212,7 +212,7 @@ tracepoint(CLOG_DATAPATH_RAW_XDP_C, XdpQueueAsyncIoRx , arg2);\
 ----------------------------------------------------------*/
 #ifndef _clog_3_ARGS_TRACE_XdpQueueAsyncIoTx
 #define _clog_3_ARGS_TRACE_XdpQueueAsyncIoTx(uniqueId, encoded_arg_string, arg2)\
-tracepoint(CLOG_DATAPATH_RAW_XDP_C, XdpQueueAsyncIoTx , arg2);\
+tracepoint(CLOG_DATAPATH_RAW_XDP_WIN_C, XdpQueueAsyncIoTx , arg2);\
 
 #endif
 
@@ -230,7 +230,7 @@ tracepoint(CLOG_DATAPATH_RAW_XDP_C, XdpQueueAsyncIoTx , arg2);\
 ----------------------------------------------------------*/
 #ifndef _clog_3_ARGS_TRACE_XdpQueueAsyncIoRxComplete
 #define _clog_3_ARGS_TRACE_XdpQueueAsyncIoRxComplete(uniqueId, encoded_arg_string, arg2)\
-tracepoint(CLOG_DATAPATH_RAW_XDP_C, XdpQueueAsyncIoRxComplete , arg2);\
+tracepoint(CLOG_DATAPATH_RAW_XDP_WIN_C, XdpQueueAsyncIoRxComplete , arg2);\
 
 #endif
 
@@ -248,7 +248,7 @@ tracepoint(CLOG_DATAPATH_RAW_XDP_C, XdpQueueAsyncIoRxComplete , arg2);\
 ----------------------------------------------------------*/
 #ifndef _clog_3_ARGS_TRACE_XdpQueueAsyncIoTxComplete
 #define _clog_3_ARGS_TRACE_XdpQueueAsyncIoTxComplete(uniqueId, encoded_arg_string, arg2)\
-tracepoint(CLOG_DATAPATH_RAW_XDP_C, XdpQueueAsyncIoTxComplete , arg2);\
+tracepoint(CLOG_DATAPATH_RAW_XDP_WIN_C, XdpQueueAsyncIoTxComplete , arg2);\
 
 #endif
 
@@ -266,7 +266,7 @@ tracepoint(CLOG_DATAPATH_RAW_XDP_C, XdpQueueAsyncIoTxComplete , arg2);\
 ----------------------------------------------------------*/
 #ifndef _clog_3_ARGS_TRACE_XdpWorkerShutdownComplete
 #define _clog_3_ARGS_TRACE_XdpWorkerShutdownComplete(uniqueId, encoded_arg_string, arg2)\
-tracepoint(CLOG_DATAPATH_RAW_XDP_C, XdpWorkerShutdownComplete , arg2);\
+tracepoint(CLOG_DATAPATH_RAW_XDP_WIN_C, XdpWorkerShutdownComplete , arg2);\
 
 #endif
 
@@ -286,7 +286,7 @@ tracepoint(CLOG_DATAPATH_RAW_XDP_C, XdpWorkerShutdownComplete , arg2);\
 ----------------------------------------------------------*/
 #ifndef _clog_4_ARGS_TRACE_LibraryErrorStatus
 #define _clog_4_ARGS_TRACE_LibraryErrorStatus(uniqueId, encoded_arg_string, arg2, arg3)\
-tracepoint(CLOG_DATAPATH_RAW_XDP_C, LibraryErrorStatus , arg2, arg3);\
+tracepoint(CLOG_DATAPATH_RAW_XDP_WIN_C, LibraryErrorStatus , arg2, arg3);\
 
 #endif
 
@@ -306,7 +306,7 @@ tracepoint(CLOG_DATAPATH_RAW_XDP_C, LibraryErrorStatus , arg2, arg3);\
 ----------------------------------------------------------*/
 #ifndef _clog_4_ARGS_TRACE_AllocFailure
 #define _clog_4_ARGS_TRACE_AllocFailure(uniqueId, encoded_arg_string, arg2, arg3)\
-tracepoint(CLOG_DATAPATH_RAW_XDP_C, AllocFailure , arg2, arg3);\
+tracepoint(CLOG_DATAPATH_RAW_XDP_WIN_C, AllocFailure , arg2, arg3);\
 
 #endif
 
@@ -324,7 +324,7 @@ tracepoint(CLOG_DATAPATH_RAW_XDP_C, AllocFailure , arg2, arg3);\
 ----------------------------------------------------------*/
 #ifndef _clog_3_ARGS_TRACE_LibraryError
 #define _clog_3_ARGS_TRACE_LibraryError(uniqueId, encoded_arg_string, arg2)\
-tracepoint(CLOG_DATAPATH_RAW_XDP_C, LibraryError , arg2);\
+tracepoint(CLOG_DATAPATH_RAW_XDP_WIN_C, LibraryError , arg2);\
 
 #endif
 
@@ -335,5 +335,5 @@ tracepoint(CLOG_DATAPATH_RAW_XDP_C, LibraryError , arg2);\
 }
 #endif
 #ifdef CLOG_INLINE_IMPLEMENTATION
-#include "quic.clog_datapath_raw_xdp.c.clog.h.c"
+#include "quic.clog_datapath_raw_xdp_win.c.clog.h.c"
 #endif
