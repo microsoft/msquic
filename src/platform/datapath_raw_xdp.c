@@ -11,99 +11,11 @@ Abstract:
 
 #define _CRT_SECURE_NO_WARNINGS 1 // TODO - Remove
 
-#include "datapath_raw.h"
+#include "datapath_raw_win.h"
+#include "datapath_raw_xdp_win.h"
 #ifdef QUIC_CLOG
 #include "datapath_raw_xdp.c.clog.h"
 #endif
-
-#include <wbemidl.h>
-#include <afxdp_helper.h>
-#include <xdpapi.h>
-#include <stdio.h>
-
-#define RX_BATCH_SIZE 16
-#define MAX_ETH_FRAME_SIZE 1514
-
-#define ADAPTER_TAG   'ApdX' // XdpA
-#define IF_TAG        'IpdX' // XdpI
-#define QUEUE_TAG     'QpdX' // XdpQ
-#define RULE_TAG      'UpdX' // XdpU
-#define RX_BUFFER_TAG 'RpdX' // XdpR
-#define TX_BUFFER_TAG 'TpdX' // XdpT
-#define PORT_SET_TAG  'PpdX' // XdpP
-
-typedef struct XDP_INTERFACE XDP_INTERFACE;
-typedef struct XDP_WORKER XDP_WORKER;
-
-//
-// Type of IO.
-//
-typedef enum DATAPATH_IO_TYPE {
-    DATAPATH_IO_SIGNATURE         = 'XDPD',
-    DATAPATH_IO_RECV              = DATAPATH_IO_SIGNATURE + 1,
-    DATAPATH_IO_SEND              = DATAPATH_IO_SIGNATURE + 2
-} DATAPATH_IO_TYPE;
-
-//
-// IO header for SQE->CQE based completions.
-//
-typedef struct DATAPATH_IO_SQE {
-    DATAPATH_IO_TYPE IoType;
-    DATAPATH_SQE DatapathSqe;
-} DATAPATH_IO_SQE;
-
-typedef struct XDP_QUEUE {
-    const XDP_INTERFACE* Interface;
-    XDP_WORKER* Worker;
-    struct XDP_QUEUE* Next;
-    uint8_t* RxBuffers;
-    HANDLE RxXsk;
-    DATAPATH_IO_SQE RxIoSqe;
-    XSK_RING RxFillRing;
-    XSK_RING RxRing;
-    HANDLE RxProgram;
-    uint8_t* TxBuffers;
-    HANDLE TxXsk;
-    DATAPATH_IO_SQE TxIoSqe;
-    XSK_RING TxRing;
-    XSK_RING TxCompletionRing;
-    BOOLEAN RxQueued;
-    BOOLEAN TxQueued;
-    BOOLEAN Error;
-
-    CXPLAT_LIST_ENTRY WorkerTxQueue;
-    CXPLAT_SLIST_ENTRY WorkerRxPool;
-
-    // Move contended buffer pools to their own cache lines.
-    // TODO: Use better (more scalable) buffer algorithms.
-    DECLSPEC_CACHEALIGN SLIST_HEADER RxPool;
-    DECLSPEC_CACHEALIGN SLIST_HEADER TxPool;
-
-    // Move TX queue to its own cache line.
-    DECLSPEC_CACHEALIGN
-    CXPLAT_LOCK TxLock;
-    CXPLAT_LIST_ENTRY TxQueue;
-} XDP_QUEUE;
-
-typedef struct XDP_INTERFACE {
-    CXPLAT_INTERFACE;
-    HANDLE XdpHandle;
-    uint16_t QueueCount;
-    uint8_t RuleCount;
-    CXPLAT_LOCK RuleLock;
-    XDP_RULE* Rules;
-    XDP_QUEUE* Queues; // An array of queues.
-    const struct XDP_DATAPATH* Xdp;
-} XDP_INTERFACE;
-
-typedef struct QUIC_CACHEALIGN XDP_WORKER {
-    CXPLAT_EXECUTION_CONTEXT Ec;
-    DATAPATH_SQE ShutdownSqe;
-    const struct XDP_DATAPATH* Xdp;
-    CXPLAT_EVENTQ* EventQ;
-    XDP_QUEUE* Queues; // A linked list of queues, accessed by Next.
-    uint16_t ProcIndex;
-} XDP_WORKER;
 
 void XdpWorkerAddQueue(_In_ XDP_WORKER* Worker, _In_ XDP_QUEUE* Queue) {
     XDP_QUEUE** Tail = &Worker->Queues;
@@ -114,43 +26,6 @@ void XdpWorkerAddQueue(_In_ XDP_WORKER* Worker, _In_ XDP_QUEUE* Queue) {
     Queue->Next = NULL;
     Queue->Worker = Worker;
 }
-
-typedef struct XDP_DATAPATH {
-    CXPLAT_DATAPATH;
-    DECLSPEC_CACHEALIGN
-    //
-    // Currently, all XDP interfaces share the same config.
-    //
-    CXPLAT_REF_COUNT RefCount;
-    uint32_t WorkerCount;
-    uint32_t RxBufferCount;
-    uint32_t RxRingSize;
-    uint32_t TxBufferCount;
-    uint32_t TxRingSize;
-    uint32_t PollingIdleTimeoutUs;
-    BOOLEAN TxAlwaysPoke;
-    BOOLEAN SkipXsum;
-    BOOLEAN Running;        // Signal to stop workers.
-    const XDP_API_TABLE *XdpApi;
-
-    XDP_WORKER Workers[0];
-} XDP_DATAPATH;
-
-typedef struct DECLSPEC_ALIGN(MEMORY_ALLOCATION_ALIGNMENT) XDP_RX_PACKET {
-    CXPLAT_RECV_DATA;
-    CXPLAT_ROUTE RouteStorage;
-    XDP_QUEUE* Queue;
-    // Followed by:
-    // uint8_t ClientContext[...];
-    // uint8_t FrameBuffer[MAX_ETH_FRAME_SIZE];
-} XDP_RX_PACKET;
-
-typedef struct DECLSPEC_ALIGN(MEMORY_ALLOCATION_ALIGNMENT) XDP_TX_PACKET {
-    CXPLAT_SEND_DATA;
-    XDP_QUEUE* Queue;
-    CXPLAT_LIST_ENTRY Link;
-    uint8_t FrameBuffer[MAX_ETH_FRAME_SIZE];
-} XDP_TX_PACKET;
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 BOOLEAN

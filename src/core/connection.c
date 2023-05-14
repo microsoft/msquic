@@ -3307,7 +3307,7 @@ _IRQL_requires_max_(DISPATCH_LEVEL)
 _Function_class_(CXPLAT_ROUTE_RESOLUTION_CALLBACK)
 void
 QuicConnQueueRouteCompletion(
-    _Inout_ QUIC_CONNECTION* Connection,
+    _Inout_ void* Context,
     _When_(Succeeded == FALSE, _Reserved_)
     _When_(Succeeded == TRUE, _In_reads_bytes_(6))
         const uint8_t* PhysicalAddress,
@@ -3315,6 +3315,7 @@ QuicConnQueueRouteCompletion(
     _In_ BOOLEAN Succeeded
     )
 {
+    QUIC_CONNECTION* Connection = (QUIC_CONNECTION*)Context;
     QUIC_OPERATION* ConnOper =
         QuicOperationAlloc(Connection->Worker, QUIC_OPER_TYPE_ROUTE_COMPLETION);
     if (ConnOper != NULL) {
