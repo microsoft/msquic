@@ -1280,6 +1280,46 @@ CxPlatDpRawUninitialize(
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_STATUS
+CxPlatSocketUpdateQeo(
+    _In_ CXPLAT_SOCKET* Socket,
+    _In_reads_(OffloadCount)
+        const CXPLAT_QEO_CONNECTION* Offloads,
+    _In_ uint32_t OffloadCount
+    )
+{
+    XDP_DATAPATH* Xdp = (XDP_DATAPATH*)Socket->Datapath;
+
+    XDP_QUIC_CONNECTION Connections[2];
+    CXPLAT_FRE_ASSERT(OffloadCount == 2); // TODO - Don't hard code
+
+    for (uint32_t i = 0; i < OffloadCount; i++) {
+        Connections[i].Operation = Offloads[i].Operation;
+        Connections[i].Direction = Offloads[i].Direction;
+        Connections[i].DecryptFailureAction = Offloads[i].DecryptFailureAction;
+        Connections[i].KeyPhase = Offloads[i].KeyPhase;
+        Connections[i].RESERVED = Offloads[i].RESERVED;
+        Connections[i].CipherType = Offloads[i].CipherType;
+        Connections[i].NextPacketNumber = Offloads[i].NextPacketNumber;
+        Connections[i].AddressFamily = QuicAddrGetFamily(&Offloads[i].Address);
+        Connections[i].UdpPort = QuicAddrGetPort(&Offloads[i].Address); // TODO byte order?
+        // TODO Address
+        Connections[i].ConnectionIdLength = Offloads[i].ConnectionIdLength;
+        memcpy(Connections[i].ConnectionId, Offloads[i].ConnectionId, Offloads[i].ConnectionIdLength);
+        memcpy(Connections[i].PayloadKey, Offloads[i].PayloadKey, sizeof(Connections[i].PayloadKey));
+        memcpy(Connections[i].HeaderKey, Offloads[i].HeaderKey, sizeof(Connections[i].HeaderKey));
+        memcpy(Connections[i].PayloadIv, Offloads[i].PayloadIv, sizeof(Connections[i].PayloadIv));
+        Connections[i].Status = 0;
+    }
+
+    return
+        Xdp->XdpApi->XdpQeoSet(
+            Socket->Interface, // TODO - Need to call XdpApi->XdpInterfaceOpen to get a handle
+            Connections,
+            OffloadCount);
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
 VOID
 CxPlatDpRawSetPortBit(
     _Inout_ uint8_t *BitMap,
