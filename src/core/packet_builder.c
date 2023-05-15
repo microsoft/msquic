@@ -789,7 +789,8 @@ QuicPacketBuilderFinalize(
             Builder->HeaderLength);
     }
 
-    if (Builder->EncryptionOverhead != 0) {
+    if (Builder->EncryptionOverhead != 0 &&
+        !(Builder->Key->Type == QUIC_PACKET_KEY_1_RTT && Connection->Paths[0].EncryptionOffloading)) {
 
         //
         // Encrypt the data.
