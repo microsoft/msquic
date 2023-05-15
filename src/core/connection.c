@@ -482,6 +482,28 @@ QuicConnUninitialize(
     // more packets queued.
     //
     if (Connection->Paths[0].Binding != NULL) {
+        if (Connection->Paths[0].EncryptionOffloading) {
+            QUIC_CID_HASH_ENTRY* SourceCid =
+                CXPLAT_CONTAINING_RECORD(Connection->SourceCids.Next, QUIC_CID_HASH_ENTRY, Link);
+            CXPLAT_QEO_CONNECTION Offloads[2] = {0};
+            Offloads[0].Operation = CXPLAT_QEO_OPERATION_REMOVE;
+            Offloads[0].Direction = CXPLAT_QEO_DIRECTION_TRANSMIT;
+            Offloads[0].ConnectionIdLength = Connection->Paths[0].DestCid->CID.Length;
+            Offloads[1].Operation = CXPLAT_QEO_OPERATION_REMOVE;
+            Offloads[1].Direction = CXPLAT_QEO_DIRECTION_RECEIVE;
+            Offloads[1].ConnectionIdLength = SourceCid->CID.Length;
+            memcpy(Offloads[0].ConnectionId, Connection->Paths[0].DestCid->CID.Data, Connection->Paths[0].DestCid->CID.Length);
+            memcpy(Offloads[1].ConnectionId, SourceCid->CID.Data, SourceCid->CID.Length);
+            (void)CxPlatSocketUpdateQeo(Connection->Paths[0].Binding->Socket, Offloads, 2);
+            Connection->Stats.EncryptionOffloaded = FALSE;
+            Connection->Paths[0].EncryptionOffloading = FALSE;
+            QuicTraceLogConnInfo(
+                PathQeoDisabled,
+                Connection,
+                "Path[%hhu] QEO disabled",
+                Connection->Paths[0].ID);
+        }
+
         QuicBindingRemoveConnection(Connection->Paths[0].Binding, Connection);
     }
 
@@ -3933,7 +3955,7 @@ QuicConnRecvHeader(
         } else {
             Packet->KeyType = QuicPacketTypeToKeyTypeV1(Packet->LH->Type);
         }
-        Packet->Encrypted = TRUE;
+        Packet->Encrypted = !Connection->Paths[0].EncryptionOffloading;
 
     } else {
 
@@ -6716,6 +6738,7 @@ QuicConnGetV2Statistics(
     Stats->ResumptionAttempted = Connection->Stats.ResumptionAttempted;
     Stats->ResumptionSucceeded = Connection->Stats.ResumptionSucceeded;
     Stats->GreaseBitNegotiated = Connection->Stats.GreaseBitNegotiated;
+    Stats->EncryptionOffloaded = Connection->Stats.EncryptionOffloaded;
     Stats->EcnCapable = Path->EcnValidationState == ECN_VALIDATION_CAPABLE;
     Stats->Rtt = Path->SmoothedRtt;
     Stats->MinRtt = Path->MinRtt;
@@ -7228,6 +7251,12 @@ QuicConnApplyNewSettings(
             QUIC_PATH* Path = &Connection->Paths[0];
             Path->EcnValidationState = ECN_VALIDATION_TESTING;
         }
+    }
+
+    if (Connection->State.Started &&
+        (Connection->Settings.EncryptionOffloadAllowed ^ Connection->Paths[0].EncryptionOffloading)) {
+        // TODO: enable/disable after start
+        CXPLAT_FRE_ASSERT(FALSE);
     }
 
     uint8_t PeerStreamType =

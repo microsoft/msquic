@@ -7156,6 +7156,42 @@
       ],
       "macroName": "QuicTraceLogStreamWarning"
     },
+    "OfflodingStart": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] Path[%hhu] Successfully start encryption offloading",
+      "UniqueId": "OfflodingStart",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        },
+        {
+          "DefinationEncoding": "hhu",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macroName": "QuicTraceLogConnInfo"
+    },
+    "OfflodingStop": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] Path[%hhu] %s stop encryption offloading",
+      "UniqueId": "OfflodingStop",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        },
+        {
+          "DefinationEncoding": "hhu",
+          "MacroVariableName": "arg3"
+        },
+        {
+          "DefinationEncoding": "s",
+          "MacroVariableName": "arg4"
+        }
+      ],
+      "macroName": "QuicTraceLogConnInfo"
+    },
     "OpenSsl1RttDataStart": {
       "ModuleProperites": {},
       "TraceString": "[conn][%p] Writing 1-RTT data starts at %u",
@@ -7939,6 +7975,38 @@
         {
           "DefinationEncoding": "hu",
           "MacroVariableName": "arg4"
+        }
+      ],
+      "macroName": "QuicTraceLogConnInfo"
+    },
+    "PathQeoDisabled": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] Path[%hhu] QEO disabled",
+      "UniqueId": "PathQeoDisabled",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        },
+        {
+          "DefinationEncoding": "hhu",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macroName": "QuicTraceLogConnInfo"
+    },
+    "PathQeoEnabled": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] Path[%hhu] QEO enabled",
+      "UniqueId": "PathQeoEnabled",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        },
+        {
+          "DefinationEncoding": "hhu",
+          "MacroVariableName": "arg3"
         }
       ],
       "macroName": "QuicTraceLogConnInfo"
@@ -10279,6 +10347,18 @@
       "ModuleProperites": {},
       "TraceString": "[sett] EcnEnabled             = %hhu",
       "UniqueId": "SettingEcnEnabled",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "hhu",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceLogVerbose"
+    },
+    "SettingEncryptionOffloadAllowed": {
+      "ModuleProperites": {},
+      "TraceString": "[sett] EncryptionOffloadAllowed         = %hhu",
+      "UniqueId": "SettingEncryptionOffloadAllowed",
       "splitArgs": [
         {
           "DefinationEncoding": "hhu",
@@ -14466,6 +14546,16 @@
         "EncodingString": "[strm][%p] New stream wasn't accepted, 0x%x"
       },
       {
+        "UniquenessHash": "b841a4ba-b59c-322a-e3ea-abb11df15daf",
+        "TraceID": "OfflodingStart",
+        "EncodingString": "[conn][%p] Path[%hhu] Successfully start encryption offloading"
+      },
+      {
+        "UniquenessHash": "634f4128-8be3-479b-2764-13aabd810d83",
+        "TraceID": "OfflodingStop",
+        "EncodingString": "[conn][%p] Path[%hhu] %s stop encryption offloading"
+      },
+      {
         "UniquenessHash": "eaede67a-124b-3b3f-95ba-363d08546d2a",
         "TraceID": "OpenSsl1RttDataStart",
         "EncodingString": "[conn][%p] Writing 1-RTT data starts at %u"
@@ -14714,6 +14804,16 @@
         "UniquenessHash": "e4b7c3f7-0733-40b5-95d7-af81de6568ec",
         "TraceID": "PathMtuUpdated",
         "EncodingString": "[conn][%p] Path[%hhu] MTU updated to %hu bytes"
+      },
+      {
+        "UniquenessHash": "77bae646-5d83-b78d-08aa-24b36955b7e4",
+        "TraceID": "PathQeoDisabled",
+        "EncodingString": "[conn][%p] Path[%hhu] QEO disabled"
+      },
+      {
+        "UniquenessHash": "f27d6a99-3be1-a404-0883-01df858eb372",
+        "TraceID": "PathQeoEnabled",
+        "EncodingString": "[conn][%p] Path[%hhu] QEO enabled"
       },
       {
         "UniquenessHash": "2e3024b8-4329-c124-05b3-9801c51b9346",
@@ -15524,6 +15624,11 @@
         "UniquenessHash": "12ca7216-75fc-41d7-f9ce-3e93bd2fea64",
         "TraceID": "SettingEcnEnabled",
         "EncodingString": "[sett] EcnEnabled             = %hhu"
+      },
+      {
+        "UniquenessHash": "9642e6a4-9b92-4c0f-bf85-2544a4d172cb",
+        "TraceID": "SettingEncryptionOffloadAllowed",
+        "EncodingString": "[sett] EncryptionOffloadAllowed = %hhu"
       },
       {
         "UniquenessHash": "eb526b83-28f4-1046-57bf-7727ba70f36d",
