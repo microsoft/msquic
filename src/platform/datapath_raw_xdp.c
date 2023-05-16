@@ -31,7 +31,6 @@ Abstract:
 #define RX_BUFFER_TAG 'RpdX' // XdpR
 #define TX_BUFFER_TAG 'TpdX' // XdpT
 #define PORT_SET_TAG  'PpdX' // XdpP
-#define OFFLOAD_TAG   'OpdX' // XdpO
 
 typedef struct XDP_INTERFACE XDP_INTERFACE;
 typedef struct XDP_WORKER XDP_WORKER;
@@ -88,6 +87,7 @@ typedef struct XDP_QUEUE {
 
 typedef struct XDP_INTERFACE {
     CXPLAT_INTERFACE;
+    HANDLE XdpHandle;
     uint16_t QueueCount;
     uint8_t RuleCount;
     CXPLAT_LOCK RuleLock;
@@ -519,6 +519,10 @@ CxPlatDpRawInterfaceUninitialize(
         CxPlatFree(Interface->Rules, RULE_TAG);
     }
 
+    if (Interface->XdpHandle) {
+        CloseHandle(Interface->XdpHandle);
+    }
+
     CxPlatLockUninitialize(&Interface->RuleLock);
 
     #pragma warning(pop)
@@ -542,6 +546,16 @@ CxPlatDpRawInterfaceInitialize(
     Interface->OffloadStatus.Transmit.NetworkLayerXsum = Xdp->SkipXsum;
     Interface->OffloadStatus.Transmit.NetworkLayerXsum = Xdp->SkipXsum;
     Interface->Xdp = Xdp;
+
+    Status = Xdp->XdpApi->XdpInterfaceOpen(Interface->IfIndex, &Interface->XdpHandle);
+    if (QUIC_FAILED(Status)) {
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            Status,
+            "XdpInterfaceOpen");
+        goto Error;
+    }
 
     Status = CxPlatGetInterfaceRssQueueCount(Interface->IfIndex, &Interface->QueueCount);
     if (QUIC_FAILED(Status)) {
@@ -1289,16 +1303,11 @@ CxPlatSocketUpdateQeo(
     _In_ uint32_t OffloadCount
     )
 {
-#pragma warning(push)
-#pragma warning(disable:6386) // Buffer overrun while writing to 'Connections' - FALSE POSITIVE
-
     XDP_DATAPATH* Xdp = (XDP_DATAPATH*)Socket->Datapath;
 
-    XDP_QUIC_CONNECTION* Connections = CxPlatAlloc(OffloadCount * sizeof(XDP_QUIC_CONNECTION), OFFLOAD_TAG);
-    if (Connections == NULL) {
-        return QUIC_STATUS_OUT_OF_MEMORY;
-    }
-    CxPlatZeroMemory(Connections, OffloadCount * sizeof(XDP_QUIC_CONNECTION));
+    XDP_QUIC_CONNECTION Connections[2];
+    CXPLAT_FRE_ASSERT(OffloadCount == 2); // TODO - Refactor so upper layer struct matches XDP struct
+                                          // so we don't need to copy to a different struct.
 
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
     for (uint32_t i = 0; i < OffloadCount; i++) {
@@ -1316,8 +1325,7 @@ CxPlatSocketUpdateQeo(
             Connections[i].AddressFamily = XDP_QUIC_ADDRESS_FAMILY_INET6;
             memcpy(Connections[i].Address, &Offloads[i].Address.Ipv6.sin6_addr, sizeof(IN6_ADDR));
         } else {
-            Status = QUIC_STATUS_INVALID_ADDRESS;
-            goto Error;
+            CXPLAT_FRE_ASSERT(FALSE); // Should NEVER happen!
         }
         Connections[i].UdpPort = Offloads[i].Address.Ipv4.sin_port;
         Connections[i].ConnectionIdLength = Offloads[i].ConnectionIdLength;
@@ -1328,37 +1336,31 @@ CxPlatSocketUpdateQeo(
         Connections[i].Status = 0;
     }
 
-    BOOL SuccessOnce = FALSE;
+    //
+    // The following logic just tries all interfaces and if it's able to offload
+    // to any of them, it considers it a success. Long term though, this should
+    // only offload to the interface that the socket is bound to.
+    //
+
+    BOOLEAN AtLeastOneSucceeded = FALSE;
     for (CXPLAT_LIST_ENTRY* Entry = Xdp->Interfaces.Flink; Entry != &Xdp->Interfaces; Entry = Entry->Flink) {
-        XDP_INTERFACE* Interface = CONTAINING_RECORD(Entry, XDP_INTERFACE, Link);
-        HANDLE InterfaceHandle = NULL;
-        Status = Xdp->XdpApi->XdpInterfaceOpen(Interface->IfIndex, InterfaceHandle);
-        if (Status == QUIC_STATUS_SUCCESS) {
-            Status = Xdp->XdpApi->XdpQeoSet(
-                                    InterfaceHandle,
-                                    Connections,
-                                    OffloadCount);
-            if (!SuccessOnce) {
-                if (QUIC_FAILED(Status)) {
-                    goto Error;
-                }
-                SuccessOnce = TRUE;
-            } else if (QUIC_FAILED(Status)) {
-                CXPLAT_FRE_ASSERT(FALSE); // TODO: Need to handle correctly when some interfaces succeed, some are not
-            }
-        } else if (!SuccessOnce) {
-            goto Error;
+        Status =
+            Xdp->XdpApi->XdpQeoSet(
+                CONTAINING_RECORD(Entry, XDP_INTERFACE, Link)->XdpHandle,
+                Connections,
+                OffloadCount);
+        if (QUIC_FAILED(Status)) {
+            QuicTraceEvent(
+                LibraryErrorStatus,
+                "[ lib] ERROR, %u, %s.",
+                Status,
+                "XdpQeoSet");
         } else {
-            CXPLAT_FRE_ASSERT(FALSE); // TODO: Need to handle correctly when some interfaces succeed, some are not
+            AtLeastOneSucceeded = TRUE; // TODO - Check individual connection status too.
         }
     }
 
-Error:
-    CxPlatFree(Connections, OFFLOAD_TAG); // Is "Connections" copied before async operation?
-
-    return Status;
-
-#pragma warning(pop)
+    return AtLeastOneSucceeded ? QUIC_STATUS_SUCCESS : QUIC_STATUS_NOT_SUPPORTED;
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
