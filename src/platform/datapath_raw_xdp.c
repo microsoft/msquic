@@ -87,6 +87,7 @@ typedef struct XDP_QUEUE {
 
 typedef struct XDP_INTERFACE {
     CXPLAT_INTERFACE;
+    HANDLE XdpHandle;
     uint16_t QueueCount;
     uint8_t RuleCount;
     CXPLAT_LOCK RuleLock;
@@ -518,6 +519,10 @@ CxPlatDpRawInterfaceUninitialize(
         CxPlatFree(Interface->Rules, RULE_TAG);
     }
 
+    if (Interface->XdpHandle) {
+        CloseHandle(Interface->XdpHandle);
+    }
+
     CxPlatLockUninitialize(&Interface->RuleLock);
 
     #pragma warning(pop)
@@ -541,6 +546,16 @@ CxPlatDpRawInterfaceInitialize(
     Interface->OffloadStatus.Transmit.NetworkLayerXsum = Xdp->SkipXsum;
     Interface->OffloadStatus.Transmit.NetworkLayerXsum = Xdp->SkipXsum;
     Interface->Xdp = Xdp;
+
+    Status = Xdp->XdpApi->XdpInterfaceOpen(Interface->IfIndex, &Interface->XdpHandle);
+    if (QUIC_FAILED(Status)) {
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            Status,
+            "XdpInterfaceOpen");
+        goto Error;
+    }
 
     Status = CxPlatGetInterfaceRssQueueCount(Interface->IfIndex, &Interface->QueueCount);
     if (QUIC_FAILED(Status)) {
@@ -1277,6 +1292,75 @@ CxPlatDpRawUninitialize(
         CxPlatWakeExecutionContext(&Xdp->Workers[i].Ec);
     }
     CxPlatDpRawRelease(Xdp);
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_STATUS
+CxPlatSocketUpdateQeo(
+    _In_ CXPLAT_SOCKET* Socket,
+    _In_reads_(OffloadCount)
+        const CXPLAT_QEO_CONNECTION* Offloads,
+    _In_ uint32_t OffloadCount
+    )
+{
+    XDP_DATAPATH* Xdp = (XDP_DATAPATH*)Socket->Datapath;
+
+    XDP_QUIC_CONNECTION Connections[2];
+    CXPLAT_FRE_ASSERT(OffloadCount == 2); // TODO - Refactor so upper layer struct matches XDP struct
+                                          // so we don't need to copy to a different struct.
+
+    QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
+    for (uint32_t i = 0; i < OffloadCount; i++) {
+        Connections[i].Operation = Offloads[i].Operation;
+        Connections[i].Direction = Offloads[i].Direction;
+        Connections[i].DecryptFailureAction = Offloads[i].DecryptFailureAction;
+        Connections[i].KeyPhase = Offloads[i].KeyPhase;
+        Connections[i].RESERVED = Offloads[i].RESERVED;
+        Connections[i].CipherType = Offloads[i].CipherType;
+        Connections[i].NextPacketNumber = Offloads[i].NextPacketNumber;
+        if (Offloads[i].Address.si_family == AF_INET) {
+            Connections[i].AddressFamily = XDP_QUIC_ADDRESS_FAMILY_INET4;
+            memcpy(Connections[i].Address, &Offloads[i].Address.Ipv4.sin_addr, sizeof(IN_ADDR));
+        } else if (Offloads[i].Address.si_family == AF_INET6) {
+            Connections[i].AddressFamily = XDP_QUIC_ADDRESS_FAMILY_INET6;
+            memcpy(Connections[i].Address, &Offloads[i].Address.Ipv6.sin6_addr, sizeof(IN6_ADDR));
+        } else {
+            CXPLAT_FRE_ASSERT(FALSE); // Should NEVER happen!
+        }
+        Connections[i].UdpPort = Offloads[i].Address.Ipv4.sin_port;
+        Connections[i].ConnectionIdLength = Offloads[i].ConnectionIdLength;
+        memcpy(Connections[i].ConnectionId, Offloads[i].ConnectionId, Offloads[i].ConnectionIdLength);
+        memcpy(Connections[i].PayloadKey, Offloads[i].PayloadKey, sizeof(Connections[i].PayloadKey));
+        memcpy(Connections[i].HeaderKey, Offloads[i].HeaderKey, sizeof(Connections[i].HeaderKey));
+        memcpy(Connections[i].PayloadIv, Offloads[i].PayloadIv, sizeof(Connections[i].PayloadIv));
+        Connections[i].Status = 0;
+    }
+
+    //
+    // The following logic just tries all interfaces and if it's able to offload
+    // to any of them, it considers it a success. Long term though, this should
+    // only offload to the interface that the socket is bound to.
+    //
+
+    BOOLEAN AtLeastOneSucceeded = FALSE;
+    for (CXPLAT_LIST_ENTRY* Entry = Xdp->Interfaces.Flink; Entry != &Xdp->Interfaces; Entry = Entry->Flink) {
+        Status =
+            Xdp->XdpApi->XdpQeoSet(
+                CONTAINING_RECORD(Entry, XDP_INTERFACE, Link)->XdpHandle,
+                Connections,
+                OffloadCount);
+        if (QUIC_FAILED(Status)) {
+            QuicTraceEvent(
+                LibraryErrorStatus,
+                "[ lib] ERROR, %u, %s.",
+                Status,
+                "XdpQeoSet");
+        } else {
+            AtLeastOneSucceeded = TRUE; // TODO - Check individual connection status too.
+        }
+    }
+
+    return AtLeastOneSucceeded ? QUIC_STATUS_SUCCESS : QUIC_STATUS_NOT_SUPPORTED;
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
