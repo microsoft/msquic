@@ -343,7 +343,7 @@ If you are not seeing the above event at all, there are several things that can 
 
 #### Global URO Knob
 
-URO can be administratively turned off system-wise from a netsh knob. Check by running `netsh int udp show global`. If `Receive Offload State` is displayed as `disabled`, then URO has been administratively disabled.
+URO can be administratively turned off system-wide from a netsh knob. Check by running `netsh int udp show global`. If `Receive Offload State` is displayed as `disabled`, then URO has been administratively disabled.
 
 #### Incompatible Miniport or Medium
 
