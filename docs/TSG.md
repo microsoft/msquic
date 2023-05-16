@@ -337,21 +337,35 @@ Since this flame was essentially all of CPU 4, whatever is taking the most signi
 
 Software UDP Receive Offload (URO) is an importance performance feature. To check if URO is working correctly, you can follow this [guide](https://github.com/microsoft/msquic/blob/main/docs/Diagnostics.md#trace-collection) and use `Full.Verbose` profile to collect TCPIP traces. In the converted text file, if you see this event, URO is working. The below event indicates UDP layer saw a UDP packet coalesced from 5 UDP packets each with 1000 byte payload.
 ```
-[6]0000.0000::2022/03/23-20:27:14.275850900 [Microsoft-Windows-TCPIP]UDP: endpoint 0xFFFFA4033FC652C0: URO SCU received. SegCount = 5, SegSize = 1000, DataLength = 5000.
+[Microsoft-Windows-TCPIP]UDP: endpoint 0xFFFFA4033FC652C0: URO SCU received. SegCount = 5, SegSize = 1000, DataLength = 5000.
 ```
 If you are not seeing the above event at all, there are several things that can break URO functionality.
 
-- URO can be administratively turned off system-wise from a netsh knob. Check by running `netsh int udp show global`. If `Receive Offload State` is displayed as `disabled`, then URO has been administratively disabled.
+#### Global URO Knob
 
-- Take a look at the IP interface rundown traces. Software RSC/URO applicable must be `TRUE` for URO to work. If it is `FALSE`, it means the underlying miniport driver is using NDIS 5 or the interface medium is not compatible (e.g. KDNic).
+URO can be administratively turned off system-wise from a netsh knob. Check by running `netsh int udp show global`. If `Receive Offload State` is displayed as `disabled`, then URO has been administratively disabled.
+
+#### Incompatible Miniport or Medium
+
+Take a look at the IP interface rundown traces. Software RSC/URO applicable must be `TRUE` for URO to work. If it is `FALSE`, it means the underlying miniport driver is using NDIS 5 or the interface medium is not compatible (e.g. KDNic).
 ```
-[2]0E64.0E3C::2022/03/22-17:42:50.604598400 [Microsoft-Windows-TCPIP]Framing: interface rundown: Interface = 8, Luid = 0x6008000000000, Address family = 2(IPV4), Compartment = 1, Isolation mode = 0(None), Isolation ID = 0, DL address = 0x00155D563406, Interface type = 6, Physical medium type = 19(NdisPhysicalMediumOther), SW RSC/URO applicable = 0(FALSE), SW RSC enabled = 0(FALSE), Alias = Ethernet (Kernel Debugger).
+[Microsoft-Windows-TCPIP]Framing: interface rundown: Interface = 8, Luid = 0x6008000000000, Address family = 2(IPV4), Compartment = 1, Isolation mode = 0(None), Isolation ID = 0, DL address = 0x00155D563406, Interface type = 6, Physical medium type = 19(NdisPhysicalMediumOther), SW RSC/URO applicable = 0(FALSE), SW RSC enabled = 0(FALSE), Alias = Ethernet (Kernel Debugger).
 ```
-- We also have a rundown trace for URO global disabled mask. The mask must be zero for URO to work. It's common that the mask is 2, which means some incompatible WFP callouts have disabled URO. If you are seeing the mask being 2 on a freshly installed machine, try disabling real-time protection from defender settings.
+
+#### Incompatible Software Component
+
+We also have a rundown trace for URO global disabled mask. The mask must be zero for URO to work. 
+
+- It's common that the mask is `2` (`0b000010`), which means some incompatible WFP callouts have disabled URO. If you see this on a freshly installed machine, try disabling real-time protection from Microsoft Defender settings.
+
+- It's also possible the mask is `48` (`0b110000`), which means some incompatible IPSNPI clients have disabled URO. These (winnat or FSE) can automatically get enabled when WSL or Hyper-V are enabled on a machine.
 ```
-[2]0E64.0E3C::2022/03/22-17:42:50.604752100 [Microsoft-Windows-TCPIP]TCP software RSC global disabled mask = 0, UDP software URO global disabled mask = 0.
+[Microsoft-Windows-TCPIP]TCP software RSC global disabled mask = 0, UDP software URO global disabled mask = 0.
 ```
-- UDP packets by design will not be coalesced if they carry different PTP timestamps. PTP timestamp is a feature for accurately synchronizing time supported by some NICs and it should be off by default. You can turn off PTP timestamps in NIC properties.
+
+#### Incompatible Hardware Feature (PTP Timestamps)
+
+Another reason that UDP packets by design will not be coalesced if they carry different PTP timestamps. PTP timestamp is a feature for accurately synchronizing time supported by some NICs and it should be off by default. You can turn off PTP timestamps in NIC properties.
 
 ![](images/ptp-timestamp-config.png)
 
