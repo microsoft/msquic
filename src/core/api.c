@@ -1039,11 +1039,6 @@ MsQuicStreamSend(
         (Connection->WorkerThreadID == CxPlatCurThreadID()) ||
         !Connection->State.HandleClosed);
 
-    if (Connection->State.ClosedRemotely) {
-        Status = QUIC_STATUS_ABORTED;
-        goto Exit;
-    }
-
     TotalLength = 0;
     for (uint32_t i = 0; i < BufferCount; ++i) {
         TotalLength += Buffers[i].Length;
@@ -1125,12 +1120,28 @@ MsQuicStreamSend(
     } else if (QueueOper) {
         Oper = QuicOperationAlloc(Connection->Worker, QUIC_OPER_TYPE_API_CALL);
         if (Oper == NULL) {
-            Status = QUIC_STATUS_OUT_OF_MEMORY;
             QuicTraceEvent(
                 AllocFailure,
                 "Allocation of '%s' failed. (%llu bytes)",
                 "STRM_SEND operation",
                 0);
+            //
+            // We can't fail the send at this point, because we're already queued
+            // the send above. So instead, we're just going to abort the whole
+            // connection.
+            //
+            if (InterlockedCompareExchange16(
+                    (short*)&Connection->BackUpOperUsed, 1, 0) != 0) {
+                goto Exit; // It's already started the shutdown.
+            }
+            Oper = &Connection->BackUpOper;
+            Oper->FreeAfterProcess = FALSE;
+            Oper->Type = QUIC_OPER_TYPE_API_CALL;
+            Oper->API_CALL.Context = &Connection->BackupApiContext;
+            Oper->API_CALL.Context->Type = QUIC_API_TYPE_CONN_SHUTDOWN;
+            Oper->API_CALL.Context->CONN_SHUTDOWN.Flags = QUIC_CONNECTION_SHUTDOWN_FLAG_SILENT;
+            Oper->API_CALL.Context->CONN_SHUTDOWN.ErrorCode = 0;
+            Oper->API_CALL.Context->CONN_SHUTDOWN.RegistrationShutdown = FALSE;
             goto Exit;
         }
         Oper->API_CALL.Context->Type = QUIC_API_TYPE_STRM_SEND;
