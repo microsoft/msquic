@@ -84,6 +84,11 @@
     </EventProvider>
 
     <EventProvider Id="EP_TcpIpEtw" Name="Microsoft-Windows-TCPIP" NonPagedMemory="true" />
+    <EventProvider Id="EP_TcpIpEtw_Drops" Name="Microsoft-Windows-TCPIP" NonPagedMemory="true">
+      <Keywords>
+        <Keyword Value="0x10000000000"/>
+      </Keywords>
+    </EventProvider>
     <EventProvider Id="EP_WinSockEtw" Name="Microsoft-Windows-Winsock-AFD" NonPagedMemory="true" />
     <EventProvider Id="EP_SChannelWpp" Name="37D2C3CD-C5D4-4587-8531-4696C44244C8" Level="5">
       <Keywords>
@@ -190,6 +195,7 @@
         <EventCollectorId Value="EC_LowVolume">
           <EventProviders>
             <EventProviderId Value="EP_MsQuicEtw_LowVolume" />
+            <EventProviderId Value="EP_TcpIpEtw_Drops" />
           </EventProviders>
         </EventCollectorId>
       </Collectors>
@@ -204,6 +210,7 @@
         <EventCollectorId Value="EC_HighVolume">
           <EventProviders>
             <EventProviderId Value="EP_MsQuicEtw" />
+            <EventProviderId Value="EP_TcpIpEtw_Drops" />
           </EventProviders>
         </EventCollectorId>
       </Collectors>
@@ -251,6 +258,7 @@
         <EventCollectorId Value="EC_LowVolume">
           <EventProviders>
             <EventProviderId Value="EP_MsQuicEtw" />
+            <EventProviderId Value="EP_TcpIpEtw_Drops" />
             <EventProviderId Value="EP_TaefEtw" />
           </EventProviders>
         </EventCollectorId>
