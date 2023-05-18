@@ -1040,6 +1040,11 @@ MsQuicStreamSend(
         (Connection->WorkerThreadID == CxPlatCurThreadID()) ||
         !Connection->State.HandleClosed);
 
+    if (Connection->State.ClosedRemotely) {
+        Status = QUIC_STATUS_ABORTED;
+        goto Exit;
+    }
+
     TotalLength = 0;
     for (uint32_t i = 0; i < BufferCount; ++i) {
         TotalLength += Buffers[i].Length;
