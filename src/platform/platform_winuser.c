@@ -609,7 +609,7 @@ CxPlatProcActiveCount(
 
     Count = 0;
     for (WORD i = 0; i < ProcInfo->Group.ActiveGroupCount; i++) {
-        Count += ProcInfo->Group.GroupInfo[i].MaxProcessorCount;
+        Count += ProcInfo->Group.GroupInfo[i].ActiveProcessorCount;
     }
     CXPLAT_FREE(ProcInfo, QUIC_POOL_PLATFORM_TMP_ALLOC);
     CXPLAT_DBG_ASSERT(Count != 0);
