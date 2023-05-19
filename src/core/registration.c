@@ -240,6 +240,7 @@ MsQuicRegistrationShutdown(
                 Oper->API_CALL.Context->CONN_SHUTDOWN.Flags = Flags;
                 Oper->API_CALL.Context->CONN_SHUTDOWN.ErrorCode = ErrorCode;
                 Oper->API_CALL.Context->CONN_SHUTDOWN.RegistrationShutdown = TRUE;
+                Oper->API_CALL.Context->CONN_SHUTDOWN.TransportShutdown = FALSE;
                 QuicConnQueueHighestPriorityOper(Connection, Oper);
             }
 
