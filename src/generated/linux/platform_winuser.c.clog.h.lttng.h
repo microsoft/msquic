@@ -39,8 +39,8 @@ TRACEPOINT_EVENT(CLOG_PLATFORM_WINUSER_C, WindowsUserUnloaded,
 // QuicTraceLogInfo(
         WindowsUserProcessorStateV2,
         "[ dll] Processors:%u, Groups:%u",
-        ActiveProcessorCount, (uint32_t)Info->Group.ActiveGroupCount);
-// arg2 = arg2 = ActiveProcessorCount = arg2
+        MaxProcessorCount, (uint32_t)Info->Group.ActiveGroupCount);
+// arg2 = arg2 = MaxProcessorCount = arg2
 // arg3 = arg3 = (uint32_t)Info->Group.ActiveGroupCount = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_PLATFORM_WINUSER_C, WindowsUserProcessorStateV2,
@@ -151,9 +151,9 @@ TRACEPOINT_EVENT(CLOG_PLATFORM_WINUSER_C, WindowsUserUninitialized,
             AllocFailure,
             "Allocation of '%s' failed. (%llu bytes)",
             "CxPlatProcessorInfo",
-            ActiveProcessorCount * sizeof(CXPLAT_PROCESSOR_INFO));
+            MaxProcessorCount * sizeof(CXPLAT_PROCESSOR_INFO));
 // arg2 = arg2 = "CxPlatProcessorInfo" = arg2
-// arg3 = arg3 = ActiveProcessorCount * sizeof(CXPLAT_PROCESSOR_INFO) = arg3
+// arg3 = arg3 = MaxProcessorCount * sizeof(CXPLAT_PROCESSOR_INFO) = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_PLATFORM_WINUSER_C, AllocFailure,
     TP_ARGS(
