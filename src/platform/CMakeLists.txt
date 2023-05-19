@@ -51,7 +51,7 @@ endif()
 add_library(platform STATIC ${SOURCES})
 
 if ("${CX_PLATFORM}" STREQUAL "windows")
-    if (AND QUIC_USE_XDP)
+    if (QUIC_USE_XDP)
         target_link_libraries(
             platform
             PUBLIC
