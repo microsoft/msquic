@@ -438,7 +438,8 @@ QuicConnShutdown(
     _In_ QUIC_CONNECTION* Connection,
     _In_ uint32_t Flags,
     _In_ QUIC_VAR_INT ErrorCode,
-    _In_ BOOLEAN ShutdownFromRegistration
+    _In_ BOOLEAN ShutdownFromRegistration,
+    _In_ BOOLEAN ShutdownFromTransport
     )
 {
     if (ShutdownFromRegistration &&
@@ -447,7 +448,8 @@ QuicConnShutdown(
         return;
     }
 
-    uint32_t CloseFlags = QUIC_CLOSE_APPLICATION;
+    uint32_t CloseFlags =
+        ShutdownFromTransport ? QUIC_CLOSE_INTERNAL : QUIC_CLOSE_APPLICATION;
     if (Flags & QUIC_CONNECTION_SHUTDOWN_FLAG_SILENT ||
         (!Connection->State.Started && QuicConnIsClient(Connection))) {
         CloseFlags |= QUIC_CLOSE_SILENT;
@@ -475,6 +477,7 @@ QuicConnUninitialize(
         Connection,
         QUIC_CONNECTION_SHUTDOWN_FLAG_SILENT,
         QUIC_ERROR_NO_ERROR,
+        FALSE,
         FALSE);
 
     //
@@ -1868,7 +1871,7 @@ QuicConnStart(
     CxPlatDispatchLockRelease(&Connection->Registration->ConnectionLock);
 
     if (RegistrationShutingDown) {
-        QuicConnShutdown(Connection, ShutdownFlags, ShutdownErrorCode, FALSE);
+        QuicConnShutdown(Connection, ShutdownFlags, ShutdownErrorCode, FALSE, FALSE);
         if (ServerName != NULL) {
             CXPLAT_FREE(ServerName, QUIC_POOL_SERVERNAME);
         }
@@ -3330,6 +3333,7 @@ QuicConnQueueRouteCompletion(
         Oper->API_CALL.Context->CONN_SHUTDOWN.Flags = QUIC_CONNECTION_SHUTDOWN_FLAG_SILENT;
         Oper->API_CALL.Context->CONN_SHUTDOWN.ErrorCode = QUIC_ERROR_INTERNAL_ERROR;
         Oper->API_CALL.Context->CONN_SHUTDOWN.RegistrationShutdown = FALSE;
+        Oper->API_CALL.Context->CONN_SHUTDOWN.TransportShutdown = TRUE;
         QuicConnQueueHighestPriorityOper(Connection, Oper);
     }
 
@@ -7312,7 +7316,8 @@ QuicConnProcessApiOperation(
             Connection,
             ApiCtx->CONN_SHUTDOWN.Flags,
             ApiCtx->CONN_SHUTDOWN.ErrorCode,
-            ApiCtx->CONN_SHUTDOWN.RegistrationShutdown);
+            ApiCtx->CONN_SHUTDOWN.RegistrationShutdown,
+            ApiCtx->CONN_SHUTDOWN.TransportShutdown);
         break;
 
     case QUIC_API_TYPE_CONN_START:
