@@ -452,8 +452,8 @@ int framing_packet(size_t size,
         iph->frag_off = 0;
         iph->ttl = 64;
         iph->protocol = IPPROTO_UDP;
-        iph->saddr = ntohl(LocalAddress->Ipv4.sin_addr.s_addr);
-        iph->daddr = ntohl(RemoteAddress->Ipv4.sin_addr.s_addr);
+        iph->saddr = LocalAddress->Ipv4.sin_addr.s_addr;
+        iph->daddr = RemoteAddress->Ipv4.sin_addr.s_addr;
         iph->check = 0;
         iph->check = csum16((uint16_t *)iph, sizeof(struct iphdr) / 2);
     } else {
