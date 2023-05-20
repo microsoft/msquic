@@ -35,6 +35,7 @@ typedef struct XDP_DATAPATH {
 
 typedef struct XDP_INTERFACE {
     CXPLAT_INTERFACE;
+    HANDLE XdpHandle;
     uint16_t QueueCount;
     uint8_t RuleCount;
     CXPLAT_LOCK RuleLock;
