@@ -45,6 +45,11 @@ Supported Environments:
 #define CXPLAT_CONTAINING_RECORD(address, type, field) \
     ((type *)((uint8_t*)(address) - offsetof(type, field)))
 
+#define CxPlatSocketError() _CxPlatSocketError()
+#define CxPlatCloseSocket(s) _CxPlatCloseSocket(s)
+#define CxPlatQuicErrorFromSocketError(e) _CxPlatQuicErrorFromSocketError(e)
+#define CxPlatAddressLengthType _CxPlatAddressLengthType
+
 typedef struct CXPLAT_LIST_ENTRY {
     struct CXPLAT_LIST_ENTRY* Flink;
     struct CXPLAT_LIST_ENTRY* Blink;
