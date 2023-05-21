@@ -69,16 +69,3 @@ CxPlatResolveRoute(
     UNREFERENCED_PARAMETER(Callback);
     return QUIC_STATUS_NOT_SUPPORTED;
 }
-
-
-QUIC_STATUS
-CxPlatTryAddSocket(
-    _In_ CXPLAT_SOCKET_POOL* Pool,
-    _In_ CXPLAT_SOCKET* Socket
-    )
-{
-    UNREFERENCED_PARAMETER(Pool);
-    UNREFERENCED_PARAMETER(Socket);
-
-    return QUIC_STATUS_NOT_SUPPORTED;
-}
