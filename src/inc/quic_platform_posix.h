@@ -86,6 +86,10 @@ extern "C" {
 #define TYPEOF_STRUCT_MEMBER(StructType, StructMember) typeof(((StructType *)0)->StructMember)
 
 #define SOCKET int
+#define _CxPlatSocketError() errno
+#define _CxPlatCloseSocket(s) close(s)
+#define _CxPlatQuicErrorFromSocketError(e) (QUIC_STATUS)e
+#define _CxPlatAddressLengthType uint32_t
 
 #if defined(__GNUC__) && __GNUC__ >= 7
 #define __fallthrough __attribute__((fallthrough))
