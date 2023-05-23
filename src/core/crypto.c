@@ -2697,7 +2697,7 @@ QuicCryptoReNegotiateAlpn(
             "No ALPN match found");
         QuicConnTransportError(
             Connection,
-            QUIC_ERROR_INTERNAL_ERROR);
+            QUIC_ERROR_CRYPTO_NO_APPLICATION_PROTOCOL);
         return QUIC_STATUS_INVALID_PARAMETER;
     }
 
