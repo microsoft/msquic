@@ -3410,14 +3410,14 @@ QuicTestChangeAlpn(
             {
                 UniquePtr<TestConnection> Server;
                 ServerAcceptContext ServerAcceptCtx((TestConnection**)&Server);
-                ServerAcceptCtx.ExpectedTransportCloseStatus = QUIC_STATUS_INTERNAL_ERROR;
+                ServerAcceptCtx.ExpectedTransportCloseStatus = QUIC_STATUS_ALPN_NEG_FAILURE;
                 Listener.Context = &ServerAcceptCtx;
 
                 {
                     TestConnection Client(Registration);
                     TEST_TRUE(Client.IsValid());
 
-                    Client.SetExpectedTransportCloseStatus(QUIC_STATUS_INTERNAL_ERROR);
+                    Client.SetExpectedTransportCloseStatus(QUIC_STATUS_ALPN_NEG_FAILURE);
 
                     TEST_QUIC_SUCCEEDED(
                         Client.Start(
