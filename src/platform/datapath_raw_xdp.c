@@ -1104,7 +1104,7 @@ CxPlatDpRawInitialize(
             goto Error;
         }
         CxPlatZeroMemory(Interface, sizeof(*Interface));
-
+        Interface->IfIndex = Interface->ActualIfIndex = pIfRow->InterfaceIndex;
         // NOTE: O(n^2), but realistically enough small
         for (ULONG j = i+1; j < pIfTable->NumEntries; j++) {
             MIB_IF_ROW2* pIfRowNext = &pIfTable->Table[j];
@@ -1116,14 +1116,12 @@ CxPlatDpRawInitialize(
                 memcmp(pIfRow->PhysicalAddress, pIfRowNext->PhysicalAddress,
                        sizeof(pIfRow->PhysicalAddress) == 0)) {
                 Interface->IfIndex = pIfRowNext->InterfaceIndex;
-                Interface->ActualIfIndex = pIfRow->InterfaceIndex;
                 Initialized[j] = TRUE;
             } else if (pIfRow->PhysicalMediumType == NdisPhysicalMediumUnspecified &&
                        pIfRowNext->PhysicalMediumType == NdisPhysicalMedium802_3 &&
                         memcmp(pIfRow->PhysicalAddress, pIfRowNext->PhysicalAddress,
                                sizeof(pIfRow->PhysicalAddress) == 0)) {
-                Interface->IfIndex = pIfRowNext->InterfaceIndex;
-                Interface->ActualIfIndex = pIfRow->InterfaceIndex;
+                Interface->ActualIfIndex = pIfRowNext->InterfaceIndex;
                 Initialized[j] = TRUE;
             }
         }
