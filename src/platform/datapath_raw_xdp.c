@@ -1083,46 +1083,15 @@ CxPlatDpRawInitialize(
         goto Error;
     }
 
-    struct IfMatching {
-        MIB_IF_ROW2* IfRow;
-        MIB_IF_ROW2* ActualIfRow; // for VF
-    };
-
-    struct IfMatching IfMatching[16] = {0}; // TODO: linked list
-    int IfRowsCount = 0;
+    BOOLEAN Initialized[128];
     for (int i = 0; i < (int) pIfTable->NumEntries; i++) {
         MIB_IF_ROW2* pIfRow = &pIfTable->Table[i];
         if (pIfRow->InterfaceAndOperStatusFlags.FilterInterface ||
             !pIfRow->InterfaceAndOperStatusFlags.HardwareInterface ||
-            !pIfRow->InterfaceAndOperStatusFlags.ConnectorPresent) {
+            !pIfRow->InterfaceAndOperStatusFlags.ConnectorPresent ||
+            Initialized[i]) {
             continue;
         }
-        // NOTE: O(n^2), but realistically enough small
-        for (int j = 0; j < IfRowsCount; j++) {
-            struct IfMatching* pMatching = &IfMatching[j];
-            if (pIfRow->PhysicalMediumType == NdisPhysicalMedium802_3 &&
-                pMatching->ActualIfRow == NULL && pMatching->IfRow != NULL &&
-                memcpy(pMatching->IfRow->PhysicalAddress,
-                        pIfRow->PhysicalAddress,
-                        sizeof(pMatching->IfRow->PhysicalAddress) == 0)) {
-                pMatching->ActualIfRow = pIfRow;
-                goto Continue;
-            } else if (pIfRow->PhysicalMediumType == NdisPhysicalMediumUnspecified &&
-                       pMatching->ActualIfRow != NULL && pMatching->IfRow == NULL &&
-                       memcpy(pMatching->ActualIfRow->PhysicalAddress,
-                                pIfRow->PhysicalAddress,
-                                sizeof(pMatching->ActualIfRow->PhysicalAddress) == 0)) {
-                pMatching->IfRow = pIfRow;
-                goto Continue;
-            }
-        }
-
-        IfMatching[IfRowsCount++].IfRow = pIfRow; // TODO: assign both?
-Continue:;
-    }
-
-    for (int i = 0; i < IfRowsCount; i++) {
-        struct IfMatching* pMatching = &IfMatching[i];
         XDP_INTERFACE* Interface = CxPlatAlloc(sizeof(XDP_INTERFACE), IF_TAG);
         if (Interface == NULL) {
             QuicTraceEvent(
@@ -1133,20 +1102,32 @@ Continue:;
             Status = QUIC_STATUS_OUT_OF_MEMORY;
             goto Error;
         }
-
         CxPlatZeroMemory(Interface, sizeof(*Interface));
-        if (pMatching->ActualIfRow) {
-            Interface->IfIndex = pMatching->IfRow->InterfaceIndex;
-            Interface->ActualIfIndex = pMatching->ActualIfRow->InterfaceIndex;
-        } else if (pMatching->IfRow) {
-            Interface->IfIndex = Interface->ActualIfIndex = pMatching->IfRow->InterfaceIndex;
-        } else {
-            // never happen
-        }
 
-        memcpy(
-            Interface->PhysicalAddress, pMatching->IfRow->PhysicalAddress,
-            sizeof(Interface->PhysicalAddress));
+        // NOTE: O(n^2), but realistically enough small
+        for (ULONG j = i+1; j < pIfTable->NumEntries; j++) {
+            MIB_IF_ROW2* pIfRowNext = &pIfTable->Table[j];
+            if (Initialized[j]) {
+                continue;
+            }
+            if (pIfRow->PhysicalMediumType == NdisPhysicalMedium802_3 &&
+                pIfRowNext->PhysicalMediumType == NdisPhysicalMediumUnspecified &&
+                memcmp(pIfRow->PhysicalAddress, pIfRowNext->PhysicalAddress,
+                       sizeof(pIfRow->PhysicalAddress) == 0)) {
+                Interface->IfIndex = pIfRowNext->InterfaceIndex;
+                Interface->ActualIfIndex = pIfRow->InterfaceIndex;
+                Initialized[j] = TRUE;
+            } else if (pIfRow->PhysicalMediumType == NdisPhysicalMediumUnspecified &&
+                       pIfRowNext->PhysicalMediumType == NdisPhysicalMedium802_3 &&
+                        memcmp(pIfRow->PhysicalAddress, pIfRowNext->PhysicalAddress,
+                               sizeof(pIfRow->PhysicalAddress) == 0)) {
+                Interface->IfIndex = pIfRowNext->InterfaceIndex;
+                Interface->ActualIfIndex = pIfRow->InterfaceIndex;
+                Initialized[j] = TRUE;
+            }
+        }
+        memcpy(Interface->PhysicalAddress, pIfRow->PhysicalAddress,
+               sizeof(Interface->PhysicalAddress));
 
         Status =
             CxPlatDpRawInterfaceInitialize(
@@ -1162,6 +1143,7 @@ Continue:;
             continue;
         }
         CxPlatListInsertTail(&Xdp->Interfaces, &Interface->Link);
+        Initialized[i] = TRUE;
     }
     FreeMibTable(pIfTable);
 
