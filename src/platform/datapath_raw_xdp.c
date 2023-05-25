@@ -1083,7 +1083,8 @@ CxPlatDpRawInitialize(
         goto Error;
     }
 
-    BOOLEAN Initialized[128];
+    CXPLAT_FRE_ASSERT(pIfTable->NumEntries <= 128);
+    BOOLEAN Initialized[128] = {0};
     for (int i = 0; i < (int) pIfTable->NumEntries; i++) {
         MIB_IF_ROW2* pIfRow = &pIfTable->Table[i];
         if (pIfRow->InterfaceAndOperStatusFlags.FilterInterface ||
