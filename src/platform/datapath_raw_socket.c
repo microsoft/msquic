@@ -570,7 +570,7 @@ CxPlatResolveRoute(
     CXPLAT_LIST_ENTRY* Entry = Socket->Datapath->Interfaces.Flink;
     for (; Entry != &Socket->Datapath->Interfaces; Entry = Entry->Flink) {
         CXPLAT_INTERFACE* Interface = CONTAINING_RECORD(Entry, CXPLAT_INTERFACE, Link);
-        if (Interface->ActualIfIndex == IpforwardRow.InterfaceIndex) {
+        if (Interface->IfIndex == IpforwardRow.InterfaceIndex) {
             CXPLAT_DBG_ASSERT(sizeof(Interface->PhysicalAddress) == sizeof(Route->LocalLinkLayerAddress));
             CxPlatCopyMemory(&Route->LocalLinkLayerAddress, Interface->PhysicalAddress, sizeof(Route->LocalLinkLayerAddress));
             CxPlatDpRawAssignQueue(Interface, Route);
