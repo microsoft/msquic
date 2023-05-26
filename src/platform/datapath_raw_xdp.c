@@ -1158,7 +1158,7 @@ CxPlatDpRawInitialize(
                 }
                 memcpy(
                     Interface->PhysicalAddress, Adapter->PhysicalAddress,
-                    ETH_MAC_ADDR_LEN);
+                    sizeof(Interface->PhysicalAddress));
 
                 Status =
                     CxPlatDpRawInterfaceInitialize(
