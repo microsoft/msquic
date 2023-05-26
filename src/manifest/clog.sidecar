@@ -13737,9 +13737,9 @@
         "EncodingString": "[conn][%p] Forcing key update"
       },
       {
-        "UniquenessHash": "50cd9b1f-f31e-ab67-ecae-92bbec05fe18",
+        "UniquenessHash": "d6391ff6-753c-5ebe-50af-901df6026da4",
         "TraceID": "FoundVF",
-        "EncodingString": "[ xdp] Found NetSvc-VF interfaces. NetSvc IfIdx:%d, VF IfIdx:%d"
+        "EncodingString": "[ xdp][%p] Found NetSvc-VF interfaces. NetSvc IfIdx:%lu, VF IfIdx:%lu"
       },
       {
         "UniquenessHash": "60343716-1a2c-e07a-f524-7337b986b581",

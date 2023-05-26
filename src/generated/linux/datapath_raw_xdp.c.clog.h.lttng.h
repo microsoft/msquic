@@ -2,6 +2,33 @@
 
 
 /*----------------------------------------------------------
+// Decoder Ring for FoundVF
+// [ xdp][%p] Found NetSvc-VF interfaces. NetSvc IfIdx:%lu, VF IfIdx:%lu
+// QuicTraceLogInfo(
+                            FoundVF,
+                            "[ xdp][%p] Found NetSvc-VF interfaces. NetSvc IfIdx:%lu, VF IfIdx:%lu",
+                            Xdp,
+                            Interface->IfIndex,
+                            Interface->ActualIfIndex);
+// arg2 = arg2 = Xdp = arg2
+// arg3 = arg3 = Interface->IfIndex = arg3
+// arg4 = arg4 = Interface->ActualIfIndex = arg4
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_C, FoundVF,
+    TP_ARGS(
+        const void *, arg2,
+        unsigned int, arg3,
+        unsigned int, arg4), 
+    TP_FIELDS(
+        ctf_integer_hex(uint64_t, arg2, arg2)
+        ctf_integer(unsigned int, arg3, arg3)
+        ctf_integer(unsigned int, arg4, arg4)
+    )
+)
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for XdpInitialize
 // [ xdp][%p] XDP initialized, %u procs
 // QuicTraceLogVerbose(
@@ -301,28 +328,5 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_C, LibraryError,
         const char *, arg2), 
     TP_FIELDS(
         ctf_string(arg2, arg2)
-    )
-)
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for FoundVF
-// [ xdp] Found NetSvc-VF interfaces. NetSvc IfIdx:%d, VF IfIdx:%d
-// QuicTraceEvent(
-                            FoundVF,
-                            "[ xdp] Found NetSvc-VF interfaces. NetSvc IfIdx:%d, VF IfIdx:%d",
-                            Interface->IfIndex,
-                            Interface->ActualIfIndex);
-// arg2 = arg2 = Interface->IfIndex = arg2
-// arg3 = arg3 = Interface->ActualIfIndex = arg3
-----------------------------------------------------------*/
-TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_C, FoundVF,
-    TP_ARGS(
-        int, arg2,
-        int, arg3), 
-    TP_FIELDS(
-        ctf_integer(int, arg2, arg2)
-        ctf_integer(int, arg3, arg3)
     )
 )

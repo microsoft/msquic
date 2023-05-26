@@ -1148,9 +1148,10 @@ CxPlatDpRawInitialize(
                          memcmp(&pIfRow->PhysicalAddress, &Adapter->PhysicalAddress,
                                 Adapter->PhysicalAddressLength) == 0) {
                         Interface->ActualIfIndex = pIfRow->InterfaceIndex;
-                        QuicTraceEvent(
+                        QuicTraceLogInfo(
                             FoundVF,
-                            "[ xdp] Found NetSvc-VF interfaces. NetSvc IfIdx:%d, VF IfIdx:%d",
+                            "[ xdp][%p] Found NetSvc-VF interfaces. NetSvc IfIdx:%lu, VF IfIdx:%lu",
+                            Xdp,
                             Interface->IfIndex,
                             Interface->ActualIfIndex);
                         break; // assuming there is 1:1 matching
