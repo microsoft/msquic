@@ -547,7 +547,7 @@ CxPlatDpRawInterfaceInitialize(
     Interface->OffloadStatus.Transmit.NetworkLayerXsum = Xdp->SkipXsum;
     Interface->Xdp = Xdp;
 
-    Status = Xdp->XdpApi->XdpInterfaceOpen(Interface->IfIndex, &Interface->XdpHandle);
+    Status = Xdp->XdpApi->XdpInterfaceOpen(Interface->ActualIfIndex, &Interface->XdpHandle);
     if (QUIC_FAILED(Status)) {
         QuicTraceEvent(
             LibraryErrorStatus,
@@ -557,7 +557,7 @@ CxPlatDpRawInterfaceInitialize(
         goto Error;
     }
 
-    Status = CxPlatGetInterfaceRssQueueCount(Interface->IfIndex, &Interface->QueueCount);
+    Status = CxPlatGetInterfaceRssQueueCount(Interface->ActualIfIndex, &Interface->QueueCount);
     if (QUIC_FAILED(Status)) {
         goto Error;
     }
@@ -666,7 +666,7 @@ CxPlatDpRawInterfaceInitialize(
         }
 
         uint32_t Flags = XSK_BIND_FLAG_RX;
-        Status = Xdp->XdpApi->XskBind(Queue->RxXsk, Interface->IfIndex, i, Flags);
+        Status = Xdp->XdpApi->XskBind(Queue->RxXsk, Interface->ActualIfIndex, i, Flags);
         if (QUIC_FAILED(Status)) {
             QuicTraceEvent(
                 LibraryErrorStatus,
@@ -788,7 +788,7 @@ CxPlatDpRawInterfaceInitialize(
         }
 
         Flags = XSK_BIND_FLAG_TX; // TODO: support native/generic forced flags.
-        Status = Xdp->XdpApi->XskBind(Queue->TxXsk, Interface->IfIndex, i, Flags);
+        Status = Xdp->XdpApi->XskBind(Queue->TxXsk, Interface->ActualIfIndex, i, Flags);
         if (QUIC_FAILED(Status)) {
             QuicTraceEvent(
                 LibraryErrorStatus,
@@ -882,7 +882,7 @@ CxPlatDpRawInterfaceUpdateRules(
         HANDLE NewRxProgram;
         QUIC_STATUS Status =
             Interface->Xdp->XdpApi->XdpCreateProgram(
-                Interface->IfIndex,
+                Interface->ActualIfIndex,
                 &RxHook,
                 i,
                 0,
@@ -1077,6 +1077,12 @@ CxPlatDpRawInitialize(
         Xdp,
         Xdp->WorkerCount);
 
+    PMIB_IF_TABLE2 pIfTable;
+    if (GetIfTable2(&pIfTable) != NO_ERROR) {
+        Status = QUIC_STATUS_INTERNAL_ERROR;
+        goto Error;
+    }
+
     PIP_ADAPTER_ADDRESSES Adapters = NULL;
     ULONG Error;
     ULONG AdaptersBufferSize = 15000; // 15 KB buffer for GAA to start with.
@@ -1128,9 +1134,29 @@ CxPlatDpRawInitialize(
                     Status = QUIC_STATUS_OUT_OF_MEMORY;
                     goto Error;
                 }
-
                 CxPlatZeroMemory(Interface, sizeof(*Interface));
-                Interface->IfIndex = Adapter->IfIndex;
+                Interface->ActualIfIndex = Interface->IfIndex = Adapter->IfIndex;
+
+                // Look for VF which associated with Adapter
+                // It has same MAC address. and empirically these flags
+                for (int i = 0; i < (int) pIfTable->NumEntries; i++) {
+                    MIB_IF_ROW2* pIfRow = &pIfTable->Table[i];
+                    if (!pIfRow->InterfaceAndOperStatusFlags.FilterInterface &&
+                         pIfRow->InterfaceAndOperStatusFlags.HardwareInterface &&
+                         pIfRow->InterfaceAndOperStatusFlags.ConnectorPresent &&
+                         pIfRow->PhysicalMediumType == NdisPhysicalMedium802_3 &&
+                         memcmp(&pIfRow->PhysicalAddress, &Adapter->PhysicalAddress,
+                                Adapter->PhysicalAddressLength) == 0) {
+                        Interface->ActualIfIndex = pIfRow->InterfaceIndex;
+                        QuicTraceLogInfo(
+                            FoundVF,
+                            "[ xdp][%p] Found NetSvc-VF interfaces. NetSvc IfIdx:%lu, VF IfIdx:%lu",
+                            Xdp,
+                            Interface->IfIndex,
+                            Interface->ActualIfIndex);
+                        break; // assuming there is 1:1 matching
+                    }
+                }
                 memcpy(
                     Interface->PhysicalAddress, Adapter->PhysicalAddress,
                     sizeof(Interface->PhysicalAddress));
@@ -1159,6 +1185,7 @@ CxPlatDpRawInitialize(
             "CxPlatThreadCreate");
         goto Error;
     }
+    FreeMibTable(pIfTable);
 
     if (CxPlatListIsEmpty(&Xdp->Interfaces)) {
         QuicTraceEvent(
