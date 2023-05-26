@@ -305,6 +305,26 @@ tracepoint(CLOG_DATAPATH_RAW_XDP_C, LibraryError , arg2);\
 
 
 
+/*----------------------------------------------------------
+// Decoder Ring for FoundVF
+// [ xdp] Found NetSvc-VF interfaces. NetSvc IfIdx:%d, VF IfIdx:%d
+// QuicTraceEvent(
+                            FoundVF,
+                            "[ xdp] Found NetSvc-VF interfaces. NetSvc IfIdx:%d, VF IfIdx:%d",
+                            Interface->IfIndex,
+                            Interface->ActualIfIndex);
+// arg2 = arg2 = Interface->IfIndex = arg2
+// arg3 = arg3 = Interface->ActualIfIndex = arg3
+----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_FoundVF
+#define _clog_4_ARGS_TRACE_FoundVF(uniqueId, encoded_arg_string, arg2, arg3)\
+tracepoint(CLOG_DATAPATH_RAW_XDP_C, FoundVF , arg2, arg3);\
+
+#endif
+
+
+
+
 #ifdef __cplusplus
 }
 #endif

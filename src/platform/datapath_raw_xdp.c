@@ -1083,66 +1083,106 @@ CxPlatDpRawInitialize(
         goto Error;
     }
 
-    CXPLAT_FRE_ASSERT(pIfTable->NumEntries <= 128);
-    BOOLEAN Initialized[128] = {0};
-    for (int i = 0; i < (int) pIfTable->NumEntries; i++) {
-        MIB_IF_ROW2* pIfRow = &pIfTable->Table[i];
-        if (pIfRow->InterfaceAndOperStatusFlags.FilterInterface ||
-            !pIfRow->InterfaceAndOperStatusFlags.HardwareInterface ||
-            !pIfRow->InterfaceAndOperStatusFlags.ConnectorPresent ||
-            Initialized[i]) {
-            continue;
-        }
-        XDP_INTERFACE* Interface = CxPlatAlloc(sizeof(XDP_INTERFACE), IF_TAG);
-        if (Interface == NULL) {
+    PIP_ADAPTER_ADDRESSES Adapters = NULL;
+    ULONG Error;
+    ULONG AdaptersBufferSize = 15000; // 15 KB buffer for GAA to start with.
+    ULONG Iterations = 0;
+    ULONG flags = // skip info that we don't need.
+        GAA_FLAG_INCLUDE_PREFIX |
+        GAA_FLAG_SKIP_UNICAST |
+        GAA_FLAG_SKIP_ANYCAST |
+        GAA_FLAG_SKIP_MULTICAST |
+        GAA_FLAG_SKIP_DNS_SERVER |
+        GAA_FLAG_SKIP_DNS_INFO;
+
+    do {
+        Adapters = (IP_ADAPTER_ADDRESSES*)CxPlatAlloc(AdaptersBufferSize, ADAPTER_TAG);
+        if (Adapters == NULL) {
             QuicTraceEvent(
                 AllocFailure,
                 "Allocation of '%s' failed. (%llu bytes)",
                 "XDP interface",
-                sizeof(*Interface));
+                AdaptersBufferSize);
             Status = QUIC_STATUS_OUT_OF_MEMORY;
             goto Error;
         }
-        CxPlatZeroMemory(Interface, sizeof(*Interface));
-        Interface->IfIndex = Interface->ActualIfIndex = pIfRow->InterfaceIndex;
-        // NOTE: O(n^2), but realistically enough small
-        for (ULONG j = i+1; j < pIfTable->NumEntries; j++) {
-            MIB_IF_ROW2* pIfRowNext = &pIfTable->Table[j];
-            if (Initialized[j]) {
-                continue;
-            }
-            if (pIfRow->PhysicalMediumType == NdisPhysicalMedium802_3 &&
-                pIfRowNext->PhysicalMediumType == NdisPhysicalMediumUnspecified &&
-                memcmp(pIfRow->PhysicalAddress, pIfRowNext->PhysicalAddress,
-                       sizeof(pIfRow->PhysicalAddress) == 0)) {
-                Interface->IfIndex = pIfRowNext->InterfaceIndex;
-                Initialized[j] = TRUE;
-            } else if (pIfRow->PhysicalMediumType == NdisPhysicalMediumUnspecified &&
-                       pIfRowNext->PhysicalMediumType == NdisPhysicalMedium802_3 &&
-                        memcmp(pIfRow->PhysicalAddress, pIfRowNext->PhysicalAddress,
-                               sizeof(pIfRow->PhysicalAddress) == 0)) {
-                Interface->ActualIfIndex = pIfRowNext->InterfaceIndex;
-                Initialized[j] = TRUE;
+
+        Error =
+            GetAdaptersAddresses(AF_UNSPEC, flags, NULL, Adapters, &AdaptersBufferSize);
+        if (Error == ERROR_BUFFER_OVERFLOW) {
+            CxPlatFree(Adapters, ADAPTER_TAG);
+            Adapters = NULL;
+        } else {
+            break;
+        }
+
+        Iterations++;
+    } while ((Error == ERROR_BUFFER_OVERFLOW) && (Iterations < 3)); // retry up to 3 times.
+
+    if (Error == NO_ERROR) {
+        for (PIP_ADAPTER_ADDRESSES Adapter = Adapters; Adapter != NULL; Adapter = Adapter->Next) {
+            if (Adapter->IfType == IF_TYPE_ETHERNET_CSMACD &&
+                Adapter->OperStatus == IfOperStatusUp &&
+                Adapter->PhysicalAddressLength == ETH_MAC_ADDR_LEN) {
+                XDP_INTERFACE* Interface = CxPlatAlloc(sizeof(XDP_INTERFACE), IF_TAG);
+                if (Interface == NULL) {
+                    QuicTraceEvent(
+                        AllocFailure,
+                        "Allocation of '%s' failed. (%llu bytes)",
+                        "XDP interface",
+                        sizeof(*Interface));
+                    Status = QUIC_STATUS_OUT_OF_MEMORY;
+                    goto Error;
+                }
+                CxPlatZeroMemory(Interface, sizeof(*Interface));
+                Interface->ActualIfIndex = Interface->IfIndex = Adapter->IfIndex;
+
+                // Look for VF which associated with Adapter
+                // It has same MAC address. and empirically these flags
+                for (int i = 0; i < (int) pIfTable->NumEntries; i++) {
+                    MIB_IF_ROW2* pIfRow = &pIfTable->Table[i];
+                    if (!pIfRow->InterfaceAndOperStatusFlags.FilterInterface &&
+                         pIfRow->InterfaceAndOperStatusFlags.HardwareInterface &&
+                         pIfRow->InterfaceAndOperStatusFlags.ConnectorPresent &&
+                         pIfRow->PhysicalMediumType == NdisPhysicalMedium802_3 &&
+                         memcmp(&pIfRow->PhysicalAddress, &Adapter->PhysicalAddress,
+                                Adapter->PhysicalAddressLength) == 0) {
+                        Interface->ActualIfIndex = pIfRow->InterfaceIndex;
+                        QuicTraceEvent(
+                            FoundVF,
+                            "[ xdp] Found NetSvc-VF interfaces. NetSvc IfIdx:%d, VF IfIdx:%d",
+                            Interface->IfIndex,
+                            Interface->ActualIfIndex);
+                        break; // assuming there is 1:1 matching
+                    }
+                }
+                memcpy(
+                    Interface->PhysicalAddress, Adapter->PhysicalAddress,
+                    ETH_MAC_ADDR_LEN);
+
+                Status =
+                    CxPlatDpRawInterfaceInitialize(
+                        Xdp, Interface, ClientRecvContextLength);
+                if (QUIC_FAILED(Status)) {
+                    QuicTraceEvent(
+                        LibraryErrorStatus,
+                        "[ lib] ERROR, %u, %s.",
+                        Status,
+                        "CxPlatDpRawInterfaceInitialize");
+                    CxPlatFree(Interface, IF_TAG);
+                    continue;
+                }
+                CxPlatListInsertTail(&Xdp->Interfaces, &Interface->Link);
             }
         }
-        memcpy(Interface->PhysicalAddress, pIfRow->PhysicalAddress,
-               sizeof(Interface->PhysicalAddress));
-
-        Status =
-            CxPlatDpRawInterfaceInitialize(
-                Xdp, Interface, ClientRecvContextLength);
-
-        if (QUIC_FAILED(Status)) {
-            QuicTraceEvent(
-                LibraryErrorStatus,
-                "[ lib] ERROR, %u, %s.",
-                Status,
-                "CxPlatDpRawInterfaceInitialize");
-            CxPlatFree(Interface, IF_TAG);
-            continue;
-        }
-        CxPlatListInsertTail(&Xdp->Interfaces, &Interface->Link);
-        Initialized[i] = TRUE;
+    } else {
+        Status = HRESULT_FROM_WIN32(Error);
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            Status,
+            "CxPlatThreadCreate");
+        goto Error;
     }
     FreeMibTable(pIfTable);
 
