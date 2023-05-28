@@ -300,6 +300,16 @@ QuicLibraryGetCurrentPartition(
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 inline
+QUIC_LIBRARY_PP*
+QuicLibraryGetPerProc(
+    void
+    )
+{
+    return &MsQuicLib.PerProc[QuicLibraryGetCurrentProcessor()];
+}
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+inline
 uint16_t
 QuicPartitionIdCreate(
     uint16_t BaseIndex
@@ -366,9 +376,7 @@ QuicPerfCounterAdd(
     )
 {
     CXPLAT_DBG_ASSERT(Type >= 0 && Type < QUIC_PERF_COUNTER_MAX);
-    uint32_t ProcIndex = CxPlatProcCurrentNumber();
-    CXPLAT_DBG_ASSERT(ProcIndex < (uint32_t)MsQuicLib.PartitionCount);
-    InterlockedExchangeAdd64(&(MsQuicLib.PerProc[ProcIndex].PerfCounters[Type]), Value);
+    InterlockedExchangeAdd64(&(QuicLibraryGetPerProc()->PerfCounters[Type]), Value);
 }
 
 #define QuicPerfCounterIncrement(Type) QuicPerfCounterAdd(Type, 1)
