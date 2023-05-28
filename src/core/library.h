@@ -305,7 +305,7 @@ QuicLibraryGetPerProc(
     void
     )
 {
-    return &MsQuicLib.PerProc[QuicLibraryGetCurrentProcessor()];
+    return &MsQuicLib.PerProc[QuicLibraryGetCurrentPartition()];
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
