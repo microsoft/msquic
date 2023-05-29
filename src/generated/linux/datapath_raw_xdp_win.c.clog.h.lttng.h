@@ -14,7 +14,7 @@
 // arg3 = arg3 = Interface->IfIndex = arg3
 // arg4 = arg4 = Interface->ActualIfIndex = arg4
 ----------------------------------------------------------*/
-TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_C, FoundVF,
+TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_WIN_C, FoundVF,
     TP_ARGS(
         const void *, arg2,
         unsigned int, arg3,

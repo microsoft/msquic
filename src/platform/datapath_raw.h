@@ -66,6 +66,7 @@ typedef struct CXPLAT_DATAPATH {
 typedef struct CXPLAT_INTERFACE {
     CXPLAT_LIST_ENTRY Link;
     uint32_t IfIndex;
+    uint32_t ActualIfIndex;
     uint8_t PhysicalAddress[ETH_MAC_ADDR_LEN];
     struct {
         struct {
