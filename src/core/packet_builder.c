@@ -218,7 +218,7 @@ QuicPacketBuilderPrepare(
     // the current one doesn't match, finalize it and then start a new one.
     //
 
-    uint32_t Proc = CxPlatProcCurrentNumber();
+    uint16_t Proc = QuicLibraryGetCurrentPartition();
     uint64_t ProcShifted = ((uint64_t)Proc + 1) << 40;
 
     BOOLEAN NewQuicPacket = FALSE;
