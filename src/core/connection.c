@@ -64,7 +64,7 @@ QuicConnAlloc(
     )
 {
     BOOLEAN IsServer = Datagram != NULL;
-    uint32_t CurProcIndex = CxPlatProcCurrentNumber();
+    uint16_t CurProcIndex = QuicLibraryGetCurrentPartition();
     *NewConnection = NULL;
     QUIC_STATUS Status;
 
@@ -402,7 +402,7 @@ QuicConnFree(
     if (Connection->HandshakeTP != NULL) {
         QuicCryptoTlsCleanupTransportParameters(Connection->HandshakeTP);
         CxPlatPoolFree(
-            &MsQuicLib.PerProc[CxPlatProcCurrentNumber()].TransportParamPool,
+            &QuicLibraryGetPerProc()->TransportParamPool,
             Connection->HandshakeTP);
         Connection->HandshakeTP = NULL;
     }
@@ -423,7 +423,7 @@ QuicConnFree(
         "[conn][%p] Destroyed",
         Connection);
     CxPlatPoolFree(
-        &MsQuicLib.PerProc[CxPlatProcCurrentNumber()].ConnectionPool,
+        &QuicLibraryGetPerProc()->ConnectionPool,
         Connection);
 
 #if DEBUG
@@ -2305,7 +2305,7 @@ QuicConnCleanupServerResumptionState(
         if (Connection->HandshakeTP != NULL) {
             QuicCryptoTlsCleanupTransportParameters(Connection->HandshakeTP);
             CxPlatPoolFree(
-                &MsQuicLib.PerProc[CxPlatProcCurrentNumber()].TransportParamPool,
+                &MsQuicLib.PerProc[QuicLibraryGetCurrentPartition()].TransportParamPool,
                 Connection->HandshakeTP);
             Connection->HandshakeTP = NULL;
         }
@@ -7208,7 +7208,7 @@ QuicConnApplyNewSettings(
             Connection->HandshakeTP == NULL) {
             CXPLAT_DBG_ASSERT(!Connection->State.Started);
             Connection->HandshakeTP =
-                CxPlatPoolAlloc(&MsQuicLib.PerProc[CxPlatProcCurrentNumber()].TransportParamPool);
+                CxPlatPoolAlloc(&QuicLibraryGetPerProc()->TransportParamPool);
             if (Connection->HandshakeTP == NULL) {
                 QuicTraceEvent(
                     AllocFailure,
