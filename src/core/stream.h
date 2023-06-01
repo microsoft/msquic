@@ -150,6 +150,7 @@ typedef union QUIC_STREAM_FLAGS {
         BOOLEAN Uninitialized           : 1;    // Uninitialize started/completed. Used for Debugging.
         BOOLEAN Freed                   : 1;    // Freed after last ref count released. Used for Debugging.
 
+        BOOLEAN InStreamTable           : 1;    // The stream is currently in the connection's table.
         BOOLEAN DelayFCUpdate           : 1;    // Delay stream ID FC updates to StreamClose.
     };
 } QUIC_STREAM_FLAGS;

@@ -388,7 +388,7 @@ QuicStreamClose(
 
     Stream->ClientCallbackHandler = NULL;
 
-    if (Stream->Flags.Started && Stream->Flags.DelayFCUpdate) {
+    if (Stream->Flags.DelayFCUpdate) {
         //
         // Indicate the stream is completely shut down to the connection.
         //
@@ -532,7 +532,7 @@ QuicStreamOnShutdownComplete(
         Stream->ClientCallbackHandler = NULL;
     }
 
-    if (Stream->Flags.Started && !Stream->Flags.DelayFCUpdate) {
+    if (!Stream->Flags.DelayFCUpdate) {
         //
         // Indicate the stream is completely shut down to the connection.
         //
