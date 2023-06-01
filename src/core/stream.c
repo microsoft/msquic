@@ -487,10 +487,18 @@ QuicStreamIndicateStartComplete(
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
-QuicStreamIndicateShutdownComplete(
+QuicStreamOnShutdownComplete(
     _In_ QUIC_STREAM* Stream
     )
 {
+    //
+    // Make sure to clean up any left over send flags.
+    //
+    QuicSendClearStreamSendFlag(
+        &Stream->Connection->Send,
+        Stream,
+        QUIC_STREAM_SEND_FLAGS_ALL);
+
     Stream->Flags.ShutdownComplete = TRUE;
     if (!Stream->Flags.HandleShutdown) {
         Stream->Flags.HandleShutdown = TRUE;
@@ -522,6 +530,13 @@ QuicStreamIndicateShutdownComplete(
         (void)QuicStreamIndicateEvent(Stream, &Event);
 
         Stream->ClientCallbackHandler = NULL;
+    }
+
+    if (!Stream->Flags.DelayFCUpdate) {
+        //
+        // Indicate the stream is completely shut down to the connection.
+        //
+        QuicStreamSetReleaseStream(&Stream->Connection->Streams, Stream);
     }
 }
 
@@ -568,7 +583,7 @@ QuicStreamShutdown(
         // delivered.
         //
         QuicStreamIndicateSendShutdownComplete(Stream, FALSE);
-        QuicStreamIndicateShutdownComplete(Stream);
+        QuicStreamOnShutdownComplete(Stream);
     }
 }
 
@@ -581,27 +596,11 @@ QuicStreamTryCompleteShutdown(
         !Stream->Flags.ReceiveDataPending &&
         Stream->Flags.LocalCloseAcked &&
         Stream->Flags.RemoteCloseAcked) {
-
-        //
-        // Make sure to clean up any left over send flags.
-        //
-        QuicSendClearStreamSendFlag(
-            &Stream->Connection->Send,
-            Stream,
-            QUIC_STREAM_SEND_FLAGS_ALL);
-
         //
         // Mark the stream as shut down and deliver the completion notification
         // to the application layer.
         //
-        QuicStreamIndicateShutdownComplete(Stream);
-
-        if (!Stream->Flags.DelayFCUpdate) {
-            //
-            // Indicate the stream is completely shut down to the connection.
-            //
-            QuicStreamSetReleaseStream(&Stream->Connection->Streams, Stream);
-        }
+        QuicStreamOnShutdownComplete(Stream);
     }
 }
 
