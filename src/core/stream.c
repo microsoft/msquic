@@ -20,8 +20,7 @@ QUIC_STATUS
 QuicStreamInitialize(
     _In_ QUIC_CONNECTION* Connection,
     _In_ BOOLEAN OpenedRemotely,
-    _In_ BOOLEAN Unidirectional,
-    _In_ BOOLEAN Opened0Rtt,
+    _In_ QUIC_STREAM_OPEN_FLAGS Flags,
     _Outptr_ _At_(*NewStream, __drv_allocatesMem(Mem))
         QUIC_STREAM** NewStream
     )
@@ -55,8 +54,9 @@ QuicStreamInitialize(
     Stream->Type = QUIC_HANDLE_TYPE_STREAM;
     Stream->Connection = Connection;
     Stream->ID = UINT64_MAX;
-    Stream->Flags.Unidirectional = Unidirectional;
-    Stream->Flags.Opened0Rtt = Opened0Rtt;
+    Stream->Flags.Unidirectional = !!(Flags & QUIC_STREAM_OPEN_FLAG_UNIDIRECTIONAL);
+    Stream->Flags.Opened0Rtt = !!(Flags & QUIC_STREAM_OPEN_FLAG_0_RTT);
+    Stream->Flags.DelayFCUpdate = !!(Flags & QUIC_STREAM_OPEN_FLAG_DELAY_FC_UPDATES);
     Stream->Flags.Allocated = TRUE;
     Stream->Flags.SendEnabled = TRUE;
     Stream->Flags.ReceiveEnabled = TRUE;
@@ -73,7 +73,7 @@ QuicStreamInitialize(
     Stream->RefTypeCount[QUIC_STREAM_REF_APP] = 1;
 #endif
 
-    if (Unidirectional) {
+    if (Stream->Flags.Unidirectional) {
         if (!OpenedRemotely) {
 
             //
@@ -388,6 +388,13 @@ QuicStreamClose(
 
     Stream->ClientCallbackHandler = NULL;
 
+    if (Stream->Flags.DelayFCUpdate) {
+        //
+        // Indicate the stream is completely shut down to the connection.
+        //
+        QuicStreamSetReleaseStream(&Stream->Connection->Streams, Stream);
+    }
+
     QuicStreamRelease(Stream, QUIC_STREAM_REF_APP);
 }
 
@@ -589,10 +596,12 @@ QuicStreamTryCompleteShutdown(
         Stream->Flags.ShutdownComplete = TRUE;
         QuicStreamIndicateShutdownComplete(Stream);
 
-        //
-        // Indicate the stream is completely shut down to the connection.
-        //
-        QuicStreamSetReleaseStream(&Stream->Connection->Streams, Stream);
+        if (!Stream->Flags.DelayFCUpdate) {
+            //
+            // Indicate the stream is completely shut down to the connection.
+            //
+            QuicStreamSetReleaseStream(&Stream->Connection->Streams, Stream);
+        }
     }
 }
 

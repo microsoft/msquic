@@ -191,6 +191,8 @@ typedef enum QUIC_STREAM_OPEN_FLAGS {
     QUIC_STREAM_OPEN_FLAG_NONE              = 0x0000,
     QUIC_STREAM_OPEN_FLAG_UNIDIRECTIONAL    = 0x0001,   // Indicates the stream is unidirectional.
     QUIC_STREAM_OPEN_FLAG_0_RTT             = 0x0002,   // The stream was opened via a 0-RTT packet.
+    QUIC_STREAM_OPEN_FLAG_DELAY_FC_UPDATES  = 0x0004,   // Indicates stream flow control limit updates for the connection
+                                                        // should be delayed to StreamClose.
 } QUIC_STREAM_OPEN_FLAGS;
 
 DEFINE_ENUM_FLAG_OPERATORS(QUIC_STREAM_OPEN_FLAGS)

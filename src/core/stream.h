@@ -149,6 +149,8 @@ typedef union QUIC_STREAM_FLAGS {
         BOOLEAN ShutdownComplete        : 1;    // Both directions have been shutdown and acknowledged.
         BOOLEAN Uninitialized           : 1;    // Uninitialize started/completed. Used for Debugging.
         BOOLEAN Freed                   : 1;    // Freed after last ref count released. Used for Debugging.
+
+        BOOLEAN DelayFCUpdate           : 1;    // Delay stream ID FC updates to StreamClose.
     };
 } QUIC_STREAM_FLAGS;
 
@@ -528,8 +530,7 @@ QUIC_STATUS
 QuicStreamInitialize(
     _In_ QUIC_CONNECTION* Connection,
     _In_ BOOLEAN OpenedRemotely,
-    _In_ BOOLEAN Unidirectional,
-    _In_ BOOLEAN Opened0Rtt,
+    _In_ QUIC_STREAM_OPEN_FLAGS Flags,
     _Outptr_ _At_(*Stream, __drv_allocatesMem(Mem))
         QUIC_STREAM** Stream
     );
