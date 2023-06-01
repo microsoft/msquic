@@ -376,19 +376,19 @@ QuicStreamClose(
                 QUIC_STREAM_SHUTDOWN_FLAG_IMMEDIATE,
             QUIC_ERROR_NO_ERROR);
 
-            if (!Stream->Flags.Started) {
-                //
-                // The stream was abandoned before it could be successfully
-                // started. Just mark it as completing the shutdown process now
-                // since nothing else can be done with it now.
-                //
-                Stream->Flags.ShutdownComplete = TRUE;
-            }
+        if (!Stream->Flags.Started) {
+            //
+            // The stream was abandoned before it could be successfully
+            // started. Just mark it as completing the shutdown process now
+            // since nothing else can be done with it now.
+            //
+            Stream->Flags.ShutdownComplete = TRUE;
+        }
     }
 
     Stream->ClientCallbackHandler = NULL;
 
-    if (Stream->Flags.DelayFCUpdate) {
+    if (Stream->Flags.Started && Stream->Flags.DelayFCUpdate) {
         //
         // Indicate the stream is completely shut down to the connection.
         //
