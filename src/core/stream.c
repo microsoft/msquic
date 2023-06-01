@@ -491,6 +491,7 @@ QuicStreamIndicateShutdownComplete(
     _In_ QUIC_STREAM* Stream
     )
 {
+    Stream->Flags.ShutdownComplete = TRUE;
     if (!Stream->Flags.HandleShutdown) {
         Stream->Flags.HandleShutdown = TRUE;
 
@@ -593,7 +594,6 @@ QuicStreamTryCompleteShutdown(
         // Mark the stream as shut down and deliver the completion notification
         // to the application layer.
         //
-        Stream->Flags.ShutdownComplete = TRUE;
         QuicStreamIndicateShutdownComplete(Stream);
 
         if (!Stream->Flags.DelayFCUpdate) {
