@@ -1561,6 +1561,12 @@ QuicConnTryClose(
         return;
     }
 
+    if (ClosedRemotely) {
+        Connection->State.ClosedRemotely = TRUE;
+    } else {
+        Connection->State.ClosedLocally = TRUE;
+    }
+
     if (!ClosedRemotely) {
 
         if ((Flags & QUIC_CLOSE_APPLICATION) &&
@@ -1674,12 +1680,6 @@ QuicConnTryClose(
         }
 
         IsFirstCloseForConnection = FALSE;
-    }
-
-    if (ClosedRemotely) {
-        Connection->State.ClosedRemotely = TRUE;
-    } else {
-        Connection->State.ClosedLocally = TRUE;
     }
 
     if (IsFirstCloseForConnection) {

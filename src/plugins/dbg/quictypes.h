@@ -70,6 +70,8 @@ typedef union QUIC_STREAM_FLAGS {
         BOOLEAN ShutdownComplete        : 1;    // Both directions have been shutdown and acknowledged.
         BOOLEAN Uninitialized           : 1;    // Uninitialize started/completed. Used for Debugging.
         BOOLEAN Freed                   : 1;    // Freed after last ref count released. Used for Debugging.
+
+        BOOLEAN InStreamTable           : 1;    // The stream is currently in the connection's table.
     };
 } QUIC_STREAM_FLAGS;
 
