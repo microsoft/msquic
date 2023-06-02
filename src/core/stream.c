@@ -393,7 +393,9 @@ QuicStreamClose(
             CXPLAT_DBG_ASSERT(!Stream->Flags.InStreamTable);
         }
 
-    } else if (Stream->Flags.DelayFCUpdate) {
+    }
+
+    if (Stream->Flags.DelayFCUpdate) {
         //
         // Indicate the stream is completely shut down to the connection.
         //
