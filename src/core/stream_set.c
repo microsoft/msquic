@@ -110,6 +110,7 @@ QuicStreamSetInsertStream(
             return FALSE;
         }
     }
+    Stream->Flags.InStreamTable = TRUE;
     CxPlatHashtableInsert(
         StreamSet->StreamTable,
         &Stream->TableEntry,
@@ -177,6 +178,11 @@ QuicStreamSetReleaseStream(
     _In_ QUIC_STREAM* Stream
     )
 {
+    if (!Stream->Flags.InStreamTable) {
+        return;
+    }
+    Stream->Flags.InStreamTable = FALSE;
+
     //
     // Remove the stream from the list of open streams.
     //
