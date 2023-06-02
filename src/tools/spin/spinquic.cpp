@@ -430,13 +430,6 @@ QUIC_STATUS QUIC_API SpinQuicHandleConnectionEvent(HQUIC Connection, void* , QUI
         SpinQuicConnection::Get(Connection)->OnShutdownComplete();
         break;
     case QUIC_CONNECTION_EVENT_PEER_STREAM_STARTED: {
-        if (GetRandom(10) == 0) {
-            return QUIC_STATUS_NOT_SUPPORTED;
-        }
-        if (GetRandom(10) == 0) {
-            MsQuic.StreamClose(Event->PEER_STREAM_STARTED.Stream);
-            return QUIC_STATUS_SUCCESS;
-        }
         if (GetRandom(2) == 0) {
             Event->PEER_STREAM_STARTED.Flags |= QUIC_STREAM_OPEN_FLAG_DELAY_FC_UPDATES;
         }

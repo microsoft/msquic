@@ -376,14 +376,14 @@ QuicStreamClose(
                 QUIC_STREAM_SHUTDOWN_FLAG_IMMEDIATE,
             QUIC_ERROR_NO_ERROR);
 
-        if (!Stream->Flags.Started) {
-            //
-            // The stream was abandoned before it could be successfully
-            // started. Just mark it as completing the shutdown process now
-            // since nothing else can be done with it now.
-            //
-            Stream->Flags.ShutdownComplete = TRUE;
-        }
+            if (!Stream->Flags.Started) {
+                //
+                // The stream was abandoned before it could be successfully
+                // started. Just mark it as completing the shutdown process now
+                // since nothing else can be done with it now.
+                //
+                Stream->Flags.ShutdownComplete = TRUE;
+            }
     }
 
     Stream->ClientCallbackHandler = NULL;
@@ -487,19 +487,10 @@ QuicStreamIndicateStartComplete(
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
-QuicStreamOnShutdownComplete(
+QuicStreamIndicateShutdownComplete(
     _In_ QUIC_STREAM* Stream
     )
 {
-    //
-    // Make sure to clean up any left over send flags.
-    //
-    QuicSendClearStreamSendFlag(
-        &Stream->Connection->Send,
-        Stream,
-        QUIC_STREAM_SEND_FLAGS_ALL);
-
-    Stream->Flags.ShutdownComplete = TRUE;
     if (!Stream->Flags.HandleShutdown) {
         Stream->Flags.HandleShutdown = TRUE;
 
@@ -530,13 +521,6 @@ QuicStreamOnShutdownComplete(
         (void)QuicStreamIndicateEvent(Stream, &Event);
 
         Stream->ClientCallbackHandler = NULL;
-    }
-
-    if (!Stream->Flags.DelayFCUpdate) {
-        //
-        // Indicate the stream is completely shut down to the connection.
-        //
-        QuicStreamSetReleaseStream(&Stream->Connection->Streams, Stream);
     }
 }
 
@@ -583,7 +567,7 @@ QuicStreamShutdown(
         // delivered.
         //
         QuicStreamIndicateSendShutdownComplete(Stream, FALSE);
-        QuicStreamOnShutdownComplete(Stream);
+        QuicStreamIndicateShutdownComplete(Stream);
     }
 }
 
@@ -596,11 +580,31 @@ QuicStreamTryCompleteShutdown(
         !Stream->Flags.ReceiveDataPending &&
         Stream->Flags.LocalCloseAcked &&
         Stream->Flags.RemoteCloseAcked) {
+
+        //
+        // Make sure to clean up any left over send flags.
+        //
+        QuicSendClearStreamSendFlag(
+            &Stream->Connection->Send,
+            Stream,
+            QUIC_STREAM_SEND_FLAGS_ALL);
+
         //
         // Mark the stream as shut down and deliver the completion notification
         // to the application layer.
         //
-        QuicStreamOnShutdownComplete(Stream);
+        Stream->Flags.ShutdownComplete = TRUE;
+        QuicStreamIndicateShutdownComplete(Stream);
+
+        //
+        // Indicate the stream is completely shut down to the connection.
+        //
+        if (!Stream->Flags.DelayFCUpdate) {
+            //
+            // Indicate the stream is completely shut down to the connection.
+            //
+            QuicStreamSetReleaseStream(&Stream->Connection->Streams, Stream);
+        }
     }
 }
 
