@@ -157,16 +157,17 @@ QuicStreamFree(
     QUIC_CONNECTION* Connection = Stream->Connection;
     QUIC_WORKER* Worker = Connection->Worker;
 
-    CXPLAT_TEL_ASSERT(Stream->RefCount == 0);
-    CXPLAT_TEL_ASSERT(Connection->State.ClosedLocally || Stream->Flags.ShutdownComplete);
-    CXPLAT_TEL_ASSERT(Connection->State.ClosedLocally || Stream->Flags.HandleClosed);
-    CXPLAT_TEL_ASSERT(Stream->ClosedLink.Flink == NULL);
-    CXPLAT_TEL_ASSERT(Stream->SendLink.Flink == NULL);
+    CXPLAT_DBG_ASSERT(Stream->RefCount == 0);
+    CXPLAT_DBG_ASSERT(Connection->State.ClosedLocally || Stream->Flags.ShutdownComplete);
+    CXPLAT_DBG_ASSERT(Connection->State.ClosedLocally || Stream->Flags.HandleClosed);
+    CXPLAT_DBG_ASSERT(!Stream->Flags.InStreamTable);
+    CXPLAT_DBG_ASSERT(Stream->ClosedLink.Flink == NULL);
+    CXPLAT_DBG_ASSERT(Stream->SendLink.Flink == NULL);
 
     Stream->Flags.Uninitialized = TRUE;
 
-    CXPLAT_TEL_ASSERT(Stream->ApiSendRequests == NULL);
-    CXPLAT_TEL_ASSERT(Stream->SendRequests == NULL);
+    CXPLAT_DBG_ASSERT(Stream->ApiSendRequests == NULL);
+    CXPLAT_DBG_ASSERT(Stream->SendRequests == NULL);
 
 #if DEBUG
     CxPlatDispatchLockAcquire(&Connection->Streams.AllStreamsLock);
@@ -387,6 +388,9 @@ QuicStreamClose(
     }
 
     Stream->ClientCallbackHandler = NULL;
+
+    CXPLAT_DBG_ASSERT(!Stream->Flags.InStreamTable);
+    CXPLAT_DBG_ASSERT(Stream->Flags.ShutdownComplete);
 
     QuicStreamRelease(Stream, QUIC_STREAM_REF_APP);
 }
