@@ -23,21 +23,7 @@ jobs:
     - name: Harden Runner
       uses: step-security/harden-runner@128a63446a954579617e875aaab7d2978154e969
       with:
-        egress-policy: block
-        allowed-endpoints: >
-          api.github.com:443
-          azure.archive.ubuntu.com:80
-          crates.io:443
-          dc.services.visualstudio.com:443
-          github.com:443
-          launchpad.net:443
-          packages.microsoft.com:443
-          ppa.launchpad.net:80
-          rubygems.org:443
-          sh.rustup.rs:443
-          static.crates.io:443
-          static.rust-lang.org:443
-          www.cloudflare.com:443
+        egress-policy: audit
     - name: Checkout repository
       uses: actions/checkout@8e5e7e5ab8b370d6c329ec480221332ada57f0ab
     - name: Prepare Machine

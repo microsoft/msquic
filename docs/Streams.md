@@ -66,7 +66,15 @@ An app can opt in to sending stream data with 0-RTT keys (if available) by inclu
 
 # Receiving
 
-Data is received and delivered to apps via the `QUIC_STREAM_EVENT_RECEIVE` event. The event indicates one or more contiguous buffers up to the application. The app then may respond to the event in a number of ways:
+Data is received and delivered to apps via the `QUIC_STREAM_EVENT_RECEIVE` event. The event indicates zero, one or more contiguous buffers up to the application.
+
+Typically, the buffer count is one, which means that most events will include a single buffer containing the received data.
+
+When the buffer count is 0, it signifies the reception of a QUIC frame with empty data, which also indicates the end of stream data.
+
+Currently, the maximum buffer count is 2 in the case of partial receive, where only a portion of the buffer data is consumed (as explained below). However, it is strongly advised not to assume in application code that the upper limit is always 2. This caution is important because future releases may incorporate multiple circular buffers to enhance performance, leading to potential changes in the buffer count limit.
+
+The app then may respond to the event in a number of ways:
 
 ## Synchronous vs Asynchronous
 
