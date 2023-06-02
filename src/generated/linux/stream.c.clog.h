@@ -90,6 +90,24 @@ tracepoint(CLOG_STREAM_C, UpdatePriority , arg1, arg3);\
 
 
 /*----------------------------------------------------------
+// Decoder Ring for ConfiguredForDelayedFC
+// [strm][%p] Configured for delayed FC updates
+// QuicTraceLogStreamVerbose(
+            ConfiguredForDelayedFC,
+            Stream,
+            "Configured for delayed FC updates");
+// arg1 = arg1 = Stream = arg1
+----------------------------------------------------------*/
+#ifndef _clog_3_ARGS_TRACE_ConfiguredForDelayedFC
+#define _clog_3_ARGS_TRACE_ConfiguredForDelayedFC(uniqueId, arg1, encoded_arg_string)\
+tracepoint(CLOG_STREAM_C, ConfiguredForDelayedFC , arg1);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for IndicateStartComplete
 // [strm][%p] Indicating QUIC_STREAM_EVENT_START_COMPLETE [Status=0x%x ID=%llu Accepted=%hhu]
 // QuicTraceLogStreamVerbose(

@@ -63,6 +63,25 @@ TRACEPOINT_EVENT(CLOG_STREAM_C, UpdatePriority,
 
 
 /*----------------------------------------------------------
+// Decoder Ring for ConfiguredForDelayedFC
+// [strm][%p] Configured for delayed FC updates
+// QuicTraceLogStreamVerbose(
+            ConfiguredForDelayedFC,
+            Stream,
+            "Configured for delayed FC updates");
+// arg1 = arg1 = Stream = arg1
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_STREAM_C, ConfiguredForDelayedFC,
+    TP_ARGS(
+        const void *, arg1), 
+    TP_FIELDS(
+        ctf_integer_hex(uint64_t, arg1, arg1)
+    )
+)
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for IndicateStartComplete
 // [strm][%p] Indicating QUIC_STREAM_EVENT_START_COMPLETE [Status=0x%x ID=%llu Accepted=%hhu]
 // QuicTraceLogStreamVerbose(

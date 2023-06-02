@@ -57,6 +57,12 @@ QuicStreamInitialize(
     Stream->Flags.Unidirectional = !!(Flags & QUIC_STREAM_OPEN_FLAG_UNIDIRECTIONAL);
     Stream->Flags.Opened0Rtt = !!(Flags & QUIC_STREAM_OPEN_FLAG_0_RTT);
     Stream->Flags.DelayFCUpdate = !!(Flags & QUIC_STREAM_OPEN_FLAG_DELAY_FC_UPDATES);
+    if (Stream->Flags.DelayFCUpdate) {
+        QuicTraceLogStreamVerbose(
+            ConfiguredForDelayedFC,
+            Stream,
+            "Configured for delayed FC updates");
+    }
     Stream->Flags.Allocated = TRUE;
     Stream->Flags.SendEnabled = TRUE;
     Stream->Flags.ReceiveEnabled = TRUE;

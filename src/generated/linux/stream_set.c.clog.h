@@ -76,6 +76,24 @@ tracepoint(CLOG_STREAM_SET_C, IndicatePeerAccepted , arg1);\
 
 
 /*----------------------------------------------------------
+// Decoder Ring for ConfiguredForDelayedFC
+// [strm][%p] Configured for delayed FC updates
+// QuicTraceLogStreamVerbose(
+                        ConfiguredForDelayedFC,
+                        Stream,
+                        "Configured for delayed FC updates");
+// arg1 = arg1 = Stream = arg1
+----------------------------------------------------------*/
+#ifndef _clog_3_ARGS_TRACE_ConfiguredForDelayedFC
+#define _clog_3_ARGS_TRACE_ConfiguredForDelayedFC(uniqueId, arg1, encoded_arg_string)\
+tracepoint(CLOG_STREAM_SET_C, ConfiguredForDelayedFC , arg1);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for MaxStreamCountUpdated
 // [conn][%p] App configured max stream count of %hu (type=%hhu).
 // QuicTraceLogConnInfo(
