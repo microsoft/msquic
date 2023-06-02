@@ -183,6 +183,7 @@ if [ "$OS" == "linux" ]; then
     --provides ${NAME} \
     --conflicts ${CONFLICTS} \
     --depends "libssl${TLSVERSION}" \
+    --depends "libnuma1" \
     --version ${VER_MAJOR}.${VER_MINOR}.${VER_PATCH} \
     --description "${DESCRIPTION}" \
     --vendor "${VENDOR}" \
