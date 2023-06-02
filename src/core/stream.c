@@ -390,17 +390,17 @@ QuicStreamClose(
             // since nothing else can be done with it now.
             //
             Stream->Flags.ShutdownComplete = TRUE;
+            CXPLAT_DBG_ASSERT(!Stream->Flags.InStreamTable);
         }
-    }
 
-    Stream->ClientCallbackHandler = NULL;
-
-    if (Stream->Flags.DelayFCUpdate) {
+    } else if (Stream->Flags.DelayFCUpdate) {
         //
         // Indicate the stream is completely shut down to the connection.
         //
         QuicStreamSetReleaseStream(&Stream->Connection->Streams, Stream);
     }
+
+    Stream->ClientCallbackHandler = NULL;
 
     QuicStreamRelease(Stream, QUIC_STREAM_REF_APP);
 }
