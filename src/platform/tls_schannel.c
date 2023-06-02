@@ -2229,6 +2229,23 @@ CxPlatTlsWriteDataToSchannel(
                         &TlsContext->SchannelContext,
                         SECPKG_ATTR_SERIALIZED_REMOTE_CERT_CONTEXT_INPROC,
                         (PVOID)&(PeerCertBlob.Serialized));
+#ifdef _KERNEL_MODE
+                if (SecStatus != SEC_E_OK) {
+                    //
+                    // In certain container scenarios it is possible that a
+                    // newer kernel is matched with an older user mode schannel
+                    // that doesn't support the newer "in proc" version of the
+                    // remote cert context, so we always fallback and try the
+                    // out of proc version when we encounter an error.
+                    //
+                    PeerCertBlob.Type = QUIC_CERT_BLOB_CHAIN;
+                    SecStatus =
+                        QueryContextAttributesW(
+                            &TlsContext->SchannelContext,
+                            SECPKG_ATTR_REMOTE_CERTIFICATES,
+                            (PVOID)&PeerCertBlob.Chain);
+                }
+#endif
             } else {
 #ifdef _KERNEL_MODE
                 PeerCertBlob.Type = QUIC_CERT_BLOB_CHAIN;
