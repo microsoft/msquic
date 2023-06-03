@@ -7,8 +7,6 @@
 
 #include "platform_internal.h"
 #include "datapath_raw_xdp.h"
-#include <bpf/bpf.h>
-#include <bpf/xsk.h>
 
 typedef struct XDP_DATAPATH {
     CXPLAT_DATAPATH;
