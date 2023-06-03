@@ -50,25 +50,25 @@ endif()
 
 add_library(platform STATIC ${SOURCES})
 
-if (QUIC_USE_XDP)
-    if ("${CX_PLATFORM}" STREQUAL "windows")
+if ("${CX_PLATFORM}" STREQUAL "windows")
+    if (QUIC_USE_XDP)
         target_link_libraries(
             platform
             PUBLIC
+            inc
             wbemuuid
             ${PROJECT_SOURCE_DIR}/artifacts/xdp/lib/xdpapi.lib)
-    else()
+    endif()
+    target_link_libraries(platform PUBLIC winmm)
+else()
+    if (QUIC_USE_XDP)
         find_library(BPF_LIB bpf)
         if(NOT BPF_LIB)
             message(FATAL_ERROR "libbpf not found")
         endif()
         target_link_libraries(platform PRIVATE ${BPF_LIB})
     endif()
-endif()
-
-target_link_libraries(platform PUBLIC inc)
-if("${CX_PLATFORM}" STREQUAL "windows")
-    target_link_libraries(platform PUBLIC winmm)
+    target_link_libraries(platform PUBLIC inc)
 endif()
 
 target_link_libraries(platform PRIVATE warnings main_binary_link_args)
