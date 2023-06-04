@@ -270,6 +270,7 @@ CxPlatDataPathGetGatewayAddresses(
     return QUIC_STATUS_NOT_SUPPORTED;
 }
 
+// TODO: unify for each platform (win/unix)
 void
 CxPlatDataPathPopulateTargetAddress(
     _In_ ADDRESS_FAMILY Family,

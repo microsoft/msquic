@@ -8,7 +8,36 @@
 #include "platform_internal.h"
 #include "datapath_raw_xdp.h"
 #include <bpf/bpf.h>
+#include <bpf/libbpf.h>
 #include <bpf/xsk.h>
+#include <ifaddrs.h>
+#include <net/if.h>
+#include <linux/if_link.h>
+#include <sys/socket.h>
+#include <sys/ioctl.h>
+#include <netinet/in.h>
+
+#define NUM_FRAMES         4096
+// #define FRAME_SIZE         XSK_UMEM__DEFAULT_FRAME_SIZE // should be smaller
+// #define RX_BATCH_SIZE      64
+#define INVALID_UMEM_FRAME UINT64_MAX
+
+struct xsk_socket_info {
+	struct xsk_ring_cons rx;
+	struct xsk_ring_prod tx;
+	struct xsk_umem_info *umem;
+	struct xsk_socket *xsk;
+
+	uint64_t umem_frame_addr[NUM_FRAMES];
+	uint32_t umem_frame_free;
+};
+
+struct xsk_umem_info {
+	struct xsk_ring_prod fq;
+	struct xsk_ring_cons cq;
+	struct xsk_umem *umem;
+	void *buffer;
+};
 
 typedef struct XDP_DATAPATH {
     CXPLAT_DATAPATH;
@@ -18,10 +47,12 @@ typedef struct XDP_DATAPATH {
     //
     CXPLAT_REF_COUNT RefCount;
     uint32_t WorkerCount;
-    uint32_t RxBufferCount;
+    uint32_t RxBufferCount; // TODO: remove
     uint32_t RxRingSize;
-    uint32_t TxBufferCount;
+    uint32_t TxBufferCount; // TODO: remove
     uint32_t TxRingSize;
+    uint32_t BufferCount;
+
     uint32_t PollingIdleTimeoutUs;
     BOOLEAN TxAlwaysPoke;
     BOOLEAN SkipXsum;
@@ -39,6 +70,7 @@ typedef struct XDP_INTERFACE {
     // XDP_RULE* Rules;
     XDP_QUEUE* Queues; // An array of queues.
     const struct XDP_DATAPATH* Xdp;
+    //const char* IfName;
 } XDP_INTERFACE;
 
 typedef struct XDP_QUEUE {
@@ -47,7 +79,7 @@ typedef struct XDP_QUEUE {
     struct XDP_QUEUE* Next;
     uint8_t* RxBuffers;
     // HANDLE RxXsk;
-    DATAPATH_IO_SQE RxIoSqe;
+    DATAPATH_SQE RxIoSqe; // DATAPATH_IO_SQE?
     // XSK_RING RxFillRing;
     // XSK_RING RxRing;
     // HANDLE RxProgram;
@@ -72,6 +104,9 @@ typedef struct XDP_QUEUE {
     // DECLSPEC_CACHEALIGN
     CXPLAT_LOCK TxLock;
     CXPLAT_LIST_ENTRY TxQueue;
+
+    // TODO: temporally. could be replaced by TxPool implementation
+    struct xsk_socket_info* xsk_info;
 } XDP_QUEUE;
 
 // -> CxPlat
@@ -86,6 +121,7 @@ typedef struct __attribute__((aligned(64))) XDP_RX_PACKET {
 
 typedef struct __attribute__((aligned(64))) XDP_TX_PACKET {
     CXPLAT_SEND_DATA;
+    struct xdp_desc *tx_desc; // TODO: here?
     XDP_QUEUE* Queue;
     CXPLAT_LIST_ENTRY Link;
     uint8_t FrameBuffer[MAX_ETH_FRAME_SIZE];

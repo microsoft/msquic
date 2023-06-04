@@ -11,6 +11,24 @@
 #include "platform_internal.h"
 #include "quic_hashtable.h"
 
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <sys/ioctl.h>
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <net/if.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+#include <ifaddrs.h>
+#include <unistd.h>
+
+#include <netlink/netlink.h>
+#include <netlink/route/route.h>
+#include <netlink/socket.h>
+#include <netlink/route/link.h>
+#include <netlink/route/neighbour.h>
+
 typedef struct CXPLAT_ROUTE_RESOLUTION_OPERATION {
     //
     // Link in the worker's operation queue.

@@ -22,7 +22,8 @@ extern bool UseDuoNic;
 //
 // Connect to the duonic address (if using duonic) or localhost (if not).
 //
-#define QUIC_TEST_LOOPBACK_FOR_AF(Af) (UseDuoNic ? ((Af == QUIC_ADDRESS_FAMILY_INET) ? "192.168.1.11" : "fc00::1:11") : QUIC_LOCALHOST_FOR_AF(Af))
+#define QUIC_TEST_LOOPBACK_FOR_AF_REMOTE(Af) (UseDuoNic ? ((Af == QUIC_ADDRESS_FAMILY_INET) ? "192.168.1.11" : "fc00::1:11") : QUIC_LOCALHOST_FOR_AF(Af))
+#define QUIC_TEST_LOOPBACK_FOR_AF_LOCAL(Af) (UseDuoNic ? ((Af == QUIC_ADDRESS_FAMILY_INET) ? "192.168.1.12" : "fc00::1:12") : QUIC_LOCALHOST_FOR_AF(Af))
 
 const uint32_t ExpectedDataSize = 1 * 1024;
 char* ExpectedData;
@@ -135,6 +136,8 @@ protected:
     static volatile uint16_t NextPort;
     static QuicAddr LocalIPv4;
     static QuicAddr LocalIPv6;
+    static QuicAddr RemoteIPv4;
+    static QuicAddr RemoteIPv6;
     static QuicAddr UnspecIPv4;
     static QuicAddr UnspecIPv6;
 
@@ -172,6 +175,31 @@ protected:
     }
 
     //
+    // Helper to return a new remote IPv4 address and port to use.
+    //
+    QuicAddr
+    GetNewRemoteIPv4(bool randomPort = true)
+    {
+        QuicAddr ipv4Copy = RemoteIPv4;
+        if (randomPort) { ipv4Copy.SockAddr.Ipv4.sin_port = GetNextPort(); }
+        else { ipv4Copy.SockAddr.Ipv4.sin_port = 0; }
+        return ipv4Copy;
+    }
+
+    //
+    // Helper to return a new remote IPv4 address and port to use.
+    //
+    QuicAddr
+    GetNewRemoteIPv6(bool randomPort = true)
+    {
+        QuicAddr ipv6Copy = RemoteIPv6;
+        if (randomPort) { ipv6Copy.SockAddr.Ipv6.sin6_port = GetNextPort(); }
+        else { ipv6Copy.SockAddr.Ipv6.sin6_port = 0; }
+        return ipv6Copy;
+    }
+
+
+    //
     // Helper to return a new local IPv4 or IPv6 address based on the test data.
     //
     QuicAddr
@@ -183,6 +211,24 @@ protected:
             return GetNewLocalIPv4(randomPort);
         } else if (addressFamily == 6) {
             return GetNewLocalIPv6(randomPort);
+        } else {
+            GTEST_NONFATAL_FAILURE_("Malconfigured test data; This should never happen!!");
+            return QuicAddr();
+        }
+    }
+
+    //
+    // Helper to return a new remote IPv4 or IPv6 address based on the test data.
+    //
+    QuicAddr
+    GetNewRemoteAddr(bool randomPort = true)
+    {
+        int addressFamily = GetParam();
+
+        if (addressFamily == 4) {
+            return GetNewRemoteIPv4(randomPort);
+        } else if (addressFamily == 6) {
+            return GetNewRemoteIPv6(randomPort);
         } else {
             GTEST_NONFATAL_FAILURE_("Malconfigured test data; This should never happen!!");
             return QuicAddr();
@@ -238,8 +284,11 @@ protected:
         //
         NextPort = 50000 + (CxPlatCurThreadID() % 10000) + (rand() % 5000);
 
-        LocalIPv4.Resolve(QUIC_ADDRESS_FAMILY_INET, QUIC_TEST_LOOPBACK_FOR_AF(QUIC_ADDRESS_FAMILY_INET));
-        LocalIPv6.Resolve(QUIC_ADDRESS_FAMILY_INET6, QUIC_TEST_LOOPBACK_FOR_AF(QUIC_ADDRESS_FAMILY_INET6));
+        LocalIPv4.Resolve(QUIC_ADDRESS_FAMILY_INET, QUIC_TEST_LOOPBACK_FOR_AF_LOCAL(QUIC_ADDRESS_FAMILY_INET));
+        LocalIPv6.Resolve(QUIC_ADDRESS_FAMILY_INET6, QUIC_TEST_LOOPBACK_FOR_AF_LOCAL(QUIC_ADDRESS_FAMILY_INET6));
+
+        RemoteIPv4.Resolve(QUIC_ADDRESS_FAMILY_INET, QUIC_TEST_LOOPBACK_FOR_AF_REMOTE(QUIC_ADDRESS_FAMILY_INET));
+        RemoteIPv6.Resolve(QUIC_ADDRESS_FAMILY_INET6, QUIC_TEST_LOOPBACK_FOR_AF_REMOTE(QUIC_ADDRESS_FAMILY_INET6));
 
         UnspecIPv4.Resolve(QUIC_ADDRESS_FAMILY_INET, "0.0.0.0");
         UnspecIPv6.Resolve(QUIC_ADDRESS_FAMILY_INET6, "::");
@@ -421,6 +470,8 @@ protected:
 volatile uint16_t DataPathTest::NextPort;
 QuicAddr DataPathTest::LocalIPv4;
 QuicAddr DataPathTest::LocalIPv6;
+QuicAddr DataPathTest::RemoteIPv4;
+QuicAddr DataPathTest::RemoteIPv6;
 QuicAddr DataPathTest::UnspecIPv4;
 QuicAddr DataPathTest::UnspecIPv6;
 
@@ -776,12 +827,13 @@ TEST_P(DataPathTest, UdpData)
     VERIFY_QUIC_SUCCESS(Server.GetInitStatus());
     ASSERT_NE(nullptr, Server.Socket);
 
-    auto serverAddress = GetNewLocalAddr();
+    auto serverAddress = GetNewRemoteAddr();
     RecvContext.DestinationAddress = serverAddress.SockAddr;
     RecvContext.DestinationAddress.Ipv4.sin_port = Server.GetLocalAddress().Ipv4.sin_port;
     ASSERT_NE(RecvContext.DestinationAddress.Ipv4.sin_port, (uint16_t)0);
 
-    CxPlatSocket Client(Datapath, nullptr, &RecvContext.DestinationAddress, &RecvContext);
+    auto clientAddress = GetNewLocalAddr();
+    CxPlatSocket Client(Datapath, &clientAddress.SockAddr, &RecvContext.DestinationAddress, &RecvContext);
     VERIFY_QUIC_SUCCESS(Client.GetInitStatus());
     ASSERT_NE(nullptr, Client.Socket);
 
@@ -813,12 +865,13 @@ TEST_P(DataPathTest, UdpDataPolling)
     VERIFY_QUIC_SUCCESS(Server.GetInitStatus());
     ASSERT_NE(nullptr, Server.Socket);
 
-    auto serverAddress = GetNewLocalAddr();
+    auto serverAddress = GetNewRemoteAddr();
     RecvContext.DestinationAddress = serverAddress.SockAddr;
     RecvContext.DestinationAddress.Ipv4.sin_port = Server.GetLocalAddress().Ipv4.sin_port;
     ASSERT_NE(RecvContext.DestinationAddress.Ipv4.sin_port, (uint16_t)0);
 
-    CxPlatSocket Client(Datapath, nullptr, &RecvContext.DestinationAddress, &RecvContext);
+    auto clientAddress = GetNewLocalAddr();
+    CxPlatSocket Client(Datapath, &clientAddress.SockAddr, &RecvContext.DestinationAddress, &RecvContext);
     VERIFY_QUIC_SUCCESS(Client.GetInitStatus());
     ASSERT_NE(nullptr, Client.Socket);
 
@@ -849,13 +902,14 @@ TEST_P(DataPathTest, UdpDataRebind)
     VERIFY_QUIC_SUCCESS(Server.GetInitStatus());
     ASSERT_NE(nullptr, Server.Socket);
 
-    auto serverAddress = GetNewLocalAddr();
+    auto serverAddress = GetNewRemoteAddr();
     RecvContext.DestinationAddress = serverAddress.SockAddr;
     RecvContext.DestinationAddress.Ipv4.sin_port = Server.GetLocalAddress().Ipv4.sin_port;
     ASSERT_NE(RecvContext.DestinationAddress.Ipv4.sin_port, (uint16_t)0);
 
+    auto clientAddress = GetNewLocalAddr();
     {
-        CxPlatSocket Client(Datapath, nullptr, &RecvContext.DestinationAddress, &RecvContext);
+        CxPlatSocket Client(Datapath, &clientAddress.SockAddr, &RecvContext.DestinationAddress, &RecvContext);
         VERIFY_QUIC_SUCCESS(Client.GetInitStatus());
         ASSERT_NE(nullptr, Client.Socket);
 
@@ -872,7 +926,7 @@ TEST_P(DataPathTest, UdpDataRebind)
     }
 
     {
-        CxPlatSocket Client(Datapath, nullptr, &RecvContext.DestinationAddress, &RecvContext);
+        CxPlatSocket Client(Datapath, &clientAddress.SockAddr, &RecvContext.DestinationAddress, &RecvContext);
         VERIFY_QUIC_SUCCESS(Client.GetInitStatus());
         ASSERT_NE(nullptr, Client.Socket);
 
@@ -905,12 +959,13 @@ TEST_P(DataPathTest, UdpDataECT0)
     VERIFY_QUIC_SUCCESS(Server.GetInitStatus());
     ASSERT_NE(nullptr, Server.Socket);
 
-    auto serverAddress = GetNewLocalAddr();
+    auto serverAddress = GetNewRemoteAddr();
     RecvContext.DestinationAddress = serverAddress.SockAddr;
     RecvContext.DestinationAddress.Ipv4.sin_port = Server.GetLocalAddress().Ipv4.sin_port;
     ASSERT_NE(RecvContext.DestinationAddress.Ipv4.sin_port, (uint16_t)0);
 
-    CxPlatSocket Client(Datapath, nullptr, &RecvContext.DestinationAddress, &RecvContext);
+    auto clientAddress = GetNewLocalAddr();
+    CxPlatSocket Client(Datapath, &clientAddress.SockAddr, &RecvContext.DestinationAddress, &RecvContext);
     VERIFY_QUIC_SUCCESS(Client.GetInitStatus());
     ASSERT_NE(nullptr, Client.Socket);
 
@@ -936,7 +991,8 @@ TEST_P(DataPathTest, UdpShareClientSocket)
         return;
     }
 
-    auto serverAddress = GetNewLocalAddr();
+    auto serverAddress = GetNewRemoteAddr();
+    auto LocalAddress = GetNewLocalAddr();
     CxPlatSocket Server1(Datapath, &serverAddress.SockAddr, nullptr, &RecvContext);
     while (Server1.GetInitStatus() == QUIC_STATUS_ADDRESS_IN_USE) {
         serverAddress.SockAddr.Ipv4.sin_port = GetNextPort();
@@ -953,7 +1009,7 @@ TEST_P(DataPathTest, UdpShareClientSocket)
     VERIFY_QUIC_SUCCESS(Server2.GetInitStatus());
 
     serverAddress.SockAddr = Server1.GetLocalAddress();
-    CxPlatSocket Client1(Datapath, nullptr, &serverAddress.SockAddr, &RecvContext, CXPLAT_SOCKET_FLAG_SHARE);
+    CxPlatSocket Client1(Datapath, &LocalAddress.SockAddr, &serverAddress.SockAddr, &RecvContext, CXPLAT_SOCKET_FLAG_SHARE);
     VERIFY_QUIC_SUCCESS(Client1.GetInitStatus());
 
     auto clientAddress = Client1.GetLocalAddress();
