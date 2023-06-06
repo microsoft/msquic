@@ -307,7 +307,6 @@ static uint64_t xsk_alloc_umem_frame(struct xsk_socket_info *xsk)
         return INVALID_UMEM_FRAME;
 
     frame = xsk->umem_frame_addr[--xsk->umem_frame_free];
-    // fprintf(stderr, "frame:%p, ", (void*)frame);
     xsk->umem_frame_addr[xsk->umem_frame_free] = INVALID_UMEM_FRAME;
     return frame;
 }
@@ -338,15 +337,16 @@ CxPlatDpRawInterfaceInitialize(
     // TODO: auto detect?
     xsk_cfg->libbpf_flags = XSK_LIBBPF_FLAGS__INHIBIT_PROG_LOAD;
     xsk_cfg->xdp_flags = 0;
-    xsk_cfg->bind_flags = 0;
+    xsk_cfg->bind_flags &= ~XDP_ZEROCOPY;
+    xsk_cfg->bind_flags |= XDP_COPY;
 
     struct bpf_object *bpf_obj;
     Status = load_bpf_and_xdp_attach("./datapath_raw_xdp_kern.o", "xdp_prog", Interface->IfIndex, &bpf_obj);
     struct bpf_map *map = bpf_object__find_map_by_name(bpf_obj, "xsks_map");
-    int xsks_map_fd = bpf_map__fd(map);
-    if (xsks_map_fd < 0) {
+    int xsk_map_fd = bpf_map__fd(map);
+    if (xsk_map_fd < 0) {
         fprintf(stderr, "ERROR: no xsks map found: %s\n",
-            strerror(xsks_map_fd));
+            strerror(xsk_map_fd));
         exit(EXIT_FAILURE);
     }
 
@@ -423,6 +423,11 @@ CxPlatDpRawInterfaceInitialize(
             return QUIC_STATUS_INTERNAL_ERROR;
         }
         CxPlatSleep(20); // Should be needed?
+
+        ret = xsk_socket__update_xskmap(xsk_info->xsk, xsk_map_fd);
+        if (ret) {
+            return QUIC_STATUS_INTERNAL_ERROR;
+        }
 
         for (int i = 0; i < NUM_FRAMES; i++) {
             xsk_info->umem_frame_addr[i] = i * RxPacketSize;
@@ -884,9 +889,11 @@ void CxPlatXdpRx(
 
         uint8_t *FrameBuffer = xsk_umem__get_data(xsk->umem->buffer, addr);
 
-        // TODO: XDP_RX_PACKET*
-        CXPLAT_RECV_DATA* Packet = (CXPLAT_RECV_DATA*)(FrameBuffer - sizeof(XDP_TX_PACKET));
-        Packet->Route = (CXPLAT_ROUTE*)calloc(1, sizeof(CXPLAT_ROUTE));
+        XDP_RX_PACKET* Packet = (XDP_RX_PACKET*)(FrameBuffer - sizeof(XDP_RX_PACKET));
+        CxPlatZeroMemory(Packet, sizeof(XDP_RX_PACKET));
+        Packet->Route = &Packet->RouteStorage;
+        Packet->RouteStorage.Queue = Queue;
+        Packet->PartitionIndex = Queue->Worker->ProcIndex;
 
         // TODO xsk_free_umem_frame if parse error?
         CxPlatDpRawParseEthernet(
@@ -907,8 +914,7 @@ void CxPlatXdpRx(
 
         if (Packet->Buffer) {
             Packet->Allocated = TRUE;
-            Packet->Route->Queue = Queue;
-            // Packet->Queue = Queue;
+            Packet->Queue = Queue;
             Buffers[PacketCount++] = (CXPLAT_RECV_DATA*)Packet;
         } else {
             // CxPlatListPushEntry(&Queue->WorkerRxPool, (CXPLAT_SLIST_ENTRY*)Packet);
