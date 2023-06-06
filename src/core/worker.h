@@ -27,9 +27,14 @@ typedef struct QUIC_CACHEALIGN QUIC_WORKER {
     BOOLEAN IsExternal;
 
     //
-    // TRUE if the worker is currently running.
+    // TRUE if the worker is enabled (not shutdown).
     //
     BOOLEAN Enabled;
+
+    //
+    // TRUE if the worker (internal) thread is not sleeping/idle/waiting.
+    //
+    BOOLEAN Running;
 
     //
     // TRUE if the worker is currently processing connections.
@@ -54,7 +59,7 @@ typedef struct QUIC_CACHEALIGN QUIC_WORKER {
     //
     // An event to kick the thread.
     //
-    CXPLAT_EVENT Ready;
+    CXPLAT_EVENT WakeEvent;
 
     //
     // A thread for draining operations from queued connections.

@@ -472,11 +472,6 @@ CxPlatProcessEvents(
     return FALSE;
 }
 
-//
-// The number of iterations to run before yielding our thread to the scheduler.
-//
-#define CXPLAT_WORKER_IDLE_WORK_THRESHOLD_COUNT 10
-
 CXPLAT_THREAD_CALLBACK(CxPlatWorkerThread, Context)
 {
     CXPLAT_WORKER* Worker = (CXPLAT_WORKER*)Context;
@@ -502,7 +497,9 @@ CXPLAT_THREAD_CALLBACK(CxPlatWorkerThread, Context)
 #endif
 
         CxPlatRunExecutionContexts(Worker, &State);
-        if (State.WaitTime && InterlockedFetchAndClearBoolean(&Worker->Running)) {
+        if (State.WaitTime) {
+            CXPLAT_DBG_ASSERT(Worker->Running);
+            InterlockedFetchAndClearBoolean(&Worker->Running);
             CxPlatRunExecutionContexts(Worker, &State); // Run once more to handle race conditions
         }
 

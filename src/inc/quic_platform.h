@@ -418,6 +418,11 @@ CxPlatGetAllocFailDenominator(
 #endif
 
 //
+// The number of iterations to run before yielding our thread to the scheduler.
+//
+#define CXPLAT_WORKER_IDLE_WORK_THRESHOLD_COUNT 10
+
+//
 // General purpose execution context abstraction layer. Used for driving worker
 // loops.
 //
