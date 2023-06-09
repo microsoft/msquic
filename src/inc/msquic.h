@@ -258,6 +258,7 @@ typedef enum QUIC_EXECUTION_CONFIG_FLAGS {
     QUIC_EXECUTION_CONFIG_FLAG_NONE             = 0x0000,
 #ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
     QUIC_EXECUTION_CONFIG_FLAG_QTIP             = 0x0001,
+    QUIC_EXECUTION_CONFIG_FLAG_RIO              = 0x0002,
 #endif
 } QUIC_EXECUTION_CONFIG_FLAGS;
 
@@ -500,7 +501,8 @@ typedef struct QUIC_STATISTICS_V2 {
     uint32_t ResumptionSucceeded    : 1;
     uint32_t GreaseBitNegotiated    : 1;    // Set if we negotiated the GREASE bit.
     uint32_t EcnCapable             : 1;
-    uint32_t RESERVED               : 26;
+    uint32_t EncryptionOffloaded    : 1;    // At least one path successfully offloaded encryption
+    uint32_t RESERVED               : 25;
     uint32_t Rtt;                           // In microseconds
     uint32_t MinRtt;                        // In microseconds
     uint32_t MaxRtt;                        // In microseconds
@@ -663,7 +665,12 @@ typedef struct QUIC_SETTINGS {
             uint64_t GreaseQuicBitEnabled                   : 1;
             uint64_t EcnEnabled                             : 1;
             uint64_t HyStartEnabled                         : 1;
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
+            uint64_t EncryptionOffloadAllowed               : 1;
+            uint64_t RESERVED                               : 28;
+#else
             uint64_t RESERVED                               : 29;
+#endif
         } IsSet;
     };
 
@@ -704,11 +711,15 @@ typedef struct QUIC_SETTINGS {
     union {
         uint64_t Flags;
         struct {
-            uint64_t HyStartEnabled : 1;
-            uint64_t ReservedFlags : 63;
+            uint64_t HyStartEnabled            : 1;
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
+            uint64_t EncryptionOffloadAllowed  : 1;
+            uint64_t ReservedFlags             : 62;
+#else
+            uint64_t ReservedFlags             : 63;
+#endif
         };
     };
-
 
 } QUIC_SETTINGS;
 

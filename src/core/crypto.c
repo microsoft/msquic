@@ -1533,14 +1533,13 @@ QuicCryptoProcessTlsCompletion(
         //
         if (Connection->TlsSecrets != NULL &&
             QuicConnIsClient(Connection) &&
-            Crypto->TlsState.WriteKey == QUIC_PACKET_KEY_INITIAL &&
+            (Crypto->TlsState.WriteKey == QUIC_PACKET_KEY_INITIAL ||
+                Crypto->TlsState.WriteKey == QUIC_PACKET_KEY_0_RTT) &&
             Crypto->TlsState.BufferLength > 0) {
-            QUIC_NEW_CONNECTION_INFO Info = { 0 };
-            QuicCryptoTlsReadInitial(
-                Connection,
+
+            QuicCryptoTlsReadClientRandom(
                 Crypto->TlsState.Buffer,
                 Crypto->TlsState.BufferLength,
-                &Info,
                 Connection->TlsSecrets);
             //
             // Connection is done with TlsSecrets, clean up.
@@ -1648,12 +1647,57 @@ QuicCryptoProcessTlsCompletion(
         }
         Connection->Stats.ResumptionSucceeded = Crypto->TlsState.SessionResumed;
 
+        CXPLAT_DBG_ASSERT(Connection->PathsCount == 1);
+        QUIC_PATH* Path = &Connection->Paths[0];
+
+        if (Path->IsActive && Connection->Settings.IsSet.EncryptionOffloadAllowed) {
+            QUIC_CID_HASH_ENTRY* SourceCid =
+                CXPLAT_CONTAINING_RECORD(Connection->SourceCids.Next, QUIC_CID_HASH_ENTRY, Link);
+            CXPLAT_QEO_CONNECTION Offloads[] = {
+                {
+                    CXPLAT_QEO_OPERATION_ADD,
+                    CXPLAT_QEO_DIRECTION_TRANSMIT,
+                    CXPLAT_QEO_DECRYPT_FAILURE_ACTION_DROP,
+                    Connection->Packets[QUIC_ENCRYPT_LEVEL_1_RTT]->CurrentKeyPhase,
+                    0, // Reserved:0
+                    CXPLAT_QEO_CIPHER_TYPE_AEAD_AES_256_GCM,
+                    Connection->Send.NextPacketNumber,
+                },
+                {
+                    CXPLAT_QEO_OPERATION_ADD,
+                    CXPLAT_QEO_DIRECTION_RECEIVE,
+                    CXPLAT_QEO_DECRYPT_FAILURE_ACTION_DROP,
+                    Connection->Packets[QUIC_ENCRYPT_LEVEL_1_RTT]->CurrentKeyPhase,
+                    0, // Reserved:0
+                    CXPLAT_QEO_CIPHER_TYPE_AEAD_AES_256_GCM,
+                    Connection->Packets[QUIC_ENCRYPT_LEVEL_1_RTT]->AckTracker.LargestPacketNumberAcknowledged,
+                }
+            };
+
+            Offloads[0].ConnectionIdLength = Path->DestCid->CID.Length;
+            CxPlatCopyMemory(&Offloads[0].Address, &Path->Route.RemoteAddress, sizeof(QUIC_ADDR));
+            CxPlatCopyMemory(Offloads[0].ConnectionId, Path->DestCid->CID.Data, Path->DestCid->CID.Length);
+            Offloads[1].ConnectionIdLength = SourceCid->CID.Length;
+            CxPlatCopyMemory(&Offloads[1].Address, &Path->Route.LocalAddress, sizeof(QUIC_ADDR));
+            CxPlatCopyMemory(Offloads[1].ConnectionId, SourceCid->CID.Data, SourceCid->CID.Length);
+            if (QuicTlsPopulateOffloadKeys(Connection->Crypto.TLS, Connection->Crypto.TlsState.WriteKeys[QUIC_PACKET_KEY_1_RTT], "Tx offload", &Offloads[0]) &&
+                QuicTlsPopulateOffloadKeys(Connection->Crypto.TLS, Connection->Crypto.TlsState.ReadKeys[QUIC_PACKET_KEY_1_RTT],  "Rx offload", &Offloads[1]) &&
+                QUIC_SUCCEEDED(CxPlatSocketUpdateQeo(Path->Binding->Socket, Offloads, 2))) {
+                Connection->Stats.EncryptionOffloaded = TRUE;
+                Path->EncryptionOffloading = TRUE;
+                QuicTraceLogConnInfo(
+                    PathQeoEnabled,
+                    Connection,
+                    "Path[%hhu] QEO enabled",
+                    Path->ID);
+            }
+            CxPlatSecureZeroMemory(Offloads, sizeof(Offloads));
+        }
+
         //
         // A handshake complete means the peer has been validated. Trigger MTU
         // discovery on path.
         //
-        CXPLAT_DBG_ASSERT(Connection->PathsCount == 1);
-        QUIC_PATH* Path = &Connection->Paths[0];
         QuicMtuDiscoveryPeerValidated(&Path->MtuDiscovery, Connection);
 
         if (QuicConnIsServer(Connection) &&
@@ -1837,14 +1881,7 @@ QuicCryptoProcessData(
                     Connection,
                     Buffer.Buffer,
                     Buffer.Length,
-                    &Info,
-                    //
-                    // On server, TLS is initialized before the listener
-                    // is told about the connection, so TlsSecrets is still
-                    // NULL.
-                    //
-                    NULL
-                    );
+                    &Info);
             if (QUIC_FAILED(Status)) {
                 QuicConnTransportError(
                     Connection,
@@ -1880,6 +1917,19 @@ QuicCryptoProcessData(
                 Connection->Paths[0].Binding,
                 Connection,
                 &Info);
+
+            if (Connection->TlsSecrets != NULL &&
+                !Connection->State.HandleClosed &&
+                Connection->State.ExternalOwner) {
+                //
+                // At this point, the connection was accepted by the listener,
+                // so now the ClientRandom can be copied.
+                //
+                QuicCryptoTlsReadClientRandom(
+                    Buffer.Buffer,
+                    Buffer.Length,
+                    Connection->TlsSecrets);
+            }
             return Status;
         }
     }
@@ -2647,7 +2697,7 @@ QuicCryptoReNegotiateAlpn(
             "No ALPN match found");
         QuicConnTransportError(
             Connection,
-            QUIC_ERROR_INTERNAL_ERROR);
+            QUIC_ERROR_CRYPTO_NO_APPLICATION_PROTOCOL);
         return QUIC_STATUS_INVALID_PARAMETER;
     }
 

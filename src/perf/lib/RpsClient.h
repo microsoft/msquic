@@ -169,7 +169,8 @@ public:
             .SetIdleTimeoutMs(PERF_DEFAULT_IDLE_TIMEOUT)
             .SetSendBufferingEnabled(false)
             .SetCongestionControlAlgorithm(PerfDefaultCongestionControl)
-            .SetEcnEnabled(PerfDefaultEcnEnabled),
+            .SetEcnEnabled(PerfDefaultEcnEnabled)
+            .SetEncryptionOffloadAllowed(PerfDefaultQeoAllowed),
         MsQuicCredentialConfig(
             QUIC_CREDENTIAL_FLAG_CLIENT |
             QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION)};

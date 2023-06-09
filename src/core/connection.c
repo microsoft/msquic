@@ -64,6 +64,10 @@ QuicConnAlloc(
     )
 {
     BOOLEAN IsServer = Datagram != NULL;
+<<<<<<< HEAD
+=======
+    uint16_t CurProcIndex = QuicLibraryGetCurrentPartition();
+>>>>>>> main
     *NewConnection = NULL;
     QUIC_STATUS Status;
 
@@ -433,7 +437,8 @@ QuicConnShutdown(
     _In_ QUIC_CONNECTION* Connection,
     _In_ uint32_t Flags,
     _In_ QUIC_VAR_INT ErrorCode,
-    _In_ BOOLEAN ShutdownFromRegistration
+    _In_ BOOLEAN ShutdownFromRegistration,
+    _In_ BOOLEAN ShutdownFromTransport
     )
 {
     if (ShutdownFromRegistration &&
@@ -442,7 +447,8 @@ QuicConnShutdown(
         return;
     }
 
-    uint32_t CloseFlags = QUIC_CLOSE_APPLICATION;
+    uint32_t CloseFlags =
+        ShutdownFromTransport ? QUIC_CLOSE_INTERNAL : QUIC_CLOSE_APPLICATION;
     if (Flags & QUIC_CONNECTION_SHUTDOWN_FLAG_SILENT ||
         (!Connection->State.Started && QuicConnIsClient(Connection))) {
         CloseFlags |= QUIC_CLOSE_SILENT;
@@ -470,6 +476,7 @@ QuicConnUninitialize(
         Connection,
         QUIC_CONNECTION_SHUTDOWN_FLAG_SILENT,
         QUIC_ERROR_NO_ERROR,
+        FALSE,
         FALSE);
 
     //
@@ -477,6 +484,28 @@ QuicConnUninitialize(
     // more packets queued.
     //
     if (Connection->Paths[0].Binding != NULL) {
+        if (Connection->Paths[0].EncryptionOffloading) {
+            QUIC_CID_HASH_ENTRY* SourceCid =
+                CXPLAT_CONTAINING_RECORD(Connection->SourceCids.Next, QUIC_CID_HASH_ENTRY, Link);
+            CXPLAT_QEO_CONNECTION Offloads[2] = {0};
+            Offloads[0].Operation = CXPLAT_QEO_OPERATION_REMOVE;
+            Offloads[0].Direction = CXPLAT_QEO_DIRECTION_TRANSMIT;
+            Offloads[0].ConnectionIdLength = Connection->Paths[0].DestCid->CID.Length;
+            Offloads[1].Operation = CXPLAT_QEO_OPERATION_REMOVE;
+            Offloads[1].Direction = CXPLAT_QEO_DIRECTION_RECEIVE;
+            Offloads[1].ConnectionIdLength = SourceCid->CID.Length;
+            memcpy(Offloads[0].ConnectionId, Connection->Paths[0].DestCid->CID.Data, Connection->Paths[0].DestCid->CID.Length);
+            memcpy(Offloads[1].ConnectionId, SourceCid->CID.Data, SourceCid->CID.Length);
+            (void)CxPlatSocketUpdateQeo(Connection->Paths[0].Binding->Socket, Offloads, 2);
+            Connection->Stats.EncryptionOffloaded = FALSE;
+            Connection->Paths[0].EncryptionOffloading = FALSE;
+            QuicTraceLogConnInfo(
+                PathQeoDisabled,
+                Connection,
+                "Path[%hhu] QEO disabled",
+                Connection->Paths[0].ID);
+        }
+
         QuicBindingRemoveConnection(Connection->Paths[0].Binding, Connection);
     }
 
@@ -1531,6 +1560,12 @@ QuicConnTryClose(
         return;
     }
 
+    if (ClosedRemotely) {
+        Connection->State.ClosedRemotely = TRUE;
+    } else {
+        Connection->State.ClosedLocally = TRUE;
+    }
+
     if (!ClosedRemotely) {
 
         if ((Flags & QUIC_CLOSE_APPLICATION) &&
@@ -1644,12 +1679,6 @@ QuicConnTryClose(
         }
 
         IsFirstCloseForConnection = FALSE;
-    }
-
-    if (ClosedRemotely) {
-        Connection->State.ClosedRemotely = TRUE;
-    } else {
-        Connection->State.ClosedLocally = TRUE;
     }
 
     if (IsFirstCloseForConnection) {
@@ -1841,7 +1870,7 @@ QuicConnStart(
     CxPlatDispatchLockRelease(&Connection->Registration->ConnectionLock);
 
     if (RegistrationShutingDown) {
-        QuicConnShutdown(Connection, ShutdownFlags, ShutdownErrorCode, FALSE);
+        QuicConnShutdown(Connection, ShutdownFlags, ShutdownErrorCode, FALSE, FALSE);
         if (ServerName != NULL) {
             CXPLAT_FREE(ServerName, QUIC_POOL_SERVERNAME);
         }
@@ -3304,6 +3333,7 @@ QuicConnQueueRouteCompletion(
         Oper->API_CALL.Context->CONN_SHUTDOWN.Flags = QUIC_CONNECTION_SHUTDOWN_FLAG_SILENT;
         Oper->API_CALL.Context->CONN_SHUTDOWN.ErrorCode = QUIC_ERROR_INTERNAL_ERROR;
         Oper->API_CALL.Context->CONN_SHUTDOWN.RegistrationShutdown = FALSE;
+        Oper->API_CALL.Context->CONN_SHUTDOWN.TransportShutdown = TRUE;
         QuicConnQueueHighestPriorityOper(Connection, Oper);
     }
 
@@ -3929,7 +3959,7 @@ QuicConnRecvHeader(
         } else {
             Packet->KeyType = QuicPacketTypeToKeyTypeV1(Packet->LH->Type);
         }
-        Packet->Encrypted = TRUE;
+        Packet->Encrypted = !Connection->Paths[0].EncryptionOffloading;
 
     } else {
 
@@ -6712,6 +6742,7 @@ QuicConnGetV2Statistics(
     Stats->ResumptionAttempted = Connection->Stats.ResumptionAttempted;
     Stats->ResumptionSucceeded = Connection->Stats.ResumptionSucceeded;
     Stats->GreaseBitNegotiated = Connection->Stats.GreaseBitNegotiated;
+    Stats->EncryptionOffloaded = Connection->Stats.EncryptionOffloaded;
     Stats->EcnCapable = Path->EcnValidationState == ECN_VALIDATION_CAPABLE;
     Stats->Rtt = Path->SmoothedRtt;
     Stats->MinRtt = Path->MinRtt;
@@ -7226,6 +7257,12 @@ QuicConnApplyNewSettings(
         }
     }
 
+    if (Connection->State.Started &&
+        (Connection->Settings.EncryptionOffloadAllowed ^ Connection->Paths[0].EncryptionOffloading)) {
+        // TODO: enable/disable after start
+        CXPLAT_FRE_ASSERT(FALSE);
+    }
+
     uint8_t PeerStreamType =
         QuicConnIsServer(Connection) ?
             STREAM_ID_FLAG_IS_CLIENT : STREAM_ID_FLAG_IS_SERVER;
@@ -7279,7 +7316,8 @@ QuicConnProcessApiOperation(
             Connection,
             ApiCtx->CONN_SHUTDOWN.Flags,
             ApiCtx->CONN_SHUTDOWN.ErrorCode,
-            ApiCtx->CONN_SHUTDOWN.RegistrationShutdown);
+            ApiCtx->CONN_SHUTDOWN.RegistrationShutdown,
+            ApiCtx->CONN_SHUTDOWN.TransportShutdown);
         break;
 
     case QUIC_API_TYPE_CONN_START:

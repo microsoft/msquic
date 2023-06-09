@@ -18,7 +18,7 @@ try {
 
     $vsInstallerPath = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vs_installer.exe"
 
-    $installerArgs = "modify --config `"C:\vsconfig.2019`" --installPath `"${env:VS2019}`" --quiet --norestart --nocache"
+    $installerArgs = "modify --config `"C:\msquic.vsconfig`" --installPath `"C:\Program Files\Microsoft Visual Studio\2022\Enterprise`" --quiet --norestart --nocache"
     Install-FromEXE -Path $vsInstallerPath -Arguments $installerArgs
 
     Write-Output "Installed additional visual studio workloads"

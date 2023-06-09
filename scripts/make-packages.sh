@@ -146,6 +146,7 @@ if [ "$OS" == "linux" ]; then
     --name ${NAME} \
     --provides ${NAME} \
     --depends "libcrypto.so.${TLSVERSION}()(${BITS})" \
+    --depends "libnuma.so.1()(${BITS})" \
     --conflicts ${CONFLICTS} \
     --version ${VER_MAJOR}.${VER_MINOR}.${VER_PATCH} \
     --description "${DESCRIPTION}" \
@@ -182,6 +183,7 @@ if [ "$OS" == "linux" ]; then
     --provides ${NAME} \
     --conflicts ${CONFLICTS} \
     --depends "libssl${TLSVERSION}" \
+    --depends "libnuma1" \
     --version ${VER_MAJOR}.${VER_MINOR}.${VER_PATCH} \
     --description "${DESCRIPTION}" \
     --vendor "${VENDOR}" \

@@ -14,7 +14,7 @@ Abstract:
 #include "DataTest.cpp.clog.h"
 #endif
 
-#ifdef QUIC_USE_RAW_DATAPATH
+#if defined(QUIC_USE_RAW_DATAPATH) && defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
 extern bool UseQTIP;
 #endif
 
@@ -53,10 +53,13 @@ struct PingStats
     const QUIC_STATUS ExpectedCloseStatus;
 
     volatile long ConnectionsComplete;
+    volatile long SecretsIndex;
 
     CXPLAT_EVENT CompletionEvent;
 
     QUIC_BUFFER* ResumptionTicket {nullptr};
+
+    QUIC_TLS_SECRETS* TlsSecrets {nullptr};
 
     PingStats(
         uint64_t _PayloadLength,
@@ -80,7 +83,8 @@ struct PingStats
         AllowDataIncomplete(_AllowDataIncomplete),
         ServerKeyUpdate(_ServerKeyUpdate),
         ExpectedCloseStatus(_ExpectedCloseStatus),
-        ConnectionsComplete(0)
+        ConnectionsComplete(0),
+        SecretsIndex(0)
     {
         CxPlatEventInitialize(&CompletionEvent, FALSE, FALSE);
     }
@@ -274,6 +278,15 @@ ListenerAcceptPingConnection(
         }
     }
 
+    if (Stats->TlsSecrets) {
+        auto Status = Connection->SetTlsSecrets(
+            &(Stats->TlsSecrets[InterlockedIncrement(&Stats->SecretsIndex) - 1]));
+        if (QUIC_FAILED(Status)) {
+            TEST_FAILURE("SetParam(QUIC_TLS_SECRETS) failed with 0x%x", Status);
+            return false;
+        }
+    }
+
     Connection->SetPriorityScheme(
         Stats->FifoScheduling ?
             QUIC_STREAM_SCHEDULING_SCHEME_FIFO :
@@ -369,6 +382,19 @@ QuicTestConnectAndPing(
         //
     }
 
+    UniquePtr<QUIC_TLS_SECRETS[]> ClientSecrets;
+    UniquePtr<QUIC_TLS_SECRETS[]> ServerSecrets;
+    if (ClientZeroRtt && !ServerRejectZeroRtt) {
+        ClientSecrets.reset(
+                new(std::nothrow) QUIC_TLS_SECRETS[ConnectionCount]);
+        ServerSecrets.reset(
+                new(std::nothrow) QUIC_TLS_SECRETS[ConnectionCount]);
+        if (ClientSecrets == nullptr || ServerSecrets == nullptr) {
+            return;
+        }
+        ServerStats.TlsSecrets = ServerSecrets.get();
+    }
+
     MsQuicRegistration Registration(NULL, QUIC_EXECUTION_PROFILE_TYPE_MAX_THROUGHPUT, true);
     TEST_TRUE(Registration.IsValid());
 
@@ -451,6 +477,10 @@ QuicTestConnectAndPing(
             if (Connections.get()[i] == nullptr) {
                 return;
             }
+            if (ClientSecrets) {
+                TEST_QUIC_SUCCEEDED(
+                    Connections.get()[i]->SetTlsSecrets(&ClientSecrets[i]));
+            }
         }
 
         QuicAddr LocalAddr;
@@ -475,7 +505,7 @@ QuicTestConnectAndPing(
                     }
                     TEST_QUIC_SUCCEEDED(Connections.get()[i]->SetRemoteAddr(RemoteAddr));
 
-#ifdef QUIC_USE_RAW_DATAPATH
+#if defined(QUIC_USE_RAW_DATAPATH) && defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
                     if (!UseQTIP && i != 0) {
                         Connections.get()[i]->SetLocalAddr(LocalAddr);
                     }
@@ -490,7 +520,7 @@ QuicTestConnectAndPing(
                             QuicAddrFamily,
                             ClientZeroRtt ? QUIC_LOCALHOST_FOR_AF(QuicAddrFamily) : nullptr,
                             ServerLocalAddr.GetPort()));
-#ifdef QUIC_USE_RAW_DATAPATH
+#if defined(QUIC_USE_RAW_DATAPATH) && defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
                     if (!UseQTIP && i == 0) {
                         Connections.get()[i]->GetLocalAddr(LocalAddr);
                     }
@@ -511,6 +541,42 @@ QuicTestConnectAndPing(
         if (!CxPlatEventWaitWithTimeout(ServerStats.CompletionEvent, TimeoutMs)) {
             TEST_FAILURE("Wait for server to complete timed out after %u ms.", TimeoutMs);
             return;
+        }
+
+        if (ClientSecrets) {
+            for (auto i = 0u; i < ConnectionCount; i++) {
+                auto ServerSecret = &ServerSecrets[i];
+                bool Match = false;
+                for (auto j = 0u; j < ConnectionCount; j++) {
+                    auto ClientSecret = &ClientSecrets[j];
+                    if (!memcmp(
+                            ServerSecret->ClientRandom,
+                            ClientSecret->ClientRandom,
+                            sizeof(ClientSecret->ClientRandom))) {
+                        if (Match) {
+                            TEST_FAILURE("Multiple clients with the same ClientRandom?!");
+                            return;
+                        }
+
+                        TEST_EQUAL(
+                            ClientSecret->IsSet.ClientEarlyTrafficSecret,
+                            ServerSecret->IsSet.ClientEarlyTrafficSecret);
+                        TEST_EQUAL(
+                            ClientSecret->SecretLength,
+                            ServerSecret->SecretLength);
+                        TEST_TRUE(
+                            !memcmp(
+                                ClientSecret->ClientEarlyTrafficSecret,
+                                ServerSecret->ClientEarlyTrafficSecret,
+                                ClientSecret->SecretLength));
+                        Match = true;
+                    }
+                }
+                if (!Match) {
+                    TEST_FAILURE("Failed to match Server Secrets to any Client Secrets!");
+                    return;
+                }
+            }
         }
     }
 }

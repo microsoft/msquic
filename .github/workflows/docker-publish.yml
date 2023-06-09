@@ -26,25 +26,11 @@ jobs:
 
     steps:
       - name: Harden Runner
-        uses: step-security/harden-runner@1f99358870fe1c846a3ccba386cc2b2246836776
+        uses: step-security/harden-runner@128a63446a954579617e875aaab7d2978154e969
         with:
-          egress-policy: block
-          allowed-endpoints: >
-            api.github.com:443
-            auth.docker.io:443
-            boringssl.googlesource.com:443
-            ghcr.io:443
-            github.com:443
-            pkg-containers.githubusercontent.com:443
-            production.cloudflare.docker.com:443
-            registry-1.docker.io:443
-            archive.ubuntu.com:80
-            security.ubuntu.com:80
-            packages.microsoft.com:443
-            api.nuget.org:443
-            dc.services.visualstudio.com:443
+          egress-policy: audit
       - name: Checkout repository
-        uses: actions/checkout@24cb9080177205b6e8c946b17badbe402adc938f
+        uses: actions/checkout@8e5e7e5ab8b370d6c329ec480221332ada57f0ab
         with:
           submodules: recursive
 
@@ -62,7 +48,7 @@ jobs:
       # https://github.com/docker/metadata-action
       - name: Extract Docker metadata
         id: meta
-        uses: docker/metadata-action@507c2f2dc502c992ad446e3d7a5dfbe311567a96
+        uses: docker/metadata-action@c4ee3adeed93b1fa6a762f209fb01608c1a22f1e
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
 

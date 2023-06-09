@@ -848,15 +848,9 @@ CxPlatDpRawParseTcp(
         } else {
             Packet->Reserved = L4_TYPE_TCP_SYN;
         }
-    } else if (Tcp->Flags & TH_FIN) { 
+    } else if (Tcp->Flags & TH_FIN) {
         Packet->Reserved = L4_TYPE_TCP_FIN;
     } else {
-        QuicTraceEvent(
-            DatapathErrorStatus,
-            "[data][%p] ERROR, %u, %s.",
-            Datapath,
-            Length,
-            "unexpected TCP packets");
         return;
     }
 
@@ -1255,7 +1249,7 @@ CxPlatDpRawSocketAckSyn(
         CxPlatFramingWriteHeaders(
             Socket, Route, &SendData->Buffer, SendData->ECN,
             Interface->OffloadStatus.Transmit.NetworkLayerXsum,
-            Interface->OffloadStatus.Transmit.TransportLayerXsum, 
+            Interface->OffloadStatus.Transmit.TransportLayerXsum,
             ReceivedTcpHeader->AckNumber,
             CxPlatByteSwapUint32(CxPlatByteSwapUint32(ReceivedTcpHeader->SequenceNumber) + 1),
             TH_RST | TH_ACK);
@@ -1292,7 +1286,7 @@ CxPlatDpRawSocketSyn(
     CxPlatFramingWriteHeaders(
         Socket, Route, &SendData->Buffer, SendData->ECN,
         Interface->OffloadStatus.Transmit.NetworkLayerXsum,
-        Interface->OffloadStatus.Transmit.TransportLayerXsum, 
+        Interface->OffloadStatus.Transmit.TransportLayerXsum,
         Route->TcpState.SequenceNumber, 0, TH_SYN);
     CxPlatDpRawTxEnqueue(SendData);
 }

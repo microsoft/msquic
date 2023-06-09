@@ -1,17 +1,17 @@
-FROM ubuntu:20.04
+FROM ubuntu:22.04
 
 LABEL org.opencontainers.image.source https://github.com/microsoft/msquic
 
 ENV DEBIAN_FRONTEND=noninteractive
 
-RUN apt-get update && apt-get install -y apt-transport-https \
+RUN apt-get update && apt-get install --no-install-recommends -y apt-transport-https \
     ca-certificates \
     gnupg \
     software-properties-common \
     wget && \
     wget -O - https://apt.kitware.com/keys/kitware-archive-latest.asc 2>/dev/null | gpg --dearmor - | tee /etc/apt/trusted.gpg.d/kitware.gpg >/dev/null && \
-    apt-add-repository 'deb https://apt.kitware.com/ubuntu/ focal main' && \
-    apt-add-repository ppa:lttng/stable-2.12 && \
+    apt-add-repository 'deb https://apt.kitware.com/ubuntu/ jammy main' && \
+    apt-add-repository ppa:lttng/stable-2.13 && \
     apt-get update && apt-get install -y tzdata && apt-get install -y \
     build-essential \
     gcc-arm-linux-gnueabihf \
@@ -21,9 +21,9 @@ RUN apt-get update && apt-get install -y apt-transport-https \
     g++-aarch64-linux-gnu \
     binutils-aarch64-linux-gnu \
     cmake \
-    git=1:2.25.1-1ubuntu3.8 \
+    git \
     make \
-    sudo=1.8.31-1ubuntu1.4 \
+    sudo \
     liblttng-ust-dev \
     lttng-tools \
     perl \
@@ -58,7 +58,7 @@ COPY arm-cross-compile-sources.list /etc/apt/sources.list.d/
 
 RUN apt-get update
 
-RUN apt-get install -y liblttng-ust-dev:arm64 \
+RUN apt-get --no-install-recommends install -y liblttng-ust-dev:arm64 \
     liblttng-ust-dev:armhf \
     libssl-dev:arm64 \
     libssl-dev:armhf \

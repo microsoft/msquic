@@ -957,7 +957,8 @@ TestConnection::HandleConnectionEvent(
 }
 
 uint32_t
-TestConnection::GetDestCidUpdateCount() {
+TestConnection::GetDestCidUpdateCount()
+{
     QUIC_STATISTICS_V2 Stats;
     uint32_t StatsSize = sizeof(Stats);
     QUIC_STATUS Status =
@@ -974,11 +975,26 @@ TestConnection::GetDestCidUpdateCount() {
 }
 
 const uint8_t*
-TestConnection::GetNegotiatedAlpn() const {
+TestConnection::GetNegotiatedAlpn() const
+{
     return NegotiatedAlpn;
 }
 
 uint8_t
-TestConnection::GetNegotiatedAlpnLength() const {
+TestConnection::GetNegotiatedAlpnLength() const
+{
     return NegotiatedAlpnLength;
+}
+
+QUIC_STATUS
+TestConnection::SetTlsSecrets(
+    QUIC_TLS_SECRETS* Secrets
+    )
+{
+    return
+        MsQuic->SetParam(
+            QuicConnection,
+            QUIC_PARAM_CONN_TLS_SECRETS,
+            sizeof(*Secrets),
+            Secrets);
 }

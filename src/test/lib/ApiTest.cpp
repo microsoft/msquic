@@ -16,7 +16,7 @@ Abstract:
 
 #pragma warning(disable:6387)  // '_Param_(1)' could be '0':  this does not adhere to the specification for the function
 
-#ifdef QUIC_USE_RAW_DATAPATH
+#if defined(QUIC_USE_RAW_DATAPATH) && defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
 extern bool UseQTIP;
 #endif
 
@@ -2253,8 +2253,18 @@ void QuicTestGlobalParam()
         {
             TestScopeLogger LogScope1("GetParam");
             {
+#if DEBUG
+                //
+                // Only test this in debug mode, because release tests may be run on
+                // the installed binary that is actively being used, and the counters
+                // can be non-zero.
+                //
                 int64_t Buffer[QUIC_PERF_COUNTER_MAX] = {};
-                SimpleGetParamTest(nullptr, QUIC_PARAM_GLOBAL_PERF_COUNTERS, QUIC_PERF_COUNTER_MAX * sizeof(int64_t), &Buffer, true);
+                int64_t* ExpectedData = Buffer;
+#else
+                int64_t* ExpectedData = nullptr;
+#endif
+                SimpleGetParamTest(nullptr, QUIC_PARAM_GLOBAL_PERF_COUNTERS, QUIC_PERF_COUNTER_MAX * sizeof(int64_t), ExpectedData, true);
             }
 
             //
@@ -2263,7 +2273,6 @@ void QuicTestGlobalParam()
             {
                 TestScopeLogger LogScope2("Truncate length case");
                 int64_t ActualBuffer[QUIC_PERF_COUNTER_MAX/2] = {1,2,3}; // 15
-                int64_t ExpectedBuffer[QUIC_PERF_COUNTER_MAX/2] = {}; // 15
                 uint32_t Length = sizeof(int64_t) * (QUIC_PERF_COUNTER_MAX/2) + 4; // truncated 124 -> 120
 
                 TEST_QUIC_SUCCEEDED(
@@ -2273,7 +2282,15 @@ void QuicTestGlobalParam()
                         &Length,
                         ActualBuffer));
                 TEST_EQUAL(Length, sizeof(int64_t) * (QUIC_PERF_COUNTER_MAX / 2));
+#if DEBUG
+                int64_t ExpectedBuffer[QUIC_PERF_COUNTER_MAX/2] = {}; // 15
+                //
+                // Only test this in debug mode, because release tests may be run on
+                // the installed binary that is actively being used, and the counters
+                // can be non-zero.
+                //
                 TEST_EQUAL(memcmp(ActualBuffer, ExpectedBuffer, Length), 0);
+#endif
             }
         }
     }
@@ -2461,6 +2478,7 @@ void QuicTestGlobalParam()
         }
     }
 
+#ifndef _KERNEL_MODE
 #ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
     //
     // QUIC_PARAM_GLOBAL_EXECUTION_CONFIG
@@ -2513,7 +2531,6 @@ void QuicTestGlobalParam()
             //
             SimpleGetParamTest(nullptr, QUIC_PARAM_GLOBAL_EXECUTION_CONFIG, DataLength, Data);
         }
-
 #ifdef QUIC_USE_RAW_DATAPATH
         if (!UseQTIP) {
             //
@@ -2538,9 +2555,10 @@ void QuicTestGlobalParam()
                 QUIC_PARAM_GLOBAL_EXECUTION_CONFIG,
                 &BufferLength,
                 nullptr));
-#endif
+#endif // QUIC_USE_RAW_DATAPATH
     }
-#endif
+#endif // QUIC_API_ENABLE_PREVIEW_FEATURES
+#endif // !_KERNEL_MODE
 
 #if QUIC_TEST_DATAPATH_HOOKS_ENABLED
     //

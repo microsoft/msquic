@@ -2229,6 +2229,23 @@ CxPlatTlsWriteDataToSchannel(
                         &TlsContext->SchannelContext,
                         SECPKG_ATTR_SERIALIZED_REMOTE_CERT_CONTEXT_INPROC,
                         (PVOID)&(PeerCertBlob.Serialized));
+#ifdef _KERNEL_MODE
+                if (SecStatus != SEC_E_OK) {
+                    //
+                    // In certain container scenarios it is possible that a
+                    // newer kernel is matched with an older user mode schannel
+                    // that doesn't support the newer "in proc" version of the
+                    // remote cert context, so we always fallback and try the
+                    // out of proc version when we encounter an error.
+                    //
+                    PeerCertBlob.Type = QUIC_CERT_BLOB_CHAIN;
+                    SecStatus =
+                        QueryContextAttributesW(
+                            &TlsContext->SchannelContext,
+                            SECPKG_ATTR_REMOTE_CERTIFICATES,
+                            (PVOID)&PeerCertBlob.Chain);
+                }
+#endif
             } else {
 #ifdef _KERNEL_MODE
                 PeerCertBlob.Type = QUIC_CERT_BLOB_CHAIN;
@@ -2398,6 +2415,15 @@ CxPlatTlsWriteDataToSchannel(
             Result |= CXPLAT_TLS_RESULT_READ_KEY_UPDATED;
             if (NewPeerTrafficSecrets[i]->TrafficSecretType == SecTrafficSecret_ClientEarlyData) {
                 CXPLAT_FRE_ASSERT(FALSE); // TODO - Finish the 0-RTT logic.
+                CXPLAT_FRE_ASSERT(TlsContext->IsServer);
+                if (TlsContext->TlsSecrets != NULL) {
+                    TlsContext->TlsSecrets->SecretLength = (uint8_t)NewPeerTrafficSecrets[i]->TrafficSecretSize;
+                    memcpy(
+                        TlsContext->TlsSecrets->ClientEarlyTrafficSecret,
+                        NewPeerTrafficSecrets[i]->TrafficSecret,
+                        NewPeerTrafficSecrets[i]->TrafficSecretSize);
+                    TlsContext->TlsSecrets->IsSet.ClientEarlyTrafficSecret = TRUE;
+                }
             } else {
                 if (State->ReadKey == QUIC_PACKET_KEY_INITIAL) {
                     if (!QuicPacketKeyCreate(
@@ -3227,6 +3253,36 @@ QuicPacketKeyCreate(
             TlsContext->Connection,
             Status,
             "QuicPacketKeyDerive");
+        goto Error;
+    }
+
+Error:
+
+    return QUIC_SUCCEEDED(Status);
+}
+
+_Success_(return==TRUE)
+BOOLEAN
+QuicTlsPopulateOffloadKeys(
+    _Inout_ CXPLAT_TLS* TlsContext,
+    _In_ const QUIC_PACKET_KEY* const PacketKey,
+    _In_z_ const char* const SecretName,
+    _Inout_ CXPLAT_QEO_CONNECTION* Offload
+    )
+{
+    QUIC_STATUS Status =
+        QuicPacketKeyDeriveOffload(
+            TlsContext->HkdfLabels,
+            PacketKey,
+            SecretName,
+            Offload);
+    if (!QUIC_SUCCEEDED(Status)) {
+        QuicTraceEvent(
+            TlsErrorStatus,
+            "[ tls][%p] ERROR, %u, %s.",
+            TlsContext->Connection,
+            Status,
+            "QuicTlsPopulateOffloadKeys");
         goto Error;
     }
 

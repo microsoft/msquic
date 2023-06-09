@@ -237,6 +237,48 @@ typedef struct CXPLAT_RECV_DATA {
 } CXPLAT_RECV_DATA;
 
 //
+// QUIC Encryption Offload (QEO) interfaces
+//
+
+typedef enum CXPLAT_QEO_OPERATION {
+    CXPLAT_QEO_OPERATION_ADD,     // Add (or modify) a QUIC connection offload
+    CXPLAT_QEO_OPERATION_REMOVE,  // Remove a QUIC connection offload
+} CXPLAT_QEO_OPERATION;
+
+typedef enum CXPLAT_QEO_DIRECTION {
+    CXPLAT_QEO_DIRECTION_TRANSMIT, // An offload for the transmit path
+    CXPLAT_QEO_DIRECTION_RECEIVE,  // An offload for the receive path
+} CXPLAT_QEO_DIRECTION;
+
+typedef enum CXPLAT_QEO_DECRYPT_FAILURE_ACTION {
+    CXPLAT_QEO_DECRYPT_FAILURE_ACTION_DROP,     // Drop the packet on decryption failure
+    CXPLAT_QEO_DECRYPT_FAILURE_ACTION_CONTINUE, // Continue and pass the packet up on decryption failure
+} CXPLAT_QEO_DECRYPT_FAILURE_ACTION;
+
+typedef enum CXPLAT_QEO_CIPHER_TYPE {
+    CXPLAT_QEO_CIPHER_TYPE_AEAD_AES_128_GCM,
+    CXPLAT_QEO_CIPHER_TYPE_AEAD_AES_256_GCM,
+    CXPLAT_QEO_CIPHER_TYPE_AEAD_CHACHA20_POLY1305,
+    CXPLAT_QEO_CIPHER_TYPE_AEAD_AES_128_CCM,
+} CXPLAT_QEO_CIPHER_TYPE;
+
+typedef struct CXPLAT_QEO_CONNECTION {
+    uint32_t Operation            : 1;  // CXPLAT_QEO_OPERATION
+    uint32_t Direction            : 1;  // CXPLAT_QEO_DIRECTION
+    uint32_t DecryptFailureAction : 1;  // CXPLAT_QEO_DECRYPT_FAILURE_ACTION
+    uint32_t KeyPhase             : 1;
+    uint32_t RESERVED             : 12; // Must be set to 0. Don't read.
+    uint32_t CipherType           : 16; // CXPLAT_QEO_CIPHER_TYPE
+    uint64_t NextPacketNumber;
+    QUIC_ADDR Address;
+    uint8_t ConnectionIdLength;
+    uint8_t ConnectionId[20]; // QUIC v1 and v2 max CID size
+    uint8_t PayloadKey[32];   // Length determined by CipherType
+    uint8_t HeaderKey[32];    // Length determined by CipherType
+    uint8_t PayloadIv[12];
+} CXPLAT_QEO_CONNECTION;
+
+//
 // Gets the corresponding receive data from its context pointer.
 //
 CXPLAT_RECV_DATA*
@@ -551,6 +593,18 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 CxPlatSocketDelete(
     _In_ CXPLAT_SOCKET* Socket
+    );
+
+//
+// Plumbs new or removes existing QUIC encryption offload information.
+//
+_IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_STATUS
+CxPlatSocketUpdateQeo(
+    _In_ CXPLAT_SOCKET* Socket,
+    _In_reads_(OffloadCount)
+        const CXPLAT_QEO_CONNECTION* Offloads,
+    _In_ uint32_t OffloadCount
     );
 
 //

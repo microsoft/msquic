@@ -487,12 +487,6 @@ CxPlatTlsSetEncryptionSecretsCallback(
     }
 
     if (TlsContext->TlsSecrets != NULL) {
-        if (!TlsContext->TlsSecrets->IsSet.ClientRandom) {
-            if (SSL_get_client_random(Ssl, TlsContext->TlsSecrets->ClientRandom, sizeof(TlsContext->TlsSecrets->ClientRandom)) > 0) {
-                TlsContext->TlsSecrets->IsSet.ClientRandom = TRUE;
-            }
-        }
-
         TlsContext->TlsSecrets->SecretLength = (uint8_t)SecretLen;
         switch (KeyType) {
         case QUIC_PACKET_KEY_HANDSHAKE:
@@ -524,7 +518,11 @@ CxPlatTlsSetEncryptionSecretsCallback(
             TlsContext->TlsSecrets = NULL;
             break;
         case QUIC_PACKET_KEY_0_RTT:
-            if (!TlsContext->IsServer) {
+            if (TlsContext->IsServer) {
+                CXPLAT_FRE_ASSERT(ReadSecret != NULL);
+                memcpy(TlsContext->TlsSecrets->ClientEarlyTrafficSecret, ReadSecret, SecretLen);
+                TlsContext->TlsSecrets->IsSet.ClientEarlyTrafficSecret = TRUE;
+            } else {
                 CXPLAT_FRE_ASSERT(WriteSecret != NULL);
                 memcpy(TlsContext->TlsSecrets->ClientEarlyTrafficSecret, WriteSecret, SecretLen);
                 TlsContext->TlsSecrets->IsSet.ClientEarlyTrafficSecret = TRUE;
@@ -2367,4 +2365,34 @@ CxPlatTlsParamGet(
     }
 
     return Status;
+}
+
+_Success_(return==TRUE)
+BOOLEAN
+QuicTlsPopulateOffloadKeys(
+    _Inout_ CXPLAT_TLS* TlsContext,
+    _In_ const QUIC_PACKET_KEY* const PacketKey,
+    _In_z_ const char* const SecretName,
+    _Inout_ CXPLAT_QEO_CONNECTION* Offload
+    )
+{
+    QUIC_STATUS Status =
+        QuicPacketKeyDeriveOffload(
+            TlsContext->HkdfLabels,
+            PacketKey,
+            SecretName,
+            Offload);
+    if (!QUIC_SUCCEEDED(Status)) {
+        QuicTraceEvent(
+            TlsErrorStatus,
+            "[ tls][%p] ERROR, %u, %s.",
+            TlsContext->Connection,
+            Status,
+            "QuicTlsPopulateOffloadKeys");
+        goto Error;
+    }
+
+Error:
+
+    return QUIC_SUCCEEDED(Status);
 }
