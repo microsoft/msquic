@@ -636,6 +636,11 @@ typedef struct CXPLAT_DATAPATH {
     uint8_t MaxSendBatchSize;
 
     //
+    // Uses RIO interface instead of normal asyc IO.
+    //
+    uint8_t UseRio : 1;
+
+    //
     // Debug flags
     //
     uint8_t Uninitialized : 1;
@@ -1237,6 +1242,7 @@ CxPlatDataPathInitialize(
     }
     Datapath->ProcCount = (uint16_t)ProcessorCount;
     CxPlatRefInitializeEx(&Datapath->RefCount, Datapath->ProcCount);
+    Datapath->UseRio = Config && !!(Config->Flags & QUIC_EXECUTION_CONFIG_FLAG_RIO);
 
     CxPlatDataPathQueryRssScalabilityInfo(Datapath);
     Status = CxPlatDataPathQuerySockoptSupport(Datapath);
@@ -1869,7 +1875,7 @@ CxPlatSocketCreateUdp(
     Socket->ClientContext = Config->CallbackContext;
     Socket->HasFixedRemoteAddress = (Config->RemoteAddress != NULL);
     Socket->Type = CXPLAT_SOCKET_UDP;
-    Socket->UseRio = FALSE;
+    Socket->UseRio = Datapath->UseRio;
     if (Config->LocalAddress) {
         CxPlatConvertToMappedV6(Config->LocalAddress, &Socket->LocalAddress);
     } else {
