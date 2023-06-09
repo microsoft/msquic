@@ -23,8 +23,7 @@ QuicPacketSpaceInitialize(
     _Out_ QUIC_PACKET_SPACE** NewPackets
     )
 {
-    QUIC_PACKET_SPACE* Packets =
-        CxPlatPoolAlloc(&QuicLibraryGetPerProc()->PacketSpacePool);
+    QUIC_PACKET_SPACE* Packets = CxPlatPoolAlloc(&QuicLibraryGetPerProc()->PacketSpacePool);
     if (Packets == NULL) {
         QuicTraceEvent(
             AllocFailure,
