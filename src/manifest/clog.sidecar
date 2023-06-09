@@ -963,10 +963,10 @@
       ],
       "macroName": "QuicTraceLogInfo"
     },
-    "ConfiguredForDelayedFC": {
+    "ConfiguredForDelayedIDFC": {
       "ModuleProperites": {},
-      "TraceString": "[strm][%p] Configured for delayed FC updates",
-      "UniqueId": "ConfiguredForDelayedFC",
+      "TraceString": "[strm][%p] Configured for delayed ID FC updates",
+      "UniqueId": "ConfiguredForDelayedIDFC",
       "splitArgs": [
         {
           "DefinationEncoding": "p",
@@ -12779,9 +12779,9 @@
         "EncodingString": "[cnfg][%p] Settings %p Updated"
       },
       {
-        "UniquenessHash": "c80d64df-1584-30c7-6659-f2bba46a5fbb",
-        "TraceID": "ConfiguredForDelayedFC",
-        "EncodingString": "[strm][%p] Configured for delayed FC updates"
+        "UniquenessHash": "fd83d3d8-994b-ccc3-13b9-cf8de77990ca",
+        "TraceID": "ConfiguredForDelayedIDFC",
+        "EncodingString": "[strm][%p] Configured for delayed ID FC updates"
       },
       {
         "UniquenessHash": "905ba7f9-0427-2d53-7d13-88f2bb532bf0",

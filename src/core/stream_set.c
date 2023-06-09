@@ -726,9 +726,9 @@ QuicStreamSetGetStreamForPeer(
                 if (Event.PEER_STREAM_STARTED.Flags & QUIC_STREAM_OPEN_FLAG_DELAY_ID_FC_UPDATES) {
                     Stream->Flags.DelayIdFcUpdate = TRUE;
                     QuicTraceLogStreamVerbose(
-                        ConfiguredForDelayedFC,
+                        ConfiguredForDelayedIDFC,
                         Stream,
-                        "Configured for delayed FC updates");
+                        "Configured for delayed ID FC updates");
                 }
             }
 

@@ -59,9 +59,9 @@ QuicStreamInitialize(
     Stream->Flags.DelayIdFcUpdate = !!(Flags & QUIC_STREAM_OPEN_FLAG_DELAY_ID_FC_UPDATES);
     if (Stream->Flags.DelayIdFcUpdate) {
         QuicTraceLogStreamVerbose(
-            ConfiguredForDelayedFC,
+            ConfiguredForDelayedIDFC,
             Stream,
-            "Configured for delayed FC updates");
+            "Configured for delayed ID FC updates");
     }
     Stream->Flags.Allocated = TRUE;
     Stream->Flags.SendEnabled = TRUE;
