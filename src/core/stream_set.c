@@ -658,14 +658,16 @@ QuicStreamSetGetStreamForPeer(
             // Calculate the next Stream ID.
             //
             uint64_t NewStreamId = StreamType + (Info->TotalStreamCount << 2);
+            QUIC_STREAM_OPEN_FLAGS OpenFlags = QUIC_STREAM_OPEN_FLAG_NONE;
+            if (STREAM_ID_IS_UNI_DIR(StreamId)) {
+                OpenFlags |= QUIC_STREAM_OPEN_FLAG_UNIDIRECTIONAL;
+            }
+            if (FrameIn0Rtt) {
+                OpenFlags |= QUIC_STREAM_OPEN_FLAG_0_RTT;
+            }
 
             QUIC_STATUS Status =
-                QuicStreamInitialize(
-                    Connection,
-                    TRUE,
-                    STREAM_ID_IS_UNI_DIR(StreamId), // Unidirectional
-                    FrameIn0Rtt,                    // Opened0Rtt
-                    &Stream);
+                QuicStreamInitialize(Connection, TRUE, OpenFlags, &Stream);
             if (QUIC_FAILED(Status)) {
                 *FatalError = TRUE;
                 QuicConnTransportError(Connection, QUIC_ERROR_INTERNAL_ERROR);
@@ -721,6 +723,13 @@ QuicStreamSetGetStreamForPeer(
                 CXPLAT_FRE_ASSERTMSG(
                     Stream->ClientCallbackHandler != NULL,
                     "App MUST set callback handler!");
+                if (Event.PEER_STREAM_STARTED.Flags & QUIC_STREAM_OPEN_FLAG_DELAY_ID_FC_UPDATES) {
+                    Stream->Flags.DelayIdFcUpdate = TRUE;
+                    QuicTraceLogStreamVerbose(
+                        ConfiguredForDelayedIDFC,
+                        Stream,
+                        "Configured for delayed ID FC updates");
+                }
             }
 
         } while (Info->TotalStreamCount != StreamCount);
