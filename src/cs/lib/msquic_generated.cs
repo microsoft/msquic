@@ -210,6 +210,7 @@ namespace Microsoft.Quic
     {
         NONE = 0x0000,
         QTIP = 0x0001,
+        RIO = 0x0002,
     }
 
     internal unsafe partial struct QUIC_EXECUTION_CONFIG
