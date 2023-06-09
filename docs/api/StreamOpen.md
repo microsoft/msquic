@@ -34,7 +34,7 @@ Value | Meaning
 **QUIC_STREAM_OPEN_FLAG_NONE**<br>0 | No special behavior. Defaults to bidirectional stream.
 **QUIC_STREAM_OPEN_FLAG_UNIDIRECTIONAL**<br>1 | Opens a unidirectional stream.
 **QUIC_STREAM_OPEN_FLAG_0_RTT**<br>2 | Indicates that the stream may be sent in 0-RTT.
-**QUIC_STREAM_OPEN_FLAG_DELAY_FC_UPDATES**<br>4 | Indicates stream flow control limit updates for the connection should be delayed to StreamClose.
+**QUIC_STREAM_OPEN_FLAG_DELAY_ID_FC_UPDATES**<br>4 | Indicates stream flow control limit updates for the connection should be delayed to StreamClose.
 
 `Handler`
 
