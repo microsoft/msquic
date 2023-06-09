@@ -437,6 +437,9 @@ QUIC_STATUS QUIC_API SpinQuicHandleConnectionEvent(HQUIC Connection, void* , QUI
             MsQuic.StreamClose(Event->PEER_STREAM_STARTED.Stream);
             return QUIC_STATUS_SUCCESS;
         }
+        if (GetRandom(2) == 0) {
+            Event->PEER_STREAM_STARTED.Flags |= QUIC_STREAM_OPEN_FLAG_DELAY_ID_FC_UPDATES;
+        }
         auto StreamCtx = new SpinQuicStream(*ctx, Event->PEER_STREAM_STARTED.Stream);
         MsQuic.SetCallbackHandler(Event->PEER_STREAM_STARTED.Stream, (void *)SpinQuicHandleStreamEvent, StreamCtx);
         ctx->AddStream(Event->PEER_STREAM_STARTED.Stream);
@@ -748,7 +751,7 @@ void Spin(Gbs& Gb, LockableVector<HQUIC>& Connections, std::vector<HQUIC>* Liste
             BAIL_ON_NULL_CONNECTION(Connection);
             HQUIC Stream;
             auto ctx = new SpinQuicStream(*SpinQuicConnection::Get(Connection));
-            QUIC_STATUS Status = MsQuic.StreamOpen(Connection, (QUIC_STREAM_OPEN_FLAGS)GetRandom(4), SpinQuicHandleStreamEvent, ctx, &Stream);
+            QUIC_STATUS Status = MsQuic.StreamOpen(Connection, (QUIC_STREAM_OPEN_FLAGS)GetRandom(8), SpinQuicHandleStreamEvent, ctx, &Stream);
             if (QUIC_SUCCEEDED(Status)) {
                 ctx->Handle = Stream;
                 SpinQuicGetRandomParam(Stream, ThreadID);
