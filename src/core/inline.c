@@ -145,6 +145,11 @@ QuicLibraryGetCurrentPartition(
     void
     );
 
+QUIC_LIBRARY_PP*
+QuicLibraryGetPerProc(
+    void
+    );
+
 _IRQL_requires_max_(DISPATCH_LEVEL)
 uint16_t
 QuicPartitionIdCreate(
