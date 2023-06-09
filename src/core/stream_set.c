@@ -723,8 +723,8 @@ QuicStreamSetGetStreamForPeer(
                 CXPLAT_FRE_ASSERTMSG(
                     Stream->ClientCallbackHandler != NULL,
                     "App MUST set callback handler!");
-                if (Event.PEER_STREAM_STARTED.Flags & QUIC_STREAM_OPEN_FLAG_DELAY_FC_UPDATES) {
-                    Stream->Flags.DelayFCUpdate = TRUE;
+                if (Event.PEER_STREAM_STARTED.Flags & QUIC_STREAM_OPEN_FLAG_DELAY_ID_FC_UPDATES) {
+                    Stream->Flags.DelayIdFcUpdate = TRUE;
                     QuicTraceLogStreamVerbose(
                         ConfiguredForDelayedFC,
                         Stream,

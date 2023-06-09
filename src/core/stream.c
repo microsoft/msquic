@@ -56,8 +56,8 @@ QuicStreamInitialize(
     Stream->ID = UINT64_MAX;
     Stream->Flags.Unidirectional = !!(Flags & QUIC_STREAM_OPEN_FLAG_UNIDIRECTIONAL);
     Stream->Flags.Opened0Rtt = !!(Flags & QUIC_STREAM_OPEN_FLAG_0_RTT);
-    Stream->Flags.DelayFCUpdate = !!(Flags & QUIC_STREAM_OPEN_FLAG_DELAY_FC_UPDATES);
-    if (Stream->Flags.DelayFCUpdate) {
+    Stream->Flags.DelayIdFcUpdate = !!(Flags & QUIC_STREAM_OPEN_FLAG_DELAY_ID_FC_UPDATES);
+    if (Stream->Flags.DelayIdFcUpdate) {
         QuicTraceLogStreamVerbose(
             ConfiguredForDelayedFC,
             Stream,
@@ -394,7 +394,7 @@ QuicStreamClose(
         }
     }
 
-    if (Stream->Flags.DelayFCUpdate && Stream->Flags.ShutdownComplete) {
+    if (Stream->Flags.DelayIdFcUpdate && Stream->Flags.ShutdownComplete) {
         //
         // Indicate the stream is completely shut down to the connection.
         //
@@ -607,7 +607,7 @@ QuicStreamTryCompleteShutdown(
         //
         // Indicate the stream is completely shut down to the connection.
         //
-        if (!Stream->Flags.DelayFCUpdate || Stream->Flags.HandleClosed) {
+        if (!Stream->Flags.DelayIdFcUpdate || Stream->Flags.HandleClosed) {
             QuicStreamSetReleaseStream(&Stream->Connection->Streams, Stream);
         }
     }
