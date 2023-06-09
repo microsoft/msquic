@@ -176,6 +176,8 @@ Value | Meaning
 **QUIC_STREAM_OPEN_FLAG_UNIDIRECTIONAL**<br>1 | A unidirectional stream.
 **QUIC_STREAM_OPEN_FLAG_0_RTT**<br>2 | The stream was received in 0-RTT.
 
+If a server wishes to use `QUIC_STREAM_OPEN_FLAG_DELAY_ID_FC_UPDATES` for the newly started stream, it may append this flag to `Flags` before it returns from the callback.
+
 ## QUIC_CONNECTION_EVENT_STREAMS_AVAILABLE
 
 This event indicates the number of streams the peer is willing to accept has changed.

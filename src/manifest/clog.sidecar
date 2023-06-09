@@ -963,6 +963,18 @@
       ],
       "macroName": "QuicTraceLogInfo"
     },
+    "ConfiguredForDelayedIDFC": {
+      "ModuleProperites": {},
+      "TraceString": "[strm][%p] Configured for delayed ID FC updates",
+      "UniqueId": "ConfiguredForDelayedIDFC",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        }
+      ],
+      "macroName": "QuicTraceLogStreamVerbose"
+    },
     "ConnAppShutdown": {
       "ModuleProperites": {},
       "TraceString": "[conn][%p] App Shutdown: %llu (Remote=%hhu)",
@@ -12669,6 +12681,11 @@
         "UniquenessHash": "e104b282-92ce-2322-3af0-f59ccaabf2f1",
         "TraceID": "ConfigurationSettingsUpdated",
         "EncodingString": "[cnfg][%p] Settings %p Updated"
+      },
+      {
+        "UniquenessHash": "fd83d3d8-994b-ccc3-13b9-cf8de77990ca",
+        "TraceID": "ConfiguredForDelayedIDFC",
+        "EncodingString": "[strm][%p] Configured for delayed ID FC updates"
       },
       {
         "UniquenessHash": "905ba7f9-0427-2d53-7d13-88f2bb532bf0",
