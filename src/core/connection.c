@@ -64,10 +64,6 @@ QuicConnAlloc(
     )
 {
     BOOLEAN IsServer = Datagram != NULL;
-<<<<<<< HEAD
-=======
-    uint16_t CurProcIndex = QuicLibraryGetCurrentPartition();
->>>>>>> main
     *NewConnection = NULL;
     QUIC_STATUS Status;
 
