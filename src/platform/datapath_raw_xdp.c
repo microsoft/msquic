@@ -1332,6 +1332,7 @@ CxPlatDpRawUpdateConfig(
     Xdp->PollingIdleTimeoutUs = Config->PollingIdleTimeoutUs;
 }
 
+_IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 CxPlatSocketUpdateQeo(
     _In_ CXPLAT_SOCKET* Socket,
