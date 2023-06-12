@@ -1375,7 +1375,7 @@ CxPlatSocketUpdateQeo(
             Xdp->XdpApi->XdpQeoSet(
                 CONTAINING_RECORD(Entry, XDP_INTERFACE, Link)->XdpHandle,
                 Connections,
-                OffloadCount);
+                sizeof(Connections));
         if (QUIC_FAILED(Status)) {
             QuicTraceEvent(
                 LibraryErrorStatus,
