@@ -1379,6 +1379,13 @@ CxPlatFramingWriteHeaders(
                         sizeof(Route->LocalAddress.Ipv4.sin_addr),
                         IPPROTO_TCP,
                         (uint8_t*)TCP, sizeof(TCP_HEADER) + Buffer->Length);
+            } else {
+                UDP->Checksum =
+                    CxPlatFramingTransportChecksum(
+                        IPv4->Source, IPv4->Destination,
+                        sizeof(Route->LocalAddress.Ipv4.sin_addr),
+                        IPPROTO_UDP,
+                        (uint8_t*)UDP, sizeof(UDP_HEADER) + Buffer->Length);
             }
         }
     } else {
