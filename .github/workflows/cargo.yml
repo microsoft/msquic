@@ -21,31 +21,17 @@ jobs:
     name: Cargo
     steps:
     - name: Harden Runner
-      uses: step-security/harden-runner@6b3083af2869dc3314a0257a42f4af696cc79ba3
+      uses: step-security/harden-runner@128a63446a954579617e875aaab7d2978154e969
       with:
-        egress-policy: block
-        allowed-endpoints: >
-          api.github.com:443
-          azure.archive.ubuntu.com:80
-          crates.io:443
-          dc.services.visualstudio.com:443
-          github.com:443
-          launchpad.net:443
-          packages.microsoft.com:443
-          ppa.launchpad.net:80
-          rubygems.org:443
-          sh.rustup.rs:443
-          static.crates.io:443
-          static.rust-lang.org:443
-          www.cloudflare.com:443
+        egress-policy: audit
     - name: Checkout repository
-      uses: actions/checkout@8e5e7e5ab8b370d6c329ec480221332ada57f0ab
+      uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9
     - name: Prepare Machine
       run: scripts/prepare-machine.ps1 -Tls openssl -ForBuild
       shell: pwsh
     - name: Install Perl
       if: runner.os == 'Windows'
-      uses: shogo82148/actions-setup-perl@795ea77474d1f81da5b0a04028a5b94d4118a9c2
+      uses: shogo82148/actions-setup-perl@0bb5af61b3945a80585229183e7ac50a97d7996c
       with:
         perl-version: '5.34'
     - name: Install NASM

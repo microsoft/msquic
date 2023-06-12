@@ -108,7 +108,8 @@ public:
             .SetDisconnectTimeoutMs(PERF_DEFAULT_DISCONNECT_TIMEOUT)
             .SetIdleTimeoutMs(HPS_DEFAULT_IDLE_TIMEOUT)
             .SetCongestionControlAlgorithm(PerfDefaultCongestionControl)
-            .SetEcnEnabled(PerfDefaultEcnEnabled),
+            .SetEcnEnabled(PerfDefaultEcnEnabled)
+            .SetEncryptionOffloadAllowed(PerfDefaultQeoAllowed),
         MsQuicCredentialConfig(
             QUIC_CREDENTIAL_FLAG_CLIENT |
             QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION)};

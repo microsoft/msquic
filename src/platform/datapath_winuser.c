@@ -636,6 +636,11 @@ typedef struct CXPLAT_DATAPATH {
     uint8_t MaxSendBatchSize;
 
     //
+    // Uses RIO interface instead of normal asyc IO.
+    //
+    uint8_t UseRio : 1;
+
+    //
     // Debug flags
     //
     uint8_t Uninitialized : 1;
@@ -1237,6 +1242,7 @@ CxPlatDataPathInitialize(
     }
     Datapath->ProcCount = (uint16_t)ProcessorCount;
     CxPlatRefInitializeEx(&Datapath->RefCount, Datapath->ProcCount);
+    Datapath->UseRio = Config && !!(Config->Flags & QUIC_EXECUTION_CONFIG_FLAG_RIO);
 
     CxPlatDataPathQueryRssScalabilityInfo(Datapath);
     Status = CxPlatDataPathQuerySockoptSupport(Datapath);
@@ -1880,7 +1886,7 @@ CxPlatSocketCreateUdp(
     Socket->ClientContext = Config->CallbackContext;
     Socket->HasFixedRemoteAddress = (Config->RemoteAddress != NULL);
     Socket->Type = CXPLAT_SOCKET_UDP;
-    Socket->UseRio = FALSE;
+    Socket->UseRio = Datapath->UseRio;
     if (Config->LocalAddress) {
         CxPlatConvertToMappedV6(Config->LocalAddress, &Socket->LocalAddress);
     } else {
@@ -3109,6 +3115,21 @@ CxPlatSocketContextUninitialize(
     // there are no outstanding IOs, then the context will be cleaned up inline.
     //
     CxPlatSocketContextRelease(SocketProc);
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_STATUS
+CxPlatSocketUpdateQeo(
+    _In_ CXPLAT_SOCKET* Socket,
+    _In_reads_(OffloadCount)
+        const CXPLAT_QEO_CONNECTION* Offloads,
+    _In_ uint32_t OffloadCount
+    )
+{
+    UNREFERENCED_PARAMETER(Socket);
+    UNREFERENCED_PARAMETER(Offloads);
+    UNREFERENCED_PARAMETER(OffloadCount);
+    return QUIC_STATUS_NOT_SUPPORTED;
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)

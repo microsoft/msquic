@@ -2461,6 +2461,7 @@ void QuicTestGlobalParam()
         }
     }
 
+#ifndef _KERNEL_MODE
 #ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
     //
     // QUIC_PARAM_GLOBAL_EXECUTION_CONFIG
@@ -2539,7 +2540,8 @@ void QuicTestGlobalParam()
                 nullptr));
 #endif // QUIC_USE_RAW_DATAPATH
     }
-#endif
+#endif // QUIC_API_ENABLE_PREVIEW_FEATURES
+#endif // !_KERNEL_MODE
 
 #if QUIC_TEST_DATAPATH_HOOKS_ENABLED
     //

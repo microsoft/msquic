@@ -235,6 +235,20 @@ CxPlatDpRawUpdateConfig(
     UNREFERENCED_PARAMETER(Config);
 }
 
+QUIC_STATUS
+CxPlatSocketUpdateQeo(
+    _In_ CXPLAT_SOCKET* Socket,
+    _In_reads_(OffloadCount)
+        const CXPLAT_QEO_CONNECTION* Offloads,
+    _In_ uint32_t OffloadCount
+    )
+{
+    UNREFERENCED_PARAMETER(Socket);
+    UNREFERENCED_PARAMETER(Offloads);
+    UNREFERENCED_PARAMETER(OffloadCount);
+    return QUIC_STATUS_NOT_SUPPORTED;
+}
+
 CXPLAT_THREAD_CALLBACK(CxPlatDpdkMainThread, Context)
 {
     DPDK_DATAPATH* Dpdk = (DPDK_DATAPATH*)Context;

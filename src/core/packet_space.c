@@ -23,8 +23,7 @@ QuicPacketSpaceInitialize(
     _Out_ QUIC_PACKET_SPACE** NewPackets
     )
 {
-    uint32_t CurProcIndex = CxPlatProcCurrentNumber();
-    QUIC_PACKET_SPACE* Packets = CxPlatPoolAlloc(&MsQuicLib.PerProc[CurProcIndex].PacketSpacePool);
+    QUIC_PACKET_SPACE* Packets = CxPlatPoolAlloc(&QuicLibraryGetPerProc()->PacketSpacePool);
     if (Packets == NULL) {
         QuicTraceEvent(
             AllocFailure,
@@ -62,9 +61,7 @@ QuicPacketSpaceUninitialize(
     }
 
     QuicAckTrackerUninitialize(&Packets->AckTracker);
-
-    uint32_t CurProcIndex = CxPlatProcCurrentNumber();
-    CxPlatPoolFree(&MsQuicLib.PerProc[CurProcIndex].PacketSpacePool, Packets);
+    CxPlatPoolFree(&QuicLibraryGetPerProc()->PacketSpacePool, Packets);
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)

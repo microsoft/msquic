@@ -2366,3 +2366,33 @@ CxPlatTlsParamGet(
 
     return Status;
 }
+
+_Success_(return==TRUE)
+BOOLEAN
+QuicTlsPopulateOffloadKeys(
+    _Inout_ CXPLAT_TLS* TlsContext,
+    _In_ const QUIC_PACKET_KEY* const PacketKey,
+    _In_z_ const char* const SecretName,
+    _Inout_ CXPLAT_QEO_CONNECTION* Offload
+    )
+{
+    QUIC_STATUS Status =
+        QuicPacketKeyDeriveOffload(
+            TlsContext->HkdfLabels,
+            PacketKey,
+            SecretName,
+            Offload);
+    if (!QUIC_SUCCEEDED(Status)) {
+        QuicTraceEvent(
+            TlsErrorStatus,
+            "[ tls][%p] ERROR, %u, %s.",
+            TlsContext->Connection,
+            Status,
+            "QuicTlsPopulateOffloadKeys");
+        goto Error;
+    }
+
+Error:
+
+    return QUIC_SUCCEEDED(Status);
+}
