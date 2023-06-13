@@ -38,70 +38,70 @@ param (
     [string]$Tls = "",
 
     [Parameter(Mandatory = $false)]
-    [switch]$Force,
+    [switch]$Force = $false,
 
     [Parameter(Mandatory = $false)]
-    [switch]$ForOneBranch,
+    [switch]$ForOneBranch = $false,
 
     [Parameter(Mandatory = $false)]
-    [switch]$ForOneBranchPackage,
+    [switch]$ForOneBranchPackage = $false,
 
     [Parameter(Mandatory = $false)]
-    [switch]$ForBuild,
+    [switch]$ForBuild = $false,
 
     [Parameter(Mandatory = $false)]
-    [switch]$ForTest,
+    [switch]$ForTest = $false,
 
     [Parameter(Mandatory = $false)]
-    [switch]$ForKernel,
+    [switch]$ForKernel = $false,
 
     [Parameter(Mandatory = $false)]
-    [switch]$InitSubmodules,
+    [switch]$InitSubmodules = $false,
 
     [Parameter(Mandatory = $false)]
-    [switch]$InstallSigningCertificate,
+    [switch]$InstallSigningCertificate = $false,
 
     [Parameter(Mandatory = $false)]
-    [switch]$InstallTestCertificates,
+    [switch]$InstallTestCertificates = $false,
 
     [Parameter(Mandatory = $false)]
-    [switch]$InstallDuoNic,
+    [switch]$InstallDuoNic = $false,
 
     [Parameter(Mandatory = $false)]
-    [switch]$InstallCodeCoverage,
+    [switch]$InstallCodeCoverage = $false,
 
     [Parameter(Mandatory = $false)]
-    [switch]$InstallNasm,
+    [switch]$InstallNasm = $false,
 
     [Parameter(Mandatory = $false)]
-    [switch]$InstallJom,
+    [switch]$InstallJom = $false,
 
     [Parameter(Mandatory = $false)]
-    [switch]$InstallXdpSdk,
+    [switch]$InstallXdpSdk = $false,
 
     [Parameter(Mandatory = $false)]
-    [switch]$UseXdp,
+    [switch]$UseXdp = $false,
 
     [Parameter(Mandatory = $false)]
-    [switch]$InstallArm64Toolchain,
+    [switch]$InstallArm64Toolchain = $false,
 
     [Parameter(Mandatory = $false)]
-    [switch]$InstallXdpDriver,
+    [switch]$InstallXdpDriver = $false,
 
     [Parameter(Mandatory = $false)]
-    [switch]$UninstallXdp,
+    [switch]$UninstallXdp = $false,
 
     [Parameter(Mandatory = $false)]
-    [switch]$InstallClog2Text,
+    [switch]$InstallClog2Text = $false,
 
     [Parameter(Mandatory = $false)]
-    [switch]$DisableTest,
+    [switch]$DisableTest = $false,
 
     [Parameter(Mandatory = $false)]
-    [switch]$InstallCoreNetCiDeps,
+    [switch]$InstallCoreNetCiDeps = $false,
 
     [Parameter(Mandatory = $false)]
-    [switch]$InstallSigningCerts
+    [switch]$InstallSigningCerts = $false
 )
 
 # Admin is required because a lot of things are installed to the local machine
