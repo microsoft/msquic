@@ -1002,8 +1002,6 @@ QuicLibrarySetGlobalParam(
 
         CxPlatCopyMemory(NewConfig, Config, BufferLength);
         MsQuicLib.ExecutionConfig = NewConfig;
-	    MsQuicLib.ProcessorCount = Config->ProcessorCount;
-	    MsQuicLib.PartitionCount = MsQuicLib.ProcessorCount;
 
         QuicTraceLogInfo(
             LibraryExecutionConfigSet,
