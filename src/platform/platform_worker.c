@@ -130,7 +130,6 @@ CxPlatWorkersLazyStart(
     const uint16_t* ProcessorList;
     UNREFERENCED_PARAMETER(Config); // TODO - use config
     /*if (Config && Config->ProcessorCount) {
-	printf("PROCCESSOR COUNT = %d\n", Config->ProcessorCount);
         CxPlatWorkerCount = Config->ProcessorCount;
         ProcessorList = Config->ProcessorList;
     } else {*/
