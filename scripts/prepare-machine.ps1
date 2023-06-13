@@ -19,9 +19,6 @@ on the provided configuration.
 .PARAMETER InstallTestCertificates
     Generate test certificates. Only supported on Windows.
 
-.PARAMETER InstallSigningCertificates
-    Generate a code signing certificate for kernel driver tests.
-
 .EXAMPLE
     prepare-machine.ps1
 
@@ -57,9 +54,6 @@ param (
 
     [Parameter(Mandatory = $false)]
     [switch]$InitSubmodules,
-
-    [Parameter(Mandatory = $false)]
-    [switch]$InstallSigningCertificate,
 
     [Parameter(Mandatory = $false)]
     [switch]$InstallTestCertificates,
@@ -156,11 +150,8 @@ if ($ForBuild) {
 if ($ForTest) {
     # When configured for testing, make sure we have all possible dependencies
     # enabled for any possible test.
-    $InstallSigningCertificate = $true
     $InstallTestCertificates = $true
-
     $InstallClog2Text = $true
-
     if ($ForKernel) {
         $InstallSigningCerts = $true;
     }
@@ -370,29 +361,6 @@ function Install-OpenCppCoverage {
     }
 }
 
-# Checks the OS version number to see if it's recent enough (> 2019) to support
-# the necessary features for creating and installing the test certificates.
-function Win-SupportsCerts {
-    $ver = [environment]::OSVersion.Version
-    if ($ver.Build -lt 20000) { return $false }
-    return $true
-}
-
-# Creates and installs a certificate to use for local signing.
-function Install-SigningCertificate {
-    if (!$IsWindows -or !(Win-SupportsCerts)) { return } # Windows only
-    if (!(Test-Path c:\CodeSign.pfx)) {
-        Write-Host "Creating signing certificate"
-        $CodeSignCert = New-SelfSignedCertificate -Type Custom -Subject "CN=MsQuicTestCodeSignRoot" -FriendlyName MsQuicTestCodeSignRoot -KeyUsageProperty Sign -KeyUsage DigitalSignature -CertStoreLocation cert:\CurrentUser\My -HashAlgorithm SHA256 -Provider "Microsoft Software Key Storage Provider" -KeyExportPolicy Exportable -NotAfter(Get-Date).AddYears(1) -TextExtension @("2.5.29.37={text}1.3.6.1.5.5.7.3.3,1.3.6.1.4.1.311.10.3.6","2.5.29.19 = {text}")
-        $CodeSignCertPath = Join-Path $Env:TEMP "CodeSignRoot.cer"
-        Export-Certificate -Type CERT -Cert $CodeSignCert -FilePath $CodeSignCertPath
-        CertUtil.exe -addstore Root $CodeSignCertPath
-        Export-PfxCertificate -Cert $CodeSignCert -Password $PfxPassword -FilePath c:\CodeSign.pfx
-        Remove-Item $CodeSignCertPath
-        Remove-Item $CodeSignCert.PSPath
-    }
-}
-
 # Creates and installs certificates used for testing.
 function Install-TestCertificates {
     if (!$IsWindows -or !(Win-SupportsCerts)) { return } # Windows only
@@ -542,7 +510,6 @@ if ($UninstallXdp) { Uninstall-Xdp }
 if ($InstallNasm) { Install-NASM }
 if ($InstallJOM) { Install-JOM }
 if ($InstallCodeCoverage) { Install-OpenCppCoverage }
-if ($InstallSigningCertificate) { Install-SigningCertificate }
 if ($InstallTestCertificates) { Install-TestCertificates }
 
 if ($IsLinux) {
