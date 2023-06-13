@@ -151,12 +151,17 @@ jobs:
     - name: Build Kernel
       shell: pwsh
       run: msbuild msquic.kernel.sln /p:Configuration=Debug /p:Platform=${{ matrix.arch }} /p:QUIC_VER_SUFFIX=-official
-    - name: Sign Kernel
-      shell: pwsh
-      run: scripts/sign.ps1 -Config Debug -Arch ${{ matrix.arch }} -Tls ${{ matrix.tls }}
     - name: Build User
       shell: pwsh
       run: scripts/build.ps1 -Config Debug -Arch ${{ matrix.arch }} -Tls ${{ matrix.tls }} -DisableTools -DisablePerf
+    - name: Sign Kernel
+      shell: pwsh
+      run: scripts/sign.ps1 -Config Debug -Arch ${{ matrix.arch }} -Tls ${{ matrix.tls }}
+    - name: Move Kernel Directory
+      shell: pwsh
+      run: |
+        copy artifacts\bin\winkernel\${{ matrix.arch }}_Debug_${{ matrix.tls }}\msquicpriv.sys artifacts\bin\windows\${{ matrix.arch }}_Debug_${{ matrix.tls }}\msquicpriv.sys
+        copy artifacts\bin\winkernel\${{ matrix.arch }}_Debug_${{ matrix.tls }}\msquictestpriv.sys artifacts\bin\windows\${{ matrix.arch }}_Debug_${{ matrix.tls }}\msquictestpriv.sys
     - name: Install ETW Manifest
       shell: pwsh
       run: |
@@ -167,7 +172,7 @@ jobs:
     - name: Test
       shell: pwsh
       timeout-minutes: 90
-      run: scripts/test.ps1 -Config Debug -Arch ${{ matrix.arch }} -Tls ${{ matrix.tls }} -GHA -LogProfile Full.Light -GenerateXmlResults -Kernel -Filter ParameterValidation.ValidateApi
+      run: scripts/test.ps1 -Config Debug -Arch ${{ matrix.arch }} -Tls ${{ matrix.tls }} -GHA -LogProfile Full.Light -GenerateXmlResults -Kernel
     - name: Upload on Failure
       uses: actions/upload-artifact@0b7f8abb1508181956e8e162db84b466c27e18ce
       if: failure()
