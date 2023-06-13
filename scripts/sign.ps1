@@ -71,10 +71,10 @@ if (!(Test-Path $CertPath)) { Write-Error "$CertPath does not exist!" }
 
 # All the file paths.
 $DriverFiles = @(
-    Join-Path $ArtifactsDir "msquic.sys",
-    Join-Path $ArtifactsDir "msquicpriv.sys",
-    Join-Path $ArtifactsDir "secnetperfdrv.sys",
-    Join-Path $ArtifactsDir "secnetperfdrvpriv.sys"
+    (Join-Path $ArtifactsDir "msquic.sys"),
+    (Join-Path $ArtifactsDir "msquicpriv.sys"),
+    (Join-Path $ArtifactsDir "secnetperfdrv.sys"),
+    (Join-Path $ArtifactsDir "secnetperfdrvpriv.sys")
 )
 
 # Verify all the files are present.
