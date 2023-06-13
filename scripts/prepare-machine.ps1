@@ -19,6 +19,9 @@ on the provided configuration.
 .PARAMETER InstallTestCertificates
     Generate test certificates. Only supported on Windows.
 
+.PARAMETER InstallSigningCertificates
+    Generate a code signing certificate for kernel driver tests.
+
 .EXAMPLE
     prepare-machine.ps1
 
@@ -54,6 +57,9 @@ param (
 
     [Parameter(Mandatory = $false)]
     [switch]$InitSubmodules,
+
+    [Parameter(Mandatory = $false)]
+    [switch]$InstallSigningCertificates,
 
     [Parameter(Mandatory = $false)]
     [switch]$InstallTestCertificates,
@@ -92,10 +98,7 @@ param (
     [switch]$DisableTest,
 
     [Parameter(Mandatory = $false)]
-    [switch]$InstallCoreNetCiDeps,
-
-    [Parameter(Mandatory = $false)]
-    [switch]$InstallSigningCerts
+    [switch]$InstallCoreNetCiDeps
 )
 
 # Admin is required because a lot of things are installed to the local machine
@@ -143,7 +146,7 @@ if ($ForBuild) {
     $InstallXdpSdk = $true
     $InitSubmodules = $true
     if ($ForKernel) {
-        $InstallSigningCerts = $true;
+        $InstallCoreNetCiDeps = $true; # For signing certs
     }
 }
 
@@ -153,7 +156,7 @@ if ($ForTest) {
     $InstallTestCertificates = $true
     $InstallClog2Text = $true
     if ($ForKernel) {
-        $InstallSigningCerts = $true;
+        $InstallSigningCertificates = $true;
     }
 
     #$InstallCodeCoverage = $true # Ideally we'd enable this by default, but it
@@ -164,14 +167,14 @@ if ($ForTest) {
 if ($InstallXdpDriver) {
     # The XDP SDK contains XDP driver, so ensure it's downloaded.
     $InstallXdpSdk = $true
-    $InstallSigningCerts = $true;
+    $InstallSigningCertificates = $true;
 }
 
 if ($InstallDuoNic) {
-    $InstallSigningCerts = $true;
+    $InstallSigningCertificates = $true;
 }
 
-if ($InstallSigningCerts) {
+if ($InstallSigningCertificates) {
     # Signing certs need the CoreNet-CI dependencies.
     $InstallCoreNetCiDeps = $true;
 }
@@ -203,7 +206,7 @@ function Download-CoreNet-Deps {
 
 # Installs the certs downloaded via Download-CoreNet-Deps and used for signing
 # our test drivers.
-function Install-CoreNet-Certs {
+function Install-SigningCertificates {
     if (!$IsWindows) { return } # Windows only
 
     # Check to see if test signing is enabled.
@@ -502,7 +505,7 @@ if ($InitSubmodules) {
 }
 
 if ($InstallCoreNetCiDeps) { Download-CoreNet-Deps }
-if ($InstallSigningCerts) { Install-CoreNet-Certs }
+if ($InstallSigningCertificates) { Install-SigningCertificates }
 if ($InstallDuoNic) { Install-DuoNic }
 if ($InstallXdpSdk) { Install-Xdp-Sdk }
 if ($InstallXdpDriver) { Install-Xdp-Driver }
