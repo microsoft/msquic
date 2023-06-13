@@ -780,10 +780,10 @@ if ($Kernel -ne "") {
         try { net.exe stop msquictestpriv /y | Out-Null } catch {}
         sc.exe delete msquictestpriv /y | Out-Null
     }
-    Copy-Item (Join-Path $Kernel "msquictestpriv.sys") (Split-Path $Path -Parent)
-    Copy-Item (Join-Path $Kernel "msquicpriv.sys") (Split-Path $Path -Parent)
+    Copy-Item (Join-Path $Kernel "msquictestpriv.sys") C:\Windows\System32\drivers -Force
+    Copy-Item (Join-Path $Kernel "msquicpriv.sys") C:\Windows\System32\drivers -Force
 
-    $NewPath = Join-Path (Split-Path $Path -Parent) "msquicpriv.sys"
+    $NewPath = Join-Path C:\Windows\System32\drivers "msquicpriv.sys"
     Log $NewPath
     Log "$(Test-Path $NewPath)"
 
