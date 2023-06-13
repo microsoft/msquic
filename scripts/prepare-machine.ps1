@@ -145,9 +145,7 @@ if ($ForBuild) {
     $InstallJom = $true
     $InstallXdpSdk = $true
     $InitSubmodules = $true
-    if ($ForKernel) {
-        $InstallCoreNetCiDeps = $true; # For signing certs
-    }
+    $InstallCoreNetCiDeps = $true; # For kernel signing certs
 }
 
 if ($ForTest) {
@@ -155,9 +153,7 @@ if ($ForTest) {
     # enabled for any possible test.
     $InstallTestCertificates = $true
     $InstallClog2Text = $true
-    if ($ForKernel) {
-        $InstallSigningCertificates = $true;
-    }
+    $InstallSigningCertificates = $true; # For kernel drivers
 
     #$InstallCodeCoverage = $true # Ideally we'd enable this by default, but it
                                   # hangs sometimes, so we only want to install
