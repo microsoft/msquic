@@ -92,6 +92,8 @@ PrintHelp(
         "Server: secnetperf [options]\n"
         "\n"
         "  -bind:<addr>                A local IP address to bind to.\n"
+        "  -port:<####>                The UDP port of the server. Ignored if \"bind\" is passed. (def:%u)\n"
+        "  -serverid:<####>            The ID of the server (used for load balancing).\n"
         "  -cibir:<hex_bytes>          A CIBIR well-known idenfitier.\n"
         "\n"
         "Client: secnetperf -TestName:<Throughput|RPS|HPS> [options]\n"
@@ -107,7 +109,8 @@ PrintHelp(
         "  -qtip:<0/1>                 Enables/disables Quic over TCP support. (def:0)\n"
         "  -rio:<0/1>                  Enables/disables RIO support. (def:0)\n"
 #endif // _KERNEL_MODE
-        "\n"
+        "\n",
+        PERF_DEFAULT_PORT
         );
 }
 
@@ -244,23 +247,6 @@ QuicMainStart(
         return Status;
     }
 
-    uint16_t ServerId = 0;
-    if (ServerMode && TryGetValue(argc, argv, "serverid", &ServerId)) {
-	    QUIC_GLOBAL_SETTINGS GlobalSettings = {0};
-	    GlobalSettings.FixedServerID = ServerId;
-	    GlobalSettings.IsSet.FixedServerID = true;
-	    GlobalSettings.LoadBalancingMode = QUIC_LOAD_BALANCING_SERVER_ID_FIXED;
-	    GlobalSettings.IsSet.LoadBalancingMode = true;
-    
-	    WriteOutput("Server ID = %d\n", ServerId);
-    
-	    if (QUIC_FAILED(Status = 
-            MsQuic->SetParam(NULL, QUIC_PARAM_GLOBAL_GLOBAL_SETTINGS, sizeof(GlobalSettings), &GlobalSettings))) {
-	    	WriteOutput("Failed to set global settings %d\n", Status);
-	    	return Status;
-	    }
-    }
-
     const char* ExecStr = GetValue(argc, argv, "exec");
     if (ExecStr != nullptr) {
         if (IsValue(ExecStr, "lowlat")) {
@@ -291,9 +277,7 @@ QuicMainStart(
     TryGetValue(argc, argv, "qeo", &PerfDefaultQeoAllowed);
 
     if (ServerMode) {
-	    uint16_t Port = PERF_DEFAULT_PORT;
-	    TryGetValue(argc, argv, "port", &Port);
-        TestToRun = new(std::nothrow) PerfServer(SelfSignedCredConfig, Port);
+        TestToRun = new(std::nothrow) PerfServer(SelfSignedCredConfig);
     } else {
         if (IsValue(TestName, "Throughput") || IsValue(TestName, "tput")) {
             TestToRun = new(std::nothrow) ThroughputClient;
