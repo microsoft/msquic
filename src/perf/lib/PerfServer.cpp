@@ -45,10 +45,8 @@ PerfServer::Init(
 	    GlobalSettings.LoadBalancingMode = QUIC_LOAD_BALANCING_SERVER_ID_FIXED;
 	    GlobalSettings.IsSet.LoadBalancingMode = true;
    
-    
         QUIC_STATUS Status;
-	    if (QUIC_FAILED(Status = 
-            MsQuic->SetParam(NULL, QUIC_PARAM_GLOBAL_GLOBAL_SETTINGS, sizeof(GlobalSettings), &GlobalSettings))) {
+	    if (QUIC_FAILED(Status = MsQuic->SetParam(NULL, QUIC_PARAM_GLOBAL_GLOBAL_SETTINGS, sizeof(GlobalSettings), &GlobalSettings))) {
 	    	WriteOutput("Failed to set global settings %d\n", Status);
 	    	return Status;
 	    }
