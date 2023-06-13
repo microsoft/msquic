@@ -50,11 +50,6 @@ jobs:
     - name: Sign Kernel
       shell: pwsh
       run: scripts/sign.ps1 -Config Debug -Arch ${{ matrix.arch }} -Tls ${{ matrix.tls }}
-    - name: Move Kernel Directory
-      shell: pwsh
-      run: |
-        copy artifacts\bin\winkernel\${{ matrix.arch }}_Debug_${{ matrix.tls }}\msquicpriv.sys artifacts\bin\windows\${{ matrix.arch }}_Debug_${{ matrix.tls }}\msquicpriv.sys
-        copy artifacts\bin\winkernel\${{ matrix.arch }}_Debug_${{ matrix.tls }}\msquictestpriv.sys artifacts\bin\windows\${{ matrix.arch }}_Debug_${{ matrix.tls }}\msquictestpriv.sys
     - name: Install ETW Manifest
       shell: pwsh
       run: |
@@ -62,11 +57,6 @@ jobs:
         $ManifestPath = ".\src\manifest\MsQuicEtw.man"
         wevtutil.exe um $ManifestPath
         wevtutil.exe im $ManifestPath /rf:$($MsQuicDll) /mf:$($MsQuicDll)
-    - name: Diagnostics
-      shell: pwsh
-      run: |
-        dir artifacts\bin\winkernel\${{ matrix.arch }}_Debug_${{ matrix.tls }}
-        dir artifacts\bin\windows\${{ matrix.arch }}_Debug_${{ matrix.tls }}
     - name: Test
       shell: pwsh
       timeout-minutes: 90

@@ -783,10 +783,12 @@ if ($Kernel -ne "") {
     Copy-Item (Join-Path $Kernel "msquictestpriv.sys") (Split-Path $Path -Parent)
     Copy-Item (Join-Path $Kernel "msquicpriv.sys") (Split-Path $Path -Parent)
 
-    Log "$(Join-Path (Split-Path $Path -Parent) "msquicpriv.sys")"
-    Log "$(Test-Path (Join-Path (Split-Path $Path -Parent) "msquicpriv.sys"))"
+    $NewPath = Join-Path (Split-Path $Path -Parent) "msquicpriv.sys"
+    Log $NewPath
+    Log "$(Test-Path $NewPath)"
 
-    sc.exe create "msquicpriv" type= kernel binpath= (Join-Path (Split-Path $Path -Parent) "msquicpriv.sys") start= demand | Out-Null
+    Log "Creating msquicpriv service"
+    sc.exe create "msquicpriv" type= kernel binpath= $NewPath start= demand | Out-Null
     if ($LastExitCode) {
         Log ("sc.exe " + $LastExitCode)
     }
@@ -796,10 +798,18 @@ if ($Kernel -ne "") {
             Log ("verifier.exe " + $LastExitCode)
         }
     }
+
+    Log "Starting msquicpriv service"
     net.exe start msquicpriv
     if ($LastExitCode) {
         Log ("net.exe " + $LastExitCode)
     }
+
+    Log "sc query msquicpriv"
+    sc.exe query msquicpriv
+
+    Log "sc qc msquicpriv"
+    sc.exe qc msquicpriv
 
     try {
         if ("Running" -ne (Get-Service -Name msquicpriv).Status) {
