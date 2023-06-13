@@ -783,8 +783,8 @@ if ($Kernel -ne "") {
     Copy-Item (Join-Path $Kernel "msquictestpriv.sys") (Split-Path $Path -Parent)
     Copy-Item (Join-Path $Kernel "msquicpriv.sys") (Split-Path $Path -Parent)
 
-    Log (Join-Path (Split-Path $Path -Parent) "msquicpriv.sys")
-    Log (Test-Path Join-Path (Split-Path $Path -Parent) "msquicpriv.sys")
+    Log "$(Join-Path (Split-Path $Path -Parent) "msquicpriv.sys")"
+    Log "$(Test-Path Join-Path (Split-Path $Path -Parent) "msquicpriv.sys")"
 
     sc.exe create "msquicpriv" type= kernel binpath= (Join-Path (Split-Path $Path -Parent) "msquicpriv.sys") start= demand | Out-Null
     if ($LastExitCode) {
