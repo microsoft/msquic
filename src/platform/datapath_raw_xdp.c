@@ -1338,6 +1338,7 @@ CxPlatSocketUpdateQeo(
 
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
     for (uint32_t i = 0; i < OffloadCount; i++) {
+        XdpInitializeQuicConnection(&Connections[i], sizeof(Connections[i]));
         Connections[i].Operation = Offloads[i].Operation;
         Connections[i].Direction = Offloads[i].Direction;
         Connections[i].DecryptFailureAction = Offloads[i].DecryptFailureAction;
@@ -1375,7 +1376,7 @@ CxPlatSocketUpdateQeo(
             Xdp->XdpApi->XdpQeoSet(
                 CONTAINING_RECORD(Entry, XDP_INTERFACE, Link)->XdpHandle,
                 Connections,
-                OffloadCount);
+                sizeof(Connections));
         if (QUIC_FAILED(Status)) {
             QuicTraceEvent(
                 LibraryErrorStatus,
