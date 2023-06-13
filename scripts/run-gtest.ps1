@@ -783,7 +783,7 @@ if ($Kernel -ne "") {
     Copy-Item (Join-Path $Kernel "msquictestpriv.sys") C:\Windows\System32\drivers -Force
     Copy-Item (Join-Path $Kernel "msquicpriv.sys") C:\Windows\System32\drivers -Force
 
-    $NewPath = Join-Path C:\Windows\System32\drivers "msquicpriv.sys"
+    $NewPath = "\SystemRoot\System32\drivers\msquicpriv.sys"
     Log $NewPath
     Log "$(Test-Path $NewPath)"
 
