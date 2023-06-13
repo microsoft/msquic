@@ -27,11 +27,29 @@ PerfServer::Init(
     TryGetValue(argc, argv, "stats", &PrintStats);
 
     const char* LocalAddress = nullptr;
+    uint16_t Port = 0;
     if (TryGetValue(argc, argv, "bind", &LocalAddress)) {
         if (!ConvertArgToAddress(LocalAddress, PERF_DEFAULT_PORT, &LocalAddr)) {
             WriteOutput("Failed to decode IP address: '%s'!\nMust be *, a IPv4 or a IPv6 address.\n", LocalAddress);
             return QUIC_STATUS_INVALID_PARAMETER;
         }
+    } else if (TryGetValue(argc, argv, "port", &Port)) {
+        QuicAddrSetPort(&LocalAddr, Port);
+    }
+
+    uint16_t ServerId = 0;
+    if (TryGetValue(argc, argv, "serverid", &ServerId)) {
+	    QUIC_GLOBAL_SETTINGS GlobalSettings = {0};
+	    GlobalSettings.FixedServerID = ServerId;
+	    GlobalSettings.IsSet.FixedServerID = true;
+	    GlobalSettings.LoadBalancingMode = QUIC_LOAD_BALANCING_SERVER_ID_FIXED;
+	    GlobalSettings.IsSet.LoadBalancingMode = true;
+   
+        QUIC_STATUS Status;
+	    if (QUIC_FAILED(Status = MsQuic->SetParam(NULL, QUIC_PARAM_GLOBAL_GLOBAL_SETTINGS, sizeof(GlobalSettings), &GlobalSettings))) {
+	    	WriteOutput("Failed to set global settings %d\n", Status);
+	    	return Status;
+	    }
     }
 
     const char* CibirBytes = nullptr;
