@@ -74,6 +74,7 @@ public:
                 DriverName = QUIC_DRIVER_NAME;
                 DependentDriverNames = "msquic\0";
             }
+            printf("Starting driver %s (dependent on %s)\n", DriverName, DependentDriverNames);
             ASSERT_TRUE(DriverService.Initialize(DriverName, DependentDriverNames));
             ASSERT_TRUE(DriverService.Start());
             ASSERT_TRUE(DriverClient.Initialize(&CertParams, DriverName));

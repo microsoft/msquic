@@ -773,17 +773,11 @@ if ($IsWindows -and $EnableAppVerifier) {
 # Install the kernel mode drivers.
 if ($Kernel -ne "") {
     if ($null -ne (Get-Service -Name "msquicpriv" -ErrorAction Ignore)) {
-        try {
-            net.exe stop msquicpriv /y | Out-Null
-        }
-        catch {}
+        try { net.exe stop msquicpriv /y | Out-Null } catch {}
         sc.exe delete msquicpriv /y | Out-Null
     }
     if ($null -ne (Get-Service -Name "msquictestpriv" -ErrorAction Ignore)) {
-        try {
-            net.exe stop msquictestpriv /y | Out-Null
-        }
-        catch {}
+        try { net.exe stop msquictestpriv /y | Out-Null } catch {}
         sc.exe delete msquictestpriv /y | Out-Null
     }
     Copy-Item (Join-Path $Kernel "msquictestpriv.sys") (Split-Path $Path -Parent)
@@ -802,6 +796,16 @@ if ($Kernel -ne "") {
     net.exe start msquicpriv
     if ($LastExitCode) {
         Log ("net.exe " + $LastExitCode)
+    }
+
+    try {
+        if ("Running" -ne (Get-Service -Name msquicpriv).Status) {
+            LogErr "msquicpriv isn't running"
+        } else {
+            Log "msquicpriv is running"
+        }
+    } catch {
+        LogErr "msquicpriv query failed"
     }
 }
 
