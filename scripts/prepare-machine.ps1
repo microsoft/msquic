@@ -95,7 +95,10 @@ param (
     [switch]$InstallClog2Text,
 
     [Parameter(Mandatory = $false)]
-    [switch]$DisableTest
+    [switch]$DisableTest,
+
+    [Parameter(Mandatory = $false)]
+    [switch]$InstallCoreNetCiDeps
 )
 
 # Admin is required because a lot of things are installed to the local machine
@@ -124,6 +127,10 @@ if ($UseXdp) {
         $InstallXdpDriver = $true;
         $InstallDuoNic = $true;
     }
+}
+
+if ($InstallDuoNic) {
+    $InstallCoreNetCiDeps = $true;
 }
 
 if (!$ForOneBranch -and !$ForOneBranchPackage -and !$ForBuild -and !$ForTest -and !$InstallXdpDriver -and !$UninstallXdp) {
@@ -249,9 +256,6 @@ function Install-DuoNic {
     $HasTestSigning = $false
     try { $HasTestSigning = ("$(bcdedit)" | Select-String -Pattern "testsigning\s+Yes").Matches.Success } catch { }
     if (!$HasTestSigning) { Write-Error "Test Signing Not Enabled!" }
-
-    # Download the CI repo that contains DuoNic.
-    Download-CoreNet-Deps
 
     # Install the test root certificate.
     Write-Host "Installing test root certificate"
@@ -510,6 +514,7 @@ if ($InitSubmodules) {
     git submodule update --jobs=8
 }
 
+if ($InstallCoreNetCiDeps) { Download-CoreNet-Deps }
 if ($InstallDuoNic) { Install-DuoNic }
 if ($InstallXdpSdk) { Install-Xdp-Sdk }
 if ($InstallXdpDriver) { Install-Xdp-Driver }
