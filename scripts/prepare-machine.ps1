@@ -364,6 +364,14 @@ function Install-OpenCppCoverage {
     }
 }
 
+# Checks the OS version number to see if it's recent enough (> 2019) to support
+# the necessary features for creating and installing the test certificates.
+function Win-SupportsCerts {
+    $ver = [environment]::OSVersion.Version
+    if ($ver.Build -lt 20000) { return $false }
+    return $true
+}
+
 # Creates and installs certificates used for testing.
 function Install-TestCertificates {
     if (!$IsWindows -or !(Win-SupportsCerts)) { return } # Windows only
