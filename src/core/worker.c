@@ -794,9 +794,7 @@ QuicWorkerPoolInitialize(
 
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
     for (uint16_t i = 0; i < WorkerCount; i++) {
-	    uint16_t IdealProcessor = (MsQuicLib.ExecutionConfig && MsQuicLib.ExecutionConfig->ProcessorCount) ? 
-            MsQuicLib.ExecutionConfig->ProcessorList[i] : i;
-        Status = QuicWorkerInitialize(Registration, ExecProfile, IdealProcessor, &WorkerPool->Workers[i]);
+        Status = QuicWorkerInitialize(Registration, ExecProfile, i, &WorkerPool->Workers[i]);
         if (QUIC_FAILED(Status)) {
             for (uint16_t j = 0; j < i; j++) {
                 QuicWorkerUninitialize(&WorkerPool->Workers[j]);
