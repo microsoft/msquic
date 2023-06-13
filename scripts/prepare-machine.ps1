@@ -98,7 +98,10 @@ param (
     [switch]$DisableTest,
 
     [Parameter(Mandatory = $false)]
-    [switch]$InstallCoreNetCiDeps
+    [switch]$InstallCoreNetCiDeps,
+
+    [Parameter(Mandatory = $false)]
+    [switch]$InstallSigningCerts
 )
 
 # Admin is required because a lot of things are installed to the local machine
@@ -129,10 +132,6 @@ if ($UseXdp) {
     }
 }
 
-if ($InstallDuoNic) {
-    $InstallCoreNetCiDeps = $true;
-}
-
 if (!$ForOneBranch -and !$ForOneBranchPackage -and !$ForBuild -and !$ForTest -and !$InstallXdpDriver -and !$UninstallXdp) {
     # When no args are passed, assume we want to build and test everything
     # locally (i.e. a dev environment). Set Tls to OpenSSL to make sure
@@ -149,6 +148,9 @@ if ($ForBuild) {
     $InstallJom = $true
     $InstallXdpSdk = $true
     $InitSubmodules = $true
+    if ($Kernel) {
+        $InstallSigningCerts = $true;
+    }
 }
 
 if ($ForTest) {
@@ -159,6 +161,10 @@ if ($ForTest) {
 
     $InstallClog2Text = $true
 
+    if ($Kernel) {
+        $InstallSigningCerts = $true;
+    }
+
     #$InstallCodeCoverage = $true # Ideally we'd enable this by default, but it
                                   # hangs sometimes, so we only want to install
                                   # for jobs that absoultely need it.
@@ -167,6 +173,16 @@ if ($ForTest) {
 if ($InstallXdpDriver) {
     # The XDP SDK contains XDP driver, so ensure it's downloaded.
     $InstallXdpSdk = $true
+    $InstallSigningCerts = $true;
+}
+
+if ($InstallDuoNic) {
+    $InstallSigningCerts = $true;
+}
+
+if ($InstallSigningCerts) {
+    # Signing certs need the CoreNet-CI dependencies.
+    $InstallCoreNetCiDeps = $true;
 }
 
 # Root directory of the project.
@@ -191,6 +207,26 @@ function Download-CoreNet-Deps {
         Invoke-WebRequest -Uri "https://github.com/microsoft/corenet-ci/archive/refs/heads/main.zip" -OutFile $ZipPath
         Expand-Archive -Path $ZipPath -DestinationPath $ArtifactsPath -Force
         Remove-Item -Path $ZipPath
+    }
+}
+
+# Installs the certs downloaded via Download-CoreNet-Deps and used for signing
+# our test drivers.
+function Install-CoreNet-Certs {
+    if (!$IsWindows) { return } # Windows only
+
+    # Check to see if test signing is enabled.
+    $HasTestSigning = $false
+    try { $HasTestSigning = ("$(bcdedit)" | Select-String -Pattern "testsigning\s+Yes").Matches.Success } catch { }
+    if (!$HasTestSigning) { Write-Error "Test Signing Not Enabled!" }
+
+    Write-Host "Installing driver signing certificates"
+    try {
+        CertUtil.exe -addstore Root "$SetupPath\CoreNetSignRoot.cer"
+        CertUtil.exe -addstore TrustedPublisher "$SetupPath\CoreNetSignRoot.cer"
+        CertUtil.exe -addstore Root "$SetupPath\testroot-sha2.cer.cer" # For duonic
+    } catch {
+        Write-Host "WARNING: Exception encountered while installing signing certs. Drivers may not start!"
     }
 }
 
@@ -227,12 +263,6 @@ function Install-Xdp-Driver {
         Write-Error "XDP installation failed: driver file not present"
     }
 
-    Write-Host "Installing XDP certificate"
-    try {
-        CertUtil.exe -addstore Root "$XdpPath\bin\CoreNetSignRoot.cer"
-        CertUtil.exe -addstore TrustedPublisher "$XdpPath\bin\CoreNetSignRoot.cer"
-    } catch { }
-
     Write-Host "Installing XDP driver"
     netcfg.exe -l "$XdpPath\bin\xdp.inf" -c s -i ms_xdp
 }
@@ -252,17 +282,6 @@ function Uninstall-Xdp {
 # Installs DuoNic from the CoreNet-CI repo.
 function Install-DuoNic {
     if (!$IsWindows) { return } # Windows only
-    # Check to see if test signing is enabled.
-    $HasTestSigning = $false
-    try { $HasTestSigning = ("$(bcdedit)" | Select-String -Pattern "testsigning\s+Yes").Matches.Success } catch { }
-    if (!$HasTestSigning) { Write-Error "Test Signing Not Enabled!" }
-
-    # Install the test root certificate.
-    Write-Host "Installing test root certificate"
-    $RootCertPath = Join-Path $SetupPath "testroot-sha2.cer"
-    if (!(Test-Path $RootCertPath)) { Write-Error "Missing file: $RootCertPath" }
-    certutil.exe -addstore -f "Root" $RootCertPath
-
     # Install the DuoNic driver.
     Write-Host "Installing DuoNic driver"
     $DuoNicPath = Join-Path $SetupPath duonic
@@ -515,6 +534,7 @@ if ($InitSubmodules) {
 }
 
 if ($InstallCoreNetCiDeps) { Download-CoreNet-Deps }
+if ($InstallSigningCerts) { Install-CoreNet-Certs }
 if ($InstallDuoNic) { Install-DuoNic }
 if ($InstallXdpSdk) { Install-Xdp-Sdk }
 if ($InstallXdpDriver) { Install-Xdp-Driver }
