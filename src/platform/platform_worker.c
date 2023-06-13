@@ -128,14 +128,13 @@ CxPlatWorkersLazyStart(
     }
 
     const uint16_t* ProcessorList;
-    UNREFERENCED_PARAMETER(Config); // TODO - use config
-    /*if (Config && Config->ProcessorCount) {
+    if (Config && Config->ProcessorCount) {
         CxPlatWorkerCount = Config->ProcessorCount;
         ProcessorList = Config->ProcessorList;
-    } else {*/
+    } else {
         CxPlatWorkerCount = CxPlatProcMaxCount();
         ProcessorList = NULL;
-    //}
+    }
     CXPLAT_DBG_ASSERT(CxPlatWorkerCount > 0 && CxPlatWorkerCount <= UINT16_MAX);
 
     const size_t WorkersSize = sizeof(CXPLAT_WORKER) * CxPlatWorkerCount;

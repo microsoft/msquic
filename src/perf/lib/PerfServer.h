@@ -18,12 +18,12 @@ Abstract:
 
 class PerfServer : public PerfBase {
 public:
-    PerfServer(const QUIC_CREDENTIAL_CONFIG* CredConfig) :
+    PerfServer(const QUIC_CREDENTIAL_CONFIG* CredConfig, uint16_t Port) :
         Engine(TcpAcceptCallback, TcpConnectCallback, TcpReceiveCallback, TcpSendCompleteCallback),
         Server(&Engine, CredConfig, this) {
         CxPlatZeroMemory(&LocalAddr, sizeof(LocalAddr));
         QuicAddrSetFamily(&LocalAddr, QUIC_ADDRESS_FAMILY_UNSPEC);
-        QuicAddrSetPort(&LocalAddr, PERF_DEFAULT_PORT);
+        QuicAddrSetPort(&LocalAddr, Port);
         InitStatus =
             Configuration.IsValid() ?
                 Configuration.LoadCredential(CredConfig) :

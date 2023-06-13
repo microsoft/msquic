@@ -166,7 +166,7 @@ QuicWorkerUninitialize(
             CxPlatThreadDelete(&Worker->Thread);
         }
     }
-    CxPlatEventUninitialize(Worker->Ready);
+        CxPlatEventUninitialize(Worker->Ready);
 
     CXPLAT_TEL_ASSERT(CxPlatListIsEmpty(&Worker->Connections));
     CXPLAT_TEL_ASSERT(CxPlatListIsEmpty(&Worker->Operations));
@@ -794,7 +794,9 @@ QuicWorkerPoolInitialize(
 
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
     for (uint16_t i = 0; i < WorkerCount; i++) {
-        Status = QuicWorkerInitialize(Registration, ExecProfile, i, &WorkerPool->Workers[i]);
+	    uint16_t IdealProcessor = (MsQuicLib.ExecutionConfig && MsQuicLib.ExecutionConfig->ProcessorCount) ? 
+            MsQuicLib.ExecutionConfig->ProcessorList[i] : i;
+        Status = QuicWorkerInitialize(Registration, ExecProfile, IdealProcessor, &WorkerPool->Workers[i]);
         if (QUIC_FAILED(Status)) {
             for (uint16_t j = 0; j < i; j++) {
                 QuicWorkerUninitialize(&WorkerPool->Workers[j]);
