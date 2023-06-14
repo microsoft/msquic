@@ -173,6 +173,16 @@ function LogErr($msg) {
     }
 }
 
+function LogFatal($msg) {
+    if ($AZP -and !$ErrorsAsWarnings) {
+        Write-Error "##vso[task.LogIssue type=error;][$(Get-Date)] $msg"
+    } elseif ($GHA -and !$ErrorsAsWarnings) {
+        Write-Error "::error::[$(Get-Date)] $msg"
+    } else {
+        Write-Error "[$(Get-Date)] $msg"
+    }
+}
+
 # Make sure the test executable is present.
 if (!(Test-Path $Path)) {
     Write-Error "$($Path) does not exist!"
@@ -807,6 +817,8 @@ if ($Kernel -ne "") {
         Log ("net.exe " + $LastExitCode)
     }
 
+    Start-Sleep -Seconds 5
+
     Log "sc query msquicpriv"
     sc.exe query msquicpriv
 
@@ -818,12 +830,12 @@ if ($Kernel -ne "") {
 
     try {
         if ("Running" -ne (Get-Service -Name msquicpriv).Status) {
-            LogErr "msquicpriv isn't running"
+            LogFatal "msquicpriv isn't running"
         } else {
             Log "msquicpriv is running"
         }
     } catch {
-        LogErr "msquicpriv query failed"
+        LogFatal "msquicpriv query failed"
     }
 }
 
