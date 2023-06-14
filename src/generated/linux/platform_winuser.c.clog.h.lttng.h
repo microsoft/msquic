@@ -71,13 +71,13 @@ TRACEPOINT_EVENT(CLOG_PLATFORM_WINUSER_C, WindowsUserProcessorStateV3,
                     ProcessorInfoV2,
                     "[ dll] Proc[%u] Group[%hu] Index[%u] Active=%hhu",
                     Proc,
-                    Group,
+                    (uint16_t)Group,
                     CxPlatProcessorInfo[Proc].Index,
-                    !!(CxPlatProcessorGroupInfo[Group].Mask & (1ULL << CxPlatProcessorInfo[Proc].Index)));
+                    (uint8_t)!!(CxPlatProcessorGroupInfo[Group].Mask & (1ULL << CxPlatProcessorInfo[Proc].Index)));
 // arg2 = arg2 = Proc = arg2
-// arg3 = arg3 = Group = arg3
+// arg3 = arg3 = (uint16_t)Group = arg3
 // arg4 = arg4 = CxPlatProcessorInfo[Proc].Index = arg4
-// arg5 = arg5 = !!(CxPlatProcessorGroupInfo[Group].Mask & (1ULL << CxPlatProcessorInfo[Proc].Index)) = arg5
+// arg5 = arg5 = (uint8_t)!!(CxPlatProcessorGroupInfo[Group].Mask & (1ULL << CxPlatProcessorInfo[Proc].Index)) = arg5
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_PLATFORM_WINUSER_C, ProcessorInfoV2,
     TP_ARGS(
