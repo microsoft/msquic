@@ -170,7 +170,7 @@ CxPlatProcessorInfoInit(
                     ProcessorInfoV2,
                     "[ dll] Proc[%u] Group[%hu] Index[%u] Active=%hhu",
                     Proc,
-                    Group,
+                    (uint16_t)Group,
                     CxPlatProcessorInfo[Proc].Index,
                     (CxPlatProcessorGroupInfo[Group].Mask & (1ULL << CxPlatProcessorInfo[Proc].Index)) ? 1 : 0);
                 break;
