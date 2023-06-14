@@ -1009,8 +1009,9 @@ CxPlatProcCurrentNumber(
     return CxPlatProcessorGroupInfo[ProcNumber.Group].Offset + ProcNumber.Number;
 }
 
+_IRQL_requires_max_(DISPATCH_LEVEL)
 inline
-bool
+BOOLEAN
 CxPlatProcIsActive(
     uint32_t Index
     )
