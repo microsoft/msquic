@@ -211,11 +211,15 @@ RpsClient::Start(
     CompletionEvent = StopEvent;
 
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
+    uint32_t ActiveProcessorIndex = 0;
     for (uint32_t i = 0; i < WorkerCount; ++i) {
         auto ThreadFlags = AffinitizeWorkers ? CXPLAT_THREAD_FLAG_SET_AFFINITIZE : CXPLAT_THREAD_FLAG_NONE;
+        while (!CxPlatProcIsActive(ActiveProcessorIndex)) {
+            ++ActiveProcessorIndex;
+        }
         CXPLAT_THREAD_CONFIG ThreadConfig = {
             (uint16_t)ThreadFlags,
-            (uint16_t)i,
+            (uint16_t)ActiveProcessorIndex++,
             "RPS Worker",
             RpsWorkerThread,
             &Workers[i]
