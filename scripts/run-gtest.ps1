@@ -770,6 +770,8 @@ if ($IsWindows -and $EnableAppVerifier) {
     }
 }
 
+$DriverPath = "C:\Windows\System32\drivers"
+
 # Install the kernel mode drivers.
 if ($Kernel -ne "") {
     if ($null -ne (Get-Service -Name "msquicpriv" -ErrorAction Ignore)) {
@@ -780,8 +782,8 @@ if ($Kernel -ne "") {
         try { net.exe stop msquictestpriv /y | Out-Null } catch {}
         sc.exe delete msquictestpriv /y | Out-Null
     }
-    Copy-Item (Join-Path $Kernel "msquictestpriv.sys") C:\Windows\System32\drivers -Force
-    Copy-Item (Join-Path $Kernel "msquicpriv.sys") C:\Windows\System32\drivers -Force
+    Copy-Item (Join-Path $Kernel "msquictestpriv.sys") $DriverPath -Force
+    Copy-Item (Join-Path $Kernel "msquicpriv.sys") $DriverPath -Force
 
     $NewPath = "\SystemRoot\System32\drivers\msquicpriv.sys"
     Log $NewPath
@@ -810,6 +812,9 @@ if ($Kernel -ne "") {
 
     Log "sc qc msquicpriv"
     sc.exe qc msquicpriv
+
+    Log "System Event Log:"
+    Get-WinEvent -LogName "System" -MaxEvents 100 | Select-Object TimeCreated, Message | Format-Table -Wrap
 
     try {
         if ("Running" -ne (Get-Service -Name msquicpriv).Status) {
@@ -896,6 +901,8 @@ try {
         net.exe stop msquicpriv /y | Out-Null
         sc.exe delete msquictestpriv | Out-Null
         sc.exe delete msquicpriv | Out-Null
+        Remove-Item (Join-Path $DriverPath msquicpriv.sys) -Force
+        Remove-Item (Join-Path $DriverPath msquictestpriv.sys) -Force
     }
 
     if ($IsWindows -and $EnableSystemVerifier) {
