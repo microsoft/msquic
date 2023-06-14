@@ -55,8 +55,8 @@ public:
                 "[ lib] ERROR, %u, %s.",
                  GetLastError(),
                 "OpenService failed");
-            char DriverFilePath[MAX_PATH] = "C:\\Windows\\System32\\drivers\\";
-            //GetModuleFileNameA(NULL, DriverFilePath, MAX_PATH);
+            char DriverFilePath[MAX_PATH] = {0};
+            GetModuleFileNameA(NULL, DriverFilePath, MAX_PATH);
             char* PathEnd = strrchr(DriverFilePath, '\\');
             if (!PathEnd) {
                 QuicTraceEvent(

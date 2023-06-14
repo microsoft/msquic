@@ -780,7 +780,7 @@ if ($IsWindows -and $EnableAppVerifier) {
     }
 }
 
-$DriverPath = "C:\Windows\System32\drivers"
+$DriverPath = (Split-Path $Path -Parent)
 
 # Install the kernel mode drivers.
 if ($Kernel -ne "") {
@@ -795,12 +795,8 @@ if ($Kernel -ne "") {
     Copy-Item (Join-Path $Kernel "msquictestpriv.sys") $DriverPath -Force
     Copy-Item (Join-Path $Kernel "msquicpriv.sys") $DriverPath -Force
 
-    $NewPath = "\SystemRoot\System32\drivers\msquicpriv.sys"
-    Log $NewPath
-    Log "$(Test-Path $NewPath)"
-
     Log "Creating msquicpriv service"
-    sc.exe create "msquicpriv" type= kernel binpath= $NewPath start= demand | Out-Null
+    sc.exe create "msquicpriv" type= kernel binpath= (Join-Path $DriverPath msquicpriv.sys) start= demand | Out-Null
     if ($LastExitCode) {
         Log ("sc.exe " + $LastExitCode)
     }
@@ -817,30 +813,9 @@ if ($Kernel -ne "") {
         Log ("net.exe " + $LastExitCode)
     }
 
-    Start-Sleep -Seconds 5
-
-    Log "sc query msquicpriv"
-    sc.exe query msquicpriv
-
-    Log "sc qc msquicpriv"
-    sc.exe qc msquicpriv
-
-    Log "System Event Log:"
-    Get-WinEvent -LogName "System" -MaxEvents 100 | Select-Object TimeCreated, Message | Format-Table -Wrap
-
-    # Dump dependencies
-    $DependsZip = (Join-Path $RootDir "depends22_x64.zip")
-    $DependsExe = (Join-Path $RootDir "depends.exe")
-    $DependsOutput = (Join-Path $RootDir "artifacts" "depends.txt")
-    Invoke-WebRequest -Uri "https://www.dependencywalker.com/depends22_x64.zip" -OutFile $DependsZip
-    Expand-Archive $DependsZip -DestinationPath $RootDir
-    & $DependsExe /c /f:1 /of:$DependsOutput (Join-Path $DriverPath "msquicpriv.sys")
-
     try {
         if ("Running" -ne (Get-Service -Name msquicpriv).Status) {
             LogFatal "msquicpriv isn't running"
-        } else {
-            Log "msquicpriv is running"
         }
     } catch {
         LogFatal "msquicpriv query failed"
