@@ -17,6 +17,11 @@ Abstract:
 #pragma warning(disable:4116) // unnamed type definition in parentheses
 #pragma warning(disable:4100) // unreferenced formal parameter
 
+#define CxPlatSocketError() _CxPlatSocketError()
+#define CxPlatCloseSocket(s) _CxPlatCloseSocket(s)
+#define CxPlatQuicErrorFromSocketError(e) _CxPlatQuicErrorFromSocketError(e)
+#define CxPlatAddressLengthType _CxPlatAddressLengthType
+
 CXPLAT_SOCKET*
 CxPlatGetSocket(
     _In_ const CXPLAT_SOCKET_POOL* Pool,
