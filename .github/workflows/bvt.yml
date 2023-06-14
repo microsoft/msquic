@@ -150,7 +150,7 @@ jobs:
       run: msbuild msquic.kernel.sln -t:restore /p:RestorePackagesConfig=true /p:Configuration=Debug /p:Platform=${{ matrix.arch }}
     - name: Build Kernel
       shell: pwsh
-      run: msbuild msquic.kernel.sln /p:Configuration=Debug /p:Platform=${{ matrix.arch }} /p:QUIC_VER_SUFFIX=-official
+      run: msbuild msquic.kernel.sln /p:Configuration=Debug /p:Platform=${{ matrix.arch }} /p:QUIC_VER_SUFFIX=-official /p:QUIC_VER_GIT_HASH=${{ github.sha }}
     - name: Build User
       shell: pwsh
       run: scripts/build.ps1 -Config Debug -Arch ${{ matrix.arch }} -Tls ${{ matrix.tls }} -DisableTools -DisablePerf
