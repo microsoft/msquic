@@ -828,6 +828,14 @@ if ($Kernel -ne "") {
     Log "System Event Log:"
     Get-WinEvent -LogName "System" -MaxEvents 100 | Select-Object TimeCreated, Message | Format-Table -Wrap
 
+    # Dump dependencies
+    $DependsZip = (Join-Path $RootDir "depends22_x64.zip")
+    $DependsExe = (Join-Path $RootDir "depends.exe")
+    $DependsOutput = (Join-Path $RootDir "artifacts" "depends.txt")
+    Invoke-WebRequest -Uri "https://www.dependencywalker.com/depends22_x64.zip" -OutFile $DependsZip
+    Expand-Archive $DependsZip -DestinationPath $RootDir
+    & $DependsExe /c /f:1 /of:$DependsOutput (Join-Path $DriverPath "msquicpriv.sys")
+
     try {
         if ("Running" -ne (Get-Service -Name msquicpriv).Status) {
             LogFatal "msquicpriv isn't running"
