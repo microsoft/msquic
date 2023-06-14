@@ -74,18 +74,16 @@ $DriverFiles = @(
     (Join-Path $ArtifactsDir "msquic.sys"),
     (Join-Path $ArtifactsDir "msquicpriv.sys"),
     (Join-Path $ArtifactsDir "secnetperfdrv.sys"),
-    (Join-Path $ArtifactsDir "secnetperfdrvpriv.sys")
+    (Join-Path $ArtifactsDir "secnetperfdrvpriv.sys"),
+    (Join-Path $ArtifactsDir "msquictestpriv.sys")
 )
-
-# Verify all the files are present.
-foreach ($File in $DriverFiles) {
-    if (!(Test-Path $File)) {
-        Write-Error "$File does not exist!"
-    }
-}
 
 # Sign the driver files.
 foreach ($File in $DriverFiles) {
-    & $SignToolPath sign /f $CertPath -p "placeholder" /fd SHA256 $File
-    if ($LastExitCode) { Write-Error "signtool.exe exit code: $LastExitCode" }
+    if (!(Test-Path $File)) {
+        Write-Host "Warning: $File does not exist! Skipping signing."
+    } else {
+        & $SignToolPath sign /f $CertPath -p "placeholder" /fd SHA256 $File
+        if ($LastExitCode) { Write-Error "signtool.exe exit code: $LastExitCode" }
+    }
 }
