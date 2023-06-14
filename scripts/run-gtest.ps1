@@ -800,7 +800,7 @@ if ($Kernel -ne "") {
     }
 
     Log "Starting msquicpriv service"
-    net.exe start msquicpriv
+    sc.exe start msquicpriv
     if ($LastExitCode) {
         Log ("net.exe " + $LastExitCode)
     }
