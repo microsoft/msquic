@@ -42,6 +42,7 @@
     <PlatformToolset>WindowsKernelModeDriver10.0</PlatformToolset>
     <ConfigurationType>StaticLibrary</ConfigurationType>
     <DriverTargetPlatform>Universal</DriverTargetPlatform>
+    <_NT_TARGET_VERSION>0x0A00000A</_NT_TARGET_VERSION>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)'=='Debug'" Label="Configuration">
     <UseDebugLibraries>true</UseDebugLibraries>
@@ -81,7 +82,7 @@
   <ItemDefinitionGroup Condition="'$(Configuration)'=='Debug'">
     <ClCompile>
       <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
-      <PreprocessorDefinitions>NTDDI_VERSION=0x0A00000A;QUIC_EVENTS_MANIFEST_ETW;QUIC_LOGS_MANIFEST_ETW;QUIC_DISABLE_0RTT_TESTS;SECURITY_KERNEL;SECURITY_WIN32;_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>QUIC_EVENTS_MANIFEST_ETW;QUIC_LOGS_MANIFEST_ETW;QUIC_DISABLE_0RTT_TESTS;SECURITY_KERNEL;SECURITY_WIN32;_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <LanguageStandard>stdcpp17</LanguageStandard>
       <DisableSpecificWarnings>4748;5040;4459;%(DisableSpecificWarnings)</DisableSpecificWarnings>
@@ -89,7 +90,7 @@
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)'=='Release'">
     <ClCompile>
-      <PreprocessorDefinitions>NTDDI_VERSION=0x0A00000A;QUIC_EVENTS_MANIFEST_ETW;QUIC_LOGS_MANIFEST_ETW;QUIC_DISABLE_0RTT_TESTS;SECURITY_KERNEL;SECURITY_WIN32;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>QUIC_EVENTS_MANIFEST_ETW;QUIC_LOGS_MANIFEST_ETW;QUIC_DISABLE_0RTT_TESTS;SECURITY_KERNEL;SECURITY_WIN32;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <LanguageStandard>stdcpp17</LanguageStandard>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <DisableSpecificWarnings>4748;5040;4459;%(DisableSpecificWarnings)</DisableSpecificWarnings>

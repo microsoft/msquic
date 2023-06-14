@@ -45,6 +45,7 @@
     <PlatformToolset>WindowsKernelModeDriver10.0</PlatformToolset>
     <ConfigurationType>StaticLibrary</ConfigurationType>
     <DriverTargetPlatform>Universal</DriverTargetPlatform>
+    <_NT_TARGET_VERSION>0x0A00000A</_NT_TARGET_VERSION>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)'=='Debug'" Label="Configuration">
     <UseDebugLibraries>true</UseDebugLibraries>
@@ -97,13 +98,13 @@ mc.exe -um -h $(SolutionDir)build\winkernel\$(Platform)_$(Configuration)_schanne
   <ItemDefinitionGroup Condition="'$(Configuration)'=='Debug'">
     <ClCompile>
       <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
-      <PreprocessorDefinitions>NTDDI_VERSION=0x0A00000A;VER_BUILD_ID=$(QUIC_VER_BUILD_ID);VER_SUFFIX=$(QUIC_VER_SUFFIX);VER_GIT_HASH=$(QUIC_VER_GIT_HASH);QUIC_EVENTS_MANIFEST_ETW;QUIC_LOGS_MANIFEST_ETW;SECURITY_KERNEL;SECURITY_WIN32;_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>VER_BUILD_ID=$(QUIC_VER_BUILD_ID);VER_SUFFIX=$(QUIC_VER_SUFFIX);VER_GIT_HASH=$(QUIC_VER_GIT_HASH);QUIC_EVENTS_MANIFEST_ETW;QUIC_LOGS_MANIFEST_ETW;SECURITY_KERNEL;SECURITY_WIN32;_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)'=='Release'">
     <ClCompile>
-      <PreprocessorDefinitions>NTDDI_VERSION=0x0A00000A;VER_BUILD_ID=$(QUIC_VER_BUILD_ID);VER_SUFFIX=$(QUIC_VER_SUFFIX);VER_GIT_HASH=$(QUIC_VER_GIT_HASH);QUIC_EVENTS_MANIFEST_ETW;QUIC_LOGS_MANIFEST_ETW;SECURITY_KERNEL;SECURITY_WIN32;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>VER_BUILD_ID=$(QUIC_VER_BUILD_ID);VER_SUFFIX=$(QUIC_VER_SUFFIX);VER_GIT_HASH=$(QUIC_VER_GIT_HASH);QUIC_EVENTS_MANIFEST_ETW;QUIC_LOGS_MANIFEST_ETW;SECURITY_KERNEL;SECURITY_WIN32;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
   </ItemDefinitionGroup>
