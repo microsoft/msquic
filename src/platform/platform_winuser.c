@@ -172,7 +172,7 @@ CxPlatProcessorInfoInit(
                     Proc,
                     (uint16_t)Group,
                     CxPlatProcessorInfo[Proc].Index,
-                    (CxPlatProcessorGroupInfo[Group].Mask & (1ULL << CxPlatProcessorInfo[Proc].Index)) ? 1 : 0);
+                    (uint8_t)!!(CxPlatProcessorGroupInfo[Group].Mask & (1ULL << CxPlatProcessorInfo[Proc].Index)));
                 break;
             }
         }

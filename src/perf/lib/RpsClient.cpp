@@ -217,10 +217,10 @@ RpsClient::Start(
         while (!CxPlatProcIsActive(ActiveProcessorIndex)) {
             ++ActiveProcessorIndex;
         }
-        Workers[i].Processor = ActiveProcessorIndex;
+        Workers[i].Processor = (uint16_t)ActiveProcessorIndex++;
         CXPLAT_THREAD_CONFIG ThreadConfig = {
             (uint16_t)ThreadFlags,
-            (uint16_t)ActiveProcessorIndex++,
+            Workers[i].Processor,
             "RPS Worker",
             RpsWorkerThread,
             &Workers[i]
