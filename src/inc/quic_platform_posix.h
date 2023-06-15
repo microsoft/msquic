@@ -1297,6 +1297,8 @@ CxPlatProcCurrentNumber(
     void
     );
 
+#define CxPlatProcIsActive(Index) TRUE // TODO
+
 //
 // Rundown Protection Interfaces.
 //
