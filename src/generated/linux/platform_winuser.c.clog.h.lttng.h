@@ -34,49 +34,62 @@ TRACEPOINT_EVENT(CLOG_PLATFORM_WINUSER_C, WindowsUserUnloaded,
 
 
 /*----------------------------------------------------------
-// Decoder Ring for WindowsUserProcessorStateV2
-// [ dll] Processors:%u, Groups:%u
+// Decoder Ring for WindowsUserProcessorStateV3
+// [ dll] Processors: (%u active, %u max), Groups: (%hu active, %hu max)
 // QuicTraceLogInfo(
-        WindowsUserProcessorStateV2,
-        "[ dll] Processors:%u, Groups:%u",
-        MaxProcessorCount, (uint32_t)Info->Group.ActiveGroupCount);
-// arg2 = arg2 = MaxProcessorCount = arg2
-// arg3 = arg3 = (uint32_t)Info->Group.ActiveGroupCount = arg3
+        WindowsUserProcessorStateV3,
+        "[ dll] Processors: (%u active, %u max), Groups: (%hu active, %hu max)",
+        ActiveProcessorCount,
+        MaxProcessorCount,
+        Info->Group.ActiveGroupCount,
+        Info->Group.MaximumGroupCount);
+// arg2 = arg2 = ActiveProcessorCount = arg2
+// arg3 = arg3 = MaxProcessorCount = arg3
+// arg4 = arg4 = Info->Group.ActiveGroupCount = arg4
+// arg5 = arg5 = Info->Group.MaximumGroupCount = arg5
 ----------------------------------------------------------*/
-TRACEPOINT_EVENT(CLOG_PLATFORM_WINUSER_C, WindowsUserProcessorStateV2,
+TRACEPOINT_EVENT(CLOG_PLATFORM_WINUSER_C, WindowsUserProcessorStateV3,
     TP_ARGS(
         unsigned int, arg2,
-        unsigned int, arg3), 
+        unsigned int, arg3,
+        unsigned short, arg4,
+        unsigned short, arg5), 
     TP_FIELDS(
         ctf_integer(unsigned int, arg2, arg2)
         ctf_integer(unsigned int, arg3, arg3)
+        ctf_integer(unsigned short, arg4, arg4)
+        ctf_integer(unsigned short, arg5, arg5)
     )
 )
 
 
 
 /*----------------------------------------------------------
-// Decoder Ring for ProcessorInfo
-// [ dll] Proc[%u] Group[%hu] Index[%u]
+// Decoder Ring for ProcessorInfoV2
+// [ dll] Proc[%u] Group[%hu] Index[%u] Active=%hhu
 // QuicTraceLogInfo(
-                    ProcessorInfo,
-                    "[ dll] Proc[%u] Group[%hu] Index[%u]",
+                    ProcessorInfoV2,
+                    "[ dll] Proc[%u] Group[%hu] Index[%u] Active=%hhu",
                     Proc,
-                    Group,
-                    CxPlatProcessorInfo[Proc].Index);
+                    (uint16_t)Group,
+                    CxPlatProcessorInfo[Proc].Index,
+                    (uint8_t)!!(CxPlatProcessorGroupInfo[Group].Mask & (1ULL << CxPlatProcessorInfo[Proc].Index)));
 // arg2 = arg2 = Proc = arg2
-// arg3 = arg3 = Group = arg3
+// arg3 = arg3 = (uint16_t)Group = arg3
 // arg4 = arg4 = CxPlatProcessorInfo[Proc].Index = arg4
+// arg5 = arg5 = (uint8_t)!!(CxPlatProcessorGroupInfo[Group].Mask & (1ULL << CxPlatProcessorInfo[Proc].Index)) = arg5
 ----------------------------------------------------------*/
-TRACEPOINT_EVENT(CLOG_PLATFORM_WINUSER_C, ProcessorInfo,
+TRACEPOINT_EVENT(CLOG_PLATFORM_WINUSER_C, ProcessorInfoV2,
     TP_ARGS(
         unsigned int, arg2,
         unsigned short, arg3,
-        unsigned int, arg4), 
+        unsigned int, arg4,
+        unsigned char, arg5), 
     TP_FIELDS(
         ctf_integer(unsigned int, arg2, arg2)
         ctf_integer(unsigned short, arg3, arg3)
         ctf_integer(unsigned int, arg4, arg4)
+        ctf_integer(unsigned char, arg5, arg5)
     )
 )
 

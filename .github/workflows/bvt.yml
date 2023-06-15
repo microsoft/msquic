@@ -127,48 +127,50 @@ jobs:
         name: ${{ matrix.os }}-${{ matrix.arch }}-${{ matrix.tls }}${{ matrix.systemcrypto }}${{ matrix.xdp }}${{ matrix.qtip }}${{ matrix.sanitize }}
         path: artifacts
 
-  # TODO: Get this working
-  # bvt-kernel:
-  #   name: BVT Kernel
-  #   needs: []
-  #   strategy:
-  #     fail-fast: false
-  #     matrix:
-  #       os: ['windows-2022']
-  #       arch: [x64]
-  #       tls: [schannel]
-  #   runs-on: ${{ matrix.os }}
-  #   steps:
-  #   - name: Checkout repository
-  #     uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9
-  #   - name: Prepare Machine
-  #     shell: pwsh
-  #     run: scripts/prepare-machine.ps1 -ForBuild -ForTest -ForKernel
-  #   - name: Add msbuild to PATH
-  #     uses: microsoft/setup-msbuild@34cfbaee7f672c76950673338facd8a73f637506
-  #   - name: Nuget Restore
-  #     shell: pwsh
-  #     run: msbuild msquic.kernel.sln -t:restore /p:RestorePackagesConfig=true /p:Configuration=Debug /p:Platform=${{ matrix.arch }}
-  #   - name: Build Kernel
-  #     shell: pwsh
-  #     run: msbuild msquic.kernel.sln /p:Configuration=Debug /p:Platform=${{ matrix.arch }} /p:QUIC_VER_SUFFIX=-official
-  #   - name: Build User
-  #     shell: pwsh
-  #     run: scripts/build.ps1 -Config Debug -Arch ${{ matrix.arch }} -Tls ${{ matrix.tls }} -DisableTools -DisablePerf
-  #   - name: Install ETW Manifest
-  #     shell: pwsh
-  #     run: |
-  #       $MsQuicDll = ".\artifacts\bin\windows\${{ matrix.arch }}_Debug_${{ matrix.tls }}\msquic.dll"
-  #       $ManifestPath = ".\src\manifest\MsQuicEtw.man"
-  #       wevtutil.exe um $ManifestPath
-  #       wevtutil.exe im $ManifestPath /rf:$($MsQuicDll) /mf:$($MsQuicDll)
-  #   - name: Test
-  #     shell: pwsh
-  #     timeout-minutes: 90
-  #     run: scripts/test.ps1 -Config Debug -Arch ${{ matrix.arch }} -Tls ${{ matrix.tls }} -GHA -LogProfile Full.Light -GenerateXmlResults -Kernel
-  #   - name: Upload on Failure
-  #     uses: actions/upload-artifact@0b7f8abb1508181956e8e162db84b466c27e18ce
-  #     if: failure()
-  #     with:
-  #       name: ${{ matrix.os }}-winkernel-${{ matrix.arch }}-${{ matrix.tls }}
-  #       path: artifacts
+  bvt-kernel:
+    name: BVT Kernel
+    needs: []
+    strategy:
+      fail-fast: false
+      matrix:
+        os: ['windows-2022']
+        arch: [x64]
+        tls: [schannel]
+    runs-on: ${{ matrix.os }}
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9
+    - name: Prepare Machine
+      shell: pwsh
+      run: scripts/prepare-machine.ps1 -ForBuild -ForTest -ForKernel
+    - name: Add msbuild to PATH
+      uses: microsoft/setup-msbuild@34cfbaee7f672c76950673338facd8a73f637506
+    - name: Nuget Restore
+      shell: pwsh
+      run: msbuild msquic.kernel.sln -t:restore /p:RestorePackagesConfig=true /p:Configuration=Debug /p:Platform=${{ matrix.arch }}
+    - name: Build Kernel
+      shell: pwsh
+      run: msbuild msquic.kernel.sln /p:Configuration=Debug /p:Platform=${{ matrix.arch }} /p:QUIC_VER_SUFFIX=-official /p:QUIC_VER_GIT_HASH=${{ github.sha }}
+    - name: Build User
+      shell: pwsh
+      run: scripts/build.ps1 -Config Debug -Arch ${{ matrix.arch }} -Tls ${{ matrix.tls }} -DisableTools -DisablePerf
+    - name: Sign Kernel
+      shell: pwsh
+      run: scripts/sign.ps1 -Config Debug -Arch ${{ matrix.arch }} -Tls ${{ matrix.tls }}
+    - name: Install ETW Manifest
+      shell: pwsh
+      run: |
+        $MsQuicDll = ".\artifacts\bin\windows\${{ matrix.arch }}_Debug_${{ matrix.tls }}\msquic.dll"
+        $ManifestPath = ".\src\manifest\MsQuicEtw.man"
+        wevtutil.exe um $ManifestPath
+        wevtutil.exe im $ManifestPath /rf:$($MsQuicDll) /mf:$($MsQuicDll)
+    - name: Test
+      shell: pwsh
+      timeout-minutes: 90
+      run: scripts/test.ps1 -Config Debug -Arch ${{ matrix.arch }} -Tls ${{ matrix.tls }} -GHA -LogProfile Full.Light -GenerateXmlResults -Kernel -Filter -*ValidateConfiguration:*ValidAlpnLengths:*ResumeRejection*:*ClientCertificate*:*LoadBalanced*
+    - name: Upload on Failure
+      uses: actions/upload-artifact@0b7f8abb1508181956e8e162db84b466c27e18ce
+      if: failure()
+      with:
+        name: ${{ matrix.os }}-winkernel-${{ matrix.arch }}-${{ matrix.tls }}
+        path: artifacts

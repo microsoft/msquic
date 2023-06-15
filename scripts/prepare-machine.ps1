@@ -59,7 +59,7 @@ param (
     [switch]$InitSubmodules,
 
     [Parameter(Mandatory = $false)]
-    [switch]$InstallSigningCertificate,
+    [switch]$InstallSigningCertificates,
 
     [Parameter(Mandatory = $false)]
     [switch]$InstallTestCertificates,
@@ -95,7 +95,10 @@ param (
     [switch]$InstallClog2Text,
 
     [Parameter(Mandatory = $false)]
-    [switch]$DisableTest
+    [switch]$DisableTest,
+
+    [Parameter(Mandatory = $false)]
+    [switch]$InstallCoreNetCiDeps
 )
 
 # Admin is required because a lot of things are installed to the local machine
@@ -142,15 +145,15 @@ if ($ForBuild) {
     $InstallJom = $true
     $InstallXdpSdk = $true
     $InitSubmodules = $true
+    $InstallCoreNetCiDeps = $true; # For kernel signing certs
 }
 
 if ($ForTest) {
     # When configured for testing, make sure we have all possible dependencies
     # enabled for any possible test.
-    $InstallSigningCertificate = $true
     $InstallTestCertificates = $true
-
     $InstallClog2Text = $true
+    $InstallSigningCertificates = $true; # For kernel drivers
 
     #$InstallCodeCoverage = $true # Ideally we'd enable this by default, but it
                                   # hangs sometimes, so we only want to install
@@ -160,6 +163,16 @@ if ($ForTest) {
 if ($InstallXdpDriver) {
     # The XDP SDK contains XDP driver, so ensure it's downloaded.
     $InstallXdpSdk = $true
+    $InstallSigningCertificates = $true;
+}
+
+if ($InstallDuoNic) {
+    $InstallSigningCertificates = $true;
+}
+
+if ($InstallSigningCertificates) {
+    # Signing certs need the CoreNet-CI dependencies.
+    $InstallCoreNetCiDeps = $true;
 }
 
 # Root directory of the project.
@@ -184,6 +197,26 @@ function Download-CoreNet-Deps {
         Invoke-WebRequest -Uri "https://github.com/microsoft/corenet-ci/archive/refs/heads/main.zip" -OutFile $ZipPath
         Expand-Archive -Path $ZipPath -DestinationPath $ArtifactsPath -Force
         Remove-Item -Path $ZipPath
+    }
+}
+
+# Installs the certs downloaded via Download-CoreNet-Deps and used for signing
+# our test drivers.
+function Install-SigningCertificates {
+    if (!$IsWindows) { return } # Windows only
+
+    # Check to see if test signing is enabled.
+    $HasTestSigning = $false
+    try { $HasTestSigning = ("$(bcdedit)" | Select-String -Pattern "testsigning\s+Yes").Matches.Success } catch { }
+    if (!$HasTestSigning) { Write-Error "Test Signing Not Enabled!" }
+
+    Write-Host "Installing driver signing certificates"
+    try {
+        CertUtil.exe -addstore Root "$SetupPath\CoreNetSignRoot.cer"
+        CertUtil.exe -addstore TrustedPublisher "$SetupPath\CoreNetSignRoot.cer"
+        CertUtil.exe -addstore Root "$SetupPath\testroot-sha2.cer" # For duonic
+    } catch {
+        Write-Host "WARNING: Exception encountered while installing signing certs. Drivers may not start!"
     }
 }
 
@@ -220,12 +253,6 @@ function Install-Xdp-Driver {
         Write-Error "XDP installation failed: driver file not present"
     }
 
-    Write-Host "Installing XDP certificate"
-    try {
-        CertUtil.exe -addstore Root "$XdpPath\bin\CoreNetSignRoot.cer"
-        CertUtil.exe -addstore TrustedPublisher "$XdpPath\bin\CoreNetSignRoot.cer"
-    } catch { }
-
     Write-Host "Installing XDP driver"
     netcfg.exe -l "$XdpPath\bin\xdp.inf" -c s -i ms_xdp
 }
@@ -245,20 +272,6 @@ function Uninstall-Xdp {
 # Installs DuoNic from the CoreNet-CI repo.
 function Install-DuoNic {
     if (!$IsWindows) { return } # Windows only
-    # Check to see if test signing is enabled.
-    $HasTestSigning = $false
-    try { $HasTestSigning = ("$(bcdedit)" | Select-String -Pattern "testsigning\s+Yes").Matches.Success } catch { }
-    if (!$HasTestSigning) { Write-Error "Test Signing Not Enabled!" }
-
-    # Download the CI repo that contains DuoNic.
-    Download-CoreNet-Deps
-
-    # Install the test root certificate.
-    Write-Host "Installing test root certificate"
-    $RootCertPath = Join-Path $SetupPath "testroot-sha2.cer"
-    if (!(Test-Path $RootCertPath)) { Write-Error "Missing file: $RootCertPath" }
-    certutil.exe -addstore -f "Root" $RootCertPath
-
     # Install the DuoNic driver.
     Write-Host "Installing DuoNic driver"
     $DuoNicPath = Join-Path $SetupPath duonic
@@ -353,21 +366,6 @@ function Win-SupportsCerts {
     $ver = [environment]::OSVersion.Version
     if ($ver.Build -lt 20000) { return $false }
     return $true
-}
-
-# Creates and installs a certificate to use for local signing.
-function Install-SigningCertificate {
-    if (!$IsWindows -or !(Win-SupportsCerts)) { return } # Windows only
-    if (!(Test-Path c:\CodeSign.pfx)) {
-        Write-Host "Creating signing certificate"
-        $CodeSignCert = New-SelfSignedCertificate -Type Custom -Subject "CN=MsQuicTestCodeSignRoot" -FriendlyName MsQuicTestCodeSignRoot -KeyUsageProperty Sign -KeyUsage DigitalSignature -CertStoreLocation cert:\CurrentUser\My -HashAlgorithm SHA256 -Provider "Microsoft Software Key Storage Provider" -KeyExportPolicy Exportable -NotAfter(Get-Date).AddYears(1) -TextExtension @("2.5.29.37={text}1.3.6.1.5.5.7.3.3,1.3.6.1.4.1.311.10.3.6","2.5.29.19 = {text}")
-        $CodeSignCertPath = Join-Path $Env:TEMP "CodeSignRoot.cer"
-        Export-Certificate -Type CERT -Cert $CodeSignCert -FilePath $CodeSignCertPath
-        CertUtil.exe -addstore Root $CodeSignCertPath
-        Export-PfxCertificate -Cert $CodeSignCert -Password $PfxPassword -FilePath c:\CodeSign.pfx
-        Remove-Item $CodeSignCertPath
-        Remove-Item $CodeSignCert.PSPath
-    }
 }
 
 # Creates and installs certificates used for testing.
@@ -510,6 +508,8 @@ if ($InitSubmodules) {
     git submodule update --jobs=8
 }
 
+if ($InstallCoreNetCiDeps) { Download-CoreNet-Deps }
+if ($InstallSigningCertificates) { Install-SigningCertificates }
 if ($InstallDuoNic) { Install-DuoNic }
 if ($InstallXdpSdk) { Install-Xdp-Sdk }
 if ($InstallXdpDriver) { Install-Xdp-Driver }
@@ -517,7 +517,6 @@ if ($UninstallXdp) { Uninstall-Xdp }
 if ($InstallNasm) { Install-NASM }
 if ($InstallJOM) { Install-JOM }
 if ($InstallCodeCoverage) { Install-OpenCppCoverage }
-if ($InstallSigningCertificate) { Install-SigningCertificate }
 if ($InstallTestCertificates) { Install-TestCertificates }
 
 if ($IsLinux) {
