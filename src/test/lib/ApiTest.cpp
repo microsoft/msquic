@@ -3482,7 +3482,7 @@ void QuicTest_QUIC_PARAM_CONN_REMOTE_ADDRESS(MsQuicRegistration& Registration, M
     }
 }
 
-void QuicTest_QUIC_PARAM_CONN_IDEAL_PROCESSOR(MsQuicRegistration& Registration, MsQuicConfiguration& ClientConfiguration)
+void QuicTest_QUIC_PARAM_CONN_IDEAL_PROCESSOR(MsQuicRegistration& Registration)
 {
     TestScopeLogger LogScope0("QUIC_PARAM_CONN_IDEAL_PROCESSOR");
     {
@@ -3578,7 +3578,7 @@ void QuicTest_QUIC_PARAM_CONN_SETTINGS(MsQuicRegistration& Registration, MsQuicC
     }
 }
 
-void QuicTest_QUIC_PARAM_CONN_STATISTICS(MsQuicRegistration& Registration, MsQuicConfiguration& ClientConfiguration)
+void QuicTest_QUIC_PARAM_CONN_STATISTICS(MsQuicRegistration& Registration)
 {
     TestScopeLogger LogScope0("QUIC_PARAM_CONN_STATISTICS");
     {
@@ -3605,7 +3605,7 @@ void QuicTest_QUIC_PARAM_CONN_STATISTICS(MsQuicRegistration& Registration, MsQui
     }
 }
 
-void QuicTest_QUIC_PARAM_CONN_STATISTICS_PLAT(MsQuicRegistration& Registration, MsQuicConfiguration& ClientConfiguration)
+void QuicTest_QUIC_PARAM_CONN_STATISTICS_PLAT(MsQuicRegistration& Registration)
 {
     TestScopeLogger LogScope0("QUIC_PARAM_CONN_STATISTICS_PLAT is get only");
     {
@@ -3681,7 +3681,7 @@ void QuicTest_QUIC_PARAM_CONN_SHARE_UDP_BINDING(MsQuicRegistration& Registration
     }
 }
 
-void QuicTest_QUIC_PARAM_CONN_LOCAL_BIDI_STREAM_COUNT(MsQuicRegistration& Registration, MsQuicConfiguration& ClientConfiguration)
+void QuicTest_QUIC_PARAM_CONN_LOCAL_BIDI_STREAM_COUNT(MsQuicRegistration& Registration)
 {
     TestScopeLogger LogScope0("QUIC_PARAM_CONN_LOCAL_BIDI_STREAM_COUNT");
     {
@@ -3707,7 +3707,7 @@ void QuicTest_QUIC_PARAM_CONN_LOCAL_BIDI_STREAM_COUNT(MsQuicRegistration& Regist
     }
 }
 
-void QuicTest_QUIC_PARAM_CONN_LOCAL_UNIDI_STREAM_COUNT(MsQuicRegistration& Registration, MsQuicConfiguration& ClientConfiguration)
+void QuicTest_QUIC_PARAM_CONN_LOCAL_UNIDI_STREAM_COUNT(MsQuicRegistration& Registration)
 {
     TestScopeLogger LogScope0("QUIC_PARAM_CONN_LOCAL_UNIDI_STREAM_COUNT");
     {
@@ -3733,7 +3733,7 @@ void QuicTest_QUIC_PARAM_CONN_LOCAL_UNIDI_STREAM_COUNT(MsQuicRegistration& Regis
     }
 }
 
-void QuicTest_QUIC_PARAM_CONN_MAX_STREAM_IDS(MsQuicRegistration& Registration, MsQuicConfiguration& ClientConfiguration)
+void QuicTest_QUIC_PARAM_CONN_MAX_STREAM_IDS(MsQuicRegistration& Registration)
 {
     TestScopeLogger LogScope0("QUIC_PARAM_CONN_MAX_STREAM_IDS");
     {
@@ -3761,7 +3761,7 @@ void QuicTest_QUIC_PARAM_CONN_MAX_STREAM_IDS(MsQuicRegistration& Registration, M
     }
 }
 
-void QuicTest_QUIC_PARAM_CONN_CLOSE_REASON_PHRASE(MsQuicRegistration& Registration, MsQuicConfiguration& ClientConfiguration)
+void QuicTest_QUIC_PARAM_CONN_CLOSE_REASON_PHRASE(MsQuicRegistration& Registration)
 {
     TestScopeLogger LogScope0("QUIC_PARAM_CONN_CLOSE_REASON_PHRASE");
     MsQuicConnection Connection(Registration); // shared with Set/GetParam
@@ -3852,7 +3852,7 @@ void QuicTest_QUIC_PARAM_CONN_CLOSE_REASON_PHRASE(MsQuicRegistration& Registrati
     }
 }
 
-void QuicTest_QUIC_PARAM_CONN_STREAM_SCHEDULING_SCHEME(MsQuicRegistration& Registration, MsQuicConfiguration& ClientConfiguration)
+void QuicTest_QUIC_PARAM_CONN_STREAM_SCHEDULING_SCHEME(MsQuicRegistration& Registration)
 {
     TestScopeLogger LogScope0("QUIC_PARAM_CONN_STREAM_SCHEDULING_SCHEME");
     {
@@ -3947,7 +3947,7 @@ void QuicTest_QUIC_PARAM_CONN_DATAGRAM_RECEIVE_ENABLED(MsQuicRegistration& Regis
     }
 }
 
-void QuicTest_QUIC_PARAM_CONN_DATAGRAM_SEND_ENABLED(MsQuicRegistration& Registration, MsQuicConfiguration& ClientConfiguration)
+void QuicTest_QUIC_PARAM_CONN_DATAGRAM_SEND_ENABLED(MsQuicRegistration& Registration)
 {
     TestScopeLogger LogScope0("QUIC_PARAM_CONN_DATAGRAM_SEND_ENABLED");
     {
@@ -4019,7 +4019,7 @@ void QuicTest_QUIC_PARAM_CONN_DISABLE_1RTT_ENCRYPTION(MsQuicRegistration& Regist
 #endif
 }
 
-void QuicTest_QUIC_PARAM_CONN_PEER_CERTIFICATE_VALID(MsQuicRegistration& Registration, MsQuicConfiguration& ClientConfiguration)
+void QuicTest_QUIC_PARAM_CONN_PEER_CERTIFICATE_VALID(MsQuicRegistration& Registration)
 {
     TestScopeLogger LogScope0("QUIC_PARAM_CONN_PEER_CERTIFICATE_VALID");
     {
@@ -4196,7 +4196,7 @@ void QuicTest_QUIC_PARAM_CONN_CIBIR_ID(MsQuicRegistration& Registration, MsQuicC
 #endif
 }
 
-void QuicTest_QUIC_PARAM_CONN_STATISTICS_V2(MsQuicRegistration& Registration, MsQuicConfiguration& ClientConfiguration)
+void QuicTest_QUIC_PARAM_CONN_STATISTICS_V2(MsQuicRegistration& Registration)
 {
     TestScopeLogger LogScope0("QUIC_PARAM_CONN_STATISTICS_V2 is get only");
     {
@@ -4220,7 +4220,7 @@ void QuicTest_QUIC_PARAM_CONN_STATISTICS_V2(MsQuicRegistration& Registration, Ms
     }
 }
 
-void QuicTest_QUIC_PARAM_CONN_STATISTICS_V2_PLAT(MsQuicRegistration& Registration, MsQuicConfiguration& ClientConfiguration)
+void QuicTest_QUIC_PARAM_CONN_STATISTICS_V2_PLAT(MsQuicRegistration& Registration)
 {
     TestScopeLogger LogScope0("QUIC_PARAM_CONN_STATISTICS_V2_PLAT");
     {
@@ -4255,27 +4255,27 @@ void QuicTestConnectionParam()
     QuicTest_QUIC_PARAM_CONN_QUIC_VERSION(Registration, ClientConfiguration);
     QuicTest_QUIC_PARAM_CONN_LOCAL_ADDRESS(Registration, ClientConfiguration);
     QuicTest_QUIC_PARAM_CONN_REMOTE_ADDRESS(Registration, ClientConfiguration);
-    QuicTest_QUIC_PARAM_CONN_IDEAL_PROCESSOR(Registration, ClientConfiguration);
+    QuicTest_QUIC_PARAM_CONN_IDEAL_PROCESSOR(Registration);
     QuicTest_QUIC_PARAM_CONN_SETTINGS(Registration, ClientConfiguration);
-    QuicTest_QUIC_PARAM_CONN_STATISTICS(Registration, ClientConfiguration);
-    QuicTest_QUIC_PARAM_CONN_STATISTICS_PLAT(Registration, ClientConfiguration);
+    QuicTest_QUIC_PARAM_CONN_STATISTICS(Registration);
+    QuicTest_QUIC_PARAM_CONN_STATISTICS_PLAT(Registration);
     QuicTest_QUIC_PARAM_CONN_SHARE_UDP_BINDING(Registration, ClientConfiguration);
-    QuicTest_QUIC_PARAM_CONN_LOCAL_BIDI_STREAM_COUNT(Registration, ClientConfiguration);
-    QuicTest_QUIC_PARAM_CONN_LOCAL_UNIDI_STREAM_COUNT(Registration, ClientConfiguration);
-    QuicTest_QUIC_PARAM_CONN_MAX_STREAM_IDS(Registration, ClientConfiguration);
-    QuicTest_QUIC_PARAM_CONN_CLOSE_REASON_PHRASE(Registration, ClientConfiguration);
-    QuicTest_QUIC_PARAM_CONN_STREAM_SCHEDULING_SCHEME(Registration, ClientConfiguration);
+    QuicTest_QUIC_PARAM_CONN_LOCAL_BIDI_STREAM_COUNT(Registration);
+    QuicTest_QUIC_PARAM_CONN_LOCAL_UNIDI_STREAM_COUNT(Registration);
+    QuicTest_QUIC_PARAM_CONN_MAX_STREAM_IDS(Registration);
+    QuicTest_QUIC_PARAM_CONN_CLOSE_REASON_PHRASE(Registration);
+    QuicTest_QUIC_PARAM_CONN_STREAM_SCHEDULING_SCHEME(Registration);
     QuicTest_QUIC_PARAM_CONN_DATAGRAM_RECEIVE_ENABLED(Registration, ClientConfiguration);
-    QuicTest_QUIC_PARAM_CONN_DATAGRAM_SEND_ENABLED(Registration, ClientConfiguration);
+    QuicTest_QUIC_PARAM_CONN_DATAGRAM_SEND_ENABLED(Registration);
     QuicTest_QUIC_PARAM_CONN_DISABLE_1RTT_ENCRYPTION(Registration, ClientConfiguration);
     // QUIC_PARAM_CONN_RESUMPTION_TICKET is covered by TestConnection.cpp and EventTest.cpp
-    QuicTest_QUIC_PARAM_CONN_PEER_CERTIFICATE_VALID(Registration, ClientConfiguration);
+    QuicTest_QUIC_PARAM_CONN_PEER_CERTIFICATE_VALID(Registration);
     QuicTest_QUIC_PARAM_CONN_LOCAL_INTERFACE(Registration, ClientConfiguration);
     QuicTest_QUIC_PARAM_CONN_TLS_SECRETS(Registration, ClientConfiguration);
     // QUIC_PARAM_CONN_VERSION_SETTINGS is covered by QuicTestVersionSettings
     QuicTest_QUIC_PARAM_CONN_CIBIR_ID(Registration, ClientConfiguration);
-    QuicTest_QUIC_PARAM_CONN_STATISTICS_V2(Registration, ClientConfiguration);
-    QuicTest_QUIC_PARAM_CONN_STATISTICS_V2_PLAT(Registration, ClientConfiguration);
+    QuicTest_QUIC_PARAM_CONN_STATISTICS_V2(Registration);
+    QuicTest_QUIC_PARAM_CONN_STATISTICS_V2_PLAT(Registration);
 }
 
 //
