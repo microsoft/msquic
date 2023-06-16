@@ -5,6 +5,9 @@
 
 --*/
 
+// Work around for address sanitizer build error with googletest.
+#pragma comment(linker, "/include:_annotate_string")
+
 #include "quic_gtest.h"
 #ifdef QUIC_CLOG
 #include "quic_gtest.cpp.clog.h"
