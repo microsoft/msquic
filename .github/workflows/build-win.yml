@@ -2,14 +2,7 @@ name: Build Windows
 
 on:
   workflow_dispatch:
-  push:
-    branches:
-    - main
-    - release/*
-  pull_request:
-    branches:
-    - main
-    - release/*
+  workflow_call:
 
 concurrency:
   # Cancel any workflow currently in progress for the same PR.

@@ -2,10 +2,14 @@ name: BVT Windows
 
 on:
   workflow_dispatch:
-  workflow_run:
-    workflows: [Build Windows]
-    types:
-      - completed
+  push:
+    branches:
+    - main
+    - release/*
+  pull_request:
+    branches:
+    - main
+    - release/*
 
 concurrency:
   # Cancel any workflow currently in progress on the same branch.
@@ -42,14 +46,11 @@ jobs:
     - name: Prepare Machine
       run: scripts/prepare-machine.ps1 -Tls ${{ matrix.configs.tls }} -ForTest ${{ matrix.configs.xdp }}
       shell: pwsh
-    - name: Download Build Artifacts
-      uses: dawidd6/action-download-artifact@v2
+    - uses: ./.github/workflows/build-bvt.yml
+    - uses: actions/download-artifact@9bc31d5ccc31df68ecc42ccf4149144866c47d8a
       with:
         name: ${{ matrix.configs.os }}-${{ matrix.configs.arch }}-${{ matrix.configs.tls }}${{ matrix.configs.xdp }}${{ matrix.configs.sanitize }}
-        workflow: build-win.yml
-        workflow_conclusion: success
-        run_id: ${{ github.event.workflow_run.id }}
-        path: .\artifacts
+        path: artifacts
     - name: Install ETW Manifest
       shell: pwsh
       run: |
