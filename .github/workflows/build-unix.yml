@@ -1,4 +1,4 @@
-name: Build
+name: Build Unix
 
 on:
   workflow_dispatch:
@@ -21,7 +21,7 @@ permissions: read-all
 
 jobs:
   build-ubuntu:
-    name: Build
+    name: Ubuntu
     strategy:
       fail-fast: false
       matrix:
@@ -83,7 +83,7 @@ jobs:
       run: scripts/build.ps1 -Config Release -Platform ${{ matrix.plat }} -Arch ${{ matrix.arch }} -Tls ${{ matrix.tls }} ${{ matrix.static }} ${{ matrix.clang }} ${{ matrix.codecheck }}
 
   build-ubuntu-cross-compile:
-    name: Build
+    name: Ubuntu arm
     needs: []
     strategy:
       fail-fast: false
@@ -123,7 +123,7 @@ jobs:
       run: scripts/build.ps1 -Config Release -Arch ${{ matrix.arch }} -ToolchainFile ${{ matrix.toolchain }} -Tls ${{ matrix.tls }} -DisableLogs -OneBranch ${{ matrix.static }}
 
   build-macOS:
-    name: Build
+    name: Darwin
     needs: []
     strategy:
       fail-fast: false
@@ -152,93 +152,3 @@ jobs:
     - name: Build Release
       shell: pwsh
       run: scripts/build.ps1 -Config Release -Platform ${{ matrix.plat }} -Arch ${{ matrix.arch }} -Tls ${{ matrix.tls }} ${{ matrix.static }}
-
-  build-windows:
-    name: Build
-    needs: []
-    strategy:
-      fail-fast: false
-      matrix:
-        plat: [windows, uwp] # TODO: Support gamecore_console
-        os: ['2019', '2022']
-        arch: [x86, x64, arm64]
-        tls: [schannel, openssl, openssl3]
-        static: ['', '-Static']
-        xdp: ['', '-UseXdp']
-        exclude:
-        # OpenSSL doesn't support arm64
-        - tls: openssl
-          arch: arm64
-        # OpenSSL3 doesn't support arm64
-        - tls: openssl3
-          arch: arm64
-        # TODO: FIX: OpenSSL3 build fails with UWP
-        - plat: uwp
-          tls: openssl3
-        # TODO: FIX: Static builds fail with UWP
-        - plat: uwp
-          static: '-Static'
-        # XDP not supported in UWP
-        - plat: uwp
-          xdp: '-UseXdp'
-        # XDP only supports x64 currently
-        - arch: x86
-          xdp: '-UseXdp'
-        # XDP only supports x64 currently
-        - arch: arm64
-          xdp: '-UseXdp'
-    runs-on: windows-${{ matrix.os }}
-    steps:
-    - name: Checkout repository
-      uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9
-      with:
-        fetch-depth: 0
-    - name: Install Perl
-      uses: shogo82148/actions-setup-perl@0bb5af61b3945a80585229183e7ac50a97d7996c
-      with:
-        perl-version: '5.34'
-    - name: Install NASM
-      uses: ilammy/setup-nasm@321e6ed62a1fc77024a3bd853deb33645e8b22c4
-    - name: Prepare Machine
-      shell: pwsh
-      run: scripts/prepare-machine.ps1 -ForBuild -Tls ${{ matrix.tls }}
-    - name: Build Debug
-      shell: pwsh
-      run: scripts/build.ps1 -Config Debug -Platform ${{ matrix.plat }} -Arch ${{ matrix.arch }} -Tls ${{ matrix.tls }} ${{ matrix.static }} ${{ matrix.xdp }}
-    - name: Build Release
-      shell: pwsh
-      run: scripts/build.ps1 -Config Release -Platform ${{ matrix.plat }} -Arch ${{ matrix.arch }} -Tls ${{ matrix.tls }} ${{ matrix.static }} ${{ matrix.xdp }}
-
-  build-windows-kernel:
-    name: Build
-    needs: []
-    strategy:
-      fail-fast: false
-      matrix:
-        plat: [winkernel]
-        os: ['2019', '2022']
-        arch: [x64, arm64]
-        tls: [schannel]
-    runs-on: windows-${{ matrix.os }}
-    steps:
-    - name: Checkout repository
-      uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9
-      with:
-        fetch-depth: 0
-    - name: Prepare Machine
-      shell: pwsh
-      run: scripts/prepare-machine.ps1 -ForBuild -ForKernel
-    - name: Add msbuild to PATH
-      uses: microsoft/setup-msbuild@1ff57057b5cfdc39105cd07a01d78e9b0ea0c14c
-    - name: Nuget Restore Debug
-      shell: pwsh
-      run: msbuild msquic.kernel.sln -t:restore /p:RestorePackagesConfig=true /p:Configuration=Debug /p:Platform=${{ matrix.arch }}
-    - name: Build Debug
-      shell: pwsh
-      run: msbuild msquic.kernel.sln /p:Configuration=Debug /p:Platform=${{ matrix.arch }} /p:QUIC_VER_SUFFIX=-official
-    - name: Nuget Restore Release
-      shell: pwsh
-      run: msbuild msquic.kernel.sln -t:restore /p:RestorePackagesConfig=true /p:Configuration=Release /p:Platform=${{ matrix.arch }}
-    - name: Build Release
-      shell: pwsh
-      run: msbuild msquic.kernel.sln /p:Configuration=Release /p:Platform=${{ matrix.arch }} /p:QUIC_VER_SUFFIX=-official
