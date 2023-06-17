@@ -1,4 +1,4 @@
-name: BVT
+name: BVT Windows
 
 on:
   workflow_dispatch:
