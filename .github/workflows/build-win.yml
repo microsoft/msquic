@@ -14,7 +14,7 @@ on:
 concurrency:
   # Cancel any workflow currently in progress for the same PR.
   # Allow running concurrently with any other commits.
-  group: build-${{ github.event.pull_request.number || github.sha }}
+  group: build-win-${{ github.event.pull_request.number || github.sha }}
   cancel-in-progress: true
 
 permissions: read-all
@@ -29,12 +29,10 @@ jobs:
         configs: [
           { os: 'windows-2019', arch: 'x64', tls: 'openssl' },
           { os: 'windows-2019', arch: 'x64', tls: 'openssl3' },
-          { os: 'windows-2022', arch: 'x64', tls: 'schannel', sanitize: '-Sanitize' },
-          { os: 'windows-2022', arch: 'x64', tls: 'schannel', xdp: '-UseXdp', sanitize: '-Sanitize' },
-          { os: 'windows-2022', arch: 'x64', tls: 'openssl' },
-          { os: 'windows-2022', arch: 'x64', tls: 'openssl', xdp: '-UseXdp' },
-          { os: 'windows-2022', arch: 'x64', tls: 'openssl3' },
-          { os: 'windows-2022', arch: 'x64', tls: 'openssl3', xdp: '-UseXdp' }
+          { os: 'windows-2019', arch: 'x64', tls: 'schannel', sanitize: '-Sanitize' },
+          { os: 'windows-2019', arch: 'x64', tls: 'schannel', xdp: '-UseXdp', sanitize: '-Sanitize' },
+          { os: 'windows-2019', arch: 'x64', tls: 'openssl', xdp: '-UseXdp' },
+          { os: 'windows-2019', arch: 'x64', tls: 'openssl3', xdp: '-UseXdp' }
         ]
     runs-on: ${{ matrix.configs.os }}
     steps:
@@ -60,61 +58,61 @@ jobs:
         name: ${{ matrix.configs.os }}-${{ matrix.configs.arch }}-${{ matrix.configs.tls }}${{ matrix.configs.xdp }}${{ matrix.configs.sanitize }}
         path: artifacts
 
-  build-windows:
-    name: For Build
-    needs: []
-    strategy:
-      fail-fast: false
-      matrix:
-        plat: [windows, uwp] # TODO: Support gamecore_console
-        os: ['2019', '2022']
-        arch: [x86, x64, arm64]
-        tls: [schannel, openssl, openssl3]
-        static: ['', '-Static']
-        xdp: ['', '-UseXdp']
-        exclude:
-        # OpenSSL doesn't support arm64
-        - tls: openssl
-          arch: arm64
-        # OpenSSL3 doesn't support arm64
-        - tls: openssl3
-          arch: arm64
-        # TODO: FIX: OpenSSL3 build fails with UWP
-        - plat: uwp
-          tls: openssl3
-        # TODO: FIX: Static builds fail with UWP
-        - plat: uwp
-          static: '-Static'
-        # XDP not supported in UWP
-        - plat: uwp
-          xdp: '-UseXdp'
-        # XDP only supports x64 currently
-        - arch: x86
-          xdp: '-UseXdp'
-        # XDP only supports x64 currently
-        - arch: arm64
-          xdp: '-UseXdp'
-    runs-on: windows-${{ matrix.os }}
-    steps:
-    - name: Checkout repository
-      uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9
-      with:
-        fetch-depth: 0
-    - name: Install Perl
-      uses: shogo82148/actions-setup-perl@0bb5af61b3945a80585229183e7ac50a97d7996c
-      with:
-        perl-version: '5.34'
-    - name: Install NASM
-      uses: ilammy/setup-nasm@321e6ed62a1fc77024a3bd853deb33645e8b22c4
-    - name: Prepare Machine
-      shell: pwsh
-      run: scripts/prepare-machine.ps1 -ForBuild -Tls ${{ matrix.tls }}
-    - name: Build Debug
-      shell: pwsh
-      run: scripts/build.ps1 -Config Debug -Platform ${{ matrix.plat }} -Arch ${{ matrix.arch }} -Tls ${{ matrix.tls }} ${{ matrix.static }} ${{ matrix.xdp }}
-    - name: Build Release
-      shell: pwsh
-      run: scripts/build.ps1 -Config Release -Platform ${{ matrix.plat }} -Arch ${{ matrix.arch }} -Tls ${{ matrix.tls }} ${{ matrix.static }} ${{ matrix.xdp }}
+  # build-windows:
+  #   name: For Build
+  #   needs: []
+  #   strategy:
+  #     fail-fast: false
+  #     matrix:
+  #       plat: [windows, uwp] # TODO: Support gamecore_console
+  #       os: ['2019', '2022']
+  #       arch: [x86, x64, arm64]
+  #       tls: [schannel, openssl, openssl3]
+  #       static: ['', '-Static']
+  #       xdp: ['', '-UseXdp']
+  #       exclude:
+  #       # OpenSSL doesn't support arm64
+  #       - tls: openssl
+  #         arch: arm64
+  #       # OpenSSL3 doesn't support arm64
+  #       - tls: openssl3
+  #         arch: arm64
+  #       # TODO: FIX: OpenSSL3 build fails with UWP
+  #       - plat: uwp
+  #         tls: openssl3
+  #       # TODO: FIX: Static builds fail with UWP
+  #       - plat: uwp
+  #         static: '-Static'
+  #       # XDP not supported in UWP
+  #       - plat: uwp
+  #         xdp: '-UseXdp'
+  #       # XDP only supports x64 currently
+  #       - arch: x86
+  #         xdp: '-UseXdp'
+  #       # XDP only supports x64 currently
+  #       - arch: arm64
+  #         xdp: '-UseXdp'
+  #   runs-on: windows-${{ matrix.os }}
+  #   steps:
+  #   - name: Checkout repository
+  #     uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9
+  #     with:
+  #       fetch-depth: 0
+  #   - name: Install Perl
+  #     uses: shogo82148/actions-setup-perl@0bb5af61b3945a80585229183e7ac50a97d7996c
+  #     with:
+  #       perl-version: '5.34'
+  #   - name: Install NASM
+  #     uses: ilammy/setup-nasm@321e6ed62a1fc77024a3bd853deb33645e8b22c4
+  #   - name: Prepare Machine
+  #     shell: pwsh
+  #     run: scripts/prepare-machine.ps1 -ForBuild -Tls ${{ matrix.tls }}
+  #   - name: Build Debug
+  #     shell: pwsh
+  #     run: scripts/build.ps1 -Config Debug -Platform ${{ matrix.plat }} -Arch ${{ matrix.arch }} -Tls ${{ matrix.tls }} ${{ matrix.static }} ${{ matrix.xdp }}
+  #   - name: Build Release
+  #     shell: pwsh
+  #     run: scripts/build.ps1 -Config Release -Platform ${{ matrix.plat }} -Arch ${{ matrix.arch }} -Tls ${{ matrix.tls }} ${{ matrix.static }} ${{ matrix.xdp }}
 
   build-windows-kernel:
     name: Build
@@ -143,9 +141,17 @@ jobs:
     - name: Build Debug
       shell: pwsh
       run: msbuild msquic.kernel.sln /p:Configuration=Debug /p:Platform=${{ matrix.arch }} /p:QUIC_VER_SUFFIX=-official
+    - name: Sign Kernel Debug
+      shell: pwsh
+      run: scripts/sign.ps1 -Config Debug -Arch ${{ matrix.arch }} -Tls ${{ matrix.tls }}
     - name: Nuget Restore Release
       shell: pwsh
       run: msbuild msquic.kernel.sln -t:restore /p:RestorePackagesConfig=true /p:Configuration=Release /p:Platform=${{ matrix.arch }}
     - name: Build Release
       shell: pwsh
       run: msbuild msquic.kernel.sln /p:Configuration=Release /p:Platform=${{ matrix.arch }} /p:QUIC_VER_SUFFIX=-official
+    - name: Upload build artifacts
+      uses: actions/upload-artifact@0b7f8abb1508181956e8e162db84b466c27e18ce
+      with:
+        name: ${{ matrix.plat }}-${{ matrix.arch }}-${{ matrix.tls }}
+        path: artifacts
