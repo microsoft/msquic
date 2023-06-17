@@ -144,7 +144,7 @@ jobs:
       shell: pwsh
       run: scripts/prepare-machine.ps1 -ForBuild -ForTest -ForKernel
     - name: Add msbuild to PATH
-      uses: microsoft/setup-msbuild@34cfbaee7f672c76950673338facd8a73f637506
+      uses: microsoft/setup-msbuild@1ff57057b5cfdc39105cd07a01d78e9b0ea0c14c
     - name: Nuget Restore
       shell: pwsh
       run: msbuild msquic.kernel.sln -t:restore /p:RestorePackagesConfig=true /p:Configuration=Debug /p:Platform=${{ matrix.arch }}
