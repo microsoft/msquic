@@ -46,7 +46,7 @@ jobs:
     - name: Prepare Machine
       run: scripts/prepare-machine.ps1 -Tls ${{ matrix.configs.tls }} -ForTest ${{ matrix.configs.xdp }}
       shell: pwsh
-    - uses: .github/workflows/build-win
+    - uses: ./.github/workflows/build-win
     - uses: actions/download-artifact@9bc31d5ccc31df68ecc42ccf4149144866c47d8a
       with:
         name: ${{ matrix.configs.os }}-${{ matrix.configs.arch }}-${{ matrix.configs.tls }}${{ matrix.configs.xdp }}${{ matrix.configs.sanitize }}
