@@ -21,7 +21,7 @@ permissions: read-all
 
 jobs:
   build:
-    uses: ./.github/workflows/build-win/action.yml
+    uses: ./.github/workflows/build-win.yml
 
   bvt:
     name: BVT
