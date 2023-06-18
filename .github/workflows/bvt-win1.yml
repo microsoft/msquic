@@ -14,7 +14,7 @@ on:
 concurrency:
   # Cancel any workflow currently in progress on the same branch.
   # Allow running concurrently with any other commits.
-  group: bvt-win-${{ github.event.pull_request.number || github.sha }}
+  group: bvt-win1-${{ github.event.pull_request.number || github.sha }}
   cancel-in-progress: true
 
 permissions: read-all
