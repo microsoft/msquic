@@ -4,12 +4,6 @@ on:
   workflow_dispatch:
   workflow_call:
 
-concurrency:
-  # Cancel any workflow currently in progress for the same PR.
-  # Allow running concurrently with any other commits.
-  group: build-win-${{ github.event.pull_request.number || github.sha }}
-  cancel-in-progress: true
-
 permissions: read-all
 
 jobs:
@@ -20,12 +14,12 @@ jobs:
       fail-fast: false
       matrix:
         configs: [
-          { os: 'windows-2019', arch: 'x64', tls: 'openssl' },
-          { os: 'windows-2019', arch: 'x64', tls: 'openssl3' },
-          { os: 'windows-2019', arch: 'x64', tls: 'schannel', sanitize: '-Sanitize' },
+          { os: 'windows-2019', arch: 'x64', tls: 'openssl', xdp: '', sanitize: ''},
+          { os: 'windows-2019', arch: 'x64', tls: 'openssl3', xdp: '', sanitize: ''},
+          { os: 'windows-2019', arch: 'x64', tls: 'schannel', xdp: '', sanitize: '-Sanitize' },
           { os: 'windows-2019', arch: 'x64', tls: 'schannel', xdp: '-UseXdp', sanitize: '-Sanitize' },
-          { os: 'windows-2019', arch: 'x64', tls: 'openssl', xdp: '-UseXdp' },
-          { os: 'windows-2019', arch: 'x64', tls: 'openssl3', xdp: '-UseXdp' }
+          { os: 'windows-2019', arch: 'x64', tls: 'openssl', xdp: '-UseXdp', sanitize: ''},
+          { os: 'windows-2019', arch: 'x64', tls: 'openssl3', xdp: '-UseXdp', sanitize: ''}
         ]
     runs-on: windows-2019 # workaround for the compiler bug in windows-2022 that causes ASAN to fail
     steps:
