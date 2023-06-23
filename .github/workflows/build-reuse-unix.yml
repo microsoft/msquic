@@ -71,6 +71,7 @@ permissions: read-all
 
 jobs:
   build-ubuntu-reuse:
+    name: Build Linux/Android
     if: inputs.plat == 'linux' || inputs.plat == 'android'
     runs-on: ${{ inputs.os }}
     steps:
@@ -96,7 +97,7 @@ jobs:
         path: artifacts
 
   build-macOS-reuse:
-    name: Build
+    name: Build MacOs
     if: inputs.plat == 'macos' || inputs.plat == 'ios'
     runs-on: ${{ inputs.os }}
     steps:
