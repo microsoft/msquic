@@ -106,7 +106,7 @@ jobs:
       fail-fast: false
       matrix:
         plat: [linux, android]
-        os: ['20.04', '22.04']
+        os: ['ubuntu-20.04', 'ubuntu-22.04']
         arch: [x86, x64]
         tls: [openssl, openssl3]
         systemcrypto: ['', '-UseSystemOpenSSLCrypto']
@@ -120,14 +120,14 @@ jobs:
         # Android doesn't use system crypto
         - plat: android
           systemcrypto: '-UseSystemOpenSSLCrypto'
-        # No openssl3 system crypto on 20.04
+        # No openssl3 system crypto on ubuntu-20.04
         - plat: linux '
-          os: '20.04'
+          os: 'ubuntu-20.04'
           tls: 'openssl3'
           systemcrypto: '-UseSystemOpenSSLCrypto'
-        # No openssl system crypto on 22.04
+        # No openssl system crypto on ubuntu-22.04
         - plat: linux '
-          os: '22.04'
+          os: 'ubuntu-22.04'
           tls: 'openssl'
           systemcrypto: '-UseSystemOpenSSLCrypto'
         # Android doesn't use Clang
@@ -162,7 +162,7 @@ jobs:
       fail-fast: false
       matrix:
         plat: [linux]
-        os: ['20.04', '22.04']
+        os: ['ubuntu-20.04', 'ubuntu-22.04']
         arch: [arm, arm64]
         tls: [openssl, openssl3]
         toolchain: ['cmake/toolchains/arm-linux.cmake', 'cmake/toolchains/aarch64-linux.cmake']
