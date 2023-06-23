@@ -1,0 +1,79 @@
+name: Build WinKernel
+
+# The caller is responsible for making sure all options passed to this workflow are valid and compatible with each other.
+
+on:
+  workflow_dispatch:
+  workflow_call:
+    inputs:
+      config:
+        required: false
+        default: 'Release'
+        type: string
+        # options:
+        #   - Debug
+        #   - Release
+      plat:
+        required: false
+        type: string
+        default: 'winkernel'
+        # options:
+        #   - winkernel
+      os:
+        required: false
+        type: string
+        default: 'windows-2019'
+        # options:
+        #   - windows-2019
+        #   - windows-2022
+      arch:
+        required: false
+        default: 'x64'
+        type: string
+        # options:
+        #   - x86
+        #   - x64
+        #   - arm64
+      tls:
+        required: false
+        default: 'schannel'
+        type: string
+        # options:
+        #   - openssl
+        #   - openssl3
+        #   - schannel
+      test:
+        required: false
+        default: ''
+        type: string
+
+permissions: read-all
+
+jobs:
+  build-windows-kernel-reuse:
+    name: Build
+    runs-on: ${{ inputs.os }}
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9
+      with:
+        fetch-depth: 0
+    - name: Prepare Machine
+      shell: pwsh
+      run: scripts/prepare-machine.ps1 -ForBuild -ForKernel
+    - name: Add msbuild to PATH
+      uses: microsoft/setup-msbuild@1ff57057b5cfdc39105cd07a01d78e9b0ea0c14c
+    - name: Nuget Restore
+      shell: pwsh
+      run: msbuild msquic.kernel.sln -t:restore /p:RestorePackagesConfig=true /p:Configuration=${{ inputs.config }} /p:Platform=${{ inputs.arch }}
+    - name: Build
+      shell: pwsh
+      run: msbuild msquic.kernel.sln /p:Configuration=${{ inputs.config }} /p:Platform=${{ inputs.arch }} /p:QUIC_VER_SUFFIX=-official
+    - name: Sign Kernel
+      shell: pwsh
+      run: scripts/sign.ps1 -Config ${{ inputs.config }} -Arch ${{ inputs.arch }} -Tls ${{ inputs.tls }}
+    - name: Upload build artifacts
+      uses: actions/upload-artifact@0b7f8abb1508181956e8e162db84b466c27e18ce
+      with:
+        name: ${{ inputs.config }}-${{ inputs.plat }}-${{ inputs.os }}-${{ inputs.arch }}-${{ inputs.tls }}${{ inputs.test }}
+        path: artifacts

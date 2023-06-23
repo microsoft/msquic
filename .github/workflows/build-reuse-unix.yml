@@ -1,5 +1,7 @@
 name: Build Unix
 
+# The caller is responsible for making sure all options passed to this workflow are valid and compatible with each other.
+
 on:
   workflow_dispatch:
   workflow_call:
@@ -70,7 +72,7 @@ on:
 permissions: read-all
 
 jobs:
-  build-ubuntu-reuse:
+  build-unix-reuse:
     name: Build Linux/Android
     if: inputs.plat == 'linux' || inputs.plat == 'android'
     runs-on: ${{ inputs.os }}
@@ -94,25 +96,4 @@ jobs:
       uses: actions/upload-artifact@0b7f8abb1508181956e8e162db84b466c27e18ce
       with:
         name: ${{ inputs.config }}-${{ inputs.plat }}-${{ inputs.os }}-${{ inputs.arch }}-${{ inputs.tls }}${{ inputs.static }}${{ inputs.clang }}${{ inputs.systemcrypto }}${{ inputs.codecheck }}${{ inputs.sanitize }}${{ inputs.test }}
-        path: artifacts
-
-  build-macOS-reuse:
-    name: Build MacOs
-    if: inputs.plat == 'macos' || inputs.plat == 'ios'
-    runs-on: ${{ inputs.os }}
-    steps:
-    - name: Checkout repository
-      uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9
-      with:
-        fetch-depth: 0
-    - name: Prepare Machine
-      shell: pwsh
-      run: scripts/prepare-machine.ps1 -ForBuild -Tls ${{ inputs.tls }}
-    - name: Build
-      shell: pwsh
-      run: scripts/build.ps1 -Config ${{ inputs.config }} -Platform ${{ inputs.plat }} -Arch ${{ inputs.arch }} -Tls ${{ inputs.tls }} ${{ inputs.static }} ${{ inputs.sanitize }}
-    - name: Upload build artifacts
-      uses: actions/upload-artifact@0b7f8abb1508181956e8e162db84b466c27e18ce
-      with:
-        name: ${{ inputs.config }}-${{ inputs.plat }}-${{ inputs.os }}-${{ inputs.arch }}-${{ inputs.tls }}${{ inputs.static }}${{ inputs.sanitize }}${{ inputs.test }}
         path: artifacts
