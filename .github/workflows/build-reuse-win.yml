@@ -7,49 +7,50 @@ on:
       config:
         required: false
         default: 'Release'
-        options:
-          - Debug
-          - Release
+        type: string
+        # options:
+        #   - Debug
+        #   - Release
       plat:
         required: false
-        type: choice
+        type: string
         default: 'windows'
-        options:
-          - windows
-          - uwp
-          - winkernel
+        # options:
+        #   - windows
+        #   - uwp
+        #   - winkernel
       os:
         required: false
-        type: choice
+        type: string
         default: 'windows-2019'
-        options:
-          - windows-2019
-          - windows-2022
+        # options:
+        #   - windows-2019
+        #   - windows-2022
       arch:
         required: false
         default: 'x64'
-        type: choice
-        options:
-          - x86
-          - x64
-          - arm64
+        type: string
+        # options:
+        #   - x86
+        #   - x64
+        #   - arm64
       tls:
         required: false
         default: 'schannel'
-        type: choice
-        options:
-          - openssl
-          - openssl3
-          - schannel
+        type: string
+        # options:
+        #   - openssl
+        #   - openssl3
+        #   - schannel
       xdp:
         required: false
         default: ''
         type: string
-      sanitize:
+      static:
         required: false
         default: ''
         type: string
-      static:
+      sanitize:
         required: false
         default: ''
         type: string
@@ -61,10 +62,9 @@ on:
 permissions: read-all
 
 jobs:
-  build-windows:
+  build-windows-reuse:
     if: inputs.plat == 'windows' || inputs.plat == 'uwp'
     name: User Mode
-    needs: []
     runs-on: ${{ inputs.os }}
     steps:
     - name: Checkout repository
@@ -81,23 +81,22 @@ jobs:
       shell: pwsh
       run: scripts/prepare-machine.ps1 -ForBuild -Tls ${{ inputs.tls }}
     - name: Build For Test
-      if: inputs.test == true
+      if: inputs.test == '-Test'
       shell: pwsh
       run: scripts/build.ps1 -Config ${{ inputs.config }} -Platform ${{ inputs.plat }} -Arch ${{ inputs.arch }} -Tls ${{ inputs.tls }} -DisableTools -DisablePerf -DynamicCRT ${{ inputs.xdp }} ${{ inputs.sanitize }}
     - name: Build
-      if: inputs.test == false
+      if: inputs.test == ''
       shell: pwsh
       run: scripts/build.ps1 -Config ${{ inputs.config }} -Platform ${{ inputs.plat }} -Arch ${{ inputs.arch }} -Tls ${{ inputs.tls }} ${{ inputs.xdp }} ${{ inputs.sanitize }} ${{ inputs.static }}
     - name: Upload build artifacts
       uses: actions/upload-artifact@0b7f8abb1508181956e8e162db84b466c27e18ce
       with:
-        name: ${{ inputs.config }}-${{ inputs.plat }}-${{ inputs.os }}-${{ inputs.arch }}-${{ inputs.tls }}${{ inputs.xdp }}${{ inputs.sanitize }}${{ inputs.static }}
+        name: ${{ inputs.config }}-${{ inputs.plat }}-${{ inputs.os }}-${{ inputs.arch }}-${{ inputs.tls }}${{ inputs.xdp }}${{ inputs.sanitize }}${{ inputs.static }}${{ inputs.test }}
         path: artifacts
 
-  build-windows-kernel:
+  build-windows-kernel-reuse:
     if: inputs.plat == 'winkernel'
     name: Kernel Mode
-    needs: []
     runs-on: ${{ inputs.os }}
     steps:
     - name: Checkout repository
@@ -121,5 +120,5 @@ jobs:
     - name: Upload build artifacts
       uses: actions/upload-artifact@0b7f8abb1508181956e8e162db84b466c27e18ce
       with:
-        name: ${{ inputs.config }}-${{ inputs.plat }}-${{ inputs.os }}-${{ inputs.arch }}-${{ inputs.tls }}
+        name: ${{ inputs.config }}-${{ inputs.plat }}-${{ inputs.os }}-${{ inputs.arch }}-${{ inputs.tls }}${{ inputs.test }}
         path: artifacts
