@@ -75,23 +75,12 @@ jobs:
   build-unix-reuse:
     name: Build
     runs-on: ${{ inputs.os }}
-    container: ${{ fromJSON('{"ubuntu-20.04":"ghcr.io/microsoft/msquic/linux-build-xcomp:20.04","ubuntu-22.04":"ghcr.io/microsoft/msquic/linux-build-xcomp:22.04"}')[inputs.os] }}
     steps:
     - name: Checkout repository
       uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9
       with:
         fetch-depth: 0
-    - name: Set ownership
-      if: inputs.os == 'ubuntu-20.04' || inputs.os == 'ubuntu-22.04'
-      run: |
-        # this is to fix GIT not liking owner of the checkout dir
-        chown -R $(id -u):$(id -g) $PWD
-    - name: Prepare Machine (docker based)
-      if: inputs.os == 'ubuntu-20.04' || inputs.os == 'ubuntu-22.04'
-      shell: pwsh
-      run: scripts/prepare-machine.ps1 -ForOneBranch -InitSubmodules -Tls ${{ inputs.tls }}
     - name: Prepare Machine
-      if: inputs.os == 'macos-12'
       shell: pwsh
       run: scripts/prepare-machine.ps1 -ForBuild -Tls ${{ inputs.tls }}
     - name: Build For Test
