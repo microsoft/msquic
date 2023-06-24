@@ -161,7 +161,7 @@ jobs:
           codecheck: '-CodeCheck'
     uses: ./.github/workflows/build-reuse-unix.yml
     with:
-      config: $${{ matrix.config }}
+      config: ${{ matrix.config }}
       plat: ${{ matrix.plat }}
       os: ${{ matrix.os }}
       arch: ${{ matrix.arch }}
@@ -173,6 +173,7 @@ jobs:
 
   build-ubuntu-cross-compile:
     name: UbuntuArm
+    needs: []
     strategy:
       fail-fast: false
       matrix:
