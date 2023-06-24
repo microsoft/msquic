@@ -67,6 +67,11 @@ jobs:
       shell: pwsh
       run: msbuild msquic.kernel.sln -t:restore /p:RestorePackagesConfig=true /p:Configuration=${{ inputs.config }} /p:Platform=${{ inputs.arch }}
     - name: Build
+      if: inputs.test == '-Test'
+      shell: pwsh
+      run: msbuild msquic.kernel.sln /p:Configuration=${{ inputs.config }} /p:Platform=${{ inputs.arch }} /p:QUIC_VER_SUFFIX=-official /p:QUIC_VER_GIT_HASH=${{ github.sha }}
+    - name: Build
+      if: inputs.test == ''
       shell: pwsh
       run: msbuild msquic.kernel.sln /p:Configuration=${{ inputs.config }} /p:Platform=${{ inputs.arch }} /p:QUIC_VER_SUFFIX=-official
     - name: Sign Kernel
