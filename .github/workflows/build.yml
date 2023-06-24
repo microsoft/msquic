@@ -188,7 +188,7 @@ jobs:
           toolchain: 'cmake/toolchains/aarch64-linux.cmake'
         - arch: arm64
           toolchain: 'cmake/toolchains/arm-linux.cmake'
-    runs-on: ubuntu-${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
     container:
       image: ghcr.io/microsoft/msquic/linux-build-xcomp
     steps:
