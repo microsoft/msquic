@@ -43,6 +43,7 @@ jobs:
       fail-fast: false
       matrix:
         vec: [
+          { config: "Debug", plat: "windows", os: "windows-2019", arch: "x64", tls: "schannel", test: "-Test" },
           { config: "Debug", plat: "windows", os: "windows-2019", arch: "x64", tls: "openssl", test: "-Test" },
           { config: "Debug", plat: "windows", os: "windows-2019", arch: "x64", tls: "openssl3", test: "-Test" },
           { config: "Debug", plat: "windows", os: "windows-2019", arch: "x64", tls: "openssl", xdp: "-UseXdp", test: "-Test" },
@@ -244,6 +245,10 @@ jobs:
       with:
         name: ${{ matrix.vec.config }}-${{ matrix.vec.plat }}-${{ matrix.vec.os }}-${{ matrix.vec.arch }}-${{ matrix.vec.tls }}${{ matrix.vec.sanitize }}${{ matrix.vec.test }}
         path: artifacts
+    - name: Fix permissions for Unix
+      if: matrix.vec.plat == 'linux' || matrix.vec.plat == 'macos'
+      run: |
+        sudo chmod -R 777 artifacts
     - name: Prepare Machine
       run: scripts/prepare-machine.ps1 -Tls ${{ matrix.vec.tls }} -ForTest ${{ matrix.vec.xdp }}
       shell: pwsh
