@@ -68,3 +68,4 @@ RUN apt-get install --no-install-recommends -y liblttng-ust-dev:arm64 \
     && rm -rf /var/lib/apt/lists/*
 
 RUN git config --system --add safe.directory "*"
+
