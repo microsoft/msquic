@@ -82,7 +82,7 @@ jobs:
       with:
         fetch-depth: 0
     - name: Prepare Machine (docker based)
-      if: inputs.os == ubuntu-20.04 || inputs.os == ubuntu-22.04
+      if: inputs.os == 'ubuntu-20.04' || inputs.os == 'ubuntu-22.04'
       shell: pwsh
       run: scripts/prepare-machine.ps1 -ForOneBranch -InitSubmodules -Tls ${{ inputs.tls }}
     - name: Prepare Machine
@@ -90,7 +90,7 @@ jobs:
       shell: pwsh
       run: scripts/prepare-machine.ps1 -ForBuild -Tls ${{ inputs.tls }}
     - name: Set ownership
-      if: inputs.os == ubuntu-20.04 || inputs.os == ubuntu-22.04
+      if: inputs.os == 'ubuntu-20.04' || inputs.os == 'ubuntu-22.04'
       run: |
         # this is to fix GIT not liking owner of the checkout dir
         chown -R $(id -u):$(id -g) $PWD
