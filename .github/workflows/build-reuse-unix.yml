@@ -86,7 +86,7 @@ jobs:
       shell: pwsh
       run: scripts/prepare-machine.ps1 -ForOneBranch -InitSubmodules -Tls ${{ inputs.tls }}
     - name: Prepare Machine
-      if: inputs.os == macos-12
+      if: inputs.os == 'macos-12'
       shell: pwsh
       run: scripts/prepare-machine.ps1 -ForBuild -Tls ${{ inputs.tls }}
     - name: Set ownership
