@@ -22,9 +22,11 @@ permissions: read-all
 jobs:
   build-windows:
     name: WinUser
+    needs: []
     strategy:
       fail-fast: false
       matrix:
+        config: ['Debug', 'Release']
         plat: [windows, uwp] # TODO: Support gamecore_console
         os: ['windows-2019', 'windows-2022']
         arch: [x86, x64, arm64]
@@ -55,6 +57,7 @@ jobs:
           xdp: '-UseXdp'
     uses: ./.github/workflows/build-reuse-win.yml
     with:
+      config: $${{ matrix.config }}
       plat: ${{ matrix.plat }}
       os: ${{ matrix.os }}
       arch: ${{ matrix.arch }}
@@ -64,15 +67,18 @@ jobs:
 
   build-windows-kernel:
     name: WinKernel
+    needs: []
     strategy:
       fail-fast: false
       matrix:
+        config: ['Debug', 'Release']
         plat: [winkernel]
         os: ['windows-2019', 'windows-2022']
         arch: [x64, arm64]
         tls: [schannel]
     uses: ./.github/workflows/build-reuse-win.yml
     with:
+      config: $${{ matrix.config }}
       plat: ${{ matrix.plat }}
       os: ${{ matrix.os }}
       arch: ${{ matrix.arch }}
@@ -80,9 +86,11 @@ jobs:
 
   build-macOS:
     name: MacOs
+    needs: []
     strategy:
       fail-fast: false
       matrix:
+        config: ['Debug', 'Release']
         plat: [macos, ios]
         os: ['macos-12']
         arch: [x86, x64, arm64]
@@ -94,6 +102,7 @@ jobs:
           arch: x86
     uses: ./.github/workflows/build-reuse-unix.yml
     with:
+      config: $${{ matrix.config }}
       plat: ${{ matrix.plat }}
       os: ${{ matrix.os }}
       arch: ${{ matrix.arch }}
@@ -102,9 +111,11 @@ jobs:
 
   build-ubuntu:
     name: Ubuntu
+    needs: []
     strategy:
       fail-fast: false
       matrix:
+        config: ['Debug', 'Release']
         plat: [linux, android]
         os: ['ubuntu-20.04', 'ubuntu-22.04']
         arch: [x86, x64]
@@ -145,8 +156,12 @@ jobs:
         # No need to combine Clang and CodeCheck
         - clang: '-Clang'
           codecheck: '-CodeCheck'
+        # Release builds fail with CodeCheck
+        - config: 'Release'
+          codecheck: '-CodeCheck'
     uses: ./.github/workflows/build-reuse-unix.yml
     with:
+      config: $${{ matrix.config }}
       plat: ${{ matrix.plat }}
       os: ${{ matrix.os }}
       arch: ${{ matrix.arch }}

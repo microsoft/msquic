@@ -21,6 +21,7 @@ permissions: read-all
 
 jobs:
   build-windows-kernel:
+    name: Build WinKernel
     strategy:
       fail-fast: false
       matrix:
@@ -37,6 +38,7 @@ jobs:
       test: ${{ matrix.vec.test }}
 
   build-windows:
+    name: Build WinUser
     strategy:
       fail-fast: false
       matrix:
@@ -62,6 +64,7 @@ jobs:
       test: ${{ matrix.vec.test }}
 
   build-unix:
+    name: Build Unix
     strategy:
       fail-fast: false
       matrix:
@@ -84,6 +87,7 @@ jobs:
       tls: ${{ matrix.vec.tls }}
       systemcrypto: ${{ matrix.vec.systemcrypto }}
       sanitize: ${{ matrix.vec.sanitize }}
+      test: ${{ matrix.vec.test }}
 
   bvt:
     name: BVT
@@ -163,10 +167,6 @@ jobs:
     - uses: actions/download-artifact@9bc31d5ccc31df68ecc42ccf4149144866c47d8a
       with:
         name: ${{ matrix.vec.config }}-${{ matrix.vec.plat }}-${{ matrix.vec.os }}-${{ matrix.vec.arch }}-${{ matrix.vec.tls }}${{ matrix.vec.test }}
-        path: artifacts
-    - uses: actions/download-artifact@9bc31d5ccc31df68ecc42ccf4149144866c47d8a
-      with:
-        name: ${{ matrix.vec.config }}-windows-${{ matrix.vec.os }}-${{ matrix.vec.arch }}-${{ matrix.vec.tls }}${{ matrix.vec.test }}
         path: artifacts
     - name: Prepare Machine
       shell: pwsh

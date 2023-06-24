@@ -73,7 +73,7 @@ permissions: read-all
 
 jobs:
   build-unix-reuse:
-    name: Build Unix
+    name: Build
     if: inputs.plat == 'linux' || inputs.plat == 'android'
     runs-on: ${{ inputs.os }}
     steps:
