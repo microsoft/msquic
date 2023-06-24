@@ -57,7 +57,7 @@ jobs:
           xdp: '-UseXdp'
     uses: ./.github/workflows/build-reuse-win.yml
     with:
-      config: $${{ matrix.config }}
+      config: ${{ matrix.config }}
       plat: ${{ matrix.plat }}
       os: ${{ matrix.os }}
       arch: ${{ matrix.arch }}
@@ -78,7 +78,7 @@ jobs:
         tls: [schannel]
     uses: ./.github/workflows/build-reuse-win.yml
     with:
-      config: $${{ matrix.config }}
+      config: ${{ matrix.config }}
       plat: ${{ matrix.plat }}
       os: ${{ matrix.os }}
       arch: ${{ matrix.arch }}
@@ -102,7 +102,7 @@ jobs:
           arch: x86
     uses: ./.github/workflows/build-reuse-unix.yml
     with:
-      config: $${{ matrix.config }}
+      config: ${{ matrix.config }}
       plat: ${{ matrix.plat }}
       os: ${{ matrix.os }}
       arch: ${{ matrix.arch }}
