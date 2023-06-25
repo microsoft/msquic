@@ -5,14 +5,14 @@ on:
     branches: [ main ]
     paths:
     - .github/workflows/docker-publish-xcomp.yml
-    - .azure/dockers/ob/linux-20.04
-    - .azure/dockers/ob/linux-22.04
+    - .docker/linux-20.04
+    - .docker/linux-22.04
   pull_request:
     branches: [ main ]
     paths:
     - .github/workflows/docker-publish-xcomp.yml
-    - .azure/dockers/ob/linux-20.04
-    - .azure/dockers/ob/linux-22.04
+    - .docker/linux-20.04
+    - .docker/linux-22.04
 
 permissions: read-all
 
@@ -67,8 +67,8 @@ jobs:
       - name: Build and push Docker image
         uses: docker/build-push-action@2eb1c1961a95fc15694676618e422e8ba1d63825
         with:
-          context: .azure/dockers/ob/linux-${{ matrix.version }}
-          file: .azure/dockers/ob/linux-${{ matrix.version }}/Dockerfile
+          context: .docker/linux-${{ matrix.version }}
+          file: .docker/linux-${{ matrix.version }}/Dockerfile
           push: ${{ github.event_name != 'pull_request' }}
           tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ matrix.version }}
           labels: ${{ steps.meta.outputs.labels }}
