@@ -5,13 +5,13 @@ on:
     branches: [ main ]
     paths:
     - .github/workflows/docker-publish-xcomp.yml
-    - .docker/ubunttu-20.04/*
+    - .docker/ubuntu-20.04/*
     - .docker/ubuntu-22.04/*
   pull_request:
     branches: [ main ]
     paths:
     - .github/workflows/docker-publish-xcomp.yml
-    - .docker/ubunttu-20.04/*
+    - .docker/ubuntu-20.04/*
     - .docker/ubuntu-22.04/*
 
 permissions: read-all
