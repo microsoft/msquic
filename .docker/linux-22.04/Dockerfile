@@ -21,6 +21,7 @@ RUN apt-get update && apt-get install --no-install-recommends -y apt-transport-h
     g++-aarch64-linux-gnu \
     binutils-aarch64-linux-gnu \
     cmake \
+    clang \
     git \
     make \
     sudo \
@@ -65,3 +66,5 @@ RUN apt-get --no-install-recommends install -y liblttng-ust-dev:arm64 \
     libnuma-dev:arm64 \
     libnuma-dev:armhf \
     && rm -rf /var/lib/apt/lists/*
+
+RUN git config --system --add safe.directory "*"
