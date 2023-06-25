@@ -67,5 +67,5 @@ RUN apt-get install --no-install-recommends -y liblttng-ust-dev:arm64 \
     libnuma-dev:armhf \
     && rm -rf /var/lib/apt/lists/*
 
-RUN git config --system --add safe.directory "*"
+RUN git config --global safe.directory '*'
 
