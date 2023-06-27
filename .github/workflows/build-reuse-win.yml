@@ -1,0 +1,97 @@
+name: Build WinUser
+
+# The caller is responsible for making sure all options passed to this workflow are valid and compatible with each other.
+
+on:
+  workflow_dispatch:
+  workflow_call:
+    inputs:
+      config:
+        required: false
+        default: 'Release'
+        type: string
+        # options:
+        #   - Debug
+        #   - Release
+      plat:
+        required: false
+        type: string
+        default: 'windows'
+        # options:
+        #   - windows
+        #   - uwp
+        #   - winkernel
+      os:
+        required: false
+        type: string
+        default: 'windows-2019'
+        # options:
+        #   - windows-2019
+        #   - windows-2022
+      arch:
+        required: false
+        default: 'x64'
+        type: string
+        # options:
+        #   - x86
+        #   - x64
+        #   - arm64
+      tls:
+        required: false
+        default: 'schannel'
+        type: string
+        # options:
+        #   - openssl
+        #   - openssl3
+        #   - schannel
+      xdp:
+        required: false
+        default: ''
+        type: string
+      static:
+        required: false
+        default: ''
+        type: string
+      sanitize:
+        required: false
+        default: ''
+        type: string
+      test:
+        required: false
+        default: ''
+        type: string
+
+permissions: read-all
+
+jobs:
+  build-windows-reuse:
+    if: inputs.plat == 'windows' || inputs.plat == 'uwp'
+    name: Build
+    runs-on: windows-2019 # workaround windows-2022 compiler issue for sanitizer
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9
+      with:
+        fetch-depth: 0
+    - name: Install Perl
+      uses: shogo82148/actions-setup-perl@0bb5af61b3945a80585229183e7ac50a97d7996c
+      with:
+        perl-version: '5.34'
+    - name: Install NASM
+      uses: ilammy/setup-nasm@321e6ed62a1fc77024a3bd853deb33645e8b22c4
+    - name: Prepare Machine
+      shell: pwsh
+      run: scripts/prepare-machine.ps1 -ForBuild -Tls ${{ inputs.tls }}
+    - name: Build For Test
+      if: inputs.test == '-Test'
+      shell: pwsh
+      run: scripts/build.ps1 -Config ${{ inputs.config }} -Platform ${{ inputs.plat }} -Arch ${{ inputs.arch }} -Tls ${{ inputs.tls }} -DisablePerf -DynamicCRT ${{ inputs.xdp }} ${{ inputs.sanitize }}
+    - name: Build
+      if: inputs.test == ''
+      shell: pwsh
+      run: scripts/build.ps1 -Config ${{ inputs.config }} -Platform ${{ inputs.plat }} -Arch ${{ inputs.arch }} -Tls ${{ inputs.tls }} ${{ inputs.xdp }} ${{ inputs.sanitize }} ${{ inputs.static }}
+    - name: Upload build artifacts
+      uses: actions/upload-artifact@0b7f8abb1508181956e8e162db84b466c27e18ce
+      with:
+        name: ${{ inputs.config }}-${{ inputs.plat }}-${{ inputs.os }}-${{ inputs.arch }}-${{ inputs.tls }}${{ inputs.xdp }}${{ inputs.sanitize }}${{ inputs.static }}${{ inputs.test }}
+        path: artifacts
