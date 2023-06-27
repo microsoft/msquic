@@ -215,6 +215,7 @@ function Install-SigningCertificates {
         CertUtil.exe -addstore Root "$SetupPath\CoreNetSignRoot.cer"
         CertUtil.exe -addstore TrustedPublisher "$SetupPath\CoreNetSignRoot.cer"
         CertUtil.exe -addstore Root "$SetupPath\testroot-sha2.cer" # For duonic
+        Sleep -Seconds 5
     } catch {
         Write-Host "WARNING: Exception encountered while installing signing certs. Drivers may not start!"
     }
