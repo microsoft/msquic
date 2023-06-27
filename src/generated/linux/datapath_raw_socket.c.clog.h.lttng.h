@@ -154,3 +154,34 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_SOCKET_C, DatapathSend,
         ctf_sequence(char, arg7, arg7, unsigned int, arg7_len)
     )
 )
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for InsertSocket
+// [sock][%p] InsertSocket: LocalAddr=%!ADDR! RemoteAddr=%!ADDR!
+// QuicTraceEvent(
+            InsertSocket,
+            "[sock][%p] InsertSocket: LocalAddr=%!ADDR! RemoteAddr=%!ADDR!",
+            Socket,
+            CASTED_CLOG_BYTEARRAY(sizeof(Socket->LocalAddress), &Socket->LocalAddress),
+            CASTED_CLOG_BYTEARRAY(sizeof(Socket->RemoteAddress), &Socket->RemoteAddress));
+// arg2 = arg2 = Socket = arg2
+// arg3 = arg3 = CASTED_CLOG_BYTEARRAY(sizeof(Socket->LocalAddress), &Socket->LocalAddress) = arg3
+// arg4 = arg4 = CASTED_CLOG_BYTEARRAY(sizeof(Socket->RemoteAddress), &Socket->RemoteAddress) = arg4
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_SOCKET_C, InsertSocket,
+    TP_ARGS(
+        const void *, arg2,
+        unsigned int, arg3_len,
+        const void *, arg3,
+        unsigned int, arg4_len,
+        const void *, arg4), 
+    TP_FIELDS(
+        ctf_integer_hex(uint64_t, arg2, arg2)
+        ctf_integer(unsigned int, arg3_len, arg3_len)
+        ctf_sequence(char, arg3, arg3, unsigned int, arg3_len)
+        ctf_integer(unsigned int, arg4_len, arg4_len)
+        ctf_sequence(char, arg4, arg4, unsigned int, arg4_len)
+    )
+)

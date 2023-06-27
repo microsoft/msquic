@@ -18,8 +18,9 @@
 #include <netinet/in.h>
 
 #define NUM_FRAMES         4096
-// #define FRAME_SIZE         XSK_UMEM__DEFAULT_FRAME_SIZE // should be smaller
-// #define RX_BATCH_SIZE      64
+#define CONS_NUM_DESCS     XSK_RING_CONS__DEFAULT_NUM_DESCS
+#define PROD_NUM_DESCS     XSK_RING_PROD__DEFAULT_NUM_DESCS
+#define FRAME_SIZE         XSK_UMEM__DEFAULT_FRAME_SIZE // TODO: 2K mode
 #define INVALID_UMEM_FRAME UINT64_MAX
 
 struct xsk_socket_info {
@@ -37,6 +38,8 @@ struct xsk_umem_info {
 	struct xsk_ring_cons cq;
 	struct xsk_umem *umem;
 	void *buffer;
+    uint32_t RxHeadRoom;
+    uint32_t TxHeadRoom;
 };
 
 typedef struct XDP_DATAPATH {
@@ -98,7 +101,7 @@ typedef struct XDP_QUEUE {
     // Move contended buffer pools to their own cache lines.
     // TODO: Use better (more scalable) buffer algorithms.
     // DECLSPEC_CACHEALIGN SLIST_HEADER RxPool;
-    // DECLSPEC_CACHEALIGN SLIST_HEADER TxPool;
+    CXPLAT_LIST_ENTRY TxPool;
 
     // Move TX queue to its own cache line.
     // DECLSPEC_CACHEALIGN
@@ -114,6 +117,7 @@ typedef struct __attribute__((aligned(64))) XDP_RX_PACKET {
     CXPLAT_RECV_DATA;
     CXPLAT_ROUTE RouteStorage;
     XDP_QUEUE* Queue;
+    uint64_t addr;
     // Followed by:
     // uint8_t ClientContext[...];
     // uint8_t FrameBuffer[MAX_ETH_FRAME_SIZE];

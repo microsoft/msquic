@@ -296,16 +296,13 @@ CxPlatDataPathPopulateTargetAddress(
         //
         // Is this a mapped ipv4 one?
         //
-
         SockAddrIn6 = (struct sockaddr_in6*)AddrInfo->ai_addr;
-
         if (Family == QUIC_ADDRESS_FAMILY_UNSPEC && IN6_IS_ADDR_V4MAPPED(&SockAddrIn6->sin6_addr)) {
             SockAddrIn = &Address->Ipv4;
 
             //
             // Get the ipv4 address from the mapped address.
             //
-
             SockAddrIn->sin_family = QUIC_ADDRESS_FAMILY_INET;
             memcpy(&SockAddrIn->sin_addr.s_addr, &SockAddrIn6->sin6_addr.s6_addr[12], 4);
             SockAddrIn->sin_port = SockAddrIn6->sin6_port;
@@ -447,9 +444,13 @@ CxPlatSocketCreateUdp(
             CXPLAT_FRE_ASSERT((*NewSocket)->Connected); // Assumes only connected sockets fully specify local address
         }
     } else {
-        QuicAddrSetFamily(&(*NewSocket)->LocalAddress, QUIC_ADDRESS_FAMILY_INET6);
         if (!(*NewSocket)->Connected) {
+            QuicAddrSetFamily(&(*NewSocket)->LocalAddress, QUIC_ADDRESS_FAMILY_INET6);
             (*NewSocket)->Wildcard = TRUE;
+        } else {
+            int oif = -1;
+            (*NewSocket)->LocalAddress.Ip.sa_family = (*NewSocket)->RemoteAddress.Ip.sa_family;
+            ResolveBestL3Route(&(*NewSocket)->RemoteAddress, &(*NewSocket)->LocalAddress, NULL, &oif);
         }
     }
 
@@ -615,14 +616,30 @@ CxPlatDpRawRxEthernet(
                         Packets[i]->BufferLength,
                         CASTED_CLOG_BYTEARRAY(sizeof(Packets[i]->Route->LocalAddress), &Packets[i]->Route->LocalAddress),
                         CASTED_CLOG_BYTEARRAY(sizeof(Packets[i]->Route->RemoteAddress), &Packets[i]->Route->RemoteAddress));
+                    QuicTraceEvent(
+                        DatapathRecvXdp,
+                        "[ xdp][%p] Recv %u bytes (segment=%hu) Src=%!ADDR! Dst=%!ADDR!",
+                        Socket,
+                        Packets[i]->BufferLength,
+                        Packets[i]->BufferLength,
+                        CASTED_CLOG_BYTEARRAY(sizeof(Packets[i]->Route->LocalAddress), &Packets[i]->Route->LocalAddress),
+                        CASTED_CLOG_BYTEARRAY(sizeof(Packets[i]->Route->RemoteAddress), &Packets[i]->Route->RemoteAddress));
                     if (i == PacketCount - 1 ||
                         Packets[i+1]->Reserved != SocketType ||
                         Packets[i+1]->Route->LocalAddress.Ipv4.sin_port != Socket->LocalAddress.Ipv4.sin_port ||
                         !CxPlatSocketCompare(Socket, &Packets[i+1]->Route->LocalAddress, &Packets[i+1]->Route->RemoteAddress)) {
+                        QuicTraceLogVerbose(
+                            XdpSkipOrEndofBuffer,
+                            "[ xdp] Skip or End of Buffer %d/%d",
+                            i, PacketCount);
                         break;
                     }
                     Packets[i]->Next = Packets[i+1];
                     CXPLAT_DBG_ASSERT(Packets[i+1]->Next == NULL);
+                    QuicTraceLogVerbose(
+                        XdpChainingBuffer,
+                        "[ xdp] Done chaining buffer %d/%d",
+                        i, PacketCount);
                     i++;
                 }
                 Datapath->UdpHandlers.Receive(Socket, Socket->CallbackContext, (CXPLAT_RECV_DATA*)PacketChain);
@@ -638,6 +655,29 @@ CxPlatDpRawRxEthernet(
 
             CxPlatRundownRelease(&Socket->Rundown);
         } else {
+            QuicTraceLogVerbose(
+                XdpSocketNotFound,
+                "[ xdp] Socket not found LocalAddr=%!ADDR! RemoteAddr=%!ADDR!",
+                CASTED_CLOG_BYTEARRAY(sizeof(PacketChain->Route->LocalAddress), &PacketChain->Route->LocalAddress),
+                CASTED_CLOG_BYTEARRAY(sizeof(PacketChain->Route->RemoteAddress), &PacketChain->Route->RemoteAddress));
+                CXPLAT_RECV_DATA* DatagramChain = Packets[i];
+                CXPLAT_RECV_DATA* Datagram;
+                while ((Datagram = DatagramChain) != NULL) {
+                    //
+                    // Remove the head.
+                    //
+                    DatagramChain = Datagram->Next;
+                    Datagram->Next = NULL;
+
+                    uint8_t* data = Datagram->Buffer;
+                    fprintf(stderr, "Socket not found::: Recv Payload[%d]\n", Datagram->BufferLength);
+                    for (int i = 0; i < 12; i+=3) {
+                        fprintf(stderr, "%02x %02x %02x\n", data[i], data[i+1], data[i+2]);
+                    }
+                    fprintf(stderr, "==========\n");
+                }
+
+
             CxPlatDpRawRxFree(PacketChain);
         }
     }
@@ -745,6 +785,13 @@ CxPlatSocketSend(
         Route->TcpState.AckNumber,
         TH_ACK);
     CxPlatDpRawTxEnqueue(SendData);
+    QuicTraceEvent(
+        DatapathSendXdp,
+        "[ xdp][%p] Send %u bytes Dst=%!ADDR!, Src=%!ADDR!",
+        Socket,
+        SendData->Buffer.Length,
+        CASTED_CLOG_BYTEARRAY(sizeof(Route->RemoteAddress), &Route->RemoteAddress),
+        CASTED_CLOG_BYTEARRAY(sizeof(Route->LocalAddress), &Route->LocalAddress));
     return QUIC_STATUS_SUCCESS;
 }
 

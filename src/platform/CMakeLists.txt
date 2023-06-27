@@ -48,7 +48,35 @@ else()
     message(FATAL_ERROR "TLS Provider not configured")
 endif()
 
+# include(ExternalProject)
+# ExternalProject_Add(libbpf
+#   PREFIX ${PROJECT_SOURCE_DIR}/src/platform/libbpf2
+#   SOURCE_DIR ${PROJECT_SOURCE_DIR}/src/platform/libbpf2/src
+#   CONFIGURE_COMMAND ""
+#   BUILD_IN_SOURCE 1
+#   BUILD_COMMAND make
+#   INSTALL_COMMAND ""
+#   BUILD_BYPRODUCTS ${PROJECT_SOURCE_DIR}/src/platform/libbpf2/src/libbpf.a
+# #   PREFIX ${PROJECT_SOURCE_DIR}/../libbpf-0.8.0
+# #   SOURCE_DIR ${PROJECT_SOURCE_DIR}/../libbpf-0.8.0/src
+# #   CONFIGURE_COMMAND ""
+# #   BUILD_IN_SOURCE 1
+# #   BUILD_COMMAND make
+# #   INSTALL_COMMAND ""
+# #   #BUILD_BYPRODUCTS ${PROJECT_SOURCE_DIR}/../libbpf-0.8.0/src/libbpf.a
+# )
+
+# find_package(ZLIB)
+
 add_library(platform STATIC ${SOURCES})
+# target_include_directories(platform PRIVATE /home/user/libbpf/include)
+# target_include_directories(platform PRIVATE /home/user/libbpf/include)
+# target_include_directories(platform PRIVATE ${PROJECT_SOURCE_DIR}/../libbpf-0.8.0/include)
+# add_dependencies(platform libbpf)
+# target_link_libraries(platform PRIVATE z)
+# target_link_libraries(platform PRIVATE ${PROJECT_SOURCE_DIR}/src/platform/libbpf2/src/libbpf.a)
+# target_link_libraries(platform PRIVATE ${PROJECT_SOURCE_DIR}/../libbpf-0.8.0/src/libbpf.so)
+# target_link_libraries(platform PRIVATE elf)
 
 if ("${CX_PLATFORM}" STREQUAL "windows")
     if (QUIC_USE_XDP)

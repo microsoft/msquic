@@ -48,6 +48,12 @@ CxPlatRemoveSocket(
     _In_ CXPLAT_SOCKET* Socket
     )
 {
+    QuicTraceEvent(
+        RemoveSocket,
+        "[sock][%p] RemoveSocket: LocalAddr=%!ADDR! RemoteAddr=%!ADDR!",
+        Socket,
+        CASTED_CLOG_BYTEARRAY(sizeof(Socket->LocalAddress), &Socket->LocalAddress),
+        CASTED_CLOG_BYTEARRAY(sizeof(Socket->RemoteAddress), &Socket->RemoteAddress));
     CxPlatRwLockAcquireExclusive(&Pool->Lock);
     CxPlatHashtableRemove(&Pool->Sockets, &Socket->Entry, NULL);
 
@@ -159,19 +165,20 @@ ResolveBestL3Route(
         }
     }
 
-    if (gw_addr != NULL) {
-        // Assume the address family is same as input address family
-        if (RemoteAddress->Ip.sa_family == AF_INET) {
-            memcpy(&(GatewayAddress->Ipv4.sin_addr), nl_addr_get_binary_addr(gw_addr), sizeof(struct in_addr));
-            GatewayAddress->Ipv4.sin_family = AF_INET;
+    if (GatewayAddress) {
+        if (gw_addr != NULL) {
+            // Assume the address family is same as input address family
+            if (RemoteAddress->Ip.sa_family == AF_INET) {
+                memcpy(&(GatewayAddress->Ipv4.sin_addr), nl_addr_get_binary_addr(gw_addr), sizeof(struct in_addr));
+                GatewayAddress->Ipv4.sin_family = AF_INET;
+            } else {
+                memcpy(&(GatewayAddress->Ipv6.sin6_addr), nl_addr_get_binary_addr(gw_addr), sizeof(struct in6_addr));
+                GatewayAddress->Ipv6.sin6_family = AF_INET6;
+            }
         } else {
-            memcpy(&(GatewayAddress->Ipv6.sin6_addr), nl_addr_get_binary_addr(gw_addr), sizeof(struct in6_addr));
-            GatewayAddress->Ipv6.sin6_family = AF_INET6;
+            memcpy(GatewayAddress, RemoteAddress, sizeof(QUIC_ADDR));
         }
-    } else {
-        memcpy(GatewayAddress, RemoteAddress, sizeof(QUIC_ADDR));
     }
-
 
 Error:
     // Clean up
@@ -308,6 +315,15 @@ CxPlatResolveRoute(
             "ResolveRemotePhysicalAddress");
         return Status;
     }
+    QuicTraceEvent(
+        DatapathResoveShow,
+        "[data][%p] Route resolution completed, local=%!ADDR!, remote=%!ADDR!, nexthop=%!ADDR!, iface=%d",
+        Socket,
+        CASTED_CLOG_BYTEARRAY(sizeof(Route->LocalAddress), &Route->LocalAddress),
+        CASTED_CLOG_BYTEARRAY(sizeof(Route->RemoteAddress), &Route->RemoteAddress),
+        CASTED_CLOG_BYTEARRAY(sizeof(NextHop), &NextHop),
+        oif);
+
     CxPlatResolveRouteComplete(Context, Route, Route->NextHopLinkLayerAddress, PathId);
 
     return Status;

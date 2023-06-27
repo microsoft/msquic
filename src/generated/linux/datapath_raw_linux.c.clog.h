@@ -14,6 +14,10 @@
 #include "datapath_raw_linux.c.clog.h.lttng.h"
 #endif
 #include <lttng/tracepoint-event.h>
+#ifndef _clog_MACRO_QuicTraceLogVerbose
+#define _clog_MACRO_QuicTraceLogVerbose  1
+#define QuicTraceLogVerbose(a, ...) _clog_CAT(_clog_ARGN_SELECTOR(__VA_ARGS__), _clog_CAT(_,a(#a, __VA_ARGS__)))
+#endif
 #ifndef _clog_MACRO_QuicTraceLogError
 #define _clog_MACRO_QuicTraceLogError  1
 #define QuicTraceLogError(a, ...) _clog_CAT(_clog_ARGN_SELECTOR(__VA_ARGS__), _clog_CAT(_,a(#a, __VA_ARGS__)))
@@ -25,6 +29,64 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
+/*----------------------------------------------------------
+// Decoder Ring for XdpSkipOrEndofBuffer
+// [ xdp] Skip or End of Buffer %d/%d
+// QuicTraceLogVerbose(
+                            XdpSkipOrEndofBuffer,
+                            "[ xdp] Skip or End of Buffer %d/%d",
+                            i, PacketCount);
+// arg2 = arg2 = i = arg2
+// arg3 = arg3 = PacketCount = arg3
+----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_XdpSkipOrEndofBuffer
+#define _clog_4_ARGS_TRACE_XdpSkipOrEndofBuffer(uniqueId, encoded_arg_string, arg2, arg3)\
+tracepoint(CLOG_DATAPATH_RAW_LINUX_C, XdpSkipOrEndofBuffer , arg2, arg3);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for XdpChainingBuffer
+// [ xdp] Done chaining buffer %d/%d
+// QuicTraceLogVerbose(
+                        XdpChainingBuffer,
+                        "[ xdp] Done chaining buffer %d/%d",
+                        i, PacketCount);
+// arg2 = arg2 = i = arg2
+// arg3 = arg3 = PacketCount = arg3
+----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_XdpChainingBuffer
+#define _clog_4_ARGS_TRACE_XdpChainingBuffer(uniqueId, encoded_arg_string, arg2, arg3)\
+tracepoint(CLOG_DATAPATH_RAW_LINUX_C, XdpChainingBuffer , arg2, arg3);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for XdpSocketNotFound
+// [ xdp] Socket not found LocalAddr=%!ADDR! RemoteAddr=%!ADDR!
+// QuicTraceLogVerbose(
+                XdpSocketNotFound,
+                "[ xdp] Socket not found LocalAddr=%!ADDR! RemoteAddr=%!ADDR!",
+                CASTED_CLOG_BYTEARRAY(sizeof(PacketChain->Route->LocalAddress), &PacketChain->Route->LocalAddress),
+                CASTED_CLOG_BYTEARRAY(sizeof(PacketChain->Route->RemoteAddress), &PacketChain->Route->RemoteAddress));
+// arg2 = arg2 = CASTED_CLOG_BYTEARRAY(sizeof(PacketChain->Route->LocalAddress), &PacketChain->Route->LocalAddress) = arg2
+// arg3 = arg3 = CASTED_CLOG_BYTEARRAY(sizeof(PacketChain->Route->RemoteAddress), &PacketChain->Route->RemoteAddress) = arg3
+----------------------------------------------------------*/
+#ifndef _clog_6_ARGS_TRACE_XdpSocketNotFound
+#define _clog_6_ARGS_TRACE_XdpSocketNotFound(uniqueId, encoded_arg_string, arg2, arg2_len, arg3, arg3_len)\
+tracepoint(CLOG_DATAPATH_RAW_LINUX_C, XdpSocketNotFound , arg2_len, arg2, arg3_len, arg3);\
+
+#endif
+
+
+
+
 /*----------------------------------------------------------
 // Decoder Ring for DatapathResolveHostNameFailed
 // [%p] Couldn't resolve hostname '%s' to an IP address
@@ -134,6 +196,32 @@ tracepoint(CLOG_DATAPATH_RAW_LINUX_C, DatapathRecv , arg2, arg3, arg4, arg5_len,
 
 
 /*----------------------------------------------------------
+// Decoder Ring for DatapathRecvXdp
+// [ xdp][%p] Recv %u bytes (segment=%hu) Src=%!ADDR! Dst=%!ADDR!
+// QuicTraceEvent(
+                        DatapathRecvXdp,
+                        "[ xdp][%p] Recv %u bytes (segment=%hu) Src=%!ADDR! Dst=%!ADDR!",
+                        Socket,
+                        Packets[i]->BufferLength,
+                        Packets[i]->BufferLength,
+                        CASTED_CLOG_BYTEARRAY(sizeof(Packets[i]->Route->LocalAddress), &Packets[i]->Route->LocalAddress),
+                        CASTED_CLOG_BYTEARRAY(sizeof(Packets[i]->Route->RemoteAddress), &Packets[i]->Route->RemoteAddress));
+// arg2 = arg2 = Socket = arg2
+// arg3 = arg3 = Packets[i]->BufferLength = arg3
+// arg4 = arg4 = Packets[i]->BufferLength = arg4
+// arg5 = arg5 = CASTED_CLOG_BYTEARRAY(sizeof(Packets[i]->Route->LocalAddress), &Packets[i]->Route->LocalAddress) = arg5
+// arg6 = arg6 = CASTED_CLOG_BYTEARRAY(sizeof(Packets[i]->Route->RemoteAddress), &Packets[i]->Route->RemoteAddress) = arg6
+----------------------------------------------------------*/
+#ifndef _clog_9_ARGS_TRACE_DatapathRecvXdp
+#define _clog_9_ARGS_TRACE_DatapathRecvXdp(uniqueId, encoded_arg_string, arg2, arg3, arg4, arg5, arg5_len, arg6, arg6_len)\
+tracepoint(CLOG_DATAPATH_RAW_LINUX_C, DatapathRecvXdp , arg2, arg3, arg4, arg5_len, arg5, arg6_len, arg6);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for DatapathSend
 // [data][%p] Send %u bytes in %hhu buffers (segment=%hu) Dst=%!ADDR!, Src=%!ADDR!
 // QuicTraceEvent(
@@ -155,6 +243,30 @@ tracepoint(CLOG_DATAPATH_RAW_LINUX_C, DatapathRecv , arg2, arg3, arg4, arg5_len,
 #ifndef _clog_10_ARGS_TRACE_DatapathSend
 #define _clog_10_ARGS_TRACE_DatapathSend(uniqueId, encoded_arg_string, arg2, arg3, arg4, arg5, arg6, arg6_len, arg7, arg7_len)\
 tracepoint(CLOG_DATAPATH_RAW_LINUX_C, DatapathSend , arg2, arg3, arg4, arg5, arg6_len, arg6, arg7_len, arg7);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for DatapathSendXdp
+// [ xdp][%p] Send %u bytes Dst=%!ADDR!, Src=%!ADDR!
+// QuicTraceEvent(
+        DatapathSendXdp,
+        "[ xdp][%p] Send %u bytes Dst=%!ADDR!, Src=%!ADDR!",
+        Socket,
+        SendData->Buffer.Length,
+        CASTED_CLOG_BYTEARRAY(sizeof(Route->RemoteAddress), &Route->RemoteAddress),
+        CASTED_CLOG_BYTEARRAY(sizeof(Route->LocalAddress), &Route->LocalAddress));
+// arg2 = arg2 = Socket = arg2
+// arg3 = arg3 = SendData->Buffer.Length = arg3
+// arg4 = arg4 = CASTED_CLOG_BYTEARRAY(sizeof(Route->RemoteAddress), &Route->RemoteAddress) = arg4
+// arg5 = arg5 = CASTED_CLOG_BYTEARRAY(sizeof(Route->LocalAddress), &Route->LocalAddress) = arg5
+----------------------------------------------------------*/
+#ifndef _clog_8_ARGS_TRACE_DatapathSendXdp
+#define _clog_8_ARGS_TRACE_DatapathSendXdp(uniqueId, encoded_arg_string, arg2, arg3, arg4, arg4_len, arg5, arg5_len)\
+tracepoint(CLOG_DATAPATH_RAW_LINUX_C, DatapathSendXdp , arg2, arg3, arg4_len, arg4, arg5_len, arg5);\
 
 #endif
 

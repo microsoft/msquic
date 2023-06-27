@@ -66,6 +66,7 @@ typedef struct CXPLAT_DATAPATH {
 typedef struct CXPLAT_INTERFACE {
     CXPLAT_LIST_ENTRY Link;
     uint32_t IfIndex; // TODO: IfName is convenient for Linux
+    struct bpf_object *BpfObj;
     uint8_t PhysicalAddress[ETH_MAC_ADDR_LEN];
     struct {
         struct {

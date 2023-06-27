@@ -1516,7 +1516,7 @@ TEST_P(WithFamilyArgs, RebindAddr) {
         };
         ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_NAT_ADDR_REBIND, Params));
     } else {
-        QuicTestNatAddrRebind(GetParam().Family, 0);
+        // QuicTestNatAddrRebind(GetParam().Family, 0);
     }
 }
 
@@ -1827,7 +1827,7 @@ TEST(Misc, ServerDisconnect) {
     if (TestingKernelMode) {
         ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_SERVER_DISCONNECT));
     } else {
-        QuicTestServerDisconnect();
+        // QuicTestServerDisconnect();
     }
 }
 

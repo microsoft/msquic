@@ -29,6 +29,14 @@
 #include <netlink/route/link.h>
 #include <netlink/route/neighbour.h>
 
+QUIC_STATUS
+ResolveBestL3Route(
+    QUIC_ADDR* RemoteAddress,
+    QUIC_ADDR* SourceAddress,
+    QUIC_ADDR* GatewayAddress,
+    int* oif
+    );
+
 typedef struct CXPLAT_ROUTE_RESOLUTION_OPERATION {
     //
     // Link in the worker's operation queue.
