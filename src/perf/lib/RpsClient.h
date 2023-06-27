@@ -60,6 +60,7 @@ struct RpsWorkerContext {
     CXPLAT_THREAD Thread;
     CXPLAT_EVENT WakeEvent;
     bool ThreadStarted {false};
+    uint16_t Processor {UINT16_MAX};
     uint32_t RequestCount {0};
     RpsWorkerContext() {
         CxPlatLockInitialize(&Lock);

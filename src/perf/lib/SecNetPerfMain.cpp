@@ -92,6 +92,8 @@ PrintHelp(
         "Server: secnetperf [options]\n"
         "\n"
         "  -bind:<addr>                A local IP address to bind to.\n"
+        "  -port:<####>                The UDP port of the server. Ignored if \"bind\" is passed. (def:%u)\n"
+        "  -serverid:<####>            The ID of the server (used for load balancing).\n"
         "  -cibir:<hex_bytes>          A CIBIR well-known idenfitier.\n"
         "\n"
         "Client: secnetperf -TestName:<Throughput|RPS|HPS> [options]\n"
@@ -105,8 +107,10 @@ PrintHelp(
         "  -cpu:<cpu_index>            Specify the processor(s) to use.\n"
         "  -cipher:<value>             Decimal value of 1 or more QUIC_ALLOWED_CIPHER_SUITE_FLAGS.\n"
         "  -qtip:<0/1>                 Enables/disables Quic over TCP support. (def:0)\n"
+        "  -rio:<0/1>                  Enables/disables RIO support. (def:0)\n"
 #endif // _KERNEL_MODE
-        "\n"
+        "\n",
+        PERF_DEFAULT_PORT
         );
 }
 
@@ -201,6 +205,12 @@ QuicMainStart(
     uint8_t QuicOverTcpEnabled;
     if (TryGetValue(argc, argv, "qtip", &QuicOverTcpEnabled)) {
         Config->Flags |= QUIC_EXECUTION_CONFIG_FLAG_QTIP;
+        SetConfig = true;
+    }
+
+    uint8_t RioEnabled;
+    if (TryGetValue(argc, argv, "rio", &RioEnabled)) {
+        Config->Flags |= QUIC_EXECUTION_CONFIG_FLAG_RIO;
         SetConfig = true;
     }
 

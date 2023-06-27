@@ -86,11 +86,14 @@ CxPlatProcessorInfoInit(
     SYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX* Info = NULL;
     uint32_t CurrentProcessorCount;
 
+    const uint32_t ActiveProcessorCount = CxPlatProcActiveCount();
     const uint32_t MaxProcessorCount = CxPlatProcMaxCount();
 
     CXPLAT_DBG_ASSERT(MaxProcessorCount > 0);
     CXPLAT_DBG_ASSERT(MaxProcessorCount <= UINT16_MAX);
-    CXPLAT_DBG_ASSERT(CxPlatProcessorInfo == NULL);
+    CXPLAT_DBG_ASSERT(ActiveProcessorCount > 0);
+    CXPLAT_DBG_ASSERT(ActiveProcessorCount <= MaxProcessorCount);
+    CXPLAT_FRE_ASSERT(CxPlatProcessorInfo == NULL);
     CxPlatProcessorInfo =
         CXPLAT_ALLOC_NONPAGED(
             MaxProcessorCount * sizeof(CXPLAT_PROCESSOR_INFO),
@@ -117,6 +120,7 @@ CxPlatProcessorInfoInit(
     CXPLAT_DBG_ASSERT(InfoLength != 0);
     CXPLAT_DBG_ASSERT(Info->Relationship == RelationGroup);
     CXPLAT_DBG_ASSERT(Info->Group.ActiveGroupCount != 0);
+    CXPLAT_DBG_ASSERT(Info->Group.ActiveGroupCount <= Info->Group.MaximumGroupCount);
     if (Info->Group.ActiveGroupCount == 0) {
         QuicTraceEvent(
             LibraryError,
@@ -127,9 +131,12 @@ CxPlatProcessorInfoInit(
     }
 
     QuicTraceLogInfo(
-        WindowsUserProcessorStateV2,
-        "[ dll] Processors:%u, Groups:%u",
-        MaxProcessorCount, (uint32_t)Info->Group.ActiveGroupCount);
+        WindowsUserProcessorStateV3,
+        "[ dll] Processors: (%u active, %u max), Groups: (%hu active, %hu max)",
+        ActiveProcessorCount,
+        MaxProcessorCount,
+        Info->Group.ActiveGroupCount,
+        Info->Group.MaximumGroupCount);
 
     CXPLAT_DBG_ASSERT(CxPlatProcessorGroupInfo == NULL);
     CxPlatProcessorGroupInfo =
@@ -160,11 +167,12 @@ CxPlatProcessorInfoInit(
                 CxPlatProcessorInfo[Proc].Group = Group;
                 CxPlatProcessorInfo[Proc].Index = (Proc - CxPlatProcessorGroupInfo[Group].Offset);
                 QuicTraceLogInfo(
-                    ProcessorInfo,
-                    "[ dll] Proc[%u] Group[%hu] Index[%u]",
+                    ProcessorInfoV2,
+                    "[ dll] Proc[%u] Group[%hu] Index[%u] Active=%hhu",
                     Proc,
-                    Group,
-                    CxPlatProcessorInfo[Proc].Index);
+                    (uint16_t)Group,
+                    CxPlatProcessorInfo[Proc].Index,
+                    (uint8_t)!!(CxPlatProcessorGroupInfo[Group].Mask & (1ULL << CxPlatProcessorInfo[Proc].Index)));
                 break;
             }
         }

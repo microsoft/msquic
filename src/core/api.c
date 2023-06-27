@@ -658,13 +658,7 @@ MsQuicStreamOpen(
         goto Error;
     }
 
-    Status =
-        QuicStreamInitialize(
-            Connection,
-            FALSE,
-            !!(Flags & QUIC_STREAM_OPEN_FLAG_UNIDIRECTIONAL),
-            !!(Flags & QUIC_STREAM_OPEN_FLAG_0_RTT),
-            (QUIC_STREAM**)NewStream);
+    Status = QuicStreamInitialize(Connection, FALSE, Flags, (QUIC_STREAM**)NewStream);
     if (QUIC_FAILED(Status)) {
         goto Error;
     }

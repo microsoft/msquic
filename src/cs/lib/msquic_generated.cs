@@ -151,6 +151,7 @@ namespace Microsoft.Quic
         NONE = 0x0000,
         UNIDIRECTIONAL = 0x0001,
         ZERO_RTT = 0x0002,
+        DELAY_ID_FC_UPDATES = 0x0004,
     }
 
     [System.Flags]
@@ -210,6 +211,7 @@ namespace Microsoft.Quic
     {
         NONE = 0x0000,
         QTIP = 0x0001,
+        RIO = 0x0002,
     }
 
     internal unsafe partial struct QUIC_EXECUTION_CONFIG

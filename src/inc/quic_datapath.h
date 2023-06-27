@@ -428,7 +428,17 @@ CxPlatDataPathInitialize(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 CxPlatDataPathUninitialize(
-    _In_ CXPLAT_DATAPATH* datapath
+    _In_ CXPLAT_DATAPATH* Datapath
+    );
+
+//
+// Updates the execution configuration of a datapath.
+//
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+CxPlatDataPathUpdateConfig(
+    _In_ CXPLAT_DATAPATH* Datapath,
+    _In_ QUIC_EXECUTION_CONFIG* Config
     );
 
 #define CXPLAT_DATAPATH_FEATURE_RECV_SIDE_SCALING     0x0001

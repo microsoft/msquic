@@ -226,6 +226,16 @@ CxPlatDataPathUninitializeComplete(
     CxPlatRundownRelease(&CxPlatWorkerRundown);
 }
 
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+CxPlatDataPathUpdateConfig(
+    _In_ CXPLAT_DATAPATH* Datapath,
+    _In_ QUIC_EXECUTION_CONFIG* Config
+    )
+{
+    CxPlatDpRawUpdateConfig(Datapath, Config);
+}
+
 _IRQL_requires_max_(DISPATCH_LEVEL)
 uint32_t
 CxPlatDataPathGetSupportedFeatures(
