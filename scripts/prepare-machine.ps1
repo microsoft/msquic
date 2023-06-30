@@ -189,6 +189,7 @@ $PfxPassword = ConvertTo-SecureString -String "placeholder" -Force -AsPlainText
 
 # Downloads and caches the latest version of the corenet-ci-main repo.
 function Download-CoreNet-Deps {
+    if (!$IsWindows) { return } # Windows only
     # Download and extract https://github.com/microsoft/corenet-ci.
     if ($Force) { rm -Force -Recurse $CoreNetCiPath -ErrorAction Ignore }
     if (!(Test-Path $CoreNetCiPath)) {
