@@ -179,6 +179,10 @@ jobs:
       with:
         name: ${{ matrix.vec.config }}-windows-${{ matrix.vec.os }}-${{ matrix.vec.arch }}-${{ matrix.vec.tls }}${{ matrix.vec.test }}
         path: artifacts
+    - name: Fix permissions for Unix
+      if: matrix.vec.plat == 'linux' || matrix.vec.plat == 'macos'
+      run: |
+        sudo chmod -R 777 artifacts
     - name: Prepare Machine
       shell: pwsh
       run: scripts/prepare-machine.ps1 -ForTest -ForKernel
