@@ -66,25 +66,6 @@ jobs:
       sanitize: ${{ matrix.vec.sanitize }}
       test: ${{ matrix.vec.test }}
 
-  build-windows-for-1es: # will be cleaned up after done
-    name: Build WinUser 1ES
-    strategy:
-      fail-fast: false
-      matrix:
-        vec: [
-          { config: "Debug", plat: "windows", os: "windows-2019", arch: "x64", tls: "openssl", test: "-Test" },
-        ]
-    uses: ./.github/workflows/build-reuse-win.yml
-    with:
-      config: ${{ matrix.vec.config }}
-      plat: ${{ matrix.vec.plat }}
-      os: ${{ matrix.vec.os }}
-      arch: ${{ matrix.vec.arch }}
-      tls: ${{ matrix.vec.tls }}
-      xdp: ${{ matrix.vec.xdp }}
-      sanitize: ${{ matrix.vec.sanitize }}
-      test: ${{ matrix.vec.test }}
-
   build-unix:
     name: Build Unix
     strategy:
@@ -179,9 +160,9 @@ jobs:
         name: ${{ matrix.vec.config }}-${{ matrix.vec.plat }}-${{ matrix.vec.os }}-${{ matrix.vec.arch }}-${{ matrix.vec.tls }}${{ matrix.vec.xdp }}${{ matrix.vec.qtip }}${{ matrix.vec.systemcrypto }}${{ matrix.vec.sanitize }}
         path: artifacts
 
-  bvt-winlatest: # will merge it with bvt job if 1es pool works
+  bvt-winlatest: # just try runner
     name: BVT 1ES
-    needs: [build-windows-for-1es]
+    needs: []
     strategy:
       fail-fast: false
       matrix:
@@ -196,43 +177,6 @@ jobs:
     - uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9
       with:
         fetch-depth: 0
-    - name: Download Build Artifacts
-      uses: actions/download-artifact@9bc31d5ccc31df68ecc42ccf4149144866c47d8a
-      if: matrix.vec.plat == 'windows'
-      with:
-        name: ${{ matrix.vec.config }}-${{ matrix.vec.plat }}-${{ matrix.vec.os }}-${{ matrix.vec.arch }}-${{ matrix.vec.tls }}${{ matrix.vec.xdp }}${{ matrix.vec.sanitize }}${{ matrix.vec.test }}
-        path: artifacts
-    - name: Download Build Artifacts
-      uses: actions/download-artifact@9bc31d5ccc31df68ecc42ccf4149144866c47d8a
-      if: matrix.vec.plat == 'linux'
-      with:
-        name: ${{ matrix.vec.config }}-${{ matrix.vec.plat }}-${{ matrix.vec.os }}-${{ matrix.vec.arch }}-${{ matrix.vec.tls }}${{ matrix.vec.systemcrypto }}${{ matrix.vec.sanitize }}${{ matrix.vec.test }}
-        path: artifacts
-    - name: Fix permissions for Unix
-      if: matrix.vec.plat == 'linux' || matrix.vec.plat == 'macos'
-      run: |
-        sudo chmod -R 777 artifacts
-    - name: Prepare Machine
-      run: scripts/prepare-machine.ps1 -Tls ${{ matrix.vec.tls }} -ForTest ${{ matrix.vec.xdp }}
-      shell: pwsh
-    - name: Install ETW Manifest
-      if: matrix.vec.plat == 'windows'
-      shell: pwsh
-      run: |
-        $MsQuicDll = ".\artifacts\bin\windows\${{ matrix.vec.arch }}_${{ matrix.vec.config }}_${{ matrix.vec.tls }}\msquic.dll"
-        $ManifestPath = ".\src\manifest\MsQuicEtw.man"
-        wevtutil.exe um $ManifestPath
-        wevtutil.exe im $ManifestPath /rf:$($MsQuicDll) /mf:$($MsQuicDll)
-    - name: Test
-      shell: pwsh
-      timeout-minutes: 120
-      run: scripts/test.ps1 -Config ${{ matrix.vec.config }} -Arch ${{ matrix.vec.arch }} -Tls ${{ matrix.vec.tls }} -OsRunner ${{ matrix.vec.os }} -GHA -LogProfile Full.Light -GenerateXmlResults ${{ matrix.vec.xdp }} ${{ matrix.vec.qtip }}
-    - name: Upload on Failure
-      uses: actions/upload-artifact@0b7f8abb1508181956e8e162db84b466c27e18ce
-      if: failure()
-      with:
-        name: ${{ matrix.vec.config }}-${{ matrix.vec.plat }}-${{ matrix.vec.os }}-${{ matrix.vec.arch }}-${{ matrix.vec.tls }}${{ matrix.vec.xdp }}${{ matrix.vec.qtip }}${{ matrix.vec.systemcrypto }}${{ matrix.vec.sanitize }}
-        path: artifacts
 
   bvt-kernel:
     name: BVT Kernel
