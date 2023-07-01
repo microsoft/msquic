@@ -66,6 +66,25 @@ jobs:
       sanitize: ${{ matrix.vec.sanitize }}
       test: ${{ matrix.vec.test }}
 
+  build-windows-for-1es: # will be cleaned up after done
+    name: Build WinUser 1ES
+    strategy:
+      fail-fast: false
+      matrix:
+        vec: [
+          { config: "Debug", plat: "windows", os: "windows-2019", arch: "x64", tls: "openssl", test: "-Test" },
+        ]
+    uses: ./.github/workflows/build-reuse-win.yml
+    with:
+      config: ${{ matrix.vec.config }}
+      plat: ${{ matrix.vec.plat }}
+      os: ${{ matrix.vec.os }}
+      arch: ${{ matrix.vec.arch }}
+      tls: ${{ matrix.vec.tls }}
+      xdp: ${{ matrix.vec.xdp }}
+      sanitize: ${{ matrix.vec.sanitize }}
+      test: ${{ matrix.vec.test }}
+
   build-unix:
     name: Build Unix
     strategy:
@@ -161,8 +180,8 @@ jobs:
         path: artifacts
 
   bvt-winlatest: # will merge it with bvt job if 1es pool works
-    name: BVT
-    needs: [build-windows]
+    name: BVT 1ES
+    needs: [build-windows-for-1es]
     strategy:
       fail-fast: false
       matrix:
@@ -172,7 +191,7 @@ jobs:
     runs-on:
      - self-hosted
      - "1ES.Pool=msquic-1es-pool"
-     - "1ES.ImageOverride=winlatest-server"
+     - "1ES.ImageOverride=WS2022"
     steps:
     - uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9
       with:
