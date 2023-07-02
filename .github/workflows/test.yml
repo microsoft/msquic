@@ -179,7 +179,7 @@ jobs:
         fetch-depth: 0
     - name: Install pwsh (Windows)
       if: matrix.vec.plat == 'windows'
-      run: iex "& { $ (irm https://aka.ms/install-powershell.ps1) } -UseMSI -Quiet"
+      run: iex "& { $(irm https://aka.ms/install-powershell.ps1) } -UseMSI -Quiet"
     - name: Download Build Artifacts
       uses: actions/download-artifact@9bc31d5ccc31df68ecc42ccf4149144866c47d8a
       if: matrix.vec.plat == 'windows'
