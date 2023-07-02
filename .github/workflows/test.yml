@@ -172,7 +172,7 @@ jobs:
     runs-on:
      - self-hosted
      - "1ES.Pool=msquic-1es-pool"
-     - "1ES.ImageOverride=WSLatestBase"
+     - "1ES.ImageOverride=WS2022Base"
     steps:
     - uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9
       with:
