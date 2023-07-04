@@ -34,6 +34,9 @@ jobs:
         static: ['', '-Static']
         xdp: ['', '-UseXdp']
         exclude:
+        # OpenSSL doesn't support arm64
+        - tls: openssl
+          arch: arm64
         # OpenSSL3 doesn't support arm64
         - tls: openssl3
           arch: arm64
@@ -229,6 +232,7 @@ jobs:
         name: Release-${{ matrix.vec.plat }}-windows-2022-x64-${{ matrix.vec.tls }}${{ matrix.vec.xdp }}
         path: artifacts
     - name: Download Build Artifacts
+      if: matrix.vec.tls != 'openssl' # opensll doesn't build with arm64.
       uses: actions/download-artifact@9bc31d5ccc31df68ecc42ccf4149144866c47d8a
       with:
         name: Release-${{ matrix.vec.plat }}-windows-2022-arm64-${{ matrix.vec.tls }}${{ matrix.vec.xdp }}
