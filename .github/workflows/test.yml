@@ -1,8 +1,5 @@
 name: Test
 
-# TODO for Windows Prerelease:
-# 1. CodeCoverage.
-
 on:
   workflow_dispatch:
   push:

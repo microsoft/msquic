@@ -100,7 +100,7 @@ jobs:
       main-repeat: 100
       main-allocfail: 100
       pr-timeout: 600000
-      pr-repeat: 2 # FIXUP to 20 before merge !!!!!!!!
+      pr-repeat: 20
       pr-allocfail: 100
     steps:
     - name: Checkout repository
