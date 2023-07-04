@@ -39,6 +39,9 @@ This script runs an executable and collects and logs or process dumps as necessa
 .Parameter AZP
     Runs in Azure Pipelines mode.
 
+.Parameter GHA
+    Runs in Github Workflow mode.
+
 #>
 
 param (
