@@ -158,7 +158,7 @@ jobs:
       with:
         name: Spin-Debug-windows-windows-2022-x64-schannel
         path: artifacts\coverage\windows\x64_Debug_schannel
-    - name: Dir Folder for Artifacts # remove after done
+    - name: Dir Folder for Artifacts
       shell: pwsh
       run: |
         dir artifacts\coverage\windows\x64_Debug_schannel
@@ -169,4 +169,29 @@ jobs:
       uses: actions/upload-artifact@0b7f8abb1508181956e8e162db84b466c27e18ce
       with:
         name: merged
-        path: artifacts/coverage/**/msquiccoverage.xml
+        path: artifacts\coverage\windows\x64_Debug_schannel\msquiccoverage.xml
+
+  publish-coverage:
+    name: Merge Coverage
+    needs: [merge-coverage]
+    runs-on: ubuntu-22.04
+    steps:
+    - uses: actions/download-artifact@9bc31d5ccc31df68ecc42ccf4149144866c47d8a
+      name: Download Merged Coverage Report
+      with:
+        name: merged
+    - name: Code Coverage Summary Report
+      uses: irongut/CodeCoverageSummary@v1.3.0
+      with:
+        filename: msquiccoverage.xml
+        badge: true
+        format: 'markdown'
+        output: 'both'
+    - name: Add Coverage PR Comment
+      uses: marocchino/sticky-pull-request-comment@v2
+      if: github.event_name == 'pull_request'
+      with:
+        recreate: true
+        path: code-coverage-results.md
+    - name: Write to Job Summary
+      run: cat code-coverage-results.md >> $GITHUB_STEP_SUMMARY
