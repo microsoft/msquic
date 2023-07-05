@@ -11,7 +11,7 @@ on:
     - main
     - release/*
 
-steps:
+jobs:
   build-packages:
     name: Generate Linux Packages
     needs: []
