@@ -289,9 +289,9 @@ jobs:
       fail-fast: false
       matrix:
         vec: [
-          { plat: "ios", tls: "openssl", arch: "x64" }, # iOS Simulator
-          { plat: "ios", tls: "openssl", arch: "arm64" },
-          { plat: "macos", tls: "openssl", arch: "universal" },
+          { config: "Release", plat: "ios", tls: "openssl", arch: "x64" }, # iOS Simulator
+          { config: "Release", plat: "ios", tls: "openssl", arch: "arm64" },
+          { config: "Release", plat: "macos", tls: "openssl", arch: "universal" },
         ]
     runs-on: macos-12
     steps:
@@ -306,11 +306,11 @@ jobs:
         path: artifacts
     - name: Build Framework
       shell: pwsh
-      run: scripts/package-darwin-framework.ps1 -Config Release -Platform ${{ matrix.vec.plat }} -Arch ${{ matrix.vec.arch }}
+      run: scripts/package-darwin-framework.ps1 -Config ${{ matrix.vec.config }} -Platform ${{ matrix.vec.plat }} -Arch ${{ matrix.vec.arch }}
     - name: Upload build artifacts
       uses: actions/upload-artifact@0b7f8abb1508181956e8e162db84b466c27e18ce
       with:
-        name: Framework-Release-${{ matrix.vec.plat }}-macos-12-${{ matrix.vec.arch }}-${{ matrix.vec.tls }}
+        name: Framework-${{ matrix.vec.config }}-${{ matrix.vec.plat }}-macos-12-${{ matrix.vec.arch }}-${{ matrix.vec.tls }}
         path: artifacts
 
   build-darwin-xcframework:
