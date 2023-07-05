@@ -80,7 +80,8 @@ jobs:
       with:
         name: ${{ inputs.config }}-linux-${{ inputs.os }}-${{ inputs.arch }}-${{ inputs.tls }}-UseSystemOpenSSLCrypto${{ inputs.sanitize }}${{ inputs.test }}
         path: artifacts
-    - script: |
+    - name: Extract binaries # they are tar'd to preserve permissions and symlinks.
+      run: |
         cd artifacts/bin/linux
         rm -rf */
         find -name "*.tar" -exec tar -xvf '{}' \;
