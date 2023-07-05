@@ -230,7 +230,6 @@ CxPlatDpRawParseIPv4(
     }
 
     uint16_t IPTotalLength = CxPlatByteSwapUint16(IP->TotalLength);
-    fprintf(stderr, "IPTotalLength:%d\n", IPTotalLength);
     if (Length < IPTotalLength) {
         QuicTraceEvent(
             DatapathErrorStatus,

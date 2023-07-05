@@ -2,6 +2,50 @@
 
 
 /*----------------------------------------------------------
+// Decoder Ring for XdpModeDowngrade
+// [ xdp][%p] Downgrading from DRV mode to SKB mode for interface:%s
+// QuicTraceLogVerbose(
+            XdpModeDowngrade,
+            "[ xdp][%p] Downgrading from DRV mode to SKB mode for interface:%s",
+            Interface, Interface->IfName);
+// arg2 = arg2 = Interface = arg2
+// arg3 = arg3 = Interface->IfName = arg3
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_LINUX_C, XdpModeDowngrade,
+    TP_ARGS(
+        const void *, arg2,
+        const char *, arg3), 
+    TP_FIELDS(
+        ctf_integer_hex(uint64_t, arg2, arg2)
+        ctf_string(arg3, arg3)
+    )
+)
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for XdpNotSupported
+// [ xdp][%p] Xdp is not supported on this interface:%s
+// QuicTraceLogVerbose(
+                XdpNotSupported,
+                "[ xdp][%p] Xdp is not supported on this interface:%s",
+                Interface, Interface->IfName);
+// arg2 = arg2 = Interface = arg2
+// arg3 = arg3 = Interface->IfName = arg3
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_LINUX_C, XdpNotSupported,
+    TP_ARGS(
+        const void *, arg2,
+        const char *, arg3), 
+    TP_FIELDS(
+        ctf_integer_hex(uint64_t, arg2, arg2)
+        ctf_string(arg3, arg3)
+    )
+)
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for InterfaceFree
 // [ xdp][%p] Freeing Interface
 // QuicTraceLogVerbose(
@@ -44,42 +88,113 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_LINUX_C, QueueFree,
 
 
 /*----------------------------------------------------------
-// Decoder Ring for QueueInit
-// [ xdp][%p] Setting up Queue on Interface:%p
+// Decoder Ring for XdpAllocUmem
+// [ xdp] Failed to allocate umem
 // QuicTraceLogVerbose(
-            QueueInit,
-            "[ xdp][%p] Setting up Queue on Interface:%p",
-            Queue,
-            Interface);
-// arg2 = arg2 = Queue = arg2
-// arg3 = arg3 = Interface = arg3
+            XdpAllocUmem,
+            "[ xdp] Failed to allocate umem");
 ----------------------------------------------------------*/
-TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_LINUX_C, QueueInit,
+TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_LINUX_C, XdpAllocUmem,
     TP_ARGS(
-        const void *, arg2,
-        const void *, arg3), 
+), 
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg2, arg2)
-        ctf_integer_hex(uint64_t, arg3, arg3)
     )
 )
 
 
 
 /*----------------------------------------------------------
-// Decoder Ring for InterfaceInit
-// [ xdp][%p] Interface init done
+// Decoder Ring for XdpLoadBpfObjectError
+// [ xdp] ERROR:, loading BPF-OBJ file:%s, %d: [%s].
 // QuicTraceLogVerbose(
-        InterfaceInit,
-        "[ xdp][%p] Interface init done",
-        Interface);
-// arg2 = arg2 = Interface = arg2
+            XdpLoadBpfObjectError,
+            "[ xdp] ERROR:, loading BPF-OBJ file:%s, %d: [%s].",
+            filename, err, strerror(-err));
+// arg2 = arg2 = filename = arg2
+// arg3 = arg3 = err = arg3
+// arg4 = arg4 = strerror(-err) = arg4
 ----------------------------------------------------------*/
-TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_LINUX_C, InterfaceInit,
+TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_LINUX_C, XdpLoadBpfObjectError,
     TP_ARGS(
-        const void *, arg2), 
+        const char *, arg2,
+        int, arg3,
+        const char *, arg4), 
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg2, arg2)
+        ctf_string(arg2, arg2)
+        ctf_integer(int, arg3, arg3)
+        ctf_string(arg4, arg4)
+    )
+)
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for XdpFindProbramSectionError
+// [ xdp] ERROR, finding program section '%s'
+// QuicTraceLogVerbose(
+            XdpFindProbramSectionError,
+            "[ xdp] ERROR, finding program section '%s'",
+            progsec);
+// arg2 = arg2 = progsec = arg2
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_LINUX_C, XdpFindProbramSectionError,
+    TP_ARGS(
+        const char *, arg2), 
+    TP_FIELDS(
+        ctf_string(arg2, arg2)
+    )
+)
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for XdpBypassMapError
+// [ xdp] Failed to open stack bypass map
+// QuicTraceLogVerbose(
+            XdpBypassMapError,
+            "[ xdp] Failed to open stack bypass map");
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_LINUX_C, XdpBypassMapError,
+    TP_ARGS(
+), 
+    TP_FIELDS(
+    )
+)
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for XdpConfigureUmem
+// [ xdp] Failed to configure Umem
+// QuicTraceLogVerbose(
+                XdpConfigureUmem,
+                "[ xdp] Failed to configure Umem");
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_LINUX_C, XdpConfigureUmem,
+    TP_ARGS(
+), 
+    TP_FIELDS(
+    )
+)
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for XdpSocketCreate
+// [ xdp] Failed to create AF_XDP socket. ret:%d errno:%d
+// QuicTraceLogVerbose(
+                XdpSocketCreate,
+                "[ xdp] Failed to create AF_XDP socket. ret:%d errno:%d", ret, errno);
+// arg2 = arg2 = ret = arg2
+// arg3 = arg3 = errno = arg3
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_LINUX_C, XdpSocketCreate,
+    TP_ARGS(
+        int, arg2,
+        int, arg3), 
+    TP_FIELDS(
+        ctf_integer(int, arg2, arg2)
+        ctf_integer(int, arg3, arg3)
     )
 )
 
@@ -189,13 +304,45 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_LINUX_C, XdpUninitialize,
 
 
 /*----------------------------------------------------------
+// Decoder Ring for FailTxAlloc
+// [ xdp][tx  ] OOM for Tx
+// QuicTraceLogVerbose(
+            FailTxAlloc,
+            "[ xdp][tx  ] OOM for Tx");
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_LINUX_C, FailTxAlloc,
+    TP_ARGS(
+), 
+    TP_FIELDS(
+    )
+)
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for FailTxReserve
+// [ xdp][tx  ] Failed to reserve
+// QuicTraceLogVerbose(
+            FailTxReserve,
+            "[ xdp][tx  ] Failed to reserve");
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_LINUX_C, FailTxReserve,
+    TP_ARGS(
+), 
+    TP_FIELDS(
+    )
+)
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for FailSendTo
 // [ xdp][tx  ] Faild sendto. errno:%d, Umem addr:%lld
 // QuicTraceLogVerbose(
             FailSendTo,
-            "[ xdp][tx  ] Faild sendto. errno:%d, Umem addr:%lld", er, Packet->tx_desc->addr);
+            "[ xdp][tx  ] Faild sendto. errno:%d, Umem addr:%lld", er, tx_desc->addr);
 // arg2 = arg2 = er = arg2
-// arg3 = arg3 = Packet->tx_desc->addr = arg3
+// arg3 = arg3 = tx_desc->addr = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_LINUX_C, FailSendTo,
     TP_ARGS(
@@ -214,9 +361,9 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_LINUX_C, FailSendTo,
 // [ xdp][TX  ] Done sendto. len:%d, Umem addr:%lld
 // QuicTraceLogVerbose(
             DoneSendTo,
-            "[ xdp][TX  ] Done sendto. len:%d, Umem addr:%lld", SendData->Buffer.Length, Packet->tx_desc->addr);
+            "[ xdp][TX  ] Done sendto. len:%d, Umem addr:%lld", SendData->Buffer.Length, tx_desc->addr);
 // arg2 = arg2 = SendData->Buffer.Length = arg2
-// arg3 = arg3 = Packet->tx_desc->addr = arg3
+// arg3 = arg3 = tx_desc->addr = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_LINUX_C, DoneSendTo,
     TP_ARGS(
@@ -235,33 +382,14 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_LINUX_C, DoneSendTo,
 // [ xdp][cq  ] Release %d from completion queue
 // QuicTraceLogVerbose(
             ReleaseCons,
-            "[ xdp][cq  ] Release %d from completion queue", completed);
-// arg2 = arg2 = completed = arg2
+            "[ xdp][cq  ] Release %d from completion queue", Completed);
+// arg2 = arg2 = Completed = arg2
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_LINUX_C, ReleaseCons,
     TP_ARGS(
         int, arg2), 
     TP_FIELDS(
         ctf_integer(int, arg2, arg2)
-    )
-)
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for XdpWorkerShutdown
-// [ xdp][%p] XDP worker shutdown
-// QuicTraceLogVerbose(
-            XdpWorkerShutdown,
-            "[ xdp][%p] XDP worker shutdown",
-            Worker);
-// arg2 = arg2 = Worker = arg2
-----------------------------------------------------------*/
-TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_LINUX_C, XdpWorkerShutdown,
-    TP_ARGS(
-        const void *, arg2), 
-    TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg2, arg2)
     )
 )
 
@@ -288,55 +416,14 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_LINUX_C, RxConsPeekFail,
 // [ xdp][rx  ] Succeed peek %d from Rx queue
 // QuicTraceLogVerbose(
             RxConsPeekSucceed,
-            "[ xdp][rx  ] Succeed peek %d from Rx queue", rcvd);
-// arg2 = arg2 = rcvd = arg2
+            "[ xdp][rx  ] Succeed peek %d from Rx queue", Rcvd);
+// arg2 = arg2 = Rcvd = arg2
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_LINUX_C, RxConsPeekSucceed,
     TP_ARGS(
         int, arg2), 
     TP_FIELDS(
         ctf_integer(int, arg2, arg2)
-    )
-)
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for XdpRxRelease
-// [ xdp][%p] Release %d from Rx queue (TODO:Check necesity here)
-// QuicTraceLogVerbose(
-            XdpRxRelease,
-            "[ xdp][%p] Release %d from Rx queue (TODO:Check necesity here)",
-            Queue, rcvd);
-// arg2 = arg2 = Queue = arg2
-// arg3 = arg3 = rcvd = arg3
-----------------------------------------------------------*/
-TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_LINUX_C, XdpRxRelease,
-    TP_ARGS(
-        const void *, arg2,
-        int, arg3), 
-    TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg2, arg2)
-        ctf_integer(int, arg3, arg3)
-    )
-)
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for XdpWorkerShutdownComplete
-// [ xdp][%p] XDP worker shutdown complete
-// QuicTraceLogVerbose(
-            XdpWorkerShutdownComplete,
-            "[ xdp][%p] XDP worker shutdown complete",
-            Worker);
-// arg2 = arg2 = Worker = arg2
-----------------------------------------------------------*/
-TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_LINUX_C, XdpWorkerShutdownComplete,
-    TP_ARGS(
-        const void *, arg2), 
-    TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg2, arg2)
     )
 )
 
@@ -362,6 +449,29 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_LINUX_C, XdpQueueAsyncIoRxComplete,
 
 
 /*----------------------------------------------------------
+// Decoder Ring for LibraryErrorStatus
+// [ lib] ERROR, %u, %s.
+// QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            Status,
+            "CxPlatGetInterfaceRssQueueCount");
+// arg2 = arg2 = Status = arg2
+// arg3 = arg3 = "CxPlatGetInterfaceRssQueueCount" = arg3
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_LINUX_C, LibraryErrorStatus,
+    TP_ARGS(
+        unsigned int, arg2,
+        const char *, arg3), 
+    TP_FIELDS(
+        ctf_integer(unsigned int, arg2, arg2)
+        ctf_string(arg3, arg3)
+    )
+)
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for AllocFailure
 // Allocation of '%s' failed. (%llu bytes)
 // QuicTraceEvent(
@@ -379,29 +489,6 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_LINUX_C, AllocFailure,
     TP_FIELDS(
         ctf_string(arg2, arg2)
         ctf_integer(uint64_t, arg3, arg3)
-    )
-)
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for LibraryErrorStatus
-// [ lib] ERROR, %u, %s.
-// QuicTraceEvent(
-                    LibraryErrorStatus,
-                    "[ lib] ERROR, %u, %s.",
-                    Status,
-                    "CxPlatDpRawInterfaceInitialize");
-// arg2 = arg2 = Status = arg2
-// arg3 = arg3 = "CxPlatDpRawInterfaceInitialize" = arg3
-----------------------------------------------------------*/
-TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_LINUX_C, LibraryErrorStatus,
-    TP_ARGS(
-        unsigned int, arg2,
-        const char *, arg3), 
-    TP_FIELDS(
-        ctf_integer(unsigned int, arg2, arg2)
-        ctf_string(arg3, arg3)
     )
 )
 

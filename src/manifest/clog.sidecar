@@ -4247,6 +4247,20 @@
       ],
       "macroName": "QuicTraceLogVerbose"
     },
+    "FailTxAlloc": {
+      "ModuleProperites": {},
+      "TraceString": "[ xdp][tx  ] OOM for Tx",
+      "UniqueId": "FailTxAlloc",
+      "splitArgs": [],
+      "macroName": "QuicTraceLogVerbose"
+    },
+    "FailTxReserve": {
+      "ModuleProperites": {},
+      "TraceString": "[ xdp][tx  ] Failed to reserve",
+      "UniqueId": "FailTxReserve",
+      "splitArgs": [],
+      "macroName": "QuicTraceLogVerbose"
+    },
     "FirstCidUsage": {
       "ModuleProperites": {},
       "TraceString": "[conn][%p] First usage of SrcCid: %s",
@@ -11966,6 +11980,20 @@
       ],
       "macroName": "QuicTraceEvent"
     },
+    "XdpAllocUmem": {
+      "ModuleProperites": {},
+      "TraceString": "[ xdp] Failed to allocate umem",
+      "UniqueId": "XdpAllocUmem",
+      "splitArgs": [],
+      "macroName": "QuicTraceLogVerbose"
+    },
+    "XdpBypassMapError": {
+      "ModuleProperites": {},
+      "TraceString": "[ xdp] Failed to open stack bypass map",
+      "UniqueId": "XdpBypassMapError",
+      "splitArgs": [],
+      "macroName": "QuicTraceLogVerbose"
+    },
     "XdpChainingBuffer": {
       "ModuleProperites": {},
       "TraceString": "[ xdp] Done chaining buffer %d/%d",
@@ -11982,6 +12010,25 @@
       ],
       "macroName": "QuicTraceLogVerbose"
     },
+    "XdpConfigureUmem": {
+      "ModuleProperites": {},
+      "TraceString": "[ xdp] Failed to configure Umem",
+      "UniqueId": "XdpConfigureUmem",
+      "splitArgs": [],
+      "macroName": "QuicTraceLogVerbose"
+    },
+    "XdpFindProbramSectionError": {
+      "ModuleProperites": {},
+      "TraceString": "[ xdp] ERROR, finding program section '%s'",
+      "UniqueId": "XdpFindProbramSectionError",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "s",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceLogVerbose"
+    },
     "XdpInitialize": {
       "ModuleProperites": {},
       "TraceString": "[ xdp][%p] XDP initialized, %u procs",
@@ -11993,6 +12040,58 @@
         },
         {
           "DefinationEncoding": "u",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macroName": "QuicTraceLogVerbose"
+    },
+    "XdpLoadBpfObjectError": {
+      "ModuleProperites": {},
+      "TraceString": "[ xdp] ERROR:, loading BPF-OBJ file:%s, %d: [%s].",
+      "UniqueId": "XdpLoadBpfObjectError",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "s",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "d",
+          "MacroVariableName": "arg3"
+        },
+        {
+          "DefinationEncoding": "s",
+          "MacroVariableName": "arg4"
+        }
+      ],
+      "macroName": "QuicTraceLogVerbose"
+    },
+    "XdpModeDowngrade": {
+      "ModuleProperites": {},
+      "TraceString": "[ xdp][%p] Downgrading from DRV mode to SKB mode for interface:%s",
+      "UniqueId": "XdpModeDowngrade",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "s",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macroName": "QuicTraceLogVerbose"
+    },
+    "XdpNotSupported": {
+      "ModuleProperites": {},
+      "TraceString": "[ xdp][%p] Xdp is not supported on this interface:%s",
+      "UniqueId": "XdpNotSupported",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "s",
           "MacroVariableName": "arg3"
         }
       ],
@@ -12094,6 +12193,22 @@
       "ModuleProperites": {},
       "TraceString": "[ xdp] Skip or End of Buffer %d/%d",
       "UniqueId": "XdpSkipOrEndofBuffer",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "d",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "d",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macroName": "QuicTraceLogVerbose"
+    },
+    "XdpSocketCreate": {
+      "ModuleProperites": {},
+      "TraceString": "[ xdp] Failed to create AF_XDP socket. ret:%d errno:%d",
+      "UniqueId": "XdpSocketCreate",
       "splitArgs": [
         {
           "DefinationEncoding": "d",
@@ -14043,6 +14158,16 @@
         "UniquenessHash": "eff0bf3a-6d97-e11d-d4a2-543e2e480bdb",
         "TraceID": "FailSendTo",
         "EncodingString": "[ xdp][tx  ] Faild sendto. errno:%d, Umem addr:%lld"
+      },
+      {
+        "UniquenessHash": "f0f39cc3-a21d-f843-1018-5901295b6a1a",
+        "TraceID": "FailTxAlloc",
+        "EncodingString": "[ xdp][tx  ] OOM for Tx"
+      },
+      {
+        "UniquenessHash": "6fba1f73-1c29-c558-b9dc-99730e6b81e8",
+        "TraceID": "FailTxReserve",
+        "EncodingString": "[ xdp][tx  ] Failed to reserve"
       },
       {
         "UniquenessHash": "5e023c07-7bc3-8b2f-76d0-4a38701cef2d",
@@ -16495,14 +16620,49 @@
         "EncodingString": "[wrkr][%p] Stop"
       },
       {
+        "UniquenessHash": "74a183ad-8127-dae1-2d4a-c7e24d8b2e0b",
+        "TraceID": "XdpAllocUmem",
+        "EncodingString": "[ xdp] Failed to allocate umem"
+      },
+      {
+        "UniquenessHash": "d437d3dd-3834-5c47-d972-1a1d8c08ccd8",
+        "TraceID": "XdpBypassMapError",
+        "EncodingString": "[ xdp] Failed to open stack bypass map"
+      },
+      {
         "UniquenessHash": "0376ea53-71bd-561b-8a1d-76beca2d2c12",
         "TraceID": "XdpChainingBuffer",
         "EncodingString": "[ xdp] Done chaining buffer %d/%d"
       },
       {
+        "UniquenessHash": "bd03227b-bb34-4f00-287c-14b7b8948404",
+        "TraceID": "XdpConfigureUmem",
+        "EncodingString": "[ xdp] Failed to configure Umem"
+      },
+      {
+        "UniquenessHash": "85daf4dc-93cf-8f55-f583-c708356db354",
+        "TraceID": "XdpFindProbramSectionError",
+        "EncodingString": "[ xdp] ERROR, finding program section '%s'"
+      },
+      {
         "UniquenessHash": "0a2db04c-0b5e-388d-18a0-2842ccb8d3ed",
         "TraceID": "XdpInitialize",
         "EncodingString": "[ xdp][%p] XDP initialized, %u procs"
+      },
+      {
+        "UniquenessHash": "83b58d1d-bb4b-653f-d379-3631b103ed34",
+        "TraceID": "XdpLoadBpfObjectError",
+        "EncodingString": "[ xdp] ERROR:, loading BPF-OBJ file:%s, %d: [%s]."
+      },
+      {
+        "UniquenessHash": "35b81be4-4ed1-ea3e-5c07-8f184e975d2f",
+        "TraceID": "XdpModeDowngrade",
+        "EncodingString": "[ xdp][%p] Downgrading from DRV mode to SKB mode for interface:%s"
+      },
+      {
+        "UniquenessHash": "6a5bfc6f-444f-4971-09f2-49a362ebac82",
+        "TraceID": "XdpNotSupported",
+        "EncodingString": "[ xdp][%p] Xdp is not supported on this interface:%s"
       },
       {
         "UniquenessHash": "52b68524-d920-65c2-30d5-1a36e30a3532",
@@ -16543,6 +16703,11 @@
         "UniquenessHash": "2bcd0dff-21b9-c403-d43c-d997d9a6ec6d",
         "TraceID": "XdpSkipOrEndofBuffer",
         "EncodingString": "[ xdp] Skip or End of Buffer %d/%d"
+      },
+      {
+        "UniquenessHash": "603ba4f2-6ee1-96ee-fb08-ae3c1f0c446b",
+        "TraceID": "XdpSocketCreate",
+        "EncodingString": "[ xdp] Failed to create AF_XDP socket. ret:%d errno:%d"
       },
       {
         "UniquenessHash": "51039a96-82fb-435b-957c-2af13dab2dc7",

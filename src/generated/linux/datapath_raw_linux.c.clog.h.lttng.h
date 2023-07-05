@@ -2,77 +2,6 @@
 
 
 /*----------------------------------------------------------
-// Decoder Ring for XdpSkipOrEndofBuffer
-// [ xdp] Skip or End of Buffer %d/%d
-// QuicTraceLogVerbose(
-                            XdpSkipOrEndofBuffer,
-                            "[ xdp] Skip or End of Buffer %d/%d",
-                            i, PacketCount);
-// arg2 = arg2 = i = arg2
-// arg3 = arg3 = PacketCount = arg3
-----------------------------------------------------------*/
-TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_LINUX_C, XdpSkipOrEndofBuffer,
-    TP_ARGS(
-        int, arg2,
-        int, arg3), 
-    TP_FIELDS(
-        ctf_integer(int, arg2, arg2)
-        ctf_integer(int, arg3, arg3)
-    )
-)
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for XdpChainingBuffer
-// [ xdp] Done chaining buffer %d/%d
-// QuicTraceLogVerbose(
-                        XdpChainingBuffer,
-                        "[ xdp] Done chaining buffer %d/%d",
-                        i, PacketCount);
-// arg2 = arg2 = i = arg2
-// arg3 = arg3 = PacketCount = arg3
-----------------------------------------------------------*/
-TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_LINUX_C, XdpChainingBuffer,
-    TP_ARGS(
-        int, arg2,
-        int, arg3), 
-    TP_FIELDS(
-        ctf_integer(int, arg2, arg2)
-        ctf_integer(int, arg3, arg3)
-    )
-)
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for XdpSocketNotFound
-// [ xdp] Socket not found LocalAddr=%!ADDR! RemoteAddr=%!ADDR!
-// QuicTraceLogVerbose(
-                XdpSocketNotFound,
-                "[ xdp] Socket not found LocalAddr=%!ADDR! RemoteAddr=%!ADDR!",
-                CASTED_CLOG_BYTEARRAY(sizeof(PacketChain->Route->LocalAddress), &PacketChain->Route->LocalAddress),
-                CASTED_CLOG_BYTEARRAY(sizeof(PacketChain->Route->RemoteAddress), &PacketChain->Route->RemoteAddress));
-// arg2 = arg2 = CASTED_CLOG_BYTEARRAY(sizeof(PacketChain->Route->LocalAddress), &PacketChain->Route->LocalAddress) = arg2
-// arg3 = arg3 = CASTED_CLOG_BYTEARRAY(sizeof(PacketChain->Route->RemoteAddress), &PacketChain->Route->RemoteAddress) = arg3
-----------------------------------------------------------*/
-TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_LINUX_C, XdpSocketNotFound,
-    TP_ARGS(
-        unsigned int, arg2_len,
-        const void *, arg2,
-        unsigned int, arg3_len,
-        const void *, arg3), 
-    TP_FIELDS(
-        ctf_integer(unsigned int, arg2_len, arg2_len)
-        ctf_sequence(char, arg2, arg2, unsigned int, arg2_len)
-        ctf_integer(unsigned int, arg3_len, arg3_len)
-        ctf_sequence(char, arg3, arg3, unsigned int, arg3_len)
-    )
-)
-
-
-
-/*----------------------------------------------------------
 // Decoder Ring for DatapathResolveHostNameFailed
 // [%p] Couldn't resolve hostname '%s' to an IP address
 // QuicTraceLogError(
@@ -288,40 +217,5 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_LINUX_C, DatapathSend,
         ctf_sequence(char, arg6, arg6, unsigned int, arg6_len)
         ctf_integer(unsigned int, arg7_len, arg7_len)
         ctf_sequence(char, arg7, arg7, unsigned int, arg7_len)
-    )
-)
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for DatapathSendXdp
-// [ xdp][%p] Send %u bytes Dst=%!ADDR!, Src=%!ADDR!
-// QuicTraceEvent(
-        DatapathSendXdp,
-        "[ xdp][%p] Send %u bytes Dst=%!ADDR!, Src=%!ADDR!",
-        Socket,
-        SendData->Buffer.Length,
-        CASTED_CLOG_BYTEARRAY(sizeof(Route->RemoteAddress), &Route->RemoteAddress),
-        CASTED_CLOG_BYTEARRAY(sizeof(Route->LocalAddress), &Route->LocalAddress));
-// arg2 = arg2 = Socket = arg2
-// arg3 = arg3 = SendData->Buffer.Length = arg3
-// arg4 = arg4 = CASTED_CLOG_BYTEARRAY(sizeof(Route->RemoteAddress), &Route->RemoteAddress) = arg4
-// arg5 = arg5 = CASTED_CLOG_BYTEARRAY(sizeof(Route->LocalAddress), &Route->LocalAddress) = arg5
-----------------------------------------------------------*/
-TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_LINUX_C, DatapathSendXdp,
-    TP_ARGS(
-        const void *, arg2,
-        unsigned int, arg3,
-        unsigned int, arg4_len,
-        const void *, arg4,
-        unsigned int, arg5_len,
-        const void *, arg5), 
-    TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg2, arg2)
-        ctf_integer(unsigned int, arg3, arg3)
-        ctf_integer(unsigned int, arg4_len, arg4_len)
-        ctf_sequence(char, arg4, arg4, unsigned int, arg4_len)
-        ctf_integer(unsigned int, arg5_len, arg5_len)
-        ctf_sequence(char, arg5, arg5, unsigned int, arg5_len)
     )
 )

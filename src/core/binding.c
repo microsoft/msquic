@@ -1653,22 +1653,11 @@ QuicBindingReceive(
 
         CXPLAT_RECV_PACKET* Packet =
             CxPlatDataPathRecvDataToRecvPacket(Datagram);
-        uint8_t* data = Datagram->Buffer;
-        fprintf(stderr, "Recv Payload[%d]\n", Datagram->BufferLength);
-        for (int i = 0; i < 12; i+=3) {
-            fprintf(stderr, "%02x %02x %02x\n", data[i], data[i+1], data[i+2]);
-        }
-        fprintf(stderr, "==========\n");
         CxPlatZeroMemory(Packet, sizeof(CXPLAT_RECV_PACKET));
         Packet->PacketId =
             ProcShifted | InterlockedIncrement64((int64_t*)&MsQuicLib.PerProc[Proc].ReceivePacketId);
-        Packet->Buffer = Datagram->Buffer; // HERE!!, RECEIVE-PROCESS order becomes stack?
+        Packet->Buffer = Datagram->Buffer;
         Packet->BufferLength = Datagram->BufferLength;
-        fprintf(stderr, "Recv Payload[%d] Packet->IsLongHeader == %d\n", Packet->BufferLength, Packet->Invariant->IsLongHeader);
-        for (int i = 0; i < 12; i+=3) {
-            fprintf(stderr, "%02x %02x %02x\n", data[i], data[i+1], data[i+2]);
-        }
-        fprintf(stderr, "==========\n");
 
         CXPLAT_DBG_ASSERT(Packet->PacketId != 0);
         QuicTraceEvent(

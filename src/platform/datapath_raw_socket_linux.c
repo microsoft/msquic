@@ -48,12 +48,6 @@ CxPlatRemoveSocket(
     _In_ CXPLAT_SOCKET* Socket
     )
 {
-    QuicTraceEvent(
-        RemoveSocket,
-        "[sock][%p] RemoveSocket: LocalAddr=%!ADDR! RemoteAddr=%!ADDR!",
-        Socket,
-        CASTED_CLOG_BYTEARRAY(sizeof(Socket->LocalAddress), &Socket->LocalAddress),
-        CASTED_CLOG_BYTEARRAY(sizeof(Socket->RemoteAddress), &Socket->RemoteAddress));
     CxPlatRwLockAcquireExclusive(&Pool->Lock);
     CxPlatHashtableRemove(&Pool->Sockets, &Socket->Entry, NULL);
 
@@ -183,7 +177,7 @@ ResolveBestL3Route(
 Error:
     // Clean up
     nl_addr_put(dst);
-    nl_cache_free(cache);
+    nl_cache_free(cache); // TODO: reuse cache
     nl_close(sock);
     nl_socket_free(sock);
 
@@ -250,7 +244,7 @@ ResolveRemotePhysicalAddress(
     nl_cache_foreach(cache, FindBestMacthL2, &data);
 
     // Free up memory
-    nl_cache_free(cache);
+    nl_cache_free(cache); // TODO: reuse cache
     nl_socket_free(sock);
 
     return Status;
@@ -282,6 +276,7 @@ CxPlatResolveRoute(
 
     QUIC_ADDR NextHop = {0};
     int oif = -1;
+    // get best next hop
     Status = ResolveBestL3Route(&Route->RemoteAddress, &Route->LocalAddress, &NextHop, &oif);
     if (QUIC_FAILED(Status)) {
         QuicTraceEvent(
@@ -305,6 +300,7 @@ CxPlatResolveRoute(
         }
     }
 
+    // get remote mac
     Status = ResolveRemotePhysicalAddress(&NextHop, Route->NextHopLinkLayerAddress);
     if (QUIC_FAILED(Status)) {
         QuicTraceEvent(

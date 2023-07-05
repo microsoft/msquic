@@ -105,8 +105,7 @@ CxPlatSystemLoad(
     //
     CxPlatProcessorCount = 1;
 #else
-    CxPlatProcessorCount = 1;
-    // CxPlatProcessorCount = (uint32_t)sysconf(_SC_NPROCESSORS_ONLN);
+    CxPlatProcessorCount = (uint32_t)sysconf(_SC_NPROCESSORS_ONLN);
 #endif
 
 #ifdef CXPLAT_NUMA_AWARE
