@@ -38,10 +38,6 @@ on:
         required: false
         default: ''
         type: string
-      systemcrypto:
-        required: false
-        default: ''
-        type: string
       clang:
         required: false
         default: ''
@@ -54,7 +50,7 @@ on:
 permissions: read-all
 
 jobs:
-  call-build-unix-reuse:
+  build-unix-reuse:
     needs: []
     uses: ./.github/workflows/build-reuse-unix.yml
     with:
@@ -63,14 +59,13 @@ jobs:
       arch: ${{ inputs.arch }}
       tls: ${{ inputs.tls }}
       static: ${{ inputs.static }}
-      systemcrypto: ${{ inputs.systemcrypto }}
+      systemcrypto: '-UseSystemOpenSSLCrypto' # packages must use libcrypto on system
       clang: ${{ inputs.clang }}
-      sanitize: ${{ inputs.sanitize }}
       test: ${{ inputs.test }}
   
   package:
     name: Package
-    needs: [call-build-unix-reuse]
+    needs: [build-unix-reuse]
     runs-on: ubuntu-22.04
     steps:
     - name: Checkout repository
@@ -83,13 +78,17 @@ jobs:
     - name: Download Build Artifacts
       uses: actions/download-artifact@9bc31d5ccc31df68ecc42ccf4149144866c47d8a
       with:
-        name: ${{ inputs.config }}-linux-${{ inputs.os }}-${{ inputs.arch }}-${{ inputs.tls }}${{ inputs.systemcrypto }}${{ inputs.sanitize }}${{ inputs.test }}
+        name: ${{ inputs.config }}-linux-${{ inputs.os }}-${{ inputs.arch }}-${{ inputs.tls }}-UseSystemOpenSSLCrypto${{ inputs.sanitize }}${{ inputs.test }}
         path: artifacts
+    - script: |
+        cd artifacts/bin/linux
+        rm -rf */
+        find -name "*.tar" -exec tar -xvf '{}' \;
     - name: Build Package
       shell: pwsh
       run: scripts/package-distribution.ps1
     - name: Upload build artifacts
       uses: actions/upload-artifact@0b7f8abb1508181956e8e162db84b466c27e18ce
       with:
-        name: Package-${{ inputs.config }}-linux-${{ inputs.os }}-${{ inputs.arch }}-${{ inputs.tls }}${{ inputs.systemcrypto }}${{ inputs.sanitize }}${{ inputs.test }}
-        path: artifacts
+        name: Package-${{ inputs.config }}-linux-${{ inputs.os }}-${{ inputs.arch }}-${{ inputs.tls }}-UseSystemOpenSSLCrypto${{ inputs.sanitize }}${{ inputs.test }}
+        path: artifacts/dist
