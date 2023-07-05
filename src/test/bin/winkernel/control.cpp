@@ -487,6 +487,7 @@ size_t QUIC_IOCTL_BUFFER_SIZES[] =
     0,
     0,
     0,
+    sizeof(INT32),
 };
 
 CXPLAT_STATIC_ASSERT(
@@ -1377,6 +1378,11 @@ QuicTestCtlEvtIoDeviceControl(
 
     case IOCTL_QUIC_RUN_STATELESS_RESET_KEY:
         QuicTestCtlRun(QuicTestStatelessResetKey());
+        break;
+
+    case IOCTL_QUIC_RUN_DRILL_VN_PACKET_TOKEN:
+        CXPLAT_FRE_ASSERT(Params != nullptr);
+        QuicTestCtlRun(QuicDrillTestServerVNPacket(Params->Family));
         break;
 
     default:

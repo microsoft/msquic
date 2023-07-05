@@ -188,12 +188,12 @@ struct DrillSender {
 
     QUIC_STATUS
     Send(
-        _In_ const DrillBuffer* PacketBuffer
+        _In_ const DrillBuffer& PacketBuffer
         )
     {
         QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
-        CXPLAT_FRE_ASSERT(PacketBuffer->size() <= UINT16_MAX);
-        const uint16_t DatagramLength = (uint16_t) PacketBuffer->size();
+        CXPLAT_FRE_ASSERT(PacketBuffer.size() <= UINT16_MAX);
+        const uint16_t DatagramLength = (uint16_t) PacketBuffer.size();
 
         CXPLAT_ROUTE Route = {0};
         CxPlatSocketGetLocalAddress(Binding, &Route.LocalAddress);
@@ -215,7 +215,7 @@ struct DrillSender {
         //
         // Copy test packet into SendBuffer.
         //
-        memcpy(SendBuffer->Buffer, PacketBuffer->data(), DatagramLength);
+        memcpy(SendBuffer->Buffer, PacketBuffer.data(), DatagramLength);
 
         Status =
             CxPlatSocketSend(
@@ -309,7 +309,7 @@ QuicDrillInitialPacketFailureTest(
         //
         // Send test packet to the server.
         //
-        Status = Sender.Send(&PacketBuffer);
+        Status = Sender.Send(PacketBuffer);
         if (QUIC_FAILED(Status)) {
             return false;
         }
@@ -493,4 +493,44 @@ QuicDrillTestInitialToken(
             return;
         }
     }
+}
+
+void
+QuicDrillTestServerVNPacket(
+    _In_ int Family
+    )
+{
+    MsQuicRegistration Registration(true);
+    TEST_QUIC_SUCCEEDED(Registration.GetInitStatus());
+
+    QUIC_ADDRESS_FAMILY QuicAddrFamily = (Family == 4) ? QUIC_ADDRESS_FAMILY_INET : QUIC_ADDRESS_FAMILY_INET6;
+    QuicAddr ServerLocalAddr(QuicAddrFamily);
+
+    MsQuicAutoAcceptListener Listener(Registration, MsQuicConnection::NoOpCallback);
+    TEST_QUIC_SUCCEEDED(Listener.Start("MsQuicTest", &ServerLocalAddr.SockAddr));
+    TEST_QUIC_SUCCEEDED(Listener.GetInitStatus());
+    TEST_QUIC_SUCCEEDED(Listener.GetLocalAddr(ServerLocalAddr));
+
+    DrillSender Sender;
+    TEST_QUIC_SUCCEEDED(
+        Sender.Initialize(
+            QUIC_TEST_LOOPBACK_FOR_AF(QuicAddrFamily),
+            QuicAddrFamily,
+            (QuicAddrFamily == QUIC_ADDRESS_FAMILY_INET) ?
+                ServerLocalAddr.SockAddr.Ipv4.sin_port :
+                ServerLocalAddr.SockAddr.Ipv6.sin6_port));
+
+    uint8_t SourceCidLen = 0;
+    DrillInitialPacketDescriptor InitialPacketBuffer;
+    InitialPacketBuffer.SourceCidLen = &SourceCidLen;
+    for (uint8_t i = 0; i < 8; ++i) { InitialPacketBuffer.DestCid.push_back(i); }
+    for (uint16_t i = 0; i < 1200; ++i) { InitialPacketBuffer.Payload.push_back(0); }
+
+    DrillVNPacketDescriptor VNPacketBuffer;
+    for (uint8_t i = 0; i < 8; ++i) { VNPacketBuffer.DestCid.push_back(i); }
+
+    TEST_QUIC_SUCCEEDED(Sender.Send(InitialPacketBuffer.write()));
+    TEST_QUIC_SUCCEEDED(Sender.Send(VNPacketBuffer.write()));
+
+    CxPlatSleep(500);
 }
