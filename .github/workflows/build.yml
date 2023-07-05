@@ -325,17 +325,17 @@ jobs:
     - name: Download Build Artifacts (iOS x64)
       uses: actions/download-artifact@9bc31d5ccc31df68ecc42ccf4149144866c47d8a
       with:
-        name: Release-ios-macos-12-x64-openssl
+        name: Framework-Release-ios-macos-12-x64-openssl
         path: artifacts
     - name: Download Build Artifacts (iOS arm64)
       uses: actions/download-artifact@9bc31d5ccc31df68ecc42ccf4149144866c47d8a
       with:
-        name: Release-ios-macos-12-arm64-openssl
+        name: Framework-Release-ios-macos-12-arm64-openssl
         path: artifacts
     - name: Download Build Artifacts (MacOS Universal)
       uses: actions/download-artifact@9bc31d5ccc31df68ecc42ccf4149144866c47d8a
       with:
-        name: Release-macos-macos-12-universal-openssl
+        name: Framework-Release-macos-macos-12-universal-openssl
         path: artifacts
     - name: Build XCFramework
       shell: pwsh
