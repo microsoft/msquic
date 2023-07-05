@@ -254,8 +254,8 @@ jobs:
       fail-fast: false
       matrix:
         vec: [
-          { plat: "macos", tls: "openssl" },
-          { plat: "macos", tls: "openssl", static: "-Static" },
+          { config: "Release", plat: "macos", tls: "openssl" },
+          { config: "Release", plat: "macos", tls: "openssl", static: "-Static" },
         ]
     runs-on: macos-12
     steps:
@@ -266,20 +266,20 @@ jobs:
     - name: Download Build Artifacts (x64)
       uses: actions/download-artifact@9bc31d5ccc31df68ecc42ccf4149144866c47d8a
       with:
-        name: Releasse-${{ matrix.vec.plat }}-macos-12-x64-${{ matrix.vec.tls }}${{ matrix.vec.static }}
+        name: ${{ matrix.vec.config }}-${{ matrix.vec.plat }}-macos-12-x64-${{ matrix.vec.tls }}${{ matrix.vec.static }}
         path: artifacts
     - name: Download Build Artifacts (arm64)
       uses: actions/download-artifact@9bc31d5ccc31df68ecc42ccf4149144866c47d8a
       with:
-        name: Releasse-${{ matrix.vec.plat }}-macos-12-arm64-${{ matrix.vec.tls }}${{ matrix.vec.static }}
+        name: ${{ matrix.vec.config }}-${{ matrix.vec.plat }}-macos-12-arm64-${{ matrix.vec.tls }}${{ matrix.vec.static }}
         path: artifacts
     - name: Build Package
       shell: pwsh
-      run: scripts/merge-darwin.ps1 -DeleteSource -Config Release
+      run: scripts/merge-darwin.ps1 -DeleteSource -Config ${{ matrix.vec.config }}
     - name: Upload build artifacts
       uses: actions/upload-artifact@0b7f8abb1508181956e8e162db84b466c27e18ce
       with:
-        name: Release-${{ matrix.vec.plat }}-macos-12-universal-${{ matrix.vec.tls }}${{ matrix.vec.static }}
+        name: ${{ matrix.vec.config }}-${{ matrix.vec.plat }}-macos-12-universal-${{ matrix.vec.tls }}${{ matrix.vec.static }}
         path: artifacts
 
   build-darwin-framework:
