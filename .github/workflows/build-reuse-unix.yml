@@ -39,7 +39,7 @@ on:
         #   - x64
       tls:
         required: false
-        default: 'schannel'
+        default: 'openssl'
         type: string
         # options:
         #   - openssl
