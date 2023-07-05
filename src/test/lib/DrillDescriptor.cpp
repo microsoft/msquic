@@ -130,18 +130,31 @@ DrillPacketDescriptor::write(
     }
     PacketBuffer.insert(PacketBuffer.end(), SourceCid.begin(), SourceCid.end());
 
-    //
-    // TODO: Do type-specific stuff here.
-    //
+    return PacketBuffer;
+}
+
+DrillBuffer
+DrillVNPacketDescriptor::write(
+    ) const
+{
+    DrillBuffer PacketBuffer = DrillPacketDescriptor::write();
+
+    // uint32_t SupportedVersions[]
+    uint32_t SupportedVer = QUIC_VERSION_2_H;
+    for (size_t i = 0; i < sizeof(SupportedVer); ++i) {
+        PacketBuffer.push_back((uint8_t) (SupportedVer >> (((sizeof(SupportedVer) - 1) - i) * 8)));
+    }
+    SupportedVer = QUIC_VERSION_1_MS_H;
+    for (size_t i = 0; i < sizeof(SupportedVer); ++i) {
+        PacketBuffer.push_back((uint8_t) (SupportedVer >> (((sizeof(SupportedVer) - 1) - i) * 8)));
+    }
 
     return PacketBuffer;
 }
 
-DrillInitialPacketDescriptor::DrillInitialPacketDescriptor(
-    ) : DrillPacketDescriptor(), TokenLen(nullptr), PacketLength(nullptr), PacketNumber(0)
+DrillInitialPacketDescriptor::DrillInitialPacketDescriptor()
 {
     Type = Initial;
-    Header.LongHeader = 1;
     Header.FixedBit = 1;
     Version = QUIC_VERSION_LATEST_H;
 
@@ -197,10 +210,7 @@ DrillInitialPacketDescriptor::write(
     }
 
     CalculatedPacketLength += PacketNumberBuffer.size();
-
-    //
-    // TODO: Calculate the payload length.
-    //
+    CalculatedPacketLength += Payload.size();
 
     //
     // Write packet length.
@@ -219,8 +229,11 @@ DrillInitialPacketDescriptor::write(
     PacketBuffer.insert(PacketBuffer.end(), PacketNumberBuffer.begin(), PacketNumberBuffer.end());
 
     //
-    // TODO: Write payload here.
+    // Write payload.
     //
+    if (Payload.size() > 0) {
+        PacketBuffer.insert(PacketBuffer.end(), Payload.begin(), Payload.end());
+    }
 
     return PacketBuffer;
 }

@@ -482,6 +482,7 @@ size_t QUIC_IOCTL_BUFFER_SIZES[] =
     sizeof(INT32),
     sizeof(INT32),
     sizeof(QUIC_RUN_CUSTOM_CERT_VALIDATION),
+    sizeof(INT32),
 };
 
 CXPLAT_STATIC_ASSERT(
@@ -1337,6 +1338,11 @@ QuicTestCtlEvtIoDeviceControl(
             QuicTestCustomClientCertificateValidation(
                 Params->CustomCertValidationParams.AcceptCert,
                 Params->CustomCertValidationParams.AsyncValidation));
+        break;
+
+    case IOCTL_QUIC_RUN_DRILL_VN_PACKET_TOKEN:
+        CXPLAT_FRE_ASSERT(Params != nullptr);
+        QuicTestCtlRun(QuicDrillTestServerVNPacket(Params->Family));
         break;
 
     default:

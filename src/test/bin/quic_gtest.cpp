@@ -2112,6 +2112,15 @@ TEST_P(WithDrillInitialPacketTokenArgs, DrillInitialPacketToken) {
 }
 #endif // QUIC_USE_RAW_DATAPATH
 
+TEST_P(WithDrillInitialPacketTokenArgs, QuicDrillTestServerVNPacket) {
+    TestLoggerT<ParamType> Logger("QuicDrillTestServerVNPacket", GetParam());
+    if (TestingKernelMode) {
+        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_DRILL_VN_PACKET_TOKEN, GetParam().Family));
+    } else {
+        QuicDrillTestServerVNPacket(GetParam().Family);
+    }
+}
+
 TEST_P(WithDatagramNegotiationArgs, DatagramNegotiation) {
     TestLoggerT<ParamType> Logger("QuicTestDatagramNegotiation", GetParam());
     if (TestingKernelMode) {

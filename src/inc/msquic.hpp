@@ -1143,7 +1143,7 @@ private:
 };
 
 struct MsQuicAutoAcceptListener : public MsQuicListener {
-    const MsQuicConfiguration& Configuration;
+    const MsQuicConfiguration* Configuration;
     MsQuicConnectionCallback* ConnectionHandler;
     MsQuicConnection* LastConnection {nullptr};
     void* ConnectionContext;
@@ -1153,12 +1153,23 @@ struct MsQuicAutoAcceptListener : public MsQuicListener {
 
     MsQuicAutoAcceptListener(
         _In_ const MsQuicRegistration& Registration,
+        _In_ MsQuicConnectionCallback* _ConnectionHandler,
+        _In_ void* _ConnectionContext = nullptr
+        ) noexcept :
+        MsQuicListener(Registration, ListenerCallback, this),
+        Configuration(nullptr),
+        ConnectionHandler(_ConnectionHandler),
+        ConnectionContext(_ConnectionContext)
+    { }
+
+    MsQuicAutoAcceptListener(
+        _In_ const MsQuicRegistration& Registration,
         _In_ const MsQuicConfiguration& Config,
         _In_ MsQuicConnectionCallback* _ConnectionHandler,
         _In_ void* _ConnectionContext = nullptr
         ) noexcept :
         MsQuicListener(Registration, ListenerCallback, this),
-        Configuration(Config),
+        Configuration(&Config),
         ConnectionHandler(_ConnectionHandler),
         ConnectionContext(_ConnectionContext)
     { }
@@ -1180,14 +1191,15 @@ private:
         if (Event->Type == QUIC_LISTENER_EVENT_NEW_CONNECTION) {
             auto Connection = new(std::nothrow) MsQuicConnection(Event->NEW_CONNECTION.Connection, CleanUpAutoDelete, pThis->ConnectionHandler, pThis->ConnectionContext);
             if (Connection) {
-                Status = Connection->SetConfiguration(pThis->Configuration);
-                if (QUIC_FAILED(Status)) {
+                if (!pThis->Configuration ||
+                    QUIC_FAILED(Status = Connection->SetConfiguration(*pThis->Configuration))) {
                     //
                     // The connection is being rejected. Let MsQuic free the handle.
                     //
                     Connection->Handle = nullptr;
                     delete Connection;
                 } else {
+                    Status = QUIC_STATUS_SUCCESS;
                     pThis->LastConnection = Connection;
 #ifdef CX_PLATFORM_TYPE
                     InterlockedIncrement((long*)&pThis->AcceptedConnectionCount);

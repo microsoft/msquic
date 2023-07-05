@@ -554,6 +554,11 @@ QuicDrillTestInitialToken(
     _In_ int Family
     );
 
+void
+QuicDrillTestServerVNPacket(
+    _In_ int Family
+    );
+
 //
 // Datagram tests
 //
@@ -1176,4 +1181,8 @@ typedef struct {
     QUIC_CTL_CODE(110, METHOD_BUFFERED, FILE_WRITE_DATA)
     // QUIC_RUN_CUSTOM_CERT_VALIDATION
 
-#define QUIC_MAX_IOCTL_FUNC_CODE 110
+#define IOCTL_QUIC_RUN_DRILL_VN_PACKET_TOKEN \
+    QUIC_CTL_CODE(111, METHOD_BUFFERED, FILE_WRITE_DATA)
+    // int - Family
+
+#define QUIC_MAX_IOCTL_FUNC_CODE 111
