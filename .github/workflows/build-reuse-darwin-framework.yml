@@ -25,7 +25,7 @@ on:
 
 jobs:
   build-darwin:
-    name: MacOs
+    name: Build Darwin Binaries
     needs: []
     strategy:
       fail-fast: false
@@ -38,7 +38,7 @@ jobs:
       plat: ${{ matrix.plat }}
       os: macos-12
       arch: ${{ matrix.arch }}
-      tls: ${{ inputs.openssl }}
+      tls: ${{ inputs.tls }}
       static: ${{ inputs.static }}
 
   build-darwin-universal:
@@ -89,7 +89,7 @@ jobs:
     - name: Download Build Artifacts (x64)
       uses: actions/download-artifact@9bc31d5ccc31df68ecc42ccf4149144866c47d8a
       with:
-        name: ${{ inputs.config }}-${{ matrix.vec.plat }}-macos-12-${{ matrix.vec.arch }}-${{ inputs.openssl }}${{ inputs.static }}
+        name: ${{ inputs.config }}-${{ matrix.vec.plat }}-macos-12-${{ matrix.vec.arch }}-${{ inputs.tls }}${{ inputs.static }}
         path: artifacts
     - name: Build Framework
       shell: pwsh
@@ -97,7 +97,7 @@ jobs:
     - name: Upload build artifacts
       uses: actions/upload-artifact@0b7f8abb1508181956e8e162db84b466c27e18ce
       with:
-        name: Framework-${{ inputs.config }}-${{ matrix.vec.plat }}-macos-12-${{ matrix.vec.arch }}-${{ inputs.openssl }}${{ inputs.static }}
+        name: Framework-${{ inputs.config }}-${{ matrix.vec.plat }}-macos-12-${{ matrix.vec.arch }}-${{ inputs.tls }}${{ inputs.static }}
         path: artifacts
 
   build-darwin-xcframework:
