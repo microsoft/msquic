@@ -3687,7 +3687,8 @@ QuicConnRecvHeader(
                 //
                 // Do not return FALSE here, continue with the connection.
                 //
-            } else if (Packet->Invariant->LONG_HDR.Version == QUIC_VERSION_VER_NEG &&
+            } else if (QuicConnIsClient(Connection) &&
+                Packet->Invariant->LONG_HDR.Version == QUIC_VERSION_VER_NEG &&
                 !Connection->Stats.VersionNegotiation) {
                 //
                 // Version negotiation packet received.
