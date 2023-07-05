@@ -56,7 +56,7 @@ permissions: read-all
 jobs:
   call-build-unix-reuse:
     needs: []
-    uses: ./.github/workflows/build-reuse-win.yml
+    uses: ./.github/workflows/build-reuse-unix.yml
     with:
       config: ${{ inputs.config }}
       os: ${{ inputs.os }}
