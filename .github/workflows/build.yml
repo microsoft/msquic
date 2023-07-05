@@ -84,16 +84,15 @@ jobs:
       arch: ${{ matrix.arch }}
       tls: ${{ matrix.tls }}
 
-  build-darwin:
-    name: MacOs
+  build-ubuntu-cross-compile:
+    name: UbuntuArm
     needs: []
     strategy:
       fail-fast: false
       matrix:
-        config: ['Debug', 'Release']
-        plat: [macos, ios]
-        os: ['macos-12']
-        arch: [x64, arm64]
+        plat: [linux]
+        os: ['ubuntu-20.04', 'ubuntu-22.04']
+        arch: [arm, arm64]
         tls: [openssl, openssl3]
         static: ['', '-Static']
     uses: ./.github/workflows/build-reuse-unix.yml
@@ -167,15 +166,16 @@ jobs:
       clang: ${{ matrix.clang }}
       codecheck: ${{ matrix.codecheck }}
 
-  build-ubuntu-cross-compile:
-    name: UbuntuArm
+  build-darwin:
+    name: MacOs
     needs: []
     strategy:
       fail-fast: false
       matrix:
-        plat: [linux]
-        os: ['ubuntu-20.04', 'ubuntu-22.04']
-        arch: [arm, arm64]
+        config: ['Debug', 'Release']
+        plat: [macos, ios]
+        os: ['macos-12']
+        arch: [x64, arm64]
         tls: [openssl, openssl3]
         static: ['', '-Static']
     uses: ./.github/workflows/build-reuse-unix.yml
