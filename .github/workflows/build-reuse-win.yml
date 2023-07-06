@@ -67,7 +67,7 @@ jobs:
   build-windows-reuse:
     if: inputs.plat == 'windows' || inputs.plat == 'uwp'
     name: Build
-    runs-on: windows-2019 # workaround windows-2022 compiler issue for sanitizer
+    runs-on: ${{ inputs.sanitize  == '-Sanitize' && 'windows-2019' || inputs.os }} # use windows-2019 for ASAN
     steps:
     - name: Checkout repository
       uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9
