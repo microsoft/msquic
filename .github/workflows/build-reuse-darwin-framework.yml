@@ -1,7 +1,5 @@
 name: Build Darwin Universal
 
-permissions: read-all
-
 on:
   workflow_dispatch:
   workflow_call:
