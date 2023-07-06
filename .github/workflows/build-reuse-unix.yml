@@ -85,7 +85,7 @@ jobs:
       with:
         fetch-depth: 0
     - name: Set ownership
-      if: contains(inputs.arch, 'arm') # Using container build for arm/arm64
+      if: inputs.plat == 'linux' && contains(inputs.arch, 'arm')
       run: |
         # this is to fix GIT not liking owner of the checkout dir
         chown -R $(id -u):$(id -g) $PWD
@@ -104,7 +104,7 @@ jobs:
     - name: Build
       if: inputs.test == ''
       shell: pwsh
-      run: scripts/build.ps1 -Config ${{ inputs.config }} -Platform ${{ inputs.plat }} -Arch ${{ inputs.arch }} -Tls ${{ inputs.tls }} ${{ inputs.static }} ${{ inputs.clang }} ${{ inputs.codecheck }} -OneBranch
+      run: scripts/build.ps1 -Config ${{ inputs.config }} -Platform ${{ inputs.plat }} -Arch ${{ inputs.arch }} -Tls ${{ inputs.tls }} ${{ inputs.static }} ${{ inputs.clang }} ${{ inputs.systemcrypto }} ${{ inputs.codecheck }} ${{ inputs.sanitize }} -OneBranch
     - name: Upload build artifacts
       uses: actions/upload-artifact@0b7f8abb1508181956e8e162db84b466c27e18ce
       with:
