@@ -11,6 +11,14 @@ on:
     - main
     - release/*
 
+concurrency:
+  # Cancel any workflow currently in progress for the same PR.
+  # Allow running concurrently with any other commits.
+  group: darwin-frameworks-${{ github.event.pull_request.number || github.sha }}
+  cancel-in-progress: true
+
+permissions: read-all
+
 jobs:
   build-packages:
     name: Generate Linux Packages
