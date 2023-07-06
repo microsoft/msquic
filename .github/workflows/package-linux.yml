@@ -35,7 +35,7 @@ jobs:
 
   test-packages:
     name: Test Linux Packages
-    needs: []
+    needs: [build-packages]
     runs-on: ubuntu-22.04
     strategy:
       fail-fast: false
