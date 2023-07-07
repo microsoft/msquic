@@ -15,6 +15,7 @@ function(add_quic_tool)
     target_link_libraries(${targetname} logging base_link)
 
     set_property(TARGET ${targetname} PROPERTY FOLDER "${QUIC_FOLDER_PREFIX}tools")
+    set_property(TARGET ${targetname} APPEND PROPERTY BUILD_RPATH "$ORIGIN")
 endfunction()
 
 function(quic_tool_warnings)
