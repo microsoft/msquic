@@ -77,6 +77,7 @@ jobs:
         sudo apt-get install -y lttng-tools
         sudo find -name "*.deb" -exec dpkg -i {} \;
         rm artifacts/bin/linux/${{ matrix.vec.arch }}_${{ matrix.vec.config }}_${{ matrix.vec.tls }}/libmsquic.so*
+        ls artifacts/bin/linux/${{ matrix.vec.arch }}_${{ matrix.vec.config }}_${{ matrix.vec.tls }}
     - name: Test
       run: |
         chmod +x artifacts/bin/linux/${{ matrix.vec.arch }}_${{ matrix.vec.config }}_${{ matrix.vec.tls }}/msquictest
