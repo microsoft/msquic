@@ -182,7 +182,7 @@ jobs:
           { config: "Debug", plat: "winkernel", os: "WSPrerelease", arch: "x64", tls: "schannel", test: "-Test" },
           { config: "Release", plat: "winkernel", os: "WSPrerelease", arch: "x64", tls: "schannel", test: "-Test" },
         ]
-    runs-on: ${{ matrix.vec.plat == 'windows' && matrix.vec.os == 'WSPrerelease' && fromJson('[''self-hosted'', ''1ES.Pool=1es-msquic-pool'', ''1ES.ImageOverride=WSPrerelease'']') || matrix.vec.os }}
+    runs-on: ${{ matrix.vec.plat == 'winkernel' && matrix.vec.os == 'WSPrerelease' && fromJson('[''self-hosted'', ''1ES.Pool=1es-msquic-pool'', ''1ES.ImageOverride=WSPrerelease'']') || matrix.vec.os }}
     steps:
     - name: Checkout repository
       uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9
