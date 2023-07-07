@@ -93,7 +93,7 @@ jobs:
         ]
     runs-on:
     - self-hosted
-    - "1ES.Pool=msquic-1es-pool"
+    - "1ES.Pool=1es-msquic-pool"
     - "1ES.ImageOverride=WSPrerelease"
     env:
       main-timeout: 3600000
