@@ -166,6 +166,11 @@ jobs:
       shell: pwsh
       timeout-minutes: 120
       run: scripts/test.ps1 -Config ${{ matrix.vec.config }} -Arch ${{ matrix.vec.arch }} -Tls ${{ matrix.vec.tls }} -OsRunner ${{ matrix.vec.os }} -GHA -LogProfile Full.Light -GenerateXmlResults ${{ matrix.vec.xdp }} ${{ matrix.vec.qtip }}
+    - name: Display Disk Space
+      if: matrix.vec.plat == 'windows'
+      shell: pwsh
+      run: |
+        Get-PSDrive
     - name: Upload on Failure
       uses: actions/upload-artifact@0b7f8abb1508181956e8e162db84b466c27e18ce
       if: failure()
