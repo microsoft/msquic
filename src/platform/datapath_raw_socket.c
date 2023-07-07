@@ -769,6 +769,7 @@ CxPlatFramingWriteHeaders(
                         sizeof(Route->LocalAddress.Ipv6.sin6_addr),
                         IPPROTO_UDP,
                         (uint8_t*)UDP, sizeof(UDP_HEADER) + Buffer->Length);
+                UDP->Checksum = UDP->Checksum != 0 ? UDP->Checksum : ~0;
             }
         }
     }
