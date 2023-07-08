@@ -606,6 +606,12 @@ if(WIN32)
         set(CMAKE_SHARED_LINKER_FLAGS_RELEASE "${CMAKE_SHARED_LINKER_FLAGS_RELEASE} /NODEFAULTLIB:libucrt.lib /DEFAULTLIB:ucrt.lib")
     endif()
 
+    if (NOT QUIC_STATIC_LINK_CRT AND NOT QUIC_STATIC_LINK_PARTIAL_CRT)
+        # We are using dynamic linking. Ensure that only the release version of CRT is used.
+        message(STATUS "Configuring for release version of dynamically linked CRT")
+        set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreadedDLL")
+    endif()
+
 else() #!WIN32
     # Custom build flags.
 
