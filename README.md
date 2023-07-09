@@ -1,8 +1,8 @@
 <h1 align="center"><img src="docs/images/readme_logo.png" width="500" alt="MsQuic logo"/></h1>
 
 [![Perf Dashboard](https://img.shields.io/static/v1?label=Performance&message=Dashboard&color=blue)](https://microsoft.github.io/msquic/)
-[![Test Status](https://img.shields.io/azure-devops/tests/ms/msquic/347/main)](https://dev.azure.com/ms/msquic/_build/latest?definitionId=347&branchName=main)
-[![Code Coverage](https://img.shields.io/azure-devops/coverage/ms/msquic/347/main)](https://dev.azure.com/ms/msquic/_build/latest?definitionId=347&branchName=main)
+[![Test Status](https://img.shields.io/github/actions/workflow/status/microsoft/msquic/test.yml)](https://github.com/microsoft/msquic/actions/workflows/test.yml)
+[![codecov](https://codecov.io/github/microsoft/msquic/branch/master/graph/badge.svg?token=xAjIMDn7wy)](https://codecov.io/github/microsoft/msquic)
 ![CodeQL](https://github.com/microsoft/msquic/workflows/CodeQL/badge.svg?branch=main)
 [![CII Best Practices](https://bestpractices.coreinfrastructure.org/projects/4846/badge)](https://bestpractices.coreinfrastructure.org/projects/4846)
 [![Discord](https://img.shields.io/discord/827744285595271168?label=Discord&logo=discord&logoColor=white&color=7289DA)](https://discord.gg/YGAtCwTSsc)
