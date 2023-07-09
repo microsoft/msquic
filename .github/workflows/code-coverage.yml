@@ -180,6 +180,10 @@ jobs:
       name: Download Merged Coverage Report
       with:
         name: merged
+    - name: Upload coverage reports to Codecov
+      uses: codecov/codecov-action@eaaf4bedf32dbdc6b720b63067d99c4d77d6047d
+      with:
+        files: msquiccoverage.xml
     - name: Code Coverage Summary Report
       uses: irongut/CodeCoverageSummary@51cc3a756ddcd398d447c044c02cb6aa83fdae95
       with:
@@ -189,7 +193,4 @@ jobs:
         output: 'both'
     - name: Write to Job Summary
       run: cat code-coverage-results.md >> $GITHUB_STEP_SUMMARY
-    - name: Upload coverage reports to Codecov
-      uses: codecov/codecov-action@eaaf4bedf32dbdc6b720b63067d99c4d77d6047d
-      with:
-        files: msquiccoverage.xml
+
