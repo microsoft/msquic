@@ -6843,6 +6843,7 @@ QuicConnParamGet(
             Connection->OrigDestCID->Length);
         // Tell app how much buffer we copied.
         *BufferLength = Connection->OrigDestCID->Length;
+        Status = QUIC_STATUS_SUCCESS;
         break;
 
     case QUIC_PARAM_CONN_QUIC_VERSION:
