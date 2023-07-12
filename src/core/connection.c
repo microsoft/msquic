@@ -6820,6 +6820,30 @@ QuicConnParamGet(
     uint8_t Type;
 
     switch (Param) {
+    
+    case QUICK_PARAM_CONN_ORIG_DEST_CID:
+        if (Connection == NULL) {
+            Status = QUIC_STATUS_INVALID_STATE;
+            break;
+        }
+        if (Buffer == NULL) {
+            Status = QUIC_STATUS_INVALID_PARAMETER;
+            break;
+        }
+        if (*BufferLength < Connection->OrigDestCID->Length) {
+            // Tell app it needs to pass in a bigger buffer.
+            Status = QUIC_STATUS_BUFFER_TOO_SMALL;
+            // Let app know this is the size buffer it needs.
+            *BufferLength = Connection->OrigDestCID->Length;
+            break;
+        }
+        CxPlatCopyMemory(
+            Connection->OrigDestCID->Data,
+            Buffer,
+            Connection->OrigDestCID->Length);
+        // Tell app how much buffer we copied.
+        *BufferLength = Connection->OrigDestCID->Length;
+        break;
 
     case QUIC_PARAM_CONN_QUIC_VERSION:
 
