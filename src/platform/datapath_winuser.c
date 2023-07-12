@@ -17,6 +17,8 @@ Abstract:
 
 #pragma warning(disable:4116) // unnamed type definition in parentheses
 
+#define MANGLE(x) SOCKET_##x
+
 //
 // This IOCTL allows for creating per-processor sockets for the same UDP port.
 // This is used to get better parallelization to improve performance.
@@ -779,7 +781,7 @@ CxPlatStopInlineDatapathIo(
 }
 
 CXPLAT_RECV_DATA*
-CxPlatDataPathRecvPacketToRecvData(
+MANGLE(CxPlatDataPathRecvPacketToRecvData)(
     _In_ const CXPLAT_RECV_PACKET* const Context
     )
 {
@@ -790,7 +792,7 @@ CxPlatDataPathRecvPacketToRecvData(
 }
 
 CXPLAT_RECV_PACKET*
-CxPlatDataPathRecvDataToRecvPacket(
+MANGLE(CxPlatDataPathRecvDataToRecvPacket)(
     _In_ const CXPLAT_RECV_DATA* const Datagram
     )
 {
@@ -1157,7 +1159,7 @@ typedef LONG (WINAPI *FuncRtlGetVersion)(RTL_OSVERSIONINFOW *);
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
-CxPlatDataPathInitialize(
+MANGLE(CxPlatDataPathInitialize)(
     _In_ uint32_t ClientRecvContextLength,
     _In_opt_ const CXPLAT_UDP_DATAPATH_CALLBACKS* UdpCallbacks,
     _In_opt_ const CXPLAT_TCP_DATAPATH_CALLBACKS* TcpCallbacks,
@@ -1434,7 +1436,7 @@ CxPlatProcessorContextRelease(
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
-CxPlatDataPathUninitialize(
+MANGLE(CxPlatDataPathUninitialize)(
     _In_ CXPLAT_DATAPATH* Datapath
     )
 {
@@ -1450,7 +1452,7 @@ CxPlatDataPathUninitialize(
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
-CxPlatDataPathUpdateConfig(
+MANGLE(CxPlatDataPathUpdateConfig)(
     _In_ CXPLAT_DATAPATH* Datapath,
     _In_ QUIC_EXECUTION_CONFIG* Config
     )
@@ -1461,7 +1463,7 @@ CxPlatDataPathUpdateConfig(
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 uint32_t
-CxPlatDataPathGetSupportedFeatures(
+MANGLE(CxPlatDataPathGetSupportedFeatures)(
     _In_ CXPLAT_DATAPATH* Datapath
     )
 {
@@ -1470,7 +1472,7 @@ CxPlatDataPathGetSupportedFeatures(
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 BOOLEAN
-CxPlatDataPathIsPaddingPreferred(
+MANGLE(CxPlatDataPathIsPaddingPreferred)(
     _In_ CXPLAT_DATAPATH* Datapath
     )
 {
@@ -1480,7 +1482,7 @@ CxPlatDataPathIsPaddingPreferred(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 _Success_(QUIC_SUCCEEDED(return))
 QUIC_STATUS
-CxPlatDataPathGetLocalAddresses(
+MANGLE(CxPlatDataPathGetLocalAddresses)(
     _In_ CXPLAT_DATAPATH* Datapath,
     _Outptr_ _At_(*Addresses, __drv_allocatesMem(Mem))
         CXPLAT_ADAPTER_ADDRESS** Addresses,
@@ -1594,7 +1596,7 @@ Exit:
 _IRQL_requires_max_(PASSIVE_LEVEL)
 _Success_(QUIC_SUCCEEDED(return))
 QUIC_STATUS
-CxPlatDataPathGetGatewayAddresses(
+MANGLE(CxPlatDataPathGetGatewayAddresses)(
     _In_ CXPLAT_DATAPATH* Datapath,
     _Outptr_ _At_(*GatewayAddresses, __drv_allocatesMem(Mem))
         QUIC_ADDR** GatewayAddresses,
@@ -1731,7 +1733,7 @@ CxPlatDataPathPopulateTargetAddress(
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
-CxPlatDataPathResolveAddress(
+MANGLE(CxPlatDataPathResolveAddress)(
     _In_ CXPLAT_DATAPATH* Datapath,
     _In_z_ const char* HostName,
     _Inout_ QUIC_ADDR* Address
@@ -1846,7 +1848,7 @@ CxPlatSocketEnqueueSqe(
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
-CxPlatSocketCreateUdp(
+MANGLE(CxPlatSocketCreateUdp)(
     _In_ CXPLAT_DATAPATH* Datapath,
     _In_ const CXPLAT_UDP_CONFIG* Config,
     _Out_ CXPLAT_SOCKET** NewSocket
@@ -2712,7 +2714,7 @@ Error:
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
-CxPlatSocketCreateTcp(
+MANGLE(CxPlatSocketCreateTcp)(
     _In_ CXPLAT_DATAPATH* Datapath,
     _In_opt_ const QUIC_ADDR* LocalAddress,
     _In_ const QUIC_ADDR* RemoteAddress,
@@ -2732,7 +2734,7 @@ CxPlatSocketCreateTcp(
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
-CxPlatSocketCreateTcpListener(
+MANGLE(CxPlatSocketCreateTcpListener)(
     _In_ CXPLAT_DATAPATH* Datapath,
     _In_opt_ const QUIC_ADDR* LocalAddress,
     _In_opt_ void* RecvCallbackContext,
@@ -2952,7 +2954,7 @@ Error:
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
-CxPlatSocketDelete(
+MANGLE(CxPlatSocketDelete)(
     _In_ CXPLAT_SOCKET* Socket
     )
 {
@@ -3119,7 +3121,7 @@ CxPlatSocketContextUninitialize(
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
-CxPlatSocketUpdateQeo(
+MANGLE(CxPlatSocketUpdateQeo)(
     _In_ CXPLAT_SOCKET* Socket,
     _In_reads_(OffloadCount)
         const CXPLAT_QEO_CONNECTION* Offloads,
@@ -3134,7 +3136,7 @@ CxPlatSocketUpdateQeo(
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 UINT16
-CxPlatSocketGetLocalMtu(
+MANGLE(CxPlatSocketGetLocalMtu)(
     _In_ CXPLAT_SOCKET* Socket
     )
 {
@@ -3144,7 +3146,7 @@ CxPlatSocketGetLocalMtu(
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
-CxPlatSocketGetLocalAddress(
+MANGLE(CxPlatSocketGetLocalAddress)(
     _In_ CXPLAT_SOCKET* Socket,
     _Out_ QUIC_ADDR* Address
     )
@@ -3155,7 +3157,7 @@ CxPlatSocketGetLocalAddress(
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
-CxPlatSocketGetRemoteAddress(
+MANGLE(CxPlatSocketGetRemoteAddress)(
     _In_ CXPLAT_SOCKET* Socket,
     _Out_ QUIC_ADDR* Address
     )
@@ -4210,7 +4212,7 @@ CxPlatFreeRecvContext(
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
-CxPlatRecvDataReturn(
+MANGLE(CxPlatRecvDataReturn)(
     _In_opt_ CXPLAT_RECV_DATA* RecvDataChain
     )
 {
@@ -4371,7 +4373,7 @@ RioSendDataFree(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 _Success_(return != NULL)
 CXPLAT_SEND_DATA*
-CxPlatSendDataAlloc(
+MANGLE(CxPlatSendDataAlloc)(
     _In_ CXPLAT_SOCKET* Socket,
     _Inout_ CXPLAT_SEND_CONFIG* Config
     )
@@ -4424,7 +4426,7 @@ CxPlatSendDataAlloc(
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
-CxPlatSendDataFree(
+MANGLE(CxPlatSendDataFree)(
     _In_ CXPLAT_SEND_DATA* SendData
     )
 {
@@ -4664,7 +4666,7 @@ CxPlatSendDataAllocSegmentBuffer(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 _Success_(return != NULL)
 QUIC_BUFFER*
-CxPlatSendDataAllocBuffer(
+MANGLE(CxPlatSendDataAllocBuffer)(
     _In_ CXPLAT_SEND_DATA* SendData,
     _In_ uint16_t MaxBufferLength
     )
@@ -4687,7 +4689,7 @@ CxPlatSendDataAllocBuffer(
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
-CxPlatSendDataFreeBuffer(
+MANGLE(CxPlatSendDataFreeBuffer)(
     _In_ CXPLAT_SEND_DATA* SendData,
     _In_ QUIC_BUFFER* Buffer
     )
@@ -4718,7 +4720,7 @@ CxPlatSendDataFreeBuffer(
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 BOOLEAN
-CxPlatSendDataIsFull(
+MANGLE(CxPlatSendDataIsFull)(
     _In_ CXPLAT_SEND_DATA* SendData
     )
 {
@@ -4983,7 +4985,7 @@ CxPlatSocketSendEnqueue(
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 QUIC_STATUS
-CxPlatSocketSend(
+MANGLE(CxPlatSocketSend)(
     _In_ CXPLAT_SOCKET* Socket,
     _In_ const CXPLAT_ROUTE* Route,
     _In_ CXPLAT_SEND_DATA* SendData
@@ -5061,7 +5063,7 @@ CxPlatDataPathStartRioSends(
 }
 
 void
-CxPlatDataPathProcessCqe(
+MANGLE(CxPlatDataPathProcessCqe)(
     _In_ CXPLAT_CQE* Cqe
     )
 {
@@ -5137,4 +5139,9 @@ CxPlatDataPathProcessCqe(
     }
     default: CXPLAT_DBG_ASSERT(FALSE); break;
     }
+}
+
+void InitSocketDataPath(struct CXPLAT_DATAPATH_FUNCTIONS* Funcs) {
+    Funcs->CxPlatDataPathRecvPacketToRecvData = MANGLE(CxPlatDataPathRecvPacketToRecvData);
+
 }
