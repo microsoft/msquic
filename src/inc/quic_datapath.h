@@ -782,6 +782,70 @@ CxPlatUpdateRoute(
 
 #endif // QUIC_USE_RAW_DATAPATH
 
+typedef struct CXPLAT_DATAPATH_FUNCTIONS {
+    CXPLAT_RECV_DATA* (*CxPlatDataPathRecvPacketToRecvData)(const CXPLAT_RECV_PACKET* const Context);
+    CXPLAT_RECV_PACKET* (*CxPlatDataPathRecvDataToRecvPacket)(const CXPLAT_RECV_DATA* const Datagram);
+    QUIC_STATUS (*CxPlatDataPathInitialize)(_In_ uint32_t ClientRecvContextLength,
+                                            _In_opt_ const CXPLAT_UDP_DATAPATH_CALLBACKS* UdpCallbacks,
+                                            _In_opt_ const CXPLAT_TCP_DATAPATH_CALLBACKS* TcpCallbacks,
+                                            _In_opt_ QUIC_EXECUTION_CONFIG* Config,
+                                            _Out_ CXPLAT_DATAPATH** NewDataPath);
+    void (*CxPlatDataPathUninitialize)(_In_ CXPLAT_DATAPATH* Datapath);
+    void (*CxPlatDataPathUpdateConfig)(_In_ CXPLAT_DATAPATH* Datapath,
+                                       _In_ QUIC_EXECUTION_CONFIG* Config);
+    uint32_t (*CxPlatDataPathGetSupportedFeatures)(_In_ CXPLAT_DATAPATH* Datapath);
+    BOOLEAN (*CxPlatDataPathIsPaddingPreferred)(_In_ CXPLAT_DATAPATH* Datapath);
+    QUIC_STATUS (*CxPlatDataPathGetLocalAddresses)(_In_ CXPLAT_DATAPATH* Datapath,
+                                                   _Outptr_ _At_(*Addresses, __drv_allocatesMem(Mem))
+                                                       CXPLAT_ADAPTER_ADDRESS** Addresses,
+                                                   _Out_ uint32_t* AddressesCount);
+    QUIC_STATUS (*CxPlatDataPathGetGatewayAddresses)(_In_ CXPLAT_DATAPATH* Datapath,
+                                                    _Outptr_ _At_(*GatewayAddresses, __drv_allocatesMem(Mem))
+                                                        QUIC_ADDR** GatewayAddresses,
+                                                    _Out_ uint32_t* GatewayAddressesCount);
+    QUIC_STATUS (*CxPlatDataPathResolveAddress)(_In_ CXPLAT_DATAPATH* Datapath,
+                                                _In_z_ const char* HostName,
+                                                _Inout_ QUIC_ADDR* Address);
+    QUIC_STATUS (*CxPlatSocketCreateUdp)(_In_ CXPLAT_DATAPATH* Datapath,
+                                         _In_ const CXPLAT_UDP_CONFIG* Config,
+                                         _Out_ CXPLAT_SOCKET** NewSocket);
+    QUIC_STATUS (*CxPlatSocketCreateTcp)(_In_ CXPLAT_DATAPATH* Datapath,
+                                         _In_opt_ const QUIC_ADDR* LocalAddress,
+                                         _In_ const QUIC_ADDR* RemoteAddress,
+                                         _In_opt_ void* CallbackContext,
+                                         _Out_ CXPLAT_SOCKET** Socket);
+    QUIC_STATUS (*CxPlatSocketCreateTcpListener)(_In_ CXPLAT_DATAPATH* Datapath,
+                                                 _In_opt_ const QUIC_ADDR* LocalAddress,
+                                                 _In_opt_ void* RecvCallbackContext,
+                                                 _Out_ CXPLAT_SOCKET** NewSocket);
+    void (*CxPlatSocketDelete)(_In_ CXPLAT_SOCKET* Socket);
+    QUIC_STATUS (*CxPlatSocketUpdateQeo)(_In_ CXPLAT_SOCKET* Socket,
+                                         _In_reads_(OffloadCount)
+                                             const CXPLAT_QEO_CONNECTION* Offloads,
+                                         _In_ uint32_t OffloadCount);
+    UINT16 (*CxPlatSocketGetLocalMtu)(_In_ CXPLAT_SOCKET* Socket);
+    void (*CxPlatSocketGetLocalAddress)(_In_ CXPLAT_SOCKET* Socket,
+                                        _Out_ QUIC_ADDR* Address);
+    void (*CxPlatSocketGetRemoteAddress)(_In_ CXPLAT_SOCKET* Socket,
+                                      _Out_ QUIC_ADDR* Address);
+    void (*CxPlatRecvDataReturn)(_In_opt_ CXPLAT_RECV_DATA* RecvDataChain);
+    CXPLAT_SEND_DATA* (*CxPlatSendDataAlloc)(_In_ CXPLAT_SOCKET* Socket,
+                                             _Inout_ CXPLAT_SEND_CONFIG* Config);
+    void (*CxPlatSendDataFree)(_In_ CXPLAT_SEND_DATA* SendData);
+    QUIC_BUFFER* (*CxPlatSendDataAllocBuffer)(_In_ CXPLAT_SEND_DATA* SendData,
+                                              _In_ uint16_t MaxBufferLength);
+    void (*CxPlatSendDataFreeBuffer)(_In_ CXPLAT_SEND_DATA* SendData,
+                                     _In_ QUIC_BUFFER* Buffer);
+    BOOLEAN (*CxPlatSendDataIsFull)(_In_ CXPLAT_SEND_DATA* SendData);
+    QUIC_STATUS (*CxPlatSocketSend)(_In_ CXPLAT_SOCKET* Socket,
+                                    _In_ const CXPLAT_ROUTE* Route,
+                                    _In_ CXPLAT_SEND_DATA* SendData);
+    void (*CxPlatDataPathProcessCqe)(_In_ CXPLAT_CQE* Cqe);
+} CXPLAT_DATAPATH_FUNCTIONS;
+
+// TODO: move to each plat?
+void InitSocketDataPath(struct CXPLAT_DATAPATH_FUNCTIONS* Funcs);
+
 #if defined(__cplusplus)
 }
 #endif
