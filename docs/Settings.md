@@ -168,7 +168,7 @@ These parameters are accessed by calling [GetParam](./api/GetParam.md) or [SetPa
 | `QUIC_PARAM_CONN_CIBIR_ID`<br> 21                 | uint8_t[]                     | Set-only  | The CIBIR well-known identifier.                                                          |
 | `QUIC_PARAM_CONN_STATISTICS_V2`<br> 22            | QUIC_STATISTICS_V2            | Get-only  | Connection-level statistics, version 2.                                                   |
 | `QUIC_PARAM_CONN_STATISTICS_V2_PLAT`<br> 23       | QUIC_STATISTICS_V2            | Get-only  | Connection-level statistics with platform-specific time format, version 2.                |
-
+| `QUIC_PARAM_CONN_ORIG_DEST_CID` <br> 24           | uint8_t[]                     | Get-only  | CID information about the original client that made the connection to the server.         |
 ### QUIC_PARAM_CONN_STATISTICS_V2
 
 Querying the `QUIC_STATISTICS_V2` struct via `QUIC_PARAM_CONN_STATISTICS_V2` or `QUIC_PARAM_CONN_STATISTICS_V2_PLAT` should be aware of possible changes in the size of the struct, depending on the version of MsQuic the app using at runtime, not just what it was compiled against.

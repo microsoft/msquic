@@ -4227,6 +4227,56 @@ void QuicTest_QUIC_PARAM_CONN_STATISTICS_V2_PLAT(MsQuicRegistration& Registratio
     }
 }
 
+
+void QuicTest_QUIC_PARAM_CONN_ORIG_DEST_CID(MsQuicRegistration& Registration) {
+    // This is the unit test for checking to see if a server has the correct original dest CID.
+    TestScopeLogger LogScope0("QUIC_PARAM_CONN_ORIG_DEST_CID");
+    {
+        MsQuicConnection Connection(Registration);
+        TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
+        uint32_t SizeOfBuffer = 8; // 8 bytes is the expected minimum size of the CID.
+        TestScopeLogger LogScope1("GetParam test success case");
+        QUIC_BUFFER buffer = {SizeOfBuffer, new uint8_t[SizeOfBuffer]};
+        TEST_QUIC_STATUS(
+            QUIC_STATUS_SUCCESS, 
+            Connection.GetParam(
+                QUIC_PARAM_CONN_ORIG_DEST_CID,
+                &SizeOfBuffer, 
+                &buffer
+            )
+        )
+    }
+    {
+        MsQuicConnection Connection(Registration);
+        TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
+        uint32_t SizeOfBuffer = 8;
+        TestScopeLogger LogScope1("GetParam null buffer check");
+        TEST_QUIC_STATUS(
+            QUIC_STATUS_INVALID_PARAMETER, 
+            Connection.GetParam(
+                QUIC_PARAM_CONN_ORIG_DEST_CID,
+                &SizeOfBuffer, 
+                nullptr
+            )
+        )
+    }
+    {
+        MsQuicConnection Connection(Registration);
+        TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
+        uint32_t SizeOfBuffer = 1;
+        TestScopeLogger LogScope1("GetParam buffer too small check");
+        QUIC_BUFFER buffer = {SizeOfBuffer, new uint8_t[SizeOfBuffer]};
+        TEST_QUIC_STATUS(
+            QUIC_STATUS_BUFFER_TOO_SMALL, 
+            Connection.GetParam(
+                QUIC_PARAM_CONN_ORIG_DEST_CID,
+                &SizeOfBuffer, 
+                &buffer
+            )
+        )
+    }
+}
+
 void QuicTestConnectionParam()
 {
     MsQuicAlpn Alpn("MsQuicTest");
@@ -4259,6 +4309,7 @@ void QuicTestConnectionParam()
     QuicTest_QUIC_PARAM_CONN_CIBIR_ID(Registration, ClientConfiguration);
     QuicTest_QUIC_PARAM_CONN_STATISTICS_V2(Registration);
     QuicTest_QUIC_PARAM_CONN_STATISTICS_V2_PLAT(Registration);
+    QuicTest_QUIC_PARAM_CONN_ORIG_DEST_CID(Registration);
 }
 
 //

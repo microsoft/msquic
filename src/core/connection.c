@@ -6821,8 +6821,8 @@ QuicConnParamGet(
 
     switch (Param) {
     
-    case QUICK_PARAM_CONN_ORIG_DEST_CID:
-        if (Connection == NULL) {
+    case QUIC_PARAM_CONN_ORIG_DEST_CID:
+        if (Connection == NULL || Connection->OrigDestCID == NULL) {
             Status = QUIC_STATUS_INVALID_STATE;
             break;
         }
