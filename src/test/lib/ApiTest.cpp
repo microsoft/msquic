@@ -4228,7 +4228,7 @@ void QuicTest_QUIC_PARAM_CONN_STATISTICS_V2_PLAT(MsQuicRegistration& Registratio
 }
 
 
-void QuicTest_QUIC_PARAM_CONN_ORIG_DEST_CID(MsQuicRegistration& Registration) {
+void QuicTest_QUIC_PARAM_CONN_ORIG_DEST_CID(MsQuicRegistration& Registration, MsQuicConfiguration& ClientConfiguration) {
     //
     // This is the unit test for checking to see if a server has the correct original dest CID.
     //
@@ -4236,8 +4236,6 @@ void QuicTest_QUIC_PARAM_CONN_ORIG_DEST_CID(MsQuicRegistration& Registration) {
     {
         MsQuicConnection Connection(Registration);
         TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
-        MsQuicAlpn Alpn("MsQuicTest");
-        MsQuicConfiguration ClientConfiguration(Registration, Alpn, ClientCertCredConfig);
         TEST_QUIC_SUCCEEDED(
         MsQuic->ConnectionStart(
             Connection.Handle,
@@ -4263,8 +4261,6 @@ void QuicTest_QUIC_PARAM_CONN_ORIG_DEST_CID(MsQuicRegistration& Registration) {
     {
         MsQuicConnection Connection(Registration);
         TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
-        MsQuicAlpn Alpn("MsQuicTest");
-        MsQuicConfiguration ClientConfiguration(Registration, Alpn, ClientCertCredConfig);
         TEST_QUIC_SUCCEEDED(
         MsQuic->ConnectionStart(
             Connection.Handle,
@@ -4286,8 +4282,6 @@ void QuicTest_QUIC_PARAM_CONN_ORIG_DEST_CID(MsQuicRegistration& Registration) {
     {
         MsQuicConnection Connection(Registration);
         TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
-        MsQuicAlpn Alpn("MsQuicTest");
-        MsQuicConfiguration ClientConfiguration(Registration, Alpn, ClientCertCredConfig);
         TEST_QUIC_SUCCEEDED(
         MsQuic->ConnectionStart(
             Connection.Handle,
@@ -4310,8 +4304,6 @@ void QuicTest_QUIC_PARAM_CONN_ORIG_DEST_CID(MsQuicRegistration& Registration) {
     {
         MsQuicConnection Connection(Registration);
         TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
-        MsQuicAlpn Alpn("MsQuicTest");
-        MsQuicConfiguration ClientConfiguration(Registration, Alpn, ClientCertCredConfig);
         TEST_QUIC_SUCCEEDED(
         MsQuic->ConnectionStart(
             Connection.Handle,
@@ -4369,7 +4361,7 @@ void QuicTestConnectionParam()
     QuicTest_QUIC_PARAM_CONN_CIBIR_ID(Registration, ClientConfiguration);
     QuicTest_QUIC_PARAM_CONN_STATISTICS_V2(Registration);
     QuicTest_QUIC_PARAM_CONN_STATISTICS_V2_PLAT(Registration);
-    QuicTest_QUIC_PARAM_CONN_ORIG_DEST_CID(Registration);
+    QuicTest_QUIC_PARAM_CONN_ORIG_DEST_CID(Registration, ClientConfiguration);
 }
 
 //
