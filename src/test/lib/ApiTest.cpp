@@ -4245,8 +4245,11 @@ void QuicTest_QUIC_PARAM_CONN_ORIG_DEST_CID(MsQuicRegistration& Registration) {
             QUIC_ADDRESS_FAMILY_INET,
             "localhost",
             4433));
+        //
+        // 8 bytes is the expected minimum size of the CID.
+        //
         uint32_t SizeOfBuffer = 8;
-        uint8_t Buffer[8]; // 8 bytes is the expected minimum size of the CID.
+        uint8_t Buffer[8]; 
         TestScopeLogger LogScope1("GetParam test success case");
         TEST_QUIC_STATUS(
             QUIC_STATUS_SUCCESS, 
@@ -4328,7 +4331,7 @@ void QuicTest_QUIC_PARAM_CONN_ORIG_DEST_CID(MsQuicRegistration& Registration) {
             )
         )
         // 
-        // There is no way the CID written should be 100 bytes.
+        // There is no way the CID written should be 100 bytes according to the RFC.
         //
         TEST_TRUE(SizeOfBuffer < 100);
     }
