@@ -7175,13 +7175,13 @@ QuicConnParamGet(
             Status = QUIC_STATUS_INVALID_STATE;
             break;
         }
-        if (Buffer == NULL) {
-            Status = QUIC_STATUS_INVALID_PARAMETER;
-            break;
-        }
         if (*BufferLength < Connection->OrigDestCID->Length) {
             Status = QUIC_STATUS_BUFFER_TOO_SMALL;
             *BufferLength = Connection->OrigDestCID->Length;
+            break;
+        }
+        if (Buffer == NULL) {
+            Status = QUIC_STATUS_INVALID_PARAMETER;
             break;
         }
         CxPlatCopyMemory(

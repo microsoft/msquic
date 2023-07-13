@@ -4237,12 +4237,11 @@ void QuicTest_QUIC_PARAM_CONN_ORIG_DEST_CID(MsQuicRegistration& Registration, Ms
         MsQuicConnection Connection(Registration);
         TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
         TEST_QUIC_SUCCEEDED(
-        MsQuic->ConnectionStart(
-            Connection.Handle,
-            ClientConfiguration,
-            QUIC_ADDRESS_FAMILY_INET,
-            "localhost",
-            4433));
+          Connection.Start(
+              ClientConfiguration,
+              QUIC_ADDRESS_FAMILY_INET,
+              "localhost",
+              4433));
         MsQuic->ConnectionSetConfiguration(Connection.Handle, ClientConfiguration);
         //
         // 8 bytes is the expected minimum size of the CID.
@@ -4265,12 +4264,11 @@ void QuicTest_QUIC_PARAM_CONN_ORIG_DEST_CID(MsQuicRegistration& Registration, Ms
         MsQuicConnection Connection(Registration);
         TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
         TEST_QUIC_SUCCEEDED(
-        MsQuic->ConnectionStart(
-            Connection.Handle,
-            ClientConfiguration,
-            QUIC_ADDRESS_FAMILY_INET,
-            "localhost",
-            4433));
+          Connection.Start(
+              ClientConfiguration,
+              QUIC_ADDRESS_FAMILY_INET,
+              "localhost",
+              4433));
         uint32_t SizeOfBuffer = 8;
         TestScopeLogger LogScope1("GetParam null buffer check");
         TEST_QUIC_STATUS(
@@ -4286,12 +4284,11 @@ void QuicTest_QUIC_PARAM_CONN_ORIG_DEST_CID(MsQuicRegistration& Registration, Ms
         MsQuicConnection Connection(Registration);
         TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
         TEST_QUIC_SUCCEEDED(
-        MsQuic->ConnectionStart(
-            Connection.Handle,
-            ClientConfiguration,
-            QUIC_ADDRESS_FAMILY_INET,
-            "localhost",
-            4433));
+          Connection.Start(
+              ClientConfiguration,
+              QUIC_ADDRESS_FAMILY_INET,
+              "localhost",
+              4433));
         uint32_t SizeOfBuffer = 1;
         TestScopeLogger LogScope1("GetParam buffer too small check");
         uint8_t Buffer[1];
@@ -4308,14 +4305,13 @@ void QuicTest_QUIC_PARAM_CONN_ORIG_DEST_CID(MsQuicRegistration& Registration, Ms
         MsQuicConnection Connection(Registration);
         TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
         TEST_QUIC_SUCCEEDED(
-        MsQuic->ConnectionStart(
-            Connection.Handle,
-            ClientConfiguration,
-            QUIC_ADDRESS_FAMILY_INET,
-            "localhost",
-            4433));
+          Connection.Start(
+              ClientConfiguration,
+              QUIC_ADDRESS_FAMILY_INET,
+              "localhost",
+              4433));
         uint32_t SizeOfBuffer = 100;
-        uint8_t Buffer[100];
+        uint8_t Buffer[100] = {0};
         uint8_t ZeroBuffer[100] = {0}; 
         TestScopeLogger LogScope1("GetParam size of buffer bigger than needed");
         TEST_QUIC_STATUS(
