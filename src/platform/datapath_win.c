@@ -25,7 +25,10 @@ CxPlatDataPathRecvPacketToRecvData(
     _In_ const CXPLAT_RECV_PACKET* const Context
     )
 {
-    return NULL;
+    return DataPathUserFuncs.CxPlatDataPathRecvPacketToRecvData(Context);
+    // TODO: xdp
+    // Or inline the function
+    // use global variable to store the offset? set at init phase
 }
 
 CXPLAT_RECV_PACKET*
@@ -33,7 +36,10 @@ CxPlatDataPathRecvDataToRecvPacket(
     _In_ const CXPLAT_RECV_DATA* const Datagram
     )
 {
-    return NULL;
+    return DataPathUserFuncs.CxPlatDataPathRecvDataToRecvPacket(Datagram);
+    // TODO: xdp
+    // Or inline the function
+    // use global variable to store the offset? set at init phase
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -46,11 +52,30 @@ CxPlatDataPathInitialize(
     _Out_ CXPLAT_DATAPATH** NewDataPath
     )
 {
-    fprintf(stderr, "CxPlatDataPathInitialize\n");
-    struct CXPLAT_DATAPATH_FUNCTIONS Funcs; // TODO: global
-    InitSocketDataPath(&Funcs);
+    // Init all Datapath
+    //
+    QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
 
-    return QUIC_STATUS_SUCCESS;
+    CXPLAT_DATAPATH* DataPath = (CXPLAT_DATAPATH*)CXPLAT_ALLOC_PAGED(sizeof(CXPLAT_DATAPATH), QUIC_POOL_DATAPATH);
+    if (DataPath == NULL) {
+        Status = QUIC_STATUS_OUT_OF_MEMORY;
+        goto Error;
+    }
+    CxPlatZeroMemory(DataPath, sizeof(CXPLAT_DATAPATH));
+    Status = DataPathUserFuncs.CxPlatDataPathInitialize(
+        ClientRecvContextLength,
+        UdpCallbacks,
+        TcpCallbacks,
+        Config,
+        &DataPath->User);
+
+    // TODO: xdp
+
+    *NewDataPath = DataPath;
+
+Error:
+
+    return Status;
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -59,6 +84,11 @@ CxPlatDataPathUninitialize(
     _In_ CXPLAT_DATAPATH* Datapath
     )
 {
+    DataPathUserFuncs.CxPlatDataPathUninitialize(Datapath->User);
+    if (Datapath->Xdp) {
+        // DataPathXdpFuncs.CxPlatDataPathUninitialize(Datapath->User);
+    }
+    CXPLAT_FREE(Datapath, QUIC_POOL_DATAPATH);
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -68,8 +98,10 @@ CxPlatDataPathUpdateConfig(
     _In_ QUIC_EXECUTION_CONFIG* Config
     )
 {
-    UNREFERENCED_PARAMETER(Datapath);
-    UNREFERENCED_PARAMETER(Config);
+    DataPathUserFuncs.CxPlatDataPathUpdateConfig(Datapath->User, Config);
+    if (Datapath->Xdp) {
+        // DataPathXdpFuncs.CxPlatDataPathUpdateConfig(Datapath->Xdp, Config);
+    }
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -78,7 +110,9 @@ CxPlatDataPathGetSupportedFeatures(
     _In_ CXPLAT_DATAPATH* Datapath
     )
 {
-    return 0;
+    // Which feature should be taken?
+    return DataPathUserFuncs.CxPlatDataPathGetSupportedFeatures(Datapath->User);
+    // TODO: xdp
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -87,7 +121,10 @@ CxPlatDataPathIsPaddingPreferred(
     _In_ CXPLAT_DATAPATH* Datapath
     )
 {
-    return FALSE;
+    // Which flag should be taken?
+    return DataPathUserFuncs.CxPlatDataPathIsPaddingPreferred(Datapath->User);
+    // TODO: xdp
+
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -100,7 +137,12 @@ CxPlatDataPathGetLocalAddresses(
     _Out_ uint32_t* AddressesCount
     )
 {
-    return QUIC_STATUS_NOT_SUPPORTED;
+    // which datapath should be used?
+    return DataPathUserFuncs.CxPlatDataPathGetLocalAddresses(
+        Datapath->User,
+        Addresses,
+        AddressesCount);
+    // TODO: xdp
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -113,7 +155,12 @@ CxPlatDataPathGetGatewayAddresses(
     _Out_ uint32_t* GatewayAddressesCount
     )
 {
-    return QUIC_STATUS_NOT_SUPPORTED;
+    // which datapath should be used?
+    return DataPathUserFuncs.CxPlatDataPathGetGatewayAddresses(
+        Datapath->User,
+        GatewayAddresses,
+        GatewayAddressesCount);
+    // TODO: xdp
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -124,7 +171,12 @@ CxPlatDataPathResolveAddress(
     _Inout_ QUIC_ADDR* Address
     )
 {
-    return QUIC_STATUS_NOT_SUPPORTED;
+    // TODO: both datapath adopt same procedure
+    //       can be flatten here and may no need for calling into internal datapath
+    return DataPathUserFuncs.CxPlatDataPathResolveAddress(
+        Datapath->User,
+        HostName,
+        Address);
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -135,8 +187,24 @@ CxPlatSocketCreateUdp(
     _Out_ CXPLAT_SOCKET** NewSocket
     )
 {
-    fprintf(stderr, "CxPlatSocketCreateUdp\n");
-    return QUIC_STATUS_SUCCESS;
+    QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
+
+    // - if client, use one out of 2 datapath
+    //   - if Config->RemoteAddress is loopback, use user
+    //   - if not, use xdp
+    // - if server, init socket, then share info to xdp?
+
+    if (FALSE /*(server && xdp) || (client && remote is not loopback)*/) {
+        // use XDP
+    } else {
+        Status = DataPathUserFuncs.CxPlatSocketCreateUdp(
+            Datapath->User,
+            Config,
+            NewSocket);
+        (*NewSocket)->DataPathType = DATAPATH_TYPE_USER;
+    }
+
+    return Status;
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -170,6 +238,13 @@ CxPlatSocketDelete(
     _In_ CXPLAT_SOCKET* Socket
     )
 {
+    if (Socket->DataPathType == DATAPATH_TYPE_USER) {
+        DataPathUserFuncs.CxPlatSocketDelete((CXPLAT_SOCKET_INTERNAL*)Socket);
+    } else if (Socket->DataPathType == DATAPATH_TYPE_XDP) {
+        // use XDP
+    } else {
+        CXPLAT_DBG_ASSERT(FALSE);
+    }
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -193,6 +268,13 @@ CxPlatSocketGetLocalMtu(
     _In_ CXPLAT_SOCKET* Socket
     )
 {
+    if (Socket->DataPathType == DATAPATH_TYPE_USER) {
+        return DataPathUserFuncs.CxPlatSocketGetLocalMtu((CXPLAT_SOCKET_INTERNAL*)Socket);
+    } else if (Socket->DataPathType == DATAPATH_TYPE_XDP) {
+        // use XDP
+    } else {
+        CXPLAT_DBG_ASSERT(FALSE);
+    }
     return 0;
 }
 
@@ -203,6 +285,10 @@ CxPlatSocketGetLocalAddress(
     _Out_ QUIC_ADDR* Address
     )
 {
+    // TODO: inline
+    DataPathUserFuncs.CxPlatSocketGetLocalAddress(
+        (CXPLAT_SOCKET_INTERNAL*)Socket,
+        Address);
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -212,6 +298,10 @@ CxPlatSocketGetRemoteAddress(
     _Out_ QUIC_ADDR* Address
     )
 {
+    // TODO: inline
+    DataPathUserFuncs.CxPlatSocketGetRemoteAddress(
+        (CXPLAT_SOCKET_INTERNAL*)Socket,
+        Address);
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -220,6 +310,7 @@ CxPlatRecvDataReturn(
     _In_opt_ CXPLAT_RECV_DATA* RecvDataChain
     )
 {
+    // TODO: CXPLAT_RECV_DATA to have flag to indicate which datapath it belongs to
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -230,7 +321,19 @@ CxPlatSendDataAlloc(
     _Inout_ CXPLAT_SEND_CONFIG* Config
     )
 {
-    return NULL;
+    CXPLAT_SEND_DATA* SendData = NULL;
+    if (Socket->DataPathType == DATAPATH_TYPE_USER) {
+        SendData = DataPathUserFuncs.CxPlatSendDataAlloc(
+            (CXPLAT_SOCKET_INTERNAL*)Socket,
+            Config);
+        SendData->DataPathType = DATAPATH_TYPE_USER;
+    } else if (Socket->DataPathType == DATAPATH_TYPE_XDP) {
+        // use XDP
+        // SendData->DataPathType = DATAPATH_TYPE_USER;
+    } else {
+        CXPLAT_DBG_ASSERT(FALSE);
+    }
+    return SendData;
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -239,6 +342,14 @@ CxPlatSendDataFree(
     _In_ CXPLAT_SEND_DATA* SendData
     )
 {
+    if (SendData->DataPathType == DATAPATH_TYPE_USER) {
+        DataPathUserFuncs.CxPlatSendDataFree(
+            (CXPLAT_SEND_DATA_INTERNAL*)SendData);
+    } else if (SendData->DataPathType == DATAPATH_TYPE_XDP) {
+        // use XDP
+    } else {
+        CXPLAT_DBG_ASSERT(FALSE);
+    }
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -249,6 +360,15 @@ CxPlatSendDataAllocBuffer(
     _In_ uint16_t MaxBufferLength
     )
 {
+    if (SendData->DataPathType == DATAPATH_TYPE_USER) {
+        return DataPathUserFuncs.CxPlatSendDataAllocBuffer(
+            (CXPLAT_SEND_DATA_INTERNAL*)SendData,
+            MaxBufferLength);
+    } else if (SendData->DataPathType == DATAPATH_TYPE_XDP) {
+        // use XDP
+    } else {
+        CXPLAT_DBG_ASSERT(FALSE);
+    }
     return NULL;
 }
 
@@ -259,6 +379,15 @@ CxPlatSendDataFreeBuffer(
     _In_ QUIC_BUFFER* Buffer
     )
 {
+    if (SendData->DataPathType == DATAPATH_TYPE_USER) {
+        DataPathUserFuncs.CxPlatSendDataFreeBuffer(
+            (CXPLAT_SEND_DATA_INTERNAL*)SendData,
+            Buffer);
+    } else if (SendData->DataPathType == DATAPATH_TYPE_XDP) {
+        // use XDP
+    } else {
+        CXPLAT_DBG_ASSERT(FALSE);
+    }
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -267,6 +396,14 @@ CxPlatSendDataIsFull(
     _In_ CXPLAT_SEND_DATA* SendData
     )
 {
+    if (SendData->DataPathType == DATAPATH_TYPE_USER) {
+        return DataPathUserFuncs.CxPlatSendDataIsFull(
+            (CXPLAT_SEND_DATA_INTERNAL*)SendData);
+    } else if (SendData->DataPathType == DATAPATH_TYPE_XDP) {
+        // use XDP
+    } else {
+        CXPLAT_DBG_ASSERT(FALSE);
+    }
     return FALSE;
 }
 
@@ -278,6 +415,16 @@ CxPlatSocketSend(
     _In_ CXPLAT_SEND_DATA* SendData
     )
 {
+    if (Socket->DataPathType == DATAPATH_TYPE_USER) {
+        return DataPathUserFuncs.CxPlatSocketSend(
+            (CXPLAT_SOCKET_INTERNAL*)Socket,
+            Route,
+            (CXPLAT_SEND_DATA_INTERNAL*)SendData);
+    } else if (Socket->DataPathType == DATAPATH_TYPE_XDP) {
+        // use XDP
+    } else {
+        CXPLAT_DBG_ASSERT(FALSE);
+    }
     return QUIC_STATUS_NOT_SUPPORTED;
 }
 
@@ -286,4 +433,6 @@ CxPlatDataPathProcessCqe(
     _In_ CXPLAT_CQE* Cqe
     )
 {
+    // what is the difference between datapath?
+    DataPathUserFuncs.CxPlatDataPathProcessCqe(Cqe);
 }
