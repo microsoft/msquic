@@ -4243,11 +4243,13 @@ void QuicTest_QUIC_PARAM_CONN_ORIG_DEST_CID(MsQuicRegistration& Registration, Ms
             QUIC_ADDRESS_FAMILY_INET,
             "localhost",
             4433));
+        MsQuic->ConnectionSetConfiguration(Connection.Handle, ClientConfiguration);
         //
         // 8 bytes is the expected minimum size of the CID.
         //
         uint32_t SizeOfBuffer = 8;
-        uint8_t Buffer[8]; 
+        uint8_t Buffer[8] = {0};
+        uint8_t ZeroBuffer[8] = {0}; 
         TestScopeLogger LogScope1("GetParam test success case");
         TEST_QUIC_STATUS(
             QUIC_STATUS_SUCCESS, 
@@ -4257,6 +4259,7 @@ void QuicTest_QUIC_PARAM_CONN_ORIG_DEST_CID(MsQuicRegistration& Registration, Ms
                 Buffer
             )
         )
+        TEST_NOT_EQUAL(memcmp(Buffer, ZeroBuffer, sizeof(Buffer)), 0);
     }
     {
         MsQuicConnection Connection(Registration);
@@ -4313,6 +4316,7 @@ void QuicTest_QUIC_PARAM_CONN_ORIG_DEST_CID(MsQuicRegistration& Registration, Ms
             4433));
         uint32_t SizeOfBuffer = 100;
         uint8_t Buffer[100];
+        uint8_t ZeroBuffer[100] = {0}; 
         TestScopeLogger LogScope1("GetParam size of buffer bigger than needed");
         TEST_QUIC_STATUS(
             QUIC_STATUS_SUCCESS, 
@@ -4322,6 +4326,7 @@ void QuicTest_QUIC_PARAM_CONN_ORIG_DEST_CID(MsQuicRegistration& Registration, Ms
                 Buffer
             )
         )
+        TEST_NOT_EQUAL(memcmp(Buffer, ZeroBuffer, sizeof(Buffer)), 0);
         // 
         // There is no way the CID written should be 100 bytes according to the RFC.
         //

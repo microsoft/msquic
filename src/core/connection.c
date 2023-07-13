@@ -7185,8 +7185,8 @@ QuicConnParamGet(
             break;
         }
         CxPlatCopyMemory(
-            Connection->OrigDestCID->Data,
             Buffer,
+            Connection->OrigDestCID->Data,
             Connection->OrigDestCID->Length);
         //
         // Tell app how much buffer we copied.
