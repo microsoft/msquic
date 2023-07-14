@@ -56,7 +56,7 @@ CxPlatSockPoolUninitialize(
 void
 CxPlatRemoveSocket(
     _In_ CXPLAT_SOCKET_POOL* Pool,
-    _In_ CXPLAT_SOCKET* Socket
+    _In_ CXPLAT_SOCKET_INTERNAL* Socket
     )
 {
     CxPlatRwLockAcquireExclusive(&Pool->Lock);
@@ -77,8 +77,8 @@ CxPlatRemoveSocket(
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
-CxPlatResolveRoute(
-    _In_ CXPLAT_SOCKET* Socket,
+MANGLE(CxPlatResolveRoute)(
+    _In_ CXPLAT_SOCKET_INTERNAL* Socket,
     _Inout_ CXPLAT_ROUTE* Route,
     _In_ uint8_t PathId,
     _In_ void* Context,
@@ -246,7 +246,7 @@ Done:
 QUIC_STATUS
 CxPlatTryAddSocket(
     _In_ CXPLAT_SOCKET_POOL* Pool,
-    _In_ CXPLAT_SOCKET* Socket
+    _In_ CXPLAT_SOCKET_INTERNAL* Socket
     )
 {
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
@@ -541,7 +541,7 @@ CxPlatTryAddSocket(
 
     Entry = CxPlatHashtableLookup(&Pool->Sockets, Socket->LocalAddress.Ipv4.sin_port, &Context);
     while (Entry != NULL) {
-        CXPLAT_SOCKET* Temp = CXPLAT_CONTAINING_RECORD(Entry, CXPLAT_SOCKET, Entry);
+        CXPLAT_SOCKET_INTERNAL* Temp = CXPLAT_CONTAINING_RECORD(Entry, CXPLAT_SOCKET_INTERNAL, Entry);
         if (CxPlatSocketCompare(Temp, &Socket->LocalAddress, &Socket->RemoteAddress)) {
             Status = QUIC_STATUS_ADDRESS_IN_USE;
             break;

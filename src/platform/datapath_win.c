@@ -194,15 +194,20 @@ CxPlatSocketCreateUdp(
     //   - if not, use xdp
     // - if server, init socket, then share info to xdp?
 
-    if (FALSE /*(server && xdp) || (client && remote is not loopback)*/) {
-        // use XDP
-    } else {
-        Status = DataPathUserFuncs.CxPlatSocketCreateUdp(
-            Datapath->User,
-            Config,
-            NewSocket);
-        (*NewSocket)->DataPathType = DATAPATH_TYPE_USER;
-    }
+    Status = DataPathUserFuncs.CxPlatSocketCreateUdp(
+        Datapath->User,
+        Config,
+        NewSocket);
+    (*NewSocket)->DataPathType = DATAPATH_TYPE_USER;
+
+    // if (FALSE /*(server && xdp) || (client && remote is not loopback)*/) {
+    //     // use XDP
+    // } else {
+    //     Status = DataPathUserFuncs.CxPlatSocketCreateUdp(
+    //         Datapath->User,
+    //         Config,
+    //         NewSocket);
+    // }
 
     return Status;
 }
@@ -436,3 +441,44 @@ CxPlatDataPathProcessCqe(
     // what is the difference between datapath?
     DataPathUserFuncs.CxPlatDataPathProcessCqe(Cqe);
 }
+
+
+
+// TODO: remove ifdef
+#ifdef QUIC_USE_RAW_DATAPATH
+void
+CxPlatResolveRouteComplete(
+    _In_ void* Connection,
+    _Inout_ CXPLAT_ROUTE* Route,
+    _In_reads_bytes_(6) const uint8_t* PhysicalAddress,
+    _In_ uint8_t PathId
+    )
+{
+    
+}
+
+//
+// Tries to resolve route and neighbor for the given destination address.
+//
+_IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_STATUS
+CxPlatResolveRoute(
+    _In_ CXPLAT_SOCKET* Socket,
+    _Inout_ CXPLAT_ROUTE* Route,
+    _In_ uint8_t PathId,
+    _In_ void* Context,
+    _In_ CXPLAT_ROUTE_RESOLUTION_CALLBACK_HANDLER Callback
+    )
+{
+    return QUIC_STATUS_NOT_SUPPORTED;
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+CxPlatUpdateRoute(
+    _Inout_ CXPLAT_ROUTE* DstRoute,
+    _In_ CXPLAT_ROUTE* SrcRoute
+    )
+{
+}
+#endif // QUIC_USE_RAW_DATAPATH
