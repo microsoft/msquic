@@ -23,7 +23,7 @@ Abstract:
 #endif
 
 typedef struct XDP_DATAPATH {
-    CXPLAT_DATAPATH;
+    CXPLAT_DATAPATH_RAW;
     DECLSPEC_CACHEALIGN
     //
     // Currently, all XDP interfaces share the same config.
@@ -97,7 +97,7 @@ typedef struct DECLSPEC_ALIGN(MEMORY_ALLOCATION_ALIGNMENT) XDP_RX_PACKET {
 } XDP_RX_PACKET;
 
 typedef struct DECLSPEC_ALIGN(MEMORY_ALLOCATION_ALIGNMENT) XDP_TX_PACKET {
-    CXPLAT_SEND_DATA;
+    CXPLAT_SEND_DATA_INTERNAL;
     XDP_QUEUE* Queue;
     CXPLAT_LIST_ENTRY Link;
     uint8_t FrameBuffer[MAX_ETH_FRAME_SIZE];
@@ -122,7 +122,7 @@ CxPlatXdpExecute(
     );
 
 CXPLAT_RECV_DATA*
-CxPlatDataPathRecvPacketToRecvData(
+MANGLE(CxPlatDataPathRecvPacketToRecvData)(
     _In_ const CXPLAT_RECV_PACKET* const Context
     )
 {
@@ -130,7 +130,7 @@ CxPlatDataPathRecvPacketToRecvData(
 }
 
 CXPLAT_RECV_PACKET*
-CxPlatDataPathRecvDataToRecvPacket(
+MANGLE(CxPlatDataPathRecvDataToRecvPacket)(
     _In_ const CXPLAT_RECV_DATA* const Datagram
     )
 {
@@ -1007,7 +1007,7 @@ CxPlatDpRawGetDatapathSize(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 CxPlatDpRawInitialize(
-    _Inout_ CXPLAT_DATAPATH* Datapath,
+    _Inout_ CXPLAT_DATAPATH_RAW* Datapath,
     _In_ uint32_t ClientRecvContextLength,
     _In_opt_ const QUIC_EXECUTION_CONFIG* Config
     )
@@ -1260,14 +1260,14 @@ CxPlatDpRawRelease(
             CxPlatFree(Interface, IF_TAG);
         }
         XdpCloseApi(Xdp->XdpApi);
-        CxPlatDataPathUninitializeComplete((CXPLAT_DATAPATH*)Xdp);
+        CxPlatDataPathUninitializeComplete((CXPLAT_DATAPATH_RAW*)Xdp);
     }
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 CxPlatDpRawUninitialize(
-    _In_ CXPLAT_DATAPATH* Datapath
+    _In_ CXPLAT_DATAPATH_RAW* Datapath
     )
 {
     XDP_DATAPATH* Xdp = (XDP_DATAPATH*)Datapath;
@@ -1286,7 +1286,7 @@ CxPlatDpRawUninitialize(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 CxPlatDpRawUpdateConfig(
-    _In_ CXPLAT_DATAPATH* Datapath,
+    _In_ CXPLAT_DATAPATH_RAW* Datapath,
     _In_ QUIC_EXECUTION_CONFIG* Config
     )
 {
@@ -1296,8 +1296,8 @@ CxPlatDpRawUpdateConfig(
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
-CxPlatSocketUpdateQeo(
-    _In_ CXPLAT_SOCKET* Socket,
+MANGLE(CxPlatSocketUpdateQeo)(
+    _In_ CXPLAT_SOCKET_INTERNAL* Socket,
     _In_reads_(OffloadCount)
         const CXPLAT_QEO_CONNECTION* Offloads,
     _In_ uint32_t OffloadCount
@@ -1387,7 +1387,7 @@ CxPlatDpRawClearPortBit(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 CxPlatDpRawPlumbRulesOnSocket(
-    _In_ CXPLAT_SOCKET* Socket,
+    _In_ CXPLAT_SOCKET_INTERNAL* Socket,
     _In_ BOOLEAN IsCreated
     )
 {
@@ -1613,7 +1613,7 @@ CxPlatXdpRx(
     }
 
     if (PacketCount > 0) {
-        CxPlatDpRawRxEthernet((CXPLAT_DATAPATH*)Xdp, Buffers, (uint16_t)PacketCount);
+        CxPlatDpRawRxEthernet((CXPLAT_DATAPATH_RAW*)Xdp, Buffers, (uint16_t)PacketCount);
     }
 
     if (XskRingError(&Queue->RxRing) && !Queue->Error) {
@@ -1673,7 +1673,7 @@ CxPlatDpRawRxFree(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 CXPLAT_SEND_DATA*
 CxPlatDpRawTxAlloc(
-    _In_ CXPLAT_SOCKET* Socket,
+    _In_ CXPLAT_SOCKET_INTERNAL* Socket,
     _Inout_ CXPLAT_SEND_CONFIG* Config
     )
 {
@@ -1696,7 +1696,7 @@ CxPlatDpRawTxAlloc(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 CxPlatDpRawTxFree(
-    _In_ CXPLAT_SEND_DATA* SendData
+    _In_ CXPLAT_SEND_DATA_INTERNAL* SendData
     )
 {
     XDP_TX_PACKET* Packet = (XDP_TX_PACKET*)SendData;
@@ -1706,7 +1706,7 @@ CxPlatDpRawTxFree(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 CxPlatDpRawTxEnqueue(
-    _In_ CXPLAT_SEND_DATA* SendData
+    _In_ CXPLAT_SEND_DATA_INTERNAL* SendData
     )
 {
     XDP_TX_PACKET* Packet = (XDP_TX_PACKET*)SendData;
@@ -1901,7 +1901,7 @@ CxPlatXdpExecute(
 }
 
 void
-CxPlatDataPathProcessCqe(
+MANGLE(CxPlatDataPathProcessCqe)(
     _In_ CXPLAT_CQE* Cqe
     )
 {

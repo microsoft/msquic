@@ -12,12 +12,7 @@ endif()
 set(SOURCES crypt.c hashtable.c pcp.c platform_worker.c toeplitz.c)
 
 if("${CX_PLATFORM}" STREQUAL "windows")
-    set(SOURCES ${SOURCES} platform_winuser.c storage_winuser.c)
-    if(QUIC_USE_XDP)
-        set(SOURCES ${SOURCES} datapath_raw_win.c datapath_raw_socket.c datapath_raw_socket_win.c datapath_raw_xdp_win.c)
-    else()
-        set(SOURCES ${SOURCES} datapath_win.c datapath_winuser.c)
-    endif()
+    set(SOURCES ${SOURCES} platform_winuser.c storage_winuser.c datapath_win.c datapath_winuser.c datapath_raw_win.c datapath_raw_socket.c datapath_raw_socket_win.c datapath_raw_xdp_win.c)
 else()
     set(SOURCES ${SOURCES} inline.c platform_posix.c storage_posix.c cgroup.c)
     if(CX_PLATFORM STREQUAL "linux" AND NOT CMAKE_SYSTEM_NAME STREQUAL "FreeBSD")
@@ -50,33 +45,26 @@ endif()
 
 add_library(platform STATIC ${SOURCES})
 
-if ("${CX_PLATFORM}" STREQUAL "windows" AND QUIC_USE_XDP)
+if("${CX_PLATFORM}" STREQUAL "windows")
     target_link_libraries(
         platform
         PUBLIC
         inc
         wbemuuid
+        winmm
         ${PROJECT_SOURCE_DIR}/artifacts/xdp/lib/xdpapi.lib)
-else()
-    target_link_libraries(platform PUBLIC inc)
-endif()
-
-if("${CX_PLATFORM}" STREQUAL "windows")
-    target_link_libraries(platform PUBLIC winmm)
 endif()
 
 target_link_libraries(platform PRIVATE warnings main_binary_link_args)
 
 set_property(TARGET platform PROPERTY FOLDER "${QUIC_FOLDER_PREFIX}libraries")
 
-if ("${CX_PLATFORM}" STREQUAL "windows" AND QUIC_USE_XDP)
+if ("${CX_PLATFORM}" STREQUAL "windows")
     target_include_directories(
         platform
         PRIVATE
         ${EXTRA_PLATFORM_INCLUDE_DIRECTORIES}
         ${PROJECT_SOURCE_DIR}/artifacts/xdp/include)
-else()
-    target_include_directories(platform PRIVATE ${EXTRA_PLATFORM_INCLUDE_DIRECTORIES})
 endif()
 
 if (MSVC AND (QUIC_TLS STREQUAL "openssl" OR QUIC_TLS STREQUAL "schannel") AND NOT QUIC_ENABLE_SANITIZERS)

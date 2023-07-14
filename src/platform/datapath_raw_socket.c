@@ -17,20 +17,20 @@ Abstract:
 #pragma warning(disable:4116) // unnamed type definition in parentheses
 #pragma warning(disable:4100) // unreferenced formal parameter
 
-CXPLAT_SOCKET*
+CXPLAT_SOCKET_INTERNAL*
 CxPlatGetSocket(
     _In_ const CXPLAT_SOCKET_POOL* Pool,
     _In_ const QUIC_ADDR* LocalAddress,
     _In_ const QUIC_ADDR* RemoteAddress
     )
 {
-    CXPLAT_SOCKET* Socket = NULL;
+    CXPLAT_SOCKET_INTERNAL* Socket = NULL;
     CXPLAT_HASHTABLE_LOOKUP_CONTEXT Context;
     CXPLAT_HASHTABLE_ENTRY* Entry;
     CxPlatRwLockAcquireShared(&((CXPLAT_SOCKET_POOL*)Pool)->Lock);
     Entry = CxPlatHashtableLookup(&Pool->Sockets, LocalAddress->Ipv4.sin_port, &Context);
     while (Entry != NULL) {
-        CXPLAT_SOCKET* Temp = CXPLAT_CONTAINING_RECORD(Entry, CXPLAT_SOCKET, Entry);
+        CXPLAT_SOCKET_INTERNAL* Temp = CXPLAT_CONTAINING_RECORD(Entry, CXPLAT_SOCKET_INTERNAL, Entry);
         if (CxPlatSocketCompare(Temp, LocalAddress, RemoteAddress)) {
             if (CxPlatRundownAcquire(&Temp->Rundown)) {
                 Socket = Temp;
@@ -44,7 +44,7 @@ CxPlatGetSocket(
 }
 
 void
-CxPlatResolveRouteComplete(
+MANGLE(CxPlatResolveRouteComplete)(
     _In_ void* Context,
     _Inout_ CXPLAT_ROUTE* Route,
     _In_reads_bytes_(6) const uint8_t* PhysicalAddress,
@@ -69,7 +69,7 @@ CxPlatResolveRouteComplete(
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
-CxPlatUpdateRoute(
+MANGLE(CxPlatUpdateRoute)(
     _Inout_ CXPLAT_ROUTE* DstRoute,
     _In_ CXPLAT_ROUTE* SrcRoute
     )
@@ -472,7 +472,7 @@ CxPlatFramingTransportChecksum(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 CxPlatDpRawSocketAckFin(
-    _In_ CXPLAT_SOCKET* Socket,
+    _In_ CXPLAT_SOCKET_INTERNAL* Socket,
     _In_ CXPLAT_RECV_DATA* Packet
     )
 {
@@ -480,7 +480,7 @@ CxPlatDpRawSocketAckFin(
 
     CXPLAT_ROUTE* Route = Packet->Route;
     CXPLAT_SEND_CONFIG SendConfig = { Route, 0, CXPLAT_ECN_NON_ECT, 0 };
-    CXPLAT_SEND_DATA *SendData = CxPlatSendDataAlloc(Socket, &SendConfig);
+    CXPLAT_SEND_DATA_INTERNAL *SendData = (CXPLAT_SEND_DATA_INTERNAL*)CxPlatSendDataAlloc((CXPLAT_SOCKET*)Socket, &SendConfig);
     if (SendData == NULL) {
         return;
     }
@@ -511,7 +511,7 @@ CxPlatDpRawSocketAckFin(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 CxPlatDpRawSocketAckSyn(
-    _In_ CXPLAT_SOCKET* Socket,
+    _In_ CXPLAT_SOCKET_INTERNAL* Socket,
     _In_ CXPLAT_RECV_DATA* Packet
     )
 {
@@ -519,7 +519,7 @@ CxPlatDpRawSocketAckSyn(
 
     CXPLAT_ROUTE* Route = Packet->Route;
     CXPLAT_SEND_CONFIG SendConfig = { Route, 0, CXPLAT_ECN_NON_ECT, 0 };
-    CXPLAT_SEND_DATA *SendData = CxPlatSendDataAlloc(Socket, &SendConfig);
+    CXPLAT_SEND_DATA_INTERNAL *SendData = (CXPLAT_SEND_DATA_INTERNAL*)CxPlatSendDataAlloc((CXPLAT_SOCKET*)Socket, &SendConfig);
     if (SendData == NULL) {
         return;
     }
@@ -568,7 +568,7 @@ CxPlatDpRawSocketAckSyn(
             TH_ACK);
         CxPlatDpRawTxEnqueue(SendData);
 
-        SendData = CxPlatSendDataAlloc(Socket, &SendConfig);
+        SendData = (CXPLAT_SEND_DATA_INTERNAL*)CxPlatSendDataAlloc((CXPLAT_SOCKET*)Socket, &SendConfig);
         if (SendData == NULL) {
             return;
         }
@@ -596,14 +596,14 @@ CxPlatDpRawSocketAckSyn(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 CxPlatDpRawSocketSyn(
-    _In_ CXPLAT_SOCKET* Socket,
+    _In_ CXPLAT_SOCKET_INTERNAL* Socket,
     _In_ const CXPLAT_ROUTE* Route
     )
 {
     CXPLAT_DBG_ASSERT(Socket->UseTcp);
 
     CXPLAT_SEND_CONFIG SendConfig = { (CXPLAT_ROUTE*)Route, 0, CXPLAT_ECN_NON_ECT, 0 };
-    CXPLAT_SEND_DATA *SendData = CxPlatSendDataAlloc(Socket, &SendConfig);
+    CXPLAT_SEND_DATA_INTERNAL *SendData = (CXPLAT_SEND_DATA_INTERNAL*)CxPlatSendDataAlloc((CXPLAT_SOCKET*)Socket, &SendConfig);
     if (SendData == NULL) {
         return;
     }
@@ -630,7 +630,7 @@ CxPlatDpRawSocketSyn(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 CxPlatFramingWriteHeaders(
-    _In_ CXPLAT_SOCKET* Socket,
+    _In_ CXPLAT_SOCKET_INTERNAL* Socket,
     _In_ const CXPLAT_ROUTE* Route,
     _Inout_ QUIC_BUFFER* Buffer,
     _In_ CXPLAT_ECN_TYPE ECN,
