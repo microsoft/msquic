@@ -71,8 +71,6 @@ jobs:
     steps:
     - name: Checkout repository
       uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9
-      with:
-        fetch-depth: 0
     - name: Install Perl
       uses: shogo82148/actions-setup-perl@04a9a397f834661fa6faf5aa6d16d14536249d2a
       with:
