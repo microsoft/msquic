@@ -153,7 +153,13 @@ if ($ForTest) {
     # enabled for any possible test.
     $InstallTestCertificates = $true
     $InstallClog2Text = $true
-    $InstallSigningCertificates = $true; # For kernel drivers
+
+    # Since installing signing certs also checks whether test signing is enabled, which most
+    # likely will fail on a devbox, do it only when we need to test kernel drivers so that
+    # local testing setup won't be blocked by test signing not enabled.
+    if ($ForKernel) {
+        $InstallSigningCertificates = $true;
+    }
 
     #$InstallCodeCoverage = $true # Ideally we'd enable this by default, but it
                                   # hangs sometimes, so we only want to install
