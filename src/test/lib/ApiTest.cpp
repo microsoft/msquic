@@ -4328,6 +4328,35 @@ void QuicTest_QUIC_PARAM_CONN_ORIG_DEST_CID(MsQuicRegistration& Registration, Ms
         //
         TEST_TRUE(SizeOfBuffer < 100);
     }
+    {
+        MsQuicConnection Connection(Registration);
+        TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
+        TEST_QUIC_SUCCEEDED(
+          Connection.Start(
+              ClientConfiguration,
+              QUIC_ADDRESS_FAMILY_INET,
+              "localhost",
+              4433));
+        uint32_t SizeOfBuffer = 0;
+        TestScopeLogger LogScope1("GetParam check OrigDestCID size with nullptr");
+        TEST_QUIC_STATUS(
+            QUIC_STATUS_BUFFER_TOO_SMALL, 
+            Connection.GetParam(
+                QUIC_PARAM_CONN_ORIG_DEST_CID,
+                &SizeOfBuffer, 
+                nullptr
+            )
+        )
+        TEST_TRUE(SizeOfBuffer >= 8);
+        TEST_QUIC_STATUS(
+            QUIC_STATUS_INVALID_PARAMETER, 
+            Connection.GetParam(
+                QUIC_PARAM_CONN_ORIG_DEST_CID,
+                &SizeOfBuffer, 
+                nullptr
+            )
+        )
+    }
 }
 
 void QuicTestConnectionParam()
