@@ -4227,6 +4227,138 @@ void QuicTest_QUIC_PARAM_CONN_STATISTICS_V2_PLAT(MsQuicRegistration& Registratio
     }
 }
 
+
+void QuicTest_QUIC_PARAM_CONN_ORIG_DEST_CID(MsQuicRegistration& Registration, MsQuicConfiguration& ClientConfiguration) {
+    //
+    // This is the unit test for checking to see if a server has the correct original dest CID.
+    //
+    TestScopeLogger LogScope0("QUIC_PARAM_CONN_ORIG_DEST_CID");
+    {
+        MsQuicConnection Connection(Registration);
+        TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
+        TEST_QUIC_SUCCEEDED(
+          Connection.Start(
+              ClientConfiguration,
+              QUIC_ADDRESS_FAMILY_INET,
+              "localhost",
+              4433));
+        MsQuic->ConnectionSetConfiguration(Connection.Handle, ClientConfiguration);
+        //
+        // 8 bytes is the expected minimum size of the CID.
+        //
+        uint32_t SizeOfBuffer = 8;
+        uint8_t Buffer[8] = {0};
+        uint8_t ZeroBuffer[8] = {0}; 
+        TestScopeLogger LogScope1("GetParam test success case");
+        TEST_QUIC_STATUS(
+            QUIC_STATUS_SUCCESS, 
+            Connection.GetParam(
+                QUIC_PARAM_CONN_ORIG_DEST_CID,
+                &SizeOfBuffer, 
+                Buffer
+            )
+        )
+        TEST_NOT_EQUAL(memcmp(Buffer, ZeroBuffer, sizeof(Buffer)), 0);
+    }
+    {
+        MsQuicConnection Connection(Registration);
+        TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
+        TEST_QUIC_SUCCEEDED(
+          Connection.Start(
+              ClientConfiguration,
+              QUIC_ADDRESS_FAMILY_INET,
+              "localhost",
+              4433));
+        uint32_t SizeOfBuffer = 8;
+        TestScopeLogger LogScope1("GetParam null buffer check");
+        TEST_QUIC_STATUS(
+            QUIC_STATUS_INVALID_PARAMETER, 
+            Connection.GetParam(
+                QUIC_PARAM_CONN_ORIG_DEST_CID,
+                &SizeOfBuffer, 
+                nullptr
+            )
+        )
+    }
+    {
+        MsQuicConnection Connection(Registration);
+        TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
+        TEST_QUIC_SUCCEEDED(
+          Connection.Start(
+              ClientConfiguration,
+              QUIC_ADDRESS_FAMILY_INET,
+              "localhost",
+              4433));
+        uint32_t SizeOfBuffer = 1;
+        TestScopeLogger LogScope1("GetParam buffer too small check");
+        uint8_t Buffer[1];
+        TEST_QUIC_STATUS(
+            QUIC_STATUS_BUFFER_TOO_SMALL, 
+            Connection.GetParam(
+                QUIC_PARAM_CONN_ORIG_DEST_CID,
+                &SizeOfBuffer, 
+                Buffer
+            )
+        )
+    }
+    {
+        MsQuicConnection Connection(Registration);
+        TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
+        TEST_QUIC_SUCCEEDED(
+          Connection.Start(
+              ClientConfiguration,
+              QUIC_ADDRESS_FAMILY_INET,
+              "localhost",
+              4433));
+        uint32_t SizeOfBuffer = 100;
+        uint8_t Buffer[100] = {0};
+        uint8_t ZeroBuffer[100] = {0}; 
+        TestScopeLogger LogScope1("GetParam size of buffer bigger than needed");
+        TEST_QUIC_STATUS(
+            QUIC_STATUS_SUCCESS, 
+            Connection.GetParam(
+                QUIC_PARAM_CONN_ORIG_DEST_CID,
+                &SizeOfBuffer, 
+                Buffer
+            )
+        )
+        TEST_NOT_EQUAL(memcmp(Buffer, ZeroBuffer, sizeof(Buffer)), 0);
+        // 
+        // There is no way the CID written should be 100 bytes according to the RFC.
+        //
+        TEST_TRUE(SizeOfBuffer < 100);
+    }
+    {
+        MsQuicConnection Connection(Registration);
+        TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
+        TEST_QUIC_SUCCEEDED(
+          Connection.Start(
+              ClientConfiguration,
+              QUIC_ADDRESS_FAMILY_INET,
+              "localhost",
+              4433));
+        uint32_t SizeOfBuffer = 0;
+        TestScopeLogger LogScope1("GetParam check OrigDestCID size with nullptr");
+        TEST_QUIC_STATUS(
+            QUIC_STATUS_BUFFER_TOO_SMALL, 
+            Connection.GetParam(
+                QUIC_PARAM_CONN_ORIG_DEST_CID,
+                &SizeOfBuffer, 
+                nullptr
+            )
+        )
+        TEST_TRUE(SizeOfBuffer >= 8);
+        TEST_QUIC_STATUS(
+            QUIC_STATUS_INVALID_PARAMETER, 
+            Connection.GetParam(
+                QUIC_PARAM_CONN_ORIG_DEST_CID,
+                &SizeOfBuffer, 
+                nullptr
+            )
+        )
+    }
+}
+
 void QuicTestConnectionParam()
 {
     MsQuicAlpn Alpn("MsQuicTest");
@@ -4259,6 +4391,7 @@ void QuicTestConnectionParam()
     QuicTest_QUIC_PARAM_CONN_CIBIR_ID(Registration, ClientConfiguration);
     QuicTest_QUIC_PARAM_CONN_STATISTICS_V2(Registration);
     QuicTest_QUIC_PARAM_CONN_STATISTICS_V2_PLAT(Registration);
+    QuicTest_QUIC_PARAM_CONN_ORIG_DEST_CID(Registration, ClientConfiguration);
 }
 
 //

@@ -7170,6 +7170,31 @@ QuicConnParamGet(
         break;
     }
 
+    case QUIC_PARAM_CONN_ORIG_DEST_CID:
+        if (Connection->OrigDestCID == NULL) {
+            Status = QUIC_STATUS_INVALID_STATE;
+            break;
+        }
+        if (*BufferLength < Connection->OrigDestCID->Length) {
+            Status = QUIC_STATUS_BUFFER_TOO_SMALL;
+            *BufferLength = Connection->OrigDestCID->Length;
+            break;
+        }
+        if (Buffer == NULL) {
+            Status = QUIC_STATUS_INVALID_PARAMETER;
+            break;
+        }
+        CxPlatCopyMemory(
+            Buffer,
+            Connection->OrigDestCID->Data,
+            Connection->OrigDestCID->Length);
+        //
+        // Tell app how much buffer we copied.
+        //
+        *BufferLength = Connection->OrigDestCID->Length;
+        Status = QUIC_STATUS_SUCCESS;
+        break;
+
     default:
         Status = QUIC_STATUS_INVALID_PARAMETER;
         break;
