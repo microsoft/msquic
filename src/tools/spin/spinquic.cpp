@@ -633,31 +633,31 @@ void SpinQuicRandomizeSettings(QUIC_SETTINGS& Settings, uint16_t ThreadID)
         Settings.IsSet.MaximumMtu = TRUE;
         break;
     case 24:
-        Settings.SendBufferingEnabled = GetRandom(1ui8);
+        Settings.SendBufferingEnabled = GetRandom((uint8_t)1);
         Settings.IsSet.SendBufferingEnabled = TRUE;
         break;
     case 25:
-        Settings.PacingEnabled = GetRandom(1ui8);
+        Settings.PacingEnabled = GetRandom((uint8_t)1);
         Settings.IsSet.PacingEnabled = TRUE;
         break;
     case 26:
-        Settings.MigrationEnabled = GetRandom(1ui8);
+        Settings.MigrationEnabled = GetRandom((uint8_t)1);
         Settings.IsSet.MigrationEnabled = TRUE;
         break;
     case 27:
-        Settings.DatagramReceiveEnabled = GetRandom(1ui8);
+        Settings.DatagramReceiveEnabled = GetRandom((uint8_t)1);
         Settings.IsSet.DatagramReceiveEnabled = TRUE;
         break;
     case 28:
-        Settings.ServerResumptionLevel = GetRandom(3ui8);
+        Settings.ServerResumptionLevel = GetRandom((uint8_t)3);
         Settings.IsSet.ServerResumptionLevel = TRUE;
         break;
     case 29:
-        Settings.GreaseQuicBitEnabled = GetRandom(1ui8);
+        Settings.GreaseQuicBitEnabled = GetRandom((uint8_t)1);
         Settings.IsSet.GreaseQuicBitEnabled = TRUE;
         break;
     case 30:
-        Settings.EcnEnabled = GetRandom(1ui8);
+        Settings.EcnEnabled = GetRandom((uint8_t)1);
         Settings.IsSet.EcnEnabled = TRUE;
         break;
     case 31:
@@ -673,11 +673,11 @@ void SpinQuicRandomizeSettings(QUIC_SETTINGS& Settings, uint16_t ThreadID)
         Settings.IsSet.DestCidUpdateIdleTimeoutMs = TRUE;
         break;
     case 34:
-        Settings.HyStartEnabled = GetRandom(1ui8);
+        Settings.HyStartEnabled = GetRandom((uint8_t)1);
         Settings.IsSet.HyStartEnabled = TRUE;
         break;
     case 35:
-        Settings.EncryptionOffloadAllowed = GetRandom(1ui8);
+        Settings.EncryptionOffloadAllowed = GetRandom((uint8_t)1);
         Settings.IsSet.EncryptionOffloadAllowed = TRUE;
         break;
     default:
