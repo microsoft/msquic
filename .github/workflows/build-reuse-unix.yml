@@ -78,23 +78,19 @@ jobs:
     name: Build
     runs-on: ${{ inputs.os }}
     container:
-      image: ${{ inputs.plat == 'linux' && contains(inputs.arch, 'arm') && format('ghcr.io/microsoft/msquic/linux-build-xcomp:{0}', inputs.os) || '' }}
+      image: ${{ inputs.plat == 'linux' && format('ghcr.io/microsoft/msquic/linux-build-xcomp:{0}', inputs.os) || '' }}
     steps:
     - name: Checkout repository
       uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9
     - name: Set ownership
-      if: inputs.plat == 'linux' && contains(inputs.arch, 'arm')
+      if: inputs.plat == 'linux'
       run: |
         # this is to fix GIT not liking owner of the checkout dir
         chown -R $(id -u):$(id -g) $PWD
     - name: Prepare Machine
-      if: contains(inputs.arch, 'arm') != true
+      if: inputs.plat == 'linux'
       shell: pwsh
-      run: scripts/prepare-machine.ps1 -ForBuild -Tls ${{ inputs.tls }}
-    - name: Prepare Machine
-      if: contains(inputs.arch, 'arm') == true
-      shell: pwsh
-      run: scripts/prepare-machine.ps1 -ForOneBranch -InitSubmodules -Tls ${{ inputs.tls }}
+      run: scripts/prepare-machine.ps1 ${{ inputs.plat == 'linux' && '-ForContainerBuild' || '-ForBuild' }} -Tls ${{ inputs.tls }}
     - name: Build For Test
       if: inputs.test == '-Test'
       shell: pwsh
