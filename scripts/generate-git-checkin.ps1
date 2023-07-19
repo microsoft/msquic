@@ -17,7 +17,7 @@ $RootDir = Split-Path $PSScriptRoot -Parent;
 
 $ArtifactsDir = Join-Path $RootDir "artifacts";
 
-$VersionFile = Join-Path $ArtifactsDir bin windows x64_Release_schannel versions.json
+$VersionFile = Join-Path $ArtifactsDir package versions.json
 
 $Versions = Get-Content -Path $VersionFile | ConvertFrom-Json
 
@@ -80,13 +80,13 @@ if (![string]::IsNullOrWhiteSpace($MSRCNumber)) {
 
 $ManifestFile = Join-Path $ArtifactsDir package $outputFile
 
-$Checkin = [GitCheckin]::new($ManifestFile, $BranchToPushTo, $PRTitle)
+$Checkin = [GitCheckin]::new($outputFile, $BranchToPushTo, $PRTitle)
 
 $CheckinFile = Join-Path $ArtifactsDir package GitCheckin.json
 
 $Checkin | ConvertTo-Json -Depth 100 | Out-File $CheckinFile
 
-$FakeCheckin = [GitCheckin]::new($ManifestFile, $BranchToPushTo, $PRTitle)
+$FakeCheckin = [GitCheckin]::new($outputFile, $BranchToPushTo, $PRTitle)
 $FakeCheckin.Branch[0].CheckinFiles = @()
 
 $Platforms = @("amd64", "arm64", "arm", "chpe", "x86")
