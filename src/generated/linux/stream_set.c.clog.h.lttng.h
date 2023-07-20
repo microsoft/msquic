@@ -44,6 +44,25 @@ TRACEPOINT_EVENT(CLOG_STREAM_SET_C, IndicatePeerAccepted,
 
 
 /*----------------------------------------------------------
+// Decoder Ring for ConfiguredForDelayedIDFC
+// [strm][%p] Configured for delayed ID FC updates
+// QuicTraceLogStreamVerbose(
+                        ConfiguredForDelayedIDFC,
+                        Stream,
+                        "Configured for delayed ID FC updates");
+// arg1 = arg1 = Stream = arg1
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_STREAM_SET_C, ConfiguredForDelayedIDFC,
+    TP_ARGS(
+        const void *, arg1), 
+    TP_FIELDS(
+        ctf_integer_hex(uint64_t, arg1, arg1)
+    )
+)
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for MaxStreamCountUpdated
 // [conn][%p] App configured max stream count of %hu (type=%hhu).
 // QuicTraceLogConnInfo(

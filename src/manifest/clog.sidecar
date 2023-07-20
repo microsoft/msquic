@@ -963,6 +963,18 @@
       ],
       "macroName": "QuicTraceLogInfo"
     },
+    "ConfiguredForDelayedIDFC": {
+      "ModuleProperites": {},
+      "TraceString": "[strm][%p] Configured for delayed ID FC updates",
+      "UniqueId": "ConfiguredForDelayedIDFC",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        }
+      ],
+      "macroName": "QuicTraceLogStreamVerbose"
+    },
     "ConnAppShutdown": {
       "ModuleProperites": {},
       "TraceString": "[conn][%p] App Shutdown: %llu (Remote=%hhu)",
@@ -4207,6 +4219,22 @@
       ],
       "macroName": "QuicTraceLogConnVerbose"
     },
+    "FoundVF": {
+      "ModuleProperites": {},
+      "TraceString": "[ xdp] Found NetSvc-VF interfaces. NetSvc IfIdx:%d, VF IfIdx:%d",
+      "UniqueId": "FoundVF",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "d",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "d",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macroName": "QuicTraceEvent"
+    },
     "FrameLogAck": {
       "ModuleProperites": {},
       "TraceString": "[%c][%cX][%llu]   ACK Largest:%llu Delay:%llu",
@@ -7176,6 +7204,42 @@
       ],
       "macroName": "QuicTraceLogStreamWarning"
     },
+    "OfflodingStart": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] Path[%hhu] Successfully start encryption offloading",
+      "UniqueId": "OfflodingStart",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        },
+        {
+          "DefinationEncoding": "hhu",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macroName": "QuicTraceLogConnInfo"
+    },
+    "OfflodingStop": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] Path[%hhu] %s stop encryption offloading",
+      "UniqueId": "OfflodingStop",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        },
+        {
+          "DefinationEncoding": "hhu",
+          "MacroVariableName": "arg3"
+        },
+        {
+          "DefinationEncoding": "s",
+          "MacroVariableName": "arg4"
+        }
+      ],
+      "macroName": "QuicTraceLogConnInfo"
+    },
     "OpenSsl1RttDataStart": {
       "ModuleProperites": {},
       "TraceString": "[conn][%p] Writing 1-RTT data starts at %u",
@@ -7963,6 +8027,38 @@
       ],
       "macroName": "QuicTraceLogConnInfo"
     },
+    "PathQeoDisabled": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] Path[%hhu] QEO disabled",
+      "UniqueId": "PathQeoDisabled",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        },
+        {
+          "DefinationEncoding": "hhu",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macroName": "QuicTraceLogConnInfo"
+    },
+    "PathQeoEnabled": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] Path[%hhu] QEO enabled",
+      "UniqueId": "PathQeoEnabled",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        },
+        {
+          "DefinationEncoding": "hhu",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macroName": "QuicTraceLogConnInfo"
+    },
     "PathRemoved": {
       "ModuleProperites": {},
       "TraceString": "[conn][%p] Path[%hhu] Removed",
@@ -8606,6 +8702,30 @@
         {
           "DefinationEncoding": "u",
           "MacroVariableName": "arg4"
+        }
+      ],
+      "macroName": "QuicTraceLogInfo"
+    },
+    "ProcessorInfoV2": {
+      "ModuleProperites": {},
+      "TraceString": "[ dll] Proc[%u] Group[%hu] Index[%u] Active=%hhu",
+      "UniqueId": "ProcessorInfoV2",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "hu",
+          "MacroVariableName": "arg3"
+        },
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg4"
+        },
+        {
+          "DefinationEncoding": "hhu",
+          "MacroVariableName": "arg5"
         }
       ],
       "macroName": "QuicTraceLogInfo"
@@ -10347,6 +10467,18 @@
       ],
       "macroName": "QuicTraceLogVerbose"
     },
+    "SettingEncryptionOffloadAllowed": {
+      "ModuleProperites": {},
+      "TraceString": "[sett] EncryptionOffloadAllowed         = %hhu",
+      "UniqueId": "SettingEncryptionOffloadAllowed",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "hhu",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceLogVerbose"
+    },
     "SettingGreaseQuicBitEnabled": {
       "ModuleProperites": {},
       "TraceString": "[sett] GreaseQuicBitEnabled   = %hhu",
@@ -11553,6 +11685,30 @@
       ],
       "macroName": "QuicTraceLogInfo"
     },
+    "WindowsUserProcessorStateV3": {
+      "ModuleProperites": {},
+      "TraceString": "[ dll] Processors: (%u active, %u max), Groups: (%hu active, %hu max)",
+      "UniqueId": "WindowsUserProcessorStateV3",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg3"
+        },
+        {
+          "DefinationEncoding": "hu",
+          "MacroVariableName": "arg4"
+        },
+        {
+          "DefinationEncoding": "hu",
+          "MacroVariableName": "arg5"
+        }
+      ],
+      "macroName": "QuicTraceLogInfo"
+    },
     "WindowsUserUninitialized": {
       "ModuleProperites": {},
       "TraceString": "[ dll] Uninitialized",
@@ -12731,6 +12887,11 @@
         "EncodingString": "[cnfg][%p] Settings %p Updated"
       },
       {
+        "UniquenessHash": "fd83d3d8-994b-ccc3-13b9-cf8de77990ca",
+        "TraceID": "ConfiguredForDelayedIDFC",
+        "EncodingString": "[strm][%p] Configured for delayed ID FC updates"
+      },
+      {
         "UniquenessHash": "905ba7f9-0427-2d53-7d13-88f2bb532bf0",
         "TraceID": "ConnAppShutdown",
         "EncodingString": "[conn][%p] App Shutdown: %llu (Remote=%hhu)"
@@ -13706,6 +13867,11 @@
         "EncodingString": "[conn][%p] Forcing key update"
       },
       {
+        "UniquenessHash": "d6391ff6-753c-5ebe-50af-901df6026da4",
+        "TraceID": "FoundVF",
+        "EncodingString": "[ xdp][%p] Found NetSvc-VF interfaces. NetSvc IfIdx:%lu, VF IfIdx:%lu"
+      },
+      {
         "UniquenessHash": "60343716-1a2c-e07a-f524-7337b986b581",
         "TraceID": "FrameLogAck",
         "EncodingString": "[%c][%cX][%llu]   ACK Largest:%llu Delay:%llu"
@@ -14531,6 +14697,16 @@
         "EncodingString": "[strm][%p] New stream wasn't accepted, 0x%x"
       },
       {
+        "UniquenessHash": "b841a4ba-b59c-322a-e3ea-abb11df15daf",
+        "TraceID": "OfflodingStart",
+        "EncodingString": "[conn][%p] Path[%hhu] Successfully start encryption offloading"
+      },
+      {
+        "UniquenessHash": "634f4128-8be3-479b-2764-13aabd810d83",
+        "TraceID": "OfflodingStop",
+        "EncodingString": "[conn][%p] Path[%hhu] %s stop encryption offloading"
+      },
+      {
         "UniquenessHash": "eaede67a-124b-3b3f-95ba-363d08546d2a",
         "TraceID": "OpenSsl1RttDataStart",
         "EncodingString": "[conn][%p] Writing 1-RTT data starts at %u"
@@ -14781,6 +14957,16 @@
         "EncodingString": "[conn][%p] Path[%hhu] MTU updated to %hu bytes"
       },
       {
+        "UniquenessHash": "77bae646-5d83-b78d-08aa-24b36955b7e4",
+        "TraceID": "PathQeoDisabled",
+        "EncodingString": "[conn][%p] Path[%hhu] QEO disabled"
+      },
+      {
+        "UniquenessHash": "f27d6a99-3be1-a404-0883-01df858eb372",
+        "TraceID": "PathQeoEnabled",
+        "EncodingString": "[conn][%p] Path[%hhu] QEO enabled"
+      },
+      {
         "UniquenessHash": "2e3024b8-4329-c124-05b3-9801c51b9346",
         "TraceID": "PathRemoved",
         "EncodingString": "[conn][%p] Path[%hhu] Removed"
@@ -15024,6 +15210,11 @@
         "UniquenessHash": "001f1bee-3642-fdf5-1025-b39da67792a6",
         "TraceID": "ProcessorInfo",
         "EncodingString": "[ dll] Proc[%u] Group[%hu] Index[%u]"
+      },
+      {
+        "UniquenessHash": "3379ba23-5dc4-936c-5dd0-224fcad9d9d5",
+        "TraceID": "ProcessorInfoV2",
+        "EncodingString": "[ dll] Proc[%u] Group[%hu] Index[%u] Active=%hhu"
       },
       {
         "UniquenessHash": "18ef147d-5376-d7f2-f624-3b27af96dd05",
@@ -15601,6 +15792,11 @@
         "EncodingString": "[sett] EcnEnabled             = %hhu"
       },
       {
+        "UniquenessHash": "9642e6a4-9b92-4c0f-bf85-2544a4d172cb",
+        "TraceID": "SettingEncryptionOffloadAllowed",
+        "EncodingString": "[sett] EncryptionOffloadAllowed = %hhu"
+      },
+      {
         "UniquenessHash": "eb526b83-28f4-1046-57bf-7727ba70f36d",
         "TraceID": "SettingGreaseQuicBitEnabled",
         "EncodingString": "[sett] GreaseQuicBitEnabled   = %hhu"
@@ -16019,6 +16215,11 @@
         "UniquenessHash": "75d23316-ce7e-8980-f3f4-677d2622ee5f",
         "TraceID": "WindowsUserProcessorStateV2",
         "EncodingString": "[ dll] Processors:%u, Groups:%u"
+      },
+      {
+        "UniquenessHash": "77a73e5e-4f71-be29-4086-c7515afc8181",
+        "TraceID": "WindowsUserProcessorStateV3",
+        "EncodingString": "[ dll] Processors: (%u active, %u max), Groups: (%hu active, %hu max)"
       },
       {
         "UniquenessHash": "19b21f4a-a6e8-3b9b-c4da-e303c8f108b1",

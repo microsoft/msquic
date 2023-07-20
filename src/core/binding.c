@@ -1359,8 +1359,9 @@ Exit:
             Oper->API_CALL.Context = &NewConnection->BackupApiContext;
             Oper->API_CALL.Context->Type = QUIC_API_TYPE_CONN_SHUTDOWN;
             Oper->API_CALL.Context->CONN_SHUTDOWN.Flags = QUIC_CONNECTION_SHUTDOWN_FLAG_SILENT;
-            Oper->API_CALL.Context->CONN_SHUTDOWN.ErrorCode = 0;
+            Oper->API_CALL.Context->CONN_SHUTDOWN.ErrorCode = (QUIC_VAR_INT)QUIC_STATUS_INTERNAL_ERROR;
             Oper->API_CALL.Context->CONN_SHUTDOWN.RegistrationShutdown = FALSE;
+            Oper->API_CALL.Context->CONN_SHUTDOWN.TransportShutdown = TRUE;
             QuicConnQueueOper(NewConnection, Oper);
         }
 #pragma warning(pop)
@@ -1639,7 +1640,7 @@ QuicBindingReceive(
     // connection it was delivered to.
     //
 
-    uint32_t Proc = CxPlatProcCurrentNumber();
+    uint16_t Proc = QuicLibraryGetCurrentPartition();
     uint64_t ProcShifted = ((uint64_t)Proc + 1) << 40;
 
     CXPLAT_RECV_DATA* Datagram;

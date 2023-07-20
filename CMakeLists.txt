@@ -427,7 +427,7 @@ if (NOT MSVC AND NOT APPLE AND NOT ANDROID)
     find_library(NUMA NAMES NUMA libnuma.so.1)
     if (NUMA)
         message(STATUS "Found libnuma: ${NUMA}")
-        find_file(NUMA-DEV NAMES "numa.h")
+        find_file(NUMA-HEADER NAMES "numa.h")
         if (NUMA-HEADER)
             message(STATUS "Found numa.h: ${NUMA-HEADER}")
             list(APPEND QUIC_COMMON_DEFINES CXPLAT_NUMA_AWARE)
@@ -604,6 +604,12 @@ if(WIN32)
     if(QUIC_STATIC_LINK_PARTIAL_CRT)
         message(STATUS "Configuring for partially statically-linked CRT")
         set(CMAKE_SHARED_LINKER_FLAGS_RELEASE "${CMAKE_SHARED_LINKER_FLAGS_RELEASE} /NODEFAULTLIB:libucrt.lib /DEFAULTLIB:ucrt.lib")
+    endif()
+
+    if (NOT QUIC_STATIC_LINK_CRT AND NOT QUIC_STATIC_LINK_PARTIAL_CRT)
+        # We are using dynamic linking. Ensure that only the release version of CRT is used.
+        message(STATUS "Configuring for release version of dynamically linked CRT")
+        set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreadedDLL")
     endif()
 
 else() #!WIN32

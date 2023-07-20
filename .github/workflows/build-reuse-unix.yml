@@ -1,0 +1,105 @@
+name: Build Unix
+
+# The caller is responsible for making sure all options passed to this workflow are valid and compatible with each other.
+
+on:
+  workflow_dispatch:
+  workflow_call:
+    inputs:
+      config:
+        required: false
+        default: 'Release'
+        type: string
+        # options:
+        #   - Debug
+        #   - Release
+      plat:
+        required: false
+        type: string
+        default: 'linux'
+        # options:
+        #   - linux
+        #   - android
+        #   - ios
+        #   - macos
+      os:
+        required: false
+        type: string
+        default: 'ubuntu-20.04'
+        # options:
+        #   - ubuntu-20.04
+        #   - ubuntu-22.04
+        #   - macos-12
+      arch:
+        required: false
+        default: 'x64'
+        type: string
+        # options:
+        #   - x86
+        #   - x64
+        #   - arm
+        #   - arm64
+      tls:
+        required: false
+        default: 'openssl'
+        type: string
+        # options:
+        #   - openssl
+        #   - openssl3
+      static:
+        required: false
+        default: ''
+        type: string
+      systemcrypto:
+        required: false
+        default: ''
+        type: string
+      clang:
+        required: false
+        default: ''
+        type: string
+      codecheck:
+        required: false
+        default: ''
+        type: string
+      sanitize:
+        required: false
+        default: ''
+        type: string
+      test:
+        required: false
+        default: ''
+        type: string
+
+permissions: read-all
+
+jobs:
+  build-unix-reuse:
+    name: Build
+    runs-on: ${{ inputs.os }}
+    container:
+      image: ${{ inputs.plat == 'linux' && format('ghcr.io/microsoft/msquic/linux-build-xcomp:{0}', inputs.os) || '' }}
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9
+    - name: Set ownership
+      if: inputs.plat == 'linux'
+      run: |
+        # this is to fix GIT not liking owner of the checkout dir
+        chown -R $(id -u):$(id -g) $PWD
+    - name: Prepare Machine
+      shell: pwsh
+      run: scripts/prepare-machine.ps1 ${{ inputs.plat == 'linux' && '-ForContainerBuild' || '-ForBuild' }} -Tls ${{ inputs.tls }}
+    - name: Build For Test
+      if: inputs.test == '-Test'
+      shell: pwsh
+      run: scripts/build.ps1 -Config ${{ inputs.config }} -Platform ${{ inputs.plat }} -Arch ${{ inputs.arch }} -Tls ${{ inputs.tls }} -DisablePerf ${{ inputs.static }} ${{ inputs.clang }} ${{ inputs.systemcrypto }} ${{ inputs.codecheck }} ${{ inputs.sanitize }} -OneBranch
+    - name: Build
+      if: inputs.test == ''
+      shell: pwsh
+      run: scripts/build.ps1 -Config ${{ inputs.config }} -Platform ${{ inputs.plat }} -Arch ${{ inputs.arch }} -Tls ${{ inputs.tls }} ${{ inputs.static }} ${{ inputs.clang }} ${{ inputs.systemcrypto }} ${{ inputs.codecheck }} ${{ inputs.sanitize }} -OneBranch
+    - name: Upload build artifacts
+      uses: actions/upload-artifact@0b7f8abb1508181956e8e162db84b466c27e18ce
+      with:
+        name: ${{ inputs.config }}-${{ inputs.plat }}-${{ inputs.os }}-${{ inputs.arch }}-${{ inputs.tls }}${{ inputs.static }}${{ inputs.clang }}${{ inputs.systemcrypto }}${{ inputs.codecheck }}${{ inputs.sanitize }}${{ inputs.test }}
+        path: artifacts

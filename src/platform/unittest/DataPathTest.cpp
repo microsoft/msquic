@@ -749,7 +749,8 @@ TEST_F(DataPathTest, UdpQeo)
             0,
             0,
             CXPLAT_QEO_CIPHER_TYPE_AEAD_AES_256_GCM,
-            0
+            0,
+            {0}
         }
     };
     ASSERT_TRUE(QuicAddrFromString("192.168.0.1:443", 443, &Offloads[0].Address));

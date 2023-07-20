@@ -60,6 +60,7 @@ struct RpsWorkerContext {
     CXPLAT_THREAD Thread;
     CXPLAT_EVENT WakeEvent;
     bool ThreadStarted {false};
+    uint16_t Processor {UINT16_MAX};
     uint32_t RequestCount {0};
     RpsWorkerContext() {
         CxPlatLockInitialize(&Lock);
@@ -169,7 +170,8 @@ public:
             .SetIdleTimeoutMs(PERF_DEFAULT_IDLE_TIMEOUT)
             .SetSendBufferingEnabled(false)
             .SetCongestionControlAlgorithm(PerfDefaultCongestionControl)
-            .SetEcnEnabled(PerfDefaultEcnEnabled),
+            .SetEcnEnabled(PerfDefaultEcnEnabled)
+            .SetEncryptionOffloadAllowed(PerfDefaultQeoAllowed),
         MsQuicCredentialConfig(
             QUIC_CREDENTIAL_FLAG_CLIENT |
             QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION)};

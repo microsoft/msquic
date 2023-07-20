@@ -191,6 +191,8 @@ typedef enum QUIC_STREAM_OPEN_FLAGS {
     QUIC_STREAM_OPEN_FLAG_NONE              = 0x0000,
     QUIC_STREAM_OPEN_FLAG_UNIDIRECTIONAL    = 0x0001,   // Indicates the stream is unidirectional.
     QUIC_STREAM_OPEN_FLAG_0_RTT             = 0x0002,   // The stream was opened via a 0-RTT packet.
+    QUIC_STREAM_OPEN_FLAG_DELAY_ID_FC_UPDATES = 0x0004, // Indicates stream ID flow control limit updates for the
+                                                        // connection should be delayed to StreamClose.
 } QUIC_STREAM_OPEN_FLAGS;
 
 DEFINE_ENUM_FLAG_OPERATORS(QUIC_STREAM_OPEN_FLAGS)
@@ -258,6 +260,7 @@ typedef enum QUIC_EXECUTION_CONFIG_FLAGS {
     QUIC_EXECUTION_CONFIG_FLAG_NONE             = 0x0000,
 #ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
     QUIC_EXECUTION_CONFIG_FLAG_QTIP             = 0x0001,
+    QUIC_EXECUTION_CONFIG_FLAG_RIO              = 0x0002,
 #endif
 } QUIC_EXECUTION_CONFIG_FLAGS;
 
@@ -500,7 +503,8 @@ typedef struct QUIC_STATISTICS_V2 {
     uint32_t ResumptionSucceeded    : 1;
     uint32_t GreaseBitNegotiated    : 1;    // Set if we negotiated the GREASE bit.
     uint32_t EcnCapable             : 1;
-    uint32_t RESERVED               : 26;
+    uint32_t EncryptionOffloaded    : 1;    // At least one path successfully offloaded encryption
+    uint32_t RESERVED               : 25;
     uint32_t Rtt;                           // In microseconds
     uint32_t MinRtt;                        // In microseconds
     uint32_t MaxRtt;                        // In microseconds
@@ -663,7 +667,12 @@ typedef struct QUIC_SETTINGS {
             uint64_t GreaseQuicBitEnabled                   : 1;
             uint64_t EcnEnabled                             : 1;
             uint64_t HyStartEnabled                         : 1;
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
+            uint64_t EncryptionOffloadAllowed               : 1;
+            uint64_t RESERVED                               : 28;
+#else
             uint64_t RESERVED                               : 29;
+#endif
         } IsSet;
     };
 
@@ -704,11 +713,15 @@ typedef struct QUIC_SETTINGS {
     union {
         uint64_t Flags;
         struct {
-            uint64_t HyStartEnabled : 1;
-            uint64_t ReservedFlags : 63;
+            uint64_t HyStartEnabled            : 1;
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
+            uint64_t EncryptionOffloadAllowed  : 1;
+            uint64_t ReservedFlags             : 62;
+#else
+            uint64_t ReservedFlags             : 63;
+#endif
         };
     };
-
 
 } QUIC_SETTINGS;
 
@@ -876,6 +889,7 @@ typedef struct QUIC_SCHANNEL_CREDENTIAL_ATTRIBUTE_W {
 #endif
 #define QUIC_PARAM_CONN_STATISTICS_V2                   0x05000016  // QUIC_STATISTICS_V2
 #define QUIC_PARAM_CONN_STATISTICS_V2_PLAT              0x05000017  // QUIC_STATISTICS_V2
+#define QUIC_PARAM_CONN_ORIG_DEST_CID                   0x05000018  // uint8_t[]
 
 //
 // Parameters for TLS.

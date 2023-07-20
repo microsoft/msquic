@@ -43,18 +43,6 @@ typedef struct QUIC_CACHEALIGN CXPLAT_ROUTE_RESOLUTION_WORKER {
     CXPLAT_LIST_ENTRY Operations;
 } CXPLAT_ROUTE_RESOLUTION_WORKER;
 
-typedef struct CXPLAT_ROUTE_RESOLUTION_OPERATION {
-    //
-    // Link in the worker's operation queue.
-    // N.B. Multi-threaded access, synchronized by worker's operation lock.
-    //
-    CXPLAT_LIST_ENTRY WorkerLink;
-    MIB_IPNET_ROW2 IpnetRow;
-    void* Context;
-    uint8_t PathId;
-    CXPLAT_ROUTE_RESOLUTION_CALLBACK_HANDLER Callback;
-} CXPLAT_ROUTE_RESOLUTION_OPERATION;
-
 typedef struct CXPLAT_DATAPATH {
 
     CXPLAT_UDP_DATAPATH_CALLBACKS UdpHandlers;
@@ -78,7 +66,8 @@ typedef struct CXPLAT_DATAPATH {
 typedef struct CXPLAT_INTERFACE {
     CXPLAT_LIST_ENTRY Link;
     uint32_t IfIndex;
-    UCHAR PhysicalAddress[ETH_MAC_ADDR_LEN];
+    uint32_t ActualIfIndex;
+    uint8_t PhysicalAddress[ETH_MAC_ADDR_LEN];
     struct {
         struct {
             BOOLEAN NetworkLayerXsum : 1;
@@ -139,6 +128,16 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 CxPlatDataPathUninitializeComplete(
     _In_ CXPLAT_DATAPATH* Datapath
+    );
+
+//
+// Updates the datapath configuration.
+//
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+CxPlatDpRawUpdateConfig(
+    _In_ CXPLAT_DATAPATH* Datapath,
+    _In_ QUIC_EXECUTION_CONFIG* Config
     );
 
 //
@@ -292,7 +291,7 @@ CxPlatSockPoolUninitialize(
 // so it assumes that matches already.
 //
 inline
-BOOL
+BOOLEAN
 CxPlatSocketCompare(
     _In_ CXPLAT_SOCKET* Socket,
     _In_ const QUIC_ADDR* LocalAddress,
@@ -383,3 +382,102 @@ CxPlatFramingWriteHeaders(
     _In_ uint32_t TcpAckNum,
     _In_ uint8_t TcpFlags
     );
+
+
+//
+// Ethernet / IP Framing Logic
+//
+
+#pragma pack(push)
+#pragma pack(1)
+
+typedef struct ETHERNET_HEADER {
+    uint8_t Destination[6];
+    uint8_t Source[6];
+    uint16_t Type;
+    uint8_t Data[0];
+} ETHERNET_HEADER;
+
+typedef struct IPV4_HEADER {
+    uint8_t VersionAndHeaderLength;
+    union {
+        uint8_t TypeOfServiceAndEcnField;
+        struct {
+            uint8_t EcnField : 2;
+            uint8_t TypeOfService : 6;
+        };
+    };
+    uint16_t TotalLength;
+    uint16_t Identification;
+    uint16_t FlagsAndFragmentOffset;
+    uint8_t TimeToLive;
+    uint8_t Protocol;
+    uint16_t HeaderChecksum;
+    uint8_t Source[4];
+    uint8_t Destination[4];
+    uint8_t Data[0];
+} IPV4_HEADER;
+
+typedef struct IPV6_HEADER {
+    uint32_t VersionClassEcnFlow;
+    uint16_t PayloadLength;
+    uint8_t NextHeader;
+    uint8_t HopLimit;
+    uint8_t Source[16];
+    uint8_t Destination[16];
+    uint8_t Data[0];
+} IPV6_HEADER;
+
+typedef struct IPV6_EXTENSION {
+    uint8_t NextHeader;
+    uint8_t Length;
+    uint16_t Reserved0;
+    uint32_t Reserved1;
+    uint8_t Data[0];
+} IPV6_EXTENSION;
+
+typedef struct UDP_HEADER {
+    uint16_t SourcePort;
+    uint16_t DestinationPort;
+    uint16_t Length;
+    uint16_t Checksum;
+    uint8_t Data[0];
+} UDP_HEADER;
+
+typedef struct TCP_HEADER {
+    uint16_t SourcePort;
+    uint16_t DestinationPort;
+    uint32_t SequenceNumber;
+    uint32_t AckNumber;
+    uint8_t X2           : 4;
+    uint8_t HeaderLength : 4;
+    uint8_t Flags;
+    uint16_t Window;
+    uint16_t Checksum;
+    uint16_t UrgentPointer;
+} TCP_HEADER;
+
+#pragma pack(pop)
+
+//
+// Constants for headers in wire format.
+//
+
+#define TH_FIN 0x01
+#define TH_SYN 0x02
+#define TH_RST 0x04
+#define TH_PSH 0x08
+#define TH_ACK 0x10
+#define TH_URG 0x20
+#define TH_ECE 0x40
+#define TH_CWR 0x80
+
+#define IPV4_VERSION 4
+#define IPV6_VERSION 6
+#define IPV4_VERSION_BYTE (IPV4_VERSION << 4)
+#define IPV4_DEFAULT_VERHLEN ((IPV4_VERSION_BYTE) | (sizeof(IPV4_HEADER) / sizeof(uint32_t)))
+
+#define IP_DEFAULT_HOP_LIMIT 128
+
+#define ETHERNET_TYPE_IPV4 0x0008
+#define ETHERNET_TYPE_IPV6 0xdd86

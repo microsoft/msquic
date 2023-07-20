@@ -144,6 +144,9 @@ QuicSettingsSetDefault(
     if (!Settings->IsSet.HyStartEnabled) {
         Settings->HyStartEnabled = QUIC_DEFAULT_HYSTART_ENABLED;
     }
+    if (!Settings->IsSet.EncryptionOffloadAllowed) {
+        Settings->EncryptionOffloadAllowed = QUIC_DEFAULT_ENCRYPTION_OFFLOAD_ALLOWED;
+    }
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -287,6 +290,9 @@ QuicSettingsCopy(
     }
     if (!Destination->IsSet.HyStartEnabled) {
         Destination->HyStartEnabled = Source->HyStartEnabled;
+    }
+    if (!Destination->IsSet.EncryptionOffloadAllowed) {
+        Destination->EncryptionOffloadAllowed = Source->EncryptionOffloadAllowed;
     }
 }
 
@@ -597,6 +603,11 @@ QuicSettingApply(
         }
     } else if (Source->IsSet.EcnEnabled) {
         return FALSE;
+    }
+
+    if (Source->IsSet.EncryptionOffloadAllowed && (!Destination->IsSet.EncryptionOffloadAllowed || OverWrite)) {
+        Destination->EncryptionOffloadAllowed = Source->EncryptionOffloadAllowed;
+        Destination->IsSet.EncryptionOffloadAllowed = TRUE;
     }
 
     return TRUE;
@@ -1190,6 +1201,16 @@ VersionSettingsFail:
             &ValueLen);
         Settings->HyStartEnabled = !!Value;
     }
+    if (!Settings->IsSet.EncryptionOffloadAllowed) {
+        Value = QUIC_DEFAULT_ENCRYPTION_OFFLOAD_ALLOWED;
+        ValueLen = sizeof(Value);
+        CxPlatStorageReadValue(
+            Storage,
+            QUIC_SETTING_ENCRYPTION_OFFLOAD_ALLOWED,
+            (uint8_t*)&Value,
+            &ValueLen);
+        Settings->EncryptionOffloadAllowed = !!Value;
+    }
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -1252,6 +1273,7 @@ QuicSettingsDump(
     QuicTraceLogVerbose(SettingGreaseQuicBitEnabled,        "[sett] GreaseQuicBitEnabled   = %hhu", Settings->GreaseQuicBitEnabled);
     QuicTraceLogVerbose(SettingEcnEnabled,                  "[sett] EcnEnabled             = %hhu", Settings->EcnEnabled);
     QuicTraceLogVerbose(SettingHyStartEnabled,              "[sett] HyStartEnabled         = %hhu", Settings->HyStartEnabled);
+    QuicTraceLogVerbose(SettingEncryptionOffloadAllowed,    "[sett] EncryptionOffloadAllowed = %hhu", Settings->EncryptionOffloadAllowed);
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -1391,6 +1413,9 @@ QuicSettingsDumpNew(
     }
     if (Settings->IsSet.HyStartEnabled) {
         QuicTraceLogVerbose(SettingHyStartEnabled,                  "[sett] HyStartEnabled         = %hhu", Settings->HyStartEnabled);
+    }
+    if (Settings->IsSet.EncryptionOffloadAllowed) {
+        QuicTraceLogVerbose(SettingEncryptionOffloadAllowed,        "[sett] EncryptionOffloadAllowed   = %hhu", Settings->EncryptionOffloadAllowed);
     }
 }
 
@@ -1595,6 +1620,14 @@ QuicSettingsSettingsToInternal(
         SettingsSize,
         InternalSettings);
 
+    SETTING_COPY_FLAG_TO_INTERNAL_SIZED(
+        Flags,
+        EncryptionOffloadAllowed,
+        QUIC_SETTINGS,
+        Settings,
+        SettingsSize,
+        InternalSettings);
+
     return QUIC_STATUS_SUCCESS;
 }
 
@@ -1698,6 +1731,14 @@ QuicSettingsGetSettings(
     SETTING_COPY_FLAG_FROM_INTERNAL_SIZED(
         Flags,
         HyStartEnabled,
+        QUIC_SETTINGS,
+        Settings,
+        *SettingsLength,
+        InternalSettings);
+
+    SETTING_COPY_FLAG_FROM_INTERNAL_SIZED(
+        Flags,
+        EncryptionOffloadAllowed,
         QUIC_SETTINGS,
         Settings,
         *SettingsLength,

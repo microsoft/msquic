@@ -50,6 +50,11 @@ typedef struct QUIC_PATH {
     uint8_t ID;
 
     //
+    // Indicates the path object is actively in use.
+    //
+    BOOLEAN InUse : 1;
+
+    //
     // Indicates this is the primary path being used by the connection.
     //
     BOOLEAN IsActive : 1;
@@ -105,6 +110,11 @@ typedef struct QUIC_PATH {
     // ECN validation state.
     //
     uint8_t EcnValidationState : 2;
+
+    //
+    // Indicates whether this connection offloads encryption workload to HW
+    //
+    BOOLEAN EncryptionOffloading : 1;
 
     //
     // The ending time of ECN validation testing state in microseconds.

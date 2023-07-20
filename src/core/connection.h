@@ -243,6 +243,7 @@ typedef struct QUIC_CONN_STATS {
     uint32_t ResumptionAttempted    : 1;
     uint32_t ResumptionSucceeded    : 1;
     uint32_t GreaseBitNegotiated    : 1;
+    uint32_t EncryptionOffloaded    : 1;
 
     //
     // QUIC protocol version used. Network byte order.
@@ -1523,7 +1524,7 @@ _IRQL_requires_max_(DISPATCH_LEVEL)
 _Function_class_(CXPLAT_ROUTE_RESOLUTION_CALLBACK)
 void
 QuicConnQueueRouteCompletion(
-    _Inout_ QUIC_CONNECTION* Connection,
+    _Inout_ void* Context,
     _When_(Succeeded == FALSE, _Reserved_)
     _When_(Succeeded == TRUE, _In_reads_bytes_(6))
         const uint8_t* PhysicalAddress,
