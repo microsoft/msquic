@@ -25,14 +25,13 @@ $PSDefaultParameterValues['*:ErrorAction'] = 'Stop'
 # Relevant file paths used by this script.
 $RootDir = Split-Path $PSScriptRoot -Parent
 $MsQuicVerFilePath = Join-Path $RootDir "src" "inc" "msquic.ver"
-$CreateVPackFilePath = Join-Path $RootDir ".azure" "obtemplates" "push-vpack.yml"
+$CreateVPackFilePath = Join-Path $RootDir ".azure" "OneBranch.Package.yml"
 $NugetPackageFile = Join-Path $RootDir "scripts" "package-nuget.ps1"
 $DistributionFile = Join-Path $RootDir "scripts" "package-distribution.ps1"
 $FrameworkInfoFile = Join-Path $RootDir "src" "distribution" "Info.plist"
 $CMakeFile = Join-Path $RootDir "CMakeLists.txt"
 $VersionsWriteFile = Join-Path $RootDir "scripts" "write-versions.ps1"
 $CargoFile = Join-Path $RootDir "Cargo.toml"
-$TestDistFile = Join-Path $RootDir ".azure" "templates" "test-distribution.yml"
 
 # Get the current version number from the msquic.ver file.
 $VerMajor = (Select-String -Path $MsQuicVerFilePath "#define VER_MAJOR (.*)" -AllMatches).Matches[0].Groups[1].Value
@@ -59,9 +58,7 @@ Write-Host "    New version: $NewVerMajor.$NewVerMinor.$NewVerPatch"
     -replace "#define VER_PATCH (.*)", "#define VER_PATCH $NewVerPatch" |`
     Out-File $MsQuicVerFilePath
 (Get-Content $CreateVPackFilePath) `
-    -replace "majorVer: (.*)", "majorVer: $NewVerMajor" `
-    -replace "minorVer: (.*)", "minorVer: $NewVerMinor" `
-    -replace "patchVer: (.*)", "patchVer: $NewVerPatch" |`
+    -replace "ob_createvpack_version: $VerMajor.$VerMinor.$VerPatch-", "ob_createvpack_version: $NewVerMajor.$NewVerMinor.$NewVerPatch-" |`
     Out-File $CreateVPackFilePath
 (Get-Content $CMakeFile) `
     -replace "`set\(QUIC_MAJOR_VERSION $VerMajor\)", "set(QUIC_MAJOR_VERSION $NewVerMajor)" |`
@@ -84,6 +81,3 @@ Write-Host "    New version: $NewVerMajor.$NewVerMinor.$NewVerPatch"
 (Get-Content $CargoFile) `
     -replace "$VerMajor.$VerMinor.$VerPatch", "$NewVerMajor.$NewVerMinor.$NewVerPatch" |`
     Out-File $CargoFile
-(Get-Content $TestDistFile) `
-    -replace "$VerMajor.$VerMinor.$VerPatch", "$NewVerMajor.$NewVerMinor.$NewVerPatch" |`
-    Out-File $TestDistFile
