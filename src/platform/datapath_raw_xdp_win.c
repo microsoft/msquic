@@ -29,7 +29,7 @@ typedef struct XDP_DATAPATH {
     // Currently, all XDP interfaces share the same config.
     //
     CXPLAT_REF_COUNT RefCount;
-    uint32_t WorkerCount;
+    uint32_t WorkerCount; // TODO: merge to ProcessorCount
     uint32_t RxBufferCount;
     uint32_t RxRingSize;
     uint32_t TxBufferCount;
@@ -60,13 +60,13 @@ typedef struct XDP_QUEUE {
     struct XDP_QUEUE* Next;
     uint8_t* RxBuffers;
     HANDLE RxXsk;
-    DATAPATH_IO_SQE RxIoSqe;
+    DATAPATH_XDP_IO_SQE RxIoSqe;
     XSK_RING RxFillRing;
     XSK_RING RxRing;
     HANDLE RxProgram;
     uint8_t* TxBuffers;
     HANDLE TxXsk;
-    DATAPATH_IO_SQE TxIoSqe;
+    DATAPATH_XDP_IO_SQE TxIoSqe;
     XSK_RING TxRing;
     XSK_RING TxCompletionRing;
     BOOLEAN RxQueued;
@@ -557,9 +557,9 @@ CxPlatDpRawInterfaceInitialize(
         CxPlatListInitializeHead(&Queue->TxQueue);
         CxPlatListInitializeHead(&Queue->WorkerTxQueue);
         CxPlatDatapathSqeInitialize(&Queue->RxIoSqe.DatapathSqe, CXPLAT_CQE_TYPE_SOCKET_IO);
-        Queue->RxIoSqe.IoType = DATAPATH_IO_RECV;
+        Queue->RxIoSqe.IoType = DATAPATH_XDP_IO_RECV;
         CxPlatDatapathSqeInitialize(&Queue->TxIoSqe.DatapathSqe, CXPLAT_CQE_TYPE_SOCKET_IO);
-        Queue->TxIoSqe.IoType = DATAPATH_IO_SEND;
+        Queue->TxIoSqe.IoType = DATAPATH_XDP_IO_SEND;
 
         //
         // RX datapath.
@@ -1004,6 +1004,7 @@ CxPlatDpRawGetDatapathSize(
     return sizeof(XDP_DATAPATH) + (WorkerCount * sizeof(XDP_WORKER));
 }
 
+
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 CxPlatDpRawInitialize(
@@ -1297,7 +1298,7 @@ CxPlatDpRawUpdateConfig(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 MANGLE(CxPlatSocketUpdateQeo)(
-    _In_ CXPLAT_SOCKET_INTERNAL* Socket,
+    _In_ CXPLAT_SOCKET_RAW* Socket,
     _In_reads_(OffloadCount)
         const CXPLAT_QEO_CONNECTION* Offloads,
     _In_ uint32_t OffloadCount
@@ -1387,11 +1388,12 @@ CxPlatDpRawClearPortBit(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 CxPlatDpRawPlumbRulesOnSocket(
-    _In_ CXPLAT_SOCKET_INTERNAL* Socket,
+    _In_ CXPLAT_SOCKET_RAW* Sock,
     _In_ BOOLEAN IsCreated
     )
 {
-    XDP_DATAPATH* Xdp = (XDP_DATAPATH*)Socket->Datapath;
+    CXPLAT_SOCKET_RAW* Socket = (CXPLAT_SOCKET_RAW*)Sock;
+    XDP_DATAPATH* Xdp = (XDP_DATAPATH*)Socket->RawDatapath;
     if (Socket->Wildcard) {
         XDP_RULE Rules[3] = {0};
         uint8_t RulesSize = 0;
@@ -1582,6 +1584,7 @@ CxPlatXdpRx(
         if (Packet->Buffer) {
             Packet->Allocated = TRUE;
             Packet->Queue = Queue;
+            Packet->BufferFrom = CXPLAT_BUFFER_FROM_XDP;
             Buffers[PacketCount++] = (CXPLAT_RECV_DATA*)Packet;
         } else {
             CxPlatListPushEntry(&Queue->WorkerRxPool, (CXPLAT_SLIST_ENTRY*)Packet);
@@ -1673,7 +1676,7 @@ CxPlatDpRawRxFree(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 CXPLAT_SEND_DATA*
 CxPlatDpRawTxAlloc(
-    _In_ CXPLAT_SOCKET_INTERNAL* Socket,
+    _In_ CXPLAT_SOCKET_RAW* Socket,
     _Inout_ CXPLAT_SEND_CONFIG* Config
     )
 {
@@ -1906,8 +1909,8 @@ MANGLE(CxPlatDataPathProcessCqe)(
     )
 {
     if (CxPlatCqeType(Cqe) == CXPLAT_CQE_TYPE_SOCKET_IO) {
-        DATAPATH_IO_SQE* Sqe =
-            CONTAINING_RECORD(CxPlatCqeUserData(Cqe), DATAPATH_IO_SQE, DatapathSqe);
+        DATAPATH_XDP_IO_SQE* Sqe =
+            CONTAINING_RECORD(CxPlatCqeUserData(Cqe), DATAPATH_XDP_IO_SQE, DatapathSqe);
         XDP_QUEUE* Queue;
 
         if (Sqe->IoType == DATAPATH_IO_RECV) {
