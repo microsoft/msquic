@@ -17,20 +17,37 @@ Abstract:
 #pragma warning(disable:4116) // unnamed type definition in parentheses
 #pragma warning(disable:4100) // unreferenced formal parameter
 
-CXPLAT_SOCKET_INTERNAL*
+
+uint32_t
+CxPlatGetRawSocketSize () {
+    return sizeof(CXPLAT_SOCKET_RAW);
+}
+
+// TODO: rename
+CXPLAT_SOCKET*
+CxPlatRawToSocket(CXPLAT_SOCKET_RAW* Socket) {
+    return (CXPLAT_SOCKET*)(Socket + 1);
+}
+// TODO: rename
+CXPLAT_SOCKET_RAW*
+CxPlatSocketToRaw(CXPLAT_SOCKET* Socket) {
+    return (CXPLAT_SOCKET_RAW*)Socket - 1;
+}
+
+CXPLAT_SOCKET_RAW*
 CxPlatGetSocket(
     _In_ const CXPLAT_SOCKET_POOL* Pool,
     _In_ const QUIC_ADDR* LocalAddress,
     _In_ const QUIC_ADDR* RemoteAddress
     )
 {
-    CXPLAT_SOCKET_INTERNAL* Socket = NULL;
+    CXPLAT_SOCKET_RAW* Socket = NULL;
     CXPLAT_HASHTABLE_LOOKUP_CONTEXT Context;
     CXPLAT_HASHTABLE_ENTRY* Entry;
     CxPlatRwLockAcquireShared(&((CXPLAT_SOCKET_POOL*)Pool)->Lock);
     Entry = CxPlatHashtableLookup(&Pool->Sockets, LocalAddress->Ipv4.sin_port, &Context);
     while (Entry != NULL) {
-        CXPLAT_SOCKET_INTERNAL* Temp = CXPLAT_CONTAINING_RECORD(Entry, CXPLAT_SOCKET_INTERNAL, Entry);
+        CXPLAT_SOCKET_RAW* Temp = CXPLAT_CONTAINING_RECORD(Entry, CXPLAT_SOCKET_RAW, Entry);
         if (CxPlatSocketCompare(Temp, LocalAddress, RemoteAddress)) {
             if (CxPlatRundownAcquire(&Temp->Rundown)) {
                 Socket = Temp;
@@ -481,7 +498,7 @@ CxPlatFramingTransportChecksum(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 CxPlatDpRawSocketAckFin(
-    _In_ CXPLAT_SOCKET_INTERNAL* Socket,
+    _In_ CXPLAT_SOCKET_RAW* Socket,
     _In_ CXPLAT_RECV_DATA* Packet
     )
 {
@@ -520,7 +537,7 @@ CxPlatDpRawSocketAckFin(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 CxPlatDpRawSocketAckSyn(
-    _In_ CXPLAT_SOCKET_INTERNAL* Socket,
+    _In_ CXPLAT_SOCKET_RAW* Socket,
     _In_ CXPLAT_RECV_DATA* Packet
     )
 {
@@ -605,7 +622,7 @@ CxPlatDpRawSocketAckSyn(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 CxPlatDpRawSocketSyn(
-    _In_ CXPLAT_SOCKET_INTERNAL* Socket,
+    _In_ CXPLAT_SOCKET_RAW* Socket,
     _In_ const CXPLAT_ROUTE* Route
     )
 {
@@ -639,7 +656,7 @@ CxPlatDpRawSocketSyn(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 CxPlatFramingWriteHeaders(
-    _In_ CXPLAT_SOCKET_INTERNAL* Socket,
+    _In_ CXPLAT_SOCKET_RAW* Socket,
     _In_ const CXPLAT_ROUTE* Route,
     _Inout_ QUIC_BUFFER* Buffer,
     _In_ CXPLAT_ECN_TYPE ECN,

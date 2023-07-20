@@ -28,19 +28,19 @@ typedef struct XDP_QUEUE XDP_QUEUE;
 //
 // Type of IO.
 //
-typedef enum DATAPATH_IO_TYPE {
-    DATAPATH_IO_SIGNATURE         = 'XDPD',
-    DATAPATH_IO_RECV              = DATAPATH_IO_SIGNATURE + 1,
-    DATAPATH_IO_SEND              = DATAPATH_IO_SIGNATURE + 2
-} DATAPATH_IO_TYPE;
+typedef enum DATAPATH_XDP_IO_TYPE {
+    DATAPATH_XDP_IO_SIGNATURE         = 'XDPD',
+    DATAPATH_XDP_IO_RECV              = DATAPATH_XDP_IO_SIGNATURE + 1,
+    DATAPATH_XDP_IO_SEND              = DATAPATH_XDP_IO_SIGNATURE + 2
+} DATAPATH_XDP_IO_TYPE;
 
 //
 // IO header for SQE->CQE based completions.
 //
-typedef struct DATAPATH_IO_SQE {
-    DATAPATH_IO_TYPE IoType;
+typedef struct DATAPATH_XDP_IO_SQE {
+    DATAPATH_XDP_IO_TYPE IoType;
     DATAPATH_SQE DatapathSqe;
-} DATAPATH_IO_SQE;
+} DATAPATH_XDP_IO_SQE;
 
 typedef struct QUIC_CACHEALIGN XDP_WORKER {
     CXPLAT_EXECUTION_CONTEXT Ec;

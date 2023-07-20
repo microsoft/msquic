@@ -19,8 +19,6 @@ typedef struct CXPLAT_SOCKET_POOL {
 
 #define MANGLE(x) XDP_##x
 
-typedef struct CXPLAT_DATAPATH_RAW CXPLAT_DATAPATH_RAW;
-
 //
 // A worker thread for draining queued route resolution operations.
 //
@@ -46,8 +44,9 @@ typedef struct QUIC_CACHEALIGN CXPLAT_ROUTE_RESOLUTION_WORKER {
 } CXPLAT_ROUTE_RESOLUTION_WORKER;
 
 typedef struct CXPLAT_DATAPATH_RAW {
-
-    CXPLAT_UDP_DATAPATH_CALLBACKS UdpHandlers;
+    // FIXME: want to inline CXPLAT_DATAPATH
+    const CXPLAT_DATAPATH *ParentDataPath;
+    // CXPLAT_UDP_DATAPATH_CALLBACKS UdpHandlers; // common?
 
     CXPLAT_SOCKET_POOL SocketPool;
 
@@ -61,6 +60,7 @@ typedef struct CXPLAT_DATAPATH_RAW {
 #endif
     BOOLEAN UseTcp;
 
+    // CXPLAT_DATAPATH;
 } CXPLAT_DATAPATH_RAW;
 
 #define ETH_MAC_ADDR_LEN 6
@@ -93,16 +93,6 @@ typedef struct CXPLAT_SEND_DATA_INTERNAL {
     QUIC_BUFFER Buffer;
 
 } CXPLAT_SEND_DATA_INTERNAL;
-
-//
-// Queries the raw datapath stack for the total size needed to allocate the
-// datapath structure.
-//
-_IRQL_requires_max_(PASSIVE_LEVEL)
-size_t
-CxPlatDpRawGetDatapathSize(
-    _In_opt_ const QUIC_EXECUTION_CONFIG* Config
-    );
 
 //
 // Initializes the raw datapath stack.
@@ -150,7 +140,7 @@ CxPlatDpRawUpdateConfig(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 CxPlatDpRawPlumbRulesOnSocket(
-    _In_ CXPLAT_SOCKET_INTERNAL* Socket,
+    _In_ CXPLAT_SOCKET_RAW* Socket,
     _In_ BOOLEAN IsCreated
     );
 
@@ -230,7 +220,7 @@ CxPlatDpRawRxFree(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 CXPLAT_SEND_DATA*
 CxPlatDpRawTxAlloc(
-    _In_ CXPLAT_SOCKET_INTERNAL* Socket,
+    _In_ CXPLAT_SOCKET_RAW* Socket,
     _Inout_ CXPLAT_SEND_CONFIG* Config
     );
 
@@ -256,16 +246,20 @@ CxPlatDpRawTxEnqueue(
 // Raw Socket Interface
 //
 
-typedef struct CXPLAT_SOCKET_INTERNAL {
-    CXPLAT_SOCKET;
+// typedef struct CXPLAT_SOCKET_INTERNAL {
+//     CXPLAT_SOCKET;
+// } CXPLAT_SOCKET_INTERNAL;
+
+typedef struct CXPLAT_SOCKET_RAW {
+    // const CXPLAT_SOCKET_BASE* ParentSocket;
 
     CXPLAT_HASHTABLE_ENTRY Entry;
     CXPLAT_RUNDOWN_REF Rundown;
-    CXPLAT_DATAPATH_RAW* Datapath;
-    SOCKET AuxSocket;
+    CXPLAT_DATAPATH_RAW* RawDatapath; //
+    SOCKET AuxSocket; // TODO: remove?
     void* CallbackContext;
-    QUIC_ADDR LocalAddress;
-    QUIC_ADDR RemoteAddress;
+    // QUIC_ADDR LocalAddress; //
+    // QUIC_ADDR RemoteAddress; //
     BOOLEAN Wildcard;                // Using a wildcard local address. Optimization
                                      // to avoid always reading LocalAddress.
     BOOLEAN Connected;               // Bound to a remote address
@@ -277,7 +271,9 @@ typedef struct CXPLAT_SOCKET_INTERNAL {
 
     CXPLAT_SEND_DATA_INTERNAL* PausedTcpSend; // Paused TCP send data *before* framing
     CXPLAT_SEND_DATA_INTERNAL* CachedRstSend; // Cached TCP RST send data *after* framing
-} CXPLAT_SOCKET_INTERNAL;
+
+    CXPLAT_SOCKET; // _INTRENAL?
+} CXPLAT_SOCKET_RAW;
 
 BOOLEAN
 CxPlatSockPoolInitialize(
@@ -297,7 +293,7 @@ CxPlatSockPoolUninitialize(
 inline
 BOOLEAN
 CxPlatSocketCompare(
-    _In_ CXPLAT_SOCKET_INTERNAL* Socket,
+    _In_ CXPLAT_SOCKET_RAW* Socket,
     _In_ const QUIC_ADDR* LocalAddress,
     _In_ const QUIC_ADDR* RemoteAddress
     )
@@ -319,7 +315,7 @@ CxPlatSocketCompare(
 //
 // Finds a socket to deliver received packets with the given addresses.
 //
-CXPLAT_SOCKET_INTERNAL*
+CXPLAT_SOCKET_RAW*
 CxPlatGetSocket(
     _In_ const CXPLAT_SOCKET_POOL* Pool,
     _In_ const QUIC_ADDR* LocalAddress,
@@ -329,13 +325,13 @@ CxPlatGetSocket(
 QUIC_STATUS
 CxPlatTryAddSocket(
     _In_ CXPLAT_SOCKET_POOL* Pool,
-    _In_ CXPLAT_SOCKET_INTERNAL* Socket
+    _In_ CXPLAT_SOCKET_RAW* Socket
     );
 
 void
 CxPlatRemoveSocket(
     _In_ CXPLAT_SOCKET_POOL* Pool,
-    _In_ CXPLAT_SOCKET_INTERNAL* Socket
+    _In_ CXPLAT_SOCKET_RAW* Socket
     );
 
 //
@@ -355,28 +351,28 @@ typedef enum PACKET_TYPE {
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 CxPlatDpRawSocketAckSyn(
-    _In_ CXPLAT_SOCKET_INTERNAL* Socket,
+    _In_ CXPLAT_SOCKET_RAW* Socket,
     _In_ CXPLAT_RECV_DATA* Packet
     );
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 CxPlatDpRawSocketSyn(
-    _In_ CXPLAT_SOCKET_INTERNAL* Socket,
+    _In_ CXPLAT_SOCKET_RAW* Socket,
     _In_ const CXPLAT_ROUTE* Route
     );
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 CxPlatDpRawSocketAckFin(
-    _In_ CXPLAT_SOCKET_INTERNAL* Socket,
+    _In_ CXPLAT_SOCKET_RAW* Socket,
     _In_ CXPLAT_RECV_DATA* Packet
     );
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 CxPlatFramingWriteHeaders(
-    _In_ CXPLAT_SOCKET_INTERNAL* Socket,
+    _In_ CXPLAT_SOCKET_RAW* Socket,
     _In_ const CXPLAT_ROUTE* Route,
     _Inout_ QUIC_BUFFER* Buffer,
     _In_ CXPLAT_ECN_TYPE ECN,

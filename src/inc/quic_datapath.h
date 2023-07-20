@@ -126,34 +126,46 @@ PacketSizeFromUdpPayloadSize(
 //
 // typedef struct CXPLAT_DATAPATH CXPLAT_DATAPATH;
 
-typedef enum DATAPATH_TYPE {
-    DATAPATH_TYPE_NONE,
-    DATAPATH_TYPE_USER,
-    DATAPATH_TYPE_XDP
-    // DATAPATH_TYPE_KERNEL,
-    // DATAPATH_TYPE_DPDK,
-} DATAPATH_TYPE;
 
-typedef struct CXPLAT_DATAPATH_INTERNAL CXPLAT_DATAPATH_INTERNAL;
+typedef struct CXPLAT_DATAPATH_BASE CXPLAT_DATAPATH_BASE;
+typedef struct CXPLAT_DATAPATH_RAW CXPLAT_DATAPATH_RAW;
+typedef struct CXPLAT_DATAPATH CXPLAT_DATAPATH;
 
-typedef struct CXPLAT_DATAPATH {
-    CXPLAT_DATAPATH_INTERNAL* User; // TODO: internal to have CXPLAT_DATAPATH_RAW?
-    CXPLAT_DATAPATH_INTERNAL* Xdp;
-} CXPLAT_DATAPATH;
 
 //
 // Represents a UDP or TCP abstraction.
 //
-typedef struct CXPLAT_SOCKET_INTERNAL CXPLAT_SOCKET_INTERNAL;
+typedef struct CXPLAT_SOCKET_RAW CXPLAT_SOCKET_RAW;
+typedef struct CXPLAT_SOCKET CXPLAT_SOCKET;
+typedef struct CXPLAT_SOCKET_BASE CXPLAT_SOCKET_BASE;
 
-typedef struct CXPLAT_SOCKET {
-    DATAPATH_TYPE DataPathType;
-} CXPLAT_SOCKET;
+
+typedef struct CXPLAT_SOCKET_BASE {
+    //
+    // The local address and port.
+    //
+    QUIC_ADDR LocalAddress;
+
+    //
+    // The remote address and port.
+    //
+    QUIC_ADDR RemoteAddress;    
+} CXPLAT_SOCKET_BASE;
+
+typedef struct CXPLAT_UDP_CONFIG CXPLAT_UDP_CONFIG;
 
 //
 // Can be defined to whatever the client needs.
 //
 typedef struct CXPLAT_RECV_PACKET CXPLAT_RECV_PACKET;
+
+typedef enum CXPLAT_BUFFER_FROM {
+    CXPLAT_BUFFER_FROM_UNKNOWN = 0,
+    CXPLAT_BUFFER_FROM_USER,
+    CXPLAT_BUFFER_FROM_KERNEL,
+    CXPLAT_BUFFER_FROM_XDP,
+    // DPDK?
+} CXPLAT_BUFFER_FROM;
 
 //
 // Structure that maintains the 'per send' context.
@@ -161,7 +173,7 @@ typedef struct CXPLAT_RECV_PACKET CXPLAT_RECV_PACKET;
 typedef struct CXPLAT_SEND_DATA_INTERNAL CXPLAT_SEND_DATA_INTERNAL;
 
 typedef struct CXPLAT_SEND_DATA {
-    DATAPATH_TYPE DataPathType;
+    CXPLAT_BUFFER_FROM BufferFrom : 2;
 } CXPLAT_SEND_DATA;
 
 //
@@ -254,7 +266,8 @@ typedef struct CXPLAT_RECV_DATA {
     //
     uint16_t Allocated : 1;          // Used for debugging. Set to FALSE on free.
     uint16_t QueuedOnConnection : 1; // Used for debugging.
-    uint16_t Reserved : 6;
+    CXPLAT_BUFFER_FROM BufferFrom : 2;
+    uint16_t Reserved : 4;
     uint16_t ReservedEx : 8;
 
 } CXPLAT_RECV_DATA;
@@ -809,50 +822,48 @@ typedef struct CXPLAT_DATAPATH_FUNCTIONS {
     CXPLAT_RECV_DATA* (*CxPlatDataPathRecvPacketToRecvData)(const CXPLAT_RECV_PACKET* const Context);
     CXPLAT_RECV_PACKET* (*CxPlatDataPathRecvDataToRecvPacket)(const CXPLAT_RECV_DATA* const Datagram);
     QUIC_STATUS (*CxPlatDataPathInitialize)(_In_ uint32_t ClientRecvContextLength,
-                                            _In_opt_ const CXPLAT_UDP_DATAPATH_CALLBACKS* UdpCallbacks,
-                                            _In_opt_ const CXPLAT_TCP_DATAPATH_CALLBACKS* TcpCallbacks,
                                             _In_opt_ QUIC_EXECUTION_CONFIG* Config,
-                                            _Out_ CXPLAT_DATAPATH_INTERNAL** NewDataPath);
-    void (*CxPlatDataPathUninitialize)(_In_ CXPLAT_DATAPATH_INTERNAL* Datapath);
-    void (*CxPlatDataPathUpdateConfig)(_In_ CXPLAT_DATAPATH_INTERNAL* Datapath,
+                                            _Out_ CXPLAT_DATAPATH* DataPath);
+    void (*CxPlatDataPathUninitialize)(_In_ CXPLAT_DATAPATH* Datapath);
+    void (*CxPlatDataPathUpdateConfig)(_In_ CXPLAT_DATAPATH* Datapath,
                                        _In_ QUIC_EXECUTION_CONFIG* Config);
-    uint32_t (*CxPlatDataPathGetSupportedFeatures)(_In_ CXPLAT_DATAPATH_INTERNAL* Datapath);
-    BOOLEAN (*CxPlatDataPathIsPaddingPreferred)(_In_ CXPLAT_DATAPATH_INTERNAL* Datapath);
-    QUIC_STATUS (*CxPlatDataPathGetLocalAddresses)(_In_ CXPLAT_DATAPATH_INTERNAL* Datapath,
+    uint32_t (*CxPlatDataPathGetSupportedFeatures)(_In_ CXPLAT_DATAPATH* Datapath);
+    BOOLEAN (*CxPlatDataPathIsPaddingPreferred)(_In_ CXPLAT_DATAPATH* Datapath);
+    QUIC_STATUS (*CxPlatDataPathGetLocalAddresses)(_In_ CXPLAT_DATAPATH* Datapath,
                                                    _Outptr_ _At_(*Addresses, __drv_allocatesMem(Mem))
                                                        CXPLAT_ADAPTER_ADDRESS** Addresses,
                                                    _Out_ uint32_t* AddressesCount);
-    QUIC_STATUS (*CxPlatDataPathGetGatewayAddresses)(_In_ CXPLAT_DATAPATH_INTERNAL* Datapath,
+    QUIC_STATUS (*CxPlatDataPathGetGatewayAddresses)(_In_ CXPLAT_DATAPATH* Datapath,
                                                     _Outptr_ _At_(*GatewayAddresses, __drv_allocatesMem(Mem))
                                                         QUIC_ADDR** GatewayAddresses,
                                                     _Out_ uint32_t* GatewayAddressesCount);
-    QUIC_STATUS (*CxPlatDataPathResolveAddress)(_In_ CXPLAT_DATAPATH_INTERNAL* Datapath,
+    QUIC_STATUS (*CxPlatDataPathResolveAddress)(_In_ CXPLAT_DATAPATH* Datapath,
                                                 _In_z_ const char* HostName,
                                                 _Inout_ QUIC_ADDR* Address);
-    QUIC_STATUS (*CxPlatSocketCreateUdp)(_In_ CXPLAT_DATAPATH_INTERNAL* Datapath,
+    QUIC_STATUS (*CxPlatSocketCreateUdp)(_In_ CXPLAT_DATAPATH* Datapath,
                                          _In_ const CXPLAT_UDP_CONFIG* Config,
-                                         _Out_ CXPLAT_SOCKET** NewSocket);
-    QUIC_STATUS (*CxPlatSocketCreateTcp)(_In_ CXPLAT_DATAPATH_INTERNAL* Datapath,
+                                         _Out_ CXPLAT_SOCKET* Socket);
+    QUIC_STATUS (*CxPlatSocketCreateTcp)(_In_ CXPLAT_DATAPATH* Datapath,
                                          _In_opt_ const QUIC_ADDR* LocalAddress,
                                          _In_ const QUIC_ADDR* RemoteAddress,
                                          _In_opt_ void* CallbackContext,
                                          _Out_ CXPLAT_SOCKET** Socket);
-    QUIC_STATUS (*CxPlatSocketCreateTcpListener)(_In_ CXPLAT_DATAPATH_INTERNAL* Datapath,
+    QUIC_STATUS (*CxPlatSocketCreateTcpListener)(_In_ CXPLAT_DATAPATH* Datapath,
                                                  _In_opt_ const QUIC_ADDR* LocalAddress,
                                                  _In_opt_ void* RecvCallbackContext,
                                                  _Out_ CXPLAT_SOCKET** NewSocket);
-    void (*CxPlatSocketDelete)(_In_ CXPLAT_SOCKET_INTERNAL* Socket);
-    QUIC_STATUS (*CxPlatSocketUpdateQeo)(_In_ CXPLAT_SOCKET_INTERNAL* Socket,
+    void (*CxPlatSocketDelete)(_In_ CXPLAT_SOCKET* Socket);
+    QUIC_STATUS (*CxPlatSocketUpdateQeo)(_In_ CXPLAT_SOCKET* Socket,
                                          _In_reads_(OffloadCount)
                                              const CXPLAT_QEO_CONNECTION* Offloads,
                                          _In_ uint32_t OffloadCount);
-    UINT16 (*CxPlatSocketGetLocalMtu)(_In_ CXPLAT_SOCKET_INTERNAL* Socket);
-    void (*CxPlatSocketGetLocalAddress)(_In_ CXPLAT_SOCKET_INTERNAL* Socket,
+    UINT16 (*CxPlatSocketGetLocalMtu)(_In_ CXPLAT_SOCKET* Socket);
+    void (*CxPlatSocketGetLocalAddress)(_In_ CXPLAT_SOCKET* Socket,
                                         _Out_ QUIC_ADDR* Address);
-    void (*CxPlatSocketGetRemoteAddress)(_In_ CXPLAT_SOCKET_INTERNAL* Socket,
+    void (*CxPlatSocketGetRemoteAddress)(_In_ CXPLAT_SOCKET* Socket,
                                       _Out_ QUIC_ADDR* Address);
     void (*CxPlatRecvDataReturn)(_In_opt_ CXPLAT_RECV_DATA* RecvDataChain);
-    CXPLAT_SEND_DATA* (*CxPlatSendDataAlloc)(_In_ CXPLAT_SOCKET_INTERNAL* Socket,
+    CXPLAT_SEND_DATA* (*CxPlatSendDataAlloc)(_In_ CXPLAT_SOCKET* Socket,
                                              _Inout_ CXPLAT_SEND_CONFIG* Config);
     void (*CxPlatSendDataFree)(_In_ CXPLAT_SEND_DATA_INTERNAL* SendData);
     QUIC_BUFFER* (*CxPlatSendDataAllocBuffer)(_In_ CXPLAT_SEND_DATA_INTERNAL* SendData,
@@ -860,13 +871,99 @@ typedef struct CXPLAT_DATAPATH_FUNCTIONS {
     void (*CxPlatSendDataFreeBuffer)(_In_ CXPLAT_SEND_DATA_INTERNAL* SendData,
                                      _In_ QUIC_BUFFER* Buffer);
     BOOLEAN (*CxPlatSendDataIsFull)(_In_ CXPLAT_SEND_DATA_INTERNAL* SendData);
-    QUIC_STATUS (*CxPlatSocketSend)(_In_ CXPLAT_SOCKET_INTERNAL* Socket,
+    QUIC_STATUS (*CxPlatSocketSend)(_In_ CXPLAT_SOCKET* Socket,
                                     _In_ const CXPLAT_ROUTE* Route,
                                     _In_ CXPLAT_SEND_DATA_INTERNAL* SendData);
     void (*CxPlatDataPathProcessCqe)(_In_ CXPLAT_CQE* Cqe);
 } CXPLAT_DATAPATH_FUNCTIONS;
 
 extern const struct CXPLAT_DATAPATH_FUNCTIONS DataPathUserFuncs;
+extern const struct CXPLAT_DATAPATH_FUNCTIONS DataPathXdpFuncs; // RawFuncs?
+
+typedef struct CXPLAT_DATAPATH_BASE {
+    //
+    // The UDP callback function pointers.
+    //
+    CXPLAT_UDP_DATAPATH_CALLBACKS UdpHandlers;
+
+    //
+    // The TCP callback function pointers.
+    //
+    CXPLAT_TCP_DATAPATH_CALLBACKS TcpHandlers;
+} CXPLAT_DATAPATH_BASE;
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_STATUS
+CxPlatInitRawSocket(
+    _In_  CXPLAT_DATAPATH_RAW* DataPath,
+    _In_ const CXPLAT_UDP_CONFIG* Config,
+    _Out_ CXPLAT_SOCKET_RAW* NewSocket
+    );
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+CxPlatRawSocketDelete(
+    _In_ CXPLAT_SOCKET_RAW* Socket
+    );
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_STATUS
+CxPlatInitRawDataPath(
+    _In_ uint32_t ClientRecvContextLength,
+    _In_opt_ QUIC_EXECUTION_CONFIG* Config,
+    _In_opt_ const CXPLAT_DATAPATH* ParentDataPath,
+    _Out_ CXPLAT_DATAPATH_RAW* DataPath
+    );
+
+// TODO: rename as generic for raw
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+XDP_CxPlatDataPathUninitialize(
+    _In_  CXPLAT_DATAPATH_RAW* Datapath
+    );
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+XDP_CxPlatDataPathUpdateConfig(
+    _In_  CXPLAT_DATAPATH_RAW* Datapath,
+    _In_ QUIC_EXECUTION_CONFIG* Config
+    );
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+uint32_t
+XDP_CxPlatDataPathGetSupportedFeatures(
+    _In_  CXPLAT_DATAPATH_RAW* Datapath
+    );
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_STATUS
+XDP_CxPlatSocketUpdateQeo(
+    _In_ CXPLAT_SOCKET_RAW* Socket,
+    _In_reads_(OffloadCount)
+        const CXPLAT_QEO_CONNECTION* Offloads,
+    _In_ uint32_t OffloadCount
+    );
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+UINT16
+XDP_CxPlatSocketGetLocalMtu(
+    _In_ CXPLAT_SOCKET_RAW* Socket
+    );
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+void
+XDP_CxPlatRecvDataReturn(
+    _In_opt_ CXPLAT_RECV_DATA* RecvDataChain
+    );
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+_Success_(return != NULL)
+CXPLAT_SEND_DATA*
+XDP_CxPlatSendDataAlloc(
+    _In_ CXPLAT_SOCKET_RAW* Socket,
+    _Inout_ CXPLAT_SEND_CONFIG* Config
+    );
 
 #if defined(__cplusplus)
 }

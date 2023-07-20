@@ -52,28 +52,95 @@ CxPlatDataPathInitialize(
     _Out_ CXPLAT_DATAPATH** NewDataPath
     )
 {
+    // allocate for CXPLAT_DATAPATH as Datapath
+    // call CxPlatDataPathInitialize with Datapath
+    // allocate for CXPLAT_DATAPATH_RAW as RawDatapath
+    // RawDatapath->ParentDatapath = Datapath
+    // call CxPlatInitRawDataPath with RawDatapath
+
     // Init all Datapath
     //
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
-
-    CXPLAT_DATAPATH* DataPath = (CXPLAT_DATAPATH*)CXPLAT_ALLOC_PAGED(sizeof(CXPLAT_DATAPATH), QUIC_POOL_DATAPATH);
-    if (DataPath == NULL) {
+    if (UdpCallbacks != NULL) {
+        if (UdpCallbacks->Receive == NULL || UdpCallbacks->Unreachable == NULL) {
+            Status = QUIC_STATUS_INVALID_PARAMETER;
+            goto Error;
+        }
+    }
+    if (TcpCallbacks != NULL) {
+        if (TcpCallbacks->Accept == NULL ||
+            TcpCallbacks->Connect == NULL ||
+            TcpCallbacks->Receive == NULL ||
+            TcpCallbacks->SendComplete == NULL) {
+            Status = QUIC_STATUS_INVALID_PARAMETER;
+            goto Error;
+        }
+    }
+    if (!CxPlatWorkersLazyStart(Config)) {
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         goto Error;
     }
-    CxPlatZeroMemory(DataPath, sizeof(CXPLAT_DATAPATH));
+    uint32_t ProcessorCount;
+    if (Config && Config->ProcessorCount) {
+        ProcessorCount = Config->ProcessorCount;
+    } else {
+        ProcessorCount = CxPlatProcMaxCount();
+    }    
+    uint32_t DatapathLength =
+        sizeof(CXPLAT_DATAPATH) +
+        ProcessorCount * sizeof(CXPLAT_DATAPATH_PROC);
+    CXPLAT_DATAPATH* DataPath = (CXPLAT_DATAPATH*)CXPLAT_ALLOC_PAGED(DatapathLength, QUIC_POOL_DATAPATH);
+    if (DataPath == NULL) {
+        QuicTraceEvent(
+            AllocFailure,
+            "Allocation of '%s' failed. (%llu bytes)",
+            "CXPLAT_DATAPATH",
+            DatapathLength);
+        Status = QUIC_STATUS_OUT_OF_MEMORY;
+        goto Error;
+    }
+    CxPlatZeroMemory(DataPath, DatapathLength);
+    if (UdpCallbacks) {
+        DataPath->UdpHandlers = *UdpCallbacks;
+    }
+    if (TcpCallbacks) {
+        DataPath->TcpHandlers = *TcpCallbacks;
+    }
+    DataPath->ProcCount = (uint16_t)ProcessorCount;
     Status = DataPathUserFuncs.CxPlatDataPathInitialize(
         ClientRecvContextLength,
-        UdpCallbacks,
-        TcpCallbacks,
         Config,
-        &DataPath->User);
+        DataPath);
+    if (QUIC_FAILED(Status)) {
+        goto Error;
+    }
 
-    // TODO: xdp
+    const size_t RawDatapathSize = CxPlatDpRawGetDatapathSize(Config);
+    CXPLAT_DATAPATH_RAW* RawDataPath = CXPLAT_ALLOC_PAGED(RawDatapathSize, QUIC_POOL_DATAPATH);
+    if (RawDataPath == NULL) {
+        QuicTraceEvent(
+            AllocFailure,
+            "Allocation of '%s' failed. (%llu bytes)",
+            "CXPLAT_DATAPATH",
+            RawDatapathSize);
+        return QUIC_STATUS_OUT_OF_MEMORY;
+    }
+    CxPlatZeroMemory(RawDataPath, RawDatapathSize);
 
+    Status = CxPlatInitRawDataPath(
+        ClientRecvContextLength,
+        Config,
+        DataPath,
+        RawDataPath);
+    if (QUIC_FAILED(Status)) {
+        goto Error;
+    }
+
+    DataPath->RawDataPath = RawDataPath;
     *NewDataPath = DataPath;
 
 Error:
+    // TODO: error handling
 
     return Status;
 }
@@ -84,11 +151,15 @@ CxPlatDataPathUninitialize(
     _In_ CXPLAT_DATAPATH* Datapath
     )
 {
-    DataPathUserFuncs.CxPlatDataPathUninitialize(Datapath->User);
-    if (Datapath->Xdp) {
-        // DataPathXdpFuncs.CxPlatDataPathUninitialize(Datapath->User);
-    }
-    CXPLAT_FREE(Datapath, QUIC_POOL_DATAPATH);
+    DataPathUserFuncs.CxPlatDataPathUninitialize(Datapath);
+    if (Datapath->RawDataPath) {        
+        XDP_CxPlatDataPathUninitialize(Datapath->RawDataPath);
+    }   
+    
+    // if (Datapath->Xdp) {
+    //     // DataPathXdpFuncs.CxPlatDataPathUninitialize(Datapath->User);
+    // }
+    // CXPLAT_FREE(Datapath, QUIC_POOL_DATAPATH);
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -98,10 +169,13 @@ CxPlatDataPathUpdateConfig(
     _In_ QUIC_EXECUTION_CONFIG* Config
     )
 {
-    DataPathUserFuncs.CxPlatDataPathUpdateConfig(Datapath->User, Config);
-    if (Datapath->Xdp) {
-        // DataPathXdpFuncs.CxPlatDataPathUpdateConfig(Datapath->Xdp, Config);
+    DataPathUserFuncs.CxPlatDataPathUpdateConfig(Datapath, Config);
+    if (Datapath->RawDataPath) {
+        XDP_CxPlatDataPathUpdateConfig(Datapath->RawDataPath, Config);
     }
+    // if (Datapath->Xdp) {
+    //     // DataPathXdpFuncs.CxPlatDataPathUpdateConfig(Datapath->Xdp, Config);
+    // }
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -110,9 +184,9 @@ CxPlatDataPathGetSupportedFeatures(
     _In_ CXPLAT_DATAPATH* Datapath
     )
 {
-    // Which feature should be taken?
-    return DataPathUserFuncs.CxPlatDataPathGetSupportedFeatures(Datapath->User);
-    // TODO: xdp
+    // FIXME: Which feature should be taken?
+    // return DataPathUserFuncs.CxPlatDataPathGetSupportedFeatures(Datapath);
+    return 0;
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -121,10 +195,9 @@ CxPlatDataPathIsPaddingPreferred(
     _In_ CXPLAT_DATAPATH* Datapath
     )
 {
-    // Which flag should be taken?
-    return DataPathUserFuncs.CxPlatDataPathIsPaddingPreferred(Datapath->User);
-    // TODO: xdp
-
+    // FIXME: Which flag should be taken?
+    // return DataPathUserFuncs.CxPlatDataPathIsPaddingPreferred(Datapath);
+    return 0;
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -139,7 +212,7 @@ CxPlatDataPathGetLocalAddresses(
 {
     // which datapath should be used?
     return DataPathUserFuncs.CxPlatDataPathGetLocalAddresses(
-        Datapath->User,
+        Datapath,
         Addresses,
         AddressesCount);
     // TODO: xdp
@@ -155,12 +228,43 @@ CxPlatDataPathGetGatewayAddresses(
     _Out_ uint32_t* GatewayAddressesCount
     )
 {
-    // which datapath should be used?
+    // XDP doesn't support, but later which should be called?
     return DataPathUserFuncs.CxPlatDataPathGetGatewayAddresses(
-        Datapath->User,
+        Datapath,
         GatewayAddresses,
         GatewayAddressesCount);
-    // TODO: xdp
+}
+
+// private func
+void
+CxPlatDataPathPopulateTargetAddress(
+    _In_ ADDRESS_FAMILY Family,
+    _In_ ADDRINFOW *Ai,
+    _Out_ SOCKADDR_INET* Address
+    )
+{
+    if (Ai->ai_addr->sa_family == QUIC_ADDRESS_FAMILY_INET6) {
+        //
+        // Is this a mapped ipv4 one?
+        //
+        PSOCKADDR_IN6 SockAddr6 = (PSOCKADDR_IN6)Ai->ai_addr;
+
+        if (Family == QUIC_ADDRESS_FAMILY_UNSPEC && IN6ADDR_ISV4MAPPED(SockAddr6))
+        {
+            PSOCKADDR_IN SockAddr4 = &Address->Ipv4;
+            //
+            // Get the ipv4 address from the mapped address.
+            //
+            SockAddr4->sin_family = QUIC_ADDRESS_FAMILY_INET;
+            SockAddr4->sin_addr =
+                *(IN_ADDR UNALIGNED *)
+                    IN6_GET_ADDR_V4MAPPED(&SockAddr6->sin6_addr);
+            SockAddr4->sin_port = SockAddr6->sin6_port;
+            return;
+        }
+    }
+
+    CxPlatCopyMemory(Address, Ai->ai_addr, Ai->ai_addrlen);
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -171,12 +275,70 @@ CxPlatDataPathResolveAddress(
     _Inout_ QUIC_ADDR* Address
     )
 {
-    // TODO: both datapath adopt same procedure
-    //       can be flatten here and may no need for calling into internal datapath
-    return DataPathUserFuncs.CxPlatDataPathResolveAddress(
-        Datapath->User,
-        HostName,
-        Address);
+    QUIC_STATUS Status;
+    PWSTR HostNameW = NULL;
+    ADDRINFOW Hints = { 0 };
+    ADDRINFOW *Ai;
+
+    Status =
+        CxPlatUtf8ToWideChar(
+            HostName,
+            QUIC_POOL_PLATFORM_TMP_ALLOC,
+            &HostNameW);
+    if (QUIC_FAILED(Status)) {
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            Status,
+            "Convert HostName to unicode");
+        goto Exit;
+    }
+
+    //
+    // Prepopulate hint with input family. It might be unspecified.
+    //
+    Hints.ai_family = Address->si_family;
+
+    //
+    // Try numeric name first.
+    //
+    Hints.ai_flags = AI_NUMERICHOST;
+    if (GetAddrInfoW(HostNameW, NULL, &Hints, &Ai) == 0) {
+        CxPlatDataPathPopulateTargetAddress((ADDRESS_FAMILY)Hints.ai_family, Ai, Address);
+        FreeAddrInfoW(Ai);
+        Status = QUIC_STATUS_SUCCESS;
+        goto Exit;
+    }
+
+    //
+    // Try canonical host name.
+    //
+    Hints.ai_flags = AI_CANONNAME;
+    if (GetAddrInfoW(HostNameW, NULL, &Hints, &Ai) == 0) {
+        CxPlatDataPathPopulateTargetAddress((ADDRESS_FAMILY)Hints.ai_family, Ai, Address);
+        FreeAddrInfoW(Ai);
+        Status = QUIC_STATUS_SUCCESS;
+        goto Exit;
+    }
+
+    QuicTraceEvent(
+        LibraryError,
+        "[ lib] ERROR, %s.",
+        "Resolving hostname to IP");
+    QuicTraceLogError(
+        DatapathResolveHostNameFailed,
+        "[%p] Couldn't resolve hostname '%s' to an IP address",
+        Datapath,
+        HostName);
+    Status = HRESULT_FROM_WIN32(WSAHOST_NOT_FOUND);
+
+Exit:
+
+    if (HostNameW != NULL) {
+        CXPLAT_FREE(HostNameW, QUIC_POOL_PLATFORM_TMP_ALLOC);
+    }
+
+    return Status;
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -189,24 +351,62 @@ CxPlatSocketCreateUdp(
 {
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
 
-    // - if client, use one out of 2 datapath
-    //   - if Config->RemoteAddress is loopback, use user
-    //   - if not, use xdp
-    // - if server, init socket, then share info to xdp?
+    // Raw (Sock (Base (addrs)))
+    // alloc memory by sizeof RAW
+    // call CxPlatSocketCreateUdp with NewSocket as Sock
+    // Call CxPlatInitRawSocket with NewSocket as Raw
+    BOOLEAN IsServerSocket = Config->RemoteAddress == NULL;
+    uint16_t SocketCount = IsServerSocket ? Datapath->ProcCount : 1;
+    uint32_t RawSocketLength = CxPlatGetRawSocketSize() + SocketCount * sizeof(CXPLAT_SOCKET_PROC);
+    CXPLAT_SOCKET_RAW* RawSocket = CXPLAT_ALLOC_PAGED(RawSocketLength, QUIC_POOL_SOCKET);
+    if (RawSocket == NULL) {
+        QuicTraceEvent(
+            AllocFailure,
+            "Allocation of '%s' failed. (%llu bytes)",
+            "CXPLAT_SOCKET",
+            RawSocketLength);
+        Status = QUIC_STATUS_OUT_OF_MEMORY;
+        goto Error;
+    }
+
+    ZeroMemory(RawSocket, RawSocketLength);
+    CXPLAT_SOCKET* Socket = CxPlatRawToSocket(RawSocket);
+
+    QuicTraceEvent(
+        DatapathCreated,
+        "[data][%p] Created, local=%!ADDR!, remote=%!ADDR!",
+        Socket,
+        CASTED_CLOG_BYTEARRAY(Config->LocalAddress ? sizeof(*Config->LocalAddress) : 0, Config->LocalAddress),
+        CASTED_CLOG_BYTEARRAY(Config->RemoteAddress ? sizeof(*Config->RemoteAddress) : 0, Config->RemoteAddress));
+
 
     Status = DataPathUserFuncs.CxPlatSocketCreateUdp(
-        Datapath->User,
+        Datapath,
         Config,
-        NewSocket);
-    (*NewSocket)->DataPathType = DATAPATH_TYPE_USER;
+        Socket);
+    if (QUIC_FAILED(Status)) {
+        goto Error;
+    }
 
-    // if (FALSE /*(server && xdp) || (client && remote is not loopback)*/) {
-    //     // use XDP
-    // } else {
-    //     Status = DataPathUserFuncs.CxPlatSocketCreateUdp(
-    //         Datapath->User,
-    //         Config,
-    //         NewSocket);
+    if (Datapath) {
+        Status = CxPlatInitRawSocket(
+            Datapath->RawDataPath,
+            Config,
+            RawSocket);
+        if (QUIC_FAILED(Status)) {
+            // just ignore with logging?
+            goto Error;
+        }
+    }
+
+    *NewSocket = (CXPLAT_SOCKET*)Socket;
+    RawSocket = NULL;
+
+Error:
+    // TODO: error handling
+    // if (RawSocket) {
+    //     // invalid type
+    //     CxPlatSocketDelete((CXPLAT_SOCKET*)RawSocket);
     // }
 
     return Status;
@@ -243,13 +443,10 @@ CxPlatSocketDelete(
     _In_ CXPLAT_SOCKET* Socket
     )
 {
-    if (Socket->DataPathType == DATAPATH_TYPE_USER) {
-        DataPathUserFuncs.CxPlatSocketDelete((CXPLAT_SOCKET_INTERNAL*)Socket);
-    } else if (Socket->DataPathType == DATAPATH_TYPE_XDP) {
-        // use XDP
-    } else {
-        CXPLAT_DBG_ASSERT(FALSE);
-    }
+    // TODO: bubble up common logic
+    CxPlatRawSocketDelete(CxPlatSocketToRaw(Socket));
+    DataPathUserFuncs.CxPlatSocketDelete(Socket);
+    // free(Socket);
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -261,9 +458,10 @@ CxPlatSocketUpdateQeo(
     _In_ uint32_t OffloadCount
     )
 {
-    UNREFERENCED_PARAMETER(Socket);
-    UNREFERENCED_PARAMETER(Offloads);
-    UNREFERENCED_PARAMETER(OffloadCount);
+    if (Socket->Datapath && Socket->Datapath->RawDataPath) {
+        CXPLAT_SOCKET_RAW* RawSocket = CxPlatSocketToRaw(Socket);
+        return XDP_CxPlatSocketUpdateQeo(RawSocket, Offloads, OffloadCount);
+    }
     return QUIC_STATUS_NOT_SUPPORTED;
 }
 
@@ -273,14 +471,17 @@ CxPlatSocketGetLocalMtu(
     _In_ CXPLAT_SOCKET* Socket
     )
 {
-    if (Socket->DataPathType == DATAPATH_TYPE_USER) {
-        return DataPathUserFuncs.CxPlatSocketGetLocalMtu((CXPLAT_SOCKET_INTERNAL*)Socket);
-    } else if (Socket->DataPathType == DATAPATH_TYPE_XDP) {
-        // use XDP
-    } else {
-        CXPLAT_DBG_ASSERT(FALSE);
+    // if RemoteAddress is "lo", use Socket mtu
+    // else if RawSocket is availabe, use RawSocket Mtu
+    // else use Socket Mtu
+    if (Socket->Datapath && Socket->Datapath->RawDataPath &&
+        !((Socket->RemoteAddress.si_family == QUIC_ADDRESS_FAMILY_INET &&
+           Socket->RemoteAddress.Ipv4.sin_addr.S_un.S_addr == htonl(INADDR_LOOPBACK)) ||
+          (Socket->RemoteAddress.si_family == QUIC_ADDRESS_FAMILY_INET6 &&
+           IN6_IS_ADDR_LOOPBACK(&Socket->RemoteAddress.Ipv6.sin6_addr)))) {
+        XDP_CxPlatSocketGetLocalMtu(CxPlatSocketToRaw(Socket));
     }
-    return 0;
+    return Socket->Mtu;
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -290,10 +491,8 @@ CxPlatSocketGetLocalAddress(
     _Out_ QUIC_ADDR* Address
     )
 {
-    // TODO: inline
-    DataPathUserFuncs.CxPlatSocketGetLocalAddress(
-        (CXPLAT_SOCKET_INTERNAL*)Socket,
-        Address);
+    CXPLAT_DBG_ASSERT(Socket != NULL);
+    *Address = Socket->LocalAddress;
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -303,10 +502,8 @@ CxPlatSocketGetRemoteAddress(
     _Out_ QUIC_ADDR* Address
     )
 {
-    // TODO: inline
-    DataPathUserFuncs.CxPlatSocketGetRemoteAddress(
-        (CXPLAT_SOCKET_INTERNAL*)Socket,
-        Address);
+    CXPLAT_DBG_ASSERT(Socket != NULL);
+    *Address = Socket->RemoteAddress;
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -315,7 +512,16 @@ CxPlatRecvDataReturn(
     _In_opt_ CXPLAT_RECV_DATA* RecvDataChain
     )
 {
-    // TODO: CXPLAT_RECV_DATA to have flag to indicate which datapath it belongs to
+    // TODO: CXPLAT_RECV_DATA doesn't have RawDatapath existence.
+    //       need flag to check which datapath is used.
+    CXPLAT_DBG_ASSERT(RecvDataChain != NULL);
+    if (RecvDataChain->BufferFrom == CXPLAT_BUFFER_FROM_USER) {
+        DataPathUserFuncs.CxPlatRecvDataReturn(RecvDataChain);
+    } else if (RecvDataChain->BufferFrom == CXPLAT_BUFFER_FROM_XDP) {
+        XDP_CxPlatRecvDataReturn(RecvDataChain);
+    } else {
+        CXPLAT_DBG_ASSERT(FALSE);
+    }
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -327,16 +533,20 @@ CxPlatSendDataAlloc(
     )
 {
     CXPLAT_SEND_DATA* SendData = NULL;
-    if (Socket->DataPathType == DATAPATH_TYPE_USER) {
-        SendData = DataPathUserFuncs.CxPlatSendDataAlloc(
-            (CXPLAT_SOCKET_INTERNAL*)Socket,
-            Config);
-        SendData->DataPathType = DATAPATH_TYPE_USER;
-    } else if (Socket->DataPathType == DATAPATH_TYPE_XDP) {
-        // use XDP
-        // SendData->DataPathType = DATAPATH_TYPE_USER;
+    if (Socket->Datapath && Socket->Datapath->RawDataPath &&
+        !((Socket->RemoteAddress.si_family == QUIC_ADDRESS_FAMILY_INET &&
+           Socket->RemoteAddress.Ipv4.sin_addr.S_un.S_addr == htonl(INADDR_LOOPBACK)) ||
+          (Socket->RemoteAddress.si_family == QUIC_ADDRESS_FAMILY_INET6 &&
+           IN6_IS_ADDR_LOOPBACK(&Socket->RemoteAddress.Ipv6.sin6_addr)))) {
+        SendData = XDP_CxPlatSendDataAlloc(CxPlatSocketToRaw(Socket), Config);
+        if (SendData) {
+            SendData->BufferFrom = CXPLAT_BUFFER_FROM_XDP;
+        }
     } else {
-        CXPLAT_DBG_ASSERT(FALSE);
+        SendData = DataPathUserFuncs.CxPlatSendDataAlloc(Socket, Config);
+        if (SendData) {
+            SendData->BufferFrom = CXPLAT_BUFFER_FROM_USER;
+        }
     }
     return SendData;
 }
@@ -347,11 +557,10 @@ CxPlatSendDataFree(
     _In_ CXPLAT_SEND_DATA* SendData
     )
 {
-    if (SendData->DataPathType == DATAPATH_TYPE_USER) {
-        DataPathUserFuncs.CxPlatSendDataFree(
-            (CXPLAT_SEND_DATA_INTERNAL*)SendData);
-    } else if (SendData->DataPathType == DATAPATH_TYPE_XDP) {
-        // use XDP
+    if (SendData->BufferFrom == CXPLAT_BUFFER_FROM_USER) {
+
+    } else if (SendData->BufferFrom == CXPLAT_BUFFER_FROM_XDP) {
+
     } else {
         CXPLAT_DBG_ASSERT(FALSE);
     }
@@ -365,12 +574,10 @@ CxPlatSendDataAllocBuffer(
     _In_ uint16_t MaxBufferLength
     )
 {
-    if (SendData->DataPathType == DATAPATH_TYPE_USER) {
-        return DataPathUserFuncs.CxPlatSendDataAllocBuffer(
-            (CXPLAT_SEND_DATA_INTERNAL*)SendData,
-            MaxBufferLength);
-    } else if (SendData->DataPathType == DATAPATH_TYPE_XDP) {
-        // use XDP
+    if (SendData->BufferFrom == CXPLAT_BUFFER_FROM_USER) {
+
+    } else if (SendData->BufferFrom == CXPLAT_BUFFER_FROM_XDP) {
+
     } else {
         CXPLAT_DBG_ASSERT(FALSE);
     }
@@ -384,12 +591,10 @@ CxPlatSendDataFreeBuffer(
     _In_ QUIC_BUFFER* Buffer
     )
 {
-    if (SendData->DataPathType == DATAPATH_TYPE_USER) {
-        DataPathUserFuncs.CxPlatSendDataFreeBuffer(
-            (CXPLAT_SEND_DATA_INTERNAL*)SendData,
-            Buffer);
-    } else if (SendData->DataPathType == DATAPATH_TYPE_XDP) {
-        // use XDP
+    if (SendData->BufferFrom == CXPLAT_BUFFER_FROM_USER) {
+
+    } else if (SendData->BufferFrom == CXPLAT_BUFFER_FROM_XDP) {
+
     } else {
         CXPLAT_DBG_ASSERT(FALSE);
     }
@@ -401,11 +606,10 @@ CxPlatSendDataIsFull(
     _In_ CXPLAT_SEND_DATA* SendData
     )
 {
-    if (SendData->DataPathType == DATAPATH_TYPE_USER) {
-        return DataPathUserFuncs.CxPlatSendDataIsFull(
-            (CXPLAT_SEND_DATA_INTERNAL*)SendData);
-    } else if (SendData->DataPathType == DATAPATH_TYPE_XDP) {
-        // use XDP
+    if (SendData->BufferFrom == CXPLAT_BUFFER_FROM_USER) {
+
+    } else if (SendData->BufferFrom == CXPLAT_BUFFER_FROM_XDP) {
+
     } else {
         CXPLAT_DBG_ASSERT(FALSE);
     }
@@ -420,13 +624,10 @@ CxPlatSocketSend(
     _In_ CXPLAT_SEND_DATA* SendData
     )
 {
-    if (Socket->DataPathType == DATAPATH_TYPE_USER) {
-        return DataPathUserFuncs.CxPlatSocketSend(
-            (CXPLAT_SOCKET_INTERNAL*)Socket,
-            Route,
-            (CXPLAT_SEND_DATA_INTERNAL*)SendData);
-    } else if (Socket->DataPathType == DATAPATH_TYPE_XDP) {
-        // use XDP
+    if (SendData->BufferFrom == CXPLAT_BUFFER_FROM_USER) {
+
+    } else if (SendData->BufferFrom == CXPLAT_BUFFER_FROM_XDP) {
+
     } else {
         CXPLAT_DBG_ASSERT(FALSE);
     }
