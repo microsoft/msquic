@@ -346,7 +346,7 @@ CxPlatTlsGenerateSelfSignedCert(
     EVP_PKEY *CaPKey = NULL;
     X509 *CaX509 = NULL;
     EVP_PKEY *PKey = NULL;
-    X509 *X509 = NULL;
+    X509 *x509 = NULL;
     PKCS12 *Pkcs12 = NULL;
     FILE *Fd = NULL;
 
@@ -361,7 +361,7 @@ CxPlatTlsGenerateSelfSignedCert(
     }
 
     Status = GenerateX509Cert(
-        CaX509, CaPKey, SNI, FALSE, &X509, &PKey);
+        CaX509, CaPKey, SNI, FALSE, &x509, &PKey);
 
     if (Status != QUIC_STATUS_SUCCESS) {
         goto Exit;
@@ -435,7 +435,7 @@ CxPlatTlsGenerateSelfSignedCert(
             goto Exit;
         }
 
-        Ret = PEM_write_X509(Fd, X509);
+        Ret = PEM_write_X509(Fd, x509);
         if (Ret != 1) {
             QuicTraceEvent(
                 LibraryError,
@@ -455,7 +455,7 @@ CxPlatTlsGenerateSelfSignedCert(
                 Password,
                 "MsQuicTest",
                 PKey,
-                X509,
+                x509,
                 NULL,
                 Password == NULL ? -1 : 0,
                 Password == NULL ? -1 : 0,
@@ -511,9 +511,9 @@ Exit:
         PKey= NULL;
     }
 
-    if (X509 != NULL) {
-        X509_free(X509);
-        X509 = NULL;
+    if (x509 != NULL) {
+        X509_free(x509);
+        x509 = NULL;
     }
 
     if (Pkcs12 != NULL) {
