@@ -160,6 +160,7 @@ struct QuicAddr {
     QUIC_ADDRESS_FAMILY GetFamily() const { return QuicAddrGetFamily(&SockAddr); }
     uint16_t GetPort() const { return QuicAddrGetPort(&SockAddr); }
     void SetPort(uint16_t Port) noexcept { QuicAddrSetPort(&SockAddr, Port); }
+    operator const QUIC_ADDR* () const noexcept { return &SockAddr; }
 };
 
 template<class T>
@@ -308,6 +309,7 @@ public:
         }
     }
     QUIC_STATUS GetInitStatus() const noexcept { return InitStatus; }
+    bool IsValid() const noexcept { return QUIC_SUCCEEDED(InitStatus); }
 };
 
 extern const MsQuicApi* MsQuic;
@@ -344,8 +346,8 @@ struct MsQuicRegistration {
     }
     QUIC_STATUS GetInitStatus() const noexcept { return InitStatus; }
     bool IsValid() const noexcept { return QUIC_SUCCEEDED(InitStatus); }
-    MsQuicRegistration(MsQuicRegistration& other) = delete;
-    MsQuicRegistration operator=(MsQuicRegistration& Other) = delete;
+    MsQuicRegistration(const MsQuicRegistration& Other) = delete;
+    MsQuicRegistration& operator=(const MsQuicRegistration& Other) = delete;
     void Shutdown(
         _In_ QUIC_CONNECTION_SHUTDOWN_FLAGS Flags,
         _In_ QUIC_UINT62 ErrorCode
@@ -583,8 +585,8 @@ struct MsQuicConfiguration {
     }
     QUIC_STATUS GetInitStatus() const noexcept { return InitStatus; }
     bool IsValid() const noexcept { return QUIC_SUCCEEDED(InitStatus); }
-    MsQuicConfiguration(MsQuicConfiguration& other) = delete;
-    MsQuicConfiguration operator=(MsQuicConfiguration& Other) = delete;
+    MsQuicConfiguration(const MsQuicConfiguration& Other) = delete;
+    MsQuicConfiguration& operator=(const MsQuicConfiguration& Other) = delete;
     QUIC_STATUS
     LoadCredential(_In_ const QUIC_CREDENTIAL_CONFIG* CredConfig) noexcept {
         return MsQuic->ConfigurationLoadCredential(Handle, CredConfig);
@@ -670,15 +672,30 @@ struct MsQuicConfiguration {
 #endif
 };
 
+enum MsQuicCleanUpMode {
+    CleanUpManual,
+    CleanUpAutoDelete,
+};
+
+typedef QUIC_STATUS MsQuicListenerCallback(
+    _In_ struct MsQuicListener* listener,
+    _In_opt_ void* Context,
+    _Inout_ QUIC_LISTENER_EVENT* Event
+);
+
 struct MsQuicListener {
     HQUIC Handle { nullptr };
     QUIC_STATUS InitStatus;
+    MsQuicCleanUpMode CleanUpMode;
+    MsQuicListenerCallback* Callback{ nullptr };
+    void* Context{ nullptr };
 
     MsQuicListener(
         _In_ const MsQuicRegistration& Registration,
-        _In_ QUIC_LISTENER_CALLBACK_HANDLER Handler,
+        _In_ MsQuicCleanUpMode CleanUpMode = CleanUpManual,
+        _In_ MsQuicListenerCallback* Callback = NoOpCallback,
         _In_ void* Context = nullptr
-        ) noexcept {
+        ) noexcept : CleanUpMode(CleanUpMode), Callback(Callback), Context(Context) {
         if (!Registration.IsValid()) {
             InitStatus = Registration.GetInitStatus();
             return;
@@ -687,8 +704,8 @@ struct MsQuicListener {
             InitStatus =
                 MsQuic->ListenerOpen(
                     Registration,
-                    Handler,
-                    Context,
+                    (QUIC_LISTENER_CALLBACK_HANDLER)MsQuicCallback,
+                    this,
                     &Handle))) {
             Handle = nullptr;
         }
@@ -703,7 +720,7 @@ struct MsQuicListener {
     QUIC_STATUS
     Start(
         _In_ const MsQuicAlpn& Alpns,
-        _In_ QUIC_ADDR* Address = nullptr
+        _In_ const QUIC_ADDR* Address = nullptr
         ) noexcept {
         return MsQuic->ListenerStart(Handle, Alpns, Alpns.Length(), Address);
     }
@@ -765,14 +782,42 @@ struct MsQuicListener {
 
     QUIC_STATUS GetInitStatus() const noexcept { return InitStatus; }
     bool IsValid() const { return QUIC_SUCCEEDED(InitStatus); }
-    MsQuicListener(MsQuicListener& other) = delete;
-    MsQuicListener operator=(MsQuicListener& Other) = delete;
+    MsQuicListener(const MsQuicListener& Other) = delete;
+    MsQuicListener& operator=(const MsQuicListener& Other) = delete;
     operator HQUIC () const noexcept { return Handle; }
-};
 
-enum MsQuicCleanUpMode {
-    CleanUpManual,
-    CleanUpAutoDelete,
+    static
+        QUIC_STATUS
+        QUIC_API
+        NoOpCallback(
+            _In_ MsQuicListener* /* Listener */,
+            _In_opt_ void* /* Context */,
+            _Inout_ QUIC_LISTENER_EVENT* /* Event */
+            ) noexcept {
+            return QUIC_STATUS_SUCCESS;
+        }
+
+private:
+    _IRQL_requires_max_(PASSIVE_LEVEL)
+    _Function_class_(QUIC_LISTENER_CALLBACK)
+    static
+    QUIC_STATUS
+    QUIC_API
+    MsQuicCallback(
+        _In_ HQUIC /* Listener */,
+        _In_opt_ MsQuicListener* pThis,
+        _Inout_ QUIC_LISTENER_EVENT* Event
+        ) noexcept {
+        CXPLAT_DBG_ASSERT(pThis);
+        auto DeleteOnExit =
+            Event->Type == QUIC_LISTENER_EVENT_STOP_COMPLETE &&
+            pThis->CleanUpMode == CleanUpAutoDelete;
+        auto Status = pThis->Callback(pThis, pThis->Context, Event);
+        if (DeleteOnExit) {
+            delete pThis;
+        }
+        return Status;
+    }
 };
 
 typedef QUIC_STATUS MsQuicConnectionCallback(
@@ -782,7 +827,7 @@ typedef QUIC_STATUS MsQuicConnectionCallback(
     );
 
 struct MsQuicConnection {
-    HQUIC Handle { nullptr };
+    HQUIC Handle {nullptr};
     MsQuicCleanUpMode CleanUpMode;
     MsQuicConnectionCallback* Callback;
     void* Context;
@@ -1046,8 +1091,8 @@ struct MsQuicConnection {
 
     QUIC_STATUS GetInitStatus() const noexcept { return InitStatus; }
     bool IsValid() const { return QUIC_SUCCEEDED(InitStatus); }
-    MsQuicConnection(MsQuicConnection& other) = delete;
-    MsQuicConnection operator=(MsQuicConnection& Other) = delete;
+    MsQuicConnection(const MsQuicConnection& Other) = delete;
+    MsQuicConnection& operator=(const MsQuicConnection& Other) = delete;
     operator HQUIC () const noexcept { return Handle; }
 
     static
@@ -1160,7 +1205,7 @@ struct MsQuicAutoAcceptListener : public MsQuicListener {
         _In_ MsQuicConnectionCallback* _ConnectionHandler,
         _In_ void* _ConnectionContext = nullptr
         ) noexcept :
-        MsQuicListener(Registration, ListenerCallback, this),
+        MsQuicListener(Registration, CleanUpManual, ListenerCallback, this),
         Configuration(Config),
         ConnectionHandler(_ConnectionHandler),
         ConnectionContext(_ConnectionContext)
@@ -1174,7 +1219,7 @@ private:
     QUIC_STATUS
     QUIC_API
     ListenerCallback(
-        _In_ HQUIC /* Listener */,
+        _In_ MsQuicListener* /* Listener */,
         _In_opt_ void* Context,
         _Inout_ QUIC_LISTENER_EVENT* Event
         ) noexcept {
@@ -1354,10 +1399,32 @@ struct MsQuicStream {
                 Priority);
     }
 
+    QUIC_STATUS
+    GetIdealSendBufferSize(_Out_ uint64_t* SendBufferSize) const noexcept {
+        uint32_t Size = sizeof(*SendBufferSize);
+        return
+            MsQuic->GetParam(
+                Handle,
+                QUIC_PARAM_STREAM_IDEAL_SEND_BUFFER_SIZE,
+                &Size,
+                SendBufferSize);
+    }
+
+    QUIC_STATUS
+    GetStatistics(_Out_ QUIC_STREAM_STATISTICS* Statistics) const noexcept {
+        uint32_t Size = sizeof(*Statistics);
+        return
+            MsQuic->GetParam(
+                Handle,
+                QUIC_PARAM_STREAM_STATISTICS,
+                &Size,
+                Statistics);
+    }
+
     QUIC_STATUS GetInitStatus() const noexcept { return InitStatus; }
     bool IsValid() const { return QUIC_SUCCEEDED(InitStatus); }
-    MsQuicStream(MsQuicStream& other) = delete;
-    MsQuicStream operator=(MsQuicStream& Other) = delete;
+    MsQuicStream(const MsQuicStream& Other) = delete;
+    MsQuicStream& operator=(const MsQuicStream& Other) = delete;
     operator HQUIC () const noexcept { return Handle; }
 
     static

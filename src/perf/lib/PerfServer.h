@@ -90,14 +90,14 @@ private:
 
     QUIC_STATUS
     ListenerCallback(
-        _In_ HQUIC ListenerHandle,
+        _In_ MsQuicListener* ListenerHandle,
         _Inout_ QUIC_LISTENER_EVENT* Event
         );
 
     static
     QUIC_STATUS
     ListenerCallbackStatic(
-        _In_ HQUIC ListenerHandle,
+        _In_ MsQuicListener* ListenerHandle,
         _In_ void* Context,
         _Inout_ QUIC_LISTENER_EVENT* Event
         ) {
@@ -143,7 +143,7 @@ private:
             .SetCongestionControlAlgorithm(PerfDefaultCongestionControl)
             .SetEcnEnabled(PerfDefaultEcnEnabled)
             .SetEncryptionOffloadAllowed(PerfDefaultQeoAllowed)};
-    MsQuicListener Listener {Registration, ListenerCallbackStatic, this};
+    MsQuicListener Listener {Registration, CleanUpManual, ListenerCallbackStatic, this};
     QUIC_ADDR LocalAddr;
     CXPLAT_EVENT* StopEvent {nullptr};
     QUIC_BUFFER* DataBuffer {nullptr};
