@@ -1018,8 +1018,7 @@ CxPlatDpRawInitialize(
     const uint16_t* ProcessorList;
 
     CxPlatListInitializeHead(&Xdp->Interfaces);
-    XDP_LOAD_API_CONTEXT XdpApiLoadContext;
-    if (QUIC_FAILED(XdpLoadApi(XDP_VERSION_PRERELEASE, &Xdp->, &Xdp->XdpApi))) {
+    if (QUIC_FAILED(XdpLoadApi(XDP_VERSION_PRERELEASE, &Xdp->XdpApiLoadContext, &Xdp->XdpApi))) {
         Status = QUIC_STATUS_NOT_SUPPORTED;
         goto Error;
     }
@@ -1233,7 +1232,7 @@ Error:
         }
 
         if (Xdp->XdpApi) {
-            XdpUnloadApi(&Xdp->XdpApiLoadContext, Xdp->XdpApi);
+            XdpUnloadApi(Xdp->XdpApiLoadContext, Xdp->XdpApi);
         }
     }
 
@@ -1261,7 +1260,7 @@ CxPlatDpRawRelease(
             CxPlatDpRawInterfaceUninitialize(Interface);
             CxPlatFree(Interface, IF_TAG);
         }
-        XdpCloseApi(&Xdp->XdpApiLoadContext, Xdp->XdpApi);
+        XdpUnloadApi(Xdp->XdpApiLoadContext, Xdp->XdpApi);
         CxPlatDataPathUninitializeComplete((CXPLAT_DATAPATH*)Xdp);
     }
 }
