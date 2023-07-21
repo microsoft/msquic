@@ -38,6 +38,7 @@ typedef struct XDP_DATAPATH {
     BOOLEAN TxAlwaysPoke;
     BOOLEAN SkipXsum;
     BOOLEAN Running;        // Signal to stop workers.
+    XDP_LOAD_API_CONTEXT XdpApiLoadContext;
     const XDP_API_TABLE *XdpApi;
 
     XDP_WORKER Workers[0];
@@ -1017,7 +1018,8 @@ CxPlatDpRawInitialize(
     const uint16_t* ProcessorList;
 
     CxPlatListInitializeHead(&Xdp->Interfaces);
-    if (QUIC_FAILED(XdpOpenApi(XDP_VERSION_PRERELEASE, &Xdp->XdpApi))) {
+    XDP_LOAD_API_CONTEXT XdpApiLoadContext;
+    if (QUIC_FAILED(XdpLoadApi(XDP_VERSION_PRERELEASE, &Xdp->, &Xdp->XdpApi))) {
         Status = QUIC_STATUS_NOT_SUPPORTED;
         goto Error;
     }
@@ -1231,7 +1233,7 @@ Error:
         }
 
         if (Xdp->XdpApi) {
-            XdpCloseApi(Xdp->XdpApi);
+            XdpUnloadApi(&Xdp->XdpApiLoadContext, Xdp->XdpApi);
         }
     }
 
@@ -1259,7 +1261,7 @@ CxPlatDpRawRelease(
             CxPlatDpRawInterfaceUninitialize(Interface);
             CxPlatFree(Interface, IF_TAG);
         }
-        XdpCloseApi(Xdp->XdpApi);
+        XdpCloseApi(&Xdp->XdpApiLoadContext, Xdp->XdpApi);
         CxPlatDataPathUninitializeComplete((CXPLAT_DATAPATH*)Xdp);
     }
 }
