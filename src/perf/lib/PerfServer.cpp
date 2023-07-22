@@ -129,7 +129,7 @@ PerfServer::GetExtraData(
 
 QUIC_STATUS
 PerfServer::ListenerCallback(
-    _In_ MsQuicListener* /*ListenerHandle*/,
+    _In_ MsQuicListener* /*Listener*/,
     _Inout_ QUIC_LISTENER_EVENT* Event
     ) {
     QUIC_STATUS Status = QUIC_STATUS_NOT_SUPPORTED;

@@ -678,7 +678,7 @@ enum MsQuicCleanUpMode {
 };
 
 typedef QUIC_STATUS MsQuicListenerCallback(
-    _In_ struct MsQuicListener* listener,
+    _In_ struct MsQuicListener* Listener,
     _In_opt_ void* Context,
     _Inout_ QUIC_LISTENER_EVENT* Event
 );
@@ -692,8 +692,8 @@ struct MsQuicListener {
 
     MsQuicListener(
         _In_ const MsQuicRegistration& Registration,
-        _In_ MsQuicCleanUpMode CleanUpMode = CleanUpManual,
-        _In_ MsQuicListenerCallback* Callback = NoOpCallback,
+        _In_ MsQuicCleanUpMode CleanUpMode,
+        _In_ MsQuicListenerCallback* Callback,
         _In_ void* Context = nullptr
         ) noexcept : CleanUpMode(CleanUpMode), Callback(Callback), Context(Context) {
         if (!Registration.IsValid()) {
@@ -785,17 +785,6 @@ struct MsQuicListener {
     MsQuicListener(const MsQuicListener& Other) = delete;
     MsQuicListener& operator=(const MsQuicListener& Other) = delete;
     operator HQUIC () const noexcept { return Handle; }
-
-    static
-        QUIC_STATUS
-        QUIC_API
-        NoOpCallback(
-            _In_ MsQuicListener* /* Listener */,
-            _In_opt_ void* /* Context */,
-            _Inout_ QUIC_LISTENER_EVENT* /* Event */
-            ) noexcept {
-            return QUIC_STATUS_SUCCESS;
-        }
 
 private:
     _IRQL_requires_max_(PASSIVE_LEVEL)

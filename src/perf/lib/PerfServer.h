@@ -90,18 +90,18 @@ private:
 
     QUIC_STATUS
     ListenerCallback(
-        _In_ MsQuicListener* ListenerHandle,
+        _In_ MsQuicListener* Listener,
         _Inout_ QUIC_LISTENER_EVENT* Event
         );
 
     static
     QUIC_STATUS
     ListenerCallbackStatic(
-        _In_ MsQuicListener* ListenerHandle,
+        _In_ MsQuicListener* Listener,
         _In_ void* Context,
         _Inout_ QUIC_LISTENER_EVENT* Event
         ) {
-        return ((PerfServer*)Context)->ListenerCallback(ListenerHandle, Event);
+        return ((PerfServer*)Context)->ListenerCallback(Listener, Event);
     }
 
     QUIC_STATUS

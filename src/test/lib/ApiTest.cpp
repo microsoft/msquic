@@ -340,11 +340,11 @@ namespace
     _Function_class_(QUIC_LISTENER_CALLBACK)
     template<typename T>
     QUIC_STATUS
-        QUIC_API
-        DummyListenerCallback(
-            T,
-            void* Context,
-            QUIC_LISTENER_EVENT* Event
+    QUIC_API
+    DummyListenerCallback(
+        T,
+        void* Context,
+        QUIC_LISTENER_EVENT* Event
         )
     {
         CxPlatEvent* StopCompleteEvent = (CxPlatEvent*)Context;
