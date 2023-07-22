@@ -72,7 +72,7 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9
     - name: Install Perl
-      uses: shogo82148/actions-setup-perl@04a9a397f834661fa6faf5aa6d16d14536249d2a
+      uses: shogo82148/actions-setup-perl@7f907be1fad5b3080fce625f3eab81475ccaecd2
       with:
         perl-version: '5.34'
     - name: Install NASM
