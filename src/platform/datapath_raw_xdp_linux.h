@@ -7,9 +7,13 @@
 
 #include "platform_internal.h"
 #include "datapath_raw_xdp.h"
-#include <bpf/bpf.h>
-#include <bpf/libbpf.h>
-#include <bpf/xsk.h>
+// #include <bpf/bpf.h>
+// #include <bpf/libbpf.h>
+// #include <bpf/xsk.h>
+#include "libbpf.h"
+#include "bpf.h"
+#include "xsk.h"
+#include "libxdp.h"
 #include <linux/sockios.h>
 #include <linux/ethtool.h>
 #include <netpacket/packet.h>
@@ -69,6 +73,7 @@ typedef struct XDP_INTERFACE {
     const struct XDP_DATAPATH* Xdp;
     struct xsk_socket_config *XskCfg;
     struct bpf_object *BpfObj;
+    struct xdp_program *XdpProg;
     char IfName[IFNAMSIZ];
 } XDP_INTERFACE;
 

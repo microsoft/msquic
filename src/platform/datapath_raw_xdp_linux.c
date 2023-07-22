@@ -35,7 +35,11 @@ CxPlatSocketContextSetEvents(
             xsk_socket__fd(Queue->xsk_info->xsk),
             &SockFdEpEvt);
     if (Ret != 0) {
-
+        QuicTraceEvent(
+            XdpEpollErrorStatus,
+            "[ xdp]ERROR, %u, %s.",
+            errno,
+            "epoll_ctl failed");
     }
 }
 
@@ -78,40 +82,33 @@ CxPlatGetInterfaceRssQueueCount(
     _Out_ uint16_t* Count
     )
 {
-    // TODO: implement
-    *Count = 1;
-    return QUIC_STATUS_SUCCESS;
+    // TODO: check ethtool implementation
+    FILE *fp;
+    *Count = UINT16_MAX;
 
-    int sockfd;
-    struct ifreq ifr;
-
-    sockfd = socket(AF_INET, SOCK_DGRAM, 0);
-    if (sockfd < 0) {
-        perror("Cannot open socket");
-        exit(EXIT_FAILURE);
+    char IfName[IF_NAMESIZE];
+    if_indextoname(InterfaceIndex, IfName);
+    char cmd[128];
+    snprintf(cmd, sizeof(cmd), "ethtool -x %s", IfName);
+    fp = popen(cmd, "r");
+    if (fp == NULL) {
+        goto Error;
     }
 
-    if_indextoname(InterfaceIndex, ifr.ifr_name);
-    int indir_size = 128;
-    size_t rss_config_size = sizeof(struct ethtool_rxfh) + indir_size * sizeof(__u32);
-    struct ethtool_rxfh *rss_config = malloc(rss_config_size);
-
-    memset(rss_config, 0, rss_config_size);
-    rss_config->cmd = ETHTOOL_GRSSH;
-    rss_config->rss_context = 0;
-    rss_config->indir_size = indir_size;
-
-    ifr.ifr_data = (caddr_t)rss_config;
-
-    if (ioctl(sockfd, SIOCETHTOOL, &ifr) < 0) {
-        perror("Cannot get RSS configuration");
-        close(sockfd);
-        free(rss_config);
-        exit(EXIT_FAILURE);
+    char buf[256];
+    // Read and scan each line of the output for the number of rings
+    while (fgets(buf, sizeof(buf), fp) != NULL) {
+        if (strstr(buf, "RX flow hash indirection table for") != NULL) {
+            sscanf(buf, "RX flow hash indirection table for %*s with %hd", Count);
+            break;
+        }
     }
+    pclose(fp);
 
-    free(rss_config);
-    close(sockfd);
+Error:
+    if (*Count == UINT16_MAX) {
+        *Count = 1;
+    }
     return QUIC_STATUS_SUCCESS;
 }
 
@@ -133,105 +130,12 @@ CxPlatXdpReadConfig(
     // TODO
 }
 
-QUIC_STATUS
-xdp_link_attach(XDP_INTERFACE* Interface, int ProgFd)
-{
-    QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
-    // libbpf provide the XDP net_device link-level hook attach helper
-    int err = bpf_set_link_xdp_fd(Interface->IfIndex, ProgFd, Interface->XskCfg->xdp_flags);
-    if (err == -EOPNOTSUPP) {
-        QuicTraceLogVerbose(
-            XdpModeDowngrade,
-            "[ xdp][%p] Downgrading from DRV mode to SKB mode for interface:%s",
-            Interface, Interface->IfName);
-        Interface->XskCfg->xdp_flags &= ~XDP_FLAGS_MODES;
-        Interface->XskCfg->xdp_flags |= XDP_FLAGS_SKB_MODE;
-        err = bpf_set_link_xdp_fd(Interface->IfIndex, ProgFd, Interface->XskCfg->xdp_flags);
-    } else if (err == -EEXIST && !(Interface->XskCfg->xdp_flags & XDP_FLAGS_UPDATE_IF_NOEXIST)) {
-        // Force mode didn't work, probably because a program of the
-        // opposite type is loaded. Let's unload that and try loading
-        // again.
-
-        __u32 old_flags = Interface->XskCfg->xdp_flags;
-        __u32 new_flags = (old_flags & XDP_FLAGS_SKB_MODE) ? XDP_FLAGS_DRV_MODE : XDP_FLAGS_SKB_MODE;
-
-        err = bpf_set_link_xdp_fd(Interface->IfIndex, -1, new_flags);
-        if (!err) {
-            err = bpf_set_link_xdp_fd(Interface->IfIndex, ProgFd, old_flags);
-        }
-    }
-    if (err < 0) {
-        fprintf(stderr, "ERR: "
-            "ifindex(%d) link set xdp fd failed (%d): %s\n",
-            Interface->IfIndex, -err, strerror(-err));
-
-        switch (-err) {
-        case EBUSY:
-        case EEXIST:
-            fprintf(stderr, "Hint: XDP already loaded on device"
-                " use --force to swap/replace\n");
-            Status = QUIC_STATUS_INVALID_STATE;
-            break;
-        case EOPNOTSUPP:
-            QuicTraceLogVerbose(
-                XdpNotSupported,
-                "[ xdp][%p] Xdp is not supported on this interface:%s",
-                Interface, Interface->IfName);
-            Status = QUIC_STATUS_NOT_SUPPORTED;
-            break;
-        default:
-            Status = QUIC_STATUS_INTERNAL_ERROR;
-            break;
-        }
-    }
-    return Status;
-}
-
-QUIC_STATUS
-xdp_link_detach(int ifindex, __u32 xdp_flags, __u32 expected_prog_id)
-{
-	__u32 curr_prog_id;
-	int err;
-
-	err = bpf_get_link_xdp_id(ifindex, &curr_prog_id, xdp_flags);
-	if (err) {
-		fprintf(stderr, "ERR: get link xdp id failed (err=%d): %s\n",
-			-err, strerror(-err));
-		return QUIC_STATUS_INTERNAL_ERROR;
-	}
-
-	if (!curr_prog_id) {
-		// if (verbose)
-		// 	printf("INFO: %s() no curr XDP prog on ifindex:%d\n",
-		// 	       __func__, ifindex);
-		return QUIC_STATUS_SUCCESS;
-	}
-
-	if (expected_prog_id && curr_prog_id != expected_prog_id) {
-		fprintf(stderr, "ERR: %s() "
-			"expected prog ID(%d) no match(%d), not removing\n",
-			__func__, expected_prog_id, curr_prog_id);
-		return QUIC_STATUS_INTERNAL_ERROR;
-	}
-
-	if ((err = bpf_set_link_xdp_fd(ifindex, -1, xdp_flags)) < 0) {
-		fprintf(stderr, "ERR: %s() link set xdp failed (err=%d): %s\n",
-			__func__, err, strerror(-err));
-		return QUIC_STATUS_INTERNAL_ERROR;
-	}
-
-	// if (verbose)
-	// 	printf("INFO: %s() removed XDP prog ID:%d on ifindex:%d\n",
-	// 	       __func__, curr_prog_id, ifindex);
-
-	return QUIC_STATUS_SUCCESS;
-}
-
 void UninitializeUmem(struct xsk_umem_info* Umem)
 {
     // TODO: error check
     xsk_umem__delete(Umem->umem);
     free(Umem->buffer);
+    free(Umem);
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -252,15 +156,20 @@ CxPlatDpRawInterfaceUninitialize(
             "[ xdp][%p] Freeing Queue on Interface:%p",
             Queue,
             Interface);
-        if (Queue->Worker) {
-            epoll_ctl(*Queue->Worker->EventQ, EPOLL_CTL_DEL, xsk_socket__fd(Queue->xsk_info->xsk), NULL);
+
+        if(Queue->xsk_info) {
+            if (Queue->xsk_info->xsk) {
+                if (Queue->Worker && Queue->Worker->EventQ) {
+                    epoll_ctl(*Queue->Worker->EventQ, EPOLL_CTL_DEL, xsk_socket__fd(Queue->xsk_info->xsk), NULL);
+                }
+                xsk_socket__delete(Queue->xsk_info->xsk);
+            }
+            if (Queue->xsk_info->umem) {
+                UninitializeUmem(Queue->xsk_info->umem);
+            }
+            CxPlatLockUninitialize(&Queue->xsk_info->UmemLock);
+            free(Queue->xsk_info);
         }
-        xsk_socket__delete(Queue->xsk_info->xsk);
-        CxPlatLockUninitialize(&Queue->xsk_info->UmemLock);
-        UninitializeUmem(Queue->xsk_info->umem);
-        free(Queue->xsk_info->umem);
-        free(Queue->xsk_info);
-        CxPlatSleep(20);
 
         CxPlatLockUninitialize(&Queue->TxLock);
     }
@@ -269,9 +178,21 @@ CxPlatDpRawInterfaceUninitialize(
         CxPlatFree(Interface->Queues, QUEUE_TAG);
     }
 
-    xdp_link_detach(Interface->IfIndex, 0, 0);
-    bpf_object__close(Interface->BpfObj);
-    free(Interface->XskCfg);
+    struct xdp_multiprog *mp = xdp_multiprog__get_from_ifindex(Interface->IfIndex);
+    int err = xdp_multiprog__detach(mp);
+    if (err) {
+        fprintf(stderr, "Unable to detach XDP program: %s\n",
+            strerror(-err));
+    }
+	xdp_multiprog__close(mp);
+
+    if (Interface->XdpProg) {
+        xdp_program__close(Interface->XdpProg);
+    }
+
+    if (Interface->XskCfg) {
+        free(Interface->XskCfg);
+    }
 }
 
 static QUIC_STATUS InitializeUmem(uint32_t frameSize, uint32_t numFrames, uint32_t RxHeadRoom, uint32_t TxHeadRoom, struct xsk_umem_info* Umem)
@@ -305,69 +226,14 @@ static QUIC_STATUS InitializeUmem(uint32_t frameSize, uint32_t numFrames, uint32
     return QUIC_STATUS_SUCCESS;
 }
 
-int LoadBpfObject(const char *filename, int ifindex, struct bpf_object **BpfObj)
-{
-    int first_prog_fd = -1;
-    int err;
-
-    struct bpf_prog_load_attr prog_load_attr = {
-        .prog_type = BPF_PROG_TYPE_XDP,
-        .ifindex   = ifindex,
-        .file = filename,
-    };
-
-    // Use libbpf for extracting BPF byte-code from BPF-ELF object, and
-    // loading this into the kernel via bpf-syscall
-    err = bpf_prog_load_xattr(&prog_load_attr, BpfObj, &first_prog_fd);
-    if (err) {
-        fprintf(stderr, "ERR: loading BPF-OBJ file(%s) (%d): %s\n",
-            filename, err, strerror(-err));
-        return err;
-    }
-
-    return 0;
-}
-
-QUIC_STATUS LoadBpfAndAttach(const char* filename, char* progsec, XDP_INTERFACE* Interface)
-{
-    struct bpf_program *BpfProg;
-    int offload_ifindex = 0; // ?l
-    int ProgFd = -1;
-
-    int err = LoadBpfObject(filename, offload_ifindex, &Interface->BpfObj);
-    if (err) {
-        QuicTraceLogVerbose(
-            XdpLoadBpfObjectError,
-            "[ xdp] ERROR:, loading BPF-OBJ file:%s, %d: [%s].",
-            filename, err, strerror(-err));
-        return QUIC_STATUS_INVALID_PARAMETER;
-    }
-
-    BpfProg = bpf_object__find_program_by_title(Interface->BpfObj, progsec);
-    if (!BpfProg) {
-        QuicTraceLogVerbose(
-            XdpFindProbramSectionError,
-            "[ xdp] ERROR, finding program section '%s'",
-            progsec);
-        return QUIC_STATUS_INVALID_PARAMETER;
-    }
-
-    ProgFd = bpf_program__fd(BpfProg);
-    if (ProgFd <= 0) {
-        return QUIC_STATUS_INTERNAL_ERROR;
-    }
-
-    // At this point: BPF-progs are (only) loaded by the kernel, and prog_fd
-    // is our select file-descriptor handle. Next step is attaching this FD
-    // to a kernel hook point, in this case XDP net_device link-level hook.
-    return xdp_link_attach(Interface, ProgFd);
-}
-
 static uint64_t xsk_alloc_umem_frame(struct xsk_socket_info *xsk)
 {
     uint64_t frame;
     if (xsk->umem_frame_free == 0) {
         // fprintf(stderr, "[%p] XSK UMEM alloc:\tOOM\n", xsk);
+        QuicTraceLogVerbose(
+            XdpUmemAllocFails,
+            "[ xdp][umem] Out of UMEM frame, OOM");        
         return INVALID_UMEM_FRAME;
     }
 
@@ -375,6 +241,52 @@ static uint64_t xsk_alloc_umem_frame(struct xsk_socket_info *xsk)
     xsk->umem_frame_addr[xsk->umem_frame_free] = INVALID_UMEM_FRAME;
     // fprintf(stderr, "[%p] XSK UMEM alloc:\t%d:%ld\n", xsk, xsk->umem_frame_free, frame);
     return frame;
+}
+
+QUIC_STATUS
+AttachXdpProgram(struct xdp_program *prog, XDP_INTERFACE *Interface, struct xsk_socket_config *xskcfg)
+{
+    char errmsg[1024];
+    int err;
+    enum xdp_attach_mode attach_mode = XDP_MODE_NATIVE;
+
+    // TODO: iterate from HW -> DRV -> SKB
+    static const struct AttachTypePair {
+        enum xdp_attach_mode mode;
+        unsigned int xdp_flag;
+    } AttachTypePairs[]  = {
+        { XDP_MODE_HW, XDP_FLAGS_HW_MODE },
+        { XDP_MODE_NATIVE, XDP_FLAGS_DRV_MODE },
+        { XDP_MODE_SKB, XDP_FLAGS_SKB_MODE },
+    };
+    UNREFERENCED_PARAMETER(AttachTypePairs);
+
+    switch (xskcfg->xdp_flags) {
+    case XDP_FLAGS_DRV_MODE:
+        attach_mode = XDP_MODE_NATIVE;
+        break;
+    case XDP_FLAGS_SKB_MODE:
+        attach_mode = XDP_MODE_SKB;
+        break;
+    case XDP_FLAGS_HW_MODE:
+        attach_mode = XDP_MODE_HW;
+        break;
+    default:
+        CXPLAT_DBG_ASSERT(FALSE);
+    }
+
+    err = xdp_program__attach(prog, Interface->IfIndex, attach_mode, 0);
+    if (err) {
+        libxdp_strerror(err, errmsg, sizeof(errmsg));
+        QuicTraceLogVerbose(
+            XdpAttachFails,
+            "[ xdp] Failed to attach XDP program to %s. error:%s", Interface->IfName, errmsg);
+        return QUIC_STATUS_INTERNAL_ERROR;
+    }
+    QuicTraceLogVerbose(
+        XdpAttachSucceeds,
+        "[ xdp] Successfully attach XDP program to %s", Interface->IfName);
+    return QUIC_STATUS_SUCCESS;
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -391,7 +303,7 @@ CxPlatDpRawInterfaceInitialize(
     // TODO: 2K mode
     const uint32_t FrameSize = FRAME_SIZE;
     // const uint64_t UmemSize = NUM_FRAMES * FrameSize;
-    QUIC_STATUS Status = QUIC_STATUS_NOT_SUPPORTED;
+    QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
 
     // Interface->OffloadStatus.Receive.NetworkLayerXsum = Xdp->SkipXsum;
     // Interface->OffloadStatus.Receive.TransportLayerXsum = Xdp->SkipXsum;
@@ -406,25 +318,29 @@ CxPlatDpRawInterfaceInitialize(
     XskCfg->rx_size = CONS_NUM_DESCS;
     XskCfg->tx_size = PROD_NUM_DESCS;
     XskCfg->libbpf_flags = XSK_LIBBPF_FLAGS__INHIBIT_PROG_LOAD;
-    // mode is downgraded to SKB_MODE if no DRV_MODE support.
     XskCfg->xdp_flags = XDP_FLAGS_DRV_MODE;
+    // TODO: check ZEROCOPY feature, change Tx/Rx behavior based on feature
+    //       refer xdp-tools/xdp-loader/xdp-loader features <ifname>
     XskCfg->bind_flags &= ~XDP_ZEROCOPY;
     XskCfg->bind_flags |= XDP_COPY;
+    XskCfg->bind_flags |= XDP_USE_NEED_WAKEUP;
     Interface->XskCfg = XskCfg;
 
-    Status = LoadBpfAndAttach("./datapath_raw_xdp_kern.o", "xdp_prog", Interface);
-    if (QUIC_FAILED(Status)) {
-        goto Error;
-    }
-    struct bpf_map *BypassMap = bpf_object__find_map_by_name(Interface->BpfObj, "xsks_map");
-    int XskBypassMapFd = bpf_map__fd(BypassMap);
+    struct xdp_program *prog;
+
+    prog = xdp_program__open_file("./datapath_raw_xdp_kern.o", "xdp_prog", NULL);
+
+    // FIXME: eth0 on azure VM doesn't work with XDP_FLAGS_DRV_MODE
+    XskCfg->xdp_flags = XDP_FLAGS_SKB_MODE;
+    AttachXdpProgram(prog, Interface, XskCfg);
+
+    int XskBypassMapFd = bpf_map__fd(bpf_object__find_map_by_name(xdp_program__bpf_obj(prog), "xsks_map"));
     if (XskBypassMapFd < 0) {
-        QuicTraceLogVerbose(
-            XdpBypassMapError,
-            "[ xdp] Failed to open stack bypass map");
-        Status = QUIC_STATUS_INTERNAL_ERROR;
-        goto Error;
+        fprintf(stderr, "ERROR: no xsks map found: %s\n",
+            strerror(XskBypassMapFd));
+        exit(EXIT_FAILURE);
     }
+    Interface->XdpProg = prog;
 
     Status = CxPlatGetInterfaceRssQueueCount(Interface->IfIndex, &Interface->QueueCount);
     if (QUIC_FAILED(Status)) {
@@ -481,7 +397,7 @@ CxPlatDpRawInterfaceInitialize(
         }
 
         //
-        // Create datagram socket.
+        // Create AF_XDP socket.
         //
         struct xsk_socket_info *xsk_info = calloc(1, sizeof(*xsk_info));
         if (!xsk_info) {
@@ -491,7 +407,6 @@ CxPlatDpRawInterfaceInitialize(
         CxPlatLockInitialize(&xsk_info->UmemLock);
         Queue->xsk_info = xsk_info;
         xsk_info->umem = Umem;
-        // TODO: try XDP_ZEROCOPY then XDP_COPY if failed?
         int ret = xsk_socket__create(&xsk_info->xsk, Interface->IfName,
                     i, Umem->umem, &xsk_info->rx,
                     &xsk_info->tx, XskCfg);
@@ -502,7 +417,6 @@ CxPlatDpRawInterfaceInitialize(
             Status = QUIC_STATUS_INTERNAL_ERROR;
             goto Error;
         }
-        CxPlatSleep(20); // Should be needed?
 
         if(xsk_socket__update_xskmap(xsk_info->xsk, XskBypassMapFd)) {
             Status = QUIC_STATUS_INTERNAL_ERROR;
@@ -513,13 +427,6 @@ CxPlatDpRawInterfaceInitialize(
             xsk_info->umem_frame_addr[i] = i * FrameSize;
         }
         xsk_info->umem_frame_free = NUM_FRAMES;
-
-        uint32_t prog_id = 0;
-        ret = bpf_get_link_xdp_id(Interface->IfIndex, &prog_id, XskCfg->xdp_flags); // ?
-        if (ret) {
-            Status = QUIC_STATUS_INTERNAL_ERROR;
-            goto Error;
-        }
 
         // Setup fill queue for Rx
         uint32_t FqIdx = 0;
@@ -615,7 +522,10 @@ CxPlatDpRawInitialize(
         family = ifa->ifa_addr->sa_family;
 
         if ((ifa->ifa_flags & IFF_UP) &&
-            !(ifa->ifa_flags & IFF_LOOPBACK) &&
+            // !(ifa->ifa_flags & IFF_LOOPBACK) &&
+            // FIXME: if there are MASTER-SLAVE interfaces, slave need to be
+            //         loaded first to load all interfaces
+            !(ifa->ifa_flags & IFF_SLAVE) &&
             family == AF_PACKET) {
             // Create and initialize the interface data structure here
             XDP_INTERFACE* Interface = (XDP_INTERFACE*) malloc(sizeof(XDP_INTERFACE));
@@ -634,10 +544,8 @@ CxPlatDpRawInitialize(
             struct sockaddr_ll *sall = (struct sockaddr_ll*)ifa->ifa_addr;
             memcpy(Interface->PhysicalAddress, sall->sll_addr, sizeof(Interface->PhysicalAddress));
 
-            Status =
-                CxPlatDpRawInterfaceInitialize(
-                    Xdp, Interface, ClientRecvContextLength);
-            if (QUIC_FAILED(Status)) {
+            if (QUIC_FAILED(CxPlatDpRawInterfaceInitialize(
+                    Xdp, Interface, ClientRecvContextLength))) {
                 QuicTraceEvent(
                     LibraryErrorStatus,
                     "[ lib] ERROR, %u, %s.",
@@ -797,8 +705,7 @@ CxPlatDpRawPlumbRulesOnSocket(
     CXPLAT_LIST_ENTRY* Entry = Socket->Datapath->Interfaces.Flink;
     for (; Entry != &Socket->Datapath->Interfaces; Entry = Entry->Flink) {
         XDP_INTERFACE* Interface = (XDP_INTERFACE*)CXPLAT_CONTAINING_RECORD(Entry, CXPLAT_INTERFACE, Link);
-
-        struct bpf_map *port_map = bpf_object__find_map_by_name(Interface->BpfObj, "port_map");
+        struct bpf_map *port_map = bpf_object__find_map_by_name(xdp_program__bpf_obj(Interface->XdpProg), "port_map");
         if (!port_map) {
             fprintf(stderr, "CxPlatDpRawPlumbRulesOnSocket: Failed to find BPF port_map\n");
         }
@@ -816,7 +723,7 @@ CxPlatDpRawPlumbRulesOnSocket(
         }
 
         // NOTE: experimental
-        struct bpf_map *ifname_map = bpf_object__find_map_by_name(Interface->BpfObj, "ifname_map");
+        struct bpf_map *ifname_map = bpf_object__find_map_by_name(xdp_program__bpf_obj(Interface->XdpProg), "ifname_map");
         if (!ifname_map) {
             fprintf(stderr, "Failed to find BPF ifacename_map\n");
         }
@@ -858,7 +765,6 @@ CxPlatDpRawGetInterfaceFromQueue(
 
 static void xsk_free_umem_frame(struct xsk_socket_info *xsk, uint64_t frame)
 {
-    // fprintf(stderr, "[%p] XSK UMEM release:\t%d:%ld\n", xsk, xsk->umem_frame_free, frame);
     assert(xsk->umem_frame_free < NUM_FRAMES);
     xsk->umem_frame_addr[xsk->umem_frame_free++] = frame;
 }
@@ -1123,7 +1029,6 @@ CxPlatDataPathProcessCqe(
         DATAPATH_SQE* Sqe = (DATAPATH_SQE*)CxPlatCqeUserData(Cqe);
         XDP_QUEUE* Queue;
         Queue = CXPLAT_CONTAINING_RECORD(Sqe, XDP_QUEUE, RxIoSqe);
-        // fprintf(stderr, "[%p] Recv!! Event:%d\n", Queue, Cqe->events & EPOLLIN);
         CxPlatXdpRx(Queue);
         QuicTraceLogVerbose(
             XdpQueueAsyncIoRxComplete,

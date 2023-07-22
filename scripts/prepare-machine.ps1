@@ -211,6 +211,15 @@ function Install-Xdp-Sdk {
     }
 }
 
+# Downloads the latest version of XDP (for building) for Linux.
+function Install-Linux-Xdp {
+    if (!$IsLinux) { return } # Linux only
+    git clone https://github.com/xdp-project/xdp-tools ./submodules/xdp-tools
+    pushd ./submodules/xdp-tools
+    git submodule init && git submodule update
+    popd # ./submodules/xdp-tools
+}
+
 # Installs the XDP driver (for testing).
 # NB: XDP can be uninstalled via Uninstall-Xdp
 function Install-Xdp-Driver {
@@ -511,6 +520,7 @@ if ($InitSubmodules) {
 }
 
 if ($InstallDuoNic) { Install-DuoNic }
+if ($UseXdp && $ForLinux) { Install-Linux-Xdp }
 if ($InstallXdpSdk) { Install-Xdp-Sdk }
 if ($InstallXdpDriver) { Install-Xdp-Driver }
 if ($UninstallXdp) { Uninstall-Xdp }

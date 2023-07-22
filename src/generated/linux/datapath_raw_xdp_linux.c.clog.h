@@ -26,44 +26,6 @@
 extern "C" {
 #endif
 /*----------------------------------------------------------
-// Decoder Ring for XdpModeDowngrade
-// [ xdp][%p] Downgrading from DRV mode to SKB mode for interface:%s
-// QuicTraceLogVerbose(
-            XdpModeDowngrade,
-            "[ xdp][%p] Downgrading from DRV mode to SKB mode for interface:%s",
-            Interface, Interface->IfName);
-// arg2 = arg2 = Interface = arg2
-// arg3 = arg3 = Interface->IfName = arg3
-----------------------------------------------------------*/
-#ifndef _clog_4_ARGS_TRACE_XdpModeDowngrade
-#define _clog_4_ARGS_TRACE_XdpModeDowngrade(uniqueId, encoded_arg_string, arg2, arg3)\
-tracepoint(CLOG_DATAPATH_RAW_XDP_LINUX_C, XdpModeDowngrade , arg2, arg3);\
-
-#endif
-
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for XdpNotSupported
-// [ xdp][%p] Xdp is not supported on this interface:%s
-// QuicTraceLogVerbose(
-                XdpNotSupported,
-                "[ xdp][%p] Xdp is not supported on this interface:%s",
-                Interface, Interface->IfName);
-// arg2 = arg2 = Interface = arg2
-// arg3 = arg3 = Interface->IfName = arg3
-----------------------------------------------------------*/
-#ifndef _clog_4_ARGS_TRACE_XdpNotSupported
-#define _clog_4_ARGS_TRACE_XdpNotSupported(uniqueId, encoded_arg_string, arg2, arg3)\
-tracepoint(CLOG_DATAPATH_RAW_XDP_LINUX_C, XdpNotSupported , arg2, arg3);\
-
-#endif
-
-
-
-
-/*----------------------------------------------------------
 // Decoder Ring for InterfaceFree
 // [ xdp][%p] Freeing Interface
 // QuicTraceLogVerbose(
@@ -118,19 +80,15 @@ tracepoint(CLOG_DATAPATH_RAW_XDP_LINUX_C, XdpAllocUmem );\
 
 
 /*----------------------------------------------------------
-// Decoder Ring for XdpLoadBpfObjectError
-// [ xdp] ERROR:, loading BPF-OBJ file:%s, %d: [%s].
+// Decoder Ring for XdpUmemAllocFails
+// [ xdp][umem] Out of UMEM frame, OOM
 // QuicTraceLogVerbose(
-            XdpLoadBpfObjectError,
-            "[ xdp] ERROR:, loading BPF-OBJ file:%s, %d: [%s].",
-            filename, err, strerror(-err));
-// arg2 = arg2 = filename = arg2
-// arg3 = arg3 = err = arg3
-// arg4 = arg4 = strerror(-err) = arg4
+            XdpUmemAllocFails,
+            "[ xdp][umem] Out of UMEM frame, OOM");
 ----------------------------------------------------------*/
-#ifndef _clog_5_ARGS_TRACE_XdpLoadBpfObjectError
-#define _clog_5_ARGS_TRACE_XdpLoadBpfObjectError(uniqueId, encoded_arg_string, arg2, arg3, arg4)\
-tracepoint(CLOG_DATAPATH_RAW_XDP_LINUX_C, XdpLoadBpfObjectError , arg2, arg3, arg4);\
+#ifndef _clog_2_ARGS_TRACE_XdpUmemAllocFails
+#define _clog_2_ARGS_TRACE_XdpUmemAllocFails(uniqueId, encoded_arg_string)\
+tracepoint(CLOG_DATAPATH_RAW_XDP_LINUX_C, XdpUmemAllocFails );\
 
 #endif
 
@@ -138,17 +96,17 @@ tracepoint(CLOG_DATAPATH_RAW_XDP_LINUX_C, XdpLoadBpfObjectError , arg2, arg3, ar
 
 
 /*----------------------------------------------------------
-// Decoder Ring for XdpFindProbramSectionError
-// [ xdp] ERROR, finding program section '%s'
+// Decoder Ring for XdpAttachFails
+// [ xdp] Failed to attach XDP program to %s. error:%s
 // QuicTraceLogVerbose(
-            XdpFindProbramSectionError,
-            "[ xdp] ERROR, finding program section '%s'",
-            progsec);
-// arg2 = arg2 = progsec = arg2
+            XdpAttachFails,
+            "[ xdp] Failed to attach XDP program to %s. error:%s", Interface->IfName, errmsg);
+// arg2 = arg2 = Interface->IfName = arg2
+// arg3 = arg3 = errmsg = arg3
 ----------------------------------------------------------*/
-#ifndef _clog_3_ARGS_TRACE_XdpFindProbramSectionError
-#define _clog_3_ARGS_TRACE_XdpFindProbramSectionError(uniqueId, encoded_arg_string, arg2)\
-tracepoint(CLOG_DATAPATH_RAW_XDP_LINUX_C, XdpFindProbramSectionError , arg2);\
+#ifndef _clog_4_ARGS_TRACE_XdpAttachFails
+#define _clog_4_ARGS_TRACE_XdpAttachFails(uniqueId, encoded_arg_string, arg2, arg3)\
+tracepoint(CLOG_DATAPATH_RAW_XDP_LINUX_C, XdpAttachFails , arg2, arg3);\
 
 #endif
 
@@ -156,15 +114,16 @@ tracepoint(CLOG_DATAPATH_RAW_XDP_LINUX_C, XdpFindProbramSectionError , arg2);\
 
 
 /*----------------------------------------------------------
-// Decoder Ring for XdpBypassMapError
-// [ xdp] Failed to open stack bypass map
+// Decoder Ring for XdpAttachSucceeds
+// [ xdp] Successfully attach XDP program to %s
 // QuicTraceLogVerbose(
-            XdpBypassMapError,
-            "[ xdp] Failed to open stack bypass map");
+        XdpAttachSucceeds,
+        "[ xdp] Successfully attach XDP program to %s", Interface->IfName);
+// arg2 = arg2 = Interface->IfName = arg2
 ----------------------------------------------------------*/
-#ifndef _clog_2_ARGS_TRACE_XdpBypassMapError
-#define _clog_2_ARGS_TRACE_XdpBypassMapError(uniqueId, encoded_arg_string)\
-tracepoint(CLOG_DATAPATH_RAW_XDP_LINUX_C, XdpBypassMapError );\
+#ifndef _clog_3_ARGS_TRACE_XdpAttachSucceeds
+#define _clog_3_ARGS_TRACE_XdpAttachSucceeds(uniqueId, encoded_arg_string, arg2)\
+tracepoint(CLOG_DATAPATH_RAW_XDP_LINUX_C, XdpAttachSucceeds , arg2);\
 
 #endif
 
@@ -429,6 +388,26 @@ tracepoint(CLOG_DATAPATH_RAW_XDP_LINUX_C, RxConsPeekSucceed , arg2);\
 #ifndef _clog_3_ARGS_TRACE_XdpQueueAsyncIoRxComplete
 #define _clog_3_ARGS_TRACE_XdpQueueAsyncIoRxComplete(uniqueId, encoded_arg_string, arg2)\
 tracepoint(CLOG_DATAPATH_RAW_XDP_LINUX_C, XdpQueueAsyncIoRxComplete , arg2);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for XdpEpollErrorStatus
+// [ xdp]ERROR, %u, %s.
+// QuicTraceEvent(
+            XdpEpollErrorStatus,
+            "[ xdp]ERROR, %u, %s.",
+            errno,
+            "epoll_ctl failed");
+// arg2 = arg2 = errno = arg2
+// arg3 = arg3 = "epoll_ctl failed" = arg3
+----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_XdpEpollErrorStatus
+#define _clog_4_ARGS_TRACE_XdpEpollErrorStatus(uniqueId, encoded_arg_string, arg2, arg3)\
+tracepoint(CLOG_DATAPATH_RAW_XDP_LINUX_C, XdpEpollErrorStatus , arg2, arg3);\
 
 #endif
 

@@ -48,35 +48,54 @@ else()
     message(FATAL_ERROR "TLS Provider not configured")
 endif()
 
-# include(ExternalProject)
-# ExternalProject_Add(libbpf
-#   PREFIX ${PROJECT_SOURCE_DIR}/src/platform/libbpf2
-#   SOURCE_DIR ${PROJECT_SOURCE_DIR}/src/platform/libbpf2/src
-#   CONFIGURE_COMMAND ""
-#   BUILD_IN_SOURCE 1
-#   BUILD_COMMAND make
-#   INSTALL_COMMAND ""
-#   BUILD_BYPRODUCTS ${PROJECT_SOURCE_DIR}/src/platform/libbpf2/src/libbpf.a
-# #   PREFIX ${PROJECT_SOURCE_DIR}/../libbpf-0.8.0
-# #   SOURCE_DIR ${PROJECT_SOURCE_DIR}/../libbpf-0.8.0/src
-# #   CONFIGURE_COMMAND ""
-# #   BUILD_IN_SOURCE 1
-# #   BUILD_COMMAND make
-# #   INSTALL_COMMAND ""
-# #   #BUILD_BYPRODUCTS ${PROJECT_SOURCE_DIR}/../libbpf-0.8.0/src/libbpf.a
-# )
-
-# find_package(ZLIB)
 
 add_library(platform STATIC ${SOURCES})
-# target_include_directories(platform PRIVATE /home/user/libbpf/include)
-# target_include_directories(platform PRIVATE /home/user/libbpf/include)
-# target_include_directories(platform PRIVATE ${PROJECT_SOURCE_DIR}/../libbpf-0.8.0/include)
-# add_dependencies(platform libbpf)
-# target_link_libraries(platform PRIVATE z)
-# target_link_libraries(platform PRIVATE ${PROJECT_SOURCE_DIR}/src/platform/libbpf2/src/libbpf.a)
-# target_link_libraries(platform PRIVATE ${PROJECT_SOURCE_DIR}/../libbpf-0.8.0/src/libbpf.so)
-# target_link_libraries(platform PRIVATE elf)
+
+# if linux and xdp
+if(CX_PLATFORM STREQUAL "linux" AND QUIC_USE_XDP)
+    # XDP Tools and libbpf paths
+    set(XDP_TOOLS_DIR ${PROJECT_SOURCE_DIR}/submodules/xdp-tools)
+    set(LIBXDP_PATH ${XDP_TOOLS_DIR}/lib/libxdp/libxdp.so)
+    set(LIBBPF_PATH ${XDP_TOOLS_DIR}/lib/libbpf/src/libbpf.so)
+
+    # Custom command to build XDP Tools
+    add_custom_command(
+        OUTPUT ${LIBXDP_PATH} ${LIBBPF_PATH}
+        COMMAND ./configure
+        COMMAND make
+        WORKING_DIRECTORY ${XDP_TOOLS_DIR}
+    )
+
+    # Add custom target and make platform depend on it
+    add_custom_target(xdp_tools DEPENDS ${LIBXDP_PATH} ${LIBBPF_PATH})
+    add_dependencies(platform xdp_tools)
+
+    # Link platform to libxdp.so and libbpf.so
+    target_link_libraries(platform PUBLIC ${LIBXDP_PATH} ${LIBBPF_PATH})
+
+    # Include directories for libxdp.so and libbpf.so
+    target_include_directories(platform PRIVATE ${XDP_TOOLS_DIR}/headers/xdp)
+    target_include_directories(platform PRIVATE ${XDP_TOOLS_DIR}/lib/libbpf/src)
+    target_include_directories(platform PRIVATE ${XDP_TOOLS_DIR}/lib/libbpf/src/root/usr/include) # TODO: use installed path
+
+    # XDP program setting
+    add_custom_command(
+        OUTPUT ${PROJECT_SOURCE_DIR}/datapath_raw_xdp_kern.o
+        COMMAND clang -O2 -g -target bpf -c ${PROJECT_SOURCE_DIR}/src/platform/datapath_raw_xdp_linux_kern.c -o ${PROJECT_SOURCE_DIR}/datapath_raw_xdp_kern.o
+        DEPENDS ${PROJECT_SOURCE_DIR}/src/platform/datapath_raw_xdp_linux_kern.c
+    )
+
+    add_custom_target(
+        XDP_PROG ALL
+        DEPENDS ${PROJECT_SOURCE_DIR}/datapath_raw_xdp_kern.o
+    )
+
+    add_dependencies(platform XDP_PROG)
+
+    # Assuming ${XDP_TOOLS_LIB_DIR} is the directory where libxdp.so and libbpf.so are located
+    set_target_properties(platform PROPERTIES BUILD_WITH_INSTALL_RPATH TRUE)
+    set_target_properties(platform PROPERTIES INSTALL_RPATH "${XDP_TOOLS_DIR}/lib/libxdp;${XDP_TOOLS_DIR}/lib/libbpf/src")
+endif()
 
 if ("${CX_PLATFORM}" STREQUAL "windows")
     if (QUIC_USE_XDP)
@@ -90,11 +109,6 @@ if ("${CX_PLATFORM}" STREQUAL "windows")
     target_link_libraries(platform PUBLIC winmm)
 else()
     if (QUIC_USE_XDP)
-        find_library(BPF_LIB bpf)
-        if(NOT BPF_LIB)
-            message(FATAL_ERROR "libbpf not found")
-        endif()
-        target_link_libraries(platform PUBLIC ${BPF_LIB})
         find_library(NL_LIB nl-3)
         find_library(NL_ROUTE_LIB nl-route-3)
         target_link_libraries(platform PUBLIC ${NL_LIB} ${NL_ROUTE_LIB})
@@ -114,7 +128,6 @@ if ("${CX_PLATFORM}" STREQUAL "windows" AND QUIC_USE_XDP)
         ${PROJECT_SOURCE_DIR}/artifacts/xdp/include)
 else()
     if (QUIC_USE_XDP)
-        target_include_directories(platform PRIVATE /usr/include/bpf)
         include_directories(/usr/include/libnl3)
     endif()
     target_include_directories(platform PRIVATE ${EXTRA_PLATFORM_INCLUDE_DIRECTORIES})

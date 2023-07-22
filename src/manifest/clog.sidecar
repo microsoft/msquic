@@ -11987,6 +11987,34 @@
       "splitArgs": [],
       "macroName": "QuicTraceLogVerbose"
     },
+    "XdpAttachFails": {
+      "ModuleProperites": {},
+      "TraceString": "[ xdp] Failed to attach XDP program to %s. error:%d",
+      "UniqueId": "XdpAttachFails",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "s",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "d",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macroName": "QuicTraceLogVerbose"
+    },
+    "XdpAttachSucceeds": {
+      "ModuleProperites": {},
+      "TraceString": "[ xdp] Successfully attach XDP program to %s",
+      "UniqueId": "XdpAttachSucceeds",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "s",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceLogVerbose"
+    },
     "XdpBypassMapError": {
       "ModuleProperites": {},
       "TraceString": "[ xdp] Failed to open stack bypass map",
@@ -12016,6 +12044,26 @@
       "UniqueId": "XdpConfigureUmem",
       "splitArgs": [],
       "macroName": "QuicTraceLogVerbose"
+    },
+    "XdpEpollErrorStatus": {
+      "ModuleProperites": {},
+      "TraceString": "[ xdp][%p] ERROR, %u, %s.",
+      "UniqueId": "XdpEpollErrorStatus",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg3"
+        },
+        {
+          "DefinationEncoding": "s",
+          "MacroVariableName": "arg4"
+        }
+      ],
+      "macroName": "QuicTraceEvent"
     },
     "XdpFindProbramSectionError": {
       "ModuleProperites": {},
@@ -12235,6 +12283,13 @@
           "MacroVariableName": "arg3"
         }
       ],
+      "macroName": "QuicTraceLogVerbose"
+    },
+    "XdpUmemAllocFails": {
+      "ModuleProperites": {},
+      "TraceString": "[ xdp][umem] Out of UMEM frame, OOM",
+      "UniqueId": "XdpUmemAllocFails",
+      "splitArgs": [],
       "macroName": "QuicTraceLogVerbose"
     },
     "XdpUninitialize": {
@@ -16625,6 +16680,16 @@
         "EncodingString": "[ xdp] Failed to allocate umem"
       },
       {
+        "UniquenessHash": "c124b808-c9ae-82fd-49fa-040aa1bc4796",
+        "TraceID": "XdpAttachFails",
+        "EncodingString": "[ xdp] Failed to attach XDP program to %s. error:%s"
+      },
+      {
+        "UniquenessHash": "c5f1a6c8-1570-6446-0b9b-ce13446d8f6a",
+        "TraceID": "XdpAttachSucceeds",
+        "EncodingString": "[ xdp] Successfully attach XDP program to %s"
+      },
+      {
         "UniquenessHash": "d437d3dd-3834-5c47-d972-1a1d8c08ccd8",
         "TraceID": "XdpBypassMapError",
         "EncodingString": "[ xdp] Failed to open stack bypass map"
@@ -16638,6 +16703,11 @@
         "UniquenessHash": "bd03227b-bb34-4f00-287c-14b7b8948404",
         "TraceID": "XdpConfigureUmem",
         "EncodingString": "[ xdp] Failed to configure Umem"
+      },
+      {
+        "UniquenessHash": "6ab66d7a-b0d6-b804-8b3d-55ab9f898d58",
+        "TraceID": "XdpEpollErrorStatus",
+        "EncodingString": "[ xdp]ERROR, %u, %s."
       },
       {
         "UniquenessHash": "85daf4dc-93cf-8f55-f583-c708356db354",
@@ -16713,6 +16783,11 @@
         "UniquenessHash": "51039a96-82fb-435b-957c-2af13dab2dc7",
         "TraceID": "XdpSocketNotFound",
         "EncodingString": "[ xdp] Socket not found LocalAddr=%!ADDR! RemoteAddr=%!ADDR!"
+      },
+      {
+        "UniquenessHash": "e81e1b15-4470-f033-d0b6-6c03f9a19011",
+        "TraceID": "XdpUmemAllocFails",
+        "EncodingString": "[ xdp][umem] Out of UMEM frame, OOM"
       },
       {
         "UniquenessHash": "d75a0e64-de8c-65d3-12ee-03cc24d2a875",
