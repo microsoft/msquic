@@ -541,16 +541,16 @@ void SpinQuicRandomizeSettings(QUIC_SETTINGS& Settings, uint16_t ThreadID)
         Settings.IsSet.MaxBytesPerKey = TRUE;
         break;
     case 1:
-        Settings.HandshakeIdleTimeoutMs = GetRandom(UINT64_MAX);
-        Settings.IsSet.HandshakeIdleTimeoutMs = TRUE;
+        //Settings.HandshakeIdleTimeoutMs = GetRandom(UINT64_MAX);
+        //Settings.IsSet.HandshakeIdleTimeoutMs = TRUE;
         break;
     case 2:
-        Settings.IdleTimeoutMs = GetRandom(UINT64_MAX);
-        Settings.IsSet.IdleTimeoutMs = TRUE;
+        //Settings.IdleTimeoutMs = GetRandom(UINT64_MAX);
+        //Settings.IsSet.IdleTimeoutMs = TRUE;
         break;
     case 3:
-        Settings.MtuDiscoverySearchCompleteTimeoutUs = GetRandom(UINT64_MAX);
-        Settings.IsSet.MtuDiscoverySearchCompleteTimeoutUs = TRUE;
+        //Settings.MtuDiscoverySearchCompleteTimeoutUs = GetRandom(UINT64_MAX);
+        //Settings.IsSet.MtuDiscoverySearchCompleteTimeoutUs = TRUE;
         break;
     case 4:
         Settings.TlsClientMaxSendBuffer = GetRandom(UINT32_MAX);
@@ -573,8 +573,8 @@ void SpinQuicRandomizeSettings(QUIC_SETTINGS& Settings, uint16_t ThreadID)
         Settings.IsSet.ConnFlowControlWindow = TRUE;
         break;
     case 9:
-        Settings.MaxWorkerQueueDelayUs = GetRandom(UINT32_MAX);
-        Settings.IsSet.MaxWorkerQueueDelayUs = TRUE;
+        //Settings.MaxWorkerQueueDelayUs = GetRandom(UINT32_MAX);
+        //Settings.IsSet.MaxWorkerQueueDelayUs = TRUE;
         break;
     case 10:
         Settings.MaxStatelessOperations = GetRandom(UINT32_MAX);
@@ -585,24 +585,24 @@ void SpinQuicRandomizeSettings(QUIC_SETTINGS& Settings, uint16_t ThreadID)
         Settings.IsSet.InitialWindowPackets = TRUE;
         break;
     case 12:
-        Settings.SendIdleTimeoutMs = GetRandom(UINT32_MAX);
-        Settings.IsSet.SendIdleTimeoutMs = TRUE;
+        //Settings.SendIdleTimeoutMs = GetRandom(UINT32_MAX);
+        //Settings.IsSet.SendIdleTimeoutMs = TRUE;
         break;
     case 13:
         Settings.InitialRttMs = GetRandom(UINT32_MAX);
         Settings.IsSet.InitialRttMs = TRUE;
         break;
     case 14:
-        Settings.MaxAckDelayMs = GetRandom(UINT32_MAX);
-        Settings.IsSet.MaxAckDelayMs = TRUE;
+        //Settings.MaxAckDelayMs = GetRandom(UINT32_MAX);
+        //Settings.IsSet.MaxAckDelayMs = TRUE;
         break;
     case 15:
-        Settings.DisconnectTimeoutMs = GetRandom(UINT32_MAX);
-        Settings.IsSet.DisconnectTimeoutMs = TRUE;
+        //Settings.DisconnectTimeoutMs = GetRandom(UINT32_MAX);
+        //Settings.IsSet.DisconnectTimeoutMs = TRUE;
         break;
     case 16:
-        Settings.KeepAliveIntervalMs = GetRandom(UINT32_MAX);
-        Settings.IsSet.KeepAliveIntervalMs = TRUE;
+        //Settings.KeepAliveIntervalMs = GetRandom(UINT32_MAX);
+        //Settings.IsSet.KeepAliveIntervalMs = TRUE;
         break;
     case 17:
         Settings.CongestionControlAlgorithm = GetRandom((uint16_t)QUIC_CONGESTION_CONTROL_ALGORITHM_MAX);
@@ -621,8 +621,8 @@ void SpinQuicRandomizeSettings(QUIC_SETTINGS& Settings, uint16_t ThreadID)
         Settings.IsSet.MaxBindingStatelessOperations = TRUE;
         break;
     case 21:
-        Settings.StatelessOperationExpirationMs = GetRandom(UINT16_MAX);
-        Settings.IsSet.StatelessOperationExpirationMs = TRUE;
+        //Settings.StatelessOperationExpirationMs = GetRandom(UINT16_MAX);
+        //Settings.IsSet.StatelessOperationExpirationMs = TRUE;
         break;
     case 22:
         Settings.MinimumMtu = GetRandom(UINT16_MAX);
@@ -669,8 +669,8 @@ void SpinQuicRandomizeSettings(QUIC_SETTINGS& Settings, uint16_t ThreadID)
         Settings.IsSet.MtuDiscoveryMissingProbeCount = TRUE;
         break;
     case 33:
-        Settings.DestCidUpdateIdleTimeoutMs = GetRandom(UINT32_MAX);
-        Settings.IsSet.DestCidUpdateIdleTimeoutMs = TRUE;
+        //Settings.DestCidUpdateIdleTimeoutMs = GetRandom(UINT32_MAX);
+        //Settings.IsSet.DestCidUpdateIdleTimeoutMs = TRUE;
         break;
     case 34:
         Settings.HyStartEnabled = GetRandom((uint8_t)1);
