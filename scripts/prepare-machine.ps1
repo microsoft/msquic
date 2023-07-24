@@ -10,9 +10,6 @@ on the provided configuration.
 .PARAMETER Force
     Overwrite and force installation of all dependencies.
 
-.PARAMETER InitSubmodules
-    Dynamically initializes submodules based Tls and Extra configuration knobs.
-
 .PARAMETER ForKernel
     Indicates build is for kernel mode.
 
@@ -41,10 +38,7 @@ param (
     [switch]$Force,
 
     [Parameter(Mandatory = $false)]
-    [switch]$ForOneBranch,
-
-    [Parameter(Mandatory = $false)]
-    [switch]$ForOneBranchPackage,
+    [switch]$ForContainerBuild,
 
     [Parameter(Mandatory = $false)]
     [switch]$ForBuild,
@@ -54,9 +48,6 @@ param (
 
     [Parameter(Mandatory = $false)]
     [switch]$ForKernel,
-
-    [Parameter(Mandatory = $false)]
-    [switch]$InitSubmodules,
 
     [Parameter(Mandatory = $false)]
     [switch]$InstallSigningCertificates,
@@ -129,7 +120,7 @@ if ($UseXdp) {
     }
 }
 
-if (!$ForOneBranch -and !$ForOneBranchPackage -and !$ForBuild -and !$ForTest -and !$InstallXdpDriver -and !$UninstallXdp) {
+if (!$ForContainerBuild -and !$ForBuild -and !$ForTest -and !$InstallXdpDriver -and !$UninstallXdp) {
     # When no args are passed, assume we want to build and test everything
     # locally (i.e. a dev environment). Set Tls to OpenSSL to make sure
     # everything is available.
@@ -144,7 +135,6 @@ if ($ForBuild) {
     $InstallNasm = $true
     $InstallJom = $true
     $InstallXdpSdk = $true
-    $InitSubmodules = $true
     $InstallCoreNetCiDeps = $true; # For kernel signing certs
 }
 
@@ -153,7 +143,13 @@ if ($ForTest) {
     # enabled for any possible test.
     $InstallTestCertificates = $true
     $InstallClog2Text = $true
-    $InstallSigningCertificates = $true; # For kernel drivers
+
+    # Since installing signing certs also checks whether test signing is enabled, which most
+    # likely will fail on a devbox, do it only when we need to test kernel drivers so that
+    # local testing setup won't be blocked by test signing not enabled.
+    if ($ForKernel) {
+        $InstallSigningCertificates = $true;
+    }
 
     #$InstallCodeCoverage = $true # Ideally we'd enable this by default, but it
                                   # hangs sometimes, so we only want to install
@@ -189,6 +185,7 @@ $PfxPassword = ConvertTo-SecureString -String "placeholder" -Force -AsPlainText
 
 # Downloads and caches the latest version of the corenet-ci-main repo.
 function Download-CoreNet-Deps {
+    if (!$IsWindows) { return } # Windows only
     # Download and extract https://github.com/microsoft/corenet-ci.
     if ($Force) { rm -Force -Recurse $CoreNetCiPath -ErrorAction Ignore }
     if (!(Test-Path $CoreNetCiPath)) {
@@ -485,7 +482,7 @@ if ($ForKernel) {
     git rm submodules/openssl3
 }
 
-if ($InitSubmodules) {
+if ($ForBuild -or $ForContainerBuild) {
 
     Write-Host "Initializing clog submodule"
     git submodule init submodules/clog

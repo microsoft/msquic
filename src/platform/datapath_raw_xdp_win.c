@@ -11,46 +11,49 @@ Abstract:
 
 #define _CRT_SECURE_NO_WARNINGS 1 // TODO - Remove
 
-#include "datapath_raw.h"
-#ifdef QUIC_CLOG
-#include "datapath_raw_xdp.c.clog.h"
-#endif
-
+#include "datapath_raw_win.h"
+#include "datapath_raw_xdp.h"
 #include <wbemidl.h>
 #include <afxdp_helper.h>
 #include <xdpapi.h>
 #include <stdio.h>
 
-#define RX_BATCH_SIZE 16
-#define MAX_ETH_FRAME_SIZE 1514
+#ifdef QUIC_CLOG
+#include "datapath_raw_xdp_win.c.clog.h"
+#endif
 
-#define ADAPTER_TAG   'ApdX' // XdpA
-#define IF_TAG        'IpdX' // XdpI
-#define QUEUE_TAG     'QpdX' // XdpQ
-#define RULE_TAG      'UpdX' // XdpU
-#define RX_BUFFER_TAG 'RpdX' // XdpR
-#define TX_BUFFER_TAG 'TpdX' // XdpT
-#define PORT_SET_TAG  'PpdX' // XdpP
+typedef struct XDP_DATAPATH {
+    CXPLAT_DATAPATH;
+    DECLSPEC_CACHEALIGN
+    //
+    // Currently, all XDP interfaces share the same config.
+    //
+    CXPLAT_REF_COUNT RefCount;
+    uint32_t WorkerCount;
+    uint32_t RxBufferCount;
+    uint32_t RxRingSize;
+    uint32_t TxBufferCount;
+    uint32_t TxRingSize;
+    uint32_t PollingIdleTimeoutUs;
+    BOOLEAN TxAlwaysPoke;
+    BOOLEAN SkipXsum;
+    BOOLEAN Running;        // Signal to stop workers.
+    XDP_LOAD_API_CONTEXT XdpApiLoadContext;
+    const XDP_API_TABLE *XdpApi;
 
-typedef struct XDP_INTERFACE XDP_INTERFACE;
-typedef struct XDP_WORKER XDP_WORKER;
+    XDP_WORKER Workers[0];
+} XDP_DATAPATH;
 
-//
-// Type of IO.
-//
-typedef enum DATAPATH_IO_TYPE {
-    DATAPATH_IO_SIGNATURE         = 'XDPD',
-    DATAPATH_IO_RECV              = DATAPATH_IO_SIGNATURE + 1,
-    DATAPATH_IO_SEND              = DATAPATH_IO_SIGNATURE + 2
-} DATAPATH_IO_TYPE;
-
-//
-// IO header for SQE->CQE based completions.
-//
-typedef struct DATAPATH_IO_SQE {
-    DATAPATH_IO_TYPE IoType;
-    DATAPATH_SQE DatapathSqe;
-} DATAPATH_IO_SQE;
+typedef struct XDP_INTERFACE {
+    CXPLAT_INTERFACE;
+    HANDLE XdpHandle;
+    uint16_t QueueCount;
+    uint8_t RuleCount;
+    CXPLAT_LOCK RuleLock;
+    XDP_RULE* Rules;
+    XDP_QUEUE* Queues; // An array of queues.
+    const struct XDP_DATAPATH* Xdp;
+} XDP_INTERFACE;
 
 typedef struct XDP_QUEUE {
     const XDP_INTERFACE* Interface;
@@ -85,57 +88,6 @@ typedef struct XDP_QUEUE {
     CXPLAT_LIST_ENTRY TxQueue;
 } XDP_QUEUE;
 
-typedef struct XDP_INTERFACE {
-    CXPLAT_INTERFACE;
-    HANDLE XdpHandle;
-    uint16_t QueueCount;
-    uint8_t RuleCount;
-    CXPLAT_LOCK RuleLock;
-    XDP_RULE* Rules;
-    XDP_QUEUE* Queues; // An array of queues.
-    const struct XDP_DATAPATH* Xdp;
-} XDP_INTERFACE;
-
-typedef struct QUIC_CACHEALIGN XDP_WORKER {
-    CXPLAT_EXECUTION_CONTEXT Ec;
-    DATAPATH_SQE ShutdownSqe;
-    const struct XDP_DATAPATH* Xdp;
-    CXPLAT_EVENTQ* EventQ;
-    XDP_QUEUE* Queues; // A linked list of queues, accessed by Next.
-    uint16_t ProcIndex;
-} XDP_WORKER;
-
-void XdpWorkerAddQueue(_In_ XDP_WORKER* Worker, _In_ XDP_QUEUE* Queue) {
-    XDP_QUEUE** Tail = &Worker->Queues;
-    while (*Tail != NULL) {
-        Tail = &(*Tail)->Next;
-    }
-    *Tail = Queue;
-    Queue->Next = NULL;
-    Queue->Worker = Worker;
-}
-
-typedef struct XDP_DATAPATH {
-    CXPLAT_DATAPATH;
-    DECLSPEC_CACHEALIGN
-    //
-    // Currently, all XDP interfaces share the same config.
-    //
-    CXPLAT_REF_COUNT RefCount;
-    uint32_t WorkerCount;
-    uint32_t RxBufferCount;
-    uint32_t RxRingSize;
-    uint32_t TxBufferCount;
-    uint32_t TxRingSize;
-    uint32_t PollingIdleTimeoutUs;
-    BOOLEAN TxAlwaysPoke;
-    BOOLEAN SkipXsum;
-    BOOLEAN Running;        // Signal to stop workers.
-    const XDP_API_TABLE *XdpApi;
-
-    XDP_WORKER Workers[0];
-} XDP_DATAPATH;
-
 typedef struct DECLSPEC_ALIGN(MEMORY_ALLOCATION_ALIGNMENT) XDP_RX_PACKET {
     CXPLAT_RECV_DATA;
     CXPLAT_ROUTE RouteStorage;
@@ -151,6 +103,17 @@ typedef struct DECLSPEC_ALIGN(MEMORY_ALLOCATION_ALIGNMENT) XDP_TX_PACKET {
     CXPLAT_LIST_ENTRY Link;
     uint8_t FrameBuffer[MAX_ETH_FRAME_SIZE];
 } XDP_TX_PACKET;
+
+
+void XdpWorkerAddQueue(_In_ XDP_WORKER* Worker, _In_ XDP_QUEUE* Queue) {
+    XDP_QUEUE** Tail = &Worker->Queues;
+    while (*Tail != NULL) {
+        Tail = &(*Tail)->Next;
+    }
+    *Tail = Queue;
+    Queue->Next = NULL;
+    Queue->Worker = Worker;
+}
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 BOOLEAN
@@ -1055,7 +1018,7 @@ CxPlatDpRawInitialize(
     const uint16_t* ProcessorList;
 
     CxPlatListInitializeHead(&Xdp->Interfaces);
-    if (QUIC_FAILED(XdpOpenApi(XDP_VERSION_PRERELEASE, &Xdp->XdpApi))) {
+    if (QUIC_FAILED(XdpLoadApi(XDP_VERSION_PRERELEASE, &Xdp->XdpApiLoadContext, &Xdp->XdpApi))) {
         Status = QUIC_STATUS_NOT_SUPPORTED;
         goto Error;
     }
@@ -1269,7 +1232,7 @@ Error:
         }
 
         if (Xdp->XdpApi) {
-            XdpCloseApi(Xdp->XdpApi);
+            XdpUnloadApi(Xdp->XdpApiLoadContext, Xdp->XdpApi);
         }
     }
 
@@ -1297,7 +1260,7 @@ CxPlatDpRawRelease(
             CxPlatDpRawInterfaceUninitialize(Interface);
             CxPlatFree(Interface, IF_TAG);
         }
-        XdpCloseApi(Xdp->XdpApi);
+        XdpUnloadApi(Xdp->XdpApiLoadContext, Xdp->XdpApi);
         CxPlatDataPathUninitializeComplete((CXPLAT_DATAPATH*)Xdp);
     }
 }

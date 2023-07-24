@@ -26,7 +26,10 @@ param (
     [switch]$XDP = $false,
 
     [Parameter(Mandatory = $false)]
-    [switch]$ReleaseBuild = $false
+    [switch]$ReleaseBuild = $false,
+
+    [Parameter(Mandatory = $false)]
+    [switch]$GHA = $false
 )
 
 Set-StrictMode -Version 'Latest'
@@ -97,7 +100,7 @@ $NativeDir = Join-Path $PackagingDir "build/native"
 
 foreach ($Arch in $Architectures) {
     $BuildPath = Join-Path $PlatformDir "$($Arch)_$($Config)_$($Tls)"
-    if ($XDP) {
+    if ($XDP -and !$GHA) {
         $BuildPath += "_xdp"
     }
     $LibPath = Join-Path $NativeDir "lib/$Arch"

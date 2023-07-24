@@ -335,23 +335,26 @@ void QuicTestValidateConfiguration()
 #endif // QUIC_DISABLE_TICKET_KEY_TESTS
 }
 
-static
-_Function_class_(QUIC_LISTENER_CALLBACK)
-QUIC_STATUS
-QUIC_API
-DummyListenerCallback(
-    HQUIC,
-    void* Context,
-    QUIC_LISTENER_EVENT* Event
-    )
+namespace
 {
-    CxPlatEvent* StopCompleteEvent = (CxPlatEvent*)Context;
-    if (StopCompleteEvent &&
-        Event->Type == QUIC_LISTENER_EVENT_STOP_COMPLETE) {
-        StopCompleteEvent->Set();
-        return QUIC_STATUS_SUCCESS;
+    _Function_class_(QUIC_LISTENER_CALLBACK)
+    template<typename T>
+    QUIC_STATUS
+    QUIC_API
+    DummyListenerCallback(
+        T,
+        void* Context,
+        QUIC_LISTENER_EVENT* Event
+        )
+    {
+        CxPlatEvent* StopCompleteEvent = (CxPlatEvent*)Context;
+        if (StopCompleteEvent &&
+            Event->Type == QUIC_LISTENER_EVENT_STOP_COMPLETE) {
+            StopCompleteEvent->Set();
+            return QUIC_STATUS_SUCCESS;
+        }
+        return QUIC_STATUS_NOT_SUPPORTED;
     }
-    return QUIC_STATUS_NOT_SUPPORTED;
 }
 
 static
@@ -403,7 +406,7 @@ void QuicTestValidateListener()
         QUIC_STATUS_INVALID_PARAMETER,
         MsQuic->ListenerOpen(
             nullptr,
-            DummyListenerCallback,
+            DummyListenerCallback<HQUIC>,
             nullptr,
             &Listener));
 
@@ -414,7 +417,7 @@ void QuicTestValidateListener()
         QUIC_STATUS_INVALID_PARAMETER,
         MsQuic->ListenerOpen(
             Registration,
-            DummyListenerCallback,
+            DummyListenerCallback<HQUIC>,
             nullptr,
             nullptr));
 
@@ -424,7 +427,7 @@ void QuicTestValidateListener()
     TEST_QUIC_SUCCEEDED(
         MsQuic->ListenerOpen(
             Registration,
-            DummyListenerCallback,
+            DummyListenerCallback<HQUIC>,
             &StopCompleteEvent,
             &Listener));
 
@@ -448,7 +451,7 @@ void QuicTestValidateListener()
     TEST_QUIC_SUCCEEDED(
         MsQuic->ListenerOpen(
             Registration,
-            DummyListenerCallback,
+            DummyListenerCallback<HQUIC>,
             &StopCompleteEvent,
             &Listener));
 
@@ -469,7 +472,7 @@ void QuicTestValidateListener()
     TEST_QUIC_SUCCEEDED(
         MsQuic->ListenerOpen(
             Registration,
-            DummyListenerCallback,
+            DummyListenerCallback<HQUIC>,
             &StopCompleteEvent,
             &Listener));
 
@@ -497,7 +500,7 @@ void QuicTestValidateListener()
     TEST_QUIC_SUCCEEDED(
         MsQuic->ListenerOpen(
             Registration,
-            DummyListenerCallback,
+            DummyListenerCallback<HQUIC>,
             nullptr,
             &Listener));
 
@@ -3021,7 +3024,7 @@ void QuicTestListenerParam()
         //
         {
             TestScopeLogger LogScope1("SetParam is not allowed");
-            MsQuicListener Listener(Registration, DummyListenerCallback, nullptr);
+            MsQuicListener Listener(Registration, CleanUpManual, DummyListenerCallback<MsQuicListener*>, nullptr);
             TEST_TRUE(Listener.IsValid());
             QUIC_ADDR Dummy = {0};
             TEST_QUIC_STATUS(
@@ -3037,7 +3040,7 @@ void QuicTestListenerParam()
         //
         {
             TestScopeLogger LogScope1("GetParam");
-            MsQuicListener Listener(Registration, DummyListenerCallback, nullptr);
+            MsQuicListener Listener(Registration, CleanUpManual, DummyListenerCallback<MsQuicListener*>, nullptr);
             TEST_TRUE(Listener.IsValid());
 
             TEST_QUIC_SUCCEEDED(Listener.Start(Alpn, &ExpectedAddress));
@@ -3071,7 +3074,7 @@ void QuicTestListenerParam()
         //
         {
             TestScopeLogger LogScope1("SetParam is not allowed");
-            MsQuicListener Listener(Registration, DummyListenerCallback, nullptr);
+            MsQuicListener Listener(Registration, CleanUpManual, DummyListenerCallback<MsQuicListener*>, nullptr);
             TEST_TRUE(Listener.IsValid());
             QUIC_LISTENER_STATISTICS Dummy = {0};
             TEST_QUIC_STATUS(
@@ -3087,7 +3090,7 @@ void QuicTestListenerParam()
         //
         {
             TestScopeLogger LogScope1("GetParam");
-            MsQuicListener Listener(Registration, DummyListenerCallback, nullptr);
+            MsQuicListener Listener(Registration, CleanUpManual, DummyListenerCallback<MsQuicListener*>, nullptr);
             TEST_TRUE(Listener.IsValid());
 
             uint32_t Length = 0;
@@ -3123,7 +3126,7 @@ void QuicTestListenerParam()
         //
         {
             TestScopeLogger LogScope1("SetParam");
-            MsQuicListener Listener(Registration, DummyListenerCallback, nullptr);
+            MsQuicListener Listener(Registration, CleanUpManual, DummyListenerCallback<MsQuicListener*> , nullptr);
             TEST_TRUE(Listener.IsValid());
             CibirIDTests(Listener.Handle, QUIC_PARAM_LISTENER_CIBIR_ID);
         }
@@ -3133,7 +3136,7 @@ void QuicTestListenerParam()
         //
         {
             TestScopeLogger LogScope1("GetParam");
-            MsQuicListener Listener(Registration, DummyListenerCallback, nullptr);
+            MsQuicListener Listener(Registration, CleanUpManual, DummyListenerCallback<MsQuicListener*>, nullptr);
             TEST_TRUE(Listener.IsValid());
             uint32_t Length = 65535;
             TEST_QUIC_SUCCEEDED(
@@ -4227,6 +4230,138 @@ void QuicTest_QUIC_PARAM_CONN_STATISTICS_V2_PLAT(MsQuicRegistration& Registratio
     }
 }
 
+
+void QuicTest_QUIC_PARAM_CONN_ORIG_DEST_CID(MsQuicRegistration& Registration, MsQuicConfiguration& ClientConfiguration) {
+    //
+    // This is the unit test for checking to see if a server has the correct original dest CID.
+    //
+    TestScopeLogger LogScope0("QUIC_PARAM_CONN_ORIG_DEST_CID");
+    {
+        MsQuicConnection Connection(Registration);
+        TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
+        TEST_QUIC_SUCCEEDED(
+          Connection.Start(
+              ClientConfiguration,
+              QUIC_ADDRESS_FAMILY_INET,
+              "localhost",
+              4433));
+        MsQuic->ConnectionSetConfiguration(Connection.Handle, ClientConfiguration);
+        //
+        // 8 bytes is the expected minimum size of the CID.
+        //
+        uint32_t SizeOfBuffer = 8;
+        uint8_t Buffer[8] = {0};
+        uint8_t ZeroBuffer[8] = {0}; 
+        TestScopeLogger LogScope1("GetParam test success case");
+        TEST_QUIC_STATUS(
+            QUIC_STATUS_SUCCESS, 
+            Connection.GetParam(
+                QUIC_PARAM_CONN_ORIG_DEST_CID,
+                &SizeOfBuffer, 
+                Buffer
+            )
+        )
+        TEST_NOT_EQUAL(memcmp(Buffer, ZeroBuffer, sizeof(Buffer)), 0);
+    }
+    {
+        MsQuicConnection Connection(Registration);
+        TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
+        TEST_QUIC_SUCCEEDED(
+          Connection.Start(
+              ClientConfiguration,
+              QUIC_ADDRESS_FAMILY_INET,
+              "localhost",
+              4433));
+        uint32_t SizeOfBuffer = 8;
+        TestScopeLogger LogScope1("GetParam null buffer check");
+        TEST_QUIC_STATUS(
+            QUIC_STATUS_INVALID_PARAMETER, 
+            Connection.GetParam(
+                QUIC_PARAM_CONN_ORIG_DEST_CID,
+                &SizeOfBuffer, 
+                nullptr
+            )
+        )
+    }
+    {
+        MsQuicConnection Connection(Registration);
+        TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
+        TEST_QUIC_SUCCEEDED(
+          Connection.Start(
+              ClientConfiguration,
+              QUIC_ADDRESS_FAMILY_INET,
+              "localhost",
+              4433));
+        uint32_t SizeOfBuffer = 1;
+        TestScopeLogger LogScope1("GetParam buffer too small check");
+        uint8_t Buffer[1];
+        TEST_QUIC_STATUS(
+            QUIC_STATUS_BUFFER_TOO_SMALL, 
+            Connection.GetParam(
+                QUIC_PARAM_CONN_ORIG_DEST_CID,
+                &SizeOfBuffer, 
+                Buffer
+            )
+        )
+    }
+    {
+        MsQuicConnection Connection(Registration);
+        TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
+        TEST_QUIC_SUCCEEDED(
+          Connection.Start(
+              ClientConfiguration,
+              QUIC_ADDRESS_FAMILY_INET,
+              "localhost",
+              4433));
+        uint32_t SizeOfBuffer = 100;
+        uint8_t Buffer[100] = {0};
+        uint8_t ZeroBuffer[100] = {0}; 
+        TestScopeLogger LogScope1("GetParam size of buffer bigger than needed");
+        TEST_QUIC_STATUS(
+            QUIC_STATUS_SUCCESS, 
+            Connection.GetParam(
+                QUIC_PARAM_CONN_ORIG_DEST_CID,
+                &SizeOfBuffer, 
+                Buffer
+            )
+        )
+        TEST_NOT_EQUAL(memcmp(Buffer, ZeroBuffer, sizeof(Buffer)), 0);
+        // 
+        // There is no way the CID written should be 100 bytes according to the RFC.
+        //
+        TEST_TRUE(SizeOfBuffer < 100);
+    }
+    {
+        MsQuicConnection Connection(Registration);
+        TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
+        TEST_QUIC_SUCCEEDED(
+          Connection.Start(
+              ClientConfiguration,
+              QUIC_ADDRESS_FAMILY_INET,
+              "localhost",
+              4433));
+        uint32_t SizeOfBuffer = 0;
+        TestScopeLogger LogScope1("GetParam check OrigDestCID size with nullptr");
+        TEST_QUIC_STATUS(
+            QUIC_STATUS_BUFFER_TOO_SMALL, 
+            Connection.GetParam(
+                QUIC_PARAM_CONN_ORIG_DEST_CID,
+                &SizeOfBuffer, 
+                nullptr
+            )
+        )
+        TEST_TRUE(SizeOfBuffer >= 8);
+        TEST_QUIC_STATUS(
+            QUIC_STATUS_INVALID_PARAMETER, 
+            Connection.GetParam(
+                QUIC_PARAM_CONN_ORIG_DEST_CID,
+                &SizeOfBuffer, 
+                nullptr
+            )
+        )
+    }
+}
+
 void QuicTestConnectionParam()
 {
     MsQuicAlpn Alpn("MsQuicTest");
@@ -4259,6 +4394,7 @@ void QuicTestConnectionParam()
     QuicTest_QUIC_PARAM_CONN_CIBIR_ID(Registration, ClientConfiguration);
     QuicTest_QUIC_PARAM_CONN_STATISTICS_V2(Registration);
     QuicTest_QUIC_PARAM_CONN_STATISTICS_V2_PLAT(Registration);
+    QuicTest_QUIC_PARAM_CONN_ORIG_DEST_CID(Registration, ClientConfiguration);
 }
 
 //
@@ -5106,7 +5242,7 @@ _Function_class_(QUIC_LISTENER_CALLBACK)
 QUIC_STATUS
 QUIC_API
 RejectListenerCallback(
-    _In_ HQUIC /* Listener */,
+    _In_ MsQuicListener* /* Listener */,
     _In_opt_ void* Context,
     _Inout_ QUIC_LISTENER_EVENT* Event
 ) noexcept {
@@ -5139,7 +5275,7 @@ QuicTestConnectionRejection(
     MsQuicConfiguration ClientConfiguration(Registration, "MsQuicTest", ClientCredConfig);
     TEST_QUIC_SUCCEEDED(ClientConfiguration.GetInitStatus());
 
-    MsQuicListener Listener(Registration, RejectListenerCallback, RejectByClosing ? &ShutdownEvent : nullptr);
+    MsQuicListener Listener(Registration, CleanUpManual, RejectListenerCallback, RejectByClosing ? &ShutdownEvent : nullptr);
     TEST_QUIC_SUCCEEDED(Listener.GetInitStatus());
     QUIC_ADDRESS_FAMILY QuicAddrFamily = QUIC_ADDRESS_FAMILY_INET;
     QuicAddr ServerLocalAddr(QuicAddrFamily);
