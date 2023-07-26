@@ -410,6 +410,56 @@ QuicResetStreamFrameDecode(
 
 _Success_(return != FALSE)
 BOOLEAN
+QuicReliableResetFrameEncode(
+    _In_ const QUIC_RELIABLE_RESET_STREAM_EX * const Frame,
+    _Inout_ uint16_t* Offset,
+    _In_ uint16_t BufferLength,
+    _Out_writes_to_(BufferLength, *Offset) uint8_t* Buffer
+    )
+{
+    uint16_t RequiredLength =
+        sizeof(uint8_t) +     // Type
+        QuicVarIntSize(Frame->ErrorCode) +
+        QuicVarIntSize(Frame->StreamID) +
+        QuicVarIntSize(Frame->FinalSize) + 
+        QuicVarIntSize(Frame->ReliableSize);
+
+    if (BufferLength < *Offset + RequiredLength) {
+        return FALSE;
+    }
+
+    Buffer = Buffer + *Offset;
+    Buffer = QuicUint8Encode(QUIC_FRAME_RESET_STREAM, Buffer);
+    Buffer = QuicVarIntEncode(Frame->StreamID, Buffer);
+    Buffer = QuicVarIntEncode(Frame->ErrorCode, Buffer);
+    Buffer = QuicVarIntEncode(Frame->FinalSize, Buffer);
+    QuicVarIntEncode(Frame->ReliableSize, Buffer);
+    *Offset += RequiredLength;
+
+    return TRUE;
+}
+
+_Success_(return != FALSE)
+BOOLEAN
+QuicReliableResetFrameDecode(
+    _In_ uint16_t BufferLength,
+    _In_reads_bytes_(BufferLength)
+        const uint8_t * const Buffer,
+    _Inout_ uint16_t* Offset,
+    _Out_ QUIC_RELIABLE_RESET_STREAM_EX* Frame
+    )
+{
+    if (!QuicVarIntDecode(BufferLength, Buffer, Offset, &Frame->StreamID) ||
+        !QuicVarIntDecode(BufferLength, Buffer, Offset, &Frame->ErrorCode) ||
+        !QuicVarIntDecode(BufferLength, Buffer, Offset, &Frame->ReliableSize) ||
+        !QuicVarIntDecode(BufferLength, Buffer, Offset, &Frame->FinalSize)) {
+        return FALSE;
+    }
+    return TRUE;
+}
+
+_Success_(return != FALSE)
+BOOLEAN
 QuicStopSendingFrameEncode(
     _In_ const QUIC_STOP_SENDING_EX * const Frame,
     _Inout_ uint16_t* Offset,

@@ -145,7 +145,9 @@ typedef enum QUIC_FRAME_TYPE {
     QUIC_FRAME_CONNECTION_CLOSE     = 0x1cULL, // to 0x1d
     QUIC_FRAME_CONNECTION_CLOSE_1   = 0x1dULL,
     QUIC_FRAME_HANDSHAKE_DONE       = 0x1eULL,
-    /* 0x1f to 0x2f are unused currently */
+    /* 0x1f to 0x20 are unused currently */ 
+    QUIC_FRAME_RELIABLE_RESET_STREAM= 0x21ULL, // intentionally ignore type 0x20 of QUIC_RESET_STREAM cause it's likely to be removed from RFC.
+    /* 0x22 to 0x2f are unused currently */ 
     QUIC_FRAME_DATAGRAM             = 0x30ULL, // to 0x31
     QUIC_FRAME_DATAGRAM_1           = 0x31ULL,
     /* 0x32 to 0xad are unused currently */
@@ -252,6 +254,39 @@ QuicResetStreamFrameDecode(
     _Inout_ uint16_t* Offset,
     _Out_ QUIC_RESET_STREAM_EX* Frame
     );
+
+//
+// QUIC_FRAME_RELIABLE_RESET_STREAM Encoding/Decoding
+//
+typedef struct QUIC_RELIABLE_RESET_STREAM_EX {
+
+    QUIC_VAR_INT StreamID;
+    QUIC_VAR_INT ErrorCode;
+    QUIC_VAR_INT FinalSize;
+    QUIC_VAR_INT ReliableSize;
+    
+} QUIC_RELIABLE_RESET_STREAM_EX;
+
+_Success_(return != FALSE)
+BOOLEAN
+QuicReliableResetFrameEncode(
+    _In_ const QUIC_RELIABLE_RESET_STREAM_EX * const Frame,
+    _Inout_ uint16_t* Offset,
+    _In_ uint16_t BufferLength,
+    _Out_writes_to_(BufferLength, *Offset)
+        uint8_t* Buffer
+    );
+
+_Success_(return != FALSE)
+BOOLEAN
+QuicReliableResetFrameDecode(
+    _In_ uint16_t BufferLength,
+    _In_reads_bytes_(BufferLength)
+        const uint8_t * const Buffer,
+    _Inout_ uint16_t* Offset,
+    _Out_ QUIC_RELIABLE_RESET_STREAM_EX* Frame
+    );
+
 
 //
 // QUIC_FRAME_STOP_SENDING Encoding/Decoding
