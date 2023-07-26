@@ -40,6 +40,7 @@ typedef struct QUIC_SETTINGS_INTERNAL {
             uint64_t PacingEnabled                          : 1;
             uint64_t MigrationEnabled                       : 1;
             uint64_t DatagramReceiveEnabled                 : 1;
+            uint64_t ThisReliableResetFrameEnabled          : 1;
             uint64_t ServerResumptionLevel                  : 1;
             uint64_t VersionSettings                        : 1;
             uint64_t VersionNegotiationExtEnabled           : 1;
@@ -93,6 +94,7 @@ typedef struct QUIC_SETTINGS_INTERNAL {
     uint8_t PacingEnabled                   : 1;
     uint8_t MigrationEnabled                : 1;
     uint8_t DatagramReceiveEnabled          : 1;
+    uint8_t ThisReliableResetFrameEnabled   : 1; 
     uint8_t ServerResumptionLevel           : 2;    // QUIC_SERVER_RESUMPTION_LEVEL
     uint8_t VersionNegotiationExtEnabled    : 1;
     uint8_t GreaseQuicBitEnabled            : 1;

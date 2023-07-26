@@ -169,8 +169,8 @@ These parameters are accessed by calling [GetParam](./api/GetParam.md) or [SetPa
 | `QUIC_PARAM_CONN_STATISTICS_V2`<br> 22            | QUIC_STATISTICS_V2            | Get-only  | Connection-level statistics, version 2.                                                   |
 | `QUIC_PARAM_CONN_STATISTICS_V2_PLAT`<br> 23       | QUIC_STATISTICS_V2            | Get-only  | Connection-level statistics with platform-specific time format, version 2.                |
 | `QUIC_PARAM_CONN_ORIG_DEST_CID` <br> 24           | uint8_t[]                     | Get-only  | The original destination connection ID used by the client to connect to the server.       |
-| `QUIC_PARAM_CONN_THIS_RELIABLE_RESET_ENABLED`     | uint8_t (BOOLEAN)             | Both      | Indicate/query support for QUIC CLOSE_STREAM frames. Must be set before start.            |
-| `QUIC_PARAM_CONN_PEER_RELIABLE_RESET_ENABLED`     | uint8_t (BOOLEAN)             | Get-only  | Indicates peer advertised support for QUIC CLOSE_STREAM frames.                           |
+| `QUIC_PARAM_CONN_THIS_RELIABLE_RESET_ENABLED` 25  | uint8_t (BOOLEAN)             | Both      | Indicate/query support for QUIC CLOSE_STREAM frames. Must be set before start.            |
+| `QUIC_PARAM_CONN_PEER_RELIABLE_RESET_ENABLED` 26  | uint8_t (BOOLEAN)             | Get-only  | Indicates peer advertised support for QUIC CLOSE_STREAM frames.                           |
 ### QUIC_PARAM_CONN_STATISTICS_V2
 
 Querying the `QUIC_STATISTICS_V2` struct via `QUIC_PARAM_CONN_STATISTICS_V2` or `QUIC_PARAM_CONN_STATISTICS_V2_PLAT` should be aware of possible changes in the size of the struct, depending on the version of MsQuic the app using at runtime, not just what it was compiled against.

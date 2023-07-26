@@ -6602,6 +6602,30 @@ QuicConnParamSet(
         return QUIC_STATUS_SUCCESS;
     }
 
+    case QUIC_PARAM_CONN_THIS_RELIABLE_RESET_ENABLED:
+
+        if (BufferLength != sizeof(BOOLEAN)) {
+            Status = QUIC_STATUS_INVALID_PARAMETER;
+            break;
+        }
+
+        if (QUIC_CONN_BAD_START_STATE(Connection)) {
+            Status = QUIC_STATUS_INVALID_STATE;
+            break;
+        }
+
+        Connection->Settings.ThisReliableResetFrameEnabled = *(BOOLEAN*)Buffer;
+        Connection->Settings.IsSet.ThisReliableResetFrameEnabled = TRUE;
+        Status = QUIC_STATUS_SUCCESS;
+
+        QuicTraceLogConnVerbose(
+            ThisReliableResetFrameEnabledUpdated,
+            Connection,
+            "Updated reliable reset frame enabled to %hhu",
+            Connection->Settings.ThisReliableResetFrameEnabled);
+
+        break;
+
     //
     // Private
     //
@@ -7203,6 +7227,44 @@ QuicConnParamGet(
         // Tell app how much buffer we copied.
         //
         *BufferLength = Connection->OrigDestCID->Length;
+        Status = QUIC_STATUS_SUCCESS;
+        break;
+
+    case QUIC_PARAM_CONN_THIS_RELIABLE_RESET_ENABLED:
+
+        if (*BufferLength < sizeof(BOOLEAN)) {
+            *BufferLength = sizeof(BOOLEAN);
+            Status = QUIC_STATUS_BUFFER_TOO_SMALL;
+            break;
+        }
+
+        if (Buffer == NULL) {
+            Status = QUIC_STATUS_INVALID_PARAMETER;
+            break;
+        }
+
+        *BufferLength = sizeof(BOOLEAN);
+        *(BOOLEAN*)Buffer = Connection->Settings.ThisReliableResetFrameEnabled;
+
+        Status = QUIC_STATUS_SUCCESS;
+        break;
+
+    case QUIC_PARAM_CONN_PEER_RELIABLE_RESET_ENABLED:
+
+        if (*BufferLength < sizeof(BOOLEAN)) {
+            *BufferLength = sizeof(BOOLEAN);
+            Status = QUIC_STATUS_BUFFER_TOO_SMALL;
+            break;
+        }
+
+        if (Buffer == NULL) {
+            Status = QUIC_STATUS_INVALID_PARAMETER;
+            break;
+        }
+
+        *BufferLength = sizeof(BOOLEAN);
+        *(BOOLEAN*)Buffer = Connection->Datagram.PeerReliableResetEnabled;
+
         Status = QUIC_STATUS_SUCCESS;
         break;
 
