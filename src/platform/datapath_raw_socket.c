@@ -128,7 +128,6 @@ CxPlatDpRawParseUdp(
         return;
     }
 
-    Length -= sizeof(UDP_HEADER);
     Packet->Reserved = L4_TYPE_UDP;
 
     Packet->Route->RemoteAddress.Ipv4.sin_port = Udp->SourcePort;
