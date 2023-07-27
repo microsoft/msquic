@@ -39,7 +39,7 @@ if (!$Uninstall) {
     if ($InstallId) {
         Write-Output "Uninstalling old XDP driver"
         try {
-            msiexec.exe /x $InstallId /quiet
+            msiexec.exe /x $InstallId /quiet | Out-Null
         } catch { }
     }
 
@@ -59,7 +59,7 @@ if (!$Uninstall) {
 
     # Install the XDP driver.
     Write-Host "Installing XDP driver"
-    msiexec.exe /i $XdpPath\bin\xdp-for-windows.msi /quiet
+    msiexec.exe /i $XdpPath\bin\xdp-for-windows.msi /quiet | Out-Null
 
 } elseif ($InstallId) {
     # Uninstall the XDP driver and delete the folder.
