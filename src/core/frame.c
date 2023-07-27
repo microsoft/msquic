@@ -429,7 +429,7 @@ QuicReliableResetFrameEncode(
     }
 
     Buffer = Buffer + *Offset;
-    Buffer = QuicUint8Encode(QUIC_FRAME_RESET_STREAM, Buffer);
+    Buffer = QuicUint8Encode(QUIC_FRAME_RELIABLE_RESET_STREAM, Buffer);
     Buffer = QuicVarIntEncode(Frame->StreamID, Buffer);
     Buffer = QuicVarIntEncode(Frame->ErrorCode, Buffer);
     Buffer = QuicVarIntEncode(Frame->FinalSize, Buffer);
@@ -451,8 +451,8 @@ QuicReliableResetFrameDecode(
 {
     if (!QuicVarIntDecode(BufferLength, Buffer, Offset, &Frame->StreamID) ||
         !QuicVarIntDecode(BufferLength, Buffer, Offset, &Frame->ErrorCode) ||
-        !QuicVarIntDecode(BufferLength, Buffer, Offset, &Frame->ReliableSize) ||
-        !QuicVarIntDecode(BufferLength, Buffer, Offset, &Frame->FinalSize)) {
+        !QuicVarIntDecode(BufferLength, Buffer, Offset, &Frame->FinalSize) ||
+        !QuicVarIntDecode(BufferLength, Buffer, Offset, &Frame->ReliableSize)) {
         return FALSE;
     }
     return TRUE;

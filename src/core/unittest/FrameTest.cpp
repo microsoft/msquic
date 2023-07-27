@@ -224,6 +224,25 @@ TEST(FrameTest, ResetStreamFrameEncodeDecode)
     ASSERT_EQ(Frame.FinalSize, DecodedFrame.FinalSize);
 }
 
+TEST(FrameTest, ReliableResetStreamFrameEncodeDecode)
+{
+    QUIC_RELIABLE_RESET_STREAM_EX Frame = {127, 4294967297, 65536, 35000};
+    QUIC_RELIABLE_RESET_STREAM_EX DecodedFrame = {0, 0, 0, 0};
+    uint8_t Buffer[20];
+    uint16_t BufferLength = (uint16_t) sizeof(Buffer);
+    uint16_t Offset = 0;
+
+    CxPlatZeroMemory(Buffer, sizeof(Buffer));
+    ASSERT_TRUE(QuicReliableResetFrameEncode(&Frame, &Offset, BufferLength, Buffer));
+    Offset = 1;
+    ASSERT_TRUE(QuicReliableResetFrameDecode(BufferLength, Buffer, &Offset, &DecodedFrame));
+
+    ASSERT_EQ(Frame.StreamID, DecodedFrame.StreamID);
+    ASSERT_EQ(Frame.ErrorCode, DecodedFrame.ErrorCode);
+    ASSERT_EQ(Frame.FinalSize, DecodedFrame.FinalSize);
+    ASSERT_EQ(Frame.ReliableSize, DecodedFrame.ReliableSize);
+}
+
 struct ResetStreamFrameParams {
     uint8_t Buffer[4];
     uint16_t BufferLength = 4;
