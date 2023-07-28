@@ -6614,15 +6614,15 @@ QuicConnParamSet(
             break;
         }
 
-        Connection->Settings.ThisReliableResetFrameEnabled = *(BOOLEAN*)Buffer;
-        Connection->Settings.IsSet.ThisReliableResetFrameEnabled = TRUE;
+        Connection->Settings.ReliableResetEnabled = *(BOOLEAN*)Buffer;
+        Connection->Settings.IsSet.ReliableResetEnabled = TRUE;
         Status = QUIC_STATUS_SUCCESS;
 
         QuicTraceLogConnVerbose(
-            ThisReliableResetFrameEnabledUpdated,
+            ReliableResetEnabledUpdated,
             Connection,
             "Updated reliable reset frame enabled to %hhu",
-            Connection->Settings.ThisReliableResetFrameEnabled);
+            Connection->Settings.ReliableResetEnabled);
 
         break;
 
@@ -7263,7 +7263,7 @@ QuicConnParamGet(
         }
 
         *BufferLength = sizeof(BOOLEAN);
-        *(BOOLEAN*)Buffer = Connection->Datagram.PeerReliableResetEnabled;
+        *(BOOLEAN*)Buffer = Connection->PeerReliableResetEnabled;
 
         Status = QUIC_STATUS_SUCCESS;
         break;

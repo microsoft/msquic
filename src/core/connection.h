@@ -631,6 +631,11 @@ typedef struct QUIC_CONNECTION {
     uint16_t KeepAlivePadding;
 
     //
+    // Indicates that the peer accepts RELIABLE_RESET kind of frames, in addition to RESET_STREAM frames.
+    //
+    uint8_t PeerReliableResetEnabled;
+
+    //
     // Connection blocked timings.
     //
     struct {

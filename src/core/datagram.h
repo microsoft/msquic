@@ -37,12 +37,6 @@ typedef struct QUIC_DATAGRAM {
     // send.
     //
     BOOLEAN SendEnabled : 1;
-
-    //
-    // Indicates that the peer accepts RELIABLE_RESET kind of frames, in addition to RESET_STREAM frames.
-    //
-    BOOLEAN PeerReliableResetEnabled: 1;
-
 } QUIC_DATAGRAM;
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
