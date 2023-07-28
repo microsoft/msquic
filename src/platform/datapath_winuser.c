@@ -242,10 +242,10 @@ typedef struct CXPLAT_SEND_DATA_INTERNAL {
     //
     uint16_t SegmentSize;
 
-    //
-    // The type of ECN markings needed for send.
-    //
-    uint8_t ECN; // CXPLAT_ECN_TYPE
+    // //
+    // // The type of ECN markings needed for send.
+    // //
+    // uint8_t ECN; // CXPLAT_ECN_TYPE
 
     //
     // Set of flags set to configure the send behavior.
@@ -2474,7 +2474,7 @@ CxPlatSocketRelease(
         CXPLAT_DBG_ASSERT(!Socket->Freed);
         CXPLAT_DBG_ASSERT(Socket->Uninitialized);
         Socket->Freed = TRUE;
-        CXPLAT_FREE(Socket, QUIC_POOL_SOCKET);
+        // CXPLAT_FREE(Socket, QUIC_POOL_SOCKET);
     }
 }
 
@@ -2522,7 +2522,7 @@ CxPlatSocketContextRelease(
         }
 
         SocketProc->Freed = TRUE;
-        CxPlatSocketRelease((CXPLAT_SOCKET*)SocketProc->Parent);
+        CxPlatSocketRelease((CXPLAT_SOCKET*)SocketProc->Parent); //
     }
 }
 
@@ -2618,6 +2618,7 @@ MANGLE(CxPlatSocketUpdateQeo)(
     return QUIC_STATUS_NOT_SUPPORTED;
 }
 
+// TODO: remove?
 _IRQL_requires_max_(DISPATCH_LEVEL)
 UINT16
 MANGLE(CxPlatSocketGetLocalMtu)(
@@ -3397,6 +3398,7 @@ CxPlatDataPathUdpRecvComplete(
             Datagram->PartitionIndex = SocketProc->DatapathProc->IdealProcessor;
             Datagram->TypeOfService = (uint8_t)ECN;
             Datagram->Allocated = TRUE;
+            Datagram->BufferFrom = CXPLAT_BUFFER_FROM_USER;
             Datagram->QueuedOnConnection = FALSE;
 
             RecvPayload += MessageLength;

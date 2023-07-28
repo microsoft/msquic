@@ -536,7 +536,7 @@ struct CxPlatSocket {
             CxPlatSocketGetLocalAddress(Socket, &Route.LocalAddress);
             CxPlatSocketGetRemoteAddress(Socket, &Route.RemoteAddress);
 #ifdef QUIC_USE_RAW_DATAPATH
-            if (!QuicAddrIsWildCard(&Route.RemoteAddress)) {
+            if (CxPlatRawDataPathAvailable(Datapath) && QuicAddrIsWildCard(&Route.RemoteAddress)) {
                 //
                 // This is a connected socket and its route must be resolved
                 // to be able to send traffic.

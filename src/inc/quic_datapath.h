@@ -131,7 +131,6 @@ typedef struct CXPLAT_DATAPATH_BASE CXPLAT_DATAPATH_BASE;
 typedef struct CXPLAT_DATAPATH_RAW CXPLAT_DATAPATH_RAW;
 typedef struct CXPLAT_DATAPATH CXPLAT_DATAPATH;
 
-
 //
 // Represents a UDP or TCP abstraction.
 //
@@ -174,6 +173,11 @@ typedef struct CXPLAT_SEND_DATA_INTERNAL CXPLAT_SEND_DATA_INTERNAL;
 
 typedef struct CXPLAT_SEND_DATA {
     CXPLAT_BUFFER_FROM BufferFrom : 2;
+
+    //
+    // The type of ECN markings needed for send.
+    //
+    uint8_t ECN; // CXPLAT_ECN_TYPE
 } CXPLAT_SEND_DATA;
 
 //
@@ -640,6 +644,19 @@ CxPlatSocketDelete(
     _In_ CXPLAT_SOCKET* Socket
     );
 
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+BOOLEAN
+CxPlatRawDataPathAvailable(
+    _In_ CXPLAT_DATAPATH* Datapath
+    );
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+BOOLEAN
+CxPlatRawSocketAvailable(
+    _In_ CXPLAT_SOCKET* Socket
+    );
+
 //
 // Plumbs new or removes existing QUIC encryption offload information.
 //
@@ -963,6 +980,41 @@ CXPLAT_SEND_DATA*
 XDP_CxPlatSendDataAlloc(
     _In_ CXPLAT_SOCKET_RAW* Socket,
     _Inout_ CXPLAT_SEND_CONFIG* Config
+    );
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+void
+XDP_CxPlatSendDataFree(
+    _In_ CXPLAT_SEND_DATA_INTERNAL* SendData
+    );
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+_Success_(return != NULL)
+QUIC_BUFFER*
+XDP_CxPlatSendDataAllocBuffer(
+    _In_ CXPLAT_SEND_DATA_INTERNAL* SendData,
+    _In_ uint16_t MaxBufferLength
+    );
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+void
+XDP_CxPlatSendDataFreeBuffer(
+    _In_ CXPLAT_SEND_DATA_INTERNAL* SendData,
+    _In_ QUIC_BUFFER* Buffer
+    );
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+BOOLEAN
+XDP_CxPlatSendDataIsFull(
+    _In_ CXPLAT_SEND_DATA_INTERNAL* SendData
+    );
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+QUIC_STATUS
+XDP_CxPlatSocketSend(
+    _In_ CXPLAT_SOCKET_RAW* Socket,
+    _In_ const CXPLAT_ROUTE* Route,
+    _In_ CXPLAT_SEND_DATA_INTERNAL* SendData
     );
 
 #if defined(__cplusplus)

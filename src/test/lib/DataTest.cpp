@@ -514,6 +514,7 @@ QuicTestConnectAndPing(
                         Connections.get()[i]->SetLocalAddr(LocalAddr);
                     }
 #endif
+    CxPlatSleep(10000);
                     TEST_QUIC_SUCCEEDED(
                         Connections.get()[i]->Start(
                             ClientConfiguration,

@@ -43,6 +43,24 @@ CxPlatDataPathRecvDataToRecvPacket(
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
+BOOLEAN
+CxPlatRawDataPathAvailable(
+    _In_ CXPLAT_DATAPATH* Datapath
+    )
+{
+    return Datapath->RawDataPath != NULL;
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+BOOLEAN
+CxPlatRawSocketAvailable(
+    _In_ CXPLAT_SOCKET* Socket
+    )
+{
+    return Socket->Datapath && CxPlatRawDataPathAvailable(Socket->Datapath);
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 CxPlatDataPathInitialize(
     _In_ uint32_t ClientRecvContextLength,
@@ -52,12 +70,6 @@ CxPlatDataPathInitialize(
     _Out_ CXPLAT_DATAPATH** NewDataPath
     )
 {
-    // allocate for CXPLAT_DATAPATH as Datapath
-    // call CxPlatDataPathInitialize with Datapath
-    // allocate for CXPLAT_DATAPATH_RAW as RawDatapath
-    // RawDatapath->ParentDatapath = Datapath
-    // call CxPlatInitRawDataPath with RawDatapath
-
     // Init all Datapath
     //
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
@@ -133,7 +145,10 @@ CxPlatDataPathInitialize(
         DataPath,
         RawDataPath);
     if (QUIC_FAILED(Status)) {
-        goto Error;
+        Status = QUIC_STATUS_SUCCESS;
+        CXPLAT_FREE(RawDataPath, QUIC_POOL_DATAPATH);
+        RawDataPath = NULL;
+        // TODO: log
     }
 
     DataPath->RawDataPath = RawDataPath;
@@ -151,15 +166,10 @@ CxPlatDataPathUninitialize(
     _In_ CXPLAT_DATAPATH* Datapath
     )
 {
-    DataPathUserFuncs.CxPlatDataPathUninitialize(Datapath);
     if (Datapath->RawDataPath) {        
         XDP_CxPlatDataPathUninitialize(Datapath->RawDataPath);
     }   
-    
-    // if (Datapath->Xdp) {
-    //     // DataPathXdpFuncs.CxPlatDataPathUninitialize(Datapath->User);
-    // }
-    // CXPLAT_FREE(Datapath, QUIC_POOL_DATAPATH);
+    DataPathUserFuncs.CxPlatDataPathUninitialize(Datapath);
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -173,9 +183,6 @@ CxPlatDataPathUpdateConfig(
     if (Datapath->RawDataPath) {
         XDP_CxPlatDataPathUpdateConfig(Datapath->RawDataPath, Config);
     }
-    // if (Datapath->Xdp) {
-    //     // DataPathXdpFuncs.CxPlatDataPathUpdateConfig(Datapath->Xdp, Config);
-    // }
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -357,6 +364,7 @@ CxPlatSocketCreateUdp(
     // Call CxPlatInitRawSocket with NewSocket as Raw
     BOOLEAN IsServerSocket = Config->RemoteAddress == NULL;
     uint16_t SocketCount = IsServerSocket ? Datapath->ProcCount : 1;
+    // TODO: check Datapath->RawDataPath and shrink allocation size
     uint32_t RawSocketLength = CxPlatGetRawSocketSize() + SocketCount * sizeof(CXPLAT_SOCKET_PROC);
     CXPLAT_SOCKET_RAW* RawSocket = CXPLAT_ALLOC_PAGED(RawSocketLength, QUIC_POOL_SOCKET);
     if (RawSocket == NULL) {
@@ -388,14 +396,14 @@ CxPlatSocketCreateUdp(
         goto Error;
     }
 
-    if (Datapath) {
+    if (Datapath->RawDataPath) {
         Status = CxPlatInitRawSocket(
             Datapath->RawDataPath,
             Config,
             RawSocket);
         if (QUIC_FAILED(Status)) {
-            // just ignore with logging?
-            goto Error;
+            Status = QUIC_STATUS_SUCCESS;
+            // TODO: logging
         }
     }
 
@@ -444,9 +452,12 @@ CxPlatSocketDelete(
     )
 {
     // TODO: bubble up common logic
-    CxPlatRawSocketDelete(CxPlatSocketToRaw(Socket));
+    if (Socket->Datapath && Socket->Datapath->RawDataPath) {
+        CxPlatRawSocketDelete(CxPlatSocketToRaw(Socket));
+    }
+    // TODO: want to free socket here
     DataPathUserFuncs.CxPlatSocketDelete(Socket);
-    // free(Socket);
+    CXPLAT_FREE(CxPlatSocketToRaw(Socket), QUIC_POOL_SOCKET);
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -558,9 +569,9 @@ CxPlatSendDataFree(
     )
 {
     if (SendData->BufferFrom == CXPLAT_BUFFER_FROM_USER) {
-
+        DataPathUserFuncs.CxPlatSendDataFree((CXPLAT_SEND_DATA_INTERNAL*)SendData);
     } else if (SendData->BufferFrom == CXPLAT_BUFFER_FROM_XDP) {
-
+        XDP_CxPlatSendDataFree((CXPLAT_SEND_DATA_INTERNAL*)SendData);
     } else {
         CXPLAT_DBG_ASSERT(FALSE);
     }
@@ -575,9 +586,9 @@ CxPlatSendDataAllocBuffer(
     )
 {
     if (SendData->BufferFrom == CXPLAT_BUFFER_FROM_USER) {
-
+        return DataPathUserFuncs.CxPlatSendDataAllocBuffer((CXPLAT_SEND_DATA_INTERNAL*)SendData, MaxBufferLength);
     } else if (SendData->BufferFrom == CXPLAT_BUFFER_FROM_XDP) {
-
+        return XDP_CxPlatSendDataAllocBuffer((CXPLAT_SEND_DATA_INTERNAL*)SendData, MaxBufferLength);
     } else {
         CXPLAT_DBG_ASSERT(FALSE);
     }
@@ -592,9 +603,9 @@ CxPlatSendDataFreeBuffer(
     )
 {
     if (SendData->BufferFrom == CXPLAT_BUFFER_FROM_USER) {
-
+        DataPathUserFuncs.CxPlatSendDataFreeBuffer((CXPLAT_SEND_DATA_INTERNAL*)SendData, Buffer);
     } else if (SendData->BufferFrom == CXPLAT_BUFFER_FROM_XDP) {
-
+        XDP_CxPlatSendDataFreeBuffer((CXPLAT_SEND_DATA_INTERNAL*)SendData, Buffer);
     } else {
         CXPLAT_DBG_ASSERT(FALSE);
     }
@@ -607,9 +618,9 @@ CxPlatSendDataIsFull(
     )
 {
     if (SendData->BufferFrom == CXPLAT_BUFFER_FROM_USER) {
-
+        return DataPathUserFuncs.CxPlatSendDataIsFull((CXPLAT_SEND_DATA_INTERNAL*)SendData);
     } else if (SendData->BufferFrom == CXPLAT_BUFFER_FROM_XDP) {
-
+        return XDP_CxPlatSendDataIsFull((CXPLAT_SEND_DATA_INTERNAL*)SendData);
     } else {
         CXPLAT_DBG_ASSERT(FALSE);
     }
@@ -625,9 +636,9 @@ CxPlatSocketSend(
     )
 {
     if (SendData->BufferFrom == CXPLAT_BUFFER_FROM_USER) {
-
+        return DataPathUserFuncs.CxPlatSocketSend(Socket, Route, (CXPLAT_SEND_DATA_INTERNAL*)SendData);
     } else if (SendData->BufferFrom == CXPLAT_BUFFER_FROM_XDP) {
-
+        return XDP_CxPlatSocketSend(CxPlatSocketToRaw(Socket), Route, (CXPLAT_SEND_DATA_INTERNAL*)SendData);
     } else {
         CXPLAT_DBG_ASSERT(FALSE);
     }

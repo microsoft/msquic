@@ -85,11 +85,6 @@ typedef struct CXPLAT_INTERFACE {
 typedef struct CXPLAT_SEND_DATA_INTERNAL {
     CXPLAT_SEND_DATA;
 
-    //
-    // The type of ECN markings needed for send.
-    //
-    CXPLAT_ECN_TYPE ECN;
-
     QUIC_BUFFER Buffer;
 
 } CXPLAT_SEND_DATA_INTERNAL;
@@ -272,7 +267,7 @@ typedef struct CXPLAT_SOCKET_RAW {
     CXPLAT_SEND_DATA_INTERNAL* PausedTcpSend; // Paused TCP send data *before* framing
     CXPLAT_SEND_DATA_INTERNAL* CachedRstSend; // Cached TCP RST send data *after* framing
 
-    CXPLAT_SOCKET; // _INTRENAL?
+    CXPLAT_SOCKET;
 } CXPLAT_SOCKET_RAW;
 
 BOOLEAN

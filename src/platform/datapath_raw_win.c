@@ -397,7 +397,7 @@ CxPlatRawSocketDelete(
         CxPlatDpRawTxEnqueue(Socket->CachedRstSend);
     }
 
-    CXPLAT_FREE(Socket, QUIC_POOL_SOCKET);
+    // CXPLAT_FREE(Socket, QUIC_POOL_SOCKET);
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
