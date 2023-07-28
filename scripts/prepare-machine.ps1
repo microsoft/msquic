@@ -222,11 +222,6 @@ function Install-Xdp-Sdk {
     if (!$IsWindows) { return } # Windows only
     $XdpPath = Join-Path $ArtifactsPath "xdp"
     if ($Force) {
-        try {
-            # Make sure an old driver isn't installed.
-            netcfg.exe -u ms_xdp
-            pnputil.exe /delete-driver "$XdpPath\bin\xdp.inf"
-        } catch {}
         rm -Force -Recurse $XdpPath -ErrorAction Ignore | Out-Null
     }
     if (!(Test-Path $XdpPath)) {
@@ -251,7 +246,7 @@ function Install-Xdp-Driver {
     }
 
     Write-Host "Installing XDP driver"
-    netcfg.exe -l "$XdpPath\bin\xdp.inf" -c s -i ms_xdp
+    msiexec.exe /i $XdpPath\bin\xdp-for-windows.msi /quiet | Out-Null
 }
 
 # Completely removes the XDP driver and SDK.
@@ -261,8 +256,7 @@ function Uninstall-Xdp {
     if (!(Test-Path $XdpPath)) { return; }
 
     Write-Host "Uninstalling XDP"
-    try { netcfg.exe -u ms_xdp } catch {}
-    try { pnputil.exe /delete-driver "$XdpPath\bin\xdp.inf" } catch {}
+    try { msiexec.exe /x $XdpPath\bin\xdp-for-windows.msi /quiet | Out-Null } catch {}
     rm -Force -Recurse $XdpPath -ErrorAction Ignore | Out-Null
 }
 

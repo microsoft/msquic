@@ -31,16 +31,15 @@ $ProgressPreference = 'SilentlyContinue'
 $NetworkPath = (irm "https://raw.githubusercontent.com/microsoft/msquic/main/scripts/xdp-devkit.json").path
 $ZipPath = Join-Path $Destination "xdp.zip"
 $XdpPath = Join-Path $Destination "xdp"
-$XdpInstalled = Test-Path "$XdpPath\bin\xdp.inf"
+$InstallId = (Get-CimInstance Win32_Product -Filter "Name = 'XDP for Windows'").IdentifyingNumber
 
 if (!$Uninstall) {
     # Clean up any previous install. Don't delete the old directory as it might
     # contain some other non-XDP files.
-    if ($XdpInstalled) {
+    if ($InstallId) {
         Write-Output "Uninstalling old XDP driver"
         try {
-            netcfg.exe -u ms_xdp
-            pnputil.exe /delete-driver "$XdpPath\bin\xdp.inf"
+            msiexec.exe /x $InstallId /quiet | Out-Null
         } catch { }
     }
 
@@ -60,14 +59,13 @@ if (!$Uninstall) {
 
     # Install the XDP driver.
     Write-Host "Installing XDP driver"
-    netcfg.exe -l "$XdpPath\bin\xdp.inf" -c s -i ms_xdp
+    msiexec.exe /i $XdpPath\bin\xdp-for-windows.msi /quiet | Out-Null
 
-} elseif ($XdpInstalled) {
+} elseif ($InstallId) {
     # Uninstall the XDP driver and delete the folder.
     Write-Output "Uninstalling XDP driver"
     try {
-        netcfg.exe -u ms_xdp
-        pnputil.exe /delete-driver "$XdpPath\bin\xdp.inf"
+        msiexec.exe /x $InstallId /quiet
     } catch { }
     Remove-Item -Path $XdpPath -Recurse -Force
 }
