@@ -175,7 +175,6 @@ typedef struct CXPLAT_ROUTE {
     QUIC_ADDR RemoteAddress;
     QUIC_ADDR LocalAddress;
 
-#ifdef QUIC_USE_RAW_DATAPATH
     uint8_t LocalLinkLayerAddress[6];
     uint8_t NextHopLinkLayerAddress[6];
 
@@ -185,7 +184,6 @@ typedef struct CXPLAT_ROUTE {
 
     CXPLAT_ROUTE_STATE State;
     CXPLAT_RAW_TCP_STATE TcpState;
-#endif // QUIC_USE_RAW_DATAPATH
 
 } CXPLAT_ROUTE;
 
@@ -544,12 +542,12 @@ typedef struct CXPLAT_UDP_CONFIG {
 #ifdef QUIC_OWNING_PROCESS
     QUIC_PROCESS OwningProcess;         // Kernel client-only
 #endif
-#ifdef QUIC_USE_RAW_DATAPATH
+
+    // used for RAW datapath
     uint8_t CibirIdLength;              // CIBIR ID length. Value of 0 indicates CIBIR isn't used
     uint8_t CibirIdOffsetSrc;           // CIBIR ID offset in source CID
     uint8_t CibirIdOffsetDst;           // CIBIR ID offset in destination CID
     uint8_t CibirId[6];                 // CIBIR ID data
-#endif
 } CXPLAT_UDP_CONFIG;
 
 //
@@ -730,18 +728,6 @@ CxPlatSocketSend(
     _In_ CXPLAT_SEND_DATA* SendData
     );
 
-#ifdef QUIC_USE_RAW_DATAPATH
-//
-// Copies L2 address into route object and sets route state to resolved.
-//
-void
-CxPlatResolveRouteComplete(
-    _In_ void* Connection,
-    _Inout_ CXPLAT_ROUTE* Route,
-    _In_reads_bytes_(6) const uint8_t* PhysicalAddress,
-    _In_ uint8_t PathId
-    );
-
 //
 // Function pointer type for datapath route resolution callbacks.
 //
@@ -759,6 +745,32 @@ void
     );
 
 typedef CXPLAT_ROUTE_RESOLUTION_CALLBACK *CXPLAT_ROUTE_RESOLUTION_CALLBACK_HANDLER;
+typedef struct QUIC_CONNECTION QUIC_CONNECTION;
+
+BOOLEAN
+CxPlatIsRouteReady(
+    _In_ QUIC_CONNECTION *Connection,
+    _In_ CXPLAT_ROUTE_RESOLUTION_CALLBACK_HANDLER Callback,
+    _In_ BOOLEAN PathChallenge
+    );
+
+//
+// Copies L2 address into route object and sets route state to resolved.
+//
+void
+CxPlatResolveRouteComplete(
+    _In_ void* Connection,
+    _Inout_ CXPLAT_ROUTE* Route,
+    _In_reads_bytes_(6) const uint8_t* PhysicalAddress,
+    _In_ uint8_t PathId
+    );
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+QuicCopyRouteInfo(
+    _Inout_ CXPLAT_ROUTE* DstRoute,
+    _In_ CXPLAT_ROUTE* SrcRoute
+    );
 
 //
 // Tries to resolve route and neighbor for the given destination address.
@@ -780,7 +792,6 @@ CxPlatUpdateRoute(
     _In_ CXPLAT_ROUTE* SrcRoute
     );
 
-#endif // QUIC_USE_RAW_DATAPATH
 
 #if defined(__cplusplus)
 }

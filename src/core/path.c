@@ -34,12 +34,13 @@ QuicPathInitialize(
     Path->RttVariance = Path->SmoothedRtt / 2;
     Path->EcnValidationState =
         Connection->Settings.EcnEnabled ? ECN_VALIDATION_TESTING : ECN_VALIDATION_FAILED;
-#ifdef QUIC_USE_RAW_DATAPATH
+
+    // for RAW datapath
     if (MsQuicLib.ExecutionConfig &&
         MsQuicLib.ExecutionConfig->Flags & QUIC_EXECUTION_CONFIG_FLAG_QTIP) {
         CxPlatRandom(sizeof(Path->Route.TcpState.SequenceNumber), &Path->Route.TcpState.SequenceNumber);
     }
-#endif
+
     QuicTraceLogConnInfo(
         PathInitialized,
         Connection,
@@ -181,21 +182,6 @@ QuicConnGetPathByID(
         }
     }
     return NULL;
-}
-
-_IRQL_requires_max_(PASSIVE_LEVEL)
-void
-QuicCopyRouteInfo(
-    _Inout_ CXPLAT_ROUTE* DstRoute,
-    _In_ CXPLAT_ROUTE* SrcRoute
-    )
-{
-#ifdef QUIC_USE_RAW_DATAPATH
-    CxPlatCopyMemory(DstRoute, SrcRoute, (uint8_t*)&SrcRoute->State - (uint8_t*)SrcRoute);
-    CxPlatUpdateRoute(DstRoute, SrcRoute);
-#else
-    *DstRoute = *SrcRoute;
-#endif
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)

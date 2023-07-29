@@ -43,6 +43,57 @@ CxPlatGetSocket(
     return Socket;
 }
 
+BOOLEAN
+CxPlatIsRouteReady(
+    _In_ QUIC_CONNECTION *Connection,
+    _In_ CXPLAT_ROUTE_RESOLUTION_CALLBACK_HANDLER Callback,
+    _In_ BOOLEAN PathChallenge
+) {
+    QUIC_PATH* Path = &Connection->Paths[0];
+    //
+    // Make sure the route is resolved before sending packets.
+    //
+    //
+    // We need to set the path challenge flag back on so that when route is resolved,
+    // we know we need to continue to send the challenge.
+    //
+    CXPLAT_DBG_ASSERT((!PathChallenge && Path->IsActive) ||
+                      (PathChallenge && Path->Route.State != RouteSuspected));
+    if ((!PathChallenge && Path->Route.State == RouteUnresolved || Path->Route.State == RouteSuspected) ||
+        (PathChallenge && Path->Route.State == RouteUnresolved)) {
+        QuicConnAddRef(Connection, QUIC_CONN_REF_ROUTE);
+        QUIC_STATUS Status =
+            CxPlatResolveRoute(
+                Path->Binding->Socket, &Path->Route, Path->ID, (void*)Connection, QuicConnQueueRouteCompletion);
+        if (Status == QUIC_STATUS_SUCCESS) {
+            QuicConnRelease(Connection, QUIC_CONN_REF_ROUTE);
+        } else {
+            //
+            // Route resolution failed or pended. We need to pause sending.
+            //
+            CXPLAT_DBG_ASSERT(Status == QUIC_STATUS_PENDING || QUIC_FAILED(Status));
+            return FALSE;
+        }
+    } else if (Path->Route.State == RouteResolving) {
+        //
+        // Can't send now. Once route resolution completes, we will resume sending.
+        //
+        return FALSE;
+    }
+    return TRUE;
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+QuicCopyRouteInfo(
+    _Inout_ CXPLAT_ROUTE* DstRoute,
+    _In_ CXPLAT_ROUTE* SrcRoute
+    )
+{
+    CxPlatCopyMemory(DstRoute, SrcRoute, (uint8_t*)&SrcRoute->State - (uint8_t*)SrcRoute);
+    CxPlatUpdateRoute(DstRoute, SrcRoute);
+}
+
 void
 CxPlatResolveRouteComplete(
     _In_ void* Context,

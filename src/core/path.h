@@ -301,10 +301,3 @@ QuicConnGetPathForDatagram(
     _In_ QUIC_CONNECTION* Connection,
     _In_ const CXPLAT_RECV_DATA* Datagram
     );
-
-_IRQL_requires_max_(PASSIVE_LEVEL)
-void
-QuicCopyRouteInfo(
-    _Inout_ CXPLAT_ROUTE* DstRoute,
-    _In_ CXPLAT_ROUTE* SrcRoute
-    );
