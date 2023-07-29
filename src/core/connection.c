@@ -137,6 +137,7 @@ QuicConnAlloc(
     QuicRangeInitialize(
         QUIC_MAX_RANGE_DECODE_ACKS,
         &Connection->DecodedAckRanges);
+    CxPlatSetDataPathType(&Connection->IsRawDatapath);
 
     for (uint32_t i = 0; i < ARRAYSIZE(Connection->Packets); i++) {
         Status =

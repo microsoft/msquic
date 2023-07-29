@@ -747,13 +747,6 @@ void
 typedef CXPLAT_ROUTE_RESOLUTION_CALLBACK *CXPLAT_ROUTE_RESOLUTION_CALLBACK_HANDLER;
 typedef struct QUIC_CONNECTION QUIC_CONNECTION;
 
-BOOLEAN
-CxPlatIsRouteReady(
-    _In_ QUIC_CONNECTION *Connection,
-    _In_ CXPLAT_ROUTE_RESOLUTION_CALLBACK_HANDLER Callback,
-    _In_ BOOLEAN PathChallenge
-    );
-
 //
 // Copies L2 address into route object and sets route state to resolved.
 //
@@ -792,6 +785,10 @@ CxPlatUpdateRoute(
     _In_ CXPLAT_ROUTE* SrcRoute
     );
 
+void
+CxPlatSetDataPathType(
+    _Out_ BOOLEAN* IsRaw
+    );
 
 #if defined(__cplusplus)
 }

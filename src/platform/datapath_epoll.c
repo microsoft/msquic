@@ -2633,18 +2633,6 @@ QuicCopyRouteInfo(
     *DstRoute = *SrcRoute;
 }
 
-BOOLEAN
-CxPlatIsRouteReady(
-    _In_ QUIC_CONNECTION *Connection,
-    _In_ CXPLAT_ROUTE_RESOLUTION_CALLBACK_HANDLER Callback,
-    _In_ BOOLEAN PathChallenge
-) {
-    UNREFERENCED_PARAMETER(Connection);
-    UNREFERENCED_PARAMETER(Callback);
-    UNREFERENCED_PARAMETER(PathChallenge);
-    return TRUE;
-}
-
 void
 CxPlatResolveRouteComplete(
     _In_ void* Context,
@@ -2686,4 +2674,12 @@ CxPlatUpdateRoute(
 {
     UNREFERENCED_PARAMETER(DstRoute);
     UNREFERENCED_PARAMETER(SrcRoute);
+}
+
+void
+CxPlatSetDataPathType(
+    _Out_ BOOLEAN* IsRaw
+    )
+{
+    *IsRaw = FALSE;
 }
