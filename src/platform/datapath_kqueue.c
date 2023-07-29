@@ -2371,10 +2371,8 @@ CxPlatUpdateRoute(
     UNREFERENCED_PARAMETER(SrcRoute);
 }
 
-void
-CxPlatSetDataPathType(
-    _Out_ BOOLEAN* IsRaw
-    )
+BOOLEAN
+CxPlatIsRawDatapath()
 {
-    *IsRaw = FALSE;
+    return FALSE;
 }

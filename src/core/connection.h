@@ -641,11 +641,6 @@ typedef struct QUIC_CONNECTION {
         QUIC_FLOW_BLOCKED_TIMING_TRACKER FlowControl;
     } BlockedTimings;
 
-    //
-    // flag whether the datapath is raw or not
-    //
-    BOOLEAN IsRawDatapath;
-
 } QUIC_CONNECTION;
 
 typedef struct QUIC_SERIALIZED_RESUMPTION_STATE {

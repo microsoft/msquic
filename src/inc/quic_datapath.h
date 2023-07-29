@@ -785,10 +785,8 @@ CxPlatUpdateRoute(
     _In_ CXPLAT_ROUTE* SrcRoute
     );
 
-void
-CxPlatSetDataPathType(
-    _Out_ BOOLEAN* IsRaw
-    );
+BOOLEAN
+CxPlatIsRawDatapath();
 
 #if defined(__cplusplus)
 }
