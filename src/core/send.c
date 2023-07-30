@@ -1033,7 +1033,7 @@ CxPlatIsRouteReady(
     //
     CXPLAT_DBG_ASSERT((!PathChallenge && Path->IsActive) ||
                       (PathChallenge && Path->Route.State != RouteSuspected));
-    if ((!PathChallenge && Path->Route.State == RouteUnresolved || Path->Route.State == RouteSuspected) ||
+    if ((!PathChallenge && (Path->Route.State == RouteUnresolved || Path->Route.State == RouteSuspected)) ||
         (PathChallenge && Path->Route.State == RouteUnresolved)) {
         QuicConnAddRef(Connection, QUIC_CONN_REF_ROUTE);
         QUIC_STATUS Status =

@@ -13,9 +13,7 @@
 bool TestingKernelMode = false;
 bool PrivateTestLibrary = false;
 bool UseDuoNic = false;
-#if defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
 bool UseQTIP = false;
-#endif
 const MsQuicApi* MsQuic;
 const char* OsRunner = nullptr;
 uint32_t Timeout = UINT32_MAX;
