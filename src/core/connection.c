@@ -6602,7 +6602,7 @@ QuicConnParamSet(
         return QUIC_STATUS_SUCCESS;
     }
 
-    case QUIC_PARAM_CONN_THIS_RELIABLE_RESET_ENABLED:
+    case QUIC_PARAM_CONN_RELIABLE_RESET_ENABLED:
 
         if (BufferLength != sizeof(BOOLEAN)) {
             Status = QUIC_STATUS_INVALID_PARAMETER;
@@ -6614,7 +6614,7 @@ QuicConnParamSet(
             break;
         }
 
-        Connection->Settings.ReliableResetEnabled = *(BOOLEAN*)Buffer;
+        Connection->Settings.ReliableResetEnabled = *(BOOLEAN*)Buffer && Connection->ReliableResetStreamNegotiated;
         Connection->Settings.IsSet.ReliableResetEnabled = TRUE;
         Status = QUIC_STATUS_SUCCESS;
 
@@ -7230,7 +7230,7 @@ QuicConnParamGet(
         Status = QUIC_STATUS_SUCCESS;
         break;
 
-    case QUIC_PARAM_CONN_THIS_RELIABLE_RESET_ENABLED:
+    case QUIC_PARAM_CONN_RELIABLE_RESET_ENABLED:
 
         if (*BufferLength < sizeof(BOOLEAN)) {
             *BufferLength = sizeof(BOOLEAN);
@@ -7244,30 +7244,11 @@ QuicConnParamGet(
         }
 
         *BufferLength = sizeof(BOOLEAN);
-        *(BOOLEAN*)Buffer = Connection->Settings.ThisReliableResetFrameEnabled;
+        *(BOOLEAN*)Buffer = Connection->Settings.ReliableResetEnabled;
 
         Status = QUIC_STATUS_SUCCESS;
         break;
-
-    case QUIC_PARAM_CONN_PEER_RELIABLE_RESET_ENABLED:
-
-        if (*BufferLength < sizeof(BOOLEAN)) {
-            *BufferLength = sizeof(BOOLEAN);
-            Status = QUIC_STATUS_BUFFER_TOO_SMALL;
-            break;
-        }
-
-        if (Buffer == NULL) {
-            Status = QUIC_STATUS_INVALID_PARAMETER;
-            break;
-        }
-
-        *BufferLength = sizeof(BOOLEAN);
-        *(BOOLEAN*)Buffer = Connection->PeerReliableResetEnabled;
-
-        Status = QUIC_STATUS_SUCCESS;
-        break;
-
+    
     default:
         Status = QUIC_STATUS_INVALID_PARAMETER;
         break;

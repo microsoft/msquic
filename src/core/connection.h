@@ -633,7 +633,7 @@ typedef struct QUIC_CONNECTION {
     //
     // Indicates that the peer accepts RELIABLE_RESET kind of frames, in addition to RESET_STREAM frames.
     //
-    uint8_t PeerReliableResetEnabled;
+    uint8_t ReliableResetStreamNegotiated;
 
     //
     // Connection blocked timings.

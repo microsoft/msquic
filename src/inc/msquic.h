@@ -669,9 +669,10 @@ typedef struct QUIC_SETTINGS {
             uint64_t HyStartEnabled                         : 1;
 #ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
             uint64_t EncryptionOffloadAllowed               : 1;
-            uint64_t RESERVED                               : 28;
+            uint64_t ReliableResetEnabled                   : 1;
+            uint64_t RESERVED                               : 27;
 #else
-            uint64_t RESERVED                               : 29;
+            uint64_t RESERVED                               : 28;
 #endif
         } IsSet;
     };
@@ -716,9 +717,10 @@ typedef struct QUIC_SETTINGS {
             uint64_t HyStartEnabled            : 1;
 #ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
             uint64_t EncryptionOffloadAllowed  : 1;
-            uint64_t ReservedFlags             : 62;
+            uint8_t ReliableResetEnabled       : 1;
+            uint64_t ReservedFlags             : 61;
 #else
-            uint64_t ReservedFlags             : 63;
+            uint64_t ReservedFlags             : 62;
 #endif
         };
     };
