@@ -1081,7 +1081,7 @@ QuicSendPathChallenges(
             continue;
         }
 
-        if (Connection->IsRawDatapath && !CxPlatIsRouteReady(Connection, TRUE)) {
+        if (CxPlatIsRawDatapath() && !CxPlatIsRouteReady(Connection, TRUE)) {
             Send->SendFlags |= QUIC_CONN_SEND_FLAG_PATH_CHALLENGE;
             continue;
         }
@@ -1171,7 +1171,7 @@ QuicSendFlush(
 
     CXPLAT_DBG_ASSERT(!Connection->State.HandleClosed);
 
-    if (Connection->IsRawDatapath && !CxPlatIsRouteReady(Connection, FALSE)) {
+    if (CxPlatIsRawDatapath() && !CxPlatIsRouteReady(Connection, FALSE)) {
         return TRUE;
     }
 
