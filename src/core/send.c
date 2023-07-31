@@ -1027,6 +1027,10 @@ CxPlatIsRouteReady(
     //
     // Make sure the route is resolved before sending packets.
     //
+    if (Path->Route.State == RouteResolved) {
+        return TRUE;
+    }
+
     //
     // We need to set the path challenge flag back on so that when route is resolved,
     // we know we need to continue to send the challenge.
@@ -1081,7 +1085,7 @@ QuicSendPathChallenges(
             continue;
         }
 
-        if (CxPlatIsRawDatapath() && !CxPlatIsRouteReady(Connection, TRUE)) {
+        if (!CxPlatIsRouteReady(Connection, TRUE)) {
             Send->SendFlags |= QUIC_CONN_SEND_FLAG_PATH_CHALLENGE;
             continue;
         }
@@ -1171,7 +1175,7 @@ QuicSendFlush(
 
     CXPLAT_DBG_ASSERT(!Connection->State.HandleClosed);
 
-    if (CxPlatIsRawDatapath() && !CxPlatIsRouteReady(Connection, FALSE)) {
+    if (!CxPlatIsRouteReady(Connection, FALSE)) {
         return TRUE;
     }
 

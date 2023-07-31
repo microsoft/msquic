@@ -18,7 +18,6 @@ typedef struct CXPLAT_SOCKET_POOL {
 } CXPLAT_SOCKET_POOL;
 
 typedef struct CXPLAT_DATAPATH CXPLAT_DATAPATH;
-typedef struct QUIC_PATH QUIC_PATH;
 
 //
 // A worker thread for draining queued route resolution operations.

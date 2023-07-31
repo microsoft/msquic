@@ -2658,11 +2658,11 @@ CxPlatResolveRoute(
     )
 {
     UNREFERENCED_PARAMETER(Socket);
-    UNREFERENCED_PARAMETER(Route);
     UNREFERENCED_PARAMETER(PathId);
     UNREFERENCED_PARAMETER(Context);
     UNREFERENCED_PARAMETER(Callback);
-    return QUIC_STATUS_NOT_SUPPORTED;
+    Route->State = RouteResolved;
+    return QUIC_STATUS_SUCCESS;
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
