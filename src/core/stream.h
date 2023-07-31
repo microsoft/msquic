@@ -198,7 +198,7 @@ typedef enum QUIC_STREAM_REF {
 //
 typedef struct QUIC_STREAM {
 
-    struct QUIC_HANDLE;
+    struct QUIC_HANDLE Self;
 
     //
     // Number of references to the handle.

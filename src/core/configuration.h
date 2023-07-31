@@ -10,7 +10,7 @@
 //
 typedef struct QUIC_CONFIGURATION {
 
-    struct QUIC_HANDLE;
+    struct QUIC_HANDLE Self;
 
     //
     // Parent registration.

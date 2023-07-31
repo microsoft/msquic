@@ -10,7 +10,7 @@
 //
 typedef struct QUIC_LISTENER {
 
-    struct QUIC_HANDLE;
+    struct QUIC_HANDLE Self;
 
     //
     // Indicates the listener is listening on a wildcard address (v4/v6/both).
