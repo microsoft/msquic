@@ -567,6 +567,10 @@ Error:
     if (SendSocket != INVALID_SOCKET) { close(SendSocket); }
 #endif // UDP_SEGMENT
 
+#if defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
+    Datapath->Features |= CXPLAT_DATAPATH_FEATURE_TCP;
+#endif
+
     if (Datapath->Features & CXPLAT_DATAPATH_FEATURE_SEND_SEGMENTATION) {
         Datapath->SendDataSize = sizeof(CXPLAT_SEND_DATA);
         Datapath->SendIoVecCount = 1;
@@ -2674,10 +2678,4 @@ CxPlatUpdateRoute(
 {
     UNREFERENCED_PARAMETER(DstRoute);
     UNREFERENCED_PARAMETER(SrcRoute);
-}
-
-BOOLEAN
-CxPlatIsRawDatapath()
-{
-    return FALSE;
 }

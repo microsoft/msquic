@@ -2462,6 +2462,53 @@ void QuicTestGlobalParam()
         }
     }
 
+    //
+    // QUIC_PARAM_GLOBAL_DATAPATH_FEATURES
+    //
+    {
+        TestScopeLogger LogScope0("QUIC_PARAM_GLOBAL_DATAPATH_FEATURES");
+        GlobalSettingScope ParamScope(QUIC_PARAM_GLOBAL_DATAPATH_FEATURES);
+        {
+            TestScopeLogger LogScope1("SetParam");
+            //
+            // Invalid features
+            //
+            {
+                TestScopeLogger LogScope2("SetParam is not allowed");
+                TEST_QUIC_STATUS(
+                    QUIC_STATUS_INVALID_PARAMETER,
+                    MsQuic->SetParam(
+                        nullptr,
+                        QUIC_PARAM_GLOBAL_DATAPATH_FEATURES,
+                        0,
+                        nullptr));
+            }
+        }
+
+        {
+            TestScopeLogger LogScope2("GetParam");
+            uint32_t Length = 0;
+            TEST_QUIC_STATUS(
+                QUIC_STATUS_BUFFER_TOO_SMALL,
+                MsQuic->GetParam(
+                    nullptr,
+                    QUIC_PARAM_GLOBAL_DATAPATH_FEATURES,
+                    &Length,
+                    nullptr));
+            TEST_EQUAL(Length, sizeof(uint32_t));
+
+            uint32_t ActualFeatures = 0;
+            TEST_QUIC_SUCCEEDED(
+                MsQuic->GetParam(
+                    nullptr,
+                    QUIC_PARAM_GLOBAL_DATAPATH_FEATURES,
+                    &Length,
+                    &ActualFeatures));
+            TEST_NOT_EQUAL(ActualFeatures, 0);
+        }
+
+    }
+
 #ifndef _KERNEL_MODE
 #ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
     //
@@ -2516,18 +2563,16 @@ void QuicTestGlobalParam()
             SimpleGetParamTest(nullptr, QUIC_PARAM_GLOBAL_EXECUTION_CONFIG, DataLength, Data);
         }
 
-        if (CxPlatIsRawDatapath() && !UseQTIP) {
-            //
-            // Good GetParam with length == 0 when QTIP is not in use.
-            //
-            uint32_t BufferLength = 0;
-            TEST_QUIC_SUCCEEDED(
-                MsQuic->GetParam(
-                    nullptr,
-                    QUIC_PARAM_GLOBAL_EXECUTION_CONFIG,
-                    &BufferLength,
-                    nullptr));
-        } else {
+        uint32_t Length = sizeof(uint32_t);
+        uint32_t Features = 0;
+        TEST_QUIC_SUCCEEDED(
+            MsQuic->GetParam(
+                nullptr,
+                QUIC_PARAM_GLOBAL_DATAPATH_FEATURES,
+                &Length,
+                &Features));
+        if (!(Features & CXPLAT_DATAPATH_FEATURE_RAW_SOCKET) ||
+            (!!(Features & CXPLAT_DATAPATH_FEATURE_RAW_SOCKET) && !UseQTIP)) {
             //
             // Good GetParam with length == 0
             //

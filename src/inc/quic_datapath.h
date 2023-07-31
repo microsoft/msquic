@@ -444,6 +444,8 @@ CxPlatDataPathUpdateConfig(
 #define CXPLAT_DATAPATH_FEATURE_SEND_SEGMENTATION     0x0004
 #define CXPLAT_DATAPATH_FEATURE_LOCAL_PORT_SHARING    0x0008
 #define CXPLAT_DATAPATH_FEATURE_PORT_RESERVATIONS     0x0010
+#define CXPLAT_DATAPATH_FEATURE_TCP                   0x0020
+#define CXPLAT_DATAPATH_FEATURE_RAW_SOCKET            0x0040
 
 //
 // Queries the currently supported features of the datapath.
@@ -784,9 +786,6 @@ CxPlatUpdateRoute(
     _Inout_ CXPLAT_ROUTE* DstRoute,
     _In_ CXPLAT_ROUTE* SrcRoute
     );
-
-BOOLEAN
-CxPlatIsRawDatapath();
 
 #if defined(__cplusplus)
 }

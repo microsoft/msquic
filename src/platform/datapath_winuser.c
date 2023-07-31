@@ -1138,6 +1138,10 @@ CxPlatDataPathQuerySockoptSupport(
     } else {
         Datapath->Features |= CXPLAT_DATAPATH_FEATURE_RECV_COALESCING;
     }
+
+#if defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
+    Datapath->Features |= CXPLAT_DATAPATH_FEATURE_TCP;
+#endif
 }
 
 Error:
@@ -5190,10 +5194,4 @@ CxPlatUpdateRoute(
 {
     UNREFERENCED_PARAMETER(DstRoute);
     UNREFERENCED_PARAMETER(SrcRoute);
-}
-
-BOOLEAN
-CxPlatIsRawDatapath()
-{
-    return FALSE;
 }

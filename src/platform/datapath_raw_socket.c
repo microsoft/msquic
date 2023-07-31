@@ -804,9 +804,3 @@ CxPlatFramingWriteHeaders(
     Buffer->Length += TransportLength + IpHeaderLen + sizeof(ETHERNET_HEADER);
     Buffer->Buffer -= TransportLength + IpHeaderLen + sizeof(ETHERNET_HEADER);
 }
-
-BOOLEAN
-CxPlatIsRawDatapath()
-{
-    return TRUE;
-}

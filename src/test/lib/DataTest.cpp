@@ -503,30 +503,20 @@ QuicTestConnectAndPing(
                     }
                     TEST_QUIC_SUCCEEDED(Connections.get()[i]->SetRemoteAddr(RemoteAddr));
 
-#if defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
                     if (!UseQTIP && i != 0) {
                         Connections.get()[i]->SetLocalAddr(LocalAddr);
                     }
-#else
-                    if (i != 0) {
-                        Connections.get()[i]->SetLocalAddr(LocalAddr);
-                    }
-#endif
+
                     TEST_QUIC_SUCCEEDED(
                         Connections.get()[i]->Start(
                             ClientConfiguration,
                             QuicAddrFamily,
                             ClientZeroRtt ? QUIC_LOCALHOST_FOR_AF(QuicAddrFamily) : nullptr,
                             ServerLocalAddr.GetPort()));
-#if defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
+
                     if (!UseQTIP && i == 0) {
                         Connections.get()[i]->GetLocalAddr(LocalAddr);
                     }
-#else
-                    if (i == 0) {
-                        Connections.get()[i]->GetLocalAddr(LocalAddr);
-                    }
-#endif
                 }
             }
         }

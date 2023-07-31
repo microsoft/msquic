@@ -2370,9 +2370,3 @@ CxPlatUpdateRoute(
     UNREFERENCED_PARAMETER(DstRoute);
     UNREFERENCED_PARAMETER(SrcRoute);
 }
-
-BOOLEAN
-CxPlatIsRawDatapath()
-{
-    return FALSE;
-}

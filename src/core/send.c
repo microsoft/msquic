@@ -1020,8 +1020,7 @@ QuicSendGetNextStream(
 
 BOOLEAN
 CxPlatIsRouteReady(
-    _In_ QUIC_CONNECTION *Connection,
-    _In_ BOOLEAN PathChallenge
+    _In_ QUIC_CONNECTION *Connection
 ) {
     QUIC_PATH* Path = &Connection->Paths[0];
     //
@@ -1035,10 +1034,8 @@ CxPlatIsRouteReady(
     // We need to set the path challenge flag back on so that when route is resolved,
     // we know we need to continue to send the challenge.
     //
-    CXPLAT_DBG_ASSERT((!PathChallenge && Path->IsActive) ||
-                      (PathChallenge && Path->Route.State != RouteSuspected));
-    if ((!PathChallenge && (Path->Route.State == RouteUnresolved || Path->Route.State == RouteSuspected)) ||
-        (PathChallenge && Path->Route.State == RouteUnresolved)) {
+    CXPLAT_DBG_ASSERT(Path->IsActive);
+    if (Path->Route.State == RouteUnresolved) {
         QuicConnAddRef(Connection, QUIC_CONN_REF_ROUTE);
         QUIC_STATUS Status =
             CxPlatResolveRoute(
@@ -1085,7 +1082,7 @@ QuicSendPathChallenges(
             continue;
         }
 
-        if (!CxPlatIsRouteReady(Connection, TRUE)) {
+        if (!CxPlatIsRouteReady(Connection)) {
             Send->SendFlags |= QUIC_CONN_SEND_FLAG_PATH_CHALLENGE;
             continue;
         }
@@ -1175,7 +1172,7 @@ QuicSendFlush(
 
     CXPLAT_DBG_ASSERT(!Connection->State.HandleClosed);
 
-    if (!CxPlatIsRouteReady(Connection, FALSE)) {
+    if (!CxPlatIsRouteReady(Connection)) {
         return TRUE;
     }
 
