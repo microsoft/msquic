@@ -21,9 +21,7 @@
 #endif
 
 extern bool TestingKernelMode;
-#if defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
 extern bool UseQTIP;
-#endif
 
 class WithBool : public testing::Test,
     public testing::WithParamInterface<bool> {
@@ -698,12 +696,12 @@ struct ValidateConnectionEventArgs {
     uint32_t Test;
     static ::std::vector<ValidateConnectionEventArgs> Generate() {
         ::std::vector<ValidateConnectionEventArgs> list;
+        uint32_t TestCount = 3;
+
 #if !defined(QUIC_DISABLE_0RTT_TESTS) // TODO: Fix openssl/XDP bug and enable this back
-        for (uint32_t Test = 0; Test < 3; ++Test)
-#else
-        uint32_t TestCount = 3 - static_cast<uint32_t>(CxPlatIsRawDatapath());
-        for (uint32_t Test = 0; Test < TestCount; ++Test)
+        TestCount = CxPlatIsRawDatapath() ? 2 : 3;
 #endif
+        for (uint32_t Test = 0; Test < TestCount; ++Test)
             list.push_back({ Test });
         return list;
     }
