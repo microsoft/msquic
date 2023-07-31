@@ -796,10 +796,6 @@ CxPlatDataPathQuerySockoptSupport(
 
     } while (FALSE);
 
-#if defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
-    Datapath->Features |= CXPLAT_DATAPATH_FEATURE_TCP;
-#endif
-
 Error:
 
     if (UdpSocket != NULL) {
