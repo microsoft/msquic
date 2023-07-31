@@ -312,7 +312,11 @@ typedef struct QUIC_CONN_STATS {
 //
 typedef struct QUIC_CONNECTION {
 
-    struct QUIC_HANDLE Self;
+#ifdef __cplusplus
+    struct QUIC_HANDLE _;
+#else
+    struct QUIC_HANDLE;
+#endif
 
     //
     // Link into the registrations's list of connections.
