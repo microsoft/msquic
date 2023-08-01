@@ -16,7 +16,7 @@ Abstract:
 
 #pragma warning(disable:6387)  // '_Param_(1)' could be '0':  this does not adhere to the specification for the function
 
-#if defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
+#if !defined(_KERNEL_MODE) && defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
 extern bool UseQTIP;
 #endif
 
