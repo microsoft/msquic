@@ -1043,6 +1043,7 @@ CxPlatIsRouteReady(
                 Path->Binding->Socket, &Path->Route, Path->ID, (void*)Connection, QuicConnQueueRouteCompletion);
         if (Status == QUIC_STATUS_SUCCESS) {
             QuicConnRelease(Connection, QUIC_CONN_REF_ROUTE);
+            return TRUE;
         } else {
             //
             // Route resolution failed or pended. We need to pause sending.
@@ -1050,13 +1051,12 @@ CxPlatIsRouteReady(
             CXPLAT_DBG_ASSERT(Status == QUIC_STATUS_PENDING || QUIC_FAILED(Status));
             return FALSE;
         }
-    } else if (Path->Route.State == RouteResolving) {
-        //
-        // Can't send now. Once route resolution completes, we will resume sending.
-        //
-        return FALSE;
     }
-    return TRUE;
+    //
+    // Path->Route.State == RouteResolving
+    // Can't send now. Once route resolution completes, we will resume sending.
+    //
+    return FALSE;
 }
 
 //
