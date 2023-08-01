@@ -14,7 +14,9 @@ Abstract:
 #include "DataTest.cpp.clog.h"
 #endif
 
+#if defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
 extern bool UseQTIP;
+#endif
 
 /*
     Helper function to estimate a maximum timeout for a test with a

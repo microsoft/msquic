@@ -718,7 +718,7 @@ struct ValidateConnectionEventArgs {
         uint32_t TestCount = 3;
 
 #if !defined(QUIC_DISABLE_0RTT_TESTS) // TODO: Fix openssl/XDP bug and enable this back
-        TestCount = QuitTestIsFeatureSupported(CXPLAT_DATAPATH_FEATURE_RAW) ? 2 : 3;
+        TestCount = QuitTestIsFeatureSupported(CXPLAT_DATAPATH_FEATURE_RAW) ? 3 : 2;
 #endif
         for (uint32_t Test = 0; Test < TestCount; ++Test)
             list.push_back({ Test });

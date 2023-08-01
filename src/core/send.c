@@ -1021,7 +1021,8 @@ QuicSendGetNextStream(
 BOOLEAN
 CxPlatIsRouteReady(
     _In_ QUIC_CONNECTION *Connection
-) {
+    )
+{
     QUIC_PATH* Path = &Connection->Paths[0];
     //
     // Make sure the route is resolved before sending packets.
