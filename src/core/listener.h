@@ -10,7 +10,11 @@
 //
 typedef struct QUIC_LISTENER {
 
+#ifdef __cplusplus
+    struct QUIC_HANDLE _;
+#else
     struct QUIC_HANDLE;
+#endif
 
     //
     // Indicates the listener is listening on a wildcard address (v4/v6/both).

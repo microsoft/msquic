@@ -26,7 +26,11 @@ typedef enum QUIC_CONNECTION_ACCEPT_RESULT {
 //
 typedef struct QUIC_REGISTRATION {
 
+#ifdef __cplusplus
+    struct QUIC_HANDLE _;
+#else
     struct QUIC_HANDLE;
+#endif
 
 #ifdef CxPlatVerifierEnabledByAddr
     //
