@@ -1018,6 +1018,47 @@ QuicSendGetNextStream(
     return NULL;
 }
 
+BOOLEAN
+CxPlatIsRouteReady(
+    _In_ QUIC_CONNECTION *Connection
+    )
+{
+    QUIC_PATH* Path = &Connection->Paths[0];
+    //
+    // Make sure the route is resolved before sending packets.
+    //
+    if (Path->Route.State == RouteResolved) {
+        return TRUE;
+    }
+
+    //
+    // We need to set the path challenge flag back on so that when route is resolved,
+    // we know we need to continue to send the challenge.
+    //
+    CXPLAT_DBG_ASSERT(Path->IsActive);
+    if (Path->Route.State == RouteUnresolved || Path->Route.State == RouteSuspected) {
+        QuicConnAddRef(Connection, QUIC_CONN_REF_ROUTE);
+        QUIC_STATUS Status =
+            CxPlatResolveRoute(
+                Path->Binding->Socket, &Path->Route, Path->ID, (void*)Connection, QuicConnQueueRouteCompletion);
+        if (Status == QUIC_STATUS_SUCCESS) {
+            QuicConnRelease(Connection, QUIC_CONN_REF_ROUTE);
+            return TRUE;
+        } else {
+            //
+            // Route resolution failed or pended. We need to pause sending.
+            //
+            CXPLAT_DBG_ASSERT(Status == QUIC_STATUS_PENDING || QUIC_FAILED(Status));
+            return FALSE;
+        }
+    }
+    //
+    // Path->Route.State == RouteResolving
+    // Can't send now. Once route resolution completes, we will resume sending.
+    //
+    return FALSE;
+}
+
 //
 // This function sends a path challenge frame out on all paths that currently
 // need one sent.
@@ -1042,44 +1083,10 @@ QuicSendPathChallenges(
             continue;
         }
 
-#ifdef QUIC_USE_RAW_DATAPATH
-        //
-        // Make sure the route is resolved before sending the path challenge.
-        //
-        // We need to set the path challenge flag back on so that when route is resolved,
-        // we know we need to continue to send the challenge.
-        //
-        // if raw datapath is available and the route is not loopback
-        if (CxPlatRawSocketAvailable(Path->Binding->Socket) &&
-            !((Path->Route.RemoteAddress.si_family == QUIC_ADDRESS_FAMILY_INET &&
-               Path->Route.RemoteAddress.Ipv4.sin_addr.S_un.S_addr == htonl(INADDR_LOOPBACK)) ||
-              (Path->Route.RemoteAddress.si_family == QUIC_ADDRESS_FAMILY_INET6 &&
-               IN6_IS_ADDR_LOOPBACK(&Path->Route.RemoteAddress.Ipv6.sin6_addr)))) {
-            CXPLAT_DBG_ASSERT(Path->Route.State != RouteSuspected);
-            if (Path->Route.State == RouteUnresolved) {
-                QuicConnAddRef(Connection, QUIC_CONN_REF_ROUTE);
-                QUIC_STATUS Status =
-                    CxPlatResolveRoute(
-                        Path->Binding->Socket, &Path->Route, Path->ID, (void*)Connection, QuicConnQueueRouteCompletion);
-                if (Status == QUIC_STATUS_SUCCESS) {
-                    QuicConnRelease(Connection, QUIC_CONN_REF_ROUTE);
-                } else {
-                    //
-                    // Route resolution failed or pended. We need to pause sending.
-                    //
-                    CXPLAT_DBG_ASSERT(Status == QUIC_STATUS_PENDING || QUIC_FAILED(Status));
-                    Send->SendFlags |= QUIC_CONN_SEND_FLAG_PATH_CHALLENGE;
-                    continue;
-                }
-            } else if (Path->Route.State == RouteResolving) {
-                //
-                // Can't send now. Once route resolution completes, we will resume sending.
-                //
-                Send->SendFlags |= QUIC_CONN_SEND_FLAG_PATH_CHALLENGE;
-                continue;
-            }
+        if (!CxPlatIsRouteReady(Connection)) {
+            Send->SendFlags |= QUIC_CONN_SEND_FLAG_PATH_CHALLENGE;
+            continue;
         }
-#endif
 
         QUIC_PACKET_BUILDER Builder = { 0 };
         if (!QuicPacketBuilderInitialize(&Builder, Connection, Path)) {
@@ -1166,38 +1173,9 @@ QuicSendFlush(
 
     CXPLAT_DBG_ASSERT(!Connection->State.HandleClosed);
 
-#ifdef QUIC_USE_RAW_DATAPATH
-    //
-    // Make sure the route is resolved before sending packets.
-    //
-    if (CxPlatRawSocketAvailable(Path->Binding->Socket) && 
-        !((Path->Route.RemoteAddress.si_family == QUIC_ADDRESS_FAMILY_INET &&
-           Path->Route.RemoteAddress.Ipv4.sin_addr.S_un.S_addr == htonl(INADDR_LOOPBACK)) ||
-          (Path->Route.RemoteAddress.si_family == QUIC_ADDRESS_FAMILY_INET6 &&
-           IN6_IS_ADDR_LOOPBACK(&Path->Route.RemoteAddress.Ipv6.sin6_addr)))) {
-        CXPLAT_DBG_ASSERT(Path->IsActive);
-        if (Path->Route.State == RouteUnresolved || Path->Route.State == RouteSuspected) {
-            QuicConnAddRef(Connection, QUIC_CONN_REF_ROUTE);
-            QUIC_STATUS Status =
-                CxPlatResolveRoute(
-                    Path->Binding->Socket, &Path->Route, Path->ID, (void*)Connection, QuicConnQueueRouteCompletion);
-            if (Status == QUIC_STATUS_SUCCESS) {
-                QuicConnRelease(Connection, QUIC_CONN_REF_ROUTE);
-            } else {
-                //
-                // Route resolution failed or pended. We need to pause sending.
-                //
-                CXPLAT_DBG_ASSERT(Status == QUIC_STATUS_PENDING || QUIC_FAILED(Status));
-                return TRUE;
-            }
-        } else if (Path->Route.State == RouteResolving) {
-            //
-            // Can't send now. Once route resolution completes, we will resume sending.
-            //
-            return TRUE;
-        }
+    if (!CxPlatIsRouteReady(Connection)) {
+        return TRUE;
     }
-#endif
 
     QuicConnTimerCancel(Connection, QUIC_CONN_TIMER_PACING);
     QuicConnRemoveOutFlowBlockedReason(

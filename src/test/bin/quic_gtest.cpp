@@ -13,7 +13,7 @@
 bool TestingKernelMode = false;
 bool PrivateTestLibrary = false;
 bool UseDuoNic = false;
-#if defined(QUIC_USE_RAW_DATAPATH) && defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
+#if defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
 bool UseQTIP = false;
 #endif
 const MsQuicApi* MsQuic;
@@ -81,9 +81,9 @@ public:
             printf("Initializing for User Mode tests\n");
             MsQuic = new(std::nothrow) MsQuicApi();
             ASSERT_TRUE(QUIC_SUCCEEDED(MsQuic->GetInitStatus()));
-#if defined(QUIC_USE_RAW_DATAPATH) && defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
-            if (UseQTIP) {
-                QUIC_EXECUTION_CONFIG Config = {QUIC_EXECUTION_CONFIG_FLAG_QTIP, 10000, 0};
+#if defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
+            if (QuitTestIsFeatureSupported(CXPLAT_DATAPATH_FEATURE_RAW) && UseQTIP) {
+                QUIC_EXECUTION_CONFIG Config = {QUIC_EXECUTION_CONFIG_FLAG_QTIP, 10000, 0, {0}};
                 ASSERT_TRUE(QUIC_SUCCEEDED(
                     MsQuic->SetParam(
                         nullptr,
@@ -1399,8 +1399,10 @@ TEST_P(WithHandshakeArgs4, RandomLossResumeRejection) {
 #endif // QUIC_DISABLE_RESUMPTION
 #endif // QUIC_TEST_DATAPATH_HOOKS_ENABLED
 
-#ifndef QUIC_USE_RAW_DATAPATH
 TEST_P(WithFamilyArgs, Unreachable) {
+    if (!QuitTestIsFeatureSupported(CXPLAT_DATAPATH_FEATURE_RAW)) {
+        GTEST_SKIP_("Raw datapath not enabled");
+    }
     if (GetParam().Family == 4 && IsWindows2019()) GTEST_SKIP(); // IPv4 unreachable doesn't work on 2019
     TestLoggerT<ParamType> Logger("QuicTestConnectUnreachable", GetParam());
     if (TestingKernelMode) {
@@ -1409,7 +1411,6 @@ TEST_P(WithFamilyArgs, Unreachable) {
         QuicTestConnectUnreachable(GetParam().Family);
     }
 }
-#endif // QUIC_USE_RAW_DATAPATH
 
 TEST(HandshakeTest, InvalidAddress) {
     TestLogger Logger("QuicTestConnectInvalidAddress");
@@ -1458,8 +1459,8 @@ TEST_P(WithFamilyArgs, ClientBlockedSourcePort) {
 
 #if QUIC_TEST_DATAPATH_HOOKS_ENABLED
 TEST_P(WithFamilyArgs, RebindPort) {
-#if defined(QUIC_USE_RAW_DATAPATH) && defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
-    if (UseQTIP) {
+#if defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
+    if (QuitTestIsFeatureSupported(CXPLAT_DATAPATH_FEATURE_RAW) && UseQTIP) {
         //
         // NAT rebind doesn't make sense for TCP and QTIP.
         //
@@ -1479,8 +1480,8 @@ TEST_P(WithFamilyArgs, RebindPort) {
 }
 
 TEST_P(WithRebindPaddingArgs, RebindPortPadded) {
-#if defined(QUIC_USE_RAW_DATAPATH) && defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
-    if (UseQTIP) {
+#if defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
+    if (QuitTestIsFeatureSupported(CXPLAT_DATAPATH_FEATURE_RAW) && UseQTIP) {
         //
         // NAT rebind doesn't make sense for TCP and QTIP.
         //
@@ -1500,8 +1501,8 @@ TEST_P(WithRebindPaddingArgs, RebindPortPadded) {
 }
 
 TEST_P(WithFamilyArgs, RebindAddr) {
-#if defined(QUIC_USE_RAW_DATAPATH) && defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
-    if (UseQTIP) {
+#if defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
+    if (QuitTestIsFeatureSupported(CXPLAT_DATAPATH_FEATURE_RAW) && UseQTIP) {
         //
         // NAT rebind doesn't make sense for TCP and QTIP.
         //
@@ -1521,8 +1522,8 @@ TEST_P(WithFamilyArgs, RebindAddr) {
 }
 
 TEST_P(WithRebindPaddingArgs, RebindAddrPadded) {
-#if defined(QUIC_USE_RAW_DATAPATH) && defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
-    if (UseQTIP) {
+#if defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
+    if (QuitTestIsFeatureSupported(CXPLAT_DATAPATH_FEATURE_RAW) && UseQTIP) {
         //
         // NAT rebind doesn't make sense for TCP and QTIP.
         //
@@ -1561,8 +1562,11 @@ TEST_P(WithFamilyArgs, ChangeMaxStreamIDs) {
 }
 
 #if QUIC_TEST_DATAPATH_HOOKS_ENABLED
-#ifndef QUIC_USE_RAW_DATAPATH // TODO - Support this with raw datapath
 TEST_P(WithFamilyArgs, LoadBalanced) {
+    if (!QuitTestIsFeatureSupported(CXPLAT_DATAPATH_FEATURE_RAW)) {
+        GTEST_SKIP_("Raw datapath not enabled");
+    }
+
 #ifdef QUIC_TEST_SCHANNEL_FLAGS
     if (IsWindows2022()) GTEST_SKIP(); // Not supported with Schannel on WS2022
 #endif
@@ -1573,7 +1577,6 @@ TEST_P(WithFamilyArgs, LoadBalanced) {
         QuicTestLoadBalancedHandshake(GetParam().Family);
     }
 }
-#endif // QUIC_USE_RAW_DATAPATH
 
 TEST_P(WithFamilyArgs, HandshakeSpecificLossPatterns) {
     TestLoggerT<ParamType> Logger("QuicTestHandshakeSpecificLossPatterns", GetParam());
@@ -1705,11 +1708,10 @@ TEST_P(WithSendArgs3, SendIntermittently) {
 #ifndef QUIC_DISABLE_0RTT_TESTS
 
 TEST_P(WithSend0RttArgs1, Send0Rtt) {
-#if defined(QUIC_USE_RAW_DATAPATH) && defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
-    if (UseQTIP) {
+#if defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
+    if (QuitTestIsFeatureSupported(CXPLAT_DATAPATH_FEATURE_RAW) && UseQTIP) {
         //
-        // QTIP doesn't work with 0-RTT. QTIP only pauses and caches 1 packet during
-        // TCP handshake.
+        // NAT rebind doesn't make sense for TCP and QTIP.
         //
         return;
     }
@@ -1754,11 +1756,10 @@ TEST_P(WithSend0RttArgs1, Send0Rtt) {
 }
 
 TEST_P(WithSend0RttArgs2, Reject0Rtt) {
-#if defined(QUIC_USE_RAW_DATAPATH) && defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
-    if (UseQTIP) {
+#if defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
+    if (QuitTestIsFeatureSupported(CXPLAT_DATAPATH_FEATURE_RAW) && UseQTIP) {
         //
-        // QTIP doesn't work with 0-RTT. QTIP only pauses and caches 1 packet during
-        // TCP handshake.
+        // NAT rebind doesn't make sense for TCP and QTIP.
         //
         return;
     }
@@ -2080,8 +2081,11 @@ TEST(Drill, VarIntEncoder) {
     }
 }
 
-#ifndef QUIC_USE_RAW_DATAPATH // TODO - Support this with raw datapath
 TEST_P(WithDrillInitialPacketCidArgs, DrillInitialPacketCids) {
+    if (!QuitTestIsFeatureSupported(CXPLAT_DATAPATH_FEATURE_RAW)) {
+        GTEST_SKIP_("Raw datapath not enabled");
+    }
+
     TestLoggerT<ParamType> Logger("QuicDrillInitialPacketCids", GetParam());
     if (TestingKernelMode) {
         QUIC_RUN_DRILL_INITIAL_PACKET_CID_PARAMS Params = {
@@ -2103,6 +2107,10 @@ TEST_P(WithDrillInitialPacketCidArgs, DrillInitialPacketCids) {
 }
 
 TEST_P(WithDrillInitialPacketTokenArgs, DrillInitialPacketToken) {
+    if (!QuitTestIsFeatureSupported(CXPLAT_DATAPATH_FEATURE_RAW)) {
+        GTEST_SKIP_("Raw datapath not enabled");
+    }
+
     TestLoggerT<ParamType> Logger("QuicDrillInitialPacketToken", GetParam());
     if (TestingKernelMode) {
         ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_DRILL_INITIAL_PACKET_TOKEN, GetParam().Family));
@@ -2110,7 +2118,6 @@ TEST_P(WithDrillInitialPacketTokenArgs, DrillInitialPacketToken) {
         QuicDrillTestInitialToken(GetParam().Family);
     }
 }
-#endif // QUIC_USE_RAW_DATAPATH
 
 TEST_P(WithDatagramNegotiationArgs, DatagramNegotiation) {
     TestLoggerT<ParamType> Logger("QuicTestDatagramNegotiation", GetParam());
@@ -2339,7 +2346,6 @@ INSTANTIATE_TEST_SUITE_P(
     WithDatagramNegotiationArgs,
     testing::ValuesIn(DatagramNegotiationArgs::Generate()));
 
-#ifndef QUIC_USE_RAW_DATAPATH
 INSTANTIATE_TEST_SUITE_P(
     Drill,
     WithDrillInitialPacketCidArgs,
@@ -2349,7 +2355,6 @@ INSTANTIATE_TEST_SUITE_P(
     Drill,
     WithDrillInitialPacketTokenArgs,
     testing::ValuesIn(DrillInitialPacketTokenArgs::Generate()));
-#endif // QUIC_USE_RAW_DATAPATH
 
 int main(int argc, char** argv) {
 #ifdef _WIN32
@@ -2375,11 +2380,11 @@ int main(int argc, char** argv) {
         } else if (strcmp("--duoNic", argv[i]) == 0) {
             UseDuoNic = true;
         } else if (strcmp("--useQTIP", argv[i]) == 0) {
-#if defined(QUIC_USE_RAW_DATAPATH) && defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
+#if defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
             UseQTIP = true;
 #else
-            printf("QTIP is not supported in this build.\n");
-            return -1;
+        printf("QTIP is not supported in this build.\n");
+        return -1;
 #endif
         } else if (strstr(argv[i], "--osRunner")) {
             OsRunner = argv[i] + sizeof("--osRunner");

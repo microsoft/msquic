@@ -8,6 +8,7 @@
 #define QUIC_TEST_APIS 1
 
 #include "quic_platform.h"
+#include "quic_datapath.h"
 #include "MsQuicTests.h"
 #include "msquichelper.h"
 #include "quic_trace.h"
@@ -20,9 +21,26 @@
 #endif
 
 extern bool TestingKernelMode;
-#if defined(QUIC_USE_RAW_DATAPATH) && defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
+#if defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
 extern bool UseQTIP;
 #endif
+
+uint32_t
+QuitTestGetDatapathFeatureFlags() {
+    static uint32_t Length = sizeof(uint32_t);
+    uint32_t Features = 0;
+    MsQuic->GetParam(
+        nullptr,
+        QUIC_PARAM_GLOBAL_DATAPATH_FEATURES,
+        &Length,
+        &Features);
+    return Features;
+}
+
+bool
+QuitTestIsFeatureSupported(uint32_t Feature) {
+    return static_cast<bool>(QuitTestGetDatapathFeatureFlags() & Feature);
+}
 
 class WithBool : public testing::Test,
     public testing::WithParamInterface<bool> {
@@ -346,8 +364,8 @@ struct SendArgs2 {
         for (bool UseZeroRtt : { false })
 #endif
         {
-#if defined(QUIC_USE_RAW_DATAPATH) && defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
-            if (UseQTIP && UseZeroRtt) {
+#if defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
+            if (QuitTestIsFeatureSupported(CXPLAT_DATAPATH_FEATURE_RAW) && UseQTIP && UseZeroRtt) {
                 continue;
             }
 #endif
@@ -697,11 +715,12 @@ struct ValidateConnectionEventArgs {
     uint32_t Test;
     static ::std::vector<ValidateConnectionEventArgs> Generate() {
         ::std::vector<ValidateConnectionEventArgs> list;
-#if !defined(QUIC_DISABLE_0RTT_TESTS) && !defined(QUIC_USE_RAW_DATAPATH) // TODO: Fix openssl/XDP bug and enable this back
-        for (uint32_t Test = 0; Test < 3; ++Test)
-#else
-        for (uint32_t Test = 0; Test < 2; ++Test)
+        uint32_t TestCount = 3;
+
+#if !defined(QUIC_DISABLE_0RTT_TESTS) // TODO: Fix openssl/XDP bug and enable this back
+        TestCount = QuitTestIsFeatureSupported(CXPLAT_DATAPATH_FEATURE_RAW) ? 3 : 2;
 #endif
+        for (uint32_t Test = 0; Test < TestCount; ++Test)
             list.push_back({ Test });
         return list;
     }

@@ -14,7 +14,7 @@ Abstract:
 #include "MtuTest.cpp.clog.h"
 #endif
 
-#ifdef QUIC_USE_RAW_DATAPATH
+#if !defined(_KERNEL_MODE) && defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
 extern bool UseQTIP;
 #endif
 
@@ -49,8 +49,8 @@ struct ResetSettings {
 void
 QuicTestMtuSettings()
 {
-#if defined(QUIC_USE_RAW_DATAPATH) && defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
-    const uint16_t DefaultMaximumMtu = UseQTIP ? 1488 : 1500; // reserve 12B for TCP header
+#if !defined(_KERNEL_MODE) && defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
+    const uint16_t DefaultMaximumMtu = (QuitTestIsFeatureSupported(CXPLAT_DATAPATH_FEATURE_RAW) && UseQTIP)? 1488 : 1500;
 #else
     const uint16_t DefaultMaximumMtu = 1500;
 #endif
@@ -315,8 +315,8 @@ QuicTestMtuDiscovery(
     TEST_QUIC_SUCCEEDED(Registration.GetInitStatus());
 
     const uint16_t MinimumMtu = RaiseMinimumMtu ? 1360 : 1248;
-#if defined(QUIC_USE_RAW_DATAPATH) && defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
-    const uint16_t MaximumMtu = UseQTIP ? 1488 : 1500; // reserve 12B for TCP header
+#if !defined(_KERNEL_MODE) && defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
+    const uint16_t MaximumMtu = (QuitTestIsFeatureSupported(CXPLAT_DATAPATH_FEATURE_RAW) && UseQTIP)? 1488 : 1500;
 #else
     const uint16_t MaximumMtu = 1500;
 #endif

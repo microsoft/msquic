@@ -14,7 +14,7 @@ Abstract:
 #include "DataTest.cpp.clog.h"
 #endif
 
-#if defined(QUIC_USE_RAW_DATAPATH) && defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
+#if !defined(_KERNEL_MODE) && defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
 extern bool UseQTIP;
 #endif
 
@@ -505,31 +505,28 @@ QuicTestConnectAndPing(
                     }
                     TEST_QUIC_SUCCEEDED(Connections.get()[i]->SetRemoteAddr(RemoteAddr));
 
-#if defined(QUIC_USE_RAW_DATAPATH) && defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
-                    if (!UseQTIP && i != 0) {
-                        Connections.get()[i]->SetLocalAddr(LocalAddr);
-                    }
-#else
-                    if (i != 0) {
-                        Connections.get()[i]->SetLocalAddr(LocalAddr);
-                    }
+                    if (i != 0
+#if !defined(_KERNEL_MODE) && defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
+                    && (QuitTestIsFeatureSupported(CXPLAT_DATAPATH_FEATURE_RAW) && !UseQTIP)
 #endif
-    CxPlatSleep(10000);
+                    ) {
+                        Connections.get()[i]->SetLocalAddr(LocalAddr);
+                    }
+
                     TEST_QUIC_SUCCEEDED(
                         Connections.get()[i]->Start(
                             ClientConfiguration,
                             QuicAddrFamily,
                             ClientZeroRtt ? QUIC_LOCALHOST_FOR_AF(QuicAddrFamily) : nullptr,
                             ServerLocalAddr.GetPort()));
-#if defined(QUIC_USE_RAW_DATAPATH) && defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
-                    if (!UseQTIP && i == 0) {
-                        Connections.get()[i]->GetLocalAddr(LocalAddr);
-                    }
-#else
-                    if (i == 0) {
-                        Connections.get()[i]->GetLocalAddr(LocalAddr);
-                    }
+
+                    if (i == 0
+#if !defined(_KERNEL_MODE) && defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
+                    && (QuitTestIsFeatureSupported(CXPLAT_DATAPATH_FEATURE_RAW) && !UseQTIP)
 #endif
+                    ) {
+                        Connections.get()[i]->GetLocalAddr(LocalAddr);
+                    }
                 }
             }
         }

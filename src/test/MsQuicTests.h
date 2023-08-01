@@ -231,6 +231,14 @@ QuicTestInterfaceBinding(
     _In_ int Family
     );
 
+uint32_t
+QuitTestGetDatapathFeatureFlags();
+
+bool
+QuitTestIsFeatureSupported(
+    _In_ uint32_t Feature
+    );
+
 #ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
 void
 QuicTestCibirExtension(

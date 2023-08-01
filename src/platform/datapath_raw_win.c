@@ -215,7 +215,7 @@ MANGLE(CxPlatDataPathGetSupportedFeatures)(
     _In_  CXPLAT_DATAPATH_RAW* Datapath
     )
 {
-    return 0;
+    return CXPLAT_DATAPATH_FEATURE_RAW;
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
