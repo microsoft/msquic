@@ -97,7 +97,7 @@ typedef enum QUIC_EVENT_ID_GLOBAL {
 #define CXPLAT_DATAPATH_FEATURE_LOCAL_PORT_SHARING    0x0008
 #define CXPLAT_DATAPATH_FEATURE_PORT_RESERVATIONS     0x0010
 #define CXPLAT_DATAPATH_FEATURE_TCP                   0x0020
-#define CXPLAT_DATAPATH_FEATURE_RAW_SOCKET            0x0040
+#define CXPLAT_DATAPATH_FEATURE_RAW                   0x0040
 
 #pragma pack(push)
 #pragma pack(1)

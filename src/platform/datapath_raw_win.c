@@ -242,8 +242,7 @@ CxPlatDataPathGetSupportedFeatures(
     _In_ CXPLAT_DATAPATH* Datapath
     )
 {
-    return CXPLAT_DATAPATH_FEATURE_RAW_SOCKET |
-           CXPLAT_DATAPATH_FEATURE_TCP;
+    return CXPLAT_DATAPATH_FEATURE_RAW;
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)

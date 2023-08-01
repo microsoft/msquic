@@ -16,7 +16,9 @@ Abstract:
 
 #pragma warning(disable:6387)  // '_Param_(1)' could be '0':  this does not adhere to the specification for the function
 
+#if defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
 extern bool UseQTIP;
+#endif
 
 void QuicTestValidateApi()
 {
@@ -2563,16 +2565,12 @@ void QuicTestGlobalParam()
             SimpleGetParamTest(nullptr, QUIC_PARAM_GLOBAL_EXECUTION_CONFIG, DataLength, Data);
         }
 
-        uint32_t Length = sizeof(uint32_t);
-        uint32_t Features = 0;
-        TEST_QUIC_SUCCEEDED(
-            MsQuic->GetParam(
-                nullptr,
-                QUIC_PARAM_GLOBAL_DATAPATH_FEATURES,
-                &Length,
-                &Features));
-        if (!(Features & CXPLAT_DATAPATH_FEATURE_RAW_SOCKET) ||
-            (!!(Features & CXPLAT_DATAPATH_FEATURE_RAW_SOCKET) && !UseQTIP)) {
+        uint32_t Features = QuitTestGetDatapathFeatureFlags();
+        if (!(Features & CXPLAT_DATAPATH_FEATURE_RAW)
+#if defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
+            || (!!(Features & CXPLAT_DATAPATH_FEATURE_RAW) && !UseQTIP)
+#endif
+            ) {
             //
             // Good GetParam with length == 0
             //

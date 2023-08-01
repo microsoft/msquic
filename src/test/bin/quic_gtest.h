@@ -21,7 +21,26 @@
 #endif
 
 extern bool TestingKernelMode;
+#if defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
 extern bool UseQTIP;
+#endif
+
+uint32_t
+QuitTestGetDatapathFeatureFlags() {
+    static uint32_t Length = sizeof(uint32_t);
+    uint32_t Features = 0;
+    MsQuic->GetParam(
+        nullptr,
+        QUIC_PARAM_GLOBAL_DATAPATH_FEATURES,
+        &Length,
+        &Features);
+    return Features;
+}
+
+bool
+QuitTestIsFeatureSupported(uint32_t Feature) {
+    return static_cast<bool>(QuitTestGetDatapathFeatureFlags() & Feature);
+}
 
 class WithBool : public testing::Test,
     public testing::WithParamInterface<bool> {
@@ -345,9 +364,11 @@ struct SendArgs2 {
         for (bool UseZeroRtt : { false })
 #endif
         {
-            if (UseQTIP && UseZeroRtt) {
+#if defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
+            if (QuitTestIsFeatureSupported(CXPLAT_DATAPATH_FEATURE_RAW) && UseQTIP && UseZeroRtt) {
                 continue;
             }
+#endif
             list.push_back({ Family, UseSendBuffer, UseZeroRtt });
         }
         return list;
@@ -697,14 +718,7 @@ struct ValidateConnectionEventArgs {
         uint32_t TestCount = 3;
 
 #if !defined(QUIC_DISABLE_0RTT_TESTS) // TODO: Fix openssl/XDP bug and enable this back
-        uint32_t Length = sizeof(uint32_t);
-        uint32_t Features = 0;
-        MsQuic->GetParam(
-            nullptr,
-            QUIC_PARAM_GLOBAL_DATAPATH_FEATURES,
-            &Length,
-            &Features);
-        TestCount = !!(Features & CXPLAT_DATAPATH_FEATURE_RAW_SOCKET) ? 2 : 3;
+        TestCount = QuitTestIsFeatureSupported(CXPLAT_DATAPATH_FEATURE_RAW) ? 2 : 3;
 #endif
         for (uint32_t Test = 0; Test < TestCount; ++Test)
             list.push_back({ Test });

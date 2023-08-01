@@ -114,6 +114,7 @@ typedef struct QUIC_PRIVATE_TRANSPORT_PARAMETER {
 #define QUIC_PARAM_GLOBAL_VERSION_NEGOTIATION_ENABLED   0x81000003  // BOOLEAN
 #endif
 #define QUIC_PARAM_GLOBAL_IN_USE                        0x81000004  // BOOLEAN
+#define QUIC_PARAM_GLOBAL_DATAPATH_FEATURES             0x81000005  // uint32_t
 
 //
 // The different private parameters for Configuration.

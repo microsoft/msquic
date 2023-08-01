@@ -14,7 +14,9 @@ Abstract:
 #include "MtuTest.cpp.clog.h"
 #endif
 
+#if defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
 extern bool UseQTIP;
+#endif
 
 static QUIC_STATUS MtuStreamCallback(_In_ MsQuicStream*, _In_opt_ void*, _Inout_ QUIC_STREAM_EVENT*) {
     return QUIC_STATUS_SUCCESS;
@@ -47,7 +49,11 @@ struct ResetSettings {
 void
 QuicTestMtuSettings()
 {
-    const uint16_t DefaultMaximumMtu = UseQTIP ? 1488 : 1500; // reserve 12B for TCP header
+#if defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
+    const uint16_t DefaultMaximumMtu = (QuitTestIsFeatureSupported(CXPLAT_DATAPATH_FEATURE_RAW) && UseQTIP)? 1488 : 1500;
+#else
+    const uint16_t DefaultMaximumMtu = 1500;
+#endif
 
     {
         //
@@ -309,7 +315,11 @@ QuicTestMtuDiscovery(
     TEST_QUIC_SUCCEEDED(Registration.GetInitStatus());
 
     const uint16_t MinimumMtu = RaiseMinimumMtu ? 1360 : 1248;
-    const uint16_t MaximumMtu = UseQTIP ? 1488 : 1500; // reserve 12B for TCP header
+#if defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
+    const uint16_t MaximumMtu = (QuitTestIsFeatureSupported(CXPLAT_DATAPATH_FEATURE_RAW) && UseQTIP)? 1488 : 1500;
+#else
+    const uint16_t MaximumMtu = 1500;
+#endif
 
     MsQuicAlpn Alpn("MsQuicTest");
     MsQuicSettings Settings;

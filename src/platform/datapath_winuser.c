@@ -1138,8 +1138,9 @@ CxPlatDataPathQuerySockoptSupport(
     } else {
         Datapath->Features |= CXPLAT_DATAPATH_FEATURE_RECV_COALESCING;
     }
-
 }
+
+    Datapath->Features |= CXPLAT_DATAPATH_FEATURE_TCP;
 
 Error:
 
