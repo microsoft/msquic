@@ -1502,7 +1502,7 @@ TEST_P(WithRebindPaddingArgs, RebindPortPadded) {
 
 TEST_P(WithFamilyArgs, RebindAddr) {
 #if defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
-    if (QuitTestIsFeatureSupported(CXPLAT_DATAPATH_FEATURE_RAW)  && UseQTIP) {
+    if (QuitTestIsFeatureSupported(CXPLAT_DATAPATH_FEATURE_RAW) && UseQTIP) {
         //
         // NAT rebind doesn't make sense for TCP and QTIP.
         //
