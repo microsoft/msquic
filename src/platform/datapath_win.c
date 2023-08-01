@@ -654,10 +654,17 @@ CxPlatDataPathProcessCqe(
     DataPathUserFuncs.CxPlatDataPathProcessCqe(Cqe);
 }
 
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+QuicCopyRouteInfo(
+    _Inout_ CXPLAT_ROUTE* DstRoute,
+    _In_ CXPLAT_ROUTE* SrcRoute
+    )
+{
+    // TODO: route to user/raw
+    *DstRoute = *SrcRoute;
+}
 
-
-// TODO: remove ifdef
-#ifdef QUIC_USE_RAW_DATAPATH
 void
 CxPlatResolveRouteComplete(
     _In_ void* Connection,
@@ -693,4 +700,4 @@ CxPlatUpdateRoute(
     )
 {
 }
-#endif // QUIC_USE_RAW_DATAPATH
+

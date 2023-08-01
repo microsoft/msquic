@@ -4624,7 +4624,7 @@ MANGLE(CxPlatDataPathProcessCqe)(
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
-QuicCopyRouteInfo(
+MANGLE(QuicCopyRouteInfo)(
     _Inout_ CXPLAT_ROUTE* DstRoute,
     _In_ CXPLAT_ROUTE* SrcRoute
     )
@@ -4633,7 +4633,7 @@ QuicCopyRouteInfo(
 }
 
 void
-CxPlatResolveRouteComplete(
+MANGLE(CxPlatResolveRouteComplete)(
     _In_ void* Context,
     _Inout_ CXPLAT_ROUTE* Route,
     _In_reads_bytes_(6) const uint8_t* PhysicalAddress,
@@ -4648,7 +4648,7 @@ CxPlatResolveRouteComplete(
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
-CxPlatResolveRoute(
+MANGLE(CxPlatResolveRoute)(
     _In_ CXPLAT_SOCKET* Socket,
     _Inout_ CXPLAT_ROUTE* Route,
     _In_ uint8_t PathId,
@@ -4666,7 +4666,7 @@ CxPlatResolveRoute(
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
-CxPlatUpdateRoute(
+MANGLE(CxPlatUpdateRoute)(
     _Inout_ CXPLAT_ROUTE* DstRoute,
     _In_ CXPLAT_ROUTE* SrcRoute
     )
