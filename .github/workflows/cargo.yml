@@ -40,6 +40,9 @@ jobs:
     - name: Install Cargo
       if: runner.os == 'Linux'
       run: curl https://sh.rustup.rs -sSf | sh -s -- -y
+    - name: Delete global cargo config
+      run: Remove-Item .\cargo -Recurse -Force
+      shell: pwsh
     - name: Cargo build
       run: cargo build --all
     - name: Cargo test
