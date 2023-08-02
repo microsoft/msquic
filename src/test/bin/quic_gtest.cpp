@@ -1711,7 +1711,8 @@ TEST_P(WithSend0RttArgs1, Send0Rtt) {
 #if defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
     if (QuitTestIsFeatureSupported(CXPLAT_DATAPATH_FEATURE_RAW) && UseQTIP) {
         //
-        // NAT rebind doesn't make sense for TCP and QTIP.
+        // QTIP doesn't work with 0-RTT. QTIP only pauses and caches 1 packet during
+        // TCP handshake.
         //
         return;
     }
@@ -1759,7 +1760,8 @@ TEST_P(WithSend0RttArgs2, Reject0Rtt) {
 #if defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
     if (QuitTestIsFeatureSupported(CXPLAT_DATAPATH_FEATURE_RAW) && UseQTIP) {
         //
-        // NAT rebind doesn't make sense for TCP and QTIP.
+        // QTIP doesn't work with 0-RTT. QTIP only pauses and caches 1 packet during
+        // TCP handshake.
         //
         return;
     }
@@ -2383,8 +2385,8 @@ int main(int argc, char** argv) {
 #if defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
             UseQTIP = true;
 #else
-        printf("QTIP is not supported in this build.\n");
-        return -1;
+            printf("QTIP is not supported in this build.\n");
+            return -1;
 #endif
         } else if (strstr(argv[i], "--osRunner")) {
             OsRunner = argv[i] + sizeof("--osRunner");
