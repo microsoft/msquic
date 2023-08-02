@@ -40,6 +40,9 @@ jobs:
     - name: Install Cargo
       if: runner.os == 'Linux'
       run: curl https://sh.rustup.rs -sSf | sh -s -- -y
+    # The cargo config file is required for OneBranch CFS requirement.
+    # Remove it for this workflow. Otherwise, cargo will try to reach the internal feed
+    # that is not accessible from GitHub Workflows.
     - name: Delete global cargo config
       run: Remove-Item .\.cargo -Recurse -Force
       shell: pwsh
