@@ -1,0 +1,5 @@
+[registries]
+msquic_PublicPackages = { index = "sparse+https://mscodehub.pkgs.visualstudio.com/msquic/_packaging/msquic_PublicPackages/Cargo/index/" }
+
+[source.crates-io]
+replace-with = "msquic_PublicPackages"
