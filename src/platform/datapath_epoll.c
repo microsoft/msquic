@@ -1948,6 +1948,7 @@ CxPlatSocketReceiveCoalesced(
         }
 
         RecvBlock->OwningPool = &DatapathProc->RecvBlockPool;
+        RecvBlock->Route.State = RouteResolved;
 
         struct msghdr* MsgHdr = &RecvMsgHdr.msg_hdr;
         MsgHdr->msg_name = &RecvBlock->Route.RemoteAddress;
@@ -2022,6 +2023,7 @@ CxPlatSocketReceiveMessages(
 
             RecvBlocks[i] = RecvBlock;
             RecvBlock->OwningPool = &DatapathProc->RecvBlockPool;
+            RecvBlock->Route.State = RouteResolved;
 
             struct msghdr* MsgHdr = &RecvMsgHdr[i].msg_hdr;
             MsgHdr->msg_name = &RecvBlock->Route.RemoteAddress;

@@ -364,11 +364,6 @@ struct SendArgs2 {
         for (bool UseZeroRtt : { false })
 #endif
         {
-#if defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
-            if (QuitTestIsFeatureSupported(CXPLAT_DATAPATH_FEATURE_RAW) && UseQTIP && UseZeroRtt) {
-                continue;
-            }
-#endif
             list.push_back({ Family, UseSendBuffer, UseZeroRtt });
         }
         return list;
@@ -715,12 +710,7 @@ struct ValidateConnectionEventArgs {
     uint32_t Test;
     static ::std::vector<ValidateConnectionEventArgs> Generate() {
         ::std::vector<ValidateConnectionEventArgs> list;
-        uint32_t TestCount = 3;
-
-#if !defined(QUIC_DISABLE_0RTT_TESTS) // TODO: Fix openssl/XDP bug and enable this back
-        TestCount = QuitTestIsFeatureSupported(CXPLAT_DATAPATH_FEATURE_RAW) ? 3 : 2;
-#endif
-        for (uint32_t Test = 0; Test < TestCount; ++Test)
+        for (uint32_t Test = 0; Test < 3; ++Test)
             list.push_back({ Test });
         return list;
     }

@@ -2714,6 +2714,7 @@ CxPlatSocketAllocRecvContext(
     RecvContext = CxPlatPoolAlloc(OwningPool);
 
     if (RecvContext != NULL) {
+        RecvContext->Route.State = RouteResolved;
         RecvContext->OwningPool = OwningPool;
         RecvContext->ReferenceCount = 0;
         RecvContext->SocketProc = SocketProc;

@@ -14,7 +14,11 @@ Abstract:
 #include "DataTest.cpp.clog.h"
 #endif
 
-#if !defined(_KERNEL_MODE) && defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
+#if defined(_KERNEL_MODE)
+bool UseQTIP = false;
+// currently x is only CXPLAT_DATAPATH_FEATURE_RAW
+#define QuitTestIsFeatureSupported(x) false
+#elif defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
 extern bool UseQTIP;
 #endif
 
@@ -506,7 +510,7 @@ QuicTestConnectAndPing(
                     TEST_QUIC_SUCCEEDED(Connections.get()[i]->SetRemoteAddr(RemoteAddr));
 
                     if (i != 0
-#if !defined(_KERNEL_MODE) && defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
+#if defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
                     && (QuitTestIsFeatureSupported(CXPLAT_DATAPATH_FEATURE_RAW) && !UseQTIP)
 #endif
                     ) {
@@ -521,7 +525,7 @@ QuicTestConnectAndPing(
                             ServerLocalAddr.GetPort()));
 
                     if (i == 0
-#if !defined(_KERNEL_MODE) && defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
+#if defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
                     && (QuitTestIsFeatureSupported(CXPLAT_DATAPATH_FEATURE_RAW) && !UseQTIP)
 #endif
                     ) {
