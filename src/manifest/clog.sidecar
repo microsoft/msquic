@@ -9078,6 +9078,22 @@
       ],
       "macroName": "QuicTraceLogInfo"
     },
+    "ReliableResetEnabledUpdated": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] Updated reliable reset frame enabled to %hhu",
+      "UniqueId": "ReliableResetEnabledUpdated",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        },
+        {
+          "DefinationEncoding": "hhu",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macroName": "QuicTraceLogConnVerbose"
+    },
     "RemoteBlocked": {
       "ModuleProperites": {},
       "TraceString": "[strm][%p] Remote FC blocked (%llu)",
@@ -10495,6 +10511,18 @@
       "ModuleProperites": {},
       "TraceString": "[sett] HyStartEnabled         = %hhu",
       "UniqueId": "SettingHyStartEnabled",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "hhu",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceLogVerbose"
+    },
+    "SettingReliableResetEnabled": {
+      "ModuleProperites": {},
+      "TraceString": "[sett] ReliableResetEnabled   = %hhu",
+      "UniqueId": "SettingReliableResetEnabled",
       "splitArgs": [
         {
           "DefinationEncoding": "hhu",
@@ -15327,6 +15355,11 @@
         "EncodingString": "[ reg][%p] Verifing enabled!"
       },
       {
+        "UniquenessHash": "7c8196a9-c4d5-9b85-26ae-ee4492bfe6c8",
+        "TraceID": "ReliableResetEnabledUpdated",
+        "EncodingString": "[conn][%p] Updated reliable reset frame enabled to %hhu"
+      },
+      {
         "UniquenessHash": "90a48bef-0658-1e75-8afa-d4fff8d929bf",
         "TraceID": "RemoteBlocked",
         "EncodingString": "[strm][%p] Remote FC blocked (%llu)"
@@ -15805,6 +15838,11 @@
         "UniquenessHash": "3204077b-15dd-eacb-1594-51d66d8db668",
         "TraceID": "SettingHyStartEnabled",
         "EncodingString": "[sett] HyStartEnabled         = %hhu"
+      },
+      {
+        "UniquenessHash": "f5c7d703-ecd1-8dd0-c16d-11857945bfcf",
+        "TraceID": "SettingReliableResetEnabled",
+        "EncodingString": "[sett] ReliableResetEnabled   = %hhu"
       },
       {
         "UniquenessHash": "e7d29156-fb54-8f96-f3e2-1aa999886c12",

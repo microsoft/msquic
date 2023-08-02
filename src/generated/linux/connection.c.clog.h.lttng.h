@@ -1558,6 +1558,29 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, Disable1RttEncrytionUpdated,
 
 
 /*----------------------------------------------------------
+// Decoder Ring for ReliableResetEnabledUpdated
+// [conn][%p] Updated reliable reset frame enabled to %hhu
+// QuicTraceLogConnVerbose(
+            ReliableResetEnabledUpdated,
+            Connection,
+            "Updated reliable reset frame enabled to %hhu",
+            Connection->Settings.ReliableResetEnabled);
+// arg1 = arg1 = Connection = arg1
+// arg3 = arg3 = Connection->Settings.ReliableResetEnabled = arg3
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_CONNECTION_C, ReliableResetEnabledUpdated,
+    TP_ARGS(
+        const void *, arg1,
+        unsigned char, arg3), 
+    TP_FIELDS(
+        ctf_integer_hex(uint64_t, arg1, arg1)
+        ctf_integer(unsigned char, arg3, arg3)
+    )
+)
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for ForceKeyUpdate
 // [conn][%p] Forcing key update
 // QuicTraceLogConnVerbose(
