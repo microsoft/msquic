@@ -1020,10 +1020,10 @@ QuicSendGetNextStream(
 
 BOOLEAN
 CxPlatIsRouteReady(
-    _In_ QUIC_CONNECTION *Connection
+    _In_ QUIC_CONNECTION *Connection,
+    _In_ QUIC_PATH* Path
     )
 {
-    QUIC_PATH* Path = &Connection->Paths[0];
     //
     // Make sure the route is resolved before sending packets.
     //
@@ -1081,7 +1081,7 @@ QuicSendPathChallenges(
             continue;
         }
 
-        if (!CxPlatIsRouteReady(Connection)) {
+        if (!CxPlatIsRouteReady(Connection, Path)) {
             Send->SendFlags |= QUIC_CONN_SEND_FLAG_PATH_CHALLENGE;
             continue;
         }
@@ -1171,7 +1171,7 @@ QuicSendFlush(
 
     CXPLAT_DBG_ASSERT(!Connection->State.HandleClosed);
 
-    if (!CxPlatIsRouteReady(Connection)) {
+    if (!CxPlatIsRouteReady(Connection, Path)) {
         return TRUE;
     }
 
