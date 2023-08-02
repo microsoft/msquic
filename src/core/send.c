@@ -1043,13 +1043,12 @@ CxPlatIsRouteReady(
                 Path->Binding->Socket, &Path->Route, Path->ID, (void*)Connection, QuicConnQueueRouteCompletion);
         if (Status == QUIC_STATUS_SUCCESS) {
             QuicConnRelease(Connection, QUIC_CONN_REF_ROUTE);
-        } else {
-            //
-            // Route resolution failed or pended. We need to pause sending.
-            //
-            CXPLAT_DBG_ASSERT(Status == QUIC_STATUS_PENDING || QUIC_FAILED(Status));
+            return TRUE;
         }
-        return Status == QUIC_STATUS_SUCCESS;
+        //
+        // Route resolution failed or pended. We need to pause sending.
+        //
+        CXPLAT_DBG_ASSERT(Status == QUIC_STATUS_PENDING || QUIC_FAILED(Status));
     }
     //
     // Path->Route.State == RouteResolving
