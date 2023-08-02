@@ -672,7 +672,7 @@ typedef struct QUIC_SETTINGS {
             uint64_t ReliableResetEnabled                   : 1;
             uint64_t RESERVED                               : 27;
 #else
-            uint64_t RESERVED                               : 28;
+            uint64_t RESERVED                               : 29;
 #endif
         } IsSet;
     };
@@ -720,7 +720,7 @@ typedef struct QUIC_SETTINGS {
             uint8_t ReliableResetEnabled       : 1;
             uint64_t ReservedFlags             : 61;
 #else
-            uint64_t ReservedFlags             : 62;
+            uint64_t ReservedFlags             : 63;
 #endif
         };
     };
@@ -1215,6 +1215,12 @@ typedef struct QUIC_CONNECTION_EVENT {
             QUIC_STATUS DeferredStatus;         // Most severe error status (only valid with QUIC_CREDENTIAL_FLAG_DEFER_CERTIFICATE_VALIDATION)
             QUIC_CERTIFICATE_CHAIN* Chain;      // Peer certificate chain (platform specific). Valid only during QUIC_CONNECTION_EVENT_PEER_CERTIFICATE_RECEIVED callback.
         } PEER_CERTIFICATE_RECEIVED;
+        
+        #ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
+        struct {
+            uint8_t ReliableResetEnabledNegotitatedValue;
+        } RELIABLE_RESET_NEGOTIATED;
+        #endif
     };
 } QUIC_CONNECTION_EVENT;
 

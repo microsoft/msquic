@@ -147,6 +147,9 @@ QuicSettingsSetDefault(
     if (!Settings->IsSet.EncryptionOffloadAllowed) {
         Settings->EncryptionOffloadAllowed = QUIC_DEFAULT_ENCRYPTION_OFFLOAD_ALLOWED;
     }
+    if (!Settings->IsSet.ReliableResetEnabled) {
+        Settings->ReliableResetEnabled = QUIC_DEFAULT_RELIABLE_RESET_ENABLED;
+    }
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -293,6 +296,9 @@ QuicSettingsCopy(
     }
     if (!Destination->IsSet.EncryptionOffloadAllowed) {
         Destination->EncryptionOffloadAllowed = Source->EncryptionOffloadAllowed;
+    }
+    if (!Destination->IsSet.ReliableResetEnabled) {
+        Destination->ReliableResetEnabled = Source->ReliableResetEnabled;
     }
 }
 
@@ -1217,6 +1223,16 @@ VersionSettingsFail:
             &ValueLen);
         Settings->EncryptionOffloadAllowed = !!Value;
     }
+    if (!Settings->IsSet.ReliableResetEnabled) {
+        Value = QUIC_DEFAULT_RELIABLE_RESET_ENABLED;
+        ValueLen = sizeof(Value);
+        CxPlatStorageReadValue(
+            Storage,
+            QUIC_SETTING_RELIABLE_RESET_ENABLED,
+            (uint8_t*)&Value,
+            &ValueLen);
+        Settings->ReliableResetEnabled = !!Value;
+    }
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -1280,6 +1296,7 @@ QuicSettingsDump(
     QuicTraceLogVerbose(SettingEcnEnabled,                  "[sett] EcnEnabled             = %hhu", Settings->EcnEnabled);
     QuicTraceLogVerbose(SettingHyStartEnabled,              "[sett] HyStartEnabled         = %hhu", Settings->HyStartEnabled);
     QuicTraceLogVerbose(SettingEncryptionOffloadAllowed,    "[sett] EncryptionOffloadAllowed = %hhu", Settings->EncryptionOffloadAllowed);
+    QuicTraceLogVerbose(SettingReliableResetEnabled,        "[sett] ReliableResetEnabled   = %hhu", Settings->ReliableResetEnabled);
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -1422,6 +1439,9 @@ QuicSettingsDumpNew(
     }
     if (Settings->IsSet.EncryptionOffloadAllowed) {
         QuicTraceLogVerbose(SettingEncryptionOffloadAllowed,        "[sett] EncryptionOffloadAllowed   = %hhu", Settings->EncryptionOffloadAllowed);
+    }
+    if (Settings->IsSet.ReliableResetEnabled) {
+        QuicTraceLogVerbose(SettingReliableResetEnabled,            "[sett] ReliableResetEnabled   = %hhu", Settings->ReliableResetEnabled);
     }
 }
 
@@ -1633,6 +1653,14 @@ QuicSettingsSettingsToInternal(
         Settings,
         SettingsSize,
         InternalSettings);
+    
+    SETTING_COPY_FLAG_TO_INTERNAL_SIZED(
+        Flags,
+        ReliableResetEnabled,
+        QUIC_SETTINGS,
+        Settings,
+        SettingsSize,
+        InternalSettings);
 
     return QUIC_STATUS_SUCCESS;
 }
@@ -1745,6 +1773,14 @@ QuicSettingsGetSettings(
     SETTING_COPY_FLAG_FROM_INTERNAL_SIZED(
         Flags,
         EncryptionOffloadAllowed,
+        QUIC_SETTINGS,
+        Settings,
+        *SettingsLength,
+        InternalSettings);
+
+    SETTING_COPY_FLAG_FROM_INTERNAL_SIZED(
+        Flags,
+        ReliableResetEnabled,
         QUIC_SETTINGS,
         Settings,
         *SettingsLength,
