@@ -37,7 +37,7 @@ typedef struct QUIC_DATAGRAM {
     // send.
     //
     BOOLEAN SendEnabled : 1;
-    
+
 } QUIC_DATAGRAM;
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
