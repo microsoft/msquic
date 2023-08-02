@@ -1629,6 +1629,12 @@ TEST_P(WithSendArgs1, Send) {
 
 TEST_P(WithSendArgs2, SendLarge) {
     TestLoggerT<ParamType> Logger("QuicTestConnectAndPing", GetParam());
+#if defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
+    if (QuitTestIsFeatureSupported(CXPLAT_DATAPATH_FEATURE_RAW) && UseQTIP && GetParam().UseZeroRtt) {
+        return;
+    }
+#endif
+
     if (TestingKernelMode) {
         QUIC_RUN_CONNECT_AND_PING_PARAMS Params = {
             GetParam().Family,

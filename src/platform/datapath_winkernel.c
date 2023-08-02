@@ -2119,6 +2119,7 @@ CxPlatSocketAllocRecvContext(
     CXPLAT_DATAPATH_INTERNAL_RECV_CONTEXT* InternalContext = CxPlatPoolAlloc(Pool);
 
     if (InternalContext != NULL) {
+        InternalContext->Route.State = RouteResolved;
         InternalContext->DatagramPoolIndex = IsUro;
         InternalContext->ProcContext = &Datapath->ProcContexts[ProcIndex];
         InternalContext->DataBufferStart = NULL;

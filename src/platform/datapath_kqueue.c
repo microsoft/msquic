@@ -616,6 +616,7 @@ CxPlatDataPathAllocRecvBlock(
             0);
     } else {
         CxPlatZeroMemory(RecvBlock, sizeof(*RecvBlock));
+        RecvBlock->Route.State = RouteResolved;
         RecvBlock->OwningPool = &DatapathProc->RecvBlockPool;
         RecvBlock->RecvPacket.Buffer = RecvBlock->Buffer;
         RecvBlock->RecvPacket.Allocated = TRUE;

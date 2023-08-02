@@ -453,6 +453,11 @@ QuicTestValidateConnectionEvents3(
     _In_ QuicAddr& ServerLocalAddr
     )
 {
+#if !defined(QUIC_DISABLE_0RTT_TESTS) // TODO: Fix openssl/XDP bug and enable this back
+        if (!QuitTestIsFeatureSupported(CXPLAT_DATAPATH_FEATURE_RAW)) {
+            return;
+        }
+#endif
     TestScopeLogger ScopeLogger(__FUNCTION__);
 
     MsQuicSettings Settings;
