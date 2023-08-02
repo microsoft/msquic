@@ -1296,6 +1296,19 @@ namespace Microsoft.Quic
             }
         }
 
+        internal byte ReliableResetEnabled
+        {
+            get
+            {
+                return Anonymous2.Anonymous.ReliableResetEnabled;
+            }
+
+            set
+            {
+                Anonymous2.Anonymous.ReliableResetEnabled = value;
+            }
+        }
+
         internal ulong ReservedFlags
         {
             get
@@ -1828,17 +1841,31 @@ namespace Microsoft.Quic
                     }
                 }
 
-                [NativeTypeName("uint64_t : 28")]
-                internal ulong RESERVED
+                [NativeTypeName("uint64_t : 1")]
+                internal ulong ReliableResetEnabled
                 {
                     get
                     {
-                        return (_bitfield >> 36) & 0xFFFFFFFUL;
+                        return (_bitfield >> 36) & 0x1UL;
                     }
 
                     set
                     {
-                        _bitfield = (_bitfield & ~(0xFFFFFFFUL << 36)) | ((value & 0xFFFFFFFUL) << 36);
+                        _bitfield = (_bitfield & ~(0x1UL << 36)) | ((value & 0x1UL) << 36);
+                    }
+                }
+
+                [NativeTypeName("uint64_t : 27")]
+                internal ulong RESERVED
+                {
+                    get
+                    {
+                        return (_bitfield >> 37) & 0x7FFFFFFUL;
+                    }
+
+                    set
+                    {
+                        _bitfield = (_bitfield & ~(0x7FFFFFFUL << 37)) | ((value & 0x7FFFFFFUL) << 37);
                     }
                 }
             }
@@ -1857,19 +1884,19 @@ namespace Microsoft.Quic
 
             internal partial struct _Anonymous_e__Struct
             {
-                internal ulong _bitfield;
+                internal ulong _bitfield1;
 
                 [NativeTypeName("uint64_t : 1")]
                 internal ulong HyStartEnabled
                 {
                     get
                     {
-                        return _bitfield & 0x1UL;
+                        return _bitfield1 & 0x1UL;
                     }
 
                     set
                     {
-                        _bitfield = (_bitfield & ~0x1UL) | (value & 0x1UL);
+                        _bitfield1 = (_bitfield1 & ~0x1UL) | (value & 0x1UL);
                     }
                 }
 
@@ -1878,26 +1905,44 @@ namespace Microsoft.Quic
                 {
                     get
                     {
-                        return (_bitfield >> 1) & 0x1UL;
+                        return (_bitfield1 >> 1) & 0x1UL;
                     }
 
                     set
                     {
-                        _bitfield = (_bitfield & ~(0x1UL << 1)) | ((value & 0x1UL) << 1);
+                        _bitfield1 = (_bitfield1 & ~(0x1UL << 1)) | ((value & 0x1UL) << 1);
                     }
                 }
 
-                [NativeTypeName("uint64_t : 62")]
+                internal byte _bitfield2;
+
+                [NativeTypeName("uint8_t : 1")]
+                internal byte ReliableResetEnabled
+                {
+                    get
+                    {
+                        return (byte)(_bitfield2 & 0x1u);
+                    }
+
+                    set
+                    {
+                        _bitfield2 = (byte)((_bitfield2 & ~0x1u) | (value & 0x1u));
+                    }
+                }
+
+                internal ulong _bitfield3;
+
+                [NativeTypeName("uint64_t : 61")]
                 internal ulong ReservedFlags
                 {
                     get
                     {
-                        return (_bitfield >> 2) & 0x3FFFFFFFUL;
+                        return _bitfield3 & 0x1FFFFFFFUL;
                     }
 
                     set
                     {
-                        _bitfield = (_bitfield & ~(0x3FFFFFFFUL << 2)) | ((value & 0x3FFFFFFFUL) << 2);
+                        _bitfield3 = (_bitfield3 & ~0x1FFFFFFFUL) | (value & 0x1FFFFFFFUL);
                     }
                 }
             }
@@ -2179,6 +2224,7 @@ namespace Microsoft.Quic
         RESUMED = 13,
         RESUMPTION_TICKET_RECEIVED = 14,
         PEER_CERTIFICATE_RECEIVED = 15,
+        RELIABLE_RESET_NEGOTIATED = 16,
     }
 
     internal partial struct QUIC_CONNECTION_EVENT
@@ -2316,6 +2362,14 @@ namespace Microsoft.Quic
             }
         }
 
+        internal ref _Anonymous_e__Union._RELIABLE_RESET_NEGOTIATED_e__Struct RELIABLE_RESET_NEGOTIATED
+        {
+            get
+            {
+                return ref MemoryMarshal.GetReference(MemoryMarshal.CreateSpan(ref Anonymous.RELIABLE_RESET_NEGOTIATED, 1));
+            }
+        }
+
         [StructLayout(LayoutKind.Explicit)]
         internal partial struct _Anonymous_e__Union
         {
@@ -2382,6 +2436,10 @@ namespace Microsoft.Quic
             [FieldOffset(0)]
             [NativeTypeName("struct (anonymous struct)")]
             internal _PEER_CERTIFICATE_RECEIVED_e__Struct PEER_CERTIFICATE_RECEIVED;
+
+            [FieldOffset(0)]
+            [NativeTypeName("struct (anonymous struct)")]
+            internal _RELIABLE_RESET_NEGOTIATED_e__Struct RELIABLE_RESET_NEGOTIATED;
 
             internal unsafe partial struct _CONNECTED_e__Struct
             {
@@ -2553,6 +2611,12 @@ namespace Microsoft.Quic
 
                 [NativeTypeName("QUIC_CERTIFICATE_CHAIN *")]
                 internal void* Chain;
+            }
+
+            internal partial struct _RELIABLE_RESET_NEGOTIATED_e__Struct
+            {
+                [NativeTypeName("BOOLEAN")]
+                internal byte IsNegotiated;
             }
         }
     }
@@ -3112,6 +3176,9 @@ namespace Microsoft.Quic
 
         [NativeTypeName("#define QUIC_PARAM_CONN_ORIG_DEST_CID 0x05000018")]
         internal const uint QUIC_PARAM_CONN_ORIG_DEST_CID = 0x05000018;
+
+        [NativeTypeName("#define QUIC_PARAM_CONN_RELIABLE_RESET_ENABLED 0x05000019")]
+        internal const uint QUIC_PARAM_CONN_RELIABLE_RESET_ENABLED = 0x05000019;
 
         [NativeTypeName("#define QUIC_PARAM_TLS_HANDSHAKE_INFO 0x06000000")]
         internal const uint QUIC_PARAM_TLS_HANDSHAKE_INFO = 0x06000000;
