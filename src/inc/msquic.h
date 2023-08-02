@@ -1218,7 +1218,7 @@ typedef struct QUIC_CONNECTION_EVENT {
         
         #ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
         struct {
-            uint8_t ReliableResetEnabledNegotitatedValue;
+            BOOLEAN IsNegotiated;
         } RELIABLE_RESET_NEGOTIATED;
         #endif
     };
