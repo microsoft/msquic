@@ -18,6 +18,8 @@ Abstract:
 
 #if defined(_KERNEL_MODE)
 bool UseQTIP = false;
+// currently x is only CXPLAT_DATAPATH_FEATURE_RAW
+#define QuitTestIsFeatureSupported(x) false
 #elif defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
 extern bool UseQTIP;
 #endif
