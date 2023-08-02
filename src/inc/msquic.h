@@ -1143,6 +1143,9 @@ typedef enum QUIC_CONNECTION_EVENT_TYPE {
     QUIC_CONNECTION_EVENT_RESUMED                           = 13,   // Server-only; provides resumption data, if any.
     QUIC_CONNECTION_EVENT_RESUMPTION_TICKET_RECEIVED        = 14,   // Client-only; provides ticket to persist, if any.
     QUIC_CONNECTION_EVENT_PEER_CERTIFICATE_RECEIVED         = 15,   // Only with QUIC_CREDENTIAL_FLAG_INDICATE_CERTIFICATE_RECEIVED set
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
+    QUIC_CONNECTION_EVENT_RELIABLE_RESET_NEGOTIATED         = 16,
+#endif
 } QUIC_CONNECTION_EVENT_TYPE;
 
 typedef struct QUIC_CONNECTION_EVENT {
@@ -1216,11 +1219,11 @@ typedef struct QUIC_CONNECTION_EVENT {
             QUIC_CERTIFICATE_CHAIN* Chain;      // Peer certificate chain (platform specific). Valid only during QUIC_CONNECTION_EVENT_PEER_CERTIFICATE_RECEIVED callback.
         } PEER_CERTIFICATE_RECEIVED;
         
-        #ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
         struct {
             BOOLEAN IsNegotiated;
         } RELIABLE_RESET_NEGOTIATED;
-        #endif
+#endif
     };
 } QUIC_CONNECTION_EVENT;
 
