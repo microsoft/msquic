@@ -579,6 +579,7 @@ CXPLAT_STATIC_ASSERT(
 #define QUIC_TP_FLAG_MIN_ACK_DELAY                          0x00100000
 #define QUIC_TP_FLAG_CIBIR_ENCODING                         0x00200000
 #define QUIC_TP_FLAG_GREASE_QUIC_BIT                        0x00400000
+#define QUIC_TP_FLAG_RELIABLE_RESET_ENABLED                 0x00800000
 
 #define QUIC_TP_MAX_PACKET_SIZE_DEFAULT                     65527
 #define QUIC_TP_MAX_UDP_PAYLOAD_SIZE_MIN                    1200
