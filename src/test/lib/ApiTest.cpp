@@ -2135,6 +2135,28 @@ void QuicTestStatefulGlobalSetParam()
                 sizeof(Mode),
                 &Mode));
     }
+
+    {
+        TestScopeLogger LogScope1("Get QUIC_PARAM_GLOBAL_DATAPATH_FEATURES after Datapath is made (MsQuicLib.Datapath)");
+        uint32_t Length = 0;
+        TEST_QUIC_STATUS(
+            QUIC_STATUS_BUFFER_TOO_SMALL,
+            MsQuic->GetParam(
+                nullptr,
+                QUIC_PARAM_GLOBAL_DATAPATH_FEATURES,
+                &Length,
+                nullptr));
+        TEST_EQUAL(Length, sizeof(uint32_t));
+
+        uint32_t ActualFeatures = 0;
+        TEST_QUIC_SUCCEEDED(
+            MsQuic->GetParam(
+                nullptr,
+                QUIC_PARAM_GLOBAL_DATAPATH_FEATURES,
+                &Length,
+                &ActualFeatures));
+        TEST_NOT_EQUAL(ActualFeatures, 0);
+    }
 }
 
 void QuicTestGlobalParam()
@@ -2473,7 +2495,6 @@ void QuicTestGlobalParam()
     //
     {
         TestScopeLogger LogScope0("QUIC_PARAM_GLOBAL_DATAPATH_FEATURES");
-        GlobalSettingScope ParamScope(QUIC_PARAM_GLOBAL_DATAPATH_FEATURES);
         {
             TestScopeLogger LogScope1("SetParam");
             //
@@ -2492,7 +2513,7 @@ void QuicTestGlobalParam()
         }
 
         {
-            TestScopeLogger LogScope2("GetParam");
+            TestScopeLogger LogScope2("GetParam. Failed by missing MsQuicLib.Datapath");
             uint32_t Length = 0;
             TEST_QUIC_STATUS(
                 QUIC_STATUS_BUFFER_TOO_SMALL,
@@ -2504,13 +2525,12 @@ void QuicTestGlobalParam()
             TEST_EQUAL(Length, sizeof(uint32_t));
 
             uint32_t ActualFeatures = 0;
-            TEST_QUIC_SUCCEEDED(
+            TEST_QUIC_STATUS(QUIC_STATUS_INVALID_STATE,
                 MsQuic->GetParam(
                     nullptr,
                     QUIC_PARAM_GLOBAL_DATAPATH_FEATURES,
                     &Length,
                     &ActualFeatures));
-            TEST_NOT_EQUAL(ActualFeatures, 0);
         }
 
     }
