@@ -2090,10 +2090,6 @@ TEST(Drill, VarIntEncoder) {
 }
 
 TEST_P(WithDrillInitialPacketCidArgs, DrillInitialPacketCids) {
-    if (!QuitTestIsFeatureSupported(CXPLAT_DATAPATH_FEATURE_RAW)) {
-        GTEST_SKIP_("Raw datapath not enabled");
-    }
-
     TestLoggerT<ParamType> Logger("QuicDrillInitialPacketCids", GetParam());
     if (TestingKernelMode) {
         QUIC_RUN_DRILL_INITIAL_PACKET_CID_PARAMS Params = {
@@ -2105,6 +2101,9 @@ TEST_P(WithDrillInitialPacketCidArgs, DrillInitialPacketCids) {
         };
         ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_DRILL_INITIAL_PACKET_CID, Params));
     } else {
+        if (QuitTestIsFeatureSupported(CXPLAT_DATAPATH_FEATURE_RAW)) {
+            GTEST_SKIP_("Raw datapath not enabled");
+        }
         QuicDrillTestInitialCid(
             GetParam().Family,
             GetParam().SourceOrDest,
@@ -2115,14 +2114,13 @@ TEST_P(WithDrillInitialPacketCidArgs, DrillInitialPacketCids) {
 }
 
 TEST_P(WithDrillInitialPacketTokenArgs, DrillInitialPacketToken) {
-    if (!QuitTestIsFeatureSupported(CXPLAT_DATAPATH_FEATURE_RAW)) {
-        GTEST_SKIP_("Raw datapath not enabled");
-    }
-
     TestLoggerT<ParamType> Logger("QuicDrillInitialPacketToken", GetParam());
     if (TestingKernelMode) {
         ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_DRILL_INITIAL_PACKET_TOKEN, GetParam().Family));
     } else {
+        if (QuitTestIsFeatureSupported(CXPLAT_DATAPATH_FEATURE_RAW)) {
+            GTEST_SKIP_("Raw datapath not enabled");
+        }
         QuicDrillTestInitialToken(GetParam().Family);
     }
 }
