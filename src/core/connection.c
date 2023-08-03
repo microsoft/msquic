@@ -3066,7 +3066,6 @@ QuicConnProcessPeerTransportParameters(
             //
             Connection->State.ReliableResetStreamNegotiated = TRUE;
         } else {
-            Connection->State.ReliableResetStreamNegotiated = TRUE;
             Connection->Settings.ReliableResetEnabled = FALSE;
         }
 
