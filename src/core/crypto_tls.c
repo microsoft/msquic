@@ -1853,9 +1853,9 @@ QuicCryptoTlsDecodeTransportParameters( // NOLINT(readability-function-size, goo
             }
             TransportParams->Flags |= QUIC_TP_FLAG_RELIABLE_RESET_ENABLED;
             QuicTraceLogConnVerbose(
-                DecodeTPReliableResetEnabled,
+                DecodeTPReliableReset,
                 Connection,
-                "TP: Decode Reliable Reset Enabled");
+                "TP: Decode Reliable Reset");
             break;
 
         default:
