@@ -1179,9 +1179,9 @@ QuicCryptoTlsEncodeTransportParameters(
                 NULL,
                 TPBuf);
         QuicTraceLogConnVerbose(
-            EncodeTPReliableResetEnabled,
+            EncodeTPReliableReset,
             Connection,
-            "TP: Encode Reliable Reset Enabled");
+            "TP: Encode Reliable Reset");
     }
     if (TestParam != NULL) {
         TPBuf =
