@@ -892,9 +892,6 @@ typedef struct QUIC_SCHANNEL_CREDENTIAL_ATTRIBUTE_W {
 #define QUIC_PARAM_CONN_STATISTICS_V2                   0x05000016  // QUIC_STATISTICS_V2
 #define QUIC_PARAM_CONN_STATISTICS_V2_PLAT              0x05000017  // QUIC_STATISTICS_V2
 #define QUIC_PARAM_CONN_ORIG_DEST_CID                   0x05000018  // uint8_t[]
-#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
-#define QUIC_PARAM_CONN_RELIABLE_RESET_ENABLED          0x05000019  // uint8_t (BOOLEAN)
-#endif
 
 //
 // Parameters for TLS.
@@ -1220,7 +1217,7 @@ typedef struct QUIC_CONNECTION_EVENT {
             QUIC_STATUS DeferredStatus;         // Most severe error status (only valid with QUIC_CREDENTIAL_FLAG_DEFER_CERTIFICATE_VALIDATION)
             QUIC_CERTIFICATE_CHAIN* Chain;      // Peer certificate chain (platform specific). Valid only during QUIC_CONNECTION_EVENT_PEER_CERTIFICATE_RECEIVED callback.
         } PEER_CERTIFICATE_RECEIVED;
-        
+
 #ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
         struct {
             BOOLEAN IsNegotiated;

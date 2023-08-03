@@ -5276,6 +5276,10 @@ QuicConnRecvFrames(
             AckImmediately = TRUE;
             break;
 
+        case QUIC_FRAME_RELIABLE_RESET_STREAM:
+            // TODO - Implement this frame.
+            break;
+
         default:
             //
             // No default case necessary, as we have already validated the frame
@@ -6602,34 +6606,6 @@ QuicConnParamSet(
         return QUIC_STATUS_SUCCESS;
     }
 
-    case QUIC_PARAM_CONN_RELIABLE_RESET_ENABLED:
-
-        if (BufferLength != sizeof(BOOLEAN)) {
-            Status = QUIC_STATUS_INVALID_PARAMETER;
-            break;
-        }
-
-        if (QUIC_CONN_BAD_START_STATE(Connection)) {
-            Status = QUIC_STATUS_INVALID_STATE;
-            break;
-        }
-
-        Connection->Settings.ReliableResetEnabled = *(BOOLEAN*)Buffer && Connection->ReliableResetStreamNegotiated;
-        Connection->Settings.IsSet.ReliableResetEnabled = TRUE;
-        Status = QUIC_STATUS_SUCCESS;
-
-        QuicTraceLogConnVerbose(
-            ReliableResetEnabledUpdated,
-            Connection,
-            "Updated reliable reset frame enabled to %hhu",
-            Connection->Settings.ReliableResetEnabled);
-
-        break;
-
-    //
-    // Private
-    //
-
     case QUIC_PARAM_CONN_FORCE_KEY_UPDATE:
 
         if (!Connection->State.Connected ||
@@ -7230,25 +7206,6 @@ QuicConnParamGet(
         Status = QUIC_STATUS_SUCCESS;
         break;
 
-    case QUIC_PARAM_CONN_RELIABLE_RESET_ENABLED:
-
-        if (*BufferLength < sizeof(BOOLEAN)) {
-            *BufferLength = sizeof(BOOLEAN);
-            Status = QUIC_STATUS_BUFFER_TOO_SMALL;
-            break;
-        }
-
-        if (Buffer == NULL) {
-            Status = QUIC_STATUS_INVALID_PARAMETER;
-            break;
-        }
-
-        *BufferLength = sizeof(BOOLEAN);
-        *(BOOLEAN*)Buffer = Connection->Settings.ReliableResetEnabled;
-
-        Status = QUIC_STATUS_SUCCESS;
-        break;
-    
     default:
         Status = QUIC_STATUS_INVALID_PARAMETER;
         break;
