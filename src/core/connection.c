@@ -3059,6 +3059,17 @@ QuicConnProcessPeerTransportParameters(
             Connection->Stats.GreaseBitNegotiated = TRUE;
         }
 
+        if (Connection->Settings.ReliableResetEnabled &&
+            (Connection->PeerTransportParams.Flags & QUIC_TP_FLAG_RELIABLE_RESET_ENABLED) > 0) {
+            //
+            // Reliable Reset is enabled on both sides.
+            //
+            Connection->State.ReliableResetStreamNegotiated = TRUE;
+        } else {
+            Connection->State.ReliableResetStreamNegotiated = TRUE;
+            Connection->Settings.ReliableResetEnabled = FALSE;
+        }
+
         //
         // Fully validate all exchanged connection IDs.
         //
