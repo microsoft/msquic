@@ -1441,7 +1441,7 @@ QuicSettingsDumpNew(
         QuicTraceLogVerbose(SettingEncryptionOffloadAllowed,        "[sett] EncryptionOffloadAllowed   = %hhu", Settings->EncryptionOffloadAllowed);
     }
     if (Settings->IsSet.ReliableResetEnabled) {
-        QuicTraceLogVerbose(SettingReliableResetEnabled,            "[sett] ReliableResetEnabled   = %hhu", Settings->ReliableResetEnabled);
+        QuicTraceLogVerbose(SettingReliableResetEnabled,            "[sett] ReliableResetEnabled       = %hhu", Settings->ReliableResetEnabled);
     }
 }
 
@@ -1653,7 +1653,7 @@ QuicSettingsSettingsToInternal(
         Settings,
         SettingsSize,
         InternalSettings);
-    
+
     SETTING_COPY_FLAG_TO_INTERNAL_SIZED(
         Flags,
         ReliableResetEnabled,

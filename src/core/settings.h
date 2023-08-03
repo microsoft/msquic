@@ -93,7 +93,7 @@ typedef struct QUIC_SETTINGS_INTERNAL {
     uint8_t SendBufferingEnabled            : 1;
     uint8_t PacingEnabled                   : 1;
     uint8_t MigrationEnabled                : 1;
-    uint8_t DatagramReceiveEnabled          : 1; 
+    uint8_t DatagramReceiveEnabled          : 1;
     uint8_t ServerResumptionLevel           : 2;    // QUIC_SERVER_RESUMPTION_LEVEL
     uint8_t VersionNegotiationExtEnabled    : 1;
     uint8_t GreaseQuicBitEnabled            : 1;
