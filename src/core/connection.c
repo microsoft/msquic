@@ -6606,6 +6606,10 @@ QuicConnParamSet(
         return QUIC_STATUS_SUCCESS;
     }
 
+    //
+    // Private
+    //
+
     case QUIC_PARAM_CONN_FORCE_KEY_UPDATE:
 
         if (!Connection->State.Connected ||
