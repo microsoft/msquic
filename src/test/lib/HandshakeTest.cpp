@@ -461,12 +461,15 @@ QuicTestNatPortRebind(
     MsQuicRegistration Registration(true);
     TEST_TRUE(Registration.IsValid());
 #if defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
+#pragma warning(push)
+#pragma warning(disable: 4127)
     if (QuitTestIsFeatureSupported(CXPLAT_DATAPATH_FEATURE_RAW) && UseQTIP) {
         //
         // NAT rebind doesn't make sense for TCP and QTIP.
         //
         return;
     }
+#pragma warning(pop)
 #endif
 
     MsQuicConfiguration ServerConfiguration(Registration, "MsQuicTest", ServerSelfSignedCredConfig);
@@ -518,12 +521,15 @@ QuicTestNatAddrRebind(
     MsQuicRegistration Registration(true);
     TEST_TRUE(Registration.IsValid());
 #if defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
+#pragma warning(push)
+#pragma warning(disable: 4127)
     if (QuitTestIsFeatureSupported(CXPLAT_DATAPATH_FEATURE_RAW) && UseQTIP) {
         //
         // NAT rebind doesn't make sense for TCP and QTIP.
         //
         return;
     }
+#pragma warning(pop)
 #endif
 
     MsQuicConfiguration ServerConfiguration(Registration, "MsQuicTest", ServerSelfSignedCredConfig);
