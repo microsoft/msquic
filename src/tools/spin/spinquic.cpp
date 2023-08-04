@@ -677,8 +677,8 @@ void SpinQuicRandomizeSettings(QUIC_SETTINGS& Settings, uint16_t ThreadID)
         Settings.IsSet.HyStartEnabled = TRUE;
         break;
     case 35:
-        //Settings.EncryptionOffloadAllowed = GetRandom((uint8_t)1);
-        //Settings.IsSet.EncryptionOffloadAllowed = TRUE;
+        Settings.EncryptionOffloadAllowed = GetRandom((uint8_t)1);
+        Settings.IsSet.EncryptionOffloadAllowed = TRUE;
         break;
     default:
         break;

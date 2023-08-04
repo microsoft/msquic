@@ -453,26 +453,6 @@ tracepoint(CLOG_CONNECTION_C, UnreachableInvalid , arg1);\
 
 
 /*----------------------------------------------------------
-// Decoder Ring for PathQeoDisabled
-// [conn][%p] Path[%hhu] QEO disabled
-// QuicTraceLogConnInfo(
-                PathQeoDisabled,
-                Connection,
-                "Path[%hhu] QEO disabled",
-                Connection->Paths[0].ID);
-// arg1 = arg1 = Connection = arg1
-// arg3 = arg3 = Connection->Paths[0].ID = arg3
-----------------------------------------------------------*/
-#ifndef _clog_4_ARGS_TRACE_PathQeoDisabled
-#define _clog_4_ARGS_TRACE_PathQeoDisabled(uniqueId, arg1, encoded_arg_string, arg3)\
-tracepoint(CLOG_CONNECTION_C, PathQeoDisabled , arg1, arg3);\
-
-#endif
-
-
-
-
-/*----------------------------------------------------------
 // Decoder Ring for CloseUserCanceled
 // [conn][%p] Connection close using user canceled error
 // QuicTraceLogConnInfo(

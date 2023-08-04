@@ -484,27 +484,10 @@ QuicConnUninitialize(
     // Remove all entries in the binding's lookup tables so we don't get any
     // more packets queued.
     //
-    if (Connection->Paths[0].Binding != NULL) {
-        if (Connection->Paths[0].EncryptionOffloading) {
-            QUIC_CID_HASH_ENTRY* SourceCid =
-                CXPLAT_CONTAINING_RECORD(Connection->SourceCids.Next, QUIC_CID_HASH_ENTRY, Link);
-            CXPLAT_QEO_CONNECTION Offloads[2] = {0};
-            Offloads[0].Operation = CXPLAT_QEO_OPERATION_REMOVE;
-            Offloads[0].Direction = CXPLAT_QEO_DIRECTION_TRANSMIT;
-            Offloads[0].ConnectionIdLength = Connection->Paths[0].DestCid->CID.Length;
-            Offloads[1].Operation = CXPLAT_QEO_OPERATION_REMOVE;
-            Offloads[1].Direction = CXPLAT_QEO_DIRECTION_RECEIVE;
-            Offloads[1].ConnectionIdLength = SourceCid->CID.Length;
-            memcpy(Offloads[0].ConnectionId, Connection->Paths[0].DestCid->CID.Data, Connection->Paths[0].DestCid->CID.Length);
-            memcpy(Offloads[1].ConnectionId, SourceCid->CID.Data, SourceCid->CID.Length);
-            (void)CxPlatSocketUpdateQeo(Connection->Paths[0].Binding->Socket, Offloads, 2);
-            Connection->Stats.EncryptionOffloaded = FALSE;
-            Connection->Paths[0].EncryptionOffloading = FALSE;
-            QuicTraceLogConnInfo(
-                PathQeoDisabled,
-                Connection,
-                "Path[%hhu] QEO disabled",
-                Connection->Paths[0].ID);
+    QUIC_PATH* Path = &Connection->Paths[0];
+    if (Path->Binding != NULL) {
+        if (Path->EncryptionOffloading) {
+            QuicPathUpdateQeo(Connection, Path, CXPLAT_QEO_OPERATION_REMOVE);
         }
 
         QuicBindingRemoveConnection(Connection->Paths[0].Binding, Connection);
@@ -3960,7 +3943,7 @@ QuicConnRecvHeader(
         } else {
             Packet->KeyType = QuicPacketTypeToKeyTypeV1(Packet->LH->Type);
         }
-        Packet->Encrypted = !Connection->Paths[0].EncryptionOffloading;
+        Packet->Encrypted = TRUE;
 
     } else {
 
@@ -3970,7 +3953,9 @@ QuicConnRecvHeader(
         }
 
         Packet->KeyType = QUIC_PACKET_KEY_1_RTT;
-        Packet->Encrypted = !Connection->State.Disable1RttEncrytion;
+        Packet->Encrypted =
+            !Connection->State.Disable1RttEncrytion &&
+            !Connection->Paths[0].EncryptionOffloading;
     }
 
     if (Packet->Encrypted &&
