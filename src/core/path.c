@@ -331,29 +331,28 @@ QuicPathUpdateQeo(
     const QUIC_CID_HASH_ENTRY* SourceCid =
         CXPLAT_CONTAINING_RECORD(Connection->SourceCids.Next, QUIC_CID_HASH_ENTRY, Link);
     CXPLAT_QEO_CONNECTION Offloads[2] = {
-        {
-            Operation,
-            CXPLAT_QEO_DIRECTION_TRANSMIT,
-            CXPLAT_QEO_DECRYPT_FAILURE_ACTION_DROP,
-            0,
-            0, // Reserved
-            CXPLAT_QEO_CIPHER_TYPE_AEAD_AES_256_GCM,
-            Connection->Send.NextPacketNumber,
-            Path->Route.RemoteAddress,
-            Path->DestCid->CID.Length,
-        },
-        {
-            Operation,
-            CXPLAT_QEO_DIRECTION_RECEIVE,
-            CXPLAT_QEO_DECRYPT_FAILURE_ACTION_DROP,
-            0,
-            0, // Reserved
-            CXPLAT_QEO_CIPHER_TYPE_AEAD_AES_256_GCM,
-            Connection->Packets[QUIC_ENCRYPT_LEVEL_1_RTT]->AckTracker.LargestPacketNumberAcknowledged,
-            Path->Route.LocalAddress,
-            SourceCid->CID.Length,
-        }
-    };
+    {
+        Operation,
+        CXPLAT_QEO_DIRECTION_TRANSMIT,
+        CXPLAT_QEO_DECRYPT_FAILURE_ACTION_DROP,
+        0, // KeyPhase
+        0, // Reserved
+        CXPLAT_QEO_CIPHER_TYPE_AEAD_AES_256_GCM,
+        Connection->Send.NextPacketNumber,
+        Path->Route.RemoteAddress,
+        Path->DestCid->CID.Length,
+    },
+    {
+        Operation,
+        CXPLAT_QEO_DIRECTION_RECEIVE,
+        CXPLAT_QEO_DECRYPT_FAILURE_ACTION_DROP,
+        0, // KeyPhase
+        0, // Reserved
+        CXPLAT_QEO_CIPHER_TYPE_AEAD_AES_256_GCM,
+        0, // NextPacketNumber
+        Path->Route.LocalAddress,
+        SourceCid->CID.Length,
+    }};
     CxPlatCopyMemory(Offloads[0].ConnectionId, Path->DestCid->CID.Data, Path->DestCid->CID.Length);
     CxPlatCopyMemory(Offloads[1].ConnectionId, SourceCid->CID.Data, SourceCid->CID.Length);
 
