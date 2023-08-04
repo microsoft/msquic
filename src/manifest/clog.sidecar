@@ -3507,6 +3507,18 @@
       ],
       "macroName": "QuicTraceLogConnVerbose"
     },
+    "DecodeTPReliableReset": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] TP: Decode Reliable Reset",
+      "UniqueId": "DecodeTPReliableReset",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        }
+      ],
+      "macroName": "QuicTraceLogConnVerbose"
+    },
     "DecodeTPReserved": {
       "ModuleProperites": {},
       "TraceString": "[conn][%p] TP: Reserved ID %llu, length %hu",
@@ -4047,6 +4059,18 @@
       "ModuleProperites": {},
       "TraceString": "[conn][%p] TP: Preferred Address",
       "UniqueId": "EncodeTPPreferredAddress",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        }
+      ],
+      "macroName": "QuicTraceLogConnVerbose"
+    },
+    "EncodeTPReliableReset": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] TP: Encode Reliable Reset",
+      "UniqueId": "EncodeTPReliableReset",
       "splitArgs": [
         {
           "DefinationEncoding": "p",
@@ -13665,6 +13689,11 @@
         "EncodingString": "[conn][%p] TP: Preferred Address"
       },
       {
+        "UniquenessHash": "eabf7a25-2986-5193-5044-318b4711544e",
+        "TraceID": "DecodeTPReliableReset",
+        "EncodingString": "[conn][%p] TP: Decode Reliable Reset"
+      },
+      {
         "UniquenessHash": "95f4176f-e0b5-1420-53d9-44e244c44ea5",
         "TraceID": "DecodeTPReserved",
         "EncodingString": "[conn][%p] TP: Reserved ID %llu, length %hu"
@@ -13838,6 +13867,11 @@
         "UniquenessHash": "7ae85c8f-532c-c622-19be-a82d9002385d",
         "TraceID": "EncodeTPPreferredAddress",
         "EncodingString": "[conn][%p] TP: Preferred Address"
+      },
+      {
+        "UniquenessHash": "75ce2146-e447-c891-d263-df4892bddda9",
+        "TraceID": "EncodeTPReliableReset",
+        "EncodingString": "[conn][%p] TP: Encode Reliable Reset"
       },
       {
         "UniquenessHash": "214be45a-42ba-44e1-05c2-f82f3200e671",
