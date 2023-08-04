@@ -735,6 +735,29 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, UpdatePacketTolerance,
 
 
 /*----------------------------------------------------------
+// Decoder Ring for ReliableResetFrameReceived
+// [conn][%p] Received a reliable reset frame. Local reliable reset extension preferences: %hhu
+// QuicTraceLogConnInfo(
+                ReliableResetFrameReceived,
+                Connection,
+                "Received a reliable reset frame. Local reliable reset extension preferences: %hhu",
+                Connection->Settings.ReliableResetEnabled);
+// arg1 = arg1 = Connection = arg1
+// arg3 = arg3 = Connection->Settings.ReliableResetEnabled = arg3
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_CONNECTION_C, ReliableResetFrameReceived,
+    TP_ARGS(
+        const void *, arg1,
+        unsigned char, arg3), 
+    TP_FIELDS(
+        ctf_integer_hex(uint64_t, arg1, arg1)
+        ctf_integer(unsigned char, arg3, arg3)
+    )
+)
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for FirstCidUsage
 // [conn][%p] First usage of SrcCid: %s
 // QuicTraceLogConnInfo(

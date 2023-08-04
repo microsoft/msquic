@@ -9118,6 +9118,22 @@
       ],
       "macroName": "QuicTraceLogConnVerbose"
     },
+    "ReliableResetFrameReceived": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] Received a reliable reset frame. Local reliable reset extension preferences: %hhu",
+      "UniqueId": "ReliableResetFrameReceived",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        },
+        {
+          "DefinationEncoding": "hhu",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macroName": "QuicTraceLogConnInfo"
+    },
     "RemoteBlocked": {
       "ModuleProperites": {},
       "TraceString": "[strm][%p] Remote FC blocked (%llu)",
@@ -15392,6 +15408,11 @@
         "UniquenessHash": "7c8196a9-c4d5-9b85-26ae-ee4492bfe6c8",
         "TraceID": "ReliableResetEnabledUpdated",
         "EncodingString": "[conn][%p] Updated reliable reset frame enabled to %hhu"
+      },
+      {
+        "UniquenessHash": "3ea0dcfb-b981-88e5-b801-74fb2684acaa",
+        "TraceID": "ReliableResetFrameReceived",
+        "EncodingString": "[conn][%p] Received a reliable reset frame. Local reliable reset extension preferences: %hhu"
       },
       {
         "UniquenessHash": "90a48bef-0658-1e75-8afa-d4fff8d929bf",

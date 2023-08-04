@@ -5294,7 +5294,12 @@ QuicConnRecvFrames(
             break;
 
         case QUIC_FRAME_RELIABLE_RESET_STREAM:
-            // TODO - Implement this frame.
+            QuicTraceLogConnInfo(
+                ReliableResetFrameReceived,
+                Connection,
+                "Received a reliable reset frame. Local reliable reset extension preferences: %hhu",
+                Connection->Settings.ReliableResetEnabled);
+                // TODO - Implement this frame.
             break;
 
         default:
