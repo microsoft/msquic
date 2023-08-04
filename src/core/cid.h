@@ -24,7 +24,7 @@ Abstract:
 // The number of bytes (and randomness) that MsQuic uses to uniquely
 // identify connections for a single server / partition combination.
 //
-#define QUIC_CID_PAYLOAD_LENGTH                 7
+#define QUIC_CID_PAYLOAD_LENGTH                 6
 
 //
 // The minimum number of bytes that should be purely random in a CID.

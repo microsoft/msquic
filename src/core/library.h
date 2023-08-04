@@ -456,7 +456,8 @@ QuicCidNewRandomSource(
         Data += MsQuicLib.CidServerIdLength;
 
         CXPLAT_STATIC_ASSERT(QUIC_CID_PID_LENGTH == sizeof(PartitionID), "Assumes a 2 byte PID");
-        CxPlatCopyMemory(Data, &PartitionID, sizeof(PartitionID));
+        // TODO: modified the last two byte to be 0 for the demo (simplification)
+        CxPlatZeroMemory(Data, sizeof(PartitionID));
         Data += sizeof(PartitionID);
 
         if (PrefixLength) {
