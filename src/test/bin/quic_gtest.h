@@ -25,23 +25,6 @@ extern bool TestingKernelMode;
 extern bool UseQTIP;
 #endif
 
-uint32_t
-QuitTestGetDatapathFeatureFlags() {
-    static uint32_t Length = sizeof(uint32_t);
-    uint32_t Features = 0;
-    MsQuic->GetParam(
-        nullptr,
-        QUIC_PARAM_GLOBAL_DATAPATH_FEATURES,
-        &Length,
-        &Features);
-    return Features;
-}
-
-bool
-QuitTestIsFeatureSupported(uint32_t Feature) {
-    return static_cast<bool>(QuitTestGetDatapathFeatureFlags() & Feature);
-}
-
 class WithBool : public testing::Test,
     public testing::WithParamInterface<bool> {
 };
