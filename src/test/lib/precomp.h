@@ -35,6 +35,14 @@
 #define WIN_ASSERT CXPLAT_FRE_ASSERT
 #endif
 #include "karray.h"
+
+#ifndef GLOBAL_FOR_KERNEL
+#define GLOBAL_FOR_KERNEL
+bool UseQTIP = false;
+uint64_t LARGE_SEND_SIZE = 100000000llu;
+// currently x is only CXPLAT_DATAPATH_FEATURE_RAW
+#define QuitTestIsFeatureSupported(x) false
+#endif
 #endif
 
 #include "TestHelpers.h"

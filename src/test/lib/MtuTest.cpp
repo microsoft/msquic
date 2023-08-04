@@ -14,11 +14,7 @@ Abstract:
 #include "MtuTest.cpp.clog.h"
 #endif
 
-#if defined(_KERNEL_MODE)
-bool UseQTIP = false;
-// currently x is only CXPLAT_DATAPATH_FEATURE_RAW
-#define QuitTestIsFeatureSupported(x) false
-#elif defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
+#if defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
 extern bool UseQTIP;
 #endif
 
@@ -53,12 +49,13 @@ struct ResetSettings {
 void
 QuicTestMtuSettings()
 {
+    MsQuicRegistration Registration;
+    TEST_QUIC_SUCCEEDED(Registration.GetInitStatus());
 #if defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
     const uint16_t DefaultMaximumMtu = (QuitTestIsFeatureSupported(CXPLAT_DATAPATH_FEATURE_RAW) && UseQTIP)? 1488 : 1500;
 #else
     const uint16_t DefaultMaximumMtu = 1500;
 #endif
-
     {
         //
         // Test setting on library works
@@ -82,8 +79,6 @@ QuicTestMtuSettings()
         TEST_EQUAL(NewSettings.MaximumMtu, UpdatedSettings.MaximumMtu);
     }
 
-    MsQuicRegistration Registration;
-    TEST_QUIC_SUCCEEDED(Registration.GetInitStatus());
     MsQuicAlpn Alpn("MsQuicTest");
     {
         {

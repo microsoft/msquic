@@ -453,11 +453,6 @@ QuicTestValidateConnectionEvents3(
     _In_ QuicAddr& ServerLocalAddr
     )
 {
-#if !defined(QUIC_DISABLE_0RTT_TESTS) // TODO: Fix openssl/XDP bug and enable this back
-        if (!QuitTestIsFeatureSupported(CXPLAT_DATAPATH_FEATURE_RAW)) {
-            return;
-        }
-#endif
     TestScopeLogger ScopeLogger(__FUNCTION__);
 
     MsQuicSettings Settings;
@@ -531,6 +526,15 @@ void QuicTestValidateConnectionEvents(uint32_t Test)
     TEST_TRUE(Registration.IsValid());
 
     MsQuicAlpn Alpn("MsQuicTest");
+
+#if defined(QUIC_DISABLE_0RTT_TESTS) // TODO: Fix openssl/XDP bug and enable this back
+    if (Test == 2) {
+        return;
+    }
+#endif
+    if (Test == 2 && QuitTestIsFeatureSupported(CXPLAT_DATAPATH_FEATURE_RAW)) {
+        return;
+    }
 
     { // Listener Scope
 
