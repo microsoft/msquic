@@ -319,3 +319,68 @@ QuicPathSetActive(
     CXPLAT_DBG_ASSERT(Path->DestCid != NULL);
     CXPLAT_DBG_ASSERT(!Path->DestCid->CID.Retired);
 }
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+QuicPathUpdateQeo(
+    _In_ QUIC_CONNECTION* Connection,
+    _In_ QUIC_PATH* Path,
+    _In_ CXPLAT_QEO_OPERATION Operation
+    )
+{
+    const QUIC_CID_HASH_ENTRY* SourceCid =
+        CXPLAT_CONTAINING_RECORD(Connection->SourceCids.Next, QUIC_CID_HASH_ENTRY, Link);
+    CXPLAT_QEO_CONNECTION Offloads[2] = {
+    {
+        Operation,
+        CXPLAT_QEO_DIRECTION_TRANSMIT,
+        CXPLAT_QEO_DECRYPT_FAILURE_ACTION_DROP,
+        0, // KeyPhase
+        0, // Reserved
+        CXPLAT_QEO_CIPHER_TYPE_AEAD_AES_256_GCM,
+        Connection->Send.NextPacketNumber,
+        Path->Route.RemoteAddress,
+        Path->DestCid->CID.Length,
+    },
+    {
+        Operation,
+        CXPLAT_QEO_DIRECTION_RECEIVE,
+        CXPLAT_QEO_DECRYPT_FAILURE_ACTION_DROP,
+        0, // KeyPhase
+        0, // Reserved
+        CXPLAT_QEO_CIPHER_TYPE_AEAD_AES_256_GCM,
+        0, // NextPacketNumber
+        Path->Route.LocalAddress,
+        SourceCid->CID.Length,
+    }};
+    CxPlatCopyMemory(Offloads[0].ConnectionId, Path->DestCid->CID.Data, Path->DestCid->CID.Length);
+    CxPlatCopyMemory(Offloads[1].ConnectionId, SourceCid->CID.Data, SourceCid->CID.Length);
+
+    if (Operation == CXPLAT_QEO_OPERATION_ADD) {
+        CXPLAT_DBG_ASSERT(Connection->Packets[QUIC_ENCRYPT_LEVEL_1_RTT]);
+        Offloads[0].KeyPhase = Connection->Packets[QUIC_ENCRYPT_LEVEL_1_RTT]->CurrentKeyPhase;
+        Offloads[1].KeyPhase = Connection->Packets[QUIC_ENCRYPT_LEVEL_1_RTT]->CurrentKeyPhase;
+        Offloads[1].NextPacketNumber = Connection->Packets[QUIC_ENCRYPT_LEVEL_1_RTT]->AckTracker.LargestPacketNumberAcknowledged;
+        if (QuicTlsPopulateOffloadKeys(Connection->Crypto.TLS, Connection->Crypto.TlsState.WriteKeys[QUIC_PACKET_KEY_1_RTT], "Tx offload", &Offloads[0]) &&
+            QuicTlsPopulateOffloadKeys(Connection->Crypto.TLS, Connection->Crypto.TlsState.ReadKeys[QUIC_PACKET_KEY_1_RTT],  "Rx offload", &Offloads[1]) &&
+            QUIC_SUCCEEDED(CxPlatSocketUpdateQeo(Path->Binding->Socket, Offloads, 2))) {
+            Connection->Stats.EncryptionOffloaded = TRUE;
+            Path->EncryptionOffloading = TRUE;
+            QuicTraceLogConnInfo(
+                PathQeoEnabled,
+                Connection,
+                "Path[%hhu] QEO enabled",
+                Path->ID);
+        }
+        CxPlatSecureZeroMemory(Offloads, sizeof(Offloads));
+    } else {
+        CXPLAT_DBG_ASSERT(Path->EncryptionOffloading);
+        (void)CxPlatSocketUpdateQeo(Path->Binding->Socket, Offloads, 2);
+        Path->EncryptionOffloading = FALSE;
+        QuicTraceLogConnInfo(
+            PathQeoDisabled,
+            Connection,
+            "Path[%hhu] QEO disabled",
+            Path->ID);
+    }
+}

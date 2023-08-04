@@ -126,26 +126,6 @@ tracepoint(CLOG_CRYPTO_C, HandshakeConfirmedServer , arg1);\
 
 
 /*----------------------------------------------------------
-// Decoder Ring for PathQeoEnabled
-// [conn][%p] Path[%hhu] QEO enabled
-// QuicTraceLogConnInfo(
-                    PathQeoEnabled,
-                    Connection,
-                    "Path[%hhu] QEO enabled",
-                    Path->ID);
-// arg1 = arg1 = Connection = arg1
-// arg3 = arg3 = Path->ID = arg3
-----------------------------------------------------------*/
-#ifndef _clog_4_ARGS_TRACE_PathQeoEnabled
-#define _clog_4_ARGS_TRACE_PathQeoEnabled(uniqueId, arg1, encoded_arg_string, arg3)\
-tracepoint(CLOG_CRYPTO_C, PathQeoEnabled , arg1, arg3);\
-
-#endif
-
-
-
-
-/*----------------------------------------------------------
 // Decoder Ring for CustomCertValidationSuccess
 // [conn][%p] Custom cert validation succeeded
 // QuicTraceLogConnInfo(
