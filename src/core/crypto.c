@@ -1649,11 +1649,12 @@ QuicCryptoProcessTlsCompletion(
 
         CXPLAT_DBG_ASSERT(Connection->PathsCount == 1);
         QUIC_PATH* Path = &Connection->Paths[0];
+        CXPLAT_DBG_ASSERT(Path->IsActive);
 
-        if (Path->IsActive && Connection->Settings.IsSet.EncryptionOffloadAllowed) {
+        if (Connection->Settings.EncryptionOffloadAllowed) {
             QUIC_CID_HASH_ENTRY* SourceCid =
                 CXPLAT_CONTAINING_RECORD(Connection->SourceCids.Next, QUIC_CID_HASH_ENTRY, Link);
-            CXPLAT_QEO_CONNECTION Offloads[] = {
+            CXPLAT_QEO_CONNECTION Offloads[2] = {
                 {
                     CXPLAT_QEO_OPERATION_ADD,
                     CXPLAT_QEO_DIRECTION_TRANSMIT,
@@ -1662,6 +1663,8 @@ QuicCryptoProcessTlsCompletion(
                     0, // Reserved:0
                     CXPLAT_QEO_CIPHER_TYPE_AEAD_AES_256_GCM,
                     Connection->Send.NextPacketNumber,
+                    Path->Route.RemoteAddress,
+                    Path->DestCid->CID.Length,
                 },
                 {
                     CXPLAT_QEO_OPERATION_ADD,
@@ -1671,14 +1674,11 @@ QuicCryptoProcessTlsCompletion(
                     0, // Reserved:0
                     CXPLAT_QEO_CIPHER_TYPE_AEAD_AES_256_GCM,
                     Connection->Packets[QUIC_ENCRYPT_LEVEL_1_RTT]->AckTracker.LargestPacketNumberAcknowledged,
+                    Path->Route.LocalAddress,
+                    SourceCid->CID.Length,
                 }
             };
-
-            Offloads[0].ConnectionIdLength = Path->DestCid->CID.Length;
-            CxPlatCopyMemory(&Offloads[0].Address, &Path->Route.RemoteAddress, sizeof(QUIC_ADDR));
             CxPlatCopyMemory(Offloads[0].ConnectionId, Path->DestCid->CID.Data, Path->DestCid->CID.Length);
-            Offloads[1].ConnectionIdLength = SourceCid->CID.Length;
-            CxPlatCopyMemory(&Offloads[1].Address, &Path->Route.LocalAddress, sizeof(QUIC_ADDR));
             CxPlatCopyMemory(Offloads[1].ConnectionId, SourceCid->CID.Data, SourceCid->CID.Length);
             if (QuicTlsPopulateOffloadKeys(Connection->Crypto.TLS, Connection->Crypto.TlsState.WriteKeys[QUIC_PACKET_KEY_1_RTT], "Tx offload", &Offloads[0]) &&
                 QuicTlsPopulateOffloadKeys(Connection->Crypto.TLS, Connection->Crypto.TlsState.ReadKeys[QUIC_PACKET_KEY_1_RTT],  "Rx offload", &Offloads[1]) &&
