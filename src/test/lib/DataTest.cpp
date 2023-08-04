@@ -17,6 +17,7 @@ Abstract:
 #if defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
 extern bool UseQTIP;
 #endif
+extern uint64_t LARGE_SEND_SIZE;
 
 /*
     Helper function to estimate a maximum timeout for a test with a
@@ -369,6 +370,18 @@ QuicTestConnectAndPing(
     _In_ bool FifoScheduling
     )
 {
+    MsQuicRegistration Registration(NULL, QUIC_EXECUTION_PROFILE_TYPE_MAX_THROUGHPUT, true);
+    TEST_TRUE(Registration.IsValid());
+#if defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
+        if (QuitTestIsFeatureSupported(CXPLAT_DATAPATH_FEATURE_RAW) && UseQTIP) {
+            if (Length != LARGE_SEND_SIZE) {
+                return;
+            } else if (ClientZeroRtt) {
+                return;
+            }
+        }
+#endif
+
     const uint32_t TimeoutMs = EstimateTimeoutMs(Length) * StreamBurstCount;
     const uint16_t TotalStreamCount = (uint16_t)(StreamCount * StreamBurstCount);
     QUIC_ADDRESS_FAMILY QuicAddrFamily = (Family == 4) ? QUIC_ADDRESS_FAMILY_INET : QUIC_ADDRESS_FAMILY_INET6;
@@ -394,9 +407,6 @@ QuicTestConnectAndPing(
         }
         ServerStats.TlsSecrets = ServerSecrets.get();
     }
-
-    MsQuicRegistration Registration(NULL, QUIC_EXECUTION_PROFILE_TYPE_MAX_THROUGHPUT, true);
-    TEST_TRUE(Registration.IsValid());
 
     MsQuicAlpn Alpn("MsQuicTest");
 

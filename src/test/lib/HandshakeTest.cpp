@@ -14,6 +14,10 @@ Abstract:
 #include "HandshakeTest.cpp.clog.h"
 #endif
 
+#if defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
+extern bool UseQTIP;
+#endif
+
 QUIC_TEST_DATAPATH_HOOKS DatapathHooks::FuncTable = {
     DatapathHooks::CreateCallback,
     DatapathHooks::GetLocalAddressCallback,
@@ -456,6 +460,14 @@ QuicTestNatPortRebind(
     RebindContext Context;
     MsQuicRegistration Registration(true);
     TEST_TRUE(Registration.IsValid());
+#if defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
+    if (QuitTestIsFeatureSupported(CXPLAT_DATAPATH_FEATURE_RAW) && UseQTIP) {
+        //
+        // NAT rebind doesn't make sense for TCP and QTIP.
+        //
+        return;
+    }
+#endif
 
     MsQuicConfiguration ServerConfiguration(Registration, "MsQuicTest", ServerSelfSignedCredConfig);
     TEST_TRUE(ServerConfiguration.IsValid());
@@ -505,6 +517,14 @@ QuicTestNatAddrRebind(
     RebindContext Context;
     MsQuicRegistration Registration(true);
     TEST_TRUE(Registration.IsValid());
+#if defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
+    if (QuitTestIsFeatureSupported(CXPLAT_DATAPATH_FEATURE_RAW) && UseQTIP) {
+        //
+        // NAT rebind doesn't make sense for TCP and QTIP.
+        //
+        return;
+    }
+#endif
 
     MsQuicConfiguration ServerConfiguration(Registration, "MsQuicTest", ServerSelfSignedCredConfig);
     TEST_TRUE(ServerConfiguration.IsValid());
@@ -1006,6 +1026,9 @@ QuicTestConnectUnreachable(
 {
     MsQuicRegistration Registration;
     TEST_TRUE(Registration.IsValid());
+    if (QuitTestIsFeatureSupported(CXPLAT_DATAPATH_FEATURE_RAW)) {
+        return;
+    }
 
     MsQuicAlpn Alpn("MsQuicTest");
 
@@ -2945,6 +2968,9 @@ QuicTestLoadBalancedHandshake(
 {
     MsQuicRegistration Registration(true);
     TEST_QUIC_SUCCEEDED(Registration.GetInitStatus());
+    if (QuitTestIsFeatureSupported(CXPLAT_DATAPATH_FEATURE_RAW)) {
+        return; // TODO - QUIC_STATUS_NOT_SUPPORTED
+    }
 
     MsQuicConfiguration ClientConfiguration(Registration, "MsQuicTest", MsQuicCredentialConfig());
     TEST_QUIC_SUCCEEDED(ClientConfiguration.GetInitStatus());

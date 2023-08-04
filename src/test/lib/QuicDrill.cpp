@@ -246,6 +246,9 @@ QuicDrillInitialPacketFailureTest(
         TEST_FAILURE("Registration not valid!");
         return false;
     }
+    if (QuitTestIsFeatureSupported(CXPLAT_DATAPATH_FEATURE_RAW)) {
+        return false;
+    }
 
     MsQuicAlpn Alpn("MsQuicTest");
 
