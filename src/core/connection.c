@@ -3945,7 +3945,7 @@ QuicConnRecvHeader(
         } else {
             Packet->KeyType = QuicPacketTypeToKeyTypeV1(Packet->LH->Type);
         }
-        Packet->Encrypted = !Connection->Paths[0].EncryptionOffloading;
+        Packet->Encrypted = TRUE;
 
     } else {
 
@@ -3955,7 +3955,9 @@ QuicConnRecvHeader(
         }
 
         Packet->KeyType = QUIC_PACKET_KEY_1_RTT;
-        Packet->Encrypted = !Connection->State.Disable1RttEncrytion;
+        Packet->Encrypted =
+            !Connection->State.Disable1RttEncrytion &&
+            !Connection->Paths[0].EncryptionOffloading;
     }
 
     if (Packet->Encrypted &&
