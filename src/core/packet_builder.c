@@ -657,6 +657,27 @@ QuicPacketBuilderFinalizeHeaderProtection(
     Builder->BatchCount = 0;
 }
 
+//#define QEO_EXTRA_LOGGING 1 // Comment in/out to control extra QEO logging
+
+#ifdef QEO_EXTRA_LOGGING
+#include <strsafe.h>
+#define MAX_QUIC_PKT_STR 3500
+
+// Used for printing Pre-Encryption and Post-Encryption Pkt
+VOID
+BytesToString(
+    _In_ UINT8* buffer,
+    _In_ UINT64 bufferSize,
+    _In_ char* outputBuf
+)
+{
+    for (int i = 0; i < bufferSize; i++) {
+        StringCbPrintfA(outputBuf, 2, "%02x", buffer[i]); // writing one byte at a time (2 hex vals)
+        outputBuf += 2;
+    }
+}
+#endif // QEO_EXTRA_LOGGING
+
 //
 // This function completes the current QUIC packet. It updates the header if
 // necessary and encrypts the payload. If there isn't enough space for another
@@ -796,6 +817,29 @@ QuicPacketBuilderFinalize(
         // Encrypt the data.
         //
 
+#ifdef QEO_EXTRA_LOGGING
+        // Pre-Encryption Pkt (given that one byte has 2 Hex Vals):
+        CHAR QuicKey[32 * 2 + 1] = {0};
+        CHAR QuicHP[32 * 2 + 1] = {0};
+        CHAR QuicIv[12 * 2 + 1] = {0};
+        CHAR PktData[MAX_QUIC_PKT_STR] = {0};
+
+        BytesToString((UINT8*)Builder->Key->PacketKey, sizeof(Builder->Key->PacketKey), QuicKey);
+        BytesToString((UINT8*)Builder->Key->HeaderKey, sizeof(Builder->Key->HeaderKey), QuicHP);
+        BytesToString((UINT8*)Builder->Key->Iv, sizeof(Builder->Key->Iv), QuicIv);
+        BytesToString((UINT8*)Builder->Datagram->Buffer, sizeof(Builder->DatagramLength), PktData);
+
+        // TODO: double check L234_Len + header (does pktdata have header info)
+        // TODO: how to identify the pkt
+        QuicTraceLogVerbose(PacketPreEncrypt, "QEO_VERIF_INPUTS (ptr.:%p) DCID_LEN=%u LATEST_PN=%llu QUIC_KEY=%s "
+                                              "QUIC_HP=%s QUIC_IV= %s L234_LEN=%u PACKET_LEN=%u "
+                                              "PACKET_DATA=%s",
+                                              Builder->Datagram->Buffer, (UINT32)Builder->Path->DestCid->CID.Length,
+                                              Builder->Metadata->PacketNumber - 1, QuicKey,
+                                              QuicHP, QuicIv, (UINT32)(Builder->Datagram->Buffer - Header), (UINT32)Builder->DatagramLength,
+                                              PktData);
+#endif // QEO_EXTRA_LOGGING
+
         QuicTraceEvent(
             PacketEncrypt,
             "[pack][%llu] Encrypting",
@@ -827,6 +871,15 @@ QuicPacketBuilderFinalize(
             PacketFinalize,
             "[pack][%llu] Finalizing",
             Builder->Metadata->PacketId);
+
+#ifdef QEO_EXTRA_LOGGING
+        // Post-Encryption Pkt (given that one byte has 2 Hex Vals):
+        CxPlatZeroMemory(PktData, MAX_QUIC_PKT_STR);
+        BytesToString((UINT8*)Builder->Datagram->Buffer, Builder->DatagramLength, PktData);
+
+        QuicTraceLogVerbose(PostEncryptionPkt, "QEO_VERIF_OUTPUTS (ptr.:%p) PACKET_DATA= %s \n",
+                                                Builder->Datagram->Buffer, PktData);
+#endif // QEO_EXTRA_LOGGING
 
         if (Connection->State.HeaderProtectionEnabled) {
 
