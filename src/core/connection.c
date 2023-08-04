@@ -487,41 +487,7 @@ QuicConnUninitialize(
     QUIC_PATH* Path = &Connection->Paths[0];
     if (Path->Binding != NULL) {
         if (Path->EncryptionOffloading) {
-            QUIC_CID_HASH_ENTRY* SourceCid =
-                CXPLAT_CONTAINING_RECORD(Connection->SourceCids.Next, QUIC_CID_HASH_ENTRY, Link);
-            CXPLAT_QEO_CONNECTION Offloads[2] = {
-                {
-                    CXPLAT_QEO_OPERATION_REMOVE,
-                    CXPLAT_QEO_DIRECTION_TRANSMIT,
-                    CXPLAT_QEO_DECRYPT_FAILURE_ACTION_DROP,
-                    0,
-                    0,
-                    CXPLAT_QEO_CIPHER_TYPE_AEAD_AES_256_GCM,
-                    0,
-                    Path->Route.RemoteAddress,
-                    Path->DestCid->CID.Length,
-                },
-                {
-                    CXPLAT_QEO_OPERATION_REMOVE,
-                    CXPLAT_QEO_DIRECTION_RECEIVE,
-                    CXPLAT_QEO_DECRYPT_FAILURE_ACTION_DROP,
-                    0,
-                    0,
-                    CXPLAT_QEO_CIPHER_TYPE_AEAD_AES_256_GCM,
-                    0,
-                    Path->Route.LocalAddress,
-                    SourceCid->CID.Length,
-                }
-            };
-            CxPlatCopyMemory(Offloads[0].ConnectionId, Path->DestCid->CID.Data, Path->DestCid->CID.Length);
-            CxPlatCopyMemory(Offloads[1].ConnectionId, SourceCid->CID.Data, SourceCid->CID.Length);
-            (void)CxPlatSocketUpdateQeo(Path->Binding->Socket, Offloads, 2);
-            Path->EncryptionOffloading = FALSE;
-            QuicTraceLogConnInfo(
-                PathQeoDisabled,
-                Connection,
-                "Path[%hhu] QEO disabled",
-                Path->ID);
+            QuicPathUpdateQeo(Connection, Path, CXPLAT_QEO_OPERATION_REMOVE);
         }
 
         QuicBindingRemoveConnection(Connection->Paths[0].Binding, Connection);
