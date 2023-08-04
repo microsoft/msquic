@@ -516,7 +516,6 @@ QuicConnUninitialize(
             CxPlatCopyMemory(Offloads[0].ConnectionId, Path->DestCid->CID.Data, Path->DestCid->CID.Length);
             CxPlatCopyMemory(Offloads[1].ConnectionId, SourceCid->CID.Data, SourceCid->CID.Length);
             (void)CxPlatSocketUpdateQeo(Path->Binding->Socket, Offloads, 2);
-            Connection->Stats.EncryptionOffloaded = FALSE;
             Path->EncryptionOffloading = FALSE;
             QuicTraceLogConnInfo(
                 PathQeoDisabled,
