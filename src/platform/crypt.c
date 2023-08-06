@@ -253,6 +253,7 @@ QuicPacketKeyDerive(
     }
 
     memcpy(Key->Iv, Temp, CXPLAT_IV_LENGTH);
+    CxPlatZeroMemory(Key->Iv, CXPLAT_IV_LENGTH);
     CxPlatTlsLogSecret("static iv", Key->Iv, CXPLAT_IV_LENGTH);
 
     Status =
@@ -266,6 +267,7 @@ QuicPacketKeyDerive(
         goto Error;
     }
 
+    CxPlatZeroMemory(Temp, KeyLength);
     CxPlatTlsLogSecret("key", Temp, KeyLength);
 
     Status =
@@ -289,6 +291,7 @@ QuicPacketKeyDerive(
             goto Error;
         }
 
+        CxPlatZeroMemory(Temp, KeyLength);
         CxPlatTlsLogSecret("hp", Temp, KeyLength);
 
         Status =
@@ -350,6 +353,7 @@ QuicPacketKeyDeriveOffload(
         goto Error;
     }
     memcpy(Offload->PayloadIv, PacketKey->Iv, CXPLAT_IV_LENGTH);
+    CxPlatZeroMemory(Offload->PayloadIv, CXPLAT_IV_LENGTH);
 
     Status =
         CxPlatHkdfExpandLabel(
@@ -362,6 +366,7 @@ QuicPacketKeyDeriveOffload(
         goto Error;
     }
     memcpy(Offload->PayloadKey, Temp, KeyLength);
+    CxPlatZeroMemory(Offload->PayloadKey, KeyLength);
 
     Status =
         CxPlatHkdfExpandLabel(
@@ -374,6 +379,7 @@ QuicPacketKeyDeriveOffload(
         goto Error;
     }
     memcpy(Offload->HeaderKey, Temp, KeyLength);
+    CxPlatZeroMemory(Offload->HeaderKey, KeyLength);
 
 Error:
 

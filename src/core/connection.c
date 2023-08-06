@@ -3956,8 +3956,7 @@ QuicConnRecvHeader(
 
         Packet->KeyType = QUIC_PACKET_KEY_1_RTT;
         Packet->Encrypted =
-            !Connection->State.Disable1RttEncrytion &&
-            !Connection->Paths[0].EncryptionOffloading;
+            !Connection->State.Disable1RttEncrytion;
     }
 
     if (Packet->Encrypted &&
