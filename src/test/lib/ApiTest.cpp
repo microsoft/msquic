@@ -2585,12 +2585,10 @@ void QuicTestGlobalParam()
             SimpleGetParamTest(nullptr, QUIC_PARAM_GLOBAL_EXECUTION_CONFIG, DataLength, Data);
         }
 
-        uint32_t Features = QuitTestGetDatapathFeatureFlags();
-        if (!(Features & CXPLAT_DATAPATH_FEATURE_RAW)
 #if defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
-            || (!!(Features & CXPLAT_DATAPATH_FEATURE_RAW) && !UseQTIP)
+        if (!UseQTIP)
 #endif
-            ) {
+        {
             //
             // Good GetParam with length == 0
             //

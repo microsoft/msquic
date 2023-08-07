@@ -16,7 +16,6 @@ bool UseDuoNic = false;
 #if defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
 bool UseQTIP = false;
 #endif
-uint64_t LARGE_SEND_SIZE = 100000000llu;
 const MsQuicApi* MsQuic;
 const char* OsRunner = nullptr;
 uint32_t Timeout = UINT32_MAX;
@@ -1457,6 +1456,14 @@ TEST_P(WithFamilyArgs, ClientBlockedSourcePort) {
 
 #if QUIC_TEST_DATAPATH_HOOKS_ENABLED
 TEST_P(WithFamilyArgs, RebindPort) {
+#if defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
+    if (UseQTIP) {
+        //
+        // NAT rebind doesn't make sense for TCP and QTIP.
+        //
+        return;
+    }
+#endif
     TestLoggerT<ParamType> Logger("QuicTestNatPortRebind", GetParam());
     if (TestingKernelMode) {
         QUIC_RUN_REBIND_PARAMS Params = {
@@ -1470,6 +1477,14 @@ TEST_P(WithFamilyArgs, RebindPort) {
 }
 
 TEST_P(WithRebindPaddingArgs, RebindPortPadded) {
+#if defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
+    if (UseQTIP) {
+        //
+        // NAT rebind doesn't make sense for TCP and QTIP.
+        //
+        return;
+    }
+#endif
     TestLoggerT<ParamType> Logger("QuicTestNatPortRebind(pad)", GetParam());
     if (TestingKernelMode) {
         QUIC_RUN_REBIND_PARAMS Params = {
@@ -1483,6 +1498,14 @@ TEST_P(WithRebindPaddingArgs, RebindPortPadded) {
 }
 
 TEST_P(WithFamilyArgs, RebindAddr) {
+#if defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
+    if (UseQTIP) {
+        //
+        // NAT rebind doesn't make sense for TCP and QTIP.
+        //
+        return;
+    }
+#endif
     TestLoggerT<ParamType> Logger("QuicTestNatAddrRebind", GetParam());
     if (TestingKernelMode) {
         QUIC_RUN_REBIND_PARAMS Params = {
@@ -1496,6 +1519,14 @@ TEST_P(WithFamilyArgs, RebindAddr) {
 }
 
 TEST_P(WithRebindPaddingArgs, RebindAddrPadded) {
+#if defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
+    if (UseQTIP) {
+        //
+        // NAT rebind doesn't make sense for TCP and QTIP.
+        //
+        return;
+    }
+#endif
     TestLoggerT<ParamType> Logger("QuicTestNatAddrRebind(pad)", GetParam());
     if (TestingKernelMode) {
         QUIC_RUN_REBIND_PARAMS Params = {
@@ -1594,7 +1625,7 @@ TEST_P(WithSendArgs2, SendLarge) {
     if (TestingKernelMode) {
         QUIC_RUN_CONNECT_AND_PING_PARAMS Params = {
             GetParam().Family,
-            LARGE_SEND_SIZE,
+            100000000llu,
             1,  // ConnectionCount
             1,  // StreamCount
             1,  // StreamBurstCount
@@ -1612,7 +1643,7 @@ TEST_P(WithSendArgs2, SendLarge) {
     } else {
         QuicTestConnectAndPing(
             GetParam().Family,
-            LARGE_SEND_SIZE,
+            100000000llu,
             1,      // ConnectionCount
             1,      // StreamCount
             1,      // StreamBurstCount
@@ -1670,6 +1701,15 @@ TEST_P(WithSendArgs3, SendIntermittently) {
 #ifndef QUIC_DISABLE_0RTT_TESTS
 
 TEST_P(WithSend0RttArgs1, Send0Rtt) {
+#if defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
+    if (UseQTIP) {
+        //
+        // QTIP doesn't work with 0-RTT. QTIP only pauses and caches 1 packet during
+        // TCP handshake.
+        //
+        return;
+    }
+#endif
     TestLoggerT<ParamType> Logger("Send0Rtt", GetParam());
     if (TestingKernelMode) {
         QUIC_RUN_CONNECT_AND_PING_PARAMS Params = {
@@ -1709,6 +1749,15 @@ TEST_P(WithSend0RttArgs1, Send0Rtt) {
 }
 
 TEST_P(WithSend0RttArgs2, Reject0Rtt) {
+#if defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
+    if (UseQTIP) {
+        //
+        // QTIP doesn't work with 0-RTT. QTIP only pauses and caches 1 packet during
+        // TCP handshake.
+        //
+        return;
+    }
+#endif
     TestLoggerT<ParamType> Logger("Reject0Rtt", GetParam());
     if (TestingKernelMode) {
         QUIC_RUN_CONNECT_AND_PING_PARAMS Params = {

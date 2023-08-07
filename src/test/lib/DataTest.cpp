@@ -372,18 +372,6 @@ QuicTestConnectAndPing(
 {
     MsQuicRegistration Registration(NULL, QUIC_EXECUTION_PROFILE_TYPE_MAX_THROUGHPUT, true);
     TEST_TRUE(Registration.IsValid());
-#if defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
-#pragma warning(push)
-#pragma warning(disable: 4127)
-        if (QuitTestIsFeatureSupported(CXPLAT_DATAPATH_FEATURE_RAW) && UseQTIP) {
-            if (Length != LARGE_SEND_SIZE) {
-                return;
-            } else if (ClientZeroRtt) {
-                return;
-            }
-        }
-#pragma warning(pop)
-#endif
 
     const uint32_t TimeoutMs = EstimateTimeoutMs(Length) * StreamBurstCount;
     const uint16_t TotalStreamCount = (uint16_t)(StreamCount * StreamBurstCount);
@@ -520,7 +508,7 @@ QuicTestConnectAndPing(
 
                     if (i != 0
 #if defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
-                    && (QuitTestIsFeatureSupported(CXPLAT_DATAPATH_FEATURE_RAW) && !UseQTIP)
+                    && !UseQTIP
 #endif
                     ) {
                         Connections.get()[i]->SetLocalAddr(LocalAddr);
@@ -535,7 +523,7 @@ QuicTestConnectAndPing(
 
                     if (i == 0
 #if defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
-                    && (QuitTestIsFeatureSupported(CXPLAT_DATAPATH_FEATURE_RAW) && !UseQTIP)
+                    && !UseQTIP
 #endif
                     ) {
                         Connections.get()[i]->GetLocalAddr(LocalAddr);
