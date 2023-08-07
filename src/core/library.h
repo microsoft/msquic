@@ -350,16 +350,6 @@ QuicLibraryGetPerProc(
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 inline
-QUIC_LIBRARY_PP*
-QuicLibraryGetPerProc(
-    void
-    )
-{
-    return &MsQuicLib.PerProc[QuicLibraryGetCurrentPartition()];
-}
-
-_IRQL_requires_max_(DISPATCH_LEVEL)
-inline
 uint16_t
 QuicPartitionIdCreate(
     uint16_t BaseIndex
