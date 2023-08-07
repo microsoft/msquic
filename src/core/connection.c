@@ -3065,15 +3065,16 @@ QuicConnProcessPeerTransportParameters(
             // Reliable Reset is enabled on both sides.
             //
             Connection->State.ReliableResetStreamNegotiated = TRUE;
-            if (Connection->Settings.IsSet.ReliableResetEnabled) {
-                //
-                // Send event to app to indicate completion of negotiation.
-                //
-                QUIC_CONNECTION_EVENT Event;
-                Event.Type = QUIC_CONNECTION_EVENT_RELIABLE_RESET_NEGOTIATED;
-                Event.RELIABLE_RESET_NEGOTIATED.IsNegotiated = Connection->State.ReliableResetStreamNegotiated;
-                QuicConnIndicateEvent(Connection, &Event);
-            }
+        }
+
+        if (Connection->Settings.IsSet.ReliableResetEnabled) {
+            //
+            // Send event to app to indicate result of negotiation if app cares.
+            //
+            QUIC_CONNECTION_EVENT Event;
+            Event.Type = QUIC_CONNECTION_EVENT_RELIABLE_RESET_NEGOTIATED;
+            Event.RELIABLE_RESET_NEGOTIATED.IsNegotiated = Connection->State.ReliableResetStreamNegotiated;
+            QuicConnIndicateEvent(Connection, &Event);
         }
 
         //
