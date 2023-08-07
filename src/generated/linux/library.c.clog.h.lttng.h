@@ -453,10 +453,10 @@ TRACEPOINT_EVENT(CLOG_LIBRARY_C, DataPathInitialized,
 // Decoder Ring for LibraryError
 // [ lib] ERROR, %s.
 // QuicTraceEvent(
-                LibraryError,
-                "[ lib] ERROR, %s.",
-                "Tried to change execution config after datapath initialization");
-// arg2 = arg2 = "Tried to change execution config after datapath initialization" = arg2
+            LibraryError,
+            "[ lib] ERROR, %s.",
+            "Only v2 is supported in MsQuicOpenVersion");
+// arg2 = arg2 = "Only v2 is supported in MsQuicOpenVersion" = arg2
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_LIBRARY_C, LibraryError,
     TP_ARGS(

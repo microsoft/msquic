@@ -424,6 +424,9 @@ QuicSettingApply(
         Destination->IsSet.SendIdleTimeoutMs = TRUE;
     }
     if (Source->IsSet.InitialRttMs && (!Destination->IsSet.InitialRttMs || OverWrite)) {
+        if (Source->InitialRttMs == 0) {
+            return FALSE;
+        }
         Destination->InitialRttMs = Source->InitialRttMs;
         Destination->IsSet.InitialRttMs = TRUE;
     }
@@ -435,7 +438,7 @@ QuicSettingApply(
         Destination->IsSet.MaxAckDelayMs = TRUE;
     }
     if (Source->IsSet.DisconnectTimeoutMs && (!Destination->IsSet.DisconnectTimeoutMs || OverWrite)) {
-        if (Source->DisconnectTimeoutMs > QUIC_MAX_DISCONNECT_TIMEOUT) {
+        if (Source->DisconnectTimeoutMs == 0 || Source->DisconnectTimeoutMs > QUIC_MAX_DISCONNECT_TIMEOUT) {
             return FALSE;
         }
         Destination->DisconnectTimeoutMs = Source->DisconnectTimeoutMs;
@@ -476,6 +479,9 @@ QuicSettingApply(
         Destination->IsSet.TlsClientMaxSendBuffer = TRUE;
     }
     if (Source->IsSet.StreamRecvWindowDefault && (!Destination->IsSet.StreamRecvWindowDefault || OverWrite)) {
+        if (Source->StreamRecvWindowDefault == 0 || (Source->StreamRecvWindowDefault & (Source->StreamRecvWindowDefault - 1)) != 0) {
+            return FALSE; // Must be power of 2
+        }
         Destination->StreamRecvWindowDefault = Source->StreamRecvWindowDefault;
         Destination->IsSet.StreamRecvWindowDefault = TRUE;
     }

@@ -23,7 +23,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        release: ['2.0.6','2.1.8','2.2.0']
+        release: ['2.0.6','2.1.8','2.2.2']
         os: [ubuntu-20.04, windows-latest]
         arch: [x64]
         tls: [schannel, openssl] # TODO - add openssl3
@@ -36,13 +36,11 @@ jobs:
     name: Test
     steps:
     - name: Harden Runner
-      uses: step-security/harden-runner@128a63446a954579617e875aaab7d2978154e969
+      uses: step-security/harden-runner@cba0d00b1fc9a034e1e642ea0f1103c282990604
       with:
         egress-policy: audit
     - name: Checkout repository
-      uses: actions/checkout@8e5e7e5ab8b370d6c329ec480221332ada57f0ab
-      with:
-        fetch-depth: 0
+      uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9
     - name: Prepare Machine
       run: scripts/prepare-machine.ps1 -Tls ${{ matrix.tls }} -DisableTest
       shell: pwsh

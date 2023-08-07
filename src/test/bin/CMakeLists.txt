@@ -11,6 +11,7 @@ add_executable(msquictest ${SOURCES})
 target_include_directories(msquictest PRIVATE ${PROJECT_SOURCE_DIR}/src/test)
 
 set_property(TARGET msquictest PROPERTY FOLDER "${QUIC_FOLDER_PREFIX}tests")
+set_property(TARGET msquictest APPEND PROPERTY BUILD_RPATH "$ORIGIN")
 
 target_link_libraries(msquictest msquic testlib)
 

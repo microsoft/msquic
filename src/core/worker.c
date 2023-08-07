@@ -165,8 +165,8 @@ QuicWorkerUninitialize(
             CxPlatThreadWait(&Worker->Thread);
             CxPlatThreadDelete(&Worker->Thread);
         }
-        CxPlatEventUninitialize(Worker->Ready);
     }
+    CxPlatEventUninitialize(Worker->Ready);
 
     CXPLAT_TEL_ASSERT(CxPlatListIsEmpty(&Worker->Connections));
     CXPLAT_TEL_ASSERT(CxPlatListIsEmpty(&Worker->Operations));

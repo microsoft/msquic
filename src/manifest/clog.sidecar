@@ -963,6 +963,18 @@
       ],
       "macroName": "QuicTraceLogInfo"
     },
+    "ConfiguredForDelayedIDFC": {
+      "ModuleProperites": {},
+      "TraceString": "[strm][%p] Configured for delayed ID FC updates",
+      "UniqueId": "ConfiguredForDelayedIDFC",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        }
+      ],
+      "macroName": "QuicTraceLogStreamVerbose"
+    },
     "ConnAppShutdown": {
       "ModuleProperites": {},
       "TraceString": "[conn][%p] App Shutdown: %llu (Remote=%hhu)",
@@ -1887,6 +1899,26 @@
         {
           "DefinationEncoding": "p",
           "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceEvent"
+    },
+    "ConnRecvUdpDatagrams": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] Recv %u UDP datagrams, %u bytes",
+      "UniqueId": "ConnRecvUdpDatagrams",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg3"
+        },
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg4"
         }
       ],
       "macroName": "QuicTraceEvent"
@@ -8689,6 +8721,30 @@
       ],
       "macroName": "QuicTraceLogInfo"
     },
+    "ProcessorInfoV2": {
+      "ModuleProperites": {},
+      "TraceString": "[ dll] Proc[%u] Group[%hu] Index[%u] Active=%hhu",
+      "UniqueId": "ProcessorInfoV2",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "hu",
+          "MacroVariableName": "arg3"
+        },
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg4"
+        },
+        {
+          "DefinationEncoding": "hhu",
+          "MacroVariableName": "arg5"
+        }
+      ],
+      "macroName": "QuicTraceLogInfo"
+    },
     "QueueDatagrams": {
       "ModuleProperites": {},
       "TraceString": "[conn][%p] Queuing %u UDP datagrams",
@@ -8716,6 +8772,46 @@
         }
       ],
       "macroName": "QuicTraceLogStreamVerbose"
+    },
+    "QuicConnRecvDatagrams": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] Recv %u UDP datagrams, %u bytes",
+      "UniqueId": "QuicConnRecvDatagrams",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg3"
+        },
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg4"
+        }
+      ],
+      "macroName": "QuicTraceEvent"
+    },
+    "QuicConnRecvUdpDatagrams": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] Recv %u UDP datagrams, %u bytes",
+      "UniqueId": "QuicConnRecvUdpDatagrams",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg3"
+        },
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg4"
+        }
+      ],
+      "macroName": "QuicTraceEvent"
     },
     "Receive": {
       "ModuleProperites": {},
@@ -11604,6 +11700,30 @@
       ],
       "macroName": "QuicTraceLogInfo"
     },
+    "WindowsUserProcessorStateV3": {
+      "ModuleProperites": {},
+      "TraceString": "[ dll] Processors: (%u active, %u max), Groups: (%hu active, %hu max)",
+      "UniqueId": "WindowsUserProcessorStateV3",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg3"
+        },
+        {
+          "DefinationEncoding": "hu",
+          "MacroVariableName": "arg4"
+        },
+        {
+          "DefinationEncoding": "hu",
+          "MacroVariableName": "arg5"
+        }
+      ],
+      "macroName": "QuicTraceLogInfo"
+    },
     "WindowsUserUninitialized": {
       "ModuleProperites": {},
       "TraceString": "[ dll] Uninitialized",
@@ -12782,6 +12902,11 @@
         "EncodingString": "[cnfg][%p] Settings %p Updated"
       },
       {
+        "UniquenessHash": "fd83d3d8-994b-ccc3-13b9-cf8de77990ca",
+        "TraceID": "ConfiguredForDelayedIDFC",
+        "EncodingString": "[strm][%p] Configured for delayed ID FC updates"
+      },
+      {
         "UniquenessHash": "905ba7f9-0427-2d53-7d13-88f2bb532bf0",
         "TraceID": "ConnAppShutdown",
         "EncodingString": "[conn][%p] App Shutdown: %llu (Remote=%hhu)"
@@ -13015,6 +13140,11 @@
         "UniquenessHash": "5eef16d4-a574-2e5c-62c1-d561f0040322",
         "TraceID": "ConnRecoveryExit",
         "EncodingString": "[conn][%p] Recovery complete"
+      },
+      {
+        "UniquenessHash": "acc96e76-ae1e-91d0-d525-216dedbaf2f0",
+        "TraceID": "ConnRecvUdpDatagrams",
+        "EncodingString": "[conn][%p] Recv %u UDP datagrams, %u bytes"
       },
       {
         "UniquenessHash": "60a38bc0-4218-963b-507a-5d7cb5c08596",
@@ -15102,6 +15232,11 @@
         "EncodingString": "[ dll] Proc[%u] Group[%hu] Index[%u]"
       },
       {
+        "UniquenessHash": "3379ba23-5dc4-936c-5dd0-224fcad9d9d5",
+        "TraceID": "ProcessorInfoV2",
+        "EncodingString": "[ dll] Proc[%u] Group[%hu] Index[%u] Active=%hhu"
+      },
+      {
         "UniquenessHash": "18ef147d-5376-d7f2-f624-3b27af96dd05",
         "TraceID": "QueueDatagrams",
         "EncodingString": "[conn][%p] Queuing %u UDP datagrams"
@@ -15110,6 +15245,16 @@
         "UniquenessHash": "80596bbb-20e9-07e5-07f3-ebc7078fa612",
         "TraceID": "QueueRecvFlush",
         "EncodingString": "[strm][%p] Queuing recv flush"
+      },
+      {
+        "UniquenessHash": "d61a4398-ba19-c65b-995e-e71c9582edb4",
+        "TraceID": "QuicConnRecvDatagrams",
+        "EncodingString": "[conn][%p] Recv %u UDP datagrams, %u bytes"
+      },
+      {
+        "UniquenessHash": "6ac0022e-511b-ec8a-4ef3-15735ee7c35d",
+        "TraceID": "QuicConnRecvUdpDatagrams",
+        "EncodingString": "[conn][%p] Recv %u UDP datagrams, %u bytes"
       },
       {
         "UniquenessHash": "84eb0d5c-ea47-1349-64a1-66146e94d06e",
@@ -16090,6 +16235,11 @@
         "UniquenessHash": "75d23316-ce7e-8980-f3f4-677d2622ee5f",
         "TraceID": "WindowsUserProcessorStateV2",
         "EncodingString": "[ dll] Processors:%u, Groups:%u"
+      },
+      {
+        "UniquenessHash": "77a73e5e-4f71-be29-4086-c7515afc8181",
+        "TraceID": "WindowsUserProcessorStateV3",
+        "EncodingString": "[ dll] Processors: (%u active, %u max), Groups: (%hu active, %hu max)"
       },
       {
         "UniquenessHash": "19b21f4a-a6e8-3b9b-c4da-e303c8f108b1",

@@ -211,11 +211,16 @@ RpsClient::Start(
     CompletionEvent = StopEvent;
 
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
+    uint32_t ActiveProcessorIndex = 0;
     for (uint32_t i = 0; i < WorkerCount; ++i) {
         auto ThreadFlags = AffinitizeWorkers ? CXPLAT_THREAD_FLAG_SET_AFFINITIZE : CXPLAT_THREAD_FLAG_NONE;
+        while (!CxPlatProcIsActive(ActiveProcessorIndex)) {
+            ++ActiveProcessorIndex;
+        }
+        Workers[i].Processor = (uint16_t)ActiveProcessorIndex++;
         CXPLAT_THREAD_CONFIG ThreadConfig = {
             (uint16_t)ThreadFlags,
-            (uint16_t)i,
+            Workers[i].Processor,
             "RPS Worker",
             RpsWorkerThread,
             &Workers[i]
@@ -238,15 +243,8 @@ RpsClient::Start(
         return QUIC_STATUS_OUT_OF_MEMORY;
     }
 
-    uint32_t ActiveProcCount = CxPlatProcActiveCount();
-    if (ActiveProcCount >= 60) {
-        //
-        // If we have enough cores, leave 2 cores for OS overhead
-        //
-        ActiveProcCount -= 2;
-    }
     for (uint32_t i = 0; i < ConnectionCount; ++i) {
-        Status = CxPlatSetCurrentThreadProcessorAffinity((uint16_t)(i % ActiveProcCount));
+        Status = CxPlatSetCurrentThreadProcessorAffinity(Workers[i % WorkerCount].Processor);
         if (QUIC_FAILED(Status)) {
             WriteOutput("Setting Thread Group Failed 0x%x\n", Status);
             return Status;
@@ -265,11 +263,7 @@ RpsClient::Start(
             return Status;
         }
 
-        if (WorkerCount == 0) {
-            Workers[i % ActiveProcCount].QueueConnection(&Connections[i]);
-        } else {
-            Workers[i % WorkerCount].QueueConnection(&Connections[i]);
-        }
+        Workers[i % WorkerCount].QueueConnection(&Connections[i]);
 
         if (!UseEncryption) {
             BOOLEAN value = TRUE;

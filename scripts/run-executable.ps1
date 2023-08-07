@@ -39,6 +39,9 @@ This script runs an executable and collects and logs or process dumps as necessa
 .Parameter AZP
     Runs in Azure Pipelines mode.
 
+.Parameter GHA
+    Runs in Github Workflow mode.
+
 #>
 
 param (
@@ -80,6 +83,9 @@ param (
     [switch]$AZP = $false,
 
     [Parameter(Mandatory = $false)]
+    [switch]$GHA = $false,
+
+    [Parameter(Mandatory = $false)]
     [string]$ExtraArtifactDir = ""
 )
 
@@ -95,16 +101,20 @@ function Log($msg) {
 function LogWrn($msg) {
     if ($AZP) {
         Write-Host "##vso[task.LogIssue type=warning;][$(Get-Date)] $msg"
+    } elseif ($GHA) {
+        Write-Host "::warning::[$(Get-Date)] $msg"
     } else {
-        Write-Host "[$(Get-Date)] $msg"
+        Write-Warning "[$(Get-Date)] $msg"
     }
 }
 
 function LogErr($msg) {
-    if ($AZP) {
+    if ($AZP ) {
         Write-Host "##vso[task.LogIssue type=error;][$(Get-Date)] $msg"
+    } elseif ($GHA) {
+        Write-Host "::error::[$(Get-Date)] $msg"
     } else {
-        Write-Host "[$(Get-Date)] $msg"
+        Write-Warning "[$(Get-Date)] $msg"
     }
 }
 
