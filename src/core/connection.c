@@ -3067,7 +3067,7 @@ QuicConnProcessPeerTransportParameters(
             Connection->State.ReliableResetStreamNegotiated = TRUE;
         }
 
-        if (Connection->Settings.IsSet.ReliableResetEnabled) {
+        if (Connection->Settings.ReliableResetEnabled) {
             //
             // Send event to app to indicate result of negotiation if app cares.
             //
