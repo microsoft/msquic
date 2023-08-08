@@ -420,7 +420,7 @@ CxPlatSocketCreateUdp(
         goto Error;
     }
 
-    if (*NewSocket) {
+    if (Datapath->RawDataPath) {
         Status = CxPlatInitRawSocket(
             Datapath->RawDataPath,
             Config,

@@ -792,7 +792,7 @@ CxPlatDataPathQuerySockoptSupport(
     }
 }
 
-    Datapath->Features |= CXPLAT_DATAPATH_FEATURE_TCP;
+    // Datapath->Features |= CXPLAT_DATAPATH_FEATURE_TCP;
 
 Error:
 
