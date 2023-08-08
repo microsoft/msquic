@@ -1013,6 +1013,7 @@ CxPlatDataPathRelease(
         CXPLAT_FREE(Datapath, QUIC_POOL_DATAPATH);
         WSACleanup();
         CxPlatRundownRelease(&CxPlatWorkerRundown);
+        fprintf(stderr, "DataPath released\n");
     }
 }
 
@@ -1364,7 +1365,7 @@ QUIC_STATUS
 MANGLE(CxPlatSocketCreateUdp)(
     _In_ CXPLAT_DATAPATH* Datapath,
     _In_ const CXPLAT_UDP_CONFIG* Config,
-    _Out_ CXPLAT_SOCKET* Socket
+    _Out_ CXPLAT_SOCKET** NewSocket
     )
 {
     QUIC_STATUS Status;
@@ -1376,6 +1377,28 @@ MANGLE(CxPlatSocketCreateUdp)(
 
     CXPLAT_DBG_ASSERT(Datapath->UdpHandlers.Receive != NULL || Config->Flags & CXPLAT_SOCKET_FLAG_PCP);
 
+    uint32_t RawSocketLength = CxPlatGetRawSocketSize() + SocketCount * sizeof(CXPLAT_SOCKET_PROC);
+    CXPLAT_SOCKET_RAW* RawSocket = CXPLAT_ALLOC_PAGED(RawSocketLength, QUIC_POOL_SOCKET);
+    if (RawSocket == NULL) {
+        QuicTraceEvent(
+            AllocFailure,
+            "Allocation of '%s' failed. (%llu bytes)",
+            "CXPLAT_SOCKET",
+            RawSocketLength);
+        Status = QUIC_STATUS_OUT_OF_MEMORY;
+        goto Error;
+    }
+    CXPLAT_SOCKET* Socket = CxPlatRawToSocket(RawSocket);
+    fprintf(stderr, "RawSocket allocated %p\n", RawSocket);
+
+    QuicTraceEvent(
+        DatapathCreated,
+        "[data][%p] Created, local=%!ADDR!, remote=%!ADDR!",
+        Socket,
+        CASTED_CLOG_BYTEARRAY(Config->LocalAddress ? sizeof(*Config->LocalAddress) : 0, Config->LocalAddress),
+        CASTED_CLOG_BYTEARRAY(Config->RemoteAddress ? sizeof(*Config->RemoteAddress) : 0, Config->RemoteAddress));
+
+    ZeroMemory(RawSocket, RawSocketLength);
     Socket->Datapath = Datapath;
     Socket->ClientContext = Config->CallbackContext;
     Socket->HasFixedRemoteAddress = (Config->RemoteAddress != NULL);
@@ -1935,6 +1958,9 @@ MANGLE(CxPlatSocketCreateUdp)(
         Socket->Processors[i].IoStarted = TRUE;
     }
 
+    *NewSocket = Socket;
+    Socket = NULL;
+    RawSocket = NULL;
     Status = QUIC_STATUS_SUCCESS;
 
 Error:
@@ -1973,6 +1999,7 @@ CxPlatSocketCreateTcpInternal(
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         goto Error;
     }
+    fprintf(stderr, "Tcp Socket allocated :%p\n", Socket);
 
     QuicTraceEvent(
         DatapathCreated,
@@ -2476,7 +2503,8 @@ CxPlatSocketRelease(
         CXPLAT_DBG_ASSERT(!Socket->Freed);
         CXPLAT_DBG_ASSERT(Socket->Uninitialized);
         Socket->Freed = TRUE;
-        // CXPLAT_FREE(Socket, QUIC_POOL_SOCKET);
+        fprintf(stderr, "RawSocket deleting internal %p\n", CxPlatSocketToRaw(Socket));
+        CXPLAT_FREE(CxPlatSocketToRaw(Socket), QUIC_POOL_SOCKET);
     }
 }
 
@@ -2524,6 +2552,7 @@ CxPlatSocketContextRelease(
         }
 
         SocketProc->Freed = TRUE;
+        fprintf(stderr, "SocketProc freed :%p\n", SocketProc);
         CxPlatSocketRelease((CXPLAT_SOCKET*)SocketProc->Parent); //
     }
 }
@@ -4702,5 +4731,6 @@ const struct CXPLAT_DATAPATH_FUNCTIONS DataPathUserFuncs = {
         MANGLE(CxPlatSendDataFreeBuffer),
         MANGLE(CxPlatSendDataIsFull),
         MANGLE(CxPlatSocketSend),
-        MANGLE(CxPlatDataPathProcessCqe)
+        MANGLE(CxPlatDataPathProcessCqe),
+        MANGLE(QuicCopyRouteInfo)
     };

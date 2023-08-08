@@ -148,20 +148,20 @@ CxPlatInitRawDataPath(
 
 Error:
 
-//     if (DataPath != NULL) {
-// #if DEBUG
-//         DataPath->Uninitialized = TRUE;
-// #endif
-//         if (DpRawInitialized) {
-//             CxPlatDpRawUninitialize(DataPath);
-//         } else {
-//             if (SockPoolInitialized) {
-//                 CxPlatSockPoolUninitialize(&DataPath->SocketPool);
-//             }
-//             CXPLAT_FREE(DataPath, QUIC_POOL_DATAPATH);
-//             CxPlatRundownRelease(&CxPlatWorkerRundown);
-//         }
-//     }
+    if (DataPath != NULL) {
+#if DEBUG
+        DataPath->Uninitialized = TRUE;
+#endif
+        if (DpRawInitialized) {
+            CxPlatDpRawUninitialize(DataPath);
+        } else {
+            if (SockPoolInitialized) {
+                CxPlatSockPoolUninitialize(&DataPath->SocketPool);
+            }
+            // CXPLAT_FREE(DataPath, QUIC_POOL_DATAPATH);
+            CxPlatRundownRelease(&CxPlatWorkerRundown);
+        }
+    }
 
     return Status;
 }
@@ -297,7 +297,6 @@ CxPlatInitRawSocket(
     #pragma warning(push)
     #pragma warning(disable:6001) // Using uninitialized memory
     CXPLAT_DBG_ASSERT(Socket != NULL);
-    #pragma warning(pop)
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
 
     // CxPlatZeroMemory(Socket, sizeof(CXPLAT_SOCKET_RAW));
@@ -348,9 +347,11 @@ Error:
         if (Socket != NULL) {
             CxPlatRundownUninitialize(&Socket->Rundown);
             CXPLAT_FREE(Socket, QUIC_POOL_SOCKET);
+            Socket->RawDatapath = NULL;
             Socket = NULL;
         }
     }
+    #pragma warning(pop)
 
     return Status;
 }
@@ -386,6 +387,10 @@ CxPlatRawSocketDelete(
     _In_ CXPLAT_SOCKET_RAW* Socket
     )
 {
+    if (!Socket->RawDatapath) {
+        // Raw socket was not initialized.
+        return;
+    }
     CxPlatDpRawPlumbRulesOnSocket(Socket, FALSE);
     CxPlatRemoveSocket(&Socket->RawDatapath->SocketPool, Socket);
     CxPlatRundownReleaseAndWait(&Socket->Rundown);

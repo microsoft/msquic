@@ -252,6 +252,7 @@ TEST(ParameterValidation, ValidateConnectionParam) {
         ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_VALIDATE_CONNECTION_PARAM));
     } else {
         QuicTestConnectionParam();
+        fprintf(stderr, "exited Registration scope\n");
     }
 }
 

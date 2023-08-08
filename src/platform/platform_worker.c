@@ -213,7 +213,7 @@ CxPlatWorkersLazyStart(
     CxPlatRundownInitialize(&CxPlatWorkerRundown);
 
     CxPlatLockRelease(&CxPlatWorkerLock);
-
+    fprintf(stderr, "WorkersLazyStart\n");
     return TRUE;
 
 Error:
@@ -267,6 +267,7 @@ CxPlatWorkersUninit(
     void
     )
 {
+    fprintf(stderr, "CxPlatWorkersUninit %p\n", CxPlatWorkers);
     if (CxPlatWorkers != NULL) {
         CxPlatRundownReleaseAndWait(&CxPlatWorkerRundown);
 
@@ -299,6 +300,7 @@ CxPlatWorkersUninit(
     }
 
     CxPlatLockUninitialize(&CxPlatWorkerLock);
+    fprintf(stderr, "CxPlatWorkersUninit done\n");
 }
 
 CXPLAT_EVENTQ*
@@ -481,7 +483,7 @@ CXPLAT_THREAD_CALLBACK(CxPlatWorkerThread, Context)
 {
     CXPLAT_WORKER* Worker = (CXPLAT_WORKER*)Context;
     CXPLAT_DBG_ASSERT(Worker != NULL);
-
+    fprintf(stderr, "Worker start\n");
     QuicTraceLogInfo(
         PlatformWorkerThreadStart,
         "[ lib][%p] Worker start",

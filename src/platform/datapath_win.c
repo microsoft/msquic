@@ -70,9 +70,15 @@ CxPlatDataPathInitialize(
     _Out_ CXPLAT_DATAPATH** NewDataPath
     )
 {
+    QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
+    if (NewDataPath == NULL) {
+        Status = QUIC_STATUS_INVALID_PARAMETER;
+        goto Error;
+    }
+
+    // 
     // Init all Datapath
     //
-    QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
     if (UdpCallbacks != NULL) {
         if (UdpCallbacks->Receive == NULL || UdpCallbacks->Unreachable == NULL) {
             Status = QUIC_STATUS_INVALID_PARAMETER;
@@ -124,6 +130,9 @@ CxPlatDataPathInitialize(
         Config,
         DataPath);
     if (QUIC_FAILED(Status)) {
+        QuicTraceLogVerbose(
+            DatapathInitFail,
+            "[  dp] Failed to initialize datapath, status:%d", Status);
         goto Error;
     }
 
@@ -139,21 +148,24 @@ CxPlatDataPathInitialize(
     }
     CxPlatZeroMemory(RawDataPath, RawDatapathSize);
 
-    Status = CxPlatInitRawDataPath(
-        ClientRecvContextLength,
-        Config,
-        DataPath,
-        RawDataPath);
+    Status = QUIC_STATUS_INVALID_PARAMETER;
+    // Status = CxPlatInitRawDataPath(
+    //     ClientRecvContextLength,
+    //     Config,
+    //     DataPath,
+    //     RawDataPath);
     if (QUIC_FAILED(Status)) {
+        QuicTraceLogVerbose(
+            RawDatapathInitFail,
+            "[ raw] Failed to initialize raw datapath, status:%d", Status);
         Status = QUIC_STATUS_SUCCESS;
         CXPLAT_FREE(RawDataPath, QUIC_POOL_DATAPATH);
         RawDataPath = NULL;
-        // TODO: log
     }
 
     DataPath->RawDataPath = RawDataPath;
     *NewDataPath = DataPath;
-
+    fprintf(stderr, "DataPath initialize\n");
 Error:
     // TODO: error handling
 
@@ -166,7 +178,7 @@ CxPlatDataPathUninitialize(
     _In_ CXPLAT_DATAPATH* Datapath
     )
 {
-    if (Datapath->RawDataPath) {        
+    if (Datapath->RawDataPath) {
         XDP_CxPlatDataPathUninitialize(Datapath->RawDataPath);
     }   
     DataPathUserFuncs.CxPlatDataPathUninitialize(Datapath);
@@ -191,9 +203,11 @@ CxPlatDataPathGetSupportedFeatures(
     _In_ CXPLAT_DATAPATH* Datapath
     )
 {
-    // FIXME: Which feature should be taken?
-    // return DataPathUserFuncs.CxPlatDataPathGetSupportedFeatures(Datapath);
-    return 0;
+    if (Datapath->RawDataPath) {
+        return DataPathUserFuncs.CxPlatDataPathGetSupportedFeatures(Datapath) |
+               XDP_CxPlatDataPathGetSupportedFeatures(Datapath->RawDataPath);
+    }
+    return DataPathUserFuncs.CxPlatDataPathGetSupportedFeatures(Datapath);
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -217,12 +231,11 @@ CxPlatDataPathGetLocalAddresses(
     _Out_ uint32_t* AddressesCount
     )
 {
-    // which datapath should be used?
+    // TODO: XDP doesn't support, could be inlined here
     return DataPathUserFuncs.CxPlatDataPathGetLocalAddresses(
         Datapath,
         Addresses,
         AddressesCount);
-    // TODO: xdp
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -235,7 +248,7 @@ CxPlatDataPathGetGatewayAddresses(
     _Out_ uint32_t* GatewayAddressesCount
     )
 {
-    // XDP doesn't support, but later which should be called?
+    // TODO: XDP doesn't support, Could be inlined here.
     return DataPathUserFuncs.CxPlatDataPathGetGatewayAddresses(
         Datapath,
         GatewayAddresses,
@@ -356,67 +369,81 @@ CxPlatSocketCreateUdp(
     _Out_ CXPLAT_SOCKET** NewSocket
     )
 {
+    fprintf(stderr, "CxPlatSocketCreateUdp\n");
+    // return CxPlatSocketCreateUdp_OLD(Datapath, Config, NewSocket);
+
+#pragma warning(push)
+#pragma warning(suppress:4701)
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
 
     // Raw (Sock (Base (addrs)))
     // alloc memory by sizeof RAW
     // call CxPlatSocketCreateUdp with NewSocket as Sock
     // Call CxPlatInitRawSocket with NewSocket as Raw
-    BOOLEAN IsServerSocket = Config->RemoteAddress == NULL;
-    uint16_t SocketCount = IsServerSocket ? Datapath->ProcCount : 1;
-    // TODO: check Datapath->RawDataPath and shrink allocation size
-    uint32_t RawSocketLength = CxPlatGetRawSocketSize() + SocketCount * sizeof(CXPLAT_SOCKET_PROC);
-    CXPLAT_SOCKET_RAW* RawSocket = CXPLAT_ALLOC_PAGED(RawSocketLength, QUIC_POOL_SOCKET);
-    if (RawSocket == NULL) {
-        QuicTraceEvent(
-            AllocFailure,
-            "Allocation of '%s' failed. (%llu bytes)",
-            "CXPLAT_SOCKET",
-            RawSocketLength);
-        Status = QUIC_STATUS_OUT_OF_MEMORY;
-        goto Error;
-    }
 
-    ZeroMemory(RawSocket, RawSocketLength);
-    CXPLAT_SOCKET* Socket = CxPlatRawToSocket(RawSocket);
+    // BOOLEAN IsServerSocket = Config->RemoteAddress == NULL;
+    // uint16_t SocketCount = IsServerSocket ? Datapath->ProcCount : 1;
+    // // TODO: check Datapath->RawDataPath and shrink allocation size
+    // uint32_t RawSocketLength = CxPlatGetRawSocketSize() + SocketCount * sizeof(CXPLAT_SOCKET_PROC);
+    // CXPLAT_SOCKET_RAW* RawSocket = CXPLAT_ALLOC_PAGED(RawSocketLength, QUIC_POOL_SOCKET);
+    // CXPLAT_SOCKET* Socket = NULL;
+    // if (RawSocket == NULL) {
+    //     QuicTraceEvent(
+    //         AllocFailure,
+    //         "Allocation of '%s' failed. (%llu bytes)",
+    //         "CXPLAT_SOCKET",
+    //         RawSocketLength);
+    //     Status = QUIC_STATUS_OUT_OF_MEMORY;
+    //     goto Error;
+    // }
+    // fprintf(stderr, "RawSocket allocated %p\n", RawSocket);
 
-    QuicTraceEvent(
-        DatapathCreated,
-        "[data][%p] Created, local=%!ADDR!, remote=%!ADDR!",
-        Socket,
-        CASTED_CLOG_BYTEARRAY(Config->LocalAddress ? sizeof(*Config->LocalAddress) : 0, Config->LocalAddress),
-        CASTED_CLOG_BYTEARRAY(Config->RemoteAddress ? sizeof(*Config->RemoteAddress) : 0, Config->RemoteAddress));
+    // ZeroMemory(RawSocket, RawSocketLength);
+    // Socket = CxPlatRawToSocket(RawSocket);
+
+    // QuicTraceEvent(
+    //     DatapathCreated,
+    //     "[data][%p] Created, local=%!ADDR!, remote=%!ADDR!",
+    //     Socket,
+    //     CASTED_CLOG_BYTEARRAY(Config->LocalAddress ? sizeof(*Config->LocalAddress) : 0, Config->LocalAddress),
+    //     CASTED_CLOG_BYTEARRAY(Config->RemoteAddress ? sizeof(*Config->RemoteAddress) : 0, Config->RemoteAddress));
 
 
     Status = DataPathUserFuncs.CxPlatSocketCreateUdp(
         Datapath,
         Config,
-        Socket);
+        NewSocket);
     if (QUIC_FAILED(Status)) {
+        QuicTraceLogVerbose(
+            SockCreateFail,
+            "[sock] Failed to create socket, status:%d", Status);        
         goto Error;
     }
 
-    if (Datapath->RawDataPath) {
+    if (*NewSocket) {
         Status = CxPlatInitRawSocket(
             Datapath->RawDataPath,
             Config,
-            RawSocket);
+            CxPlatSocketToRaw(*NewSocket));
         if (QUIC_FAILED(Status)) {
+            QuicTraceLogVerbose(
+                RawSockCreateFail,
+                "[sock] Failed to create raw socket, status:%d", Status);        
             Status = QUIC_STATUS_SUCCESS;
-            // TODO: logging
         }
     }
 
-    *NewSocket = (CXPLAT_SOCKET*)Socket;
-    RawSocket = NULL;
+    // *NewSocket = Socket;
+    // RawSocket = NULL;
+    // Socket = NULL;
 
 Error:
-    // TODO: error handling
-    // if (RawSocket) {
-    //     // invalid type
-    //     CxPlatSocketDelete((CXPLAT_SOCKET*)RawSocket);
-    // }
+    // if (Socket) {
+    //     // TODO: break by MultiBindListener test by the RawSocket doesn't have ->Datapath
+    //     CxPlatSocketDelete(Socket);
 
+    // }
+#pragma warning(pop)
     return Status;
 }
 
@@ -427,10 +454,65 @@ CxPlatSocketCreateTcp(
     _In_opt_ const QUIC_ADDR* LocalAddress,
     _In_ const QUIC_ADDR* RemoteAddress,
     _In_opt_ void* CallbackContext,
-    _Out_ CXPLAT_SOCKET** Socket
+    _Out_ CXPLAT_SOCKET** NewSocket
     )
 {
-    return QUIC_STATUS_NOT_SUPPORTED;
+    
+    return DataPathUserFuncs.CxPlatSocketCreateTcp(
+        Datapath,
+        LocalAddress,
+        RemoteAddress,
+        CallbackContext,
+        NewSocket);
+
+//     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
+//     CXPLAT_SOCKET* Socket = NULL;
+//     uint32_t RawSocketLength = CxPlatGetRawSocketSize() + sizeof(CXPLAT_SOCKET_PROC);
+//     CXPLAT_SOCKET_RAW* RawSocket = CXPLAT_ALLOC_PAGED(RawSocketLength, QUIC_POOL_SOCKET);
+//     if (RawSocket == NULL) {
+//         QuicTraceEvent(
+//             AllocFailure,
+//             "Allocation of '%s' failed. (%llu bytes)",
+//             "CXPLAT_SOCKET",
+//             RawSocketLength);
+//         Status = QUIC_STATUS_OUT_OF_MEMORY;
+//         goto Error;
+//     }
+//     fprintf(stderr, "Tcp Socket allocated :%p\n", Socket);
+
+//     QuicTraceEvent(
+//         DatapathCreated,
+//         "[data][%p] Created, local=%!ADDR!, remote=%!ADDR!",
+//         Socket,
+//         CASTED_CLOG_BYTEARRAY(LocalAddress ? sizeof(*LocalAddress) : 0, LocalAddress),
+//         CASTED_CLOG_BYTEARRAY(RemoteAddress ? sizeof(*RemoteAddress) : 0, RemoteAddress));
+
+//     ZeroMemory(RawSocket, RawSocketLength);
+//     CXPLAT_SOCKET* Socket = CxPlatRawToSocket(RawSocket);
+
+//     QUIC_STATUS Status = DataPathUserFuncs.CxPlatSocketCreateTcp(
+//         Datapath,
+//         LocalAddress,
+//         RemoteAddress,
+//         CallbackContext,
+//         Socket);
+//     if (QUIC_FAILED(Status)) {
+//         QuicTraceLogVerbose(
+//             SockCreateFail,
+//             "[sock] Failed to create Tcp socket, status:%d", Status);
+//         goto Error;
+//     }
+
+//     *NewSocket = Socket;
+//     RawSocket = NULL;
+//     Socket = NULL;
+
+// Error:
+//     if (RawSocket) {
+//         CxPlatSocketDelete(Socket);
+//     }
+
+//     return Status;
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -442,22 +524,29 @@ CxPlatSocketCreateTcpListener(
     _Out_ CXPLAT_SOCKET** NewSocket
     )
 {
-    return QUIC_STATUS_NOT_SUPPORTED;
+    return DataPathUserFuncs.CxPlatSocketCreateTcpListener(
+        Datapath,
+        LocalAddress,
+        RecvCallbackContext,
+        NewSocket);
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 CxPlatSocketDelete(
-    _In_ CXPLAT_SOCKET* Socket
+    _In_ CXPLAT_SOCKET* Socket // TODO: consider which type to be used
     )
 {
     // TODO: bubble up common logic
     if (Socket->Datapath && Socket->Datapath->RawDataPath) {
         CxPlatRawSocketDelete(CxPlatSocketToRaw(Socket));
     }
-    // TODO: want to free socket here
+
+    fprintf(stderr, "RawSocket deleting %p\n", CxPlatSocketToRaw(Socket));
     DataPathUserFuncs.CxPlatSocketDelete(Socket);
-    CXPLAT_FREE(CxPlatSocketToRaw(Socket), QUIC_POOL_SOCKET);
+
+    // TODO: TCP socket cannot be free as RawSocket
+    // CXPLAT_FREE(CxPlatSocketToRaw(Socket), QUIC_POOL_SOCKET);
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -523,8 +612,6 @@ CxPlatRecvDataReturn(
     _In_opt_ CXPLAT_RECV_DATA* RecvDataChain
     )
 {
-    // TODO: CXPLAT_RECV_DATA doesn't have RawDatapath existence.
-    //       need flag to check which datapath is used.
     CXPLAT_DBG_ASSERT(RecvDataChain != NULL);
     if (RecvDataChain->BufferFrom == CXPLAT_BUFFER_FROM_USER) {
         DataPathUserFuncs.CxPlatRecvDataReturn(RecvDataChain);
@@ -673,7 +760,10 @@ CxPlatResolveRouteComplete(
     _In_ uint8_t PathId
     )
 {
-    
+    // not 100% sure
+    if (Route->State == RouteUnresolved) {
+        XDP_CxPlatResolveRouteComplete(Connection, Route, PhysicalAddress, PathId);
+    }
 }
 
 //
@@ -689,7 +779,9 @@ CxPlatResolveRoute(
     _In_ CXPLAT_ROUTE_RESOLUTION_CALLBACK_HANDLER Callback
     )
 {
-    return QUIC_STATUS_NOT_SUPPORTED;
+    // TODO: which?
+    Route->State = RouteResolved;
+    return QUIC_STATUS_SUCCESS;
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -699,5 +791,6 @@ CxPlatUpdateRoute(
     _In_ CXPLAT_ROUTE* SrcRoute
     )
 {
+    // TODO: which?
 }
 

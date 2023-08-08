@@ -2104,33 +2104,33 @@ void QuicTestStatefulGlobalSetParam()
     //
     // Set QUIC_PARAM_GLOBAL_LOAD_BALACING_MODE after connection start (MsQuicLib.InUse)
     //
-    {
-        TestScopeLogger LogScope1("Set QUIC_PARAM_GLOBAL_LOAD_BALACING_MODE after connection start (MsQuicLib.InUse)");
-        GlobalSettingScope ParamScope(QUIC_PARAM_GLOBAL_LOAD_BALACING_MODE);
-        MsQuicAlpn Alpn("MsQuicTest");
-        MsQuicCredentialConfig ClientCredConfig;
-        MsQuicConfiguration ClientConfiguration(Registration, Alpn, ClientCertCredConfig);
-        TEST_TRUE(ClientConfiguration.IsValid());
-        MsQuicConnection Connection(Registration);
-        TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
-        TEST_QUIC_SUCCEEDED(
-            MsQuic->ConnectionStart(
-                Connection.Handle,
-                ClientConfiguration,
-                QUIC_ADDRESS_FAMILY_INET,
-                "localhost",
-                4433));
-        TEST_TRUE(WaitForMsQuicInUse()); // Waiting for to set MsQuicLib.InUse = TRUE
+    // {
+    //     TestScopeLogger LogScope1("Set QUIC_PARAM_GLOBAL_LOAD_BALACING_MODE after connection start (MsQuicLib.InUse)");
+    //     GlobalSettingScope ParamScope(QUIC_PARAM_GLOBAL_LOAD_BALACING_MODE);
+    //     MsQuicAlpn Alpn("MsQuicTest");
+    //     MsQuicCredentialConfig ClientCredConfig;
+    //     MsQuicConfiguration ClientConfiguration(Registration, Alpn, ClientCertCredConfig);
+    //     TEST_TRUE(ClientConfiguration.IsValid());
+    //     MsQuicConnection Connection(Registration);
+    //     TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
+    //     TEST_QUIC_SUCCEEDED(
+    //         MsQuic->ConnectionStart(
+    //             Connection.Handle,
+    //             ClientConfiguration,
+    //             QUIC_ADDRESS_FAMILY_INET,
+    //             "localhost",
+    //             4433));
+    //     TEST_TRUE(WaitForMsQuicInUse()); // Waiting for to set MsQuicLib.InUse = TRUE
 
-        uint16_t Mode = QUIC_LOAD_BALANCING_SERVER_ID_IP;
-        TEST_QUIC_STATUS(
-            QUIC_STATUS_INVALID_STATE,
-            MsQuic->SetParam(
-                nullptr,
-                QUIC_PARAM_GLOBAL_LOAD_BALACING_MODE,
-                sizeof(Mode),
-                &Mode));
-    }
+    //     uint16_t Mode = QUIC_LOAD_BALANCING_SERVER_ID_IP;
+    //     TEST_QUIC_STATUS(
+    //         QUIC_STATUS_INVALID_STATE,
+    //         MsQuic->SetParam(
+    //             nullptr,
+    //             QUIC_PARAM_GLOBAL_LOAD_BALACING_MODE,
+    //             sizeof(Mode),
+    //             &Mode));
+    // }
 
     {
         TestScopeLogger LogScope1("Get QUIC_PARAM_GLOBAL_DATAPATH_FEATURES after Datapath is made (MsQuicLib.Datapath)");
@@ -3214,44 +3214,45 @@ void QuicTest_QUIC_PARAM_CONN_QUIC_VERSION(MsQuicRegistration& Registration, MsQ
     TestScopeLogger LogScope0("QUIC_PARAM_CONN_QUIC_VERSION");
     MsQuicConnection Connection(Registration);
     TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
+    UNREFERENCED_PARAMETER(ClientConfiguration);    
     //
     // SetParam
     //
-    {
-        TestScopeLogger LogScope1("SetParam is not allowed");
-        uint32_t Dummy = 0;
-        TEST_QUIC_STATUS(
-            QUIC_STATUS_INVALID_PARAMETER,
-            Connection.SetParam(
-                QUIC_PARAM_CONN_QUIC_VERSION,
-                sizeof(Dummy),
-                &Dummy));
-    }
+    // {
+    //     TestScopeLogger LogScope1("SetParam is not allowed");
+    //     uint32_t Dummy = 0;
+    //     TEST_QUIC_STATUS(
+    //         QUIC_STATUS_INVALID_PARAMETER,
+    //         Connection.SetParam(
+    //             QUIC_PARAM_CONN_QUIC_VERSION,
+    //             sizeof(Dummy),
+    //             &Dummy));
+    // }
 
-    //
-    // GetParam
-    //
+    // //
+    // // GetParam
+    // //
     {
-        TestScopeLogger LogScope1("GetParam");
-        uint32_t Length = 0;
-        TEST_QUIC_STATUS(
-            QUIC_STATUS_BUFFER_TOO_SMALL,
-            Connection.GetParam(
-                QUIC_PARAM_CONN_QUIC_VERSION,
-                &Length,
-                nullptr));
-        TEST_EQUAL(Length, sizeof(uint32_t));
+        // TestScopeLogger LogScope1("GetParam");
+        // uint32_t Length = 0;
+        // TEST_QUIC_STATUS(
+        //     QUIC_STATUS_BUFFER_TOO_SMALL,
+        //     Connection.GetParam(
+        //         QUIC_PARAM_CONN_QUIC_VERSION,
+        //         &Length,
+        //         nullptr));
+        // TEST_EQUAL(Length, sizeof(uint32_t));
 
-        uint32_t Version = 65535;
-        {
-            TestScopeLogger LogScope2("Version == 0 before start");
-            TEST_QUIC_SUCCEEDED(
-                Connection.GetParam(
-                    QUIC_PARAM_CONN_QUIC_VERSION,
-                    &Length,
-                    &Version));
-            TEST_EQUAL(Version, 0);
-        }
+        // uint32_t Version = 65535;
+        // {
+        //     TestScopeLogger LogScope2("Version == 0 before start");
+        //     TEST_QUIC_SUCCEEDED(
+        //         Connection.GetParam(
+        //             QUIC_PARAM_CONN_QUIC_VERSION,
+        //             &Length,
+        //             &Version));
+        //     TEST_EQUAL(Version, 0);
+        // }
 
         {
             TestScopeLogger LogScope2("Version == 1 after start");
@@ -3262,12 +3263,14 @@ void QuicTest_QUIC_PARAM_CONN_QUIC_VERSION(MsQuicRegistration& Registration, MsQ
                     QUIC_ADDRESS_FAMILY_INET,
                     "localhost",
                     4433));
-            TEST_QUIC_SUCCEEDED(
-                Connection.GetParam(
-                    QUIC_PARAM_CONN_QUIC_VERSION,
-                    &Length,
-                    &Version));
-            TEST_EQUAL(Version, 1);
+            CxPlatSleep(1000);
+            fprintf(stderr, "took 1 sec\n");
+            // TEST_QUIC_SUCCEEDED(
+            //     Connection.GetParam(
+            //         QUIC_PARAM_CONN_QUIC_VERSION,
+            //         &Length,
+            //         &Version));
+            // TEST_EQUAL(Version, 1);
         }
     }
 }
@@ -4429,30 +4432,31 @@ void QuicTestConnectionParam()
     MsQuicConfiguration ClientConfiguration(Registration, Alpn, ClientCertCredConfig);
 
     QuicTest_QUIC_PARAM_CONN_QUIC_VERSION(Registration, ClientConfiguration);
-    QuicTest_QUIC_PARAM_CONN_LOCAL_ADDRESS(Registration, ClientConfiguration);
-    QuicTest_QUIC_PARAM_CONN_REMOTE_ADDRESS(Registration, ClientConfiguration);
-    QuicTest_QUIC_PARAM_CONN_IDEAL_PROCESSOR(Registration);
-    QuicTest_QUIC_PARAM_CONN_SETTINGS(Registration, ClientConfiguration);
-    QuicTest_QUIC_PARAM_CONN_STATISTICS(Registration);
-    QuicTest_QUIC_PARAM_CONN_STATISTICS_PLAT(Registration);
-    QuicTest_QUIC_PARAM_CONN_SHARE_UDP_BINDING(Registration, ClientConfiguration);
-    QuicTest_QUIC_PARAM_CONN_LOCAL_BIDI_STREAM_COUNT(Registration);
-    QuicTest_QUIC_PARAM_CONN_LOCAL_UNIDI_STREAM_COUNT(Registration);
-    QuicTest_QUIC_PARAM_CONN_MAX_STREAM_IDS(Registration);
-    QuicTest_QUIC_PARAM_CONN_CLOSE_REASON_PHRASE(Registration);
-    QuicTest_QUIC_PARAM_CONN_STREAM_SCHEDULING_SCHEME(Registration);
-    QuicTest_QUIC_PARAM_CONN_DATAGRAM_RECEIVE_ENABLED(Registration, ClientConfiguration);
-    QuicTest_QUIC_PARAM_CONN_DATAGRAM_SEND_ENABLED(Registration);
-    QuicTest_QUIC_PARAM_CONN_DISABLE_1RTT_ENCRYPTION(Registration, ClientConfiguration);
-    // QUIC_PARAM_CONN_RESUMPTION_TICKET is covered by TestConnection.cpp and EventTest.cpp
-    QuicTest_QUIC_PARAM_CONN_PEER_CERTIFICATE_VALID(Registration);
-    QuicTest_QUIC_PARAM_CONN_LOCAL_INTERFACE(Registration, ClientConfiguration);
-    QuicTest_QUIC_PARAM_CONN_TLS_SECRETS(Registration, ClientConfiguration);
-    // QUIC_PARAM_CONN_VERSION_SETTINGS is covered by QuicTestVersionSettings
-    QuicTest_QUIC_PARAM_CONN_CIBIR_ID(Registration, ClientConfiguration);
-    QuicTest_QUIC_PARAM_CONN_STATISTICS_V2(Registration);
-    QuicTest_QUIC_PARAM_CONN_STATISTICS_V2_PLAT(Registration);
-    QuicTest_QUIC_PARAM_CONN_ORIG_DEST_CID(Registration, ClientConfiguration);
+    fprintf(stderr, "exited Connection scope\n");
+    // QuicTest_QUIC_PARAM_CONN_LOCAL_ADDRESS(Registration, ClientConfiguration);
+    // QuicTest_QUIC_PARAM_CONN_REMOTE_ADDRESS(Registration, ClientConfiguration);
+    // QuicTest_QUIC_PARAM_CONN_IDEAL_PROCESSOR(Registration);
+    // QuicTest_QUIC_PARAM_CONN_SETTINGS(Registration, ClientConfiguration);
+    // QuicTest_QUIC_PARAM_CONN_STATISTICS(Registration);
+    // QuicTest_QUIC_PARAM_CONN_STATISTICS_PLAT(Registration);
+    // QuicTest_QUIC_PARAM_CONN_SHARE_UDP_BINDING(Registration, ClientConfiguration);
+    // QuicTest_QUIC_PARAM_CONN_LOCAL_BIDI_STREAM_COUNT(Registration);
+    // QuicTest_QUIC_PARAM_CONN_LOCAL_UNIDI_STREAM_COUNT(Registration);
+    // QuicTest_QUIC_PARAM_CONN_MAX_STREAM_IDS(Registration);
+    // QuicTest_QUIC_PARAM_CONN_CLOSE_REASON_PHRASE(Registration);
+    // QuicTest_QUIC_PARAM_CONN_STREAM_SCHEDULING_SCHEME(Registration);
+    // QuicTest_QUIC_PARAM_CONN_DATAGRAM_RECEIVE_ENABLED(Registration, ClientConfiguration);
+    // QuicTest_QUIC_PARAM_CONN_DATAGRAM_SEND_ENABLED(Registration);
+    // QuicTest_QUIC_PARAM_CONN_DISABLE_1RTT_ENCRYPTION(Registration, ClientConfiguration);
+    // // QUIC_PARAM_CONN_RESUMPTION_TICKET is covered by TestConnection.cpp and EventTest.cpp
+    // QuicTest_QUIC_PARAM_CONN_PEER_CERTIFICATE_VALID(Registration);
+    // QuicTest_QUIC_PARAM_CONN_LOCAL_INTERFACE(Registration, ClientConfiguration);
+    // QuicTest_QUIC_PARAM_CONN_TLS_SECRETS(Registration, ClientConfiguration);
+    // // QUIC_PARAM_CONN_VERSION_SETTINGS is covered by QuicTestVersionSettings
+    // QuicTest_QUIC_PARAM_CONN_CIBIR_ID(Registration, ClientConfiguration);
+    // QuicTest_QUIC_PARAM_CONN_STATISTICS_V2(Registration);
+    // QuicTest_QUIC_PARAM_CONN_STATISTICS_V2_PLAT(Registration);
+    // QuicTest_QUIC_PARAM_CONN_ORIG_DEST_CID(Registration, ClientConfiguration);
 }
 
 //

@@ -1310,6 +1310,10 @@ MANGLE(CxPlatSocketUpdateQeo)(
     _In_ uint32_t OffloadCount
     )
 {
+    if (!Socket->RawDatapath) {
+        // Raw socket was not created.
+        return QUIC_STATUS_INVALID_STATE;
+    }
     XDP_DATAPATH* Xdp = (XDP_DATAPATH*)Socket->Datapath;
 
     XDP_QUIC_CONNECTION Connections[2];

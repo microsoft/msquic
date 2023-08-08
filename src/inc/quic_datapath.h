@@ -864,7 +864,7 @@ typedef struct CXPLAT_DATAPATH_FUNCTIONS {
                                                 _Inout_ QUIC_ADDR* Address);
     QUIC_STATUS (*CxPlatSocketCreateUdp)(_In_ CXPLAT_DATAPATH* Datapath,
                                          _In_ const CXPLAT_UDP_CONFIG* Config,
-                                         _Out_ CXPLAT_SOCKET* Socket);
+                                         _Out_ CXPLAT_SOCKET** Socket);
     QUIC_STATUS (*CxPlatSocketCreateTcp)(_In_ CXPLAT_DATAPATH* Datapath,
                                          _In_opt_ const QUIC_ADDR* LocalAddress,
                                          _In_ const QUIC_ADDR* RemoteAddress,
@@ -897,6 +897,8 @@ typedef struct CXPLAT_DATAPATH_FUNCTIONS {
                                     _In_ const CXPLAT_ROUTE* Route,
                                     _In_ CXPLAT_SEND_DATA_INTERNAL* SendData);
     void (*CxPlatDataPathProcessCqe)(_In_ CXPLAT_CQE* Cqe);
+    void (*QuicCopyRouteInfo)(_Inout_ CXPLAT_ROUTE* DstRoute,
+                              _In_ CXPLAT_ROUTE* SrcRoutee);
 } CXPLAT_DATAPATH_FUNCTIONS;
 
 extern const struct CXPLAT_DATAPATH_FUNCTIONS DataPathUserFuncs;
@@ -1020,6 +1022,14 @@ XDP_CxPlatSocketSend(
     _In_ CXPLAT_SOCKET_RAW* Socket,
     _In_ const CXPLAT_ROUTE* Route,
     _In_ CXPLAT_SEND_DATA_INTERNAL* SendData
+    );
+
+void
+XDP_CxPlatResolveRouteComplete(
+    _In_ void* Context,
+    _Inout_ CXPLAT_ROUTE* Route,
+    _In_reads_bytes_(6) const uint8_t* PhysicalAddress,
+    _In_ uint8_t PathId
     );
 
 #if defined(__cplusplus)
