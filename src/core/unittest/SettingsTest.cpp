@@ -512,6 +512,7 @@ TEST(SettingsTest, GlobalRawDataPathProcsSetAfterDataPathInit)
     Config->ProcessorList[0] = 0;
     Config->ProcessorList[1] = 1;
     MsQuicLib.PerProc = (QUIC_LIBRARY_PP*)1; // Pretend already initialized
+    MsQuicLib.Datapath = (CXPLAT_DATAPATH*)1; // Pretend already initialized
     ASSERT_EQ(
         QUIC_STATUS_INVALID_STATE,
         QuicLibrarySetGlobalParam(
