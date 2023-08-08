@@ -978,6 +978,7 @@ QuicLibrarySetGlobalParam(
             }
         }
 
+        CxPlatLockAcquire(&MsQuicLib.Lock);
         if (MsQuicLib.PerProc != NULL && MsQuicLib.Datapath != NULL) {
             //
             // We only allow for updating the polling idle timeout after both the datapath and
@@ -1012,6 +1013,7 @@ QuicLibrarySetGlobalParam(
 
         CxPlatCopyMemory(NewConfig, Config, BufferLength);
         MsQuicLib.ExecutionConfig = NewConfig;
+        CxPlatLockRelease(&MsQuicLib.Lock);
 
         QuicTraceLogInfo(
             LibraryExecutionConfigSet,
