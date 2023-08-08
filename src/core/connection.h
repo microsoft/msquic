@@ -1516,7 +1516,6 @@ QuicConnQueueUnreachable(
     _In_ const QUIC_ADDR* RemoteAddress
     );
 
-#ifdef QUIC_USE_RAW_DATAPATH
 //
 // Queues a route completion event to a connection for processing.
 //
@@ -1531,7 +1530,6 @@ QuicConnQueueRouteCompletion(
     _In_ uint8_t PathId,
     _In_ BOOLEAN Succeeded
     );
-#endif // QUIC_USE_RAW_DATAPATH
 
 //
 // Queues up an update to the packet tolerance we want the peer to use.

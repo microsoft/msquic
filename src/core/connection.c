@@ -3287,7 +3287,6 @@ QuicConnQueueUnreachable(
     }
 }
 
-#ifdef QUIC_USE_RAW_DATAPATH
 _IRQL_requires_max_(DISPATCH_LEVEL)
 _Function_class_(CXPLAT_ROUTE_RESOLUTION_CALLBACK)
 void
@@ -3325,7 +3324,6 @@ QuicConnQueueRouteCompletion(
 
     QuicConnRelease(Connection, QUIC_CONN_REF_ROUTE);
 }
-#endif // QUIC_USE_RAW_DATAPATH
 
 //
 // Updates the current destination CID to the received packet's source CID, if
@@ -5594,9 +5592,7 @@ QuicConnRecvDatagrams(
             goto Drop;
         }
 
-#ifdef QUIC_USE_RAW_DATAPATH
         CxPlatUpdateRoute(&DatagramPath->Route, Datagram->Route);
-#endif
 
         if (DatagramPath != CurrentPath) {
             if (BatchCount != 0) {
@@ -5954,7 +5950,6 @@ QuicConnProcessUdpUnreachable(
     }
 }
 
-#ifdef QUIC_USE_RAW_DATAPATH
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicConnProcessRouteCompletion(
@@ -6004,7 +5999,6 @@ QuicConnProcessRouteCompletion(
             NULL);
     }
 }
-#endif // QUIC_USE_RAW_DATAPATH
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
@@ -7592,12 +7586,10 @@ QuicConnDrainOperations(
             QuicConnTraceRundownOper(Connection);
             break;
 
-#ifdef QUIC_USE_RAW_DATAPATH
         case QUIC_OPER_TYPE_ROUTE_COMPLETION:
             QuicConnProcessRouteCompletion(
                 Connection, Oper->ROUTE.PhysicalAddress, Oper->ROUTE.PathId, Oper->ROUTE.Succeeded);
             break;
-#endif // QUIC_USE_RAW_DATAPATH
 
         default:
             CXPLAT_FRE_ASSERT(FALSE);

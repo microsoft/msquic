@@ -2119,6 +2119,7 @@ CxPlatSocketAllocRecvContext(
     CXPLAT_DATAPATH_INTERNAL_RECV_CONTEXT* InternalContext = CxPlatPoolAlloc(Pool);
 
     if (InternalContext != NULL) {
+        InternalContext->Route.State = RouteResolved;
         InternalContext->DatagramPoolIndex = IsUro;
         InternalContext->ProcContext = &Datapath->ProcContexts[ProcIndex];
         InternalContext->DataBufferStart = NULL;
@@ -3150,4 +3151,57 @@ CxPlatSocketSend(
     }
 
     return STATUS_SUCCESS;
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+QuicCopyRouteInfo(
+    _Inout_ CXPLAT_ROUTE* DstRoute,
+    _In_ CXPLAT_ROUTE* SrcRoute
+    )
+{
+    *DstRoute = *SrcRoute;
+}
+
+void
+CxPlatResolveRouteComplete(
+    _In_ void* Context,
+    _Inout_ CXPLAT_ROUTE* Route,
+    _In_reads_bytes_(6) const uint8_t* PhysicalAddress,
+    _In_ uint8_t PathId
+    )
+{
+    UNREFERENCED_PARAMETER(Context);
+    UNREFERENCED_PARAMETER(Route);
+    UNREFERENCED_PARAMETER(PhysicalAddress);
+    UNREFERENCED_PARAMETER(PathId);
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_STATUS
+CxPlatResolveRoute(
+    _In_ CXPLAT_SOCKET* Socket,
+    _Inout_ CXPLAT_ROUTE* Route,
+    _In_ uint8_t PathId,
+    _In_ void* Context,
+    _In_ CXPLAT_ROUTE_RESOLUTION_CALLBACK_HANDLER Callback
+    )
+{
+    UNREFERENCED_PARAMETER(Socket);
+    UNREFERENCED_PARAMETER(PathId);
+    UNREFERENCED_PARAMETER(Context);
+    UNREFERENCED_PARAMETER(Callback);
+    Route->State = RouteResolved;
+    return QUIC_STATUS_SUCCESS;
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+CxPlatUpdateRoute(
+    _Inout_ CXPLAT_ROUTE* DstRoute,
+    _In_ CXPLAT_ROUTE* SrcRoute
+    )
+{
+    UNREFERENCED_PARAMETER(DstRoute);
+    UNREFERENCED_PARAMETER(SrcRoute);
 }

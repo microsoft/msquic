@@ -14,7 +14,7 @@ Abstract:
 #include "DataTest.cpp.clog.h"
 #endif
 
-#if defined(QUIC_USE_RAW_DATAPATH) && defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
+#if defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
 extern bool UseQTIP;
 #endif
 
@@ -369,6 +369,9 @@ QuicTestConnectAndPing(
     _In_ bool FifoScheduling
     )
 {
+    MsQuicRegistration Registration(NULL, QUIC_EXECUTION_PROFILE_TYPE_MAX_THROUGHPUT, true);
+    TEST_TRUE(Registration.IsValid());
+
     const uint32_t TimeoutMs = EstimateTimeoutMs(Length) * StreamBurstCount;
     const uint16_t TotalStreamCount = (uint16_t)(StreamCount * StreamBurstCount);
     QUIC_ADDRESS_FAMILY QuicAddrFamily = (Family == 4) ? QUIC_ADDRESS_FAMILY_INET : QUIC_ADDRESS_FAMILY_INET6;
@@ -394,9 +397,6 @@ QuicTestConnectAndPing(
         }
         ServerStats.TlsSecrets = ServerSecrets.get();
     }
-
-    MsQuicRegistration Registration(NULL, QUIC_EXECUTION_PROFILE_TYPE_MAX_THROUGHPUT, true);
-    TEST_TRUE(Registration.IsValid());
 
     MsQuicAlpn Alpn("MsQuicTest");
 
@@ -505,30 +505,28 @@ QuicTestConnectAndPing(
                     }
                     TEST_QUIC_SUCCEEDED(Connections.get()[i]->SetRemoteAddr(RemoteAddr));
 
-#if defined(QUIC_USE_RAW_DATAPATH) && defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
-                    if (!UseQTIP && i != 0) {
-                        Connections.get()[i]->SetLocalAddr(LocalAddr);
-                    }
-#else
-                    if (i != 0) {
-                        Connections.get()[i]->SetLocalAddr(LocalAddr);
-                    }
+                    if (i != 0
+#if defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
+                        && !UseQTIP
 #endif
+                    ) {
+                        Connections.get()[i]->SetLocalAddr(LocalAddr);
+                    }
+
                     TEST_QUIC_SUCCEEDED(
                         Connections.get()[i]->Start(
                             ClientConfiguration,
                             QuicAddrFamily,
                             ClientZeroRtt ? QUIC_LOCALHOST_FOR_AF(QuicAddrFamily) : nullptr,
                             ServerLocalAddr.GetPort()));
-#if defined(QUIC_USE_RAW_DATAPATH) && defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
-                    if (!UseQTIP && i == 0) {
-                        Connections.get()[i]->GetLocalAddr(LocalAddr);
-                    }
-#else
-                    if (i == 0) {
-                        Connections.get()[i]->GetLocalAddr(LocalAddr);
-                    }
+
+                    if (i == 0
+#if defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
+                        && !UseQTIP
 #endif
+                    ) {
+                        Connections.get()[i]->GetLocalAddr(LocalAddr);
+                    }
                 }
             }
         }
