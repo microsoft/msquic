@@ -90,13 +90,15 @@ MsQuicCalculatePartitionMask(
 
     uint16_t PartitionCount = MsQuicLib.PartitionCount;
 
+    //
+    // The following operations set all bits following the higest bit to one.
+    //
     PartitionCount |= (PartitionCount >> 1);
     PartitionCount |= (PartitionCount >> 2);
     PartitionCount |= (PartitionCount >> 4);
     PartitionCount |= (PartitionCount >> 8);
-    uint16_t HighBitSet = PartitionCount - (PartitionCount >> 1);
 
-    MsQuicLib.PartitionMask = (HighBitSet << 1) - 1;
+    MsQuicLib.PartitionMask = PartitionCount;
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
