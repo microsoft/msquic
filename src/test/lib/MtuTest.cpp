@@ -49,6 +49,8 @@ struct ResetSettings {
 void
 QuicTestMtuSettings()
 {
+    MsQuicRegistration Registration(true);
+    TEST_QUIC_SUCCEEDED(Registration.GetInitStatus());
 #if defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
     const uint16_t DefaultMaximumMtu = UseQTIP ? 1488 : 1500; // reserve 12B for TCP header
 #else
