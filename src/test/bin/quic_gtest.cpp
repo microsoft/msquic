@@ -995,6 +995,42 @@ TEST_P(WithFamilyArgs, FailedVersionNegotiation) {
         QuicTestFailedVersionNegotiation(GetParam().Family);
     }
 }
+
+TEST_P(WithFamilyArgs, ReliableResetNegotiationServerYesClientNo) {
+    TestLoggerT<ParamType> Logger("ReliableResetNegotiationServerYesClientNo", GetParam());
+    if (TestingKernelMode) {
+        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RELIABLE_RESET_NEGOTIATION_SERVER_YES_CLIENT_NO));
+    } else {
+        QuicTestReliableResetNegotiation(true, false);
+    }
+}
+
+TEST_P(WithFamilyArgs, ReliableResetNegotiationServerNoClientYes) {
+    TestLoggerT<ParamType> Logger("ReliableResetNegotiationServerNoClientYes", GetParam());
+    if (TestingKernelMode) {
+        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RELIABLE_RESET_NEGOTIATION_SERVER_NO_CLIENT_YES));
+    } else {
+        QuicTestReliableResetNegotiation(false, true);
+    }
+}
+
+TEST_P(WithFamilyArgs, ReliableResetNegotiationServerNoClientNo) {
+    TestLoggerT<ParamType> Logger("ReliableResetNegotiationServerNoClientNo", GetParam());
+    if (TestingKernelMode) {
+        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RELIABLE_RESET_NEGOTIATION_SERVER_NO_CLIENT_NO));
+    } else {
+        QuicTestReliableResetNegotiation(false, false);
+    }
+}
+
+TEST_P(WithFamilyArgs, ReliableResetNegotiationServerYesClientYes) {
+    TestLoggerT<ParamType> Logger("ReliableResetNegotiationServerYesClientYes", GetParam());
+    if (TestingKernelMode) {
+        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RELIABLE_RESET_NEGOTIATION_SERVER_YES_CLIENT_YES));
+    } else {
+        QuicTestReliableResetNegotiation(true, true);
+    }
+}
 #endif // QUIC_API_ENABLE_PREVIEW_FEATURES
 
 TEST_P(WithHandshakeArgs5, CustomServerCertificateValidation) {

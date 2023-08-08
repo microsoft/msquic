@@ -1338,7 +1338,35 @@ QuicTestCtlEvtIoDeviceControl(
                 Params->CustomCertValidationParams.AcceptCert,
                 Params->CustomCertValidationParams.AsyncValidation));
         break;
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
+    case IOCTL_QUIC_RELIABLE_RESET_NEGOTIATION_SERVER_NO_CLIENT_NO:
+        CXPLAT_FRE_ASSERT(Params != nullptr);
+        QuicTestCtlRun(
+            QuicTestReliableResetNegotiation(false, false)
+        );
+        break;
 
+    case IOCTL_QUIC_RUN_RELIABLE_RESET_NEGOTIATION_SERVER_NO_CLIENT_YES:
+        CXPLAT_FRE_ASSERT(Params != nullptr);
+        QuicTestCtlRun(
+            QuicTestReliableResetNegotiation(false, true)
+        );
+        break;
+
+    case IOCTL_QUIC_RUN_RELIABLE_RESET_NEGOTIATION_SERVER_YES_CLIENT_NO:
+        CXPLAT_FRE_ASSERT(Params != nullptr);
+        QuicTestCtlRun(
+            QuicTestReliableResetNegotiation(true, false)
+        );
+        break;
+
+    case IOCTL_QUIC_RUN_RELIABLE_RESET_NEGOTIATION_SERVER_YES_CLIENT_YES:
+        CXPLAT_FRE_ASSERT(Params != nullptr);
+        QuicTestCtlRun(
+            QuicTestReliableResetNegotiation(true, true)
+        );
+        break;
+#endif
     default:
         Status = STATUS_NOT_IMPLEMENTED;
         break;

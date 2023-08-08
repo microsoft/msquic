@@ -186,6 +186,12 @@ void
 QuicTestFailedVersionNegotiation(
     _In_ int Family
     );
+
+void
+QuicTestReliableResetNegotiation(
+    _In_ bool ServerSupport,
+    _In_ bool ClientSupport
+);
 #endif // QUIC_API_ENABLE_PREVIEW_FEATURES
 
 void
@@ -1177,3 +1183,19 @@ typedef struct {
     // QUIC_RUN_CUSTOM_CERT_VALIDATION
 
 #define QUIC_MAX_IOCTL_FUNC_CODE 110
+
+#define IOCTL_QUIC_RELIABLE_RESET_NEGOTIATION_SERVER_YES_CLIENT_YES \
+    QUIC_CTL_CODE(111, METHOD_BUFFERED, FILE_WRITE_DATA)
+    // int - Family
+
+#define IOCTL_QUIC_RELIABLE_RESET_NEGOTIATION_SERVER_NO_CLIENT_YES \
+    QUIC_CTL_CODE(112, METHOD_BUFFERED, FILE_WRITE_DATA)
+    // int - Family
+
+#define IOCTL_QUIC_RELIABLE_RESET_NEGOTIATION_SERVER_YES_CLIENT_NO \
+    QUIC_CTL_CODE(113, METHOD_BUFFERED, FILE_WRITE_DATA)
+    // int - Family
+
+#define IOCTL_QUIC_RELIABLE_RESET_NEGOTIATION_SERVER_NO_CLIENT_NO \
+    QUIC_CTL_CODE(114, METHOD_BUFFERED, FILE_WRITE_DATA)
+    // int - Family

@@ -1877,6 +1877,75 @@ QuicTestFailedVersionNegotiation(
         QUIC_VERSION_1_H,
         Family);
 }
+
+void
+QuicTestReliableResetNegotiation(
+    _In_ bool ServerSupport,
+    _In_ bool ClientSupport
+    )
+{
+    struct Context {
+        bool Negotiated {false};
+        bool CallbackReceived {false};
+        QUIC_STATUS ConnectionCallback(_Inout_ QUIC_CONNECTION_EVENT* Event)
+        {
+            if (Event->Type == QUIC_CONNECTION_EVENT_RELIABLE_RESET_NEGOTIATED) {
+                CallbackReceived = true;
+                Negotiated = Event->RELIABLE_RESET_NEGOTIATED.IsNegotiated;
+            }
+            return QUIC_STATUS_SUCCESS;
+        }
+        static QUIC_STATUS s_ConnectionCallback(
+            _In_ MsQuicConnection* /* Connection */,
+            _In_opt_ void* context,
+            _Inout_ QUIC_CONNECTION_EVENT* Event
+        ) {
+            return ((Context*)context)->ConnectionCallback(Event);
+        }
+    };
+
+    Context ClientContext, ServerContext;
+
+    MsQuicRegistration Registration(true);
+    TEST_TRUE(Registration.IsValid());
+
+    MsQuicSettings ServerSettings;
+    ServerSettings.SetReliableResetEnabled(ServerSupport);
+
+    MsQuicConfiguration ServerConfiguration(Registration, "MsQuicTest", ServerSettings, ServerSelfSignedCredConfig);
+    TEST_QUIC_SUCCEEDED(ServerConfiguration.GetInitStatus());
+
+    MsQuicSettings ClientSettings;
+    ClientSettings.SetReliableResetEnabled(ClientSupport);
+    MsQuicConfiguration ClientConfiguration(Registration, "MsQuicTest", ClientSettings, MsQuicCredentialConfig());
+    TEST_QUIC_SUCCEEDED(ClientConfiguration.GetInitStatus());
+
+    QuicAddr ServerLocalAddr(QUIC_ADDRESS_FAMILY_INET);
+    MsQuicAutoAcceptListener Listener(Registration, ServerConfiguration, Context::s_ConnectionCallback, &ServerContext);
+    TEST_QUIC_SUCCEEDED(Listener.Start("MsQuicTest", &ServerLocalAddr.SockAddr));
+    TEST_QUIC_SUCCEEDED(Listener.GetInitStatus());
+    TEST_QUIC_SUCCEEDED(Listener.GetLocalAddr(ServerLocalAddr));
+
+    MsQuicConnection Connection(Registration, CleanUpManual, Context::s_ConnectionCallback, &ClientContext);
+    TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
+    TEST_QUIC_SUCCEEDED(Connection.Start(ClientConfiguration, ServerLocalAddr.GetFamily(), QUIC_TEST_LOOPBACK_FOR_AF(ServerLocalAddr.GetFamily()), ServerLocalAddr.GetPort()));
+    TEST_TRUE(Connection.HandshakeCompleteEvent.WaitTimeout(TestWaitTimeout));
+    TEST_TRUE(Connection.HandshakeComplete);
+
+    if (ClientSupport) {
+        TEST_TRUE(ClientContext.CallbackReceived);
+        TEST_TRUE(ClientContext.Negotiated == ServerSupport);
+    } else {
+        TEST_FALSE(ClientContext.CallbackReceived);
+    }
+    if (ServerSupport) {
+        TEST_TRUE(ServerContext.CallbackReceived);
+        TEST_TRUE(ServerContext.Negotiated == ClientSupport);
+    } else {
+        TEST_FALSE(ServerContext.CallbackReceived);
+    }
+}
+
 #endif // QUIC_API_ENABLE_PREVIEW_FEATURES
 
 void
