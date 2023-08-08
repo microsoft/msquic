@@ -62,6 +62,16 @@ CxPlatGetSocket(
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
+QuicCopyRouteInfo(
+    _Inout_ CXPLAT_ROUTE* DstRoute,
+    _In_ CXPLAT_ROUTE* SrcRoute
+    )
+{
+    CxPlatCopyMemory(DstRoute, SrcRoute, (uint8_t*)&SrcRoute->State - (uint8_t*)SrcRoute);
+    CxPlatUpdateRoute(DstRoute, SrcRoute);
+}
+
+void
 MANGLE(QuicCopyRouteInfo)(
     _Inout_ CXPLAT_ROUTE* DstRoute,
     _In_ CXPLAT_ROUTE* SrcRoute

@@ -2153,6 +2153,28 @@ void QuicTestStatefulGlobalSetParam()
                 &ActualFeatures));
         TEST_NOT_EQUAL(ActualFeatures, 0);
     }
+
+    {
+        TestScopeLogger LogScope1("Get QUIC_PARAM_GLOBAL_DATAPATH_FEATURES after Datapath is made (MsQuicLib.Datapath)");
+        uint32_t Length = 0;
+        TEST_QUIC_STATUS(
+            QUIC_STATUS_BUFFER_TOO_SMALL,
+            MsQuic->GetParam(
+                nullptr,
+                QUIC_PARAM_GLOBAL_DATAPATH_FEATURES,
+                &Length,
+                nullptr));
+        TEST_EQUAL(Length, sizeof(uint32_t));
+
+        uint32_t ActualFeatures = 0;
+        TEST_QUIC_SUCCEEDED(
+            MsQuic->GetParam(
+                nullptr,
+                QUIC_PARAM_GLOBAL_DATAPATH_FEATURES,
+                &Length,
+                &ActualFeatures));
+        TEST_NOT_EQUAL(ActualFeatures, 0);
+    }
 }
 
 void QuicTestGlobalParam()
