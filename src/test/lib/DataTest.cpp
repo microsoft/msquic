@@ -17,7 +17,6 @@ Abstract:
 #if defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
 extern bool UseQTIP;
 #endif
-extern uint64_t LARGE_SEND_SIZE;
 
 /*
     Helper function to estimate a maximum timeout for a test with a
@@ -508,7 +507,7 @@ QuicTestConnectAndPing(
 
                     if (i != 0
 #if defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
-                    && !UseQTIP
+                        && !UseQTIP
 #endif
                     ) {
                         Connections.get()[i]->SetLocalAddr(LocalAddr);
@@ -523,7 +522,7 @@ QuicTestConnectAndPing(
 
                     if (i == 0
 #if defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
-                    && !UseQTIP
+                        && !UseQTIP
 #endif
                     ) {
                         Connections.get()[i]->GetLocalAddr(LocalAddr);

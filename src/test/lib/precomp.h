@@ -39,7 +39,6 @@
 #ifndef GLOBAL_FOR_KERNEL
 #define GLOBAL_FOR_KERNEL
 bool UseQTIP = false;
-uint64_t LARGE_SEND_SIZE = 100000000llu;
 #endif
 #endif
 

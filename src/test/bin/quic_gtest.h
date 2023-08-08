@@ -8,7 +8,6 @@
 #define QUIC_TEST_APIS 1
 
 #include "quic_platform.h"
-#include "quic_datapath.h"
 #include "MsQuicTests.h"
 #include "msquichelper.h"
 #include "quic_trace.h"
