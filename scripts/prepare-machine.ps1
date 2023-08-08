@@ -246,7 +246,7 @@ function Install-Xdp-Driver {
     }
 
     Write-Host "Installing XDP driver"
-    msiexec.exe /i $XdpPath\bin\xdp-for-windows.msi /quiet | Out-Null
+    msiexec.exe /i $XdpPath\bin\xdp-for-windows.1.0.0.msi /quiet | Out-Null
 }
 
 # Completely removes the XDP driver and SDK.
@@ -256,7 +256,7 @@ function Uninstall-Xdp {
     if (!(Test-Path $XdpPath)) { return; }
 
     Write-Host "Uninstalling XDP"
-    try { msiexec.exe /x $XdpPath\bin\xdp-for-windows.msi /quiet | Out-Null } catch {}
+    try { msiexec.exe /x $XdpPath\bin\xdp-for-windows.1.0.0.msi /quiet | Out-Null } catch {}
     rm -Force -Recurse $XdpPath -ErrorAction Ignore | Out-Null
 }
 
