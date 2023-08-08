@@ -978,10 +978,10 @@ QuicLibrarySetGlobalParam(
             }
         }
 
-        if (MsQuicLib.PerProc != NULL) {
+        if (MsQuicLib.PerProc != NULL && MsQuicLib.Datapath != NULL) {
             //
-            // We only allow for updating the polling idle timeout after the
-            // per-proc storage has already been started; and only if the app set some
+            // We only allow for updating the polling idle timeout after both the datapath and
+            // the per-proc storage has already been started; and only if the app set some
             // custom config to begin with.
             //
             if (MsQuicLib.ExecutionConfig == NULL) {
