@@ -449,6 +449,8 @@ TEST(SettingsTest, GlobalExecutionConfigSetAndGet)
     Config->ProcessorList[0] = 0;
     Config->ProcessorList[1] = 1;
 
+    CxPlatLockInitialize(&MsQuicLib.Lock); // Initialize the lock so it can be acquired later
+
     uint32_t BufferLength = sizeof(RawConfig);
     ASSERT_EQ(
         QUIC_STATUS_SUCCESS,
