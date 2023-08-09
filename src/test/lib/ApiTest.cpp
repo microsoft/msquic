@@ -18,7 +18,7 @@ Abstract:
 
 #if defined(_KERNEL_MODE)
 bool UseQTIP = false;
-#elf defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
+#elif defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
 extern bool UseQTIP;
 #endif
 
