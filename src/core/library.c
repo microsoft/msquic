@@ -663,21 +663,18 @@ QuicLibraryEnsureExecutionContext(
     CxPlatLockAcquire(&MsQuicLib.Lock);
 
     if (MsQuicLib.Datapath == NULL) {
-        Status = MsQuicLibraryInitializePartitions();
+        Status =
+            CxPlatDataPathInitialize(
+                sizeof(CXPLAT_RECV_PACKET),
+                &DatapathCallbacks,
+                NULL,                   // TcpCallbacks
+                MsQuicLib.ExecutionConfig,
+                &MsQuicLib.Datapath);
         if (QUIC_SUCCEEDED(Status)) {
-            Status =
-                CxPlatDataPathInitialize(
-                    sizeof(CXPLAT_RECV_PACKET),
-                    &DatapathCallbacks,
-                    NULL,                   // TcpCallbacks
-                    MsQuicLib.ExecutionConfig,
-                    &MsQuicLib.Datapath);
-            if (QUIC_SUCCEEDED(Status)) {
-                QuicTraceEvent(
-                    DataPathInitialized,
-                    "[data] Initialized, DatapathFeatures=%u",
-                    CxPlatDataPathGetSupportedFeatures(MsQuicLib.Datapath));
-            }
+            QuicTraceEvent(
+                DataPathInitialized,
+                "[data] Initialized, DatapathFeatures=%u",
+                CxPlatDataPathGetSupportedFeatures(MsQuicLib.Datapath));
         }
     }
 
