@@ -645,6 +645,12 @@ QuicLibraryGenerateStatelessResetToken(
         uint8_t* ResetToken
     );
 
+_IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_STATUS
+MsQuicLibraryInitializePartitions(
+    void
+    );
+
 #if defined(__cplusplus)
 }
 #endif
