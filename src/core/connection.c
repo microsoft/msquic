@@ -2426,7 +2426,7 @@ QuicConnGenerateLocalTransportParameters(
         LocalTP->Flags |= QUIC_TP_FLAG_GREASE_QUIC_BIT;
     }
 
-    if (Connection->Settings.ReliableResetEnabled) {\
+    if (Connection->Settings.ReliableResetEnabled) {
         QuicTraceLogConnInfo(
         SetReliableResetTPparameter,
         Connection,
