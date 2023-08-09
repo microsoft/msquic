@@ -55,7 +55,7 @@ MsQuicRegistrationOpen(
     //
     // Lazy initialize partitions.
     //
-    Status = MsQuicLibraryInitializePartitions();
+    Status = MsQuicLibraryInitializePartitions(ExternalRegistration);
     if (QUIC_FAILED(Status)) {
         goto Error;
     }

@@ -648,7 +648,7 @@ QuicLibraryGenerateStatelessResetToken(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 MsQuicLibraryInitializePartitions(
-    void
+    BOOLEAN AcquireLock
     );
 
 #if defined(__cplusplus)
