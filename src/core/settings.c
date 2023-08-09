@@ -1620,7 +1620,6 @@ QuicSettingsSettingsToInternal(
     SETTING_COPY_TO_INTERNAL(DatagramReceiveEnabled, Settings, InternalSettings);
     SETTING_COPY_TO_INTERNAL(ServerResumptionLevel, Settings, InternalSettings);
     SETTING_COPY_TO_INTERNAL(GreaseQuicBitEnabled, Settings, InternalSettings);
-    SETTING_COPY_TO_INTERNAL(ReliableResetEnabled, Settings, InternalSettings);
     SETTING_COPY_TO_INTERNAL(EcnEnabled, Settings, InternalSettings);
 
     //
@@ -1655,6 +1654,14 @@ QuicSettingsSettingsToInternal(
     SETTING_COPY_FLAG_TO_INTERNAL_SIZED(
         Flags,
         EncryptionOffloadAllowed,
+        QUIC_SETTINGS,
+        Settings,
+        SettingsSize,
+        InternalSettings);
+
+    SETTING_COPY_FLAG_TO_INTERNAL_SIZED(
+        Flags,
+        ReliableResetEnabled,
         QUIC_SETTINGS,
         Settings,
         SettingsSize,
