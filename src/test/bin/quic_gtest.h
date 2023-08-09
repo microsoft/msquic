@@ -20,7 +20,7 @@
 #endif
 
 extern bool TestingKernelMode;
-#if defined(QUIC_USE_RAW_DATAPATH) && defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
+#if defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
 extern bool UseQTIP;
 #endif
 
@@ -346,7 +346,7 @@ struct SendArgs2 {
         for (bool UseZeroRtt : { false })
 #endif
         {
-#if defined(QUIC_USE_RAW_DATAPATH) && defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
+#if defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
             if (UseQTIP && UseZeroRtt) {
                 continue;
             }
@@ -697,11 +697,7 @@ struct ValidateConnectionEventArgs {
     uint32_t Test;
     static ::std::vector<ValidateConnectionEventArgs> Generate() {
         ::std::vector<ValidateConnectionEventArgs> list;
-#if !defined(QUIC_DISABLE_0RTT_TESTS) && !defined(QUIC_USE_RAW_DATAPATH) // TODO: Fix openssl/XDP bug and enable this back
         for (uint32_t Test = 0; Test < 3; ++Test)
-#else
-        for (uint32_t Test = 0; Test < 2; ++Test)
-#endif
             list.push_back({ Test });
         return list;
     }

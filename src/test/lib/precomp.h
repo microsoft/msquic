@@ -35,6 +35,11 @@
 #define WIN_ASSERT CXPLAT_FRE_ASSERT
 #endif
 #include "karray.h"
+
+#ifndef GLOBAL_FOR_KERNEL
+#define GLOBAL_FOR_KERNEL
+bool UseQTIP = false;
+#endif
 #endif
 
 #include "TestHelpers.h"

@@ -1302,6 +1302,29 @@ QuicLibraryGetGlobalParam(
         Status = QUIC_STATUS_SUCCESS;
         break;
 
+    case QUIC_PARAM_GLOBAL_DATAPATH_FEATURES:
+        if (*BufferLength < sizeof(uint32_t)) {
+            *BufferLength = sizeof(uint32_t);
+            Status = QUIC_STATUS_BUFFER_TOO_SMALL;
+            break;
+        }
+
+        if (Buffer == NULL) {
+            Status = QUIC_STATUS_INVALID_PARAMETER;
+            break;
+        }
+
+        if (MsQuicLib.Datapath == NULL) {
+            Status = QUIC_STATUS_INVALID_STATE;
+            break;
+        }
+
+        *BufferLength = sizeof(uint32_t);
+        *(uint32_t*)Buffer = CxPlatDataPathGetSupportedFeatures(MsQuicLib.Datapath);
+
+        Status = QUIC_STATUS_SUCCESS;
+        break;
+
     case QUIC_PARAM_GLOBAL_VERSION_NEGOTIATION_ENABLED:
 
         if (*BufferLength < sizeof(BOOLEAN)) {

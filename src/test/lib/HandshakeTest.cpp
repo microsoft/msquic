@@ -1006,6 +1006,9 @@ QuicTestConnectUnreachable(
 {
     MsQuicRegistration Registration;
     TEST_TRUE(Registration.IsValid());
+    if (QuitTestIsFeatureSupported(CXPLAT_DATAPATH_FEATURE_RAW)) {
+        return;
+    }
 
     MsQuicAlpn Alpn("MsQuicTest");
 
@@ -2945,6 +2948,9 @@ QuicTestLoadBalancedHandshake(
 {
     MsQuicRegistration Registration(true);
     TEST_QUIC_SUCCEEDED(Registration.GetInitStatus());
+    if (QuitTestIsFeatureSupported(CXPLAT_DATAPATH_FEATURE_RAW)) {
+        return; // TODO - QUIC_STATUS_NOT_SUPPORTED
+    }
 
     MsQuicConfiguration ClientConfiguration(Registration, "MsQuicTest", MsQuicCredentialConfig());
     TEST_QUIC_SUCCEEDED(ClientConfiguration.GetInitStatus());
