@@ -127,8 +127,11 @@ MsQuicLibraryInitializePartitions(
     void
     )
 {
+    QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
+
+    CxPlatLockAcquire(&MsQuicLib.Lock);
     if (MsQuicLib.PerProc) {
-        return QUIC_STATUS_SUCCESS; // Already initialized
+        goto Done; // Already initialized
     }
 
     MsQuicLib.ProcessorCount = (uint16_t)CxPlatProcMaxCount();
@@ -166,7 +169,8 @@ MsQuicLibraryInitializePartitions(
             "Allocation of '%s' failed. (%llu bytes)",
             "connection pools",
             PerProcSize);
-        return QUIC_STATUS_OUT_OF_MEMORY;
+        Status = QUIC_STATUS_OUT_OF_MEMORY;
+        goto Done;
     }
 
     CxPlatZeroMemory(MsQuicLib.PerProc, PerProcSize);
@@ -178,7 +182,6 @@ MsQuicLibraryInitializePartitions(
         CxPlatLockInitialize(&PerProc->ResetTokenLock);
     }
 
-    QUIC_STATUS Status;
     uint8_t ResetHashKey[20];
     CxPlatRandom(sizeof(ResetHashKey), ResetHashKey);
     for (uint16_t i = 0; i < MsQuicLib.ProcessorCount; ++i) {
@@ -192,12 +195,14 @@ MsQuicLibraryInitializePartitions(
         if (QUIC_FAILED(Status)) {
             CxPlatSecureZeroMemory(ResetHashKey, sizeof(ResetHashKey));
             MsQuicLibraryFreePartitions();
-            return Status;
+            goto Done;
         }
     }
     CxPlatSecureZeroMemory(ResetHashKey, sizeof(ResetHashKey));
 
-    return QUIC_STATUS_SUCCESS;
+Done:
+    CxPlatLockRelease(&MsQuicLib.Lock);
+    return Status;
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -989,6 +994,7 @@ QuicLibrarySetGlobalParam(
                 CxPlatDataPathUpdateConfig(MsQuicLib.Datapath, MsQuicLib.ExecutionConfig);
                 Status = QUIC_STATUS_SUCCESS;
             }
+            CxPlatLockRelease(&MsQuicLib.Lock);
             break;
         }
 
@@ -1001,6 +1007,7 @@ QuicLibrarySetGlobalParam(
                 "Execution config",
                 BufferLength);
             Status = QUIC_STATUS_OUT_OF_MEMORY;
+            CxPlatLockRelease(&MsQuicLib.Lock);
             break;
         }
 
