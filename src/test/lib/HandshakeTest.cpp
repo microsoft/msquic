@@ -1910,18 +1910,20 @@ QuicTestReliableResetNegotiation(
     TEST_TRUE(Registration.IsValid());
 
     MsQuicSettings ServerSettings;
+    MsQuicSettings ClientSettings;
     ServerSettings.SetReliableResetEnabled(ServerSupport);
+    ClientSettings.SetReliableResetEnabled(ClientSupport);
 
     MsQuicConfiguration ServerConfiguration(Registration, "MsQuicTest", ServerSettings, ServerSelfSignedCredConfig);
     TEST_QUIC_SUCCEEDED(ServerConfiguration.GetInitStatus());
 
-    MsQuicSettings ClientSettings;
-    ClientSettings.SetReliableResetEnabled(ClientSupport);
     MsQuicConfiguration ClientConfiguration(Registration, "MsQuicTest", ClientSettings, MsQuicCredentialConfig());
     TEST_QUIC_SUCCEEDED(ClientConfiguration.GetInitStatus());
 
     QuicAddr ServerLocalAddr(QUIC_ADDRESS_FAMILY_INET);
     MsQuicAutoAcceptListener Listener(Registration, ServerConfiguration, Context::s_ConnectionCallback, &ServerContext);
+
+
     TEST_QUIC_SUCCEEDED(Listener.Start("MsQuicTest", &ServerLocalAddr.SockAddr));
     TEST_QUIC_SUCCEEDED(Listener.GetInitStatus());
     TEST_QUIC_SUCCEEDED(Listener.GetLocalAddr(ServerLocalAddr));
@@ -1931,6 +1933,13 @@ QuicTestReliableResetNegotiation(
     TEST_QUIC_SUCCEEDED(Connection.Start(ClientConfiguration, ServerLocalAddr.GetFamily(), QUIC_TEST_LOOPBACK_FOR_AF(ServerLocalAddr.GetFamily()), ServerLocalAddr.GetPort()));
     TEST_TRUE(Connection.HandshakeCompleteEvent.WaitTimeout(TestWaitTimeout));
     TEST_TRUE(Connection.HandshakeComplete);
+    TEST_TRUE(Listener.LastConnection->HandshakeCompleteEvent.WaitTimeout(TestWaitTimeout));
+    TEST_TRUE(Listener.LastConnection->HandshakeComplete);
+
+    MsQuicSettings ListenerServerSettings2;
+    TEST_QUIC_SUCCEEDED(Listener.LastConnection->GetSettings(&ListenerServerSettings2));
+    TEST_EQUAL(ListenerServerSettings2.IsSet.ReliableResetEnabled, ServerSupport);
+    TEST_EQUAL(ListenerServerSettings2.ReliableResetEnabled, 1);
 
     if (ClientSupport) {
         TEST_TRUE(ClientContext.CallbackReceived);

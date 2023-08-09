@@ -1660,14 +1660,6 @@ QuicSettingsSettingsToInternal(
         SettingsSize,
         InternalSettings);
 
-    SETTING_COPY_FLAG_TO_INTERNAL_SIZED(
-        Flags,
-        ReliableResetEnabled,
-        QUIC_SETTINGS,
-        Settings,
-        SettingsSize,
-        InternalSettings);
-
     return QUIC_STATUS_SUCCESS;
 }
 
