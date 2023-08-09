@@ -434,9 +434,9 @@ TRACEPOINT_EVENT(CLOG_LIBRARY_C, LibraryRelease,
 // Decoder Ring for DataPathInitialized
 // [data] Initialized, DatapathFeatures=%u
 // QuicTraceEvent(
-                    DataPathInitialized,
-                    "[data] Initialized, DatapathFeatures=%u",
-                    CxPlatDataPathGetSupportedFeatures(MsQuicLib.Datapath));
+                DataPathInitialized,
+                "[data] Initialized, DatapathFeatures=%u",
+                CxPlatDataPathGetSupportedFeatures(MsQuicLib.Datapath));
 // arg2 = arg2 = CxPlatDataPathGetSupportedFeatures(MsQuicLib.Datapath) = arg2
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_LIBRARY_C, DataPathInitialized,

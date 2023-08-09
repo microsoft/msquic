@@ -11772,7 +11772,7 @@
     },
     "WorkerCreated": {
       "ModuleProperites": {},
-      "TraceString": "/ TODO - Make v2\r\n        \"[wrkr][%p] Created, IdealProc=%hu Owner=%p",
+      "TraceString": "[wrkr][%p] Created, IdealProc=%hu Owner=%p",
       "UniqueId": "WorkerCreated",
       "splitArgs": [
         {
@@ -16262,9 +16262,9 @@
         "EncodingString": "[wrkr][%p] Cleaning up"
       },
       {
-        "UniquenessHash": "63bbaf87-f54b-b2fd-6a62-cdfaf0760ca8",
+        "UniquenessHash": "49ee2ed0-1b90-a7f2-d8a6-230a287a07b7",
         "TraceID": "WorkerCreated",
-        "EncodingString": "/ TODO - Make v2\r\n        \"[wrkr][%p] Created, IdealProc=%hu Owner=%p"
+        "EncodingString": "[wrkr][%p] Created, IdealProc=%hu Owner=%p"
       },
       {
         "UniquenessHash": "040cdcdf-a76c-26b5-a4d6-36222cd2abdb",

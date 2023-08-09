@@ -67,10 +67,9 @@ tracepoint(CLOG_WORKER_C, AbandonOnLibShutdown , arg1);\
 
 /*----------------------------------------------------------
 // Decoder Ring for WorkerCreated
-// / TODO - Make v2
-        "[wrkr][%p] Created, IdealProc=%hu Owner=%p
+// [wrkr][%p] Created, IdealProc=%hu Owner=%p
 // QuicTraceEvent(
-        WorkerCreated, // TODO - Make v2
+        WorkerCreated,
         "[wrkr][%p] Created, IdealProc=%hu Owner=%p",
         Worker,
         QuicLibraryGetPartitionProcessor(PartitionIndex),
