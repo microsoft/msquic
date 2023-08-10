@@ -6533,6 +6533,7 @@ QuicConnParamSet(
         //
         // Must be set before the client connection is started.
         //
+
         if (QuicConnIsServer(Connection) ||
             QUIC_CONN_BAD_START_STATE(Connection)) {
             Status = QUIC_STATUS_INVALID_STATE;
@@ -6762,11 +6763,16 @@ QuicConnParamSet(
         break;
 #endif
 
+    case QUIC_PARAM_CONN_REFRESH_PROCESS_PEER_TP:
+        QuicConnProcessPeerTransportParameters(Connection, FALSE);
+        Status = QUIC_STATUS_SUCCESS;
+        break;
+
+
     default:
         Status = QUIC_STATUS_INVALID_PARAMETER;
         break;
     }
-
     return Status;
 }
 

@@ -1880,6 +1880,7 @@ QuicTestFailedVersionNegotiation(
 
 void
 QuicTestReliableResetNegotiation(
+    _In_ int Family,
     _In_ bool ServerSupport,
     _In_ bool ClientSupport
     )
@@ -1920,9 +1921,9 @@ QuicTestReliableResetNegotiation(
     MsQuicConfiguration ClientConfiguration(Registration, "MsQuicTest", ClientSettings, MsQuicCredentialConfig());
     TEST_QUIC_SUCCEEDED(ClientConfiguration.GetInitStatus());
 
-    QuicAddr ServerLocalAddr(QUIC_ADDRESS_FAMILY_INET);
+    QUIC_ADDRESS_FAMILY QuicAddrFamily = (Family == 4) ? QUIC_ADDRESS_FAMILY_INET : QUIC_ADDRESS_FAMILY_INET6;
+    QuicAddr ServerLocalAddr(QuicAddrFamily);
     MsQuicAutoAcceptListener Listener(Registration, ServerConfiguration, Context::s_ConnectionCallback, &ServerContext);
-
 
     TEST_QUIC_SUCCEEDED(Listener.Start("MsQuicTest", &ServerLocalAddr.SockAddr));
     TEST_QUIC_SUCCEEDED(Listener.GetInitStatus());
@@ -1931,15 +1932,17 @@ QuicTestReliableResetNegotiation(
     MsQuicConnection Connection(Registration, CleanUpManual, Context::s_ConnectionCallback, &ClientContext);
     TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
     TEST_QUIC_SUCCEEDED(Connection.Start(ClientConfiguration, ServerLocalAddr.GetFamily(), QUIC_TEST_LOOPBACK_FOR_AF(ServerLocalAddr.GetFamily()), ServerLocalAddr.GetPort()));
+
     TEST_TRUE(Connection.HandshakeCompleteEvent.WaitTimeout(TestWaitTimeout));
     TEST_TRUE(Connection.HandshakeComplete);
     TEST_TRUE(Listener.LastConnection->HandshakeCompleteEvent.WaitTimeout(TestWaitTimeout));
     TEST_TRUE(Listener.LastConnection->HandshakeComplete);
 
+    Listener.LastConnection->SetParam(QUIC_PARAM_CONN_REFRESH_PROCESS_PEER_TP, 0, nullptr);
+
     MsQuicSettings ListenerServerSettings2;
     TEST_QUIC_SUCCEEDED(Listener.LastConnection->GetSettings(&ListenerServerSettings2));
-    TEST_EQUAL(ListenerServerSettings2.IsSet.ReliableResetEnabled, ServerSupport);
-    TEST_EQUAL(ListenerServerSettings2.ReliableResetEnabled, 1);
+    TEST_EQUAL(ListenerServerSettings2.ReliableResetEnabled, (int) ServerSupport);
 
     if (ClientSupport) {
         TEST_TRUE(ClientContext.CallbackReceived);

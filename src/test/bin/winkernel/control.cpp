@@ -1342,28 +1342,28 @@ QuicTestCtlEvtIoDeviceControl(
     case IOCTL_QUIC_RELIABLE_RESET_NEGOTIATION_SERVER_NO_CLIENT_NO:
         CXPLAT_FRE_ASSERT(Params != nullptr);
         QuicTestCtlRun(
-            QuicTestReliableResetNegotiation(false, false)
+            QuicTestReliableResetNegotiation(Params->Family, false, false)
         );
         break;
 
     case IOCTL_QUIC_RUN_RELIABLE_RESET_NEGOTIATION_SERVER_NO_CLIENT_YES:
         CXPLAT_FRE_ASSERT(Params != nullptr);
         QuicTestCtlRun(
-            QuicTestReliableResetNegotiation(false, true)
+            QuicTestReliableResetNegotiation(Params->Family, false, true)
         );
         break;
 
     case IOCTL_QUIC_RUN_RELIABLE_RESET_NEGOTIATION_SERVER_YES_CLIENT_NO:
         CXPLAT_FRE_ASSERT(Params != nullptr);
         QuicTestCtlRun(
-            QuicTestReliableResetNegotiation(true, false)
+            QuicTestReliableResetNegotiation(Params->Family, true, false)
         );
         break;
 
     case IOCTL_QUIC_RUN_RELIABLE_RESET_NEGOTIATION_SERVER_YES_CLIENT_YES:
         CXPLAT_FRE_ASSERT(Params != nullptr);
         QuicTestCtlRun(
-            QuicTestReliableResetNegotiation(true, true)
+            QuicTestReliableResetNegotiation(Params->Family, true, true)
         );
         break;
 #endif

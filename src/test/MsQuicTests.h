@@ -189,6 +189,7 @@ QuicTestFailedVersionNegotiation(
 
 void
 QuicTestReliableResetNegotiation(
+    _In_ int Family,
     _In_ bool ServerSupport,
     _In_ bool ClientSupport
 );
