@@ -1549,7 +1549,7 @@ CxPlatSocketCreateUdp(
             CxPlatSocketContextInitialize(
                 &Binding->SocketContexts[i],
                 Config,
-                Config->RemoteAddress ? Config->PartitionIndex : i);
+                Config->RemoteAddress ? Config->PartitionIndex : (i % Datapath->ProcCount));
         if (QUIC_FAILED(Status)) {
             goto Exit;
         }

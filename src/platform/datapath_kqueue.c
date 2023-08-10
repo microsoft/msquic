@@ -1596,7 +1596,7 @@ CxPlatSocketCreateUdp(
             Binding->Mtu - CXPLAT_MIN_IPV4_HEADER_SIZE - CXPLAT_UDP_HEADER_SIZE;
         Binding->SocketContexts[i].DatapathProc =
             IsServerSocket ?
-                &Datapath->Processors[i] :
+                &Datapath->Processors[i % Datapath->ProcCount] :
                 CxPlatDataPathGetProc(Datapath, CurrentProc);
         CxPlatRefIncrement(&Binding->SocketContexts[i].DatapathProc->RefCount);
         CxPlatListInitializeHead(&Binding->SocketContexts[i].PendingSendDataHead);

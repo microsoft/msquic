@@ -2114,6 +2114,7 @@ CxPlatSocketAllocRecvContext(
     )
 {
     CXPLAT_DBG_ASSERT(IsUro == 1 || IsUro == 0);
+    CXPLAT_DBG_ASSERT(ProcIndex < Datapath->ProcCount);
     CXPLAT_POOL* Pool = &Datapath->ProcContexts[ProcIndex].RecvDatagramPools[IsUro];
 
     CXPLAT_DATAPATH_INTERNAL_RECV_CONTEXT* InternalContext = CxPlatPoolAlloc(Pool);
@@ -2383,7 +2384,7 @@ CxPlatDataPathSocketReceive(
                 RecvContext =
                     CxPlatSocketAllocRecvContext(
                         Binding->Datapath,
-                        (UINT16)CurProcNumber,
+                        (UINT16)(CurProcNumber % Binding->Datapath->ProcCount),
                         IsCoalesced);
                 if (RecvContext == NULL) {
                     QuicTraceLogWarning(
@@ -2624,7 +2625,7 @@ CxPlatSendDataAlloc(
     CXPLAT_DBG_ASSERT(Binding != NULL);
 
     if (Config->Route->Queue == NULL) {
-        Config->Route->Queue = &Binding->Datapath->ProcContexts[CxPlatProcCurrentNumber()];
+        Config->Route->Queue = &Binding->Datapath->ProcContexts[CxPlatProcCurrentNumber() % Binding->Datapath->ProcCount];
     }
 
     CXPLAT_DATAPATH_PROC_CONTEXT* ProcContext = Config->Route->Queue;
