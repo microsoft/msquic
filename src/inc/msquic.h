@@ -717,7 +717,7 @@ typedef struct QUIC_SETTINGS {
             uint64_t HyStartEnabled            : 1;
 #ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
             uint64_t EncryptionOffloadAllowed  : 1;
-            uint8_t ReliableResetEnabled       : 1;
+            uint64_t ReliableResetEnabled      : 1;
             uint64_t ReservedFlags             : 61;
 #else
             uint64_t ReservedFlags             : 63;
