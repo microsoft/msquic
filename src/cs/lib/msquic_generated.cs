@@ -3177,9 +3177,6 @@ namespace Microsoft.Quic
         [NativeTypeName("#define QUIC_PARAM_CONN_ORIG_DEST_CID 0x05000018")]
         internal const uint QUIC_PARAM_CONN_ORIG_DEST_CID = 0x05000018;
 
-        [NativeTypeName("#define QUIC_PARAM_CONN_REFRESH_PROCESS_PEER_TP 0x05000019")]
-        internal const uint QUIC_PARAM_CONN_REFRESH_PROCESS_PEER_TP = 0x05000019;
-
         [NativeTypeName("#define QUIC_PARAM_TLS_HANDSHAKE_INFO 0x06000000")]
         internal const uint QUIC_PARAM_TLS_HANDSHAKE_INFO = 0x06000000;
 
