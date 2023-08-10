@@ -1217,7 +1217,6 @@ typedef struct QUIC_CONNECTION_EVENT {
             QUIC_STATUS DeferredStatus;         // Most severe error status (only valid with QUIC_CREDENTIAL_FLAG_DEFER_CERTIFICATE_VALIDATION)
             QUIC_CERTIFICATE_CHAIN* Chain;      // Peer certificate chain (platform specific). Valid only during QUIC_CONNECTION_EVENT_PEER_CERTIFICATE_RECEIVED callback.
         } PEER_CERTIFICATE_RECEIVED;
-
 #ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
         struct {
             BOOLEAN IsNegotiated;
