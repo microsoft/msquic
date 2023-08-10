@@ -319,9 +319,9 @@ typedef struct QUIC_CACHEALIGN CXPLAT_DATAPATH_PROC {
     CXPLAT_REF_COUNT RefCount;
 
     //
-    // The ideal processor of the context.
+    // The index of the partition.
     //
-    uint16_t IdealProcessor;
+    uint16_t PartitionIndex;
 
 #if DEBUG
     uint8_t Uninitialized : 1;
@@ -390,21 +390,6 @@ typedef struct CXPLAT_DATAPATH {
 
 } CXPLAT_DATAPATH;
 
-CXPLAT_DATAPATH_PROC*
-CxPlatDataPathGetProc(
-    _In_ CXPLAT_DATAPATH* Datapath,
-    _In_ uint16_t Processor
-    )
-{
-    for (uint32_t i = 0; i < Datapath->ProcCount; ++i) {
-        if (Datapath->Processors[i].IdealProcessor == Processor) {
-            return &Datapath->Processors[i];
-        }
-    }
-    CXPLAT_FRE_ASSERT(FALSE); // TODO - What now?!
-    return NULL;
-}
-
 QUIC_STATUS
 CxPlatSocketSendInternal(
     _In_ CXPLAT_SOCKET_CONTEXT* SocketContext,
@@ -417,8 +402,7 @@ CxPlatSocketSendInternal(
 void
 CxPlatProcessorContextInitialize(
     _In_ CXPLAT_DATAPATH* Datapath,
-    _In_ uint16_t ProcessorIndex,
-    _In_ uint16_t IdealProcessor,
+    _In_ uint16_t PartitionIndex,
     _In_ uint32_t ClientRecvContextLength,
     _Out_ CXPLAT_DATAPATH_PROC* DatapathProc
     )
@@ -428,8 +412,8 @@ CxPlatProcessorContextInitialize(
 
     CXPLAT_DBG_ASSERT(Datapath != NULL);
     DatapathProc->Datapath = Datapath;
-    DatapathProc->IdealProcessor = IdealProcessor;
-    DatapathProc->EventQ = CxPlatWorkerGetEventQ(ProcessorIndex);
+    DatapathProc->PartitionIndex = PartitionIndex;
+    DatapathProc->EventQ = CxPlatWorkerGetEventQ(PartitionIndex);
     CxPlatRefInitialize(&DatapathProc->RefCount);
 
     CxPlatPoolInitialize(
@@ -511,7 +495,6 @@ CxPlatDataPathInitialize(
         CxPlatProcessorContextInitialize(
             Datapath,
             i,
-            ProcessorList ? ProcessorList[i] : (uint16_t)i,
             ClientRecvContextLength,
             &Datapath->Processors[i]);
     }
@@ -1355,7 +1338,7 @@ CxPlatSocketContextRecvComplete(
     CXPLAT_DBG_ASSERT(BytesTransferred <= RecvPacket->BufferLength);
     RecvPacket->BufferLength = BytesTransferred;
 
-    RecvPacket->PartitionIndex = SocketContext->DatapathProc->IdealProcessor;
+    RecvPacket->PartitionIndex = SocketContext->DatapathProc->PartitionIndex;
 
     if (!SocketContext->Binding->PcpBinding) {
         CXPLAT_DBG_ASSERT(SocketContext->Binding->Datapath->UdpHandlers.Receive);
@@ -1597,7 +1580,7 @@ CxPlatSocketCreateUdp(
         Binding->SocketContexts[i].DatapathProc =
             IsServerSocket ?
                 &Datapath->Processors[i % Datapath->ProcCount] :
-                CxPlatDataPathGetProc(Datapath, CurrentProc);
+                &Datapath->Processors[Config->PartitionIndex];
         CxPlatRefIncrement(&Binding->SocketContexts[i].DatapathProc->RefCount);
         CxPlatListInitializeHead(&Binding->SocketContexts[i].PendingSendDataHead);
         CxPlatLockInitialize(&Binding->SocketContexts[i].PendingSendDataLock);

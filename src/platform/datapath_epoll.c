@@ -350,11 +350,6 @@ typedef struct QUIC_CACHEALIGN CXPLAT_DATAPATH_PROC {
     //
     uint16_t PartitionIndex;
 
-    //
-    // The ideal processor of the context.
-    //
-    uint16_t IdealProcessor;
-
 #if DEBUG
     uint8_t Uninitialized : 1;
 #endif
@@ -441,21 +436,6 @@ typedef struct CXPLAT_DATAPATH {
     CXPLAT_DATAPATH_PROC Processors[];
 
 } CXPLAT_DATAPATH;
-
-CXPLAT_DATAPATH_PROC*
-CxPlatDataPathGetProc(
-    _In_ CXPLAT_DATAPATH* Datapath,
-    _In_ uint16_t Processor
-    )
-{
-    for (uint32_t i = 0; i < Datapath->ProcCount; ++i) {
-        if (Datapath->Processors[i].IdealProcessor == Processor) {
-            return &Datapath->Processors[i];
-        }
-    }
-    CXPLAT_FRE_ASSERT(FALSE); // TODO - What now?!
-    return NULL;
-}
 
 #ifdef DEBUG
 #define CXPLAT_DBG_ASSERT_CMSG(CMsg, type) \
@@ -668,7 +648,9 @@ CxPlatDataPathInitialize(
     //
     for (uint32_t i = 0; i < Datapath->ProcCount; i++) {
         CxPlatProcessorContextInitialize(
-            Datapath, i, &Datapath->Processors[i]);
+            Datapath,
+            i,
+            &Datapath->Processors[i]);
     }
 
     CXPLAT_FRE_ASSERT(CxPlatRundownAcquire(&CxPlatWorkerRundown));
@@ -1871,7 +1853,7 @@ CxPlatSocketContextRecvComplete(
             } else {
                 RecvData->BufferLength = SegmentLength;
             }
-            RecvData->PartitionIndex = SocketContext->DatapathProc->IdealProcessor;
+            RecvData->PartitionIndex = SocketContext->DatapathProc->PartitionIndex;
             RecvData->TypeOfService = TOS;
             RecvData->Allocated = TRUE;
             RecvData->QueuedOnConnection = FALSE;

@@ -2432,7 +2432,7 @@ CxPlatDataPathSocketReceive(
 
             CXPLAT_DBG_ASSERT(Datagram != NULL);
             Datagram->Next = NULL;
-            Datagram->PartitionIndex = (uint8_t)CurProcNumber;
+            Datagram->PartitionIndex = (uint8_t)(CurProcNumber % Binding->Datapath->ProcCount);
             Datagram->TypeOfService = (uint8_t)ECN;
             Datagram->Allocated = TRUE;
             Datagram->QueuedOnConnection = FALSE;

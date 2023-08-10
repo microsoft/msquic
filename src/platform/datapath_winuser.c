@@ -457,7 +457,7 @@ typedef struct CXPLAT_SOCKET {
     // Flag indicates the socket has more than one socket, affinitized to all
     // the processors.
     //
-    uint16_t PerProcessorSockets : 1;
+    uint16_t NumPerProcessorSockets : 1;
 
     //
     // Flag indicates the socket has a default remote destination.
@@ -488,7 +488,7 @@ typedef struct CXPLAT_SOCKET {
     //
     // Per-processor socket contexts.
     //
-    CXPLAT_SOCKET_PROC Processors[0];
+    CXPLAT_SOCKET_PROC PerProcSockets[0];
 
 } CXPLAT_SOCKET;
 
@@ -1840,8 +1840,8 @@ CxPlatSocketCreateUdp(
 {
     QUIC_STATUS Status;
     const BOOLEAN IsServerSocket = Config->RemoteAddress == NULL;
-    const BOOLEAN PerProcessorSockets = IsServerSocket && Datapath->ProcCount > 1;
-    const uint16_t SocketCount = PerProcessorSockets ? (uint16_t)CxPlatProcMaxCount() : 1;
+    const BOOLEAN NumPerProcessorSockets = IsServerSocket && Datapath->ProcCount > 1;
+    const uint16_t SocketCount = NumPerProcessorSockets ? (uint16_t)CxPlatProcMaxCount() : 1;
     INET_PORT_RESERVATION_INSTANCE PortReservation;
     int Result, Option;
 
@@ -1871,7 +1871,7 @@ CxPlatSocketCreateUdp(
     ZeroMemory(Socket, SocketLength);
     Socket->Datapath = Datapath;
     Socket->ClientContext = Config->CallbackContext;
-    Socket->PerProcessorSockets = PerProcessorSockets;
+    Socket->NumPerProcessorSockets = NumPerProcessorSockets;
     Socket->HasFixedRemoteAddress = (Config->RemoteAddress != NULL);
     Socket->Type = CXPLAT_SOCKET_UDP;
     Socket->UseRio = Datapath->UseRio;
@@ -1892,20 +1892,20 @@ CxPlatSocketCreateUdp(
             Socket->Mtu - CXPLAT_MIN_IPV4_HEADER_SIZE - CXPLAT_UDP_HEADER_SIZE;
 
     for (uint16_t i = 0; i < SocketCount; i++) {
-        CxPlatRefInitialize(&Socket->Processors[i].RefCount);
-        Socket->Processors[i].Parent = Socket;
-        Socket->Processors[i].Socket = INVALID_SOCKET;
+        CxPlatRefInitialize(&Socket->PerProcSockets[i].RefCount);
+        Socket->PerProcSockets[i].Parent = Socket;
+        Socket->PerProcSockets[i].Socket = INVALID_SOCKET;
         CxPlatDatapathSqeInitialize(
-            &Socket->Processors[i].IoSqe.DatapathSqe, CXPLAT_CQE_TYPE_SOCKET_IO);
-        CxPlatRundownInitialize(&Socket->Processors[i].RundownRef);
-        Socket->Processors[i].RioCq = RIO_INVALID_CQ;
-        Socket->Processors[i].RioRq = RIO_INVALID_RQ;
-        CxPlatListInitializeHead(&Socket->Processors[i].RioSendOverflow);
+            &Socket->PerProcSockets[i].IoSqe.DatapathSqe, CXPLAT_CQE_TYPE_SOCKET_IO);
+        CxPlatRundownInitialize(&Socket->PerProcSockets[i].RundownRef);
+        Socket->PerProcSockets[i].RioCq = RIO_INVALID_CQ;
+        Socket->PerProcSockets[i].RioRq = RIO_INVALID_RQ;
+        CxPlatListInitializeHead(&Socket->PerProcSockets[i].RioSendOverflow);
     }
 
     for (uint16_t i = 0; i < SocketCount; i++) {
 
-        CXPLAT_SOCKET_PROC* SocketProc = &Socket->Processors[i];
+        CXPLAT_SOCKET_PROC* SocketProc = &Socket->PerProcSockets[i];
         const uint16_t PartitionIndex =
             Config->RemoteAddress ?
                 Config->PartitionIndex :
@@ -2422,8 +2422,8 @@ CxPlatSocketCreateUdp(
     *NewSocket = Socket;
 
     for (uint16_t i = 0; i < SocketCount; i++) {
-        CxPlatDataPathStartReceiveAsync(&Socket->Processors[i]);
-        Socket->Processors[i].IoStarted = TRUE;
+        CxPlatDataPathStartReceiveAsync(&Socket->PerProcSockets[i]);
+        Socket->PerProcSockets[i].IoStarted = TRUE;
     }
 
     Status = QUIC_STATUS_SUCCESS;
@@ -2487,14 +2487,16 @@ CxPlatSocketCreateTcpInternal(
     } else {
         Socket->LocalAddress.si_family = QUIC_ADDRESS_FAMILY_INET6;
     }
-    PartitionIndex = RemoteAddress ? ((uint16_t)CxPlatProcCurrentNumber()) : 0;
+    PartitionIndex =
+        RemoteAddress ?
+            ((uint16_t)(CxPlatProcCurrentNumber() % Datapath->ProcCount)) : 0;
     Socket->Mtu = CXPLAT_MAX_MTU;
     Socket->RecvBufLen =
         (Datapath->Features & CXPLAT_DATAPATH_FEATURE_RECV_COALESCING) ?
             MAX_URO_PAYLOAD_LENGTH : MAX_RECV_PAYLOAD_LENGTH;
     CxPlatRefInitializeEx(&Socket->RefCount, 1);
 
-    SocketProc = &Socket->Processors[0];
+    SocketProc = &Socket->PerProcSockets[0];
     CxPlatRefInitialize(&SocketProc->RefCount);
     SocketProc->Parent = Socket;
     SocketProc->Socket = INVALID_SOCKET;
@@ -2566,7 +2568,7 @@ CxPlatSocketCreateTcpInternal(
     if (Type != CXPLAT_SOCKET_TCP_SERVER) {
 
         SocketProc->DatapathProc =
-            &Datapath->Processors[PartitionIndex % Datapath->ProcCount];
+            &Datapath->Processors[PartitionIndex];
         CxPlatRefIncrement(&SocketProc->DatapathProc->RefCount);
 
         if (!CxPlatEventQAssociateHandle(
@@ -2764,7 +2766,7 @@ CxPlatSocketCreateTcpListener(
     Socket->Mtu = CXPLAT_MAX_MTU;
     CxPlatRefInitializeEx(&Socket->RefCount, 1);
 
-    SocketProc = &Socket->Processors[0];
+    SocketProc = &Socket->PerProcSockets[0];
     CxPlatRefInitialize(&SocketProc->RefCount);
     SocketProc->Parent = Socket;
     SocketProc->Socket = INVALID_SOCKET;
@@ -2949,9 +2951,9 @@ CxPlatSocketDelete(
     Socket->Uninitialized = TRUE;
 
     const uint16_t SocketCount =
-        Socket->PerProcessorSockets ? (uint16_t)CxPlatProcMaxCount() : 1;
+        Socket->NumPerProcessorSockets ? (uint16_t)CxPlatProcMaxCount() : 1;
     for (uint16_t i = 0; i < SocketCount; ++i) {
-        CxPlatSocketContextUninitialize(&Socket->Processors[i]);
+        CxPlatSocketContextUninitialize(&Socket->PerProcSockets[i]);
     }
 }
 
@@ -3258,7 +3260,7 @@ CxPlatSocketStartAccept(
     Result =
         Datapath->AcceptEx(
             ListenerSocketProc->Socket,
-            ListenerSocketProc->AcceptSocket->Processors[0].Socket,
+            ListenerSocketProc->AcceptSocket->PerProcSockets[0].Socket,
             &ListenerSocketProc->AcceptAddrSpace,
             0,                          // dwReceiveDataLength
             sizeof(SOCKADDR_INET)+16,   // dwLocalAddressLength
@@ -3319,7 +3321,7 @@ CxPlatDataPathSocketProcessAcceptCompletion(
 
     if (IoResult == QUIC_STATUS_SUCCESS) {
         CXPLAT_DBG_ASSERT(ListenerSocketProc->AcceptSocket != NULL);
-        CXPLAT_SOCKET_PROC* AcceptSocketProc = &ListenerSocketProc->AcceptSocket->Processors[0];
+        CXPLAT_SOCKET_PROC* AcceptSocketProc = &ListenerSocketProc->AcceptSocket->PerProcSockets[0];
         CXPLAT_DBG_ASSERT(ListenerSocketProc->AcceptSocket == AcceptSocketProc->Parent);
         DWORD BytesReturned;
         SOCKET_PROCESSOR_AFFINITY RssAffinity = { 0 };
@@ -3350,6 +3352,8 @@ CxPlatDataPathSocketProcessAcceptCompletion(
             goto Error;
         }
 
+        CXPLAT_DATAPATH* Datapath = ListenerSocketProc->Parent->Datapath;
+
         Result =
             WSAIoctl(
                 AcceptSocketProc->Socket,
@@ -3363,13 +3367,12 @@ CxPlatDataPathSocketProcessAcceptCompletion(
                 NULL);
         if (Result == NO_ERROR) {
             PartitionIndex =
-                (uint16_t)CxPlatProcessorGroupInfo[RssAffinity.Processor.Group].Offset +
-                (uint16_t)RssAffinity.Processor.Number;
+                ((uint16_t)CxPlatProcessorGroupInfo[RssAffinity.Processor.Group].Offset +
+                (uint16_t)RssAffinity.Processor.Number) % Datapath->ProcCount;
         }
 
-        CXPLAT_DATAPATH* Datapath = ListenerSocketProc->Parent->Datapath;
         AcceptSocketProc->DatapathProc =
-            &Datapath->Processors[PartitionIndex % Datapath->ProcCount]; // TODO - Something better?
+            &Datapath->Processors[PartitionIndex]; // TODO - Something better?
         CxPlatRefIncrement(&AcceptSocketProc->DatapathProc->RefCount);
 
         if (!CxPlatEventQAssociateHandle(
@@ -3892,7 +3895,8 @@ CxPlatDataPathUdpRecvComplete(
             Datagram->Buffer = RecvPayload;
             Datagram->BufferLength = MessageLength;
             Datagram->Route = &RecvContext->Route;
-            Datagram->PartitionIndex = SocketProc->DatapathProc->PartitionIndex;
+            Datagram->PartitionIndex =
+                SocketProc->DatapathProc->PartitionIndex % SocketProc->DatapathProc->Datapath->ProcCount;
             Datagram->TypeOfService = (uint8_t)ECN;
             Datagram->Allocated = TRUE;
             Datagram->QueuedOnConnection = FALSE;
@@ -4362,7 +4366,7 @@ CxPlatSendDataAlloc(
     CXPLAT_DBG_ASSERT(Socket != NULL);
 
     if (Config->Route->Queue == NULL) {
-        Config->Route->Queue = &Socket->Processors[0];
+        Config->Route->Queue = &Socket->PerProcSockets[0];
     }
 
     CXPLAT_SOCKET_PROC* SocketProc = Config->Route->Queue;
