@@ -3,7 +3,7 @@
 [![Perf Dashboard](https://img.shields.io/static/v1?label=Performance&message=Dashboard&color=blue)](https://microsoft.github.io/msquic/)
 [![Build Status](https://img.shields.io/github/actions/workflow/status/microsoft/msquic/build.yml?query=branch%3Amain&label=Build)](https://github.com/microsoft/msquic/actions/workflows/build.yml?query=branch%3Amain)
 [![Test Status](https://img.shields.io/github/actions/workflow/status/microsoft/msquic/test.yml?query=branch%3Amain&label=Test)](https://github.com/microsoft/msquic/actions/workflows/test.yml?query=branch%3Amain)
-[![Stress Status](https://img.shields.io/github/actions/workflow/status/microsoft/msquic/stress.yml?query=branch%3Amain&label=Test)](https://github.com/microsoft/msquic/actions/workflows/stress.yml?query=branch%3Amain)
+[![Stress Status](https://img.shields.io/github/actions/workflow/status/microsoft/msquic/stress.yml?query=branch%3Amain&label=Stress)](https://github.com/microsoft/msquic/actions/workflows/stress.yml?query=branch%3Amain)
 [![codecov](https://codecov.io/github/microsoft/msquic/branch/main/graph/badge.svg?token=xAjIMDn7wy)](https://codecov.io/github/microsoft/msquic)
 ![CodeQL](https://github.com/microsoft/msquic/workflows/CodeQL/badge.svg?branch=main)
 [![CII Best Practices](https://bestpractices.coreinfrastructure.org/projects/4846/badge)](https://bestpractices.coreinfrastructure.org/projects/4846)
