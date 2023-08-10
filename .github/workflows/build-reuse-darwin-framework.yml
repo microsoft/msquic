@@ -1,7 +1,6 @@
 name: Build Darwin Universal
 
 on:
-  workflow_dispatch:
   workflow_call:
     inputs:
       config:
