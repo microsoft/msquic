@@ -6741,12 +6741,6 @@ QuicConnParamSet(
         break;
 #endif
 
-    case QUIC_PARAM_CONN_REFRESH_PROCESS_PEER_TP:
-        QuicConnProcessPeerTransportParameters(Connection, FALSE);
-        Status = QUIC_STATUS_SUCCESS;
-        break;
-
-
     default:
         Status = QUIC_STATUS_INVALID_PARAMETER;
         break;
@@ -7330,6 +7324,23 @@ QuicConnApplyNewSettings(
             Connection->Settings.ReliableResetEnabled &&
             (Connection->PeerTransportParams.Flags & QUIC_TP_FLAG_RELIABLE_RESET_ENABLED) > 0) {
             Connection->State.ReliableResetStreamNegotiated = TRUE;
+        }
+
+        if (QuicConnIsServer(Connection) && Connection->Settings.ReliableResetEnabled) {
+            //
+            // Send event to app to indicate result of negotiation if app cares.
+            //
+
+            QUIC_CONNECTION_EVENT Event;
+            Event.Type = QUIC_CONNECTION_EVENT_RELIABLE_RESET_NEGOTIATED;
+            Event.RELIABLE_RESET_NEGOTIATED.IsNegotiated = Connection->State.ReliableResetStreamNegotiated;
+
+            QuicTraceLogConnVerbose(
+                IndicateReliableResetNegotiated,
+                Connection,
+                "Indicating QUIC_CONNECTION_EVENT_RELIABLE_RESET_NEGOTIATED [IsNegotiated=%hhu]",
+                Event.RELIABLE_RESET_NEGOTIATED.IsNegotiated);
+            QuicConnIndicateEvent(Connection, &Event);
         }
 
         if (Connection->Settings.EcnEnabled) {

@@ -996,41 +996,20 @@ TEST_P(WithFamilyArgs, FailedVersionNegotiation) {
     }
 }
 
-TEST_P(WithFamilyArgs, ReliableResetNegotiationServerYesClientNo) {
-    TestLoggerT<ParamType> Logger("ReliableResetNegotiationServerYesClientNo", GetParam());
+TEST_P(WithHandshakeArgs10, ReliableResetNegotiation) {
+    TestLoggerT<ParamType> Logger("ReliableResetNegotiation", GetParam());
     if (TestingKernelMode) {
-        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RELIABLE_RESET_NEGOTIATION_SERVER_YES_CLIENT_NO, GetParam().Family));
+        QUIC_RUN_RELIABLE_RESET_NEGOTIATION Params = {
+            GetParam().Family,
+            GetParam().ServerSupport,
+            GetParam().ClientSupport
+        };
+        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RELIABLE_RESET_NEGOTIATION, Params));
     } else {
-        QuicTestReliableResetNegotiation(GetParam().Family, true, false);
+        QuicTestReliableResetNegotiation(GetParam().Family, GetParam().ServerSupport, GetParam().ClientSupport);
     }
 }
 
-TEST_P(WithFamilyArgs, ReliableResetNegotiationServerNoClientYes) {
-    TestLoggerT<ParamType> Logger("ReliableResetNegotiationServerNoClientYes", GetParam());
-    if (TestingKernelMode) {
-        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RELIABLE_RESET_NEGOTIATION_SERVER_NO_CLIENT_YES, GetParam().Family));
-    } else {
-        QuicTestReliableResetNegotiation(GetParam().Family, false, true);
-    }
-}
-
-TEST_P(WithFamilyArgs, ReliableResetNegotiationServerNoClientNo) {
-    TestLoggerT<ParamType> Logger("ReliableResetNegotiationServerNoClientNo", GetParam());
-    if (TestingKernelMode) {
-        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RELIABLE_RESET_NEGOTIATION_SERVER_NO_CLIENT_NO, GetParam().Family));
-    } else {
-        QuicTestReliableResetNegotiation(GetParam().Family, false, false);
-    }
-}
-
-TEST_P(WithFamilyArgs, ReliableResetNegotiationServerYesClientYes) {
-    TestLoggerT<ParamType> Logger("ReliableResetNegotiationServerYesClientYes", GetParam());
-    if (TestingKernelMode) {
-        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RELIABLE_RESET_NEGOTIATION_SERVER_YES_CLIENT_YES, GetParam().Family));
-    } else {
-        QuicTestReliableResetNegotiation(GetParam().Family, true, true);
-    }
-}
 #endif // QUIC_API_ENABLE_PREVIEW_FEATURES
 
 TEST_P(WithHandshakeArgs5, CustomServerCertificateValidation) {
@@ -2291,6 +2270,11 @@ INSTANTIATE_TEST_SUITE_P(
     Handshake,
     WithHandshakeArgs7,
     testing::ValuesIn(HandshakeArgs7::Generate()));
+
+INSTANTIATE_TEST_SUITE_P(
+    Handshake,
+    WithHandshakeArgs10,
+    testing::ValuesIn(HandshakeArgs10::Generate()));
 #endif
 
 #ifdef QUIC_API_ENABLE_PREVIEW_FEATURES

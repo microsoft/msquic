@@ -1938,8 +1938,6 @@ QuicTestReliableResetNegotiation(
     TEST_TRUE(Listener.LastConnection->HandshakeCompleteEvent.WaitTimeout(TestWaitTimeout));
     TEST_TRUE(Listener.LastConnection->HandshakeComplete);
 
-    Listener.LastConnection->SetParam(QUIC_PARAM_CONN_REFRESH_PROCESS_PEER_TP, 0, nullptr);
-
     MsQuicSettings ListenerServerSettings2;
     TEST_QUIC_SUCCEEDED(Listener.LastConnection->GetSettings(&ListenerServerSettings2));
     TEST_EQUAL(ListenerServerSettings2.ReliableResetEnabled, (int) ServerSupport);
