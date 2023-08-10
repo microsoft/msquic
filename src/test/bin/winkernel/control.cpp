@@ -1343,8 +1343,10 @@ QuicTestCtlEvtIoDeviceControl(
     case IOCTL_QUIC_RELIABLE_RESET_NEGOTIATION:
         CXPLAT_FRE_ASSERT(Params != nullptr);
         QuicTestCtlRun(
-            QuicTestReliableResetNegotiation(Params->Family, Params->ServerSupport, Params->ClientSupport)
-        );
+            QuicTestReliableResetNegotiation(
+                Params->Family,
+                Params->ServerSupport,
+                Params->ClientSupport));
         break;
 #endif
     default:
