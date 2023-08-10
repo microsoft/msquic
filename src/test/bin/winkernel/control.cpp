@@ -517,7 +517,8 @@ typedef union {
     QUIC_RUN_VN_TP_ODD_SIZE_PARAMS OddSizeVnTpParams;
     UINT8 TestServerVNTP;
     BOOLEAN Bidirectional;
-
+    BOOLEAN ServerSupport;
+    BOOLEAN ClientSupport;
 } QUIC_IOCTL_PARAMS;
 
 #define QuicTestCtlRun(X) \
