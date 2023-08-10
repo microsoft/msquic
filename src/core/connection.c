@@ -2427,12 +2427,6 @@ QuicConnGenerateLocalTransportParameters(
     }
 
     if (Connection->Settings.ReliableResetEnabled) {
-        QuicTraceLogConnInfo(
-        SetReliableResetTPparameter,
-        Connection,
-        "Set Reliable Reset TP, is client = %hhu",
-        QuicConnIsClient(Connection));
-
         LocalTP->Flags |= QUIC_TP_FLAG_RELIABLE_RESET_ENABLED;
     }
 
@@ -3069,28 +3063,12 @@ QuicConnProcessPeerTransportParameters(
             Connection->Stats.GreaseBitNegotiated = TRUE;
         }
 
-        QuicTraceLogConnInfo(
-                CurrentConnectionNode,
-                Connection,
-                "This app is client: %hhu",
-                QuicConnIsClient(Connection));
-
-        QuicTraceLogConnInfo(
-                CurrentConnectionPreferencesState,
-                Connection,
-                "This app supports reliable reset: %hhu",
-                Connection->Settings.ReliableResetEnabled);
-
         if (Connection->Settings.ReliableResetEnabled &&
             (Connection->PeerTransportParams.Flags & QUIC_TP_FLAG_RELIABLE_RESET_ENABLED) > 0) {
             //
             // Reliable Reset is enabled on both sides.
             //
-            QuicTraceLogConnInfo(
-                ReliableResetNegotiated,
-                Connection,
-                "Reliable Reset Negotiated! is client: %hhu",
-                QuicConnIsClient(Connection));
+
             Connection->State.ReliableResetStreamNegotiated = TRUE;
         }
 

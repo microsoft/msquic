@@ -1093,6 +1093,26 @@ tracepoint(CLOG_CONNECTION_C, CompatibleVersionUpgradeComplete , arg1, arg3, arg
 
 
 /*----------------------------------------------------------
+// Decoder Ring for IndicateReliableResetNegotiated
+// [conn][%p] Indicating QUIC_CONNECTION_EVENT_RELIABLE_RESET_NEGOTIATED [IsNegotiated=%hhu]
+// QuicTraceLogConnVerbose(
+                IndicateReliableResetNegotiated,
+                Connection,
+                "Indicating QUIC_CONNECTION_EVENT_RELIABLE_RESET_NEGOTIATED [IsNegotiated=%hhu]",
+                Event.RELIABLE_RESET_NEGOTIATED.IsNegotiated);
+// arg1 = arg1 = Connection = arg1
+// arg3 = arg3 = Event.RELIABLE_RESET_NEGOTIATED.IsNegotiated = arg3
+----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_IndicateReliableResetNegotiated
+#define _clog_4_ARGS_TRACE_IndicateReliableResetNegotiated(uniqueId, arg1, encoded_arg_string, arg3)\
+tracepoint(CLOG_CONNECTION_C, IndicateReliableResetNegotiated , arg1, arg3);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for IndicatePeerCertificateReceived
 // [conn][%p] Indicating QUIC_CONNECTION_EVENT_PEER_CERTIFICATE_RECEIVED (0x%x, 0x%x)
 // QuicTraceLogConnVerbose(
