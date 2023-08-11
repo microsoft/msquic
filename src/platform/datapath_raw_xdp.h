@@ -48,5 +48,5 @@ typedef struct QUIC_CACHEALIGN XDP_WORKER {
     const struct XDP_DATAPATH* Xdp;
     CXPLAT_EVENTQ* EventQ;
     XDP_QUEUE* Queues; // A linked list of queues, accessed by Next.
-    uint16_t ProcIndex;
+    uint16_t PartitionIndex;
 } XDP_WORKER;

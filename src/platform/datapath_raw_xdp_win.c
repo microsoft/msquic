@@ -1018,7 +1018,6 @@ CxPlatDpRawInitialize(
 {
     XDP_DATAPATH* Xdp = (XDP_DATAPATH*)Datapath;
     QUIC_STATUS Status;
-    const uint16_t* ProcessorList;
 
     CxPlatListInitializeHead(&Xdp->Interfaces);
     if (QUIC_FAILED(XdpLoadApi(XDP_API_VERSION_1, &Xdp->XdpApiLoadContext, &Xdp->XdpApi))) {
@@ -1033,10 +1032,8 @@ CxPlatDpRawInitialize(
 
     if (Config && Config->ProcessorCount) {
         Xdp->WorkerCount = Config->ProcessorCount;
-        ProcessorList = Config->ProcessorList;
     } else {
         Xdp->WorkerCount = CxPlatProcMaxCount();
-        ProcessorList = NULL;
     }
 
     QuicTraceLogVerbose(
@@ -1180,7 +1177,7 @@ CxPlatDpRawInitialize(
         }
 
         Worker->Xdp = Xdp;
-        Worker->ProcIndex = ProcessorList ? ProcessorList[i] : (uint16_t)i;
+        Worker->PartitionIndex = (uint16_t)i;
         Worker->Ec.Ready = TRUE;
         Worker->Ec.NextTimeUs = UINT64_MAX;
         Worker->Ec.Callback = CxPlatXdpExecute;
@@ -1222,7 +1219,7 @@ CxPlatDpRawInitialize(
             QueueCount);
         UNREFERENCED_PARAMETER(QueueCount);
 
-        CxPlatAddExecutionContext(&Worker->Ec, Worker->ProcIndex);
+        CxPlatAddExecutionContext(&Worker->Ec, Worker->PartitionIndex);
     }
     Status = QUIC_STATUS_SUCCESS;
 
@@ -1560,7 +1557,7 @@ BOOLEAN // Did work?
 CxPlatXdpRx(
     _In_ const XDP_DATAPATH* Xdp,
     _In_ XDP_QUEUE* Queue,
-    _In_ uint16_t ProcIndex
+    _In_ uint16_t PartitionIndex
     )
 {
     CXPLAT_RECV_DATA* Buffers[RX_BATCH_SIZE];
@@ -1579,7 +1576,7 @@ CxPlatXdpRx(
         CxPlatZeroMemory(Packet, sizeof(XDP_RX_PACKET));
         Packet->Route = &Packet->RouteStorage;
         Packet->RouteStorage.Queue = Queue;
-        Packet->PartitionIndex = ProcIndex;
+        Packet->PartitionIndex = PartitionIndex;
 
         CxPlatDpRawParseEthernet(
             (CXPLAT_DATAPATH*)Xdp,
@@ -1847,7 +1844,7 @@ CxPlatXdpExecute(
     BOOLEAN DidWork = FALSE;
     XDP_QUEUE* Queue = Worker->Queues;
     while (Queue) {
-        DidWork |= CxPlatXdpRx(Xdp, Queue, Worker->ProcIndex);
+        DidWork |= CxPlatXdpRx(Xdp, Queue, Worker->PartitionIndex);
         DidWork |= CxPlatXdpTx(Xdp, Queue);
         Queue = Queue->Next;
     }

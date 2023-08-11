@@ -461,14 +461,11 @@ CxPlatDataPathInitialize(
         return QUIC_STATUS_OUT_OF_MEMORY;
     }
 
-    const uint16_t* ProcessorList;
     uint32_t ProcessorCount;
     if (Config && Config->ProcessorCount) {
         ProcessorCount = Config->ProcessorCount;
-        ProcessorList = Config->ProcessorList;
     } else {
         ProcessorCount = CxPlatProcMaxCount();
-        ProcessorList = NULL;
     }
 
     const size_t DatapathLength =
