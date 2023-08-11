@@ -22,6 +22,8 @@ on:
         default: ''
         type: string
 
+permissions: read-all
+
 jobs:
   build-darwin:
     name: Build Darwin Binaries
