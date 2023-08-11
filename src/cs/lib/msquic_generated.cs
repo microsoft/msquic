@@ -1296,7 +1296,7 @@ namespace Microsoft.Quic
             }
         }
 
-        internal byte ReliableResetEnabled
+        internal ulong ReliableResetEnabled
         {
             get
             {
@@ -1884,19 +1884,19 @@ namespace Microsoft.Quic
 
             internal partial struct _Anonymous_e__Struct
             {
-                internal ulong _bitfield1;
+                internal ulong _bitfield;
 
                 [NativeTypeName("uint64_t : 1")]
                 internal ulong HyStartEnabled
                 {
                     get
                     {
-                        return _bitfield1 & 0x1UL;
+                        return _bitfield & 0x1UL;
                     }
 
                     set
                     {
-                        _bitfield1 = (_bitfield1 & ~0x1UL) | (value & 0x1UL);
+                        _bitfield = (_bitfield & ~0x1UL) | (value & 0x1UL);
                     }
                 }
 
@@ -1905,44 +1905,40 @@ namespace Microsoft.Quic
                 {
                     get
                     {
-                        return (_bitfield1 >> 1) & 0x1UL;
+                        return (_bitfield >> 1) & 0x1UL;
                     }
 
                     set
                     {
-                        _bitfield1 = (_bitfield1 & ~(0x1UL << 1)) | ((value & 0x1UL) << 1);
+                        _bitfield = (_bitfield & ~(0x1UL << 1)) | ((value & 0x1UL) << 1);
                     }
                 }
 
-                internal byte _bitfield2;
-
-                [NativeTypeName("uint8_t : 1")]
-                internal byte ReliableResetEnabled
+                [NativeTypeName("uint64_t : 1")]
+                internal ulong ReliableResetEnabled
                 {
                     get
                     {
-                        return (byte)(_bitfield2 & 0x1u);
+                        return (_bitfield >> 2) & 0x1UL;
                     }
 
                     set
                     {
-                        _bitfield2 = (byte)((_bitfield2 & ~0x1u) | (value & 0x1u));
+                        _bitfield = (_bitfield & ~(0x1UL << 2)) | ((value & 0x1UL) << 2);
                     }
                 }
-
-                internal ulong _bitfield3;
 
                 [NativeTypeName("uint64_t : 61")]
                 internal ulong ReservedFlags
                 {
                     get
                     {
-                        return _bitfield3 & 0x1FFFFFFFUL;
+                        return (_bitfield >> 3) & 0x1FFFFFFFUL;
                     }
 
                     set
                     {
-                        _bitfield3 = (_bitfield3 & ~0x1FFFFFFFUL) | (value & 0x1FFFFFFFUL);
+                        _bitfield = (_bitfield & ~(0x1FFFFFFFUL << 3)) | ((value & 0x1FFFFFFFUL) << 3);
                     }
                 }
             }

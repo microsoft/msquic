@@ -320,7 +320,7 @@ std::ostream& operator << (std::ostream& o, const HandshakeArgs10& args) {
         (args.ClientSupport ? "Client Yes" : "Client No");
 }
 
-class WithHandshakeArgs10 : public testing::Test,
+class WithReliableResetArgs : public testing::Test,
     public testing::WithParamInterface<HandshakeArgs10> {
 };
 

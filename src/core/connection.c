@@ -6507,7 +6507,6 @@ QuicConnParamSet(
             Status = QUIC_STATUS_INVALID_PARAMETER;
             break;
         }
-
         //
         // Must be set before the client connection is started.
         //
@@ -6745,6 +6744,7 @@ QuicConnParamSet(
         Status = QUIC_STATUS_INVALID_PARAMETER;
         break;
     }
+
     return Status;
 }
 

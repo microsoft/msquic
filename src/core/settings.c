@@ -608,11 +608,6 @@ QuicSettingApply(
         Destination->IsSet.GreaseQuicBitEnabled = TRUE;
     }
 
-    if (Source->IsSet.ReliableResetEnabled && (!Destination->IsSet.ReliableResetEnabled || OverWrite)) {
-        Destination->ReliableResetEnabled = Source->ReliableResetEnabled;
-        Destination->IsSet.ReliableResetEnabled = TRUE;
-    }
-
     if (AllowMtuAndEcnChanges) {
         if (Source->IsSet.EcnEnabled && (!Destination->IsSet.EcnEnabled || OverWrite)) {
             Destination->EcnEnabled = Source->EcnEnabled;
@@ -625,6 +620,11 @@ QuicSettingApply(
     if (Source->IsSet.EncryptionOffloadAllowed && (!Destination->IsSet.EncryptionOffloadAllowed || OverWrite)) {
         Destination->EncryptionOffloadAllowed = Source->EncryptionOffloadAllowed;
         Destination->IsSet.EncryptionOffloadAllowed = TRUE;
+    }
+
+    if (Source->IsSet.ReliableResetEnabled && (!Destination->IsSet.ReliableResetEnabled || OverWrite)) {
+        Destination->ReliableResetEnabled = Source->ReliableResetEnabled;
+        Destination->IsSet.ReliableResetEnabled = TRUE;
     }
 
     return TRUE;
@@ -1744,7 +1744,6 @@ QuicSettingsGetSettings(
     SETTING_COPY_FROM_INTERNAL(DatagramReceiveEnabled, Settings, InternalSettings);
     SETTING_COPY_FROM_INTERNAL(ServerResumptionLevel, Settings, InternalSettings);
     SETTING_COPY_FROM_INTERNAL(GreaseQuicBitEnabled, Settings, InternalSettings);
-    SETTING_COPY_FROM_INTERNAL(ReliableResetEnabled, Settings, InternalSettings);
     SETTING_COPY_FROM_INTERNAL(EcnEnabled, Settings, InternalSettings);
 
     //

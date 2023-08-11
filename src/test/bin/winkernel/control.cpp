@@ -482,6 +482,7 @@ size_t QUIC_IOCTL_BUFFER_SIZES[] =
     sizeof(INT32),
     sizeof(INT32),
     sizeof(QUIC_RUN_CUSTOM_CERT_VALIDATION),
+    sizeof(QUIC_RUN_RELIABLE_RESET_NEGOTIATION)
 };
 
 CXPLAT_STATIC_ASSERT(
@@ -517,8 +518,7 @@ typedef union {
     QUIC_RUN_VN_TP_ODD_SIZE_PARAMS OddSizeVnTpParams;
     UINT8 TestServerVNTP;
     BOOLEAN Bidirectional;
-    BOOLEAN ServerSupport;
-    BOOLEAN ClientSupport;
+    QUIC_RUN_RELIABLE_RESET_NEGOTIATION ReliableResetNegotiationParams;
 } QUIC_IOCTL_PARAMS;
 
 #define QuicTestCtlRun(X) \
@@ -1344,9 +1344,9 @@ QuicTestCtlEvtIoDeviceControl(
         CXPLAT_FRE_ASSERT(Params != nullptr);
         QuicTestCtlRun(
             QuicTestReliableResetNegotiation(
-                Params->Family,
-                Params->ServerSupport,
-                Params->ClientSupport));
+                Params->ReliableResetNegotiationParams.Family,
+                Params->ReliableResetNegotiationParams.ServerSupport,
+                Params->ReliableResetNegotiationParams.ClientSupport));
         break;
 #endif
     default:

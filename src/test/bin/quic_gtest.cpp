@@ -996,7 +996,7 @@ TEST_P(WithFamilyArgs, FailedVersionNegotiation) {
     }
 }
 
-TEST_P(WithHandshakeArgs10, ReliableResetNegotiation) {
+TEST_P(WithReliableResetArgs, ReliableResetNegotiation) {
     TestLoggerT<ParamType> Logger("ReliableResetNegotiation", GetParam());
     if (TestingKernelMode) {
         QUIC_RUN_RELIABLE_RESET_NEGOTIATION Params = {
@@ -2273,7 +2273,7 @@ INSTANTIATE_TEST_SUITE_P(
 
 INSTANTIATE_TEST_SUITE_P(
     Handshake,
-    WithHandshakeArgs10,
+    WithReliableResetArgs,
     testing::ValuesIn(HandshakeArgs10::Generate()));
 #endif
 
