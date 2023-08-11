@@ -777,9 +777,9 @@ CxPlatThreadCreate(
         KeGetProcessorNumberFromIndex(
             Config->IdealProcessor,
             &Processor);
-    CXPLAT_DBG_ASSERT(QUIC_SUCCEEDED(Status));
     if (QUIC_FAILED(Status)) {
-        goto Cleanup;
+        Status = QUIC_STATUS_SUCCESS;
+        goto SetPriority;
     }
     IdealProcessor = Processor;
     if (Config->Flags & CXPLAT_THREAD_FLAG_SET_AFFINITIZE) {
@@ -833,6 +833,7 @@ CxPlatThreadCreate(
             goto Cleanup;
         }
     }
+SetPriority:
     if (Config->Flags & CXPLAT_THREAD_FLAG_HIGH_PRIORITY) {
         KeSetBasePriorityThread(
             (PKTHREAD)(*Thread),
