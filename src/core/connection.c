@@ -2409,6 +2409,10 @@ QuicConnGenerateLocalTransportParameters(
         LocalTP->Flags |= QUIC_TP_FLAG_GREASE_QUIC_BIT;
     }
 
+    if (Connection->Settings.ReliableResetEnabled) {
+        LocalTP->Flags |= QUIC_TP_FLAG_RELIABLE_RESET_ENABLED;
+    }
+
     if (QuicConnIsServer(Connection)) {
 
         if (Connection->Streams.Types[STREAM_ID_FLAG_IS_CLIENT | STREAM_ID_FLAG_IS_BI_DIR].MaxTotalStreamCount) {
@@ -3040,6 +3044,32 @@ QuicConnProcessPeerTransportParameters(
             (void) CxPlatRandom(sizeof(RandomValue), &RandomValue);
             Connection->State.FixedBit = (RandomValue % 2);
             Connection->Stats.GreaseBitNegotiated = TRUE;
+        }
+
+        if (Connection->Settings.ReliableResetEnabled &&
+            (Connection->PeerTransportParams.Flags & QUIC_TP_FLAG_RELIABLE_RESET_ENABLED) > 0) {
+            //
+            // Reliable Reset is enabled on both sides.
+            //
+
+            Connection->State.ReliableResetStreamNegotiated = TRUE;
+        }
+
+        if (Connection->Settings.ReliableResetEnabled) {
+            //
+            // Send event to app to indicate result of negotiation if app cares.
+            //
+
+            QUIC_CONNECTION_EVENT Event;
+            Event.Type = QUIC_CONNECTION_EVENT_RELIABLE_RESET_NEGOTIATED;
+            Event.RELIABLE_RESET_NEGOTIATED.IsNegotiated = Connection->State.ReliableResetStreamNegotiated;
+
+            QuicTraceLogConnVerbose(
+                IndicateReliableResetNegotiated,
+                Connection,
+                "Indicating QUIC_CONNECTION_EVENT_RELIABLE_RESET_NEGOTIATED [IsNegotiated=%hhu]",
+                Event.RELIABLE_RESET_NEGOTIATED.IsNegotiated);
+            QuicConnIndicateEvent(Connection, &Event);
         }
 
         //
@@ -5259,6 +5289,8 @@ QuicConnRecvFrames(
             AckImmediately = TRUE;
             break;
 
+        case QUIC_FRAME_RELIABLE_RESET_STREAM:
+            // TODO - Implement this frame.
         default:
             //
             // No default case necessary, as we have already validated the frame
@@ -6454,10 +6486,10 @@ QuicConnParamSet(
             Status = QUIC_STATUS_INVALID_PARAMETER;
             break;
         }
-
         //
         // Must be set before the client connection is started.
         //
+
         if (QuicConnIsServer(Connection) ||
             QUIC_CONN_BAD_START_STATE(Connection)) {
             Status = QUIC_STATUS_INVALID_STATE;
@@ -7265,6 +7297,29 @@ QuicConnApplyNewSettings(
             (void) CxPlatRandom(sizeof(RandomValue), &RandomValue);
             Connection->State.FixedBit = (RandomValue % 2);
             Connection->Stats.GreaseBitNegotiated = TRUE;
+        }
+
+        if (QuicConnIsServer(Connection) &&
+            Connection->Settings.ReliableResetEnabled &&
+            (Connection->PeerTransportParams.Flags & QUIC_TP_FLAG_RELIABLE_RESET_ENABLED) > 0) {
+            Connection->State.ReliableResetStreamNegotiated = TRUE;
+        }
+
+        if (QuicConnIsServer(Connection) && Connection->Settings.ReliableResetEnabled) {
+            //
+            // Send event to app to indicate result of negotiation if app cares.
+            //
+
+            QUIC_CONNECTION_EVENT Event;
+            Event.Type = QUIC_CONNECTION_EVENT_RELIABLE_RESET_NEGOTIATED;
+            Event.RELIABLE_RESET_NEGOTIATED.IsNegotiated = Connection->State.ReliableResetStreamNegotiated;
+
+            QuicTraceLogConnVerbose(
+                IndicateReliableResetNegotiated,
+                Connection,
+                "Indicating QUIC_CONNECTION_EVENT_RELIABLE_RESET_NEGOTIATED [IsNegotiated=%hhu]",
+                Event.RELIABLE_RESET_NEGOTIATED.IsNegotiated);
+            QuicConnIndicateEvent(Connection, &Event);
         }
 
         if (Connection->Settings.EcnEnabled) {

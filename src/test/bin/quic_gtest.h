@@ -299,6 +299,31 @@ class WithHandshakeArgs9 : public testing::Test,
     public testing::WithParamInterface<bool> {
 };
 
+struct ReliableResetArgs {
+    int Family;
+    bool ServerSupport;
+    bool ClientSupport;
+    static ::std::vector<ReliableResetArgs> Generate() {
+        ::std::vector<ReliableResetArgs> list;
+        for (int Family : { 4, 6 })
+        for (bool ServerSupport : { false, true })
+        for (bool ClientSupport : { false, true })
+            list.push_back({ Family, ServerSupport, ClientSupport });
+        return list;
+    }
+};
+
+std::ostream& operator << (std::ostream& o, const ReliableResetArgs& args) {
+    return o <<
+        (args.Family == 4 ? "v4" : "v6") << "/" <<
+        (args.ServerSupport ? "Server Yes" : "Server No") << "/" <<
+        (args.ClientSupport ? "Client Yes" : "Client No");
+}
+
+class WithReliableResetArgs : public testing::Test,
+    public testing::WithParamInterface<ReliableResetArgs> {
+};
+
 struct SendArgs1 {
     int Family;
     uint64_t Length;

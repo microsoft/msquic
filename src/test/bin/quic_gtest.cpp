@@ -995,6 +995,21 @@ TEST_P(WithFamilyArgs, FailedVersionNegotiation) {
         QuicTestFailedVersionNegotiation(GetParam().Family);
     }
 }
+
+TEST_P(WithReliableResetArgs, ReliableResetNegotiation) {
+    TestLoggerT<ParamType> Logger("ReliableResetNegotiation", GetParam());
+    if (TestingKernelMode) {
+        QUIC_RUN_RELIABLE_RESET_NEGOTIATION Params = {
+            GetParam().Family,
+            GetParam().ServerSupport,
+            GetParam().ClientSupport
+        };
+        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RELIABLE_RESET_NEGOTIATION, Params));
+    } else {
+        QuicTestReliableResetNegotiation(GetParam().Family, GetParam().ServerSupport, GetParam().ClientSupport);
+    }
+}
+
 #endif // QUIC_API_ENABLE_PREVIEW_FEATURES
 
 TEST_P(WithHandshakeArgs5, CustomServerCertificateValidation) {
@@ -2249,6 +2264,11 @@ INSTANTIATE_TEST_SUITE_P(
     Handshake,
     WithHandshakeArgs7,
     testing::ValuesIn(HandshakeArgs7::Generate()));
+
+INSTANTIATE_TEST_SUITE_P(
+    Handshake,
+    WithReliableResetArgs,
+    testing::ValuesIn(ReliableResetArgs::Generate()));
 #endif
 
 #ifdef QUIC_API_ENABLE_PREVIEW_FEATURES

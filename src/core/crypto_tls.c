@@ -66,6 +66,7 @@ typedef enum eSniNameType {
 #define QUIC_TP_ID_MIN_ACK_DELAY                            0xFF03DE1AULL   // varint
 #define QUIC_TP_ID_CIBIR_ENCODING                           0x1000          // {varint, varint}
 #define QUIC_TP_ID_GREASE_QUIC_BIT                          0x2AB2          // N/A
+#define QUIC_TP_ID_RELIABLE_RESET_ENABLED                   0x17f7586d2cb570   // varint
 
 BOOLEAN
 QuicTpIdIsReserved(
@@ -850,6 +851,12 @@ QuicCryptoTlsEncodeTransportParameters(
                 QUIC_TP_ID_GREASE_QUIC_BIT,
                 0);
     }
+    if (TransportParams->Flags & QUIC_TP_FLAG_RELIABLE_RESET_ENABLED) {
+        RequiredTPLen +=
+            TlsTransportParamLength(
+                QUIC_TP_ID_RELIABLE_RESET_ENABLED,
+                0);
+    }
     if (TestParam != NULL) {
         RequiredTPLen +=
             TlsTransportParamLength(
@@ -1163,6 +1170,18 @@ QuicCryptoTlsEncodeTransportParameters(
             EncodeTPGreaseQuicBit,
             Connection,
             "TP: Grease Quic Bit");
+    }
+    if (TransportParams->Flags & QUIC_TP_FLAG_RELIABLE_RESET_ENABLED) {
+        TPBuf =
+            TlsWriteTransportParam(
+                QUIC_TP_ID_RELIABLE_RESET_ENABLED,
+                0,
+                NULL,
+                TPBuf);
+        QuicTraceLogConnVerbose(
+            EncodeTPReliableReset,
+            Connection,
+            "TP: Encode Reliable Reset");
     }
     if (TestParam != NULL) {
         TPBuf =
@@ -1820,6 +1839,23 @@ QuicCryptoTlsDecodeTransportParameters( // NOLINT(readability-function-size, goo
                 DecodeTPGreaseQuicBit,
                 Connection,
                 "TP: Grease QUIC Bit");
+            break;
+
+        case QUIC_TP_ID_RELIABLE_RESET_ENABLED:
+            if (Length != 0) {
+                QuicTraceEvent(
+                    ConnErrorStatus,
+                    "[conn][%p] ERROR, %u, %s.",
+                    Connection,
+                    Length,
+                    "Invalid length of QUIC_TP_ID_RELIABLE_RESET_ENABLED");
+                goto Exit;
+            }
+            TransportParams->Flags |= QUIC_TP_FLAG_RELIABLE_RESET_ENABLED;
+            QuicTraceLogConnVerbose(
+                DecodeTPReliableReset,
+                Connection,
+                "TP: Decode Reliable Reset");
             break;
 
         default:

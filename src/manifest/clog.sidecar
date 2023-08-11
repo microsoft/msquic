@@ -3507,6 +3507,18 @@
       ],
       "macroName": "QuicTraceLogConnVerbose"
     },
+    "DecodeTPReliableReset": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] TP: Decode Reliable Reset",
+      "UniqueId": "DecodeTPReliableReset",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        }
+      ],
+      "macroName": "QuicTraceLogConnVerbose"
+    },
     "DecodeTPReserved": {
       "ModuleProperites": {},
       "TraceString": "[conn][%p] TP: Reserved ID %llu, length %hu",
@@ -4047,6 +4059,18 @@
       "ModuleProperites": {},
       "TraceString": "[conn][%p] TP: Preferred Address",
       "UniqueId": "EncodeTPPreferredAddress",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        }
+      ],
+      "macroName": "QuicTraceLogConnVerbose"
+    },
+    "EncodeTPReliableReset": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] TP: Encode Reliable Reset",
+      "UniqueId": "EncodeTPReliableReset",
       "splitArgs": [
         {
           "DefinationEncoding": "p",
@@ -5819,6 +5843,22 @@
         {
           "DefinationEncoding": "x",
           "MacroVariableName": "arg4"
+        }
+      ],
+      "macroName": "QuicTraceLogConnVerbose"
+    },
+    "IndicateReliableResetNegotiated": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] Indicating QUIC_CONNECTION_EVENT_RELIABLE_RESET_NEGOTIATED [IsNegotiated=%hhu]",
+      "UniqueId": "IndicateReliableResetNegotiated",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        },
+        {
+          "DefinationEncoding": "hhu",
+          "MacroVariableName": "arg3"
         }
       ],
       "macroName": "QuicTraceLogConnVerbose"
@@ -9078,6 +9118,38 @@
       ],
       "macroName": "QuicTraceLogInfo"
     },
+    "ReliableResetEnabledUpdated": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] Updated reliable reset frame enabled to %hhu",
+      "UniqueId": "ReliableResetEnabledUpdated",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        },
+        {
+          "DefinationEncoding": "hhu",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macroName": "QuicTraceLogConnVerbose"
+    },
+    "ReliableResetFrameReceived": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] Received a reliable reset frame. Local reliable reset extension preferences: %hhu",
+      "UniqueId": "ReliableResetFrameReceived",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        },
+        {
+          "DefinationEncoding": "hhu",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macroName": "QuicTraceLogConnInfo"
+    },
     "RemoteBlocked": {
       "ModuleProperites": {},
       "TraceString": "[strm][%p] Remote FC blocked (%llu)",
@@ -10495,6 +10567,18 @@
       "ModuleProperites": {},
       "TraceString": "[sett] HyStartEnabled         = %hhu",
       "UniqueId": "SettingHyStartEnabled",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "hhu",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceLogVerbose"
+    },
+    "SettingReliableResetEnabled": {
+      "ModuleProperites": {},
+      "TraceString": "[sett] ReliableResetEnabled   = %hhu",
+      "UniqueId": "SettingReliableResetEnabled",
       "splitArgs": [
         {
           "DefinationEncoding": "hhu",
@@ -13637,6 +13721,11 @@
         "EncodingString": "[conn][%p] TP: Preferred Address"
       },
       {
+        "UniquenessHash": "eabf7a25-2986-5193-5044-318b4711544e",
+        "TraceID": "DecodeTPReliableReset",
+        "EncodingString": "[conn][%p] TP: Decode Reliable Reset"
+      },
+      {
         "UniquenessHash": "95f4176f-e0b5-1420-53d9-44e244c44ea5",
         "TraceID": "DecodeTPReserved",
         "EncodingString": "[conn][%p] TP: Reserved ID %llu, length %hu"
@@ -13810,6 +13899,11 @@
         "UniquenessHash": "7ae85c8f-532c-c622-19be-a82d9002385d",
         "TraceID": "EncodeTPPreferredAddress",
         "EncodingString": "[conn][%p] TP: Preferred Address"
+      },
+      {
+        "UniquenessHash": "75ce2146-e447-c891-d263-df4892bddda9",
+        "TraceID": "EncodeTPReliableReset",
+        "EncodingString": "[conn][%p] TP: Encode Reliable Reset"
       },
       {
         "UniquenessHash": "214be45a-42ba-44e1-05c2-f82f3200e671",
@@ -14250,6 +14344,11 @@
         "UniquenessHash": "c5a168ed-97fa-1cb7-3c3f-15762d9e402a",
         "TraceID": "IndicatePeerStreamStarted",
         "EncodingString": "[conn][%p] Indicating QUIC_CONNECTION_EVENT_PEER_STREAM_STARTED [%p, 0x%x]"
+      },
+      {
+        "UniquenessHash": "cb6ed5bc-5216-e56f-9e29-117ba277fde6",
+        "TraceID": "IndicateReliableResetNegotiated",
+        "EncodingString": "[conn][%p] Indicating QUIC_CONNECTION_EVENT_RELIABLE_RESET_NEGOTIATED [IsNegotiated=%hhu]"
       },
       {
         "UniquenessHash": "8c1a717b-f814-d6d9-3f2e-f1987be847d6",
@@ -15327,6 +15426,16 @@
         "EncodingString": "[ reg][%p] Verifing enabled!"
       },
       {
+        "UniquenessHash": "7c8196a9-c4d5-9b85-26ae-ee4492bfe6c8",
+        "TraceID": "ReliableResetEnabledUpdated",
+        "EncodingString": "[conn][%p] Updated reliable reset frame enabled to %hhu"
+      },
+      {
+        "UniquenessHash": "3ea0dcfb-b981-88e5-b801-74fb2684acaa",
+        "TraceID": "ReliableResetFrameReceived",
+        "EncodingString": "[conn][%p] Received a reliable reset frame. Local reliable reset extension preferences: %hhu"
+      },
+      {
         "UniquenessHash": "90a48bef-0658-1e75-8afa-d4fff8d929bf",
         "TraceID": "RemoteBlocked",
         "EncodingString": "[strm][%p] Remote FC blocked (%llu)"
@@ -15805,6 +15914,11 @@
         "UniquenessHash": "3204077b-15dd-eacb-1594-51d66d8db668",
         "TraceID": "SettingHyStartEnabled",
         "EncodingString": "[sett] HyStartEnabled         = %hhu"
+      },
+      {
+        "UniquenessHash": "f5c7d703-ecd1-8dd0-c16d-11857945bfcf",
+        "TraceID": "SettingReliableResetEnabled",
+        "EncodingString": "[sett] ReliableResetEnabled   = %hhu"
       },
       {
         "UniquenessHash": "e7d29156-fb54-8f96-f3e2-1aa999886c12",
