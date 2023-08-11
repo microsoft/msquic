@@ -277,6 +277,7 @@ if (!$OfficialRelease) {
         # Thanks to https://stackoverflow.com/questions/3404936/show-which-git-tag-you-are-on
         # for this magic git command!
         $Output = git describe --exact-match --tags $(git log -n1 --pretty='%h')
+        Write-Host "Git tag output: $Output"
         if (!$Output.Contains("fatal: no tag exactly matches")) {
             Write-Host "Configuring OfficialRelease for tag build"
             $OfficialRelease = $true
