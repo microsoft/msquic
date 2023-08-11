@@ -3762,14 +3762,18 @@ QuicTestVNTPOtherVersionZero(
 
 void
 QuicTestHandshakeSpecificLossPatterns(
-    _In_ int Family
+    _In_ int Family,
+    _In_ QUIC_CONGESTION_CONTROL_ALGORITHM CcAlgo
     )
 {
     MsQuicRegistration Registration;
     TEST_QUIC_SUCCEEDED(Registration.GetInitStatus());
 
     MsQuicSettings Settings;
-    Settings.SetIdleTimeoutMs(60000).SetDisconnectTimeoutMs(60000).SetInitialRttMs(20);
+    Settings.SetIdleTimeoutMs(60000)
+        .SetDisconnectTimeoutMs(60000)
+        .SetInitialRttMs(20)
+        .SetCongestionControlAlgorithm(CcAlgo);
 
     MsQuicConfiguration ServerConfiguration(Registration, "MsQuicTest", Settings, ServerSelfSignedCredConfig);
     TEST_QUIC_SUCCEEDED(ServerConfiguration.GetInitStatus());

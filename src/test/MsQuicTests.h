@@ -258,7 +258,8 @@ QuicTestChangeAlpn(
 
 void
 QuicTestHandshakeSpecificLossPatterns(
-    _In_ int Family
+    _In_ int Family,
+    _In_ QUIC_CONGESTION_CONTROL_ALGORITHM CcAlgo
     );
 
 //
@@ -1181,9 +1182,14 @@ typedef struct {
 #define IOCTL_QUIC_RUN_ECN \
     QUIC_CTL_CODE(108, METHOD_BUFFERED, FILE_WRITE_DATA)
 
+typedef struct {
+    int Family;
+    QUIC_CONGESTION_CONTROL_ALGORITHM CcAlgo;
+} QUIC_HANDSHAKE_LOSS_PARAMS;
+
 #define IOCTL_QUIC_RUN_HANDSHAKE_SPECIFIC_LOSS_PATTERNS \
     QUIC_CTL_CODE(109, METHOD_BUFFERED, FILE_WRITE_DATA)
-    // int - Family
+    // QUIC_HANDSHAKE_LOSS_PARAMS
 
 #define IOCTL_QUIC_RUN_CUSTOM_CLIENT_CERT_VALIDATION \
     QUIC_CTL_CODE(110, METHOD_BUFFERED, FILE_WRITE_DATA)
