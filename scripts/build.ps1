@@ -271,7 +271,10 @@ if ($Platform -eq "ios" -and !$Static) {
     Write-Host "iOS can only be built as static"
 }
 
-if (!$OfficialRelease) {
+if ($OfficialRelease) {
+    # We only actually try to do official release if there is a matching git tag.
+    # Clear the flag and then only set it if we find a tag.
+    $OfficialRelease = $false
     try {
         $env:GIT_REDIRECT_STDERR = '2>&1'
         # Thanks to https://stackoverflow.com/questions/3404936/show-which-git-tag-you-are-on
