@@ -271,13 +271,15 @@ if ($Platform -eq "ios" -and !$Static) {
     Write-Host "iOS can only be built as static"
 }
 
-if (!$OfficialRelease) {
+if ($OfficialRelease) {
+    # We only actually try to do official release if there is a matching git tag.
+    # Clear the flag and then only set it if we find a tag.
+    $OfficialRelease = $false
     try {
         $env:GIT_REDIRECT_STDERR = '2>&1'
         # Thanks to https://stackoverflow.com/questions/3404936/show-which-git-tag-you-are-on
         # for this magic git command!
         $Output = git describe --exact-match --tags $(git log -n1 --pretty='%h')
-        Write-Host "Git tag output: $Output"
         if (!$Output.Contains("fatal: no tag exactly matches")) {
             Write-Host "Configuring OfficialRelease for tag build"
             $OfficialRelease = $true
