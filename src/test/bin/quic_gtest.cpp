@@ -2274,7 +2274,7 @@ INSTANTIATE_TEST_SUITE_P(
 INSTANTIATE_TEST_SUITE_P(
     Handshake,
     WithReliableResetArgs,
-    testing::ValuesIn(HandshakeArgs10::Generate()));
+    testing::ValuesIn(ReliableResetArgs::Generate()));
 #endif
 
 #ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
