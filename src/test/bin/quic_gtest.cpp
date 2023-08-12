@@ -10,6 +10,12 @@
 #include "quic_gtest.cpp.clog.h"
 #endif
 
+#ifdef QUIC_TEST_DATAPATH_HOOKS_ENABLED
+#pragma message("Datapath hooks enabled!")
+#else
+#pragma message("No datapath hooks enabled!")
+#endif
+
 bool TestingKernelMode = false;
 bool PrivateTestLibrary = false;
 bool UseDuoNic = false;

@@ -69,6 +69,7 @@ typedef struct QUIC_TEST_DATAPATH_HOOKS {
 } QUIC_TEST_DATAPATH_HOOKS;
 
 #if DEBUG
+#pragma message("Enabling datapath hooks")
 //
 // Datapath hooks are currently only enabled on debug builds for functional
 // testing helpers.
@@ -92,6 +93,8 @@ typedef struct QUIC_TEST_DATAPATH_HOOKS {
 // negotiation transport parameter.
 //
 #define QUIC_TEST_DISABLE_VNE_TP_GENERATION 1
+#else
+#pragma message("Not enabling datapath hooks")
 #endif
 
 typedef struct QUIC_PRIVATE_TRANSPORT_PARAMETER {
