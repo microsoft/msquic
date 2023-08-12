@@ -713,7 +713,7 @@ CxPlatSendDataFinalizeSendBuffer(
     }
 
     CXPLAT_DBG_ASSERT(SendData->SegmentSize > 0);
-    CXPLAT_DBG_ASSERT(SendData->Buffer.Length > 0 && SendData->Buffer.Length <= SendData->SegmentSize);
+    CXPLAT_DBG_ASSERT(SendData->ClientBuffer.Length > 0 && SendData->ClientBuffer.Length <= SendData->SegmentSize);
     CXPLAT_DBG_ASSERT(CxPlatSendDataCanAllocSendSegment(SendData, 0));
 
     //
@@ -808,6 +808,8 @@ CxPlatSocketSend(
     _In_ CXPLAT_SEND_DATA* SendData
     )
 {
+    CxPlatSendDataFinalizeSendBuffer(SendData);
+
     if (Socket->UseTcp &&
         Socket->Connected &&
         Route->TcpState.Syncd == FALSE) {
