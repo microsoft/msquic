@@ -675,6 +675,10 @@ CxPlatFramingWriteHeaders(
     CXPLAT_DBG_ASSERT(
         Family == QUIC_ADDRESS_FAMILY_INET || Family == QUIC_ADDRESS_FAMILY_INET6);
 
+    if (SendData->SegmentSize > 0 && SendData->Buffer.Length == SendData->SegmentSize) {
+        SendData->SegmentSize = 0;
+    }
+
     if (Socket->UseTcp) {
         //
         // Fill TCP header.
