@@ -701,7 +701,9 @@ CxPlatFramingWriteHeaders(
         UDP = (UDP_HEADER*)(Buffer->Buffer - sizeof(UDP_HEADER));
         UDP->DestinationPort = Route->RemoteAddress.Ipv4.sin_port;
         UDP->SourcePort = Route->LocalAddress.Ipv4.sin_port;
-        UDP->Length = QuicNetByteSwapShort((uint16_t)Buffer->Length + sizeof(UDP_HEADER));
+        if (SendData->SegmentSize == 0) {
+            UDP->Length = QuicNetByteSwapShort((uint16_t)Buffer->Length + sizeof(UDP_HEADER));
+        }
         UDP->Checksum = 0;
         Transport = (uint8_t*)UDP;
         TransportLength = sizeof(UDP_HEADER);
@@ -717,7 +719,9 @@ CxPlatFramingWriteHeaders(
         IPv4->VersionAndHeaderLength = IPV4_DEFAULT_VERHLEN;
         IPv4->TypeOfService = 0;
         IPv4->EcnField = ECN;
-        IPv4->TotalLength = htons(sizeof(IPV4_HEADER) + TransportLength + (uint16_t)Buffer->Length);
+        if (SendData->SegmentSize == 0) {
+            IPv4->TotalLength = htons(sizeof(IPV4_HEADER) + TransportLength + (uint16_t)Buffer->Length);
+        }
         IPv4->Identification = 0;
         IPv4->FlagsAndFragmentOffset = 0;
         IPv4->TimeToLive = IP_DEFAULT_HOP_LIMIT;
@@ -770,7 +774,9 @@ CxPlatFramingWriteHeaders(
         VersionClassEcnFlow.Flow = (uint32_t)(uintptr_t)Socket;
 
         IPv6->VersionClassEcnFlow = CxPlatByteSwapUint32(VersionClassEcnFlow.Value);
-        IPv6->PayloadLength = htons(TransportLength + (uint16_t)Buffer->Length);
+        if (SendData->SegmentSize == 0) {
+            IPv6->PayloadLength = htons(TransportLength + (uint16_t)Buffer->Length);
+        }
         IPv6->HopLimit = IP_DEFAULT_HOP_LIMIT;
         IPv6->NextHeader = TransportProtocol;
         CxPlatCopyMemory(IPv6->Source, &Route->LocalAddress.Ipv6.sin6_addr, sizeof(Route->LocalAddress.Ipv6.sin6_addr));
