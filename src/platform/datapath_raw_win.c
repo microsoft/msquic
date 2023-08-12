@@ -644,12 +644,7 @@ CxPlatSendDataAlloc(
         SendData->BufferLength = SendData->Buffer.Length;
 
         SendData->ClientBuffer.Buffer = SendData->Buffer.Buffer;
-
-        if (SendData->SegmentSize > 0) {
-            SendData->ClientBuffer.Length = 0;
-        } else {
-            SendData->ClientBuffer.Length = SendData->Buffer.Length;
-        }
+        SendData->ClientBuffer.Length = 0;
 
         SendData->Buffer.Length = 0;
     }
@@ -710,6 +705,13 @@ CxPlatSendDataFinalizeSendBuffer(
         return;
     }
 
+    if (SendData->SegmentSize == 0) {
+        SendData->Buffer.Length = SendData->ClientBuffer.Length;
+        SendData->ClientBuffer.Buffer = NULL;
+        SendData->ClientBuffer.Length = 0;
+        return;
+    }
+
     CXPLAT_DBG_ASSERT(SendData->SegmentSize > 0);
     CXPLAT_DBG_ASSERT(SendData->Buffer.Length > 0 && SendData->Buffer.Length <= SendData->SegmentSize);
     CXPLAT_DBG_ASSERT(CxPlatSendDataCanAllocSendSegment(SendData, 0));
@@ -767,7 +769,7 @@ CxPlatSendDataAllocBuffer(
     CxPlatSendDataFinalizeSendBuffer(SendData);
 
     if (SendData->SegmentSize == 0) {
-        CXPLAT_DBG_ASSERT(SendData->ClientBuffer.Length >= MaxBufferLength);
+        CXPLAT_DBG_ASSERT(SendData->BufferLength >= MaxBufferLength);
         SendData->ClientBuffer.Length = MaxBufferLength;
         return &SendData->ClientBuffer;
     } else {
