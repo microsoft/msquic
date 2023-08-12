@@ -1329,7 +1329,7 @@ QuicTestCtlEvtIoDeviceControl(
 
     case IOCTL_QUIC_RUN_HANDSHAKE_SPECIFIC_LOSS_PATTERNS:
         CXPLAT_FRE_ASSERT(Params != nullptr);
-        QuicTestCtlRun(QuicTestHandshakeSpecificLossPatterns(Params->Family, Param->CcAlgo));
+        QuicTestCtlRun(QuicTestHandshakeSpecificLossPatterns(Params->Family, Params->CcAlgo));
         break;
 
     case IOCTL_QUIC_RUN_CUSTOM_CLIENT_CERT_VALIDATION:
