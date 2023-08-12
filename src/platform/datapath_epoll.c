@@ -116,7 +116,7 @@ typedef struct CXPLAT_SEND_DATA {
     //
     // The total buffer size for iovecs.
     //
-    uint32_t CurrentLength;
+    uint32_t TotalSize;
 
     //
     // The send segmentation size the app asked for.
@@ -2124,7 +2124,7 @@ CxPlatSendDataAlloc(
         SendData->SocketContext = SocketContext;
         SendData->ClientBuffer.Buffer = SendData->Buffer;
         SendData->ClientBuffer.Length = 0;
-        SendData->CurrentLength = 0;
+        SendData->TotalSize = 0;
         SendData->SegmentSize = Config->MaxPacketSize;
         SendData->BufferCount = 0;
         SendData->AlreadySentCount = 0;
@@ -2161,15 +2161,15 @@ CxPlatSendDataFinalizeSendBuffer(
     }
 
     CXPLAT_DBG_ASSERT(SendData->SegmentSize == 0 || SendData->ClientBuffer.Length <= SendData->SegmentSize);
-    CXPLAT_DBG_ASSERT(SendData->CurrentLength + SendData->ClientBuffer.Length <= sizeof(SendData->Buffer));
+    CXPLAT_DBG_ASSERT(SendData->TotalSize + SendData->ClientBuffer.Length <= sizeof(SendData->Buffer));
 
     SendData->BufferCount++;
-    SendData->CurrentLength += SendData->ClientBuffer.Length;
+    SendData->TotalSize += SendData->ClientBuffer.Length;
     if (SendData->SegmentationSupported) {
         SendData->Iovs[0].iov_len += SendData->ClientBuffer.Length;
         if (SendData->SegmentSize == 0 ||
             SendData->ClientBuffer.Length < SendData->SegmentSize ||
-            SendData->CurrentLength + SendData->SegmentSize > sizeof(SendData->Buffer)) {
+            SendData->TotalSize + SendData->SegmentSize > sizeof(SendData->Buffer)) {
             SendData->ClientBuffer.Buffer = NULL;
         } else {
             SendData->ClientBuffer.Buffer += SendData->SegmentSize;
@@ -2178,7 +2178,7 @@ CxPlatSendDataFinalizeSendBuffer(
         struct iovec* IoVec = &SendData->Iovs[SendData->BufferCount - 1];
         IoVec->iov_base = SendData->ClientBuffer.Buffer;
         IoVec->iov_len = SendData->ClientBuffer.Length;
-        if (SendData->CurrentLength + SendData->SegmentSize > sizeof(SendData->Buffer) ||
+        if (SendData->TotalSize + SendData->SegmentSize > sizeof(SendData->Buffer) ||
             SendData->BufferCount == SendData->SocketContext->DatapathProc->Datapath->SendIoVecCount) {
             SendData->ClientBuffer.Buffer = NULL;
         } else {
@@ -2200,7 +2200,7 @@ CxPlatSendDataAllocBuffer(
     CXPLAT_DBG_ASSERT(MaxBufferLength > 0);
     CxPlatSendDataFinalizeSendBuffer(SendData);
     CXPLAT_DBG_ASSERT(SendData->SegmentSize == 0 || SendData->SegmentSize >= MaxBufferLength);
-    CXPLAT_DBG_ASSERT(SendData->CurrentLength + MaxBufferLength <= sizeof(SendData->Buffer));
+    CXPLAT_DBG_ASSERT(SendData->TotalSize + MaxBufferLength <= sizeof(SendData->Buffer));
     CXPLAT_DBG_ASSERT(
         SendData->SegmentationSupported ||
         SendData->BufferCount < SendData->SocketContext->DatapathProc->Datapath->SendIoVecCount);
@@ -2259,7 +2259,7 @@ CxPlatSocketSend(
         DatapathSend,
         "[data][%p] Send %u bytes in %hhu buffers (segment=%hu) Dst=%!ADDR!, Src=%!ADDR!",
         Socket,
-        SendData->CurrentLength,
+        SendData->TotalSize,
         SendData->BufferCount,
         SendData->SegmentSize,
         CASTED_CLOG_BYTEARRAY(sizeof(Route->RemoteAddress), &Route->RemoteAddress),

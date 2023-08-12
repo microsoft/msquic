@@ -116,7 +116,7 @@ typedef struct CXPLAT_SEND_DATA {
     //
     // The total buffer size for Buffers.
     //
-    uint32_t CurrentLength;
+    uint32_t TotalSize;
 
     //
     // The type of ECN markings needed for send.
@@ -1874,7 +1874,7 @@ CxPlatSendDataFinalizeSendBuffer(
         //
         if (SendData->BufferCount > 0) {
             CXPLAT_DBG_ASSERT(SendData->Buffers[SendData->BufferCount - 1].Length < UINT16_MAX);
-            SendData->CurrentLength +=
+            SendData->TotalSize +=
                 SendData->Buffers[SendData->BufferCount - 1].Length;
         }
         return;
@@ -1889,7 +1889,7 @@ CxPlatSendDataFinalizeSendBuffer(
     //
     SendData->Buffers[SendData->BufferCount - 1].Length +=
         SendData->ClientBuffer.Length;
-    SendData->CurrentLength += SendData->ClientBuffer.Length;
+    SendData->TotalSize += SendData->ClientBuffer.Length;
 
     if (SendData->ClientBuffer.Length == SendData->SegmentSize) {
         SendData->ClientBuffer.Buffer += SendData->SegmentSize;
@@ -2109,7 +2109,7 @@ CxPlatSocketSendInternal(
             DatapathSend,
             "[data][%p] Send %u bytes in %hhu buffers (segment=%hu) Dst=%!ADDR!, Src=%!ADDR!",
             SocketContext->Binding,
-            SendData->CurrentLength,
+            SendData->TotalSize,
             SendData->BufferCount,
             SendData->SegmentSize,
             CASTED_CLOG_BYTEARRAY(sizeof(*RemoteAddress), RemoteAddress),
