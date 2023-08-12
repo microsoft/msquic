@@ -1530,7 +1530,7 @@ main(int argc, char **argv)
     SpinSettings.AlpnPrefix = "spin";
     SpinSettings.MaxOperationCount = UINT64_MAX;
     SpinSettings.MaxFuzzIterationCount = UINT64_MAX;
-    SpinSettings.LossPercent = 1;
+    SpinSettings.LossPercent = 5;
     SpinSettings.AllocFailDenominator = 0;
     SpinSettings.RepeatCount = 1;
 

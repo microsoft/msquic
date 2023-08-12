@@ -480,7 +480,7 @@ size_t QUIC_IOCTL_BUFFER_SIZES[] =
     sizeof(UINT8),
     sizeof(BOOLEAN),
     sizeof(INT32),
-    sizeof(INT32),
+    sizeof(QUIC_HANDSHAKE_LOSS_PARAMS),
     sizeof(QUIC_RUN_CUSTOM_CERT_VALIDATION),
     sizeof(QUIC_RUN_RELIABLE_RESET_NEGOTIATION)
 };
@@ -519,6 +519,7 @@ typedef union {
     UINT8 TestServerVNTP;
     BOOLEAN Bidirectional;
     QUIC_RUN_RELIABLE_RESET_NEGOTIATION ReliableResetNegotiationParams;
+    QUIC_HANDSHAKE_LOSS_PARAMS HandshakeLossParams;
 } QUIC_IOCTL_PARAMS;
 
 #define QuicTestCtlRun(X) \
@@ -1329,7 +1330,10 @@ QuicTestCtlEvtIoDeviceControl(
 
     case IOCTL_QUIC_RUN_HANDSHAKE_SPECIFIC_LOSS_PATTERNS:
         CXPLAT_FRE_ASSERT(Params != nullptr);
-        QuicTestCtlRun(QuicTestHandshakeSpecificLossPatterns(Params->Family));
+        QuicTestCtlRun(
+            QuicTestHandshakeSpecificLossPatterns(
+                Params->HandshakeLossParams.Family,
+                Params->HandshakeLossParams.CcAlgo));
         break;
 
     case IOCTL_QUIC_RUN_CUSTOM_CLIENT_CERT_VALIDATION:

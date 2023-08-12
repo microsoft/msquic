@@ -299,6 +299,32 @@ class WithHandshakeArgs9 : public testing::Test,
     public testing::WithParamInterface<bool> {
 };
 
+struct HandshakeArgs10 {
+    int Family;
+    QUIC_CONGESTION_CONTROL_ALGORITHM CcAlgo;
+    static ::std::vector<HandshakeArgs10> Generate() {
+        ::std::vector<HandshakeArgs10> list;
+        for (int Family : { 4, 6 })
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
+        for (auto CcAlgo : { QUIC_CONGESTION_CONTROL_ALGORITHM_CUBIC, QUIC_CONGESTION_CONTROL_ALGORITHM_BBR })
+#else
+        for (auto CcAlgo : { QUIC_CONGESTION_CONTROL_ALGORITHM_CUBIC })
+#endif
+            list.push_back({ Family, CcAlgo });
+        return list;
+    }
+};
+
+std::ostream& operator << (std::ostream& o, const HandshakeArgs10& args) {
+    return o <<
+        (args.Family == 4 ? "v4" : "v6") << "/" <<
+        (args.CcAlgo == QUIC_CONGESTION_CONTROL_ALGORITHM_CUBIC ? "cubic" : "bbr");
+}
+
+class WithHandshakeArgs10 : public testing::Test,
+    public testing::WithParamInterface<HandshakeArgs10> {
+};
+
 struct ReliableResetArgs {
     int Family;
     bool ServerSupport;

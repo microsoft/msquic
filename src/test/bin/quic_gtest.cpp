@@ -1594,12 +1594,16 @@ TEST_P(WithFamilyArgs, LoadBalanced) {
     }
 }
 
-TEST_P(WithFamilyArgs, HandshakeSpecificLossPatterns) {
+TEST_P(WithHandshakeArgs10, HandshakeSpecificLossPatterns) {
     TestLoggerT<ParamType> Logger("QuicTestHandshakeSpecificLossPatterns", GetParam());
     if (TestingKernelMode) {
-        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_HANDSHAKE_SPECIFIC_LOSS_PATTERNS, GetParam().Family));
+        QUIC_HANDSHAKE_LOSS_PARAMS Params = {
+            GetParam().Family,
+            GetParam().CcAlgo
+        };
+        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_HANDSHAKE_SPECIFIC_LOSS_PATTERNS, Params));
     } else {
-        QuicTestHandshakeSpecificLossPatterns(GetParam().Family);
+        QuicTestHandshakeSpecificLossPatterns(GetParam().Family, GetParam().CcAlgo);
     }
 }
 #endif // QUIC_TEST_DATAPATH_HOOKS_ENABLED
@@ -2291,6 +2295,13 @@ INSTANTIATE_TEST_SUITE_P(
     WithHandshakeArgs9,
     ::testing::Values(false, true));
 #endif
+#endif
+
+#if QUIC_TEST_DATAPATH_HOOKS_ENABLED
+INSTANTIATE_TEST_SUITE_P(
+    Handshake,
+    WithHandshakeArgs10,
+    testing::ValuesIn(HandshakeArgs10::Generate()));
 #endif
 
 INSTANTIATE_TEST_SUITE_P(
