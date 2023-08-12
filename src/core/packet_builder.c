@@ -720,7 +720,7 @@ QuicPacketBuilderFinalize(
 
         FinalQuicPacket = TRUE;
 
-        if (!FlushBatchedDatagrams && CxPlatDataPathIsPaddingPreferred(MsQuicLib.Datapath)) {
+        if (CxPlatDataPathIsPaddingPreferred(MsQuicLib.Datapath)) {
             //
             // When buffering multiple datagrams in a single contiguous buffer
             // (at the datapath layer), all but the last datagram needs to be
