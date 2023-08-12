@@ -581,6 +581,8 @@ CxPlatDpRawInterfaceInitialize(
             goto Error;
         }
 
+        CxPlatZeroMemory(Queue->RxBuffers, Xdp->RxBufferCount * RxPacketSize);
+
         Status = Xdp->XdpApi->XskCreate(&Queue->RxXsk);
         if (QUIC_FAILED(Status)) {
             QuicTraceEvent(
@@ -1798,6 +1800,7 @@ CxPlatXdpTx(
         } else {
             CxPlatZeroMemory(&Frame->Gso, sizeof(&Frame->Gso));
         }
+
         ProdCount++;
     }
 
