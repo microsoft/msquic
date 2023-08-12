@@ -10,6 +10,14 @@
 #include "quic_gtest.cpp.clog.h"
 #endif
 
+#ifdef QUIC_TEST_DATAPATH_HOOKS_ENABLED
+#pragma message("Test compiled with datapath hooks enabled")
+#endif
+
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
+#pragma message("Test compiled with preview features enabled")
+#endif
+
 bool TestingKernelMode = false;
 bool PrivateTestLibrary = false;
 bool UseDuoNic = false;
