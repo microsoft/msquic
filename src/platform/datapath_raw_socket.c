@@ -665,7 +665,6 @@ CxPlatFramingWriteHeaders(
     uint8_t* Transport;
     uint16_t TransportLength;
     uint8_t TransportProtocol;
-    uint8_t IsIpv4;
     TCP_HEADER* TCP = NULL;
     UDP_HEADER* UDP = NULL;
     ETHERNET_HEADER* Ethernet;
@@ -714,7 +713,7 @@ CxPlatFramingWriteHeaders(
     //
     if (Family == QUIC_ADDRESS_FAMILY_INET) {
         IPV4_HEADER* IPv4 = (IPV4_HEADER*)(Transport - sizeof(IPV4_HEADER));
-        IsIpv4 = TRUE;
+        SendData->IsIpv4 = TRUE;
         IPv4->VersionAndHeaderLength = IPV4_DEFAULT_VERHLEN;
         IPv4->TypeOfService = 0;
         IPv4->EcnField = ECN;
@@ -763,7 +762,7 @@ CxPlatFramingWriteHeaders(
             uint32_t Value;
         } VersionClassEcnFlow = {0};
 
-        IsIpv4 = FALSE;
+        SendData->IsIpv4 = FALSE;
 
         VersionClassEcnFlow.Version = IPV6_VERSION;
         VersionClassEcnFlow.Class = 0;

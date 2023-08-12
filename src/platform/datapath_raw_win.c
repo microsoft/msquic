@@ -251,7 +251,7 @@ CxPlatDataPathIsPaddingPreferred(
     _In_ CXPLAT_DATAPATH* Datapath
     )
 {
-    return FALSE;
+    return TRUE;
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -646,7 +646,7 @@ CxPlatSendDataAlloc(
         SendData->ClientBuffer.Buffer = SendData->Buffer.Buffer;
 
         if (SendData->SegmentSize > 0) {
-            SendData->ClientBuffer.Length = SendData->SegmentSize;
+            SendData->ClientBuffer.Length = 0;
         } else {
             SendData->ClientBuffer.Length = SendData->Buffer.Length;
         }
@@ -703,6 +703,13 @@ CxPlatSendDataFinalizeSendBuffer(
     _In_ CXPLAT_SEND_DATA* SendData
     )
 {
+    if (SendData->ClientBuffer.Length == 0) {
+        //
+        // There is no buffer segment outstanding at the client.
+        //
+        return;
+    }
+
     CXPLAT_DBG_ASSERT(SendData->SegmentSize > 0);
     CXPLAT_DBG_ASSERT(SendData->Buffer.Length > 0 && SendData->Buffer.Length <= SendData->SegmentSize);
     CXPLAT_DBG_ASSERT(CxPlatSendDataCanAllocSendSegment(SendData, 0));
