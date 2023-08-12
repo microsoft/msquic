@@ -519,7 +519,7 @@ CxPlatDpRawSocketAckFin(
     TCP_HEADER* ReceivedTcpHeader = (TCP_HEADER*)(Packet->Buffer - Packet->ReservedEx);
 
     CxPlatFramingWriteHeaders(
-        Socket, Route, &SendData->Buffer, SendData->ECN,
+        Socket, Route, SendData, &SendData->Buffer, SendData->ECN,
         Interface->OffloadStatus.Transmit.NetworkLayerXsum,
         Interface->OffloadStatus.Transmit.TransportLayerXsum,
         ReceivedTcpHeader->AckNumber,
@@ -560,7 +560,7 @@ CxPlatDpRawSocketAckSyn(
         CASTED_CLOG_BYTEARRAY(sizeof(Route->LocalAddress), &Route->LocalAddress));
 
     CxPlatFramingWriteHeaders(
-        Socket, Route, &SendData->Buffer, SendData->ECN,
+        Socket, Route, SendData, &SendData->Buffer, SendData->ECN,
         Interface->OffloadStatus.Transmit.NetworkLayerXsum,
         Interface->OffloadStatus.Transmit.TransportLayerXsum,
         ReceivedTcpHeader->AckNumber,
@@ -580,7 +580,7 @@ CxPlatDpRawSocketAckSyn(
             CASTED_CLOG_BYTEARRAY(sizeof(Route->RemoteAddress), &Route->RemoteAddress),
             CASTED_CLOG_BYTEARRAY(sizeof(Route->LocalAddress), &Route->LocalAddress));
         CxPlatFramingWriteHeaders(
-            Socket, Route, &SendData->Buffer, SendData->ECN,
+            Socket, Route, SendData, &SendData->Buffer, SendData->ECN,
             Interface->OffloadStatus.Transmit.NetworkLayerXsum,
             Interface->OffloadStatus.Transmit.TransportLayerXsum,
             CxPlatByteSwapUint32(CxPlatByteSwapUint32(ReceivedTcpHeader->AckNumber) + 1),
@@ -603,7 +603,7 @@ CxPlatDpRawSocketAckSyn(
             CASTED_CLOG_BYTEARRAY(sizeof(Route->RemoteAddress), &Route->RemoteAddress),
             CASTED_CLOG_BYTEARRAY(sizeof(Route->LocalAddress), &Route->LocalAddress));
         CxPlatFramingWriteHeaders(
-            Socket, Route, &SendData->Buffer, SendData->ECN,
+            Socket, Route, SendData, &SendData->Buffer, SendData->ECN,
             Interface->OffloadStatus.Transmit.NetworkLayerXsum,
             Interface->OffloadStatus.Transmit.TransportLayerXsum,
             ReceivedTcpHeader->AckNumber,
@@ -640,7 +640,7 @@ CxPlatDpRawSocketSyn(
     CXPLAT_DBG_ASSERT(Route->Queue != NULL);
     const CXPLAT_INTERFACE* Interface = CxPlatDpRawGetInterfaceFromQueue(Route->Queue);
     CxPlatFramingWriteHeaders(
-        Socket, Route, &SendData->Buffer, SendData->ECN,
+        Socket, Route, SendData, &SendData->Buffer, SendData->ECN,
         Interface->OffloadStatus.Transmit.NetworkLayerXsum,
         Interface->OffloadStatus.Transmit.TransportLayerXsum,
         Route->TcpState.SequenceNumber, 0, TH_SYN);
@@ -652,6 +652,7 @@ void
 CxPlatFramingWriteHeaders(
     _In_ CXPLAT_SOCKET* Socket,
     _In_ const CXPLAT_ROUTE* Route,
+    _Inout_ CXPLAT_SEND_DATA* SendData,
     _Inout_ QUIC_BUFFER* Buffer,
     _In_ CXPLAT_ECN_TYPE ECN,
     _In_ BOOLEAN SkipNetworkLayerXsum,
@@ -664,6 +665,7 @@ CxPlatFramingWriteHeaders(
     uint8_t* Transport;
     uint16_t TransportLength;
     uint8_t TransportProtocol;
+    uint8_t IsIpv4;
     TCP_HEADER* TCP = NULL;
     UDP_HEADER* UDP = NULL;
     ETHERNET_HEADER* Ethernet;
@@ -712,6 +714,7 @@ CxPlatFramingWriteHeaders(
     //
     if (Family == QUIC_ADDRESS_FAMILY_INET) {
         IPV4_HEADER* IPv4 = (IPV4_HEADER*)(Transport - sizeof(IPV4_HEADER));
+        IsIpv4 = TRUE;
         IPv4->VersionAndHeaderLength = IPV4_DEFAULT_VERHLEN;
         IPv4->TypeOfService = 0;
         IPv4->EcnField = ECN;
@@ -760,6 +763,8 @@ CxPlatFramingWriteHeaders(
             uint32_t Value;
         } VersionClassEcnFlow = {0};
 
+        IsIpv4 = FALSE;
+
         VersionClassEcnFlow.Version = IPV6_VERSION;
         VersionClassEcnFlow.Class = 0;
         VersionClassEcnFlow.EcnField = ECN;
@@ -803,4 +808,6 @@ CxPlatFramingWriteHeaders(
 
     Buffer->Length += TransportLength + IpHeaderLen + sizeof(ETHERNET_HEADER);
     Buffer->Buffer -= TransportLength + IpHeaderLen + sizeof(ETHERNET_HEADER);
+    SendData->L2HeaderSize = sizeof(ETHERNET_HEADER);
+    SendData->L3HeaderSize = IpHeaderLen;
 }

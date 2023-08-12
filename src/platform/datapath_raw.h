@@ -80,6 +80,8 @@ typedef struct CXPLAT_INTERFACE {
     } OffloadStatus;
 } CXPLAT_INTERFACE;
 
+#define CXPLAT_LARGE_SEND_BUFFER_SIZE 60000
+
 typedef struct CXPLAT_SEND_DATA {
 
     //
@@ -88,6 +90,14 @@ typedef struct CXPLAT_SEND_DATA {
     CXPLAT_ECN_TYPE ECN;
 
     QUIC_BUFFER Buffer;
+    QUIC_BUFFER ClientBuffer;
+
+    UINT32 BufferLength;
+
+    UINT16 SegmentSize;
+    UINT16 L2HeaderSize;
+    UINT16 L3HeaderSize;
+    uint8_t IsIpv4 : 1;
 
 } CXPLAT_SEND_DATA;
 
@@ -374,6 +384,7 @@ void
 CxPlatFramingWriteHeaders(
     _In_ CXPLAT_SOCKET* Socket,
     _In_ const CXPLAT_ROUTE* Route,
+    _Inout_ CXPLAT_SEND_DATA* SendData,
     _Inout_ QUIC_BUFFER* Buffer,
     _In_ CXPLAT_ECN_TYPE ECN,
     _In_ BOOLEAN SkipNetworkLayerXsum,

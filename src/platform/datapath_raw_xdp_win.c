@@ -103,7 +103,7 @@ typedef struct DECLSPEC_ALIGN(MEMORY_ALLOCATION_ALIGNMENT) XDP_TX_PACKET {
     CXPLAT_SEND_DATA;
     XDP_QUEUE* Queue;
     CXPLAT_LIST_ENTRY Link;
-    uint8_t FrameBuffer[MAX_ETH_FRAME_SIZE];
+    uint8_t FrameBuffer[CXPLAT_LARGE_SEND_BUFFER_SIZE];
 } XDP_TX_PACKET;
 
 
@@ -396,6 +396,7 @@ CxPlatXdpReadConfig(
     Xdp->TxBufferCount = 8192;
     Xdp->TxRingSize = 256;
     Xdp->TxAlwaysPoke = FALSE;
+    Xdp->SkipXsum = TRUE;
 
     //
     // Read config from config file.
@@ -510,7 +511,7 @@ CxPlatDpRawInterfaceInitialize(
     Interface->OffloadStatus.Receive.NetworkLayerXsum = Xdp->SkipXsum;
     Interface->OffloadStatus.Receive.TransportLayerXsum = Xdp->SkipXsum;
     Interface->OffloadStatus.Transmit.NetworkLayerXsum = Xdp->SkipXsum;
-    Interface->OffloadStatus.Transmit.NetworkLayerXsum = Xdp->SkipXsum;
+    Interface->OffloadStatus.Transmit.TransportLayerXsum = Xdp->SkipXsum;
     Interface->Xdp = Xdp;
 
     Status = Xdp->XdpApi->XdpInterfaceOpen(Interface->ActualIfIndex, &Interface->XdpHandle);
@@ -1700,7 +1701,7 @@ CxPlatDpRawTxAlloc(
         HEADER_BACKFILL HeaderBackfill = CxPlatDpRawCalculateHeaderBackFill(Family, Socket->UseTcp); // TODO - Cache in Route?
         CXPLAT_DBG_ASSERT(Config->MaxPacketSize <= sizeof(Packet->FrameBuffer) - HeaderBackfill.AllLayer);
         Packet->Queue = Queue;
-        Packet->Buffer.Length = Config->MaxPacketSize;
+        Packet->Buffer.Length = sizeof(Packet->FrameBuffer) - HeaderBackfill.AllLayer;
         Packet->Buffer.Buffer = &Packet->FrameBuffer[HeaderBackfill.AllLayer];
         Packet->ECN = Config->ECN;
     }
@@ -1775,13 +1776,28 @@ CxPlatXdpTx(
     uint32_t TxIndex;
     uint32_t TxAvailable = XskRingProducerReserve(&Queue->TxRing, MAXUINT32, &TxIndex);
     while (TxAvailable-- > 0 && !CxPlatListIsEmpty(&Queue->WorkerTxQueue)) {
-        XSK_BUFFER_DESCRIPTOR* Buffer = XskRingGetElement(&Queue->TxRing, TxIndex++);
+        XSK_FRAME_DESCRIPTOR* Frame = XskRingGetElement(&Queue->TxRing, TxIndex++);
+        XSK_BUFFER_DESCRIPTOR* Buffer = &Frame->Buffer;
         CXPLAT_LIST_ENTRY* Entry = CxPlatListRemoveHead(&Queue->WorkerTxQueue);
         XDP_TX_PACKET* Packet = CONTAINING_RECORD(Entry, XDP_TX_PACKET, Link);
 
         Buffer->Address.BaseAddress = (uint8_t*)Packet - Queue->TxBuffers;
         Buffer->Address.Offset = FIELD_OFFSET(XDP_TX_PACKET, FrameBuffer);
         Buffer->Length = Packet->Buffer.Length;
+
+        if (Packet->SegmentSize > 0) {
+            Frame->Gso.UDP.Mss = Packet->SegmentSize;
+            Frame->Layout.Layer2Type = XdpFrameLayer2TypeEthernet;
+            Frame->Layout.Layer2HeaderLength = Packet->L2HeaderSize;
+            Frame->Layout.Layer3Type =
+                Packet->IsIpv4 ?
+                    XdpFrameLayer3TypeIPv4UnspecifiedOptions :
+                        XdpFrameLayer3TypeIPv6UnspecifiedExtensions;
+            Frame->Layout.Layer3HeaderLength = Packet->L3HeaderSize;
+            Frame->Layout.Layer4Type = XdpFrameLayer4TypeUdp;
+        } else {
+            CxPlatZeroMemory(&Frame->Gso, sizeof(&Frame->Gso));
+        }
         ProdCount++;
     }
 

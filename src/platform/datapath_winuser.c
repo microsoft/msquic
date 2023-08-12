@@ -260,7 +260,7 @@ typedef struct CXPLAT_SEND_DATA {
     //
     // The total buffer size for WsaBuffers.
     //
-    uint32_t TotalSize;
+    uint32_t CurrentLength;
 
     //
     // The send segmentation size; zero if segmentation is not performed.
@@ -4401,7 +4401,7 @@ CxPlatSendDataAlloc(
             (Socket->Type != CXPLAT_SOCKET_UDP ||
              Socket->Datapath->Features & CXPLAT_DATAPATH_FEATURE_SEND_SEGMENTATION)
                 ? Config->MaxPacketSize : 0;
-        SendData->TotalSize = 0;
+        SendData->CurrentLength = 0;
         SendData->WsaBufferCount = 0;
         SendData->ClientBuffer.len = 0;
         SendData->ClientBuffer.buf = NULL;
@@ -4566,7 +4566,7 @@ CxPlatSendDataFinalizeSendBuffer(
         //
         if (SendData->WsaBufferCount > 0) {
             CXPLAT_DBG_ASSERT(SendData->WsaBuffers[SendData->WsaBufferCount - 1].len < UINT16_MAX);
-            SendData->TotalSize +=
+            SendData->CurrentLength +=
                 SendData->WsaBuffers[SendData->WsaBufferCount - 1].len;
         }
         return;
@@ -4581,7 +4581,7 @@ CxPlatSendDataFinalizeSendBuffer(
     //
     SendData->WsaBuffers[SendData->WsaBufferCount - 1].len +=
         SendData->ClientBuffer.len;
-    SendData->TotalSize += SendData->ClientBuffer.len;
+    SendData->CurrentLength += SendData->ClientBuffer.len;
 
     if (SendData->ClientBuffer.len == SendData->SegmentSize) {
         SendData->ClientBuffer.buf += SendData->SegmentSize;
@@ -4750,7 +4750,7 @@ CxPlatSendDataComplete(
             SocketProc->Parent,
             SocketProc->Parent->ClientContext,
             IoResult,
-            SendData->TotalSize);
+            SendData->CurrentLength);
     }
 
     CxPlatSendDataFree(SendData);
@@ -4843,7 +4843,7 @@ CxPlatSocketSendInline(
         DatapathSend,
         "[data][%p] Send %u bytes in %hhu buffers (segment=%hu) Dst=%!ADDR!, Src=%!ADDR!",
         Socket,
-        SendData->TotalSize,
+        SendData->CurrentLength,
         SendData->WsaBufferCount,
         SendData->SegmentSize,
         CASTED_CLOG_BYTEARRAY(sizeof(SendData->MappedRemoteAddress), &SendData->MappedRemoteAddress),

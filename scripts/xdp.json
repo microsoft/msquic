@@ -1,4 +1,4 @@
 {
-    "kit" : "https://github.com/microsoft/xdp-for-windows/releases/download/v1.0.0/xdp-devkit-x64-1.0.0.zip",
-    "installer": "https://github.com/microsoft/xdp-for-windows/releases/download/v1.0.0/xdp-for-windows.1.0.0.msi"
+    "kit" : "https://github.com/microsoft/xdp-for-windows/releases/download/v1.1.0%2B5421c3c5/xdp-devkit-x64-1.1.0-prerelease+5421c3c5.zip",
+    "installer": "https://github.com/microsoft/xdp-for-windows/releases/download/v1.1.0%2B5421c3c5/xdp-for-windows.1.1.0-prerelease+5421c3c5.msi"
 }
