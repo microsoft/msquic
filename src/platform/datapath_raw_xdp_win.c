@@ -1797,6 +1797,8 @@ CxPlatXdpTx(
                         XdpFrameLayer3TypeIPv6UnspecifiedExtensions;
             Frame->Layout.Layer3HeaderLength = Packet->L3HeaderSize;
             Frame->Layout.Layer4Type = XdpFrameLayer4TypeUdp;
+
+            CXPLAT_FRE_ASSERT(((Buffer->Length - Packet->L2HeaderSize - Packet->L3HeaderSize - sizeof(UDP_HEADER)) % Packet->SegmentSize) == 0);
         } else {
             CxPlatZeroMemory(&Frame->Gso, sizeof(&Frame->Gso));
         }
