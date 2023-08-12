@@ -1333,7 +1333,7 @@ QuicTestCtlEvtIoDeviceControl(
         QuicTestCtlRun(
             QuicTestHandshakeSpecificLossPatterns(
                 Params->HandshakeLossParams.Family,
-                Param->HandshakeLossParams.CcAlgo));
+                Params->HandshakeLossParams.CcAlgo));
         break;
 
     case IOCTL_QUIC_RUN_CUSTOM_CLIENT_CERT_VALIDATION:
