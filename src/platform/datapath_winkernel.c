@@ -227,7 +227,7 @@ typedef struct CXPLAT_SEND_DATA {
     //
     // The total buffer size for WsaBuffers.
     //
-    uint32_t CurrentLength;
+    uint32_t TotalSize;
 
     //
     // The type of ECN markings needed for send.
@@ -2634,7 +2634,7 @@ CxPlatSendDataAlloc(
         SendData->ECN = Config->ECN;
         SendData->WskBufs = NULL;
         SendData->TailBuf = NULL;
-        SendData->CurrentLength = 0;
+        SendData->TotalSize = 0;
         SendData->WskBufferCount = 0;
         SendData->SegmentSize =
             (Binding->Datapath->Features & CXPLAT_DATAPATH_FEATURE_SEND_SEGMENTATION)
@@ -2721,7 +2721,7 @@ CxPlatSendDataFinalizeSendBuffer(
         // There is no buffer segment outstanding at the client.
         //
         if (SendData->WskBufferCount > 0) {
-            SendData->CurrentLength +=
+            SendData->TotalSize +=
                 (uint32_t)SendData->TailBuf->Link.Buffer.Length;
         }
         return;
@@ -2729,7 +2729,7 @@ CxPlatSendDataFinalizeSendBuffer(
 
     if (SendData->SegmentSize == 0) {
         SendData->TailBuf->Link.Buffer.Length = SendData->ClientBuffer.Length;
-        SendData->CurrentLength += SendData->ClientBuffer.Length;
+        SendData->TotalSize += SendData->ClientBuffer.Length;
         SendData->ClientBuffer.Length = 0;
         return;
     }
@@ -2742,7 +2742,7 @@ CxPlatSendDataFinalizeSendBuffer(
     // Append the client's buffer segment to our internal send buffer.
     //
     SendData->TailBuf->Link.Buffer.Length += SendData->ClientBuffer.Length;
-    SendData->CurrentLength += SendData->ClientBuffer.Length;
+    SendData->TotalSize += SendData->ClientBuffer.Length;
 
     if (SendData->ClientBuffer.Length == SendData->SegmentSize) {
         SendData->ClientBuffer.Buffer += SendData->SegmentSize;
@@ -3055,7 +3055,7 @@ CxPlatSocketSend(
         DatapathSend,
         "[data][%p] Send %u bytes in %hhu buffers (segment=%hu) Dst=%!ADDR!, Src=%!ADDR!",
         Binding,
-        SendData->CurrentLength,
+        SendData->TotalSize,
         SendData->WskBufferCount,
         SendData->SegmentSize,
         CASTED_CLOG_BYTEARRAY(sizeof(Route->RemoteAddress), &Route->RemoteAddress),
