@@ -2289,10 +2289,12 @@ INSTANTIATE_TEST_SUITE_P(
 #endif
 #endif
 
+#if QUIC_TEST_DATAPATH_HOOKS_ENABLED
 INSTANTIATE_TEST_SUITE_P(
     Handshake,
     WithHandshakeArgs10,
     testing::ValuesIn(HandshakeArgs10::Generate()));
+#endif
 
 INSTANTIATE_TEST_SUITE_P(
     AppData,
