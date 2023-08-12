@@ -56,7 +56,7 @@ Environment:
 extern "C" {
 #endif
 
-#if defined(DEBUG) || defined(_DEBUG)
+#ifndef NDEBUG
 #pragma message("Debug build enabled")
 #define DBG 1
 #define DEBUG 1
