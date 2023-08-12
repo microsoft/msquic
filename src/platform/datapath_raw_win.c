@@ -640,7 +640,7 @@ CxPlatSendDataAlloc(
     CXPLAT_SEND_DATA* SendData = CxPlatDpRawTxAlloc(Socket, Config);
 
     if (SendData != NULL) {
-        SendData->SegmentSize = /* Config->MaxPacketSize */ 0;
+        SendData->SegmentSize = Config->MaxPacketSize;
         SendData->BufferLength = SendData->Buffer.Length;
 
         SendData->ClientBuffer.Buffer = SendData->Buffer.Buffer;
