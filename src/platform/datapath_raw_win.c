@@ -824,7 +824,7 @@ CxPlatSocketSend(
         Socket,
         SendData->Buffer.Length,
         1,
-        (uint16_t)SendData->Buffer.Length,
+        (uint16_t)SendData->SegmentSize,
         CASTED_CLOG_BYTEARRAY(sizeof(Route->RemoteAddress), &Route->RemoteAddress),
         CASTED_CLOG_BYTEARRAY(sizeof(Route->LocalAddress), &Route->LocalAddress));
     CXPLAT_DBG_ASSERT(Route->State == RouteResolved);
