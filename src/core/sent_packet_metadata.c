@@ -67,10 +67,13 @@ QuicSentPacketPoolInitialize(
             (i + 1) * sizeof(QUIC_SENT_FRAME_METADATA) +
             sizeof(QUIC_SENT_PACKET_METADATA);
 
-        CxPlatPoolInitialize(
+        CxPlatPoolInitializeEx(
             FALSE,  // IsPaged
             PacketMetadataSize,
             QUIC_POOL_META,
+            512,
+            NULL,
+            NULL,
             Pool->Pools + i);
     }
 }

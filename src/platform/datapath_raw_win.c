@@ -251,7 +251,7 @@ CxPlatDataPathIsPaddingPreferred(
     _In_ CXPLAT_DATAPATH* Datapath
     )
 {
-    return FALSE;
+    return TRUE;
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -623,6 +623,10 @@ CxPlatRecvDataReturn(
     CxPlatDpRawRxFree((const CXPLAT_RECV_DATA*)RecvDataChain);
 }
 
+//
+// USO-aware routines
+//
+
 _IRQL_requires_max_(DISPATCH_LEVEL)
 _Success_(return != NULL)
 CXPLAT_SEND_DATA*
@@ -631,19 +635,21 @@ CxPlatSendDataAlloc(
     _Inout_ CXPLAT_SEND_CONFIG* Config
     )
 {
-    return CxPlatDpRawTxAlloc(Socket, Config);
-}
+    CXPLAT_DBG_ASSERT(Socket != NULL);
 
-_IRQL_requires_max_(DISPATCH_LEVEL)
-_Success_(return != NULL)
-QUIC_BUFFER*
-CxPlatSendDataAllocBuffer(
-    _In_ CXPLAT_SEND_DATA* SendData,
-    _In_ uint16_t MaxBufferLength
-    )
-{
-    SendData->Buffer.Length = MaxBufferLength;
-    return &SendData->Buffer;
+    CXPLAT_SEND_DATA* SendData = CxPlatDpRawTxAlloc(Socket, Config);
+
+    if (SendData != NULL) {
+        SendData->SegmentSize = Config->MaxPacketSize;
+        SendData->BufferLength = SendData->Buffer.Length;
+
+        SendData->ClientBuffer.Buffer = SendData->Buffer.Buffer;
+        SendData->ClientBuffer.Length = 0;
+
+        SendData->Buffer.Length = 0;
+    }
+
+    return SendData;
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -655,6 +661,122 @@ CxPlatSendDataFree(
     CxPlatDpRawTxFree(SendData);
 }
 
+static
+BOOLEAN
+CxPlatSendDataCanAllocSendSegment(
+    _In_ CXPLAT_SEND_DATA* SendData,
+    _In_ UINT16 MaxBufferLength
+    )
+{
+    CXPLAT_DBG_ASSERT(SendData->SegmentSize > 0);
+
+    if (!SendData->ClientBuffer.Buffer) {
+        return FALSE;
+    }
+
+    ULONG BytesAvailable =
+        SendData->BufferLength - SendData->Buffer.Length - SendData->ClientBuffer.Length;
+
+    return MaxBufferLength <= BytesAvailable;
+}
+
+static
+BOOLEAN
+CxPlatSendDataCanAllocSend(
+    _In_ CXPLAT_SEND_DATA* SendData,
+    _In_ UINT16 MaxBufferLength
+    )
+{
+    return
+        ((SendData->SegmentSize > 0) &&
+            CxPlatSendDataCanAllocSendSegment(SendData, MaxBufferLength));
+}
+
+static
+void
+CxPlatSendDataFinalizeSendBuffer(
+    _In_ CXPLAT_SEND_DATA* SendData
+    )
+{
+    if (SendData->ClientBuffer.Length == 0) {
+        //
+        // There is no buffer segment outstanding at the client.
+        //
+        return;
+    }
+
+    if (SendData->SegmentSize == 0) {
+        SendData->Buffer.Length = SendData->ClientBuffer.Length;
+        SendData->ClientBuffer.Buffer = NULL;
+        SendData->ClientBuffer.Length = 0;
+        return;
+    }
+
+    CXPLAT_DBG_ASSERT(SendData->SegmentSize > 0);
+    CXPLAT_DBG_ASSERT(SendData->ClientBuffer.Length > 0 && SendData->ClientBuffer.Length <= SendData->SegmentSize);
+    CXPLAT_DBG_ASSERT(CxPlatSendDataCanAllocSendSegment(SendData, 0));
+
+    //
+    // Append the client's buffer segment to our internal send buffer.
+    //
+    SendData->Buffer.Length += SendData->ClientBuffer.Length;
+
+    if (SendData->ClientBuffer.Length == SendData->SegmentSize) {
+        SendData->ClientBuffer.Buffer += SendData->SegmentSize;
+        SendData->ClientBuffer.Length = 0;
+    } else {
+        //
+        // The next segment allocation must create a new backing buffer.
+        //
+        SendData->ClientBuffer.Buffer = NULL;
+        SendData->ClientBuffer.Length = 0;
+    }
+}
+
+_Success_(return != NULL)
+static
+QUIC_BUFFER*
+CxPlatSendDataAllocSegmentBuffer(
+    _In_ CXPLAT_SEND_DATA* SendData,
+    _In_ UINT16 MaxBufferLength
+    )
+{
+    CXPLAT_DBG_ASSERT(SendData->SegmentSize > 0);
+    CXPLAT_DBG_ASSERT(MaxBufferLength <= SendData->SegmentSize);
+
+    if (CxPlatSendDataCanAllocSendSegment(SendData, MaxBufferLength)) {
+        //
+        // All clear to return the next segment of our contiguous buffer.
+        //
+        SendData->ClientBuffer.Length = MaxBufferLength;
+        return &SendData->ClientBuffer;
+    }
+
+    return NULL;
+}
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+_Success_(return != NULL)
+QUIC_BUFFER*
+CxPlatSendDataAllocBuffer(
+    _In_ CXPLAT_SEND_DATA* SendData,
+    _In_ uint16_t MaxBufferLength
+    )
+{
+    CXPLAT_DBG_ASSERT(SendData != NULL);
+    CXPLAT_DBG_ASSERT(MaxBufferLength > 0);
+
+    CxPlatSendDataFinalizeSendBuffer(SendData);
+
+    if (SendData->SegmentSize == 0) {
+        CXPLAT_DBG_ASSERT(SendData->BufferLength >= MaxBufferLength);
+        SendData->ClientBuffer.Length = MaxBufferLength;
+        return &SendData->ClientBuffer;
+    } else {
+        return CxPlatSendDataAllocSegmentBuffer(SendData, MaxBufferLength);
+    }
+}
+
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 CxPlatSendDataFreeBuffer(
@@ -662,7 +784,9 @@ CxPlatSendDataFreeBuffer(
     _In_ QUIC_BUFFER* Buffer
     )
 {
-    // No-op
+    UNREFERENCED_PARAMETER(Buffer);
+    SendData->ClientBuffer.Buffer = NULL;
+    SendData->ClientBuffer.Length = 0;
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -671,7 +795,7 @@ CxPlatSendDataIsFull(
     _In_ CXPLAT_SEND_DATA* SendData
     )
 {
-    return TRUE;
+    return !CxPlatSendDataCanAllocSend(SendData, SendData->SegmentSize);
 }
 
 #define TH_ACK 0x10
@@ -684,6 +808,8 @@ CxPlatSocketSend(
     _In_ CXPLAT_SEND_DATA* SendData
     )
 {
+    CxPlatSendDataFinalizeSendBuffer(SendData);
+
     if (Socket->UseTcp &&
         Socket->Connected &&
         Route->TcpState.Syncd == FALSE) {
@@ -698,7 +824,7 @@ CxPlatSocketSend(
         Socket,
         SendData->Buffer.Length,
         1,
-        (uint16_t)SendData->Buffer.Length,
+        (uint16_t)SendData->SegmentSize,
         CASTED_CLOG_BYTEARRAY(sizeof(Route->RemoteAddress), &Route->RemoteAddress),
         CASTED_CLOG_BYTEARRAY(sizeof(Route->LocalAddress), &Route->LocalAddress));
     CXPLAT_DBG_ASSERT(Route->State == RouteResolved);
@@ -706,7 +832,7 @@ CxPlatSocketSend(
     const CXPLAT_INTERFACE* Interface = CxPlatDpRawGetInterfaceFromQueue(Route->Queue);
 
     CxPlatFramingWriteHeaders(
-        Socket, Route, &SendData->Buffer, SendData->ECN,
+        Socket, Route, SendData, &SendData->Buffer, SendData->ECN,
         Interface->OffloadStatus.Transmit.NetworkLayerXsum,
         Interface->OffloadStatus.Transmit.TransportLayerXsum,
         Route->TcpState.SequenceNumber,
