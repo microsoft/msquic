@@ -1,8 +1,9 @@
 <h1 align="center"><img src="docs/images/readme_logo.png" width="500" alt="MsQuic logo"/></h1>
 
 [![Perf Dashboard](https://img.shields.io/static/v1?label=Performance&message=Dashboard&color=blue)](https://microsoft.github.io/msquic/)
-[![Build Status](https://img.shields.io/github/actions/workflow/status/microsoft/msquic/build.yml?label=Build)](https://github.com/microsoft/msquic/actions/workflows/build.yml)
-[![Test Status](https://img.shields.io/github/actions/workflow/status/microsoft/msquic/test.yml?label=Test)](https://github.com/microsoft/msquic/actions/workflows/test.yml)
+[![Build Status](https://img.shields.io/github/actions/workflow/status/microsoft/msquic/build.yml?query=branch%3Amain&label=Build)](https://github.com/microsoft/msquic/actions/workflows/build.yml?query=branch%3Amain)
+[![Test Status](https://img.shields.io/github/actions/workflow/status/microsoft/msquic/test.yml?query=branch%3Amain&label=Test)](https://github.com/microsoft/msquic/actions/workflows/test.yml?query=branch%3Amain)
+[![Stress Status](https://img.shields.io/github/actions/workflow/status/microsoft/msquic/stress.yml?query=branch%3Amain&label=Stress)](https://github.com/microsoft/msquic/actions/workflows/stress.yml?query=branch%3Amain)
 [![codecov](https://codecov.io/github/microsoft/msquic/branch/main/graph/badge.svg?token=xAjIMDn7wy)](https://codecov.io/github/microsoft/msquic)
 ![CodeQL](https://github.com/microsoft/msquic/workflows/CodeQL/badge.svg?branch=main)
 [![CII Best Practices](https://bestpractices.coreinfrastructure.org/projects/4846/badge)](https://bestpractices.coreinfrastructure.org/projects/4846)
@@ -20,8 +21,8 @@ protocol. It is cross-platform, written in C and designed to be a general purpos
 [![](https://img.shields.io/static/v1?label=RFC&message=9002&color=brightgreen)](https://tools.ietf.org/html/rfc9002)
 [![](https://img.shields.io/static/v1?label=RFC&message=9221&color=brightgreen)](https://tools.ietf.org/html/rfc9221)
 [![](https://img.shields.io/static/v1?label=RFC&message=9287&color=brightgreen)](https://tools.ietf.org/html/rfc9287)
-[![](https://img.shields.io/static/v1?label=Draft&message=Version%202&color=blue)](https://tools.ietf.org/html/draft-ietf-quic-v2)
-[![](https://img.shields.io/static/v1?label=Draft&message=Version%20Negotiation&color=blue)](https://tools.ietf.org/html/draft-ietf-quic-version-negotiation)
+[![](https://img.shields.io/static/v1?label=RFC&message=9368&color=brightgreen)](https://tools.ietf.org/html/rfc9368)
+[![](https://img.shields.io/static/v1?label=RFC&message=9369&color=brightgreen)](https://tools.ietf.org/html/rfc9369)
 [![](https://img.shields.io/static/v1?label=Draft&message=Load%20Balancers&color=blue)](https://tools.ietf.org/html/draft-ietf-quic-load-balancers)
 [![](https://img.shields.io/static/v1?label=Draft&message=ACK%20Frequency&color=blue)](https://tools.ietf.org/html/draft-ietf-quic-ack-frequency)
 [![](https://img.shields.io/static/v1?label=Draft&message=Disable%20Encryption&color=blueviolet)](https://tools.ietf.org/html/draft-banks-quic-disable-encryption)

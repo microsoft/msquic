@@ -33,6 +33,7 @@ union QuicV1Frames {
     QUIC_CONNECTION_CLOSE_EX ConnectionCloseFrame;
     QUIC_DATAGRAM_EX DatagramFrame;
     QUIC_ACK_FREQUENCY_EX AckFrequencyFrame;
+    QUIC_RELIABLE_RESET_STREAM_EX ReliableResetStreamFrame;
 };
 
 TEST(SpinFrame, SpinFrame1000000)
@@ -220,6 +221,13 @@ TEST(SpinFrame, SpinFrame1000000)
                 break;
             case QUIC_FRAME_ACK_FREQUENCY:
                 if (QuicAckFrequencyFrameDecode(BufferLength, Buffer, &Offset, &DecodedFrame.AckFrequencyFrame)) {
+                    SuccessfulDecodes++;
+                } else {
+                    FailedDecodes++;
+                }
+                break;
+            case QUIC_FRAME_RELIABLE_RESET_STREAM:
+                if (QuicReliableResetFrameDecode(BufferLength, Buffer, &Offset, &DecodedFrame.ReliableResetStreamFrame)) {
                     SuccessfulDecodes++;
                 } else {
                     FailedDecodes++;

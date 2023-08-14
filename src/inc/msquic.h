@@ -669,7 +669,8 @@ typedef struct QUIC_SETTINGS {
             uint64_t HyStartEnabled                         : 1;
 #ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
             uint64_t EncryptionOffloadAllowed               : 1;
-            uint64_t RESERVED                               : 28;
+            uint64_t ReliableResetEnabled                   : 1;
+            uint64_t RESERVED                               : 27;
 #else
             uint64_t RESERVED                               : 29;
 #endif
@@ -716,7 +717,8 @@ typedef struct QUIC_SETTINGS {
             uint64_t HyStartEnabled            : 1;
 #ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
             uint64_t EncryptionOffloadAllowed  : 1;
-            uint64_t ReservedFlags             : 62;
+            uint64_t ReliableResetEnabled      : 1;
+            uint64_t ReservedFlags             : 61;
 #else
             uint64_t ReservedFlags             : 63;
 #endif
@@ -1140,6 +1142,9 @@ typedef enum QUIC_CONNECTION_EVENT_TYPE {
     QUIC_CONNECTION_EVENT_RESUMED                           = 13,   // Server-only; provides resumption data, if any.
     QUIC_CONNECTION_EVENT_RESUMPTION_TICKET_RECEIVED        = 14,   // Client-only; provides ticket to persist, if any.
     QUIC_CONNECTION_EVENT_PEER_CERTIFICATE_RECEIVED         = 15,   // Only with QUIC_CREDENTIAL_FLAG_INDICATE_CERTIFICATE_RECEIVED set
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
+    QUIC_CONNECTION_EVENT_RELIABLE_RESET_NEGOTIATED         = 16,   // Only indicated if QUIC_SETTINGS.ReliableResetEnabled is TRUE.
+#endif
 } QUIC_CONNECTION_EVENT_TYPE;
 
 typedef struct QUIC_CONNECTION_EVENT {
@@ -1213,6 +1218,11 @@ typedef struct QUIC_CONNECTION_EVENT {
             QUIC_STATUS DeferredStatus;         // Most severe error status (only valid with QUIC_CREDENTIAL_FLAG_DEFER_CERTIFICATE_VALIDATION)
             QUIC_CERTIFICATE_CHAIN* Chain;      // Peer certificate chain (platform specific). Valid only during QUIC_CONNECTION_EVENT_PEER_CERTIFICATE_RECEIVED callback.
         } PEER_CERTIFICATE_RECEIVED;
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
+        struct {
+            BOOLEAN IsNegotiated;
+        } RELIABLE_RESET_NEGOTIATED;
+#endif
     };
 } QUIC_CONNECTION_EVENT;
 

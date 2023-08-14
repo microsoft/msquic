@@ -1296,6 +1296,19 @@ namespace Microsoft.Quic
             }
         }
 
+        internal ulong ReliableResetEnabled
+        {
+            get
+            {
+                return Anonymous2.Anonymous.ReliableResetEnabled;
+            }
+
+            set
+            {
+                Anonymous2.Anonymous.ReliableResetEnabled = value;
+            }
+        }
+
         internal ulong ReservedFlags
         {
             get
@@ -1828,17 +1841,31 @@ namespace Microsoft.Quic
                     }
                 }
 
-                [NativeTypeName("uint64_t : 28")]
-                internal ulong RESERVED
+                [NativeTypeName("uint64_t : 1")]
+                internal ulong ReliableResetEnabled
                 {
                     get
                     {
-                        return (_bitfield >> 36) & 0xFFFFFFFUL;
+                        return (_bitfield >> 36) & 0x1UL;
                     }
 
                     set
                     {
-                        _bitfield = (_bitfield & ~(0xFFFFFFFUL << 36)) | ((value & 0xFFFFFFFUL) << 36);
+                        _bitfield = (_bitfield & ~(0x1UL << 36)) | ((value & 0x1UL) << 36);
+                    }
+                }
+
+                [NativeTypeName("uint64_t : 27")]
+                internal ulong RESERVED
+                {
+                    get
+                    {
+                        return (_bitfield >> 37) & 0x7FFFFFFUL;
+                    }
+
+                    set
+                    {
+                        _bitfield = (_bitfield & ~(0x7FFFFFFUL << 37)) | ((value & 0x7FFFFFFUL) << 37);
                     }
                 }
             }
@@ -1887,17 +1914,31 @@ namespace Microsoft.Quic
                     }
                 }
 
-                [NativeTypeName("uint64_t : 62")]
-                internal ulong ReservedFlags
+                [NativeTypeName("uint64_t : 1")]
+                internal ulong ReliableResetEnabled
                 {
                     get
                     {
-                        return (_bitfield >> 2) & 0x3FFFFFFFUL;
+                        return (_bitfield >> 2) & 0x1UL;
                     }
 
                     set
                     {
-                        _bitfield = (_bitfield & ~(0x3FFFFFFFUL << 2)) | ((value & 0x3FFFFFFFUL) << 2);
+                        _bitfield = (_bitfield & ~(0x1UL << 2)) | ((value & 0x1UL) << 2);
+                    }
+                }
+
+                [NativeTypeName("uint64_t : 61")]
+                internal ulong ReservedFlags
+                {
+                    get
+                    {
+                        return (_bitfield >> 3) & 0x1FFFFFFFUL;
+                    }
+
+                    set
+                    {
+                        _bitfield = (_bitfield & ~(0x1FFFFFFFUL << 3)) | ((value & 0x1FFFFFFFUL) << 3);
                     }
                 }
             }
@@ -2179,6 +2220,7 @@ namespace Microsoft.Quic
         RESUMED = 13,
         RESUMPTION_TICKET_RECEIVED = 14,
         PEER_CERTIFICATE_RECEIVED = 15,
+        RELIABLE_RESET_NEGOTIATED = 16,
     }
 
     internal partial struct QUIC_CONNECTION_EVENT
@@ -2316,6 +2358,14 @@ namespace Microsoft.Quic
             }
         }
 
+        internal ref _Anonymous_e__Union._RELIABLE_RESET_NEGOTIATED_e__Struct RELIABLE_RESET_NEGOTIATED
+        {
+            get
+            {
+                return ref MemoryMarshal.GetReference(MemoryMarshal.CreateSpan(ref Anonymous.RELIABLE_RESET_NEGOTIATED, 1));
+            }
+        }
+
         [StructLayout(LayoutKind.Explicit)]
         internal partial struct _Anonymous_e__Union
         {
@@ -2382,6 +2432,10 @@ namespace Microsoft.Quic
             [FieldOffset(0)]
             [NativeTypeName("struct (anonymous struct)")]
             internal _PEER_CERTIFICATE_RECEIVED_e__Struct PEER_CERTIFICATE_RECEIVED;
+
+            [FieldOffset(0)]
+            [NativeTypeName("struct (anonymous struct)")]
+            internal _RELIABLE_RESET_NEGOTIATED_e__Struct RELIABLE_RESET_NEGOTIATED;
 
             internal unsafe partial struct _CONNECTED_e__Struct
             {
@@ -2556,6 +2610,12 @@ namespace Microsoft.Quic
 
                 [NativeTypeName("QUIC_CERTIFICATE_CHAIN *")]
                 internal void* Chain;
+            }
+
+            internal partial struct _RELIABLE_RESET_NEGOTIATED_e__Struct
+            {
+                [NativeTypeName("BOOLEAN")]
+                internal byte IsNegotiated;
             }
         }
     }
