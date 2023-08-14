@@ -218,8 +218,8 @@ QuicPacketBuilderPrepare(
     // the current one doesn't match, finalize it and then start a new one.
     //
 
-    uint16_t Proc = QuicLibraryGetCurrentProcessor();
-    uint64_t ProcShifted = ((uint64_t)Proc + 1) << 40;
+    const uint16_t Partition = Connection->Worker->PartitionIndex;
+    const uint64_t PartitionShifted = ((uint64_t)Partition + 1) << 40;
 
     BOOLEAN NewQuicPacket = FALSE;
     if (Builder->PacketType != NewPacketType || IsPathMtuDiscovery ||
@@ -254,7 +254,7 @@ QuicPacketBuilderPrepare(
         BOOLEAN SendDataAllocated = FALSE;
         if (Builder->SendData == NULL) {
             Builder->BatchId =
-                ProcShifted | InterlockedIncrement64((int64_t*)&MsQuicLib.PerProc[Proc].SendBatchId);
+                PartitionShifted | InterlockedIncrement64((int64_t*)&QuicLibraryGetPerProc()->SendBatchId);
             CXPLAT_SEND_CONFIG SendConfig = {
                 &Builder->Path->Route,
                 IsPathMtuDiscovery ?
@@ -370,7 +370,7 @@ QuicPacketBuilderPrepare(
         }
 
         Builder->Metadata->PacketId =
-            ProcShifted | InterlockedIncrement64((int64_t*)&MsQuicLib.PerProc[Proc].SendPacketId);
+            PartitionShifted | InterlockedIncrement64((int64_t*)&QuicLibraryGetPerProc()->SendPacketId);
         QuicTraceEvent(
             PacketCreated,
             "[pack][%llu] Created in batch %llu",

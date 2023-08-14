@@ -288,18 +288,6 @@ extern QUIC_LIBRARY MsQuicLib;
 #endif
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
-_Ret_range_(0, MsQuicLib.ProcessorCount - 1)
-inline
-uint16_t
-QuicLibraryGetCurrentProcessor(
-    void
-    )
-{
-    CXPLAT_DBG_ASSERT(MsQuicLib.PerProc != NULL);
-    return ((uint16_t)CxPlatProcCurrentNumber()) % MsQuicLib.ProcessorCount;
-}
-
-_IRQL_requires_max_(DISPATCH_LEVEL)
 inline
 uint16_t
 QuicLibraryGetCurrentPartition(
@@ -345,7 +333,10 @@ QuicLibraryGetPerProc(
     void
     )
 {
-    return &MsQuicLib.PerProc[QuicLibraryGetCurrentProcessor()];
+    CXPLAT_DBG_ASSERT(MsQuicLib.PerProc != NULL);
+    const uint16_t CurrentProc =
+        ((uint16_t)CxPlatProcCurrentNumber()) % MsQuicLib.ProcessorCount;
+    return &MsQuicLib.PerProc[CurrentProc];
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
