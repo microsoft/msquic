@@ -11878,6 +11878,30 @@
       ],
       "macroName": "QuicTraceLogVerbose"
     },
+    "XdpPartitionShutdown": {
+      "ModuleProperites": {},
+      "TraceString": "[ xdp][%p] XDP partition shutdown",
+      "UniqueId": "XdpPartitionShutdown",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceLogVerbose"
+    },
+    "XdpPartitionShutdownComplete": {
+      "ModuleProperites": {},
+      "TraceString": "[ xdp][%p] XDP partition shutdown complete",
+      "UniqueId": "XdpPartitionShutdownComplete",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceLogVerbose"
+    },
     "XdpQueueAsyncIoRx": {
       "ModuleProperites": {},
       "TraceString": "[ xdp][%p] XDP async IO start (RX)",
@@ -11928,7 +11952,7 @@
     },
     "XdpQueueStart": {
       "ModuleProperites": {},
-      "TraceString": "[ xdp][%p] XDP queue start on worker %p",
+      "TraceString": "[ xdp][%p] XDP queue start on partition %p",
       "UniqueId": "XdpQueueStart",
       "splitArgs": [
         {
@@ -12016,7 +12040,7 @@
     },
     "XdpWorkerStart": {
       "ModuleProperites": {},
-      "TraceString": "[ xdp][%p] XDP worker start, %u queues",
+      "TraceString": "[ xdp][%p] XDP partition start, %u queues",
       "UniqueId": "XdpWorkerStart",
       "splitArgs": [
         {
@@ -16297,6 +16321,16 @@
         "EncodingString": "[ xdp][%p] XDP initialized, %u procs"
       },
       {
+        "UniquenessHash": "18009e0d-e738-467e-35c0-55ebabcbf31f",
+        "TraceID": "XdpPartitionShutdown",
+        "EncodingString": "[ xdp][%p] XDP partition shutdown"
+      },
+      {
+        "UniquenessHash": "f15d7b02-fcbd-041d-ab82-303fb66a6396",
+        "TraceID": "XdpPartitionShutdownComplete",
+        "EncodingString": "[ xdp][%p] XDP partition shutdown complete"
+      },
+      {
         "UniquenessHash": "52b68524-d920-65c2-30d5-1a36e30a3532",
         "TraceID": "XdpQueueAsyncIoRx",
         "EncodingString": "[ xdp][%p] XDP async IO start (RX)"
@@ -16317,9 +16351,9 @@
         "EncodingString": "[ xdp][%p] XDP async IO complete (TX)"
       },
       {
-        "UniquenessHash": "47259da7-3712-0125-8cab-83d0114d2313",
+        "UniquenessHash": "4270911a-7069-98d2-b976-fecdc34ab024",
         "TraceID": "XdpQueueStart",
-        "EncodingString": "[ xdp][%p] XDP queue start on worker %p"
+        "EncodingString": "[ xdp][%p] XDP queue start on partition %p"
       },
       {
         "UniquenessHash": "a886933d-ba2f-8adb-8440-ef3146cc27fc",
@@ -16352,9 +16386,9 @@
         "EncodingString": "[ xdp][%p] XDP worker shutdown complete"
       },
       {
-        "UniquenessHash": "f93ab876-1534-945f-953a-527996af298d",
+        "UniquenessHash": "e81fe3d6-c142-82bd-fbdf-75c0ef5e8d0f",
         "TraceID": "XdpWorkerStart",
-        "EncodingString": "[ xdp][%p] XDP worker start, %u queues"
+        "EncodingString": "[ xdp][%p] XDP partition start, %u queues"
       },
       {
         "UniquenessHash": "544776e8-4877-d5da-4fa0-fc664dd8fd98",

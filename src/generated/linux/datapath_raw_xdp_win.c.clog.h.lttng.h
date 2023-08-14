@@ -35,9 +35,9 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_WIN_C, FoundVF,
         XdpInitialize,
         "[ xdp][%p] XDP initialized, %u procs",
         Xdp,
-        Xdp->WorkerCount);
+        Xdp->PartitionCount);
 // arg2 = arg2 = Xdp = arg2
-// arg3 = arg3 = Xdp->WorkerCount = arg3
+// arg3 = arg3 = Xdp->PartitionCount = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_WIN_C, XdpInitialize,
     TP_ARGS(
@@ -53,14 +53,14 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_WIN_C, XdpInitialize,
 
 /*----------------------------------------------------------
 // Decoder Ring for XdpQueueStart
-// [ xdp][%p] XDP queue start on worker %p
+// [ xdp][%p] XDP queue start on partition %p
 // QuicTraceLogVerbose(
                 XdpQueueStart,
-                "[ xdp][%p] XDP queue start on worker %p",
+                "[ xdp][%p] XDP queue start on partition %p",
                 Queue,
-                Worker);
+                Partition);
 // arg2 = arg2 = Queue = arg2
-// arg3 = arg3 = Worker = arg3
+// arg3 = arg3 = Partition = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_WIN_C, XdpQueueStart,
     TP_ARGS(
@@ -76,13 +76,13 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_WIN_C, XdpQueueStart,
 
 /*----------------------------------------------------------
 // Decoder Ring for XdpWorkerStart
-// [ xdp][%p] XDP worker start, %u queues
+// [ xdp][%p] XDP partition start, %u queues
 // QuicTraceLogVerbose(
             XdpWorkerStart,
-            "[ xdp][%p] XDP worker start, %u queues",
-            Worker,
+            "[ xdp][%p] XDP partition start, %u queues",
+            Partition,
             QueueCount);
-// arg2 = arg2 = Worker = arg2
+// arg2 = arg2 = Partition = arg2
 // arg3 = arg3 = QueueCount = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_WIN_C, XdpWorkerStart,
@@ -155,15 +155,15 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_WIN_C, XdpUninitialize,
 
 
 /*----------------------------------------------------------
-// Decoder Ring for XdpWorkerShutdown
-// [ xdp][%p] XDP worker shutdown
+// Decoder Ring for XdpPartitionShutdown
+// [ xdp][%p] XDP partition shutdown
 // QuicTraceLogVerbose(
-            XdpWorkerShutdown,
-            "[ xdp][%p] XDP worker shutdown",
-            Worker);
-// arg2 = arg2 = Worker = arg2
+            XdpPartitionShutdown,
+            "[ xdp][%p] XDP partition shutdown",
+            Partition);
+// arg2 = arg2 = Partition = arg2
 ----------------------------------------------------------*/
-TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_WIN_C, XdpWorkerShutdown,
+TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_WIN_C, XdpPartitionShutdown,
     TP_ARGS(
         const void *, arg2), 
     TP_FIELDS(
@@ -250,15 +250,15 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_WIN_C, XdpQueueAsyncIoTxComplete,
 
 
 /*----------------------------------------------------------
-// Decoder Ring for XdpWorkerShutdownComplete
-// [ xdp][%p] XDP worker shutdown complete
+// Decoder Ring for XdpPartitionShutdownComplete
+// [ xdp][%p] XDP partition shutdown complete
 // QuicTraceLogVerbose(
-            XdpWorkerShutdownComplete,
-            "[ xdp][%p] XDP worker shutdown complete",
-            Worker);
-// arg2 = arg2 = Worker = arg2
+            XdpPartitionShutdownComplete,
+            "[ xdp][%p] XDP partition shutdown complete",
+            Partition);
+// arg2 = arg2 = Partition = arg2
 ----------------------------------------------------------*/
-TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_WIN_C, XdpWorkerShutdownComplete,
+TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_WIN_C, XdpPartitionShutdownComplete,
     TP_ARGS(
         const void *, arg2), 
     TP_FIELDS(
