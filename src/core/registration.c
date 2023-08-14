@@ -52,21 +52,19 @@ MsQuicRegistrationOpen(
         goto Error;
     }
 
-    //
-    // Lazy initialize partitions.
-    //
-    Status = MsQuicLibraryInitializePartitions(ExternalRegistration);
-    if (QUIC_FAILED(Status)) {
-        goto Error;
-    }
-
     if (ExternalRegistration) {
-        Status = QuicLibraryEnsureExecutionContext();
-        if (QUIC_FAILED(Status)) {
+        //
+        // Lazy initialize library state. This only needs to happen for external
+        // registrations because they are always initialized before the internal
+        // one.
+        //
+        if (QUIC_FAILED(Status = QuicLibraryInitializePartitions()) ||
+            QUIC_FAILED(Status = QuicLibraryEnsureExecutionContext())) {
             goto Error;
         }
     }
 
+    CXPLAT_DBG_ASSERT(MsQuicLib.PerProc != NULL);
     CXPLAT_DBG_ASSERT(MsQuicLib.Datapath != NULL);
 
     Registration = CXPLAT_ALLOC_NONPAGED(RegistrationSize, QUIC_POOL_REGISTRATION);

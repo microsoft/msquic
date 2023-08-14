@@ -123,15 +123,13 @@ MsQuicLibraryFreePartitions(
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
-MsQuicLibraryInitializePartitions(
-    BOOLEAN AcquireLock
+QuicLibraryInitializePartitions(
+    void
     )
 {
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
 
-    if (AcquireLock) {
-        CxPlatLockAcquire(&MsQuicLib.Lock);
-    }
+    CxPlatLockAcquire(&MsQuicLib.Lock);
 
     if (MsQuicLib.PerProc) {
         goto Done; // Already initialized
@@ -204,9 +202,9 @@ MsQuicLibraryInitializePartitions(
     CxPlatSecureZeroMemory(ResetHashKey, sizeof(ResetHashKey));
 
 Done:
-    if (AcquireLock) {
-        CxPlatLockRelease(&MsQuicLib.Lock);
-    }
+
+    CxPlatLockRelease(&MsQuicLib.Lock);
+
     return Status;
 }
 
