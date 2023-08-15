@@ -995,11 +995,15 @@ QuicLibrarySetGlobalParam(
 
         CxPlatLockAcquire(&MsQuicLib.Lock);
         if (MsQuicLib.LazyInitComplete) {
+
             //
-            // We only allow for updating the polling idle timeout after both the datapath and
-            // the per-proc storage has already been started; and only if the app set some
-            // custom config to begin with.
+            // We only allow for updating the polling idle timeout after MsQuic library has
+            // finished up lazy initialization, which initializes both PerProc struct and
+            // the datapath; and only if the app set some custom config to begin with.
             //
+            CXPLAT_DBG_ASSERT(MsQuicLib.PerProc != NULL);
+            CXPLAT_DBG_ASSERT(MsQuicLib.Datapath != NULL);
+
             if (MsQuicLib.ExecutionConfig == NULL) {
                 Status = QUIC_STATUS_INVALID_STATE;
             } else {
