@@ -570,6 +570,8 @@ MsQuicLibraryUninitialize(
         MsQuicLib.ExecutionConfig = NULL;
     }
 
+    MsQuicLib.LazyInitComplete = FALSE;
+
     QuicTraceEvent(
         LibraryUninitialized,
         "[ lib] Uninitialized");
