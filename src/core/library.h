@@ -87,6 +87,11 @@ typedef struct QUIC_LIBRARY {
     //
     BOOLEAN Loaded : 1;
 
+    //
+    // Tracks whether the library's lazy initialization has completed.
+    //
+    BOOLEAN LazyInitComplete : 1;
+
 #ifdef CxPlatVerifierEnabled
     //
     // The app or driver verifier is globally enabled.
@@ -489,6 +494,15 @@ QuicCidNewRandomSource(
     return Entry;
 }
 
+//
+// Ensures any lazy initialization for the library is complete.
+//
+_IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_STATUS
+QuicLibraryLazyInitialize(
+    void
+    );
+
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 QuicLibrarySetGlobalParam(
@@ -545,15 +559,6 @@ _IRQL_requires_max_(DISPATCH_LEVEL)
 BOOLEAN
 QuicLibraryTryAddRefBinding(
     _In_ QUIC_BINDING* Binding
-    );
-
-//
-// The function initializes the library execution context if not already done.
-//
-_IRQL_requires_max_(PASSIVE_LEVEL)
-QUIC_STATUS
-QuicLibraryEnsureExecutionContext(
-    void
     );
 
 //
@@ -634,12 +639,6 @@ QuicLibraryGenerateStatelessResetToken(
         const uint8_t* const CID,
     _Out_writes_all_(QUIC_STATELESS_RESET_TOKEN_LENGTH)
         uint8_t* ResetToken
-    );
-
-_IRQL_requires_max_(PASSIVE_LEVEL)
-QUIC_STATUS
-QuicLibraryInitializePartitions(
-    void
     );
 
 #if defined(__cplusplus)

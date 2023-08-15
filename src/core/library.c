@@ -127,13 +127,7 @@ QuicLibraryInitializePartitions(
     void
     )
 {
-    QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
-
-    CxPlatLockAcquire(&MsQuicLib.Lock);
-
-    if (MsQuicLib.PerProc) {
-        goto Done; // Already initialized
-    }
+    CXPLAT_DBG_ASSERT(MsQuicLib.PerProc == NULL);
 
     MsQuicLib.ProcessorCount = (uint16_t)CxPlatProcMaxCount();
     CXPLAT_FRE_ASSERT(MsQuicLib.ProcessorCount > 0);
@@ -170,8 +164,7 @@ QuicLibraryInitializePartitions(
             "Allocation of '%s' failed. (%llu bytes)",
             "connection pools",
             PerProcSize);
-        Status = QUIC_STATUS_OUT_OF_MEMORY;
-        goto Done;
+        return QUIC_STATUS_OUT_OF_MEMORY;
     }
 
     CxPlatZeroMemory(MsQuicLib.PerProc, PerProcSize);
@@ -187,7 +180,7 @@ QuicLibraryInitializePartitions(
     CxPlatRandom(sizeof(ResetHashKey), ResetHashKey);
     for (uint16_t i = 0; i < MsQuicLib.ProcessorCount; ++i) {
         QUIC_LIBRARY_PP* PerProc = &MsQuicLib.PerProc[i];
-        Status =
+        QUIC_STATUS Status =
             CxPlatHashCreate(
                 CXPLAT_HASH_SHA256,
                 ResetHashKey,
@@ -196,16 +189,12 @@ QuicLibraryInitializePartitions(
         if (QUIC_FAILED(Status)) {
             CxPlatSecureZeroMemory(ResetHashKey, sizeof(ResetHashKey));
             MsQuicLibraryFreePartitions();
-            goto Done;
+            return Status;
         }
     }
     CxPlatSecureZeroMemory(ResetHashKey, sizeof(ResetHashKey));
 
-Done:
-
-    CxPlatLockRelease(&MsQuicLib.Lock);
-
-    return Status;
+    return QUIC_STATUS_SUCCESS;
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -657,7 +646,7 @@ MsQuicRelease(
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
-QuicLibraryEnsureExecutionContext(
+QuicLibraryLazyInitialize(
     void
     )
 {
@@ -670,21 +659,40 @@ QuicLibraryEnsureExecutionContext(
 
     CxPlatLockAcquire(&MsQuicLib.Lock);
 
-    if (MsQuicLib.Datapath == NULL) {
-        Status =
-            CxPlatDataPathInitialize(
-                sizeof(CXPLAT_RECV_PACKET),
-                &DatapathCallbacks,
-                NULL,                   // TcpCallbacks
-                MsQuicLib.ExecutionConfig,
-                &MsQuicLib.Datapath);
-        if (QUIC_SUCCEEDED(Status)) {
-            QuicTraceEvent(
-                DataPathInitialized,
-                "[data] Initialized, DatapathFeatures=%u",
-                CxPlatDataPathGetSupportedFeatures(MsQuicLib.Datapath));
-        }
+    if (MsQuicLib.LazyInitComplete) {
+        goto Exit;
     }
+
+    CXPLAT_DBG_ASSERT(MsQuicLib.PerProc == NULL);
+    CXPLAT_DBG_ASSERT(MsQuicLib.Datapath == NULL);
+
+    Status = QuicLibraryInitializePartitions();
+    if (QUIC_FAILED(Status)) {
+        goto Exit;
+    }
+
+    Status =
+        CxPlatDataPathInitialize(
+            sizeof(CXPLAT_RECV_PACKET),
+            &DatapathCallbacks,
+            NULL,                   // TcpCallbacks
+            MsQuicLib.ExecutionConfig,
+            &MsQuicLib.Datapath);
+    if (QUIC_SUCCEEDED(Status)) {
+        QuicTraceEvent(
+            DataPathInitialized,
+            "[data] Initialized, DatapathFeatures=%u",
+            CxPlatDataPathGetSupportedFeatures(MsQuicLib.Datapath));
+    } else {
+        MsQuicLibraryFreePartitions();
+        goto Exit;
+    }
+
+    CXPLAT_DBG_ASSERT(MsQuicLib.PerProc != NULL);
+    CXPLAT_DBG_ASSERT(MsQuicLib.Datapath != NULL);
+    MsQuicLib.LazyInitComplete = TRUE;
+
+Exit:
 
     CxPlatLockRelease(&MsQuicLib.Lock);
 
@@ -984,7 +992,7 @@ QuicLibrarySetGlobalParam(
         }
 
         CxPlatLockAcquire(&MsQuicLib.Lock);
-        if (MsQuicLib.PerProc != NULL && MsQuicLib.Datapath != NULL) {
+        if (MsQuicLib.LazyInitComplete) {
             //
             // We only allow for updating the polling idle timeout after both the datapath and
             // the per-proc storage has already been started; and only if the app set some
