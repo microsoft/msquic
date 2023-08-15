@@ -778,8 +778,8 @@ CxPlatThreadCreate(
             Config->IdealProcessor,
             &Processor);
     if (QUIC_FAILED(Status)) {
-        Status = QUIC_STATUS_SUCCESS;
-        goto SetPriority;
+        Status = QUIC_STATUS_SUCCESS; // Currently we don't treat this as fatal
+        goto SetPriority;             // TODO: Improve this logic.
     }
     IdealProcessor = Processor;
     if (Config->Flags & CXPLAT_THREAD_FLAG_SET_AFFINITIZE) {
