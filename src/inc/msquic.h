@@ -1477,8 +1477,8 @@ QUIC_STATUS
     );
 
 //
-// Shuts the stream down as specified, and waits for graceful
-// shutdowns to complete. Does nothing if already shut down.
+// Shuts the stream down reliably using error code 0x21,
+// which will guarantee the transmission of "ReliableSize" bytes before aborting the stream.
 //
 typedef
 _IRQL_requires_max_(DISPATCH_LEVEL)
