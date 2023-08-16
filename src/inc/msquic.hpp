@@ -1332,12 +1332,14 @@ struct MsQuicStream {
         return MsQuic->StreamShutdown(Handle, Flags, ErrorCode);
     }
 
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
     QUIC_STATUS
     ShutdownReliable(
         _In_ uint64_t ReliableSize = 0
         ) noexcept {
         return MsQuic->StreamShutdownReliable(Handle, ReliableSize);
     }
+#endif
 
     void
     Close(

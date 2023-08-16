@@ -216,9 +216,6 @@ typedef enum QUIC_STREAM_SHUTDOWN_FLAGS {
     QUIC_STREAM_SHUTDOWN_FLAG_IMMEDIATE     = 0x0008,   // Immediately sends completion events to app.
     QUIC_STREAM_SHUTDOWN_FLAG_INLINE        = 0x0010,   // Process the shutdown immediately inline. Only for calls on callbacks.
                                                         // WARNING: Can cause reentrant callbacks!
-#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
-    QUIC_STREAM_SHUTDOWN_FLAG_RELIABLE      = 0x0020, // Closes the send and receive paths once promised data is delivered.
-#endif
 } QUIC_STREAM_SHUTDOWN_FLAGS;
 
 DEFINE_ENUM_FLAG_OPERATORS(QUIC_STREAM_SHUTDOWN_FLAGS)
@@ -1476,6 +1473,7 @@ QUIC_STATUS
     _In_ _Pre_defensive_ QUIC_UINT62 ErrorCode // Application defined error code
     );
 
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
 //
 // Shuts the stream down reliably using error code 0x21,
 // which will guarantee the transmission of "ReliableSize" bytes before aborting the stream.
@@ -1487,6 +1485,7 @@ QUIC_STATUS
     _In_ _Pre_defensive_ HQUIC Stream,
     _In_ uint64_t ReliableSize
     );
+#endif
 
 //
 // Sends data on an open stream.
@@ -1584,7 +1583,9 @@ typedef struct QUIC_API_TABLE {
     QUIC_STREAM_CLOSE_FN                StreamClose;
     QUIC_STREAM_START_FN                StreamStart;
     QUIC_STREAM_SHUTDOWN_FN             StreamShutdown;
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
     QUIC_STREAM_SHUTDOWN_RELIABLE_FN    StreamShutdownReliable;
+#endif
     QUIC_STREAM_SEND_FN                 StreamSend;
     QUIC_STREAM_RECEIVE_COMPLETE_FN     StreamReceiveComplete;
     QUIC_STREAM_RECEIVE_SET_ENABLED_FN  StreamReceiveSetEnabled;
