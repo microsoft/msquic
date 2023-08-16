@@ -871,6 +871,19 @@ Exit:
 _IRQL_requires_max_(DISPATCH_LEVEL)
 QUIC_STATUS
 QUIC_API
+MsQuicStreamShutdownReliable(
+    _In_ _Pre_defensive_ HQUIC Handle,
+    _In_ uint64_t ReliableSize
+    )
+{
+    // TODO: do something with ReliableSize to ensure data gets re-trasmitted before actually shutting down.
+    MsQuicStreamShutdown(Handle, QUIC_STREAM_SHUTDOWN_FLAG_ABORT, 0x21);
+    return QUIC_STATUS_SUCCESS;
+}
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+QUIC_STATUS
+QUIC_API
 MsQuicStreamShutdown(
     _In_ _Pre_defensive_ HQUIC Handle,
     _In_ QUIC_STREAM_SHUTDOWN_FLAGS Flags,

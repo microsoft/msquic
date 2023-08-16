@@ -1332,6 +1332,13 @@ struct MsQuicStream {
         return MsQuic->StreamShutdown(Handle, Flags, ErrorCode);
     }
 
+    QUIC_STATUS
+    ShutdownReliable(
+        _In_ uint64_t ReliableSize = 0
+        ) noexcept {
+        return MsQuic->StreamShutdownReliable(Handle, ReliableSize);
+    }
+
     void
     Close(
     ) noexcept {

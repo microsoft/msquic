@@ -199,6 +199,14 @@ MsQuicStreamShutdown(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 QUIC_STATUS
 QUIC_API
+MsQuicStreamShutdownReliable(
+    _In_ _Pre_defensive_ HQUIC Handle,
+    _In_ uint64_t ReliableSize
+    );
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+QUIC_STATUS
+QUIC_API
 MsQuicStreamSend(
     _In_ _Pre_defensive_ HQUIC Handle,
     _In_reads_(BufferCount) _Pre_defensive_

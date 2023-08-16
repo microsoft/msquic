@@ -1167,6 +1167,10 @@ QuicTestCtlEvtIoDeviceControl(
         QuicTestCtlRun(QuicTestStreamAbortConnFlowControl());
         break;
 
+    case IOCTL_QUIC_RUN_STREAM_RELIABLE_RESET:
+        QuicTestCtlRun(QuicTestStreamReliableReset());
+        break;
+
     case IOCTL_QUIC_RUN__REG_SHUTDOWN_BEFORE_OPEN:
         QuicTestCtlRun(QuicTestRegistrationShutdownBeforeConnOpen());
         break;
