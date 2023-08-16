@@ -649,7 +649,7 @@ MsQuicRelease(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 QuicLibraryLazyInitialize(
-    void
+    BOOLEAN AcquireLock
     )
 {
     const CXPLAT_UDP_DATAPATH_CALLBACKS DatapathCallbacks = {
@@ -659,7 +659,9 @@ QuicLibraryLazyInitialize(
 
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
 
-    CxPlatLockAcquire(&MsQuicLib.Lock);
+    if (AcquireLock) {
+        CxPlatLockAcquire(&MsQuicLib.Lock);
+    }
 
     if (MsQuicLib.LazyInitComplete) {
         goto Exit;
@@ -696,7 +698,9 @@ QuicLibraryLazyInitialize(
 
 Exit:
 
-    CxPlatLockRelease(&MsQuicLib.Lock);
+    if (AcquireLock) {
+        CxPlatLockRelease(&MsQuicLib.Lock);
+    }
 
     return Status;
 }

@@ -500,7 +500,7 @@ QuicCidNewRandomSource(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 QuicLibraryLazyInitialize(
-    void
+    BOOLEAN AcquireLock
     );
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
