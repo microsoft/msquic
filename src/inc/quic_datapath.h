@@ -172,7 +172,7 @@ typedef enum CXPLAT_BUFFER_FROM {
 typedef struct CXPLAT_SEND_DATA_INTERNAL CXPLAT_SEND_DATA_INTERNAL;
 
 typedef struct CXPLAT_SEND_DATA {
-    CXPLAT_BUFFER_FROM BufferFrom : 2;
+    uint16_t BufferFrom : 2;
 
     //
     // The type of ECN markings needed for send.
@@ -268,7 +268,7 @@ typedef struct CXPLAT_RECV_DATA {
     //
     uint16_t Allocated : 1;          // Used for debugging. Set to FALSE on free.
     uint16_t QueuedOnConnection : 1; // Used for debugging.
-    CXPLAT_BUFFER_FROM BufferFrom : 2;
+    uint16_t BufferFrom : 2;
     uint16_t Reserved : 4;
     uint16_t ReservedEx : 8;
 
@@ -321,7 +321,8 @@ typedef struct CXPLAT_QEO_CONNECTION {
 //
 CXPLAT_RECV_DATA*
 CxPlatDataPathRecvPacketToRecvData(
-    _In_ const CXPLAT_RECV_PACKET* const RecvPacket
+    _In_ const CXPLAT_RECV_PACKET* const RecvPacket,
+    _In_ uint16_t BufferFrom
     );
 
 //
@@ -1030,6 +1031,38 @@ XDP_CxPlatResolveRouteComplete(
     _Inout_ CXPLAT_ROUTE* Route,
     _In_reads_bytes_(6) const uint8_t* PhysicalAddress,
     _In_ uint8_t PathId
+    );
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_STATUS
+XDP_CxPlatResolveRoute(
+    _In_ CXPLAT_SOCKET* Sock,
+    _Inout_ CXPLAT_ROUTE* Route,
+    _In_ uint8_t PathId,
+    _In_ void* Context,
+    _In_ CXPLAT_ROUTE_RESOLUTION_CALLBACK_HANDLER Callback
+    );
+
+void
+XDP_CxPlatDataPathProcessCqe(
+    _In_ CXPLAT_CQE* Cqe
+    );
+
+CXPLAT_RECV_PACKET*
+XDP_CxPlatDataPathRecvDataToRecvPacket(
+    _In_ const CXPLAT_RECV_DATA* const Datagram
+    );
+
+CXPLAT_RECV_DATA*
+XDP_CxPlatDataPathRecvPacketToRecvData(
+    _In_ const CXPLAT_RECV_PACKET* const Context
+    );
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+XDP_CxPlatUpdateRoute(
+    _Inout_ CXPLAT_ROUTE* DstRoute,
+    _In_ CXPLAT_ROUTE* SrcRoute
     );
 
 #if defined(__cplusplus)

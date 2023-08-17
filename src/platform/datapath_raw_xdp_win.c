@@ -1932,7 +1932,7 @@ MANGLE(CxPlatDataPathProcessCqe)(
             CONTAINING_RECORD(CxPlatCqeUserData(Cqe), DATAPATH_XDP_IO_SQE, DatapathSqe);
         XDP_QUEUE* Queue;
 
-        if (Sqe->IoType == DATAPATH_IO_RECV) {
+        if (Sqe->IoType == DATAPATH_XDP_IO_RECV) {
             Queue = CONTAINING_RECORD(Sqe, XDP_QUEUE, RxIoSqe);
             QuicTraceLogVerbose(
                 XdpQueueAsyncIoRxComplete,
@@ -1940,7 +1940,7 @@ MANGLE(CxPlatDataPathProcessCqe)(
                 Queue);
             Queue->RxQueued = FALSE;
         } else {
-            CXPLAT_DBG_ASSERT(Sqe->IoType == DATAPATH_IO_SEND);
+            CXPLAT_DBG_ASSERT(Sqe->IoType == DATAPATH_XDP_IO_SEND);
             Queue = CONTAINING_RECORD(Sqe, XDP_QUEUE, TxIoSqe);
             QuicTraceLogVerbose(
                 XdpQueueAsyncIoTxComplete,

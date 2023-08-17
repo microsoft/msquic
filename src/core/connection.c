@@ -3728,7 +3728,7 @@ QuicConnGetKeyOrDeferDatagram(
                 while (*Tail != NULL) {
                     Tail = &((*Tail)->Next);
                 }
-                *Tail = CxPlatDataPathRecvPacketToRecvData(Packet);
+                *Tail = CxPlatDataPathRecvPacketToRecvData(Packet, Packet->BufferFrom);
                 (*Tail)->Next = NULL;
             }
         }
@@ -4588,7 +4588,7 @@ QuicConnRecvFrames(
                     if (QuicBindingQueueStatelessOperation(
                             Connection->Paths[0].Binding,
                             QUIC_OPER_TYPE_VERSION_NEGOTIATION,
-                            CxPlatDataPathRecvPacketToRecvData(Packet))) {
+                            CxPlatDataPathRecvPacketToRecvData(Packet, Packet->BufferFrom))) {
                         Packet->ReleaseDeferred = TRUE;
                     }
                     QuicConnCloseLocally(

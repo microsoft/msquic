@@ -85,9 +85,11 @@ static int CxPlatDpdkWorkerThread(_In_ void* Context);
 
 CXPLAT_RECV_DATA*
 CxPlatDataPathRecvPacketToRecvData(
-    _In_ const CXPLAT_RECV_PACKET* const Context
+    _In_ const CXPLAT_RECV_PACKET* const Context,
+    _In_ uint16_t BufferFrom
     )
 {
+    UNREFERENCED_PARAMETER(BufferFrom)
     return (CXPLAT_RECV_DATA*)(((uint8_t*)Context) - sizeof(DPDK_RX_PACKET));
 }
 

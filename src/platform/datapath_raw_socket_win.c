@@ -85,7 +85,7 @@ MANGLE(CxPlatResolveRoute)(
     _In_ CXPLAT_ROUTE_RESOLUTION_CALLBACK_HANDLER Callback
     )
 {
-    CXPLAT_SOCKET_RAW* Socket = (CXPLAT_SOCKET_RAW*)Sock;
+    CXPLAT_SOCKET_RAW* Socket = CxPlatSocketToRaw(Sock);
     NETIO_STATUS Status = ERROR_SUCCESS;
     MIB_IPFORWARD_ROW2 IpforwardRow = {0};
     CXPLAT_ROUTE_STATE State = Route->State;

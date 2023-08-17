@@ -1013,7 +1013,7 @@ CxPlatDataPathRelease(
         CXPLAT_FREE(Datapath, QUIC_POOL_DATAPATH);
         WSACleanup();
         CxPlatRundownRelease(&CxPlatWorkerRundown);
-        fprintf(stderr, "DataPath released\n");
+
     }
 }
 
@@ -1389,7 +1389,6 @@ MANGLE(CxPlatSocketCreateUdp)(
         goto Error;
     }
     CXPLAT_SOCKET* Socket = CxPlatRawToSocket(RawSocket);
-    fprintf(stderr, "RawSocket allocated %p\n", RawSocket);
 
     QuicTraceEvent(
         DatapathCreated,
@@ -1965,6 +1964,10 @@ MANGLE(CxPlatSocketCreateUdp)(
 
 Error:
 
+    if (RawSocket != NULL) {
+        MANGLE(CxPlatSocketDelete)(CxPlatRawToSocket(RawSocket));
+    }
+
     return Status;
 }
 
@@ -1999,7 +2002,6 @@ CxPlatSocketCreateTcpInternal(
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         goto Error;
     }
-    fprintf(stderr, "Tcp Socket allocated :%p\n", Socket);
 
     QuicTraceEvent(
         DatapathCreated,
@@ -2503,7 +2505,6 @@ CxPlatSocketRelease(
         CXPLAT_DBG_ASSERT(!Socket->Freed);
         CXPLAT_DBG_ASSERT(Socket->Uninitialized);
         Socket->Freed = TRUE;
-        fprintf(stderr, "RawSocket deleting internal %p\n", CxPlatSocketToRaw(Socket));
         CXPLAT_FREE(CxPlatSocketToRaw(Socket), QUIC_POOL_SOCKET);
     }
 }
@@ -2552,7 +2553,6 @@ CxPlatSocketContextRelease(
         }
 
         SocketProc->Freed = TRUE;
-        fprintf(stderr, "SocketProc freed :%p\n", SocketProc);
         CxPlatSocketRelease((CXPLAT_SOCKET*)SocketProc->Parent); //
     }
 }

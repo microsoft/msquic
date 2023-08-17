@@ -152,6 +152,12 @@ typedef struct CXPLAT_RECV_PACKET {
     //
     BOOLEAN HasNonProbingFrame : 1;
 
+    //
+    //
+    //
+    uint16_t BufferFrom : 2;
+
+    uint16_t Reserved : 2;
 } CXPLAT_RECV_PACKET;
 
 typedef enum QUIC_BINDING_LOOKUP_TYPE {

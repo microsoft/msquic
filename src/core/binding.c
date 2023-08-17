@@ -1151,6 +1151,7 @@ QuicBindingPreprocessDatagram(
     CxPlatZeroMemory(&Packet->PacketNumber, sizeof(CXPLAT_RECV_PACKET) - sizeof(uint64_t));
     Packet->Buffer = Datagram->Buffer;
     Packet->BufferLength = Datagram->BufferLength;
+    Packet->BufferFrom = Datagram->BufferFrom;
 
     *ReleaseDatagram = TRUE;
 
@@ -1661,6 +1662,7 @@ QuicBindingReceive(
             ProcShifted | InterlockedIncrement64((int64_t*)&MsQuicLib.PerProc[Proc].ReceivePacketId);
         Packet->Buffer = Datagram->Buffer;
         Packet->BufferLength = Datagram->BufferLength;
+        Packet->BufferFrom = Datagram->BufferFrom;
 
         CXPLAT_DBG_ASSERT(Packet->PacketId != 0);
         QuicTraceEvent(

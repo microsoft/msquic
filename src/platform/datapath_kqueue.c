@@ -1746,9 +1746,11 @@ CxPlatSocketGetRemoteAddress(
 
 CXPLAT_RECV_DATA*
 CxPlatDataPathRecvPacketToRecvData(
-    _In_ const CXPLAT_RECV_PACKET* const Packet
+    _In_ const CXPLAT_RECV_PACKET* const Packet,
+    _In_ uint16_t BufferFrom
     )
 {
+    UNREFERENCED_PARAMETER(BufferFrom);
     CXPLAT_DATAPATH_RECV_BLOCK* RecvBlock =
         (CXPLAT_DATAPATH_RECV_BLOCK*)
             ((char *)Packet - sizeof(CXPLAT_DATAPATH_RECV_BLOCK));

@@ -20,15 +20,25 @@ Abstract:
 #pragma warning(disable:4100) // unreferenced
 #pragma warning(disable:6101) // uninitialized
 
+#define IS_LOOPBACK(RemoteAddress) ((RemoteAddress.si_family == QUIC_ADDRESS_FAMILY_INET &&                \
+                                     RemoteAddress.Ipv4.sin_addr.S_un.S_addr == htonl(INADDR_LOOPBACK)) || \
+                                    (RemoteAddress.si_family == QUIC_ADDRESS_FAMILY_INET6 &&               \
+                                     IN6_IS_ADDR_LOOPBACK(&RemoteAddress.Ipv6.sin6_addr)))
+
 CXPLAT_RECV_DATA*
 CxPlatDataPathRecvPacketToRecvData(
-    _In_ const CXPLAT_RECV_PACKET* const Context
+    _In_ const CXPLAT_RECV_PACKET* const Context,
+    _In_ uint16_t BufferFrom
     )
 {
-    return DataPathUserFuncs.CxPlatDataPathRecvPacketToRecvData(Context);
-    // TODO: xdp
-    // Or inline the function
-    // use global variable to store the offset? set at init phase
+    if (BufferFrom == CXPLAT_BUFFER_FROM_USER) {
+        return DataPathUserFuncs.CxPlatDataPathRecvPacketToRecvData(Context);
+    } else if (BufferFrom == CXPLAT_BUFFER_FROM_XDP) {
+        return XDP_CxPlatDataPathRecvPacketToRecvData(Context);
+    } else {
+        CXPLAT_DBG_ASSERT(FALSE);
+    }
+    return NULL;
 }
 
 CXPLAT_RECV_PACKET*
@@ -36,10 +46,14 @@ CxPlatDataPathRecvDataToRecvPacket(
     _In_ const CXPLAT_RECV_DATA* const Datagram
     )
 {
-    return DataPathUserFuncs.CxPlatDataPathRecvDataToRecvPacket(Datagram);
-    // TODO: xdp
-    // Or inline the function
-    // use global variable to store the offset? set at init phase
+    if (Datagram->BufferFrom == CXPLAT_BUFFER_FROM_USER) {
+        return DataPathUserFuncs.CxPlatDataPathRecvDataToRecvPacket(Datagram);
+    } else if (Datagram->BufferFrom == CXPLAT_BUFFER_FROM_XDP) {
+        return XDP_CxPlatDataPathRecvDataToRecvPacket(Datagram);
+    } else {
+        CXPLAT_DBG_ASSERT(FALSE);
+    }
+    return NULL;
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -148,12 +162,12 @@ CxPlatDataPathInitialize(
     }
     CxPlatZeroMemory(RawDataPath, RawDatapathSize);
 
-    Status = QUIC_STATUS_INVALID_PARAMETER;
-    // Status = CxPlatInitRawDataPath(
-    //     ClientRecvContextLength,
-    //     Config,
-    //     DataPath,
-    //     RawDataPath);
+    // Status = QUIC_STATUS_INVALID_PARAMETER;
+    Status = CxPlatInitRawDataPath(
+        ClientRecvContextLength,
+        Config,
+        DataPath,
+        RawDataPath);
     if (QUIC_FAILED(Status)) {
         QuicTraceLogVerbose(
             RawDatapathInitFail,
@@ -165,7 +179,6 @@ CxPlatDataPathInitialize(
 
     DataPath->RawDataPath = RawDataPath;
     *NewDataPath = DataPath;
-    fprintf(stderr, "DataPath initialize\n");
 Error:
     // TODO: error handling
 
@@ -369,9 +382,6 @@ CxPlatSocketCreateUdp(
     _Out_ CXPLAT_SOCKET** NewSocket
     )
 {
-    fprintf(stderr, "CxPlatSocketCreateUdp\n");
-    // return CxPlatSocketCreateUdp_OLD(Datapath, Config, NewSocket);
-
 #pragma warning(push)
 #pragma warning(suppress:4701)
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
@@ -416,7 +426,7 @@ CxPlatSocketCreateUdp(
     if (QUIC_FAILED(Status)) {
         QuicTraceLogVerbose(
             SockCreateFail,
-            "[sock] Failed to create socket, status:%d", Status);        
+            "[sock] Failed to create socket, status:%d", Status);
         goto Error;
     }
 
@@ -441,7 +451,6 @@ Error:
     // if (Socket) {
     //     // TODO: break by MultiBindListener test by the RawSocket doesn't have ->Datapath
     //     CxPlatSocketDelete(Socket);
-
     // }
 #pragma warning(pop)
     return Status;
@@ -542,7 +551,6 @@ CxPlatSocketDelete(
         CxPlatRawSocketDelete(CxPlatSocketToRaw(Socket));
     }
 
-    fprintf(stderr, "RawSocket deleting %p\n", CxPlatSocketToRaw(Socket));
     DataPathUserFuncs.CxPlatSocketDelete(Socket);
 
     // TODO: TCP socket cannot be free as RawSocket
@@ -571,14 +579,9 @@ CxPlatSocketGetLocalMtu(
     _In_ CXPLAT_SOCKET* Socket
     )
 {
-    // if RemoteAddress is "lo", use Socket mtu
-    // else if RawSocket is availabe, use RawSocket Mtu
-    // else use Socket Mtu
+    CXPLAT_DBG_ASSERT(Socket != NULL);
     if (Socket->Datapath && Socket->Datapath->RawDataPath &&
-        !((Socket->RemoteAddress.si_family == QUIC_ADDRESS_FAMILY_INET &&
-           Socket->RemoteAddress.Ipv4.sin_addr.S_un.S_addr == htonl(INADDR_LOOPBACK)) ||
-          (Socket->RemoteAddress.si_family == QUIC_ADDRESS_FAMILY_INET6 &&
-           IN6_IS_ADDR_LOOPBACK(&Socket->RemoteAddress.Ipv6.sin6_addr)))) {
+        !IS_LOOPBACK(Socket->RemoteAddress)) {
         XDP_CxPlatSocketGetLocalMtu(CxPlatSocketToRaw(Socket));
     }
     return Socket->Mtu;
@@ -632,10 +635,7 @@ CxPlatSendDataAlloc(
 {
     CXPLAT_SEND_DATA* SendData = NULL;
     if (Socket->Datapath && Socket->Datapath->RawDataPath &&
-        !((Socket->RemoteAddress.si_family == QUIC_ADDRESS_FAMILY_INET &&
-           Socket->RemoteAddress.Ipv4.sin_addr.S_un.S_addr == htonl(INADDR_LOOPBACK)) ||
-          (Socket->RemoteAddress.si_family == QUIC_ADDRESS_FAMILY_INET6 &&
-           IN6_IS_ADDR_LOOPBACK(&Socket->RemoteAddress.Ipv6.sin6_addr)))) {
+        !IS_LOOPBACK(Config->Route->RemoteAddress)) {
         SendData = XDP_CxPlatSendDataAlloc(CxPlatSocketToRaw(Socket), Config);
         if (SendData) {
             SendData->BufferFrom = CXPLAT_BUFFER_FROM_XDP;
@@ -737,8 +737,24 @@ CxPlatDataPathProcessCqe(
     _In_ CXPLAT_CQE* Cqe
     )
 {
-    // what is the difference between datapath?
-    DataPathUserFuncs.CxPlatDataPathProcessCqe(Cqe);
+    // TODO: refactoring
+    switch (CxPlatCqeType(Cqe)) {
+    case CXPLAT_CQE_TYPE_SOCKET_IO: {
+        DATAPATH_IO_SQE* Sqe =
+            CONTAINING_RECORD(CxPlatCqeUserData(Cqe), DATAPATH_IO_SQE, DatapathSqe);
+        if (Sqe->IoType == 1480872005 || Sqe->IoType == 1480872006) {
+            XDP_CxPlatDataPathProcessCqe(Cqe);
+        } else {
+            DataPathUserFuncs.CxPlatDataPathProcessCqe(Cqe);
+        }
+        break;
+    }
+    case CXPLAT_CQE_TYPE_SOCKET_SHUTDOWN: {
+        XDP_CxPlatDataPathProcessCqe(Cqe);
+        break;
+    }
+    default: CXPLAT_DBG_ASSERT(FALSE); break;
+    }
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -748,8 +764,12 @@ QuicCopyRouteInfo(
     _In_ CXPLAT_ROUTE* SrcRoute
     )
 {
-    // TODO: route to user/raw
-    *DstRoute = *SrcRoute;
+    if (!IS_LOOPBACK(SrcRoute->RemoteAddress)) {
+        CxPlatCopyMemory(DstRoute, SrcRoute, (uint8_t*)&SrcRoute->State - (uint8_t*)SrcRoute);
+        CxPlatUpdateRoute(DstRoute, SrcRoute);
+    } else {
+        *DstRoute = *SrcRoute;
+    }
 }
 
 void
@@ -760,8 +780,7 @@ CxPlatResolveRouteComplete(
     _In_ uint8_t PathId
     )
 {
-    // not 100% sure
-    if (Route->State == RouteUnresolved) {
+    if (Route->State != RouteResolved) {
         XDP_CxPlatResolveRouteComplete(Connection, Route, PhysicalAddress, PathId);
     }
 }
@@ -779,7 +798,10 @@ CxPlatResolveRoute(
     _In_ CXPLAT_ROUTE_RESOLUTION_CALLBACK_HANDLER Callback
     )
 {
-    // TODO: which?
+    if (Socket->Datapath && Socket->Datapath->RawDataPath &&
+        !IS_LOOPBACK(Route->RemoteAddress)) {
+        return XDP_CxPlatResolveRoute(Socket, Route, PathId, Context, Callback);
+    }
     Route->State = RouteResolved;
     return QUIC_STATUS_SUCCESS;
 }
@@ -791,6 +813,8 @@ CxPlatUpdateRoute(
     _In_ CXPLAT_ROUTE* SrcRoute
     )
 {
-    // TODO: which?
+    if (!IS_LOOPBACK(SrcRoute->RemoteAddress)) {
+        XDP_CxPlatUpdateRoute(DstRoute, SrcRoute);
+    }
 }
 

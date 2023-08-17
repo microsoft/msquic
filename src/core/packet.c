@@ -551,7 +551,7 @@ QuicPacketValidateInitialToken(
     }
 
     const CXPLAT_RECV_DATA* Datagram =
-        CxPlatDataPathRecvPacketToRecvData(Packet);
+        CxPlatDataPathRecvPacketToRecvData(Packet, Packet->BufferFrom);
     if (!QuicAddrCompare(&Token.Encrypted.RemoteAddress, &Datagram->Route->RemoteAddress)) {
         QuicPacketLogDrop(Owner, Packet, "Retry Token Addr Mismatch");
         *DropPacket = TRUE;
@@ -812,7 +812,7 @@ QuicPacketLogDrop(
     )
 {
     const CXPLAT_RECV_DATA* Datagram = // cppcheck-suppress unreadVariable; NOLINT
-        CxPlatDataPathRecvPacketToRecvData(Packet);
+        CxPlatDataPathRecvPacketToRecvData(Packet, Packet->BufferFrom);
 
     if (Packet->AssignedToConnection) {
         InterlockedIncrement64((int64_t*)&((QUIC_CONNECTION*)Owner)->Stats.Recv.DroppedPackets);
@@ -846,7 +846,7 @@ QuicPacketLogDropWithValue(
     )
 {
     const CXPLAT_RECV_DATA* Datagram = // cppcheck-suppress unreadVariable; NOLINT
-        CxPlatDataPathRecvPacketToRecvData(Packet);
+        CxPlatDataPathRecvPacketToRecvData(Packet, Packet->BufferFrom);
 
     if (Packet->AssignedToConnection) {
         InterlockedIncrement64((int64_t*)&((QUIC_CONNECTION*)Owner)->Stats.Recv.DroppedPackets);
