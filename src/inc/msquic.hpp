@@ -1440,25 +1440,17 @@ struct MsQuicStream {
                 Statistics);
     }
 
+    #ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
     QUIC_STATUS
-    SetReliableOffsetSend(_In_ uint64_t Offset) noexcept {
+    SetReliableOffset(_In_ uint64_t Offset) noexcept {
         return
             MsQuic->SetParam(
                 Handle,
-                QUIC_PARAM_STREAM_RELIABLE_OFFSET_SEND,
+                QUIC_PARAM_STREAM_RELIABLE_OFFSET,
                 sizeof(Offset),
                 &Offset);
     }
-
-    QUIC_STATUS
-    SetReliableOffsetRecv(_In_ uint64_t Offset) noexcept {
-        return
-            MsQuic->SetParam(
-                Handle,
-                QUIC_PARAM_STREAM_RELIABLE_OFFSET_RECV,
-                sizeof(Offset),
-                &Offset);
-    }
+    #endif
 
     QUIC_STATUS GetInitStatus() const noexcept { return InitStatus; }
     bool IsValid() const { return QUIC_SUCCEEDED(InitStatus); }

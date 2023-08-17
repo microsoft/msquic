@@ -3044,7 +3044,7 @@ QuicTestStreamReliableReset(
     TEST_TRUE(Listener.LastConnection->HandshakeComplete);
 
     uint64_t ReliableSize = 6;
-    TEST_QUIC_SUCCEEDED(Stream.SetReliableOffsetRecv(ReliableSize));
+    TEST_QUIC_SUCCEEDED(Stream.SetReliableOffset(ReliableSize));
     // Call shutdown, we must guarantee we receive 6 bytes of data before actually closing.
     TEST_QUIC_SUCCEEDED(Stream.Shutdown(0));
 
