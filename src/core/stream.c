@@ -70,8 +70,6 @@ QuicStreamInitialize(
     Stream->RefCount = 1;
     Stream->SendRequestsTail = &Stream->SendRequests;
     Stream->SendPriority = QUIC_STREAM_PRIORITY_DEFAULT;
-    Stream->ReliableOffsetRecv = 0;
-    Stream->ReliableOffsetSend = 0;
     CxPlatDispatchLockInitialize(&Stream->ApiSendRequestLock);
     CxPlatRefInitialize(&Stream->RefCount);
     QuicRangeInitialize(
@@ -635,7 +633,7 @@ QuicStreamParamSet(
 
     case QUIC_PARAM_STREAM_PRIORITY: {
 
-        if (BufferLength != sizeof(Stream->SendPriority)) {
+        if (BufferLength != sizeof(Stream->SendPriority) || Buffer == NULL) {
             Status = QUIC_STATUS_INVALID_PARAMETER;
             break;
         }
