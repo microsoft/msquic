@@ -2963,7 +2963,7 @@ QuicTestStreamAbortConnFlowControl(
 struct StreamReliableReset {
 
     CxPlatEvent ClientStreamShutdownComplete;
-    QUIC_BUFFER * ReceivedData;
+    uint64_t ReceivedBufferSize;
 
     static QUIC_STATUS ClientStreamCallback(_In_ MsQuicStream*, _In_opt_ void* ClientContext, _Inout_ QUIC_STREAM_EVENT* Event) {
         auto TestContext = (StreamReliableReset*)ClientContext;
@@ -2976,7 +2976,7 @@ struct StreamReliableReset {
     static QUIC_STATUS ServerStreamCallback(_In_ MsQuicStream* Stream, _In_opt_ void* ServerContext, _Inout_ QUIC_STREAM_EVENT* Event) {
         auto TestContext = (StreamReliableReset*)ServerContext;
         if (Event->Type == QUIC_STREAM_EVENT_RECEIVE) {
-            TestContext->ReceivedData->Buffer = Event->RECEIVE.Buffers->Buffer;
+            TestContext->ReceivedBufferSize += Event->RECEIVE.TotalBufferLength;
         }
         if (Event->Type == QUIC_STREAM_EVENT_PEER_SEND_SHUTDOWN) {
             Stream->Shutdown(QUIC_STREAM_SHUTDOWN_FLAG_ABORT_SEND);
@@ -3005,6 +3005,17 @@ QuicTestStreamReliableReset(
     Client should finish sending data up to 6 before actually aborting.
     Server should get data up to 6 before ACKing the shutdown.
 
+
+    Best way to do this;
+     - artificially delay receiver callback
+     - Peer Event Started
+     - Theoretically you can block receive event...
+
+     Quic Send Flag: QUIC_SEND_FLAG_DELAY_FLAG (not always happens)
+      - Here's a send, you don't have to send it yet.
+      - wait for handshake, sleep(50)
+      - start, send (with delay), (set reliable offset), shutdown (do everything after handshake completes)
+
     */
     MsQuicRegistration Registration(true);
     TEST_TRUE(Registration.IsValid());
@@ -3026,13 +3037,10 @@ QuicTestStreamReliableReset(
     #define RELIABLE_SIZE 1000
     uint8_t SendDataBuffer[BUFFER_SIZE];
     uint8_t ReceiveDataBuffer[BUFFER_SIZE];
-    for (int i = 0; i < BUFFER_SIZE; ++i) {
-        SendDataBuffer[i] = (uint8_t) (i % (sizeof(uint8_t)));
-        ReceiveDataBuffer[i] = 0;
-    }
+
     QUIC_BUFFER SendBuffer { sizeof(SendDataBuffer), SendDataBuffer };
     QUIC_BUFFER ReceiveBuffer = { sizeof(ReceiveDataBuffer), ReceiveDataBuffer };
-    Context.ReceivedData = &ReceiveBuffer;
+    Context.ReceivedBufferSize = 0;
 
     MsQuicAutoAcceptListener Listener(Registration, ServerConfiguration, StreamReliableReset::ConnCallback, &Context);
     TEST_QUIC_SUCCEEDED(Listener.GetInitStatus());
@@ -3045,25 +3053,21 @@ QuicTestStreamReliableReset(
 
     MsQuicStream Stream(Connection, QUIC_STREAM_OPEN_FLAG_NONE, CleanUpManual, StreamReliableReset::ClientStreamCallback, &Context);
     TEST_QUIC_SUCCEEDED(Stream.GetInitStatus());
-    TEST_QUIC_SUCCEEDED(Stream.Start());
-    TEST_QUIC_SUCCEEDED(Stream.Send(&SendBuffer, 1, QUIC_SEND_FLAG_NONE, &Context));
 
     TEST_QUIC_SUCCEEDED(Connection.Start(ClientConfiguration, ServerLocalAddr.GetFamily(), QUIC_TEST_LOOPBACK_FOR_AF(ServerLocalAddr.GetFamily()), ServerLocalAddr.GetPort()));
     TEST_TRUE(Connection.HandshakeCompleteEvent.WaitTimeout(TestWaitTimeout));
     TEST_TRUE(Connection.HandshakeComplete);
     TEST_TRUE(Listener.LastConnection->HandshakeCompleteEvent.WaitTimeout(TestWaitTimeout));
     TEST_TRUE(Listener.LastConnection->HandshakeComplete);
+    CxPlatSleep(50);
 
+    TEST_QUIC_SUCCEEDED(Stream.Start());
+    TEST_QUIC_SUCCEEDED(Stream.Send(&SendBuffer, 1, QUIC_SEND_FLAG_DELAY_SEND, &Context));
     TEST_QUIC_SUCCEEDED(Stream.SetReliableOffset(RELIABLE_SIZE));
-    // Call shutdown, we must guarantee we receive 6 bytes of data before actually closing.
     TEST_QUIC_SUCCEEDED(Stream.Shutdown(0));
 
     TEST_TRUE(Context.ClientStreamShutdownComplete.WaitTimeout(TestWaitTimeout));
-
-    for (int i = 0; i < RELIABLE_SIZE; ++i) {
-        // Ensure data up to ReliableSize was received.
-        TEST_EQUAL(SendBuffer.Buffer[i], ReceiveBuffer.Buffer[i]);
-    }
+    TEST_TRUE(Context.ReceivedBufferSize >= RELIABLE_SIZE);
 }
 
 struct StreamBlockUnblockConnFlowControl {
