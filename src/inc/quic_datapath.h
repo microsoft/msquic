@@ -537,6 +537,7 @@ typedef struct CXPLAT_UDP_CONFIG {
     const QUIC_ADDR* RemoteAddress;     // optional
     uint32_t Flags;                     // CXPLAT_SOCKET_FLAG_*
     uint32_t InterfaceIndex;            // 0 means any/all
+    uint16_t PartitionIndex;            // Client-only
     void* CallbackContext;              // optional
 #ifdef QUIC_COMPARTMENT_ID
     QUIC_COMPARTMENT_ID CompartmentId;  // optional

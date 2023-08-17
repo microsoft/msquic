@@ -1188,6 +1188,7 @@ typedef struct QUIC_CONNECTION_EVENT {
         } PEER_NEEDS_STREAMS;
         struct {
             uint16_t IdealProcessor;
+            uint16_t PartitionIndex;
         } IDEAL_PROCESSOR_CHANGED;
         struct {
             BOOLEAN SendEnabled;

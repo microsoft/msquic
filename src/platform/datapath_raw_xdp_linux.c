@@ -25,7 +25,7 @@ typedef struct XDP_DATAPATH {
     // Currently, all XDP interfaces share the same config.
     //
     CXPLAT_REF_COUNT RefCount;
-    uint32_t WorkerCount;
+    uint32_t PartitionCount;
     uint32_t RxBufferCount;
     uint32_t RxRingSize;
     uint32_t TxBufferCount;
@@ -36,7 +36,7 @@ typedef struct XDP_DATAPATH {
     BOOLEAN Running;        // Signal to stop workers.
     // const XDP_API_TABLE *XdpApi;
 
-    XDP_WORKER Workers[0];
+    XDP_PARTITION Partitions[0];
 } XDP_DATAPATH;
 
 typedef struct XDP_INTERFACE {
@@ -51,7 +51,7 @@ typedef struct XDP_INTERFACE {
 
 typedef struct XDP_QUEUE {
     const XDP_INTERFACE* Interface;
-    XDP_WORKER* Worker;
+    XDP_PARTITION* Partition;
     struct XDP_QUEUE* Next;
     uint8_t* RxBuffers;
     // HANDLE RxXsk;
@@ -68,8 +68,8 @@ typedef struct XDP_QUEUE {
     BOOLEAN TxQueued;
     BOOLEAN Error;
 
-    CXPLAT_LIST_ENTRY WorkerTxQueue;
-    CXPLAT_SLIST_ENTRY WorkerRxPool;
+    CXPLAT_LIST_ENTRY PartitionTxQueue;
+    CXPLAT_SLIST_ENTRY PartitionRxPool;
 
     // Move contended buffer pools to their own cache lines.
     // TODO: Use better (more scalable) buffer algorithms.
@@ -186,9 +186,9 @@ CxPlatDpRawGetDatapathSize(
     _In_opt_ const QUIC_EXECUTION_CONFIG* Config
     )
 {
-    const uint32_t WorkerCount =
+    const uint32_t PartitionCount =
         (Config && Config->ProcessorCount) ? Config->ProcessorCount : CxPlatProcMaxCount();
-    return sizeof(XDP_DATAPATH) + (WorkerCount * sizeof(XDP_WORKER));
+    return sizeof(XDP_DATAPATH) + (PartitionCount * sizeof(XDP_PARTITION));
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)

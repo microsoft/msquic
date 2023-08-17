@@ -2550,6 +2550,9 @@ namespace Microsoft.Quic
             {
                 [NativeTypeName("uint16_t")]
                 internal ushort IdealProcessor;
+
+                [NativeTypeName("uint16_t")]
+                internal ushort PartitionIndex;
             }
 
             internal partial struct _DATAGRAM_STATE_CHANGED_e__Struct

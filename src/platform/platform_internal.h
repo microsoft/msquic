@@ -231,7 +231,7 @@ CxPlatWorkersLazyStart(
 
 CXPLAT_EVENTQ*
 CxPlatWorkerGetEventQ(
-    _In_ uint16_t IdealProcessor
+    _In_ uint16_t Index // Into the config processor array
     );
 
 void

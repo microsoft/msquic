@@ -27,16 +27,20 @@ extern "C" {
 #endif
 /*----------------------------------------------------------
 // Decoder Ring for IndicateIdealProcChanged
-// [conn][%p] Indicating QUIC_CONNECTION_EVENT_IDEAL_PROCESSOR_CHANGED
+// [conn][%p] Indicating QUIC_CONNECTION_EVENT_IDEAL_PROCESSOR_CHANGED (Proc=%hu,Indx=%hu)
 // QuicTraceLogConnVerbose(
             IndicateIdealProcChanged,
             Connection,
-            "Indicating QUIC_CONNECTION_EVENT_IDEAL_PROCESSOR_CHANGED");
+            "Indicating QUIC_CONNECTION_EVENT_IDEAL_PROCESSOR_CHANGED (Proc=%hu,Indx=%hu)",
+            Event.IDEAL_PROCESSOR_CHANGED.IdealProcessor,
+            Event.IDEAL_PROCESSOR_CHANGED.PartitionIndex);
 // arg1 = arg1 = Connection = arg1
+// arg3 = arg3 = Event.IDEAL_PROCESSOR_CHANGED.IdealProcessor = arg3
+// arg4 = arg4 = Event.IDEAL_PROCESSOR_CHANGED.PartitionIndex = arg4
 ----------------------------------------------------------*/
-#ifndef _clog_3_ARGS_TRACE_IndicateIdealProcChanged
-#define _clog_3_ARGS_TRACE_IndicateIdealProcChanged(uniqueId, arg1, encoded_arg_string)\
-tracepoint(CLOG_WORKER_C, IndicateIdealProcChanged , arg1);\
+#ifndef _clog_5_ARGS_TRACE_IndicateIdealProcChanged
+#define _clog_5_ARGS_TRACE_IndicateIdealProcChanged(uniqueId, arg1, encoded_arg_string, arg3, arg4)\
+tracepoint(CLOG_WORKER_C, IndicateIdealProcChanged , arg1, arg3, arg4);\
 
 #endif
 
@@ -68,10 +72,10 @@ tracepoint(CLOG_WORKER_C, AbandonOnLibShutdown , arg1);\
         WorkerCreated,
         "[wrkr][%p] Created, IdealProc=%hu Owner=%p",
         Worker,
-        IdealProcessor,
+        QuicLibraryGetPartitionProcessor(PartitionIndex),
         Registration);
 // arg2 = arg2 = Worker = arg2
-// arg3 = arg3 = IdealProcessor = arg3
+// arg3 = arg3 = QuicLibraryGetPartitionProcessor(PartitionIndex) = arg3
 // arg4 = arg4 = Registration = arg4
 ----------------------------------------------------------*/
 #ifndef _clog_5_ARGS_TRACE_WorkerCreated

@@ -452,6 +452,8 @@ TEST(SettingsTest, GlobalExecutionConfigSetAndGet)
     Config->ProcessorList[0] = 0;
     Config->ProcessorList[1] = 1;
 
+    CxPlatLockInitialize(&MsQuicLib.Lock); // Initialize the lock so it can be acquired later
+
     uint32_t BufferLength = sizeof(RawConfig);
     ASSERT_EQ(
         QUIC_STATUS_SUCCESS,
@@ -505,6 +507,8 @@ TEST(SettingsTest, GlobalExecutionConfigSetAndGet)
             QUIC_PARAM_GLOBAL_EXECUTION_CONFIG,
             sizeof(RawConfig),
             Config));
+
+    CxPlatLockUninitialize(&MsQuicLib.Lock);
 }
 
 TEST(SettingsTest, GlobalRawDataPathProcsSetAfterDataPathInit)
@@ -514,12 +518,16 @@ TEST(SettingsTest, GlobalRawDataPathProcsSetAfterDataPathInit)
     Config->ProcessorCount = 2;
     Config->ProcessorList[0] = 0;
     Config->ProcessorList[1] = 1;
-    MsQuicLib.Datapath = (CXPLAT_DATAPATH*)1; // Pretend datapath has been initialized
+    CxPlatLockInitialize(&MsQuicLib.Lock); // Initialize the lock so it can be acquired later
+    MsQuicLib.PerProc = (QUIC_LIBRARY_PP*)1; // Pretend already initialized
+    MsQuicLib.Datapath = (CXPLAT_DATAPATH*)1; // Pretend already initialized
+    MsQuicLib.LazyInitComplete = TRUE;
     ASSERT_EQ(
         QUIC_STATUS_INVALID_STATE,
         QuicLibrarySetGlobalParam(
             QUIC_PARAM_GLOBAL_EXECUTION_CONFIG,
             sizeof(RawConfig),
             Config));
+    CxPlatLockUninitialize(&MsQuicLib.Lock);
 }
 #endif

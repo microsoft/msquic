@@ -52,14 +52,14 @@ MsQuicRegistrationOpen(
         goto Error;
     }
 
-    if (ExternalRegistration) {
-        Status = QuicLibraryEnsureExecutionContext();
-        if (QUIC_FAILED(Status)) {
-            goto Error;
-        }
+    //
+    // For external registrations, we need to take the library lock. For the internal
+    // registration, the caller of this function holds the lock.
+    //
+    Status = QuicLibraryLazyInitialize(ExternalRegistration);
+    if (QUIC_FAILED(Status)) {
+        goto Error;
     }
-
-    CXPLAT_DBG_ASSERT(MsQuicLib.Datapath != NULL);
 
     Registration = CXPLAT_ALLOC_NONPAGED(RegistrationSize, QUIC_POOL_REGISTRATION);
     if (Registration == NULL) {
