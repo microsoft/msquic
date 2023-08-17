@@ -70,6 +70,8 @@ QuicStreamInitialize(
     Stream->RefCount = 1;
     Stream->SendRequestsTail = &Stream->SendRequests;
     Stream->SendPriority = QUIC_STREAM_PRIORITY_DEFAULT;
+    Stream->ReliableOffsetRecv = 0;
+    Stream->ReliableOffsetSend = 0;
     CxPlatDispatchLockInitialize(&Stream->ApiSendRequestLock);
     CxPlatRefInitialize(&Stream->RefCount);
     QuicRangeInitialize(
@@ -658,6 +660,38 @@ QuicStreamParamSet(
         Status = QUIC_STATUS_SUCCESS;
         break;
     }
+
+   case QUIC_PARAM_STREAM_RELIABLE_OFFSET_SEND:
+
+        if (BufferLength != sizeof(uint64_t) || Buffer == NULL) {
+            Status = QUIC_STATUS_INVALID_PARAMETER;
+            break;
+        }
+
+        if (!Stream->Connection->State.ReliableResetStreamNegotiated) {
+            Status = QUIC_STATUS_INVALID_STATE;
+            break;
+        }
+
+        Stream->ReliableOffsetSend = *(uint64_t*)Buffer;
+        Status = QUIC_STATUS_SUCCESS;
+        break;
+
+    case QUIC_PARAM_STREAM_RELIABLE_OFFSET_RECV:
+
+        if (BufferLength != sizeof(uint64_t) || Buffer == NULL) {
+            Status = QUIC_STATUS_INVALID_PARAMETER;
+            break;
+        }
+
+        if (!Stream->Connection->State.ReliableResetStreamNegotiated) {
+            Status = QUIC_STATUS_INVALID_STATE;
+            break;
+        }
+
+        Stream->ReliableOffsetRecv = *(uint64_t*)Buffer;
+        Status = QUIC_STATUS_SUCCESS;
+        break;
 
     default:
         Status = QUIC_STATUS_INVALID_PARAMETER;

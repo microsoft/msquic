@@ -1706,7 +1706,6 @@ MsQuicOpenVersion(
     Api->StreamOpen = MsQuicStreamOpen;
     Api->StreamClose = MsQuicStreamClose;
     Api->StreamShutdown = MsQuicStreamShutdown;
-    Api->StreamShutdownReliable = MsQuicStreamShutdownReliable;
     Api->StreamStart = MsQuicStreamStart;
     Api->StreamSend = MsQuicStreamSend;
     Api->StreamReceiveComplete = MsQuicStreamReceiveComplete;

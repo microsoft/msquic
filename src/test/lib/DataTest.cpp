@@ -3013,15 +3013,15 @@ QuicTestStreamReliableReset(
     TEST_QUIC_SUCCEEDED(ClientConfiguration.GetInitStatus());
 
     StreamReliableReset Context;
-    uint8_t DataBuffer[10];
-    uint8_t ZeroBuffer[10];
+    uint8_t SendDataBuffer[10];
+    uint8_t ReceiveDataBuffer[10];
     for (int i = 0; i < 10; ++i) {
-        DataBuffer[i] = (uint8_t)i + 69;
-        ZeroBuffer[i] = 0;
+        SendDataBuffer[i] = (uint8_t)i + 69;
+        ReceiveDataBuffer[i] = 0;
     }
-    QUIC_BUFFER Buffer { sizeof(DataBuffer), DataBuffer };
-    QUIC_BUFFER ReceivedData = { sizeof(ZeroBuffer), ZeroBuffer };
-    Context.ReceivedData = &Buffer;
+    QUIC_BUFFER SendBuffer { sizeof(SendDataBuffer), SendDataBuffer };
+    QUIC_BUFFER ReceiveBuffer = { sizeof(ReceiveDataBuffer), ReceiveDataBuffer };
+    Context.ReceivedData = &ReceiveBuffer;
 
     MsQuicAutoAcceptListener Listener(Registration, ServerConfiguration, StreamReliableReset::ConnCallback, &Context);
     TEST_QUIC_SUCCEEDED(Listener.GetInitStatus());
@@ -3034,21 +3034,25 @@ QuicTestStreamReliableReset(
 
     MsQuicStream Stream(Connection, QUIC_STREAM_OPEN_FLAG_NONE, CleanUpManual, StreamReliableReset::ClientStreamCallback, &Context);
     TEST_QUIC_SUCCEEDED(Stream.GetInitStatus());
+    // TODO: Start another stream from Listener->LastConnection, and send data on it.
     TEST_QUIC_SUCCEEDED(Stream.Start());
-
-    uint64_t ReliableSize = 6;
-    TEST_QUIC_SUCCEEDED(Stream.ShutdownReliable(ReliableSize));
 
     TEST_QUIC_SUCCEEDED(Connection.Start(ClientConfiguration, ServerLocalAddr.GetFamily(), QUIC_TEST_LOOPBACK_FOR_AF(ServerLocalAddr.GetFamily()), ServerLocalAddr.GetPort()));
     TEST_TRUE(Connection.HandshakeCompleteEvent.WaitTimeout(TestWaitTimeout));
     TEST_TRUE(Connection.HandshakeComplete);
     TEST_TRUE(Listener.LastConnection->HandshakeCompleteEvent.WaitTimeout(TestWaitTimeout));
     TEST_TRUE(Listener.LastConnection->HandshakeComplete);
+
+    uint64_t ReliableSize = 6;
+    TEST_QUIC_SUCCEEDED(Stream.SetReliableOffsetRecv(ReliableSize));
+    // Call shutdown, we must guarantee we receive 6 bytes of data before actually closing.
+    TEST_QUIC_SUCCEEDED(Stream.Shutdown(0));
+
     TEST_TRUE(Context.ClientStreamShutdownComplete.WaitTimeout(TestWaitTimeout));
 
     for (int i = 0; i < ReliableSize; ++i) {
         // Ensure data up to ReliableSize was received.
-        TEST_EQUAL(Buffer.Buffer[i], ReceivedData.Buffer[i]);
+        TEST_EQUAL(SendBuffer.Buffer[i], ReceiveBuffer.Buffer[i]);
     }
 }
 

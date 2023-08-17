@@ -922,6 +922,8 @@ typedef struct QUIC_SCHANNEL_CONTEXT_ATTRIBUTE_EX_W {
 #define QUIC_PARAM_STREAM_IDEAL_SEND_BUFFER_SIZE        0x08000002  // uint64_t - bytes
 #define QUIC_PARAM_STREAM_PRIORITY                      0x08000003  // uint16_t - 0 (low) to 0xFFFF (high) - 0x7FFF (default)
 #define QUIC_PARAM_STREAM_STATISTICS                    0X08000004  // QUIC_STREAM_STATISTICS
+#define QUIC_PARAM_STREAM_RELIABLE_OFFSET_SEND          0x08000005  // uint64_t
+#define QUIC_PARAM_STREAM_RELIABLE_OFFSET_RECV          0x08000006  // uint64_t
 
 typedef
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -1473,20 +1475,6 @@ QUIC_STATUS
     _In_ _Pre_defensive_ QUIC_UINT62 ErrorCode // Application defined error code
     );
 
-#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
-//
-// Shuts the stream down reliably using error code 0x21,
-// which will guarantee the transmission of "ReliableSize" bytes before aborting the stream.
-//
-typedef
-_IRQL_requires_max_(DISPATCH_LEVEL)
-QUIC_STATUS
-(QUIC_API * QUIC_STREAM_SHUTDOWN_RELIABLE_FN)(
-    _In_ _Pre_defensive_ HQUIC Stream,
-    _In_ uint64_t ReliableSize
-    );
-#endif
-
 //
 // Sends data on an open stream.
 //
@@ -1583,9 +1571,6 @@ typedef struct QUIC_API_TABLE {
     QUIC_STREAM_CLOSE_FN                StreamClose;
     QUIC_STREAM_START_FN                StreamStart;
     QUIC_STREAM_SHUTDOWN_FN             StreamShutdown;
-#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
-    QUIC_STREAM_SHUTDOWN_RELIABLE_FN    StreamShutdownReliable;
-#endif
     QUIC_STREAM_SEND_FN                 StreamSend;
     QUIC_STREAM_RECEIVE_COMPLETE_FN     StreamReceiveComplete;
     QUIC_STREAM_RECEIVE_SET_ENABLED_FN  StreamReceiveSetEnabled;

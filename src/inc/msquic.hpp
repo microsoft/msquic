@@ -1332,15 +1332,6 @@ struct MsQuicStream {
         return MsQuic->StreamShutdown(Handle, Flags, ErrorCode);
     }
 
-#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
-    QUIC_STATUS
-    ShutdownReliable(
-        _In_ uint64_t ReliableSize = 0
-        ) noexcept {
-        return MsQuic->StreamShutdownReliable(Handle, ReliableSize);
-    }
-#endif
-
     void
     Close(
     ) noexcept {
@@ -1447,6 +1438,26 @@ struct MsQuicStream {
                 QUIC_PARAM_STREAM_STATISTICS,
                 &Size,
                 Statistics);
+    }
+
+    QUIC_STATUS
+    SetReliableOffsetSend(_In_ uint64_t Offset) noexcept {
+        return
+            MsQuic->SetParam(
+                Handle,
+                QUIC_PARAM_STREAM_RELIABLE_OFFSET_SEND,
+                sizeof(Offset),
+                &Offset);
+    }
+
+    QUIC_STATUS
+    SetReliableOffsetRecv(_In_ uint64_t Offset) noexcept {
+        return
+            MsQuic->SetParam(
+                Handle,
+                QUIC_PARAM_STREAM_RELIABLE_OFFSET_RECV,
+                sizeof(Offset),
+                &Offset);
     }
 
     QUIC_STATUS GetInitStatus() const noexcept { return InitStatus; }

@@ -516,7 +516,7 @@ QuicStreamSendFlush(
 
         if (!Stream->Flags.SendEnabled) {
             //
-            // Only possible if they queue muliple sends, with a FIN flag set
+            // Only possible if they queue multiple sends, with a FIN flag set
             // NOT in the last one.
             //
             QuicStreamCompleteSendRequest(Stream, SendRequest, TRUE, FALSE);

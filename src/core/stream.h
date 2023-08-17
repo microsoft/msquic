@@ -364,8 +364,18 @@ typedef struct QUIC_STREAM {
     uint16_t SendPriority;
 
     //
+    // If > 0, bytes up to offset must be re-transmitted and ACK'd from peer before we can abort this stream.
+    //
+    uint64_t ReliableOffsetSend;
+
+    //
     // Recv State
     //
+
+    //
+    // If > 0, bytes up to offset must be received from peer before we can abort this stream.
+    //
+    uint64_t ReliableOffsetRecv;
 
     //
     // The max allowed RecvOffset (i.e., the number we report in
