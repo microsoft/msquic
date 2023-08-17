@@ -482,7 +482,8 @@ size_t QUIC_IOCTL_BUFFER_SIZES[] =
     sizeof(INT32),
     sizeof(INT32),
     sizeof(QUIC_RUN_CUSTOM_CERT_VALIDATION),
-    sizeof(QUIC_RUN_RELIABLE_RESET_NEGOTIATION)
+    sizeof(QUIC_RUN_RELIABLE_RESET_NEGOTIATION),
+    0,
 };
 
 CXPLAT_STATIC_ASSERT(
@@ -1167,10 +1168,6 @@ QuicTestCtlEvtIoDeviceControl(
         QuicTestCtlRun(QuicTestStreamAbortConnFlowControl());
         break;
 
-    case IOCTL_QUIC_RUN_STREAM_RELIABLE_RESET:
-        QuicTestCtlRun(QuicTestStreamReliableReset());
-        break;
-
     case IOCTL_QUIC_RUN__REG_SHUTDOWN_BEFORE_OPEN:
         QuicTestCtlRun(QuicTestRegistrationShutdownBeforeConnOpen());
         break;
@@ -1351,6 +1348,10 @@ QuicTestCtlEvtIoDeviceControl(
                 Params->ReliableResetNegotiationParams.Family,
                 Params->ReliableResetNegotiationParams.ServerSupport,
                 Params->ReliableResetNegotiationParams.ClientSupport));
+        break;
+
+    case IOCTL_QUIC_RUN_STREAM_RELIABLE_RESET:
+        QuicTestCtlRun(QuicTestStreamReliableReset());
         break;
 #endif
     default:
