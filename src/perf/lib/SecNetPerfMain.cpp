@@ -106,7 +106,7 @@ PrintHelp(
 #ifndef _KERNEL_MODE
         "  -cpu:<cpu_index>            Specify the processor(s) to use.\n"
         "  -cipher:<value>             Decimal value of 1 or more QUIC_ALLOWED_CIPHER_SUITE_FLAGS.\n"
-        "  -qtip:<0/1>                 Enables/disables Quic over TCP support. (def:0)\n"
+        "  -qtip:<0/1>                 Enables/disables QUIC over TCP support. (def:0)\n"
         "  -rio:<0/1>                  Enables/disables RIO support. (def:0)\n"
 #endif // _KERNEL_MODE
         "\n",
