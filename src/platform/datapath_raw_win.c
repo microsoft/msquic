@@ -322,8 +322,10 @@ CxPlatInitRawSocket(
             if (!Socket->Connected) {
                 Socket->Wildcard = TRUE;
             }
-        } else {
-            CXPLAT_FRE_ASSERT(Socket->Connected); // Assumes only connected sockets fully specify local address
+        } else if (!Socket->Connected) {
+            // Assumes only connected sockets fully specify local address
+            Status = QUIC_STATUS_INVALID_STATE;
+            goto Error;
         }
     } else {
         if (!Socket->Connected) {
@@ -346,8 +348,7 @@ Error:
     if (QUIC_FAILED(Status)) {
         if (Socket != NULL) {
             CxPlatRundownUninitialize(&Socket->Rundown);
-            CXPLAT_FREE(Socket, QUIC_POOL_SOCKET);
-            Socket->RawDatapath = NULL;
+            CxPlatZeroMemory(Socket, sizeof(CXPLAT_SOCKET_RAW) - sizeof(CXPLAT_SOCKET));
             Socket = NULL;
         }
     }

@@ -1314,7 +1314,7 @@ MANGLE(CxPlatSocketUpdateQeo)(
         // Raw socket was not created.
         return QUIC_STATUS_INVALID_STATE;
     }
-    XDP_DATAPATH* Xdp = (XDP_DATAPATH*)Socket->Datapath;
+    XDP_DATAPATH* Xdp = (XDP_DATAPATH*)Socket->RawDatapath;
 
     XDP_QUIC_CONNECTION Connections[2];
     CXPLAT_FRE_ASSERT(OffloadCount == 2); // TODO - Refactor so upper layer struct matches XDP struct

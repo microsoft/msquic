@@ -792,7 +792,7 @@ CxPlatDataPathQuerySockoptSupport(
     }
 }
 
-    // Datapath->Features |= CXPLAT_DATAPATH_FEATURE_TCP;
+    Datapath->Features |= CXPLAT_DATAPATH_FEATURE_TCP;
 
 Error:
 
@@ -1991,17 +1991,18 @@ CxPlatSocketCreateTcpInternal(
     CXPLAT_DBG_ASSERT(Datapath->TcpHandlers.Receive != NULL);
 
     CXPLAT_SOCKET_PROC* SocketProc = NULL;
-    uint32_t SocketLength = sizeof(CXPLAT_SOCKET) + sizeof(CXPLAT_SOCKET_PROC);
-    CXPLAT_SOCKET* Socket = CXPLAT_ALLOC_PAGED(SocketLength, QUIC_POOL_SOCKET);
-    if (Socket == NULL) {
+    uint32_t RawSocketLength = CxPlatGetRawSocketSize() + sizeof(CXPLAT_SOCKET_PROC);
+    CXPLAT_SOCKET_RAW* RawSocket = CXPLAT_ALLOC_PAGED(RawSocketLength, QUIC_POOL_SOCKET);
+    if (RawSocket == NULL) {
         QuicTraceEvent(
             AllocFailure,
             "Allocation of '%s' failed. (%llu bytes)",
             "CXPLAT_SOCKET",
-            SocketLength);
+            RawSocketLength);
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         goto Error;
     }
+    CXPLAT_SOCKET* Socket = CxPlatRawToSocket(RawSocket);
 
     QuicTraceEvent(
         DatapathCreated,
@@ -2010,7 +2011,7 @@ CxPlatSocketCreateTcpInternal(
         CASTED_CLOG_BYTEARRAY(LocalAddress ? sizeof(*LocalAddress) : 0, LocalAddress),
         CASTED_CLOG_BYTEARRAY(RemoteAddress ? sizeof(*RemoteAddress) : 0, RemoteAddress));
 
-    ZeroMemory(Socket, SocketLength);
+    ZeroMemory(RawSocket, RawSocketLength);
     Socket->Datapath = Datapath;
     Socket->ClientContext = RecvCallbackContext;
     Socket->HasFixedRemoteAddress = TRUE;
@@ -2215,13 +2216,14 @@ CxPlatSocketCreateTcpInternal(
 
     *NewSocket = (CXPLAT_SOCKET*)Socket;
     Socket = NULL;
+    RawSocket = NULL;
 
     Status = QUIC_STATUS_SUCCESS;
 
 Error:
 
-    if (Socket != NULL) {
-        MANGLE(CxPlatSocketDelete)((CXPLAT_SOCKET*)Socket);
+    if (RawSocket != NULL) {
+        MANGLE(CxPlatSocketDelete)(CxPlatRawToSocket(RawSocket));
     }
 
     return Status;
@@ -2263,17 +2265,29 @@ MANGLE(CxPlatSocketCreateTcpListener)(
     CXPLAT_DBG_ASSERT(Datapath->TcpHandlers.Receive != NULL);
 
     CXPLAT_SOCKET_PROC* SocketProc = NULL;
-    uint32_t SocketLength = sizeof(CXPLAT_SOCKET) + sizeof(CXPLAT_SOCKET_PROC);
-    CXPLAT_SOCKET* Socket = CXPLAT_ALLOC_PAGED(SocketLength, QUIC_POOL_SOCKET);
-    if (Socket == NULL) {
+    // uint32_t SocketLength = sizeof(CXPLAT_SOCKET) + sizeof(CXPLAT_SOCKET_PROC);
+    // CXPLAT_SOCKET* Socket = CXPLAT_ALLOC_PAGED(SocketLength, QUIC_POOL_SOCKET);
+    // if (Socket == NULL) {
+    //     QuicTraceEvent(
+    //         AllocFailure,
+    //         "Allocation of '%s' failed. (%llu bytes)",
+    //         "CXPLAT_SOCKET",
+    //         SocketLength);
+    //     Status = QUIC_STATUS_OUT_OF_MEMORY;
+    //     goto Error;
+    // }
+    uint32_t RawSocketLength = CxPlatGetRawSocketSize() + sizeof(CXPLAT_SOCKET_PROC);
+    CXPLAT_SOCKET_RAW* RawSocket = CXPLAT_ALLOC_PAGED(RawSocketLength, QUIC_POOL_SOCKET);
+    if (RawSocket == NULL) {
         QuicTraceEvent(
             AllocFailure,
             "Allocation of '%s' failed. (%llu bytes)",
             "CXPLAT_SOCKET",
-            SocketLength);
+            RawSocketLength);
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         goto Error;
     }
+    CXPLAT_SOCKET* Socket = CxPlatRawToSocket(RawSocket);
 
     QuicTraceEvent(
         DatapathCreated,
@@ -2282,7 +2296,7 @@ MANGLE(CxPlatSocketCreateTcpListener)(
         CASTED_CLOG_BYTEARRAY(LocalAddress ? sizeof(*LocalAddress) : 0, LocalAddress),
         CASTED_CLOG_BYTEARRAY(0, NULL));
 
-    ZeroMemory(Socket, SocketLength);
+    ZeroMemory(RawSocket, RawSocketLength);
     Socket->Datapath = Datapath;
     Socket->ClientContext = RecvCallbackContext;
     Socket->HasFixedRemoteAddress = FALSE;
@@ -2456,12 +2470,13 @@ MANGLE(CxPlatSocketCreateTcpListener)(
 
     *NewSocket = (CXPLAT_SOCKET*)Socket;
     Socket = NULL;
+    RawSocket = NULL;
     Status = QUIC_STATUS_SUCCESS;
 
 Error:
 
-    if (Socket != NULL) {
-        MANGLE(CxPlatSocketDelete)((CXPLAT_SOCKET*)Socket);
+    if (RawSocket != NULL) {
+        MANGLE(CxPlatSocketDelete)(CxPlatRawToSocket(RawSocket));
     }
 
     return Status;
