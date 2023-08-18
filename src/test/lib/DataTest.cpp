@@ -8,12 +8,13 @@ Abstract:
     Tests various features related to the data path.
 
 --*/
-
+// remove
+#include <iostream>
+// remove.
 #include "precomp.h"
 #ifdef QUIC_CLOG
 #include "DataTest.cpp.clog.h"
 #endif
-
 #if defined(_KERNEL_MODE)
 static bool UseQTIP = false;
 #elif defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
@@ -2965,7 +2966,15 @@ struct StreamReliableReset {
     CxPlatEvent ClientStreamShutdownComplete;
     uint64_t ReceivedBufferSize;
 
-    static QUIC_STATUS ClientStreamCallback(_In_ MsQuicStream*, _In_opt_ void* ClientContext, _Inout_ QUIC_STREAM_EVENT* Event) {
+    static QUIC_STATUS ClientStreamCallback(_In_ MsQuicStream* Stream, _In_opt_ void* ClientContext, _Inout_ QUIC_STREAM_EVENT* Event) {
+        // remove
+        uint64_t ReliableOffsetSendSide = 69420;
+        uint64_t ReliableOffsetRecvSide = 69420;
+        Stream->GetReliableOffset(&ReliableOffsetSendSide);
+        Stream->GetReliableOffsetRecv(&ReliableOffsetRecvSide);
+        std::cout << "Client Side Stream Send: " << ReliableOffsetSendSide << ", ";
+        std::cout << " Client Side Stream Recv: " << ReliableOffsetRecvSide << std::endl;
+        // remove.
         auto TestContext = (StreamReliableReset*)ClientContext;
         if (Event->Type == QUIC_STREAM_EVENT_SHUTDOWN_COMPLETE) {
             TestContext->ClientStreamShutdownComplete.Set();
@@ -2974,6 +2983,14 @@ struct StreamReliableReset {
     }
 
     static QUIC_STATUS ServerStreamCallback(_In_ MsQuicStream* Stream, _In_opt_ void* ServerContext, _Inout_ QUIC_STREAM_EVENT* Event) {
+        // remove
+        uint64_t ReliableOffsetSendSide = 69420;
+        uint64_t ReliableOffsetRecvSide = 69420;
+        Stream->GetReliableOffset(&ReliableOffsetSendSide);
+        Stream->GetReliableOffsetRecv(&ReliableOffsetRecvSide);
+        std::cout << "Server Side Stream Send: " << ReliableOffsetSendSide << ", ";
+        std::cout << " Server Side Stream Recv: " << ReliableOffsetRecvSide << std::endl;
+        // remove.
         auto TestContext = (StreamReliableReset*)ServerContext;
         if (Event->Type == QUIC_STREAM_EVENT_RECEIVE) {
             TestContext->ReceivedBufferSize += Event->RECEIVE.TotalBufferLength;
@@ -2999,11 +3016,11 @@ QuicTestStreamReliableReset(
     /*
 
     Client initiates stream, connects to Server.
-    Client sets ReliableOffset (send offset) to be 6.
+    Client sets ReliableOffset (send offset) to be X.
     Client sends data to server
     Client immediately calls shutdown.
-    Client should finish sending data up to 6 before actually aborting.
-    Server should get data up to 6 before ACKing the shutdown.
+    Client should finish sending data up to X before actually aborting.
+    Server should get data up to X before ACKing the shutdown.
 
 
     Best way to do this;
@@ -3034,7 +3051,7 @@ QuicTestStreamReliableReset(
 
     StreamReliableReset Context;
     #define BUFFER_SIZE 10000
-    #define RELIABLE_SIZE 1000
+    #define RELIABLE_SIZE 5000
     uint8_t SendDataBuffer[BUFFER_SIZE];
     uint8_t ReceiveDataBuffer[BUFFER_SIZE];
 
@@ -3064,7 +3081,7 @@ QuicTestStreamReliableReset(
     TEST_QUIC_SUCCEEDED(Stream.Start());
     TEST_QUIC_SUCCEEDED(Stream.Send(&SendBuffer, 1, QUIC_SEND_FLAG_DELAY_SEND, &Context));
     TEST_QUIC_SUCCEEDED(Stream.SetReliableOffset(RELIABLE_SIZE));
-    TEST_QUIC_SUCCEEDED(Stream.Shutdown(0));
+    TEST_QUIC_SUCCEEDED(Stream.Shutdown(0)); // Queues up a shutdown operation.
 
     TEST_TRUE(Context.ClientStreamShutdownComplete.WaitTimeout(TestWaitTimeout));
     TEST_TRUE(Context.ReceivedBufferSize >= RELIABLE_SIZE);

@@ -163,6 +163,29 @@ QuicStreamRecvQueueFlush(
 }
 
 //
+// Processes a received RELIABLE_RESET frame's payload.
+//
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+QuicStreamProcessReliableResetFrame(
+    _In_ QUIC_STREAM* Stream,
+    _In_ uint64_t FinalSize,
+    _In_ QUIC_VAR_INT ErrorCode,
+    _In_ QUIC_VAR_INT ReliableOffset
+    )
+{
+    if (Stream->ReliableOffsetRecv == 0 || ReliableOffset < Stream->ReliableOffsetRecv) {
+        //
+        // As outlined in the spec, if we receive multiple CLOSE_STREAM frames, we only accept strictly
+        // decreasing offsets.
+        //
+        Stream->ReliableOffsetRecv = ReliableOffset;
+    }
+
+    QuicStreamProcessResetFrame(Stream, FinalSize, ErrorCode);
+}
+
+//
 // Processes a received RESET_STREAM frame's payload.
 //
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -613,6 +636,21 @@ QuicStreamRecv(
             Stream,
             QUIC_STREAM_SEND_FLAG_MAX_DATA,
             FALSE);
+
+        break;
+    }
+
+    case QUIC_FRAME_RELIABLE_RESET_STREAM: {
+        QUIC_RELIABLE_RESET_STREAM_EX Frame;
+        if (!QuicReliableResetFrameDecode(BufferLength, Buffer, Offset, &Frame)) {
+            return QUIC_STATUS_INVALID_PARAMETER;
+        }
+
+        QuicStreamProcessReliableResetFrame(
+            Stream,
+            Frame.FinalSize,
+            Frame.ErrorCode,
+            Frame.ReliableSize);
 
         break;
     }

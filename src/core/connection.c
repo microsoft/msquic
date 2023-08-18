@@ -4667,6 +4667,7 @@ QuicConnRecvFrames(
         }
 
         case QUIC_FRAME_RESET_STREAM:
+        case QUIC_FRAME_RELIABLE_RESET_STREAM:
         case QUIC_FRAME_STOP_SENDING:
         case QUIC_FRAME_STREAM:
         case QUIC_FRAME_STREAM_1:
@@ -5289,8 +5290,6 @@ QuicConnRecvFrames(
             AckImmediately = TRUE;
             break;
 
-        case QUIC_FRAME_RELIABLE_RESET_STREAM:
-            // TODO - Implement this frame.
         default:
             //
             // No default case necessary, as we have already validated the frame

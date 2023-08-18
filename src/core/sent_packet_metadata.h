@@ -29,6 +29,9 @@ typedef struct QUIC_SENT_FRAME_METADATA {
         } RESET_STREAM;
         struct {
             QUIC_STREAM* Stream;
+        } RELIABLE_RESET_STREAM;
+        struct {
+            QUIC_STREAM* Stream;
         } STOP_SENDING;
         struct {
             uint32_t Offset;
@@ -103,7 +106,7 @@ typedef struct QUIC_SEND_PACKET_FLAGS {
 
 //
 // Packet info of last acked packet on this connection
-// 
+//
 typedef struct LAST_ACKED_PACKET_INFO {
 
     //

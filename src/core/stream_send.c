@@ -1069,17 +1069,28 @@ QuicStreamSendWrite(
     }
 
     if (Stream->SendFlags & QUIC_STREAM_SEND_FLAG_SEND_ABORT) {
-
-        QUIC_RESET_STREAM_EX Frame = { Stream->ID, Stream->SendShutdownErrorCode, Stream->MaxSentLength };
-
-        if (QuicResetStreamFrameEncode(
+        QUIC_FRAME_TYPE FrameType;
+        BOOLEAN CanEncodeFrame;
+        if (Stream->ReliableOffsetSend > 0) {
+            QUIC_RELIABLE_RESET_STREAM_EX Frame = { Stream->ID, Stream->SendShutdownErrorCode, Stream->MaxSentLength, Stream->ReliableOffsetSend };
+            CanEncodeFrame = QuicReliableResetFrameEncode(
                 &Frame,
                 &Builder->DatagramLength,
                 AvailableBufferLength,
-                Builder->Datagram->Buffer)) {
-
+                Builder->Datagram->Buffer);
+            FrameType = QUIC_FRAME_RELIABLE_RESET_STREAM;
+        } else {
+            QUIC_RESET_STREAM_EX Frame = { Stream->ID, Stream->SendShutdownErrorCode, Stream->MaxSentLength };
+            CanEncodeFrame = QuicResetStreamFrameEncode(
+                &Frame,
+                &Builder->DatagramLength,
+                AvailableBufferLength,
+                Builder->Datagram->Buffer);
+            FrameType = QUIC_FRAME_RESET_STREAM;
+        }
+        if (CanEncodeFrame) {
             Stream->SendFlags &= ~QUIC_STREAM_SEND_FLAG_SEND_ABORT;
-            if (QuicPacketBuilderAddStreamFrame(Builder, Stream, QUIC_FRAME_RESET_STREAM)) {
+            if (QuicPacketBuilderAddStreamFrame(Builder, Stream, FrameType)) {
                 return TRUE;
             }
         } else {
