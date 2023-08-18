@@ -1450,6 +1450,28 @@ struct MsQuicStream {
                 sizeof(Offset),
                 &Offset);
     }
+
+    QUIC_STATUS
+    GetReliableOffset(_Out_ uint64_t* Offset) const noexcept {
+        uint32_t Size = sizeof(*Offset);
+        return
+            MsQuic->GetParam(
+                Handle,
+                QUIC_PARAM_STREAM_RELIABLE_OFFSET,
+                &Size,
+                Offset);
+    }
+
+    QUIC_STATUS
+    GetReliableOffsetRecv(_Out_ uint64_t* Offset) const noexcept {
+        uint32_t Size = sizeof(*Offset);
+        return
+            MsQuic->GetParam(
+                Handle,
+                QUIC_PARAM_STREAM_RELIABLE_OFFSET_RECV,
+                &Size,
+                Offset);
+    }
     #endif
 
     QUIC_STATUS GetInitStatus() const noexcept { return InitStatus; }
