@@ -453,26 +453,6 @@ tracepoint(CLOG_CONNECTION_C, UnreachableInvalid , arg1);\
 
 
 /*----------------------------------------------------------
-// Decoder Ring for PathQeoDisabled
-// [conn][%p] Path[%hhu] QEO disabled
-// QuicTraceLogConnInfo(
-                PathQeoDisabled,
-                Connection,
-                "Path[%hhu] QEO disabled",
-                Connection->Paths[0].ID);
-// arg1 = arg1 = Connection = arg1
-// arg3 = arg3 = Connection->Paths[0].ID = arg3
-----------------------------------------------------------*/
-#ifndef _clog_4_ARGS_TRACE_PathQeoDisabled
-#define _clog_4_ARGS_TRACE_PathQeoDisabled(uniqueId, arg1, encoded_arg_string, arg3)\
-tracepoint(CLOG_CONNECTION_C, PathQeoDisabled , arg1, arg3);\
-
-#endif
-
-
-
-
-/*----------------------------------------------------------
 // Decoder Ring for CloseUserCanceled
 // [conn][%p] Connection close using user canceled error
 // QuicTraceLogConnInfo(
@@ -1086,6 +1066,26 @@ tracepoint(CLOG_CONNECTION_C, ClientVersionNegotiationCompatibleVersionUpgrade ,
 #ifndef _clog_5_ARGS_TRACE_CompatibleVersionUpgradeComplete
 #define _clog_5_ARGS_TRACE_CompatibleVersionUpgradeComplete(uniqueId, arg1, encoded_arg_string, arg3, arg4)\
 tracepoint(CLOG_CONNECTION_C, CompatibleVersionUpgradeComplete , arg1, arg3, arg4);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for IndicateReliableResetNegotiated
+// [conn][%p] Indicating QUIC_CONNECTION_EVENT_RELIABLE_RESET_NEGOTIATED [IsNegotiated=%hhu]
+// QuicTraceLogConnVerbose(
+                IndicateReliableResetNegotiated,
+                Connection,
+                "Indicating QUIC_CONNECTION_EVENT_RELIABLE_RESET_NEGOTIATED [IsNegotiated=%hhu]",
+                Event.RELIABLE_RESET_NEGOTIATED.IsNegotiated);
+// arg1 = arg1 = Connection = arg1
+// arg3 = arg3 = Event.RELIABLE_RESET_NEGOTIATED.IsNegotiated = arg3
+----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_IndicateReliableResetNegotiated
+#define _clog_4_ARGS_TRACE_IndicateReliableResetNegotiated(uniqueId, arg1, encoded_arg_string, arg3)\
+tracepoint(CLOG_CONNECTION_C, IndicateReliableResetNegotiated , arg1, arg3);\
 
 #endif
 

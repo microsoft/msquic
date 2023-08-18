@@ -222,17 +222,13 @@ function Install-Xdp-Sdk {
     if (!$IsWindows) { return } # Windows only
     $XdpPath = Join-Path $ArtifactsPath "xdp"
     if ($Force) {
-        try {
-            # Make sure an old driver isn't installed.
-            netcfg.exe -u ms_xdp
-            pnputil.exe /delete-driver "$XdpPath\bin\xdp.inf"
-        } catch {}
         rm -Force -Recurse $XdpPath -ErrorAction Ignore | Out-Null
     }
     if (!(Test-Path $XdpPath)) {
-        Write-Host "Downloading XDP"
+        Write-Host "Downloading XDP kit"
         $ZipPath = Join-Path $ArtifactsPath "xdp.zip"
-        Invoke-WebRequest -Uri (Get-Content (Join-Path $PSScriptRoot "xdp-devkit.json") | ConvertFrom-Json).Path -OutFile $ZipPath
+        Invoke-WebRequest -Uri (Get-Content (Join-Path $PSScriptRoot "xdp.json") | ConvertFrom-Json).kit -OutFile $ZipPath
+        Write-Host "Extracting XDP kit"
         Expand-Archive -Path $ZipPath -DestinationPath $XdpPath -Force
         New-Item -Path "$ArtifactsPath\bin\xdp" -ItemType Directory -Force
         Copy-Item -Path "$XdpPath\symbols\*" -Destination "$ArtifactsPath\bin\xdp" -Force
@@ -245,25 +241,26 @@ function Install-Xdp-Sdk {
 # NB: XDP can be uninstalled via Uninstall-Xdp
 function Install-Xdp-Driver {
     if (!$IsWindows) { return } # Windows only
-    $XdpPath = Join-Path $ArtifactsPath "xdp"
-    if (!(Test-Path $XdpPath)) {
-        Write-Error "XDP installation failed: driver file not present"
-    }
-
+    Write-Host "Downloading XDP msi"
+    $MsiPath = Join-Path $ArtifactsPath "xdp.msi"
+    Invoke-WebRequest -Uri (Get-Content (Join-Path $PSScriptRoot "xdp.json") | ConvertFrom-Json).installer -OutFile $MsiPath
     Write-Host "Installing XDP driver"
-    netcfg.exe -l "$XdpPath\bin\xdp.inf" -c s -i ms_xdp
+    msiexec.exe /i $MsiPath /quiet | Out-Null
 }
 
 # Completely removes the XDP driver and SDK.
 function Uninstall-Xdp {
     if (!$IsWindows) { return } # Windows only
+    $MsiPath = Join-Path $ArtifactsPath "xdp.msi"
+    if (Test-Path $MsiPath) {
+        Write-Host "Uninstalling XDP driver"
+        try { msiexec.exe /x $MsiPath /quiet | Out-Null } catch {}
+    }
     $XdpPath = Join-Path $ArtifactsPath "xdp"
-    if (!(Test-Path $XdpPath)) { return; }
-
-    Write-Host "Uninstalling XDP"
-    try { netcfg.exe -u ms_xdp } catch {}
-    try { pnputil.exe /delete-driver "$XdpPath\bin\xdp.inf" } catch {}
-    rm -Force -Recurse $XdpPath -ErrorAction Ignore | Out-Null
+    if (Test-Path $XdpPath) {
+        Write-Host "Deleting XDP kit"
+        rm -Force -Recurse $XdpPath -ErrorAction Ignore | Out-Null
+    }
 }
 
 # Installs DuoNic from the CoreNet-CI repo.

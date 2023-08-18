@@ -10,7 +10,11 @@
 //
 typedef struct QUIC_CONFIGURATION {
 
+#ifdef __cplusplus
+    struct QUIC_HANDLE _;
+#else
     struct QUIC_HANDLE;
+#endif
 
     //
     // Parent registration.

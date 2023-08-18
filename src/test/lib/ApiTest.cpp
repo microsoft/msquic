@@ -16,7 +16,9 @@ Abstract:
 
 #pragma warning(disable:6387)  // '_Param_(1)' could be '0':  this does not adhere to the specification for the function
 
-#if defined(QUIC_USE_RAW_DATAPATH) && defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
+#if defined(_KERNEL_MODE)
+static bool UseQTIP = false;
+#elif defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
 extern bool UseQTIP;
 #endif
 
@@ -2131,6 +2133,28 @@ void QuicTestStatefulGlobalSetParam()
                 sizeof(Mode),
                 &Mode));
     }
+
+    {
+        TestScopeLogger LogScope1("Get QUIC_PARAM_GLOBAL_DATAPATH_FEATURES after Datapath is made (MsQuicLib.Datapath)");
+        uint32_t Length = 0;
+        TEST_QUIC_STATUS(
+            QUIC_STATUS_BUFFER_TOO_SMALL,
+            MsQuic->GetParam(
+                nullptr,
+                QUIC_PARAM_GLOBAL_DATAPATH_FEATURES,
+                &Length,
+                nullptr));
+        TEST_EQUAL(Length, sizeof(uint32_t));
+
+        uint32_t ActualFeatures = 0;
+        TEST_QUIC_SUCCEEDED(
+            MsQuic->GetParam(
+                nullptr,
+                QUIC_PARAM_GLOBAL_DATAPATH_FEATURES,
+                &Length,
+                &ActualFeatures));
+        TEST_NOT_EQUAL(ActualFeatures, 0);
+    }
 }
 
 void QuicTestGlobalParam()
@@ -2464,6 +2488,51 @@ void QuicTestGlobalParam()
         }
     }
 
+    //
+    // QUIC_PARAM_GLOBAL_DATAPATH_FEATURES
+    //
+    {
+        TestScopeLogger LogScope0("QUIC_PARAM_GLOBAL_DATAPATH_FEATURES");
+        {
+            TestScopeLogger LogScope1("SetParam");
+            //
+            // Invalid features
+            //
+            {
+                TestScopeLogger LogScope2("SetParam is not allowed");
+                TEST_QUIC_STATUS(
+                    QUIC_STATUS_INVALID_PARAMETER,
+                    MsQuic->SetParam(
+                        nullptr,
+                        QUIC_PARAM_GLOBAL_DATAPATH_FEATURES,
+                        0,
+                        nullptr));
+            }
+        }
+
+        {
+            TestScopeLogger LogScope2("GetParam. Failed by missing MsQuicLib.Datapath");
+            uint32_t Length = 0;
+            TEST_QUIC_STATUS(
+                QUIC_STATUS_BUFFER_TOO_SMALL,
+                MsQuic->GetParam(
+                    nullptr,
+                    QUIC_PARAM_GLOBAL_DATAPATH_FEATURES,
+                    &Length,
+                    nullptr));
+            TEST_EQUAL(Length, sizeof(uint32_t));
+
+            uint32_t ActualFeatures = 0;
+            TEST_QUIC_STATUS(QUIC_STATUS_INVALID_STATE,
+                MsQuic->GetParam(
+                    nullptr,
+                    QUIC_PARAM_GLOBAL_DATAPATH_FEATURES,
+                    &Length,
+                    &ActualFeatures));
+        }
+
+    }
+
 #ifndef _KERNEL_MODE
 #ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
     //
@@ -2517,10 +2586,13 @@ void QuicTestGlobalParam()
             //
             SimpleGetParamTest(nullptr, QUIC_PARAM_GLOBAL_EXECUTION_CONFIG, DataLength, Data);
         }
-#ifdef QUIC_USE_RAW_DATAPATH
-        if (!UseQTIP) {
+
+#if defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
+        if (!UseQTIP)
+#endif
+        {
             //
-            // Good GetParam with length == 0 when QTIP is not in use.
+            // Good GetParam with length == 0
             //
             uint32_t BufferLength = 0;
             TEST_QUIC_SUCCEEDED(
@@ -2530,18 +2602,6 @@ void QuicTestGlobalParam()
                     &BufferLength,
                     nullptr));
         }
-#else
-        //
-        // Good GetParam with length == 0
-        //
-        uint32_t BufferLength = 0;
-        TEST_QUIC_SUCCEEDED(
-            MsQuic->GetParam(
-                nullptr,
-                QUIC_PARAM_GLOBAL_EXECUTION_CONFIG,
-                &BufferLength,
-                nullptr));
-#endif // QUIC_USE_RAW_DATAPATH
     }
 #endif // QUIC_API_ENABLE_PREVIEW_FEATURES
 #endif // !_KERNEL_MODE

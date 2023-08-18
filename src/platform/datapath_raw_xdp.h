@@ -21,7 +21,7 @@
 #define PORT_SET_TAG  'PpdX' // XdpP
 
 typedef struct XDP_INTERFACE XDP_INTERFACE;
-typedef struct XDP_WORKER XDP_WORKER;
+typedef struct XDP_PARTITION XDP_PARTITION;
 typedef struct XDP_DATAPATH XDP_DATAPATH;
 typedef struct XDP_QUEUE XDP_QUEUE;
 
@@ -42,11 +42,11 @@ typedef struct DATAPATH_IO_SQE {
     DATAPATH_SQE DatapathSqe;
 } DATAPATH_IO_SQE;
 
-typedef struct QUIC_CACHEALIGN XDP_WORKER {
+typedef struct QUIC_CACHEALIGN XDP_PARTITION {
     CXPLAT_EXECUTION_CONTEXT Ec;
     DATAPATH_SQE ShutdownSqe;
     const struct XDP_DATAPATH* Xdp;
     CXPLAT_EVENTQ* EventQ;
     XDP_QUEUE* Queues; // A linked list of queues, accessed by Next.
-    uint16_t ProcIndex;
-} XDP_WORKER;
+    uint16_t PartitionIndex;
+} XDP_PARTITION;

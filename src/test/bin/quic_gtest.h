@@ -20,7 +20,7 @@
 #endif
 
 extern bool TestingKernelMode;
-#if defined(QUIC_USE_RAW_DATAPATH) && defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
+#if defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
 extern bool UseQTIP;
 #endif
 
@@ -299,6 +299,57 @@ class WithHandshakeArgs9 : public testing::Test,
     public testing::WithParamInterface<bool> {
 };
 
+struct HandshakeArgs10 {
+    int Family;
+    QUIC_CONGESTION_CONTROL_ALGORITHM CcAlgo;
+    static ::std::vector<HandshakeArgs10> Generate() {
+        ::std::vector<HandshakeArgs10> list;
+        for (int Family : { 4, 6 })
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
+        for (auto CcAlgo : { QUIC_CONGESTION_CONTROL_ALGORITHM_CUBIC, QUIC_CONGESTION_CONTROL_ALGORITHM_BBR })
+#else
+        for (auto CcAlgo : { QUIC_CONGESTION_CONTROL_ALGORITHM_CUBIC })
+#endif
+            list.push_back({ Family, CcAlgo });
+        return list;
+    }
+};
+
+std::ostream& operator << (std::ostream& o, const HandshakeArgs10& args) {
+    return o <<
+        (args.Family == 4 ? "v4" : "v6") << "/" <<
+        (args.CcAlgo == QUIC_CONGESTION_CONTROL_ALGORITHM_CUBIC ? "cubic" : "bbr");
+}
+
+class WithHandshakeArgs10 : public testing::Test,
+    public testing::WithParamInterface<HandshakeArgs10> {
+};
+
+struct ReliableResetArgs {
+    int Family;
+    bool ServerSupport;
+    bool ClientSupport;
+    static ::std::vector<ReliableResetArgs> Generate() {
+        ::std::vector<ReliableResetArgs> list;
+        for (int Family : { 4, 6 })
+        for (bool ServerSupport : { false, true })
+        for (bool ClientSupport : { false, true })
+            list.push_back({ Family, ServerSupport, ClientSupport });
+        return list;
+    }
+};
+
+std::ostream& operator << (std::ostream& o, const ReliableResetArgs& args) {
+    return o <<
+        (args.Family == 4 ? "v4" : "v6") << "/" <<
+        (args.ServerSupport ? "Server Yes" : "Server No") << "/" <<
+        (args.ClientSupport ? "Client Yes" : "Client No");
+}
+
+class WithReliableResetArgs : public testing::Test,
+    public testing::WithParamInterface<ReliableResetArgs> {
+};
+
 struct SendArgs1 {
     int Family;
     uint64_t Length;
@@ -346,7 +397,7 @@ struct SendArgs2 {
         for (bool UseZeroRtt : { false })
 #endif
         {
-#if defined(QUIC_USE_RAW_DATAPATH) && defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
+#if defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
             if (UseQTIP && UseZeroRtt) {
                 continue;
             }
@@ -697,11 +748,7 @@ struct ValidateConnectionEventArgs {
     uint32_t Test;
     static ::std::vector<ValidateConnectionEventArgs> Generate() {
         ::std::vector<ValidateConnectionEventArgs> list;
-#if !defined(QUIC_DISABLE_0RTT_TESTS) && !defined(QUIC_USE_RAW_DATAPATH) // TODO: Fix openssl/XDP bug and enable this back
         for (uint32_t Test = 0; Test < 3; ++Test)
-#else
-        for (uint32_t Test = 0; Test < 2; ++Test)
-#endif
             list.push_back({ Test });
         return list;
     }

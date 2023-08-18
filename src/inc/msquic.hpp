@@ -415,6 +415,35 @@ public:
 static_assert(sizeof(QUIC_VERSION_SETTINGS) == sizeof(MsQuicVersionSettings), "Cpp wrappers must not change size");
 #endif
 
+class MsQuicGlobalSettings : public QUIC_GLOBAL_SETTINGS {
+public:
+    MsQuicGlobalSettings() noexcept { IsSetFlags = 0; }
+    MsQuicGlobalSettings& SetRetryMemoryLimit(uint16_t Value) { RetryMemoryLimit = Value; IsSet.RetryMemoryLimit = TRUE; return *this; }
+    MsQuicGlobalSettings& SetLoadBalancingMode(uint16_t Value) { LoadBalancingMode = Value; IsSet.LoadBalancingMode = TRUE; return *this; }
+    MsQuicGlobalSettings& SetFixedServerID(uint32_t Value) { FixedServerID = Value; IsSet.FixedServerID = TRUE; return *this; }
+
+    QUIC_STATUS Set() const noexcept {
+        const QUIC_GLOBAL_SETTINGS* Settings = this;
+        return
+            MsQuic->SetParam(
+                nullptr,
+                QUIC_PARAM_GLOBAL_GLOBAL_SETTINGS,
+                sizeof(*Settings),
+                Settings);
+    }
+
+    QUIC_STATUS Get() noexcept {
+        QUIC_GLOBAL_SETTINGS* Settings = this;
+        uint32_t Size = sizeof(*Settings);
+        return
+            MsQuic->GetParam(
+                nullptr,
+                QUIC_PARAM_GLOBAL_GLOBAL_SETTINGS,
+                &Size,
+                Settings);
+    }
+};
+
 class MsQuicSettings : public QUIC_SETTINGS {
 public:
     MsQuicSettings() noexcept { IsSetFlags = 0; }
@@ -443,6 +472,7 @@ public:
     MsQuicSettings& SetEcnEnabled(bool Value) { EcnEnabled = Value; IsSet.EcnEnabled = TRUE; return *this; }
 #ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
     MsQuicSettings& SetEncryptionOffloadAllowed(bool Value) { EncryptionOffloadAllowed = Value; IsSet.EncryptionOffloadAllowed = TRUE; return *this; }
+    MsQuicSettings& SetReliableResetEnabled(bool value) { ReliableResetEnabled = value; IsSet.ReliableResetEnabled = TRUE; return *this; }
 #endif
 
     QUIC_STATUS

@@ -26,7 +26,7 @@ jobs:
 
     steps:
       - name: Harden Runner
-        uses: step-security/harden-runner@55d479fb1c5bcad5a4f9099a5d9f37c8857b2845
+        uses: step-security/harden-runner@8ca2b8b2ece13480cda6dacd3511b49857a23c09
         with:
           egress-policy: audit
       - name: Checkout repository

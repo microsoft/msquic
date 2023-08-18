@@ -466,29 +466,6 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, UnreachableInvalid,
 
 
 /*----------------------------------------------------------
-// Decoder Ring for PathQeoDisabled
-// [conn][%p] Path[%hhu] QEO disabled
-// QuicTraceLogConnInfo(
-                PathQeoDisabled,
-                Connection,
-                "Path[%hhu] QEO disabled",
-                Connection->Paths[0].ID);
-// arg1 = arg1 = Connection = arg1
-// arg3 = arg3 = Connection->Paths[0].ID = arg3
-----------------------------------------------------------*/
-TRACEPOINT_EVENT(CLOG_CONNECTION_C, PathQeoDisabled,
-    TP_ARGS(
-        const void *, arg1,
-        unsigned char, arg3), 
-    TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg1, arg1)
-        ctf_integer(unsigned char, arg3, arg3)
-    )
-)
-
-
-
-/*----------------------------------------------------------
 // Decoder Ring for CloseUserCanceled
 // [conn][%p] Connection close using user canceled error
 // QuicTraceLogConnInfo(
@@ -1183,6 +1160,29 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, CompatibleVersionUpgradeComplete,
         ctf_integer_hex(uint64_t, arg1, arg1)
         ctf_integer(unsigned int, arg3, arg3)
         ctf_integer(unsigned int, arg4, arg4)
+    )
+)
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for IndicateReliableResetNegotiated
+// [conn][%p] Indicating QUIC_CONNECTION_EVENT_RELIABLE_RESET_NEGOTIATED [IsNegotiated=%hhu]
+// QuicTraceLogConnVerbose(
+                IndicateReliableResetNegotiated,
+                Connection,
+                "Indicating QUIC_CONNECTION_EVENT_RELIABLE_RESET_NEGOTIATED [IsNegotiated=%hhu]",
+                Event.RELIABLE_RESET_NEGOTIATED.IsNegotiated);
+// arg1 = arg1 = Connection = arg1
+// arg3 = arg3 = Event.RELIABLE_RESET_NEGOTIATED.IsNegotiated = arg3
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_CONNECTION_C, IndicateReliableResetNegotiated,
+    TP_ARGS(
+        const void *, arg1,
+        unsigned char, arg3), 
+    TP_FIELDS(
+        ctf_integer_hex(uint64_t, arg1, arg1)
+        ctf_integer(unsigned char, arg3, arg3)
     )
 )
 

@@ -2344,6 +2344,14 @@
               template="tid_DATAPATH_INIT"
               value="22"
               />
+          <event
+              keywords="ut:LowVolume"
+              level="win:Informational"
+              message="$(string.Etw.LibraryInitializedV3)"
+              opcode="Global"
+              symbol="QuicLibraryInitializedV3"
+              value="23"
+              />
           <!-- 1024 - 2047 | Registration Events -->
           <event
               keywords="ut:Registration ut:LowVolume"
@@ -4146,6 +4154,10 @@
         <string
             id="Etw.LibraryInitializedV2"
             value="[ lib] Initialized, PartitionCount=%1"
+            />
+        <string
+            id="Etw.LibraryInitializedV3"
+            value="[ lib] Initialized"
             />
         <string
             id="Etw.LibraryRundown"
