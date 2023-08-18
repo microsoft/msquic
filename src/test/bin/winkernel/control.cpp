@@ -480,8 +480,9 @@ size_t QUIC_IOCTL_BUFFER_SIZES[] =
     sizeof(UINT8),
     sizeof(BOOLEAN),
     sizeof(INT32),
-    sizeof(INT32),
+    sizeof(QUIC_HANDSHAKE_LOSS_PARAMS),
     sizeof(QUIC_RUN_CUSTOM_CERT_VALIDATION),
+    sizeof(QUIC_RUN_RELIABLE_RESET_NEGOTIATION)
 };
 
 CXPLAT_STATIC_ASSERT(
@@ -517,7 +518,8 @@ typedef union {
     QUIC_RUN_VN_TP_ODD_SIZE_PARAMS OddSizeVnTpParams;
     UINT8 TestServerVNTP;
     BOOLEAN Bidirectional;
-
+    QUIC_RUN_RELIABLE_RESET_NEGOTIATION ReliableResetNegotiationParams;
+    QUIC_HANDSHAKE_LOSS_PARAMS HandshakeLossParams;
 } QUIC_IOCTL_PARAMS;
 
 #define QuicTestCtlRun(X) \
@@ -1328,7 +1330,10 @@ QuicTestCtlEvtIoDeviceControl(
 
     case IOCTL_QUIC_RUN_HANDSHAKE_SPECIFIC_LOSS_PATTERNS:
         CXPLAT_FRE_ASSERT(Params != nullptr);
-        QuicTestCtlRun(QuicTestHandshakeSpecificLossPatterns(Params->Family));
+        QuicTestCtlRun(
+            QuicTestHandshakeSpecificLossPatterns(
+                Params->HandshakeLossParams.Family,
+                Params->HandshakeLossParams.CcAlgo));
         break;
 
     case IOCTL_QUIC_RUN_CUSTOM_CLIENT_CERT_VALIDATION:
@@ -1338,7 +1343,16 @@ QuicTestCtlEvtIoDeviceControl(
                 Params->CustomCertValidationParams.AcceptCert,
                 Params->CustomCertValidationParams.AsyncValidation));
         break;
-
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
+    case IOCTL_QUIC_RELIABLE_RESET_NEGOTIATION:
+        CXPLAT_FRE_ASSERT(Params != nullptr);
+        QuicTestCtlRun(
+            QuicTestReliableResetNegotiation(
+                Params->ReliableResetNegotiationParams.Family,
+                Params->ReliableResetNegotiationParams.ServerSupport,
+                Params->ReliableResetNegotiationParams.ClientSupport));
+        break;
+#endif
     default:
         Status = STATUS_NOT_IMPLEMENTED;
         break;

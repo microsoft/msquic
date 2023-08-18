@@ -112,17 +112,16 @@ CxPlatDataPathInitialize(
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         goto Error;
     }
-    uint32_t ProcessorCount;
+    uint32_t PartitionCount = CxPlatProcMaxCount();
     if (Config && Config->ProcessorCount) {
-        ProcessorCount = Config->ProcessorCount;
-    } else {
-        ProcessorCount = CxPlatProcMaxCount();
+        PartitionCount = Config->ProcessorCount;
     }    
     uint32_t DatapathLength =
         sizeof(CXPLAT_DATAPATH) +
-        ProcessorCount * sizeof(CXPLAT_DATAPATH_PROC);
-    CXPLAT_DATAPATH* DataPath = (CXPLAT_DATAPATH*)CXPLAT_ALLOC_PAGED(DatapathLength, QUIC_POOL_DATAPATH);
-    if (DataPath == NULL) {
+        PartitionCount * sizeof(CXPLAT_DATAPATH_PARTITION);
+
+    CXPLAT_DATAPATH* Datapath = (CXPLAT_DATAPATH*)CXPLAT_ALLOC_PAGED(DatapathLength, QUIC_POOL_DATAPATH);
+    if (Datapath == NULL) {
         QuicTraceEvent(
             AllocFailure,
             "Allocation of '%s' failed. (%llu bytes)",
@@ -131,18 +130,19 @@ CxPlatDataPathInitialize(
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         goto Error;
     }
-    CxPlatZeroMemory(DataPath, DatapathLength);
+
+    RtlZeroMemory(Datapath, DatapathLength);
     if (UdpCallbacks) {
-        DataPath->UdpHandlers = *UdpCallbacks;
+        Datapath->UdpHandlers = *UdpCallbacks;
     }
     if (TcpCallbacks) {
-        DataPath->TcpHandlers = *TcpCallbacks;
+        Datapath->TcpHandlers = *TcpCallbacks;
     }
-    DataPath->ProcCount = (uint16_t)ProcessorCount;
+    Datapath->PartitionCount = (uint16_t)PartitionCount;
     Status = DataPathUserFuncs.CxPlatDataPathInitialize(
         ClientRecvContextLength,
         Config,
-        DataPath);
+        Datapath);
     if (QUIC_FAILED(Status)) {
         QuicTraceLogVerbose(
             DatapathInitFail,
@@ -166,7 +166,7 @@ CxPlatDataPathInitialize(
     Status = CxPlatInitRawDataPath(
         ClientRecvContextLength,
         Config,
-        DataPath,
+        Datapath,
         RawDataPath);
     if (QUIC_FAILED(Status)) {
         QuicTraceLogVerbose(
@@ -177,8 +177,8 @@ CxPlatDataPathInitialize(
         RawDataPath = NULL;
     }
 
-    DataPath->RawDataPath = RawDataPath;
-    *NewDataPath = DataPath;
+    Datapath->RawDataPath = RawDataPath;
+    *NewDataPath = Datapath;
 Error:
     // TODO: error handling
 

@@ -139,10 +139,14 @@ QuicIsVersionSupported(
     _In_ uint32_t Version // Network Byte Order
     );
 
-_IRQL_requires_max_(DISPATCH_LEVEL)
 uint16_t
 QuicLibraryGetCurrentPartition(
     void
+    );
+
+uint16_t
+QuicLibraryGetPartitionProcessor(
+    uint16_t PartitionIndex
     );
 
 QUIC_LIBRARY_PP*
@@ -160,13 +164,6 @@ _IRQL_requires_max_(DISPATCH_LEVEL)
 uint16_t
 QuicPartitionIdGetIndex(
     uint16_t PartitionId
-    );
-
-_IRQL_requires_max_(DISPATCH_LEVEL)
-uint16_t
-QuicPartitionIndexIncrement(
-    uint16_t PartitionIndex,
-    uint16_t Increment
     );
 
 _IRQL_requires_max_(DISPATCH_LEVEL)

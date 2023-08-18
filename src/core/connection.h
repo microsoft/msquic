@@ -180,6 +180,11 @@ typedef union QUIC_CONNECTION_STATE {
         //
         BOOLEAN FixedBit : 1;
 
+        //
+        // Indicates that the peer accepts RELIABLE_RESET kind of frames, in addition to RESET_STREAM frames.
+        //
+        BOOLEAN ReliableResetStreamNegotiated : 1;
+
 #ifdef CxPlatVerifierEnabledByAddr
         //
         // The calling app is being verified (app or driver verifier).

@@ -14,7 +14,9 @@ Abstract:
 #include "DataTest.cpp.clog.h"
 #endif
 
-#if defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
+#if defined(_KERNEL_MODE)
+static bool UseQTIP = false;
+#elif defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
 extern bool UseQTIP;
 #endif
 extern uint64_t LARGE_SEND_SIZE;

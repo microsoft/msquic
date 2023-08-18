@@ -296,9 +296,8 @@ $RemoteDirectorySMB = $null
 # Copy manifest and log script to local directory
 Copy-Item -Path (Join-Path $RootDir scripts get-buildconfig.ps1) -Destination $LocalDirectory
 Copy-Item -Path (Join-Path $RootDir scripts log.ps1) -Destination $LocalDirectory
-Copy-Item -Path (Join-Path $RootDir scripts xdp-devkit.json) -Destination $LocalDirectory
+Copy-Item -Path (Join-Path $RootDir scripts xdp.json) -Destination $LocalDirectory
 Copy-Item -Path (Join-Path $RootDir scripts prepare-machine.ps1) -Destination $LocalDirectory
-Copy-Item -Path (Join-Path $RootDir scripts xdp-devkit.json) -Destination $LocalDirectory
 Copy-Item -Path (Join-Path $RootDir src manifest MsQuic.wprp) -Destination $LocalDirectory
 
 if ($Local) {

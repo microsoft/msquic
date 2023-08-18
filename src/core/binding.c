@@ -1641,8 +1641,8 @@ QuicBindingReceive(
     // connection it was delivered to.
     //
 
-    uint16_t Proc = QuicLibraryGetCurrentPartition();
-    uint64_t ProcShifted = ((uint64_t)Proc + 1) << 40;
+    const uint16_t Partition = DatagramChain->PartitionIndex;
+    const uint64_t PartitionShifted = ((uint64_t)Partition + 1) << 40;
 
     CXPLAT_RECV_DATA* Datagram;
     while ((Datagram = DatagramChain) != NULL) {
@@ -1659,7 +1659,7 @@ QuicBindingReceive(
             CxPlatDataPathRecvDataToRecvPacket(Datagram);
         CxPlatZeroMemory(Packet, sizeof(CXPLAT_RECV_PACKET));
         Packet->PacketId =
-            ProcShifted | InterlockedIncrement64((int64_t*)&MsQuicLib.PerProc[Proc].ReceivePacketId);
+            PartitionShifted | InterlockedIncrement64((int64_t*)&QuicLibraryGetPerProc()->ReceivePacketId);
         Packet->Buffer = Datagram->Buffer;
         Packet->BufferLength = Datagram->BufferLength;
         Packet->BufferFrom = Datagram->BufferFrom;

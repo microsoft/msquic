@@ -1,7 +1,6 @@
 name: Build Darwin Universal
 
 on:
-  workflow_dispatch:
   workflow_call:
     inputs:
       config:
@@ -22,6 +21,8 @@ on:
         required: false
         default: ''
         type: string
+
+permissions: read-all
 
 jobs:
   build-darwin:

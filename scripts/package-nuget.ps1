@@ -145,7 +145,7 @@ $NugetSourceFolder = Join-Path $RootDir "src/distribution"
 if ($UWP) {
     $PackageName = "Microsoft.Native.Quic.MsQuic.UWP.$Tls"
 } elseif ($XDP) {
-    Copy-Item -Path (Join-Path $PSScriptRoot xdp-devkit.json) -Destination (Join-Path $PackagingDir xdp-devkit-temp.json)
+    Copy-Item -Path (Join-Path $PSScriptRoot xdp.json) -Destination (Join-Path $PackagingDir xdp-temp.json)
     $PackageName = "Microsoft.Native.Quic.MsQuic.XDP.$Tls"
 } else {
     $PackageName = "Microsoft.Native.Quic.MsQuic.$Tls"

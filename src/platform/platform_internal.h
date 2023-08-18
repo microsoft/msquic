@@ -231,7 +231,7 @@ CxPlatWorkersLazyStart(
 
 CXPLAT_EVENTQ*
 CxPlatWorkerGetEventQ(
-    _In_ uint16_t IdealProcessor
+    _In_ uint16_t Index // Into the config processor array
     );
 
 void
@@ -280,6 +280,83 @@ typedef struct DATAPATH_IO_SQE {
 } DATAPATH_IO_SQE;
 
 //
+// Represents a single IO completion port and thread for processing work that is
+// completed on a single processor.
+//
+typedef struct QUIC_CACHEALIGN CXPLAT_DATAPATH_PROC {
+
+    //
+    // Parent datapath.
+    //
+    CXPLAT_DATAPATH* Datapath;
+
+    //
+    // Event queue used for processing work.
+    //
+    CXPLAT_EVENTQ* EventQ;
+
+    //
+    // Used to synchronize clean up.
+    //
+    CXPLAT_REF_COUNT RefCount;
+
+    //
+    // The index into the execution config processor array.
+    //
+    uint16_t PartitionIndex;
+
+    //
+    // Debug flags
+    //
+    uint8_t Uninitialized : 1;
+
+    //
+    // Pool of send contexts to be shared by all sockets on this core.
+    //
+    CXPLAT_POOL SendDataPool;
+
+    //
+    // Pool of send contexts to be shared by all RIO sockets on this core.
+    //
+    CXPLAT_POOL RioSendDataPool;
+
+    //
+    // Pool of send buffers to be shared by all sockets on this core.
+    //
+    CXPLAT_POOL SendBufferPool;
+
+    //
+    // Pool of large segmented send buffers to be shared by all sockets on this
+    // core.
+    //
+    CXPLAT_POOL LargeSendBufferPool;
+
+    //
+    // Pool of send buffers to be shared by all RIO sockets on this core.
+    //
+    CXPLAT_POOL RioSendBufferPool;
+
+    //
+    // Pool of large segmented send buffers to be shared by all RIO sockets on
+    // this core.
+    //
+    CXPLAT_POOL RioLargeSendBufferPool;
+
+    //
+    // Pool of receive datagram contexts and buffers to be shared by all sockets
+    // on this core.
+    //
+    CXPLAT_POOL RecvDatagramPool;
+
+    //
+    // Pool of RIO receive datagram contexts and buffers to be shared by all
+    // RIO sockets on this core.
+    //
+    CXPLAT_POOL RioRecvPool;
+
+} CXPLAT_DATAPATH_PARTITION;
+
+//
 // Per-processor socket state.
 //
 typedef struct QUIC_CACHEALIGN CXPLAT_SOCKET_PROC {
@@ -301,7 +378,7 @@ typedef struct QUIC_CACHEALIGN CXPLAT_SOCKET_PROC {
     //
     // The datapath per-processor context.
     //
-    CXPLAT_DATAPATH_PROC* DatapathProc;
+    CXPLAT_DATAPATH_PARTITION* DatapathProc;
 
     //
     // Parent CXPLAT_SOCKET.
@@ -365,83 +442,6 @@ typedef struct QUIC_CACHEALIGN CXPLAT_SOCKET_PROC {
 } CXPLAT_SOCKET_PROC;
 
 //
-// Represents a single IO completion port and thread for processing work that is
-// completed on a single processor.
-//
-typedef struct QUIC_CACHEALIGN CXPLAT_DATAPATH_PROC {
-
-    //
-    // Parent datapath.
-    //
-    CXPLAT_DATAPATH* Datapath;
-
-    //
-    // Event queue used for processing work.
-    //
-    CXPLAT_EVENTQ* EventQ;
-
-    //
-    // Used to synchronize clean up.
-    //
-    CXPLAT_REF_COUNT RefCount;
-
-    //
-    // The index of ideal processor for this datapath.
-    //
-    uint16_t IdealProcessor;
-
-    //
-    // Debug flags
-    //
-    uint8_t Uninitialized : 1;
-
-    //
-    // Pool of send contexts to be shared by all sockets on this core.
-    //
-    CXPLAT_POOL SendDataPool;
-
-    //
-    // Pool of send contexts to be shared by all RIO sockets on this core.
-    //
-    CXPLAT_POOL RioSendDataPool;
-
-    //
-    // Pool of send buffers to be shared by all sockets on this core.
-    //
-    CXPLAT_POOL SendBufferPool;
-
-    //
-    // Pool of large segmented send buffers to be shared by all sockets on this
-    // core.
-    //
-    CXPLAT_POOL LargeSendBufferPool;
-
-    //
-    // Pool of send buffers to be shared by all RIO sockets on this core.
-    //
-    CXPLAT_POOL RioSendBufferPool;
-
-    //
-    // Pool of large segmented send buffers to be shared by all RIO sockets on
-    // this core.
-    //
-    CXPLAT_POOL RioLargeSendBufferPool;
-
-    //
-    // Pool of receive datagram contexts and buffers to be shared by all sockets
-    // on this core.
-    //
-    CXPLAT_POOL RecvDatagramPool;
-
-    //
-    // Pool of RIO receive datagram contexts and buffers to be shared by all
-    // RIO sockets on this core.
-    //
-    CXPLAT_POOL RioRecvPool;
-
-} CXPLAT_DATAPATH_PROC;
-
-//
 // Main structure for tracking all UDP abstractions.
 //
 typedef struct CXPLAT_DATAPATH {
@@ -497,7 +497,7 @@ typedef struct CXPLAT_DATAPATH {
     //
     // The number of processors.
     //
-    uint16_t ProcCount;
+    uint16_t PartitionCount;
 
     //
     // Maximum batch sizes supported for send.
@@ -520,7 +520,7 @@ typedef struct CXPLAT_DATAPATH {
     //
     // Per-processor completion contexts.
     //
-    CXPLAT_DATAPATH_PROC Processors[0];
+    CXPLAT_DATAPATH_PARTITION Partitions[0];
 
 } CXPLAT_DATAPATH;
 
@@ -547,19 +547,25 @@ typedef struct CXPLAT_SOCKET {
     CXPLAT_REF_COUNT RefCount;
 
     //
-    // The local interface's MTU.
-    //
-    uint16_t Mtu;
-
-    //
     // The size of a receive buffer's payload.
     //
     uint32_t RecvBufLen;
 
     //
+    // The local interface's MTU.
+    //
+    uint16_t Mtu;
+
+    //
     // Socket type.
     //
     uint8_t Type : 2; // CXPLAT_SOCKET_TYPE
+
+    //
+    // Flag indicates the socket has more than one socket, affinitized to all
+    // the processors.
+    //
+    uint16_t NumPerProcessorSockets : 1;
 
     //
     // Flag indicates the socket has a default remote destination.
@@ -590,7 +596,7 @@ typedef struct CXPLAT_SOCKET {
     //
     // Per-processor socket contexts.
     //
-    CXPLAT_SOCKET_PROC Processors[0];
+    CXPLAT_SOCKET_PROC PerProcSockets[0];
 
 } CXPLAT_SOCKET;
 
