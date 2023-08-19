@@ -1019,10 +1019,8 @@ CxPlatDpRawInitialize(
 {
     XDP_DATAPATH* Xdp = (XDP_DATAPATH*)Datapath;
     QUIC_STATUS Status;
-
     CxPlatListInitializeHead(&Xdp->Interfaces);
-    if (QUIC_FAILED(XdpLoadApi(XDP_VERSION_PRERELEASE, &Xdp->XdpApiLoadContext, &Xdp->XdpApi))) {
-    // if (QUIC_FAILED(XdpLoadApi(XDP_API_VERSION_1, &Xdp->XdpApiLoadContext, &Xdp->XdpApi))) {
+    if (QUIC_FAILED(XdpLoadApi(XDP_API_VERSION_1, &Xdp->XdpApiLoadContext, &Xdp->XdpApi))) {
         Status = QUIC_STATUS_NOT_SUPPORTED;
         goto Error;
     }
