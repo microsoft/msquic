@@ -184,14 +184,14 @@ QuicStreamProcessReliableResetFrame(
     }
 
 
-    if (Stream->RecvBuffer.BaseOffset == Stream->RecvMaxLength) {
+    if (Stream->RecvBuffer.BaseOffset >= Stream->RecvMaxLength) {
         //
         // All data delivered. Queue flush.
         //
         Stream->Flags.ReceiveDataPending = TRUE;
         QuicStreamRecvQueueFlush(
             Stream,
-            Stream->RecvBuffer.BaseOffset == Stream->RecvMaxLength);
+            Stream->RecvBuffer.BaseOffset >= Stream->RecvMaxLength);
     }
 }
 

@@ -159,7 +159,7 @@ QuicStreamSendShutdown(
             QUIC_STREAM_SEND_FLAG_FIN,
             DelaySend);
 
-    } else {
+    } else if (Stream->ReliableOffsetSend == 0) {
 
         //
         // Can't be blocked by (stream) FC any more if we've aborted sending any
@@ -234,6 +234,25 @@ QuicStreamSendShutdown(
                 QUIC_STREAM_SEND_FLAG_OPEN |
                 QUIC_STREAM_SEND_FLAG_FIN);
         }
+    } else {
+
+        while (ApiSendRequests != NULL) {
+            //
+            // Deliver send requests prior to aborting.
+            //
+            QUIC_SEND_REQUEST* SendRequest = ApiSendRequests;
+            ApiSendRequests = ApiSendRequests->Next;
+            QuicStreamCompleteSendRequest(Stream, SendRequest, TRUE, FALSE);
+        }
+
+        //
+        // Queue up a RESET RELIABLE STREAM frame to be sent.
+        //
+        QuicSendSetStreamSendFlag(
+            &Stream->Connection->Send,
+            Stream,
+            QUIC_STREAM_SEND_FLAG_FIN, // TODO; Change this.
+            DelaySend);
     }
 
     QuicStreamSendDumpState(Stream);
@@ -506,6 +525,10 @@ QuicStreamSendFlush(
     BOOLEAN Start = FALSE;
 
     while (ApiSendRequests != NULL) {
+
+        if (Stream->UnAckedOffset >= Stream->ReliableOffsetSend && Stream->Flags.ShutdownReliableSend) {
+            break;
+        }
 
         QUIC_SEND_REQUEST* SendRequest = ApiSendRequests;
         ApiSendRequests = ApiSendRequests->Next;
@@ -1079,6 +1102,7 @@ QuicStreamSendWrite(
                 AvailableBufferLength,
                 Builder->Datagram->Buffer);
             FrameType = QUIC_FRAME_RELIABLE_RESET_STREAM;
+            Stream->Flags.ShutdownReliableSend = TRUE;
         } else {
             QUIC_RESET_STREAM_EX Frame = { Stream->ID, Stream->SendShutdownErrorCode, Stream->MaxSentLength };
             CanEncodeFrame = QuicResetStreamFrameEncode(

@@ -79,6 +79,8 @@ QuicStreamInitialize(
     Stream->RefTypeCount[QUIC_STREAM_REF_APP] = 1;
 #endif
 
+    Stream->Flags.ShutdownReliableSend = FALSE;
+
     if (Stream->Flags.Unidirectional) {
         if (!OpenedRemotely) {
 

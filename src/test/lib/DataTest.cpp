@@ -3275,7 +3275,10 @@ QuicTestStreamReliableReset(
     TEST_QUIC_SUCCEEDED(Stream.Send(&SendBuffer, 1, QUIC_SEND_FLAG_DELAY_SEND, &Context));
     TEST_QUIC_SUCCEEDED(Stream.SetReliableOffset(RELIABLE_SIZE));
     TEST_QUIC_SUCCEEDED(Stream.Shutdown(0)); // Queues up a shutdown operation.
-
+    // Should behave similar to QUIC_STREAM_SHUTDOWN_FLAG_GRACEFUL, with some restrictions.
     TEST_TRUE(Context.ClientStreamShutdownComplete.WaitTimeout(TestWaitTimeout));
+    // Remove
+    std::cout << "ReceivedBufferSize: " << Context.ReceivedBufferSize << std::endl;
+    // Remove.
     TEST_TRUE(Context.ReceivedBufferSize >= RELIABLE_SIZE);
 }
