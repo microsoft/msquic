@@ -3030,10 +3030,8 @@ QuicTestStreamReliableReset(
     #define BUFFER_SIZE 10000
     #define RELIABLE_SIZE 5000
     uint8_t SendDataBuffer[BUFFER_SIZE];
-    uint8_t ReceiveDataBuffer[BUFFER_SIZE];
 
     QUIC_BUFFER SendBuffer { sizeof(SendDataBuffer), SendDataBuffer };
-    QUIC_BUFFER ReceiveBuffer = { sizeof(ReceiveDataBuffer), ReceiveDataBuffer };
     Context.ReceivedBufferSize = 0;
 
     MsQuicAutoAcceptListener Listener(Registration, ServerConfiguration, StreamReliableReset::ConnCallback, &Context);
