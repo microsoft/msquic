@@ -666,7 +666,8 @@ QuicStreamParamSet(
             break;
         }
 
-        if (!Stream->Connection->State.ReliableResetStreamNegotiated || *(uint64_t*)Buffer > Stream->QueuedSendOffset) {
+        if (!Stream->Connection->State.ReliableResetStreamNegotiated ||
+            *(uint64_t*)Buffer > Stream->QueuedSendOffset) {
             Status = QUIC_STATUS_INVALID_STATE;
             break;
         }
