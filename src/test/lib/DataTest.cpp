@@ -3013,40 +3013,17 @@ void
 QuicTestStreamReliableReset(
     )
 {
-    /*
-
-    Client initiates stream, connects to Server.
-    Client sets ReliableOffset (send offset) to be X.
-    Client sends data to server
-    Client immediately calls shutdown.
-    Client should finish sending data up to X before actually aborting.
-    Server should get data up to X before ACKing the shutdown.
-
-
-    Best way to do this;
-     - artificially delay receiver callback
-     - Peer Event Started
-     - Theoretically you can block receive event...
-
-     Quic Send Flag: QUIC_SEND_FLAG_DELAY_FLAG (not always happens)
-      - Here's a send, you don't have to send it yet.
-      - wait for handshake, sleep(50)
-      - start, send (with delay), (set reliable offset), shutdown (do everything after handshake completes)
-
-    */
     MsQuicRegistration Registration(true);
     TEST_TRUE(Registration.IsValid());
 
-    MsQuicSettings ServerSettings;
-    MsQuicSettings ClientSettings;
-    ServerSettings.SetReliableResetEnabled(true);
-    ClientSettings.SetReliableResetEnabled(true);
-    ServerSettings.SetPeerBidiStreamCount(1);
+    MsQuicSettings TestSettings;
+    TestSettings.SetReliableResetEnabled(true);
+    TestSettings.SetPeerBidiStreamCount(1);
 
-    MsQuicConfiguration ServerConfiguration(Registration, "MsQuicTest", ServerSettings, ServerSelfSignedCredConfig);
+    MsQuicConfiguration ServerConfiguration(Registration, "MsQuicTest", TestSettings, ServerSelfSignedCredConfig);
     TEST_QUIC_SUCCEEDED(ServerConfiguration.GetInitStatus());
 
-    MsQuicConfiguration ClientConfiguration(Registration, "MsQuicTest", ClientSettings, MsQuicCredentialConfig());
+    MsQuicConfiguration ClientConfiguration(Registration, "MsQuicTest", TestSettings, MsQuicCredentialConfig());
     TEST_QUIC_SUCCEEDED(ClientConfiguration.GetInitStatus());
 
     StreamReliableReset Context;
