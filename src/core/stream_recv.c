@@ -179,10 +179,20 @@ QuicStreamProcessReliableResetFrame(
         // As outlined in the spec, if we receive multiple CLOSE_STREAM frames, we only accept strictly
         // decreasing offsets.
         //
-        Stream->ReliableOffsetRecv = ReliableOffset;
+        Stream->ReliableOffsetRecv = ReliableOffset; // TODO: Remove ReliableOffsetRecv once everything works.
+        Stream->RecvMaxLength = ReliableOffset;
     }
 
-    QuicStreamProcessResetFrame(Stream, FinalSize, ErrorCode);
+
+    if (Stream->RecvBuffer.BaseOffset == Stream->RecvMaxLength) {
+        //
+        // All data delivered. Queue flush.
+        //
+        Stream->Flags.ReceiveDataPending = TRUE;
+        QuicStreamRecvQueueFlush(
+            Stream,
+            Stream->RecvBuffer.BaseOffset == Stream->RecvMaxLength);
+    }
 }
 
 //
