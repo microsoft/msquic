@@ -236,15 +236,6 @@ QuicStreamSendShutdown(
         }
     } else {
 
-        while (ApiSendRequests != NULL) {
-            //
-            // Deliver send requests prior to aborting.
-            //
-            QUIC_SEND_REQUEST* SendRequest = ApiSendRequests;
-            ApiSendRequests = ApiSendRequests->Next;
-            QuicStreamCompleteSendRequest(Stream, SendRequest, TRUE, FALSE);
-        }
-
         //
         // Queue up a RESET RELIABLE STREAM frame to be sent.
         //
@@ -253,6 +244,7 @@ QuicStreamSendShutdown(
             Stream,
             QUIC_STREAM_SEND_FLAG_FIN, // TODO; Change this.
             DelaySend);
+
     }
 
     QuicStreamSendDumpState(Stream);
