@@ -2961,107 +2961,6 @@ QuicTestStreamAbortConnFlowControl(
     TEST_TRUE(Context.ClientStreamShutdownComplete.WaitTimeout(TestWaitTimeout));
 }
 
-struct StreamReliableReset {
-
-    CxPlatEvent ClientStreamShutdownComplete;
-    uint64_t ReceivedBufferSize;
-
-    static QUIC_STATUS ClientStreamCallback(_In_ MsQuicStream* Stream, _In_opt_ void* ClientContext, _Inout_ QUIC_STREAM_EVENT* Event) {
-        // remove
-        uint64_t ReliableOffsetSendSide = 69420;
-        uint64_t ReliableOffsetRecvSide = 69420;
-        Stream->GetReliableOffset(&ReliableOffsetSendSide);
-        Stream->GetReliableOffsetRecv(&ReliableOffsetRecvSide);
-        std::cout << "Client Side Stream Send: " << ReliableOffsetSendSide << ", ";
-        std::cout << " Client Side Stream Recv: " << ReliableOffsetRecvSide << std::endl;
-        // remove.
-        auto TestContext = (StreamReliableReset*)ClientContext;
-        if (Event->Type == QUIC_STREAM_EVENT_SHUTDOWN_COMPLETE) {
-            TestContext->ClientStreamShutdownComplete.Set();
-        }
-        return QUIC_STATUS_SUCCESS;
-    }
-
-    static QUIC_STATUS ServerStreamCallback(_In_ MsQuicStream* Stream, _In_opt_ void* ServerContext, _Inout_ QUIC_STREAM_EVENT* Event) {
-        // remove
-        uint64_t ReliableOffsetSendSide = 69420;
-        uint64_t ReliableOffsetRecvSide = 69420;
-        Stream->GetReliableOffset(&ReliableOffsetSendSide);
-        Stream->GetReliableOffsetRecv(&ReliableOffsetRecvSide);
-        std::cout << "Server Side Stream Send: " << ReliableOffsetSendSide << ", ";
-        std::cout << " Server Side Stream Recv: " << ReliableOffsetRecvSide << std::endl;
-        // remove.
-        auto TestContext = (StreamReliableReset*)ServerContext;
-        if (Event->Type == QUIC_STREAM_EVENT_RECEIVE) {
-            TestContext->ReceivedBufferSize += Event->RECEIVE.TotalBufferLength;
-        }
-        if (Event->Type == QUIC_STREAM_EVENT_PEER_SEND_SHUTDOWN) {
-            Stream->Shutdown(QUIC_STREAM_SHUTDOWN_FLAG_ABORT_SEND);
-        }
-        return QUIC_STATUS_SUCCESS;
-    }
-
-    static QUIC_STATUS ConnCallback(_In_ MsQuicConnection*, _In_opt_ void* Context, _Inout_ QUIC_CONNECTION_EVENT* Event) {
-        if (Event->Type == QUIC_CONNECTION_EVENT_PEER_STREAM_STARTED) {
-            new(std::nothrow) MsQuicStream(Event->PEER_STREAM_STARTED.Stream, CleanUpAutoDelete, ServerStreamCallback, Context);
-        }
-        return QUIC_STATUS_SUCCESS;
-    }
-};
-
-void
-QuicTestStreamReliableReset(
-    )
-{
-    MsQuicRegistration Registration(true);
-    TEST_TRUE(Registration.IsValid());
-
-    MsQuicSettings TestSettings;
-    TestSettings.SetReliableResetEnabled(true);
-    TestSettings.SetPeerBidiStreamCount(1);
-
-    MsQuicConfiguration ServerConfiguration(Registration, "MsQuicTest", TestSettings, ServerSelfSignedCredConfig);
-    TEST_QUIC_SUCCEEDED(ServerConfiguration.GetInitStatus());
-
-    MsQuicConfiguration ClientConfiguration(Registration, "MsQuicTest", TestSettings, MsQuicCredentialConfig());
-    TEST_QUIC_SUCCEEDED(ClientConfiguration.GetInitStatus());
-
-    StreamReliableReset Context;
-    #define BUFFER_SIZE 10000
-    #define RELIABLE_SIZE 5000
-    uint8_t SendDataBuffer[BUFFER_SIZE];
-
-    QUIC_BUFFER SendBuffer { sizeof(SendDataBuffer), SendDataBuffer };
-    Context.ReceivedBufferSize = 0;
-
-    MsQuicAutoAcceptListener Listener(Registration, ServerConfiguration, StreamReliableReset::ConnCallback, &Context);
-    TEST_QUIC_SUCCEEDED(Listener.GetInitStatus());
-    TEST_QUIC_SUCCEEDED(Listener.Start("MsQuicTest"));
-    QuicAddr ServerLocalAddr;
-    TEST_QUIC_SUCCEEDED(Listener.GetLocalAddr(ServerLocalAddr));
-
-    MsQuicConnection Connection(Registration);
-    TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
-
-    MsQuicStream Stream(Connection, QUIC_STREAM_OPEN_FLAG_NONE, CleanUpManual, StreamReliableReset::ClientStreamCallback, &Context);
-    TEST_QUIC_SUCCEEDED(Stream.GetInitStatus());
-
-    TEST_QUIC_SUCCEEDED(Connection.Start(ClientConfiguration, ServerLocalAddr.GetFamily(), QUIC_TEST_LOOPBACK_FOR_AF(ServerLocalAddr.GetFamily()), ServerLocalAddr.GetPort()));
-    TEST_TRUE(Connection.HandshakeCompleteEvent.WaitTimeout(TestWaitTimeout));
-    TEST_TRUE(Connection.HandshakeComplete);
-    TEST_TRUE(Listener.LastConnection->HandshakeCompleteEvent.WaitTimeout(TestWaitTimeout));
-    TEST_TRUE(Listener.LastConnection->HandshakeComplete);
-    CxPlatSleep(50);
-
-    TEST_QUIC_SUCCEEDED(Stream.Start());
-    TEST_QUIC_SUCCEEDED(Stream.Send(&SendBuffer, 1, QUIC_SEND_FLAG_DELAY_SEND, &Context));
-    TEST_QUIC_SUCCEEDED(Stream.SetReliableOffset(RELIABLE_SIZE));
-    TEST_QUIC_SUCCEEDED(Stream.Shutdown(0)); // Queues up a shutdown operation.
-
-    TEST_TRUE(Context.ClientStreamShutdownComplete.WaitTimeout(TestWaitTimeout));
-    TEST_TRUE(Context.ReceivedBufferSize >= RELIABLE_SIZE);
-}
-
 struct StreamBlockUnblockConnFlowControl {
     CxPlatEvent ClientStreamShutdownComplete;
     CxPlatEvent ClientStreamSendComplete;
@@ -3279,4 +3178,104 @@ QuicTestConnectAndIdleForDestCidChange(
             }
         }
     }
+}
+
+void
+QuicTestStreamReliableReset(
+    )
+{
+    struct StreamReliableReset {
+
+    CxPlatEvent ClientStreamShutdownComplete;
+    uint64_t ReceivedBufferSize;
+
+    static QUIC_STATUS ClientStreamCallback(_In_ MsQuicStream* Stream, _In_opt_ void* ClientContext, _Inout_ QUIC_STREAM_EVENT* Event) {
+        // remove
+        uint64_t ReliableOffsetSendSide = 69420;
+        uint64_t ReliableOffsetRecvSide = 69420;
+        Stream->GetReliableOffset(&ReliableOffsetSendSide);
+        Stream->GetReliableOffsetRecv(&ReliableOffsetRecvSide);
+        std::cout << "Client Side Stream Send: " << ReliableOffsetSendSide << ", ";
+        std::cout << " Client Side Stream Recv: " << ReliableOffsetRecvSide << std::endl;
+        // remove.
+        auto TestContext = (StreamReliableReset*)ClientContext;
+        if (Event->Type == QUIC_STREAM_EVENT_SHUTDOWN_COMPLETE) {
+            TestContext->ClientStreamShutdownComplete.Set();
+        }
+        return QUIC_STATUS_SUCCESS;
+    }
+
+    static QUIC_STATUS ServerStreamCallback(_In_ MsQuicStream* Stream, _In_opt_ void* ServerContext, _Inout_ QUIC_STREAM_EVENT* Event) {
+        // remove
+        uint64_t ReliableOffsetSendSide = 69420;
+        uint64_t ReliableOffsetRecvSide = 69420;
+        Stream->GetReliableOffset(&ReliableOffsetSendSide);
+        Stream->GetReliableOffsetRecv(&ReliableOffsetRecvSide);
+        std::cout << "Server Side Stream Send: " << ReliableOffsetSendSide << ", ";
+        std::cout << " Server Side Stream Recv: " << ReliableOffsetRecvSide << std::endl;
+        // remove.
+        auto TestContext = (StreamReliableReset*)ServerContext;
+        if (Event->Type == QUIC_STREAM_EVENT_RECEIVE) {
+            TestContext->ReceivedBufferSize += Event->RECEIVE.TotalBufferLength;
+        }
+        if (Event->Type == QUIC_STREAM_EVENT_PEER_SEND_SHUTDOWN) {
+            Stream->Shutdown(QUIC_STREAM_SHUTDOWN_FLAG_ABORT_SEND);
+        }
+        return QUIC_STATUS_SUCCESS;
+    }
+
+    static QUIC_STATUS ConnCallback(_In_ MsQuicConnection*, _In_opt_ void* Context, _Inout_ QUIC_CONNECTION_EVENT* Event) {
+        if (Event->Type == QUIC_CONNECTION_EVENT_PEER_STREAM_STARTED) {
+            new(std::nothrow) MsQuicStream(Event->PEER_STREAM_STARTED.Stream, CleanUpAutoDelete, ServerStreamCallback, Context);
+        }
+        return QUIC_STATUS_SUCCESS;
+    }
+};
+
+    MsQuicRegistration Registration(true);
+    TEST_TRUE(Registration.IsValid());
+
+    MsQuicSettings TestSettings;
+    TestSettings.SetReliableResetEnabled(true);
+    TestSettings.SetPeerBidiStreamCount(1);
+
+    MsQuicConfiguration ServerConfiguration(Registration, "MsQuicTest", TestSettings, ServerSelfSignedCredConfig);
+    TEST_QUIC_SUCCEEDED(ServerConfiguration.GetInitStatus());
+
+    MsQuicConfiguration ClientConfiguration(Registration, "MsQuicTest", TestSettings, MsQuicCredentialConfig());
+    TEST_QUIC_SUCCEEDED(ClientConfiguration.GetInitStatus());
+
+    StreamReliableReset Context;
+    #define BUFFER_SIZE 10000
+    #define RELIABLE_SIZE 5000
+    uint8_t SendDataBuffer[BUFFER_SIZE];
+
+    QUIC_BUFFER SendBuffer { sizeof(SendDataBuffer), SendDataBuffer };
+    Context.ReceivedBufferSize = 0;
+
+    MsQuicAutoAcceptListener Listener(Registration, ServerConfiguration, StreamReliableReset::ConnCallback, &Context);
+    TEST_QUIC_SUCCEEDED(Listener.GetInitStatus());
+    TEST_QUIC_SUCCEEDED(Listener.Start("MsQuicTest"));
+    QuicAddr ServerLocalAddr;
+    TEST_QUIC_SUCCEEDED(Listener.GetLocalAddr(ServerLocalAddr));
+
+    MsQuicConnection Connection(Registration);
+    TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
+
+    TEST_QUIC_SUCCEEDED(Connection.Start(ClientConfiguration, ServerLocalAddr.GetFamily(), QUIC_TEST_LOOPBACK_FOR_AF(ServerLocalAddr.GetFamily()), ServerLocalAddr.GetPort()));
+    TEST_TRUE(Connection.HandshakeCompleteEvent.WaitTimeout(TestWaitTimeout));
+    TEST_TRUE(Connection.HandshakeComplete);
+    TEST_TRUE(Listener.LastConnection->HandshakeCompleteEvent.WaitTimeout(TestWaitTimeout));
+    TEST_TRUE(Listener.LastConnection->HandshakeComplete);
+    CxPlatSleep(50); // Wait for things to idle out
+
+    MsQuicStream Stream(Connection, QUIC_STREAM_OPEN_FLAG_NONE, CleanUpManual, StreamReliableReset::ClientStreamCallback, &Context);
+    TEST_QUIC_SUCCEEDED(Stream.GetInitStatus());
+    TEST_QUIC_SUCCEEDED(Stream.Start());
+    TEST_QUIC_SUCCEEDED(Stream.Send(&SendBuffer, 1, QUIC_SEND_FLAG_DELAY_SEND, &Context));
+    TEST_QUIC_SUCCEEDED(Stream.SetReliableOffset(RELIABLE_SIZE));
+    TEST_QUIC_SUCCEEDED(Stream.Shutdown(0)); // Queues up a shutdown operation.
+
+    TEST_TRUE(Context.ClientStreamShutdownComplete.WaitTimeout(TestWaitTimeout));
+    TEST_TRUE(Context.ReceivedBufferSize >= RELIABLE_SIZE);
 }
