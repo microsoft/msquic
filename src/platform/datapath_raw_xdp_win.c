@@ -91,9 +91,9 @@ typedef struct XDP_QUEUE {
 } XDP_QUEUE;
 
 typedef struct DECLSPEC_ALIGN(MEMORY_ALLOCATION_ALIGNMENT) XDP_RX_PACKET {
-    CXPLAT_RECV_DATA;
-    CXPLAT_ROUTE RouteStorage;
     XDP_QUEUE* Queue;
+    CXPLAT_ROUTE RouteStorage;
+    CXPLAT_RECV_DATA RecvData;
     // Followed by:
     // uint8_t ClientContext[...];
     // uint8_t FrameBuffer[MAX_ETH_FRAME_SIZE];
@@ -123,22 +123,6 @@ CxPlatXdpExecute(
     _Inout_ void* Context,
     _Inout_ CXPLAT_EXECUTION_STATE* State
     );
-
-CXPLAT_RECV_DATA*
-CxPlatDataPathRecvPacketToRecvData(
-    _In_ const CXPLAT_RECV_PACKET* const Context
-    )
-{
-    return (CXPLAT_RECV_DATA*)(((uint8_t*)Context) - sizeof(XDP_RX_PACKET));
-}
-
-CXPLAT_RECV_PACKET*
-CxPlatDataPathRecvDataToRecvPacket(
-    _In_ const CXPLAT_RECV_DATA* const Datagram
-    )
-{
-    return (CXPLAT_RECV_PACKET*)(((uint8_t*)Datagram) + sizeof(XDP_RX_PACKET));
-}
 
 QUIC_STATUS
 CxPlatGetInterfaceRssQueueCount(
@@ -1594,7 +1578,7 @@ CxPlatXdpRx(
         if (Packet->Buffer) {
             Packet->Allocated = TRUE;
             Packet->Queue = Queue;
-            Buffers[PacketCount++] = (CXPLAT_RECV_DATA*)Packet;
+            Buffers[PacketCount++] = &Packet->RecvData;
         } else {
             CxPlatListPushEntry(&Queue->PartitionRxPool, (CXPLAT_SLIST_ENTRY*)Packet);
         }
@@ -1656,7 +1640,8 @@ CxPlatDpRawRxFree(
     SLIST_HEADER* Pool = NULL;
 
     while (PacketChain) {
-        const XDP_RX_PACKET* Packet = (XDP_RX_PACKET*)PacketChain;
+        const XDP_RX_PACKET* Packet =
+            CXPLAT_CONTAINING_RECORD(PacketChain, XDP_RX_PACKET, RecvData);
         PacketChain = PacketChain->Next;
         // Packet->Allocated = FALSE; (other data paths don't clear this flag?)
 

@@ -104,7 +104,7 @@ _Success_(return != FALSE)
 BOOLEAN
 QuicPacketValidateInvariant(
     _In_ const void* Owner, // Binding or Connection depending on state
-    _Inout_ CXPLAT_RECV_PACKET* Packet,
+    _Inout_ QUIC_RX_PACKET* Packet,
     _In_ BOOLEAN IsBindingShared
     )
 {
@@ -208,7 +208,7 @@ BOOLEAN
 QuicPacketValidateLongHeaderV1(
     _In_ const void* Owner, // Binding or Connection depending on state
     _In_ BOOLEAN IsServer,
-    _Inout_ CXPLAT_RECV_PACKET* Packet,
+    _Inout_ QUIC_RX_PACKET* Packet,
     _Outptr_result_buffer_maybenull_(*TokenLength)
         const uint8_t** Token,
     _Out_ uint16_t* TokenLength,
@@ -481,7 +481,7 @@ QuicPacketEncodeRetryV1(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 QuicPacketDecodeRetryTokenV1(
-    _In_ const CXPLAT_RECV_PACKET* const Packet,
+    _In_ const QUIC_RX_PACKET* const Packet,
     _Outptr_result_buffer_maybenull_(*TokenLength)
         const uint8_t** Token,
     _Out_ uint16_t* TokenLength
@@ -518,7 +518,7 @@ _IRQL_requires_max_(DISPATCH_LEVEL)
 BOOLEAN
 QuicPacketValidateInitialToken(
     _In_ const void* const Owner,
-    _In_ const CXPLAT_RECV_PACKET* const Packet,
+    _In_ const QUIC_RX_PACKET* const Packet,
     _In_range_(>, 0) uint16_t TokenLength,
     _In_reads_(TokenLength)
         const uint8_t* TokenBuffer,
@@ -550,8 +550,7 @@ QuicPacketValidateInitialToken(
         return FALSE;
     }
 
-    const CXPLAT_RECV_DATA* Datagram =
-        CxPlatDataPathRecvPacketToRecvData(Packet);
+    const CXPLAT_RECV_DATA* Datagram = GetRecvData(Packet);
     if (!QuicAddrCompare(&Token.Encrypted.RemoteAddress, &Datagram->Route->RemoteAddress)) {
         QuicPacketLogDrop(Owner, Packet, "Retry Token Addr Mismatch");
         *DropPacket = TRUE;
@@ -566,7 +565,7 @@ _Success_(return != FALSE)
 BOOLEAN
 QuicPacketValidateShortHeaderV1(
     _In_ const void* Owner, // Binding or Connection depending on state
-    _Inout_ CXPLAT_RECV_PACKET* Packet,
+    _Inout_ QUIC_RX_PACKET* Packet,
     _In_ BOOLEAN IgnoreFixedBit
     )
 {
@@ -807,13 +806,11 @@ _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 QuicPacketLogDrop(
     _In_ const void* Owner, // Binding or Connection depending on state
-    _In_ const CXPLAT_RECV_PACKET* Packet,
+    _In_ const QUIC_RX_PACKET* Packet,
     _In_z_ const char* Reason
     )
 {
-    const CXPLAT_RECV_DATA* Datagram = // cppcheck-suppress unreadVariable; NOLINT
-        CxPlatDataPathRecvPacketToRecvData(Packet);
-
+    const CXPLAT_RECV_DATA* Datagram = GetRecvData(Packet); // cppcheck-suppress unreadVariable; NOLINT
     if (Packet->AssignedToConnection) {
         InterlockedIncrement64((int64_t*)&((QUIC_CONNECTION*)Owner)->Stats.Recv.DroppedPackets);
         QuicTraceEvent(
@@ -840,14 +837,12 @@ _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 QuicPacketLogDropWithValue(
     _In_ const void* Owner, // Binding or Connection depending on state
-    _In_ const CXPLAT_RECV_PACKET* Packet,
+    _In_ const QUIC_RX_PACKET* Packet,
     _In_z_ const char* Reason,
     _In_ uint64_t Value
     )
 {
-    const CXPLAT_RECV_DATA* Datagram = // cppcheck-suppress unreadVariable; NOLINT
-        CxPlatDataPathRecvPacketToRecvData(Packet);
-
+    const CXPLAT_RECV_DATA* Datagram = GetRecvData(Packet); // cppcheck-suppress unreadVariable; NOLINT
     if (Packet->AssignedToConnection) {
         InterlockedIncrement64((int64_t*)&((QUIC_CONNECTION*)Owner)->Stats.Recv.DroppedPackets);
         QuicTraceEvent(

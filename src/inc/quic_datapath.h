@@ -132,11 +132,6 @@ typedef struct CXPLAT_DATAPATH CXPLAT_DATAPATH;
 typedef struct CXPLAT_SOCKET CXPLAT_SOCKET;
 
 //
-// Can be defined to whatever the client needs.
-//
-typedef struct CXPLAT_RECV_PACKET CXPLAT_RECV_PACKET;
-
-//
 // Structure that maintains the 'per send' context.
 //
 typedef struct CXPLAT_SEND_DATA CXPLAT_SEND_DATA;
@@ -232,7 +227,16 @@ typedef struct CXPLAT_RECV_DATA {
     uint16_t Reserved : 6;
     uint16_t ReservedEx : 8;
 
+    //
+    // Variable length data of size `ClientRecvContextLength` passed into
+    // CxPlatDataPathInitialize.
+    //
+    uint8_t ClientData[0];
+
 } CXPLAT_RECV_DATA;
+
+#define CxPlatRecvDataSize(ClientRecvContextLength) \
+    (sizeof(CXPLAT_RECV_DATA) + (ClientRecvContextLength))
 
 //
 // QUIC Encryption Offload (QEO) interfaces
@@ -275,22 +279,6 @@ typedef struct CXPLAT_QEO_CONNECTION {
     uint8_t HeaderKey[32];    // Length determined by CipherType
     uint8_t PayloadIv[12];
 } CXPLAT_QEO_CONNECTION;
-
-//
-// Gets the corresponding receive data from its context pointer.
-//
-CXPLAT_RECV_DATA*
-CxPlatDataPathRecvPacketToRecvData(
-    _In_ const CXPLAT_RECV_PACKET* const RecvPacket
-    );
-
-//
-// Gets the corresponding client context from its receive data pointer.
-//
-CXPLAT_RECV_PACKET*
-CxPlatDataPathRecvDataToRecvPacket(
-    _In_ const CXPLAT_RECV_DATA* const RecvData
-    );
 
 //
 // Function pointer type for datapath TCP accept callbacks.
