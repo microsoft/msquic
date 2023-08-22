@@ -189,15 +189,38 @@ QuicStreamProcessReliableResetFrame(
             ReliableOffset);
     }
 
-
     if (Stream->RecvBuffer.BaseOffset >= Stream->RecvMaxLength) {
         //
-        // All data delivered. Queue flush.
+        // All data delivered. Deliver shutdown callback.
         //
         Stream->Flags.ReceiveDataPending = TRUE;
-        QuicStreamRecvQueueFlush(
+
+        //
+        // Shut down the stream.
+        //
+        QuicStreamTryCompleteShutdown(Stream);
+
+        //
+        // Remove any flags we shouldn't be sending now that the receive
+        // direction is closed.
+        //
+        QuicSendClearStreamSendFlag(
+            &Stream->Connection->Send,
             Stream,
-            Stream->RecvBuffer.BaseOffset >= Stream->RecvMaxLength);
+            QUIC_STREAM_SEND_FLAG_MAX_DATA | QUIC_STREAM_SEND_FLAG_RECV_ABORT);
+
+        //
+        // Indicate to the app that the stream has been aborted by the peer.
+        //
+        QUIC_STREAM_EVENT Event;
+        Event.Type = QUIC_STREAM_EVENT_PEER_SEND_ABORTED;
+        Event.PEER_SEND_ABORTED.ErrorCode = ErrorCode;
+        QuicTraceLogStreamVerbose(
+            IndicatePeerSendAbort,
+            Stream,
+            "Indicating QUIC_STREAM_EVENT_PEER_SEND_ABORTED (0x%llX)",
+            ErrorCode);
+        (void)QuicStreamIndicateEvent(Stream, &Event);
     }
 }
 
