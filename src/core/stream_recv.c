@@ -181,6 +181,12 @@ QuicStreamProcessReliableResetFrame(
         //
         Stream->ReliableOffsetRecv = ReliableOffset; // TODO: Remove ReliableOffsetRecv once everything works.
         Stream->RecvMaxLength = ReliableOffset;
+
+        QuicTraceLogStreamInfo(
+            ReliableRecvOffsetSet,
+            Stream,
+            "Reliable recv offset set to %llu",
+            ReliableOffset);
     }
 
 

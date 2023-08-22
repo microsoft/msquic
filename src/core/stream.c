@@ -79,7 +79,6 @@ QuicStreamInitialize(
     Stream->RefTypeCount[QUIC_STREAM_REF_APP] = 1;
 #endif
 
-
     if (Stream->Flags.Unidirectional) {
         if (!OpenedRemotely) {
 
@@ -674,6 +673,13 @@ QuicStreamParamSet(
         }
 
         Stream->ReliableOffsetSend = *(uint64_t*)Buffer;
+
+        QuicTraceLogStreamInfo(
+            ReliableSendOffsetSet,
+            Stream,
+            "Reliable send offset set to %llu",
+            *(uint64_t*)Buffer);
+
         Status = QUIC_STATUS_SUCCESS;
         break;
 
