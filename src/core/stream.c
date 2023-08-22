@@ -672,6 +672,11 @@ QuicStreamParamSet(
             break;
         }
 
+        if (Stream->Flags.LocalCloseReset) {
+            Status = QUIC_STATUS_INVALID_STATE;
+            break;
+        }
+
         Stream->ReliableOffsetSend = *(uint64_t*)Buffer;
 
         QuicTraceLogStreamInfo(
