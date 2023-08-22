@@ -235,26 +235,23 @@ QuicStreamSendShutdown(
                 QUIC_STREAM_SEND_FLAG_FIN);
         }
     } else {
-        uint64_t CurrOffset = Stream->UnAckedOffset;
-        while (ApiSendRequests != NULL && CurrOffset < Stream->ReliableOffsetSend) {
+        if (Stream->Flags.LocalCloseReset || Stream->Flags.LocalCloseFin) {
             //
-            // Deliver the necessary send requests prior to aborting.
+            // We have already closed the stream (graceful or abortive) so we
+            // can't reliably abort it.
             //
-            QUIC_SEND_REQUEST* SendRequest = ApiSendRequests;
-            ApiSendRequests = ApiSendRequests->Next;
-            QuicStreamCompleteSendRequest(Stream, SendRequest, TRUE, FALSE);
-            CurrOffset++;
+            goto Exit;
         }
-
+        Stream->Flags.LocalCloseResetReliable = TRUE;
         //
         // Queue up a RESET RELIABLE STREAM frame to be sent.
         //
         QuicSendSetStreamSendFlag(
             &Stream->Connection->Send,
             Stream,
-            QUIC_STREAM_SEND_FLAG_FIN, // TODO; Change this.
-            DelaySend);
-    }
+            QUIC_STREAM_SEND_FLAG_SEND_ABORT,
+            FALSE);
+}
 
     QuicStreamSendDumpState(Stream);
 
@@ -1103,7 +1100,6 @@ QuicStreamSendWrite(
                 AvailableBufferLength,
                 Builder->Datagram->Buffer);
             FrameType = QUIC_FRAME_RELIABLE_RESET_STREAM;
-            Stream->Flags.LocalCloseResetReliable = TRUE;
         } else {
             QUIC_RESET_STREAM_EX Frame = { Stream->ID, Stream->SendShutdownErrorCode, Stream->MaxSentLength };
             CanEncodeFrame = QuicResetStreamFrameEncode(
