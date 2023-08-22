@@ -1558,13 +1558,14 @@ CxPlatXdpRx(
         uint8_t* FrameBuffer = (uint8_t*)Packet + Buffer->Address.Offset;
 
         CxPlatZeroMemory(Packet, sizeof(XDP_RX_PACKET));
-        Packet->Route = &Packet->RouteStorage;
+        Packet->Queue = Queue;
         Packet->RouteStorage.Queue = Queue;
-        Packet->PartitionIndex = PartitionIndex;
+        Packet->RecvData.Route = &Packet->RouteStorage;
+        Packet->RecvData.PartitionIndex = PartitionIndex;
 
         CxPlatDpRawParseEthernet(
             (CXPLAT_DATAPATH*)Xdp,
-            (CXPLAT_RECV_DATA*)Packet,
+            &Packet->RecvData,
             FrameBuffer,
             (uint16_t)Buffer->Length);
 
@@ -1573,11 +1574,10 @@ CxPlatXdpRx(
         // mark it resolved. This allows stateless sends to be issued without performing
         // a route lookup.
         //
-        Packet->Route->State = RouteResolved;
+        Packet->RecvData.Route->State = RouteResolved;
 
-        if (Packet->Buffer) {
-            Packet->Allocated = TRUE;
-            Packet->Queue = Queue;
+        if (Packet->RecvData.Buffer) {
+            Packet->RecvData.Allocated = TRUE;
             Buffers[PacketCount++] = &Packet->RecvData;
         } else {
             CxPlatListPushEntry(&Queue->PartitionRxPool, (CXPLAT_SLIST_ENTRY*)Packet);
