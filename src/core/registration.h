@@ -91,6 +91,16 @@ typedef struct QUIC_REGISTRATION {
     CXPLAT_LIST_ENTRY Connections;
 
     //
+    // Protects access to the Listener list.
+    //
+    CXPLAT_LOCK ListenerLock;
+
+    //
+    // List of all Listeners for this registration.
+    //
+    CXPLAT_LIST_ENTRY Listeners;
+
+    //
     // Rundown for all child objects.
     //
     CXPLAT_RUNDOWN_REF Rundown;

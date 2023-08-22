@@ -75,6 +75,10 @@ MsQuicListenerOpen(
     QuicSiloAddRef(Listener->Silo);
 #endif
 
+    CxPlatDispatchLockAcquire(&Registration->ListenerLock);
+    CxPlatListInsertTail(&Registration->Listeners, &Listener->RegistrationLink);
+    CxPlatDispatchLockRelease(&Registration->ListenerLock);
+
     BOOLEAN Result = CxPlatRundownAcquire(&Registration->Rundown);
     CXPLAT_DBG_ASSERT(Result); UNREFERENCED_PARAMETER(Result);
 
@@ -116,6 +120,10 @@ QuicListenerFree(
 #ifdef QUIC_SILO
     QuicSiloRelease(Listener->Silo);
 #endif
+
+    CxPlatDispatchLockAcquire(&Listener->Registration->ListenerLock);
+    CxPlatListEntryRemove(&Listener->RegistrationLink);
+    CxPlatDispatchLockRelease(&Listener->Registration->ListenerLock);
 
     CxPlatRefUninitialize(&Listener->RefCount);
     CxPlatEventUninitialize(Listener->StopEvent);
