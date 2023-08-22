@@ -235,9 +235,6 @@ typedef struct CXPLAT_RECV_DATA {
 
 } CXPLAT_RECV_DATA;
 
-#define CxPlatRecvDataSize(ClientRecvContextLength) \
-    (sizeof(CXPLAT_RECV_DATA) + (ClientRecvContextLength))
-
 //
 // QUIC Encryption Offload (QEO) interfaces
 //

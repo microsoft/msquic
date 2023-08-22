@@ -2046,10 +2046,10 @@ CxPlatRecvDataReturn(
     CXPLAT_RECV_DATA* Datagram;
     while ((Datagram = RecvDataChain) != NULL) {
         RecvDataChain = RecvDataChain->Next;
-        DATAPATH_RX_PACKET* Datagram =
+        DATAPATH_RX_PACKET* Packet =
             CXPLAT_CONTAINING_RECORD(Datagram, DATAPATH_RX_PACKET, Data);
-        if (InterlockedDecrement(&Datagram->IoBlock->RefCount) == 0) {
-            CxPlatPoolFree(Datagram->IoBlock->OwningPool, Datagram->IoBlock);
+        if (InterlockedDecrement(&Packet->IoBlock->RefCount) == 0) {
+            CxPlatPoolFree(Packet->IoBlock->OwningPool, Packet->IoBlock);
         }
     }
 }
