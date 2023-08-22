@@ -4667,7 +4667,6 @@ QuicConnRecvFrames(
         }
 
         case QUIC_FRAME_RESET_STREAM:
-        case QUIC_FRAME_RELIABLE_RESET_STREAM:
         case QUIC_FRAME_STOP_SENDING:
         case QUIC_FRAME_STREAM:
         case QUIC_FRAME_STREAM_1:
@@ -4678,7 +4677,8 @@ QuicConnRecvFrames(
         case QUIC_FRAME_STREAM_6:
         case QUIC_FRAME_STREAM_7:
         case QUIC_FRAME_MAX_STREAM_DATA:
-        case QUIC_FRAME_STREAM_DATA_BLOCKED: {
+        case QUIC_FRAME_STREAM_DATA_BLOCKED:
+        case QUIC_FRAME_RELIABLE_RESET_STREAM: {
             if (Closed) {
                 if (!QuicStreamFrameSkip(
                         FrameType, PayloadLength, Payload, &Offset)) {
