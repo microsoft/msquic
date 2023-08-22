@@ -122,6 +122,7 @@ typedef union QUIC_STREAM_FLAGS {
         BOOLEAN LocalNotAllowed         : 1;    // Peer's unidirectional stream.
         BOOLEAN LocalCloseFin           : 1;    // Locally closed (graceful).
         BOOLEAN LocalCloseReset         : 1;    // Locally closed (locally aborted).
+        BOOLEAN LocalCloseResetReliable : 1;    // Indicates that we should shutdown the send path once we sent/ACK'd ReliableOffsetSend bytes.
         BOOLEAN ReceivedStopSending     : 1;    // Peer sent STOP_SENDING frame.
         BOOLEAN LocalCloseAcked         : 1;    // Any close acknowledged.
         BOOLEAN FinAcked                : 1;    // Our FIN was acknowledged.
@@ -152,8 +153,6 @@ typedef union QUIC_STREAM_FLAGS {
 
         BOOLEAN InStreamTable           : 1;    // The stream is currently in the connection's table.
         BOOLEAN DelayIdFcUpdate         : 1;    // Delay stream ID FC updates to StreamClose.
-
-        BOOLEAN ShutdownReliableSend    : 1;    // Indicates that we should shutdown the send path once we sent/ACK'd ReliableOffsetSend bytes.
     };
 } QUIC_STREAM_FLAGS;
 

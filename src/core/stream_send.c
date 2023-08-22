@@ -527,7 +527,7 @@ QuicStreamSendFlush(
 
     while (ApiSendRequests != NULL) {
 
-        if (Stream->UnAckedOffset >= Stream->ReliableOffsetSend && Stream->Flags.ShutdownReliableSend) {
+        if (Stream->UnAckedOffset >= Stream->ReliableOffsetSend && Stream->Flags.LocalCloseResetReliable) {
             break;
         }
 
@@ -1103,7 +1103,7 @@ QuicStreamSendWrite(
                 AvailableBufferLength,
                 Builder->Datagram->Buffer);
             FrameType = QUIC_FRAME_RELIABLE_RESET_STREAM;
-            Stream->Flags.ShutdownReliableSend = TRUE;
+            Stream->Flags.LocalCloseResetReliable = TRUE;
         } else {
             QUIC_RESET_STREAM_EX Frame = { Stream->ID, Stream->SendShutdownErrorCode, Stream->MaxSentLength };
             CanEncodeFrame = QuicResetStreamFrameEncode(
