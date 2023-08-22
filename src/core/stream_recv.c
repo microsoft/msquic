@@ -174,13 +174,13 @@ QuicStreamProcessReliableResetFrame(
     _In_ QUIC_VAR_INT ReliableOffset
     )
 {
-    if (Stream->ReliableOffsetRecv == 0 || ReliableOffset < Stream->ReliableOffsetRecv) {
+    if (Stream->RecvMaxLength == 0 || ReliableOffset < Stream->RecvMaxLength) {
         //
         // As outlined in the spec, if we receive multiple CLOSE_STREAM frames, we only accept strictly
         // decreasing offsets.
         //
-        Stream->ReliableOffsetRecv = ReliableOffset; // TODO: Remove ReliableOffsetRecv once everything works.
         Stream->RecvMaxLength = ReliableOffset;
+        Stream->Flags.RemoteCloseResetReliable = TRUE;
 
         QuicTraceLogStreamInfo(
             ReliableRecvOffsetSet,

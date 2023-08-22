@@ -123,6 +123,7 @@ typedef union QUIC_STREAM_FLAGS {
         BOOLEAN LocalCloseFin           : 1;    // Locally closed (graceful).
         BOOLEAN LocalCloseReset         : 1;    // Locally closed (locally aborted).
         BOOLEAN LocalCloseResetReliable : 1;    // Indicates that we should shutdown the send path once we sent/ACK'd ReliableOffsetSend bytes.
+        BOOLEAN RemoteCloseResetReliable : 1;   // Indicates that the peer initiaited a reliable reset. Keep Recv path available for RecvMaxLength bytes.
         BOOLEAN ReceivedStopSending     : 1;    // Peer sent STOP_SENDING frame.
         BOOLEAN LocalCloseAcked         : 1;    // Any close acknowledged.
         BOOLEAN FinAcked                : 1;    // Our FIN was acknowledged.
@@ -416,11 +417,6 @@ typedef struct QUIC_STREAM {
     // indicates that no inline call was made.
     //
     uint64_t RecvInlineCompletionLength;
-
-    //
-    // If > 0, bytes up to offset must be received from peer before we can abort this stream.
-    //
-    uint64_t ReliableOffsetRecv;
 
     //
     // The error code for why the receive path was shutdown.
