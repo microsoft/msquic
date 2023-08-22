@@ -291,15 +291,15 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_WINKERNEL_C, DatapathFragmented,
 
 
 /*----------------------------------------------------------
-// Decoder Ring for DatapathDropAllocRecvContextFailure
+// Decoder Ring for DatapathDropAllocIoBlockFailure
 // [%p] Couldn't allocate receive context.
 // QuicTraceLogWarning(
-                        DatapathDropAllocRecvContextFailure,
+                        DatapathDropAllocIoBlockFailure,
                         "[%p] Couldn't allocate receive context.",
                         Binding);
 // arg2 = arg2 = Binding = arg2
 ----------------------------------------------------------*/
-TRACEPOINT_EVENT(CLOG_DATAPATH_WINKERNEL_C, DatapathDropAllocRecvContextFailure,
+TRACEPOINT_EVENT(CLOG_DATAPATH_WINKERNEL_C, DatapathDropAllocIoBlockFailure,
     TP_ARGS(
         const void *, arg2), 
     TP_FIELDS(

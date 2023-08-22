@@ -306,17 +306,17 @@ tracepoint(CLOG_DATAPATH_WINKERNEL_C, DatapathFragmented , arg2);\
 
 
 /*----------------------------------------------------------
-// Decoder Ring for DatapathDropAllocRecvContextFailure
+// Decoder Ring for DatapathDropAllocIoBlockFailure
 // [%p] Couldn't allocate receive context.
 // QuicTraceLogWarning(
-                        DatapathDropAllocRecvContextFailure,
+                        DatapathDropAllocIoBlockFailure,
                         "[%p] Couldn't allocate receive context.",
                         Binding);
 // arg2 = arg2 = Binding = arg2
 ----------------------------------------------------------*/
-#ifndef _clog_3_ARGS_TRACE_DatapathDropAllocRecvContextFailure
-#define _clog_3_ARGS_TRACE_DatapathDropAllocRecvContextFailure(uniqueId, encoded_arg_string, arg2)\
-tracepoint(CLOG_DATAPATH_WINKERNEL_C, DatapathDropAllocRecvContextFailure , arg2);\
+#ifndef _clog_3_ARGS_TRACE_DatapathDropAllocIoBlockFailure
+#define _clog_3_ARGS_TRACE_DatapathDropAllocIoBlockFailure(uniqueId, encoded_arg_string, arg2)\
+tracepoint(CLOG_DATAPATH_WINKERNEL_C, DatapathDropAllocIoBlockFailure , arg2);\
 
 #endif
 

@@ -1832,7 +1832,7 @@ CxPlatSocketContextRecvComplete(
             IoBlock->RefCount++;
             Datagram->IoBlock = IoBlock;
 
-            CXPLAT_RECV_DATA* RecvData = &Datagram->RecvData;
+            CXPLAT_RECV_DATA* RecvData = &Datagram->Data;
             RecvData->Next = NULL;
             RecvData->Route = &IoBlock->Route;
             RecvData->Buffer = RecvBuffer + Offset;
