@@ -659,6 +659,11 @@ typedef struct CXPLAT_DATAPATH {
 
 } CXPLAT_DATAPATH;
 
+typedef struct DECLSPEC_ALIGN(MEMORY_ALLOCATION_ALIGNMENT) SOCK_RX_PACKET {
+    CXPLAT_RECV_DATA;
+    CXPLAT_DATAPATH_INTERNAL_RECV_BUFFER_CONTEXT Context;
+} SOCK_RX_PACKET;
+
 #ifdef DEBUG
 #ifndef AllocOffset
 #define AllocOffset (sizeof(void*) * 2)
@@ -790,9 +795,7 @@ CxPlatDataPathRecvPacketToRecvData(
     )
 {
     return (CXPLAT_RECV_DATA*)
-        (((PUCHAR)Context) -
-            sizeof(CXPLAT_DATAPATH_INTERNAL_RECV_BUFFER_CONTEXT) -
-            sizeof(CXPLAT_RECV_DATA));
+        (((PUCHAR)Context) - sizeof(SOCK_RX_PACKET));
 }
 
 CXPLAT_RECV_PACKET*
@@ -801,9 +804,7 @@ CxPlatDataPathRecvDataToRecvPacket(
     )
 {
     return (CXPLAT_RECV_PACKET*)
-        (((PUCHAR)Datagram) +
-            sizeof(CXPLAT_RECV_DATA) +
-            sizeof(CXPLAT_DATAPATH_INTERNAL_RECV_BUFFER_CONTEXT));
+        (((PUCHAR)Datagram) + sizeof(SOCK_RX_PACKET));
 }
 
 CXPLAT_DATAPATH_INTERNAL_RECV_BUFFER_CONTEXT*
@@ -1280,8 +1281,7 @@ CxPlatDataPathInitialize(
 
     Datapath->DatagramStride =
         ALIGN_UP(
-            sizeof(CXPLAT_RECV_DATA) +
-            sizeof(CXPLAT_DATAPATH_INTERNAL_RECV_BUFFER_CONTEXT) +
+            sizeof(SOCK_RX_PACKET) +
             ClientRecvContextLength,
             PVOID);
     Datapath->RecvPayloadOffset =
