@@ -552,7 +552,7 @@ QuicLossDetectionOnPacketAcknowledged(
             break;
 
         case QUIC_FRAME_RELIABLE_RESET_STREAM:
-            QuicStreamOnResetAck(Packet->Frames[i].RELIABLE_RESET_STREAM.Stream);
+            QuicStreamOnResetReliableAck(Packet->Frames[i].RELIABLE_RESET_STREAM.Stream);
             break;
 
         case QUIC_FRAME_CRYPTO:

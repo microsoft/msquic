@@ -235,7 +235,7 @@ QuicStreamSendShutdown(
                 QUIC_STREAM_SEND_FLAG_FIN);
         }
     } else {
-        if (Stream->Flags.LocalCloseReset || Stream->Flags.LocalCloseFin) {
+        if (Stream->Flags.LocalCloseReset) {
             //
             // We have already closed the stream (graceful or abortive) so we
             // can't reliably abort it.
@@ -243,6 +243,7 @@ QuicStreamSendShutdown(
             goto Exit;
         }
         Stream->Flags.LocalCloseResetReliable = TRUE;
+        Stream->SendShutdownErrorCode = ErrorCode;
         //
         // Queue up a RESET RELIABLE STREAM frame to be sent.
         //
@@ -1509,6 +1510,38 @@ QuicStreamOnAck(
         }
     }
 
+    //
+    // If this stream has been reset reliably, we only close if we have received enough bytes.
+    //
+    BOOLEAN ReliableResetShutdown = !Stream->Flags.LocalCloseAcked && Stream->Flags.LocalCloseResetReliable && Stream->UnAckedOffset >= Stream->ReliableOffsetSend;
+    if (ReliableResetShutdown) {
+        Stream->Flags.LocalCloseAcked = TRUE;
+        QuicTraceEvent(
+            StreamSendState,
+            "[strm][%p] Send State: %hhu",
+            Stream,
+            QuicStreamSendGetState(Stream));
+        //
+        // Cleanup.
+        //
+        // while (Stream->SendRequests) {
+        //     QUIC_SEND_REQUEST* Req = Stream->SendRequests;
+        //     //
+        //     // Ignore requests that should have been completed, i.e., < ReliableOffsetSend
+        //     //
+        //     if (Req->StreamOffset + Req->TotalLength < Stream->ReliableOffsetSend) {
+        //         break;
+        //     }
+        //     Stream->SendRequests = Req->Next;
+        //     if (Stream->SendRequests == NULL) {
+        //         Stream->SendRequestsTail = &Stream->SendRequests;
+        //     }
+        //     QuicStreamCompleteSendRequest(Stream, Req, FALSE, TRUE);
+        // }
+        QuicStreamTryCompleteShutdown(Stream);
+        QuicStreamIndicateSendShutdownComplete(Stream, FALSE);
+    }
+
     if (!QuicStreamHasPendingStreamData(Stream)) {
         //
         // Make sure the stream isn't queued to send any stream data.
@@ -1542,6 +1575,31 @@ QuicStreamOnResetAck(
             QuicStreamSendGetState(Stream));
         QuicStreamIndicateSendShutdownComplete(Stream, FALSE);
         QuicStreamTryCompleteShutdown(Stream);
+    }
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+QuicStreamOnResetReliableAck(
+    _In_ QUIC_STREAM* Stream
+) {
+    if (Stream->UnAckedOffset >= Stream->ReliableOffsetSend && !Stream->Flags.LocalCloseAcked) {
+        Stream->Flags.LocalCloseAcked = TRUE;
+        QuicTraceEvent(
+            StreamSendState,
+            "[strm][%p] Send State: %hhu",
+            Stream,
+            QuicStreamSendGetState(Stream));
+        //
+        // Cleanup.
+        //
+        // while (Stream->SendRequests) {
+        //     QUIC_SEND_REQUEST* Req = Stream->SendRequests;
+        //     Stream->SendRequests = Stream->SendRequests->Next;
+        //     QuicStreamCompleteSendRequest(Stream, Req, TRUE, TRUE);
+        // }
+        QuicStreamTryCompleteShutdown(Stream);
+        QuicStreamIndicateSendShutdownComplete(Stream, FALSE);
     }
 }
 

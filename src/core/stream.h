@@ -911,6 +911,15 @@ QuicStreamOnResetAck(
     );
 
 //
+// Called when an ACK is received for a RELIABLE_RESET frame we sent.
+//
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+QuicStreamOnResetReliableAck(
+    _In_ QUIC_STREAM* Stream
+    );
+
+//
 // Dumps send state to the logs.
 //
 _IRQL_requires_max_(PASSIVE_LEVEL)
