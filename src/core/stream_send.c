@@ -1521,24 +1521,8 @@ QuicStreamOnAck(
             "[strm][%p] Send State: %hhu",
             Stream,
             QuicStreamSendGetState(Stream));
-        //
-        // Cleanup.
-        //
-        // while (Stream->SendRequests) {
-        //     QUIC_SEND_REQUEST* Req = Stream->SendRequests;
-        //     //
-        //     // Ignore requests that should have been completed, i.e., < ReliableOffsetSend
-        //     //
-        //     if (Req->StreamOffset + Req->TotalLength < Stream->ReliableOffsetSend) {
-        //         break;
-        //     }
-        //     Stream->SendRequests = Req->Next;
-        //     if (Stream->SendRequests == NULL) {
-        //         Stream->SendRequestsTail = &Stream->SendRequests;
-        //     }
-        //     QuicStreamCompleteSendRequest(Stream, Req, FALSE, TRUE);
-        // }
         QuicStreamTryCompleteShutdown(Stream);
+        QuicStreamCleanupReliableReset(Stream);
         QuicStreamIndicateSendShutdownComplete(Stream, FALSE);
     }
 
@@ -1556,6 +1540,34 @@ QuicStreamOnAck(
             RemoveSendFlags);
     }
 
+    QuicStreamSendDumpState(Stream);
+    QuicStreamValidateRecoveryState(Stream);
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+QuicStreamCleanupReliableReset(
+    _In_ QUIC_STREAM* Stream
+) {
+    //
+    // Cleanup. Cancels all send requests with offsets after ReliableOffsetSend.
+    // Assume this function gets called only when we're about to close the SEND
+    // Path of this stream once sufficient data has been received and ACK'd by the peer.
+    //
+    while (Stream->SendRequests) {
+        QUIC_SEND_REQUEST* Req = Stream->SendRequests;
+        //
+        // Ignore send requests that should have been ACK'd, i.e., < ReliableOffsetSend
+        //
+        if (Req->StreamOffset + Req->TotalLength < Stream->ReliableOffsetSend) {
+            continue;
+        }
+        Stream->SendRequests = Req->Next;
+        if (Stream->SendRequests == NULL) {
+            Stream->SendRequestsTail = &Stream->SendRequests;
+        }
+        QuicStreamCompleteSendRequest(Stream, Req, FALSE, TRUE);
+    }
     QuicStreamSendDumpState(Stream);
     QuicStreamValidateRecoveryState(Stream);
 }
@@ -1590,14 +1602,7 @@ QuicStreamOnResetReliableAck(
             "[strm][%p] Send State: %hhu",
             Stream,
             QuicStreamSendGetState(Stream));
-        //
-        // Cleanup.
-        //
-        // while (Stream->SendRequests) {
-        //     QUIC_SEND_REQUEST* Req = Stream->SendRequests;
-        //     Stream->SendRequests = Stream->SendRequests->Next;
-        //     QuicStreamCompleteSendRequest(Stream, Req, TRUE, TRUE);
-        // }
+        QuicStreamCleanupReliableReset(Stream);
         QuicStreamTryCompleteShutdown(Stream);
         QuicStreamIndicateSendShutdownComplete(Stream, FALSE);
     }

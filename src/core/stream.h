@@ -920,6 +920,15 @@ QuicStreamOnResetReliableAck(
     );
 
 //
+// Cleanups up state once we finish processing a RELIABLE_RESET frame.
+//
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+QuicStreamCleanupReliableReset(
+    _In_ QUIC_STREAM* Stream
+    );
+
+//
 // Dumps send state to the logs.
 //
 _IRQL_requires_max_(PASSIVE_LEVEL)
