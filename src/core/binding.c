@@ -1653,11 +1653,19 @@ QuicBindingReceive(
         Datagram->Next = NULL;
 
         QUIC_RX_PACKET* Packet = GetQuicRxPacket(Datagram);
-        CxPlatZeroMemory(Packet, sizeof(QUIC_RX_PACKET));
         Packet->PacketId =
             PartitionShifted | InterlockedIncrement64((int64_t*)&QuicLibraryGetPerProc()->ReceivePacketId);
+        Packet->PacketNumber = 0;
         Packet->AvailBuffer = Datagram->Buffer;
+        Packet->DestCid = NULL;
+        Packet->SourceCid = NULL;
         Packet->AvailBufferLength = Datagram->BufferLength;
+        Packet->HeaderLength = 0;
+        Packet->PayloadLength = 0;
+        Packet->DestCidLen = 0;
+        Packet->SourceCidLen = 0;
+        Packet->KeyType = QUIC_PACKET_KEY_INITIAL;
+        Packet->Flags = 0;
 
         CXPLAT_DBG_ASSERT(Packet->PacketId != 0);
         QuicTraceEvent(

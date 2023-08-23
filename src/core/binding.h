@@ -95,6 +95,9 @@ typedef struct QUIC_RX_PACKET {
     //
     QUIC_PACKET_KEY_TYPE KeyType;
 
+    union {
+    uint32_t Flags;
+    struct {
     //
     // Flag indicating we have found the connection the packet belongs to.
     //
@@ -157,6 +160,8 @@ typedef struct QUIC_RX_PACKET {
     // Flag indicating the packet contained a non-probing frame.
     //
     BOOLEAN HasNonProbingFrame : 1;
+    };
+    };
 
 } QUIC_RX_PACKET;
 
