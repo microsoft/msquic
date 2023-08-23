@@ -186,17 +186,17 @@ QuicConnGetPathByID(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 _Ret_maybenull_
 QUIC_PATH*
-QuicConnGetPathForDatagram(
+QuicConnGetPathForPacket(
     _In_ QUIC_CONNECTION* Connection,
-    _In_ const CXPLAT_RECV_DATA* Datagram
+    _In_ const QUIC_RX_PACKET* Packet
     )
 {
     for (uint8_t i = 0; i < Connection->PathsCount; ++i) {
         if (!QuicAddrCompare(
-                &Datagram->Route->LocalAddress,
+                &Packet->Route->LocalAddress,
                 &Connection->Paths[i].Route.LocalAddress) ||
             !QuicAddrCompare(
-                &Datagram->Route->RemoteAddress,
+                &Packet->Route->RemoteAddress,
                 &Connection->Paths[i].Route.RemoteAddress)) {
             if (!Connection->State.HandshakeConfirmed) {
                 //
@@ -218,9 +218,9 @@ QuicConnGetPathForDatagram(
         //
         for (uint8_t i = Connection->PathsCount - 1; i > 0; i--) {
             if (!Connection->Paths[i].IsActive
-                && QuicAddrGetFamily(&Datagram->Route->RemoteAddress) == QuicAddrGetFamily(&Connection->Paths[i].Route.RemoteAddress)
-                && QuicAddrCompareIp(&Datagram->Route->RemoteAddress, &Connection->Paths[i].Route.RemoteAddress)
-                && QuicAddrCompare(&Datagram->Route->LocalAddress, &Connection->Paths[i].Route.LocalAddress)) {
+                && QuicAddrGetFamily(&Packet->Route->RemoteAddress) == QuicAddrGetFamily(&Connection->Paths[i].Route.RemoteAddress)
+                && QuicAddrCompareIp(&Packet->Route->RemoteAddress, &Connection->Paths[i].Route.RemoteAddress)
+                && QuicAddrCompare(&Packet->Route->LocalAddress, &Connection->Paths[i].Route.LocalAddress)) {
                 QuicPathRemove(Connection, i);
             }
         }
@@ -253,7 +253,7 @@ QuicConnGetPathForDatagram(
         Path->DestCid = Connection->Paths[0].DestCid; // TODO - Copy instead?
     }
     Path->Binding = Connection->Paths[0].Binding;
-    QuicCopyRouteInfo(&Path->Route, Datagram->Route);
+    QuicCopyRouteInfo(&Path->Route, Packet->Route);
     QuicPathValidate(Path);
 
     return Path;

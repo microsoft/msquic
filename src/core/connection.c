@@ -58,12 +58,12 @@ QUIC_STATUS
 QuicConnAlloc(
     _In_ QUIC_REGISTRATION* Registration,
     _In_opt_ QUIC_WORKER* Worker,
-    _In_opt_ const CXPLAT_RECV_DATA* const Datagram,
+    _In_opt_ const QUIC_RX_PACKET* Packet,
     _Outptr_ _At_(*NewConnection, __drv_allocatesMem(Mem))
         QUIC_CONNECTION** NewConnection
     )
 {
-    BOOLEAN IsServer = Datagram != NULL;
+    BOOLEAN IsServer = Packet != NULL;
     *NewConnection = NULL;
     QUIC_STATUS Status;
 
@@ -73,7 +73,7 @@ QuicConnAlloc(
     // partition can be updated accordingly.
     //
     const uint16_t PartitionIndex =
-        IsServer ? Datagram->PartitionIndex : QuicLibraryGetCurrentPartition();
+        IsServer ? Packet->PartitionIndex : QuicLibraryGetCurrentPartition();
     const uint16_t PartitionId = QuicPartitionIdCreate(PartitionIndex);
     CXPLAT_DBG_ASSERT(PartitionIndex == QuicPartitionIdGetIndex(PartitionId));
 
@@ -158,20 +158,18 @@ QuicConnAlloc(
 
     if (IsServer) {
 
-        const QUIC_RX_PACKET* Packet = GetQuicRxPacket(Datagram);
-
         Connection->Type = QUIC_HANDLE_TYPE_CONNECTION_SERVER;
         if (MsQuicLib.Settings.LoadBalancingMode == QUIC_LOAD_BALANCING_SERVER_ID_IP) {
             CxPlatRandom(1, Connection->ServerID); // Randomize the first byte.
-            if (QuicAddrGetFamily(&Datagram->Route->LocalAddress) == QUIC_ADDRESS_FAMILY_INET) {
+            if (QuicAddrGetFamily(&Packet->Route->LocalAddress) == QUIC_ADDRESS_FAMILY_INET) {
                 CxPlatCopyMemory(
                     Connection->ServerID + 1,
-                    &Datagram->Route->LocalAddress.Ipv4.sin_addr,
+                    &Packet->Route->LocalAddress.Ipv4.sin_addr,
                     4);
             } else {
                 CxPlatCopyMemory(
                     Connection->ServerID + 1,
-                    ((uint8_t*)&Datagram->Route->LocalAddress.Ipv6.sin6_addr) + 12,
+                    ((uint8_t*)&Packet->Route->LocalAddress.Ipv6.sin6_addr) + 12,
                     4);
             }
         } else if (MsQuicLib.Settings.LoadBalancingMode == QUIC_LOAD_BALANCING_SERVER_ID_FIXED) {
@@ -184,7 +182,7 @@ QuicConnAlloc(
 
         Connection->Stats.QuicVersion = Packet->Invariant->LONG_HDR.Version;
         QuicConnOnQuicVersionSet(Connection);
-        QuicCopyRouteInfo(&Path->Route, Datagram->Route);
+        QuicCopyRouteInfo(&Path->Route, Packet->Route);
         Connection->State.LocalAddressSet = TRUE;
         Connection->State.RemoteAddressSet = TRUE;
 
@@ -287,7 +285,7 @@ Error:
             Connection->Packets[i] = NULL;
         }
     }
-    if (Datagram != NULL && Connection->SourceCids.Next != NULL) {
+    if (Packet != NULL && Connection->SourceCids.Next != NULL) {
         CXPLAT_FREE(
             CXPLAT_CONTAINING_RECORD(
                 Connection->SourceCids.Next,
@@ -368,11 +366,11 @@ QuicConnFree(
         QuicOperationQueueClear(Connection->Worker, &Connection->OperQ);
     }
     if (Connection->ReceiveQueue != NULL) {
-        CXPLAT_RECV_DATA* Datagram = Connection->ReceiveQueue;
+        QUIC_RX_PACKET* Packet = Connection->ReceiveQueue;
         do {
-            Datagram->QueuedOnConnection = FALSE;
-        } while ((Datagram = Datagram->Next) != NULL);
-        CxPlatRecvDataReturn(Connection->ReceiveQueue);
+            Packet->QueuedOnConnection = FALSE;
+        } while ((Packet = (QUIC_RX_PACKET*)Packet->Next) != NULL);
+        CxPlatRecvDataReturn((CXPLAT_RECV_DATA*)Connection->ReceiveQueue);
         Connection->ReceiveQueue = NULL;
     }
     QUIC_PATH* Path = &Connection->Paths[0];
@@ -3218,49 +3216,49 @@ QuicConnPeerCertReceived(
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
-QuicConnQueueRecvDatagrams(
+QuicConnQueueRecvPackets(
     _In_ QUIC_CONNECTION* Connection,
-    _In_ CXPLAT_RECV_DATA* DatagramChain,
-    _In_ uint32_t DatagramChainLength,
-    _In_ uint32_t DatagramChainByteLength
+    _In_ QUIC_RX_PACKET* Packets,
+    _In_ uint32_t PacketChainLength,
+    _In_ uint32_t PacketChainByteLength
     )
 {
-    CXPLAT_RECV_DATA** DatagramChainTail = &DatagramChain->Next;
-    DatagramChain->QueuedOnConnection = TRUE;
-    GetQuicRxPacket(DatagramChain)->AssignedToConnection = TRUE;
-    while (*DatagramChainTail != NULL) {
-        (*DatagramChainTail)->QueuedOnConnection = TRUE;
-        GetQuicRxPacket(*DatagramChainTail)->AssignedToConnection = TRUE;
-        DatagramChainTail = &((*DatagramChainTail)->Next);
+    QUIC_RX_PACKET** PacketsTail = (QUIC_RX_PACKET**)&Packets->Next;
+    Packets->QueuedOnConnection = TRUE;
+    Packets->AssignedToConnection = TRUE;
+    while (*PacketsTail != NULL) {
+        (*PacketsTail)->QueuedOnConnection = TRUE;
+        (*PacketsTail)->AssignedToConnection = TRUE;
+        PacketsTail = (QUIC_RX_PACKET**)&((*PacketsTail)->Next);
     }
 
     QuicTraceLogConnVerbose(
         QueueDatagrams,
         Connection,
         "Queuing %u UDP datagrams",
-        DatagramChainLength);
+        PacketChainLength);
 
     BOOLEAN QueueOperation;
     CxPlatDispatchLockAcquire(&Connection->ReceiveQueueLock);
     if (Connection->ReceiveQueueCount >= QUIC_MAX_RECEIVE_QUEUE_COUNT) {
         QueueOperation = FALSE;
     } else {
-        *Connection->ReceiveQueueTail = DatagramChain;
-        Connection->ReceiveQueueTail = DatagramChainTail;
-        DatagramChain = NULL;
+        *Connection->ReceiveQueueTail = Packets;
+        Connection->ReceiveQueueTail = PacketsTail;
+        Packets = NULL;
         QueueOperation = (Connection->ReceiveQueueCount == 0);
-        Connection->ReceiveQueueCount += DatagramChainLength;
-        Connection->ReceiveQueueByteCount += DatagramChainByteLength;
+        Connection->ReceiveQueueCount += PacketChainLength;
+        Connection->ReceiveQueueByteCount += PacketChainByteLength;
     }
     CxPlatDispatchLockRelease(&Connection->ReceiveQueueLock);
 
-    if (DatagramChain != NULL) {
-        CXPLAT_RECV_DATA* Datagram = DatagramChain;
+    if (Packets != NULL) {
+        QUIC_RX_PACKET* Packet = Packets;
         do {
-            Datagram->QueuedOnConnection = FALSE;
-            QuicPacketLogDrop(Connection, GetQuicRxPacket(Datagram), "Max queue limit reached");
-        } while ((Datagram = Datagram->Next) != NULL);
-        CxPlatRecvDataReturn(DatagramChain);
+            Packet->QueuedOnConnection = FALSE;
+            QuicPacketLogDrop(Connection, Packet, "Max queue limit reached");
+        } while ((Packet = (QUIC_RX_PACKET*)Packet->Next) != NULL);
+        CxPlatRecvDataReturn((CXPLAT_RECV_DATA*)Packets);
         return;
     }
 
@@ -3728,12 +3726,12 @@ QuicConnGetKeyOrDeferDatagram(
         } else {
             QUIC_ENCRYPT_LEVEL EncryptLevel = QuicKeyTypeToEncryptLevel(Packet->KeyType);
             QUIC_PACKET_SPACE* Packets = Connection->Packets[EncryptLevel];
-            if (Packets->DeferredDatagramsCount == QUIC_MAX_PENDING_DATAGRAMS) {
+            if (Packets->DeferredPacketsCount == QUIC_MAX_PENDING_DATAGRAMS) {
                 //
                 // We already have too many packets queued up. Just drop this
                 // one.
                 //
-                QuicPacketLogDrop(Connection, Packet, "Max deferred datagram count reached");
+                QuicPacketLogDrop(Connection, Packet, "Max deferred packet count reached");
 
             } else {
                 QuicTraceLogConnVerbose(
@@ -3742,18 +3740,18 @@ QuicConnGetKeyOrDeferDatagram(
                     "Deferring datagram (type=%hu)",
                     (uint16_t)Packet->KeyType);
 
-                Packets->DeferredDatagramsCount++;
+                Packets->DeferredPacketsCount++;
                 Packet->ReleaseDeferred = TRUE;
 
                 //
                 // Add it to the list of pending packets that are waiting on a
                 // key to decrypt with.
                 //
-                CXPLAT_RECV_DATA** Tail = &Packets->DeferredDatagrams;
+                QUIC_RX_PACKET** Tail = &Packets->DeferredPackets;
                 while (*Tail != NULL) {
-                    Tail = &((*Tail)->Next);
+                    Tail = (QUIC_RX_PACKET**)&((*Tail)->Next);
                 }
-                *Tail = (CXPLAT_RECV_DATA*)Packet;
+                *Tail = Packet;
                 (*Tail)->Next = NULL;
             }
         }
@@ -4613,7 +4611,7 @@ QuicConnRecvFrames(
                     if (QuicBindingQueueStatelessOperation(
                             Connection->Paths[0].Binding,
                             QUIC_OPER_TYPE_VERSION_NEGOTIATION,
-                            (CXPLAT_RECV_DATA*)Packet)) {
+                            Packet)) {
                         Packet->ReleaseDeferred = TRUE;
                     }
                     QuicConnCloseLocally(
@@ -5473,7 +5471,7 @@ QuicConnRecvDatagramBatch(
     _In_ QUIC_CONNECTION* Connection,
     _In_ QUIC_PATH* Path,
     _In_ uint8_t BatchCount,
-    _In_reads_(BatchCount) CXPLAT_RECV_DATA** Datagrams,
+    _In_reads_(BatchCount) QUIC_RX_PACKET** Packets,
     _In_reads_(BatchCount * CXPLAT_HP_SAMPLE_LENGTH)
         const uint8_t* Cipher,
     _Inout_ QUIC_RECEIVE_PROCESSING_STATE* RecvState
@@ -5482,7 +5480,7 @@ QuicConnRecvDatagramBatch(
     uint8_t HpMask[CXPLAT_HP_SAMPLE_LENGTH * QUIC_MAX_CRYPTO_BATCH_COUNT];
 
     CXPLAT_DBG_ASSERT(BatchCount > 0 && BatchCount <= QUIC_MAX_CRYPTO_BATCH_COUNT);
-    QUIC_RX_PACKET* Packet = GetQuicRxPacket(Datagrams[0]);
+    QUIC_RX_PACKET* Packet = Packets[0];
 
     QuicTraceLogConnVerbose(
         UdpRecvBatch,
@@ -5511,9 +5509,9 @@ QuicConnRecvDatagramBatch(
     }
 
     for (uint8_t i = 0; i < BatchCount; ++i) {
-        CXPLAT_DBG_ASSERT(Datagrams[i]->Allocated);
-        CXPLAT_ECN_TYPE ECN = CXPLAT_ECN_FROM_TOS(Datagrams[i]->TypeOfService);
-        Packet = GetQuicRxPacket(Datagrams[i]);
+        CXPLAT_DBG_ASSERT(Packets[i]->Allocated);
+        CXPLAT_ECN_TYPE ECN = CXPLAT_ECN_FROM_TOS(Packets[i]->TypeOfService);
+        Packet = Packets[i];
         CXPLAT_DBG_ASSERT(Packet->PacketId != 0);
         if (!QuicConnRecvPrepareDecrypt(
                 Connection, Packet, HpMask + i * CXPLAT_HP_SAMPLE_LENGTH) ||
@@ -5534,8 +5532,8 @@ QuicConnRecvDatagramBatch(
 
             if (Connection->Registration != NULL && !Connection->Registration->NoPartitioning &&
                 Path->IsActive && !Path->PartitionUpdated && Packet->CompletelyValid &&
-                (Datagrams[i]->PartitionIndex % MsQuicLib.PartitionCount) != RecvState->PartitionIndex) {
-                RecvState->PartitionIndex = Datagrams[i]->PartitionIndex % MsQuicLib.PartitionCount;
+                (Packets[i]->PartitionIndex % MsQuicLib.PartitionCount) != RecvState->PartitionIndex) {
+                RecvState->PartitionIndex = Packets[i]->PartitionIndex % MsQuicLib.PartitionCount;
                 RecvState->UpdatePartitionId = TRUE;
                 Path->PartitionUpdated = TRUE;
             }
@@ -5556,20 +5554,20 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicConnRecvDatagrams(
     _In_ QUIC_CONNECTION* Connection,
-    _In_ CXPLAT_RECV_DATA* DatagramChain,
-    _In_ uint32_t DatagramChainCount,
-    _In_ uint32_t DatagramChainByteCount,
+    _In_ QUIC_RX_PACKET* Packets,
+    _In_ uint32_t PacketChainCount,
+    _In_ uint32_t PacketChainByteCount,
     _In_ BOOLEAN IsDeferred
     )
 {
-    CXPLAT_RECV_DATA* ReleaseChain = NULL;
-    CXPLAT_RECV_DATA** ReleaseChainTail = &ReleaseChain;
+    QUIC_RX_PACKET* ReleaseChain = NULL;
+    QUIC_RX_PACKET** ReleaseChainTail = &ReleaseChain;
     uint32_t ReleaseChainCount = 0;
     QUIC_RECEIVE_PROCESSING_STATE RecvState = { FALSE, FALSE, 0 };
     RecvState.PartitionIndex = QuicPartitionIdGetIndex(Connection->PartitionID);
 
-    UNREFERENCED_PARAMETER(DatagramChainCount);
-    UNREFERENCED_PARAMETER(DatagramChainByteCount);
+    UNREFERENCED_PARAMETER(PacketChainCount);
+    UNREFERENCED_PARAMETER(PacketChainByteCount);
 
     CXPLAT_PASSIVE_CODE();
 
@@ -5578,14 +5576,14 @@ QuicConnRecvDatagrams(
             UdpRecvDeferred,
             Connection,
             "Recv %u deferred UDP datagrams",
-            DatagramChainCount);
+            PacketChainCount);
     } else {
         QuicTraceEvent(
             ConnRecvUdpDatagrams,
             "[conn][%p] Recv %u UDP datagrams, %u bytes",
             Connection,
-            DatagramChainCount,
-            DatagramChainByteCount);
+            PacketChainCount,
+            PacketChainByteCount);
     }
 
     //
@@ -5594,31 +5592,30 @@ QuicConnRecvDatagrams(
     //
 
     uint8_t BatchCount = 0;
-    CXPLAT_RECV_DATA* Batch[QUIC_MAX_CRYPTO_BATCH_COUNT];
+    QUIC_RX_PACKET* Batch[QUIC_MAX_CRYPTO_BATCH_COUNT];
     uint8_t Cipher[CXPLAT_HP_SAMPLE_LENGTH * QUIC_MAX_CRYPTO_BATCH_COUNT];
     QUIC_PATH* CurrentPath = NULL;
 
-    CXPLAT_RECV_DATA* Datagram;
-    while ((Datagram = DatagramChain) != NULL) {
-        CXPLAT_DBG_ASSERT(Datagram->Allocated);
-        CXPLAT_DBG_ASSERT(Datagram->QueuedOnConnection);
-        DatagramChain = Datagram->Next;
-        Datagram->Next = NULL;
+    QUIC_RX_PACKET* Packet;
+    while ((Packet = Packets) != NULL) {
+        CXPLAT_DBG_ASSERT(Packet->Allocated);
+        CXPLAT_DBG_ASSERT(Packet->QueuedOnConnection);
+        Packets = (QUIC_RX_PACKET*)Packet->Next;
+        Packet->Next = NULL;
 
-        QUIC_RX_PACKET* Packet = GetQuicRxPacket(Datagram);
         CXPLAT_DBG_ASSERT(Packet != NULL);
         CXPLAT_DBG_ASSERT(Packet->PacketId != 0);
 
         CXPLAT_DBG_ASSERT(Packet->ReleaseDeferred == IsDeferred);
         Packet->ReleaseDeferred = FALSE;
 
-        QUIC_PATH* DatagramPath = QuicConnGetPathForDatagram(Connection, Datagram);
+        QUIC_PATH* DatagramPath = QuicConnGetPathForPacket(Connection, Packet);
         if (DatagramPath == NULL) {
             QuicPacketLogDrop(Connection, Packet, "Max paths already tracked");
             goto Drop;
         }
 
-        CxPlatUpdateRoute(&DatagramPath->Route, Datagram->Route);
+        CxPlatUpdateRoute(&DatagramPath->Route, Packet->Route);
 
         if (DatagramPath != CurrentPath) {
             if (BatchCount != 0) {
@@ -5640,20 +5637,20 @@ QuicConnRecvDatagrams(
         }
 
         if (!IsDeferred) {
-            Connection->Stats.Recv.TotalBytes += Datagram->BufferLength;
+            Connection->Stats.Recv.TotalBytes += Packet->BufferLength;
             QuicConnLogInFlowStats(Connection);
 
             if (!CurrentPath->IsPeerValidated) {
                 QuicPathIncrementAllowance(
                     Connection,
                     CurrentPath,
-                    QUIC_AMPLIFICATION_RATIO * Datagram->BufferLength);
+                    QUIC_AMPLIFICATION_RATIO * Packet->BufferLength);
             }
         }
 
         do {
             CXPLAT_DBG_ASSERT(BatchCount < QUIC_MAX_CRYPTO_BATCH_COUNT);
-            CXPLAT_DBG_ASSERT(Datagram->Allocated);
+            CXPLAT_DBG_ASSERT(Packet->Allocated);
             Connection->Stats.Recv.TotalPackets++;
 
             if (!Packet->ValidatedHeaderInv) {
@@ -5663,7 +5660,7 @@ QuicConnRecvDatagrams(
                 // validated (which indicates the actual length);
                 //
                 Packet->AvailBufferLength =
-                    Datagram->BufferLength - (uint16_t)(Packet->AvailBuffer - Datagram->Buffer);
+                    Packet->BufferLength - (uint16_t)(Packet->AvailBuffer - Packet->Buffer);
             }
 
             if (Connection->Crypto.CertValidationPending ||
@@ -5700,7 +5697,7 @@ QuicConnRecvDatagrams(
                 BatchCount = 0;
             }
 
-            Batch[BatchCount++] = Datagram;
+            Batch[BatchCount++] = Packet;
             if (Packet->IsShortHeader && BatchCount < QUIC_MAX_CRYPTO_BATCH_COUNT) {
                 break;
             }
@@ -5737,14 +5734,14 @@ QuicConnRecvDatagrams(
             Packet->NewLargestPacketNumber = FALSE;
             Packet->HasNonProbingFrame = FALSE;
 
-        } while (Packet->AvailBuffer - Datagram->Buffer < Datagram->BufferLength);
+        } while (Packet->AvailBuffer - Packet->Buffer < Packet->BufferLength);
 
     Drop:
 
         if (!Packet->ReleaseDeferred) {
-            *ReleaseChainTail = Datagram;
-            ReleaseChainTail = &Datagram->Next;
-            Datagram->QueuedOnConnection = FALSE;
+            *ReleaseChainTail = Packet;
+            ReleaseChainTail = (QUIC_RX_PACKET**)&Packet->Next;
+            Packet->QueuedOnConnection = FALSE;
             if (++ReleaseChainCount == QUIC_MAX_RECEIVE_BATCH_COUNT) {
                 if (BatchCount != 0) {
                     QuicConnRecvDatagramBatch(
@@ -5756,7 +5753,7 @@ QuicConnRecvDatagrams(
                         &RecvState);
                     BatchCount = 0;
                 }
-                CxPlatRecvDataReturn(ReleaseChain);
+                CxPlatRecvDataReturn((CXPLAT_RECV_DATA*)ReleaseChain);
                 ReleaseChain = NULL;
                 ReleaseChainTail = &ReleaseChain;
                 ReleaseChainCount = 0;
@@ -5780,7 +5777,7 @@ QuicConnRecvDatagrams(
     }
 
     if (ReleaseChain != NULL) {
-        CxPlatRecvDataReturn(ReleaseChain);
+        CxPlatRecvDataReturn((CXPLAT_RECV_DATA*)ReleaseChain);
     }
 
     if (QuicConnIsServer(Connection) &&
@@ -5833,14 +5830,14 @@ QuicConnFlushRecv(
 {
     BOOLEAN FlushedAll;
     uint32_t ReceiveQueueCount, ReceiveQueueByteCount;
-    CXPLAT_RECV_DATA* ReceiveQueue;
+    QUIC_RX_PACKET* ReceiveQueue;
 
     CxPlatDispatchLockAcquire(&Connection->ReceiveQueueLock);
     ReceiveQueue = Connection->ReceiveQueue;
     if (Connection->ReceiveQueueCount > QUIC_MAX_RECEIVE_FLUSH_COUNT) {
         FlushedAll = FALSE;
         Connection->ReceiveQueueCount -= QUIC_MAX_RECEIVE_FLUSH_COUNT;
-        CXPLAT_RECV_DATA* Tail = Connection->ReceiveQueue;
+        QUIC_RX_PACKET* Tail = Connection->ReceiveQueue;
         ReceiveQueueCount = 0;
         ReceiveQueueByteCount = 0;
         while (++ReceiveQueueCount < QUIC_MAX_RECEIVE_FLUSH_COUNT) {
@@ -5848,7 +5845,7 @@ QuicConnFlushRecv(
             Tail = Connection->ReceiveQueue;
         }
         Connection->ReceiveQueueByteCount -= ReceiveQueueByteCount;
-        Connection->ReceiveQueue = Tail->Next;
+        Connection->ReceiveQueue = (QUIC_RX_PACKET*)Tail->Next;
         Tail->Next = NULL;
     } else {
         FlushedAll = TRUE;
@@ -5873,33 +5870,32 @@ QuicConnDiscardDeferred0Rtt(
     _In_ QUIC_CONNECTION* Connection
     )
 {
-    CXPLAT_RECV_DATA* ReleaseChain = NULL;
-    CXPLAT_RECV_DATA** ReleaseChainTail = &ReleaseChain;
+    QUIC_RX_PACKET* ReleaseChain = NULL;
+    QUIC_RX_PACKET** ReleaseChainTail = &ReleaseChain;
     QUIC_PACKET_SPACE* Packets = Connection->Packets[QUIC_ENCRYPT_LEVEL_1_RTT];
     CXPLAT_DBG_ASSERT(Packets != NULL);
 
-    CXPLAT_RECV_DATA* DeferredDatagrams = Packets->DeferredDatagrams;
-    CXPLAT_RECV_DATA** DeferredDatagramsTail = &Packets->DeferredDatagrams;
-    Packets->DeferredDatagrams = NULL;
+    QUIC_RX_PACKET* DeferredPackets = Packets->DeferredPackets;
+    QUIC_RX_PACKET** DeferredPacketsTail = &Packets->DeferredPackets;
+    Packets->DeferredPackets = NULL;
 
-    while (DeferredDatagrams != NULL) {
-        CXPLAT_RECV_DATA* Datagram = DeferredDatagrams;
-        DeferredDatagrams = DeferredDatagrams->Next;
+    while (DeferredPackets != NULL) {
+        QUIC_RX_PACKET* Packet = DeferredPackets;
+        DeferredPackets = (QUIC_RX_PACKET*)DeferredPackets->Next;
 
-        const QUIC_RX_PACKET* Packet = GetQuicRxPacket(Datagram);
         if (Packet->KeyType == QUIC_PACKET_KEY_0_RTT) {
             QuicPacketLogDrop(Connection, Packet, "0-RTT rejected");
-            Packets->DeferredDatagramsCount--;
-            *ReleaseChainTail = Datagram;
-            ReleaseChainTail = &Datagram->Next;
+            Packets->DeferredPacketsCount--;
+            *ReleaseChainTail = Packet;
+            ReleaseChainTail = (QUIC_RX_PACKET**)&Packet->Next;
         } else {
-            *DeferredDatagramsTail = Datagram;
-            DeferredDatagramsTail = &Datagram->Next;
+            *DeferredPacketsTail = Packet;
+            DeferredPacketsTail = (QUIC_RX_PACKET**)&Packet->Next;
         }
     }
 
     if (ReleaseChain != NULL) {
-        CxPlatRecvDataReturn(ReleaseChain);
+        CxPlatRecvDataReturn((CXPLAT_RECV_DATA*)ReleaseChain);
     }
 }
 
@@ -5919,17 +5915,17 @@ QuicConnFlushDeferred(
             QuicKeyTypeToEncryptLevel((QUIC_PACKET_KEY_TYPE)i);
         QUIC_PACKET_SPACE* Packets = Connection->Packets[EncryptLevel];
 
-        if (Packets->DeferredDatagrams != NULL) {
-            CXPLAT_RECV_DATA* DeferredDatagrams = Packets->DeferredDatagrams;
-            uint8_t DeferredDatagramsCount = Packets->DeferredDatagramsCount;
+        if (Packets->DeferredPackets != NULL) {
+            QUIC_RX_PACKET* DeferredPackets = Packets->DeferredPackets;
+            uint8_t DeferredPacketsCount = Packets->DeferredPacketsCount;
 
-            Packets->DeferredDatagramsCount = 0;
-            Packets->DeferredDatagrams = NULL;
+            Packets->DeferredPacketsCount = 0;
+            Packets->DeferredPackets = NULL;
 
             QuicConnRecvDatagrams(
                 Connection,
-                DeferredDatagrams,
-                DeferredDatagramsCount,
+                DeferredPackets,
+                DeferredPacketsCount,
                 0, // Unused for deferred datagrams
                 TRUE);
         }
