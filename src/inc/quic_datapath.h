@@ -231,7 +231,7 @@ typedef struct CXPLAT_RECV_DATA {
     // Variable length data of size `ClientRecvContextLength` passed into
     // CxPlatDataPathInitialize.
     //
-    uint8_t ClientData[0];
+    __attribute__((aligned(16))) uint8_t ClientData[0];
 
 } CXPLAT_RECV_DATA;
 
