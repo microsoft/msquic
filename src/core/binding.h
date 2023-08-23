@@ -28,7 +28,13 @@ typedef struct QUIC_TOKEN_CONTENTS {
 //
 // The per recv buffer context type.
 //
-typedef struct CXPLAT_RECV_PACKET {
+typedef struct QUIC_RX_PACKET {
+
+#ifdef __cplusplus
+    struct CXPLAT_RECV_DATA _;
+#else
+    struct CXPLAT_RECV_DATA;
+#endif
 
     //
     // The unique identifier for the packet.
@@ -44,8 +50,8 @@ typedef struct CXPLAT_RECV_PACKET {
     // The current packet buffer.
     //
     union {
-        _Field_size_(BufferLength)
-        const uint8_t* Buffer;
+        _Field_size_(AvailBufferLength)
+        const uint8_t* AvailBuffer;
         const struct QUIC_HEADER_INVARIANT* Invariant;
         const struct QUIC_VERSION_NEGOTIATION_PACKET* VerNeg;
         const struct QUIC_LONG_HEADER_V1* LH;
@@ -64,9 +70,9 @@ typedef struct CXPLAT_RECV_PACKET {
     const uint8_t* SourceCid;
 
     //
-    // Length of the Buffer array.
+    // Length of the AvailBuffer array.
     //
-    uint16_t BufferLength;
+    uint16_t AvailBufferLength;
 
     //
     // Length of the current packet header.
@@ -89,6 +95,9 @@ typedef struct CXPLAT_RECV_PACKET {
     //
     QUIC_PACKET_KEY_TYPE KeyType;
 
+    union {
+    uint32_t Flags;
+    struct {
     //
     // Flag indicating we have found the connection the packet belongs to.
     //
@@ -151,8 +160,12 @@ typedef struct CXPLAT_RECV_PACKET {
     // Flag indicating the packet contained a non-probing frame.
     //
     BOOLEAN HasNonProbingFrame : 1;
+    };
+    };
 
-} CXPLAT_RECV_PACKET;
+} QUIC_RX_PACKET;
+
+#define GetQuicRxPacket(RecvData) ((QUIC_RX_PACKET*)RecvData)
 
 typedef enum QUIC_BINDING_LOOKUP_TYPE {
 
@@ -455,7 +468,7 @@ inline
 _IRQL_requires_max_(DISPATCH_LEVEL)
 BOOLEAN
 QuicRetryTokenDecrypt(
-    _In_ const CXPLAT_RECV_PACKET* const Packet,
+    _In_ const QUIC_RX_PACKET* const Packet,
     _In_reads_(sizeof(QUIC_TOKEN_CONTENTS))
         const uint8_t* TokenBuffer,
     _Out_ QUIC_TOKEN_CONTENTS* Token

@@ -677,7 +677,7 @@ QuicLibraryLazyInitialize(
 
     Status =
         CxPlatDataPathInitialize(
-            sizeof(CXPLAT_RECV_PACKET),
+            sizeof(QUIC_RX_PACKET),
             &DatapathCallbacks,
             NULL,                   // TcpCallbacks
             MsQuicLib.ExecutionConfig,
