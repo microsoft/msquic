@@ -2168,7 +2168,7 @@ CxPlatDataPathSocketReceive(
         DataIndication->Next = NULL;
 
         DATAPATH_RX_IO_BLOCK* IoBlock = NULL;
-        CXPLAT_RECV_DATA* Datagram = NULL;
+        DATAPATH_RX_PACKET* Datagram = NULL;
 
         if (DataIndication->Buffer.Mdl == NULL ||
             DataIndication->Buffer.Length == 0) {
@@ -2394,34 +2394,33 @@ CxPlatDataPathSocketReceive(
                     &Binding->Datapath->ProcContexts[CurProcNumber % Binding->Datapath->ProcCount];
                 IoBlock->Route.LocalAddress = LocalAddr;
                 IoBlock->Route.RemoteAddress = RemoteAddr;
-                Datagram = (CXPLAT_RECV_DATA*)(IoBlock + 1);
+                Datagram = (DATAPATH_RX_PACKET*)(IoBlock + 1);
             }
 
             CXPLAT_DBG_ASSERT(Datagram != NULL);
-            Datagram->Next = NULL;
-            Datagram->PartitionIndex = (uint8_t)(CurProcNumber % Binding->Datapath->ProcCount);
-            Datagram->TypeOfService = (uint8_t)ECN;
-            Datagram->Allocated = TRUE;
-            Datagram->QueuedOnConnection = FALSE;
-            CXPLAT_CONTAINING_RECORD(
-                Datagram, DATAPATH_RX_PACKET, Data)->IoBlock = IoBlock;
+            Datagram->IoBlock = IoBlock;
+            Datagram->Data.Next = NULL;
+            Datagram->Data.PartitionIndex = (uint16_t)(CurProcNumber % Binding->Datapath->ProcCount);
+            Datagram->Data.TypeOfService = (uint8_t)ECN;
+            Datagram->Data.Allocated = TRUE;
+            Datagram->Data.QueuedOnConnection = FALSE;
 
             if (IoBlock->IsCopiedBuffer) {
-                Datagram->Buffer = CurrentCopiedBuffer;
-                CxPlatCopyMemory(Datagram->Buffer, (uint8_t*)Mdl->MappedSystemVa + MdlOffset, MessageLength);
+                Datagram->Data.Buffer = CurrentCopiedBuffer;
+                CxPlatCopyMemory(Datagram->Data.Buffer, (uint8_t*)Mdl->MappedSystemVa + MdlOffset, MessageLength);
                 CurrentCopiedBuffer += MessageLength;
             } else {
-                Datagram->Buffer = (uint8_t*)Mdl->MappedSystemVa + MdlOffset;
+                Datagram->Data.Buffer = (uint8_t*)Mdl->MappedSystemVa + MdlOffset;
             }
 
-            Datagram->BufferLength = MessageLength;
-            Datagram->Route = &IoBlock->Route;
+            Datagram->Data.BufferLength = MessageLength;
+            Datagram->Data.Route = &IoBlock->Route;
 
             //
             // Add the datagram to the end of the current chain.
             //
-            *DatagramChainTail = Datagram;
-            DatagramChainTail = &Datagram->Next;
+            *DatagramChainTail = &Datagram->Data;
+            DatagramChainTail = &Datagram->Data.Next;
             if (++IoBlock->ReferenceCount == URO_MAX_DATAGRAMS_PER_INDICATION) {
                 QuicTraceLogWarning(
                     DatapathUroExceeded,
@@ -2442,7 +2441,7 @@ CxPlatDataPathSocketReceive(
                 MdlOffset = 0;
             }
 
-            Datagram = (CXPLAT_RECV_DATA*)
+            Datagram = (DATAPATH_RX_PACKET*)
                 (((PUCHAR)Datagram) +
                     Binding->Datapath->DatagramStride);
         }

@@ -91,6 +91,7 @@ typedef struct XDP_QUEUE {
 } XDP_QUEUE;
 
 typedef struct DECLSPEC_ALIGN(MEMORY_ALLOCATION_ALIGNMENT) XDP_RX_PACKET {
+    // N.B. This struct is also put in a SLIST, so it must be aligned.
     XDP_QUEUE* Queue;
     CXPLAT_ROUTE RouteStorage;
     CXPLAT_RECV_DATA RecvData;
