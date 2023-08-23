@@ -484,6 +484,7 @@ size_t QUIC_IOCTL_BUFFER_SIZES[] =
     sizeof(QUIC_RUN_CUSTOM_CERT_VALIDATION),
     sizeof(QUIC_RUN_RELIABLE_RESET_NEGOTIATION),
     0,
+    0,
 };
 
 CXPLAT_STATIC_ASSERT(
@@ -1352,6 +1353,10 @@ QuicTestCtlEvtIoDeviceControl(
 
     case IOCTL_QUIC_RUN_STREAM_RELIABLE_RESET:
         QuicTestCtlRun(QuicTestStreamReliableReset());
+        break;
+
+    case IOCTL_QUIC_RUN_STREAM_RELIABLE_RESET_MULTIPLE_SENDS:
+        QuicTestCtlRun(QuicTestStreamReliableResetMultipleSends());
         break;
 #endif
     default:
