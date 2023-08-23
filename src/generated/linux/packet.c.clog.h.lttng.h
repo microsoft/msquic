@@ -312,12 +312,12 @@ TRACEPOINT_EVENT(CLOG_PACKET_C, AllocFailure,
             ConnDropPacket,
             "[conn][%p] DROP packet Dst=%!ADDR! Src=%!ADDR! Reason=%s.",
             Owner,
-            CASTED_CLOG_BYTEARRAY(sizeof(Datagram->Route->LocalAddress), &Datagram->Route->LocalAddress),
-            CASTED_CLOG_BYTEARRAY(sizeof(Datagram->Route->RemoteAddress), &Datagram->Route->RemoteAddress),
+            CASTED_CLOG_BYTEARRAY(sizeof(Packet->Route->LocalAddress), &Packet->Route->LocalAddress),
+            CASTED_CLOG_BYTEARRAY(sizeof(Packet->Route->RemoteAddress), &Packet->Route->RemoteAddress),
             Reason);
 // arg2 = arg2 = Owner = arg2
-// arg3 = arg3 = CASTED_CLOG_BYTEARRAY(sizeof(Datagram->Route->LocalAddress), &Datagram->Route->LocalAddress) = arg3
-// arg4 = arg4 = CASTED_CLOG_BYTEARRAY(sizeof(Datagram->Route->RemoteAddress), &Datagram->Route->RemoteAddress) = arg4
+// arg3 = arg3 = CASTED_CLOG_BYTEARRAY(sizeof(Packet->Route->LocalAddress), &Packet->Route->LocalAddress) = arg3
+// arg4 = arg4 = CASTED_CLOG_BYTEARRAY(sizeof(Packet->Route->RemoteAddress), &Packet->Route->RemoteAddress) = arg4
 // arg5 = arg5 = Reason = arg5
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_PACKET_C, ConnDropPacket,
@@ -347,12 +347,12 @@ TRACEPOINT_EVENT(CLOG_PACKET_C, ConnDropPacket,
             BindingDropPacket,
             "[bind][%p] DROP packet Dst=%!ADDR! Src=%!ADDR! Reason=%s.",
             Owner,
-            CASTED_CLOG_BYTEARRAY(sizeof(Datagram->Route->LocalAddress), &Datagram->Route->LocalAddress),
-            CASTED_CLOG_BYTEARRAY(sizeof(Datagram->Route->RemoteAddress), &Datagram->Route->RemoteAddress),
+            CASTED_CLOG_BYTEARRAY(sizeof(Packet->Route->LocalAddress), &Packet->Route->LocalAddress),
+            CASTED_CLOG_BYTEARRAY(sizeof(Packet->Route->RemoteAddress), &Packet->Route->RemoteAddress),
             Reason);
 // arg2 = arg2 = Owner = arg2
-// arg3 = arg3 = CASTED_CLOG_BYTEARRAY(sizeof(Datagram->Route->LocalAddress), &Datagram->Route->LocalAddress) = arg3
-// arg4 = arg4 = CASTED_CLOG_BYTEARRAY(sizeof(Datagram->Route->RemoteAddress), &Datagram->Route->RemoteAddress) = arg4
+// arg3 = arg3 = CASTED_CLOG_BYTEARRAY(sizeof(Packet->Route->LocalAddress), &Packet->Route->LocalAddress) = arg3
+// arg4 = arg4 = CASTED_CLOG_BYTEARRAY(sizeof(Packet->Route->RemoteAddress), &Packet->Route->RemoteAddress) = arg4
 // arg5 = arg5 = Reason = arg5
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_PACKET_C, BindingDropPacket,
@@ -383,13 +383,13 @@ TRACEPOINT_EVENT(CLOG_PACKET_C, BindingDropPacket,
             "[conn][%p] DROP packet Value=%llu Dst=%!ADDR! Src=%!ADDR! Reason=%s.",
             Owner,
             Value,
-            CASTED_CLOG_BYTEARRAY(sizeof(Datagram->Route->LocalAddress), &Datagram->Route->LocalAddress),
-            CASTED_CLOG_BYTEARRAY(sizeof(Datagram->Route->RemoteAddress), &Datagram->Route->RemoteAddress),
+            CASTED_CLOG_BYTEARRAY(sizeof(Packet->Route->LocalAddress), &Packet->Route->LocalAddress),
+            CASTED_CLOG_BYTEARRAY(sizeof(Packet->Route->RemoteAddress), &Packet->Route->RemoteAddress),
             Reason);
 // arg2 = arg2 = Owner = arg2
 // arg3 = arg3 = Value = arg3
-// arg4 = arg4 = CASTED_CLOG_BYTEARRAY(sizeof(Datagram->Route->LocalAddress), &Datagram->Route->LocalAddress) = arg4
-// arg5 = arg5 = CASTED_CLOG_BYTEARRAY(sizeof(Datagram->Route->RemoteAddress), &Datagram->Route->RemoteAddress) = arg5
+// arg4 = arg4 = CASTED_CLOG_BYTEARRAY(sizeof(Packet->Route->LocalAddress), &Packet->Route->LocalAddress) = arg4
+// arg5 = arg5 = CASTED_CLOG_BYTEARRAY(sizeof(Packet->Route->RemoteAddress), &Packet->Route->RemoteAddress) = arg5
 // arg6 = arg6 = Reason = arg6
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_PACKET_C, ConnDropPacketEx,
@@ -422,13 +422,13 @@ TRACEPOINT_EVENT(CLOG_PACKET_C, ConnDropPacketEx,
             "[bind][%p] DROP packet %llu. Dst=%!ADDR! Src=%!ADDR! Reason=%s",
             Owner,
             Value,
-            CASTED_CLOG_BYTEARRAY(sizeof(Datagram->Route->LocalAddress), &Datagram->Route->LocalAddress),
-            CASTED_CLOG_BYTEARRAY(sizeof(Datagram->Route->RemoteAddress), &Datagram->Route->RemoteAddress),
+            CASTED_CLOG_BYTEARRAY(sizeof(Packet->Route->LocalAddress), &Packet->Route->LocalAddress),
+            CASTED_CLOG_BYTEARRAY(sizeof(Packet->Route->RemoteAddress), &Packet->Route->RemoteAddress),
             Reason);
 // arg2 = arg2 = Owner = arg2
 // arg3 = arg3 = Value = arg3
-// arg4 = arg4 = CASTED_CLOG_BYTEARRAY(sizeof(Datagram->Route->LocalAddress), &Datagram->Route->LocalAddress) = arg4
-// arg5 = arg5 = CASTED_CLOG_BYTEARRAY(sizeof(Datagram->Route->RemoteAddress), &Datagram->Route->RemoteAddress) = arg5
+// arg4 = arg4 = CASTED_CLOG_BYTEARRAY(sizeof(Packet->Route->LocalAddress), &Packet->Route->LocalAddress) = arg4
+// arg5 = arg5 = CASTED_CLOG_BYTEARRAY(sizeof(Packet->Route->RemoteAddress), &Packet->Route->RemoteAddress) = arg5
 // arg6 = arg6 = Reason = arg6
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_PACKET_C, BindingDropPacketEx,
