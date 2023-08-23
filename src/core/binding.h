@@ -30,6 +30,12 @@ typedef struct QUIC_TOKEN_CONTENTS {
 //
 typedef struct QUIC_RX_PACKET {
 
+#ifdef __cplusplus
+    struct CXPLAT_RECV_DATA _;
+#else
+    struct CXPLAT_RECV_DATA;
+#endif
+
     //
     // The unique identifier for the packet.
     //
@@ -44,8 +50,8 @@ typedef struct QUIC_RX_PACKET {
     // The current packet buffer.
     //
     union {
-        _Field_size_(BufferLength)
-        const uint8_t* Buffer;
+        _Field_size_(AvailBufferLength)
+        const uint8_t* AvailBuffer;
         const struct QUIC_HEADER_INVARIANT* Invariant;
         const struct QUIC_VERSION_NEGOTIATION_PACKET* VerNeg;
         const struct QUIC_LONG_HEADER_V1* LH;
@@ -64,9 +70,9 @@ typedef struct QUIC_RX_PACKET {
     const uint8_t* SourceCid;
 
     //
-    // Length of the Buffer array.
+    // Length of the AvailBuffer array.
     //
-    uint16_t BufferLength;
+    uint16_t AvailBufferLength;
 
     //
     // Length of the current packet header.
@@ -154,10 +160,7 @@ typedef struct QUIC_RX_PACKET {
 
 } QUIC_RX_PACKET;
 
-#define GetRecvData(Packet) \
-    CXPLAT_CONTAINING_RECORD(Packet, CXPLAT_RECV_DATA, ClientData)
-#define GetQuicRxPacket(RecvData) \
-    ((QUIC_RX_PACKET*)&(RecvData)->ClientData)
+#define GetQuicRxPacket(RecvData) ((QUIC_RX_PACKET*)RecvData)
 
 typedef enum QUIC_BINDING_LOOKUP_TYPE {
 

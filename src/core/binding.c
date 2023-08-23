@@ -921,11 +921,11 @@ QuicBindingProcessStatelessOperation(
         PacketLength >>= 5; // Only drop 5 of the 8 bits of randomness.
         PacketLength += QUIC_RECOMMENDED_STATELESS_RESET_PACKET_LENGTH;
 
-        if (PacketLength >= RecvPacket->BufferLength) {
+        if (PacketLength >= RecvPacket->AvailBufferLength) {
             //
             // Can't go over the recieve packet's length.
             //
-            PacketLength = (uint8_t)RecvPacket->BufferLength - 1;
+            PacketLength = (uint8_t)RecvPacket->AvailBufferLength - 1;
         }
 
         if (PacketLength < QUIC_MIN_STATELESS_RESET_PACKET_LENGTH) {
@@ -1148,8 +1148,8 @@ QuicBindingPreprocessDatagram(
 {
     QUIC_RX_PACKET* Packet = GetQuicRxPacket(Datagram);
     CxPlatZeroMemory(&Packet->PacketNumber, sizeof(QUIC_RX_PACKET) - sizeof(uint64_t));
-    Packet->Buffer = Datagram->Buffer;
-    Packet->BufferLength = Datagram->BufferLength;
+    Packet->AvailBuffer = Datagram->Buffer;
+    Packet->AvailBufferLength = Datagram->BufferLength;
 
     *ReleaseDatagram = TRUE;
 
@@ -1656,8 +1656,8 @@ QuicBindingReceive(
         CxPlatZeroMemory(Packet, sizeof(QUIC_RX_PACKET));
         Packet->PacketId =
             PartitionShifted | InterlockedIncrement64((int64_t*)&QuicLibraryGetPerProc()->ReceivePacketId);
-        Packet->Buffer = Datagram->Buffer;
-        Packet->BufferLength = Datagram->BufferLength;
+        Packet->AvailBuffer = Datagram->Buffer;
+        Packet->AvailBufferLength = Datagram->BufferLength;
 
         CXPLAT_DBG_ASSERT(Packet->PacketId != 0);
         QuicTraceEvent(
