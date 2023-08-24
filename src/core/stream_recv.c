@@ -456,6 +456,19 @@ QuicStreamProcessStreamFrame(
         goto Error;
     }
 
+    if (Stream->Flags.RemoteCloseResetReliable && Frame->Offset >= Stream->RecvMaxLength) {
+        //
+        // Ignore additional frames once we have enough data.
+        //
+        if (!Stream->Flags.ReceiveClosedReliable) {
+            Stream->Flags.ReceiveClosedReliable = TRUE;
+            QuicStreamRecvShutdown(Stream, FALSE, QUIC_ERROR_NO_ERROR);
+            QuicStreamTryCompleteShutdown(Stream);
+        }
+        Status = QUIC_STATUS_SUCCESS;
+        goto Error;
+    }
+
     if (EndOffset > QUIC_VAR_INT_MAX) {
         //
         // Stream data cannot exceed VAR_INT_MAX because it's impossible
