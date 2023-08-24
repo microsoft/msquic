@@ -86,14 +86,14 @@ typedef struct CXPLAT_SOCKET_COMMON {
     QUIC_ADDR RemoteAddress;
 } CXPLAT_SOCKET_COMMON;
 
-typedef struct CXPLAT_SEND_DATA {
+typedef struct CXPLAT_SEND_DATA_COMMON {
     uint16_t BufferFrom : 2;
 
     //
     // The type of ECN markings needed for send.
     //
     uint8_t ECN; // CXPLAT_ECN_TYPE
-} CXPLAT_SEND_DATA;
+} CXPLAT_SEND_DATA_COMMON;
 
 #ifdef _KERNEL_MODE
 

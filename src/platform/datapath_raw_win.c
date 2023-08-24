@@ -529,7 +529,7 @@ _IRQL_requires_max_(DISPATCH_LEVEL)
 _Success_(return != NULL)
 QUIC_BUFFER*
 MANGLE(CxPlatSendDataAllocBuffer)(
-    _In_ CXPLAT_SEND_DATA_INTERNAL* SendData,
+    _In_ CXPLAT_SEND_DATA* SendData,
     _In_ uint16_t MaxBufferLength
     )
 {
@@ -540,7 +540,7 @@ MANGLE(CxPlatSendDataAllocBuffer)(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 MANGLE(CxPlatSendDataFree)(
-    _In_ CXPLAT_SEND_DATA_INTERNAL* SendData
+    _In_ CXPLAT_SEND_DATA* SendData
     )
 {
     CxPlatDpRawTxFree(SendData);
@@ -549,7 +549,7 @@ MANGLE(CxPlatSendDataFree)(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 MANGLE(CxPlatSendDataFreeBuffer)(
-    _In_ CXPLAT_SEND_DATA_INTERNAL* SendData,
+    _In_ CXPLAT_SEND_DATA* SendData,
     _In_ QUIC_BUFFER* Buffer
     )
 {
@@ -559,7 +559,7 @@ MANGLE(CxPlatSendDataFreeBuffer)(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 BOOLEAN
 MANGLE(CxPlatSendDataIsFull)(
-    _In_ CXPLAT_SEND_DATA_INTERNAL* SendData
+    _In_ CXPLAT_SEND_DATA* SendData
     )
 {
     return TRUE;
@@ -572,7 +572,7 @@ QUIC_STATUS
 MANGLE(CxPlatSocketSend)(
     _In_ CXPLAT_SOCKET_RAW* Socket,
     _In_ const CXPLAT_ROUTE* Route,
-    _In_ CXPLAT_SEND_DATA_INTERNAL* SendData
+    _In_ CXPLAT_SEND_DATA* SendData
     )
 {
     if (Socket->UseTcp &&

@@ -27,16 +27,7 @@ Abstract:
 
 #define RawDataPathAvailable(Datapath) ((Datapath)->RawDataPath != NULL)
 #define RawSocketAvailable(Socket) ((Socket)->Datapath && RawDataPathAvailable((Socket)->Datapath))
-
-// CXPLAT_SOCKET*
-// CxPlatRawToSocket(CXPLAT_SOCKET_RAW* Socket) {
-//     return (CXPLAT_SOCKET*)((unsigned char*)Socket + sizeof(CXPLAT_SOCKET_RAW) - sizeof(CXPLAT_SOCKET));
-// }
-// // TODO: rename
-// CXPLAT_SOCKET_RAW*
-// CxPlatSocketToRaw(CXPLAT_SOCKET* Socket) {
-//     return (CXPLAT_SOCKET_RAW*)((unsigned char*)Socket - sizeof(CXPLAT_SOCKET_RAW) + sizeof(CXPLAT_SOCKET));
-// }
+#define SendBufferFrom(SendData) ((CXPLAT_SEND_DATA_COMMON*)(SendData))->BufferFrom
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
@@ -505,12 +496,12 @@ CxPlatSendDataAlloc(
         !IS_LOOPBACK(Config->Route->RemoteAddress)) {
         SendData = XDP_CxPlatSendDataAlloc(CxPlatSocketToRaw(Socket), Config);
         if (SendData) {
-            SendData->BufferFrom = CXPLAT_BUFFER_FROM_XDP;
+            SendBufferFrom(SendData) = CXPLAT_BUFFER_FROM_XDP;
         }
     } else {
         SendData = DataPathUserFuncs.CxPlatSendDataAlloc(Socket, Config);
         if (SendData) {
-            SendData->BufferFrom = CXPLAT_BUFFER_FROM_USER;
+            SendBufferFrom(SendData) = CXPLAT_BUFFER_FROM_USER;
         }
     }
     return SendData;
@@ -522,10 +513,10 @@ CxPlatSendDataFree(
     _In_ CXPLAT_SEND_DATA* SendData
     )
 {
-    if (SendData->BufferFrom == CXPLAT_BUFFER_FROM_USER) {
-        DataPathUserFuncs.CxPlatSendDataFree((CXPLAT_SEND_DATA_INTERNAL*)SendData);
-    } else if (SendData->BufferFrom == CXPLAT_BUFFER_FROM_XDP) {
-        XDP_CxPlatSendDataFree((CXPLAT_SEND_DATA_INTERNAL*)SendData);
+    if (SendBufferFrom(SendData) == CXPLAT_BUFFER_FROM_USER) {
+        DataPathUserFuncs.CxPlatSendDataFree(SendData);
+    } else if (SendBufferFrom(SendData) == CXPLAT_BUFFER_FROM_XDP) {
+        XDP_CxPlatSendDataFree(SendData);
     } else {
         CXPLAT_DBG_ASSERT(FALSE);
     }
@@ -539,10 +530,10 @@ CxPlatSendDataAllocBuffer(
     _In_ uint16_t MaxBufferLength
     )
 {
-    if (SendData->BufferFrom == CXPLAT_BUFFER_FROM_USER) {
-        return DataPathUserFuncs.CxPlatSendDataAllocBuffer((CXPLAT_SEND_DATA_INTERNAL*)SendData, MaxBufferLength);
-    } else if (SendData->BufferFrom == CXPLAT_BUFFER_FROM_XDP) {
-        return XDP_CxPlatSendDataAllocBuffer((CXPLAT_SEND_DATA_INTERNAL*)SendData, MaxBufferLength);
+    if (SendBufferFrom(SendData) == CXPLAT_BUFFER_FROM_USER) {
+        return DataPathUserFuncs.CxPlatSendDataAllocBuffer(SendData, MaxBufferLength);
+    } else if (SendBufferFrom(SendData) == CXPLAT_BUFFER_FROM_XDP) {
+        return XDP_CxPlatSendDataAllocBuffer(SendData, MaxBufferLength);
     } else {
         CXPLAT_DBG_ASSERT(FALSE);
     }
@@ -556,10 +547,10 @@ CxPlatSendDataFreeBuffer(
     _In_ QUIC_BUFFER* Buffer
     )
 {
-    if (SendData->BufferFrom == CXPLAT_BUFFER_FROM_USER) {
-        DataPathUserFuncs.CxPlatSendDataFreeBuffer((CXPLAT_SEND_DATA_INTERNAL*)SendData, Buffer);
-    } else if (SendData->BufferFrom == CXPLAT_BUFFER_FROM_XDP) {
-        XDP_CxPlatSendDataFreeBuffer((CXPLAT_SEND_DATA_INTERNAL*)SendData, Buffer);
+    if (SendBufferFrom(SendData) == CXPLAT_BUFFER_FROM_USER) {
+        DataPathUserFuncs.CxPlatSendDataFreeBuffer(SendData, Buffer);
+    } else if (SendBufferFrom(SendData) == CXPLAT_BUFFER_FROM_XDP) {
+        XDP_CxPlatSendDataFreeBuffer(SendData, Buffer);
     } else {
         CXPLAT_DBG_ASSERT(FALSE);
     }
@@ -571,10 +562,10 @@ CxPlatSendDataIsFull(
     _In_ CXPLAT_SEND_DATA* SendData
     )
 {
-    if (SendData->BufferFrom == CXPLAT_BUFFER_FROM_USER) {
-        return DataPathUserFuncs.CxPlatSendDataIsFull((CXPLAT_SEND_DATA_INTERNAL*)SendData);
-    } else if (SendData->BufferFrom == CXPLAT_BUFFER_FROM_XDP) {
-        return XDP_CxPlatSendDataIsFull((CXPLAT_SEND_DATA_INTERNAL*)SendData);
+    if (SendBufferFrom(SendData) == CXPLAT_BUFFER_FROM_USER) {
+        return DataPathUserFuncs.CxPlatSendDataIsFull(SendData);
+    } else if (SendBufferFrom(SendData) == CXPLAT_BUFFER_FROM_XDP) {
+        return XDP_CxPlatSendDataIsFull(SendData);
     } else {
         CXPLAT_DBG_ASSERT(FALSE);
     }
@@ -589,10 +580,10 @@ CxPlatSocketSend(
     _In_ CXPLAT_SEND_DATA* SendData
     )
 {
-    if (SendData->BufferFrom == CXPLAT_BUFFER_FROM_USER) {
-        return DataPathUserFuncs.CxPlatSocketSend(Socket, Route, (CXPLAT_SEND_DATA_INTERNAL*)SendData);
-    } else if (SendData->BufferFrom == CXPLAT_BUFFER_FROM_XDP) {
-        return XDP_CxPlatSocketSend(CxPlatSocketToRaw(Socket), Route, (CXPLAT_SEND_DATA_INTERNAL*)SendData);
+    if (SendBufferFrom(SendData) == CXPLAT_BUFFER_FROM_USER) {
+        return DataPathUserFuncs.CxPlatSocketSend(Socket, Route, SendData);
+    } else if (SendBufferFrom(SendData) == CXPLAT_BUFFER_FROM_XDP) {
+        return XDP_CxPlatSocketSend(CxPlatSocketToRaw(Socket), Route, SendData);
     } else {
         CXPLAT_DBG_ASSERT(FALSE);
     }

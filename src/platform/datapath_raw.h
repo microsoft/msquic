@@ -82,12 +82,12 @@ typedef struct CXPLAT_INTERFACE {
     } OffloadStatus;
 } CXPLAT_INTERFACE;
 
-typedef struct CXPLAT_SEND_DATA_INTERNAL {
-    CXPLAT_SEND_DATA;
+typedef struct CXPLAT_SEND_DATA {
+    CXPLAT_SEND_DATA_COMMON;
 
     QUIC_BUFFER Buffer;
 
-} CXPLAT_SEND_DATA_INTERNAL;
+} CXPLAT_SEND_DATA;
 
 //
 // Initializes the raw datapath stack.
@@ -225,7 +225,7 @@ CxPlatDpRawTxAlloc(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 CxPlatDpRawTxFree(
-    _In_ CXPLAT_SEND_DATA_INTERNAL* SendData
+    _In_ CXPLAT_SEND_DATA* SendData
     );
 
 //
@@ -234,7 +234,7 @@ CxPlatDpRawTxFree(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 CxPlatDpRawTxEnqueue(
-    _In_ CXPLAT_SEND_DATA_INTERNAL* SendData
+    _In_ CXPLAT_SEND_DATA* SendData
     );
 
 //
@@ -264,8 +264,8 @@ typedef struct CXPLAT_SOCKET_RAW {
     uint8_t CibirId[6];              // CIBIR ID data
     BOOLEAN UseTcp;                  // Quic over TCP
 
-    CXPLAT_SEND_DATA_INTERNAL* PausedTcpSend; // Paused TCP send data *before* framing
-    CXPLAT_SEND_DATA_INTERNAL* CachedRstSend; // Cached TCP RST send data *after* framing
+    CXPLAT_SEND_DATA* PausedTcpSend; // Paused TCP send data *before* framing
+    CXPLAT_SEND_DATA* CachedRstSend; // Cached TCP RST send data *after* framing
 
     CXPLAT_SOCKET;
 } CXPLAT_SOCKET_RAW;

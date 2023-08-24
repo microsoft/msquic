@@ -124,7 +124,7 @@ PacketSizeFromUdpPayloadSize(
 //
 // The top level datapath handle type.
 //
-// typedef struct CXPLAT_DATAPATH CXPLAT_DATAPATH;
+typedef struct CXPLAT_DATAPATH CXPLAT_DATAPATH;
 
 
 typedef struct CXPLAT_DATAPATH_RAW CXPLAT_DATAPATH_RAW;
@@ -154,17 +154,7 @@ typedef enum CXPLAT_BUFFER_FROM {
 //
 // Structure that maintains the 'per send' context.
 //
-typedef struct CXPLAT_SEND_DATA_INTERNAL CXPLAT_SEND_DATA_INTERNAL;
 typedef struct CXPLAT_SEND_DATA CXPLAT_SEND_DATA;
-
-// typedef struct CXPLAT_SEND_DATA {
-//     uint16_t BufferFrom : 2;
-
-//     //
-//     // The type of ECN markings needed for send.
-//     //
-//     uint8_t ECN; // CXPLAT_ECN_TYPE
-// } CXPLAT_SEND_DATA;
 
 //
 // Contains a pointer and length.
@@ -863,15 +853,15 @@ typedef struct CXPLAT_DATAPATH_FUNCTIONS {
     void (*CxPlatRecvDataReturn)(_In_opt_ CXPLAT_RECV_DATA* RecvDataChain);
     CXPLAT_SEND_DATA* (*CxPlatSendDataAlloc)(_In_ CXPLAT_SOCKET* Socket,
                                              _Inout_ CXPLAT_SEND_CONFIG* Config);
-    void (*CxPlatSendDataFree)(_In_ CXPLAT_SEND_DATA_INTERNAL* SendData);
-    QUIC_BUFFER* (*CxPlatSendDataAllocBuffer)(_In_ CXPLAT_SEND_DATA_INTERNAL* SendData,
+    void (*CxPlatSendDataFree)(_In_ CXPLAT_SEND_DATA* SendData);
+    QUIC_BUFFER* (*CxPlatSendDataAllocBuffer)(_In_ CXPLAT_SEND_DATA* SendData,
                                               _In_ uint16_t MaxBufferLength);
-    void (*CxPlatSendDataFreeBuffer)(_In_ CXPLAT_SEND_DATA_INTERNAL* SendData,
+    void (*CxPlatSendDataFreeBuffer)(_In_ CXPLAT_SEND_DATA* SendData,
                                      _In_ QUIC_BUFFER* Buffer);
-    BOOLEAN (*CxPlatSendDataIsFull)(_In_ CXPLAT_SEND_DATA_INTERNAL* SendData);
+    BOOLEAN (*CxPlatSendDataIsFull)(_In_ CXPLAT_SEND_DATA* SendData);
     QUIC_STATUS (*CxPlatSocketSend)(_In_ CXPLAT_SOCKET* Socket,
                                     _In_ const CXPLAT_ROUTE* Route,
-                                    _In_ CXPLAT_SEND_DATA_INTERNAL* SendData);
+                                    _In_ CXPLAT_SEND_DATA* SendData);
     void (*CxPlatDataPathProcessCqe)(_In_ CXPLAT_CQE* Cqe);
     void (*QuicCopyRouteInfo)(_Inout_ CXPLAT_ROUTE* DstRoute,
                               _In_ CXPLAT_ROUTE* SrcRoutee);
@@ -956,28 +946,28 @@ XDP_CxPlatSendDataAlloc(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 XDP_CxPlatSendDataFree(
-    _In_ CXPLAT_SEND_DATA_INTERNAL* SendData
+    _In_ CXPLAT_SEND_DATA* SendData
     );
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 _Success_(return != NULL)
 QUIC_BUFFER*
 XDP_CxPlatSendDataAllocBuffer(
-    _In_ CXPLAT_SEND_DATA_INTERNAL* SendData,
+    _In_ CXPLAT_SEND_DATA* SendData,
     _In_ uint16_t MaxBufferLength
     );
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 XDP_CxPlatSendDataFreeBuffer(
-    _In_ CXPLAT_SEND_DATA_INTERNAL* SendData,
+    _In_ CXPLAT_SEND_DATA* SendData,
     _In_ QUIC_BUFFER* Buffer
     );
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 BOOLEAN
 XDP_CxPlatSendDataIsFull(
-    _In_ CXPLAT_SEND_DATA_INTERNAL* SendData
+    _In_ CXPLAT_SEND_DATA* SendData
     );
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -985,7 +975,7 @@ QUIC_STATUS
 XDP_CxPlatSocketSend(
     _In_ CXPLAT_SOCKET_RAW* Socket,
     _In_ const CXPLAT_ROUTE* Route,
-    _In_ CXPLAT_SEND_DATA_INTERNAL* SendData
+    _In_ CXPLAT_SEND_DATA* SendData
     );
 
 void
