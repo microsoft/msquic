@@ -20,59 +20,23 @@ Abstract:
 #pragma warning(disable:4100) // unreferenced
 #pragma warning(disable:6101) // uninitialized
 
-#define IS_LOOPBACK(RemoteAddress) ((RemoteAddress.si_family == QUIC_ADDRESS_FAMILY_INET &&                \
-                                     RemoteAddress.Ipv4.sin_addr.S_un.S_addr == htonl(INADDR_LOOPBACK)) || \
-                                    (RemoteAddress.si_family == QUIC_ADDRESS_FAMILY_INET6 &&               \
-                                     IN6_IS_ADDR_LOOPBACK(&RemoteAddress.Ipv6.sin6_addr)))
+#define IS_LOOPBACK(Address) ((Address.si_family == QUIC_ADDRESS_FAMILY_INET &&                \
+                                     Address.Ipv4.sin_addr.S_un.S_addr == htonl(INADDR_LOOPBACK)) || \
+                                    (Address.si_family == QUIC_ADDRESS_FAMILY_INET6 &&               \
+                                     IN6_IS_ADDR_LOOPBACK(&Address.Ipv6.sin6_addr)))
 
-CXPLAT_RECV_DATA*
-CxPlatDataPathRecvPacketToRecvData(
-    _In_ const CXPLAT_RECV_PACKET* const Context,
-    _In_ uint16_t BufferFrom
-    )
-{
-    if (BufferFrom == CXPLAT_BUFFER_FROM_USER) {
-        return DataPathUserFuncs.CxPlatDataPathRecvPacketToRecvData(Context);
-    } else if (BufferFrom == CXPLAT_BUFFER_FROM_XDP) {
-        return XDP_CxPlatDataPathRecvPacketToRecvData(Context);
-    } else {
-        CXPLAT_DBG_ASSERT(FALSE);
-    }
-    return NULL;
-}
+#define RawDataPathAvailable(Datapath) ((Datapath)->RawDataPath != NULL)
+#define RawSocketAvailable(Socket) ((Socket)->Datapath && RawDataPathAvailable((Socket)->Datapath))
 
-CXPLAT_RECV_PACKET*
-CxPlatDataPathRecvDataToRecvPacket(
-    _In_ const CXPLAT_RECV_DATA* const Datagram
-    )
-{
-    if (Datagram->BufferFrom == CXPLAT_BUFFER_FROM_USER) {
-        return DataPathUserFuncs.CxPlatDataPathRecvDataToRecvPacket(Datagram);
-    } else if (Datagram->BufferFrom == CXPLAT_BUFFER_FROM_XDP) {
-        return XDP_CxPlatDataPathRecvDataToRecvPacket(Datagram);
-    } else {
-        CXPLAT_DBG_ASSERT(FALSE);
-    }
-    return NULL;
-}
-
-_IRQL_requires_max_(PASSIVE_LEVEL)
-BOOLEAN
-CxPlatRawDataPathAvailable(
-    _In_ CXPLAT_DATAPATH* Datapath
-    )
-{
-    return Datapath->RawDataPath != NULL;
-}
-
-_IRQL_requires_max_(PASSIVE_LEVEL)
-BOOLEAN
-CxPlatRawSocketAvailable(
-    _In_ CXPLAT_SOCKET* Socket
-    )
-{
-    return Socket->Datapath && CxPlatRawDataPathAvailable(Socket->Datapath);
-}
+// CXPLAT_SOCKET*
+// CxPlatRawToSocket(CXPLAT_SOCKET_RAW* Socket) {
+//     return (CXPLAT_SOCKET*)((unsigned char*)Socket + sizeof(CXPLAT_SOCKET_RAW) - sizeof(CXPLAT_SOCKET));
+// }
+// // TODO: rename
+// CXPLAT_SOCKET_RAW*
+// CxPlatSocketToRaw(CXPLAT_SOCKET* Socket) {
+//     return (CXPLAT_SOCKET_RAW*)((unsigned char*)Socket - sizeof(CXPLAT_SOCKET_RAW) + sizeof(CXPLAT_SOCKET));
+// }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
@@ -645,9 +609,11 @@ CxPlatDataPathProcessCqe(
     case CXPLAT_CQE_TYPE_SOCKET_IO: {
         DATAPATH_IO_SQE* Sqe =
             CONTAINING_RECORD(CxPlatCqeUserData(Cqe), DATAPATH_IO_SQE, DatapathSqe);
-        if (Sqe->IoType == 1480872005 || Sqe->IoType == 1480872006) {
+        if (Sqe->IoType == DATAPATH_XDP_IO_RECV || Sqe->IoType == DATAPATH_XDP_IO_SEND) {
+            fprintf(stderr, "Recv XDP %d\n", Sqe->IoType);
             XDP_CxPlatDataPathProcessCqe(Cqe);
         } else {
+            fprintf(stderr, "Recv Sock %d\n", Sqe->IoType);
             DataPathUserFuncs.CxPlatDataPathProcessCqe(Cqe);
         }
         break;

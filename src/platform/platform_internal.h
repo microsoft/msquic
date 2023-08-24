@@ -39,6 +39,62 @@
 
 #endif
 
+
+#ifdef _KERNEL_MODE
+// #include "datapath_winkernel.h"
+#elif _WIN32
+// #include "datapath_winuser.h"
+#elif CX_PLATFORM_LINUX
+// #include "datapath_posix.h"
+#elif CX_PLATFORM_DARWIN
+// #include "datapath_posix.h"
+#else
+#error "Unsupported Platform"
+#endif
+
+// TODO: create header files for each datapath
+
+typedef struct DATAPATH_SQE {
+    uint32_t CqeType;
+#ifdef CXPLAT_SQE
+    CXPLAT_SQE Sqe;
+#endif
+} DATAPATH_SQE;
+
+// not needed?
+typedef struct CXPLAT_DATAPATH_COMMON {
+    //
+    // The UDP callback function pointers.
+    //
+    CXPLAT_UDP_DATAPATH_CALLBACKS UdpHandlers;
+
+    //
+    // The TCP callback function pointers.
+    //
+    CXPLAT_TCP_DATAPATH_CALLBACKS TcpHandlers;
+} CXPLAT_DATAPATH_COMMON;
+
+typedef struct CXPLAT_SOCKET_COMMON {
+    //
+    // The local address and port.
+    //
+    QUIC_ADDR LocalAddress;
+
+    //
+    // The remote address and port.
+    //
+    QUIC_ADDR RemoteAddress;
+} CXPLAT_SOCKET_COMMON;
+
+typedef struct CXPLAT_SEND_DATA {
+    uint16_t BufferFrom : 2;
+
+    //
+    // The type of ECN markings needed for send.
+    //
+    uint8_t ECN; // CXPLAT_ECN_TYPE
+} CXPLAT_SEND_DATA;
+
 #ifdef _KERNEL_MODE
 
 #define CXPLAT_BASE_REG_PATH L"\\Registry\\Machine\\System\\CurrentControlSet\\Services\\MsQuic\\Parameters\\"
@@ -104,156 +160,6 @@ typedef struct CX_PLATFORM {
 
 } CX_PLATFORM;
 
-#elif defined(CX_PLATFORM_LINUX) || defined(CX_PLATFORM_DARWIN)
-
-typedef struct CX_PLATFORM {
-
-    void* Reserved; // Nothing right now.
-
-#ifdef DEBUG
-    //
-    // 1/Denominator of allocations to fail.
-    // Negative is Nth allocation to fail.
-    //
-    int32_t AllocFailDenominator;
-
-    //
-    // Count of allocations.
-    //
-    long AllocCounter;
-#endif
-
-} CX_PLATFORM;
-
-#else
-
-#error "Unsupported Platform"
-
-#endif
-
-#pragma warning(disable:4204)  // nonstandard extension used: non-constant aggregate initializer
-#pragma warning(disable:4200)  // nonstandard extension used: zero-sized array in struct/union
-
-//
-// Global Platform variables/state.
-//
-extern CX_PLATFORM CxPlatform;
-
-//
-// PCP Receive Callback
-//
-CXPLAT_DATAPATH_RECEIVE_CALLBACK CxPlatPcpRecvCallback;
-
-#if _WIN32 // Some Windows Helpers
-
-//
-// Converts IPv6 or IPV4 address to a (possibly mapped) IPv6.
-//
-inline
-void
-CxPlatConvertToMappedV6(
-    _In_ const QUIC_ADDR* InAddr,
-    _Out_ QUIC_ADDR* OutAddr
-    )
-{
-    if (InAddr->si_family == QUIC_ADDRESS_FAMILY_INET) {
-        SCOPE_ID unspecified_scope = {0};
-        IN6ADDR_SETV4MAPPED(
-            &OutAddr->Ipv6,
-            &InAddr->Ipv4.sin_addr,
-            unspecified_scope,
-            InAddr->Ipv4.sin_port);
-    } else {
-        *OutAddr = *InAddr;
-    }
-}
-
-//
-// Converts (possibly mapped) IPv6 address to a IPv6 or IPV4 address. Does
-// support InAdrr == OutAddr.
-//
-#pragma warning(push)
-#pragma warning(disable: 6101) // Intentially don't overwrite output if unable to convert
-inline
-void
-CxPlatConvertFromMappedV6(
-    _In_ const QUIC_ADDR* InAddr,
-    _Out_ QUIC_ADDR* OutAddr
-    )
-{
-    CXPLAT_DBG_ASSERT(InAddr->si_family == QUIC_ADDRESS_FAMILY_INET6);
-    if (IN6_IS_ADDR_V4MAPPED(&InAddr->Ipv6.sin6_addr)) {
-        OutAddr->si_family = QUIC_ADDRESS_FAMILY_INET;
-        OutAddr->Ipv4.sin_port = InAddr->Ipv6.sin6_port;
-        OutAddr->Ipv4.sin_addr =
-            *(IN_ADDR UNALIGNED *)
-            IN6_GET_ADDR_V4MAPPED(&InAddr->Ipv6.sin6_addr);
-    } else if (OutAddr != InAddr) {
-        *OutAddr = *InAddr;
-    }
-}
-#pragma warning(pop)
-
-#endif
-
-//
-// Crypt Initialization
-//
-
-QUIC_STATUS
-CxPlatCryptInitialize(
-    void
-    );
-
-void
-CxPlatCryptUninitialize(
-    void
-    );
-
-//
-// Platform Worker APIs
-//
-
-void
-CxPlatWorkersInit(
-    void
-    );
-
-void
-CxPlatWorkersUninit(
-    void
-    );
-
-BOOLEAN
-CxPlatWorkersLazyStart(
-    _In_opt_ QUIC_EXECUTION_CONFIG* Config
-    );
-
-CXPLAT_EVENTQ*
-CxPlatWorkerGetEventQ(
-    _In_ uint16_t Index // Into the config processor array
-    );
-
-void
-CxPlatDataPathProcessCqe(
-    _In_ CXPLAT_CQE* Cqe
-    );
-
-BOOLEAN // Returns FALSE no work was done.
-CxPlatDataPathPoll(
-    _In_ void* Context,
-    _Out_ BOOLEAN* RemoveFromPolling
-    );
-
-typedef struct DATAPATH_SQE {
-    uint32_t CqeType;
-#ifdef CXPLAT_SQE
-    CXPLAT_SQE Sqe;
-#endif
-} DATAPATH_SQE;
-
-typedef struct CXPLAT_DATAPATH_PROC CXPLAT_DATAPATH_PROC;
-
 //
 // Type of IO.
 //
@@ -270,6 +176,15 @@ typedef enum DATAPATH_IO_TYPE {
     DATAPATH_IO_RECV_FAILURE      = DATAPATH_IO_SIGNATURE + 9,
     DATAPATH_IO_MAX
 } DATAPATH_IO_TYPE;
+
+//
+// Type of IO for XDP.
+//
+typedef enum DATAPATH_XDP_IO_TYPE {
+    DATAPATH_XDP_IO_SIGNATURE         = 'XDPD',
+    DATAPATH_XDP_IO_RECV              = DATAPATH_XDP_IO_SIGNATURE + 1,
+    DATAPATH_XDP_IO_SEND              = DATAPATH_XDP_IO_SIGNATURE + 2
+} DATAPATH_XDP_IO_TYPE;
 
 //
 // IO header for SQE->CQE based completions.
@@ -445,7 +360,7 @@ typedef struct QUIC_CACHEALIGN CXPLAT_SOCKET_PROC {
 // Main structure for tracking all UDP abstractions.
 //
 typedef struct CXPLAT_DATAPATH {
-    CXPLAT_DATAPATH_BASE;
+    CXPLAT_DATAPATH_COMMON;
 
     //
     // Function pointer to AcceptEx.
@@ -528,7 +443,7 @@ typedef struct CXPLAT_DATAPATH {
 // Per-port state. Multiple sockets are created on each port.
 //
 typedef struct CXPLAT_SOCKET {
-    CXPLAT_SOCKET_BASE;
+    CXPLAT_SOCKET_COMMON;
 
     //
     // Parent datapath.
@@ -600,14 +515,167 @@ typedef struct CXPLAT_SOCKET {
 
 } CXPLAT_SOCKET;
 
-uint32_t
-CxPlatGetRawSocketSize ();
+typedef struct CXPLAT_SOCKET_RAW CXPLAT_SOCKET_RAW;
 
+// TODO: rename
 CXPLAT_SOCKET*
 CxPlatRawToSocket(CXPLAT_SOCKET_RAW* Socket);
 
+// TODO: rename
 CXPLAT_SOCKET_RAW*
 CxPlatSocketToRaw(CXPLAT_SOCKET* Socket);
+
+#elif defined(CX_PLATFORM_LINUX) || defined(CX_PLATFORM_DARWIN)
+
+typedef struct CX_PLATFORM {
+
+    void* Reserved; // Nothing right now.
+
+#ifdef DEBUG
+    //
+    // 1/Denominator of allocations to fail.
+    // Negative is Nth allocation to fail.
+    //
+    int32_t AllocFailDenominator;
+
+    //
+    // Count of allocations.
+    //
+    long AllocCounter;
+#endif
+
+} CX_PLATFORM;
+
+#else
+
+#error "Unsupported Platform"
+
+#endif
+
+#pragma warning(disable:4204)  // nonstandard extension used: non-constant aggregate initializer
+#pragma warning(disable:4200)  // nonstandard extension used: zero-sized array in struct/union
+
+//
+// Global Platform variables/state.
+//
+extern CX_PLATFORM CxPlatform;
+
+//
+// PCP Receive Callback
+//
+CXPLAT_DATAPATH_RECEIVE_CALLBACK CxPlatPcpRecvCallback;
+
+#if _WIN32 // Some Windows Helpers
+
+//
+// Converts IPv6 or IPV4 address to a (possibly mapped) IPv6.
+//
+inline
+void
+CxPlatConvertToMappedV6(
+    _In_ const QUIC_ADDR* InAddr,
+    _Out_ QUIC_ADDR* OutAddr
+    )
+{
+    if (InAddr->si_family == QUIC_ADDRESS_FAMILY_INET) {
+        SCOPE_ID unspecified_scope = {0};
+        IN6ADDR_SETV4MAPPED(
+            &OutAddr->Ipv6,
+            &InAddr->Ipv4.sin_addr,
+            unspecified_scope,
+            InAddr->Ipv4.sin_port);
+    } else {
+        *OutAddr = *InAddr;
+    }
+}
+
+//
+// Converts (possibly mapped) IPv6 address to a IPv6 or IPV4 address. Does
+// support InAdrr == OutAddr.
+//
+#pragma warning(push)
+#pragma warning(disable: 6101) // Intentially don't overwrite output if unable to convert
+inline
+void
+CxPlatConvertFromMappedV6(
+    _In_ const QUIC_ADDR* InAddr,
+    _Out_ QUIC_ADDR* OutAddr
+    )
+{
+    CXPLAT_DBG_ASSERT(InAddr->si_family == QUIC_ADDRESS_FAMILY_INET6);
+    if (IN6_IS_ADDR_V4MAPPED(&InAddr->Ipv6.sin6_addr)) {
+        OutAddr->si_family = QUIC_ADDRESS_FAMILY_INET;
+        OutAddr->Ipv4.sin_port = InAddr->Ipv6.sin6_port;
+        OutAddr->Ipv4.sin_addr =
+            *(IN_ADDR UNALIGNED *)
+            IN6_GET_ADDR_V4MAPPED(&InAddr->Ipv6.sin6_addr);
+    } else if (OutAddr != InAddr) {
+        *OutAddr = *InAddr;
+    }
+}
+#pragma warning(pop)
+
+#endif
+
+//
+// Crypt Initialization
+//
+
+QUIC_STATUS
+CxPlatCryptInitialize(
+    void
+    );
+
+void
+CxPlatCryptUninitialize(
+    void
+    );
+
+//
+// Platform Worker APIs
+//
+
+void
+CxPlatWorkersInit(
+    void
+    );
+
+void
+CxPlatWorkersUninit(
+    void
+    );
+
+BOOLEAN
+CxPlatWorkersLazyStart(
+    _In_opt_ QUIC_EXECUTION_CONFIG* Config
+    );
+
+CXPLAT_EVENTQ*
+CxPlatWorkerGetEventQ(
+    _In_ uint16_t Index // Into the config processor array
+    );
+
+void
+CxPlatDataPathProcessCqe(
+    _In_ CXPLAT_CQE* Cqe
+    );
+
+BOOLEAN // Returns FALSE no work was done.
+CxPlatDataPathPoll(
+    _In_ void* Context,
+    _Out_ BOOLEAN* RemoveFromPolling
+    );
+
+typedef struct CXPLAT_DATAPATH_PROC CXPLAT_DATAPATH_PROC;
+
+uint32_t
+CxPlatGetRawSocketSize ();
+
+// CXPLAT_SOCKET*
+// CxPlatRawToSocket(CXPLAT_SOCKET_RAW* Socket);
+
+// CXPLAT_SOCKET_RAW*
+// CxPlatSocketToRaw(CXPLAT_SOCKET* Socket);
 
 //
 // Queries the raw datapath stack for the total size needed to allocate the

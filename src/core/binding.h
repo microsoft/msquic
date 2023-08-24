@@ -161,12 +161,12 @@ typedef struct QUIC_RX_PACKET {
     //
     BOOLEAN HasNonProbingFrame : 1;
 
-    //
-    //
-    //
-    uint8_t BufferFrom : 2;
+    // //
+    // //
+    // //
+    // uint8_t BufferFrom : 2;
 
-    uint8_t Reserved : 2;
+    // uint8_t Reserved : 2;
     };
     };
 

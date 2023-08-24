@@ -127,7 +127,6 @@ PacketSizeFromUdpPayloadSize(
 // typedef struct CXPLAT_DATAPATH CXPLAT_DATAPATH;
 
 
-typedef struct CXPLAT_DATAPATH_BASE CXPLAT_DATAPATH_BASE;
 typedef struct CXPLAT_DATAPATH_RAW CXPLAT_DATAPATH_RAW;
 typedef struct CXPLAT_DATAPATH CXPLAT_DATAPATH;
 
@@ -136,20 +135,6 @@ typedef struct CXPLAT_DATAPATH CXPLAT_DATAPATH;
 //
 typedef struct CXPLAT_SOCKET_RAW CXPLAT_SOCKET_RAW;
 typedef struct CXPLAT_SOCKET CXPLAT_SOCKET;
-typedef struct CXPLAT_SOCKET_BASE CXPLAT_SOCKET_BASE;
-
-
-typedef struct CXPLAT_SOCKET_BASE {
-    //
-    // The local address and port.
-    //
-    QUIC_ADDR LocalAddress;
-
-    //
-    // The remote address and port.
-    //
-    QUIC_ADDR RemoteAddress;    
-} CXPLAT_SOCKET_BASE;
 
 typedef struct CXPLAT_UDP_CONFIG CXPLAT_UDP_CONFIG;
 
@@ -170,15 +155,16 @@ typedef enum CXPLAT_BUFFER_FROM {
 // Structure that maintains the 'per send' context.
 //
 typedef struct CXPLAT_SEND_DATA_INTERNAL CXPLAT_SEND_DATA_INTERNAL;
+typedef struct CXPLAT_SEND_DATA CXPLAT_SEND_DATA;
 
-typedef struct CXPLAT_SEND_DATA {
-    uint16_t BufferFrom : 2;
+// typedef struct CXPLAT_SEND_DATA {
+//     uint16_t BufferFrom : 2;
 
-    //
-    // The type of ECN markings needed for send.
-    //
-    uint8_t ECN; // CXPLAT_ECN_TYPE
-} CXPLAT_SEND_DATA;
+//     //
+//     // The type of ECN markings needed for send.
+//     //
+//     uint8_t ECN; // CXPLAT_ECN_TYPE
+// } CXPLAT_SEND_DATA;
 
 //
 // Contains a pointer and length.
@@ -831,8 +817,8 @@ CxPlatUpdateRoute(
     );
 
 typedef struct CXPLAT_DATAPATH_FUNCTIONS {
-    CXPLAT_RECV_DATA* (*CxPlatDataPathRecvPacketToRecvData)(const CXPLAT_RECV_PACKET* const Context);
-    CXPLAT_RECV_PACKET* (*CxPlatDataPathRecvDataToRecvPacket)(const CXPLAT_RECV_DATA* const Datagram);
+    // CXPLAT_RECV_DATA* (*CxPlatDataPathRecvPacketToRecvData)(const CXPLAT_RECV_PACKET* const Context);
+    // CXPLAT_RECV_PACKET* (*CxPlatDataPathRecvDataToRecvPacket)(const CXPLAT_RECV_DATA* const Datagram);
     QUIC_STATUS (*CxPlatDataPathInitialize)(_In_ uint32_t ClientRecvContextLength,
                                             _In_opt_ QUIC_EXECUTION_CONFIG* Config,
                                             _Out_ CXPLAT_DATAPATH* DataPath);
@@ -893,18 +879,6 @@ typedef struct CXPLAT_DATAPATH_FUNCTIONS {
 
 extern const struct CXPLAT_DATAPATH_FUNCTIONS DataPathUserFuncs;
 extern const struct CXPLAT_DATAPATH_FUNCTIONS DataPathXdpFuncs; // RawFuncs?
-
-typedef struct CXPLAT_DATAPATH_BASE {
-    //
-    // The UDP callback function pointers.
-    //
-    CXPLAT_UDP_DATAPATH_CALLBACKS UdpHandlers;
-
-    //
-    // The TCP callback function pointers.
-    //
-    CXPLAT_TCP_DATAPATH_CALLBACKS TcpHandlers;
-} CXPLAT_DATAPATH_BASE;
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS

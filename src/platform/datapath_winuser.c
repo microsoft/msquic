@@ -3612,6 +3612,7 @@ CxPlatDataPathUdpRecvComplete(
         CXPLAT_RECV_DATA* RecvDataChain = NULL;
         CXPLAT_RECV_DATA** DatagramChainTail = &RecvDataChain;
 
+        CXPLAT_DATAPATH* Datapath = SocketProc->Parent->Datapath;
         CXPLAT_RECV_DATA* Datagram;
         PUCHAR RecvPayload = ((PUCHAR)IoBlock) + Datapath->RecvPayloadOffset;
 
@@ -4988,8 +4989,8 @@ MANGLE(CxPlatUpdateRoute)(
 }
 
 const struct CXPLAT_DATAPATH_FUNCTIONS DataPathUserFuncs = {
-        MANGLE(CxPlatDataPathRecvPacketToRecvData),
-        MANGLE(CxPlatDataPathRecvDataToRecvPacket),
+        // MANGLE(CxPlatDataPathRecvPacketToRecvData),
+        // MANGLE(CxPlatDataPathRecvDataToRecvPacket),
         MANGLE(CxPlatDataPathInitialize),
         MANGLE(CxPlatDataPathUninitialize),
         MANGLE(CxPlatDataPathUpdateConfig),
