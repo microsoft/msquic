@@ -53,18 +53,13 @@ CXPLAT_STATIC_ASSERT((SIZEOF_STRUCT_MEMBER(QUIC_BUFFER, Buffer) == sizeof(void*)
 #define CXPLAT_LARGE_SEND_BUFFER_SIZE         0xFFFF
 
 //
-// A receive block to receive a UDP packet over the sockets.
+// Contains all the info for a single RX IO operation.
 //
-typedef struct CXPLAT_DATAPATH_RECV_BLOCK {
+typedef struct DATAPATH_RX_IO_BLOCK {
     //
     // The pool owning this recv block.
     //
     CXPLAT_POOL* OwningPool;
-
-    //
-    // The recv buffer used by MsQuic.
-    //
-    CXPLAT_RECV_DATA RecvPacket;
 
     //
     // Represents the network route.
@@ -77,11 +72,11 @@ typedef struct CXPLAT_DATAPATH_RECV_BLOCK {
     uint8_t Buffer[MAX_UDP_PAYLOAD_LENGTH];
 
     //
-    // This follows the recv block.
+    // Publicly visible receive data.
     //
-    // CXPLAT_RECV_PACKET RecvContext;
+    CXPLAT_RECV_DATA RecvPacket;
 
-} CXPLAT_DATAPATH_RECV_BLOCK;
+} DATAPATH_RX_IO_BLOCK;
 
 //
 // Send context.
@@ -207,7 +202,7 @@ typedef struct QUIC_CACHEALIGN CXPLAT_SOCKET_CONTEXT {
     //
     // The receive block currently being used for receives on this socket.
     //
-    CXPLAT_DATAPATH_RECV_BLOCK* CurrentRecvBlock;
+    DATAPATH_RX_IO_BLOCK* CurrentRecvBlock;
 
     //
     // The head of list containg all pending sends on this socket.
@@ -403,12 +398,12 @@ void
 CxPlatProcessorContextInitialize(
     _In_ CXPLAT_DATAPATH* Datapath,
     _In_ uint16_t PartitionIndex,
-    _In_ uint32_t ClientRecvContextLength,
+    _In_ uint32_t ClientRecvDataLength,
     _Out_ CXPLAT_DATAPATH_PARTITION* DatapathPartition
     )
 {
     const uint32_t RecvPacketLength =
-        sizeof(CXPLAT_DATAPATH_RECV_BLOCK) + ClientRecvContextLength;
+        sizeof(DATAPATH_RX_IO_BLOCK) + ClientRecvDataLength;
 
     CXPLAT_DBG_ASSERT(Datapath != NULL);
     DatapathPartition->Datapath = Datapath;
@@ -440,7 +435,7 @@ CxPlatProcessorContextInitialize(
 
 QUIC_STATUS
 CxPlatDataPathInitialize(
-    _In_ uint32_t ClientRecvContextLength,
+    _In_ uint32_t ClientRecvDataLength,
     _In_opt_ const CXPLAT_UDP_DATAPATH_CALLBACKS* UdpCallbacks,
     _In_opt_ const CXPLAT_TCP_DATAPATH_CALLBACKS* TcpCallbacks,
     _In_opt_ QUIC_EXECUTION_CONFIG* Config,
@@ -492,7 +487,7 @@ CxPlatDataPathInitialize(
         CxPlatProcessorContextInitialize(
             Datapath,
             i,
-            ClientRecvContextLength,
+            ClientRecvDataLength,
             &Datapath->Partitions[i]);
     }
 
@@ -583,27 +578,27 @@ CxPlatDataPathIsPaddingPreferred(
     return !!(Datapath->Features & CXPLAT_DATAPATH_FEATURE_SEND_SEGMENTATION);
 }
 
-CXPLAT_DATAPATH_RECV_BLOCK*
-CxPlatDataPathAllocRecvBlock(
+DATAPATH_RX_IO_BLOCK*
+CxPlatDataPathAllocRxIoBlock(
     _In_ CXPLAT_DATAPATH_PARTITION* DatapathPartition
     )
 {
-    CXPLAT_DATAPATH_RECV_BLOCK* RecvBlock =
+    DATAPATH_RX_IO_BLOCK* IoBlock =
         CxPlatPoolAlloc(&DatapathPartition->RecvBlockPool);
-    if (RecvBlock == NULL) {
+    if (IoBlock == NULL) {
         QuicTraceEvent(
             AllocFailure,
             "Allocation of '%s' failed. (%llu bytes)",
-            "CXPLAT_DATAPATH_RECV_BLOCK",
+            "DATAPATH_RX_IO_BLOCK",
             0);
     } else {
-        CxPlatZeroMemory(RecvBlock, sizeof(*RecvBlock));
-        RecvBlock->Route.State = RouteResolved;
-        RecvBlock->OwningPool = &DatapathPartition->RecvBlockPool;
-        RecvBlock->RecvPacket.Buffer = RecvBlock->Buffer;
-        RecvBlock->RecvPacket.Allocated = TRUE;
+        CxPlatZeroMemory(IoBlock, sizeof(*IoBlock));
+        IoBlock->Route.State = RouteResolved;
+        IoBlock->OwningPool = &DatapathPartition->RecvBlockPool;
+        IoBlock->RecvPacket.Buffer = IoBlock->Buffer;
+        IoBlock->RecvPacket.Allocated = TRUE;
     }
-    return RecvBlock;
+    return IoBlock;
 }
 
 void
@@ -1168,12 +1163,12 @@ CxPlatSocketContextPrepareReceive(
 {
     if (SocketContext->CurrentRecvBlock == NULL) {
         SocketContext->CurrentRecvBlock =
-            CxPlatDataPathAllocRecvBlock(SocketContext->DatapathPartition);
+            CxPlatDataPathAllocRxIoBlock(SocketContext->DatapathPartition);
         if (SocketContext->CurrentRecvBlock == NULL) {
             QuicTraceEvent(
                 AllocFailure,
                 "Allocation of '%s' failed. (%llu bytes)",
-                "CXPLAT_DATAPATH_RECV_BLOCK",
+                "DATAPATH_RX_IO_BLOCK",
                 0);
             return QUIC_STATUS_OUT_OF_MEMORY;
         }
@@ -1725,31 +1720,6 @@ CxPlatSocketGetRemoteAddress(
     *Address = Socket->RemoteAddress;
 }
 
-CXPLAT_RECV_DATA*
-CxPlatDataPathRecvPacketToRecvData(
-    _In_ const CXPLAT_RECV_PACKET* const Packet,
-    _In_ uint16_t BufferFrom
-    )
-{
-    UNREFERENCED_PARAMETER(BufferFrom);
-    CXPLAT_DATAPATH_RECV_BLOCK* RecvBlock =
-        (CXPLAT_DATAPATH_RECV_BLOCK*)
-            ((char *)Packet - sizeof(CXPLAT_DATAPATH_RECV_BLOCK));
-
-    return &RecvBlock->RecvPacket;
-}
-
-CXPLAT_RECV_PACKET*
-CxPlatDataPathRecvDataToRecvPacket(
-    _In_ const CXPLAT_RECV_DATA* const RecvData
-    )
-{
-    CXPLAT_DATAPATH_RECV_BLOCK* RecvBlock =
-        CXPLAT_CONTAINING_RECORD(RecvData, CXPLAT_DATAPATH_RECV_BLOCK, RecvPacket);
-
-    return (CXPLAT_RECV_PACKET*)(RecvBlock + 1);
-}
-
 void
 CxPlatRecvDataReturn(
     _In_opt_ CXPLAT_RECV_DATA* RecvDataChain
@@ -1758,9 +1728,9 @@ CxPlatRecvDataReturn(
     CXPLAT_RECV_DATA* Datagram;
     while ((Datagram = RecvDataChain) != NULL) {
         RecvDataChain = RecvDataChain->Next;
-        CXPLAT_DATAPATH_RECV_BLOCK* RecvBlock =
-            CXPLAT_CONTAINING_RECORD(Datagram, CXPLAT_DATAPATH_RECV_BLOCK, RecvPacket);
-        CxPlatPoolFree(RecvBlock->OwningPool, RecvBlock);
+        DATAPATH_RX_IO_BLOCK* IoBlock =
+            CXPLAT_CONTAINING_RECORD(Datagram, DATAPATH_RX_IO_BLOCK, RecvPacket);
+        CxPlatPoolFree(IoBlock->OwningPool, IoBlock);
     }
 }
 

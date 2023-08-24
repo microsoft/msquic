@@ -272,6 +272,11 @@ typedef struct CXPLAT_RECV_DATA {
     uint16_t Reserved : 4;
     uint16_t ReservedEx : 8;
 
+    //
+    // Variable length data (of size `ClientRecvContextLength` passed into
+    // CxPlatDataPathInitialize) directly follows.
+    //
+
 } CXPLAT_RECV_DATA;
 
 //
@@ -315,23 +320,6 @@ typedef struct CXPLAT_QEO_CONNECTION {
     uint8_t HeaderKey[32];    // Length determined by CipherType
     uint8_t PayloadIv[12];
 } CXPLAT_QEO_CONNECTION;
-
-//
-// Gets the corresponding receive data from its context pointer.
-//
-CXPLAT_RECV_DATA*
-CxPlatDataPathRecvPacketToRecvData(
-    _In_ const CXPLAT_RECV_PACKET* const RecvPacket,
-    _In_ uint16_t BufferFrom
-    );
-
-//
-// Gets the corresponding client context from its receive data pointer.
-//
-CXPLAT_RECV_PACKET*
-CxPlatDataPathRecvDataToRecvPacket(
-    _In_ const CXPLAT_RECV_DATA* const RecvData
-    );
 
 //
 // Function pointer type for datapath TCP accept callbacks.

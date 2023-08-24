@@ -43,18 +43,11 @@ CXPLAT_STATIC_ASSERT((SIZEOF_STRUCT_MEMBER(QUIC_BUFFER, Buffer) == sizeof(void*)
 const uint16_t CXPLAT_MAX_IO_BATCH_SIZE =
     (CXPLAT_LARGE_IO_BUFFER_SIZE / (CXPLAT_MAX_MTU - CXPLAT_MIN_IPV6_HEADER_SIZE - CXPLAT_UDP_HEADER_SIZE));
 
-typedef struct CXPLAT_RECV_SUBBLOCK {
-
-    struct CXPLAT_RECV_BLOCK* RecvBlock;
-    CXPLAT_RECV_DATA RecvData;
-    // CXPLAT_RECV_PACKET RecvPacket;
-
-} CXPLAT_RECV_SUBBLOCK;
-
 //
-// A receive block to receive a UDP packet over the sockets.
+// Contains all the info for a single RX IO operation. Multiple RX packets may
+// come from a single IO operation.
 //
-typedef struct CXPLAT_RECV_BLOCK {
+typedef struct DATAPATH_RX_IO_BLOCK {
     //
     // The pool owning this recv block.
     //
@@ -71,17 +64,30 @@ typedef struct CXPLAT_RECV_BLOCK {
     long RefCount;
 
     //
-    // An array of sub-blocks to represent the datagram and metadata returned to
+    // An array of packets to represent the datagram and metadata returned to
     // the app.
     //
-    //CXPLAT_RECV_SUBBLOCK SubBlocks[0];
+    //DATAPATH_RX_PACKET Packets[0];
 
     //
     // Buffer that actually stores the UDP payload.
     //
     //uint8_t Buffer[]; // CXPLAT_SMALL_IO_BUFFER_SIZE or CXPLAT_LARGE_IO_BUFFER_SIZE
 
-} CXPLAT_RECV_BLOCK;
+} DATAPATH_RX_IO_BLOCK;
+
+typedef struct DATAPATH_RX_PACKET {
+    //
+    // The IO block that owns the packet.
+    //
+    DATAPATH_RX_IO_BLOCK* IoBlock;
+
+    //
+    // Publicly visible receive data.
+    //
+    CXPLAT_RECV_DATA Data;
+
+} DATAPATH_RX_PACKET;
 
 //
 // Send context.
@@ -408,20 +414,20 @@ typedef struct CXPLAT_DATAPATH {
     uint32_t SendIoVecCount;
 
     //
-    // The length of the CXPLAT_RECV_DATA and CXPLAT_RECV_PACKET part of the
-    // CXPLAT_RECV_BLOCK.
+    // The length of the CXPLAT_RECV_DATA and client data part of the
+    // DATAPATH_RX_IO_BLOCK.
     //
     uint32_t RecvBlockStride;
 
     //
-    // The offset of the raw buffer in the CXPLAT_RECV_BLOCK.
+    // The offset of the raw buffer in the DATAPATH_RX_IO_BLOCK.
     //
     uint32_t RecvBlockBufferOffset;
 
     //
-    // The total length of the CXPLAT_RECV_BLOCK. Calculated based on the
+    // The total length of the DATAPATH_RX_IO_BLOCK. Calculated based on the
     // support level for GRO. No GRO only uses a single CXPLAT_RECV_DATA and
-    // CXPLAT_RECV_PACKET, while GRO allows for multiple.
+    // client data, while GRO allows for multiple.
     //
     uint32_t RecvBlockSize;
 
@@ -452,7 +458,7 @@ typedef struct CXPLAT_DATAPATH {
 void
 CxPlatDataPathCalculateFeatureSupport(
     _Inout_ CXPLAT_DATAPATH* Datapath,
-    _In_ uint32_t ClientRecvContextLength
+    _In_ uint32_t ClientRecvDataLength
     )
 {
 #ifdef UDP_SEGMENT
@@ -563,16 +569,16 @@ Error:
     }
 
     Datapath->RecvBlockStride =
-        sizeof(CXPLAT_RECV_SUBBLOCK) + ClientRecvContextLength;
+        sizeof(DATAPATH_RX_PACKET) + ClientRecvDataLength;
     if (Datapath->Features & CXPLAT_DATAPATH_FEATURE_RECV_COALESCING) {
         Datapath->RecvBlockBufferOffset =
-            sizeof(CXPLAT_RECV_BLOCK) +
+            sizeof(DATAPATH_RX_IO_BLOCK) +
             CXPLAT_MAX_IO_BATCH_SIZE * Datapath->RecvBlockStride;
         Datapath->RecvBlockSize =
             Datapath->RecvBlockBufferOffset + CXPLAT_LARGE_IO_BUFFER_SIZE;
     } else {
         Datapath->RecvBlockBufferOffset =
-            sizeof(CXPLAT_RECV_BLOCK) + Datapath->RecvBlockStride;
+            sizeof(DATAPATH_RX_IO_BLOCK) + Datapath->RecvBlockStride;
         Datapath->RecvBlockSize =
             Datapath->RecvBlockBufferOffset + CXPLAT_SMALL_IO_BUFFER_SIZE;
     }
@@ -596,7 +602,7 @@ CxPlatProcessorContextInitialize(
 
 QUIC_STATUS
 CxPlatDataPathInitialize(
-    _In_ uint32_t ClientRecvContextLength,
+    _In_ uint32_t ClientRecvDataLength,
     _In_opt_ const CXPLAT_UDP_DATAPATH_CALLBACKS* UdpCallbacks,
     _In_opt_ const CXPLAT_TCP_DATAPATH_CALLBACKS* TcpCallbacks,
     _In_opt_ QUIC_EXECUTION_CONFIG* Config,
@@ -641,16 +647,14 @@ CxPlatDataPathInitialize(
     Datapath->PartitionCount = PartitionCount;
     Datapath->Features = CXPLAT_DATAPATH_FEATURE_LOCAL_PORT_SHARING;
     CxPlatRefInitializeEx(&Datapath->RefCount, Datapath->PartitionCount);
-    CxPlatDataPathCalculateFeatureSupport(Datapath, ClientRecvContextLength);
+    CxPlatDataPathCalculateFeatureSupport(Datapath, ClientRecvDataLength);
 
     //
     // Initialize the per processor contexts.
     //
     for (uint32_t i = 0; i < Datapath->PartitionCount; i++) {
         CxPlatProcessorContextInitialize(
-            Datapath,
-            i,
-            &Datapath->Partitions[i]);
+            Datapath, i, &Datapath->Partitions[i]);
     }
 
     CXPLAT_FRE_ASSERT(CxPlatRundownAcquire(&CxPlatWorkerRundown));
@@ -1684,24 +1688,6 @@ CxPlatSocketGetRemoteAddress(
 // Receive Path
 //
 
-CXPLAT_RECV_DATA*
-CxPlatDataPathRecvPacketToRecvData(
-    _In_ const CXPLAT_RECV_PACKET* const Packet,
-    _In_ uint16_t BufferFrom
-    )
-{
-    UNREFERENCED_PARAMETER(BufferFrom);
-    return (CXPLAT_RECV_DATA*)((char *)Packet - sizeof(CXPLAT_RECV_DATA));
-}
-
-CXPLAT_RECV_PACKET*
-CxPlatDataPathRecvDataToRecvPacket(
-    _In_ const CXPLAT_RECV_DATA* const RecvData
-    )
-{
-    return (CXPLAT_RECV_PACKET*)(RecvData + 1);
-}
-
 void
 CxPlatSocketHandleErrors(
     _In_ CXPLAT_SOCKET_CONTEXT* SocketContext
@@ -1751,7 +1737,7 @@ CxPlatSocketHandleErrors(
 void
 CxPlatSocketContextRecvComplete(
     _In_ CXPLAT_SOCKET_CONTEXT* SocketContext,
-    _Inout_ CXPLAT_RECV_BLOCK** RecvBlocks,
+    _Inout_ DATAPATH_RX_IO_BLOCK** IoBlocks,
     _In_ struct mmsghdr* RecvMsgHdr,
     _In_ int MessagesReceived
     )
@@ -1762,17 +1748,17 @@ CxPlatSocketContextRecvComplete(
     CXPLAT_RECV_DATA* DatagramHead = NULL;
     CXPLAT_RECV_DATA** DatagramTail = &DatagramHead;
     for (int CurrentMessage = 0; CurrentMessage < MessagesReceived; CurrentMessage++) {
-        CXPLAT_RECV_BLOCK* RecvBlock = RecvBlocks[CurrentMessage];
-        RecvBlocks[CurrentMessage] = NULL;
+        DATAPATH_RX_IO_BLOCK* IoBlock = IoBlocks[CurrentMessage];
+        IoBlocks[CurrentMessage] = NULL;
         BytesTransferred += RecvMsgHdr[CurrentMessage].msg_len;
 
         uint8_t TOS = 0;
         uint16_t SegmentLength = 0;
         BOOLEAN FoundLocalAddr = FALSE, FoundTOS = FALSE;
-        QUIC_ADDR* LocalAddr = &RecvBlock->Route.LocalAddress;
-        QUIC_ADDR* RemoteAddr = &RecvBlock->Route.RemoteAddress;
+        QUIC_ADDR* LocalAddr = &IoBlock->Route.LocalAddress;
+        QUIC_ADDR* RemoteAddr = &IoBlock->Route.RemoteAddress;
         CxPlatConvertFromMappedV6(RemoteAddr, RemoteAddr);
-        RecvBlock->Route.Queue = SocketContext;
+        IoBlock->Route.Queue = SocketContext;
 
         //
         // Process the ancillary control messages to get the local address,
@@ -1832,23 +1818,23 @@ CxPlatSocketContextRecvComplete(
             SegmentLength = RecvMsgHdr[CurrentMessage].msg_len;
         }
 
-        CXPLAT_RECV_SUBBLOCK* SubBlock = (CXPLAT_RECV_SUBBLOCK*)(RecvBlock + 1);
+        DATAPATH_RX_PACKET* Datagram = (DATAPATH_RX_PACKET*)(IoBlock + 1);
         uint8_t* RecvBuffer =
-            (uint8_t*)RecvBlock + SocketContext->DatapathPartition->Datapath->RecvBlockBufferOffset;
-        RecvBlock->RefCount = 0;
+            (uint8_t*)IoBlock + SocketContext->DatapathPartition->Datapath->RecvBlockBufferOffset;
+        IoBlock->RefCount = 0;
 
         //
         // Build up the chain of receive packets to indicate up to the app.
         //
         uint32_t Offset = 0;
         while (Offset < RecvMsgHdr[CurrentMessage].msg_len &&
-               RecvBlock->RefCount < CXPLAT_MAX_IO_BATCH_SIZE) {
-            RecvBlock->RefCount++;
-            SubBlock->RecvBlock = RecvBlock;
+               IoBlock->RefCount < CXPLAT_MAX_IO_BATCH_SIZE) {
+            IoBlock->RefCount++;
+            Datagram->IoBlock = IoBlock;
 
-            CXPLAT_RECV_DATA* RecvData = &SubBlock->RecvData;
+            CXPLAT_RECV_DATA* RecvData = &Datagram->Data;
             RecvData->Next = NULL;
-            RecvData->Route = &RecvBlock->Route;
+            RecvData->Route = &IoBlock->Route;
             RecvData->Buffer = RecvBuffer + Offset;
             if (RecvMsgHdr[CurrentMessage].msg_len - Offset < SegmentLength) {
                 RecvData->BufferLength = (uint16_t)(RecvMsgHdr[CurrentMessage].msg_len - Offset);
@@ -1865,8 +1851,8 @@ CxPlatSocketContextRecvComplete(
             DatagramTail = &RecvData->Next;
 
             Offset += RecvData->BufferLength;
-            SubBlock = (CXPLAT_RECV_SUBBLOCK*)
-                ((char*)SubBlock + SocketContext->DatapathPartition->Datapath->RecvBlockStride);
+            Datagram = (DATAPATH_RX_PACKET*)
+                ((char*)Datagram + SocketContext->DatapathPartition->Datapath->RecvBlockStride);
         }
     }
 
@@ -1898,7 +1884,7 @@ CxPlatSocketReceiveCoalesced(
     )
 {
     CXPLAT_DATAPATH_PARTITION* DatapathPartition = SocketContext->DatapathPartition;
-    CXPLAT_RECV_BLOCK* RecvBlock = NULL;
+    DATAPATH_RX_IO_BLOCK* IoBlock = NULL;
     struct mmsghdr RecvMsgHdr;
     CXPLAT_RECV_MSG_CONTROL_BUFFER RecvMsgControl;
     struct iovec RecvIov;
@@ -1906,29 +1892,29 @@ CxPlatSocketReceiveCoalesced(
     do {
         uint32_t RetryCount = 0;
         do {
-            RecvBlock = CxPlatPoolAlloc(&DatapathPartition->RecvBlockPool);
-        } while (RecvBlock == NULL && ++RetryCount < 10);
-        if (RecvBlock == NULL) {
+            IoBlock = CxPlatPoolAlloc(&DatapathPartition->RecvBlockPool);
+        } while (IoBlock == NULL && ++RetryCount < 10);
+        if (IoBlock == NULL) {
             QuicTraceEvent(
                 AllocFailure,
                 "Allocation of '%s' failed. (%llu bytes)",
-                "CXPLAT_RECV_BLOCK",
+                "DATAPATH_RX_IO_BLOCK",
                 0);
             goto Exit;
         }
 
-        RecvBlock->OwningPool = &DatapathPartition->RecvBlockPool;
-        RecvBlock->Route.State = RouteResolved;
+        IoBlock->OwningPool = &DatapathPartition->RecvBlockPool;
+        IoBlock->Route.State = RouteResolved;
 
         struct msghdr* MsgHdr = &RecvMsgHdr.msg_hdr;
-        MsgHdr->msg_name = &RecvBlock->Route.RemoteAddress;
-        MsgHdr->msg_namelen = sizeof(RecvBlock->Route.RemoteAddress);
+        MsgHdr->msg_name = &IoBlock->Route.RemoteAddress;
+        MsgHdr->msg_namelen = sizeof(IoBlock->Route.RemoteAddress);
         MsgHdr->msg_iov = &RecvIov;
         MsgHdr->msg_iovlen = 1;
         MsgHdr->msg_control = &RecvMsgControl.Data;
         MsgHdr->msg_controllen = sizeof(RecvMsgControl.Data);
         MsgHdr->msg_flags = 0;
-        RecvIov.iov_base = (char*)RecvBlock + DatapathPartition->Datapath->RecvBlockBufferOffset;
+        RecvIov.iov_base = (char*)IoBlock + DatapathPartition->Datapath->RecvBlockBufferOffset;
         RecvIov.iov_len = CXPLAT_LARGE_IO_BUFFER_SIZE;
 
         int Ret =
@@ -1951,14 +1937,14 @@ CxPlatSocketReceiveCoalesced(
         }
 
         CXPLAT_DBG_ASSERT(Ret == 1);
-        CxPlatSocketContextRecvComplete(SocketContext, &RecvBlock, &RecvMsgHdr, Ret);
+        CxPlatSocketContextRecvComplete(SocketContext, &IoBlock, &RecvMsgHdr, Ret);
 
     } while (TRUE);
 
 Exit:
 
-    if (RecvBlock) {
-        CxPlatPoolFree(&DatapathPartition->RecvBlockPool, RecvBlock);
+    if (IoBlock) {
+        CxPlatPoolFree(&DatapathPartition->RecvBlockPool, IoBlock);
     }
 }
 
@@ -1968,42 +1954,42 @@ CxPlatSocketReceiveMessages(
     )
 {
     CXPLAT_DATAPATH_PARTITION* DatapathPartition = SocketContext->DatapathPartition;
-    CXPLAT_RECV_BLOCK* RecvBlocks[CXPLAT_MAX_IO_BATCH_SIZE];
+    DATAPATH_RX_IO_BLOCK* IoBlocks[CXPLAT_MAX_IO_BATCH_SIZE];
     struct mmsghdr RecvMsgHdr[CXPLAT_MAX_IO_BATCH_SIZE];
     CXPLAT_RECV_MSG_CONTROL_BUFFER RecvMsgControl[CXPLAT_MAX_IO_BATCH_SIZE];
     struct iovec RecvIov[CXPLAT_MAX_IO_BATCH_SIZE];
-    CxPlatZeroMemory(RecvBlocks, sizeof(RecvBlocks));
+    CxPlatZeroMemory(IoBlocks, sizeof(IoBlocks));
 
     do {
         uint32_t RetryCount = 0;
-        for (uint32_t i = 0; i < CXPLAT_MAX_IO_BATCH_SIZE && RecvBlocks[i] == NULL; ++i) {
+        for (uint32_t i = 0; i < CXPLAT_MAX_IO_BATCH_SIZE && IoBlocks[i] == NULL; ++i) {
 
-            CXPLAT_RECV_BLOCK* RecvBlock;
+            DATAPATH_RX_IO_BLOCK* IoBlock;
             do {
-                RecvBlock = CxPlatPoolAlloc(&DatapathPartition->RecvBlockPool);
-            } while (RecvBlock == NULL && ++RetryCount < 10);
-            if (RecvBlock == NULL) {
+                IoBlock = CxPlatPoolAlloc(&DatapathPartition->RecvBlockPool);
+            } while (IoBlock == NULL && ++RetryCount < 10);
+            if (IoBlock == NULL) {
                 QuicTraceEvent(
                     AllocFailure,
                     "Allocation of '%s' failed. (%llu bytes)",
-                    "CXPLAT_RECV_BLOCK",
+                    "DATAPATH_RX_IO_BLOCK",
                     0);
                 goto Exit;
             }
 
-            RecvBlocks[i] = RecvBlock;
-            RecvBlock->OwningPool = &DatapathPartition->RecvBlockPool;
-            RecvBlock->Route.State = RouteResolved;
+            IoBlocks[i] = IoBlock;
+            IoBlock->OwningPool = &DatapathPartition->RecvBlockPool;
+            IoBlock->Route.State = RouteResolved;
 
             struct msghdr* MsgHdr = &RecvMsgHdr[i].msg_hdr;
-            MsgHdr->msg_name = &RecvBlock->Route.RemoteAddress;
-            MsgHdr->msg_namelen = sizeof(RecvBlock->Route.RemoteAddress);
+            MsgHdr->msg_name = &IoBlock->Route.RemoteAddress;
+            MsgHdr->msg_namelen = sizeof(IoBlock->Route.RemoteAddress);
             MsgHdr->msg_iov = &RecvIov[i];
             MsgHdr->msg_iovlen = 1;
             MsgHdr->msg_control = &RecvMsgControl[i].Data;
             MsgHdr->msg_controllen = sizeof(RecvMsgControl[i].Data);
             MsgHdr->msg_flags = 0;
-            RecvIov[i].iov_base = (char*)RecvBlock + DatapathPartition->Datapath->RecvBlockBufferOffset;
+            RecvIov[i].iov_base = (char*)IoBlock + DatapathPartition->Datapath->RecvBlockBufferOffset;
             RecvIov[i].iov_len = CXPLAT_SMALL_IO_BUFFER_SIZE;
         }
 
@@ -2027,15 +2013,15 @@ CxPlatSocketReceiveMessages(
         }
 
         CXPLAT_DBG_ASSERT(Ret <= CXPLAT_MAX_IO_BATCH_SIZE);
-        CxPlatSocketContextRecvComplete(SocketContext, RecvBlocks, RecvMsgHdr, Ret);
+        CxPlatSocketContextRecvComplete(SocketContext, IoBlocks, RecvMsgHdr, Ret);
 
     } while (TRUE);
 
 Exit:
 
     for (uint32_t i = 0; i < CXPLAT_MAX_IO_BATCH_SIZE; ++i) {
-        if (RecvBlocks[i]) {
-            CxPlatPoolFree(&DatapathPartition->RecvBlockPool, RecvBlocks[i]);
+        if (IoBlocks[i]) {
+            CxPlatPoolFree(&DatapathPartition->RecvBlockPool, IoBlocks[i]);
         }
     }
 }
@@ -2060,10 +2046,10 @@ CxPlatRecvDataReturn(
     CXPLAT_RECV_DATA* Datagram;
     while ((Datagram = RecvDataChain) != NULL) {
         RecvDataChain = RecvDataChain->Next;
-        CXPLAT_RECV_SUBBLOCK* SubBlock =
-            CXPLAT_CONTAINING_RECORD(Datagram, CXPLAT_RECV_SUBBLOCK, RecvData);
-        if (InterlockedDecrement(&SubBlock->RecvBlock->RefCount) == 0) {
-            CxPlatPoolFree(SubBlock->RecvBlock->OwningPool, SubBlock->RecvBlock);
+        DATAPATH_RX_PACKET* Packet =
+            CXPLAT_CONTAINING_RECORD(Datagram, DATAPATH_RX_PACKET, Data);
+        if (InterlockedDecrement(&Packet->IoBlock->RefCount) == 0) {
+            CxPlatPoolFree(Packet->IoBlock->OwningPool, Packet->IoBlock);
         }
     }
 }
