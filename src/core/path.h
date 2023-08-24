@@ -297,9 +297,9 @@ QuicConnGetPathByID(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 _Ret_maybenull_
 QUIC_PATH*
-QuicConnGetPathForDatagram(
+QuicConnGetPathForPacket(
     _In_ QUIC_CONNECTION* Connection,
-    _In_ const CXPLAT_RECV_DATA* Datagram
+    _In_ const QUIC_RX_PACKET* Packet
     );
 
 _IRQL_requires_max_(PASSIVE_LEVEL)

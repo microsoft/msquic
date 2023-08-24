@@ -165,8 +165,6 @@ typedef struct QUIC_RX_PACKET {
 
 } QUIC_RX_PACKET;
 
-#define GetQuicRxPacket(RecvData) ((QUIC_RX_PACKET*)RecvData)
-
 typedef enum QUIC_BINDING_LOOKUP_TYPE {
 
     QUIC_BINDING_LOOKUP_SINGLE,         // Single connection
@@ -424,7 +422,7 @@ BOOLEAN
 QuicBindingQueueStatelessOperation(
     _In_ QUIC_BINDING* Binding,
     _In_ QUIC_OPERATION_TYPE OperType,
-    _In_ CXPLAT_RECV_DATA* Datagram
+    _In_ QUIC_RX_PACKET* Packet
     );
 
 //

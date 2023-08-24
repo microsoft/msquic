@@ -588,7 +588,7 @@ QuicLibraryOnListenerRegistered(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 QUIC_WORKER*
 QuicLibraryGetWorker(
-    _In_ const _In_ CXPLAT_RECV_DATA* Datagram
+    _In_ const QUIC_RX_PACKET* Packet
     );
 
 //
