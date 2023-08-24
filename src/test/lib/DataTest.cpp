@@ -3281,9 +3281,6 @@ QuicTestStreamReliableReset(
     TEST_TRUE(Listener.LastConnection->HandshakeComplete);
     CxPlatSleep(50); // Wait for things to idle out
 
-    StreamReliableReset Context0;
-    MsQuicStream Stream0(Connection, QUIC_STREAM_OPEN_FLAG_NONE, CleanUpManual, StreamReliableReset::ClientStreamCallback, &Context0);
-
     MsQuicStream Stream(Connection, QUIC_STREAM_OPEN_FLAG_NONE, CleanUpManual, StreamReliableReset::ClientStreamCallback, &Context);
     TEST_QUIC_SUCCEEDED(Stream.GetInitStatus());
     TEST_QUIC_SUCCEEDED(Stream.Start());
@@ -3390,9 +3387,6 @@ QuicTestStreamReliableResetMultipleSends(
     TEST_TRUE(Listener.LastConnection->HandshakeComplete);
     CxPlatSleep(50); // Wait for things to idle out
 
-    StreamReliableReset Context0;
-    MsQuicStream Stream0(Connection, QUIC_STREAM_OPEN_FLAG_NONE, CleanUpManual, StreamReliableReset::ClientStreamCallback, &Context0);
-
     MsQuicStream Stream(Connection, QUIC_STREAM_OPEN_FLAG_NONE, CleanUpManual, StreamReliableReset::ClientStreamCallback, &Context);
     TEST_QUIC_SUCCEEDED(Stream.GetInitStatus());
     TEST_QUIC_SUCCEEDED(Stream.Start());
@@ -3404,7 +3398,7 @@ QuicTestStreamReliableResetMultipleSends(
     // Should behave similar to QUIC_STREAM_SHUTDOWN_FLAG_GRACEFUL, with some restrictions.
     TEST_TRUE(Context.ClientStreamShutdownComplete.WaitTimeout(TestWaitTimeout));
     // Remove
-    std::cout << "ReceivedBufferSize: " << Context.ReceivedBufferSize << std::endl;
+    std::cout << ">>>>>>>>>>> ReceivedBufferSize: " << Context.ReceivedBufferSize << std::endl;
     // Remove.
     TEST_TRUE(Context.ReliableOffsetSendSideClient == RELIABLE_SIZE);
     TEST_TRUE(Context.ReliableOffsetRecvSideClient == 0);

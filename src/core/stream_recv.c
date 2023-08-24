@@ -193,7 +193,7 @@ QuicStreamProcessReliableResetFrame(
         //
         // All data delivered. Deliver shutdown callback.
         //
-        Stream->Flags.ReceiveDataPending = TRUE;
+        Stream->Flags.ReceiveDataPending = FALSE;
 
         //
         // Shut down the stream.
@@ -208,19 +208,25 @@ QuicStreamProcessReliableResetFrame(
             &Stream->Connection->Send,
             Stream,
             QUIC_STREAM_SEND_FLAG_MAX_DATA | QUIC_STREAM_SEND_FLAG_RECV_ABORT);
+    }
 
-        //
-        // Indicate to the app that the stream has been aborted by the peer.
-        //
-        QUIC_STREAM_EVENT Event;
-        Event.Type = QUIC_STREAM_EVENT_PEER_SEND_ABORTED;
-        Event.PEER_SEND_ABORTED.ErrorCode = ErrorCode;
-        QuicTraceLogStreamVerbose(
-            IndicatePeerSendAbort,
-            Stream,
-            "Indicating QUIC_STREAM_EVENT_PEER_SEND_ABORTED (0x%llX)",
-            ErrorCode);
-        (void)QuicStreamIndicateEvent(Stream, &Event);
+    if (!Stream->Flags.RemoteCloseAcked) {
+        Stream->Flags.RemoteCloseAcked = TRUE;
+        Stream->Flags.ReceiveDataPending = TRUE;
+        if (!Stream->Flags.SentStopSending) {
+            //
+            // Indicate to the app that the stream has been aborted by the peer.
+            //
+            QUIC_STREAM_EVENT Event;
+            Event.Type = QUIC_STREAM_EVENT_PEER_SEND_ABORTED;
+            Event.PEER_SEND_ABORTED.ErrorCode = ErrorCode;
+            QuicTraceLogStreamVerbose(
+                IndicatePeerSendAbort,
+                Stream,
+                "Indicating QUIC_STREAM_EVENT_PEER_SEND_ABORTED (0x%llX)",
+                ErrorCode);
+            (void)QuicStreamIndicateEvent(Stream, &Event);
+        }
     }
 }
 
@@ -342,7 +348,7 @@ QuicStreamProcessStopSendingFrame(
     _In_ QUIC_VAR_INT ErrorCode
     )
 {
-    if (!Stream->Flags.LocalCloseAcked && !Stream->Flags.LocalCloseReset) {
+    if (!Stream->Flags.LocalCloseAcked && !Stream->Flags.LocalCloseReset && !Stream->Flags.LocalCloseResetReliable) {
         //
         // The STOP_SENDING frame only triggers a state change if we aren't
         // completely closed gracefully (i.e. our close has been acknowledged)
@@ -442,7 +448,7 @@ QuicStreamProcessStreamFrame(
         goto Error;
     }
 
-    if (EndOffset > Stream->RecvMaxLength) {
+    if (EndOffset > Stream->RecvMaxLength && !Stream->Flags.RemoteCloseResetReliable) {
         //
         // Frame goes past the FIN.
         //
