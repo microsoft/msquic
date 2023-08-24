@@ -1518,7 +1518,7 @@ QuicStreamOnAck(
         Stream->Flags.LocalCloseAcked = TRUE;
         QuicTraceEvent(
             StreamSendState,
-            "[strm][%p] Send State: %hhu",
+            "[strm][%p] Shutting down stream from OnStreamAck. Current State: %hhu",
             Stream,
             QuicStreamSendGetState(Stream));
         QuicStreamTryCompleteShutdown(Stream);
@@ -1599,7 +1599,7 @@ QuicStreamOnResetReliableAck(
         Stream->Flags.LocalCloseAcked = TRUE;
         QuicTraceEvent(
             StreamSendState,
-            "[strm][%p] Send State: %hhu",
+            "[strm][%p] Shutting down stream from OnResetReliableAck. Current State: %hhu",
             Stream,
             QuicStreamSendGetState(Stream));
         QuicStreamCleanupReliableReset(Stream);

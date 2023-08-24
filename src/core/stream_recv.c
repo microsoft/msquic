@@ -195,6 +195,12 @@ QuicStreamProcessReliableResetFrame(
         //
         Stream->Flags.ReceiveDataPending = FALSE;
 
+        QuicTraceEvent(
+            StreamRecvState,
+            "[strm][%p] Shutting down stream from ProcessReliableResetFrame. Current State: %hhu",
+            Stream,
+            QuicStreamSendGetState(Stream));
+
         //
         // Shut down the stream.
         //
@@ -210,23 +216,19 @@ QuicStreamProcessReliableResetFrame(
             QUIC_STREAM_SEND_FLAG_MAX_DATA | QUIC_STREAM_SEND_FLAG_RECV_ABORT);
     }
 
-    if (!Stream->Flags.RemoteCloseAcked) {
-        Stream->Flags.RemoteCloseAcked = TRUE;
-        Stream->Flags.ReceiveDataPending = TRUE;
-        if (!Stream->Flags.SentStopSending) {
-            //
-            // Indicate to the app that the stream has been aborted by the peer.
-            //
-            QUIC_STREAM_EVENT Event;
-            Event.Type = QUIC_STREAM_EVENT_PEER_SEND_ABORTED;
-            Event.PEER_SEND_ABORTED.ErrorCode = ErrorCode;
-            QuicTraceLogStreamVerbose(
-                IndicatePeerSendAbort,
-                Stream,
-                "Indicating QUIC_STREAM_EVENT_PEER_SEND_ABORTED (0x%llX)",
-                ErrorCode);
-            (void)QuicStreamIndicateEvent(Stream, &Event);
-        }
+    if (!Stream->Flags.SentStopSending) {
+        //
+        // Indicate to the app that the stream has been aborted by the peer.
+        //
+        QUIC_STREAM_EVENT Event;
+        Event.Type = QUIC_STREAM_EVENT_PEER_SEND_ABORTED;
+        Event.PEER_SEND_ABORTED.ErrorCode = ErrorCode;
+        QuicTraceLogStreamVerbose(
+            IndicatePeerSendAbort,
+            Stream,
+            "Indicating QUIC_STREAM_EVENT_PEER_SEND_ABORTED (0x%llX)",
+            ErrorCode);
+        (void)QuicStreamIndicateEvent(Stream, &Event);
     }
 }
 
@@ -456,15 +458,10 @@ QuicStreamProcessStreamFrame(
         goto Error;
     }
 
-    if (Stream->Flags.RemoteCloseResetReliable && Frame->Offset >= Stream->RecvMaxLength) {
+      if (Stream->RecvBuffer.BaseOffset >= Stream->RecvMaxLength && Stream->Flags.RemoteCloseResetReliable) {
         //
-        // Ignore additional frames once we have enough data.
+        // Frame is unnecessary.
         //
-        if (!Stream->Flags.ReceiveClosedReliable) {
-            Stream->Flags.ReceiveClosedReliable = TRUE;
-            QuicStreamRecvShutdown(Stream, FALSE, QUIC_ERROR_NO_ERROR);
-            QuicStreamTryCompleteShutdown(Stream);
-        }
         Status = QUIC_STATUS_SUCCESS;
         goto Error;
     }
@@ -1140,6 +1137,41 @@ QuicStreamReceiveComplete(
             IndicatePeerSendShutdown,
             Stream,
             "Indicating QUIC_STREAM_EVENT_PEER_SEND_SHUTDOWN");
+        (void)QuicStreamIndicateEvent(Stream, &Event);
+
+        //
+        // Now that the close event has been delivered to the app, we can shut
+        // down the stream.
+        //
+        QuicStreamTryCompleteShutdown(Stream);
+
+        //
+        // Remove any flags we shouldn't be sending now that the receive
+        // direction is closed.
+        //
+        QuicSendClearStreamSendFlag(
+            &Stream->Connection->Send,
+            Stream,
+            QUIC_STREAM_SEND_FLAG_MAX_DATA | QUIC_STREAM_SEND_FLAG_RECV_ABORT);
+    }
+
+     if (Stream->Flags.RemoteCloseResetReliable && Stream->RecvBuffer.BaseOffset >= Stream->RecvMaxLength && !Stream->Flags.ReceiveClosedReliable) {
+
+        Stream->Flags.ReceiveClosedReliable = TRUE;
+
+        QuicTraceEvent(
+            StreamRecvState,
+            "[strm][%p] Shutting down stream from ReceiveComplete. Current Recv State: %hhu",
+            Stream,
+            QuicStreamRecvGetState(Stream));
+
+        QUIC_STREAM_EVENT Event;
+        Event.Type = QUIC_STREAM_EVENT_PEER_SEND_SHUTDOWN;
+        QuicTraceLogStreamVerbose(
+            IndicatePeerSendShutdown,
+            Stream,
+            "Indicating QUIC_STREAM_EVENT_PEER_SEND_SHUTDOWN");
+
         (void)QuicStreamIndicateEvent(Stream, &Event);
 
         //

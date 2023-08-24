@@ -421,7 +421,7 @@ QuicReliableResetFrameEncode(
         sizeof(uint8_t) +     // Type
         QuicVarIntSize(Frame->ErrorCode) +
         QuicVarIntSize(Frame->StreamID) +
-        QuicVarIntSize(Frame->FinalSize) + 
+        QuicVarIntSize(Frame->FinalSize) +
         QuicVarIntSize(Frame->ReliableSize);
 
     if (BufferLength < *Offset + RequiredLength) {
@@ -1940,6 +1940,11 @@ QuicFrameLog(
             PtkConnPre(Connection),
             PktRxPre(Rx),
             PacketNumber);
+        break;
+    }
+
+    case QUIC_FRAME_RELIABLE_RESET_STREAM: {
+        // TODO: Add log.
         break;
     }
 
