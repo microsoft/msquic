@@ -106,6 +106,26 @@ tracepoint(CLOG_STREAM_RECV_C, ReceiveBeyondFlowControl , arg1);\
 
 
 /*----------------------------------------------------------
+// Decoder Ring for ReliableRecvOffsetSet
+// [strm][%p] Reliable recv offset set to %llu
+// QuicTraceLogStreamInfo(
+            ReliableRecvOffsetSet,
+            Stream,
+            "Reliable recv offset set to %llu",
+            ReliableOffset);
+// arg1 = arg1 = Stream = arg1
+// arg3 = arg3 = ReliableOffset = arg3
+----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_ReliableRecvOffsetSet
+#define _clog_4_ARGS_TRACE_ReliableRecvOffsetSet(uniqueId, arg1, encoded_arg_string, arg3)\
+tracepoint(CLOG_STREAM_RECV_C, ReliableRecvOffsetSet , arg1, arg3);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for RemoteCloseReset
 // [strm][%p] Closed remotely (reset)
 // QuicTraceLogStreamInfo(
@@ -178,13 +198,31 @@ tracepoint(CLOG_STREAM_RECV_C, QueueRecvFlush , arg1);\
 
 
 /*----------------------------------------------------------
+// Decoder Ring for StreamReliableResetProcessReliableResetFrame
+// [strm][%p] Shutting down stream from ProcessReliableResetFrame. Recv side.
+// QuicTraceLogStreamVerbose(
+            StreamReliableResetProcessReliableResetFrame,
+            Stream,
+            "Shutting down stream from ProcessReliableResetFrame. Recv side.");
+// arg1 = arg1 = Stream = arg1
+----------------------------------------------------------*/
+#ifndef _clog_3_ARGS_TRACE_StreamReliableResetProcessReliableResetFrame
+#define _clog_3_ARGS_TRACE_StreamReliableResetProcessReliableResetFrame(uniqueId, arg1, encoded_arg_string)\
+tracepoint(CLOG_STREAM_RECV_C, StreamReliableResetProcessReliableResetFrame , arg1);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for IndicatePeerSendAbort
 // [strm][%p] Indicating QUIC_STREAM_EVENT_PEER_SEND_ABORTED (0x%llX)
 // QuicTraceLogStreamVerbose(
-                IndicatePeerSendAbort,
-                Stream,
-                "Indicating QUIC_STREAM_EVENT_PEER_SEND_ABORTED (0x%llX)",
-                ErrorCode);
+            IndicatePeerSendAbort,
+            Stream,
+            "Indicating QUIC_STREAM_EVENT_PEER_SEND_ABORTED (0x%llX)",
+            ErrorCode);
 // arg1 = arg1 = Stream = arg1
 // arg3 = arg3 = ErrorCode = arg3
 ----------------------------------------------------------*/
@@ -389,6 +427,24 @@ tracepoint(CLOG_STREAM_RECV_C, IgnoreRecvFlush , arg1);\
 #ifndef _clog_3_ARGS_TRACE_IndicatePeerSendShutdown
 #define _clog_3_ARGS_TRACE_IndicatePeerSendShutdown(uniqueId, arg1, encoded_arg_string)\
 tracepoint(CLOG_STREAM_RECV_C, IndicatePeerSendShutdown , arg1);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for StreamReliableResetReceiveComplete
+// [strm][%p] Shutting down stream from ReceiveComplete Recv Side.
+// QuicTraceLogStreamVerbose(
+            StreamReliableResetReceiveComplete,
+            Stream,
+            "Shutting down stream from ReceiveComplete Recv Side.");
+// arg1 = arg1 = Stream = arg1
+----------------------------------------------------------*/
+#ifndef _clog_3_ARGS_TRACE_StreamReliableResetReceiveComplete
+#define _clog_3_ARGS_TRACE_StreamReliableResetReceiveComplete(uniqueId, arg1, encoded_arg_string)\
+tracepoint(CLOG_STREAM_RECV_C, StreamReliableResetReceiveComplete , arg1);\
 
 #endif
 

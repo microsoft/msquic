@@ -245,7 +245,7 @@ QuicStreamSendShutdown(
         Stream->Flags.LocalCloseResetReliable = TRUE;
         Stream->SendShutdownErrorCode = ErrorCode;
         //
-        // Queue up a RESET RELIABLE STREAM frame to be sent.
+        // Queue up a RESET RELIABLE STREAM frame to be sent. We will clear up any flags later.
         //
         QuicSendSetStreamSendFlag(
             &Stream->Connection->Send,
@@ -1516,14 +1516,21 @@ QuicStreamOnAck(
     BOOLEAN ReliableResetShutdown = !Stream->Flags.LocalCloseAcked && Stream->Flags.LocalCloseResetReliable && Stream->UnAckedOffset >= Stream->ReliableOffsetSend;
     if (ReliableResetShutdown) {
         Stream->Flags.LocalCloseAcked = TRUE;
-        QuicTraceEvent(
-            StreamSendState,
-            "[strm][%p] Shutting down stream from OnStreamAck. Current State: %hhu",
+        QuicTraceLogStreamVerbose(
+            StreamReliableResetOnStreamAck,
             Stream,
-            QuicStreamSendGetState(Stream));
+            "Shutting down stream from OnStreamAck. Send side.");
         QuicStreamTryCompleteShutdown(Stream);
         QuicStreamCleanupReliableReset(Stream);
         QuicStreamIndicateSendShutdownComplete(Stream, FALSE);
+        // Clear any send path flags.
+        QuicSendClearStreamSendFlag(
+            &Stream->Connection->Send,
+            Stream,
+            QUIC_STREAM_SEND_FLAG_DATA_BLOCKED |
+            QUIC_STREAM_SEND_FLAG_DATA |
+            QUIC_STREAM_SEND_FLAG_OPEN |
+            QUIC_STREAM_SEND_FLAG_FIN);
     }
 
     if (!QuicStreamHasPendingStreamData(Stream)) {
@@ -1597,15 +1604,22 @@ QuicStreamOnResetReliableAck(
 ) {
     if (Stream->UnAckedOffset >= Stream->ReliableOffsetSend && !Stream->Flags.LocalCloseAcked) {
         Stream->Flags.LocalCloseAcked = TRUE;
-        QuicTraceEvent(
-            StreamSendState,
-            "[strm][%p] Shutting down stream from OnResetReliableAck. Current State: %hhu",
+        QuicTraceLogStreamVerbose(
+            StreamReliableResetOnResetReliableAck,
             Stream,
-            QuicStreamSendGetState(Stream));
+            "Shutting down stream from OnResetReliableAck. Send side.");
         QuicStreamCleanupReliableReset(Stream);
         QuicStreamTryCompleteShutdown(Stream);
         QuicStreamIndicateSendShutdownComplete(Stream, FALSE);
-    }
+        // Clear any send path flags.
+        QuicSendClearStreamSendFlag(
+            &Stream->Connection->Send,
+            Stream,
+            QUIC_STREAM_SEND_FLAG_DATA_BLOCKED |
+            QUIC_STREAM_SEND_FLAG_DATA |
+            QUIC_STREAM_SEND_FLAG_OPEN |
+            QUIC_STREAM_SEND_FLAG_FIN);
+        }
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)

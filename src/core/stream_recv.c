@@ -195,11 +195,10 @@ QuicStreamProcessReliableResetFrame(
         //
         Stream->Flags.ReceiveDataPending = FALSE;
 
-        QuicTraceEvent(
-            StreamRecvState,
-            "[strm][%p] Shutting down stream from ProcessReliableResetFrame. Current State: %hhu",
+        QuicTraceLogStreamVerbose(
+            StreamReliableResetProcessReliableResetFrame,
             Stream,
-            QuicStreamSendGetState(Stream));
+            "Shutting down stream from ProcessReliableResetFrame. Recv side.");
 
         //
         // Shut down the stream.
@@ -1159,11 +1158,10 @@ QuicStreamReceiveComplete(
 
         Stream->Flags.ReceiveClosedReliable = TRUE;
 
-        QuicTraceEvent(
-            StreamRecvState,
-            "[strm][%p] Shutting down stream from ReceiveComplete. Current Recv State: %hhu",
+        QuicTraceLogStreamVerbose(
+            StreamReliableResetReceiveComplete,
             Stream,
-            QuicStreamRecvGetState(Stream));
+            "Shutting down stream from ReceiveComplete Recv Side.");
 
         QUIC_STREAM_EVENT Event;
         Event.Type = QUIC_STREAM_EVENT_PEER_SEND_SHUTDOWN;

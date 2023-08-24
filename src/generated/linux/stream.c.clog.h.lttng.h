@@ -63,6 +63,29 @@ TRACEPOINT_EVENT(CLOG_STREAM_C, UpdatePriority,
 
 
 /*----------------------------------------------------------
+// Decoder Ring for ReliableSendOffsetSet
+// [strm][%p] Reliable send offset set to %llu
+// QuicTraceLogStreamInfo(
+            ReliableSendOffsetSet,
+            Stream,
+            "Reliable send offset set to %llu",
+            *(uint64_t*)Buffer);
+// arg1 = arg1 = Stream = arg1
+// arg3 = arg3 = *(uint64_t*)Buffer = arg3
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_STREAM_C, ReliableSendOffsetSet,
+    TP_ARGS(
+        const void *, arg1,
+        unsigned long long, arg3), 
+    TP_FIELDS(
+        ctf_integer_hex(uint64_t, arg1, arg1)
+        ctf_integer(uint64_t, arg3, arg3)
+    )
+)
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for ConfiguredForDelayedIDFC
 // [strm][%p] Configured for delayed ID FC updates
 // QuicTraceLogStreamVerbose(

@@ -309,6 +309,44 @@ TRACEPOINT_EVENT(CLOG_STREAM_SEND_C, SendQueueDrained,
 
 
 /*----------------------------------------------------------
+// Decoder Ring for StreamReliableResetOnStreamAck
+// [strm][%p] Shutting down stream from OnStreamAck. Send side.
+// QuicTraceLogStreamVerbose(
+            StreamReliableResetOnStreamAck,
+            Stream,
+            "Shutting down stream from OnStreamAck. Send side.");
+// arg1 = arg1 = Stream = arg1
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_STREAM_SEND_C, StreamReliableResetOnStreamAck,
+    TP_ARGS(
+        const void *, arg1), 
+    TP_FIELDS(
+        ctf_integer_hex(uint64_t, arg1, arg1)
+    )
+)
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for StreamReliableResetOnResetReliableAck
+// [strm][%p] Shutting down stream from OnResetReliableAck. Send side.
+// QuicTraceLogStreamVerbose(
+            StreamReliableResetOnResetReliableAck,
+            Stream,
+            "Shutting down stream from OnResetReliableAck. Send side.");
+// arg1 = arg1 = Stream = arg1
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_STREAM_SEND_C, StreamReliableResetOnResetReliableAck,
+    TP_ARGS(
+        const void *, arg1), 
+    TP_FIELDS(
+        ctf_integer_hex(uint64_t, arg1, arg1)
+    )
+)
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for SendDump
 // [strm][%p] SF:%hX FC:%llu QS:%llu MAX:%llu UNA:%llu NXT:%llu RECOV:%llu-%llu
 // QuicTraceLogStreamVerbose(

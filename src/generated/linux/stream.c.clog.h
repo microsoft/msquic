@@ -90,6 +90,26 @@ tracepoint(CLOG_STREAM_C, UpdatePriority , arg1, arg3);\
 
 
 /*----------------------------------------------------------
+// Decoder Ring for ReliableSendOffsetSet
+// [strm][%p] Reliable send offset set to %llu
+// QuicTraceLogStreamInfo(
+            ReliableSendOffsetSet,
+            Stream,
+            "Reliable send offset set to %llu",
+            *(uint64_t*)Buffer);
+// arg1 = arg1 = Stream = arg1
+// arg3 = arg3 = *(uint64_t*)Buffer = arg3
+----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_ReliableSendOffsetSet
+#define _clog_4_ARGS_TRACE_ReliableSendOffsetSet(uniqueId, arg1, encoded_arg_string, arg3)\
+tracepoint(CLOG_STREAM_C, ReliableSendOffsetSet , arg1, arg3);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for ConfiguredForDelayedIDFC
 // [strm][%p] Configured for delayed ID FC updates
 // QuicTraceLogStreamVerbose(

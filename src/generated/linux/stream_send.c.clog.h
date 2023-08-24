@@ -290,6 +290,42 @@ tracepoint(CLOG_STREAM_SEND_C, SendQueueDrained , arg1);\
 
 
 /*----------------------------------------------------------
+// Decoder Ring for StreamReliableResetOnStreamAck
+// [strm][%p] Shutting down stream from OnStreamAck. Send side.
+// QuicTraceLogStreamVerbose(
+            StreamReliableResetOnStreamAck,
+            Stream,
+            "Shutting down stream from OnStreamAck. Send side.");
+// arg1 = arg1 = Stream = arg1
+----------------------------------------------------------*/
+#ifndef _clog_3_ARGS_TRACE_StreamReliableResetOnStreamAck
+#define _clog_3_ARGS_TRACE_StreamReliableResetOnStreamAck(uniqueId, arg1, encoded_arg_string)\
+tracepoint(CLOG_STREAM_SEND_C, StreamReliableResetOnStreamAck , arg1);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for StreamReliableResetOnResetReliableAck
+// [strm][%p] Shutting down stream from OnResetReliableAck. Send side.
+// QuicTraceLogStreamVerbose(
+            StreamReliableResetOnResetReliableAck,
+            Stream,
+            "Shutting down stream from OnResetReliableAck. Send side.");
+// arg1 = arg1 = Stream = arg1
+----------------------------------------------------------*/
+#ifndef _clog_3_ARGS_TRACE_StreamReliableResetOnResetReliableAck
+#define _clog_3_ARGS_TRACE_StreamReliableResetOnResetReliableAck(uniqueId, arg1, encoded_arg_string)\
+tracepoint(CLOG_STREAM_SEND_C, StreamReliableResetOnResetReliableAck , arg1);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for SendDump
 // [strm][%p] SF:%hX FC:%llu QS:%llu MAX:%llu UNA:%llu NXT:%llu RECOV:%llu-%llu
 // QuicTraceLogStreamVerbose(
