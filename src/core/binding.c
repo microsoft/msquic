@@ -1128,7 +1128,7 @@ QuicBindingQueueStatelessReset(
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 BOOLEAN
-QuicBindingPreprocessDatagram(
+QuicBindingPreprocessPacket(
     _In_ QUIC_BINDING* Binding,
     _Inout_ QUIC_RX_PACKET* Packet,
     _Out_ BOOLEAN* ReleaseDatagram
@@ -1404,8 +1404,8 @@ QuicBindingDropBlockedSourcePorts(
 }
 
 //
-// Looks up or creates a connection to handle a chain of datagrams.
-// Returns TRUE if the datagrams were delivered, and FALSE if they should be
+// Looks up or creates a connection to handle a chain of packets.
+// Returns TRUE if the packets were delivered, and FALSE if they should be
 // dropped.
 //
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -1674,7 +1674,7 @@ QuicBindingReceive(
         // Perform initial validation.
         //
         BOOLEAN ReleaseDatagram;
-        if (!QuicBindingPreprocessDatagram(Binding, (QUIC_RX_PACKET*)Datagram, &ReleaseDatagram)) {
+        if (!QuicBindingPreprocessPacket(Binding, (QUIC_RX_PACKET*)Datagram, &ReleaseDatagram)) {
             if (ReleaseDatagram) {
                 *ReleaseChainTail = Datagram;
                 ReleaseChainTail = &Datagram->Next;

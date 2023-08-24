@@ -1507,8 +1507,8 @@ void
 QuicConnQueueRecvPackets(
     _In_ QUIC_CONNECTION* Connection,
     _In_ QUIC_RX_PACKET* Packets,
-    _In_ uint32_t DatagramChainLength,
-    _In_ uint32_t DatagramChainByteLength
+    _In_ uint32_t PacketChainLength,
+    _In_ uint32_t PacketChainByteLength
     );
 
 //
