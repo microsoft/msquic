@@ -1747,6 +1747,7 @@ TEST_P(WithSend0RttArgs1, Send0Rtt) {
         return;
     }
 #endif
+
     TestLoggerT<ParamType> Logger("Send0Rtt", GetParam());
     if (TestingKernelMode) {
         QUIC_RUN_CONNECT_AND_PING_PARAMS Params = {

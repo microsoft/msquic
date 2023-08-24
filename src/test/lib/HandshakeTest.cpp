@@ -14,10 +14,6 @@ Abstract:
 #include "HandshakeTest.cpp.clog.h"
 #endif
 
-#if defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
-extern bool UseQTIP;
-#endif
-
 QUIC_TEST_DATAPATH_HOOKS DatapathHooks::FuncTable = {
     DatapathHooks::CreateCallback,
     DatapathHooks::GetLocalAddressCallback,
