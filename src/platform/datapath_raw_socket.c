@@ -23,17 +23,6 @@ CxPlatGetRawSocketSize () {
     return sizeof(CXPLAT_SOCKET_RAW);
 }
 
-// // TODO: rename
-// CXPLAT_SOCKET*
-// CxPlatRawToSocket(CXPLAT_SOCKET_RAW* Socket) {
-//     return (CXPLAT_SOCKET*)((unsigned char*)Socket + sizeof(CXPLAT_SOCKET_RAW) - sizeof(CXPLAT_SOCKET));
-// }
-// // TODO: rename
-// CXPLAT_SOCKET_RAW*
-// CxPlatSocketToRaw(CXPLAT_SOCKET* Socket) {
-//     return (CXPLAT_SOCKET_RAW*)((unsigned char*)Socket - sizeof(CXPLAT_SOCKET_RAW) + sizeof(CXPLAT_SOCKET));
-// }
-
 CXPLAT_SOCKET_RAW*
 CxPlatGetSocket(
     _In_ const CXPLAT_SOCKET_POOL* Pool,
@@ -60,19 +49,8 @@ CxPlatGetSocket(
     return Socket;
 }
 
-_IRQL_requires_max_(PASSIVE_LEVEL)
 void
-MANGLE(QuicCopyRouteInfo)(
-    _Inout_ CXPLAT_ROUTE* DstRoute,
-    _In_ CXPLAT_ROUTE* SrcRoute
-    )
-{
-    CxPlatCopyMemory(DstRoute, SrcRoute, (uint8_t*)&SrcRoute->State - (uint8_t*)SrcRoute);
-    CxPlatUpdateRoute(DstRoute, SrcRoute);
-}
-
-void
-MANGLE(CxPlatResolveRouteComplete)(
+RawResolveRouteComplete(
     _In_ void* Context,
     _Inout_ CXPLAT_ROUTE* Route,
     _In_reads_bytes_(6) const uint8_t* PhysicalAddress,
@@ -97,7 +75,7 @@ MANGLE(CxPlatResolveRouteComplete)(
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
-MANGLE(CxPlatUpdateRoute)(
+RawUpdateRoute(
     _Inout_ CXPLAT_ROUTE* DstRoute,
     _In_ CXPLAT_ROUTE* SrcRoute
     )

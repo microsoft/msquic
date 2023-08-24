@@ -77,7 +77,7 @@ CxPlatRemoveSocket(
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
-MANGLE(CxPlatResolveRoute)(
+RawResolveRoute(
     _In_ CXPLAT_SOCKET* Sock,
     _Inout_ CXPLAT_ROUTE* Route,
     _In_ uint8_t PathId,

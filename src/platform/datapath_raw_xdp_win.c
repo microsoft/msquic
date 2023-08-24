@@ -1284,7 +1284,7 @@ CxPlatDpRawUpdateConfig(
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
-MANGLE(CxPlatSocketUpdateQeo)(
+RawSocketUpdateQeo(
     _In_ CXPLAT_SOCKET_RAW* Socket,
     _In_reads_(OffloadCount)
         const CXPLAT_QEO_CONNECTION* Offloads,
@@ -1905,7 +1905,7 @@ CxPlatXdpExecute(
 }
 
 void
-MANGLE(CxPlatDataPathProcessCqe)(
+RawDataPathProcessCqe(
     _In_ CXPLAT_CQE* Cqe
     )
 {

@@ -17,7 +17,6 @@ typedef struct CXPLAT_SOCKET_POOL {
 
 } CXPLAT_SOCKET_POOL;
 
-#define MANGLE(x) XDP_##x
 
 //
 // A worker thread for draining queued route resolution operations.

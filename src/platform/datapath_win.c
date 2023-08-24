@@ -19,6 +19,7 @@ Abstract:
 
 #pragma warning(disable:4100) // unreferenced
 #pragma warning(disable:6101) // uninitialized
+#pragma warning(disable:6386) // buffer overrun
 
 #define IS_LOOPBACK(Address) ((Address.si_family == QUIC_ADDRESS_FAMILY_INET &&                \
                                      Address.Ipv4.sin_addr.S_un.S_addr == htonl(INADDR_LOOPBACK)) || \
@@ -94,7 +95,7 @@ CxPlatDataPathInitialize(
         Datapath->TcpHandlers = *TcpCallbacks;
     }
     Datapath->PartitionCount = (uint16_t)PartitionCount;
-    Status = DataPathUserFuncs.CxPlatDataPathInitialize(
+    Status = DataPathInitialize(
         ClientRecvContextLength,
         Config,
         Datapath);
@@ -118,7 +119,7 @@ CxPlatDataPathInitialize(
     CxPlatZeroMemory(RawDataPath, RawDatapathSize);
 
     // Status = QUIC_STATUS_INVALID_PARAMETER;
-    Status = CxPlatInitRawDataPath(
+    Status = RawDataPathInitialize(
         ClientRecvContextLength,
         Config,
         Datapath,
@@ -134,6 +135,7 @@ CxPlatDataPathInitialize(
 
     Datapath->RawDataPath = RawDataPath;
     *NewDataPath = Datapath;
+
 Error:
     // TODO: error handling
 
@@ -147,9 +149,9 @@ CxPlatDataPathUninitialize(
     )
 {
     if (Datapath->RawDataPath) {
-        XDP_CxPlatDataPathUninitialize(Datapath->RawDataPath);
-    }   
-    DataPathUserFuncs.CxPlatDataPathUninitialize(Datapath);
+        RawDataPathUninitialize(Datapath->RawDataPath);
+    }
+    DataPathUninitialize(Datapath);
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -159,9 +161,9 @@ CxPlatDataPathUpdateConfig(
     _In_ QUIC_EXECUTION_CONFIG* Config
     )
 {
-    DataPathUserFuncs.CxPlatDataPathUpdateConfig(Datapath, Config);
+    DataPathUpdateConfig(Datapath, Config);
     if (Datapath->RawDataPath) {
-        XDP_CxPlatDataPathUpdateConfig(Datapath->RawDataPath, Config);
+        RawDataPathUpdateConfig(Datapath->RawDataPath, Config);
     }
 }
 
@@ -172,10 +174,10 @@ CxPlatDataPathGetSupportedFeatures(
     )
 {
     if (Datapath->RawDataPath) {
-        return DataPathUserFuncs.CxPlatDataPathGetSupportedFeatures(Datapath) |
-               XDP_CxPlatDataPathGetSupportedFeatures(Datapath->RawDataPath);
+        return DataPathGetSupportedFeatures(Datapath) |
+               RawDataPathGetSupportedFeatures(Datapath->RawDataPath);
     }
-    return DataPathUserFuncs.CxPlatDataPathGetSupportedFeatures(Datapath);
+    return DataPathGetSupportedFeatures(Datapath);
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -185,7 +187,7 @@ CxPlatDataPathIsPaddingPreferred(
     )
 {
     // FIXME: Which flag should be taken?
-    // return DataPathUserFuncs.CxPlatDataPathIsPaddingPreferred(Datapath);
+    // return DataPathIsPaddingPreferred(Datapath);
     return 0;
 }
 
@@ -200,7 +202,7 @@ CxPlatDataPathGetLocalAddresses(
     )
 {
     // TODO: XDP doesn't support, could be inlined here
-    return DataPathUserFuncs.CxPlatDataPathGetLocalAddresses(
+    return DataPathGetLocalAddresses(
         Datapath,
         Addresses,
         AddressesCount);
@@ -217,7 +219,7 @@ CxPlatDataPathGetGatewayAddresses(
     )
 {
     // TODO: XDP doesn't support, Could be inlined here.
-    return DataPathUserFuncs.CxPlatDataPathGetGatewayAddresses(
+    return DataPathGetGatewayAddresses(
         Datapath,
         GatewayAddresses,
         GatewayAddressesCount);
@@ -339,7 +341,7 @@ CxPlatSocketCreateUdp(
 {
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
 
-    Status = DataPathUserFuncs.CxPlatSocketCreateUdp(
+    Status = SocketCreateUdp(
         Datapath,
         Config,
         NewSocket);
@@ -351,7 +353,7 @@ CxPlatSocketCreateUdp(
     }
 
     if (Datapath->RawDataPath) {
-        Status = CxPlatInitRawSocket(
+        Status = RawSocketCreateUdp(
             Datapath->RawDataPath,
             Config,
             CxPlatSocketToRaw(*NewSocket));
@@ -377,7 +379,7 @@ CxPlatSocketCreateTcp(
     _Out_ CXPLAT_SOCKET** NewSocket
     )
 {
-    return DataPathUserFuncs.CxPlatSocketCreateTcp(
+    return SocketCreateTcp(
         Datapath,
         LocalAddress,
         RemoteAddress,
@@ -394,7 +396,7 @@ CxPlatSocketCreateTcpListener(
     _Out_ CXPLAT_SOCKET** NewSocket
     )
 {
-    return DataPathUserFuncs.CxPlatSocketCreateTcpListener(
+    return SocketCreateTcpListener(
         Datapath,
         LocalAddress,
         RecvCallbackContext,
@@ -408,9 +410,9 @@ CxPlatSocketDelete(
     )
 {
     if (Socket->Datapath && Socket->Datapath->RawDataPath) {
-        CxPlatRawSocketDelete(CxPlatSocketToRaw(Socket));
+        RawSocketDelete(CxPlatSocketToRaw(Socket));
     }
-    DataPathUserFuncs.CxPlatSocketDelete(Socket);
+    SocketDelete(Socket);
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -424,7 +426,7 @@ CxPlatSocketUpdateQeo(
 {
     if (Socket->Datapath && Socket->Datapath->RawDataPath &&
         !IS_LOOPBACK(Offloads[0].Address)) {
-        return XDP_CxPlatSocketUpdateQeo(CxPlatSocketToRaw(Socket), Offloads, OffloadCount);
+        return RawSocketUpdateQeo(CxPlatSocketToRaw(Socket), Offloads, OffloadCount);
     }
     return QUIC_STATUS_NOT_SUPPORTED;
 }
@@ -438,7 +440,7 @@ CxPlatSocketGetLocalMtu(
     CXPLAT_DBG_ASSERT(Socket != NULL);
     if (Socket->Datapath && Socket->Datapath->RawDataPath &&
         !IS_LOOPBACK(Socket->RemoteAddress)) {
-        XDP_CxPlatSocketGetLocalMtu(CxPlatSocketToRaw(Socket));
+        RawSocketGetLocalMtu(CxPlatSocketToRaw(Socket));
     }
     return Socket->Mtu;
 }
@@ -473,9 +475,9 @@ CxPlatRecvDataReturn(
 {
     CXPLAT_DBG_ASSERT(RecvDataChain != NULL);
     if (RecvDataChain->BufferFrom == CXPLAT_BUFFER_FROM_USER) {
-        DataPathUserFuncs.CxPlatRecvDataReturn(RecvDataChain);
+        RecvDataReturn(RecvDataChain);
     } else if (RecvDataChain->BufferFrom == CXPLAT_BUFFER_FROM_XDP) {
-        XDP_CxPlatRecvDataReturn(RecvDataChain);
+        RawRecvDataReturn(RecvDataChain);
     } else {
         CXPLAT_DBG_ASSERT(FALSE);
     }
@@ -494,12 +496,12 @@ CxPlatSendDataAlloc(
     if (Socket->Type == 0 && // CXPLAT_SOCKET_UDP
         Socket->Datapath && Socket->Datapath->RawDataPath &&
         !IS_LOOPBACK(Config->Route->RemoteAddress)) {
-        SendData = XDP_CxPlatSendDataAlloc(CxPlatSocketToRaw(Socket), Config);
+        SendData = RawSendDataAlloc(CxPlatSocketToRaw(Socket), Config);
         if (SendData) {
             SendBufferFrom(SendData) = CXPLAT_BUFFER_FROM_XDP;
         }
     } else {
-        SendData = DataPathUserFuncs.CxPlatSendDataAlloc(Socket, Config);
+        SendData = SendDataAlloc(Socket, Config);
         if (SendData) {
             SendBufferFrom(SendData) = CXPLAT_BUFFER_FROM_USER;
         }
@@ -514,9 +516,9 @@ CxPlatSendDataFree(
     )
 {
     if (SendBufferFrom(SendData) == CXPLAT_BUFFER_FROM_USER) {
-        DataPathUserFuncs.CxPlatSendDataFree(SendData);
+        SendDataFree(SendData);
     } else if (SendBufferFrom(SendData) == CXPLAT_BUFFER_FROM_XDP) {
-        XDP_CxPlatSendDataFree(SendData);
+        RawSendDataFree(SendData);
     } else {
         CXPLAT_DBG_ASSERT(FALSE);
     }
@@ -531,9 +533,9 @@ CxPlatSendDataAllocBuffer(
     )
 {
     if (SendBufferFrom(SendData) == CXPLAT_BUFFER_FROM_USER) {
-        return DataPathUserFuncs.CxPlatSendDataAllocBuffer(SendData, MaxBufferLength);
+        return SendDataAllocBuffer(SendData, MaxBufferLength);
     } else if (SendBufferFrom(SendData) == CXPLAT_BUFFER_FROM_XDP) {
-        return XDP_CxPlatSendDataAllocBuffer(SendData, MaxBufferLength);
+        return RawSendDataAllocBuffer(SendData, MaxBufferLength);
     } else {
         CXPLAT_DBG_ASSERT(FALSE);
     }
@@ -548,9 +550,9 @@ CxPlatSendDataFreeBuffer(
     )
 {
     if (SendBufferFrom(SendData) == CXPLAT_BUFFER_FROM_USER) {
-        DataPathUserFuncs.CxPlatSendDataFreeBuffer(SendData, Buffer);
+        SendDataFreeBuffer(SendData, Buffer);
     } else if (SendBufferFrom(SendData) == CXPLAT_BUFFER_FROM_XDP) {
-        XDP_CxPlatSendDataFreeBuffer(SendData, Buffer);
+        RawSendDataFreeBuffer(SendData, Buffer);
     } else {
         CXPLAT_DBG_ASSERT(FALSE);
     }
@@ -563,9 +565,9 @@ CxPlatSendDataIsFull(
     )
 {
     if (SendBufferFrom(SendData) == CXPLAT_BUFFER_FROM_USER) {
-        return DataPathUserFuncs.CxPlatSendDataIsFull(SendData);
+        return SendDataIsFull(SendData);
     } else if (SendBufferFrom(SendData) == CXPLAT_BUFFER_FROM_XDP) {
-        return XDP_CxPlatSendDataIsFull(SendData);
+        return RawSendDataIsFull(SendData);
     } else {
         CXPLAT_DBG_ASSERT(FALSE);
     }
@@ -581,9 +583,9 @@ CxPlatSocketSend(
     )
 {
     if (SendBufferFrom(SendData) == CXPLAT_BUFFER_FROM_USER) {
-        return DataPathUserFuncs.CxPlatSocketSend(Socket, Route, SendData);
+        return SocketSend(Socket, Route, SendData);
     } else if (SendBufferFrom(SendData) == CXPLAT_BUFFER_FROM_XDP) {
-        return XDP_CxPlatSocketSend(CxPlatSocketToRaw(Socket), Route, SendData);
+        return RawSocketSend(CxPlatSocketToRaw(Socket), Route, SendData);
     } else {
         CXPLAT_DBG_ASSERT(FALSE);
     }
@@ -601,16 +603,14 @@ CxPlatDataPathProcessCqe(
         DATAPATH_IO_SQE* Sqe =
             CONTAINING_RECORD(CxPlatCqeUserData(Cqe), DATAPATH_IO_SQE, DatapathSqe);
         if (Sqe->IoType == DATAPATH_XDP_IO_RECV || Sqe->IoType == DATAPATH_XDP_IO_SEND) {
-            fprintf(stderr, "Recv XDP %d\n", Sqe->IoType);
-            XDP_CxPlatDataPathProcessCqe(Cqe);
+            RawDataPathProcessCqe(Cqe);
         } else {
-            fprintf(stderr, "Recv Sock %d\n", Sqe->IoType);
-            DataPathUserFuncs.CxPlatDataPathProcessCqe(Cqe);
+            DataPathProcessCqe(Cqe);
         }
         break;
     }
     case CXPLAT_CQE_TYPE_SOCKET_SHUTDOWN: {
-        XDP_CxPlatDataPathProcessCqe(Cqe);
+        RawDataPathProcessCqe(Cqe);
         break;
     }
     default: CXPLAT_DBG_ASSERT(FALSE); break;
@@ -641,7 +641,7 @@ CxPlatResolveRouteComplete(
     )
 {
     if (Route->State != RouteResolved) {
-        XDP_CxPlatResolveRouteComplete(Connection, Route, PhysicalAddress, PathId);
+        RawResolveRouteComplete(Connection, Route, PhysicalAddress, PathId);
     }
 }
 
@@ -660,7 +660,7 @@ CxPlatResolveRoute(
 {
     if (Socket->Datapath && Socket->Datapath->RawDataPath &&
         !IS_LOOPBACK(Route->RemoteAddress)) {
-        return XDP_CxPlatResolveRoute(Socket, Route, PathId, Context, Callback);
+        return RawResolveRoute(Socket, Route, PathId, Context, Callback);
     }
     Route->State = RouteResolved;
     return QUIC_STATUS_SUCCESS;
@@ -674,7 +674,7 @@ CxPlatUpdateRoute(
     )
 {
     if (!IS_LOOPBACK(SrcRoute->RemoteAddress)) {
-        XDP_CxPlatUpdateRoute(DstRoute, SrcRoute);
+        RawUpdateRoute(DstRoute, SrcRoute);
     }
 }
 
