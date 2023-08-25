@@ -80,12 +80,12 @@ MsQuicListenerOpen(
     BOOLEAN Result = CxPlatRundownAcquire(&Registration->Rundown);
     CXPLAT_DBG_ASSERT(Result); UNREFERENCED_PARAMETER(Result);
 
-    CxPlatDispatchLockAcquire(&Registration->ListenerLock);
+    CxPlatLockAcquire(&Registration->ListenerLock);
     RegistrationShuttingDown = Registration->ShuttingDown;
     if (!RegistrationShuttingDown) {
         CxPlatListInsertTail(&Registration->Listeners, &Listener->RegistrationLink);
     }
-    CxPlatDispatchLockRelease(&Registration->ListenerLock);
+    CxPlatLockRelease(&Registration->ListenerLock);
 
     if (RegistrationShuttingDown) {
         CxPlatRundownRelease(&Registration->Rundown);
@@ -137,9 +137,9 @@ QuicListenerFree(
 
     if (!Listener->Registration->ShuttingDown)
     {
-        CxPlatDispatchLockAcquire(&Listener->Registration->ListenerLock);
+        CxPlatLockAcquire(&Listener->Registration->ListenerLock);
         CxPlatListEntryRemove(&Listener->RegistrationLink);
-        CxPlatDispatchLockRelease(&Listener->Registration->ListenerLock);
+        CxPlatLockRelease(&Listener->Registration->ListenerLock);
     }
 
     CxPlatRefUninitialize(&Listener->RefCount);

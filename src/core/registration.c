@@ -82,7 +82,7 @@ MsQuicRegistrationOpen(
     CxPlatListInitializeHead(&Registration->Configurations);
     CxPlatDispatchLockInitialize(&Registration->ConnectionLock);
     CxPlatListInitializeHead(&Registration->Connections);
-    CxPlatDispatchLockInitialize(&Registration->ListenerLock);
+    CxPlatLockInitialize(&Registration->ListenerLock);
     CxPlatListInitializeHead(&Registration->Listeners);
     CxPlatRundownInitialize(&Registration->Rundown);
     Registration->AppNameLength = (uint8_t)(AppNameLength + 1);
@@ -249,7 +249,7 @@ MsQuicRegistrationShutdown(
             Entry = Entry->Flink;
         }
 
-        CxPlatDispatchLockAcquire(&Registration->ListenerLock);
+        CxPlatLockAcquire(&Registration->ListenerLock);
         Entry = Registration->Listeners.Flink;
         while (Entry != &Registration->Listeners) {
 
@@ -259,7 +259,7 @@ MsQuicRegistrationShutdown(
             Entry = Entry->Flink;
             MsQuicListenerStop((HQUIC)Listener);
         }
-        CxPlatDispatchLockRelease(&Registration->ListenerLock);
+        CxPlatLockRelease(&Registration->ListenerLock);
 
         CxPlatDispatchLockRelease(&Registration->ConnectionLock);
     }
@@ -306,7 +306,7 @@ QuicRegistrationTraceRundown(
 
     CxPlatDispatchLockRelease(&Registration->ConnectionLock);
 
-    CxPlatDispatchLockAcquire(&Registration->ListenerLock);
+    CxPlatLockAcquire(&Registration->ListenerLock);
 
     for (CXPLAT_LIST_ENTRY* Link = Registration->Listeners.Flink;
         Link != &Registration->Listeners;
@@ -315,7 +315,7 @@ QuicRegistrationTraceRundown(
             CXPLAT_CONTAINING_RECORD(Link, QUIC_LISTENER, RegistrationLink));
     }
 
-    CxPlatDispatchLockRelease(&Registration->ListenerLock);
+    CxPlatLockRelease(&Registration->ListenerLock);
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
