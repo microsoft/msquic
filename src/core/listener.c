@@ -135,8 +135,7 @@ QuicListenerFree(
 #endif
 
     CxPlatDispatchLockAcquire(&Listener->Registration->ConnectionLock);
-    if (!Listener->Registration->ShuttingDown)
-    {
+    if (!Listener->Registration->ShuttingDown) {
         CxPlatListEntryRemove(&Listener->RegistrationLink);
     }
     CxPlatDispatchLockRelease(&Listener->Registration->ConnectionLock);
