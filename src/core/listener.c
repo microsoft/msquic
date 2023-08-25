@@ -75,20 +75,34 @@ MsQuicListenerOpen(
     QuicSiloAddRef(Listener->Silo);
 #endif
 
-    CxPlatDispatchLockAcquire(&Registration->ListenerLock);
-    CxPlatListInsertTail(&Registration->Listeners, &Listener->RegistrationLink);
-    CxPlatDispatchLockRelease(&Registration->ListenerLock);
+    BOOLEAN RegistrationShuttingDown;
 
     BOOLEAN Result = CxPlatRundownAcquire(&Registration->Rundown);
     CXPLAT_DBG_ASSERT(Result); UNREFERENCED_PARAMETER(Result);
 
-    QuicTraceEvent(
-        ListenerCreated,
-        "[list][%p] Created, Registration=%p",
-        Listener,
-        Listener->Registration);
-    *NewListener = (HQUIC)Listener;
-    Status = QUIC_STATUS_SUCCESS;
+    CxPlatDispatchLockAcquire(&Registration->ListenerLock);
+    RegistrationShuttingDown = Registration->ShuttingDown;
+    if (!RegistrationShuttingDown) {
+        CxPlatListInsertTail(&Registration->Listeners, &Listener->RegistrationLink);
+    }
+    CxPlatDispatchLockRelease(&Registration->ListenerLock);
+
+    if (RegistrationShuttingDown) {
+        CxPlatRundownRelease(&Registration->Rundown);
+        CxPlatEventUninitialize(Listener->StopEvent);
+        CXPLAT_FREE(Listener, QUIC_POOL_LISTENER);
+        Listener = NULL;
+        Status = QUIC_STATUS_INVALID_STATE;
+        goto Error;
+    } else {
+        QuicTraceEvent(
+            ListenerCreated,
+            "[list][%p] Created, Registration=%p",
+            Listener,
+            Listener->Registration);
+        *NewListener = (HQUIC)Listener;
+        Status = QUIC_STATUS_SUCCESS;
+    }
 
 Error:
 
@@ -121,9 +135,12 @@ QuicListenerFree(
     QuicSiloRelease(Listener->Silo);
 #endif
 
-    CxPlatDispatchLockAcquire(&Listener->Registration->ListenerLock);
-    CxPlatListEntryRemove(&Listener->RegistrationLink);
-    CxPlatDispatchLockRelease(&Listener->Registration->ListenerLock);
+    if (!Listener->Registration->ShuttingDown)
+    {
+        CxPlatDispatchLockAcquire(&Listener->Registration->ListenerLock);
+        CxPlatListEntryRemove(&Listener->RegistrationLink);
+        CxPlatDispatchLockRelease(&Listener->Registration->ListenerLock);
+    }
 
     CxPlatRefUninitialize(&Listener->RefCount);
     CxPlatEventUninitialize(Listener->StopEvent);

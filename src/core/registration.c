@@ -256,8 +256,8 @@ MsQuicRegistrationShutdown(
             QUIC_LISTENER* Listener =
                 CXPLAT_CONTAINING_RECORD(Entry, QUIC_LISTENER, RegistrationLink);
 
-            MsQuicListenerClose((void *)Listener);
             Entry = Entry->Flink;
+            MsQuicListenerStop((HQUIC)Listener);
         }
         CxPlatDispatchLockRelease(&Registration->ListenerLock);
 
