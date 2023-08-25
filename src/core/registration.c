@@ -305,17 +305,6 @@ QuicRegistrationTraceRundown(
     }
 
     CxPlatDispatchLockRelease(&Registration->ConnectionLock);
-
-    CxPlatLockAcquire(&Registration->ListenerLock);
-
-    for (CXPLAT_LIST_ENTRY* Link = Registration->Listeners.Flink;
-        Link != &Registration->Listeners;
-        Link = Link->Flink) {
-        QuicListenerTraceRundown(
-            CXPLAT_CONTAINING_RECORD(Link, QUIC_LISTENER, RegistrationLink));
-    }
-
-    CxPlatLockRelease(&Registration->ListenerLock);
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
