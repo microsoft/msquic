@@ -190,6 +190,8 @@ QuicStreamProcessReliableResetFrame(
     }
 
     if (Stream->RecvBuffer.BaseOffset >= Stream->RecvMaxLength) {
+        // TODO: Update this to be the same as ReceiveComplete.
+
         //
         // All data delivered. Deliver shutdown callback.
         //
@@ -451,7 +453,7 @@ QuicStreamProcessStreamFrame(
 
     if (EndOffset > Stream->RecvMaxLength && !Stream->Flags.RemoteCloseResetReliable) {
         //
-        // Frame goes past the FIN.
+        // Frame goes past the FIN, and the stream is not reset reliably.
         //
         Status = QUIC_STATUS_INVALID_PARAMETER;
         goto Error;
@@ -459,7 +461,8 @@ QuicStreamProcessStreamFrame(
 
       if (Stream->RecvBuffer.BaseOffset >= Stream->RecvMaxLength && Stream->Flags.RemoteCloseResetReliable) {
         //
-        // Frame is unnecessary.
+        // We've aborted reliably, and...
+        // Frame goes past reliable offset, we can just discard to save space and compute.
         //
         Status = QUIC_STATUS_SUCCESS;
         goto Error;
@@ -1157,6 +1160,9 @@ QuicStreamReceiveComplete(
      if (Stream->Flags.RemoteCloseResetReliable && Stream->RecvBuffer.BaseOffset >= Stream->RecvMaxLength && !Stream->Flags.ReceiveClosedReliable) {
 
         Stream->Flags.ReceiveClosedReliable = TRUE;
+        Stream->Flags.LocalCloseAcked = TRUE;
+        Stream->Flags.RemoteCloseAcked = TRUE;
+
 
         QuicTraceLogStreamVerbose(
             StreamReliableResetReceiveComplete,
@@ -1172,20 +1178,21 @@ QuicStreamReceiveComplete(
 
         (void)QuicStreamIndicateEvent(Stream, &Event);
 
+        QuicStreamRecvShutdown(Stream, TRUE, QUIC_ERROR_NO_ERROR);
         //
         // Now that the close event has been delivered to the app, we can shut
         // down the stream.
         //
-        QuicStreamTryCompleteShutdown(Stream);
+        // QuicStreamTryCompleteShutdown(Stream);
 
         //
         // Remove any flags we shouldn't be sending now that the receive
         // direction is closed.
         //
-        QuicSendClearStreamSendFlag(
-            &Stream->Connection->Send,
-            Stream,
-            QUIC_STREAM_SEND_FLAG_MAX_DATA | QUIC_STREAM_SEND_FLAG_RECV_ABORT);
+        // QuicSendClearStreamSendFlag(
+        //     &Stream->Connection->Send,
+        //     Stream,
+        //     QUIC_STREAM_SEND_FLAG_MAX_DATA | QUIC_STREAM_SEND_FLAG_RECV_ABORT);
     }
 
     return FALSE;
