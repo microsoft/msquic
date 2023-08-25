@@ -138,18 +138,13 @@ typedef struct CXPLAT_SOCKET CXPLAT_SOCKET;
 
 typedef struct CXPLAT_UDP_CONFIG CXPLAT_UDP_CONFIG;
 
-//
-// Can be defined to whatever the client needs.
-//
-typedef struct CXPLAT_RECV_PACKET CXPLAT_RECV_PACKET;
-
-typedef enum CXPLAT_BUFFER_FROM {
-    CXPLAT_BUFFER_FROM_UNKNOWN = 0,
-    CXPLAT_BUFFER_FROM_USER,
-    CXPLAT_BUFFER_FROM_KERNEL,
-    CXPLAT_BUFFER_FROM_XDP,
+typedef enum CXPLAT_DATAPATH_TYPE {
+    CXPLAT_DATAPATH_TYPE_UNKNOWN = 0,
+    CXPLAT_DATAPATH_TYPE_USER,
+    CXPLAT_DATAPATH_TYPE_KERNEL,
+    CXPLAT_DATAPATH_TYPE_XDP,
     // DPDK?
-} CXPLAT_BUFFER_FROM;
+} CXPLAT_DATAPATH_TYPE;
 
 //
 // Structure that maintains the 'per send' context.
@@ -244,7 +239,7 @@ typedef struct CXPLAT_RECV_DATA {
     //
     uint16_t Allocated : 1;          // Used for debugging. Set to FALSE on free.
     uint16_t QueuedOnConnection : 1; // Used for debugging.
-    uint16_t BufferFrom : 2;
+    uint16_t DatapathType : 2;
     uint16_t Reserved : 4;
     uint16_t ReservedEx : 8;
 
@@ -777,13 +772,6 @@ CxPlatResolveRouteComplete(
     _Inout_ CXPLAT_ROUTE* Route,
     _In_reads_bytes_(6) const uint8_t* PhysicalAddress,
     _In_ uint8_t PathId
-    );
-
-_IRQL_requires_max_(PASSIVE_LEVEL)
-void
-QuicCopyRouteInfo(
-    _Inout_ CXPLAT_ROUTE* DstRoute,
-    _In_ CXPLAT_ROUTE* SrcRoute
     );
 
 //

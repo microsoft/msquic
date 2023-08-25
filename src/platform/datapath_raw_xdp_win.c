@@ -1584,7 +1584,7 @@ CxPlatXdpRx(
 
         if (Packet->RecvData.Buffer) {
             Packet->RecvData.Allocated = TRUE;
-            Packet->RecvData.BufferFrom = CXPLAT_BUFFER_FROM_XDP;
+            Packet->RecvData.DatapathType = CXPLAT_DATAPATH_TYPE_XDP;
             Buffers[PacketCount++] = &Packet->RecvData;
         } else {
             CxPlatListPushEntry(&Queue->PartitionRxPool, (CXPLAT_SLIST_ENTRY*)Packet);

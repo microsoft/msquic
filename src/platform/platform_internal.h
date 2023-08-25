@@ -87,7 +87,7 @@ typedef struct CXPLAT_SOCKET_COMMON {
 } CXPLAT_SOCKET_COMMON;
 
 typedef struct CXPLAT_SEND_DATA_COMMON {
-    uint16_t BufferFrom : 2;
+    uint16_t DatapathType : 2;
 
     //
     // The type of ECN markings needed for send.
@@ -685,16 +685,6 @@ DataPathProcessCqe(
     _In_ CXPLAT_CQE* Cqe
     );
 
-CXPLAT_RECV_PACKET*
-DataPathRecvDataToRecvPacket(
-    _In_ const CXPLAT_RECV_DATA* const Datagram
-    );
-
-CXPLAT_RECV_DATA*
-DataPathRecvPacketToRecvData(
-    _In_ const CXPLAT_RECV_PACKET* const Context
-    );
-
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 UpdateRoute(
@@ -736,8 +726,6 @@ RawDataPathInitialize(
     _In_opt_ const CXPLAT_DATAPATH* ParentDataPath,
     _Out_ CXPLAT_DATAPATH_RAW* DataPath
     );
-
-// TODO: rename as generic for raw
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
@@ -843,16 +831,6 @@ RawResolveRoute(
 void
 RawDataPathProcessCqe(
     _In_ CXPLAT_CQE* Cqe
-    );
-
-CXPLAT_RECV_PACKET*
-RawDataPathRecvDataToRecvPacket(
-    _In_ const CXPLAT_RECV_DATA* const Datagram
-    );
-
-CXPLAT_RECV_DATA*
-RawDataPathRecvPacketToRecvData(
-    _In_ const CXPLAT_RECV_PACKET* const Context
     );
 
 _IRQL_requires_max_(PASSIVE_LEVEL)

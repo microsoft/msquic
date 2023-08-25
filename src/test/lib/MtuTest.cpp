@@ -56,6 +56,7 @@ QuicTestMtuSettings()
 #else
     const uint16_t DefaultMaximumMtu = 1500;
 #endif
+
     {
         //
         // Test setting on library works

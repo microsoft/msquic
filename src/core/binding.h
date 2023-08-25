@@ -160,13 +160,6 @@ typedef struct QUIC_RX_PACKET {
     // Flag indicating the packet contained a non-probing frame.
     //
     BOOLEAN HasNonProbingFrame : 1;
-
-    // //
-    // //
-    // //
-    // uint8_t BufferFrom : 2;
-
-    // uint8_t Reserved : 2;
     };
     };
 

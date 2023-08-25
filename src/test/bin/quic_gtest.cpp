@@ -843,6 +843,9 @@ TEST_P(WithFamilyArgs, InterfaceBinding) {
     if (TestingKernelMode) {
         ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_INTERFACE_BINDING, GetParam().Family));
     } else {
+        if (UseDuoNic) {
+            GTEST_SKIP_("DuoNIC is not supported");
+        }
         QuicTestInterfaceBinding(GetParam().Family);
     }
 }

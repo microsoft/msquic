@@ -19,7 +19,6 @@ static bool UseQTIP = false;
 #elif defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
 extern bool UseQTIP;
 #endif
-extern uint64_t LARGE_SEND_SIZE;
 
 /*
     Helper function to estimate a maximum timeout for a test with a

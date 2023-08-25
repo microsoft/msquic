@@ -1150,7 +1150,6 @@ QuicBindingPreprocessDatagram(
     CxPlatZeroMemory(&Packet->PacketNumber, sizeof(QUIC_RX_PACKET) - sizeof(uint64_t));
     Packet->AvailBuffer = Datagram->Buffer;
     Packet->AvailBufferLength = Datagram->BufferLength;
-    Packet->BufferFrom = Datagram->BufferFrom;
 
     *ReleaseDatagram = TRUE;
 
@@ -1667,7 +1666,6 @@ QuicBindingReceive(
         Packet->SourceCidLen = 0;
         Packet->KeyType = QUIC_PACKET_KEY_INITIAL;
         Packet->Flags = 0;
-        Packet->BufferFrom = Datagram->BufferFrom;
 
         CXPLAT_DBG_ASSERT(Packet->PacketId != 0);
         QuicTraceEvent(

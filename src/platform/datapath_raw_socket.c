@@ -141,7 +141,7 @@ CxPlatDpRawParseUdp(
 
     Packet->Buffer = (uint8_t*)Udp->Data;
     Packet->BufferLength = QuicNetByteSwapShort(Udp->Length) - sizeof(UDP_HEADER);
-    Packet->BufferFrom = CXPLAT_BUFFER_FROM_XDP;
+    Packet->DatapathType = CXPLAT_DATAPATH_TYPE_XDP;
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -211,7 +211,7 @@ CxPlatDpRawParseTcp(
 
     Packet->Buffer = (uint8_t*)(Tcp) + HeaderLength;
     Packet->BufferLength = Length;
-    Packet->BufferFrom = CXPLAT_BUFFER_FROM_XDP;
+    Packet->DatapathType = CXPLAT_DATAPATH_TYPE_XDP;
     Packet->ReservedEx = HeaderLength;
 }
 
