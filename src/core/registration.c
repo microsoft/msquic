@@ -82,7 +82,6 @@ MsQuicRegistrationOpen(
     CxPlatListInitializeHead(&Registration->Configurations);
     CxPlatDispatchLockInitialize(&Registration->ConnectionLock);
     CxPlatListInitializeHead(&Registration->Connections);
-    CxPlatLockInitialize(&Registration->ListenerLock);
     CxPlatListInitializeHead(&Registration->Listeners);
     CxPlatRundownInitialize(&Registration->Rundown);
     Registration->AppNameLength = (uint8_t)(AppNameLength + 1);
@@ -249,19 +248,15 @@ MsQuicRegistrationShutdown(
             Entry = Entry->Flink;
         }
 
-        CxPlatLockAcquire(&Registration->ListenerLock);
+        CxPlatDispatchLockRelease(&Registration->ConnectionLock);
+
         Entry = Registration->Listeners.Flink;
         while (Entry != &Registration->Listeners) {
-
             QUIC_LISTENER* Listener =
                 CXPLAT_CONTAINING_RECORD(Entry, QUIC_LISTENER, RegistrationLink);
-
             Entry = Entry->Flink;
             MsQuicListenerStop((HQUIC)Listener);
         }
-        CxPlatLockRelease(&Registration->ListenerLock);
-
-        CxPlatDispatchLockRelease(&Registration->ConnectionLock);
     }
 
 Exit:
