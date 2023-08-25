@@ -135,12 +135,12 @@ QuicListenerFree(
     QuicSiloRelease(Listener->Silo);
 #endif
 
+    CxPlatLockAcquire(&Listener->Registration->ListenerLock);
     if (!Listener->Registration->ShuttingDown)
     {
-        CxPlatLockAcquire(&Listener->Registration->ListenerLock);
         CxPlatListEntryRemove(&Listener->RegistrationLink);
-        CxPlatLockRelease(&Listener->Registration->ListenerLock);
     }
+    CxPlatLockRelease(&Listener->Registration->ListenerLock);
 
     CxPlatRefUninitialize(&Listener->RefCount);
     CxPlatEventUninitialize(Listener->StopEvent);
