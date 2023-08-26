@@ -567,7 +567,7 @@ QuicStreamShutdown(
     }
 
     if (!!(Flags & QUIC_STREAM_SHUTDOWN_FLAG_IMMEDIATE) &&
-        !Stream->Flags.ShutdownComplete) {
+        !Stream->Flags.ShutdownComplete && !Stream->Flags.RemoteCloseResetReliable) {
         //
         // The app has requested that we immediately give them completion
         // events so they don't have to wait. Deliver the send shutdown complete

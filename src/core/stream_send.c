@@ -1531,9 +1531,9 @@ QuicStreamOnAck(
             StreamReliableResetOnStreamAck,
             Stream,
             "Shutting down stream from OnStreamAck. Send side.");
+        QuicStreamCleanupReliableReset(Stream);
         QuicStreamSendShutdown(Stream, FALSE, TRUE, FALSE, QUIC_ERROR_NO_ERROR);
         // QuicStreamTryCompleteShutdown(Stream);
-        // QuicStreamCleanupReliableReset(Stream);
         // QuicStreamIndicateSendShutdownComplete(Stream, FALSE);
         // Clear any send path flags.
         // QuicSendClearStreamSendFlag(
@@ -1587,8 +1587,6 @@ QuicStreamCleanupReliableReset(
         }
         QuicStreamCompleteSendRequest(Stream, Req, FALSE, TRUE);
     }
-    QuicStreamSendDumpState(Stream);
-    QuicStreamValidateRecoveryState(Stream);
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
