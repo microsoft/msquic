@@ -169,7 +169,6 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicStreamProcessReliableResetFrame(
     _In_ QUIC_STREAM* Stream,
-    _In_ uint64_t FinalSize,
     _In_ QUIC_VAR_INT ErrorCode,
     _In_ QUIC_VAR_INT ReliableOffset
     )
@@ -705,7 +704,6 @@ QuicStreamRecv(
 
         QuicStreamProcessReliableResetFrame(
             Stream,
-            Frame.FinalSize,
             Frame.ErrorCode,
             Frame.ReliableSize);
 
