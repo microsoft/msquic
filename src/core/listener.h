@@ -52,6 +52,11 @@ typedef struct QUIC_LISTENER {
     //
     QUIC_REGISTRATION* Registration;
 
+    //
+    // Link into the registrations's list of listeners.
+    //
+    CXPLAT_LIST_ENTRY RegistrationLink;
+
 #ifdef QUIC_SILO
     //
     // The silo.
