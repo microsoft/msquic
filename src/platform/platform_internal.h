@@ -160,6 +160,13 @@ typedef struct CX_PLATFORM {
 
 } CX_PLATFORM;
 
+typedef enum CXPLAT_SOCKET_TYPE {
+    CXPLAT_SOCKET_UDP             = 0,
+    CXPLAT_SOCKET_TCP_LISTENER    = 1,
+    CXPLAT_SOCKET_TCP             = 2,
+    CXPLAT_SOCKET_TCP_SERVER      = 3
+} CXPLAT_SOCKET_TYPE;
+
 //
 // Type of IO.
 //

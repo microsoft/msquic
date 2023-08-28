@@ -80,7 +80,7 @@ QuicTestMtuSettings()
         TEST_EQUAL(NewSettings.MaximumMtu, UpdatedSettings.MaximumMtu);
     }
 
-    MsQuicRegistration Registration(true);
+    MsQuicRegistration Registration;
     TEST_QUIC_SUCCEEDED(Registration.GetInitStatus());
     MsQuicAlpn Alpn("MsQuicTest");
     {

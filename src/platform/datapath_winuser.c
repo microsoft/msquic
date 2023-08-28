@@ -104,15 +104,6 @@ CXPLAT_STATIC_ASSERT(
     ErrorCode == WSAECONNRESET \
 )
 
-// typedef struct CXPLAT_DATAPATH_PARTITION CXPLAT_DATAPATH_PARTITION;   // Per-processor datapath state.
-// typedef struct CXPLAT_SOCKET_PROC CXPLAT_SOCKET_PROC;       // Per-processor socket state.
-
-typedef enum CXPLAT_SOCKET_TYPE {
-    CXPLAT_SOCKET_UDP             = 0,
-    CXPLAT_SOCKET_TCP_LISTENER    = 1,
-    CXPLAT_SOCKET_TCP             = 2,
-    CXPLAT_SOCKET_TCP_SERVER      = 3
-} CXPLAT_SOCKET_TYPE;
 
 //
 // Contains all the info for a single RX IO operation. Multiple RX packets may
@@ -296,341 +287,6 @@ typedef struct CXPLAT_SEND_DATA {
     QUIC_ADDR MappedRemoteAddress;
 } CXPLAT_SEND_DATA;
 
-// //
-// // Per-processor socket state.
-// //
-// typedef struct QUIC_CACHEALIGN CXPLAT_SOCKET_PROC {
-//     //
-//     // Used to synchronize clean up.
-//     //
-//     CXPLAT_REF_COUNT RefCount;
-
-//     //
-//     // Submission queue event for IO completion
-//     //
-//     DATAPATH_IO_SQE IoSqe;
-
-//     //
-//     // Submission queue event for RIO IO completion
-//     //
-//     DATAPATH_IO_SQE RioSqe;
-
-//     //
-//     // The datapath per-processor context.
-//     //
-//     CXPLAT_DATAPATH_PARTITION* DatapathProc;
-
-//     //
-//     // Parent CXPLAT_SOCKET.
-//     //
-//     CXPLAT_SOCKET* Parent;
-
-//     //
-//     // Socket handle to the networking stack.
-//     //
-//     SOCKET Socket;
-
-//     //
-//     // Rundown for synchronizing upcalls to the app and downcalls on the Socket.
-//     //
-//     CXPLAT_RUNDOWN_REF RundownRef;
-
-//     //
-//     // Flag indicates the socket started processing IO.
-//     //
-//     BOOLEAN IoStarted : 1;
-
-//     //
-//     // Flag indicates a persistent out-of-memory failure for the receive path.
-//     //
-//     BOOLEAN RecvFailure : 1;
-
-//     //
-//     // Debug Flags
-//     //
-//     uint8_t Uninitialized : 1;
-//     uint8_t Freed : 1;
-
-//     //
-//     // The set of parameters/state passed to WsaRecvMsg for the IP stack to
-//     // populate to indicate the result of the receive.
-//     //
-
-//     union {
-//     //
-//     // Normal TCP/UDP socket data
-//     //
-//     struct {
-//     RIO_CQ RioCq;
-//     RIO_RQ RioRq;
-//     ULONG RioRecvCount;
-//     ULONG RioSendCount;
-//     CXPLAT_LIST_ENTRY RioSendOverflow;
-//     BOOLEAN RioNotifyArmed;
-//     };
-//     //
-//     // TCP Listener socket data
-//     //
-//     struct {
-//     CXPLAT_SOCKET* AcceptSocket;
-//     char AcceptAddrSpace[
-//         sizeof(SOCKADDR_INET) + 16 +
-//         sizeof(SOCKADDR_INET) + 16
-//         ];
-//     };
-//     };
-// } CXPLAT_SOCKET_PROC;
-
-// //
-// // Per-port state. Multiple sockets are created on each port.
-// //
-// typedef struct CXPLAT_SOCKET {
-
-//     //
-//     // Parent datapath.
-//     //
-//     CXPLAT_DATAPATH* Datapath;
-
-//     //
-//     // Client context pointer.
-//     //
-//     void *ClientContext;
-
-//     //
-//     // The local address and port.
-//     //
-//     SOCKADDR_INET LocalAddress;
-
-//     //
-//     // The remote address and port.
-//     //
-//     SOCKADDR_INET RemoteAddress;
-
-//     //
-//     // Synchronization mechanism for cleanup.
-//     //
-//     CXPLAT_REF_COUNT RefCount;
-
-//     //
-//     // The size of a receive buffer's payload.
-//     //
-//     uint32_t RecvBufLen;
-
-//     //
-//     // The local interface's MTU.
-//     //
-//     uint16_t Mtu;
-
-//     //
-//     // Socket type.
-//     //
-//     uint16_t Type : 2; // CXPLAT_SOCKET_TYPE
-
-//     //
-//     // Flag indicates the socket has more than one socket, affinitized to all
-//     // the processors.
-//     //
-//     uint16_t NumPerProcessorSockets : 1;
-
-//     //
-//     // Flag indicates the socket has a default remote destination.
-//     //
-//     uint16_t HasFixedRemoteAddress : 1;
-
-//     //
-//     // Flag indicates the socket indicated a disconnect event.
-//     //
-//     uint16_t DisconnectIndicated : 1;
-
-//     //
-//     // Flag indicates the binding is being used for PCP.
-//     //
-//     uint16_t PcpBinding : 1;
-
-//     //
-//     // Flag indicates the socket is using RIO instead of traditional Winsock.
-//     //
-//     uint16_t UseRio : 1;
-
-//     //
-//     // Debug flags.
-//     //
-//     uint16_t Uninitialized : 1;
-//     uint16_t Freed : 1;
-
-//     //
-//     // Per-processor socket contexts.
-//     //
-//     CXPLAT_SOCKET_PROC PerProcSockets[0];
-
-// } CXPLAT_SOCKET;
-
-// //
-// // Represents a single IO completion port and thread for processing work that is
-// // completed on a single processor.
-// //
-// typedef struct QUIC_CACHEALIGN CXPLAT_DATAPATH_PARTITION {
-
-//     //
-//     // Parent datapath.
-//     //
-//     CXPLAT_DATAPATH* Datapath;
-
-//     //
-//     // Event queue used for processing work.
-//     //
-//     CXPLAT_EVENTQ* EventQ;
-
-//     //
-//     // Used to synchronize clean up.
-//     //
-//     CXPLAT_REF_COUNT RefCount;
-
-//     //
-//     // The index into the execution config processor array.
-//     //
-//     uint16_t PartitionIndex;
-
-//     //
-//     // Debug flags
-//     //
-//     uint8_t Uninitialized : 1;
-
-//     //
-//     // Pool of send contexts to be shared by all sockets on this core.
-//     //
-//     CXPLAT_POOL SendDataPool;
-
-//     //
-//     // Pool of send contexts to be shared by all RIO sockets on this core.
-//     //
-//     CXPLAT_POOL RioSendDataPool;
-
-//     //
-//     // Pool of send buffers to be shared by all sockets on this core.
-//     //
-//     CXPLAT_POOL SendBufferPool;
-
-//     //
-//     // Pool of large segmented send buffers to be shared by all sockets on this
-//     // core.
-//     //
-//     CXPLAT_POOL LargeSendBufferPool;
-
-//     //
-//     // Pool of send buffers to be shared by all RIO sockets on this core.
-//     //
-//     CXPLAT_POOL RioSendBufferPool;
-
-//     //
-//     // Pool of large segmented send buffers to be shared by all RIO sockets on
-//     // this core.
-//     //
-//     CXPLAT_POOL RioLargeSendBufferPool;
-
-//     //
-//     // Pool of receive datagram contexts and buffers to be shared by all sockets
-//     // on this core.
-//     //
-//     CXPLAT_POOL RecvDatagramPool;
-
-//     //
-//     // Pool of RIO receive datagram contexts and buffers to be shared by all
-//     // RIO sockets on this core.
-//     //
-//     CXPLAT_POOL RioRecvPool;
-
-// } CXPLAT_DATAPATH_PARTITION;
-
-// //
-// // Main structure for tracking all UDP abstractions.
-// //
-// typedef struct CXPLAT_DATAPATH {
-
-//     //
-//     // The UDP callback function pointers.
-//     //
-//     CXPLAT_UDP_DATAPATH_CALLBACKS UdpHandlers;
-
-//     //
-//     // The TCP callback function pointers.
-//     //
-//     CXPLAT_TCP_DATAPATH_CALLBACKS TcpHandlers;
-
-//     //
-//     // Function pointer to AcceptEx.
-//     //
-//     LPFN_ACCEPTEX AcceptEx;
-
-//     //
-//     // Function pointer to ConnectEx.
-//     //
-//     LPFN_CONNECTEX ConnectEx;
-
-//     //
-//     // Function pointer to WSASendMsg.
-//     //
-//     LPFN_WSASENDMSG WSASendMsg;
-
-//     //
-//     // Function pointer to WSARecvMsg.
-//     //
-//     LPFN_WSARECVMSG WSARecvMsg;
-
-//     //
-//     // Function pointer table for RIO.
-//     //
-//     RIO_EXTENSION_FUNCTION_TABLE RioDispatch;
-
-//     //
-//     // Used to synchronize clean up.
-//     //
-//     CXPLAT_REF_COUNT RefCount;
-
-//     //
-//     // Set of supported features.
-//     //
-//     uint32_t Features;
-
-//     //
-//     // The size of each receive datagram array element, including client context,
-//     // internal context, and padding.
-//     //
-//     uint32_t DatagramStride;
-
-//     //
-//     // The offset of the receive payload buffer from the start of the receive
-//     // context.
-//     //
-//     uint32_t RecvPayloadOffset;
-
-//     //
-//     // The number of processors.
-//     //
-//     uint16_t PartitionCount;
-
-//     //
-//     // Maximum batch sizes supported for send.
-//     //
-//     uint8_t MaxSendBatchSize;
-
-//     //
-//     // Uses RIO interface instead of normal asyc IO.
-//     //
-//     uint8_t UseRio : 1;
-
-//     //
-//     // Debug flags
-//     //
-//     uint8_t Uninitialized : 1;
-//     uint8_t Freed : 1;
-
-//     //
-//     // Per-processor completion contexts.
-//     //
-//     CXPLAT_DATAPATH_PARTITION Partitions[0];
-
-// } CXPLAT_DATAPATH;
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
@@ -2489,7 +2145,7 @@ CxPlatSocketCreateTcpInternal(
         Socket->RemoteAddress.Ipv4.sin_port = 0;
     }
 
-    *NewSocket = (CXPLAT_SOCKET*)Socket;
+    *NewSocket = Socket;
     Socket = NULL;
     RawSocket = NULL;
 
@@ -2732,7 +2388,7 @@ SocketCreateTcpListener(
 
     SocketProc->IoStarted = TRUE;
 
-    *NewSocket = (CXPLAT_SOCKET*)Socket;
+    *NewSocket = Socket;
     Socket = NULL;
     RawSocket = NULL;
     Status = QUIC_STATUS_SUCCESS;
@@ -2813,7 +2469,7 @@ CxPlatSocketContextRelease(
             }
         } else {
             if (SocketProc->AcceptSocket != NULL) {
-                SocketDelete((CXPLAT_SOCKET*)SocketProc->AcceptSocket);
+                SocketDelete(SocketProc->AcceptSocket);
                 SocketProc->AcceptSocket = NULL;
             }
         }
@@ -2830,7 +2486,7 @@ CxPlatSocketContextRelease(
         }
 
         SocketProc->Freed = TRUE;
-        CxPlatSocketRelease((CXPLAT_SOCKET*)SocketProc->Parent); //
+        CxPlatSocketRelease(SocketProc->Parent); //
     }
 }
 
@@ -3206,9 +2862,9 @@ CxPlatDataPathSocketProcessAcceptCompletion(
 
         AcceptSocketProc->IoStarted = TRUE;
         ListenerSocketProc->Parent->Datapath->TcpHandlers.Accept(
-            (CXPLAT_SOCKET*)ListenerSocketProc->Parent,
+            ListenerSocketProc->Parent,
             ListenerSocketProc->Parent->ClientContext,
-            (CXPLAT_SOCKET*)ListenerSocketProc->AcceptSocket,
+            ListenerSocketProc->AcceptSocket,
             &ListenerSocketProc->AcceptSocket->ClientContext);
         ListenerSocketProc->AcceptSocket = NULL;
 
@@ -3224,7 +2880,7 @@ CxPlatDataPathSocketProcessAcceptCompletion(
 Error:
 
     if (ListenerSocketProc->AcceptSocket != NULL) {
-        SocketDelete((CXPLAT_SOCKET*)ListenerSocketProc->AcceptSocket);
+        SocketDelete(ListenerSocketProc->AcceptSocket);
         ListenerSocketProc->AcceptSocket = NULL;
     }
 
@@ -3267,7 +2923,7 @@ CxPlatDataPathSocketProcessConnectCompletion(
             "ConnectEx Completed!");
 
         SocketProc->Parent->Datapath->TcpHandlers.Connect(
-            (CXPLAT_SOCKET*)SocketProc->Parent,
+            SocketProc->Parent,
             SocketProc->Parent->ClientContext,
             TRUE);
 
@@ -3285,7 +2941,7 @@ CxPlatDataPathSocketProcessConnectCompletion(
             "ConnectEx completion");
 
         SocketProc->Parent->Datapath->TcpHandlers.Connect(
-            (CXPLAT_SOCKET*)SocketProc->Parent,
+            SocketProc->Parent,
             SocketProc->Parent->ClientContext,
             FALSE);
     }
@@ -3578,7 +3234,7 @@ CxPlatDataPathUdpRecvComplete(
                 CASTED_CLOG_BYTEARRAY(sizeof(*RemoteAddr), RemoteAddr));
 #endif
             SocketProc->Parent->Datapath->UdpHandlers.Unreachable(
-                (CXPLAT_SOCKET*)SocketProc->Parent,
+                SocketProc->Parent,
                 SocketProc->Parent->ClientContext,
                 RemoteAddr);
         }
@@ -3742,12 +3398,12 @@ CxPlatDataPathUdpRecvComplete(
 
         if (!SocketProc->Parent->PcpBinding) {
             SocketProc->Parent->Datapath->UdpHandlers.Receive(
-                (CXPLAT_SOCKET*)SocketProc->Parent,
+                SocketProc->Parent,
                 SocketProc->Parent->ClientContext,
                 RecvDataChain);
         } else {
             CxPlatPcpRecvCallback(
-                (CXPLAT_SOCKET*)SocketProc->Parent,
+                SocketProc->Parent,
                 SocketProc->Parent->ClientContext,
                 RecvDataChain);
         }
@@ -3925,7 +3581,7 @@ CxPlatDataPathTcpRecvComplete(
         if (!SocketProc->Parent->DisconnectIndicated) {
             SocketProc->Parent->DisconnectIndicated = TRUE;
             SocketProc->Parent->Datapath->TcpHandlers.Connect(
-                (CXPLAT_SOCKET*)SocketProc->Parent,
+                SocketProc->Parent,
                 SocketProc->Parent->ClientContext,
                 FALSE);
         }
@@ -3939,7 +3595,7 @@ CxPlatDataPathTcpRecvComplete(
             if (!SocketProc->Parent->DisconnectIndicated) {
                 SocketProc->Parent->DisconnectIndicated = TRUE;
                 SocketProc->Parent->Datapath->TcpHandlers.Connect(
-                    (CXPLAT_SOCKET*)SocketProc->Parent,
+                    SocketProc->Parent,
                     SocketProc->Parent->ClientContext,
                     FALSE);
             }
@@ -3976,7 +3632,7 @@ CxPlatDataPathTcpRecvComplete(
         IoBlock = NULL;
 
         SocketProc->Parent->Datapath->TcpHandlers.Receive(
-            (CXPLAT_SOCKET*)SocketProc->Parent,
+            SocketProc->Parent,
             SocketProc->Parent->ClientContext,
             Data);
 
@@ -4538,7 +4194,7 @@ CxPlatSendDataComplete(
 
     if (SocketProc->Parent->Type != CXPLAT_SOCKET_UDP) {
         SocketProc->Parent->Datapath->TcpHandlers.SendComplete(
-            (CXPLAT_SOCKET*)SocketProc->Parent,
+            SocketProc->Parent,
             SocketProc->Parent->ClientContext,
             IoResult,
             SendData->TotalSize);

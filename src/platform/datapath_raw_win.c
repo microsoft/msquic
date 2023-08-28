@@ -158,7 +158,6 @@ Error:
             if (SockPoolInitialized) {
                 CxPlatSockPoolUninitialize(&DataPath->SocketPool);
             }
-            // CXPLAT_FREE(DataPath, QUIC_POOL_DATAPATH);
             CxPlatRundownRelease(&CxPlatWorkerRundown);
         }
     }
@@ -258,17 +257,14 @@ QUIC_STATUS
 RawSocketCreateUdp(
     _In_  CXPLAT_DATAPATH_RAW* Raw,
     _In_ const CXPLAT_UDP_CONFIG* Config,
-    // _Out_ CXPLAT_SOCKET_BASE** NewSocket
     _Out_ CXPLAT_SOCKET_RAW* Socket
     )
 {
-    // TODO: remove Socket->Remote/LocalAddress. Use (*NewSocket)->Remote/LocalAddress instead.
     #pragma warning(push)
     #pragma warning(disable:6001) // Using uninitialized memory
     CXPLAT_DBG_ASSERT(Socket != NULL);
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
 
-    // CxPlatZeroMemory(Socket, sizeof(CXPLAT_SOCKET_RAW));
     CxPlatRundownInitialize(&Socket->Rundown);
     Socket->RawDatapath = Raw;
     Socket->CallbackContext = Config->CallbackContext;

@@ -125,18 +125,12 @@ PacketSizeFromUdpPayloadSize(
 // The top level datapath handle type.
 //
 typedef struct CXPLAT_DATAPATH CXPLAT_DATAPATH;
-
-
 typedef struct CXPLAT_DATAPATH_RAW CXPLAT_DATAPATH_RAW;
-typedef struct CXPLAT_DATAPATH CXPLAT_DATAPATH;
 
 //
 // Represents a UDP or TCP abstraction.
 //
-typedef struct CXPLAT_SOCKET_RAW CXPLAT_SOCKET_RAW;
 typedef struct CXPLAT_SOCKET CXPLAT_SOCKET;
-
-typedef struct CXPLAT_UDP_CONFIG CXPLAT_UDP_CONFIG;
 
 typedef enum CXPLAT_DATAPATH_TYPE {
     CXPLAT_DATAPATH_TYPE_UNKNOWN = 0,

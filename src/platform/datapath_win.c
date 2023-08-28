@@ -493,7 +493,7 @@ CxPlatSendDataAlloc(
 {
     CXPLAT_SEND_DATA* SendData = NULL;
     // TODO: fallback?
-    if (Socket->Type == 0 && // CXPLAT_SOCKET_UDP
+    if (Socket->Type == CXPLAT_SOCKET_UDP &&
         Socket->Datapath && Socket->Datapath->RawDataPath &&
         !IS_LOOPBACK(Config->Route->RemoteAddress)) {
         SendData = RawSendDataAlloc(CxPlatSocketToRaw(Socket), Config);

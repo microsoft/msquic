@@ -25,15 +25,6 @@ typedef struct XDP_PARTITION XDP_PARTITION;
 typedef struct XDP_DATAPATH XDP_DATAPATH;
 typedef struct XDP_QUEUE XDP_QUEUE;
 
-// //
-// // Type of IO.
-// //
-// typedef enum DATAPATH_XDP_IO_TYPE {
-//     DATAPATH_XDP_IO_SIGNATURE         = 'XDPD',
-//     DATAPATH_XDP_IO_RECV              = DATAPATH_XDP_IO_SIGNATURE + 1,
-//     DATAPATH_XDP_IO_SEND              = DATAPATH_XDP_IO_SIGNATURE + 2
-// } DATAPATH_XDP_IO_TYPE;
-
 //
 // IO header for SQE->CQE based completions.
 //

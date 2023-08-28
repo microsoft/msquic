@@ -45,7 +45,6 @@ typedef struct QUIC_CACHEALIGN CXPLAT_ROUTE_RESOLUTION_WORKER {
 typedef struct CXPLAT_DATAPATH_RAW {
     // FIXME: want to inline CXPLAT_DATAPATH
     const CXPLAT_DATAPATH *ParentDataPath;
-    // CXPLAT_UDP_DATAPATH_CALLBACKS UdpHandlers; // common?
 
     CXPLAT_SOCKET_POOL SocketPool;
 
@@ -59,7 +58,6 @@ typedef struct CXPLAT_DATAPATH_RAW {
 #endif
     BOOLEAN UseTcp;
 
-    // CXPLAT_DATAPATH;
 } CXPLAT_DATAPATH_RAW;
 
 #define ETH_MAC_ADDR_LEN 6
@@ -240,20 +238,13 @@ CxPlatDpRawTxEnqueue(
 // Raw Socket Interface
 //
 
-// typedef struct CXPLAT_SOCKET_INTERNAL {
-//     CXPLAT_SOCKET;
-// } CXPLAT_SOCKET_INTERNAL;
-
 typedef struct CXPLAT_SOCKET_RAW {
-    // const CXPLAT_SOCKET_BASE* ParentSocket;
 
     CXPLAT_HASHTABLE_ENTRY Entry;
     CXPLAT_RUNDOWN_REF Rundown;
     CXPLAT_DATAPATH_RAW* RawDatapath; //
-    SOCKET AuxSocket; // TODO: remove?
+    SOCKET AuxSocket;
     void* CallbackContext;
-    // QUIC_ADDR LocalAddress; //
-    // QUIC_ADDR RemoteAddress; //
     BOOLEAN Wildcard;                // Using a wildcard local address. Optimization
                                      // to avoid always reading LocalAddress.
     BOOLEAN Connected;               // Bound to a remote address
