@@ -756,21 +756,45 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 DataPathInitialize(
     _In_ uint32_t ClientRecvDataLength,
+    _In_opt_ const CXPLAT_UDP_DATAPATH_CALLBACKS* UdpCallbacks,
+    _In_opt_ const CXPLAT_TCP_DATAPATH_CALLBACKS* TcpCallbacks,
     _In_opt_ QUIC_EXECUTION_CONFIG* Config,
-    _Out_ CXPLAT_DATAPATH* Datapath
+    _Out_ CXPLAT_DATAPATH** NewDatapath
     )
 {
     int WsaError;
     QUIC_STATUS Status;
     WSADATA WsaData;
+    uint32_t PartitionCount = CxPlatProcMaxCount();
+    uint32_t DatapathLength;
+    CXPLAT_DATAPATH* Datapath = NULL;
     BOOLEAN WsaInitialized = FALSE;
 
-    if (Datapath == NULL) {
+    if (NewDatapath == NULL) {
         Status = QUIC_STATUS_INVALID_PARAMETER;
         goto Exit;
     }
+    if (UdpCallbacks != NULL) {
+        if (UdpCallbacks->Receive == NULL || UdpCallbacks->Unreachable == NULL) {
+            Status = QUIC_STATUS_INVALID_PARAMETER;
+            goto Exit;
+        }
+    }
+    if (TcpCallbacks != NULL) {
+        if (TcpCallbacks->Accept == NULL ||
+            TcpCallbacks->Connect == NULL ||
+            TcpCallbacks->Receive == NULL ||
+            TcpCallbacks->SendComplete == NULL) {
+            Status = QUIC_STATUS_INVALID_PARAMETER;
+            goto Exit;
+        }
+    }
 
-    // TODO: moveup
+    if (!CxPlatWorkersLazyStart(Config)) {
+        Status = QUIC_STATUS_OUT_OF_MEMORY;
+        goto Exit;
+    }
+
     if ((WsaError = WSAStartup(MAKEWORD(2, 2), &WsaData)) != 0) {
         QuicTraceEvent(
             LibraryErrorStatus,
@@ -782,6 +806,33 @@ DataPathInitialize(
     }
     WsaInitialized = TRUE;
 
+    if (Config && Config->ProcessorCount) {
+        PartitionCount = Config->ProcessorCount;
+    }
+
+    DatapathLength =
+        sizeof(CXPLAT_DATAPATH) +
+        PartitionCount * sizeof(CXPLAT_DATAPATH_PARTITION);
+
+    Datapath = (CXPLAT_DATAPATH*)CXPLAT_ALLOC_PAGED(DatapathLength, QUIC_POOL_DATAPATH);
+    if (Datapath == NULL) {
+        QuicTraceEvent(
+            AllocFailure,
+            "Allocation of '%s' failed. (%llu bytes)",
+            "CXPLAT_DATAPATH",
+            DatapathLength);
+        Status = QUIC_STATUS_OUT_OF_MEMORY;
+        goto Error;
+    }
+
+    RtlZeroMemory(Datapath, DatapathLength);
+    if (UdpCallbacks) {
+        Datapath->UdpHandlers = *UdpCallbacks;
+    }
+    if (TcpCallbacks) {
+        Datapath->TcpHandlers = *TcpCallbacks;
+    }
+    Datapath->PartitionCount = (uint16_t)PartitionCount;
     CxPlatRefInitializeEx(&Datapath->RefCount, Datapath->PartitionCount);
     Datapath->UseRio = Config && !!(Config->Flags & QUIC_EXECUTION_CONFIG_FLAG_RIO);
 
@@ -914,10 +965,11 @@ DataPathInitialize(
     }
 
     CXPLAT_FRE_ASSERT(CxPlatRundownAcquire(&CxPlatWorkerRundown));
+    *NewDatapath = Datapath;
     Status = QUIC_STATUS_SUCCESS;
 
 Error:
-    // TODO: move up?
+
     if (QUIC_FAILED(Status)) {
         if (Datapath != NULL) {
             CXPLAT_FREE(Datapath, QUIC_POOL_DATAPATH);
@@ -945,7 +997,6 @@ CxPlatDataPathRelease(
         CXPLAT_FREE(Datapath, QUIC_POOL_DATAPATH);
         WSACleanup();
         CxPlatRundownRelease(&CxPlatWorkerRundown);
-
     }
 }
 

@@ -109,18 +109,28 @@ RawDataPathInitialize(
     _In_ uint32_t ClientRecvContextLength,
     _In_opt_ QUIC_EXECUTION_CONFIG* Config,
     _In_opt_ const CXPLAT_DATAPATH* ParentDataPath,
-    _Out_  CXPLAT_DATAPATH_RAW* DataPath
+    _Out_  CXPLAT_DATAPATH_RAW** NewDataPath
     )
 {
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
-    // const size_t DatapathSize = CxPlatDpRawGetDatapathSize(Config);
+    const size_t DatapathSize = CxPlatDpRawGetDatapathSize(Config);
     BOOLEAN DpRawInitialized = FALSE;
     BOOLEAN SockPoolInitialized = FALSE;
-    // CXPLAT_FRE_ASSERT(DatapathSize > sizeof(CXPLAT_DATAPATH));
 
-    if (DataPath == NULL) {
+    if (NewDataPath == NULL) {
         return QUIC_STATUS_INVALID_PARAMETER;
     }
+
+    CXPLAT_DATAPATH_RAW* DataPath = CXPLAT_ALLOC_PAGED(DatapathSize, QUIC_POOL_DATAPATH);
+    if (DataPath == NULL) {
+        QuicTraceEvent(
+            AllocFailure,
+            "Allocation of '%s' failed. (%llu bytes)",
+            "CXPLAT_DATAPATH",
+            DatapathSize);
+        return QUIC_STATUS_OUT_OF_MEMORY;
+    }
+    CxPlatZeroMemory(DataPath, DatapathSize);
     CXPLAT_FRE_ASSERT(CxPlatRundownAcquire(&CxPlatWorkerRundown));
 
     if (Config && (Config->Flags & QUIC_EXECUTION_CONFIG_FLAG_QTIP)) {
@@ -144,11 +154,13 @@ RawDataPathInitialize(
         goto Error;
     }
 
+    *NewDataPath = DataPath;
     DataPath->ParentDataPath = ParentDataPath;
+    DataPath = NULL;
 
 Error:
 
-    if (QUIC_FAILED(Status)) {
+    if (DataPath != NULL) {
 #if DEBUG
         DataPath->Uninitialized = TRUE;
 #endif
@@ -158,6 +170,7 @@ Error:
             if (SockPoolInitialized) {
                 CxPlatSockPoolUninitialize(&DataPath->SocketPool);
             }
+            CXPLAT_FREE(DataPath, QUIC_POOL_DATAPATH);
             CxPlatRundownRelease(&CxPlatWorkerRundown);
         }
     }

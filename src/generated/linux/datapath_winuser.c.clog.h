@@ -275,12 +275,12 @@ tracepoint(CLOG_DATAPATH_WINUSER_C, LibraryErrorStatus , arg2, arg3);\
 // Decoder Ring for AllocFailure
 // Allocation of '%s' failed. (%llu bytes)
 // QuicTraceEvent(
-                    AllocFailure,
-                    "Allocation of '%s' failed. (%llu bytes)",
-                    "PIP_ADAPTER_ADDRESSES",
-                    AdapterAddressesSize);
-// arg2 = arg2 = "PIP_ADAPTER_ADDRESSES" = arg2
-// arg3 = arg3 = AdapterAddressesSize = arg3
+            AllocFailure,
+            "Allocation of '%s' failed. (%llu bytes)",
+            "CXPLAT_DATAPATH",
+            DatapathLength);
+// arg2 = arg2 = "CXPLAT_DATAPATH" = arg2
+// arg3 = arg3 = DatapathLength = arg3
 ----------------------------------------------------------*/
 #ifndef _clog_4_ARGS_TRACE_AllocFailure
 #define _clog_4_ARGS_TRACE_AllocFailure(uniqueId, encoded_arg_string, arg2, arg3)\

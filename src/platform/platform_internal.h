@@ -561,9 +561,11 @@ SocketDelete(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 DataPathInitialize(
-    _In_ uint32_t ClientRecvContextLength,
+    _In_ uint32_t ClientRecvDataLength,
+    _In_opt_ const CXPLAT_UDP_DATAPATH_CALLBACKS* UdpCallbacks,
+    _In_opt_ const CXPLAT_TCP_DATAPATH_CALLBACKS* TcpCallbacks,
     _In_opt_ QUIC_EXECUTION_CONFIG* Config,
-    _Out_ CXPLAT_DATAPATH* DataPath
+    _Out_ CXPLAT_DATAPATH** NewDatapath
     );
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -731,7 +733,7 @@ RawDataPathInitialize(
     _In_ uint32_t ClientRecvContextLength,
     _In_opt_ QUIC_EXECUTION_CONFIG* Config,
     _In_opt_ const CXPLAT_DATAPATH* ParentDataPath,
-    _Out_ CXPLAT_DATAPATH_RAW* DataPath
+    _Out_ CXPLAT_DATAPATH_RAW** DataPath
     );
 
 _IRQL_requires_max_(PASSIVE_LEVEL)

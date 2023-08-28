@@ -46,59 +46,12 @@ CxPlatDataPathInitialize(
         goto Error;
     }
 
-    // 
-    // Init all Datapath
-    //
-    if (UdpCallbacks != NULL) {
-        if (UdpCallbacks->Receive == NULL || UdpCallbacks->Unreachable == NULL) {
-            Status = QUIC_STATUS_INVALID_PARAMETER;
-            goto Error;
-        }
-    }
-    if (TcpCallbacks != NULL) {
-        if (TcpCallbacks->Accept == NULL ||
-            TcpCallbacks->Connect == NULL ||
-            TcpCallbacks->Receive == NULL ||
-            TcpCallbacks->SendComplete == NULL) {
-            Status = QUIC_STATUS_INVALID_PARAMETER;
-            goto Error;
-        }
-    }
-    if (!CxPlatWorkersLazyStart(Config)) {
-        Status = QUIC_STATUS_OUT_OF_MEMORY;
-        goto Error;
-    }
-    uint32_t PartitionCount = CxPlatProcMaxCount();
-    if (Config && Config->ProcessorCount) {
-        PartitionCount = Config->ProcessorCount;
-    }    
-    uint32_t DatapathLength =
-        sizeof(CXPLAT_DATAPATH) +
-        PartitionCount * sizeof(CXPLAT_DATAPATH_PARTITION);
-
-    CXPLAT_DATAPATH* Datapath = (CXPLAT_DATAPATH*)CXPLAT_ALLOC_PAGED(DatapathLength, QUIC_POOL_DATAPATH);
-    if (Datapath == NULL) {
-        QuicTraceEvent(
-            AllocFailure,
-            "Allocation of '%s' failed. (%llu bytes)",
-            "CXPLAT_DATAPATH",
-            DatapathLength);
-        Status = QUIC_STATUS_OUT_OF_MEMORY;
-        goto Error;
-    }
-
-    RtlZeroMemory(Datapath, DatapathLength);
-    if (UdpCallbacks) {
-        Datapath->UdpHandlers = *UdpCallbacks;
-    }
-    if (TcpCallbacks) {
-        Datapath->TcpHandlers = *TcpCallbacks;
-    }
-    Datapath->PartitionCount = (uint16_t)PartitionCount;
     Status = DataPathInitialize(
         ClientRecvContextLength,
+        UdpCallbacks,
+        TcpCallbacks,
         Config,
-        Datapath);
+        NewDataPath);
     if (QUIC_FAILED(Status)) {
         QuicTraceLogVerbose(
             DatapathInitFail,
@@ -106,38 +59,21 @@ CxPlatDataPathInitialize(
         goto Error;
     }
 
-    const size_t RawDatapathSize = CxPlatDpRawGetDatapathSize(Config);
-    CXPLAT_DATAPATH_RAW* RawDataPath = CXPLAT_ALLOC_PAGED(RawDatapathSize, QUIC_POOL_DATAPATH);
-    if (RawDataPath == NULL) {
-        QuicTraceEvent(
-            AllocFailure,
-            "Allocation of '%s' failed. (%llu bytes)",
-            "CXPLAT_DATAPATH",
-            RawDatapathSize);
-        return QUIC_STATUS_OUT_OF_MEMORY;
-    }
-    CxPlatZeroMemory(RawDataPath, RawDatapathSize);
-
-    // Status = QUIC_STATUS_INVALID_PARAMETER;
     Status = RawDataPathInitialize(
         ClientRecvContextLength,
         Config,
-        Datapath,
-        RawDataPath);
+        (*NewDataPath),
+        &((*NewDataPath)->RawDataPath));
     if (QUIC_FAILED(Status)) {
         QuicTraceLogVerbose(
             RawDatapathInitFail,
             "[ raw] Failed to initialize raw datapath, status:%d", Status);
         Status = QUIC_STATUS_SUCCESS;
-        CXPLAT_FREE(RawDataPath, QUIC_POOL_DATAPATH);
-        RawDataPath = NULL;
+        CXPLAT_FREE((*NewDataPath)->RawDataPath, QUIC_POOL_DATAPATH);
+        (*NewDataPath)->RawDataPath = NULL;
     }
 
-    Datapath->RawDataPath = RawDataPath;
-    *NewDataPath = Datapath;
-
 Error:
-    // TODO: error handling
 
     return Status;
 }
