@@ -457,20 +457,20 @@ QuicStreamProcessStreamFrame(
         goto Error;
     }
 
-    if (EndOffset > Stream->RecvMaxLength && !Stream->Flags.RemoteCloseResetReliable) {
+    if (Stream->Flags.RemoteCloseResetReliable) {
+        if (Stream->RecvBuffer.BaseOffset >= Stream->RecvMaxLength) {
+            //
+            // We've aborted reliably, and...
+            // Frame goes past reliable offset, we can just discard to save space and compute.
+            //
+            Status = QUIC_STATUS_SUCCESS;
+            goto Error;
+        }
+    } else if (EndOffset > Stream->RecvMaxLength) {
         //
         // Frame goes past the FIN, and the stream is not reset reliably.
         //
         Status = QUIC_STATUS_INVALID_PARAMETER;
-        goto Error;
-    }
-
-      if (Stream->RecvBuffer.BaseOffset >= Stream->RecvMaxLength && Stream->Flags.RemoteCloseResetReliable) {
-        //
-        // We've aborted reliably, and...
-        // Frame goes past reliable offset, we can just discard to save space and compute.
-        //
-        Status = QUIC_STATUS_SUCCESS;
         goto Error;
     }
 

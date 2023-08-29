@@ -8,9 +8,6 @@ Abstract:
     Tests various features related to the data path.
 
 --*/
-// remove
-#include <iostream>
-// remove.
 #include "precomp.h"
 #ifdef QUIC_CLOG
 #include "DataTest.cpp.clog.h"
@@ -3180,17 +3177,6 @@ QuicTestConnectAndIdleForDestCidChange(
     }
 }
 
-std::vector<std::string> IHateC = {"QUIC_STREAM_EVENT_START_COMPLETE",
-                "QUIC_STREAM_EVENT_RECEIVE",
-                "QUIC_STREAM_EVENT_SEND_COMPLETE",
-                "QUIC_STREAM_EVENT_PEER_SEND_SHUTDOWN",
-                "QUIC_STREAM_EVENT_PEER_SEND_ABORTED",
-                "QUIC_STREAM_EVENT_PEER_RECEIVE_ABORTED",
-                "QUIC_STREAM_EVENT_SEND_SHUTDOWN_COMPLETE",
-                "QUIC_STREAM_EVENT_SHUTDOWN_COMPLETE",
-                "QUIC_STREAM_EVENT_IDEAL_SEND_BUFFER_SIZE",
-                "QUIC_STREAM_EVENT_PEER_ACCEPTED"};
-
 void
 QuicTestStreamReliableReset(
     )
@@ -3207,14 +3193,8 @@ QuicTestStreamReliableReset(
     uint64_t ReliableOffsetSendSideServer = 69420;
     uint64_t ReliableOffsetRecvSideServer = 69420;
 
-    static QUIC_STATUS ClientStreamCallback(_In_ MsQuicStream* Stream, _In_opt_ void* ClientContext, _Inout_ QUIC_STREAM_EVENT* Event) {
+    static QUIC_STATUS ClientStreamCallback(_In_ MsQuicStream*, _In_opt_ void* ClientContext, _Inout_ QUIC_STREAM_EVENT* Event) {
         auto TestContext = (StreamReliableReset*)ClientContext;
-        // remove
-            Stream->GetReliableOffset(&TestContext->ReliableOffsetSendSideClient);
-            Stream->GetReliableOffsetRecv(&TestContext->ReliableOffsetRecvSideClient);
-            std::cout << IHateC[Event->Type] << " Client Side Stream Send: " << TestContext->ReliableOffsetSendSideClient << ", ";
-            std::cout << " Client Side Stream Recv: " << TestContext->ReliableOffsetRecvSideClient << std::endl;
-        // remove.
         if (Event->Type == QUIC_STREAM_EVENT_SHUTDOWN_COMPLETE) {
             TestContext->ClientStreamShutdownComplete.Set();
         }
@@ -3223,12 +3203,6 @@ QuicTestStreamReliableReset(
 
     static QUIC_STATUS ServerStreamCallback(_In_ MsQuicStream* Stream, _In_opt_ void* ServerContext, _Inout_ QUIC_STREAM_EVENT* Event) {
         auto TestContext = (StreamReliableReset*)ServerContext;
-        // remove
-            Stream->GetReliableOffset(&TestContext->ReliableOffsetSendSideServer);
-            Stream->GetReliableOffsetRecv(&TestContext->ReliableOffsetRecvSideServer);
-            std::cout << IHateC[Event->Type] << " Server Side Stream Send: " << TestContext->ReliableOffsetSendSideServer << ", ";
-            std::cout << " Server Side Stream Recv: " << TestContext->ReliableOffsetRecvSideServer << std::endl;
-        // remove.
         if (Event->Type == QUIC_STREAM_EVENT_RECEIVE) {
             TestContext->ReceivedBufferSize += Event->RECEIVE.TotalBufferLength;
         }
@@ -3289,13 +3263,6 @@ QuicTestStreamReliableReset(
     TEST_QUIC_SUCCEEDED(Stream.Shutdown(0)); // Queues up a shutdown operation.
     // Should behave similar to QUIC_STREAM_SHUTDOWN_FLAG_GRACEFUL, with some restrictions.
     TEST_TRUE(Context.ClientStreamShutdownComplete.WaitTimeout(TestWaitTimeout));
-    // Remove
-    std::cout << ">>>>>>>>>>> ReceivedBufferSize: " << Context.ReceivedBufferSize << std::endl;
-    // Remove.
-    // TEST_TRUE(Context.ReliableOffsetSendSideClient == RELIABLE_SIZE);
-    // TEST_TRUE(Context.ReliableOffsetRecvSideClient == 0);
-    // TEST_TRUE(Context.ReliableOffsetSendSideServer == 0);
-    // TEST_TRUE(Context.ReliableOffsetRecvSideServer == RELIABLE_SIZE);
     TEST_TRUE(Context.ReceivedBufferSize >= RELIABLE_SIZE);
 }
 
@@ -3313,14 +3280,8 @@ QuicTestStreamReliableResetMultipleSends(
     uint64_t ReliableOffsetSendSideServer = 69420;
     uint64_t ReliableOffsetRecvSideServer = 69420;
 
-    static QUIC_STATUS ClientStreamCallback(_In_ MsQuicStream* Stream, _In_opt_ void* ClientContext, _Inout_ QUIC_STREAM_EVENT* Event) {
+    static QUIC_STATUS ClientStreamCallback(_In_ MsQuicStream*, _In_opt_ void* ClientContext, _Inout_ QUIC_STREAM_EVENT* Event) {
         auto TestContext = (StreamReliableReset*)ClientContext;
-        // remove
-            Stream->GetReliableOffset(&TestContext->ReliableOffsetSendSideClient);
-            Stream->GetReliableOffsetRecv(&TestContext->ReliableOffsetRecvSideClient);
-            std::cout << IHateC[Event->Type] << " Client Side Stream Send: " << TestContext->ReliableOffsetSendSideClient << ", ";
-            std::cout << " Client Side Stream Recv: " << TestContext->ReliableOffsetRecvSideClient << std::endl;
-        // remove.
         if (Event->Type == QUIC_STREAM_EVENT_SHUTDOWN_COMPLETE) {
             TestContext->ClientStreamShutdownComplete.Set();
         }
@@ -3329,12 +3290,6 @@ QuicTestStreamReliableResetMultipleSends(
 
     static QUIC_STATUS ServerStreamCallback(_In_ MsQuicStream* Stream, _In_opt_ void* ServerContext, _Inout_ QUIC_STREAM_EVENT* Event) {
         auto TestContext = (StreamReliableReset*)ServerContext;
-            // remove
-            Stream->GetReliableOffset(&TestContext->ReliableOffsetSendSideServer);
-            Stream->GetReliableOffsetRecv(&TestContext->ReliableOffsetRecvSideServer);
-            std::cout << IHateC[Event->Type] << " Server Side Stream Send: " << TestContext->ReliableOffsetSendSideServer << ", ";
-            std::cout << " Server Side Stream Recv: " << TestContext->ReliableOffsetRecvSideServer << std::endl;
-            // remove.
         if (Event->Type == QUIC_STREAM_EVENT_RECEIVE) {
             TestContext->ReceivedBufferSize += Event->RECEIVE.TotalBufferLength;
         }
@@ -3397,12 +3352,5 @@ QuicTestStreamReliableResetMultipleSends(
     TEST_QUIC_SUCCEEDED(Stream.Shutdown(0)); // Queues up a shutdown operation.
     // Should behave similar to QUIC_STREAM_SHUTDOWN_FLAG_GRACEFUL, with some restrictions.
     TEST_TRUE(Context.ClientStreamShutdownComplete.WaitTimeout(TestWaitTimeout));
-    // Remove
-    std::cout << ">>>>>>>>>>> ReceivedBufferSize: " << Context.ReceivedBufferSize << std::endl;
-    // Remove.
-    // TEST_TRUE(Context.ReliableOffsetSendSideClient == RELIABLE_SIZE);
-    // TEST_TRUE(Context.ReliableOffsetRecvSideClient == 0);
-    // TEST_TRUE(Context.ReliableOffsetSendSideServer == 0);
-    // TEST_TRUE(Context.ReliableOffsetRecvSideServer == RELIABLE_SIZE);
     TEST_TRUE(Context.ReceivedBufferSize >= RELIABLE_SIZE);
 }
