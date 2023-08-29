@@ -173,6 +173,19 @@ QuicStreamProcessReliableResetFrame(
     _In_ QUIC_VAR_INT ReliableOffset
     )
 {
+    if (!Stream->Connection->State.ReliableResetStreamNegotiated) {
+        //
+        // The peer tried to use an exprimental feature without
+        // negotiating first. Kill the connection.
+        //
+        QuicTraceLogStreamWarning(
+            ReliableResetNotNegotiated,
+            Stream,
+            "Tried to use ReliableReset without negotiation.");
+        QuicConnTransportError(Stream->Connection, QUIC_ERROR_STREAM_STATE_ERROR);
+        return;
+    }
+
     if (Stream->RecvMaxLength == 0 || ReliableOffset < Stream->RecvMaxLength) {
         //
         // As outlined in the spec, if we receive multiple CLOSE_STREAM frames, we only accept strictly
@@ -193,9 +206,9 @@ QuicStreamProcessReliableResetFrame(
         Stream->Flags.LocalCloseAcked = TRUE;
         Stream->Flags.RemoteCloseAcked = TRUE;
         QuicTraceLogStreamVerbose(
-            StreamReliableResetReceiveComplete,
+            StreamProcessReliableReset,
             Stream,
-            "Shutting down stream from ReceiveComplete Recv Side.");
+            "Shutting down stream from Process Reliable Reset Frame. Recv Side.");
         QUIC_STREAM_EVENT Event;
         Event.Type = QUIC_STREAM_EVENT_PEER_SEND_SHUTDOWN;
         QuicTraceLogStreamVerbose(
