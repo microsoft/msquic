@@ -189,31 +189,21 @@ QuicStreamProcessReliableResetFrame(
     }
 
     if (Stream->RecvBuffer.BaseOffset >= Stream->RecvMaxLength) {
-        // TODO: Update this to be the same as ReceiveComplete.
-
-        //
-        // All data delivered. Deliver shutdown callback.
-        //
-        Stream->Flags.ReceiveDataPending = FALSE;
-
+        Stream->Flags.ReceiveClosedReliable = TRUE;
+        Stream->Flags.LocalCloseAcked = TRUE;
+        Stream->Flags.RemoteCloseAcked = TRUE;
         QuicTraceLogStreamVerbose(
-            StreamReliableResetProcessReliableResetFrame,
+            StreamReliableResetReceiveComplete,
             Stream,
-            "Shutting down stream from ProcessReliableResetFrame. Recv side.");
-
-        //
-        // Shut down the stream.
-        //
-        QuicStreamTryCompleteShutdown(Stream);
-
-        //
-        // Remove any flags we shouldn't be sending now that the receive
-        // direction is closed.
-        //
-        QuicSendClearStreamSendFlag(
-            &Stream->Connection->Send,
+            "Shutting down stream from ReceiveComplete Recv Side.");
+        QUIC_STREAM_EVENT Event;
+        Event.Type = QUIC_STREAM_EVENT_PEER_SEND_SHUTDOWN;
+        QuicTraceLogStreamVerbose(
+            IndicatePeerSendShutdown,
             Stream,
-            QUIC_STREAM_SEND_FLAG_MAX_DATA | QUIC_STREAM_SEND_FLAG_RECV_ABORT);
+            "Indicating QUIC_STREAM_EVENT_PEER_SEND_SHUTDOWN");
+        (void)QuicStreamIndicateEvent(Stream, &Event);
+        QuicStreamRecvShutdown(Stream, TRUE, QUIC_ERROR_NO_ERROR);
     }
 
     if (!Stream->Flags.SentStopSending) {
@@ -327,6 +317,10 @@ QuicStreamProcessResetFrame(
             (void)QuicStreamIndicateEvent(Stream, &Event);
         }
 
+        QuicTraceLogStreamVerbose(
+            StreamReliableProcessResetFrame,
+            Stream,
+            "Shutting down stream Abortively in ProcessResetFrame. Recv Side.");
         //
         // Remove any flags we shouldn't be sending now that the receive
         // direction is closed.
@@ -1139,6 +1133,10 @@ QuicStreamReceiveComplete(
             "Indicating QUIC_STREAM_EVENT_PEER_SEND_SHUTDOWN");
         (void)QuicStreamIndicateEvent(Stream, &Event);
 
+        QuicTraceLogStreamVerbose(
+            StreamReliableResetRecvGraceful,
+            Stream,
+            "Shutting down stream [gracefully] Recv Side.");
         //
         // Now that the close event has been delivered to the app, we can shut
         // down the stream.
@@ -1153,44 +1151,22 @@ QuicStreamReceiveComplete(
             &Stream->Connection->Send,
             Stream,
             QUIC_STREAM_SEND_FLAG_MAX_DATA | QUIC_STREAM_SEND_FLAG_RECV_ABORT);
-    }
-
-     if (Stream->Flags.RemoteCloseResetReliable && Stream->RecvBuffer.BaseOffset >= Stream->RecvMaxLength && !Stream->Flags.ReceiveClosedReliable) {
-
+    } else if (Stream->Flags.RemoteCloseResetReliable && Stream->RecvBuffer.BaseOffset >= Stream->RecvMaxLength && !Stream->Flags.ReceiveClosedReliable) {
         Stream->Flags.ReceiveClosedReliable = TRUE;
         Stream->Flags.LocalCloseAcked = TRUE;
         Stream->Flags.RemoteCloseAcked = TRUE;
-
-
         QuicTraceLogStreamVerbose(
             StreamReliableResetReceiveComplete,
             Stream,
             "Shutting down stream from ReceiveComplete Recv Side.");
-
         QUIC_STREAM_EVENT Event;
         Event.Type = QUIC_STREAM_EVENT_PEER_SEND_SHUTDOWN;
         QuicTraceLogStreamVerbose(
             IndicatePeerSendShutdown,
             Stream,
             "Indicating QUIC_STREAM_EVENT_PEER_SEND_SHUTDOWN");
-
         (void)QuicStreamIndicateEvent(Stream, &Event);
-
         QuicStreamRecvShutdown(Stream, TRUE, QUIC_ERROR_NO_ERROR);
-        //
-        // Now that the close event has been delivered to the app, we can shut
-        // down the stream.
-        //
-        // QuicStreamTryCompleteShutdown(Stream);
-
-        //
-        // Remove any flags we shouldn't be sending now that the receive
-        // direction is closed.
-        //
-        // QuicSendClearStreamSendFlag(
-        //     &Stream->Connection->Send,
-        //     Stream,
-        //     QUIC_STREAM_SEND_FLAG_MAX_DATA | QUIC_STREAM_SEND_FLAG_RECV_ABORT);
     }
 
     return FALSE;
