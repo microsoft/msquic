@@ -69,7 +69,6 @@ CxPlatDataPathInitialize(
             RawDatapathInitFail,
             "[ raw] Failed to initialize raw datapath, status:%d", Status);
         Status = QUIC_STATUS_SUCCESS;
-        CXPLAT_FREE((*NewDataPath)->RawDataPath, QUIC_POOL_DATAPATH);
         (*NewDataPath)->RawDataPath = NULL;
     }
 
