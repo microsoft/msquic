@@ -5111,6 +5111,62 @@
       ],
       "macroName": "QuicTraceLogVerbose"
     },
+    "FrameLogReliableResetStream": {
+      "ModuleProperites": {},
+      "TraceString": "[%c][%cX][%llu]   RELIABLE_RESET_STREAM ID:%llu ErrorCode:0x%llX FinalSize:%llu ReliableSize:%llu",
+      "UniqueId": "FrameLogReliableResetStream",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "c",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "c",
+          "MacroVariableName": "arg3"
+        },
+        {
+          "DefinationEncoding": "llu",
+          "MacroVariableName": "arg4"
+        },
+        {
+          "DefinationEncoding": "llu",
+          "MacroVariableName": "arg5"
+        },
+        {
+          "DefinationEncoding": "llX",
+          "MacroVariableName": "arg6"
+        },
+        {
+          "DefinationEncoding": "llu",
+          "MacroVariableName": "arg7"
+        },
+        {
+          "DefinationEncoding": "llu",
+          "MacroVariableName": "arg8"
+        }
+      ],
+      "macroName": "QuicTraceLogVerbose"
+    },
+    "FrameLogReliableResetStreamInvalid": {
+      "ModuleProperites": {},
+      "TraceString": "[%c][%cX][%llu]   RELIABLE_RESET_STREAM [Invalid]",
+      "UniqueId": "FrameLogReliableResetStreamInvalid",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "c",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "c",
+          "MacroVariableName": "arg3"
+        },
+        {
+          "DefinationEncoding": "llu",
+          "MacroVariableName": "arg4"
+        }
+      ],
+      "macroName": "QuicTraceLogVerbose"
+    },
     "FrameLogResetStream": {
       "ModuleProperites": {},
       "TraceString": "[%c][%cX][%llu]   RESET_STREAM ID:%llu ErrorCode:0x%llX FinalSize:%llu",
@@ -14332,6 +14388,16 @@
         "UniquenessHash": "4e057b3b-1d37-81dc-0b9d-e449ba9a5bbf",
         "TraceID": "FrameLogPing",
         "EncodingString": "[%c][%cX][%llu]   PING"
+      },
+      {
+        "UniquenessHash": "114e293d-3c55-bda4-2768-2c68d7b2e75e",
+        "TraceID": "FrameLogReliableResetStream",
+        "EncodingString": "[%c][%cX][%llu]   RELIABLE_RESET_STREAM ID:%llu ErrorCode:0x%llX FinalSize:%llu ReliableSize:%llu"
+      },
+      {
+        "UniquenessHash": "45b5711e-3b1c-297d-8352-5cc3ceb82dfd",
+        "TraceID": "FrameLogReliableResetStreamInvalid",
+        "EncodingString": "[%c][%cX][%llu]   RELIABLE_RESET_STREAM [Invalid]"
       },
       {
         "UniquenessHash": "47de738b-e1df-210a-5eff-181b82072815",

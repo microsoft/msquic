@@ -3203,6 +3203,9 @@ namespace Microsoft.Quic
         [NativeTypeName("#define QUIC_PARAM_STREAM_STATISTICS 0X08000004")]
         internal const uint QUIC_PARAM_STREAM_STATISTICS = 0X08000004;
 
+        [NativeTypeName("#define QUIC_PARAM_STREAM_RELIABLE_OFFSET 0x08000005")]
+        internal const uint QUIC_PARAM_STREAM_RELIABLE_OFFSET = 0x08000005;
+
         [NativeTypeName("#define QUIC_API_VERSION_2 2")]
         internal const uint QUIC_API_VERSION_2 = 2;
     }
