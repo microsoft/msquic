@@ -2,6 +2,25 @@
 
 
 /*----------------------------------------------------------
+// Decoder Ring for ReliableResetNotNegotiated
+// [strm][%p] Tried to use ReliableReset without negotiation.
+// QuicTraceLogStreamWarning(
+            ReliableResetNotNegotiated,
+            Stream,
+            "Tried to use ReliableReset without negotiation.");
+// arg1 = arg1 = Stream = arg1
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_STREAM_RECV_C, ReliableResetNotNegotiated,
+    TP_ARGS(
+        const void *, arg1), 
+    TP_FIELDS(
+        ctf_integer_hex(uint64_t, arg1, arg1)
+    )
+)
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for ResetEarly
 // [strm][%p] Tried to reset at earlier final size!
 // QuicTraceLogStreamWarning(
@@ -177,15 +196,15 @@ TRACEPOINT_EVENT(CLOG_STREAM_RECV_C, QueueRecvFlush,
 
 
 /*----------------------------------------------------------
-// Decoder Ring for StreamReliableResetReceiveComplete
-// [strm][%p] Shutting down stream from ReceiveComplete Recv Side.
+// Decoder Ring for StreamProcessReliableReset
+// [strm][%p] Shutting down stream from Process Reliable Reset Frame. Recv Side.
 // QuicTraceLogStreamVerbose(
-            StreamReliableResetReceiveComplete,
+            StreamProcessReliableReset,
             Stream,
-            "Shutting down stream from ReceiveComplete Recv Side.");
+            "Shutting down stream from Process Reliable Reset Frame. Recv Side.");
 // arg1 = arg1 = Stream = arg1
 ----------------------------------------------------------*/
-TRACEPOINT_EVENT(CLOG_STREAM_RECV_C, StreamReliableResetReceiveComplete,
+TRACEPOINT_EVENT(CLOG_STREAM_RECV_C, StreamProcessReliableReset,
     TP_ARGS(
         const void *, arg1), 
     TP_FIELDS(
@@ -473,6 +492,25 @@ TRACEPOINT_EVENT(CLOG_STREAM_RECV_C, IgnoreRecvFlush,
 // arg1 = arg1 = Stream = arg1
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_STREAM_RECV_C, StreamReliableResetRecvGraceful,
+    TP_ARGS(
+        const void *, arg1), 
+    TP_FIELDS(
+        ctf_integer_hex(uint64_t, arg1, arg1)
+    )
+)
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for StreamReliableResetReceiveComplete
+// [strm][%p] Shutting down stream from ReceiveComplete Recv Side.
+// QuicTraceLogStreamVerbose(
+            StreamReliableResetReceiveComplete,
+            Stream,
+            "Shutting down stream from ReceiveComplete Recv Side.");
+// arg1 = arg1 = Stream = arg1
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_STREAM_RECV_C, StreamReliableResetReceiveComplete,
     TP_ARGS(
         const void *, arg1), 
     TP_FIELDS(

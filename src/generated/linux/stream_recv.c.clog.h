@@ -34,6 +34,24 @@
 extern "C" {
 #endif
 /*----------------------------------------------------------
+// Decoder Ring for ReliableResetNotNegotiated
+// [strm][%p] Tried to use ReliableReset without negotiation.
+// QuicTraceLogStreamWarning(
+            ReliableResetNotNegotiated,
+            Stream,
+            "Tried to use ReliableReset without negotiation.");
+// arg1 = arg1 = Stream = arg1
+----------------------------------------------------------*/
+#ifndef _clog_3_ARGS_TRACE_ReliableResetNotNegotiated
+#define _clog_3_ARGS_TRACE_ReliableResetNotNegotiated(uniqueId, arg1, encoded_arg_string)\
+tracepoint(CLOG_STREAM_RECV_C, ReliableResetNotNegotiated , arg1);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for ResetEarly
 // [strm][%p] Tried to reset at earlier final size!
 // QuicTraceLogStreamWarning(
@@ -198,17 +216,17 @@ tracepoint(CLOG_STREAM_RECV_C, QueueRecvFlush , arg1);\
 
 
 /*----------------------------------------------------------
-// Decoder Ring for StreamReliableResetReceiveComplete
-// [strm][%p] Shutting down stream from ReceiveComplete Recv Side.
+// Decoder Ring for StreamProcessReliableReset
+// [strm][%p] Shutting down stream from Process Reliable Reset Frame. Recv Side.
 // QuicTraceLogStreamVerbose(
-            StreamReliableResetReceiveComplete,
+            StreamProcessReliableReset,
             Stream,
-            "Shutting down stream from ReceiveComplete Recv Side.");
+            "Shutting down stream from Process Reliable Reset Frame. Recv Side.");
 // arg1 = arg1 = Stream = arg1
 ----------------------------------------------------------*/
-#ifndef _clog_3_ARGS_TRACE_StreamReliableResetReceiveComplete
-#define _clog_3_ARGS_TRACE_StreamReliableResetReceiveComplete(uniqueId, arg1, encoded_arg_string)\
-tracepoint(CLOG_STREAM_RECV_C, StreamReliableResetReceiveComplete , arg1);\
+#ifndef _clog_3_ARGS_TRACE_StreamProcessReliableReset
+#define _clog_3_ARGS_TRACE_StreamProcessReliableReset(uniqueId, arg1, encoded_arg_string)\
+tracepoint(CLOG_STREAM_RECV_C, StreamProcessReliableReset , arg1);\
 
 #endif
 
@@ -463,6 +481,24 @@ tracepoint(CLOG_STREAM_RECV_C, IgnoreRecvFlush , arg1);\
 #ifndef _clog_3_ARGS_TRACE_StreamReliableResetRecvGraceful
 #define _clog_3_ARGS_TRACE_StreamReliableResetRecvGraceful(uniqueId, arg1, encoded_arg_string)\
 tracepoint(CLOG_STREAM_RECV_C, StreamReliableResetRecvGraceful , arg1);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for StreamReliableResetReceiveComplete
+// [strm][%p] Shutting down stream from ReceiveComplete Recv Side.
+// QuicTraceLogStreamVerbose(
+            StreamReliableResetReceiveComplete,
+            Stream,
+            "Shutting down stream from ReceiveComplete Recv Side.");
+// arg1 = arg1 = Stream = arg1
+----------------------------------------------------------*/
+#ifndef _clog_3_ARGS_TRACE_StreamReliableResetReceiveComplete
+#define _clog_3_ARGS_TRACE_StreamReliableResetReceiveComplete(uniqueId, arg1, encoded_arg_string)\
+tracepoint(CLOG_STREAM_RECV_C, StreamReliableResetReceiveComplete , arg1);\
 
 #endif
 

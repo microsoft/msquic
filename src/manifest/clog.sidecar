@@ -9178,6 +9178,18 @@
       ],
       "macroName": "QuicTraceLogConnInfo"
     },
+    "ReliableResetNotNegotiated": {
+      "ModuleProperites": {},
+      "TraceString": "[strm][%p] Tried to use ReliableReset without negotiation.",
+      "UniqueId": "ReliableResetNotNegotiated",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        }
+      ],
+      "macroName": "QuicTraceLogStreamWarning"
+    },
     "ReliableResetOnStreamAck": {
       "ModuleProperites": {},
       "TraceString": "[strm][%p] Shutting down stream [reliable] from OnStreamAck. Send side.",
@@ -10966,6 +10978,18 @@
         }
       ],
       "macroName": "QuicTraceEvent"
+    },
+    "StreamProcessReliableReset": {
+      "ModuleProperites": {},
+      "TraceString": "[strm][%p] Shutting down stream from Process Reliable Reset Frame. Recv Side.",
+      "UniqueId": "StreamProcessReliableReset",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        }
+      ],
+      "macroName": "QuicTraceLogStreamVerbose"
     },
     "StreamReceiveFrame": {
       "ModuleProperites": {},
@@ -15610,6 +15634,11 @@
         "EncodingString": "[conn][%p] Received a reliable reset frame. Local reliable reset extension preferences: %hhu"
       },
       {
+        "UniquenessHash": "a636de88-b1f3-5a09-7b3c-7fe8608567b5",
+        "TraceID": "ReliableResetNotNegotiated",
+        "EncodingString": "[strm][%p] Tried to use ReliableReset without negotiation."
+      },
+      {
         "UniquenessHash": "8e06ef5e-6665-a253-c96c-596a2565274d",
         "TraceID": "ReliableResetOnStreamAck",
         "EncodingString": "[strm][%p] Shutting down stream [reliable] from OnStreamAck. Send side."
@@ -16203,6 +16232,11 @@
         "UniquenessHash": "638251a8-14f3-2929-34e2-e69cfdab2277",
         "TraceID": "StreamOutFlowBlocked",
         "EncodingString": "[strm][%p] Send Blocked Flags: %hhu"
+      },
+      {
+        "UniquenessHash": "19f2e767-5d68-3888-8822-98ad7c1536ea",
+        "TraceID": "StreamProcessReliableReset",
+        "EncodingString": "[strm][%p] Shutting down stream from Process Reliable Reset Frame. Recv Side."
       },
       {
         "UniquenessHash": "aaf00b3c-6719-7619-1362-6058d0d3be90",
