@@ -22,9 +22,9 @@ Abstract:
 #pragma warning(disable:6386) // buffer overrun
 
 #define IS_LOOPBACK(Address) ((Address.si_family == QUIC_ADDRESS_FAMILY_INET &&                \
-                                     Address.Ipv4.sin_addr.S_un.S_addr == htonl(INADDR_LOOPBACK)) || \
-                                    (Address.si_family == QUIC_ADDRESS_FAMILY_INET6 &&               \
-                                     IN6_IS_ADDR_LOOPBACK(&Address.Ipv6.sin6_addr)))
+                               Address.Ipv4.sin_addr.S_un.S_addr == htonl(INADDR_LOOPBACK)) || \
+                              (Address.si_family == QUIC_ADDRESS_FAMILY_INET6 &&               \
+                               IN6_IS_ADDR_LOOPBACK(&Address.Ipv6.sin6_addr)))
 
 #define RawDataPathAvailable(Datapath) ((Datapath)->RawDataPath != NULL)
 #define RawSocketAvailable(Socket) ((Socket)->Datapath && RawDataPathAvailable((Socket)->Datapath))
@@ -376,7 +376,7 @@ CxPlatSocketGetLocalMtu(
     CXPLAT_DBG_ASSERT(Socket != NULL);
     if (Socket->Datapath && Socket->Datapath->RawDataPath &&
         !IS_LOOPBACK(Socket->RemoteAddress)) {
-        RawSocketGetLocalMtu(CxPlatSocketToRaw(Socket));
+        return RawSocketGetLocalMtu(CxPlatSocketToRaw(Socket));
     }
     return Socket->Mtu;
 }

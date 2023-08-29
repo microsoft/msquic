@@ -23,6 +23,16 @@ CxPlatGetRawSocketSize () {
     return sizeof(CXPLAT_SOCKET_RAW);
 }
 
+CXPLAT_SOCKET*
+CxPlatRawToSocket(CXPLAT_SOCKET_RAW* Socket) {
+    return (CXPLAT_SOCKET*)((unsigned char*)Socket + sizeof(CXPLAT_SOCKET_RAW) - sizeof(CXPLAT_SOCKET));
+}
+
+CXPLAT_SOCKET_RAW*
+CxPlatSocketToRaw(CXPLAT_SOCKET* Socket) {
+    return (CXPLAT_SOCKET_RAW*)((unsigned char*)Socket - sizeof(CXPLAT_SOCKET_RAW) + sizeof(CXPLAT_SOCKET));
+}
+
 CXPLAT_SOCKET_RAW*
 CxPlatGetSocket(
     _In_ const CXPLAT_SOCKET_POOL* Pool,

@@ -12,15 +12,12 @@ endif()
 set(SOURCES crypt.c hashtable.c pcp.c platform_worker.c toeplitz.c)
 
 if("${CX_PLATFORM}" STREQUAL "windows")
-    set(SOURCES ${SOURCES}
-        platform_winuser.c
-        storage_winuser.c
-        datapath_win.c
-        datapath_winuser.c
-        datapath_raw_win.c
-        datapath_raw_socket.c
-        datapath_raw_socket_win.c
-        datapath_raw_xdp_win.c)
+    set(SOURCES ${SOURCES} platform_winuser.c storage_winuser.c datapath_win.c datapath_winuser.c)
+    if(QUIC_UWP_BUILD)
+        set(SOURCES ${SOURCES} datapath_raw_dummy.c)
+    else()
+        set(SOURCES ${SOURCES} datapath_raw_win.c datapath_raw_socket.c datapath_raw_socket_win.c datapath_raw_xdp_win.c)
+    endif()
 else()
     set(SOURCES ${SOURCES} inline.c platform_posix.c storage_posix.c cgroup.c)
     if(CX_PLATFORM STREQUAL "linux" AND NOT CMAKE_SYSTEM_NAME STREQUAL "FreeBSD")
