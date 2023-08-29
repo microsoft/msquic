@@ -893,9 +893,9 @@ QuicStreamParamGet(
             break;
         }
         if (!Stream->Flags.RemoteCloseResetReliable) {
-            *(uint64_t*) Buffer = 0;
+            *(uint64_t*)Buffer = 0;
         } else {
-            *(uint64_t*) Buffer = Stream->RecvMaxLength;
+            *(uint64_t*)Buffer = Stream->RecvMaxLength;
         }
         Status = QUIC_STATUS_SUCCESS;
         break;
