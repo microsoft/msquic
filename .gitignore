@@ -377,3 +377,6 @@ Cargo.lock
 
 # IntelliJ project files
 .idea/
+
+# docfx cache folder
+_site
