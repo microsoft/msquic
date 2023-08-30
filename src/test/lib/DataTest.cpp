@@ -3188,10 +3188,6 @@ QuicTestStreamReliableReset(
 
     CxPlatEvent ClientStreamShutdownComplete;
     uint64_t ReceivedBufferSize;
-    uint64_t ReliableOffsetSendSideClient = 69420;
-    uint64_t ReliableOffsetRecvSideClient = 69420;
-    uint64_t ReliableOffsetSendSideServer = 69420;
-    uint64_t ReliableOffsetRecvSideServer = 69420;
 
     static QUIC_STATUS ClientStreamCallback(_In_ MsQuicStream*, _In_opt_ void* ClientContext, _Inout_ QUIC_STREAM_EVENT* Event) {
         auto TestContext = (StreamReliableReset*)ClientContext;
@@ -3275,10 +3271,6 @@ QuicTestStreamReliableResetMultipleSends(
 
     CxPlatEvent ClientStreamShutdownComplete;
     uint64_t ReceivedBufferSize;
-    uint64_t ReliableOffsetSendSideClient = 69420;
-    uint64_t ReliableOffsetRecvSideClient = 69420;
-    uint64_t ReliableOffsetSendSideServer = 69420;
-    uint64_t ReliableOffsetRecvSideServer = 69420;
 
     static QUIC_STATUS ClientStreamCallback(_In_ MsQuicStream*, _In_opt_ void* ClientContext, _Inout_ QUIC_STREAM_EVENT* Event) {
         auto TestContext = (StreamReliableReset*)ClientContext;
