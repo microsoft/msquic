@@ -413,7 +413,10 @@ CxPlatRecvDataReturn(
     _In_opt_ CXPLAT_RECV_DATA* RecvDataChain
     )
 {
-    CXPLAT_DBG_ASSERT(RecvDataChain != NULL);
+    if (RecvDataChain == NULL) {
+        return;
+    }
+
     if (RecvDataChain->DatapathType == CXPLAT_DATAPATH_TYPE_USER) {
         RecvDataReturn(RecvDataChain);
     } else if (RecvDataChain->DatapathType == CXPLAT_DATAPATH_TYPE_XDP) {
