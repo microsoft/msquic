@@ -26,8 +26,6 @@ Abstract:
                               (Address.si_family == QUIC_ADDRESS_FAMILY_INET6 &&               \
                                IN6_IS_ADDR_LOOPBACK(&Address.Ipv6.sin6_addr)))
 
-#define RawDataPathAvailable(Datapath) ((Datapath)->RawDataPath != NULL)
-#define RawSocketAvailable(Socket) ((Socket)->Datapath && RawDataPathAvailable((Socket)->Datapath))
 #define DatapathType(SendData) ((CXPLAT_SEND_DATA_COMMON*)(SendData))->DatapathType
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -118,12 +116,18 @@ CxPlatDataPathGetSupportedFeatures(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 BOOLEAN
 CxPlatDataPathIsPaddingPreferred(
-    _In_ CXPLAT_DATAPATH* Datapath
+    _In_ CXPLAT_DATAPATH* Datapath,
+    _In_ CXPLAT_SEND_DATA* SendData
     )
 {
-    // FIXME: Which flag should be taken?
-    // return DataPathIsPaddingPreferred(Datapath);
-    return 0;
+    if (DatapathType(SendData) == CXPLAT_DATAPATH_TYPE_USER) {
+        return DataPathIsPaddingPreferred(Datapath);
+    } else if (DatapathType(SendData) == CXPLAT_DATAPATH_TYPE_XDP) {
+        return RawDataPathIsPaddingPreferred(Datapath);
+    } else {
+        CXPLAT_DBG_ASSERT(FALSE);
+    }
+    return FALSE;
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -292,6 +296,7 @@ CxPlatSocketCreateUdp(
             Datapath->RawDataPath,
             Config,
             CxPlatSocketToRaw(*NewSocket));
+        (*NewSocket)->RawSocketAvailable = QUIC_SUCCEEDED(Status);
         if (QUIC_FAILED(Status)) {
             QuicTraceLogVerbose(
                 RawSockCreateFail,
@@ -344,7 +349,7 @@ CxPlatSocketDelete(
     _In_ CXPLAT_SOCKET* Socket
     )
 {
-    if (Socket->Datapath && Socket->Datapath->RawDataPath) {
+    if (Socket->RawSocketAvailable) {
         RawSocketDelete(CxPlatSocketToRaw(Socket));
     }
     SocketDelete(Socket);
@@ -359,7 +364,7 @@ CxPlatSocketUpdateQeo(
     _In_ uint32_t OffloadCount
     )
 {
-    if (Socket->Datapath && Socket->Datapath->RawDataPath &&
+    if (Socket->RawSocketAvailable &&
         !IS_LOOPBACK(Offloads[0].Address)) {
         return RawSocketUpdateQeo(CxPlatSocketToRaw(Socket), Offloads, OffloadCount);
     }
@@ -373,7 +378,7 @@ CxPlatSocketGetLocalMtu(
     )
 {
     CXPLAT_DBG_ASSERT(Socket != NULL);
-    if (Socket->Datapath && Socket->Datapath->RawDataPath &&
+    if (Socket->RawSocketAvailable &&
         !IS_LOOPBACK(Socket->RemoteAddress)) {
         return RawSocketGetLocalMtu(CxPlatSocketToRaw(Socket));
     }
@@ -429,7 +434,7 @@ CxPlatSendDataAlloc(
     CXPLAT_SEND_DATA* SendData = NULL;
     // TODO: fallback?
     if (Socket->Type == CXPLAT_SOCKET_UDP &&
-        Socket->Datapath && Socket->Datapath->RawDataPath &&
+        Socket->RawSocketAvailable &&
         !IS_LOOPBACK(Config->Route->RemoteAddress)) {
         SendData = RawSendDataAlloc(CxPlatSocketToRaw(Socket), Config);
         if (SendData) {
@@ -556,14 +561,17 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicCopyRouteInfo(
     _Inout_ CXPLAT_ROUTE* DstRoute,
-    _In_ CXPLAT_ROUTE* SrcRoute
+    _In_ CXPLAT_ROUTE* SrcRoute,
+    _In_ uint16_t DatapathType
     )
 {
-    if (!IS_LOOPBACK(SrcRoute->RemoteAddress)) {
+    if (DatapathType == CXPLAT_DATAPATH_TYPE_XDP) {
         CxPlatCopyMemory(DstRoute, SrcRoute, (uint8_t*)&SrcRoute->State - (uint8_t*)SrcRoute);
-        CxPlatUpdateRoute(DstRoute, SrcRoute);
-    } else {
+        CxPlatUpdateRoute(DstRoute, SrcRoute, DatapathType);
+    } else if (DatapathType == CXPLAT_DATAPATH_TYPE_USER) {
         *DstRoute = *SrcRoute;
+    } else {
+        CXPLAT_DBG_ASSERT(FALSE);
     }
 }
 
@@ -593,7 +601,7 @@ CxPlatResolveRoute(
     _In_ CXPLAT_ROUTE_RESOLUTION_CALLBACK_HANDLER Callback
     )
 {
-    if (Socket->Datapath && Socket->Datapath->RawDataPath &&
+    if (Socket->RawSocketAvailable &&
         !IS_LOOPBACK(Route->RemoteAddress)) {
         return RawResolveRoute(Socket, Route, PathId, Context, Callback);
     }
@@ -605,10 +613,12 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 CxPlatUpdateRoute(
     _Inout_ CXPLAT_ROUTE* DstRoute,
-    _In_ CXPLAT_ROUTE* SrcRoute
+    _In_ CXPLAT_ROUTE* SrcRoute,
+    _In_ uint16_t DatapathType
     )
 {
-    if (!IS_LOOPBACK(SrcRoute->RemoteAddress)) {
+    if (DatapathType == CXPLAT_DATAPATH_TYPE_XDP &&
+        !IS_LOOPBACK(SrcRoute->RemoteAddress)) {
         RawUpdateRoute(DstRoute, SrcRoute);
     }
 }

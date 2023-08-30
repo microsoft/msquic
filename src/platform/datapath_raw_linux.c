@@ -250,10 +250,12 @@ CxPlatDataPathGetSupportedFeatures(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 BOOLEAN
 CxPlatDataPathIsPaddingPreferred(
-    _In_ CXPLAT_DATAPATH* Datapath
+    _In_ CXPLAT_DATAPATH* Datapath,
+    _In_ CXPLAT_SEND_DATA* SendData
     )
 {
     UNREFERENCED_PARAMETER(Datapath);
+    UNREFERENCED_PARAMETER(SendData);
     return FALSE;
 }
 

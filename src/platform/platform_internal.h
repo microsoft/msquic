@@ -39,19 +39,6 @@
 
 #endif
 
-
-#ifdef _KERNEL_MODE
-// #include "datapath_winkernel.h"
-#elif _WIN32
-// #include "datapath_winuser.h"
-#elif CX_PLATFORM_LINUX
-// #include "datapath_posix.h"
-#elif CX_PLATFORM_DARWIN
-// #include "datapath_posix.h"
-#else
-#error "Unsupported Platform"
-#endif
-
 // TODO: create header files for each datapath
 
 typedef struct DATAPATH_SQE {
@@ -511,9 +498,11 @@ typedef struct CXPLAT_SOCKET {
 
     //
     // Debug flags.
-    // TODO: Move to base
+    //
     uint8_t Uninitialized : 1;
     uint8_t Freed : 1;
+
+    uint8_t RawSocketAvailable : 1;
 
     //
     // Per-processor socket contexts.
@@ -585,6 +574,12 @@ _IRQL_requires_max_(DISPATCH_LEVEL)
 uint32_t
 DataPathGetSupportedFeatures(
     _In_  CXPLAT_DATAPATH* Datapath
+    );
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+BOOLEAN
+DataPathIsPaddingPreferred(
+    _In_ CXPLAT_DATAPATH* Datapath
     );
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -753,6 +748,12 @@ _IRQL_requires_max_(DISPATCH_LEVEL)
 uint32_t
 RawDataPathGetSupportedFeatures(
     _In_  CXPLAT_DATAPATH_RAW* Datapath
+    );
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+BOOLEAN
+RawDataPathIsPaddingPreferred(
+    _In_  CXPLAT_DATAPATH* Datapath
     );
 
 _IRQL_requires_max_(PASSIVE_LEVEL)

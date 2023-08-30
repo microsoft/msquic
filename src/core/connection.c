@@ -184,7 +184,7 @@ QuicConnAlloc(
 
         Connection->Stats.QuicVersion = Packet->Invariant->LONG_HDR.Version;
         QuicConnOnQuicVersionSet(Connection);
-        QuicCopyRouteInfo(&Path->Route, Datagram->Route);
+        QuicCopyRouteInfo(&Path->Route, Datagram->Route, Datagram->DatapathType);
         Connection->State.LocalAddressSet = TRUE;
         Connection->State.RemoteAddressSet = TRUE;
 
@@ -5618,7 +5618,7 @@ QuicConnRecvDatagrams(
             goto Drop;
         }
 
-        CxPlatUpdateRoute(&DatagramPath->Route, Datagram->Route);
+        CxPlatUpdateRoute(&DatagramPath->Route, Datagram->Route, Datagram->DatapathType);
 
         if (DatagramPath != CurrentPath) {
             if (BatchCount != 0) {

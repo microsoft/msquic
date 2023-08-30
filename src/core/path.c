@@ -253,7 +253,7 @@ QuicConnGetPathForDatagram(
         Path->DestCid = Connection->Paths[0].DestCid; // TODO - Copy instead?
     }
     Path->Binding = Connection->Paths[0].Binding;
-    QuicCopyRouteInfo(&Path->Route, Datagram->Route);
+    QuicCopyRouteInfo(&Path->Route, Datagram->Route, Datagram->DatapathType);
     QuicPathValidate(Path);
 
     return Path;

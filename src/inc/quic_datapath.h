@@ -456,7 +456,8 @@ CxPlatDataPathGetSupportedFeatures(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 BOOLEAN
 CxPlatDataPathIsPaddingPreferred(
-    _In_ CXPLAT_DATAPATH* Datapath
+    _In_ CXPLAT_DATAPATH* Datapath,
+    _In_ CXPLAT_SEND_DATA* SendData
     );
 
 //
@@ -599,18 +600,6 @@ CxPlatSocketDelete(
     _In_ CXPLAT_SOCKET* Socket
     );
 
-
-_IRQL_requires_max_(PASSIVE_LEVEL)
-BOOLEAN
-CxPlatRawDataPathAvailable(
-    _In_ CXPLAT_DATAPATH* Datapath
-    );
-
-_IRQL_requires_max_(PASSIVE_LEVEL)
-BOOLEAN
-CxPlatRawSocketAvailable(
-    _In_ CXPLAT_SOCKET* Socket
-    );
 
 //
 // Plumbs new or removes existing QUIC encryption offload information.
@@ -785,7 +774,8 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 CxPlatUpdateRoute(
     _Inout_ CXPLAT_ROUTE* DstRoute,
-    _In_ CXPLAT_ROUTE* SrcRoute
+    _In_ CXPLAT_ROUTE* SrcRoute,
+    _In_ uint16_t DatapathType
     );
 
 #if defined(__cplusplus)
