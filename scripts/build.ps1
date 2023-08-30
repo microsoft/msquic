@@ -215,7 +215,10 @@ param (
     [string]$SysRoot = "/",
 
     [Parameter(Mandatory = $false)]
-    [switch]$OneBranch = $false
+    [switch]$OneBranch = $false,
+
+    [Parameter(Mandatory = $false)]
+    [string]$ToolchainFile = ""
 )
 
 Set-StrictMode -Version 'Latest'
@@ -340,7 +343,6 @@ function CMake-Execute([String]$Arguments) {
 # Uses cmake to generate the build configuration files.
 function CMake-Generate {
     $Arguments = ""
-    $SkipCIBuildCheck = $false
 
     if ($Generator.Contains(" ")) {
         $Generator = """$Generator"""
@@ -392,7 +394,16 @@ function CMake-Generate {
                 "arm64" { $Arguments += " -DCMAKE_CXX_COMPILER_TARGET=aarch64-linux-gnu -DCMAKE_C_COMPILER_TARGET=aarch64-linux-gnu -DCMAKE_TARGET_ARCHITECTURE=arm64" }
                 "arm" { $Arguments += " -DCMAKE_CXX_COMPILER_TARGET=arm-linux-gnueabihf  -DCMAKE_C_COMPILER_TARGET=arm-linux-gnueabihf -DCMAKE_TARGET_ARCHITECTURE=arm" }
             }
+            if ($ToolchainFile -eq "") {
+                switch ($Arch) {
+                    "arm"   { $ToolchainFile = "cmake/toolchains/arm-linux.cmake" }
+                    "arm64" { $ToolchainFile = "cmake/toolchains/aarch64-linux.cmake" }
+                }
+            }
        }
+    }
+    if ($ToolchainFile -ne "") {
+        $Arguments += " -DCMAKE_TOOLCHAIN_FILE=""$ToolchainFile"""
     }
     if($Static) {
         $Arguments += " -DQUIC_BUILD_SHARED=off"
@@ -450,18 +461,6 @@ function CMake-Generate {
     if ($Platform -eq "gamecore_console") {
         $Arguments += " -DCMAKE_SYSTEM_VERSION=10.0 -DQUIC_GAMECORE_BUILD=on"
     }
-    if ($IsLinux) {
-        switch ($Arch) {
-            "arm"   {
-                $Arguments += " -DCMAKE_TOOLCHAIN_FILE=""cmake/toolchains/arm-linux.cmake"""
-                $SkipCIBuildCheck = $true
-            }
-            "arm64" {
-                $Arguments += " -DCMAKE_TOOLCHAIN_FILE=""cmake/toolchains/aarch64-linux.cmake"""
-                $SkipCIBuildCheck = $true
-            }
-        }
-    }
     if ($SkipPdbAltPath) {
         $Arguments += " -DQUIC_PDBALTPATH=OFF"
     }
@@ -470,7 +469,7 @@ function CMake-Generate {
     }
     if ($CI) {
         $Arguments += " -DQUIC_CI=ON"
-        if ($Platform -eq "android" -or $SkipCIBuildCheck) {
+        if ($Platform -eq "android" -or $ToolchainFile -ne "") {
             $Arguments += " -DQUIC_SKIP_CI_CHECKS=ON"
         }
         $Arguments += " -DQUIC_VER_BUILD_ID=$env:BUILD_BUILDID"

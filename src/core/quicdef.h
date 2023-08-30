@@ -17,6 +17,7 @@ typedef struct QUIC_CONNECTION QUIC_CONNECTION;
 typedef struct QUIC_STREAM QUIC_STREAM;
 typedef struct QUIC_PACKET_BUILDER QUIC_PACKET_BUILDER;
 typedef struct QUIC_PATH QUIC_PATH;
+typedef struct QUIC_RX_PACKET QUIC_RX_PACKET;
 
 /*************************************************************
                     PROTOCOL CONSTANTS
@@ -522,7 +523,7 @@ CXPLAT_STATIC_ASSERT(
 #define QUIC_DEFAULT_ENCRYPTION_OFFLOAD_ALLOWED      FALSE
 
 //
-// The default settings for allowing Reliable Reset support. 
+// The default settings for allowing Reliable Reset support.
 //
 #define QUIC_DEFAULT_RELIABLE_RESET_ENABLED          FALSE
 
