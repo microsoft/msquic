@@ -96,6 +96,16 @@ RawDataPathGetSupportedFeatures(
     return 0;
 }
 
+_IRQL_requires_max_(DISPATCH_LEVEL)
+BOOLEAN
+RawDataPathIsPaddingPreferred(
+    _In_  CXPLAT_DATAPATH* Datapath
+    )
+{
+    UNREFERENCED_PARAMETER(Datapath);
+    return FALSE;
+}
+
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 RawSocketUpdateQeo(
