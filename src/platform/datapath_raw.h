@@ -244,7 +244,6 @@ typedef struct CXPLAT_SOCKET_RAW {
     CXPLAT_RUNDOWN_REF Rundown;
     CXPLAT_DATAPATH_RAW* RawDatapath; //
     SOCKET AuxSocket;
-    void* CallbackContext;
     BOOLEAN Wildcard;                // Using a wildcard local address. Optimization
                                      // to avoid always reading LocalAddress.
     BOOLEAN Connected;               // Bound to a remote address

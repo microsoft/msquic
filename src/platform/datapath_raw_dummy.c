@@ -227,7 +227,7 @@ CxPlatRawResolveRouteComplete(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 CxPlatRawResolveRoute(
-    _In_ CXPLAT_SOCKET* Sock,
+    _In_ CXPLAT_SOCKET_RAW* Sock,
     _Inout_ CXPLAT_ROUTE* Route,
     _In_ uint8_t PathId,
     _In_ void* Context,
