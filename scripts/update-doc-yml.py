@@ -1,5 +1,5 @@
 """
-Author: Jack He (jackhe@microsoft.com)
+Author: Jack He (ProjectsByJackHe)
 
 This utility script is useful for creating a toc.yml file specifically for use with DocFx.
 
