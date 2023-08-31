@@ -77,15 +77,14 @@ CxPlatRemoveSocket(
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
-RawResolveRoute(
-    _In_ CXPLAT_SOCKET* Sock,
+CxPlatRawResolveRoute(
+    _In_ CXPLAT_SOCKET_RAW* Socket,
     _Inout_ CXPLAT_ROUTE* Route,
     _In_ uint8_t PathId,
     _In_ void* Context,
     _In_ CXPLAT_ROUTE_RESOLUTION_CALLBACK_HANDLER Callback
     )
 {
-    CXPLAT_SOCKET_RAW* Socket = CxPlatSocketToRaw(Sock);
     NETIO_STATUS Status = ERROR_SUCCESS;
     MIB_IPFORWARD_ROW2 IpforwardRow = {0};
     CXPLAT_ROUTE_STATE State = Route->State;

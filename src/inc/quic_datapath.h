@@ -132,14 +132,6 @@ typedef struct CXPLAT_DATAPATH_RAW CXPLAT_DATAPATH_RAW;
 //
 typedef struct CXPLAT_SOCKET CXPLAT_SOCKET;
 
-typedef enum CXPLAT_DATAPATH_TYPE {
-    CXPLAT_DATAPATH_TYPE_UNKNOWN = 0,
-    CXPLAT_DATAPATH_TYPE_USER,
-    CXPLAT_DATAPATH_TYPE_KERNEL,
-    CXPLAT_DATAPATH_TYPE_XDP,
-    // DPDK?
-} CXPLAT_DATAPATH_TYPE;
-
 //
 // Structure that maintains the 'per send' context.
 //
@@ -189,6 +181,8 @@ typedef struct CXPLAT_ROUTE {
     CXPLAT_ROUTE_STATE State;
     CXPLAT_RAW_TCP_STATE TcpState;
 
+    uint16_t DatapathType; // CXPLAT_DATAPATH_TYPE
+
 } CXPLAT_ROUTE;
 
 //
@@ -233,7 +227,7 @@ typedef struct CXPLAT_RECV_DATA {
     //
     uint16_t Allocated : 1;          // Used for debugging. Set to FALSE on free.
     uint16_t QueuedOnConnection : 1; // Used for debugging.
-    uint16_t DatapathType : 2;
+    uint16_t DatapathType : 2;       // CXPLAT_DATAPATH_TYPE
     uint16_t Reserved : 4;
     uint16_t ReservedEx : 8;
 
@@ -600,7 +594,6 @@ CxPlatSocketDelete(
     _In_ CXPLAT_SOCKET* Socket
     );
 
-
 //
 // Plumbs new or removes existing QUIC encryption offload information.
 //
@@ -774,8 +767,7 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 CxPlatUpdateRoute(
     _Inout_ CXPLAT_ROUTE* DstRoute,
-    _In_ CXPLAT_ROUTE* SrcRoute,
-    _In_ uint16_t DatapathType
+    _In_ CXPLAT_ROUTE* SrcRoute
     );
 
 #if defined(__cplusplus)

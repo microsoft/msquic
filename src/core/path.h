@@ -306,8 +306,7 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicCopyRouteInfo(
     _Inout_ CXPLAT_ROUTE* DstRoute,
-    _In_ CXPLAT_ROUTE* SrcRoute,
-    _In_ uint16_t DatapathType
+    _In_ CXPLAT_ROUTE* SrcRoute
     );
 
 //

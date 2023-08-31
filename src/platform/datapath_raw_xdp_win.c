@@ -993,7 +993,6 @@ CxPlatDpRawGetDatapathSize(
     return sizeof(XDP_DATAPATH) + (PartitionCount * sizeof(XDP_PARTITION));
 }
 
-
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 CxPlatDpRawInitialize(
@@ -1004,6 +1003,7 @@ CxPlatDpRawInitialize(
 {
     XDP_DATAPATH* Xdp = (XDP_DATAPATH*)Datapath;
     QUIC_STATUS Status;
+
     CxPlatListInitializeHead(&Xdp->Interfaces);
     if (QUIC_FAILED(XdpLoadApi(XDP_API_VERSION_1, &Xdp->XdpApiLoadContext, &Xdp->XdpApi))) {
         Status = QUIC_STATUS_NOT_SUPPORTED;
@@ -1284,17 +1284,13 @@ CxPlatDpRawUpdateConfig(
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
-RawSocketUpdateQeo(
+CxPlatRawSocketUpdateQeo(
     _In_ CXPLAT_SOCKET_RAW* Socket,
     _In_reads_(OffloadCount)
         const CXPLAT_QEO_CONNECTION* Offloads,
     _In_ uint32_t OffloadCount
     )
 {
-    if (!Socket->RawDatapath) {
-        // Raw socket was not created.
-        return QUIC_STATUS_INVALID_STATE;
-    }
     XDP_DATAPATH* Xdp = (XDP_DATAPATH*)Socket->RawDatapath;
 
     XDP_QUIC_CONNECTION Connections[2];
@@ -1383,11 +1379,10 @@ CxPlatDpRawClearPortBit(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 CxPlatDpRawPlumbRulesOnSocket(
-    _In_ CXPLAT_SOCKET_RAW* Sock,
+    _In_ CXPLAT_SOCKET_RAW* Socket,
     _In_ BOOLEAN IsCreated
     )
 {
-    CXPLAT_SOCKET_RAW* Socket = (CXPLAT_SOCKET_RAW*)Sock;
     XDP_DATAPATH* Xdp = (XDP_DATAPATH*)Socket->RawDatapath;
     if (Socket->Wildcard) {
         XDP_RULE Rules[3] = {0};
@@ -1567,6 +1562,7 @@ CxPlatXdpRx(
         Packet->Queue = Queue;
         Packet->RouteStorage.Queue = Queue;
         Packet->RecvData.Route = &Packet->RouteStorage;
+        Packet->RecvData.Route->DatapathType = Packet->RecvData.DatapathType = CXPLAT_DATAPATH_TYPE_XDP;
         Packet->RecvData.PartitionIndex = PartitionIndex;
 
         CxPlatDpRawParseEthernet(
@@ -1584,7 +1580,6 @@ CxPlatXdpRx(
 
         if (Packet->RecvData.Buffer) {
             Packet->RecvData.Allocated = TRUE;
-            Packet->RecvData.DatapathType = CXPLAT_DATAPATH_TYPE_XDP;
             Buffers[PacketCount++] = &Packet->RecvData;
         } else {
             CxPlatListPushEntry(&Queue->PartitionRxPool, (CXPLAT_SLIST_ENTRY*)Packet);
@@ -1905,7 +1900,7 @@ CxPlatXdpExecute(
 }
 
 void
-RawDataPathProcessCqe(
+CxPlatRawDataPathProcessCqe(
     _In_ CXPLAT_CQE* Cqe
     )
 {

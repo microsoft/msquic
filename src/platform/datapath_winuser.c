@@ -3419,7 +3419,7 @@ CxPlatDataPathUdpRecvComplete(
                 SocketProc->DatapathProc->PartitionIndex % SocketProc->DatapathProc->Datapath->PartitionCount;
             Datagram->TypeOfService = (uint8_t)ECN;
             Datagram->Allocated = TRUE;
-            Datagram->DatapathType = CXPLAT_DATAPATH_TYPE_USER;
+            Datagram->Route->DatapathType = Datagram->DatapathType = CXPLAT_DATAPATH_TYPE_USER;
             Datagram->QueuedOnConnection = FALSE;
 
             RecvPayload += MessageLength;
@@ -3677,7 +3677,7 @@ CxPlatDataPathTcpRecvComplete(
         Data->PartitionIndex = SocketProc->DatapathProc->PartitionIndex;
         Data->TypeOfService = 0;
         Data->Allocated = TRUE;
-        Data->DatapathType = CXPLAT_DATAPATH_TYPE_USER;
+        Data->Route->DatapathType = Data->DatapathType = CXPLAT_DATAPATH_TYPE_USER;
         Data->QueuedOnConnection = FALSE;
         IoBlock->ReferenceCount++;
         IoBlock = NULL;

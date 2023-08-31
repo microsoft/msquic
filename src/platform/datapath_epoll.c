@@ -2587,11 +2587,9 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicCopyRouteInfo(
     _Inout_ CXPLAT_ROUTE* DstRoute,
-    _In_ CXPLAT_ROUTE* SrcRoute,
-    _In_ uint16_t DatapathType
+    _In_ CXPLAT_ROUTE* SrcRoute
     )
 {
-    UNREFERENCED_PARAMETER(DatapathType);
     *DstRoute = *SrcRoute;
 }
 
@@ -2631,11 +2629,9 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 CxPlatUpdateRoute(
     _Inout_ CXPLAT_ROUTE* DstRoute,
-    _In_ CXPLAT_ROUTE* SrcRoute,
-    _In_ uint16_t DatapathType
+    _In_ CXPLAT_ROUTE* SrcRoute
     )
 {
     UNREFERENCED_PARAMETER(DstRoute);
     UNREFERENCED_PARAMETER(SrcRoute);
-    UNREFERENCED_PARAMETER(DatapathType);
 }

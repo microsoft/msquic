@@ -253,7 +253,7 @@ QuicConnGetPathForPacket(
         Path->DestCid = Connection->Paths[0].DestCid; // TODO - Copy instead?
     }
     Path->Binding = Connection->Paths[0].Binding;
-    QuicCopyRouteInfo(&Path->Route, Packet->Route, ((CXPLAT_RECV_DATA*)Packet)->DatapathType);
+    QuicCopyRouteInfo(&Path->Route, Packet->Route);
     QuicPathValidate(Path);
 
     return Path;
