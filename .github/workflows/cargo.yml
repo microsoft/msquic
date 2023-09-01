@@ -29,6 +29,7 @@ jobs:
     - name: Prepare Machine for Windows
       if: runner.os == 'Windows'
       run: scripts/prepare-machine.ps1 -Tls openssl -ForBuild -UseXdp
+      shell: pwsh
     - name: Prepare Machine for Others
       if: runner.os != 'Windows'
       run: scripts/prepare-machine.ps1 -Tls openssl -ForBuild
