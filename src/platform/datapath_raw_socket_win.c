@@ -61,17 +61,6 @@ CxPlatRemoveSocket(
 {
     CxPlatRwLockAcquireExclusive(&Pool->Lock);
     CxPlatHashtableRemove(&Pool->Sockets, &Socket->Entry, NULL);
-
-    if (closesocket(Socket->AuxSocket) == SOCKET_ERROR) {
-        int Error = SocketError();
-        QuicTraceEvent(
-            DatapathErrorStatus,
-            "[data][%p] ERROR, %u, %s.",
-            Socket,
-            Error,
-            "closesocket");
-    }
-
     CxPlatRwLockReleaseExclusive(&Pool->Lock);
 }
 

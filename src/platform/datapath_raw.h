@@ -242,8 +242,7 @@ typedef struct CXPLAT_SOCKET_RAW {
 
     CXPLAT_HASHTABLE_ENTRY Entry;
     CXPLAT_RUNDOWN_REF Rundown;
-    CXPLAT_DATAPATH_RAW* RawDatapath; //
-    SOCKET AuxSocket;
+    CXPLAT_DATAPATH_RAW* RawDatapath;
     BOOLEAN Wildcard;                // Using a wildcard local address. Optimization
                                      // to avoid always reading LocalAddress.
     BOOLEAN Connected;               // Bound to a remote address
