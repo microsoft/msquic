@@ -1932,13 +1932,13 @@ SocketCreateUdp(
     // Must set output pointer before starting receive path, as the receive path
     // will try to use the output.
     //
+    *NewSocket = Socket;
 
     for (uint16_t i = 0; i < SocketCount; i++) {
         CxPlatDataPathStartReceiveAsync(&Socket->PerProcSockets[i]);
         Socket->PerProcSockets[i].IoStarted = TRUE;
     }
 
-    *NewSocket = Socket;
     Socket = NULL;
     RawSocket = NULL;
     Status = QUIC_STATUS_SUCCESS;
