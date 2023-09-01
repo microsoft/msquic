@@ -68,28 +68,6 @@ tracepoint(CLOG_DATAPATH_RAW_SOCKET_WIN_C, LibraryErrorStatus , arg2, arg3);\
 
 
 /*----------------------------------------------------------
-// Decoder Ring for DatapathErrorStatus
-// [data][%p] ERROR, %u, %s.
-// QuicTraceEvent(
-            DatapathErrorStatus,
-            "[data][%p] ERROR, %u, %s.",
-            Socket,
-            Error,
-            "closesocket");
-// arg2 = arg2 = Socket = arg2
-// arg3 = arg3 = Error = arg3
-// arg4 = arg4 = "closesocket" = arg4
-----------------------------------------------------------*/
-#ifndef _clog_5_ARGS_TRACE_DatapathErrorStatus
-#define _clog_5_ARGS_TRACE_DatapathErrorStatus(uniqueId, encoded_arg_string, arg2, arg3, arg4)\
-tracepoint(CLOG_DATAPATH_RAW_SOCKET_WIN_C, DatapathErrorStatus , arg2, arg3, arg4);\
-
-#endif
-
-
-
-
-/*----------------------------------------------------------
 // Decoder Ring for DatapathGetRouteStart
 // [data][%p] Querying route, local=%!ADDR!, remote=%!ADDR!
 // QuicTraceEvent(
@@ -105,6 +83,28 @@ tracepoint(CLOG_DATAPATH_RAW_SOCKET_WIN_C, DatapathErrorStatus , arg2, arg3, arg
 #ifndef _clog_7_ARGS_TRACE_DatapathGetRouteStart
 #define _clog_7_ARGS_TRACE_DatapathGetRouteStart(uniqueId, encoded_arg_string, arg2, arg3, arg3_len, arg4, arg4_len)\
 tracepoint(CLOG_DATAPATH_RAW_SOCKET_WIN_C, DatapathGetRouteStart , arg2, arg3_len, arg3, arg4_len, arg4);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for DatapathErrorStatus
+// [data][%p] ERROR, %u, %s.
+// QuicTraceEvent(
+            DatapathErrorStatus,
+            "[data][%p] ERROR, %u, %s.",
+            Socket,
+            Status,
+            "GetBestRoute2");
+// arg2 = arg2 = Socket = arg2
+// arg3 = arg3 = Status = arg3
+// arg4 = arg4 = "GetBestRoute2" = arg4
+----------------------------------------------------------*/
+#ifndef _clog_5_ARGS_TRACE_DatapathErrorStatus
+#define _clog_5_ARGS_TRACE_DatapathErrorStatus(uniqueId, encoded_arg_string, arg2, arg3, arg4)\
+tracepoint(CLOG_DATAPATH_RAW_SOCKET_WIN_C, DatapathErrorStatus , arg2, arg3, arg4);\
 
 #endif
 
