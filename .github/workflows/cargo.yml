@@ -26,7 +26,11 @@ jobs:
         egress-policy: audit
     - name: Checkout repository
       uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744
-    - name: Prepare Machine
+    - name: Prepare Machine for Windows
+      if: runner.os == 'Windows'
+      run: scripts/prepare-machine.ps1 -Tls openssl -ForBuild -UseXdp
+    - name: Prepare Machine for Others
+      if: runner.os != 'Windows'
       run: scripts/prepare-machine.ps1 -Tls openssl -ForBuild
       shell: pwsh
     - name: Install Perl
