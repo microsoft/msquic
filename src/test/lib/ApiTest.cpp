@@ -4311,13 +4311,13 @@ void QuicTest_QUIC_PARAM_CONN_ORIG_DEST_CID(MsQuicRegistration& Registration, Ms
         //
         uint32_t SizeOfBuffer = 8;
         uint8_t Buffer[8] = {0};
-        uint8_t ZeroBuffer[8] = {0}; 
+        uint8_t ZeroBuffer[8] = {0};
         TestScopeLogger LogScope1("GetParam test success case");
         TEST_QUIC_STATUS(
-            QUIC_STATUS_SUCCESS, 
+            QUIC_STATUS_SUCCESS,
             Connection.GetParam(
                 QUIC_PARAM_CONN_ORIG_DEST_CID,
-                &SizeOfBuffer, 
+                &SizeOfBuffer,
                 Buffer
             )
         )
@@ -4335,10 +4335,10 @@ void QuicTest_QUIC_PARAM_CONN_ORIG_DEST_CID(MsQuicRegistration& Registration, Ms
         uint32_t SizeOfBuffer = 8;
         TestScopeLogger LogScope1("GetParam null buffer check");
         TEST_QUIC_STATUS(
-            QUIC_STATUS_INVALID_PARAMETER, 
+            QUIC_STATUS_INVALID_PARAMETER,
             Connection.GetParam(
                 QUIC_PARAM_CONN_ORIG_DEST_CID,
-                &SizeOfBuffer, 
+                &SizeOfBuffer,
                 nullptr
             )
         )
@@ -4356,10 +4356,10 @@ void QuicTest_QUIC_PARAM_CONN_ORIG_DEST_CID(MsQuicRegistration& Registration, Ms
         TestScopeLogger LogScope1("GetParam buffer too small check");
         uint8_t Buffer[1];
         TEST_QUIC_STATUS(
-            QUIC_STATUS_BUFFER_TOO_SMALL, 
+            QUIC_STATUS_BUFFER_TOO_SMALL,
             Connection.GetParam(
                 QUIC_PARAM_CONN_ORIG_DEST_CID,
-                &SizeOfBuffer, 
+                &SizeOfBuffer,
                 Buffer
             )
         )
@@ -4375,18 +4375,18 @@ void QuicTest_QUIC_PARAM_CONN_ORIG_DEST_CID(MsQuicRegistration& Registration, Ms
               4433));
         uint32_t SizeOfBuffer = 100;
         uint8_t Buffer[100] = {0};
-        uint8_t ZeroBuffer[100] = {0}; 
+        uint8_t ZeroBuffer[100] = {0};
         TestScopeLogger LogScope1("GetParam size of buffer bigger than needed");
         TEST_QUIC_STATUS(
-            QUIC_STATUS_SUCCESS, 
+            QUIC_STATUS_SUCCESS,
             Connection.GetParam(
                 QUIC_PARAM_CONN_ORIG_DEST_CID,
-                &SizeOfBuffer, 
+                &SizeOfBuffer,
                 Buffer
             )
         )
         TEST_NOT_EQUAL(memcmp(Buffer, ZeroBuffer, sizeof(Buffer)), 0);
-        // 
+        //
         // There is no way the CID written should be 100 bytes according to the RFC.
         //
         TEST_TRUE(SizeOfBuffer < 100);
@@ -4403,19 +4403,19 @@ void QuicTest_QUIC_PARAM_CONN_ORIG_DEST_CID(MsQuicRegistration& Registration, Ms
         uint32_t SizeOfBuffer = 0;
         TestScopeLogger LogScope1("GetParam check OrigDestCID size with nullptr");
         TEST_QUIC_STATUS(
-            QUIC_STATUS_BUFFER_TOO_SMALL, 
+            QUIC_STATUS_BUFFER_TOO_SMALL,
             Connection.GetParam(
                 QUIC_PARAM_CONN_ORIG_DEST_CID,
-                &SizeOfBuffer, 
+                &SizeOfBuffer,
                 nullptr
             )
         )
         TEST_TRUE(SizeOfBuffer >= 8);
         TEST_QUIC_STATUS(
-            QUIC_STATUS_INVALID_PARAMETER, 
+            QUIC_STATUS_INVALID_PARAMETER,
             Connection.GetParam(
                 QUIC_PARAM_CONN_ORIG_DEST_CID,
-                &SizeOfBuffer, 
+                &SizeOfBuffer,
                 nullptr
             )
         )
@@ -4969,6 +4969,47 @@ void QuicTestStreamParam()
                     &Length,
                     &Stats));
             TEST_EQUAL(Length, sizeof(QUIC_STREAM_STATISTICS));
+        }
+    }
+
+
+    //
+    // QUIC_PARAM_STREAM_RELIABLE_OFFSET
+    //
+    {
+        TestScopeLogger LogScope0("QUIC_PARAM_STREAM_RELIABLE_OFFSET");
+        MsQuicStream Stream(Connection, QUIC_STREAM_OPEN_FLAG_NONE);
+        uint32_t ReliableSize32 = 1;
+        uint64_t ReliableSize = 1;
+
+        //
+        // SetParam Test Invalid States.
+        //
+        {
+            TestScopeLogger LogScope1("SetParam is not allowed");
+            TEST_QUIC_STATUS(
+                QUIC_STATUS_INVALID_PARAMETER,
+                MsQuic->SetParam(
+                    Stream.Handle,
+                    QUIC_PARAM_STREAM_RELIABLE_OFFSET,
+                    sizeof(ReliableSize),
+                    NULL));
+
+            TEST_QUIC_STATUS(
+                QUIC_STATUS_INVALID_PARAMETER,
+                MsQuic->SetParam(
+                    Stream.Handle,
+                    QUIC_PARAM_STREAM_RELIABLE_OFFSET,
+                    sizeof(ReliableSize32),
+                    &ReliableSize32));
+
+            TEST_QUIC_STATUS(
+                QUIC_STATUS_INVALID_STATE,
+                MsQuic->SetParam(
+                    Stream.Handle,
+                    QUIC_PARAM_STREAM_RELIABLE_OFFSET,
+                    sizeof(ReliableSize),
+                    &ReliableSize));
         }
     }
 }
