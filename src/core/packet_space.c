@@ -52,12 +52,12 @@ QuicPacketSpaceUninitialize(
     //
     // Release any pending packets back to the binding.
     //
-    if (Packets->DeferredDatagrams != NULL) {
-        CXPLAT_RECV_DATA* Datagram = Packets->DeferredDatagrams;
+    if (Packets->DeferredPackets != NULL) {
+        QUIC_RX_PACKET* Packet = Packets->DeferredPackets;
         do {
-            Datagram->QueuedOnConnection = FALSE;
-        } while ((Datagram = Datagram->Next) != NULL);
-        CxPlatRecvDataReturn(Packets->DeferredDatagrams);
+            Packet->QueuedOnConnection = FALSE;
+        } while ((Packet = (QUIC_RX_PACKET*)Packet->Next) != NULL);
+        CxPlatRecvDataReturn((CXPLAT_RECV_DATA*)Packets->DeferredPackets);
     }
 
     QuicAckTrackerUninitialize(&Packets->AckTracker);

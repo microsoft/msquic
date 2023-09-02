@@ -505,8 +505,8 @@ typedef struct QUIC_CONNECTION {
     //
     uint32_t ReceiveQueueCount;
     uint32_t ReceiveQueueByteCount;
-    CXPLAT_RECV_DATA* ReceiveQueue;
-    CXPLAT_RECV_DATA** ReceiveQueueTail;
+    QUIC_RX_PACKET* ReceiveQueue;
+    QUIC_RX_PACKET** ReceiveQueueTail;
     CXPLAT_DISPATCH_LOCK ReceiveQueueLock;
 
     //
@@ -983,7 +983,7 @@ QUIC_STATUS
 QuicConnAlloc(
     _In_ QUIC_REGISTRATION* Registration,
     _In_opt_ QUIC_WORKER* Worker,
-    _In_opt_ const CXPLAT_RECV_DATA* const Datagram,
+    _In_opt_ const QUIC_RX_PACKET* Packet,
     _Outptr_ _At_(*NewConnection, __drv_allocatesMem(Mem))
         QUIC_CONNECTION** NewConnection
     );
@@ -1500,15 +1500,15 @@ QuicConnResetIdleTimeout(
     );
 
 //
-// Queues a received UDP datagram chain to a connection for processing.
+// Queues a received packet chain to a connection for processing.
 //
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
-QuicConnQueueRecvDatagrams(
+QuicConnQueueRecvPackets(
     _In_ QUIC_CONNECTION* Connection,
-    _In_ CXPLAT_RECV_DATA* DatagramChain,
-    _In_ uint32_t DatagramChainLength,
-    _In_ uint32_t DatagramChainByteLength
+    _In_ QUIC_RX_PACKET* Packets,
+    _In_ uint32_t PacketChainLength,
+    _In_ uint32_t PacketChainByteLength
     );
 
 //
