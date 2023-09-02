@@ -1536,7 +1536,8 @@ QuicStreamOnAck(
             Stream,
             "Shutting down stream [reliable] from OnStreamAck. Send side.");
         QuicStreamCleanupReliableReset(Stream);
-        QuicStreamSendShutdown(Stream, FALSE, TRUE, FALSE, QUIC_ERROR_NO_ERROR);
+        Stream->Flags.LocalCloseReset = TRUE;
+        QuicStreamSendShutdown(Stream, FALSE, TRUE, FALSE, 0x21);
     }
 
     if (!QuicStreamHasPendingStreamData(Stream)) {
@@ -1618,7 +1619,8 @@ QuicStreamOnResetReliableAck(
             Stream,
             "Shutting down stream [reliably] from OnResetReliableAck. Send side.");
         QuicStreamCleanupReliableReset(Stream);
-        QuicStreamSendShutdown(Stream, FALSE, TRUE, FALSE, QUIC_ERROR_NO_ERROR);
+        Stream->Flags.LocalCloseReset = TRUE;
+        QuicStreamSendShutdown(Stream, FALSE, TRUE, FALSE, 0x21);
     }
 }
 
