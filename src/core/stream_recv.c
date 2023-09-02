@@ -206,7 +206,7 @@ QuicStreamProcessReliableResetFrame(
         Stream->Flags.LocalCloseAcked = TRUE;
         Stream->Flags.RemoteCloseAcked = TRUE;
         QuicTraceLogStreamVerbose(
-            StreamProcessReliableReset,
+            ProcessReliableReset,
             Stream,
             "Shutting down stream from Process Reliable Reset Frame. Recv Side. BaseOffset: %llu, RecvMaxLength: %llu",
             Stream->RecvBuffer.BaseOffset, Stream->RecvMaxLength);
@@ -1163,7 +1163,7 @@ QuicStreamReceiveComplete(
         Stream->Flags.LocalCloseAcked = TRUE;
         Stream->Flags.RemoteCloseAcked = TRUE;
         QuicTraceLogStreamVerbose(
-            StreamReliableResetReceiveComplete,
+            ReliableResetReceiveComplete,
             Stream,
             "Shutting down stream from ReceiveComplete Recv Side. BaseOffset: %llu, RecvMaxLength: %llu",
             Stream->RecvBuffer.BaseOffset, Stream->RecvMaxLength);

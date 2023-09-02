@@ -8838,6 +8838,26 @@
       ],
       "macroName": "QuicTraceLogInfo"
     },
+    "ProcessReliableReset": {
+      "ModuleProperites": {},
+      "TraceString": "[strm][%p] Shutting down stream from Process Reliable Reset Frame. Recv Side. BaseOffset: %llu, RecvMaxLength: %llu",
+      "UniqueId": "ProcessReliableReset",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        },
+        {
+          "DefinationEncoding": "llu",
+          "MacroVariableName": "arg3"
+        },
+        {
+          "DefinationEncoding": "llu",
+          "MacroVariableName": "arg4"
+        }
+      ],
+      "macroName": "QuicTraceLogStreamVerbose"
+    },
     "QueueDatagrams": {
       "ModuleProperites": {},
       "TraceString": "[conn][%p] Queuing %u UDP datagrams",
@@ -9254,6 +9274,26 @@
         {
           "DefinationEncoding": "p",
           "MacroVariableName": "arg1"
+        }
+      ],
+      "macroName": "QuicTraceLogStreamVerbose"
+    },
+    "ReliableResetReceiveComplete": {
+      "ModuleProperites": {},
+      "TraceString": "[strm][%p] Shutting down stream from ReceiveComplete Recv Side. BaseOffset: %llu, RecvMaxLength: %llu",
+      "UniqueId": "ReliableResetReceiveComplete",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        },
+        {
+          "DefinationEncoding": "llu",
+          "MacroVariableName": "arg3"
+        },
+        {
+          "DefinationEncoding": "llu",
+          "MacroVariableName": "arg4"
         }
       ],
       "macroName": "QuicTraceLogStreamVerbose"
@@ -15575,6 +15615,11 @@
         "EncodingString": "[ dll] Proc[%u] Group[%hu] Index[%u] Active=%hhu"
       },
       {
+        "UniquenessHash": "518b5117-c14d-ee4e-47c5-8264735c8638",
+        "TraceID": "ProcessReliableReset",
+        "EncodingString": "[strm][%p] Shutting down stream from Process Reliable Reset Frame. Recv Side. BaseOffset: %llu, RecvMaxLength: %llu"
+      },
+      {
         "UniquenessHash": "18ef147d-5376-d7f2-f624-3b27af96dd05",
         "TraceID": "QueueDatagrams",
         "EncodingString": "[conn][%p] Queuing %u UDP datagrams"
@@ -15708,6 +15753,11 @@
         "UniquenessHash": "8e06ef5e-6665-a253-c96c-596a2565274d",
         "TraceID": "ReliableResetOnStreamAck",
         "EncodingString": "[strm][%p] Shutting down stream [reliable] from OnStreamAck. Send side."
+      },
+      {
+        "UniquenessHash": "6ea13123-905c-3439-77cb-45bbd050b9bc",
+        "TraceID": "ReliableResetReceiveComplete",
+        "EncodingString": "[strm][%p] Shutting down stream from ReceiveComplete Recv Side. BaseOffset: %llu, RecvMaxLength: %llu"
       },
       {
         "UniquenessHash": "84836f4f-d47f-cc00-7cb2-530ac90c70d3",

@@ -196,38 +196,26 @@ TRACEPOINT_EVENT(CLOG_STREAM_RECV_C, QueueRecvFlush,
 
 
 /*----------------------------------------------------------
-// Decoder Ring for StreamProcessReliableReset
-// [strm][%p] Shutting down stream from Process Reliable Reset Frame. Recv Side.
+// Decoder Ring for ProcessReliableReset
+// [strm][%p] Shutting down stream from Process Reliable Reset Frame. Recv Side. BaseOffset: %llu, RecvMaxLength: %llu
 // QuicTraceLogStreamVerbose(
-            StreamProcessReliableReset,
+            ProcessReliableReset,
             Stream,
-            "Shutting down stream from Process Reliable Reset Frame. Recv Side.");
+            "Shutting down stream from Process Reliable Reset Frame. Recv Side. BaseOffset: %llu, RecvMaxLength: %llu",
+            Stream->RecvBuffer.BaseOffset, Stream->RecvMaxLength);
 // arg1 = arg1 = Stream = arg1
+// arg3 = arg3 = Stream->RecvBuffer.BaseOffset = arg3
+// arg4 = arg4 = Stream->RecvMaxLength = arg4
 ----------------------------------------------------------*/
-TRACEPOINT_EVENT(CLOG_STREAM_RECV_C, StreamProcessReliableReset,
+TRACEPOINT_EVENT(CLOG_STREAM_RECV_C, ProcessReliableReset,
     TP_ARGS(
-        const void *, arg1), 
+        const void *, arg1,
+        unsigned long long, arg3,
+        unsigned long long, arg4), 
     TP_FIELDS(
         ctf_integer_hex(uint64_t, arg1, arg1)
-    )
-)
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for IndicatePeerSendShutdown
-// [strm][%p] Indicating QUIC_STREAM_EVENT_PEER_SEND_SHUTDOWN
-// QuicTraceLogStreamVerbose(
-            IndicatePeerSendShutdown,
-            Stream,
-            "Indicating QUIC_STREAM_EVENT_PEER_SEND_SHUTDOWN");
-// arg1 = arg1 = Stream = arg1
-----------------------------------------------------------*/
-TRACEPOINT_EVENT(CLOG_STREAM_RECV_C, IndicatePeerSendShutdown,
-    TP_ARGS(
-        const void *, arg1), 
-    TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg1, arg1)
+        ctf_integer(uint64_t, arg3, arg3)
+        ctf_integer(uint64_t, arg4, arg4)
     )
 )
 
@@ -483,6 +471,25 @@ TRACEPOINT_EVENT(CLOG_STREAM_RECV_C, IgnoreRecvFlush,
 
 
 /*----------------------------------------------------------
+// Decoder Ring for IndicatePeerSendShutdown
+// [strm][%p] Indicating QUIC_STREAM_EVENT_PEER_SEND_SHUTDOWN
+// QuicTraceLogStreamVerbose(
+            IndicatePeerSendShutdown,
+            Stream,
+            "Indicating QUIC_STREAM_EVENT_PEER_SEND_SHUTDOWN");
+// arg1 = arg1 = Stream = arg1
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_STREAM_RECV_C, IndicatePeerSendShutdown,
+    TP_ARGS(
+        const void *, arg1), 
+    TP_FIELDS(
+        ctf_integer_hex(uint64_t, arg1, arg1)
+    )
+)
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for StreamReliableResetRecvGraceful
 // [strm][%p] Shutting down stream [gracefully] Recv Side.
 // QuicTraceLogStreamVerbose(
@@ -502,19 +509,26 @@ TRACEPOINT_EVENT(CLOG_STREAM_RECV_C, StreamReliableResetRecvGraceful,
 
 
 /*----------------------------------------------------------
-// Decoder Ring for StreamReliableResetReceiveComplete
-// [strm][%p] Shutting down stream from ReceiveComplete Recv Side.
+// Decoder Ring for ReliableResetReceiveComplete
+// [strm][%p] Shutting down stream from ReceiveComplete Recv Side. BaseOffset: %llu, RecvMaxLength: %llu
 // QuicTraceLogStreamVerbose(
-            StreamReliableResetReceiveComplete,
+            ReliableResetReceiveComplete,
             Stream,
-            "Shutting down stream from ReceiveComplete Recv Side.");
+            "Shutting down stream from ReceiveComplete Recv Side. BaseOffset: %llu, RecvMaxLength: %llu",
+            Stream->RecvBuffer.BaseOffset, Stream->RecvMaxLength);
 // arg1 = arg1 = Stream = arg1
+// arg3 = arg3 = Stream->RecvBuffer.BaseOffset = arg3
+// arg4 = arg4 = Stream->RecvMaxLength = arg4
 ----------------------------------------------------------*/
-TRACEPOINT_EVENT(CLOG_STREAM_RECV_C, StreamReliableResetReceiveComplete,
+TRACEPOINT_EVENT(CLOG_STREAM_RECV_C, ReliableResetReceiveComplete,
     TP_ARGS(
-        const void *, arg1), 
+        const void *, arg1,
+        unsigned long long, arg3,
+        unsigned long long, arg4), 
     TP_FIELDS(
         ctf_integer_hex(uint64_t, arg1, arg1)
+        ctf_integer(uint64_t, arg3, arg3)
+        ctf_integer(uint64_t, arg4, arg4)
     )
 )
 

@@ -216,35 +216,20 @@ tracepoint(CLOG_STREAM_RECV_C, QueueRecvFlush , arg1);\
 
 
 /*----------------------------------------------------------
-// Decoder Ring for StreamProcessReliableReset
-// [strm][%p] Shutting down stream from Process Reliable Reset Frame. Recv Side.
+// Decoder Ring for ProcessReliableReset
+// [strm][%p] Shutting down stream from Process Reliable Reset Frame. Recv Side. BaseOffset: %llu, RecvMaxLength: %llu
 // QuicTraceLogStreamVerbose(
-            StreamProcessReliableReset,
+            ProcessReliableReset,
             Stream,
-            "Shutting down stream from Process Reliable Reset Frame. Recv Side.");
+            "Shutting down stream from Process Reliable Reset Frame. Recv Side. BaseOffset: %llu, RecvMaxLength: %llu",
+            Stream->RecvBuffer.BaseOffset, Stream->RecvMaxLength);
 // arg1 = arg1 = Stream = arg1
+// arg3 = arg3 = Stream->RecvBuffer.BaseOffset = arg3
+// arg4 = arg4 = Stream->RecvMaxLength = arg4
 ----------------------------------------------------------*/
-#ifndef _clog_3_ARGS_TRACE_StreamProcessReliableReset
-#define _clog_3_ARGS_TRACE_StreamProcessReliableReset(uniqueId, arg1, encoded_arg_string)\
-tracepoint(CLOG_STREAM_RECV_C, StreamProcessReliableReset , arg1);\
-
-#endif
-
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for IndicatePeerSendShutdown
-// [strm][%p] Indicating QUIC_STREAM_EVENT_PEER_SEND_SHUTDOWN
-// QuicTraceLogStreamVerbose(
-            IndicatePeerSendShutdown,
-            Stream,
-            "Indicating QUIC_STREAM_EVENT_PEER_SEND_SHUTDOWN");
-// arg1 = arg1 = Stream = arg1
-----------------------------------------------------------*/
-#ifndef _clog_3_ARGS_TRACE_IndicatePeerSendShutdown
-#define _clog_3_ARGS_TRACE_IndicatePeerSendShutdown(uniqueId, arg1, encoded_arg_string)\
-tracepoint(CLOG_STREAM_RECV_C, IndicatePeerSendShutdown , arg1);\
+#ifndef _clog_5_ARGS_TRACE_ProcessReliableReset
+#define _clog_5_ARGS_TRACE_ProcessReliableReset(uniqueId, arg1, encoded_arg_string, arg3, arg4)\
+tracepoint(CLOG_STREAM_RECV_C, ProcessReliableReset , arg1, arg3, arg4);\
 
 #endif
 
@@ -470,6 +455,24 @@ tracepoint(CLOG_STREAM_RECV_C, IgnoreRecvFlush , arg1);\
 
 
 /*----------------------------------------------------------
+// Decoder Ring for IndicatePeerSendShutdown
+// [strm][%p] Indicating QUIC_STREAM_EVENT_PEER_SEND_SHUTDOWN
+// QuicTraceLogStreamVerbose(
+            IndicatePeerSendShutdown,
+            Stream,
+            "Indicating QUIC_STREAM_EVENT_PEER_SEND_SHUTDOWN");
+// arg1 = arg1 = Stream = arg1
+----------------------------------------------------------*/
+#ifndef _clog_3_ARGS_TRACE_IndicatePeerSendShutdown
+#define _clog_3_ARGS_TRACE_IndicatePeerSendShutdown(uniqueId, arg1, encoded_arg_string)\
+tracepoint(CLOG_STREAM_RECV_C, IndicatePeerSendShutdown , arg1);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for StreamReliableResetRecvGraceful
 // [strm][%p] Shutting down stream [gracefully] Recv Side.
 // QuicTraceLogStreamVerbose(
@@ -488,17 +491,20 @@ tracepoint(CLOG_STREAM_RECV_C, StreamReliableResetRecvGraceful , arg1);\
 
 
 /*----------------------------------------------------------
-// Decoder Ring for StreamReliableResetReceiveComplete
-// [strm][%p] Shutting down stream from ReceiveComplete Recv Side.
+// Decoder Ring for ReliableResetReceiveComplete
+// [strm][%p] Shutting down stream from ReceiveComplete Recv Side. BaseOffset: %llu, RecvMaxLength: %llu
 // QuicTraceLogStreamVerbose(
-            StreamReliableResetReceiveComplete,
+            ReliableResetReceiveComplete,
             Stream,
-            "Shutting down stream from ReceiveComplete Recv Side.");
+            "Shutting down stream from ReceiveComplete Recv Side. BaseOffset: %llu, RecvMaxLength: %llu",
+            Stream->RecvBuffer.BaseOffset, Stream->RecvMaxLength);
 // arg1 = arg1 = Stream = arg1
+// arg3 = arg3 = Stream->RecvBuffer.BaseOffset = arg3
+// arg4 = arg4 = Stream->RecvMaxLength = arg4
 ----------------------------------------------------------*/
-#ifndef _clog_3_ARGS_TRACE_StreamReliableResetReceiveComplete
-#define _clog_3_ARGS_TRACE_StreamReliableResetReceiveComplete(uniqueId, arg1, encoded_arg_string)\
-tracepoint(CLOG_STREAM_RECV_C, StreamReliableResetReceiveComplete , arg1);\
+#ifndef _clog_5_ARGS_TRACE_ReliableResetReceiveComplete
+#define _clog_5_ARGS_TRACE_ReliableResetReceiveComplete(uniqueId, arg1, encoded_arg_string, arg3, arg4)\
+tracepoint(CLOG_STREAM_RECV_C, ReliableResetReceiveComplete , arg1, arg3, arg4);\
 
 #endif
 
