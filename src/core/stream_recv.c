@@ -208,14 +208,8 @@ QuicStreamProcessReliableResetFrame(
         QuicTraceLogStreamVerbose(
             StreamProcessReliableReset,
             Stream,
-            "Shutting down stream from Process Reliable Reset Frame. Recv Side.");
-        QUIC_STREAM_EVENT Event;
-        Event.Type = QUIC_STREAM_EVENT_PEER_SEND_SHUTDOWN;
-        QuicTraceLogStreamVerbose(
-            IndicatePeerSendShutdown,
-            Stream,
-            "Indicating QUIC_STREAM_EVENT_PEER_SEND_SHUTDOWN");
-        (void)QuicStreamIndicateEvent(Stream, &Event);
+            "Shutting down stream from Process Reliable Reset Frame. Recv Side. BaseOffset: %llu, RecvMaxLength: %llu",
+            Stream->RecvBuffer.BaseOffset, Stream->RecvMaxLength);
         QuicStreamRecvShutdown(Stream, TRUE, QUIC_ERROR_NO_ERROR);
     }
 
@@ -1171,14 +1165,8 @@ QuicStreamReceiveComplete(
         QuicTraceLogStreamVerbose(
             StreamReliableResetReceiveComplete,
             Stream,
-            "Shutting down stream from ReceiveComplete Recv Side.");
-        QUIC_STREAM_EVENT Event;
-        Event.Type = QUIC_STREAM_EVENT_PEER_SEND_SHUTDOWN;
-        QuicTraceLogStreamVerbose(
-            IndicatePeerSendShutdown,
-            Stream,
-            "Indicating QUIC_STREAM_EVENT_PEER_SEND_SHUTDOWN");
-        (void)QuicStreamIndicateEvent(Stream, &Event);
+            "Shutting down stream from ReceiveComplete Recv Side. BaseOffset: %llu, RecvMaxLength: %llu",
+            Stream->RecvBuffer.BaseOffset, Stream->RecvMaxLength);
         QuicStreamRecvShutdown(Stream, TRUE, QUIC_ERROR_NO_ERROR);
     }
 
