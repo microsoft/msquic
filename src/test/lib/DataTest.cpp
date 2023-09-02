@@ -3184,9 +3184,10 @@ QuicTestStreamReliableReset(
     #define BUFFER_SIZE 10000
     #define RELIABLE_SIZE 5000
 
-    struct StreamReliableReset {
+     struct StreamReliableReset {
 
     CxPlatEvent ClientStreamShutdownComplete;
+    CxPlatEvent ServerStreamShutdownComplete;
     uint64_t ReceivedBufferSize;
 
     static QUIC_STATUS ClientStreamCallback(_In_ MsQuicStream*, _In_opt_ void* ClientContext, _Inout_ QUIC_STREAM_EVENT* Event) {
@@ -3204,6 +3205,9 @@ QuicTestStreamReliableReset(
         }
         if (Event->Type == QUIC_STREAM_EVENT_PEER_SEND_SHUTDOWN) {
             Stream->Shutdown(QUIC_STREAM_SHUTDOWN_FLAG_ABORT_SEND);
+        }
+        if (Event->Type == QUIC_STREAM_EVENT_SHUTDOWN_COMPLETE) {
+            TestContext->ServerStreamShutdownComplete.Set();
         }
         return QUIC_STATUS_SUCCESS;
     }
@@ -3262,6 +3266,7 @@ QuicTestStreamReliableReset(
     TEST_QUIC_SUCCEEDED(Stream.Shutdown(0)); // Queues up a shutdown operation.
     // Should behave similar to QUIC_STREAM_SHUTDOWN_FLAG_GRACEFUL, with some restrictions.
     TEST_TRUE(Context.ClientStreamShutdownComplete.WaitTimeout(TestWaitTimeout));
+    TEST_TRUE(Context.ServerStreamShutdownComplete.WaitTimeout(TestWaitTimeout));
     TEST_TRUE(Context.ReceivedBufferSize >= RELIABLE_SIZE);
 
     // We shouldn't be able to change ReliableSize now that the stream has already been reset.
@@ -3278,6 +3283,7 @@ QuicTestStreamReliableResetMultipleSends(
     struct StreamReliableReset {
 
     CxPlatEvent ClientStreamShutdownComplete;
+    CxPlatEvent ServerStreamShutdownComplete;
     uint64_t ReceivedBufferSize;
 
     static QUIC_STATUS ClientStreamCallback(_In_ MsQuicStream*, _In_opt_ void* ClientContext, _Inout_ QUIC_STREAM_EVENT* Event) {
@@ -3295,6 +3301,9 @@ QuicTestStreamReliableResetMultipleSends(
         }
         if (Event->Type == QUIC_STREAM_EVENT_PEER_SEND_SHUTDOWN) {
             Stream->Shutdown(QUIC_STREAM_SHUTDOWN_FLAG_ABORT_SEND);
+        }
+        if (Event->Type == QUIC_STREAM_EVENT_SHUTDOWN_COMPLETE) {
+            TestContext->ServerStreamShutdownComplete.Set();
         }
         return QUIC_STATUS_SUCCESS;
     }
@@ -3352,5 +3361,6 @@ QuicTestStreamReliableResetMultipleSends(
     TEST_QUIC_SUCCEEDED(Stream.Shutdown(0)); // Queues up a shutdown operation.
     // Should behave similar to QUIC_STREAM_SHUTDOWN_FLAG_GRACEFUL, with some restrictions.
     TEST_TRUE(Context.ClientStreamShutdownComplete.WaitTimeout(TestWaitTimeout));
+    TEST_TRUE(Context.ServerStreamShutdownComplete.WaitTimeout(TestWaitTimeout));
     TEST_TRUE(Context.ReceivedBufferSize >= RELIABLE_SIZE);
 }
