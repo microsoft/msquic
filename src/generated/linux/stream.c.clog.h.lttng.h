@@ -40,6 +40,25 @@ TRACEPOINT_EVENT(CLOG_STREAM_C, EventSilentDiscard,
 
 
 /*----------------------------------------------------------
+// Decoder Ring for BadShutdownImmediate
+// [strm][%p] App tried ditching this stream but it still has stuff to do.
+// QuicTraceLogStreamWarning(
+                BadShutdownImmediate,
+                Stream,
+                "App tried ditching this stream but it still has stuff to do.");
+// arg1 = arg1 = Stream = arg1
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_STREAM_C, BadShutdownImmediate,
+    TP_ARGS(
+        const void *, arg1), 
+    TP_FIELDS(
+        ctf_integer_hex(uint64_t, arg1, arg1)
+    )
+)
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for UpdatePriority
 // [strm][%p] New send priority = %hu
 // QuicTraceLogStreamInfo(

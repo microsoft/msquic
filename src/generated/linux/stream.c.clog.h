@@ -70,6 +70,24 @@ tracepoint(CLOG_STREAM_C, EventSilentDiscard , arg1);\
 
 
 /*----------------------------------------------------------
+// Decoder Ring for BadShutdownImmediate
+// [strm][%p] App tried ditching this stream but it still has stuff to do.
+// QuicTraceLogStreamWarning(
+                BadShutdownImmediate,
+                Stream,
+                "App tried ditching this stream but it still has stuff to do.");
+// arg1 = arg1 = Stream = arg1
+----------------------------------------------------------*/
+#ifndef _clog_3_ARGS_TRACE_BadShutdownImmediate
+#define _clog_3_ARGS_TRACE_BadShutdownImmediate(uniqueId, arg1, encoded_arg_string)\
+tracepoint(CLOG_STREAM_C, BadShutdownImmediate , arg1);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for UpdatePriority
 // [strm][%p] New send priority = %hu
 // QuicTraceLogStreamInfo(

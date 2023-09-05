@@ -219,6 +219,18 @@
       ],
       "macroName": "QuicTraceLogConnInfo"
     },
+    "BadShutdownImmediate": {
+      "ModuleProperites": {},
+      "TraceString": "[strm][%p] App tried ditching this stream but it still has stuff to do.",
+      "UniqueId": "BadShutdownImmediate",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        }
+      ],
+      "macroName": "QuicTraceLogStreamWarning"
+    },
     "BindingCleanup": {
       "ModuleProperites": {},
       "TraceString": "[bind][%p] Cleaning up",
@@ -13126,6 +13138,11 @@
         "UniquenessHash": "87c499a7-b21e-c2df-9d11-9176e9730676",
         "TraceID": "ApplySettings",
         "EncodingString": "[conn][%p] Applying new settings"
+      },
+      {
+        "UniquenessHash": "abf37194-1390-d9bc-6ee7-88c908a22b58",
+        "TraceID": "BadShutdownImmediate",
+        "EncodingString": "[strm][%p] App tried ditching this stream but it still has stuff to do."
       },
       {
         "UniquenessHash": "5d83e63e-7ce5-0102-8dd2-cbcf5946da2e",
