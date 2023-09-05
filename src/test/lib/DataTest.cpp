@@ -3255,24 +3255,29 @@ QuicTestStreamReliableReset(
     TEST_TRUE(Listener.LastConnection->HandshakeComplete);
     CxPlatSleep(50); // Wait for things to idle out
 
-    MsQuicStream Stream(Connection, QUIC_STREAM_OPEN_FLAG_NONE, CleanUpManual, StreamReliableReset::ClientStreamCallback, &Context);
-    TEST_QUIC_SUCCEEDED(Stream.GetInitStatus());
-    TEST_QUIC_SUCCEEDED(Stream.Start());
-    TEST_QUIC_SUCCEEDED(Stream.Send(&SendBuffer, 1, QUIC_SEND_FLAG_DELAY_SEND, &Context));
-    TEST_QUIC_STATUS(
-        QUIC_STATUS_INVALID_STATE,
-        Stream.SetReliableOffset(UINT64_MAX));
-    TEST_QUIC_SUCCEEDED(Stream.SetReliableOffset(RELIABLE_SIZE));
-    TEST_QUIC_SUCCEEDED(Stream.Shutdown(0)); // Queues up a shutdown operation.
-    // Should behave similar to QUIC_STREAM_SHUTDOWN_FLAG_GRACEFUL, with some restrictions.
-    TEST_TRUE(Context.ClientStreamShutdownComplete.WaitTimeout(TestWaitTimeout));
-    TEST_TRUE(Context.ServerStreamShutdownComplete.WaitTimeout(TestWaitTimeout));
-    TEST_TRUE(Context.ReceivedBufferSize >= RELIABLE_SIZE);
+    for (uint64_t Bitmap = 0; Bitmap < 8; ++Bitmap) { // Try dropping the first 3 packets
+        char Name[64]; sprintf_s(Name, sizeof(Name), "Try Reliably Shutting Down Stream %llu", (unsigned long long)Bitmap);
+        TestScopeLogger logScope(Name);
+        BitmapLossHelper LossHelper(Bitmap);
+        MsQuicStream Stream(Connection, QUIC_STREAM_OPEN_FLAG_NONE, CleanUpManual, StreamReliableReset::ClientStreamCallback, &Context);
+        TEST_QUIC_SUCCEEDED(Stream.GetInitStatus());
+        TEST_QUIC_SUCCEEDED(Stream.Start());
+        TEST_QUIC_SUCCEEDED(Stream.Send(&SendBuffer, 1, QUIC_SEND_FLAG_DELAY_SEND, &Context));
+        TEST_QUIC_STATUS(
+            QUIC_STATUS_INVALID_STATE,
+            Stream.SetReliableOffset(UINT64_MAX));
+        TEST_QUIC_SUCCEEDED(Stream.SetReliableOffset(RELIABLE_SIZE));
+        TEST_QUIC_SUCCEEDED(Stream.Shutdown(0)); // Queues up a shutdown operation.
+        // Should behave similar to QUIC_STREAM_SHUTDOWN_FLAG_GRACEFUL, with some restrictions.
+        TEST_TRUE(Context.ClientStreamShutdownComplete.WaitTimeout(TestWaitTimeout));
+        TEST_TRUE(Context.ServerStreamShutdownComplete.WaitTimeout(TestWaitTimeout));
+        TEST_TRUE(Context.ReceivedBufferSize >= RELIABLE_SIZE);
 
-    // We shouldn't be able to change ReliableSize now that the stream has already been reset.
-    TEST_QUIC_STATUS(
-        QUIC_STATUS_INVALID_STATE,
-        Stream.SetReliableOffset(1));
+        // We shouldn't be able to change ReliableSize now that the stream has already been reset.
+        TEST_QUIC_STATUS(
+            QUIC_STATUS_INVALID_STATE,
+            Stream.SetReliableOffset(1));
+    }
 }
 
 
