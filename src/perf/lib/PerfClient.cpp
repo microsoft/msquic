@@ -53,7 +53,7 @@ PrintHelp(
         "  -download:<####>            The length of bytes to receive on each stream. (def:0)\n"
         "  -timed:<0/1>                Indicates the upload/download args are times (in ms). (def:0)\n"
         "  -wait:<####>                The time (in ms) to wait for handshakes to complete. (def:0)\n"
-        "  -inline:<0/1>               Send new requests on completion callbacks. (def:0)\n"
+        "  -inline:<0/1>               Create new streams on callbacks. (def:0)\n"
         "  -repeatconn:<0/1>           Continue to loop the scenario at the connection level. (def:0)\n"
         "  -repeatstream:<0/1>         Continue to loop the scenario at the stream level. (def:0)\n"
         "  -runtime:<####>             The total runtime (in ms). Only relevant for repeat scenarios. (def:0)\n"
@@ -150,14 +150,14 @@ PerfClient::Init(
     TryGetValue(argc, argv, "threads", &WorkerCount);
     TryGetValue(argc, argv, "workers", &WorkerCount);
     TryGetValue(argc, argv, "affinitize", &AffinitizeWorkers);
-    
+
 #ifdef QUIC_COMPARTMENT_ID
     TryGetValue(argc, argv, "comp",  &CompartmentId);
 #endif
 
     //
     // General configuration options
-    // 
+    //
 
     TryGetValue(argc, argv, "encrypt", &UseEncryption);
     TryGetValue(argc, argv, "pacing", &UsePacing);
@@ -165,7 +165,7 @@ PerfClient::Init(
     TryGetValue(argc, argv, "stats", &PrintStats);
     TryGetValue(argc, argv, "sstats", &PrintStreamStats);
     TryGetValue(argc, argv, "latency", &PrintLatencyStats);
-    
+
     if (UseSendBuffering || !UsePacing) { // Update settings if non-default
         MsQuicSettings Settings;
         Configuration.GetSettings(Settings);
@@ -205,18 +205,7 @@ PerfClient::Init(
     // Other state initialization
     //
 
-    RequestBuffer.Buffer = (QUIC_BUFFER*)CXPLAT_ALLOC_NONPAGED(sizeof(QUIC_BUFFER) + sizeof(uint64_t) + IoSize, QUIC_POOL_PERF);
-    if (!RequestBuffer.Buffer) {
-        return QUIC_STATUS_OUT_OF_MEMORY;
-    }
-    RequestBuffer.Buffer->Length = sizeof(uint64_t) + IoSize;
-    RequestBuffer.Buffer->Buffer = (uint8_t*)(RequestBuffer.Buffer + 1);
-    *(uint64_t*)(RequestBuffer.Buffer->Buffer) =
-        Timed ? UINT64_MAX : CxPlatByteSwapUint64(Download);
-    for (uint32_t i = 0; i < IoSize; ++i) {
-        RequestBuffer.Buffer->Buffer[sizeof(uint64_t) + i] = (uint8_t)i;
-    }
-
+    RequestBuffer.Init(IoSize, Timed ? UINT64_MAX : Download);
     if (PrintLatencyStats && RunTime) {
         MaxLatencyIndex = ((uint64_t)RunTime / 1000) * PERF_MAX_REQUESTS_PER_SECOND;
         if (MaxLatencyIndex > (UINT32_MAX / sizeof(uint32_t))) {
@@ -258,95 +247,54 @@ PerfClient::Start(
             return Status;
         }
 
-        Connections[i].Client = this;
-
-        Status =
-            MsQuic->ConnectionOpen(
-                Registration,
-                PerfClientConnection::s_ConnectionCallback,
-                &Connections[i],
-                &Connections[i].Handle);
-        if (QUIC_FAILED(Status)) {
-            WriteOutput("ConnectionOpen failed, 0x%x\n", Status);
-            return Status;
+        Connections[i] = new(std:nothrow) PerfClientConnection(Registration, this);
+        if (!Connections[i]->IsValid()) {
+            WriteOutput("ConnectionOpen failed, 0x%x\n", Connections[i]->GetInitStatus());
+            return Connections[i]->GetInitStatus();
         }
 
-        Workers[i % WorkerCount].QueueConnection(&Connections[i]);
+        Workers[i % WorkerCount].QueueConnection(Connections[i]);
 
         if (!UseEncryption) {
-            BOOLEAN value = TRUE;
-            Status =
-                MsQuic->SetParam(
-                    Connections[i].Handle,
-                    QUIC_PARAM_CONN_DISABLE_1RTT_ENCRYPTION,
-                    sizeof(value),
-                    &value);
+            Status = Connections[i]->SetDisable1RttEncryption();
             if (QUIC_FAILED(Status)) {
-                WriteOutput("MsQuic->SetParam (CONN_DISABLE_1RTT_ENCRYPTION) failed!\n");
+                WriteOutput("SetDisable1RttEncryption failed!\n");
                 return Status;
             }
         }
 
-        BOOLEAN Opt = TRUE;
-        Status =
-            MsQuic->SetParam(
-                Connections[i],
-                QUIC_PARAM_CONN_SHARE_UDP_BINDING,
-                sizeof(Opt),
-                &Opt);
+        Status = Connections[i]->SetShareUdpBinding();
         if (QUIC_FAILED(Status)) {
-            WriteOutput("SetParam(CONN_SHARE_UDP_BINDING) failed, 0x%x\n", Status);
+            WriteOutput("SetShareUdpBinding failed!\n");
             return Status;
         }
 
         if (CibirIdLength) {
-            Status =
-                MsQuic->SetParam(
-                    Connections[i],
-                    QUIC_PARAM_CONN_CIBIR_ID,
-                    CibirIdLength+1,
-                    CibirId);
+            Status = Connections[i]->SetCibirId(CibirId, CibirIdLength+1);
             if (QUIC_FAILED(Status)) {
-                WriteOutput("SetParam(CONN_CIBIR_ID) failed, 0x%x\n", Status);
+                WriteOutput("SetCibirId failed!\n");
                 return Status;
             }
         }
 
         if (SpecificLocalAddresses || i >= MaxLocalAddrCount) {
-            Status =
-                MsQuic->SetParam(
-                    Connections[i],
-                    QUIC_PARAM_CONN_LOCAL_ADDRESS,
-                    sizeof(QUIC_ADDR),
-                    &LocalAddresses[i % MaxLocalAddrCount]);
+            Status = Connections[i]->SetLocalAddr(*(QuicAddr*)&LocalAddresses[i % MaxLocalAddrCount]);
             if (QUIC_FAILED(Status)) {
-                WriteOutput("SetParam(CONN_LOCAL_ADDRESS) failed, 0x%x\n", Status);
+                WriteOutput("SetLocalAddr failed!\n");
                 return Status;
             }
         }
 
-        Status =
-            MsQuic->ConnectionStart(
-                Connections[i],
-                Configuration,
-                TargetFamily,
-                Target.get(),
-                TargetPort);
+        Status = Connections[i]->Start(Configuration, TargetFamily, Target.get(), TargetPort);
         if (QUIC_FAILED(Status)) {
-            WriteOutput("ConnectionStart failed, 0x%x\n", Status);
+            WriteOutput("Start failed, 0x%x\n", Status);
             return Status;
         }
 
         if (!SpecificLocalAddresses && i < PERF_MAX_CLIENT_PORT_COUNT) {
-            uint32_t AddrLen = sizeof(QUIC_ADDR);
-            Status =
-                MsQuic->GetParam(
-                    Connections[i],
-                    QUIC_PARAM_CONN_LOCAL_ADDRESS,
-                    &AddrLen,
-                    &LocalAddresses[i]);
+            Status = Connections[i]->GetLocalAddr(*(QuicAddr*)&LocalAddresses[i]);
             if (QUIC_FAILED(Status)) {
-                WriteOutput("GetParam(CONN_LOCAL_ADDRESS) failed, 0x%x\n", Status);
+                WriteOutput("GetLocalAddr failed!\n");
                 return Status;
             }
         }
@@ -365,7 +313,7 @@ PerfClient::Start(
 
     WriteOutput("Start sending request...\n");
     for (uint32_t i = 0; i < StreamCount; ++i) {
-        Connections[i % ConnectionCount].Worker->QueueSendRequest();
+        Connections[i % ConnectionCount]->Worker->QueueSendRequest();
     }
 
     uint32_t ThreadToSetAffinityTo = CxPlatProcActiveCount();
@@ -425,34 +373,6 @@ PerfClient::GetExtraData(
     return QUIC_STATUS_SUCCESS;
 }
 
-CXPLAT_THREAD_CALLBACK(ClientWorkerThread, Context)
-{
-    auto Worker = (PerfClientWorker*)Context;
-    auto Client = Worker->Client;
-    
-#ifdef QUIC_COMPARTMENT_ID
-    if (Client->CompartmentId != UINT16_MAX) {
-        NETIO_STATUS status;
-        if (!NETIO_SUCCESS(status = QuicCompartmentIdSetCurrent(Client->CompartmentId))) {
-            WriteOutput("Failed to set compartment ID = %d: 0x%x\n", Client->CompartmentId, status);
-            return QUIC_STATUS_INVALID_PARAMETER;
-        }
-    }
-#endif
-
-    while (Worker->Client->Running) {
-        while (Worker->StreamCount != 0) {
-            InterlockedDecrement((long*)&Worker->StreamCount);
-            auto Connection = Worker->GetConnection();
-            if (!Connection) break; // Means we're shutting down
-            Connection->SendRequest(Worker->StreamCount != 0);
-        }
-        CxPlatEventWaitForever(Worker->WakeEvent);
-    }
-
-    CXPLAT_THREAD_RETURN(QUIC_STATUS_SUCCESS);
-}
-
 QUIC_STATUS
 PerfClient::StartWorkers(
     )
@@ -462,10 +382,10 @@ PerfClient::StartWorkers(
         (uint16_t)ThreadFlags,
         0,
         "RPS Worker",
-        ClientWorkerThread,
+        PerfClientWorker::s_WorkerThread,
         nullptr
     };
-    
+
     CXPLAT_DATAPATH* Datapath = nullptr;
     if (QUIC_FAILED(CxPlatDataPathInitialize(0, nullptr, nullptr, nullptr, &Datapath))) {
         WriteOutput("Failed to initialize datapath for resolution!\n");
@@ -607,6 +527,29 @@ PerfClientConnection::SendRequest(bool DelaySend) {
         }
     } else {
         Worker->Client->StreamAllocator.Free(Stream);
+    }
+}
+
+void
+PerfClientWorker::WorkerThread() {
+#ifdef QUIC_COMPARTMENT_ID
+    if (Client->CompartmentId != UINT16_MAX) {
+        NETIO_STATUS status;
+        if (!NETIO_SUCCESS(status = QuicCompartmentIdSetCurrent(Client->CompartmentId))) {
+            WriteOutput("Failed to set compartment ID = %d: 0x%x\n", Client->CompartmentId, status);
+            return QUIC_STATUS_INVALID_PARAMETER;
+        }
+    }
+#endif
+
+    while (Client->Running) {
+        while (StreamCount != 0) {
+            InterlockedDecrement((long*)&StreamCount);
+            auto Connection = GetConnection();
+            if (!Connection) break; // Means we're shutting down
+            Connection->SendRequest(StreamCount != 0);
+        }
+        WakeEvent.WaitForever();
     }
 }
 

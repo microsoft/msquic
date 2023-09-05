@@ -1108,6 +1108,19 @@ struct MsQuicConnection {
     }
 #endif
 
+#ifdef QUIC_API_ENABLE_INSECURE_FEATURES
+    QUIC_STATUS
+    SetDisable1RttEncryption(_In_ bool Disable = true) noexcept {
+        BOOLEAN value = Disable ? TRUE : FALSE;
+        return
+            MsQuic->SetParam(
+                Handle,
+                QUIC_PARAM_CONN_DISABLE_1RTT_ENCRYPTION,
+                sizeof(Value),
+                &Value);
+    }
+#endif
+
     QUIC_STATUS GetInitStatus() const noexcept { return InitStatus; }
     bool IsValid() const { return QUIC_SUCCEEDED(InitStatus); }
     MsQuicConnection(const MsQuicConnection& Other) = delete;
