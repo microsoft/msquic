@@ -257,17 +257,17 @@ tracepoint(CLOG_STREAM_RECV_C, IndicatePeerSendAbort , arg1, arg3);\
 
 
 /*----------------------------------------------------------
-// Decoder Ring for StreamReliableProcessResetFrame
+// Decoder Ring for ProcessReliableProcessResetFrame
 // [strm][%p] Shutting down stream Abortively in ProcessResetFrame. Recv Side.
 // QuicTraceLogStreamVerbose(
-            StreamReliableProcessResetFrame,
+            ProcessReliableProcessResetFrame,
             Stream,
             "Shutting down stream Abortively in ProcessResetFrame. Recv Side.");
 // arg1 = arg1 = Stream = arg1
 ----------------------------------------------------------*/
-#ifndef _clog_3_ARGS_TRACE_StreamReliableProcessResetFrame
-#define _clog_3_ARGS_TRACE_StreamReliableProcessResetFrame(uniqueId, arg1, encoded_arg_string)\
-tracepoint(CLOG_STREAM_RECV_C, StreamReliableProcessResetFrame , arg1);\
+#ifndef _clog_3_ARGS_TRACE_ProcessReliableProcessResetFrame
+#define _clog_3_ARGS_TRACE_ProcessReliableProcessResetFrame(uniqueId, arg1, encoded_arg_string)\
+tracepoint(CLOG_STREAM_RECV_C, ProcessReliableProcessResetFrame , arg1);\
 
 #endif
 
@@ -473,17 +473,17 @@ tracepoint(CLOG_STREAM_RECV_C, IndicatePeerSendShutdown , arg1);\
 
 
 /*----------------------------------------------------------
-// Decoder Ring for StreamReliableResetRecvGraceful
+// Decoder Ring for GracefulRecv
 // [strm][%p] Shutting down stream [gracefully] Recv Side.
 // QuicTraceLogStreamVerbose(
-            StreamReliableResetRecvGraceful,
+            GracefulRecv,
             Stream,
             "Shutting down stream [gracefully] Recv Side.");
 // arg1 = arg1 = Stream = arg1
 ----------------------------------------------------------*/
-#ifndef _clog_3_ARGS_TRACE_StreamReliableResetRecvGraceful
-#define _clog_3_ARGS_TRACE_StreamReliableResetRecvGraceful(uniqueId, arg1, encoded_arg_string)\
-tracepoint(CLOG_STREAM_RECV_C, StreamReliableResetRecvGraceful , arg1);\
+#ifndef _clog_3_ARGS_TRACE_GracefulRecv
+#define _clog_3_ARGS_TRACE_GracefulRecv(uniqueId, arg1, encoded_arg_string)\
+tracepoint(CLOG_STREAM_RECV_C, GracefulRecv , arg1);\
 
 #endif
 

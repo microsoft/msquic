@@ -238,7 +238,7 @@ QuicStreamSendShutdown(
                 QUIC_STREAM_SEND_FLAG_FIN);
         }
     } else {
-        if (Stream->Flags.LocalCloseReset || Stream->Flags.LocalCloseResetReliable) {
+        if (Stream->Flags.LocalCloseReset) {
             //
             // We have already closed the stream (graceful or abortive) so we
             // can't reliably abort it.
@@ -527,11 +527,6 @@ QuicStreamSendFlush(
     BOOLEAN Start = FALSE;
 
     while (ApiSendRequests != NULL) {
-
-        if (Stream->UnAckedOffset >= Stream->ReliableOffsetSend && Stream->Flags.LocalCloseResetReliable) {
-            break;
-        }
-
         QUIC_SEND_REQUEST* SendRequest = ApiSendRequests;
         ApiSendRequests = ApiSendRequests->Next;
         SendRequest->Next = NULL;
@@ -1213,7 +1208,7 @@ QuicStreamOnLoss(
         return FALSE;
     }
 
-    if (Stream->Flags.LocalCloseResetReliable && Stream->UnAckedOffset >= Stream->ReliableOffsetSend) {
+    if (Stream->Flags.LocalCloseResetReliableAcked && Stream->UnAckedOffset >= Stream->ReliableOffsetSend) {
         //
         // Ignore any STREAM frame packet loss if we aborted reliably and
         // received acks for enough data.
@@ -1480,7 +1475,7 @@ QuicStreamOnAck(
                     Stream,
                     QuicStreamSendGetState(Stream));
                 QuicTraceLogStreamVerbose(
-                    StreamGracefulShutdown,
+                    GracefulShutdown,
                     Stream,
                     "Shutting down [gracefully] from OnStreamAck. Send Side.");
                 QuicStreamIndicateSendShutdownComplete(Stream, TRUE);
@@ -1527,14 +1522,15 @@ QuicStreamOnAck(
     //
     // If this stream has been reset reliably, we only close if we have received enough bytes.
     //
-    BOOLEAN ReliableResetShutdown = !Stream->Flags.LocalCloseAcked && Stream->Flags.LocalCloseResetReliable && Stream->UnAckedOffset >= Stream->ReliableOffsetSend;
+    BOOLEAN ReliableResetShutdown = !Stream->Flags.LocalCloseAcked && Stream->Flags.LocalCloseResetReliableAcked && Stream->UnAckedOffset >= Stream->ReliableOffsetSend;
     if (ReliableResetShutdown) {
         Stream->Flags.LocalCloseAcked = TRUE;
         Stream->Flags.RemoteCloseAcked = TRUE;
         QuicTraceLogStreamVerbose(
-            ReliableResetOnStreamAck,
+            OnStreamAckReliableReset,
             Stream,
-            "Shutting down stream [reliable] from OnStreamAck. Send side.");
+            "Shutting down stream [reliable] from OnStreamAck. Send side. UnAckedOffset=%llu, ReliableOffsetSend=%llu",
+            Stream->UnAckedOffset, Stream->ReliableOffsetSend);
         QuicStreamCleanupReliableReset(Stream);
         Stream->Flags.LocalCloseReset = TRUE;
         QuicStreamSendShutdown(Stream, FALSE, TRUE, FALSE, 0x21);
@@ -1598,7 +1594,7 @@ QuicStreamOnResetAck(
             Stream,
             QuicStreamSendGetState(Stream));
         QuicTraceLogStreamVerbose(
-            StreamOnResetAck,
+            OnResetAck,
             Stream,
             "Shutting down stream [abortively] from OnResetAck. Send Side.");
         QuicStreamIndicateSendShutdownComplete(Stream, FALSE);
@@ -1611,13 +1607,20 @@ void
 QuicStreamOnResetReliableAck(
     _In_ QUIC_STREAM* Stream
 ) {
+    Stream->Flags.LocalCloseResetReliableAcked = TRUE;
+    QuicTraceLogStreamVerbose(
+            ResetReliableAck,
+            Stream,
+            "Reset Reliable ACKed in OnResetReliableAck. Send side. UnAckedOffset=%llu, ReliableOffsetSend=%llu",
+            Stream->UnAckedOffset, Stream->ReliableOffsetSend);
     if (Stream->UnAckedOffset >= Stream->ReliableOffsetSend && !Stream->Flags.LocalCloseAcked) {
         Stream->Flags.LocalCloseAcked = TRUE;
         Stream->Flags.RemoteCloseAcked = TRUE;
         QuicTraceLogStreamVerbose(
-            OnResetReliableAck,
+            ResetReliableAckShutDown,
             Stream,
-            "Shutting down stream [reliably] from OnResetReliableAck. Send side.");
+            "Shutting down stream [reliably] from OnResetReliableAck. Send side. UnAckedOffset=%llu, ReliableOffsetSend=%llu",
+            Stream->UnAckedOffset, Stream->ReliableOffsetSend);
         QuicStreamCleanupReliableReset(Stream);
         Stream->Flags.LocalCloseReset = TRUE;
         QuicStreamSendShutdown(Stream, FALSE, TRUE, FALSE, 0x21);

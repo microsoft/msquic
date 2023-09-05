@@ -245,15 +245,15 @@ TRACEPOINT_EVENT(CLOG_STREAM_RECV_C, IndicatePeerSendAbort,
 
 
 /*----------------------------------------------------------
-// Decoder Ring for StreamReliableProcessResetFrame
+// Decoder Ring for ProcessReliableProcessResetFrame
 // [strm][%p] Shutting down stream Abortively in ProcessResetFrame. Recv Side.
 // QuicTraceLogStreamVerbose(
-            StreamReliableProcessResetFrame,
+            ProcessReliableProcessResetFrame,
             Stream,
             "Shutting down stream Abortively in ProcessResetFrame. Recv Side.");
 // arg1 = arg1 = Stream = arg1
 ----------------------------------------------------------*/
-TRACEPOINT_EVENT(CLOG_STREAM_RECV_C, StreamReliableProcessResetFrame,
+TRACEPOINT_EVENT(CLOG_STREAM_RECV_C, ProcessReliableProcessResetFrame,
     TP_ARGS(
         const void *, arg1), 
     TP_FIELDS(
@@ -490,15 +490,15 @@ TRACEPOINT_EVENT(CLOG_STREAM_RECV_C, IndicatePeerSendShutdown,
 
 
 /*----------------------------------------------------------
-// Decoder Ring for StreamReliableResetRecvGraceful
+// Decoder Ring for GracefulRecv
 // [strm][%p] Shutting down stream [gracefully] Recv Side.
 // QuicTraceLogStreamVerbose(
-            StreamReliableResetRecvGraceful,
+            GracefulRecv,
             Stream,
             "Shutting down stream [gracefully] Recv Side.");
 // arg1 = arg1 = Stream = arg1
 ----------------------------------------------------------*/
-TRACEPOINT_EVENT(CLOG_STREAM_RECV_C, StreamReliableResetRecvGraceful,
+TRACEPOINT_EVENT(CLOG_STREAM_RECV_C, GracefulRecv,
     TP_ARGS(
         const void *, arg1), 
     TP_FIELDS(

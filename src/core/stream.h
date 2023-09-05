@@ -123,6 +123,7 @@ typedef union QUIC_STREAM_FLAGS {
         BOOLEAN LocalCloseFin           : 1;    // Locally closed (graceful).
         BOOLEAN LocalCloseReset         : 1;    // Locally closed (locally aborted).
         BOOLEAN LocalCloseResetReliable : 1;    // Indicates that we should shutdown the send path once we sent/ACK'd ReliableOffsetSend bytes.
+        BOOLEAN LocalCloseResetReliableAcked : 1; // Indicates the peer has acknowledged we will stop sending once we sent/ACK'd ReliableOffsetSend bytes.
         BOOLEAN RemoteCloseResetReliable : 1;   // Indicates that the peer initiaited a reliable reset. Keep Recv path available for RecvMaxLength bytes.
         BOOLEAN ReceivedStopSending     : 1;    // Peer sent STOP_SENDING frame.
         BOOLEAN LocalCloseAcked         : 1;    // Any close acknowledged.
@@ -142,7 +143,6 @@ typedef union QUIC_STREAM_FLAGS {
         BOOLEAN ReceiveDataPending      : 1;    // Data (or FIN) is queued and ready for delivery.
         BOOLEAN ReceiveCallPending      : 1;    // There is an uncompleted receive to the app.
         BOOLEAN ReceiveCallActive       : 1;    // There is an active receive to the app.
-        BOOLEAN ReceiveClosedReliable   : 1;    // We closed the stream on the Recv side from a Reliable reset frame.
         BOOLEAN SendDelayed             : 1;    // A delayed send is currently queued.
 
         BOOLEAN HandleSendShutdown      : 1;    // Send shutdown complete callback delivered.

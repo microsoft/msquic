@@ -202,7 +202,6 @@ QuicStreamProcessReliableResetFrame(
     }
 
     if (Stream->RecvBuffer.BaseOffset >= Stream->RecvMaxLength) {
-        Stream->Flags.ReceiveClosedReliable = TRUE;
         Stream->Flags.LocalCloseAcked = TRUE;
         Stream->Flags.RemoteCloseAcked = TRUE;
         QuicTraceLogStreamVerbose(
@@ -210,7 +209,7 @@ QuicStreamProcessReliableResetFrame(
             Stream,
             "Shutting down stream from Process Reliable Reset Frame. Recv Side. BaseOffset: %llu, RecvMaxLength: %llu",
             Stream->RecvBuffer.BaseOffset, Stream->RecvMaxLength);
-        QuicStreamRecvShutdown(Stream, TRUE, QUIC_ERROR_NO_ERROR);
+        QuicStreamRecvShutdown(Stream, TRUE, ErrorCode);
     }
 
     if (!Stream->Flags.SentStopSending) {
@@ -325,7 +324,7 @@ QuicStreamProcessResetFrame(
         }
 
         QuicTraceLogStreamVerbose(
-            StreamReliableProcessResetFrame,
+            ProcessReliableProcessResetFrame,
             Stream,
             "Shutting down stream Abortively in ProcessResetFrame. Recv Side.");
         //
@@ -1141,7 +1140,7 @@ QuicStreamReceiveComplete(
         (void)QuicStreamIndicateEvent(Stream, &Event);
 
         QuicTraceLogStreamVerbose(
-            StreamReliableResetRecvGraceful,
+            GracefulRecv,
             Stream,
             "Shutting down stream [gracefully] Recv Side.");
         //
@@ -1158,8 +1157,7 @@ QuicStreamReceiveComplete(
             &Stream->Connection->Send,
             Stream,
             QUIC_STREAM_SEND_FLAG_MAX_DATA | QUIC_STREAM_SEND_FLAG_RECV_ABORT);
-    } else if (Stream->Flags.RemoteCloseResetReliable && Stream->RecvBuffer.BaseOffset >= Stream->RecvMaxLength && !Stream->Flags.ReceiveClosedReliable) {
-        Stream->Flags.ReceiveClosedReliable = TRUE;
+    } else if (Stream->Flags.RemoteCloseResetReliable && Stream->RecvBuffer.BaseOffset >= Stream->RecvMaxLength) {
         Stream->Flags.LocalCloseAcked = TRUE;
         Stream->Flags.RemoteCloseAcked = TRUE;
         QuicTraceLogStreamVerbose(
@@ -1167,7 +1165,7 @@ QuicStreamReceiveComplete(
             Stream,
             "Shutting down stream from ReceiveComplete Recv Side. BaseOffset: %llu, RecvMaxLength: %llu",
             Stream->RecvBuffer.BaseOffset, Stream->RecvMaxLength);
-        QuicStreamRecvShutdown(Stream, TRUE, QUIC_ERROR_NO_ERROR);
+        QuicStreamRecvShutdown(Stream, TRUE, 0x21);
     }
 
     return FALSE;

@@ -5531,6 +5531,30 @@
       ],
       "macroName": "QuicTraceLogConnWarning"
     },
+    "GracefulRecv": {
+      "ModuleProperites": {},
+      "TraceString": "[strm][%p] Shutting down stream [gracefully] Recv Side.",
+      "UniqueId": "GracefulRecv",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        }
+      ],
+      "macroName": "QuicTraceLogStreamVerbose"
+    },
+    "GracefulShutdown": {
+      "ModuleProperites": {},
+      "TraceString": "[strm][%p] Shutting down [gracefully] from OnStreamAck. Send Side.",
+      "UniqueId": "GracefulShutdown",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        }
+      ],
+      "macroName": "QuicTraceLogStreamVerbose"
+    },
     "HandshakeConfirmedAck": {
       "ModuleProperites": {},
       "TraceString": "[conn][%p] Handshake confirmed (ack)",
@@ -7336,6 +7360,18 @@
       ],
       "macroName": "QuicTraceLogConnInfo"
     },
+    "OnResetAck": {
+      "ModuleProperites": {},
+      "TraceString": "[strm][%p] Shutting down stream [abortively] from OnResetAck. Send Side.",
+      "UniqueId": "OnResetAck",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        }
+      ],
+      "macroName": "QuicTraceLogStreamVerbose"
+    },
     "OnResetReliableAck": {
       "ModuleProperites": {},
       "TraceString": "[strm][%p] Shutting down stream [reliably] from OnResetReliableAck. Send side.",
@@ -7344,6 +7380,26 @@
         {
           "DefinationEncoding": "p",
           "MacroVariableName": "arg1"
+        }
+      ],
+      "macroName": "QuicTraceLogStreamVerbose"
+    },
+    "OnStreamAckReliableReset": {
+      "ModuleProperites": {},
+      "TraceString": "[strm][%p] Shutting down stream [reliable] from OnStreamAck. Send side. UnAckedOffset=%llu, ReliableOffsetSend=%llu",
+      "UniqueId": "OnStreamAckReliableReset",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        },
+        {
+          "DefinationEncoding": "llu",
+          "MacroVariableName": "arg3"
+        },
+        {
+          "DefinationEncoding": "llu",
+          "MacroVariableName": "arg4"
         }
       ],
       "macroName": "QuicTraceLogStreamVerbose"
@@ -8838,6 +8894,18 @@
       ],
       "macroName": "QuicTraceLogInfo"
     },
+    "ProcessReliableProcessResetFrame": {
+      "ModuleProperites": {},
+      "TraceString": "[strm][%p] Shutting down stream Abortively in ProcessResetFrame. Recv Side.",
+      "UniqueId": "ProcessReliableProcessResetFrame",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        }
+      ],
+      "macroName": "QuicTraceLogStreamVerbose"
+    },
     "ProcessReliableReset": {
       "ModuleProperites": {},
       "TraceString": "[strm][%p] Shutting down stream from Process Reliable Reset Frame. Recv Side. BaseOffset: %llu, RecvMaxLength: %llu",
@@ -9369,6 +9437,46 @@
         }
       ],
       "macroName": "QuicTraceLogStreamWarning"
+    },
+    "ResetReliableAck": {
+      "ModuleProperites": {},
+      "TraceString": "[strm][%p] Reset Reliable ACKed in OnResetReliableAck. Send side. UnAckedOffset=%llu, ReliableOffsetSend=%llu",
+      "UniqueId": "ResetReliableAck",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        },
+        {
+          "DefinationEncoding": "llu",
+          "MacroVariableName": "arg3"
+        },
+        {
+          "DefinationEncoding": "llu",
+          "MacroVariableName": "arg4"
+        }
+      ],
+      "macroName": "QuicTraceLogStreamVerbose"
+    },
+    "ResetReliableAckShutDown": {
+      "ModuleProperites": {},
+      "TraceString": "[strm][%p] Shutting down stream [reliably] from OnResetReliableAck. Send side. UnAckedOffset=%llu, ReliableOffsetSend=%llu",
+      "UniqueId": "ResetReliableAckShutDown",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        },
+        {
+          "DefinationEncoding": "llu",
+          "MacroVariableName": "arg3"
+        },
+        {
+          "DefinationEncoding": "llu",
+          "MacroVariableName": "arg4"
+        }
+      ],
+      "macroName": "QuicTraceLogStreamVerbose"
     },
     "ResetTooBig": {
       "ModuleProperites": {},
@@ -14515,6 +14623,16 @@
         "EncodingString": "[conn][%p] Failed to get packet type for control frames, 0x%x"
       },
       {
+        "UniquenessHash": "1ec6223a-a19f-a735-9a21-ed1d8d73b5d3",
+        "TraceID": "GracefulRecv",
+        "EncodingString": "[strm][%p] Shutting down stream [gracefully] Recv Side."
+      },
+      {
+        "UniquenessHash": "5f7f4d4e-dafa-668f-9f15-913a5bee40ab",
+        "TraceID": "GracefulShutdown",
+        "EncodingString": "[strm][%p] Shutting down [gracefully] from OnStreamAck. Send Side."
+      },
+      {
         "UniquenessHash": "eeb31991-927b-2f3c-bfb7-12b7dea50ead",
         "TraceID": "HandshakeConfirmedAck",
         "EncodingString": "[conn][%p] Handshake confirmed (ack)"
@@ -15100,9 +15218,19 @@
         "EncodingString": "[conn][%p] Path[%hhu] %s stop encryption offloading"
       },
       {
+        "UniquenessHash": "5dd5642c-a450-86ac-bd61-deaac4c3e22b",
+        "TraceID": "OnResetAck",
+        "EncodingString": "[strm][%p] Shutting down stream [abortively] from OnResetAck. Send Side."
+      },
+      {
         "UniquenessHash": "2cc58e3e-a2c8-f337-a085-325bf53da75c",
         "TraceID": "OnResetReliableAck",
         "EncodingString": "[strm][%p] Shutting down stream [reliably] from OnResetReliableAck. Send side."
+      },
+      {
+        "UniquenessHash": "6f67e832-eb3d-e51d-c58e-12962752358b",
+        "TraceID": "OnStreamAckReliableReset",
+        "EncodingString": "[strm][%p] Shutting down stream [reliable] from OnStreamAck. Send side. UnAckedOffset=%llu, ReliableOffsetSend=%llu"
       },
       {
         "UniquenessHash": "eaede67a-124b-3b3f-95ba-363d08546d2a",
@@ -15615,6 +15743,11 @@
         "EncodingString": "[ dll] Proc[%u] Group[%hu] Index[%u] Active=%hhu"
       },
       {
+        "UniquenessHash": "d3961059-2b9a-e20d-88c5-d1fc421bbf13",
+        "TraceID": "ProcessReliableProcessResetFrame",
+        "EncodingString": "[strm][%p] Shutting down stream Abortively in ProcessResetFrame. Recv Side."
+      },
+      {
         "UniquenessHash": "518b5117-c14d-ee4e-47c5-8264735c8638",
         "TraceID": "ProcessReliableReset",
         "EncodingString": "[strm][%p] Shutting down stream from Process Reliable Reset Frame. Recv Side. BaseOffset: %llu, RecvMaxLength: %llu"
@@ -15783,6 +15916,16 @@
         "UniquenessHash": "1f2558ac-412e-da8c-33d7-7c45995dbcf9",
         "TraceID": "ResetEarly",
         "EncodingString": "[strm][%p] Tried to reset at earlier final size!"
+      },
+      {
+        "UniquenessHash": "50002ed8-e6a9-b9ca-037a-59003c9e1f5f",
+        "TraceID": "ResetReliableAck",
+        "EncodingString": "[strm][%p] Reset Reliable ACKed in OnResetReliableAck. Send side. UnAckedOffset=%llu, ReliableOffsetSend=%llu"
+      },
+      {
+        "UniquenessHash": "46d87c29-7237-3ef0-b107-77b5f4db762f",
+        "TraceID": "ResetReliableAckShutDown",
+        "EncodingString": "[strm][%p] Shutting down stream [reliably] from OnResetReliableAck. Send side. UnAckedOffset=%llu, ReliableOffsetSend=%llu"
       },
       {
         "UniquenessHash": "a3253f53-3e9c-4e45-d114-c4e99cd3cdc6",
