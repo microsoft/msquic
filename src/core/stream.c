@@ -567,13 +567,21 @@ QuicStreamShutdown(
     }
 
     if (!!(Flags & QUIC_STREAM_SHUTDOWN_FLAG_IMMEDIATE) &&
-        !Stream->Flags.ShutdownComplete && !Stream->Flags.RemoteCloseResetReliable) {
+        !Stream->Flags.ShutdownComplete) {
         //
         // The app has requested that we immediately give them completion
         // events so they don't have to wait. Deliver the send shutdown complete
         // and shutdown complete events now, if they haven't already been
         // delivered.
         //
+        if (Stream->Flags.RemoteCloseResetReliable || Stream->Flags.LocalCloseResetReliable) {
+             QuicTraceLogStreamWarning(
+                BadShutdownImmediate,
+                Stream,
+                "App tried ditching this stream but it still has stuff to do.");
+            QuicConnTransportError(Stream->Connection, QUIC_ERROR_STREAM_STATE_ERROR);
+            return;
+        }
         QuicStreamIndicateSendShutdownComplete(Stream, FALSE);
         QuicStreamIndicateShutdownComplete(Stream);
     }
