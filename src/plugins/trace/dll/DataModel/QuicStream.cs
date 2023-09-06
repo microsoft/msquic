@@ -12,7 +12,7 @@ namespace QuicTrace.DataModel
     {
         public static QuicStream New(ulong pointer, uint processId) => new QuicStream(pointer, processId);
 
-        public static ushort CreateEventId => (ushort)QuicEventId.StreamCreated;
+        public static ushort CreateEventId => (ushort)QuicEventId.StreamAlloc;
 
         public static ushort DestroyedEventId => (ushort)QuicEventId.StreamDestroyed;
 
@@ -216,6 +216,18 @@ namespace QuicTrace.DataModel
                                     Timings.UpdateToState(QuicStreamState.ReadOther, Timings.RecvPacket.PacketDecryptComplete);
                                 }
                             }
+                        }
+
+                        if (InitialTimeStamp > Timings.RecvPacket.PacketReceive)
+                        {
+                            // Stream was created after packet recieved
+                            Timings.UpdateToState(QuicStreamState.Alloc, InitialTimeStamp);
+                        }
+
+                        if (FinalTimeStamp > Timings.LastStateChangeTime)
+                        {
+                            // Other events between Decrypt and StreamReceiveFrame
+                            Timings.UpdateToState(QuicStreamState.ProcessRecv, FinalTimeStamp);
                         }
 
                         Timings.UpdateToState(QuicStreamState.Read, evt.TimeStamp);
