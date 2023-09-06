@@ -6,9 +6,6 @@ on:
   push:
     branches: ["main"]
 
-  pull_request:
-    types: [opened, synchronize, reopened]
-
   # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
 
@@ -33,6 +30,7 @@ jobs:
         dotnet-version: 7.x
 
     - run: dotnet tool update -g docfx
+    - run: ./scripts/generate-docfx-yml.ps1 ./docs
     - run: docfx docfx.json
 
     - name: Deploy
