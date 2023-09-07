@@ -433,6 +433,8 @@ typedef struct CXPLAT_DATAPATH {
     uint8_t Uninitialized : 1;
     uint8_t Freed : 1;
 
+    uint8_t UseTcp : 1;
+
     CXPLAT_DATAPATH_RAW* RawDataPath;
 
     //
@@ -510,6 +512,8 @@ typedef struct CXPLAT_SOCKET {
     //
     uint8_t Uninitialized : 1;
     uint8_t Freed : 1;
+
+    uint8_t UseTcp : 1;                  // Quic over TCP
 
     uint8_t RawSocketAvailable : 1;
 

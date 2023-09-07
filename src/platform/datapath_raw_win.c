@@ -280,7 +280,6 @@ CxPlatRawSocketCreateUdp(
     Socket->CibirIdLength = Config->CibirIdLength;
     Socket->CibirIdOffsetSrc = Config->CibirIdOffsetSrc;
     Socket->CibirIdOffsetDst = Config->CibirIdOffsetDst;
-    Socket->UseTcp = Raw->UseTcp;
     if (Config->CibirIdLength) {
         memcpy(Socket->CibirId, Config->CibirId, Config->CibirIdLength);
     }
@@ -288,10 +287,16 @@ CxPlatRawSocketCreateUdp(
     // TODO: remove Socket address settings
     if (Config->RemoteAddress) {
         CXPLAT_FRE_ASSERT(!QuicAddrIsWildCard(Config->RemoteAddress));  // No wildcard remote addresses allowed.
+        if (Socket->UseTcp) {
+            Socket->RemoteAddress = *Config->RemoteAddress;
+        }
         Socket->Connected = TRUE;
     }
 
     if (Config->LocalAddress) {
+        if (Socket->UseTcp) {
+            Socket->LocalAddress = *Config->LocalAddress;
+        }
         if (QuicAddrIsWildCard(Config->LocalAddress)) {
             if (!Socket->Connected) {
                 Socket->Wildcard = TRUE;
@@ -302,6 +307,9 @@ CxPlatRawSocketCreateUdp(
             goto Error;
         }
     } else {
+        if (Socket->UseTcp) {
+            QuicAddrSetFamily(&Socket->LocalAddress, QUIC_ADDRESS_FAMILY_INET6);
+        }
         if (!Socket->Connected) {
             Socket->Wildcard = TRUE;
         }

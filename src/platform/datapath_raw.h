@@ -243,6 +243,7 @@ typedef struct CXPLAT_SOCKET_RAW {
     CXPLAT_HASHTABLE_ENTRY Entry;
     CXPLAT_RUNDOWN_REF Rundown;
     CXPLAT_DATAPATH_RAW* RawDatapath;
+    SOCKET AuxSocket;
     BOOLEAN Wildcard;                // Using a wildcard local address. Optimization
                                      // to avoid always reading LocalAddress.
     BOOLEAN Connected;               // Bound to a remote address
@@ -250,7 +251,6 @@ typedef struct CXPLAT_SOCKET_RAW {
     uint8_t CibirIdOffsetSrc;        // CIBIR ID offset in source CID
     uint8_t CibirIdOffsetDst;        // CIBIR ID offset in destination CID
     uint8_t CibirId[6];              // CIBIR ID data
-    BOOLEAN UseTcp;                  // Quic over TCP
 
     CXPLAT_SEND_DATA* PausedTcpSend; // Paused TCP send data *before* framing
     CXPLAT_SEND_DATA* CachedRstSend; // Cached TCP RST send data *after* framing

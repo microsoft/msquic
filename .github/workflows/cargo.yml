@@ -50,4 +50,4 @@ jobs:
     - name: Cargo test
       run: cargo test --all
     - name: Cargo Publish (dry run)
-      run: cargo publish --dry-run
+      run: cargo publish --dry-run --allow-dirty

@@ -832,6 +832,11 @@ DataPathInitialize(
     if (TcpCallbacks) {
         Datapath->TcpHandlers = *TcpCallbacks;
     }
+
+    if (Config && (Config->Flags & QUIC_EXECUTION_CONFIG_FLAG_QTIP)) {
+        Datapath->UseTcp = TRUE;
+    }
+
     Datapath->PartitionCount = (uint16_t)PartitionCount;
     CxPlatRefInitializeEx(&Datapath->RefCount, Datapath->PartitionCount);
     Datapath->UseRio = Config && !!(Config->Flags & QUIC_EXECUTION_CONFIG_FLAG_RIO);
@@ -1388,6 +1393,7 @@ SocketCreateUdp(
     Socket->HasFixedRemoteAddress = (Config->RemoteAddress != NULL);
     Socket->Type = CXPLAT_SOCKET_UDP;
     Socket->UseRio = Datapath->UseRio;
+    Socket->UseTcp = Datapath->UseTcp;
     if (Config->LocalAddress) {
         CxPlatConvertToMappedV6(Config->LocalAddress, &Socket->LocalAddress);
     } else {
@@ -1398,6 +1404,13 @@ SocketCreateUdp(
         Socket->PcpBinding = TRUE;
     }
     CxPlatRefInitializeEx(&Socket->RefCount, SocketCount);
+
+    if (Datapath->UseTcp) {
+        //
+        // Skip normal socket settings to use AuxSocket in raw socket
+        //
+        goto Skip;
+    }
 
     Socket->RecvBufLen =
         (Datapath->Features & CXPLAT_DATAPATH_FEATURE_RECV_COALESCING) ?
@@ -1922,6 +1935,8 @@ SocketCreateUdp(
 
     CxPlatConvertFromMappedV6(&Socket->LocalAddress, &Socket->LocalAddress);
 
+Skip:
+
     if (Config->RemoteAddress != NULL) {
         Socket->RemoteAddress = *Config->RemoteAddress;
     } else {
@@ -1934,9 +1949,11 @@ SocketCreateUdp(
     //
     *NewSocket = Socket;
 
-    for (uint16_t i = 0; i < SocketCount; i++) {
-        CxPlatDataPathStartReceiveAsync(&Socket->PerProcSockets[i]);
-        Socket->PerProcSockets[i].IoStarted = TRUE;
+    if (!Socket->UseTcp) {
+        for (uint16_t i = 0; i < SocketCount; i++) {
+            CxPlatDataPathStartReceiveAsync(&Socket->PerProcSockets[i]);
+            Socket->PerProcSockets[i].IoStarted = TRUE;
+        }
     }
 
     Socket = NULL;
@@ -2455,6 +2472,12 @@ Error:
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
+CxPlatSocketRelease(
+    _In_ CXPLAT_SOCKET* Socket
+    );
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
 SocketDelete(
     _In_ CXPLAT_SOCKET* Socket
     )
@@ -2467,6 +2490,11 @@ SocketDelete(
 
     CXPLAT_DBG_ASSERT(!Socket->Uninitialized);
     Socket->Uninitialized = TRUE;
+
+    if (Socket->UseTcp) {
+        CxPlatSocketRelease(Socket);
+        return;
+    }
 
     const uint16_t SocketCount =
         Socket->NumPerProcessorSockets ? (uint16_t)CxPlatProcMaxCount() : 1;

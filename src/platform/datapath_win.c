@@ -305,6 +305,10 @@ CxPlatSocketCreateUdp(
             QuicTraceLogVerbose(
                 RawSockCreateFail,
                 "[sock] Failed to create raw socket, status:%d", Status);
+            if (Datapath->UseTcp) {
+                CxPlatSocketDelete(*NewSocket);
+                goto Error;
+            }
             Status = QUIC_STATUS_SUCCESS;
         }
     }
@@ -440,9 +444,9 @@ CxPlatSendDataAlloc(
 {
     CXPLAT_SEND_DATA* SendData = NULL;
     // TODO: fallback?
-    if (Socket->Type == CXPLAT_SOCKET_UDP &&
+    if (Socket->UseTcp || (Socket->Type == CXPLAT_SOCKET_UDP &&
         Socket->RawSocketAvailable &&
-        !IS_LOOPBACK(Config->Route->RemoteAddress)) {
+        !IS_LOOPBACK(Config->Route->RemoteAddress))) {
         SendData = CxPlatRawSendDataAlloc(CxPlatSocketToRaw(Socket), Config);
         if (SendData) {
             DatapathType(SendData) = CXPLAT_DATAPATH_TYPE_XDP;
