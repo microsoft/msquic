@@ -61,12 +61,24 @@ CxPlatRemoveSocket(
 {
     CxPlatRwLockAcquireExclusive(&Pool->Lock);
     CxPlatHashtableRemove(&Pool->Sockets, &Socket->Entry, NULL);
+
+    if (Socket->AuxSocket != INVALID_SOCKET &&
+        closesocket(Socket->AuxSocket) == SOCKET_ERROR) {
+        int Error = SocketError();
+        QuicTraceEvent(
+            DatapathErrorStatus,
+            "[data][%p] ERROR, %u, %s.",
+            Socket,
+            Error,
+            "closesocket");
+    }
+
     CxPlatRwLockReleaseExclusive(&Pool->Lock);
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
-CxPlatRawResolveRoute(
+RawResolveRoute(
     _In_ CXPLAT_SOCKET_RAW* Socket,
     _Inout_ CXPLAT_ROUTE* Route,
     _In_ uint8_t PathId,
@@ -239,9 +251,9 @@ CxPlatTryAddSocket(
     )
 {
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
+    int Result;
     CXPLAT_HASHTABLE_LOOKUP_CONTEXT Context;
     CXPLAT_HASHTABLE_ENTRY* Entry;
-    int Result;
     int Option;
     QUIC_ADDR MappedAddress = {0};
     SOCKET TempUdpSocket = INVALID_SOCKET;
@@ -252,25 +264,25 @@ CxPlatTryAddSocket(
     // binding an auxiliary (dual stack) socket.
     //
 
-    Socket->AuxSocket =
-        socket(
-            AF_INET6,
-            Socket->UseTcp ? SOCK_STREAM : SOCK_DGRAM,
-            Socket->UseTcp ? IPPROTO_TCP : IPPROTO_UDP);
-    if (Socket->AuxSocket == INVALID_SOCKET) {
-        int WsaError = SocketError();
-        QuicTraceEvent(
-            DatapathErrorStatus,
-            "[data][%p] ERROR, %u, %s.",
-            Socket,
-            WsaError,
-            "socket");
-        Status = HRESULT_FROM_WIN32(WsaError);
-        goto Error;
-    }
-
     if (Socket->UseTcp)
     {
+        Socket->AuxSocket =
+            socket(
+                AF_INET6,
+                SOCK_STREAM,
+                IPPROTO_TCP);
+        if (Socket->AuxSocket == INVALID_SOCKET) {
+            int WsaError = SocketError();
+            QuicTraceEvent(
+                DatapathErrorStatus,
+                "[data][%p] ERROR, %u, %s.",
+                Socket,
+                WsaError,
+                "socket");
+            Status = HRESULT_FROM_WIN32(WsaError);
+            goto Error;
+        }
+
         Option = FALSE;
         Result =
             setsockopt(
@@ -338,7 +350,6 @@ CxPlatTryAddSocket(
                 (struct sockaddr*)&MappedAddress,
                 sizeof(MappedAddress));
         if (Result == SOCKET_ERROR) {
-            fprintf(stderr, "bind failed: %d\n", WSAGetLastError());
             int WsaError = SocketError();
             QuicTraceEvent(
                 DatapathErrorStatus,
@@ -350,7 +361,6 @@ CxPlatTryAddSocket(
             Status = HRESULT_FROM_WIN32(WsaError);
             goto Error;
         }
-        fprintf(stderr, "bind succeeded\n");
 
         if (Socket->Connected)
         {
@@ -388,7 +398,6 @@ CxPlatTryAddSocket(
                 goto Error;
             }
             LocalPortChosen = TempLocalAddress.Ipv4.sin_port;
-            fprintf(stderr, "LocalPortChosen %d\n", (int)LocalPortChosen);
             TempUdpSocket = socket(AF_INET6, SOCK_DGRAM, IPPROTO_UDP);
             if (TempUdpSocket == INVALID_SOCKET) {
                 int WsaError = SocketError();
@@ -434,7 +443,6 @@ CxPlatTryAddSocket(
                     sizeof(TempLocalAddress));
             if (Result == SOCKET_ERROR) {
                 int WsaError = SocketError();
-                fprintf(stderr, "bind failed: %d\n", WsaError);
                 QuicTraceEvent(
                     DatapathErrorStatus,
                     "[data][%p] ERROR, %u, %s.",
@@ -453,7 +461,6 @@ CxPlatTryAddSocket(
                     sizeof(MappedAddress));
             if (Result == SOCKET_ERROR) {
                 int WsaError = SocketError();
-                fprintf(stderr, "connect failed (temp udp socket): %d\n", WsaError);
                 QuicTraceEvent(
                     DatapathErrorStatus,
                     "[data][%p] ERROR, %u, %s.",
@@ -473,7 +480,6 @@ CxPlatTryAddSocket(
                     &AssignedLocalAddressLength);
             if (Result == SOCKET_ERROR) {
                 int WsaError = SocketError();
-                fprintf(stderr, "getsockname failed: %d\n", WsaError);
                 QuicTraceEvent(
                     DatapathErrorStatus,
                     "[data][%p] ERROR, %u, %s.",

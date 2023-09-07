@@ -712,18 +712,18 @@ UpdateRoute(
 
 // TODO: rename
 CXPLAT_SOCKET*
-CxPlatRawToSocket(CXPLAT_SOCKET_RAW* Socket);
+RawToSocket(CXPLAT_SOCKET_RAW* Socket);
 
 // TODO: rename
 CXPLAT_SOCKET_RAW*
-CxPlatSocketToRaw(CXPLAT_SOCKET* Socket);
+SocketToRaw(CXPLAT_SOCKET* Socket);
 
 uint32_t
 CxPlatGetRawSocketSize ();
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
-CxPlatRawSocketCreateUdp(
+RawSocketCreateUdp(
     _In_ CXPLAT_DATAPATH_RAW* DataPath,
     _In_ const CXPLAT_UDP_CONFIG* Config,
     _Inout_ CXPLAT_SOCKET_RAW* NewSocket
@@ -731,13 +731,13 @@ CxPlatRawSocketCreateUdp(
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
-CxPlatRawSocketDelete(
+RawSocketDelete(
     _In_ CXPLAT_SOCKET_RAW* Socket
     );
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
-CxPlatRawDataPathInitialize(
+RawDataPathInitialize(
     _In_ uint32_t ClientRecvContextLength,
     _In_opt_ QUIC_EXECUTION_CONFIG* Config,
     _In_opt_ const CXPLAT_DATAPATH* ParentDataPath,
@@ -746,32 +746,32 @@ CxPlatRawDataPathInitialize(
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
-CxPlatRawDataPathUninitialize(
+RawDataPathUninitialize(
     _In_ CXPLAT_DATAPATH_RAW* Datapath
     );
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
-CxPlatRawDataPathUpdateConfig(
+RawDataPathUpdateConfig(
     _In_ CXPLAT_DATAPATH_RAW* Datapath,
     _In_ QUIC_EXECUTION_CONFIG* Config
     );
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 uint32_t
-CxPlatRawDataPathGetSupportedFeatures(
+RawDataPathGetSupportedFeatures(
     _In_ CXPLAT_DATAPATH_RAW* Datapath
     );
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 BOOLEAN
-CxPlatRawDataPathIsPaddingPreferred(
+RawDataPathIsPaddingPreferred(
     _In_ CXPLAT_DATAPATH* Datapath
     );
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
-CxPlatRawSocketUpdateQeo(
+RawSocketUpdateQeo(
     _In_ CXPLAT_SOCKET_RAW* Socket,
     _In_reads_(OffloadCount)
         const CXPLAT_QEO_CONNECTION* Offloads,
@@ -780,61 +780,61 @@ CxPlatRawSocketUpdateQeo(
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 UINT16
-CxPlatRawSocketGetLocalMtu(
+RawSocketGetLocalMtu(
     _In_ CXPLAT_SOCKET_RAW* Socket
     );
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
-CxPlatRawRecvDataReturn(
+RawRecvDataReturn(
     _In_opt_ CXPLAT_RECV_DATA* RecvDataChain
     );
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 _Success_(return != NULL)
 CXPLAT_SEND_DATA*
-CxPlatRawSendDataAlloc(
+RawSendDataAlloc(
     _In_ CXPLAT_SOCKET_RAW* Socket,
     _Inout_ CXPLAT_SEND_CONFIG* Config
     );
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
-CxPlatRawSendDataFree(
+RawSendDataFree(
     _In_ CXPLAT_SEND_DATA* SendData
     );
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 _Success_(return != NULL)
 QUIC_BUFFER*
-CxPlatRawSendDataAllocBuffer(
+RawSendDataAllocBuffer(
     _In_ CXPLAT_SEND_DATA* SendData,
     _In_ uint16_t MaxBufferLength
     );
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
-CxPlatRawSendDataFreeBuffer(
+RawSendDataFreeBuffer(
     _In_ CXPLAT_SEND_DATA* SendData,
     _In_ QUIC_BUFFER* Buffer
     );
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 BOOLEAN
-CxPlatRawSendDataIsFull(
+RawSendDataIsFull(
     _In_ CXPLAT_SEND_DATA* SendData
     );
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 QUIC_STATUS
-CxPlatRawSocketSend(
+RawSocketSend(
     _In_ CXPLAT_SOCKET_RAW* Socket,
     _In_ const CXPLAT_ROUTE* Route,
     _In_ CXPLAT_SEND_DATA* SendData
     );
 
 void
-CxPlatRawResolveRouteComplete(
+RawResolveRouteComplete(
     _In_ void* Context,
     _Inout_ CXPLAT_ROUTE* Route,
     _In_reads_bytes_(6) const uint8_t* PhysicalAddress,
@@ -843,7 +843,7 @@ CxPlatRawResolveRouteComplete(
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
-CxPlatRawResolveRoute(
+RawResolveRoute(
     _In_ CXPLAT_SOCKET_RAW* Sock,
     _Inout_ CXPLAT_ROUTE* Route,
     _In_ uint8_t PathId,
@@ -852,13 +852,13 @@ CxPlatRawResolveRoute(
     );
 
 void
-CxPlatRawDataPathProcessCqe(
+RawDataPathProcessCqe(
     _In_ CXPLAT_CQE* Cqe
     );
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
-CxPlatRawUpdateRoute(
+RawUpdateRoute(
     _Inout_ CXPLAT_ROUTE* DstRoute,
     _In_ CXPLAT_ROUTE* SrcRoute
     );

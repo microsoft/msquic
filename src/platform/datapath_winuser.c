@@ -1377,7 +1377,7 @@ SocketCreateUdp(
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         goto Error;
     }
-    CXPLAT_SOCKET* Socket = CxPlatRawToSocket(RawSocket);
+    CXPLAT_SOCKET* Socket = RawToSocket(RawSocket);
 
     QuicTraceEvent(
         DatapathCreated,
@@ -1963,7 +1963,7 @@ Skip:
 Error:
 
     if (RawSocket != NULL) {
-        SocketDelete(CxPlatRawToSocket(RawSocket));
+        SocketDelete(RawToSocket(RawSocket));
     }
 
     return Status;
@@ -2000,7 +2000,7 @@ CxPlatSocketCreateTcpInternal(
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         goto Error;
     }
-    CXPLAT_SOCKET* Socket = CxPlatRawToSocket(RawSocket);
+    CXPLAT_SOCKET* Socket = RawToSocket(RawSocket);
 
     QuicTraceEvent(
         DatapathCreated,
@@ -2222,7 +2222,7 @@ CxPlatSocketCreateTcpInternal(
 Error:
 
     if (RawSocket != NULL) {
-        SocketDelete(CxPlatRawToSocket(RawSocket));
+        SocketDelete(RawToSocket(RawSocket));
     }
 
     return Status;
@@ -2275,7 +2275,7 @@ SocketCreateTcpListener(
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         goto Error;
     }
-    CXPLAT_SOCKET* Socket = CxPlatRawToSocket(RawSocket);
+    CXPLAT_SOCKET* Socket = RawToSocket(RawSocket);
 
     QuicTraceEvent(
         DatapathCreated,
@@ -2464,7 +2464,7 @@ SocketCreateTcpListener(
 Error:
 
     if (RawSocket != NULL) {
-        SocketDelete(CxPlatRawToSocket(RawSocket));
+        SocketDelete(RawToSocket(RawSocket));
     }
 
     return Status;
@@ -2517,7 +2517,7 @@ CxPlatSocketRelease(
         CXPLAT_DBG_ASSERT(!Socket->Freed);
         CXPLAT_DBG_ASSERT(Socket->Uninitialized);
         Socket->Freed = TRUE;
-        CXPLAT_FREE(CxPlatSocketToRaw(Socket), QUIC_POOL_SOCKET);
+        CXPLAT_FREE(SocketToRaw(Socket), QUIC_POOL_SOCKET);
     }
 }
 
