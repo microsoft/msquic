@@ -24,8 +24,9 @@ Abstract:
 #endif
 
 typedef struct XDP_DATAPATH {
-    CXPLAT_DATAPATH_RAW;
     DECLSPEC_CACHEALIGN
+    CXPLAT_DATAPATH_RAW;
+
     //
     // Currently, all XDP interfaces share the same config.
     //

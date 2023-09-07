@@ -372,8 +372,8 @@ CxPlatSocketUpdateQeo(
     _In_ uint32_t OffloadCount
     )
 {
-    if (Socket->RawSocketAvailable &&
-        !IS_LOOPBACK(Offloads[0].Address)) {
+    if (Socket->UseTcp || (Socket->RawSocketAvailable &&
+        !IS_LOOPBACK(Offloads[0].Address))) {
         return RawSocketUpdateQeo(SocketToRaw(Socket), Offloads, OffloadCount);
     }
     return QUIC_STATUS_NOT_SUPPORTED;
@@ -386,8 +386,8 @@ CxPlatSocketGetLocalMtu(
     )
 {
     CXPLAT_DBG_ASSERT(Socket != NULL);
-    if (Socket->RawSocketAvailable &&
-        !IS_LOOPBACK(Socket->RemoteAddress)) {
+    if (Socket->UseTcp || (Socket->RawSocketAvailable &&
+        !IS_LOOPBACK(Socket->RemoteAddress))) {
         return RawSocketGetLocalMtu(SocketToRaw(Socket));
     }
     return Socket->Mtu;
@@ -449,12 +449,12 @@ CxPlatSendDataAlloc(
         Socket->RawSocketAvailable && !IS_LOOPBACK(Config->Route->RemoteAddress))) {
         SendData = RawSendDataAlloc(SocketToRaw(Socket), Config);
         if (SendData) {
-            DatapathType(SendData) = CXPLAT_DATAPATH_TYPE_XDP;
+            DatapathType(SendData) = Config->Route->DatapathType = CXPLAT_DATAPATH_TYPE_XDP;
         }
     } else {
         SendData = SendDataAlloc(Socket, Config);
         if (SendData) {
-            DatapathType(SendData) = CXPLAT_DATAPATH_TYPE_USER;
+            DatapathType(SendData) = Config->Route->DatapathType = CXPLAT_DATAPATH_TYPE_USER;
         }
     }
     return SendData;
@@ -611,8 +611,9 @@ CxPlatResolveRoute(
     _In_ CXPLAT_ROUTE_RESOLUTION_CALLBACK_HANDLER Callback
     )
 {
-    if (Socket->RawSocketAvailable &&
-        !IS_LOOPBACK(Route->RemoteAddress)) {
+    if (Socket->UseTcp || Route->DatapathType == CXPLAT_DATAPATH_TYPE_XDP ||
+        (Route->DatapathType == CXPLAT_DATAPATH_TYPE_UNKNOWN &&
+        Socket->RawSocketAvailable && !IS_LOOPBACK(Route->RemoteAddress))) {
         return RawResolveRoute(SocketToRaw(Socket), Route, PathId, Context, Callback);
     }
     Route->State = RouteResolved;
@@ -626,8 +627,9 @@ CxPlatUpdateRoute(
     _In_ CXPLAT_ROUTE* SrcRoute
     )
 {
-    if (SrcRoute->DatapathType == CXPLAT_DATAPATH_TYPE_XDP &&
-        !IS_LOOPBACK(SrcRoute->RemoteAddress)) {
+    if (SrcRoute->DatapathType == CXPLAT_DATAPATH_TYPE_XDP ||
+        (SrcRoute->DatapathType == CXPLAT_DATAPATH_TYPE_UNKNOWN &&
+        !IS_LOOPBACK(SrcRoute->RemoteAddress))) {
         RawUpdateRoute(DstRoute, SrcRoute);
     }
 }
