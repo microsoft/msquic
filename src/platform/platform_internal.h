@@ -74,7 +74,7 @@ typedef struct CXPLAT_SOCKET_COMMON {
 } CXPLAT_SOCKET_COMMON;
 
 typedef struct CXPLAT_SEND_DATA_COMMON {
-    uint16_t DatapathType : 2;
+    uint16_t DatapathType; // CXPLAT_DATAPATH_TYPE
 
     //
     // The type of ECN markings needed for send.
