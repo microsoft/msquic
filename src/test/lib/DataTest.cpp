@@ -3284,7 +3284,8 @@ QuicTestStreamReliableReset(
 
 void
 QuicTestStreamReliableResetMultipleSends(
-) {
+    )
+{
     struct StreamReliableReset {
 
     CxPlatEvent ClientStreamShutdownComplete;
