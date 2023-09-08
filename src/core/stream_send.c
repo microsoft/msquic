@@ -1559,7 +1559,8 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicStreamCleanupReliableReset(
     _In_ QUIC_STREAM* Stream
-) {
+    )
+{
     //
     // Cleanup. Cancels all send requests with offsets after ReliableOffsetSend.
     // Assume this function gets called only when we're about to close the SEND
