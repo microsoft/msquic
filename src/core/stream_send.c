@@ -1573,12 +1573,6 @@ QuicStreamCleanupReliableReset(
     //
     while (Stream->SendRequests) {
         QUIC_SEND_REQUEST* Req = Stream->SendRequests;
-        //
-        // Ignore send requests that should have been ACK'd, i.e., < ReliableOffsetSend
-        //
-        if (Req->StreamOffset + Req->TotalLength < Stream->ReliableOffsetSend) {
-            continue;
-        }
         Stream->SendRequests = Req->Next;
         if (Stream->SendRequests == NULL) {
             Stream->SendRequestsTail = &Stream->SendRequests;
