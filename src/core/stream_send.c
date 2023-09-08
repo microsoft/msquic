@@ -1608,7 +1608,8 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicStreamOnResetReliableAck(
     _In_ QUIC_STREAM* Stream
-) {
+    )
+{
     Stream->Flags.LocalCloseResetReliableAcked = TRUE;
     QuicTraceLogStreamVerbose(
             ResetReliableAck,
