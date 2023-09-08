@@ -685,7 +685,30 @@ QuicStreamParamSet(
             break;
         }
 
-        Stream->ReliableOffsetSend = *(uint64_t*)Buffer;
+        if (!Stream->Flags.LocalCloseResetReliable) {
+            //
+            // We haven't called shutdown reliable yet. App can set ReliableOffsetSend to be whatever.
+            //
+            Stream->ReliableOffsetSend = *(uint64_t*)Buffer;
+        } else if (*(uint64_t*)Buffer < Stream->ReliableOffsetSend) {
+            //
+            // TODO - Determine if we need to support this feature in future iterations.
+            //
+            // We have previously called shutdown reliable.
+            // Now we are loosening the conditions of the ReliableReset,
+            // but we have already sent the peer a stale frame, we must retransmit
+            // this new frame, and update the metadata.
+            //
+            QuicTraceLogStreamInfo(
+                MultipleReliableResetSendNotSupported,
+                Stream,
+                "Multiple RELIABLE_RESET frames sending not supported.");
+            Status = QUIC_STATUS_INVALID_STATE;
+            break;
+        } else {
+            Status = QUIC_STATUS_INVALID_STATE;
+            break;
+        }
 
         QuicTraceLogStreamInfo(
             ReliableSendOffsetSet,
