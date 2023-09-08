@@ -3184,7 +3184,7 @@ QuicTestStreamReliableReset(
     #define BUFFER_SIZE 10000
     #define RELIABLE_SIZE 5000
 
-     struct StreamReliableReset {
+    struct StreamReliableReset {
 
     CxPlatEvent ClientStreamShutdownComplete;
     CxPlatEvent ServerStreamShutdownComplete;
