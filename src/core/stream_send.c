@@ -1212,6 +1212,7 @@ QuicStreamOnLoss(
         //
         // Ignore any STREAM frame packet loss if we aborted reliably and
         // received acks for enough data.
+        //
         return FALSE;
     }
 
