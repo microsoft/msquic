@@ -180,7 +180,7 @@ param (
     [string]$OsRunner = "",
 
     [Parameter(Mandatory = $false)]
-    [int]$NumIterations = 0
+    [int]$NumIterations = 1
 )
 
 Set-StrictMode -Version 'Latest'
@@ -352,17 +352,10 @@ if (![string]::IsNullOrWhiteSpace($ExtraArtifactDir)) {
     $TestArguments += " -ExtraArtifactDir $ExtraArtifactDir"
 }
 
-if ($NumIterations -gt 1) {
-    for ($iteration = 1; $iteration -le $NumIterations; $iteration++) {
+for ($iteration = 1; $iteration -le $NumIterations; $iteration++) {
+    if ($NumIterations -gt 1) {
         Write-Host "------- Iteration $iteration -------"
-
-        if (!$Kernel -and !$SkipUnitTests) {
-            Invoke-Expression ($RunTest + " -Path $MsQuicPlatTest " + $TestArguments)
-            Invoke-Expression ($RunTest + " -Path $MsQuicCoreTest " + $TestArguments)
-        }
-        Invoke-Expression ($RunTest + " -Path $MsQuicTest " + $TestArguments)
     }
-} else {
     # Run the script.
     if (!$Kernel -and !$SkipUnitTests) {
         Invoke-Expression ($RunTest + " -Path $MsQuicPlatTest " + $TestArguments)
