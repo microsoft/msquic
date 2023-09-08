@@ -108,6 +108,24 @@ tracepoint(CLOG_STREAM_C, UpdatePriority , arg1, arg3);\
 
 
 /*----------------------------------------------------------
+// Decoder Ring for MultipleReliableResetSendNotSupported
+// [strm][%p] Multiple RELIABLE_RESET frames sending not supported.
+// QuicTraceLogStreamInfo(
+                MultipleReliableResetSendNotSupported,
+                Stream,
+                "Multiple RELIABLE_RESET frames sending not supported.");
+// arg1 = arg1 = Stream = arg1
+----------------------------------------------------------*/
+#ifndef _clog_3_ARGS_TRACE_MultipleReliableResetSendNotSupported
+#define _clog_3_ARGS_TRACE_MultipleReliableResetSendNotSupported(uniqueId, arg1, encoded_arg_string)\
+tracepoint(CLOG_STREAM_C, MultipleReliableResetSendNotSupported , arg1);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for ReliableSendOffsetSet
 // [strm][%p] Reliable send offset set to %llu
 // QuicTraceLogStreamInfo(

@@ -7212,6 +7212,18 @@
       ],
       "macroName": "QuicTraceLogConnInfo"
     },
+    "MultipleReliableResetSendNotSupported": {
+      "ModuleProperites": {},
+      "TraceString": "[strm][%p] Multiple RELIABLE_RESET frames sending not supported.",
+      "UniqueId": "MultipleReliableResetSendNotSupported",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        }
+      ],
+      "macroName": "QuicTraceLogStreamInfo"
+    },
     "NegotiatedDisable1RttEncryption": {
       "ModuleProperites": {},
       "TraceString": "[conn][%p] Negotiated Disable 1-RTT Encryption",
@@ -15173,6 +15185,11 @@
         "UniquenessHash": "c7a85c07-7d70-b24f-313d-2db9a20333bd",
         "TraceID": "MtuSearching",
         "EncodingString": "[conn][%p] Path[%hhu] Mtu Discovery Search Packet Sending with MTU %hu"
+      },
+      {
+        "UniquenessHash": "7c8ed181-6e73-0552-43f1-7e00ce4948af",
+        "TraceID": "MultipleReliableResetSendNotSupported",
+        "EncodingString": "[strm][%p] Multiple RELIABLE_RESET frames sending not supported."
       },
       {
         "UniquenessHash": "270621d6-25e4-9741-4f15-ed4a5b3d4f33",

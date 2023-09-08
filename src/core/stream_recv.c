@@ -204,6 +204,11 @@ QuicStreamProcessReliableResetFrame(
     if (Stream->RecvBuffer.BaseOffset >= Stream->RecvMaxLength) {
         Stream->Flags.LocalCloseAcked = TRUE;
         Stream->Flags.RemoteCloseAcked = TRUE;
+        QuicTraceEvent(
+            StreamRecvState,
+            "[strm][%p] Recv State: %hhu",
+            Stream,
+            QuicStreamRecvGetState(Stream));
         QuicTraceLogStreamVerbose(
             ProcessReliableReset,
             Stream,
@@ -1160,6 +1165,11 @@ QuicStreamReceiveComplete(
     } else if (Stream->Flags.RemoteCloseResetReliable && Stream->RecvBuffer.BaseOffset >= Stream->RecvMaxLength) {
         Stream->Flags.LocalCloseAcked = TRUE;
         Stream->Flags.RemoteCloseAcked = TRUE;
+        QuicTraceEvent(
+            StreamRecvState,
+            "[strm][%p] Recv State: %hhu",
+            Stream,
+            QuicStreamRecvGetState(Stream));
         QuicTraceLogStreamVerbose(
             ReliableResetReceiveComplete,
             Stream,

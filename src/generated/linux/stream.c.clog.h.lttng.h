@@ -82,6 +82,25 @@ TRACEPOINT_EVENT(CLOG_STREAM_C, UpdatePriority,
 
 
 /*----------------------------------------------------------
+// Decoder Ring for MultipleReliableResetSendNotSupported
+// [strm][%p] Multiple RELIABLE_RESET frames sending not supported.
+// QuicTraceLogStreamInfo(
+                MultipleReliableResetSendNotSupported,
+                Stream,
+                "Multiple RELIABLE_RESET frames sending not supported.");
+// arg1 = arg1 = Stream = arg1
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_STREAM_C, MultipleReliableResetSendNotSupported,
+    TP_ARGS(
+        const void *, arg1), 
+    TP_FIELDS(
+        ctf_integer_hex(uint64_t, arg1, arg1)
+    )
+)
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for ReliableSendOffsetSet
 // [strm][%p] Reliable send offset set to %llu
 // QuicTraceLogStreamInfo(
