@@ -3279,9 +3279,6 @@ QuicTestStreamReliableReset(
             Stream.SetReliableOffset(1));
     }
 }
-
-
-
 void
 QuicTestStreamReliableResetMultipleSends(
     )
