@@ -3319,7 +3319,7 @@ QuicTestStreamReliableResetMultipleSends(
         }
         return QUIC_STATUS_SUCCESS;
     }
-};
+    };
 
     MsQuicRegistration Registration(true);
     TEST_TRUE(Registration.IsValid());
