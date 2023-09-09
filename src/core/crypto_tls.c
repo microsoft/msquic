@@ -866,7 +866,7 @@ QuicCryptoTlsEncodeTransportParameters(
         RequiredTPLen +=
             TlsTransportParamLength(
                 QUIC_TP_ID_ENABLE_TIMESTAMP,
-                value);
+                QuicVarIntSize(value));
     }
     if (TestParam != NULL) {
         RequiredTPLen +=

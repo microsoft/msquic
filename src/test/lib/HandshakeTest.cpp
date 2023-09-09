@@ -1976,28 +1976,22 @@ QuicTestOneWayDelayNegotiation(
         static QUIC_STATUS s_ConnectionCallback(_In_ MsQuicConnection*, _In_opt_ void* context, _Inout_ QUIC_CONNECTION_EVENT* Event) {
             return ((Context*)context)->ConnectionCallback(Event);
         }
-    };
-
-    Context ClientContext, ServerContext;
+    } ClientContext, ServerContext;
 
     MsQuicRegistration Registration(true);
     TEST_TRUE(Registration.IsValid());
 
-    MsQuicSettings ServerSettings;
-    MsQuicSettings ClientSettings;
-    ServerSettings.SetOneWayDelayEnabled(ServerSupport);
-    ClientSettings.SetOneWayDelayEnabled(ClientSupport);
-
+    MsQuicSettings ServerSettings; ServerSettings.SetOneWayDelayEnabled(ServerSupport);
     MsQuicConfiguration ServerConfiguration(Registration, "MsQuicTest", ServerSettings, ServerSelfSignedCredConfig);
     TEST_QUIC_SUCCEEDED(ServerConfiguration.GetInitStatus());
 
+    MsQuicSettings ClientSettings; ClientSettings.SetOneWayDelayEnabled(ClientSupport);
     MsQuicConfiguration ClientConfiguration(Registration, "MsQuicTest", ClientSettings, MsQuicCredentialConfig());
     TEST_QUIC_SUCCEEDED(ClientConfiguration.GetInitStatus());
 
     QUIC_ADDRESS_FAMILY QuicAddrFamily = (Family == 4) ? QUIC_ADDRESS_FAMILY_INET : QUIC_ADDRESS_FAMILY_INET6;
     QuicAddr ServerLocalAddr(QuicAddrFamily);
     MsQuicAutoAcceptListener Listener(Registration, ServerConfiguration, Context::s_ConnectionCallback, &ServerContext);
-
     TEST_QUIC_SUCCEEDED(Listener.Start("MsQuicTest", &ServerLocalAddr.SockAddr));
     TEST_QUIC_SUCCEEDED(Listener.GetInitStatus());
     TEST_QUIC_SUCCEEDED(Listener.GetLocalAddr(ServerLocalAddr));
@@ -2005,7 +1999,6 @@ QuicTestOneWayDelayNegotiation(
     MsQuicConnection Connection(Registration, CleanUpManual, Context::s_ConnectionCallback, &ClientContext);
     TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
     TEST_QUIC_SUCCEEDED(Connection.Start(ClientConfiguration, ServerLocalAddr.GetFamily(), QUIC_TEST_LOOPBACK_FOR_AF(ServerLocalAddr.GetFamily()), ServerLocalAddr.GetPort()));
-
     TEST_TRUE(Connection.HandshakeCompleteEvent.WaitTimeout(TestWaitTimeout));
     TEST_TRUE(Connection.HandshakeComplete);
     TEST_TRUE(Listener.LastConnection->HandshakeCompleteEvent.WaitTimeout(TestWaitTimeout));

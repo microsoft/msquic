@@ -3047,6 +3047,7 @@ QuicConnProcessPeerTransportParameters(
         if (Connection->Settings.ReliableResetEnabled) {
             Connection->State.ReliableResetStreamNegotiated =
                 !!(Connection->PeerTransportParams.Flags & QUIC_TP_FLAG_RELIABLE_RESET_ENABLED);
+
             //
             // Send event to app to indicate result of negotiation if app cares.
             //
@@ -3067,6 +3068,7 @@ QuicConnProcessPeerTransportParameters(
                 !!(Connection->PeerTransportParams.Flags & QUIC_TP_FLAG_TIMESTAMP_RECV_ENABLED);
             Connection->State.TimestampRecvNegotiated = // Peer wants to send, so we can recv
                 !!(Connection->PeerTransportParams.Flags & QUIC_TP_FLAG_TIMESTAMP_SEND_ENABLED);
+
             //
             // Send event to app to indicate result of negotiation if app cares.
             //
@@ -7307,17 +7309,13 @@ QuicConnApplyNewSettings(
             Connection->Stats.GreaseBitNegotiated = TRUE;
         }
 
-        if (QuicConnIsServer(Connection) &&
-            Connection->Settings.ReliableResetEnabled &&
-            (Connection->PeerTransportParams.Flags & QUIC_TP_FLAG_RELIABLE_RESET_ENABLED) > 0) {
-            Connection->State.ReliableResetStreamNegotiated = TRUE;
-        }
-
         if (QuicConnIsServer(Connection) && Connection->Settings.ReliableResetEnabled) {
+            Connection->State.ReliableResetStreamNegotiated =
+                !!(Connection->PeerTransportParams.Flags & QUIC_TP_FLAG_RELIABLE_RESET_ENABLED);
+
             //
             // Send event to app to indicate result of negotiation if app cares.
             //
-
             QUIC_CONNECTION_EVENT Event;
             Event.Type = QUIC_CONNECTION_EVENT_RELIABLE_RESET_NEGOTIATED;
             Event.RELIABLE_RESET_NEGOTIATED.IsNegotiated = Connection->State.ReliableResetStreamNegotiated;
@@ -7327,6 +7325,29 @@ QuicConnApplyNewSettings(
                 Connection,
                 "Indicating QUIC_CONNECTION_EVENT_RELIABLE_RESET_NEGOTIATED [IsNegotiated=%hhu]",
                 Event.RELIABLE_RESET_NEGOTIATED.IsNegotiated);
+            QuicConnIndicateEvent(Connection, &Event);
+        }
+
+        if (QuicConnIsServer(Connection) && Connection->Settings.OneWayDelayEnabled) {
+            Connection->State.TimestampSendNegotiated = // Peer wants to recv, so we can send
+                !!(Connection->PeerTransportParams.Flags & QUIC_TP_FLAG_TIMESTAMP_RECV_ENABLED);
+            Connection->State.TimestampRecvNegotiated = // Peer wants to send, so we can recv
+                !!(Connection->PeerTransportParams.Flags & QUIC_TP_FLAG_TIMESTAMP_SEND_ENABLED);
+
+            //
+            // Send event to app to indicate result of negotiation if app cares.
+            //
+            QUIC_CONNECTION_EVENT Event;
+            Event.Type = QUIC_CONNECTION_EVENT_ONE_WAY_DELAY_NEGOTIATED;
+            Event.ONE_WAY_DELAY_NEGOTIATED.SendNegotiated = Connection->State.TimestampSendNegotiated;
+            Event.ONE_WAY_DELAY_NEGOTIATED.ReceiveNegotiated = Connection->State.TimestampRecvNegotiated;
+
+            QuicTraceLogConnVerbose(
+                IndicateOneWayDelayNegotiated,
+                Connection,
+                "Indicating QUIC_CONNECTION_EVENT_ONE_WAY_DELAY_NEGOTIATED [Send=%hhu,Recv=%hhu]",
+                Event.ONE_WAY_DELAY_NEGOTIATED.SendNegotiated,
+                Event.ONE_WAY_DELAY_NEGOTIATED.ReceiveNegotiated);
             QuicConnIndicateEvent(Connection, &Event);
         }
 
