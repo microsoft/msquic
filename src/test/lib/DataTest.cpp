@@ -3268,6 +3268,7 @@ QuicTestStreamReliableReset(
             Stream.SetReliableOffset(UINT64_MAX));
         TEST_QUIC_SUCCEEDED(Stream.SetReliableOffset(RELIABLE_SIZE));
         TEST_QUIC_SUCCEEDED(Stream.Shutdown(0)); // Queues up a shutdown operation.
+        TEST_QUIC_STATUS(QUIC_STATUS_INVALID_STATE, Stream.SetReliableOffset(RELIABLE_SIZE));
         // Should behave similar to QUIC_STREAM_SHUTDOWN_FLAG_GRACEFUL, with some restrictions.
         TEST_TRUE(Context.ClientStreamShutdownComplete.WaitTimeout(TestWaitTimeout));
         TEST_TRUE(Context.ServerStreamShutdownComplete.WaitTimeout(TestWaitTimeout));

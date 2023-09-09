@@ -4975,41 +4975,69 @@ void QuicTestStreamParam()
 
     //
     // QUIC_PARAM_STREAM_RELIABLE_OFFSET
+    // QUIC_PARAM_STREAM_RELIABLE_OFFSET_RECV
     //
     {
         TestScopeLogger LogScope0("QUIC_PARAM_STREAM_RELIABLE_OFFSET");
         MsQuicStream Stream(Connection, QUIC_STREAM_OPEN_FLAG_NONE);
-        uint32_t ReliableSize32 = 1;
-        uint64_t ReliableSize = 1;
+        uint32_t BufferSize = 1;
 
         //
-        // SetParam Test Invalid States.
+        // GetParam Test Invalid States.
         //
         {
-            TestScopeLogger LogScope1("SetParam is not allowed");
+            TestScopeLogger LogScope1("GetParam for invalid states");
             TEST_QUIC_STATUS(
-                QUIC_STATUS_INVALID_PARAMETER,
-                MsQuic->SetParam(
+                QUIC_STATUS_BUFFER_TOO_SMALL,
+                MsQuic->GetParam(
                     Stream.Handle,
                     QUIC_PARAM_STREAM_RELIABLE_OFFSET,
-                    sizeof(ReliableSize),
+                    &BufferSize,
+                    NULL));
+            BufferSize = 1;
+            TEST_QUIC_STATUS(
+                QUIC_STATUS_BUFFER_TOO_SMALL,
+                MsQuic->GetParam(
+                    Stream.Handle,
+                    QUIC_PARAM_STREAM_RELIABLE_OFFSET_RECV,
+                    &BufferSize,
                     NULL));
 
-            TEST_QUIC_STATUS(
-                QUIC_STATUS_INVALID_PARAMETER,
-                MsQuic->SetParam(
-                    Stream.Handle,
-                    QUIC_PARAM_STREAM_RELIABLE_OFFSET,
-                    sizeof(ReliableSize32),
-                    &ReliableSize32));
+            BufferSize = 64;
 
             TEST_QUIC_STATUS(
-                QUIC_STATUS_INVALID_STATE,
-                MsQuic->SetParam(
+                QUIC_STATUS_INVALID_PARAMETER,
+                MsQuic->GetParam(
+                    Stream.Handle,
+                    QUIC_PARAM_STREAM_RELIABLE_OFFSET_RECV,
+                    &BufferSize,
+                    NULL));
+            TEST_QUIC_STATUS(
+                QUIC_STATUS_INVALID_PARAMETER,
+                MsQuic->GetParam(
+                    Stream.Handle,
+                    QUIC_PARAM_STREAM_RELIABLE_OFFSET_RECV,
+                    &BufferSize,
+                    NULL));
+
+            uint64_t Buffer = 10000;
+            TEST_QUIC_STATUS(
+                QUIC_STATUS_SUCCESS,
+                MsQuic->GetParam(
                     Stream.Handle,
                     QUIC_PARAM_STREAM_RELIABLE_OFFSET,
-                    sizeof(ReliableSize),
-                    &ReliableSize));
+                    &BufferSize,
+                    &Buffer));
+            TEST_TRUE(Buffer == 0);
+            Buffer = 10000;
+            TEST_QUIC_STATUS(
+                QUIC_STATUS_SUCCESS,
+                MsQuic->GetParam(
+                    Stream.Handle,
+                    QUIC_PARAM_STREAM_RELIABLE_OFFSET_RECV,
+                    &BufferSize,
+                    &Buffer));
+            TEST_TRUE(Buffer == 0);
         }
     }
 }
