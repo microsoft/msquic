@@ -519,7 +519,7 @@ typedef union {
     QUIC_RUN_VN_TP_ODD_SIZE_PARAMS OddSizeVnTpParams;
     UINT8 TestServerVNTP;
     BOOLEAN Bidirectional;
-    QUIC_RUN_FEATURE_NEGOTIATION ReliableResetNegotiationParams;
+    QUIC_RUN_FEATURE_NEGOTIATION FeatureNegotiationParams;
     QUIC_HANDSHAKE_LOSS_PARAMS HandshakeLossParams;
 } QUIC_IOCTL_PARAMS;
 
@@ -1349,17 +1349,17 @@ QuicTestCtlEvtIoDeviceControl(
         CXPLAT_FRE_ASSERT(Params != nullptr);
         QuicTestCtlRun(
             QuicTestReliableResetNegotiation(
-                Params->ReliableResetNegotiationParams.Family,
-                Params->ReliableResetNegotiationParams.ServerSupport,
-                Params->ReliableResetNegotiationParams.ClientSupport));
+                Params->FeatureNegotiationParams.Family,
+                Params->FeatureNegotiationParams.ServerSupport,
+                Params->FeatureNegotiationParams.ClientSupport));
         break;
     case IOCTL_QUIC_ONE_WAY_DELAY_NEGOTIATION:
         CXPLAT_FRE_ASSERT(Params != nullptr);
         QuicTestCtlRun(
             QuicTestOneWayDelayNegotiation(
-                Params->ReliableResetNegotiationParams.Family,
-                Params->ReliableResetNegotiationParams.ServerSupport,
-                Params->ReliableResetNegotiationParams.ClientSupport));
+                Params->FeatureNegotiationParams.Family,
+                Params->FeatureNegotiationParams.ServerSupport,
+                Params->FeatureNegotiationParams.ClientSupport));
         break;
 #endif
     default:
