@@ -1004,10 +1004,10 @@ TEST_P(WithFamilyArgs, FailedVersionNegotiation) {
     }
 }
 
-TEST_P(WithReliableResetArgs, ReliableResetNegotiation) {
+TEST_P(WithFeatureSupportArgs, ReliableResetNegotiation) {
     TestLoggerT<ParamType> Logger("ReliableResetNegotiation", GetParam());
     if (TestingKernelMode) {
-        QUIC_RUN_RELIABLE_RESET_NEGOTIATION Params = {
+        QUIC_RUN_FEATURE_NEGOTIATION Params = {
             GetParam().Family,
             GetParam().ServerSupport,
             GetParam().ClientSupport
@@ -1018,10 +1018,10 @@ TEST_P(WithReliableResetArgs, ReliableResetNegotiation) {
     }
 }
 
-TEST_P(WithReliableResetArgs, OneWayDelayNegotiation) {
+TEST_P(WithFeatureSupportArgs, OneWayDelayNegotiation) {
     TestLoggerT<ParamType> Logger("OneWayDelayNegotiation", GetParam());
     if (TestingKernelMode) {
-        QUIC_RUN_RELIABLE_RESET_NEGOTIATION Params = {
+        QUIC_RUN_FEATURE_NEGOTIATION Params = {
             GetParam().Family,
             GetParam().ServerSupport,
             GetParam().ClientSupport
@@ -2293,8 +2293,8 @@ INSTANTIATE_TEST_SUITE_P(
 
 INSTANTIATE_TEST_SUITE_P(
     Handshake,
-    WithReliableResetArgs,
-    testing::ValuesIn(ReliableResetArgs::Generate()));
+    WithFeatureSupportArgs,
+    testing::ValuesIn(FeatureSupportArgs::Generate()));
 #endif
 
 #ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
