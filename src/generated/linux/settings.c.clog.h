@@ -723,6 +723,21 @@ tracepoint(CLOG_SETTINGS_C, SettingReliableResetEnabled , arg2);\
 
 
 /*----------------------------------------------------------
+// Decoder Ring for SettingOneWayDelayEnabled
+// [sett] OneWayDelayEnabled     = %hhu
+// QuicTraceLogVerbose(SettingOneWayDelayEnabled,          "[sett] OneWayDelayEnabled     = %hhu", Settings->OneWayDelayEnabled);
+// arg2 = arg2 = Settings->OneWayDelayEnabled = arg2
+----------------------------------------------------------*/
+#ifndef _clog_3_ARGS_TRACE_SettingOneWayDelayEnabled
+#define _clog_3_ARGS_TRACE_SettingOneWayDelayEnabled(uniqueId, encoded_arg_string, arg2)\
+tracepoint(CLOG_SETTINGS_C, SettingOneWayDelayEnabled , arg2);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for SettingDumpLFixedServerID
 // [sett] FixedServerID          = %u
 // QuicTraceLogVerbose(SettingDumpLFixedServerID,              "[sett] FixedServerID          = %u", Settings->FixedServerID);

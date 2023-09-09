@@ -1018,6 +1018,20 @@ TEST_P(WithReliableResetArgs, ReliableResetNegotiation) {
     }
 }
 
+TEST_P(WithReliableResetArgs, OneWayDelayNegotiation) {
+    TestLoggerT<ParamType> Logger("OneWayDelayNegotiation", GetParam());
+    if (TestingKernelMode) {
+        QUIC_RUN_RELIABLE_RESET_NEGOTIATION Params = {
+            GetParam().Family,
+            GetParam().ServerSupport,
+            GetParam().ClientSupport
+        };
+        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_ONE_WAY_DELAY_NEGOTIATION, Params));
+    } else {
+        QuicTestOneWayDelayNegotiation(GetParam().Family, GetParam().ServerSupport, GetParam().ClientSupport);
+    }
+}
+
 #endif // QUIC_API_ENABLE_PREVIEW_FEATURES
 
 TEST_P(WithHandshakeArgs5, CustomServerCertificateValidation) {

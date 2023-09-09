@@ -3521,7 +3521,7 @@
     },
     "DecodeTPReliableReset": {
       "ModuleProperites": {},
-      "TraceString": "[conn][%p] TP: Decode Reliable Reset",
+      "TraceString": "[conn][%p] TP: Reliable Reset",
       "UniqueId": "DecodeTPReliableReset",
       "splitArgs": [
         {
@@ -4081,7 +4081,7 @@
     },
     "EncodeTPReliableReset": {
       "ModuleProperites": {},
-      "TraceString": "[conn][%p] TP: Encode Reliable Reset",
+      "TraceString": "[conn][%p] TP: Reliable Reset",
       "UniqueId": "EncodeTPReliableReset",
       "splitArgs": [
         {
@@ -4155,6 +4155,22 @@
         {
           "DefinationEncoding": "hu",
           "MacroVariableName": "arg4"
+        }
+      ],
+      "macroName": "QuicTraceLogConnVerbose"
+    },
+    "EncodeTPTimestamp": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] TP: Timestamp (%u)",
+      "UniqueId": "EncodeTPTimestamp",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        },
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg3"
         }
       ],
       "macroName": "QuicTraceLogConnVerbose"
@@ -5730,6 +5746,26 @@
         }
       ],
       "macroName": "QuicTraceLogStreamVerbose"
+    },
+    "IndicateOneWayDelayNegotiated": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] Indicating QUIC_CONNECTION_EVENT_ONE_WAY_DELAY_NEGOTIATED [Send=%hhu,Recv=%hhu]",
+      "UniqueId": "IndicateOneWayDelayNegotiated",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        },
+        {
+          "DefinationEncoding": "hhu",
+          "MacroVariableName": "arg3"
+        },
+        {
+          "DefinationEncoding": "hhu",
+          "MacroVariableName": "arg4"
+        }
+      ],
+      "macroName": "QuicTraceLogConnVerbose"
     },
     "IndicatePeerAccepted": {
       "ModuleProperites": {},
@@ -10602,6 +10638,18 @@
       ],
       "macroName": "QuicTraceLogVerbose"
     },
+    "SettingOneWayDelayEnabled": {
+      "ModuleProperites": {},
+      "TraceString": "[sett] OneWayDelayEnabled     = %hhu",
+      "UniqueId": "SettingOneWayDelayEnabled",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "hhu",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceLogVerbose"
+    },
     "SettingReliableResetEnabled": {
       "ModuleProperites": {},
       "TraceString": "[sett] ReliableResetEnabled   = %hhu",
@@ -13777,9 +13825,9 @@
         "EncodingString": "[conn][%p] TP: Preferred Address"
       },
       {
-        "UniquenessHash": "eabf7a25-2986-5193-5044-318b4711544e",
+        "UniquenessHash": "ffb471c9-3bff-13c2-957a-46960c4d2d72",
         "TraceID": "DecodeTPReliableReset",
-        "EncodingString": "[conn][%p] TP: Decode Reliable Reset"
+        "EncodingString": "[conn][%p] TP: Reliable Reset"
       },
       {
         "UniquenessHash": "95f4176f-e0b5-1420-53d9-44e244c44ea5",
@@ -13957,9 +14005,9 @@
         "EncodingString": "[conn][%p] TP: Preferred Address"
       },
       {
-        "UniquenessHash": "75ce2146-e447-c891-d263-df4892bddda9",
+        "UniquenessHash": "57938f8b-12b5-524a-9d60-497533c53a23",
         "TraceID": "EncodeTPReliableReset",
-        "EncodingString": "[conn][%p] TP: Encode Reliable Reset"
+        "EncodingString": "[conn][%p] TP: Reliable Reset"
       },
       {
         "UniquenessHash": "214be45a-42ba-44e1-05c2-f82f3200e671",
@@ -13980,6 +14028,11 @@
         "UniquenessHash": "4650353e-149e-c99a-1ab8-9b7e6a1e698e",
         "TraceID": "EncodeTPTest",
         "EncodingString": "[conn][%p] TP: TEST TP (Type %hu, Length %hu)"
+      },
+      {
+        "UniquenessHash": "408e4667-6ad0-c3e2-7b68-096ceaeed69a",
+        "TraceID": "EncodeTPTimestamp",
+        "EncodingString": "[conn][%p] TP: Timestamp (%u)"
       },
       {
         "UniquenessHash": "efc12508-e546-ff7a-e943-829ad204f871",
@@ -14355,6 +14408,11 @@
         "UniquenessHash": "537b9c54-10f5-965c-b3e5-6e6e5c66dc85",
         "TraceID": "IndicateIdealSendBuffer",
         "EncodingString": "[strm][%p] Indicating QUIC_STREAM_EVENT_IDEAL_SEND_BUFFER_SIZE = %llu"
+      },
+      {
+        "UniquenessHash": "f3e73807-c52c-8b02-e3e2-9db446cb267c",
+        "TraceID": "IndicateOneWayDelayNegotiated",
+        "EncodingString": "[conn][%p] Indicating QUIC_CONNECTION_EVENT_ONE_WAY_DELAY_NEGOTIATED [Send=%hhu,Recv=%hhu]"
       },
       {
         "UniquenessHash": "446a0073-26fb-eed7-4ed4-fa9838fbd654",
@@ -15975,6 +16033,11 @@
         "UniquenessHash": "3204077b-15dd-eacb-1594-51d66d8db668",
         "TraceID": "SettingHyStartEnabled",
         "EncodingString": "[sett] HyStartEnabled         = %hhu"
+      },
+      {
+        "UniquenessHash": "9ede3ef3-06f4-9d8a-7335-f95b1c93cfa9",
+        "TraceID": "SettingOneWayDelayEnabled",
+        "EncodingString": "[sett] OneWayDelayEnabled     = %hhu"
       },
       {
         "UniquenessHash": "f5c7d703-ecd1-8dd0-c16d-11857945bfcf",

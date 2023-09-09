@@ -67,6 +67,7 @@ typedef enum eSniNameType {
 #define QUIC_TP_ID_CIBIR_ENCODING                           0x1000          // {varint, varint}
 #define QUIC_TP_ID_GREASE_QUIC_BIT                          0x2AB2          // N/A
 #define QUIC_TP_ID_RELIABLE_RESET_ENABLED                   0x17f7586d2cb570   // varint
+#define QUIC_TP_ID_ENABLE_TIMESTAMP                         0x7158          // varint
 
 BOOLEAN
 QuicTpIdIsReserved(
@@ -857,6 +858,16 @@ QuicCryptoTlsEncodeTransportParameters(
                 QUIC_TP_ID_RELIABLE_RESET_ENABLED,
                 0);
     }
+    if (TransportParams->Flags & (QUIC_TP_FLAG_TIMESTAMP_SEND_ENABLED | QUIC_TP_FLAG_TIMESTAMP_RECV_ENABLED)) {
+        const uint32_t value =
+            (TransportParams->Flags &
+             (QUIC_TP_FLAG_TIMESTAMP_SEND_ENABLED | QUIC_TP_FLAG_TIMESTAMP_RECV_ENABLED))
+            >> QUIC_TP_FLAG_TIMESTAMP_SHIFT;
+        RequiredTPLen +=
+            TlsTransportParamLength(
+                QUIC_TP_ID_ENABLE_TIMESTAMP,
+                value);
+    }
     if (TestParam != NULL) {
         RequiredTPLen +=
             TlsTransportParamLength(
@@ -1181,7 +1192,23 @@ QuicCryptoTlsEncodeTransportParameters(
         QuicTraceLogConnVerbose(
             EncodeTPReliableReset,
             Connection,
-            "TP: Encode Reliable Reset");
+            "TP: Reliable Reset");
+    }
+    if (TransportParams->Flags & (QUIC_TP_FLAG_TIMESTAMP_SEND_ENABLED | QUIC_TP_FLAG_TIMESTAMP_RECV_ENABLED)) {
+        const uint32_t value =
+            (TransportParams->Flags &
+             (QUIC_TP_FLAG_TIMESTAMP_SEND_ENABLED | QUIC_TP_FLAG_TIMESTAMP_RECV_ENABLED))
+            >> QUIC_TP_FLAG_TIMESTAMP_SHIFT;
+        TPBuf =
+            TlsWriteTransportParamVarInt(
+                QUIC_TP_ID_ENABLE_TIMESTAMP,
+                value,
+                TPBuf);
+        QuicTraceLogConnVerbose(
+            EncodeTPTimestamp,
+            Connection,
+            "TP: Timestamp (%u)",
+            value);
     }
     if (TestParam != NULL) {
         TPBuf =
@@ -1855,8 +1882,37 @@ QuicCryptoTlsDecodeTransportParameters( // NOLINT(readability-function-size, goo
             QuicTraceLogConnVerbose(
                 DecodeTPReliableReset,
                 Connection,
-                "TP: Decode Reliable Reset");
+                "TP: Reliable Reset");
             break;
+
+        case QUIC_TP_ID_ENABLE_TIMESTAMP: {
+            QUIC_VAR_INT value = 0;
+            if (!TRY_READ_VAR_INT(value)) {
+                QuicTraceEvent(
+                    ConnErrorStatus,
+                    "[conn][%p] ERROR, %u, %s.",
+                    Connection,
+                    Length,
+                    "Invalid length of QUIC_TP_ID_ENABLE_TIMESTAMP");
+                goto Exit;
+            }
+            if (value > 3) {
+                QuicTraceEvent(
+                    ConnError,
+                    "[conn][%p] ERROR, %s.",
+                    Connection,
+                    "Invalid value of QUIC_TP_ID_ENABLE_TIMESTAMP");
+                goto Exit;
+            }
+            QuicTraceLogConnVerbose(
+                DecodeTPMinAckDelay,
+                Connection,
+                "TP: Timestamp (%u)",
+                (uint32_t)value);
+            value <<= QUIC_TP_FLAG_TIMESTAMP_SHIFT; // Convert to QUIC_TP_FLAG_TIMESTAMP_*
+            TransportParams->Flags |= (uint32_t)value;
+            break;
+        }
 
         default:
             if (QuicTpIdIsReserved(Id)) {

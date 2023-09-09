@@ -1093,6 +1093,28 @@ tracepoint(CLOG_CONNECTION_C, IndicateReliableResetNegotiated , arg1, arg3);\
 
 
 /*----------------------------------------------------------
+// Decoder Ring for IndicateOneWayDelayNegotiated
+// [conn][%p] Indicating QUIC_CONNECTION_EVENT_ONE_WAY_DELAY_NEGOTIATED [Send=%hhu,Recv=%hhu]
+// QuicTraceLogConnVerbose(
+                IndicateOneWayDelayNegotiated,
+                Connection,
+                "Indicating QUIC_CONNECTION_EVENT_ONE_WAY_DELAY_NEGOTIATED [Send=%hhu,Recv=%hhu]",
+                Event.ONE_WAY_DELAY_NEGOTIATED.SendNegotiated,
+                Event.ONE_WAY_DELAY_NEGOTIATED.ReceiveNegotiated);
+// arg1 = arg1 = Connection = arg1
+// arg3 = arg3 = Event.ONE_WAY_DELAY_NEGOTIATED.SendNegotiated = arg3
+// arg4 = arg4 = Event.ONE_WAY_DELAY_NEGOTIATED.ReceiveNegotiated = arg4
+----------------------------------------------------------*/
+#ifndef _clog_5_ARGS_TRACE_IndicateOneWayDelayNegotiated
+#define _clog_5_ARGS_TRACE_IndicateOneWayDelayNegotiated(uniqueId, arg1, encoded_arg_string, arg3, arg4)\
+tracepoint(CLOG_CONNECTION_C, IndicateOneWayDelayNegotiated , arg1, arg3, arg4);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for IndicatePeerCertificateReceived
 // [conn][%p] Indicating QUIC_CONNECTION_EVENT_PEER_CERTIFICATE_RECEIVED (0x%x, 0x%x)
 // QuicTraceLogConnVerbose(

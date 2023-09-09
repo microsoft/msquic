@@ -193,6 +193,13 @@ QuicTestReliableResetNegotiation(
     _In_ bool ServerSupport,
     _In_ bool ClientSupport
 );
+
+void
+QuicTestOneWayDelayNegotiation(
+    _In_ int Family,
+    _In_ bool ServerSupport,
+    _In_ bool ClientSupport
+    );
 #endif // QUIC_API_ENABLE_PREVIEW_FEATURES
 
 void
@@ -1199,4 +1206,8 @@ typedef struct {
     QUIC_CTL_CODE(111, METHOD_BUFFERED, FILE_WRITE_DATA)
     // QUIC_RUN_RELIABLE_RESET_NEGOTIATION
 
-#define QUIC_MAX_IOCTL_FUNC_CODE 111
+#define IOCTL_QUIC_ONE_WAY_DELAY_NEGOTIATION \
+    QUIC_CTL_CODE(112, METHOD_BUFFERED, FILE_WRITE_DATA)
+    // QUIC_RUN_RELIABLE_RESET_NEGOTIATION
+
+#define QUIC_MAX_IOCTL_FUNC_CODE 112

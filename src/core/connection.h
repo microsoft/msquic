@@ -185,6 +185,16 @@ typedef union QUIC_CONNECTION_STATE {
         //
         BOOLEAN ReliableResetStreamNegotiated : 1;
 
+        //
+        // Sending timestamps has been negotiated.
+        //
+        BOOLEAN TimestampSendNegotiated : 1;
+
+        //
+        // Receiving timestamps has been negotiated.
+        //
+        BOOLEAN TimestampRecvNegotiated : 1;
+
 #ifdef CxPlatVerifierEnabledByAddr
         //
         // The calling app is being verified (app or driver verifier).

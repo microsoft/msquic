@@ -482,7 +482,8 @@ size_t QUIC_IOCTL_BUFFER_SIZES[] =
     sizeof(INT32),
     sizeof(QUIC_HANDSHAKE_LOSS_PARAMS),
     sizeof(QUIC_RUN_CUSTOM_CERT_VALIDATION),
-    sizeof(QUIC_RUN_RELIABLE_RESET_NEGOTIATION)
+    sizeof(QUIC_RUN_RELIABLE_RESET_NEGOTIATION),
+    sizeof(QUIC_RUN_RELIABLE_RESET_NEGOTIATION),
 };
 
 CXPLAT_STATIC_ASSERT(
@@ -1348,6 +1349,14 @@ QuicTestCtlEvtIoDeviceControl(
         CXPLAT_FRE_ASSERT(Params != nullptr);
         QuicTestCtlRun(
             QuicTestReliableResetNegotiation(
+                Params->ReliableResetNegotiationParams.Family,
+                Params->ReliableResetNegotiationParams.ServerSupport,
+                Params->ReliableResetNegotiationParams.ClientSupport));
+        break;
+    case IOCTL_QUIC_ONE_WAY_DELAY_NEGOTIATION:
+        CXPLAT_FRE_ASSERT(Params != nullptr);
+        QuicTestCtlRun(
+            QuicTestOneWayDelayNegotiation(
                 Params->ReliableResetNegotiationParams.Family,
                 Params->ReliableResetNegotiationParams.ServerSupport,
                 Params->ReliableResetNegotiationParams.ClientSupport));
