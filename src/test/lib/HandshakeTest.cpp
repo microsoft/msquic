@@ -1891,19 +1891,14 @@ QuicTestReliableResetNegotiation(
     struct Context {
         bool Negotiated {false};
         bool CallbackReceived {false};
-        QUIC_STATUS ConnectionCallback(_Inout_ QUIC_CONNECTION_EVENT* Event)
-        {
+        QUIC_STATUS ConnectionCallback(_Inout_ QUIC_CONNECTION_EVENT* Event) {
             if (Event->Type == QUIC_CONNECTION_EVENT_RELIABLE_RESET_NEGOTIATED) {
                 CallbackReceived = true;
                 Negotiated = Event->RELIABLE_RESET_NEGOTIATED.IsNegotiated;
             }
             return QUIC_STATUS_SUCCESS;
         }
-        static QUIC_STATUS s_ConnectionCallback(
-            _In_ MsQuicConnection* /* Connection */,
-            _In_opt_ void* context,
-            _Inout_ QUIC_CONNECTION_EVENT* Event
-        ) {
+        static QUIC_STATUS s_ConnectionCallback(_In_ MsQuicConnection*, _In_opt_ void* context, _Inout_ QUIC_CONNECTION_EVENT* Event) {
             return ((Context*)context)->ConnectionCallback(Event);
         }
     };
@@ -1970,8 +1965,7 @@ QuicTestOneWayDelayNegotiation(
         bool SendNegotiated {false};
         bool RecvNegotiated {false};
         bool CallbackReceived {false};
-        QUIC_STATUS ConnectionCallback(_Inout_ QUIC_CONNECTION_EVENT* Event)
-        {
+        QUIC_STATUS ConnectionCallback(_Inout_ QUIC_CONNECTION_EVENT* Event) {
             if (Event->Type == QUIC_CONNECTION_EVENT_ONE_WAY_DELAY_NEGOTIATED) {
                 CallbackReceived = true;
                 SendNegotiated = Event->ONE_WAY_DELAY_NEGOTIATED.SendNegotiated;
@@ -1979,11 +1973,7 @@ QuicTestOneWayDelayNegotiation(
             }
             return QUIC_STATUS_SUCCESS;
         }
-        static QUIC_STATUS s_ConnectionCallback(
-            _In_ MsQuicConnection* /* Connection */,
-            _In_opt_ void* context,
-            _Inout_ QUIC_CONNECTION_EVENT* Event
-        ) {
+        static QUIC_STATUS s_ConnectionCallback(_In_ MsQuicConnection*, _In_opt_ void* context, _Inout_ QUIC_CONNECTION_EVENT* Event) {
             return ((Context*)context)->ConnectionCallback(Event);
         }
     };
@@ -2023,7 +2013,7 @@ QuicTestOneWayDelayNegotiation(
 
     MsQuicSettings ListenerServerSettings2;
     TEST_QUIC_SUCCEEDED(Listener.LastConnection->GetSettings(&ListenerServerSettings2));
-    TEST_EQUAL(ListenerServerSettings2.ReliableResetEnabled, (int) ServerSupport);
+    TEST_EQUAL(ListenerServerSettings2.OneWayDelayEnabled, (int)ServerSupport);
 
     if (ClientSupport) {
         TEST_TRUE(ClientContext.CallbackReceived);
