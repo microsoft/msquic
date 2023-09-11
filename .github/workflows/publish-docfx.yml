@@ -33,7 +33,7 @@ jobs:
         dotnet-version: 7.x
 
     - run: dotnet tool update -g docfx
-    - run: ./scripts/generate-docfx-yml.ps1 ./docs
+    - run: powershell -File ./scripts/generate-docfx-yml.ps1 ./docs
     - run: docfx docfx.json
 
     - name: Deploy
