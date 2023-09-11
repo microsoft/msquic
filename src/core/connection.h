@@ -272,6 +272,7 @@ typedef struct QUIC_CONN_STATS {
         uint64_t Start;
         uint64_t InitialFlightEnd;      // Processed all peer's Initial packets
         uint64_t HandshakeFlightEnd;    // Processed all peer's Handshake packets
+        int64_t PhaseShift;             // Time between local and peer epochs
     } Timing;
 
     struct {

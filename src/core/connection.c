@@ -839,7 +839,7 @@ QuicConnUpdateRtt(
         RttUpdated = TRUE;
 
     } else {
-        uint32_t PrevRtt = Path->SmoothedRtt;
+        uint64_t PrevRtt = Path->SmoothedRtt;
         if (Path->SmoothedRtt > LatestRtt) {
             Path->RttVariance = (3 * Path->RttVariance + Path->SmoothedRtt - LatestRtt) / 4;
         } else {
@@ -855,8 +855,8 @@ QuicConnUpdateRtt(
             RttUpdatedMsg,
             Connection,
             "Updated Rtt=%u.%03u ms, Var=%u.%03u",
-            Path->SmoothedRtt / 1000, Path->SmoothedRtt % 1000,
-            Path->RttVariance / 1000, Path->RttVariance % 1000);
+            (uint32_t)(Path->SmoothedRtt / 1000), (uint32_t)(Path->SmoothedRtt % 1000),
+            (uint32_t)(Path->RttVariance / 1000), (uint32_t)(Path->RttVariance % 1000));
     }
 }
 
@@ -4579,6 +4579,7 @@ QuicConnRecvFrames(
             if (!QuicLossDetectionProcessAckFrame(
                     &Connection->LossDetection,
                     Path,
+                    Packet,
                     EncryptLevel,
                     FrameType,
                     PayloadLength,
@@ -5302,6 +5303,33 @@ QuicConnRecvFrames(
         case QUIC_FRAME_IMMEDIATE_ACK: // Always accept the frame, because we always enable support.
             AckImmediately = TRUE;
             break;
+
+        case QUIC_FRAME_TIMESTAMP: { // Always accept the frame, because we always enable support.
+            if (!Connection->State.TimestampRecvNegotiated) {
+                QuicTraceEvent(
+                    ConnError,
+                    "[conn][%p] ERROR, %s.",
+                    Connection,
+                    "Received TIMESTAMP frame when not negotiated");
+                QuicConnTransportError(Connection, QUIC_ERROR_PROTOCOL_VIOLATION);
+                return FALSE;
+
+            }
+            QUIC_TIMESTAMP_EX Frame;
+            if (!QuicTimestampFrameDecode(PayloadLength, Payload, &Offset, &Frame)) {
+                QuicTraceEvent(
+                    ConnError,
+                    "[conn][%p] ERROR, %s.",
+                    Connection,
+                    "Decoding TIMESTAMP frame");
+                QuicConnTransportError(Connection, QUIC_ERROR_FRAME_ENCODING_ERROR);
+                return FALSE;
+            }
+
+            Packet->HasNonProbingFrame = TRUE;
+            Packet->SendTimestamp = Frame.Timestamp;
+            break;
+        }
 
         case QUIC_FRAME_RELIABLE_RESET_STREAM:
             // TODO - Implement this frame.

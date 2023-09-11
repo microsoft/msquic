@@ -421,7 +421,7 @@ QuicReliableResetFrameEncode(
         sizeof(uint8_t) +     // Type
         QuicVarIntSize(Frame->ErrorCode) +
         QuicVarIntSize(Frame->StreamID) +
-        QuicVarIntSize(Frame->FinalSize) + 
+        QuicVarIntSize(Frame->FinalSize) +
         QuicVarIntSize(Frame->ReliableSize);
 
     if (BufferLength < *Offset + RequiredLength) {
@@ -1307,6 +1307,48 @@ QuicAckFrequencyFrameDecode(
     return TRUE;
 }
 
+_Success_(return != FALSE)
+BOOLEAN
+QuicTimestampFrameEncode(
+    _In_ const QUIC_TIMESTAMP_EX * const Frame,
+    _Inout_ uint16_t* Offset,
+    _In_ uint16_t BufferLength,
+    _Out_writes_to_(BufferLength, *Offset) uint8_t* Buffer
+    )
+{
+    uint16_t RequiredLength =
+        QuicVarIntSize(QUIC_FRAME_TIMESTAMP) +
+        QuicVarIntSize(Frame->Timestamp);
+
+    if (BufferLength < *Offset + RequiredLength) {
+        return FALSE;
+    }
+
+    Buffer = Buffer + *Offset;
+    Buffer = QuicVarIntEncode(QUIC_FRAME_TIMESTAMP, Buffer);
+    QuicVarIntEncode(Frame->Timestamp, Buffer);
+    *Offset += RequiredLength;
+
+    return TRUE;
+}
+
+_Success_(return != FALSE)
+BOOLEAN
+QuicTimestampFrameDecode(
+    _In_ uint16_t BufferLength,
+    _In_reads_bytes_(BufferLength)
+        const uint8_t * const Buffer,
+    _Inout_ uint16_t* Offset,
+    _Out_ QUIC_TIMESTAMP_EX* Frame
+    )
+{
+    if (!QuicVarIntDecode(BufferLength, Buffer, Offset, &Frame->Timestamp)) {
+        return FALSE;
+    }
+
+    return TRUE;
+}
+
 _IRQL_requires_max_(DISPATCH_LEVEL)
 BOOLEAN
 QuicFrameLog(
@@ -1940,6 +1982,28 @@ QuicFrameLog(
             PtkConnPre(Connection),
             PktRxPre(Rx),
             PacketNumber);
+        break;
+    }
+
+    case QUIC_FRAME_TIMESTAMP: {
+        QUIC_TIMESTAMP_EX Frame;
+        if (!QuicTimestampFrameDecode(PacketLength, Packet, Offset, &Frame)) {
+            QuicTraceLogVerbose(
+                FrameLogTimestampInvalid,
+                "[%c][%cX][%llu]   TIMESTAMP [Invalid]",
+                PtkConnPre(Connection),
+                PktRxPre(Rx),
+                PacketNumber);
+            return FALSE;
+        }
+
+        QuicTraceLogVerbose(
+            FrameLogTimestamp,
+            "[%c][%cX][%llu]   TIMESTAMP %llu",
+            PtkConnPre(Connection),
+            PktRxPre(Rx),
+            PacketNumber,
+            Frame.Timestamp);
         break;
     }
 
