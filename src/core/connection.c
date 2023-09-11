@@ -822,9 +822,11 @@ QuicConnUpdateRtt(
         LatestRtt = 1;
     }
 
+    BOOLEAN NewMinRtt = FALSE;
     Path->LatestRttSample = LatestRtt;
     if (LatestRtt < Path->MinRtt) {
         Path->MinRtt = LatestRtt;
+        NewMinRtt = TRUE;
     }
     if (LatestRtt > Path->MaxRtt) {
         Path->MaxRtt = LatestRtt;
@@ -846,13 +848,18 @@ QuicConnUpdateRtt(
     }
 
     if (OurSendTimestamp != UINT64_MAX) {
-        if (Connection->Stats.Timing.PhaseShift == 0) {
+        if (Connection->Stats.Timing.PhaseShift == 0 || NewMinRtt) {
             Connection->Stats.Timing.PhaseShift =
-                PeerSendTimestamp - OurSendTimestamp - LatestRtt / 2;
+                (int64_t)PeerSendTimestamp - (int64_t)OurSendTimestamp - (int64_t)LatestRtt / 2;
             Path->OneWayDelayLatest = Path->OneWayDelay = LatestRtt / 2;
+            QuicTraceLogConnVerbose(
+                PhaseShiftUpdated,
+                Connection,
+                "New Phase Shift: %lld us",
+                Connection->Stats.Timing.PhaseShift);
         } else {
             Path->OneWayDelayLatest =
-                PeerSendTimestamp - OurSendTimestamp - Connection->Stats.Timing.PhaseShift;
+                (uint64_t)((int64_t)PeerSendTimestamp - (int64_t)OurSendTimestamp - (int64_t)Connection->Stats.Timing.PhaseShift);
             Path->OneWayDelay = (7 * Path->OneWayDelay + Path->OneWayDelayLatest) / 8;
         }
     }

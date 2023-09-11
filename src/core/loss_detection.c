@@ -1495,7 +1495,7 @@ QuicLossDetectionProcessAckBlocks(
             Connection,
             Path,
             MinRtt,
-            NewLargestAckTimestamp,
+            NewLargestAckTimestamp - Connection->Stats.Timing.Start,
             Packet->SendTimestamp);
     }
 
