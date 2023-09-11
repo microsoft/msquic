@@ -716,7 +716,7 @@ QuicLossDetectionRetransmitFrames(
                 QuicSendSetStreamSendFlag(
                     &Connection->Send,
                     Packet->Frames[i].RELIABLE_RESET_STREAM.Stream,
-                    QUIC_STREAM_SEND_FLAG_SEND_ABORT,
+                    QUIC_STREAM_SEND_FLAG_RELIABLE_ABORT,
                     FALSE);
             break;
 
