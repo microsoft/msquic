@@ -286,17 +286,17 @@ QuicConnLogBbr(
     QUIC_CONGESTION_CONTROL_BBR* Bbr = &Cc->Bbr;
 
     QuicTraceEvent(
-            ConnBbr,
-            "[conn][%p] BBR: State=%u RState=%u CongestionWindow=%u BytesInFlight=%u BytesInFlightMax=%u MinRttEst=%lu EstBw=%lu AppLimited=%u",
-            Connection,
-            Bbr->BbrState,
-            Bbr->RecoveryState,
-            BbrCongestionControlGetCongestionWindow(Cc),
-            Bbr->BytesInFlight,
-            Bbr->BytesInFlightMax,
-            Bbr->MinRtt,
-            BbrCongestionControlGetBandwidth(Cc) / BW_UNIT,
-            BbrCongestionControlIsAppLimited(Cc));
+        ConnBbr,
+        "[conn][%p] BBR: State=%u RState=%u CongestionWindow=%u BytesInFlight=%u BytesInFlightMax=%u MinRttEst=%lu EstBw=%lu AppLimited=%u",
+        Connection,
+        Bbr->BbrState,
+        Bbr->RecoveryState,
+        BbrCongestionControlGetCongestionWindow(Cc),
+        Bbr->BytesInFlight,
+        Bbr->BytesInFlightMax,
+        Bbr->MinRtt,
+        BbrCongestionControlGetBandwidth(Cc) / BW_UNIT,
+        BbrCongestionControlIsAppLimited(Cc));
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -319,18 +319,18 @@ BbrCongestionControlLogOutFlowStatus(
     const QUIC_CONGESTION_CONTROL_BBR* Bbr = &Cc->Bbr;
 
     QuicTraceEvent(
-            ConnOutFlowStats,
-            "[conn][%p] OUT: BytesSent=%llu InFlight=%u InFlightMax=%u CWnd=%u SSThresh=%u ConnFC=%llu ISB=%llu PostedBytes=%llu SRtt=%u",
-            Connection,
-            Connection->Stats.Send.TotalBytes,
-            Bbr->BytesInFlight,
-            Bbr->BytesInFlightMax,
-            Bbr->CongestionWindow,
-            0,
-            Connection->Send.PeerMaxData - Connection->Send.OrderedStreamBytesSent,
-            Connection->SendBuffer.IdealBytes,
-            Connection->SendBuffer.PostedBytes,
-            Path->GotFirstRttSample ? (uint32_t)Path->SmoothedRtt : 0);
+        ConnOutFlowStatsV2,
+        "[conn][%p] OUT: BytesSent=%llu InFlight=%u InFlightMax=%u CWnd=%u SSThresh=%u ConnFC=%llu ISB=%llu PostedBytes=%llu SRtt=%llu",
+        Connection,
+        Connection->Stats.Send.TotalBytes,
+        Bbr->BytesInFlight,
+        Bbr->BytesInFlightMax,
+        Bbr->CongestionWindow,
+        0,
+        Connection->Send.PeerMaxData - Connection->Send.OrderedStreamBytesSent,
+        Connection->SendBuffer.IdealBytes,
+        Connection->SendBuffer.PostedBytes,
+        Path->GotFirstRttSample ? Path->SmoothedRtt : 0);
 }
 
 //

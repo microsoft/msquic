@@ -148,11 +148,11 @@ TRACEPOINT_EVENT(CLOG_CUBIC_C, ConnSpuriousCongestion,
 
 
 /*----------------------------------------------------------
-// Decoder Ring for ConnOutFlowStats
-// [conn][%p] OUT: BytesSent=%llu InFlight=%u InFlightMax=%u CWnd=%u SSThresh=%u ConnFC=%llu ISB=%llu PostedBytes=%llu SRtt=%u
+// Decoder Ring for ConnOutFlowStatsV2
+// [conn][%p] OUT: BytesSent=%llu InFlight=%u InFlightMax=%u CWnd=%u SSThresh=%u ConnFC=%llu ISB=%llu PostedBytes=%llu SRtt=%llu
 // QuicTraceEvent(
-        ConnOutFlowStats,
-        "[conn][%p] OUT: BytesSent=%llu InFlight=%u InFlightMax=%u CWnd=%u SSThresh=%u ConnFC=%llu ISB=%llu PostedBytes=%llu SRtt=%u",
+        ConnOutFlowStatsV2,
+        "[conn][%p] OUT: BytesSent=%llu InFlight=%u InFlightMax=%u CWnd=%u SSThresh=%u ConnFC=%llu ISB=%llu PostedBytes=%llu SRtt=%llu",
         Connection,
         Connection->Stats.Send.TotalBytes,
         Cubic->BytesInFlight,
@@ -162,7 +162,7 @@ TRACEPOINT_EVENT(CLOG_CUBIC_C, ConnSpuriousCongestion,
         Connection->Send.PeerMaxData - Connection->Send.OrderedStreamBytesSent,
         Connection->SendBuffer.IdealBytes,
         Connection->SendBuffer.PostedBytes,
-        Path->GotFirstRttSample ? (uint32_t)Path->SmoothedRtt : 0);
+        Path->GotFirstRttSample ? Path->SmoothedRtt : 0);
 // arg2 = arg2 = Connection = arg2
 // arg3 = arg3 = Connection->Stats.Send.TotalBytes = arg3
 // arg4 = arg4 = Cubic->BytesInFlight = arg4
@@ -172,9 +172,9 @@ TRACEPOINT_EVENT(CLOG_CUBIC_C, ConnSpuriousCongestion,
 // arg8 = arg8 = Connection->Send.PeerMaxData - Connection->Send.OrderedStreamBytesSent = arg8
 // arg9 = arg9 = Connection->SendBuffer.IdealBytes = arg9
 // arg10 = arg10 = Connection->SendBuffer.PostedBytes = arg10
-// arg11 = arg11 = Path->GotFirstRttSample ? (uint32_t)Path->SmoothedRtt : 0 = arg11
+// arg11 = arg11 = Path->GotFirstRttSample ? Path->SmoothedRtt : 0 = arg11
 ----------------------------------------------------------*/
-TRACEPOINT_EVENT(CLOG_CUBIC_C, ConnOutFlowStats,
+TRACEPOINT_EVENT(CLOG_CUBIC_C, ConnOutFlowStatsV2,
     TP_ARGS(
         const void *, arg2,
         unsigned long long, arg3,
@@ -185,7 +185,7 @@ TRACEPOINT_EVENT(CLOG_CUBIC_C, ConnOutFlowStats,
         unsigned long long, arg8,
         unsigned long long, arg9,
         unsigned long long, arg10,
-        unsigned int, arg11), 
+        unsigned long long, arg11), 
     TP_FIELDS(
         ctf_integer_hex(uint64_t, arg2, arg2)
         ctf_integer(uint64_t, arg3, arg3)
@@ -196,6 +196,6 @@ TRACEPOINT_EVENT(CLOG_CUBIC_C, ConnOutFlowStats,
         ctf_integer(uint64_t, arg8, arg8)
         ctf_integer(uint64_t, arg9, arg9)
         ctf_integer(uint64_t, arg10, arg10)
-        ctf_integer(unsigned int, arg11, arg11)
+        ctf_integer(uint64_t, arg11, arg11)
     )
 )

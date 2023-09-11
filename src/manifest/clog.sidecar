@@ -1691,6 +1691,54 @@
       ],
       "macroName": "QuicTraceEvent"
     },
+    "ConnOutFlowStatsV2": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] OUT: BytesSent=%llu InFlight=%u InFlightMax=%u CWnd=%u SSThresh=%u ConnFC=%llu ISB=%llu PostedBytes=%llu SRtt=%llu",
+      "UniqueId": "ConnOutFlowStatsV2",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "llu",
+          "MacroVariableName": "arg3"
+        },
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg4"
+        },
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg5"
+        },
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg6"
+        },
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg7"
+        },
+        {
+          "DefinationEncoding": "llu",
+          "MacroVariableName": "arg8"
+        },
+        {
+          "DefinationEncoding": "llu",
+          "MacroVariableName": "arg9"
+        },
+        {
+          "DefinationEncoding": "llu",
+          "MacroVariableName": "arg10"
+        },
+        {
+          "DefinationEncoding": "llu",
+          "MacroVariableName": "arg11"
+        }
+      ],
+      "macroName": "QuicTraceEvent"
+    },
     "ConnOutFlowStreamStats": {
       "ModuleProperites": {},
       "TraceString": "[conn][%p] OUT: StreamFC=%llu StreamSendWindow=%llu",
@@ -13210,6 +13258,11 @@
         "UniquenessHash": "9165bf3c-da91-8d88-41bc-6709ad299bed",
         "TraceID": "ConnOutFlowStats",
         "EncodingString": "[conn][%p] OUT: BytesSent=%llu InFlight=%u InFlightMax=%u CWnd=%u SSThresh=%u ConnFC=%llu ISB=%llu PostedBytes=%llu SRtt=%u"
+      },
+      {
+        "UniquenessHash": "c4a4399a-7480-49c5-a291-82feafb39bca",
+        "TraceID": "ConnOutFlowStatsV2",
+        "EncodingString": "[conn][%p] OUT: BytesSent=%llu InFlight=%u InFlightMax=%u CWnd=%u SSThresh=%u ConnFC=%llu ISB=%llu PostedBytes=%llu SRtt=%llu"
       },
       {
         "UniquenessHash": "55425e95-f2a7-6b0d-41e9-82bdeb5d9082",

@@ -1138,6 +1138,48 @@
                 name="SmoothedRtt"
                 />
           </template>
+          <template tid="tid_CONN_OUT_FLOW_STATS_V2">
+            <data
+                inType="win:Pointer"
+                name="Connection"
+                />
+            <data
+                inType="win:UInt64"
+                name="BytesSent"
+                />
+            <data
+                inType="win:UInt32"
+                name="BytesInFlight"
+                />
+            <data
+                inType="win:UInt32"
+                name="BytesInFlightMax"
+                />
+            <data
+                inType="win:UInt32"
+                name="CongestionWindow"
+                />
+            <data
+                inType="win:UInt32"
+                name="SlowStartThreshold"
+                />
+            <data
+                inType="win:UInt64"
+                name="ConnectionFlowControl"
+                />
+            <data
+                inType="win:UInt64"
+                name="IdealBytes"
+                />
+            <data
+                inType="win:UInt64"
+                name="PostedBytes"
+                />
+            <data
+                inType="win:UInt64"
+                name="SmoothedRtt"
+                />
+          </template>
           <template tid="tid_CONN_OUT_FLOW_STREAM_STATS">
             <data
                 inType="win:Pointer"
@@ -3293,6 +3335,15 @@
               symbol="QuicConnRecvUdpDatagrams"
               template="tid_CONN_COUNT_COUNT"
               value="5192"
+              />
+          <event
+              keywords="ut:Connection ut:DataFlow"
+              level="win:Verbose"
+              message="$(string.Etw.ConnOutFlowStats)"
+              opcode="Connection"
+              symbol="QuicConnOutFlowStatsV2"
+              template="tid_CONN_OUT_FLOW_STATS_V2"
+              value="5193"
               />
           <!-- 6144 - 7167 | Stream Events -->
           <event
