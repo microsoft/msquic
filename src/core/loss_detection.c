@@ -362,7 +362,6 @@ QuicLossDetectionUpdateTimer(
         }
     }
 
-
     if (Delay == 0 && ExecuteImmediatelyIfNecessary) {
         //
         // In some cases if the timer already should have elapsed we will
