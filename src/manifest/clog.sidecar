@@ -4313,6 +4313,22 @@
       ],
       "macroName": "QuicTraceLogConnVerbose"
     },
+    "FoundVF": {
+      "ModuleProperites": {},
+      "TraceString": "[ xdp] Found NetSvc-VF interfaces. NetSvc IfIdx:%d, VF IfIdx:%d",
+      "UniqueId": "FoundVF",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "d",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "d",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macroName": "QuicTraceEvent"
+    },
     "FrameLogAck": {
       "ModuleProperites": {},
       "TraceString": "[%c][%cX][%llu]   ACK Largest:%llu Delay:%llu",
@@ -14255,6 +14271,11 @@
         "UniquenessHash": "4e7f072c-3335-6eb0-dcca-13d3fdf87fe8",
         "TraceID": "ForceKeyUpdate",
         "EncodingString": "[conn][%p] Forcing key update"
+      },
+      {
+        "UniquenessHash": "d6391ff6-753c-5ebe-50af-901df6026da4",
+        "TraceID": "FoundVF",
+        "EncodingString": "[ xdp][%p] Found NetSvc-VF interfaces. NetSvc IfIdx:%lu, VF IfIdx:%lu"
       },
       {
         "UniquenessHash": "60343716-1a2c-e07a-f524-7337b986b581",

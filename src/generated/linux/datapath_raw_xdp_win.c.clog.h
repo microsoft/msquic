@@ -14,6 +14,10 @@
 #include "datapath_raw_xdp_win.c.clog.h.lttng.h"
 #endif
 #include <lttng/tracepoint-event.h>
+#ifndef _clog_MACRO_QuicTraceLogInfo
+#define _clog_MACRO_QuicTraceLogInfo  1
+#define QuicTraceLogInfo(a, ...) _clog_CAT(_clog_ARGN_SELECTOR(__VA_ARGS__), _clog_CAT(_,a(#a, __VA_ARGS__)))
+#endif
 #ifndef _clog_MACRO_QuicTraceLogVerbose
 #define _clog_MACRO_QuicTraceLogVerbose  1
 #define QuicTraceLogVerbose(a, ...) _clog_CAT(_clog_ARGN_SELECTOR(__VA_ARGS__), _clog_CAT(_,a(#a, __VA_ARGS__)))
@@ -25,6 +29,28 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
+/*----------------------------------------------------------
+// Decoder Ring for FoundVF
+// [ xdp][%p] Found NetSvc-VF interfaces. NetSvc IfIdx:%lu, VF IfIdx:%lu
+// QuicTraceLogInfo(
+                            FoundVF,
+                            "[ xdp][%p] Found NetSvc-VF interfaces. NetSvc IfIdx:%lu, VF IfIdx:%lu",
+                            Xdp,
+                            Interface->IfIndex,
+                            Interface->ActualIfIndex);
+// arg2 = arg2 = Xdp = arg2
+// arg3 = arg3 = Interface->IfIndex = arg3
+// arg4 = arg4 = Interface->ActualIfIndex = arg4
+----------------------------------------------------------*/
+#ifndef _clog_5_ARGS_TRACE_FoundVF
+#define _clog_5_ARGS_TRACE_FoundVF(uniqueId, encoded_arg_string, arg2, arg3, arg4)\
+tracepoint(CLOG_DATAPATH_RAW_XDP_C, FoundVF , arg2, arg3, arg4);\
+
+#endif
+
+
+
+
 /*----------------------------------------------------------
 // Decoder Ring for XdpInitialize
 // [ xdp][%p] XDP initialized, %u procs

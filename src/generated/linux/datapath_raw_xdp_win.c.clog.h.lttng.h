@@ -2,6 +2,33 @@
 
 
 /*----------------------------------------------------------
+// Decoder Ring for FoundVF
+// [ xdp][%p] Found NetSvc-VF interfaces. NetSvc IfIdx:%lu, VF IfIdx:%lu
+// QuicTraceLogInfo(
+                            FoundVF,
+                            "[ xdp][%p] Found NetSvc-VF interfaces. NetSvc IfIdx:%lu, VF IfIdx:%lu",
+                            Xdp,
+                            Interface->IfIndex,
+                            Interface->ActualIfIndex);
+// arg2 = arg2 = Xdp = arg2
+// arg3 = arg3 = Interface->IfIndex = arg3
+// arg4 = arg4 = Interface->ActualIfIndex = arg4
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_C, FoundVF,
+    TP_ARGS(
+        const void *, arg2,
+        unsigned int, arg3,
+        unsigned int, arg4), 
+    TP_FIELDS(
+        ctf_integer_hex(uint64_t, arg2, arg2)
+        ctf_integer(unsigned int, arg3, arg3)
+        ctf_integer(unsigned int, arg4, arg4)
+    )
+)
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for XdpInitialize
 // [ xdp][%p] XDP initialized, %u procs
 // QuicTraceLogVerbose(
