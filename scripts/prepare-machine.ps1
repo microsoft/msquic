@@ -214,10 +214,11 @@ function Install-Xdp-Sdk {
 # Downloads the latest version of XDP (for building) for Linux.
 function Install-Linux-Xdp {
     if (!$IsLinux) { return } # Linux only
-    git clone https://github.com/xdp-project/xdp-tools ./submodules/xdp-tools
     pushd ./submodules/xdp-tools
-    git submodule init && git submodule update
+    git checkout v1.4.0
+    git submodule init && git submodule update # libbpf
     popd # ./submodules/xdp-tools
+    sudo apt-get -y install gcc-multilib libnl-3-dev libnl-genl-3-dev libnl-route-3-dev zlib1g-dev zlib1g pkg-config m4 clang libpcap-dev libelf-dev
 }
 
 # Installs the XDP driver (for testing).
@@ -516,11 +517,15 @@ if ($InitSubmodules) {
         git submodule init submodules/googletest
     }
 
+    if ($UseXdp && $IsLinux) {
+        git submodule init submodules/xdp-tools
+    }
+
     git submodule update --jobs=8
 }
 
 if ($InstallDuoNic) { Install-DuoNic }
-if ($UseXdp && $ForLinux) { Install-Linux-Xdp }
+if ($UseXdp && $IsLinux) { Install-Linux-Xdp }
 if ($InstallXdpSdk) { Install-Xdp-Sdk }
 if ($InstallXdpDriver) { Install-Xdp-Driver }
 if ($UninstallXdp) { Uninstall-Xdp }

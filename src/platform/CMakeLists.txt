@@ -81,7 +81,7 @@ if(CX_PLATFORM STREQUAL "linux" AND QUIC_USE_XDP)
     # XDP program setting
     add_custom_command(
         OUTPUT ${PROJECT_SOURCE_DIR}/datapath_raw_xdp_kern.o
-        COMMAND clang -O2 -g -target bpf -c ${PROJECT_SOURCE_DIR}/src/platform/datapath_raw_xdp_linux_kern.c -o ${PROJECT_SOURCE_DIR}/datapath_raw_xdp_kern.o
+        COMMAND clang -O2 -g -target bpf -c ${PROJECT_SOURCE_DIR}/src/platform/datapath_raw_xdp_linux_kern.c -o ${PROJECT_SOURCE_DIR}/datapath_raw_xdp_kern.o -I${PROJECT_SOURCE_DIR}/submodules/xdp-tools/lib
         DEPENDS ${PROJECT_SOURCE_DIR}/src/platform/datapath_raw_xdp_linux_kern.c
     )
 

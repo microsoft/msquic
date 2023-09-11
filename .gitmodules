@@ -12,3 +12,6 @@
 [submodule "submodules/clog"]
 	path = submodules/clog
 	url = https://github.com/microsoft/CLOG.git
+[submodule "submodules/xdp-tools"]
+	path = submodules/xdp-tools
+	url = https://github.com/xdp-project/xdp-tools.git
