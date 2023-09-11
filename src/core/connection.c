@@ -5400,7 +5400,7 @@ QuicConnRecvPostProcessing(
             CXPLAT_DBG_ASSERT((*Path)->DestCid != NULL);
             QuicPathValidate((*Path));
             (*Path)->SendChallenge = TRUE;
-            (*Path)->PathValidationStartTime = CxPlatTimeUs32();
+            (*Path)->PathValidationStartTime = CxPlatTimeUs64();
 
             //
             // NB: The path challenge payload is initialized here and reused
@@ -5417,7 +5417,7 @@ QuicConnRecvPostProcessing(
             if (Connection->Paths[0].IsPeerValidated) { // Not already doing peer validation.
                 Connection->Paths[0].IsPeerValidated = FALSE;
                 Connection->Paths[0].SendChallenge = TRUE;
-                Connection->Paths[0].PathValidationStartTime = CxPlatTimeUs32();
+                Connection->Paths[0].PathValidationStartTime = CxPlatTimeUs64();
                 CxPlatRandom(sizeof(Connection->Paths[0].Challenge), Connection->Paths[0].Challenge);
             }
 
