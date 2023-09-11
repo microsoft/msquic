@@ -1449,7 +1449,7 @@ QuicLossDetectionProcessAckBlocks(
             return;
         }
 
-        uint64_t PacketRtt = CxPlatTimeDiff32(PacketMeta->SentTime, (uint32_t)TimeNow);
+        uint64_t PacketRtt = CxPlatTimeDiff64(PacketMeta->SentTime, TimeNow);
         QuicTraceLogVerbose(
             PacketTxAcked,
             "[%c][TX][%llu] ACKed (%u.%03u ms)",
