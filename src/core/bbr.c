@@ -137,10 +137,10 @@ BbrBandwidthFilterOnPacketAcked(
 
         if (AckedPacket->Flags.HasLastAckedPacketInfo) {
             CXPLAT_DBG_ASSERT(AckedPacket->TotalBytesSent >= AckedPacket->LastAckedPacketInfo.TotalBytesSent);
-            CXPLAT_DBG_ASSERT(CxPlatTimeAtOrBefore32(AckedPacket->LastAckedPacketInfo.SentTime, AckedPacket->SentTime));
-            
-            uint32_t AckElapsed = 0;
-            uint32_t SendElapsed = CxPlatTimeDiff32(AckedPacket->LastAckedPacketInfo.SentTime, AckedPacket->SentTime);
+            CXPLAT_DBG_ASSERT(CxPlatTimeAtOrBefore64(AckedPacket->LastAckedPacketInfo.SentTime, AckedPacket->SentTime));
+
+            uint64_t AckElapsed = 0;
+            uint64_t SendElapsed = CxPlatTimeDiff64(AckedPacket->LastAckedPacketInfo.SentTime, AckedPacket->SentTime);
 
             if (SendElapsed) {
                 SendRate = (kMicroSecsInSec * BW_UNIT *
@@ -148,10 +148,10 @@ BbrBandwidthFilterOnPacketAcked(
                     SendElapsed);
             }
 
-            if (!CxPlatTimeAtOrBefore32(AckEvent->AdjustedAckTime, AckedPacket->LastAckedPacketInfo.AdjustedAckTime)) {
-                AckElapsed = CxPlatTimeDiff32(AckedPacket->LastAckedPacketInfo.AdjustedAckTime, AckEvent->AdjustedAckTime);
+            if (!CxPlatTimeAtOrBefore64(AckEvent->AdjustedAckTime, AckedPacket->LastAckedPacketInfo.AdjustedAckTime)) {
+                AckElapsed = CxPlatTimeDiff64(AckedPacket->LastAckedPacketInfo.AdjustedAckTime, AckEvent->AdjustedAckTime);
             } else {
-                AckElapsed = CxPlatTimeDiff32(AckedPacket->LastAckedPacketInfo.AckTime, (uint32_t)TimeNow);
+                AckElapsed = CxPlatTimeDiff64(AckedPacket->LastAckedPacketInfo.AckTime, (uint32_t)TimeNow);
             }
 
             CXPLAT_DBG_ASSERT(AckEvent->NumTotalAckedRetransmittableBytes >= AckedPacket->LastAckedPacketInfo.TotalBytesAcked);
@@ -160,13 +160,13 @@ BbrBandwidthFilterOnPacketAcked(
                            (AckEvent->NumTotalAckedRetransmittableBytes - AckedPacket->LastAckedPacketInfo.TotalBytesAcked) /
                            AckElapsed);
             }
-        } else if (!CxPlatTimeAtOrBefore32((uint32_t)TimeNow, AckedPacket->SentTime)) {
-            CXPLAT_DBG_ASSERT(CxPlatTimeDiff32(AckedPacket->SentTime, (uint32_t)TimeNow) != 0);
+        } else if (!CxPlatTimeAtOrBefore64((uint32_t)TimeNow, AckedPacket->SentTime)) {
+            CXPLAT_DBG_ASSERT(CxPlatTimeDiff64(AckedPacket->SentTime, (uint32_t)TimeNow) != 0);
             SendRate = (kMicroSecsInSec * BW_UNIT *
                         AckEvent->NumTotalAckedRetransmittableBytes /
-                        CxPlatTimeDiff32(AckedPacket->SentTime, (uint32_t)TimeNow));
+                        CxPlatTimeDiff64(AckedPacket->SentTime, (uint32_t)TimeNow));
         }
-        
+
         if (SendRate == UINT64_MAX && AckRate == UINT64_MAX) {
             continue;
         }
@@ -175,7 +175,7 @@ BbrBandwidthFilterOnPacketAcked(
 
         QUIC_SLIDING_WINDOW_EXTREMUM_ENTRY Entry = (QUIC_SLIDING_WINDOW_EXTREMUM_ENTRY) { .Value = 0, .Time = 0 };
         QUIC_STATUS Status = QuicSlidingWindowExtremumGet(&b->WindowedMaxFilter, &Entry);
-        
+
         uint64_t PreviousMaxDeliveryRate = 0;
         if (QUIC_SUCCEEDED(Status)) {
             PreviousMaxDeliveryRate = Entry.Value;
@@ -223,7 +223,7 @@ BbrCongestionControlGetCongestionWindow(
         QuicPathGetDatagramPayloadSize(&Connection->Paths[0]);
 
     uint32_t MinCongestionWindow = kMinCwndInMss * DatagramPayloadLength;
-    
+
     if (Bbr->BbrState == BBR_STATE_PROBE_RTT) {
         return MinCongestionWindow;
     }
@@ -330,7 +330,7 @@ BbrCongestionControlLogOutFlowStatus(
             Connection->Send.PeerMaxData - Connection->Send.OrderedStreamBytesSent,
             Connection->SendBuffer.IdealBytes,
             Connection->SendBuffer.PostedBytes,
-            Path->GotFirstRttSample ? Path->SmoothedRtt : 0);
+            Path->GotFirstRttSample ? (uint32_t)Path->SmoothedRtt : 0);
 }
 
 //
@@ -451,7 +451,7 @@ BbrCongestionControlUpdateRecoveryWindow(
     if (Bbr->RecoveryState == RECOVERY_STATE_GROWTH) {
         Bbr->RecoveryWindow += BytesAcked;
     }
-    
+
     uint32_t RecoveryWindow = CXPLAT_MAX(
         Bbr->RecoveryWindow, Bbr->BytesInFlight + BytesAcked);
 
@@ -709,7 +709,7 @@ BbrCongestionControlUpdateCongestionWindow(
             TargetCwnd += Entry.Value;
         }
     }
-    
+
     uint32_t CongestionWindow = Bbr->CongestionWindow;
     uint32_t MinCongestionWindow = kMinCwndInMss * DatagramPayloadLength;
 
@@ -873,7 +873,7 @@ BbrCongestionControlOnDataLost(
     Connection->Stats.Send.CongestionCount++;
 
     BOOLEAN PreviousCanSendState = BbrCongestionControlCanSend(Cc);
-    
+
     CXPLAT_DBG_ASSERT(LossEvent->NumRetransmittableBytes > 0);
 
     Bbr->EndOfRecoveryValid = TRUE;
@@ -881,7 +881,7 @@ BbrCongestionControlOnDataLost(
 
     CXPLAT_DBG_ASSERT(Bbr->BytesInFlight >= LossEvent->NumRetransmittableBytes);
     Bbr->BytesInFlight -= LossEvent->NumRetransmittableBytes;
-    
+
     uint32_t RecoveryWindow = Bbr->RecoveryWindow;
     uint32_t MinCongestionWindow = kMinCwndInMss * DatagramPayloadLength;
 
@@ -931,7 +931,7 @@ BbrCongestionControlSetAppLimited(
     )
 {
     QUIC_CONGESTION_CONTROL_BBR *Bbr = &Cc->Bbr;
-    
+
     QUIC_CONNECTION* Connection = QuicCongestionControlGetConnection(Cc);
     uint64_t LargestSentPacketNumber = Connection->LossDetection.LargestSentPacketNumber;
 
@@ -1079,7 +1079,7 @@ BbrCongestionControlInitialize(
 
     Bbr->EndOfRecoveryValid = FALSE;
     Bbr->EndOfRecovery = 0;
-    
+
     Bbr->ProbeRttRoundValid = FALSE;
     Bbr->ProbeRttRound = 0;
 

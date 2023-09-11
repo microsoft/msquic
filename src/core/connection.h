@@ -858,7 +858,7 @@ QuicConnLogStatistics(
         ConnStatsV2,
         "[conn][%p] STATS: SRtt=%u CongestionCount=%u PersistentCongestionCount=%u SendTotalBytes=%llu RecvTotalBytes=%llu CongestionWindow=%u Cc=%s EcnCongestionCount=%u",
         Connection,
-        Path->SmoothedRtt,
+        (uint32_t)Path->SmoothedRtt, // TODO - Make v3 of event
         Connection->Stats.Send.CongestionCount,
         Connection->Stats.Send.PersistentCongestionCount,
         Connection->Stats.Send.TotalBytes,
@@ -1292,7 +1292,7 @@ void
 QuicConnUpdateRtt(
     _In_ QUIC_CONNECTION* Connection,
     _In_ QUIC_PATH* Path,
-    _In_ uint32_t LatestRtt
+    _In_ uint64_t LatestRtt
     );
 
 //

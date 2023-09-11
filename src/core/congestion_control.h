@@ -21,24 +21,24 @@ typedef struct QUIC_ACK_EVENT {
     //
     uint64_t NumTotalAckedRetransmittableBytes;
 
-    QUIC_SENT_PACKET_METADATA* AckedPackets;
-
     uint32_t NumRetransmittableBytes;
+
+    QUIC_SENT_PACKET_METADATA* AckedPackets;
 
     //
     // Connection's current SmoothedRtt.
     //
-    uint32_t SmoothedRtt;
+    uint64_t SmoothedRtt;
 
     //
     // The smallest calculated RTT of the packets that were just ACKed.
     //
-    uint32_t MinRtt;
+    uint64_t MinRtt;
 
     //
     // Acked time minus ack delay.
     //
-    uint32_t AdjustedAckTime;
+    uint64_t AdjustedAckTime;
 
     BOOLEAN IsImplicit : 1;
 
