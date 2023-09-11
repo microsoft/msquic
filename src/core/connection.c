@@ -839,7 +839,7 @@ QuicConnUpdateRtt(
         RttUpdated = TRUE;
 
     } else {
-        uint64_t PrevRtt = Path->SmoothedRtt;
+        uint32_t PrevRtt = Path->SmoothedRtt;
         if (Path->SmoothedRtt > LatestRtt) {
             Path->RttVariance = (3 * Path->RttVariance + Path->SmoothedRtt - LatestRtt) / 4;
         } else {
@@ -855,8 +855,8 @@ QuicConnUpdateRtt(
             RttUpdatedMsg,
             Connection,
             "Updated Rtt=%u.%03u ms, Var=%u.%03u",
-            (uint32_t)(Path->SmoothedRtt / 1000), (uint32_t)(Path->SmoothedRtt % 1000),
-            (uint32_t)(Path->RttVariance / 1000), (uint32_t)(Path->RttVariance % 1000));
+            Path->SmoothedRtt / 1000, Path->SmoothedRtt % 1000,
+            Path->RttVariance / 1000, Path->RttVariance % 1000);
     }
 }
 
