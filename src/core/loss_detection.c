@@ -346,7 +346,10 @@ QuicLossDetectionUpdateTimer(
         if (TimeNow >= DisconnectTime) {
             Delay = 0;
         } else {
-            Delay = CxPlatTimeDiff64(TimeNow, DisconnectTime);
+            const uint64_t MaxDelay = CxPlatTimeDiff64(TimeNow, DisconnectTime);
+            if (Delay > MaxDelay) {
+                Delay = MaxDelay;
+            }
         }
     }
 
