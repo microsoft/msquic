@@ -1691,6 +1691,54 @@
       ],
       "macroName": "QuicTraceEvent"
     },
+    "ConnOutFlowStatsV2": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] OUT: BytesSent=%llu InFlight=%u InFlightMax=%u CWnd=%u SSThresh=%u ConnFC=%llu ISB=%llu PostedBytes=%llu SRtt=%llu",
+      "UniqueId": "ConnOutFlowStatsV2",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "llu",
+          "MacroVariableName": "arg3"
+        },
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg4"
+        },
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg5"
+        },
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg6"
+        },
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg7"
+        },
+        {
+          "DefinationEncoding": "llu",
+          "MacroVariableName": "arg8"
+        },
+        {
+          "DefinationEncoding": "llu",
+          "MacroVariableName": "arg9"
+        },
+        {
+          "DefinationEncoding": "llu",
+          "MacroVariableName": "arg10"
+        },
+        {
+          "DefinationEncoding": "llu",
+          "MacroVariableName": "arg11"
+        }
+      ],
+      "macroName": "QuicTraceEvent"
+    },
     "ConnOutFlowStreamStats": {
       "ModuleProperites": {},
       "TraceString": "[conn][%p] OUT: StreamFC=%llu StreamSendWindow=%llu",
@@ -2142,6 +2190,50 @@
         },
         {
           "DefinationEncoding": "u",
+          "MacroVariableName": "arg3"
+        },
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg4"
+        },
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg5"
+        },
+        {
+          "DefinationEncoding": "llu",
+          "MacroVariableName": "arg6"
+        },
+        {
+          "DefinationEncoding": "llu",
+          "MacroVariableName": "arg7"
+        },
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg8"
+        },
+        {
+          "DefinationEncoding": "s",
+          "MacroVariableName": "arg9"
+        },
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg10"
+        }
+      ],
+      "macroName": "QuicTraceEvent"
+    },
+    "ConnStatsV3": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] STATS: SRtt=%llu CongestionCount=%u PersistentCongestionCount=%u SendTotalBytes=%llu RecvTotalBytes=%llu CongestionWindow=%u Cc=%s EcnCongestionCount=%u",
+      "UniqueId": "ConnStatsV3",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "llu",
           "MacroVariableName": "arg3"
         },
         {
@@ -5665,7 +5757,7 @@
     },
     "IncreaseRxBuffer": {
       "ModuleProperites": {},
-      "TraceString": "[strm][%p] Increasing max RX buffer size to %u (MinRtt=%u; TimeNow=%u; LastUpdate=%u)",
+      "TraceString": "[strm][%p] Increasing max RX buffer size to %u (MinRtt=%llu; TimeNow=%llu; LastUpdate=%llu)",
       "UniqueId": "IncreaseRxBuffer",
       "splitArgs": [
         {
@@ -5677,15 +5769,15 @@
           "MacroVariableName": "arg3"
         },
         {
-          "DefinationEncoding": "u",
+          "DefinationEncoding": "llu",
           "MacroVariableName": "arg4"
         },
         {
-          "DefinationEncoding": "u",
+          "DefinationEncoding": "llu",
           "MacroVariableName": "arg5"
         },
         {
-          "DefinationEncoding": "u",
+          "DefinationEncoding": "llu",
           "MacroVariableName": "arg6"
         }
       ],
@@ -7989,7 +8081,7 @@
     },
     "PacketTxLostRack": {
       "ModuleProperites": {},
-      "TraceString": "[%c][TX][%llu] Lost: RACK %u ms",
+      "TraceString": "[%c][TX][%llu] Lost: RACK %llu ms",
       "UniqueId": "PacketTxLostRack",
       "splitArgs": [
         {
@@ -8001,7 +8093,7 @@
           "MacroVariableName": "arg3"
         },
         {
-          "DefinationEncoding": "u",
+          "DefinationEncoding": "llu",
           "MacroVariableName": "arg4"
         }
       ],
@@ -13340,6 +13432,11 @@
         "EncodingString": "[conn][%p] OUT: BytesSent=%llu InFlight=%u InFlightMax=%u CWnd=%u SSThresh=%u ConnFC=%llu ISB=%llu PostedBytes=%llu SRtt=%u"
       },
       {
+        "UniquenessHash": "c4a4399a-7480-49c5-a291-82feafb39bca",
+        "TraceID": "ConnOutFlowStatsV2",
+        "EncodingString": "[conn][%p] OUT: BytesSent=%llu InFlight=%u InFlightMax=%u CWnd=%u SSThresh=%u ConnFC=%llu ISB=%llu PostedBytes=%llu SRtt=%llu"
+      },
+      {
         "UniquenessHash": "55425e95-f2a7-6b0d-41e9-82bdeb5d9082",
         "TraceID": "ConnOutFlowStreamStats",
         "EncodingString": "[conn][%p] OUT: StreamFC=%llu StreamSendWindow=%llu"
@@ -13453,6 +13550,11 @@
         "UniquenessHash": "08f10184-5cf8-584f-cff9-1574f1c32b4f",
         "TraceID": "ConnStatsV2",
         "EncodingString": "[conn][%p] STATS: SRtt=%u CongestionCount=%u PersistentCongestionCount=%u SendTotalBytes=%llu RecvTotalBytes=%llu CongestionWindow=%u Cc=%s EcnCongestionCount=%u"
+      },
+      {
+        "UniquenessHash": "d642254e-2cef-c718-0275-fa330f25d71c",
+        "TraceID": "ConnStatsV3",
+        "EncodingString": "[conn][%p] STATS: SRtt=%llu CongestionCount=%u PersistentCongestionCount=%u SendTotalBytes=%llu RecvTotalBytes=%llu CongestionWindow=%u Cc=%s EcnCongestionCount=%u"
       },
       {
         "UniquenessHash": "421b9353-bbea-5599-f173-5911d85a776e",
@@ -14465,9 +14567,9 @@
         "EncodingString": "[conn][%p] Ignoring received unreachable event (inline)"
       },
       {
-        "UniquenessHash": "5d5005c9-b064-899a-abec-29608ab4c745",
+        "UniquenessHash": "b7c26581-5d5b-55a8-aa76-91132357a377",
         "TraceID": "IncreaseRxBuffer",
-        "EncodingString": "[strm][%p] Increasing max RX buffer size to %u (MinRtt=%u; TimeNow=%u; LastUpdate=%u)"
+        "EncodingString": "[strm][%p] Increasing max RX buffer size to %u (MinRtt=%llu; TimeNow=%llu; LastUpdate=%llu)"
       },
       {
         "UniquenessHash": "9ed40f87-2b63-8343-5e37-2640d0a40e27",
@@ -15210,9 +15312,9 @@
         "EncodingString": "[%c][TX][%llu] Lost: FACK %llu packets"
       },
       {
-        "UniquenessHash": "79037f89-4d68-1fe1-8945-65ff684ef474",
+        "UniquenessHash": "29283bfa-4e6c-ce65-b4f9-fa2213f42ffd",
         "TraceID": "PacketTxLostRack",
-        "EncodingString": "[%c][TX][%llu] Lost: RACK %u ms"
+        "EncodingString": "[%c][TX][%llu] Lost: RACK %llu ms"
       },
       {
         "UniquenessHash": "114eda6f-e346-6701-573c-ad9cdbd6e082",

@@ -146,11 +146,11 @@ tracepoint(CLOG_CUBIC_C, ConnSpuriousCongestion , arg2);\
 
 
 /*----------------------------------------------------------
-// Decoder Ring for ConnOutFlowStats
-// [conn][%p] OUT: BytesSent=%llu InFlight=%u InFlightMax=%u CWnd=%u SSThresh=%u ConnFC=%llu ISB=%llu PostedBytes=%llu SRtt=%u
+// Decoder Ring for ConnOutFlowStatsV2
+// [conn][%p] OUT: BytesSent=%llu InFlight=%u InFlightMax=%u CWnd=%u SSThresh=%u ConnFC=%llu ISB=%llu PostedBytes=%llu SRtt=%llu
 // QuicTraceEvent(
-        ConnOutFlowStats,
-        "[conn][%p] OUT: BytesSent=%llu InFlight=%u InFlightMax=%u CWnd=%u SSThresh=%u ConnFC=%llu ISB=%llu PostedBytes=%llu SRtt=%u",
+        ConnOutFlowStatsV2,
+        "[conn][%p] OUT: BytesSent=%llu InFlight=%u InFlightMax=%u CWnd=%u SSThresh=%u ConnFC=%llu ISB=%llu PostedBytes=%llu SRtt=%llu",
         Connection,
         Connection->Stats.Send.TotalBytes,
         Cubic->BytesInFlight,
@@ -172,9 +172,9 @@ tracepoint(CLOG_CUBIC_C, ConnSpuriousCongestion , arg2);\
 // arg10 = arg10 = Connection->SendBuffer.PostedBytes = arg10
 // arg11 = arg11 = Path->GotFirstRttSample ? Path->SmoothedRtt : 0 = arg11
 ----------------------------------------------------------*/
-#ifndef _clog_12_ARGS_TRACE_ConnOutFlowStats
-#define _clog_12_ARGS_TRACE_ConnOutFlowStats(uniqueId, encoded_arg_string, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10, arg11)\
-tracepoint(CLOG_CUBIC_C, ConnOutFlowStats , arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10, arg11);\
+#ifndef _clog_12_ARGS_TRACE_ConnOutFlowStatsV2
+#define _clog_12_ARGS_TRACE_ConnOutFlowStatsV2(uniqueId, encoded_arg_string, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10, arg11)\
+tracepoint(CLOG_CUBIC_C, ConnOutFlowStatsV2 , arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10, arg11);\
 
 #endif
 

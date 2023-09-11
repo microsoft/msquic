@@ -25,22 +25,22 @@ typedef struct QUIC_LOSS_DETECTION {
     //
     // Sent time of last sent packet
     //
-    uint32_t TimeOfLastPacketSent;
+    uint64_t TimeOfLastPacketSent;
 
     //
     // Acked time of last acked packet
     //
-    uint32_t TimeOfLastPacketAcked;
+    uint64_t TimeOfLastPacketAcked;
 
     //
     // Sent time of last acked packet
     //
-    uint32_t TimeOfLastAckedPacketSent;
+    uint64_t TimeOfLastAckedPacketSent;
 
     //
     // Acked time minus ack delay.
     //
-    uint32_t AdjustedLastAckedTime;
+    uint64_t AdjustedLastAckedTime;
 
     //
     // Number of bytes sent so far
@@ -141,7 +141,7 @@ QuicLossDetectionUpdateTimer(
 // Returns the current PTO in microseconds.
 //
 _IRQL_requires_max_(PASSIVE_LEVEL)
-uint32_t
+uint64_t
 QuicLossDetectionComputeProbeTimeout(
     _In_ QUIC_LOSS_DETECTION* LossDetection,
     _In_ const QUIC_PATH* Path,

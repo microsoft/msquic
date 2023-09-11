@@ -1238,7 +1238,7 @@ QuicSendFlush(
                     "ECN unknown.");
             }
         } else {
-            uint32_t ThreePtosInUs =
+            uint64_t ThreePtosInUs =
                 QuicLossDetectionComputeProbeTimeout(
                     &Connection->LossDetection,
                     &Connection->Paths[0],

@@ -121,7 +121,7 @@ CubicCongestionHyStartResetPerRttRound(
 {
     Cubic->HyStartAckCount = 0;
     Cubic->MinRttInLastRound = Cubic->MinRttInCurrentRound;
-    Cubic->MinRttInCurrentRound = UINT32_MAX;
+    Cubic->MinRttInCurrentRound = UINT64_MAX;
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -466,7 +466,7 @@ CubicCongestionControlOnDataAcknowledged(
                         AckEvent->MinRtt);
                 Cubic->HyStartAckCount++;
             } else if (Cubic->HyStartState == HYSTART_NOT_STARTED) {
-                const uint32_t Eta =
+                const uint64_t Eta =
                     CXPLAT_MIN(
                         QUIC_HYSTART_DEFAULT_MAX_ETA,
                         CXPLAT_MAX(
@@ -475,8 +475,8 @@ CubicCongestionControlOnDataAcknowledged(
                 //
                 // Looking for delay increase.
                 //
-                if (Cubic->MinRttInLastRound != UINT32_MAX &&
-                    Cubic->MinRttInCurrentRound != UINT32_MAX &&
+                if (Cubic->MinRttInLastRound != UINT64_MAX &&
+                    Cubic->MinRttInCurrentRound != UINT64_MAX &&
                     (Cubic->MinRttInCurrentRound >= Cubic->MinRttInLastRound + Eta)) {
                     //
                     // Exit Slow Start. Now we are going to do Conservative Slow Start for
@@ -788,8 +788,8 @@ CubicCongestionControlLogOutFlowStatus(
     const QUIC_CONGESTION_CONTROL_CUBIC* Cubic = &Cc->Cubic;
 
     QuicTraceEvent(
-        ConnOutFlowStats,
-        "[conn][%p] OUT: BytesSent=%llu InFlight=%u InFlightMax=%u CWnd=%u SSThresh=%u ConnFC=%llu ISB=%llu PostedBytes=%llu SRtt=%u",
+        ConnOutFlowStatsV2,
+        "[conn][%p] OUT: BytesSent=%llu InFlight=%u InFlightMax=%u CWnd=%u SSThresh=%u ConnFC=%llu ISB=%llu PostedBytes=%llu SRtt=%llu",
         Connection,
         Connection->Stats.Send.TotalBytes,
         Cubic->BytesInFlight,
@@ -885,7 +885,7 @@ CubicCongestionControlInitialize(
     Cubic->InitialWindowPackets = Settings->InitialWindowPackets;
     Cubic->CongestionWindow = DatagramPayloadLength * Cubic->InitialWindowPackets;
     Cubic->BytesInFlightMax = Cubic->CongestionWindow / 2;
-    Cubic->MinRttInCurrentRound = UINT32_MAX;
+    Cubic->MinRttInCurrentRound = UINT64_MAX;
     Cubic->HyStartRoundEnd = Connection->Send.NextPacketNumber;
     Cubic->HyStartState = HYSTART_NOT_STARTED;
     Cubic->CWndSlowStartGrowthDivisor = 1;

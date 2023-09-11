@@ -810,7 +810,7 @@ void
 QuicConnUpdateRtt(
     _In_ QUIC_CONNECTION* Connection,
     _In_ QUIC_PATH* Path,
-    _In_ uint32_t LatestRtt,
+    _In_ uint64_t LatestRtt,
     _In_ uint64_t OurSendTimestamp,
     _In_ uint64_t PeerSendTimestamp
     )
@@ -836,6 +836,7 @@ QuicConnUpdateRtt(
         Path->RttVariance = LatestRtt / 2;
 
     } else {
+        uint64_t PrevRtt = Path->SmoothedRtt;
         if (Path->SmoothedRtt > LatestRtt) {
             Path->RttVariance = (3 * Path->RttVariance + Path->SmoothedRtt - LatestRtt) / 4;
         } else {
@@ -844,14 +845,14 @@ QuicConnUpdateRtt(
         Path->SmoothedRtt = (7 * Path->SmoothedRtt + LatestRtt) / 8;
     }
 
-    if (OurSendTimestamp != UINT64_MAX) { // TODO - Update this logic to use 64-bit logic
+    if (OurSendTimestamp != UINT64_MAX) {
         if (Connection->Stats.Timing.PhaseShift == 0) {
             Connection->Stats.Timing.PhaseShift =
-                (uint32_t)PeerSendTimestamp - (uint32_t)OurSendTimestamp - LatestRtt / 2;
+                PeerSendTimestamp - OurSendTimestamp - LatestRtt / 2;
             Path->OneWayDelayLatest = Path->OneWayDelay = LatestRtt / 2;
         } else {
             Path->OneWayDelayLatest =
-                (uint32_t)PeerSendTimestamp - (uint32_t)OurSendTimestamp - (uint32_t)Connection->Stats.Timing.PhaseShift;
+                PeerSendTimestamp - OurSendTimestamp - Connection->Stats.Timing.PhaseShift;
             Path->OneWayDelay = (7 * Path->OneWayDelay + Path->OneWayDelayLatest) / 8;
         }
     }
@@ -861,9 +862,9 @@ QuicConnUpdateRtt(
         RttUpdatedV2,
         Connection,
         "Updated Rtt=%u.%03u ms, Var=%u.%03u 1Way=%u.%03u ms",
-        Path->SmoothedRtt / 1000, Path->SmoothedRtt % 1000,
-        Path->RttVariance / 1000, Path->RttVariance % 1000,
-        Path->OneWayDelay / 1000, Path->OneWayDelay % 1000);
+        (uint32_t)(Path->SmoothedRtt / 1000), (uint32_t)(Path->SmoothedRtt % 1000),
+        (uint32_t)(Path->RttVariance / 1000), (uint32_t)(Path->RttVariance % 1000),
+        (uint32_t)(Path->OneWayDelay / 1000), (uint32_t)(Path->OneWayDelay % 1000));
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -1612,7 +1613,7 @@ QuicConnTryClose(
             // Enter 'closing period' to wait for a (optional) connection close
             // response.
             //
-            uint32_t Pto =
+            uint64_t Pto =
                 QuicLossDetectionComputeProbeTimeout(
                     &Connection->LossDetection,
                     &Connection->Paths[0],
@@ -5455,7 +5456,7 @@ QuicConnRecvPostProcessing(
             CXPLAT_DBG_ASSERT((*Path)->DestCid != NULL);
             QuicPathValidate((*Path));
             (*Path)->SendChallenge = TRUE;
-            (*Path)->PathValidationStartTime = CxPlatTimeUs32();
+            (*Path)->PathValidationStartTime = CxPlatTimeUs64();
 
             //
             // NB: The path challenge payload is initialized here and reused
@@ -5472,7 +5473,7 @@ QuicConnRecvPostProcessing(
             if (Connection->Paths[0].IsPeerValidated) { // Not already doing peer validation.
                 Connection->Paths[0].IsPeerValidated = FALSE;
                 Connection->Paths[0].SendChallenge = TRUE;
-                Connection->Paths[0].PathValidationStartTime = CxPlatTimeUs32();
+                Connection->Paths[0].PathValidationStartTime = CxPlatTimeUs64();
                 CxPlatRandom(sizeof(Connection->Paths[0].Challenge), Connection->Paths[0].Challenge);
             }
 
@@ -6103,7 +6104,7 @@ QuicConnResetIdleTimeout(
             //
             // Idle timeout must be no less than the PTOs for closing.
             //
-            uint32_t MinIdleTimeoutMs =
+            uint64_t MinIdleTimeoutMs =
                 US_TO_MS(QuicLossDetectionComputeProbeTimeout(
                     &Connection->LossDetection,
                     Path,
@@ -6811,9 +6812,9 @@ QuicConnGetV2Statistics(
     Stats->GreaseBitNegotiated = Connection->Stats.GreaseBitNegotiated;
     Stats->EncryptionOffloaded = Connection->Stats.EncryptionOffloaded;
     Stats->EcnCapable = Path->EcnValidationState == ECN_VALIDATION_CAPABLE;
-    Stats->Rtt = Path->SmoothedRtt;
-    Stats->MinRtt = Path->MinRtt;
-    Stats->MaxRtt = Path->MaxRtt;
+    Stats->Rtt = (uint32_t)Path->SmoothedRtt;
+    Stats->MinRtt = (uint32_t)Path->MinRtt;
+    Stats->MaxRtt = (uint32_t)Path->MaxRtt;
     Stats->TimingStart = Connection->Stats.Timing.Start;
     Stats->TimingInitialFlightEnd = Connection->Stats.Timing.InitialFlightEnd;
     Stats->TimingHandshakeFlightEnd = Connection->Stats.Timing.HandshakeFlightEnd;
@@ -7011,9 +7012,9 @@ QuicConnParamGet(
         Stats->StatelessRetry = Connection->Stats.StatelessRetry;
         Stats->ResumptionAttempted = Connection->Stats.ResumptionAttempted;
         Stats->ResumptionSucceeded = Connection->Stats.ResumptionSucceeded;
-        Stats->Rtt = Path->SmoothedRtt;
-        Stats->MinRtt = Path->MinRtt;
-        Stats->MaxRtt = Path->MaxRtt;
+        Stats->Rtt = (uint32_t)Path->SmoothedRtt;
+        Stats->MinRtt = (uint32_t)Path->MinRtt;
+        Stats->MaxRtt = (uint32_t)Path->MaxRtt;
         Stats->Timing.Start = Connection->Stats.Timing.Start;
         Stats->Timing.InitialFlightEnd = Connection->Stats.Timing.InitialFlightEnd;
         Stats->Timing.HandshakeFlightEnd = Connection->Stats.Timing.HandshakeFlightEnd;

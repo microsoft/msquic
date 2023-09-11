@@ -944,16 +944,16 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, ApplySettings,
         RttUpdatedV2,
         Connection,
         "Updated Rtt=%u.%03u ms, Var=%u.%03u 1Way=%u.%03u ms",
-        Path->SmoothedRtt / 1000, Path->SmoothedRtt % 1000,
-        Path->RttVariance / 1000, Path->RttVariance % 1000,
-        Path->OneWayDelay / 1000, Path->OneWayDelay % 1000);
+        (uint32_t)(Path->SmoothedRtt / 1000), (uint32_t)(Path->SmoothedRtt % 1000),
+        (uint32_t)(Path->RttVariance / 1000), (uint32_t)(Path->RttVariance % 1000),
+        (uint32_t)(Path->OneWayDelay / 1000), (uint32_t)(Path->OneWayDelay % 1000));
 // arg1 = arg1 = Connection = arg1
-// arg3 = arg3 = Path->SmoothedRtt / 1000 = arg3
-// arg4 = arg4 = Path->SmoothedRtt % 1000 = arg4
-// arg5 = arg5 = Path->RttVariance / 1000 = arg5
-// arg6 = arg6 = Path->RttVariance % 1000 = arg6
-// arg7 = arg7 = Path->OneWayDelay / 1000 = arg7
-// arg8 = arg8 = Path->OneWayDelay % 1000 = arg8
+// arg3 = arg3 = (uint32_t)(Path->SmoothedRtt / 1000) = arg3
+// arg4 = arg4 = (uint32_t)(Path->SmoothedRtt % 1000) = arg4
+// arg5 = arg5 = (uint32_t)(Path->RttVariance / 1000) = arg5
+// arg6 = arg6 = (uint32_t)(Path->RttVariance % 1000) = arg6
+// arg7 = arg7 = (uint32_t)(Path->OneWayDelay / 1000) = arg7
+// arg8 = arg8 = (uint32_t)(Path->OneWayDelay % 1000) = arg8
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CONNECTION_C, RttUpdatedV2,
     TP_ARGS(

@@ -152,22 +152,22 @@ typedef struct QUIC_PATH {
     QUIC_CID_LIST_ENTRY* DestCid;
 
     //
+    // RTT moving average, computed as in RFC6298. Units of microseconds.
+    //
+    uint64_t SmoothedRtt;
+    uint64_t LatestRttSample;
+    uint64_t MinRtt;
+    uint64_t MaxRtt;
+    uint64_t RttVariance;
+    uint64_t OneWayDelay;
+    uint64_t OneWayDelayLatest;
+
+    //
     // Used on the server side until the client's IP address has been validated
     // to prevent the server from being used for amplification attacks. A value
     // of UINT32_MAX indicates this variable does not apply.
     //
     uint32_t Allowance;
-
-    //
-    // RTT moving average, computed as in RFC6298. Units of microseconds.
-    //
-    uint32_t SmoothedRtt;
-    uint32_t MinRtt;
-    uint32_t MaxRtt;
-    uint32_t RttVariance;
-    uint32_t LatestRttSample;
-    uint32_t OneWayDelay;
-    uint32_t OneWayDelayLatest;
 
     //
     // The last path challenge we received and needs to be sent back as in a
@@ -183,7 +183,7 @@ typedef struct QUIC_PATH {
     //
     // Time when path validation was begun. Used for timing out path validation.
     //
-    uint32_t PathValidationStartTime;
+    uint64_t PathValidationStartTime;
 
 } QUIC_PATH;
 

@@ -120,17 +120,17 @@ typedef struct LAST_ACKED_PACKET_INFO {
     //
     // SentTime of last acked packet
     //
-    uint32_t SentTime;
+    uint64_t SentTime;
 
     //
     // AckTime of last acked packet
     //
-    uint32_t AckTime;
+    uint64_t AckTime;
 
     //
     // Packet acked time minus ack delay of last acked packet
     //
-    uint32_t AdjustedAckTime;
+    uint64_t AdjustedAckTime;
 
 
 } LAST_ACKED_PACKET_INFO;
@@ -148,7 +148,7 @@ typedef struct QUIC_SENT_PACKET_METADATA {
     // Total bytes sent when the packet was sent (including this packet)
     //
     uint64_t TotalBytesSent;
-    uint32_t SentTime; // In microseconds
+    uint64_t SentTime; // In microseconds
     uint16_t PacketLength;
     uint8_t PathId;
 
