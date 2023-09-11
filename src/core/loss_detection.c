@@ -1478,7 +1478,7 @@ QuicLossDetectionProcessAckBlocks(
         }
 
         EcnEctCounter += PacketMeta->Flags.EcnEctSet;
-        QuicLossDetectionOnPacketAcknowledged(LossDetection, EncryptLevel, PacketMeta, FALSE, TimeNow, AckDelay);
+        QuicLossDetectionOnPacketAcknowledged(LossDetection, EncryptLevel, PacketMeta, FALSE, (uint32_t)TimeNow, AckDelay);
     }
 
     QuicLossValidate(LossDetection);
@@ -1592,7 +1592,7 @@ QuicLossDetectionProcessAckBlocks(
             .SmoothedRtt = Connection->Paths[0].SmoothedRtt,
             .MinRtt = MinRtt,
             .HasLoss = (LossDetection->LostPackets != NULL),
-            .AdjustedAckTime = TimeNow - AckDelay,
+            .AdjustedAckTime = (uint32_t)(TimeNow - AckDelay),
             .AckedPackets = AckedPackets,
             .NumTotalAckedRetransmittableBytes = LossDetection->TotalBytesAcked,
             .IsLargestAckedPacketAppLimited = IsLargestAckedPacketAppLimited,
