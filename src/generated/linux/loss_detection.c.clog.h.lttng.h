@@ -200,11 +200,11 @@ TRACEPOINT_EVENT(CLOG_LOSS_DETECTION_C, PacketTxSpuriousLoss,
             PacketTxAcked,
             "[%c][TX][%llu] ACKed (%u.%03u ms)",
             PtkConnPre(Connection),
-            Packet->PacketNumber,
+            PacketMeta->PacketNumber,
             PacketRtt / 1000,
             PacketRtt % 1000);
 // arg2 = arg2 = PtkConnPre(Connection) = arg2
-// arg3 = arg3 = Packet->PacketNumber = arg3
+// arg3 = arg3 = PacketMeta->PacketNumber = arg3
 // arg4 = arg4 = PacketRtt / 1000 = arg4
 // arg5 = arg5 = PacketRtt % 1000 = arg5
 ----------------------------------------------------------*/

@@ -5463,6 +5463,50 @@
       ],
       "macroName": "QuicTraceLogVerbose"
     },
+    "FrameLogTimestamp": {
+      "ModuleProperites": {},
+      "TraceString": "[%c][%cX][%llu]   TIMESTAMP %llu",
+      "UniqueId": "FrameLogTimestamp",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "c",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "c",
+          "MacroVariableName": "arg3"
+        },
+        {
+          "DefinationEncoding": "llu",
+          "MacroVariableName": "arg4"
+        },
+        {
+          "DefinationEncoding": "llu",
+          "MacroVariableName": "arg5"
+        }
+      ],
+      "macroName": "QuicTraceLogVerbose"
+    },
+    "FrameLogTimestampInvalid": {
+      "ModuleProperites": {},
+      "TraceString": "[%c][%cX][%llu]   TIMESTAMP [Invalid]",
+      "UniqueId": "FrameLogTimestampInvalid",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "c",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "c",
+          "MacroVariableName": "arg3"
+        },
+        {
+          "DefinationEncoding": "llu",
+          "MacroVariableName": "arg4"
+        }
+      ],
+      "macroName": "QuicTraceLogVerbose"
+    },
     "FrameLogUnknownType": {
       "ModuleProperites": {},
       "TraceString": "[%c][%cX][%llu]   unknown frame (%llu)",
@@ -14318,6 +14362,16 @@
         "UniquenessHash": "f8792c4a-d448-1f2d-ceba-3e2514d693c4",
         "TraceID": "FrameLogStreamsBlockedInvalid",
         "EncodingString": "[%c][%cX][%llu]   STREAMS_BLOCKED [Invalid]"
+      },
+      {
+        "UniquenessHash": "7fcacbd0-94c5-6770-a70e-7762d4567378",
+        "TraceID": "FrameLogTimestamp",
+        "EncodingString": "[%c][%cX][%llu]   TIMESTAMP %llu"
+      },
+      {
+        "UniquenessHash": "1315a113-88c2-8ce3-cca0-a0f84ffdb729",
+        "TraceID": "FrameLogTimestampInvalid",
+        "EncodingString": "[%c][%cX][%llu]   TIMESTAMP [Invalid]"
       },
       {
         "UniquenessHash": "0663ac49-e402-40ea-b23a-851ef032e5d5",
