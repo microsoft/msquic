@@ -810,7 +810,7 @@ void
 QuicConnUpdateRtt(
     _In_ QUIC_CONNECTION* Connection,
     _In_ QUIC_PATH* Path,
-    _In_ uint32_t LatestRtt
+    _In_ uint64_t LatestRtt
     )
 {
     BOOLEAN RttUpdated;
@@ -839,7 +839,7 @@ QuicConnUpdateRtt(
         RttUpdated = TRUE;
 
     } else {
-        uint32_t PrevRtt = Path->SmoothedRtt;
+        uint64_t PrevRtt = Path->SmoothedRtt;
         if (Path->SmoothedRtt > LatestRtt) {
             Path->RttVariance = (3 * Path->RttVariance + Path->SmoothedRtt - LatestRtt) / 4;
         } else {
@@ -855,8 +855,8 @@ QuicConnUpdateRtt(
             RttUpdatedMsg,
             Connection,
             "Updated Rtt=%u.%03u ms, Var=%u.%03u",
-            Path->SmoothedRtt / 1000, Path->SmoothedRtt % 1000,
-            Path->RttVariance / 1000, Path->RttVariance % 1000);
+            (uint32_t)(Path->SmoothedRtt / 1000), (uint32_t)(Path->SmoothedRtt % 1000),
+            (uint32_t)(Path->RttVariance / 1000), (uint32_t)(Path->RttVariance % 1000));
     }
 }
 
@@ -1606,7 +1606,7 @@ QuicConnTryClose(
             // Enter 'closing period' to wait for a (optional) connection close
             // response.
             //
-            uint32_t Pto =
+            uint64_t Pto =
                 QuicLossDetectionComputeProbeTimeout(
                     &Connection->LossDetection,
                     &Connection->Paths[0],
@@ -5400,7 +5400,7 @@ QuicConnRecvPostProcessing(
             CXPLAT_DBG_ASSERT((*Path)->DestCid != NULL);
             QuicPathValidate((*Path));
             (*Path)->SendChallenge = TRUE;
-            (*Path)->PathValidationStartTime = CxPlatTimeUs32();
+            (*Path)->PathValidationStartTime = CxPlatTimeUs64();
 
             //
             // NB: The path challenge payload is initialized here and reused
@@ -5417,7 +5417,7 @@ QuicConnRecvPostProcessing(
             if (Connection->Paths[0].IsPeerValidated) { // Not already doing peer validation.
                 Connection->Paths[0].IsPeerValidated = FALSE;
                 Connection->Paths[0].SendChallenge = TRUE;
-                Connection->Paths[0].PathValidationStartTime = CxPlatTimeUs32();
+                Connection->Paths[0].PathValidationStartTime = CxPlatTimeUs64();
                 CxPlatRandom(sizeof(Connection->Paths[0].Challenge), Connection->Paths[0].Challenge);
             }
 
@@ -6048,7 +6048,7 @@ QuicConnResetIdleTimeout(
             //
             // Idle timeout must be no less than the PTOs for closing.
             //
-            uint32_t MinIdleTimeoutMs =
+            uint64_t MinIdleTimeoutMs =
                 US_TO_MS(QuicLossDetectionComputeProbeTimeout(
                     &Connection->LossDetection,
                     Path,
@@ -6756,9 +6756,9 @@ QuicConnGetV2Statistics(
     Stats->GreaseBitNegotiated = Connection->Stats.GreaseBitNegotiated;
     Stats->EncryptionOffloaded = Connection->Stats.EncryptionOffloaded;
     Stats->EcnCapable = Path->EcnValidationState == ECN_VALIDATION_CAPABLE;
-    Stats->Rtt = Path->SmoothedRtt;
-    Stats->MinRtt = Path->MinRtt;
-    Stats->MaxRtt = Path->MaxRtt;
+    Stats->Rtt = (uint32_t)Path->SmoothedRtt;
+    Stats->MinRtt = (uint32_t)Path->MinRtt;
+    Stats->MaxRtt = (uint32_t)Path->MaxRtt;
     Stats->TimingStart = Connection->Stats.Timing.Start;
     Stats->TimingInitialFlightEnd = Connection->Stats.Timing.InitialFlightEnd;
     Stats->TimingHandshakeFlightEnd = Connection->Stats.Timing.HandshakeFlightEnd;
@@ -6956,9 +6956,9 @@ QuicConnParamGet(
         Stats->StatelessRetry = Connection->Stats.StatelessRetry;
         Stats->ResumptionAttempted = Connection->Stats.ResumptionAttempted;
         Stats->ResumptionSucceeded = Connection->Stats.ResumptionSucceeded;
-        Stats->Rtt = Path->SmoothedRtt;
-        Stats->MinRtt = Path->MinRtt;
-        Stats->MaxRtt = Path->MaxRtt;
+        Stats->Rtt = (uint32_t)Path->SmoothedRtt;
+        Stats->MinRtt = (uint32_t)Path->MinRtt;
+        Stats->MaxRtt = (uint32_t)Path->MaxRtt;
         Stats->Timing.Start = Connection->Stats.Timing.Start;
         Stats->Timing.InitialFlightEnd = Connection->Stats.Timing.InitialFlightEnd;
         Stats->Timing.HandshakeFlightEnd = Connection->Stats.Timing.HandshakeFlightEnd;
@@ -7298,7 +7298,6 @@ QuicConnApplyNewSettings(
             //
             // Send event to app to indicate result of negotiation if app cares.
             //
-
             QUIC_CONNECTION_EVENT Event;
             Event.Type = QUIC_CONNECTION_EVENT_RELIABLE_RESET_NEGOTIATED;
             Event.RELIABLE_RESET_NEGOTIATED.IsNegotiated = Connection->State.ReliableResetStreamNegotiated;

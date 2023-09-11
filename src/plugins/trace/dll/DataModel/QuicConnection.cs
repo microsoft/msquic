@@ -264,7 +264,8 @@ namespace QuicTrace.DataModel
             var tputEvents = new List<QuicRawTputData>();
             foreach (var evt in Events)
             {
-                if (evt.EventId == QuicEventId.ConnOutFlowStats)
+                if (evt.EventId == QuicEventId.ConnOutFlowStats ||
+                    evt.EventId == QuicEventId.ConnOutFlowStatsV2)
                 {
                     var _evt = evt as QuicConnectionOutFlowStatsEvent;
                     pktCreate.Update(_evt!.BytesSent, evt.TimeStamp, ref tputEvents);
@@ -420,6 +421,7 @@ namespace QuicTrace.DataModel
                         break;
                     }
                 case QuicEventId.ConnOutFlowStats:
+                case QuicEventId.ConnOutFlowStatsV2:
                     {
                         state.DataAvailableFlags |= QuicDataAvailableFlags.ConnectionTput;
                         var _evt = evt as QuicConnectionOutFlowStatsEvent;
@@ -458,6 +460,7 @@ namespace QuicTrace.DataModel
                         break;
                     }
                 case QuicEventId.ConnStatsV2:
+                case QuicEventId.ConnStatsV3:
                     {
                         state.DataAvailableFlags |= QuicDataAvailableFlags.ConnectionTput;
                         var _evt = evt as QuicConnectionStatsV2Event;

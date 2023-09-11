@@ -944,13 +944,13 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, ApplySettings,
             RttUpdatedMsg,
             Connection,
             "Updated Rtt=%u.%03u ms, Var=%u.%03u",
-            Path->SmoothedRtt / 1000, Path->SmoothedRtt % 1000,
-            Path->RttVariance / 1000, Path->RttVariance % 1000);
+            (uint32_t)(Path->SmoothedRtt / 1000), (uint32_t)(Path->SmoothedRtt % 1000),
+            (uint32_t)(Path->RttVariance / 1000), (uint32_t)(Path->RttVariance % 1000));
 // arg1 = arg1 = Connection = arg1
-// arg3 = arg3 = Path->SmoothedRtt / 1000 = arg3
-// arg4 = arg4 = Path->SmoothedRtt % 1000 = arg4
-// arg5 = arg5 = Path->RttVariance / 1000 = arg5
-// arg6 = arg6 = Path->RttVariance % 1000 = arg6
+// arg3 = arg3 = (uint32_t)(Path->SmoothedRtt / 1000) = arg3
+// arg4 = arg4 = (uint32_t)(Path->SmoothedRtt % 1000) = arg4
+// arg5 = arg5 = (uint32_t)(Path->RttVariance / 1000) = arg5
+// arg6 = arg6 = (uint32_t)(Path->RttVariance % 1000) = arg6
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CONNECTION_C, RttUpdatedMsg,
     TP_ARGS(

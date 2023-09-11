@@ -737,7 +737,7 @@ namespace QuicTrace.DataModel
 
         public ulong PostedBytes { get; }
 
-        public uint SmoothedRtt { get; }
+        public ulong SmoothedRtt { get; }
 
         public override string PayloadString =>
             string.Format("OUT: BytesSent={0} InFlight={1} InFlightMax={2} CWnd={3} SSThresh={4} ConnFC={5} ISB={6} PostedBytes={7} SRtt={8}",
@@ -745,7 +745,7 @@ namespace QuicTrace.DataModel
 
         internal QuicConnectionOutFlowStatsEvent(Timestamp timestamp, ushort processor, uint processId, uint threadId, int pointerSize, ulong objectPointer,
                                                  ulong bytesSent, uint bytesInFlight, uint bytesInFlightMax, uint congestionWindow, uint slowStartThreshold,
-                                                 ulong connectionFlowControl, ulong idealBytes, ulong postedBytes, uint smoothedRtt) :
+                                                 ulong connectionFlowControl, ulong idealBytes, ulong postedBytes, ulong smoothedRtt) :
             base(QuicEventId.ConnOutFlowStats, QuicObjectType.Connection, timestamp, processor, processId, threadId, pointerSize, objectPointer)
         {
             BytesSent = bytesSent;
@@ -879,7 +879,7 @@ namespace QuicTrace.DataModel
 
     public class QuicConnectionStatsV2Event : QuicEvent
     {
-        public uint SmoothedRtt { get; }
+        public ulong SmoothedRtt { get; }
 
         public uint CongestionCount { get; }
 
@@ -896,7 +896,7 @@ namespace QuicTrace.DataModel
                 SmoothedRtt, CongestionCount, PersistentCongestionCount, SendTotalBytes, RecvTotalBytes, EcnCongestionCount);
 
         internal QuicConnectionStatsV2Event(Timestamp timestamp, ushort processor, uint processId, uint threadId, int pointerSize, ulong objectPointer,
-                                          uint smoothedRtt, uint congestionCount, uint persistentCongestionCount, ulong sendTotalBytes, ulong recvTotalBytes, uint ecnCongestionCount) :
+                                          ulong smoothedRtt, uint congestionCount, uint persistentCongestionCount, ulong sendTotalBytes, ulong recvTotalBytes, uint ecnCongestionCount) :
             base(QuicEventId.ConnStatsV2, QuicObjectType.Connection, timestamp, processor, processId, threadId, pointerSize, objectPointer)
         {
             SmoothedRtt = smoothedRtt;
@@ -928,7 +928,7 @@ namespace QuicTrace.DataModel
     public class QuicConnectionRecvUdpDatagramsEvent : QuicEvent
     {
         public uint DatagramCount { get; }
-    
+
         public uint ByteCount { get; }
 
         public override string PayloadString => string.Format("Recv {0} UDP datagrams, {1} bytes", DatagramCount, ByteCount);
