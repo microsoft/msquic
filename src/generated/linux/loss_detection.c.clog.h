@@ -117,16 +117,16 @@ tracepoint(CLOG_LOSS_DETECTION_C, PacketTxLostFack , arg2, arg3, arg4);\
 
 /*----------------------------------------------------------
 // Decoder Ring for PacketTxLostRack
-// [%c][TX][%llu] Lost: RACK %u ms
+// [%c][TX][%llu] Lost: RACK %llu ms
 // QuicTraceLogVerbose(
                         PacketTxLostRack,
-                        "[%c][TX][%llu] Lost: RACK %u ms",
+                        "[%c][TX][%llu] Lost: RACK %llu ms",
                         PtkConnPre(Connection),
                         Packet->PacketNumber,
-                        CxPlatTimeDiff32(Packet->SentTime, TimeNow));
+                        CxPlatTimeDiff64(Packet->SentTime, TimeNow));
 // arg2 = arg2 = PtkConnPre(Connection) = arg2
 // arg3 = arg3 = Packet->PacketNumber = arg3
-// arg4 = arg4 = CxPlatTimeDiff32(Packet->SentTime, TimeNow) = arg4
+// arg4 = arg4 = CxPlatTimeDiff64(Packet->SentTime, TimeNow) = arg4
 ----------------------------------------------------------*/
 #ifndef _clog_5_ARGS_TRACE_PacketTxLostRack
 #define _clog_5_ARGS_TRACE_PacketTxLostRack(uniqueId, encoded_arg_string, arg2, arg3, arg4)\
@@ -205,12 +205,12 @@ tracepoint(CLOG_LOSS_DETECTION_C, PacketTxSpuriousLoss , arg2, arg3);\
             "[%c][TX][%llu] ACKed (%u.%03u ms)",
             PtkConnPre(Connection),
             Packet->PacketNumber,
-            PacketRtt / 1000,
-            PacketRtt % 1000);
+            (uint32_t)(PacketRtt / 1000),
+            (uint32_t)(PacketRtt % 1000));
 // arg2 = arg2 = PtkConnPre(Connection) = arg2
 // arg3 = arg3 = Packet->PacketNumber = arg3
-// arg4 = arg4 = PacketRtt / 1000 = arg4
-// arg5 = arg5 = PacketRtt % 1000 = arg5
+// arg4 = arg4 = (uint32_t)(PacketRtt / 1000) = arg4
+// arg5 = arg5 = (uint32_t)(PacketRtt % 1000) = arg5
 ----------------------------------------------------------*/
 #ifndef _clog_6_ARGS_TRACE_PacketTxAcked
 #define _clog_6_ARGS_TRACE_PacketTxAcked(uniqueId, encoded_arg_string, arg2, arg3, arg4, arg5)\
@@ -345,11 +345,11 @@ tracepoint(CLOG_LOSS_DETECTION_C, KeyChangeConfirmed , arg1);\
             "[conn][%p] Setting loss detection %hhu timer for %u us. (ProbeCount=%hu)",
             Connection,
             TimeoutType,
-            Delay,
+            (uint32_t)Delay,
             LossDetection->ProbeCount);
 // arg2 = arg2 = Connection = arg2
 // arg3 = arg3 = TimeoutType = arg3
-// arg4 = arg4 = Delay = arg4
+// arg4 = arg4 = (uint32_t)Delay = arg4
 // arg5 = arg5 = LossDetection->ProbeCount = arg5
 ----------------------------------------------------------*/
 #ifndef _clog_6_ARGS_TRACE_ConnLossDetectionTimerSet

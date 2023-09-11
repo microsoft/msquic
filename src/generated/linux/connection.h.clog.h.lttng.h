@@ -58,7 +58,7 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_H, ConnInFlowStats,
         ConnStatsV2,
         "[conn][%p] STATS: SRtt=%u CongestionCount=%u PersistentCongestionCount=%u SendTotalBytes=%llu RecvTotalBytes=%llu CongestionWindow=%u Cc=%s EcnCongestionCount=%u",
         Connection,
-        Path->SmoothedRtt,
+        (uint32_t)Path->SmoothedRtt, // TODO - Make v3 of event
         Connection->Stats.Send.CongestionCount,
         Connection->Stats.Send.PersistentCongestionCount,
         Connection->Stats.Send.TotalBytes,
@@ -67,8 +67,9 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_H, ConnInFlowStats,
         Connection->CongestionControl.Name,
         Connection->Stats.Send.EcnCongestionCount);
 // arg2 = arg2 = Connection = arg2
-// arg3 = arg3 = Path->SmoothedRtt = arg3
-// arg4 = arg4 = Connection->Stats.Send.CongestionCount = arg4
+// arg3 = arg3 = (uint32_t)Path->SmoothedRtt = arg3
+// arg4 = arg4 = // TODO - Make v3 of event
+        Connection->Stats.Send.CongestionCount = arg4
 // arg5 = arg5 = Connection->Stats.Send.PersistentCongestionCount = arg5
 // arg6 = arg6 = Connection->Stats.Send.TotalBytes = arg6
 // arg7 = arg7 = Connection->Stats.Recv.TotalBytes = arg7

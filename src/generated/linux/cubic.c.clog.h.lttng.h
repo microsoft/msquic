@@ -162,7 +162,7 @@ TRACEPOINT_EVENT(CLOG_CUBIC_C, ConnSpuriousCongestion,
         Connection->Send.PeerMaxData - Connection->Send.OrderedStreamBytesSent,
         Connection->SendBuffer.IdealBytes,
         Connection->SendBuffer.PostedBytes,
-        Path->GotFirstRttSample ? Path->SmoothedRtt : 0);
+        Path->GotFirstRttSample ? (uint32_t)Path->SmoothedRtt : 0);
 // arg2 = arg2 = Connection = arg2
 // arg3 = arg3 = Connection->Stats.Send.TotalBytes = arg3
 // arg4 = arg4 = Cubic->BytesInFlight = arg4
@@ -172,7 +172,7 @@ TRACEPOINT_EVENT(CLOG_CUBIC_C, ConnSpuriousCongestion,
 // arg8 = arg8 = Connection->Send.PeerMaxData - Connection->Send.OrderedStreamBytesSent = arg8
 // arg9 = arg9 = Connection->SendBuffer.IdealBytes = arg9
 // arg10 = arg10 = Connection->SendBuffer.PostedBytes = arg10
-// arg11 = arg11 = Path->GotFirstRttSample ? Path->SmoothedRtt : 0 = arg11
+// arg11 = arg11 = Path->GotFirstRttSample ? (uint32_t)Path->SmoothedRtt : 0 = arg11
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CUBIC_C, ConnOutFlowStats,
     TP_ARGS(

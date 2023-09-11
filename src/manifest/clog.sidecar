@@ -5605,7 +5605,7 @@
     },
     "IncreaseRxBuffer": {
       "ModuleProperites": {},
-      "TraceString": "[strm][%p] Increasing max RX buffer size to %u (MinRtt=%u; TimeNow=%u; LastUpdate=%u)",
+      "TraceString": "[strm][%p] Increasing max RX buffer size to %u (MinRtt=%llu; TimeNow=%llu; LastUpdate=%llu)",
       "UniqueId": "IncreaseRxBuffer",
       "splitArgs": [
         {
@@ -5617,15 +5617,15 @@
           "MacroVariableName": "arg3"
         },
         {
-          "DefinationEncoding": "u",
+          "DefinationEncoding": "llu",
           "MacroVariableName": "arg4"
         },
         {
-          "DefinationEncoding": "u",
+          "DefinationEncoding": "llu",
           "MacroVariableName": "arg5"
         },
         {
-          "DefinationEncoding": "u",
+          "DefinationEncoding": "llu",
           "MacroVariableName": "arg6"
         }
       ],
@@ -7909,7 +7909,7 @@
     },
     "PacketTxLostRack": {
       "ModuleProperites": {},
-      "TraceString": "[%c][TX][%llu] Lost: RACK %u ms",
+      "TraceString": "[%c][TX][%llu] Lost: RACK %llu ms",
       "UniqueId": "PacketTxLostRack",
       "splitArgs": [
         {
@@ -7921,7 +7921,7 @@
           "MacroVariableName": "arg3"
         },
         {
-          "DefinationEncoding": "u",
+          "DefinationEncoding": "llu",
           "MacroVariableName": "arg4"
         }
       ],
@@ -14322,9 +14322,9 @@
         "EncodingString": "[conn][%p] Ignoring received unreachable event (inline)"
       },
       {
-        "UniquenessHash": "5d5005c9-b064-899a-abec-29608ab4c745",
+        "UniquenessHash": "b7c26581-5d5b-55a8-aa76-91132357a377",
         "TraceID": "IncreaseRxBuffer",
-        "EncodingString": "[strm][%p] Increasing max RX buffer size to %u (MinRtt=%u; TimeNow=%u; LastUpdate=%u)"
+        "EncodingString": "[strm][%p] Increasing max RX buffer size to %u (MinRtt=%llu; TimeNow=%llu; LastUpdate=%llu)"
       },
       {
         "UniquenessHash": "9ed40f87-2b63-8343-5e37-2640d0a40e27",
@@ -15062,9 +15062,9 @@
         "EncodingString": "[%c][TX][%llu] Lost: FACK %llu packets"
       },
       {
-        "UniquenessHash": "79037f89-4d68-1fe1-8945-65ff684ef474",
+        "UniquenessHash": "29283bfa-4e6c-ce65-b4f9-fa2213f42ffd",
         "TraceID": "PacketTxLostRack",
-        "EncodingString": "[%c][TX][%llu] Lost: RACK %u ms"
+        "EncodingString": "[%c][TX][%llu] Lost: RACK %llu ms"
       },
       {
         "UniquenessHash": "114eda6f-e346-6701-573c-ad9cdbd6e082",
