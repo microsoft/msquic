@@ -879,7 +879,7 @@ namespace QuicTrace.DataModel
 
     public class QuicConnectionStatsV2Event : QuicEvent
     {
-        public uint SmoothedRtt { get; }
+        public ulong SmoothedRtt { get; }
 
         public uint CongestionCount { get; }
 
@@ -896,7 +896,7 @@ namespace QuicTrace.DataModel
                 SmoothedRtt, CongestionCount, PersistentCongestionCount, SendTotalBytes, RecvTotalBytes, EcnCongestionCount);
 
         internal QuicConnectionStatsV2Event(Timestamp timestamp, ushort processor, uint processId, uint threadId, int pointerSize, ulong objectPointer,
-                                          uint smoothedRtt, uint congestionCount, uint persistentCongestionCount, ulong sendTotalBytes, ulong recvTotalBytes, uint ecnCongestionCount) :
+                                          ulong smoothedRtt, uint congestionCount, uint persistentCongestionCount, ulong sendTotalBytes, ulong recvTotalBytes, uint ecnCongestionCount) :
             base(QuicEventId.ConnStatsV2, QuicObjectType.Connection, timestamp, processor, processId, threadId, pointerSize, objectPointer)
         {
             SmoothedRtt = smoothedRtt;

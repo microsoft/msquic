@@ -2176,6 +2176,44 @@
                 name="EcnCongestionCount"
                 />
           </template>
+          <template tid="tid_CONN_STATISTICS_V3">
+            <data
+                inType="win:Pointer"
+                name="Connection"
+                />
+            <data
+                inType="win:UInt64"
+                name="SmoothedRtt"
+                />
+            <data
+                inType="win:UInt32"
+                name="CongestionCount"
+                />
+            <data
+                inType="win:UInt32"
+                name="PersistentCongestionCount"
+                />
+            <data
+                inType="win:UInt64"
+                name="SendTotalBytes"
+                />
+            <data
+                inType="win:UInt64"
+                name="RecvTotalBytes"
+                />
+			<data
+                inType="win:UInt32"
+                name="CongestionWindow"
+                />
+            <data
+                inType="win:AnsiString"
+                name="Cc"
+                />
+            <data
+                inType="win:UInt32"
+                name="EcnCongestionCount"
+                />
+          </template>
           <template tid="tid_CONN_COUNT_COUNT">
             <data
                 inType="win:Pointer"
@@ -3344,6 +3382,15 @@
               symbol="QuicConnOutFlowStatsV2"
               template="tid_CONN_OUT_FLOW_STATS_V2"
               value="5193"
+              />
+          <event
+              keywords="ut:Connection ut:LowVolume"
+              level="win:Informational"
+              message="$(string.Etw.ConnStatsV2)"
+              opcode="Connection"
+              symbol="QuicConnStatsV3"
+              template="tid_CONN_STATISTICS_V3"
+              value="5194"
               />
           <!-- 6144 - 7167 | Stream Events -->
           <event

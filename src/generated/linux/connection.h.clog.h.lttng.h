@@ -52,13 +52,13 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_H, ConnInFlowStats,
 
 
 /*----------------------------------------------------------
-// Decoder Ring for ConnStatsV2
-// [conn][%p] STATS: SRtt=%u CongestionCount=%u PersistentCongestionCount=%u SendTotalBytes=%llu RecvTotalBytes=%llu CongestionWindow=%u Cc=%s EcnCongestionCount=%u
+// Decoder Ring for ConnStatsV3
+// [conn][%p] STATS: SRtt=%llu CongestionCount=%u PersistentCongestionCount=%u SendTotalBytes=%llu RecvTotalBytes=%llu CongestionWindow=%u Cc=%s EcnCongestionCount=%u
 // QuicTraceEvent(
-        ConnStatsV2,
-        "[conn][%p] STATS: SRtt=%u CongestionCount=%u PersistentCongestionCount=%u SendTotalBytes=%llu RecvTotalBytes=%llu CongestionWindow=%u Cc=%s EcnCongestionCount=%u",
+        ConnStatsV3,
+        "[conn][%p] STATS: SRtt=%llu CongestionCount=%u PersistentCongestionCount=%u SendTotalBytes=%llu RecvTotalBytes=%llu CongestionWindow=%u Cc=%s EcnCongestionCount=%u",
         Connection,
-        (uint32_t)Path->SmoothedRtt, // TODO - Make v3 of event
+        Path->SmoothedRtt,
         Connection->Stats.Send.CongestionCount,
         Connection->Stats.Send.PersistentCongestionCount,
         Connection->Stats.Send.TotalBytes,
@@ -67,9 +67,8 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_H, ConnInFlowStats,
         Connection->CongestionControl.Name,
         Connection->Stats.Send.EcnCongestionCount);
 // arg2 = arg2 = Connection = arg2
-// arg3 = arg3 = (uint32_t)Path->SmoothedRtt = arg3
-// arg4 = arg4 = // TODO - Make v3 of event
-        Connection->Stats.Send.CongestionCount = arg4
+// arg3 = arg3 = Path->SmoothedRtt = arg3
+// arg4 = arg4 = Connection->Stats.Send.CongestionCount = arg4
 // arg5 = arg5 = Connection->Stats.Send.PersistentCongestionCount = arg5
 // arg6 = arg6 = Connection->Stats.Send.TotalBytes = arg6
 // arg7 = arg7 = Connection->Stats.Recv.TotalBytes = arg7
@@ -77,10 +76,10 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_H, ConnInFlowStats,
 // arg9 = arg9 = Connection->CongestionControl.Name = arg9
 // arg10 = arg10 = Connection->Stats.Send.EcnCongestionCount = arg10
 ----------------------------------------------------------*/
-TRACEPOINT_EVENT(CLOG_CONNECTION_H, ConnStatsV2,
+TRACEPOINT_EVENT(CLOG_CONNECTION_H, ConnStatsV3,
     TP_ARGS(
         const void *, arg2,
-        unsigned int, arg3,
+        unsigned long long, arg3,
         unsigned int, arg4,
         unsigned int, arg5,
         unsigned long long, arg6,
@@ -90,7 +89,7 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_H, ConnStatsV2,
         unsigned int, arg10), 
     TP_FIELDS(
         ctf_integer_hex(uint64_t, arg2, arg2)
-        ctf_integer(unsigned int, arg3, arg3)
+        ctf_integer(uint64_t, arg3, arg3)
         ctf_integer(unsigned int, arg4, arg4)
         ctf_integer(unsigned int, arg5, arg5)
         ctf_integer(uint64_t, arg6, arg6)

@@ -855,10 +855,10 @@ QuicConnLogStatistics(
     UNREFERENCED_PARAMETER(Path);
 
     QuicTraceEvent(
-        ConnStatsV2,
-        "[conn][%p] STATS: SRtt=%u CongestionCount=%u PersistentCongestionCount=%u SendTotalBytes=%llu RecvTotalBytes=%llu CongestionWindow=%u Cc=%s EcnCongestionCount=%u",
+        ConnStatsV3,
+        "[conn][%p] STATS: SRtt=%llu CongestionCount=%u PersistentCongestionCount=%u SendTotalBytes=%llu RecvTotalBytes=%llu CongestionWindow=%u Cc=%s EcnCongestionCount=%u",
         Connection,
-        (uint32_t)Path->SmoothedRtt, // TODO - Make v3 of event
+        Path->SmoothedRtt,
         Connection->Stats.Send.CongestionCount,
         Connection->Stats.Send.PersistentCongestionCount,
         Connection->Stats.Send.TotalBytes,

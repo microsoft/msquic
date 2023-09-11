@@ -460,6 +460,7 @@ namespace QuicTrace.DataModel
                         break;
                     }
                 case QuicEventId.ConnStatsV2:
+                case QuicEventId.ConnStatsV3:
                     {
                         state.DataAvailableFlags |= QuicDataAvailableFlags.ConnectionTput;
                         var _evt = evt as QuicConnectionStatsV2Event;
