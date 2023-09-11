@@ -129,7 +129,7 @@ namespace QuicTrace.DataModel.LTTng
                 case nameof(QuicEventId.ConnRecvUdpDatagrams):
                     return new QuicConnectionRecvUdpDatagramsEvent(timestamp, processor, processId, threadId, pointerSize, data.ReadPointer(), data.ReadUInt(), data.ReadUInt());
                 case nameof(QuicEventId.ConnOutFlowStatsV2):
-                    return new QuicConnectionOutFlowStatsEvent(timestamp, processor, processId, threadId, pointerSize, data.ReadPointer(), data.ReadULong(), data.ReadUInt(), data.ReadUInt(), data.ReadUInt(), data.ReadUInt(), data.ReadULong(), data.ReadULong(), data.ReadULong(), data.ReadULong());
+                    return new QuicConnectionOutFlowStatsV2Event(timestamp, processor, processId, threadId, pointerSize, data.ReadPointer(), data.ReadULong(), data.ReadUInt(), data.ReadUInt(), data.ReadULong(), data.ReadULong(), data.ReadULong(), data.ReadULong(), data.ReadULong());
                 case nameof(QuicEventId.ConnStatsV3):
                     return new QuicConnectionStatsV2Event(timestamp, processor, processId, threadId, pointerSize, data.ReadPointer(), data.ReadULong(), data.ReadUInt(), data.ReadUInt(), data.ReadULong(), data.ReadULong(), data.ReadUInt());
                 case nameof(QuicEventId.ConnLogError):

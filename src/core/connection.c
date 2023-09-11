@@ -838,7 +838,6 @@ QuicConnUpdateRtt(
         Path->RttVariance = LatestRtt / 2;
 
     } else {
-        uint64_t PrevRtt = Path->SmoothedRtt;
         if (Path->SmoothedRtt > LatestRtt) {
             Path->RttVariance = (3 * Path->RttVariance + Path->SmoothedRtt - LatestRtt) / 4;
         } else {

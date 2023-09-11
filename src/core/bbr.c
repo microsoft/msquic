@@ -320,17 +320,16 @@ BbrCongestionControlLogOutFlowStatus(
 
     QuicTraceEvent(
         ConnOutFlowStatsV2,
-        "[conn][%p] OUT: BytesSent=%llu InFlight=%u InFlightMax=%u CWnd=%u SSThresh=%u ConnFC=%llu ISB=%llu PostedBytes=%llu SRtt=%llu",
+        "[conn][%p] OUT: BytesSent=%llu InFlight=%u CWnd=%u ConnFC=%llu ISB=%llu PostedBytes=%llu SRtt=%llu 1Way=%llu",
         Connection,
         Connection->Stats.Send.TotalBytes,
         Bbr->BytesInFlight,
-        Bbr->BytesInFlightMax,
         Bbr->CongestionWindow,
-        0,
         Connection->Send.PeerMaxData - Connection->Send.OrderedStreamBytesSent,
         Connection->SendBuffer.IdealBytes,
         Connection->SendBuffer.PostedBytes,
-        Path->GotFirstRttSample ? Path->SmoothedRtt : 0);
+        Path->GotFirstRttSample ? Path->SmoothedRtt : 0,
+        Path->OneWayDelay);
 }
 
 //

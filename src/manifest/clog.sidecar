@@ -1693,7 +1693,7 @@
     },
     "ConnOutFlowStatsV2": {
       "ModuleProperites": {},
-      "TraceString": "[conn][%p] OUT: BytesSent=%llu InFlight=%u InFlightMax=%u CWnd=%u SSThresh=%u ConnFC=%llu ISB=%llu PostedBytes=%llu SRtt=%llu",
+      "TraceString": "[conn][%p] OUT: BytesSent=%llu InFlight=%u CWnd=%u ConnFC=%llu ISB=%llu PostedBytes=%llu SRtt=%llu 1Way=%llu",
       "UniqueId": "ConnOutFlowStatsV2",
       "splitArgs": [
         {
@@ -1713,11 +1713,11 @@
           "MacroVariableName": "arg5"
         },
         {
-          "DefinationEncoding": "u",
+          "DefinationEncoding": "llu",
           "MacroVariableName": "arg6"
         },
         {
-          "DefinationEncoding": "u",
+          "DefinationEncoding": "llu",
           "MacroVariableName": "arg7"
         },
         {
@@ -1731,10 +1731,6 @@
         {
           "DefinationEncoding": "llu",
           "MacroVariableName": "arg10"
-        },
-        {
-          "DefinationEncoding": "llu",
-          "MacroVariableName": "arg11"
         }
       ],
       "macroName": "QuicTraceEvent"
@@ -8817,6 +8813,22 @@
       ],
       "macroName": "QuicTraceLogVerbose"
     },
+    "PhaseShiftUpdated": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] New Phase Shift: %lld us",
+      "UniqueId": "PhaseShiftUpdated",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        },
+        {
+          "DefinationEncoding": "lld",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macroName": "QuicTraceLogConnVerbose"
+    },
     "PlatformThreadCreateFailed": {
       "ModuleProperites": {},
       "TraceString": "[ lib] pthread_create failed, retrying without affinitization",
@@ -13432,9 +13444,9 @@
         "EncodingString": "[conn][%p] OUT: BytesSent=%llu InFlight=%u InFlightMax=%u CWnd=%u SSThresh=%u ConnFC=%llu ISB=%llu PostedBytes=%llu SRtt=%u"
       },
       {
-        "UniquenessHash": "c4a4399a-7480-49c5-a291-82feafb39bca",
+        "UniquenessHash": "da346e40-b8f9-5953-f473-9bc5526dfc85",
         "TraceID": "ConnOutFlowStatsV2",
-        "EncodingString": "[conn][%p] OUT: BytesSent=%llu InFlight=%u InFlightMax=%u CWnd=%u SSThresh=%u ConnFC=%llu ISB=%llu PostedBytes=%llu SRtt=%llu"
+        "EncodingString": "[conn][%p] OUT: BytesSent=%llu InFlight=%u CWnd=%u ConnFC=%llu ISB=%llu PostedBytes=%llu SRtt=%llu 1Way=%llu"
       },
       {
         "UniquenessHash": "55425e95-f2a7-6b0d-41e9-82bdeb5d9082",
@@ -15565,6 +15577,11 @@
         "UniquenessHash": "68f39cf7-bcf8-8314-a151-2316d10bead4",
         "TraceID": "PerfTcpStartTls",
         "EncodingString": "[perf][tcp][%p] Start TLS"
+      },
+      {
+        "UniquenessHash": "f7b20b43-0f5a-76ed-71ab-00e2a293b9b4",
+        "TraceID": "PhaseShiftUpdated",
+        "EncodingString": "[conn][%p] New Phase Shift: %lld us"
       },
       {
         "UniquenessHash": "c77e1439-2c2d-7baf-4509-bd2f7eeea771",

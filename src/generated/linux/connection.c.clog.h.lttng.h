@@ -938,6 +938,29 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, ApplySettings,
 
 
 /*----------------------------------------------------------
+// Decoder Ring for PhaseShiftUpdated
+// [conn][%p] New Phase Shift: %lld us
+// QuicTraceLogConnVerbose(
+                PhaseShiftUpdated,
+                Connection,
+                "New Phase Shift: %lld us",
+                Connection->Stats.Timing.PhaseShift);
+// arg1 = arg1 = Connection = arg1
+// arg3 = arg3 = Connection->Stats.Timing.PhaseShift = arg3
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_CONNECTION_C, PhaseShiftUpdated,
+    TP_ARGS(
+        const void *, arg1,
+        long long, arg3), 
+    TP_FIELDS(
+        ctf_integer_hex(uint64_t, arg1, arg1)
+        ctf_integer(int64_t, arg3, arg3)
+    )
+)
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for RttUpdatedV2
 // [conn][%p] Updated Rtt=%u.%03u ms, Var=%u.%03u 1Way=%u.%03u ms
 // QuicTraceLogConnVerbose(

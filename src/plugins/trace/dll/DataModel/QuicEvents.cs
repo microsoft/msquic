@@ -760,6 +760,44 @@ namespace QuicTrace.DataModel
         }
     }
 
+    public class QuicConnectionOutFlowStatsV2Event : QuicEvent
+    {
+        public ulong BytesSent { get; }
+
+        public uint BytesInFlight { get; }
+
+        public uint CongestionWindow { get; }
+
+        public ulong ConnectionFlowControl { get; }
+
+        public ulong IdealBytes { get; }
+
+        public ulong PostedBytes { get; }
+
+        public ulong SmoothedRtt { get; }
+
+        public ulong OneWayDelay { get; }
+
+        public override string PayloadString =>
+            string.Format("OUT: BytesSent={0} InFlight={1} CWnd={2} ConnFC={3} ISB={4} PostedBytes={5} SRtt={6} 1Way={7}",
+                BytesSent, BytesInFlight, CongestionWindow, ConnectionFlowControl, IdealBytes, PostedBytes, SmoothedRtt);
+
+        internal QuicConnectionOutFlowStatsV2Event(Timestamp timestamp, ushort processor, uint processId, uint threadId, int pointerSize, ulong objectPointer,
+                                                 ulong bytesSent, uint bytesInFlight, uint congestionWindow, ulong connectionFlowControl, ulong idealBytes,
+                                                 ulong postedBytes, ulong smoothedRtt, ulong oneWayDelay) :
+            base(QuicEventId.ConnOutFlowStatsV2, QuicObjectType.Connection, timestamp, processor, processId, threadId, pointerSize, objectPointer)
+        {
+            BytesSent = bytesSent;
+            BytesInFlight = bytesInFlight;
+            CongestionWindow = congestionWindow;
+            ConnectionFlowControl = connectionFlowControl;
+            IdealBytes = idealBytes;
+            PostedBytes = postedBytes;
+            SmoothedRtt = smoothedRtt;
+            OneWayDelay = oneWayDelay;
+        }
+    }
+
     public class QuicConnectionOutFlowBlockedEvent : QuicEvent
     {
         public byte ReasonFlags { get; }
