@@ -42,13 +42,13 @@ jobs:
           egress-policy: audit
 
       - name: Checkout repository
-        uses: actions/checkout@8e5e7e5ab8b370d6c329ec480221332ada57f0ab
+        uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9
 
       # Login against a Docker registry except on PR
       # https://github.com/docker/login-action
       - name: Log into registry ${{ env.REGISTRY }}
         if: github.event_name != 'pull_request'
-        uses: docker/login-action@f4ef78c080cd8ba55a85445d5b36e214a81df20a
+        uses: docker/login-action@465a07811f14bebb1938fbed4728c6a1ff8901fc
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
@@ -58,7 +58,7 @@ jobs:
       # https://github.com/docker/metadata-action
       - name: Extract Docker metadata
         id: meta
-        uses: docker/metadata-action@c4ee3adeed93b1fa6a762f209fb01608c1a22f1e
+        uses: docker/metadata-action@2c0bd771b40637d97bf205cbccdd294a32112176
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
 

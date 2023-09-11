@@ -191,6 +191,8 @@ typedef enum QUIC_STREAM_OPEN_FLAGS {
     QUIC_STREAM_OPEN_FLAG_NONE              = 0x0000,
     QUIC_STREAM_OPEN_FLAG_UNIDIRECTIONAL    = 0x0001,   // Indicates the stream is unidirectional.
     QUIC_STREAM_OPEN_FLAG_0_RTT             = 0x0002,   // The stream was opened via a 0-RTT packet.
+    QUIC_STREAM_OPEN_FLAG_DELAY_ID_FC_UPDATES = 0x0004, // Indicates stream ID flow control limit updates for the
+                                                        // connection should be delayed to StreamClose.
 } QUIC_STREAM_OPEN_FLAGS;
 
 DEFINE_ENUM_FLAG_OPERATORS(QUIC_STREAM_OPEN_FLAGS)
@@ -258,6 +260,7 @@ typedef enum QUIC_EXECUTION_CONFIG_FLAGS {
     QUIC_EXECUTION_CONFIG_FLAG_NONE             = 0x0000,
 #ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
     QUIC_EXECUTION_CONFIG_FLAG_QTIP             = 0x0001,
+    QUIC_EXECUTION_CONFIG_FLAG_RIO              = 0x0002,
 #endif
 } QUIC_EXECUTION_CONFIG_FLAGS;
 

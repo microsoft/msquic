@@ -105,6 +105,7 @@ PrintHelp(
         "  -cpu:<cpu_index>            Specify the processor(s) to use.\n"
         "  -cipher:<value>             Decimal value of 1 or more QUIC_ALLOWED_CIPHER_SUITE_FLAGS.\n"
         "  -qtip:<0/1>                 Enables/disables Quic over TCP support. (def:0)\n"
+        "  -rio:<0/1>                  Enables/disables RIO support. (def:0)\n"
 #endif // _KERNEL_MODE
         "\n"
         );
@@ -201,6 +202,12 @@ QuicMainStart(
     uint8_t QuicOverTcpEnabled;
     if (TryGetValue(argc, argv, "qtip", &QuicOverTcpEnabled)) {
         Config->Flags |= QUIC_EXECUTION_CONFIG_FLAG_QTIP;
+        SetConfig = true;
+    }
+
+    uint8_t RioEnabled;
+    if (TryGetValue(argc, argv, "rio", &RioEnabled)) {
+        Config->Flags |= QUIC_EXECUTION_CONFIG_FLAG_RIO;
         SetConfig = true;
     }
 

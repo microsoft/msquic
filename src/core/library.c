@@ -2319,16 +2319,16 @@ QuicLibraryGenerateStatelessResetToken(
     )
 {
     uint8_t HashOutput[CXPLAT_HASH_SHA256_SIZE];
-    uint32_t CurProcIndex = CxPlatProcCurrentNumber();
-    CxPlatLockAcquire(&MsQuicLib.PerProc[CurProcIndex].ResetTokenLock);
+    QUIC_LIBRARY_PP* PerProc = QuicLibraryGetPerProc();
+    CxPlatLockAcquire(&PerProc->ResetTokenLock);
     QUIC_STATUS Status =
         CxPlatHashCompute(
-            MsQuicLib.PerProc[CurProcIndex].ResetTokenHash,
+            PerProc->ResetTokenHash,
             CID,
             MsQuicLib.CidTotalLength,
             sizeof(HashOutput),
             HashOutput);
-    CxPlatLockRelease(&MsQuicLib.PerProc[CurProcIndex].ResetTokenLock);
+    CxPlatLockRelease(&PerProc->ResetTokenLock);
     if (QUIC_SUCCEEDED(Status)) {
         CxPlatCopyMemory(
             ResetToken,

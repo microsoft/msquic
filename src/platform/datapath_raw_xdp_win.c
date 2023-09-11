@@ -929,13 +929,13 @@ CxPlatDpRawInitialize(
     QUIC_STATUS Status;
     const uint16_t* ProcessorList;
 
+    CxPlatListInitializeHead(&Xdp->Interfaces);
     if (QUIC_FAILED(XdpOpenApi(XDP_VERSION_PRERELEASE, &Xdp->XdpApi))) {
         Status = QUIC_STATUS_NOT_SUPPORTED;
         goto Error;
     }
 
     CxPlatXdpReadConfig(Xdp);
-    CxPlatListInitializeHead(&Xdp->Interfaces);
     Xdp->PollingIdleTimeoutUs = Config ? Config->PollingIdleTimeoutUs : 0;
 
     if (Config && Config->ProcessorCount) {
