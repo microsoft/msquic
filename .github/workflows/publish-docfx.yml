@@ -31,6 +31,10 @@ jobs:
       uses: actions/setup-dotnet@v3
       with:
         dotnet-version: 7.x
+    - name: Set up PowerShell
+      uses: actions/setup-powershell@v2
+      with:
+        pwsh-version: '7.x'  # Specify the PowerShell version you want to use
 
     - run: dotnet tool update -g docfx
     - run: chmod +x ./scripts/generate-docfx-yml.ps1
