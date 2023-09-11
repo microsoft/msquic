@@ -331,9 +331,6 @@ QuicLossDetectionUpdateTimer(
                 LossDetection, Path, 1 << LossDetection->ProbeCount);
     }
 
-    //
-    // The units for the delay values start in microseconds.
-    //
     uint64_t Delay; // In microseconds
     if (CxPlatTimeAtOrBefore64(TimeFires, TimeNow)) {
         //
