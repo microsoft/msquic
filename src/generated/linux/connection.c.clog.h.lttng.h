@@ -938,33 +938,40 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, ApplySettings,
 
 
 /*----------------------------------------------------------
-// Decoder Ring for RttUpdatedMsg
-// [conn][%p] Updated Rtt=%u.%03u ms, Var=%u.%03u
+// Decoder Ring for RttUpdatedV2
+// [conn][%p] Updated Rtt=%u.%03u ms, Var=%u.%03u 1Way=%u.%03u ms
 // QuicTraceLogConnVerbose(
-            RttUpdatedMsg,
-            Connection,
-            "Updated Rtt=%u.%03u ms, Var=%u.%03u",
-            Path->SmoothedRtt / 1000, Path->SmoothedRtt % 1000,
-            Path->RttVariance / 1000, Path->RttVariance % 1000);
+        RttUpdatedV2,
+        Connection,
+        "Updated Rtt=%u.%03u ms, Var=%u.%03u 1Way=%u.%03u ms",
+        Path->SmoothedRtt / 1000, Path->SmoothedRtt % 1000,
+        Path->RttVariance / 1000, Path->RttVariance % 1000,
+        Path->OneWayDelay / 1000, Path->OneWayDelay % 1000);
 // arg1 = arg1 = Connection = arg1
 // arg3 = arg3 = Path->SmoothedRtt / 1000 = arg3
 // arg4 = arg4 = Path->SmoothedRtt % 1000 = arg4
 // arg5 = arg5 = Path->RttVariance / 1000 = arg5
 // arg6 = arg6 = Path->RttVariance % 1000 = arg6
+// arg7 = arg7 = Path->OneWayDelay / 1000 = arg7
+// arg8 = arg8 = Path->OneWayDelay % 1000 = arg8
 ----------------------------------------------------------*/
-TRACEPOINT_EVENT(CLOG_CONNECTION_C, RttUpdatedMsg,
+TRACEPOINT_EVENT(CLOG_CONNECTION_C, RttUpdatedV2,
     TP_ARGS(
         const void *, arg1,
         unsigned int, arg3,
         unsigned int, arg4,
         unsigned int, arg5,
-        unsigned int, arg6), 
+        unsigned int, arg6,
+        unsigned int, arg7,
+        unsigned int, arg8), 
     TP_FIELDS(
         ctf_integer_hex(uint64_t, arg1, arg1)
         ctf_integer(unsigned int, arg3, arg3)
         ctf_integer(unsigned int, arg4, arg4)
         ctf_integer(unsigned int, arg5, arg5)
         ctf_integer(unsigned int, arg6, arg6)
+        ctf_integer(unsigned int, arg7, arg7)
+        ctf_integer(unsigned int, arg8, arg8)
     )
 )
 

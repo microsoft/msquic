@@ -166,6 +166,8 @@ typedef struct QUIC_PATH {
     uint32_t MaxRtt;
     uint32_t RttVariance;
     uint32_t LatestRttSample;
+    uint32_t OneWayDelay;
+    uint32_t OneWayDelayLatest;
 
     //
     // The last path challenge we received and needs to be sent back as in a

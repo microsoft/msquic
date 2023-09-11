@@ -9429,6 +9429,42 @@
       ],
       "macroName": "QuicTraceLogConnVerbose"
     },
+    "RttUpdatedV2": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] Updated Rtt=%u.%03u ms, Var=%u.%03u 1Way=%u.%03u ms",
+      "UniqueId": "RttUpdatedV2",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        },
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg3"
+        },
+        {
+          "DefinationEncoding": "03u",
+          "MacroVariableName": "arg4"
+        },
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg5"
+        },
+        {
+          "DefinationEncoding": "03u",
+          "MacroVariableName": "arg6"
+        },
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg7"
+        },
+        {
+          "DefinationEncoding": "03u",
+          "MacroVariableName": "arg8"
+        }
+      ],
+      "macroName": "QuicTraceLogConnVerbose"
+    },
     "SchannelAch": {
       "ModuleProperites": {},
       "TraceString": "[ tls] Calling AcquireCredentialsHandleW",
@@ -15652,6 +15688,11 @@
         "UniquenessHash": "dc25a415-b386-47ec-0128-415c6f31795b",
         "TraceID": "RttUpdatedMsg",
         "EncodingString": "[conn][%p] Updated Rtt=%u.%03u ms, Var=%u.%03u"
+      },
+      {
+        "UniquenessHash": "ff41b02a-ac3e-3b07-30f1-3040e2416019",
+        "TraceID": "RttUpdatedV2",
+        "EncodingString": "[conn][%p] Updated Rtt=%u.%03u ms, Var=%u.%03u 1Way=%u.%03u ms"
       },
       {
         "UniquenessHash": "a1f31b13-badd-4de3-0620-3c8d413e7d49",

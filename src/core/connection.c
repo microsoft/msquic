@@ -810,12 +810,11 @@ void
 QuicConnUpdateRtt(
     _In_ QUIC_CONNECTION* Connection,
     _In_ QUIC_PATH* Path,
-    _In_ uint32_t LatestRtt
+    _In_ uint32_t LatestRtt,
+    _In_ uint64_t OurSendTimestamp,
+    _In_ uint64_t PeerSendTimestamp
     )
 {
-    BOOLEAN RttUpdated;
-    UNREFERENCED_PARAMETER(Connection);
-
     if (LatestRtt == 0) {
         //
         // RTT cannot be zero or several loss recovery algorithms break down.
@@ -833,31 +832,38 @@ QuicConnUpdateRtt(
 
     if (!Path->GotFirstRttSample) {
         Path->GotFirstRttSample = TRUE;
-
         Path->SmoothedRtt = LatestRtt;
         Path->RttVariance = LatestRtt / 2;
-        RttUpdated = TRUE;
 
     } else {
-        uint32_t PrevRtt = Path->SmoothedRtt;
         if (Path->SmoothedRtt > LatestRtt) {
             Path->RttVariance = (3 * Path->RttVariance + Path->SmoothedRtt - LatestRtt) / 4;
         } else {
             Path->RttVariance = (3 * Path->RttVariance + LatestRtt - Path->SmoothedRtt) / 4;
         }
         Path->SmoothedRtt = (7 * Path->SmoothedRtt + LatestRtt) / 8;
-        RttUpdated = PrevRtt != Path->SmoothedRtt;
     }
 
-    if (RttUpdated) {
-        CXPLAT_DBG_ASSERT(Path->SmoothedRtt != 0);
-        QuicTraceLogConnVerbose(
-            RttUpdatedMsg,
-            Connection,
-            "Updated Rtt=%u.%03u ms, Var=%u.%03u",
-            Path->SmoothedRtt / 1000, Path->SmoothedRtt % 1000,
-            Path->RttVariance / 1000, Path->RttVariance % 1000);
+    if (OurSendTimestamp != UINT64_MAX) { // TODO - Update this logic to use 64-bit logic
+        if (Connection->Stats.Timing.PhaseShift == 0) {
+            Connection->Stats.Timing.PhaseShift =
+                (uint32_t)PeerSendTimestamp - (uint32_t)OurSendTimestamp - LatestRtt / 2;
+            Path->OneWayDelayLatest = Path->OneWayDelay = LatestRtt / 2;
+        } else {
+            Path->OneWayDelayLatest =
+                (uint32_t)PeerSendTimestamp - (uint32_t)OurSendTimestamp - (uint32_t)Connection->Stats.Timing.PhaseShift;
+            Path->OneWayDelay = (7 * Path->OneWayDelay + Path->OneWayDelayLatest) / 8;
+        }
     }
+
+    CXPLAT_DBG_ASSERT(Path->SmoothedRtt != 0);
+    QuicTraceLogConnVerbose(
+        RttUpdatedV2,
+        Connection,
+        "Updated Rtt=%u.%03u ms, Var=%u.%03u 1Way=%u.%03u ms",
+        Path->SmoothedRtt / 1000, Path->SmoothedRtt % 1000,
+        Path->RttVariance / 1000, Path->RttVariance % 1000,
+        Path->OneWayDelay / 1000, Path->OneWayDelay % 1000);
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)

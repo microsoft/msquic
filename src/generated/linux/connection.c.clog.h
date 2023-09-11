@@ -875,23 +875,26 @@ tracepoint(CLOG_CONNECTION_C, ApplySettings , arg1);\
 
 
 /*----------------------------------------------------------
-// Decoder Ring for RttUpdatedMsg
-// [conn][%p] Updated Rtt=%u.%03u ms, Var=%u.%03u
+// Decoder Ring for RttUpdatedV2
+// [conn][%p] Updated Rtt=%u.%03u ms, Var=%u.%03u 1Way=%u.%03u ms
 // QuicTraceLogConnVerbose(
-            RttUpdatedMsg,
-            Connection,
-            "Updated Rtt=%u.%03u ms, Var=%u.%03u",
-            Path->SmoothedRtt / 1000, Path->SmoothedRtt % 1000,
-            Path->RttVariance / 1000, Path->RttVariance % 1000);
+        RttUpdatedV2,
+        Connection,
+        "Updated Rtt=%u.%03u ms, Var=%u.%03u 1Way=%u.%03u ms",
+        Path->SmoothedRtt / 1000, Path->SmoothedRtt % 1000,
+        Path->RttVariance / 1000, Path->RttVariance % 1000,
+        Path->OneWayDelay / 1000, Path->OneWayDelay % 1000);
 // arg1 = arg1 = Connection = arg1
 // arg3 = arg3 = Path->SmoothedRtt / 1000 = arg3
 // arg4 = arg4 = Path->SmoothedRtt % 1000 = arg4
 // arg5 = arg5 = Path->RttVariance / 1000 = arg5
 // arg6 = arg6 = Path->RttVariance % 1000 = arg6
+// arg7 = arg7 = Path->OneWayDelay / 1000 = arg7
+// arg8 = arg8 = Path->OneWayDelay % 1000 = arg8
 ----------------------------------------------------------*/
-#ifndef _clog_7_ARGS_TRACE_RttUpdatedMsg
-#define _clog_7_ARGS_TRACE_RttUpdatedMsg(uniqueId, arg1, encoded_arg_string, arg3, arg4, arg5, arg6)\
-tracepoint(CLOG_CONNECTION_C, RttUpdatedMsg , arg1, arg3, arg4, arg5, arg6);\
+#ifndef _clog_9_ARGS_TRACE_RttUpdatedV2
+#define _clog_9_ARGS_TRACE_RttUpdatedV2(uniqueId, arg1, encoded_arg_string, arg3, arg4, arg5, arg6, arg7, arg8)\
+tracepoint(CLOG_CONNECTION_C, RttUpdatedV2 , arg1, arg3, arg4, arg5, arg6, arg7, arg8);\
 
 #endif
 

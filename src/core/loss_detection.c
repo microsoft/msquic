@@ -1314,6 +1314,7 @@ QuicLossDetectionProcessAckBlocks(
     BOOLEAN NewLargestAck = FALSE;
     BOOLEAN NewLargestAckRetransmittable = FALSE;
     BOOLEAN NewLargestAckDifferentPath = FALSE;
+    uint64_t NewLargestAckTimestamp = 0;
 
     *InvalidAckBlock = FALSE;
 
@@ -1422,6 +1423,7 @@ QuicLossDetectionProcessAckBlocks(
             NewLargestAck = TRUE;
             NewLargestAckRetransmittable = LargestAckedPacket->Flags.IsAckEliciting;
             NewLargestAckDifferentPath = Path->ID != LargestAckedPacket->PathId;
+            NewLargestAckTimestamp = LargestAckedPacket->SentTime;
         }
     }
 
@@ -1495,14 +1497,14 @@ QuicLossDetectionProcessAckBlocks(
             //
             MinRtt -= (uint32_t)AckDelay;
         }
-        QuicConnUpdateRtt(Connection, Path, MinRtt);
 
-        if (Packet->SendTimestamp != UINT64_MAX) {
-            if (Connection->Stats.Timing.PhaseShift == 0) {
-                //Connection->Stats.Timing.PhaseShift =
-                //    Packet->SendTimestamp -
-            }
-        }
+        CXPLAT_DBG_ASSERT(NewLargestAckTimestamp != 0);
+        QuicConnUpdateRtt(
+            Connection,
+            Path,
+            MinRtt,
+            NewLargestAckTimestamp,
+            Packet->SendTimestamp);
     }
 
     if (NewLargestAck) {

@@ -1303,7 +1303,9 @@ void
 QuicConnUpdateRtt(
     _In_ QUIC_CONNECTION* Connection,
     _In_ QUIC_PATH* Path,
-    _In_ uint32_t LatestRtt
+    _In_ uint32_t LatestRtt,
+    _In_ uint64_t OurSendTimestamp,
+    _In_ uint64_t PeerSendTimestamp
     );
 
 //
