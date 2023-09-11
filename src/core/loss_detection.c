@@ -341,29 +341,27 @@ QuicLossDetectionUpdateTimer(
         //
         Delay = 0;
 
-    } else if (OldestPacket != NULL) {
-        //
-        // Limit the timeout to the remainder of the disconnect timeout if there
-        // is an outstanding packet.
-        //
-        const uint64_t DisconnectTime =
-            OldestPacket->SentTime + MS_TO_US(Connection->Settings.DisconnectTimeoutMs);
-        if (CxPlatTimeAtOrBefore64(DisconnectTime, TimeNow)) {
-            Delay = 0;
-        } else {
-            Delay = CxPlatTimeDiff64(TimeNow, TimeFires);
-            const uint64_t MaxDelay = CxPlatTimeDiff64(TimeNow, DisconnectTime);
-            if (Delay > MaxDelay) {
-                Delay = MaxDelay;
+    } else {
+        Delay = CxPlatTimeDiff64(TimeNow, TimeFires);
+
+        if (OldestPacket != NULL) {
+            //
+            // Limit the timeout to the remainder of the disconnect timeout if there
+            // is an outstanding packet.
+            //
+            const uint64_t DisconnectTime =
+                OldestPacket->SentTime + MS_TO_US(Connection->Settings.DisconnectTimeoutMs);
+            if (CxPlatTimeAtOrBefore64(DisconnectTime, TimeNow)) {
+                Delay = 0;
+            } else {
+                const uint64_t MaxDelay = CxPlatTimeDiff64(TimeNow, DisconnectTime);
+                if (Delay > MaxDelay) {
+                    Delay = MaxDelay;
+                }
             }
         }
-
-    } else {
-        //
-        // Wait the normal delay.
-        //
-        Delay = CxPlatTimeDiff64(TimeNow, TimeFires);
     }
+
 
     if (Delay == 0 && ExecuteImmediatelyIfNecessary) {
         //
