@@ -1455,14 +1455,14 @@ QuicLossDetectionProcessAckBlocks(
             return;
         }
 
-        uint64_t PacketRtt = CxPlatTimeDiff64(PacketMeta->SentTime, TimeNow);
+        uint32_t PacketRtt = CxPlatTimeDiff32(PacketMeta->SentTime, TimeNow);
         QuicTraceLogVerbose(
             PacketTxAcked,
             "[%c][TX][%llu] ACKed (%u.%03u ms)",
             PtkConnPre(Connection),
             PacketMeta->PacketNumber,
-            (uint32_t)(PacketRtt / 1000),
-            (uint32_t)(PacketRtt % 1000));
+            PacketRtt / 1000,
+            PacketRtt % 1000);
         QuicTraceEvent(
             ConnPacketACKed,
             "[conn][%p][TX][%llu] %hhu ACKed",
