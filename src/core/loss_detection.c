@@ -344,8 +344,8 @@ QuicLossDetectionUpdateTimer(
         const uint64_t DisconnectTime =
             OldestPacket->SentTime + MS_TO_US(Connection->Settings.DisconnectTimeoutMs);
         if (TimeNow >= DisconnectTime) {
-        Delay = 0;
-    } else {
+            Delay = 0;
+        } else {
             Delay = CxPlatTimeDiff64(TimeNow, DisconnectTime);
         }
     }
@@ -1292,7 +1292,7 @@ QuicLossDetectionProcessAckBlocks(
     uint32_t AckedRetransmittableBytes = 0;
     QUIC_CONNECTION* Connection = QuicLossDetectionGetConnection(LossDetection);
     uint64_t TimeNow = CxPlatTimeUs64();
-    uint64_t MinRtt = UINT32_MAX;
+    uint64_t MinRtt = UINT64_MAX;
     BOOLEAN NewLargestAck = FALSE;
     BOOLEAN NewLargestAckRetransmittable = FALSE;
     BOOLEAN NewLargestAckDifferentPath = FALSE;

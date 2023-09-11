@@ -151,7 +151,7 @@ BbrBandwidthFilterOnPacketAcked(
             if (!CxPlatTimeAtOrBefore64(AckEvent->AdjustedAckTime, AckedPacket->LastAckedPacketInfo.AdjustedAckTime)) {
                 AckElapsed = CxPlatTimeDiff64(AckedPacket->LastAckedPacketInfo.AdjustedAckTime, AckEvent->AdjustedAckTime);
             } else {
-                AckElapsed = CxPlatTimeDiff64(AckedPacket->LastAckedPacketInfo.AckTime, (uint32_t)TimeNow);
+                AckElapsed = CxPlatTimeDiff64(AckedPacket->LastAckedPacketInfo.AckTime, TimeNow);
             }
 
             CXPLAT_DBG_ASSERT(AckEvent->NumTotalAckedRetransmittableBytes >= AckedPacket->LastAckedPacketInfo.TotalBytesAcked);
@@ -160,11 +160,11 @@ BbrBandwidthFilterOnPacketAcked(
                            (AckEvent->NumTotalAckedRetransmittableBytes - AckedPacket->LastAckedPacketInfo.TotalBytesAcked) /
                            AckElapsed);
             }
-        } else if (!CxPlatTimeAtOrBefore64((uint32_t)TimeNow, AckedPacket->SentTime)) {
-            CXPLAT_DBG_ASSERT(CxPlatTimeDiff64(AckedPacket->SentTime, (uint32_t)TimeNow) != 0);
+        } else if (!CxPlatTimeAtOrBefore64(TimeNow, AckedPacket->SentTime)) {
+            CXPLAT_DBG_ASSERT(CxPlatTimeDiff64(AckedPacket->SentTime, TimeNow) != 0);
             SendRate = (kMicroSecsInSec * BW_UNIT *
                         AckEvent->NumTotalAckedRetransmittableBytes /
-                        CxPlatTimeDiff64(AckedPacket->SentTime, (uint32_t)TimeNow));
+                        CxPlatTimeDiff64(AckedPacket->SentTime, TimeNow));
         }
 
         if (SendRate == UINT64_MAX && AckRate == UINT64_MAX) {
@@ -999,7 +999,7 @@ BbrCongestionControlReset(
 
     Bbr->RttSampleExpired = TRUE;
     Bbr->MinRttTimestampValid = FALSE;
-    Bbr->MinRtt = UINT32_MAX;
+    Bbr->MinRtt = UINT64_MAX;
     Bbr->MinRttTimestamp = 0;
 
     QuicSlidingWindowExtremumReset(&Bbr->MaxAckHeightFilter);
@@ -1091,7 +1091,7 @@ BbrCongestionControlInitialize(
 
     Bbr->RttSampleExpired = TRUE;
     Bbr->MinRttTimestampValid = FALSE;
-    Bbr->MinRtt = UINT32_MAX;
+    Bbr->MinRtt = UINT64_MAX;
     Bbr->MinRttTimestamp = 0;
 
     Bbr->MaxAckHeightFilter = QuicSlidingWindowExtremumInitialize(
