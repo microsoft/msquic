@@ -11987,6 +11987,18 @@
       "splitArgs": [],
       "macroName": "QuicTraceLogVerbose"
     },
+    "XdpAttached": {
+      "ModuleProperites": {},
+      "TraceString": "[ xdp] XDP program already attached to %s",
+      "UniqueId": "XdpAttached",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "s",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceLogVerbose"
+    },
     "XdpAttachFails": {
       "ModuleProperites": {},
       "TraceString": "[ xdp] Failed to attach XDP program to %s. error:%d",
@@ -16678,6 +16690,11 @@
         "UniquenessHash": "74a183ad-8127-dae1-2d4a-c7e24d8b2e0b",
         "TraceID": "XdpAllocUmem",
         "EncodingString": "[ xdp] Failed to allocate umem"
+      },
+      {
+        "UniquenessHash": "d2086d2a-ac56-bbce-57f6-5c3823319f8f",
+        "TraceID": "XdpAttached",
+        "EncodingString": "[ xdp] XDP program already attached to %s"
       },
       {
         "UniquenessHash": "c124b808-c9ae-82fd-49fa-040aa1bc4796",

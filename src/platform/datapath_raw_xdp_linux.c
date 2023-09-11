@@ -243,6 +243,34 @@ static uint64_t xsk_alloc_umem_frame(struct xsk_socket_info *xsk)
     return frame;
 }
 
+// not used yet as bpf map control with already attached bpf object doesn't work
+uint8_t
+IsXdpAttached(const char* prog_name, XDP_INTERFACE *Interface, enum xdp_attach_mode attach_mode)
+{
+    struct xdp_multiprog* mp = xdp_multiprog__get_from_ifindex(Interface->IfIndex);
+    if (!mp) {
+        return 0; // should not happen
+    }
+    enum xdp_attach_mode mode = xdp_multiprog__attach_mode(mp);
+    struct xdp_program *p = NULL;
+
+    while ((p = xdp_multiprog__next_prog(p, mp))) {
+        if (strcmp(xdp_program__name(p), prog_name) == 0) {
+            if (mode == attach_mode) {
+                QuicTraceLogVerbose(
+                    XdpAttached,
+                    "[ xdp] XDP program already attached to %s", Interface->IfName);
+                fprintf(stderr, "XDP program %s already attached to %s\n",
+                    prog_name, Interface->IfName);
+                return 2; // attached same
+            }
+            return 1; // attached, but different mode
+        }
+    }
+    // not attached anything, or attaching different program
+    return 0;
+}
+
 QUIC_STATUS
 AttachXdpProgram(struct xdp_program *prog, XDP_INTERFACE *Interface, struct xsk_socket_config *xskcfg)
 {
@@ -330,9 +358,13 @@ CxPlatDpRawInterfaceInitialize(
 
     prog = xdp_program__open_file("./datapath_raw_xdp_kern.o", "xdp_prog", NULL);
 
+    // uint8_t Attached = IsXdpAttached(xdp_program__name(prog), Interface, XDP_MODE_SKB);
     // FIXME: eth0 on azure VM doesn't work with XDP_FLAGS_DRV_MODE
     XskCfg->xdp_flags = XDP_FLAGS_SKB_MODE;
-    AttachXdpProgram(prog, Interface, XskCfg);
+    if (QUIC_FAILED(AttachXdpProgram(prog, Interface, XskCfg))) {
+        goto Error;
+    }
+    Interface->XdpProg = prog;
 
     int XskBypassMapFd = bpf_map__fd(bpf_object__find_map_by_name(xdp_program__bpf_obj(prog), "xsks_map"));
     if (XskBypassMapFd < 0) {
@@ -340,7 +372,17 @@ CxPlatDpRawInterfaceInitialize(
             strerror(XskBypassMapFd));
         exit(EXIT_FAILURE);
     }
-    Interface->XdpProg = prog;
+
+    // Debug info for bpf
+    struct bpf_map *ifname_map = bpf_object__find_map_by_name(xdp_program__bpf_obj(prog), "ifname_map");
+    if (ifname_map) {
+        int key = 0;
+        if (bpf_map_update_elem(bpf_map__fd(ifname_map), &key, Interface->IfName, BPF_ANY)) {
+            fprintf(stderr, "Failed to update BPF map\n");
+        }
+    } else {
+        fprintf(stderr, "Failed to find BPF ifacename_map\n");
+    }
 
     Status = CxPlatGetInterfaceRssQueueCount(Interface->IfIndex, &Interface->QueueCount);
     if (QUIC_FAILED(Status)) {
@@ -670,7 +712,6 @@ CxPlatDpRawRelease(
             CxPlatDpRawInterfaceUninitialize(Interface);
             CxPlatFree(Interface, IF_TAG);
         }
-        // TODO: clean xdp
         CxPlatDataPathUninitializeComplete((CXPLAT_DATAPATH*)Xdp);
     // }
 }
@@ -722,23 +763,17 @@ CxPlatDpRawPlumbRulesOnSocket(
             }
         }
 
-        // NOTE: experimental
         struct bpf_map *ifname_map = bpf_object__find_map_by_name(xdp_program__bpf_obj(Interface->XdpProg), "ifname_map");
         if (!ifname_map) {
-            fprintf(stderr, "Failed to find BPF ifacename_map\n");
+            fprintf(stderr, "CxPlatDpRawPlumbRulesOnSocket: Failed to find BPF ifacename_map\n");
         }
 
-        // TODO: need to care until all packets received?
         int key = 0;
         if (IsCreated) {
             if (bpf_map_update_elem(bpf_map__fd(ifname_map), &key, Interface->IfName, BPF_ANY)) {
-                fprintf(stderr, "Failed to update BPF map\n");
+                fprintf(stderr, "CxPlatDpRawPlumbRulesOnSocket: Failed to update BPF map\n");
             }
-        } else {
-            if (bpf_map_delete_elem(bpf_map__fd(ifname_map), &key)) {
-                fprintf(stderr, "Failed to delete name %s from BPF map on ifidx:%d\n", Interface->IfName, Interface->IfIndex);
-            }
-        }
+        } // BPF_MAP_TYPE_ARRAY doesn't support delete
     }
 }
 
@@ -803,8 +838,8 @@ CxPlatDpRawTxAlloc(
     XDP_QUEUE* Queue = Config->Route->Queue;
     struct xsk_socket_info* xsk_info = Queue->xsk_info;
     CxPlatLockAcquire(&xsk_info->UmemLock);
-
     uint64_t BaseAddr = xsk_alloc_umem_frame(xsk_info);
+    CxPlatLockRelease(&xsk_info->UmemLock);
     if (BaseAddr == INVALID_UMEM_FRAME) {
         QuicTraceLogVerbose(
             FailTxAlloc,
@@ -824,7 +859,6 @@ CxPlatDpRawTxAlloc(
     }
 
 Error:
-    CxPlatLockRelease(&xsk_info->UmemLock);
     return (CXPLAT_SEND_DATA*)Packet;
 }
 
@@ -921,7 +955,6 @@ void CxPlatXdpRx(
     uint32_t Available;
     uint32_t RxIdx = 0, FqIdx = 0;
     unsigned int ret;
-    CxPlatLockAcquire(&xsk->UmemLock);
 
     Rcvd = xsk_ring_cons__peek(&xsk->rx, RX_BATCH_SIZE, &RxIdx);
     if (!Rcvd) {
@@ -935,6 +968,7 @@ void CxPlatXdpRx(
             "[ xdp][rx  ] Succeed peek %d from Rx queue", Rcvd);
     }
 
+    CxPlatLockAcquire(&xsk->UmemLock);
     // Stuff the ring with as much frames as possible
     Available = xsk_prod_nb_free(&xsk->umem->fq,
                     xsk_umem_free_frames(xsk)); //TODO: remove lock and use  as big as possible?
@@ -945,14 +979,13 @@ void CxPlatXdpRx(
         while (ret != Available) {
             ret = xsk_ring_prod__reserve(&xsk->umem->fq, Rcvd, &FqIdx);
         }
-
         for (i = 0; i < Available; i++) {
             *xsk_ring_prod__fill_addr(&xsk->umem->fq, FqIdx++) =
                 xsk_alloc_umem_frame(xsk) + xsk->umem->RxHeadRoom;
         }
-
         xsk_ring_prod__submit(&xsk->umem->fq, Available);
     }
+    CxPlatLockRelease(&xsk->UmemLock);
 
     // Process received packets
     CXPLAT_RECV_DATA* Buffers[RX_BATCH_SIZE];
@@ -997,7 +1030,6 @@ void CxPlatXdpRx(
         Packet->Queue = Queue;
         Buffers[PacketCount++] = (CXPLAT_RECV_DATA*)Packet;
     }
-    CxPlatLockRelease(&xsk->UmemLock);
 
     if (Rcvd) {
         xsk_ring_cons__release(&xsk->rx, Rcvd);

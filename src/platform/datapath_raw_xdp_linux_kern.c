@@ -1,8 +1,8 @@
 /* SPDX-License-Identifier: GPL-2.0 */
 
-#include "/home/azureuser/workspace/msquic/submodules/xdp-tools/lib/libbpf/include/uapi/linux/bpf.h"
-#include "/home/azureuser/workspace/msquic/submodules/xdp-tools/lib/libbpf/src/bpf_helpers.h"
-#include "/home/azureuser/workspace/msquic/submodules/xdp-tools/lib/libbpf/src/bpf_endian.h"
+#include "libbpf/include/uapi/linux/bpf.h"
+#include "libbpf/src/bpf_helpers.h"
+#include "libbpf/src/bpf_endian.h"
 
 #include <linux/if_ether.h>
 #include <linux/in.h>
@@ -31,9 +31,16 @@ struct {
 struct {
     __uint(type, BPF_MAP_TYPE_ARRAY);
     __type(key, int);
-    __type(value, char*);
+    __type(value, char[IFNAMSIZ]);
     __uint(max_entries, 1);
 } ifname_map SEC(".maps");
+
+struct {
+    __uint(type, BPF_MAP_TYPE_ARRAY);
+    __type(key, int);
+    __type(value, __u32);
+    __uint(max_entries, 1);
+} target_ip_map SEC(".maps");
 
 // TODO: dump flag map?
 // NOTE: divisible by 4
@@ -45,13 +52,8 @@ char UdpDump[256] = {0};
 
 static __always_inline void dump(struct xdp_md *ctx, void *data, void *data_end) {
     int RxIndex = ctx->rx_queue_index;
-    char* ifname = NULL;
-    ifname = bpf_map_lookup_elem(&ifname_map, &RxIndex);
-    bool isTarget = false;
-
-    if (ifname) {
-        // bpf_printk("========> To ifacename : [%s], RxQueueID:%d", ifname, RxIndex);
-    }
+    int IfNameKey = 0;
+    char* ifname = bpf_map_lookup_elem(&ifname_map, &IfNameKey);
 
     struct ethhdr *eth = data;
     if ((void *)(eth + 1) > data_end) {
@@ -149,7 +151,8 @@ static __always_inline void dump(struct xdp_md *ctx, void *data, void *data_end)
         bpf_printk("%s", UdpDump);
         bpf_printk("\t\t\tRedirect to QUIC service.  PortMatch:%d, SocketExists:%d, Redirection:%d\n", PortMatch, SocketExists, Redirection);
     } else {
-        // bpf_printk("\t\t\tPass through packet.       PortMatch:%d, SocketExists:%d, Redirection:%d", PortMatch, SocketExists, Redirection);
+        bpf_printk("========> To ifacename : [%s], RxQueueID:%d", ifname, RxIndex);
+        bpf_printk("\t\t\tPass through packet.       PortMatch:%d, SocketExists:%d, Redirection:%d", PortMatch, SocketExists, Redirection);
     }
 }
 
@@ -204,9 +207,9 @@ int xdp_main(struct xdp_md *ctx)
     int index = ctx->rx_queue_index;
     void *data_end = (void*)(long)ctx->data_end;
     void *data = (void*)(long)ctx->data;
+    // TODO: enable/disable dump from user app
     // dump(ctx, data, data_end);
     if (to_quic_service(ctx, data, data_end)) {
-        // bpf_printk("to_quic_service:true, queueIx:%d", index);
         if (bpf_map_lookup_elem(&xsks_map, &index)) {
             return bpf_redirect_map(&xsks_map, index, 0);
         }

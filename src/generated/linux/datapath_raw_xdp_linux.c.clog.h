@@ -96,6 +96,23 @@ tracepoint(CLOG_DATAPATH_RAW_XDP_LINUX_C, XdpUmemAllocFails );\
 
 
 /*----------------------------------------------------------
+// Decoder Ring for XdpAttached
+// [ xdp] XDP program already attached to %s
+// QuicTraceLogVerbose(
+                    XdpAttached,
+                    "[ xdp] XDP program already attached to %s", Interface->IfName);
+// arg2 = arg2 = Interface->IfName = arg2
+----------------------------------------------------------*/
+#ifndef _clog_3_ARGS_TRACE_XdpAttached
+#define _clog_3_ARGS_TRACE_XdpAttached(uniqueId, encoded_arg_string, arg2)\
+tracepoint(CLOG_DATAPATH_RAW_XDP_LINUX_C, XdpAttached , arg2);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for XdpAttachFails
 // [ xdp] Failed to attach XDP program to %s. error:%s
 // QuicTraceLogVerbose(

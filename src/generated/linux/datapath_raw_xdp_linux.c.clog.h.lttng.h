@@ -76,6 +76,24 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_LINUX_C, XdpUmemAllocFails,
 
 
 /*----------------------------------------------------------
+// Decoder Ring for XdpAttached
+// [ xdp] XDP program already attached to %s
+// QuicTraceLogVerbose(
+                    XdpAttached,
+                    "[ xdp] XDP program already attached to %s", Interface->IfName);
+// arg2 = arg2 = Interface->IfName = arg2
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_LINUX_C, XdpAttached,
+    TP_ARGS(
+        const char *, arg2), 
+    TP_FIELDS(
+        ctf_string(arg2, arg2)
+    )
+)
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for XdpAttachFails
 // [ xdp] Failed to attach XDP program to %s. error:%s
 // QuicTraceLogVerbose(
