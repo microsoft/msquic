@@ -14,11 +14,8 @@ Abstract:
 #include "datapath_raw_socket_win.c.clog.h"
 #endif
 
-<<<<<<< HEAD
-=======
 #define SocketError() WSAGetLastError()
 
->>>>>>> f596ae5313a3b925556890482a2839a81c9d0392
 #pragma warning(disable:4116) // unnamed type definition in parentheses
 #pragma warning(disable:4100) // unreferenced formal parameter
 
@@ -66,11 +63,7 @@ CxPlatRemoveSocket(
     CxPlatHashtableRemove(&Pool->Sockets, &Socket->Entry, NULL);
 
     if (closesocket(Socket->AuxSocket) == SOCKET_ERROR) {
-<<<<<<< HEAD
-        int Error = WSAGetLastError();
-=======
         int Error = SocketError();
->>>>>>> f596ae5313a3b925556890482a2839a81c9d0392
         QuicTraceEvent(
             DatapathErrorStatus,
             "[data][%p] ERROR, %u, %s.",

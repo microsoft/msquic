@@ -71,9 +71,6 @@ std::ostream& operator << (std::ostream& o, const FamilyArgs& args) {
 
 class WithFamilyArgs : public testing::Test,
     public testing::WithParamInterface<FamilyArgs> {
-        void SetUp() override {
-            // GTEST_SKIP();
-        }
 };
 
 struct HandshakeArgs1 {
@@ -802,9 +799,6 @@ std::ostream& operator << (std::ostream& o, const RebindPaddingArgs& args) {
 
 class WithRebindPaddingArgs : public testing::Test,
     public testing::WithParamInterface<RebindPaddingArgs> {
-    void SetUp() override {
-        // GTEST_SKIP();
-    }
 };
 
 struct TlsConfigArgs {
@@ -878,7 +872,4 @@ std::ostream& operator << (std::ostream& o, const TlsConfigArgs& args) {
 
 class WithValidateTlsConfigArgs : public testing::Test,
     public testing::WithParamInterface<TlsConfigArgs> {
-        void SetUp() override {
-            GTEST_SKIP();
-        }
 };

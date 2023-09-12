@@ -1424,6 +1424,7 @@ QuicSendFlush(
         PrevPrevSendFlags = PrevSendFlags;
         PrevSendFlags = SendFlags;
 #endif
+
     } while (Builder.SendData != NULL ||
         Builder.TotalCountDatagrams < QUIC_MAX_DATAGRAMS_PER_SEND);
 

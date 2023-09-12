@@ -51,52 +51,6 @@ endif()
 
 add_library(platform STATIC ${SOURCES})
 
-# if linux and xdp
-if(CX_PLATFORM STREQUAL "linux" AND QUIC_USE_XDP)
-    # XDP Tools and libbpf paths
-    set(XDP_TOOLS_DIR ${PROJECT_SOURCE_DIR}/submodules/xdp-tools)
-    set(LIBXDP_PATH ${XDP_TOOLS_DIR}/lib/libxdp/libxdp.so)
-    set(LIBBPF_PATH ${XDP_TOOLS_DIR}/lib/libbpf/src/libbpf.so)
-
-    # Custom command to build XDP Tools
-    add_custom_command(
-        OUTPUT ${LIBXDP_PATH} ${LIBBPF_PATH}
-        COMMAND ./configure
-        COMMAND make
-        WORKING_DIRECTORY ${XDP_TOOLS_DIR}
-    )
-
-    # Add custom target and make platform depend on it
-    add_custom_target(xdp_tools DEPENDS ${LIBXDP_PATH} ${LIBBPF_PATH})
-    add_dependencies(platform xdp_tools)
-
-    # Link platform to libxdp.so and libbpf.so
-    target_link_libraries(platform PUBLIC ${LIBXDP_PATH} ${LIBBPF_PATH})
-
-    # Include directories for libxdp.so and libbpf.so
-    target_include_directories(platform PRIVATE ${XDP_TOOLS_DIR}/headers/xdp)
-    target_include_directories(platform PRIVATE ${XDP_TOOLS_DIR}/lib/libbpf/src)
-    target_include_directories(platform PRIVATE ${XDP_TOOLS_DIR}/lib/libbpf/src/root/usr/include) # TODO: use installed path
-
-    # XDP program setting
-    add_custom_command(
-        OUTPUT ${PROJECT_SOURCE_DIR}/datapath_raw_xdp_kern.o
-        COMMAND clang -O2 -g -target bpf -c ${PROJECT_SOURCE_DIR}/src/platform/datapath_raw_xdp_linux_kern.c -o ${PROJECT_SOURCE_DIR}/datapath_raw_xdp_kern.o -I${PROJECT_SOURCE_DIR}/submodules/xdp-tools/lib
-        DEPENDS ${PROJECT_SOURCE_DIR}/src/platform/datapath_raw_xdp_linux_kern.c
-    )
-
-    add_custom_target(
-        XDP_PROG ALL
-        DEPENDS ${PROJECT_SOURCE_DIR}/datapath_raw_xdp_kern.o
-    )
-
-    add_dependencies(platform XDP_PROG)
-
-    # Assuming ${XDP_TOOLS_LIB_DIR} is the directory where libxdp.so and libbpf.so are located
-    set_target_properties(platform PROPERTIES BUILD_WITH_INSTALL_RPATH TRUE)
-    set_target_properties(platform PROPERTIES INSTALL_RPATH "${XDP_TOOLS_DIR}/lib/libxdp;${XDP_TOOLS_DIR}/lib/libbpf/src")
-endif()
-
 if ("${CX_PLATFORM}" STREQUAL "windows")
     if (QUIC_USE_XDP)
         target_link_libraries(
@@ -108,6 +62,49 @@ if ("${CX_PLATFORM}" STREQUAL "windows")
     target_link_libraries(platform PUBLIC winmm)
 else()
     if (QUIC_USE_XDP)
+        # XDP Tools and libbpf paths
+        set(XDP_TOOLS_DIR ${PROJECT_SOURCE_DIR}/submodules/xdp-tools)
+        set(LIBXDP_PATH ${XDP_TOOLS_DIR}/lib/libxdp/libxdp.so)
+        set(LIBBPF_PATH ${XDP_TOOLS_DIR}/lib/libbpf/src/libbpf.so)
+
+        # Custom command to build XDP Tools
+        add_custom_command(
+            OUTPUT ${LIBXDP_PATH} ${LIBBPF_PATH}
+            COMMAND ./configure
+            COMMAND make
+            WORKING_DIRECTORY ${XDP_TOOLS_DIR}
+        )
+
+        # Add custom target and make platform depend on it
+        add_custom_target(xdp_tools DEPENDS ${LIBXDP_PATH} ${LIBBPF_PATH})
+        add_dependencies(platform xdp_tools)
+
+        # Link platform to libxdp.so and libbpf.so
+        target_link_libraries(platform PUBLIC ${LIBXDP_PATH} ${LIBBPF_PATH})
+
+        # Include directories for libxdp.so and libbpf.so
+        target_include_directories(platform PRIVATE ${XDP_TOOLS_DIR}/headers/xdp)
+        target_include_directories(platform PRIVATE ${XDP_TOOLS_DIR}/lib/libbpf/src)
+        target_include_directories(platform PRIVATE ${XDP_TOOLS_DIR}/lib/libbpf/src/root/usr/include) # TODO: use installed path
+
+        # XDP program setting
+        add_custom_command(
+            OUTPUT ${PROJECT_SOURCE_DIR}/datapath_raw_xdp_kern.o
+            COMMAND clang -O2 -g -target bpf -c ${PROJECT_SOURCE_DIR}/src/platform/datapath_raw_xdp_linux_kern.c -o ${PROJECT_SOURCE_DIR}/datapath_raw_xdp_kern.o -I${PROJECT_SOURCE_DIR}/submodules/xdp-tools/lib
+            DEPENDS ${PROJECT_SOURCE_DIR}/src/platform/datapath_raw_xdp_linux_kern.c
+        )
+
+        add_custom_target(
+            XDP_PROG ALL
+            DEPENDS ${PROJECT_SOURCE_DIR}/datapath_raw_xdp_kern.o
+        )
+
+        add_dependencies(platform XDP_PROG)
+
+        # Assuming ${XDP_TOOLS_LIB_DIR} is the directory where libxdp.so and libbpf.so are located
+        set_target_properties(platform PROPERTIES BUILD_WITH_INSTALL_RPATH TRUE)
+        set_target_properties(platform PROPERTIES INSTALL_RPATH "${XDP_TOOLS_DIR}/lib/libxdp;${XDP_TOOLS_DIR}/lib/libbpf/src")
+
         find_library(NL_LIB nl-3)
         find_library(NL_ROUTE_LIB nl-route-3)
         target_link_libraries(platform PUBLIC ${NL_LIB} ${NL_ROUTE_LIB})

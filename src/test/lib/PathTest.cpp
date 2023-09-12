@@ -99,7 +99,6 @@ QuicTestLocalPathChanges(
     ReplaceAddressHelper AddrHelper(OrigLocalAddr.SockAddr, OrigLocalAddr.SockAddr);
 
     uint16_t ServerPort = ServerLocalAddr.GetPort();
-    // for (int i = 0; i < 3; i++) {
     for (int i = 0; i < 3; i++) {
         uint16_t NextPort = QuicAddrGetPort(&AddrHelper.New) + 1;
         if (NextPort == ServerPort) {
@@ -116,11 +115,7 @@ QuicTestLocalPathChanges(
         TEST_QUIC_SUCCEEDED(Context.Connection->GetRemoteAddr(ServerRemoteAddr));
         TEST_TRUE(QuicAddrCompare(&AddrHelper.New, &ServerRemoteAddr.SockAddr));
         Connection.SetSettings(MsQuicSettings{}.SetKeepAlive(0));
-        TEST_TRUE(PeerStreamsChanged.WaitTimeout(10000));
+        TEST_TRUE(PeerStreamsChanged.WaitTimeout(1500));
         PeerStreamsChanged.Reset();
-        // fprintf(stderr, "QuicTestLocalPathChanges %d\n", i);
-    // CxPlatSleep(1000);
     }
-    // Connection.Close();
-    // CxPlatSleep(10000);
 }

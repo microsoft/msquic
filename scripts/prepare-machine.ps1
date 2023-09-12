@@ -519,7 +519,6 @@ if ($ForBuild -or $ForContainerBuild) {
 if ($InstallCoreNetCiDeps) { Download-CoreNet-Deps }
 if ($InstallSigningCertificates) { Install-SigningCertificates }
 if ($InstallDuoNic) { Install-DuoNic }
-if ($UseXdp && $IsLinux) { Install-Linux-Xdp }
 if ($InstallXdpSdk) { Install-Xdp-Sdk }
 if ($InstallXdpDriver) { Install-Xdp-Driver }
 if ($UninstallXdp) { Uninstall-Xdp }
@@ -573,6 +572,10 @@ if ($IsLinux) {
         Write-Host "Setting core dump pattern"
         sudo sh -c "echo -n '%e.%p.%t.core' > /proc/sys/kernel/core_pattern"
         #sudo cat /proc/sys/kernel/core_pattern
+    }
+
+    if ($UseXdp) {
+        Install-Linux-Xdp
     }
 }
 
