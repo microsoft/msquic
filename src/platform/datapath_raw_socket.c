@@ -1111,12 +1111,6 @@ CxPlatTryAddSocket(
         Entry = CxPlatHashtableLookupNext(&Pool->Sockets, &Context);
     }
     if (QUIC_SUCCEEDED(Status)) {
-        QuicTraceEvent(
-            InsertSocket,
-            "[sock][%p] InsertSocket: LocalAddr=%!ADDR! RemoteAddr=%!ADDR!",
-            Socket,
-            CASTED_CLOG_BYTEARRAY(sizeof(Socket->LocalAddress), &Socket->LocalAddress),
-            CASTED_CLOG_BYTEARRAY(sizeof(Socket->RemoteAddress), &Socket->RemoteAddress));
         CxPlatHashtableInsert(&Pool->Sockets, &Socket->Entry, Socket->LocalAddress.Ipv4.sin_port, &Context);
     }
 

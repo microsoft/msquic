@@ -133,28 +133,6 @@ tracepoint(CLOG_DATAPATH_RAW_SOCKET_C, DatapathSend , arg2, arg3, arg4, arg5, ar
 
 
 
-/*----------------------------------------------------------
-// Decoder Ring for InsertSocket
-// [sock][%p] InsertSocket: LocalAddr=%!ADDR! RemoteAddr=%!ADDR!
-// QuicTraceEvent(
-            InsertSocket,
-            "[sock][%p] InsertSocket: LocalAddr=%!ADDR! RemoteAddr=%!ADDR!",
-            Socket,
-            CASTED_CLOG_BYTEARRAY(sizeof(Socket->LocalAddress), &Socket->LocalAddress),
-            CASTED_CLOG_BYTEARRAY(sizeof(Socket->RemoteAddress), &Socket->RemoteAddress));
-// arg2 = arg2 = Socket = arg2
-// arg3 = arg3 = CASTED_CLOG_BYTEARRAY(sizeof(Socket->LocalAddress), &Socket->LocalAddress) = arg3
-// arg4 = arg4 = CASTED_CLOG_BYTEARRAY(sizeof(Socket->RemoteAddress), &Socket->RemoteAddress) = arg4
-----------------------------------------------------------*/
-#ifndef _clog_7_ARGS_TRACE_InsertSocket
-#define _clog_7_ARGS_TRACE_InsertSocket(uniqueId, encoded_arg_string, arg2, arg3, arg3_len, arg4, arg4_len)\
-tracepoint(CLOG_DATAPATH_RAW_SOCKET_C, InsertSocket , arg2, arg3_len, arg3, arg4_len, arg4);\
-
-#endif
-
-
-
-
 #ifdef __cplusplus
 }
 #endif
