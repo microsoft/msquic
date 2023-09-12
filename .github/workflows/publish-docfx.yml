@@ -6,9 +6,6 @@ on:
   push:
     branches: ["main"]
 
-  pull_request:
-    branches: ["main", "user/jackhe/docfx-addon"]
-
   # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
 
@@ -40,8 +37,3 @@ jobs:
     - run: chmod +x ./scripts/update-docfx-site.ps1
     - run: ./scripts/update-docfx-site.ps1
       shell: pwsh
-    # - name: Deploy
-    #   uses: peaceiris/actions-gh-pages@v3
-    #   with:
-    #     github_token: ${{ secrets.GITHUB_TOKEN }}
-    #     publish_dir: ./_site
