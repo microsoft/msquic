@@ -255,6 +255,7 @@ namespace QuicTrace.DataModel
             var rx = new QuicRawTputSample(QuicTputDataType.Rx, QuicSampleMode.Diff, true);
             var rxBatch = new QuicRawTputSample(QuicTputDataType.RxBatch, QuicSampleMode.Value, true);
             var rtt = new QuicRawTputSample(QuicTputDataType.Rtt);
+            var oneWay = new QuicRawTputSample(QuicTputDataType.OneWay);
             var inFlight = new QuicRawTputSample(QuicTputDataType.InFlight);
             var cwnd = new QuicRawTputSample(QuicTputDataType.CWnd);
             var posted = new QuicRawTputSample(QuicTputDataType.Bufferred);
@@ -264,13 +265,24 @@ namespace QuicTrace.DataModel
             var tputEvents = new List<QuicRawTputData>();
             foreach (var evt in Events)
             {
-                if (evt.EventId == QuicEventId.ConnOutFlowStats ||
-                    evt.EventId == QuicEventId.ConnOutFlowStatsV2)
+                if (evt.EventId == QuicEventId.ConnOutFlowStats)
                 {
                     var _evt = evt as QuicConnectionOutFlowStatsEvent;
                     pktCreate.Update(_evt!.BytesSent, evt.TimeStamp, ref tputEvents);
                     txAck.Update(_evt!.BytesInFlight, evt.TimeStamp, ref tputEvents);
                     rtt.Update(_evt!.SmoothedRtt, evt.TimeStamp, ref tputEvents);
+                    inFlight.Update(_evt!.BytesInFlight, evt.TimeStamp, ref tputEvents);
+                    cwnd.Update(_evt!.CongestionWindow, evt.TimeStamp, ref tputEvents);
+                    posted.Update(_evt!.PostedBytes, evt.TimeStamp, ref tputEvents);
+                    connFC.Update(_evt!.ConnectionFlowControl, evt.TimeStamp, ref tputEvents);
+                }
+                else if (evt.EventId == QuicEventId.ConnOutFlowStatsV2)
+                {
+                    var _evt = evt as QuicConnectionOutFlowStatsV2Event;
+                    pktCreate.Update(_evt!.BytesSent, evt.TimeStamp, ref tputEvents);
+                    txAck.Update(_evt!.BytesInFlight, evt.TimeStamp, ref tputEvents);
+                    rtt.Update(_evt!.SmoothedRtt, evt.TimeStamp, ref tputEvents);
+                    oneWay.Update(_evt!.OneWayDelay, evt.TimeStamp, ref tputEvents);
                     inFlight.Update(_evt!.BytesInFlight, evt.TimeStamp, ref tputEvents);
                     cwnd.Update(_evt!.CongestionWindow, evt.TimeStamp, ref tputEvents);
                     posted.Update(_evt!.PostedBytes, evt.TimeStamp, ref tputEvents);
@@ -307,6 +319,7 @@ namespace QuicTrace.DataModel
             txDelay.Finalize(FinalTimeStamp, ref tputEvents);
             rx.Finalize(FinalTimeStamp, ref tputEvents);
             rtt.Finalize(FinalTimeStamp, ref tputEvents);
+            oneWay.Finalize(FinalTimeStamp, ref tputEvents);
             inFlight.Finalize(FinalTimeStamp, ref tputEvents);
             cwnd.Finalize(FinalTimeStamp, ref tputEvents);
             posted.Finalize(FinalTimeStamp, ref tputEvents);
@@ -421,7 +434,6 @@ namespace QuicTrace.DataModel
                         break;
                     }
                 case QuicEventId.ConnOutFlowStats:
-                case QuicEventId.ConnOutFlowStatsV2:
                     {
                         state.DataAvailableFlags |= QuicDataAvailableFlags.ConnectionTput;
                         var _evt = evt as QuicConnectionOutFlowStatsEvent;
@@ -466,6 +478,14 @@ namespace QuicTrace.DataModel
                         var _evt = evt as QuicConnectionStatsV2Event;
                         BytesSent = _evt!.SendTotalBytes;
                         BytesReceived = _evt!.RecvTotalBytes;
+                        break;
+                    }
+                case QuicEventId.ConnOutFlowStatsV2:
+                    {
+                        state.DataAvailableFlags |= QuicDataAvailableFlags.ConnectionTput;
+                        var _evt = evt as QuicConnectionOutFlowStatsV2Event;
+                        BytesSent = _evt!.BytesSent;
+                        TrySetWorker(evt, state);
                         break;
                     }
                 default:

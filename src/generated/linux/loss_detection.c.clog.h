@@ -204,11 +204,11 @@ tracepoint(CLOG_LOSS_DETECTION_C, PacketTxSpuriousLoss , arg2, arg3);\
             PacketTxAcked,
             "[%c][TX][%llu] ACKed (%u.%03u ms)",
             PtkConnPre(Connection),
-            Packet->PacketNumber,
+            PacketMeta->PacketNumber,
             (uint32_t)(PacketRtt / 1000),
             (uint32_t)(PacketRtt % 1000));
 // arg2 = arg2 = PtkConnPre(Connection) = arg2
-// arg3 = arg3 = Packet->PacketNumber = arg3
+// arg3 = arg3 = PacketMeta->PacketNumber = arg3
 // arg4 = arg4 = (uint32_t)(PacketRtt / 1000) = arg4
 // arg5 = arg5 = (uint32_t)(PacketRtt % 1000) = arg5
 ----------------------------------------------------------*/

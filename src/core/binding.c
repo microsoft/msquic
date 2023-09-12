@@ -1636,6 +1636,7 @@ QuicBindingReceive(
         Packet->PacketId =
             PartitionShifted | InterlockedIncrement64((int64_t*)&QuicLibraryGetPerProc()->ReceivePacketId);
         Packet->PacketNumber = 0;
+        Packet->SendTimestamp = UINT64_MAX;
         Packet->AvailBuffer = Datagram->Buffer;
         Packet->DestCid = NULL;
         Packet->SourceCid = NULL;

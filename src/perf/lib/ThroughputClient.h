@@ -119,7 +119,8 @@ private:
             .SetIdleTimeoutMs(TPUT_DEFAULT_IDLE_TIMEOUT)
             .SetCongestionControlAlgorithm(PerfDefaultCongestionControl)
             .SetEcnEnabled(PerfDefaultEcnEnabled)
-            .SetEncryptionOffloadAllowed(PerfDefaultQeoAllowed),
+            .SetEncryptionOffloadAllowed(PerfDefaultQeoAllowed)
+            .SetOneWayDelayEnabled(true),
         MsQuicCredentialConfig(
             QUIC_CREDENTIAL_FLAG_CLIENT |
             QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION)};

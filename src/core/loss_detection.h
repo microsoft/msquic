@@ -169,6 +169,7 @@ BOOLEAN
 QuicLossDetectionProcessAckFrame(
     _In_ QUIC_LOSS_DETECTION* LossDetection,
     _In_ QUIC_PATH* Path,
+    _In_ QUIC_RX_PACKET* Packet,
     _In_ QUIC_ENCRYPT_LEVEL EncryptLevel,
     _In_ QUIC_FRAME_TYPE FrameType,
     _In_ uint16_t BufferLength,

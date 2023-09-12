@@ -159,6 +159,8 @@ typedef struct QUIC_PATH {
     uint64_t MinRtt;
     uint64_t MaxRtt;
     uint64_t RttVariance;
+    uint64_t OneWayDelay;
+    uint64_t OneWayDelayLatest;
 
     //
     // Used on the server side until the client's IP address has been validated

@@ -810,12 +810,11 @@ void
 QuicConnUpdateRtt(
     _In_ QUIC_CONNECTION* Connection,
     _In_ QUIC_PATH* Path,
-    _In_ uint64_t LatestRtt
+    _In_ uint64_t LatestRtt,
+    _In_ uint64_t OurSendTimestamp,
+    _In_ uint64_t PeerSendTimestamp
     )
 {
-    BOOLEAN RttUpdated;
-    UNREFERENCED_PARAMETER(Connection);
-
     if (LatestRtt == 0) {
         //
         // RTT cannot be zero or several loss recovery algorithms break down.
@@ -823,9 +822,11 @@ QuicConnUpdateRtt(
         LatestRtt = 1;
     }
 
+    BOOLEAN NewMinRtt = FALSE;
     Path->LatestRttSample = LatestRtt;
     if (LatestRtt < Path->MinRtt) {
         Path->MinRtt = LatestRtt;
+        NewMinRtt = TRUE;
     }
     if (LatestRtt > Path->MaxRtt) {
         Path->MaxRtt = LatestRtt;
@@ -833,31 +834,43 @@ QuicConnUpdateRtt(
 
     if (!Path->GotFirstRttSample) {
         Path->GotFirstRttSample = TRUE;
-
         Path->SmoothedRtt = LatestRtt;
         Path->RttVariance = LatestRtt / 2;
-        RttUpdated = TRUE;
 
     } else {
-        uint64_t PrevRtt = Path->SmoothedRtt;
         if (Path->SmoothedRtt > LatestRtt) {
             Path->RttVariance = (3 * Path->RttVariance + Path->SmoothedRtt - LatestRtt) / 4;
         } else {
             Path->RttVariance = (3 * Path->RttVariance + LatestRtt - Path->SmoothedRtt) / 4;
         }
         Path->SmoothedRtt = (7 * Path->SmoothedRtt + LatestRtt) / 8;
-        RttUpdated = PrevRtt != Path->SmoothedRtt;
     }
 
-    if (RttUpdated) {
-        CXPLAT_DBG_ASSERT(Path->SmoothedRtt != 0);
-        QuicTraceLogConnVerbose(
-            RttUpdatedMsg,
-            Connection,
-            "Updated Rtt=%u.%03u ms, Var=%u.%03u",
-            (uint32_t)(Path->SmoothedRtt / 1000), (uint32_t)(Path->SmoothedRtt % 1000),
-            (uint32_t)(Path->RttVariance / 1000), (uint32_t)(Path->RttVariance % 1000));
+    if (OurSendTimestamp != UINT64_MAX) {
+        if (Connection->Stats.Timing.PhaseShift == 0 || NewMinRtt) {
+            Connection->Stats.Timing.PhaseShift =
+                (int64_t)PeerSendTimestamp - (int64_t)OurSendTimestamp - (int64_t)LatestRtt / 2;
+            Path->OneWayDelayLatest = Path->OneWayDelay = LatestRtt / 2;
+            QuicTraceLogConnVerbose(
+                PhaseShiftUpdated,
+                Connection,
+                "New Phase Shift: %lld us",
+                Connection->Stats.Timing.PhaseShift);
+        } else {
+            Path->OneWayDelayLatest =
+                (uint64_t)((int64_t)PeerSendTimestamp - (int64_t)OurSendTimestamp - Connection->Stats.Timing.PhaseShift);
+            Path->OneWayDelay = (7 * Path->OneWayDelay + Path->OneWayDelayLatest) / 8;
+        }
     }
+
+    CXPLAT_DBG_ASSERT(Path->SmoothedRtt != 0);
+    QuicTraceLogConnVerbose(
+        RttUpdatedV2,
+        Connection,
+        "Updated Rtt=%u.%03u ms, Var=%u.%03u 1Way=%u.%03u ms",
+        (uint32_t)(Path->SmoothedRtt / 1000), (uint32_t)(Path->SmoothedRtt % 1000),
+        (uint32_t)(Path->RttVariance / 1000), (uint32_t)(Path->RttVariance % 1000),
+        (uint32_t)(Path->OneWayDelay / 1000), (uint32_t)(Path->OneWayDelay % 1000));
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -2406,6 +2419,11 @@ QuicConnGenerateLocalTransportParameters(
         LocalTP->Flags |= QUIC_TP_FLAG_RELIABLE_RESET_ENABLED;
     }
 
+    if (Connection->Settings.OneWayDelayEnabled) {
+        LocalTP->Flags |= QUIC_TP_FLAG_TIMESTAMP_RECV_ENABLED |
+                          QUIC_TP_FLAG_TIMESTAMP_SEND_ENABLED;
+    }
+
     if (QuicConnIsServer(Connection)) {
 
         if (Connection->Streams.Types[STREAM_ID_FLAG_IS_CLIENT | STREAM_ID_FLAG_IS_BI_DIR].MaxTotalStreamCount) {
@@ -3039,20 +3057,13 @@ QuicConnProcessPeerTransportParameters(
             Connection->Stats.GreaseBitNegotiated = TRUE;
         }
 
-        if (Connection->Settings.ReliableResetEnabled &&
-            (Connection->PeerTransportParams.Flags & QUIC_TP_FLAG_RELIABLE_RESET_ENABLED) > 0) {
-            //
-            // Reliable Reset is enabled on both sides.
-            //
-
-            Connection->State.ReliableResetStreamNegotiated = TRUE;
-        }
-
         if (Connection->Settings.ReliableResetEnabled) {
+            Connection->State.ReliableResetStreamNegotiated =
+                !!(Connection->PeerTransportParams.Flags & QUIC_TP_FLAG_RELIABLE_RESET_ENABLED);
+
             //
             // Send event to app to indicate result of negotiation if app cares.
             //
-
             QUIC_CONNECTION_EVENT Event;
             Event.Type = QUIC_CONNECTION_EVENT_RELIABLE_RESET_NEGOTIATED;
             Event.RELIABLE_RESET_NEGOTIATED.IsNegotiated = Connection->State.ReliableResetStreamNegotiated;
@@ -3062,6 +3073,29 @@ QuicConnProcessPeerTransportParameters(
                 Connection,
                 "Indicating QUIC_CONNECTION_EVENT_RELIABLE_RESET_NEGOTIATED [IsNegotiated=%hhu]",
                 Event.RELIABLE_RESET_NEGOTIATED.IsNegotiated);
+            QuicConnIndicateEvent(Connection, &Event);
+        }
+
+        if (Connection->Settings.OneWayDelayEnabled) {
+            Connection->State.TimestampSendNegotiated = // Peer wants to recv, so we can send
+                !!(Connection->PeerTransportParams.Flags & QUIC_TP_FLAG_TIMESTAMP_RECV_ENABLED);
+            Connection->State.TimestampRecvNegotiated = // Peer wants to send, so we can recv
+                !!(Connection->PeerTransportParams.Flags & QUIC_TP_FLAG_TIMESTAMP_SEND_ENABLED);
+
+            //
+            // Send event to app to indicate result of negotiation if app cares.
+            //
+            QUIC_CONNECTION_EVENT Event;
+            Event.Type = QUIC_CONNECTION_EVENT_ONE_WAY_DELAY_NEGOTIATED;
+            Event.ONE_WAY_DELAY_NEGOTIATED.SendNegotiated = Connection->State.TimestampSendNegotiated;
+            Event.ONE_WAY_DELAY_NEGOTIATED.ReceiveNegotiated = Connection->State.TimestampRecvNegotiated;
+
+            QuicTraceLogConnVerbose(
+                IndicateOneWayDelayNegotiated,
+                Connection,
+                "Indicating QUIC_CONNECTION_EVENT_ONE_WAY_DELAY_NEGOTIATED [Send=%hhu,Recv=%hhu]",
+                Event.ONE_WAY_DELAY_NEGOTIATED.SendNegotiated,
+                Event.ONE_WAY_DELAY_NEGOTIATED.ReceiveNegotiated);
             QuicConnIndicateEvent(Connection, &Event);
         }
 
@@ -4558,6 +4592,7 @@ QuicConnRecvFrames(
             if (!QuicLossDetectionProcessAckFrame(
                     &Connection->LossDetection,
                     Path,
+                    Packet,
                     EncryptLevel,
                     FrameType,
                     PayloadLength,
@@ -5281,6 +5316,33 @@ QuicConnRecvFrames(
         case QUIC_FRAME_IMMEDIATE_ACK: // Always accept the frame, because we always enable support.
             AckImmediately = TRUE;
             break;
+
+        case QUIC_FRAME_TIMESTAMP: { // Always accept the frame, because we always enable support.
+            if (!Connection->State.TimestampRecvNegotiated) {
+                QuicTraceEvent(
+                    ConnError,
+                    "[conn][%p] ERROR, %s.",
+                    Connection,
+                    "Received TIMESTAMP frame when not negotiated");
+                QuicConnTransportError(Connection, QUIC_ERROR_PROTOCOL_VIOLATION);
+                return FALSE;
+
+            }
+            QUIC_TIMESTAMP_EX Frame;
+            if (!QuicTimestampFrameDecode(PayloadLength, Payload, &Offset, &Frame)) {
+                QuicTraceEvent(
+                    ConnError,
+                    "[conn][%p] ERROR, %s.",
+                    Connection,
+                    "Decoding TIMESTAMP frame");
+                QuicConnTransportError(Connection, QUIC_ERROR_FRAME_ENCODING_ERROR);
+                return FALSE;
+            }
+
+            Packet->HasNonProbingFrame = TRUE;
+            Packet->SendTimestamp = Frame.Timestamp;
+            break;
+        }
 
         case QUIC_FRAME_RELIABLE_RESET_STREAM:
             // TODO - Implement this frame.
@@ -7288,13 +7350,10 @@ QuicConnApplyNewSettings(
             Connection->Stats.GreaseBitNegotiated = TRUE;
         }
 
-        if (QuicConnIsServer(Connection) &&
-            Connection->Settings.ReliableResetEnabled &&
-            (Connection->PeerTransportParams.Flags & QUIC_TP_FLAG_RELIABLE_RESET_ENABLED) > 0) {
-            Connection->State.ReliableResetStreamNegotiated = TRUE;
-        }
-
         if (QuicConnIsServer(Connection) && Connection->Settings.ReliableResetEnabled) {
+            Connection->State.ReliableResetStreamNegotiated =
+                !!(Connection->PeerTransportParams.Flags & QUIC_TP_FLAG_RELIABLE_RESET_ENABLED);
+
             //
             // Send event to app to indicate result of negotiation if app cares.
             //
@@ -7307,6 +7366,29 @@ QuicConnApplyNewSettings(
                 Connection,
                 "Indicating QUIC_CONNECTION_EVENT_RELIABLE_RESET_NEGOTIATED [IsNegotiated=%hhu]",
                 Event.RELIABLE_RESET_NEGOTIATED.IsNegotiated);
+            QuicConnIndicateEvent(Connection, &Event);
+        }
+
+        if (QuicConnIsServer(Connection) && Connection->Settings.OneWayDelayEnabled) {
+            Connection->State.TimestampSendNegotiated = // Peer wants to recv, so we can send
+                !!(Connection->PeerTransportParams.Flags & QUIC_TP_FLAG_TIMESTAMP_RECV_ENABLED);
+            Connection->State.TimestampRecvNegotiated = // Peer wants to send, so we can recv
+                !!(Connection->PeerTransportParams.Flags & QUIC_TP_FLAG_TIMESTAMP_SEND_ENABLED);
+
+            //
+            // Send event to app to indicate result of negotiation if app cares.
+            //
+            QUIC_CONNECTION_EVENT Event;
+            Event.Type = QUIC_CONNECTION_EVENT_ONE_WAY_DELAY_NEGOTIATED;
+            Event.ONE_WAY_DELAY_NEGOTIATED.SendNegotiated = Connection->State.TimestampSendNegotiated;
+            Event.ONE_WAY_DELAY_NEGOTIATED.ReceiveNegotiated = Connection->State.TimestampRecvNegotiated;
+
+            QuicTraceLogConnVerbose(
+                IndicateOneWayDelayNegotiated,
+                Connection,
+                "Indicating QUIC_CONNECTION_EVENT_ONE_WAY_DELAY_NEGOTIATED [Send=%hhu,Recv=%hhu]",
+                Event.ONE_WAY_DELAY_NEGOTIATED.SendNegotiated,
+                Event.ONE_WAY_DELAY_NEGOTIATED.ReceiveNegotiated);
             QuicConnIndicateEvent(Connection, &Event);
         }
 
