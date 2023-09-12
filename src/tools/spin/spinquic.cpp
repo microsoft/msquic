@@ -538,7 +538,7 @@ struct SetParamHelper {
 
 void SpinQuicRandomizeSettings(QUIC_SETTINGS& Settings, uint16_t ThreadID)
 {
-    switch (GetRandom(37)) {
+    switch (GetRandom(38)) {
     case 0:
         //Settings.MaxBytesPerKey = GetRandom(UINT64_MAX);
         //Settings.IsSet.MaxBytesPerKey = TRUE;
@@ -686,6 +686,10 @@ void SpinQuicRandomizeSettings(QUIC_SETTINGS& Settings, uint16_t ThreadID)
     case 36:
         Settings.ReliableResetEnabled = GetRandom((uint8_t)1);
         Settings.IsSet.ReliableResetEnabled = TRUE;
+        break;
+    case 37:
+        Settings.OneWayDelayEnabled = GetRandom((uint8_t)1);
+        Settings.IsSet.OneWayDelayEnabled = TRUE;
         break;
     default:
         break;

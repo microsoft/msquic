@@ -36,6 +36,11 @@ typedef struct QUIC_ACK_EVENT {
     uint64_t MinRtt;
 
     //
+    // The smoothed one-way delay of the send path.
+    //
+    uint64_t OneWayDelay;
+
+    //
     // Acked time minus ack delay.
     //
     uint64_t AdjustedAckTime;

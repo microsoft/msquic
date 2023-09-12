@@ -858,7 +858,7 @@ QuicConnUpdateRtt(
                 Connection->Stats.Timing.PhaseShift);
         } else {
             Path->OneWayDelayLatest =
-                (uint64_t)((int64_t)PeerSendTimestamp - (int64_t)OurSendTimestamp - (int64_t)Connection->Stats.Timing.PhaseShift);
+                (uint64_t)((int64_t)PeerSendTimestamp - (int64_t)OurSendTimestamp - Connection->Stats.Timing.PhaseShift);
             Path->OneWayDelay = (7 * Path->OneWayDelay + Path->OneWayDelayLatest) / 8;
         }
     }
