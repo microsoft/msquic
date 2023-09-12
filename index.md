@@ -11,3 +11,5 @@ makes debugging a little less painful.
 Try out the search feature!
 
 Try out dark mode!
+
+Chatbot coming soon!
