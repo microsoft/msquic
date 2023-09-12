@@ -2134,6 +2134,20 @@
                 name="EcnCongestionCount"
                 />
           </template>
+          <template tid="tid_CONN_COUNT_COUNT">
+            <data
+                inType="win:Pointer"
+                name="Connection"
+                />
+            <data
+                inType="win:UInt32"
+                name="Count"
+                />
+            <data
+                inType="win:UInt32"
+                name="Count2"
+                />
+          </template>
         </templates>
         <events>
           <!-- Don't use value=0 as some parsers don't like it -->
@@ -3263,6 +3277,15 @@
               template="tid_CONN_CUBIC_HYSTART"
               value="5191"
               />
+          <event
+              keywords="ut:Connection ut:DataFlow"
+              level="win:Informational"
+              message="$(string.Etw.ConnRecvUdpDatagrams)"
+              opcode="Connection"
+              symbol="QuicConnRecvUdpDatagrams"
+              template="tid_CONN_COUNT_COUNT"
+              value="5192"
+              />
           <!-- 6144 - 7167 | Stream Events -->
           <event
               keywords="ut:Stream ut:LowVolume ut:RPS"
@@ -3963,6 +3986,10 @@
         <string
             id="Etw.ConnServerSupportedVersionList"
             value="[conn][%1] Server VI Supported Version List: %3"
+            />
+        <string
+            id="Etw.ConnRecvUdpDatagrams"
+            value="[conn][%1] Recv %2 UDP datagrams, %3 bytes"
             />
         <string
             id="Etw.StreamCreated"

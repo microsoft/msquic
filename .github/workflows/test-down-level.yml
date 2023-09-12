@@ -36,13 +36,11 @@ jobs:
     name: Test
     steps:
     - name: Harden Runner
-      uses: step-security/harden-runner@55d479fb1c5bcad5a4f9099a5d9f37c8857b2845
+      uses: step-security/harden-runner@cba0d00b1fc9a034e1e642ea0f1103c282990604
       with:
         egress-policy: audit
     - name: Checkout repository
       uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9
-      with:
-        fetch-depth: 0
     - name: Prepare Machine
       run: scripts/prepare-machine.ps1 -Tls ${{ matrix.tls }} -DisableTest
       shell: pwsh

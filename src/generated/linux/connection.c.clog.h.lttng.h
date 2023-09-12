@@ -466,29 +466,6 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, UnreachableInvalid,
 
 
 /*----------------------------------------------------------
-// Decoder Ring for PathQeoDisabled
-// [conn][%p] Path[%hhu] QEO disabled
-// QuicTraceLogConnInfo(
-                PathQeoDisabled,
-                Connection,
-                "Path[%hhu] QEO disabled",
-                Connection->Paths[0].ID);
-// arg1 = arg1 = Connection = arg1
-// arg3 = arg3 = Connection->Paths[0].ID = arg3
-----------------------------------------------------------*/
-TRACEPOINT_EVENT(CLOG_CONNECTION_C, PathQeoDisabled,
-    TP_ARGS(
-        const void *, arg1,
-        unsigned char, arg3), 
-    TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg1, arg1)
-        ctf_integer(unsigned char, arg3, arg3)
-    )
-)
-
-
-
-/*----------------------------------------------------------
 // Decoder Ring for CloseUserCanceled
 // [conn][%p] Connection close using user canceled error
 // QuicTraceLogConnInfo(
@@ -1512,29 +1489,6 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, UdpRecvDeferred,
 
 
 /*----------------------------------------------------------
-// Decoder Ring for UdpRecv
-// [conn][%p] Recv %u UDP datagrams
-// QuicTraceLogConnVerbose(
-            UdpRecv,
-            Connection,
-            "Recv %u UDP datagrams",
-            DatagramChainCount);
-// arg1 = arg1 = Connection = arg1
-// arg3 = arg3 = DatagramChainCount = arg3
-----------------------------------------------------------*/
-TRACEPOINT_EVENT(CLOG_CONNECTION_C, UdpRecv,
-    TP_ARGS(
-        const void *, arg1,
-        unsigned int, arg3), 
-    TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg1, arg1)
-        ctf_integer(unsigned int, arg3, arg3)
-    )
-)
-
-
-
-/*----------------------------------------------------------
 // Decoder Ring for DatagramReceiveEnableUpdated
 // [conn][%p] Updated datagram receive enabled to %hhu
 // QuicTraceLogConnVerbose(
@@ -2378,6 +2332,33 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, ConnPacketRecv,
         ctf_integer(uint64_t, arg3, arg3)
         ctf_integer(unsigned char, arg4, arg4)
         ctf_integer(unsigned short, arg5, arg5)
+    )
+)
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for ConnRecvUdpDatagrams
+// [conn][%p] Recv %u UDP datagrams, %u bytes
+// QuicTraceEvent(
+            ConnRecvUdpDatagrams,
+            "[conn][%p] Recv %u UDP datagrams, %u bytes",
+            Connection,
+            DatagramChainCount,
+            DatagramChainByteCount);
+// arg2 = arg2 = Connection = arg2
+// arg3 = arg3 = DatagramChainCount = arg3
+// arg4 = arg4 = DatagramChainByteCount = arg4
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_CONNECTION_C, ConnRecvUdpDatagrams,
+    TP_ARGS(
+        const void *, arg2,
+        unsigned int, arg3,
+        unsigned int, arg4), 
+    TP_FIELDS(
+        ctf_integer_hex(uint64_t, arg2, arg2)
+        ctf_integer(unsigned int, arg3, arg3)
+        ctf_integer(unsigned int, arg4, arg4)
     )
 )
 

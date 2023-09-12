@@ -88,12 +88,7 @@ MsQuicListenerOpen(
 
 Error:
 
-    if (QUIC_FAILED(Status)) {
-
-        if (Listener != NULL) {
-            CXPLAT_FREE(Listener, QUIC_POOL_LISTENER);
-        }
-    }
+    CXPLAT_DBG_ASSERT(QUIC_SUCCEEDED(Status) || Listener == NULL);
 
     QuicTraceEvent(
         ApiExitStatus,
@@ -137,13 +132,8 @@ MsQuicListenerClose(
         HQUIC Handle
     )
 {
-    if (Handle == NULL) {
-        return;
-    }
-
-    CXPLAT_TEL_ASSERT(Handle->Type == QUIC_HANDLE_TYPE_LISTENER);
-    _Analysis_assume_(Handle->Type == QUIC_HANDLE_TYPE_LISTENER);
-    if (Handle->Type != QUIC_HANDLE_TYPE_LISTENER) {
+    CXPLAT_TEL_ASSERT(Handle == NULL || Handle->Type == QUIC_HANDLE_TYPE_LISTENER);
+    if (Handle == NULL || Handle->Type != QUIC_HANDLE_TYPE_LISTENER) {
         return;
     }
 

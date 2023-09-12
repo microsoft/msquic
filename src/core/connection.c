@@ -484,27 +484,10 @@ QuicConnUninitialize(
     // Remove all entries in the binding's lookup tables so we don't get any
     // more packets queued.
     //
-    if (Connection->Paths[0].Binding != NULL) {
-        if (Connection->Paths[0].EncryptionOffloading) {
-            QUIC_CID_HASH_ENTRY* SourceCid =
-                CXPLAT_CONTAINING_RECORD(Connection->SourceCids.Next, QUIC_CID_HASH_ENTRY, Link);
-            CXPLAT_QEO_CONNECTION Offloads[2] = {0};
-            Offloads[0].Operation = CXPLAT_QEO_OPERATION_REMOVE;
-            Offloads[0].Direction = CXPLAT_QEO_DIRECTION_TRANSMIT;
-            Offloads[0].ConnectionIdLength = Connection->Paths[0].DestCid->CID.Length;
-            Offloads[1].Operation = CXPLAT_QEO_OPERATION_REMOVE;
-            Offloads[1].Direction = CXPLAT_QEO_DIRECTION_RECEIVE;
-            Offloads[1].ConnectionIdLength = SourceCid->CID.Length;
-            memcpy(Offloads[0].ConnectionId, Connection->Paths[0].DestCid->CID.Data, Connection->Paths[0].DestCid->CID.Length);
-            memcpy(Offloads[1].ConnectionId, SourceCid->CID.Data, SourceCid->CID.Length);
-            (void)CxPlatSocketUpdateQeo(Connection->Paths[0].Binding->Socket, Offloads, 2);
-            Connection->Stats.EncryptionOffloaded = FALSE;
-            Connection->Paths[0].EncryptionOffloading = FALSE;
-            QuicTraceLogConnInfo(
-                PathQeoDisabled,
-                Connection,
-                "Path[%hhu] QEO disabled",
-                Connection->Paths[0].ID);
+    QUIC_PATH* Path = &Connection->Paths[0];
+    if (Path->Binding != NULL) {
+        if (Path->EncryptionOffloading) {
+            QuicPathUpdateQeo(Connection, Path, CXPLAT_QEO_OPERATION_REMOVE);
         }
 
         QuicBindingRemoveConnection(Connection->Paths[0].Binding, Connection);
@@ -3213,7 +3196,8 @@ void
 QuicConnQueueRecvDatagrams(
     _In_ QUIC_CONNECTION* Connection,
     _In_ CXPLAT_RECV_DATA* DatagramChain,
-    _In_ uint32_t DatagramChainLength
+    _In_ uint32_t DatagramChainLength,
+    _In_ uint32_t DatagramChainByteLength
     )
 {
     CXPLAT_RECV_DATA** DatagramChainTail = &DatagramChain->Next;
@@ -3241,6 +3225,7 @@ QuicConnQueueRecvDatagrams(
         DatagramChain = NULL;
         QueueOperation = (Connection->ReceiveQueueCount == 0);
         Connection->ReceiveQueueCount += DatagramChainLength;
+        Connection->ReceiveQueueByteCount += DatagramChainByteLength;
     }
     CxPlatDispatchLockRelease(&Connection->ReceiveQueueLock);
 
@@ -3960,7 +3945,7 @@ QuicConnRecvHeader(
         } else {
             Packet->KeyType = QuicPacketTypeToKeyTypeV1(Packet->LH->Type);
         }
-        Packet->Encrypted = !Connection->Paths[0].EncryptionOffloading;
+        Packet->Encrypted = TRUE;
 
     } else {
 
@@ -3970,7 +3955,9 @@ QuicConnRecvHeader(
         }
 
         Packet->KeyType = QUIC_PACKET_KEY_1_RTT;
-        Packet->Encrypted = !Connection->State.Disable1RttEncrytion;
+        Packet->Encrypted =
+            !Connection->State.Disable1RttEncrytion &&
+            !Connection->Paths[0].EncryptionOffloading;
     }
 
     if (Packet->Encrypted &&
@@ -5546,6 +5533,7 @@ QuicConnRecvDatagrams(
     _In_ QUIC_CONNECTION* Connection,
     _In_ CXPLAT_RECV_DATA* DatagramChain,
     _In_ uint32_t DatagramChainCount,
+    _In_ uint32_t DatagramChainByteCount,
     _In_ BOOLEAN IsDeferred
     )
 {
@@ -5556,6 +5544,7 @@ QuicConnRecvDatagrams(
     RecvState.PartitionIndex = QuicPartitionIdGetIndex(Connection->PartitionID);
 
     UNREFERENCED_PARAMETER(DatagramChainCount);
+    UNREFERENCED_PARAMETER(DatagramChainByteCount);
 
     CXPLAT_PASSIVE_CODE();
 
@@ -5566,11 +5555,12 @@ QuicConnRecvDatagrams(
             "Recv %u deferred UDP datagrams",
             DatagramChainCount);
     } else {
-        QuicTraceLogConnVerbose(
-            UdpRecv,
+        QuicTraceEvent(
+            ConnRecvUdpDatagrams,
+            "[conn][%p] Recv %u UDP datagrams, %u bytes",
             Connection,
-            "Recv %u UDP datagrams",
-            DatagramChainCount);
+            DatagramChainCount,
+            DatagramChainByteCount);
     }
 
     //
@@ -5820,7 +5810,7 @@ QuicConnFlushRecv(
     )
 {
     BOOLEAN FlushedAll;
-    uint32_t ReceiveQueueCount;
+    uint32_t ReceiveQueueCount, ReceiveQueueByteCount;
     CXPLAT_RECV_DATA* ReceiveQueue;
 
     CxPlatDispatchLockAcquire(&Connection->ReceiveQueueLock);
@@ -5830,22 +5820,27 @@ QuicConnFlushRecv(
         Connection->ReceiveQueueCount -= QUIC_MAX_RECEIVE_FLUSH_COUNT;
         CXPLAT_RECV_DATA* Tail = Connection->ReceiveQueue;
         ReceiveQueueCount = 0;
+        ReceiveQueueByteCount = 0;
         while (++ReceiveQueueCount < QUIC_MAX_RECEIVE_FLUSH_COUNT) {
+            ReceiveQueueByteCount += Tail->BufferLength;
             Tail = Connection->ReceiveQueue;
         }
+        Connection->ReceiveQueueByteCount -= ReceiveQueueByteCount;
         Connection->ReceiveQueue = Tail->Next;
         Tail->Next = NULL;
     } else {
         FlushedAll = TRUE;
         ReceiveQueueCount = Connection->ReceiveQueueCount;
+        ReceiveQueueByteCount = Connection->ReceiveQueueByteCount;
         Connection->ReceiveQueueCount = 0;
+        Connection->ReceiveQueueByteCount = 0;
         Connection->ReceiveQueue = NULL;
         Connection->ReceiveQueueTail = &Connection->ReceiveQueue;
     }
     CxPlatDispatchLockRelease(&Connection->ReceiveQueueLock);
 
     QuicConnRecvDatagrams(
-        Connection, ReceiveQueue, ReceiveQueueCount, FALSE);
+        Connection, ReceiveQueue, ReceiveQueueCount, ReceiveQueueByteCount, FALSE);
 
     return FlushedAll;
 }
@@ -5914,6 +5909,7 @@ QuicConnFlushDeferred(
                 Connection,
                 DeferredDatagrams,
                 DeferredDatagramsCount,
+                0, // Unused for deferred datagrams
                 TRUE);
         }
     }
@@ -7169,6 +7165,31 @@ QuicConnParamGet(
                 (QUIC_STATISTICS_V2*)Buffer);
         break;
     }
+
+    case QUIC_PARAM_CONN_ORIG_DEST_CID:
+        if (Connection->OrigDestCID == NULL) {
+            Status = QUIC_STATUS_INVALID_STATE;
+            break;
+        }
+        if (*BufferLength < Connection->OrigDestCID->Length) {
+            Status = QUIC_STATUS_BUFFER_TOO_SMALL;
+            *BufferLength = Connection->OrigDestCID->Length;
+            break;
+        }
+        if (Buffer == NULL) {
+            Status = QUIC_STATUS_INVALID_PARAMETER;
+            break;
+        }
+        CxPlatCopyMemory(
+            Buffer,
+            Connection->OrigDestCID->Data,
+            Connection->OrigDestCID->Length);
+        //
+        // Tell app how much buffer we copied.
+        //
+        *BufferLength = Connection->OrigDestCID->Length;
+        Status = QUIC_STATUS_SUCCESS;
+        break;
 
     default:
         Status = QUIC_STATUS_INVALID_PARAMETER;

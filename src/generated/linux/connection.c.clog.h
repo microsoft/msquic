@@ -453,26 +453,6 @@ tracepoint(CLOG_CONNECTION_C, UnreachableInvalid , arg1);\
 
 
 /*----------------------------------------------------------
-// Decoder Ring for PathQeoDisabled
-// [conn][%p] Path[%hhu] QEO disabled
-// QuicTraceLogConnInfo(
-                PathQeoDisabled,
-                Connection,
-                "Path[%hhu] QEO disabled",
-                Connection->Paths[0].ID);
-// arg1 = arg1 = Connection = arg1
-// arg3 = arg3 = Connection->Paths[0].ID = arg3
-----------------------------------------------------------*/
-#ifndef _clog_4_ARGS_TRACE_PathQeoDisabled
-#define _clog_4_ARGS_TRACE_PathQeoDisabled(uniqueId, arg1, encoded_arg_string, arg3)\
-tracepoint(CLOG_CONNECTION_C, PathQeoDisabled , arg1, arg3);\
-
-#endif
-
-
-
-
-/*----------------------------------------------------------
 // Decoder Ring for CloseUserCanceled
 // [conn][%p] Connection close using user canceled error
 // QuicTraceLogConnInfo(
@@ -1374,26 +1354,6 @@ tracepoint(CLOG_CONNECTION_C, UdpRecvDeferred , arg1, arg3);\
 
 
 /*----------------------------------------------------------
-// Decoder Ring for UdpRecv
-// [conn][%p] Recv %u UDP datagrams
-// QuicTraceLogConnVerbose(
-            UdpRecv,
-            Connection,
-            "Recv %u UDP datagrams",
-            DatagramChainCount);
-// arg1 = arg1 = Connection = arg1
-// arg3 = arg3 = DatagramChainCount = arg3
-----------------------------------------------------------*/
-#ifndef _clog_4_ARGS_TRACE_UdpRecv
-#define _clog_4_ARGS_TRACE_UdpRecv(uniqueId, arg1, encoded_arg_string, arg3)\
-tracepoint(CLOG_CONNECTION_C, UdpRecv , arg1, arg3);\
-
-#endif
-
-
-
-
-/*----------------------------------------------------------
 // Decoder Ring for DatagramReceiveEnableUpdated
 // [conn][%p] Updated datagram receive enabled to %hhu
 // QuicTraceLogConnVerbose(
@@ -2112,6 +2072,28 @@ tracepoint(CLOG_CONNECTION_C, PacketDecrypt , arg2);\
 #ifndef _clog_6_ARGS_TRACE_ConnPacketRecv
 #define _clog_6_ARGS_TRACE_ConnPacketRecv(uniqueId, encoded_arg_string, arg2, arg3, arg4, arg5)\
 tracepoint(CLOG_CONNECTION_C, ConnPacketRecv , arg2, arg3, arg4, arg5);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for ConnRecvUdpDatagrams
+// [conn][%p] Recv %u UDP datagrams, %u bytes
+// QuicTraceEvent(
+            ConnRecvUdpDatagrams,
+            "[conn][%p] Recv %u UDP datagrams, %u bytes",
+            Connection,
+            DatagramChainCount,
+            DatagramChainByteCount);
+// arg2 = arg2 = Connection = arg2
+// arg3 = arg3 = DatagramChainCount = arg3
+// arg4 = arg4 = DatagramChainByteCount = arg4
+----------------------------------------------------------*/
+#ifndef _clog_5_ARGS_TRACE_ConnRecvUdpDatagrams
+#define _clog_5_ARGS_TRACE_ConnRecvUdpDatagrams(uniqueId, encoded_arg_string, arg2, arg3, arg4)\
+tracepoint(CLOG_CONNECTION_C, ConnRecvUdpDatagrams , arg2, arg3, arg4);\
 
 #endif
 

@@ -103,8 +103,7 @@ if ("${CX_PLATFORM}" STREQUAL "windows")
             platform
             PUBLIC
             inc
-            wbemuuid
-            ${PROJECT_SOURCE_DIR}/artifacts/xdp/lib/xdpapi.lib)
+            wbemuuid)
     endif()
     target_link_libraries(platform PUBLIC winmm)
 else()

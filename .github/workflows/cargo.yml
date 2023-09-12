@@ -21,7 +21,7 @@ jobs:
     name: Cargo
     steps:
     - name: Harden Runner
-      uses: step-security/harden-runner@55d479fb1c5bcad5a4f9099a5d9f37c8857b2845
+      uses: step-security/harden-runner@cba0d00b1fc9a034e1e642ea0f1103c282990604
       with:
         egress-policy: audit
     - name: Checkout repository
@@ -31,7 +31,7 @@ jobs:
       shell: pwsh
     - name: Install Perl
       if: runner.os == 'Windows'
-      uses: shogo82148/actions-setup-perl@a67113985e0d5fab15c98bd0875f6218759be902
+      uses: shogo82148/actions-setup-perl@7f907be1fad5b3080fce625f3eab81475ccaecd2
       with:
         perl-version: '5.34'
     - name: Install NASM

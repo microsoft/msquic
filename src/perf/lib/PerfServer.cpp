@@ -39,14 +39,12 @@ PerfServer::Init(
 
     uint16_t ServerId = 0;
     if (TryGetValue(argc, argv, "serverid", &ServerId)) {
-	    QUIC_GLOBAL_SETTINGS GlobalSettings = {0};
-	    GlobalSettings.FixedServerID = ServerId;
-	    GlobalSettings.IsSet.FixedServerID = true;
-	    GlobalSettings.LoadBalancingMode = QUIC_LOAD_BALANCING_SERVER_ID_FIXED;
-	    GlobalSettings.IsSet.LoadBalancingMode = true;
+        MsQuicGlobalSettings GlobalSettings;
+        GlobalSettings.SetFixedServerID(ServerId);
+        GlobalSettings.SetLoadBalancingMode(QUIC_LOAD_BALANCING_SERVER_ID_FIXED);
    
         QUIC_STATUS Status;
-	    if (QUIC_FAILED(Status = MsQuic->SetParam(NULL, QUIC_PARAM_GLOBAL_GLOBAL_SETTINGS, sizeof(GlobalSettings), &GlobalSettings))) {
+	    if (QUIC_FAILED(Status = GlobalSettings.Set())) {
 	    	WriteOutput("Failed to set global settings %d\n", Status);
 	    	return Status;
 	    }
@@ -129,7 +127,7 @@ PerfServer::GetExtraData(
 
 QUIC_STATUS
 PerfServer::ListenerCallback(
-    _In_ HQUIC /*ListenerHandle*/,
+    _In_ MsQuicListener* /*Listener*/,
     _Inout_ QUIC_LISTENER_EVENT* Event
     ) {
     QUIC_STATUS Status = QUIC_STATUS_NOT_SUPPORTED;

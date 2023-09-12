@@ -983,7 +983,7 @@ static
 QUIC_STATUS
 QUIC_API
 QuicAbortiveListenerHandler(
-    _In_ HQUIC /* QuicListener */,
+    _In_ MsQuicListener* /* QuicListener */,
     _In_opt_ void* Context,
     _Inout_ QUIC_LISTENER_EVENT* Event
     )
@@ -1060,7 +1060,7 @@ QuicAbortiveTransfers(
     {
         AbortiveTestContext ClientContext(nullptr, false, Flags, ExpectedError, ShutdownFlags), ServerContext(ServerConfiguration, true, Flags, ExpectedError, ShutdownFlags);
 
-        MsQuicListener Listener(Registration, QuicAbortiveListenerHandler, &ServerContext);
+        MsQuicListener Listener(Registration, CleanUpManual, QuicAbortiveListenerHandler, &ServerContext);
         TEST_QUIC_SUCCEEDED(Listener.GetInitStatus());
         TEST_QUIC_SUCCEEDED(Listener.Start(Alpn));
         TEST_QUIC_SUCCEEDED(Listener.GetLocalAddr(ServerLocalAddr));
@@ -1466,7 +1466,7 @@ static
 QUIC_STATUS
 QUIC_API
 QuicRecvResumeListenerHandler(
-    _In_ HQUIC /* QuicListener */,
+    _In_ MsQuicListener* /* QuicListener */,
     _In_opt_ void* Context,
     _Inout_ QUIC_LISTENER_EVENT* Event
     )
@@ -1523,7 +1523,7 @@ QuicTestReceiveResume(
         //
         // Start the server.
         //
-        MsQuicListener Listener(Registration, QuicRecvResumeListenerHandler, &ServerContext);
+        MsQuicListener Listener(Registration, CleanUpManual, QuicRecvResumeListenerHandler, &ServerContext);
         TEST_QUIC_SUCCEEDED(Listener.GetInitStatus());
         TEST_QUIC_SUCCEEDED(Listener.Start(Alpn));
         TEST_QUIC_SUCCEEDED(Listener.GetLocalAddr(ServerLocalAddr));
@@ -1749,7 +1749,7 @@ QuicTestReceiveResumeNoData(
         //
         // Start the server.
         //
-        MsQuicListener Listener(Registration, QuicRecvResumeListenerHandler, &ServerContext);
+        MsQuicListener Listener(Registration, CleanUpManual, QuicRecvResumeListenerHandler, &ServerContext);
         TEST_QUIC_SUCCEEDED(Listener.GetInitStatus());
         TEST_QUIC_SUCCEEDED(Listener.Start(Alpn));
         TEST_QUIC_SUCCEEDED(Listener.GetLocalAddr(ServerLocalAddr));
@@ -2018,7 +2018,7 @@ static
 QUIC_STATUS
 QUIC_API
 QuicAckDelayListenerHandler(
-    _In_ HQUIC /* QuicListener */,
+    _In_ MsQuicListener* /* QuicListener */,
     _In_opt_ void* Context,
     _Inout_ QUIC_LISTENER_EVENT* Event
     )
@@ -2075,7 +2075,7 @@ QuicTestAckSendDelay(
         //
         // Start the server.
         //
-        MsQuicListener Listener(Registration, QuicAckDelayListenerHandler, &TestContext);
+        MsQuicListener Listener(Registration, CleanUpManual, QuicAckDelayListenerHandler, &TestContext);
         TEST_QUIC_SUCCEEDED(Listener.GetInitStatus());
         TEST_QUIC_SUCCEEDED(Listener.Start(Alpn));
         TEST_QUIC_SUCCEEDED(Listener.GetLocalAddr(ServerLocalAddr));

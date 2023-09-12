@@ -308,3 +308,14 @@ QuicCopyRouteInfo(
     _Inout_ CXPLAT_ROUTE* DstRoute,
     _In_ CXPLAT_ROUTE* SrcRoute
     );
+
+//
+// Plumbs new or removes existing QUIC encryption offload information.
+//
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+QuicPathUpdateQeo(
+    _In_ QUIC_CONNECTION* Connection,
+    _In_ QUIC_PATH* Path,
+    _In_ CXPLAT_QEO_OPERATION Operation
+    );
