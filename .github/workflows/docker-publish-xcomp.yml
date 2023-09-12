@@ -5,14 +5,14 @@ on:
     branches: [ main ]
     paths:
     - .github/workflows/docker-publish-xcomp.yml
-    - .azure/dockers/ob/linux-20.04
-    - .azure/dockers/ob/linux-22.04
+    - .docker/ubuntu-20.04/*
+    - .docker/ubuntu-22.04/*
   pull_request:
     branches: [ main ]
     paths:
     - .github/workflows/docker-publish-xcomp.yml
-    - .azure/dockers/ob/linux-20.04
-    - .azure/dockers/ob/linux-22.04
+    - .docker/ubuntu-20.04/*
+    - .docker/ubuntu-22.04/*
 
 permissions: read-all
 
@@ -37,7 +37,7 @@ jobs:
 
     steps:
       - name: Harden Runner
-        uses: step-security/harden-runner@128a63446a954579617e875aaab7d2978154e969
+        uses: step-security/harden-runner@55d479fb1c5bcad5a4f9099a5d9f37c8857b2845
         with:
           egress-policy: audit
 
@@ -58,17 +58,17 @@ jobs:
       # https://github.com/docker/metadata-action
       - name: Extract Docker metadata
         id: meta
-        uses: docker/metadata-action@2c0bd771b40637d97bf205cbccdd294a32112176
+        uses: docker/metadata-action@818d4b7b91585d195f67373fd9cb0332e31a7175
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
 
       # Build and push Docker image with Buildx (don't push on PR)
       # https://github.com/docker/build-push-action
       - name: Build and push Docker image
-        uses: docker/build-push-action@3b5e8027fcad23fda98b2e3ac259d8d67585f671
+        uses: docker/build-push-action@2eb1c1961a95fc15694676618e422e8ba1d63825
         with:
-          context: .azure/dockers/ob/linux-${{ matrix.version }}
-          file: .azure/dockers/ob/linux-${{ matrix.version }}/Dockerfile
+          context: .docker/ubuntu-${{ matrix.version }}
+          file: .docker/ubuntu-${{ matrix.version }}/Dockerfile
           push: ${{ github.event_name != 'pull_request' }}
           tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ matrix.version }}
           labels: ${{ steps.meta.outputs.labels }}

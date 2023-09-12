@@ -225,6 +225,17 @@ CxPlatDpRawUninitialize(
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
+void
+CxPlatDpRawUpdateConfig(
+    _In_ CXPLAT_DATAPATH* Datapath,
+    _In_ QUIC_EXECUTION_CONFIG* Config
+    )
+{
+    UNREFERENCED_PARAMETER(Datapath);
+    UNREFERENCED_PARAMETER(Config);
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 CxPlatSocketUpdateQeo(
     _In_ CXPLAT_SOCKET* Socket,

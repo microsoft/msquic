@@ -20,147 +20,15 @@ concurrency:
 permissions: read-all
 
 jobs:
-  build-ubuntu:
-    name: Build
-    strategy:
-      fail-fast: false
-      matrix:
-        plat: [linux, android]
-        os: ['20.04', '22.04']
-        arch: [x86, x64]
-        tls: [openssl, openssl3]
-        systemcrypto: ['', '-UseSystemOpenSSLCrypto']
-        static: ['', '-Static']
-        clang: ['', '-Clang']
-        codecheck: ['', '-CodeCheck']
-        exclude:
-        # Android doesn't support x86
-        - plat: android
-          arch: x86
-        # Android doesn't use system crypto
-        - plat: android
-          systemcrypto: '-UseSystemOpenSSLCrypto'
-        # No openssl3 system crypto on 20.04
-        - plat: linux '
-          os: '20.04'
-          tls: 'openssl3'
-          systemcrypto: '-UseSystemOpenSSLCrypto'
-        # No openssl system crypto on 22.04
-        - plat: linux '
-          os: '22.04'
-          tls: 'openssl'
-          systemcrypto: '-UseSystemOpenSSLCrypto'
-        # Android doesn't use Clang
-        - plat: android
-          clang: '-Clang'
-        # Android doesn't use CodeCheck
-        - plat: android
-          codecheck: '-CodeCheck'
-        # No need to combine SystemCrypto and CodeCheck
-        - systemcrypto: '-UseSystemOpenSSLCrypto'
-          codecheck: '-CodeCheck'
-        # No need to combine Static and CodeCheck
-        - static: '-Static'
-          codecheck: '-CodeCheck'
-        # No need to combine Clang and CodeCheck
-        - clang: '-Clang'
-          codecheck: '-CodeCheck'
-    runs-on: ubuntu-${{ matrix.os }}
-    steps:
-    - name: Checkout repository
-      uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9
-      with:
-        fetch-depth: 0
-    - name: Prepare Machine
-      shell: pwsh
-      run: scripts/prepare-machine.ps1 -ForBuild -Tls ${{ matrix.tls }}
-    - name: Build Debug
-      shell: pwsh
-      run: scripts/build.ps1 -Config Debug -Platform ${{ matrix.plat }} -Arch ${{ matrix.arch }} -Tls ${{ matrix.tls }} ${{ matrix.static }} ${{ matrix.clang }} ${{ matrix.codecheck }}
-    - name: Build Release
-      if: matrix.codecheck != '-CodeCheck' # TODO: FIX: Release builds with CodeCheck fail
-      shell: pwsh
-      run: scripts/build.ps1 -Config Release -Platform ${{ matrix.plat }} -Arch ${{ matrix.arch }} -Tls ${{ matrix.tls }} ${{ matrix.static }} ${{ matrix.clang }} ${{ matrix.codecheck }}
-
-  build-ubuntu-cross-compile:
-    name: Build
-    needs: []
-    strategy:
-      fail-fast: false
-      matrix:
-        plat: [linux]
-        os: ['20.04', '22.04']
-        arch: [arm, arm64]
-        tls: [openssl, openssl3]
-        toolchain: ['cmake/toolchains/arm-linux.cmake', 'cmake/toolchains/aarch64-linux.cmake']
-        static: ['', '-Static']
-        exclude:
-        - arch: arm
-          toolchain: 'cmake/toolchains/aarch64-linux.cmake'
-        - arch: arm64
-          toolchain: 'cmake/toolchains/arm-linux.cmake'
-    runs-on: ubuntu-${{ matrix.os }}
-    container:
-      image: ghcr.io/microsoft/msquic/linux-build-xcomp
-    steps:
-    - name: Checkout repository
-      uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9
-      with:
-        fetch-depth: 0
-        submodules: 'recursive'
-    - name: Set ownership
-      run: |
-        # this is to fix GIT not liking owner of the checkout dir
-        chown -R $(id -u):$(id -g) $PWD
-    - name: Prepare Machine
-      shell: pwsh
-      run: scripts/prepare-machine.ps1 -ForOneBranch -InitSubmodules
-    - name: Build Debug
-      shell: pwsh
-      run: scripts/build.ps1 -Config Debug -Arch ${{ matrix.arch }} -ToolchainFile ${{ matrix.toolchain }} -Tls ${{ matrix.tls }} -DisableLogs -OneBranch ${{ matrix.static }}
-    - name: Build Release
-      shell: pwsh
-      run: scripts/build.ps1 -Config Release -Arch ${{ matrix.arch }} -ToolchainFile ${{ matrix.toolchain }} -Tls ${{ matrix.tls }} -DisableLogs -OneBranch ${{ matrix.static }}
-
-  build-macOS:
-    name: Build
-    needs: []
-    strategy:
-      fail-fast: false
-      matrix:
-        plat: [macos, ios]
-        os: ['12']
-        arch: [x86, x64, arm64]
-        tls: [openssl, openssl3]
-        static: ['', '-Static']
-        exclude:
-        # iOS doesn't support x86
-        - plat: ios
-          arch: x86
-    runs-on: macos-${{ matrix.os }}
-    steps:
-    - name: Checkout repository
-      uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9
-      with:
-        fetch-depth: 0
-    - name: Prepare Machine
-      shell: pwsh
-      run: scripts/prepare-machine.ps1 -ForBuild -Tls ${{ matrix.tls }}
-    - name: Build Debug
-      shell: pwsh
-      run: scripts/build.ps1 -Config Debug -Platform ${{ matrix.plat }} -Arch ${{ matrix.arch }} -Tls ${{ matrix.tls }} ${{ matrix.static }}
-    - name: Build Release
-      shell: pwsh
-      run: scripts/build.ps1 -Config Release -Platform ${{ matrix.plat }} -Arch ${{ matrix.arch }} -Tls ${{ matrix.tls }} ${{ matrix.static }}
-
   build-windows:
-    name: Build
+    name: WinUser
     needs: []
     strategy:
       fail-fast: false
       matrix:
+        config: ['Debug', 'Release']
         plat: [windows, uwp] # TODO: Support gamecore_console
-        os: ['2019', '2022']
+        os: ['windows-2019', 'windows-2022']
         arch: [x86, x64, arm64]
         tls: [schannel, openssl, openssl3]
         static: ['', '-Static']
@@ -187,58 +55,184 @@ jobs:
         # XDP only supports x64 currently
         - arch: arm64
           xdp: '-UseXdp'
-    runs-on: windows-${{ matrix.os }}
-    steps:
-    - name: Checkout repository
-      uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9
-      with:
-        fetch-depth: 0
-    - name: Install Perl
-      uses: shogo82148/actions-setup-perl@0bb5af61b3945a80585229183e7ac50a97d7996c
-      with:
-        perl-version: '5.34'
-    - name: Install NASM
-      uses: ilammy/setup-nasm@321e6ed62a1fc77024a3bd853deb33645e8b22c4
-    - name: Prepare Machine
-      shell: pwsh
-      run: scripts/prepare-machine.ps1 -ForBuild -Tls ${{ matrix.tls }}
-    - name: Build Debug
-      shell: pwsh
-      run: scripts/build.ps1 -Config Debug -Platform ${{ matrix.plat }} -Arch ${{ matrix.arch }} -Tls ${{ matrix.tls }} ${{ matrix.static }} ${{ matrix.xdp }}
-    - name: Build Release
-      shell: pwsh
-      run: scripts/build.ps1 -Config Release -Platform ${{ matrix.plat }} -Arch ${{ matrix.arch }} -Tls ${{ matrix.tls }} ${{ matrix.static }} ${{ matrix.xdp }}
+    uses: ./.github/workflows/build-reuse-win.yml
+    with:
+      config: ${{ matrix.config }}
+      plat: ${{ matrix.plat }}
+      os: ${{ matrix.os }}
+      arch: ${{ matrix.arch }}
+      tls: ${{ matrix.tls }}
+      static: ${{ matrix.static }}
+      xdp: ${{ matrix.xdp }}
 
   build-windows-kernel:
-    name: Build
+    name: WinKernel
     needs: []
     strategy:
       fail-fast: false
       matrix:
+        config: ['Debug', 'Release']
         plat: [winkernel]
-        os: ['2019', '2022']
+        os: ['windows-2019', 'windows-2022']
         arch: [x64, arm64]
         tls: [schannel]
-    runs-on: windows-${{ matrix.os }}
+    uses: ./.github/workflows/build-reuse-winkernel.yml
+    with:
+      config: ${{ matrix.config }}
+      plat: ${{ matrix.plat }}
+      os: ${{ matrix.os }}
+      arch: ${{ matrix.arch }}
+      tls: ${{ matrix.tls }}
+
+  build-ubuntu-cross-compile:
+    name: UbuntuArm
+    needs: []
+    strategy:
+      fail-fast: false
+      matrix:
+        config: ['Debug', 'Release']
+        plat: [linux]
+        os: ['ubuntu-20.04', 'ubuntu-22.04']
+        arch: [arm, arm64]
+        tls: [openssl, openssl3]
+        static: ['', '-Static']
+    uses: ./.github/workflows/build-reuse-unix.yml
+    with:
+      config: ${{ matrix.config }}
+      plat: ${{ matrix.plat }}
+      os: ${{ matrix.os }}
+      arch: ${{ matrix.arch }}
+      tls: ${{ matrix.tls }}
+      static: ${{ matrix.static }}
+
+  build-ubuntu:
+    name: Ubuntu
+    needs: []
+    strategy:
+      fail-fast: false
+      matrix:
+        config: ['Debug', 'Release']
+        plat: [linux, android]
+        os: ['ubuntu-20.04', 'ubuntu-22.04']
+        arch: [x86, x64]
+        tls: [openssl, openssl3]
+        systemcrypto: ['', '-UseSystemOpenSSLCrypto']
+        static: ['', '-Static']
+        clang: ['', '-Clang']
+        codecheck: ['', '-CodeCheck']
+        exclude:
+        # Android doesn't support x86
+        - plat: android
+          arch: x86
+        # Android doesn't use system crypto
+        - plat: android
+          systemcrypto: '-UseSystemOpenSSLCrypto'
+        # No openssl3 system crypto on ubuntu-20.04
+        - plat: linux
+          os: 'ubuntu-20.04'
+          tls: 'openssl3'
+          systemcrypto: '-UseSystemOpenSSLCrypto'
+        # No openssl system crypto on ubuntu-22.04
+        - plat: linux
+          os: 'ubuntu-22.04'
+          tls: 'openssl'
+          systemcrypto: '-UseSystemOpenSSLCrypto'
+        # Android doesn't use Clang
+        - plat: android
+          clang: '-Clang'
+        # Android doesn't use CodeCheck
+        - plat: android
+          codecheck: '-CodeCheck'
+        # No need to combine SystemCrypto and CodeCheck
+        - systemcrypto: '-UseSystemOpenSSLCrypto'
+          codecheck: '-CodeCheck'
+        # No need to combine Static and CodeCheck
+        - static: '-Static'
+          codecheck: '-CodeCheck'
+        # No need to combine Clang and CodeCheck
+        - clang: '-Clang'
+          codecheck: '-CodeCheck'
+        # Release builds fail with CodeCheck
+        - config: 'Release'
+          codecheck: '-CodeCheck'
+        # Static build can't dynamically link to libcrypto
+        - systemcrypto: '-UseSystemOpenSSLCrypto'
+          static: '-Static'
+    uses: ./.github/workflows/build-reuse-unix.yml
+    with:
+      config: ${{ matrix.config }}
+      plat: ${{ matrix.plat }}
+      os: ${{ matrix.os }}
+      arch: ${{ matrix.arch }}
+      tls: ${{ matrix.tls }}
+      systemcrypto: ${{ matrix.systemcrypto }}
+      static: ${{ matrix.static }}
+      clang: ${{ matrix.clang }}
+      codecheck: ${{ matrix.codecheck }}
+
+  build-darwin:
+    name: MacOs
+    needs: []
+    strategy:
+      fail-fast: false
+      matrix:
+        config: ['Debug', 'Release']
+        plat: [macos, ios]
+        os: ['macos-12']
+        arch: [x64, arm64]
+        tls: [openssl, openssl3]
+        static: ['', '-Static']
+    uses: ./.github/workflows/build-reuse-unix.yml
+    with:
+      config: ${{ matrix.config }}
+      plat: ${{ matrix.plat }}
+      os: ${{ matrix.os }}
+      arch: ${{ matrix.arch }}
+      tls: ${{ matrix.tls }}
+      static: ${{ matrix.static }}
+
+  build-nuget:
+    name: Build Nuget Package
+    needs: [build-windows]
+    strategy:
+      fail-fast: false
+      matrix:
+        vec: [
+          { plat: "uwp",  tls: "openssl", arg: "-UWP" },
+          { plat: "windows",  tls: "openssl" },
+          { plat: "windows",  tls: "schannel" },
+          { plat: "windows",  tls: "openssl", xdp: "-UseXdp", arg: "-XDP" },
+          { plat: "windows",  tls: "schannel", xdp: "-UseXdp", arg: "-XDP" },
+        ]
+    runs-on: windows-2022
     steps:
     - name: Checkout repository
       uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9
       with:
         fetch-depth: 0
-    - name: Prepare Machine
+    - name: Download Build Artifacts
+      uses: dawidd6/action-download-artifact@246dbf436b23d7c49e21a7ab8204ca9ecd1fe615
+      with:
+        name: Release-${{ matrix.vec.plat }}-windows-2022-x86-${{ matrix.vec.tls }}${{ matrix.vec.xdp }}
+        path: artifacts
+        if_no_artifact_found: ignore
+    - name: Download Build Artifacts
+      uses: dawidd6/action-download-artifact@246dbf436b23d7c49e21a7ab8204ca9ecd1fe615
+      with:
+        name: Release-${{ matrix.vec.plat }}-windows-2022-x64-${{ matrix.vec.tls }}${{ matrix.vec.xdp }}
+        path: artifacts
+        if_no_artifact_found: ignore
+    - name: Download Build Artifacts
+      uses: dawidd6/action-download-artifact@246dbf436b23d7c49e21a7ab8204ca9ecd1fe615
+      with:
+        name: Release-${{ matrix.vec.plat }}-windows-2022-arm64-${{ matrix.vec.tls }}${{ matrix.vec.xdp }}
+        path: artifacts
+        if_no_artifact_found: ignore
+    - name: Build Package
       shell: pwsh
-      run: scripts/prepare-machine.ps1 -ForBuild -ForKernel
-    - name: Add msbuild to PATH
-      uses: microsoft/setup-msbuild@1ff57057b5cfdc39105cd07a01d78e9b0ea0c14c
-    - name: Nuget Restore Debug
-      shell: pwsh
-      run: msbuild msquic.kernel.sln -t:restore /p:RestorePackagesConfig=true /p:Configuration=Debug /p:Platform=${{ matrix.arch }}
-    - name: Build Debug
-      shell: pwsh
-      run: msbuild msquic.kernel.sln /p:Configuration=Debug /p:Platform=${{ matrix.arch }} /p:QUIC_VER_SUFFIX=-official
-    - name: Nuget Restore Release
-      shell: pwsh
-      run: msbuild msquic.kernel.sln -t:restore /p:RestorePackagesConfig=true /p:Configuration=Release /p:Platform=${{ matrix.arch }}
-    - name: Build Release
-      shell: pwsh
-      run: msbuild msquic.kernel.sln /p:Configuration=Release /p:Platform=${{ matrix.arch }} /p:QUIC_VER_SUFFIX=-official
+      run: scripts/package-nuget.ps1 -Tls ${{ matrix.vec.tls }} ${{ matrix.vec.arg }} -GHA
+    - name: Upload build artifacts
+      uses: actions/upload-artifact@0b7f8abb1508181956e8e162db84b466c27e18ce
+      with:
+        name: Nuget-Release-${{ matrix.vec.plat }}-windows-2022-arm64-${{ matrix.vec.tls }}${{ matrix.vec.xdp }}
+        path: artifacts/dist/*.nupkg

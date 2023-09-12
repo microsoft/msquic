@@ -1014,6 +1014,17 @@ CxPlatProcCurrentNumber(
     return CxPlatProcessorGroupInfo[ProcNumber.Group].Offset + ProcNumber.Number;
 }
 
+_IRQL_requires_max_(DISPATCH_LEVEL)
+inline
+BOOLEAN
+CxPlatProcIsActive(
+    uint32_t Index
+    )
+{
+    const CXPLAT_PROCESSOR_INFO* Proc = &CxPlatProcessorInfo[Index];
+    return !!(CxPlatProcessorGroupInfo[Proc->Group].Mask & (1ULL << Proc->Index));
+}
+
 
 //
 // Create Thread Interfaces

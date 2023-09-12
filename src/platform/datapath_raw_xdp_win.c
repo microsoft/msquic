@@ -1197,6 +1197,17 @@ CxPlatDpRawUninitialize(
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
+void
+CxPlatDpRawUpdateConfig(
+    _In_ CXPLAT_DATAPATH* Datapath,
+    _In_ QUIC_EXECUTION_CONFIG* Config
+    )
+{
+    XDP_DATAPATH* Xdp = (XDP_DATAPATH*)Datapath;
+    Xdp->PollingIdleTimeoutUs = Config->PollingIdleTimeoutUs;
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 CxPlatSocketUpdateQeo(
     _In_ CXPLAT_SOCKET* Socket,
@@ -1213,6 +1224,7 @@ CxPlatSocketUpdateQeo(
 
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
     for (uint32_t i = 0; i < OffloadCount; i++) {
+        XdpInitializeQuicConnection(&Connections[i], sizeof(Connections[i]));
         Connections[i].Operation = Offloads[i].Operation;
         Connections[i].Direction = Offloads[i].Direction;
         Connections[i].DecryptFailureAction = Offloads[i].DecryptFailureAction;
@@ -1250,7 +1262,7 @@ CxPlatSocketUpdateQeo(
             Xdp->XdpApi->XdpQeoSet(
                 CONTAINING_RECORD(Entry, XDP_INTERFACE, Link)->XdpHandle,
                 Connections,
-                OffloadCount);
+                sizeof(Connections));
         if (QUIC_FAILED(Status)) {
             QuicTraceEvent(
                 LibraryErrorStatus,

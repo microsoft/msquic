@@ -18,9 +18,6 @@ This script provides helpers for building msquic.
 .PARAMETER Tls
     The TLS library to use.
 
-.PARAMETER ToolchainFile
-    Toolchain file to use (if cross).
-
 .PARAMETER DisableLogs
     Disables log collection.
 
@@ -135,9 +132,6 @@ param (
     [Parameter(Mandatory = $false)]
     [ValidateSet("schannel", "openssl", "openssl3")]
     [string]$Tls = "",
-
-    [Parameter(Mandatory = $false)]
-    [string]$ToolchainFile = "",
 
     [Parameter(Mandatory = $false)]
     [switch]$DisableLogs = $false,
@@ -343,6 +337,7 @@ function CMake-Execute([String]$Arguments) {
 # Uses cmake to generate the build configuration files.
 function CMake-Generate {
     $Arguments = ""
+    $SkipCIBuildCheck = $false
 
     if ($Generator.Contains(" ")) {
         $Generator = """$Generator"""
@@ -452,8 +447,17 @@ function CMake-Generate {
     if ($Platform -eq "gamecore_console") {
         $Arguments += " -DCMAKE_SYSTEM_VERSION=10.0 -DQUIC_GAMECORE_BUILD=on"
     }
-    if ($ToolchainFile -ne "") {
-        $Arguments += " -DCMAKE_TOOLCHAIN_FILE=""$ToolchainFile"""
+    if ($IsLinux) {
+        switch ($Arch) {
+            "arm"   {
+                $Arguments += " -DCMAKE_TOOLCHAIN_FILE=""cmake/toolchains/arm-linux.cmake"""
+                $SkipCIBuildCheck = $true
+            }
+            "arm64" {
+                $Arguments += " -DCMAKE_TOOLCHAIN_FILE=""cmake/toolchains/aarch64-linux.cmake"""
+                $SkipCIBuildCheck = $true
+            }
+        }
     }
     if ($SkipPdbAltPath) {
         $Arguments += " -DQUIC_PDBALTPATH=OFF"
@@ -463,7 +467,7 @@ function CMake-Generate {
     }
     if ($CI) {
         $Arguments += " -DQUIC_CI=ON"
-        if ($Platform -eq "android" -or $ToolchainFile -ne "") {
+        if ($Platform -eq "android" -or $SkipCIBuildCheck) {
             $Arguments += " -DQUIC_SKIP_CI_CHECKS=ON"
         }
         $Arguments += " -DQUIC_VER_BUILD_ID=$env:BUILD_BUILDID"
