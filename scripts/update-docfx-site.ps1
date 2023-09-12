@@ -9,6 +9,12 @@ git checkout performance-dupe
 # Commit the output file.
 git config user.email "quicdev@microsoft.com"
 git config user.name "QUIC Dev[bot]"
+
+$folderPath = "./msquicdocs"
+if (Test-Path $folderPath) {
+    Remove-Item $folderPath -Recurse -Force
+}
+
 mv ./_site ./msquicdocs
 git add ./msquicdocs
 git status
