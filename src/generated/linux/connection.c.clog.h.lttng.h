@@ -1222,9 +1222,9 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, IndicatePeerCertificateReceived,
         QueueDatagrams,
         Connection,
         "Queuing %u UDP datagrams",
-        DatagramChainLength);
+        PacketChainLength);
 // arg1 = arg1 = Connection = arg1
-// arg3 = arg3 = DatagramChainLength = arg3
+// arg3 = arg3 = PacketChainLength = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CONNECTION_C, QueueDatagrams,
     TP_ARGS(
@@ -1495,9 +1495,9 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, UdpRecvBatch,
             UdpRecvDeferred,
             Connection,
             "Recv %u deferred UDP datagrams",
-            DatagramChainCount);
+            PacketChainCount);
 // arg1 = arg1 = Connection = arg1
-// arg3 = arg3 = DatagramChainCount = arg3
+// arg3 = arg3 = PacketChainCount = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CONNECTION_C, UdpRecvDeferred,
     TP_ARGS(
@@ -2367,11 +2367,11 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, ConnPacketRecv,
             ConnRecvUdpDatagrams,
             "[conn][%p] Recv %u UDP datagrams, %u bytes",
             Connection,
-            DatagramChainCount,
-            DatagramChainByteCount);
+            PacketChainCount,
+            PacketChainByteCount);
 // arg2 = arg2 = Connection = arg2
-// arg3 = arg3 = DatagramChainCount = arg3
-// arg4 = arg4 = DatagramChainByteCount = arg4
+// arg3 = arg3 = PacketChainCount = arg3
+// arg4 = arg4 = PacketChainByteCount = arg4
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CONNECTION_C, ConnRecvUdpDatagrams,
     TP_ARGS(

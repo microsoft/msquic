@@ -677,7 +677,7 @@ QuicLibraryLazyInitialize(
 
     Status =
         CxPlatDataPathInitialize(
-            sizeof(CXPLAT_RECV_PACKET),
+            sizeof(QUIC_RX_PACKET),
             &DatapathCallbacks,
             NULL,                   // TcpCallbacks
             MsQuicLib.ExecutionConfig,
@@ -2163,13 +2163,13 @@ _IRQL_requires_max_(DISPATCH_LEVEL)
 QUIC_WORKER*
 QUIC_NO_SANITIZE("implicit-conversion")
 QuicLibraryGetWorker(
-    _In_ const _In_ CXPLAT_RECV_DATA* Datagram
+    _In_ const QUIC_RX_PACKET* Packet
     )
 {
     CXPLAT_DBG_ASSERT(MsQuicLib.StatelessRegistration != NULL);
     return
         &MsQuicLib.StatelessRegistration->WorkerPool->Workers[
-            Datagram->PartitionIndex % MsQuicLib.StatelessRegistration->WorkerPool->WorkerCount];
+            Packet->PartitionIndex % MsQuicLib.StatelessRegistration->WorkerPool->WorkerCount];
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)

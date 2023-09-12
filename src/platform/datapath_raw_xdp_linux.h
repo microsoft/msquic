@@ -88,8 +88,8 @@ typedef struct XDP_QUEUE {
     BOOLEAN TxQueued;
     BOOLEAN Error;
 
-    CXPLAT_LIST_ENTRY WorkerTxQueue;
-    CXPLAT_SLIST_ENTRY WorkerRxPool;
+    CXPLAT_LIST_ENTRY PartitionTxQueue;
+    CXPLAT_SLIST_ENTRY PartitionRxPool;
 
     // Move contended buffer pools to their own cache lines.
     // TODO: Use better (more scalable) buffer algorithms.
@@ -110,10 +110,10 @@ typedef struct XDP_QUEUE {
 
 // -> CxPlat
 typedef struct __attribute__((aligned(64))) XDP_RX_PACKET {
-    CXPLAT_RECV_DATA;
-    CXPLAT_ROUTE RouteStorage;
     XDP_QUEUE* Queue;
+    CXPLAT_ROUTE RouteStorage;
     uint64_t addr;
+    CXPLAT_RECV_DATA RecvData;
     // Followed by:
     // uint8_t ClientContext[...];
     // uint8_t FrameBuffer[MAX_ETH_FRAME_SIZE];

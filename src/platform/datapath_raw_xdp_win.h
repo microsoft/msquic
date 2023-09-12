@@ -80,9 +80,10 @@ typedef struct XDP_QUEUE {
 } XDP_QUEUE;
 
 typedef struct DECLSPEC_ALIGN(MEMORY_ALLOCATION_ALIGNMENT) XDP_RX_PACKET {
-    CXPLAT_RECV_DATA;
-    CXPLAT_ROUTE RouteStorage;
+    // N.B. This struct is also put in a SLIST, so it must be aligned.
     XDP_QUEUE* Queue;
+    CXPLAT_ROUTE RouteStorage;
+    CXPLAT_RECV_DATA RecvData;
     // Followed by:
     // uint8_t ClientContext[...];
     // uint8_t FrameBuffer[MAX_ETH_FRAME_SIZE];

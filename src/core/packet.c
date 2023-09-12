@@ -104,7 +104,7 @@ _Success_(return != FALSE)
 BOOLEAN
 QuicPacketValidateInvariant(
     _In_ const void* Owner, // Binding or Connection depending on state
-    _Inout_ CXPLAT_RECV_PACKET* Packet,
+    _Inout_ QUIC_RX_PACKET* Packet,
     _In_ BOOLEAN IsBindingShared
     )
 {
@@ -114,8 +114,8 @@ QuicPacketValidateInvariant(
     //
     // Ignore empty or too short packets.
     //
-    if (Packet->BufferLength == 0 ||
-        Packet->BufferLength < QuicMinPacketLengths[Packet->Invariant->IsLongHeader]) {
+    if (Packet->AvailBufferLength == 0 ||
+        Packet->AvailBufferLength < QuicMinPacketLengths[Packet->Invariant->IsLongHeader]) {
         QuicPacketLogDrop(Owner, Packet, "Too small for Packet->Invariant");
         return FALSE;
     }
@@ -125,7 +125,7 @@ QuicPacketValidateInvariant(
         Packet->IsShortHeader = FALSE;
 
         DestCidLen = Packet->Invariant->LONG_HDR.DestCidLength;
-        if (Packet->BufferLength < MIN_INV_LONG_HDR_LENGTH + DestCidLen) {
+        if (Packet->AvailBufferLength < MIN_INV_LONG_HDR_LENGTH + DestCidLen) {
             QuicPacketLogDrop(Owner, Packet, "LH no room for DestCid");
             return FALSE;
         }
@@ -134,7 +134,7 @@ QuicPacketValidateInvariant(
 
         SourceCidLen = *(DestCid + DestCidLen);
         Packet->HeaderLength = MIN_INV_LONG_HDR_LENGTH + DestCidLen + SourceCidLen;
-        if (Packet->BufferLength < Packet->HeaderLength) {
+        if (Packet->AvailBufferLength < Packet->HeaderLength) {
             QuicPacketLogDrop(Owner, Packet, "LH no room for SourceCid");
             return FALSE;
         }
@@ -151,7 +151,7 @@ QuicPacketValidateInvariant(
         //
         Packet->HeaderLength = sizeof(uint8_t) + DestCidLen;
 
-        if (Packet->BufferLength < Packet->HeaderLength) {
+        if (Packet->AvailBufferLength < Packet->HeaderLength) {
             QuicPacketLogDrop(Owner, Packet, "SH no room for DestCid");
             return FALSE;
         }
@@ -208,7 +208,7 @@ BOOLEAN
 QuicPacketValidateLongHeaderV1(
     _In_ const void* Owner, // Binding or Connection depending on state
     _In_ BOOLEAN IsServer,
-    _Inout_ CXPLAT_RECV_PACKET* Packet,
+    _Inout_ QUIC_RX_PACKET* Packet,
     _Outptr_result_buffer_maybenull_(*TokenLength)
         const uint8_t** Token,
     _Out_ uint16_t* TokenLength,
@@ -220,7 +220,7 @@ QuicPacketValidateLongHeaderV1(
     // to check that portion of the header again.
     //
     CXPLAT_DBG_ASSERT(Packet->ValidatedHeaderInv);
-    CXPLAT_DBG_ASSERT(Packet->BufferLength >= Packet->HeaderLength);
+    CXPLAT_DBG_ASSERT(Packet->AvailBufferLength >= Packet->HeaderLength);
     CXPLAT_DBG_ASSERT(
         (Packet->LH->Version != QUIC_VERSION_2 && Packet->LH->Type != QUIC_RETRY_V1) ||
         (Packet->LH->Version == QUIC_VERSION_2 && Packet->LH->Type != QUIC_RETRY_V2)); // Retry uses a different code path.
@@ -258,30 +258,30 @@ QuicPacketValidateLongHeaderV1(
 
     if ((Packet->LH->Version != QUIC_VERSION_2 && Packet->LH->Type == QUIC_INITIAL_V1) ||
         (Packet->LH->Version == QUIC_VERSION_2 && Packet->LH->Type == QUIC_INITIAL_V2)) {
-        if (IsServer && Packet->BufferLength < QUIC_MIN_INITIAL_PACKET_LENGTH) {
+        if (IsServer && Packet->AvailBufferLength < QUIC_MIN_INITIAL_PACKET_LENGTH) {
             //
             // All client initial packets need to be padded to a minimum length.
             //
-            QuicPacketLogDropWithValue(Owner, Packet, "Client Long header Initial packet too short", Packet->BufferLength);
+            QuicPacketLogDropWithValue(Owner, Packet, "Client Long header Initial packet too short", Packet->AvailBufferLength);
             return FALSE;
         }
 
         QUIC_VAR_INT TokenLengthVarInt;
         if (!QuicVarIntDecode(
-                Packet->BufferLength,
-                Packet->Buffer,
+                Packet->AvailBufferLength,
+                Packet->AvailBuffer,
                 &Offset,
                 &TokenLengthVarInt)) {
             QuicPacketLogDrop(Owner, Packet, "Long header has invalid token length");
             return FALSE;
         }
 
-        if ((uint64_t)Packet->BufferLength < Offset + TokenLengthVarInt) {
+        if ((uint64_t)Packet->AvailBufferLength < Offset + TokenLengthVarInt) {
             QuicPacketLogDropWithValue(Owner, Packet, "Long header has token length larger than buffer length", TokenLengthVarInt);
             return FALSE;
         }
 
-        *Token = Packet->Buffer + Offset;
+        *Token = Packet->AvailBuffer + Offset;
         *TokenLength = (uint16_t)TokenLengthVarInt;
 
         Offset += (uint16_t)TokenLengthVarInt;
@@ -294,22 +294,22 @@ QuicPacketValidateLongHeaderV1(
 
     QUIC_VAR_INT LengthVarInt;
     if (!QuicVarIntDecode(
-            Packet->BufferLength,
-            Packet->Buffer,
+            Packet->AvailBufferLength,
+            Packet->AvailBuffer,
             &Offset,
             &LengthVarInt)) {
         QuicPacketLogDrop(Owner, Packet, "Long header has invalid payload length");
         return FALSE;
     }
 
-    if ((uint64_t)Packet->BufferLength < Offset + LengthVarInt) {
+    if ((uint64_t)Packet->AvailBufferLength < Offset + LengthVarInt) {
         QuicPacketLogDropWithValue(Owner, Packet, "Long header has length larger than buffer length", LengthVarInt);
         return FALSE;
     }
 
-    if (Packet->BufferLength < Offset + sizeof(uint32_t)) {
+    if (Packet->AvailBufferLength < Offset + sizeof(uint32_t)) {
         QuicPacketLogDropWithValue(Owner, Packet, "Long Header doesn't have enough room for packet number",
-            Packet->BufferLength);
+            Packet->AvailBufferLength);
         return FALSE;
     }
 
@@ -321,7 +321,7 @@ QuicPacketValidateLongHeaderV1(
     //
     Packet->HeaderLength = Offset;
     Packet->PayloadLength = (uint16_t)LengthVarInt;
-    Packet->BufferLength = Packet->HeaderLength + Packet->PayloadLength;
+    Packet->AvailBufferLength = Packet->HeaderLength + Packet->PayloadLength;
     Packet->ValidatedHeaderVer = TRUE;
 
     return TRUE;
@@ -481,7 +481,7 @@ QuicPacketEncodeRetryV1(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 QuicPacketDecodeRetryTokenV1(
-    _In_ const CXPLAT_RECV_PACKET* const Packet,
+    _In_ const QUIC_RX_PACKET* const Packet,
     _Outptr_result_buffer_maybenull_(*TokenLength)
         const uint8_t** Token,
     _Out_ uint16_t* TokenLength
@@ -502,12 +502,12 @@ QuicPacketDecodeRetryTokenV1(
 
     QUIC_VAR_INT TokenLengthVarInt = 0;
     BOOLEAN Success = QuicVarIntDecode(
-        Packet->BufferLength, Packet->Buffer, &Offset, &TokenLengthVarInt);
+        Packet->AvailBufferLength, Packet->AvailBuffer, &Offset, &TokenLengthVarInt);
     CXPLAT_DBG_ASSERT(Success); // Was previously validated.
     UNREFERENCED_PARAMETER(Success);
 
-    CXPLAT_DBG_ASSERT(Offset + TokenLengthVarInt <= Packet->BufferLength); // Was previously validated.
-    *Token = Packet->Buffer + Offset;
+    CXPLAT_DBG_ASSERT(Offset + TokenLengthVarInt <= Packet->AvailBufferLength); // Was previously validated.
+    *Token = Packet->AvailBuffer + Offset;
     *TokenLength = (uint16_t)TokenLengthVarInt;
 }
 
@@ -518,7 +518,7 @@ _IRQL_requires_max_(DISPATCH_LEVEL)
 BOOLEAN
 QuicPacketValidateInitialToken(
     _In_ const void* const Owner,
-    _In_ const CXPLAT_RECV_PACKET* const Packet,
+    _In_ const QUIC_RX_PACKET* const Packet,
     _In_range_(>, 0) uint16_t TokenLength,
     _In_reads_(TokenLength)
         const uint8_t* TokenBuffer,
@@ -550,9 +550,7 @@ QuicPacketValidateInitialToken(
         return FALSE;
     }
 
-    const CXPLAT_RECV_DATA* Datagram =
-        CxPlatDataPathRecvPacketToRecvData(Packet);
-    if (!QuicAddrCompare(&Token.Encrypted.RemoteAddress, &Datagram->Route->RemoteAddress)) {
+    if (!QuicAddrCompare(&Token.Encrypted.RemoteAddress, &Packet->Route->RemoteAddress)) {
         QuicPacketLogDrop(Owner, Packet, "Retry Token Addr Mismatch");
         *DropPacket = TRUE;
         return FALSE;
@@ -566,7 +564,7 @@ _Success_(return != FALSE)
 BOOLEAN
 QuicPacketValidateShortHeaderV1(
     _In_ const void* Owner, // Binding or Connection depending on state
-    _Inout_ CXPLAT_RECV_PACKET* Packet,
+    _Inout_ QUIC_RX_PACKET* Packet,
     _In_ BOOLEAN IgnoreFixedBit
     )
 {
@@ -576,7 +574,7 @@ QuicPacketValidateShortHeaderV1(
     // specific header isn't any larger than the Packet->Invariant.
     //
     CXPLAT_DBG_ASSERT(Packet->ValidatedHeaderInv);
-    CXPLAT_DBG_ASSERT(Packet->BufferLength >= Packet->HeaderLength);
+    CXPLAT_DBG_ASSERT(Packet->AvailBufferLength >= Packet->HeaderLength);
 
     //
     // Check the Fixed bit to ensure it is set to 1, unless we ignore it.
@@ -597,7 +595,7 @@ QuicPacketValidateShortHeaderV1(
     // For the time being, set header length to the start of the packet
     // number and payload length to everything after that.
     //
-    Packet->PayloadLength = Packet->BufferLength - Packet->HeaderLength;
+    Packet->PayloadLength = Packet->AvailBufferLength - Packet->HeaderLength;
     Packet->ValidatedHeaderVer = TRUE;
 
     return TRUE;
@@ -807,21 +805,18 @@ _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 QuicPacketLogDrop(
     _In_ const void* Owner, // Binding or Connection depending on state
-    _In_ const CXPLAT_RECV_PACKET* Packet,
+    _In_ const QUIC_RX_PACKET* Packet,
     _In_z_ const char* Reason
     )
 {
-    const CXPLAT_RECV_DATA* Datagram = // cppcheck-suppress unreadVariable; NOLINT
-        CxPlatDataPathRecvPacketToRecvData(Packet);
-
     if (Packet->AssignedToConnection) {
         InterlockedIncrement64((int64_t*)&((QUIC_CONNECTION*)Owner)->Stats.Recv.DroppedPackets);
         QuicTraceEvent(
             ConnDropPacket,
             "[conn][%p] DROP packet Dst=%!ADDR! Src=%!ADDR! Reason=%s.",
             Owner,
-            CASTED_CLOG_BYTEARRAY(sizeof(Datagram->Route->LocalAddress), &Datagram->Route->LocalAddress),
-            CASTED_CLOG_BYTEARRAY(sizeof(Datagram->Route->RemoteAddress), &Datagram->Route->RemoteAddress),
+            CASTED_CLOG_BYTEARRAY(sizeof(Packet->Route->LocalAddress), &Packet->Route->LocalAddress),
+            CASTED_CLOG_BYTEARRAY(sizeof(Packet->Route->RemoteAddress), &Packet->Route->RemoteAddress),
             Reason);
     } else {
         InterlockedIncrement64((int64_t*)&((QUIC_BINDING*)Owner)->Stats.Recv.DroppedPackets);
@@ -829,8 +824,8 @@ QuicPacketLogDrop(
             BindingDropPacket,
             "[bind][%p] DROP packet Dst=%!ADDR! Src=%!ADDR! Reason=%s.",
             Owner,
-            CASTED_CLOG_BYTEARRAY(sizeof(Datagram->Route->LocalAddress), &Datagram->Route->LocalAddress),
-            CASTED_CLOG_BYTEARRAY(sizeof(Datagram->Route->RemoteAddress), &Datagram->Route->RemoteAddress),
+            CASTED_CLOG_BYTEARRAY(sizeof(Packet->Route->LocalAddress), &Packet->Route->LocalAddress),
+            CASTED_CLOG_BYTEARRAY(sizeof(Packet->Route->RemoteAddress), &Packet->Route->RemoteAddress),
             Reason);
     }
     QuicPerfCounterIncrement(QUIC_PERF_COUNTER_PKTS_DROPPED);
@@ -840,14 +835,11 @@ _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 QuicPacketLogDropWithValue(
     _In_ const void* Owner, // Binding or Connection depending on state
-    _In_ const CXPLAT_RECV_PACKET* Packet,
+    _In_ const QUIC_RX_PACKET* Packet,
     _In_z_ const char* Reason,
     _In_ uint64_t Value
     )
 {
-    const CXPLAT_RECV_DATA* Datagram = // cppcheck-suppress unreadVariable; NOLINT
-        CxPlatDataPathRecvPacketToRecvData(Packet);
-
     if (Packet->AssignedToConnection) {
         InterlockedIncrement64((int64_t*)&((QUIC_CONNECTION*)Owner)->Stats.Recv.DroppedPackets);
         QuicTraceEvent(
@@ -855,8 +847,8 @@ QuicPacketLogDropWithValue(
             "[conn][%p] DROP packet Value=%llu Dst=%!ADDR! Src=%!ADDR! Reason=%s.",
             Owner,
             Value,
-            CASTED_CLOG_BYTEARRAY(sizeof(Datagram->Route->LocalAddress), &Datagram->Route->LocalAddress),
-            CASTED_CLOG_BYTEARRAY(sizeof(Datagram->Route->RemoteAddress), &Datagram->Route->RemoteAddress),
+            CASTED_CLOG_BYTEARRAY(sizeof(Packet->Route->LocalAddress), &Packet->Route->LocalAddress),
+            CASTED_CLOG_BYTEARRAY(sizeof(Packet->Route->RemoteAddress), &Packet->Route->RemoteAddress),
             Reason);
     } else {
         InterlockedIncrement64((int64_t*)&((QUIC_BINDING*)Owner)->Stats.Recv.DroppedPackets);
@@ -865,8 +857,8 @@ QuicPacketLogDropWithValue(
             "[bind][%p] DROP packet %llu. Dst=%!ADDR! Src=%!ADDR! Reason=%s",
             Owner,
             Value,
-            CASTED_CLOG_BYTEARRAY(sizeof(Datagram->Route->LocalAddress), &Datagram->Route->LocalAddress),
-            CASTED_CLOG_BYTEARRAY(sizeof(Datagram->Route->RemoteAddress), &Datagram->Route->RemoteAddress),
+            CASTED_CLOG_BYTEARRAY(sizeof(Packet->Route->LocalAddress), &Packet->Route->LocalAddress),
+            CASTED_CLOG_BYTEARRAY(sizeof(Packet->Route->RemoteAddress), &Packet->Route->RemoteAddress),
             Reason);
     }
     QuicPerfCounterIncrement(QUIC_PERF_COUNTER_PKTS_DROPPED);

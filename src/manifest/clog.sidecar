@@ -2487,6 +2487,18 @@
       ],
       "macroName": "QuicTraceEvent"
     },
+    "DatapathDropAllocIoBlockFailure": {
+      "ModuleProperites": {},
+      "TraceString": "[%p] Couldn't allocate receive context.",
+      "UniqueId": "DatapathDropAllocIoBlockFailure",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceLogWarning"
+    },
     "DatapathDropAllocRecvBufferFailure": {
       "ModuleProperites": {},
       "TraceString": "[%p] Couldn't allocate receive buffers.",
@@ -13872,6 +13884,11 @@
         "UniquenessHash": "f5328bae-6bcb-72fc-a6fd-89b44261a85b",
         "TraceID": "DatapathDestroyed",
         "EncodingString": "[data][%p] Destroyed"
+      },
+      {
+        "UniquenessHash": "1705c557-a3f1-30bf-f2d6-d31f7a2995cc",
+        "TraceID": "DatapathDropAllocIoBlockFailure",
+        "EncodingString": "[%p] Couldn't allocate receive context."
       },
       {
         "UniquenessHash": "977ca100-03bb-010a-09ab-0a04d33a7dfd",

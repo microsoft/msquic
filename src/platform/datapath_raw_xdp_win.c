@@ -24,90 +24,6 @@ Abstract:
 #include "datapath_raw_xdp_win.c.clog.h"
 #endif
 
-typedef struct XDP_DATAPATH {
-    CXPLAT_DATAPATH;
-    DECLSPEC_CACHEALIGN
-    //
-    // Currently, all XDP interfaces share the same config.
-    //
-    CXPLAT_REF_COUNT RefCount;
-    uint32_t PartitionCount;
-    uint32_t RxBufferCount;
-    uint32_t RxRingSize;
-    uint32_t TxBufferCount;
-    uint32_t TxRingSize;
-    uint32_t PollingIdleTimeoutUs;
-    BOOLEAN TxAlwaysPoke;
-    BOOLEAN SkipXsum;
-    BOOLEAN Running;        // Signal to stop partitions.
-    XDP_LOAD_API_CONTEXT XdpApiLoadContext;
-    const XDP_API_TABLE *XdpApi;
-    XDP_QEO_SET_FN *XdpQeoSet;
-
-    XDP_PARTITION Partitions[0];
-} XDP_DATAPATH;
-
-typedef struct XDP_INTERFACE {
-    CXPLAT_INTERFACE;
-    HANDLE XdpHandle;
-    uint16_t QueueCount;
-    uint8_t RuleCount;
-    CXPLAT_LOCK RuleLock;
-    XDP_RULE* Rules;
-    XDP_QUEUE* Queues; // An array of queues.
-    const struct XDP_DATAPATH* Xdp;
-} XDP_INTERFACE;
-
-typedef struct XDP_QUEUE {
-    const XDP_INTERFACE* Interface;
-    XDP_PARTITION* Partition;
-    struct XDP_QUEUE* Next;
-    uint8_t* RxBuffers;
-    HANDLE RxXsk;
-    DATAPATH_IO_SQE RxIoSqe;
-    XSK_RING RxFillRing;
-    XSK_RING RxRing;
-    HANDLE RxProgram;
-    uint8_t* TxBuffers;
-    HANDLE TxXsk;
-    DATAPATH_IO_SQE TxIoSqe;
-    XSK_RING TxRing;
-    XSK_RING TxCompletionRing;
-    BOOLEAN RxQueued;
-    BOOLEAN TxQueued;
-    BOOLEAN Error;
-
-    CXPLAT_LIST_ENTRY PartitionTxQueue;
-    CXPLAT_SLIST_ENTRY PartitionRxPool;
-
-    // Move contended buffer pools to their own cache lines.
-    // TODO: Use better (more scalable) buffer algorithms.
-    DECLSPEC_CACHEALIGN SLIST_HEADER RxPool;
-    DECLSPEC_CACHEALIGN SLIST_HEADER TxPool;
-
-    // Move TX queue to its own cache line.
-    DECLSPEC_CACHEALIGN
-    CXPLAT_LOCK TxLock;
-    CXPLAT_LIST_ENTRY TxQueue;
-} XDP_QUEUE;
-
-typedef struct DECLSPEC_ALIGN(MEMORY_ALLOCATION_ALIGNMENT) XDP_RX_PACKET {
-    CXPLAT_RECV_DATA;
-    CXPLAT_ROUTE RouteStorage;
-    XDP_QUEUE* Queue;
-    // Followed by:
-    // uint8_t ClientContext[...];
-    // uint8_t FrameBuffer[MAX_ETH_FRAME_SIZE];
-} XDP_RX_PACKET;
-
-typedef struct DECLSPEC_ALIGN(MEMORY_ALLOCATION_ALIGNMENT) XDP_TX_PACKET {
-    CXPLAT_SEND_DATA;
-    XDP_QUEUE* Queue;
-    CXPLAT_LIST_ENTRY Link;
-    uint8_t FrameBuffer[MAX_ETH_FRAME_SIZE];
-} XDP_TX_PACKET;
-
-
 void XdpWorkerAddQueue(_In_ XDP_PARTITION* Partition, _In_ XDP_QUEUE* Queue) {
     XDP_QUEUE** Tail = &Partition->Queues;
     while (*Tail != NULL) {
@@ -124,22 +40,6 @@ CxPlatXdpExecute(
     _Inout_ void* Context,
     _Inout_ CXPLAT_EXECUTION_STATE* State
     );
-
-CXPLAT_RECV_DATA*
-CxPlatDataPathRecvPacketToRecvData(
-    _In_ const CXPLAT_RECV_PACKET* const Context
-    )
-{
-    return (CXPLAT_RECV_DATA*)(((uint8_t*)Context) - sizeof(XDP_RX_PACKET));
-}
-
-CXPLAT_RECV_PACKET*
-CxPlatDataPathRecvDataToRecvPacket(
-    _In_ const CXPLAT_RECV_DATA* const Datagram
-    )
-{
-    return (CXPLAT_RECV_PACKET*)(((uint8_t*)Datagram) + sizeof(XDP_RX_PACKET));
-}
 
 QUIC_STATUS
 CxPlatGetInterfaceRssQueueCount(
@@ -1575,13 +1475,14 @@ CxPlatXdpRx(
         uint8_t* FrameBuffer = (uint8_t*)Packet + Buffer->Address.Offset;
 
         CxPlatZeroMemory(Packet, sizeof(XDP_RX_PACKET));
-        Packet->Route = &Packet->RouteStorage;
+        Packet->Queue = Queue;
         Packet->RouteStorage.Queue = Queue;
-        Packet->PartitionIndex = PartitionIndex;
+        Packet->RecvData.Route = &Packet->RouteStorage;
+        Packet->RecvData.PartitionIndex = PartitionIndex;
 
         CxPlatDpRawParseEthernet(
             (CXPLAT_DATAPATH*)Xdp,
-            (CXPLAT_RECV_DATA*)Packet,
+            &Packet->RecvData,
             FrameBuffer,
             (uint16_t)Buffer->Length);
 
@@ -1590,12 +1491,11 @@ CxPlatXdpRx(
         // mark it resolved. This allows stateless sends to be issued without performing
         // a route lookup.
         //
-        Packet->Route->State = RouteResolved;
+        Packet->RecvData.Route->State = RouteResolved;
 
-        if (Packet->Buffer) {
-            Packet->Allocated = TRUE;
-            Packet->Queue = Queue;
-            Buffers[PacketCount++] = (CXPLAT_RECV_DATA*)Packet;
+        if (Packet->RecvData.Buffer) {
+            Packet->RecvData.Allocated = TRUE;
+            Buffers[PacketCount++] = &Packet->RecvData;
         } else {
             CxPlatListPushEntry(&Queue->PartitionRxPool, (CXPLAT_SLIST_ENTRY*)Packet);
         }
@@ -1657,7 +1557,8 @@ CxPlatDpRawRxFree(
     SLIST_HEADER* Pool = NULL;
 
     while (PacketChain) {
-        const XDP_RX_PACKET* Packet = (XDP_RX_PACKET*)PacketChain;
+        const XDP_RX_PACKET* Packet =
+            CXPLAT_CONTAINING_RECORD(PacketChain, XDP_RX_PACKET, RecvData);
         PacketChain = PacketChain->Next;
         // Packet->Allocated = FALSE; (other data paths don't clear this flag?)
 

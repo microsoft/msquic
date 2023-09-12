@@ -1121,9 +1121,9 @@ tracepoint(CLOG_CONNECTION_C, IndicatePeerCertificateReceived , arg1, arg3, arg4
         QueueDatagrams,
         Connection,
         "Queuing %u UDP datagrams",
-        DatagramChainLength);
+        PacketChainLength);
 // arg1 = arg1 = Connection = arg1
-// arg3 = arg3 = DatagramChainLength = arg3
+// arg3 = arg3 = PacketChainLength = arg3
 ----------------------------------------------------------*/
 #ifndef _clog_4_ARGS_TRACE_QueueDatagrams
 #define _clog_4_ARGS_TRACE_QueueDatagrams(uniqueId, arg1, encoded_arg_string, arg3)\
@@ -1360,9 +1360,9 @@ tracepoint(CLOG_CONNECTION_C, UdpRecvBatch , arg1, arg3);\
             UdpRecvDeferred,
             Connection,
             "Recv %u deferred UDP datagrams",
-            DatagramChainCount);
+            PacketChainCount);
 // arg1 = arg1 = Connection = arg1
-// arg3 = arg3 = DatagramChainCount = arg3
+// arg3 = arg3 = PacketChainCount = arg3
 ----------------------------------------------------------*/
 #ifndef _clog_4_ARGS_TRACE_UdpRecvDeferred
 #define _clog_4_ARGS_TRACE_UdpRecvDeferred(uniqueId, arg1, encoded_arg_string, arg3)\
@@ -2105,11 +2105,11 @@ tracepoint(CLOG_CONNECTION_C, ConnPacketRecv , arg2, arg3, arg4, arg5);\
             ConnRecvUdpDatagrams,
             "[conn][%p] Recv %u UDP datagrams, %u bytes",
             Connection,
-            DatagramChainCount,
-            DatagramChainByteCount);
+            PacketChainCount,
+            PacketChainByteCount);
 // arg2 = arg2 = Connection = arg2
-// arg3 = arg3 = DatagramChainCount = arg3
-// arg4 = arg4 = DatagramChainByteCount = arg4
+// arg3 = arg3 = PacketChainCount = arg3
+// arg4 = arg4 = PacketChainByteCount = arg4
 ----------------------------------------------------------*/
 #ifndef _clog_5_ARGS_TRACE_ConnRecvUdpDatagrams
 #define _clog_5_ARGS_TRACE_ConnRecvUdpDatagrams(uniqueId, encoded_arg_string, arg2, arg3, arg4)\

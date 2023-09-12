@@ -61,21 +61,21 @@ CxPlatXdpExecute(
     _Inout_ CXPLAT_EXECUTION_STATE* State
     );
 
-CXPLAT_RECV_DATA*
-CxPlatDataPathRecvPacketToRecvData(
-    _In_ const CXPLAT_RECV_PACKET* const Context
-    )
-{
-    return (CXPLAT_RECV_DATA*)(((uint8_t*)Context) - sizeof(XDP_RX_PACKET));
-}
+// CXPLAT_RECV_DATA*
+// CxPlatDataPathRecvPacketToRecvData(
+//     _In_ const CXPLAT_RECV_PACKET* const Context
+//     )
+// {
+//     return (CXPLAT_RECV_DATA*)(((uint8_t*)Context) - sizeof(XDP_RX_PACKET));
+// }
 
-CXPLAT_RECV_PACKET*
-CxPlatDataPathRecvDataToRecvPacket(
-    _In_ const CXPLAT_RECV_DATA* const Datagram
-    )
-{
-    return (CXPLAT_RECV_PACKET*)(((uint8_t*)Datagram) + sizeof(XDP_RX_PACKET));
-}
+// CXPLAT_RECV_PACKET*
+// CxPlatDataPathRecvDataToRecvPacket(
+//     _In_ const CXPLAT_RECV_DATA* const Datagram
+//     )
+// {
+//     return (CXPLAT_RECV_PACKET*)(((uint8_t*)Datagram) + sizeof(XDP_RX_PACKET));
+// }
 
 QUIC_STATUS
 CxPlatGetInterfaceRssQueueCount(
@@ -496,7 +496,6 @@ Error:
     if (QUIC_FAILED(Status)) {
         CxPlatDpRawInterfaceUninitialize(Interface);
     }
-
     return Status;
 }
 
@@ -805,7 +804,6 @@ CxPlatDpRawGetInterfaceFromQueue(
     return (const CXPLAT_INTERFACE*)((XDP_QUEUE*)Queue)->Interface;
 }
 
-
 static void xsk_free_umem_frame(struct xsk_socket_info *xsk, uint64_t frame)
 {
     assert(xsk->umem_frame_free < NUM_FRAMES);
@@ -819,16 +817,24 @@ CxPlatDpRawRxFree(
     )
 {
     uint32_t Count = 0;
-    struct xsk_socket_info *xsk_info = ((XDP_RX_PACKET*)PacketChain)->Queue->xsk_info;
+    // struct xsk_socket_info *xsk_info = ((XDP_RX_PACKET*)PacketChain)->Queue->xsk_info;
+    struct xsk_socket_info *xsk_info = NULL;
+    if (PacketChain) {
+        const XDP_RX_PACKET* Packet =
+            CXPLAT_CONTAINING_RECORD(PacketChain, XDP_RX_PACKET, RecvData);
+        xsk_info = Packet->Queue->xsk_info;
 
-    CxPlatLockAcquire(&xsk_info->UmemLock);
-    while (PacketChain) {
-        XDP_RX_PACKET* Packet = (XDP_RX_PACKET*)PacketChain;
-        PacketChain = PacketChain->Next;
-        // NOTE: for some reason there is 8 bit gap
-        xsk_free_umem_frame(Packet->Queue->xsk_info, Packet->addr - xsk_info->umem->RxHeadRoom - 8);
-        Count++;
+        CxPlatLockAcquire(&xsk_info->UmemLock);
+        while (PacketChain) {
+            Packet =
+                CXPLAT_CONTAINING_RECORD(PacketChain, XDP_RX_PACKET, RecvData);
+            PacketChain = PacketChain->Next;
+            // NOTE: for some reason there is 8 bit gap
+            xsk_free_umem_frame(Packet->Queue->xsk_info, Packet->addr - xsk_info->umem->RxHeadRoom - 8);
+            Count++;
+        }
     }
+
     CxPlatLockRelease(&xsk_info->UmemLock);
 }
 
@@ -1001,19 +1007,19 @@ void CxPlatXdpRx(
     for (i = 0; i < Rcvd; i++) {
         uint64_t addr = xsk_ring_cons__rx_desc(&xsk->rx, RxIdx)->addr;
         uint32_t len = xsk_ring_cons__rx_desc(&xsk->rx, RxIdx++)->len;
-
         uint8_t *FrameBuffer = xsk_umem__get_data(xsk->umem->buffer, addr);
         XDP_RX_PACKET* Packet = (XDP_RX_PACKET*)(FrameBuffer - xsk->umem->RxHeadRoom);
         CxPlatZeroMemory(Packet, xsk->umem->RxHeadRoom);
 
-        Packet->Route = &Packet->RouteStorage;
+        Packet->Queue = Queue;
         Packet->RouteStorage.Queue = Queue;
-        Packet->PartitionIndex = Queue->Partition->PartitionIndex;
+        Packet->RecvData.Route = &Packet->RouteStorage;
+        Packet->RecvData.PartitionIndex = Queue->Partition->PartitionIndex;
 
         // TODO xsk_free_umem_frame if parse error?
         CxPlatDpRawParseEthernet(
             (CXPLAT_DATAPATH*)Queue->Partition->Xdp,
-            (CXPLAT_RECV_DATA*)Packet,
+            &Packet->RecvData,
             FrameBuffer,
             (uint16_t)len);
         if (false) {
@@ -1031,12 +1037,11 @@ void CxPlatXdpRx(
         // mark it resolved. This allows stateless sends to be issued without performing
         // a route lookup.
         //
-        Packet->Route->State = RouteResolved;
+        Packet->RecvData.Route->State = RouteResolved;
 
         Packet->addr = addr;
-        Packet->Allocated = TRUE;
-        Packet->Queue = Queue;
-        Buffers[PacketCount++] = (CXPLAT_RECV_DATA*)Packet;
+        Packet->RecvData.Allocated = TRUE;
+        Buffers[PacketCount++] = &Packet->RecvData;
     }
 
     if (Rcvd) {
