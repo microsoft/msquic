@@ -3587,6 +3587,18 @@
       ],
       "macroName": "QuicTraceLogConnVerbose"
     },
+    "DecodeTPReliableReset": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] TP: Decode Reliable Reset",
+      "UniqueId": "DecodeTPReliableReset",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        }
+      ],
+      "macroName": "QuicTraceLogConnVerbose"
+    },
     "DecodeTPReserved": {
       "ModuleProperites": {},
       "TraceString": "[conn][%p] TP: Reserved ID %llu, length %hu",
@@ -4143,6 +4155,18 @@
       "ModuleProperites": {},
       "TraceString": "[conn][%p] TP: Preferred Address",
       "UniqueId": "EncodeTPPreferredAddress",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        }
+      ],
+      "macroName": "QuicTraceLogConnVerbose"
+    },
+    "EncodeTPReliableReset": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] TP: Encode Reliable Reset",
+      "UniqueId": "EncodeTPReliableReset",
       "splitArgs": [
         {
           "DefinationEncoding": "p",
@@ -5787,12 +5811,20 @@
     },
     "IndicateIdealProcChanged": {
       "ModuleProperites": {},
-      "TraceString": "[conn][%p] Indicating QUIC_CONNECTION_EVENT_IDEAL_PROCESSOR_CHANGED",
+      "TraceString": "[conn][%p] Indicating QUIC_CONNECTION_EVENT_IDEAL_PROCESSOR_CHANGED (Proc=%hu,Indx=%hu)",
       "UniqueId": "IndicateIdealProcChanged",
       "splitArgs": [
         {
           "DefinationEncoding": "p",
           "MacroVariableName": "arg1"
+        },
+        {
+          "DefinationEncoding": "hu",
+          "MacroVariableName": "arg3"
+        },
+        {
+          "DefinationEncoding": "hu",
+          "MacroVariableName": "arg4"
         }
       ],
       "macroName": "QuicTraceLogConnVerbose"
@@ -5945,6 +5977,22 @@
         {
           "DefinationEncoding": "x",
           "MacroVariableName": "arg4"
+        }
+      ],
+      "macroName": "QuicTraceLogConnVerbose"
+    },
+    "IndicateReliableResetNegotiated": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] Indicating QUIC_CONNECTION_EVENT_RELIABLE_RESET_NEGOTIATED [IsNegotiated=%hhu]",
+      "UniqueId": "IndicateReliableResetNegotiated",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        },
+        {
+          "DefinationEncoding": "hhu",
+          "MacroVariableName": "arg3"
         }
       ],
       "macroName": "QuicTraceLogConnVerbose"
@@ -6348,6 +6396,13 @@
           "MacroVariableName": "arg2"
         }
       ],
+      "macroName": "QuicTraceEvent"
+    },
+    "LibraryInitializedV3": {
+      "ModuleProperites": {},
+      "TraceString": "[ lib] Initialized",
+      "UniqueId": "LibraryInitializedV3",
+      "splitArgs": [],
       "macroName": "QuicTraceEvent"
     },
     "LibraryInUse": {
@@ -10772,6 +10827,18 @@
       ],
       "macroName": "QuicTraceLogVerbose"
     },
+    "SettingReliableResetEnabled": {
+      "ModuleProperites": {},
+      "TraceString": "[sett] ReliableResetEnabled   = %hhu",
+      "UniqueId": "SettingReliableResetEnabled",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "hhu",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceLogVerbose"
+    },
     "SettingsInvalidAcceptableVersion": {
       "ModuleProperites": {},
       "TraceString": "Invalid AcceptableVersion supplied to settings! 0x%x at position %d",
@@ -12293,6 +12360,30 @@
       ],
       "macroName": "QuicTraceLogVerbose"
     },
+    "XdpPartitionShutdown": {
+      "ModuleProperites": {},
+      "TraceString": "[ xdp][%p] XDP partition shutdown",
+      "UniqueId": "XdpPartitionShutdown",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceLogVerbose"
+    },
+    "XdpPartitionShutdownComplete": {
+      "ModuleProperites": {},
+      "TraceString": "[ xdp][%p] XDP partition shutdown complete",
+      "UniqueId": "XdpPartitionShutdownComplete",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceLogVerbose"
+    },
     "XdpQueueAsyncIoRx": {
       "ModuleProperites": {},
       "TraceString": "[ xdp][%p] XDP async IO start (RX)",
@@ -12343,7 +12434,7 @@
     },
     "XdpQueueStart": {
       "ModuleProperites": {},
-      "TraceString": "[ xdp][%p] XDP queue start on worker %p",
+      "TraceString": "[ xdp][%p] XDP queue start on partition %p",
       "UniqueId": "XdpQueueStart",
       "splitArgs": [
         {
@@ -12502,7 +12593,7 @@
     },
     "XdpWorkerStart": {
       "ModuleProperites": {},
-      "TraceString": "[ xdp][%p] XDP worker start, %u queues",
+      "TraceString": "[ xdp][%p] XDP partition start, %u queues",
       "UniqueId": "XdpWorkerStart",
       "splitArgs": [
         {
@@ -14153,6 +14244,11 @@
         "EncodingString": "[conn][%p] TP: Preferred Address"
       },
       {
+        "UniquenessHash": "eabf7a25-2986-5193-5044-318b4711544e",
+        "TraceID": "DecodeTPReliableReset",
+        "EncodingString": "[conn][%p] TP: Decode Reliable Reset"
+      },
+      {
         "UniquenessHash": "95f4176f-e0b5-1420-53d9-44e244c44ea5",
         "TraceID": "DecodeTPReserved",
         "EncodingString": "[conn][%p] TP: Reserved ID %llu, length %hu"
@@ -14331,6 +14427,11 @@
         "UniquenessHash": "7ae85c8f-532c-c622-19be-a82d9002385d",
         "TraceID": "EncodeTPPreferredAddress",
         "EncodingString": "[conn][%p] TP: Preferred Address"
+      },
+      {
+        "UniquenessHash": "75ce2146-e447-c891-d263-df4892bddda9",
+        "TraceID": "EncodeTPReliableReset",
+        "EncodingString": "[conn][%p] TP: Encode Reliable Reset"
       },
       {
         "UniquenessHash": "214be45a-42ba-44e1-05c2-f82f3200e671",
@@ -14733,9 +14834,9 @@
         "EncodingString": "[conn][%p] Indicating QUIC_CONNECTION_EVENT_DATAGRAM_STATE_CHANGED [SendEnabled=%hhu] [MaxSendLength=%hu]"
       },
       {
-        "UniquenessHash": "572f7bb6-23fa-8f9a-25cd-2098fb307a5c",
+        "UniquenessHash": "c5e2c959-5b12-de95-41e2-f5136d31be9c",
         "TraceID": "IndicateIdealProcChanged",
-        "EncodingString": "[conn][%p] Indicating QUIC_CONNECTION_EVENT_IDEAL_PROCESSOR_CHANGED"
+        "EncodingString": "[conn][%p] Indicating QUIC_CONNECTION_EVENT_IDEAL_PROCESSOR_CHANGED (Proc=%hu,Indx=%hu)"
       },
       {
         "UniquenessHash": "537b9c54-10f5-965c-b3e5-6e6e5c66dc85",
@@ -14786,6 +14887,11 @@
         "UniquenessHash": "c5a168ed-97fa-1cb7-3c3f-15762d9e402a",
         "TraceID": "IndicatePeerStreamStarted",
         "EncodingString": "[conn][%p] Indicating QUIC_CONNECTION_EVENT_PEER_STREAM_STARTED [%p, 0x%x]"
+      },
+      {
+        "UniquenessHash": "cb6ed5bc-5216-e56f-9e29-117ba277fde6",
+        "TraceID": "IndicateReliableResetNegotiated",
+        "EncodingString": "[conn][%p] Indicating QUIC_CONNECTION_EVENT_RELIABLE_RESET_NEGOTIATED [IsNegotiated=%hhu]"
       },
       {
         "UniquenessHash": "8c1a717b-f814-d6d9-3f2e-f1987be847d6",
@@ -14916,6 +15022,11 @@
         "UniquenessHash": "49364a79-a042-c58c-1024-f2b92b2bf039",
         "TraceID": "LibraryInitializedV2",
         "EncodingString": "[ lib] Initialized, PartitionCount=%u"
+      },
+      {
+        "UniquenessHash": "30263067-f61b-8db4-d222-7633f14d7b32",
+        "TraceID": "LibraryInitializedV3",
+        "EncodingString": "[ lib] Initialized"
       },
       {
         "UniquenessHash": "80830820-d84f-0303-c862-a7d195fbca03",
@@ -16393,6 +16504,11 @@
         "EncodingString": "[sett] HyStartEnabled         = %hhu"
       },
       {
+        "UniquenessHash": "f5c7d703-ecd1-8dd0-c16d-11857945bfcf",
+        "TraceID": "SettingReliableResetEnabled",
+        "EncodingString": "[sett] ReliableResetEnabled   = %hhu"
+      },
+      {
         "UniquenessHash": "e7d29156-fb54-8f96-f3e2-1aa999886c12",
         "TraceID": "SettingsInvalidAcceptableVersion",
         "EncodingString": "Invalid AcceptableVersion supplied to settings! 0x%x at position %d"
@@ -16923,6 +17039,16 @@
         "EncodingString": "[ xdp][%p] Xdp is not supported on this interface:%s"
       },
       {
+        "UniquenessHash": "18009e0d-e738-467e-35c0-55ebabcbf31f",
+        "TraceID": "XdpPartitionShutdown",
+        "EncodingString": "[ xdp][%p] XDP partition shutdown"
+      },
+      {
+        "UniquenessHash": "f15d7b02-fcbd-041d-ab82-303fb66a6396",
+        "TraceID": "XdpPartitionShutdownComplete",
+        "EncodingString": "[ xdp][%p] XDP partition shutdown complete"
+      },
+      {
         "UniquenessHash": "52b68524-d920-65c2-30d5-1a36e30a3532",
         "TraceID": "XdpQueueAsyncIoRx",
         "EncodingString": "[ xdp][%p] XDP async IO start (RX)"
@@ -16943,9 +17069,9 @@
         "EncodingString": "[ xdp][%p] XDP async IO complete (TX)"
       },
       {
-        "UniquenessHash": "47259da7-3712-0125-8cab-83d0114d2313",
+        "UniquenessHash": "4270911a-7069-98d2-b976-fecdc34ab024",
         "TraceID": "XdpQueueStart",
-        "EncodingString": "[ xdp][%p] XDP queue start on worker %p"
+        "EncodingString": "[ xdp][%p] XDP queue start on partition %p"
       },
       {
         "UniquenessHash": "a886933d-ba2f-8adb-8440-ef3146cc27fc",
@@ -17003,9 +17129,9 @@
         "EncodingString": "[ xdp][%p] XDP worker shutdown complete"
       },
       {
-        "UniquenessHash": "f93ab876-1534-945f-953a-527996af298d",
+        "UniquenessHash": "e81fe3d6-c142-82bd-fbdf-75c0ef5e8d0f",
         "TraceID": "XdpWorkerStart",
-        "EncodingString": "[ xdp][%p] XDP worker start, %u queues"
+        "EncodingString": "[ xdp][%p] XDP partition start, %u queues"
       },
       {
         "UniquenessHash": "544776e8-4877-d5da-4fa0-fc664dd8fd98",

@@ -475,7 +475,7 @@ typedef struct CXPLAT_EXECUTION_CONTEXT {
 void
 CxPlatAddExecutionContext(
     _Inout_ CXPLAT_EXECUTION_CONTEXT* Context,
-    _In_ uint16_t IdealProcessor
+    _In_ uint16_t Index // Into the execution config processor array
     );
 
 void

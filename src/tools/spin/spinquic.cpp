@@ -28,6 +28,9 @@
     } while (0)
 #define ASSERT_ON_NOT(x) CXPLAT_FRE_ASSERT(x)
 
+QUIC_EXECUTION_CONFIG* ExecConfig = nullptr;
+uint32_t ExecConfigSize = 0;
+
 class FuzzingData {
     const uint8_t* data;
     size_t size;
@@ -535,7 +538,7 @@ struct SetParamHelper {
 
 void SpinQuicRandomizeSettings(QUIC_SETTINGS& Settings, uint16_t ThreadID)
 {
-    switch (GetRandom(36)) {
+    switch (GetRandom(37)) {
     case 0:
         //Settings.MaxBytesPerKey = GetRandom(UINT64_MAX);
         //Settings.IsSet.MaxBytesPerKey = TRUE;
@@ -679,6 +682,10 @@ void SpinQuicRandomizeSettings(QUIC_SETTINGS& Settings, uint16_t ThreadID)
     case 35:
         Settings.EncryptionOffloadAllowed = GetRandom((uint8_t)1);
         Settings.IsSet.EncryptionOffloadAllowed = TRUE;
+        break;
+    case 36:
+        Settings.ReliableResetEnabled = GetRandom((uint8_t)1);
+        Settings.IsSet.ReliableResetEnabled = TRUE;
         break;
     default:
         break;
@@ -1292,6 +1299,10 @@ CXPLAT_THREAD_CALLBACK(RunThread, Context)
             break;
         }
 
+        if (ExecConfig) {
+            MsQuic.SetParam(nullptr, QUIC_PARAM_GLOBAL_EXECUTION_CONFIG, ExecConfigSize, ExecConfig);
+        }
+
         QUIC_SETTINGS QuicSettings{0};
         CXPLAT_THREAD_CONFIG Config = { 0 };
 
@@ -1444,6 +1455,31 @@ void start() {
 
         MsQuicClose(TempMsQuic);
 
+#ifndef FUZZING
+        uint16_t ThreadID = UINT16_MAX;
+        if (ExecConfig) {
+            free(ExecConfig);
+            ExecConfig = nullptr;
+            ExecConfigSize = 0;
+        }
+
+        if (GetRandom(2) == 0) {
+            const uint32_t ProcCount =
+                CxPlatProcMaxCount() == 1 ?
+                    1 :
+                    1 + GetRandom(CxPlatProcMaxCount() - 1);
+            printf("Using %u partitions...\n", ProcCount);
+            ExecConfigSize = QUIC_EXECUTION_CONFIG_MIN_SIZE + sizeof(uint16_t)*ProcCount;
+            ExecConfig = (QUIC_EXECUTION_CONFIG*)malloc(ExecConfigSize);
+            ExecConfig->Flags = QUIC_EXECUTION_CONFIG_FLAG_NONE;
+            ExecConfig->PollingIdleTimeoutUs = 0; // TODO - Randomize?
+            ExecConfig->ProcessorCount = ProcCount;
+            for (uint32_t i = 0; i < ProcCount; ++i) {
+                ExecConfig->ProcessorList[i] = (uint16_t)i;
+            }
+        }
+#endif
+
         SpinSettings.RunTimeMs = SpinSettings.RunTimeMs / SpinSettings.RepeatCount;
         for (uint32_t i = 0; i < SpinSettings.RepeatCount; i++) {
 
@@ -1498,6 +1534,7 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
     delete FuzzData;
     return 0;
 }
+
 #else
 
 int
@@ -1526,7 +1563,7 @@ main(int argc, char **argv)
     SpinSettings.AlpnPrefix = "spin";
     SpinSettings.MaxOperationCount = UINT64_MAX;
     SpinSettings.MaxFuzzIterationCount = UINT64_MAX;
-    SpinSettings.LossPercent = 1;
+    SpinSettings.LossPercent = 5;
     SpinSettings.AllocFailDenominator = 0;
     SpinSettings.RepeatCount = 1;
 

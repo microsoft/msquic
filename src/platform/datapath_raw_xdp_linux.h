@@ -51,7 +51,7 @@ typedef struct XDP_DATAPATH {
     // Currently, all XDP interfaces share the same config.
     //
     CXPLAT_REF_COUNT RefCount;
-    uint32_t WorkerCount;
+    uint32_t PartitionCount;
     uint32_t RxBufferCount; // TODO: remove
     uint32_t RxRingSize;
     uint32_t TxBufferCount; // TODO: remove
@@ -64,7 +64,7 @@ typedef struct XDP_DATAPATH {
     BOOLEAN Running;        // Signal to stop workers.
     // const XDP_API_TABLE *XdpApi;
 
-    XDP_WORKER Workers[0];
+    XDP_PARTITION Partitions[0];
 } XDP_DATAPATH;
 
 typedef struct XDP_INTERFACE {
@@ -80,7 +80,7 @@ typedef struct XDP_INTERFACE {
 
 typedef struct XDP_QUEUE {
     const XDP_INTERFACE* Interface;
-    XDP_WORKER* Worker;
+    XDP_PARTITION* Partition;
     struct XDP_QUEUE* Next;
     DATAPATH_SQE RxIoSqe;
     DATAPATH_IO_SQE TxIoSqe;

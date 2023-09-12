@@ -64,7 +64,6 @@ QuicConnAlloc(
     )
 {
     BOOLEAN IsServer = Datagram != NULL;
-    uint16_t CurProcIndex = QuicLibraryGetCurrentPartition();
     *NewConnection = NULL;
     QUIC_STATUS Status;
 
@@ -73,15 +72,13 @@ QuicConnAlloc(
     // the current processor for now. Once the connection receives a packet the
     // partition can be updated accordingly.
     //
-    uint16_t BasePartitionId =
-        IsServer ?
-            (Datagram->PartitionIndex % MsQuicLib.PartitionCount) :
-            CurProcIndex % MsQuicLib.PartitionCount;
-    uint16_t PartitionId = QuicPartitionIdCreate(BasePartitionId);
-    CXPLAT_DBG_ASSERT(BasePartitionId == QuicPartitionIdGetIndex(PartitionId));
+    const uint16_t PartitionIndex =
+        IsServer ? Datagram->PartitionIndex : QuicLibraryGetCurrentPartition();
+    const uint16_t PartitionId = QuicPartitionIdCreate(PartitionIndex);
+    CXPLAT_DBG_ASSERT(PartitionIndex == QuicPartitionIdGetIndex(PartitionId));
 
     QUIC_CONNECTION* Connection =
-        CxPlatPoolAlloc(&MsQuicLib.PerProc[CurProcIndex].ConnectionPool);
+        CxPlatPoolAlloc(&QuicLibraryGetPerProc()->ConnectionPool);
     if (Connection == NULL) {
         QuicTraceEvent(
             AllocFailure,
@@ -422,9 +419,7 @@ QuicConnFree(
         ConnDestroyed,
         "[conn][%p] Destroyed",
         Connection);
-    CxPlatPoolFree(
-        &QuicLibraryGetPerProc()->ConnectionPool,
-        Connection);
+    CxPlatPoolFree(&QuicLibraryGetPerProc()->ConnectionPool, Connection);
 
 #if DEBUG
     InterlockedDecrement(&MsQuicLib.ConnectionCount);
@@ -1929,6 +1924,7 @@ QuicConnStart(
     UdpConfig.RemoteAddress = &Path->Route.RemoteAddress;
     UdpConfig.Flags = Connection->State.ShareBinding ? CXPLAT_SOCKET_FLAG_SHARE : 0;
     UdpConfig.InterfaceIndex = Connection->State.LocalInterfaceSet ? (uint32_t)Path->Route.LocalAddress.Ipv6.sin6_scope_id : 0, // NOLINT(google-readability-casting)
+    UdpConfig.PartitionIndex = QuicPartitionIdGetIndex(Connection->PartitionID);
 #ifdef QUIC_COMPARTMENT_ID
     UdpConfig.CompartmentId = Configuration->CompartmentId;
 #endif
@@ -2288,7 +2284,7 @@ QuicConnCleanupServerResumptionState(
         if (Connection->HandshakeTP != NULL) {
             QuicCryptoTlsCleanupTransportParameters(Connection->HandshakeTP);
             CxPlatPoolFree(
-                &MsQuicLib.PerProc[QuicLibraryGetCurrentPartition()].TransportParamPool,
+                &QuicLibraryGetPerProc()->TransportParamPool,
                 Connection->HandshakeTP);
             Connection->HandshakeTP = NULL;
         }
@@ -2407,6 +2403,10 @@ QuicConnGenerateLocalTransportParameters(
 
     if (Connection->Settings.GreaseQuicBitEnabled) {
         LocalTP->Flags |= QUIC_TP_FLAG_GREASE_QUIC_BIT;
+    }
+
+    if (Connection->Settings.ReliableResetEnabled) {
+        LocalTP->Flags |= QUIC_TP_FLAG_RELIABLE_RESET_ENABLED;
     }
 
     if (QuicConnIsServer(Connection)) {
@@ -3042,6 +3042,32 @@ QuicConnProcessPeerTransportParameters(
             Connection->Stats.GreaseBitNegotiated = TRUE;
         }
 
+        if (Connection->Settings.ReliableResetEnabled &&
+            (Connection->PeerTransportParams.Flags & QUIC_TP_FLAG_RELIABLE_RESET_ENABLED) > 0) {
+            //
+            // Reliable Reset is enabled on both sides.
+            //
+
+            Connection->State.ReliableResetStreamNegotiated = TRUE;
+        }
+
+        if (Connection->Settings.ReliableResetEnabled) {
+            //
+            // Send event to app to indicate result of negotiation if app cares.
+            //
+
+            QUIC_CONNECTION_EVENT Event;
+            Event.Type = QUIC_CONNECTION_EVENT_RELIABLE_RESET_NEGOTIATED;
+            Event.RELIABLE_RESET_NEGOTIATED.IsNegotiated = Connection->State.ReliableResetStreamNegotiated;
+
+            QuicTraceLogConnVerbose(
+                IndicateReliableResetNegotiated,
+                Connection,
+                "Indicating QUIC_CONNECTION_EVENT_RELIABLE_RESET_NEGOTIATED [IsNegotiated=%hhu]",
+                Event.RELIABLE_RESET_NEGOTIATED.IsNegotiated);
+            QuicConnIndicateEvent(Connection, &Event);
+        }
+
         //
         // Fully validate all exchanged connection IDs.
         //
@@ -3287,7 +3313,6 @@ QuicConnQueueUnreachable(
     }
 }
 
-#ifdef QUIC_USE_RAW_DATAPATH
 _IRQL_requires_max_(DISPATCH_LEVEL)
 _Function_class_(CXPLAT_ROUTE_RESOLUTION_CALLBACK)
 void
@@ -3325,7 +3350,6 @@ QuicConnQueueRouteCompletion(
 
     QuicConnRelease(Connection, QUIC_CONN_REF_ROUTE);
 }
-#endif // QUIC_USE_RAW_DATAPATH
 
 //
 // Updates the current destination CID to the received packet's source CID, if
@@ -5261,6 +5285,8 @@ QuicConnRecvFrames(
             AckImmediately = TRUE;
             break;
 
+        case QUIC_FRAME_RELIABLE_RESET_STREAM:
+            // TODO - Implement this frame.
         default:
             //
             // No default case necessary, as we have already validated the frame
@@ -5594,9 +5620,7 @@ QuicConnRecvDatagrams(
             goto Drop;
         }
 
-#ifdef QUIC_USE_RAW_DATAPATH
         CxPlatUpdateRoute(&DatagramPath->Route, Datagram->Route);
-#endif
 
         if (DatagramPath != CurrentPath) {
             if (BatchCount != 0) {
@@ -5954,7 +5978,6 @@ QuicConnProcessUdpUnreachable(
     }
 }
 
-#ifdef QUIC_USE_RAW_DATAPATH
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicConnProcessRouteCompletion(
@@ -6004,7 +6027,6 @@ QuicConnProcessRouteCompletion(
             NULL);
     }
 }
-#endif // QUIC_USE_RAW_DATAPATH
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
@@ -6460,10 +6482,10 @@ QuicConnParamSet(
             Status = QUIC_STATUS_INVALID_PARAMETER;
             break;
         }
-
         //
         // Must be set before the client connection is started.
         //
+
         if (QuicConnIsServer(Connection) ||
             QUIC_CONN_BAD_START_STATE(Connection)) {
             Status = QUIC_STATUS_INVALID_STATE;
@@ -6904,7 +6926,7 @@ QuicConnParamGet(
         }
 
         *BufferLength = sizeof(uint16_t);
-        *(uint16_t*)Buffer = Connection->Worker->IdealProcessor;
+        *(uint16_t*)Buffer = QuicLibraryGetPartitionProcessor(Connection->Worker->PartitionIndex);
 
         Status = QUIC_STATUS_SUCCESS;
         break;
@@ -7268,9 +7290,32 @@ QuicConnApplyNewSettings(
             // assigns specific meaning to the value of the bit.
             //
             uint8_t RandomValue;
-            (void) CxPlatRandom(sizeof(RandomValue), &RandomValue);
+            (void)CxPlatRandom(sizeof(RandomValue), &RandomValue);
             Connection->State.FixedBit = (RandomValue % 2);
             Connection->Stats.GreaseBitNegotiated = TRUE;
+        }
+
+        if (QuicConnIsServer(Connection) &&
+            Connection->Settings.ReliableResetEnabled &&
+            (Connection->PeerTransportParams.Flags & QUIC_TP_FLAG_RELIABLE_RESET_ENABLED) > 0) {
+            Connection->State.ReliableResetStreamNegotiated = TRUE;
+        }
+
+        if (QuicConnIsServer(Connection) && Connection->Settings.ReliableResetEnabled) {
+            //
+            // Send event to app to indicate result of negotiation if app cares.
+            //
+
+            QUIC_CONNECTION_EVENT Event;
+            Event.Type = QUIC_CONNECTION_EVENT_RELIABLE_RESET_NEGOTIATED;
+            Event.RELIABLE_RESET_NEGOTIATED.IsNegotiated = Connection->State.ReliableResetStreamNegotiated;
+
+            QuicTraceLogConnVerbose(
+                IndicateReliableResetNegotiated,
+                Connection,
+                "Indicating QUIC_CONNECTION_EVENT_RELIABLE_RESET_NEGOTIATED [IsNegotiated=%hhu]",
+                Event.RELIABLE_RESET_NEGOTIATED.IsNegotiated);
+            QuicConnIndicateEvent(Connection, &Event);
         }
 
         if (Connection->Settings.EcnEnabled) {
@@ -7304,7 +7349,7 @@ QuicConnApplyNewSettings(
 
     if (NewSettings->IsSet.KeepAliveIntervalMs && Connection->State.Started) {
         if (Connection->Settings.KeepAliveIntervalMs != 0) {
-            QuicConnProcessKeepAliveOperation(Connection);;
+            QuicConnProcessKeepAliveOperation(Connection);
         } else {
             QuicConnTimerCancel(Connection, QUIC_CONN_TIMER_KEEP_ALIVE);
         }
@@ -7592,12 +7637,10 @@ QuicConnDrainOperations(
             QuicConnTraceRundownOper(Connection);
             break;
 
-#ifdef QUIC_USE_RAW_DATAPATH
         case QUIC_OPER_TYPE_ROUTE_COMPLETION:
             QuicConnProcessRouteCompletion(
                 Connection, Oper->ROUTE.PhysicalAddress, Oper->ROUTE.PathId, Oper->ROUTE.Succeeded);
             break;
-#endif // QUIC_USE_RAW_DATAPATH
 
         default:
             CXPLAT_FRE_ASSERT(FALSE);

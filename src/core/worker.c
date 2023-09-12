@@ -59,7 +59,7 @@ QUIC_STATUS
 QuicWorkerInitialize(
     _In_ const QUIC_REGISTRATION* Registration,
     _In_ QUIC_EXECUTION_PROFILE ExecProfile,
-    _In_ uint16_t IdealProcessor,
+    _In_ uint16_t PartitionIndex,
     _Inout_ QUIC_WORKER* Worker
     )
 {
@@ -67,11 +67,11 @@ QuicWorkerInitialize(
         WorkerCreated,
         "[wrkr][%p] Created, IdealProc=%hu Owner=%p",
         Worker,
-        IdealProcessor,
+        QuicLibraryGetPartitionProcessor(PartitionIndex),
         Registration);
 
     Worker->Enabled = TRUE;
-    Worker->IdealProcessor = IdealProcessor;
+    Worker->PartitionIndex = PartitionIndex;
     CxPlatDispatchLockInitialize(&Worker->Lock);
     CxPlatEventInitialize(&Worker->Done, TRUE, FALSE);
     CxPlatEventInitialize(&Worker->Ready, FALSE, FALSE);
@@ -98,7 +98,7 @@ QuicWorkerInitialize(
 #ifndef _KERNEL_MODE // Not supported on kernel mode
     if (ExecProfile != QUIC_EXECUTION_PROFILE_TYPE_MAX_THROUGHPUT) {
         Worker->IsExternal = TRUE;
-        CxPlatAddExecutionContext(&Worker->ExecutionContext, IdealProcessor);
+        CxPlatAddExecutionContext(&Worker->ExecutionContext, PartitionIndex);
     } else
 #endif // _KERNEL_MODE
     {
@@ -108,7 +108,7 @@ QuicWorkerInitialize(
 
         CXPLAT_THREAD_CONFIG ThreadConfig = {
             ThreadFlags,
-            IdealProcessor,
+            QuicLibraryGetPartitionProcessor(PartitionIndex),
             "quic_worker",
             QuicWorkerThread,
             Worker
@@ -495,11 +495,14 @@ QuicWorkerProcessConnection(
         //
         QUIC_CONNECTION_EVENT Event;
         Event.Type = QUIC_CONNECTION_EVENT_IDEAL_PROCESSOR_CHANGED;
-        Event.IDEAL_PROCESSOR_CHANGED.IdealProcessor = Worker->IdealProcessor;
+        Event.IDEAL_PROCESSOR_CHANGED.IdealProcessor = QuicLibraryGetPartitionProcessor(Worker->PartitionIndex);
+        Event.IDEAL_PROCESSOR_CHANGED.PartitionIndex = Worker->PartitionIndex;
         QuicTraceLogConnVerbose(
             IndicateIdealProcChanged,
             Connection,
-            "Indicating QUIC_CONNECTION_EVENT_IDEAL_PROCESSOR_CHANGED");
+            "Indicating QUIC_CONNECTION_EVENT_IDEAL_PROCESSOR_CHANGED (Proc=%hu,Indx=%hu)",
+            Event.IDEAL_PROCESSOR_CHANGED.IdealProcessor,
+            Event.IDEAL_PROCESSOR_CHANGED.PartitionIndex);
         (void)QuicConnIndicateEvent(Connection, &Event);
     }
 

@@ -582,6 +582,24 @@ tracepoint(CLOG_CRYPTO_TLS_C, EncodeTPGreaseQuicBit , arg1);\
 
 
 /*----------------------------------------------------------
+// Decoder Ring for EncodeTPReliableReset
+// [conn][%p] TP: Encode Reliable Reset
+// QuicTraceLogConnVerbose(
+            EncodeTPReliableReset,
+            Connection,
+            "TP: Encode Reliable Reset");
+// arg1 = arg1 = Connection = arg1
+----------------------------------------------------------*/
+#ifndef _clog_3_ARGS_TRACE_EncodeTPReliableReset
+#define _clog_3_ARGS_TRACE_EncodeTPReliableReset(uniqueId, arg1, encoded_arg_string)\
+tracepoint(CLOG_CRYPTO_TLS_C, EncodeTPReliableReset , arg1);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for EncodeTPTest
 // [conn][%p] TP: TEST TP (Type %hu, Length %hu)
 // QuicTraceLogConnVerbose(
@@ -1109,6 +1127,24 @@ tracepoint(CLOG_CRYPTO_TLS_C, DecodeTPMinAckDelay , arg1, arg3);\
 #ifndef _clog_3_ARGS_TRACE_DecodeTPGreaseQuicBit
 #define _clog_3_ARGS_TRACE_DecodeTPGreaseQuicBit(uniqueId, arg1, encoded_arg_string)\
 tracepoint(CLOG_CRYPTO_TLS_C, DecodeTPGreaseQuicBit , arg1);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for DecodeTPReliableReset
+// [conn][%p] TP: Decode Reliable Reset
+// QuicTraceLogConnVerbose(
+                DecodeTPReliableReset,
+                Connection,
+                "TP: Decode Reliable Reset");
+// arg1 = arg1 = Connection = arg1
+----------------------------------------------------------*/
+#ifndef _clog_3_ARGS_TRACE_DecodeTPReliableReset
+#define _clog_3_ARGS_TRACE_DecodeTPReliableReset(uniqueId, arg1, encoded_arg_string)\
+tracepoint(CLOG_CRYPTO_TLS_C, DecodeTPReliableReset , arg1);\
 
 #endif
 

@@ -176,9 +176,9 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_LINUX_C, XdpSocketCreate,
         XdpInitialize,
         "[ xdp][%p] XDP initialized, %u procs",
         Xdp,
-        Xdp->WorkerCount);
+        Xdp->PartitionCount);
 // arg2 = arg2 = Xdp = arg2
-// arg3 = arg3 = Xdp->WorkerCount = arg3
+// arg3 = arg3 = Xdp->PartitionCount = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_LINUX_C, XdpInitialize,
     TP_ARGS(
@@ -194,13 +194,13 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_LINUX_C, XdpInitialize,
 
 /*----------------------------------------------------------
 // Decoder Ring for XdpWorkerStart
-// [ xdp][%p] XDP worker start, %u queues
+// [ xdp][%p] XDP partition start, %u queues
 // QuicTraceLogVerbose(
             XdpWorkerStart,
-            "[ xdp][%p] XDP worker start, %u queues",
-            Worker,
+            "[ xdp][%p] XDP partition start, %u queues",
+            Partition,
             QueueCount);
-// arg2 = arg2 = Worker = arg2
+// arg2 = arg2 = Partition = arg2
 // arg3 = arg3 = QueueCount = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_LINUX_C, XdpWorkerStart,

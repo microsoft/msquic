@@ -19,7 +19,7 @@ typedef struct XDP_DATAPATH {
     // Currently, all XDP interfaces share the same config.
     //
     CXPLAT_REF_COUNT RefCount;
-    uint32_t WorkerCount;
+    uint32_t PartitionCount;
     uint32_t RxBufferCount;
     uint32_t RxRingSize;
     uint32_t TxBufferCount;
@@ -27,12 +27,12 @@ typedef struct XDP_DATAPATH {
     uint32_t PollingIdleTimeoutUs;
     BOOLEAN TxAlwaysPoke;
     BOOLEAN SkipXsum;
-    BOOLEAN Running;        // Signal to stop workers.
+    BOOLEAN Running;        // Signal to stop partitions.
     XDP_LOAD_API_CONTEXT XdpApiLoadContext;
     const XDP_API_TABLE *XdpApi;
     XDP_QEO_SET_FN *XdpQeoSet;
 
-    XDP_WORKER Workers[0];
+    XDP_PARTITION Partitions[0];
 } XDP_DATAPATH;
 
 typedef struct XDP_INTERFACE {
@@ -48,7 +48,7 @@ typedef struct XDP_INTERFACE {
 
 typedef struct XDP_QUEUE {
     const XDP_INTERFACE* Interface;
-    XDP_WORKER* Worker;
+    XDP_PARTITION* Partition;
     struct XDP_QUEUE* Next;
     uint8_t* RxBuffers;
     HANDLE RxXsk;
@@ -65,8 +65,8 @@ typedef struct XDP_QUEUE {
     BOOLEAN TxQueued;
     BOOLEAN Error;
 
-    CXPLAT_LIST_ENTRY WorkerTxQueue;
-    CXPLAT_SLIST_ENTRY WorkerRxPool;
+    CXPLAT_LIST_ENTRY PartitionTxQueue;
+    CXPLAT_SLIST_ENTRY PartitionRxPool;
 
     // Move contended buffer pools to their own cache lines.
     // TODO: Use better (more scalable) buffer algorithms.

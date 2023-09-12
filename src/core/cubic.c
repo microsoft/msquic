@@ -312,9 +312,9 @@ CubicCongestionControlOnCongestionEvent(
             "[conn][%p] Persistent congestion event",
             Connection);
         Connection->Stats.Send.PersistentCongestionCount++;
-#ifdef QUIC_USE_RAW_DATAPATH
-        Connection->Paths[0].Route.State = RouteSuspected;
-#endif
+
+        Connection->Paths[0].Route.State = RouteSuspected; // used only for RAW datapath
+
         Cubic->IsInPersistentCongestion = TRUE;
         Cubic->WindowPrior =
         Cubic->WindowMax =

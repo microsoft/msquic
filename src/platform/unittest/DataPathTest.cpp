@@ -454,9 +454,9 @@ struct CxPlatDataPath {
     CxPlatDataPath operator=(CxPlatDataPath& Other) = delete;
     operator CXPLAT_DATAPATH* () const noexcept { return Datapath; }
     uint32_t GetSupportedFeatures() const noexcept { return CxPlatDataPathGetSupportedFeatures(Datapath); }
+    bool IsSupported(uint32_t feature) const noexcept { return static_cast<bool>(GetSupportedFeatures() & feature); }
 };
 
-#ifdef QUIC_USE_RAW_DATAPATH
 static
 _IRQL_requires_max_(DISPATCH_LEVEL)
 _Function_class_(CXPLAT_ROUTE_RESOLUTION_CALLBACK)
@@ -475,7 +475,6 @@ ResolveRouteComplete(
         CxPlatResolveRouteComplete(nullptr, (CXPLAT_ROUTE*)Context, PhysicalAddress, 0);
     }
 }
-#endif // QUIC_USE_RAW_DATAPATH
 
 struct CxPlatSocket {
     CXPLAT_SOCKET* Socket {nullptr};
@@ -536,8 +535,8 @@ struct CxPlatSocket {
         if (QUIC_SUCCEEDED(InitStatus)) {
             CxPlatSocketGetLocalAddress(Socket, &Route.LocalAddress);
             CxPlatSocketGetRemoteAddress(Socket, &Route.RemoteAddress);
-#ifdef QUIC_USE_RAW_DATAPATH
-            if (!QuicAddrIsWildCard(&Route.RemoteAddress)) {
+            if (Datapath.IsSupported(CXPLAT_DATAPATH_FEATURE_RAW) &&
+                !QuicAddrIsWildCard(&Route.RemoteAddress)) {
                 //
                 // This is a connected socket and its route must be resolved
                 // to be able to send traffic.
@@ -550,7 +549,6 @@ struct CxPlatSocket {
                 //
                 EXPECT_EQ(InitStatus, QUIC_STATUS_SUCCESS);
             }
-#endif
         }
     }
     void CreateTcp(
@@ -1007,11 +1005,12 @@ TEST_P(DataPathTest, MultiBindListener) {
     ASSERT_EQ(QUIC_STATUS_ADDRESS_IN_USE, Server2.GetInitStatus());
 }
 
-#ifdef _WIN32
-#ifndef QUIC_USE_RAW_DATAPATH
 TEST_F(DataPathTest, TcpListener)
 {
     CxPlatDataPath Datapath(nullptr, &EmptyTcpCallbacks);
+    if (!Datapath.IsSupported(CXPLAT_DATAPATH_FEATURE_TCP)) {
+        GTEST_SKIP_("TCP is not supported");
+    }
     VERIFY_QUIC_SUCCESS(Datapath.GetInitStatus());
     ASSERT_NE(nullptr, Datapath.Datapath);
 
@@ -1025,6 +1024,9 @@ TEST_F(DataPathTest, TcpListener)
 TEST_P(DataPathTest, TcpConnect)
 {
     CxPlatDataPath Datapath(nullptr, &TcpRecvCallbacks);
+    if (!Datapath.IsSupported(CXPLAT_DATAPATH_FEATURE_TCP)) {
+        GTEST_SKIP_("TCP is not supported");
+    }
     VERIFY_QUIC_SUCCESS(Datapath.GetInitStatus());
     ASSERT_NE(nullptr, Datapath.Datapath);
 
@@ -1058,6 +1060,9 @@ TEST_P(DataPathTest, TcpConnect)
 TEST_P(DataPathTest, TcpDisconnect)
 {
     CxPlatDataPath Datapath(nullptr, &TcpRecvCallbacks);
+    if (!Datapath.IsSupported(CXPLAT_DATAPATH_FEATURE_TCP)) {
+        GTEST_SKIP_("TCP is not supported");
+    }
     VERIFY_QUIC_SUCCESS(Datapath.GetInitStatus());
     ASSERT_NE(nullptr, Datapath.Datapath);
 
@@ -1091,6 +1096,9 @@ TEST_P(DataPathTest, TcpDisconnect)
 TEST_P(DataPathTest, TcpDataClient)
 {
     CxPlatDataPath Datapath(nullptr, &TcpRecvCallbacks);
+    if (!Datapath.IsSupported(CXPLAT_DATAPATH_FEATURE_TCP)) {
+        GTEST_SKIP_("TCP is not supported");
+    }
     VERIFY_QUIC_SUCCESS(Datapath.GetInitStatus());
     ASSERT_NE(nullptr, Datapath.Datapath);
 
@@ -1130,6 +1138,9 @@ TEST_P(DataPathTest, TcpDataClient)
 TEST_P(DataPathTest, TcpDataServer)
 {
     CxPlatDataPath Datapath(nullptr, &TcpRecvCallbacks);
+    if (!Datapath.IsSupported(CXPLAT_DATAPATH_FEATURE_TCP)) {
+        GTEST_SKIP_("TCP is not supported");
+    }
     VERIFY_QUIC_SUCCESS(Datapath.GetInitStatus());
     ASSERT_NE(nullptr, Datapath.Datapath);
 
@@ -1172,7 +1183,5 @@ TEST_P(DataPathTest, TcpDataServer)
             SendData));
     ASSERT_TRUE(CxPlatEventWaitWithTimeout(ClientContext.ReceiveEvent, 500));
 }
-#endif // QUIC_USE_RAW_DATAPATH
-#endif // WIN32
 
 INSTANTIATE_TEST_SUITE_P(DataPathTest, DataPathTest, ::testing::Values(4, 6), testing::PrintToStringParamName());

@@ -2114,11 +2114,13 @@ CxPlatSocketAllocRecvContext(
     )
 {
     CXPLAT_DBG_ASSERT(IsUro == 1 || IsUro == 0);
+    CXPLAT_DBG_ASSERT(ProcIndex < Datapath->ProcCount);
     CXPLAT_POOL* Pool = &Datapath->ProcContexts[ProcIndex].RecvDatagramPools[IsUro];
 
     CXPLAT_DATAPATH_INTERNAL_RECV_CONTEXT* InternalContext = CxPlatPoolAlloc(Pool);
 
     if (InternalContext != NULL) {
+        InternalContext->Route.State = RouteResolved;
         InternalContext->DatagramPoolIndex = IsUro;
         InternalContext->ProcContext = &Datapath->ProcContexts[ProcIndex];
         InternalContext->DataBufferStart = NULL;
@@ -2176,7 +2178,7 @@ CxPlatDataPathSocketReceive(
 
     CXPLAT_SOCKET* Binding = (CXPLAT_SOCKET*)Context;
 
-    uint32_t CurProcNumber = CxPlatProcCurrentNumber();
+    const uint32_t CurProcNumber = CxPlatProcCurrentNumber();
     if (!CxPlatRundownAcquire(&Binding->Rundown[CurProcNumber])) {
         return STATUS_DEVICE_NOT_READY;
     }
@@ -2382,7 +2384,7 @@ CxPlatDataPathSocketReceive(
                 RecvContext =
                     CxPlatSocketAllocRecvContext(
                         Binding->Datapath,
-                        (UINT16)CurProcNumber,
+                        (UINT16)(CurProcNumber % Binding->Datapath->ProcCount),
                         IsCoalesced);
                 if (RecvContext == NULL) {
                     QuicTraceLogWarning(
@@ -2430,7 +2432,7 @@ CxPlatDataPathSocketReceive(
 
             CXPLAT_DBG_ASSERT(Datagram != NULL);
             Datagram->Next = NULL;
-            Datagram->PartitionIndex = (uint8_t)CurProcNumber;
+            Datagram->PartitionIndex = (uint8_t)(CurProcNumber % Binding->Datapath->ProcCount);
             Datagram->TypeOfService = (uint8_t)ECN;
             Datagram->Allocated = TRUE;
             Datagram->QueuedOnConnection = FALSE;
@@ -2623,7 +2625,7 @@ CxPlatSendDataAlloc(
     CXPLAT_DBG_ASSERT(Binding != NULL);
 
     if (Config->Route->Queue == NULL) {
-        Config->Route->Queue = &Binding->Datapath->ProcContexts[CxPlatProcCurrentNumber()];
+        Config->Route->Queue = &Binding->Datapath->ProcContexts[CxPlatProcCurrentNumber() % Binding->Datapath->ProcCount];
     }
 
     CXPLAT_DATAPATH_PROC_CONTEXT* ProcContext = Config->Route->Queue;
@@ -3150,4 +3152,57 @@ CxPlatSocketSend(
     }
 
     return STATUS_SUCCESS;
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+QuicCopyRouteInfo(
+    _Inout_ CXPLAT_ROUTE* DstRoute,
+    _In_ CXPLAT_ROUTE* SrcRoute
+    )
+{
+    *DstRoute = *SrcRoute;
+}
+
+void
+CxPlatResolveRouteComplete(
+    _In_ void* Context,
+    _Inout_ CXPLAT_ROUTE* Route,
+    _In_reads_bytes_(6) const uint8_t* PhysicalAddress,
+    _In_ uint8_t PathId
+    )
+{
+    UNREFERENCED_PARAMETER(Context);
+    UNREFERENCED_PARAMETER(Route);
+    UNREFERENCED_PARAMETER(PhysicalAddress);
+    UNREFERENCED_PARAMETER(PathId);
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_STATUS
+CxPlatResolveRoute(
+    _In_ CXPLAT_SOCKET* Socket,
+    _Inout_ CXPLAT_ROUTE* Route,
+    _In_ uint8_t PathId,
+    _In_ void* Context,
+    _In_ CXPLAT_ROUTE_RESOLUTION_CALLBACK_HANDLER Callback
+    )
+{
+    UNREFERENCED_PARAMETER(Socket);
+    UNREFERENCED_PARAMETER(PathId);
+    UNREFERENCED_PARAMETER(Context);
+    UNREFERENCED_PARAMETER(Callback);
+    Route->State = RouteResolved;
+    return QUIC_STATUS_SUCCESS;
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+CxPlatUpdateRoute(
+    _Inout_ CXPLAT_ROUTE* DstRoute,
+    _In_ CXPLAT_ROUTE* SrcRoute
+    )
+{
+    UNREFERENCED_PARAMETER(DstRoute);
+    UNREFERENCED_PARAMETER(SrcRoute);
 }

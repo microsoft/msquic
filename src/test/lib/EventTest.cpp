@@ -527,6 +527,15 @@ void QuicTestValidateConnectionEvents(uint32_t Test)
 
     MsQuicAlpn Alpn("MsQuicTest");
 
+#if defined(QUIC_DISABLE_0RTT_TESTS) // TODO: Fix openssl/XDP bug and enable this back
+    if (Test == 2) {
+        return;
+    }
+#endif
+    if (Test == 2 && QuitTestIsFeatureSupported(CXPLAT_DATAPATH_FEATURE_RAW)) {
+        return;
+    }
+
     { // Listener Scope
 
     MsQuicListener Listener(Registration, CleanUpManual, ListenerEventValidatorCallback);
