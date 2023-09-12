@@ -1,6 +1,7 @@
 $env:GIT_REDIRECT_STDERR = '2>&1'
 
 # Checkout the Performance branch (where data and docfx is stored)
+git fetch
 git checkout performance-dupe
 
 # Commit the output file.
