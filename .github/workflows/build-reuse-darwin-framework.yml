@@ -63,7 +63,7 @@ jobs:
       shell: pwsh
       run: scripts/merge-darwin.ps1 -DeleteSource -Config ${{ inputs.config }}
     - name: Upload build artifacts
-      uses: actions/upload-artifact@0b7f8abb1508181956e8e162db84b466c27e18ce
+      uses: actions/upload-artifact@a8a3f3ad30e3422c9c7b888a15615d19a852ae32
       with:
         name: ${{ inputs.config }}-macos-macos-12-universal-${{ inputs.tls }}${{ inputs.static }}
         path: artifacts
@@ -92,7 +92,7 @@ jobs:
       shell: pwsh
       run: scripts/package-darwin-framework.ps1 -Config ${{ inputs.config }} -Platform ${{ matrix.vec.plat }} -Arch ${{ matrix.vec.arch }}
     - name: Upload build artifacts
-      uses: actions/upload-artifact@0b7f8abb1508181956e8e162db84b466c27e18ce
+      uses: actions/upload-artifact@a8a3f3ad30e3422c9c7b888a15615d19a852ae32
       with:
         name: Framework-${{ inputs.config }}-${{ matrix.vec.plat }}-macos-12-${{ matrix.vec.arch }}-${{ inputs.tls }}${{ inputs.static }}
         path: artifacts
@@ -123,7 +123,7 @@ jobs:
       shell: pwsh
       run: scripts/package-darwin-xcframework.ps1 -Config ${{ inputs.config }}
     - name: Upload build artifacts
-      uses: actions/upload-artifact@0b7f8abb1508181956e8e162db84b466c27e18ce
+      uses: actions/upload-artifact@a8a3f3ad30e3422c9c7b888a15615d19a852ae32
       with:
         name: XCFramework-${{ inputs.config }}
         path: artifacts/frameworks
