@@ -226,6 +226,16 @@ CxPlatDataPathUninitializeComplete(
     CxPlatRundownRelease(&CxPlatWorkerRundown);
 }
 
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+CxPlatDataPathUpdateConfig(
+    _In_ CXPLAT_DATAPATH* Datapath,
+    _In_ QUIC_EXECUTION_CONFIG* Config
+    )
+{
+    CxPlatDpRawUpdateConfig(Datapath, Config);;
+}
+
 _IRQL_requires_max_(DISPATCH_LEVEL)
 uint32_t
 CxPlatDataPathGetSupportedFeatures(
@@ -611,14 +621,6 @@ CxPlatDpRawRxEthernet(
                     QuicTraceEvent(
                         DatapathRecv,
                         "[data][%p] Recv %u bytes (segment=%hu) Src=%!ADDR! Dst=%!ADDR!",
-                        Socket,
-                        Packets[i]->BufferLength,
-                        Packets[i]->BufferLength,
-                        CASTED_CLOG_BYTEARRAY(sizeof(Packets[i]->Route->LocalAddress), &Packets[i]->Route->LocalAddress),
-                        CASTED_CLOG_BYTEARRAY(sizeof(Packets[i]->Route->RemoteAddress), &Packets[i]->Route->RemoteAddress));
-                    QuicTraceEvent(
-                        DatapathRecvXdp,
-                        "[ xdp][%p] Recv %u bytes (segment=%hu) Src=%!ADDR! Dst=%!ADDR!",
                         Socket,
                         Packets[i]->BufferLength,
                         Packets[i]->BufferLength,

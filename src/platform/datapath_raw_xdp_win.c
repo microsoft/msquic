@@ -13,6 +13,12 @@ Abstract:
 
 #include "datapath_raw_win.h"
 #include "datapath_raw_xdp_win.h"
+// #include "datapath_raw_xdp.h"
+#include <wbemidl.h>
+#include <afxdp_helper.h>
+#include <xdpapi.h>
+#include <stdio.h>
+
 #ifdef QUIC_CLOG
 #include "datapath_raw_xdp_win.c.clog.h"
 #endif

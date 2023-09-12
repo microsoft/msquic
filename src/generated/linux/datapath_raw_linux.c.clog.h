@@ -134,32 +134,6 @@ tracepoint(CLOG_DATAPATH_RAW_LINUX_C, DatapathRecv , arg2, arg3, arg4, arg5_len,
 
 
 /*----------------------------------------------------------
-// Decoder Ring for DatapathRecvXdp
-// [ xdp][%p] Recv %u bytes (segment=%hu) Src=%!ADDR! Dst=%!ADDR!
-// QuicTraceEvent(
-                        DatapathRecvXdp,
-                        "[ xdp][%p] Recv %u bytes (segment=%hu) Src=%!ADDR! Dst=%!ADDR!",
-                        Socket,
-                        Packets[i]->BufferLength,
-                        Packets[i]->BufferLength,
-                        CASTED_CLOG_BYTEARRAY(sizeof(Packets[i]->Route->LocalAddress), &Packets[i]->Route->LocalAddress),
-                        CASTED_CLOG_BYTEARRAY(sizeof(Packets[i]->Route->RemoteAddress), &Packets[i]->Route->RemoteAddress));
-// arg2 = arg2 = Socket = arg2
-// arg3 = arg3 = Packets[i]->BufferLength = arg3
-// arg4 = arg4 = Packets[i]->BufferLength = arg4
-// arg5 = arg5 = CASTED_CLOG_BYTEARRAY(sizeof(Packets[i]->Route->LocalAddress), &Packets[i]->Route->LocalAddress) = arg5
-// arg6 = arg6 = CASTED_CLOG_BYTEARRAY(sizeof(Packets[i]->Route->RemoteAddress), &Packets[i]->Route->RemoteAddress) = arg6
-----------------------------------------------------------*/
-#ifndef _clog_9_ARGS_TRACE_DatapathRecvXdp
-#define _clog_9_ARGS_TRACE_DatapathRecvXdp(uniqueId, encoded_arg_string, arg2, arg3, arg4, arg5, arg5_len, arg6, arg6_len)\
-tracepoint(CLOG_DATAPATH_RAW_LINUX_C, DatapathRecvXdp , arg2, arg3, arg4, arg5_len, arg5, arg6_len, arg6);\
-
-#endif
-
-
-
-
-/*----------------------------------------------------------
 // Decoder Ring for DatapathSend
 // [data][%p] Send %u bytes in %hhu buffers (segment=%hu) Dst=%!ADDR!, Src=%!ADDR!
 // QuicTraceEvent(

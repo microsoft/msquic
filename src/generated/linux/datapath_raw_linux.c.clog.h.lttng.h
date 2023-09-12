@@ -141,45 +141,6 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_LINUX_C, DatapathRecv,
 
 
 /*----------------------------------------------------------
-// Decoder Ring for DatapathRecvXdp
-// [ xdp][%p] Recv %u bytes (segment=%hu) Src=%!ADDR! Dst=%!ADDR!
-// QuicTraceEvent(
-                        DatapathRecvXdp,
-                        "[ xdp][%p] Recv %u bytes (segment=%hu) Src=%!ADDR! Dst=%!ADDR!",
-                        Socket,
-                        Packets[i]->BufferLength,
-                        Packets[i]->BufferLength,
-                        CASTED_CLOG_BYTEARRAY(sizeof(Packets[i]->Route->LocalAddress), &Packets[i]->Route->LocalAddress),
-                        CASTED_CLOG_BYTEARRAY(sizeof(Packets[i]->Route->RemoteAddress), &Packets[i]->Route->RemoteAddress));
-// arg2 = arg2 = Socket = arg2
-// arg3 = arg3 = Packets[i]->BufferLength = arg3
-// arg4 = arg4 = Packets[i]->BufferLength = arg4
-// arg5 = arg5 = CASTED_CLOG_BYTEARRAY(sizeof(Packets[i]->Route->LocalAddress), &Packets[i]->Route->LocalAddress) = arg5
-// arg6 = arg6 = CASTED_CLOG_BYTEARRAY(sizeof(Packets[i]->Route->RemoteAddress), &Packets[i]->Route->RemoteAddress) = arg6
-----------------------------------------------------------*/
-TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_LINUX_C, DatapathRecvXdp,
-    TP_ARGS(
-        const void *, arg2,
-        unsigned int, arg3,
-        unsigned short, arg4,
-        unsigned int, arg5_len,
-        const void *, arg5,
-        unsigned int, arg6_len,
-        const void *, arg6), 
-    TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg2, arg2)
-        ctf_integer(unsigned int, arg3, arg3)
-        ctf_integer(unsigned short, arg4, arg4)
-        ctf_integer(unsigned int, arg5_len, arg5_len)
-        ctf_sequence(char, arg5, arg5, unsigned int, arg5_len)
-        ctf_integer(unsigned int, arg6_len, arg6_len)
-        ctf_sequence(char, arg6, arg6, unsigned int, arg6_len)
-    )
-)
-
-
-
-/*----------------------------------------------------------
 // Decoder Ring for DatapathSend
 // [data][%p] Send %u bytes in %hhu buffers (segment=%hu) Dst=%!ADDR!, Src=%!ADDR!
 // QuicTraceEvent(

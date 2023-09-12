@@ -62,6 +62,7 @@ typedef struct XDP_DATAPATH {
     BOOLEAN TxAlwaysPoke;
     BOOLEAN SkipXsum;
     BOOLEAN Running;        // Signal to stop workers.
+    // const XDP_API_TABLE *XdpApi;
 
     XDP_WORKER Workers[0];
 } XDP_DATAPATH;

@@ -13,6 +13,7 @@ Abstract:
 
 #include "datapath_raw_linux.h"
 #include "datapath_raw_xdp_linux.h"
+// #include "datapath_raw_xdp.h"
 
 #ifdef QUIC_CLOG
 #include "datapath_raw_xdp_linux.c.clog.h"
@@ -734,6 +735,17 @@ CxPlatDpRawUninitialize(
         CxPlatWakeExecutionContext(&Xdp->Workers[i].Ec);
     }
     CxPlatDpRawRelease(Xdp);
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+CxPlatDpRawUpdateConfig(
+    _In_ CXPLAT_DATAPATH* Datapath,
+    _In_ QUIC_EXECUTION_CONFIG* Config
+    )
+{
+    XDP_DATAPATH* Xdp = (XDP_DATAPATH*)Datapath;
+    Xdp->PollingIdleTimeoutUs = Config->PollingIdleTimeoutUs;
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)

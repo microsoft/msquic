@@ -67,7 +67,7 @@ typedef struct CXPLAT_INTERFACE {
     CXPLAT_LIST_ENTRY Link;
     uint32_t IfIndex;
     uint32_t ActualIfIndex;
-    UCHAR PhysicalAddress[ETH_MAC_ADDR_LEN];
+    uint8_t PhysicalAddress[ETH_MAC_ADDR_LEN];
     struct {
         struct {
             BOOLEAN NetworkLayerXsum : 1;
@@ -388,8 +388,8 @@ CxPlatFramingWriteHeaders(
 // Ethernet / IP Framing Logic
 //
 
-// #pragma pack(push)
-// #pragma pack(1)
+#pragma pack(push)
+#pragma pack(1)
 
 typedef struct ETHERNET_HEADER {
     uint8_t Destination[6];
@@ -456,6 +456,8 @@ typedef struct TCP_HEADER {
     uint16_t Checksum;
     uint16_t UrgentPointer;
 } TCP_HEADER;
+
+#pragma pack(pop)
 
 //
 // Constants for headers in wire format.

@@ -44,7 +44,7 @@ extern "C" {
 ----------------------------------------------------------*/
 #ifndef _clog_5_ARGS_TRACE_FoundVF
 #define _clog_5_ARGS_TRACE_FoundVF(uniqueId, encoded_arg_string, arg2, arg3, arg4)\
-tracepoint(CLOG_DATAPATH_RAW_XDP_C, FoundVF , arg2, arg3, arg4);\
+tracepoint(CLOG_DATAPATH_RAW_XDP_WIN_C, FoundVF , arg2, arg3, arg4);\
 
 #endif
 
