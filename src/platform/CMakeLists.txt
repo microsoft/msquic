@@ -56,7 +56,6 @@ if ("${CX_PLATFORM}" STREQUAL "windows")
         target_link_libraries(
             platform
             PUBLIC
-            inc
             wbemuuid)
     endif()
     target_link_libraries(platform PUBLIC winmm)
@@ -109,9 +108,9 @@ else()
         find_library(NL_ROUTE_LIB nl-route-3)
         target_link_libraries(platform PUBLIC ${NL_LIB} ${NL_ROUTE_LIB})
     endif()
-    target_link_libraries(platform PUBLIC inc)
 endif()
 
+target_link_libraries(platform PUBLIC inc)
 target_link_libraries(platform PRIVATE warnings main_binary_link_args)
 
 set_property(TARGET platform PROPERTY FOLDER "${QUIC_FOLDER_PREFIX}libraries")
