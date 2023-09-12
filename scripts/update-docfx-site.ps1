@@ -9,7 +9,8 @@ git checkout performance-dupe
 # Commit the output file.
 git config user.email "quicdev@microsoft.com"
 git config user.name "QUIC Dev[bot]"
-git add ./_site -f
+mv ./_site ./msquicdocs
+git add ./msquicdocs
 git status
 git commit -m "Update DocFx after documentation changes."
 git pull
