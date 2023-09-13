@@ -244,7 +244,8 @@ function Install-Linux-Xdp {
     git checkout v1.4.0
     git submodule init && git submodule update # libbpf
     popd # ./submodules/xdp-tools
-    sudo apt-get -y install gcc-multilib libnl-3-dev libnl-genl-3-dev libnl-route-3-dev zlib1g-dev zlib1g pkg-config m4 clang libpcap-dev libelf-dev
+    # TODO: split dependencies to ForBuild and ForTest
+    sudo apt-get -y install gcc-multilib libnl-3-dev libnl-genl-3-dev libnl-route-3-dev zlib1g-dev zlib1g pkg-config m4 clang libpcap-dev libelf-dev ethtool
 }
 
 # Installs the XDP driver (for testing).
@@ -284,6 +285,7 @@ function Install-DuoNic {
         Invoke-Expression "cmd /c `"pushd $DuoNicPath && pwsh duonic.ps1 -Install`""
     } elseif ($IsLinux) {
         Write-Host "Creating DuoNic endpoints"
+        sudo apt-get install -y iproute2 iptables
         $DuoNicScript = Join-Path $PSScriptRoot "duonic.sh"
         Invoke-Expression "sudo bash $DuoNicScript install"
     }
