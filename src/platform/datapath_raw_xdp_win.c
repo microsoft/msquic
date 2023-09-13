@@ -23,7 +23,6 @@ Abstract:
 #include "datapath_raw_xdp_win.c.clog.h"
 #endif
 
-
 typedef struct XDP_DATAPATH {
     CXPLAT_DATAPATH;
     DECLSPEC_CACHEALIGN
@@ -107,6 +106,7 @@ typedef struct DECLSPEC_ALIGN(MEMORY_ALLOCATION_ALIGNMENT) XDP_TX_PACKET {
     CXPLAT_LIST_ENTRY Link;
     uint8_t FrameBuffer[MAX_ETH_FRAME_SIZE];
 } XDP_TX_PACKET;
+
 
 void XdpWorkerAddQueue(_In_ XDP_PARTITION* Partition, _In_ XDP_QUEUE* Queue) {
     XDP_QUEUE** Tail = &Partition->Queues;

@@ -99,7 +99,7 @@ QuicTestLocalPathChanges(
     ReplaceAddressHelper AddrHelper(OrigLocalAddr.SockAddr, OrigLocalAddr.SockAddr);
 
     uint16_t ServerPort = ServerLocalAddr.GetPort();
-    for (int i = 0; i < 3; i++) {
+    for (int i = 0; i < 50; i++) {
         uint16_t NextPort = QuicAddrGetPort(&AddrHelper.New) + 1;
         if (NextPort == ServerPort) {
             // Skip the port if it is same as that of server

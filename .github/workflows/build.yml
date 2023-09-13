@@ -120,6 +120,7 @@ jobs:
         static: ['', '-Static']
         clang: ['', '-Clang']
         codecheck: ['', '-CodeCheck']
+        xdp: ['', '-UseXdp']
         exclude:
         # Android doesn't support x86
         - plat: android
@@ -137,6 +138,11 @@ jobs:
           os: 'ubuntu-22.04'
           tls: 'openssl'
           systemcrypto: '-UseSystemOpenSSLCrypto'
+        - plat: linux
+          os: 'ubuntu-20.04'
+          xdp: '-UseXdp'
+        - plat: android
+          xdp: '-UseXdp'
         # Android doesn't use Clang
         - plat: android
           clang: '-Clang'
@@ -169,6 +175,7 @@ jobs:
       static: ${{ matrix.static }}
       clang: ${{ matrix.clang }}
       codecheck: ${{ matrix.codecheck }}
+      xdp: ${{ matrix.xdp }}
 
   build-darwin:
     name: MacOs

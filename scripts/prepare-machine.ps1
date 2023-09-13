@@ -275,13 +275,18 @@ function Uninstall-Xdp {
 
 # Installs DuoNic from the CoreNet-CI repo.
 function Install-DuoNic {
-    if (!$IsWindows) { return } # Windows only
     # Install the DuoNic driver.
-    Write-Host "Installing DuoNic driver"
-    $DuoNicPath = Join-Path $SetupPath duonic
-    $DuoNicScript = (Join-Path $DuoNicPath duonic.ps1)
-    if (!(Test-Path $DuoNicScript)) { Write-Error "Missing file: $DuoNicScript" }
-    Invoke-Expression "cmd /c `"pushd $DuoNicPath && pwsh duonic.ps1 -Install`""
+    if ($IsWindows) {
+        Write-Host "Installing DuoNic driver"
+        $DuoNicPath = Join-Path $SetupPath duonic
+        $DuoNicScript = (Join-Path $DuoNicPath duonic.ps1)
+        if (!(Test-Path $DuoNicScript)) { Write-Error "Missing file: $DuoNicScript" }
+        Invoke-Expression "cmd /c `"pushd $DuoNicPath && pwsh duonic.ps1 -Install`""
+    } elseif ($IsLinux) {
+        Write-Host "Creating DuoNic endpoints"
+        $DuoNicScript = Join-Path $PSScriptRoot "duonic.sh"
+        Invoke-Expression "sudo bash $DuoNicScript install"
+    }
 }
 
 function Update-Path($NewPath) {
@@ -576,6 +581,7 @@ if ($IsLinux) {
 
     if ($UseXdp) {
         Install-Linux-Xdp
+        Install-DuoNic
     }
 }
 
