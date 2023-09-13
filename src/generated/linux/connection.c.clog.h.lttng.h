@@ -938,33 +938,63 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, ApplySettings,
 
 
 /*----------------------------------------------------------
-// Decoder Ring for RttUpdatedMsg
-// [conn][%p] Updated Rtt=%u.%03u ms, Var=%u.%03u
+// Decoder Ring for PhaseShiftUpdated
+// [conn][%p] New Phase Shift: %lld us
 // QuicTraceLogConnVerbose(
-            RttUpdatedMsg,
-            Connection,
-            "Updated Rtt=%u.%03u ms, Var=%u.%03u",
-            Path->SmoothedRtt / 1000, Path->SmoothedRtt % 1000,
-            Path->RttVariance / 1000, Path->RttVariance % 1000);
+                PhaseShiftUpdated,
+                Connection,
+                "New Phase Shift: %lld us",
+                Connection->Stats.Timing.PhaseShift);
 // arg1 = arg1 = Connection = arg1
-// arg3 = arg3 = Path->SmoothedRtt / 1000 = arg3
-// arg4 = arg4 = Path->SmoothedRtt % 1000 = arg4
-// arg5 = arg5 = Path->RttVariance / 1000 = arg5
-// arg6 = arg6 = Path->RttVariance % 1000 = arg6
+// arg3 = arg3 = Connection->Stats.Timing.PhaseShift = arg3
 ----------------------------------------------------------*/
-TRACEPOINT_EVENT(CLOG_CONNECTION_C, RttUpdatedMsg,
+TRACEPOINT_EVENT(CLOG_CONNECTION_C, PhaseShiftUpdated,
+    TP_ARGS(
+        const void *, arg1,
+        long long, arg3), 
+    TP_FIELDS(
+        ctf_integer_hex(uint64_t, arg1, arg1)
+        ctf_integer(int64_t, arg3, arg3)
+    )
+)
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for RttUpdatedV2
+// [conn][%p] Updated Rtt=%u.%03u ms, Var=%u.%03u 1Way=%u.%03u ms
+// QuicTraceLogConnVerbose(
+        RttUpdatedV2,
+        Connection,
+        "Updated Rtt=%u.%03u ms, Var=%u.%03u 1Way=%u.%03u ms",
+        (uint32_t)(Path->SmoothedRtt / 1000), (uint32_t)(Path->SmoothedRtt % 1000),
+        (uint32_t)(Path->RttVariance / 1000), (uint32_t)(Path->RttVariance % 1000),
+        (uint32_t)(Path->OneWayDelay / 1000), (uint32_t)(Path->OneWayDelay % 1000));
+// arg1 = arg1 = Connection = arg1
+// arg3 = arg3 = (uint32_t)(Path->SmoothedRtt / 1000) = arg3
+// arg4 = arg4 = (uint32_t)(Path->SmoothedRtt % 1000) = arg4
+// arg5 = arg5 = (uint32_t)(Path->RttVariance / 1000) = arg5
+// arg6 = arg6 = (uint32_t)(Path->RttVariance % 1000) = arg6
+// arg7 = arg7 = (uint32_t)(Path->OneWayDelay / 1000) = arg7
+// arg8 = arg8 = (uint32_t)(Path->OneWayDelay % 1000) = arg8
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_CONNECTION_C, RttUpdatedV2,
     TP_ARGS(
         const void *, arg1,
         unsigned int, arg3,
         unsigned int, arg4,
         unsigned int, arg5,
-        unsigned int, arg6), 
+        unsigned int, arg6,
+        unsigned int, arg7,
+        unsigned int, arg8), 
     TP_FIELDS(
         ctf_integer_hex(uint64_t, arg1, arg1)
         ctf_integer(unsigned int, arg3, arg3)
         ctf_integer(unsigned int, arg4, arg4)
         ctf_integer(unsigned int, arg5, arg5)
         ctf_integer(unsigned int, arg6, arg6)
+        ctf_integer(unsigned int, arg7, arg7)
+        ctf_integer(unsigned int, arg8, arg8)
     )
 )
 
@@ -1183,6 +1213,33 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, IndicateReliableResetNegotiated,
     TP_FIELDS(
         ctf_integer_hex(uint64_t, arg1, arg1)
         ctf_integer(unsigned char, arg3, arg3)
+    )
+)
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for IndicateOneWayDelayNegotiated
+// [conn][%p] Indicating QUIC_CONNECTION_EVENT_ONE_WAY_DELAY_NEGOTIATED [Send=%hhu,Recv=%hhu]
+// QuicTraceLogConnVerbose(
+                IndicateOneWayDelayNegotiated,
+                Connection,
+                "Indicating QUIC_CONNECTION_EVENT_ONE_WAY_DELAY_NEGOTIATED [Send=%hhu,Recv=%hhu]",
+                Event.ONE_WAY_DELAY_NEGOTIATED.SendNegotiated,
+                Event.ONE_WAY_DELAY_NEGOTIATED.ReceiveNegotiated);
+// arg1 = arg1 = Connection = arg1
+// arg3 = arg3 = Event.ONE_WAY_DELAY_NEGOTIATED.SendNegotiated = arg3
+// arg4 = arg4 = Event.ONE_WAY_DELAY_NEGOTIATED.ReceiveNegotiated = arg4
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_CONNECTION_C, IndicateOneWayDelayNegotiated,
+    TP_ARGS(
+        const void *, arg1,
+        unsigned char, arg3,
+        unsigned char, arg4), 
+    TP_FIELDS(
+        ctf_integer_hex(uint64_t, arg1, arg1)
+        ctf_integer(unsigned char, arg3, arg3)
+        ctf_integer(unsigned char, arg4, arg4)
     )
 )
 

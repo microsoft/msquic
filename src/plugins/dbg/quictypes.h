@@ -931,8 +931,8 @@ struct SentPacketMetadata : Struct {
         return ReadType<UINT64>("PacketNumber");
     }
 
-    UINT32 SentTime() {
-        return ReadType<UINT32>("SentTime"); // Microseconds
+    UINT64 SentTime() {
+        return ReadType<UINT64>("SentTime"); // Microseconds
     }
 
     UINT16 PacketLength() {

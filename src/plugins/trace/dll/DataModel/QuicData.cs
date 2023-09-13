@@ -162,6 +162,7 @@ namespace QuicTrace.DataModel
         Rx,         // Packet received
         RxBatch,    // Datagram batch processed
         Rtt,
+        OneWay,
         InFlight,
         CWnd,
         Bufferred,

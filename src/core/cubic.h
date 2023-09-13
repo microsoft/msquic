@@ -96,12 +96,12 @@ typedef struct QUIC_CONGESTION_CONTROL_CUBIC {
     //
     QUIC_CUBIC_HYSTART_STATE HyStartState;
     uint32_t HyStartAckCount;
-    uint32_t MinRttInLastRound; // microseconds
-    uint32_t MinRttInCurrentRound; // microseconds
+    uint64_t MinRttInLastRound; // microseconds
+    uint64_t MinRttInCurrentRound; // microseconds
+    uint64_t CssBaselineMinRtt; // microseconds
     uint64_t HyStartRoundEnd; // Packet Number
     uint32_t CWndSlowStartGrowthDivisor;
     uint32_t ConservativeSlowStartRounds;
-    uint32_t CssBaselineMinRtt; // microseconds
 
     //
     // This variable tracks the largest packet that was outstanding at the time

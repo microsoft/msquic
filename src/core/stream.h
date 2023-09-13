@@ -376,7 +376,7 @@ typedef struct QUIC_STREAM {
     uint64_t MaxAllowedRecvOffset;
 
     uint64_t RecvWindowBytesDelivered;
-    uint32_t RecvWindowLastUpdate;
+    uint64_t RecvWindowLastUpdate;
 
     //
     // Flags indicating the state of queued events.
