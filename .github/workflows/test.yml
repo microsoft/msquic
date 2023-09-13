@@ -92,7 +92,7 @@ jobs:
       systemcrypto: ${{ matrix.vec.systemcrypto }}
       sanitize: ${{ matrix.vec.sanitize }}
       test: ${{ matrix.vec.test }}
-      xdp: ${{ matrix.vec.xdp }}}
+      xdp: ${{ matrix.vec.xdp }}
 
   bvt:
     name: BVT

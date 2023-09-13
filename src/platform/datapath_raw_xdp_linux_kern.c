@@ -1,4 +1,13 @@
-/* SPDX-License-Identifier: GPL-2.0 */
+/*++
+
+    Copyright (c) Microsoft Corporation.
+    Licensed under the MIT License.
+
+Abstract:
+
+    EBPF for Linux XDP Implementation
+
+--*/
 
 #include "libbpf/include/uapi/linux/bpf.h"
 #include "libbpf/src/bpf_helpers.h"
