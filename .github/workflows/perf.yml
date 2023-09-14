@@ -20,7 +20,7 @@ permissions: read-all
 jobs:
   run:
     steps:
-      name: Run Perf
+    - name: Run Perf
       uses: peter-evans/repository-dispatch@v2
       with:
         token: ${{ secrets.NET_PERF_TRIGGER }}
