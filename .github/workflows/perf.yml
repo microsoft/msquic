@@ -22,15 +22,10 @@ jobs:
     name: Run Perf
     runs-on: windows-latest
     steps:
-    - name: Trigger NetPerf Workflow
-      uses: peter-evans/repository-dispatch@bf47d102fdb849e755b0b0023ea3e81a44b6f570
-      with:
-        token: ${{ secrets.NET_PERF_TRIGGER }}
-        repository: microsoft/netperf
-        event-type: run-quic
-        client-payload: '{"ref": "${{ github.ref }}", "sha": "${{ github.sha }}", "name": "msquic"}'
-    - name: Wait for NetPerf Workflow
+    - name: Run NetPerf Workflow
       shell: pwsh
       env:
         GH_TOKEN: ${{ github.token }}
-      run: iex "& { $(irm https://raw.githubusercontent.com/microsoft/netperf/main/wait-for-workflow.ps1) } msquic ${{ github.sha }}"
+      run: |
+        $url = "https://raw.githubusercontent.com/microsoft/netperf/main/run-workflow.ps1"
+        iex "& { $(irm $url) } ${{ secrets.NET_PERF_TRIGGER }} msquic ${{ github.ref }} ${{ github.sha }}"
