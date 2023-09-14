@@ -19,10 +19,11 @@ permissions: read-all
 
 jobs:
   run:
-    name: Run Perf
-    uses: peter-evans/repository-dispatch@v2
-    with:
-      token: ${{ secrets.NET_PERF_TRIGGER }}
-      repository: microsoft/netperf
-      event-type: run-quic
-      client-payload: '{"ref": "${{ github.ref }}"}'
+    steps:
+      name: Run Perf
+      uses: peter-evans/repository-dispatch@v2
+      with:
+        token: ${{ secrets.NET_PERF_TRIGGER }}
+        repository: microsoft/netperf
+        event-type: run-quic
+        client-payload: '{"ref": "${{ github.ref }}"}'
