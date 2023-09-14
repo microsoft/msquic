@@ -1,7 +1,7 @@
 name: Perf
 
 on:
-  workflow_dispatch:
+workflow_dispatch:
   push:
     branches:
     - main
@@ -23,9 +23,24 @@ jobs:
     runs-on: ubuntu-20.04
     steps:
     - name: Trigger NetPerf Workflow
-      uses: peter-evans/repository-dispatch@v2
+      uses: peter-evans/repository-dispatch@bf47d102fdb849e755b0b0023ea3e81a44b6f570
       with:
         token: ${{ secrets.NET_PERF_TRIGGER }}
         repository: microsoft/netperf
         event-type: run-quic
-        client-payload: '{"ref": "${{ github.ref }}"}'
+        client-payload: '{"ref": "${{ github.ref }}", "sha": "${{ github.sha }}"}'
+    - uses: actions/github-script@v6
+      id: get-workflow
+      with:
+        script: |
+            const query = `query {
+              repository(owner: "microsoft", name: "netperf"){
+                workflows(states: [ACTIVE]) {
+                  nodes {
+                    name
+                  }
+                }
+              }
+            }`;
+            const result = await github.graphql(query)
+            console.log(result)
