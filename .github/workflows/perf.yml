@@ -35,14 +35,18 @@ jobs:
         GH_TOKEN: ${{ github.token }}
       run: |
         function Get-WorkflowRunId {
-          gh run list -R microsoft/netperf -e repository_dispatch `
-            | Select-String -Pattern 'repository_dispatch\s+(\d+)' -AllMatches `
-            | Foreach-Object { $_.Matches } `
-            | Foreach-Object { `
-                if (gh run view -R microsoft/netperf $_.Groups[1].Value | `
-                    Select-String -Pattern "msquic-${{ github.sha }}") {
-                    return $_.Groups[1].Value `
-                } } `
+          param([string]$name, [string]$sha)
+          $results = `
+            gh run list -R microsoft/netperf -e repository_dispatch `
+              | Select-String -Pattern 'repository_dispatch\s+(\d+)' -AllMatches `
+              | Foreach-Object { $_.Matches } `
+              | Foreach-Object { $_.Groups[1].Value }
+          foreach ($result in $results) {
+            if (gh run view -R microsoft/netperf $result | `
+                Select-String -Pattern "$name-$sha") {
+                return $result
+            }
+          }
           return $null
         }
         function Get-WorkflowStatus {
@@ -60,13 +64,15 @@ jobs:
         $id = $null
         $i = 0
         while ($i -lt 3 -and $id -eq $null) {
-          $id = Get-WorkflowRunId
+          $id = Get-WorkflowRunId msquic ${{ github.sha }}}
           if ($id -eq $null) {
-            Write-Host "Waiting for NetPerf workflow to start..."
+            Write-Host "Workflow not found, retrying in 1 second"
             Start-Sleep -Seconds 1
           }
           $i++
         }
+        Write-Host "NetPerf workflow started with id: $id"
+        Write-Host "View this run on GitHub: https://github.com/microsoft/netperf/actions/runs/$id"
         # Wait for the workflow to complete
         $i = 0
         $status = $null
