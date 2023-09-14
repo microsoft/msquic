@@ -24,8 +24,6 @@ jobs:
     steps:
     - name: Run NetPerf Workflow
       shell: pwsh
-      env:
-        GH_TOKEN: ${{ github.token }}
       run: |
         $url = "https://raw.githubusercontent.com/microsoft/netperf/main/run-workflow.ps1"
         iex "& { $(irm $url) } quic msquic ${{ github.ref }} ${{ github.sha }} ${{ secrets.NET_PERF_TRIGGER }}"
