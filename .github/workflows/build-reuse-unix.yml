@@ -81,6 +81,8 @@ jobs:
     steps:
     - name: Checkout repository
       uses: actions/checkout@3df4ab11eba7bda6032a0b82a6bb43b11571feac
+      with:
+        repository: microsoft/msquic
     - name: Set ownership
       if: inputs.plat == 'linux'
       run: |
