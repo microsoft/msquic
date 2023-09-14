@@ -20,7 +20,7 @@ permissions: read-all
 jobs:
   run:
     name: Run Perf
-    runs-on: ubuntu-20.04
+    runs-on: windows-latest
     steps:
     - name: Trigger NetPerf Workflow
       uses: peter-evans/repository-dispatch@bf47d102fdb849e755b0b0023ea3e81a44b6f570
