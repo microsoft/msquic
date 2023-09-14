@@ -31,5 +31,50 @@ jobs:
         client-payload: '{"ref": "${{ github.ref }}", "sha": "${{ github.sha }}", "name": "msquic"}'
     - name: Wait for NetPerf Workflow
       shell: pwsh
+      env:
+        GH_TOKEN: ${{ github.token }}
       run: |
-          gh run list -R microsoft/netperf
+        function Get-WorkflowRunId {
+          gh run list -R microsoft/netperf -e repository_dispatch `
+            | Select-String -Pattern 'repository_dispatch\s+(\d+)' -AllMatches -TotalCount 10 `
+            | Foreach-Object { $_.Matches } `
+            | Foreach-Object { `
+                if (gh run view -R microsoft/netperf $_.Groups[1].Value | `
+                    Select-String -Pattern "msquic-${{ github.sha }}") {
+                    return $_.Groups[1].Value `
+                } } `
+          return $null
+        }
+        function Get-WorkflowStatus {
+          param([string]$id)
+          $output = gh run view -R microsoft/netperf $id --exit-status
+          if ($output | Select-String -Pattern "X Complete") {
+            return "failure"
+          }
+          if ($output | Select-String -Pattern "Γ£ô Complete") {
+            return "success"
+          }
+          return $null
+        }
+        # Get the workflow run id, trying up to 3 times
+        $id = $null
+        $i = 0
+        while ($i -lt 3 -and $id -eq $null) {
+          $id = Get-WorkflowRunId
+          if ($id -eq $null) {
+            Write-Host "Waiting for NetPerf workflow to start..."
+            Start-Sleep -Seconds 1
+          }
+          $i++
+        }
+        # Wait for the workflow to complete
+        $i = 0
+        $status = $null
+        while ($i -lt 30 -and $status -eq $null) {
+          $status = Get-WorkflowStatus $id
+          if ($status -eq $null) {
+            Start-Sleep -Seconds 30
+          }
+          $i++
+        }
+        Write-Host "NetPerf workflow completed with status: $status"
