@@ -22,8 +22,6 @@ jobs:
     name: Run Perf
     runs-on: ubuntu-20.04
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@3df4ab11eba7bda6032a0b82a6bb43b11571feac
     - name: Trigger NetPerf Workflow
       uses: peter-evans/repository-dispatch@bf47d102fdb849e755b0b0023ea3e81a44b6f570
       with:
