@@ -36,7 +36,7 @@ jobs:
       run: |
         function Get-WorkflowRunId {
           gh run list -R microsoft/netperf -e repository_dispatch `
-            | Select-String -Pattern 'repository_dispatch\s+(\d+)' -AllMatches -TotalCount 10 `
+            | Select-String -Pattern 'repository_dispatch\s+(\d+)' -AllMatches `
             | Foreach-Object { $_.Matches } `
             | Foreach-Object { `
                 if (gh run view -R microsoft/netperf $_.Groups[1].Value | `
