@@ -28,19 +28,8 @@ jobs:
         token: ${{ secrets.NET_PERF_TRIGGER }}
         repository: microsoft/netperf
         event-type: run-quic
-        client-payload: '{"ref": "${{ github.ref }}", "sha": "${{ github.sha }}"}'
-    - uses: actions/github-script@v6
-      id: get-workflow
-      with:
-        script: |
-            const query = `query {
-              repository(owner: "microsoft", name: "netperf"){
-                workflows(states: [ACTIVE]) {
-                  nodes {
-                    name
-                  }
-                }
-              }
-            }`;
-            const result = await github.graphql(query)
-            console.log(result)
+        client-payload: '{"ref": "${{ github.ref }}", "sha": "${{ github.sha }}", "name": "msquic"}'
+    - name: Wait for NetPerf Workflow
+      shell: pwsh
+      run: |
+          gh run list -R microsoft/netperf
