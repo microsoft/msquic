@@ -70,6 +70,8 @@ jobs:
     steps:
     - name: Checkout repository
       uses: actions/checkout@3df4ab11eba7bda6032a0b82a6bb43b11571feac
+      with:
+        repository: microsoft/msquic
     - name: Install Perl
       uses: shogo82148/actions-setup-perl@35426a57f184a35daee329bb17ae49332ff8a422
       with:
