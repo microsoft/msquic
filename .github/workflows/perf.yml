@@ -19,8 +19,10 @@ permissions: read-all
 
 jobs:
   run:
+    name: Run Perf
+    runs-on: ubuntu-20.04
     steps:
-    - name: Run Perf
+    - name: Trigger NetPerf Workflow
       uses: peter-evans/repository-dispatch@v2
       with:
         token: ${{ secrets.NET_PERF_TRIGGER }}
