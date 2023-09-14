@@ -35,4 +35,4 @@ jobs:
       shell: pwsh
       env:
         GH_TOKEN: ${{ github.token }}
-      run: scripts/wait-for-workflow.ps1 msquic ${{ github.sha }}
+      run: iex "& { $(irm https://raw.githubusercontent.com/microsoft/netperf/main/wait-for-workflow.ps1) } msquic ${{ github.sha }}"
