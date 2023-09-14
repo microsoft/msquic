@@ -28,4 +28,4 @@ jobs:
         GH_TOKEN: ${{ github.token }}
       run: |
         $url = "https://raw.githubusercontent.com/microsoft/netperf/main/run-workflow.ps1"
-        iex "& { $(irm $url) } ${{ secrets.NET_PERF_TRIGGER }} msquic ${{ github.ref }} ${{ github.sha }}"
+        iex "& { $(irm $url) } quic msquic ${{ github.ref }} ${{ github.sha }} ${{ secrets.NET_PERF_TRIGGER }}"
