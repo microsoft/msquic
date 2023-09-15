@@ -3184,22 +3184,33 @@ QuicTestConnectAndIdleForDestCidChange(
 
 
 //
-// This Context Struct is a useful helper for the StreamReliableReset test suite.
+// These Context Structs are useful helpers for the StreamReliableReset test suite.
 // It keeps track of the order of absolute offsets of all the send requests received, and the total number of bytes received.
 // If everything works, SendCompleteOrder MUST be monotonically increasing.
 //
+struct SendContext {
+    BOOLEAN Successful;
+    uint64_t SeqNum;
+};
 struct StreamReliableReset {
 
     CxPlatEvent ClientStreamShutdownComplete;
     CxPlatEvent ServerStreamShutdownComplete;
     uint64_t ReceivedBufferSize;
     std::vector<uint64_t> SendCompleteOrder;
+    uint64_t SequenceNum;
 
 
     static QUIC_STATUS ClientStreamCallback(_In_ MsQuicStream*, _In_opt_ void* ClientContext, _Inout_ QUIC_STREAM_EVENT* Event) {
         auto TestContext = (StreamReliableReset*)ClientContext;
         if (Event->Type == QUIC_STREAM_EVENT_SHUTDOWN_COMPLETE) {
             TestContext->ClientStreamShutdownComplete.Set();
+        }
+            // Get the send context of the Event
+        if (Event->Type == QUIC_STREAM_EVENT_SEND_COMPLETE) {
+            auto Context = (SendContext*)Event->SEND_COMPLETE.ClientContext;
+            Context->Successful = Event->SEND_COMPLETE.Canceled == FALSE;
+            Context->SeqNum = TestContext->SequenceNum++;
         }
         return QUIC_STATUS_SUCCESS;
     }
@@ -3276,7 +3287,8 @@ QuicTestStreamReliableReset(
         MsQuicStream Stream(Connection, QUIC_STREAM_OPEN_FLAG_NONE, CleanUpManual, StreamReliableReset::ClientStreamCallback, &Context);
         TEST_QUIC_SUCCEEDED(Stream.GetInitStatus());
         TEST_QUIC_SUCCEEDED(Stream.Start());
-        TEST_QUIC_SUCCEEDED(Stream.Send(&SendBuffer, 1, QUIC_SEND_FLAG_DELAY_SEND, &Context));
+        SendContext send1 = {FALSE, 0};
+        TEST_QUIC_SUCCEEDED(Stream.Send(&SendBuffer, 1, QUIC_SEND_FLAG_DELAY_SEND, &send1));
         TEST_QUIC_STATUS(
             QUIC_STATUS_INVALID_STATE,
             Stream.SetReliableOffset(UINT64_MAX));
@@ -3314,6 +3326,7 @@ QuicTestStreamReliableResetMultipleSends(
 
     QUIC_BUFFER SendBuffer { sizeof(SendDataBuffer), SendDataBuffer };
     Context.ReceivedBufferSize = 0;
+    Context.SequenceNum = 0;
     Context.SendCompleteOrder = {};
 
     MsQuicAutoAcceptListener Listener(Registration, ServerConfiguration, StreamReliableReset::ConnCallback, &Context);
@@ -3335,17 +3348,29 @@ QuicTestStreamReliableResetMultipleSends(
     MsQuicStream Stream(Connection, QUIC_STREAM_OPEN_FLAG_NONE, CleanUpManual, StreamReliableReset::ClientStreamCallback, &Context);
     TEST_QUIC_SUCCEEDED(Stream.GetInitStatus());
     TEST_QUIC_SUCCEEDED(Stream.Start());
-    TEST_QUIC_SUCCEEDED(Stream.Send(&SendBuffer, 1, QUIC_SEND_FLAG_DELAY_SEND, &Context));
-    TEST_QUIC_SUCCEEDED(Stream.Send(&SendBuffer, 1, QUIC_SEND_FLAG_DELAY_SEND, &Context));
-    TEST_QUIC_SUCCEEDED(Stream.Send(&SendBuffer, 1, QUIC_SEND_FLAG_DELAY_SEND, &Context));
-    TEST_QUIC_SUCCEEDED(Stream.Send(&SendBuffer, 1, QUIC_SEND_FLAG_DELAY_SEND, &Context));
-    TEST_QUIC_SUCCEEDED(Stream.Send(&SendBuffer, 1, QUIC_SEND_FLAG_DELAY_SEND, &Context));
+    SendContext send1 = {FALSE, 0};
+    SendContext send2 = {FALSE, 0};
+    SendContext send3 = {FALSE, 0};
+    SendContext send4 = {FALSE, 0};
+    SendContext send5 = {FALSE, 0};
+    TEST_QUIC_SUCCEEDED(Stream.Send(&SendBuffer, 1, QUIC_SEND_FLAG_DELAY_SEND, &send1));
+    TEST_QUIC_SUCCEEDED(Stream.Send(&SendBuffer, 1, QUIC_SEND_FLAG_DELAY_SEND, &send2));
+    TEST_QUIC_SUCCEEDED(Stream.Send(&SendBuffer, 1, QUIC_SEND_FLAG_DELAY_SEND, &send3));
+    TEST_QUIC_SUCCEEDED(Stream.Send(&SendBuffer, 1, QUIC_SEND_FLAG_DELAY_SEND, &send4));
+    TEST_QUIC_SUCCEEDED(Stream.Send(&SendBuffer, 1, QUIC_SEND_FLAG_DELAY_SEND, &send5));
     TEST_QUIC_SUCCEEDED(Stream.SetReliableOffset(RELIABLE_SIZE_MULTI_SENDS));
     TEST_QUIC_SUCCEEDED(Stream.Shutdown(0)); // Queues up a shutdown operation.
     // Should behave similar to QUIC_STREAM_SHUTDOWN_FLAG_GRACEFUL, with some restrictions.
     TEST_TRUE(Context.ClientStreamShutdownComplete.WaitTimeout(TestWaitTimeout));
     TEST_TRUE(Context.ServerStreamShutdownComplete.WaitTimeout(TestWaitTimeout));
     TEST_TRUE(Context.ReceivedBufferSize >= RELIABLE_SIZE_MULTI_SENDS);
+
+    TEST_TRUE(send1.Successful);
+    TEST_TRUE(send2.Successful);
+    TEST_TRUE(send1.SeqNum < send2.SeqNum);
+    TEST_TRUE(send2.SeqNum < send3.SeqNum); 
+    TEST_TRUE(send3.SeqNum < send4.SeqNum);
+    TEST_TRUE(send4.SeqNum < send5.SeqNum);
 
     if (Context.SendCompleteOrder.size() < 2) {
         TEST_FAILURE("We expected at least 2 successful sends, got %llu", (unsigned long long)Context.SendCompleteOrder.size());
