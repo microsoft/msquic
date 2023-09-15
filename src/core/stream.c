@@ -578,7 +578,7 @@ QuicStreamShutdown(
              QuicTraceLogStreamWarning(
                 BadShutdownImmediate,
                 Stream,
-                "App tried ditching this stream but it still has stuff to do.");
+                "Invalid immediate shutdown request (pending reliable reset).");
             QuicConnTransportError(Stream->Connection, QUIC_ERROR_STREAM_STATE_ERROR);
             return;
         }
