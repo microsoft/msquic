@@ -458,8 +458,8 @@ QuicStreamProcessStreamFrame(
     if (Stream->Flags.RemoteCloseResetReliable) {
         if (Stream->RecvBuffer.BaseOffset >= Stream->RecvMaxLength) {
             //
-            // We've aborted reliably, and...
-            // Frame goes past reliable offset, we can just discard to save space and compute.
+            // We've aborted reliably, but the stream goes past reliable offset, we can just
+            // ignore it.
             //
             Status = QUIC_STATUS_SUCCESS;
             goto Error;
