@@ -237,17 +237,6 @@ function Install-Xdp-Sdk {
     }
 }
 
-# Downloads the latest version of XDP (for building) for Linux.
-function Install-Linux-Xdp {
-    if (!$IsLinux) { return } # Linux only
-    pushd ./submodules/xdp-tools
-    git checkout v1.4.0
-    git submodule init && git submodule update # libbpf
-    popd # ./submodules/xdp-tools
-    # TODO: split dependencies to ForBuild and ForTest
-    sudo apt-get -y install gcc-multilib libnl-3-dev libnl-genl-3-dev libnl-route-3-dev zlib1g-dev zlib1g pkg-config m4 clang libpcap-dev libelf-dev ethtool
-}
-
 # Installs the XDP driver (for testing).
 # NB: XDP can be uninstalled via Uninstall-Xdp
 function Install-Xdp-Driver {
@@ -285,7 +274,6 @@ function Install-DuoNic {
         Invoke-Expression "cmd /c `"pushd $DuoNicPath && pwsh duonic.ps1 -Install`""
     } elseif ($IsLinux) {
         Write-Host "Creating DuoNic endpoints"
-        sudo apt-get install -y iproute2 iptables
         $DuoNicScript = Join-Path $PSScriptRoot "duonic.sh"
         Invoke-Expression "sudo bash $DuoNicScript install"
     }
@@ -516,11 +504,20 @@ if ($ForBuild -or $ForContainerBuild) {
         git submodule init submodules/googletest
     }
 
-    if ($UseXdp && $IsLinux) {
+    if ($UseXdp -and $IsLinux) {
         git submodule init submodules/xdp-tools
     }
 
     git submodule update --jobs=8
+
+    if ($UseXdp -and $IsLinux) {
+        # Download nested dependency
+        pushd ./submodules/xdp-tools
+        git checkout v1.4.0
+        git submodule init
+        git submodule update # libbpf
+        popd # ./submodules/xdp-tools
+    }
 }
 
 if ($InstallCoreNetCiDeps) { Download-CoreNet-Deps }
@@ -558,6 +555,9 @@ if ($IsLinux) {
         sudo apt-get install -y ruby ruby-dev rpm
         sudo gem install public_suffix -v 4.0.7
         sudo gem install fpm
+        if ($UseXdp) {
+            sudo apt-get -y install gcc-multilib libnl-3-dev libnl-genl-3-dev libnl-route-3-dev zlib1g-dev zlib1g pkg-config m4 clang libpcap-dev libelf-dev
+        }
     }
 
     if ($ForTest) {
@@ -566,6 +566,10 @@ if ($IsLinux) {
         sudo apt-get install -y lttng-tools
         sudo apt-get install -y liblttng-ust-dev
         sudo apt-get install -y gdb
+        if ($UseXdp) {
+            sudo apt-get -y install ethtool iproute2 iptables
+            Install-DuoNic
+        }
 
         # Enable core dumps for the system.
         Write-Host "Setting core dump size limit"
@@ -579,11 +583,6 @@ if ($IsLinux) {
         Write-Host "Setting core dump pattern"
         sudo sh -c "echo -n '%e.%p.%t.core' > /proc/sys/kernel/core_pattern"
         #sudo cat /proc/sys/kernel/core_pattern
-    }
-
-    if ($UseXdp) {
-        Install-Linux-Xdp
-        Install-DuoNic
     }
 }
 

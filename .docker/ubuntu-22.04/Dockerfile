@@ -37,19 +37,6 @@ RUN apt-get update && apt-get install --no-install-recommends -y apt-transport-h
     cppcheck \
     clang-tidy \
     gdb \
-    gcc-multilib \
-    libnl-3-dev \
-    libnl-genl-3-dev \
-    libnl-route-3-dev \
-    zlib1g-dev \
-    zlib1g \
-    pkg-config \
-    m4 \
-    libpcap-dev \
-    libelf-dev \
-    iproute2 \
-    iptables \
-    ethtool \
   && rm -rf /var/lib/apt/lists/*
 
 RUN gem install fpm
