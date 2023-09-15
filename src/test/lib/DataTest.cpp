@@ -3177,18 +3177,24 @@ QuicTestConnectAndIdleForDestCidChange(
     }
 }
 
-void
-QuicTestStreamReliableReset(
-    )
-{
-    #define BUFFER_SIZE 10000
-    #define RELIABLE_SIZE 5000
+#define BUFFER_SIZE 10000
+#define RELIABLE_SIZE 5000
+#define BUFFER_SIZE_MULTI_SENDS 10000
+#define RELIABLE_SIZE_MULTI_SENDS 20000
 
-    struct StreamReliableReset {
+
+//
+// This Context Struct is a useful helper for the StreamReliableReset test suite.
+// It keeps track of the order of absolute offsets of all the send requests received, and the total number of bytes received.
+// If everything works, SendCompleteOrder MUST be monotonically increasing.
+//
+struct StreamReliableReset {
 
     CxPlatEvent ClientStreamShutdownComplete;
     CxPlatEvent ServerStreamShutdownComplete;
     uint64_t ReceivedBufferSize;
+    std::vector<uint64_t> SendCompleteOrder;
+
 
     static QUIC_STATUS ClientStreamCallback(_In_ MsQuicStream*, _In_opt_ void* ClientContext, _Inout_ QUIC_STREAM_EVENT* Event) {
         auto TestContext = (StreamReliableReset*)ClientContext;
@@ -3202,6 +3208,7 @@ QuicTestStreamReliableReset(
         auto TestContext = (StreamReliableReset*)ServerContext;
         if (Event->Type == QUIC_STREAM_EVENT_RECEIVE) {
             TestContext->ReceivedBufferSize += Event->RECEIVE.TotalBufferLength;
+            TestContext->SendCompleteOrder.push_back(Event->RECEIVE.AbsoluteOffset);
         }
         if (Event->Type == QUIC_STREAM_EVENT_PEER_SEND_SHUTDOWN) {
             Stream->Shutdown(QUIC_STREAM_SHUTDOWN_FLAG_ABORT_SEND);
@@ -3218,7 +3225,13 @@ QuicTestStreamReliableReset(
         }
         return QUIC_STATUS_SUCCESS;
     }
-    };
+};
+
+
+void
+QuicTestStreamReliableReset(
+    )
+{
 
     MsQuicRegistration Registration(true);
     TEST_TRUE(Registration.IsValid());
@@ -3238,6 +3251,7 @@ QuicTestStreamReliableReset(
 
     QUIC_BUFFER SendBuffer { sizeof(SendDataBuffer), SendDataBuffer };
     Context.ReceivedBufferSize = 0;
+    Context.SendCompleteOrder = {};
 
     MsQuicAutoAcceptListener Listener(Registration, ServerConfiguration, StreamReliableReset::ConnCallback, &Context);
     TEST_QUIC_SUCCEEDED(Listener.GetInitStatus());
@@ -3284,42 +3298,6 @@ void
 QuicTestStreamReliableResetMultipleSends(
     )
 {
-    struct StreamReliableReset {
-
-    CxPlatEvent ClientStreamShutdownComplete;
-    CxPlatEvent ServerStreamShutdownComplete;
-    uint64_t ReceivedBufferSize;
-
-    static QUIC_STATUS ClientStreamCallback(_In_ MsQuicStream*, _In_opt_ void* ClientContext, _Inout_ QUIC_STREAM_EVENT* Event) {
-        auto TestContext = (StreamReliableReset*)ClientContext;
-        if (Event->Type == QUIC_STREAM_EVENT_SHUTDOWN_COMPLETE) {
-            TestContext->ClientStreamShutdownComplete.Set();
-        }
-        return QUIC_STATUS_SUCCESS;
-    }
-
-    static QUIC_STATUS ServerStreamCallback(_In_ MsQuicStream* Stream, _In_opt_ void* ServerContext, _Inout_ QUIC_STREAM_EVENT* Event) {
-        auto TestContext = (StreamReliableReset*)ServerContext;
-        if (Event->Type == QUIC_STREAM_EVENT_RECEIVE) {
-            TestContext->ReceivedBufferSize += Event->RECEIVE.TotalBufferLength;
-        }
-        if (Event->Type == QUIC_STREAM_EVENT_PEER_SEND_SHUTDOWN) {
-            Stream->Shutdown(QUIC_STREAM_SHUTDOWN_FLAG_ABORT_SEND);
-        }
-        if (Event->Type == QUIC_STREAM_EVENT_SHUTDOWN_COMPLETE) {
-            TestContext->ServerStreamShutdownComplete.Set();
-        }
-        return QUIC_STATUS_SUCCESS;
-    }
-
-    static QUIC_STATUS ConnCallback(_In_ MsQuicConnection*, _In_opt_ void* Context, _Inout_ QUIC_CONNECTION_EVENT* Event) {
-        if (Event->Type == QUIC_CONNECTION_EVENT_PEER_STREAM_STARTED) {
-            new(std::nothrow) MsQuicStream(Event->PEER_STREAM_STARTED.Stream, CleanUpAutoDelete, ServerStreamCallback, Context);
-        }
-        return QUIC_STATUS_SUCCESS;
-    }
-    };
-
     MsQuicRegistration Registration(true);
     TEST_TRUE(Registration.IsValid());
 
@@ -3334,10 +3312,11 @@ QuicTestStreamReliableResetMultipleSends(
     TEST_QUIC_SUCCEEDED(ClientConfiguration.GetInitStatus());
 
     StreamReliableReset Context;
-    uint8_t SendDataBuffer[BUFFER_SIZE];
+    uint8_t SendDataBuffer[BUFFER_SIZE_MULTI_SENDS];
 
     QUIC_BUFFER SendBuffer { sizeof(SendDataBuffer), SendDataBuffer };
     Context.ReceivedBufferSize = 0;
+    Context.SendCompleteOrder = {};
 
     MsQuicAutoAcceptListener Listener(Registration, ServerConfiguration, StreamReliableReset::ConnCallback, &Context);
     TEST_QUIC_SUCCEEDED(Listener.GetInitStatus());
@@ -3361,10 +3340,23 @@ QuicTestStreamReliableResetMultipleSends(
     TEST_QUIC_SUCCEEDED(Stream.Send(&SendBuffer, 1, QUIC_SEND_FLAG_DELAY_SEND, &Context));
     TEST_QUIC_SUCCEEDED(Stream.Send(&SendBuffer, 1, QUIC_SEND_FLAG_DELAY_SEND, &Context));
     TEST_QUIC_SUCCEEDED(Stream.Send(&SendBuffer, 1, QUIC_SEND_FLAG_DELAY_SEND, &Context));
-    TEST_QUIC_SUCCEEDED(Stream.SetReliableOffset(RELIABLE_SIZE));
+    TEST_QUIC_SUCCEEDED(Stream.Send(&SendBuffer, 1, QUIC_SEND_FLAG_DELAY_SEND, &Context));
+    TEST_QUIC_SUCCEEDED(Stream.Send(&SendBuffer, 1, QUIC_SEND_FLAG_DELAY_SEND, &Context));
+    TEST_QUIC_SUCCEEDED(Stream.SetReliableOffset(RELIABLE_SIZE_MULTI_SENDS));
     TEST_QUIC_SUCCEEDED(Stream.Shutdown(0)); // Queues up a shutdown operation.
     // Should behave similar to QUIC_STREAM_SHUTDOWN_FLAG_GRACEFUL, with some restrictions.
     TEST_TRUE(Context.ClientStreamShutdownComplete.WaitTimeout(TestWaitTimeout));
     TEST_TRUE(Context.ServerStreamShutdownComplete.WaitTimeout(TestWaitTimeout));
-    TEST_TRUE(Context.ReceivedBufferSize >= RELIABLE_SIZE);
+    TEST_TRUE(Context.ReceivedBufferSize >= RELIABLE_SIZE_MULTI_SENDS);
+
+    if (Context.SendCompleteOrder.size() < 2) {
+        TEST_FAILURE("We expected at least 2 successful sends, got %llu", (unsigned long long)Context.SendCompleteOrder.size());
+    }
+
+    for (int i = 1; i < Context.SendCompleteOrder.size(); ++i) {
+        if (Context.SendCompleteOrder[i - 1] > Context.SendCompleteOrder[i]) {
+            TEST_FAILURE("We expected send requests to be completed in order. Got an absolute offset of %llu after %llu",
+             (unsigned long long)Context.SendCompleteOrder[i], (unsigned long long)Context.SendCompleteOrder[i - 1]);
+        }
+    }
 }
