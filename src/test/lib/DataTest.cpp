@@ -3289,9 +3289,7 @@ QuicTestStreamReliableReset(
         TEST_TRUE(Context.ReceivedBufferSize >= RELIABLE_SIZE);
 
         // We shouldn't be able to change ReliableSize now that the stream has already been reset.
-        TEST_QUIC_STATUS(
-            QUIC_STATUS_INVALID_STATE,
-            Stream.SetReliableOffset(1));
+        TEST_QUIC_STATUS(QUIC_STATUS_INVALID_STATE, Stream.SetReliableOffset(1));
     }
 }
 void
