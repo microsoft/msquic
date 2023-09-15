@@ -245,7 +245,6 @@ function Install-Linux-Xdp {
     git submodule init && git submodule update # libbpf
     popd # ./submodules/xdp-tools
     # TODO: split dependencies to ForBuild and ForTest
-    sudo apt-get update -y
     sudo apt-get -y install gcc-multilib libnl-3-dev libnl-genl-3-dev libnl-route-3-dev zlib1g-dev zlib1g pkg-config m4 clang libpcap-dev libelf-dev ethtool
 }
 
