@@ -6,12 +6,20 @@ on:
   # Runs on pushes targeting the default branch
   push:
     branches: ["main"]
+    paths: ["docs/**"]
+  
+  pull_request:
+    branches: ["main"]
+    paths: ["docs/**"]
 
 permissions: read-all
 
 concurrency:
-  group: "pages"
-  cancel-in-progress: false
+  # Cancel any workflow currently in progress for the same PR.
+  # Allow running concurrently with any other commits.
+  group: deploy-docfx-${{ github.event.pull_request.number || github.sha }}
+  cancel-in-progress: true
+
 jobs:
   publish-docs:
     permissions:
@@ -32,6 +40,10 @@ jobs:
     - run: ./scripts/generate-docfx-yml.ps1 ./docs
       shell: pwsh
     - run: docfx docfx.json
-    - run: chmod +x ./scripts/update-docfx-site.ps1
-    - run: ./scripts/update-docfx-site.ps1
-      shell: pwsh
+
+    - name: Commit Changes
+      if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+      run: |
+          chmod +x ./scripts/update-docfx-site.ps1
+          ./scripts/update-docfx-site.ps1
+          shell: pwsh
