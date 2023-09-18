@@ -3197,7 +3197,6 @@ struct StreamReliableReset {
     CxPlatEvent ClientStreamShutdownComplete;
     CxPlatEvent ServerStreamShutdownComplete;
     uint64_t ReceivedBufferSize;
-    std::vector<uint64_t> SendCompleteOrder;
     uint64_t SequenceNum;
 
 
@@ -3219,7 +3218,6 @@ struct StreamReliableReset {
         auto TestContext = (StreamReliableReset*)ServerContext;
         if (Event->Type == QUIC_STREAM_EVENT_RECEIVE) {
             TestContext->ReceivedBufferSize += Event->RECEIVE.TotalBufferLength;
-            TestContext->SendCompleteOrder.push_back(Event->RECEIVE.AbsoluteOffset);
         }
         if (Event->Type == QUIC_STREAM_EVENT_PEER_SEND_SHUTDOWN) {
             Stream->Shutdown(QUIC_STREAM_SHUTDOWN_FLAG_ABORT_SEND);
@@ -3262,7 +3260,6 @@ QuicTestStreamReliableReset(
 
     QUIC_BUFFER SendBuffer { sizeof(SendDataBuffer), SendDataBuffer };
     Context.ReceivedBufferSize = 0;
-    Context.SendCompleteOrder = {};
 
     MsQuicAutoAcceptListener Listener(Registration, ServerConfiguration, StreamReliableReset::ConnCallback, &Context);
     TEST_QUIC_SUCCEEDED(Listener.GetInitStatus());
@@ -3327,7 +3324,6 @@ QuicTestStreamReliableResetMultipleSends(
     QUIC_BUFFER SendBuffer { sizeof(SendDataBuffer), SendDataBuffer };
     Context.ReceivedBufferSize = 0;
     Context.SequenceNum = 0;
-    Context.SendCompleteOrder = {};
 
     MsQuicAutoAcceptListener Listener(Registration, ServerConfiguration, StreamReliableReset::ConnCallback, &Context);
     TEST_QUIC_SUCCEEDED(Listener.GetInitStatus());
@@ -3365,21 +3361,11 @@ QuicTestStreamReliableResetMultipleSends(
     TEST_TRUE(Context.ServerStreamShutdownComplete.WaitTimeout(TestWaitTimeout));
     TEST_TRUE(Context.ReceivedBufferSize >= RELIABLE_SIZE_MULTI_SENDS);
 
+    // Test order of completion, and that our first 2 sends MUST be successful.
     TEST_TRUE(send1.Successful);
     TEST_TRUE(send2.Successful);
     TEST_TRUE(send1.SeqNum < send2.SeqNum);
     TEST_TRUE(send2.SeqNum < send3.SeqNum);
     TEST_TRUE(send3.SeqNum < send4.SeqNum);
     TEST_TRUE(send4.SeqNum < send5.SeqNum);
-
-    if (Context.SendCompleteOrder.size() < 2) {
-        TEST_FAILURE("We expected at least 2 successful sends, got %llu", (unsigned long long)Context.SendCompleteOrder.size());
-    }
-
-    for (long unsigned int i = 1; i < Context.SendCompleteOrder.size(); ++i) {
-        if (Context.SendCompleteOrder[i - 1] > Context.SendCompleteOrder[i]) {
-            TEST_FAILURE("We expected send requests to be completed in order. Got an absolute offset of %llu after %llu",
-             (unsigned long long)Context.SendCompleteOrder[i], (unsigned long long)Context.SendCompleteOrder[i - 1]);
-        }
-    }
 }
