@@ -3368,7 +3368,7 @@ QuicTestStreamReliableResetMultipleSends(
     TEST_TRUE(send1.Successful);
     TEST_TRUE(send2.Successful);
     TEST_TRUE(send1.SeqNum < send2.SeqNum);
-    TEST_TRUE(send2.SeqNum < send3.SeqNum); 
+    TEST_TRUE(send2.SeqNum < send3.SeqNum);
     TEST_TRUE(send3.SeqNum < send4.SeqNum);
     TEST_TRUE(send4.SeqNum < send5.SeqNum);
 
@@ -3376,7 +3376,7 @@ QuicTestStreamReliableResetMultipleSends(
         TEST_FAILURE("We expected at least 2 successful sends, got %llu", (unsigned long long)Context.SendCompleteOrder.size());
     }
 
-    for (int i = 1; i < Context.SendCompleteOrder.size(); ++i) {
+    for (long unsigned int i = 1; i < Context.SendCompleteOrder.size(); ++i) {
         if (Context.SendCompleteOrder[i - 1] > Context.SendCompleteOrder[i]) {
             TEST_FAILURE("We expected send requests to be completed in order. Got an absolute offset of %llu after %llu",
              (unsigned long long)Context.SendCompleteOrder[i], (unsigned long long)Context.SendCompleteOrder[i - 1]);
