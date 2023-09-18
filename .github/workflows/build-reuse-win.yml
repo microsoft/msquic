@@ -87,6 +87,12 @@ jobs:
       if: inputs.test == ''
       shell: pwsh
       run: scripts/build.ps1 -Config ${{ inputs.config }} -Platform ${{ inputs.plat }} -Arch ${{ inputs.arch }} -Tls ${{ inputs.tls }} ${{ inputs.xdp }} ${{ inputs.sanitize }} ${{ inputs.static }}
+    - name: Filter Build Artifacts
+      shell: pwsh
+      run: |
+        Remove-Item artifacts/bin/xdp -Recurse -Force -ErrorAction Ignore
+        Remove-Item artifacts/corenet-ci-main -Recurse -Force -ErrorAction Ignore
+        Remove-Item artifacts/xdp -Recurse -Force -ErrorAction Ignore
     - name: Upload build artifacts
       uses: actions/upload-artifact@a8a3f3ad30e3422c9c7b888a15615d19a852ae32
       with:
