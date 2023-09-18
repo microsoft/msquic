@@ -70,17 +70,17 @@ tracepoint(CLOG_STREAM_C, EventSilentDiscard , arg1);\
 
 
 /*----------------------------------------------------------
-// Decoder Ring for BadShutdownImmediate
-// [strm][%p] App tried ditching this stream but it still has stuff to do.
+// Decoder Ring for ShutdownImmediatePendingReliableReset
+// [strm][%p] Invalid immediate shutdown request (pending reliable reset).
 // QuicTraceLogStreamWarning(
-                BadShutdownImmediate,
+                ShutdownImmediatePendingReliableReset,
                 Stream,
-                "App tried ditching this stream but it still has stuff to do.");
+                "Invalid immediate shutdown request (pending reliable reset).");
 // arg1 = arg1 = Stream = arg1
 ----------------------------------------------------------*/
-#ifndef _clog_3_ARGS_TRACE_BadShutdownImmediate
-#define _clog_3_ARGS_TRACE_BadShutdownImmediate(uniqueId, arg1, encoded_arg_string)\
-tracepoint(CLOG_STREAM_C, BadShutdownImmediate , arg1);\
+#ifndef _clog_3_ARGS_TRACE_ShutdownImmediatePendingReliableReset
+#define _clog_3_ARGS_TRACE_ShutdownImmediatePendingReliableReset(uniqueId, arg1, encoded_arg_string)\
+tracepoint(CLOG_STREAM_C, ShutdownImmediatePendingReliableReset , arg1);\
 
 #endif
 

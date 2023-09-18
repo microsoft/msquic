@@ -34,17 +34,17 @@
 extern "C" {
 #endif
 /*----------------------------------------------------------
-// Decoder Ring for ReliableResetNotNegotiated
-// [strm][%p] Tried to use ReliableReset without negotiation.
+// Decoder Ring for ReliableResetNotNegotiatedError
+// [strm][%p] Received ReliableReset without negotiation.
 // QuicTraceLogStreamWarning(
-            ReliableResetNotNegotiated,
+            ReliableResetNotNegotiatedError,
             Stream,
-            "Tried to use ReliableReset without negotiation.");
+            "Received ReliableReset without negotiation.");
 // arg1 = arg1 = Stream = arg1
 ----------------------------------------------------------*/
-#ifndef _clog_3_ARGS_TRACE_ReliableResetNotNegotiated
-#define _clog_3_ARGS_TRACE_ReliableResetNotNegotiated(uniqueId, arg1, encoded_arg_string)\
-tracepoint(CLOG_STREAM_RECV_C, ReliableResetNotNegotiated , arg1);\
+#ifndef _clog_3_ARGS_TRACE_ReliableResetNotNegotiatedError
+#define _clog_3_ARGS_TRACE_ReliableResetNotNegotiatedError(uniqueId, arg1, encoded_arg_string)\
+tracepoint(CLOG_STREAM_RECV_C, ReliableResetNotNegotiatedError , arg1);\
 
 #endif
 

@@ -40,15 +40,15 @@ TRACEPOINT_EVENT(CLOG_STREAM_C, EventSilentDiscard,
 
 
 /*----------------------------------------------------------
-// Decoder Ring for BadShutdownImmediate
-// [strm][%p] App tried ditching this stream but it still has stuff to do.
+// Decoder Ring for ShutdownImmediatePendingReliableReset
+// [strm][%p] Invalid immediate shutdown request (pending reliable reset).
 // QuicTraceLogStreamWarning(
-                BadShutdownImmediate,
+                ShutdownImmediatePendingReliableReset,
                 Stream,
-                "App tried ditching this stream but it still has stuff to do.");
+                "Invalid immediate shutdown request (pending reliable reset).");
 // arg1 = arg1 = Stream = arg1
 ----------------------------------------------------------*/
-TRACEPOINT_EVENT(CLOG_STREAM_C, BadShutdownImmediate,
+TRACEPOINT_EVENT(CLOG_STREAM_C, ShutdownImmediatePendingReliableReset,
     TP_ARGS(
         const void *, arg1), 
     TP_FIELDS(

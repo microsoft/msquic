@@ -9569,6 +9569,18 @@
       ],
       "macroName": "QuicTraceLogStreamWarning"
     },
+    "ReliableResetNotNegotiatedError": {
+      "ModuleProperites": {},
+      "TraceString": "[strm][%p] Received ReliableReset without negotiation.",
+      "UniqueId": "ReliableResetNotNegotiatedError",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        }
+      ],
+      "macroName": "QuicTraceLogStreamWarning"
+    },
     "ReliableResetOnStreamAck": {
       "ModuleProperites": {},
       "TraceString": "[strm][%p] Shutting down stream [reliable] from OnStreamAck. Send side.",
@@ -11237,6 +11249,18 @@
         }
       ],
       "macroName": "QuicTraceLogError"
+    },
+    "ShutdownImmediatePendingReliableReset": {
+      "ModuleProperites": {},
+      "TraceString": "[strm][%p] Invalid immediate shutdown request (pending reliable reset).",
+      "UniqueId": "ShutdownImmediatePendingReliableReset",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        }
+      ],
+      "macroName": "QuicTraceLogStreamWarning"
     },
     "StartAckDelayTimer": {
       "ModuleProperites": {},
@@ -16245,6 +16269,11 @@
         "EncodingString": "[strm][%p] Tried to use ReliableReset without negotiation."
       },
       {
+        "UniquenessHash": "9c46c2ef-6922-0df3-433c-711969bca059",
+        "TraceID": "ReliableResetNotNegotiatedError",
+        "EncodingString": "[strm][%p] Received ReliableReset without negotiation."
+      },
+      {
         "UniquenessHash": "8e06ef5e-6665-a253-c96c-596a2565274d",
         "TraceID": "ReliableResetOnStreamAck",
         "EncodingString": "[strm][%p] Shutting down stream [reliable] from OnStreamAck. Send side."
@@ -16793,6 +16822,11 @@
         "UniquenessHash": "81035efa-7e5c-22d0-3a02-16a2f7cc7f1f",
         "TraceID": "SettingsLoadInvalidOfferedVersion",
         "EncodingString": "Invalid OfferedVersion loaded from storage! 0x%x at position %d"
+      },
+      {
+        "UniquenessHash": "f34a9d8e-7798-1d30-2104-37dac8a3c0e0",
+        "TraceID": "ShutdownImmediatePendingReliableReset",
+        "EncodingString": "[strm][%p] Invalid immediate shutdown request (pending reliable reset)."
       },
       {
         "UniquenessHash": "3811b30b-84d6-43cc-8312-918d88c99d3e",

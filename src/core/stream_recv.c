@@ -179,7 +179,7 @@ QuicStreamProcessReliableResetFrame(
         // negotiating first. Kill the connection.
         //
         QuicTraceLogStreamWarning(
-            ReliableResetNotNegotiated,
+            ReliableResetNotNegotiatedError,
             Stream,
             "Received ReliableReset without negotiation.");
         QuicConnTransportError(Stream->Connection, QUIC_ERROR_STREAM_STATE_ERROR);

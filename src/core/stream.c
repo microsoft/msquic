@@ -576,10 +576,9 @@ QuicStreamShutdown(
         //
         if (Stream->Flags.RemoteCloseResetReliable || Stream->Flags.LocalCloseResetReliable) {
              QuicTraceLogStreamWarning(
-                BadShutdownImmediate,
+                ShutdownImmediatePendingReliableReset,
                 Stream,
                 "Invalid immediate shutdown request (pending reliable reset).");
-            QuicConnTransportError(Stream->Connection, QUIC_ERROR_STREAM_STATE_ERROR);
             return;
         }
         QuicStreamIndicateSendShutdownComplete(Stream, FALSE);

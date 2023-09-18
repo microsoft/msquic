@@ -2,15 +2,15 @@
 
 
 /*----------------------------------------------------------
-// Decoder Ring for ReliableResetNotNegotiated
-// [strm][%p] Tried to use ReliableReset without negotiation.
+// Decoder Ring for ReliableResetNotNegotiatedError
+// [strm][%p] Received ReliableReset without negotiation.
 // QuicTraceLogStreamWarning(
-            ReliableResetNotNegotiated,
+            ReliableResetNotNegotiatedError,
             Stream,
-            "Tried to use ReliableReset without negotiation.");
+            "Received ReliableReset without negotiation.");
 // arg1 = arg1 = Stream = arg1
 ----------------------------------------------------------*/
-TRACEPOINT_EVENT(CLOG_STREAM_RECV_C, ReliableResetNotNegotiated,
+TRACEPOINT_EVENT(CLOG_STREAM_RECV_C, ReliableResetNotNegotiatedError,
     TP_ARGS(
         const void *, arg1), 
     TP_FIELDS(
