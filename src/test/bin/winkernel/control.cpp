@@ -480,9 +480,10 @@ size_t QUIC_IOCTL_BUFFER_SIZES[] =
     sizeof(UINT8),
     sizeof(BOOLEAN),
     sizeof(INT32),
-    sizeof(INT32),
+    sizeof(QUIC_HANDSHAKE_LOSS_PARAMS),
     sizeof(QUIC_RUN_CUSTOM_CERT_VALIDATION),
-    sizeof(QUIC_RUN_RELIABLE_RESET_NEGOTIATION),
+    sizeof(QUIC_RUN_FEATURE_NEGOTIATION),
+    sizeof(QUIC_RUN_FEATURE_NEGOTIATION),
     0,
     0,
 };
@@ -520,7 +521,8 @@ typedef union {
     QUIC_RUN_VN_TP_ODD_SIZE_PARAMS OddSizeVnTpParams;
     UINT8 TestServerVNTP;
     BOOLEAN Bidirectional;
-    QUIC_RUN_RELIABLE_RESET_NEGOTIATION ReliableResetNegotiationParams;
+    QUIC_RUN_FEATURE_NEGOTIATION FeatureNegotiationParams;
+    QUIC_HANDSHAKE_LOSS_PARAMS HandshakeLossParams;
 } QUIC_IOCTL_PARAMS;
 
 #define QuicTestCtlRun(X) \
@@ -1331,7 +1333,10 @@ QuicTestCtlEvtIoDeviceControl(
 
     case IOCTL_QUIC_RUN_HANDSHAKE_SPECIFIC_LOSS_PATTERNS:
         CXPLAT_FRE_ASSERT(Params != nullptr);
-        QuicTestCtlRun(QuicTestHandshakeSpecificLossPatterns(Params->Family));
+        QuicTestCtlRun(
+            QuicTestHandshakeSpecificLossPatterns(
+                Params->HandshakeLossParams.Family,
+                Params->HandshakeLossParams.CcAlgo));
         break;
 
     case IOCTL_QUIC_RUN_CUSTOM_CLIENT_CERT_VALIDATION:
@@ -1346,9 +1351,17 @@ QuicTestCtlEvtIoDeviceControl(
         CXPLAT_FRE_ASSERT(Params != nullptr);
         QuicTestCtlRun(
             QuicTestReliableResetNegotiation(
-                Params->ReliableResetNegotiationParams.Family,
-                Params->ReliableResetNegotiationParams.ServerSupport,
-                Params->ReliableResetNegotiationParams.ClientSupport));
+                Params->FeatureNegotiationParams.Family,
+                Params->FeatureNegotiationParams.ServerSupport,
+                Params->FeatureNegotiationParams.ClientSupport));
+        break;
+    case IOCTL_QUIC_ONE_WAY_DELAY_NEGOTIATION:
+        CXPLAT_FRE_ASSERT(Params != nullptr);
+        QuicTestCtlRun(
+            QuicTestOneWayDelayNegotiation(
+                Params->FeatureNegotiationParams.Family,
+                Params->FeatureNegotiationParams.ServerSupport,
+                Params->FeatureNegotiationParams.ClientSupport));
         break;
 
     case IOCTL_QUIC_RUN_STREAM_RELIABLE_RESET:

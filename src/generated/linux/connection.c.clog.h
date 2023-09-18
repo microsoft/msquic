@@ -875,23 +875,46 @@ tracepoint(CLOG_CONNECTION_C, ApplySettings , arg1);\
 
 
 /*----------------------------------------------------------
-// Decoder Ring for RttUpdatedMsg
-// [conn][%p] Updated Rtt=%u.%03u ms, Var=%u.%03u
+// Decoder Ring for PhaseShiftUpdated
+// [conn][%p] New Phase Shift: %lld us
 // QuicTraceLogConnVerbose(
-            RttUpdatedMsg,
-            Connection,
-            "Updated Rtt=%u.%03u ms, Var=%u.%03u",
-            Path->SmoothedRtt / 1000, Path->SmoothedRtt % 1000,
-            Path->RttVariance / 1000, Path->RttVariance % 1000);
+                PhaseShiftUpdated,
+                Connection,
+                "New Phase Shift: %lld us",
+                Connection->Stats.Timing.PhaseShift);
 // arg1 = arg1 = Connection = arg1
-// arg3 = arg3 = Path->SmoothedRtt / 1000 = arg3
-// arg4 = arg4 = Path->SmoothedRtt % 1000 = arg4
-// arg5 = arg5 = Path->RttVariance / 1000 = arg5
-// arg6 = arg6 = Path->RttVariance % 1000 = arg6
+// arg3 = arg3 = Connection->Stats.Timing.PhaseShift = arg3
 ----------------------------------------------------------*/
-#ifndef _clog_7_ARGS_TRACE_RttUpdatedMsg
-#define _clog_7_ARGS_TRACE_RttUpdatedMsg(uniqueId, arg1, encoded_arg_string, arg3, arg4, arg5, arg6)\
-tracepoint(CLOG_CONNECTION_C, RttUpdatedMsg , arg1, arg3, arg4, arg5, arg6);\
+#ifndef _clog_4_ARGS_TRACE_PhaseShiftUpdated
+#define _clog_4_ARGS_TRACE_PhaseShiftUpdated(uniqueId, arg1, encoded_arg_string, arg3)\
+tracepoint(CLOG_CONNECTION_C, PhaseShiftUpdated , arg1, arg3);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for RttUpdatedV2
+// [conn][%p] Updated Rtt=%u.%03u ms, Var=%u.%03u 1Way=%u.%03u ms
+// QuicTraceLogConnVerbose(
+        RttUpdatedV2,
+        Connection,
+        "Updated Rtt=%u.%03u ms, Var=%u.%03u 1Way=%u.%03u ms",
+        (uint32_t)(Path->SmoothedRtt / 1000), (uint32_t)(Path->SmoothedRtt % 1000),
+        (uint32_t)(Path->RttVariance / 1000), (uint32_t)(Path->RttVariance % 1000),
+        (uint32_t)(Path->OneWayDelay / 1000), (uint32_t)(Path->OneWayDelay % 1000));
+// arg1 = arg1 = Connection = arg1
+// arg3 = arg3 = (uint32_t)(Path->SmoothedRtt / 1000) = arg3
+// arg4 = arg4 = (uint32_t)(Path->SmoothedRtt % 1000) = arg4
+// arg5 = arg5 = (uint32_t)(Path->RttVariance / 1000) = arg5
+// arg6 = arg6 = (uint32_t)(Path->RttVariance % 1000) = arg6
+// arg7 = arg7 = (uint32_t)(Path->OneWayDelay / 1000) = arg7
+// arg8 = arg8 = (uint32_t)(Path->OneWayDelay % 1000) = arg8
+----------------------------------------------------------*/
+#ifndef _clog_9_ARGS_TRACE_RttUpdatedV2
+#define _clog_9_ARGS_TRACE_RttUpdatedV2(uniqueId, arg1, encoded_arg_string, arg3, arg4, arg5, arg6, arg7, arg8)\
+tracepoint(CLOG_CONNECTION_C, RttUpdatedV2 , arg1, arg3, arg4, arg5, arg6, arg7, arg8);\
 
 #endif
 
@@ -1093,6 +1116,28 @@ tracepoint(CLOG_CONNECTION_C, IndicateReliableResetNegotiated , arg1, arg3);\
 
 
 /*----------------------------------------------------------
+// Decoder Ring for IndicateOneWayDelayNegotiated
+// [conn][%p] Indicating QUIC_CONNECTION_EVENT_ONE_WAY_DELAY_NEGOTIATED [Send=%hhu,Recv=%hhu]
+// QuicTraceLogConnVerbose(
+                IndicateOneWayDelayNegotiated,
+                Connection,
+                "Indicating QUIC_CONNECTION_EVENT_ONE_WAY_DELAY_NEGOTIATED [Send=%hhu,Recv=%hhu]",
+                Event.ONE_WAY_DELAY_NEGOTIATED.SendNegotiated,
+                Event.ONE_WAY_DELAY_NEGOTIATED.ReceiveNegotiated);
+// arg1 = arg1 = Connection = arg1
+// arg3 = arg3 = Event.ONE_WAY_DELAY_NEGOTIATED.SendNegotiated = arg3
+// arg4 = arg4 = Event.ONE_WAY_DELAY_NEGOTIATED.ReceiveNegotiated = arg4
+----------------------------------------------------------*/
+#ifndef _clog_5_ARGS_TRACE_IndicateOneWayDelayNegotiated
+#define _clog_5_ARGS_TRACE_IndicateOneWayDelayNegotiated(uniqueId, arg1, encoded_arg_string, arg3, arg4)\
+tracepoint(CLOG_CONNECTION_C, IndicateOneWayDelayNegotiated , arg1, arg3, arg4);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for IndicatePeerCertificateReceived
 // [conn][%p] Indicating QUIC_CONNECTION_EVENT_PEER_CERTIFICATE_RECEIVED (0x%x, 0x%x)
 // QuicTraceLogConnVerbose(
@@ -1121,9 +1166,9 @@ tracepoint(CLOG_CONNECTION_C, IndicatePeerCertificateReceived , arg1, arg3, arg4
         QueueDatagrams,
         Connection,
         "Queuing %u UDP datagrams",
-        DatagramChainLength);
+        PacketChainLength);
 // arg1 = arg1 = Connection = arg1
-// arg3 = arg3 = DatagramChainLength = arg3
+// arg3 = arg3 = PacketChainLength = arg3
 ----------------------------------------------------------*/
 #ifndef _clog_4_ARGS_TRACE_QueueDatagrams
 #define _clog_4_ARGS_TRACE_QueueDatagrams(uniqueId, arg1, encoded_arg_string, arg3)\
@@ -1360,9 +1405,9 @@ tracepoint(CLOG_CONNECTION_C, UdpRecvBatch , arg1, arg3);\
             UdpRecvDeferred,
             Connection,
             "Recv %u deferred UDP datagrams",
-            DatagramChainCount);
+            PacketChainCount);
 // arg1 = arg1 = Connection = arg1
-// arg3 = arg3 = DatagramChainCount = arg3
+// arg3 = arg3 = PacketChainCount = arg3
 ----------------------------------------------------------*/
 #ifndef _clog_4_ARGS_TRACE_UdpRecvDeferred
 #define _clog_4_ARGS_TRACE_UdpRecvDeferred(uniqueId, arg1, encoded_arg_string, arg3)\
@@ -2105,11 +2150,11 @@ tracepoint(CLOG_CONNECTION_C, ConnPacketRecv , arg2, arg3, arg4, arg5);\
             ConnRecvUdpDatagrams,
             "[conn][%p] Recv %u UDP datagrams, %u bytes",
             Connection,
-            DatagramChainCount,
-            DatagramChainByteCount);
+            PacketChainCount,
+            PacketChainByteCount);
 // arg2 = arg2 = Connection = arg2
-// arg3 = arg3 = DatagramChainCount = arg3
-// arg4 = arg4 = DatagramChainByteCount = arg4
+// arg3 = arg3 = PacketChainCount = arg3
+// arg4 = arg4 = PacketChainByteCount = arg4
 ----------------------------------------------------------*/
 #ifndef _clog_5_ARGS_TRACE_ConnRecvUdpDatagrams
 #define _clog_5_ARGS_TRACE_ConnRecvUdpDatagrams(uniqueId, encoded_arg_string, arg2, arg3, arg4)\

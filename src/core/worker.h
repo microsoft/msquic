@@ -37,9 +37,9 @@ typedef struct QUIC_CACHEALIGN QUIC_WORKER {
     BOOLEAN IsActive;
 
     //
-    // The worker's ideal processor.
+    // The index into the partition array (of processors).
     //
-    uint16_t IdealProcessor;
+    uint16_t PartitionIndex;
 
     //
     // The average queue delay connections experience, in microseconds.

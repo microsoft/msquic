@@ -58,9 +58,9 @@ tracepoint(CLOG_DATAPATH_RAW_XDP_WIN_C, FoundVF , arg2, arg3, arg4);\
         XdpInitialize,
         "[ xdp][%p] XDP initialized, %u procs",
         Xdp,
-        Xdp->WorkerCount);
+        Xdp->PartitionCount);
 // arg2 = arg2 = Xdp = arg2
-// arg3 = arg3 = Xdp->WorkerCount = arg3
+// arg3 = arg3 = Xdp->PartitionCount = arg3
 ----------------------------------------------------------*/
 #ifndef _clog_4_ARGS_TRACE_XdpInitialize
 #define _clog_4_ARGS_TRACE_XdpInitialize(uniqueId, encoded_arg_string, arg2, arg3)\
@@ -73,14 +73,14 @@ tracepoint(CLOG_DATAPATH_RAW_XDP_WIN_C, XdpInitialize , arg2, arg3);\
 
 /*----------------------------------------------------------
 // Decoder Ring for XdpQueueStart
-// [ xdp][%p] XDP queue start on worker %p
+// [ xdp][%p] XDP queue start on partition %p
 // QuicTraceLogVerbose(
                 XdpQueueStart,
-                "[ xdp][%p] XDP queue start on worker %p",
+                "[ xdp][%p] XDP queue start on partition %p",
                 Queue,
-                Worker);
+                Partition);
 // arg2 = arg2 = Queue = arg2
-// arg3 = arg3 = Worker = arg3
+// arg3 = arg3 = Partition = arg3
 ----------------------------------------------------------*/
 #ifndef _clog_4_ARGS_TRACE_XdpQueueStart
 #define _clog_4_ARGS_TRACE_XdpQueueStart(uniqueId, encoded_arg_string, arg2, arg3)\
@@ -93,13 +93,13 @@ tracepoint(CLOG_DATAPATH_RAW_XDP_WIN_C, XdpQueueStart , arg2, arg3);\
 
 /*----------------------------------------------------------
 // Decoder Ring for XdpWorkerStart
-// [ xdp][%p] XDP worker start, %u queues
+// [ xdp][%p] XDP partition start, %u queues
 // QuicTraceLogVerbose(
             XdpWorkerStart,
-            "[ xdp][%p] XDP worker start, %u queues",
-            Worker,
+            "[ xdp][%p] XDP partition start, %u queues",
+            Partition,
             QueueCount);
-// arg2 = arg2 = Worker = arg2
+// arg2 = arg2 = Partition = arg2
 // arg3 = arg3 = QueueCount = arg3
 ----------------------------------------------------------*/
 #ifndef _clog_4_ARGS_TRACE_XdpWorkerStart
@@ -166,17 +166,17 @@ tracepoint(CLOG_DATAPATH_RAW_XDP_WIN_C, XdpUninitialize , arg2);\
 
 
 /*----------------------------------------------------------
-// Decoder Ring for XdpWorkerShutdown
-// [ xdp][%p] XDP worker shutdown
+// Decoder Ring for XdpPartitionShutdown
+// [ xdp][%p] XDP partition shutdown
 // QuicTraceLogVerbose(
-            XdpWorkerShutdown,
-            "[ xdp][%p] XDP worker shutdown",
-            Worker);
-// arg2 = arg2 = Worker = arg2
+            XdpPartitionShutdown,
+            "[ xdp][%p] XDP partition shutdown",
+            Partition);
+// arg2 = arg2 = Partition = arg2
 ----------------------------------------------------------*/
-#ifndef _clog_3_ARGS_TRACE_XdpWorkerShutdown
-#define _clog_3_ARGS_TRACE_XdpWorkerShutdown(uniqueId, encoded_arg_string, arg2)\
-tracepoint(CLOG_DATAPATH_RAW_XDP_WIN_C, XdpWorkerShutdown , arg2);\
+#ifndef _clog_3_ARGS_TRACE_XdpPartitionShutdown
+#define _clog_3_ARGS_TRACE_XdpPartitionShutdown(uniqueId, encoded_arg_string, arg2)\
+tracepoint(CLOG_DATAPATH_RAW_XDP_WIN_C, XdpPartitionShutdown , arg2);\
 
 #endif
 
@@ -256,17 +256,17 @@ tracepoint(CLOG_DATAPATH_RAW_XDP_WIN_C, XdpQueueAsyncIoTxComplete , arg2);\
 
 
 /*----------------------------------------------------------
-// Decoder Ring for XdpWorkerShutdownComplete
-// [ xdp][%p] XDP worker shutdown complete
+// Decoder Ring for XdpPartitionShutdownComplete
+// [ xdp][%p] XDP partition shutdown complete
 // QuicTraceLogVerbose(
-            XdpWorkerShutdownComplete,
-            "[ xdp][%p] XDP worker shutdown complete",
-            Worker);
-// arg2 = arg2 = Worker = arg2
+            XdpPartitionShutdownComplete,
+            "[ xdp][%p] XDP partition shutdown complete",
+            Partition);
+// arg2 = arg2 = Partition = arg2
 ----------------------------------------------------------*/
-#ifndef _clog_3_ARGS_TRACE_XdpWorkerShutdownComplete
-#define _clog_3_ARGS_TRACE_XdpWorkerShutdownComplete(uniqueId, encoded_arg_string, arg2)\
-tracepoint(CLOG_DATAPATH_RAW_XDP_WIN_C, XdpWorkerShutdownComplete , arg2);\
+#ifndef _clog_3_ARGS_TRACE_XdpPartitionShutdownComplete
+#define _clog_3_ARGS_TRACE_XdpPartitionShutdownComplete(uniqueId, encoded_arg_string, arg2)\
+tracepoint(CLOG_DATAPATH_RAW_XDP_WIN_C, XdpPartitionShutdownComplete , arg2);\
 
 #endif
 

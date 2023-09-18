@@ -75,9 +75,26 @@ MsQuicListenerOpen(
     QuicSiloAddRef(Listener->Silo);
 #endif
 
+    BOOLEAN RegistrationShuttingDown;
+
     BOOLEAN Result = CxPlatRundownAcquire(&Registration->Rundown);
     CXPLAT_DBG_ASSERT(Result); UNREFERENCED_PARAMETER(Result);
 
+    CxPlatDispatchLockAcquire(&Registration->ConnectionLock);
+    RegistrationShuttingDown = Registration->ShuttingDown;
+    if (!RegistrationShuttingDown) {
+        CxPlatListInsertTail(&Registration->Listeners, &Listener->RegistrationLink);
+    }
+    CxPlatDispatchLockRelease(&Registration->ConnectionLock);
+
+    if (RegistrationShuttingDown) {
+        CxPlatRundownRelease(&Registration->Rundown);
+        CxPlatEventUninitialize(Listener->StopEvent);
+        CXPLAT_FREE(Listener, QUIC_POOL_LISTENER);
+        Listener = NULL;
+        Status = QUIC_STATUS_INVALID_STATE;
+        goto Error;
+    }
     QuicTraceEvent(
         ListenerCreated,
         "[list][%p] Created, Registration=%p",
@@ -116,6 +133,12 @@ QuicListenerFree(
 #ifdef QUIC_SILO
     QuicSiloRelease(Listener->Silo);
 #endif
+
+    CxPlatDispatchLockAcquire(&Listener->Registration->ConnectionLock);
+    if (!Listener->Registration->ShuttingDown) {
+        CxPlatListEntryRemove(&Listener->RegistrationLink);
+    }
+    CxPlatDispatchLockRelease(&Listener->Registration->ConnectionLock);
 
     CxPlatRefUninitialize(&Listener->RefCount);
     CxPlatEventUninitialize(Listener->StopEvent);

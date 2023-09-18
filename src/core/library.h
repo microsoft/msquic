@@ -87,6 +87,11 @@ typedef struct QUIC_LIBRARY {
     //
     BOOLEAN Loaded : 1;
 
+    //
+    // Tracks whether the library's lazy initialization has completed.
+    //
+    BOOLEAN LazyInitComplete : 1;
+
 #ifdef CxPlatVerifierEnabled
     //
     // The app or driver verifier is globally enabled.
@@ -288,14 +293,42 @@ extern QUIC_LIBRARY MsQuicLib;
 #endif
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
-_Ret_range_(0,MsQuicLib.PartitionCount - 1)
 inline
 uint16_t
 QuicLibraryGetCurrentPartition(
     void
     )
 {
-    return ((uint16_t)CxPlatProcCurrentNumber()) % MsQuicLib.PartitionCount;
+    CXPLAT_DBG_ASSERT(MsQuicLib.PerProc != NULL);
+    const uint16_t CurrentProc = (uint16_t)CxPlatProcCurrentNumber();
+    if (MsQuicLib.ExecutionConfig && MsQuicLib.ExecutionConfig->ProcessorCount) {
+        CXPLAT_DBG_ASSERT(MsQuicLib.ExecutionConfig->ProcessorList);
+        //
+        // Try to find a partition close to the current processor.
+        //
+        for (uint32_t i = 0; i < MsQuicLib.ExecutionConfig->ProcessorCount; ++i) {
+            if (CurrentProc <= MsQuicLib.ExecutionConfig->ProcessorList[i]) {
+                return (uint16_t)i;
+            }
+        }
+        return (uint16_t)MsQuicLib.ExecutionConfig->ProcessorCount - 1;
+    }
+    return CurrentProc % MsQuicLib.PartitionCount;
+}
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+inline
+uint16_t
+QuicLibraryGetPartitionProcessor(
+    uint16_t PartitionIndex
+    )
+{
+    CXPLAT_DBG_ASSERT(MsQuicLib.PerProc != NULL);
+    if (MsQuicLib.ExecutionConfig && MsQuicLib.ExecutionConfig->ProcessorCount) {
+        CXPLAT_DBG_ASSERT(MsQuicLib.ExecutionConfig->ProcessorList);
+        return MsQuicLib.ExecutionConfig->ProcessorList[PartitionIndex];
+    }
+    return PartitionIndex;
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -305,7 +338,10 @@ QuicLibraryGetPerProc(
     void
     )
 {
-    return &MsQuicLib.PerProc[QuicLibraryGetCurrentPartition()];
+    CXPLAT_DBG_ASSERT(MsQuicLib.PerProc != NULL);
+    const uint16_t CurrentProc =
+        ((uint16_t)CxPlatProcCurrentNumber()) % MsQuicLib.ProcessorCount;
+    return &MsQuicLib.PerProc[CurrentProc];
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -342,18 +378,6 @@ QuicPartitionIdGetIndex(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 inline
 uint16_t
-QuicPartitionIndexIncrement(
-    uint16_t PartitionIndex,
-    uint16_t Increment
-    )
-{
-    CXPLAT_DBG_ASSERT(Increment < MsQuicLib.PartitionCount);
-    return (PartitionIndex + Increment) % MsQuicLib.PartitionCount;
-}
-
-_IRQL_requires_max_(DISPATCH_LEVEL)
-inline
-uint16_t
 QuicPartitionIndexDecrement(
     uint16_t PartitionIndex,
     uint16_t Decrement
@@ -376,7 +400,7 @@ QuicPerfCounterAdd(
     )
 {
     CXPLAT_DBG_ASSERT(Type >= 0 && Type < QUIC_PERF_COUNTER_MAX);
-    InterlockedExchangeAdd64(&(QuicLibraryGetPerProc()->PerfCounters[Type]), Value);
+    InterlockedExchangeAdd64(&QuicLibraryGetPerProc()->PerfCounters[Type], Value);
 }
 
 #define QuicPerfCounterIncrement(Type) QuicPerfCounterAdd(Type, 1)
@@ -470,6 +494,15 @@ QuicCidNewRandomSource(
     return Entry;
 }
 
+//
+// Ensures any lazy initialization for the library is complete.
+//
+_IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_STATUS
+QuicLibraryLazyInitialize(
+    BOOLEAN AcquireLock
+    );
+
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 QuicLibrarySetGlobalParam(
@@ -529,15 +562,6 @@ QuicLibraryTryAddRefBinding(
     );
 
 //
-// The function initializes the library execution context if not already done.
-//
-_IRQL_requires_max_(PASSIVE_LEVEL)
-QUIC_STATUS
-QuicLibraryEnsureExecutionContext(
-    void
-    );
-
-//
 // Releases a reference on the binding and uninitializes it if it's the last
 // one. DO NOT call this on a datapath upcall thread, as it will deadlock or
 // possibly even crash!
@@ -564,7 +588,7 @@ QuicLibraryOnListenerRegistered(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 QUIC_WORKER*
 QuicLibraryGetWorker(
-    _In_ const _In_ CXPLAT_RECV_DATA* Datagram
+    _In_ const QUIC_RX_PACKET* Packet
     );
 
 //

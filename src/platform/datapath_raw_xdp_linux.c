@@ -25,7 +25,7 @@ typedef struct XDP_DATAPATH {
     // Currently, all XDP interfaces share the same config.
     //
     CXPLAT_REF_COUNT RefCount;
-    uint32_t WorkerCount;
+    uint32_t PartitionCount;
     uint32_t RxBufferCount;
     uint32_t RxRingSize;
     uint32_t TxBufferCount;
@@ -36,7 +36,7 @@ typedef struct XDP_DATAPATH {
     BOOLEAN Running;        // Signal to stop workers.
     // const XDP_API_TABLE *XdpApi;
 
-    XDP_WORKER Workers[0];
+    XDP_PARTITION Partitions[0];
 } XDP_DATAPATH;
 
 typedef struct XDP_INTERFACE {
@@ -51,7 +51,7 @@ typedef struct XDP_INTERFACE {
 
 typedef struct XDP_QUEUE {
     const XDP_INTERFACE* Interface;
-    XDP_WORKER* Worker;
+    XDP_PARTITION* Partition;
     struct XDP_QUEUE* Next;
     uint8_t* RxBuffers;
     // HANDLE RxXsk;
@@ -68,8 +68,8 @@ typedef struct XDP_QUEUE {
     BOOLEAN TxQueued;
     BOOLEAN Error;
 
-    CXPLAT_LIST_ENTRY WorkerTxQueue;
-    CXPLAT_SLIST_ENTRY WorkerRxPool;
+    CXPLAT_LIST_ENTRY PartitionTxQueue;
+    CXPLAT_SLIST_ENTRY PartitionRxPool;
 
     // Move contended buffer pools to their own cache lines.
     // TODO: Use better (more scalable) buffer algorithms.
@@ -84,9 +84,9 @@ typedef struct XDP_QUEUE {
 
 // -> CxPlat
 typedef struct __attribute__((aligned(64))) XDP_RX_PACKET {
-    CXPLAT_RECV_DATA;
-    CXPLAT_ROUTE RouteStorage;
     XDP_QUEUE* Queue;
+    CXPLAT_ROUTE RouteStorage;
+    CXPLAT_RECV_DATA RecvData;
     // Followed by:
     // uint8_t ClientContext[...];
     // uint8_t FrameBuffer[MAX_ETH_FRAME_SIZE];
@@ -98,23 +98,6 @@ typedef struct __attribute__((aligned(64))) XDP_TX_PACKET {
     CXPLAT_LIST_ENTRY Link;
     uint8_t FrameBuffer[MAX_ETH_FRAME_SIZE];
 } XDP_TX_PACKET;
-
-
-CXPLAT_RECV_DATA*
-CxPlatDataPathRecvPacketToRecvData(
-    _In_ const CXPLAT_RECV_PACKET* const Context
-    )
-{
-    return (CXPLAT_RECV_DATA*)(((uint8_t*)Context) - sizeof(XDP_RX_PACKET));
-}
-
-CXPLAT_RECV_PACKET*
-CxPlatDataPathRecvDataToRecvPacket(
-    _In_ const CXPLAT_RECV_DATA* const Datagram
-    )
-{
-    return (CXPLAT_RECV_PACKET*)(((uint8_t*)Datagram) + sizeof(XDP_RX_PACKET));
-}
 
 QUIC_STATUS
 CxPlatGetInterfaceRssQueueCount(
@@ -186,9 +169,9 @@ CxPlatDpRawGetDatapathSize(
     _In_opt_ const QUIC_EXECUTION_CONFIG* Config
     )
 {
-    const uint32_t WorkerCount =
+    const uint32_t PartitionCount =
         (Config && Config->ProcessorCount) ? Config->ProcessorCount : CxPlatProcMaxCount();
-    return sizeof(XDP_DATAPATH) + (WorkerCount * sizeof(XDP_WORKER));
+    return sizeof(XDP_DATAPATH) + (PartitionCount * sizeof(XDP_PARTITION));
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)

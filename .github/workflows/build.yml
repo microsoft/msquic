@@ -207,7 +207,7 @@ jobs:
     runs-on: windows-2022
     steps:
     - name: Checkout repository
-      uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9
+      uses: actions/checkout@3df4ab11eba7bda6032a0b82a6bb43b11571feac
     - name: Download Build Artifacts
       uses: dawidd6/action-download-artifact@246dbf436b23d7c49e21a7ab8204ca9ecd1fe615
       with:
@@ -230,7 +230,7 @@ jobs:
       shell: pwsh
       run: scripts/package-nuget.ps1 -Tls ${{ matrix.vec.tls }} ${{ matrix.vec.arg }} -GHA
     - name: Upload build artifacts
-      uses: actions/upload-artifact@0b7f8abb1508181956e8e162db84b466c27e18ce
+      uses: actions/upload-artifact@a8a3f3ad30e3422c9c7b888a15615d19a852ae32
       with:
         name: Nuget-Release-${{ matrix.vec.plat }}-windows-2022-arm64-${{ matrix.vec.tls }}${{ matrix.vec.xdp }}
         path: artifacts/dist/*.nupkg

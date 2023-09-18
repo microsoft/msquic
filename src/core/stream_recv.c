@@ -589,7 +589,7 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 QuicStreamRecv(
     _In_ QUIC_STREAM* Stream,
-    _In_ CXPLAT_RECV_PACKET* Packet,
+    _In_ QUIC_RX_PACKET* Packet,
     _In_ QUIC_FRAME_TYPE FrameType,
     _In_ uint16_t BufferLength,
     _In_reads_bytes_(BufferLength)
@@ -773,7 +773,7 @@ QuicStreamOnBytesDelivered(
 
     if (Stream->RecvWindowBytesDelivered >= RecvBufferDrainThreshold) {
 
-        uint32_t TimeNow = CxPlatTimeUs32();
+        uint64_t TimeNow = CxPlatTimeUs64();
 
         //
         // Limit stream FC window growth by the connection FC window size.
@@ -781,9 +781,9 @@ QuicStreamOnBytesDelivered(
         if (Stream->RecvBuffer.VirtualBufferLength <
             Stream->Connection->Settings.ConnFlowControlWindow) {
 
-            uint32_t TimeThreshold = (uint32_t)
+            uint64_t TimeThreshold =
                 ((Stream->RecvWindowBytesDelivered * Stream->Connection->Paths[0].SmoothedRtt) / RecvBufferDrainThreshold);
-            if (CxPlatTimeDiff32(Stream->RecvWindowLastUpdate, TimeNow) <= TimeThreshold) {
+            if (CxPlatTimeDiff64(Stream->RecvWindowLastUpdate, TimeNow) <= TimeThreshold) {
 
                 //
                 // Buffer tuning:
@@ -807,7 +807,7 @@ QuicStreamOnBytesDelivered(
                 QuicTraceLogStreamVerbose(
                     IncreaseRxBuffer,
                     Stream,
-                    "Increasing max RX buffer size to %u (MinRtt=%u; TimeNow=%u; LastUpdate=%u)",
+                    "Increasing max RX buffer size to %u (MinRtt=%llu; TimeNow=%llu; LastUpdate=%llu)",
                     Stream->RecvBuffer.VirtualBufferLength * 2,
                     Stream->Connection->Paths[0].MinRtt,
                     TimeNow,

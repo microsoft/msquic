@@ -1552,11 +1552,19 @@ TRACEPOINT_EVENT(CLOG_FRAME_C, FrameLogImmediateAck,
 
 
 /*----------------------------------------------------------
+
 // Decoder Ring for FrameLogReliableResetStreamInvalid
 // [%c][%cX][%llu]   RELIABLE_RESET_STREAM [Invalid]
 // QuicTraceLogVerbose(
                 FrameLogReliableResetStreamInvalid,
                 "[%c][%cX][%llu]   RELIABLE_RESET_STREAM [Invalid]",
+
+// Decoder Ring for FrameLogTimestampInvalid
+// [%c][%cX][%llu]   TIMESTAMP [Invalid]
+// QuicTraceLogVerbose(
+                FrameLogTimestampInvalid,
+                "[%c][%cX][%llu]   TIMESTAMP [Invalid]",
+
                 PtkConnPre(Connection),
                 PktRxPre(Rx),
                 PacketNumber);
@@ -1564,7 +1572,20 @@ TRACEPOINT_EVENT(CLOG_FRAME_C, FrameLogImmediateAck,
 // arg3 = arg3 = PktRxPre(Rx) = arg3
 // arg4 = arg4 = PacketNumber = arg4
 ----------------------------------------------------------*/
+
 TRACEPOINT_EVENT(CLOG_FRAME_C, FrameLogReliableResetStreamInvalid,
+    TP_ARGS(
+        unsigned char, arg2,
+        unsigned char, arg3,
+        unsigned long long, arg4), 
+    TP_FIELDS(
+        ctf_integer(unsigned char, arg2, arg2)
+        ctf_integer(unsigned char, arg3, arg3)
+        ctf_integer(uint64_t, arg4, arg4)
+    )
+)
+
+TRACEPOINT_EVENT(CLOG_FRAME_C, FrameLogTimestampInvalid,
     TP_ARGS(
         unsigned char, arg2,
         unsigned char, arg3,
@@ -1600,6 +1621,21 @@ TRACEPOINT_EVENT(CLOG_FRAME_C, FrameLogReliableResetStreamInvalid,
 // arg8 = arg8 = Frame.ReliableSize = arg8
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_FRAME_C, FrameLogReliableResetStream,
+// Decoder Ring for FrameLogTimestamp
+// [%c][%cX][%llu]   TIMESTAMP %llu
+// QuicTraceLogVerbose(
+            FrameLogTimestamp,
+            "[%c][%cX][%llu]   TIMESTAMP %llu",
+            PtkConnPre(Connection),
+            PktRxPre(Rx),
+            PacketNumber,
+            Frame.Timestamp);
+// arg2 = arg2 = PtkConnPre(Connection) = arg2
+// arg3 = arg3 = PktRxPre(Rx) = arg3
+// arg4 = arg4 = PacketNumber = arg4
+// arg5 = arg5 = Frame.Timestamp = arg5
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_FRAME_C, FrameLogTimestamp,
     TP_ARGS(
         unsigned char, arg2,
         unsigned char, arg3,
@@ -1608,6 +1644,9 @@ TRACEPOINT_EVENT(CLOG_FRAME_C, FrameLogReliableResetStream,
         unsigned long long, arg6,
         unsigned long long, arg7,
         unsigned long long, arg8), 
+
+        unsigned long long, arg5), 
+
     TP_FIELDS(
         ctf_integer(unsigned char, arg2, arg2)
         ctf_integer(unsigned char, arg3, arg3)

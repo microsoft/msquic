@@ -1309,6 +1309,19 @@ namespace Microsoft.Quic
             }
         }
 
+        internal ulong OneWayDelayEnabled
+        {
+            get
+            {
+                return Anonymous2.Anonymous.OneWayDelayEnabled;
+            }
+
+            set
+            {
+                Anonymous2.Anonymous.OneWayDelayEnabled = value;
+            }
+        }
+
         internal ulong ReservedFlags
         {
             get
@@ -1855,17 +1868,31 @@ namespace Microsoft.Quic
                     }
                 }
 
-                [NativeTypeName("uint64_t : 27")]
-                internal ulong RESERVED
+                [NativeTypeName("uint64_t : 1")]
+                internal ulong OneWayDelayEnabled
                 {
                     get
                     {
-                        return (_bitfield >> 37) & 0x7FFFFFFUL;
+                        return (_bitfield >> 37) & 0x1UL;
                     }
 
                     set
                     {
-                        _bitfield = (_bitfield & ~(0x7FFFFFFUL << 37)) | ((value & 0x7FFFFFFUL) << 37);
+                        _bitfield = (_bitfield & ~(0x1UL << 37)) | ((value & 0x1UL) << 37);
+                    }
+                }
+
+                [NativeTypeName("uint64_t : 26")]
+                internal ulong RESERVED
+                {
+                    get
+                    {
+                        return (_bitfield >> 38) & 0x3FFFFFFUL;
+                    }
+
+                    set
+                    {
+                        _bitfield = (_bitfield & ~(0x3FFFFFFUL << 38)) | ((value & 0x3FFFFFFUL) << 38);
                     }
                 }
             }
@@ -1928,17 +1955,31 @@ namespace Microsoft.Quic
                     }
                 }
 
-                [NativeTypeName("uint64_t : 61")]
-                internal ulong ReservedFlags
+                [NativeTypeName("uint64_t : 1")]
+                internal ulong OneWayDelayEnabled
                 {
                     get
                     {
-                        return (_bitfield >> 3) & 0x1FFFFFFFUL;
+                        return (_bitfield >> 3) & 0x1UL;
                     }
 
                     set
                     {
-                        _bitfield = (_bitfield & ~(0x1FFFFFFFUL << 3)) | ((value & 0x1FFFFFFFUL) << 3);
+                        _bitfield = (_bitfield & ~(0x1UL << 3)) | ((value & 0x1UL) << 3);
+                    }
+                }
+
+                [NativeTypeName("uint64_t : 60")]
+                internal ulong ReservedFlags
+                {
+                    get
+                    {
+                        return (_bitfield >> 4) & 0xFFFFFFFUL;
+                    }
+
+                    set
+                    {
+                        _bitfield = (_bitfield & ~(0xFFFFFFFUL << 4)) | ((value & 0xFFFFFFFUL) << 4);
                     }
                 }
             }
@@ -2221,6 +2262,7 @@ namespace Microsoft.Quic
         RESUMPTION_TICKET_RECEIVED = 14,
         PEER_CERTIFICATE_RECEIVED = 15,
         RELIABLE_RESET_NEGOTIATED = 16,
+        ONE_WAY_DELAY_NEGOTIATED = 17,
     }
 
     internal partial struct QUIC_CONNECTION_EVENT
@@ -2366,6 +2408,14 @@ namespace Microsoft.Quic
             }
         }
 
+        internal ref _Anonymous_e__Union._ONE_WAY_DELAY_NEGOTIATED_e__Struct ONE_WAY_DELAY_NEGOTIATED
+        {
+            get
+            {
+                return ref MemoryMarshal.GetReference(MemoryMarshal.CreateSpan(ref Anonymous.ONE_WAY_DELAY_NEGOTIATED, 1));
+            }
+        }
+
         [StructLayout(LayoutKind.Explicit)]
         internal partial struct _Anonymous_e__Union
         {
@@ -2436,6 +2486,10 @@ namespace Microsoft.Quic
             [FieldOffset(0)]
             [NativeTypeName("struct (anonymous struct)")]
             internal _RELIABLE_RESET_NEGOTIATED_e__Struct RELIABLE_RESET_NEGOTIATED;
+
+            [FieldOffset(0)]
+            [NativeTypeName("struct (anonymous struct)")]
+            internal _ONE_WAY_DELAY_NEGOTIATED_e__Struct ONE_WAY_DELAY_NEGOTIATED;
 
             internal unsafe partial struct _CONNECTED_e__Struct
             {
@@ -2550,6 +2604,9 @@ namespace Microsoft.Quic
             {
                 [NativeTypeName("uint16_t")]
                 internal ushort IdealProcessor;
+
+                [NativeTypeName("uint16_t")]
+                internal ushort PartitionIndex;
             }
 
             internal partial struct _DATAGRAM_STATE_CHANGED_e__Struct
@@ -2613,6 +2670,15 @@ namespace Microsoft.Quic
             {
                 [NativeTypeName("BOOLEAN")]
                 internal byte IsNegotiated;
+            }
+
+            internal partial struct _ONE_WAY_DELAY_NEGOTIATED_e__Struct
+            {
+                [NativeTypeName("BOOLEAN")]
+                internal byte SendNegotiated;
+
+                [NativeTypeName("BOOLEAN")]
+                internal byte ReceiveNegotiated;
             }
         }
     }

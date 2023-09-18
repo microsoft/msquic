@@ -78,7 +78,7 @@ typedef struct QUIC_CONGESTION_CONTROL_BBR {
     // If TRUE, there has been at least one MinRtt sample
     //
     BOOLEAN MinRttTimestampValid: 1;
-    
+
     //
     // The size of the initial congestion window in packets
     //
@@ -201,7 +201,7 @@ typedef struct QUIC_CONGESTION_CONTROL_BBR {
     QUIC_SLIDING_WINDOW_EXTREMUM MaxAckHeightFilter;
     QUIC_SLIDING_WINDOW_EXTREMUM_ENTRY MaxAckHeightFilterEntries[kBbrDefaultFilterCapacity];
 
-    uint32_t MinRtt; // microseconds
+    uint64_t MinRtt; // microseconds
 
     //
     // Time when MinRtt was sampled. Only valid if MinRttTimestampValid is set.

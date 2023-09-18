@@ -1138,6 +1138,44 @@
                 name="SmoothedRtt"
                 />
           </template>
+          <template tid="tid_CONN_OUT_FLOW_STATS_V2">
+            <data
+                inType="win:Pointer"
+                name="Connection"
+                />
+            <data
+                inType="win:UInt64"
+                name="BytesSent"
+                />
+            <data
+                inType="win:UInt32"
+                name="BytesInFlight"
+                />
+            <data
+                inType="win:UInt32"
+                name="CongestionWindow"
+                />
+            <data
+                inType="win:UInt64"
+                name="ConnectionFlowControl"
+                />
+            <data
+                inType="win:UInt64"
+                name="IdealBytes"
+                />
+            <data
+                inType="win:UInt64"
+                name="PostedBytes"
+                />
+            <data
+                inType="win:UInt64"
+                name="SmoothedRtt"
+                />
+            <data
+                inType="win:UInt64"
+                name="OneWayDelay"
+                />
+          </template>
           <template tid="tid_CONN_OUT_FLOW_STREAM_STATS">
             <data
                 inType="win:Pointer"
@@ -2134,6 +2172,44 @@
                 name="EcnCongestionCount"
                 />
           </template>
+          <template tid="tid_CONN_STATISTICS_V3">
+            <data
+                inType="win:Pointer"
+                name="Connection"
+                />
+            <data
+                inType="win:UInt64"
+                name="SmoothedRtt"
+                />
+            <data
+                inType="win:UInt32"
+                name="CongestionCount"
+                />
+            <data
+                inType="win:UInt32"
+                name="PersistentCongestionCount"
+                />
+            <data
+                inType="win:UInt64"
+                name="SendTotalBytes"
+                />
+            <data
+                inType="win:UInt64"
+                name="RecvTotalBytes"
+                />
+			<data
+                inType="win:UInt32"
+                name="CongestionWindow"
+                />
+            <data
+                inType="win:AnsiString"
+                name="Cc"
+                />
+            <data
+                inType="win:UInt32"
+                name="EcnCongestionCount"
+                />
+          </template>
           <template tid="tid_CONN_COUNT_COUNT">
             <data
                 inType="win:Pointer"
@@ -2343,6 +2419,14 @@
               symbol="QuicDataPathRundown"
               template="tid_DATAPATH_INIT"
               value="22"
+              />
+          <event
+              keywords="ut:LowVolume"
+              level="win:Informational"
+              message="$(string.Etw.LibraryInitializedV3)"
+              opcode="Global"
+              symbol="QuicLibraryInitializedV3"
+              value="23"
               />
           <!-- 1024 - 2047 | Registration Events -->
           <event
@@ -3286,6 +3370,24 @@
               template="tid_CONN_COUNT_COUNT"
               value="5192"
               />
+          <event
+              keywords="ut:Connection ut:DataFlow"
+              level="win:Verbose"
+              message="$(string.Etw.ConnOutFlowStatsV2)"
+              opcode="Connection"
+              symbol="QuicConnOutFlowStatsV2"
+              template="tid_CONN_OUT_FLOW_STATS_V2"
+              value="5193"
+              />
+          <event
+              keywords="ut:Connection ut:LowVolume"
+              level="win:Informational"
+              message="$(string.Etw.ConnStatsV2)"
+              opcode="Connection"
+              symbol="QuicConnStatsV3"
+              template="tid_CONN_STATISTICS_V3"
+              value="5194"
+              />
           <!-- 6144 - 7167 | Stream Events -->
           <event
               keywords="ut:Stream ut:LowVolume ut:RPS"
@@ -3864,6 +3966,10 @@
             value="[conn][%1] OUT: BytesSent=%2 InFlight=%3 InFlightMax=%4 CWnd=%5 SSThresh=%6 ConnFC=%7 ISB=%8 PostedBytes=%9 SRtt=%10"
             />
         <string
+            id="Etw.ConnOutFlowStatsV2"
+            value="[conn][%1] OUT: BytesSent=%2 InFlight=%3 CWnd=%4 ConnFC=%5 ISB=%6 PostedBytes=%7 SRtt=%8 1Way=%9"
+            />
+        <string
             id="Etw.ConnOutFlowStreamStats"
             value="[conn][%1] OUT: StreamFC=%2 StreamSendWindow=%3"
             />
@@ -4146,6 +4252,10 @@
         <string
             id="Etw.LibraryInitializedV2"
             value="[ lib] Initialized, PartitionCount=%1"
+            />
+        <string
+            id="Etw.LibraryInitializedV3"
+            value="[ lib] Initialized"
             />
         <string
             id="Etw.LibraryRundown"

@@ -126,7 +126,7 @@ QuicStreamInitialize(
     }
 
     Stream->MaxAllowedRecvOffset = Stream->RecvBuffer.VirtualBufferLength;
-    Stream->RecvWindowLastUpdate = CxPlatTimeUs32();
+    Stream->RecvWindowLastUpdate = CxPlatTimeUs64();
 
     Stream->Flags.Initialized = TRUE;
     *NewStream = Stream;

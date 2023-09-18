@@ -109,7 +109,7 @@ typedef struct CXPLAT_DATAPATH_PROC_CONTEXT CXPLAT_DATAPATH_PROC_CONTEXT;
 //
 // Internal receive allocation context.
 //
-typedef struct CXPLAT_DATAPATH_INTERNAL_RECV_CONTEXT {
+typedef struct DATAPATH_RX_IO_BLOCK {
 
     //
     // The per proc context for this receive context.
@@ -138,7 +138,20 @@ typedef struct CXPLAT_DATAPATH_INTERNAL_RECV_CONTEXT {
     uint8_t DatagramPoolIndex   : 1;
     uint8_t BufferPoolIndex     : 1;
     uint8_t IsCopiedBuffer      : 1;
-} CXPLAT_DATAPATH_INTERNAL_RECV_CONTEXT;
+} DATAPATH_RX_IO_BLOCK;
+
+typedef struct DECLSPEC_ALIGN(MEMORY_ALLOCATION_ALIGNMENT) DATAPATH_RX_PACKET {
+    //
+    // The IO block that owns the packet.
+    //
+    DATAPATH_RX_IO_BLOCK* IoBlock;
+
+    //
+    // Publicly visible receive data.
+    //
+    CXPLAT_RECV_DATA Data;
+
+} DATAPATH_RX_PACKET;
 
 BOOLEAN
 CxPlatMdlMapChain(
@@ -158,19 +171,6 @@ CxPlatMdlMapChain(
     } while ((Mdl = Mdl->Next) != NULL);
     return TRUE;
 }
-
-//
-// Internal receive buffer context.
-//
-typedef struct CXPLAT_DATAPATH_INTERNAL_RECV_BUFFER_CONTEXT {
-
-    //
-    // The internal receive context owning the data indication and allocation
-    // chain.
-    //
-    CXPLAT_DATAPATH_INTERNAL_RECV_CONTEXT* RecvContext;
-
-} CXPLAT_DATAPATH_INTERNAL_RECV_BUFFER_CONTEXT;
 
 typedef struct CXPLAT_DATAPATH_SEND_BUFFER {
 
@@ -405,7 +405,7 @@ typedef struct CXPLAT_DATAPATH {
     //
     // The size of the buffer to allocate for client's receive context structure.
     //
-    uint32_t ClientRecvContextLength;
+    uint32_t ClientRecvDataLength;
 
     //
     // The size of each receive datagram array element, including client context,
@@ -445,37 +445,6 @@ CxPlatSendBufferPoolAlloc(
         Size, \
         Tag, \
         0)
-
-CXPLAT_RECV_DATA*
-CxPlatDataPathRecvPacketToRecvData(
-    _In_ const CXPLAT_RECV_PACKET* const Context
-    )
-{
-    return (CXPLAT_RECV_DATA*)
-        (((PUCHAR)Context) -
-            sizeof(CXPLAT_DATAPATH_INTERNAL_RECV_BUFFER_CONTEXT) -
-            sizeof(CXPLAT_RECV_DATA));
-}
-
-CXPLAT_RECV_PACKET*
-CxPlatDataPathRecvDataToRecvPacket(
-    _In_ const CXPLAT_RECV_DATA* const Datagram
-    )
-{
-    return (CXPLAT_RECV_PACKET*)
-        (((PUCHAR)Datagram) +
-            sizeof(CXPLAT_RECV_DATA) +
-            sizeof(CXPLAT_DATAPATH_INTERNAL_RECV_BUFFER_CONTEXT));
-}
-
-CXPLAT_DATAPATH_INTERNAL_RECV_BUFFER_CONTEXT*
-CxPlatDataPathDatagramToInternalDatagramContext(
-    _In_ CXPLAT_RECV_DATA* Datagram
-    )
-{
-    return (CXPLAT_DATAPATH_INTERNAL_RECV_BUFFER_CONTEXT*)
-        (((PUCHAR)Datagram) + sizeof(CXPLAT_RECV_DATA));
-}
 
 IO_COMPLETION_ROUTINE CxPlatDataPathIoCompletion;
 
@@ -821,7 +790,7 @@ Error:
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 CxPlatDataPathInitialize(
-    _In_ uint32_t ClientRecvContextLength,
+    _In_ uint32_t ClientRecvDataLength,
     _In_opt_ const CXPLAT_UDP_DATAPATH_CALLBACKS* UdpCallbacks,
     _In_opt_ const CXPLAT_TCP_DATAPATH_CALLBACKS* TcpCallbacks,
     _In_opt_ QUIC_EXECUTION_CONFIG* Config,
@@ -875,21 +844,20 @@ CxPlatDataPathInitialize(
     if (UdpCallbacks) {
         Datapath->UdpHandlers = *UdpCallbacks;
     }
-    Datapath->ClientRecvContextLength = ClientRecvContextLength;
+    Datapath->ClientRecvDataLength = ClientRecvDataLength;
     Datapath->ProcCount = (uint32_t)CxPlatProcMaxCount();
     Datapath->WskDispatch.WskReceiveFromEvent = CxPlatDataPathSocketReceive;
     Datapath->DatagramStride =
         ALIGN_UP(
-            sizeof(CXPLAT_RECV_DATA) +
-            sizeof(CXPLAT_DATAPATH_INTERNAL_RECV_BUFFER_CONTEXT) +
-            ClientRecvContextLength,
+            sizeof(DATAPATH_RX_PACKET) +
+            ClientRecvDataLength,
             PVOID);
 
     uint32_t RecvDatagramLength =
-        sizeof(CXPLAT_DATAPATH_INTERNAL_RECV_CONTEXT) +
+        sizeof(DATAPATH_RX_IO_BLOCK) +
         Datapath->DatagramStride;
     uint32_t UroDatagramLength =
-        sizeof(CXPLAT_DATAPATH_INTERNAL_RECV_CONTEXT) +
+        sizeof(DATAPATH_RX_IO_BLOCK) +
         URO_MAX_DATAGRAMS_PER_INDICATION * Datapath->DatagramStride;
 
     for (uint32_t i = 0; i < Datapath->ProcCount; i++) {
@@ -2106,52 +2074,53 @@ CxPlatSocketGetRemoteAddress(
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
-CXPLAT_DATAPATH_INTERNAL_RECV_CONTEXT*
-CxPlatSocketAllocRecvContext(
+DATAPATH_RX_IO_BLOCK*
+CxPlatSocketAllocRxIoBlock(
     _In_ CXPLAT_DATAPATH* Datapath,
     _In_ UINT16 ProcIndex,
     _In_ BOOLEAN IsUro
     )
 {
     CXPLAT_DBG_ASSERT(IsUro == 1 || IsUro == 0);
+    CXPLAT_DBG_ASSERT(ProcIndex < Datapath->ProcCount);
     CXPLAT_POOL* Pool = &Datapath->ProcContexts[ProcIndex].RecvDatagramPools[IsUro];
 
-    CXPLAT_DATAPATH_INTERNAL_RECV_CONTEXT* InternalContext = CxPlatPoolAlloc(Pool);
+    DATAPATH_RX_IO_BLOCK* IoBlock = CxPlatPoolAlloc(Pool);
 
-    if (InternalContext != NULL) {
-        InternalContext->Route.State = RouteResolved;
-        InternalContext->DatagramPoolIndex = IsUro;
-        InternalContext->ProcContext = &Datapath->ProcContexts[ProcIndex];
-        InternalContext->DataBufferStart = NULL;
+    if (IoBlock != NULL) {
+        IoBlock->Route.State = RouteResolved;
+        IoBlock->DatagramPoolIndex = IsUro;
+        IoBlock->ProcContext = &Datapath->ProcContexts[ProcIndex];
+        IoBlock->DataBufferStart = NULL;
     }
 
-    return InternalContext;
+    return IoBlock;
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 _Must_inspect_result_
 PWSK_DATAGRAM_INDICATION
-CxPlatDataPathFreeRecvContext(
-    _In_ __drv_freesMem(Context) CXPLAT_DATAPATH_INTERNAL_RECV_CONTEXT* Context
+CxPlatDataPathFreeRxIoBlock(
+    _In_ __drv_freesMem(Context) DATAPATH_RX_IO_BLOCK* IoBlock
     )
 {
     PWSK_DATAGRAM_INDICATION DataIndication = NULL;
-    if (Context->DataBufferStart != NULL) {
-        if (Context->IsCopiedBuffer) {
+    if (IoBlock->DataBufferStart != NULL) {
+        if (IoBlock->IsCopiedBuffer) {
             CxPlatPoolFree(
-                &Context->ProcContext->RecvBufferPools[Context->BufferPoolIndex],
-                Context->DataBufferStart);
+                &IoBlock->ProcContext->RecvBufferPools[IoBlock->BufferPoolIndex],
+                IoBlock->DataBufferStart);
         } else {
-            DataIndication = Context->DataIndication;
+            DataIndication = IoBlock->DataIndication;
             InterlockedAdd64(
-                &Context->ProcContext->OutstandingPendingBytes,
-                -Context->DataIndicationSize);
+                &IoBlock->ProcContext->OutstandingPendingBytes,
+                -IoBlock->DataIndicationSize);
         }
     }
 
     CxPlatPoolFree(
-        &Context->ProcContext->RecvDatagramPools[Context->DatagramPoolIndex],
-        Context);
+        &IoBlock->ProcContext->RecvDatagramPools[IoBlock->DatagramPoolIndex],
+        IoBlock);
     return DataIndication;
 }
 
@@ -2177,7 +2146,7 @@ CxPlatDataPathSocketReceive(
 
     CXPLAT_SOCKET* Binding = (CXPLAT_SOCKET*)Context;
 
-    uint32_t CurProcNumber = CxPlatProcCurrentNumber();
+    const uint32_t CurProcNumber = CxPlatProcCurrentNumber();
     if (!CxPlatRundownAcquire(&Binding->Rundown[CurProcNumber])) {
         return STATUS_DEVICE_NOT_READY;
     }
@@ -2198,9 +2167,8 @@ CxPlatDataPathSocketReceive(
         DataIndicationHead = DataIndicationHead->Next;
         DataIndication->Next = NULL;
 
-        CXPLAT_DATAPATH_INTERNAL_RECV_CONTEXT* RecvContext = NULL;
-        CXPLAT_DATAPATH_INTERNAL_RECV_BUFFER_CONTEXT* InternalDatagramContext;
-        CXPLAT_RECV_DATA* Datagram = NULL;
+        DATAPATH_RX_IO_BLOCK* IoBlock = NULL;
+        DATAPATH_RX_PACKET* Datagram = NULL;
 
         if (DataIndication->Buffer.Mdl == NULL ||
             DataIndication->Buffer.Length == 0) {
@@ -2379,84 +2347,81 @@ CxPlatDataPathSocketReceive(
                 goto Drop;
             }
 
-            if (RecvContext == NULL) {
-                RecvContext =
-                    CxPlatSocketAllocRecvContext(
+            if (IoBlock == NULL) {
+                IoBlock =
+                    CxPlatSocketAllocRxIoBlock(
                         Binding->Datapath,
-                        (UINT16)CurProcNumber,
+                        (UINT16)(CurProcNumber % Binding->Datapath->ProcCount),
                         IsCoalesced);
-                if (RecvContext == NULL) {
+                if (IoBlock == NULL) {
                     QuicTraceLogWarning(
-                        DatapathDropAllocRecvContextFailure,
+                        DatapathDropAllocIoBlockFailure,
                         "[%p] Couldn't allocate receive context.",
                         Binding);
                     goto Drop;
                 }
 
-                if (RecvContext->ProcContext->OutstandingPendingBytes >= PENDING_BUFFER_LIMIT) {
+                if (IoBlock->ProcContext->OutstandingPendingBytes >= PENDING_BUFFER_LIMIT) {
                     //
                     // Perform a copy
                     //
-                    RecvContext->IsCopiedBuffer = TRUE;
-                    RecvContext->BufferPoolIndex = DataLength > 4096 ? 1 : 0;
-                    RecvContext->DataBufferStart =
+                    IoBlock->IsCopiedBuffer = TRUE;
+                    IoBlock->BufferPoolIndex = DataLength > 4096 ? 1 : 0;
+                    IoBlock->DataBufferStart =
                         (uint8_t*)CxPlatPoolAlloc(
-                            &RecvContext->ProcContext->RecvBufferPools[RecvContext->BufferPoolIndex]);
-                    if (RecvContext->DataBufferStart == NULL) {
+                            &IoBlock->ProcContext->RecvBufferPools[IoBlock->BufferPoolIndex]);
+                    if (IoBlock->DataBufferStart == NULL) {
                         QuicTraceLogWarning(
                             DatapathDropAllocRecvBufferFailure,
                             "[%p] Couldn't allocate receive buffers.",
                             Binding);
                         goto Drop;
                     }
-                    CurrentCopiedBuffer = RecvContext->DataBufferStart;
+                    CurrentCopiedBuffer = IoBlock->DataBufferStart;
                 } else {
-                    RecvContext->IsCopiedBuffer = FALSE;
-                    RecvContext->DataIndication = DataIndication;
+                    IoBlock->IsCopiedBuffer = FALSE;
+                    IoBlock->DataIndication = DataIndication;
                     CXPLAT_DBG_ASSERT(DataIndication->Next == NULL);
-                    RecvContext->DataIndicationSize = (int32_t)DataLength;
+                    IoBlock->DataIndicationSize = (int32_t)DataLength;
                     InterlockedAdd64(
-                        &RecvContext->ProcContext->OutstandingPendingBytes,
-                        RecvContext->DataIndicationSize);
+                        &IoBlock->ProcContext->OutstandingPendingBytes,
+                        IoBlock->DataIndicationSize);
                 }
 
-                RecvContext->Binding = Binding;
-                RecvContext->ReferenceCount = 0;
-                RecvContext->Route.Queue =
+                IoBlock->Binding = Binding;
+                IoBlock->ReferenceCount = 0;
+                IoBlock->Route.Queue =
                     &Binding->Datapath->ProcContexts[CurProcNumber % Binding->Datapath->ProcCount];
-                RecvContext->Route.LocalAddress = LocalAddr;
-                RecvContext->Route.RemoteAddress = RemoteAddr;
-                Datagram = (CXPLAT_RECV_DATA*)(RecvContext + 1);
+                IoBlock->Route.LocalAddress = LocalAddr;
+                IoBlock->Route.RemoteAddress = RemoteAddr;
+                Datagram = (DATAPATH_RX_PACKET*)(IoBlock + 1);
             }
 
             CXPLAT_DBG_ASSERT(Datagram != NULL);
-            Datagram->Next = NULL;
-            Datagram->PartitionIndex = (uint8_t)CurProcNumber;
-            Datagram->TypeOfService = (uint8_t)ECN;
-            Datagram->Allocated = TRUE;
-            Datagram->QueuedOnConnection = FALSE;
+            Datagram->IoBlock = IoBlock;
+            Datagram->Data.Next = NULL;
+            Datagram->Data.PartitionIndex = (uint16_t)(CurProcNumber % Binding->Datapath->ProcCount);
+            Datagram->Data.TypeOfService = (uint8_t)ECN;
+            Datagram->Data.Allocated = TRUE;
+            Datagram->Data.QueuedOnConnection = FALSE;
 
-            InternalDatagramContext =
-                CxPlatDataPathDatagramToInternalDatagramContext(Datagram);
-            InternalDatagramContext->RecvContext = RecvContext;
-
-            if (RecvContext->IsCopiedBuffer) {
-                Datagram->Buffer = CurrentCopiedBuffer;
-                CxPlatCopyMemory(Datagram->Buffer, (uint8_t*)Mdl->MappedSystemVa + MdlOffset, MessageLength);
+            if (IoBlock->IsCopiedBuffer) {
+                Datagram->Data.Buffer = CurrentCopiedBuffer;
+                CxPlatCopyMemory(Datagram->Data.Buffer, (uint8_t*)Mdl->MappedSystemVa + MdlOffset, MessageLength);
                 CurrentCopiedBuffer += MessageLength;
             } else {
-                Datagram->Buffer = (uint8_t*)Mdl->MappedSystemVa + MdlOffset;
+                Datagram->Data.Buffer = (uint8_t*)Mdl->MappedSystemVa + MdlOffset;
             }
 
-            Datagram->BufferLength = MessageLength;
-            Datagram->Route = &RecvContext->Route;
+            Datagram->Data.BufferLength = MessageLength;
+            Datagram->Data.Route = &IoBlock->Route;
 
             //
             // Add the datagram to the end of the current chain.
             //
-            *DatagramChainTail = Datagram;
-            DatagramChainTail = &Datagram->Next;
-            if (++RecvContext->ReferenceCount == URO_MAX_DATAGRAMS_PER_INDICATION) {
+            *DatagramChainTail = &Datagram->Data;
+            DatagramChainTail = &Datagram->Data.Next;
+            if (++IoBlock->ReferenceCount == URO_MAX_DATAGRAMS_PER_INDICATION) {
                 QuicTraceLogWarning(
                     DatapathUroExceeded,
                     "[%p] Exceeded URO preallocation capacity.",
@@ -2476,14 +2441,14 @@ CxPlatDataPathSocketReceive(
                 MdlOffset = 0;
             }
 
-            Datagram = (CXPLAT_RECV_DATA*)
+            Datagram = (DATAPATH_RX_PACKET*)
                 (((PUCHAR)Datagram) +
                     Binding->Datapath->DatagramStride);
         }
 
     Drop:
 
-        if (RecvContext != NULL && RecvContext->ReferenceCount == 0) {
+        if (IoBlock != NULL && IoBlock->ReferenceCount == 0) {
             //
             // No receive buffers were generated, so clean up now and return the
             // indication back to WSK. If the reference count is nonzero, then
@@ -2491,13 +2456,13 @@ CxPlatDataPathSocketReceive(
             // returned the buffers.
             //
             PWSK_DATAGRAM_INDICATION FreeIndic =
-                CxPlatDataPathFreeRecvContext(RecvContext);
+                CxPlatDataPathFreeRxIoBlock(IoBlock);
             CXPLAT_DBG_ASSERT(FreeIndic == DataIndication);
             UNREFERENCED_PARAMETER(FreeIndic);
-            RecvContext = NULL;
+            IoBlock = NULL;
         }
 
-        if (RecvContext == NULL || RecvContext->IsCopiedBuffer) {
+        if (IoBlock == NULL || IoBlock->IsCopiedBuffer) {
             *ReleaseChainTail = DataIndication;
             ReleaseChainTail = &DataIndication->Next;
         }
@@ -2544,7 +2509,7 @@ CxPlatRecvDataReturn(
     PWSK_DATAGRAM_INDICATION* DataIndicationTail = &DataIndications;
 
     LONG BatchedBufferCount = 0;
-    CXPLAT_DATAPATH_INTERNAL_RECV_CONTEXT* BatchedInternalContext = NULL;
+    DATAPATH_RX_IO_BLOCK* BatchedIoBlock = NULL;
 
     CXPLAT_RECV_DATA* Datagram;
     while ((Datagram = RecvDataChain) != NULL) {
@@ -2553,28 +2518,24 @@ CxPlatRecvDataReturn(
         CXPLAT_DBG_ASSERT(!Datagram->QueuedOnConnection);
         RecvDataChain = RecvDataChain->Next;
 
-        CXPLAT_DATAPATH_INTERNAL_RECV_BUFFER_CONTEXT* InternalBufferContext =
-            CxPlatDataPathDatagramToInternalDatagramContext(Datagram);
-        CXPLAT_DATAPATH_INTERNAL_RECV_CONTEXT* InternalContext =
-            InternalBufferContext->RecvContext;
+        DATAPATH_RX_IO_BLOCK* IoBlock =
+            CXPLAT_CONTAINING_RECORD(Datagram, DATAPATH_RX_PACKET, Data)->IoBlock;
 
-        CXPLAT_DBG_ASSERT(Binding == NULL || Binding == InternalContext->Binding);
-        Binding = InternalContext->Binding;
+        CXPLAT_DBG_ASSERT(Binding == NULL || Binding == IoBlock->Binding);
+        Binding = IoBlock->Binding;
         Datagram->Allocated = FALSE;
 
-        if (BatchedInternalContext == InternalContext) {
+        if (BatchedIoBlock == IoBlock) {
             BatchedBufferCount++;
         } else {
-            if (BatchedInternalContext != NULL &&
+            if (BatchedIoBlock != NULL &&
                 InterlockedAdd(
-                    (PLONG)&BatchedInternalContext->ReferenceCount,
+                    (PLONG)&BatchedIoBlock->ReferenceCount,
                     -BatchedBufferCount) == 0) {
                 //
                 // Clean up the data indication.
                 //
-                DataIndication =
-                    CxPlatDataPathFreeRecvContext(BatchedInternalContext);
-
+                DataIndication = CxPlatDataPathFreeRxIoBlock(BatchedIoBlock);
                 if (DataIndication != NULL) {
                     CXPLAT_DBG_ASSERT(DataIndication->Next == NULL);
                     *DataIndicationTail = DataIndication;
@@ -2582,21 +2543,19 @@ CxPlatRecvDataReturn(
                 }
             }
 
-            BatchedInternalContext = InternalContext;
+            BatchedIoBlock = IoBlock;
             BatchedBufferCount = 1;
         }
     }
 
-    if (BatchedInternalContext != NULL &&
+    if (BatchedIoBlock != NULL &&
         InterlockedAdd(
-            (PLONG)&BatchedInternalContext->ReferenceCount,
+            (PLONG)&BatchedIoBlock->ReferenceCount,
             -BatchedBufferCount) == 0) {
         //
         // Clean up the data indication.
         //
-        DataIndication =
-            CxPlatDataPathFreeRecvContext(BatchedInternalContext);
-
+        DataIndication = CxPlatDataPathFreeRxIoBlock(BatchedIoBlock);
         if (DataIndication != NULL) {
             CXPLAT_DBG_ASSERT(DataIndication->Next == NULL);
             *DataIndicationTail = DataIndication;
@@ -2624,7 +2583,7 @@ CxPlatSendDataAlloc(
     CXPLAT_DBG_ASSERT(Binding != NULL);
 
     if (Config->Route->Queue == NULL) {
-        Config->Route->Queue = &Binding->Datapath->ProcContexts[CxPlatProcCurrentNumber()];
+        Config->Route->Queue = &Binding->Datapath->ProcContexts[CxPlatProcCurrentNumber() % Binding->Datapath->ProcCount];
     }
 
     CXPLAT_DATAPATH_PROC_CONTEXT* ProcContext = Config->Route->Queue;

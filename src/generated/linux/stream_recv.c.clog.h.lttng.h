@@ -399,11 +399,11 @@ TRACEPOINT_EVENT(CLOG_STREAM_RECV_C, RemoteBlocked,
 
 /*----------------------------------------------------------
 // Decoder Ring for IncreaseRxBuffer
-// [strm][%p] Increasing max RX buffer size to %u (MinRtt=%u; TimeNow=%u; LastUpdate=%u)
+// [strm][%p] Increasing max RX buffer size to %u (MinRtt=%llu; TimeNow=%llu; LastUpdate=%llu)
 // QuicTraceLogStreamVerbose(
                     IncreaseRxBuffer,
                     Stream,
-                    "Increasing max RX buffer size to %u (MinRtt=%u; TimeNow=%u; LastUpdate=%u)",
+                    "Increasing max RX buffer size to %u (MinRtt=%llu; TimeNow=%llu; LastUpdate=%llu)",
                     Stream->RecvBuffer.VirtualBufferLength * 2,
                     Stream->Connection->Paths[0].MinRtt,
                     TimeNow,
@@ -418,15 +418,15 @@ TRACEPOINT_EVENT(CLOG_STREAM_RECV_C, IncreaseRxBuffer,
     TP_ARGS(
         const void *, arg1,
         unsigned int, arg3,
-        unsigned int, arg4,
-        unsigned int, arg5,
-        unsigned int, arg6), 
+        unsigned long long, arg4,
+        unsigned long long, arg5,
+        unsigned long long, arg6), 
     TP_FIELDS(
         ctf_integer_hex(uint64_t, arg1, arg1)
         ctf_integer(unsigned int, arg3, arg3)
-        ctf_integer(unsigned int, arg4, arg4)
-        ctf_integer(unsigned int, arg5, arg5)
-        ctf_integer(unsigned int, arg6, arg6)
+        ctf_integer(uint64_t, arg4, arg4)
+        ctf_integer(uint64_t, arg5, arg5)
+        ctf_integer(uint64_t, arg6, arg6)
     )
 )
 

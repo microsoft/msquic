@@ -299,12 +299,38 @@ class WithHandshakeArgs9 : public testing::Test,
     public testing::WithParamInterface<bool> {
 };
 
-struct ReliableResetArgs {
+struct HandshakeArgs10 {
+    int Family;
+    QUIC_CONGESTION_CONTROL_ALGORITHM CcAlgo;
+    static ::std::vector<HandshakeArgs10> Generate() {
+        ::std::vector<HandshakeArgs10> list;
+        for (int Family : { 4, 6 })
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
+        for (auto CcAlgo : { QUIC_CONGESTION_CONTROL_ALGORITHM_CUBIC, QUIC_CONGESTION_CONTROL_ALGORITHM_BBR })
+#else
+        for (auto CcAlgo : { QUIC_CONGESTION_CONTROL_ALGORITHM_CUBIC })
+#endif
+            list.push_back({ Family, CcAlgo });
+        return list;
+    }
+};
+
+std::ostream& operator << (std::ostream& o, const HandshakeArgs10& args) {
+    return o <<
+        (args.Family == 4 ? "v4" : "v6") << "/" <<
+        (args.CcAlgo == QUIC_CONGESTION_CONTROL_ALGORITHM_CUBIC ? "cubic" : "bbr");
+}
+
+class WithHandshakeArgs10 : public testing::Test,
+    public testing::WithParamInterface<HandshakeArgs10> {
+};
+
+struct FeatureSupportArgs {
     int Family;
     bool ServerSupport;
     bool ClientSupport;
-    static ::std::vector<ReliableResetArgs> Generate() {
-        ::std::vector<ReliableResetArgs> list;
+    static ::std::vector<FeatureSupportArgs> Generate() {
+        ::std::vector<FeatureSupportArgs> list;
         for (int Family : { 4, 6 })
         for (bool ServerSupport : { false, true })
         for (bool ClientSupport : { false, true })
@@ -313,15 +339,15 @@ struct ReliableResetArgs {
     }
 };
 
-std::ostream& operator << (std::ostream& o, const ReliableResetArgs& args) {
+std::ostream& operator << (std::ostream& o, const FeatureSupportArgs& args) {
     return o <<
         (args.Family == 4 ? "v4" : "v6") << "/" <<
         (args.ServerSupport ? "Server Yes" : "Server No") << "/" <<
         (args.ClientSupport ? "Client Yes" : "Client No");
 }
 
-class WithReliableResetArgs : public testing::Test,
-    public testing::WithParamInterface<ReliableResetArgs> {
+class WithFeatureSupportArgs : public testing::Test,
+    public testing::WithParamInterface<FeatureSupportArgs> {
 };
 
 struct SendArgs1 {

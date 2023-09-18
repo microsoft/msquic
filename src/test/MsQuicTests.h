@@ -193,6 +193,13 @@ QuicTestReliableResetNegotiation(
     _In_ bool ServerSupport,
     _In_ bool ClientSupport
 );
+
+void
+QuicTestOneWayDelayNegotiation(
+    _In_ int Family,
+    _In_ bool ServerSupport,
+    _In_ bool ClientSupport
+    );
 #endif // QUIC_API_ENABLE_PREVIEW_FEATURES
 
 void
@@ -258,7 +265,8 @@ QuicTestChangeAlpn(
 
 void
 QuicTestHandshakeSpecificLossPatterns(
-    _In_ int Family
+    _In_ int Family,
+    _In_ QUIC_CONGESTION_CONTROL_ALGORITHM CcAlgo
     );
 
 //
@@ -933,7 +941,7 @@ typedef struct {
     int Family;
     BOOLEAN ServerSupport;
     BOOLEAN ClientSupport;
-} QUIC_RUN_RELIABLE_RESET_NEGOTIATION;
+} QUIC_RUN_FEATURE_NEGOTIATION;
 
 #define IOCTL_QUIC_RUN_CUSTOM_SERVER_CERT_VALIDATION \
     QUIC_CTL_CODE(47, METHOD_BUFFERED, FILE_WRITE_DATA)
@@ -1189,9 +1197,14 @@ typedef struct {
 #define IOCTL_QUIC_RUN_ECN \
     QUIC_CTL_CODE(108, METHOD_BUFFERED, FILE_WRITE_DATA)
 
+typedef struct {
+    int Family;
+    QUIC_CONGESTION_CONTROL_ALGORITHM CcAlgo;
+} QUIC_HANDSHAKE_LOSS_PARAMS;
+
 #define IOCTL_QUIC_RUN_HANDSHAKE_SPECIFIC_LOSS_PATTERNS \
     QUIC_CTL_CODE(109, METHOD_BUFFERED, FILE_WRITE_DATA)
-    // int - Family
+    // QUIC_HANDSHAKE_LOSS_PARAMS
 
 #define IOCTL_QUIC_RUN_CUSTOM_CLIENT_CERT_VALIDATION \
     QUIC_CTL_CODE(110, METHOD_BUFFERED, FILE_WRITE_DATA)
@@ -1199,7 +1212,11 @@ typedef struct {
 
 #define IOCTL_QUIC_RELIABLE_RESET_NEGOTIATION \
     QUIC_CTL_CODE(111, METHOD_BUFFERED, FILE_WRITE_DATA)
-    // QUIC_RUN_RELIABLE_RESET_NEGOTIATION
+    // QUIC_RUN_FEATURE_NEGOTIATION
+
+#define IOCTL_QUIC_ONE_WAY_DELAY_NEGOTIATION \
+    QUIC_CTL_CODE(112, METHOD_BUFFERED, FILE_WRITE_DATA)
+    // QUIC_RUN_FEATURE_NEGOTIATION
 
 #define IOCTL_QUIC_RUN_STREAM_RELIABLE_RESET \
     QUIC_CTL_CODE(112, METHOD_BUFFERED, FILE_WRITE_DATA)
