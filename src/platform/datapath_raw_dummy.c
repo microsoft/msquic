@@ -134,7 +134,7 @@ RawSocketGetLocalMtu(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 RawRecvDataReturn(
-    _In_opt_ CXPLAT_RECV_DATA* RecvDataChain
+    _In_ CXPLAT_RECV_DATA* RecvDataChain
     )
 {
     UNREFERENCED_PARAMETER(RecvDataChain);
