@@ -747,6 +747,22 @@ TRACEPOINT_EVENT(CLOG_SETTINGS_C, SettingReliableResetEnabled,
 
 
 /*----------------------------------------------------------
+// Decoder Ring for SettingOneWayDelayEnabled
+// [sett] OneWayDelayEnabled     = %hhu
+// QuicTraceLogVerbose(SettingOneWayDelayEnabled,          "[sett] OneWayDelayEnabled     = %hhu", Settings->OneWayDelayEnabled);
+// arg2 = arg2 = Settings->OneWayDelayEnabled = arg2
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_SETTINGS_C, SettingOneWayDelayEnabled,
+    TP_ARGS(
+        unsigned char, arg2), 
+    TP_FIELDS(
+        ctf_integer(unsigned char, arg2, arg2)
+    )
+)
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for SettingDumpLFixedServerID
 // [sett] FixedServerID          = %u
 // QuicTraceLogVerbose(SettingDumpLFixedServerID,              "[sett] FixedServerID          = %u", Settings->FixedServerID);

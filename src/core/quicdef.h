@@ -528,6 +528,11 @@ CXPLAT_STATIC_ASSERT(
 #define QUIC_DEFAULT_RELIABLE_RESET_ENABLED          FALSE
 
 //
+// The default settings for allowing One-Way Delay support.
+//
+#define QUIC_DEFAULT_ONE_WAY_DELAY_ENABLED           FALSE
+
+//
 // The number of rounds in Cubic Slow Start to sample RTT.
 //
 #define QUIC_HYSTART_DEFAULT_N_SAMPLING             8
@@ -581,6 +586,9 @@ CXPLAT_STATIC_ASSERT(
 #define QUIC_TP_FLAG_CIBIR_ENCODING                         0x00200000
 #define QUIC_TP_FLAG_GREASE_QUIC_BIT                        0x00400000
 #define QUIC_TP_FLAG_RELIABLE_RESET_ENABLED                 0x00800000
+#define QUIC_TP_FLAG_TIMESTAMP_RECV_ENABLED                 0x01000000
+#define QUIC_TP_FLAG_TIMESTAMP_SEND_ENABLED                 0x02000000
+#define QUIC_TP_FLAG_TIMESTAMP_SHIFT                        24
 
 #define QUIC_TP_MAX_PACKET_SIZE_DEFAULT                     65527
 #define QUIC_TP_MAX_UDP_PAYLOAD_SIZE_MIN                    1200
@@ -628,6 +636,7 @@ CXPLAT_STATIC_ASSERT(
 #define QUIC_SETTING_HYSTART_ENABLED                "HyStartEnabled"
 #define QUIC_SETTING_ENCRYPTION_OFFLOAD_ALLOWED     "EncryptionOffloadAllowed"
 #define QUIC_SETTING_RELIABLE_RESET_ENABLED         "ReliableResetEnabled"
+#define QUIC_SETTING_ONE_WAY_DELAY_ENABLED          "OneWayDelayEnabled"
 
 #define QUIC_SETTING_INITIAL_WINDOW_PACKETS         "InitialWindowPackets"
 #define QUIC_SETTING_SEND_IDLE_TIMEOUT_MS           "SendIdleTimeoutMs"

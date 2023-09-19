@@ -1691,6 +1691,50 @@
       ],
       "macroName": "QuicTraceEvent"
     },
+    "ConnOutFlowStatsV2": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] OUT: BytesSent=%llu InFlight=%u CWnd=%u ConnFC=%llu ISB=%llu PostedBytes=%llu SRtt=%llu 1Way=%llu",
+      "UniqueId": "ConnOutFlowStatsV2",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "llu",
+          "MacroVariableName": "arg3"
+        },
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg4"
+        },
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg5"
+        },
+        {
+          "DefinationEncoding": "llu",
+          "MacroVariableName": "arg6"
+        },
+        {
+          "DefinationEncoding": "llu",
+          "MacroVariableName": "arg7"
+        },
+        {
+          "DefinationEncoding": "llu",
+          "MacroVariableName": "arg8"
+        },
+        {
+          "DefinationEncoding": "llu",
+          "MacroVariableName": "arg9"
+        },
+        {
+          "DefinationEncoding": "llu",
+          "MacroVariableName": "arg10"
+        }
+      ],
+      "macroName": "QuicTraceEvent"
+    },
     "ConnOutFlowStreamStats": {
       "ModuleProperites": {},
       "TraceString": "[conn][%p] OUT: StreamFC=%llu StreamSendWindow=%llu",
@@ -2142,6 +2186,50 @@
         },
         {
           "DefinationEncoding": "u",
+          "MacroVariableName": "arg3"
+        },
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg4"
+        },
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg5"
+        },
+        {
+          "DefinationEncoding": "llu",
+          "MacroVariableName": "arg6"
+        },
+        {
+          "DefinationEncoding": "llu",
+          "MacroVariableName": "arg7"
+        },
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg8"
+        },
+        {
+          "DefinationEncoding": "s",
+          "MacroVariableName": "arg9"
+        },
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg10"
+        }
+      ],
+      "macroName": "QuicTraceEvent"
+    },
+    "ConnStatsV3": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] STATS: SRtt=%llu CongestionCount=%u PersistentCongestionCount=%u SendTotalBytes=%llu RecvTotalBytes=%llu CongestionWindow=%u Cc=%s EcnCongestionCount=%u",
+      "UniqueId": "ConnStatsV3",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "llu",
           "MacroVariableName": "arg3"
         },
         {
@@ -3537,7 +3625,7 @@
     },
     "DecodeTPReliableReset": {
       "ModuleProperites": {},
-      "TraceString": "[conn][%p] TP: Decode Reliable Reset",
+      "TraceString": "[conn][%p] TP: Reliable Reset",
       "UniqueId": "DecodeTPReliableReset",
       "splitArgs": [
         {
@@ -4097,7 +4185,7 @@
     },
     "EncodeTPReliableReset": {
       "ModuleProperites": {},
-      "TraceString": "[conn][%p] TP: Encode Reliable Reset",
+      "TraceString": "[conn][%p] TP: Reliable Reset",
       "UniqueId": "EncodeTPReliableReset",
       "splitArgs": [
         {
@@ -4171,6 +4259,22 @@
         {
           "DefinationEncoding": "hu",
           "MacroVariableName": "arg4"
+        }
+      ],
+      "macroName": "QuicTraceLogConnVerbose"
+    },
+    "EncodeTPTimestamp": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] TP: Timestamp (%u)",
+      "UniqueId": "EncodeTPTimestamp",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        },
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg3"
         }
       ],
       "macroName": "QuicTraceLogConnVerbose"
@@ -5463,6 +5567,50 @@
       ],
       "macroName": "QuicTraceLogVerbose"
     },
+    "FrameLogTimestamp": {
+      "ModuleProperites": {},
+      "TraceString": "[%c][%cX][%llu]   TIMESTAMP %llu",
+      "UniqueId": "FrameLogTimestamp",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "c",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "c",
+          "MacroVariableName": "arg3"
+        },
+        {
+          "DefinationEncoding": "llu",
+          "MacroVariableName": "arg4"
+        },
+        {
+          "DefinationEncoding": "llu",
+          "MacroVariableName": "arg5"
+        }
+      ],
+      "macroName": "QuicTraceLogVerbose"
+    },
+    "FrameLogTimestampInvalid": {
+      "ModuleProperites": {},
+      "TraceString": "[%c][%cX][%llu]   TIMESTAMP [Invalid]",
+      "UniqueId": "FrameLogTimestampInvalid",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "c",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "c",
+          "MacroVariableName": "arg3"
+        },
+        {
+          "DefinationEncoding": "llu",
+          "MacroVariableName": "arg4"
+        }
+      ],
+      "macroName": "QuicTraceLogVerbose"
+    },
     "FrameLogUnknownType": {
       "ModuleProperites": {},
       "TraceString": "[%c][%cX][%llu]   unknown frame (%llu)",
@@ -5621,7 +5769,7 @@
     },
     "IncreaseRxBuffer": {
       "ModuleProperites": {},
-      "TraceString": "[strm][%p] Increasing max RX buffer size to %u (MinRtt=%u; TimeNow=%u; LastUpdate=%u)",
+      "TraceString": "[strm][%p] Increasing max RX buffer size to %u (MinRtt=%llu; TimeNow=%llu; LastUpdate=%llu)",
       "UniqueId": "IncreaseRxBuffer",
       "splitArgs": [
         {
@@ -5633,15 +5781,15 @@
           "MacroVariableName": "arg3"
         },
         {
-          "DefinationEncoding": "u",
+          "DefinationEncoding": "llu",
           "MacroVariableName": "arg4"
         },
         {
-          "DefinationEncoding": "u",
+          "DefinationEncoding": "llu",
           "MacroVariableName": "arg5"
         },
         {
-          "DefinationEncoding": "u",
+          "DefinationEncoding": "llu",
           "MacroVariableName": "arg6"
         }
       ],
@@ -5746,6 +5894,26 @@
         }
       ],
       "macroName": "QuicTraceLogStreamVerbose"
+    },
+    "IndicateOneWayDelayNegotiated": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] Indicating QUIC_CONNECTION_EVENT_ONE_WAY_DELAY_NEGOTIATED [Send=%hhu,Recv=%hhu]",
+      "UniqueId": "IndicateOneWayDelayNegotiated",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        },
+        {
+          "DefinationEncoding": "hhu",
+          "MacroVariableName": "arg3"
+        },
+        {
+          "DefinationEncoding": "hhu",
+          "MacroVariableName": "arg4"
+        }
+      ],
+      "macroName": "QuicTraceLogConnVerbose"
     },
     "IndicatePeerAccepted": {
       "ModuleProperites": {},
@@ -7925,7 +8093,7 @@
     },
     "PacketTxLostRack": {
       "ModuleProperites": {},
-      "TraceString": "[%c][TX][%llu] Lost: RACK %u ms",
+      "TraceString": "[%c][TX][%llu] Lost: RACK %llu ms",
       "UniqueId": "PacketTxLostRack",
       "splitArgs": [
         {
@@ -7937,7 +8105,7 @@
           "MacroVariableName": "arg3"
         },
         {
-          "DefinationEncoding": "u",
+          "DefinationEncoding": "llu",
           "MacroVariableName": "arg4"
         }
       ],
@@ -8661,6 +8829,22 @@
       ],
       "macroName": "QuicTraceLogVerbose"
     },
+    "PhaseShiftUpdated": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] New Phase Shift: %lld us",
+      "UniqueId": "PhaseShiftUpdated",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        },
+        {
+          "DefinationEncoding": "lld",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macroName": "QuicTraceLogConnVerbose"
+    },
     "PlatformThreadCreateFailed": {
       "ModuleProperites": {},
       "TraceString": "[ lib] pthread_create failed, retrying without affinitization",
@@ -9361,6 +9545,42 @@
         {
           "DefinationEncoding": "03u",
           "MacroVariableName": "arg6"
+        }
+      ],
+      "macroName": "QuicTraceLogConnVerbose"
+    },
+    "RttUpdatedV2": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] Updated Rtt=%u.%03u ms, Var=%u.%03u 1Way=%u.%03u ms",
+      "UniqueId": "RttUpdatedV2",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        },
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg3"
+        },
+        {
+          "DefinationEncoding": "03u",
+          "MacroVariableName": "arg4"
+        },
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg5"
+        },
+        {
+          "DefinationEncoding": "03u",
+          "MacroVariableName": "arg6"
+        },
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg7"
+        },
+        {
+          "DefinationEncoding": "03u",
+          "MacroVariableName": "arg8"
         }
       ],
       "macroName": "QuicTraceLogConnVerbose"
@@ -10610,6 +10830,18 @@
       "ModuleProperites": {},
       "TraceString": "[sett] HyStartEnabled         = %hhu",
       "UniqueId": "SettingHyStartEnabled",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "hhu",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceLogVerbose"
+    },
+    "SettingOneWayDelayEnabled": {
+      "ModuleProperites": {},
+      "TraceString": "[sett] OneWayDelayEnabled     = %hhu",
+      "UniqueId": "SettingOneWayDelayEnabled",
       "splitArgs": [
         {
           "DefinationEncoding": "hhu",
@@ -13228,6 +13460,11 @@
         "EncodingString": "[conn][%p] OUT: BytesSent=%llu InFlight=%u InFlightMax=%u CWnd=%u SSThresh=%u ConnFC=%llu ISB=%llu PostedBytes=%llu SRtt=%u"
       },
       {
+        "UniquenessHash": "da346e40-b8f9-5953-f473-9bc5526dfc85",
+        "TraceID": "ConnOutFlowStatsV2",
+        "EncodingString": "[conn][%p] OUT: BytesSent=%llu InFlight=%u CWnd=%u ConnFC=%llu ISB=%llu PostedBytes=%llu SRtt=%llu 1Way=%llu"
+      },
+      {
         "UniquenessHash": "55425e95-f2a7-6b0d-41e9-82bdeb5d9082",
         "TraceID": "ConnOutFlowStreamStats",
         "EncodingString": "[conn][%p] OUT: StreamFC=%llu StreamSendWindow=%llu"
@@ -13341,6 +13578,11 @@
         "UniquenessHash": "08f10184-5cf8-584f-cff9-1574f1c32b4f",
         "TraceID": "ConnStatsV2",
         "EncodingString": "[conn][%p] STATS: SRtt=%u CongestionCount=%u PersistentCongestionCount=%u SendTotalBytes=%llu RecvTotalBytes=%llu CongestionWindow=%u Cc=%s EcnCongestionCount=%u"
+      },
+      {
+        "UniquenessHash": "d642254e-2cef-c718-0275-fa330f25d71c",
+        "TraceID": "ConnStatsV3",
+        "EncodingString": "[conn][%p] STATS: SRtt=%llu CongestionCount=%u PersistentCongestionCount=%u SendTotalBytes=%llu RecvTotalBytes=%llu CongestionWindow=%u Cc=%s EcnCongestionCount=%u"
       },
       {
         "UniquenessHash": "421b9353-bbea-5599-f173-5911d85a776e",
@@ -13798,9 +14040,9 @@
         "EncodingString": "[conn][%p] TP: Preferred Address"
       },
       {
-        "UniquenessHash": "eabf7a25-2986-5193-5044-318b4711544e",
+        "UniquenessHash": "ffb471c9-3bff-13c2-957a-46960c4d2d72",
         "TraceID": "DecodeTPReliableReset",
-        "EncodingString": "[conn][%p] TP: Decode Reliable Reset"
+        "EncodingString": "[conn][%p] TP: Reliable Reset"
       },
       {
         "UniquenessHash": "95f4176f-e0b5-1420-53d9-44e244c44ea5",
@@ -13978,9 +14220,9 @@
         "EncodingString": "[conn][%p] TP: Preferred Address"
       },
       {
-        "UniquenessHash": "75ce2146-e447-c891-d263-df4892bddda9",
+        "UniquenessHash": "57938f8b-12b5-524a-9d60-497533c53a23",
         "TraceID": "EncodeTPReliableReset",
-        "EncodingString": "[conn][%p] TP: Encode Reliable Reset"
+        "EncodingString": "[conn][%p] TP: Reliable Reset"
       },
       {
         "UniquenessHash": "214be45a-42ba-44e1-05c2-f82f3200e671",
@@ -14001,6 +14243,11 @@
         "UniquenessHash": "4650353e-149e-c99a-1ab8-9b7e6a1e698e",
         "TraceID": "EncodeTPTest",
         "EncodingString": "[conn][%p] TP: TEST TP (Type %hu, Length %hu)"
+      },
+      {
+        "UniquenessHash": "408e4667-6ad0-c3e2-7b68-096ceaeed69a",
+        "TraceID": "EncodeTPTimestamp",
+        "EncodingString": "[conn][%p] TP: Timestamp (%u)"
       },
       {
         "UniquenessHash": "efc12508-e546-ff7a-e943-829ad204f871",
@@ -14288,6 +14535,16 @@
         "EncodingString": "[%c][%cX][%llu]   STREAMS_BLOCKED [Invalid]"
       },
       {
+        "UniquenessHash": "7fcacbd0-94c5-6770-a70e-7762d4567378",
+        "TraceID": "FrameLogTimestamp",
+        "EncodingString": "[%c][%cX][%llu]   TIMESTAMP %llu"
+      },
+      {
+        "UniquenessHash": "1315a113-88c2-8ce3-cca0-a0f84ffdb729",
+        "TraceID": "FrameLogTimestampInvalid",
+        "EncodingString": "[%c][%cX][%llu]   TIMESTAMP [Invalid]"
+      },
+      {
         "UniquenessHash": "0663ac49-e402-40ea-b23a-851ef032e5d5",
         "TraceID": "FrameLogUnknownType",
         "EncodingString": "[%c][%cX][%llu]   unknown frame (%llu)"
@@ -14343,9 +14600,9 @@
         "EncodingString": "[conn][%p] Ignoring received unreachable event (inline)"
       },
       {
-        "UniquenessHash": "5d5005c9-b064-899a-abec-29608ab4c745",
+        "UniquenessHash": "b7c26581-5d5b-55a8-aa76-91132357a377",
         "TraceID": "IncreaseRxBuffer",
-        "EncodingString": "[strm][%p] Increasing max RX buffer size to %u (MinRtt=%u; TimeNow=%u; LastUpdate=%u)"
+        "EncodingString": "[strm][%p] Increasing max RX buffer size to %u (MinRtt=%llu; TimeNow=%llu; LastUpdate=%llu)"
       },
       {
         "UniquenessHash": "9ed40f87-2b63-8343-5e37-2640d0a40e27",
@@ -14376,6 +14633,11 @@
         "UniquenessHash": "537b9c54-10f5-965c-b3e5-6e6e5c66dc85",
         "TraceID": "IndicateIdealSendBuffer",
         "EncodingString": "[strm][%p] Indicating QUIC_STREAM_EVENT_IDEAL_SEND_BUFFER_SIZE = %llu"
+      },
+      {
+        "UniquenessHash": "f3e73807-c52c-8b02-e3e2-9db446cb267c",
+        "TraceID": "IndicateOneWayDelayNegotiated",
+        "EncodingString": "[conn][%p] Indicating QUIC_CONNECTION_EVENT_ONE_WAY_DELAY_NEGOTIATED [Send=%hhu,Recv=%hhu]"
       },
       {
         "UniquenessHash": "446a0073-26fb-eed7-4ed4-fa9838fbd654",
@@ -15083,9 +15345,9 @@
         "EncodingString": "[%c][TX][%llu] Lost: FACK %llu packets"
       },
       {
-        "UniquenessHash": "79037f89-4d68-1fe1-8945-65ff684ef474",
+        "UniquenessHash": "29283bfa-4e6c-ce65-b4f9-fa2213f42ffd",
         "TraceID": "PacketTxLostRack",
-        "EncodingString": "[%c][TX][%llu] Lost: RACK %u ms"
+        "EncodingString": "[%c][TX][%llu] Lost: RACK %llu ms"
       },
       {
         "UniquenessHash": "114eda6f-e346-6701-573c-ad9cdbd6e082",
@@ -15338,6 +15600,11 @@
         "EncodingString": "[perf][tcp][%p] Start TLS"
       },
       {
+        "UniquenessHash": "f7b20b43-0f5a-76ed-71ab-00e2a293b9b4",
+        "TraceID": "PhaseShiftUpdated",
+        "EncodingString": "[conn][%p] New Phase Shift: %lld us"
+      },
+      {
         "UniquenessHash": "c77e1439-2c2d-7baf-4509-bd2f7eeea771",
         "TraceID": "PlatformThreadCreateFailed",
         "EncodingString": "[ lib] pthread_create failed, retrying without affinitization"
@@ -15561,6 +15828,11 @@
         "UniquenessHash": "dc25a415-b386-47ec-0128-415c6f31795b",
         "TraceID": "RttUpdatedMsg",
         "EncodingString": "[conn][%p] Updated Rtt=%u.%03u ms, Var=%u.%03u"
+      },
+      {
+        "UniquenessHash": "ff41b02a-ac3e-3b07-30f1-3040e2416019",
+        "TraceID": "RttUpdatedV2",
+        "EncodingString": "[conn][%p] Updated Rtt=%u.%03u ms, Var=%u.%03u 1Way=%u.%03u ms"
       },
       {
         "UniquenessHash": "a1f31b13-badd-4de3-0620-3c8d413e7d49",
@@ -15996,6 +16268,11 @@
         "UniquenessHash": "3204077b-15dd-eacb-1594-51d66d8db668",
         "TraceID": "SettingHyStartEnabled",
         "EncodingString": "[sett] HyStartEnabled         = %hhu"
+      },
+      {
+        "UniquenessHash": "9ede3ef3-06f4-9d8a-7335-f95b1c93cfa9",
+        "TraceID": "SettingOneWayDelayEnabled",
+        "EncodingString": "[sett] OneWayDelayEnabled     = %hhu"
       },
       {
         "UniquenessHash": "f5c7d703-ecd1-8dd0-c16d-11857945bfcf",

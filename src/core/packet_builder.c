@@ -928,7 +928,7 @@ QuicPacketBuilderFinalize(
     //
     CXPLAT_DBG_ASSERT(Builder->Metadata->FrameCount != 0);
 
-    Builder->Metadata->SentTime = CxPlatTimeUs32();
+    Builder->Metadata->SentTime = CxPlatTimeUs64();
     Builder->Metadata->PacketLength =
         Builder->HeaderLength + PayloadLength;
     Builder->Metadata->Flags.EcnEctSet = Builder->EcnEctSet;

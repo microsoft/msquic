@@ -1226,6 +1226,52 @@ tracepoint(CLOG_FRAME_C, FrameLogImmediateAck , arg2, arg3, arg4);\
 
 
 /*----------------------------------------------------------
+// Decoder Ring for FrameLogTimestampInvalid
+// [%c][%cX][%llu]   TIMESTAMP [Invalid]
+// QuicTraceLogVerbose(
+                FrameLogTimestampInvalid,
+                "[%c][%cX][%llu]   TIMESTAMP [Invalid]",
+                PtkConnPre(Connection),
+                PktRxPre(Rx),
+                PacketNumber);
+// arg2 = arg2 = PtkConnPre(Connection) = arg2
+// arg3 = arg3 = PktRxPre(Rx) = arg3
+// arg4 = arg4 = PacketNumber = arg4
+----------------------------------------------------------*/
+#ifndef _clog_5_ARGS_TRACE_FrameLogTimestampInvalid
+#define _clog_5_ARGS_TRACE_FrameLogTimestampInvalid(uniqueId, encoded_arg_string, arg2, arg3, arg4)\
+tracepoint(CLOG_FRAME_C, FrameLogTimestampInvalid , arg2, arg3, arg4);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for FrameLogTimestamp
+// [%c][%cX][%llu]   TIMESTAMP %llu
+// QuicTraceLogVerbose(
+            FrameLogTimestamp,
+            "[%c][%cX][%llu]   TIMESTAMP %llu",
+            PtkConnPre(Connection),
+            PktRxPre(Rx),
+            PacketNumber,
+            Frame.Timestamp);
+// arg2 = arg2 = PtkConnPre(Connection) = arg2
+// arg3 = arg3 = PktRxPre(Rx) = arg3
+// arg4 = arg4 = PacketNumber = arg4
+// arg5 = arg5 = Frame.Timestamp = arg5
+----------------------------------------------------------*/
+#ifndef _clog_6_ARGS_TRACE_FrameLogTimestamp
+#define _clog_6_ARGS_TRACE_FrameLogTimestamp(uniqueId, encoded_arg_string, arg2, arg3, arg4, arg5)\
+tracepoint(CLOG_FRAME_C, FrameLogTimestamp , arg2, arg3, arg4, arg5);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for ConnError
 // [conn][%p] ERROR, %s.
 // QuicTraceEvent(

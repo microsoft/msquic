@@ -632,11 +632,11 @@ TRACEPOINT_EVENT(CLOG_CRYPTO_TLS_C, EncodeTPGreaseQuicBit,
 
 /*----------------------------------------------------------
 // Decoder Ring for EncodeTPReliableReset
-// [conn][%p] TP: Encode Reliable Reset
+// [conn][%p] TP: Reliable Reset
 // QuicTraceLogConnVerbose(
             EncodeTPReliableReset,
             Connection,
-            "TP: Encode Reliable Reset");
+            "TP: Reliable Reset");
 // arg1 = arg1 = Connection = arg1
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CRYPTO_TLS_C, EncodeTPReliableReset,
@@ -644,6 +644,29 @@ TRACEPOINT_EVENT(CLOG_CRYPTO_TLS_C, EncodeTPReliableReset,
         const void *, arg1), 
     TP_FIELDS(
         ctf_integer_hex(uint64_t, arg1, arg1)
+    )
+)
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for EncodeTPTimestamp
+// [conn][%p] TP: Timestamp (%u)
+// QuicTraceLogConnVerbose(
+            EncodeTPTimestamp,
+            Connection,
+            "TP: Timestamp (%u)",
+            value);
+// arg1 = arg1 = Connection = arg1
+// arg3 = arg3 = value = arg3
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_CRYPTO_TLS_C, EncodeTPTimestamp,
+    TP_ARGS(
+        const void *, arg1,
+        unsigned int, arg3), 
+    TP_FIELDS(
+        ctf_integer_hex(uint64_t, arg1, arg1)
+        ctf_integer(unsigned int, arg3, arg3)
     )
 )
 
@@ -1261,11 +1284,11 @@ TRACEPOINT_EVENT(CLOG_CRYPTO_TLS_C, DecodeTPGreaseQuicBit,
 
 /*----------------------------------------------------------
 // Decoder Ring for DecodeTPReliableReset
-// [conn][%p] TP: Decode Reliable Reset
+// [conn][%p] TP: Reliable Reset
 // QuicTraceLogConnVerbose(
                 DecodeTPReliableReset,
                 Connection,
-                "TP: Decode Reliable Reset");
+                "TP: Reliable Reset");
 // arg1 = arg1 = Connection = arg1
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CRYPTO_TLS_C, DecodeTPReliableReset,

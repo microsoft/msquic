@@ -170,7 +170,8 @@ namespace QuicTrace.DataModel
                     LastConnection = null;
                 }
             }
-            else if (evt.EventId == QuicEventId.ConnOutFlowStats)
+            else if (evt.EventId == QuicEventId.ConnOutFlowStats ||
+                     evt.EventId == QuicEventId.ConnOutFlowStatsV2)
             {
                 LastConnection = connection;
             }
