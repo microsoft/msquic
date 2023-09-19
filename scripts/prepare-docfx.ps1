@@ -60,3 +60,24 @@ $yamlContent = @"
 
 $yamlContent | Out-File -FilePath "toc.yml"
 Write-Host "toc.yml file has been created with the specified contents."
+
+$indexMdContent = @"
+# MsQuic Documentation With DocFx:
+
+## Why?
+
+A Better Search Experience.
+
+Taking Advantage of built-in indexing offered by DocFx,
+and the nice UI configuration options (light / dark) mode,
+makes debugging a little less painful.
+
+Try out the search feature!
+
+Try out dark mode!
+
+Chatbot coming soon!
+"@
+
+$indexMdContent | Out-File -FilePath "index.md"
+Write-Host "index.md file has been created with the specified contents."
