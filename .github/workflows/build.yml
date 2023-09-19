@@ -234,3 +234,14 @@ jobs:
       with:
         name: Nuget-Release-${{ matrix.vec.plat }}-windows-2022-arm64-${{ matrix.vec.tls }}${{ matrix.vec.xdp }}
         path: artifacts/dist/*.nupkg
+
+  trigger-perf:
+    name: Run Perf
+    needs: [build-windows]
+    runs-on: windows-latest
+    steps:
+    - name: Run NetPerf Workflow
+      shell: pwsh
+      run: |
+        $url = "https://raw.githubusercontent.com/microsoft/netperf/main/run-workflow.ps1"
+        iex "& { $(irm $url) } quic msquic ${{ github.ref }} ${{ github.sha }} ${{ secrets.NET_PERF_TRIGGER }} ${{ github.run_id }}"
