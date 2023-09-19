@@ -228,8 +228,8 @@ typedef struct CXPLAT_RECV_DATA {
     uint16_t Allocated : 1;          // Used for debugging. Set to FALSE on free.
     uint16_t QueuedOnConnection : 1; // Used for debugging.
     uint16_t DatapathType : 2;       // CXPLAT_DATAPATH_TYPE
-    uint16_t Reserved : 4;
-    uint16_t ReservedEx : 8;
+    uint16_t Reserved : 4;           // PACKET_TYPE (at least 3 bits)
+    uint16_t ReservedEx : 8;         // Header length
 
     //
     // Variable length data (of size `ClientRecvContextLength` passed into

@@ -13,17 +13,17 @@ Abstract:
 #include "platform_internal.h"
 
 uint32_t
-CxPlatGetRawSocketSize () {
+CxPlatGetRawSocketSize(void) {
     return sizeof(CXPLAT_SOCKET_RAW);
 }
 
 CXPLAT_SOCKET*
-RawToSocket(CXPLAT_SOCKET_RAW* Socket) {
+CxPlatRawToSocket(_In_ CXPLAT_SOCKET_RAW* Socket) {
     return (CXPLAT_SOCKET*)((unsigned char*)Socket + sizeof(CXPLAT_SOCKET_RAW) - sizeof(CXPLAT_SOCKET));
 }
 
 CXPLAT_SOCKET_RAW*
-SocketToRaw(CXPLAT_SOCKET* Socket) {
+CxPlatSocketToRaw(_In_ CXPLAT_SOCKET* Socket) {
     return (CXPLAT_SOCKET_RAW*)((unsigned char*)Socket - sizeof(CXPLAT_SOCKET_RAW) + sizeof(CXPLAT_SOCKET));
 }
 

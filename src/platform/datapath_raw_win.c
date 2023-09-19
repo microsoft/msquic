@@ -239,32 +239,6 @@ RawDataPathIsPaddingPreferred(
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
-_Success_(QUIC_SUCCEEDED(return))
-QUIC_STATUS
-RawDataPathGetLocalAddresses(
-    _In_ CXPLAT_DATAPATH* Datapath,
-    _Outptr_ _At_(*Addresses, __drv_allocatesMem(Mem))
-        CXPLAT_ADAPTER_ADDRESS** Addresses,
-    _Out_ uint32_t* AddressesCount
-    )
-{
-    return QUIC_STATUS_NOT_SUPPORTED;
-}
-
-_IRQL_requires_max_(PASSIVE_LEVEL)
-_Success_(QUIC_SUCCEEDED(return))
-QUIC_STATUS
-RawDataPathGetGatewayAddresses(
-    _In_ CXPLAT_DATAPATH* Datapath,
-    _Outptr_ _At_(*GatewayAddresses, __drv_allocatesMem(Mem))
-        QUIC_ADDR** GatewayAddresses,
-    _Out_ uint32_t* GatewayAddressesCount
-    )
-{
-    return QUIC_STATUS_NOT_SUPPORTED;
-}
-
-_IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 RawSocketCreateUdp(
     _In_ CXPLAT_DATAPATH_RAW* Raw,
@@ -284,7 +258,6 @@ RawSocketCreateUdp(
         memcpy(Socket->CibirId, Config->CibirId, Config->CibirIdLength);
     }
 
-    // TODO: remove Socket address settings
     if (Config->RemoteAddress) {
         CXPLAT_FRE_ASSERT(!QuicAddrIsWildCard(Config->RemoteAddress));  // No wildcard remote addresses allowed.
         if (Socket->UseTcp) {
@@ -443,7 +416,7 @@ CxPlatDpRawRxEthernet(
                     CXPLAT_DBG_ASSERT(Packets[i+1]->Next == NULL);
                     i++;
                 }
-                Datapath->ParentDataPath->UdpHandlers.Receive(RawToSocket(Socket), Socket->ClientContext, (CXPLAT_RECV_DATA*)PacketChain);
+                Datapath->ParentDataPath->UdpHandlers.Receive(CxPlatRawToSocket(Socket), Socket->ClientContext, (CXPLAT_RECV_DATA*)PacketChain);
             } else if (PacketChain->Reserved == L4_TYPE_TCP_SYN || PacketChain->Reserved == L4_TYPE_TCP_SYNACK) {
                 CxPlatDpRawSocketAckSyn(Socket, PacketChain);
                 CxPlatDpRawRxFree(PacketChain);
@@ -464,7 +437,7 @@ CxPlatDpRawRxEthernet(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 RawRecvDataReturn(
-    _In_opt_ CXPLAT_RECV_DATA* RecvDataChain
+    _In_ CXPLAT_RECV_DATA* RecvDataChain
     )
 {
     CxPlatDpRawRxFree((const CXPLAT_RECV_DATA*)RecvDataChain);

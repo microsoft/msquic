@@ -201,8 +201,6 @@ jobs:
           { plat: "uwp",  tls: "openssl", arg: "-UWP" },
           { plat: "windows",  tls: "openssl" },
           { plat: "windows",  tls: "schannel" },
-          { plat: "windows",  tls: "openssl", xdp: "-UseXdp", arg: "-XDP" },
-          { plat: "windows",  tls: "schannel", xdp: "-UseXdp", arg: "-XDP" },
         ]
     runs-on: windows-2022
     steps:
@@ -211,19 +209,19 @@ jobs:
     - name: Download Build Artifacts
       uses: dawidd6/action-download-artifact@246dbf436b23d7c49e21a7ab8204ca9ecd1fe615
       with:
-        name: Release-${{ matrix.vec.plat }}-windows-2022-x86-${{ matrix.vec.tls }}${{ matrix.vec.xdp }}
+        name: Release-${{ matrix.vec.plat }}-windows-2022-x86-${{ matrix.vec.tls }}
         path: artifacts
         if_no_artifact_found: ignore
     - name: Download Build Artifacts
       uses: dawidd6/action-download-artifact@246dbf436b23d7c49e21a7ab8204ca9ecd1fe615
       with:
-        name: Release-${{ matrix.vec.plat }}-windows-2022-x64-${{ matrix.vec.tls }}${{ matrix.vec.xdp }}
+        name: Release-${{ matrix.vec.plat }}-windows-2022-x64-${{ matrix.vec.tls }}
         path: artifacts
         if_no_artifact_found: ignore
     - name: Download Build Artifacts
       uses: dawidd6/action-download-artifact@246dbf436b23d7c49e21a7ab8204ca9ecd1fe615
       with:
-        name: Release-${{ matrix.vec.plat }}-windows-2022-arm64-${{ matrix.vec.tls }}${{ matrix.vec.xdp }}
+        name: Release-${{ matrix.vec.plat }}-windows-2022-arm64-${{ matrix.vec.tls }}
         path: artifacts
         if_no_artifact_found: ignore
     - name: Build Package
@@ -232,5 +230,5 @@ jobs:
     - name: Upload build artifacts
       uses: actions/upload-artifact@a8a3f3ad30e3422c9c7b888a15615d19a852ae32
       with:
-        name: Nuget-Release-${{ matrix.vec.plat }}-windows-2022-arm64-${{ matrix.vec.tls }}${{ matrix.vec.xdp }}
+        name: Nuget-Release-${{ matrix.vec.plat }}-windows-2022-arm64-${{ matrix.vec.tls }}
         path: artifacts/dist/*.nupkg

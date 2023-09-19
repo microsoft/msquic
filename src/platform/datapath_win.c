@@ -122,14 +122,12 @@ CxPlatDataPathIsPaddingPreferred(
     _In_ CXPLAT_SEND_DATA* SendData
     )
 {
-    if (DatapathType(SendData) == CXPLAT_DATAPATH_TYPE_USER) {
-        return DataPathIsPaddingPreferred(Datapath);
-    } else if (DatapathType(SendData) == CXPLAT_DATAPATH_TYPE_XDP) {
-        return RawDataPathIsPaddingPreferred(Datapath);
-    } else {
-        CXPLAT_DBG_ASSERT(FALSE);
-    }
-    return FALSE;
+    CXPLAT_DBG_ASSERT(
+        DatapathType(SendData) == CXPLAT_DATAPATH_TYPE_USER ||
+        DatapathType(SendData) == CXPLAT_DATAPATH_TYPE_RAW);
+    return
+        DatapathType(SendData) == CXPLAT_DATAPATH_TYPE_USER ?
+            DataPathIsPaddingPreferred(Datapath) : RawDataPathIsPaddingPreferred(Datapath);
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -142,11 +140,108 @@ CxPlatDataPathGetLocalAddresses(
     _Out_ uint32_t* AddressesCount
     )
 {
-    // TODO: XDP doesn't support, could be inlined here
-    return DataPathGetLocalAddresses(
-        Datapath,
-        Addresses,
-        AddressesCount);
+    const ULONG Flags =
+        GAA_FLAG_INCLUDE_ALL_INTERFACES |
+        GAA_FLAG_SKIP_ANYCAST |
+        GAA_FLAG_SKIP_MULTICAST |
+        GAA_FLAG_SKIP_DNS_SERVER |
+        GAA_FLAG_SKIP_FRIENDLY_NAME |
+        GAA_FLAG_SKIP_DNS_INFO;
+
+    UNREFERENCED_PARAMETER(Datapath);
+
+    ULONG AdapterAddressesSize = 0;
+    PIP_ADAPTER_ADDRESSES AdapterAddresses = NULL;
+    uint32_t Index = 0;
+
+    QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
+    ULONG Error;
+    do {
+        Error =
+            GetAdaptersAddresses(
+                AF_UNSPEC,
+                Flags,
+                NULL,
+                AdapterAddresses,
+                &AdapterAddressesSize);
+        if (Error == ERROR_BUFFER_OVERFLOW) {
+            if (AdapterAddresses) {
+                CXPLAT_FREE(AdapterAddresses, QUIC_POOL_DATAPATH_ADDRESSES);
+            }
+            AdapterAddresses = CXPLAT_ALLOC_NONPAGED(AdapterAddressesSize, QUIC_POOL_DATAPATH_ADDRESSES);
+            if (!AdapterAddresses) {
+                Error = ERROR_NOT_ENOUGH_MEMORY;
+                QuicTraceEvent(
+                    AllocFailure,
+                    "Allocation of '%s' failed. (%llu bytes)",
+                    "PIP_ADAPTER_ADDRESSES",
+                    AdapterAddressesSize);
+            }
+        }
+    } while (Error == ERROR_BUFFER_OVERFLOW);
+
+    if (Error != ERROR_SUCCESS) {
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            Error,
+            "GetAdaptersAddresses");
+        Status = HRESULT_FROM_WIN32(Error);
+        goto Exit;
+    }
+
+    for (PIP_ADAPTER_ADDRESSES Iter = AdapterAddresses; Iter != NULL; Iter = Iter->Next) {
+        for (PIP_ADAPTER_UNICAST_ADDRESS_LH Iter2 = Iter->FirstUnicastAddress; Iter2 != NULL; Iter2 = Iter2->Next) {
+            Index++;
+        }
+    }
+
+    if (Index == 0) {
+        QuicTraceEvent(
+            LibraryError,
+            "[ lib] ERROR, %s.",
+            "No local unicast addresses found");
+        Status = QUIC_STATUS_NOT_FOUND;
+        goto Exit;
+    }
+
+    *Addresses = CXPLAT_ALLOC_NONPAGED(Index * sizeof(CXPLAT_ADAPTER_ADDRESS), QUIC_POOL_DATAPATH_ADDRESSES);
+    if (*Addresses == NULL) {
+        Status = QUIC_STATUS_OUT_OF_MEMORY;
+        QuicTraceEvent(
+            AllocFailure,
+            "Allocation of '%s' failed. (%llu bytes)",
+            "Addresses",
+            Index * sizeof(CXPLAT_ADAPTER_ADDRESS));
+        goto Exit;
+    }
+
+    CxPlatZeroMemory(*Addresses, Index * sizeof(CXPLAT_ADAPTER_ADDRESS));
+    *AddressesCount = Index;
+    Index = 0;
+
+    for (PIP_ADAPTER_ADDRESSES Iter = AdapterAddresses; Iter != NULL; Iter = Iter->Next) {
+        for (PIP_ADAPTER_UNICAST_ADDRESS_LH Iter2 = Iter->FirstUnicastAddress; Iter2 != NULL; Iter2 = Iter2->Next) {
+            CxPlatCopyMemory(
+                &(*Addresses)[Index].Address,
+                Iter2->Address.lpSockaddr,
+                sizeof(QUIC_ADDR));
+            (*Addresses)[Index].InterfaceIndex =
+                Iter2->Address.lpSockaddr->sa_family == AF_INET ?
+                    (uint32_t)Iter->IfIndex : (uint32_t)Iter->Ipv6IfIndex;
+            (*Addresses)[Index].InterfaceType = (uint16_t)Iter->IfType;
+            (*Addresses)[Index].OperationStatus = (CXPLAT_OPERATION_STATUS)Iter->OperStatus;
+            Index++;
+        }
+    }
+
+Exit:
+
+    if (AdapterAddresses) {
+        CXPLAT_FREE(AdapterAddresses, QUIC_POOL_DATAPATH_ADDRESSES);
+    }
+
+    return Status;
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -159,11 +254,101 @@ CxPlatDataPathGetGatewayAddresses(
     _Out_ uint32_t* GatewayAddressesCount
     )
 {
-    // TODO: XDP doesn't support, Could be inlined here.
-    return DataPathGetGatewayAddresses(
-        Datapath,
-        GatewayAddresses,
-        GatewayAddressesCount);
+    const ULONG Flags =
+        GAA_FLAG_INCLUDE_GATEWAYS |
+        GAA_FLAG_INCLUDE_ALL_INTERFACES |
+        GAA_FLAG_SKIP_DNS_SERVER |
+        GAA_FLAG_SKIP_MULTICAST;
+
+    UNREFERENCED_PARAMETER(Datapath);
+
+    ULONG AdapterAddressesSize = 0;
+    PIP_ADAPTER_ADDRESSES AdapterAddresses = NULL;
+    uint32_t Index = 0;
+
+    QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
+    ULONG Error;
+    do {
+        Error =
+            GetAdaptersAddresses(
+                AF_UNSPEC,
+                Flags,
+                NULL,
+                AdapterAddresses,
+                &AdapterAddressesSize);
+        if (Error == ERROR_BUFFER_OVERFLOW) {
+            if (AdapterAddresses) {
+                CXPLAT_FREE(AdapterAddresses, QUIC_POOL_DATAPATH_ADDRESSES);
+            }
+            AdapterAddresses = CXPLAT_ALLOC_NONPAGED(AdapterAddressesSize, QUIC_POOL_DATAPATH_ADDRESSES);
+            if (!AdapterAddresses) {
+                Error = ERROR_NOT_ENOUGH_MEMORY;
+                QuicTraceEvent(
+                    AllocFailure,
+                    "Allocation of '%s' failed. (%llu bytes)",
+                    "PIP_ADAPTER_ADDRESSES",
+                    AdapterAddressesSize);
+            }
+        }
+    } while (Error == ERROR_BUFFER_OVERFLOW);
+
+    if (Error != ERROR_SUCCESS) {
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            Error,
+            "GetAdaptersAddresses");
+        Status = HRESULT_FROM_WIN32(Error);
+        goto Exit;
+    }
+
+    for (PIP_ADAPTER_ADDRESSES Iter = AdapterAddresses; Iter != NULL; Iter = Iter->Next) {
+        for (PIP_ADAPTER_GATEWAY_ADDRESS_LH Iter2 = Iter->FirstGatewayAddress; Iter2 != NULL; Iter2 = Iter2->Next) {
+            Index++;
+        }
+    }
+
+    if (Index == 0) {
+        QuicTraceEvent(
+            LibraryError,
+            "[ lib] ERROR, %s.",
+            "No gateway server addresses found");
+        Status = QUIC_STATUS_NOT_FOUND;
+        goto Exit;
+    }
+
+    *GatewayAddresses = CXPLAT_ALLOC_NONPAGED(Index * sizeof(QUIC_ADDR), QUIC_POOL_DATAPATH_ADDRESSES);
+    if (*GatewayAddresses == NULL) {
+        Status = QUIC_STATUS_OUT_OF_MEMORY;
+        QuicTraceEvent(
+            AllocFailure,
+            "Allocation of '%s' failed. (%llu bytes)",
+            "GatewayAddresses",
+            Index * sizeof(QUIC_ADDR));
+        goto Exit;
+    }
+
+    CxPlatZeroMemory(*GatewayAddresses, Index * sizeof(QUIC_ADDR));
+    *GatewayAddressesCount = Index;
+    Index = 0;
+
+    for (PIP_ADAPTER_ADDRESSES Iter = AdapterAddresses; Iter != NULL; Iter = Iter->Next) {
+        for (PIP_ADAPTER_GATEWAY_ADDRESS_LH Iter2 = Iter->FirstGatewayAddress; Iter2 != NULL; Iter2 = Iter2->Next) {
+            CxPlatCopyMemory(
+                &(*GatewayAddresses)[Index],
+                Iter2->Address.lpSockaddr,
+                sizeof(QUIC_ADDR));
+            Index++;
+        }
+    }
+
+Exit:
+
+    if (AdapterAddresses) {
+        CXPLAT_FREE(AdapterAddresses, QUIC_POOL_DATAPATH_ADDRESSES);
+    }
+
+    return Status;
 }
 
 // private func
@@ -299,7 +484,7 @@ CxPlatSocketCreateUdp(
             RawSocketCreateUdp(
                 Datapath->RawDataPath,
                 Config,
-                SocketToRaw(*NewSocket));
+                CxPlatSocketToRaw(*NewSocket));
         (*NewSocket)->RawSocketAvailable = QUIC_SUCCEEDED(Status);
         if (QUIC_FAILED(Status)) {
             QuicTraceLogVerbose(
@@ -358,7 +543,7 @@ CxPlatSocketDelete(
     )
 {
     if (Socket->RawSocketAvailable) {
-        RawSocketDelete(SocketToRaw(Socket));
+        RawSocketDelete(CxPlatSocketToRaw(Socket));
     }
     SocketDelete(Socket);
 }
@@ -374,7 +559,7 @@ CxPlatSocketUpdateQeo(
 {
     if (Socket->UseTcp || (Socket->RawSocketAvailable &&
         !IS_LOOPBACK(Offloads[0].Address))) {
-        return RawSocketUpdateQeo(SocketToRaw(Socket), Offloads, OffloadCount);
+        return RawSocketUpdateQeo(CxPlatSocketToRaw(Socket), Offloads, OffloadCount);
     }
     return QUIC_STATUS_NOT_SUPPORTED;
 }
@@ -388,7 +573,7 @@ CxPlatSocketGetLocalMtu(
     CXPLAT_DBG_ASSERT(Socket != NULL);
     if (Socket->UseTcp || (Socket->RawSocketAvailable &&
         !IS_LOOPBACK(Socket->RemoteAddress))) {
-        return RawSocketGetLocalMtu(SocketToRaw(Socket));
+        return RawSocketGetLocalMtu(CxPlatSocketToRaw(Socket));
     }
     return Socket->Mtu;
 }
@@ -424,14 +609,11 @@ CxPlatRecvDataReturn(
     if (RecvDataChain == NULL) {
         return;
     }
-
-    if (RecvDataChain->DatapathType == CXPLAT_DATAPATH_TYPE_USER) {
-        RecvDataReturn(RecvDataChain);
-    } else if (RecvDataChain->DatapathType == CXPLAT_DATAPATH_TYPE_XDP) {
-        RawRecvDataReturn(RecvDataChain);
-    } else {
-        CXPLAT_DBG_ASSERT(FALSE);
-    }
+    CXPLAT_DBG_ASSERT(
+        RecvDataChain->DatapathType == CXPLAT_DATAPATH_TYPE_USER ||
+        RecvDataChain->DatapathType == CXPLAT_DATAPATH_TYPE_RAW);
+    RecvDataChain->DatapathType == CXPLAT_DATAPATH_TYPE_USER ?
+        RecvDataReturn(RecvDataChain) : RawRecvDataReturn(RecvDataChain);
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -444,18 +626,12 @@ CxPlatSendDataAlloc(
 {
     CXPLAT_SEND_DATA* SendData = NULL;
     // TODO: fallback?
-    if (Socket->UseTcp || Config->Route->DatapathType == CXPLAT_DATAPATH_TYPE_XDP ||
+    if (Socket->UseTcp || Config->Route->DatapathType == CXPLAT_DATAPATH_TYPE_RAW ||
         (Config->Route->DatapathType == CXPLAT_DATAPATH_TYPE_UNKNOWN &&
         Socket->RawSocketAvailable && !IS_LOOPBACK(Config->Route->RemoteAddress))) {
-        SendData = RawSendDataAlloc(SocketToRaw(Socket), Config);
-        if (SendData) {
-            DatapathType(SendData) = Config->Route->DatapathType = CXPLAT_DATAPATH_TYPE_XDP;
-        }
+        SendData = RawSendDataAlloc(CxPlatSocketToRaw(Socket), Config);
     } else {
         SendData = SendDataAlloc(Socket, Config);
-        if (SendData) {
-            DatapathType(SendData) = Config->Route->DatapathType = CXPLAT_DATAPATH_TYPE_USER;
-        }
     }
     return SendData;
 }
@@ -466,13 +642,11 @@ CxPlatSendDataFree(
     _In_ CXPLAT_SEND_DATA* SendData
     )
 {
-    if (DatapathType(SendData) == CXPLAT_DATAPATH_TYPE_USER) {
-        SendDataFree(SendData);
-    } else if (DatapathType(SendData) == CXPLAT_DATAPATH_TYPE_XDP) {
-        RawSendDataFree(SendData);
-    } else {
-        CXPLAT_DBG_ASSERT(FALSE);
-    }
+    CXPLAT_DBG_ASSERT(
+        DatapathType(SendData) == CXPLAT_DATAPATH_TYPE_USER ||
+        DatapathType(SendData) == CXPLAT_DATAPATH_TYPE_RAW);
+    DatapathType(SendData) == CXPLAT_DATAPATH_TYPE_USER ?
+    SendDataFree(SendData) : RawSendDataFree(SendData);
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -483,14 +657,12 @@ CxPlatSendDataAllocBuffer(
     _In_ uint16_t MaxBufferLength
     )
 {
-    if (DatapathType(SendData) == CXPLAT_DATAPATH_TYPE_USER) {
-        return SendDataAllocBuffer(SendData, MaxBufferLength);
-    } else if (DatapathType(SendData) == CXPLAT_DATAPATH_TYPE_XDP) {
-        return RawSendDataAllocBuffer(SendData, MaxBufferLength);
-    } else {
-        CXPLAT_DBG_ASSERT(FALSE);
-    }
-    return NULL;
+    CXPLAT_DBG_ASSERT(
+        DatapathType(SendData) == CXPLAT_DATAPATH_TYPE_USER ||
+        DatapathType(SendData) == CXPLAT_DATAPATH_TYPE_RAW);
+    return
+        DatapathType(SendData) == CXPLAT_DATAPATH_TYPE_USER ?
+        SendDataAllocBuffer(SendData, MaxBufferLength) : RawSendDataAllocBuffer(SendData, MaxBufferLength);        
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -500,13 +672,11 @@ CxPlatSendDataFreeBuffer(
     _In_ QUIC_BUFFER* Buffer
     )
 {
-    if (DatapathType(SendData) == CXPLAT_DATAPATH_TYPE_USER) {
-        SendDataFreeBuffer(SendData, Buffer);
-    } else if (DatapathType(SendData) == CXPLAT_DATAPATH_TYPE_XDP) {
-        RawSendDataFreeBuffer(SendData, Buffer);
-    } else {
-        CXPLAT_DBG_ASSERT(FALSE);
-    }
+    CXPLAT_DBG_ASSERT(
+        DatapathType(SendData) == CXPLAT_DATAPATH_TYPE_USER ||
+        DatapathType(SendData) == CXPLAT_DATAPATH_TYPE_RAW);
+    DatapathType(SendData) == CXPLAT_DATAPATH_TYPE_USER ?
+    SendDataFreeBuffer(SendData, Buffer) : RawSendDataFreeBuffer(SendData, Buffer);
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -515,14 +685,11 @@ CxPlatSendDataIsFull(
     _In_ CXPLAT_SEND_DATA* SendData
     )
 {
-    if (DatapathType(SendData) == CXPLAT_DATAPATH_TYPE_USER) {
-        return SendDataIsFull(SendData);
-    } else if (DatapathType(SendData) == CXPLAT_DATAPATH_TYPE_XDP) {
-        return RawSendDataIsFull(SendData);
-    } else {
-        CXPLAT_DBG_ASSERT(FALSE);
-    }
-    return FALSE;
+    CXPLAT_DBG_ASSERT(
+        DatapathType(SendData) == CXPLAT_DATAPATH_TYPE_USER ||
+        DatapathType(SendData) == CXPLAT_DATAPATH_TYPE_RAW);
+    return DatapathType(SendData) == CXPLAT_DATAPATH_TYPE_USER ?
+        SendDataIsFull(SendData) : RawSendDataIsFull(SendData);
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -533,14 +700,11 @@ CxPlatSocketSend(
     _In_ CXPLAT_SEND_DATA* SendData
     )
 {
-    if (DatapathType(SendData) == CXPLAT_DATAPATH_TYPE_USER) {
-        return SocketSend(Socket, Route, SendData);
-    } else if (DatapathType(SendData) == CXPLAT_DATAPATH_TYPE_XDP) {
-        return RawSocketSend(SocketToRaw(Socket), Route, SendData);
-    } else {
-        CXPLAT_DBG_ASSERT(FALSE);
-    }
-    return QUIC_STATUS_NOT_SUPPORTED;
+    CXPLAT_DBG_ASSERT(
+        DatapathType(SendData) == CXPLAT_DATAPATH_TYPE_USER ||
+        DatapathType(SendData) == CXPLAT_DATAPATH_TYPE_RAW);
+    return DatapathType(SendData) == CXPLAT_DATAPATH_TYPE_USER ?
+        SocketSend(Socket, Route, SendData) : RawSocketSend(CxPlatSocketToRaw(Socket), Route, SendData);
 }
 
 void
@@ -548,7 +712,6 @@ CxPlatDataPathProcessCqe(
     _In_ CXPLAT_CQE* Cqe
     )
 {
-    // TODO: refactoring
     switch (CxPlatCqeType(Cqe)) {
     case CXPLAT_CQE_TYPE_SOCKET_IO: {
         DATAPATH_IO_SQE* Sqe =
@@ -575,7 +738,7 @@ QuicCopyRouteInfo(
     _In_ CXPLAT_ROUTE* SrcRoute
     )
 {
-    if (SrcRoute->DatapathType == CXPLAT_DATAPATH_TYPE_XDP) {
+    if (SrcRoute->DatapathType == CXPLAT_DATAPATH_TYPE_RAW) {
         CxPlatCopyMemory(DstRoute, SrcRoute, (uint8_t*)&SrcRoute->State - (uint8_t*)SrcRoute);
         CxPlatUpdateRoute(DstRoute, SrcRoute);
     } else if (SrcRoute->DatapathType == CXPLAT_DATAPATH_TYPE_USER) {
@@ -593,6 +756,7 @@ CxPlatResolveRouteComplete(
     _In_ uint8_t PathId
     )
 {
+    CXPLAT_DBG_ASSERT(Route->DatapathType != CXPLAT_DATAPATH_TYPE_USER);
     if (Route->State != RouteResolved) {
         RawResolveRouteComplete(Connection, Route, PhysicalAddress, PathId);
     }
@@ -611,10 +775,10 @@ CxPlatResolveRoute(
     _In_ CXPLAT_ROUTE_RESOLUTION_CALLBACK_HANDLER Callback
     )
 {
-    if (Socket->UseTcp || Route->DatapathType == CXPLAT_DATAPATH_TYPE_XDP ||
+    if (Socket->UseTcp || Route->DatapathType == CXPLAT_DATAPATH_TYPE_RAW ||
         (Route->DatapathType == CXPLAT_DATAPATH_TYPE_UNKNOWN &&
         Socket->RawSocketAvailable && !IS_LOOPBACK(Route->RemoteAddress))) {
-        return RawResolveRoute(SocketToRaw(Socket), Route, PathId, Context, Callback);
+        return RawResolveRoute(CxPlatSocketToRaw(Socket), Route, PathId, Context, Callback);
     }
     Route->State = RouteResolved;
     return QUIC_STATUS_SUCCESS;
@@ -627,7 +791,7 @@ CxPlatUpdateRoute(
     _In_ CXPLAT_ROUTE* SrcRoute
     )
 {
-    if (SrcRoute->DatapathType == CXPLAT_DATAPATH_TYPE_XDP ||
+    if (SrcRoute->DatapathType == CXPLAT_DATAPATH_TYPE_RAW ||
         (SrcRoute->DatapathType == CXPLAT_DATAPATH_TYPE_UNKNOWN &&
         !IS_LOOPBACK(SrcRoute->RemoteAddress))) {
         RawUpdateRoute(DstRoute, SrcRoute);

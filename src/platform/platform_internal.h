@@ -39,8 +39,6 @@
 
 #endif
 
-// TODO: create header files for each datapath
-
 typedef struct DATAPATH_SQE {
     uint32_t CqeType;
 #ifdef CXPLAT_SQE
@@ -48,7 +46,6 @@ typedef struct DATAPATH_SQE {
 #endif
 } DATAPATH_SQE;
 
-// not needed?
 typedef struct CXPLAT_DATAPATH_COMMON {
     //
     // The UDP callback function pointers.
@@ -82,13 +79,10 @@ typedef struct CXPLAT_SEND_DATA_COMMON {
     uint8_t ECN; // CXPLAT_ECN_TYPE
 } CXPLAT_SEND_DATA_COMMON;
 
-
 typedef enum CXPLAT_DATAPATH_TYPE {
     CXPLAT_DATAPATH_TYPE_UNKNOWN = 0,
     CXPLAT_DATAPATH_TYPE_USER,
-    CXPLAT_DATAPATH_TYPE_KERNEL,
-    CXPLAT_DATAPATH_TYPE_XDP,
-    // DPDK?
+    CXPLAT_DATAPATH_TYPE_RAW, // currently raw == xdp
 } CXPLAT_DATAPATH_TYPE;
 
 #ifdef _KERNEL_MODE
@@ -526,7 +520,6 @@ typedef struct CXPLAT_SOCKET {
 
 typedef struct CXPLAT_SOCKET_RAW CXPLAT_SOCKET_RAW;
 
-// TODO: move to common area
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 SocketCreateUdp(
@@ -595,45 +588,10 @@ DataPathIsPaddingPreferred(
     _In_ CXPLAT_DATAPATH* Datapath
     );
 
-_IRQL_requires_max_(PASSIVE_LEVEL)
-_Success_(QUIC_SUCCEEDED(return))
-QUIC_STATUS
-DataPathGetLocalAddresses(
-    _In_ CXPLAT_DATAPATH* Datapath,
-    _Outptr_ _At_(*Addresses, __drv_allocatesMem(Mem))
-        CXPLAT_ADAPTER_ADDRESS** Addresses,
-    _Out_ uint32_t* AddressesCount
-    );
-
-_IRQL_requires_max_(PASSIVE_LEVEL)
-_Success_(QUIC_SUCCEEDED(return))
-QUIC_STATUS
-DataPathGetGatewayAddresses(
-    _In_ CXPLAT_DATAPATH* Datapath,
-    _Outptr_ _At_(*GatewayAddresses, __drv_allocatesMem(Mem))
-        QUIC_ADDR** GatewayAddresses,
-    _Out_ uint32_t* GatewayAddressesCount
-    );
-
-_IRQL_requires_max_(PASSIVE_LEVEL)
-QUIC_STATUS
-SocketUpdateQeo(
-    _In_ CXPLAT_SOCKET* Socket,
-    _In_reads_(OffloadCount)
-        const CXPLAT_QEO_CONNECTION* Offloads,
-    _In_ uint32_t OffloadCount
-    );
-
-_IRQL_requires_max_(DISPATCH_LEVEL)
-UINT16
-SocketGetLocalMtu(
-    _In_ CXPLAT_SOCKET* Socket
-    );
-
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 RecvDataReturn(
-    _In_opt_ CXPLAT_RECV_DATA* RecvDataChain
+    _In_ CXPLAT_RECV_DATA* RecvDataChain
     );
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -680,46 +638,22 @@ SocketSend(
     );
 
 void
-ResolveRouteComplete(
-    _In_ void* Context,
-    _Inout_ CXPLAT_ROUTE* Route,
-    _In_reads_bytes_(6) const uint8_t* PhysicalAddress,
-    _In_ uint8_t PathId
-    );
-
-_IRQL_requires_max_(PASSIVE_LEVEL)
-QUIC_STATUS
-ResolveRoute(
-    _In_ CXPLAT_SOCKET* Sock,
-    _Inout_ CXPLAT_ROUTE* Route,
-    _In_ uint8_t PathId,
-    _In_ void* Context,
-    _In_ CXPLAT_ROUTE_RESOLUTION_CALLBACK_HANDLER Callback
-    );
-
-void
 DataPathProcessCqe(
     _In_ CXPLAT_CQE* Cqe
     );
 
-_IRQL_requires_max_(PASSIVE_LEVEL)
-void
-UpdateRoute(
-    _Inout_ CXPLAT_ROUTE* DstRoute,
-    _In_ CXPLAT_ROUTE* SrcRoute
+CXPLAT_SOCKET*
+CxPlatRawToSocket(
+    _In_ CXPLAT_SOCKET_RAW* Socket
     );
 
-
-// TODO: rename
-CXPLAT_SOCKET*
-RawToSocket(CXPLAT_SOCKET_RAW* Socket);
-
-// TODO: rename
 CXPLAT_SOCKET_RAW*
-SocketToRaw(CXPLAT_SOCKET* Socket);
+CxPlatSocketToRaw(
+    _In_ CXPLAT_SOCKET* Socketh
+    );
 
 uint32_t
-CxPlatGetRawSocketSize ();
+CxPlatGetRawSocketSize(void);
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
@@ -787,7 +721,7 @@ RawSocketGetLocalMtu(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 RawRecvDataReturn(
-    _In_opt_ CXPLAT_RECV_DATA* RecvDataChain
+    _In_ CXPLAT_RECV_DATA* RecvDataChain
     );
 
 _IRQL_requires_max_(DISPATCH_LEVEL)

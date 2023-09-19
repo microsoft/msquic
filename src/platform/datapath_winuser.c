@@ -1071,242 +1071,6 @@ DataPathIsPaddingPreferred(
     return !!(Datapath->Features & CXPLAT_DATAPATH_FEATURE_SEND_SEGMENTATION);
 }
 
-_IRQL_requires_max_(PASSIVE_LEVEL)
-_Success_(QUIC_SUCCEEDED(return))
-QUIC_STATUS
-DataPathGetLocalAddresses(
-    _In_ CXPLAT_DATAPATH* Datapath,
-    _Outptr_ _At_(*Addresses, __drv_allocatesMem(Mem))
-        CXPLAT_ADAPTER_ADDRESS** Addresses,
-    _Out_ uint32_t* AddressesCount
-    )
-{
-    const ULONG Flags =
-        GAA_FLAG_INCLUDE_ALL_INTERFACES |
-        GAA_FLAG_SKIP_ANYCAST |
-        GAA_FLAG_SKIP_MULTICAST |
-        GAA_FLAG_SKIP_DNS_SERVER |
-        GAA_FLAG_SKIP_FRIENDLY_NAME |
-        GAA_FLAG_SKIP_DNS_INFO;
-
-    UNREFERENCED_PARAMETER(Datapath);
-
-    ULONG AdapterAddressesSize = 0;
-    PIP_ADAPTER_ADDRESSES AdapterAddresses = NULL;
-    uint32_t Index = 0;
-
-    QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
-    ULONG Error;
-    do {
-        Error =
-            GetAdaptersAddresses(
-                AF_UNSPEC,
-                Flags,
-                NULL,
-                AdapterAddresses,
-                &AdapterAddressesSize);
-        if (Error == ERROR_BUFFER_OVERFLOW) {
-            if (AdapterAddresses) {
-                CXPLAT_FREE(AdapterAddresses, QUIC_POOL_DATAPATH_ADDRESSES);
-            }
-            AdapterAddresses = CXPLAT_ALLOC_NONPAGED(AdapterAddressesSize, QUIC_POOL_DATAPATH_ADDRESSES);
-            if (!AdapterAddresses) {
-                Error = ERROR_NOT_ENOUGH_MEMORY;
-                QuicTraceEvent(
-                    AllocFailure,
-                    "Allocation of '%s' failed. (%llu bytes)",
-                    "PIP_ADAPTER_ADDRESSES",
-                    AdapterAddressesSize);
-            }
-        }
-    } while (Error == ERROR_BUFFER_OVERFLOW);
-
-    if (Error != ERROR_SUCCESS) {
-        QuicTraceEvent(
-            LibraryErrorStatus,
-            "[ lib] ERROR, %u, %s.",
-            Error,
-            "GetAdaptersAddresses");
-        Status = HRESULT_FROM_WIN32(Error);
-        goto Exit;
-    }
-
-    for (PIP_ADAPTER_ADDRESSES Iter = AdapterAddresses; Iter != NULL; Iter = Iter->Next) {
-        for (PIP_ADAPTER_UNICAST_ADDRESS_LH Iter2 = Iter->FirstUnicastAddress; Iter2 != NULL; Iter2 = Iter2->Next) {
-            Index++;
-        }
-    }
-
-    if (Index == 0) {
-        QuicTraceEvent(
-            LibraryError,
-            "[ lib] ERROR, %s.",
-            "No local unicast addresses found");
-        Status = QUIC_STATUS_NOT_FOUND;
-        goto Exit;
-    }
-
-    *Addresses = CXPLAT_ALLOC_NONPAGED(Index * sizeof(CXPLAT_ADAPTER_ADDRESS), QUIC_POOL_DATAPATH_ADDRESSES);
-    if (*Addresses == NULL) {
-        Status = QUIC_STATUS_OUT_OF_MEMORY;
-        QuicTraceEvent(
-            AllocFailure,
-            "Allocation of '%s' failed. (%llu bytes)",
-            "Addresses",
-            Index * sizeof(CXPLAT_ADAPTER_ADDRESS));
-        goto Exit;
-    }
-
-    CxPlatZeroMemory(*Addresses, Index * sizeof(CXPLAT_ADAPTER_ADDRESS));
-    *AddressesCount = Index;
-    Index = 0;
-
-    for (PIP_ADAPTER_ADDRESSES Iter = AdapterAddresses; Iter != NULL; Iter = Iter->Next) {
-        for (PIP_ADAPTER_UNICAST_ADDRESS_LH Iter2 = Iter->FirstUnicastAddress; Iter2 != NULL; Iter2 = Iter2->Next) {
-            CxPlatCopyMemory(
-                &(*Addresses)[Index].Address,
-                Iter2->Address.lpSockaddr,
-                sizeof(QUIC_ADDR));
-            (*Addresses)[Index].InterfaceIndex =
-                Iter2->Address.lpSockaddr->sa_family == AF_INET ?
-                    (uint32_t)Iter->IfIndex : (uint32_t)Iter->Ipv6IfIndex;
-            (*Addresses)[Index].InterfaceType = (uint16_t)Iter->IfType;
-            (*Addresses)[Index].OperationStatus = (CXPLAT_OPERATION_STATUS)Iter->OperStatus;
-            Index++;
-        }
-    }
-
-Exit:
-
-    if (AdapterAddresses) {
-        CXPLAT_FREE(AdapterAddresses, QUIC_POOL_DATAPATH_ADDRESSES);
-    }
-
-    return Status;
-}
-
-_IRQL_requires_max_(PASSIVE_LEVEL)
-_Success_(QUIC_SUCCEEDED(return))
-QUIC_STATUS
-DataPathGetGatewayAddresses(
-    _In_ CXPLAT_DATAPATH* Datapath,
-    _Outptr_ _At_(*GatewayAddresses, __drv_allocatesMem(Mem))
-        QUIC_ADDR** GatewayAddresses,
-    _Out_ uint32_t* GatewayAddressesCount
-    )
-{
-    const ULONG Flags =
-        GAA_FLAG_INCLUDE_GATEWAYS |
-        GAA_FLAG_INCLUDE_ALL_INTERFACES |
-        GAA_FLAG_SKIP_DNS_SERVER |
-        GAA_FLAG_SKIP_MULTICAST;
-
-    UNREFERENCED_PARAMETER(Datapath);
-
-    ULONG AdapterAddressesSize = 0;
-    PIP_ADAPTER_ADDRESSES AdapterAddresses = NULL;
-    uint32_t Index = 0;
-
-    QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
-    ULONG Error;
-    do {
-        Error =
-            GetAdaptersAddresses(
-                AF_UNSPEC,
-                Flags,
-                NULL,
-                AdapterAddresses,
-                &AdapterAddressesSize);
-        if (Error == ERROR_BUFFER_OVERFLOW) {
-            if (AdapterAddresses) {
-                CXPLAT_FREE(AdapterAddresses, QUIC_POOL_DATAPATH_ADDRESSES);
-            }
-            AdapterAddresses = CXPLAT_ALLOC_NONPAGED(AdapterAddressesSize, QUIC_POOL_DATAPATH_ADDRESSES);
-            if (!AdapterAddresses) {
-                Error = ERROR_NOT_ENOUGH_MEMORY;
-                QuicTraceEvent(
-                    AllocFailure,
-                    "Allocation of '%s' failed. (%llu bytes)",
-                    "PIP_ADAPTER_ADDRESSES",
-                    AdapterAddressesSize);
-            }
-        }
-    } while (Error == ERROR_BUFFER_OVERFLOW);
-
-    if (Error != ERROR_SUCCESS) {
-        QuicTraceEvent(
-            LibraryErrorStatus,
-            "[ lib] ERROR, %u, %s.",
-            Error,
-            "GetAdaptersAddresses");
-        Status = HRESULT_FROM_WIN32(Error);
-        goto Exit;
-    }
-
-    for (PIP_ADAPTER_ADDRESSES Iter = AdapterAddresses; Iter != NULL; Iter = Iter->Next) {
-        for (PIP_ADAPTER_GATEWAY_ADDRESS_LH Iter2 = Iter->FirstGatewayAddress; Iter2 != NULL; Iter2 = Iter2->Next) {
-            Index++;
-        }
-    }
-
-    if (Index == 0) {
-        QuicTraceEvent(
-            LibraryError,
-            "[ lib] ERROR, %s.",
-            "No gateway server addresses found");
-        Status = QUIC_STATUS_NOT_FOUND;
-        goto Exit;
-    }
-
-    *GatewayAddresses = CXPLAT_ALLOC_NONPAGED(Index * sizeof(QUIC_ADDR), QUIC_POOL_DATAPATH_ADDRESSES);
-    if (*GatewayAddresses == NULL) {
-        Status = QUIC_STATUS_OUT_OF_MEMORY;
-        QuicTraceEvent(
-            AllocFailure,
-            "Allocation of '%s' failed. (%llu bytes)",
-            "GatewayAddresses",
-            Index * sizeof(QUIC_ADDR));
-        goto Exit;
-    }
-
-    CxPlatZeroMemory(*GatewayAddresses, Index * sizeof(QUIC_ADDR));
-    *GatewayAddressesCount = Index;
-    Index = 0;
-
-    for (PIP_ADAPTER_ADDRESSES Iter = AdapterAddresses; Iter != NULL; Iter = Iter->Next) {
-        for (PIP_ADAPTER_GATEWAY_ADDRESS_LH Iter2 = Iter->FirstGatewayAddress; Iter2 != NULL; Iter2 = Iter2->Next) {
-            CxPlatCopyMemory(
-                &(*GatewayAddresses)[Index],
-                Iter2->Address.lpSockaddr,
-                sizeof(QUIC_ADDR));
-            Index++;
-        }
-    }
-
-Exit:
-
-    if (AdapterAddresses) {
-        CXPLAT_FREE(AdapterAddresses, QUIC_POOL_DATAPATH_ADDRESSES);
-    }
-
-    return Status;
-}
-
-// TODO: DELETE
-_IRQL_requires_max_(PASSIVE_LEVEL)
-QUIC_STATUS
-DataPathResolveAddress(
-    _In_ CXPLAT_DATAPATH* Datapath,
-    _In_z_ const char* HostName,
-    _Inout_ QUIC_ADDR* Address
-    )
-{
-    UNREFERENCED_PARAMETER(Datapath);
-    UNREFERENCED_PARAMETER(HostName);
-    UNREFERENCED_PARAMETER(Address);
-    return QUIC_STATUS_NOT_SUPPORTED;
-}
-
 void
 CxPlatSocketArmRioNotify(
     _In_ CXPLAT_SOCKET_PROC* SocketProc
@@ -1377,7 +1141,7 @@ SocketCreateUdp(
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         goto Error;
     }
-    CXPLAT_SOCKET* Socket = RawToSocket(RawSocket);
+    CXPLAT_SOCKET* Socket = CxPlatRawToSocket(RawSocket);
 
     QuicTraceEvent(
         DatapathCreated,
@@ -1963,7 +1727,7 @@ Skip:
 Error:
 
     if (RawSocket != NULL) {
-        SocketDelete(RawToSocket(RawSocket));
+        SocketDelete(CxPlatRawToSocket(RawSocket));
     }
 
     return Status;
@@ -2000,7 +1764,7 @@ CxPlatSocketCreateTcpInternal(
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         goto Error;
     }
-    CXPLAT_SOCKET* Socket = RawToSocket(RawSocket);
+    CXPLAT_SOCKET* Socket = CxPlatRawToSocket(RawSocket);
 
     QuicTraceEvent(
         DatapathCreated,
@@ -2222,7 +1986,7 @@ CxPlatSocketCreateTcpInternal(
 Error:
 
     if (RawSocket != NULL) {
-        SocketDelete(RawToSocket(RawSocket));
+        SocketDelete(CxPlatRawToSocket(RawSocket));
     }
 
     return Status;
@@ -2275,7 +2039,7 @@ SocketCreateTcpListener(
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         goto Error;
     }
-    CXPLAT_SOCKET* Socket = RawToSocket(RawSocket);
+    CXPLAT_SOCKET* Socket = CxPlatRawToSocket(RawSocket);
 
     QuicTraceEvent(
         DatapathCreated,
@@ -2464,7 +2228,7 @@ SocketCreateTcpListener(
 Error:
 
     if (RawSocket != NULL) {
-        SocketDelete(RawToSocket(RawSocket));
+        SocketDelete(CxPlatRawToSocket(RawSocket));
     }
 
     return Status;
@@ -2517,7 +2281,7 @@ CxPlatSocketRelease(
         CXPLAT_DBG_ASSERT(!Socket->Freed);
         CXPLAT_DBG_ASSERT(Socket->Uninitialized);
         Socket->Freed = TRUE;
-        CXPLAT_FREE(SocketToRaw(Socket), QUIC_POOL_SOCKET);
+        CXPLAT_FREE(CxPlatSocketToRaw(Socket), QUIC_POOL_SOCKET);
     }
 }
 
@@ -2565,7 +2329,7 @@ CxPlatSocketContextRelease(
         }
 
         SocketProc->Freed = TRUE;
-        CxPlatSocketRelease(SocketProc->Parent); //
+        CxPlatSocketRelease(SocketProc->Parent);
     }
 }
 
@@ -2644,56 +2408,6 @@ CxPlatSocketContextUninitialize(
     // there are no outstanding IOs, then the context will be cleaned up inline.
     //
     CxPlatSocketContextRelease(SocketProc);
-}
-
-_IRQL_requires_max_(PASSIVE_LEVEL)
-QUIC_STATUS
-SocketUpdateQeo(
-    _In_ CXPLAT_SOCKET* Socket,
-    _In_reads_(OffloadCount)
-        const CXPLAT_QEO_CONNECTION* Offloads,
-    _In_ uint32_t OffloadCount
-    )
-{
-    UNREFERENCED_PARAMETER(Socket);
-    UNREFERENCED_PARAMETER(Offloads);
-    UNREFERENCED_PARAMETER(OffloadCount);
-    return QUIC_STATUS_NOT_SUPPORTED;
-}
-
-// TODO: remove?
-_IRQL_requires_max_(DISPATCH_LEVEL)
-UINT16
-SocketGetLocalMtu(
-    _In_ CXPLAT_SOCKET* Socket
-    )
-{
-    CXPLAT_DBG_ASSERT(Socket != NULL);
-    return Socket->Mtu;
-}
-
-// TODO: remove
-_IRQL_requires_max_(DISPATCH_LEVEL)
-void
-SocketGetLocalAddress(
-    _In_ CXPLAT_SOCKET* Socket,
-    _Out_ QUIC_ADDR* Address
-    )
-{
-    CXPLAT_DBG_ASSERT(Socket != NULL);
-    *Address = Socket->LocalAddress;
-}
-
-// TODO: remove
-_IRQL_requires_max_(DISPATCH_LEVEL)
-void
-SocketGetRemoteAddress(
-    _In_ CXPLAT_SOCKET* Socket,
-    _Out_ QUIC_ADDR* Address
-    )
-{
-    CXPLAT_DBG_ASSERT(Socket != NULL);
-    *Address = Socket->RemoteAddress;
 }
 
 void*
@@ -2793,7 +2507,7 @@ CxPlatSocketStartAccept(
     if (ListenerSocketProc->AcceptSocket == NULL) {
         Status =
             CxPlatSocketCreateTcpInternal(
-                ListenerSocketProc->Parent->Datapath,
+                Datapath,
                 CXPLAT_SOCKET_TCP_SERVER,
                 NULL,
                 NULL,
@@ -2940,7 +2654,7 @@ CxPlatDataPathSocketProcessAcceptCompletion(
         CxPlatDataPathStartReceiveAsync(AcceptSocketProc);
 
         AcceptSocketProc->IoStarted = TRUE;
-        ListenerSocketProc->Parent->Datapath->TcpHandlers.Accept(
+        Datapath->TcpHandlers.Accept(
             ListenerSocketProc->Parent,
             ListenerSocketProc->Parent->ClientContext,
             ListenerSocketProc->AcceptSocket,
@@ -3560,6 +3274,7 @@ CxPlatDataPathSocketProcessRioCompletion(
 {
     UNREFERENCED_PARAMETER(Cqe);
     CXPLAT_SOCKET_PROC* SocketProc = CONTAINING_RECORD(Sqe, CXPLAT_SOCKET_PROC, RioSqe);
+    CXPLAT_DATAPATH* Datapath = SocketProc->DatapathProc->Datapath;
     ULONG ResultCount;
     BOOLEAN UpcallAcquired;
     ULONG TotalResultCount = 0;
@@ -3573,7 +3288,7 @@ CxPlatDataPathSocketProcessRioCompletion(
         RIORESULT Results[32];
 
         ResultCount =
-            SocketProc->DatapathProc->Datapath->RioDispatch.RIODequeueCompletion(
+            Datapath->RioDispatch.RIODequeueCompletion(
                 SocketProc->RioCq, Results, RTL_NUMBER_OF(Results));
 
         CXPLAT_FRE_ASSERT(ResultCount != RIO_CORRUPT_CQ);
@@ -3745,7 +3460,7 @@ CxPlatFreeRxIoBlock(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 RecvDataReturn(
-    _In_opt_ CXPLAT_RECV_DATA* RecvDataChain
+    _In_ CXPLAT_RECV_DATA* RecvDataChain
     )
 {
     LONG BatchedBufferCount = 0;
@@ -3890,11 +3605,11 @@ RioSendDataFree(
     )
 {
     CXPLAT_SEND_DATA* SendData = Entry;
-
+    CXPLAT_DATAPATH* Datapath = SendData->Owner->Datapath;
     UNREFERENCED_PARAMETER(Pool);
 
     CXPLAT_DBG_ASSERT(SendData->RioBufferId != RIO_INVALID_BUFFERID);
-    SendData->Owner->Datapath->RioDispatch.RIODeregisterBuffer(SendData->RioBufferId);
+    Datapath->RioDispatch.RIODeregisterBuffer(SendData->RioBufferId);
     CxPlatLargeFree(SendData, Tag);
 }
 
@@ -3932,6 +3647,7 @@ SendDataAlloc(
         SendData->WsaBufferCount = 0;
         SendData->ClientBuffer.len = 0;
         SendData->ClientBuffer.buf = NULL;
+        SendData->DatapathType = Config->Route->DatapathType = CXPLAT_DATAPATH_TYPE_USER;
 #if DEBUG
         SendData->Sqe.IoType = 0;
 #endif
@@ -3949,7 +3665,7 @@ SendDataAlloc(
         }
     }
 
-    return (CXPLAT_SEND_DATA*)SendData;
+    return SendData;
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -4037,11 +3753,12 @@ RioSendBufferFree(
     )
 {
     CXPLAT_RIO_SEND_BUFFER_HEADER* RioHeader = RioSendBufferHeaderFromBuffer(Entry);
+    CXPLAT_DATAPATH* Datapath = RioHeader->Datapath;
 
     UNREFERENCED_PARAMETER(Pool);
 
     CXPLAT_DBG_ASSERT(RioHeader->RioBufferId != RIO_INVALID_BUFFERID);
-    RioHeader->Datapath->RioDispatch.RIODeregisterBuffer(RioHeader->RioBufferId);
+    Datapath->RioDispatch.RIODeregisterBuffer(RioHeader->RioBufferId);
     CxPlatLargeFree(RioHeader, Tag);
 }
 
@@ -4666,47 +4383,4 @@ DataPathProcessCqe(
     }
     default: CXPLAT_DBG_ASSERT(FALSE); break;
     }
-}
-
-void
-ResolveRouteComplete(
-    _In_ void* Context,
-    _Inout_ CXPLAT_ROUTE* Route,
-    _In_reads_bytes_(6) const uint8_t* PhysicalAddress,
-    _In_ uint8_t PathId
-    )
-{
-    UNREFERENCED_PARAMETER(Context);
-    UNREFERENCED_PARAMETER(Route);
-    UNREFERENCED_PARAMETER(PhysicalAddress);
-    UNREFERENCED_PARAMETER(PathId);
-}
-
-_IRQL_requires_max_(PASSIVE_LEVEL)
-QUIC_STATUS
-ResolveRoute(
-    _In_ CXPLAT_SOCKET* Socket,
-    _Inout_ CXPLAT_ROUTE* Route,
-    _In_ uint8_t PathId,
-    _In_ void* Context,
-    _In_ CXPLAT_ROUTE_RESOLUTION_CALLBACK_HANDLER Callback
-    )
-{
-    UNREFERENCED_PARAMETER(Socket);
-    UNREFERENCED_PARAMETER(PathId);
-    UNREFERENCED_PARAMETER(Context);
-    UNREFERENCED_PARAMETER(Callback);
-    Route->State = RouteResolved;
-    return QUIC_STATUS_SUCCESS;
-}
-
-_IRQL_requires_max_(PASSIVE_LEVEL)
-void
-UpdateRoute(
-    _Inout_ CXPLAT_ROUTE* DstRoute,
-    _In_ CXPLAT_ROUTE* SrcRoute
-    )
-{
-    UNREFERENCED_PARAMETER(DstRoute);
-    UNREFERENCED_PARAMETER(SrcRoute);
 }

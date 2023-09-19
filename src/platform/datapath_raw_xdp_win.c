@@ -24,8 +24,8 @@ Abstract:
 #endif
 
 typedef struct XDP_DATAPATH {
-    DECLSPEC_CACHEALIGN
     CXPLAT_DATAPATH_RAW;
+    DECLSPEC_CACHEALIGN
 
     //
     // Currently, all XDP interfaces share the same config.
@@ -1563,7 +1563,7 @@ CxPlatXdpRx(
         Packet->Queue = Queue;
         Packet->RouteStorage.Queue = Queue;
         Packet->RecvData.Route = &Packet->RouteStorage;
-        Packet->RecvData.Route->DatapathType = Packet->RecvData.DatapathType = CXPLAT_DATAPATH_TYPE_XDP;
+        Packet->RecvData.Route->DatapathType = Packet->RecvData.DatapathType = CXPLAT_DATAPATH_TYPE_RAW;
         Packet->RecvData.PartitionIndex = PartitionIndex;
 
         CxPlatDpRawParseEthernet(
@@ -1688,6 +1688,7 @@ CxPlatDpRawTxAlloc(
         Packet->Buffer.Length = Config->MaxPacketSize;
         Packet->Buffer.Buffer = &Packet->FrameBuffer[HeaderBackfill.AllLayer];
         Packet->ECN = Config->ECN;
+        Packet->DatapathType = Config->Route->DatapathType = CXPLAT_DATAPATH_TYPE_RAW;
     }
 
     return (CXPLAT_SEND_DATA*)Packet;
