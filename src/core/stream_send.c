@@ -1482,10 +1482,6 @@ QuicStreamOnAck(
                     "[strm][%p] Send State: %hhu",
                     Stream,
                     QuicStreamSendGetState(Stream));
-                QuicTraceLogStreamVerbose(
-                    GracefulShutdown,
-                    Stream,
-                    "Shutting down [gracefully] from OnStreamAck. Send Side.");
                 QuicStreamIndicateSendShutdownComplete(Stream, TRUE);
                 QuicStreamTryCompleteShutdown(Stream);
             }
@@ -1539,11 +1535,6 @@ QuicStreamOnAck(
                 "[strm][%p] Send State: %hhu",
                 Stream,
                 QuicStreamSendGetState(Stream));
-        QuicTraceLogStreamVerbose(
-            OnStreamAckReliableReset,
-            Stream,
-            "Shutting down stream [reliable] from OnStreamAck. Send side. UnAckedOffset=%llu, ReliableOffsetSend=%llu",
-            Stream->UnAckedOffset, Stream->ReliableOffsetSend);
         QuicStreamCleanupReliableReset(Stream);
         Stream->Flags.LocalCloseReset = TRUE;
         QuicStreamSendShutdown(Stream, FALSE, TRUE, FALSE, 0x21);
@@ -1601,10 +1592,6 @@ QuicStreamOnResetAck(
             "[strm][%p] Send State: %hhu",
             Stream,
             QuicStreamSendGetState(Stream));
-        QuicTraceLogStreamVerbose(
-            OnResetAck,
-            Stream,
-            "Shutting down stream [abortively] from OnResetAck. Send Side.");
         QuicStreamIndicateSendShutdownComplete(Stream, FALSE);
         QuicStreamTryCompleteShutdown(Stream);
     }
@@ -1630,11 +1617,6 @@ QuicStreamOnResetReliableAck(
                 "[strm][%p] Send State: %hhu",
                 Stream,
                 QuicStreamSendGetState(Stream));
-        QuicTraceLogStreamVerbose(
-            ResetReliableAckShutDown,
-            Stream,
-            "Shutting down stream [reliably] from OnResetReliableAck. Send side. UnAckedOffset=%llu, ReliableOffsetSend=%llu",
-            Stream->UnAckedOffset, Stream->ReliableOffsetSend);
         QuicStreamCleanupReliableReset(Stream);
         Stream->Flags.LocalCloseReset = TRUE;
         QuicStreamSendShutdown(Stream, FALSE, TRUE, FALSE, 0x21);

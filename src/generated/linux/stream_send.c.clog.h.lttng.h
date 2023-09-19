@@ -309,70 +309,6 @@ TRACEPOINT_EVENT(CLOG_STREAM_SEND_C, SendQueueDrained,
 
 
 /*----------------------------------------------------------
-// Decoder Ring for GracefulShutdown
-// [strm][%p] Shutting down [gracefully] from OnStreamAck. Send Side.
-// QuicTraceLogStreamVerbose(
-                    GracefulShutdown,
-                    Stream,
-                    "Shutting down [gracefully] from OnStreamAck. Send Side.");
-// arg1 = arg1 = Stream = arg1
-----------------------------------------------------------*/
-TRACEPOINT_EVENT(CLOG_STREAM_SEND_C, GracefulShutdown,
-    TP_ARGS(
-        const void *, arg1), 
-    TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg1, arg1)
-    )
-)
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for OnStreamAckReliableReset
-// [strm][%p] Shutting down stream [reliable] from OnStreamAck. Send side. UnAckedOffset=%llu, ReliableOffsetSend=%llu
-// QuicTraceLogStreamVerbose(
-            OnStreamAckReliableReset,
-            Stream,
-            "Shutting down stream [reliable] from OnStreamAck. Send side. UnAckedOffset=%llu, ReliableOffsetSend=%llu",
-            Stream->UnAckedOffset, Stream->ReliableOffsetSend);
-// arg1 = arg1 = Stream = arg1
-// arg3 = arg3 = Stream->UnAckedOffset = arg3
-// arg4 = arg4 = Stream->ReliableOffsetSend = arg4
-----------------------------------------------------------*/
-TRACEPOINT_EVENT(CLOG_STREAM_SEND_C, OnStreamAckReliableReset,
-    TP_ARGS(
-        const void *, arg1,
-        unsigned long long, arg3,
-        unsigned long long, arg4), 
-    TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg1, arg1)
-        ctf_integer(uint64_t, arg3, arg3)
-        ctf_integer(uint64_t, arg4, arg4)
-    )
-)
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for OnResetAck
-// [strm][%p] Shutting down stream [abortively] from OnResetAck. Send Side.
-// QuicTraceLogStreamVerbose(
-            OnResetAck,
-            Stream,
-            "Shutting down stream [abortively] from OnResetAck. Send Side.");
-// arg1 = arg1 = Stream = arg1
-----------------------------------------------------------*/
-TRACEPOINT_EVENT(CLOG_STREAM_SEND_C, OnResetAck,
-    TP_ARGS(
-        const void *, arg1), 
-    TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg1, arg1)
-    )
-)
-
-
-
-/*----------------------------------------------------------
 // Decoder Ring for ResetReliableAck
 // [strm][%p] Reset Reliable ACKed in OnResetReliableAck. Send side. UnAckedOffset=%llu, ReliableOffsetSend=%llu
 // QuicTraceLogStreamVerbose(
@@ -385,32 +321,6 @@ TRACEPOINT_EVENT(CLOG_STREAM_SEND_C, OnResetAck,
 // arg4 = arg4 = Stream->ReliableOffsetSend = arg4
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_STREAM_SEND_C, ResetReliableAck,
-    TP_ARGS(
-        const void *, arg1,
-        unsigned long long, arg3,
-        unsigned long long, arg4), 
-    TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg1, arg1)
-        ctf_integer(uint64_t, arg3, arg3)
-        ctf_integer(uint64_t, arg4, arg4)
-    )
-)
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for ResetReliableAckShutDown
-// [strm][%p] Shutting down stream [reliably] from OnResetReliableAck. Send side. UnAckedOffset=%llu, ReliableOffsetSend=%llu
-// QuicTraceLogStreamVerbose(
-            ResetReliableAckShutDown,
-            Stream,
-            "Shutting down stream [reliably] from OnResetReliableAck. Send side. UnAckedOffset=%llu, ReliableOffsetSend=%llu",
-            Stream->UnAckedOffset, Stream->ReliableOffsetSend);
-// arg1 = arg1 = Stream = arg1
-// arg3 = arg3 = Stream->UnAckedOffset = arg3
-// arg4 = arg4 = Stream->ReliableOffsetSend = arg4
-----------------------------------------------------------*/
-TRACEPOINT_EVENT(CLOG_STREAM_SEND_C, ResetReliableAckShutDown,
     TP_ARGS(
         const void *, arg1,
         unsigned long long, arg3,

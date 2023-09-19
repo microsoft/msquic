@@ -209,11 +209,6 @@ QuicStreamProcessReliableResetFrame(
             "[strm][%p] Recv State: %hhu",
             Stream,
             QuicStreamRecvGetState(Stream));
-        QuicTraceLogStreamVerbose(
-            ProcessReliableReset,
-            Stream,
-            "Shutting down stream from Process Reliable Reset Frame. Recv Side. BaseOffset: %llu, RecvMaxLength: %llu",
-            Stream->RecvBuffer.BaseOffset, Stream->RecvMaxLength);
         QuicStreamRecvShutdown(Stream, TRUE, ErrorCode);
     }
 
@@ -328,10 +323,6 @@ QuicStreamProcessResetFrame(
             (void)QuicStreamIndicateEvent(Stream, &Event);
         }
 
-        QuicTraceLogStreamVerbose(
-            ProcessReliableProcessResetFrame,
-            Stream,
-            "Shutting down stream Abortively in ProcessResetFrame. Recv Side.");
         //
         // Remove any flags we shouldn't be sending now that the receive
         // direction is closed.
@@ -1144,10 +1135,6 @@ QuicStreamReceiveComplete(
             "Indicating QUIC_STREAM_EVENT_PEER_SEND_SHUTDOWN");
         (void)QuicStreamIndicateEvent(Stream, &Event);
 
-        QuicTraceLogStreamVerbose(
-            GracefulRecv,
-            Stream,
-            "Shutting down stream [gracefully] Recv Side.");
         //
         // Now that the close event has been delivered to the app, we can shut
         // down the stream.
@@ -1170,11 +1157,6 @@ QuicStreamReceiveComplete(
             "[strm][%p] Recv State: %hhu",
             Stream,
             QuicStreamRecvGetState(Stream));
-        QuicTraceLogStreamVerbose(
-            ReliableResetReceiveComplete,
-            Stream,
-            "Shutting down stream from ReceiveComplete Recv Side. BaseOffset: %llu, RecvMaxLength: %llu",
-            Stream->RecvBuffer.BaseOffset, Stream->RecvMaxLength);
         QuicStreamRecvShutdown(Stream, TRUE, 0x21);
     }
 

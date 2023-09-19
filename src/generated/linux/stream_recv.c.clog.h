@@ -216,27 +216,6 @@ tracepoint(CLOG_STREAM_RECV_C, QueueRecvFlush , arg1);\
 
 
 /*----------------------------------------------------------
-// Decoder Ring for ProcessReliableReset
-// [strm][%p] Shutting down stream from Process Reliable Reset Frame. Recv Side. BaseOffset: %llu, RecvMaxLength: %llu
-// QuicTraceLogStreamVerbose(
-            ProcessReliableReset,
-            Stream,
-            "Shutting down stream from Process Reliable Reset Frame. Recv Side. BaseOffset: %llu, RecvMaxLength: %llu",
-            Stream->RecvBuffer.BaseOffset, Stream->RecvMaxLength);
-// arg1 = arg1 = Stream = arg1
-// arg3 = arg3 = Stream->RecvBuffer.BaseOffset = arg3
-// arg4 = arg4 = Stream->RecvMaxLength = arg4
-----------------------------------------------------------*/
-#ifndef _clog_5_ARGS_TRACE_ProcessReliableReset
-#define _clog_5_ARGS_TRACE_ProcessReliableReset(uniqueId, arg1, encoded_arg_string, arg3, arg4)\
-tracepoint(CLOG_STREAM_RECV_C, ProcessReliableReset , arg1, arg3, arg4);\
-
-#endif
-
-
-
-
-/*----------------------------------------------------------
 // Decoder Ring for IndicatePeerSendAbort
 // [strm][%p] Indicating QUIC_STREAM_EVENT_PEER_SEND_ABORTED (0x%llX)
 // QuicTraceLogStreamVerbose(
@@ -250,24 +229,6 @@ tracepoint(CLOG_STREAM_RECV_C, ProcessReliableReset , arg1, arg3, arg4);\
 #ifndef _clog_4_ARGS_TRACE_IndicatePeerSendAbort
 #define _clog_4_ARGS_TRACE_IndicatePeerSendAbort(uniqueId, arg1, encoded_arg_string, arg3)\
 tracepoint(CLOG_STREAM_RECV_C, IndicatePeerSendAbort , arg1, arg3);\
-
-#endif
-
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for ProcessReliableProcessResetFrame
-// [strm][%p] Shutting down stream Abortively in ProcessResetFrame. Recv Side.
-// QuicTraceLogStreamVerbose(
-            ProcessReliableProcessResetFrame,
-            Stream,
-            "Shutting down stream Abortively in ProcessResetFrame. Recv Side.");
-// arg1 = arg1 = Stream = arg1
-----------------------------------------------------------*/
-#ifndef _clog_3_ARGS_TRACE_ProcessReliableProcessResetFrame
-#define _clog_3_ARGS_TRACE_ProcessReliableProcessResetFrame(uniqueId, arg1, encoded_arg_string)\
-tracepoint(CLOG_STREAM_RECV_C, ProcessReliableProcessResetFrame , arg1);\
 
 #endif
 
@@ -466,45 +427,6 @@ tracepoint(CLOG_STREAM_RECV_C, IgnoreRecvFlush , arg1);\
 #ifndef _clog_3_ARGS_TRACE_IndicatePeerSendShutdown
 #define _clog_3_ARGS_TRACE_IndicatePeerSendShutdown(uniqueId, arg1, encoded_arg_string)\
 tracepoint(CLOG_STREAM_RECV_C, IndicatePeerSendShutdown , arg1);\
-
-#endif
-
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for GracefulRecv
-// [strm][%p] Shutting down stream [gracefully] Recv Side.
-// QuicTraceLogStreamVerbose(
-            GracefulRecv,
-            Stream,
-            "Shutting down stream [gracefully] Recv Side.");
-// arg1 = arg1 = Stream = arg1
-----------------------------------------------------------*/
-#ifndef _clog_3_ARGS_TRACE_GracefulRecv
-#define _clog_3_ARGS_TRACE_GracefulRecv(uniqueId, arg1, encoded_arg_string)\
-tracepoint(CLOG_STREAM_RECV_C, GracefulRecv , arg1);\
-
-#endif
-
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for ReliableResetReceiveComplete
-// [strm][%p] Shutting down stream from ReceiveComplete Recv Side. BaseOffset: %llu, RecvMaxLength: %llu
-// QuicTraceLogStreamVerbose(
-            ReliableResetReceiveComplete,
-            Stream,
-            "Shutting down stream from ReceiveComplete Recv Side. BaseOffset: %llu, RecvMaxLength: %llu",
-            Stream->RecvBuffer.BaseOffset, Stream->RecvMaxLength);
-// arg1 = arg1 = Stream = arg1
-// arg3 = arg3 = Stream->RecvBuffer.BaseOffset = arg3
-// arg4 = arg4 = Stream->RecvMaxLength = arg4
-----------------------------------------------------------*/
-#ifndef _clog_5_ARGS_TRACE_ReliableResetReceiveComplete
-#define _clog_5_ARGS_TRACE_ReliableResetReceiveComplete(uniqueId, arg1, encoded_arg_string, arg3, arg4)\
-tracepoint(CLOG_STREAM_RECV_C, ReliableResetReceiveComplete , arg1, arg3, arg4);\
 
 #endif
 
