@@ -10,7 +10,7 @@ on:
   
   pull_request:
     branches: ["main"]
-    paths: ["docs/**"]
+    paths: ["docs/**", ".github/workflows/publish-docfx.yml"]
 
 permissions: read-all
 
