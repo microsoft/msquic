@@ -127,7 +127,7 @@ jobs:
       uses: actions/download-artifact@9bc31d5ccc31df68ecc42ccf4149144866c47d8a
       if: matrix.vec.plat == 'windows'
       with: # note that BVT for WSPrerelease uses binaries built on windows-2022.
-        name: ${{ matrix.vec.config }}-${{ matrix.vec.plat }}-${{ matrix.vec.os == 'WSPrerelease' && 'windows-2022' || matrix.vec.os }}-${{ matrix.vec.arch }}-${{ matrix.vec.tls }}${{ matrix.vec.xdp }}${{ matrix.vec.sanitize }}${{ matrix.vec.test }}
+        name: ${{ matrix.vec.config }}-${{ matrix.vec.plat }}-${{ matrix.vec.os == 'WSPrerelease' && 'windows-2022' || matrix.vec.os }}-${{ matrix.vec.arch }}-${{ matrix.vec.tls }}${{ matrix.vec.sanitize }}${{ matrix.vec.test }}
         path: artifacts
     - name: Download Build Artifacts
       uses: actions/download-artifact@9bc31d5ccc31df68ecc42ccf4149144866c47d8a
@@ -234,7 +234,7 @@ jobs:
         fetch-depth: 0
     - uses: actions/download-artifact@9bc31d5ccc31df68ecc42ccf4149144866c47d8a
       with:
-        name: ${{ matrix.vec.config }}-${{ matrix.vec.plat }}-${{ matrix.vec.os }}-${{ matrix.vec.arch }}-${{ matrix.vec.tls }}${{ matrix.vec.xdp }}${{ matrix.vec.sanitize }}${{ matrix.vec.test }}
+        name: ${{ matrix.vec.config }}-${{ matrix.vec.plat }}-${{ matrix.vec.os }}-${{ matrix.vec.arch }}-${{ matrix.vec.tls }}${{ matrix.vec.sanitize }}${{ matrix.vec.test }}
         path: artifacts
     - name: Prepare Machine
       run: scripts/prepare-machine.ps1 -ForTest ${{ matrix.vec.xdp }}

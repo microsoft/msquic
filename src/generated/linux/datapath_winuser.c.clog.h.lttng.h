@@ -292,25 +292,6 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_WINUSER_C, AllocFailure,
 
 
 /*----------------------------------------------------------
-// Decoder Ring for LibraryError
-// [ lib] ERROR, %s.
-// QuicTraceEvent(
-            LibraryError,
-            "[ lib] ERROR, %s.",
-            "No local unicast addresses found");
-// arg2 = arg2 = "No local unicast addresses found" = arg2
-----------------------------------------------------------*/
-TRACEPOINT_EVENT(CLOG_DATAPATH_WINUSER_C, LibraryError,
-    TP_ARGS(
-        const char *, arg2), 
-    TP_FIELDS(
-        ctf_string(arg2, arg2)
-    )
-)
-
-
-
-/*----------------------------------------------------------
 // Decoder Ring for DatapathErrorStatus
 // [data][%p] ERROR, %u, %s.
 // QuicTraceEvent(
