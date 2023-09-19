@@ -36,6 +36,9 @@ jobs:
         dotnet-version: 7.x
 
     - run: dotnet tool update -g docfx
+    - run: chmod +x ./scripts/prepare-docfx.ps1
+    - run: ./scripts/prepare-docfx.ps1
+      shell: pwsh
     - run: chmod +x ./scripts/generate-docfx-yml.ps1
     - run: ./scripts/generate-docfx-yml.ps1 ./docs
       shell: pwsh
