@@ -85,6 +85,40 @@ typedef enum CXPLAT_DATAPATH_TYPE {
     CXPLAT_DATAPATH_TYPE_RAW, // currently raw == xdp
 } CXPLAT_DATAPATH_TYPE;
 
+//
+// Type of IO.
+//
+typedef enum DATAPATH_IO_TYPE {
+    DATAPATH_IO_SIGNATURE         = 'WINU',
+    DATAPATH_IO_RECV              = DATAPATH_IO_SIGNATURE + 1,
+    DATAPATH_IO_SEND              = DATAPATH_IO_SIGNATURE + 2,
+    DATAPATH_IO_QUEUE_SEND        = DATAPATH_IO_SIGNATURE + 3,
+    DATAPATH_IO_ACCEPTEX          = DATAPATH_IO_SIGNATURE + 4,
+    DATAPATH_IO_CONNECTEX         = DATAPATH_IO_SIGNATURE + 5,
+    DATAPATH_IO_RIO_NOTIFY        = DATAPATH_IO_SIGNATURE + 6,
+    DATAPATH_IO_RIO_RECV          = DATAPATH_IO_SIGNATURE + 7,
+    DATAPATH_IO_RIO_SEND          = DATAPATH_IO_SIGNATURE + 8,
+    DATAPATH_IO_RECV_FAILURE      = DATAPATH_IO_SIGNATURE + 9,
+    DATAPATH_IO_MAX
+} DATAPATH_IO_TYPE;
+
+//
+// Type of IO for XDP.
+//
+typedef enum DATAPATH_XDP_IO_TYPE {
+    DATAPATH_XDP_IO_SIGNATURE         = 'XDPD',
+    DATAPATH_XDP_IO_RECV              = DATAPATH_XDP_IO_SIGNATURE + 1,
+    DATAPATH_XDP_IO_SEND              = DATAPATH_XDP_IO_SIGNATURE + 2
+} DATAPATH_XDP_IO_TYPE;
+
+//
+// IO header for SQE->CQE based completions.
+//
+typedef struct DATAPATH_IO_SQE {
+    DATAPATH_IO_TYPE IoType;
+    DATAPATH_SQE DatapathSqe;
+} DATAPATH_IO_SQE;
+
 #ifdef _KERNEL_MODE
 
 #define CXPLAT_BASE_REG_PATH L"\\Registry\\Machine\\System\\CurrentControlSet\\Services\\MsQuic\\Parameters\\"
@@ -156,8 +190,6 @@ typedef enum CXPLAT_SOCKET_TYPE {
     CXPLAT_SOCKET_TCP             = 2,
     CXPLAT_SOCKET_TCP_SERVER      = 3
 } CXPLAT_SOCKET_TYPE;
-
-typedef struct DATAPATH_IO_SQE DATAPATH_IO_SQE;
 
 //
 // Represents a single IO completion port and thread for processing work that is
@@ -889,40 +921,6 @@ typedef struct CXPLAT_DATAPATH {
 #if defined(CX_PLATFORM_LINUX) || _WIN32
 
 typedef struct CXPLAT_SOCKET_RAW CXPLAT_SOCKET_RAW;
-
-//
-// Type of IO.
-//
-typedef enum DATAPATH_IO_TYPE {
-    DATAPATH_IO_SIGNATURE         = 'WINU',
-    DATAPATH_IO_RECV              = DATAPATH_IO_SIGNATURE + 1,
-    DATAPATH_IO_SEND              = DATAPATH_IO_SIGNATURE + 2,
-    DATAPATH_IO_QUEUE_SEND        = DATAPATH_IO_SIGNATURE + 3,
-    DATAPATH_IO_ACCEPTEX          = DATAPATH_IO_SIGNATURE + 4,
-    DATAPATH_IO_CONNECTEX         = DATAPATH_IO_SIGNATURE + 5,
-    DATAPATH_IO_RIO_NOTIFY        = DATAPATH_IO_SIGNATURE + 6,
-    DATAPATH_IO_RIO_RECV          = DATAPATH_IO_SIGNATURE + 7,
-    DATAPATH_IO_RIO_SEND          = DATAPATH_IO_SIGNATURE + 8,
-    DATAPATH_IO_RECV_FAILURE      = DATAPATH_IO_SIGNATURE + 9,
-    DATAPATH_IO_MAX
-} DATAPATH_IO_TYPE;
-
-//
-// Type of IO for XDP.
-//
-typedef enum DATAPATH_XDP_IO_TYPE {
-    DATAPATH_XDP_IO_SIGNATURE         = 'XDPD',
-    DATAPATH_XDP_IO_RECV              = DATAPATH_XDP_IO_SIGNATURE + 1,
-    DATAPATH_XDP_IO_SEND              = DATAPATH_XDP_IO_SIGNATURE + 2
-} DATAPATH_XDP_IO_TYPE;
-
-//
-// IO header for SQE->CQE based completions.
-//
-typedef struct DATAPATH_IO_SQE {
-    DATAPATH_IO_TYPE IoType;
-    DATAPATH_SQE DatapathSqe;
-} DATAPATH_IO_SQE;
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
