@@ -32,7 +32,6 @@ jobs:
         arch: [x86, x64, arm64]
         tls: [schannel, openssl, openssl3]
         static: ['', '-Static']
-        xdp: ['', '-UseXdp']
         exclude:
         # OpenSSL doesn't support arm64
         - tls: openssl
@@ -46,15 +45,6 @@ jobs:
         # TODO: FIX: Static builds fail with UWP
         - plat: uwp
           static: '-Static'
-        # XDP not supported in UWP
-        - plat: uwp
-          xdp: '-UseXdp'
-        # XDP only supports x64 currently
-        - arch: x86
-          xdp: '-UseXdp'
-        # XDP only supports x64 currently
-        - arch: arm64
-          xdp: '-UseXdp'
     uses: ./.github/workflows/build-reuse-win.yml
     with:
       config: ${{ matrix.config }}

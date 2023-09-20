@@ -47,10 +47,6 @@ on:
         #   - openssl
         #   - openssl3
         #   - schannel
-      xdp:
-        required: false
-        default: ''
-        type: string
       static:
         required: false
         default: ''
@@ -85,7 +81,7 @@ jobs:
       uses: ilammy/setup-nasm@321e6ed62a1fc77024a3bd853deb33645e8b22c4
     - name: Prepare Machine
       shell: pwsh
-      run: scripts/prepare-machine.ps1 -ForBuild -Tls ${{ inputs.tls }} ${{ inputs.xdp }}
+      run: scripts/prepare-machine.ps1 -ForBuild -Tls ${{ inputs.tls }}
     - name: Build For Test
       if: inputs.test == '-Test'
       shell: pwsh

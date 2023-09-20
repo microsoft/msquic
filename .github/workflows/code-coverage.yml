@@ -142,7 +142,7 @@ jobs:
       with:
         fetch-depth: 0
     - name: Prepare Machine
-      run: scripts/prepare-machine.ps1 -ForTest -InstallCodeCoverage -UseXdp
+      run: scripts/prepare-machine.ps1 -ForTest -InstallCodeCoverage
       shell: pwsh
     - name: Create Folder for Artifacts
       shell: pwsh
