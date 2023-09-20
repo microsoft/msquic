@@ -43,10 +43,8 @@ jobs:
     - run: ./scripts/generate-docfx-yml.ps1 ./docs
       shell: pwsh
     - run: docfx docfx.json
-
+    - run: chmod +x ./scripts/update-docfx-site.ps1
     - name: Commit Changes
-      if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-      run: |
-          chmod +x ./scripts/update-docfx-site.ps1
-          ./scripts/update-docfx-site.ps1
-          shell: pwsh
+      if: (github.event_name == 'push' && github.ref == 'refs/heads/main') || (github.event_name == 'workflow_dispatch')
+      run: ./scripts/update-docfx-site.ps1
+      shell: pwsh
