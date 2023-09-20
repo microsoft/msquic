@@ -6,7 +6,7 @@ on:
   # Runs on pushes targeting the default branch
   push:
     branches: ["main"]
-    paths: ["docs/**"]
+    paths: ["docs/**", ".github/workflows/publish-docfx.yml"]
   
   pull_request:
     branches: ["main"]
@@ -45,7 +45,7 @@ jobs:
     - run: docfx docfx.json
 
     - name: Commit Changes
-      if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+      if: (github.event_name == 'push' && github.ref == 'refs/heads/main') || (github.event_name == 'workflow_dispatch')
       run: |
           chmod +x ./scripts/update-docfx-site.ps1
           ./scripts/update-docfx-site.ps1
