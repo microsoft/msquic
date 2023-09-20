@@ -182,7 +182,7 @@ QuicStreamProcessReliableResetFrame(
             ReliableResetNotNegotiatedError,
             Stream,
             "Received ReliableReset without negotiation.");
-        QuicConnTransportError(Stream->Connection, QUIC_ERROR_STREAM_STATE_ERROR);
+        QuicConnTransportError(Stream->Connection, QUIC_ERROR_TRANSPORT_PARAMETER_ERROR);
         return;
     }
 

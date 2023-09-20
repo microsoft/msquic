@@ -168,7 +168,9 @@ typedef enum QUIC_STREAM_SEND_STATE {
     QUIC_STREAM_SEND_RESET,
     QUIC_STREAM_SEND_RESET_ACKED,
     QUIC_STREAM_SEND_FIN,
-    QUIC_STREAM_SEND_FIN_ACKED
+    QUIC_STREAM_SEND_FIN_ACKED,
+    QUIC_STREAM_SEND_RELIABLE_RESET,
+    QUIC_STREAM_SEND_RELIABLE_RESET_ACKED
 } QUIC_STREAM_SEND_STATE;
 
 typedef enum QUIC_STREAM_RECV_STATE {
@@ -177,7 +179,8 @@ typedef enum QUIC_STREAM_RECV_STATE {
     QUIC_STREAM_RECV_PAUSED,
     QUIC_STREAM_RECV_STOPPED,
     QUIC_STREAM_RECV_RESET,
-    QUIC_STREAM_RECV_FIN
+    QUIC_STREAM_RECV_FIN,
+    QUIC_STREAM_RECV_RELIABLE_RESET
 } QUIC_STREAM_RECV_STATE;
 
 //
@@ -457,6 +460,12 @@ QuicStreamSendGetState(
 {
     if (Stream->Flags.LocalNotAllowed) {
         return QUIC_STREAM_SEND_DISABLED;
+    } else if (Stream->Flags.LocalCloseResetReliable) {
+        if (Stream->Flags.LocalCloseResetReliableAcked) {
+            return QUIC_STREAM_SEND_RELIABLE_RESET_ACKED;
+        } else {
+            return QUIC_STREAM_SEND_RELIABLE_RESET;
+        }
     } else if (Stream->Flags.LocalCloseAcked) {
         if (Stream->Flags.FinAcked) {
             return QUIC_STREAM_SEND_FIN_ACKED;
@@ -480,6 +489,8 @@ QuicStreamRecvGetState(
 {
     if (Stream->Flags.RemoteNotAllowed) {
         return QUIC_STREAM_RECV_DISABLED;
+    } else if (Stream->Flags.RemoteCloseResetReliable) {
+        return QUIC_STREAM_RECV_RELIABLE_RESET;
     } else if (Stream->Flags.RemoteCloseReset) {
         return QUIC_STREAM_RECV_RESET;
     } else if (Stream->Flags.RemoteCloseFin) {
