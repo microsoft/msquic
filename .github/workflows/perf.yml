@@ -1,0 +1,29 @@
+name: Perf
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+    - main
+  pull_request:
+    branches:
+    - main
+
+concurrency:
+  # Cancel any workflow currently in progress for the same PR.
+  # Allow running concurrently with any other commits.
+  group: perf-${{ github.event.pull_request.number || github.sha }}
+  cancel-in-progress: true
+
+permissions: read-all
+
+jobs:
+  run:
+    name: Run Perf
+    runs-on: windows-latest
+    steps:
+    - name: Run NetPerf Workflow
+      shell: pwsh
+      run: |
+        $url = "https://raw.githubusercontent.com/microsoft/netperf/main/run-workflow.ps1"
+        iex "& { $(irm $url) } quic msquic ${{ github.ref }} ${{ github.sha }} ${{ secrets.NET_PERF_TRIGGER }}"
