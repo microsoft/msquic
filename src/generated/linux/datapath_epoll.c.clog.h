@@ -18,10 +18,6 @@
 #define _clog_MACRO_QuicTraceLogWarning  1
 #define QuicTraceLogWarning(a, ...) _clog_CAT(_clog_ARGN_SELECTOR(__VA_ARGS__), _clog_CAT(_,a(#a, __VA_ARGS__)))
 #endif
-#ifndef _clog_MACRO_QuicTraceLogError
-#define _clog_MACRO_QuicTraceLogError  1
-#define QuicTraceLogError(a, ...) _clog_CAT(_clog_ARGN_SELECTOR(__VA_ARGS__), _clog_CAT(_,a(#a, __VA_ARGS__)))
-#endif
 #ifndef _clog_MACRO_QuicTraceEvent
 #define _clog_MACRO_QuicTraceEvent  1
 #define QuicTraceEvent(a, ...) _clog_CAT(_clog_ARGN_SELECTOR(__VA_ARGS__), _clog_CAT(_,a(#a, __VA_ARGS__)))
@@ -48,26 +44,6 @@ tracepoint(CLOG_DATAPATH_EPOLL_C, DatapathRecvEmpty , arg2);\
 
 
 /*----------------------------------------------------------
-// Decoder Ring for DatapathResolveHostNameFailed
-// [%p] Couldn't resolve hostname '%s' to an IP address
-// QuicTraceLogError(
-        DatapathResolveHostNameFailed,
-        "[%p] Couldn't resolve hostname '%s' to an IP address",
-        Datapath,
-        HostName);
-// arg2 = arg2 = Datapath = arg2
-// arg3 = arg3 = HostName = arg3
-----------------------------------------------------------*/
-#ifndef _clog_4_ARGS_TRACE_DatapathResolveHostNameFailed
-#define _clog_4_ARGS_TRACE_DatapathResolveHostNameFailed(uniqueId, encoded_arg_string, arg2, arg3)\
-tracepoint(CLOG_DATAPATH_EPOLL_C, DatapathResolveHostNameFailed , arg2, arg3);\
-
-#endif
-
-
-
-
-/*----------------------------------------------------------
 // Decoder Ring for AllocFailure
 // Allocation of '%s' failed. (%llu bytes)
 // QuicTraceEvent(
@@ -81,26 +57,6 @@ tracepoint(CLOG_DATAPATH_EPOLL_C, DatapathResolveHostNameFailed , arg2, arg3);\
 #ifndef _clog_4_ARGS_TRACE_AllocFailure
 #define _clog_4_ARGS_TRACE_AllocFailure(uniqueId, encoded_arg_string, arg2, arg3)\
 tracepoint(CLOG_DATAPATH_EPOLL_C, AllocFailure , arg2, arg3);\
-
-#endif
-
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for LibraryErrorStatus
-// [ lib] ERROR, %u, %s.
-// QuicTraceEvent(
-        LibraryErrorStatus,
-        "[ lib] ERROR, %u, %s.",
-        (uint32_t)Result,
-        "Resolving hostname to IP");
-// arg2 = arg2 = (uint32_t)Result = arg2
-// arg3 = arg3 = "Resolving hostname to IP" = arg3
-----------------------------------------------------------*/
-#ifndef _clog_4_ARGS_TRACE_LibraryErrorStatus
-#define _clog_4_ARGS_TRACE_LibraryErrorStatus(uniqueId, encoded_arg_string, arg2, arg3)\
-tracepoint(CLOG_DATAPATH_EPOLL_C, LibraryErrorStatus , arg2, arg3);\
 
 #endif
 
