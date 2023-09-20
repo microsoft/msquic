@@ -157,39 +157,7 @@ typedef enum CXPLAT_SOCKET_TYPE {
     CXPLAT_SOCKET_TCP_SERVER      = 3
 } CXPLAT_SOCKET_TYPE;
 
-//
-// Type of IO.
-//
-typedef enum DATAPATH_IO_TYPE {
-    DATAPATH_IO_SIGNATURE         = 'WINU',
-    DATAPATH_IO_RECV              = DATAPATH_IO_SIGNATURE + 1,
-    DATAPATH_IO_SEND              = DATAPATH_IO_SIGNATURE + 2,
-    DATAPATH_IO_QUEUE_SEND        = DATAPATH_IO_SIGNATURE + 3,
-    DATAPATH_IO_ACCEPTEX          = DATAPATH_IO_SIGNATURE + 4,
-    DATAPATH_IO_CONNECTEX         = DATAPATH_IO_SIGNATURE + 5,
-    DATAPATH_IO_RIO_NOTIFY        = DATAPATH_IO_SIGNATURE + 6,
-    DATAPATH_IO_RIO_RECV          = DATAPATH_IO_SIGNATURE + 7,
-    DATAPATH_IO_RIO_SEND          = DATAPATH_IO_SIGNATURE + 8,
-    DATAPATH_IO_RECV_FAILURE      = DATAPATH_IO_SIGNATURE + 9,
-    DATAPATH_IO_MAX
-} DATAPATH_IO_TYPE;
-
-//
-// Type of IO for XDP.
-//
-typedef enum DATAPATH_XDP_IO_TYPE {
-    DATAPATH_XDP_IO_SIGNATURE         = 'XDPD',
-    DATAPATH_XDP_IO_RECV              = DATAPATH_XDP_IO_SIGNATURE + 1,
-    DATAPATH_XDP_IO_SEND              = DATAPATH_XDP_IO_SIGNATURE + 2
-} DATAPATH_XDP_IO_TYPE;
-
-//
-// IO header for SQE->CQE based completions.
-//
-typedef struct DATAPATH_IO_SQE {
-    DATAPATH_IO_TYPE IoType;
-    DATAPATH_SQE DatapathSqe;
-} DATAPATH_IO_SQE;
+typedef struct DATAPATH_IO_SQE DATAPATH_IO_SQE;
 
 //
 // Represents a single IO completion port and thread for processing work that is
@@ -471,6 +439,11 @@ typedef struct CXPLAT_SOCKET {
     uint16_t Mtu;
 
     //
+    // Indicates the binding connected to a remote IP address.
+    //
+    BOOLEAN Connected : 1;
+
+    //
     // Socket type.
     //
     uint8_t Type : 2; // CXPLAT_SOCKET_TYPE
@@ -518,7 +491,438 @@ typedef struct CXPLAT_SOCKET {
 
 } CXPLAT_SOCKET;
 
+#elif defined(CX_PLATFORM_LINUX) || defined(CX_PLATFORM_DARWIN)
+
+typedef struct CX_PLATFORM {
+
+    void* Reserved; // Nothing right now.
+
+#ifdef DEBUG
+    //
+    // 1/Denominator of allocations to fail.
+    // Negative is Nth allocation to fail.
+    //
+    int32_t AllocFailDenominator;
+
+    //
+    // Count of allocations.
+    //
+    long AllocCounter;
+#endif
+
+} CX_PLATFORM;
+
+#else
+
+#error "Unsupported Platform"
+
+#endif
+
+#pragma warning(disable:4204)  // nonstandard extension used: non-constant aggregate initializer
+#pragma warning(disable:4200)  // nonstandard extension used: zero-sized array in struct/union
+
+//
+// Global Platform variables/state.
+//
+extern CX_PLATFORM CxPlatform;
+
+//
+// PCP Receive Callback
+//
+CXPLAT_DATAPATH_RECEIVE_CALLBACK CxPlatPcpRecvCallback;
+
+#if _WIN32 // Some Windows Helpers
+
+//
+// Converts IPv6 or IPV4 address to a (possibly mapped) IPv6.
+//
+inline
+void
+CxPlatConvertToMappedV6(
+    _In_ const QUIC_ADDR* InAddr,
+    _Out_ QUIC_ADDR* OutAddr
+    )
+{
+    if (InAddr->si_family == QUIC_ADDRESS_FAMILY_INET) {
+        SCOPE_ID unspecified_scope = {0};
+        IN6ADDR_SETV4MAPPED(
+            &OutAddr->Ipv6,
+            &InAddr->Ipv4.sin_addr,
+            unspecified_scope,
+            InAddr->Ipv4.sin_port);
+    } else {
+        *OutAddr = *InAddr;
+    }
+}
+
+//
+// Converts (possibly mapped) IPv6 address to a IPv6 or IPV4 address. Does
+// support InAdrr == OutAddr.
+//
+#pragma warning(push)
+#pragma warning(disable: 6101) // Intentially don't overwrite output if unable to convert
+inline
+void
+CxPlatConvertFromMappedV6(
+    _In_ const QUIC_ADDR* InAddr,
+    _Out_ QUIC_ADDR* OutAddr
+    )
+{
+    CXPLAT_DBG_ASSERT(InAddr->si_family == QUIC_ADDRESS_FAMILY_INET6);
+    if (IN6_IS_ADDR_V4MAPPED(&InAddr->Ipv6.sin6_addr)) {
+        OutAddr->si_family = QUIC_ADDRESS_FAMILY_INET;
+        OutAddr->Ipv4.sin_port = InAddr->Ipv6.sin6_port;
+        OutAddr->Ipv4.sin_addr =
+            *(IN_ADDR UNALIGNED *)
+            IN6_GET_ADDR_V4MAPPED(&InAddr->Ipv6.sin6_addr);
+    } else if (OutAddr != InAddr) {
+        *OutAddr = *InAddr;
+    }
+}
+#pragma warning(pop)
+
+#endif
+
+//
+// Crypt Initialization
+//
+
+QUIC_STATUS
+CxPlatCryptInitialize(
+    void
+    );
+
+void
+CxPlatCryptUninitialize(
+    void
+    );
+
+//
+// Platform Worker APIs
+//
+
+void
+CxPlatWorkersInit(
+    void
+    );
+
+void
+CxPlatWorkersUninit(
+    void
+    );
+
+BOOLEAN
+CxPlatWorkersLazyStart(
+    _In_opt_ QUIC_EXECUTION_CONFIG* Config
+    );
+
+CXPLAT_EVENTQ*
+CxPlatWorkerGetEventQ(
+    _In_ uint16_t Index // Into the config processor array
+    );
+
+void
+CxPlatDataPathProcessCqe(
+    _In_ CXPLAT_CQE* Cqe
+    );
+
+BOOLEAN // Returns FALSE no work was done.
+CxPlatDataPathPoll(
+    _In_ void* Context,
+    _Out_ BOOLEAN* RemoveFromPolling
+    );
+
+//
+// Queries the raw datapath stack for the total size needed to allocate the
+// datapath structure.
+//
+_IRQL_requires_max_(PASSIVE_LEVEL)
+size_t
+CxPlatDpRawGetDatapathSize(
+    _In_opt_ const QUIC_EXECUTION_CONFIG* Config
+    );
+
+#define CXPLAT_CQE_TYPE_WORKER_WAKE         CXPLAT_CQE_TYPE_QUIC_BASE + 1
+#define CXPLAT_CQE_TYPE_WORKER_UPDATE_POLL  CXPLAT_CQE_TYPE_QUIC_BASE + 2
+#define CXPLAT_CQE_TYPE_SOCKET_SHUTDOWN     CXPLAT_CQE_TYPE_QUIC_BASE + 3
+#define CXPLAT_CQE_TYPE_SOCKET_IO           CXPLAT_CQE_TYPE_QUIC_BASE + 4
+#define CXPLAT_CQE_TYPE_SOCKET_FLUSH_TX     CXPLAT_CQE_TYPE_QUIC_BASE + 5
+
+extern CXPLAT_RUNDOWN_REF CxPlatWorkerRundown;
+
+#if defined(CX_PLATFORM_LINUX)
+
+typedef struct CXPLAT_DATAPATH_PARTITION CXPLAT_DATAPATH_PARTITION;
+
+//
+// Socket context.
+//
+typedef struct QUIC_CACHEALIGN CXPLAT_SOCKET_CONTEXT {
+
+    //
+    // The datapath binding this socket context belongs to.
+    //
+    CXPLAT_SOCKET* Binding;
+
+    //
+    // The datapath proc context this socket belongs to.
+    //
+    CXPLAT_DATAPATH_PARTITION* DatapathPartition;
+
+    //
+    // The socket FD used by this socket context.
+    //
+    int SocketFd;
+
+    //
+    // The submission queue event for shutdown.
+    //
+    DATAPATH_SQE ShutdownSqe;
+
+    //
+    // The submission queue event for IO.
+    //
+    DATAPATH_SQE IoSqe;
+
+    //
+    // The submission queue event for flushing the send queue.
+    //
+    DATAPATH_SQE FlushTxSqe;
+
+    //
+    // The head of list containg all pending sends on this socket.
+    //
+    CXPLAT_LIST_ENTRY TxQueue;
+
+    //
+    // Lock around the PendingSendData list.
+    //
+    CXPLAT_LOCK TxQueueLock;
+
+    //
+    // Rundown for synchronizing clean up with upcalls.
+    //
+    CXPLAT_RUNDOWN_REF UpcallRundown;
+
+    //
+    // Inidicates the SQEs have been initialized.
+    //
+    BOOLEAN SqeInitialized : 1;
+
+    //
+    // Inidicates if the socket has started IO processing.
+    //
+    BOOLEAN IoStarted : 1;
+
+#if DEBUG
+    uint8_t Uninitialized : 1;
+    uint8_t Freed : 1;
+#endif
+
+} CXPLAT_SOCKET_CONTEXT;
+
+//
+// Datapath binding.
+//
+typedef struct CXPLAT_SOCKET {
+    CXPLAT_SOCKET_COMMON;
+
+    //
+    // A pointer to datapath object.
+    //
+    CXPLAT_DATAPATH* Datapath;
+
+    //
+    // The client context for this binding.
+    //
+    void *ClientContext;
+
+    //
+    // Synchronization mechanism for cleanup.
+    //
+    CXPLAT_REF_COUNT RefCount;
+
+    //
+    // The MTU for this binding.
+    //
+    uint16_t Mtu;
+
+    //
+    // Indicates the binding connected to a remote IP address.
+    //
+    BOOLEAN Connected : 1;
+
+    //
+    // Flag indicates the socket has a default remote destination.
+    //
+    BOOLEAN HasFixedRemoteAddress : 1;
+
+    //
+    // Flag indicates the binding is being used for PCP.
+    //
+    BOOLEAN PcpBinding : 1;
+
+#if DEBUG
+    uint8_t Uninitialized : 1;
+    uint8_t Freed : 1;
+#endif
+
+    uint8_t UseTcp : 1;                  // Quic over TCP
+
+    //
+    // Set of socket contexts one per proc.
+    //
+    CXPLAT_SOCKET_CONTEXT SocketContexts[];
+
+} CXPLAT_SOCKET;
+
+//
+// A per processor datapath context.
+//
+typedef struct QUIC_CACHEALIGN CXPLAT_DATAPATH_PARTITION {
+
+    //
+    // A pointer to the datapath.
+    //
+    CXPLAT_DATAPATH* Datapath;
+
+    //
+    // The event queue for this proc context.
+    //
+    CXPLAT_EVENTQ* EventQ;
+
+    //
+    // Synchronization mechanism for cleanup.
+    //
+    CXPLAT_REF_COUNT RefCount;
+
+    //
+    // The ideal processor of the context.
+    //
+    uint16_t PartitionIndex;
+
+#if DEBUG
+    uint8_t Uninitialized : 1;
+#endif
+
+    //
+    // Pool of receive packet contexts and buffers to be shared by all sockets
+    // on this core.
+    //
+    CXPLAT_POOL RecvBlockPool;
+
+    //
+    // Pool of send packet contexts and buffers to be shared by all sockets
+    // on this core.
+    //
+    CXPLAT_POOL SendBlockPool;
+
+} CXPLAT_DATAPATH_PARTITION;
+
+//
+// Represents a datapath object.
+//
+
+typedef struct CXPLAT_DATAPATH {
+    CXPLAT_DATAPATH_COMMON;
+
+    //
+    // Synchronization mechanism for cleanup.
+    //
+    CXPLAT_REF_COUNT RefCount;
+
+    //
+    // Set of supported features.
+    //
+    uint32_t Features;
+
+    //
+    // The proc count to create per proc datapath state.
+    //
+    uint32_t PartitionCount;
+
+    //
+    // The length of the CXPLAT_SEND_DATA. Calculated based on the support level
+    // for GSO. No GSO support requires a larger send data to hold the extra
+    // iovec structs.
+    //
+    uint32_t SendDataSize;
+
+    //
+    // When not using GSO, we preallocate multiple iovec structs to use with
+    // sendmmsg (to simulate GSO).
+    //
+    uint32_t SendIoVecCount;
+
+    //
+    // The length of the CXPLAT_RECV_DATA and client data part of the
+    // DATAPATH_RX_IO_BLOCK.
+    //
+    uint32_t RecvBlockStride;
+
+    //
+    // The offset of the raw buffer in the DATAPATH_RX_IO_BLOCK.
+    //
+    uint32_t RecvBlockBufferOffset;
+
+    //
+    // The total length of the DATAPATH_RX_IO_BLOCK. Calculated based on the
+    // support level for GRO. No GRO only uses a single CXPLAT_RECV_DATA and
+    // client data, while GRO allows for multiple.
+    //
+    uint32_t RecvBlockSize;
+
+#if DEBUG
+    uint8_t Uninitialized : 1;
+    uint8_t Freed : 1;
+#endif
+
+    //
+    // The per proc datapath contexts.
+    //
+    CXPLAT_DATAPATH_PARTITION Partitions[];
+
+} CXPLAT_DATAPATH;
+
+#endif // CX_PLATFORM_LINUX
+
+#if defined(CX_PLATFORM_LINUX) || _WIN32
+
 typedef struct CXPLAT_SOCKET_RAW CXPLAT_SOCKET_RAW;
+
+//
+// Type of IO.
+//
+typedef enum DATAPATH_IO_TYPE {
+    DATAPATH_IO_SIGNATURE         = 'WINU',
+    DATAPATH_IO_RECV              = DATAPATH_IO_SIGNATURE + 1,
+    DATAPATH_IO_SEND              = DATAPATH_IO_SIGNATURE + 2,
+    DATAPATH_IO_QUEUE_SEND        = DATAPATH_IO_SIGNATURE + 3,
+    DATAPATH_IO_ACCEPTEX          = DATAPATH_IO_SIGNATURE + 4,
+    DATAPATH_IO_CONNECTEX         = DATAPATH_IO_SIGNATURE + 5,
+    DATAPATH_IO_RIO_NOTIFY        = DATAPATH_IO_SIGNATURE + 6,
+    DATAPATH_IO_RIO_RECV          = DATAPATH_IO_SIGNATURE + 7,
+    DATAPATH_IO_RIO_SEND          = DATAPATH_IO_SIGNATURE + 8,
+    DATAPATH_IO_RECV_FAILURE      = DATAPATH_IO_SIGNATURE + 9,
+    DATAPATH_IO_MAX
+} DATAPATH_IO_TYPE;
+
+//
+// Type of IO for XDP.
+//
+typedef enum DATAPATH_XDP_IO_TYPE {
+    DATAPATH_XDP_IO_SIGNATURE         = 'XDPD',
+    DATAPATH_XDP_IO_RECV              = DATAPATH_XDP_IO_SIGNATURE + 1,
+    DATAPATH_XDP_IO_SEND              = DATAPATH_XDP_IO_SIGNATURE + 2
+} DATAPATH_XDP_IO_TYPE;
+
+//
+// IO header for SQE->CQE based completions.
+//
+typedef struct DATAPATH_IO_SQE {
+    DATAPATH_IO_TYPE IoType;
+    DATAPATH_SQE DatapathSqe;
+} DATAPATH_IO_SQE;
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
@@ -713,7 +1117,7 @@ RawSocketUpdateQeo(
     );
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
-UINT16
+uint16_t
 RawSocketGetLocalMtu(
     _In_ CXPLAT_SOCKET_RAW* Socket
     );
@@ -797,161 +1201,4 @@ RawUpdateRoute(
     _In_ CXPLAT_ROUTE* SrcRoute
     );
 
-#elif defined(CX_PLATFORM_LINUX) || defined(CX_PLATFORM_DARWIN)
-
-typedef struct CX_PLATFORM {
-
-    void* Reserved; // Nothing right now.
-
-#ifdef DEBUG
-    //
-    // 1/Denominator of allocations to fail.
-    // Negative is Nth allocation to fail.
-    //
-    int32_t AllocFailDenominator;
-
-    //
-    // Count of allocations.
-    //
-    long AllocCounter;
-#endif
-
-} CX_PLATFORM;
-
-#else
-
-#error "Unsupported Platform"
-
-#endif
-
-#pragma warning(disable:4204)  // nonstandard extension used: non-constant aggregate initializer
-#pragma warning(disable:4200)  // nonstandard extension used: zero-sized array in struct/union
-
-//
-// Global Platform variables/state.
-//
-extern CX_PLATFORM CxPlatform;
-
-//
-// PCP Receive Callback
-//
-CXPLAT_DATAPATH_RECEIVE_CALLBACK CxPlatPcpRecvCallback;
-
-#if _WIN32 // Some Windows Helpers
-
-//
-// Converts IPv6 or IPV4 address to a (possibly mapped) IPv6.
-//
-inline
-void
-CxPlatConvertToMappedV6(
-    _In_ const QUIC_ADDR* InAddr,
-    _Out_ QUIC_ADDR* OutAddr
-    )
-{
-    if (InAddr->si_family == QUIC_ADDRESS_FAMILY_INET) {
-        SCOPE_ID unspecified_scope = {0};
-        IN6ADDR_SETV4MAPPED(
-            &OutAddr->Ipv6,
-            &InAddr->Ipv4.sin_addr,
-            unspecified_scope,
-            InAddr->Ipv4.sin_port);
-    } else {
-        *OutAddr = *InAddr;
-    }
-}
-
-//
-// Converts (possibly mapped) IPv6 address to a IPv6 or IPV4 address. Does
-// support InAdrr == OutAddr.
-//
-#pragma warning(push)
-#pragma warning(disable: 6101) // Intentially don't overwrite output if unable to convert
-inline
-void
-CxPlatConvertFromMappedV6(
-    _In_ const QUIC_ADDR* InAddr,
-    _Out_ QUIC_ADDR* OutAddr
-    )
-{
-    CXPLAT_DBG_ASSERT(InAddr->si_family == QUIC_ADDRESS_FAMILY_INET6);
-    if (IN6_IS_ADDR_V4MAPPED(&InAddr->Ipv6.sin6_addr)) {
-        OutAddr->si_family = QUIC_ADDRESS_FAMILY_INET;
-        OutAddr->Ipv4.sin_port = InAddr->Ipv6.sin6_port;
-        OutAddr->Ipv4.sin_addr =
-            *(IN_ADDR UNALIGNED *)
-            IN6_GET_ADDR_V4MAPPED(&InAddr->Ipv6.sin6_addr);
-    } else if (OutAddr != InAddr) {
-        *OutAddr = *InAddr;
-    }
-}
-#pragma warning(pop)
-
-#endif
-
-//
-// Crypt Initialization
-//
-
-QUIC_STATUS
-CxPlatCryptInitialize(
-    void
-    );
-
-void
-CxPlatCryptUninitialize(
-    void
-    );
-
-//
-// Platform Worker APIs
-//
-
-void
-CxPlatWorkersInit(
-    void
-    );
-
-void
-CxPlatWorkersUninit(
-    void
-    );
-
-BOOLEAN
-CxPlatWorkersLazyStart(
-    _In_opt_ QUIC_EXECUTION_CONFIG* Config
-    );
-
-CXPLAT_EVENTQ*
-CxPlatWorkerGetEventQ(
-    _In_ uint16_t Index // Into the config processor array
-    );
-
-void
-CxPlatDataPathProcessCqe(
-    _In_ CXPLAT_CQE* Cqe
-    );
-
-BOOLEAN // Returns FALSE no work was done.
-CxPlatDataPathPoll(
-    _In_ void* Context,
-    _Out_ BOOLEAN* RemoveFromPolling
-    );
-
-//
-// Queries the raw datapath stack for the total size needed to allocate the
-// datapath structure.
-//
-_IRQL_requires_max_(PASSIVE_LEVEL)
-size_t
-CxPlatDpRawGetDatapathSize(
-    _In_opt_ const QUIC_EXECUTION_CONFIG* Config
-    );
-
-#define CXPLAT_CQE_TYPE_WORKER_WAKE         CXPLAT_CQE_TYPE_QUIC_BASE + 1
-#define CXPLAT_CQE_TYPE_WORKER_UPDATE_POLL  CXPLAT_CQE_TYPE_QUIC_BASE + 2
-#define CXPLAT_CQE_TYPE_SOCKET_SHUTDOWN     CXPLAT_CQE_TYPE_QUIC_BASE + 3
-#define CXPLAT_CQE_TYPE_SOCKET_IO           CXPLAT_CQE_TYPE_QUIC_BASE + 4
-#define CXPLAT_CQE_TYPE_SOCKET_FLUSH_TX     CXPLAT_CQE_TYPE_QUIC_BASE + 5
-
-extern CXPLAT_RUNDOWN_REF CxPlatWorkerRundown;
+#endif // CX_PLATFORM_LINUX || _WIN32

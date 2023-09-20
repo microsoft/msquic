@@ -487,9 +487,6 @@ function CMake-Generate {
     if ($EnableHighResolutionTimers) {
         $Arguments += " -DQUIC_HIGH_RES_TIMERS=on"
     }
-    if ($UseXdp) {
-        $Arguments += " -DQUIC_USE_XDP=on"
-    }
     if ($Platform -eq "android") {
         $env:PATH = "$env:ANDROID_NDK_LATEST_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin:$env:PATH"
         switch ($Arch) {

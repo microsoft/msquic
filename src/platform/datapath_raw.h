@@ -246,7 +246,6 @@ typedef struct CXPLAT_SOCKET_RAW {
     SOCKET AuxSocket;
     BOOLEAN Wildcard;                // Using a wildcard local address. Optimization
                                      // to avoid always reading LocalAddress.
-    BOOLEAN Connected;               // Bound to a remote address
     uint8_t CibirIdLength;           // CIBIR ID length. Value of 0 indicates CIBIR isn't used
     uint8_t CibirIdOffsetSrc;        // CIBIR ID offset in source CID
     uint8_t CibirIdOffsetDst;        // CIBIR ID offset in destination CID
