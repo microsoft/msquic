@@ -13,6 +13,7 @@
 ../src/platform/certificates_posix.c
 ../src/platform/hashtable.c
 ../src/platform/datapath_winuser.c
+../src/platform/datapath_linux.c
 ../src/platform/datapath_raw_dpdk.c
 ../src/platform/datapath_raw_socket.c
 ../src/platform/datapath_raw_socket_win.c

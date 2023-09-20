@@ -12,7 +12,7 @@ Abstract:
 #include "platform_internal.h"
 
 #ifdef QUIC_CLOG
-#include "datapath_epoll.c.clog.h"
+#include "datapath_linux.c.clog.h"
 #endif
 
 #pragma warning(disable:4116) // unnamed type definition in parentheses
