@@ -20,6 +20,14 @@ Invoke-Command -Session $Session -ScriptBlock {
     Remove-Item -Force -Recurse "C:\_work" -ErrorAction Ignore
 }
 Copy-Item -ToSession $Session .\artifacts -Destination C:\_work\quic\artifacts -Recurse
+Copy-Item -ToSession $Session .\scripts -Destination C:\_work\quic\scripts -Recurse
+
+# Prepare the machines for the testing.
+Write-Output "Preparing machines for testing..."
+.\scripts\prepare-machine.ps1 -ForTest
+Invoke-Command -Session $Session -ScriptBlock {
+    C:\_work\quic\scripts\prepare-machine.ps1 -ForTest
+}
 
 # Run secnetperf on the server.
 Write-Output "Starting secnetperf server..."
