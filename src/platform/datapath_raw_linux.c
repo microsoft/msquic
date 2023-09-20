@@ -226,11 +226,9 @@ RawSocketGetLocalMtu(
     _In_ CXPLAT_SOCKET_RAW* Socket
     )
 {
-    if (Socket->UseTcp) {
-        return 1488; // Reserve space for TCP header.
-    } else {
-        return 1500;
-    }
+    // Reserve space for TCP header.
+    return Socket->UseTcp ? 1488 : 1500;
+
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -281,7 +279,7 @@ CxPlatDpRawRxEthernet(
                     CXPLAT_DBG_ASSERT(Packets[i+1]->Next == NULL);
                     i++;
                 }
-                Datapath->ParentDataPath->UdpHandlers.Receive(CxPlatRawToSocket(Socket), Socket->ClientContext, (CXPLAT_RECV_DATA*)PacketChain);
+                Datapath->ParentDataPath->UdpHandlers.Receive(CxPlatRawToSocket(Socket), Socket->ClientContext, PacketChain);
             } else if (PacketChain->Reserved == L4_TYPE_TCP_SYN || PacketChain->Reserved == L4_TYPE_TCP_SYNACK) {
                 CxPlatDpRawSocketAckSyn(Socket, PacketChain);
                 CxPlatDpRawRxFree(PacketChain);

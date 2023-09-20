@@ -419,13 +419,13 @@ QuicCopyRouteInfo(
 
 void
 CxPlatResolveRouteComplete(
-    _In_ void* Connection,
+    _In_ void* Context,
     _Inout_ CXPLAT_ROUTE* Route,
     _In_reads_bytes_(6) const uint8_t* PhysicalAddress,
     _In_ uint8_t PathId
     )
 {
-    UNREFERENCED_PARAMETER(Connection);
+    UNREFERENCED_PARAMETER(Context);
     UNREFERENCED_PARAMETER(Route);
     UNREFERENCED_PARAMETER(PhysicalAddress);
     UNREFERENCED_PARAMETER(PathId);

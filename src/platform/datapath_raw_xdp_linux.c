@@ -18,7 +18,8 @@ Abstract:
 #include "datapath_raw_xdp_linux.c.clog.h"
 #endif
 
-typedef struct XDP_DATAPATH {
+// TODO: remove this exception when finalizing members
+typedef struct XDP_DATAPATH { // NOLINT(clang-analyzer-optin.performance.Padding)
     CXPLAT_DATAPATH_RAW;
     __attribute__((aligned(64)))
     //
