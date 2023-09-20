@@ -46,7 +46,6 @@ jobs:
 
     - name: Commit Changes
       if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-      run: |
-          chmod +x ./scripts/update-docfx-site.ps1
-          ./scripts/update-docfx-site.ps1
-          shell: pwsh
+      run: chmod +x ./scripts/commit-docfx-site.ps1 
+      run: ./scripts/commit-docfx-site.ps1
+      shell: pwsh
