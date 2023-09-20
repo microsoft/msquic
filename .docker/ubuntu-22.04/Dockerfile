@@ -10,6 +10,7 @@ RUN apt-get update && apt-get install --no-install-recommends -y apt-transport-h
     ca-certificates \
     gnupg \
     software-properties-common \
+    gcc-multilib \
     wget && \
     wget -O - https://apt.kitware.com/keys/kitware-archive-latest.asc 2>/dev/null | gpg --dearmor - | tee /etc/apt/trusted.gpg.d/kitware.gpg >/dev/null && \
     apt-add-repository 'deb https://apt.kitware.com/ubuntu/ jammy main' && \
@@ -39,7 +40,6 @@ RUN apt-get update && apt-get install --no-install-recommends -y apt-transport-h
     cppcheck \
     clang-tidy \
     gdb \
-    gcc-multilib \
     libnl-3-dev \
     libnl-genl-3-dev \
     libnl-route-3-dev \
