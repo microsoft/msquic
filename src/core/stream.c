@@ -908,6 +908,10 @@ QuicStreamParamGet(
             Status = QUIC_STATUS_INVALID_PARAMETER;
             break;
         }
+        if (Stream->ReliableOffsetSend == 0) {
+            Status = QUIC_STATUS_INVALID_STATE;
+            break;
+        }
         *(uint64_t*) Buffer = Stream->ReliableOffsetSend;
         Status = QUIC_STATUS_SUCCESS;
         break;
@@ -923,7 +927,8 @@ QuicStreamParamGet(
             break;
         }
         if (!Stream->Flags.RemoteCloseResetReliable) {
-            *(uint64_t*)Buffer = 0;
+            Status = QUIC_STATUS_INVALID_STATE;
+            break;
         } else {
             *(uint64_t*)Buffer = Stream->RecvMaxLength;
         }

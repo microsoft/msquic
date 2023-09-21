@@ -489,10 +489,10 @@ QuicStreamRecvGetState(
 {
     if (Stream->Flags.RemoteNotAllowed) {
         return QUIC_STREAM_RECV_DISABLED;
-    } else if (Stream->Flags.RemoteCloseResetReliable) {
-        return QUIC_STREAM_RECV_RELIABLE_RESET;
     } else if (Stream->Flags.RemoteCloseReset) {
         return QUIC_STREAM_RECV_RESET;
+    } else if (Stream->Flags.RemoteCloseResetReliable) {
+        return QUIC_STREAM_RECV_RELIABLE_RESET;
     } else if (Stream->Flags.RemoteCloseFin) {
         return QUIC_STREAM_RECV_FIN;
     } else if (Stream->Flags.SentStopSending) {
