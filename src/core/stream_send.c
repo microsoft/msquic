@@ -1612,6 +1612,7 @@ QuicStreamOnResetReliableAck(
         Stream,
         "Reset Reliable ACKed in OnResetReliableAck. Send side. UnAckedOffset=%llu, ReliableOffsetSend=%llu",
         Stream->UnAckedOffset, Stream->ReliableOffsetSend);
+
     if (Stream->UnAckedOffset >= Stream->ReliableOffsetSend && !Stream->Flags.LocalCloseAcked) {
         Stream->Flags.LocalCloseAcked = TRUE;
         Stream->Flags.RemoteCloseAcked = TRUE;
@@ -1623,6 +1624,12 @@ QuicStreamOnResetReliableAck(
         QuicStreamCleanupReliableReset(Stream);
         Stream->Flags.LocalCloseReset = TRUE;
         QuicStreamSendShutdown(Stream, FALSE, TRUE, FALSE, 0x21);
+    } else {
+        QuicTraceEvent(
+        StreamSendState,
+        "[strm][%p] Send State: %hhu",
+        Stream,
+        QuicStreamSendGetState(Stream));
     }
 }
 
