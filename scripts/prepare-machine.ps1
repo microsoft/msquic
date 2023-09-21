@@ -504,19 +504,10 @@ if ($ForBuild -or $ForContainerBuild) {
         git submodule init submodules/googletest
     }
 
-    if ($UseXdp -and $IsLinux) {
-        git submodule init submodules/xdp-tools
-    }
-
     git submodule update --jobs=8
-
     if ($UseXdp -and $IsLinux) {
-        # Download nested dependency
-        pushd ./submodules/xdp-tools
-        git checkout v1.4.0
-        git submodule init
-        git submodule update # libbpf
-        popd # ./submodules/xdp-tools
+        Write-Host "Initializing xdp-tools submodules"
+        git submodule update --init --recursive --jobs=8 submodules/xdp-tools
     }
 }
 

@@ -15,3 +15,4 @@
 [submodule "submodules/xdp-tools"]
 	path = submodules/xdp-tools
 	url = https://github.com/xdp-project/xdp-tools.git
+	branch = v1.4.0
