@@ -1616,10 +1616,10 @@ QuicStreamOnResetReliableAck(
         Stream->Flags.LocalCloseAcked = TRUE;
         Stream->Flags.RemoteCloseAcked = TRUE;
         QuicTraceEvent(
-                StreamSendState,
-                "[strm][%p] Send State: %hhu",
-                Stream,
-                QuicStreamSendGetState(Stream));
+            StreamSendState,
+            "[strm][%p] Send State: %hhu",
+            Stream,
+            QuicStreamSendGetState(Stream));
         QuicStreamCleanupReliableReset(Stream);
         Stream->Flags.LocalCloseReset = TRUE;
         QuicStreamSendShutdown(Stream, FALSE, TRUE, FALSE, 0x21);
