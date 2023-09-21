@@ -1526,7 +1526,10 @@ QuicStreamOnAck(
     //
     // If this stream has been reset reliably, we only close if we have received enough bytes.
     //
-    BOOLEAN ReliableResetShutdown = !Stream->Flags.LocalCloseAcked && Stream->Flags.LocalCloseResetReliableAcked && Stream->UnAckedOffset >= Stream->ReliableOffsetSend;
+    const BOOLEAN ReliableResetShutdown =
+        !Stream->Flags.LocalCloseAcked &&
+        Stream->Flags.LocalCloseResetReliableAcked &&
+        Stream->UnAckedOffset >= Stream->ReliableOffsetSend;
     if (ReliableResetShutdown) {
         Stream->Flags.LocalCloseAcked = TRUE;
         Stream->Flags.RemoteCloseAcked = TRUE;
