@@ -90,9 +90,6 @@ This script provides helpers for building msquic.
 .PARAMETER EnableHighResolutionTimers
     Configures the system to use high resolution timers.
 
-.PARAMETER UseXdp
-    Use XDP for the datapath instead of system socket APIs.
-
 .PARAMETER ExtraArtifactDir
     Add an extra classifier to the artifact directory to allow publishing alternate builds of same base library
 
@@ -201,9 +198,6 @@ param (
 
     [Parameter(Mandatory = $false)]
     [switch]$EnableHighResolutionTimers = $false,
-
-    [Parameter(Mandatory = $false)]
-    [switch]$UseXdp = $false,
 
     [Parameter(Mandatory = $false)]
     [string]$ExtraArtifactDir = "",

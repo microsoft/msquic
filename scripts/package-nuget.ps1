@@ -100,9 +100,6 @@ $NativeDir = Join-Path $PackagingDir "build/native"
 
 foreach ($Arch in $Architectures) {
     $BuildPath = Join-Path $PlatformDir "$($Arch)_$($Config)_$($Tls)"
-    if ($XDP -and !$GHA) {
-        $BuildPath += "_xdp"
-    }
     $LibPath = Join-Path $NativeDir "lib/$Arch"
     $BinPath = Join-Path $NativeDir "bin/$Arch"
 
@@ -144,10 +141,10 @@ $NugetSourceFolder = Join-Path $RootDir "src/distribution"
 
 if ($UWP) {
     $PackageName = "Microsoft.Native.Quic.MsQuic.UWP.$Tls"
-} elseif ($XDP) {
-    Copy-Item -Path (Join-Path $PSScriptRoot xdp.json) -Destination (Join-Path $PackagingDir xdp-temp.json)
-    $PackageName = "Microsoft.Native.Quic.MsQuic.XDP.$Tls"
 } else {
+    if ($XDP) {
+        Copy-Item -Path (Join-Path $PSScriptRoot xdp.json) -Destination (Join-Path $PackagingDir xdp-temp.json)
+    }
     $PackageName = "Microsoft.Native.Quic.MsQuic.$Tls"
 }
 
