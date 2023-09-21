@@ -1608,10 +1608,10 @@ QuicStreamOnResetReliableAck(
 {
     Stream->Flags.LocalCloseResetReliableAcked = TRUE;
     QuicTraceLogStreamVerbose(
-            ResetReliableAck,
-            Stream,
-            "Reset Reliable ACKed in OnResetReliableAck. Send side. UnAckedOffset=%llu, ReliableOffsetSend=%llu",
-            Stream->UnAckedOffset, Stream->ReliableOffsetSend);
+        ResetReliableAck,
+        Stream,
+        "Reset Reliable ACKed in OnResetReliableAck. Send side. UnAckedOffset=%llu, ReliableOffsetSend=%llu",
+        Stream->UnAckedOffset, Stream->ReliableOffsetSend);
     if (Stream->UnAckedOffset >= Stream->ReliableOffsetSend && !Stream->Flags.LocalCloseAcked) {
         Stream->Flags.LocalCloseAcked = TRUE;
         Stream->Flags.RemoteCloseAcked = TRUE;
