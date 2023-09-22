@@ -210,6 +210,8 @@ QuicStreamProcessReliableResetFrame(
             Stream,
             QuicStreamRecvGetState(Stream));
         QuicStreamRecvShutdown(Stream, TRUE, ErrorCode);
+    } else {
+        Stream->RecvShutdownErrorCode = ErrorCode;
     }
 
     if (!Stream->Flags.SentStopSending) {
@@ -1149,7 +1151,9 @@ QuicStreamReceiveComplete(
             &Stream->Connection->Send,
             Stream,
             QUIC_STREAM_SEND_FLAG_MAX_DATA | QUIC_STREAM_SEND_FLAG_RECV_ABORT);
-    } else if (Stream->Flags.RemoteCloseResetReliable && Stream->RecvBuffer.BaseOffset >= Stream->RecvMaxLength) {
+    }
+
+    else if (Stream->Flags.RemoteCloseResetReliable && Stream->RecvBuffer.BaseOffset >= Stream->RecvMaxLength) {
         Stream->Flags.LocalCloseAcked = TRUE;
         Stream->Flags.RemoteCloseAcked = TRUE;
         QuicTraceEvent(
@@ -1157,7 +1161,7 @@ QuicStreamReceiveComplete(
             "[strm][%p] Recv State: %hhu",
             Stream,
             QuicStreamRecvGetState(Stream));
-        QuicStreamRecvShutdown(Stream, TRUE, 0x21);
+        QuicStreamRecvShutdown(Stream, TRUE, Stream->RecvShutdownErrorCode);
     }
 
     return FALSE;

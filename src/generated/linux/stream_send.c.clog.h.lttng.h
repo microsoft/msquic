@@ -312,10 +312,10 @@ TRACEPOINT_EVENT(CLOG_STREAM_SEND_C, SendQueueDrained,
 // Decoder Ring for ResetReliableAck
 // [strm][%p] Reset Reliable ACKed in OnResetReliableAck. Send side. UnAckedOffset=%llu, ReliableOffsetSend=%llu
 // QuicTraceLogStreamVerbose(
-            ResetReliableAck,
-            Stream,
-            "Reset Reliable ACKed in OnResetReliableAck. Send side. UnAckedOffset=%llu, ReliableOffsetSend=%llu",
-            Stream->UnAckedOffset, Stream->ReliableOffsetSend);
+        ResetReliableAck,
+        Stream,
+        "Reset Reliable ACKed in OnResetReliableAck. Send side. UnAckedOffset=%llu, ReliableOffsetSend=%llu",
+        Stream->UnAckedOffset, Stream->ReliableOffsetSend);
 // arg1 = arg1 = Stream = arg1
 // arg3 = arg3 = Stream->UnAckedOffset = arg3
 // arg4 = arg4 = Stream->ReliableOffsetSend = arg4
