@@ -2466,7 +2466,8 @@ CxPlatSendDataSend(
                 "sendmmsg failed");
 #endif
 
-            if (Status == EIO) {
+            if (Status == EIO &&
+                SocketContext->Binding->Datapath->Features & CXPLAT_DATAPATH_FEATURE_SEND_SEGMENTATION) {
                 //
                 // EIO generally indicates the GSO isn't supported by the NIC,
                 // so disable segmentation on the datapath globally.
@@ -2475,7 +2476,7 @@ CxPlatSendDataSend(
                     LibraryError,
                     "[ lib] ERROR, %s.",
                     "Disabling segmentation support globally");
-                SendData->SocketContext->Binding->Datapath->Features &=
+                SocketContext->Binding->Datapath->Features &=
                     ~CXPLAT_DATAPATH_FEATURE_SEND_SEGMENTATION;
             }
 
