@@ -2450,12 +2450,34 @@ CxPlatSendDataSend(
             Status = QUIC_STATUS_PENDING;
         } else {
             Status = errno;
+#ifdef UDP_SEGMENT
+            QuicTraceEvent(
+                DatapathErrorStatus,
+                "[data][%p] ERROR, %u, %s.",
+                SocketContext->Binding,
+                Status,
+                "sendmsg (GSO) failed");
+#else
             QuicTraceEvent(
                 DatapathErrorStatus,
                 "[data][%p] ERROR, %u, %s.",
                 SocketContext->Binding,
                 Status,
                 "sendmmsg failed");
+#endif
+
+            if (Status == EIO) {
+                //
+                // EIO generally indicates the GSO isn't supported by the NIC,
+                // so disable segmentation on the datapath globally.
+                //
+                QuicTraceEvent(
+                    LibraryError,
+                    "[ lib] ERROR, %s.",
+                    "Disabling segmentation support globally");
+                SendData->SocketContext->Binding->Datapath->Features &=
+                    ~CXPLAT_DATAPATH_FEATURE_SEND_SEGMENTATION;
+            }
 
             //
             // Unreachable events can sometimes come synchronously.
