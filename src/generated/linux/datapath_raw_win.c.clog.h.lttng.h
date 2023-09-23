@@ -2,29 +2,6 @@
 
 
 /*----------------------------------------------------------
-// Decoder Ring for DatapathResolveHostNameFailed
-// [%p] Couldn't resolve hostname '%s' to an IP address
-// QuicTraceLogError(
-        DatapathResolveHostNameFailed,
-        "[%p] Couldn't resolve hostname '%s' to an IP address",
-        Datapath,
-        HostName);
-// arg2 = arg2 = Datapath = arg2
-// arg3 = arg3 = HostName = arg3
-----------------------------------------------------------*/
-TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_WIN_C, DatapathResolveHostNameFailed,
-    TP_ARGS(
-        const void *, arg2,
-        const char *, arg3), 
-    TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg2, arg2)
-        ctf_string(arg3, arg3)
-    )
-)
-
-
-
-/*----------------------------------------------------------
 // Decoder Ring for AllocFailure
 // Allocation of '%s' failed. (%llu bytes)
 // QuicTraceEvent(
@@ -65,56 +42,6 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_WIN_C, LibraryErrorStatus,
     TP_FIELDS(
         ctf_integer(unsigned int, arg2, arg2)
         ctf_string(arg3, arg3)
-    )
-)
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for LibraryError
-// [ lib] ERROR, %s.
-// QuicTraceEvent(
-        LibraryError,
-        "[ lib] ERROR, %s.",
-        "Resolving hostname to IP");
-// arg2 = arg2 = "Resolving hostname to IP" = arg2
-----------------------------------------------------------*/
-TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_WIN_C, LibraryError,
-    TP_ARGS(
-        const char *, arg2), 
-    TP_FIELDS(
-        ctf_string(arg2, arg2)
-    )
-)
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for DatapathCreated
-// [data][%p] Created, local=%!ADDR!, remote=%!ADDR!
-// QuicTraceEvent(
-        DatapathCreated,
-        "[data][%p] Created, local=%!ADDR!, remote=%!ADDR!",
-        *NewSocket,
-        CASTED_CLOG_BYTEARRAY(Config->LocalAddress ? sizeof(*Config->LocalAddress) : 0, Config->LocalAddress),
-        CASTED_CLOG_BYTEARRAY(Config->RemoteAddress ? sizeof(*Config->RemoteAddress) : 0, Config->RemoteAddress));
-// arg2 = arg2 = *NewSocket = arg2
-// arg3 = arg3 = CASTED_CLOG_BYTEARRAY(Config->LocalAddress ? sizeof(*Config->LocalAddress) : 0, Config->LocalAddress) = arg3
-// arg4 = arg4 = CASTED_CLOG_BYTEARRAY(Config->RemoteAddress ? sizeof(*Config->RemoteAddress) : 0, Config->RemoteAddress) = arg4
-----------------------------------------------------------*/
-TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_WIN_C, DatapathCreated,
-    TP_ARGS(
-        const void *, arg2,
-        unsigned int, arg3_len,
-        const void *, arg3,
-        unsigned int, arg4_len,
-        const void *, arg4), 
-    TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg2, arg2)
-        ctf_integer(unsigned int, arg3_len, arg3_len)
-        ctf_sequence(char, arg3, arg3, unsigned int, arg3_len)
-        ctf_integer(unsigned int, arg4_len, arg4_len)
-        ctf_sequence(char, arg4, arg4, unsigned int, arg4_len)
     )
 )
 

@@ -109,17 +109,6 @@ if ($PSVersionTable.PSVersion.Major -lt 7) {
                  "Please visit https://github.com/microsoft/msquic/blob/main/docs/BUILD.md#powershell-usage")
 }
 
-if ($UseXdp) {
-    # Helper for XDP usage
-    if ($ForBuild) {
-        $InstallXdpSdk = $true;
-    }
-    if ($ForTest) {
-        $InstallXdpDriver = $true;
-        $InstallDuoNic = $true;
-    }
-}
-
 if (!$ForContainerBuild -and !$ForBuild -and !$ForTest -and !$InstallXdpDriver -and !$UninstallXdp) {
     # When no args are passed, assume we want to build and test everything
     # locally (i.e. a dev environment). Set Tls to OpenSSL to make sure
@@ -149,6 +138,11 @@ if ($ForTest) {
     # local testing setup won't be blocked by test signing not enabled.
     if ($ForKernel) {
         $InstallSigningCertificates = $true;
+    }
+
+    if ($UseXdp) {
+        $InstallXdpDriver = $true;
+        $InstallDuoNic = $true;
     }
 
     #$InstallCodeCoverage = $true # Ideally we'd enable this by default, but it

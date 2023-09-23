@@ -24,8 +24,9 @@ Abstract:
 #endif
 
 typedef struct XDP_DATAPATH {
-    CXPLAT_DATAPATH;
+    CXPLAT_DATAPATH_RAW;
     DECLSPEC_CACHEALIGN
+
     //
     // Currently, all XDP interfaces share the same config.
     //
@@ -63,13 +64,13 @@ typedef struct XDP_QUEUE {
     struct XDP_QUEUE* Next;
     uint8_t* RxBuffers;
     HANDLE RxXsk;
-    DATAPATH_IO_SQE RxIoSqe;
+    DATAPATH_XDP_IO_SQE RxIoSqe;
     XSK_RING RxFillRing;
     XSK_RING RxRing;
     HANDLE RxProgram;
     uint8_t* TxBuffers;
     HANDLE TxXsk;
-    DATAPATH_IO_SQE TxIoSqe;
+    DATAPATH_XDP_IO_SQE TxIoSqe;
     XSK_RING TxRing;
     XSK_RING TxCompletionRing;
     BOOLEAN RxQueued;
@@ -546,9 +547,9 @@ CxPlatDpRawInterfaceInitialize(
         CxPlatListInitializeHead(&Queue->TxQueue);
         CxPlatListInitializeHead(&Queue->PartitionTxQueue);
         CxPlatDatapathSqeInitialize(&Queue->RxIoSqe.DatapathSqe, CXPLAT_CQE_TYPE_SOCKET_IO);
-        Queue->RxIoSqe.IoType = DATAPATH_IO_RECV;
+        Queue->RxIoSqe.IoType = DATAPATH_XDP_IO_RECV;
         CxPlatDatapathSqeInitialize(&Queue->TxIoSqe.DatapathSqe, CXPLAT_CQE_TYPE_SOCKET_IO);
-        Queue->TxIoSqe.IoType = DATAPATH_IO_SEND;
+        Queue->TxIoSqe.IoType = DATAPATH_XDP_IO_SEND;
 
         //
         // RX datapath.
@@ -996,7 +997,7 @@ CxPlatDpRawGetDatapathSize(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 CxPlatDpRawInitialize(
-    _Inout_ CXPLAT_DATAPATH* Datapath,
+    _Inout_ CXPLAT_DATAPATH_RAW* Datapath,
     _In_ uint32_t ClientRecvContextLength,
     _In_opt_ const QUIC_EXECUTION_CONFIG* Config
     )
@@ -1248,14 +1249,14 @@ CxPlatDpRawRelease(
             CxPlatFree(Interface, IF_TAG);
         }
         XdpUnloadApi(Xdp->XdpApiLoadContext, Xdp->XdpApi);
-        CxPlatDataPathUninitializeComplete((CXPLAT_DATAPATH*)Xdp);
+        CxPlatDataPathUninitializeComplete((CXPLAT_DATAPATH_RAW*)Xdp);
     }
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 CxPlatDpRawUninitialize(
-    _In_ CXPLAT_DATAPATH* Datapath
+    _In_ CXPLAT_DATAPATH_RAW* Datapath
     )
 {
     XDP_DATAPATH* Xdp = (XDP_DATAPATH*)Datapath;
@@ -1274,7 +1275,7 @@ CxPlatDpRawUninitialize(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 CxPlatDpRawUpdateConfig(
-    _In_ CXPLAT_DATAPATH* Datapath,
+    _In_ CXPLAT_DATAPATH_RAW* Datapath,
     _In_ QUIC_EXECUTION_CONFIG* Config
     )
 {
@@ -1284,14 +1285,14 @@ CxPlatDpRawUpdateConfig(
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
-CxPlatSocketUpdateQeo(
-    _In_ CXPLAT_SOCKET* Socket,
+RawSocketUpdateQeo(
+    _In_ CXPLAT_SOCKET_RAW* Socket,
     _In_reads_(OffloadCount)
         const CXPLAT_QEO_CONNECTION* Offloads,
     _In_ uint32_t OffloadCount
     )
 {
-    XDP_DATAPATH* Xdp = (XDP_DATAPATH*)Socket->Datapath;
+    XDP_DATAPATH* Xdp = (XDP_DATAPATH*)Socket->RawDatapath;
 
     XDP_QUIC_CONNECTION Connections[2];
     CXPLAT_FRE_ASSERT(OffloadCount == 2); // TODO - Refactor so upper layer struct matches XDP struct
@@ -1379,11 +1380,11 @@ CxPlatDpRawClearPortBit(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 CxPlatDpRawPlumbRulesOnSocket(
-    _In_ CXPLAT_SOCKET* Socket,
+    _In_ CXPLAT_SOCKET_RAW* Socket,
     _In_ BOOLEAN IsCreated
     )
 {
-    XDP_DATAPATH* Xdp = (XDP_DATAPATH*)Socket->Datapath;
+    XDP_DATAPATH* Xdp = (XDP_DATAPATH*)Socket->RawDatapath;
     if (Socket->Wildcard) {
         XDP_RULE Rules[3] = {0};
         uint8_t RulesSize = 0;
@@ -1562,6 +1563,7 @@ CxPlatXdpRx(
         Packet->Queue = Queue;
         Packet->RouteStorage.Queue = Queue;
         Packet->RecvData.Route = &Packet->RouteStorage;
+        Packet->RecvData.Route->DatapathType = Packet->RecvData.DatapathType = CXPLAT_DATAPATH_TYPE_RAW;
         Packet->RecvData.PartitionIndex = PartitionIndex;
 
         CxPlatDpRawParseEthernet(
@@ -1610,7 +1612,7 @@ CxPlatXdpRx(
     }
 
     if (PacketCount > 0) {
-        CxPlatDpRawRxEthernet((CXPLAT_DATAPATH*)Xdp, Buffers, (uint16_t)PacketCount);
+        CxPlatDpRawRxEthernet((CXPLAT_DATAPATH_RAW*)Xdp, Buffers, (uint16_t)PacketCount);
     }
 
     if (XskRingError(&Queue->RxRing) && !Queue->Error) {
@@ -1671,7 +1673,7 @@ CxPlatDpRawRxFree(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 CXPLAT_SEND_DATA*
 CxPlatDpRawTxAlloc(
-    _In_ CXPLAT_SOCKET* Socket,
+    _In_ CXPLAT_SOCKET_RAW* Socket,
     _Inout_ CXPLAT_SEND_CONFIG* Config
     )
 {
@@ -1686,6 +1688,7 @@ CxPlatDpRawTxAlloc(
         Packet->Buffer.Length = Config->MaxPacketSize;
         Packet->Buffer.Buffer = &Packet->FrameBuffer[HeaderBackfill.AllLayer];
         Packet->ECN = Config->ECN;
+        Packet->DatapathType = Config->Route->DatapathType = CXPLAT_DATAPATH_TYPE_RAW;
     }
 
     return (CXPLAT_SEND_DATA*)Packet;
@@ -1899,16 +1902,16 @@ CxPlatXdpExecute(
 }
 
 void
-CxPlatDataPathProcessCqe(
+RawDataPathProcessCqe(
     _In_ CXPLAT_CQE* Cqe
     )
 {
     if (CxPlatCqeType(Cqe) == CXPLAT_CQE_TYPE_SOCKET_IO) {
-        DATAPATH_IO_SQE* Sqe =
-            CONTAINING_RECORD(CxPlatCqeUserData(Cqe), DATAPATH_IO_SQE, DatapathSqe);
+        DATAPATH_XDP_IO_SQE* Sqe =
+            CONTAINING_RECORD(CxPlatCqeUserData(Cqe), DATAPATH_XDP_IO_SQE, DatapathSqe);
         XDP_QUEUE* Queue;
 
-        if (Sqe->IoType == DATAPATH_IO_RECV) {
+        if (Sqe->IoType == DATAPATH_XDP_IO_RECV) {
             Queue = CONTAINING_RECORD(Sqe, XDP_QUEUE, RxIoSqe);
             QuicTraceLogVerbose(
                 XdpQueueAsyncIoRxComplete,
@@ -1916,7 +1919,7 @@ CxPlatDataPathProcessCqe(
                 Queue);
             Queue->RxQueued = FALSE;
         } else {
-            CXPLAT_DBG_ASSERT(Sqe->IoType == DATAPATH_IO_SEND);
+            CXPLAT_DBG_ASSERT(Sqe->IoType == DATAPATH_XDP_IO_SEND);
             Queue = CONTAINING_RECORD(Sqe, XDP_QUEUE, TxIoSqe);
             QuicTraceLogVerbose(
                 XdpQueueAsyncIoTxComplete,

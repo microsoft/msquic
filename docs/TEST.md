@@ -23,6 +23,11 @@ Then all the tests can be run with:
 ./scripts/test.ps1 -Tls openssl
 ```
 
+Windows XDP datapath can be used unless a test explicitly specify loopback address by
+```Powershell
+./scripts/test.ps1 -UseXdp
+```
+
 By default this will run all tests in series, with no log collection. To include log collection for failed tests, run:
 
 ```PowerShell
