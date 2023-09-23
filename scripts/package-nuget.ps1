@@ -23,9 +23,6 @@ param (
     [switch]$UWP = $false,
 
     [Parameter(Mandatory = $false)]
-    [switch]$XDP = $false,
-
-    [Parameter(Mandatory = $false)]
     [switch]$ReleaseBuild = $false,
 
     [Parameter(Mandatory = $false)]
@@ -87,10 +84,7 @@ if ((Test-Path $PackagingDir)) {
 # Arm is ignored, as there are no shipping arm devices
 $Architectures = "x64","x86","arm64"
 
-if ($XDP) {
-    # XDP only supports x64
-    $Architectures = "x64"
-} elseif ($Tls -ne "schannel") {
+if ($Tls -ne "schannel") {
     # OpenSSL doesn't support arm64 currently
     $Architectures = "x64","x86"
 }
@@ -142,9 +136,7 @@ $NugetSourceFolder = Join-Path $RootDir "src/distribution"
 if ($UWP) {
     $PackageName = "Microsoft.Native.Quic.MsQuic.UWP.$Tls"
 } else {
-    if ($XDP) {
-        Copy-Item -Path (Join-Path $PSScriptRoot xdp.json) -Destination (Join-Path $PackagingDir xdp-temp.json)
-    }
+    Copy-Item -Path (Join-Path $PSScriptRoot xdp.json) -Destination $PackagingDir
     $PackageName = "Microsoft.Native.Quic.MsQuic.$Tls"
 }
 
