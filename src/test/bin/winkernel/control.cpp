@@ -768,6 +768,11 @@ QuicTestCtlEvtIoDeviceControl(
         QuicTestCtlRun(QuicTestClientDisconnect(Params->StopListenerFirst));
         break;
 
+    case IOCTL_QUIC_RUN_STATELESS_RESETKEY:
+        CXPLAT_FRE_ASSERT(Params != nullptr);
+        QuicTestCtlRun(QuicTestStatelessResetKey(Params->StatelessResetKey));
+        break;
+
     case IOCTL_QUIC_RUN_VALIDATE_CONNECTION_EVENTS:
         CXPLAT_FRE_ASSERT(Params != nullptr);
         QuicTestCtlRun(QuicTestValidateConnectionEvents(Params->Test));

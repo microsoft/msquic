@@ -418,6 +418,11 @@ QuicTestClientDisconnect(
     );
 
 void
+QuicTestStatelessResetKey(
+    bool StatelessResetKey
+);
+
+void
 QuicTestKeyUpdate(
     _In_ int Family,
     _In_ uint16_t Iterations,
@@ -791,6 +796,9 @@ typedef struct {
     QUIC_CTL_CODE(27, METHOD_BUFFERED, FILE_WRITE_DATA)
     // int - Family
 
+#define IOCTL_QUIC_RUN_STATELESS_RESETKEY \
+    QUIC_CTL_CODE(28, METHOD_BUFFERED, FILE_WRITE_DATA)
+    // uint8_t - StatelessResetKey
 #pragma pack(push)
 #pragma pack(1)
 

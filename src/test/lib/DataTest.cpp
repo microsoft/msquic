@@ -691,7 +691,7 @@ ListenerAcceptConnectionAndStreams(
 void
 QuicTestClientDisconnect(
     bool StopListenerFirst
-    )
+)
 {
     //
     // If the listener is stopped at the same time the server side of the
@@ -775,6 +775,118 @@ QuicTestClientDisconnect(
 
             if (StopListenerFirst) {
                 Listener.Stop();
+            }
+
+            CxPlatSleep(15); // Sleep for just a bit.
+
+            Server->Shutdown(QUIC_CONNECTION_SHUTDOWN_FLAG_SILENT, 0);
+        }
+
+        if (!CxPlatEventWaitWithTimeout(EventClientDeleted.Handle, TestWaitTimeout)) {
+            TEST_FAILURE("Wait for EventClientDeleted timed out after %u ms.", TestWaitTimeout);
+        }
+    }
+}
+
+void
+QuicTestStatelessResetKey(
+    bool ChangeStatelessResetKey
+)
+{
+    //
+    // If the listener is stopped at the same time the server side of the
+    // connection is silently closed, then the UDP binding will also be cleaned
+    // up. This means the endpoint will no longer send Stateless Reset packets
+    // back to the client as it continues to receive the client's UDP packets.
+    //
+
+    PingStats ClientStats(UINT64_MAX - 1, 1, 1, TRUE, TRUE, FALSE, FALSE, TRUE,
+        ChangeStatelessResetKey ? QUIC_STATUS_CONNECTION_TIMEOUT : QUIC_STATUS_ABORTED);
+
+    CxPlatEvent EventClientDeleted(true);
+
+    MsQuicRegistration Registration;
+    TEST_TRUE(Registration.IsValid());
+
+    MsQuicAlpn Alpn("MsQuicTest");
+
+    MsQuicSettings Settings;
+    Settings.SetIdleTimeoutMs(10000);
+    Settings.SetPeerUnidiStreamCount(1);
+
+    MsQuicConfiguration ServerConfiguration(Registration, Alpn, Settings, ServerSelfSignedCredConfig);
+    TEST_TRUE(ServerConfiguration.IsValid());
+
+    MsQuicCredentialConfig ClientCredConfig;
+    MsQuicConfiguration ClientConfiguration(Registration, Alpn, Settings, ClientCredConfig);
+    TEST_TRUE(ClientConfiguration.IsValid());
+
+    {
+        TestListener Listener(Registration, ListenerAcceptConnectionAndStreams, ServerConfiguration);
+        TEST_TRUE(Listener.IsValid());
+        TEST_QUIC_SUCCEEDED(Listener.Start(Alpn));
+
+        QuicAddr ServerLocalAddr;
+        TEST_QUIC_SUCCEEDED(Listener.GetLocalAddr(ServerLocalAddr));
+
+        {
+            UniquePtr<TestConnection> Server;
+            ServerAcceptContext ServerAcceptCtx((TestConnection**)&Server);
+            Listener.Context = &ServerAcceptCtx;
+
+            TestConnection* Client =
+                NewPingConnection(
+                    Registration,
+                    &ClientStats,
+                    false);
+            if (Client == nullptr) {
+                return;
+            }
+
+            Client->SetDeletedEvent(&EventClientDeleted.Handle);
+
+            Client->SetExpectedTransportCloseStatus(ClientStats.ExpectedCloseStatus);
+            TEST_QUIC_SUCCEEDED(Client->SetDisconnectTimeout(1000)); // ms
+
+            if (!SendPingBurst(
+                Client,
+                ClientStats.StreamCount,
+                ClientStats.PayloadLength)) {
+                return;
+            }
+
+            TEST_QUIC_SUCCEEDED(
+                Client->Start(
+                    ClientConfiguration,
+                    QUIC_ADDRESS_FAMILY_INET,
+                    QUIC_TEST_LOOPBACK_FOR_AF(QUIC_ADDRESS_FAMILY_INET),
+                    ServerLocalAddr.GetPort()));
+
+            if (!Client->WaitForConnectionComplete()) {
+                return;
+            }
+            TEST_TRUE(Client->GetIsConnected());
+
+            TEST_NOT_EQUAL(nullptr, Server);
+            if (!Server->WaitForConnectionComplete()) {
+                return;
+            }
+            TEST_TRUE(Server->GetIsConnected());
+
+            if (ChangeStatelessResetKey)
+            {
+                uint8_t statelessResetKey[QUIC_STATELESS_RESETKEY_LENGTH];
+                CxPlatRandom(sizeof(statelessResetKey), statelessResetKey);
+                QUIC_STATUS Status;
+                if (QUIC_FAILED(
+                    Status =
+                    MsQuic->SetParam(
+                        nullptr,
+                        QUIC_PARAM_GLOBAL_STATELESS_RESETKEY,
+                        sizeof(statelessResetKey),
+                        statelessResetKey))) {
+                    TEST_FAILURE("Failed to set stateless reset key %d\n", Status);
+                }
             }
 
             CxPlatSleep(15); // Sleep for just a bit.
