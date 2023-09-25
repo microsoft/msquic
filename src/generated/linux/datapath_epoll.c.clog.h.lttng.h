@@ -245,3 +245,22 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_EPOLL_C, DatapathSend,
         ctf_sequence(char, arg7, arg7, unsigned int, arg7_len)
     )
 )
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for LibraryError
+// [ lib] ERROR, %s.
+// QuicTraceEvent(
+                    LibraryError,
+                    "[ lib] ERROR, %s.",
+                    "Disabling segmentation support globally");
+// arg2 = arg2 = "Disabling segmentation support globally" = arg2
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_DATAPATH_EPOLL_C, LibraryError,
+    TP_ARGS(
+        const char *, arg2), 
+    TP_FIELDS(
+        ctf_string(arg2, arg2)
+    )
+)
