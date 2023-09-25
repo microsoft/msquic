@@ -24,6 +24,8 @@ Copy-Item -ToSession $Session .\scripts -Destination C:\_work\quic\scripts -Recu
 
 try {
 
+mkdir .\artifacts\logs | Out-Null
+
 # Prepare the machines for the testing.
 Write-Output "Preparing machines for testing..."
 .\scripts\prepare-machine.ps1 -ForTest
@@ -77,7 +79,7 @@ Write-Output Wait-ForRemote $Job
 
 # Grab other logs
 logman stop profsvc -ets
-Copy-Item $env:WINDIR\System32\LogFiles\WMI\profsvc.etl .\artifacts\logs
-netsh trace convert .\artifacts\logs\profsvc.etl
+Copy-Item $env:WINDIR\System32\LogFiles\WMI\profsvc.etl.* .\artifacts\logs
+#netsh trace convert .\artifacts\logs\profsvc.etl
 
 }
