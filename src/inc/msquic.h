@@ -837,7 +837,7 @@ void
 #define QUIC_PARAM_GLOBAL_EXECUTION_CONFIG              0x01000009  // QUIC_EXECUTION_CONFIG
 #endif
 #define QUIC_PARAM_GLOBAL_TLS_PROVIDER                  0x0100000A  // QUIC_TLS_PROVIDER
-#define QUIC_PARAM_GLOBAL_STATELESS_RESET_KEY            0x0100000B  // uint8_t[] Array size is QUIC_STATELESS_RESET_KEY_LENGTH
+#define QUIC_PARAM_GLOBAL_STATELESS_RESET_KEY           0x0100000B  // uint8_t[] - Array size is QUIC_STATELESS_RESET_KEY_LENGTH
 //
 // Parameters for Registration.
 //

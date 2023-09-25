@@ -1113,27 +1113,29 @@ QuicLibrarySetGlobalParam(
         break;
 
     case QUIC_PARAM_GLOBAL_STATELESS_RESET_KEY:
-        if (BufferLength != QUIC_STATELESS_RESET_KEY_LENGTH * sizeof (uint8_t)) {
+        if (BufferLength != QUIC_STATELESS_RESET_KEY_LENGTH * sizeof(uint8_t)) {
             Status = QUIC_STATUS_INVALID_PARAMETER;
             break;
         }
 
-        CXPLAT_HASH* tokenHash = NULL;
-        Status =
-            CxPlatHashCreate(
-                CXPLAT_HASH_SHA256,
-                (uint8_t*)Buffer,
-                QUIC_STATELESS_RESET_KEY_LENGTH * sizeof(uint8_t),
-                &tokenHash);
-        if (QUIC_SUCCEEDED(Status)) {
-            for (uint16_t i = 0; i < MsQuicLib.ProcessorCount; ++i) {
+        Status = QUIC_STATUS_SUCCESS;
+        for (uint16_t i = 0; i < MsQuicLib.ProcessorCount; ++i) {
+            CXPLAT_HASH* tokenHash = NULL;
+            Status =
+                CxPlatHashCreate(
+                    CXPLAT_HASH_SHA256,
+                    (uint8_t*)Buffer,
+                    QUIC_STATELESS_RESET_KEY_LENGTH * sizeof(uint8_t),
+                    &tokenHash);
+            if (QUIC_SUCCEEDED(Status)) {
                 QUIC_LIBRARY_PP* PerProc = &MsQuicLib.PerProc[i];
                 CxPlatLockAcquire(&PerProc->ResetTokenLock);
                 CxPlatHashFree(PerProc->ResetTokenHash);
                 PerProc->ResetTokenHash = tokenHash;
                 CxPlatLockRelease(&PerProc->ResetTokenLock);
+            } else {
+                break;
             }
-            Status = QUIC_STATUS_SUCCESS;
         }
         break;
 

@@ -419,7 +419,7 @@ QuicTestClientDisconnect(
 
 void
 QuicTestStatelessResetKey(
-    bool StatelessResetKey
+    void
     );
 
 void

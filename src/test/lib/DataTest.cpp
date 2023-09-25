@@ -790,7 +790,6 @@ QuicTestClientDisconnect(
 
 void
 QuicTestStatelessResetKey(
-    bool ChangeStatelessResetKey
     )
 {
     //
@@ -800,8 +799,7 @@ QuicTestStatelessResetKey(
     // back to the client as it continues to receive the client's UDP packets.
     //
 
-    PingStats ClientStats(UINT64_MAX - 1, 1, 1, TRUE, TRUE, FALSE, FALSE, TRUE,
-        ChangeStatelessResetKey ? QUIC_STATUS_CONNECTION_TIMEOUT : QUIC_STATUS_ABORTED);
+    PingStats ClientStats(UINT64_MAX - 1, 1, 1, TRUE, TRUE, FALSE, FALSE, TRUE, QUIC_STATUS_CONNECTION_TIMEOUT);
 
     CxPlatEvent EventClientDeleted(true);
 
@@ -875,19 +873,17 @@ QuicTestStatelessResetKey(
 
             CxPlatSleep(15); // Sleep for just a bit.
 
-            if (ChangeStatelessResetKey) {
-                uint8_t statelessResetKey[QUIC_STATELESS_RESET_KEY_LENGTH];
-                CxPlatRandom(sizeof(statelessResetKey), statelessResetKey);
-                QUIC_STATUS Status;
-                if (QUIC_FAILED(
-                    Status =
-                    MsQuic->SetParam(
-                        nullptr,
-                        QUIC_PARAM_GLOBAL_STATELESS_RESET_KEY,
-                        sizeof(statelessResetKey),
-                        statelessResetKey))) {
-                    TEST_FAILURE("Failed to set stateless reset key %d\n", Status);
-                }
+            uint8_t statelessResetKey[QUIC_STATELESS_RESET_KEY_LENGTH];
+            CxPlatRandom(sizeof(statelessResetKey), statelessResetKey);
+            QUIC_STATUS Status;
+            if (QUIC_FAILED(
+                Status =
+                MsQuic->SetParam(
+                    nullptr,
+                    QUIC_PARAM_GLOBAL_STATELESS_RESET_KEY,
+                    sizeof(statelessResetKey),
+                    statelessResetKey))) {
+                TEST_FAILURE("Failed to set stateless reset key %d\n", Status);
             }
 
             Server->Shutdown(QUIC_CONNECTION_SHUTDOWN_FLAG_SILENT, 0);

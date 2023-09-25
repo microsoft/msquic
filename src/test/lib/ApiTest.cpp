@@ -2662,7 +2662,6 @@ void QuicTestGlobalParam()
         CxPlatRandom(sizeof(statelessResetkey), statelessResetkey);
         TestScopeLogger LogScope0("QUIC_PARAM_GLOBAL_STATELESS_RESET_KEY");
         {
-            // should the global setting hard-coded?
             TestScopeLogger LogScope1("SetParam");
             TEST_QUIC_STATUS(
                 QUIC_STATUS_INVALID_PARAMETER,
