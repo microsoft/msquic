@@ -216,13 +216,33 @@ tracepoint(CLOG_STREAM_RECV_C, QueueRecvFlush , arg1);\
 
 
 /*----------------------------------------------------------
+// Decoder Ring for IndicatePeerSendReliableAbort
+// [strm][%p] Indicating QUIC_STREAM_EVENT_PEER_RELIABLE_ABORT_SEND (0x%llX)
+// QuicTraceLogStreamVerbose(
+            IndicatePeerSendReliableAbort,
+            Stream,
+            "Indicating QUIC_STREAM_EVENT_PEER_RELIABLE_ABORT_SEND (0x%llX)",
+            ErrorCode);
+// arg1 = arg1 = Stream = arg1
+// arg3 = arg3 = ErrorCode = arg3
+----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_IndicatePeerSendReliableAbort
+#define _clog_4_ARGS_TRACE_IndicatePeerSendReliableAbort(uniqueId, arg1, encoded_arg_string, arg3)\
+tracepoint(CLOG_STREAM_RECV_C, IndicatePeerSendReliableAbort , arg1, arg3);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for IndicatePeerSendAbort
 // [strm][%p] Indicating QUIC_STREAM_EVENT_PEER_SEND_ABORTED (0x%llX)
 // QuicTraceLogStreamVerbose(
-            IndicatePeerSendAbort,
-            Stream,
-            "Indicating QUIC_STREAM_EVENT_PEER_SEND_ABORTED (0x%llX)",
-            ErrorCode);
+                IndicatePeerSendAbort,
+                Stream,
+                "Indicating QUIC_STREAM_EVENT_PEER_SEND_ABORTED (0x%llX)",
+                ErrorCode);
 // arg1 = arg1 = Stream = arg1
 // arg3 = arg3 = ErrorCode = arg3
 ----------------------------------------------------------*/

@@ -3199,6 +3199,7 @@ struct StreamReliableReset {
     CxPlatEvent ServerStreamShutdownComplete;
     uint64_t ReceivedBufferSize;
     uint64_t SequenceNum;
+    QUIC_UINT62 ShutdownErrorCode;
 
 
     static QUIC_STATUS ClientStreamCallback(_In_ MsQuicStream*, _In_opt_ void* ClientContext, _Inout_ QUIC_STREAM_EVENT* Event) {
@@ -3215,13 +3216,13 @@ struct StreamReliableReset {
         return QUIC_STATUS_SUCCESS;
     }
 
-    static QUIC_STATUS ServerStreamCallback(_In_ MsQuicStream* Stream, _In_opt_ void* ServerContext, _Inout_ QUIC_STREAM_EVENT* Event) {
+    static QUIC_STATUS ServerStreamCallback(_In_ MsQuicStream*, _In_opt_ void* ServerContext, _Inout_ QUIC_STREAM_EVENT* Event) {
         auto TestContext = (StreamReliableReset*)ServerContext;
         if (Event->Type == QUIC_STREAM_EVENT_RECEIVE) {
             TestContext->ReceivedBufferSize += Event->RECEIVE.TotalBufferLength;
         }
-        if (Event->Type == QUIC_STREAM_EVENT_PEER_SEND_SHUTDOWN) {
-            Stream->Shutdown(QUIC_STREAM_SHUTDOWN_FLAG_ABORT_SEND);
+        if (Event->Type == QUIC_STREAM_EVENT_PEER_RELIABLE_ABORT_SEND) {
+            TestContext->ShutdownErrorCode = Event->PEER_RELIABLE_ABORT_SEND.ErrorCode;
         }
         if (Event->Type == QUIC_STREAM_EVENT_SHUTDOWN_COMPLETE) {
             TestContext->ServerStreamShutdownComplete.Set();
@@ -3291,8 +3292,10 @@ QuicTestStreamReliableReset(
             QUIC_STATUS_INVALID_STATE,
             Stream.SetReliableOffset(UINT64_MAX));
         TEST_QUIC_SUCCEEDED(Stream.SetReliableOffset(RELIABLE_SIZE));
-        TEST_QUIC_SUCCEEDED(Stream.Shutdown(0, QUIC_STREAM_SHUTDOWN_FLAG_ABORT_SEND)); // Queues up a shutdown operation.
-        TEST_QUIC_SUCCEEDED(Stream.Shutdown(0, QUIC_STREAM_SHUTDOWN_FLAG_ABORT_RECEIVE));
+        const QUIC_UINT62 AbortSendShutdownErrorCode = 0x696969696969;
+        const QUIC_UINT62 AbortRecvShutdownErrorCode = 0x420420420420;
+        TEST_QUIC_SUCCEEDED(Stream.Shutdown(AbortSendShutdownErrorCode, QUIC_STREAM_SHUTDOWN_FLAG_ABORT_SEND)); // Queues up a shutdown operation.
+        TEST_QUIC_SUCCEEDED(Stream.Shutdown(AbortRecvShutdownErrorCode, QUIC_STREAM_SHUTDOWN_FLAG_ABORT_RECEIVE));
         TEST_QUIC_STATUS(QUIC_STATUS_INVALID_STATE, Stream.SetReliableOffset(RELIABLE_SIZE));
         // Should behave similar to QUIC_STREAM_SHUTDOWN_FLAG_GRACEFUL, with some restrictions.
         TEST_TRUE(Context.ClientStreamShutdownComplete.WaitTimeout(TestWaitTimeout));
@@ -3301,6 +3304,9 @@ QuicTestStreamReliableReset(
 
         // We shouldn't be able to change ReliableSize now that the stream has already been reset.
         TEST_QUIC_STATUS(QUIC_STATUS_INVALID_STATE, Stream.SetReliableOffset(1));
+
+        // Test that the error code we got was for the SEND shutdown.
+        TEST_TRUE(Context.ShutdownErrorCode == AbortSendShutdownErrorCode);
     }
 }
 void
@@ -3326,6 +3332,7 @@ QuicTestStreamReliableResetMultipleSends(
     QUIC_BUFFER SendBuffer { sizeof(SendDataBuffer), SendDataBuffer };
     Context.ReceivedBufferSize = 0;
     Context.SequenceNum = 0;
+    Context.ShutdownErrorCode = 0;
 
     MsQuicAutoAcceptListener Listener(Registration, ServerConfiguration, StreamReliableReset::ConnCallback, &Context);
     TEST_QUIC_SUCCEEDED(Listener.GetInitStatus());
@@ -3357,7 +3364,9 @@ QuicTestStreamReliableResetMultipleSends(
     TEST_QUIC_SUCCEEDED(Stream.Send(&SendBuffer, 1, QUIC_SEND_FLAG_DELAY_SEND, &send4));
     TEST_QUIC_SUCCEEDED(Stream.Send(&SendBuffer, 1, QUIC_SEND_FLAG_DELAY_SEND, &send5));
     TEST_QUIC_SUCCEEDED(Stream.SetReliableOffset(RELIABLE_SIZE_MULTI_SENDS));
-    TEST_QUIC_SUCCEEDED(Stream.Shutdown(0)); // Queues up a shutdown operation.
+
+    const QUIC_UINT62 AbortShutdownErrorCode = 0x696969696969;
+    TEST_QUIC_SUCCEEDED(Stream.Shutdown(AbortShutdownErrorCode)); // Queues up a shutdown operation.
     // Should behave similar to QUIC_STREAM_SHUTDOWN_FLAG_GRACEFUL, with some restrictions.
     TEST_TRUE(Context.ClientStreamShutdownComplete.WaitTimeout(TestWaitTimeout));
     TEST_TRUE(Context.ServerStreamShutdownComplete.WaitTimeout(TestWaitTimeout));
@@ -3370,4 +3379,7 @@ QuicTestStreamReliableResetMultipleSends(
     TEST_TRUE(send2.SeqNum < send3.SeqNum);
     TEST_TRUE(send3.SeqNum < send4.SeqNum);
     TEST_TRUE(send4.SeqNum < send5.SeqNum);
+
+    // Test Error code matches what we sent.
+    TEST_TRUE(Context.ShutdownErrorCode == AbortShutdownErrorCode);
 }

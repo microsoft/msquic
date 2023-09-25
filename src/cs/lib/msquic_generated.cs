@@ -2695,6 +2695,7 @@ namespace Microsoft.Quic
         SHUTDOWN_COMPLETE = 7,
         IDEAL_SEND_BUFFER_SIZE = 8,
         PEER_ACCEPTED = 9,
+        PEER_RELIABLE_ABORT_SEND = 10,
     }
 
     internal partial struct QUIC_STREAM_EVENT
@@ -2768,6 +2769,14 @@ namespace Microsoft.Quic
             }
         }
 
+        internal ref _Anonymous_e__Union._PEER_RELIABLE_ABORT_SEND_e__Struct PEER_RELIABLE_ABORT_SEND
+        {
+            get
+            {
+                return ref MemoryMarshal.GetReference(MemoryMarshal.CreateSpan(ref Anonymous.PEER_RELIABLE_ABORT_SEND, 1));
+            }
+        }
+
         [StructLayout(LayoutKind.Explicit)]
         internal partial struct _Anonymous_e__Union
         {
@@ -2802,6 +2811,10 @@ namespace Microsoft.Quic
             [FieldOffset(0)]
             [NativeTypeName("struct (anonymous struct)")]
             internal _IDEAL_SEND_BUFFER_SIZE_e__Struct IDEAL_SEND_BUFFER_SIZE;
+
+            [FieldOffset(0)]
+            [NativeTypeName("struct (anonymous struct)")]
+            internal _PEER_RELIABLE_ABORT_SEND_e__Struct PEER_RELIABLE_ABORT_SEND;
 
             internal partial struct _START_COMPLETE_e__Struct
             {
@@ -2959,6 +2972,15 @@ namespace Microsoft.Quic
             {
                 [NativeTypeName("uint64_t")]
                 internal ulong ByteCount;
+            }
+
+            internal partial struct _PEER_RELIABLE_ABORT_SEND_e__Struct
+            {
+                [NativeTypeName("QUIC_UINT62")]
+                internal ulong ErrorCode;
+
+                [NativeTypeName("uint64_t")]
+                internal ulong ReliableSize;
             }
         }
     }

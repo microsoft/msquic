@@ -6095,6 +6095,22 @@
       ],
       "macroName": "QuicTraceLogStreamVerbose"
     },
+    "IndicatePeerSendReliableAbort": {
+      "ModuleProperites": {},
+      "TraceString": "[strm][%p] Indicating QUIC_STREAM_EVENT_PEER_RELIABLE_ABORT_SEND (0x%llX)",
+      "UniqueId": "IndicatePeerSendReliableAbort",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        },
+        {
+          "DefinationEncoding": "llX",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macroName": "QuicTraceLogStreamVerbose"
+    },
     "IndicatePeerSendShutdown": {
       "ModuleProperites": {},
       "TraceString": "[strm][%p] Indicating QUIC_STREAM_EVENT_PEER_SEND_SHUTDOWN",
@@ -15117,6 +15133,11 @@
         "UniquenessHash": "5b791afd-1ad0-2715-7c99-2671ee5be40e",
         "TraceID": "IndicatePeerSendAbort",
         "EncodingString": "[strm][%p] Indicating QUIC_STREAM_EVENT_PEER_SEND_ABORTED (0x%llX)"
+      },
+      {
+        "UniquenessHash": "7f8e2ccb-c362-e297-f242-eee58833499e",
+        "TraceID": "IndicatePeerSendReliableAbort",
+        "EncodingString": "[strm][%p] Indicating QUIC_STREAM_EVENT_PEER_RELIABLE_ABORT_SEND (0x%llX)"
       },
       {
         "UniquenessHash": "7b23cd90-0d41-8339-9622-e84277f95b5d",

@@ -1488,8 +1488,9 @@ QuicTestValidateStreamEvents9(
             nullptr
         });
     StreamValidator ServerStream(
-        new(std::nothrow) StreamEventValidator* [5] {
+        new(std::nothrow) StreamEventValidator* [6] {
             new(std::nothrow) StreamEventValidator(QUIC_STREAM_EVENT_RECEIVE),
+            new(std::nothrow) StreamEventValidator(QUIC_STREAM_EVENT_PEER_RELIABLE_ABORT_SEND),
             new(std::nothrow) StreamEventValidator(QUIC_STREAM_EVENT_PEER_RECEIVE_ABORTED),
             new(std::nothrow) StreamEventValidator(QUIC_STREAM_EVENT_SEND_SHUTDOWN_COMPLETE),
             new(std::nothrow) StreamEventValidator(QUIC_STREAM_EVENT_SHUTDOWN_COMPLETE),
@@ -1537,7 +1538,7 @@ QuicTestValidateStreamEvents9(
             QUIC_TEST_LOOPBACK_FOR_AF(
                 QuicAddrGetFamily(&ServerLocalAddr.SockAddr)),
             ServerLocalAddr.GetPort()));
-    
+
     TEST_TRUE(Client.HandshakeComplete.WaitTimeout(1000));
     CxPlatSleep(200);
 
@@ -1554,13 +1555,13 @@ QuicTestValidateStreamEvents9(
     uint64_t ReliableOffset = 1;
     TEST_QUIC_SUCCEEDED(
         MsQuic->SetParam(
-            ClientStream.Handle, 
-            QUIC_PARAM_STREAM_RELIABLE_OFFSET, 
+            ClientStream.Handle,
+            QUIC_PARAM_STREAM_RELIABLE_OFFSET,
             sizeof(ReliableOffset),
             &ReliableOffset
         )
     );
-    
+
     CxPlatSleep(100); // Wait for the sends to be processed
 
      TEST_QUIC_SUCCEEDED(
@@ -1568,7 +1569,7 @@ QuicTestValidateStreamEvents9(
             ClientStream.Handle,
             QUIC_STREAM_SHUTDOWN_FLAG_ABORT,
             0));
-     
+
      TEST_TRUE(Client.Complete.WaitTimeout(2000));
      TEST_TRUE(Server.Complete.WaitTimeout(1000));
     } // Stream scope

@@ -199,6 +199,20 @@ QuicStreamProcessReliableResetFrame(
             Stream,
             "Reliable recv offset set to %llu",
             ReliableOffset);
+
+        //
+        // Indicate to the app that the peer will abort after having sent and ACK'd ReliableOffset amount of data.
+        //
+        QUIC_STREAM_EVENT Event;
+        Event.Type = QUIC_STREAM_EVENT_PEER_RELIABLE_ABORT_SEND;
+        Event.PEER_RELIABLE_ABORT_SEND.ReliableSize = ReliableOffset;
+        Event.PEER_RELIABLE_ABORT_SEND.ErrorCode = ErrorCode;
+        QuicTraceLogStreamVerbose(
+            IndicatePeerSendReliableAbort,
+            Stream,
+            "Indicating QUIC_STREAM_EVENT_PEER_RELIABLE_ABORT_SEND (0x%llX)",
+            ErrorCode);
+        (void)QuicStreamIndicateEvent(Stream, &Event);
     }
 
     if (Stream->RecvBuffer.BaseOffset >= Stream->RecvMaxLength) {
@@ -210,21 +224,6 @@ QuicStreamProcessReliableResetFrame(
         QuicStreamRecvShutdown(Stream, TRUE, ErrorCode);
     } else {
         Stream->RecvShutdownErrorCode = ErrorCode;
-    }
-
-    if (!Stream->Flags.SentStopSending) {
-        //
-        // Indicate to the app that the stream has been aborted by the peer.
-        //
-        QUIC_STREAM_EVENT Event;
-        Event.Type = QUIC_STREAM_EVENT_PEER_SEND_ABORTED;
-        Event.PEER_SEND_ABORTED.ErrorCode = ErrorCode;
-        QuicTraceLogStreamVerbose(
-            IndicatePeerSendAbort,
-            Stream,
-            "Indicating QUIC_STREAM_EVENT_PEER_SEND_ABORTED (0x%llX)",
-            ErrorCode);
-        (void)QuicStreamIndicateEvent(Stream, &Event);
     }
 }
 
