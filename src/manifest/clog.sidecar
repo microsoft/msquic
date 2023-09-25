@@ -3175,22 +3175,6 @@
       ],
       "macroName": "QuicTraceLogVerbose"
     },
-    "DatapathTcpAuxBinding": {
-      "ModuleProperites": {},
-      "TraceString": "[data][%p] Binding TCP socket to %s",
-      "UniqueId": "DatapathTcpAuxBinding",
-      "splitArgs": [
-        {
-          "DefinationEncoding": "p",
-          "MacroVariableName": "arg2"
-        },
-        {
-          "DefinationEncoding": "s",
-          "MacroVariableName": "arg3"
-        }
-      ],
-      "macroName": "QuicTraceLogVerbose"
-    },
     "DatapathTooLarge": {
       "ModuleProperites": {},
       "TraceString": "[data][%p] Received larger than expected datagram from %!ADDR!",
@@ -13888,11 +13872,6 @@
         "UniquenessHash": "d9d68a37-2903-ee85-4a9b-80a652220455",
         "TraceID": "DatapathSocketUninitializeComplete",
         "EncodingString": "[data][%p] Socket uninitialize complete"
-      },
-      {
-        "UniquenessHash": "3a4da7bb-462a-a423-bd9e-bcc366e59258",
-        "TraceID": "DatapathTcpAuxBinding",
-        "EncodingString": "[data][%p] Binding TCP socket to %s"
       },
       {
         "UniquenessHash": "a07c9538-e6d7-3c41-1367-ce58f2df4d9e",
