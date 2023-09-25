@@ -1531,8 +1531,6 @@ QuicStreamOnAck(
         Stream->Flags.LocalCloseResetReliableAcked &&
         Stream->UnAckedOffset >= Stream->ReliableOffsetSend;
     if (ReliableResetShutdown) {
-        Stream->Flags.LocalCloseAcked = TRUE;
-        Stream->Flags.RemoteCloseAcked = TRUE;
         QuicTraceEvent(
             StreamSendState,
             "[strm][%p] Send State: %hhu",
@@ -1540,7 +1538,7 @@ QuicStreamOnAck(
             QuicStreamSendGetState(Stream));
         QuicStreamCleanupReliableReset(Stream);
         Stream->Flags.LocalCloseReset = TRUE;
-        QuicStreamSendShutdown(Stream, FALSE, TRUE, FALSE, 0x21);
+        QuicStreamSendShutdown(Stream, FALSE, TRUE, FALSE, Stream->SendShutdownErrorCode);
     }
 
     if (!QuicStreamHasPendingStreamData(Stream)) {
@@ -1623,7 +1621,7 @@ QuicStreamOnResetReliableAck(
             QuicStreamSendGetState(Stream));
         QuicStreamCleanupReliableReset(Stream);
         Stream->Flags.LocalCloseReset = TRUE;
-        QuicStreamSendShutdown(Stream, FALSE, TRUE, FALSE, 0x21);
+        QuicStreamSendShutdown(Stream, FALSE, TRUE, FALSE, Stream->SendShutdownErrorCode);
     } else {
         QuicTraceEvent(
         StreamSendState,
