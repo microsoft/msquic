@@ -1129,6 +1129,7 @@ QuicLibrarySetGlobalParam(
                     QUIC_STATELESS_RESETKEY_LENGTH * sizeof(uint8_t),
                     &PerProc->ResetTokenHash);
             if (QUIC_FAILED(Status)) {
+                PerProc->ResetTokenHash = NULL;
                 return Status;
             }
             CxPlatLockRelease(&PerProc->ResetTokenLock);
