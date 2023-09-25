@@ -78,10 +78,12 @@ Write-Output Wait-ForRemote $Job
 } finally {
 
 # Grab other logs
+Write-Output "Grabbing registry..."
+reg export "HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion\ProfileNotification" .\artifacts\logs\ProfileNotification.reg
 Write-Output "Grabbing profsvc logs..."
 dir C:\Windows\system32\Logfiles\WMI\prof*
 Write-Output "Stopping session..."
-logman stop profsvc -ets
+logman stop profsvc -ets -ErrorAction Ignore
 Start-Sleep 5
 Write-Output "Copying profsvc logs..."
 Copy-Item $env:WINDIR\System32\LogFiles\WMI\profsvc.etl.* .\artifacts\logs
