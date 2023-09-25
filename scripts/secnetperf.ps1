@@ -22,6 +22,8 @@ Invoke-Command -Session $Session -ScriptBlock {
 Copy-Item -ToSession $Session .\artifacts -Destination C:\_work\quic\artifacts -Recurse
 Copy-Item -ToSession $Session .\scripts -Destination C:\_work\quic\scripts -Recurse
 
+try {
+
 # Prepare the machines for the testing.
 Write-Output "Preparing machines for testing..."
 .\scripts\prepare-machine.ps1 -ForTest
@@ -29,13 +31,13 @@ Invoke-Command -Session $Session -ScriptBlock {
     C:\_work\quic\scripts\prepare-machine.ps1 -ForTest
 }
 
+.\scripts\log.ps1 -Start -Profile Full.Light
+
 # Run secnetperf on the server.
 Write-Output "Starting secnetperf server..."
 $Job = Invoke-Command -Session $Session -ScriptBlock {
     C:\_work\quic\artifacts\bin\windows\x64_Release_schannel\secnetperf.exe -exec:maxtput
 } -AsJob
-
-.\scripts\log.ps1 -Start -Profile Full.Light
 
 # Run secnetperf on the client.
 Write-Output "Running tests on the client..."
@@ -46,11 +48,6 @@ for ($i = 0; $i -lt 1; $i++) {
 
 .\scripts\log.ps1 -Stop -OutputPath .\artifacts\logs\quic
 #Get-Content .\artifacts\logs\quic.log
-
-# Grab other logs
-logman stop profsvc -ets
-Copy-Item $env:WINDIR\System32\LogFiles\WMI\profsvc.etl .\artifacts\logs
-netsh trace convert .\artifacts\logs\profsvc.etl
 
 function Wait-ForRemote {
     param ($Job, $ErrorAction = "Stop")
@@ -75,3 +72,12 @@ function Wait-ForRemote {
 
 # Kill the server process.
 Write-Output Wait-ForRemote $Job
+
+} finally {
+
+# Grab other logs
+logman stop profsvc -ets
+Copy-Item $env:WINDIR\System32\LogFiles\WMI\profsvc.etl .\artifacts\logs
+netsh trace convert .\artifacts\logs\profsvc.etl
+
+}
