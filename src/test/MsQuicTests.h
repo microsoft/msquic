@@ -420,7 +420,7 @@ QuicTestClientDisconnect(
 void
 QuicTestStatelessResetKey(
     bool StatelessResetKey
-);
+    );
 
 void
 QuicTestKeyUpdate(
@@ -796,9 +796,6 @@ typedef struct {
     QUIC_CTL_CODE(27, METHOD_BUFFERED, FILE_WRITE_DATA)
     // int - Family
 
-#define IOCTL_QUIC_RUN_STATELESS_RESETKEY \
-    QUIC_CTL_CODE(28, METHOD_BUFFERED, FILE_WRITE_DATA)
-    // uint8_t - StatelessResetKey
 #pragma pack(push)
 #pragma pack(1)
 
@@ -1218,4 +1215,8 @@ typedef struct {
     QUIC_CTL_CODE(112, METHOD_BUFFERED, FILE_WRITE_DATA)
     // QUIC_RUN_FEATURE_NEGOTIATION
 
-#define QUIC_MAX_IOCTL_FUNC_CODE 112
+#define IOCTL_QUIC_RUN_STATELESS_RESET_KEY \
+    QUIC_CTL_CODE(113, METHOD_BUFFERED, FILE_WRITE_DATA)
+    // uint8_t - StatelessResetKey
+
+#define QUIC_MAX_IOCTL_FUNC_CODE 113

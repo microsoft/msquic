@@ -691,7 +691,7 @@ ListenerAcceptConnectionAndStreams(
 void
 QuicTestClientDisconnect(
     bool StopListenerFirst
-)
+    )
 {
     //
     // If the listener is stopped at the same time the server side of the
@@ -791,7 +791,7 @@ QuicTestClientDisconnect(
 void
 QuicTestStatelessResetKey(
     bool ChangeStatelessResetKey
-)
+    )
 {
     //
     // If the listener is stopped at the same time the server side of the
@@ -849,9 +849,9 @@ QuicTestStatelessResetKey(
             TEST_QUIC_SUCCEEDED(Client->SetDisconnectTimeout(1000)); // ms
 
             if (!SendPingBurst(
-                Client,
-                ClientStats.StreamCount,
-                ClientStats.PayloadLength)) {
+                    Client,
+                    ClientStats.StreamCount,
+                    ClientStats.PayloadLength)) {
                 return;
             }
 
@@ -873,23 +873,22 @@ QuicTestStatelessResetKey(
             }
             TEST_TRUE(Server->GetIsConnected());
 
-            if (ChangeStatelessResetKey)
-            {
-                uint8_t statelessResetKey[QUIC_STATELESS_RESETKEY_LENGTH];
+            CxPlatSleep(15); // Sleep for just a bit.
+
+            if (ChangeStatelessResetKey) {
+                uint8_t statelessResetKey[QUIC_STATELESS_RESET_KEY_LENGTH];
                 CxPlatRandom(sizeof(statelessResetKey), statelessResetKey);
                 QUIC_STATUS Status;
                 if (QUIC_FAILED(
                     Status =
                     MsQuic->SetParam(
                         nullptr,
-                        QUIC_PARAM_GLOBAL_STATELESS_RESETKEY,
+                        QUIC_PARAM_GLOBAL_STATELESS_RESET_KEY,
                         sizeof(statelessResetKey),
                         statelessResetKey))) {
                     TEST_FAILURE("Failed to set stateless reset key %d\n", Status);
                 }
             }
-
-            CxPlatSleep(15); // Sleep for just a bit.
 
             Server->Shutdown(QUIC_CONNECTION_SHUTDOWN_FLAG_SILENT, 0);
         }

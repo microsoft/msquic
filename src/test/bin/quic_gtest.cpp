@@ -1882,9 +1882,8 @@ TEST(Misc, StatelessResetKey) {
     TestLogger Logger("QuicTestStatelessResetKey");
     if (TestingKernelMode) {
         uint8_t Param = 1;
-        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_STATELESS_RESETKEY, Param));
-    }
-    else {
+        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_STATELESS_RESET_KEY, Param));
+    } else {
         QuicTestStatelessResetKey(true);
     }
 }

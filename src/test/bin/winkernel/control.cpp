@@ -484,6 +484,7 @@ size_t QUIC_IOCTL_BUFFER_SIZES[] =
     sizeof(QUIC_RUN_CUSTOM_CERT_VALIDATION),
     sizeof(QUIC_RUN_FEATURE_NEGOTIATION),
     sizeof(QUIC_RUN_FEATURE_NEGOTIATION),
+    sizeof(UNIT8),
 };
 
 CXPLAT_STATIC_ASSERT(
@@ -768,7 +769,7 @@ QuicTestCtlEvtIoDeviceControl(
         QuicTestCtlRun(QuicTestClientDisconnect(Params->StopListenerFirst));
         break;
 
-    case IOCTL_QUIC_RUN_STATELESS_RESETKEY:
+    case IOCTL_QUIC_RUN_STATELESS_RESET_KEY:
         CXPLAT_FRE_ASSERT(Params != nullptr);
         QuicTestCtlRun(QuicTestStatelessResetKey(Params->StatelessResetKey));
         break;
