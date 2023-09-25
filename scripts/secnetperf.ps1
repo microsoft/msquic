@@ -45,7 +45,12 @@ for ($i = 0; $i -lt 1; $i++) {
 }
 
 .\scripts\log.ps1 -Stop -OutputPath .\artifacts\logs\quic
-Get-Content .\artifacts\logs\quic.log
+#Get-Content .\artifacts\logs\quic.log
+
+# Grab other logs
+logman stop profsvc -ets
+Copy-Item $env:WINDIR\System32\LogFiles\WMI\profsvc.etl .\artifacts\logs
+netsh trace convert .\artifacts\logs\profsvc.etl
 
 function Wait-ForRemote {
     param ($Job, $ErrorAction = "Stop")
