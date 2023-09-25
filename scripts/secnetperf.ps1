@@ -78,8 +78,14 @@ Write-Output Wait-ForRemote $Job
 } finally {
 
 # Grab other logs
+Write-Output "Grabbing profsvc logs..."
+dir C:\Windows\system32\Logfiles\WMI\prof*
+Write-Output "Stopping session..."
 logman stop profsvc -ets
+Start-Sleep 5
+Write-Output "Copying profsvc logs..."
 Copy-Item $env:WINDIR\System32\LogFiles\WMI\profsvc.etl.* .\artifacts\logs
+dir .\artifacts\logs
 #netsh trace convert .\artifacts\logs\profsvc.etl
 
 }
