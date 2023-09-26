@@ -1377,6 +1377,18 @@ CXPLAT_THREAD_CALLBACK(RunThread, Context)
             break;
         }
 
+        if (0 == GetRandom(4)) {
+            uint8_t StatelessResetKey[QUIC_STATELESS_RESET_KEY_LENGTH];
+            CxPlatRandom(sizeof(StatelessResetKey), StatelessResetKey);
+            if (!QUIC_SUCCEEDED(MsQuic.SetParam(
+                nullptr,
+                QUIC_PARAM_GLOBAL_STATELESS_RESET_KEY,
+                sizeof(StatelessResetKey),
+                StatelessResetKey))) {
+                break;
+            }
+        }
+
         CXPLAT_THREAD Threads[2];
 
         Gb.StartTimeMs = CxPlatTimeMs64();

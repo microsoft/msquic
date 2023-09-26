@@ -2658,8 +2658,8 @@ void QuicTestGlobalParam()
     // QUIC_PARAM_GLOBAL_STATELESS_RESET_KEY
     //
     {
-        uint8_t statelessResetkey[QUIC_STATELESS_RESET_KEY_LENGTH - 1];
-        CxPlatRandom(sizeof(statelessResetkey), statelessResetkey);
+        uint8_t StatelessResetkey[QUIC_STATELESS_RESET_KEY_LENGTH - 1];
+        CxPlatRandom(sizeof(StatelessResetkey), StatelessResetkey);
         TestScopeLogger LogScope0("QUIC_PARAM_GLOBAL_STATELESS_RESET_KEY");
         {
             TestScopeLogger LogScope1("SetParam");
@@ -2668,8 +2668,8 @@ void QuicTestGlobalParam()
                 MsQuic->SetParam(
                     nullptr,
                     QUIC_PARAM_GLOBAL_STATELESS_RESET_KEY,
-                    sizeof(statelessResetkey),
-                    statelessResetkey));
+                    sizeof(StatelessResetkey),
+                    StatelessResetkey));
         }
     }
 

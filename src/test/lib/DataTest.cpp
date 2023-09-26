@@ -793,10 +793,9 @@ QuicTestStatelessResetKey(
     )
 {
     //
-    // If the listener is stopped at the same time the server side of the
-    // connection is silently closed, then the UDP binding will also be cleaned
-    // up. This means the endpoint will no longer send Stateless Reset packets
-    // back to the client as it continues to receive the client's UDP packets.
+    // By changing the stateless reset key, the stateless reset packets the client
+    // receives after the server side is shut down no longer match, eventually resulting
+    // in a timeout on the client instead of an abort.
     //
 
     PingStats ClientStats(UINT64_MAX - 1, 1, 1, TRUE, TRUE, FALSE, FALSE, TRUE, QUIC_STATUS_CONNECTION_TIMEOUT);
@@ -873,14 +872,14 @@ QuicTestStatelessResetKey(
 
             CxPlatSleep(15); // Sleep for just a bit.
 
-            uint8_t statelessResetKey[QUIC_STATELESS_RESET_KEY_LENGTH];
-            CxPlatRandom(sizeof(statelessResetKey), statelessResetKey);
+            uint8_t StatelessResetKey[QUIC_STATELESS_RESET_KEY_LENGTH];
+            CxPlatRandom(sizeof(StatelessResetKey), StatelessResetKey);
             TEST_QUIC_SUCCEEDED(
                 MsQuic->SetParam(
                     nullptr,
                     QUIC_PARAM_GLOBAL_STATELESS_RESET_KEY,
-                    sizeof(statelessResetKey),
-                    statelessResetKey));
+                    sizeof(StatelessResetKey),
+                    StatelessResetKey));
 
             Server->Shutdown(QUIC_CONNECTION_SHUTDOWN_FLAG_SILENT, 0);
         }
