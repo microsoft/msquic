@@ -185,6 +185,16 @@ typedef union QUIC_CONNECTION_STATE {
         //
         BOOLEAN ReliableResetStreamNegotiated : 1;
 
+        //
+        // Sending timestamps has been negotiated.
+        //
+        BOOLEAN TimestampSendNegotiated : 1;
+
+        //
+        // Receiving timestamps has been negotiated.
+        //
+        BOOLEAN TimestampRecvNegotiated : 1;
+
 #ifdef CxPlatVerifierEnabledByAddr
         //
         // The calling app is being verified (app or driver verifier).
@@ -262,6 +272,7 @@ typedef struct QUIC_CONN_STATS {
         uint64_t Start;
         uint64_t InitialFlightEnd;      // Processed all peer's Initial packets
         uint64_t HandshakeFlightEnd;    // Processed all peer's Handshake packets
+        int64_t PhaseShift;             // Time between local and peer epochs
     } Timing;
 
     struct {
@@ -855,8 +866,8 @@ QuicConnLogStatistics(
     UNREFERENCED_PARAMETER(Path);
 
     QuicTraceEvent(
-        ConnStatsV2,
-        "[conn][%p] STATS: SRtt=%u CongestionCount=%u PersistentCongestionCount=%u SendTotalBytes=%llu RecvTotalBytes=%llu CongestionWindow=%u Cc=%s EcnCongestionCount=%u",
+        ConnStatsV3,
+        "[conn][%p] STATS: SRtt=%llu CongestionCount=%u PersistentCongestionCount=%u SendTotalBytes=%llu RecvTotalBytes=%llu CongestionWindow=%u Cc=%s EcnCongestionCount=%u",
         Connection,
         Path->SmoothedRtt,
         Connection->Stats.Send.CongestionCount,
@@ -1292,7 +1303,9 @@ void
 QuicConnUpdateRtt(
     _In_ QUIC_CONNECTION* Connection,
     _In_ QUIC_PATH* Path,
-    _In_ uint32_t LatestRtt
+    _In_ uint64_t LatestRtt,
+    _In_ uint64_t OurSendTimestamp,
+    _In_ uint64_t PeerSendTimestamp
     );
 
 //

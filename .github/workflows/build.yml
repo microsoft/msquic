@@ -32,7 +32,6 @@ jobs:
         arch: [x86, x64, arm64]
         tls: [schannel, openssl, openssl3]
         static: ['', '-Static']
-        xdp: ['', '-UseXdp']
         exclude:
         # OpenSSL doesn't support arm64
         - tls: openssl
@@ -46,15 +45,6 @@ jobs:
         # TODO: FIX: Static builds fail with UWP
         - plat: uwp
           static: '-Static'
-        # XDP not supported in UWP
-        - plat: uwp
-          xdp: '-UseXdp'
-        # XDP only supports x64 currently
-        - arch: x86
-          xdp: '-UseXdp'
-        # XDP only supports x64 currently
-        - arch: arm64
-          xdp: '-UseXdp'
     uses: ./.github/workflows/build-reuse-win.yml
     with:
       config: ${{ matrix.config }}
@@ -63,7 +53,6 @@ jobs:
       arch: ${{ matrix.arch }}
       tls: ${{ matrix.tls }}
       static: ${{ matrix.static }}
-      xdp: ${{ matrix.xdp }}
 
   build-windows-kernel:
     name: WinKernel
@@ -201,36 +190,34 @@ jobs:
           { plat: "uwp",  tls: "openssl", arg: "-UWP" },
           { plat: "windows",  tls: "openssl" },
           { plat: "windows",  tls: "schannel" },
-          { plat: "windows",  tls: "openssl", xdp: "-UseXdp", arg: "-XDP" },
-          { plat: "windows",  tls: "schannel", xdp: "-UseXdp", arg: "-XDP" },
         ]
     runs-on: windows-2022
     steps:
     - name: Checkout repository
-      uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9
+      uses: actions/checkout@8ade135a41bc03ea155e62e844d188df1ea18608
     - name: Download Build Artifacts
-      uses: dawidd6/action-download-artifact@246dbf436b23d7c49e21a7ab8204ca9ecd1fe615
+      uses: dawidd6/action-download-artifact@268677152d06ba59fcec7a7f0b5d961b6ccd7e1e
       with:
-        name: Release-${{ matrix.vec.plat }}-windows-2022-x86-${{ matrix.vec.tls }}${{ matrix.vec.xdp }}
+        name: Release-${{ matrix.vec.plat }}-windows-2022-x86-${{ matrix.vec.tls }}
         path: artifacts
         if_no_artifact_found: ignore
     - name: Download Build Artifacts
-      uses: dawidd6/action-download-artifact@246dbf436b23d7c49e21a7ab8204ca9ecd1fe615
+      uses: dawidd6/action-download-artifact@268677152d06ba59fcec7a7f0b5d961b6ccd7e1e
       with:
-        name: Release-${{ matrix.vec.plat }}-windows-2022-x64-${{ matrix.vec.tls }}${{ matrix.vec.xdp }}
+        name: Release-${{ matrix.vec.plat }}-windows-2022-x64-${{ matrix.vec.tls }}
         path: artifacts
         if_no_artifact_found: ignore
     - name: Download Build Artifacts
-      uses: dawidd6/action-download-artifact@246dbf436b23d7c49e21a7ab8204ca9ecd1fe615
+      uses: dawidd6/action-download-artifact@268677152d06ba59fcec7a7f0b5d961b6ccd7e1e
       with:
-        name: Release-${{ matrix.vec.plat }}-windows-2022-arm64-${{ matrix.vec.tls }}${{ matrix.vec.xdp }}
+        name: Release-${{ matrix.vec.plat }}-windows-2022-arm64-${{ matrix.vec.tls }}
         path: artifacts
         if_no_artifact_found: ignore
     - name: Build Package
       shell: pwsh
       run: scripts/package-nuget.ps1 -Tls ${{ matrix.vec.tls }} ${{ matrix.vec.arg }} -GHA
     - name: Upload build artifacts
-      uses: actions/upload-artifact@0b7f8abb1508181956e8e162db84b466c27e18ce
+      uses: actions/upload-artifact@a8a3f3ad30e3422c9c7b888a15615d19a852ae32
       with:
-        name: Nuget-Release-${{ matrix.vec.plat }}-windows-2022-arm64-${{ matrix.vec.tls }}${{ matrix.vec.xdp }}
+        name: Nuget-Release-${{ matrix.vec.plat }}-windows-2022-arm64-${{ matrix.vec.tls }}
         path: artifacts/dist/*.nupkg

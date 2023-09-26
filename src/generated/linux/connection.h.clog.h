@@ -64,11 +64,11 @@ tracepoint(CLOG_CONNECTION_H, ConnInFlowStats , arg2, arg3);\
 
 
 /*----------------------------------------------------------
-// Decoder Ring for ConnStatsV2
-// [conn][%p] STATS: SRtt=%u CongestionCount=%u PersistentCongestionCount=%u SendTotalBytes=%llu RecvTotalBytes=%llu CongestionWindow=%u Cc=%s EcnCongestionCount=%u
+// Decoder Ring for ConnStatsV3
+// [conn][%p] STATS: SRtt=%llu CongestionCount=%u PersistentCongestionCount=%u SendTotalBytes=%llu RecvTotalBytes=%llu CongestionWindow=%u Cc=%s EcnCongestionCount=%u
 // QuicTraceEvent(
-        ConnStatsV2,
-        "[conn][%p] STATS: SRtt=%u CongestionCount=%u PersistentCongestionCount=%u SendTotalBytes=%llu RecvTotalBytes=%llu CongestionWindow=%u Cc=%s EcnCongestionCount=%u",
+        ConnStatsV3,
+        "[conn][%p] STATS: SRtt=%llu CongestionCount=%u PersistentCongestionCount=%u SendTotalBytes=%llu RecvTotalBytes=%llu CongestionWindow=%u Cc=%s EcnCongestionCount=%u",
         Connection,
         Path->SmoothedRtt,
         Connection->Stats.Send.CongestionCount,
@@ -88,9 +88,9 @@ tracepoint(CLOG_CONNECTION_H, ConnInFlowStats , arg2, arg3);\
 // arg9 = arg9 = Connection->CongestionControl.Name = arg9
 // arg10 = arg10 = Connection->Stats.Send.EcnCongestionCount = arg10
 ----------------------------------------------------------*/
-#ifndef _clog_11_ARGS_TRACE_ConnStatsV2
-#define _clog_11_ARGS_TRACE_ConnStatsV2(uniqueId, encoded_arg_string, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10)\
-tracepoint(CLOG_CONNECTION_H, ConnStatsV2 , arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10);\
+#ifndef _clog_11_ARGS_TRACE_ConnStatsV3
+#define _clog_11_ARGS_TRACE_ConnStatsV3(uniqueId, encoded_arg_string, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10)\
+tracepoint(CLOG_CONNECTION_H, ConnStatsV3 , arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10);\
 
 #endif
 

@@ -76,6 +76,7 @@ struct TlsContext
         Config.HkdfLabels = &HkdfLabels;
         Config.AlpnBuffer = AlpnListBuffer;
         Config.AlpnBufferLength = AlpnListBuffer[0] + 1;
+        Config.TPType = TLS_EXTENSION_TYPE_QUIC_TRANSPORT_PARAMETERS;
         Config.LocalTPBuffer =
             QuicCryptoTlsEncodeTransportParameters(&Connection, FALSE, &TP, NULL, &Config.LocalTPLength);
         if (!Config.LocalTPBuffer) {

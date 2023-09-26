@@ -47,6 +47,12 @@ typedef struct QUIC_RX_PACKET {
     uint64_t PacketNumber;
 
     //
+    // Represents the sender side's timestamp (in us) from the start of their
+    // epoch.
+    //
+    uint64_t SendTimestamp;
+
+    //
     // The current packet buffer.
     //
     union {

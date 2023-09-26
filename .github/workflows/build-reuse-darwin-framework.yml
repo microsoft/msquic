@@ -3,6 +3,10 @@ name: Build Darwin Universal
 on:
   workflow_call:
     inputs:
+      ref:
+        required: false
+        default: ''
+        type: string
       config:
         required: false
         default: 'Release'
@@ -35,6 +39,7 @@ jobs:
         arch: [x64, arm64]
     uses: ./.github/workflows/build-reuse-unix.yml
     with:
+      ref: ${{ inputs.ref }}
       config: ${{ inputs.config }}
       plat: ${{ matrix.plat }}
       os: macos-12
@@ -48,7 +53,10 @@ jobs:
     runs-on: macos-12
     steps:
     - name: Checkout repository
-      uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9
+      uses: actions/checkout@8ade135a41bc03ea155e62e844d188df1ea18608
+      with:
+        repository: microsoft/msquic
+        ref: ${{ inputs.ref }}
     - name: Download Build Artifacts (x64)
       uses: actions/download-artifact@9bc31d5ccc31df68ecc42ccf4149144866c47d8a
       with:
@@ -63,7 +71,7 @@ jobs:
       shell: pwsh
       run: scripts/merge-darwin.ps1 -DeleteSource -Config ${{ inputs.config }}
     - name: Upload build artifacts
-      uses: actions/upload-artifact@0b7f8abb1508181956e8e162db84b466c27e18ce
+      uses: actions/upload-artifact@a8a3f3ad30e3422c9c7b888a15615d19a852ae32
       with:
         name: ${{ inputs.config }}-macos-macos-12-universal-${{ inputs.tls }}${{ inputs.static }}
         path: artifacts
@@ -82,7 +90,10 @@ jobs:
     runs-on: macos-12
     steps:
     - name: Checkout repository
-      uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9
+      uses: actions/checkout@8ade135a41bc03ea155e62e844d188df1ea18608
+      with:
+        repository: microsoft/msquic
+        ref: ${{ inputs.ref }}
     - name: Download Build Artifacts (x64)
       uses: actions/download-artifact@9bc31d5ccc31df68ecc42ccf4149144866c47d8a
       with:
@@ -92,7 +103,7 @@ jobs:
       shell: pwsh
       run: scripts/package-darwin-framework.ps1 -Config ${{ inputs.config }} -Platform ${{ matrix.vec.plat }} -Arch ${{ matrix.vec.arch }}
     - name: Upload build artifacts
-      uses: actions/upload-artifact@0b7f8abb1508181956e8e162db84b466c27e18ce
+      uses: actions/upload-artifact@a8a3f3ad30e3422c9c7b888a15615d19a852ae32
       with:
         name: Framework-${{ inputs.config }}-${{ matrix.vec.plat }}-macos-12-${{ matrix.vec.arch }}-${{ inputs.tls }}${{ inputs.static }}
         path: artifacts
@@ -103,7 +114,10 @@ jobs:
     runs-on: macos-12
     steps:
     - name: Checkout repository
-      uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9
+      uses: actions/checkout@8ade135a41bc03ea155e62e844d188df1ea18608
+      with:
+        repository: microsoft/msquic
+        ref: ${{ inputs.ref }}
     - name: Download Build Artifacts (iOS x64)
       uses: actions/download-artifact@9bc31d5ccc31df68ecc42ccf4149144866c47d8a
       with:
@@ -123,7 +137,7 @@ jobs:
       shell: pwsh
       run: scripts/package-darwin-xcframework.ps1 -Config ${{ inputs.config }}
     - name: Upload build artifacts
-      uses: actions/upload-artifact@0b7f8abb1508181956e8e162db84b466c27e18ce
+      uses: actions/upload-artifact@a8a3f3ad30e3422c9c7b888a15615d19a852ae32
       with:
         name: XCFramework-${{ inputs.config }}
         path: artifacts/frameworks

@@ -843,6 +843,9 @@ TEST_P(WithFamilyArgs, InterfaceBinding) {
     if (TestingKernelMode) {
         ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_INTERFACE_BINDING, GetParam().Family));
     } else {
+        if (UseDuoNic) {
+            GTEST_SKIP_("DuoNIC is not supported");
+        }
         QuicTestInterfaceBinding(GetParam().Family);
     }
 }
@@ -1004,10 +1007,10 @@ TEST_P(WithFamilyArgs, FailedVersionNegotiation) {
     }
 }
 
-TEST_P(WithReliableResetArgs, ReliableResetNegotiation) {
+TEST_P(WithFeatureSupportArgs, ReliableResetNegotiation) {
     TestLoggerT<ParamType> Logger("ReliableResetNegotiation", GetParam());
     if (TestingKernelMode) {
-        QUIC_RUN_RELIABLE_RESET_NEGOTIATION Params = {
+        QUIC_RUN_FEATURE_NEGOTIATION Params = {
             GetParam().Family,
             GetParam().ServerSupport,
             GetParam().ClientSupport
@@ -1015,6 +1018,20 @@ TEST_P(WithReliableResetArgs, ReliableResetNegotiation) {
         ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RELIABLE_RESET_NEGOTIATION, Params));
     } else {
         QuicTestReliableResetNegotiation(GetParam().Family, GetParam().ServerSupport, GetParam().ClientSupport);
+    }
+}
+
+TEST_P(WithFeatureSupportArgs, OneWayDelayNegotiation) {
+    TestLoggerT<ParamType> Logger("OneWayDelayNegotiation", GetParam());
+    if (TestingKernelMode) {
+        QUIC_RUN_FEATURE_NEGOTIATION Params = {
+            GetParam().Family,
+            GetParam().ServerSupport,
+            GetParam().ClientSupport
+        };
+        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_ONE_WAY_DELAY_NEGOTIATION, Params));
+    } else {
+        QuicTestOneWayDelayNegotiation(GetParam().Family, GetParam().ServerSupport, GetParam().ClientSupport);
     }
 }
 
@@ -1537,6 +1554,11 @@ TEST_P(WithFamilyArgs, RebindAddr) {
         };
         ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_NAT_ADDR_REBIND, Params));
     } else {
+#ifdef _WIN32
+        if (!UseDuoNic) {
+            GTEST_SKIP_("Raw socket with 127.0.0.2/::2 is not supported");
+        }
+#endif
         QuicTestNatAddrRebind(GetParam().Family, 0);
     }
 }
@@ -1558,6 +1580,11 @@ TEST_P(WithRebindPaddingArgs, RebindAddrPadded) {
         };
         ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_NAT_PORT_REBIND, Params));
     } else {
+#ifdef _WIN32
+        if (!UseDuoNic) {
+            GTEST_SKIP_("Raw socket with 127.0.0.2/::2 is not supported");
+        }
+#endif
         QuicTestNatAddrRebind(GetParam().Family, GetParam().Padding);
     }
 }
@@ -2279,8 +2306,8 @@ INSTANTIATE_TEST_SUITE_P(
 
 INSTANTIATE_TEST_SUITE_P(
     Handshake,
-    WithReliableResetArgs,
-    testing::ValuesIn(ReliableResetArgs::Generate()));
+    WithFeatureSupportArgs,
+    testing::ValuesIn(FeatureSupportArgs::Generate()));
 #endif
 
 #ifdef QUIC_API_ENABLE_PREVIEW_FEATURES

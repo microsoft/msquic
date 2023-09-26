@@ -150,6 +150,9 @@ QuicSettingsSetDefault(
     if (!Settings->IsSet.ReliableResetEnabled) {
         Settings->ReliableResetEnabled = QUIC_DEFAULT_RELIABLE_RESET_ENABLED;
     }
+    if (!Settings->IsSet.OneWayDelayEnabled) {
+        Settings->OneWayDelayEnabled = QUIC_DEFAULT_ONE_WAY_DELAY_ENABLED;
+    }
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -299,6 +302,9 @@ QuicSettingsCopy(
     }
     if (!Destination->IsSet.ReliableResetEnabled) {
         Destination->ReliableResetEnabled = Source->ReliableResetEnabled;
+    }
+    if (!Destination->IsSet.OneWayDelayEnabled) {
+        Destination->OneWayDelayEnabled = Source->OneWayDelayEnabled;
     }
 }
 
@@ -625,6 +631,11 @@ QuicSettingApply(
     if (Source->IsSet.ReliableResetEnabled && (!Destination->IsSet.ReliableResetEnabled || OverWrite)) {
         Destination->ReliableResetEnabled = Source->ReliableResetEnabled;
         Destination->IsSet.ReliableResetEnabled = TRUE;
+    }
+
+    if (Source->IsSet.OneWayDelayEnabled && (!Destination->IsSet.OneWayDelayEnabled || OverWrite)) {
+        Destination->OneWayDelayEnabled = Source->OneWayDelayEnabled;
+        Destination->IsSet.OneWayDelayEnabled = TRUE;
     }
 
     return TRUE;
@@ -1238,6 +1249,16 @@ VersionSettingsFail:
             &ValueLen);
         Settings->ReliableResetEnabled = !!Value;
     }
+    if (!Settings->IsSet.OneWayDelayEnabled) {
+        Value = QUIC_DEFAULT_ONE_WAY_DELAY_ENABLED;
+        ValueLen = sizeof(Value);
+        CxPlatStorageReadValue(
+            Storage,
+            QUIC_SETTING_ONE_WAY_DELAY_ENABLED,
+            (uint8_t*)&Value,
+            &ValueLen);
+        Settings->OneWayDelayEnabled = !!Value;
+    }
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -1302,6 +1323,7 @@ QuicSettingsDump(
     QuicTraceLogVerbose(SettingHyStartEnabled,              "[sett] HyStartEnabled         = %hhu", Settings->HyStartEnabled);
     QuicTraceLogVerbose(SettingEncryptionOffloadAllowed,    "[sett] EncryptionOffloadAllowed = %hhu", Settings->EncryptionOffloadAllowed);
     QuicTraceLogVerbose(SettingReliableResetEnabled,        "[sett] ReliableResetEnabled   = %hhu", Settings->ReliableResetEnabled);
+    QuicTraceLogVerbose(SettingOneWayDelayEnabled,          "[sett] OneWayDelayEnabled     = %hhu", Settings->OneWayDelayEnabled);
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -1447,6 +1469,9 @@ QuicSettingsDumpNew(
     }
     if (Settings->IsSet.ReliableResetEnabled) {
         QuicTraceLogVerbose(SettingReliableResetEnabled,            "[sett] ReliableResetEnabled       = %hhu", Settings->ReliableResetEnabled);
+    }
+    if (Settings->IsSet.OneWayDelayEnabled) {
+        QuicTraceLogVerbose(SettingOneWayDelayEnabled,              "[sett] OneWayDelayEnabled         = %hhu", Settings->OneWayDelayEnabled);
     }
 }
 
@@ -1667,6 +1692,14 @@ QuicSettingsSettingsToInternal(
         SettingsSize,
         InternalSettings);
 
+    SETTING_COPY_FLAG_TO_INTERNAL_SIZED(
+        Flags,
+        OneWayDelayEnabled,
+        QUIC_SETTINGS,
+        Settings,
+        SettingsSize,
+        InternalSettings);
+
     return QUIC_STATUS_SUCCESS;
 }
 
@@ -1786,6 +1819,14 @@ QuicSettingsGetSettings(
     SETTING_COPY_FLAG_FROM_INTERNAL_SIZED(
         Flags,
         ReliableResetEnabled,
+        QUIC_SETTINGS,
+        Settings,
+        *SettingsLength,
+        InternalSettings);
+
+    SETTING_COPY_FLAG_FROM_INTERNAL_SIZED(
+        Flags,
+        OneWayDelayEnabled,
         QUIC_SETTINGS,
         Settings,
         *SettingsLength,

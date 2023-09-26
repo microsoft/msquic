@@ -670,7 +670,8 @@ typedef struct QUIC_SETTINGS {
 #ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
             uint64_t EncryptionOffloadAllowed               : 1;
             uint64_t ReliableResetEnabled                   : 1;
-            uint64_t RESERVED                               : 27;
+            uint64_t OneWayDelayEnabled                     : 1;
+            uint64_t RESERVED                               : 26;
 #else
             uint64_t RESERVED                               : 29;
 #endif
@@ -718,7 +719,8 @@ typedef struct QUIC_SETTINGS {
 #ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
             uint64_t EncryptionOffloadAllowed  : 1;
             uint64_t ReliableResetEnabled      : 1;
-            uint64_t ReservedFlags             : 61;
+            uint64_t OneWayDelayEnabled        : 1;
+            uint64_t ReservedFlags             : 60;
 #else
             uint64_t ReservedFlags             : 63;
 #endif
@@ -1144,6 +1146,7 @@ typedef enum QUIC_CONNECTION_EVENT_TYPE {
     QUIC_CONNECTION_EVENT_PEER_CERTIFICATE_RECEIVED         = 15,   // Only with QUIC_CREDENTIAL_FLAG_INDICATE_CERTIFICATE_RECEIVED set
 #ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
     QUIC_CONNECTION_EVENT_RELIABLE_RESET_NEGOTIATED         = 16,   // Only indicated if QUIC_SETTINGS.ReliableResetEnabled is TRUE.
+    QUIC_CONNECTION_EVENT_ONE_WAY_DELAY_NEGOTIATED          = 17,   // Only indicated if QUIC_SETTINGS.OneWayDelayEnabled is TRUE.
 #endif
 } QUIC_CONNECTION_EVENT_TYPE;
 
@@ -1222,6 +1225,10 @@ typedef struct QUIC_CONNECTION_EVENT {
         struct {
             BOOLEAN IsNegotiated;
         } RELIABLE_RESET_NEGOTIATED;
+        struct {
+            BOOLEAN SendNegotiated;             // TRUE if sending one-way delay timestamps is negotiated.
+            BOOLEAN ReceiveNegotiated;          // TRUE if receiving one-way delay timestamps is negotiated.
+        } ONE_WAY_DELAY_NEGOTIATED;
 #endif
     };
 } QUIC_CONNECTION_EVENT;

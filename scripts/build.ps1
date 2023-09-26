@@ -90,9 +90,6 @@ This script provides helpers for building msquic.
 .PARAMETER EnableHighResolutionTimers
     Configures the system to use high resolution timers.
 
-.PARAMETER UseXdp
-    Use XDP for the datapath instead of system socket APIs.
-
 .PARAMETER ExtraArtifactDir
     Add an extra classifier to the artifact directory to allow publishing alternate builds of same base library
 
@@ -203,9 +200,6 @@ param (
     [switch]$EnableHighResolutionTimers = $false,
 
     [Parameter(Mandatory = $false)]
-    [switch]$UseXdp = $false,
-
-    [Parameter(Mandatory = $false)]
     [string]$ExtraArtifactDir = "",
 
     [Parameter(Mandatory = $false)]
@@ -215,7 +209,10 @@ param (
     [string]$SysRoot = "/",
 
     [Parameter(Mandatory = $false)]
-    [switch]$OneBranch = $false
+    [switch]$OneBranch = $false,
+
+    [Parameter(Mandatory = $false)]
+    [string]$ToolchainFile = ""
 )
 
 Set-StrictMode -Version 'Latest'
@@ -340,7 +337,6 @@ function CMake-Execute([String]$Arguments) {
 # Uses cmake to generate the build configuration files.
 function CMake-Generate {
     $Arguments = ""
-    $SkipCIBuildCheck = $false
 
     if ($Generator.Contains(" ")) {
         $Generator = """$Generator"""
@@ -386,6 +382,12 @@ function CMake-Generate {
         if ($HostArch -ne $Arch) {
             if ($OneBranch) {
                 $Arguments += " -DONEBRANCH=1"
+                if ($ToolchainFile -eq "") {
+                    switch ($Arch) {
+                        "arm"   { $ToolchainFile = "cmake/toolchains/arm-linux.cmake" }
+                        "arm64" { $ToolchainFile = "cmake/toolchains/aarch64-linux.cmake" }
+                    }
+                }
             }
             $Arguments += " -DCMAKE_FIND_ROOT_PATH_MODE_PROGRAM=NEVER -DCMAKE_CROSSCOMPILING=1 -DCMAKE_SYSROOT=$SysRoot"
             switch ($Arch) {
@@ -393,6 +395,9 @@ function CMake-Generate {
                 "arm" { $Arguments += " -DCMAKE_CXX_COMPILER_TARGET=arm-linux-gnueabihf  -DCMAKE_C_COMPILER_TARGET=arm-linux-gnueabihf -DCMAKE_TARGET_ARCHITECTURE=arm" }
             }
        }
+    }
+    if ($ToolchainFile -ne "") {
+        $Arguments += " -DCMAKE_TOOLCHAIN_FILE=""$ToolchainFile"""
     }
     if($Static) {
         $Arguments += " -DQUIC_BUILD_SHARED=off"
@@ -450,18 +455,6 @@ function CMake-Generate {
     if ($Platform -eq "gamecore_console") {
         $Arguments += " -DCMAKE_SYSTEM_VERSION=10.0 -DQUIC_GAMECORE_BUILD=on"
     }
-    if ($IsLinux) {
-        switch ($Arch) {
-            "arm"   {
-                $Arguments += " -DCMAKE_TOOLCHAIN_FILE=""cmake/toolchains/arm-linux.cmake"""
-                $SkipCIBuildCheck = $true
-            }
-            "arm64" {
-                $Arguments += " -DCMAKE_TOOLCHAIN_FILE=""cmake/toolchains/aarch64-linux.cmake"""
-                $SkipCIBuildCheck = $true
-            }
-        }
-    }
     if ($SkipPdbAltPath) {
         $Arguments += " -DQUIC_PDBALTPATH=OFF"
     }
@@ -470,7 +463,7 @@ function CMake-Generate {
     }
     if ($CI) {
         $Arguments += " -DQUIC_CI=ON"
-        if ($Platform -eq "android" -or $SkipCIBuildCheck) {
+        if ($Platform -eq "android" -or $ToolchainFile -ne "") {
             $Arguments += " -DQUIC_SKIP_CI_CHECKS=ON"
         }
         $Arguments += " -DQUIC_VER_BUILD_ID=$env:BUILD_BUILDID"
@@ -487,9 +480,6 @@ function CMake-Generate {
     }
     if ($EnableHighResolutionTimers) {
         $Arguments += " -DQUIC_HIGH_RES_TIMERS=on"
-    }
-    if ($UseXdp) {
-        $Arguments += " -DQUIC_USE_XDP=on"
     }
     if ($Platform -eq "android") {
         $env:PATH = "$env:ANDROID_NDK_LATEST_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin:$env:PATH"

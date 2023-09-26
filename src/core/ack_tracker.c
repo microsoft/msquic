@@ -229,10 +229,22 @@ QuicAckTrackerAckFrameEncode(
 {
     CXPLAT_DBG_ASSERT(QuicAckTrackerHasPacketsToAck(Tracker));
 
-    uint64_t AckDelay =
-        CxPlatTimeDiff64(Tracker->LargestPacketNumberRecvTime, CxPlatTimeUs64());
+    const uint64_t Timestamp = CxPlatTimeUs64();
+    const uint64_t AckDelay =
+        CxPlatTimeDiff64(Tracker->LargestPacketNumberRecvTime, Timestamp)
+          >> Builder->Connection->AckDelayExponent;
 
-    AckDelay >>= Builder->Connection->AckDelayExponent;
+    if (Builder->Connection->State.TimestampSendNegotiated &&
+        Builder->EncryptLevel == QUIC_ENCRYPT_LEVEL_1_RTT) {
+        QUIC_TIMESTAMP_EX Frame = { Timestamp - Builder->Connection->Stats.Timing.Start };
+        if (!QuicTimestampFrameEncode(
+                &Frame,
+                &Builder->DatagramLength,
+                (uint16_t)Builder->Datagram->Length - Builder->EncryptionOverhead,
+                Builder->Datagram->Buffer)) {
+            return FALSE;
+        }
+    }
 
     if (!QuicAckFrameEncode(
             &Tracker->PacketNumbersToAck,

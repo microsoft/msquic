@@ -720,7 +720,7 @@ QuicPacketBuilderFinalize(
 
         FinalQuicPacket = TRUE;
 
-        if (!FlushBatchedDatagrams && CxPlatDataPathIsPaddingPreferred(MsQuicLib.Datapath)) {
+        if (!FlushBatchedDatagrams && CxPlatDataPathIsPaddingPreferred(MsQuicLib.Datapath, Builder->SendData)) {
             //
             // When buffering multiple datagrams in a single contiguous buffer
             // (at the datapath layer), all but the last datagram needs to be
@@ -928,7 +928,7 @@ QuicPacketBuilderFinalize(
     //
     CXPLAT_DBG_ASSERT(Builder->Metadata->FrameCount != 0);
 
-    Builder->Metadata->SentTime = CxPlatTimeUs32();
+    Builder->Metadata->SentTime = CxPlatTimeUs64();
     Builder->Metadata->PacketLength =
         Builder->HeaderLength + PayloadLength;
     Builder->Metadata->Flags.EcnEctSet = Builder->EcnEctSet;
