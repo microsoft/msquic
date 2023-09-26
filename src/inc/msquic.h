@@ -1374,9 +1374,6 @@ typedef enum QUIC_STREAM_EVENT_TYPE {
     QUIC_STREAM_EVENT_SHUTDOWN_COMPLETE         = 7,
     QUIC_STREAM_EVENT_IDEAL_SEND_BUFFER_SIZE    = 8,
     QUIC_STREAM_EVENT_PEER_ACCEPTED             = 9,
-#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
-    QUIC_STREAM_EVENT_PEER_RELIABLE_ABORT_SEND  = 10,
-#endif
 } QUIC_STREAM_EVENT_TYPE;
 
 typedef struct QUIC_STREAM_EVENT {
@@ -1422,12 +1419,6 @@ typedef struct QUIC_STREAM_EVENT {
         struct {
             uint64_t ByteCount;
         } IDEAL_SEND_BUFFER_SIZE;
-#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
-        struct {
-            QUIC_UINT62 ErrorCode;
-            uint64_t ReliableSize;
-        } PEER_RELIABLE_ABORT_SEND;
-#endif
     };
 } QUIC_STREAM_EVENT;
 

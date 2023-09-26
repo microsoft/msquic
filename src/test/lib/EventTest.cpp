@@ -1490,7 +1490,7 @@ QuicTestValidateStreamEvents9(
     StreamValidator ServerStream(
         new(std::nothrow) StreamEventValidator* [6] {
             new(std::nothrow) StreamEventValidator(QUIC_STREAM_EVENT_RECEIVE),
-            new(std::nothrow) StreamEventValidator(QUIC_STREAM_EVENT_PEER_RELIABLE_ABORT_SEND),
+            new(std::nothrow) StreamEventValidator(QUIC_STREAM_EVENT_PEER_SEND_ABORTED),
             new(std::nothrow) StreamEventValidator(QUIC_STREAM_EVENT_PEER_RECEIVE_ABORTED),
             new(std::nothrow) StreamEventValidator(QUIC_STREAM_EVENT_SEND_SHUTDOWN_COMPLETE),
             new(std::nothrow) StreamEventValidator(QUIC_STREAM_EVENT_SHUTDOWN_COMPLETE),

@@ -97,6 +97,25 @@ TRACEPOINT_EVENT(CLOG_STREAM_RECV_C, ReceiveBeyondFlowControl,
 
 
 /*----------------------------------------------------------
+// Decoder Ring for RemoteCloseReset
+// [strm][%p] Closed remotely (reset)
+// QuicTraceLogStreamInfo(
+                RemoteCloseReset,
+                Stream,
+                "Closed remotely (reset)");
+// arg1 = arg1 = Stream = arg1
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_STREAM_RECV_C, RemoteCloseReset,
+    TP_ARGS(
+        const void *, arg1), 
+    TP_FIELDS(
+        ctf_integer_hex(uint64_t, arg1, arg1)
+    )
+)
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for ReliableRecvOffsetSet
 // [strm][%p] Reliable recv offset set to %llu
 // QuicTraceLogStreamInfo(
@@ -114,25 +133,6 @@ TRACEPOINT_EVENT(CLOG_STREAM_RECV_C, ReliableRecvOffsetSet,
     TP_FIELDS(
         ctf_integer_hex(uint64_t, arg1, arg1)
         ctf_integer(uint64_t, arg3, arg3)
-    )
-)
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for RemoteCloseReset
-// [strm][%p] Closed remotely (reset)
-// QuicTraceLogStreamInfo(
-                RemoteCloseReset,
-                Stream,
-                "Closed remotely (reset)");
-// arg1 = arg1 = Stream = arg1
-----------------------------------------------------------*/
-TRACEPOINT_EVENT(CLOG_STREAM_RECV_C, RemoteCloseReset,
-    TP_ARGS(
-        const void *, arg1), 
-    TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg1, arg1)
     )
 )
 
@@ -196,36 +196,13 @@ TRACEPOINT_EVENT(CLOG_STREAM_RECV_C, QueueRecvFlush,
 
 
 /*----------------------------------------------------------
-// Decoder Ring for IndicatePeerSendReliableAbort
-// [strm][%p] Indicating QUIC_STREAM_EVENT_PEER_RELIABLE_ABORT_SEND (0x%llX)
-// QuicTraceLogStreamVerbose(
-            IndicatePeerSendReliableAbort,
-            Stream,
-            "Indicating QUIC_STREAM_EVENT_PEER_RELIABLE_ABORT_SEND (0x%llX)",
-            ErrorCode);
-// arg1 = arg1 = Stream = arg1
-// arg3 = arg3 = ErrorCode = arg3
-----------------------------------------------------------*/
-TRACEPOINT_EVENT(CLOG_STREAM_RECV_C, IndicatePeerSendReliableAbort,
-    TP_ARGS(
-        const void *, arg1,
-        unsigned long long, arg3), 
-    TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg1, arg1)
-        ctf_integer(uint64_t, arg3, arg3)
-    )
-)
-
-
-
-/*----------------------------------------------------------
 // Decoder Ring for IndicatePeerSendAbort
 // [strm][%p] Indicating QUIC_STREAM_EVENT_PEER_SEND_ABORTED (0x%llX)
 // QuicTraceLogStreamVerbose(
-                IndicatePeerSendAbort,
-                Stream,
-                "Indicating QUIC_STREAM_EVENT_PEER_SEND_ABORTED (0x%llX)",
-                ErrorCode);
+        IndicatePeerSendAbort,
+        Stream,
+        "Indicating QUIC_STREAM_EVENT_PEER_SEND_ABORTED (0x%llX)",
+        ErrorCode);
 // arg1 = arg1 = Stream = arg1
 // arg3 = arg3 = ErrorCode = arg3
 ----------------------------------------------------------*/

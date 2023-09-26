@@ -163,6 +163,31 @@ QuicStreamRecvQueueFlush(
 }
 
 //
+// Deliver a notification to the app that the peer has aborted their send path.
+//
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+QuicStreamAlertAppPeerSendAborted(
+    _In_ QUIC_STREAM* Stream,
+    _In_ QUIC_VAR_INT ErrorCode
+    )
+{
+    QuicTraceLogStreamInfo(
+                RemoteCloseReset,
+                Stream,
+                "Closed remotely (reset)");
+    QUIC_STREAM_EVENT Event;
+    Event.Type = QUIC_STREAM_EVENT_PEER_SEND_ABORTED;
+    Event.PEER_SEND_ABORTED.ErrorCode = ErrorCode;
+    QuicTraceLogStreamVerbose(
+        IndicatePeerSendAbort,
+        Stream,
+        "Indicating QUIC_STREAM_EVENT_PEER_SEND_ABORTED (0x%llX)",
+        ErrorCode);
+    (void)QuicStreamIndicateEvent(Stream, &Event);
+}
+
+//
 // Processes a received RELIABLE_RESET frame's payload.
 //
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -199,20 +224,6 @@ QuicStreamProcessReliableResetFrame(
             Stream,
             "Reliable recv offset set to %llu",
             ReliableOffset);
-
-        //
-        // Indicate to the app that the peer will abort after having sent and ACK'd ReliableOffset amount of data.
-        //
-        QUIC_STREAM_EVENT Event;
-        Event.Type = QUIC_STREAM_EVENT_PEER_RELIABLE_ABORT_SEND;
-        Event.PEER_RELIABLE_ABORT_SEND.ReliableSize = ReliableOffset;
-        Event.PEER_RELIABLE_ABORT_SEND.ErrorCode = ErrorCode;
-        QuicTraceLogStreamVerbose(
-            IndicatePeerSendReliableAbort,
-            Stream,
-            "Indicating QUIC_STREAM_EVENT_PEER_RELIABLE_ABORT_SEND (0x%llX)",
-            ErrorCode);
-        (void)QuicStreamIndicateEvent(Stream, &Event);
     }
 
     if (Stream->RecvBuffer.BaseOffset >= Stream->RecvMaxLength) {
@@ -221,6 +232,7 @@ QuicStreamProcessReliableResetFrame(
             "[strm][%p] Recv State: %hhu",
             Stream,
             QuicStreamRecvGetState(Stream));
+        QuicStreamAlertAppPeerSendAborted(Stream, ErrorCode);
         QuicStreamRecvShutdown(Stream, TRUE, ErrorCode);
     } else {
         Stream->RecvShutdownErrorCode = ErrorCode;
@@ -306,20 +318,7 @@ QuicStreamProcessResetFrame(
             QuicStreamRecvGetState(Stream));
 
         if (!Stream->Flags.SentStopSending) {
-            QuicTraceLogStreamInfo(
-                RemoteCloseReset,
-                Stream,
-                "Closed remotely (reset)");
-
-            QUIC_STREAM_EVENT Event;
-            Event.Type = QUIC_STREAM_EVENT_PEER_SEND_ABORTED;
-            Event.PEER_SEND_ABORTED.ErrorCode = ErrorCode;
-            QuicTraceLogStreamVerbose(
-                IndicatePeerSendAbort,
-                Stream,
-                "Indicating QUIC_STREAM_EVENT_PEER_SEND_ABORTED (0x%llX)",
-                ErrorCode);
-            (void)QuicStreamIndicateEvent(Stream, &Event);
+            QuicStreamAlertAppPeerSendAborted(Stream, ErrorCode);
         }
 
         //
@@ -1159,6 +1158,7 @@ QuicStreamReceiveComplete(
             "[strm][%p] Recv State: %hhu",
             Stream,
             QuicStreamRecvGetState(Stream));
+        QuicStreamAlertAppPeerSendAborted(Stream, Stream->RecvShutdownErrorCode);
         QuicStreamRecvShutdown(Stream, TRUE, Stream->RecvShutdownErrorCode);
     }
 

@@ -3221,8 +3221,8 @@ struct StreamReliableReset {
         if (Event->Type == QUIC_STREAM_EVENT_RECEIVE) {
             TestContext->ReceivedBufferSize += Event->RECEIVE.TotalBufferLength;
         }
-        if (Event->Type == QUIC_STREAM_EVENT_PEER_RELIABLE_ABORT_SEND) {
-            TestContext->ShutdownErrorCode = Event->PEER_RELIABLE_ABORT_SEND.ErrorCode;
+        if (Event->Type == QUIC_STREAM_EVENT_PEER_SEND_ABORTED) {
+            TestContext->ShutdownErrorCode = Event->PEER_SEND_ABORTED.ErrorCode;
         }
         if (Event->Type == QUIC_STREAM_EVENT_SHUTDOWN_COMPLETE) {
             TestContext->ServerStreamShutdownComplete.Set();
