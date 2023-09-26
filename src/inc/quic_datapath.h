@@ -174,14 +174,14 @@ typedef struct CXPLAT_ROUTE {
     uint8_t LocalLinkLayerAddress[6];
     uint8_t NextHopLinkLayerAddress[6];
 
+    uint16_t DatapathType; // CXPLAT_DATAPATH_TYPE
+
     //
     // QuicCopyRouteInfo copies memory up to this point (not including State).
     //
 
     CXPLAT_ROUTE_STATE State;
     CXPLAT_RAW_TCP_STATE TcpState;
-
-    uint16_t DatapathType; // CXPLAT_DATAPATH_TYPE
 
 } CXPLAT_ROUTE;
 
