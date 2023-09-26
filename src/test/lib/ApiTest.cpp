@@ -5020,24 +5020,25 @@ void QuicTestStreamParam()
                     &BufferSize,
                     NULL));
 
+            //
+            // Should return invalid state since we haven't set it yet.
+            //
             uint64_t Buffer = 10000;
             TEST_QUIC_STATUS(
-                QUIC_STATUS_SUCCESS,
+                QUIC_STATUS_INVALID_STATE,
                 MsQuic->GetParam(
                     Stream.Handle,
                     QUIC_PARAM_STREAM_RELIABLE_OFFSET,
                     &BufferSize,
                     &Buffer));
-            TEST_TRUE(Buffer == 0);
             Buffer = 10000;
             TEST_QUIC_STATUS(
-                QUIC_STATUS_SUCCESS,
+                QUIC_STATUS_INVALID_STATE,
                 MsQuic->GetParam(
                     Stream.Handle,
                     QUIC_PARAM_STREAM_RELIABLE_OFFSET_RECV,
                     &BufferSize,
                     &Buffer));
-            TEST_TRUE(Buffer == 0);
         }
     }
 }
