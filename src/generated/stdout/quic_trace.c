@@ -102,7 +102,7 @@ void clog_stdout(struct clog_param * head, const char * const format, ...)
         }
     }
 
-JustPrint:
+JustPrint: ;
     // print the log line
     va_list ap;
     va_start(ap, format);
