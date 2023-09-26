@@ -1120,22 +1120,22 @@ QuicLibrarySetGlobalParam(
 
         Status = QUIC_STATUS_SUCCESS;
         for (uint16_t i = 0; i < MsQuicLib.ProcessorCount; ++i) {
-            CXPLAT_HASH* tokenHash = NULL;
+            CXPLAT_HASH* TokenHash = NULL;
             Status =
                 CxPlatHashCreate(
                     CXPLAT_HASH_SHA256,
                     (uint8_t*)Buffer,
                     QUIC_STATELESS_RESET_KEY_LENGTH * sizeof(uint8_t),
-                    &tokenHash);
-            if (QUIC_SUCCEEDED(Status)) {
-                QUIC_LIBRARY_PP* PerProc = &MsQuicLib.PerProc[i];
-                CxPlatLockAcquire(&PerProc->ResetTokenLock);
-                CxPlatHashFree(PerProc->ResetTokenHash);
-                PerProc->ResetTokenHash = tokenHash;
-                CxPlatLockRelease(&PerProc->ResetTokenLock);
-            } else {
+                    &TokenHash);
+            if (QUIC_FAILED(Status)) {
                 break;
             }
+
+            QUIC_LIBRARY_PP* PerProc = &MsQuicLib.PerProc[i];
+            CxPlatLockAcquire(&PerProc->ResetTokenLock);
+            CxPlatHashFree(PerProc->ResetTokenHash);
+            PerProc->ResetTokenHash = TokenHash;
+            CxPlatLockRelease(&PerProc->ResetTokenLock);
         }
         break;
 
