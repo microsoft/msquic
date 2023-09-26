@@ -875,16 +875,12 @@ QuicTestStatelessResetKey(
 
             uint8_t statelessResetKey[QUIC_STATELESS_RESET_KEY_LENGTH];
             CxPlatRandom(sizeof(statelessResetKey), statelessResetKey);
-            QUIC_STATUS Status;
-            if (QUIC_FAILED(
-                Status =
+            TEST_QUIC_SUCCEEDED(
                 MsQuic->SetParam(
                     nullptr,
                     QUIC_PARAM_GLOBAL_STATELESS_RESET_KEY,
                     sizeof(statelessResetKey),
-                    statelessResetKey))) {
-                TEST_FAILURE("Failed to set stateless reset key %d\n", Status);
-            }
+                    statelessResetKey));
 
             Server->Shutdown(QUIC_CONNECTION_SHUTDOWN_FLAG_SILENT, 0);
         }
