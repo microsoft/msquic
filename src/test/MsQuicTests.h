@@ -1217,6 +1217,5 @@ typedef struct {
 
 #define IOCTL_QUIC_RUN_STATELESS_RESET_KEY \
     QUIC_CTL_CODE(113, METHOD_BUFFERED, FILE_WRITE_DATA)
-    // uint8_t - StatelessResetKey
 
 #define QUIC_MAX_IOCTL_FUNC_CODE 113
