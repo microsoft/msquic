@@ -4971,8 +4971,6 @@ void QuicTestStreamParam()
             TEST_EQUAL(Length, sizeof(QUIC_STREAM_STATISTICS));
         }
     }
-
-
     //
     // QUIC_PARAM_STREAM_RELIABLE_OFFSET
     // QUIC_PARAM_STREAM_RELIABLE_OFFSET_RECV
