@@ -1324,6 +1324,18 @@ CXPLAT_THREAD_CALLBACK(RunThread, Context)
             }
         }
 
+        if (0 == GetRandom(4)) {
+            uint8_t StatelessResetKey[QUIC_STATELESS_RESET_KEY_LENGTH];
+            CxPlatRandom(sizeof(StatelessResetKey), StatelessResetKey);
+            if (!QUIC_SUCCEEDED(MsQuic.SetParam(
+                    nullptr,
+                    QUIC_PARAM_GLOBAL_STATELESS_RESET_KEY,
+                    sizeof(StatelessResetKey),
+                    StatelessResetKey))) {
+                break;
+            }
+        }
+
         QUIC_REGISTRATION_CONFIG RegConfig;
         RegConfig.AppName = "spinquic";
         RegConfig.ExecutionProfile = FuzzData ? QUIC_EXECUTION_PROFILE_TYPE_SCAVENGER : (QUIC_EXECUTION_PROFILE)GetRandom(4);
@@ -1375,18 +1387,6 @@ CXPLAT_THREAD_CALLBACK(RunThread, Context)
         }
         if (Gb.ClientConfigurations.size() != Gb.AlpnCount) {
             break;
-        }
-
-        if (0 == GetRandom(4)) {
-            uint8_t StatelessResetKey[QUIC_STATELESS_RESET_KEY_LENGTH];
-            CxPlatRandom(sizeof(StatelessResetKey), StatelessResetKey);
-            if (!QUIC_SUCCEEDED(MsQuic.SetParam(
-                nullptr,
-                QUIC_PARAM_GLOBAL_STATELESS_RESET_KEY,
-                sizeof(StatelessResetKey),
-                StatelessResetKey))) {
-                break;
-            }
         }
 
         CXPLAT_THREAD Threads[2];
