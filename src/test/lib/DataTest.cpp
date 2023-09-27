@@ -3182,8 +3182,6 @@ QuicTestConnectAndIdleForDestCidChange(
 #define RELIABLE_SIZE 5000
 #define BUFFER_SIZE_MULTI_SENDS 10000
 #define RELIABLE_SIZE_MULTI_SENDS 20000
-
-
 //
 // These Context Structs are useful helpers for the StreamReliableReset test suite.
 // It keeps track of the order of absolute offsets of all the send requests received, and the total number of bytes received.
