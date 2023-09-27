@@ -56,8 +56,7 @@ Any stream (even one that hasn't been started) may be called to shutdown. If the
 
 # Reliable Reset
 
-If an app decides to enable Preview Features, the shutdown path can be configured with the QUIC_PARAM_STREAM_RELIABLE_OFFSET Stream
-Parameter, which determines the amount of bytes a sender must deliver before it can shutdown their SEND path.
+If an app decides to enable Preview Features, the shutdown path can be configured with the QUIC_PARAM_STREAM_RELIABLE_OFFSET Stream parameter, which determines the number of bytes a sender must deliver before it can shut down their SEND path.
 
 # See Also
 
