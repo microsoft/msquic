@@ -2663,13 +2663,12 @@ void QuicTestGlobalParam()
         TestScopeLogger LogScope0("QUIC_PARAM_GLOBAL_STATELESS_RESET_KEY");
         {
             TestScopeLogger LogScope1("SetParam");
-            TEST_QUIC_STATUS(
-                QUIC_STATUS_INVALID_PARAMETER,
-                MsQuic->SetParam(
-                    nullptr,
-                    QUIC_PARAM_GLOBAL_STATELESS_RESET_KEY,
-                    sizeof(StatelessResetkey),
-                    StatelessResetkey));
+            QUIC_STATUS Status = MsQuic->SetParam(
+                nullptr,
+                QUIC_PARAM_GLOBAL_STATELESS_RESET_KEY,
+                sizeof(StatelessResetkey),
+                StatelessResetkey);
+            TEST_TRUE((Status == QUIC_STATUS_INVALID_STATE) || (Status == QUIC_STATUS_INVALID_PARAMETER));
         }
     }
 

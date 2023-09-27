@@ -1113,6 +1113,10 @@ QuicLibrarySetGlobalParam(
         break;
 
     case QUIC_PARAM_GLOBAL_STATELESS_RESET_KEY:
+        if (!MsQuicLib.LazyInitComplete) {
+            Status = QUIC_STATUS_INVALID_STATE;
+            break;
+        }
         if (BufferLength != QUIC_STATELESS_RESET_KEY_LENGTH * sizeof(uint8_t)) {
             Status = QUIC_STATUS_INVALID_PARAMETER;
             break;

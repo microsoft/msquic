@@ -1325,9 +1325,6 @@ CXPLAT_THREAD_CALLBACK(RunThread, Context)
         }
 
         if (0 == GetRandom(4)) {
-            if (!MsQuicLib.LazyInitComplete) {
-                break;
-            }
             uint8_t StatelessResetKey[QUIC_STATELESS_RESET_KEY_LENGTH];
             CxPlatRandom(sizeof(StatelessResetKey), StatelessResetKey);
             if (!QUIC_SUCCEEDED(MsQuic.SetParam(
