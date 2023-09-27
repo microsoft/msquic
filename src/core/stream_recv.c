@@ -173,9 +173,9 @@ QuicStreamAlertAppPeerSendAborted(
     )
 {
     QuicTraceLogStreamInfo(
-                RemoteCloseReset,
-                Stream,
-                "Closed remotely (reset)");
+        RemoteCloseReset,
+        Stream,
+        "Closed remotely (reset)");
     QUIC_STREAM_EVENT Event;
     Event.Type = QUIC_STREAM_EVENT_PEER_SEND_ABORTED;
     Event.PEER_SEND_ABORTED.ErrorCode = ErrorCode;
