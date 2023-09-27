@@ -3198,8 +3198,6 @@ struct StreamReliableReset {
     uint64_t ReceivedBufferSize;
     uint64_t SequenceNum;
     QUIC_UINT62 ShutdownErrorCode;
-
-
     static QUIC_STATUS ClientStreamCallback(_In_ MsQuicStream*, _In_opt_ void* ClientContext, _Inout_ QUIC_STREAM_EVENT* Event) {
         auto TestContext = (StreamReliableReset*)ClientContext;
         if (Event->Type == QUIC_STREAM_EVENT_SHUTDOWN_COMPLETE) {
