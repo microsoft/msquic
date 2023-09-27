@@ -627,8 +627,7 @@ CxPlatSendDataAlloc(
     CXPLAT_SEND_DATA* SendData = NULL;
     // TODO: fallback?
     if (Socket->UseTcp || Config->Route->DatapathType == CXPLAT_DATAPATH_TYPE_RAW ||
-        (Config->Route->DatapathType == CXPLAT_DATAPATH_TYPE_UNKNOWN &&
-        Socket->RawSocketAvailable && !IS_LOOPBACK(Config->Route->RemoteAddress))) {
+        (Socket->RawSocketAvailable && !IS_LOOPBACK(Config->Route->RemoteAddress))) {
         SendData = RawSendDataAlloc(CxPlatSocketToRaw(Socket), Config);
     } else {
         SendData = SendDataAlloc(Socket, Config);
@@ -776,8 +775,7 @@ CxPlatResolveRoute(
     )
 {
     if (Socket->UseTcp || Route->DatapathType == CXPLAT_DATAPATH_TYPE_RAW ||
-        (Route->DatapathType == CXPLAT_DATAPATH_TYPE_UNKNOWN &&
-        Socket->RawSocketAvailable && !IS_LOOPBACK(Route->RemoteAddress))) {
+        (Socket->RawSocketAvailable && !IS_LOOPBACK(Route->RemoteAddress))) {
         return RawResolveRoute(CxPlatSocketToRaw(Socket), Route, PathId, Context, Callback);
     }
     Route->State = RouteResolved;
@@ -792,8 +790,7 @@ CxPlatUpdateRoute(
     )
 {
     if (SrcRoute->DatapathType == CXPLAT_DATAPATH_TYPE_RAW ||
-        (SrcRoute->DatapathType == CXPLAT_DATAPATH_TYPE_UNKNOWN &&
-        !IS_LOOPBACK(SrcRoute->RemoteAddress))) {
+        (!IS_LOOPBACK(SrcRoute->RemoteAddress))) {
         RawUpdateRoute(DstRoute, SrcRoute);
     }
 }
