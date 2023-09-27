@@ -3203,7 +3203,7 @@ struct StreamReliableReset {
         if (Event->Type == QUIC_STREAM_EVENT_SHUTDOWN_COMPLETE) {
             TestContext->ClientStreamShutdownComplete.Set();
         }
-            // Get the send context of the Event
+        // Get the send context of the Event
         if (Event->Type == QUIC_STREAM_EVENT_SEND_COMPLETE) {
             auto Context = (SendContext*)Event->SEND_COMPLETE.ClientContext;
             Context->Successful = Event->SEND_COMPLETE.Canceled == FALSE;
