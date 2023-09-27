@@ -1151,7 +1151,8 @@ QuicStreamReceiveComplete(
 
     else if (Stream->Flags.RemoteCloseResetReliable && Stream->RecvBuffer.BaseOffset >= Stream->RecvMaxLength) {
         //
-        // ReliableReset
+        // ReliableReset was initiated by the peer, and we sent enough data to the app, we can alert the app
+        // we're done and shutdown the RECV direction of this stream.
         //
         QuicTraceEvent(
             StreamRecvState,
