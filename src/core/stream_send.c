@@ -1624,10 +1624,10 @@ QuicStreamOnResetReliableAck(
         QuicStreamSendShutdown(Stream, FALSE, TRUE, FALSE, Stream->SendShutdownErrorCode);
     } else {
         QuicTraceEvent(
-        StreamSendState,
-        "[strm][%p] Send State: %hhu",
-        Stream,
-        QuicStreamSendGetState(Stream));
+            StreamSendState,
+            "[strm][%p] Send State: %hhu",
+            Stream,
+            QuicStreamSendGetState(Stream));
         Stream->Flags.LocalCloseResetReliableAcked = TRUE;
     }
 }
