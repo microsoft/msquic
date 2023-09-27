@@ -3239,7 +3239,6 @@ void
 QuicTestStreamReliableReset(
     )
 {
-
     MsQuicRegistration Registration(true);
     TEST_TRUE(Registration.IsValid());
 
