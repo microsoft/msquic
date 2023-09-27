@@ -127,9 +127,9 @@ tracepoint(CLOG_STREAM_RECV_C, ReceiveBeyondFlowControl , arg1);\
 // Decoder Ring for RemoteCloseReset
 // [strm][%p] Closed remotely (reset)
 // QuicTraceLogStreamInfo(
-                RemoteCloseReset,
-                Stream,
-                "Closed remotely (reset)");
+        RemoteCloseReset,
+        Stream,
+        "Closed remotely (reset)");
 // arg1 = arg1 = Stream = arg1
 ----------------------------------------------------------*/
 #ifndef _clog_3_ARGS_TRACE_RemoteCloseReset

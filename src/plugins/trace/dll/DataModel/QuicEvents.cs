@@ -166,7 +166,9 @@ namespace QuicTrace.DataModel
         Reset,
         ResetAcked,
         Fin,
-        FinAcked
+        FinAcked,
+        ReliableReset,
+        ReliableResetAcked
     }
 
     public enum QuicReceiveState
@@ -176,7 +178,8 @@ namespace QuicTrace.DataModel
         Paused,
         Stopped,
         Reset,
-        Fin
+        Fin,
+        ReliableReset
     }
 
     #region Global Events
