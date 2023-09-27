@@ -1481,9 +1481,10 @@ QuicTestValidateStreamEvents9(
     { // Stream scope
 
     StreamValidator ClientStream(
-        new(std::nothrow) StreamEventValidator* [4] {
+        new(std::nothrow) StreamEventValidator* [5] {
             new(std::nothrow) StreamStartCompleteEventValidator(),
             new(std::nothrow) StreamEventValidator(QUIC_STREAM_EVENT_SEND_COMPLETE, 0, true),
+            new(std::nothrow) StreamEventValidator(QUIC_STREAM_EVENT_SEND_SHUTDOWN_COMPLETE),
             new(std::nothrow) StreamEventValidator(QUIC_STREAM_EVENT_SHUTDOWN_COMPLETE, QUIC_EVENT_ACTION_SHUTDOWN_CONNECTION),
             nullptr
         });
@@ -1509,7 +1510,7 @@ QuicTestValidateStreamEvents9(
             nullptr
         });
     Server.SetExpectedEvents(
-        new(std::nothrow) ConnEventValidator* [7] {
+        new(std::nothrow) ConnEventValidator* [6] {
             new(std::nothrow) ConnEventValidator(QUIC_CONNECTION_EVENT_RELIABLE_RESET_NEGOTIATED),
             new(std::nothrow) ConnEventValidator(QUIC_CONNECTION_EVENT_CONNECTED),
             new(std::nothrow) NewStreamEventValidator(&ServerStream),
