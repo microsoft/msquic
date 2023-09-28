@@ -1896,6 +1896,15 @@ TEST(Misc, ClientDisconnect) {
     }
 }
 
+TEST(Misc, StatelessResetKey) {
+    TestLogger Logger("QuicTestStatelessResetKey");
+    if (TestingKernelMode) {
+        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_STATELESS_RESET_KEY));
+    } else {
+        QuicTestStatelessResetKey();
+    }
+}
+
 TEST_P(WithKeyUpdateArgs1, KeyUpdate) {
     TestLoggerT<ParamType> Logger("QuicTestKeyUpdate", GetParam());
     if (TestingKernelMode) {

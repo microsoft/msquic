@@ -788,6 +788,108 @@ QuicTestClientDisconnect(
     }
 }
 
+void
+QuicTestStatelessResetKey(
+    )
+{
+    //
+    // By changing the stateless reset key, the stateless reset packets the client
+    // receives after the server side is shut down no longer match, eventually resulting
+    // in a timeout on the client instead of an abort.
+    //
+
+    PingStats ClientStats(UINT64_MAX - 1, 1, 1, TRUE, TRUE, FALSE, FALSE, TRUE, QUIC_STATUS_CONNECTION_TIMEOUT);
+
+    CxPlatEvent EventClientDeleted(true);
+
+    MsQuicRegistration Registration;
+    TEST_TRUE(Registration.IsValid());
+
+    MsQuicAlpn Alpn("MsQuicTest");
+
+    MsQuicSettings Settings;
+    Settings.SetIdleTimeoutMs(10000);
+    Settings.SetPeerUnidiStreamCount(1);
+
+    MsQuicConfiguration ServerConfiguration(Registration, Alpn, Settings, ServerSelfSignedCredConfig);
+    TEST_TRUE(ServerConfiguration.IsValid());
+
+    MsQuicCredentialConfig ClientCredConfig;
+    MsQuicConfiguration ClientConfiguration(Registration, Alpn, Settings, ClientCredConfig);
+    TEST_TRUE(ClientConfiguration.IsValid());
+
+    {
+        TestListener Listener(Registration, ListenerAcceptConnectionAndStreams, ServerConfiguration);
+        TEST_TRUE(Listener.IsValid());
+        TEST_QUIC_SUCCEEDED(Listener.Start(Alpn));
+
+        QuicAddr ServerLocalAddr;
+        TEST_QUIC_SUCCEEDED(Listener.GetLocalAddr(ServerLocalAddr));
+
+        {
+            UniquePtr<TestConnection> Server;
+            ServerAcceptContext ServerAcceptCtx((TestConnection**)&Server);
+            Listener.Context = &ServerAcceptCtx;
+
+            TestConnection* Client =
+                NewPingConnection(
+                    Registration,
+                    &ClientStats,
+                    false);
+            if (Client == nullptr) {
+                return;
+            }
+
+            Client->SetDeletedEvent(&EventClientDeleted.Handle);
+
+            Client->SetExpectedTransportCloseStatus(ClientStats.ExpectedCloseStatus);
+            TEST_QUIC_SUCCEEDED(Client->SetDisconnectTimeout(1000)); // ms
+
+            if (!SendPingBurst(
+                    Client,
+                    ClientStats.StreamCount,
+                    ClientStats.PayloadLength)) {
+                return;
+            }
+
+            TEST_QUIC_SUCCEEDED(
+                Client->Start(
+                    ClientConfiguration,
+                    QUIC_ADDRESS_FAMILY_INET,
+                    QUIC_TEST_LOOPBACK_FOR_AF(QUIC_ADDRESS_FAMILY_INET),
+                    ServerLocalAddr.GetPort()));
+
+            if (!Client->WaitForConnectionComplete()) {
+                return;
+            }
+            TEST_TRUE(Client->GetIsConnected());
+
+            TEST_NOT_EQUAL(nullptr, Server);
+            if (!Server->WaitForConnectionComplete()) {
+                return;
+            }
+            TEST_TRUE(Server->GetIsConnected());
+
+            CxPlatSleep(15); // Sleep for just a bit.
+
+            uint8_t StatelessResetKey[QUIC_STATELESS_RESET_KEY_LENGTH];
+            CxPlatRandom(sizeof(StatelessResetKey), StatelessResetKey);
+            TEST_QUIC_SUCCEEDED(
+                MsQuic->SetParam(
+                    nullptr,
+                    QUIC_PARAM_GLOBAL_STATELESS_RESET_KEY,
+                    sizeof(StatelessResetKey),
+                    StatelessResetKey));
+
+            Server->Shutdown(QUIC_CONNECTION_SHUTDOWN_FLAG_SILENT, 0);
+        }
+
+        if (!CxPlatEventWaitWithTimeout(EventClientDeleted.Handle, TestWaitTimeout)) {
+            TEST_FAILURE("Wait for EventClientDeleted timed out after %u ms.", TestWaitTimeout);
+        }
+    }
+}
+
 struct AbortiveTestContext {
     AbortiveTestContext(
         _In_ HQUIC ServerConfiguration,

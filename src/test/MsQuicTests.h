@@ -419,6 +419,11 @@ QuicTestClientDisconnect(
     );
 
 void
+QuicTestStatelessResetKey(
+    void
+    );
+
+void
 QuicTestKeyUpdate(
     _In_ int Family,
     _In_ uint16_t Iterations,
@@ -1211,4 +1216,7 @@ typedef struct {
     QUIC_CTL_CODE(112, METHOD_BUFFERED, FILE_WRITE_DATA)
     // QUIC_RUN_FEATURE_NEGOTIATION
 
-#define QUIC_MAX_IOCTL_FUNC_CODE 112
+#define IOCTL_QUIC_RUN_STATELESS_RESET_KEY \
+    QUIC_CTL_CODE(113, METHOD_BUFFERED, FILE_WRITE_DATA)
+
+#define QUIC_MAX_IOCTL_FUNC_CODE 113
