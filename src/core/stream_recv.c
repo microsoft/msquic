@@ -167,7 +167,7 @@ QuicStreamRecvQueueFlush(
 //
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
-QuicStreamAlertAppPeerSendAborted(
+QuicStreamIndicatePeerSendAbortedEvent(
     _In_ QUIC_STREAM* Stream,
     _In_ QUIC_VAR_INT ErrorCode
     )
@@ -232,9 +232,12 @@ QuicStreamProcessReliableResetFrame(
             "[strm][%p] Recv State: %hhu",
             Stream,
             QuicStreamRecvGetState(Stream));
-        QuicStreamAlertAppPeerSendAborted(Stream, ErrorCode);
+        QuicStreamIndicatePeerSendAbortedEvent(Stream, ErrorCode);
         QuicStreamRecvShutdown(Stream, TRUE, ErrorCode);
     } else {
+        //
+        // We still have data to deliver to the app, just cache the error code for later.
+        //
         Stream->RecvShutdownErrorCode = ErrorCode;
     }
 }
@@ -318,7 +321,7 @@ QuicStreamProcessResetFrame(
             QuicStreamRecvGetState(Stream));
 
         if (!Stream->Flags.SentStopSending) {
-            QuicStreamAlertAppPeerSendAborted(Stream, ErrorCode);
+            QuicStreamIndicatePeerSendAbortedEvent(Stream, ErrorCode);
         }
 
         //
@@ -1159,7 +1162,7 @@ QuicStreamReceiveComplete(
             "[strm][%p] Recv State: %hhu",
             Stream,
             QuicStreamRecvGetState(Stream));
-        QuicStreamAlertAppPeerSendAborted(Stream, Stream->RecvShutdownErrorCode);
+        QuicStreamIndicatePeerSendAbortedEvent(Stream, Stream->RecvShutdownErrorCode);
         QuicStreamRecvShutdown(Stream, TRUE, Stream->RecvShutdownErrorCode);
     }
 
