@@ -795,9 +795,9 @@ CxPlatUpdateRoute(
         if (DstRoute->State == RouteResolved &&
             DstRoute->Queue != SrcRoute->Queue) {
             DstRoute->Queue = SrcRoute->Queue;
-            DstRoute->DatapathType = SrcRoute->DatapathType;
         }
         RawUpdateRoute(DstRoute, SrcRoute);
+        DstRoute->DatapathType = SrcRoute->DatapathType;
     }
 }
 
