@@ -347,7 +347,7 @@ QuicStreamProcessStopSendingFrame(
     _In_ QUIC_VAR_INT ErrorCode
     )
 {
-    if (!Stream->Flags.LocalCloseAcked && !Stream->Flags.LocalCloseReset && !Stream->Flags.LocalCloseResetReliable) {
+    if (!Stream->Flags.LocalCloseAcked && !Stream->Flags.LocalCloseReset) {
         //
         // The STOP_SENDING frame only triggers a state change if we aren't
         // completely closed gracefully (i.e. our close has been acknowledged)
