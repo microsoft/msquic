@@ -897,7 +897,8 @@ QuicTestCtlEvtIoDeviceControl(
         QuicTestCtlRun(
             QuicTestNatAddrRebind(
                 Params->RebindParams.Family,
-                Params->RebindParams.Padding));
+                Params->RebindParams.Padding,
+                FALSE));
         break;
 
     case IOCTL_QUIC_RUN_CHANGE_MAX_STREAM_ID:
