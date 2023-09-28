@@ -212,7 +212,8 @@ inline BOOLEAN HasStreamControlFrames(uint32_t Flags)
         (QUIC_STREAM_SEND_FLAG_DATA_BLOCKED |
          QUIC_STREAM_SEND_FLAG_MAX_DATA |
          QUIC_STREAM_SEND_FLAG_SEND_ABORT |
-         QUIC_STREAM_SEND_FLAG_RECV_ABORT);
+         QUIC_STREAM_SEND_FLAG_RECV_ABORT |
+         QUIC_STREAM_SEND_FLAG_RELIABLE_ABORT);
 }
 
 inline BOOLEAN HasStreamDataFrames(uint32_t Flags)
