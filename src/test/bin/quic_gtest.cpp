@@ -1590,11 +1590,6 @@ TEST_P(WithRebindPaddingArgs, RebindAddrPadded) {
         };
         ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_NAT_PORT_REBIND, Params));
     } else {
-#ifdef _WIN32
-        if (!UseDuoNic) {
-            GTEST_SKIP_("Raw socket with 127.0.0.2/::2 is not supported");
-        }
-#endif
         QuicTestNatAddrRebind(GetParam().Family, GetParam().Padding, FALSE);
     }
 }
