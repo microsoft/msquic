@@ -550,7 +550,7 @@ QuicTestStreamReliableReset(
 
 void
 QuicTestStreamReliableResetMultipleSends(
-);
+    );
 
 void
 QuicTestStreamBlockUnblockConnFlowControl(
