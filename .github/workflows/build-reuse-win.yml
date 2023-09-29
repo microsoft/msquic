@@ -47,10 +47,6 @@ on:
         #   - openssl
         #   - openssl3
         #   - schannel
-      xdp:
-        required: false
-        default: ''
-        type: string
       static:
         required: false
         default: ''
@@ -73,12 +69,12 @@ jobs:
     runs-on: ${{ inputs.sanitize  == '-Sanitize' && 'windows-2019' || inputs.os }} # use windows-2019 for ASAN
     steps:
     - name: Checkout repository
-      uses: actions/checkout@3df4ab11eba7bda6032a0b82a6bb43b11571feac
+      uses: actions/checkout@8ade135a41bc03ea155e62e844d188df1ea18608
       with:
         repository: microsoft/msquic
         ref: ${{ inputs.ref }}
     - name: Install Perl
-      uses: shogo82148/actions-setup-perl@35426a57f184a35daee329bb17ae49332ff8a422
+      uses: shogo82148/actions-setup-perl@90aae5bc694fba230daa9573de620d6fe9198181
       with:
         perl-version: '5.34'
     - name: Install NASM
@@ -89,13 +85,19 @@ jobs:
     - name: Build For Test
       if: inputs.test == '-Test'
       shell: pwsh
-      run: scripts/build.ps1 -Config ${{ inputs.config }} -Platform ${{ inputs.plat }} -Arch ${{ inputs.arch }} -Tls ${{ inputs.tls }} -DisablePerf -DynamicCRT ${{ inputs.xdp }} ${{ inputs.sanitize }}
+      run: scripts/build.ps1 -Config ${{ inputs.config }} -Platform ${{ inputs.plat }} -Arch ${{ inputs.arch }} -Tls ${{ inputs.tls }} -DisablePerf -DynamicCRT ${{ inputs.sanitize }}
     - name: Build
       if: inputs.test == ''
       shell: pwsh
-      run: scripts/build.ps1 -Config ${{ inputs.config }} -Platform ${{ inputs.plat }} -Arch ${{ inputs.arch }} -Tls ${{ inputs.tls }} ${{ inputs.xdp }} ${{ inputs.sanitize }} ${{ inputs.static }}
+      run: scripts/build.ps1 -Config ${{ inputs.config }} -Platform ${{ inputs.plat }} -Arch ${{ inputs.arch }} -Tls ${{ inputs.tls }} ${{ inputs.sanitize }} ${{ inputs.static }}
+    - name: Filter Build Artifacts
+      shell: pwsh
+      run: |
+        Remove-Item artifacts/bin/xdp -Recurse -Force -ErrorAction Ignore
+        Remove-Item artifacts/corenet-ci-main -Recurse -Force -ErrorAction Ignore
+        Remove-Item artifacts/xdp -Recurse -Force -ErrorAction Ignore
     - name: Upload build artifacts
       uses: actions/upload-artifact@a8a3f3ad30e3422c9c7b888a15615d19a852ae32
       with:
-        name: ${{ inputs.config }}-${{ inputs.plat }}-${{ inputs.os }}-${{ inputs.arch }}-${{ inputs.tls }}${{ inputs.xdp }}${{ inputs.sanitize }}${{ inputs.static }}${{ inputs.test }}
+        name: ${{ inputs.config }}-${{ inputs.plat }}-${{ inputs.os }}-${{ inputs.arch }}-${{ inputs.tls }}${{ inputs.sanitize }}${{ inputs.static }}${{ inputs.test }}
         path: artifacts

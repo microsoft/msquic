@@ -18,8 +18,9 @@ Abstract:
 #include "datapath_raw_xdp_linux.c.clog.h"
 #endif
 
-typedef struct XDP_DATAPATH {
-    CXPLAT_DATAPATH;
+// TODO: remove this exception when finalizing members
+typedef struct XDP_DATAPATH { // NOLINT(clang-analyzer-optin.performance.Padding)
+    CXPLAT_DATAPATH_RAW;
     __attribute__((aligned(64)))
     //
     // Currently, all XDP interfaces share the same config.
@@ -177,7 +178,7 @@ CxPlatDpRawGetDatapathSize(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 CxPlatDpRawInitialize(
-    _Inout_ CXPLAT_DATAPATH* Datapath,
+    _Inout_ CXPLAT_DATAPATH_RAW* Datapath,
     _In_ uint32_t ClientRecvContextLength,
     _In_opt_ const QUIC_EXECUTION_CONFIG* Config
     )
@@ -200,7 +201,7 @@ CxPlatDpRawRelease(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 CxPlatDpRawUninitialize(
-    _In_ CXPLAT_DATAPATH* Datapath
+    _In_ CXPLAT_DATAPATH_RAW* Datapath
     )
 {
     UNREFERENCED_PARAMETER(Datapath);
@@ -209,7 +210,7 @@ CxPlatDpRawUninitialize(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 CxPlatDpRawPlumbRulesOnSocket(
-    _In_ CXPLAT_SOCKET* Socket,
+    _In_ CXPLAT_SOCKET_RAW* Socket,
     _In_ BOOLEAN IsCreated
     )
 {
@@ -249,7 +250,7 @@ CxPlatDpRawRxFree(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 CXPLAT_SEND_DATA*
 CxPlatDpRawTxAlloc(
-    _In_ CXPLAT_SOCKET* Socket,
+    _In_ CXPLAT_SOCKET_RAW* Socket,
     _Inout_ CXPLAT_SEND_CONFIG* Config
     )
 {
@@ -289,7 +290,7 @@ CxPlatXdpExecute(
 }
 
 void
-CxPlatDataPathProcessCqe(
+RawDataPathProcessCqe(
     _In_ CXPLAT_CQE* Cqe
     )
 {

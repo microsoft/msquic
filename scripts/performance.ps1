@@ -362,8 +362,8 @@ function LocalTeardown {
     }
 }
 
-$RemoteExePath = Get-ExePath -PathRoot $RemoteDirectory -Platform $RemotePlatform -IsRemote $true -ExtraArtifactDir $ExtraArtifactDir
-$LocalExePath = Get-ExePath -PathRoot $LocalDirectory -Platform $LocalPlatform -IsRemote $false -ExtraArtifactDir $ExtraArtifactDir
+$RemoteExePath = Get-ExePath -PathRoot $RemoteDirectory -Platform $RemotePlatform -IsRemote $true
+$LocalExePath = Get-ExePath -PathRoot $LocalDirectory -Platform $LocalPlatform -IsRemote $false
 
 # See if we are an AZP PR
 $PrBranchName = $env:SYSTEM_PULLREQUEST_TARGETBRANCH
@@ -399,8 +399,8 @@ function Invoke-Test {
 
     Write-Output "Running Test $Test"
 
-    $RemoteExe = Get-ExeName -PathRoot $RemoteDirectory -Platform $RemotePlatform -IsRemote $true -TestPlat $RemoteConfig -ExtraArtifactDir $ExtraArtifactDir
-    $LocalExe = Get-ExeName -PathRoot $LocalDirectory -Platform $LocalPlatform -IsRemote $false -TestPlat $Test.Local -ExtraArtifactDir $ExtraArtifactDir
+    $RemoteExe = Get-ExeName -PathRoot $RemoteDirectory -Platform $RemotePlatform -IsRemote $true -TestPlat $RemoteConfig
+    $LocalExe = Get-ExeName -PathRoot $LocalDirectory -Platform $LocalPlatform -IsRemote $false -TestPlat $Test.Local
 
     # Check both Exes
     $RemoteExeExists = Invoke-TestCommand -Session $Session -ScriptBlock {

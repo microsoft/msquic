@@ -210,6 +210,9 @@ CxPlatSystemUnload(
     void
     )
 {
+#ifdef CXPLAT_NUMA_AWARE
+    CXPLAT_FREE(CxPlatNumaNodeMasks, QUIC_POOL_PLATFORM_PROC);
+#endif
     QuicTraceLogInfo(
         PosixUnloaded,
         "[ dso] Unloaded");
