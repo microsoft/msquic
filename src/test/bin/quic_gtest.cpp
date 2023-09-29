@@ -843,6 +843,9 @@ TEST_P(WithFamilyArgs, InterfaceBinding) {
     if (TestingKernelMode) {
         ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_INTERFACE_BINDING, GetParam().Family));
     } else {
+        if (UseDuoNic) {
+            GTEST_SKIP_("DuoNIC is not supported");
+        }
         QuicTestInterfaceBinding(GetParam().Family);
     }
 }
@@ -1551,7 +1554,22 @@ TEST_P(WithFamilyArgs, RebindAddr) {
         };
         ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_NAT_ADDR_REBIND, Params));
     } else {
-        QuicTestNatAddrRebind(GetParam().Family, 0);
+        QuicTestNatAddrRebind(GetParam().Family, 0, FALSE);
+    }
+}
+
+TEST_P(WithFamilyArgs, RebindDatapathAddr) {
+#if defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
+    if (UseQTIP) {
+        //
+        // NAT rebind doesn't make sense for TCP and QTIP.
+        //
+        return;
+    }
+#endif
+    TestLoggerT<ParamType> Logger("QuicTestNatAddrRebind(datapath)", GetParam());
+    if (!TestingKernelMode) {
+        QuicTestNatAddrRebind(GetParam().Family, 0, TRUE);
     }
 }
 
@@ -1572,7 +1590,7 @@ TEST_P(WithRebindPaddingArgs, RebindAddrPadded) {
         };
         ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_NAT_PORT_REBIND, Params));
     } else {
-        QuicTestNatAddrRebind(GetParam().Family, GetParam().Padding);
+        QuicTestNatAddrRebind(GetParam().Family, GetParam().Padding, FALSE);
     }
 }
 
@@ -1875,6 +1893,15 @@ TEST(Misc, ClientDisconnect) {
         ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_CLIENT_DISCONNECT, Param));
     } else {
         QuicTestClientDisconnect(false); // TODO - Support true, when race condition is fixed.
+    }
+}
+
+TEST(Misc, StatelessResetKey) {
+    TestLogger Logger("QuicTestStatelessResetKey");
+    if (TestingKernelMode) {
+        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_STATELESS_RESET_KEY));
+    } else {
+        QuicTestStatelessResetKey();
     }
 }
 

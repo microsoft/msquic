@@ -45,7 +45,7 @@ CxPlatSockPoolUninitialize(
 void
 CxPlatRemoveSocket(
     _In_ CXPLAT_SOCKET_POOL* Pool,
-    _In_ CXPLAT_SOCKET* Socket
+    _In_ CXPLAT_SOCKET_RAW* Socket
     )
 {
     UNREFERENCED_PARAMETER(Pool);
@@ -54,8 +54,8 @@ CxPlatRemoveSocket(
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
-CxPlatResolveRoute(
-    _In_ CXPLAT_SOCKET* Socket,
+RawResolveRoute(
+    _In_ CXPLAT_SOCKET_RAW* Socket,
     _Inout_ CXPLAT_ROUTE* Route,
     _In_ uint8_t PathId,
     _In_ void* Context,
@@ -74,7 +74,7 @@ CxPlatResolveRoute(
 QUIC_STATUS
 CxPlatTryAddSocket(
     _In_ CXPLAT_SOCKET_POOL* Pool,
-    _In_ CXPLAT_SOCKET* Socket
+    _In_ CXPLAT_SOCKET_RAW* Socket
     )
 {
     UNREFERENCED_PARAMETER(Pool);

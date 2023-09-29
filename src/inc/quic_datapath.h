@@ -125,6 +125,7 @@ PacketSizeFromUdpPayloadSize(
 // The top level datapath handle type.
 //
 typedef struct CXPLAT_DATAPATH CXPLAT_DATAPATH;
+typedef struct CXPLAT_DATAPATH_RAW CXPLAT_DATAPATH_RAW;
 
 //
 // Represents a UDP or TCP abstraction.
@@ -172,6 +173,8 @@ typedef struct CXPLAT_ROUTE {
 
     uint8_t LocalLinkLayerAddress[6];
     uint8_t NextHopLinkLayerAddress[6];
+
+    uint16_t DatapathType; // CXPLAT_DATAPATH_TYPE
 
     //
     // QuicCopyRouteInfo copies memory up to this point (not including State).
@@ -224,8 +227,9 @@ typedef struct CXPLAT_RECV_DATA {
     //
     uint16_t Allocated : 1;          // Used for debugging. Set to FALSE on free.
     uint16_t QueuedOnConnection : 1; // Used for debugging.
-    uint16_t Reserved : 6;
-    uint16_t ReservedEx : 8;
+    uint16_t DatapathType : 2;       // CXPLAT_DATAPATH_TYPE
+    uint16_t Reserved : 4;           // PACKET_TYPE (at least 3 bits)
+    uint16_t ReservedEx : 8;         // Header length
 
     //
     // Variable length data (of size `ClientRecvContextLength` passed into
@@ -446,7 +450,8 @@ CxPlatDataPathGetSupportedFeatures(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 BOOLEAN
 CxPlatDataPathIsPaddingPreferred(
-    _In_ CXPLAT_DATAPATH* Datapath
+    _In_ CXPLAT_DATAPATH* Datapath,
+    _In_ CXPLAT_SEND_DATA* SendData
     );
 
 //
@@ -743,13 +748,6 @@ CxPlatResolveRouteComplete(
     _Inout_ CXPLAT_ROUTE* Route,
     _In_reads_bytes_(6) const uint8_t* PhysicalAddress,
     _In_ uint8_t PathId
-    );
-
-_IRQL_requires_max_(PASSIVE_LEVEL)
-void
-QuicCopyRouteInfo(
-    _Inout_ CXPLAT_ROUTE* DstRoute,
-    _In_ CXPLAT_ROUTE* SrcRoute
     );
 
 //
