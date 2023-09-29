@@ -162,6 +162,7 @@ QuicStreamSendShutdown(
     } else if (Stream->ReliableOffsetSend == 0 || Stream->Flags.LocalCloseResetReliable) {
         //
         // Enter abortive branch if we are not aborting reliablely or we have done it already.
+        // Essentially, Reset trumps Reliable Reset, so if we have to call shutdown again, we reset.
         //
 
         //
