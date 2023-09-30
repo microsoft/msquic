@@ -22,7 +22,7 @@ TestConnection::TestConnection(
     IsServer(true), IsStarted(true), IsConnected(false), Resumed(false),
     PeerAddrChanged(false), PeerClosed(false), TransportClosed(false),
     IsShutdown(false), ShutdownTimedOut(false), AutoDelete(false), AsyncCustomValidation(false),
-    CustomValidationResultSet(false), ExpectedResumed(false),
+    CustomValidationResultSet(false), ExpectedResumed(false), ExpectedCustomTicketValidationResult(QUIC_STATUS_SUCCESS),
     ExpectedTransportCloseStatus(QUIC_STATUS_SUCCESS), ExpectedPeerCloseErrorCode(QUIC_TEST_NO_ERROR),
     ExpectedClientCertValidationResult{}, ExpectedClientCertValidationResultCount(0),
     ExpectedCustomValidationResult(false), PeerCertEventReturnStatus(QUIC_STATUS_SUCCESS),
@@ -52,7 +52,7 @@ TestConnection::TestConnection(
     IsServer(false), IsStarted(false), IsConnected(false), Resumed(false),
     PeerAddrChanged(false), PeerClosed(false), TransportClosed(false),
     IsShutdown(false), ShutdownTimedOut(false), AutoDelete(false), AsyncCustomValidation(false),
-    CustomValidationResultSet(false), ExpectedResumed(false),
+    CustomValidationResultSet(false), ExpectedResumed(false), ExpectedCustomTicketValidationResult(QUIC_STATUS_SUCCESS),
     ExpectedTransportCloseStatus(QUIC_STATUS_SUCCESS), ExpectedPeerCloseErrorCode(QUIC_TEST_NO_ERROR),
     ExpectedClientCertValidationResult{}, ExpectedClientCertValidationResultCount(0),
     ExpectedCustomValidationResult(false), PeerCertEventReturnStatus(QUIC_STATUS_SUCCESS),
@@ -746,16 +746,28 @@ TestConnection::SetResumptionTicket(
 
 QUIC_STATUS
 TestConnection::SetCustomValidationResult(
-    bool AcceptCert
+    bool AcceptCert,
+    QUIC_TLS_ALERT_CODES TlsAlert
     )
 {
     BOOLEAN Result = AcceptCert ? TRUE : FALSE;
     return
-        MsQuic->SetParam(
+        MsQuic->ConnectionCertificateValidationComplete(
             QuicConnection,
-            QUIC_PARAM_CONN_PEER_CERTIFICATE_VALID,
-            sizeof(Result),
-            &Result);
+            Result,
+            TlsAlert);
+}
+
+QUIC_STATUS
+TestConnection::SetCustomTicketValidationResult(
+    bool AcceptTicket
+    )
+{
+    BOOLEAN Result = AcceptTicket ? TRUE : FALSE;
+    return
+        MsQuic->ConnectionResumptionTicketValidationComplete(
+            QuicConnection,
+            Result);
 }
 
 QUIC_STATUS
@@ -934,6 +946,8 @@ TestConnection::HandleConnectionEvent(
             return PeerCertEventReturnStatus;
         }
         break;
+    case QUIC_CONNECTION_EVENT_RESUMED:
+        return ExpectedCustomTicketValidationResult;
 
     default:
         break;
@@ -943,7 +957,8 @@ TestConnection::HandleConnectionEvent(
 }
 
 uint32_t
-TestConnection::GetDestCidUpdateCount() {
+TestConnection::GetDestCidUpdateCount()
+{
     QUIC_STATISTICS_V2 Stats;
     uint32_t StatsSize = sizeof(Stats);
     QUIC_STATUS Status =
@@ -960,11 +975,26 @@ TestConnection::GetDestCidUpdateCount() {
 }
 
 const uint8_t*
-TestConnection::GetNegotiatedAlpn() const {
+TestConnection::GetNegotiatedAlpn() const
+{
     return NegotiatedAlpn;
 }
 
 uint8_t
-TestConnection::GetNegotiatedAlpnLength() const {
+TestConnection::GetNegotiatedAlpnLength() const
+{
     return NegotiatedAlpnLength;
+}
+
+QUIC_STATUS
+TestConnection::SetTlsSecrets(
+    QUIC_TLS_SECRETS* Secrets
+    )
+{
+    return
+        MsQuic->SetParam(
+            QuicConnection,
+            QUIC_PARAM_CONN_TLS_SECRETS,
+            sizeof(*Secrets),
+            Secrets);
 }

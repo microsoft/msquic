@@ -158,6 +158,12 @@ namespace QuicTrace.DataModel
         ConnBbr,
         ConnEcnCapable,
         ConnEcnFailed,
+        ConnCongestionV2,
+        ConnStatsV2,
+        ConnCubicHyStart,
+        ConnRecvUdpDatagrams,
+        ConnOutFlowStatsV2,
+        ConnStatsV3,
 
         StreamCreated = 6144,
         StreamDestroyed,
@@ -194,7 +200,8 @@ namespace QuicTrace.DataModel
         TlsErrorStatus,
         TlsMessage,
 
-        DatapathSend = 9217,
+        Temporal = 9216, // Temporary, while there are still builds out there generating this old event
+        DatapathSend,
         DatapathRecv,
         DatapathError,
         DatapathErrorStatus,

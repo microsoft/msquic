@@ -28,6 +28,9 @@
     } while (0)
 #define ASSERT_ON_NOT(x) CXPLAT_FRE_ASSERT(x)
 
+QUIC_EXECUTION_CONFIG* ExecConfig = nullptr;
+uint32_t ExecConfigSize = 0;
+
 class FuzzingData {
     const uint8_t* data;
     size_t size;
@@ -257,12 +260,26 @@ typedef enum {
     SpinQuicAPICallSetParamStream,
     SpinQuicAPICallGetParamStream,
     SpinQuicAPICallDatagramSend,
+    SpinQuicAPICallCompleteTicketValidation,
+    SpinQuicAPICallCompleteCertificateValidation,
     SpinQuicAPICallStreamReceiveSetEnabled,
     SpinQuicAPICallStreamReceiveComplete,
     SpinQuicAPICallCount    // Always the last element
 } SpinQuicAPICall;
 
-class SpinQuicConnection {
+struct SpinQuicStream {
+    struct SpinQuicConnection& Connection;
+    HQUIC Handle;
+    uint64_t PendingRecvLength {0};
+    SpinQuicStream(SpinQuicConnection& Connection, HQUIC Handle = nullptr) :
+        Connection(Connection), Handle(Handle) {}
+    ~SpinQuicStream() { MsQuic.StreamClose(Handle); }
+    static SpinQuicStream* Get(HQUIC Stream) {
+        return (SpinQuicStream*)MsQuic.GetContext(Stream);
+    }
+};
+
+struct SpinQuicConnection {
 public:
     std::mutex Lock;
     HQUIC Connection = nullptr;
@@ -310,7 +327,7 @@ public:
         while (StreamsCopy.size() > 0) {
             HQUIC Stream = StreamsCopy.back();
             StreamsCopy.pop_back();
-            MsQuic.StreamClose(Stream);
+            delete SpinQuicStream::Get(Stream);
         }
     }
     void AddStream(HQUIC Stream) {
@@ -344,12 +361,13 @@ static struct {
     uint8_t LossPercent;
     int32_t AllocFailDenominator;
     uint32_t RepeatCount;
-} Settings;
+} SpinSettings;
 
-QUIC_STATUS QUIC_API SpinQuicHandleStreamEvent(HQUIC Stream, void * /* Context */, QUIC_STREAM_EVENT *Event)
+QUIC_STATUS QUIC_API SpinQuicHandleStreamEvent(HQUIC Stream, void* , QUIC_STREAM_EVENT *Event)
 {
-    // TODO: hacky way to avoid Context overwrite
-    uint16_t ThreadID = FuzzData ? FuzzingData::NumSpinThread : UINT16_MAX; // *(uint16_t*)Context;
+    auto ctx = SpinQuicStream::Get(Stream);
+    auto ThreadID = ctx->Connection.ThreadID;
+
     switch (Event->Type) {
     case QUIC_STREAM_EVENT_PEER_SEND_SHUTDOWN:
         MsQuic.StreamShutdown(Stream, (QUIC_STREAM_SHUTDOWN_FLAGS)GetRandom(16), 0);
@@ -357,7 +375,8 @@ QUIC_STATUS QUIC_API SpinQuicHandleStreamEvent(HQUIC Stream, void * /* Context *
     case QUIC_STREAM_EVENT_RECEIVE: {
         int Random = GetRandom(5);
         if (Random == 0) {
-            MsQuic.SetContext(Stream, (void*)Event->RECEIVE.TotalBufferLength);
+            std::lock_guard<std::mutex> Lock(ctx->Connection.Lock);
+            ctx->PendingRecvLength = Event->RECEIVE.TotalBufferLength;
             return QUIC_STATUS_PENDING; // Pend the receive, to be completed later.
         } else if (Random == 1 && Event->RECEIVE.TotalBufferLength > 0) {
             Event->RECEIVE.TotalBufferLength = GetRandom(Event->RECEIVE.TotalBufferLength + 1); // Partially (or fully) consume the data.
@@ -374,10 +393,11 @@ QUIC_STATUS QUIC_API SpinQuicHandleStreamEvent(HQUIC Stream, void * /* Context *
     return QUIC_STATUS_SUCCESS;
 }
 
-QUIC_STATUS QUIC_API SpinQuicHandleConnectionEvent(HQUIC Connection, void *Context, QUIC_CONNECTION_EVENT *Event)
+QUIC_STATUS QUIC_API SpinQuicHandleConnectionEvent(HQUIC Connection, void* , QUIC_CONNECTION_EVENT *Event)
 {
-    // TODO: avoid context overwite
-    uint16_t ThreadID = FuzzData ? FuzzingData::NumSpinThread : UINT16_MAX; // *(uint16_t*)Context;
+    auto ctx = SpinQuicConnection::Get(Connection);
+    auto ThreadID = ctx->ThreadID;
+
     switch (Event->Type) {
     case QUIC_CONNECTION_EVENT_CONNECTED: {
         int Selector = GetRandom(3);
@@ -412,10 +432,22 @@ QUIC_STATUS QUIC_API SpinQuicHandleConnectionEvent(HQUIC Connection, void *Conte
     case QUIC_CONNECTION_EVENT_SHUTDOWN_COMPLETE:
         SpinQuicConnection::Get(Connection)->OnShutdownComplete();
         break;
-    case QUIC_CONNECTION_EVENT_PEER_STREAM_STARTED:
-        MsQuic.SetCallbackHandler(Event->PEER_STREAM_STARTED.Stream, (void *)SpinQuicHandleStreamEvent, Context);
-        SpinQuicConnection::Get(Connection)->AddStream(Event->PEER_STREAM_STARTED.Stream);
+    case QUIC_CONNECTION_EVENT_PEER_STREAM_STARTED: {
+        if (GetRandom(10) == 0) {
+            return QUIC_STATUS_NOT_SUPPORTED;
+        }
+        if (GetRandom(10) == 0) {
+            MsQuic.StreamClose(Event->PEER_STREAM_STARTED.Stream);
+            return QUIC_STATUS_SUCCESS;
+        }
+        if (GetRandom(2) == 0) {
+            Event->PEER_STREAM_STARTED.Flags |= QUIC_STREAM_OPEN_FLAG_DELAY_ID_FC_UPDATES;
+        }
+        auto StreamCtx = new SpinQuicStream(*ctx, Event->PEER_STREAM_STARTED.Stream);
+        MsQuic.SetCallbackHandler(Event->PEER_STREAM_STARTED.Stream, (void *)SpinQuicHandleStreamEvent, StreamCtx);
+        ctx->AddStream(Event->PEER_STREAM_STARTED.Stream);
         break;
+    }
     default:
         break;
     }
@@ -504,9 +536,170 @@ struct SetParamHelper {
     }
 };
 
+void SpinQuicRandomizeSettings(QUIC_SETTINGS& Settings, uint16_t ThreadID)
+{
+    switch (GetRandom(38)) {
+    case 0:
+        //Settings.MaxBytesPerKey = GetRandom(UINT64_MAX);
+        //Settings.IsSet.MaxBytesPerKey = TRUE;
+        break;
+    case 1:
+        //Settings.HandshakeIdleTimeoutMs = GetRandom(UINT64_MAX);
+        //Settings.IsSet.HandshakeIdleTimeoutMs = TRUE;
+        break;
+    case 2:
+        //Settings.IdleTimeoutMs = GetRandom(UINT64_MAX);
+        //Settings.IsSet.IdleTimeoutMs = TRUE;
+        break;
+    case 3:
+        //Settings.MtuDiscoverySearchCompleteTimeoutUs = GetRandom(UINT64_MAX);
+        //Settings.IsSet.MtuDiscoverySearchCompleteTimeoutUs = TRUE;
+        break;
+    case 4:
+        //Settings.TlsClientMaxSendBuffer = GetRandom(UINT32_MAX);
+        //Settings.IsSet.TlsClientMaxSendBuffer = TRUE;
+        break;
+    case 5:
+        //Settings.TlsServerMaxSendBuffer = GetRandom(UINT32_MAX);
+        //Settings.IsSet.TlsServerMaxSendBuffer = TRUE;
+        break;
+    case 6:
+        //Settings.StreamRecvWindowDefault = GetRandom(UINT32_MAX);
+        //Settings.IsSet.StreamRecvWindowDefault = TRUE;
+        break;
+    case 7:
+        //Settings.StreamRecvBufferDefault = GetRandom(UINT32_MAX);
+        //Settings.IsSet.StreamRecvBufferDefault = TRUE;
+        break;
+    case 8:
+        //Settings.ConnFlowControlWindow = GetRandom(UINT32_MAX);
+        //Settings.IsSet.ConnFlowControlWindow = TRUE;
+        break;
+    case 9:
+        //Settings.MaxWorkerQueueDelayUs = GetRandom(UINT32_MAX);
+        //Settings.IsSet.MaxWorkerQueueDelayUs = TRUE;
+        break;
+    case 10:
+        //Settings.MaxStatelessOperations = GetRandom(UINT32_MAX);
+        //Settings.IsSet.MaxStatelessOperations = TRUE;
+        break;
+    case 11:
+        //Settings.InitialWindowPackets = GetRandom(UINT32_MAX);
+        //Settings.IsSet.InitialWindowPackets = TRUE;
+        break;
+    case 12:
+        //Settings.SendIdleTimeoutMs = GetRandom(UINT32_MAX);
+        //Settings.IsSet.SendIdleTimeoutMs = TRUE;
+        break;
+    case 13:
+        //Settings.InitialRttMs = GetRandom(UINT32_MAX);
+        //Settings.IsSet.InitialRttMs = TRUE;
+        break;
+    case 14:
+        //Settings.MaxAckDelayMs = GetRandom(UINT32_MAX);
+        //Settings.IsSet.MaxAckDelayMs = TRUE;
+        break;
+    case 15:
+        //Settings.DisconnectTimeoutMs = GetRandom(UINT32_MAX);
+        //Settings.IsSet.DisconnectTimeoutMs = TRUE;
+        break;
+    case 16:
+        //Settings.KeepAliveIntervalMs = GetRandom(UINT32_MAX);
+        //Settings.IsSet.KeepAliveIntervalMs = TRUE;
+        break;
+    case 17:
+        Settings.CongestionControlAlgorithm = GetRandom((uint16_t)QUIC_CONGESTION_CONTROL_ALGORITHM_MAX);
+        Settings.IsSet.CongestionControlAlgorithm = TRUE;
+        break;
+    case 18:
+        //Settings.PeerBidiStreamCount = GetRandom(UINT16_MAX);
+        //Settings.IsSet.PeerBidiStreamCount = TRUE;
+        break;
+    case 19:
+        //Settings.PeerUnidiStreamCount = GetRandom(UINT16_MAX);
+        //Settings.IsSet.PeerUnidiStreamCount = TRUE;
+        break;
+    case 20:
+        //Settings.MaxBindingStatelessOperations = GetRandom(UINT16_MAX);
+        //Settings.IsSet.MaxBindingStatelessOperations = TRUE;
+        break;
+    case 21:
+        //Settings.StatelessOperationExpirationMs = GetRandom(UINT16_MAX);
+        //Settings.IsSet.StatelessOperationExpirationMs = TRUE;
+        break;
+    case 22:
+        //Settings.MinimumMtu = GetRandom(UINT16_MAX);
+        //Settings.IsSet.MinimumMtu = TRUE;
+        break;
+    case 23:
+        //Settings.MaximumMtu = GetRandom(UINT16_MAX);
+        //Settings.IsSet.MaximumMtu = TRUE;
+        break;
+    case 24:
+        //Settings.SendBufferingEnabled = GetRandom((uint8_t)1);
+        //Settings.IsSet.SendBufferingEnabled = TRUE;
+        break;
+    case 25:
+        Settings.PacingEnabled = GetRandom((uint8_t)1);
+        Settings.IsSet.PacingEnabled = TRUE;
+        break;
+    case 26:
+        Settings.MigrationEnabled = GetRandom((uint8_t)1);
+        Settings.IsSet.MigrationEnabled = TRUE;
+        break;
+    case 27:
+        Settings.DatagramReceiveEnabled = GetRandom((uint8_t)1);
+        Settings.IsSet.DatagramReceiveEnabled = TRUE;
+        break;
+    case 28:
+        Settings.ServerResumptionLevel = GetRandom((uint8_t)3);
+        Settings.IsSet.ServerResumptionLevel = TRUE;
+        break;
+    case 29:
+        Settings.GreaseQuicBitEnabled = GetRandom((uint8_t)1);
+        Settings.IsSet.GreaseQuicBitEnabled = TRUE;
+        break;
+    case 30:
+        Settings.EcnEnabled = GetRandom((uint8_t)1);
+        Settings.IsSet.EcnEnabled = TRUE;
+        break;
+    case 31:
+        //Settings.MaxOperationsPerDrain = GetRandom(UINT8_MAX);
+        //Settings.IsSet.MaxOperationsPerDrain = TRUE;
+        break;
+    case 32:
+        //Settings.MtuDiscoveryMissingProbeCount = GetRandom(UINT8_MAX);
+        //Settings.IsSet.MtuDiscoveryMissingProbeCount = TRUE;
+        break;
+    case 33:
+        //Settings.DestCidUpdateIdleTimeoutMs = GetRandom(UINT32_MAX);
+        //Settings.IsSet.DestCidUpdateIdleTimeoutMs = TRUE;
+        break;
+    case 34:
+        Settings.HyStartEnabled = GetRandom((uint8_t)1);
+        Settings.IsSet.HyStartEnabled = TRUE;
+        break;
+    case 35:
+        Settings.EncryptionOffloadAllowed = GetRandom((uint8_t)1);
+        Settings.IsSet.EncryptionOffloadAllowed = TRUE;
+        break;
+    case 36:
+        Settings.ReliableResetEnabled = GetRandom((uint8_t)1);
+        Settings.IsSet.ReliableResetEnabled = TRUE;
+        break;
+    case 37:
+        Settings.OneWayDelayEnabled = GetRandom((uint8_t)1);
+        Settings.IsSet.OneWayDelayEnabled = TRUE;
+        break;
+    default:
+        break;
+    }
+}
+
 void SpinQuicSetRandomConnectionParam(HQUIC Connection, uint16_t ThreadID)
 {
     uint8_t RandomBuffer[8];
+    QUIC_SETTINGS Settings = {0};
     SetParamHelper Helper;
 
     switch (0x05000000 | (GetRandom(24))) {
@@ -520,7 +713,8 @@ void SpinQuicSetRandomConnectionParam(HQUIC Connection, uint16_t ThreadID)
     case QUIC_PARAM_CONN_IDEAL_PROCESSOR:                           // uint16_t
         break; // Get Only
     case QUIC_PARAM_CONN_SETTINGS:                                  // QUIC_SETTINGS
-        // TODO
+        SpinQuicRandomizeSettings(Settings, ThreadID);
+        Helper.SetPtr(QUIC_PARAM_CONN_SETTINGS, &Settings, sizeof(Settings));
         break;
     case QUIC_PARAM_CONN_STATISTICS:                                // QUIC_STATISTICS
         break; // Get Only
@@ -588,7 +782,7 @@ void SpinQuicSetRandomStreamParam(HQUIC Stream, uint16_t ThreadID)
 {
     SetParamHelper Helper;
 
-    switch (0x08000000 | (GetRandom(5))) {
+    switch (0x08000000 | (GetRandom(6))) {
     case QUIC_PARAM_STREAM_ID:                                      // QUIC_UINT62
         break; // Get Only
     case QUIC_PARAM_STREAM_0RTT_LENGTH:                             // QUIC_ADDR
@@ -600,6 +794,8 @@ void SpinQuicSetRandomStreamParam(HQUIC Stream, uint16_t ThreadID)
         break;
     case QUIC_PARAM_STREAM_STATISTICS:
         break; // Get Only
+    case QUIC_PARAM_STREAM_RELIABLE_OFFSET:
+        Helper.SetUint64(QUIC_PARAM_STREAM_RELIABLE_OFFSET, (uint64_t)GetRandom(UINT64_MAX));
     default:
         break;
     }
@@ -648,11 +844,11 @@ void Spin(Gbs& Gb, LockableVector<HQUIC>& Connections, std::vector<HQUIC>* Liste
     bool IsServer = Listeners != nullptr;
 
     uint64_t OpCount = 0;
-    while (++OpCount != Settings.MaxOperationCount &&
+    while (++OpCount != SpinSettings.MaxOperationCount &&
 #ifdef FUZZING
-        (Settings.MaxFuzzIterationCount != FuzzData->GetIterateCount(ThreadID)) &&
+        (SpinSettings.MaxFuzzIterationCount != FuzzData->GetIterateCount(ThreadID)) &&
 #endif
-        CxPlatTimeDiff64(Gb.StartTimeMs, CxPlatTimeMs64()) < Settings.RunTimeMs) {
+        CxPlatTimeDiff64(Gb.StartTimeMs, CxPlatTimeMs64()) < SpinSettings.RunTimeMs) {
 
         if (Listeners) {
             auto Value = GetRandom(100);
@@ -664,7 +860,7 @@ void Spin(Gbs& Gb, LockableVector<HQUIC>& Connections, std::vector<HQUIC>* Liste
                 for (auto &Listener : *Listeners) {
                     QUIC_ADDR sockAddr = { 0 };
                     QuicAddrSetFamily(&sockAddr, GetRandom(2) ? QUIC_ADDRESS_FAMILY_INET : QUIC_ADDRESS_FAMILY_UNSPEC);
-                    QuicAddrSetPort(&sockAddr, GetRandomFromVector(Settings.Ports));
+                    QuicAddrSetPort(&sockAddr, GetRandomFromVector(SpinSettings.Ports));
                     MsQuic.ListenerStart(Listener, &Gb.Alpns[GetRandom(Gb.AlpnCount)], 1, &sockAddr);
                 }
             } else {
@@ -702,7 +898,7 @@ void Spin(Gbs& Gb, LockableVector<HQUIC>& Connections, std::vector<HQUIC>* Liste
             auto Connection = Connections.TryGetRandom();
             BAIL_ON_NULL_CONNECTION(Connection);
             HQUIC Configuration = GetRandomFromVector(Gb.ClientConfigurations);
-            MsQuic.ConnectionStart(Connection, Configuration, QUIC_ADDRESS_FAMILY_INET, Settings.ServerName, GetRandomFromVector(Settings.Ports));
+            MsQuic.ConnectionStart(Connection, Configuration, QUIC_ADDRESS_FAMILY_INET, SpinSettings.ServerName, GetRandomFromVector(SpinSettings.Ports));
             break;
         }
         case SpinQuicAPICallConnectionShutdown: {
@@ -721,11 +917,15 @@ void Spin(Gbs& Gb, LockableVector<HQUIC>& Connections, std::vector<HQUIC>* Liste
             auto Connection = Connections.TryGetRandom();
             BAIL_ON_NULL_CONNECTION(Connection);
             HQUIC Stream;
-            QUIC_STATUS Status = MsQuic.StreamOpen(Connection, (QUIC_STREAM_OPEN_FLAGS)GetRandom(2), SpinQuicHandleStreamEvent, &ThreadID, &Stream);
+            auto ctx = new SpinQuicStream(*SpinQuicConnection::Get(Connection));
+            QUIC_STATUS Status = MsQuic.StreamOpen(Connection, (QUIC_STREAM_OPEN_FLAGS)GetRandom(8), SpinQuicHandleStreamEvent, ctx, &Stream);
             if (QUIC_SUCCEEDED(Status)) {
+                ctx->Handle = Stream;
                 SpinQuicGetRandomParam(Stream, ThreadID);
                 SpinQuicSetRandomStreamParam(Stream, ThreadID);
                 SpinQuicConnection::Get(Connection)->AddStream(Stream);
+            } else {
+                delete ctx;
             }
             break;
         }
@@ -774,14 +974,15 @@ void Spin(Gbs& Gb, LockableVector<HQUIC>& Connections, std::vector<HQUIC>* Liste
                 std::lock_guard<std::mutex> Lock(ctx->Lock);
                 auto Stream = ctx->TryGetStream();
                 if (Stream == nullptr) continue;
-                auto BytesRemaining = MsQuic.GetContext(Stream);
-                if (BytesRemaining != nullptr && GetRandom(10) == 0) {
-                    auto BytesConsumed = GetRandom((uint64_t)BytesRemaining);
-                    MsQuic.SetContext(Stream, (void*)((uint64_t)BytesRemaining - BytesConsumed));
+                auto StreamCtx = SpinQuicStream::Get(Stream);
+                auto BytesRemaining = StreamCtx->PendingRecvLength;
+                if (BytesRemaining != 0 && GetRandom(10) == 0) {
+                    auto BytesConsumed = GetRandom(StreamCtx->PendingRecvLength);
+                    StreamCtx->PendingRecvLength = BytesRemaining - BytesConsumed;
                     MsQuic.StreamReceiveComplete(Stream, BytesConsumed);
                 } else {
-                    MsQuic.SetContext(Stream, nullptr);
-                    MsQuic.StreamReceiveComplete(Stream, (uint64_t)BytesRemaining);
+                    StreamCtx->PendingRecvLength = 0;
+                    MsQuic.StreamReceiveComplete(Stream, StreamCtx->PendingRecvLength);
                 }
             }
             break;
@@ -808,7 +1009,7 @@ void Spin(Gbs& Gb, LockableVector<HQUIC>& Connections, std::vector<HQUIC>* Liste
                 Stream = ctx->TryGetStream(true);
             }
             if (Stream == nullptr) continue;
-            MsQuic.StreamClose(Stream);
+            delete SpinQuicStream::Get(Stream);
             break;
         }
         case SpinQuicAPICallSetParamConnection: {
@@ -872,6 +1073,19 @@ void Spin(Gbs& Gb, LockableVector<HQUIC>& Connections, std::vector<HQUIC>* Liste
             BAIL_ON_NULL_CONNECTION(Connection);
             auto Buffer = &Gb.Buffers[GetRandom(BufferCount)];
             MsQuic.DatagramSend(Connection, Buffer, 1, (QUIC_SEND_FLAGS)GetRandom(8), nullptr);
+            break;
+        }
+        case SpinQuicAPICallCompleteTicketValidation: {
+            auto Connection = Connections.TryGetRandom();
+            BAIL_ON_NULL_CONNECTION(Connection);
+            MsQuic.ConnectionResumptionTicketValidationComplete(Connection, GetRandom(2) == 0);
+            break;
+        }
+        case SpinQuicAPICallCompleteCertificateValidation: {
+            auto Connection = Connections.TryGetRandom();
+            BAIL_ON_NULL_CONNECTION(Connection);
+            MsQuic.ConnectionCertificateValidationComplete(Connection, GetRandom(2) == 0, QUIC_TLS_ALERT_CODE_BAD_CERTIFICATE);
+            break;
         }
         default:
             break;
@@ -904,7 +1118,7 @@ CXPLAT_THREAD_CALLBACK(ServerSpin, Context)
         QuicSettings.IsSet.PeerUnidiStreamCount = TRUE;
         // TODO - Randomize more of the settings.
 
-        auto CredConfig = CxPlatGetSelfSignedCert(CXPLAT_SELF_SIGN_CERT_USER, FALSE);
+        auto CredConfig = CxPlatGetSelfSignedCert(CXPLAT_SELF_SIGN_CERT_USER, FALSE, NULL);
         if (!CredConfig) {
             continue;
         }
@@ -932,7 +1146,7 @@ CXPLAT_THREAD_CALLBACK(ServerSpin, Context)
         }
 
         for (uint32_t i = 0; i < Gb.AlpnCount; ++i) {
-            for (auto &pt : Settings.Ports) {
+            for (auto &pt : SpinSettings.Ports) {
                 HQUIC Listener;
                 if (!QUIC_SUCCEEDED(
                     (MsQuic.ListenerOpen(Gb.Registration, SpinQuicServerHandleListenerEvent, &ListenerCtx, &Listener)))) {
@@ -1033,7 +1247,7 @@ BOOLEAN QUIC_API DatapathHookReceiveCallback(struct CXPLAT_RECV_DATA* /* Datagra
 {
     uint8_t RandomValue;
     CxPlatRandom(sizeof(RandomValue), &RandomValue);
-    return (RandomValue % 100) < Settings.LossPercent;
+    return (RandomValue % 100) < SpinSettings.LossPercent;
 }
 
 BOOLEAN QUIC_API DatapathHookSendCallback(QUIC_ADDR* /* RemoteAddress */, QUIC_ADDR* /* LocalAddress */, struct CXPLAT_SEND_DATA* /* SendData */)
@@ -1069,7 +1283,7 @@ void PrintHelpText(void)
 CXPLAT_THREAD_CALLBACK(RunThread, Context)
 {
     UNREFERENCED_PARAMETER(Context);
-    SpinQuicWatchdog Watchdog((uint32_t)Settings.RunTimeMs + WATCHDOG_WIGGLE_ROOM);
+    SpinQuicWatchdog Watchdog((uint32_t)SpinSettings.RunTimeMs + WATCHDOG_WIGGLE_ROOM);
     uint16_t ThreadID = FuzzData ? FuzzingData::NumSpinThread : UINT16_MAX;
     do {
         Gbs Gb;
@@ -1091,6 +1305,10 @@ CXPLAT_THREAD_CALLBACK(RunThread, Context)
             break;
         }
 
+        if (ExecConfig) {
+            MsQuic.SetParam(nullptr, QUIC_PARAM_GLOBAL_EXECUTION_CONFIG, ExecConfigSize, ExecConfig);
+        }
+
         QUIC_SETTINGS QuicSettings{0};
         CXPLAT_THREAD_CONFIG Config = { 0 };
 
@@ -1108,6 +1326,18 @@ CXPLAT_THREAD_CALLBACK(RunThread, Context)
             }
         }
 
+        if (0 == GetRandom(4)) {
+            uint8_t StatelessResetKey[QUIC_STATELESS_RESET_KEY_LENGTH];
+            CxPlatRandom(sizeof(StatelessResetKey), StatelessResetKey);
+            if (!QUIC_SUCCEEDED(MsQuic.SetParam(
+                    nullptr,
+                    QUIC_PARAM_GLOBAL_STATELESS_RESET_KEY,
+                    sizeof(StatelessResetKey),
+                    StatelessResetKey))) {
+                break;
+            }
+        }
+
         QUIC_REGISTRATION_CONFIG RegConfig;
         RegConfig.AppName = "spinquic";
         RegConfig.ExecutionProfile = FuzzData ? QUIC_EXECUTION_PROFILE_TYPE_SCAVENGER : (QUIC_EXECUTION_PROFILE)GetRandom(4);
@@ -1116,18 +1346,18 @@ CXPLAT_THREAD_CALLBACK(RunThread, Context)
             break;
         }
 
-        Gb.Alpns = (QUIC_BUFFER*)malloc(sizeof(QUIC_BUFFER) * Settings.SessionCount);
+        Gb.Alpns = (QUIC_BUFFER*)malloc(sizeof(QUIC_BUFFER) * SpinSettings.SessionCount);
         ASSERT_ON_NOT(Gb.Alpns);
-        Gb.AlpnCount = Settings.SessionCount;
+        Gb.AlpnCount = SpinSettings.SessionCount;
 
-        for (uint32_t j = 0; j < Settings.SessionCount; j++) {
-            Gb.Alpns[j].Length = (uint32_t)strlen(Settings.AlpnPrefix);
+        for (uint32_t j = 0; j < SpinSettings.SessionCount; j++) {
+            Gb.Alpns[j].Length = (uint32_t)strlen(SpinSettings.AlpnPrefix);
             if (j != 0) {
                 Gb.Alpns[j].Length++;
             }
             Gb.Alpns[j].Buffer = (uint8_t*)malloc(Gb.Alpns[j].Length);
             ASSERT_ON_NOT(Gb.Alpns[j].Buffer);
-            memcpy(Gb.Alpns[j].Buffer, Settings.AlpnPrefix, Gb.Alpns[j].Length);
+            memcpy(Gb.Alpns[j].Buffer, SpinSettings.AlpnPrefix, Gb.Alpns[j].Length);
             if (j != 0) {
                 Gb.Alpns[j].Buffer[Gb.Alpns[j].Length-1] = (uint8_t)j;
             }
@@ -1169,14 +1399,14 @@ CXPLAT_THREAD_CALLBACK(RunThread, Context)
         // Start worker threads
         //
 
-        if (Settings.RunServer) {
+        if (SpinSettings.RunServer) {
             Config.Name = "spin_server";
             Config.Callback = ServerSpin;
             Config.Context = &Gb;
             ASSERT_ON_FAILURE(CxPlatThreadCreate(&Config, &Threads[0]));
         }
 
-        if (Settings.RunClient) {
+        if (SpinSettings.RunClient) {
             Config.Name = "spin_client";
             Config.Callback = ClientSpin;
             Config.Context = &Gb;
@@ -1187,12 +1417,12 @@ CXPLAT_THREAD_CALLBACK(RunThread, Context)
         // Wait on worker threads
         //
 
-        if (Settings.RunClient) {
+        if (SpinSettings.RunClient) {
             CxPlatThreadWait(&Threads[1]);
             CxPlatThreadDelete(&Threads[1]);
         }
 
-        if (Settings.RunServer) {
+        if (SpinSettings.RunServer) {
             CxPlatThreadWait(&Threads[0]);
             CxPlatThreadDelete(&Threads[0]);
         }
@@ -1208,58 +1438,89 @@ void start() {
     CxPlatInitialize();
     CxPlatLockInitialize(&RunThreadLock);
 
-    //
-    // Initial MsQuicOpen2 and initialization.
-    //
-    const QUIC_API_TABLE* TempMsQuic = nullptr;
-    ASSERT_ON_FAILURE(MsQuicOpen2(&TempMsQuic));
-    CxPlatCopyMemory(&MsQuic, TempMsQuic, sizeof(MsQuic));
+    {
+        SpinQuicWatchdog Watchdog((uint32_t)SpinSettings.RunTimeMs + SpinSettings.RepeatCount*WATCHDOG_WIGGLE_ROOM);
 
-    if (Settings.AllocFailDenominator > 0) {
-        if (QUIC_FAILED(
-            MsQuic.SetParam(
-                nullptr,
-                QUIC_PARAM_GLOBAL_ALLOC_FAIL_DENOMINATOR,
-                sizeof(Settings.AllocFailDenominator),
-                &Settings.AllocFailDenominator))) {
-            printf("Setting Allocation Failure Denominator failed.\n");
-        }
-    }
+        //
+        // Initial MsQuicOpen2 and initialization.
+        //
+        const QUIC_API_TABLE* TempMsQuic = nullptr;
+        ASSERT_ON_FAILURE(MsQuicOpen2(&TempMsQuic));
+        CxPlatCopyMemory(&MsQuic, TempMsQuic, sizeof(MsQuic));
 
-    if (Settings.LossPercent != 0) {
-        QUIC_TEST_DATAPATH_HOOKS* Value = &DataPathHooks;
-        if (QUIC_FAILED(
-            MsQuic.SetParam(
-                nullptr,
-                QUIC_PARAM_GLOBAL_TEST_DATAPATH_HOOKS,
-                sizeof(Value),
-                &Value))) {
-            printf("Setting Datapath hooks failed.\n");
-        }
-    }
-
-    MsQuicClose(TempMsQuic);
-
-    Settings.RunTimeMs = Settings.RunTimeMs / Settings.RepeatCount;
-    for (uint32_t i = 0; i < Settings.RepeatCount; i++) {
-
-        CXPLAT_THREAD_CONFIG Config = {
-            0, 0, "spin_run", RunThread, nullptr
-        };
-        CXPLAT_THREAD Threads[4];
-        uint32_t Count = FuzzData ? (uint32_t)FuzzingData::NumSpinThread / 2 : (uint32_t)(rand() % (ARRAYSIZE(Threads) - 1) + 1);
-
-        for (uint32_t j = 0; j < Count; ++j) {
-            ASSERT_ON_FAILURE(CxPlatThreadCreate(&Config, &Threads[j]));
+        if (SpinSettings.AllocFailDenominator > 0) {
+            if (QUIC_FAILED(
+                MsQuic.SetParam(
+                    nullptr,
+                    QUIC_PARAM_GLOBAL_ALLOC_FAIL_DENOMINATOR,
+                    sizeof(SpinSettings.AllocFailDenominator),
+                    &SpinSettings.AllocFailDenominator))) {
+                printf("Setting Allocation Failure Denominator failed.\n");
+            }
         }
 
-        for (uint32_t j = 0; j < Count; ++j) {
-            CxPlatThreadWait(&Threads[j]);
-            CxPlatThreadDelete(&Threads[j]);
+        if (SpinSettings.LossPercent != 0) {
+            QUIC_TEST_DATAPATH_HOOKS* Value = &DataPathHooks;
+            if (QUIC_FAILED(
+                MsQuic.SetParam(
+                    nullptr,
+                    QUIC_PARAM_GLOBAL_TEST_DATAPATH_HOOKS,
+                    sizeof(Value),
+                    &Value))) {
+                printf("Setting Datapath hooks failed.\n");
+            }
+        }
+
+        MsQuicClose(TempMsQuic);
+
+#ifndef FUZZING
+        uint16_t ThreadID = UINT16_MAX;
+        if (ExecConfig) {
+            free(ExecConfig);
+            ExecConfig = nullptr;
+            ExecConfigSize = 0;
+        }
+
+        if (GetRandom(2) == 0) {
+            const uint32_t ProcCount =
+                CxPlatProcMaxCount() == 1 ?
+                    1 :
+                    1 + GetRandom(CxPlatProcMaxCount() - 1);
+            printf("Using %u partitions...\n", ProcCount);
+            ExecConfigSize = QUIC_EXECUTION_CONFIG_MIN_SIZE + sizeof(uint16_t)*ProcCount;
+            ExecConfig = (QUIC_EXECUTION_CONFIG*)malloc(ExecConfigSize);
+            ExecConfig->Flags = QUIC_EXECUTION_CONFIG_FLAG_NONE;
+            ExecConfig->PollingIdleTimeoutUs = 0; // TODO - Randomize?
+            ExecConfig->ProcessorCount = ProcCount;
+            for (uint32_t i = 0; i < ProcCount; ++i) {
+                ExecConfig->ProcessorList[i] = (uint16_t)i;
+            }
+        }
+#endif
+
+        SpinSettings.RunTimeMs = SpinSettings.RunTimeMs / SpinSettings.RepeatCount;
+        for (uint32_t i = 0; i < SpinSettings.RepeatCount; i++) {
+
+            CXPLAT_THREAD_CONFIG Config = {
+                0, 0, "spin_run", RunThread, nullptr
+            };
+            CXPLAT_THREAD Threads[4];
+            uint32_t Count = FuzzData ? (uint32_t)FuzzingData::NumSpinThread / 2 : (uint32_t)(rand() % (ARRAYSIZE(Threads) - 1) + 1);
+
+            for (uint32_t j = 0; j < Count; ++j) {
+                ASSERT_ON_FAILURE(CxPlatThreadCreate(&Config, &Threads[j]));
+            }
+
+            for (uint32_t j = 0; j < Count; ++j) {
+                CxPlatThreadWait(&Threads[j]);
+                CxPlatThreadDelete(&Threads[j]);
+            }
         }
     }
 
     CxPlatLockUninitialize(&RunThreadLock);
+    CxPlatUninitialize();
+    CxPlatSystemUnload();
 }
 
 #ifdef FUZZING
@@ -1274,23 +1535,24 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
         return 0;
     }
 
-    Settings.RunServer = true;
-    Settings.RunClient = true;
+    SpinSettings.RunServer = true;
+    SpinSettings.RunClient = true;
     // OSS-Fuzz timeout is 25 sec
-    Settings.RunTimeMs = 10000; // 10 sec
-    Settings.ServerName = "127.0.0.1";
-    Settings.Ports = std::vector<uint16_t>({9998, 9999});
-    Settings.AlpnPrefix = "spin";
-    Settings.MaxOperationCount = UINT64_MAX;
-    Settings.MaxFuzzIterationCount = 2;
-    Settings.LossPercent = 1;
-    Settings.AllocFailDenominator = 0;
-    Settings.RepeatCount = 1;
+    SpinSettings.RunTimeMs = 10000; // 10 sec
+    SpinSettings.ServerName = "127.0.0.1";
+    SpinSettings.Ports = std::vector<uint16_t>({9998, 9999});
+    SpinSettings.AlpnPrefix = "spin";
+    SpinSettings.MaxOperationCount = UINT64_MAX;
+    SpinSettings.MaxFuzzIterationCount = 2;
+    SpinSettings.LossPercent = 1;
+    SpinSettings.AllocFailDenominator = 0;
+    SpinSettings.RepeatCount = 1;
 
     start();
     delete FuzzData;
     return 0;
 }
+
 #else
 
 int
@@ -1302,48 +1564,48 @@ main(int argc, char **argv)
     }
 
     if (strcmp(argv[1], "server") == 0) {
-        Settings.RunServer = true;
+        SpinSettings.RunServer = true;
     } else if (strcmp(argv[1], "client") == 0) {
-        Settings.RunClient = true;
+        SpinSettings.RunClient = true;
     } else if (strcmp(argv[1], "both") == 0) {
-        Settings.RunServer = true;
-        Settings.RunClient = true;
+        SpinSettings.RunServer = true;
+        SpinSettings.RunClient = true;
     } else {
         printf("Must specify one of the following as the first argument: 'server' 'client' 'both'\n\n");
         PrintHelpText();
     }
 
-    Settings.RunTimeMs = 60000;
-    Settings.ServerName = "127.0.0.1";
-    Settings.Ports = std::vector<uint16_t>({9998, 9999});
-    Settings.AlpnPrefix = "spin";
-    Settings.MaxOperationCount = UINT64_MAX;
-    Settings.MaxFuzzIterationCount = UINT64_MAX;
-    Settings.LossPercent = 1;
-    Settings.AllocFailDenominator = 0;
-    Settings.RepeatCount = 1;
+    SpinSettings.RunTimeMs = 60000;
+    SpinSettings.ServerName = "127.0.0.1";
+    SpinSettings.Ports = std::vector<uint16_t>({9998, 9999});
+    SpinSettings.AlpnPrefix = "spin";
+    SpinSettings.MaxOperationCount = UINT64_MAX;
+    SpinSettings.MaxFuzzIterationCount = UINT64_MAX;
+    SpinSettings.LossPercent = 5;
+    SpinSettings.AllocFailDenominator = 0;
+    SpinSettings.RepeatCount = 1;
 
-    TryGetValue(argc, argv, "timeout", &Settings.RunTimeMs);
-    TryGetValue(argc, argv, "max_ops", &Settings.MaxOperationCount);
-    TryGetValue(argc, argv, "loss", &Settings.LossPercent);
-    TryGetValue(argc, argv, "repeat_count", &Settings.RepeatCount);
-    TryGetValue(argc, argv, "alloc_fail", &Settings.AllocFailDenominator);
+    TryGetValue(argc, argv, "timeout", &SpinSettings.RunTimeMs);
+    TryGetValue(argc, argv, "max_ops", &SpinSettings.MaxOperationCount);
+    TryGetValue(argc, argv, "loss", &SpinSettings.LossPercent);
+    TryGetValue(argc, argv, "repeat_count", &SpinSettings.RepeatCount);
+    TryGetValue(argc, argv, "alloc_fail", &SpinSettings.AllocFailDenominator);
 
-    if (Settings.RepeatCount == 0) {
+    if (SpinSettings.RepeatCount == 0) {
         printf("Must specify a non 0 repeat count\n");
         PrintHelpText();
     }
 
-    if (Settings.RunClient) {
+    if (SpinSettings.RunClient) {
         uint16_t dstPort = 0;
         if (TryGetValue(argc, argv, "dstport", &dstPort)) {
-            Settings.Ports = std::vector<uint16_t>({dstPort});
+            SpinSettings.Ports = std::vector<uint16_t>({dstPort});
         }
-        TryGetValue(argc, argv, "target", &Settings.ServerName);
-        if (TryGetValue(argc, argv, "alpn", &Settings.AlpnPrefix)) {
-            Settings.SessionCount = 1; // Default session count to 1 if ALPN explicitly specified.
+        TryGetValue(argc, argv, "target", &SpinSettings.ServerName);
+        if (TryGetValue(argc, argv, "alpn", &SpinSettings.AlpnPrefix)) {
+            SpinSettings.SessionCount = 1; // Default session count to 1 if ALPN explicitly specified.
         }
-        TryGetValue(argc, argv, "sessions", &Settings.SessionCount);
+        TryGetValue(argc, argv, "sessions", &SpinSettings.SessionCount);
     }
 
     uint32_t RngSeed = 0;

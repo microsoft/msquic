@@ -10,29 +10,47 @@
 #include "quic_gtest.cpp.clog.h"
 #endif
 
+#ifdef QUIC_TEST_DATAPATH_HOOKS_ENABLED
+#pragma message("Test compiled with datapath hooks enabled")
+#endif
+
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
+#pragma message("Test compiled with preview features enabled")
+#endif
+
 bool TestingKernelMode = false;
 bool PrivateTestLibrary = false;
 bool UseDuoNic = false;
+#if defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
+bool UseQTIP = false;
+#endif
 const MsQuicApi* MsQuic;
+const char* OsRunner = nullptr;
+uint32_t Timeout = UINT32_MAX;
 QUIC_CREDENTIAL_CONFIG ServerSelfSignedCredConfig;
 QUIC_CREDENTIAL_CONFIG ServerSelfSignedCredConfigClientAuth;
 QUIC_CREDENTIAL_CONFIG ClientCertCredConfig;
 QuicDriverClient DriverClient;
 
+bool IsWindows2019() { return OsRunner && strcmp(OsRunner, "windows-2019") == 0; }
+bool IsWindows2022() { return OsRunner && strcmp(OsRunner, "windows-2022") == 0; }
+
 class QuicTestEnvironment : public ::testing::Environment {
     QuicDriverService DriverService;
     const QUIC_CREDENTIAL_CONFIG* SelfSignedCertParams;
     const QUIC_CREDENTIAL_CONFIG* ClientCertParams;
+    CxPlatWatchdog* watchdog {nullptr};
 public:
     void SetUp() override {
         CxPlatSystemLoad();
         ASSERT_TRUE(QUIC_SUCCEEDED(CxPlatInitialize()));
+        watchdog = new CxPlatWatchdog(Timeout);
         ASSERT_TRUE((SelfSignedCertParams =
             CxPlatGetSelfSignedCert(
                 TestingKernelMode ?
                     CXPLAT_SELF_SIGN_CERT_MACHINE :
                     CXPLAT_SELF_SIGN_CERT_USER,
-                FALSE
+                FALSE, NULL
                 )) != nullptr);
 
         ASSERT_TRUE((ClientCertParams =
@@ -40,7 +58,7 @@ public:
                 TestingKernelMode ?
                     CXPLAT_SELF_SIGN_CERT_MACHINE :
                     CXPLAT_SELF_SIGN_CERT_USER,
-                TRUE
+                TRUE, NULL
                 )) != nullptr);
 
         if (TestingKernelMode) {
@@ -71,6 +89,17 @@ public:
             printf("Initializing for User Mode tests\n");
             MsQuic = new(std::nothrow) MsQuicApi();
             ASSERT_TRUE(QUIC_SUCCEEDED(MsQuic->GetInitStatus()));
+#if defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
+            if (UseQTIP) {
+                QUIC_EXECUTION_CONFIG Config = {QUIC_EXECUTION_CONFIG_FLAG_QTIP, 10000, 0, {0}};
+                ASSERT_TRUE(QUIC_SUCCEEDED(
+                    MsQuic->SetParam(
+                        nullptr,
+                        QUIC_PARAM_GLOBAL_EXECUTION_CONFIG,
+                        sizeof(Config),
+                        &Config)));
+            }
+#endif
             memcpy(&ServerSelfSignedCredConfig, SelfSignedCertParams, sizeof(QUIC_CREDENTIAL_CONFIG));
             memcpy(&ServerSelfSignedCredConfigClientAuth, SelfSignedCertParams, sizeof(QUIC_CREDENTIAL_CONFIG));
             ServerSelfSignedCredConfigClientAuth.Flags |=
@@ -95,6 +124,7 @@ public:
 
         CxPlatUninitialize();
         CxPlatSystemUnload();
+        delete watchdog;
     }
 };
 
@@ -261,6 +291,9 @@ TEST(ParameterValidation, ValidateGetPerfCounters) {
 }
 
 TEST(ParameterValidation, ValidateConfiguration) {
+#ifdef QUIC_TEST_SCHANNEL_FLAGS
+    if (IsWindows2022()) GTEST_SKIP(); // Not supported with Schannel on WS2022
+#endif
     TestLogger Logger("QuicTestValidateConfiguration");
     if (TestingKernelMode) {
         ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_VALIDATE_CONFIGURATION));
@@ -558,6 +591,9 @@ TEST_P(WithMtuArgs, MtuDiscovery) {
 #endif // QUIC_TEST_DATAPATH_HOOKS_ENABLED
 
 TEST(Alpn, ValidAlpnLengths) {
+#ifdef QUIC_TEST_SCHANNEL_FLAGS
+    if (IsWindows2022()) GTEST_SKIP(); // Not supported with Schannel on WS2022
+#endif
     TestLogger Logger("QuicTestValidAlpnLengths");
     if (TestingKernelMode) {
         ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_VALID_ALPN_LENGTHS));
@@ -662,7 +698,42 @@ TEST_P(WithHandshakeArgs1, Resume) {
     }
 }
 
+TEST_P(WithHandshakeArgs1, ResumeAsync) {
+#ifdef QUIC_DISABLE_0RTT_TESTS
+    GTEST_SKIP_("Schannel doesn't support 0RTT yet");
+#endif
+    TestLoggerT<ParamType> Logger("QuicTestConnect-ResumeAsync", GetParam());
+    if (TestingKernelMode) {
+        QUIC_RUN_CONNECT_PARAMS Params = {
+            GetParam().Family,
+            (uint8_t)GetParam().ServerStatelessRetry,
+            0,  // ClientUsesOldVersion
+            (uint8_t)GetParam().MultipleALPNs,
+            (uint8_t)GetParam().GreaseQuicBitExtension,
+            QUIC_TEST_ASYNC_CONFIG_DISABLED,
+            (uint8_t)GetParam().MultiPacketClientInitial,
+            QUIC_TEST_RESUMPTION_ENABLED_ASYNC,
+            0   // RandomLossPercentage
+        };
+        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_CONNECT, Params));
+    } else {
+        QuicTestConnect(
+            GetParam().Family,
+            GetParam().ServerStatelessRetry,
+            false,  // ClientUsesOldVersion
+            GetParam().MultipleALPNs,
+            GetParam().GreaseQuicBitExtension,
+            QUIC_TEST_ASYNC_CONFIG_DISABLED,
+            GetParam().MultiPacketClientInitial,
+            QUIC_TEST_RESUMPTION_ENABLED_ASYNC,
+            0);     // RandomLossPercentage
+    }
+}
+
 TEST_P(WithHandshakeArgs1, ResumeRejection) {
+#ifdef QUIC_TEST_SCHANNEL_FLAGS
+    if (IsWindows2022()) GTEST_SKIP(); // Not supported with Schannel on WS2022
+#endif
     TestLoggerT<ParamType> Logger("QuicTestConnect-ResumeRejection", GetParam());
     if (TestingKernelMode) {
         QUIC_RUN_CONNECT_PARAMS Params = {
@@ -690,6 +761,70 @@ TEST_P(WithHandshakeArgs1, ResumeRejection) {
             0);     // RandomLossPercentage
     }
 }
+
+TEST_P(WithHandshakeArgs1, ResumeRejectionByServerApp) {
+#ifdef QUIC_DISABLE_0RTT_TESTS
+    GTEST_SKIP_("Schannel doesn't support 0RTT yet");
+#endif
+    TestLoggerT<ParamType> Logger("QuicTestConnect-ResumeRejectionByServerApp", GetParam());
+    if (TestingKernelMode) {
+        QUIC_RUN_CONNECT_PARAMS Params = {
+            GetParam().Family,
+            (uint8_t)GetParam().ServerStatelessRetry,
+            0,  // ClientUsesOldVersion
+            (uint8_t)GetParam().MultipleALPNs,
+            (uint8_t)GetParam().GreaseQuicBitExtension,
+            QUIC_TEST_ASYNC_CONFIG_DISABLED,
+            (uint8_t)GetParam().MultiPacketClientInitial,
+            QUIC_TEST_RESUMPTION_REJECTED_BY_SERVER_APP,
+            0   // RandomLossPercentage
+        };
+        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_CONNECT, Params));
+    } else {
+        QuicTestConnect(
+            GetParam().Family,
+            GetParam().ServerStatelessRetry,
+            false,  // ClientUsesOldVersion
+            GetParam().MultipleALPNs,
+            GetParam().GreaseQuicBitExtension,
+            QUIC_TEST_ASYNC_CONFIG_DISABLED,
+            GetParam().MultiPacketClientInitial,
+            QUIC_TEST_RESUMPTION_REJECTED_BY_SERVER_APP,
+            0);     // RandomLossPercentage
+    }
+}
+
+TEST_P(WithHandshakeArgs1, ResumeRejectionByServerAppAsync) {
+#ifdef QUIC_DISABLE_0RTT_TESTS
+    GTEST_SKIP_("Schannel doesn't support 0RTT yet");
+#endif
+    TestLoggerT<ParamType> Logger("QuicTestConnect-ResumeRejectionByServerAppAsync", GetParam());
+    if (TestingKernelMode) {
+        QUIC_RUN_CONNECT_PARAMS Params = {
+            GetParam().Family,
+            (uint8_t)GetParam().ServerStatelessRetry,
+            0,  // ClientUsesOldVersion
+            (uint8_t)GetParam().MultipleALPNs,
+            (uint8_t)GetParam().GreaseQuicBitExtension,
+            QUIC_TEST_ASYNC_CONFIG_DISABLED,
+            (uint8_t)GetParam().MultiPacketClientInitial,
+            QUIC_TEST_RESUMPTION_REJECTED_BY_SERVER_APP_ASYNC,
+            0   // RandomLossPercentage
+        };
+        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_CONNECT, Params));
+    } else {
+        QuicTestConnect(
+            GetParam().Family,
+            GetParam().ServerStatelessRetry,
+            false,  // ClientUsesOldVersion
+            GetParam().MultipleALPNs,
+            GetParam().GreaseQuicBitExtension,
+            QUIC_TEST_ASYNC_CONFIG_DISABLED,
+            GetParam().MultiPacketClientInitial,
+            QUIC_TEST_RESUMPTION_REJECTED_BY_SERVER_APP_ASYNC,
+            0);     // RandomLossPercentage
+    }
+}
 #endif // QUIC_DISABLE_RESUMPTION
 
 #ifndef QUIC_DISABLE_SHARED_PORT_TESTS
@@ -708,6 +843,9 @@ TEST_P(WithFamilyArgs, InterfaceBinding) {
     if (TestingKernelMode) {
         ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_INTERFACE_BINDING, GetParam().Family));
     } else {
+        if (UseDuoNic) {
+            GTEST_SKIP_("DuoNIC is not supported");
+        }
         QuicTestInterfaceBinding(GetParam().Family);
     }
 }
@@ -868,22 +1006,67 @@ TEST_P(WithFamilyArgs, FailedVersionNegotiation) {
         QuicTestFailedVersionNegotiation(GetParam().Family);
     }
 }
+
+TEST_P(WithFeatureSupportArgs, ReliableResetNegotiation) {
+    TestLoggerT<ParamType> Logger("ReliableResetNegotiation", GetParam());
+    if (TestingKernelMode) {
+        QUIC_RUN_FEATURE_NEGOTIATION Params = {
+            GetParam().Family,
+            GetParam().ServerSupport,
+            GetParam().ClientSupport
+        };
+        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RELIABLE_RESET_NEGOTIATION, Params));
+    } else {
+        QuicTestReliableResetNegotiation(GetParam().Family, GetParam().ServerSupport, GetParam().ClientSupport);
+    }
+}
+
+TEST_P(WithFeatureSupportArgs, OneWayDelayNegotiation) {
+    TestLoggerT<ParamType> Logger("OneWayDelayNegotiation", GetParam());
+    if (TestingKernelMode) {
+        QUIC_RUN_FEATURE_NEGOTIATION Params = {
+            GetParam().Family,
+            GetParam().ServerSupport,
+            GetParam().ClientSupport
+        };
+        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_ONE_WAY_DELAY_NEGOTIATION, Params));
+    } else {
+        QuicTestOneWayDelayNegotiation(GetParam().Family, GetParam().ServerSupport, GetParam().ClientSupport);
+    }
+}
+
 #endif // QUIC_API_ENABLE_PREVIEW_FEATURES
 
-TEST_P(WithHandshakeArgs5, CustomCertificateValidation) {
-    TestLoggerT<ParamType> Logger("QuicTestCustomCertificateValidation", GetParam());
+TEST_P(WithHandshakeArgs5, CustomServerCertificateValidation) {
+    TestLoggerT<ParamType> Logger("QuicTestCustomServerCertificateValidation", GetParam());
     if (TestingKernelMode) {
         QUIC_RUN_CUSTOM_CERT_VALIDATION Params = {
             GetParam().AcceptCert,
             GetParam().AsyncValidation
         };
-        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_CUSTOM_CERT_VALIDATION, Params));
+        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_CUSTOM_SERVER_CERT_VALIDATION, Params));
     } else {
-        QuicTestCustomCertificateValidation(GetParam().AcceptCert, GetParam().AsyncValidation);
+        QuicTestCustomServerCertificateValidation(GetParam().AcceptCert, GetParam().AsyncValidation);
+    }
+}
+
+TEST_P(WithHandshakeArgs5, CustomClientCertificateValidation) {
+    TestLoggerT<ParamType> Logger("QuicTestCustomClientCertificateValidation", GetParam());
+    if (TestingKernelMode) {
+        QUIC_RUN_CUSTOM_CERT_VALIDATION Params = {
+            GetParam().AcceptCert,
+            GetParam().AsyncValidation
+        };
+        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_CUSTOM_CLIENT_CERT_VALIDATION, Params));
+    } else {
+        QuicTestCustomClientCertificateValidation(GetParam().AcceptCert, GetParam().AsyncValidation);
     }
 }
 
 TEST_P(WithHandshakeArgs6, ConnectClientCertificate) {
+#ifdef QUIC_TEST_SCHANNEL_FLAGS
+    if (IsWindows2022()) GTEST_SKIP(); // Not supported with Schannel on WS2022
+#endif
     TestLoggerT<ParamType> Logger("QuicTestConnectClientCertificate", GetParam());
     if (TestingKernelMode) {
         QUIC_RUN_CONNECT_CLIENT_CERT Params = {
@@ -1112,6 +1295,9 @@ TEST(CredValidation, ConnectExpiredClientCertificate) {
 }
 
 TEST(CredValidation, ConnectValidClientCertificate) {
+#ifdef QUIC_TEST_SCHANNEL_FLAGS
+    if (IsWindows2022()) GTEST_SKIP(); // Not supported with Schannel on WS2022
+#endif
     QUIC_RUN_CRED_VALIDATION Params;
     for (auto CredType : { QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH, QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH_STORE }) {
         ASSERT_TRUE(CxPlatGetTestCertificate(
@@ -1220,6 +1406,9 @@ TEST_P(WithHandshakeArgs4, RandomLossResume) {
     }
 }
 TEST_P(WithHandshakeArgs4, RandomLossResumeRejection) {
+#ifdef QUIC_TEST_SCHANNEL_FLAGS
+    if (IsWindows2022()) GTEST_SKIP(); // Not supported with Schannel on WS2022
+#endif
     TestLoggerT<ParamType> Logger("QuicTestConnect-RandomLossResumeRejection", GetParam());
     if (TestingKernelMode) {
         QUIC_RUN_CONNECT_PARAMS Params = {
@@ -1251,6 +1440,7 @@ TEST_P(WithHandshakeArgs4, RandomLossResumeRejection) {
 #endif // QUIC_TEST_DATAPATH_HOOKS_ENABLED
 
 TEST_P(WithFamilyArgs, Unreachable) {
+    if (GetParam().Family == 4 && IsWindows2019()) GTEST_SKIP(); // IPv4 unreachable doesn't work on 2019
     TestLoggerT<ParamType> Logger("QuicTestConnectUnreachable", GetParam());
     if (TestingKernelMode) {
         ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_CONNECT_UNREACHABLE, GetParam().Family));
@@ -1306,6 +1496,14 @@ TEST_P(WithFamilyArgs, ClientBlockedSourcePort) {
 
 #if QUIC_TEST_DATAPATH_HOOKS_ENABLED
 TEST_P(WithFamilyArgs, RebindPort) {
+#if defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
+    if (UseQTIP) {
+        //
+        // NAT rebind doesn't make sense for TCP and QTIP.
+        //
+        return;
+    }
+#endif
     TestLoggerT<ParamType> Logger("QuicTestNatPortRebind", GetParam());
     if (TestingKernelMode) {
         QUIC_RUN_REBIND_PARAMS Params = {
@@ -1319,6 +1517,14 @@ TEST_P(WithFamilyArgs, RebindPort) {
 }
 
 TEST_P(WithRebindPaddingArgs, RebindPortPadded) {
+#if defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
+    if (UseQTIP) {
+        //
+        // NAT rebind doesn't make sense for TCP and QTIP.
+        //
+        return;
+    }
+#endif
     TestLoggerT<ParamType> Logger("QuicTestNatPortRebind(pad)", GetParam());
     if (TestingKernelMode) {
         QUIC_RUN_REBIND_PARAMS Params = {
@@ -1332,6 +1538,14 @@ TEST_P(WithRebindPaddingArgs, RebindPortPadded) {
 }
 
 TEST_P(WithFamilyArgs, RebindAddr) {
+#if defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
+    if (UseQTIP) {
+        //
+        // NAT rebind doesn't make sense for TCP and QTIP.
+        //
+        return;
+    }
+#endif
     TestLoggerT<ParamType> Logger("QuicTestNatAddrRebind", GetParam());
     if (TestingKernelMode) {
         QUIC_RUN_REBIND_PARAMS Params = {
@@ -1340,11 +1554,34 @@ TEST_P(WithFamilyArgs, RebindAddr) {
         };
         ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_NAT_ADDR_REBIND, Params));
     } else {
-        QuicTestNatAddrRebind(GetParam().Family, 0);
+        QuicTestNatAddrRebind(GetParam().Family, 0, FALSE);
+    }
+}
+
+TEST_P(WithFamilyArgs, RebindDatapathAddr) {
+#if defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
+    if (UseQTIP) {
+        //
+        // NAT rebind doesn't make sense for TCP and QTIP.
+        //
+        return;
+    }
+#endif
+    TestLoggerT<ParamType> Logger("QuicTestNatAddrRebind(datapath)", GetParam());
+    if (!TestingKernelMode) {
+        QuicTestNatAddrRebind(GetParam().Family, 0, TRUE);
     }
 }
 
 TEST_P(WithRebindPaddingArgs, RebindAddrPadded) {
+#if defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
+    if (UseQTIP) {
+        //
+        // NAT rebind doesn't make sense for TCP and QTIP.
+        //
+        return;
+    }
+#endif
     TestLoggerT<ParamType> Logger("QuicTestNatAddrRebind(pad)", GetParam());
     if (TestingKernelMode) {
         QUIC_RUN_REBIND_PARAMS Params = {
@@ -1353,7 +1590,7 @@ TEST_P(WithRebindPaddingArgs, RebindAddrPadded) {
         };
         ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_NAT_PORT_REBIND, Params));
     } else {
-        QuicTestNatAddrRebind(GetParam().Family, GetParam().Padding);
+        QuicTestNatAddrRebind(GetParam().Family, GetParam().Padding, FALSE);
     }
 }
 
@@ -1378,6 +1615,9 @@ TEST_P(WithFamilyArgs, ChangeMaxStreamIDs) {
 
 #if QUIC_TEST_DATAPATH_HOOKS_ENABLED
 TEST_P(WithFamilyArgs, LoadBalanced) {
+#ifdef QUIC_TEST_SCHANNEL_FLAGS
+    if (IsWindows2022()) GTEST_SKIP(); // Not supported with Schannel on WS2022
+#endif
     TestLoggerT<ParamType> Logger("QuicTestLoadBalancedHandshake", GetParam());
     if (TestingKernelMode) {
         ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_LOAD_BALANCED_HANDSHAKE, GetParam().Family));
@@ -1386,12 +1626,16 @@ TEST_P(WithFamilyArgs, LoadBalanced) {
     }
 }
 
-TEST_P(WithFamilyArgs, HandshakeSpecificLossPatterns) {
+TEST_P(WithHandshakeArgs10, HandshakeSpecificLossPatterns) {
     TestLoggerT<ParamType> Logger("QuicTestHandshakeSpecificLossPatterns", GetParam());
     if (TestingKernelMode) {
-        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_HANDSHAKE_SPECIFIC_LOSS_PATTERNS, GetParam().Family));
+        QUIC_HANDSHAKE_LOSS_PARAMS Params = {
+            GetParam().Family,
+            GetParam().CcAlgo
+        };
+        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_HANDSHAKE_SPECIFIC_LOSS_PATTERNS, Params));
     } else {
-        QuicTestHandshakeSpecificLossPatterns(GetParam().Family);
+        QuicTestHandshakeSpecificLossPatterns(GetParam().Family, GetParam().CcAlgo);
     }
 }
 #endif // QUIC_TEST_DATAPATH_HOOKS_ENABLED
@@ -1516,6 +1760,16 @@ TEST_P(WithSendArgs3, SendIntermittently) {
 #ifndef QUIC_DISABLE_0RTT_TESTS
 
 TEST_P(WithSend0RttArgs1, Send0Rtt) {
+#if defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
+    if (UseQTIP) {
+        //
+        // QTIP doesn't work with 0-RTT. QTIP only pauses and caches 1 packet during
+        // TCP handshake.
+        //
+        return;
+    }
+#endif
+
     TestLoggerT<ParamType> Logger("Send0Rtt", GetParam());
     if (TestingKernelMode) {
         QUIC_RUN_CONNECT_AND_PING_PARAMS Params = {
@@ -1555,6 +1809,15 @@ TEST_P(WithSend0RttArgs1, Send0Rtt) {
 }
 
 TEST_P(WithSend0RttArgs2, Reject0Rtt) {
+#if defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
+    if (UseQTIP) {
+        //
+        // QTIP doesn't work with 0-RTT. QTIP only pauses and caches 1 packet during
+        // TCP handshake.
+        //
+        return;
+    }
+#endif
     TestLoggerT<ParamType> Logger("Reject0Rtt", GetParam());
     if (TestingKernelMode) {
         QUIC_RUN_CONNECT_AND_PING_PARAMS Params = {
@@ -1630,6 +1893,15 @@ TEST(Misc, ClientDisconnect) {
         ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_CLIENT_DISCONNECT, Param));
     } else {
         QuicTestClientDisconnect(false); // TODO - Support true, when race condition is fixed.
+    }
+}
+
+TEST(Misc, StatelessResetKey) {
+    TestLogger Logger("QuicTestStatelessResetKey");
+    if (TestingKernelMode) {
+        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_STATELESS_RESET_KEY));
+    } else {
+        QuicTestStatelessResetKey();
     }
 }
 
@@ -1788,6 +2060,7 @@ TEST(Misc, SlowReceive) {
 }
 
 #ifdef QUIC_TEST_ALLOC_FAILURES_ENABLED
+#ifndef QUIC_TEST_OPENSSL_FLAGS // Not supported on OpenSSL
 TEST(Misc, NthAllocFail) {
     TestLogger Logger("NthAllocFail");
     if (TestingKernelMode) {
@@ -1796,7 +2069,8 @@ TEST(Misc, NthAllocFail) {
         QuicTestNthAllocFail();
     }
 }
-#endif
+#endif // QUIC_TEST_OPENSSL_FLAGS
+#endif // QUIC_TEST_ALLOC_FAILURES_ENABLED
 
 TEST(Misc, StreamPriority) {
     TestLogger Logger("StreamPriority");
@@ -1840,6 +2114,24 @@ TEST(Misc, StreamBlockUnblockBidiConnFlowControl) {
         ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_STREAM_BLOCK_UNBLOCK_CONN_FLOW_CONTROL, TRUE));
     } else {
         QuicTestStreamBlockUnblockConnFlowControl(TRUE);
+    }
+}
+
+TEST(Misc, StreamReliableReset) {
+    TestLogger Logger("StreamReliableReset");
+    if (TestingKernelMode) {
+        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_STREAM_RELIABLE_RESET));
+    } else {
+        QuicTestStreamReliableReset();
+    }
+}
+
+TEST(Misc, StreamReliableResetMultipleSends) {
+    TestLogger Logger("StreamReliableResetMultipleSends");
+    if (TestingKernelMode) {
+        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_STREAM_RELIABLE_RESET_MULTIPLE_SENDS));
+    } else {
+        QuicTestStreamReliableResetMultipleSends();
     }
 }
 
@@ -1928,7 +2220,7 @@ static BOOLEAN CanRunStorageTests = FALSE;
 
 TEST(Basic, TestStorage) {
     if (!CanRunStorageTests) {
-        return;
+        GTEST_SKIP();
     }
 
     TestLogger Logger("QuicTestStorage");
@@ -1942,7 +2234,7 @@ TEST(Basic, TestStorage) {
 #ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
 TEST(Basic, TestVersionStorage) {
     if (!CanRunStorageTests) {
-        return;
+        GTEST_SKIP();
     }
 
     TestLogger Logger("QuicTestVersionStorage");
@@ -2043,6 +2335,11 @@ INSTANTIATE_TEST_SUITE_P(
     Handshake,
     WithHandshakeArgs7,
     testing::ValuesIn(HandshakeArgs7::Generate()));
+
+INSTANTIATE_TEST_SUITE_P(
+    Handshake,
+    WithFeatureSupportArgs,
+    testing::ValuesIn(FeatureSupportArgs::Generate()));
 #endif
 
 #ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
@@ -2057,6 +2354,13 @@ INSTANTIATE_TEST_SUITE_P(
     WithHandshakeArgs9,
     ::testing::Values(false, true));
 #endif
+#endif
+
+#if QUIC_TEST_DATAPATH_HOOKS_ENABLED
+INSTANTIATE_TEST_SUITE_P(
+    Handshake,
+    WithHandshakeArgs10,
+    testing::ValuesIn(HandshakeArgs10::Generate()));
 #endif
 
 INSTANTIATE_TEST_SUITE_P(
@@ -2160,6 +2464,20 @@ int main(int argc, char** argv) {
             }
         } else if (strcmp("--duoNic", argv[i]) == 0) {
             UseDuoNic = true;
+        } else if (strcmp("--useQTIP", argv[i]) == 0) {
+#if defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
+            UseQTIP = true;
+#else
+            printf("QTIP is not supported in this build.\n");
+            return -1;
+#endif
+        } else if (strstr(argv[i], "--osRunner")) {
+            OsRunner = argv[i] + sizeof("--osRunner");
+        } else if (strcmp("--timeout", argv[i]) == 0) {
+            if (i + 1 < argc) {
+                Timeout = atoi(argv[i + 1]);
+                ++i;
+            }
         }
     }
     ::testing::AddGlobalTestEnvironment(new QuicTestEnvironment);

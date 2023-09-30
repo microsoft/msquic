@@ -93,6 +93,13 @@ typedef struct QUIC_CRYPTO {
     uint32_t RecvTotalConsumed;
 
     //
+    // Indicates Resumption ticket validation is under validation asynchronously
+    //
+    BOOLEAN TicketValidationPending : 1;
+    BOOLEAN TicketValidationRejecting : 1;
+    uint32_t PendingValidationBufferLength;
+
+    //
     // The offset the current receive encryption level starts.
     //
     uint32_t RecvEncryptLevelStartOffset;
@@ -264,6 +271,17 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicCryptoCustomCertValidationComplete(
     _In_ QUIC_CRYPTO* Crypto,
+    _In_ BOOLEAN Result,
+    _In_ QUIC_TLS_ALERT_CODES TlsAlert
+    );
+
+//
+// Invoked when the app has completed its custom resumption ticket validation.
+//
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+QuicCryptoCustomTicketValidationComplete(
+    _In_ QUIC_CRYPTO* Crypto,
     _In_ BOOLEAN Result
     );
 
@@ -291,8 +309,20 @@ QuicCryptoTlsReadInitial(
     _In_reads_(BufferLength)
         const uint8_t* Buffer,
     _In_ uint32_t BufferLength,
-    _Inout_ QUIC_NEW_CONNECTION_INFO* Info,
-    _Inout_opt_ QUIC_TLS_SECRETS* TlsSecrets
+    _Inout_ QUIC_NEW_CONNECTION_INFO* Info
+    );
+
+//
+// Reads only the ClientRandom out of the initial CRYPTO data.
+// MUST ONLY BE CALLED AFTER QuicCryptoTlsReadInitial!!
+//
+_IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_STATUS
+QuicCryptoTlsReadClientRandom(
+    _In_reads_(BufferLength)
+        const uint8_t* Buffer,
+    _In_ uint32_t BufferLength,
+    _Inout_ QUIC_TLS_SECRETS* TlsSecrets
     );
 
 //

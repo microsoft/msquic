@@ -56,7 +56,7 @@ Environment:
 extern "C" {
 #endif
 
-#if defined(DEBUG) || defined(_DEBUG)
+#ifndef NDEBUG
 #define DBG 1
 #define DEBUG 1
 #endif
@@ -287,13 +287,40 @@ CxPlatFree(
 #define CXPLAT_ALLOC_NONPAGED(Size, Tag) CxPlatAlloc(Size, Tag)
 #define CXPLAT_FREE(Mem, Tag) CxPlatFree((void*)Mem, Tag)
 
+typedef struct CXPLAT_POOL CXPLAT_POOL;
+
+typedef
+void*
+(*CXPLAT_POOL_ALLOC_FN)(
+    _In_ uint32_t Size,
+    _In_ uint32_t Tag,
+    _Inout_ CXPLAT_POOL* Pool
+    );
+
+typedef
+void
+(*CXPLAT_POOL_FREE_FN)(
+    _In_ void* Entry,
+    _In_ uint32_t Tag,
+    _Inout_ CXPLAT_POOL* Pool
+    );
+
 typedef struct CXPLAT_POOL {
     SLIST_HEADER ListHead;
     uint32_t Size;
     uint32_t Tag;
+    uint32_t MaxDepth;
+    CXPLAT_POOL_ALLOC_FN Allocate;
+    CXPLAT_POOL_FREE_FN Free;
 } CXPLAT_POOL;
 
-#define CXPLAT_POOL_MAXIMUM_DEPTH   256 // Copied from EX_MAXIMUM_LOOKASIDE_DEPTH_BASE
+#ifndef DISABLE_CXPLAT_POOL
+#define CXPLAT_POOL_MAXIMUM_DEPTH       0x4000  // 16384
+#define CXPLAT_POOL_DEFAULT_MAX_DEPTH   256     // Copied from EX_MAXIMUM_LOOKASIDE_DEPTH_BASE
+#else
+#define CXPLAT_POOL_MAXIMUM_DEPTH       0
+#define CXPLAT_POOL_DEFAULT_MAX_DEPTH   0
+#endif
 
 #if DEBUG
 typedef struct CXPLAT_POOL_ENTRY {
@@ -306,6 +333,30 @@ int32_t
 CxPlatGetAllocFailDenominator(
     );
 #endif
+
+inline
+void*
+CxPlatPoolGenericAlloc(
+    _In_ uint32_t Size,
+    _In_ uint32_t Tag,
+    _Inout_ CXPLAT_POOL* Pool
+    )
+{
+    UNREFERENCED_PARAMETER(Pool);
+    return CxPlatAlloc(Size, Tag);
+}
+
+inline
+void
+CxPlatPoolGenericFree(
+    _In_ void* Entry,
+    _In_ uint32_t Tag,
+    _Inout_ CXPLAT_POOL* Pool
+    )
+{
+    UNREFERENCED_PARAMETER(Pool);
+    CxPlatFree(Entry, Tag);
+}
 
 inline
 void
@@ -321,8 +372,39 @@ CxPlatPoolInitialize(
 #endif
     Pool->Size = Size;
     Pool->Tag = Tag;
+    Pool->MaxDepth = CXPLAT_POOL_DEFAULT_MAX_DEPTH;
+    Pool->Allocate = CxPlatPoolGenericAlloc;
+    Pool->Free = CxPlatPoolGenericFree;
     InitializeSListHead(&(Pool)->ListHead);
     UNREFERENCED_PARAMETER(IsPaged);
+}
+
+inline
+void
+CxPlatPoolInitializeEx(
+    _In_ BOOLEAN IsPaged,
+    _In_ uint32_t Size,
+    _In_ uint32_t Tag,
+    _In_ uint32_t MaxDepth,
+    _In_opt_ CXPLAT_POOL_ALLOC_FN Allocate,
+    _In_opt_ CXPLAT_POOL_FREE_FN Free,
+    _Inout_ CXPLAT_POOL* Pool
+    )
+{
+#if DEBUG
+    CXPLAT_DBG_ASSERT(Size >= sizeof(CXPLAT_POOL_ENTRY));
+#endif
+    Pool->Size = Size;
+    Pool->Tag = Tag;
+    Pool->Allocate = Allocate ? Allocate : CxPlatPoolGenericAlloc;
+    Pool->Free = Free ? Free : CxPlatPoolGenericFree;
+    InitializeSListHead(&(Pool)->ListHead);
+    UNREFERENCED_PARAMETER(IsPaged);
+    if (MaxDepth != 0) {
+        Pool->MaxDepth = CXPLAT_MIN(MaxDepth, CXPLAT_POOL_MAXIMUM_DEPTH);
+    } else {
+        Pool->MaxDepth = CXPLAT_POOL_DEFAULT_MAX_DEPTH;
+    }
 }
 
 inline
@@ -333,7 +415,7 @@ CxPlatPoolUninitialize(
 {
     void* Entry;
     while ((Entry = InterlockedPopEntrySList(&Pool->ListHead)) != NULL) {
-        CxPlatFree(Entry, Pool->Tag);
+        Pool->Free(Entry, Pool->Tag, Pool);
     }
 }
 
@@ -345,12 +427,12 @@ CxPlatPoolAlloc(
 {
 #if DEBUG
     if (CxPlatGetAllocFailDenominator()) {
-        return CxPlatAlloc(Pool->Size, Pool->Tag);
+        return Pool->Allocate(Pool->Size, Pool->Tag, Pool);
     }
 #endif
     void* Entry = InterlockedPopEntrySList(&Pool->ListHead);
     if (Entry == NULL) {
-        Entry = CxPlatAlloc(Pool->Size, Pool->Tag);
+        Entry = Pool->Allocate(Pool->Size, Pool->Tag, Pool);
     }
 #if DEBUG
     if (Entry != NULL) {
@@ -369,14 +451,14 @@ CxPlatPoolFree(
 {
 #if DEBUG
     if (CxPlatGetAllocFailDenominator()) {
-        CxPlatFree(Entry, Pool->Tag);
+        Pool->Free(Entry, Pool->Tag, Pool);
         return;
     }
     CXPLAT_DBG_ASSERT(((CXPLAT_POOL_ENTRY*)Entry)->SpecialFlag != CXPLAT_POOL_SPECIAL_FLAG);
     ((CXPLAT_POOL_ENTRY*)Entry)->SpecialFlag = CXPLAT_POOL_SPECIAL_FLAG;
 #endif
-    if (QueryDepthSList(&Pool->ListHead) >= CXPLAT_POOL_MAXIMUM_DEPTH) {
-        CxPlatFree(Entry, Pool->Tag);
+    if (QueryDepthSList(&Pool->ListHead) >= Pool->MaxDepth) {
+        Pool->Free(Entry, Pool->Tag, Pool);
     } else {
         InterlockedPushEntrySList(&Pool->ListHead, (PSLIST_ENTRY)Entry);
     }
@@ -596,8 +678,16 @@ typedef HANDLE CXPLAT_EVENT;
 //
 
 typedef HANDLE CXPLAT_EVENTQ;
-#define CXPLAT_SQE OVERLAPPED
 typedef OVERLAPPED_ENTRY CXPLAT_CQE;
+#define CXPLAT_SQE CXPLAT_SQE
+#define CXPLAT_SQE_DEFAULT {0}
+typedef struct CXPLAT_SQE {
+    void* UserData;
+    OVERLAPPED Overlapped;
+#if DEBUG
+    BOOLEAN IsQueued; // Debug flag to catch double queueing.
+#endif
+} CXPLAT_SQE;
 
 inline
 BOOLEAN
@@ -621,11 +711,10 @@ inline
 BOOLEAN
 CxPlatEventQAssociateHandle(
     _In_ CXPLAT_EVENTQ* queue,
-    _In_ HANDLE fileHandle,
-    _In_opt_ void* user_data
+    _In_ HANDLE fileHandle
     )
 {
-    return *queue == CreateIoCompletionPort(fileHandle, *queue, (ULONG_PTR)user_data, 0);
+    return *queue == CreateIoCompletionPort(fileHandle, *queue, 0, 0);
 }
 
 inline
@@ -636,8 +725,13 @@ CxPlatEventQEnqueue(
     _In_opt_ void* user_data
     )
 {
-    CxPlatZeroMemory(sqe, sizeof(*sqe));
-    return PostQueuedCompletionStatus(*queue, 0, (ULONG_PTR)user_data, sqe) != 0;
+#if DEBUG
+    CXPLAT_DBG_ASSERT(!sqe->IsQueued);
+    sqe->IsQueued;
+#endif
+    CxPlatZeroMemory(&sqe->Overlapped, sizeof(sqe->Overlapped));
+    sqe->UserData = user_data;
+    return PostQueuedCompletionStatus(*queue, 0, 0, &sqe->Overlapped) != 0;
 }
 
 inline
@@ -649,8 +743,13 @@ CxPlatEventQEnqueueEx( // Windows specific extension
     _In_opt_ void* user_data
     )
 {
-    CxPlatZeroMemory(sqe, sizeof(*sqe));
-    return PostQueuedCompletionStatus(*queue, num_bytes, (ULONG_PTR)user_data, sqe) != 0;
+#if DEBUG
+    CXPLAT_DBG_ASSERT(!sqe->IsQueued);
+    sqe->IsQueued;
+#endif
+    CxPlatZeroMemory(&sqe->Overlapped, sizeof(sqe->Overlapped));
+    sqe->UserData = user_data;
+    return PostQueuedCompletionStatus(*queue, num_bytes, 0, &sqe->Overlapped) != 0;
 }
 
 inline
@@ -666,6 +765,13 @@ CxPlatEventQDequeue(
     if (!GetQueuedCompletionStatusEx(*queue, events, count, &out_count, wait_time, FALSE)) return FALSE;
     CXPLAT_DBG_ASSERT(out_count != 0);
     CXPLAT_DBG_ASSERT(events[0].lpOverlapped != NULL || out_count == 1);
+#if DEBUG
+    if (events[0].lpOverlapped) {
+        for (uint32_t i = 0; i < (uint32_t)out_count; ++i) {
+            CXPLAT_CONTAINING_RECORD(events[i].lpOverlapped, CXPLAT_SQE, Overlapped)->IsQueued = FALSE;
+        }
+    }
+#endif
     return events[0].lpOverlapped == NULL ? 0 : (uint32_t)out_count;
 }
 
@@ -686,8 +792,16 @@ CxPlatCqeUserData(
     _In_ const CXPLAT_CQE* cqe
     )
 {
-    return (void*)cqe->lpCompletionKey;
+    return CONTAINING_RECORD(cqe->lpOverlapped, CXPLAT_SQE, Overlapped)->UserData;
 }
+
+typedef struct DATAPATH_SQE DATAPATH_SQE;
+
+void
+CxPlatDatapathSqeInitialize(
+    _Out_ DATAPATH_SQE* DatapathSqe,
+    _In_ uint32_t CqeType
+    );
 
 //
 // Time Measurement Interfaces
@@ -863,18 +977,18 @@ CxPlatTimeAtOrBefore32(
 // Processor Count and Index
 //
 
-typedef struct {
-
-    uint16_t Group;
-    uint32_t Index; // In Group;
-    uint32_t NumaNode;
-    uint64_t MaskInGroup;
-
+typedef struct CXPLAT_PROCESSOR_INFO {
+    uint32_t Index;  // Index in the current group
+    uint16_t Group;  // The group number this processor is a part of
 } CXPLAT_PROCESSOR_INFO;
 
+typedef struct CXPLAT_PROCESSOR_GROUP_INFO {
+    KAFFINITY Mask;  // Bit mask of active processors in the group
+    uint32_t Offset; // Base process index offset this group starts at
+} CXPLAT_PROCESSOR_GROUP_INFO;
+
 extern CXPLAT_PROCESSOR_INFO* CxPlatProcessorInfo;
-extern uint64_t* CxPlatNumaMasks;
-extern uint32_t* CxPlatProcessorGroupOffsets;
+extern CXPLAT_PROCESSOR_GROUP_INFO* CxPlatProcessorGroupInfo;
 
 #if defined(QUIC_RESTRICTED_BUILD)
 DWORD CxPlatProcMaxCount();
@@ -892,7 +1006,18 @@ CxPlatProcCurrentNumber(
     ) {
     PROCESSOR_NUMBER ProcNumber;
     GetCurrentProcessorNumberEx(&ProcNumber);
-    return CxPlatProcessorGroupOffsets[ProcNumber.Group] + ProcNumber.Number;
+    return CxPlatProcessorGroupInfo[ProcNumber.Group].Offset + ProcNumber.Number;
+}
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+inline
+BOOLEAN
+CxPlatProcIsActive(
+    uint32_t Index
+    )
+{
+    const CXPLAT_PROCESSOR_INFO* Proc = &CxPlatProcessorInfo[Index];
+    return !!(CxPlatProcessorGroupInfo[Proc->Group].Mask & (1ULL << Proc->Index));
 }
 
 
@@ -1024,7 +1149,7 @@ CxPlatThreadCreate(
     if (Config->Flags & CXPLAT_THREAD_FLAG_SET_AFFINITIZE) {
         Group.Mask = (KAFFINITY)(1ull << ProcInfo->Index);          // Fixed processor
     } else {
-        Group.Mask = (KAFFINITY)CxPlatNumaMasks[ProcInfo->NumaNode];  // Fixed NUMA node
+        Group.Mask = CxPlatProcessorGroupInfo[ProcInfo->Group].Mask;
     }
     Group.Group = ProcInfo->Group;
     SetThreadGroupAffinity(*Thread, &Group, NULL);

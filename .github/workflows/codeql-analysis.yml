@@ -27,31 +27,20 @@ jobs:
 
     steps:
       - name: Harden Runner
-        uses: step-security/harden-runner@2e205a28d0e1da00c5f53b161f4067b052c61f34
+        uses: step-security/harden-runner@8ca2b8b2ece13480cda6dacd3511b49857a23c09
         with:
-          egress-policy: block
-          allowed-endpoints: >
-            api.github.com:443
-            api.nuget.org:443
-            azure.archive.ubuntu.com:80
-            boringssl.googlesource.com:443
-            dc.services.visualstudio.com:443
-            github.com:443
-            launchpad.net:443
-            packages.microsoft.com:443
-            ppa.launchpad.net:80
-            uploads.github.com:443
+          egress-policy: audit
       - name: Checkout repository
-        uses: actions/checkout@93ea575cb5d8a053eaa0ac8fa3b40d7e05a33cc8
+        uses: actions/checkout@8ade135a41bc03ea155e62e844d188df1ea18608
         with:
           fetch-depth: 2
           submodules: 'recursive'
 
       # Install dependencies and build submodules before starting analysis.
       - run: |
-         sudo apt-add-repository ppa:lttng/stable-2.12
+         sudo apt-add-repository ppa:lttng/stable-2.13
          sudo apt-get update
-         sudo apt-get install -y liblttng-ust-dev
+         sudo apt-get install -y liblttng-ust-dev libnuma-dev
          sudo sh scripts/install-powershell-docker.sh
          mkdir build
          cd build
@@ -59,7 +48,7 @@ jobs:
          cmake --build . --target OpenSSL_Target
 
       - name: Initialize CodeQL
-        uses: github/codeql-action/init@ec3cf9c605b848da5f1e41e8452719eb1ccfb9a6
+        uses: github/codeql-action/init@cdcdbb579706841c47f7063dda365e292e5cad7a
         with:
           languages: cpp
           config-file: ./.github/codeql/codeql-config.yml
@@ -70,4 +59,4 @@ jobs:
          cmake --build .
 
       - name: Perform CodeQL Analysis
-        uses: github/codeql-action/analyze@ec3cf9c605b848da5f1e41e8452719eb1ccfb9a6
+        uses: github/codeql-action/analyze@cdcdbb579706841c47f7063dda365e292e5cad7a

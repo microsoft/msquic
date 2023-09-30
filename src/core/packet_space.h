@@ -52,9 +52,9 @@ typedef struct QUIC_PACKET_SPACE {
     QUIC_ENCRYPT_LEVEL EncryptLevel;
 
     //
-    // Numbers of entries in the DeferredDatagrams list.
+    // Numbers of entries in the DeferredPackets list.
     //
-    uint8_t DeferredDatagramsCount;
+    uint8_t DeferredPacketsCount;
 
     //
     // The (expected) next packet number to receive. Used for decoding received
@@ -74,10 +74,9 @@ typedef struct QUIC_PACKET_SPACE {
     QUIC_CONNECTION* Connection;
 
     //
-    // List of received CXPLAT_RECV_DATAGRAMs that we don't have the key
-    // for yet.
+    // List of received packets that we don't have the key for yet.
     //
-    CXPLAT_RECV_DATA* DeferredDatagrams;
+    QUIC_RX_PACKET* DeferredPackets;
 
     //
     // Information related to packets that have been received and need to be

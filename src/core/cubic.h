@@ -7,6 +7,12 @@
 
 #pragma once
 
+typedef enum QUIC_CUBIC_HYSTART_STATE {
+    HYSTART_NOT_STARTED = 0,
+    HYSTART_ACTIVE = 1,
+    HYSTART_DONE = 2
+} QUIC_CUBIC_HYSTART_STATE;
+
 typedef struct QUIC_CONGESTION_CONTROL_CUBIC {
 
     //
@@ -84,6 +90,18 @@ typedef struct QUIC_CONGESTION_CONTROL_CUBIC {
     uint32_t PrevWindowMax; // bytes
     uint32_t WindowLastMax; // bytes (W_last_max from rfc8312bis)
     uint32_t PrevWindowLastMax; // bytes
+
+    //
+    // HyStart state.
+    //
+    QUIC_CUBIC_HYSTART_STATE HyStartState;
+    uint32_t HyStartAckCount;
+    uint64_t MinRttInLastRound; // microseconds
+    uint64_t MinRttInCurrentRound; // microseconds
+    uint64_t CssBaselineMinRtt; // microseconds
+    uint64_t HyStartRoundEnd; // Packet Number
+    uint32_t CWndSlowStartGrowthDivisor;
+    uint32_t ConservativeSlowStartRounds;
 
     //
     // This variable tracks the largest packet that was outstanding at the time

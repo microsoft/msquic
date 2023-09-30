@@ -12,6 +12,8 @@ PKGARCH=${ARCH}
 FPM=`which fpm` 2>/dev/null
 CONFIG=Release
 NAME=libmsquic
+TLS=openssl
+TLSVERSION=1.1
 CONFLICTS=
 DESCRIPTION="Microsoft implementation of the IETF QUIC protocol"
 VENDOR="Microsoft"
@@ -75,13 +77,27 @@ while :; do
         -d|-debug|--debug)
             CONFIG=Debug
             ;;
-        -config|--config)
+        -c|-config|--config)
             shift
             CONFIG=$1
             ;;
         -o|-output|--output)
             shift
             OUTPUT=$1
+            ;;
+        -t|-tls|--tls)
+            shift
+            TLS=$1
+            case $TLS in
+                'openssl')
+                    ;;
+                'openssl3')
+                    TLSVERSION=3
+                    ;;
+                *)
+                    echo "Unknown TLS version '$TLS'."
+                    exit 1
+            esac
             ;;
        -\?|-h|--help)
             usage
@@ -102,10 +118,10 @@ else
   CONFLICTS='libmsquic-debug'
 fi
 
-ARTIFACTS="artifacts/bin/${OS}/${ARCH}_${CONFIG}_openssl"
+ARTIFACTS="artifacts/bin/${OS}/${ARCH}_${CONFIG}_${TLS}"
 
 if [ -z ${OUTPUT} ]; then
-    OUTPUT="artifacts/packages/${OS}/${ARCH}_${CONFIG}_openssl"
+    OUTPUT="artifacts/packages/${OS}/${ARCH}_${CONFIG}_${TLS}"
 fi
 
 echo "ARCH=$ARCH PKGARCH=$PKGARCH ARTIFACTS=$ARTIFACTS"
@@ -119,6 +135,9 @@ if [ "$OS" == "linux" ]; then
   if [ -e "$ARTIFACTS/libmsquic.lttng.${LIBEXT}.${VER_MAJOR}.${VER_MINOR}.${VER_PATCH}" ]; then
      FILES="${FILES} ${ARTIFACTS}/libmsquic.lttng.${LIBEXT}.${VER_MAJOR}.${VER_MINOR}.${VER_PATCH}=/usr/${LIBDIR}/libmsquic.lttng.${LIBEXT}.${VER_MAJOR}.${VER_MINOR}.${VER_PATCH}"
   fi
+  if [ "$PKGARCH" == 'aarch64' ] || [ "$PKGARCH" == 'x86_64' ]; then
+      BITS='64bit'
+  fi
   fpm \
     --force \
     --input-type dir \
@@ -126,6 +145,8 @@ if [ "$OS" == "linux" ]; then
     --architecture ${PKGARCH} \
     --name ${NAME} \
     --provides ${NAME} \
+    --depends "libcrypto.so.${TLSVERSION}()(${BITS})" \
+    --depends "libnuma.so.1()(${BITS})" \
     --conflicts ${CONFLICTS} \
     --version ${VER_MAJOR}.${VER_MINOR}.${VER_PATCH} \
     --description "${DESCRIPTION}" \
@@ -161,7 +182,8 @@ if [ "$OS" == "linux" ]; then
     --name ${NAME} \
     --provides ${NAME} \
     --conflicts ${CONFLICTS} \
-    --depends "libssl1.1" \
+    --depends "libssl${TLSVERSION}" \
+    --depends "libnuma1" \
     --version ${VER_MAJOR}.${VER_MINOR}.${VER_PATCH} \
     --description "${DESCRIPTION}" \
     --vendor "${VENDOR}" \

@@ -60,7 +60,7 @@ param (
     [string]$Arch = "x64",
 
     [Parameter(Mandatory = $false)]
-    [ValidateSet("schannel", "openssl")]
+    [ValidateSet("schannel", "openssl", "openssl3")]
     [string]$Tls = "",
 
     [Parameter(Mandatory = $false)]
@@ -101,7 +101,10 @@ param (
     [string]$UrlPath = "",
 
     [Parameter(Mandatory = $false)]
-    [switch]$AZP = $false
+    [switch]$AZP = $false,
+
+    [Parameter(Mandatory = $false)]
+    [switch]$GHA = $false
 )
 
 Set-StrictMode -Version 'Latest'
@@ -158,6 +161,10 @@ if ("None" -ne $LogProfile) {
 }
 if ($AZP) {
     $Arguments += " -AZP"
+}
+
+if ($GHA) {
+    $Arguments += " -GHA"
 }
 
 $ExtraArgs = ""

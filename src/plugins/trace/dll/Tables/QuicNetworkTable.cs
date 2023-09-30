@@ -10,20 +10,75 @@ using System.Linq;
 using Microsoft.Performance.SDK;
 using Microsoft.Performance.SDK.Extensibility;
 using Microsoft.Performance.SDK.Processing;
+using QuicTrace.Cookers;
 using QuicTrace.DataModel;
 
 namespace QuicTrace.Tables
 {
     [Table]
-    public sealed class QuicNetworkTable
+    public sealed class QuicLTTngNetworkTable
+    {
+        public static readonly TableDescriptor TableDescriptor = new TableDescriptor(
+           Guid.Parse("{FCFAE48F-45BE-44DF-A036-368671BEFB8A}"),
+           "QUIC Network",
+           "QUIC Network Usage Tables",
+           category: "Communications",
+           requiredDataCookers: new List<DataCookerPath> { QuicLTTngEventCooker.CookerPath });
+
+        public static bool IsDataAvailable(IDataExtensionRetrieval tableData)
+        {
+            Debug.Assert(!(tableData is null));
+            var quicState = tableData.QueryOutput<QuicState>(new DataOutputPath(QuicLTTngEventCooker.CookerPath, "State"));
+            return quicState != null && quicState.DataAvailableFlags.HasFlag(QuicDataAvailableFlags.ConnectionTput);
+        }
+
+        public static void BuildTable(ITableBuilder tableBuilder, IDataExtensionRetrieval tableData)
+        {
+            Debug.Assert(!(tableBuilder is null) && !(tableData is null));
+
+            var quicState = tableData.QueryOutput<QuicState>(new DataOutputPath(QuicLTTngEventCooker.CookerPath, "State"));
+            if (quicState == null)
+            {
+                return;
+            }
+
+            QuicNetworkTable.BuildTable(tableBuilder, quicState);
+        }
+    }
+
+    [Table]
+    public sealed class QuicEtwNetworkTable
     {
         public static readonly TableDescriptor TableDescriptor = new TableDescriptor(
            Guid.Parse("{5863d497-7b40-4b2d-992a-177c15bb6d76}"),
            "QUIC Network",
            "QUIC Network Usage Tables",
            category: "Communications",
-           requiredDataCookers: new List<DataCookerPath> { QuicEventCooker.CookerPath });
+           requiredDataCookers: new List<DataCookerPath> { QuicEtwEventCooker.CookerPath });
 
+        public static bool IsDataAvailable(IDataExtensionRetrieval tableData)
+        {
+            Debug.Assert(!(tableData is null));
+            var quicState = tableData.QueryOutput<QuicState>(new DataOutputPath(QuicEtwEventCooker.CookerPath, "State"));
+            return quicState != null && quicState.DataAvailableFlags.HasFlag(QuicDataAvailableFlags.ConnectionTput);
+        }
+
+        public static void BuildTable(ITableBuilder tableBuilder, IDataExtensionRetrieval tableData)
+        {
+            Debug.Assert(!(tableBuilder is null) && !(tableData is null));
+
+            var quicState = tableData.QueryOutput<QuicState>(new DataOutputPath(QuicEtwEventCooker.CookerPath, "State"));
+            if (quicState == null)
+            {
+                return;
+            }
+
+            QuicNetworkTable.BuildTable(tableBuilder, quicState);
+        }
+    }
+
+    public sealed class QuicNetworkTable
+    {
         private static readonly ColumnConfiguration connectionColumnConfig =
             new ColumnConfiguration(
                 new ColumnMetadata(new Guid("{a9ae168b-ad2f-46b4-88bf-f9ceca34a8d7}"), "Connection"),
@@ -62,6 +117,11 @@ namespace QuicTrace.Tables
         private static readonly ColumnConfiguration rttColumnConfig =
             new ColumnConfiguration(
                 new ColumnMetadata(new Guid("{0487D420-EE35-4E6F-A9B4-D535D9AED1AB}"), "Rtt (ms)"),
+                new UIHints { AggregationMode = AggregationMode.Average });
+
+        private static readonly ColumnConfiguration oneWayColumnConfig =
+            new ColumnConfiguration(
+                new ColumnMetadata(new Guid("{3d93cc01-98df-4eda-a884-b441d26ffba2}"), "1-Way Delay (ms)"),
                 new UIHints { AggregationMode = AggregationMode.Average });
 
         private static readonly ColumnConfiguration txDelayColumnConfig =
@@ -128,15 +188,16 @@ namespace QuicTrace.Tables
                 Columns = new[]
                 {
                      connectionColumnConfig,
+                     typeColumnConfig,
                      TableConfiguration.PivotColumn,
                      TableConfiguration.LeftFreezeColumn,
-                     typeColumnConfig,
                      processIdColumnConfig,
                      timeColumnConfig,
                      durationColumnConfig,
                      TableConfiguration.RightFreezeColumn,
                      TableConfiguration.GraphColumn,
                      rttColumnConfig,
+                     oneWayColumnConfig
                 }
             };
 
@@ -160,16 +221,12 @@ namespace QuicTrace.Tables
         public static bool IsDataAvailable(IDataExtensionRetrieval tableData)
         {
             Debug.Assert(!(tableData is null));
-            var quicState = tableData.QueryOutput<QuicState>(new DataOutputPath(QuicEventCooker.CookerPath, "State"));
+            var quicState = tableData.QueryOutput<QuicState>(new DataOutputPath(QuicEtwEventCooker.CookerPath, "State"));
             return quicState != null && quicState.DataAvailableFlags.HasFlag(QuicDataAvailableFlags.ConnectionTput);
         }
 
-        public static void BuildTable(ITableBuilder tableBuilder, IDataExtensionRetrieval tableData)
+        public static void BuildTable(ITableBuilder tableBuilder, QuicState quicState)
         {
-            Debug.Assert(!(tableBuilder is null) && !(tableData is null));
-
-            var quicState = tableData.QueryOutput<QuicState>(new DataOutputPath(QuicEventCooker.CookerPath, "State"));
-
             var data = quicState.Connections.SelectMany(
                 x => x.GetRawTputEvents().Select(y => new ValueTuple<QuicConnection, QuicRawTputData>(x, y))).ToArray();
 
@@ -184,6 +241,7 @@ namespace QuicTrace.Tables
             table.AddColumn(bitsColumnConfig, dataProjection.Compose(ProjectBits));
             table.AddColumn(bytesColumnConfig, dataProjection.Compose(ProjectBytes));
             table.AddColumn(rttColumnConfig, dataProjection.Compose(ProjectRtt));
+            table.AddColumn(oneWayColumnConfig, dataProjection.Compose(ProjectRtt));
             table.AddColumn(txDelayColumnConfig, dataProjection.Compose(ProjectTxDelay));
 
             tableConfig1.AddColumnRole(ColumnRole.StartTime, timeColumnConfig);
@@ -197,20 +255,21 @@ namespace QuicTrace.Tables
             tableConfig2.InitialFilterShouldKeep = false;
             tableConfig2.InitialSelectionQuery = "[Type]:=\"InFlight\"";
             tableConfig2.InitialFilterQuery =
-                "[Type]:=\"Tx\" OR [Type]:=\"TxAck\" OR [Type]:=\"PktCreate\" OR [Type]:=\"Rx\" OR [Type]:=\"Rtt\" OR [Type]:=\"TxDelay\"";
+                "[Type]:=\"Tx\" OR [Type]:=\"TxAck\" OR [Type]:=\"PktCreate\" OR [Type]:=\"Rx\" OR [Type]:=\"Rtt\" OR [Type]:=\"OneWay\" OR [Type]:=\"TxDelay\"";
             tableBuilder.AddTableConfiguration(tableConfig2);
 
             tableConfig3.AddColumnRole(ColumnRole.StartTime, timeColumnConfig);
             tableConfig3.AddColumnRole(ColumnRole.Duration, durationColumnConfig);
             tableConfig3.InitialFilterShouldKeep = false;
-            tableConfig3.InitialFilterQuery = "[Type]:<>\"Rtt\"";
+            tableConfig3.InitialSelectionQuery = "[Type]:=\"Rtt\"";
+            tableConfig3.InitialFilterQuery = "[Type]:<>\"Rtt\" AND [Type]:<>\"OneWay\"";
             tableBuilder.AddTableConfiguration(tableConfig3);
 
             tableConfig4.AddColumnRole(ColumnRole.StartTime, timeColumnConfig);
             tableConfig4.InitialFilterShouldKeep = false;
             tableConfig4.InitialSelectionQuery = "[Type]:=\"Tx\" OR [Type]:=\"Rx\"";
             tableConfig4.InitialFilterQuery =
-                "[Type]:<>\"Tx\" AND [Type]:<>\"TxAck\" AND [Type]:<>\"PktCreate\" AND [Type]:<>\"Rx\"";
+                "[Type]:<>\"Tx\" AND [Type]:<>\"TxAck\" AND [Type]:<>\"PktCreate\" AND [Type]:<>\"Rx\" AND [Type]:<>\"RxBatch\"";
             tableBuilder.AddTableConfiguration(tableConfig4);
 
             tableConfig5.AddColumnRole(ColumnRole.StartTime, timeColumnConfig);

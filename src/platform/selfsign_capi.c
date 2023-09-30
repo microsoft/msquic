@@ -1032,12 +1032,25 @@ Done:
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
+const char*
+CxPlatGetSelfSignedCertCaCertificateFileName(
+    _In_ BOOLEAN ClientCertificate
+    )
+{
+    UNREFERENCED_PARAMETER(ClientCertificate);
+    return NULL;
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_CREDENTIAL_CONFIG*
 CxPlatGetSelfSignedCert(
     _In_ CXPLAT_SELF_SIGN_CERT_TYPE Type,
-    _In_ BOOLEAN IsClient
+    _In_ BOOLEAN IsClient,
+    _In_z_ const char *CaCertificateFile
     )
 {
+    UNREFERENCED_PARAMETER(CaCertificateFile);
+
     QUIC_CREDENTIAL_CONFIG* Params =
         HeapAlloc(GetProcessHeap(), HEAP_ZERO_MEMORY, sizeof(QUIC_CREDENTIAL_CONFIG) + sizeof(QUIC_CERTIFICATE_HASH));
     if (Params == NULL) {
@@ -1267,6 +1280,16 @@ CxPlatFreeSelfSignedCert(
 {
     FreeServerCertificate(Params->CertificateContext);
     HeapFree(GetProcessHeap(), 0, (void*)Params);
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+CxPlatFreeSelfSignedCertCaFile(
+    _In_z_ const char* CaFile
+    )
+{
+    // Never allocated, only used in openssl version
+    UNREFERENCED_PARAMETER(CaFile);
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)

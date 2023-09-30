@@ -46,6 +46,25 @@ QuicAddrSetToDuoNic(
     }
 }
 
+inline
+uint32_t
+QuitTestGetDatapathFeatureFlags() {
+    static uint32_t Length = sizeof(uint32_t);
+    uint32_t Features = 0;
+    MsQuic->GetParam(
+        nullptr,
+        QUIC_PARAM_GLOBAL_DATAPATH_FEATURES,
+        &Length,
+        &Features);
+    return Features;
+}
+
+inline
+bool
+QuitTestIsFeatureSupported(uint32_t Feature) {
+    return static_cast<bool>(QuitTestGetDatapathFeatureFlags() & Feature);
+}
+
 #include "msquic.hpp"
 #include "quic_toeplitz.h"
 
@@ -79,11 +98,18 @@ class TestConnection;
 struct ServerAcceptContext {
     CXPLAT_EVENT NewConnectionReady;
     TestConnection** NewConnection;
+    void* NewStreamHandler{nullptr};
+    QUIC_TLS_SECRETS* TlsSecrets{nullptr};
     QUIC_STATUS ExpectedTransportCloseStatus{QUIC_STATUS_SUCCESS};
     QUIC_STATUS ExpectedClientCertValidationResult[2]{};
     uint32_t ExpectedClientCertValidationResultCount{0};
     QUIC_STATUS PeerCertEventReturnStatus{false};
     QUIC_PRIVATE_TRANSPORT_PARAMETER* TestTP{nullptr};
+    bool AsyncCustomTicketValidation{false};
+    QUIC_STATUS ExpectedCustomTicketValidationResult{QUIC_STATUS_SUCCESS};
+    bool AsyncCustomCertValidation{false};
+    bool IsCustomCertValidationResultSet{false};
+    bool CustomCertValidationResult{false};
     ServerAcceptContext(TestConnection** _NewConnection) :
         NewConnection(_NewConnection) {
         CxPlatEventInitialize(&NewConnectionReady, TRUE, FALSE);
@@ -147,7 +173,7 @@ void SimulateConnBadStartState(MsQuicConnection& Connection, MsQuicConfiguration
 // 3. call again to get actual value in Buffer
 //
 inline
-void SimpleGetParamTest(HQUIC Handle, uint32_t Param, size_t ExpectedLength, void* ExpectedData) {
+void SimpleGetParamTest(HQUIC Handle, uint32_t Param, size_t ExpectedLength, void* ExpectedData, bool GreaterOrEqualLength = false) {
     uint32_t Length = 0;
     TEST_QUIC_STATUS(
         QUIC_STATUS_BUFFER_TOO_SMALL,
@@ -156,11 +182,19 @@ void SimpleGetParamTest(HQUIC Handle, uint32_t Param, size_t ExpectedLength, voi
                 Param,
                 &Length,
                 nullptr));
-    if (ExpectedLength != Length) {
-        TEST_FAILURE("ExpectedLength (%u) != Length (%u)", ExpectedLength, Length);
-        return;
+    if (GreaterOrEqualLength) {
+        if (Length < ExpectedLength) {
+            TEST_FAILURE("ExpectedLength (%u) > Length (%u)", ExpectedLength, Length);
+            return;
+        }
+    } else {
+        if (ExpectedLength != Length) {
+            TEST_FAILURE("ExpectedLength (%u) != Length (%u)", ExpectedLength, Length);
+            return;
+        }
     }
 
+    Length = (uint32_t)ExpectedLength; // Only query the expected size, which might be less.
     void* Value = CXPLAT_ALLOC_NONPAGED(Length, QUIC_POOL_TEST);
     if (Value == nullptr) {
         TEST_FAILURE("Out of memory for testing SetParam for global parameter");
@@ -198,23 +232,20 @@ struct GlobalSettingScope {
                 Parameter,
                 &BufferLength,
                 nullptr);
-#ifndef QUIC_API_ENABLE_PREVIEW_FEATURES
-        TEST_TRUE(Status == QUIC_STATUS_BUFFER_TOO_SMALL);
-#else
-        TEST_TRUE(Status == QUIC_STATUS_BUFFER_TOO_SMALL ||
-            (Parameter == QUIC_PARAM_GLOBAL_EXECUTION_CONFIG && Status == QUIC_STATUS_SUCCESS));
-#endif
+        TEST_TRUE(Status == QUIC_STATUS_BUFFER_TOO_SMALL || Status == QUIC_STATUS_SUCCESS);
 
-        OriginalValue = CXPLAT_ALLOC_NONPAGED(BufferLength, QUIC_POOL_TEST);
-        if (OriginalValue == nullptr) {
-            TEST_FAILURE("Out of memory for testing SetParam for global parameter");
+        if (BufferLength != 0) {
+            OriginalValue = CXPLAT_ALLOC_NONPAGED(BufferLength, QUIC_POOL_TEST);
+            if (OriginalValue == nullptr) {
+                TEST_FAILURE("Out of memory for testing SetParam for global parameter");
+            }
+            TEST_QUIC_SUCCEEDED(
+                MsQuic->GetParam(
+                    nullptr,
+                    Parameter,
+                    &BufferLength,
+                    OriginalValue));
         }
-        TEST_QUIC_SUCCEEDED(
-            MsQuic->GetParam(
-                nullptr,
-                Parameter,
-                &BufferLength,
-                OriginalValue));
     }
 
     ~GlobalSettingScope() {

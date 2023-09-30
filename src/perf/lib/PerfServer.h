@@ -90,18 +90,18 @@ private:
 
     QUIC_STATUS
     ListenerCallback(
-        _In_ HQUIC ListenerHandle,
+        _In_ MsQuicListener* Listener,
         _Inout_ QUIC_LISTENER_EVENT* Event
         );
 
     static
     QUIC_STATUS
     ListenerCallbackStatic(
-        _In_ HQUIC ListenerHandle,
+        _In_ MsQuicListener* Listener,
         _In_ void* Context,
         _Inout_ QUIC_LISTENER_EVENT* Event
         ) {
-        return ((PerfServer*)Context)->ListenerCallback(ListenerHandle, Event);
+        return ((PerfServer*)Context)->ListenerCallback(Listener, Event);
     }
 
     QUIC_STATUS
@@ -141,8 +141,10 @@ private:
             .SetSendBufferingEnabled(false)
             .SetServerResumptionLevel(QUIC_SERVER_RESUME_AND_ZERORTT)
             .SetCongestionControlAlgorithm(PerfDefaultCongestionControl)
-            .SetEcnEnabled(PerfDefaultEcnEnabled)};
-    MsQuicListener Listener {Registration, ListenerCallbackStatic, this};
+            .SetEcnEnabled(PerfDefaultEcnEnabled)
+            .SetEncryptionOffloadAllowed(PerfDefaultQeoAllowed)
+            .SetOneWayDelayEnabled(true)};
+    MsQuicListener Listener {Registration, CleanUpManual, ListenerCallbackStatic, this};
     QUIC_ADDR LocalAddr;
     CXPLAT_EVENT* StopEvent {nullptr};
     QUIC_BUFFER* DataBuffer {nullptr};

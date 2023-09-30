@@ -34,6 +34,24 @@
 extern "C" {
 #endif
 /*----------------------------------------------------------
+// Decoder Ring for ReliableResetNotNegotiatedError
+// [strm][%p] Received ReliableReset without negotiation.
+// QuicTraceLogStreamWarning(
+            ReliableResetNotNegotiatedError,
+            Stream,
+            "Received ReliableReset without negotiation.");
+// arg1 = arg1 = Stream = arg1
+----------------------------------------------------------*/
+#ifndef _clog_3_ARGS_TRACE_ReliableResetNotNegotiatedError
+#define _clog_3_ARGS_TRACE_ReliableResetNotNegotiatedError(uniqueId, arg1, encoded_arg_string)\
+tracepoint(CLOG_STREAM_RECV_C, ReliableResetNotNegotiatedError , arg1);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for ResetEarly
 // [strm][%p] Tried to reset at earlier final size!
 // QuicTraceLogStreamWarning(
@@ -109,14 +127,34 @@ tracepoint(CLOG_STREAM_RECV_C, ReceiveBeyondFlowControl , arg1);\
 // Decoder Ring for RemoteCloseReset
 // [strm][%p] Closed remotely (reset)
 // QuicTraceLogStreamInfo(
-                RemoteCloseReset,
-                Stream,
-                "Closed remotely (reset)");
+        RemoteCloseReset,
+        Stream,
+        "Closed remotely (reset)");
 // arg1 = arg1 = Stream = arg1
 ----------------------------------------------------------*/
 #ifndef _clog_3_ARGS_TRACE_RemoteCloseReset
 #define _clog_3_ARGS_TRACE_RemoteCloseReset(uniqueId, arg1, encoded_arg_string)\
 tracepoint(CLOG_STREAM_RECV_C, RemoteCloseReset , arg1);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for ReliableRecvOffsetSet
+// [strm][%p] Reliable recv offset set to %llu
+// QuicTraceLogStreamInfo(
+            ReliableRecvOffsetSet,
+            Stream,
+            "Reliable recv offset set to %llu",
+            ReliableOffset);
+// arg1 = arg1 = Stream = arg1
+// arg3 = arg3 = ReliableOffset = arg3
+----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_ReliableRecvOffsetSet
+#define _clog_4_ARGS_TRACE_ReliableRecvOffsetSet(uniqueId, arg1, encoded_arg_string, arg3)\
+tracepoint(CLOG_STREAM_RECV_C, ReliableRecvOffsetSet , arg1, arg3);\
 
 #endif
 
@@ -181,10 +219,10 @@ tracepoint(CLOG_STREAM_RECV_C, QueueRecvFlush , arg1);\
 // Decoder Ring for IndicatePeerSendAbort
 // [strm][%p] Indicating QUIC_STREAM_EVENT_PEER_SEND_ABORTED (0x%llX)
 // QuicTraceLogStreamVerbose(
-                IndicatePeerSendAbort,
-                Stream,
-                "Indicating QUIC_STREAM_EVENT_PEER_SEND_ABORTED (0x%llX)",
-                ErrorCode);
+        IndicatePeerSendAbort,
+        Stream,
+        "Indicating QUIC_STREAM_EVENT_PEER_SEND_ABORTED (0x%llX)",
+        ErrorCode);
 // arg1 = arg1 = Stream = arg1
 // arg3 = arg3 = ErrorCode = arg3
 ----------------------------------------------------------*/
@@ -317,11 +355,11 @@ tracepoint(CLOG_STREAM_RECV_C, RemoteBlocked , arg1, arg3);\
 
 /*----------------------------------------------------------
 // Decoder Ring for IncreaseRxBuffer
-// [strm][%p] Increasing max RX buffer size to %u (MinRtt=%u; TimeNow=%u; LastUpdate=%u)
+// [strm][%p] Increasing max RX buffer size to %u (MinRtt=%llu; TimeNow=%llu; LastUpdate=%llu)
 // QuicTraceLogStreamVerbose(
                     IncreaseRxBuffer,
                     Stream,
-                    "Increasing max RX buffer size to %u (MinRtt=%u; TimeNow=%u; LastUpdate=%u)",
+                    "Increasing max RX buffer size to %u (MinRtt=%llu; TimeNow=%llu; LastUpdate=%llu)",
                     Stream->RecvBuffer.VirtualBufferLength * 2,
                     Stream->Connection->Paths[0].MinRtt,
                     TimeNow,

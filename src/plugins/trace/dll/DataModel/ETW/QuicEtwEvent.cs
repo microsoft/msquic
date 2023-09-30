@@ -4,8 +4,10 @@
 //
 
 using System;
+using LTTngCds.CookerData;
 using Microsoft.Diagnostics.Tracing;
 using Microsoft.Performance.SDK;
+using QuicTrace.DataModel.LTTng;
 
 namespace QuicTrace.DataModel.ETW
 {
@@ -101,15 +103,8 @@ namespace QuicTrace.DataModel.ETW
             }
         }
 
-        internal static unsafe QuicEvent? TryCreate(TraceEvent evt, Timestamp timestamp)
+        internal static unsafe QuicEvent? TryCreate(Timestamp timestamp, QuicEventId id, ushort processor, uint processId, uint threadId, int pointerSize, QuicEtwDataReader data)
         {
-            var id = (QuicEventId)evt.ID;
-            var processor = (ushort)evt.ProcessorNumber;
-            var processId = (uint)evt.ProcessID;
-            var threadId = (uint)evt.ThreadID;
-            var pointerSize = evt.PointerSize;
-            var data = new QuicEtwDataReader(evt.DataStart.ToPointer(), evt.EventDataLength, pointerSize);
-
             switch (id)
             {
                 case QuicEventId.LibraryInitialized:
@@ -211,14 +206,24 @@ namespace QuicTrace.DataModel.ETW
                     return new QuicConnectionInFlowStatsEvent(timestamp, processor, processId, threadId, pointerSize, data.ReadPointer(), data.ReadULong());
                 case QuicEventId.ConnCongestion:
                     return new QuicConnectionCongestionEvent(timestamp, processor, processId, threadId, pointerSize, data.ReadPointer());
+                case QuicEventId.ConnCongestionV2:
+                    return new QuicConnectionCongestionV2Event(timestamp, processor, processId, threadId, pointerSize, data.ReadPointer(), data.ReadByte());
                 case QuicEventId.ConnSourceCidAdded:
                     return new QuicConnectionSourceCidAddedEvent(timestamp, processor, processId, threadId, pointerSize, data.ReadPointer(), data.ReadULong(), data.ReadBytes());
                 case QuicEventId.ConnDestCidAdded:
                     return new QuicConnectionDestinationCidAddedEvent(timestamp, processor, processId, threadId, pointerSize, data.ReadPointer(), data.ReadULong(), data.ReadBytes());
                 case QuicEventId.ConnStats:
                     return new QuicConnectionStatsEvent(timestamp, processor, processId, threadId, pointerSize, data.ReadPointer(), data.ReadUInt(), data.ReadUInt(), data.ReadUInt(), data.ReadULong(), data.ReadULong());
+                case QuicEventId.ConnStatsV2:
+                    return new QuicConnectionStatsV2Event(timestamp, processor, processId, threadId, pointerSize, data.ReadPointer(), data.ReadUInt(), data.ReadUInt(), data.ReadUInt(), data.ReadULong(), data.ReadULong(), data.ReadUInt());
                 case QuicEventId.ConnOutFlowStreamStats:
                     return new QuicConnectionOutFlowStreamStatsEvent(timestamp, processor, processId, threadId, pointerSize, data.ReadPointer(), data.ReadULong(), data.ReadULong());
+                case QuicEventId.ConnRecvUdpDatagrams:
+                    return new QuicConnectionRecvUdpDatagramsEvent(timestamp, processor, processId, threadId, pointerSize, data.ReadPointer(), data.ReadUInt(), data.ReadUInt());
+                case QuicEventId.ConnOutFlowStatsV2:
+                    return new QuicConnectionOutFlowStatsV2Event(timestamp, processor, processId, threadId, pointerSize, data.ReadPointer(), data.ReadULong(), data.ReadUInt(), data.ReadUInt(), data.ReadULong(), data.ReadULong(), data.ReadULong(), data.ReadULong(), data.ReadULong());
+                case QuicEventId.ConnStatsV3:
+                    return new QuicConnectionStatsV2Event(timestamp, processor, processId, threadId, pointerSize, data.ReadPointer(), data.ReadULong(), data.ReadUInt(), data.ReadUInt(), data.ReadULong(), data.ReadULong(), data.ReadUInt());
                 case QuicEventId.ConnLogError:
                 case QuicEventId.ConnLogWarning:
                 case QuicEventId.ConnLogInfo:
@@ -260,8 +265,8 @@ namespace QuicTrace.DataModel.ETW
                 case QuicEventId.StreamAppReceiveCompleteCall:
                     return new QuicStreamAppReceiveCompleteCallEvent(timestamp, processor, processId, threadId, pointerSize, data.ReadPointer());
 
-                case (QuicEventId)9216: // Temporary, while there are still builds out there generating this old event
-                    return new QuicDatapathSendEvent(timestamp, processor, processId, threadId, pointerSize, data.ReadPointer(), data.ReadUInt(), data.ReadByte(), data.ReadUShort(), data.ReadAddress(), new System.Net.IPEndPoint(0,0));
+                case QuicEventId.Temporal:
+                    return new QuicDatapathSendEvent(timestamp, processor, processId, threadId, pointerSize, data.ReadPointer(), data.ReadUInt(), data.ReadByte(), data.ReadUShort(), data.ReadAddress(), new System.Net.IPEndPoint(0, 0));
                 case QuicEventId.DatapathSend:
                     return new QuicDatapathSendEvent(timestamp, processor, processId, threadId, pointerSize, data.ReadPointer(), data.ReadUInt(), data.ReadByte(), data.ReadUShort(), data.ReadAddress(), data.ReadAddress());
                 case QuicEventId.DatapathRecv:
@@ -300,6 +305,16 @@ namespace QuicTrace.DataModel.ETW
                 default:
                     return null;
             }
+        }
+
+        internal static unsafe QuicEvent? TryCreate(TraceEvent evt, Timestamp timestamp)
+        {
+            var processor = (ushort)evt.ProcessorNumber;
+            var processId = (uint)evt.ProcessID;
+            var threadId = (uint)evt.ThreadID;
+            var pointerSize = evt.PointerSize;
+            var data = new QuicEtwDataReader(evt.DataStart.ToPointer(), evt.EventDataLength, pointerSize);
+            return TryCreate(timestamp, (QuicEventId)evt.ID, processor, processId, threadId, pointerSize, data);
         }
     }
 }

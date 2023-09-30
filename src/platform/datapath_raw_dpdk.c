@@ -83,22 +83,6 @@ CXPLAT_STATIC_ASSERT(
 CXPLAT_THREAD_CALLBACK(CxPlatDpdkMainThread, Context);
 static int CxPlatDpdkWorkerThread(_In_ void* Context);
 
-CXPLAT_RECV_DATA*
-CxPlatDataPathRecvPacketToRecvData(
-    _In_ const CXPLAT_RECV_PACKET* const Context
-    )
-{
-    return (CXPLAT_RECV_DATA*)(((uint8_t*)Context) - sizeof(DPDK_RX_PACKET));
-}
-
-CXPLAT_RECV_PACKET*
-CxPlatDataPathRecvDataToRecvPacket(
-    _In_ const CXPLAT_RECV_DATA* const Datagram
-    )
-{
-    return (CXPLAT_RECV_PACKET*)(((uint8_t*)Datagram) + sizeof(DPDK_RX_PACKET));
-}
-
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 CxPlatDpdkReadConfig(
@@ -222,6 +206,32 @@ CxPlatDpRawUninitialize(
     CxPlatThreadWait(&Dpdk->DpdkThread);
     CxPlatThreadDelete(&Dpdk->DpdkThread);
     CxPlatEventUninitialize(Dpdk->StartComplete);
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+CxPlatDpRawUpdateConfig(
+    _In_ CXPLAT_DATAPATH* Datapath,
+    _In_ QUIC_EXECUTION_CONFIG* Config
+    )
+{
+    UNREFERENCED_PARAMETER(Datapath);
+    UNREFERENCED_PARAMETER(Config);
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_STATUS
+CxPlatSocketUpdateQeo(
+    _In_ CXPLAT_SOCKET* Socket,
+    _In_reads_(OffloadCount)
+        const CXPLAT_QEO_CONNECTION* Offloads,
+    _In_ uint32_t OffloadCount
+    )
+{
+    UNREFERENCED_PARAMETER(Socket);
+    UNREFERENCED_PARAMETER(Offloads);
+    UNREFERENCED_PARAMETER(OffloadCount);
+    return QUIC_STATUS_NOT_SUPPORTED;
 }
 
 CXPLAT_THREAD_CALLBACK(CxPlatDpdkMainThread, Context)
@@ -613,15 +623,13 @@ _IRQL_requires_max_(DISPATCH_LEVEL)
 CXPLAT_SEND_DATA*
 CxPlatDpRawTxAlloc(
     _In_ CXPLAT_DATAPATH* Datapath,
-    _In_ CXPLAT_ECN_TYPE ECN, // unused currently
-    _In_ uint16_t MaxPacketSize,
-    _Inout_ CXPLAT_ROUTE* Route
+    _Inout_ CXPLAT_SEND_CONFIG* Config
     )
 {
     DPDK_DATAPATH* Dpdk = (DPDK_DATAPATH*)Datapath;
     DPDK_TX_PACKET* Packet = CxPlatPoolAlloc(&Dpdk->AdditionalInfoPool);
-    QUIC_ADDRESS_FAMILY Family = QuicAddrGetFamily(&Route->RemoteAddress);
-    DPDK_INTERFACE* Interface = (DPDK_INTERFACE*)Route->Queue;
+    QUIC_ADDRESS_FAMILY Family = QuicAddrGetFamily(&Config->Route->RemoteAddress);
+    DPDK_INTERFACE* Interface = (DPDK_INTERFACE*)Config->Route->Queue;
 
     if (likely(Packet)) {
         Packet->Interface = Interface;
@@ -629,7 +637,7 @@ CxPlatDpRawTxAlloc(
         if (likely(Packet->Mbuf)) {
             HEADER_BACKFILL HeaderFill = CxPlatDpRawCalculateHeaderBackFill(Family);
             Packet->Dpdk = Dpdk;
-            Packet->Buffer.Length = MaxPacketSize;
+            Packet->Buffer.Length = Config->MaxPacketSize;
             Packet->Mbuf->data_off = 0;
             Packet->Buffer.Buffer = ((uint8_t*)Packet->Mbuf->buf_addr) + HeaderFill.AllLayer;
             Packet->Mbuf->l2_len = HeaderFill.LinkLayer;

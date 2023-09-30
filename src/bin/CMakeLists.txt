@@ -15,6 +15,9 @@ if(BUILD_SHARED_LIBS)
     set_target_properties(msquic PROPERTIES OUTPUT_NAME ${QUIC_LIBRARY_NAME})
     if (NOT WIN32)
         set_target_properties(msquic PROPERTIES SOVERSION ${QUIC_MAJOR_VERSION} VERSION ${QUIC_FULL_VERSION})
+    else()
+        # Configure linker to only load from the system directory.
+        set_target_properties(msquic PROPERTIES LINK_FLAGS "/DEPENDENTLOADFLAG:0x800")
     endif()
 else()
     add_library(msquic_static STATIC static/empty.c)
@@ -128,6 +131,8 @@ else()
     # Uncomment to analyze which dependencies were traversed
     # message(STATUS "DEPS: ${DEPS_LIST}, ${QUIC_BUILD_DIR}")
 
+    set(QUIC_STATIC_LIBRARY ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/${CMAKE_STATIC_LIBRARY_PREFIX}${QUIC_LIBRARY_NAME}${CMAKE_STATIC_LIBRARY_SUFFIX})
+
     if(APPLE)
         # Emit all linker inputs at build time to resolve generator expressions
         set(QUIC_DEPS_FILE ${CMAKE_CURRENT_BINARY_DIR}/$<IF:$<CONFIG:Debug>,Debug,Release>/quicdeps.txt)
@@ -139,9 +144,9 @@ else()
 
         # Run archiver tool
         add_custom_command(
-            OUTPUT ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/${CMAKE_STATIC_LIBRARY_PREFIX}${QUIC_LIBRARY_NAME}${CMAKE_STATIC_LIBRARY_SUFFIX}
+            OUTPUT ${QUIC_STATIC_LIBRARY}
             COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}
-            COMMAND libtool -static -o \"${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/${CMAKE_STATIC_LIBRARY_PREFIX}${QUIC_LIBRARY_NAME}${CMAKE_STATIC_LIBRARY_SUFFIX}\" @${QUIC_DEPS_FILE}
+            COMMAND libtool -static -o \"${QUIC_STATIC_LIBRARY}\" @${QUIC_DEPS_FILE}
             DEPENDS ${QUIC_DEPS_FILE}
             DEPENDS core
             DEPENDS platform
@@ -164,15 +169,15 @@ else()
         file(
             GENERATE
             OUTPUT ${QUIC_DEPS_FILE}
-            CONTENT "/OUT:\"${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/${CMAKE_STATIC_LIBRARY_PREFIX}${QUIC_LIBRARY_NAME}${CMAKE_STATIC_LIBRARY_SUFFIX}\" ${DEPS_STRING} ${NODEFAULTS}"
+            CONTENT "/OUT:\"${QUIC_STATIC_LIBRARY}\" ${DEPS_STRING} ${NODEFAULTS}"
         )
 
         # Run archiver tool (lib.exe) on our generated linker args
         add_custom_command(
-            OUTPUT ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/${CMAKE_STATIC_LIBRARY_PREFIX}${QUIC_LIBRARY_NAME}${CMAKE_STATIC_LIBRARY_SUFFIX}
+            OUTPUT ${QUIC_STATIC_LIBRARY}
             COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}
             COMMAND ${CMAKE_AR} @${QUIC_DEPS_FILE}
-            COMMAND ${CMAKE_COMMAND} -E copy "${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/${CMAKE_STATIC_LIBRARY_PREFIX}${QUIC_LIBRARY_NAME}${CMAKE_STATIC_LIBRARY_SUFFIX}" "${CMAKE_ARCHIVE_OUTPUT_DIRECTORY}"
+            COMMAND ${CMAKE_COMMAND} -E copy "${QUIC_STATIC_LIBRARY}" "${CMAKE_ARCHIVE_OUTPUT_DIRECTORY}"
             DEPENDS ${QUIC_DEPS_FILE}
             DEPENDS core
             DEPENDS platform
@@ -189,12 +194,12 @@ else()
         file(
             GENERATE
             OUTPUT ${QUIC_DEPS_FILE}
-            CONTENT "create \"${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/${CMAKE_STATIC_LIBRARY_PREFIX}${QUIC_LIBRARY_NAME}${CMAKE_STATIC_LIBRARY_SUFFIX}\"\n${DEPS_LINES}save\nend\n"
+            CONTENT "create \"${QUIC_STATIC_LIBRARY}\"\n${DEPS_LINES}save\nend\n"
         )
 
         # Run archiver tool
         add_custom_command(
-            OUTPUT ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/${CMAKE_STATIC_LIBRARY_PREFIX}${QUIC_LIBRARY_NAME}${CMAKE_STATIC_LIBRARY_SUFFIX}
+            OUTPUT ${QUIC_STATIC_LIBRARY}
             COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}
             COMMAND ${CMAKE_AR} -M < ${QUIC_DEPS_FILE}
             DEPENDS ${QUIC_DEPS_FILE}
@@ -205,14 +210,14 @@ else()
     endif()
 
     add_custom_target(
-        msquic_lib
+        msquic_lib ALL
         DEPENDS
-        ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/${CMAKE_STATIC_LIBRARY_PREFIX}${QUIC_LIBRARY_NAME}${CMAKE_STATIC_LIBRARY_SUFFIX}
+        ${QUIC_STATIC_LIBRARY}
     )
 
     set_property(TARGET msquic_lib PROPERTY FOLDER "${QUIC_FOLDER_PREFIX}libraries")
 
-    message(STATUS "${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/${CMAKE_STATIC_LIBRARY_PREFIX}${QUIC_LIBRARY_NAME}${CMAKE_STATIC_LIBRARY_SUFFIX}")
+    message(STATUS "${QUIC_STATIC_LIBRARY}")
 
     # Provide interface library to link the monolithic library
     # NOTE: It is important that this interface library NOT link directly to
@@ -223,7 +228,7 @@ else()
     target_compile_definitions(msquic INTERFACE QUIC_BUILD_STATIC)
     target_link_libraries(msquic
         INTERFACE
-        ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/${CMAKE_STATIC_LIBRARY_PREFIX}${QUIC_LIBRARY_NAME}${CMAKE_STATIC_LIBRARY_SUFFIX}
+        ${QUIC_STATIC_LIBRARY}
     )
     if (CX_PLATFORM STREQUAL "darwin")
         target_link_libraries(msquic INTERFACE "-framework CoreFoundation" "-framework Security")
@@ -263,7 +268,11 @@ set(PUBLIC_HEADERS
     ../inc/msquic_posix.h
     ../inc/quic_sal_stub.h)
 
-install(TARGETS msquic EXPORT msquic DESTINATION lib)
+if(BUILD_SHARED_LIBS)
+  install(TARGETS msquic EXPORT msquic DESTINATION lib)
+else()
+  install(FILES ${QUIC_STATIC_LIBRARY} DESTINATION lib)
+endif()
 install(FILES ${PUBLIC_HEADERS} DESTINATION include)
 
 configure_file(msquic-config.cmake.in ${CMAKE_BINARY_DIR}/msquic-config.cmake)

@@ -42,7 +42,9 @@ QuicSendUninitialize(
     _In_ QUIC_SEND* Send
     )
 {
+    Send->Uninitialized = TRUE;
     Send->DelayedAckTimerActive = FALSE;
+    Send->SendFlags = 0;
 
     if (Send->InitialToken != NULL) {
         CXPLAT_FREE(Send->InitialToken, QUIC_POOL_INITIAL_TOKEN);
@@ -215,6 +217,10 @@ QuicSendValidate(
     _In_ QUIC_SEND* Send
     )
 {
+    if (Send->Uninitialized) {
+        return;
+    }
+
     QUIC_CONNECTION* Connection = QuicSendGetConnection(Send);
 
     BOOLEAN HasAckElicitingPacketsToAcknowledge = FALSE;
@@ -381,6 +387,7 @@ QuicSendSetStreamSendFlag(
     if (Stream->Flags.LocalCloseAcked) {
         SendFlags &=
             ~(QUIC_STREAM_SEND_FLAG_SEND_ABORT |
+              QUIC_STREAM_SEND_FLAG_RELIABLE_ABORT |
               QUIC_STREAM_SEND_FLAG_DATA_BLOCKED |
               QUIC_STREAM_SEND_FLAG_DATA |
               QUIC_STREAM_SEND_FLAG_OPEN |
@@ -1012,6 +1019,45 @@ QuicSendGetNextStream(
     return NULL;
 }
 
+BOOLEAN
+CxPlatIsRouteReady(
+    _In_ QUIC_CONNECTION *Connection,
+    _In_ QUIC_PATH* Path
+    )
+{
+    //
+    // Make sure the route is resolved before sending packets.
+    //
+    if (Path->Route.State == RouteResolved) {
+        return TRUE;
+    }
+
+    //
+    // We need to set the path challenge flag back on so that when route is resolved,
+    // we know we need to continue to send the challenge.
+    //
+    CXPLAT_DBG_ASSERT(Path->IsActive);
+    if (Path->Route.State == RouteUnresolved || Path->Route.State == RouteSuspected) {
+        QuicConnAddRef(Connection, QUIC_CONN_REF_ROUTE);
+        QUIC_STATUS Status =
+            CxPlatResolveRoute(
+                Path->Binding->Socket, &Path->Route, Path->ID, (void*)Connection, QuicConnQueueRouteCompletion);
+        if (Status == QUIC_STATUS_SUCCESS) {
+            QuicConnRelease(Connection, QUIC_CONN_REF_ROUTE);
+            return TRUE;
+        }
+        //
+        // Route resolution failed or pended. We need to pause sending.
+        //
+        CXPLAT_DBG_ASSERT(Status == QUIC_STATUS_PENDING || QUIC_FAILED(Status));
+    }
+    //
+    // Path->Route.State == RouteResolving
+    // Can't send now. Once route resolution completes, we will resume sending.
+    //
+    return FALSE;
+}
+
 //
 // This function sends a path challenge frame out on all paths that currently
 // need one sent.
@@ -1022,6 +1068,8 @@ QuicSendPathChallenges(
     _In_ QUIC_SEND* Send
     )
 {
+#pragma warning(push)
+#pragma warning(disable:6001) // Using uninitialized memory
     QUIC_CONNECTION* Connection = QuicSendGetConnection(Send);
 
     CXPLAT_DBG_ASSERT(Connection->Crypto.TlsState.WriteKeys[QUIC_PACKET_KEY_1_RTT] != NULL);
@@ -1031,6 +1079,11 @@ QuicSendPathChallenges(
         QUIC_PATH* Path = &Connection->Paths[i];
         if (!Connection->Paths[i].SendChallenge ||
             Connection->Paths[i].Allowance < QUIC_MIN_SEND_ALLOWANCE) {
+            continue;
+        }
+
+        if (!CxPlatIsRouteReady(Connection, Path)) {
+            Send->SendFlags |= QUIC_CONN_SEND_FLAG_PATH_CHALLENGE;
             continue;
         }
 
@@ -1095,6 +1148,7 @@ QuicSendPathChallenges(
         QuicPacketBuilderFinalize(&Builder, TRUE);
         QuicPacketBuilderCleanup(&Builder);
     }
+#pragma warning(pop)
 }
 
 typedef enum QUIC_SEND_RESULT {
@@ -1118,32 +1172,9 @@ QuicSendFlush(
 
     CXPLAT_DBG_ASSERT(!Connection->State.HandleClosed);
 
-#ifdef QUIC_USE_RAW_DATAPATH
-    //
-    // Make sure the route is resolved before sending packets.
-    //
-    CXPLAT_DBG_ASSERT(Path->IsActive);
-    if (Path->Route.State == RouteUnresolved || Path->Route.State == RouteSuspected) {
-        QuicConnAddRef(Connection, QUIC_CONN_REF_ROUTE);
-        QUIC_STATUS Status =
-            CxPlatResolveRoute(
-                Path->Binding->Socket, &Path->Route, Path->ID, (void*)Connection, QuicConnQueueRouteCompletion);
-        if (Status == QUIC_STATUS_SUCCESS) {
-            QuicConnRelease(Connection, QUIC_CONN_REF_ROUTE);
-        } else {
-            //
-            // Route resolution failed or pended. We need to pause sending.
-            //
-            CXPLAT_DBG_ASSERT(Status == QUIC_STATUS_PENDING || QUIC_FAILED(Status));
-            return TRUE;
-        }
-    } else if (Path->Route.State == RouteResolving) {
-        //
-        // Can't send now. Once route resolution completes, we will resume sending.
-        //
+    if (!CxPlatIsRouteReady(Connection, Path)) {
         return TRUE;
     }
-#endif
 
     QuicConnTimerCancel(Connection, QUIC_CONN_TIMER_PACING);
     QuicConnRemoveOutFlowBlockedReason(
@@ -1208,7 +1239,7 @@ QuicSendFlush(
                     "ECN unknown.");
             }
         } else {
-            uint32_t ThreePtosInUs =
+            uint64_t ThreePtosInUs =
                 QuicLossDetectionComputeProbeTimeout(
                     &Connection->LossDetection,
                     &Connection->Paths[0],

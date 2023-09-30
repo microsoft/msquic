@@ -22,10 +22,6 @@
 #define _clog_MACRO_QuicTraceLogVerbose  1
 #define QuicTraceLogVerbose(a, ...) _clog_CAT(_clog_ARGN_SELECTOR(__VA_ARGS__), _clog_CAT(_,a(#a, __VA_ARGS__)))
 #endif
-#ifndef _clog_MACRO_QuicTraceLogError
-#define _clog_MACRO_QuicTraceLogError  1
-#define QuicTraceLogError(a, ...) _clog_CAT(_clog_ARGN_SELECTOR(__VA_ARGS__), _clog_CAT(_,a(#a, __VA_ARGS__)))
-#endif
 #ifndef _clog_MACRO_QuicTraceEvent
 #define _clog_MACRO_QuicTraceEvent  1
 #define QuicTraceEvent(a, ...) _clog_CAT(_clog_ARGN_SELECTOR(__VA_ARGS__), _clog_CAT(_,a(#a, __VA_ARGS__)))
@@ -124,24 +120,6 @@ tracepoint(CLOG_DATAPATH_WINUSER_C, DatapathQueryRecvMaxCoalescedSizeFailed , ar
 
 
 /*----------------------------------------------------------
-// Decoder Ring for DatapathMissingInfo
-// [data][%p] WSARecvMsg completion is missing IP_PKTINFO
-// QuicTraceLogWarning(
-                DatapathMissingInfo,
-                "[data][%p] WSARecvMsg completion is missing IP_PKTINFO",
-                SocketProc->Parent);
-// arg2 = arg2 = SocketProc->Parent = arg2
-----------------------------------------------------------*/
-#ifndef _clog_3_ARGS_TRACE_DatapathMissingInfo
-#define _clog_3_ARGS_TRACE_DatapathMissingInfo(uniqueId, encoded_arg_string, arg2)\
-tracepoint(CLOG_DATAPATH_WINUSER_C, DatapathMissingInfo , arg2);\
-
-#endif
-
-
-
-
-/*----------------------------------------------------------
 // Decoder Ring for DatapathRecvEmpty
 // [data][%p] Dropping datagram with empty payload.
 // QuicTraceLogWarning(
@@ -153,6 +131,24 @@ tracepoint(CLOG_DATAPATH_WINUSER_C, DatapathMissingInfo , arg2);\
 #ifndef _clog_3_ARGS_TRACE_DatapathRecvEmpty
 #define _clog_3_ARGS_TRACE_DatapathRecvEmpty(uniqueId, encoded_arg_string, arg2)\
 tracepoint(CLOG_DATAPATH_WINUSER_C, DatapathRecvEmpty , arg2);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for DatapathMissingInfo
+// [data][%p] WSARecvMsg completion is missing IP_PKTINFO
+// QuicTraceLogWarning(
+                DatapathMissingInfo,
+                "[data][%p] WSARecvMsg completion is missing IP_PKTINFO",
+                SocketProc->Parent);
+// arg2 = arg2 = SocketProc->Parent = arg2
+----------------------------------------------------------*/
+#ifndef _clog_3_ARGS_TRACE_DatapathMissingInfo
+#define _clog_3_ARGS_TRACE_DatapathMissingInfo(uniqueId, encoded_arg_string, arg2)\
+tracepoint(CLOG_DATAPATH_WINUSER_C, DatapathMissingInfo , arg2);\
 
 #endif
 
@@ -199,9 +195,9 @@ tracepoint(CLOG_DATAPATH_WINUSER_C, DatapathShutDownComplete , arg2);\
 // Decoder Ring for DatapathSocketContextComplete
 // [data][%p] Socket context shutdown
 // QuicTraceLogVerbose(
-        DatapathSocketContextComplete,
-        "[data][%p] Socket context shutdown",
-        SocketProc);
+            DatapathSocketContextComplete,
+            "[data][%p] Socket context shutdown",
+            SocketProc);
 // arg2 = arg2 = SocketProc = arg2
 ----------------------------------------------------------*/
 #ifndef _clog_3_ARGS_TRACE_DatapathSocketContextComplete
@@ -217,11 +213,11 @@ tracepoint(CLOG_DATAPATH_WINUSER_C, DatapathSocketContextComplete , arg2);\
 // Decoder Ring for DatapathUnreachableWithError
 // [data][%p] Received unreachable error (0x%x) from %!ADDR!
 // QuicTraceLogVerbose(
-        DatapathUnreachableWithError,
-        "[data][%p] Received unreachable error (0x%x) from %!ADDR!",
-        SocketProc->Parent,
-        ErrorCode,
-        CASTED_CLOG_BYTEARRAY(sizeof(*RemoteAddr), RemoteAddr));
+                DatapathUnreachableWithError,
+                "[data][%p] Received unreachable error (0x%x) from %!ADDR!",
+                SocketProc->Parent,
+                ErrorCode,
+                CASTED_CLOG_BYTEARRAY(sizeof(*RemoteAddr), RemoteAddr));
 // arg2 = arg2 = SocketProc->Parent = arg2
 // arg3 = arg3 = ErrorCode = arg3
 // arg4 = arg4 = CASTED_CLOG_BYTEARRAY(sizeof(*RemoteAddr), RemoteAddr) = arg4
@@ -249,26 +245,6 @@ tracepoint(CLOG_DATAPATH_WINUSER_C, DatapathUnreachableWithError , arg2, arg3, a
 #ifndef _clog_5_ARGS_TRACE_DatapathTooLarge
 #define _clog_5_ARGS_TRACE_DatapathTooLarge(uniqueId, encoded_arg_string, arg2, arg3, arg3_len)\
 tracepoint(CLOG_DATAPATH_WINUSER_C, DatapathTooLarge , arg2, arg3_len, arg3);\
-
-#endif
-
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for DatapathResolveHostNameFailed
-// [%p] Couldn't resolve hostname '%s' to an IP address
-// QuicTraceLogError(
-        DatapathResolveHostNameFailed,
-        "[%p] Couldn't resolve hostname '%s' to an IP address",
-        Datapath,
-        HostName);
-// arg2 = arg2 = Datapath = arg2
-// arg3 = arg3 = HostName = arg3
-----------------------------------------------------------*/
-#ifndef _clog_4_ARGS_TRACE_DatapathResolveHostNameFailed
-#define _clog_4_ARGS_TRACE_DatapathResolveHostNameFailed(uniqueId, encoded_arg_string, arg2, arg3)\
-tracepoint(CLOG_DATAPATH_WINUSER_C, DatapathResolveHostNameFailed , arg2, arg3);\
 
 #endif
 
@@ -316,17 +292,21 @@ tracepoint(CLOG_DATAPATH_WINUSER_C, AllocFailure , arg2, arg3);\
 
 
 /*----------------------------------------------------------
-// Decoder Ring for LibraryError
-// [ lib] ERROR, %s.
+// Decoder Ring for DatapathErrorStatus
+// [data][%p] ERROR, %u, %s.
 // QuicTraceEvent(
-            LibraryError,
-            "[ lib] ERROR, %s.",
-            "No local unicast addresses found");
-// arg2 = arg2 = "No local unicast addresses found" = arg2
+            DatapathErrorStatus,
+            "[data][%p] ERROR, %u, %s.",
+            SocketProc->Parent,
+            LastError,
+            "CxPlatSocketEnqueueSqe");
+// arg2 = arg2 = SocketProc->Parent = arg2
+// arg3 = arg3 = LastError = arg3
+// arg4 = arg4 = "CxPlatSocketEnqueueSqe" = arg4
 ----------------------------------------------------------*/
-#ifndef _clog_3_ARGS_TRACE_LibraryError
-#define _clog_3_ARGS_TRACE_LibraryError(uniqueId, encoded_arg_string, arg2)\
-tracepoint(CLOG_DATAPATH_WINUSER_C, LibraryError , arg2);\
+#ifndef _clog_5_ARGS_TRACE_DatapathErrorStatus
+#define _clog_5_ARGS_TRACE_DatapathErrorStatus(uniqueId, encoded_arg_string, arg2, arg3, arg4)\
+tracepoint(CLOG_DATAPATH_WINUSER_C, DatapathErrorStatus , arg2, arg3, arg4);\
 
 #endif
 
@@ -349,28 +329,6 @@ tracepoint(CLOG_DATAPATH_WINUSER_C, LibraryError , arg2);\
 #ifndef _clog_7_ARGS_TRACE_DatapathCreated
 #define _clog_7_ARGS_TRACE_DatapathCreated(uniqueId, encoded_arg_string, arg2, arg3, arg3_len, arg4, arg4_len)\
 tracepoint(CLOG_DATAPATH_WINUSER_C, DatapathCreated , arg2, arg3_len, arg3, arg4_len, arg4);\
-
-#endif
-
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for DatapathErrorStatus
-// [data][%p] ERROR, %u, %s.
-// QuicTraceEvent(
-                DatapathErrorStatus,
-                "[data][%p] ERROR, %u, %s.",
-                Socket,
-                WsaError,
-                "WSASocketW");
-// arg2 = arg2 = Socket = arg2
-// arg3 = arg3 = WsaError = arg3
-// arg4 = arg4 = "WSASocketW" = arg4
-----------------------------------------------------------*/
-#ifndef _clog_5_ARGS_TRACE_DatapathErrorStatus
-#define _clog_5_ARGS_TRACE_DatapathErrorStatus(uniqueId, encoded_arg_string, arg2, arg3, arg4)\
-tracepoint(CLOG_DATAPATH_WINUSER_C, DatapathErrorStatus , arg2, arg3, arg4);\
 
 #endif
 
@@ -431,13 +389,13 @@ tracepoint(CLOG_DATAPATH_WINUSER_C, DatapathRecv , arg2, arg3, arg4, arg5_len, a
         SendData->TotalSize,
         SendData->WsaBufferCount,
         SendData->SegmentSize,
-        CASTED_CLOG_BYTEARRAY(sizeof(*RemoteAddress), RemoteAddress),
+        CASTED_CLOG_BYTEARRAY(sizeof(SendData->MappedRemoteAddress), &SendData->MappedRemoteAddress),
         CASTED_CLOG_BYTEARRAY(sizeof(*LocalAddress), LocalAddress));
 // arg2 = arg2 = Socket = arg2
 // arg3 = arg3 = SendData->TotalSize = arg3
 // arg4 = arg4 = SendData->WsaBufferCount = arg4
 // arg5 = arg5 = SendData->SegmentSize = arg5
-// arg6 = arg6 = CASTED_CLOG_BYTEARRAY(sizeof(*RemoteAddress), RemoteAddress) = arg6
+// arg6 = arg6 = CASTED_CLOG_BYTEARRAY(sizeof(SendData->MappedRemoteAddress), &SendData->MappedRemoteAddress) = arg6
 // arg7 = arg7 = CASTED_CLOG_BYTEARRAY(sizeof(*LocalAddress), LocalAddress) = arg7
 ----------------------------------------------------------*/
 #ifndef _clog_10_ARGS_TRACE_DatapathSend

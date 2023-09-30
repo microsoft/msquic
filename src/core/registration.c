@@ -52,14 +52,14 @@ MsQuicRegistrationOpen(
         goto Error;
     }
 
-    if (ExternalRegistration) {
-        Status = QuicLibraryEnsureExecutionContext();
-        if (QUIC_FAILED(Status)) {
-            goto Error;
-        }
+    //
+    // For external registrations, we need to take the library lock. For the internal
+    // registration, the caller of this function holds the lock.
+    //
+    Status = QuicLibraryLazyInitialize(ExternalRegistration);
+    if (QUIC_FAILED(Status)) {
+        goto Error;
     }
-
-    CXPLAT_DBG_ASSERT(MsQuicLib.Datapath != NULL);
 
     Registration = CXPLAT_ALLOC_NONPAGED(RegistrationSize, QUIC_POOL_REGISTRATION);
     if (Registration == NULL) {
@@ -82,6 +82,7 @@ MsQuicRegistrationOpen(
     CxPlatListInitializeHead(&Registration->Configurations);
     CxPlatDispatchLockInitialize(&Registration->ConnectionLock);
     CxPlatListInitializeHead(&Registration->Connections);
+    CxPlatListInitializeHead(&Registration->Listeners);
     CxPlatRundownInitialize(&Registration->Rundown);
     Registration->AppNameLength = (uint8_t)(AppNameLength + 1);
     if (AppNameLength != 0) {
@@ -240,6 +241,7 @@ MsQuicRegistrationShutdown(
                 Oper->API_CALL.Context->CONN_SHUTDOWN.Flags = Flags;
                 Oper->API_CALL.Context->CONN_SHUTDOWN.ErrorCode = ErrorCode;
                 Oper->API_CALL.Context->CONN_SHUTDOWN.RegistrationShutdown = TRUE;
+                Oper->API_CALL.Context->CONN_SHUTDOWN.TransportShutdown = FALSE;
                 QuicConnQueueHighestPriorityOper(Connection, Oper);
             }
 
@@ -247,6 +249,14 @@ MsQuicRegistrationShutdown(
         }
 
         CxPlatDispatchLockRelease(&Registration->ConnectionLock);
+
+        Entry = Registration->Listeners.Flink;
+        while (Entry != &Registration->Listeners) {
+            QUIC_LISTENER* Listener =
+                CXPLAT_CONTAINING_RECORD(Entry, QUIC_LISTENER, RegistrationLink);
+            Entry = Entry->Flink;
+            MsQuicListenerStop((HQUIC)Listener);
+        }
     }
 
 Exit:

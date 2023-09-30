@@ -122,13 +122,22 @@ param (
     [switch]$AZP = $false,
 
     [Parameter(Mandatory = $false)]
+    [switch]$GHA = $false,
+
+    [Parameter(Mandatory = $false)]
     [switch]$ErrorsAsWarnings = $false,
 
     [Parameter(Mandatory = $false)]
     [string]$ExtraArtifactDir = "",
 
     [Parameter(Mandatory = $false)]
-    [switch]$DuoNic = $false
+    [switch]$DuoNic = $false,
+
+    [Parameter(Mandatory = $false)]
+    [string]$OsRunner = "",
+
+    [Parameter(Mandatory = $false)]
+    [switch]$UseQtip = $false
 )
 
 Set-StrictMode -Version 'Latest'
@@ -147,6 +156,8 @@ function Log($msg) {
 function LogWrn($msg) {
     if ($AZP -and !$ErrorsAsWarnings) {
         Write-Host "##vso[task.LogIssue type=warning;][$(Get-Date)] $msg"
+    } elseif ($GHA -and !$ErrorsAsWarnings) {
+        Write-Host "::warning::[$(Get-Date)] $msg"
     } else {
         Write-Warning "[$(Get-Date)] $msg"
     }
@@ -155,8 +166,20 @@ function LogWrn($msg) {
 function LogErr($msg) {
     if ($AZP -and !$ErrorsAsWarnings) {
         Write-Host "##vso[task.LogIssue type=error;][$(Get-Date)] $msg"
+    } elseif ($GHA -and !$ErrorsAsWarnings) {
+        Write-Host "::error::[$(Get-Date)] $msg"
     } else {
         Write-Warning "[$(Get-Date)] $msg"
+    }
+}
+
+function LogFatal($msg) {
+    if ($AZP -and !$ErrorsAsWarnings) {
+        Write-Error "##vso[task.LogIssue type=error;][$(Get-Date)] $msg"
+    } elseif ($GHA -and !$ErrorsAsWarnings) {
+        Write-Error "::error::[$(Get-Date)] $msg"
+    } else {
+        Write-Error "[$(Get-Date)] $msg"
     }
 }
 
@@ -299,7 +322,11 @@ function Start-TestExecutable([String]$Arguments, [String]$OutputDir) {
     $pinfo = New-Object System.Diagnostics.ProcessStartInfo
     if ($IsWindows) {
         if ($Debugger) {
-            $pinfo.FileName = "windbgx"
+            if (Get-Command "windbgx.exe" -ErrorAction SilentlyContinue) {
+                $pinfo.FileName = "windbgx.exe"
+            } else {
+                $pinfo.FileName = "windbg.exe"
+            }
             if ($InitialBreak) {
                 $pinfo.Arguments = "-G $($Path) $($Arguments)"
             } else {
@@ -358,7 +385,7 @@ function Start-TestCase([String]$Name) {
 
     # Build up the argument list.
     $ResultsPath = Join-Path $LocalLogDir "results.xml"
-    $Arguments = "--gtest_catch_exceptions=0 --gtest_filter=$($Name) --gtest_output=xml:$($ResultsPath) --timeout 30000"
+    $Arguments = "--gtest_catch_exceptions=0 --gtest_filter=$($Name) --gtest_output=xml:$($ResultsPath) --timeout 60000"
     if ($BreakOnFailure) {
         $Arguments += " --gtest_break_on_failure"
     }
@@ -367,6 +394,12 @@ function Start-TestCase([String]$Name) {
     }
     if ($DuoNic) {
         $Arguments += " --duoNic"
+    }
+    if ($UseQtip) {
+        $Arguments += " --useQTIP"
+    }
+    if ("" -ne $OsRunner) {
+        $Arguments += " --osRunner=$OsRunner"
     }
     if ($PfxPath -ne "") {
         $Arguments += " -PfxPath:$PfxPath"
@@ -377,6 +410,7 @@ function Start-TestCase([String]$Name) {
         Name = $Name
         InstanceName = $InstanceName
         LogDir = $LocalLogDir
+        StartTime = Get-Date
         Timestamp = (Get-Date -UFormat "%Y-%m-%dT%T")
         ResultsPath = $ResultsPath
         Process = (Start-TestExecutable $Arguments $LocalLogDir)
@@ -408,6 +442,12 @@ function Start-AllTestCases {
     if ($DuoNic) {
         $Arguments += " --duoNic"
     }
+    if ($UseQtip) {
+        $Arguments += " --useQTIP"
+    }
+    if ("" -ne $OsRunner) {
+        $Arguments += " --osRunner=$OsRunner"
+    }
     if ($PfxPath -ne "") {
         $Arguments += " -PfxPath:$PfxPath"
     }
@@ -416,6 +456,7 @@ function Start-AllTestCases {
         Name = $Name
         InstanceName = $InstanceName
         LogDir = $LogDir
+        StartTime = Get-Date
         Timestamp = (Get-Date -UFormat "%Y-%m-%dT%T")
         ResultsPath = $FinalResultsPath
         Process = (Start-TestExecutable $Arguments $LogDir)
@@ -600,12 +641,13 @@ function Wait-TestCase($TestCase) {
             if ($StdOutTxt) { Write-Host $StdOutTxt }
             if ($StdErrorTxt) { Write-Host $StdErrorTxt }
         } else {
+            $Delta = (Get-Date) - $TestCase.StartTime
             if ($AnyTestFailed -or $ProcessCrashed) {
-                LogErr "$($TestCase.Name) failed:"
+                LogErr "$($TestCase.Name) failed (in $($Delta.TotalSeconds) sec):"
                 if ($StdOutTxt) { Write-Host $StdOutTxt }
                 if ($StdErrorTxt) { Write-Host $StdErrorTxt }
             } else {
-                Log "$($TestCase.Name) succeeded"
+                Log "$($TestCase.Name) succeeded (in $($Delta.TotalSeconds) sec)"
             }
         }
 
@@ -738,32 +780,23 @@ if ($IsWindows -and $EnableAppVerifier) {
     }
 }
 
+$DriverPath = (Split-Path $Path -Parent)
+
 # Install the kernel mode drivers.
 if ($Kernel -ne "") {
     if ($null -ne (Get-Service -Name "msquicpriv" -ErrorAction Ignore)) {
-        try {
-            net.exe stop msquicpriv /y | Out-Null
-        }
-        catch {}
+        try { net.exe stop msquicpriv /y | Out-Null } catch {}
         sc.exe delete msquicpriv /y | Out-Null
     }
     if ($null -ne (Get-Service -Name "msquictestpriv" -ErrorAction Ignore)) {
-        try {
-            net.exe stop msquictestpriv /y | Out-Null
-        }
-        catch {}
+        try { net.exe stop msquictestpriv /y | Out-Null } catch {}
         sc.exe delete msquictestpriv /y | Out-Null
     }
-    Copy-Item (Join-Path $Kernel "msquictestpriv.sys") (Split-Path $Path -Parent)
-    Copy-Item (Join-Path $Kernel "msquicpriv.sys") (Split-Path $Path -Parent)
+    Copy-Item (Join-Path $Kernel "msquictestpriv.sys") $DriverPath -Force
+    Copy-Item (Join-Path $Kernel "msquicpriv.sys") $DriverPath -Force
 
-    $SignTool = Get-WindowsKitTool -Tool "signtool.exe"
-
-    if (Test-Path c:\CodeSign.pfx) {
-        & $SignTool sign /f C:\CodeSign.pfx -p "placeholder" /fd SHA256 /tr http://timestamp.digicert.com /td SHA256  (Join-Path (Split-Path $Path -Parent) "msquicpriv.sys")
-        & $SignTool sign /f C:\CodeSign.pfx -p "placeholder" /fd SHA256 /tr http://timestamp.digicert.com /td SHA256  (Join-Path (Split-Path $Path -Parent) "msquictestpriv.sys")
-    }
-    sc.exe create "msquicpriv" type= kernel binpath= (Join-Path (Split-Path $Path -Parent) "msquicpriv.sys") start= demand | Out-Null
+    Log "Creating msquicpriv service"
+    sc.exe create "msquicpriv" type= kernel binpath= (Join-Path $DriverPath msquicpriv.sys) start= demand | Out-Null
     if ($LastExitCode) {
         Log ("sc.exe " + $LastExitCode)
     }
@@ -773,9 +806,19 @@ if ($Kernel -ne "") {
             Log ("verifier.exe " + $LastExitCode)
         }
     }
-    net.exe start msquicpriv
+
+    Log "Starting msquicpriv service"
+    sc.exe start msquicpriv
     if ($LastExitCode) {
         Log ("net.exe " + $LastExitCode)
+    }
+
+    try {
+        if ("Running" -ne (Get-Service -Name msquicpriv).Status) {
+            LogFatal "msquicpriv isn't running"
+        }
+    } catch {
+        LogFatal "msquicpriv query failed"
     }
 }
 
@@ -853,6 +896,8 @@ try {
         net.exe stop msquicpriv /y | Out-Null
         sc.exe delete msquictestpriv | Out-Null
         sc.exe delete msquicpriv | Out-Null
+        Remove-Item (Join-Path $DriverPath msquicpriv.sys) -Force
+        Remove-Item (Join-Path $DriverPath msquictestpriv.sys) -Force
     }
 
     if ($IsWindows -and $EnableSystemVerifier) {

@@ -58,19 +58,23 @@ tracepoint(CLOG_PLATFORM_WINUSER_C, WindowsUserUnloaded );\
 
 
 /*----------------------------------------------------------
-// Decoder Ring for WindowsUserProcessorState
-// [ dll] Processors:%u, Groups:%u, NUMA Nodes:%u
+// Decoder Ring for WindowsUserProcessorStateV3
+// [ dll] Processors: (%u active, %u max), Groups: (%hu active, %hu max)
 // QuicTraceLogInfo(
-        WindowsUserProcessorState,
-        "[ dll] Processors:%u, Groups:%u, NUMA Nodes:%u",
-        ActiveProcessorCount, ProcessorGroupCount, NumaNodeCount);
+        WindowsUserProcessorStateV3,
+        "[ dll] Processors: (%u active, %u max), Groups: (%hu active, %hu max)",
+        ActiveProcessorCount,
+        MaxProcessorCount,
+        Info->Group.ActiveGroupCount,
+        Info->Group.MaximumGroupCount);
 // arg2 = arg2 = ActiveProcessorCount = arg2
-// arg3 = arg3 = ProcessorGroupCount = arg3
-// arg4 = arg4 = NumaNodeCount = arg4
+// arg3 = arg3 = MaxProcessorCount = arg3
+// arg4 = arg4 = Info->Group.ActiveGroupCount = arg4
+// arg5 = arg5 = Info->Group.MaximumGroupCount = arg5
 ----------------------------------------------------------*/
-#ifndef _clog_5_ARGS_TRACE_WindowsUserProcessorState
-#define _clog_5_ARGS_TRACE_WindowsUserProcessorState(uniqueId, encoded_arg_string, arg2, arg3, arg4)\
-tracepoint(CLOG_PLATFORM_WINUSER_C, WindowsUserProcessorState , arg2, arg3, arg4);\
+#ifndef _clog_6_ARGS_TRACE_WindowsUserProcessorStateV3
+#define _clog_6_ARGS_TRACE_WindowsUserProcessorStateV3(uniqueId, encoded_arg_string, arg2, arg3, arg4, arg5)\
+tracepoint(CLOG_PLATFORM_WINUSER_C, WindowsUserProcessorStateV3 , arg2, arg3, arg4, arg5);\
 
 #endif
 
@@ -78,23 +82,23 @@ tracepoint(CLOG_PLATFORM_WINUSER_C, WindowsUserProcessorState , arg2, arg3, arg4
 
 
 /*----------------------------------------------------------
-// Decoder Ring for ProcessorInfo
-// [ dll] Proc[%u] Group[%hu] Index[%u] NUMA[%u]
+// Decoder Ring for ProcessorInfoV2
+// [ dll] Proc[%u] Group[%hu] Index[%u] Active=%hhu
 // QuicTraceLogInfo(
-                        ProcessorInfo,
-                        "[ dll] Proc[%u] Group[%hu] Index[%u] NUMA[%u]",
-                        Index,
-                        CxPlatProcessorInfo[Index].Group,
-                        CxPlatProcessorInfo[Index].Index,
-                        CxPlatProcessorInfo[Index].NumaNode);
-// arg2 = arg2 = Index = arg2
-// arg3 = arg3 = CxPlatProcessorInfo[Index].Group = arg3
-// arg4 = arg4 = CxPlatProcessorInfo[Index].Index = arg4
-// arg5 = arg5 = CxPlatProcessorInfo[Index].NumaNode = arg5
+                    ProcessorInfoV2,
+                    "[ dll] Proc[%u] Group[%hu] Index[%u] Active=%hhu",
+                    Proc,
+                    (uint16_t)Group,
+                    CxPlatProcessorInfo[Proc].Index,
+                    (uint8_t)!!(CxPlatProcessorGroupInfo[Group].Mask & (1ULL << CxPlatProcessorInfo[Proc].Index)));
+// arg2 = arg2 = Proc = arg2
+// arg3 = arg3 = (uint16_t)Group = arg3
+// arg4 = arg4 = CxPlatProcessorInfo[Proc].Index = arg4
+// arg5 = arg5 = (uint8_t)!!(CxPlatProcessorGroupInfo[Group].Mask & (1ULL << CxPlatProcessorInfo[Proc].Index)) = arg5
 ----------------------------------------------------------*/
-#ifndef _clog_6_ARGS_TRACE_ProcessorInfo
-#define _clog_6_ARGS_TRACE_ProcessorInfo(uniqueId, encoded_arg_string, arg2, arg3, arg4, arg5)\
-tracepoint(CLOG_PLATFORM_WINUSER_C, ProcessorInfo , arg2, arg3, arg4, arg5);\
+#ifndef _clog_6_ARGS_TRACE_ProcessorInfoV2
+#define _clog_6_ARGS_TRACE_ProcessorInfoV2(uniqueId, encoded_arg_string, arg2, arg3, arg4, arg5)\
+tracepoint(CLOG_PLATFORM_WINUSER_C, ProcessorInfoV2 , arg2, arg3, arg4, arg5);\
 
 #endif
 
@@ -164,9 +168,9 @@ tracepoint(CLOG_PLATFORM_WINUSER_C, WindowsUserUninitialized );\
             AllocFailure,
             "Allocation of '%s' failed. (%llu bytes)",
             "CxPlatProcessorInfo",
-            ActiveProcessorCount * sizeof(CXPLAT_PROCESSOR_INFO));
+            MaxProcessorCount * sizeof(CXPLAT_PROCESSOR_INFO));
 // arg2 = arg2 = "CxPlatProcessorInfo" = arg2
-// arg3 = arg3 = ActiveProcessorCount * sizeof(CXPLAT_PROCESSOR_INFO) = arg3
+// arg3 = arg3 = MaxProcessorCount * sizeof(CXPLAT_PROCESSOR_INFO) = arg3
 ----------------------------------------------------------*/
 #ifndef _clog_4_ARGS_TRACE_AllocFailure
 #define _clog_4_ARGS_TRACE_AllocFailure(uniqueId, encoded_arg_string, arg2, arg3)\

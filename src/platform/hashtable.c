@@ -81,6 +81,45 @@ CXPLAT_STATIC_ASSERT(
     CXPLAT_HASH_MIN_SIZE == BASE_HASH_TABLE_SIZE,
     "Hash table sizes should match!");
 
+//
+// The maximum number of hash table resizes allowed at a time. This limits
+// the time spent expanding/contracting a hash table at dispatch.
+//
+#define CXPLAT_HASHTABLE_MAX_RESIZE_ATTEMPTS            1
+
+//
+// The maximum average chain length in a hash table bucket. If a hash table's
+// average chain length goes above this limit, it needs to be expanded.
+//
+#define CXPLAT_HASHTABLE_MAX_CHAIN_LENGTH               4
+
+//
+// The maximum percentage of empty buckets in the hash table. If a hash table
+// has more empty buckets, it needs to be contracted.
+//
+#define CXPLAT_HASHTABLE_MAX_EMPTY_BUCKET_PERCENTAGE    25
+
+#if CXPLAT_HASHTABLE_CONTRACT_SUPPORT
+uint32_t
+CxPlatHashtableGetEmptyBuckets(
+    _In_ const CXPLAT_HASHTABLE* HashTable
+    )
+{
+    CXPLAT_DBG_ASSERT(HashTable->TableSize >= HashTable->NonEmptyBuckets);
+    return HashTable->TableSize - HashTable->NonEmptyBuckets;
+}
+
+BOOLEAN
+CxPlatHashTableContract(
+    _Inout_ CXPLAT_HASHTABLE* HashTable
+    );
+#endif // CXPLAT_HASHTABLE_CONTRACT_SUPPORT
+
+BOOLEAN
+CxPlatHashTableExpand(
+    _Inout_ CXPLAT_HASHTABLE* HashTable
+    );
+
 #ifndef BitScanReverse
 static
 uint8_t
@@ -160,6 +199,7 @@ Arguments:
     CXPLAT_DBG_ASSERT(BucketIndex < MAX_HASH_TABLE_SIZE);
 
     uint32_t AbsoluteIndex = BucketIndex + HT_SECOND_LEVEL_DIR_MIN_SIZE;
+    CXPLAT_DBG_ASSERT(AbsoluteIndex != 0);
 
     //
     // Find the most significant set bit. Since AbsoluteIndex is always nonzero,
@@ -350,15 +390,10 @@ Return Value:
 --*/
 
 {
-#ifdef CXPLAT_HASHTABLE_RESIZE_SUPPORT
     uint32_t BucketIndex = ((uint32_t)Signature) & HashTable->DivisorMask;
     if (BucketIndex < HashTable->Pivot) {
         BucketIndex = ((uint32_t)Signature) & ((HashTable->DivisorMask << 1) | 1);
     }
-#else
-    uint32_t BucketIndex = ((uint32_t)Signature) & (HashTable->TableSize - 1);
-#endif
-
     return BucketIndex;
 }
 
@@ -498,10 +533,8 @@ Return Value:
     CxPlatZeroMemory(Table, sizeof(CXPLAT_HASHTABLE));
     Table->Flags = LocalFlags;
     Table->TableSize = InitialSize;
-#ifdef CXPLAT_HASHTABLE_RESIZE_SUPPORT
     Table->DivisorMask = Table->TableSize - 1;
     Table->Pivot = 0;
-#endif
 
     //
     // Now we allocate the second level entries.
@@ -510,8 +543,8 @@ Return Value:
     if (Table->TableSize <= HT_SECOND_LEVEL_DIR_MIN_SIZE) {
 
         //
-        // Directory pointer in the Table header structure points points directly
-        // directly points directly to the single second-level directory.
+        // Directory pointer in the Table header structure points directly to
+        // the single second-level directory.
         //
 
         Table->SecondLevelDir =
@@ -740,6 +773,22 @@ Arguments:
     }
 
     CxPlatListInsertHead(ContextPtr->PrevLinkage, &Entry->Linkage);
+
+    //
+    // Expand the table if necessary.
+    //
+    if (HashTable->NumEntries > CXPLAT_HASHTABLE_MAX_CHAIN_LENGTH * HashTable->NonEmptyBuckets) {
+        uint32_t RestructAttempts = CXPLAT_HASHTABLE_MAX_RESIZE_ATTEMPTS;
+        do {
+            if (!CxPlatHashTableExpand(HashTable)) {
+                break;
+            }
+
+            RestructAttempts--;
+
+        } while ((RestructAttempts > 0) &&
+                 (HashTable->NumEntries > CXPLAT_HASHTABLE_MAX_CHAIN_LENGTH * HashTable->NonEmptyBuckets));
+    }
 }
 
 void
@@ -799,6 +848,30 @@ Arguments:
             CXPLAT_DBG_ASSERT(Signature == Context->Signature);
         }
     }
+
+#if CXPLAT_HASHTABLE_CONTRACT_SUPPORT
+    //
+    // Contract the table if necessary.
+    //
+    uint32_t EmptyBuckets = CxPlatHashtableGetEmptyBuckets(HashTable);
+    if (EmptyBuckets >
+        (CXPLAT_HASHTABLE_MAX_EMPTY_BUCKET_PERCENTAGE * HashTable->TableSize / 100)) {
+
+        uint32_t RestructAttempts = CXPLAT_HASHTABLE_MAX_RESIZE_ATTEMPTS;
+        do {
+            if (!CxPlatHashTableContract(HashTable)) {
+                break;
+            }
+
+            EmptyBuckets = RtlEmptyBucketsHashTable(HashTable);
+            RestructAttempts--;
+
+        } while ((RestructAttempts > 0) &&
+                 (EmptyBuckets >
+                  (CXPLAT_HASHTABLE_MAX_EMPTY_BUCKET_PERCENTAGE *
+                   HashTable->TableSize / 100)));
+    }
+#endif // CXPLAT_HASHTABLE_CONTRACT_SUPPORT
 }
 
 _Must_inspect_result_
@@ -1143,8 +1216,6 @@ Arguments:
     Enumerator->ChainHead = FALSE;
 }
 
-#ifdef CXPLAT_HASHTABLE_RESIZE_SUPPORT
-
 BOOLEAN
 CxPlatHashTableExpand(
     _Inout_ CXPLAT_HASHTABLE* HashTable
@@ -1168,7 +1239,7 @@ CxPlatHashTableExpand(
     // the hash table is increased by one, the highest bucket index will be the
     // current table size, which is what we use in the calculations below
     //
-    uint32_t FirstLevelIndex, SecondLevelIndex;
+    uint32_t FirstLevelIndex = 0, SecondLevelIndex;
     CxPlatComputeDirIndices(
         HashTable->TableSize, &FirstLevelIndex, &SecondLevelIndex);
 
@@ -1181,9 +1252,11 @@ CxPlatHashTableExpand(
     CXPLAT_LIST_ENTRY** FirstLevelDir;
     if (HT_SECOND_LEVEL_DIR_MIN_SIZE == HashTable->TableSize) {
 
-        SecondLevelDir = (CXPLAT_LIST_ENTRY*)HashTable->SecondLevelDir;
-        FirstLevelDir = CXPLAT_ALLOC_NONPAGED(sizeof(CXPLAT_LIST_ENTRY*) * HT_FIRST_LEVEL_DIR_SIZE);
-
+        SecondLevelDir = HashTable->SecondLevelDir;
+        FirstLevelDir =
+            CXPLAT_ALLOC_NONPAGED(
+                sizeof(CXPLAT_LIST_ENTRY*) * HT_FIRST_LEVEL_DIR_SIZE,
+                QUIC_POOL_HASHTABLE_MEMBER);
         if (FirstLevelDir == NULL) {
             return FALSE;
         }
@@ -1207,7 +1280,8 @@ CxPlatHashTableExpand(
         //
         SecondLevelDir =
             CXPLAT_ALLOC_NONPAGED(
-                CxPlatComputeSecondLevelDirSize(FirstLevelIndex) * sizeof(CXPLAT_LIST_ENTRY));
+                CxPlatComputeSecondLevelDirSize(FirstLevelIndex) * sizeof(CXPLAT_LIST_ENTRY),
+                QUIC_POOL_HASHTABLE_MEMBER);
         if (NULL == SecondLevelDir) {
 
             //
@@ -1220,7 +1294,7 @@ CxPlatHashTableExpand(
                 CXPLAT_DBG_ASSERT(FirstLevelIndex == 1);
 
                 HashTable->SecondLevelDir = FirstLevelDir[0];
-                CXPLAT_FREE(FirstLevelDir);
+                CXPLAT_FREE(FirstLevelDir, QUIC_POOL_HASHTABLE_MEMBER);
             }
 
             return FALSE;
@@ -1292,6 +1366,8 @@ CxPlatHashTableExpand(
 
     return TRUE;
 }
+
+#ifdef CXPLAT_HASHTABLE_CONTRACT_SUPPORT
 
 BOOLEAN
 CxPlatHashTableContract(
@@ -1371,7 +1447,7 @@ CxPlatHashTableContract(
     // Finally free any extra memory if possible.
     //
 
-    uint32_t FirstLevelIndex, SecondLevelIndex;
+    uint32_t FirstLevelIndex = 0, SecondLevelIndex;
     CxPlatComputeDirIndices(
         HashTable->TableSize, &FirstLevelIndex, &SecondLevelIndex);
 
@@ -1380,7 +1456,7 @@ CxPlatHashTableContract(
         CXPLAT_LIST_ENTRY** FirstLevelDir = HashTable->FirstLevelDir;
         CXPLAT_LIST_ENTRY* SecondLevelDir = FirstLevelDir[FirstLevelIndex];
 
-        CXPLAT_FREE(SecondLevelDir);
+        CXPLAT_FREE(SecondLevelDir, QUIC_POOL_HASHTABLE_MEMBER);
         FirstLevelDir[FirstLevelIndex] = NULL;
 
         //
@@ -1389,11 +1465,11 @@ CxPlatHashTableContract(
 
         if (HT_SECOND_LEVEL_DIR_MIN_SIZE == HashTable->TableSize) {
             HashTable->SecondLevelDir = FirstLevelDir[0];
-            CXPLAT_FREE(FirstLevelDir);
+            CXPLAT_FREE(FirstLevelDir, QUIC_POOL_HASHTABLE_MEMBER);
         }
     }
 
     return TRUE;
 }
 
-#endif // CXPLAT_HASHTABLE_RESIZE_SUPPORT
+#endif // CXPLAT_HASHTABLE_CONTRACT_SUPPORT

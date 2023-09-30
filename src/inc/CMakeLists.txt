@@ -24,21 +24,16 @@ if (NOT MSVC AND QUIC_ENABLE_SANITIZERS)
     target_link_libraries(base_link INTERFACE -fsanitize=address,leak,undefined,alignment)
 endif()
 
-if (NOT MSVC AND NOT APPLE AND NOT ANDROID)
-    find_library(ATOMIC NAMES atomic libatomic.so.1)
-    if (ATOMIC)
-        message(STATUS "Found libatomic: ${ATOMIC}")
-    else()
-        message(STATUS "libatomic not found. If build fails, install libatomic")
-    endif()
-endif()
-
 set(THREADS_PREFER_PTHREAD_FLAG ON)
 find_package(Threads REQUIRED)
 target_link_libraries(base_link INTERFACE Threads::Threads ${CMAKE_DL_LIBS})
 
 if (ATOMIC)
     target_link_libraries(base_link INTERFACE ${ATOMIC})
+endif()
+
+if (NUMA)
+    target_link_libraries(base_link INTERFACE ${NUMA})
 endif()
 
 if(WIN32)

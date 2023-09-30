@@ -538,7 +538,7 @@ void TcpConnection::Process()
     }
     if (BatchedSendData) {
         if (QUIC_FAILED(
-            CxPlatSocketSend(Socket, &Route, BatchedSendData, PartitionIndex))) {
+            CxPlatSocketSend(Socket, &Route, BatchedSendData))) {
             IndicateDisconnect = true;
         }
         BatchedSendData = nullptr;
@@ -905,7 +905,8 @@ bool TcpConnection::EncryptFrame(TcpFrame* Frame)
 QUIC_BUFFER* TcpConnection::NewSendBuffer()
 {
     if (!BatchedSendData) {
-        BatchedSendData = CxPlatSendDataAlloc(Socket, CXPLAT_ECN_NON_ECT, TLS_BLOCK_SIZE, &Route);
+        CXPLAT_SEND_CONFIG SendConfig = { &Route, TLS_BLOCK_SIZE, CXPLAT_ECN_NON_ECT, 0 };
+        BatchedSendData = CxPlatSendDataAlloc(Socket, &SendConfig);
         if (!BatchedSendData) { return nullptr; }
     }
     return CxPlatSendDataAllocBuffer(BatchedSendData, TLS_BLOCK_SIZE);
@@ -922,7 +923,7 @@ bool TcpConnection::FinalizeSendBuffer(QUIC_BUFFER* SendBuffer)
     if (SendBuffer->Length != TLS_BLOCK_SIZE ||
         CxPlatSendDataIsFull(BatchedSendData)) {
         if (QUIC_FAILED(
-            CxPlatSocketSend(Socket, &Route, BatchedSendData, PartitionIndex))) {
+            CxPlatSocketSend(Socket, &Route, BatchedSendData))) {
             WriteOutput("CxPlatSocketSend FAILED\n");
             return false;
         }

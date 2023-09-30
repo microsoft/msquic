@@ -45,6 +45,7 @@ $Arguments = @(
     "-e QUIC_STRUCT_SIZE_THRU_FIELD" # Cannot generate macro functions
     "-e QUIC_STATISTICS_V2_SIZE_1" # Inconsistent definitions across platforms
     "-e QUIC_STATISTICS_V2_SIZE_2" # Inconsistent definitions across platforms
+    "-e QUIC_STATISTICS_V2_SIZE_3" # Inconsistent definitions across platforms
 )
 
 $FullArgs = $Arguments -join " "
@@ -60,6 +61,7 @@ Invoke-Expression "$ToolExe $FullArgs"
     -replace "  QUIC_EXECUTION_PROFILE_TYPE_", "  " `
     -replace "  QUIC_EXECUTION_PROFILE_", "  " `
     -replace "  QUIC_LOAD_BALANCING_", "  " `
+    -replace "  QUIC_TLS_ALERT_CODE_", "  " `
     -replace "  QUIC_CREDENTIAL_TYPE_", "  " `
     -replace "  QUIC_CREDENTIAL_FLAG_", "  " `
     -replace "  QUIC_ALLOWED_CIPHER_SUITE_", "  " `

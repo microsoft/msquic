@@ -26,7 +26,7 @@ Abstract:
 #define TPUT_DEFAULT_IDLE_TIMEOUT           (1 * 1000)
 
 #define RPS_MAX_CLIENT_PORT_COUNT           256
-#define RPS_MAX_REQUESTS_PER_SECOND         2000000 // 1.5 million RPS max as a guess
+#define RPS_MAX_REQUESTS_PER_SECOND         2000000 // best guess - must increase if we can do better
 #define RPS_DEFAULT_RUN_TIME                (10 * 1000)
 #define RPS_DEFAULT_CONNECTION_COUNT        1000
 #define RPS_DEFAULT_REQUEST_LENGTH          0
@@ -42,3 +42,4 @@ Abstract:
 extern QUIC_EXECUTION_PROFILE PerfDefaultExecutionProfile;
 extern QUIC_CONGESTION_CONTROL_ALGORITHM PerfDefaultCongestionControl;
 extern uint8_t PerfDefaultEcnEnabled;
+extern uint8_t PerfDefaultQeoAllowed;

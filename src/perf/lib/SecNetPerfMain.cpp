@@ -28,6 +28,7 @@ PerfBase* TestToRun;
 QUIC_EXECUTION_PROFILE PerfDefaultExecutionProfile = QUIC_EXECUTION_PROFILE_LOW_LATENCY;
 QUIC_CONGESTION_CONTROL_ALGORITHM PerfDefaultCongestionControl = QUIC_CONGESTION_CONTROL_ALGORITHM_CUBIC;
 uint8_t PerfDefaultEcnEnabled = false;
+uint8_t PerfDefaultQeoAllowed = false;
 
 #include "quic_datapath.h"
 
@@ -91,6 +92,8 @@ PrintHelp(
         "Server: secnetperf [options]\n"
         "\n"
         "  -bind:<addr>                A local IP address to bind to.\n"
+        "  -port:<####>                The UDP port of the server. Ignored if \"bind\" is passed. (def:%u)\n"
+        "  -serverid:<####>            The ID of the server (used for load balancing).\n"
         "  -cibir:<hex_bytes>          A CIBIR well-known idenfitier.\n"
         "\n"
         "Client: secnetperf -TestName:<Throughput|RPS|HPS> [options]\n"
@@ -99,11 +102,15 @@ PrintHelp(
         "  -cc:<algo>                  Congestion control algorithm to use {cubic, bbr}.\n"
         "  -pollidle:<time_us>         Amount of time to poll while idle before sleeping (default: 0).\n"
         "  -ecn:<0/1>                  Enables/disables sender-side ECN support. (def:0)\n"
+        "  -qeo:<0/1>                  Allows/disallowes QUIC encryption offload. (def:0)\n"
 #ifndef _KERNEL_MODE
         "  -cpu:<cpu_index>            Specify the processor(s) to use.\n"
         "  -cipher:<value>             Decimal value of 1 or more QUIC_ALLOWED_CIPHER_SUITE_FLAGS.\n"
+        "  -qtip:<0/1>                 Enables/disables Quic over TCP support. (def:0)\n"
+        "  -rio:<0/1>                  Enables/disables RIO support. (def:0)\n"
 #endif // _KERNEL_MODE
-        "\n"
+        "\n",
+        PERF_DEFAULT_PORT
         );
 }
 
@@ -195,6 +202,18 @@ QuicMainStart(
     bool SetConfig = false;
 
 #ifndef _KERNEL_MODE
+    uint8_t QuicOverTcpEnabled;
+    if (TryGetValue(argc, argv, "qtip", &QuicOverTcpEnabled)) {
+        Config->Flags |= QUIC_EXECUTION_CONFIG_FLAG_QTIP;
+        SetConfig = true;
+    }
+
+    uint8_t RioEnabled;
+    if (TryGetValue(argc, argv, "rio", &RioEnabled)) {
+        Config->Flags |= QUIC_EXECUTION_CONFIG_FLAG_RIO;
+        SetConfig = true;
+    }
+
     const char* CpuStr;
     if ((CpuStr = GetValue(argc, argv, "cpu")) != nullptr) {
         SetConfig = true;
@@ -255,6 +274,7 @@ QuicMainStart(
     }
 
     TryGetValue(argc, argv, "ecn", &PerfDefaultEcnEnabled);
+    TryGetValue(argc, argv, "qeo", &PerfDefaultQeoAllowed);
 
     if (ServerMode) {
         TestToRun = new(std::nothrow) PerfServer(SelfSignedCredConfig);

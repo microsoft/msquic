@@ -26,7 +26,11 @@ typedef enum QUIC_CONNECTION_ACCEPT_RESULT {
 //
 typedef struct QUIC_REGISTRATION {
 
+#ifdef __cplusplus
+    struct QUIC_HANDLE _;
+#else
     struct QUIC_HANDLE;
+#endif
 
 #ifdef CxPlatVerifierEnabledByAddr
     //
@@ -77,7 +81,7 @@ typedef struct QUIC_REGISTRATION {
     CXPLAT_LIST_ENTRY Configurations;
 
     //
-    // Protects access to the Connections list.
+    // Protects access to the Connections list and the Listeners list.
     //
     CXPLAT_DISPATCH_LOCK ConnectionLock;
 
@@ -85,6 +89,11 @@ typedef struct QUIC_REGISTRATION {
     // List of all connections for this registration.
     //
     CXPLAT_LIST_ENTRY Connections;
+
+    //
+    // List of all Listeners for this registration.
+    //
+    CXPLAT_LIST_ENTRY Listeners;
 
     //
     // Rundown for all child objects.

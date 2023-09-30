@@ -75,10 +75,12 @@ typedef struct QUIC_TEST_DATAPATH_HOOKS {
 //
 #define QUIC_TEST_DATAPATH_HOOKS_ENABLED 1
 
+#ifndef QUIC_TEST_OPENSSL_FLAGS // Not supported on OpenSSL currently
 //
 // Failing test certificates are only available for debug builds
 //
 #define QUIC_TEST_FAILING_TEST_CERTIFICATES 1
+#endif
 
 //
 // Allocation failures are currently only enabled on debug builds.
@@ -112,6 +114,7 @@ typedef struct QUIC_PRIVATE_TRANSPORT_PARAMETER {
 #define QUIC_PARAM_GLOBAL_VERSION_NEGOTIATION_ENABLED   0x81000003  // BOOLEAN
 #endif
 #define QUIC_PARAM_GLOBAL_IN_USE                        0x81000004  // BOOLEAN
+#define QUIC_PARAM_GLOBAL_DATAPATH_FEATURES             0x81000005  // uint32_t
 
 //
 // The different private parameters for Configuration.
@@ -130,6 +133,10 @@ typedef struct QUIC_PRIVATE_TRANSPORT_PARAMETER {
 #define QUIC_PARAM_CONN_TEST_TRANSPORT_PARAMETER        0x85000002  // QUIC_PRIVATE_TRANSPORT_PARAMETER
 #define QUIC_PARAM_CONN_KEEP_ALIVE_PADDING              0x85000003  // uint16_t
 #define QUIC_PARAM_CONN_DISABLE_VNE_TP_GENERATION       0x85000004  // BOOLEAN
+
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
+#define QUIC_PARAM_STREAM_RELIABLE_OFFSET_RECV          0x88000000  // uint64_t
+#endif
 
 #if defined(__cplusplus)
 }

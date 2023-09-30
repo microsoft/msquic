@@ -470,7 +470,7 @@ typedef struct CXPLAT_EXECUTION_CONTEXT {
 void
 CxPlatAddExecutionContext(
     _Inout_ CXPLAT_EXECUTION_CONTEXT* Context,
-    _In_ uint16_t IdealProcessor
+    _In_ uint16_t Index // Into the execution config processor array
     );
 
 void
@@ -510,7 +510,9 @@ typedef struct QUIC_CERTIFICATE_PKCS12 QUIC_CERTIFICATE_PKCS12;
 
 typedef enum CXPLAT_SELF_SIGN_CERT_TYPE {
     CXPLAT_SELF_SIGN_CERT_USER,
-    CXPLAT_SELF_SIGN_CERT_MACHINE
+    CXPLAT_SELF_SIGN_CERT_MACHINE,
+    CXPLAT_SELF_SIGN_CA_CERT_USER,
+    CXPLAT_SELF_SIGN_CA_CERT_MACHINE
 } CXPLAT_SELF_SIGN_CERT_TYPE;
 
 typedef enum CXPLAT_TEST_CERT_TYPE {
@@ -519,14 +521,24 @@ typedef enum CXPLAT_TEST_CERT_TYPE {
     CXPLAT_TEST_CERT_EXPIRED_SERVER,
     CXPLAT_TEST_CERT_EXPIRED_CLIENT,
     CXPLAT_TEST_CERT_SELF_SIGNED_SERVER,
-    CXPLAT_TEST_CERT_SELF_SIGNED_CLIENT
+    CXPLAT_TEST_CERT_SELF_SIGNED_CLIENT,
+    CXPLAT_TEST_CERT_CA_SERVER,
+    CXPLAT_TEST_CERT_CA_CLIENT,
 } CXPLAT_TEST_CERT_TYPE;
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+const char*
+CxPlatGetSelfSignedCertCaCertificateFileName(
+    _In_ BOOLEAN ClientCertificate
+    );
+
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_CREDENTIAL_CONFIG*
 CxPlatGetSelfSignedCert(
     _In_ CXPLAT_SELF_SIGN_CERT_TYPE Type,
-    _In_ BOOLEAN ClientCertificate
+    _In_ BOOLEAN ClientCertificate,
+    _In_z_ const char* CaCertificateFile
     );
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -561,6 +573,12 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 CxPlatFreeSelfSignedCert(
     _In_ const QUIC_CREDENTIAL_CONFIG* CredConfig
+    );
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+CxPlatFreeSelfSignedCertCaFile(
+    _In_z_ const char* CaFile
     );
 
 _IRQL_requires_max_(PASSIVE_LEVEL)

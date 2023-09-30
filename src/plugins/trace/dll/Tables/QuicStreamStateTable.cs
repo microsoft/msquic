@@ -10,20 +10,75 @@ using System.Linq;
 using Microsoft.Performance.SDK;
 using Microsoft.Performance.SDK.Extensibility;
 using Microsoft.Performance.SDK.Processing;
+using QuicTrace.Cookers;
 using QuicTrace.DataModel;
 
 namespace QuicTrace.Tables
 {
     [Table]
-    public sealed class QuicStreamStateTable
+    public sealed class QuicLTTngStreamStateTable
+    {
+        public static readonly TableDescriptor TableDescriptor = new TableDescriptor(
+           Guid.Parse("{E704BC40-B36D-447B-BD41-8E05E97D1E72}"),
+           "QUIC Stream States",
+           "QUIC Stream States",
+           category: "Computation",
+           requiredDataCookers: new List<DataCookerPath> { QuicLTTngEventCooker.CookerPath });
+
+        public static bool IsDataAvailable(IDataExtensionRetrieval tableData)
+        {
+            Debug.Assert(!(tableData is null));
+            var quicState = tableData.QueryOutput<QuicState>(new DataOutputPath(QuicLTTngEventCooker.CookerPath, "State"));
+            return quicState != null && quicState.DataAvailableFlags.HasFlag(QuicDataAvailableFlags.Packet);
+        }
+
+        public static void BuildTable(ITableBuilder tableBuilder, IDataExtensionRetrieval tableData)
+        {
+            Debug.Assert(!(tableBuilder is null) && !(tableData is null));
+
+            var quicState = tableData.QueryOutput<QuicState>(new DataOutputPath(QuicLTTngEventCooker.CookerPath, "State"));
+            if (quicState == null)
+            {
+                return;
+            }
+
+            QuicStreamStateTable.BuildTable(tableBuilder, quicState);
+        }
+    }
+
+    [Table]
+    public sealed class QuicEtwStreamStateTable
     {
         public static readonly TableDescriptor TableDescriptor = new TableDescriptor(
            Guid.Parse("{e8718744-e6b6-4db9-a1fb-ba2e9a1aaa8d}"),
            "QUIC Stream States",
            "QUIC Stream States",
            category: "Computation",
-           requiredDataCookers: new List<DataCookerPath> { QuicEventCooker.CookerPath });
+           requiredDataCookers: new List<DataCookerPath> { QuicEtwEventCooker.CookerPath });
 
+        public static bool IsDataAvailable(IDataExtensionRetrieval tableData)
+        {
+            Debug.Assert(!(tableData is null));
+            var quicState = tableData.QueryOutput<QuicState>(new DataOutputPath(QuicEtwEventCooker.CookerPath, "State"));
+            return quicState != null && quicState.DataAvailableFlags.HasFlag(QuicDataAvailableFlags.Packet);
+        }
+
+        public static void BuildTable(ITableBuilder tableBuilder, IDataExtensionRetrieval tableData)
+        {
+            Debug.Assert(!(tableBuilder is null) && !(tableData is null));
+
+            var quicState = tableData.QueryOutput<QuicState>(new DataOutputPath(QuicEtwEventCooker.CookerPath, "State"));
+            if (quicState == null)
+            {
+                return;
+            }
+
+            QuicStreamStateTable.BuildTable(tableBuilder, quicState);
+        }
+    }
+
+    public sealed class QuicStreamStateTable
+    {
         private static readonly ColumnConfiguration connectionColumnConfig =
             new ColumnConfiguration(
                 new ColumnMetadata(new Guid("{49c6d674-4a1a-4219-b92c-38fe0d85d6d9}"), "Connection"),
@@ -78,23 +133,8 @@ namespace QuicTrace.Tables
                 }
             };
 
-        public static bool IsDataAvailable(IDataExtensionRetrieval tableData)
+        public static void BuildTable(ITableBuilder tableBuilder, QuicState quicState)
         {
-            Debug.Assert(!(tableData is null));
-            var quicState = tableData.QueryOutput<QuicState>(new DataOutputPath(QuicEventCooker.CookerPath, "State"));
-            return quicState != null && quicState.DataAvailableFlags.HasFlag(QuicDataAvailableFlags.Packet);
-        }
-
-        public static void BuildTable(ITableBuilder tableBuilder, IDataExtensionRetrieval tableData)
-        {
-            Debug.Assert(!(tableBuilder is null) && !(tableData is null));
-
-            var quicState = tableData.QueryOutput<QuicState>(new DataOutputPath(QuicEventCooker.CookerPath, "State"));
-            if (quicState == null)
-            {
-                return;
-            }
-
             var streams = quicState.Streams;
             if (streams.Count == 0)
             {

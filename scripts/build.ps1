@@ -18,9 +18,6 @@ This script provides helpers for building msquic.
 .PARAMETER Tls
     The TLS library to use.
 
-.PARAMETER ToolchainFile
-    Toolchain file to use (if cross).
-
 .PARAMETER DisableLogs
     Disables log collection.
 
@@ -93,9 +90,6 @@ This script provides helpers for building msquic.
 .PARAMETER EnableHighResolutionTimers
     Configures the system to use high resolution timers.
 
-.PARAMETER UseXdp
-    Use XDP for the datapath instead of system socket APIs.
-
 .PARAMETER ExtraArtifactDir
     Add an extra classifier to the artifact directory to allow publishing alternate builds of same base library
 
@@ -133,11 +127,8 @@ param (
     [switch]$Static = $false,
 
     [Parameter(Mandatory = $false)]
-    [ValidateSet("schannel", "openssl")]
+    [ValidateSet("schannel", "openssl", "openssl3")]
     [string]$Tls = "",
-
-    [Parameter(Mandatory = $false)]
-    [string]$ToolchainFile = "",
 
     [Parameter(Mandatory = $false)]
     [switch]$DisableLogs = $false,
@@ -200,16 +191,13 @@ param (
     [switch]$OfficialRelease = $false,
 
     [Parameter(Mandatory = $false)]
-    [switch]$EnableTelemetryAsserts = $false,
+    [switch]$EnableTelemetryAsserts = $true,
 
     [Parameter(Mandatory = $false)]
     [switch]$UseSystemOpenSSLCrypto = $false,
 
     [Parameter(Mandatory = $false)]
     [switch]$EnableHighResolutionTimers = $false,
-
-    [Parameter(Mandatory = $false)]
-    [switch]$UseXdp = $false,
 
     [Parameter(Mandatory = $false)]
     [string]$ExtraArtifactDir = "",
@@ -221,7 +209,10 @@ param (
     [string]$SysRoot = "/",
 
     [Parameter(Mandatory = $false)]
-    [switch]$OneBranch = $false
+    [switch]$OneBranch = $false,
+
+    [Parameter(Mandatory = $false)]
+    [string]$ToolchainFile = ""
 )
 
 Set-StrictMode -Version 'Latest'
@@ -267,7 +258,7 @@ if ($Arch -eq "arm64ec") {
     if (!$IsWindows) {
         Write-Error "Arm64EC is only supported on Windows"
     }
-    if ($Tls -eq "openssl") {
+    if ($Tls -eq "openssl" -Or $Tls -eq "openssl3") {
         Write-Error "Arm64EC does not support openssl"
     }
 }
@@ -277,7 +268,10 @@ if ($Platform -eq "ios" -and !$Static) {
     Write-Host "iOS can only be built as static"
 }
 
-if (!$OfficialRelease) {
+if ($OfficialRelease) {
+    # We only actually try to do official release if there is a matching git tag.
+    # Clear the flag and then only set it if we find a tag.
+    $OfficialRelease = $false
     try {
         $env:GIT_REDIRECT_STDERR = '2>&1'
         # Thanks to https://stackoverflow.com/questions/3404936/show-which-git-tag-you-are-on
@@ -320,6 +314,9 @@ if ($Clang) {
     $env:CC = 'clang'
     $env:CXX = 'clang++'
 }
+
+# Workaround for perl openssl build warnings.
+$env:TERM='ansi'
 
 function Log($msg) {
     Write-Host "[$(Get-Date)] $msg"
@@ -385,6 +382,12 @@ function CMake-Generate {
         if ($HostArch -ne $Arch) {
             if ($OneBranch) {
                 $Arguments += " -DONEBRANCH=1"
+                if ($ToolchainFile -eq "") {
+                    switch ($Arch) {
+                        "arm"   { $ToolchainFile = "cmake/toolchains/arm-linux.cmake" }
+                        "arm64" { $ToolchainFile = "cmake/toolchains/aarch64-linux.cmake" }
+                    }
+                }
             }
             $Arguments += " -DCMAKE_FIND_ROOT_PATH_MODE_PROGRAM=NEVER -DCMAKE_CROSSCOMPILING=1 -DCMAKE_SYSROOT=$SysRoot"
             switch ($Arch) {
@@ -392,6 +395,9 @@ function CMake-Generate {
                 "arm" { $Arguments += " -DCMAKE_CXX_COMPILER_TARGET=arm-linux-gnueabihf  -DCMAKE_C_COMPILER_TARGET=arm-linux-gnueabihf -DCMAKE_TARGET_ARCHITECTURE=arm" }
             }
        }
+    }
+    if ($ToolchainFile -ne "") {
+        $Arguments += " -DCMAKE_TOOLCHAIN_FILE=""$ToolchainFile"""
     }
     if($Static) {
         $Arguments += " -DQUIC_BUILD_SHARED=off"
@@ -444,13 +450,10 @@ function CMake-Generate {
         $Arguments += " -DQUIC_PGO=on"
     }
     if ($Platform -eq "uwp") {
-        $Arguments += " -DCMAKE_SYSTEM_NAME=WindowsStore -DCMAKE_SYSTEM_VERSION=10 -DQUIC_UWP_BUILD=on"
+        $Arguments += " -DCMAKE_SYSTEM_NAME=WindowsStore -DCMAKE_SYSTEM_VERSION=10.0 -DQUIC_UWP_BUILD=on"
     }
     if ($Platform -eq "gamecore_console") {
-        $Arguments += " -DQUIC_GAMECORE_BUILD=on"
-    }
-    if ($ToolchainFile -ne "") {
-        $Arguments += " -DCMAKE_TOOLCHAIN_FILE=""$ToolchainFile"""
+        $Arguments += " -DCMAKE_SYSTEM_VERSION=10.0 -DQUIC_GAMECORE_BUILD=on"
     }
     if ($SkipPdbAltPath) {
         $Arguments += " -DQUIC_PDBALTPATH=OFF"
@@ -478,11 +481,9 @@ function CMake-Generate {
     if ($EnableHighResolutionTimers) {
         $Arguments += " -DQUIC_HIGH_RES_TIMERS=on"
     }
-    if ($UseXdp) {
-        $Arguments += " -DQUIC_USE_XDP=on"
-    }
     if ($Platform -eq "android") {
-        $env:PATH = "$env:ANDROID_NDK_LATEST_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin:$env:PATH"
+        $NDK = $env:ANDROID_NDK_LATEST_HOME.Replace('26.0.10792818', '25.2.9519653') # Temporary work around
+        $env:PATH = "$NDK/toolchains/llvm/prebuilt/linux-x86_64/bin:$env:PATH"
         switch ($Arch) {
             "x86"   { $Arguments += " -DANDROID_ABI=x86"}
             "x64"   { $Arguments += " -DANDROID_ABI=x86_64" }
@@ -490,8 +491,7 @@ function CMake-Generate {
             "arm64" { $Arguments += " -DANDROID_ABI=arm64-v8a" }
         }
         $Arguments += " -DANDROID_PLATFORM=android-29"
-        $NDK = $env:ANDROID_NDK_LATEST_HOME
-        $env:ANDROID_NDK_HOME = $env:ANDROID_NDK_LATEST_HOME
+        $env:ANDROID_NDK_HOME = $NDK
         $NdkToolchainFile = "$NDK/build/cmake/android.toolchain.cmake"
         $Arguments += " -DANDROID_NDK=""$NDK"""
         $Arguments += " -DCMAKE_TOOLCHAIN_FILE=""$NdkToolchainFile"""

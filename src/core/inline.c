@@ -139,9 +139,18 @@ QuicIsVersionSupported(
     _In_ uint32_t Version // Network Byte Order
     );
 
-_IRQL_requires_max_(DISPATCH_LEVEL)
 uint16_t
 QuicLibraryGetCurrentPartition(
+    void
+    );
+
+uint16_t
+QuicLibraryGetPartitionProcessor(
+    uint16_t PartitionIndex
+    );
+
+QUIC_LIBRARY_PP*
+QuicLibraryGetPerProc(
     void
     );
 
@@ -155,13 +164,6 @@ _IRQL_requires_max_(DISPATCH_LEVEL)
 uint16_t
 QuicPartitionIdGetIndex(
     uint16_t PartitionId
-    );
-
-_IRQL_requires_max_(DISPATCH_LEVEL)
-uint16_t
-QuicPartitionIndexIncrement(
-    uint16_t PartitionIndex,
-    uint16_t Increment
     );
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -356,6 +358,13 @@ void
 QuicCongestionControlOnDataLost(
     _In_ QUIC_CONGESTION_CONTROL* Cc,
     _In_ const QUIC_LOSS_EVENT* LossEvent
+    );
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+void
+QuicCongestionControlOnEcn(
+    _In_ QUIC_CONGESTION_CONTROL* Cc,
+    _In_ const QUIC_ECN_EVENT* EcnEvent
     );
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -705,7 +714,7 @@ QuicStreamRecvGetState(
 
 BOOLEAN
 QuicRetryTokenDecrypt(
-    _In_ const CXPLAT_RECV_PACKET* const Packet,
+    _In_ const QUIC_RX_PACKET* const Packet,
     _In_reads_(sizeof(QUIC_TOKEN_CONTENTS))
         const uint8_t* TokenBuffer,
     _Out_ QUIC_TOKEN_CONTENTS* Token

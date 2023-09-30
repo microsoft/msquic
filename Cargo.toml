@@ -1,6 +1,6 @@
 [package]
 name = "msquic"
-version = "2.2.0-beta"
+version = "2.3.0-beta"
 edition = "2018"
 authors = ["Microsoft"]
 description = "Microsoft implementation of the IETF QUIC protocol"
@@ -40,6 +40,7 @@ include = [
     "/src/generated",
     "/src/manifest",
     "/src/platform",
+    "/artifacts/xdp/include",
     "/THIRD-PARTY-NOTICES",
 ]
 

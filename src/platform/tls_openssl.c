@@ -518,7 +518,11 @@ CxPlatTlsSetEncryptionSecretsCallback(
             TlsContext->TlsSecrets = NULL;
             break;
         case QUIC_PACKET_KEY_0_RTT:
-            if (!TlsContext->IsServer) {
+            if (TlsContext->IsServer) {
+                CXPLAT_FRE_ASSERT(ReadSecret != NULL);
+                memcpy(TlsContext->TlsSecrets->ClientEarlyTrafficSecret, ReadSecret, SecretLen);
+                TlsContext->TlsSecrets->IsSet.ClientEarlyTrafficSecret = TRUE;
+            } else {
                 CXPLAT_FRE_ASSERT(WriteSecret != NULL);
                 memcpy(TlsContext->TlsSecrets->ClientEarlyTrafficSecret, WriteSecret, SecretLen);
                 TlsContext->TlsSecrets->IsSet.ClientEarlyTrafficSecret = TRUE;
@@ -770,7 +774,7 @@ CxPlatTlsOnSessionTicketKeyNeeded(
     )
 {
 #ifdef IS_OPENSSL_3
-    OSSL_PARAM params[2];
+    OSSL_PARAM params[3];
 #endif
     CXPLAT_TLS* TlsContext = SSL_get_app_data(Ssl);
     QUIC_TICKET_KEY_CONFIG* TicketKey = TlsContext->SecConfig->TicketKey;
@@ -803,6 +807,8 @@ CxPlatTlsOnSessionTicketKeyNeeded(
                 TicketKey->Material,
                 32);
         params[1] =
+            OSSL_PARAM_construct_utf8_string(OSSL_MAC_PARAM_DIGEST, "sha256", 0);
+        params[2] =
             OSSL_PARAM_construct_end();
          EVP_MAC_CTX_set_params(hctx, params);
 #else
@@ -824,6 +830,8 @@ CxPlatTlsOnSessionTicketKeyNeeded(
                 TicketKey->Material,
                 32);
         params[1] =
+            OSSL_PARAM_construct_utf8_string(OSSL_MAC_PARAM_DIGEST, "sha256", 0);
+        params[2] =
             OSSL_PARAM_construct_end();
          EVP_MAC_CTX_set_params(hctx, params);
 #else
@@ -1027,17 +1035,27 @@ CxPlatTlsSecConfigCreate(
         return QUIC_STATUS_NOT_SUPPORTED;
     }
 
-    if (CredConfigFlags & QUIC_CREDENTIAL_FLAG_SET_ALLOWED_CIPHER_SUITES &&
-        ((CredConfig->AllowedCipherSuites &
+    if (CredConfigFlags & QUIC_CREDENTIAL_FLAG_SET_ALLOWED_CIPHER_SUITES) {
+        if ((CredConfig->AllowedCipherSuites &
             (QUIC_ALLOWED_CIPHER_SUITE_AES_128_GCM_SHA256 |
             QUIC_ALLOWED_CIPHER_SUITE_AES_256_GCM_SHA384 |
-            QUIC_ALLOWED_CIPHER_SUITE_CHACHA20_POLY1305_SHA256)) == 0)) {
-        QuicTraceEvent(
-            LibraryErrorStatus,
-            "[ lib] ERROR, %u, %s.",
-            CredConfig->AllowedCipherSuites,
-            "No valid cipher suites presented");
-        return QUIC_STATUS_INVALID_PARAMETER;
+            QUIC_ALLOWED_CIPHER_SUITE_CHACHA20_POLY1305_SHA256)) == 0) {
+            QuicTraceEvent(
+                LibraryErrorStatus,
+                "[ lib] ERROR, %u, %s.",
+                CredConfig->AllowedCipherSuites,
+                "No valid cipher suites presented");
+            return QUIC_STATUS_INVALID_PARAMETER;
+        }
+        if (CredConfig->AllowedCipherSuites == QUIC_ALLOWED_CIPHER_SUITE_CHACHA20_POLY1305_SHA256 &&
+            !CxPlatCryptSupports(CXPLAT_AEAD_CHACHA20_POLY1305)) {
+            QuicTraceEvent(
+                LibraryErrorStatus,
+                "[ lib] ERROR, %u, %s.",
+                CredConfig->AllowedCipherSuites,
+                "Only CHACHA requested but not available");
+            return QUIC_STATUS_NOT_SUPPORTED;
+        }
     }
 
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
@@ -1124,6 +1142,10 @@ CxPlatTlsSecConfigCreate(
             AllowedCipherSuitesCount++;
         }
         if (CredConfig->AllowedCipherSuites & QUIC_ALLOWED_CIPHER_SUITE_CHACHA20_POLY1305_SHA256) {
+            if (AllowedCipherSuitesCount == 0 && !CxPlatCryptSupports(CXPLAT_AEAD_CHACHA20_POLY1305)) {
+                Status = QUIC_STATUS_NOT_SUPPORTED;
+                goto Exit;
+            }
             CipherSuiteStringLength += (uint8_t)sizeof(CXPLAT_TLS_CHACHA20_POLY1305_SHA256);
             AllowedCipherSuitesCount++;
         }
@@ -1462,6 +1484,24 @@ CxPlatTlsSecConfigCreate(
         }
     }
 
+    if (CredConfigFlags & QUIC_CREDENTIAL_FLAG_SET_CA_CERTIFICATE_FILE &&
+        CredConfig->CaCertificateFile) {
+        Ret =
+            SSL_CTX_load_verify_locations(
+                SecurityConfig->SSLCtx,
+                CredConfig->CaCertificateFile,
+                NULL);
+        if (Ret != 1) {
+            QuicTraceEvent(
+                LibraryErrorStatus,
+                "[ lib] ERROR, %u, %s.",
+                ERR_get_error(),
+                "SSL_CTX_load_verify_locations failed");
+            Status = QUIC_STATUS_TLS_ERROR;
+            goto Exit;
+        }
+    }
+
     if (CredConfigFlags & QUIC_CREDENTIAL_FLAG_CLIENT) {
         SSL_CTX_set_cert_verify_callback(SecurityConfig->SSLCtx, CxPlatTlsCertificateVerifyCallback, NULL);
         SSL_CTX_set_verify(SecurityConfig->SSLCtx, SSL_VERIFY_PEER, NULL);
@@ -1627,6 +1667,10 @@ CxPlatTlsInitialize(
     UNREFERENCED_PARAMETER(State);
 
     CXPLAT_DBG_ASSERT(Config->HkdfLabels);
+    if (Config->SecConfig == NULL) {
+        Status = QUIC_STATUS_INVALID_PARAMETER;
+        goto Exit;
+    }
 
     TlsContext = CXPLAT_ALLOC_NONPAGED(sizeof(CXPLAT_TLS), QUIC_POOL_TLS_CTX);
     if (TlsContext == NULL) {
@@ -2321,4 +2365,34 @@ CxPlatTlsParamGet(
     }
 
     return Status;
+}
+
+_Success_(return==TRUE)
+BOOLEAN
+QuicTlsPopulateOffloadKeys(
+    _Inout_ CXPLAT_TLS* TlsContext,
+    _In_ const QUIC_PACKET_KEY* const PacketKey,
+    _In_z_ const char* const SecretName,
+    _Inout_ CXPLAT_QEO_CONNECTION* Offload
+    )
+{
+    QUIC_STATUS Status =
+        QuicPacketKeyDeriveOffload(
+            TlsContext->HkdfLabels,
+            PacketKey,
+            SecretName,
+            Offload);
+    if (!QUIC_SUCCEEDED(Status)) {
+        QuicTraceEvent(
+            TlsErrorStatus,
+            "[ tls][%p] ERROR, %u, %s.",
+            TlsContext->Connection,
+            Status,
+            "QuicTlsPopulateOffloadKeys");
+        goto Error;
+    }
+
+Error:
+
+    return QUIC_SUCCEEDED(Status);
 }

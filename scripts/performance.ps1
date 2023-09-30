@@ -77,7 +77,7 @@ param (
     [string]$LocalArch = "x64",
 
     [Parameter(Mandatory = $false)]
-    [ValidateSet("schannel", "openssl")]
+    [ValidateSet("schannel", "openssl", "openssl3")]
     [string]$LocalTls = "",
 
     [Parameter(Mandatory = $false)]
@@ -88,7 +88,7 @@ param (
     [string]$ExtraArtifactDir = "",
 
     [Parameter(Mandatory = $false)]
-    [ValidateSet("schannel", "openssl")]
+    [ValidateSet("schannel", "openssl", "openssl3")]
     [string]$RemoteTls = "",
 
     [Parameter(Mandatory = $false)]
@@ -118,6 +118,9 @@ param (
 
     [Parameter(Mandatory = $false)]
     [switch]$XDP = $false,
+
+    [Parameter(Mandatory = $false)]
+    [switch]$QTIP = $false,
 
     [Parameter(Mandatory = $false)]
     [int]$Timeout = 120,
@@ -154,6 +157,9 @@ if ($Kernel) {
     if ($XDP) {
         Write-Error "'-XDP' is not supported in kernel mode!"
     }
+    if ($QTIP) {
+        Write-Error "'-QTIP' is not supported in kernel mode!"
+    }
 }
 if (!$IsWindows) {
     if ($PGO) {
@@ -161,6 +167,9 @@ if (!$IsWindows) {
     }
     if ($XDP) {
         Write-Error "'-XDP' is not supported on this platform!"
+    }
+    if ($QTIP) {
+        Write-Error "'-QTIP' is not supported on this platform!"
     }
 }
 
@@ -247,6 +256,7 @@ Set-ScriptVariables -Local $Local `
                     -RemoteTls $RemoteTls `
                     -RemoteArch $RemoteArch `
                     -XDP $XDP `
+                    -QTIP $QTIP `
                     -Config $Config `
                     -Publish $Publish `
                     -Record $Record `
@@ -284,10 +294,10 @@ $LocalDirectory = Join-Path $RootDir "artifacts/bin"
 $RemoteDirectorySMB = $null
 
 # Copy manifest and log script to local directory
+Copy-Item -Path (Join-Path $RootDir scripts get-buildconfig.ps1) -Destination $LocalDirectory
 Copy-Item -Path (Join-Path $RootDir scripts log.ps1) -Destination $LocalDirectory
-Copy-Item -Path (Join-Path $RootDir scripts xdp-devkit.json) -Destination $LocalDirectory
+Copy-Item -Path (Join-Path $RootDir scripts xdp.json) -Destination $LocalDirectory
 Copy-Item -Path (Join-Path $RootDir scripts prepare-machine.ps1) -Destination $LocalDirectory
-Copy-Item -Path (Join-Path $RootDir scripts xdp-devkit.json) -Destination $LocalDirectory
 Copy-Item -Path (Join-Path $RootDir src manifest MsQuic.wprp) -Destination $LocalDirectory
 
 if ($Local) {
@@ -352,8 +362,8 @@ function LocalTeardown {
     }
 }
 
-$RemoteExePath = Get-ExePath -PathRoot $RemoteDirectory -Platform $RemotePlatform -IsRemote $true -ExtraArtifactDir $ExtraArtifactDir
-$LocalExePath = Get-ExePath -PathRoot $LocalDirectory -Platform $LocalPlatform -IsRemote $false -ExtraArtifactDir $ExtraArtifactDir
+$RemoteExePath = Get-ExePath -PathRoot $RemoteDirectory -Platform $RemotePlatform -IsRemote $true
+$LocalExePath = Get-ExePath -PathRoot $LocalDirectory -Platform $LocalPlatform -IsRemote $false
 
 # See if we are an AZP PR
 $PrBranchName = $env:SYSTEM_PULLREQUEST_TARGETBRANCH
@@ -389,8 +399,8 @@ function Invoke-Test {
 
     Write-Output "Running Test $Test"
 
-    $RemoteExe = Get-ExeName -PathRoot $RemoteDirectory -Platform $RemotePlatform -IsRemote $true -TestPlat $RemoteConfig -ExtraArtifactDir $ExtraArtifactDir
-    $LocalExe = Get-ExeName -PathRoot $LocalDirectory -Platform $LocalPlatform -IsRemote $false -TestPlat $Test.Local -ExtraArtifactDir $ExtraArtifactDir
+    $RemoteExe = Get-ExeName -PathRoot $RemoteDirectory -Platform $RemotePlatform -IsRemote $true -TestPlat $RemoteConfig
+    $LocalExe = Get-ExeName -PathRoot $LocalDirectory -Platform $LocalPlatform -IsRemote $false -TestPlat $Test.Local
 
     # Check both Exes
     $RemoteExeExists = Invoke-TestCommand -Session $Session -ScriptBlock {
@@ -434,6 +444,11 @@ function Invoke-Test {
     if ($XDP) {
         $RemoteArguments += " -pollidle:10000"
         $LocalArguments += " -pollidle:10000"
+    }
+
+    if ($QTIP) {
+        $RemoteArguments += " -qtip:1"
+        $LocalArguments += " -qtip:1"
     }
 
     if ($Kernel) {
@@ -482,7 +497,7 @@ function Invoke-Test {
     try {
         1..$NumIterations | ForEach-Object {
             Write-LogAndDebug "Running Local: $LocalExe Args: $LocalArguments"
-            $LocalResults = Invoke-LocalExe -Exe $LocalExe -RunArgs $LocalArguments -Timeout $Timeout -OutputDir $OutputDir -HistogramFileName "$($Test)_run$($_).txt"
+            $LocalResults = Invoke-LocalExe -Exe $LocalExe -RunArgs $LocalArguments -Timeout $Timeout -OutputDir $OutputDir -HistogramFileName "$($Test)_run$($_).txt" -Iteration $_
             Write-LogAndDebug $LocalResults
             $AllLocalParsedResults = Get-TestResult -Results $LocalResults -Matcher $Test.ResultsMatcher -FailureDefault $Test.FailureDefault
             $AllRunsResults += $AllLocalParsedResults
@@ -506,10 +521,12 @@ function Invoke-Test {
             $LocalResults | Write-LogAndDebug
         }
     } finally {
-        $RemoteResults = Wait-ForRemote -Job $RemoteJob
+        # -ErrorAction Continue for "perf" to return error when stop
+        $RemoteResults = Wait-ForRemote -Job $RemoteJob -ErrorAction Continue
         Write-LogAndDebug $RemoteResults.ToString()
 
-        Stop-RemoteLogs -RemoteDirectory $RemoteDirectory
+        # parallelize post processing with client
+        $StoppingRemoteJob = Stop-RemoteLogs -RemoteDirectory $RemoteDirectory
 
         if ($Kernel) {
             net.exe stop secnetperfdrvpriv /y | Out-Null
@@ -518,7 +535,9 @@ function Invoke-Test {
             sc.exe delete msquicpriv | Out-Null
         }
 
-        Stop-Tracing -LocalDirectory $LocalDirectory -OutputDir $OutputDir -Test $Test
+        # FIXME: Using Start-Job in this func cause program hang for some reason
+        Stop-Tracing -LocalDirectory $LocalDirectory -OutputDir $OutputDir -Test $Test -NumIterations $NumIterations
+        $StoppingRemoteJob | Wait-Job | Receive-Job -ErrorAction Continue
 
         if ($Record) {
             if ($Local) {
@@ -532,7 +551,11 @@ function Invoke-Test {
                 }
             } else {
                 try {
-                    Get-RemoteLogDirectory -Local (Join-Path $OutputDir $Test.ToString()) -Remote (Join-Path $RemoteDirectory serverlogs) -SmbDir (Join-Path $RemoteDirectorySMB serverlogs) -Cleanup
+                    $SmbDir = ""
+                    if ($IsWindows) {
+                        $SmbDir = (Join-Path $RemoteDirectorySMB serverlogs)
+                    }
+                    Get-RemoteLogDirectory -Local (Join-Path $OutputDir $Test.ToString()) -Remote (Join-Path $RemoteDirectory serverlogs) -SmbDir $SmbDir -Cleanup
                 } catch {
                     Write-Host "Failed to get remote logs"
                 }

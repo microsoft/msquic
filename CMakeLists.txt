@@ -22,8 +22,9 @@ set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 message(STATUS "Source Dir: ${CMAKE_CURRENT_SOURCE_DIR}")
 message(STATUS "Host System name: ${CMAKE_HOST_SYSTEM_NAME}")
 if ("${CMAKE_HOST_SYSTEM_NAME}" STREQUAL "Windows")
-    set(CMAKE_SYSTEM_VERSION 10.0.18362.0 CACHE STRING INTERNAL FORCE)
-    set(CMAKE_VS_WINDOWS_TARGET_PLATFORM_VERSION 10.0.18362.0 CACHE STRING INTERNAL FORCE)
+    if (NOT DEFINED CMAKE_SYSTEM_VERSION)
+        set(CMAKE_SYSTEM_VERSION 10.0.18362 CACHE STRING INTERNAL FORCE)
+    endif()
 endif()
 
 if(POLICY CMP0091)
@@ -55,7 +56,7 @@ message(STATUS "Platform version: ${CMAKE_VS_WINDOWS_TARGET_PLATFORM_VERSION}")
 message(STATUS "Build type: ${CMAKE_BUILD_TYPE}")
 
 set(QUIC_MAJOR_VERSION 2)
-set(QUIC_FULL_VERSION 2.2.0)
+set(QUIC_FULL_VERSION 2.3.0)
 
 if (WIN32)
     set(CX_PLATFORM "windows")
@@ -99,8 +100,6 @@ option(QUIC_SKIP_CI_CHECKS "Disable CI specific build checks" OFF)
 option(QUIC_TELEMETRY_ASSERTS "Enable telemetry asserts in release builds" OFF)
 option(QUIC_USE_SYSTEM_LIBCRYPTO "Use system libcrypto if openssl TLS" OFF)
 option(QUIC_HIGH_RES_TIMERS "Configure the system to use high resolution timers" OFF)
-option(QUIC_USE_XDP "Uses XDP instead of socket APIs" OFF)
-option(QUIC_DISABLE_POSIX_GSO "Disable GSO for systems that say they support it but don't" OFF)
 option(QUIC_OFFICIAL_RELEASE "Configured the build for an official release" OFF)
 set(QUIC_FOLDER_PREFIX "" CACHE STRING "Optional prefix for source group folders when using an IDE generator")
 set(QUIC_LIBRARY_NAME "msquic" CACHE STRING "Override the output library name")
@@ -108,6 +107,12 @@ set(QUIC_LOGGING_TYPE "" CACHE STRING "Explicitly choose logging backend (\"etw\
 string(TOLOWER "${QUIC_LOGGING_TYPE}" QUIC_LOGGING_TYPE)
 if(NOT "${QUIC_LOGGING_TYPE}" MATCHES "^(etw|lttng|stdout|)$")
     message(FATAL_ERROR "QUIC_LOGGING_TYPE must be \"etw\", \"lttng\" or \"stdout\", not \"${QUIC_LOGGING_TYPE}\"")
+endif()
+
+if (QUIC_GAMECORE_BUILD)
+    if(${CMAKE_VS_WINDOWS_TARGET_PLATFORM_VERSION} VERSION_LESS "10.0.20348.0")
+        message(FATAL_ERROR "gamecore builds require Windows 10 SDK version 20348 or later.")
+    endif()
 endif()
 
 if (QUIC_UWP_BUILD OR QUIC_GAMECORE_BUILD)
@@ -323,8 +328,8 @@ if(QUIC_HIGH_RES_TIMERS)
     list(APPEND QUIC_COMMON_DEFINES QUIC_HIGH_RES_TIMERS=1)
 endif()
 
-if(QUIC_USE_XDP)
-    list(APPEND QUIC_COMMON_DEFINES QUIC_USE_RAW_DATAPATH=1)
+if (QUIC_ENABLE_SANITIZERS)
+    list(APPEND QUIC_COMMON_DEFINES DISABLE_CXPLAT_POOL=1)
 endif()
 
 if(QUIC_OFFICIAL_RELEASE)
@@ -346,9 +351,13 @@ if(QUIC_TLS STREQUAL "schannel")
     list(APPEND QUIC_COMMON_DEFINES QUIC_ENABLE_ANON_CLIENT_AUTH_TESTS)
 endif()
 
-if(QUIC_TLS STREQUAL "openssl")
+if(QUIC_TLS STREQUAL "openssl" OR  QUIC_TLS STREQUAL "openssl3")
     message(STATUS "Enabling OpenSsl configuration tests")
     list(APPEND QUIC_COMMON_DEFINES QUIC_TEST_OPENSSL_FLAGS=1)
+    if (NOT WIN32)
+       message(STATUS "Enabling CA file tests")
+       list(APPEND QUIC_COMMON_DEFINES QUIC_ENABLE_CA_CERTIFICATE_FILE_TESTS)
+    endif()
 endif()
 
 if(QUIC_ENABLE_LOGGING)
@@ -402,6 +411,29 @@ if (NOT QUIC_ENABLE_LOGGING)
     list(APPEND QUIC_COMMON_DEFINES QUIC_EVENTS_STUB QUIC_LOGS_STUB)
 endif()
 
+if (NOT MSVC AND NOT APPLE AND NOT ANDROID)
+    find_library(ATOMIC NAMES atomic libatomic.so.1)
+    if (ATOMIC)
+        message(STATUS "Found libatomic: ${ATOMIC}")
+    else()
+        message(STATUS "libatomic not found. If build fails, install libatomic")
+    endif()
+
+    find_library(NUMA NAMES NUMA libnuma.so.1)
+    if (NUMA)
+        message(STATUS "Found libnuma: ${NUMA}")
+        find_file(NUMA-HEADER NAMES "numa.h")
+        if (NUMA-HEADER)
+            message(STATUS "Found numa.h: ${NUMA-HEADER}")
+            list(APPEND QUIC_COMMON_DEFINES CXPLAT_NUMA_AWARE)
+        else()
+            message(STATUS "numa.h not found. If build fails, install libnuma-dev")
+        endif()
+    else()
+        message(STATUS "libnuma not found. If build fails, install libnuma")
+    endif()
+endif()
+
 if(WIN32)
     if (CMAKE_GENERATOR_PLATFORM STREQUAL "")
         string(TOLOWER ${CMAKE_SYSTEM_PROCESSOR} SYSTEM_PROCESSOR)
@@ -431,9 +463,6 @@ if(WIN32)
 
     message(STATUS "Disabling (client) shared port support")
     list(APPEND QUIC_COMMON_DEFINES QUIC_DISABLE_SHARED_PORT_TESTS)
-
-    message(STATUS "Enabling UDP Send Queuing")
-    list(APPEND QUIC_COMMON_DEFINES CXPLAT_DATAPATH_QUEUE_SENDS=1)
 
     if (QUIC_UWP_BUILD)
         list(APPEND QUIC_COMMON_DEFINES QUIC_UWP_BUILD QUIC_RESTRICTED_BUILD)
@@ -512,6 +541,7 @@ if(WIN32)
         endif()
         message(STATUS "Configuring sanitizers")
         list(APPEND QUIC_COMMON_FLAGS /fsanitize=address)
+        list(APPEND QUIC_COMMON_DEFINES _DISABLE_VECTOR_ANNOTATION) # For std:vector usage in tests
     endif()
 
     set(QUIC_C_FLAGS ${QUIC_COMMON_FLAGS})
@@ -524,11 +554,6 @@ if(WIN32)
     set(CMAKE_EXE_LINKER_FLAGS_RELEASE "${CMAKE_EXE_LINKER_FLAGS_RELEASE} /LTCG /IGNORE:4075 /DEBUG /OPT:REF /OPT:ICF")
 
     # Find the right PGO file.
-    if(QUIC_USE_XDP)
-        set(QUIC_PGO_NAME "msquic.${QUIC_TLS}.xdp.pgd")
-        set(QUIC_PGO_FILE "${CMAKE_CURRENT_SOURCE_DIR}/src/bin/winuser/pgo_${SYSTEM_PROCESSOR}/${QUIC_PGO_NAME}")
-    endif()
-
     if(NOT EXISTS "${QUIC_PGO_FILE}")
         set(QUIC_PGO_NAME "msquic.${QUIC_TLS}.pgd")
         set(QUIC_PGO_FILE "${CMAKE_CURRENT_SOURCE_DIR}/src/bin/winuser/pgo_${SYSTEM_PROCESSOR}/${QUIC_PGO_NAME}")
@@ -571,6 +596,12 @@ if(WIN32)
         set(CMAKE_SHARED_LINKER_FLAGS_RELEASE "${CMAKE_SHARED_LINKER_FLAGS_RELEASE} /NODEFAULTLIB:libucrt.lib /DEFAULTLIB:ucrt.lib")
     endif()
 
+    if (NOT QUIC_STATIC_LINK_CRT AND NOT QUIC_STATIC_LINK_PARTIAL_CRT)
+        # We are using dynamic linking. Ensure that only the release version of CRT is used.
+        message(STATUS "Configuring for release version of dynamically linked CRT")
+        set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreadedDLL")
+    endif()
+
 else() #!WIN32
     # Custom build flags.
 
@@ -578,9 +609,9 @@ else() #!WIN32
         set(MARCH -march=native)
     endif()
 
-    set(CMAKE_C_FLAGS_DEBUG "-Og")
+    set(CMAKE_C_FLAGS_DEBUG "-Og -fno-omit-frame-pointer")
     set(CMAKE_C_FLAGS_MINSIZEREL "-Os -DNDEBUG")
-    set(CMAKE_C_FLAGS_RELWITHDEBINFO "-O3 ${MARCH} -DNDEBUG")
+    set(CMAKE_C_FLAGS_RELWITHDEBINFO "-O3 -fno-omit-frame-pointer ${MARCH} -DNDEBUG")
     set(CMAKE_C_FLAGS_RELEASE "-O3 ${MARCH} -DNDEBUG")
     if (CX_PLATFORM STREQUAL "darwin")
         set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -gdwarf")
@@ -606,13 +637,9 @@ else() #!WIN32
         list(APPEND QUIC_COMMON_DEFINES QUIC_SHARED_EPHEMERAL_WORKAROUND)
     endif()
 
-    if (QUIC_DISABLE_POSIX_GSO)
-        list(APPEND QUIC_COMMON_DEFINES DISABLE_POSIX_GSO)
-    endif()
-
     if(QUIC_ENABLE_SANITIZERS)
         message(STATUS "Configuring sanitizers")
-        list(APPEND QUIC_COMMON_FLAGS -fsanitize=address,leak,undefined,alignment -fsanitize-address-use-after-scope -Og -fno-omit-frame-pointer -fno-optimize-sibling-calls)
+        list(APPEND QUIC_COMMON_FLAGS -fsanitize=address,leak,undefined,alignment -fsanitize-address-use-after-scope -Og -fno-omit-frame-pointer -fno-optimize-sibling-calls -fno-var-tracking-assignments)
         if (CX_PLATFORM STREQUAL "darwin")
             list(APPEND QUIC_COMMON_FLAGS -gdwarf)
         else()
@@ -627,7 +654,7 @@ else() #!WIN32
     set(QUIC_CXX_FLAGS ${QUIC_COMMON_FLAGS})
 endif()
 
-if(QUIC_TLS STREQUAL "openssl")
+if(QUIC_TLS STREQUAL "openssl" OR  QUIC_TLS STREQUAL "openssl3")
     add_library(OpenSSL INTERFACE)
 
     include(FetchContent)
@@ -643,6 +670,10 @@ if(QUIC_TLS STREQUAL "openssl")
         INTERFACE
         OpenSSLQuic::OpenSSLQuic
     )
+endif()
+
+if (QUIC_USE_SYSTEM_LIBCRYPTO)
+    list(APPEND QUIC_COMMON_DEFINES CXPLAT_SYSTEM_CRYPTO)
 endif()
 
 if(QUIC_CODE_CHECK)

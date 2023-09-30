@@ -678,6 +678,66 @@ tracepoint(CLOG_SETTINGS_C, SettingEcnEnabled , arg2);\
 
 
 /*----------------------------------------------------------
+// Decoder Ring for SettingHyStartEnabled
+// [sett] HyStartEnabled         = %hhu
+// QuicTraceLogVerbose(SettingHyStartEnabled,              "[sett] HyStartEnabled         = %hhu", Settings->HyStartEnabled);
+// arg2 = arg2 = Settings->HyStartEnabled = arg2
+----------------------------------------------------------*/
+#ifndef _clog_3_ARGS_TRACE_SettingHyStartEnabled
+#define _clog_3_ARGS_TRACE_SettingHyStartEnabled(uniqueId, encoded_arg_string, arg2)\
+tracepoint(CLOG_SETTINGS_C, SettingHyStartEnabled , arg2);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for SettingEncryptionOffloadAllowed
+// [sett] EncryptionOffloadAllowed = %hhu
+// QuicTraceLogVerbose(SettingEncryptionOffloadAllowed,    "[sett] EncryptionOffloadAllowed = %hhu", Settings->EncryptionOffloadAllowed);
+// arg2 = arg2 = Settings->EncryptionOffloadAllowed = arg2
+----------------------------------------------------------*/
+#ifndef _clog_3_ARGS_TRACE_SettingEncryptionOffloadAllowed
+#define _clog_3_ARGS_TRACE_SettingEncryptionOffloadAllowed(uniqueId, encoded_arg_string, arg2)\
+tracepoint(CLOG_SETTINGS_C, SettingEncryptionOffloadAllowed , arg2);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for SettingReliableResetEnabled
+// [sett] ReliableResetEnabled   = %hhu
+// QuicTraceLogVerbose(SettingReliableResetEnabled,        "[sett] ReliableResetEnabled   = %hhu", Settings->ReliableResetEnabled);
+// arg2 = arg2 = Settings->ReliableResetEnabled = arg2
+----------------------------------------------------------*/
+#ifndef _clog_3_ARGS_TRACE_SettingReliableResetEnabled
+#define _clog_3_ARGS_TRACE_SettingReliableResetEnabled(uniqueId, encoded_arg_string, arg2)\
+tracepoint(CLOG_SETTINGS_C, SettingReliableResetEnabled , arg2);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for SettingOneWayDelayEnabled
+// [sett] OneWayDelayEnabled     = %hhu
+// QuicTraceLogVerbose(SettingOneWayDelayEnabled,          "[sett] OneWayDelayEnabled     = %hhu", Settings->OneWayDelayEnabled);
+// arg2 = arg2 = Settings->OneWayDelayEnabled = arg2
+----------------------------------------------------------*/
+#ifndef _clog_3_ARGS_TRACE_SettingOneWayDelayEnabled
+#define _clog_3_ARGS_TRACE_SettingOneWayDelayEnabled(uniqueId, encoded_arg_string, arg2)\
+tracepoint(CLOG_SETTINGS_C, SettingOneWayDelayEnabled , arg2);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for SettingDumpLFixedServerID
 // [sett] FixedServerID          = %u
 // QuicTraceLogVerbose(SettingDumpLFixedServerID,              "[sett] FixedServerID          = %u", Settings->FixedServerID);

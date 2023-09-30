@@ -27,12 +27,19 @@ QuicPathInitialize(
 {
     CxPlatZeroMemory(Path, sizeof(QUIC_PATH));
     Path->ID = Connection->NextPathId++; // TODO - Check for duplicates after wrap around?
+    Path->InUse = TRUE;
     Path->MinRtt = UINT32_MAX;
     Path->Mtu = Connection->Settings.MinimumMtu;
     Path->SmoothedRtt = MS_TO_US(Connection->Settings.InitialRttMs);
     Path->RttVariance = Path->SmoothedRtt / 2;
     Path->EcnValidationState =
         Connection->Settings.EcnEnabled ? ECN_VALIDATION_TESTING : ECN_VALIDATION_FAILED;
+
+    if (MsQuicLib.ExecutionConfig &&
+        MsQuicLib.ExecutionConfig->Flags & QUIC_EXECUTION_CONFIG_FLAG_QTIP) {
+        CxPlatRandom(sizeof(Path->Route.TcpState.SequenceNumber), &Path->Route.TcpState.SequenceNumber);
+    }
+
     QuicTraceLogConnInfo(
         PathInitialized,
         Connection,
@@ -47,8 +54,15 @@ QuicPathRemove(
     _In_ uint8_t Index
     )
 {
-    CXPLAT_DBG_ASSERT(Index < Connection->PathsCount);
+    CXPLAT_DBG_ASSERT(Connection->PathsCount > 0);
+    CXPLAT_DBG_ASSERT(Connection->PathsCount <= QUIC_MAX_PATH_COUNT);
+    if (Index >= Connection->PathsCount) {
+        CXPLAT_TEL_ASSERTMSG(Index < Connection->PathsCount, "Invalid path removal!");
+        return;
+    }
+
     const QUIC_PATH* Path = &Connection->Paths[Index];
+    CXPLAT_DBG_ASSERT(Path->InUse);
     QuicTraceLogConnInfo(
         PathRemoved,
         Connection,
@@ -69,6 +83,7 @@ QuicPathRemove(
     }
 
     Connection->PathsCount--;
+    Connection->Paths[Connection->PathsCount].InUse = FALSE;
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -169,33 +184,19 @@ QuicConnGetPathByID(
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
-void
-QuicCopyRouteInfo(
-    _Inout_ CXPLAT_ROUTE* DstRoute,
-    _In_ CXPLAT_ROUTE* SrcRoute
-    )
-{
-#ifdef QUIC_USE_RAW_DATAPATH
-    CxPlatCopyMemory(DstRoute, SrcRoute, (uint8_t*)&SrcRoute->State - (uint8_t*)SrcRoute);
-#else
-    *DstRoute = *SrcRoute;
-#endif
-}
-
-_IRQL_requires_max_(PASSIVE_LEVEL)
 _Ret_maybenull_
 QUIC_PATH*
-QuicConnGetPathForDatagram(
+QuicConnGetPathForPacket(
     _In_ QUIC_CONNECTION* Connection,
-    _In_ const CXPLAT_RECV_DATA* Datagram
+    _In_ const QUIC_RX_PACKET* Packet
     )
 {
     for (uint8_t i = 0; i < Connection->PathsCount; ++i) {
         if (!QuicAddrCompare(
-                &Datagram->Route->LocalAddress,
+                &Packet->Route->LocalAddress,
                 &Connection->Paths[i].Route.LocalAddress) ||
             !QuicAddrCompare(
-                &Datagram->Route->RemoteAddress,
+                &Packet->Route->RemoteAddress,
                 &Connection->Paths[i].Route.RemoteAddress)) {
             if (!Connection->State.HandshakeConfirmed) {
                 //
@@ -217,9 +218,9 @@ QuicConnGetPathForDatagram(
         //
         for (uint8_t i = Connection->PathsCount - 1; i > 0; i--) {
             if (!Connection->Paths[i].IsActive
-                && QuicAddrGetFamily(&Datagram->Route->RemoteAddress) == QuicAddrGetFamily(&Connection->Paths[i].Route.RemoteAddress)
-                && QuicAddrCompareIp(&Datagram->Route->RemoteAddress, &Connection->Paths[i].Route.RemoteAddress)
-                && QuicAddrCompare(&Datagram->Route->LocalAddress, &Connection->Paths[i].Route.LocalAddress)) {
+                && QuicAddrGetFamily(&Packet->Route->RemoteAddress) == QuicAddrGetFamily(&Connection->Paths[i].Route.RemoteAddress)
+                && QuicAddrCompareIp(&Packet->Route->RemoteAddress, &Connection->Paths[i].Route.RemoteAddress)
+                && QuicAddrCompare(&Packet->Route->LocalAddress, &Connection->Paths[i].Route.LocalAddress)) {
                 QuicPathRemove(Connection, i);
             }
         }
@@ -243,6 +244,7 @@ QuicConnGetPathForDatagram(
             (Connection->PathsCount - 1) * sizeof(QUIC_PATH));
     }
 
+    CXPLAT_DBG_ASSERT(Connection->PathsCount < QUIC_MAX_PATH_COUNT);
     QUIC_PATH* Path = &Connection->Paths[1];
     QuicPathInitialize(Connection, Path);
     Connection->PathsCount++;
@@ -251,7 +253,7 @@ QuicConnGetPathForDatagram(
         Path->DestCid = Connection->Paths[0].DestCid; // TODO - Copy instead?
     }
     Path->Binding = Connection->Paths[0].Binding;
-    QuicCopyRouteInfo(&Path->Route, Datagram->Route);
+    QuicCopyRouteInfo(&Path->Route, Packet->Route);
     QuicPathValidate(Path);
 
     return Path;
@@ -301,4 +303,69 @@ QuicPathSetActive(
     }
     CXPLAT_DBG_ASSERT(Path->DestCid != NULL);
     CXPLAT_DBG_ASSERT(!Path->DestCid->CID.Retired);
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+QuicPathUpdateQeo(
+    _In_ QUIC_CONNECTION* Connection,
+    _In_ QUIC_PATH* Path,
+    _In_ CXPLAT_QEO_OPERATION Operation
+    )
+{
+    const QUIC_CID_HASH_ENTRY* SourceCid =
+        CXPLAT_CONTAINING_RECORD(Connection->SourceCids.Next, QUIC_CID_HASH_ENTRY, Link);
+    CXPLAT_QEO_CONNECTION Offloads[2] = {
+    {
+        Operation,
+        CXPLAT_QEO_DIRECTION_TRANSMIT,
+        CXPLAT_QEO_DECRYPT_FAILURE_ACTION_DROP,
+        0, // KeyPhase
+        0, // Reserved
+        CXPLAT_QEO_CIPHER_TYPE_AEAD_AES_256_GCM,
+        Connection->Send.NextPacketNumber,
+        Path->Route.RemoteAddress,
+        Path->DestCid->CID.Length,
+    },
+    {
+        Operation,
+        CXPLAT_QEO_DIRECTION_RECEIVE,
+        CXPLAT_QEO_DECRYPT_FAILURE_ACTION_DROP,
+        0, // KeyPhase
+        0, // Reserved
+        CXPLAT_QEO_CIPHER_TYPE_AEAD_AES_256_GCM,
+        0, // NextPacketNumber
+        Path->Route.LocalAddress,
+        SourceCid->CID.Length,
+    }};
+    CxPlatCopyMemory(Offloads[0].ConnectionId, Path->DestCid->CID.Data, Path->DestCid->CID.Length);
+    CxPlatCopyMemory(Offloads[1].ConnectionId, SourceCid->CID.Data, SourceCid->CID.Length);
+
+    if (Operation == CXPLAT_QEO_OPERATION_ADD) {
+        CXPLAT_DBG_ASSERT(Connection->Packets[QUIC_ENCRYPT_LEVEL_1_RTT]);
+        Offloads[0].KeyPhase = Connection->Packets[QUIC_ENCRYPT_LEVEL_1_RTT]->CurrentKeyPhase;
+        Offloads[1].KeyPhase = Connection->Packets[QUIC_ENCRYPT_LEVEL_1_RTT]->CurrentKeyPhase;
+        Offloads[1].NextPacketNumber = Connection->Packets[QUIC_ENCRYPT_LEVEL_1_RTT]->AckTracker.LargestPacketNumberAcknowledged;
+        if (QuicTlsPopulateOffloadKeys(Connection->Crypto.TLS, Connection->Crypto.TlsState.WriteKeys[QUIC_PACKET_KEY_1_RTT], "Tx offload", &Offloads[0]) &&
+            QuicTlsPopulateOffloadKeys(Connection->Crypto.TLS, Connection->Crypto.TlsState.ReadKeys[QUIC_PACKET_KEY_1_RTT],  "Rx offload", &Offloads[1]) &&
+            QUIC_SUCCEEDED(CxPlatSocketUpdateQeo(Path->Binding->Socket, Offloads, 2))) {
+            Connection->Stats.EncryptionOffloaded = TRUE;
+            Path->EncryptionOffloading = TRUE;
+            QuicTraceLogConnInfo(
+                PathQeoEnabled,
+                Connection,
+                "Path[%hhu] QEO enabled",
+                Path->ID);
+        }
+        CxPlatSecureZeroMemory(Offloads, sizeof(Offloads));
+    } else {
+        CXPLAT_DBG_ASSERT(Path->EncryptionOffloading);
+        (void)CxPlatSocketUpdateQeo(Path->Binding->Socket, Offloads, 2);
+        Path->EncryptionOffloading = FALSE;
+        QuicTraceLogConnInfo(
+            PathQeoDisabled,
+            Connection,
+            "Path[%hhu] QEO disabled",
+            Path->ID);
+    }
 }

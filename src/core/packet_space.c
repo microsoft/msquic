@@ -23,8 +23,7 @@ QuicPacketSpaceInitialize(
     _Out_ QUIC_PACKET_SPACE** NewPackets
     )
 {
-    uint32_t CurProcIndex = CxPlatProcCurrentNumber();
-    QUIC_PACKET_SPACE* Packets = CxPlatPoolAlloc(&MsQuicLib.PerProc[CurProcIndex].PacketSpacePool);
+    QUIC_PACKET_SPACE* Packets = CxPlatPoolAlloc(&QuicLibraryGetPerProc()->PacketSpacePool);
     if (Packets == NULL) {
         QuicTraceEvent(
             AllocFailure,
@@ -53,18 +52,16 @@ QuicPacketSpaceUninitialize(
     //
     // Release any pending packets back to the binding.
     //
-    if (Packets->DeferredDatagrams != NULL) {
-        CXPLAT_RECV_DATA* Datagram = Packets->DeferredDatagrams;
+    if (Packets->DeferredPackets != NULL) {
+        QUIC_RX_PACKET* Packet = Packets->DeferredPackets;
         do {
-            Datagram->QueuedOnConnection = FALSE;
-        } while ((Datagram = Datagram->Next) != NULL);
-        CxPlatRecvDataReturn(Packets->DeferredDatagrams);
+            Packet->QueuedOnConnection = FALSE;
+        } while ((Packet = (QUIC_RX_PACKET*)Packet->Next) != NULL);
+        CxPlatRecvDataReturn((CXPLAT_RECV_DATA*)Packets->DeferredPackets);
     }
 
     QuicAckTrackerUninitialize(&Packets->AckTracker);
-
-    uint32_t CurProcIndex = CxPlatProcCurrentNumber();
-    CxPlatPoolFree(&MsQuicLib.PerProc[CurProcIndex].PacketSpacePool, Packets);
+    CxPlatPoolFree(&QuicLibraryGetPerProc()->PacketSpacePool, Packets);
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)

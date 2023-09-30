@@ -67,6 +67,9 @@ This script runs the MsQuic tests.
 .Parameter DuoNic
     Uses DuoNic instead of loopback (DuoNic must already be installed via 'prepare-machine.ps1 -InstallDuoNic').
 
+.Parameter NumIterations
+    Number of times to run this particular command. Catches tricky edge cases due to random nature of networks.
+
 .EXAMPLE
     test.ps1
 
@@ -85,6 +88,8 @@ This script runs the MsQuic tests.
 .EXAMPLE
     test.ps1 -LogProfile Full.Verbose -Compress
 
+.EXAMPLE
+    test.ps1 -Filter ParameterValidation* -NumIterations 10
 #>
 
 param (
@@ -97,7 +102,7 @@ param (
     [string]$Arch = "",
 
     [Parameter(Mandatory = $false)]
-    [ValidateSet("schannel", "openssl")]
+    [ValidateSet("schannel", "openssl", "openssl3")]
     [string]$Tls = "",
 
     [Parameter(Mandatory = $false)]
@@ -154,13 +159,28 @@ param (
     [switch]$AZP = $false,
 
     [Parameter(Mandatory = $false)]
+    [switch]$GHA = $false,
+
+    [Parameter(Mandatory = $false)]
     [switch]$SkipUnitTests = $false,
 
     [Parameter(Mandatory = $false)]
     [switch]$ErrorsAsWarnings = $false,
 
     [Parameter(Mandatory = $false)]
-    [switch]$DuoNic = $false
+    [switch]$DuoNic = $false,
+
+    [Parameter(Mandatory = $false)]
+    [switch]$UseXdp = $false,
+
+    [Parameter(Mandatory = $false)]
+    [switch]$UseQtip = $false,
+
+    [Parameter(Mandatory = $false)]
+    [string]$OsRunner = "",
+
+    [Parameter(Mandatory = $false)]
+    [int]$NumIterations = 1
 )
 
 Set-StrictMode -Version 'Latest'
@@ -195,6 +215,11 @@ if ($CodeCoverage) {
     if (!(Test-Path "C:\Program Files\OpenCppCoverage\OpenCppCoverage.exe")) {
         Write-Error "Code coverage tools are not installed";
     }
+}
+
+if ($UseXdp) {
+    # Helper for XDP usage
+    $DuoNic = $true
 }
 
 $BuildConfig = & (Join-Path $PSScriptRoot get-buildconfig.ps1) -Tls $Tls -Arch $Arch -ExtraArtifactDir $ExtraArtifactDir -Config $Config
@@ -310,20 +335,34 @@ if ($CodeCoverage) {
 if ($AZP) {
     $TestArguments += " -AZP"
 }
+if ($GHA) {
+    $TestArguments += " -GHA"
+}
 if ($ErrorsAsWarnings) {
     $TestArguments += " -ErrorsAsWarnings"
+}
+if ("" -ne $OsRunner) {
+    $TestArguments += " -OsRunner $OsRunner"
+}
+if ($UseQtip) {
+    $TestArguments += " -UseQtip"
 }
 
 if (![string]::IsNullOrWhiteSpace($ExtraArtifactDir)) {
     $TestArguments += " -ExtraArtifactDir $ExtraArtifactDir"
 }
 
-# Run the script.
-if (!$Kernel -and !$SkipUnitTests) {
-    Invoke-Expression ($RunTest + " -Path $MsQuicPlatTest " + $TestArguments)
-    Invoke-Expression ($RunTest + " -Path $MsQuicCoreTest " + $TestArguments)
+for ($iteration = 1; $iteration -le $NumIterations; $iteration++) {
+    if ($NumIterations -gt 1) {
+        Write-Host "------- Iteration $iteration -------"
+    }
+    # Run the script.
+    if (!$Kernel -and !$SkipUnitTests) {
+        Invoke-Expression ($RunTest + " -Path $MsQuicPlatTest " + $TestArguments)
+        Invoke-Expression ($RunTest + " -Path $MsQuicCoreTest " + $TestArguments)
+    }
+    Invoke-Expression ($RunTest + " -Path $MsQuicTest " + $TestArguments)
 }
-Invoke-Expression ($RunTest + " -Path $MsQuicTest " + $TestArguments)
 
 if ($CodeCoverage) {
     # Merge code coverage results

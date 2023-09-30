@@ -15,13 +15,17 @@ On Windows, MsQuic leverages manifested [ETW](https://docs.microsoft.com/en-us/w
 
 ### Linux
 
+#### LTTng
 On Linux, MsQuic leverages [LTTng](https://lttng.org/features/) for its logging. Some dependencies, such as babeltrace, lttng, and clog2text_lttng are required. The simplest way to install all dependencies is by running `./scripts/prepare-machine.ps1 -ForTest`, but if you only want to collect the traces on the machine, the **minimal dependencies** are:
 
 ```
-sudo apt-add-repository ppa:lttng/stable-2.12
+sudo apt-add-repository ppa:lttng/stable-2.13
 sudo apt-get update
 sudo apt-get install -y lttng-tools
 ```
+
+#### Perf
+For general tracing, refer [Stacks and CPU usage](../src/plugins/trace/README.md#linux)
 
 ### macOS
 
@@ -130,17 +134,21 @@ As already indicated, there are lots of ways to collect ETW traces. Feel free to
 
 ## Linux
 
-This script wraps steps bellows
+### All in one command
+This script wraps collecting trace then converting to text as well
 **WARN**: This wrapper doesn't work with `./scripts/test.ps1` etc. as it is also creating lttng session internally.
-```
-./scripts/log_wrapper.sh ${Your binary}
+```sh
+cd ${MSQUIC_PATH}
+./scripts/log_wrapper.sh ${YOUR_COMMAND}
 # e.g.
 ./scripts/log_wrapper.sh ./artifacts/bin/linux/x64_Debug_openssl/msquictest --gtest_filter=Basic.*
+ls msquic_lttng0
+# data  quic.babel.txt  quic.log
 ```
+### Step by step command
+Instead, you can use the following commands:
 
-To start collecting a trace, you can use the following commands:
-
-```
+```sh
 mkdir msquic_lttng
 lttng create msquic -o=./msquic_lttng
 lttng enable-event --userspace "CLOG_*"
@@ -180,6 +188,17 @@ wevtutil.exe im path\to\MsQuicEtw.man /rf:path\to\msquic.dll /mf:path\to\msquic.
 Replace `path\to` with the actual paths to the respective files. With the latest manifests installed, now the normal `netsh.exe` convert command should work.
 
 ## Linux
+
+NOTE: `msquic.lttng.so` must be built to enable lttng logging - see https://lttng.org/docs/v2.13/#doc-liblttng-ust-dl
+and it must be placed in the same directory as the `msquic.so`.
+
+Building `clog2text_lttng`:
+```
+apt install --no-install-recommends -y dotnet-runtime-6.0 dotnet-sdk-6.0 dotnet-host
+git submodule update --init submodules/clog
+dotnet build submodules/clog/src/clog2text/clog2text_lttng/ -c Release
+export PATH=$PWD/submodules/clog/src/clog2text/clog2text_lttng/bin/Release/net6.0/:$PATH
+```
 
 To convert the trace, you can use the following commands:
 

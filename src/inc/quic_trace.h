@@ -88,6 +88,8 @@ typedef enum QUIC_TRACE_API_TYPE {
     QUIC_TRACE_API_CONNECTION_START,
     QUIC_TRACE_API_CONNECTION_SET_CONFIGURATION,
     QUIC_TRACE_API_CONNECTION_SEND_RESUMPTION_TICKET,
+    QUIC_TRACE_API_CONNECTION_COMPLETE_RESUMPTION_TICKET_VALIDATION,
+    QUIC_TRACE_API_CONNECTION_COMPLETE_CERTIFICATE_VALIDATION,
     QUIC_TRACE_API_STREAM_OPEN,
     QUIC_TRACE_API_STREAM_CLOSE,
     QUIC_TRACE_API_STREAM_START,
@@ -118,12 +120,21 @@ extern QUIC_TRACE_RUNDOWN_CALLBACK* QuicTraceRundownCallback;
 
 #ifdef QUIC_CLOG
 
+#if DEBUG
 #define QuicTraceLogStreamVerboseEnabled() TRUE
 #define QuicTraceLogErrorEnabled()   TRUE
 #define QuicTraceLogWarningEnabled() TRUE
 #define QuicTraceLogInfoEnabled()    TRUE
 #define QuicTraceLogVerboseEnabled() TRUE
 #define QuicTraceEventEnabled(x) TRUE
+#else
+#define QuicTraceLogStreamVerboseEnabled() FALSE
+#define QuicTraceLogErrorEnabled()   FALSE
+#define QuicTraceLogWarningEnabled() FALSE
+#define QuicTraceLogInfoEnabled()    FALSE
+#define QuicTraceLogVerboseEnabled() FALSE
+#define QuicTraceEventEnabled(x) FALSE
+#endif
 
 #define CASTED_CLOG_BYTEARRAY(Len, Data) CLOG_BYTEARRAY((unsigned char)(Len), (const unsigned char*)(Data))
 #else
@@ -173,12 +184,18 @@ extern
 #ifdef __cplusplus
     "C"
 #endif
-char * __attribute__((no_instrument_function))
+char *
+#ifndef _WIN32
+__attribute__((no_instrument_function))
+#endif
 casted_clog_bytearray(const uint8_t * const data,
                       const size_t len,
                       struct clog_param ** head);
 #else
-inline char * __attribute__((no_instrument_function))
+inline char *
+#ifndef _WIN32
+__attribute__((no_instrument_function))
+#endif
 casted_clog_bytearray(const uint8_t * const data,
                       const size_t len,
                       struct clog_param ** head)

@@ -34,10 +34,10 @@ body:
       description: On what version of MsQuic does this bug occur? Please select the affected code branch from the drop-down menu.
       options:
         - main
-        - release/1.0
-        - release/1.1
-        - release/2.0
-        - release/2.1
+        - v2.2
+        - v2.1
+        - v2.0
+        - Older
   - type: textarea
     validations:
       required: true

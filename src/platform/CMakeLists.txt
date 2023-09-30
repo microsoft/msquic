@@ -12,16 +12,20 @@ endif()
 set(SOURCES crypt.c hashtable.c pcp.c platform_worker.c toeplitz.c)
 
 if("${CX_PLATFORM}" STREQUAL "windows")
-    set(SOURCES ${SOURCES} platform_winuser.c storage_winuser.c)
-    if(QUIC_USE_XDP)
-        set(SOURCES ${SOURCES} datapath_raw.c datapath_raw_socket.c datapath_raw_xdp.c)
+    set(SOURCES ${SOURCES} platform_winuser.c storage_winuser.c datapath_win.c datapath_winuser.c)
+    if(QUIC_UWP_BUILD OR
+       QUIC_GAMECORE_BUILD OR
+       ${SYSTEM_PROCESSOR} STREQUAL "arm" OR
+       ${SYSTEM_PROCESSOR} STREQUAL "arm64" OR
+       ${SYSTEM_PROCESSOR} STREQUAL "arm64ec")
+        set(SOURCES ${SOURCES} datapath_raw_dummy.c)
     else()
-        set(SOURCES ${SOURCES} datapath_winuser.c)
+        set(SOURCES ${SOURCES} datapath_raw_win.c datapath_raw_socket.c datapath_raw_socket_win.c datapath_raw_xdp_win.c)
     endif()
 else()
     set(SOURCES ${SOURCES} inline.c platform_posix.c storage_posix.c cgroup.c)
     if(CX_PLATFORM STREQUAL "linux" AND NOT CMAKE_SYSTEM_NAME STREQUAL "FreeBSD")
-        set(SOURCES ${SOURCES} datapath_epoll.c)
+        set(SOURCES ${SOURCES} datapath_raw_linux.c datapath_raw_socket.c datapath_raw_socket_linux.c datapath_raw_xdp_linux.c datapath_epoll.c datapath_linux.c)
     else()
         set(SOURCES ${SOURCES} datapath_kqueue.c)
     endif()
@@ -30,7 +34,7 @@ endif()
 if (QUIC_TLS STREQUAL "schannel")
     message(STATUS "Configuring for Schannel")
     set(SOURCES ${SOURCES} cert_capi.c crypt_bcrypt.c selfsign_capi.c tls_schannel.c)
-elseif(QUIC_TLS STREQUAL "openssl")
+elseif(QUIC_TLS STREQUAL "openssl" OR QUIC_TLS STREQUAL "openssl3")
     message(STATUS "Configuring for OpenSSL")
     set(SOURCES ${SOURCES} tls_openssl.c crypt_openssl.c)
     if ("${CX_PLATFORM}" STREQUAL "windows")
@@ -46,13 +50,12 @@ endif()
 
 add_library(platform STATIC ${SOURCES})
 
-if(QUIC_USE_XDP)
+if("${CX_PLATFORM}" STREQUAL "windows")
     target_link_libraries(
         platform
         PUBLIC
         inc
-        wbemuuid
-        ${PROJECT_SOURCE_DIR}/artifacts/xdp/lib/xdpapi.lib)
+        wbemuuid)
 else()
     target_link_libraries(platform PUBLIC inc)
 endif()
@@ -65,21 +68,19 @@ target_link_libraries(platform PRIVATE warnings main_binary_link_args)
 
 set_property(TARGET platform PROPERTY FOLDER "${QUIC_FOLDER_PREFIX}libraries")
 
-if(QUIC_USE_XDP)
+if ("${CX_PLATFORM}" STREQUAL "windows")
     target_include_directories(
         platform
         PRIVATE
         ${EXTRA_PLATFORM_INCLUDE_DIRECTORIES}
         ${PROJECT_SOURCE_DIR}/artifacts/xdp/include)
-else()
-    target_include_directories(platform PRIVATE ${EXTRA_PLATFORM_INCLUDE_DIRECTORIES})
 endif()
 
 if (MSVC AND (QUIC_TLS STREQUAL "openssl" OR QUIC_TLS STREQUAL "schannel") AND NOT QUIC_ENABLE_SANITIZERS)
     target_compile_options(platform PRIVATE /analyze)
 endif()
 
-if(QUIC_TLS STREQUAL "openssl")
+if(QUIC_TLS STREQUAL "openssl" OR QUIC_TLS STREQUAL "openssl3")
     target_link_libraries(platform PUBLIC OpenSSL)
     if (CX_PLATFORM STREQUAL "darwin")
         target_link_libraries(platform PUBLIC "-framework CoreFoundation" "-framework Security")

@@ -132,10 +132,8 @@ typedef struct CXPLAT_HASHTABLE {
 
     // Entries used in bucket computation.
     uint32_t TableSize;
-#ifdef CXPLAT_HASHTABLE_RESIZE_SUPPORT
     uint32_t Pivot;
     uint32_t DivisorMask;
-#endif
 
     // Counters
     uint32_t NumEntries;
@@ -228,20 +226,6 @@ CxPlatHashtableEnumerateEnd(
     _In_ CXPLAT_HASHTABLE* HashTable,
     _Inout_ CXPLAT_HASHTABLE_ENUMERATOR* Enumerator
     );
-
-#ifdef CXPLAT_HASHTABLE_RESIZE_SUPPORT
-
-BOOLEAN
-CxPlatHashTableExpand(
-    _Inout_ CXPLAT_HASHTABLE* HashTable
-    );
-
-BOOLEAN
-CxPlatHashTableContract(
-    _Inout_ CXPLAT_HASHTABLE* HashTable
-    );
-
-#endif // CXPLAT_HASHTABLE_RESIZE_SUPPORT
 
 //
 // Simple helper hash function.

@@ -28,6 +28,7 @@ Abstract:
 #include "openssl/rsa.h"
 #include "openssl/ssl.h"
 #include "openssl/x509.h"
+#include "openssl/x509v3.h"
 
 #include <sys/stat.h>
 #include <sys/types.h>
@@ -85,28 +86,31 @@ static uint8_t* ReadPkcs12(const char* Name, uint32_t* Length) {
 }
 
 //
-// Generates a self signed cert using low level OpenSSL APIs.
+// Generates a signed cert using low level OpenSSL APIs.
+// Issue certificate from provided CA, or create self-signed
+// certificate.
 //
+
+
 QUIC_STATUS
-CxPlatTlsGenerateSelfSignedCert(
-    _In_z_ char *CertFileName,
-    _When_(OutputPkcs12 == TRUE, _Reserved_)
-    _When_(OutputPkcs12 == FALSE, _In_z_)
-        char *PrivateKeyFileName,
+GenerateX509Cert(
+    _In_opt_ X509 *CaX509,
+    _In_opt_ EVP_PKEY *CaPKey,
     _In_z_ char *SNI,
-    _In_opt_z_ char *Password,
-    _In_ BOOLEAN OutputPkcs12
+    _In_ BOOLEAN GenCaCert,
+    _Out_ X509 **OutCert,
+    _Out_ EVP_PKEY **PrivKey
     )
 {
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
     int Ret = 0;
     EVP_PKEY *PKey = NULL;
-    EVP_PKEY_CTX * EcKeyCtx = NULL;
-    X509 *X509 = NULL;
+    EVP_PKEY_CTX *EcKeyCtx = NULL;
+    X509 *Cert = NULL;
     X509_NAME *Name = NULL;
-    PKCS12 *Pkcs12 = NULL;
-    FILE *Fd = NULL;
+    X509_NAME *IssuerName = NULL;
 
+    // Generate private key (RSA)
     PKey = EVP_PKEY_new();
     if (PKey == NULL) {
         QuicTraceEvent(
@@ -147,8 +151,9 @@ CxPlatTlsGenerateSelfSignedCert(
         goto Exit;
     }
 
-    X509 = X509_new();
-    if (X509 == NULL) {
+    // Generate X509 certificate
+    Cert = X509_new();
+    if (Cert == NULL) {
         QuicTraceEvent(
             LibraryError,
             "[ lib] ERROR, %s.",
@@ -157,7 +162,9 @@ CxPlatTlsGenerateSelfSignedCert(
         goto Exit;
     }
 
-    Ret = ASN1_INTEGER_set(X509_get_serialNumber(X509), 1);
+    X509_set_version(Cert, 3);
+
+    Ret = ASN1_INTEGER_set(X509_get_serialNumber(Cert), 1);
     if (Ret != 1) {
         QuicTraceEvent(
             LibraryError,
@@ -167,12 +174,12 @@ CxPlatTlsGenerateSelfSignedCert(
         goto Exit;
     }
 
-    X509_gmtime_adj(X509_get_notBefore(X509), 0);
-    X509_gmtime_adj(X509_get_notAfter(X509), 31536000L);
+    X509_gmtime_adj(X509_getm_notBefore(Cert), 0);
+    X509_gmtime_adj(X509_getm_notAfter(Cert), 31536000L);
 
-    X509_set_pubkey(X509, PKey);
+    X509_set_pubkey(Cert, PKey);
 
-    Name = X509_get_subject_name(X509);
+    Name = X509_get_subject_name(Cert);
 
     Ret =
         X509_NAME_add_entry_by_txt(
@@ -228,7 +235,15 @@ CxPlatTlsGenerateSelfSignedCert(
         goto Exit;
     }
 
-    Ret = X509_set_issuer_name(X509, Name);
+    // Issue certificate from CA cert, or create self-signed cert
+    if (CaX509 != NULL) {
+        IssuerName = X509_get_subject_name(CaX509);
+    }
+    else {
+        IssuerName = Name;
+    }
+
+    Ret = X509_set_issuer_name(Cert, IssuerName);
     if (Ret != 1) {
         QuicTraceEvent(
             LibraryError,
@@ -238,7 +253,44 @@ CxPlatTlsGenerateSelfSignedCert(
         goto Exit;
     }
 
-    Ret = X509_sign(X509, PKey, EVP_sha256());
+    if (GenCaCert == TRUE) {
+        // Set basicConstraints: critical,CA:TRUE
+        X509_EXTENSION *ex;
+        X509V3_CTX ctx;
+        X509V3_set_ctx_nodb(&ctx);
+        X509V3_set_ctx(&ctx, Cert, Cert, NULL, NULL, 0);
+
+        ex = X509V3_EXT_conf_nid(NULL, &ctx, NID_basic_constraints,
+                                 "critical,CA:TRUE");
+        if (ex == NULL) {
+            QuicTraceEvent(
+                LibraryError,
+                "[ lib] ERROR, %s.",
+                "X509V3_EXT_conf_nid failed");
+            Status = QUIC_STATUS_TLS_ERROR;
+            goto Exit;
+        }
+
+        Ret = X509_add_ext(Cert, ex, -1);
+        X509_EXTENSION_free(ex);
+
+        if (Ret <= 0) {
+            QuicTraceEvent(
+                LibraryError,
+                "[ lib] ERROR, %s.",
+                "X509_add_ext failed");
+            Status = QUIC_STATUS_TLS_ERROR;
+            goto Exit;
+        }
+    }
+
+    // Self signed or issued by CA
+    if (CaPKey != NULL) {
+        Ret = X509_sign(Cert, CaPKey, EVP_sha256());
+    } else {
+        Ret = X509_sign(Cert, PKey, EVP_sha256());
+    }
+
     if (Ret <= 0) {
         QuicTraceEvent(
             LibraryError,
@@ -246,6 +298,98 @@ CxPlatTlsGenerateSelfSignedCert(
             "X509_sign failed");
         Status = QUIC_STATUS_TLS_ERROR;
         goto Exit;
+    }
+
+    *OutCert = Cert;
+    *PrivKey = PKey;
+
+    if (EcKeyCtx != NULL) {
+        EVP_PKEY_CTX_free(EcKeyCtx);
+        EcKeyCtx = NULL;
+    }
+
+    return Status;
+
+Exit:
+    if (PKey != NULL) {
+        EVP_PKEY_free(PKey);
+        PKey= NULL;
+    }
+
+    if (EcKeyCtx != NULL) {
+        EVP_PKEY_CTX_free(EcKeyCtx);
+        EcKeyCtx = NULL;
+    }
+
+    if (Cert != NULL) {
+        X509_free(Cert);
+        Cert = NULL;
+    }
+
+    return Status;
+}
+
+QUIC_STATUS
+CxPlatTlsGenerateSelfSignedCert(
+    _In_z_ char *CertFileName,
+    _When_(OutputPkcs12 == TRUE, _Reserved_)
+    _When_(OutputPkcs12 == FALSE, _In_z_)
+        char *PrivateKeyFileName,
+    _In_opt_z_ char *CaFileName,
+    _In_z_ char *SNI,
+    _In_opt_z_ char *Password,
+    _In_ BOOLEAN OutputPkcs12
+    )
+{
+    QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
+    int Ret = 0;
+    EVP_PKEY *CaPKey = NULL;
+    X509 *CaX509 = NULL;
+    EVP_PKEY *PKey = NULL;
+    X509 *x509 = NULL;
+    PKCS12 *Pkcs12 = NULL;
+    FILE *Fd = NULL;
+
+    if (CaFileName != NULL) {
+        // Generate CA certificate
+        Status = GenerateX509Cert(
+            NULL, NULL, "CA Cert", TRUE, &CaX509, &CaPKey);
+
+        if (Status != QUIC_STATUS_SUCCESS) {
+            goto Exit;
+        }
+    }
+
+    Status = GenerateX509Cert(
+        CaX509, CaPKey, SNI, FALSE, &x509, &PKey);
+
+    if (Status != QUIC_STATUS_SUCCESS) {
+        goto Exit;
+    }
+
+    if (CaFileName != NULL) {
+        Fd = fopen(CaFileName, "wb");
+        if (Fd == NULL) {
+            QuicTraceEvent(
+                LibraryError,
+                "[ lib] ERROR, %s.",
+                "fopen failed");
+            Status = QUIC_STATUS_TLS_ERROR;
+            goto Exit;
+        }
+
+        Ret = PEM_write_X509(Fd, CaX509);
+        if (Ret != 1) {
+            QuicTraceEvent(
+                LibraryError,
+                "[ lib] ERROR, %s.",
+                "PEM_write_X509 failed");
+            Status = QUIC_STATUS_TLS_ERROR;
+            goto Exit;
+        }
+
+        fclose(Fd);
+        Fd = NULL;
     }
 
     if (!OutputPkcs12) {
@@ -291,7 +435,7 @@ CxPlatTlsGenerateSelfSignedCert(
             goto Exit;
         }
 
-        Ret = PEM_write_X509(Fd, X509);
+        Ret = PEM_write_X509(Fd, x509);
         if (Ret != 1) {
             QuicTraceEvent(
                 LibraryError,
@@ -311,7 +455,7 @@ CxPlatTlsGenerateSelfSignedCert(
                 Password,
                 "MsQuicTest",
                 PKey,
-                X509,
+                x509,
                 NULL,
                 Password == NULL ? -1 : 0,
                 Password == NULL ? -1 : 0,
@@ -352,19 +496,24 @@ CxPlatTlsGenerateSelfSignedCert(
 
 Exit:
 
+    if (CaPKey != NULL) {
+        EVP_PKEY_free(CaPKey);
+        CaPKey= NULL;
+    }
+
+    if (CaX509 != NULL) {
+        X509_free(CaX509);
+        CaX509 = NULL;
+    }
+
     if (PKey != NULL) {
         EVP_PKEY_free(PKey);
         PKey= NULL;
     }
 
-    if (EcKeyCtx != NULL) {
-        EVP_PKEY_CTX_free(EcKeyCtx);
-        EcKeyCtx = NULL;
-    }
-
-    if (X509 != NULL) {
-        X509_free(X509);
-        X509 = NULL;
+    if (x509 != NULL) {
+        X509_free(x509);
+        x509 = NULL;
     }
 
     if (Pkcs12 != NULL) {
@@ -381,11 +530,19 @@ Exit:
 
 static char* QuicTestServerCertFilename = (char*)"localhost_cert.pem";
 static char* QuicTestServerPrivateKeyFilename = (char*)"localhost_key.pem";
+static char* QuicTestServerCertFilenameSS = (char*)"localhost_ss_cert.pem";
+static char* QuicTestServerPrivateKeyFilenameSS = (char*)"localhost_ss_key.pem";
 static char* QuicTestServerPrivateKeyProtectedFilename = (char*)"localhost_key_prot.pem";
+static char* QuicTestServerPrivateKeyProtectedFilenameSS = (char*)"localhost_ss_key_prot.pem";
 static char* QuicTestServerPkcs12Filename = (char*)"localhost_certkey.p12";
+static char* QuicTestServerCaCertFilename = (char*)"localhost_ca_cert.pem";
 static char* QuicTestClientCertFilename = (char*)"client_cert.pem";
+static char* QuicTestClientCaCertFilename = (char*)"client_ca_cert.pem";
 static char* QuicTestClientPrivateKeyFilename = (char*)"client_key.pem";
+static char* QuicTestClientCertFilenameSS = (char*)"client_ss_cert.pem";
+static char* QuicTestClientPrivateKeyFilenameSS = (char*)"client_ss_key.pem";
 static char* QuicTestClientPrivateKeyProtectedFilename = (char*)"client_key_prot.pem";
+static char* QuicTestClientPrivateKeyProtectedFilenameSS = (char*)"client_ss_key_prot.pem";
 static char* QuicTestClientPkcs12Filename = (char*)"client_certkey.p12";
 
 #ifndef MAX_PATH
@@ -399,6 +556,7 @@ typedef struct CXPLAT_CREDENTIAL_CONFIG_INTERNAL {
     QUIC_CERTIFICATE_FILE CertFile;
     char CertFilepath[MAX_PATH];
     char PrivateKeyFilepath[MAX_PATH];
+    char CaFilepath[MAX_PATH];
 
 } CXPLAT_CREDENTIAL_CONFIG_INTERNAL;
 
@@ -410,14 +568,17 @@ BOOLEAN
 FindOrCreateTempFiles(
     const char* const CertFileName,
     const char* const KeyFileName,
+    const char* const CaFileName,
     char* CertFilePath,
-    char* KeyFilePath
+    char* KeyFilePath,
+    char* CaFilePath
     )
 {
 #ifdef _WIN32
     char TempPath [MAX_PATH] = {0};
     char TempCertPath[MAX_PATH] = {0};
     char TempKeyPath[MAX_PATH] = {0};
+    char TempCaPath[MAX_PATH] = {0};
     DWORD PathLength = GetTempPathA(sizeof(TempPath), TempPath);
     if (PathLength > MAX_PATH || PathLength <= 0) {
         QuicTraceEvent(
@@ -513,6 +674,50 @@ FindOrCreateTempFiles(
         }
     }
 
+    if (CaFileName != NULL && CaFilePath != NULL) {
+        CxPlatCopyMemory(
+            TempCaPath,
+            TempPath,
+            PathLength);
+        CxPlatCopyMemory(
+            TempCaPath + PathLength,
+            CaFileName,
+            strlen(CaFileName));
+        CxPlatCopyMemory(
+            TempCaPath + PathLength + strlen(CaFileName),
+            "*\0",
+            2);
+
+        FindHandle = FindFirstFileA(TempCaPath, &FindData);
+        if (FindHandle == INVALID_HANDLE_VALUE) {
+            FindClose(FindHandle);
+            //
+            // File doesn't exist, create it
+            //
+            UINT TempFileStatus =
+                GetTempFileNameA(
+                    TempPath,
+                    CaFileName,
+                    0,
+                    CaFilePath);
+            if (TempFileStatus == 0) {
+                QuicTraceEvent(
+                    LibraryError,
+                    "[ lib] ERROR, %s.",
+                    "GetTempFileNameA Key Path failed");
+                return FALSE;
+            }
+        } else {
+            CxPlatCopyMemory(CaFilePath, TempPath, PathLength);
+            CxPlatCopyMemory(
+                CaFilePath + PathLength,
+                FindData.cFileName,
+                strnlen(FindData.cFileName, sizeof(FindData.cFileName)));
+            FindClose(FindHandle);
+            FindHandle = INVALID_HANDLE_VALUE;
+        }
+    }
+
 #else
 
     char TempPath[MAX_PATH] = {0};
@@ -573,40 +778,238 @@ FindOrCreateTempFiles(
             KeyFileName,
             strlen(KeyFileName) + 1);
     }
+
+    if (CaFilePath != NULL && CaFileName != NULL) {
+        CxPlatCopyMemory(
+            CaFilePath,
+            TempDir,
+            strlen(TempDir));
+        CxPlatCopyMemory(
+            CaFilePath + strlen(TempDir),
+            "/",
+            1);
+        CxPlatCopyMemory(
+            CaFilePath + strlen(TempDir) + 1,
+            CaFileName,
+            strlen(CaFileName) + 1);
+    }
+
+#endif
+
+    return TRUE;
+}
+
+_Success_(return)
+BOOLEAN
+FindOrCreateTempCaFile(
+    const char* const CaFileName,
+    char* CaFilePath
+    )
+{
+#ifdef _WIN32
+    char TempPath [MAX_PATH] = {0};
+    char TempCaPath[MAX_PATH] = {0};
+    DWORD PathLength = GetTempPathA(sizeof(TempPath), TempPath);
+    if (PathLength > MAX_PATH || PathLength <= 0) {
+        QuicTraceEvent(
+            LibraryError,
+            "[ lib] ERROR, %s.",
+            "GetTempPathA failed");
+        return FALSE;
+    }
+
+    if (CaFileName != NULL && CaFilePath != NULL) {
+        CxPlatCopyMemory(
+            TempCaPath,
+            TempPath,
+            PathLength);
+        CxPlatCopyMemory(
+            TempCaPath + PathLength,
+            CaFileName,
+            strlen(CaFileName));
+        CxPlatCopyMemory(
+            TempCaPath + PathLength + strlen(CaFileName),
+            "*\0",
+            2);
+
+        WIN32_FIND_DATAA FindData = {0};
+        HANDLE FindHandle = FindFirstFileA(TempCaPath, &FindData);
+        if (FindHandle == INVALID_HANDLE_VALUE) {
+            FindClose(FindHandle);
+            //
+            // File doesn't exist, create it
+            //
+            UINT TempFileStatus =
+                GetTempFileNameA(
+                    TempPath,
+                    CaFileName,
+                    0,
+                    CaFilePath);
+            if (TempFileStatus == 0) {
+                QuicTraceEvent(
+                    LibraryError,
+                    "[ lib] ERROR, %s.",
+                    "GetTempFileNameA Key Path failed");
+                return FALSE;
+            }
+        } else {
+            CxPlatCopyMemory(CaFilePath, TempPath, PathLength);
+            CxPlatCopyMemory(
+                CaFilePath + PathLength,
+                FindData.cFileName,
+                strnlen(FindData.cFileName, sizeof(FindData.cFileName)));
+            FindClose(FindHandle);
+            FindHandle = INVALID_HANDLE_VALUE;
+        }
+    }
+
+#else
+
+    char TempPath[MAX_PATH] = {0};
+    char* TempDir = NULL;
+
+    glob_t GlobData = {0};
+    if (glob(TEMP_DIR_SEARCH, 0, NULL, &GlobData) != 0 || GlobData.gl_pathc == 0) {
+        globfree(&GlobData);
+        //
+        // Temp dir not found, create it
+        //
+        CxPlatCopyMemory(TempPath, TEMP_DIR_TEMPLATE, sizeof(TEMP_DIR_TEMPLATE));
+
+        TempDir = mkdtemp(TempPath);
+        if (TempDir == NULL) {
+            QuicTraceEvent(
+                LibraryError,
+                "[ lib] ERROR, %s.",
+                "mkdtemp failed");
+            return FALSE;
+        }
+    } else {
+        //
+        // Assume the first result is the desired folder
+        //
+        strncpy(
+            TempPath,
+            GlobData.gl_pathv[0],
+            strnlen(GlobData.gl_pathv[0], sizeof(TempPath)));
+        globfree(&GlobData);
+        TempDir = TempPath;
+    }
+
+    if (CaFilePath != NULL && CaFileName != NULL) {
+        CxPlatCopyMemory(
+            CaFilePath,
+            TempDir,
+            strlen(TempDir));
+        CxPlatCopyMemory(
+            CaFilePath + strlen(TempDir),
+            "/",
+            1);
+        CxPlatCopyMemory(
+            CaFilePath + strlen(TempDir) + 1,
+            CaFileName,
+            strlen(CaFileName) + 1);
+    }
+
 #endif
 
     return TRUE;
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
-QUIC_CREDENTIAL_CONFIG*
-CxPlatGetSelfSignedCert(
-    _In_ CXPLAT_SELF_SIGN_CERT_TYPE Type,
+const char*
+CxPlatGetSelfSignedCertCaCertificateFileName(
     _In_ BOOLEAN ClientCertificate
     )
 {
-    UNREFERENCED_PARAMETER(Type);
-    const char* CertFileName = NULL;
-    const char* KeyFileName = NULL;
+    const char* CaFileName = NULL;
 
     if (ClientCertificate) {
 #ifdef _WIN32
-        CertFileName = "msquicopensslclientcert";
-        KeyFileName = "msquicopensslclientkey";
+        CaFileName = "msquicopensslclientcacert";
 #else
-        CertFileName = QuicTestClientCertFilename;
-        KeyFileName = QuicTestClientPrivateKeyFilename;
+        CaFileName = QuicTestClientCaCertFilename;
 #endif
     } else {
 #ifdef _WIN32
-        CertFileName = "msquicopensslservercert";
-        KeyFileName = "msquicopensslserverkey";
+        CaFileName = "msquicopensslservercacert";
 #else
-        CertFileName = QuicTestServerCertFilename;
-        KeyFileName = QuicTestServerPrivateKeyFilename;
+        CaFileName = QuicTestServerCaCertFilename;
 #endif
     }
 
+    char* CaFilePath = malloc(sizeof(char)*MAX_PATH);
+    if (CaFilePath == NULL) {
+        return NULL;
+    }
+
+    if (!FindOrCreateTempCaFile(CaFileName, CaFilePath)) {
+        free(CaFilePath);
+        return NULL;
+    }
+
+    return CaFilePath;
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_CREDENTIAL_CONFIG*
+CxPlatGetSelfSignedCert(
+    _In_ CXPLAT_SELF_SIGN_CERT_TYPE Type,
+    _In_ BOOLEAN ClientCertificate,
+    _In_z_ const char* CaCertificateFile
+    )
+{
+    const char* CertFileName = NULL;
+    const char* KeyFileName = NULL;
+    const char* CaFileName = NULL;
+    BOOLEAN CreateCA = (Type == CXPLAT_SELF_SIGN_CA_CERT_USER ||
+                        Type == CXPLAT_SELF_SIGN_CA_CERT_MACHINE);
+
+    // Different architectures store files in different locations
+    if (CreateCA) {
+        if (ClientCertificate) {
+#ifdef _WIN32
+            CertFileName = "msquicopensslclientcert";
+            KeyFileName = "msquicopensslclientkey";
+            CaFileName = "msquicopensslclientcacert";
+#else
+            CertFileName = QuicTestClientCertFilename;
+            KeyFileName = QuicTestClientPrivateKeyFilename;
+            CaFileName = QuicTestClientCaCertFilename;
+#endif
+        } else {
+#ifdef _WIN32
+            CertFileName = "msquicopensslservercert";
+            KeyFileName = "msquicopensslserverkey";
+            CaFileName = "msquicopensslservercacert";
+#else
+            CertFileName = QuicTestServerCertFilename;
+            KeyFileName = QuicTestServerPrivateKeyFilename;
+            CaFileName = QuicTestServerCaCertFilename;
+#endif
+        }
+    } else {
+        if (ClientCertificate) {
+#ifdef _WIN32
+            CertFileName = "msquicopensslclientcertss";
+            KeyFileName = "msquicopensslclientkeyss";
+#else
+            CertFileName = QuicTestClientCertFilenameSS;
+            KeyFileName = QuicTestClientPrivateKeyFilenameSS;
+#endif
+        } else {
+#ifdef _WIN32
+            CertFileName = "msquicopensslservercertss";
+            KeyFileName = "msquicopensslserverkeyss";
+#else
+            CertFileName = QuicTestServerCertFilenameSS;
+            KeyFileName = QuicTestServerPrivateKeyFilenameSS;
+#endif
+        }
+    }
+
+    // Hack to allocate space for filepaths that will be properly
+    // deallocated without explicit deallocation
     CXPLAT_CREDENTIAL_CONFIG_INTERNAL* Params =
         malloc(sizeof(CXPLAT_CREDENTIAL_CONFIG_INTERNAL) + sizeof(TEMP_DIR_TEMPLATE));
     if (Params == NULL) {
@@ -619,11 +1022,23 @@ CxPlatGetSelfSignedCert(
     Params->CertFile.CertificateFile = Params->CertFilepath;
     Params->CertFile.PrivateKeyFile = Params->PrivateKeyFilepath;
 
+    if (CreateCA) {
+        if (CaCertificateFile) {
+            Params->CaCertificateFile = CaCertificateFile;
+        } else {
+            Params->CaCertificateFile = Params->CaFilepath;
+        }
+    } else {
+        Params->CaCertificateFile = NULL;
+    }
+
     if (!FindOrCreateTempFiles(
             CertFileName,
             KeyFileName,
+            CaFileName,
             Params->CertFilepath,
-            Params->PrivateKeyFilepath)) {
+            Params->PrivateKeyFilepath,
+            (CreateCA ? Params->CaFilepath : NULL))) {
         goto Error;
     }
 
@@ -631,6 +1046,9 @@ CxPlatGetSelfSignedCert(
         CxPlatTlsGenerateSelfSignedCert(
             Params->CertFilepath,
             Params->PrivateKeyFilepath,
+            CreateCA ?
+                Params->CaFilepath:
+                NULL,
             ClientCertificate ?
                 (char *)"MsQuicClient":
                 (char *)"localhost",
@@ -652,6 +1070,8 @@ Error:
     return NULL;
 }
 
+// Generate certificates for testing, either self-signed certificates
+// or from a self-signed CA certificate.
 _IRQL_requires_max_(PASSIVE_LEVEL)
 _Success_(return == TRUE)
 BOOLEAN
@@ -686,28 +1106,66 @@ CxPlatGetTestCertificate(
     UNREFERENCED_PARAMETER(CertHashStore);
     UNREFERENCED_PARAMETER(Principal);
     BOOLEAN Result = FALSE;
-    if ((Type == CXPLAT_TEST_CERT_SELF_SIGNED_SERVER || Type == CXPLAT_TEST_CERT_SELF_SIGNED_CLIENT) &&
+    if ((Type == CXPLAT_TEST_CERT_SELF_SIGNED_SERVER ||
+         Type == CXPLAT_TEST_CERT_SELF_SIGNED_CLIENT ||
+         Type == CXPLAT_TEST_CERT_CA_CLIENT ||
+         Type == CXPLAT_TEST_CERT_CA_SERVER) &&
         (CredType == QUIC_CREDENTIAL_TYPE_CERTIFICATE_FILE ||
-        CredType == QUIC_CREDENTIAL_TYPE_CERTIFICATE_FILE_PROTECTED ||
-        CredType == QUIC_CREDENTIAL_TYPE_CERTIFICATE_PKCS12)) {
+         CredType == QUIC_CREDENTIAL_TYPE_CERTIFICATE_FILE_PROTECTED ||
+         CredType == QUIC_CREDENTIAL_TYPE_CERTIFICATE_PKCS12)) {
 
         const char* CertFileName = NULL;
         const char* KeyFileName = NULL;
+        const char* CaFileName = NULL;
         char* CertFilePath = NULL;
         char* KeyFilePath = NULL;
-        BOOLEAN IsClient = Type == CXPLAT_TEST_CERT_SELF_SIGNED_CLIENT;
+        char* CaFilePath = NULL;
+        BOOLEAN IsClient = (Type == CXPLAT_TEST_CERT_SELF_SIGNED_CLIENT ||
+                            Type == CXPLAT_TEST_CERT_CA_CLIENT);
+        BOOLEAN IsCa = (Type == CXPLAT_TEST_CERT_CA_CLIENT ||
+                        Type == CXPLAT_TEST_CERT_CA_SERVER);
+
+
+        // Optionally generate self-signed CA certificate to use when
+        // generate test certificate
+        if (IsCa) {
+            if (Type == CXPLAT_TEST_CERT_CA_CLIENT) {
+                CaFileName = QuicTestClientCaCertFilename;
+            } else if (Type == CXPLAT_TEST_CERT_CA_SERVER) {
+                CaFileName = QuicTestServerCaCertFilename;
+            }
+            CaFilePath = malloc(MAX_PATH);
+            if (CaFilePath == NULL) {
+                return FALSE;
+            }
+        }
 
         if (CredType == QUIC_CREDENTIAL_TYPE_CERTIFICATE_FILE) {
-            if (IsClient) {
-                CertFileName = QuicTestClientCertFilename;
-                KeyFileName = QuicTestClientPrivateKeyFilename;
+            // Generate plaintext certificate files
+            if (IsCa) {
+                if (IsClient) {
+                    CertFileName = QuicTestClientCertFilename;
+                    KeyFileName = QuicTestClientPrivateKeyFilename;
+                } else {
+                    CertFileName = QuicTestServerCertFilename;
+                    KeyFileName = QuicTestServerPrivateKeyFilename;
+                }
             } else {
-                CertFileName = QuicTestServerCertFilename;
-                KeyFileName = QuicTestServerPrivateKeyFilename;
+                if (IsClient) {
+                    CertFileName = QuicTestClientCertFilenameSS;
+                    KeyFileName = QuicTestClientPrivateKeyFilenameSS;
+                } else {
+                    CertFileName = QuicTestServerCertFilenameSS;
+                    KeyFileName = QuicTestServerPrivateKeyFilenameSS;
+                }
             }
 
             CertFilePath = malloc(MAX_PATH * 2);
             if (CertFilePath == NULL) {
+                if (CaFilePath != NULL) {
+                    free(CaFilePath);
+                    CaFilePath = NULL;
+                }
                 return FALSE;
             }
             KeyFilePath = CertFilePath + MAX_PATH;
@@ -716,17 +1174,33 @@ CxPlatGetTestCertificate(
             CertFile->CertificateFile = CertFilePath;
             CertFile->PrivateKeyFile = KeyFilePath;
         } else if (CredType == QUIC_CREDENTIAL_TYPE_CERTIFICATE_FILE_PROTECTED) {
-            if (IsClient) {
-                CertFileName = QuicTestClientCertFilename;
-                KeyFileName = QuicTestClientPrivateKeyProtectedFilename;
+            // Generate password protected certificate files
+            if (IsCa) {
+                if (IsClient) {
+                    CertFileName = QuicTestClientCertFilename;
+                    KeyFileName = QuicTestClientPrivateKeyProtectedFilename;
+                } else {
+                    CertFileName = QuicTestServerCertFilename;
+                    KeyFileName = QuicTestServerPrivateKeyProtectedFilename;
+                }
             } else {
-                CertFileName = QuicTestServerCertFilename;
-                KeyFileName = QuicTestServerPrivateKeyProtectedFilename;
+                if (IsClient) {
+                    CertFileName = QuicTestClientCertFilenameSS;
+                    KeyFileName = QuicTestClientPrivateKeyProtectedFilenameSS;
+                } else {
+                    CertFileName = QuicTestServerCertFilenameSS;
+                    KeyFileName = QuicTestServerPrivateKeyProtectedFilenameSS;
+                }
             }
+
 
             CertFilePath =
                 malloc((MAX_PATH * 2) + sizeof(TEST_PASS));
             if (CertFilePath == NULL) {
+                if (CaFilePath != NULL) {
+                    free(CaFilePath);
+                    CaFilePath = NULL;
+                }
                 return FALSE;
             }
             KeyFilePath = CertFilePath + MAX_PATH;
@@ -744,22 +1218,35 @@ CxPlatGetTestCertificate(
             }
             CertFilePath = malloc(MAX_PATH);
             if (CertFilePath == NULL) {
+                if (CaFilePath != NULL) {
+                    free(CaFilePath);
+                    CaFilePath = NULL;
+                }
                 return FALSE;
             }
         }
 
-        if (!FindOrCreateTempFiles(CertFileName, KeyFileName, CertFilePath, KeyFilePath)) {
+        // Ensure files can be created and find temporary directory for them
+        if (!FindOrCreateTempFiles(CertFileName, KeyFileName, CaFileName, CertFilePath, KeyFilePath, CaFilePath)) {
             goto Error;
         }
 
+        // Generate certificate, optionally provide CA to generate from
         if (QUIC_FAILED(
                 CxPlatTlsGenerateSelfSignedCert(
                     CertFilePath,
                     KeyFilePath,
+                    CaFilePath,
                     Type == CXPLAT_TEST_CERT_SELF_SIGNED_SERVER ? "localhost" : "MsQuicClient",
                     CredType == QUIC_CREDENTIAL_TYPE_CERTIFICATE_FILE ? NULL : TEST_PASS,
                     CredType == QUIC_CREDENTIAL_TYPE_CERTIFICATE_PKCS12))) {
             goto Error;
+        }
+
+        if (IsCa) {
+            // Save location of CA in parameter
+            Params->CaCertificateFile = CaFilePath;
+            CaFilePath = NULL;
         }
 
         if (CredType == QUIC_CREDENTIAL_TYPE_CERTIFICATE_FILE) {
@@ -787,6 +1274,9 @@ CxPlatGetTestCertificate(
 Error:
         if (CertFilePath != NULL) {
             free(CertFilePath);
+        }
+        if (CaFilePath != NULL) {
+            free(CaFilePath);
         }
     }
     return Result;
@@ -823,4 +1313,17 @@ CxPlatFreeSelfSignedCert(
 #endif
 
     free(Params);
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+CxPlatFreeSelfSignedCertCaFile(
+    _In_z_ const char* CaFile
+    )
+{
+#ifdef TARGET_OS_IOS
+    UNREFERENCED_PARAMETER(CaFile);
+#endif
+
+    free((char*) CaFile);
 }

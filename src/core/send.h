@@ -195,13 +195,14 @@ QuicPacketTypeToEncryptLevelV2(
 // stream. The order reflects the order the data is framed into a packet.
 //
 
-#define QUIC_STREAM_SEND_FLAG_DATA_BLOCKED  0x0001U
-#define QUIC_STREAM_SEND_FLAG_MAX_DATA      0x0002U
-#define QUIC_STREAM_SEND_FLAG_SEND_ABORT    0x0004U
-#define QUIC_STREAM_SEND_FLAG_RECV_ABORT    0x0008U
-#define QUIC_STREAM_SEND_FLAG_DATA          0x0010U
-#define QUIC_STREAM_SEND_FLAG_OPEN          0x0020U
-#define QUIC_STREAM_SEND_FLAG_FIN           0x0040U
+#define QUIC_STREAM_SEND_FLAG_DATA_BLOCKED   0x0001U
+#define QUIC_STREAM_SEND_FLAG_MAX_DATA       0x0002U
+#define QUIC_STREAM_SEND_FLAG_SEND_ABORT     0x0004U
+#define QUIC_STREAM_SEND_FLAG_RECV_ABORT     0x0008U
+#define QUIC_STREAM_SEND_FLAG_DATA           0x0010U
+#define QUIC_STREAM_SEND_FLAG_OPEN           0x0020U
+#define QUIC_STREAM_SEND_FLAG_FIN            0x0040U
+#define QUIC_STREAM_SEND_FLAG_RELIABLE_ABORT 0x0080U
 
 #define QUIC_STREAM_SEND_FLAGS_ALL          0xFFFFU
 
@@ -211,7 +212,8 @@ inline BOOLEAN HasStreamControlFrames(uint32_t Flags)
         (QUIC_STREAM_SEND_FLAG_DATA_BLOCKED |
          QUIC_STREAM_SEND_FLAG_MAX_DATA |
          QUIC_STREAM_SEND_FLAG_SEND_ABORT |
-         QUIC_STREAM_SEND_FLAG_RECV_ABORT);
+         QUIC_STREAM_SEND_FLAG_RECV_ABORT |
+         QUIC_STREAM_SEND_FLAG_RELIABLE_ABORT);
 }
 
 inline BOOLEAN HasStreamDataFrames(uint32_t Flags)
@@ -244,6 +246,11 @@ typedef struct QUIC_SEND {
     // Indicates at least one tail loss probe packet must be sent.
     //
     BOOLEAN TailLossProbeNeeded : 1;
+
+    //
+    // Indicates the connection is cleaning up.
+    //
+    BOOLEAN Uninitialized : 1;
 
     //
     // The next packet number to use.

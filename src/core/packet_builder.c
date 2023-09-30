@@ -218,8 +218,8 @@ QuicPacketBuilderPrepare(
     // the current one doesn't match, finalize it and then start a new one.
     //
 
-    uint32_t Proc = CxPlatProcCurrentNumber();
-    uint64_t ProcShifted = ((uint64_t)Proc + 1) << 40;
+    const uint16_t Partition = Connection->Worker->PartitionIndex;
+    const uint64_t PartitionShifted = ((uint64_t)Partition + 1) << 40;
 
     BOOLEAN NewQuicPacket = FALSE;
     if (Builder->PacketType != NewPacketType || IsPathMtuDiscovery ||
@@ -254,17 +254,20 @@ QuicPacketBuilderPrepare(
         BOOLEAN SendDataAllocated = FALSE;
         if (Builder->SendData == NULL) {
             Builder->BatchId =
-                ProcShifted | InterlockedIncrement64((int64_t*)&MsQuicLib.PerProc[Proc].SendBatchId);
+                PartitionShifted | InterlockedIncrement64((int64_t*)&QuicLibraryGetPerProc()->SendBatchId);
+            CXPLAT_SEND_CONFIG SendConfig = {
+                &Builder->Path->Route,
+                IsPathMtuDiscovery ?
+                    0 :
+                    MaxUdpPayloadSizeForFamily(
+                        QuicAddrGetFamily(&Builder->Path->Route.RemoteAddress),
+                        DatagramSize),
+                Builder->EcnEctSet ? CXPLAT_ECN_ECT_0 : CXPLAT_ECN_NON_ECT,
+                Builder->Connection->Registration->ExecProfile == QUIC_EXECUTION_PROFILE_TYPE_MAX_THROUGHPUT ?
+                    CXPLAT_SEND_FLAGS_MAX_THROUGHPUT : CXPLAT_SEND_FLAGS_NONE
+            };
             Builder->SendData =
-                CxPlatSendDataAlloc(
-                    Builder->Path->Binding->Socket,
-                    Builder->EcnEctSet ? CXPLAT_ECN_ECT_0 : CXPLAT_ECN_NON_ECT,
-                    IsPathMtuDiscovery ?
-                        0 :
-                        MaxUdpPayloadSizeForFamily(
-                            QuicAddrGetFamily(&Builder->Path->Route.RemoteAddress),
-                            DatagramSize),
-                    &Builder->Path->Route);
+                CxPlatSendDataAlloc(Builder->Path->Binding->Socket, &SendConfig);
             if (Builder->SendData == NULL) {
                 QuicTraceEvent(
                     AllocFailure,
@@ -367,7 +370,7 @@ QuicPacketBuilderPrepare(
         }
 
         Builder->Metadata->PacketId =
-            ProcShifted | InterlockedIncrement64((int64_t*)&MsQuicLib.PerProc[Proc].SendPacketId);
+            PartitionShifted | InterlockedIncrement64((int64_t*)&QuicLibraryGetPerProc()->SendPacketId);
         QuicTraceEvent(
             PacketCreated,
             "[pack][%llu] Created in batch %llu",
@@ -717,7 +720,7 @@ QuicPacketBuilderFinalize(
 
         FinalQuicPacket = TRUE;
 
-        if (!FlushBatchedDatagrams && CxPlatDataPathIsPaddingPreferred(MsQuicLib.Datapath)) {
+        if (!FlushBatchedDatagrams && CxPlatDataPathIsPaddingPreferred(MsQuicLib.Datapath, Builder->SendData)) {
             //
             // When buffering multiple datagrams in a single contiguous buffer
             // (at the datapath layer), all but the last datagram needs to be
@@ -786,7 +789,8 @@ QuicPacketBuilderFinalize(
             Builder->HeaderLength);
     }
 
-    if (Builder->EncryptionOverhead != 0) {
+    if (Builder->EncryptionOverhead != 0 &&
+        !(Builder->Key->Type == QUIC_PACKET_KEY_1_RTT && Connection->Paths[0].EncryptionOffloading)) {
 
         //
         // Encrypt the data.
@@ -924,7 +928,7 @@ QuicPacketBuilderFinalize(
     //
     CXPLAT_DBG_ASSERT(Builder->Metadata->FrameCount != 0);
 
-    Builder->Metadata->SentTime = CxPlatTimeUs32();
+    Builder->Metadata->SentTime = CxPlatTimeUs64();
     Builder->Metadata->PacketLength =
         Builder->HeaderLength + PayloadLength;
     Builder->Metadata->Flags.EcnEctSet = Builder->EcnEctSet;
@@ -1032,8 +1036,7 @@ QuicPacketBuilderSendBatch(
         &Builder->Path->Route,
         Builder->SendData,
         Builder->TotalDatagramsLength,
-        Builder->TotalCountDatagrams,
-        Builder->Connection->Worker->IdealProcessor);
+        Builder->TotalCountDatagrams);
 
     Builder->PacketBatchSent = TRUE;
     Builder->SendData = NULL;

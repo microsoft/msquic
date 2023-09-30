@@ -16,17 +16,17 @@ param (
     [string]$Config = "Release",
 
     [Parameter(Mandatory = $false)]
-    [ValidateSet("schannel", "openssl")]
+    [ValidateSet("schannel", "openssl", "openssl3")]
     [string]$Tls = "openssl",
 
     [Parameter(Mandatory = $false)]
     [switch]$UWP = $false,
 
     [Parameter(Mandatory = $false)]
-    [switch]$XDP = $false,
+    [switch]$ReleaseBuild = $false,
 
     [Parameter(Mandatory = $false)]
-    [switch]$ReleaseBuild = $false
+    [switch]$GHA = $false
 )
 
 Set-StrictMode -Version 'Latest'
@@ -84,9 +84,9 @@ if ((Test-Path $PackagingDir)) {
 # Arm is ignored, as there are no shipping arm devices
 $Architectures = "x64","x86","arm64"
 
-if ($XDP) {
-    # XDP only supports x64
-    $Architectures = "x64"
+if ($Tls -ne "schannel") {
+    # OpenSSL doesn't support arm64 currently
+    $Architectures = "x64","x86"
 }
 
 # Copy artifacts to correct folders
@@ -94,9 +94,6 @@ $NativeDir = Join-Path $PackagingDir "build/native"
 
 foreach ($Arch in $Architectures) {
     $BuildPath = Join-Path $PlatformDir "$($Arch)_$($Config)_$($Tls)"
-    if ($XDP) {
-        $BuildPath += "_xdp"
-    }
     $LibPath = Join-Path $NativeDir "lib/$Arch"
     $BinPath = Join-Path $NativeDir "bin/$Arch"
 
@@ -138,10 +135,8 @@ $NugetSourceFolder = Join-Path $RootDir "src/distribution"
 
 if ($UWP) {
     $PackageName = "Microsoft.Native.Quic.MsQuic.UWP.$Tls"
-} elseif ($XDP) {
-    Copy-Item -Path (Join-Path $PSScriptRoot xdp-devkit.json) -Destination (Join-Path $PackagingDir xdp-devkit-temp.json)
-    $PackageName = "Microsoft.Native.Quic.MsQuic.XDP.$Tls"
 } else {
+    Copy-Item -Path (Join-Path $PSScriptRoot xdp.json) -Destination $PackagingDir
     $PackageName = "Microsoft.Native.Quic.MsQuic.$Tls"
 }
 
@@ -149,13 +144,14 @@ Copy-Item (Join-Path $NugetSourceFolder "$PackageName.nuspec") $PackagingDir
 Copy-Item (Join-Path $NugetSourceFolder "$PackageName.targets") $NativeDir
 
 Copy-Item (Join-Path $NugetSourceFolder "pkgicon.png") $PackagingDir
+Copy-Item (Join-Path $RootDir "README.md") $PackagingDir
 
 $DistDir = Join-Path $BaseArtifactsDir "dist"
 
 $CurrentCommitHash = Get-GitHash -RepoDir $RootDir
 $RepoRemote = Get-GitRemote -RepoDir $RootDir
 
-$Version = "2.2.0"
+$Version = "2.3.0"
 
 $BuildId = $env:BUILD_BUILDID
 if ($null -ne $BuildId) {

@@ -21,24 +21,29 @@ typedef struct QUIC_ACK_EVENT {
     //
     uint64_t NumTotalAckedRetransmittableBytes;
 
-    QUIC_SENT_PACKET_METADATA* AckedPackets;
-
     uint32_t NumRetransmittableBytes;
+
+    QUIC_SENT_PACKET_METADATA* AckedPackets;
 
     //
     // Connection's current SmoothedRtt.
     //
-    uint32_t SmoothedRtt;
+    uint64_t SmoothedRtt;
 
     //
     // The smallest calculated RTT of the packets that were just ACKed.
     //
-    uint32_t MinRtt;
+    uint64_t MinRtt;
+
+    //
+    // The smoothed one-way delay of the send path.
+    //
+    uint64_t OneWayDelay;
 
     //
     // Acked time minus ack delay.
     //
-    uint32_t AdjustedAckTime;
+    uint64_t AdjustedAckTime;
 
     BOOLEAN IsImplicit : 1;
 
@@ -61,6 +66,14 @@ typedef struct QUIC_LOSS_EVENT {
     BOOLEAN PersistentCongestion : 1;
 
 } QUIC_LOSS_EVENT;
+
+typedef struct QUIC_ECN_EVENT {
+
+    uint64_t LargestPacketNumberAcked;
+
+    uint64_t LargestSentPacketNumber;
+
+} QUIC_ECN_EVENT;
 
 typedef struct QUIC_CONGESTION_CONTROL {
 
@@ -107,6 +120,11 @@ typedef struct QUIC_CONGESTION_CONTROL {
     void (*QuicCongestionControlOnDataLost)(
         _In_ struct QUIC_CONGESTION_CONTROL* Cc,
         _In_ const QUIC_LOSS_EVENT* LossEvent
+        );
+
+    void (*QuicCongestionControlOnEcn)(
+        _In_ struct QUIC_CONGESTION_CONTROL* Cc,
+        _In_ const QUIC_ECN_EVENT* LossEvent
         );
 
     BOOLEAN (*QuicCongestionControlOnSpuriousCongestionEvent)(
@@ -262,6 +280,22 @@ QuicCongestionControlOnDataLost(
     )
 {
     Cc->QuicCongestionControlOnDataLost(Cc, LossEvent);
+}
+
+//
+// Called when congestion is signaled by ECN.
+//
+_IRQL_requires_max_(DISPATCH_LEVEL)
+inline
+void
+QuicCongestionControlOnEcn(
+    _In_ QUIC_CONGESTION_CONTROL* Cc,
+    _In_ const QUIC_ECN_EVENT* EcnEvent
+    )
+{
+    if (Cc->QuicCongestionControlOnEcn) {
+        Cc->QuicCongestionControlOnEcn(Cc, EcnEvent);
+    }
 }
 
 //

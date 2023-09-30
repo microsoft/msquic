@@ -143,6 +143,23 @@ pub type LoadBalancingMode = u32;
 pub const LOAD_BALANCING_DISABLED: LoadBalancingMode = 0;
 pub const LOAD_BALANCING_SERVER_ID_IP: LoadBalancingMode = 1;
 
+/// Represents different TLS alert codes.
+pub type TlsAlertCode = u32;
+pub const TLS_ALERT_CODE_SUCCESS: TlsAlertCode = 0xffff;
+pub const TLS_ALERT_CODE_UNEXPECTED_MESSAGE: TlsAlertCode = 10;
+pub const TLS_ALERT_CODE_BAD_CERTIFICATE: TlsAlertCode = 42;
+pub const TLS_ALERT_CODE_UNSUPPORTED_CERTIFICATE: TlsAlertCode = 43;
+pub const TLS_ALERT_CODE_CERTIFICATE_REVOKED: TlsAlertCode = 44;
+pub const TLS_ALERT_CODE_CERTIFICATE_EXPIRED: TlsAlertCode = 45;
+pub const TLS_ALERT_CODE_CERTIFICATE_UNKNOWN: TlsAlertCode = 46;
+pub const TLS_ALERT_CODE_ILLEGAL_PARAMETER: TlsAlertCode = 47;
+pub const TLS_ALERT_CODE_UNKNOWN_CA: TlsAlertCode = 48;
+pub const TLS_ALERT_CODE_ACCESS_DENIED: TlsAlertCode = 49;
+pub const TLS_ALERT_CODE_INSUFFICIENT_SECURITY: TlsAlertCode = 71;
+pub const TLS_ALERT_CODE_INTERNAL_ERROR: TlsAlertCode = 80;
+pub const TLS_ALERT_CODE_USER_CANCELED: TlsAlertCode = 90;
+pub const TLS_ALERT_CODE_CERTIFICATE_REQUIRED: TlsAlertCode = 116;
+
 /// Type of credentials used for a connection.
 pub type CredentialType = u32;
 pub const CREDENTIAL_TYPE_NONE: CredentialType = 0;
@@ -1078,6 +1095,15 @@ struct ApiTable {
         flags: SendFlags,
         client_send_context: *const c_void,
     ) -> u32,
+    resumption_ticket_validation_complete: extern "C" fn(
+        connection: Handle,
+        result: BOOLEAN,
+    ) -> u32,
+    certificate_validation_complete: extern "C" fn(
+        connection: Handle,
+        result: BOOLEAN,
+        tls_alert: TlsAlertCode
+    ) -> u32,
 }
 
 #[link(name = "msquic")]
@@ -1517,6 +1543,38 @@ impl Connection {
         };
         if Status::failed(status) {
             panic!("DatagramSend failure 0x{:x}", status);
+        }
+    }
+
+    pub fn resumption_ticket_validation_complete(
+        &self,
+        result: BOOLEAN,
+    ) {
+        let status = unsafe {
+            ((*self.table).resumption_ticket_validation_complete)(
+                self.handle,
+                result,
+            )
+        };
+        if Status::failed(status) {
+            panic!("ticket validation completion failure 0x{:x}", status);
+        }
+    }
+
+    pub fn certificate_validation_complete(
+        &self,
+        result: BOOLEAN,
+        tls_alert: TlsAlertCode,
+    ) {
+        let status = unsafe {
+            ((*self.table).certificate_validation_complete)(
+                self.handle,
+                result,
+                tls_alert,
+            )
+        };
+        if Status::failed(status) {
+            panic!("ticket validation completion failure 0x{:x}", status);
         }
     }
 }

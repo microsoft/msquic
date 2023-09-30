@@ -32,6 +32,12 @@ Environment:
 #include "platform_posix.c.clog.h"
 #endif
 
+#ifdef CXPLAT_NUMA_AWARE
+#include <numa.h>               // If missing: `apt-get install -y libnuma-dev`
+uint32_t CxPlatNumaNodeCount;
+cpu_set_t* CxPlatNumaNodeMasks;
+#endif // CXPLAT_NUMA_AWARE
+
 #define CXPLAT_MAX_LOG_MSG_LEN        1024 // Bytes
 
 CX_PLATFORM CxPlatform = { NULL };
@@ -101,6 +107,21 @@ CxPlatSystemLoad(
 #else
     CxPlatProcessorCount = (uint32_t)sysconf(_SC_NPROCESSORS_ONLN);
 #endif
+
+#ifdef CXPLAT_NUMA_AWARE
+    if (numa_available() >= 0) {
+        CxPlatNumaNodeCount = (uint32_t)numa_num_configured_nodes();
+        CxPlatNumaNodeMasks =
+            CXPLAT_ALLOC_NONPAGED(sizeof(cpu_set_t) * CxPlatNumaNodeCount, QUIC_POOL_PLATFORM_PROC);
+        CXPLAT_FRE_ASSERT(CxPlatNumaNodeMasks);
+        for (uint32_t n = 0; n < CxPlatNumaNodeCount; ++n) {
+            CPU_ZERO(&CxPlatNumaNodeMasks[n]);
+            CXPLAT_FRE_ASSERT(numa_node_to_cpus_compat((int)n, CxPlatNumaNodeMasks[n].__bits, sizeof(cpu_set_t)) >= 0);
+        }
+    } else {
+        CxPlatNumaNodeCount = 0;
+    }
+#endif // CXPLAT_NUMA_AWARE
 
 #ifdef DEBUG
     CxPlatform.AllocFailDenominator = 0;
@@ -189,6 +210,9 @@ CxPlatSystemUnload(
     void
     )
 {
+#ifdef CXPLAT_NUMA_AWARE
+    CXPLAT_FREE(CxPlatNumaNodeMasks, QUIC_POOL_PLATFORM_PROC);
+#endif
     QuicTraceLogInfo(
         PosixUnloaded,
         "[ dso] Unloaded");
@@ -254,6 +278,7 @@ CxPlatAlloc(
 {
     UNREFERENCED_PARAMETER(Tag);
 #ifdef DEBUG
+    CXPLAT_DBG_ASSERT(ByteCount != 0);
     uint32_t Rand;
     if ((CxPlatform.AllocFailDenominator > 0 && (CxPlatRandom(sizeof(Rand), &Rand), Rand % CxPlatform.AllocFailDenominator) == 1) ||
         (CxPlatform.AllocFailDenominator < 0 && InterlockedIncrement(&CxPlatform.AllocCounter) % CxPlatform.AllocFailDenominator == 0)) {
@@ -679,7 +704,7 @@ CxPlatThreadCreate(
 
 #endif // !CXPLAT_USE_CUSTOM_THREAD_CONTEXT
 
-#if !defined(__GLIBC__) && !defined(__ANDROID__)
+#if !defined(__ANDROID__)
     if (Status == QUIC_STATUS_SUCCESS) {
         if (Config->Flags & CXPLAT_THREAD_FLAG_SET_AFFINITIZE) {
             cpu_set_t CpuSet;
@@ -691,8 +716,16 @@ CxPlatThreadCreate(
                     "[ lib] ERROR, %s.",
                     "pthread_setaffinity_np failed");
             }
-        } else {
-            // TODO - Set Linux equivalent of NUMA affinity.
+#ifdef CXPLAT_NUMA_AWARE
+        } else if (CxPlatNumaNodeCount != 0) {
+            int IdealNumaNode = numa_node_of_cpu((int)Config->IdealProcessor);
+            if (pthread_setaffinity_np(*Thread, sizeof(cpu_set_t), &CxPlatNumaNodeMasks[IdealNumaNode])) {
+                QuicTraceEvent(
+                    LibraryError,
+                    "[ lib] ERROR, %s.",
+                    "pthread_setaffinity_np failed");
+            }
+#endif
         }
     }
 #endif

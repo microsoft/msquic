@@ -105,6 +105,46 @@ tracepoint(CLOG_PATH_C, PathActive , arg1, arg3, arg4);\
 
 
 
+/*----------------------------------------------------------
+// Decoder Ring for PathQeoEnabled
+// [conn][%p] Path[%hhu] QEO enabled
+// QuicTraceLogConnInfo(
+                PathQeoEnabled,
+                Connection,
+                "Path[%hhu] QEO enabled",
+                Path->ID);
+// arg1 = arg1 = Connection = arg1
+// arg3 = arg3 = Path->ID = arg3
+----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_PathQeoEnabled
+#define _clog_4_ARGS_TRACE_PathQeoEnabled(uniqueId, arg1, encoded_arg_string, arg3)\
+tracepoint(CLOG_PATH_C, PathQeoEnabled , arg1, arg3);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for PathQeoDisabled
+// [conn][%p] Path[%hhu] QEO disabled
+// QuicTraceLogConnInfo(
+            PathQeoDisabled,
+            Connection,
+            "Path[%hhu] QEO disabled",
+            Path->ID);
+// arg1 = arg1 = Connection = arg1
+// arg3 = arg3 = Path->ID = arg3
+----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_PathQeoDisabled
+#define _clog_4_ARGS_TRACE_PathQeoDisabled(uniqueId, arg1, encoded_arg_string, arg3)\
+tracepoint(CLOG_PATH_C, PathQeoDisabled , arg1, arg3);\
+
+#endif
+
+
+
+
 #ifdef __cplusplus
 }
 #endif

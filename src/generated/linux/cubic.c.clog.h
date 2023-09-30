@@ -48,17 +48,43 @@ tracepoint(CLOG_CUBIC_C, ConnCubic , arg2, arg3, arg4, arg5, arg6);\
 
 
 /*----------------------------------------------------------
-// Decoder Ring for ConnCongestion
-// [conn][%p] Congestion event
+// Decoder Ring for ConnHyStartStateChange
+// [conn][%p] HyStart: State=%u CongestionWindow=%u SlowStartThreshold=%u
 // QuicTraceEvent(
-        ConnCongestion,
-        "[conn][%p] Congestion event",
-        Connection);
+            ConnHyStartStateChange,
+            "[conn][%p] HyStart: State=%u CongestionWindow=%u SlowStartThreshold=%u",
+            Connection,
+            NewHyStartState,
+            Cubic->CongestionWindow,
+            Cubic->SlowStartThreshold);
 // arg2 = arg2 = Connection = arg2
+// arg3 = arg3 = NewHyStartState = arg3
+// arg4 = arg4 = Cubic->CongestionWindow = arg4
+// arg5 = arg5 = Cubic->SlowStartThreshold = arg5
 ----------------------------------------------------------*/
-#ifndef _clog_3_ARGS_TRACE_ConnCongestion
-#define _clog_3_ARGS_TRACE_ConnCongestion(uniqueId, encoded_arg_string, arg2)\
-tracepoint(CLOG_CUBIC_C, ConnCongestion , arg2);\
+#ifndef _clog_6_ARGS_TRACE_ConnHyStartStateChange
+#define _clog_6_ARGS_TRACE_ConnHyStartStateChange(uniqueId, encoded_arg_string, arg2, arg3, arg4, arg5)\
+tracepoint(CLOG_CUBIC_C, ConnHyStartStateChange , arg2, arg3, arg4, arg5);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for ConnCongestionV2
+// [conn][%p] Congestion event: IsEcn=%hu
+// QuicTraceEvent(
+        ConnCongestionV2,
+        "[conn][%p] Congestion event: IsEcn=%hu",
+        Connection,
+        Ecn);
+// arg2 = arg2 = Connection = arg2
+// arg3 = arg3 = Ecn = arg3
+----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_ConnCongestionV2
+#define _clog_4_ARGS_TRACE_ConnCongestionV2(uniqueId, encoded_arg_string, arg2, arg3)\
+tracepoint(CLOG_CUBIC_C, ConnCongestionV2 , arg2, arg3);\
 
 #endif
 
@@ -120,35 +146,33 @@ tracepoint(CLOG_CUBIC_C, ConnSpuriousCongestion , arg2);\
 
 
 /*----------------------------------------------------------
-// Decoder Ring for ConnOutFlowStats
-// [conn][%p] OUT: BytesSent=%llu InFlight=%u InFlightMax=%u CWnd=%u SSThresh=%u ConnFC=%llu ISB=%llu PostedBytes=%llu SRtt=%u
+// Decoder Ring for ConnOutFlowStatsV2
+// [conn][%p] OUT: BytesSent=%llu InFlight=%u CWnd=%u ConnFC=%llu ISB=%llu PostedBytes=%llu SRtt=%llu 1Way=%llu
 // QuicTraceEvent(
-        ConnOutFlowStats,
-        "[conn][%p] OUT: BytesSent=%llu InFlight=%u InFlightMax=%u CWnd=%u SSThresh=%u ConnFC=%llu ISB=%llu PostedBytes=%llu SRtt=%u",
+        ConnOutFlowStatsV2,
+        "[conn][%p] OUT: BytesSent=%llu InFlight=%u CWnd=%u ConnFC=%llu ISB=%llu PostedBytes=%llu SRtt=%llu 1Way=%llu",
         Connection,
         Connection->Stats.Send.TotalBytes,
         Cubic->BytesInFlight,
-        Cubic->BytesInFlightMax,
         Cubic->CongestionWindow,
-        Cubic->SlowStartThreshold,
         Connection->Send.PeerMaxData - Connection->Send.OrderedStreamBytesSent,
         Connection->SendBuffer.IdealBytes,
         Connection->SendBuffer.PostedBytes,
-        Path->GotFirstRttSample ? Path->SmoothedRtt : 0);
+        Path->GotFirstRttSample ? Path->SmoothedRtt : 0,
+        Path->OneWayDelay);
 // arg2 = arg2 = Connection = arg2
 // arg3 = arg3 = Connection->Stats.Send.TotalBytes = arg3
 // arg4 = arg4 = Cubic->BytesInFlight = arg4
-// arg5 = arg5 = Cubic->BytesInFlightMax = arg5
-// arg6 = arg6 = Cubic->CongestionWindow = arg6
-// arg7 = arg7 = Cubic->SlowStartThreshold = arg7
-// arg8 = arg8 = Connection->Send.PeerMaxData - Connection->Send.OrderedStreamBytesSent = arg8
-// arg9 = arg9 = Connection->SendBuffer.IdealBytes = arg9
-// arg10 = arg10 = Connection->SendBuffer.PostedBytes = arg10
-// arg11 = arg11 = Path->GotFirstRttSample ? Path->SmoothedRtt : 0 = arg11
+// arg5 = arg5 = Cubic->CongestionWindow = arg5
+// arg6 = arg6 = Connection->Send.PeerMaxData - Connection->Send.OrderedStreamBytesSent = arg6
+// arg7 = arg7 = Connection->SendBuffer.IdealBytes = arg7
+// arg8 = arg8 = Connection->SendBuffer.PostedBytes = arg8
+// arg9 = arg9 = Path->GotFirstRttSample ? Path->SmoothedRtt : 0 = arg9
+// arg10 = arg10 = Path->OneWayDelay = arg10
 ----------------------------------------------------------*/
-#ifndef _clog_12_ARGS_TRACE_ConnOutFlowStats
-#define _clog_12_ARGS_TRACE_ConnOutFlowStats(uniqueId, encoded_arg_string, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10, arg11)\
-tracepoint(CLOG_CUBIC_C, ConnOutFlowStats , arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10, arg11);\
+#ifndef _clog_11_ARGS_TRACE_ConnOutFlowStatsV2
+#define _clog_11_ARGS_TRACE_ConnOutFlowStatsV2(uniqueId, encoded_arg_string, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10)\
+tracepoint(CLOG_CUBIC_C, ConnOutFlowStatsV2 , arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10);\
 
 #endif
 

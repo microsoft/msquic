@@ -60,7 +60,7 @@ QuicHandleRpsClient(
     Percentiles PercentileStats;
     GetStatistics(Data, MaxCount, &LatencyStats, &PercentileStats);
     WriteOutput(
-        "Result: %u RPS, Min: %d, Max: %d, 50th: %f, 90th: %f, 99th: %f, 99.9th: %f, 99.99th: %f, 99.999th: %f, 99.9999th: %f, StdErr: %f\n",
+        "Result: %u RPS, Min: %d, Max: %d, 50th: %.0f, 90th: %.0f, 99th: %.0f, 99.9th: %.0f, 99.99th: %.0f, 99.999th: %.0f, 99.9999th: %.0f, StdErr: %f\n",
         RPS,
         LatencyStats.Min,
         LatencyStats.Max,
@@ -431,7 +431,7 @@ main(
             DriverName != nullptr ?
                 CXPLAT_SELF_SIGN_CERT_MACHINE :
                 CXPLAT_SELF_SIGN_CERT_USER,
-            FALSE);
+            FALSE, NULL);
     if (!SelfSignedCredConfig) {
         printf("Creating self signed certificate failed\n");
         RetVal = QUIC_STATUS_INTERNAL_ERROR;

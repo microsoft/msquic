@@ -102,7 +102,7 @@ Note at minimum CMake 3.20 on windows and 3.16 on other platforms is required. I
 ### Additional Requirements on Windows
 
   * [CMake](https://cmake.org/) (The version installed with Visual Studio will likely not be new enough)
-  * [Perl](https://www.perl.org/get.html) optional (required for OpenSSL build)
+  * [Strawberry Perl](https://strawberryperl.com/) optional (required for OpenSSL build)
   * [Visual Studio 2019 or 2022](https://www.visualstudio.com/vs/) (or Build Tools for Visual Studio 2019/2022) with
     - C++ CMake tools for Windows
     - MSVC v142 - VS 2019 (or 2022) C++ (_Arch_) build tools
@@ -161,7 +161,7 @@ Note at minimum CMake 3.16 is required. Instructions for installing a the newest
 The following are generally required. Actual installations may vary.
 
 ```
-sudo apt-add-repository ppa:lttng/stable-2.12
+sudo apt-add-repository ppa:lttng/stable-2.13
 sudo apt-get update
 sudo apt-get install cmake
 sudo apt-get install build-essential

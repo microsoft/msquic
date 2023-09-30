@@ -1,0 +1,9 @@
+{
+    "image":  "ghcr.io/microsoft/msquic/linux-build-xcomp",
+    "hostRequirements": {
+        "cpus": 4,
+        "memory": "2gb"
+    },
+    "onCreateCommand": "pwsh -c './scripts/prepare-machine.ps1 -ForContainerBuild'",
+    "runArgs": ["--privileged"]
+}

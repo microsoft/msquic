@@ -288,7 +288,7 @@ _Function_class_(QUIC_LISTENER_CALLBACK)
 QUIC_STATUS
 QUIC_API
 ListenerEventValidatorCallback(
-    _In_ HQUIC /* Listener */,
+    _In_ MsQuicListener* /* Listener */,
     _In_opt_ void* Context,
     _Inout_ QUIC_LISTENER_EVENT* Event
     )
@@ -336,7 +336,7 @@ ListenerEventResumptionCallback(
 void
 QuicTestValidateConnectionEvents1(
     _In_ MsQuicRegistration& Registration,
-    _In_ HQUIC Listener,
+    _In_ MsQuicListener& Listener,
     _In_ QuicAddr& ServerLocalAddr
     )
 {
@@ -368,7 +368,7 @@ QuicTestValidateConnectionEvents1(
         ServerConfiguration
     );
 
-    MsQuic->SetContext(Listener, &Server);
+    Listener.Context = &Server;
 
     TEST_QUIC_SUCCEEDED(
         MsQuic->ConnectionOpen(
@@ -392,7 +392,7 @@ QuicTestValidateConnectionEvents1(
 void
 QuicTestValidateConnectionEvents2(
     _In_ MsQuicRegistration& Registration,
-    _In_ HQUIC Listener,
+    _In_ MsQuicListener& Listener,
     _In_ QuicAddr& ServerLocalAddr
     )
 {
@@ -425,7 +425,7 @@ QuicTestValidateConnectionEvents2(
         ServerConfiguration
     );
 
-    MsQuic->SetContext(Listener, &Server);
+    Listener.Context = &Server;
 
     TEST_QUIC_SUCCEEDED(
         MsQuic->ConnectionOpen(
@@ -449,7 +449,7 @@ QuicTestValidateConnectionEvents2(
 void
 QuicTestValidateConnectionEvents3(
     _In_ MsQuicRegistration& Registration,
-    _In_ HQUIC Listener,
+    _In_ MsQuicListener& Listener,
     _In_ QuicAddr& ServerLocalAddr
     )
 {
@@ -493,7 +493,7 @@ QuicTestValidateConnectionEvents3(
         ServerConfiguration
     );
 
-    MsQuic->SetContext(Listener, &Server);
+    Listener.Context = &Server;
 
     TEST_QUIC_SUCCEEDED(
         MsQuic->ConnectionOpen(
@@ -527,16 +527,25 @@ void QuicTestValidateConnectionEvents(uint32_t Test)
 
     MsQuicAlpn Alpn("MsQuicTest");
 
+#if defined(QUIC_DISABLE_0RTT_TESTS) // TODO: Fix openssl/XDP bug and enable this back
+    if (Test == 2) {
+        return;
+    }
+#endif
+    if (Test == 2 && QuitTestIsFeatureSupported(CXPLAT_DATAPATH_FEATURE_RAW)) {
+        return;
+    }
+
     { // Listener Scope
 
-    MsQuicListener Listener(Registration, ListenerEventValidatorCallback);
+    MsQuicListener Listener(Registration, CleanUpManual, ListenerEventValidatorCallback);
     TEST_QUIC_SUCCEEDED(Listener.GetInitStatus());
     TEST_QUIC_SUCCEEDED(Listener.Start(Alpn));
 
     QuicAddr ServerLocalAddr;
     TEST_QUIC_SUCCEEDED(Listener.GetLocalAddr(ServerLocalAddr));
 
-    typedef void (*TestFunc)(MsQuicRegistration& Registration, HQUIC Listener, QuicAddr& ServerLocalAddr);
+    typedef void (*TestFunc)(MsQuicRegistration& Registration, MsQuicListener& Listener, QuicAddr& ServerLocalAddr);
     const TestFunc Tests[] = {
         QuicTestValidateConnectionEvents1,
         QuicTestValidateConnectionEvents2,
@@ -551,7 +560,7 @@ void QuicTestValidateConnectionEvents(uint32_t Test)
 void
 QuicTestValidateStreamEvents1(
     _In_ MsQuicRegistration& Registration,
-    _In_ HQUIC Listener,
+    _In_ MsQuicListener& Listener,
     _In_ QuicAddr& ServerLocalAddr
     )
 {
@@ -568,7 +577,7 @@ QuicTestValidateStreamEvents1(
     { // Connections scope
     ConnValidator Client, Server(ServerConfiguration);
 
-    MsQuic->SetContext(Listener, &Server);
+    Listener.Context = &Server;
 
     TEST_QUIC_SUCCEEDED(
         MsQuic->ConnectionOpen(
@@ -653,7 +662,7 @@ QuicTestValidateStreamEvents1(
 void
 QuicTestValidateStreamEvents2(
     _In_ MsQuicRegistration& Registration,
-    _In_ HQUIC Listener,
+    _In_ MsQuicListener& Listener,
     _In_ QuicAddr& ServerLocalAddr
     )
 {
@@ -670,7 +679,7 @@ QuicTestValidateStreamEvents2(
     { // Connections scope
     ConnValidator Client, Server(ServerConfiguration);
 
-    MsQuic->SetContext(Listener, &Server);
+    Listener.Context = &Server;
 
     TEST_QUIC_SUCCEEDED(
         MsQuic->ConnectionOpen(
@@ -740,7 +749,7 @@ QuicTestValidateStreamEvents2(
 void
 QuicTestValidateStreamEvents3(
     _In_ MsQuicRegistration& Registration,
-    _In_ HQUIC Listener,
+    _In_ MsQuicListener& Listener,
     _In_ QuicAddr& ServerLocalAddr
     )
 {
@@ -757,7 +766,7 @@ QuicTestValidateStreamEvents3(
     { // Connections scope
     ConnValidator Client, Server(ServerConfiguration);
 
-    MsQuic->SetContext(Listener, &Server);
+    Listener.Context = &Server;
 
     TEST_QUIC_SUCCEEDED(
         MsQuic->ConnectionOpen(
@@ -864,7 +873,7 @@ QuicTestValidateStreamEvents3(
 void
 QuicTestValidateStreamEvents4(
     _In_ MsQuicRegistration& Registration,
-    _In_ HQUIC Listener,
+    _In_ MsQuicListener& Listener,
     _In_ QuicAddr& ServerLocalAddr
     )
 {
@@ -881,7 +890,7 @@ QuicTestValidateStreamEvents4(
     { // Connections scope
     ConnValidator Client, Server(ServerConfiguration);
 
-    MsQuic->SetContext(Listener, &Server);
+    Listener.Context = &Server;
 
     TEST_QUIC_SUCCEEDED(
         MsQuic->ConnectionOpen(
@@ -987,7 +996,7 @@ QuicTestValidateStreamEvents4(
 void
 QuicTestValidateStreamEvents5(
     _In_ MsQuicRegistration& Registration,
-    _In_ HQUIC Listener,
+    _In_ MsQuicListener& Listener,
     _In_ QuicAddr& ServerLocalAddr
     )
 {
@@ -1004,7 +1013,7 @@ QuicTestValidateStreamEvents5(
     { // Connections scope
     ConnValidator Client, Server(ServerConfiguration);
 
-    MsQuic->SetContext(Listener, &Server);
+    Listener.Context = &Server;
 
     TEST_QUIC_SUCCEEDED(
         MsQuic->ConnectionOpen(
@@ -1090,7 +1099,7 @@ QuicTestValidateStreamEvents5(
 void
 QuicTestValidateStreamEvents6(
     _In_ MsQuicRegistration& Registration,
-    _In_ HQUIC Listener,
+    _In_ MsQuicListener& Listener,
     _In_ QuicAddr& ServerLocalAddr
     )
 {
@@ -1107,7 +1116,7 @@ QuicTestValidateStreamEvents6(
     { // Connections scope
     ConnValidator Client, Server(ServerConfiguration);
 
-    MsQuic->SetContext(Listener, &Server);
+    Listener.Context = &Server;
 
     TEST_QUIC_SUCCEEDED(
         MsQuic->ConnectionOpen(
@@ -1207,7 +1216,7 @@ QuicTestValidateStreamEvents6(
 void
 QuicTestValidateStreamEvents7(
     _In_ MsQuicRegistration& Registration,
-    _In_ HQUIC Listener,
+    _In_ MsQuicListener& Listener,
     _In_ QuicAddr& ServerLocalAddr
     )
 {
@@ -1224,7 +1233,7 @@ QuicTestValidateStreamEvents7(
     { // Connections scope
     ConnValidator Client, Server(ServerConfiguration);
 
-    MsQuic->SetContext(Listener, &Server);
+    Listener.Context = &Server;
 
     TEST_QUIC_SUCCEEDED(
         MsQuic->ConnectionOpen(
@@ -1318,7 +1327,7 @@ QuicTestValidateStreamEvents7(
 void
 QuicTestValidateStreamEvents8(
     _In_ MsQuicRegistration& Registration,
-    _In_ HQUIC Listener,
+    _In_ MsQuicListener& Listener,
     _In_ QuicAddr& ServerLocalAddr
     )
 {
@@ -1335,7 +1344,7 @@ QuicTestValidateStreamEvents8(
     { // Connections scope
     ConnValidator Client, Server(ServerConfiguration);
 
-    MsQuic->SetContext(Listener, &Server);
+    Listener.Context = &Server;
 
     TEST_QUIC_SUCCEEDED(
         MsQuic->ConnectionOpen(
@@ -1439,6 +1448,135 @@ QuicTestValidateStreamEvents8(
     } // Connections scope
 }
 
+void
+QuicTestValidateStreamEvents9(
+    _In_ MsQuicRegistration& Registration,
+    _In_ MsQuicListener& Listener,
+    _In_ QuicAddr& ServerLocalAddr
+    )
+{
+    TestScopeLogger ScopeLogger(__FUNCTION__);
+
+    MsQuicSettings Settings;
+    Settings.SetPeerBidiStreamCount(1).SetMinimumMtu(1280).SetMaximumMtu(1280);
+    Settings.SetReliableResetEnabled(true);
+    MsQuicConfiguration ServerConfiguration(Registration, "MsQuicTest", Settings, ServerSelfSignedCredConfig);
+    TEST_TRUE(ServerConfiguration.IsValid());
+
+    MsQuicConfiguration ClientConfiguration(Registration, "MsQuicTest", Settings, MsQuicCredentialConfig());
+    TEST_TRUE(ClientConfiguration.IsValid());
+
+    { // Connections scope
+    ConnValidator Client, Server(ServerConfiguration);
+
+    Listener.Context = &Server;
+
+    TEST_QUIC_SUCCEEDED(
+        MsQuic->ConnectionOpen(
+            Registration,
+            ConnValidatorCallback,
+            &Client,
+            &Client.Handle));
+
+    { // Stream scope
+
+    StreamValidator ClientStream(
+        new(std::nothrow) StreamEventValidator* [5] {
+            new(std::nothrow) StreamStartCompleteEventValidator(),
+            new(std::nothrow) StreamEventValidator(QUIC_STREAM_EVENT_SEND_COMPLETE, 0, true),
+            new(std::nothrow) StreamEventValidator(QUIC_STREAM_EVENT_SEND_SHUTDOWN_COMPLETE),
+            new(std::nothrow) StreamEventValidator(QUIC_STREAM_EVENT_SHUTDOWN_COMPLETE, QUIC_EVENT_ACTION_SHUTDOWN_CONNECTION),
+            nullptr
+        });
+    StreamValidator ServerStream(
+        new(std::nothrow) StreamEventValidator* [6] {
+            new(std::nothrow) StreamEventValidator(QUIC_STREAM_EVENT_RECEIVE),
+            new(std::nothrow) StreamEventValidator(QUIC_STREAM_EVENT_PEER_SEND_ABORTED),
+            new(std::nothrow) StreamEventValidator(QUIC_STREAM_EVENT_PEER_RECEIVE_ABORTED),
+            new(std::nothrow) StreamEventValidator(QUIC_STREAM_EVENT_SEND_SHUTDOWN_COMPLETE),
+            new(std::nothrow) StreamEventValidator(QUIC_STREAM_EVENT_SHUTDOWN_COMPLETE),
+            nullptr
+        });
+
+    Client.SetExpectedEvents(
+        new(std::nothrow) ConnEventValidator* [8] {
+            new(std::nothrow) ConnEventValidator(QUIC_CONNECTION_EVENT_RELIABLE_RESET_NEGOTIATED),
+            new(std::nothrow) ConnEventValidator(QUIC_CONNECTION_EVENT_STREAMS_AVAILABLE),
+            new(std::nothrow) ConnEventValidator(QUIC_CONNECTION_EVENT_DATAGRAM_STATE_CHANGED),
+            new(std::nothrow) ConnEventValidator(QUIC_CONNECTION_EVENT_CONNECTED),
+            new(std::nothrow) ConnEventValidator(QUIC_CONNECTION_EVENT_STREAMS_AVAILABLE, 0, true),
+            new(std::nothrow) ConnEventValidator(QUIC_CONNECTION_EVENT_RESUMPTION_TICKET_RECEIVED, 0, true), // TODO - Schannel does resumption regardless
+            new(std::nothrow) ConnEventValidator(QUIC_CONNECTION_EVENT_SHUTDOWN_COMPLETE),
+            nullptr
+        });
+    Server.SetExpectedEvents(
+        new(std::nothrow) ConnEventValidator* [6] {
+            new(std::nothrow) ConnEventValidator(QUIC_CONNECTION_EVENT_RELIABLE_RESET_NEGOTIATED),
+            new(std::nothrow) ConnEventValidator(QUIC_CONNECTION_EVENT_CONNECTED),
+            new(std::nothrow) NewStreamEventValidator(&ServerStream),
+            new(std::nothrow) ConnEventValidator(QUIC_CONNECTION_EVENT_SHUTDOWN_INITIATED_BY_PEER),
+            new(std::nothrow) ConnEventValidator(QUIC_CONNECTION_EVENT_SHUTDOWN_COMPLETE),
+            nullptr
+        });
+
+    TEST_QUIC_SUCCEEDED(
+        MsQuic->StreamOpen(
+            Client.Handle,
+            QUIC_STREAM_OPEN_FLAG_NONE,
+            StreamValidatorCallback,
+            &ClientStream,
+            &ClientStream.Handle));
+    TEST_QUIC_SUCCEEDED(
+        MsQuic->StreamStart(
+            ClientStream.Handle,
+            QUIC_STREAM_START_FLAG_NONE));
+
+    TEST_QUIC_SUCCEEDED(
+        MsQuic->ConnectionStart(
+            Client.Handle,
+            ClientConfiguration,
+            QuicAddrGetFamily(&ServerLocalAddr.SockAddr),
+            QUIC_TEST_LOOPBACK_FOR_AF(
+                QuicAddrGetFamily(&ServerLocalAddr.SockAddr)),
+            ServerLocalAddr.GetPort()));
+
+    TEST_TRUE(Client.HandshakeComplete.WaitTimeout(1000));
+    CxPlatSleep(200);
+
+    uint8_t Buffer[1] = {0x1};
+    QUIC_BUFFER SendBuffer = { sizeof(Buffer), (uint8_t*) Buffer };
+    TEST_QUIC_SUCCEEDED(
+    MsQuic->StreamSend(
+        ClientStream.Handle,
+        &SendBuffer,
+        1,
+        QUIC_SEND_FLAG_NONE,
+        nullptr));
+
+    uint64_t ReliableOffset = 1;
+    TEST_QUIC_SUCCEEDED(
+        MsQuic->SetParam(
+            ClientStream.Handle,
+            QUIC_PARAM_STREAM_RELIABLE_OFFSET,
+            sizeof(ReliableOffset),
+            &ReliableOffset
+        )
+    );
+
+    CxPlatSleep(100); // Wait for the sends to be processed
+
+     TEST_QUIC_SUCCEEDED(
+        MsQuic->StreamShutdown(
+            ClientStream.Handle,
+            QUIC_STREAM_SHUTDOWN_FLAG_ABORT,
+            0));
+
+     TEST_TRUE(Client.Complete.WaitTimeout(2000));
+     TEST_TRUE(Server.Complete.WaitTimeout(1000));
+    } // Stream scope
+    } // Connections scope
+}
+
 void QuicTestValidateStreamEvents(uint32_t Test)
 {
     MsQuicRegistration Registration(true);
@@ -1448,14 +1586,14 @@ void QuicTestValidateStreamEvents(uint32_t Test)
 
     { // Listener Scope
 
-    MsQuicListener Listener(Registration, ListenerEventValidatorCallback);
+    MsQuicListener Listener(Registration, CleanUpManual, ListenerEventValidatorCallback);
     TEST_QUIC_SUCCEEDED(Listener.GetInitStatus());
     TEST_QUIC_SUCCEEDED(Listener.Start(Alpn));
 
     QuicAddr ServerLocalAddr;
     TEST_QUIC_SUCCEEDED(Listener.GetLocalAddr(ServerLocalAddr));
 
-    typedef void (*TestFunc)(MsQuicRegistration& Registration, HQUIC Listener, QuicAddr& ServerLocalAddr);
+    typedef void (*TestFunc)(MsQuicRegistration& Registration, MsQuicListener& Listener, QuicAddr& ServerLocalAddr);
     const TestFunc Tests[] = {
         QuicTestValidateStreamEvents1,
         QuicTestValidateStreamEvents2,
@@ -1464,7 +1602,8 @@ void QuicTestValidateStreamEvents(uint32_t Test)
         QuicTestValidateStreamEvents5,
         QuicTestValidateStreamEvents6,
         QuicTestValidateStreamEvents7,
-        QuicTestValidateStreamEvents8
+        QuicTestValidateStreamEvents8,
+        QuicTestValidateStreamEvents9
     };
 
     Tests[Test](Registration, Listener, ServerLocalAddr);

@@ -141,6 +141,18 @@ QuicSettingsSetDefault(
     if (!Settings->IsSet.EcnEnabled) {
         Settings->EcnEnabled = QUIC_DEFAULT_ECN_ENABLED;
     }
+    if (!Settings->IsSet.HyStartEnabled) {
+        Settings->HyStartEnabled = QUIC_DEFAULT_HYSTART_ENABLED;
+    }
+    if (!Settings->IsSet.EncryptionOffloadAllowed) {
+        Settings->EncryptionOffloadAllowed = QUIC_DEFAULT_ENCRYPTION_OFFLOAD_ALLOWED;
+    }
+    if (!Settings->IsSet.ReliableResetEnabled) {
+        Settings->ReliableResetEnabled = QUIC_DEFAULT_RELIABLE_RESET_ENABLED;
+    }
+    if (!Settings->IsSet.OneWayDelayEnabled) {
+        Settings->OneWayDelayEnabled = QUIC_DEFAULT_ONE_WAY_DELAY_ENABLED;
+    }
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -282,6 +294,18 @@ QuicSettingsCopy(
     if (!Destination->IsSet.EcnEnabled) {
         Destination->EcnEnabled = Source->EcnEnabled;
     }
+    if (!Destination->IsSet.HyStartEnabled) {
+        Destination->HyStartEnabled = Source->HyStartEnabled;
+    }
+    if (!Destination->IsSet.EncryptionOffloadAllowed) {
+        Destination->EncryptionOffloadAllowed = Source->EncryptionOffloadAllowed;
+    }
+    if (!Destination->IsSet.ReliableResetEnabled) {
+        Destination->ReliableResetEnabled = Source->ReliableResetEnabled;
+    }
+    if (!Destination->IsSet.OneWayDelayEnabled) {
+        Destination->OneWayDelayEnabled = Source->OneWayDelayEnabled;
+    }
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -412,6 +436,9 @@ QuicSettingApply(
         Destination->IsSet.SendIdleTimeoutMs = TRUE;
     }
     if (Source->IsSet.InitialRttMs && (!Destination->IsSet.InitialRttMs || OverWrite)) {
+        if (Source->InitialRttMs == 0) {
+            return FALSE;
+        }
         Destination->InitialRttMs = Source->InitialRttMs;
         Destination->IsSet.InitialRttMs = TRUE;
     }
@@ -423,7 +450,7 @@ QuicSettingApply(
         Destination->IsSet.MaxAckDelayMs = TRUE;
     }
     if (Source->IsSet.DisconnectTimeoutMs && (!Destination->IsSet.DisconnectTimeoutMs || OverWrite)) {
-        if (Source->DisconnectTimeoutMs > QUIC_MAX_DISCONNECT_TIMEOUT) {
+        if (Source->DisconnectTimeoutMs == 0 || Source->DisconnectTimeoutMs > QUIC_MAX_DISCONNECT_TIMEOUT) {
             return FALSE;
         }
         Destination->DisconnectTimeoutMs = Source->DisconnectTimeoutMs;
@@ -464,6 +491,9 @@ QuicSettingApply(
         Destination->IsSet.TlsClientMaxSendBuffer = TRUE;
     }
     if (Source->IsSet.StreamRecvWindowDefault && (!Destination->IsSet.StreamRecvWindowDefault || OverWrite)) {
+        if (Source->StreamRecvWindowDefault == 0 || (Source->StreamRecvWindowDefault & (Source->StreamRecvWindowDefault - 1)) != 0) {
+            return FALSE; // Must be power of 2
+        }
         Destination->StreamRecvWindowDefault = Source->StreamRecvWindowDefault;
         Destination->IsSet.StreamRecvWindowDefault = TRUE;
     }
@@ -591,6 +621,21 @@ QuicSettingApply(
         }
     } else if (Source->IsSet.EcnEnabled) {
         return FALSE;
+    }
+
+    if (Source->IsSet.EncryptionOffloadAllowed && (!Destination->IsSet.EncryptionOffloadAllowed || OverWrite)) {
+        Destination->EncryptionOffloadAllowed = Source->EncryptionOffloadAllowed;
+        Destination->IsSet.EncryptionOffloadAllowed = TRUE;
+    }
+
+    if (Source->IsSet.ReliableResetEnabled && (!Destination->IsSet.ReliableResetEnabled || OverWrite)) {
+        Destination->ReliableResetEnabled = Source->ReliableResetEnabled;
+        Destination->IsSet.ReliableResetEnabled = TRUE;
+    }
+
+    if (Source->IsSet.OneWayDelayEnabled && (!Destination->IsSet.OneWayDelayEnabled || OverWrite)) {
+        Destination->OneWayDelayEnabled = Source->OneWayDelayEnabled;
+        Destination->IsSet.OneWayDelayEnabled = TRUE;
     }
 
     return TRUE;
@@ -1174,6 +1219,46 @@ VersionSettingsFail:
             &ValueLen);
         Settings->EcnEnabled = !!Value;
     }
+    if (!Settings->IsSet.HyStartEnabled) {
+        Value = QUIC_DEFAULT_HYSTART_ENABLED;
+        ValueLen = sizeof(Value);
+        CxPlatStorageReadValue(
+            Storage,
+            QUIC_SETTING_HYSTART_ENABLED,
+            (uint8_t*)&Value,
+            &ValueLen);
+        Settings->HyStartEnabled = !!Value;
+    }
+    if (!Settings->IsSet.EncryptionOffloadAllowed) {
+        Value = QUIC_DEFAULT_ENCRYPTION_OFFLOAD_ALLOWED;
+        ValueLen = sizeof(Value);
+        CxPlatStorageReadValue(
+            Storage,
+            QUIC_SETTING_ENCRYPTION_OFFLOAD_ALLOWED,
+            (uint8_t*)&Value,
+            &ValueLen);
+        Settings->EncryptionOffloadAllowed = !!Value;
+    }
+    if (!Settings->IsSet.ReliableResetEnabled) {
+        Value = QUIC_DEFAULT_RELIABLE_RESET_ENABLED;
+        ValueLen = sizeof(Value);
+        CxPlatStorageReadValue(
+            Storage,
+            QUIC_SETTING_RELIABLE_RESET_ENABLED,
+            (uint8_t*)&Value,
+            &ValueLen);
+        Settings->ReliableResetEnabled = !!Value;
+    }
+    if (!Settings->IsSet.OneWayDelayEnabled) {
+        Value = QUIC_DEFAULT_ONE_WAY_DELAY_ENABLED;
+        ValueLen = sizeof(Value);
+        CxPlatStorageReadValue(
+            Storage,
+            QUIC_SETTING_ONE_WAY_DELAY_ENABLED,
+            (uint8_t*)&Value,
+            &ValueLen);
+        Settings->OneWayDelayEnabled = !!Value;
+    }
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -1235,6 +1320,10 @@ QuicSettingsDump(
     QuicTraceLogVerbose(SettingDestCidUpdateIdleTimeoutMs,  "[sett] DestCidUpdateIdleTimeoutMs = %u", Settings->DestCidUpdateIdleTimeoutMs);
     QuicTraceLogVerbose(SettingGreaseQuicBitEnabled,        "[sett] GreaseQuicBitEnabled   = %hhu", Settings->GreaseQuicBitEnabled);
     QuicTraceLogVerbose(SettingEcnEnabled,                  "[sett] EcnEnabled             = %hhu", Settings->EcnEnabled);
+    QuicTraceLogVerbose(SettingHyStartEnabled,              "[sett] HyStartEnabled         = %hhu", Settings->HyStartEnabled);
+    QuicTraceLogVerbose(SettingEncryptionOffloadAllowed,    "[sett] EncryptionOffloadAllowed = %hhu", Settings->EncryptionOffloadAllowed);
+    QuicTraceLogVerbose(SettingReliableResetEnabled,        "[sett] ReliableResetEnabled   = %hhu", Settings->ReliableResetEnabled);
+    QuicTraceLogVerbose(SettingOneWayDelayEnabled,          "[sett] OneWayDelayEnabled     = %hhu", Settings->OneWayDelayEnabled);
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -1370,7 +1459,19 @@ QuicSettingsDumpNew(
         QuicTraceLogVerbose(SettingGreaseQuicBitEnabled,            "[sett] GreaseQuicBitEnabled   = %hhu", Settings->GreaseQuicBitEnabled);
     }
     if (Settings->IsSet.EcnEnabled) {
-        QuicTraceLogVerbose(SettingEcnEnabled,                      "[sett] EcnEnabled   = %hhu", Settings->EcnEnabled);
+        QuicTraceLogVerbose(SettingEcnEnabled,                      "[sett] EcnEnabled             = %hhu", Settings->EcnEnabled);
+    }
+    if (Settings->IsSet.HyStartEnabled) {
+        QuicTraceLogVerbose(SettingHyStartEnabled,                  "[sett] HyStartEnabled         = %hhu", Settings->HyStartEnabled);
+    }
+    if (Settings->IsSet.EncryptionOffloadAllowed) {
+        QuicTraceLogVerbose(SettingEncryptionOffloadAllowed,        "[sett] EncryptionOffloadAllowed   = %hhu", Settings->EncryptionOffloadAllowed);
+    }
+    if (Settings->IsSet.ReliableResetEnabled) {
+        QuicTraceLogVerbose(SettingReliableResetEnabled,            "[sett] ReliableResetEnabled       = %hhu", Settings->ReliableResetEnabled);
+    }
+    if (Settings->IsSet.OneWayDelayEnabled) {
+        QuicTraceLogVerbose(SettingOneWayDelayEnabled,              "[sett] OneWayDelayEnabled         = %hhu", Settings->OneWayDelayEnabled);
     }
 }
 
@@ -1388,6 +1489,12 @@ QuicSettingsDumpNew(
     if (SETTING_HAS_FIELD(SettingsType, SettingsSize, Field)) {                                         \
         InternalSettings->IsSet.Field = Settings->IsSet.Field;                                          \
         InternalSettings->Field = Settings->Field;                                                      \
+    }
+
+#define SETTING_COPY_FLAG_TO_INTERNAL_SIZED(FlagField, Flag, SettingsType, Settings, SettingsSize, InternalSettings)    \
+    if (SETTING_HAS_FIELD(SettingsType, SettingsSize, FlagField)) {                                                     \
+        InternalSettings->IsSet.Flag = !!Settings->IsSet.Flag;                                                          \
+        InternalSettings->Flag = !!Settings->Flag;                                                                      \
     }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -1561,6 +1668,38 @@ QuicSettingsSettingsToInternal(
         SettingsSize,
         InternalSettings);
 
+    SETTING_COPY_FLAG_TO_INTERNAL_SIZED(
+        Flags,
+        HyStartEnabled,
+        QUIC_SETTINGS,
+        Settings,
+        SettingsSize,
+        InternalSettings);
+
+    SETTING_COPY_FLAG_TO_INTERNAL_SIZED(
+        Flags,
+        EncryptionOffloadAllowed,
+        QUIC_SETTINGS,
+        Settings,
+        SettingsSize,
+        InternalSettings);
+
+    SETTING_COPY_FLAG_TO_INTERNAL_SIZED(
+        Flags,
+        ReliableResetEnabled,
+        QUIC_SETTINGS,
+        Settings,
+        SettingsSize,
+        InternalSettings);
+
+    SETTING_COPY_FLAG_TO_INTERNAL_SIZED(
+        Flags,
+        OneWayDelayEnabled,
+        QUIC_SETTINGS,
+        Settings,
+        SettingsSize,
+        InternalSettings);
+
     return QUIC_STATUS_SUCCESS;
 }
 
@@ -1572,6 +1711,12 @@ QuicSettingsSettingsToInternal(
     if (SETTING_HAS_FIELD(SettingsType, SettingsSize, Field)) {                                         \
         Settings->IsSet.Field = InternalSettings->IsSet.Field;                                          \
         Settings->Field = InternalSettings->Field;                                                      \
+    }
+
+#define SETTING_COPY_FLAG_FROM_INTERNAL_SIZED(FlagField, Flag, SettingsType, Settings, SettingsSize, InternalSettings)  \
+    if (SETTING_HAS_FIELD(SettingsType, SettingsSize, FlagField)) {                                                     \
+        Settings->IsSet.Flag = InternalSettings->IsSet.Flag;                                                            \
+        Settings->Flag = InternalSettings->Flag;                                                                        \
     }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -1650,6 +1795,38 @@ QuicSettingsGetSettings(
 
     SETTING_COPY_FROM_INTERNAL_SIZED(
         DestCidUpdateIdleTimeoutMs,
+        QUIC_SETTINGS,
+        Settings,
+        *SettingsLength,
+        InternalSettings);
+
+    SETTING_COPY_FLAG_FROM_INTERNAL_SIZED(
+        Flags,
+        HyStartEnabled,
+        QUIC_SETTINGS,
+        Settings,
+        *SettingsLength,
+        InternalSettings);
+
+    SETTING_COPY_FLAG_FROM_INTERNAL_SIZED(
+        Flags,
+        EncryptionOffloadAllowed,
+        QUIC_SETTINGS,
+        Settings,
+        *SettingsLength,
+        InternalSettings);
+
+    SETTING_COPY_FLAG_FROM_INTERNAL_SIZED(
+        Flags,
+        ReliableResetEnabled,
+        QUIC_SETTINGS,
+        Settings,
+        *SettingsLength,
+        InternalSettings);
+
+    SETTING_COPY_FLAG_FROM_INTERNAL_SIZED(
+        Flags,
+        OneWayDelayEnabled,
         QUIC_SETTINGS,
         Settings,
         *SettingsLength,
