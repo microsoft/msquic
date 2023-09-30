@@ -54,7 +54,10 @@ typedef struct QUIC_SETTINGS_INTERNAL {
             uint64_t GreaseQuicBitEnabled                   : 1;
             uint64_t EcnEnabled                             : 1;
             uint64_t HyStartEnabled                         : 1;
-            uint64_t RESERVED                               : 24;
+            uint64_t EncryptionOffloadAllowed               : 1;
+            uint64_t ReliableResetEnabled                   : 1;
+            uint64_t OneWayDelayEnabled                     : 1;
+            uint64_t RESERVED                               : 21;
         } IsSet;
     };
 
@@ -97,6 +100,9 @@ typedef struct QUIC_SETTINGS_INTERNAL {
     uint8_t GreaseQuicBitEnabled            : 1;
     uint8_t EcnEnabled                      : 1;
     uint8_t HyStartEnabled                  : 1;
+    uint8_t EncryptionOffloadAllowed        : 1;
+    uint8_t ReliableResetEnabled            : 1;
+    uint8_t OneWayDelayEnabled              : 1;
     uint8_t MtuDiscoveryMissingProbeCount;
 
 } QUIC_SETTINGS_INTERNAL;

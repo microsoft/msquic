@@ -16,7 +16,9 @@ Abstract:
 
 #pragma warning(disable:6387)  // '_Param_(1)' could be '0':  this does not adhere to the specification for the function
 
-#ifdef QUIC_USE_RAW_DATAPATH
+#if defined(_KERNEL_MODE)
+static bool UseQTIP = false;
+#elif defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
 extern bool UseQTIP;
 #endif
 
@@ -335,23 +337,26 @@ void QuicTestValidateConfiguration()
 #endif // QUIC_DISABLE_TICKET_KEY_TESTS
 }
 
-static
-_Function_class_(QUIC_LISTENER_CALLBACK)
-QUIC_STATUS
-QUIC_API
-DummyListenerCallback(
-    HQUIC,
-    void* Context,
-    QUIC_LISTENER_EVENT* Event
-    )
+namespace
 {
-    CxPlatEvent* StopCompleteEvent = (CxPlatEvent*)Context;
-    if (StopCompleteEvent &&
-        Event->Type == QUIC_LISTENER_EVENT_STOP_COMPLETE) {
-        StopCompleteEvent->Set();
-        return QUIC_STATUS_SUCCESS;
+    _Function_class_(QUIC_LISTENER_CALLBACK)
+    template<typename T>
+    QUIC_STATUS
+    QUIC_API
+    DummyListenerCallback(
+        T,
+        void* Context,
+        QUIC_LISTENER_EVENT* Event
+        )
+    {
+        CxPlatEvent* StopCompleteEvent = (CxPlatEvent*)Context;
+        if (StopCompleteEvent &&
+            Event->Type == QUIC_LISTENER_EVENT_STOP_COMPLETE) {
+            StopCompleteEvent->Set();
+            return QUIC_STATUS_SUCCESS;
+        }
+        return QUIC_STATUS_NOT_SUPPORTED;
     }
-    return QUIC_STATUS_NOT_SUPPORTED;
 }
 
 static
@@ -403,7 +408,7 @@ void QuicTestValidateListener()
         QUIC_STATUS_INVALID_PARAMETER,
         MsQuic->ListenerOpen(
             nullptr,
-            DummyListenerCallback,
+            DummyListenerCallback<HQUIC>,
             nullptr,
             &Listener));
 
@@ -414,7 +419,7 @@ void QuicTestValidateListener()
         QUIC_STATUS_INVALID_PARAMETER,
         MsQuic->ListenerOpen(
             Registration,
-            DummyListenerCallback,
+            DummyListenerCallback<HQUIC>,
             nullptr,
             nullptr));
 
@@ -424,7 +429,7 @@ void QuicTestValidateListener()
     TEST_QUIC_SUCCEEDED(
         MsQuic->ListenerOpen(
             Registration,
-            DummyListenerCallback,
+            DummyListenerCallback<HQUIC>,
             &StopCompleteEvent,
             &Listener));
 
@@ -448,7 +453,7 @@ void QuicTestValidateListener()
     TEST_QUIC_SUCCEEDED(
         MsQuic->ListenerOpen(
             Registration,
-            DummyListenerCallback,
+            DummyListenerCallback<HQUIC>,
             &StopCompleteEvent,
             &Listener));
 
@@ -469,7 +474,7 @@ void QuicTestValidateListener()
     TEST_QUIC_SUCCEEDED(
         MsQuic->ListenerOpen(
             Registration,
-            DummyListenerCallback,
+            DummyListenerCallback<HQUIC>,
             &StopCompleteEvent,
             &Listener));
 
@@ -497,7 +502,7 @@ void QuicTestValidateListener()
     TEST_QUIC_SUCCEEDED(
         MsQuic->ListenerOpen(
             Registration,
-            DummyListenerCallback,
+            DummyListenerCallback<HQUIC>,
             nullptr,
             &Listener));
 
@@ -2129,22 +2134,27 @@ void QuicTestStatefulGlobalSetParam()
                 &Mode));
     }
 
-#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
-    //
-    // Set QUIC_PARAM_GLOBAL_EXECUTION_CONFIG when MsQuicLib.Datapath != NULL
-    //
     {
-        TestScopeLogger LogScope1("Set QUIC_PARAM_GLOBAL_EXECUTION_CONFIG when MsQuicLib.Datapath != NULL");
-        uint16_t Data[QUIC_EXECUTION_CONFIG_MIN_SIZE] = {};
+        TestScopeLogger LogScope1("Get QUIC_PARAM_GLOBAL_DATAPATH_FEATURES after Datapath is made (MsQuicLib.Datapath)");
+        uint32_t Length = 0;
         TEST_QUIC_STATUS(
-            QUIC_STATUS_INVALID_STATE,
-            MsQuic->SetParam(
+            QUIC_STATUS_BUFFER_TOO_SMALL,
+            MsQuic->GetParam(
                 nullptr,
-                QUIC_PARAM_GLOBAL_EXECUTION_CONFIG,
-                sizeof(Data),
-                &Data));
+                QUIC_PARAM_GLOBAL_DATAPATH_FEATURES,
+                &Length,
+                nullptr));
+        TEST_EQUAL(Length, sizeof(uint32_t));
+
+        uint32_t ActualFeatures = 0;
+        TEST_QUIC_SUCCEEDED(
+            MsQuic->GetParam(
+                nullptr,
+                QUIC_PARAM_GLOBAL_DATAPATH_FEATURES,
+                &Length,
+                &ActualFeatures));
+        TEST_NOT_EQUAL(ActualFeatures, 0);
     }
-#endif
 }
 
 void QuicTestGlobalParam()
@@ -2253,8 +2263,18 @@ void QuicTestGlobalParam()
         {
             TestScopeLogger LogScope1("GetParam");
             {
+#if DEBUG
+                //
+                // Only test this in debug mode, because release tests may be run on
+                // the installed binary that is actively being used, and the counters
+                // can be non-zero.
+                //
                 int64_t Buffer[QUIC_PERF_COUNTER_MAX] = {};
-                SimpleGetParamTest(nullptr, QUIC_PARAM_GLOBAL_PERF_COUNTERS, QUIC_PERF_COUNTER_MAX * sizeof(int64_t), &Buffer, true);
+                int64_t* ExpectedData = Buffer;
+#else
+                int64_t* ExpectedData = nullptr;
+#endif
+                SimpleGetParamTest(nullptr, QUIC_PARAM_GLOBAL_PERF_COUNTERS, QUIC_PERF_COUNTER_MAX * sizeof(int64_t), ExpectedData, true);
             }
 
             //
@@ -2263,7 +2283,6 @@ void QuicTestGlobalParam()
             {
                 TestScopeLogger LogScope2("Truncate length case");
                 int64_t ActualBuffer[QUIC_PERF_COUNTER_MAX/2] = {1,2,3}; // 15
-                int64_t ExpectedBuffer[QUIC_PERF_COUNTER_MAX/2] = {}; // 15
                 uint32_t Length = sizeof(int64_t) * (QUIC_PERF_COUNTER_MAX/2) + 4; // truncated 124 -> 120
 
                 TEST_QUIC_SUCCEEDED(
@@ -2273,7 +2292,15 @@ void QuicTestGlobalParam()
                         &Length,
                         ActualBuffer));
                 TEST_EQUAL(Length, sizeof(int64_t) * (QUIC_PERF_COUNTER_MAX / 2));
+#if DEBUG
+                int64_t ExpectedBuffer[QUIC_PERF_COUNTER_MAX/2] = {}; // 15
+                //
+                // Only test this in debug mode, because release tests may be run on
+                // the installed binary that is actively being used, and the counters
+                // can be non-zero.
+                //
                 TEST_EQUAL(memcmp(ActualBuffer, ExpectedBuffer, Length), 0);
+#endif
             }
         }
     }
@@ -2461,6 +2488,52 @@ void QuicTestGlobalParam()
         }
     }
 
+    //
+    // QUIC_PARAM_GLOBAL_DATAPATH_FEATURES
+    //
+    {
+        TestScopeLogger LogScope0("QUIC_PARAM_GLOBAL_DATAPATH_FEATURES");
+        {
+            TestScopeLogger LogScope1("SetParam");
+            //
+            // Invalid features
+            //
+            {
+                TestScopeLogger LogScope2("SetParam is not allowed");
+                TEST_QUIC_STATUS(
+                    QUIC_STATUS_INVALID_PARAMETER,
+                    MsQuic->SetParam(
+                        nullptr,
+                        QUIC_PARAM_GLOBAL_DATAPATH_FEATURES,
+                        0,
+                        nullptr));
+            }
+        }
+
+        {
+            TestScopeLogger LogScope2("GetParam. Failed by missing MsQuicLib.Datapath");
+            uint32_t Length = 0;
+            TEST_QUIC_STATUS(
+                QUIC_STATUS_BUFFER_TOO_SMALL,
+                MsQuic->GetParam(
+                    nullptr,
+                    QUIC_PARAM_GLOBAL_DATAPATH_FEATURES,
+                    &Length,
+                    nullptr));
+            TEST_EQUAL(Length, sizeof(uint32_t));
+
+            uint32_t ActualFeatures = 0;
+            TEST_QUIC_STATUS(QUIC_STATUS_INVALID_STATE,
+                MsQuic->GetParam(
+                    nullptr,
+                    QUIC_PARAM_GLOBAL_DATAPATH_FEATURES,
+                    &Length,
+                    &ActualFeatures));
+        }
+
+    }
+
+#ifndef _KERNEL_MODE
 #ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
     //
     // QUIC_PARAM_GLOBAL_EXECUTION_CONFIG
@@ -2514,10 +2587,12 @@ void QuicTestGlobalParam()
             SimpleGetParamTest(nullptr, QUIC_PARAM_GLOBAL_EXECUTION_CONFIG, DataLength, Data);
         }
 
-#ifdef QUIC_USE_RAW_DATAPATH
-        if (!UseQTIP) {
+#if defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
+        if (!UseQTIP)
+#endif
+        {
             //
-            // Good GetParam with length == 0 when QTIP is not in use.
+            // Good GetParam with length == 0
             //
             uint32_t BufferLength = 0;
             TEST_QUIC_SUCCEEDED(
@@ -2527,20 +2602,9 @@ void QuicTestGlobalParam()
                     &BufferLength,
                     nullptr));
         }
-#else
-        //
-        // Good GetParam with length == 0
-        //
-        uint32_t BufferLength = 0;
-        TEST_QUIC_SUCCEEDED(
-            MsQuic->GetParam(
-                nullptr,
-                QUIC_PARAM_GLOBAL_EXECUTION_CONFIG,
-                &BufferLength,
-                nullptr));
-#endif
     }
-#endif
+#endif // QUIC_API_ENABLE_PREVIEW_FEATURES
+#endif // !_KERNEL_MODE
 
 #if QUIC_TEST_DATAPATH_HOOKS_ENABLED
     //
@@ -2589,6 +2653,39 @@ void QuicTestGlobalParam()
         }
     }
 #endif
+
+    //
+    // QUIC_PARAM_GLOBAL_STATELESS_RESET_KEY
+    //
+    {
+        TestScopeLogger LogScope0("QUIC_PARAM_GLOBAL_STATELESS_RESET_KEY");
+        {
+            TestScopeLogger LogScope1("SetParam");
+            uint8_t StatelessResetkey[QUIC_STATELESS_RESET_KEY_LENGTH - 1];
+            CxPlatRandom(sizeof(StatelessResetkey), StatelessResetkey);
+            {
+                TestScopeLogger LogScope2("StatelessResetkey fail with invalid state");
+                TEST_QUIC_STATUS(
+                    QUIC_STATUS_INVALID_STATE,
+                    MsQuic->SetParam(
+                        nullptr,
+                        QUIC_PARAM_GLOBAL_STATELESS_RESET_KEY,
+                        sizeof(StatelessResetkey),
+                        StatelessResetkey));
+            }
+            {
+                TestScopeLogger LogScope2("StatelessResetkey fail with invalid parameter");
+                MsQuicRegistration Registration;
+                TEST_QUIC_STATUS(
+                    QUIC_STATUS_INVALID_PARAMETER,
+                    MsQuic->SetParam(
+                        nullptr,
+                        QUIC_PARAM_GLOBAL_STATELESS_RESET_KEY,
+                        sizeof(StatelessResetkey),
+                        StatelessResetkey));
+            }
+        }
+    }
 
     //
     // Invalid parameter
@@ -3020,7 +3117,7 @@ void QuicTestListenerParam()
         //
         {
             TestScopeLogger LogScope1("SetParam is not allowed");
-            MsQuicListener Listener(Registration, DummyListenerCallback, nullptr);
+            MsQuicListener Listener(Registration, CleanUpManual, DummyListenerCallback<MsQuicListener*>, nullptr);
             TEST_TRUE(Listener.IsValid());
             QUIC_ADDR Dummy = {0};
             TEST_QUIC_STATUS(
@@ -3036,7 +3133,7 @@ void QuicTestListenerParam()
         //
         {
             TestScopeLogger LogScope1("GetParam");
-            MsQuicListener Listener(Registration, DummyListenerCallback, nullptr);
+            MsQuicListener Listener(Registration, CleanUpManual, DummyListenerCallback<MsQuicListener*>, nullptr);
             TEST_TRUE(Listener.IsValid());
 
             TEST_QUIC_SUCCEEDED(Listener.Start(Alpn, &ExpectedAddress));
@@ -3070,7 +3167,7 @@ void QuicTestListenerParam()
         //
         {
             TestScopeLogger LogScope1("SetParam is not allowed");
-            MsQuicListener Listener(Registration, DummyListenerCallback, nullptr);
+            MsQuicListener Listener(Registration, CleanUpManual, DummyListenerCallback<MsQuicListener*>, nullptr);
             TEST_TRUE(Listener.IsValid());
             QUIC_LISTENER_STATISTICS Dummy = {0};
             TEST_QUIC_STATUS(
@@ -3086,7 +3183,7 @@ void QuicTestListenerParam()
         //
         {
             TestScopeLogger LogScope1("GetParam");
-            MsQuicListener Listener(Registration, DummyListenerCallback, nullptr);
+            MsQuicListener Listener(Registration, CleanUpManual, DummyListenerCallback<MsQuicListener*>, nullptr);
             TEST_TRUE(Listener.IsValid());
 
             uint32_t Length = 0;
@@ -3122,7 +3219,7 @@ void QuicTestListenerParam()
         //
         {
             TestScopeLogger LogScope1("SetParam");
-            MsQuicListener Listener(Registration, DummyListenerCallback, nullptr);
+            MsQuicListener Listener(Registration, CleanUpManual, DummyListenerCallback<MsQuicListener*> , nullptr);
             TEST_TRUE(Listener.IsValid());
             CibirIDTests(Listener.Handle, QUIC_PARAM_LISTENER_CIBIR_ID);
         }
@@ -3132,7 +3229,7 @@ void QuicTestListenerParam()
         //
         {
             TestScopeLogger LogScope1("GetParam");
-            MsQuicListener Listener(Registration, DummyListenerCallback, nullptr);
+            MsQuicListener Listener(Registration, CleanUpManual, DummyListenerCallback<MsQuicListener*>, nullptr);
             TEST_TRUE(Listener.IsValid());
             uint32_t Length = 65535;
             TEST_QUIC_SUCCEEDED(
@@ -3147,115 +3244,376 @@ void QuicTestListenerParam()
 #endif
 }
 
-void QuicTestConnectionParam()
+void QuicTest_QUIC_PARAM_CONN_QUIC_VERSION(MsQuicRegistration& Registration, MsQuicConfiguration& ClientConfiguration)
 {
-   // QuicTestConnectionServerSetParam();
-
-    MsQuicAlpn Alpn("MsQuicTest");
-    MsQuicRegistration Registration;
-    TEST_TRUE(Registration.IsValid());
-    MsQuicCredentialConfig ClientCredConfig;
-    MsQuicConfiguration ClientConfiguration(Registration, Alpn, ClientCertCredConfig);
-
+    TestScopeLogger LogScope0("QUIC_PARAM_CONN_QUIC_VERSION");
+    MsQuicConnection Connection(Registration);
+    TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
     //
-    // QUIC_PARAM_CONN_QUIC_VERSION
+    // SetParam
     //
     {
-        TestScopeLogger LogScope0("QUIC_PARAM_CONN_QUIC_VERSION");
-        MsQuicConnection Connection(Registration);
-        TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
+        TestScopeLogger LogScope1("SetParam is not allowed");
+        uint32_t Dummy = 0;
+        TEST_QUIC_STATUS(
+            QUIC_STATUS_INVALID_PARAMETER,
+            Connection.SetParam(
+                QUIC_PARAM_CONN_QUIC_VERSION,
+                sizeof(Dummy),
+                &Dummy));
+    }
+
+    //
+    // GetParam
+    //
+    {
+        TestScopeLogger LogScope1("GetParam");
+        uint32_t Length = 0;
+        TEST_QUIC_STATUS(
+            QUIC_STATUS_BUFFER_TOO_SMALL,
+            Connection.GetParam(
+                QUIC_PARAM_CONN_QUIC_VERSION,
+                &Length,
+                nullptr));
+        TEST_EQUAL(Length, sizeof(uint32_t));
+
+        uint32_t Version = 65535;
+        {
+            TestScopeLogger LogScope2("Version == 0 before start");
+            TEST_QUIC_SUCCEEDED(
+                Connection.GetParam(
+                    QUIC_PARAM_CONN_QUIC_VERSION,
+                    &Length,
+                    &Version));
+            TEST_EQUAL(Version, 0);
+        }
+
+        {
+            TestScopeLogger LogScope2("Version == 1 after start");
+            TEST_QUIC_SUCCEEDED(
+                MsQuic->ConnectionStart(
+                    Connection.Handle,
+                    ClientConfiguration,
+                    QUIC_ADDRESS_FAMILY_INET,
+                    "localhost",
+                    4433));
+            TEST_QUIC_SUCCEEDED(
+                Connection.GetParam(
+                    QUIC_PARAM_CONN_QUIC_VERSION,
+                    &Length,
+                    &Version));
+            TEST_EQUAL(Version, 1);
+        }
+    }
+}
+
+void QuicTest_QUIC_PARAM_CONN_LOCAL_ADDRESS(MsQuicRegistration& Registration, MsQuicConfiguration& ClientConfiguration)
+{
+    TestScopeLogger LogScope0("QUIC_PARAM_CONN_LOCAL_ADDRESS");
+    //
+    // SetParam
+    //
+    {
+        TestScopeLogger LogScope1("SetParam");
         //
-        // SetParam
+        // Connection ClosedLocally
         //
         {
-            TestScopeLogger LogScope1("SetParam is not allowed");
-            uint32_t Dummy = 0;
+            TestScopeLogger LogScope2("Connection is closed locally");
+            TEST_TRUE(ClientConfiguration.IsValid());
+            MsQuicConnection Connection(Registration);
+            TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
+            SimulateConnBadStartState(Connection, ClientConfiguration);
+
+            QUIC_ADDR Dummy = {};
             TEST_QUIC_STATUS(
-                QUIC_STATUS_INVALID_PARAMETER,
+                QUIC_STATUS_INVALID_STATE,
                 Connection.SetParam(
-                    QUIC_PARAM_CONN_QUIC_VERSION,
+                    QUIC_PARAM_CONN_LOCAL_ADDRESS,
                     sizeof(Dummy),
                     &Dummy));
         }
 
         //
-        // GetParam
+        // Connection is started, but not handshake confirmed
         //
         {
-            TestScopeLogger LogScope1("GetParam");
+            TestScopeLogger LogScope2("Connection is started, but not handshake confirmed");
+            MsQuicConnection Connection(Registration);
+            TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
+            TEST_QUIC_SUCCEEDED(
+                MsQuic->ConnectionStart(
+                    Connection.Handle,
+                    ClientConfiguration,
+                    QUIC_ADDRESS_FAMILY_INET,
+                    "localhost",
+                    4433));
+
+            QUIC_ADDR Dummy = {};
+            TEST_QUIC_STATUS(
+                QUIC_STATUS_INVALID_STATE,
+                Connection.SetParam(
+                    QUIC_PARAM_CONN_LOCAL_ADDRESS,
+                    sizeof(Dummy),
+                    &Dummy));
+        }
+
+        //
+        // Good before ConnectioStart
+        //
+        {
+            TestScopeLogger LogScope2("Good before ConnectionStart");
+            MsQuicConnection Connection(Registration);
+            TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
+            QUIC_ADDR Dummy = {};
+            TEST_QUIC_SUCCEEDED(
+                Connection.SetParam(
+                    QUIC_PARAM_CONN_LOCAL_ADDRESS,
+                    sizeof(Dummy),
+                    &Dummy));
+        }
+
+        {// TODO: good after start, need to set Connection->State.HandshakeConfirmed
+        }
+    }
+
+    //
+    // GetParam
+    //
+    {
+        TestScopeLogger LogScope1("GetParam");
+        {
+            MsQuicConnection Connection(Registration);
+            TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
             uint32_t Length = 0;
             TEST_QUIC_STATUS(
                 QUIC_STATUS_BUFFER_TOO_SMALL,
                 Connection.GetParam(
-                    QUIC_PARAM_CONN_QUIC_VERSION,
+                    QUIC_PARAM_CONN_LOCAL_ADDRESS,
                     &Length,
                     nullptr));
-            TEST_EQUAL(Length, sizeof(uint32_t));
+            TEST_EQUAL(Length, sizeof(QUIC_ADDR));
 
-            uint32_t Version = 65535;
+            QUIC_ADDR Addr = {};
+            //
+            // !Connection->Stae.LocalAddressSet
+            //
             {
-                TestScopeLogger LogScope2("Version == 0 before start");
-                TEST_QUIC_SUCCEEDED(
+                TestScopeLogger LogScope2("!Connection->Stae.LocalAddressSet");
+                TEST_QUIC_STATUS(
+                    QUIC_STATUS_INVALID_STATE,
                     Connection.GetParam(
-                        QUIC_PARAM_CONN_QUIC_VERSION,
+                        QUIC_PARAM_CONN_LOCAL_ADDRESS,
                         &Length,
-                        &Version));
-                TEST_EQUAL(Version, 0);
+                        &Addr));
             }
 
+            //
+            // Good
+            //
             {
-                TestScopeLogger LogScope2("Version == 1 after start");
                 TEST_QUIC_SUCCEEDED(
                     MsQuic->ConnectionStart(
                         Connection.Handle,
                         ClientConfiguration,
                         QUIC_ADDRESS_FAMILY_INET,
-                        "localhost",
+                        "127.0.0.1",
                         4433));
                 TEST_QUIC_SUCCEEDED(
                     Connection.GetParam(
-                        QUIC_PARAM_CONN_QUIC_VERSION,
+                        QUIC_PARAM_CONN_LOCAL_ADDRESS,
                         &Length,
-                        &Version));
-                TEST_EQUAL(Version, 1);
+                        &Addr));
+                QUIC_ADDR Expected = {0};
+                QuicAddrFromString("127.0.0.1", 4433, &Expected);
+                TEST_EQUAL(memcmp((void*)&Addr.Ipv4.sin_addr, (void*)&Expected.Ipv4.sin_addr, sizeof(struct in_addr)), 0);
+                TEST_NOT_EQUAL(Addr.Ipv4.sin_port, Expected.Ipv4.sin_port);
             }
         }
     }
+}
 
-    //
-    // QUIC_PARAM_CONN_LOCAL_ADDRESS
-    //
+void QuicTest_QUIC_PARAM_CONN_REMOTE_ADDRESS(MsQuicRegistration& Registration, MsQuicConfiguration& ClientConfiguration)
+{
+    TestScopeLogger LogScope0("QUIC_PARAM_CONN_REMOTE_ADDRESS");
     {
-        TestScopeLogger LogScope0("QUIC_PARAM_CONN_LOCAL_ADDRESS");
-        //
-        // SetParam
-        //
+        TestScopeLogger LogScope1("SetParam");
         {
-            TestScopeLogger LogScope1("SetParam");
             //
-            // Connection ClosedLocally
+            // QUIC_STATUS_INVALID_STATE (connection failed to started)
             //
             {
-                TestScopeLogger LogScope2("Connection is closed locally");
-                TEST_TRUE(ClientConfiguration.IsValid());
+                TestScopeLogger LogScope2("QUIC_CONN_BAD_START_STATE");
                 MsQuicConnection Connection(Registration);
                 TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
                 SimulateConnBadStartState(Connection, ClientConfiguration);
 
                 QUIC_ADDR Dummy = {};
+                TEST_TRUE(QuicAddrFromString("127.0.0.1", 0, &Dummy));
                 TEST_QUIC_STATUS(
                     QUIC_STATUS_INVALID_STATE,
                     Connection.SetParam(
-                        QUIC_PARAM_CONN_LOCAL_ADDRESS,
+                        QUIC_PARAM_CONN_REMOTE_ADDRESS,
                         sizeof(Dummy),
                         &Dummy));
             }
 
             //
-            // Connection is started, but not handshake confirmed
+            // QUIC_STATUS_INVALID_PARAMETER (0.0.0.0)
             //
             {
-                TestScopeLogger LogScope2("Connection is started, but not handshake confirmed");
+                MsQuicConnection Connection(Registration);
+                TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
+                const QUIC_ADDR ZeroAddr = {0};
+                TEST_QUIC_STATUS(
+                    QUIC_STATUS_INVALID_PARAMETER,
+                    Connection.SetParam(
+                        QUIC_PARAM_CONN_REMOTE_ADDRESS,
+                        sizeof(ZeroAddr),
+                        &ZeroAddr));
+            }
+
+            //
+            // QUIC_STATUS_INVALID_PARAMETER (too small)
+            //
+            {
+                MsQuicConnection Connection(Registration);
+                TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
+                QUIC_ADDR Dummy = {};
+                TEST_TRUE(QuicAddrFromString("127.0.0.1", 0, &Dummy));
+                TEST_QUIC_STATUS(
+                    QUIC_STATUS_INVALID_PARAMETER,
+                    Connection.SetParam(
+                        QUIC_PARAM_CONN_REMOTE_ADDRESS,
+                        sizeof(Dummy)-1,
+                        &Dummy));
+            }
+
+            //
+            // Good
+            //
+            {
+                MsQuicConnection Connection(Registration);
+                TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
+                QUIC_ADDR Dummy = {};
+                TEST_TRUE(QuicAddrFromString("127.0.0.1", 0, &Dummy));
+                TEST_QUIC_SUCCEEDED(
+                    Connection.SetParam(
+                        QUIC_PARAM_CONN_REMOTE_ADDRESS,
+                        sizeof(Dummy),
+                        &Dummy));
+            }
+        }
+    }
+
+    //
+    // GetParam
+    //
+    {
+        TestScopeLogger LogScope1("GetParam");
+        {
+            MsQuicConnection Connection(Registration);
+            TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
+            uint32_t Length = 0;
+            TEST_QUIC_STATUS(
+                QUIC_STATUS_BUFFER_TOO_SMALL,
+                Connection.GetParam(
+                    QUIC_PARAM_CONN_REMOTE_ADDRESS,
+                    &Length,
+                    nullptr));
+            TEST_EQUAL(Length, sizeof(QUIC_ADDR));
+
+            //
+            // !Connection->State.RemoteAddressSet
+            //
+            QUIC_ADDR Addr = {};
+            {
+                TestScopeLogger LogScope2("!Connection->State.RemoteAddressSet");
+                TEST_QUIC_STATUS(
+                    QUIC_STATUS_INVALID_STATE,
+                    Connection.GetParam(
+                        QUIC_PARAM_CONN_REMOTE_ADDRESS,
+                        &Length,
+                        &Addr));
+            }
+
+            //
+            // Good
+            //
+            {
+                TEST_QUIC_SUCCEEDED(
+                    MsQuic->ConnectionStart(
+                        Connection.Handle,
+                        ClientConfiguration,
+                        QUIC_ADDRESS_FAMILY_INET,
+                        "127.0.0.1",
+                        4433));
+                TEST_QUIC_SUCCEEDED(
+                    Connection.GetParam(
+                        QUIC_PARAM_CONN_REMOTE_ADDRESS,
+                        &Length,
+                        &Addr));
+                QUIC_ADDR Expected = {0};
+                QuicAddrFromString("127.0.0.1", 4433, &Expected);
+                TEST_EQUAL(memcmp((void*)&Addr, (void*)&Expected, sizeof(QUIC_ADDR)), 0);
+            }
+        }
+    }
+}
+
+void QuicTest_QUIC_PARAM_CONN_IDEAL_PROCESSOR(MsQuicRegistration& Registration)
+{
+    TestScopeLogger LogScope0("QUIC_PARAM_CONN_IDEAL_PROCESSOR");
+    {
+        TestScopeLogger LogScope1("SetParam is not allowed");
+        MsQuicConnection Connection(Registration);
+        TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
+        uint16_t Dummy = 8;
+        TEST_QUIC_STATUS(
+            QUIC_STATUS_INVALID_PARAMETER,
+            Connection.SetParam(
+                QUIC_PARAM_CONN_IDEAL_PROCESSOR,
+                sizeof(Dummy),
+                &Dummy));
+    }
+
+    //
+    // GetParam
+    //
+    {
+        TestScopeLogger LogScope1("GetParam");
+        MsQuicConnection Connection(Registration);
+        TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
+        SimpleGetParamTest(Connection.Handle, QUIC_PARAM_CONN_IDEAL_PROCESSOR, sizeof(uint16_t), nullptr);
+    }
+}
+
+void QuicTest_QUIC_PARAM_CONN_SETTINGS(MsQuicRegistration& Registration, MsQuicConfiguration& ClientConfiguration)
+{
+    TestScopeLogger LogScope0("QUIC_PARAM_CONN_SETTINGS");
+    {
+        TestScopeLogger LogScope1("SetParam");
+        //
+        // QuicConnApplyNewSettings
+        //
+        {
+            TestScopeLogger LogScope2("QuicConnApplyNewSettings");
+            //
+            // Before ConnectionStart
+            //
+            {
+                TestScopeLogger LogScope3("Before ConnectionStart");
+                MsQuicConnection Connection(Registration);
+                TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
+                SettingApplyTests(Connection.Handle, QUIC_PARAM_CONN_SETTINGS);
+            }
+
+            //
+            // After ConnectionStart
+            //
+            {
+                TestScopeLogger LogScope3("After ConnectionStart");
+                // Internally AllowMtuEcnChanges become FALSE
                 MsQuicConnection Connection(Registration);
                 TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
                 TEST_QUIC_SUCCEEDED(
@@ -3265,828 +3623,558 @@ void QuicTestConnectionParam()
                         QUIC_ADDRESS_FAMILY_INET,
                         "localhost",
                         4433));
+                CxPlatSleep(100);
 
-                QUIC_ADDR Dummy = {};
-                TEST_QUIC_STATUS(
-                    QUIC_STATUS_INVALID_STATE,
-                    Connection.SetParam(
-                        QUIC_PARAM_CONN_LOCAL_ADDRESS,
-                        sizeof(Dummy),
-                        &Dummy));
-            }
-
-            //
-            // Good before ConnectioStart
-            //
-            {
-                TestScopeLogger LogScope2("Good before ConnectionStart");
-                MsQuicConnection Connection(Registration);
-                TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
-                QUIC_ADDR Dummy = {};
-                TEST_QUIC_SUCCEEDED(
-                    Connection.SetParam(
-                        QUIC_PARAM_CONN_LOCAL_ADDRESS,
-                        sizeof(Dummy),
-                        &Dummy));
-            }
-
-            {// TODO: good after start, need to set Connection->State.HandshakeConfirmed
+                SettingApplyTests(Connection.Handle, QUIC_PARAM_CONN_SETTINGS, FALSE);
             }
         }
 
         //
-        // GetParam
+        // Good
         //
         {
-            TestScopeLogger LogScope1("GetParam");
-            {
-                MsQuicConnection Connection(Registration);
-                TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
-                uint32_t Length = 0;
-                TEST_QUIC_STATUS(
-                    QUIC_STATUS_BUFFER_TOO_SMALL,
-                    Connection.GetParam(
-                        QUIC_PARAM_CONN_LOCAL_ADDRESS,
-                        &Length,
-                        nullptr));
-                TEST_EQUAL(Length, sizeof(QUIC_ADDR));
+            MsQuicConnection Connection(Registration);
+            TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
+            QUIC_SETTINGS Settings{0};
 
-                QUIC_ADDR Addr = {};
-                //
-                // !Connection->Stae.LocalAddressSet
-                //
-                {
-                    TestScopeLogger LogScope2("!Connection->Stae.LocalAddressSet");
-                    TEST_QUIC_STATUS(
-                        QUIC_STATUS_INVALID_STATE,
-                        Connection.GetParam(
-                            QUIC_PARAM_CONN_LOCAL_ADDRESS,
-                            &Length,
-                            &Addr));
-                }
-
-                //
-                // Good
-                //
-                {
-                    TEST_QUIC_SUCCEEDED(
-                        MsQuic->ConnectionStart(
-                            Connection.Handle,
-                            ClientConfiguration,
-                            QUIC_ADDRESS_FAMILY_INET,
-                            "127.0.0.1",
-                            4433));
-                    TEST_QUIC_SUCCEEDED(
-                        Connection.GetParam(
-                            QUIC_PARAM_CONN_LOCAL_ADDRESS,
-                            &Length,
-                            &Addr));
-                    QUIC_ADDR Expected = {0};
-                    QuicAddrFromString("127.0.0.1", 4433, &Expected);
-                    TEST_EQUAL(memcmp((void*)&Addr.Ipv4.sin_addr, (void*)&Expected.Ipv4.sin_addr, sizeof(struct in_addr)), 0);
-                    TEST_NOT_EQUAL(Addr.Ipv4.sin_port, Expected.Ipv4.sin_port);
-                }
-            }
+            TEST_QUIC_SUCCEEDED(
+                MsQuic->SetParam(
+                    Connection.Handle,
+                    QUIC_PARAM_CONN_SETTINGS,
+                    sizeof(QUIC_SETTINGS),
+                    &Settings));
         }
     }
 
     //
-    // QUIC_PARAM_CONN_REMOTE_ADDRESS
+    // GetParam
     //
     {
-        TestScopeLogger LogScope0("QUIC_PARAM_CONN_REMOTE_ADDRESS");
-        {
-            TestScopeLogger LogScope1("SetParam");
-            {
-                //
-                // QUIC_STATUS_INVALID_STATE (connection failed to started)
-                //
-                {
-                    TestScopeLogger LogScope2("QUIC_CONN_BAD_START_STATE");
-                    MsQuicConnection Connection(Registration);
-                    TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
-                    SimulateConnBadStartState(Connection, ClientConfiguration);
-
-                    QUIC_ADDR Dummy = {};
-                    TEST_TRUE(QuicAddrFromString("127.0.0.1", 0, &Dummy));
-                    TEST_QUIC_STATUS(
-                        QUIC_STATUS_INVALID_STATE,
-                        Connection.SetParam(
-                            QUIC_PARAM_CONN_REMOTE_ADDRESS,
-                            sizeof(Dummy),
-                            &Dummy));
-                }
-
-                //
-                // QUIC_STATUS_INVALID_PARAMETER (0.0.0.0)
-                //
-                {
-                    MsQuicConnection Connection(Registration);
-                    TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
-                    const QUIC_ADDR ZeroAddr = {0};
-                    TEST_QUIC_STATUS(
-                        QUIC_STATUS_INVALID_PARAMETER,
-                        Connection.SetParam(
-                            QUIC_PARAM_CONN_REMOTE_ADDRESS,
-                            sizeof(ZeroAddr),
-                            &ZeroAddr));
-                }
-
-                //
-                // QUIC_STATUS_INVALID_PARAMETER (too small)
-                //
-                {
-                    MsQuicConnection Connection(Registration);
-                    TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
-                    QUIC_ADDR Dummy = {};
-                    TEST_TRUE(QuicAddrFromString("127.0.0.1", 0, &Dummy));
-                    TEST_QUIC_STATUS(
-                        QUIC_STATUS_INVALID_PARAMETER,
-                        Connection.SetParam(
-                            QUIC_PARAM_CONN_REMOTE_ADDRESS,
-                            sizeof(Dummy)-1,
-                            &Dummy));
-                }
-
-                //
-                // Good
-                //
-                {
-                    MsQuicConnection Connection(Registration);
-                    TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
-                    QUIC_ADDR Dummy = {};
-                    TEST_TRUE(QuicAddrFromString("127.0.0.1", 0, &Dummy));
-                    TEST_QUIC_SUCCEEDED(
-                        Connection.SetParam(
-                            QUIC_PARAM_CONN_REMOTE_ADDRESS,
-                            sizeof(Dummy),
-                            &Dummy));
-                }
-            }
-        }
-
-        //
-        // GetParam
-        //
-        {
-            TestScopeLogger LogScope1("GetParam");
-            {
-                MsQuicConnection Connection(Registration);
-                TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
-                uint32_t Length = 0;
-                TEST_QUIC_STATUS(
-                    QUIC_STATUS_BUFFER_TOO_SMALL,
-                    Connection.GetParam(
-                        QUIC_PARAM_CONN_REMOTE_ADDRESS,
-                        &Length,
-                        nullptr));
-                TEST_EQUAL(Length, sizeof(QUIC_ADDR));
-
-                //
-                // !Connection->State.RemoteAddressSet
-                //
-                QUIC_ADDR Addr = {};
-                {
-                    TestScopeLogger LogScope2("!Connection->State.RemoteAddressSet");
-                    TEST_QUIC_STATUS(
-                        QUIC_STATUS_INVALID_STATE,
-                        Connection.GetParam(
-                            QUIC_PARAM_CONN_REMOTE_ADDRESS,
-                            &Length,
-                            &Addr));
-                }
-
-                //
-                // Good
-                //
-                {
-                    TEST_QUIC_SUCCEEDED(
-                        MsQuic->ConnectionStart(
-                            Connection.Handle,
-                            ClientConfiguration,
-                            QUIC_ADDRESS_FAMILY_INET,
-                            "127.0.0.1",
-                            4433));
-                    TEST_QUIC_SUCCEEDED(
-                        Connection.GetParam(
-                            QUIC_PARAM_CONN_REMOTE_ADDRESS,
-                            &Length,
-                            &Addr));
-                    QUIC_ADDR Expected = {0};
-                    QuicAddrFromString("127.0.0.1", 4433, &Expected);
-                    TEST_EQUAL(memcmp((void*)&Addr, (void*)&Expected, sizeof(QUIC_ADDR)), 0);
-                }
-            }
-        }
-    }
-
-    //
-    // QUIC_PARAM_CONN_IDEAL_PROCESSOR
-    //
-    {
-        TestScopeLogger LogScope0("QUIC_PARAM_CONN_IDEAL_PROCESSOR");
-        {
-            TestScopeLogger LogScope1("SetParam is not allowed");
-            MsQuicConnection Connection(Registration);
-            TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
-            uint16_t Dummy = 8;
-            TEST_QUIC_STATUS(
-                QUIC_STATUS_INVALID_PARAMETER,
-                Connection.SetParam(
-                    QUIC_PARAM_CONN_IDEAL_PROCESSOR,
-                    sizeof(Dummy),
-                    &Dummy));
-        }
-
-        //
-        // GetParam
-        //
-        {
-            TestScopeLogger LogScope1("GetParam");
-            MsQuicConnection Connection(Registration);
-            TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
-            SimpleGetParamTest(Connection.Handle, QUIC_PARAM_CONN_IDEAL_PROCESSOR, sizeof(uint16_t), nullptr);
-        }
-    }
-
-    //
-    // QUIC_PARAM_CONN_SETTINGS
-    //
-    {
-        TestScopeLogger LogScope0("QUIC_PARAM_CONN_SETTINGS");
-        {
-            TestScopeLogger LogScope1("SetParam");
-            //
-            // QuicConnApplyNewSettings
-            //
-            {
-                TestScopeLogger LogScope2("QuicConnApplyNewSettings");
-                //
-                // Before ConnectionStart
-                //
-                {
-                    TestScopeLogger LogScope3("Before ConnectionStart");
-                    MsQuicConnection Connection(Registration);
-                    TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
-                    SettingApplyTests(Connection.Handle, QUIC_PARAM_CONN_SETTINGS);
-                }
-
-                //
-                // After ConnectionStart
-                //
-                {
-                    TestScopeLogger LogScope3("After ConnectionStart");
-                    // Internally AllowMtuEcnChanges become FALSE
-                    MsQuicConnection Connection(Registration);
-                    TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
-                    TEST_QUIC_SUCCEEDED(
-                        MsQuic->ConnectionStart(
-                            Connection.Handle,
-                            ClientConfiguration,
-                            QUIC_ADDRESS_FAMILY_INET,
-                            "localhost",
-                            4433));
-                    CxPlatSleep(100);
-
-                    SettingApplyTests(Connection.Handle, QUIC_PARAM_CONN_SETTINGS, FALSE);
-                }
-            }
-
-            //
-            // Good
-            //
-            {
-                MsQuicConnection Connection(Registration);
-                TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
-                QUIC_SETTINGS Settings{0};
-
-                TEST_QUIC_SUCCEEDED(
-                    MsQuic->SetParam(
-                        Connection.Handle,
-                        QUIC_PARAM_CONN_SETTINGS,
-                        sizeof(QUIC_SETTINGS),
-                        &Settings));
-            }
-        }
-
-        //
-        // GetParam
-        //
-        {
-            TestScopeLogger LogScope1("GetParam");
-            MsQuicConnection Connection(Registration);
-            TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
-            SimpleGetParamTest(Connection.Handle, QUIC_PARAM_CONN_SETTINGS, sizeof(QUIC_SETTINGS), nullptr, true);
-        }
-    }
-
-    //
-    // QUIC_PARAM_CONN_STATISTICS
-    //
-    {
-        TestScopeLogger LogScope0("QUIC_PARAM_CONN_STATISTICS");
-        {
-            TestScopeLogger LogScope1("SetParam is not allowed");
-            MsQuicConnection Connection(Registration);
-            TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
-            QUIC_STATISTICS Dummy = {};
-            TEST_QUIC_STATUS(
-                QUIC_STATUS_INVALID_PARAMETER,
-                Connection.SetParam(
-                    QUIC_PARAM_CONN_STATISTICS,
-                    sizeof(Dummy),
-                    &Dummy));
-        }
-
-        //
-        // GetParam
-        //
-        {
-            TestScopeLogger LogScope1("GetParam");
-            MsQuicConnection Connection(Registration);
-            TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
-            SimpleGetParamTest(Connection.Handle, QUIC_PARAM_CONN_STATISTICS, sizeof(QUIC_STATISTICS), nullptr, true);
-        }
-    }
-
-    //
-    // QUIC_PARAM_CONN_STATISTICS_PLAT
-    //
-    {
-        TestScopeLogger LogScope0("QUIC_PARAM_CONN_STATISTICS_PLAT is get only");
-        {
-            TestScopeLogger LogScope1("SetParam is not allowed");
-            MsQuicConnection Connection(Registration);
-            TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
-            QUIC_STATISTICS Dummy = {};
-            TEST_QUIC_STATUS(
-                QUIC_STATUS_INVALID_PARAMETER,
-                Connection.SetParam(
-                    QUIC_PARAM_CONN_STATISTICS_PLAT,
-                    sizeof(Dummy),
-                    &Dummy));
-        }
-
-        //
-        // GetParam
-        //
-        {
-            TestScopeLogger LogScope1("GetParam");
-            MsQuicConnection Connection(Registration);
-            TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
-            SimpleGetParamTest(Connection.Handle, QUIC_PARAM_CONN_STATISTICS_PLAT, sizeof(QUIC_STATISTICS), nullptr, true);
-        }
-    }
-
-    //
-    // QUIC_PARAM_CONN_SHARE_UDP_BINDING
-    //
-    {
-        TestScopeLogger LogScope0("QUIC_PARAM_CONN_SHARE_UDP_BINDING");
-        BOOLEAN Data = TRUE;
+        TestScopeLogger LogScope1("GetParam");
         MsQuicConnection Connection(Registration);
         TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
-        //
-        // SetParam
-        //
-        {
-            TestScopeLogger LogScope1("SetParam");
-            //
-            // QUIC_CONN_BAD_START_STATE
-            //
-            {
-                TestScopeLogger LogScope2("QUIC_CONN_BAD_START_STATE");
-                MsQuicConnection ConnInval(Registration);
-                SimulateConnBadStartState(ConnInval, ClientConfiguration);
-
-                TEST_QUIC_STATUS(
-                    QUIC_STATUS_INVALID_STATE,
-                    ConnInval.SetParam(
-                        QUIC_PARAM_CONN_SHARE_UDP_BINDING,
-                        sizeof(Data),
-                        &Data));
-            }
-
-
-            //
-            // Good
-            //
-            {
-                TEST_QUIC_SUCCEEDED(
-                    Connection.SetParam(
-                        QUIC_PARAM_CONN_SHARE_UDP_BINDING,
-                        sizeof(Data),
-                        &Data));
-            }
-        }
-
-        //
-        // GetParam
-        //
-        {
-            TestScopeLogger LogScope2("GetParam");
-            SimpleGetParamTest(Connection.Handle, QUIC_PARAM_CONN_SHARE_UDP_BINDING, sizeof(BOOLEAN), &Data);
-        }
+        SimpleGetParamTest(Connection.Handle, QUIC_PARAM_CONN_SETTINGS, sizeof(QUIC_SETTINGS), nullptr, true);
     }
+}
 
-    //
-    // QUIC_PARAM_CONN_LOCAL_BIDI_STREAM_COUNT
-    //
+void QuicTest_QUIC_PARAM_CONN_STATISTICS(MsQuicRegistration& Registration)
+{
+    TestScopeLogger LogScope0("QUIC_PARAM_CONN_STATISTICS");
     {
-        TestScopeLogger LogScope0("QUIC_PARAM_CONN_LOCAL_BIDI_STREAM_COUNT");
-        {
-            TestScopeLogger LogScope1("SetParam is not allowed");
-            MsQuicConnection Connection(Registration);
-            TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
-            uint16_t Dummy = 0;
-            TEST_QUIC_STATUS(
-                QUIC_STATUS_INVALID_PARAMETER,
-                Connection.SetParam(
-                    QUIC_PARAM_CONN_LOCAL_BIDI_STREAM_COUNT,
-                    sizeof(Dummy),
-                    &Dummy));
-        }
-
-        {
-            TestScopeLogger LogScope1("GetParam");
-            MsQuicConnection Connection(Registration);
-            TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
-            // There is no stream yet
-            uint16_t Count = 0;
-            SimpleGetParamTest(Connection.Handle, QUIC_PARAM_CONN_LOCAL_BIDI_STREAM_COUNT, sizeof(uint16_t), &Count);
-        }
-    }
-
-    //
-    // QUIC_PARAM_CONN_LOCAL_UNIDI_STREAM_COUNT
-    //
-    {
-        TestScopeLogger LogScope0("QUIC_PARAM_CONN_LOCAL_UNIDI_STREAM_COUNT");
-        {
-            TestScopeLogger LogScope1("SetParam is not allowed");
-            MsQuicConnection Connection(Registration);
-            TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
-            uint16_t Dummy = 0;
-            TEST_QUIC_STATUS(
-                QUIC_STATUS_INVALID_PARAMETER,
-                Connection.SetParam(
-                    QUIC_PARAM_CONN_LOCAL_UNIDI_STREAM_COUNT,
-                    sizeof(Dummy),
-                    &Dummy));
-        }
-
-        {
-            TestScopeLogger LogScope1("GetParam");
-            MsQuicConnection Connection(Registration);
-            TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
-            // There is no stream yet
-            uint16_t Count = 0;
-            SimpleGetParamTest(Connection.Handle, QUIC_PARAM_CONN_LOCAL_UNIDI_STREAM_COUNT, sizeof(uint16_t), &Count);
-        }
-    }
-
-    //
-    // QUIC_PARAM_CONN_MAX_STREAM_IDS
-    //
-    {
-        TestScopeLogger LogScope0("QUIC_PARAM_CONN_MAX_STREAM_IDS");
-        {
-            TestScopeLogger LogScope1("SetParam is not allowed");
-            MsQuicConnection Connection(Registration);
-            TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
-            uint16_t Dummy = 0;
-            TEST_QUIC_STATUS(
-                QUIC_STATUS_INVALID_PARAMETER,
-                Connection.SetParam(
-                    QUIC_PARAM_CONN_MAX_STREAM_IDS,
-                    sizeof(Dummy),
-                    &Dummy));
-        }
-
-        {
-            TestScopeLogger LogScope1("GetParam");
-            MsQuicConnection Connection(Registration);
-            TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
-            // There is no stream yet
-            // 4 is defined in stream.h as NUMBER_OF_STREAM_TYPES
-            uint8_t NumberOfStreamTypes = 4;
-            uint64_t IDs[4] = {0, 1, 2, 3}; // Refer quicStreamSetGetMaxStreamIDs()
-            SimpleGetParamTest(Connection.Handle, QUIC_PARAM_CONN_MAX_STREAM_IDS, sizeof(uint64_t) * NumberOfStreamTypes, IDs);
-        }
-    }
-
-    //
-    // QUIC_PARAM_CONN_CLOSE_REASON_PHRASE
-    //
-    {
-        TestScopeLogger LogScope0("QUIC_PARAM_CONN_CLOSE_REASON_PHRASE");
-        MsQuicConnection Connection(Registration); // shared with Set/GetParam
-        TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
-        char MainReason[] = "This is main reason";
-        {
-            TestScopeLogger LogScope1("SetParam");
-            // //
-            // // BufferLength is longer than QUIC_MAX_CONN_CLOSE_REASON_LENGTH
-            // //
-            // {
-            //     TestScopeLogger LogScope2("BufferLength is longer than QUIC_MAX_CONN_CLOSE_REASON_LENGTH");
-            //     MsQuicConnection ConnInval(Registration);
-            //     TEST_QUIC_SUCCEEDED(ConnInval.GetInitStatus());
-            //     char Reason[2048] = {};
-            //     TEST_QUIC_STATUS(
-            //         QUIC_STATUS_INVALID_PARAMETER,
-            //         ConnInval.SetParam(
-            //             QUIC_PARAM_CONN_CLOSE_REASON_PHRASE,
-            //             sizeof(Reason),
-            //             &Reason));
-            // }
-
-        //     //
-        //     // Non null termination
-        //     //
-        //     {
-        //         TestScopeLogger LogScope2("Non null termination");
-        //         MsQuicConnection ConnInval(Registration);
-        //         TEST_QUIC_SUCCEEDED(ConnInval.GetInitStatus());
-        //         char Reason[] = "This is reason";
-        //         Reason[sizeof(Reason)-1] = 'X';
-        //         TEST_QUIC_STATUS(
-        //             QUIC_STATUS_INVALID_PARAMETER,
-        //             ConnInval.SetParam(
-        //                 QUIC_PARAM_CONN_CLOSE_REASON_PHRASE,
-        //                 sizeof(Reason),
-        //                 &Reason));
-        //     }
-
-            //
-            // Good, set twice to call update part
-            //
-            {
-                TestScopeLogger LogScope2("Good, set twice to call update part");
-                // char ReasonDummy[] = "This is reason";
-                // TEST_QUIC_SUCCEEDED(
-                //     Connection.SetParam(
-                //         QUIC_PARAM_CONN_CLOSE_REASON_PHRASE,
-                //         sizeof(ReasonDummy),
-                //         &ReasonDummy));
-
-                TEST_QUIC_SUCCEEDED(
-                    Connection.SetParam(
-                        QUIC_PARAM_CONN_CLOSE_REASON_PHRASE,
-                        sizeof(MainReason),
-                        &MainReason));
-            }
-        // }
-
-        // //
-        // // GetParam
-        // //
-        // {
-        //     //
-        //     // if (Connection->CloseReasonPhrase == NULL)
-        //     //
-        //     {
-        //         TestScopeLogger LogScope2("if (Connection->CloseReasonPhrase == NULL)");
-        //         MsQuicConnection ConnInval(Registration);
-        //         TEST_QUIC_SUCCEEDED(ConnInval.GetInitStatus());
-        //         uint32_t Length = 0;
-        //         TEST_QUIC_STATUS(
-        //             QUIC_STATUS_NOT_FOUND,
-        //             ConnInval.GetParam(
-        //                 QUIC_PARAM_CONN_CLOSE_REASON_PHRASE,
-        //                 &Length,
-        //                 nullptr));
-        //     }
-
-        //     //
-        //     // Good
-        //     //
-        //     {
-        //         SimpleGetParamTest(Connection.Handle, QUIC_PARAM_CONN_CLOSE_REASON_PHRASE, 0, nullptr);
-        //         //SimpleGetParamTest(Connection.Handle, QUIC_PARAM_CONN_CLOSE_REASON_PHRASE, sizeof(MainReason), MainReason);
-        //     }
-        }
-    }
-
-    //
-    // QUIC_PARAM_CONN_STREAM_SCHEDULING_SCHEME
-    //
-    {
-        TestScopeLogger LogScope0("QUIC_PARAM_CONN_STREAM_SCHEDULING_SCHEME");
-        {
-            TestScopeLogger LogScope1("SetParam");
-            {
-                //
-                // Invalid scheme
-                //
-                {
-                    TestScopeLogger LogScope2("Invalid scheme");
-                    MsQuicConnection Connection(Registration);
-                    TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
-                    QUIC_STREAM_SCHEDULING_SCHEME Scheme = QUIC_STREAM_SCHEDULING_SCHEME_COUNT;
-                    TEST_QUIC_STATUS(
-                        QUIC_STATUS_INVALID_PARAMETER,
-                            Connection.SetParam(
-                            QUIC_PARAM_CONN_STREAM_SCHEDULING_SCHEME,
-                            sizeof(Scheme),
-                            &Scheme));
-                }
-
-                //
-                // Good
-                //
-                for (uint32_t Scheme = 0; Scheme < QUIC_STREAM_SCHEDULING_SCHEME_COUNT; Scheme++) {
-                    MsQuicConnection Connection(Registration);
-                    TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
-                    TEST_QUIC_SUCCEEDED(
-                        Connection.SetParam(
-                            QUIC_PARAM_CONN_STREAM_SCHEDULING_SCHEME,
-                            sizeof(Scheme),
-                            &Scheme));
-                }
-            }
-        }
-
-        //
-        // GetParam
-        //
-        {
-            TestScopeLogger LogScope1("GetParam");
-            MsQuicConnection Connection(Registration);
-            TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
-            uint32_t Scheme = QUIC_STREAM_SCHEDULING_SCHEME_FIFO;
-            SimpleGetParamTest(Connection.Handle, QUIC_PARAM_CONN_STREAM_SCHEDULING_SCHEME, sizeof(QUIC_STREAM_SCHEDULING_SCHEME), &Scheme);
-        }
-    }
-
-    //
-    // QUIC_PARAM_CONN_DATAGRAM_RECEIVE_ENABLED
-    //
-    {
-        TestScopeLogger LogScope0("QUIC_PARAM_CONN_DATAGRAM_RECEIVE_ENABLED");
+        TestScopeLogger LogScope1("SetParam is not allowed");
         MsQuicConnection Connection(Registration);
         TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
-        BOOLEAN Flag = TRUE;
-        {
-            TestScopeLogger LogScope1("SetParam");
-            //
-            // QUIC_CONN_BAD_START_STATE
-            //
-            {
-                TestScopeLogger LogScope2("QUIC_CONN_BAD_START_STATE");
-                MsQuicConnection ConnInval(Registration);
-                TEST_QUIC_SUCCEEDED(ConnInval.GetInitStatus());
-                SimulateConnBadStartState(ConnInval, ClientConfiguration);
-
-                TEST_QUIC_STATUS(
-                    QUIC_STATUS_INVALID_STATE,
-                    ConnInval.SetParam(
-                        QUIC_PARAM_CONN_DATAGRAM_RECEIVE_ENABLED,
-                        sizeof(Flag),
-                        &Flag));
-            }
-
-            //
-            // Good
-            //
-            {
-                TEST_QUIC_SUCCEEDED(
-                    Connection.SetParam(
-                        QUIC_PARAM_CONN_DATAGRAM_RECEIVE_ENABLED,
-                        sizeof(Flag),
-                        &Flag));
-            }
-        }
-
-        //
-        // GetParam
-        //
-        {
-            TestScopeLogger LogScope1("GetParam");
-            SimpleGetParamTest(Connection.Handle, QUIC_PARAM_CONN_DATAGRAM_RECEIVE_ENABLED, sizeof(BOOLEAN), &Flag);
-        }
+        QUIC_STATISTICS Dummy = {};
+        TEST_QUIC_STATUS(
+            QUIC_STATUS_INVALID_PARAMETER,
+            Connection.SetParam(
+                QUIC_PARAM_CONN_STATISTICS,
+                sizeof(Dummy),
+                &Dummy));
     }
 
     //
-    // QUIC_PARAM_CONN_DATAGRAM_SEND_ENABLED
+    // GetParam
     //
     {
-        TestScopeLogger LogScope0("QUIC_PARAM_CONN_DATAGRAM_SEND_ENABLED");
-        {
-            TestScopeLogger LogScope1("SetParam is not allowed");
-            MsQuicConnection Connection(Registration);
-            TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
-            uint8_t Dummy = 0;
-            TEST_QUIC_STATUS(
-                QUIC_STATUS_INVALID_PARAMETER,
-                Connection.SetParam(
-                    QUIC_PARAM_CONN_DATAGRAM_SEND_ENABLED,
-                    sizeof(Dummy),
-                    &Dummy));
-        }
-
-        {
-            TestScopeLogger LogScope1("GetParam");
-            MsQuicConnection Connection(Registration);
-            TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
-            BOOLEAN Enabled = TRUE;
-            SimpleGetParamTest(Connection.Handle, QUIC_PARAM_CONN_DATAGRAM_SEND_ENABLED, sizeof(BOOLEAN), &Enabled);
-        }
-    }
-
-#ifdef QUIC_API_ENABLE_INSECURE_FEATURES
-    //
-    // QUIC_PARAM_CONN_DISABLE_1RTT_ENCRYPTION
-    //
-    {
-        TestScopeLogger LogScope0("QUIC_PARAM_CONN_DISABLE_1RTT_ENCRYPTION");
+        TestScopeLogger LogScope1("GetParam");
         MsQuicConnection Connection(Registration);
         TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
-        BOOLEAN Flag = TRUE;
-        //
-        // The peer didn't negotiate the feature
-        //
-        {
-            {
-                MsQuicConnection ConnInval(Registration);
-                TEST_QUIC_SUCCEEDED(ConnInval.GetInitStatus());
-                TEST_QUIC_STATUS(
-                    QUIC_STATUS_INVALID_STATE,
-                    ConnInval.SetParam(
-                        QUIC_PARAM_CONN_DISABLE_1RTT_ENCRYPTION,
-                        sizeof(Flag),
-                        &Flag));
-            }
-
-            //
-            // Good
-            //
-            {
-                TEST_QUIC_SUCCEEDED(
-                    Connection.SetParam(
-                        QUIC_PARAM_CONN_DISABLE_1RTT_ENCRYPTION,
-                        sizeof(Flag),
-                        &Flag));
-            }
-        }
-
-        //
-        // GetParam
-        //
-        {
-            TestScopeLogger LogScope1("GetParam");
-            SimpleGetParamTest(Connection.Handle, QUIC_PARAM_CONN_DISABLE_1RTT_ENCRYPTION, sizeof(BOOLEAN), &Flag);
-        }
+        SimpleGetParamTest(Connection.Handle, QUIC_PARAM_CONN_STATISTICS, sizeof(QUIC_STATISTICS), nullptr, true);
     }
-#endif
+}
 
-    //
-    // QUIC_PARAM_CONN_RESUMPTION_TICKET
-    //
+void QuicTest_QUIC_PARAM_CONN_STATISTICS_PLAT(MsQuicRegistration& Registration)
+{
+    TestScopeLogger LogScope0("QUIC_PARAM_CONN_STATISTICS_PLAT is get only");
     {
-        TestScopeLogger LogScope("QUIC_PARAM_CONN_RESUMPTION_TICKET is covered by TestConnection.cpp and EventTest.cpp");
+        TestScopeLogger LogScope1("SetParam is not allowed");
+        MsQuicConnection Connection(Registration);
+        TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
+        QUIC_STATISTICS Dummy = {};
+        TEST_QUIC_STATUS(
+            QUIC_STATUS_INVALID_PARAMETER,
+            Connection.SetParam(
+                QUIC_PARAM_CONN_STATISTICS_PLAT,
+                sizeof(Dummy),
+                &Dummy));
     }
 
     //
-    // QUIC_PARAM_CONN_PEER_CERTIFICATE_VALID
+    // GetParam
     //
     {
-        TestScopeLogger LogScope0("QUIC_PARAM_CONN_PEER_CERTIFICATE_VALID");
-        {
-            TestScopeLogger LogScope1("SetParam");
-            MsQuicConnection Connection(Registration);
-            TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
-
-            //
-            // Good with True/False
-            //
-            for (uint8_t i = 0; i < 2; i++) {
-                BOOLEAN Result = FALSE + i;
-                TEST_QUIC_SUCCEEDED(
-                    Connection.SetParam(
-                        QUIC_PARAM_CONN_PEER_CERTIFICATE_VALID,
-                        sizeof(Result),
-                        &Result));
-            }
-        }
-
-        {
-            TestScopeLogger LogScope1("GetParam is not allowed");
-        }
+        TestScopeLogger LogScope1("GetParam");
+        MsQuicConnection Connection(Registration);
+        TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
+        SimpleGetParamTest(Connection.Handle, QUIC_PARAM_CONN_STATISTICS_PLAT, sizeof(QUIC_STATISTICS), nullptr, true);
     }
+}
 
+void QuicTest_QUIC_PARAM_CONN_SHARE_UDP_BINDING(MsQuicRegistration& Registration, MsQuicConfiguration& ClientConfiguration)
+{
+    TestScopeLogger LogScope0("QUIC_PARAM_CONN_SHARE_UDP_BINDING");
+    BOOLEAN Data = TRUE;
+    MsQuicConnection Connection(Registration);
+    TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
     //
-    // QUIC_PARAM_CONN_LOCAL_INTERFACE
+    // SetParam
     //
     {
-        TestScopeLogger LogScope0("QUIC_PARAM_CONN_LOCAL_INTERFACE");
-
-        uint32_t Index = 0;
+        TestScopeLogger LogScope1("SetParam");
         //
         // QUIC_CONN_BAD_START_STATE
         //
         {
-            TestScopeLogger LogScope1("QUIC_CONN_BAD_START_STATE");
+            TestScopeLogger LogScope2("QUIC_CONN_BAD_START_STATE");
+            MsQuicConnection ConnInval(Registration);
+            SimulateConnBadStartState(ConnInval, ClientConfiguration);
+
+            TEST_QUIC_STATUS(
+                QUIC_STATUS_INVALID_STATE,
+                ConnInval.SetParam(
+                    QUIC_PARAM_CONN_SHARE_UDP_BINDING,
+                    sizeof(Data),
+                    &Data));
+        }
+
+
+        //
+        // Good
+        //
+        {
+            TEST_QUIC_SUCCEEDED(
+                Connection.SetParam(
+                    QUIC_PARAM_CONN_SHARE_UDP_BINDING,
+                    sizeof(Data),
+                    &Data));
+        }
+    }
+
+    //
+    // GetParam
+    //
+    {
+        TestScopeLogger LogScope2("GetParam");
+        SimpleGetParamTest(Connection.Handle, QUIC_PARAM_CONN_SHARE_UDP_BINDING, sizeof(BOOLEAN), &Data);
+    }
+}
+
+void QuicTest_QUIC_PARAM_CONN_LOCAL_BIDI_STREAM_COUNT(MsQuicRegistration& Registration)
+{
+    TestScopeLogger LogScope0("QUIC_PARAM_CONN_LOCAL_BIDI_STREAM_COUNT");
+    {
+        TestScopeLogger LogScope1("SetParam is not allowed");
+        MsQuicConnection Connection(Registration);
+        TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
+        uint16_t Dummy = 0;
+        TEST_QUIC_STATUS(
+            QUIC_STATUS_INVALID_PARAMETER,
+            Connection.SetParam(
+                QUIC_PARAM_CONN_LOCAL_BIDI_STREAM_COUNT,
+                sizeof(Dummy),
+                &Dummy));
+    }
+
+    {
+        TestScopeLogger LogScope1("GetParam");
+        MsQuicConnection Connection(Registration);
+        TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
+        // There is no stream yet
+        uint16_t Count = 0;
+        SimpleGetParamTest(Connection.Handle, QUIC_PARAM_CONN_LOCAL_BIDI_STREAM_COUNT, sizeof(uint16_t), &Count);
+    }
+}
+
+void QuicTest_QUIC_PARAM_CONN_LOCAL_UNIDI_STREAM_COUNT(MsQuicRegistration& Registration)
+{
+    TestScopeLogger LogScope0("QUIC_PARAM_CONN_LOCAL_UNIDI_STREAM_COUNT");
+    {
+        TestScopeLogger LogScope1("SetParam is not allowed");
+        MsQuicConnection Connection(Registration);
+        TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
+        uint16_t Dummy = 0;
+        TEST_QUIC_STATUS(
+            QUIC_STATUS_INVALID_PARAMETER,
+            Connection.SetParam(
+                QUIC_PARAM_CONN_LOCAL_UNIDI_STREAM_COUNT,
+                sizeof(Dummy),
+                &Dummy));
+    }
+
+    {
+        TestScopeLogger LogScope1("GetParam");
+        MsQuicConnection Connection(Registration);
+        TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
+        // There is no stream yet
+        uint16_t Count = 0;
+        SimpleGetParamTest(Connection.Handle, QUIC_PARAM_CONN_LOCAL_UNIDI_STREAM_COUNT, sizeof(uint16_t), &Count);
+    }
+}
+
+void QuicTest_QUIC_PARAM_CONN_MAX_STREAM_IDS(MsQuicRegistration& Registration)
+{
+    TestScopeLogger LogScope0("QUIC_PARAM_CONN_MAX_STREAM_IDS");
+    {
+        TestScopeLogger LogScope1("SetParam is not allowed");
+        MsQuicConnection Connection(Registration);
+        TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
+        uint16_t Dummy = 0;
+        TEST_QUIC_STATUS(
+            QUIC_STATUS_INVALID_PARAMETER,
+            Connection.SetParam(
+                QUIC_PARAM_CONN_MAX_STREAM_IDS,
+                sizeof(Dummy),
+                &Dummy));
+    }
+
+    {
+        TestScopeLogger LogScope1("GetParam");
+        MsQuicConnection Connection(Registration);
+        TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
+        // There is no stream yet
+        // 4 is defined in stream.h as NUMBER_OF_STREAM_TYPES
+        uint8_t NumberOfStreamTypes = 4;
+        uint64_t IDs[4] = {0, 1, 2, 3}; // Refer quicStreamSetGetMaxStreamIDs()
+        SimpleGetParamTest(Connection.Handle, QUIC_PARAM_CONN_MAX_STREAM_IDS, sizeof(uint64_t) * NumberOfStreamTypes, IDs);
+    }
+}
+
+void QuicTest_QUIC_PARAM_CONN_CLOSE_REASON_PHRASE(MsQuicRegistration& Registration)
+{
+    TestScopeLogger LogScope0("QUIC_PARAM_CONN_CLOSE_REASON_PHRASE");
+    MsQuicConnection Connection(Registration); // shared with Set/GetParam
+    TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
+    char MainReason[] = "This is main reason";
+    {
+        TestScopeLogger LogScope1("SetParam");
+        // //
+        // // BufferLength is longer than QUIC_MAX_CONN_CLOSE_REASON_LENGTH
+        // //
+        // {
+        //     TestScopeLogger LogScope2("BufferLength is longer than QUIC_MAX_CONN_CLOSE_REASON_LENGTH");
+        //     MsQuicConnection ConnInval(Registration);
+        //     TEST_QUIC_SUCCEEDED(ConnInval.GetInitStatus());
+        //     char Reason[2048] = {};
+        //     TEST_QUIC_STATUS(
+        //         QUIC_STATUS_INVALID_PARAMETER,
+        //         ConnInval.SetParam(
+        //             QUIC_PARAM_CONN_CLOSE_REASON_PHRASE,
+        //             sizeof(Reason),
+        //             &Reason));
+        // }
+
+    //     //
+    //     // Non null termination
+    //     //
+    //     {
+    //         TestScopeLogger LogScope2("Non null termination");
+    //         MsQuicConnection ConnInval(Registration);
+    //         TEST_QUIC_SUCCEEDED(ConnInval.GetInitStatus());
+    //         char Reason[] = "This is reason";
+    //         Reason[sizeof(Reason)-1] = 'X';
+    //         TEST_QUIC_STATUS(
+    //             QUIC_STATUS_INVALID_PARAMETER,
+    //             ConnInval.SetParam(
+    //                 QUIC_PARAM_CONN_CLOSE_REASON_PHRASE,
+    //                 sizeof(Reason),
+    //                 &Reason));
+    //     }
+
+        //
+        // Good, set twice to call update part
+        //
+        {
+            TestScopeLogger LogScope2("Good, set twice to call update part");
+            // char ReasonDummy[] = "This is reason";
+            // TEST_QUIC_SUCCEEDED(
+            //     Connection.SetParam(
+            //         QUIC_PARAM_CONN_CLOSE_REASON_PHRASE,
+            //         sizeof(ReasonDummy),
+            //         &ReasonDummy));
+
+            TEST_QUIC_SUCCEEDED(
+                Connection.SetParam(
+                    QUIC_PARAM_CONN_CLOSE_REASON_PHRASE,
+                    sizeof(MainReason),
+                    &MainReason));
+        }
+    // }
+
+    // //
+    // // GetParam
+    // //
+    // {
+    //     //
+    //     // if (Connection->CloseReasonPhrase == NULL)
+    //     //
+    //     {
+    //         TestScopeLogger LogScope2("if (Connection->CloseReasonPhrase == NULL)");
+    //         MsQuicConnection ConnInval(Registration);
+    //         TEST_QUIC_SUCCEEDED(ConnInval.GetInitStatus());
+    //         uint32_t Length = 0;
+    //         TEST_QUIC_STATUS(
+    //             QUIC_STATUS_NOT_FOUND,
+    //             ConnInval.GetParam(
+    //                 QUIC_PARAM_CONN_CLOSE_REASON_PHRASE,
+    //                 &Length,
+    //                 nullptr));
+    //     }
+
+    //     //
+    //     // Good
+    //     //
+    //     {
+    //         SimpleGetParamTest(Connection.Handle, QUIC_PARAM_CONN_CLOSE_REASON_PHRASE, 0, nullptr);
+    //         //SimpleGetParamTest(Connection.Handle, QUIC_PARAM_CONN_CLOSE_REASON_PHRASE, sizeof(MainReason), MainReason);
+    //     }
+    }
+}
+
+void QuicTest_QUIC_PARAM_CONN_STREAM_SCHEDULING_SCHEME(MsQuicRegistration& Registration)
+{
+    TestScopeLogger LogScope0("QUIC_PARAM_CONN_STREAM_SCHEDULING_SCHEME");
+    {
+        TestScopeLogger LogScope1("SetParam");
+        {
+            //
+            // Invalid scheme
+            //
+            {
+                TestScopeLogger LogScope2("Invalid scheme");
+                MsQuicConnection Connection(Registration);
+                TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
+                QUIC_STREAM_SCHEDULING_SCHEME Scheme = QUIC_STREAM_SCHEDULING_SCHEME_COUNT;
+                TEST_QUIC_STATUS(
+                    QUIC_STATUS_INVALID_PARAMETER,
+                        Connection.SetParam(
+                        QUIC_PARAM_CONN_STREAM_SCHEDULING_SCHEME,
+                        sizeof(Scheme),
+                        &Scheme));
+            }
+
+            //
+            // Good
+            //
+            for (uint32_t Scheme = 0; Scheme < QUIC_STREAM_SCHEDULING_SCHEME_COUNT; Scheme++) {
+                MsQuicConnection Connection(Registration);
+                TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
+                TEST_QUIC_SUCCEEDED(
+                    Connection.SetParam(
+                        QUIC_PARAM_CONN_STREAM_SCHEDULING_SCHEME,
+                        sizeof(Scheme),
+                        &Scheme));
+            }
+        }
+    }
+
+    //
+    // GetParam
+    //
+    {
+        TestScopeLogger LogScope1("GetParam");
+        MsQuicConnection Connection(Registration);
+        TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
+        uint32_t Scheme = QUIC_STREAM_SCHEDULING_SCHEME_FIFO;
+        SimpleGetParamTest(Connection.Handle, QUIC_PARAM_CONN_STREAM_SCHEDULING_SCHEME, sizeof(QUIC_STREAM_SCHEDULING_SCHEME), &Scheme);
+    }
+}
+
+void QuicTest_QUIC_PARAM_CONN_DATAGRAM_RECEIVE_ENABLED(MsQuicRegistration& Registration, MsQuicConfiguration& ClientConfiguration)
+{
+    TestScopeLogger LogScope0("QUIC_PARAM_CONN_DATAGRAM_RECEIVE_ENABLED");
+    MsQuicConnection Connection(Registration);
+    TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
+    BOOLEAN Flag = TRUE;
+    {
+        TestScopeLogger LogScope1("SetParam");
+        //
+        // QUIC_CONN_BAD_START_STATE
+        //
+        {
+            TestScopeLogger LogScope2("QUIC_CONN_BAD_START_STATE");
+            MsQuicConnection ConnInval(Registration);
+            TEST_QUIC_SUCCEEDED(ConnInval.GetInitStatus());
+            SimulateConnBadStartState(ConnInval, ClientConfiguration);
+
+            TEST_QUIC_STATUS(
+                QUIC_STATUS_INVALID_STATE,
+                ConnInval.SetParam(
+                    QUIC_PARAM_CONN_DATAGRAM_RECEIVE_ENABLED,
+                    sizeof(Flag),
+                    &Flag));
+        }
+
+        //
+        // Good
+        //
+        {
+            TEST_QUIC_SUCCEEDED(
+                Connection.SetParam(
+                    QUIC_PARAM_CONN_DATAGRAM_RECEIVE_ENABLED,
+                    sizeof(Flag),
+                    &Flag));
+        }
+    }
+
+    //
+    // GetParam
+    //
+    {
+        TestScopeLogger LogScope1("GetParam");
+        SimpleGetParamTest(Connection.Handle, QUIC_PARAM_CONN_DATAGRAM_RECEIVE_ENABLED, sizeof(BOOLEAN), &Flag);
+    }
+}
+
+void QuicTest_QUIC_PARAM_CONN_DATAGRAM_SEND_ENABLED(MsQuicRegistration& Registration)
+{
+    TestScopeLogger LogScope0("QUIC_PARAM_CONN_DATAGRAM_SEND_ENABLED");
+    {
+        TestScopeLogger LogScope1("SetParam is not allowed");
+        MsQuicConnection Connection(Registration);
+        TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
+        uint8_t Dummy = 0;
+        TEST_QUIC_STATUS(
+            QUIC_STATUS_INVALID_PARAMETER,
+            Connection.SetParam(
+                QUIC_PARAM_CONN_DATAGRAM_SEND_ENABLED,
+                sizeof(Dummy),
+                &Dummy));
+    }
+
+    {
+        TestScopeLogger LogScope1("GetParam");
+        MsQuicConnection Connection(Registration);
+        TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
+        BOOLEAN Enabled = TRUE;
+        SimpleGetParamTest(Connection.Handle, QUIC_PARAM_CONN_DATAGRAM_SEND_ENABLED, sizeof(BOOLEAN), &Enabled);
+    }
+}
+
+void QuicTest_QUIC_PARAM_CONN_DISABLE_1RTT_ENCRYPTION(MsQuicRegistration& Registration, MsQuicConfiguration& ClientConfiguration)
+{
+#ifdef QUIC_API_ENABLE_INSECURE_FEATURES
+    TestScopeLogger LogScope0("QUIC_PARAM_CONN_DISABLE_1RTT_ENCRYPTION");
+    MsQuicConnection Connection(Registration);
+    TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
+    BOOLEAN Flag = TRUE;
+    //
+    // The peer didn't negotiate the feature
+    //
+    {
+        {
+            MsQuicConnection ConnInval(Registration);
+            TEST_QUIC_SUCCEEDED(ConnInval.GetInitStatus());
+            TEST_QUIC_STATUS(
+                QUIC_STATUS_INVALID_STATE,
+                ConnInval.SetParam(
+                    QUIC_PARAM_CONN_DISABLE_1RTT_ENCRYPTION,
+                    sizeof(Flag),
+                    &Flag));
+        }
+
+        //
+        // Good
+        //
+        {
+            TEST_QUIC_SUCCEEDED(
+                Connection.SetParam(
+                    QUIC_PARAM_CONN_DISABLE_1RTT_ENCRYPTION,
+                    sizeof(Flag),
+                    &Flag));
+        }
+    }
+
+    //
+    // GetParam
+    //
+    {
+        TestScopeLogger LogScope1("GetParam");
+        SimpleGetParamTest(Connection.Handle, QUIC_PARAM_CONN_DISABLE_1RTT_ENCRYPTION, sizeof(BOOLEAN), &Flag);
+    }
+#else
+    UNREFERENCED_PARAMETER(Registration);
+    UNREFERENCED_PARAMETER(ClientConfiguration);
+#endif
+}
+
+void QuicTest_QUIC_PARAM_CONN_PEER_CERTIFICATE_VALID(MsQuicRegistration& Registration)
+{
+    TestScopeLogger LogScope0("QUIC_PARAM_CONN_PEER_CERTIFICATE_VALID");
+    {
+        TestScopeLogger LogScope1("SetParam");
+        MsQuicConnection Connection(Registration);
+        TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
+
+        //
+        // Good with True/False
+        //
+        for (uint8_t i = 0; i < 2; i++) {
+            BOOLEAN Result = FALSE + i;
+            TEST_QUIC_SUCCEEDED(
+                Connection.SetParam(
+                    QUIC_PARAM_CONN_PEER_CERTIFICATE_VALID,
+                    sizeof(Result),
+                    &Result));
+        }
+    }
+
+    {
+        TestScopeLogger LogScope1("GetParam is not allowed");
+    }
+}
+
+void QuicTest_QUIC_PARAM_CONN_LOCAL_INTERFACE(MsQuicRegistration& Registration, MsQuicConfiguration& ClientConfiguration)
+{
+    TestScopeLogger LogScope0("QUIC_PARAM_CONN_LOCAL_INTERFACE");
+
+    uint32_t Index = 0;
+    //
+    // QUIC_CONN_BAD_START_STATE
+    //
+    {
+        TestScopeLogger LogScope1("QUIC_CONN_BAD_START_STATE");
+        MsQuicConnection Connection(Registration);
+        TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
+        SimulateConnBadStartState(Connection, ClientConfiguration);
+
+        TEST_QUIC_STATUS(
+            QUIC_STATUS_INVALID_STATE,
+            Connection.SetParam(
+                QUIC_PARAM_CONN_LOCAL_INTERFACE,
+                sizeof(Index),
+                &Index));
+    }
+
+    //
+    // Good
+    //
+    {
+        MsQuicConnection Connection(Registration);
+        TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
+        TEST_QUIC_SUCCEEDED(
+            Connection.SetParam(
+                QUIC_PARAM_CONN_LOCAL_INTERFACE,
+                sizeof(Index),
+                &Index));
+    }
+
+    {
+        TestScopeLogger LogScope1("GetParam is not allowed");
+    }
+}
+
+void QuicTest_QUIC_PARAM_CONN_TLS_SECRETS(MsQuicRegistration& Registration, MsQuicConfiguration& ClientConfiguration)
+{
+    TestScopeLogger LogScope0("QUIC_PARAM_CONN_TLS_SECRETS");
+    {
+        TestScopeLogger LogScope1("SetParam");
+        QUIC_TLS_SECRETS Secrets = {};
+        //
+        // QUIC_CONN_BAD_START_STATE
+        //
+        {
+            TestScopeLogger LogScope2("QUIC_CONN_BAD_START_STATE");
             MsQuicConnection Connection(Registration);
             TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
             SimulateConnBadStartState(Connection, ClientConfiguration);
@@ -4094,9 +4182,9 @@ void QuicTestConnectionParam()
             TEST_QUIC_STATUS(
                 QUIC_STATUS_INVALID_STATE,
                 Connection.SetParam(
-                    QUIC_PARAM_CONN_LOCAL_INTERFACE,
-                    sizeof(Index),
-                    &Index));
+                    QUIC_PARAM_CONN_TLS_SECRETS,
+                    sizeof(Secrets),
+                    &Secrets));
         }
 
         //
@@ -4107,186 +4195,299 @@ void QuicTestConnectionParam()
             TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
             TEST_QUIC_SUCCEEDED(
                 Connection.SetParam(
-                    QUIC_PARAM_CONN_LOCAL_INTERFACE,
-                    sizeof(Index),
-                    &Index));
-        }
-
-        {
-            TestScopeLogger LogScope1("GetParam is not allowed");
+                    QUIC_PARAM_CONN_TLS_SECRETS,
+                    sizeof(Secrets),
+                    &Secrets));
         }
     }
 
-    //
-    // QUIC_PARAM_CONN_TLS_SECRETS
-    //
     {
-        TestScopeLogger LogScope0("QUIC_PARAM_CONN_TLS_SECRETS");
-        {
-            TestScopeLogger LogScope1("SetParam");
-            QUIC_TLS_SECRETS Secrets = {};
-            //
-            // QUIC_CONN_BAD_START_STATE
-            //
-            {
-                TestScopeLogger LogScope2("QUIC_CONN_BAD_START_STATE");
-                MsQuicConnection Connection(Registration);
-                TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
-                SimulateConnBadStartState(Connection, ClientConfiguration);
-
-                TEST_QUIC_STATUS(
-                    QUIC_STATUS_INVALID_STATE,
-                    Connection.SetParam(
-                        QUIC_PARAM_CONN_TLS_SECRETS,
-                        sizeof(Secrets),
-                        &Secrets));
-            }
-
-            //
-            // Good
-            //
-            {
-                MsQuicConnection Connection(Registration);
-                TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
-                TEST_QUIC_SUCCEEDED(
-                    Connection.SetParam(
-                        QUIC_PARAM_CONN_TLS_SECRETS,
-                        sizeof(Secrets),
-                        &Secrets));
-            }
-        }
-
-        {
-            TestScopeLogger LogScope1("GetParam is not allowed");
-        }
+        TestScopeLogger LogScope1("GetParam is not allowed");
     }
+}
 
+void QuicTest_QUIC_PARAM_CONN_CIBIR_ID(MsQuicRegistration& Registration, MsQuicConfiguration& ClientConfiguration)
+{
 #ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
-    //
-    // QUIC_PARAM_CONN_VERSION_SETTINGS
-    //
+    TestScopeLogger LogScope0("QUIC_PARAM_CONN_CIBIR_ID");
     {
-        TestScopeLogger LogScope("QUIC_PARAM_CONN_VERSION_SETTINGS is covered by QuicTestVersionSettings");
-    }
-
-    //
-    // QUIC_PARAM_CONN_CIBIR_ID
-    //
-    {
-        TestScopeLogger LogScope0("QUIC_PARAM_CONN_CIBIR_ID");
+        TestScopeLogger LogScope1("SetParam");
+        //
+        // QUIC_CONN_BAD_START_STATE
+        //
         {
-            TestScopeLogger LogScope1("SetParam");
-            //
-            // QUIC_CONN_BAD_START_STATE
-            //
-            {
-                TestScopeLogger LogScope2("QUIC_CONN_BAD_START_STATE");
-                MsQuicConnection Connection(Registration);
-                TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
-                SimulateConnBadStartState(Connection, ClientConfiguration);
+            TestScopeLogger LogScope2("QUIC_CONN_BAD_START_STATE");
+            MsQuicConnection Connection(Registration);
+            TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
+            SimulateConnBadStartState(Connection, ClientConfiguration);
 
-                uint8_t Id[5] = {};
-                TEST_QUIC_STATUS(
-                    QUIC_STATUS_INVALID_STATE,
-                    Connection.SetParam(
-                        QUIC_PARAM_CONN_CIBIR_ID,
-                        sizeof(Id),
-                        &Id));
-            }
-
-            //
-            // !Connection->State.ShareBinding
-            //
-            {
-                TestScopeLogger LogScope2("SharedBinding is disabled");
-                MsQuicConnection Connection(Registration);
-                TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
-                uint8_t Id[4] = {};
-                TEST_QUIC_STATUS(
-                    QUIC_STATUS_INVALID_STATE,
-                    Connection.SetParam(
-                        QUIC_PARAM_CONN_CIBIR_ID,
-                        sizeof(Id),
-                        &Id));
-            }
-
-
-            //
-            // CIBIR_ID common
-            //
-            {
-                TestScopeLogger LogScope2("SharedBinding is enabled");
-                MsQuicConnection Connection(Registration);
-                TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
-                BOOLEAN Flag = TRUE;
-                TEST_QUIC_SUCCEEDED(
-                    Connection.SetParam(
-                        QUIC_PARAM_CONN_SHARE_UDP_BINDING,
-                        sizeof(Flag),
-                        &Flag));
-
-                // Will be enabled once Listener test is merged
-                // CibirIDTests(Connection.Handle, QUIC_PARAM_CONN_CIBIR_ID);
-            }
+            uint8_t Id[5] = {};
+            TEST_QUIC_STATUS(
+                QUIC_STATUS_INVALID_STATE,
+                Connection.SetParam(
+                    QUIC_PARAM_CONN_CIBIR_ID,
+                    sizeof(Id),
+                    &Id));
         }
 
+        //
+        // !Connection->State.ShareBinding
+        //
         {
-            TestScopeLogger LogScope1("GetParam is not allowed");
+            TestScopeLogger LogScope2("SharedBinding is disabled");
+            MsQuicConnection Connection(Registration);
+            TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
+            uint8_t Id[4] = {};
+            TEST_QUIC_STATUS(
+                QUIC_STATUS_INVALID_STATE,
+                Connection.SetParam(
+                    QUIC_PARAM_CONN_CIBIR_ID,
+                    sizeof(Id),
+                    &Id));
+        }
+
+
+        //
+        // CIBIR_ID common
+        //
+        {
+            TestScopeLogger LogScope2("SharedBinding is enabled");
+            MsQuicConnection Connection(Registration);
+            TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
+            BOOLEAN Flag = TRUE;
+            TEST_QUIC_SUCCEEDED(
+                Connection.SetParam(
+                    QUIC_PARAM_CONN_SHARE_UDP_BINDING,
+                    sizeof(Flag),
+                    &Flag));
+
+            // Will be enabled once Listener test is merged
+            // CibirIDTests(Connection.Handle, QUIC_PARAM_CONN_CIBIR_ID);
         }
     }
+
+    {
+        TestScopeLogger LogScope1("GetParam is not allowed");
+    }
+#else
+    UNREFERENCED_PARAMETER(Registration);
+    UNREFERENCED_PARAMETER(ClientConfiguration);
 #endif
+}
 
-    //
-    // QUIC_PARAM_CONN_STATISTICS_V2
-    //
+void QuicTest_QUIC_PARAM_CONN_STATISTICS_V2(MsQuicRegistration& Registration)
+{
+    TestScopeLogger LogScope0("QUIC_PARAM_CONN_STATISTICS_V2 is get only");
     {
-        TestScopeLogger LogScope0("QUIC_PARAM_CONN_STATISTICS_V2 is get only");
-        {
-            TestScopeLogger LogScope1("GetParam");
-            MsQuicConnection Connection(Registration);
-            TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
-            uint16_t Dummy = 0;
-            TEST_QUIC_STATUS(
-                QUIC_STATUS_INVALID_PARAMETER,
-                Connection.SetParam(
-                    QUIC_PARAM_CONN_STATISTICS_V2,
-                    sizeof(Dummy),
-                    &Dummy));
-        }
-
-        {
-            TestScopeLogger LogScope1("GetParam");
-            MsQuicConnection Connection(Registration);
-            TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
-            SimpleGetParamTest(Connection.Handle, QUIC_PARAM_CONN_STATISTICS_V2, sizeof(QUIC_STATISTICS_V2), nullptr, true);
-        }
+        TestScopeLogger LogScope1("GetParam");
+        MsQuicConnection Connection(Registration);
+        TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
+        uint16_t Dummy = 0;
+        TEST_QUIC_STATUS(
+            QUIC_STATUS_INVALID_PARAMETER,
+            Connection.SetParam(
+                QUIC_PARAM_CONN_STATISTICS_V2,
+                sizeof(Dummy),
+                &Dummy));
     }
 
-    //
-    // QUIC_PARAM_CONN_STATISTICS_V2_PLAT
-    //
     {
-        TestScopeLogger LogScope0("QUIC_PARAM_CONN_STATISTICS_V2_PLAT");
-        {
-            TestScopeLogger LogScope1("GetParam");
-            MsQuicConnection Connection(Registration);
-            TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
-            uint16_t Dummy = 0;
-            TEST_QUIC_STATUS(
-                QUIC_STATUS_INVALID_PARAMETER,
-                Connection.SetParam(
-                    QUIC_PARAM_CONN_STATISTICS_V2_PLAT,
-                    sizeof(Dummy),
-                    &Dummy));
-        }
-
-        {
-            TestScopeLogger LogScope1("GetParam");
-            MsQuicConnection Connection(Registration);
-            TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
-            SimpleGetParamTest(Connection.Handle, QUIC_PARAM_CONN_STATISTICS_V2_PLAT, sizeof(QUIC_STATISTICS_V2), nullptr, true);
-        }
+        TestScopeLogger LogScope1("GetParam");
+        MsQuicConnection Connection(Registration);
+        TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
+        SimpleGetParamTest(Connection.Handle, QUIC_PARAM_CONN_STATISTICS_V2, sizeof(QUIC_STATISTICS_V2), nullptr, true);
     }
+}
+
+void QuicTest_QUIC_PARAM_CONN_STATISTICS_V2_PLAT(MsQuicRegistration& Registration)
+{
+    TestScopeLogger LogScope0("QUIC_PARAM_CONN_STATISTICS_V2_PLAT");
+    {
+        TestScopeLogger LogScope1("GetParam");
+        MsQuicConnection Connection(Registration);
+        TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
+        uint16_t Dummy = 0;
+        TEST_QUIC_STATUS(
+            QUIC_STATUS_INVALID_PARAMETER,
+            Connection.SetParam(
+                QUIC_PARAM_CONN_STATISTICS_V2_PLAT,
+                sizeof(Dummy),
+                &Dummy));
+    }
+
+    {
+        TestScopeLogger LogScope1("GetParam");
+        MsQuicConnection Connection(Registration);
+        TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
+        SimpleGetParamTest(Connection.Handle, QUIC_PARAM_CONN_STATISTICS_V2_PLAT, sizeof(QUIC_STATISTICS_V2), nullptr, true);
+    }
+}
+
+
+void QuicTest_QUIC_PARAM_CONN_ORIG_DEST_CID(MsQuicRegistration& Registration, MsQuicConfiguration& ClientConfiguration) {
+    //
+    // This is the unit test for checking to see if a server has the correct original dest CID.
+    //
+    TestScopeLogger LogScope0("QUIC_PARAM_CONN_ORIG_DEST_CID");
+    {
+        MsQuicConnection Connection(Registration);
+        TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
+        TEST_QUIC_SUCCEEDED(
+          Connection.Start(
+              ClientConfiguration,
+              QUIC_ADDRESS_FAMILY_INET,
+              "localhost",
+              4433));
+        MsQuic->ConnectionSetConfiguration(Connection.Handle, ClientConfiguration);
+        //
+        // 8 bytes is the expected minimum size of the CID.
+        //
+        uint32_t SizeOfBuffer = 8;
+        uint8_t Buffer[8] = {0};
+        uint8_t ZeroBuffer[8] = {0};
+        TestScopeLogger LogScope1("GetParam test success case");
+        TEST_QUIC_STATUS(
+            QUIC_STATUS_SUCCESS,
+            Connection.GetParam(
+                QUIC_PARAM_CONN_ORIG_DEST_CID,
+                &SizeOfBuffer,
+                Buffer
+            )
+        )
+        TEST_NOT_EQUAL(memcmp(Buffer, ZeroBuffer, sizeof(Buffer)), 0);
+    }
+    {
+        MsQuicConnection Connection(Registration);
+        TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
+        TEST_QUIC_SUCCEEDED(
+          Connection.Start(
+              ClientConfiguration,
+              QUIC_ADDRESS_FAMILY_INET,
+              "localhost",
+              4433));
+        uint32_t SizeOfBuffer = 8;
+        TestScopeLogger LogScope1("GetParam null buffer check");
+        TEST_QUIC_STATUS(
+            QUIC_STATUS_INVALID_PARAMETER,
+            Connection.GetParam(
+                QUIC_PARAM_CONN_ORIG_DEST_CID,
+                &SizeOfBuffer,
+                nullptr
+            )
+        )
+    }
+    {
+        MsQuicConnection Connection(Registration);
+        TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
+        TEST_QUIC_SUCCEEDED(
+          Connection.Start(
+              ClientConfiguration,
+              QUIC_ADDRESS_FAMILY_INET,
+              "localhost",
+              4433));
+        uint32_t SizeOfBuffer = 1;
+        TestScopeLogger LogScope1("GetParam buffer too small check");
+        uint8_t Buffer[1];
+        TEST_QUIC_STATUS(
+            QUIC_STATUS_BUFFER_TOO_SMALL,
+            Connection.GetParam(
+                QUIC_PARAM_CONN_ORIG_DEST_CID,
+                &SizeOfBuffer,
+                Buffer
+            )
+        )
+    }
+    {
+        MsQuicConnection Connection(Registration);
+        TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
+        TEST_QUIC_SUCCEEDED(
+          Connection.Start(
+              ClientConfiguration,
+              QUIC_ADDRESS_FAMILY_INET,
+              "localhost",
+              4433));
+        uint32_t SizeOfBuffer = 100;
+        uint8_t Buffer[100] = {0};
+        uint8_t ZeroBuffer[100] = {0};
+        TestScopeLogger LogScope1("GetParam size of buffer bigger than needed");
+        TEST_QUIC_STATUS(
+            QUIC_STATUS_SUCCESS,
+            Connection.GetParam(
+                QUIC_PARAM_CONN_ORIG_DEST_CID,
+                &SizeOfBuffer,
+                Buffer
+            )
+        )
+        TEST_NOT_EQUAL(memcmp(Buffer, ZeroBuffer, sizeof(Buffer)), 0);
+        //
+        // There is no way the CID written should be 100 bytes according to the RFC.
+        //
+        TEST_TRUE(SizeOfBuffer < 100);
+    }
+    {
+        MsQuicConnection Connection(Registration);
+        TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
+        TEST_QUIC_SUCCEEDED(
+          Connection.Start(
+              ClientConfiguration,
+              QUIC_ADDRESS_FAMILY_INET,
+              "localhost",
+              4433));
+        uint32_t SizeOfBuffer = 0;
+        TestScopeLogger LogScope1("GetParam check OrigDestCID size with nullptr");
+        TEST_QUIC_STATUS(
+            QUIC_STATUS_BUFFER_TOO_SMALL,
+            Connection.GetParam(
+                QUIC_PARAM_CONN_ORIG_DEST_CID,
+                &SizeOfBuffer,
+                nullptr
+            )
+        )
+        TEST_TRUE(SizeOfBuffer >= 8);
+        TEST_QUIC_STATUS(
+            QUIC_STATUS_INVALID_PARAMETER,
+            Connection.GetParam(
+                QUIC_PARAM_CONN_ORIG_DEST_CID,
+                &SizeOfBuffer,
+                nullptr
+            )
+        )
+    }
+}
+
+void QuicTestConnectionParam()
+{
+    MsQuicAlpn Alpn("MsQuicTest");
+    MsQuicRegistration Registration;
+    TEST_TRUE(Registration.IsValid());
+    MsQuicCredentialConfig ClientCredConfig;
+    MsQuicConfiguration ClientConfiguration(Registration, Alpn, ClientCertCredConfig);
+
+    QuicTest_QUIC_PARAM_CONN_QUIC_VERSION(Registration, ClientConfiguration);
+    QuicTest_QUIC_PARAM_CONN_LOCAL_ADDRESS(Registration, ClientConfiguration);
+    QuicTest_QUIC_PARAM_CONN_REMOTE_ADDRESS(Registration, ClientConfiguration);
+    QuicTest_QUIC_PARAM_CONN_IDEAL_PROCESSOR(Registration);
+    QuicTest_QUIC_PARAM_CONN_SETTINGS(Registration, ClientConfiguration);
+    QuicTest_QUIC_PARAM_CONN_STATISTICS(Registration);
+    QuicTest_QUIC_PARAM_CONN_STATISTICS_PLAT(Registration);
+    QuicTest_QUIC_PARAM_CONN_SHARE_UDP_BINDING(Registration, ClientConfiguration);
+    QuicTest_QUIC_PARAM_CONN_LOCAL_BIDI_STREAM_COUNT(Registration);
+    QuicTest_QUIC_PARAM_CONN_LOCAL_UNIDI_STREAM_COUNT(Registration);
+    QuicTest_QUIC_PARAM_CONN_MAX_STREAM_IDS(Registration);
+    QuicTest_QUIC_PARAM_CONN_CLOSE_REASON_PHRASE(Registration);
+    QuicTest_QUIC_PARAM_CONN_STREAM_SCHEDULING_SCHEME(Registration);
+    QuicTest_QUIC_PARAM_CONN_DATAGRAM_RECEIVE_ENABLED(Registration, ClientConfiguration);
+    QuicTest_QUIC_PARAM_CONN_DATAGRAM_SEND_ENABLED(Registration);
+    QuicTest_QUIC_PARAM_CONN_DISABLE_1RTT_ENCRYPTION(Registration, ClientConfiguration);
+    // QUIC_PARAM_CONN_RESUMPTION_TICKET is covered by TestConnection.cpp and EventTest.cpp
+    QuicTest_QUIC_PARAM_CONN_PEER_CERTIFICATE_VALID(Registration);
+    QuicTest_QUIC_PARAM_CONN_LOCAL_INTERFACE(Registration, ClientConfiguration);
+    QuicTest_QUIC_PARAM_CONN_TLS_SECRETS(Registration, ClientConfiguration);
+    // QUIC_PARAM_CONN_VERSION_SETTINGS is covered by QuicTestVersionSettings
+    QuicTest_QUIC_PARAM_CONN_CIBIR_ID(Registration, ClientConfiguration);
+    QuicTest_QUIC_PARAM_CONN_STATISTICS_V2(Registration);
+    QuicTest_QUIC_PARAM_CONN_STATISTICS_V2_PLAT(Registration);
+    QuicTest_QUIC_PARAM_CONN_ORIG_DEST_CID(Registration, ClientConfiguration);
 }
 
 //
@@ -4803,6 +5004,74 @@ void QuicTestStreamParam()
             TEST_EQUAL(Length, sizeof(QUIC_STREAM_STATISTICS));
         }
     }
+    //
+    // QUIC_PARAM_STREAM_RELIABLE_OFFSET
+    // QUIC_PARAM_STREAM_RELIABLE_OFFSET_RECV
+    //
+    {
+        TestScopeLogger LogScope0("QUIC_PARAM_STREAM_RELIABLE_OFFSET");
+        MsQuicStream Stream(Connection, QUIC_STREAM_OPEN_FLAG_NONE);
+        uint32_t BufferSize = 1;
+
+        //
+        // GetParam Test Invalid States.
+        //
+        {
+            TestScopeLogger LogScope1("GetParam for invalid states");
+            TEST_QUIC_STATUS(
+                QUIC_STATUS_BUFFER_TOO_SMALL,
+                MsQuic->GetParam(
+                    Stream.Handle,
+                    QUIC_PARAM_STREAM_RELIABLE_OFFSET,
+                    &BufferSize,
+                    NULL));
+            BufferSize = 1;
+            TEST_QUIC_STATUS(
+                QUIC_STATUS_BUFFER_TOO_SMALL,
+                MsQuic->GetParam(
+                    Stream.Handle,
+                    QUIC_PARAM_STREAM_RELIABLE_OFFSET_RECV,
+                    &BufferSize,
+                    NULL));
+
+            BufferSize = 64;
+
+            TEST_QUIC_STATUS(
+                QUIC_STATUS_INVALID_PARAMETER,
+                MsQuic->GetParam(
+                    Stream.Handle,
+                    QUIC_PARAM_STREAM_RELIABLE_OFFSET_RECV,
+                    &BufferSize,
+                    NULL));
+            TEST_QUIC_STATUS(
+                QUIC_STATUS_INVALID_PARAMETER,
+                MsQuic->GetParam(
+                    Stream.Handle,
+                    QUIC_PARAM_STREAM_RELIABLE_OFFSET_RECV,
+                    &BufferSize,
+                    NULL));
+
+            //
+            // Should return invalid state since we haven't set it yet.
+            //
+            uint64_t Buffer = 10000;
+            TEST_QUIC_STATUS(
+                QUIC_STATUS_INVALID_STATE,
+                MsQuic->GetParam(
+                    Stream.Handle,
+                    QUIC_PARAM_STREAM_RELIABLE_OFFSET,
+                    &BufferSize,
+                    &Buffer));
+            Buffer = 10000;
+            TEST_QUIC_STATUS(
+                QUIC_STATUS_INVALID_STATE,
+                MsQuic->GetParam(
+                    Stream.Handle,
+                    QUIC_PARAM_STREAM_RELIABLE_OFFSET_RECV,
+                    &BufferSize,
+                    &Buffer));
+        }
+    }
 }
 
 void
@@ -5134,7 +5403,7 @@ _Function_class_(QUIC_LISTENER_CALLBACK)
 QUIC_STATUS
 QUIC_API
 RejectListenerCallback(
-    _In_ HQUIC /* Listener */,
+    _In_ MsQuicListener* /* Listener */,
     _In_opt_ void* Context,
     _Inout_ QUIC_LISTENER_EVENT* Event
 ) noexcept {
@@ -5167,7 +5436,7 @@ QuicTestConnectionRejection(
     MsQuicConfiguration ClientConfiguration(Registration, "MsQuicTest", ClientCredConfig);
     TEST_QUIC_SUCCEEDED(ClientConfiguration.GetInitStatus());
 
-    MsQuicListener Listener(Registration, RejectListenerCallback, RejectByClosing ? &ShutdownEvent : nullptr);
+    MsQuicListener Listener(Registration, CleanUpManual, RejectListenerCallback, RejectByClosing ? &ShutdownEvent : nullptr);
     TEST_QUIC_SUCCEEDED(Listener.GetInitStatus());
     QUIC_ADDRESS_FAMILY QuicAddrFamily = QUIC_ADDRESS_FAMILY_INET;
     QuicAddr ServerLocalAddr(QuicAddrFamily);

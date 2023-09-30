@@ -212,3 +212,12 @@ TEST(TransportParamTest, GreaseQuicBit)
     EncodeDecodeAndCompare(&OriginalTP);
     EncodeDecodeAndCompare(&OriginalTP, true);
 }
+
+TEST(TransportParamTest, ReliableResetEnabled)
+{
+    QUIC_TRANSPORT_PARAMETERS OriginalTP;
+    CxPlatZeroMemory(&OriginalTP, sizeof(OriginalTP));
+    OriginalTP.Flags = QUIC_TP_FLAG_RELIABLE_RESET_ENABLED;
+    EncodeDecodeAndCompare(&OriginalTP);
+    EncodeDecodeAndCompare(&OriginalTP, true);
+}

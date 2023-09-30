@@ -1533,14 +1533,13 @@ QuicCryptoProcessTlsCompletion(
         //
         if (Connection->TlsSecrets != NULL &&
             QuicConnIsClient(Connection) &&
-            Crypto->TlsState.WriteKey == QUIC_PACKET_KEY_INITIAL &&
+            (Crypto->TlsState.WriteKey == QUIC_PACKET_KEY_INITIAL ||
+                Crypto->TlsState.WriteKey == QUIC_PACKET_KEY_0_RTT) &&
             Crypto->TlsState.BufferLength > 0) {
-            QUIC_NEW_CONNECTION_INFO Info = { 0 };
-            QuicCryptoTlsReadInitial(
-                Connection,
+
+            QuicCryptoTlsReadClientRandom(
                 Crypto->TlsState.Buffer,
                 Crypto->TlsState.BufferLength,
-                &Info,
                 Connection->TlsSecrets);
             //
             // Connection is done with TlsSecrets, clean up.
@@ -1648,12 +1647,18 @@ QuicCryptoProcessTlsCompletion(
         }
         Connection->Stats.ResumptionSucceeded = Crypto->TlsState.SessionResumed;
 
+        CXPLAT_DBG_ASSERT(Connection->PathsCount == 1);
+        QUIC_PATH* Path = &Connection->Paths[0];
+        CXPLAT_DBG_ASSERT(Path->IsActive);
+
+        if (Connection->Settings.EncryptionOffloadAllowed) {
+            QuicPathUpdateQeo(Connection, Path, CXPLAT_QEO_OPERATION_ADD);
+        }
+
         //
         // A handshake complete means the peer has been validated. Trigger MTU
         // discovery on path.
         //
-        CXPLAT_DBG_ASSERT(Connection->PathsCount == 1);
-        QUIC_PATH* Path = &Connection->Paths[0];
         QuicMtuDiscoveryPeerValidated(&Path->MtuDiscovery, Connection);
 
         if (QuicConnIsServer(Connection) &&
@@ -1837,14 +1842,7 @@ QuicCryptoProcessData(
                     Connection,
                     Buffer.Buffer,
                     Buffer.Length,
-                    &Info,
-                    //
-                    // On server, TLS is initialized before the listener
-                    // is told about the connection, so TlsSecrets is still
-                    // NULL.
-                    //
-                    NULL
-                    );
+                    &Info);
             if (QUIC_FAILED(Status)) {
                 QuicConnTransportError(
                     Connection,
@@ -1880,6 +1878,19 @@ QuicCryptoProcessData(
                 Connection->Paths[0].Binding,
                 Connection,
                 &Info);
+
+            if (Connection->TlsSecrets != NULL &&
+                !Connection->State.HandleClosed &&
+                Connection->State.ExternalOwner) {
+                //
+                // At this point, the connection was accepted by the listener,
+                // so now the ClientRandom can be copied.
+                //
+                QuicCryptoTlsReadClientRandom(
+                    Buffer.Buffer,
+                    Buffer.Length,
+                    Connection->TlsSecrets);
+            }
             return Status;
         }
     }
@@ -2647,7 +2658,7 @@ QuicCryptoReNegotiateAlpn(
             "No ALPN match found");
         QuicConnTransportError(
             Connection,
-            QUIC_ERROR_INTERNAL_ERROR);
+            QUIC_ERROR_CRYPTO_NO_APPLICATION_PROTOCOL);
         return QUIC_STATUS_INVALID_PARAMETER;
     }
 

@@ -26,7 +26,12 @@ Another large piece of the PAL is the abstraction of UDP and TCP sockets, named 
 
 It uses asynchronous callbacks driven by the current execution model (see [below](#execution-model)) threads.
 
-Currently, it also has preview support of XDP on Windows.
+Currently, it also has preview support of XDP on Windows.  
+XDP datapath is used when
+- XDP initialization succeeds
+  - XDP deps are installed
+  - XDP capable NIC is available
+- Targetting to non-loopback address
 
 ### Crypto
 

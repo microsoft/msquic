@@ -122,6 +122,9 @@ typedef union QUIC_STREAM_FLAGS {
         BOOLEAN LocalNotAllowed         : 1;    // Peer's unidirectional stream.
         BOOLEAN LocalCloseFin           : 1;    // Locally closed (graceful).
         BOOLEAN LocalCloseReset         : 1;    // Locally closed (locally aborted).
+        BOOLEAN LocalCloseResetReliable : 1;    // Indicates that we should shutdown the send path once we sent/ACK'd ReliableOffsetSend bytes.
+        BOOLEAN LocalCloseResetReliableAcked : 1; // Indicates the peer has acknowledged we will stop sending once we sent/ACK'd ReliableOffsetSend bytes.
+        BOOLEAN RemoteCloseResetReliable : 1;   // Indicates that the peer initiaited a reliable reset. Keep Recv path available for RecvMaxLength bytes.
         BOOLEAN ReceivedStopSending     : 1;    // Peer sent STOP_SENDING frame.
         BOOLEAN LocalCloseAcked         : 1;    // Any close acknowledged.
         BOOLEAN FinAcked                : 1;    // Our FIN was acknowledged.
@@ -149,6 +152,9 @@ typedef union QUIC_STREAM_FLAGS {
         BOOLEAN ShutdownComplete        : 1;    // Both directions have been shutdown and acknowledged.
         BOOLEAN Uninitialized           : 1;    // Uninitialize started/completed. Used for Debugging.
         BOOLEAN Freed                   : 1;    // Freed after last ref count released. Used for Debugging.
+
+        BOOLEAN InStreamTable           : 1;    // The stream is currently in the connection's table.
+        BOOLEAN DelayIdFcUpdate         : 1;    // Delay stream ID FC updates to StreamClose.
     };
 } QUIC_STREAM_FLAGS;
 
@@ -162,7 +168,9 @@ typedef enum QUIC_STREAM_SEND_STATE {
     QUIC_STREAM_SEND_RESET,
     QUIC_STREAM_SEND_RESET_ACKED,
     QUIC_STREAM_SEND_FIN,
-    QUIC_STREAM_SEND_FIN_ACKED
+    QUIC_STREAM_SEND_FIN_ACKED,
+    QUIC_STREAM_SEND_RELIABLE_RESET,
+    QUIC_STREAM_SEND_RELIABLE_RESET_ACKED
 } QUIC_STREAM_SEND_STATE;
 
 typedef enum QUIC_STREAM_RECV_STATE {
@@ -171,7 +179,8 @@ typedef enum QUIC_STREAM_RECV_STATE {
     QUIC_STREAM_RECV_PAUSED,
     QUIC_STREAM_RECV_STOPPED,
     QUIC_STREAM_RECV_RESET,
-    QUIC_STREAM_RECV_FIN
+    QUIC_STREAM_RECV_FIN,
+    QUIC_STREAM_RECV_RELIABLE_RESET
 } QUIC_STREAM_RECV_STATE;
 
 //
@@ -195,7 +204,11 @@ typedef enum QUIC_STREAM_REF {
 //
 typedef struct QUIC_STREAM {
 
+#ifdef __cplusplus
+    struct QUIC_HANDLE _;
+#else
     struct QUIC_HANDLE;
+#endif
 
     //
     // Number of references to the handle.
@@ -338,6 +351,12 @@ typedef struct QUIC_STREAM {
     //
     uint64_t RecoveryNextOffset;
     uint64_t RecoveryEndOffset;
+
+    //
+    // If > 0, bytes up to offset must be re-transmitted and ACK'd from peer before we can abort this stream.
+    //
+    uint64_t ReliableOffsetSend;
+
     #define RECOV_WINDOW_OPEN(S) ((S)->RecoveryNextOffset < (S)->RecoveryEndOffset)
 
     //
@@ -369,7 +388,7 @@ typedef struct QUIC_STREAM {
     uint64_t MaxAllowedRecvOffset;
 
     uint64_t RecvWindowBytesDelivered;
-    uint32_t RecvWindowLastUpdate;
+    uint64_t RecvWindowLastUpdate;
 
     //
     // Flags indicating the state of queued events.
@@ -441,6 +460,12 @@ QuicStreamSendGetState(
 {
     if (Stream->Flags.LocalNotAllowed) {
         return QUIC_STREAM_SEND_DISABLED;
+    } else if (Stream->Flags.LocalCloseResetReliable) {
+        if (Stream->Flags.LocalCloseResetReliableAcked) {
+            return QUIC_STREAM_SEND_RELIABLE_RESET_ACKED;
+        } else {
+            return QUIC_STREAM_SEND_RELIABLE_RESET;
+        }
     } else if (Stream->Flags.LocalCloseAcked) {
         if (Stream->Flags.FinAcked) {
             return QUIC_STREAM_SEND_FIN_ACKED;
@@ -466,6 +491,8 @@ QuicStreamRecvGetState(
         return QUIC_STREAM_RECV_DISABLED;
     } else if (Stream->Flags.RemoteCloseReset) {
         return QUIC_STREAM_RECV_RESET;
+    } else if (Stream->Flags.RemoteCloseResetReliable) {
+        return QUIC_STREAM_RECV_RELIABLE_RESET;
     } else if (Stream->Flags.RemoteCloseFin) {
         return QUIC_STREAM_RECV_FIN;
     } else if (Stream->Flags.SentStopSending) {
@@ -528,8 +555,7 @@ QUIC_STATUS
 QuicStreamInitialize(
     _In_ QUIC_CONNECTION* Connection,
     _In_ BOOLEAN OpenedRemotely,
-    _In_ BOOLEAN Unidirectional,
-    _In_ BOOLEAN Opened0Rtt,
+    _In_ QUIC_STREAM_OPEN_FLAGS Flags,
     _Outptr_ _At_(*Stream, __drv_allocatesMem(Mem))
         QUIC_STREAM** Stream
     );
@@ -897,6 +923,24 @@ QuicStreamOnResetAck(
     );
 
 //
+// Called when an ACK is received for a RELIABLE_RESET frame we sent.
+//
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+QuicStreamOnResetReliableAck(
+    _In_ QUIC_STREAM* Stream
+    );
+
+//
+// Cleanups up state once we finish processing a RELIABLE_RESET frame.
+//
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+QuicStreamCleanupReliableReset(
+    _In_ QUIC_STREAM* Stream
+    );
+
+//
 // Dumps send state to the logs.
 //
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -947,7 +991,7 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 QuicStreamRecv(
     _In_ QUIC_STREAM* Stream,
-    _In_ CXPLAT_RECV_PACKET* Packet,
+    _In_ QUIC_RX_PACKET* Packet,
     _In_ QUIC_FRAME_TYPE FrameType,
     _In_ uint16_t BufferLength,
     _In_reads_bytes_(BufferLength)

@@ -173,6 +173,16 @@ function LogErr($msg) {
     }
 }
 
+function LogFatal($msg) {
+    if ($AZP -and !$ErrorsAsWarnings) {
+        Write-Error "##vso[task.LogIssue type=error;][$(Get-Date)] $msg"
+    } elseif ($GHA -and !$ErrorsAsWarnings) {
+        Write-Error "::error::[$(Get-Date)] $msg"
+    } else {
+        Write-Error "[$(Get-Date)] $msg"
+    }
+}
+
 # Make sure the test executable is present.
 if (!(Test-Path $Path)) {
     Write-Error "$($Path) does not exist!"
@@ -770,32 +780,23 @@ if ($IsWindows -and $EnableAppVerifier) {
     }
 }
 
+$DriverPath = (Split-Path $Path -Parent)
+
 # Install the kernel mode drivers.
 if ($Kernel -ne "") {
     if ($null -ne (Get-Service -Name "msquicpriv" -ErrorAction Ignore)) {
-        try {
-            net.exe stop msquicpriv /y | Out-Null
-        }
-        catch {}
+        try { net.exe stop msquicpriv /y | Out-Null } catch {}
         sc.exe delete msquicpriv /y | Out-Null
     }
     if ($null -ne (Get-Service -Name "msquictestpriv" -ErrorAction Ignore)) {
-        try {
-            net.exe stop msquictestpriv /y | Out-Null
-        }
-        catch {}
+        try { net.exe stop msquictestpriv /y | Out-Null } catch {}
         sc.exe delete msquictestpriv /y | Out-Null
     }
-    Copy-Item (Join-Path $Kernel "msquictestpriv.sys") (Split-Path $Path -Parent)
-    Copy-Item (Join-Path $Kernel "msquicpriv.sys") (Split-Path $Path -Parent)
+    Copy-Item (Join-Path $Kernel "msquictestpriv.sys") $DriverPath -Force
+    Copy-Item (Join-Path $Kernel "msquicpriv.sys") $DriverPath -Force
 
-    $SignTool = Get-WindowsKitTool -Tool "signtool.exe"
-
-    if (Test-Path c:\CodeSign.pfx) {
-        & $SignTool sign /f C:\CodeSign.pfx -p "placeholder" /fd SHA256 /tr http://timestamp.digicert.com /td SHA256  (Join-Path (Split-Path $Path -Parent) "msquicpriv.sys")
-        & $SignTool sign /f C:\CodeSign.pfx -p "placeholder" /fd SHA256 /tr http://timestamp.digicert.com /td SHA256  (Join-Path (Split-Path $Path -Parent) "msquictestpriv.sys")
-    }
-    sc.exe create "msquicpriv" type= kernel binpath= (Join-Path (Split-Path $Path -Parent) "msquicpriv.sys") start= demand | Out-Null
+    Log "Creating msquicpriv service"
+    sc.exe create "msquicpriv" type= kernel binpath= (Join-Path $DriverPath msquicpriv.sys) start= demand | Out-Null
     if ($LastExitCode) {
         Log ("sc.exe " + $LastExitCode)
     }
@@ -805,9 +806,19 @@ if ($Kernel -ne "") {
             Log ("verifier.exe " + $LastExitCode)
         }
     }
-    net.exe start msquicpriv
+
+    Log "Starting msquicpriv service"
+    sc.exe start msquicpriv
     if ($LastExitCode) {
         Log ("net.exe " + $LastExitCode)
+    }
+
+    try {
+        if ("Running" -ne (Get-Service -Name msquicpriv).Status) {
+            LogFatal "msquicpriv isn't running"
+        }
+    } catch {
+        LogFatal "msquicpriv query failed"
     }
 }
 
@@ -885,6 +896,8 @@ try {
         net.exe stop msquicpriv /y | Out-Null
         sc.exe delete msquictestpriv | Out-Null
         sc.exe delete msquicpriv | Out-Null
+        Remove-Item (Join-Path $DriverPath msquicpriv.sys) -Force
+        Remove-Item (Join-Path $DriverPath msquictestpriv.sys) -Force
     }
 
     if ($IsWindows -and $EnableSystemVerifier) {

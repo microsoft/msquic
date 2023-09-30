@@ -517,6 +517,18 @@ CxPlatTlsAlpnFindInList(
     return NULL;
 }
 
+//
+// Fill keys for offloading
+//
+_Success_(return==TRUE)
+BOOLEAN
+QuicTlsPopulateOffloadKeys(
+    _Inout_ CXPLAT_TLS* TlsContext,
+    _In_ const QUIC_PACKET_KEY* const PacketKey,
+    _In_z_ const char* const SecretName,
+    _Inout_ CXPLAT_QEO_CONNECTION* Offload
+    );
+
 #if defined(__cplusplus)
 }
 #endif

@@ -296,9 +296,8 @@ $RemoteDirectorySMB = $null
 # Copy manifest and log script to local directory
 Copy-Item -Path (Join-Path $RootDir scripts get-buildconfig.ps1) -Destination $LocalDirectory
 Copy-Item -Path (Join-Path $RootDir scripts log.ps1) -Destination $LocalDirectory
-Copy-Item -Path (Join-Path $RootDir scripts xdp-devkit.json) -Destination $LocalDirectory
+Copy-Item -Path (Join-Path $RootDir scripts xdp.json) -Destination $LocalDirectory
 Copy-Item -Path (Join-Path $RootDir scripts prepare-machine.ps1) -Destination $LocalDirectory
-Copy-Item -Path (Join-Path $RootDir scripts xdp-devkit.json) -Destination $LocalDirectory
 Copy-Item -Path (Join-Path $RootDir src manifest MsQuic.wprp) -Destination $LocalDirectory
 
 if ($Local) {
@@ -363,8 +362,8 @@ function LocalTeardown {
     }
 }
 
-$RemoteExePath = Get-ExePath -PathRoot $RemoteDirectory -Platform $RemotePlatform -IsRemote $true -ExtraArtifactDir $ExtraArtifactDir
-$LocalExePath = Get-ExePath -PathRoot $LocalDirectory -Platform $LocalPlatform -IsRemote $false -ExtraArtifactDir $ExtraArtifactDir
+$RemoteExePath = Get-ExePath -PathRoot $RemoteDirectory -Platform $RemotePlatform -IsRemote $true
+$LocalExePath = Get-ExePath -PathRoot $LocalDirectory -Platform $LocalPlatform -IsRemote $false
 
 # See if we are an AZP PR
 $PrBranchName = $env:SYSTEM_PULLREQUEST_TARGETBRANCH
@@ -400,8 +399,8 @@ function Invoke-Test {
 
     Write-Output "Running Test $Test"
 
-    $RemoteExe = Get-ExeName -PathRoot $RemoteDirectory -Platform $RemotePlatform -IsRemote $true -TestPlat $RemoteConfig -ExtraArtifactDir $ExtraArtifactDir
-    $LocalExe = Get-ExeName -PathRoot $LocalDirectory -Platform $LocalPlatform -IsRemote $false -TestPlat $Test.Local -ExtraArtifactDir $ExtraArtifactDir
+    $RemoteExe = Get-ExeName -PathRoot $RemoteDirectory -Platform $RemotePlatform -IsRemote $true -TestPlat $RemoteConfig
+    $LocalExe = Get-ExeName -PathRoot $LocalDirectory -Platform $LocalPlatform -IsRemote $false -TestPlat $Test.Local
 
     # Check both Exes
     $RemoteExeExists = Invoke-TestCommand -Session $Session -ScriptBlock {

@@ -70,6 +70,11 @@ typedef _In_range_(0, QUIC_UINT62_MAX) uint64_t QUIC_UINT62;
 //
 #define QUIC_MAX_RESUMPTION_APP_DATA_LENGTH     1000
 
+//
+// The number of bytes of stateless reset key.
+//
+#define QUIC_STATELESS_RESET_KEY_LENGTH       32
+
 typedef enum QUIC_TLS_PROVIDER {
     QUIC_TLS_PROVIDER_SCHANNEL                  = 0x0000,
     QUIC_TLS_PROVIDER_OPENSSL                   = 0x0001,
@@ -191,6 +196,8 @@ typedef enum QUIC_STREAM_OPEN_FLAGS {
     QUIC_STREAM_OPEN_FLAG_NONE              = 0x0000,
     QUIC_STREAM_OPEN_FLAG_UNIDIRECTIONAL    = 0x0001,   // Indicates the stream is unidirectional.
     QUIC_STREAM_OPEN_FLAG_0_RTT             = 0x0002,   // The stream was opened via a 0-RTT packet.
+    QUIC_STREAM_OPEN_FLAG_DELAY_ID_FC_UPDATES = 0x0004, // Indicates stream ID flow control limit updates for the
+                                                        // connection should be delayed to StreamClose.
 } QUIC_STREAM_OPEN_FLAGS;
 
 DEFINE_ENUM_FLAG_OPERATORS(QUIC_STREAM_OPEN_FLAGS)
@@ -258,6 +265,7 @@ typedef enum QUIC_EXECUTION_CONFIG_FLAGS {
     QUIC_EXECUTION_CONFIG_FLAG_NONE             = 0x0000,
 #ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
     QUIC_EXECUTION_CONFIG_FLAG_QTIP             = 0x0001,
+    QUIC_EXECUTION_CONFIG_FLAG_RIO              = 0x0002,
 #endif
 } QUIC_EXECUTION_CONFIG_FLAGS;
 
@@ -500,7 +508,8 @@ typedef struct QUIC_STATISTICS_V2 {
     uint32_t ResumptionSucceeded    : 1;
     uint32_t GreaseBitNegotiated    : 1;    // Set if we negotiated the GREASE bit.
     uint32_t EcnCapable             : 1;
-    uint32_t RESERVED               : 26;
+    uint32_t EncryptionOffloaded    : 1;    // At least one path successfully offloaded encryption
+    uint32_t RESERVED               : 25;
     uint32_t Rtt;                           // In microseconds
     uint32_t MinRtt;                        // In microseconds
     uint32_t MaxRtt;                        // In microseconds
@@ -663,7 +672,14 @@ typedef struct QUIC_SETTINGS {
             uint64_t GreaseQuicBitEnabled                   : 1;
             uint64_t EcnEnabled                             : 1;
             uint64_t HyStartEnabled                         : 1;
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
+            uint64_t EncryptionOffloadAllowed               : 1;
+            uint64_t ReliableResetEnabled                   : 1;
+            uint64_t OneWayDelayEnabled                     : 1;
+            uint64_t RESERVED                               : 26;
+#else
             uint64_t RESERVED                               : 29;
+#endif
         } IsSet;
     };
 
@@ -704,11 +720,17 @@ typedef struct QUIC_SETTINGS {
     union {
         uint64_t Flags;
         struct {
-            uint64_t HyStartEnabled : 1;
-            uint64_t ReservedFlags : 63;
+            uint64_t HyStartEnabled            : 1;
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
+            uint64_t EncryptionOffloadAllowed  : 1;
+            uint64_t ReliableResetEnabled      : 1;
+            uint64_t OneWayDelayEnabled        : 1;
+            uint64_t ReservedFlags             : 60;
+#else
+            uint64_t ReservedFlags             : 63;
+#endif
         };
     };
-
 
 } QUIC_SETTINGS;
 
@@ -815,7 +837,7 @@ void
 #define QUIC_PARAM_GLOBAL_EXECUTION_CONFIG              0x01000009  // QUIC_EXECUTION_CONFIG
 #endif
 #define QUIC_PARAM_GLOBAL_TLS_PROVIDER                  0x0100000A  // QUIC_TLS_PROVIDER
-
+#define QUIC_PARAM_GLOBAL_STATELESS_RESET_KEY           0x0100000B  // uint8_t[] - Array size is QUIC_STATELESS_RESET_KEY_LENGTH
 //
 // Parameters for Registration.
 //
@@ -876,6 +898,7 @@ typedef struct QUIC_SCHANNEL_CREDENTIAL_ATTRIBUTE_W {
 #endif
 #define QUIC_PARAM_CONN_STATISTICS_V2                   0x05000016  // QUIC_STATISTICS_V2
 #define QUIC_PARAM_CONN_STATISTICS_V2_PLAT              0x05000017  // QUIC_STATISTICS_V2
+#define QUIC_PARAM_CONN_ORIG_DEST_CID                   0x05000018  // uint8_t[]
 
 //
 // Parameters for TLS.
@@ -906,6 +929,9 @@ typedef struct QUIC_SCHANNEL_CONTEXT_ATTRIBUTE_EX_W {
 #define QUIC_PARAM_STREAM_IDEAL_SEND_BUFFER_SIZE        0x08000002  // uint64_t - bytes
 #define QUIC_PARAM_STREAM_PRIORITY                      0x08000003  // uint16_t - 0 (low) to 0xFFFF (high) - 0x7FFF (default)
 #define QUIC_PARAM_STREAM_STATISTICS                    0X08000004  // QUIC_STREAM_STATISTICS
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
+#define QUIC_PARAM_STREAM_RELIABLE_OFFSET               0x08000005  // uint64_t
+#endif
 
 typedef
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -1126,6 +1152,10 @@ typedef enum QUIC_CONNECTION_EVENT_TYPE {
     QUIC_CONNECTION_EVENT_RESUMED                           = 13,   // Server-only; provides resumption data, if any.
     QUIC_CONNECTION_EVENT_RESUMPTION_TICKET_RECEIVED        = 14,   // Client-only; provides ticket to persist, if any.
     QUIC_CONNECTION_EVENT_PEER_CERTIFICATE_RECEIVED         = 15,   // Only with QUIC_CREDENTIAL_FLAG_INDICATE_CERTIFICATE_RECEIVED set
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
+    QUIC_CONNECTION_EVENT_RELIABLE_RESET_NEGOTIATED         = 16,   // Only indicated if QUIC_SETTINGS.ReliableResetEnabled is TRUE.
+    QUIC_CONNECTION_EVENT_ONE_WAY_DELAY_NEGOTIATED          = 17,   // Only indicated if QUIC_SETTINGS.OneWayDelayEnabled is TRUE.
+#endif
 } QUIC_CONNECTION_EVENT_TYPE;
 
 typedef struct QUIC_CONNECTION_EVENT {
@@ -1169,6 +1199,7 @@ typedef struct QUIC_CONNECTION_EVENT {
         } PEER_NEEDS_STREAMS;
         struct {
             uint16_t IdealProcessor;
+            uint16_t PartitionIndex;
         } IDEAL_PROCESSOR_CHANGED;
         struct {
             BOOLEAN SendEnabled;
@@ -1198,6 +1229,15 @@ typedef struct QUIC_CONNECTION_EVENT {
             QUIC_STATUS DeferredStatus;         // Most severe error status (only valid with QUIC_CREDENTIAL_FLAG_DEFER_CERTIFICATE_VALIDATION)
             QUIC_CERTIFICATE_CHAIN* Chain;      // Peer certificate chain (platform specific). Valid only during QUIC_CONNECTION_EVENT_PEER_CERTIFICATE_RECEIVED callback.
         } PEER_CERTIFICATE_RECEIVED;
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
+        struct {
+            BOOLEAN IsNegotiated;
+        } RELIABLE_RESET_NEGOTIATED;
+        struct {
+            BOOLEAN SendNegotiated;             // TRUE if sending one-way delay timestamps is negotiated.
+            BOOLEAN ReceiveNegotiated;          // TRUE if receiving one-way delay timestamps is negotiated.
+        } ONE_WAY_DELAY_NEGOTIATED;
+#endif
     };
 } QUIC_CONNECTION_EVENT;
 

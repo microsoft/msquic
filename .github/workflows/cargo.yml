@@ -21,31 +21,17 @@ jobs:
     name: Cargo
     steps:
     - name: Harden Runner
-      uses: step-security/harden-runner@1f99358870fe1c846a3ccba386cc2b2246836776
+      uses: step-security/harden-runner@8ca2b8b2ece13480cda6dacd3511b49857a23c09
       with:
-        egress-policy: block
-        allowed-endpoints: >
-          api.github.com:443
-          azure.archive.ubuntu.com:80
-          crates.io:443
-          dc.services.visualstudio.com:443
-          github.com:443
-          launchpad.net:443
-          packages.microsoft.com:443
-          ppa.launchpad.net:80
-          rubygems.org:443
-          sh.rustup.rs:443
-          static.crates.io:443
-          static.rust-lang.org:443
-          www.cloudflare.com:443
+        egress-policy: audit
     - name: Checkout repository
-      uses: actions/checkout@8f4b7f84864484a7bf31766abe9204da3cbe65b3
+      uses: actions/checkout@8ade135a41bc03ea155e62e844d188df1ea18608
     - name: Prepare Machine
       run: scripts/prepare-machine.ps1 -Tls openssl -ForBuild
       shell: pwsh
     - name: Install Perl
       if: runner.os == 'Windows'
-      uses: shogo82148/actions-setup-perl@795ea77474d1f81da5b0a04028a5b94d4118a9c2
+      uses: shogo82148/actions-setup-perl@90aae5bc694fba230daa9573de620d6fe9198181
       with:
         perl-version: '5.34'
     - name: Install NASM
@@ -59,4 +45,4 @@ jobs:
     - name: Cargo test
       run: cargo test --all
     - name: Cargo Publish (dry run)
-      run: cargo publish --dry-run
+      run: cargo publish --dry-run --allow-dirty

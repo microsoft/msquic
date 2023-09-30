@@ -46,6 +46,25 @@ QuicAddrSetToDuoNic(
     }
 }
 
+inline
+uint32_t
+QuitTestGetDatapathFeatureFlags() {
+    static uint32_t Length = sizeof(uint32_t);
+    uint32_t Features = 0;
+    MsQuic->GetParam(
+        nullptr,
+        QUIC_PARAM_GLOBAL_DATAPATH_FEATURES,
+        &Length,
+        &Features);
+    return Features;
+}
+
+inline
+bool
+QuitTestIsFeatureSupported(uint32_t Feature) {
+    return static_cast<bool>(QuitTestGetDatapathFeatureFlags() & Feature);
+}
+
 #include "msquic.hpp"
 #include "quic_toeplitz.h"
 
@@ -80,6 +99,7 @@ struct ServerAcceptContext {
     CXPLAT_EVENT NewConnectionReady;
     TestConnection** NewConnection;
     void* NewStreamHandler{nullptr};
+    QUIC_TLS_SECRETS* TlsSecrets{nullptr};
     QUIC_STATUS ExpectedTransportCloseStatus{QUIC_STATUS_SUCCESS};
     QUIC_STATUS ExpectedClientCertValidationResult[2]{};
     uint32_t ExpectedClientCertValidationResultCount{0};

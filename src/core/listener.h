@@ -10,7 +10,11 @@
 //
 typedef struct QUIC_LISTENER {
 
+#ifdef __cplusplus
+    struct QUIC_HANDLE _;
+#else
     struct QUIC_HANDLE;
+#endif
 
     //
     // Indicates the listener is listening on a wildcard address (v4/v6/both).
@@ -47,6 +51,11 @@ typedef struct QUIC_LISTENER {
     // The top level registration.
     //
     QUIC_REGISTRATION* Registration;
+
+    //
+    // Link into the registrations's list of listeners.
+    //
+    CXPLAT_LIST_ENTRY RegistrationLink;
 
 #ifdef QUIC_SILO
     //

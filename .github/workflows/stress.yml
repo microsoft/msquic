@@ -20,50 +20,75 @@ concurrency:
 permissions: read-all
 
 jobs:
-  stress:
+  build-windows:
+    name: Build WinUser
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-20.04, macos-12, windows-2019, windows-2022]
-        arch: [x64]
-        tls: [schannel, openssl, openssl3]
-        xdp: ['', '-UseXdp']
-        sanitize: ['', '-Sanitize']
-        exclude:
-        # Schannel only supported on windows-2022
-        - os: ubuntu-20.04
-          tls: schannel
-        - os: macos-12
-          tls: schannel
-        - os: windows-2019
-          tls: schannel
-        # Linux and Windows Schannel use ASAN
-        - os: ubuntu-20.04
-          sanitize: ''
-        - tls: schannel
-          sanitize: ''
-        # OpenSSL on Windows and macOS doesn't work with ASAN
-        - os: macos-12
-          sanitize: '-Sanitize'
-        - os: windows-2019
-          tls: openssl
-          sanitize: '-Sanitize'
-        - os: windows-2019
-          tls: openssl3
-          sanitize: '-Sanitize'
-        - os: windows-2022
-          tls: openssl
-          sanitize: '-Sanitize'
-        - os: windows-2022
-          tls: openssl3
-          sanitize: '-Sanitize'
-        # XDP stuff is Windows only
-        - os: ubuntu-20.04
-          xdp: '-UseXdp'
-        - os: macos-12
-          xdp: '-UseXdp'
-    runs-on: ${{ matrix.os }}
+        vec: [
+          { config: "Debug", plat: "windows", os: "windows-2019", arch: "x64", tls: "openssl", test: "-Test" },
+          { config: "Debug", plat: "windows", os: "windows-2019", arch: "x64", tls: "openssl3", test: "-Test" },
+          { config: "Debug", plat: "windows", os: "windows-2022", arch: "x64", tls: "schannel", test: "-Test" },
+          { config: "Debug", plat: "windows", os: "windows-2022", arch: "x64", tls: "schannel", sanitize: "-Sanitize", test: "-Test" },
+          { config: "Debug", plat: "windows", os: "windows-2022", arch: "x64", tls: "openssl", test: "-Test" },
+          { config: "Debug", plat: "windows", os: "windows-2022", arch: "x64", tls: "openssl3", test: "-Test" },
+        ]
+    uses: ./.github/workflows/build-reuse-win.yml
+    with:
+      config: ${{ matrix.vec.config }}
+      plat: ${{ matrix.vec.plat }}
+      os: ${{ matrix.vec.os }}
+      arch: ${{ matrix.vec.arch }}
+      tls: ${{ matrix.vec.tls }}
+      sanitize: ${{ matrix.vec.sanitize }}
+      test: ${{ matrix.vec.test }}
+
+  build-unix:
+    name: Build Unix
+    strategy:
+      fail-fast: false
+      matrix:
+        vec: [
+          { config: "Debug", plat: "macos", os: "macos-12", arch: "x64", tls: "openssl", test: "-Test" },
+          { config: "Debug", plat: "macos", os: "macos-12", arch: "x64", tls: "openssl3", test: "-Test" },
+          { config: "Debug", plat: "linux", os: "ubuntu-20.04", arch: "x64", tls: "openssl", sanitize: "-Sanitize", test: "-Test" },
+          { config: "Debug", plat: "linux", os: "ubuntu-20.04", arch: "x64", tls: "openssl3", sanitize: "-Sanitize", test: "-Test" },
+        ]
+    uses: ./.github/workflows/build-reuse-unix.yml
+    with:
+      config: ${{ matrix.vec.config }}
+      plat: ${{ matrix.vec.plat }}
+      os: ${{ matrix.vec.os }}
+      arch: ${{ matrix.vec.arch }}
+      tls: ${{ matrix.vec.tls }}
+      systemcrypto: ${{ matrix.vec.systemcrypto }}
+      sanitize: ${{ matrix.vec.sanitize }}
+      test: ${{ matrix.vec.test }}
+
+  stress:
     name: Stress
+    needs: [build-windows, build-unix]
+    strategy:
+      fail-fast: false
+      matrix:
+        vec: [
+          { config: "Debug", plat: "linux", os: "ubuntu-20.04", arch: "x64", tls: "openssl", sanitize: "-Sanitize", test: "-Test" },
+          { config: "Debug", plat: "linux", os: "ubuntu-20.04", arch: "x64", tls: "openssl3", sanitize: "-Sanitize", test: "-Test" },
+          { config: "Debug", plat: "macos", os: "macos-12", arch: "x64", tls: "openssl", test: "-Test" },
+          { config: "Debug", plat: "macos", os: "macos-12", arch: "x64", tls: "openssl3", test: "-Test" },
+          { config: "Debug", plat: "windows", os: "windows-2019", arch: "x64", tls: "openssl", test: "-Test" },
+          { config: "Debug", plat: "windows", os: "windows-2019", arch: "x64", tls: "openssl", xdp: "-UseXdp", test: "-Test" },
+          { config: "Debug", plat: "windows", os: "windows-2019", arch: "x64", tls: "openssl3", test: "-Test" },
+          { config: "Debug", plat: "windows", os: "windows-2019", arch: "x64", tls: "openssl3", xdp: "-UseXdp", test: "-Test" },
+          { config: "Debug", plat: "windows", os: "windows-2022", arch: "x64", tls: "schannel", sanitize: "-Sanitize", test: "-Test" },
+          { config: "Debug", plat: "windows", os: "windows-2022", arch: "x64", tls: "schannel", xdp: "-UseXdp", sanitize: "-Sanitize", test: "-Test" },
+          { config: "Debug", plat: "windows", os: "windows-2022", arch: "x64", tls: "openssl", test: "-Test" },
+          { config: "Debug", plat: "windows", os: "windows-2022", arch: "x64", tls: "openssl", xdp: "-UseXdp", test: "-Test" },
+          { config: "Debug", plat: "windows", os: "windows-2022", arch: "x64", tls: "openssl3", test: "-Test" },
+          { config: "Debug", plat: "windows", os: "windows-2022", arch: "x64", tls: "openssl3", xdp: "-UseXdp", test: "-Test" },
+          { config: "Debug", plat: "windows", os: "WSPrerelease", arch: "x64", tls: "schannel", test: "-Test" },
+        ]
+    runs-on: ${{ matrix.vec.plat == 'windows' && matrix.vec.os == 'WSPrerelease' && fromJson('[''self-hosted'', ''1ES.Pool=1es-msquic-pool'', ''1ES.ImageOverride=WSPrerelease'']') || matrix.vec.os }}
     env:
       main-timeout: 3600000
       main-repeat: 100
@@ -73,36 +98,37 @@ jobs:
       pr-allocfail: 100
     steps:
     - name: Checkout repository
-      uses: actions/checkout@8f4b7f84864484a7bf31766abe9204da3cbe65b3
+      uses: actions/checkout@8ade135a41bc03ea155e62e844d188df1ea18608
+    - uses: actions/download-artifact@9bc31d5ccc31df68ecc42ccf4149144866c47d8a
+      if: matrix.vec.plat == 'windows'
       with:
-        fetch-depth: 0
-    - name: Install Perl
-      if: runner.os == 'Windows'
-      uses: shogo82148/actions-setup-perl@795ea77474d1f81da5b0a04028a5b94d4118a9c2
+        name: ${{ matrix.vec.config }}-${{ matrix.vec.plat }}-${{ matrix.vec.os == 'WSPrerelease' && 'windows-2022' || matrix.vec.os }}-${{ matrix.vec.arch }}-${{ matrix.vec.tls }}${{ matrix.vec.sanitize }}${{ matrix.vec.test }}
+        path: artifacts
+    - uses: actions/download-artifact@9bc31d5ccc31df68ecc42ccf4149144866c47d8a
+      if: matrix.vec.plat == 'linux' || matrix.vec.plat == 'macos'
       with:
-        perl-version: '5.34'
-    - name: Install NASM
-      if: runner.os == 'Windows'
-      uses: ilammy/setup-nasm@321e6ed62a1fc77024a3bd853deb33645e8b22c4
+        name: ${{ matrix.vec.config }}-${{ matrix.vec.plat }}-${{ matrix.vec.os }}-${{ matrix.vec.arch }}-${{ matrix.vec.tls }}${{ matrix.vec.sanitize }}${{ matrix.vec.test }}
+        path: artifacts
+    - name: Fix permissions for Unix
+      if: matrix.vec.plat == 'linux' || matrix.vec.plat == 'macos'
+      run: |
+        sudo chmod -R 777 artifacts
     - name: Prepare Machine
-      run: scripts/prepare-machine.ps1 -Tls ${{ matrix.tls }} -ForBuild -ForTest ${{ matrix.xdp }}
+      run: scripts/prepare-machine.ps1 -Tls ${{ matrix.vec.tls }} -ForTest ${{ matrix.vec.xdp }}
       shell: pwsh
-    - name: Build
-      shell: pwsh
-      run: scripts/build.ps1 -Config Debug -Arch ${{ matrix.arch }} -Tls ${{ matrix.tls }} -DisableTest -DisablePerf -DynamicCRT ${{ matrix.xdp }} ${{ matrix.sanitize }}
     - name: spinquic (PR)
       if: github.event_name == 'pull_request'
       timeout-minutes: 15
       shell: pwsh
-      run: scripts/spin.ps1 -AZP -Config Debug -Arch ${{ matrix.arch }} -Tls ${{ matrix.tls }} -Timeout ${{ env.pr-timeout }} -RepeatCount ${{ env.pr-repeat }} -AllocFail ${{ env.pr-allocfail }} ${{ matrix.xdp }}
+      run: scripts/spin.ps1 -AZP -Config ${{ matrix.vec.config }} -Arch ${{ matrix.vec.arch }} -Tls ${{ matrix.vec.tls }} -Timeout ${{ env.pr-timeout }} -RepeatCount ${{ env.pr-repeat }} -AllocFail ${{ env.pr-allocfail }} ${{ matrix.vec.xdp }}
     - name: spinquic (Official)
       if: github.event_name != 'pull_request'
       timeout-minutes: 65
       shell: pwsh
-      run: scripts/spin.ps1 -AZP -Config Debug -Arch ${{ matrix.arch }} -Tls ${{ matrix.tls }} -Timeout ${{ env.main-timeout }} -RepeatCount ${{ env.main-repeat }} -AllocFail ${{ env.main-allocfail }} ${{ matrix.xdp }}
+      run: scripts/spin.ps1 -AZP -Config ${{ matrix.vec.config }} -Arch ${{ matrix.vec.arch }} -Tls ${{ matrix.vec.tls }} -Timeout ${{ env.main-timeout }} -RepeatCount ${{ env.main-repeat }} -AllocFail ${{ env.main-allocfail }} ${{ matrix.vec.xdp }}
     - name: Upload on Failure
-      uses: actions/upload-artifact@0b7f8abb1508181956e8e162db84b466c27e18ce
+      uses: actions/upload-artifact@a8a3f3ad30e3422c9c7b888a15615d19a852ae32
       if: failure()
       with:
-        name: ${{ matrix.os }}-${{ matrix.arch }}-${{ matrix.tls }}${{ matrix.xdp }}${{ matrix.sanitize }}
+        name: Stress-${{ matrix.vec.config }}-${{ matrix.vec.plat }}-${{ matrix.vec.os }}-${{ matrix.vec.arch }}-${{ matrix.vec.tls }}${{ matrix.vec.xdp }}${{ matrix.vec.sanitize }}
         path: artifacts

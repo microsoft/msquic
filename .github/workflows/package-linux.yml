@@ -1,0 +1,84 @@
+name: Linux Packages
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+    - main
+    - release/*
+  pull_request:
+    branches:
+    - main
+    - release/*
+
+concurrency:
+  # Cancel any workflow currently in progress for the same PR.
+  # Allow running concurrently with any other commits.
+  group: package-linux-${{ github.event.pull_request.number || github.sha }}
+  cancel-in-progress: true
+
+permissions: read-all
+
+jobs:
+  build-packages:
+    name: Generate Linux Packages
+    needs: []
+    strategy:
+      fail-fast: false
+      matrix:
+        vec: [
+          { config: "Release", os: "ubuntu-20.04", arch: "arm", tls: "openssl" },
+          { config: "Release", os: "ubuntu-20.04", arch: "arm64", tls: "openssl" },
+          { config: "Release", os: "ubuntu-20.04", arch: "x64", tls: "openssl" },
+          { config: "Release", os: "ubuntu-22.04", arch: "arm", tls: "openssl3" },
+          { config: "Release", os: "ubuntu-22.04", arch: "arm64", tls: "openssl3" },
+          { config: "Release", os: "ubuntu-22.04", arch: "x64", tls: "openssl3" },
+        ]
+    uses: ./.github/workflows/package-reuse-linux.yml
+    with:
+      config: ${{ matrix.vec.config }}
+      os: ${{ matrix.vec.os }}
+      arch: ${{ matrix.vec.arch }}
+      tls: ${{ matrix.vec.tls }}
+
+  test-packages:
+    name: Test Linux Packages
+    needs: [build-packages]
+    runs-on: ubuntu-22.04
+    strategy:
+      fail-fast: false
+      matrix:
+        vec: [
+          { config: "Release", os: "ubuntu-20.04", arch: "x64", tls: "openssl" },
+          { config: "Release", os: "ubuntu-22.04", arch: "x64", tls: "openssl3" },
+        ]
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@8ade135a41bc03ea155e62e844d188df1ea18608
+      with:
+        fetch-depth: 0
+    - name: Prepare Machine
+      shell: pwsh
+      run: scripts/prepare-machine.ps1 -ForTest
+    - name: Download Package
+      uses: actions/download-artifact@9bc31d5ccc31df68ecc42ccf4149144866c47d8a
+      with:
+        name: ${{ matrix.vec.config }}-linux-${{ matrix.vec.os }}-${{ matrix.vec.arch }}-${{ matrix.vec.tls }}-UseSystemOpenSSLCrypto
+        path: artifacts
+    - name: Download Build Artifacts
+      uses: actions/download-artifact@9bc31d5ccc31df68ecc42ccf4149144866c47d8a
+      with:
+        name: Package-${{ matrix.vec.config }}-linux-${{ matrix.vec.os }}-${{ matrix.vec.arch }}-${{ matrix.vec.tls }}-UseSystemOpenSSLCrypto
+        path: artifacts
+    - name: Install Package
+      run: |
+        sudo apt-add-repository ppa:lttng/stable-2.13
+        sudo apt-get update
+        sudo apt-get install -y lttng-tools
+        sudo find -name "*.deb" -exec dpkg -i {} \;
+        rm artifacts/bin/linux/${{ matrix.vec.arch }}_${{ matrix.vec.config }}_${{ matrix.vec.tls }}/libmsquic.so*
+        ls artifacts/bin/linux/${{ matrix.vec.arch }}_${{ matrix.vec.config }}_${{ matrix.vec.tls }}
+    - name: Test
+      run: |
+        chmod +x artifacts/bin/linux/${{ matrix.vec.arch }}_${{ matrix.vec.config }}_${{ matrix.vec.tls }}/msquictest
+        artifacts/bin/linux/${{ matrix.vec.arch }}_${{ matrix.vec.config }}_${{ matrix.vec.tls }}/msquictest --gtest_filter=ParameterValidation.ValidateApi

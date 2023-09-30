@@ -119,6 +119,11 @@ namespace QuicTrace.Tables
                 new ColumnMetadata(new Guid("{0487D420-EE35-4E6F-A9B4-D535D9AED1AB}"), "Rtt (ms)"),
                 new UIHints { AggregationMode = AggregationMode.Average });
 
+        private static readonly ColumnConfiguration oneWayColumnConfig =
+            new ColumnConfiguration(
+                new ColumnMetadata(new Guid("{3d93cc01-98df-4eda-a884-b441d26ffba2}"), "1-Way Delay (ms)"),
+                new UIHints { AggregationMode = AggregationMode.Average });
+
         private static readonly ColumnConfiguration txDelayColumnConfig =
             new ColumnConfiguration(
                 new ColumnMetadata(new Guid("{8c364574-f245-450c-8b95-651822704af9}"), "TX Delay (us)"),
@@ -183,15 +188,16 @@ namespace QuicTrace.Tables
                 Columns = new[]
                 {
                      connectionColumnConfig,
+                     typeColumnConfig,
                      TableConfiguration.PivotColumn,
                      TableConfiguration.LeftFreezeColumn,
-                     typeColumnConfig,
                      processIdColumnConfig,
                      timeColumnConfig,
                      durationColumnConfig,
                      TableConfiguration.RightFreezeColumn,
                      TableConfiguration.GraphColumn,
                      rttColumnConfig,
+                     oneWayColumnConfig
                 }
             };
 
@@ -235,6 +241,7 @@ namespace QuicTrace.Tables
             table.AddColumn(bitsColumnConfig, dataProjection.Compose(ProjectBits));
             table.AddColumn(bytesColumnConfig, dataProjection.Compose(ProjectBytes));
             table.AddColumn(rttColumnConfig, dataProjection.Compose(ProjectRtt));
+            table.AddColumn(oneWayColumnConfig, dataProjection.Compose(ProjectRtt));
             table.AddColumn(txDelayColumnConfig, dataProjection.Compose(ProjectTxDelay));
 
             tableConfig1.AddColumnRole(ColumnRole.StartTime, timeColumnConfig);
@@ -248,20 +255,21 @@ namespace QuicTrace.Tables
             tableConfig2.InitialFilterShouldKeep = false;
             tableConfig2.InitialSelectionQuery = "[Type]:=\"InFlight\"";
             tableConfig2.InitialFilterQuery =
-                "[Type]:=\"Tx\" OR [Type]:=\"TxAck\" OR [Type]:=\"PktCreate\" OR [Type]:=\"Rx\" OR [Type]:=\"Rtt\" OR [Type]:=\"TxDelay\"";
+                "[Type]:=\"Tx\" OR [Type]:=\"TxAck\" OR [Type]:=\"PktCreate\" OR [Type]:=\"Rx\" OR [Type]:=\"Rtt\" OR [Type]:=\"OneWay\" OR [Type]:=\"TxDelay\"";
             tableBuilder.AddTableConfiguration(tableConfig2);
 
             tableConfig3.AddColumnRole(ColumnRole.StartTime, timeColumnConfig);
             tableConfig3.AddColumnRole(ColumnRole.Duration, durationColumnConfig);
             tableConfig3.InitialFilterShouldKeep = false;
-            tableConfig3.InitialFilterQuery = "[Type]:<>\"Rtt\"";
+            tableConfig3.InitialSelectionQuery = "[Type]:=\"Rtt\"";
+            tableConfig3.InitialFilterQuery = "[Type]:<>\"Rtt\" AND [Type]:<>\"OneWay\"";
             tableBuilder.AddTableConfiguration(tableConfig3);
 
             tableConfig4.AddColumnRole(ColumnRole.StartTime, timeColumnConfig);
             tableConfig4.InitialFilterShouldKeep = false;
             tableConfig4.InitialSelectionQuery = "[Type]:=\"Tx\" OR [Type]:=\"Rx\"";
             tableConfig4.InitialFilterQuery =
-                "[Type]:<>\"Tx\" AND [Type]:<>\"TxAck\" AND [Type]:<>\"PktCreate\" AND [Type]:<>\"Rx\"";
+                "[Type]:<>\"Tx\" AND [Type]:<>\"TxAck\" AND [Type]:<>\"PktCreate\" AND [Type]:<>\"Rx\" AND [Type]:<>\"RxBatch\"";
             tableBuilder.AddTableConfiguration(tableConfig4);
 
             tableConfig5.AddColumnRole(ColumnRole.StartTime, timeColumnConfig);

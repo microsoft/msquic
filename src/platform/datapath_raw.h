@@ -17,7 +17,6 @@ typedef struct CXPLAT_SOCKET_POOL {
 
 } CXPLAT_SOCKET_POOL;
 
-typedef struct CXPLAT_DATAPATH CXPLAT_DATAPATH;
 
 //
 // A worker thread for draining queued route resolution operations.
@@ -43,21 +42,8 @@ typedef struct QUIC_CACHEALIGN CXPLAT_ROUTE_RESOLUTION_WORKER {
     CXPLAT_LIST_ENTRY Operations;
 } CXPLAT_ROUTE_RESOLUTION_WORKER;
 
-typedef struct CXPLAT_ROUTE_RESOLUTION_OPERATION {
-    //
-    // Link in the worker's operation queue.
-    // N.B. Multi-threaded access, synchronized by worker's operation lock.
-    //
-    CXPLAT_LIST_ENTRY WorkerLink;
-    MIB_IPNET_ROW2 IpnetRow;
-    void* Context;
-    uint8_t PathId;
-    CXPLAT_ROUTE_RESOLUTION_CALLBACK_HANDLER Callback;
-} CXPLAT_ROUTE_RESOLUTION_OPERATION;
-
-typedef struct CXPLAT_DATAPATH {
-
-    CXPLAT_UDP_DATAPATH_CALLBACKS UdpHandlers;
+typedef struct CXPLAT_DATAPATH_RAW {
+    const CXPLAT_DATAPATH *ParentDataPath;
 
     CXPLAT_SOCKET_POOL SocketPool;
 
@@ -71,14 +57,15 @@ typedef struct CXPLAT_DATAPATH {
 #endif
     BOOLEAN UseTcp;
 
-} CXPLAT_DATAPATH;
+} CXPLAT_DATAPATH_RAW;
 
 #define ETH_MAC_ADDR_LEN 6
 
 typedef struct CXPLAT_INTERFACE {
     CXPLAT_LIST_ENTRY Link;
     uint32_t IfIndex;
-    UCHAR PhysicalAddress[ETH_MAC_ADDR_LEN];
+    uint32_t ActualIfIndex;
+    uint8_t PhysicalAddress[ETH_MAC_ADDR_LEN];
     struct {
         struct {
             BOOLEAN NetworkLayerXsum : 1;
@@ -92,25 +79,11 @@ typedef struct CXPLAT_INTERFACE {
 } CXPLAT_INTERFACE;
 
 typedef struct CXPLAT_SEND_DATA {
-
-    //
-    // The type of ECN markings needed for send.
-    //
-    CXPLAT_ECN_TYPE ECN;
+    CXPLAT_SEND_DATA_COMMON;
 
     QUIC_BUFFER Buffer;
 
 } CXPLAT_SEND_DATA;
-
-//
-// Queries the raw datapath stack for the total size needed to allocate the
-// datapath structure.
-//
-_IRQL_requires_max_(PASSIVE_LEVEL)
-size_t
-CxPlatDpRawGetDatapathSize(
-    _In_opt_ const QUIC_EXECUTION_CONFIG* Config
-    );
 
 //
 // Initializes the raw datapath stack.
@@ -118,7 +91,7 @@ CxPlatDpRawGetDatapathSize(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 CxPlatDpRawInitialize(
-    _Inout_ CXPLAT_DATAPATH* Datapath,
+    _Inout_ CXPLAT_DATAPATH_RAW* Datapath,
     _In_ uint32_t ClientRecvContextLength,
     _In_opt_ const QUIC_EXECUTION_CONFIG* Config
     );
@@ -129,7 +102,7 @@ CxPlatDpRawInitialize(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 CxPlatDpRawUninitialize(
-    _In_ CXPLAT_DATAPATH* Datapath
+    _In_ CXPLAT_DATAPATH_RAW* Datapath
     );
 
 //
@@ -138,7 +111,17 @@ CxPlatDpRawUninitialize(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 CxPlatDataPathUninitializeComplete(
-    _In_ CXPLAT_DATAPATH* Datapath
+    _In_ CXPLAT_DATAPATH_RAW* Datapath
+    );
+
+//
+// Updates the datapath configuration.
+//
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+CxPlatDpRawUpdateConfig(
+    _In_ CXPLAT_DATAPATH_RAW* Datapath,
+    _In_ QUIC_EXECUTION_CONFIG* Config
     );
 
 //
@@ -148,7 +131,7 @@ CxPlatDataPathUninitializeComplete(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 CxPlatDpRawPlumbRulesOnSocket(
-    _In_ CXPLAT_SOCKET* Socket,
+    _In_ CXPLAT_SOCKET_RAW* Socket,
     _In_ BOOLEAN IsCreated
     );
 
@@ -207,7 +190,7 @@ CxPlatDpRawParseEthernet(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 CxPlatDpRawRxEthernet(
-    _In_ const CXPLAT_DATAPATH* Datapath,
+    _In_ const CXPLAT_DATAPATH_RAW* Datapath,
     _In_reads_(PacketCount)
         CXPLAT_RECV_DATA** Packets,
     _In_ uint16_t PacketCount
@@ -228,7 +211,7 @@ CxPlatDpRawRxFree(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 CXPLAT_SEND_DATA*
 CxPlatDpRawTxAlloc(
-    _In_ CXPLAT_SOCKET* Socket,
+    _In_ CXPLAT_SOCKET_RAW* Socket,
     _Inout_ CXPLAT_SEND_CONFIG* Config
     );
 
@@ -254,27 +237,24 @@ CxPlatDpRawTxEnqueue(
 // Raw Socket Interface
 //
 
-typedef struct CXPLAT_SOCKET {
+typedef struct CXPLAT_SOCKET_RAW {
 
     CXPLAT_HASHTABLE_ENTRY Entry;
     CXPLAT_RUNDOWN_REF Rundown;
-    CXPLAT_DATAPATH* Datapath;
+    CXPLAT_DATAPATH_RAW* RawDatapath;
     SOCKET AuxSocket;
-    void* CallbackContext;
-    QUIC_ADDR LocalAddress;
-    QUIC_ADDR RemoteAddress;
     BOOLEAN Wildcard;                // Using a wildcard local address. Optimization
                                      // to avoid always reading LocalAddress.
-    BOOLEAN Connected;               // Bound to a remote address
     uint8_t CibirIdLength;           // CIBIR ID length. Value of 0 indicates CIBIR isn't used
     uint8_t CibirIdOffsetSrc;        // CIBIR ID offset in source CID
     uint8_t CibirIdOffsetDst;        // CIBIR ID offset in destination CID
     uint8_t CibirId[6];              // CIBIR ID data
-    BOOLEAN UseTcp;                  // Quic over TCP
 
     CXPLAT_SEND_DATA* PausedTcpSend; // Paused TCP send data *before* framing
     CXPLAT_SEND_DATA* CachedRstSend; // Cached TCP RST send data *after* framing
-} CXPLAT_SOCKET;
+
+    CXPLAT_SOCKET;
+} CXPLAT_SOCKET_RAW;
 
 BOOLEAN
 CxPlatSockPoolInitialize(
@@ -292,9 +272,9 @@ CxPlatSockPoolUninitialize(
 // so it assumes that matches already.
 //
 inline
-BOOL
+BOOLEAN
 CxPlatSocketCompare(
-    _In_ CXPLAT_SOCKET* Socket,
+    _In_ CXPLAT_SOCKET_RAW* Socket,
     _In_ const QUIC_ADDR* LocalAddress,
     _In_ const QUIC_ADDR* RemoteAddress
     )
@@ -316,7 +296,7 @@ CxPlatSocketCompare(
 //
 // Finds a socket to deliver received packets with the given addresses.
 //
-CXPLAT_SOCKET*
+CXPLAT_SOCKET_RAW*
 CxPlatGetSocket(
     _In_ const CXPLAT_SOCKET_POOL* Pool,
     _In_ const QUIC_ADDR* LocalAddress,
@@ -326,13 +306,13 @@ CxPlatGetSocket(
 QUIC_STATUS
 CxPlatTryAddSocket(
     _In_ CXPLAT_SOCKET_POOL* Pool,
-    _In_ CXPLAT_SOCKET* Socket
+    _In_ CXPLAT_SOCKET_RAW* Socket
     );
 
 void
 CxPlatRemoveSocket(
     _In_ CXPLAT_SOCKET_POOL* Pool,
-    _In_ CXPLAT_SOCKET* Socket
+    _In_ CXPLAT_SOCKET_RAW* Socket
     );
 
 //
@@ -352,28 +332,28 @@ typedef enum PACKET_TYPE {
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 CxPlatDpRawSocketAckSyn(
-    _In_ CXPLAT_SOCKET* Socket,
+    _In_ CXPLAT_SOCKET_RAW* Socket,
     _In_ CXPLAT_RECV_DATA* Packet
     );
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 CxPlatDpRawSocketSyn(
-    _In_ CXPLAT_SOCKET* Socket,
+    _In_ CXPLAT_SOCKET_RAW* Socket,
     _In_ const CXPLAT_ROUTE* Route
     );
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 CxPlatDpRawSocketAckFin(
-    _In_ CXPLAT_SOCKET* Socket,
+    _In_ CXPLAT_SOCKET_RAW* Socket,
     _In_ CXPLAT_RECV_DATA* Packet
     );
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 CxPlatFramingWriteHeaders(
-    _In_ CXPLAT_SOCKET* Socket,
+    _In_ CXPLAT_SOCKET_RAW* Socket,
     _In_ const CXPLAT_ROUTE* Route,
     _Inout_ QUIC_BUFFER* Buffer,
     _In_ CXPLAT_ECN_TYPE ECN,
@@ -383,3 +363,102 @@ CxPlatFramingWriteHeaders(
     _In_ uint32_t TcpAckNum,
     _In_ uint8_t TcpFlags
     );
+
+
+//
+// Ethernet / IP Framing Logic
+//
+
+#pragma pack(push)
+#pragma pack(1)
+
+typedef struct ETHERNET_HEADER {
+    uint8_t Destination[6];
+    uint8_t Source[6];
+    uint16_t Type;
+    uint8_t Data[0];
+} ETHERNET_HEADER;
+
+typedef struct IPV4_HEADER {
+    uint8_t VersionAndHeaderLength;
+    union {
+        uint8_t TypeOfServiceAndEcnField;
+        struct {
+            uint8_t EcnField : 2;
+            uint8_t TypeOfService : 6;
+        };
+    };
+    uint16_t TotalLength;
+    uint16_t Identification;
+    uint16_t FlagsAndFragmentOffset;
+    uint8_t TimeToLive;
+    uint8_t Protocol;
+    uint16_t HeaderChecksum;
+    uint8_t Source[4];
+    uint8_t Destination[4];
+    uint8_t Data[0];
+} IPV4_HEADER;
+
+typedef struct IPV6_HEADER {
+    uint32_t VersionClassEcnFlow;
+    uint16_t PayloadLength;
+    uint8_t NextHeader;
+    uint8_t HopLimit;
+    uint8_t Source[16];
+    uint8_t Destination[16];
+    uint8_t Data[0];
+} IPV6_HEADER;
+
+typedef struct IPV6_EXTENSION {
+    uint8_t NextHeader;
+    uint8_t Length;
+    uint16_t Reserved0;
+    uint32_t Reserved1;
+    uint8_t Data[0];
+} IPV6_EXTENSION;
+
+typedef struct UDP_HEADER {
+    uint16_t SourcePort;
+    uint16_t DestinationPort;
+    uint16_t Length;
+    uint16_t Checksum;
+    uint8_t Data[0];
+} UDP_HEADER;
+
+typedef struct TCP_HEADER {
+    uint16_t SourcePort;
+    uint16_t DestinationPort;
+    uint32_t SequenceNumber;
+    uint32_t AckNumber;
+    uint8_t X2           : 4;
+    uint8_t HeaderLength : 4;
+    uint8_t Flags;
+    uint16_t Window;
+    uint16_t Checksum;
+    uint16_t UrgentPointer;
+} TCP_HEADER;
+
+#pragma pack(pop)
+
+//
+// Constants for headers in wire format.
+//
+
+#define TH_FIN 0x01
+#define TH_SYN 0x02
+#define TH_RST 0x04
+#define TH_PSH 0x08
+#define TH_ACK 0x10
+#define TH_URG 0x20
+#define TH_ECE 0x40
+#define TH_CWR 0x80
+
+#define IPV4_VERSION 4
+#define IPV6_VERSION 6
+#define IPV4_VERSION_BYTE (IPV4_VERSION << 4)
+#define IPV4_DEFAULT_VERHLEN ((IPV4_VERSION_BYTE) | (sizeof(IPV4_HEADER) / sizeof(uint32_t)))
+
+#define IP_DEFAULT_HOP_LIMIT 128
+
+#define ETHERNET_TYPE_IPV4 0x0008
+#define ETHERNET_TYPE_IPV6 0xdd86

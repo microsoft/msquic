@@ -163,6 +163,86 @@ QuicStreamRecvQueueFlush(
 }
 
 //
+// Deliver a notification to the app that the peer has aborted their send path.
+//
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+QuicStreamIndicatePeerSendAbortedEvent(
+    _In_ QUIC_STREAM* Stream,
+    _In_ QUIC_VAR_INT ErrorCode
+    )
+{
+    QuicTraceLogStreamInfo(
+        RemoteCloseReset,
+        Stream,
+        "Closed remotely (reset)");
+    QUIC_STREAM_EVENT Event;
+    Event.Type = QUIC_STREAM_EVENT_PEER_SEND_ABORTED;
+    Event.PEER_SEND_ABORTED.ErrorCode = ErrorCode;
+    QuicTraceLogStreamVerbose(
+        IndicatePeerSendAbort,
+        Stream,
+        "Indicating QUIC_STREAM_EVENT_PEER_SEND_ABORTED (0x%llX)",
+        ErrorCode);
+    (void)QuicStreamIndicateEvent(Stream, &Event);
+}
+
+//
+// Processes a received RELIABLE_RESET frame's payload.
+//
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+QuicStreamProcessReliableResetFrame(
+    _In_ QUIC_STREAM* Stream,
+    _In_ QUIC_VAR_INT ErrorCode,
+    _In_ QUIC_VAR_INT ReliableOffset
+    )
+{
+    if (!Stream->Connection->State.ReliableResetStreamNegotiated) {
+        //
+        // The peer tried to use an exprimental feature without
+        // negotiating first. Kill the connection.
+        //
+        QuicTraceLogStreamWarning(
+            ReliableResetNotNegotiatedError,
+            Stream,
+            "Received ReliableReset without negotiation.");
+        QuicConnTransportError(Stream->Connection, QUIC_ERROR_TRANSPORT_PARAMETER_ERROR);
+        return;
+    }
+
+    if (Stream->RecvMaxLength == 0 || ReliableOffset < Stream->RecvMaxLength) {
+        //
+        // As outlined in the spec, if we receive multiple CLOSE_STREAM frames, we only accept strictly
+        // decreasing offsets.
+        //
+        Stream->RecvMaxLength = ReliableOffset;
+        Stream->Flags.RemoteCloseResetReliable = TRUE;
+
+        QuicTraceLogStreamInfo(
+            ReliableRecvOffsetSet,
+            Stream,
+            "Reliable recv offset set to %llu",
+            ReliableOffset);
+    }
+
+    if (Stream->RecvBuffer.BaseOffset >= Stream->RecvMaxLength) {
+        QuicTraceEvent(
+            StreamRecvState,
+            "[strm][%p] Recv State: %hhu",
+            Stream,
+            QuicStreamRecvGetState(Stream));
+        QuicStreamIndicatePeerSendAbortedEvent(Stream, ErrorCode);
+        QuicStreamRecvShutdown(Stream, TRUE, ErrorCode);
+    } else {
+        //
+        // We still have data to deliver to the app, just cache the error code for later.
+        //
+        Stream->RecvShutdownErrorCode = ErrorCode;
+    }
+}
+
+//
 // Processes a received RESET_STREAM frame's payload.
 //
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -241,20 +321,7 @@ QuicStreamProcessResetFrame(
             QuicStreamRecvGetState(Stream));
 
         if (!Stream->Flags.SentStopSending) {
-            QuicTraceLogStreamInfo(
-                RemoteCloseReset,
-                Stream,
-                "Closed remotely (reset)");
-
-            QUIC_STREAM_EVENT Event;
-            Event.Type = QUIC_STREAM_EVENT_PEER_SEND_ABORTED;
-            Event.PEER_SEND_ABORTED.ErrorCode = ErrorCode;
-            QuicTraceLogStreamVerbose(
-                IndicatePeerSendAbort,
-                Stream,
-                "Indicating QUIC_STREAM_EVENT_PEER_SEND_ABORTED (0x%llX)",
-                ErrorCode);
-            (void)QuicStreamIndicateEvent(Stream, &Event);
+            QuicStreamIndicatePeerSendAbortedEvent(Stream, ErrorCode);
         }
 
         //
@@ -380,9 +447,18 @@ QuicStreamProcessStreamFrame(
         goto Error;
     }
 
-    if (EndOffset > Stream->RecvMaxLength) {
+    if (Stream->Flags.RemoteCloseResetReliable) {
+        if (Stream->RecvBuffer.BaseOffset >= Stream->RecvMaxLength) {
+            //
+            // We've aborted reliably, but the stream goes past reliable offset, we can just
+            // ignore it.
+            //
+            Status = QUIC_STATUS_SUCCESS;
+            goto Error;
+        }
+    } else if (EndOffset > Stream->RecvMaxLength) {
         //
-        // Frame goes past the FIN.
+        // Frame goes past the FIN, and the stream is not reset reliably.
         //
         Status = QUIC_STATUS_INVALID_PARAMETER;
         goto Error;
@@ -505,7 +581,7 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 QuicStreamRecv(
     _In_ QUIC_STREAM* Stream,
-    _In_ CXPLAT_RECV_PACKET* Packet,
+    _In_ QUIC_RX_PACKET* Packet,
     _In_ QUIC_FRAME_TYPE FrameType,
     _In_ uint16_t BufferLength,
     _In_reads_bytes_(BufferLength)
@@ -617,6 +693,20 @@ QuicStreamRecv(
         break;
     }
 
+    case QUIC_FRAME_RELIABLE_RESET_STREAM: {
+        QUIC_RELIABLE_RESET_STREAM_EX Frame;
+        if (!QuicReliableResetFrameDecode(BufferLength, Buffer, Offset, &Frame)) {
+            return QUIC_STATUS_INVALID_PARAMETER;
+        }
+
+        QuicStreamProcessReliableResetFrame(
+            Stream,
+            Frame.ErrorCode,
+            Frame.ReliableSize);
+
+        break;
+    }
+
     default: // QUIC_FRAME_STREAM*
     {
         QUIC_STREAM_EX Frame;
@@ -675,7 +765,7 @@ QuicStreamOnBytesDelivered(
 
     if (Stream->RecvWindowBytesDelivered >= RecvBufferDrainThreshold) {
 
-        uint32_t TimeNow = CxPlatTimeUs32();
+        uint64_t TimeNow = CxPlatTimeUs64();
 
         //
         // Limit stream FC window growth by the connection FC window size.
@@ -683,9 +773,9 @@ QuicStreamOnBytesDelivered(
         if (Stream->RecvBuffer.VirtualBufferLength <
             Stream->Connection->Settings.ConnFlowControlWindow) {
 
-            uint32_t TimeThreshold = (uint32_t)
+            uint64_t TimeThreshold =
                 ((Stream->RecvWindowBytesDelivered * Stream->Connection->Paths[0].SmoothedRtt) / RecvBufferDrainThreshold);
-            if (CxPlatTimeDiff32(Stream->RecvWindowLastUpdate, TimeNow) <= TimeThreshold) {
+            if (CxPlatTimeDiff64(Stream->RecvWindowLastUpdate, TimeNow) <= TimeThreshold) {
 
                 //
                 // Buffer tuning:
@@ -709,7 +799,7 @@ QuicStreamOnBytesDelivered(
                 QuicTraceLogStreamVerbose(
                     IncreaseRxBuffer,
                     Stream,
-                    "Increasing max RX buffer size to %u (MinRtt=%u; TimeNow=%u; LastUpdate=%u)",
+                    "Increasing max RX buffer size to %u (MinRtt=%llu; TimeNow=%llu; LastUpdate=%llu)",
                     Stream->RecvBuffer.VirtualBufferLength * 2,
                     Stream->Connection->Paths[0].MinRtt,
                     TimeNow,
@@ -1060,6 +1150,18 @@ QuicStreamReceiveComplete(
             &Stream->Connection->Send,
             Stream,
             QUIC_STREAM_SEND_FLAG_MAX_DATA | QUIC_STREAM_SEND_FLAG_RECV_ABORT);
+    } else if (Stream->Flags.RemoteCloseResetReliable && Stream->RecvBuffer.BaseOffset >= Stream->RecvMaxLength) {
+        //
+        // ReliableReset was initiated by the peer, and we sent enough data to the app, we can alert the app
+        // we're done and shutdown the RECV direction of this stream.
+        //
+        QuicTraceEvent(
+            StreamRecvState,
+            "[strm][%p] Recv State: %hhu",
+            Stream,
+            QuicStreamRecvGetState(Stream));
+        QuicStreamIndicatePeerSendAbortedEvent(Stream, Stream->RecvShutdownErrorCode);
+        QuicStreamRecvShutdown(Stream, TRUE, Stream->RecvShutdownErrorCode);
     }
 
     return FALSE;

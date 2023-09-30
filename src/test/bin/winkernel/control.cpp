@@ -480,8 +480,13 @@ size_t QUIC_IOCTL_BUFFER_SIZES[] =
     sizeof(UINT8),
     sizeof(BOOLEAN),
     sizeof(INT32),
-    sizeof(INT32),
+    sizeof(QUIC_HANDSHAKE_LOSS_PARAMS),
     sizeof(QUIC_RUN_CUSTOM_CERT_VALIDATION),
+    sizeof(QUIC_RUN_FEATURE_NEGOTIATION),
+    sizeof(QUIC_RUN_FEATURE_NEGOTIATION),
+    0,
+    0,
+    0,
 };
 
 CXPLAT_STATIC_ASSERT(
@@ -517,7 +522,8 @@ typedef union {
     QUIC_RUN_VN_TP_ODD_SIZE_PARAMS OddSizeVnTpParams;
     UINT8 TestServerVNTP;
     BOOLEAN Bidirectional;
-
+    QUIC_RUN_FEATURE_NEGOTIATION FeatureNegotiationParams;
+    QUIC_HANDSHAKE_LOSS_PARAMS HandshakeLossParams;
 } QUIC_IOCTL_PARAMS;
 
 #define QuicTestCtlRun(X) \
@@ -894,7 +900,8 @@ QuicTestCtlEvtIoDeviceControl(
         QuicTestCtlRun(
             QuicTestNatAddrRebind(
                 Params->RebindParams.Family,
-                Params->RebindParams.Padding));
+                Params->RebindParams.Padding,
+                FALSE));
         break;
 
     case IOCTL_QUIC_RUN_CHANGE_MAX_STREAM_ID:
@@ -1328,7 +1335,10 @@ QuicTestCtlEvtIoDeviceControl(
 
     case IOCTL_QUIC_RUN_HANDSHAKE_SPECIFIC_LOSS_PATTERNS:
         CXPLAT_FRE_ASSERT(Params != nullptr);
-        QuicTestCtlRun(QuicTestHandshakeSpecificLossPatterns(Params->Family));
+        QuicTestCtlRun(
+            QuicTestHandshakeSpecificLossPatterns(
+                Params->HandshakeLossParams.Family,
+                Params->HandshakeLossParams.CcAlgo));
         break;
 
     case IOCTL_QUIC_RUN_CUSTOM_CLIENT_CERT_VALIDATION:
@@ -1337,6 +1347,36 @@ QuicTestCtlEvtIoDeviceControl(
             QuicTestCustomClientCertificateValidation(
                 Params->CustomCertValidationParams.AcceptCert,
                 Params->CustomCertValidationParams.AsyncValidation));
+        break;
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
+    case IOCTL_QUIC_RELIABLE_RESET_NEGOTIATION:
+        CXPLAT_FRE_ASSERT(Params != nullptr);
+        QuicTestCtlRun(
+            QuicTestReliableResetNegotiation(
+                Params->FeatureNegotiationParams.Family,
+                Params->FeatureNegotiationParams.ServerSupport,
+                Params->FeatureNegotiationParams.ClientSupport));
+        break;
+    case IOCTL_QUIC_ONE_WAY_DELAY_NEGOTIATION:
+        CXPLAT_FRE_ASSERT(Params != nullptr);
+        QuicTestCtlRun(
+            QuicTestOneWayDelayNegotiation(
+                Params->FeatureNegotiationParams.Family,
+                Params->FeatureNegotiationParams.ServerSupport,
+                Params->FeatureNegotiationParams.ClientSupport));
+        break;
+
+    case IOCTL_QUIC_RUN_STREAM_RELIABLE_RESET:
+        QuicTestCtlRun(QuicTestStreamReliableReset());
+        break;
+
+    case IOCTL_QUIC_RUN_STREAM_RELIABLE_RESET_MULTIPLE_SENDS:
+        QuicTestCtlRun(QuicTestStreamReliableResetMultipleSends());
+        break;
+#endif
+
+    case IOCTL_QUIC_RUN_STATELESS_RESET_KEY:
+        QuicTestCtlRun(QuicTestStatelessResetKey());
         break;
 
     default:

@@ -292,6 +292,29 @@ TRACEPOINT_EVENT(CLOG_LIBRARY_C, LibraryLoadBalancingModeSetAfterInUse,
 
 
 /*----------------------------------------------------------
+// Decoder Ring for AllocFailure
+// Allocation of '%s' failed. (%llu bytes)
+// QuicTraceEvent(
+            AllocFailure,
+            "Allocation of '%s' failed. (%llu bytes)",
+            "connection pools",
+            PerProcSize);
+// arg2 = arg2 = "connection pools" = arg2
+// arg3 = arg3 = PerProcSize = arg3
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_LIBRARY_C, AllocFailure,
+    TP_ARGS(
+        const char *, arg2,
+        unsigned long long, arg3), 
+    TP_FIELDS(
+        ctf_string(arg2, arg2)
+        ctf_integer(uint64_t, arg3, arg3)
+    )
+)
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for PerfCountersRundown
 // [ lib] Perf counters Rundown, Counters=%!CID!
 // QuicTraceEvent(
@@ -313,64 +336,16 @@ TRACEPOINT_EVENT(CLOG_LIBRARY_C, PerfCountersRundown,
 
 
 /*----------------------------------------------------------
-// Decoder Ring for AllocFailure
-// Allocation of '%s' failed. (%llu bytes)
+// Decoder Ring for LibraryInitializedV3
+// [ lib] Initialized
 // QuicTraceEvent(
-            AllocFailure,
-            "Allocation of '%s' failed. (%llu bytes)", "default compatibility list",
-            CompatibilityListByteLength);
-// arg2 = arg2 = "default compatibility list" = arg2
-// arg3 = arg3 = CompatibilityListByteLength = arg3
+        LibraryInitializedV3,
+        "[ lib] Initialized");
 ----------------------------------------------------------*/
-TRACEPOINT_EVENT(CLOG_LIBRARY_C, AllocFailure,
+TRACEPOINT_EVENT(CLOG_LIBRARY_C, LibraryInitializedV3,
     TP_ARGS(
-        const char *, arg2,
-        unsigned long long, arg3), 
+), 
     TP_FIELDS(
-        ctf_string(arg2, arg2)
-        ctf_integer(uint64_t, arg3, arg3)
-    )
-)
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for LibraryErrorStatus
-// [ lib] ERROR, %u, %s.
-// QuicTraceEvent(
-                LibraryErrorStatus,
-                "[ lib] ERROR, %u, %s.",
-                Status,
-                "Create reset token hash");
-// arg2 = arg2 = Status = arg2
-// arg3 = arg3 = "Create reset token hash" = arg3
-----------------------------------------------------------*/
-TRACEPOINT_EVENT(CLOG_LIBRARY_C, LibraryErrorStatus,
-    TP_ARGS(
-        unsigned int, arg2,
-        const char *, arg3), 
-    TP_FIELDS(
-        ctf_integer(unsigned int, arg2, arg2)
-        ctf_string(arg3, arg3)
-    )
-)
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for LibraryInitializedV2
-// [ lib] Initialized, PartitionCount=%u
-// QuicTraceEvent(
-        LibraryInitializedV2,
-        "[ lib] Initialized, PartitionCount=%u",
-        MsQuicLib.PartitionCount);
-// arg2 = arg2 = MsQuicLib.PartitionCount = arg2
-----------------------------------------------------------*/
-TRACEPOINT_EVENT(CLOG_LIBRARY_C, LibraryInitializedV2,
-    TP_ARGS(
-        unsigned int, arg2), 
-    TP_FIELDS(
-        ctf_integer(unsigned int, arg2, arg2)
     )
 )
 
@@ -459,9 +434,9 @@ TRACEPOINT_EVENT(CLOG_LIBRARY_C, LibraryRelease,
 // Decoder Ring for DataPathInitialized
 // [data] Initialized, DatapathFeatures=%u
 // QuicTraceEvent(
-                DataPathInitialized,
-                "[data] Initialized, DatapathFeatures=%u",
-                CxPlatDataPathGetSupportedFeatures(MsQuicLib.Datapath));
+            DataPathInitialized,
+            "[data] Initialized, DatapathFeatures=%u",
+            CxPlatDataPathGetSupportedFeatures(MsQuicLib.Datapath));
 // arg2 = arg2 = CxPlatDataPathGetSupportedFeatures(MsQuicLib.Datapath) = arg2
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_LIBRARY_C, DataPathInitialized,
@@ -478,10 +453,10 @@ TRACEPOINT_EVENT(CLOG_LIBRARY_C, DataPathInitialized,
 // Decoder Ring for LibraryError
 // [ lib] ERROR, %s.
 // QuicTraceEvent(
-                LibraryError,
-                "[ lib] ERROR, %s.",
-                "Tried to change execution config after datapath initialization");
-// arg2 = arg2 = "Tried to change execution config after datapath initialization" = arg2
+            LibraryError,
+            "[ lib] ERROR, %s.",
+            "Only v2 is supported in MsQuicOpenVersion");
+// arg2 = arg2 = "Only v2 is supported in MsQuicOpenVersion" = arg2
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_LIBRARY_C, LibraryError,
     TP_ARGS(
@@ -584,5 +559,28 @@ TRACEPOINT_EVENT(CLOG_LIBRARY_C, LibrarySendRetryStateUpdated,
         unsigned char, arg2), 
     TP_FIELDS(
         ctf_integer(unsigned char, arg2, arg2)
+    )
+)
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for LibraryErrorStatus
+// [ lib] ERROR, %u, %s.
+// QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            Status,
+            "Create stateless retry key");
+// arg2 = arg2 = Status = arg2
+// arg3 = arg3 = "Create stateless retry key" = arg3
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_LIBRARY_C, LibraryErrorStatus,
+    TP_ARGS(
+        unsigned int, arg2,
+        const char *, arg3), 
+    TP_FIELDS(
+        ctf_integer(unsigned int, arg2, arg2)
+        ctf_string(arg3, arg3)
     )
 )

@@ -97,7 +97,8 @@ typedef struct QUIC_API_CONTEXT {
         } CONN_CLOSED;
         struct {
             QUIC_CONNECTION_SHUTDOWN_FLAGS Flags;
-            BOOLEAN RegistrationShutdown;
+            BOOLEAN RegistrationShutdown : 1;
+            BOOLEAN TransportShutdown : 1;
             QUIC_VAR_INT ErrorCode;
         } CONN_SHUTDOWN;
         struct {
@@ -190,7 +191,7 @@ typedef struct QUIC_STATELESS_CONTEXT {
     QUIC_ADDR RemoteAddress;
     CXPLAT_LIST_ENTRY ListEntry;
     CXPLAT_HASHTABLE_ENTRY TableEntry;
-    CXPLAT_RECV_DATA* Datagram;
+    QUIC_RX_PACKET* Packet;
     uint32_t CreationTimeMs;
     uint8_t HasBindingRef : 1;
     uint8_t IsProcessed : 1;

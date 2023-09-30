@@ -128,14 +128,13 @@ CxPlatWorkersLazyStart(
     }
 
     const uint16_t* ProcessorList;
-    UNREFERENCED_PARAMETER(Config); // TODO - use config
-    /*if (Config && Config->ProcessorCount) {
+    if (Config && Config->ProcessorCount) {
         CxPlatWorkerCount = Config->ProcessorCount;
         ProcessorList = Config->ProcessorList;
-    } else {*/
+    } else {
         CxPlatWorkerCount = CxPlatProcMaxCount();
         ProcessorList = NULL;
-    //}
+    }
     CXPLAT_DBG_ASSERT(CxPlatWorkerCount > 0 && CxPlatWorkerCount <= UINT16_MAX);
 
     const size_t WorkersSize = sizeof(CXPLAT_WORKER) * CxPlatWorkerCount;
@@ -303,32 +302,21 @@ CxPlatWorkersUninit(
 
 CXPLAT_EVENTQ*
 CxPlatWorkerGetEventQ(
-    _In_ uint16_t IdealProcessor
+    _In_ uint16_t Index
     )
 {
-    for (uint32_t i = 0; i < CxPlatWorkerCount; ++i) {
-        if (CxPlatWorkers[i].IdealProcessor == IdealProcessor) {
-            return &CxPlatWorkers[i].EventQ;
-        }
-    }
-    CXPLAT_FRE_ASSERT(FALSE);
-    return NULL;
+    CXPLAT_FRE_ASSERT(Index < CxPlatWorkerCount);
+    return &CxPlatWorkers[Index].EventQ;
 }
 
 void
 CxPlatAddExecutionContext(
     _Inout_ CXPLAT_EXECUTION_CONTEXT* Context,
-    _In_ uint16_t IdealProcessor
+    _In_ uint16_t Index
     )
 {
-    CXPLAT_WORKER* Worker = NULL;
-    for (uint32_t i = 0; i < CxPlatWorkerCount; ++i) {
-        if (CxPlatWorkers[i].IdealProcessor == IdealProcessor) {
-            Worker = &CxPlatWorkers[i];
-            break;
-        }
-    }
-    CXPLAT_FRE_ASSERT(Worker != NULL);
+    CXPLAT_FRE_ASSERT(Index < CxPlatWorkerCount);
+    CXPLAT_WORKER* Worker = &CxPlatWorkers[Index];
 
     Context->CxPlatContext = Worker;
     CxPlatLockAcquire(&Worker->ECLock);

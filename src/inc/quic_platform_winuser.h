@@ -56,7 +56,7 @@ Environment:
 extern "C" {
 #endif
 
-#if defined(DEBUG) || defined(_DEBUG)
+#ifndef NDEBUG
 #define DBG 1
 #define DEBUG 1
 #endif
@@ -1007,6 +1007,17 @@ CxPlatProcCurrentNumber(
     PROCESSOR_NUMBER ProcNumber;
     GetCurrentProcessorNumberEx(&ProcNumber);
     return CxPlatProcessorGroupInfo[ProcNumber.Group].Offset + ProcNumber.Number;
+}
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+inline
+BOOLEAN
+CxPlatProcIsActive(
+    uint32_t Index
+    )
+{
+    const CXPLAT_PROCESSOR_INFO* Proc = &CxPlatProcessorInfo[Index];
+    return !!(CxPlatProcessorGroupInfo[Proc->Group].Mask & (1ULL << Proc->Index));
 }
 
 

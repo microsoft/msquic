@@ -246,7 +246,7 @@ namespace QuicTrace.DataModel
             }
         }
 
-        internal void FinalizeState(Timestamp time)
+        internal void FinalizeState(Timestamp time, bool trimTrailing = true)
         {
             if (EncounteredError) return;
             if (time < LastStateChangeTime)
@@ -260,6 +260,25 @@ namespace QuicTrace.DataModel
             StateChanges.Add((State, time));
             LastStateChangeTime = time;
             IsFinalized = true;
+
+            if (trimTrailing)
+            {
+                // Trim trailing CleanUp, Idle* and ProcessAppRecv states because they
+                // generally don't attribute to total request time.
+                while (StateChanges.Count > 1 &&
+                      (StateChanges[^1].Item1 == QuicStreamState.CleanUp ||
+                       StateChanges[^1].Item1 == QuicStreamState.IdleBoth ||
+                       StateChanges[^1].Item1 == QuicStreamState.IdleRecv ||
+                       StateChanges[^1].Item1 == QuicStreamState.IdleSent ||
+                       StateChanges[^1].Item1 == QuicStreamState.ProcessAppRecv))
+                {
+                    deltaT = LastStateChangeTime - StateChanges[^2].Item2;
+                    Times[(int)StateChanges[^1].Item1] -= (ulong)deltaT.ToNanoseconds;
+
+                    StateChanges.RemoveAt(StateChanges.Count - 1);
+                    LastStateChangeTime = StateChanges[^1].Item2;
+                }
+            }
         }
     }
 }

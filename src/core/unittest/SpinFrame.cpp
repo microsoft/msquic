@@ -33,6 +33,8 @@ union QuicV1Frames {
     QUIC_CONNECTION_CLOSE_EX ConnectionCloseFrame;
     QUIC_DATAGRAM_EX DatagramFrame;
     QUIC_ACK_FREQUENCY_EX AckFrequencyFrame;
+    QUIC_RELIABLE_RESET_STREAM_EX ReliableResetStreamFrame;
+    QUIC_TIMESTAMP_EX TimestampFrame;
 };
 
 TEST(SpinFrame, SpinFrame1000000)
@@ -48,10 +50,10 @@ TEST(SpinFrame, SpinFrame1000000)
     uint8_t Buffer[255];
     uint8_t BufferLength = 0;
 
-    uint8_t FrameType;
+    uint16_t FrameType;
     CXPLAT_STATIC_ASSERT(
-        QUIC_FRAME_MAX_SUPPORTED <= (uint64_t)UINT8_MAX,
-        "Tests below assumes frames fit in 8-bits");
+        QUIC_FRAME_MAX_SUPPORTED <= (uint64_t)UINT16_MAX,
+        "Tests below assumes frames fit in 16-bits");
 
     QuicRangeInitialize(QUIC_MAX_RANGE_DECODE_ACKS, &AckBlocks);
 
@@ -220,6 +222,20 @@ TEST(SpinFrame, SpinFrame1000000)
                 break;
             case QUIC_FRAME_ACK_FREQUENCY:
                 if (QuicAckFrequencyFrameDecode(BufferLength, Buffer, &Offset, &DecodedFrame.AckFrequencyFrame)) {
+                    SuccessfulDecodes++;
+                } else {
+                    FailedDecodes++;
+                }
+                break;
+            case QUIC_FRAME_RELIABLE_RESET_STREAM:
+                if (QuicReliableResetFrameDecode(BufferLength, Buffer, &Offset, &DecodedFrame.ReliableResetStreamFrame)) {
+                    SuccessfulDecodes++;
+                } else {
+                    FailedDecodes++;
+                }
+                break;
+            case QUIC_FRAME_TIMESTAMP:
+                if (QuicTimestampFrameDecode(BufferLength, Buffer, &Offset, &DecodedFrame.TimestampFrame)) {
                     SuccessfulDecodes++;
                 } else {
                     FailedDecodes++;

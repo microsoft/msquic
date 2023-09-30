@@ -309,6 +309,32 @@ TRACEPOINT_EVENT(CLOG_STREAM_SEND_C, SendQueueDrained,
 
 
 /*----------------------------------------------------------
+// Decoder Ring for ResetReliableAck
+// [strm][%p] Reset Reliable ACKed in OnResetReliableAck. Send side. UnAckedOffset=%llu, ReliableOffsetSend=%llu
+// QuicTraceLogStreamVerbose(
+        ResetReliableAck,
+        Stream,
+        "Reset Reliable ACKed in OnResetReliableAck. Send side. UnAckedOffset=%llu, ReliableOffsetSend=%llu",
+        Stream->UnAckedOffset, Stream->ReliableOffsetSend);
+// arg1 = arg1 = Stream = arg1
+// arg3 = arg3 = Stream->UnAckedOffset = arg3
+// arg4 = arg4 = Stream->ReliableOffsetSend = arg4
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_STREAM_SEND_C, ResetReliableAck,
+    TP_ARGS(
+        const void *, arg1,
+        unsigned long long, arg3,
+        unsigned long long, arg4), 
+    TP_FIELDS(
+        ctf_integer_hex(uint64_t, arg1, arg1)
+        ctf_integer(uint64_t, arg3, arg3)
+        ctf_integer(uint64_t, arg4, arg4)
+    )
+)
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for SendDump
 // [strm][%p] SF:%hX FC:%llu QS:%llu MAX:%llu UNA:%llu NXT:%llu RECOV:%llu-%llu
 // QuicTraceLogStreamVerbose(

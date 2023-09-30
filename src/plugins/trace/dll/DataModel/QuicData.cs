@@ -160,7 +160,9 @@ namespace QuicTrace.DataModel
         PktCreate,  // Packet created to be sent
         TxAck,      // Packet(s) bytes acknowledged
         Rx,         // Packet received
+        RxBatch,    // Datagram batch processed
         Rtt,
+        OneWay,
         InFlight,
         CWnd,
         Bufferred,

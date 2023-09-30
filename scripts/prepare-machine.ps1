@@ -10,9 +10,6 @@ on the provided configuration.
 .PARAMETER Force
     Overwrite and force installation of all dependencies.
 
-.PARAMETER InitSubmodules
-    Dynamically initializes submodules based Tls and Extra configuration knobs.
-
 .PARAMETER ForKernel
     Indicates build is for kernel mode.
 
@@ -41,10 +38,7 @@ param (
     [switch]$Force,
 
     [Parameter(Mandatory = $false)]
-    [switch]$ForOneBranch,
-
-    [Parameter(Mandatory = $false)]
-    [switch]$ForOneBranchPackage,
+    [switch]$ForContainerBuild,
 
     [Parameter(Mandatory = $false)]
     [switch]$ForBuild,
@@ -56,10 +50,7 @@ param (
     [switch]$ForKernel,
 
     [Parameter(Mandatory = $false)]
-    [switch]$InitSubmodules,
-
-    [Parameter(Mandatory = $false)]
-    [switch]$InstallSigningCertificate,
+    [switch]$InstallSigningCertificates,
 
     [Parameter(Mandatory = $false)]
     [switch]$InstallTestCertificates,
@@ -95,7 +86,10 @@ param (
     [switch]$InstallClog2Text,
 
     [Parameter(Mandatory = $false)]
-    [switch]$DisableTest
+    [switch]$DisableTest,
+
+    [Parameter(Mandatory = $false)]
+    [switch]$InstallCoreNetCiDeps
 )
 
 # Admin is required because a lot of things are installed to the local machine
@@ -115,18 +109,7 @@ if ($PSVersionTable.PSVersion.Major -lt 7) {
                  "Please visit https://github.com/microsoft/msquic/blob/main/docs/BUILD.md#powershell-usage")
 }
 
-if ($UseXdp) {
-    # Helper for XDP usage
-    if ($ForBuild) {
-        $InstallXdpSdk = $true;
-    }
-    if ($ForTest) {
-        $InstallXdpDriver = $true;
-        $InstallDuoNic = $true;
-    }
-}
-
-if (!$ForOneBranch -and !$ForOneBranchPackage -and !$ForBuild -and !$ForTest -and !$InstallXdpDriver -and !$UninstallXdp) {
+if (!$ForContainerBuild -and !$ForBuild -and !$ForTest -and !$InstallXdpDriver -and !$UninstallXdp) {
     # When no args are passed, assume we want to build and test everything
     # locally (i.e. a dev environment). Set Tls to OpenSSL to make sure
     # everything is available.
@@ -141,16 +124,26 @@ if ($ForBuild) {
     $InstallNasm = $true
     $InstallJom = $true
     $InstallXdpSdk = $true
-    $InitSubmodules = $true
+    $InstallCoreNetCiDeps = $true; # For kernel signing certs
 }
 
 if ($ForTest) {
     # When configured for testing, make sure we have all possible dependencies
     # enabled for any possible test.
-    $InstallSigningCertificate = $true
     $InstallTestCertificates = $true
-
     $InstallClog2Text = $true
+
+    # Since installing signing certs also checks whether test signing is enabled, which most
+    # likely will fail on a devbox, do it only when we need to test kernel drivers so that
+    # local testing setup won't be blocked by test signing not enabled.
+    if ($ForKernel) {
+        $InstallSigningCertificates = $true;
+    }
+
+    if ($UseXdp) {
+        $InstallXdpDriver = $true;
+        $InstallDuoNic = $true;
+    }
 
     #$InstallCodeCoverage = $true # Ideally we'd enable this by default, but it
                                   # hangs sometimes, so we only want to install
@@ -160,6 +153,16 @@ if ($ForTest) {
 if ($InstallXdpDriver) {
     # The XDP SDK contains XDP driver, so ensure it's downloaded.
     $InstallXdpSdk = $true
+    $InstallSigningCertificates = $true;
+}
+
+if ($InstallDuoNic) {
+    $InstallSigningCertificates = $true;
+}
+
+if ($InstallSigningCertificates) {
+    # Signing certs need the CoreNet-CI dependencies.
+    $InstallCoreNetCiDeps = $true;
 }
 
 # Root directory of the project.
@@ -176,6 +179,7 @@ $PfxPassword = ConvertTo-SecureString -String "placeholder" -Force -AsPlainText
 
 # Downloads and caches the latest version of the corenet-ci-main repo.
 function Download-CoreNet-Deps {
+    if (!$IsWindows) { return } # Windows only
     # Download and extract https://github.com/microsoft/corenet-ci.
     if ($Force) { rm -Force -Recurse $CoreNetCiPath -ErrorAction Ignore }
     if (!(Test-Path $CoreNetCiPath)) {
@@ -187,22 +191,38 @@ function Download-CoreNet-Deps {
     }
 }
 
+# Installs the certs downloaded via Download-CoreNet-Deps and used for signing
+# our test drivers.
+function Install-SigningCertificates {
+    if (!$IsWindows) { return } # Windows only
+
+    # Check to see if test signing is enabled.
+    $HasTestSigning = $false
+    try { $HasTestSigning = ("$(bcdedit)" | Select-String -Pattern "testsigning\s+Yes").Matches.Success } catch { }
+    if (!$HasTestSigning) { Write-Error "Test Signing Not Enabled!" }
+
+    Write-Host "Installing driver signing certificates"
+    try {
+        CertUtil.exe -addstore Root "$SetupPath\CoreNetSignRoot.cer"
+        CertUtil.exe -addstore TrustedPublisher "$SetupPath\CoreNetSignRoot.cer"
+        CertUtil.exe -addstore Root "$SetupPath\testroot-sha2.cer" # For duonic
+    } catch {
+        Write-Host "WARNING: Exception encountered while installing signing certs. Drivers may not start!"
+    }
+}
+
 # Downloads the latest version of XDP (for building).
 function Install-Xdp-Sdk {
     if (!$IsWindows) { return } # Windows only
     $XdpPath = Join-Path $ArtifactsPath "xdp"
     if ($Force) {
-        try {
-            # Make sure an old driver isn't installed.
-            netcfg.exe -u ms_xdp
-            pnputil.exe /delete-driver "$XdpPath\bin\xdp.inf"
-        } catch {}
         rm -Force -Recurse $XdpPath -ErrorAction Ignore | Out-Null
     }
     if (!(Test-Path $XdpPath)) {
-        Write-Host "Downloading XDP"
+        Write-Host "Downloading XDP kit"
         $ZipPath = Join-Path $ArtifactsPath "xdp.zip"
-        Invoke-WebRequest -Uri (Get-Content (Join-Path $PSScriptRoot "xdp-devkit.json") | ConvertFrom-Json).Path -OutFile $ZipPath
+        Invoke-WebRequest -Uri (Get-Content (Join-Path $PSScriptRoot "xdp.json") | ConvertFrom-Json).kit -OutFile $ZipPath
+        Write-Host "Extracting XDP kit"
         Expand-Archive -Path $ZipPath -DestinationPath $XdpPath -Force
         New-Item -Path "$ArtifactsPath\bin\xdp" -ItemType Directory -Force
         Copy-Item -Path "$XdpPath\symbols\*" -Destination "$ArtifactsPath\bin\xdp" -Force
@@ -215,50 +235,31 @@ function Install-Xdp-Sdk {
 # NB: XDP can be uninstalled via Uninstall-Xdp
 function Install-Xdp-Driver {
     if (!$IsWindows) { return } # Windows only
-    $XdpPath = Join-Path $ArtifactsPath "xdp"
-    if (!(Test-Path $XdpPath)) {
-        Write-Error "XDP installation failed: driver file not present"
-    }
-
-    Write-Host "Installing XDP certificate"
-    try {
-        CertUtil.exe -addstore Root "$XdpPath\bin\CoreNetSignRoot.cer"
-        CertUtil.exe -addstore TrustedPublisher "$XdpPath\bin\CoreNetSignRoot.cer"
-    } catch { }
-
+    Write-Host "Downloading XDP msi"
+    $MsiPath = Join-Path $ArtifactsPath "xdp.msi"
+    Invoke-WebRequest -Uri (Get-Content (Join-Path $PSScriptRoot "xdp.json") | ConvertFrom-Json).installer -OutFile $MsiPath
     Write-Host "Installing XDP driver"
-    netcfg.exe -l "$XdpPath\bin\xdp.inf" -c s -i ms_xdp
+    msiexec.exe /i $MsiPath /quiet | Out-Null
 }
 
 # Completely removes the XDP driver and SDK.
 function Uninstall-Xdp {
     if (!$IsWindows) { return } # Windows only
+    $MsiPath = Join-Path $ArtifactsPath "xdp.msi"
+    if (Test-Path $MsiPath) {
+        Write-Host "Uninstalling XDP driver"
+        try { msiexec.exe /x $MsiPath /quiet | Out-Null } catch {}
+    }
     $XdpPath = Join-Path $ArtifactsPath "xdp"
-    if (!(Test-Path $XdpPath)) { return; }
-
-    Write-Host "Uninstalling XDP"
-    try { netcfg.exe -u ms_xdp } catch {}
-    try { pnputil.exe /delete-driver "$XdpPath\bin\xdp.inf" } catch {}
-    rm -Force -Recurse $XdpPath -ErrorAction Ignore | Out-Null
+    if (Test-Path $XdpPath) {
+        Write-Host "Deleting XDP kit"
+        rm -Force -Recurse $XdpPath -ErrorAction Ignore | Out-Null
+    }
 }
 
 # Installs DuoNic from the CoreNet-CI repo.
 function Install-DuoNic {
     if (!$IsWindows) { return } # Windows only
-    # Check to see if test signing is enabled.
-    $HasTestSigning = $false
-    try { $HasTestSigning = ("$(bcdedit)" | Select-String -Pattern "testsigning\s+Yes").Matches.Success } catch { }
-    if (!$HasTestSigning) { Write-Error "Test Signing Not Enabled!" }
-
-    # Download the CI repo that contains DuoNic.
-    Download-CoreNet-Deps
-
-    # Install the test root certificate.
-    Write-Host "Installing test root certificate"
-    $RootCertPath = Join-Path $SetupPath "testroot-sha2.cer"
-    if (!(Test-Path $RootCertPath)) { Write-Error "Missing file: $RootCertPath" }
-    certutil.exe -addstore -f "Root" $RootCertPath
-
     # Install the DuoNic driver.
     Write-Host "Installing DuoNic driver"
     $DuoNicPath = Join-Path $SetupPath duonic
@@ -353,21 +354,6 @@ function Win-SupportsCerts {
     $ver = [environment]::OSVersion.Version
     if ($ver.Build -lt 20000) { return $false }
     return $true
-}
-
-# Creates and installs a certificate to use for local signing.
-function Install-SigningCertificate {
-    if (!$IsWindows -or !(Win-SupportsCerts)) { return } # Windows only
-    if (!(Test-Path c:\CodeSign.pfx)) {
-        Write-Host "Creating signing certificate"
-        $CodeSignCert = New-SelfSignedCertificate -Type Custom -Subject "CN=MsQuicTestCodeSignRoot" -FriendlyName MsQuicTestCodeSignRoot -KeyUsageProperty Sign -KeyUsage DigitalSignature -CertStoreLocation cert:\CurrentUser\My -HashAlgorithm SHA256 -Provider "Microsoft Software Key Storage Provider" -KeyExportPolicy Exportable -NotAfter(Get-Date).AddYears(1) -TextExtension @("2.5.29.37={text}1.3.6.1.5.5.7.3.3,1.3.6.1.4.1.311.10.3.6","2.5.29.19 = {text}")
-        $CodeSignCertPath = Join-Path $Env:TEMP "CodeSignRoot.cer"
-        Export-Certificate -Type CERT -Cert $CodeSignCert -FilePath $CodeSignCertPath
-        CertUtil.exe -addstore Root $CodeSignCertPath
-        Export-PfxCertificate -Cert $CodeSignCert -Password $PfxPassword -FilePath c:\CodeSign.pfx
-        Remove-Item $CodeSignCertPath
-        Remove-Item $CodeSignCert.PSPath
-    }
 }
 
 # Creates and installs certificates used for testing.
@@ -487,7 +473,7 @@ if ($ForKernel) {
     git rm submodules/openssl3
 }
 
-if ($InitSubmodules) {
+if ($ForBuild -or $ForContainerBuild) {
 
     Write-Host "Initializing clog submodule"
     git submodule init submodules/clog
@@ -510,6 +496,8 @@ if ($InitSubmodules) {
     git submodule update --jobs=8
 }
 
+if ($InstallCoreNetCiDeps) { Download-CoreNet-Deps }
+if ($InstallSigningCertificates) { Install-SigningCertificates }
 if ($InstallDuoNic) { Install-DuoNic }
 if ($InstallXdpSdk) { Install-Xdp-Sdk }
 if ($InstallXdpDriver) { Install-Xdp-Driver }
@@ -517,7 +505,6 @@ if ($UninstallXdp) { Uninstall-Xdp }
 if ($InstallNasm) { Install-NASM }
 if ($InstallJOM) { Install-JOM }
 if ($InstallCodeCoverage) { Install-OpenCppCoverage }
-if ($InstallSigningCertificate) { Install-SigningCertificate }
 if ($InstallTestCertificates) { Install-TestCertificates }
 
 if ($IsLinux) {

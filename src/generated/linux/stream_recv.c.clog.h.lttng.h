@@ -2,6 +2,25 @@
 
 
 /*----------------------------------------------------------
+// Decoder Ring for ReliableResetNotNegotiatedError
+// [strm][%p] Received ReliableReset without negotiation.
+// QuicTraceLogStreamWarning(
+            ReliableResetNotNegotiatedError,
+            Stream,
+            "Received ReliableReset without negotiation.");
+// arg1 = arg1 = Stream = arg1
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_STREAM_RECV_C, ReliableResetNotNegotiatedError,
+    TP_ARGS(
+        const void *, arg1), 
+    TP_FIELDS(
+        ctf_integer_hex(uint64_t, arg1, arg1)
+    )
+)
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for ResetEarly
 // [strm][%p] Tried to reset at earlier final size!
 // QuicTraceLogStreamWarning(
@@ -81,9 +100,9 @@ TRACEPOINT_EVENT(CLOG_STREAM_RECV_C, ReceiveBeyondFlowControl,
 // Decoder Ring for RemoteCloseReset
 // [strm][%p] Closed remotely (reset)
 // QuicTraceLogStreamInfo(
-                RemoteCloseReset,
-                Stream,
-                "Closed remotely (reset)");
+        RemoteCloseReset,
+        Stream,
+        "Closed remotely (reset)");
 // arg1 = arg1 = Stream = arg1
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_STREAM_RECV_C, RemoteCloseReset,
@@ -91,6 +110,29 @@ TRACEPOINT_EVENT(CLOG_STREAM_RECV_C, RemoteCloseReset,
         const void *, arg1), 
     TP_FIELDS(
         ctf_integer_hex(uint64_t, arg1, arg1)
+    )
+)
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for ReliableRecvOffsetSet
+// [strm][%p] Reliable recv offset set to %llu
+// QuicTraceLogStreamInfo(
+            ReliableRecvOffsetSet,
+            Stream,
+            "Reliable recv offset set to %llu",
+            ReliableOffset);
+// arg1 = arg1 = Stream = arg1
+// arg3 = arg3 = ReliableOffset = arg3
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_STREAM_RECV_C, ReliableRecvOffsetSet,
+    TP_ARGS(
+        const void *, arg1,
+        unsigned long long, arg3), 
+    TP_FIELDS(
+        ctf_integer_hex(uint64_t, arg1, arg1)
+        ctf_integer(uint64_t, arg3, arg3)
     )
 )
 
@@ -157,10 +199,10 @@ TRACEPOINT_EVENT(CLOG_STREAM_RECV_C, QueueRecvFlush,
 // Decoder Ring for IndicatePeerSendAbort
 // [strm][%p] Indicating QUIC_STREAM_EVENT_PEER_SEND_ABORTED (0x%llX)
 // QuicTraceLogStreamVerbose(
-                IndicatePeerSendAbort,
-                Stream,
-                "Indicating QUIC_STREAM_EVENT_PEER_SEND_ABORTED (0x%llX)",
-                ErrorCode);
+        IndicatePeerSendAbort,
+        Stream,
+        "Indicating QUIC_STREAM_EVENT_PEER_SEND_ABORTED (0x%llX)",
+        ErrorCode);
 // arg1 = arg1 = Stream = arg1
 // arg3 = arg3 = ErrorCode = arg3
 ----------------------------------------------------------*/
@@ -312,11 +354,11 @@ TRACEPOINT_EVENT(CLOG_STREAM_RECV_C, RemoteBlocked,
 
 /*----------------------------------------------------------
 // Decoder Ring for IncreaseRxBuffer
-// [strm][%p] Increasing max RX buffer size to %u (MinRtt=%u; TimeNow=%u; LastUpdate=%u)
+// [strm][%p] Increasing max RX buffer size to %u (MinRtt=%llu; TimeNow=%llu; LastUpdate=%llu)
 // QuicTraceLogStreamVerbose(
                     IncreaseRxBuffer,
                     Stream,
-                    "Increasing max RX buffer size to %u (MinRtt=%u; TimeNow=%u; LastUpdate=%u)",
+                    "Increasing max RX buffer size to %u (MinRtt=%llu; TimeNow=%llu; LastUpdate=%llu)",
                     Stream->RecvBuffer.VirtualBufferLength * 2,
                     Stream->Connection->Paths[0].MinRtt,
                     TimeNow,
@@ -331,15 +373,15 @@ TRACEPOINT_EVENT(CLOG_STREAM_RECV_C, IncreaseRxBuffer,
     TP_ARGS(
         const void *, arg1,
         unsigned int, arg3,
-        unsigned int, arg4,
-        unsigned int, arg5,
-        unsigned int, arg6), 
+        unsigned long long, arg4,
+        unsigned long long, arg5,
+        unsigned long long, arg6), 
     TP_FIELDS(
         ctf_integer_hex(uint64_t, arg1, arg1)
         ctf_integer(unsigned int, arg3, arg3)
-        ctf_integer(unsigned int, arg4, arg4)
-        ctf_integer(unsigned int, arg5, arg5)
-        ctf_integer(unsigned int, arg6, arg6)
+        ctf_integer(uint64_t, arg4, arg4)
+        ctf_integer(uint64_t, arg5, arg5)
+        ctf_integer(uint64_t, arg6, arg6)
     )
 )
 

@@ -75,9 +75,26 @@ MsQuicListenerOpen(
     QuicSiloAddRef(Listener->Silo);
 #endif
 
+    BOOLEAN RegistrationShuttingDown;
+
     BOOLEAN Result = CxPlatRundownAcquire(&Registration->Rundown);
     CXPLAT_DBG_ASSERT(Result); UNREFERENCED_PARAMETER(Result);
 
+    CxPlatDispatchLockAcquire(&Registration->ConnectionLock);
+    RegistrationShuttingDown = Registration->ShuttingDown;
+    if (!RegistrationShuttingDown) {
+        CxPlatListInsertTail(&Registration->Listeners, &Listener->RegistrationLink);
+    }
+    CxPlatDispatchLockRelease(&Registration->ConnectionLock);
+
+    if (RegistrationShuttingDown) {
+        CxPlatRundownRelease(&Registration->Rundown);
+        CxPlatEventUninitialize(Listener->StopEvent);
+        CXPLAT_FREE(Listener, QUIC_POOL_LISTENER);
+        Listener = NULL;
+        Status = QUIC_STATUS_INVALID_STATE;
+        goto Error;
+    }
     QuicTraceEvent(
         ListenerCreated,
         "[list][%p] Created, Registration=%p",
@@ -88,12 +105,7 @@ MsQuicListenerOpen(
 
 Error:
 
-    if (QUIC_FAILED(Status)) {
-
-        if (Listener != NULL) {
-            CXPLAT_FREE(Listener, QUIC_POOL_LISTENER);
-        }
-    }
+    CXPLAT_DBG_ASSERT(QUIC_SUCCEEDED(Status) || Listener == NULL);
 
     QuicTraceEvent(
         ApiExitStatus,
@@ -122,6 +134,12 @@ QuicListenerFree(
     QuicSiloRelease(Listener->Silo);
 #endif
 
+    CxPlatDispatchLockAcquire(&Listener->Registration->ConnectionLock);
+    if (!Listener->Registration->ShuttingDown) {
+        CxPlatListEntryRemove(&Listener->RegistrationLink);
+    }
+    CxPlatDispatchLockRelease(&Listener->Registration->ConnectionLock);
+
     CxPlatRefUninitialize(&Listener->RefCount);
     CxPlatEventUninitialize(Listener->StopEvent);
     CXPLAT_DBG_ASSERT(Listener->AlpnList == NULL);
@@ -137,13 +155,8 @@ MsQuicListenerClose(
         HQUIC Handle
     )
 {
-    if (Handle == NULL) {
-        return;
-    }
-
-    CXPLAT_TEL_ASSERT(Handle->Type == QUIC_HANDLE_TYPE_LISTENER);
-    _Analysis_assume_(Handle->Type == QUIC_HANDLE_TYPE_LISTENER);
-    if (Handle->Type != QUIC_HANDLE_TYPE_LISTENER) {
+    CXPLAT_TEL_ASSERT(Handle == NULL || Handle->Type == QUIC_HANDLE_TYPE_LISTENER);
+    if (Handle == NULL || Handle->Type != QUIC_HANDLE_TYPE_LISTENER) {
         return;
     }
 
@@ -303,7 +316,8 @@ MsQuicListenerStart(
 #ifdef QUIC_OWNING_PROCESS
     UdpConfig.OwningProcess = NULL;     // Owning process not supported for listeners.
 #endif
-#ifdef QUIC_USE_RAW_DATAPATH
+
+    // for RAW datapath
     UdpConfig.CibirIdLength = Listener->CibirId[0];
     UdpConfig.CibirIdOffsetSrc = MsQuicLib.CidServerIdLength + 2;
     UdpConfig.CibirIdOffsetDst = MsQuicLib.CidServerIdLength + 2;
@@ -314,7 +328,6 @@ MsQuicListenerStart(
             &Listener->CibirId[2],
             UdpConfig.CibirIdLength);
     }
-#endif
 
     CXPLAT_TEL_ASSERT(Listener->Binding == NULL);
     Status =

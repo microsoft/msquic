@@ -20,8 +20,7 @@ QUIC_STATUS
 QuicStreamInitialize(
     _In_ QUIC_CONNECTION* Connection,
     _In_ BOOLEAN OpenedRemotely,
-    _In_ BOOLEAN Unidirectional,
-    _In_ BOOLEAN Opened0Rtt,
+    _In_ QUIC_STREAM_OPEN_FLAGS Flags,
     _Outptr_ _At_(*NewStream, __drv_allocatesMem(Mem))
         QUIC_STREAM** NewStream
     )
@@ -55,8 +54,15 @@ QuicStreamInitialize(
     Stream->Type = QUIC_HANDLE_TYPE_STREAM;
     Stream->Connection = Connection;
     Stream->ID = UINT64_MAX;
-    Stream->Flags.Unidirectional = Unidirectional;
-    Stream->Flags.Opened0Rtt = Opened0Rtt;
+    Stream->Flags.Unidirectional = !!(Flags & QUIC_STREAM_OPEN_FLAG_UNIDIRECTIONAL);
+    Stream->Flags.Opened0Rtt = !!(Flags & QUIC_STREAM_OPEN_FLAG_0_RTT);
+    Stream->Flags.DelayIdFcUpdate = !!(Flags & QUIC_STREAM_OPEN_FLAG_DELAY_ID_FC_UPDATES);
+    if (Stream->Flags.DelayIdFcUpdate) {
+        QuicTraceLogStreamVerbose(
+            ConfiguredForDelayedIDFC,
+            Stream,
+            "Configured for delayed ID FC updates");
+    }
     Stream->Flags.Allocated = TRUE;
     Stream->Flags.SendEnabled = TRUE;
     Stream->Flags.ReceiveEnabled = TRUE;
@@ -73,7 +79,7 @@ QuicStreamInitialize(
     Stream->RefTypeCount[QUIC_STREAM_REF_APP] = 1;
 #endif
 
-    if (Unidirectional) {
+    if (Stream->Flags.Unidirectional) {
         if (!OpenedRemotely) {
 
             //
@@ -120,7 +126,7 @@ QuicStreamInitialize(
     }
 
     Stream->MaxAllowedRecvOffset = Stream->RecvBuffer.VirtualBufferLength;
-    Stream->RecvWindowLastUpdate = CxPlatTimeUs32();
+    Stream->RecvWindowLastUpdate = CxPlatTimeUs64();
 
     Stream->Flags.Initialized = TRUE;
     *NewStream = Stream;
@@ -157,16 +163,17 @@ QuicStreamFree(
     QUIC_CONNECTION* Connection = Stream->Connection;
     QUIC_WORKER* Worker = Connection->Worker;
 
-    CXPLAT_TEL_ASSERT(Stream->RefCount == 0);
-    CXPLAT_TEL_ASSERT(Connection->State.ClosedLocally || Stream->Flags.ShutdownComplete);
-    CXPLAT_TEL_ASSERT(Connection->State.ClosedLocally || Stream->Flags.HandleClosed);
-    CXPLAT_TEL_ASSERT(Stream->ClosedLink.Flink == NULL);
-    CXPLAT_TEL_ASSERT(Stream->SendLink.Flink == NULL);
+    CXPLAT_DBG_ASSERT(Stream->RefCount == 0);
+    CXPLAT_DBG_ASSERT(Connection->State.ClosedLocally || Stream->Flags.ShutdownComplete);
+    CXPLAT_DBG_ASSERT(Connection->State.ClosedLocally || Stream->Flags.HandleClosed);
+    CXPLAT_DBG_ASSERT(!Stream->Flags.InStreamTable);
+    CXPLAT_DBG_ASSERT(Stream->ClosedLink.Flink == NULL);
+    CXPLAT_DBG_ASSERT(Stream->SendLink.Flink == NULL);
 
     Stream->Flags.Uninitialized = TRUE;
 
-    CXPLAT_TEL_ASSERT(Stream->ApiSendRequests == NULL);
-    CXPLAT_TEL_ASSERT(Stream->SendRequests == NULL);
+    CXPLAT_DBG_ASSERT(Stream->ApiSendRequests == NULL);
+    CXPLAT_DBG_ASSERT(Stream->SendRequests == NULL);
 
 #if DEBUG
     CxPlatDispatchLockAcquire(&Connection->Streams.AllStreamsLock);
@@ -353,7 +360,7 @@ QuicStreamClose(
 
     if (!Stream->Flags.ShutdownComplete) {
 
-        if (Stream->Flags.Started) {
+        if (Stream->Flags.Started && !Stream->Flags.HandleShutdown) {
             //
             // TODO - If the stream hasn't been aborted already, then this is a
             // fatal error for the connection. The QUIC transport cannot "just
@@ -376,14 +383,22 @@ QuicStreamClose(
                 QUIC_STREAM_SHUTDOWN_FLAG_IMMEDIATE,
             QUIC_ERROR_NO_ERROR);
 
-            if (!Stream->Flags.Started) {
-                //
-                // The stream was abandoned before it could be successfully
-                // started. Just mark it as completing the shutdown process now
-                // since nothing else can be done with it now.
-                //
-                Stream->Flags.ShutdownComplete = TRUE;
-            }
+        if (!Stream->Flags.Started) {
+            //
+            // The stream was abandoned before it could be successfully
+            // started. Just mark it as completing the shutdown process now
+            // since nothing else can be done with it now.
+            //
+            Stream->Flags.ShutdownComplete = TRUE;
+            CXPLAT_DBG_ASSERT(!Stream->Flags.InStreamTable);
+        }
+    }
+
+    if (Stream->Flags.DelayIdFcUpdate && Stream->Flags.ShutdownComplete) {
+        //
+        // Indicate the stream is completely shut down to the connection.
+        //
+        QuicStreamSetReleaseStream(&Stream->Connection->Streams, Stream);
     }
 
     Stream->ClientCallbackHandler = NULL;
@@ -559,6 +574,13 @@ QuicStreamShutdown(
         // and shutdown complete events now, if they haven't already been
         // delivered.
         //
+        if (Stream->Flags.RemoteCloseResetReliable || Stream->Flags.LocalCloseResetReliable) {
+             QuicTraceLogStreamWarning(
+                ShutdownImmediatePendingReliableReset,
+                Stream,
+                "Invalid immediate shutdown request (pending reliable reset).");
+            return;
+        }
         QuicStreamIndicateSendShutdownComplete(Stream, FALSE);
         QuicStreamIndicateShutdownComplete(Stream);
     }
@@ -592,7 +614,9 @@ QuicStreamTryCompleteShutdown(
         //
         // Indicate the stream is completely shut down to the connection.
         //
-        QuicStreamSetReleaseStream(&Stream->Connection->Streams, Stream);
+        if (!Stream->Flags.DelayIdFcUpdate || Stream->Flags.HandleClosed) {
+            QuicStreamSetReleaseStream(&Stream->Connection->Streams, Stream);
+        }
     }
 }
 
@@ -616,7 +640,7 @@ QuicStreamParamSet(
 
     case QUIC_PARAM_STREAM_PRIORITY: {
 
-        if (BufferLength != sizeof(Stream->SendPriority)) {
+        if (BufferLength != sizeof(Stream->SendPriority) || Buffer == NULL) {
             Status = QUIC_STATUS_INVALID_PARAMETER;
             break;
         }
@@ -641,6 +665,58 @@ QuicStreamParamSet(
         Status = QUIC_STATUS_SUCCESS;
         break;
     }
+
+   case QUIC_PARAM_STREAM_RELIABLE_OFFSET:
+
+        if (BufferLength != sizeof(uint64_t) || Buffer == NULL) {
+            Status = QUIC_STATUS_INVALID_PARAMETER;
+            break;
+        }
+
+        if (!Stream->Connection->State.ReliableResetStreamNegotiated ||
+            *(uint64_t*)Buffer > Stream->QueuedSendOffset) {
+            Status = QUIC_STATUS_INVALID_STATE;
+            break;
+        }
+
+        if (Stream->Flags.LocalCloseReset) {
+            Status = QUIC_STATUS_INVALID_STATE;
+            break;
+        }
+
+        if (!Stream->Flags.LocalCloseResetReliable) {
+            //
+            // We haven't called shutdown reliable yet. App can set ReliableOffsetSend to be whatever.
+            //
+            Stream->ReliableOffsetSend = *(uint64_t*)Buffer;
+        } else if (*(uint64_t*)Buffer < Stream->ReliableOffsetSend) {
+            //
+            // TODO - Determine if we need to support this feature in future iterations.
+            //
+            // We have previously called shutdown reliable.
+            // Now we are loosening the conditions of the ReliableReset,
+            // but we have already sent the peer a stale frame, we must retransmit
+            // this new frame, and update the metadata.
+            //
+            QuicTraceLogStreamInfo(
+                MultipleReliableResetSendNotSupported,
+                Stream,
+                "Multiple RELIABLE_RESET frames sending not supported.");
+            Status = QUIC_STATUS_INVALID_STATE;
+            break;
+        } else {
+            Status = QUIC_STATUS_INVALID_STATE;
+            break;
+        }
+
+        QuicTraceLogStreamInfo(
+            ReliableSendOffsetSet,
+            Stream,
+            "Reliable send offset set to %llu",
+            *(uint64_t*)Buffer);
+
+        Status = QUIC_STATUS_SUCCESS;
+        break;
 
     default:
         Status = QUIC_STATUS_INVALID_PARAMETER;
@@ -821,6 +897,44 @@ QuicStreamParamGet(
         Status = QUIC_STATUS_SUCCESS;
         break;
     }
+
+    case QUIC_PARAM_STREAM_RELIABLE_OFFSET:
+        if (*BufferLength < sizeof(uint64_t)) {
+            *BufferLength = sizeof(uint64_t);
+            Status = QUIC_STATUS_BUFFER_TOO_SMALL;
+            break;
+        }
+        if (Buffer == NULL) {
+            Status = QUIC_STATUS_INVALID_PARAMETER;
+            break;
+        }
+        if (Stream->ReliableOffsetSend == 0) {
+            Status = QUIC_STATUS_INVALID_STATE;
+            break;
+        }
+        *(uint64_t*) Buffer = Stream->ReliableOffsetSend;
+        Status = QUIC_STATUS_SUCCESS;
+        break;
+
+    case QUIC_PARAM_STREAM_RELIABLE_OFFSET_RECV:
+        if (*BufferLength < sizeof(uint64_t)) {
+            *BufferLength = sizeof(uint64_t);
+            Status = QUIC_STATUS_BUFFER_TOO_SMALL;
+            break;
+        }
+        if (Buffer == NULL) {
+            Status = QUIC_STATUS_INVALID_PARAMETER;
+            break;
+        }
+        if (!Stream->Flags.RemoteCloseResetReliable) {
+            Status = QUIC_STATUS_INVALID_STATE;
+            break;
+        } 
+        
+        *(uint64_t*)Buffer = Stream->RecvMaxLength;
+        Status = QUIC_STATUS_SUCCESS;
+        break;
+
     default:
         Status = QUIC_STATUS_INVALID_PARAMETER;
         break;

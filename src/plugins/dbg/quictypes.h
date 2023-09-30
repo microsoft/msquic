@@ -70,6 +70,11 @@ typedef union QUIC_STREAM_FLAGS {
         BOOLEAN ShutdownComplete        : 1;    // Both directions have been shutdown and acknowledged.
         BOOLEAN Uninitialized           : 1;    // Uninitialize started/completed. Used for Debugging.
         BOOLEAN Freed                   : 1;    // Freed after last ref count released. Used for Debugging.
+
+        BOOLEAN InStreamTable           : 1;    // The stream is currently in the connection's table.
+        BOOLEAN DelayIdFcUpdate         : 1;    // Delay stream ID FC updates to StreamClose.
+
+        BOOLEAN ShutdownReliableSend    : 1;    // Indicates that we should shutdown the send path once we sent/ACK'd ReliableOffsetSend bytes.
     };
 } QUIC_STREAM_FLAGS;
 
@@ -928,8 +933,8 @@ struct SentPacketMetadata : Struct {
         return ReadType<UINT64>("PacketNumber");
     }
 
-    UINT32 SentTime() {
-        return ReadType<UINT32>("SentTime"); // Microseconds
+    UINT64 SentTime() {
+        return ReadType<UINT64>("SentTime"); // Microseconds
     }
 
     UINT16 PacketLength() {

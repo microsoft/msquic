@@ -138,6 +138,13 @@ ListenerAcceptConnection(
         (*AcceptContext->NewConnection)->SetPeerCertEventReturnStatus(
             AcceptContext->PeerCertEventReturnStatus);
     }
+    if (AcceptContext->TlsSecrets != NULL) {
+        auto Status = (*AcceptContext->NewConnection)->SetTlsSecrets(AcceptContext->TlsSecrets);
+        if (QUIC_FAILED(Status)) {
+            TEST_FAILURE("SetParam(QUIC_PARAM_CONN_TLS_SECRETS) returned 0x%x", Status);
+            return false;
+        }
+    }
     CxPlatEventSet(AcceptContext->NewConnectionReady);
     return true;
 }
@@ -163,6 +170,8 @@ QuicTestConnect(
 
     MsQuicAlpn Alpn1("MsQuicTest");
     MsQuicAlpn Alpn2("MsQuicTest2", "MsQuicTest");
+
+    QUIC_TLS_SECRETS ClientSecrets{}, ServerSecrets{};
 
     MsQuicSettings Settings;
     Settings.SetPeerBidiStreamCount(4);
@@ -242,6 +251,7 @@ QuicTestConnect(
                     ServerAcceptCtx.ExpectedCustomTicketValidationResult = QUIC_STATUS_INTERNAL_ERROR;
                 }
             }
+            ServerAcceptCtx.TlsSecrets = &ServerSecrets;
 
             Listener.Context = &ServerAcceptCtx;
 
@@ -249,6 +259,7 @@ QuicTestConnect(
                 TestConnection Client(Registration);
                 TEST_TRUE(Client.IsValid());
                 Client.SetHasRandomLoss(RandomLossPercentage != 0);
+                TEST_QUIC_SUCCEEDED(Client.SetTlsSecrets(&ClientSecrets));
 
                 if (ClientUsesOldVersion) {
                     TEST_QUIC_SUCCEEDED(
@@ -310,6 +321,54 @@ QuicTestConnect(
                     return;
                 }
                 TEST_TRUE(Server->GetIsConnected());
+
+                TEST_EQUAL(
+                    ServerSecrets.IsSet.ClientRandom,
+                    ClientSecrets.IsSet.ClientRandom);
+                TEST_TRUE(
+                    !memcmp(
+                        ServerSecrets.ClientRandom,
+                        ClientSecrets.ClientRandom,
+                        sizeof(ServerSecrets.ClientRandom)));
+
+                TEST_EQUAL(ServerSecrets.SecretLength, ClientSecrets.SecretLength);
+                TEST_TRUE(ServerSecrets.SecretLength <= QUIC_TLS_SECRETS_MAX_SECRET_LEN);
+
+                TEST_EQUAL(
+                    ServerSecrets.IsSet.ClientHandshakeTrafficSecret,
+                    ClientSecrets.IsSet.ClientHandshakeTrafficSecret);
+                TEST_TRUE(
+                    !memcmp(
+                        ServerSecrets.ClientHandshakeTrafficSecret,
+                        ClientSecrets.ClientHandshakeTrafficSecret,
+                        ServerSecrets.SecretLength));
+
+                TEST_EQUAL(
+                    ServerSecrets.IsSet.ServerHandshakeTrafficSecret,
+                    ClientSecrets.IsSet.ServerHandshakeTrafficSecret);
+                TEST_TRUE(
+                    !memcmp(
+                        ServerSecrets.ServerHandshakeTrafficSecret,
+                        ClientSecrets.ServerHandshakeTrafficSecret,
+                        ServerSecrets.SecretLength));
+
+                TEST_EQUAL(
+                    ServerSecrets.IsSet.ClientTrafficSecret0,
+                    ClientSecrets.IsSet.ClientTrafficSecret0);
+                TEST_TRUE(
+                    !memcmp(
+                        ServerSecrets.ClientTrafficSecret0,
+                        ClientSecrets.ClientTrafficSecret0,
+                        ServerSecrets.SecretLength));
+
+                TEST_EQUAL(
+                    ServerSecrets.IsSet.ServerTrafficSecret0,
+                    ClientSecrets.IsSet.ServerTrafficSecret0);
+                TEST_TRUE(
+                    !memcmp(
+                        ServerSecrets.ServerTrafficSecret0,
+                        ClientSecrets.ServerTrafficSecret0,
+                        ServerSecrets.SecretLength));
 
                 if (ClientUsesOldVersion) {
                     TEST_EQUAL(Server->GetQuicVersion(), OLD_SUPPORTED_VERSION);
@@ -440,7 +499,8 @@ QuicTestNatPortRebind(
 void
 QuicTestNatAddrRebind(
     _In_ int Family,
-    _In_ uint16_t KeepAlivePaddingSize
+    _In_ uint16_t KeepAlivePaddingSize,
+    _In_ bool RebindDatapathAddr
     )
 {
     RebindContext Context;
@@ -474,7 +534,13 @@ QuicTestNatAddrRebind(
     TEST_QUIC_SUCCEEDED(Connection.GetLocalAddr(OrigLocalAddr));
     ReplaceAddressHelper AddrHelper(OrigLocalAddr.SockAddr, OrigLocalAddr.SockAddr);
 
-    AddrHelper.IncrementAddr();
+    if (RebindDatapathAddr) {
+        QuicAddrFromString(UseDuoNic ? ((Family == AF_INET) ? "127.0.0.1" : "::1") : ((Family == AF_INET) ? "192.168.1.11" : "fc00::1:11"),
+                           OrigLocalAddr.GetPort(),
+                           &AddrHelper.New);
+    } else {
+        AddrHelper.IncrementAddr();
+    }
     if (KeepAlivePaddingSize) {
         Connection.SetKeepAlivePadding(KeepAlivePaddingSize);
     }
@@ -947,6 +1013,9 @@ QuicTestConnectUnreachable(
 {
     MsQuicRegistration Registration;
     TEST_TRUE(Registration.IsValid());
+    if (QuitTestIsFeatureSupported(CXPLAT_DATAPATH_FEATURE_RAW)) {
+        return;
+    }
 
     MsQuicAlpn Alpn("MsQuicTest");
 
@@ -1818,6 +1887,150 @@ QuicTestFailedVersionNegotiation(
         QUIC_VERSION_1_H,
         Family);
 }
+
+void
+QuicTestReliableResetNegotiation(
+    _In_ int Family,
+    _In_ bool ServerSupport,
+    _In_ bool ClientSupport
+    )
+{
+    struct Context {
+        bool Negotiated {false};
+        bool CallbackReceived {false};
+        QUIC_STATUS ConnectionCallback(_Inout_ QUIC_CONNECTION_EVENT* Event) {
+            if (Event->Type == QUIC_CONNECTION_EVENT_RELIABLE_RESET_NEGOTIATED) {
+                CallbackReceived = true;
+                Negotiated = Event->RELIABLE_RESET_NEGOTIATED.IsNegotiated;
+            }
+            return QUIC_STATUS_SUCCESS;
+        }
+        static QUIC_STATUS s_ConnectionCallback(_In_ MsQuicConnection*, _In_opt_ void* context, _Inout_ QUIC_CONNECTION_EVENT* Event) {
+            return ((Context*)context)->ConnectionCallback(Event);
+        }
+    };
+
+    Context ClientContext, ServerContext;
+
+    MsQuicRegistration Registration(true);
+    TEST_TRUE(Registration.IsValid());
+
+    MsQuicSettings ServerSettings;
+    MsQuicSettings ClientSettings;
+    ServerSettings.SetReliableResetEnabled(ServerSupport);
+    ClientSettings.SetReliableResetEnabled(ClientSupport);
+
+    MsQuicConfiguration ServerConfiguration(Registration, "MsQuicTest", ServerSettings, ServerSelfSignedCredConfig);
+    TEST_QUIC_SUCCEEDED(ServerConfiguration.GetInitStatus());
+
+    MsQuicConfiguration ClientConfiguration(Registration, "MsQuicTest", ClientSettings, MsQuicCredentialConfig());
+    TEST_QUIC_SUCCEEDED(ClientConfiguration.GetInitStatus());
+
+    QUIC_ADDRESS_FAMILY QuicAddrFamily = (Family == 4) ? QUIC_ADDRESS_FAMILY_INET : QUIC_ADDRESS_FAMILY_INET6;
+    QuicAddr ServerLocalAddr(QuicAddrFamily);
+    MsQuicAutoAcceptListener Listener(Registration, ServerConfiguration, Context::s_ConnectionCallback, &ServerContext);
+
+    TEST_QUIC_SUCCEEDED(Listener.Start("MsQuicTest", &ServerLocalAddr.SockAddr));
+    TEST_QUIC_SUCCEEDED(Listener.GetInitStatus());
+    TEST_QUIC_SUCCEEDED(Listener.GetLocalAddr(ServerLocalAddr));
+
+    MsQuicConnection Connection(Registration, CleanUpManual, Context::s_ConnectionCallback, &ClientContext);
+    TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
+    TEST_QUIC_SUCCEEDED(Connection.Start(ClientConfiguration, ServerLocalAddr.GetFamily(), QUIC_TEST_LOOPBACK_FOR_AF(ServerLocalAddr.GetFamily()), ServerLocalAddr.GetPort()));
+
+    TEST_TRUE(Connection.HandshakeCompleteEvent.WaitTimeout(TestWaitTimeout));
+    TEST_TRUE(Connection.HandshakeComplete);
+    TEST_TRUE(Listener.LastConnection->HandshakeCompleteEvent.WaitTimeout(TestWaitTimeout));
+    TEST_TRUE(Listener.LastConnection->HandshakeComplete);
+
+    MsQuicSettings ListenerServerSettings2;
+    TEST_QUIC_SUCCEEDED(Listener.LastConnection->GetSettings(&ListenerServerSettings2));
+    TEST_EQUAL(ListenerServerSettings2.ReliableResetEnabled, (int) ServerSupport);
+
+    if (ClientSupport) {
+        TEST_TRUE(ClientContext.CallbackReceived);
+        TEST_TRUE(ClientContext.Negotiated == ServerSupport);
+    } else {
+        TEST_FALSE(ClientContext.CallbackReceived);
+    }
+    if (ServerSupport) {
+        TEST_TRUE(ServerContext.CallbackReceived);
+        TEST_TRUE(ServerContext.Negotiated == ClientSupport);
+    } else {
+        TEST_FALSE(ServerContext.CallbackReceived);
+    }
+}
+
+void
+QuicTestOneWayDelayNegotiation(
+    _In_ int Family,
+    _In_ bool ServerSupport,
+    _In_ bool ClientSupport
+    )
+{
+    struct Context {
+        bool SendNegotiated {false};
+        bool RecvNegotiated {false};
+        bool CallbackReceived {false};
+        QUIC_STATUS ConnectionCallback(_Inout_ QUIC_CONNECTION_EVENT* Event) {
+            if (Event->Type == QUIC_CONNECTION_EVENT_ONE_WAY_DELAY_NEGOTIATED) {
+                CallbackReceived = true;
+                SendNegotiated = Event->ONE_WAY_DELAY_NEGOTIATED.SendNegotiated;
+                RecvNegotiated = Event->ONE_WAY_DELAY_NEGOTIATED.ReceiveNegotiated;
+            }
+            return QUIC_STATUS_SUCCESS;
+        }
+        static QUIC_STATUS s_ConnectionCallback(_In_ MsQuicConnection*, _In_opt_ void* context, _Inout_ QUIC_CONNECTION_EVENT* Event) {
+            return ((Context*)context)->ConnectionCallback(Event);
+        }
+    } ClientContext, ServerContext;
+
+    MsQuicRegistration Registration(true);
+    TEST_TRUE(Registration.IsValid());
+
+    MsQuicSettings ServerSettings; ServerSettings.SetOneWayDelayEnabled(ServerSupport);
+    MsQuicConfiguration ServerConfiguration(Registration, "MsQuicTest", ServerSettings, ServerSelfSignedCredConfig);
+    TEST_QUIC_SUCCEEDED(ServerConfiguration.GetInitStatus());
+
+    MsQuicSettings ClientSettings; ClientSettings.SetOneWayDelayEnabled(ClientSupport);
+    MsQuicConfiguration ClientConfiguration(Registration, "MsQuicTest", ClientSettings, MsQuicCredentialConfig());
+    TEST_QUIC_SUCCEEDED(ClientConfiguration.GetInitStatus());
+
+    QUIC_ADDRESS_FAMILY QuicAddrFamily = (Family == 4) ? QUIC_ADDRESS_FAMILY_INET : QUIC_ADDRESS_FAMILY_INET6;
+    QuicAddr ServerLocalAddr(QuicAddrFamily);
+    MsQuicAutoAcceptListener Listener(Registration, ServerConfiguration, Context::s_ConnectionCallback, &ServerContext);
+    TEST_QUIC_SUCCEEDED(Listener.Start("MsQuicTest", &ServerLocalAddr.SockAddr));
+    TEST_QUIC_SUCCEEDED(Listener.GetInitStatus());
+    TEST_QUIC_SUCCEEDED(Listener.GetLocalAddr(ServerLocalAddr));
+
+    MsQuicConnection Connection(Registration, CleanUpManual, Context::s_ConnectionCallback, &ClientContext);
+    TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
+    TEST_QUIC_SUCCEEDED(Connection.Start(ClientConfiguration, ServerLocalAddr.GetFamily(), QUIC_TEST_LOOPBACK_FOR_AF(ServerLocalAddr.GetFamily()), ServerLocalAddr.GetPort()));
+    TEST_TRUE(Connection.HandshakeCompleteEvent.WaitTimeout(TestWaitTimeout));
+    TEST_TRUE(Connection.HandshakeComplete);
+    TEST_TRUE(Listener.LastConnection->HandshakeCompleteEvent.WaitTimeout(TestWaitTimeout));
+    TEST_TRUE(Listener.LastConnection->HandshakeComplete);
+
+    MsQuicSettings ListenerServerSettings2;
+    TEST_QUIC_SUCCEEDED(Listener.LastConnection->GetSettings(&ListenerServerSettings2));
+    TEST_EQUAL(ListenerServerSettings2.OneWayDelayEnabled, (int)ServerSupport);
+
+    if (ClientSupport) {
+        TEST_TRUE(ClientContext.CallbackReceived);
+        TEST_TRUE(ClientContext.SendNegotiated == ServerSupport);
+        TEST_TRUE(ClientContext.RecvNegotiated == ServerSupport);
+    } else {
+        TEST_FALSE(ClientContext.CallbackReceived);
+    }
+    if (ServerSupport) {
+        TEST_TRUE(ServerContext.CallbackReceived);
+        TEST_TRUE(ServerContext.SendNegotiated == ClientSupport);
+        TEST_TRUE(ServerContext.RecvNegotiated == ClientSupport);
+    } else {
+        TEST_FALSE(ServerContext.CallbackReceived);
+    }
+}
+
 #endif // QUIC_API_ENABLE_PREVIEW_FEATURES
 
 void
@@ -2886,6 +3099,9 @@ QuicTestLoadBalancedHandshake(
 {
     MsQuicRegistration Registration(true);
     TEST_QUIC_SUCCEEDED(Registration.GetInitStatus());
+    if (QuitTestIsFeatureSupported(CXPLAT_DATAPATH_FEATURE_RAW)) {
+        return; // TODO - QUIC_STATUS_NOT_SUPPORTED
+    }
 
     MsQuicConfiguration ClientConfiguration(Registration, "MsQuicTest", MsQuicCredentialConfig());
     TEST_QUIC_SUCCEEDED(ClientConfiguration.GetInitStatus());
@@ -3351,14 +3567,14 @@ QuicTestChangeAlpn(
             {
                 UniquePtr<TestConnection> Server;
                 ServerAcceptContext ServerAcceptCtx((TestConnection**)&Server);
-                ServerAcceptCtx.ExpectedTransportCloseStatus = QUIC_STATUS_INTERNAL_ERROR;
+                ServerAcceptCtx.ExpectedTransportCloseStatus = QUIC_STATUS_ALPN_NEG_FAILURE;
                 Listener.Context = &ServerAcceptCtx;
 
                 {
                     TestConnection Client(Registration);
                     TEST_TRUE(Client.IsValid());
 
-                    Client.SetExpectedTransportCloseStatus(QUIC_STATUS_INTERNAL_ERROR);
+                    Client.SetExpectedTransportCloseStatus(QUIC_STATUS_ALPN_NEG_FAILURE);
 
                     TEST_QUIC_SUCCEEDED(
                         Client.Start(
@@ -3618,14 +3834,18 @@ QuicTestVNTPOtherVersionZero(
 
 void
 QuicTestHandshakeSpecificLossPatterns(
-    _In_ int Family
+    _In_ int Family,
+    _In_ QUIC_CONGESTION_CONTROL_ALGORITHM CcAlgo
     )
 {
     MsQuicRegistration Registration;
     TEST_QUIC_SUCCEEDED(Registration.GetInitStatus());
 
     MsQuicSettings Settings;
-    Settings.SetIdleTimeoutMs(60000).SetDisconnectTimeoutMs(60000).SetInitialRttMs(20);
+    Settings.SetIdleTimeoutMs(60000)
+        .SetDisconnectTimeoutMs(60000)
+        .SetInitialRttMs(20)
+        .SetCongestionControlAlgorithm(CcAlgo);
 
     MsQuicConfiguration ServerConfiguration(Registration, "MsQuicTest", Settings, ServerSelfSignedCredConfig);
     TEST_QUIC_SUCCEEDED(ServerConfiguration.GetInitStatus());
