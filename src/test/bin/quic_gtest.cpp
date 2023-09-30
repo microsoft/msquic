@@ -2117,6 +2117,24 @@ TEST(Misc, StreamBlockUnblockBidiConnFlowControl) {
     }
 }
 
+TEST(Misc, StreamReliableReset) {
+    TestLogger Logger("StreamReliableReset");
+    if (TestingKernelMode) {
+        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_STREAM_RELIABLE_RESET));
+    } else {
+        QuicTestStreamReliableReset();
+    }
+}
+
+TEST(Misc, StreamReliableResetMultipleSends) {
+    TestLogger Logger("StreamReliableResetMultipleSends");
+    if (TestingKernelMode) {
+        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_STREAM_RELIABLE_RESET_MULTIPLE_SENDS));
+    } else {
+        QuicTestStreamReliableResetMultipleSends();
+    }
+}
+
 TEST(Misc, StreamBlockUnblockUnidiConnFlowControl) {
     TestLogger Logger("StreamBlockUnblockUnidiConnFlowControl");
     if (TestingKernelMode) {

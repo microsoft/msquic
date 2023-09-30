@@ -160,7 +160,6 @@ QuicStreamSetShutdown(
     CxPlatHashtableEnumerateBegin(StreamSet->StreamTable, &Enumerator);
     while ((Entry = CxPlatHashtableEnumerateNext(StreamSet->StreamTable, &Enumerator)) != NULL) {
         QUIC_STREAM* Stream = CXPLAT_CONTAINING_RECORD(Entry, QUIC_STREAM, TableEntry);
-
         QuicStreamShutdown(
             Stream,
             QUIC_STREAM_SHUTDOWN_FLAG_ABORT_SEND |

@@ -4705,7 +4705,8 @@ QuicConnRecvFrames(
         case QUIC_FRAME_STREAM_6:
         case QUIC_FRAME_STREAM_7:
         case QUIC_FRAME_MAX_STREAM_DATA:
-        case QUIC_FRAME_STREAM_DATA_BLOCKED: {
+        case QUIC_FRAME_STREAM_DATA_BLOCKED:
+        case QUIC_FRAME_RELIABLE_RESET_STREAM: {
             if (Closed) {
                 if (!QuicStreamFrameSkip(
                         FrameType, PayloadLength, Payload, &Offset)) {
@@ -5316,7 +5317,7 @@ QuicConnRecvFrames(
         case QUIC_FRAME_IMMEDIATE_ACK: // Always accept the frame, because we always enable support.
             AckImmediately = TRUE;
             break;
-
+            
         case QUIC_FRAME_TIMESTAMP: { // Always accept the frame, because we always enable support.
             if (!Connection->State.TimestampRecvNegotiated) {
                 QuicTraceEvent(
@@ -5343,9 +5344,7 @@ QuicConnRecvFrames(
             Packet->SendTimestamp = Frame.Timestamp;
             break;
         }
-
-        case QUIC_FRAME_RELIABLE_RESET_STREAM:
-            // TODO - Implement this frame.
+        
         default:
             //
             // No default case necessary, as we have already validated the frame

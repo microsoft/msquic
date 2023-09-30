@@ -29,6 +29,9 @@ typedef struct QUIC_SENT_FRAME_METADATA {
         } RESET_STREAM;
         struct {
             QUIC_STREAM* Stream;
+        } RELIABLE_RESET_STREAM;
+        struct {
+            QUIC_STREAM* Stream;
         } STOP_SENDING;
         struct {
             uint32_t Offset;

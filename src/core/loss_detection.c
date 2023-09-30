@@ -543,6 +543,10 @@ QuicLossDetectionOnPacketAcknowledged(
             QuicStreamOnResetAck(Packet->Frames[i].RESET_STREAM.Stream);
             break;
 
+        case QUIC_FRAME_RELIABLE_RESET_STREAM:
+            QuicStreamOnResetReliableAck(Packet->Frames[i].RELIABLE_RESET_STREAM.Stream);
+            break;
+
         case QUIC_FRAME_CRYPTO:
             QuicCryptoOnAck(&Connection->Crypto, &Packet->Frames[i]);
             break;
@@ -696,6 +700,15 @@ QuicLossDetectionRetransmitFrames(
                     &Connection->Send,
                     Packet->Frames[i].RESET_STREAM.Stream,
                     QUIC_STREAM_SEND_FLAG_SEND_ABORT,
+                    FALSE);
+            break;
+
+        case QUIC_FRAME_RELIABLE_RESET_STREAM:
+            NewDataQueued |=
+                QuicSendSetStreamSendFlag(
+                    &Connection->Send,
+                    Packet->Frames[i].RELIABLE_RESET_STREAM.Stream,
+                    QUIC_STREAM_SEND_FLAG_RELIABLE_ABORT,
                     FALSE);
             break;
 

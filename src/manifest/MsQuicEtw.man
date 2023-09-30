@@ -308,6 +308,14 @@
                 message="$(string.Enum.QUIC_STREAM_SEND_STATE.FIN_ACKED)"
                 value="5"
                 />
+            <map
+                message="$(string.Enum.QUIC_STREAM_SEND_STATE.RELIABLE_RESET)"
+                value="6"
+            />
+            <map
+                message="$(string.Enum.QUIC_STREAM_SEND_STATE.RELIABLE_RESET_ACKED)"
+                value="7"
+            />
           </valueMap>
           <valueMap name="map_QUIC_STREAM_RECV_STATE">
             <map
@@ -334,6 +342,10 @@
                 message="$(string.Enum.QUIC_STREAM_RECV_STATE.FIN)"
                 value="5"
                 />
+            <map
+                message="$(string.Enum.QUIC_STREAM_RECV_STATE.RELIABLE_RESET)"
+                value="6"
+            />
           </valueMap>
           <valueMap name="map_QUIC_TRACE_PACKET_TYPE">
             <map
@@ -4659,6 +4671,14 @@
             value="FIN_ACKED"
             />
         <string
+            id="Enum.QUIC_STREAM_SEND_STATE.RELIABLE_RESET"
+            value="RELIABLE_RESET"
+        />
+        <string
+            id="Enum.QUIC_STREAM_SEND_STATE.RELIABLE_RESET_ACKED"
+            value="RELIABLE_RESET_ACKED"
+        />
+        <string
             id="Enum.QUIC_STREAM_RECV_STATE.DISABLED"
             value="DISABLED"
             />
@@ -4677,6 +4697,10 @@
         <string
             id="Enum.QUIC_STREAM_RECV_STATE.RESET"
             value="RESET"
+            />
+        <string
+            id="Enum.QUIC_STREAM_RECV_STATE.RELIABLE_RESET"
+            value="RELIABLE_RESET"
             />
         <string
             id="Enum.QUIC_STREAM_RECV_STATE.FIN"

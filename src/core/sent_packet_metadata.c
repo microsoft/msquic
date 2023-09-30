@@ -46,6 +46,9 @@ QuicSentPacketMetadataReleaseFrames(
         case QUIC_FRAME_STREAM:
             QuicStreamSentMetadataDecrement(Metadata->Frames[i].STREAM.Stream);
             break;
+        case QUIC_FRAME_RELIABLE_RESET_STREAM:
+            QuicStreamSentMetadataDecrement(Metadata->Frames[i].RELIABLE_RESET_STREAM.Stream);
+            break;
 #pragma warning(pop)
         default:
             //
