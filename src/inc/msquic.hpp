@@ -1558,4 +1558,4 @@ struct QuicBufferScope {
     ~QuicBufferScope() noexcept { if (Buffer) { delete[](uint8_t*) Buffer; } }
 };
 
-#endif
+#endif  //  _WIN32
