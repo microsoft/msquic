@@ -23,10 +23,10 @@ Supported Platforms:
 
 #ifdef _WIN32
 #pragma once
-#endif
 
 #pragma warning(disable:4201)  // nonstandard extension used: nameless struct/union
 #pragma warning(disable:4214)  // nonstandard extension used: bit field types other than int
+#endif
 
 #ifdef _KERNEL_MODE
 #include "msquic_winkernel.h"
