@@ -14,7 +14,9 @@ Environment:
 
 --*/
 
+#ifdef _WIN32
 #pragma once
+#endif
 
 #ifndef _MSQUIC_POSIX_
 #define _MSQUIC_POSIX_
