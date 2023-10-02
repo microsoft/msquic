@@ -5,10 +5,13 @@
 
 --*/
 
-#pragma once
+#ifndef _MSQUIC_SRC_PLATFORM_PLATFORM_INTERNAL_H_
+#define _MSQUIC_SRC_PLATFORM_PLATFORM_INTERNAL_H_
 
+#ifdef _WIN32
 #pragma warning(disable:28922) // Redundant Pointer Test
 #pragma warning(disable:26451) // Arithmetic overflow: Using operator '+' on a 4 byte value and then casting the result to a 8 byte value.
+#endif  //  #ifdef _WIN32
 
 #define QUIC_API_ENABLE_PREVIEW_FEATURES 1
 
@@ -550,8 +553,10 @@ typedef struct CX_PLATFORM {
 
 #endif
 
+#ifdef _WIN32
 #pragma warning(disable:4204)  // nonstandard extension used: non-constant aggregate initializer
 #pragma warning(disable:4200)  // nonstandard extension used: zero-sized array in struct/union
+#endif  //  #ifdef _WIN32
 
 //
 // Global Platform variables/state.
@@ -592,7 +597,9 @@ CxPlatConvertToMappedV6(
 // support InAdrr == OutAddr.
 //
 #pragma warning(push)
+#ifdef _WIN32
 #pragma warning(disable: 6101) // Intentially don't overwrite output if unable to convert
+#endif  //  #ifdef _WIN32
 inline
 void
 CxPlatConvertFromMappedV6(
@@ -1200,3 +1207,5 @@ RawUpdateRoute(
     );
 
 #endif // CX_PLATFORM_LINUX || _WIN32
+
+#endif  //  #ifndef _MSQUIC_SRC_PLATFORM_PLATFORM_INTERNAL_H_

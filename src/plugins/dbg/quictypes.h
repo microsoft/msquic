@@ -9,11 +9,14 @@ Abstract:
 
 --*/
 
-#pragma once
+#ifndef _MSQUIC_SRC_PLUGINS_DBG_QUICTYPES_H_
+#define _MSQUIC_SRC_PLUGINS_DBG_QUICTYPES_H_
 
 #include "quicdbg.h"
 
+#ifdef _WIN32
 #pragma warning(disable:4201)  // nonstandard extension used: nameless struct/union
+#endif  //  #ifdef _WIN32
 
 typedef enum QUIC_HANDLE_TYPE {
 
@@ -1559,3 +1562,5 @@ struct QuicLibrary : Struct {
         return Settings(AddrOf("Settings"));
     }
 };
+
+#endif  //  #ifndef _MSQUIC_SRC_PLUGINS_DBG_QUICTYPES_H_

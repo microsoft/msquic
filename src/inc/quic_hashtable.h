@@ -76,13 +76,16 @@ Usage examples:
 
 --*/
 
-#pragma once
+#ifndef _MSQUIC_SRC_INC_QUIC_HASHTABLE_H_
+#define _MSQUIC_SRC_INC_QUIC_HASHTABLE_H_
 
 #if defined(__cplusplus)
 extern "C" {
 #endif
 
+#ifdef _WIN32
 #pragma warning(disable:4201)  // nonstandard extension used: nameless struct/union
+#endif  //  #ifdef _WIN32
 
 #define CXPLAT_HASH_ALLOCATED_HEADER 0x00000001
 
@@ -249,3 +252,5 @@ CxPlatHashSimple(
 #if defined(__cplusplus)
 }
 #endif
+
+#endif  //  #ifndef _MSQUIC_SRC_INC_QUIC_HASHTABLE_H_

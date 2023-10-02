@@ -5,6 +5,9 @@
 
 --*/
 
+#ifndef _MSQUIC_SRC_CORE_LOSS_DETECTION_H_
+#define _MSQUIC_SRC_CORE_LOSS_DETECTION_H_
+
 typedef struct QUIC_LOSS_DETECTION {
 
     //
@@ -187,3 +190,5 @@ void
 QuicLossDetectionProcessTimerOperation(
     _In_ QUIC_LOSS_DETECTION* LossDetection
     );
+
+#endif  //  #ifndef _MSQUIC_SRC_CORE_LOSS_DETECTION_H_

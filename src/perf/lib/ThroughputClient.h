@@ -10,8 +10,8 @@ Abstract:
 
 --*/
 
-
-#pragma once
+#ifndef _MSQUIC_SRC_PERF_LIB_THROUGHPUTCLIENT_H_
+#define _MSQUIC_SRC_PERF_LIB_THROUGHPUTCLIENT_H_
 
 #include "PerfHelpers.h"
 #include "PerfBase.h"
@@ -186,3 +186,5 @@ private:
         TcpSendData* SendDataChain
         );
 };
+
+#endif  //  #ifndef _MSQUIC_SRC_PERF_LIB_THROUGHPUTCLIENT_H_

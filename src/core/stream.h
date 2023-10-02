@@ -5,6 +5,9 @@
 
 --*/
 
+#ifndef _MSQUIC_SRC_CORE_STREAM_H_
+#define _MSQUIC_SRC_CORE_STREAM_H_
+
 #ifdef QUIC_CLOG
 #include "stream.h.clog.h"
 #endif
@@ -690,7 +693,9 @@ QuicStreamAddRef(
 // Releases a ref on a stream.
 //
 #pragma warning(push)
+#ifdef _WIN32
 #pragma warning(disable:6014) // SAL doesn't understand ref counts
+#endif  //  #ifdef _WIN32
 _IRQL_requires_max_(DISPATCH_LEVEL)
 inline
 BOOLEAN
@@ -1018,3 +1023,5 @@ QuicStreamRecvSetEnabledState(
     _In_ QUIC_STREAM* Stream,
     _In_ BOOLEAN NewRecvEnabled
     );
+
+#endif  //  #ifndef _MSQUIC_SRC_CORE_STREAM_H_

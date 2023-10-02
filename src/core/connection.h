@@ -4,6 +4,10 @@
     Licensed under the MIT License.
 
 --*/
+
+#ifndef _MSQUIC_SRC_CORE_CONNECTION_H_
+#define _MSQUIC_SRC_CORE_CONNECTION_H_
+
 #ifdef QUIC_CLOG
 #include "connection.h.clog.h"
 #endif
@@ -1064,7 +1068,9 @@ QuicConnAddRef(
 // reference.
 //
 #pragma warning(push)
+#ifdef _WIN32
 #pragma warning(disable:6014) // SAL doesn't understand ref counts
+#endif  //  #ifdef _WIN32
 _IRQL_requires_max_(DISPATCH_LEVEL)
 inline
 void
@@ -1646,3 +1652,5 @@ QuicMtuDiscoveryCheckSearchCompleteTimeout(
         }
     }
 }
+
+#endif  //  #ifndef _MSQUIC_SRC_CORE_CONNECTION_H_

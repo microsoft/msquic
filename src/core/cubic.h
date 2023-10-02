@@ -5,7 +5,8 @@
 
 --*/
 
-#pragma once
+#ifndef _MSQUIC_SRC_CORE_CUBIC_H_
+#define _MSQUIC_SRC_CORE_CUBIC_H_
 
 typedef enum QUIC_CUBIC_HYSTART_STATE {
     HYSTART_NOT_STARTED = 0,
@@ -118,3 +119,5 @@ CubicCongestionControlInitialize(
     _In_ QUIC_CONGESTION_CONTROL* Cc,
     _In_ const QUIC_SETTINGS_INTERNAL* Settings
     );
+
+#endif  //  #ifndef _MSQUIC_SRC_CORE_CUBIC_H_

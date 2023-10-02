@@ -5,6 +5,9 @@
 
 --*/
 
+#ifndef _MSQUIC_SRC_CORE_TIMER_WHEEL_H_
+#define _MSQUIC_SRC_CORE_TIMER_WHEEL_H_
+
 typedef struct QUIC_CONNECTION QUIC_CONNECTION;
 
 typedef struct QUIC_TIMER_WHEEL {
@@ -85,3 +88,5 @@ QuicTimerWheelGetExpired(
     _In_ uint64_t TimeNow,
     _Inout_ CXPLAT_LIST_ENTRY* ListHead
     );
+
+#endif  //  #ifndef _MSQUIC_SRC_CORE_TIMER_WHEEL_H_

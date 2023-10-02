@@ -5,6 +5,9 @@
 
 --*/
 
+#ifndef _MSQUIC_SRC_TEST_BIN_QUIIC_GTEST_H_
+#define _MSQUIC_SRC_TEST_BIN_QUIIC_GTEST_H_
+
 #define QUIC_TEST_APIS 1
 
 #include "quic_platform.h"
@@ -873,3 +876,5 @@ std::ostream& operator << (std::ostream& o, const TlsConfigArgs& args) {
 class WithValidateTlsConfigArgs : public testing::Test,
     public testing::WithParamInterface<TlsConfigArgs> {
 };
+
+#endif  //  #ifndef _MSQUIC_SRC_TEST_BIN_QUIIC_GTEST_H_

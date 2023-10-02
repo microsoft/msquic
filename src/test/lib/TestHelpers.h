@@ -9,6 +9,9 @@ Abstract:
 
 --*/
 
+#ifndef _MSQUIC_SRC_TEST_LIB_TESTHELPERS_H_
+#define _MSQUIC_SRC_TEST_LIB_TESTHELPERS_H_
+
 #ifdef QUIC_CLOG
 #include "TestHelpers.h.clog.h"
 #endif
@@ -993,3 +996,5 @@ WaitForMsQuicInUse() {
 
     return MsQuicInUse && Status == QUIC_STATUS_SUCCESS;
 }
+
+#endif  //  #ifndef _MSQUIC_SRC_TEST_LIB_TESTHELPERS_H_

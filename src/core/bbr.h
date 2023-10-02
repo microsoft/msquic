@@ -5,7 +5,8 @@
 
 --*/
 
-#pragma once
+#ifndef _MSQUIC_SRC_CORE_BBR_H_
+#define _MSQUIC_SRC_CORE_BBR_H_
 
 #include "sliding_window_extremum.h"
 
@@ -221,3 +222,5 @@ BbrCongestionControlInitialize(
     _In_ QUIC_CONGESTION_CONTROL* Cc,
     _In_ const QUIC_SETTINGS_INTERNAL* Settings
     );
+
+#endif  //  #ifndef _MSQUIC_SRC_CORE_BBR_H_

@@ -5,7 +5,8 @@
 
 --*/
 
-#pragma once
+#ifndef _MSQUIC_SRC_CORE_UNITTEST_MAIN_H_
+#define _MSQUIC_SRC_CORE_UNITTEST_MAIN_H_
 
 #include "precomp.h"
 
@@ -93,3 +94,5 @@ std::ostream& operator << (std::ostream& o, const QUIC_FRAME_TYPE& type) {
             return o << "UNRECOGNIZED_FRAME_TYPE(" << (uint32_t) type << ")";
     }
 }
+
+#endif  //  #ifndef _MSQUIC_SRC_CORE_UNITTEST_MAIN_H_

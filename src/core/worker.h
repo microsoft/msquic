@@ -5,6 +5,9 @@
 
 --*/
 
+#ifndef _MSQUIC_SRC_CORE_WORKER_H_
+#define _MSQUIC_SRC_CORE_WORKER_H_
+
 //
 // A worker thread for draining queued operations on a connection.
 //
@@ -194,3 +197,5 @@ QuicWorkerQueueOperation(
     _In_ QUIC_WORKER* Worker,
     _In_ QUIC_OPERATION* Operation
     );
+
+#endif  //  #ifndef _MSQUIC_SRC_CORE_WORKER_H_

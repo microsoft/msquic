@@ -9,6 +9,9 @@ Abstract:
 
 --*/
 
+#ifndef _MSQUIC_SRC_TEST_LIB_TESTCONNECTION_H_
+#define _MSQUIC_SRC_TEST_LIB_TESTCONNECTION_H_
+
 class TestConnection;
 
 enum NEW_STREAM_START_TYPE {
@@ -308,3 +311,5 @@ public:
 
     QUIC_STATUS SetTlsSecrets(QUIC_TLS_SECRETS* Secrets);
 };
+
+#endif  //  #ifndef _MSQUIC_SRC_TEST_LIB_TESTCONNECTION_H_

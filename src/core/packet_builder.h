@@ -5,6 +5,9 @@
 
 --*/
 
+#ifndef _MSQUIC_SRC_CORE_PACKET_BUILDER_H_
+#define _MSQUIC_SRC_CORE_PACKET_BUILDER_H_
+
 //
 // All the necessary state for building and sending QUIC packets.
 //
@@ -268,3 +271,5 @@ QuicPacketBuilderAddStreamFrame(
     QuicStreamSentMetadataIncrement(Stream);
     return QuicPacketBuilderAddFrame(Builder, FrameType, TRUE);
 }
+
+#endif  //  #ifndef _MSQUIC_SRC_CORE_PACKET_BUILDER_H_

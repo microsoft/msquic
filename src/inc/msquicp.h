@@ -9,10 +9,8 @@ Abstract:
 
 --*/
 
-#pragma once
-
-#ifndef _MSQUICP_
-#define _MSQUICP_
+#ifndef _MSQUIC_SRC_INC_MSQUICP_H_
+#define _MSQUIC_SRC_INC_MSQUICP_H_
 
 #include "msquic.h"
 
@@ -142,4 +140,4 @@ typedef struct QUIC_PRIVATE_TRANSPORT_PARAMETER {
 }
 #endif
 
-#endif // _MSQUICP_
+#endif  //  #ifndef _MSQUIC_SRC_INC_MSQUICP_H_

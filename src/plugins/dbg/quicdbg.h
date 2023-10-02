@@ -12,7 +12,8 @@ Abstract:
 
 --*/
 
-#pragma once
+#ifndef _MSQUIC_SRC_PLUGINS_DBG_QUICDBG_H_
+#define _MSQUIC_SRC_PLUGINS_DBG_QUICDBG_H_
 
 #define WIN32_LEAN_AND_MEAN
 #define _CRT_SECURE_NO_WARNINGS
@@ -311,3 +312,5 @@ struct IpAddress {
         }
     }
 };
+
+#endif  //  #ifndef _MSQUIC_SRC_PLUGINS_DBG_QUICDBG_H_

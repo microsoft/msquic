@@ -7,8 +7,8 @@
  * the use of stdint/stdbool and inline variable declaration.
  */
 
-#ifndef HDR_HISTOGRAM_H
-#define HDR_HISTOGRAM_H 1
+#ifndef _MSQUIC_SRC_PERF_BIN_HISTOGRAM_HDR_HISTOGRAM_H_
+#define _MSQUIC_SRC_PERF_BIN_HISTOGRAM_HDR_HISTOGRAM_H_
 
 #include <stdint.h>
 #include <stdbool.h>
@@ -431,4 +431,4 @@ void hdr_reset_internal_counters(struct hdr_histogram* h);
 }
 #endif
 
-#endif
+#endif  //  #ifndef _MSQUIC_SRC_PERF_BIN_HISTOGRAM_HDR_HISTOGRAM_H_

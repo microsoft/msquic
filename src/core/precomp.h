@@ -5,6 +5,10 @@
 
 --*/
 
+#ifndef _MSQUIC_SRC_CORE_PRECOMP_H_
+#define _MSQUIC_SRC_CORE_PRECOMP_H_
+
+#ifdef _WIN32
 #pragma warning(disable:4100)  // unreferenced formal parameter
 #pragma warning(disable:4189)  // local variable is initialized but not referenced
 #pragma warning(disable:4200)  // nonstandard extension used: bit field types other than int
@@ -15,6 +19,7 @@
 #pragma warning(disable:26035) // Precondition Nulltermination Violation
 #pragma warning(disable:26451) // Arithmetic overflow: Using operator '+' on a 4 byte value and then casting the result to a 8 byte value.
 #pragma warning(disable:28931) // Unused Assignment
+#endif  //  #ifdef _WIN32
 
 #define QUIC_API_ENABLE_INSECURE_FEATURES 1
 #define QUIC_API_ENABLE_PREVIEW_FEATURES 1
@@ -76,3 +81,5 @@
 #include "cubic.h"
 #include "bbr.h"
 #include "sliding_window_extremum.h"
+
+#endif  //  #ifndef _MSQUIC_SRC_CORE_PRECOMP_H_

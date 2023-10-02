@@ -5,6 +5,9 @@
 
 --*/
 
+#ifndef _MSQUIC_SRC_CORE_QUICDEF_H_
+#define _MSQUIC_SRC_CORE_QUICDEF_H_
+
 typedef struct QUIC_BINDING QUIC_BINDING;
 typedef struct QUIC_OPERATION QUIC_OPERATION;
 typedef struct QUIC_WORKER QUIC_WORKER;
@@ -671,3 +674,5 @@ CXPLAT_STATIC_ASSERT(
 #define QUIC_SETTING_MTU_MISSING_PROBE_COUNT        "MtuDiscoveryMissingProbeCount"
 
 #define QUIC_SETTING_CONGESTION_CONTROL_ALGORITHM   "CongestionControlAlgorithm"
+
+#endif  //  #ifndef _MSQUIC_SRC_CORE_QUICDEF_H_

@@ -14,7 +14,8 @@ TODO:
 
 --*/
 
-#pragma once
+#ifndef _MSQUIC_SRC_TOOLS_IP_QUICIP_H_
+#define _MSQUIC_SRC_TOOLS_IP_QUICIP_H_
 
 #include "msquic.h"
 #include <mutex>
@@ -247,3 +248,5 @@ Error:
 
     return Status;
 }
+
+#endif  //  #ifndef _MSQUIC_SRC_TOOLS_IP_QUICIP_H_

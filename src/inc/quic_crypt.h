@@ -9,14 +9,17 @@ Abstract:
 
 --*/
 
-#pragma once
+#ifndef _MSQUIC_SRC_INC_QUIC_CRYPT_H_
+#define _MSQUIC_SRC_INC_QUIC_CRYPT_H_
 
 #if defined(__cplusplus)
 extern "C" {
 #endif
 
+#ifdef _WIN32
 #pragma warning(disable:4201)  // nonstandard extension used: nameless struct/union
 #pragma warning(disable:4214)  // nonstandard extension used: bit field types other than int
+#endif  //  #ifdef _WIN32
 
 typedef struct CXPLAT_KEY CXPLAT_KEY;
 typedef struct CXPLAT_HP_KEY CXPLAT_HP_KEY;
@@ -149,7 +152,9 @@ typedef enum QUIC_PACKET_KEY_TYPE {
 
 } QUIC_PACKET_KEY_TYPE;
 
+#ifdef _WIN32
 #pragma warning(disable:4200)  // nonstandard extension used: zero-length array in struct/union
+#endif  //  #ifdef _WIN32
 
 typedef struct QUIC_PACKET_KEY {
 
@@ -390,3 +395,5 @@ CxPlatCryptSupports(
 #if defined(__cplusplus)
 }
 #endif
+
+#endif  //  #ifndef _MSQUIC_SRC_INC_QUIC_CRYPT_H_

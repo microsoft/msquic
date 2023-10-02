@@ -5,6 +5,9 @@
 
 --*/
 
+#ifndef _MSQUIC_SRC_TOOLS_ETW_QUICETW_H_
+#define _MSQUIC_SRC_TOOLS_ETW_QUICETW_H_
+
 #include "quic_platform.h"
 #include "msquic.h"
 #include <evntrace.h>
@@ -13,7 +16,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#ifdef _WIN32
 #pragma warning(disable:4201)  // nonstandard extension used: nameless struct/union
+#endif  //  #ifdef _WIN32
 
 #include "object_set.h"
 #include "qjson.h"
@@ -28,8 +33,10 @@ typedef struct _BINDING BINDING;
 
 #define QUIC_API_COUNT 26
 
+#ifdef _WIN32
 #pragma warning(disable:4200)  // nonstandard extension used: zero-sized array in struct/union
 #pragma warning(disable:4366)  // The result of the unary '&' operator may be unaligned
+#endif  //  #ifdef _WIN32
 
 typedef
 void
@@ -1190,3 +1197,5 @@ QuicErrorToString(
         return "UNDEFINED ERROR CODE";
     }
 }
+
+#endif  //  #ifndef _MSQUIC_SRC_TOOLS_ETW_QUICETW_H_

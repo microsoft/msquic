@@ -5,6 +5,9 @@
 
 --*/
 
+#ifndef _MSQUIC_SRC_PLATFORM_DATAPATH_RAW_XDP_H_
+#define _MSQUIC_SRC_PLATFORM_DATAPATH_RAW_XDP_H_
+
 #define QUIC_API_ENABLE_PREVIEW_FEATURES 1
 
 #include <stdio.h>
@@ -41,3 +44,5 @@ typedef struct QUIC_CACHEALIGN XDP_PARTITION {
     XDP_QUEUE* Queues; // A linked list of queues, accessed by Next.
     uint16_t PartitionIndex;
 } XDP_PARTITION;
+
+#endif  //  #ifndef _MSQUIC_SRC_PLATFORM_DATAPATH_RAW_XDP_H_

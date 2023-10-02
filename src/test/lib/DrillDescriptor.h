@@ -4,7 +4,9 @@
     Licensed under the MIT License.
 
 --*/
-#pragma once
+
+#ifndef _MSQUIC_SRC_TEST_LIB_DRILLDESCRIPTOR_H_
+#define _MSQUIC_SRC_TEST_LIB_DRILLDESCRIPTOR_H_
 
 #ifdef _KERNEL_MODE
 class DrillBuffer : public Rtl::KArray<uint8_t>
@@ -36,7 +38,9 @@ class DrillBuffer : public Rtl::KArray<uint8_t>
 using DrillBuffer = std::vector<uint8_t>;
 #endif
 
+#ifdef _WIN32
 #pragma warning(disable:4201)  // nonstandard extension used: nameless struct/union
+#endif  //  #ifdef _WIN32
 
 enum DrillPacketDescriptorType {
     UnknownPacketType,
@@ -141,3 +145,5 @@ DrillBuffer
 QuicDrillEncodeQuicVarInt(
     uint64_t input
     );
+
+#endif  //  #ifndef _MSQUIC_SRC_TEST_LIB_DRILLDESCRIPTOR_H_

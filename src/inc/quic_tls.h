@@ -9,7 +9,8 @@ Abstract:
 
 --*/
 
-#pragma once
+#ifndef _MSQUIC_SRC_INC_QUIC_TLS_H_
+#define _MSQUIC_SRC_INC_QUIC_TLS_H_
 
 #include "msquic.h"
 #include "quic_crypt.h"
@@ -18,8 +19,10 @@ Abstract:
 extern "C" {
 #endif
 
+#ifdef _WIN32
 #pragma warning(disable:4201)  // nonstandard extension used: nameless struct/union
 #pragma warning(disable:4214)  // nonstandard extension used: bit field types other than int
+#endif  //  #ifdef _WIN32
 
 typedef struct CXPLAT_SEC_CONFIG CXPLAT_SEC_CONFIG;
 typedef struct QUIC_CONNECTION QUIC_CONNECTION;
@@ -532,3 +535,5 @@ QuicTlsPopulateOffloadKeys(
 #if defined(__cplusplus)
 }
 #endif
+
+#endif  //  #ifndef _MSQUIC_SRC_INC_QUIC_TLS_H_

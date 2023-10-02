@@ -9,7 +9,8 @@ Abstract:
 
 --*/
 
-#pragma once
+#ifndef _MSQUIC_SRC_PERF_BIN_PERFIOCTLS_H_
+#define _MSQUIC_SRC_PERF_BIN_PERFIOCTLS_H_
 
 #define QUIC_CTL_CODE(request, method, access) \
     CTL_CODE(FILE_DEVICE_NETWORK, request, method, access)
@@ -36,3 +37,5 @@ Abstract:
     QUIC_CTL_CODE(6, METHOD_BUFFERED, FILE_READ_DATA)
 
 #define QUIC_PERF_MAX_IOCTL_FUNC_CODE 6
+
+#endif  //  #ifndef _MSQUIC_SRC_PERF_BIN_PERFIOCTLS_H_

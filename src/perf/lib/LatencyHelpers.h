@@ -9,7 +9,8 @@ Abstract:
 
 --*/
 
-#pragma once
+#ifndef _MSQUIC_SRC_PERF_LIB_LATENCYHELPERS_H_
+#define _MSQUIC_SRC_PERF_LIB_LATENCYHELPERS_H_
 
 //
 // Forward declaration because of include issues with math.h
@@ -145,3 +146,5 @@ GetStatistics(
     PercentileIndex = (uint32_t)(DataLength * 0.999999);
     PercentileStats->P99p9999 = Data[PercentileIndex];
 }
+
+#endif  //  #ifndef _MSQUIC_SRC_PERF_LIB_LATENCYHELPERS_H_

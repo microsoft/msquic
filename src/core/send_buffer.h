@@ -5,6 +5,9 @@
 
 --*/
 
+#ifndef _MSQUIC_SRC_CORE_SEND_BUFFER_H_
+#define _MSQUIC_SRC_CORE_SEND_BUFFER_H_
+
 typedef struct QUIC_SEND_BUFFER {
 
     //
@@ -87,3 +90,5 @@ void
 QuicSendBufferConnectionAdjust(
     _In_ QUIC_CONNECTION* Connection
     );
+
+#endif  //  #ifndef _MSQUIC_SRC_CORE_SEND_BUFFER_H_

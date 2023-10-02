@@ -5,6 +5,9 @@
 
 --*/
 
+#ifndef _MSQUIC_SRC_CORE_BINDING_H_
+#define _MSQUIC_SRC_CORE_BINDING_H_
+
 typedef struct QUIC_PARTITIONED_HASHTABLE QUIC_PARTITIONED_HASHTABLE;
 typedef struct QUIC_STATELESS_CONTEXT QUIC_STATELESS_CONTEXT;
 
@@ -516,3 +519,5 @@ QuicRetryTokenDecrypt(
     CxPlatDispatchLockRelease(&MsQuicLib.StatelessRetryKeysLock);
     return QUIC_SUCCEEDED(Status);
 }
+
+#endif  //  #ifndef _MSQUIC_SRC_CORE_BINDING_H_

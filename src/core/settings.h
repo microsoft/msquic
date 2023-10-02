@@ -5,6 +5,9 @@
 
 --*/
 
+#ifndef _MSQUIC_SRC_CORE_SETTINGS_H_
+#define _MSQUIC_SRC_CORE_SETTINGS_H_
+
 #if defined(__cplusplus)
 extern "C" {
 #endif
@@ -233,3 +236,5 @@ QuicSettingsGetVersionSettings(
 #if defined(__cplusplus)
 }
 #endif
+
+#endif  //  #ifndef _MSQUIC_SRC_CORE_SETTINGS_H_

@@ -5,6 +5,9 @@
 
 --*/
 
+#ifndef _MSQUIC_SRC_TOOLS_ATTACK_PACKET_WRITER_H_
+#define _MSQUIC_SRC_TOOLS_ATTACK_PACKET_WRITER_H_
+
 #define VERIFY(X) if (!(X)) { printf(#X " FALSE!\n"); exit(0); }
 
 #define MagicCid 0x989898989898989ull
@@ -47,3 +50,5 @@ public:
         _Out_ uint16_t* HeaderLength
         );
 };
+
+#endif  //  #ifndef _MSQUIC_SRC_TOOLS_ATTACK_PACKET_WRITER_H_

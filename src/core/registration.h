@@ -5,6 +5,9 @@
 
 --*/
 
+#ifndef _MSQUIC_SRC_CORE_REGISTRATION_H_
+#define _MSQUIC_SRC_CORE_REGISTRATION_H_
+
 //
 // Special internal type to indicate registration created for global listener
 // processing.
@@ -188,3 +191,5 @@ QuicRegistrationParamGet(
     _Out_writes_bytes_opt_(*BufferLength)
         void* Buffer
     );
+
+#endif  //  #ifndef _MSQUIC_SRC_CORE_REGISTRATION_H_

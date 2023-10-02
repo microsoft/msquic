@@ -15,7 +15,8 @@ Supported Environments:
 
 --*/
 
-#pragma once
+#ifndef _MSQUIC_SRC_INC_QUIC_PLATFORM_H_
+#define _MSQUIC_SRC_INC_QUIC_PLATFORM_H_
 
 #include <stddef.h>
 
@@ -592,3 +593,5 @@ CxPlatFreeTestCert(
 #endif
 
 #endif // QUIC_TEST_APIS
+
+#endif  //  #ifndef _MSQUIC_SRC_INC_QUIC_PLATFORM_H_

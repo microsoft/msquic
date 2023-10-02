@@ -5,7 +5,8 @@
     
 --*/
 
-#pragma once
+#ifndef _MSQUIC_SRC_CORE_SLIDING_WINDOW_EXTREMUM_H_
+#define _MSQUIC_SRC_CORE_SLIDING_WINDOW_EXTREMUM_H_
 
 #if defined(__cplusplus)
 extern "C" {
@@ -110,3 +111,5 @@ QuicSlidingWindowExtremumUpdateMax(
 #if defined(__cplusplus)
 }
 #endif
+
+#endif  //  #ifndef _MSQUIC_SRC_CORE_SLIDING_WINDOW_EXTREMUM_H_

@@ -1,3 +1,6 @@
+#ifndef _MSQUIC_SRC_INC_QUIC_TRACE_MANIFESTED_ETW_H_
+#define _MSQUIC_SRC_INC_QUIC_TRACE_MANIFESTED_ETW_H_
+
 #include <evntprov.h>
 
 #ifdef __cplusplus
@@ -32,3 +35,5 @@ QuicEtwCallback(
 #define QuicTraceEventEnabled(Name) TRUE //EventEnabledQuic##Name()
 
 #define CLOG_BYTEARRAY(Len, Data) (uint8_t)(Len), (uint8_t*)(Data)
+
+#endif  //  #ifndef _MSQUIC_SRC_INC_QUIC_TRACE_MANIFESTED_ETW_H_

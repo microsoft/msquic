@@ -18,12 +18,8 @@ Supported Platforms:
 
 --*/
 
-#ifdef _WIN32
-#pragma once
-#endif
-
-#ifndef _MSQUIC_HPP_
-#define _MSQUIC_HPP_
+#ifndef _MSQUIC_SRC_INC_MSQUIC_HPP_
+#define _MSQUIC_SRC_INC_MSQUIC_HPP_
 
 #include "msquic.h"
 #include "msquicp.h"
@@ -1558,4 +1554,4 @@ struct QuicBufferScope {
     ~QuicBufferScope() noexcept { if (Buffer) { delete[](uint8_t*) Buffer; } }
 };
 
-#endif  //  _WIN32
+#endif  //  #ifndef _MSQUIC_SRC_INC_MSQUIC_HPP_

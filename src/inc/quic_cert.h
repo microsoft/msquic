@@ -13,6 +13,9 @@ Environment:
 
 --*/
 
+#ifndef _MSQUIC_SRC_INC_QUIC_CERT_H_
+#define _MSQUIC_SRC_INC_QUIC_CERT_H_
+
 #define SIZEOF_CERT_CHAIN_LIST_LENGTH 3
 
 typedef struct QUIC_CREDENTIAL_CONFIG QUIC_CREDENTIAL_CONFIG;
@@ -187,3 +190,5 @@ CxPlatCertVerifyRawCertificate(
     _In_ QUIC_CREDENTIAL_FLAGS CredFlags,
     _Out_opt_ uint32_t* PlatformVerificationError
     );
+
+#endif  //  #ifndef _MSQUIC_SRC_INC_QUIC_CERT_H_

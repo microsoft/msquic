@@ -10,7 +10,8 @@ Abstract:
 
 --*/
 
-#pragma once
+#ifndef _MSQUIC_SRC_INC_QUIC_DATAPATH_H_
+#define _MSQUIC_SRC_INC_QUIC_DATAPATH_H_
 
 #include "quic_platform.h"
 
@@ -18,8 +19,10 @@ Abstract:
 extern "C" {
 #endif
 
+#ifdef _WIN32
 #pragma warning(disable:4200)  // nonstandard extension used: zero-sized array in struct/union
 #pragma warning(disable:4214)  // nonstandard extension used: bit field types other than int
+#endif  //  #ifdef _WIN32
 
 //
 // The minimum IPv4 header size.
@@ -773,3 +776,5 @@ CxPlatUpdateRoute(
 #if defined(__cplusplus)
 }
 #endif
+
+#endif  //  #ifndef _MSQUIC_SRC_INC_QUIC_DATAPATH_H_

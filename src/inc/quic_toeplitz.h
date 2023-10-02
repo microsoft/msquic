@@ -5,7 +5,8 @@
 
 --*/
 
-#pragma once
+#ifndef _MSQUIC_SRC_INC_QUIC_TOEPLITZ_H_
+#define _MSQUIC_SRC_INC_QUIC_TOEPLITZ_H_
 
 #if defined(__cplusplus)
 extern "C" {
@@ -116,3 +117,5 @@ CxPlatToeplitzHashComputeAddr(
 #if defined(__cplusplus)
 }
 #endif
+
+#endif  //  #ifndef _MSQUIC_SRC_INC_QUIC_TOEPLITZ_H_

@@ -9,6 +9,9 @@ Abstract:
 
 --*/
 
+#ifndef _MSQUIC_SRC_TEST_LIB_TESTLISTENER_H_
+#define _MSQUIC_SRC_TEST_LIB_TESTLISTENER_H_
+
 class TestListener;
 
 //
@@ -109,3 +112,5 @@ public:
     bool GetHasRandomLoss() const { return HasRandomLoss; }
     void SetHasRandomLoss(bool Value) { HasRandomLoss = Value; }
 };
+
+#endif  //  #ifndef _MSQUIC_SRC_TEST_LIB_TESTLISTENER_H_

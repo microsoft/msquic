@@ -13,7 +13,8 @@ Abstract:
 
 --*/
 
-#pragma once
+#ifndef _MSQUIC_SRC_INC_QUIC_STORAGE_H_
+#define _MSQUIC_SRC_INC_QUIC_STORAGE_H_
 
 #if defined(__cplusplus)
 extern "C" {
@@ -72,3 +73,5 @@ CxPlatStorageReadValue(
 #if defined(__cplusplus)
 }
 #endif
+
+#endif  //  #ifndef _MSQUIC_SRC_INC_QUIC_STORAGE_H_

@@ -9,7 +9,8 @@ Abstract:
 
 --*/
 
-#pragma once
+#ifndef _MSQUIC_SRC_INC_QUIC_VERSIONS_H_
+#define _MSQUIC_SRC_INC_QUIC_VERSIONS_H_
 
 //
 // The QUIC version numbers, in network byte order.
@@ -66,3 +67,5 @@ QuicIsVersionReserved(
 {
     return (Version & QUIC_VERSION_RESERVED_MASK) == QUIC_VERSION_RESERVED;
 }
+
+#endif  //  #ifndef _MSQUIC_SRC_INC_QUIC_VERSIONS_H_

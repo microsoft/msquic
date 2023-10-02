@@ -5,6 +5,9 @@
 
 --*/
 
+#ifndef _MSQUIC_SRC_CORE_FRAME_H_
+#define _MSQUIC_SRC_CORE_FRAME_H_
+
 //
 // QUIC Transport Error codes defined by the QUIC Transport RFC.
 //
@@ -977,3 +980,5 @@ QuicFrameLogAll(
 #if defined(__cplusplus)
 }
 #endif
+
+#endif  //  #ifndef _MSQUIC_SRC_CORE_FRAME_H_

@@ -14,7 +14,8 @@ Environment:
 
 --*/
 
-#pragma once
+#ifndef _MSQUIC_SRC_INC_QUIC_PLATFORM_WINKERNEL_H_
+#define _MSQUIC_SRC_INC_QUIC_PLATFORM_WINKERNEL_H_
 
 #ifndef CX_PLATFORM_TYPE
 #error "Must be included from quic_platform.h"
@@ -1021,3 +1022,5 @@ CxPlatSetCurrentThreadGroupAffinity(
 #if defined(__cplusplus)
 }
 #endif
+
+#endif  //  #ifndef _MSQUIC_SRC_INC_QUIC_PLATFORM_WINKERNEL_H_

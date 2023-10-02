@@ -18,15 +18,13 @@ Supported Platforms:
 
 --*/
 
-#ifndef _MSQUIC_
-#define _MSQUIC_
+#ifndef _MSQUIC_SRC_INC_MSQUIC_H_
+#define _MSQUIC_SRC_INC_MSQUIC_H_
 
 #ifdef _WIN32
-#pragma once
-
 #pragma warning(disable:4201)  // nonstandard extension used: nameless struct/union
 #pragma warning(disable:4214)  // nonstandard extension used: bit field types other than int
-#endif
+#endif  //  #ifdef _WIN32
 
 #ifdef _KERNEL_MODE
 #include "msquic_winkernel.h"
@@ -1674,4 +1672,4 @@ MsQuicOpen2(
 }
 #endif
 
-#endif // _MSQUIC_
+#endif  //  #ifndef _MSQUIC_SRC_INC_MSQUIC_H_

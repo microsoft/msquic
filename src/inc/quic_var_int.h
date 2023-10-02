@@ -9,7 +9,8 @@ Abstract:
 
 --*/
 
-#pragma once
+#ifndef _MSQUIC_SRC_INC_QUIC_VAR_INT_H_
+#define _MSQUIC_SRC_INC_QUIC_VAR_INT_H_
 
 //
 // Variable Length Integer Encoding
@@ -150,3 +151,5 @@ QuicVarIntDecode(
     }
     return TRUE;
 }
+
+#endif  //  #ifndef _MSQUIC_SRC_INC_QUIC_VAR_INT_H_

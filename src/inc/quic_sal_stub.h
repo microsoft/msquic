@@ -5,10 +5,8 @@
 
  --*/
 
-#ifndef _SAL_STUB_H
-#define _SAL_STUB_H
-
-#pragma once
+#ifndef _MSQUIC_SRC_INC_QUIC_SAL_STUB_H_
+#define _MSQUIC_SRC_INC_QUIC_SAL_STUB_H_
 
 //
 // Necessary when SAL isn't supported to tell compiler it's not necessary.
@@ -279,4 +277,4 @@
 #define _Check_return_
 #endif
 
-#endif // _SAL_STUB_H
+#endif  //  #ifndef _MSQUIC_SRC_INC_QUIC_SAL_STUB_H_

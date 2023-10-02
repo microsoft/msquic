@@ -5,6 +5,9 @@
 
 --*/
 
+#ifndef _MSQUIC_SRC_CORE_ACK_TRACKER_H_
+#define _MSQUIC_SRC_CORE_ACK_TRACKER_H_
+
 typedef struct QUIC_ACK_TRACKER {
 
     //
@@ -146,3 +149,5 @@ QuicAckTrackerHasPacketsToAck(
         !Tracker->AlreadyWrittenAckFrame &&
         QuicRangeSize(&Tracker->PacketNumbersToAck) != 0;
 }
+
+#endif  //  #ifndef _MSQUIC_SRC_CORE_ACK_TRACKER_H_
