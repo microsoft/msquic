@@ -309,38 +309,12 @@ TRACEPOINT_EVENT(CLOG_STREAM_SEND_C, SendQueueDrained,
 
 
 /*----------------------------------------------------------
-// Decoder Ring for ResetReliableAck
-// [strm][%p] Reset Reliable ACKed in OnResetReliableAck. Send side. UnAckedOffset=%llu, ReliableOffsetSend=%llu
-// QuicTraceLogStreamVerbose(
-        ResetReliableAck,
-        Stream,
-        "Reset Reliable ACKed in OnResetReliableAck. Send side. UnAckedOffset=%llu, ReliableOffsetSend=%llu",
-        Stream->UnAckedOffset, Stream->ReliableOffsetSend);
-// arg1 = arg1 = Stream = arg1
-// arg3 = arg3 = Stream->UnAckedOffset = arg3
-// arg4 = arg4 = Stream->ReliableOffsetSend = arg4
-----------------------------------------------------------*/
-TRACEPOINT_EVENT(CLOG_STREAM_SEND_C, ResetReliableAck,
-    TP_ARGS(
-        const void *, arg1,
-        unsigned long long, arg3,
-        unsigned long long, arg4), 
-    TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg1, arg1)
-        ctf_integer(uint64_t, arg3, arg3)
-        ctf_integer(uint64_t, arg4, arg4)
-    )
-)
-
-
-
-/*----------------------------------------------------------
 // Decoder Ring for SendDump
-// [strm][%p] SF:%hX FC:%llu QS:%llu MAX:%llu UNA:%llu NXT:%llu RECOV:%llu-%llu
+// [strm][%p] SF:%hX FC:%llu QS:%llu MAX:%llu UNA:%llu NXT:%llu RECOV:%llu-%llu REL: %llu
 // QuicTraceLogStreamVerbose(
             SendDump,
             Stream,
-            "SF:%hX FC:%llu QS:%llu MAX:%llu UNA:%llu NXT:%llu RECOV:%llu-%llu",
+            "SF:%hX FC:%llu QS:%llu MAX:%llu UNA:%llu NXT:%llu RECOV:%llu-%llu REL: %llu",
             Stream->SendFlags,
             Stream->MaxAllowedSendOffset,
             Stream->QueuedSendOffset,
@@ -348,7 +322,8 @@ TRACEPOINT_EVENT(CLOG_STREAM_SEND_C, ResetReliableAck,
             Stream->UnAckedOffset,
             Stream->NextSendOffset,
             Stream->Flags.InRecovery ? Stream->RecoveryNextOffset : 0,
-            Stream->Flags.InRecovery ? Stream->RecoveryEndOffset : 0);
+            Stream->Flags.InRecovery ? Stream->RecoveryEndOffset : 0,
+            Stream->ReliableOffsetSend);
 // arg1 = arg1 = Stream = arg1
 // arg3 = arg3 = Stream->SendFlags = arg3
 // arg4 = arg4 = Stream->MaxAllowedSendOffset = arg4
@@ -358,6 +333,7 @@ TRACEPOINT_EVENT(CLOG_STREAM_SEND_C, ResetReliableAck,
 // arg8 = arg8 = Stream->NextSendOffset = arg8
 // arg9 = arg9 = Stream->Flags.InRecovery ? Stream->RecoveryNextOffset : 0 = arg9
 // arg10 = arg10 = Stream->Flags.InRecovery ? Stream->RecoveryEndOffset : 0 = arg10
+// arg11 = arg11 = Stream->ReliableOffsetSend = arg11
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_STREAM_SEND_C, SendDump,
     TP_ARGS(
@@ -369,7 +345,8 @@ TRACEPOINT_EVENT(CLOG_STREAM_SEND_C, SendDump,
         unsigned long long, arg7,
         unsigned long long, arg8,
         unsigned long long, arg9,
-        unsigned long long, arg10), 
+        unsigned long long, arg10,
+        unsigned long long, arg11), 
     TP_FIELDS(
         ctf_integer_hex(uint64_t, arg1, arg1)
         ctf_integer(unsigned short, arg3, arg3)
@@ -380,6 +357,7 @@ TRACEPOINT_EVENT(CLOG_STREAM_SEND_C, SendDump,
         ctf_integer(uint64_t, arg8, arg8)
         ctf_integer(uint64_t, arg9, arg9)
         ctf_integer(uint64_t, arg10, arg10)
+        ctf_integer(uint64_t, arg11, arg11)
     )
 )
 

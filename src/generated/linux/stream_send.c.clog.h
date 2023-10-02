@@ -290,33 +290,12 @@ tracepoint(CLOG_STREAM_SEND_C, SendQueueDrained , arg1);\
 
 
 /*----------------------------------------------------------
-// Decoder Ring for ResetReliableAck
-// [strm][%p] Reset Reliable ACKed in OnResetReliableAck. Send side. UnAckedOffset=%llu, ReliableOffsetSend=%llu
-// QuicTraceLogStreamVerbose(
-        ResetReliableAck,
-        Stream,
-        "Reset Reliable ACKed in OnResetReliableAck. Send side. UnAckedOffset=%llu, ReliableOffsetSend=%llu",
-        Stream->UnAckedOffset, Stream->ReliableOffsetSend);
-// arg1 = arg1 = Stream = arg1
-// arg3 = arg3 = Stream->UnAckedOffset = arg3
-// arg4 = arg4 = Stream->ReliableOffsetSend = arg4
-----------------------------------------------------------*/
-#ifndef _clog_5_ARGS_TRACE_ResetReliableAck
-#define _clog_5_ARGS_TRACE_ResetReliableAck(uniqueId, arg1, encoded_arg_string, arg3, arg4)\
-tracepoint(CLOG_STREAM_SEND_C, ResetReliableAck , arg1, arg3, arg4);\
-
-#endif
-
-
-
-
-/*----------------------------------------------------------
 // Decoder Ring for SendDump
-// [strm][%p] SF:%hX FC:%llu QS:%llu MAX:%llu UNA:%llu NXT:%llu RECOV:%llu-%llu
+// [strm][%p] SF:%hX FC:%llu QS:%llu MAX:%llu UNA:%llu NXT:%llu RECOV:%llu-%llu REL: %llu
 // QuicTraceLogStreamVerbose(
             SendDump,
             Stream,
-            "SF:%hX FC:%llu QS:%llu MAX:%llu UNA:%llu NXT:%llu RECOV:%llu-%llu",
+            "SF:%hX FC:%llu QS:%llu MAX:%llu UNA:%llu NXT:%llu RECOV:%llu-%llu REL: %llu",
             Stream->SendFlags,
             Stream->MaxAllowedSendOffset,
             Stream->QueuedSendOffset,
@@ -324,7 +303,8 @@ tracepoint(CLOG_STREAM_SEND_C, ResetReliableAck , arg1, arg3, arg4);\
             Stream->UnAckedOffset,
             Stream->NextSendOffset,
             Stream->Flags.InRecovery ? Stream->RecoveryNextOffset : 0,
-            Stream->Flags.InRecovery ? Stream->RecoveryEndOffset : 0);
+            Stream->Flags.InRecovery ? Stream->RecoveryEndOffset : 0,
+            Stream->ReliableOffsetSend);
 // arg1 = arg1 = Stream = arg1
 // arg3 = arg3 = Stream->SendFlags = arg3
 // arg4 = arg4 = Stream->MaxAllowedSendOffset = arg4
@@ -334,10 +314,11 @@ tracepoint(CLOG_STREAM_SEND_C, ResetReliableAck , arg1, arg3, arg4);\
 // arg8 = arg8 = Stream->NextSendOffset = arg8
 // arg9 = arg9 = Stream->Flags.InRecovery ? Stream->RecoveryNextOffset : 0 = arg9
 // arg10 = arg10 = Stream->Flags.InRecovery ? Stream->RecoveryEndOffset : 0 = arg10
+// arg11 = arg11 = Stream->ReliableOffsetSend = arg11
 ----------------------------------------------------------*/
-#ifndef _clog_11_ARGS_TRACE_SendDump
-#define _clog_11_ARGS_TRACE_SendDump(uniqueId, arg1, encoded_arg_string, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10)\
-tracepoint(CLOG_STREAM_SEND_C, SendDump , arg1, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10);\
+#ifndef _clog_12_ARGS_TRACE_SendDump
+#define _clog_12_ARGS_TRACE_SendDump(uniqueId, arg1, encoded_arg_string, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10, arg11)\
+tracepoint(CLOG_STREAM_SEND_C, SendDump , arg1, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10, arg11);\
 
 #endif
 

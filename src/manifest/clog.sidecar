@@ -219,18 +219,6 @@
       ],
       "macroName": "QuicTraceLogConnInfo"
     },
-    "BadShutdownImmediate": {
-      "ModuleProperites": {},
-      "TraceString": "[strm][%p] App tried ditching this stream but it still has stuff to do.",
-      "UniqueId": "BadShutdownImmediate",
-      "splitArgs": [
-        {
-          "DefinationEncoding": "p",
-          "MacroVariableName": "arg1"
-        }
-      ],
-      "macroName": "QuicTraceLogStreamWarning"
-    },
     "BindingCleanup": {
       "ModuleProperites": {},
       "TraceString": "[bind][%p] Cleaning up",
@@ -1083,22 +1071,6 @@
       ],
       "macroName": "QuicTraceEvent"
     },
-    "ConnCongestion": {
-      "ModuleProperites": {},
-      "TraceString": "[conn][%p] Congestion event: IsEcn=%hu",
-      "UniqueId": "ConnCongestion",
-      "splitArgs": [
-        {
-          "DefinationEncoding": "p",
-          "MacroVariableName": "arg2"
-        },
-        {
-          "DefinationEncoding": "hu",
-          "MacroVariableName": "arg3"
-        }
-      ],
-      "macroName": "QuicTraceEvent"
-    },
     "ConnCongestionV2": {
       "ModuleProperites": {},
       "TraceString": "[conn][%p] Congestion event: IsEcn=%hu",
@@ -1655,54 +1627,6 @@
       ],
       "macroName": "QuicTraceEvent"
     },
-    "ConnOutFlowStats": {
-      "ModuleProperites": {},
-      "TraceString": "[conn][%p] OUT: BytesSent=%llu InFlight=%u InFlightMax=%u CWnd=%u SSThresh=%u ConnFC=%llu ISB=%llu PostedBytes=%llu SRtt=%u",
-      "UniqueId": "ConnOutFlowStats",
-      "splitArgs": [
-        {
-          "DefinationEncoding": "p",
-          "MacroVariableName": "arg2"
-        },
-        {
-          "DefinationEncoding": "llu",
-          "MacroVariableName": "arg3"
-        },
-        {
-          "DefinationEncoding": "u",
-          "MacroVariableName": "arg4"
-        },
-        {
-          "DefinationEncoding": "u",
-          "MacroVariableName": "arg5"
-        },
-        {
-          "DefinationEncoding": "u",
-          "MacroVariableName": "arg6"
-        },
-        {
-          "DefinationEncoding": "u",
-          "MacroVariableName": "arg7"
-        },
-        {
-          "DefinationEncoding": "llu",
-          "MacroVariableName": "arg8"
-        },
-        {
-          "DefinationEncoding": "llu",
-          "MacroVariableName": "arg9"
-        },
-        {
-          "DefinationEncoding": "llu",
-          "MacroVariableName": "arg10"
-        },
-        {
-          "DefinationEncoding": "u",
-          "MacroVariableName": "arg11"
-        }
-      ],
-      "macroName": "QuicTraceEvent"
-    },
     "ConnOutFlowStatsV2": {
       "ModuleProperites": {},
       "TraceString": "[conn][%p] OUT: BytesSent=%llu InFlight=%u CWnd=%u ConnFC=%llu ISB=%llu PostedBytes=%llu SRtt=%llu 1Way=%llu",
@@ -2147,90 +2071,6 @@
       ],
       "macroName": "QuicTraceEvent"
     },
-    "ConnStats": {
-      "ModuleProperites": {},
-      "TraceString": "[conn][%p] STATS: SRtt=%u CongestionCount=%u PersistentCongestionCount=%u SendTotalBytes=%llu RecvTotalBytes=%llu CongestionWindow=%u Cc=%s",
-      "UniqueId": "ConnStats",
-      "splitArgs": [
-        {
-          "DefinationEncoding": "p",
-          "MacroVariableName": "arg2"
-        },
-        {
-          "DefinationEncoding": "u",
-          "MacroVariableName": "arg3"
-        },
-        {
-          "DefinationEncoding": "u",
-          "MacroVariableName": "arg4"
-        },
-        {
-          "DefinationEncoding": "u",
-          "MacroVariableName": "arg5"
-        },
-        {
-          "DefinationEncoding": "llu",
-          "MacroVariableName": "arg6"
-        },
-        {
-          "DefinationEncoding": "llu",
-          "MacroVariableName": "arg7"
-        },
-        {
-          "DefinationEncoding": "u",
-          "MacroVariableName": "arg8"
-        },
-        {
-          "DefinationEncoding": "s",
-          "MacroVariableName": "arg9"
-        }
-      ],
-      "macroName": "QuicTraceEvent"
-    },
-    "ConnStatsV2": {
-      "ModuleProperites": {},
-      "TraceString": "[conn][%p] STATS: SRtt=%u CongestionCount=%u PersistentCongestionCount=%u SendTotalBytes=%llu RecvTotalBytes=%llu CongestionWindow=%u Cc=%s EcnCongestionCount=%u",
-      "UniqueId": "ConnStatsV2",
-      "splitArgs": [
-        {
-          "DefinationEncoding": "p",
-          "MacroVariableName": "arg2"
-        },
-        {
-          "DefinationEncoding": "u",
-          "MacroVariableName": "arg3"
-        },
-        {
-          "DefinationEncoding": "u",
-          "MacroVariableName": "arg4"
-        },
-        {
-          "DefinationEncoding": "u",
-          "MacroVariableName": "arg5"
-        },
-        {
-          "DefinationEncoding": "llu",
-          "MacroVariableName": "arg6"
-        },
-        {
-          "DefinationEncoding": "llu",
-          "MacroVariableName": "arg7"
-        },
-        {
-          "DefinationEncoding": "u",
-          "MacroVariableName": "arg8"
-        },
-        {
-          "DefinationEncoding": "s",
-          "MacroVariableName": "arg9"
-        },
-        {
-          "DefinationEncoding": "u",
-          "MacroVariableName": "arg10"
-        }
-      ],
-      "macroName": "QuicTraceEvent"
-    },
     "ConnStatsV3": {
       "ModuleProperites": {},
       "TraceString": "[conn][%p] STATS: SRtt=%llu CongestionCount=%u PersistentCongestionCount=%u SendTotalBytes=%llu RecvTotalBytes=%llu CongestionWindow=%u Cc=%s EcnCongestionCount=%u",
@@ -2611,18 +2451,6 @@
       ],
       "macroName": "QuicTraceLogWarning"
     },
-    "DatapathDropAllocRecvContextFailure": {
-      "ModuleProperites": {},
-      "TraceString": "[%p] Couldn't allocate receive context.",
-      "UniqueId": "DatapathDropAllocRecvContextFailure",
-      "splitArgs": [
-        {
-          "DefinationEncoding": "p",
-          "MacroVariableName": "arg2"
-        }
-      ],
-      "macroName": "QuicTraceLogWarning"
-    },
     "DatapathDropEmptyMdl": {
       "ModuleProperites": {},
       "TraceString": "[%p] Dropping datagram with empty mdl.",
@@ -2759,18 +2587,6 @@
       ],
       "macroName": "QuicTraceEvent"
     },
-    "DatapathInitialize": {
-      "ModuleProperites": {},
-      "TraceString": "[data][%p] Datapath initialize",
-      "UniqueId": "DatapathInitialize",
-      "splitArgs": [
-        {
-          "DefinationEncoding": "p",
-          "MacroVariableName": "arg2"
-        }
-      ],
-      "macroName": "QuicTraceLogVerbose"
-    },
     "DataPathInitialized": {
       "ModuleProperites": {},
       "TraceString": "[data] Initialized, DatapathFeatures=%u",
@@ -2843,42 +2659,6 @@
       ],
       "macroName": "QuicTraceLogWarning"
     },
-    "DatapathProcContextInitialize": {
-      "ModuleProperites": {},
-      "TraceString": "[data][%p] Proc context initialize",
-      "UniqueId": "DatapathProcContextInitialize",
-      "splitArgs": [
-        {
-          "DefinationEncoding": "p",
-          "MacroVariableName": "arg2"
-        }
-      ],
-      "macroName": "QuicTraceLogVerbose"
-    },
-    "DatapathProcContextUninitialize": {
-      "ModuleProperites": {},
-      "TraceString": "[data][%p] Proc context uninitialize",
-      "UniqueId": "DatapathProcContextUninitialize",
-      "splitArgs": [
-        {
-          "DefinationEncoding": "p",
-          "MacroVariableName": "arg2"
-        }
-      ],
-      "macroName": "QuicTraceLogVerbose"
-    },
-    "DatapathProcContextUninitializeComplete": {
-      "ModuleProperites": {},
-      "TraceString": "[data][%p] Proc context uninitialize complete",
-      "UniqueId": "DatapathProcContextUninitializeComplete",
-      "splitArgs": [
-        {
-          "DefinationEncoding": "p",
-          "MacroVariableName": "arg2"
-        }
-      ],
-      "macroName": "QuicTraceLogVerbose"
-    },
     "DatapathQueryRecvMaxCoalescedSizeFailed": {
       "ModuleProperites": {},
       "TraceString": "[data] Query for UDP_RECV_MAX_COALESCED_SIZE failed, 0x%x",
@@ -2931,18 +2711,6 @@
       "ModuleProperites": {},
       "TraceString": "[data] Query for SIO_QUERY_RSS_SCALABILITY_INFO failed (async), 0x%x",
       "UniqueId": "DatapathQueryRssScalabilityInfoFailedAsync",
-      "splitArgs": [
-        {
-          "DefinationEncoding": "x",
-          "MacroVariableName": "arg2"
-        }
-      ],
-      "macroName": "QuicTraceLogWarning"
-    },
-    "DatapathQueryUdpSegmentFailed": {
-      "ModuleProperites": {},
-      "TraceString": "[data] Query for UDP_SEGMENT failed, 0x%x",
-      "UniqueId": "DatapathQueryUdpSegmentFailed",
       "splitArgs": [
         {
           "DefinationEncoding": "x",
@@ -3115,70 +2883,10 @@
       ],
       "macroName": "QuicTraceLogVerbose"
     },
-    "DatapathShutDownReturn": {
-      "ModuleProperites": {},
-      "TraceString": "[data][%p] Shut down (return)",
-      "UniqueId": "DatapathShutDownReturn",
-      "splitArgs": [
-        {
-          "DefinationEncoding": "p",
-          "MacroVariableName": "arg2"
-        }
-      ],
-      "macroName": "QuicTraceLogVerbose"
-    },
     "DatapathSocketContextComplete": {
       "ModuleProperites": {},
       "TraceString": "[data][%p] Socket context shutdown",
       "UniqueId": "DatapathSocketContextComplete",
-      "splitArgs": [
-        {
-          "DefinationEncoding": "p",
-          "MacroVariableName": "arg2"
-        }
-      ],
-      "macroName": "QuicTraceLogVerbose"
-    },
-    "DatapathSocketContextInitialize": {
-      "ModuleProperites": {},
-      "TraceString": "[data][%p] Socket context initialize",
-      "UniqueId": "DatapathSocketContextInitialize",
-      "splitArgs": [
-        {
-          "DefinationEncoding": "p",
-          "MacroVariableName": "arg2"
-        }
-      ],
-      "macroName": "QuicTraceLogVerbose"
-    },
-    "DatapathSocketContextUninitialize": {
-      "ModuleProperites": {},
-      "TraceString": "[data][%p] Socket context uninitialize",
-      "UniqueId": "DatapathSocketContextUninitialize",
-      "splitArgs": [
-        {
-          "DefinationEncoding": "p",
-          "MacroVariableName": "arg2"
-        }
-      ],
-      "macroName": "QuicTraceLogVerbose"
-    },
-    "DatapathSocketContextUninitializeComplete": {
-      "ModuleProperites": {},
-      "TraceString": "[data][%p] Socket context uninitialize complete",
-      "UniqueId": "DatapathSocketContextUninitializeComplete",
-      "splitArgs": [
-        {
-          "DefinationEncoding": "p",
-          "MacroVariableName": "arg2"
-        }
-      ],
-      "macroName": "QuicTraceLogVerbose"
-    },
-    "DatapathSocketUninitializeComplete": {
-      "ModuleProperites": {},
-      "TraceString": "[data][%p] Socket uninitialize complete",
-      "UniqueId": "DatapathSocketUninitializeComplete",
       "splitArgs": [
         {
           "DefinationEncoding": "p",
@@ -3215,30 +2923,6 @@
         {
           "DefinationEncoding": "!ADDR!",
           "MacroVariableName": "arg3"
-        }
-      ],
-      "macroName": "QuicTraceLogVerbose"
-    },
-    "DatapathUninitialize": {
-      "ModuleProperites": {},
-      "TraceString": "[data][%p] Datapath uninitialize",
-      "UniqueId": "DatapathUninitialize",
-      "splitArgs": [
-        {
-          "DefinationEncoding": "p",
-          "MacroVariableName": "arg2"
-        }
-      ],
-      "macroName": "QuicTraceLogVerbose"
-    },
-    "DatapathUninitializeComplete": {
-      "ModuleProperites": {},
-      "TraceString": "[data][%p] Datapath uninitialize complete",
-      "UniqueId": "DatapathUninitializeComplete",
-      "splitArgs": [
-        {
-          "DefinationEncoding": "p",
-          "MacroVariableName": "arg2"
         }
       ],
       "macroName": "QuicTraceLogVerbose"
@@ -3302,30 +2986,6 @@
         }
       ],
       "macroName": "QuicTraceLogWarning"
-    },
-    "DatapathWakeupForECTimeout": {
-      "ModuleProperites": {},
-      "TraceString": "[data][%p] Datapath wakeup for EC wake or timeout",
-      "UniqueId": "DatapathWakeupForECTimeout",
-      "splitArgs": [
-        {
-          "DefinationEncoding": "p",
-          "MacroVariableName": "arg2"
-        }
-      ],
-      "macroName": "QuicTraceLogVerbose"
-    },
-    "DatapathWakeupForShutdown": {
-      "ModuleProperites": {},
-      "TraceString": "[data][%p] Datapath wakeup for shutdown",
-      "UniqueId": "DatapathWakeupForShutdown",
-      "splitArgs": [
-        {
-          "DefinationEncoding": "p",
-          "MacroVariableName": "arg2"
-        }
-      ],
-      "macroName": "QuicTraceLogVerbose"
     },
     "DecodeTPAckDelayExponent": {
       "ModuleProperites": {},
@@ -3830,34 +3490,6 @@
         }
       ],
       "macroName": "QuicTraceLogConnVerbose"
-    },
-    "EcnEnabled": {
-      "ModuleProperites": {},
-      "TraceString": "[conn][%p] Updated ECN enabled to %hhu",
-      "UniqueId": "EcnEnabled",
-      "splitArgs": [
-        {
-          "DefinationEncoding": "p",
-          "MacroVariableName": "arg1"
-        },
-        {
-          "DefinationEncoding": "hhu",
-          "MacroVariableName": "arg3"
-        }
-      ],
-      "macroName": "QuicTraceLogConnVerbose"
-    },
-    "EcnValidationSuccess": {
-      "ModuleProperites": {},
-      "TraceString": "[conn][%p] ECN succeeded.",
-      "UniqueId": "EcnValidationSuccess",
-      "splitArgs": [
-        {
-          "DefinationEncoding": "p",
-          "MacroVariableName": "arg1"
-        }
-      ],
-      "macroName": "QuicTraceLogConnInfo"
     },
     "EcnValidationUnknown": {
       "ModuleProperites": {},
@@ -4389,19 +4021,23 @@
     },
     "FoundVF": {
       "ModuleProperites": {},
-      "TraceString": "[ xdp] Found NetSvc-VF interfaces. NetSvc IfIdx:%d, VF IfIdx:%d",
+      "TraceString": "[ xdp][%p] Found NetSvc-VF interfaces. NetSvc IfIdx:%lu, VF IfIdx:%lu",
       "UniqueId": "FoundVF",
       "splitArgs": [
         {
-          "DefinationEncoding": "d",
+          "DefinationEncoding": "p",
           "MacroVariableName": "arg2"
         },
         {
-          "DefinationEncoding": "d",
+          "DefinationEncoding": "lu",
           "MacroVariableName": "arg3"
+        },
+        {
+          "DefinationEncoding": "lu",
+          "MacroVariableName": "arg4"
         }
       ],
-      "macroName": "QuicTraceEvent"
+      "macroName": "QuicTraceLogInfo"
     },
     "FrameLogAck": {
       "ModuleProperites": {},
@@ -5719,30 +5355,6 @@
       ],
       "macroName": "QuicTraceLogConnWarning"
     },
-    "GracefulRecv": {
-      "ModuleProperites": {},
-      "TraceString": "[strm][%p] Shutting down stream [gracefully] Recv Side.",
-      "UniqueId": "GracefulRecv",
-      "splitArgs": [
-        {
-          "DefinationEncoding": "p",
-          "MacroVariableName": "arg1"
-        }
-      ],
-      "macroName": "QuicTraceLogStreamVerbose"
-    },
-    "GracefulShutdown": {
-      "ModuleProperites": {},
-      "TraceString": "[strm][%p] Shutting down [gracefully] from OnStreamAck. Send Side.",
-      "UniqueId": "GracefulShutdown",
-      "splitArgs": [
-        {
-          "DefinationEncoding": "p",
-          "MacroVariableName": "arg1"
-        }
-      ],
-      "macroName": "QuicTraceLogStreamVerbose"
-    },
     "HandshakeConfirmedAck": {
       "ModuleProperites": {},
       "TraceString": "[conn][%p] Handshake confirmed (ack)",
@@ -6051,18 +5663,6 @@
       ],
       "macroName": "QuicTraceLogConnVerbose"
     },
-    "IndicatePeerNeedStreams": {
-      "ModuleProperites": {},
-      "TraceString": "[conn][%p] Indicating QUIC_CONNECTION_EVENT_PEER_NEEDS_STREAMS",
-      "UniqueId": "IndicatePeerNeedStreams",
-      "splitArgs": [
-        {
-          "DefinationEncoding": "p",
-          "MacroVariableName": "arg1"
-        }
-      ],
-      "macroName": "QuicTraceLogConnVerbose"
-    },
     "IndicatePeerNeedStreamsV2": {
       "ModuleProperites": {},
       "TraceString": "[conn][%p] Indicating QUIC_CONNECTION_EVENT_PEER_NEEDS_STREAMS type: %s",
@@ -6099,22 +5699,6 @@
       "ModuleProperites": {},
       "TraceString": "[strm][%p] Indicating QUIC_STREAM_EVENT_PEER_SEND_ABORTED (0x%llX)",
       "UniqueId": "IndicatePeerSendAbort",
-      "splitArgs": [
-        {
-          "DefinationEncoding": "p",
-          "MacroVariableName": "arg1"
-        },
-        {
-          "DefinationEncoding": "llX",
-          "MacroVariableName": "arg3"
-        }
-      ],
-      "macroName": "QuicTraceLogStreamVerbose"
-    },
-    "IndicatePeerSendReliableAbort": {
-      "ModuleProperites": {},
-      "TraceString": "[strm][%p] Indicating QUIC_STREAM_EVENT_PEER_RELIABLE_ABORT_SEND (0x%llX)",
-      "UniqueId": "IndicatePeerSendReliableAbort",
       "splitArgs": [
         {
           "DefinationEncoding": "p",
@@ -6478,13 +6062,6 @@
       ],
       "macroName": "QuicTraceLogInfo"
     },
-    "LibraryDataPathProcsSet": {
-      "ModuleProperites": {},
-      "TraceString": "[ lib] Setting datapath procs",
-      "UniqueId": "LibraryDataPathProcsSet",
-      "splitArgs": [],
-      "macroName": "QuicTraceLogInfo"
-    },
     "LibraryError": {
       "ModuleProperites": {},
       "TraceString": "[ lib] ERROR, %s.",
@@ -6519,18 +6096,6 @@
       "UniqueId": "LibraryExecutionConfigSet",
       "splitArgs": [],
       "macroName": "QuicTraceLogInfo"
-    },
-    "LibraryInitializedV2": {
-      "ModuleProperites": {},
-      "TraceString": "[ lib] Initialized, PartitionCount=%u",
-      "UniqueId": "LibraryInitializedV2",
-      "splitArgs": [
-        {
-          "DefinationEncoding": "u",
-          "MacroVariableName": "arg2"
-        }
-      ],
-      "macroName": "QuicTraceEvent"
     },
     "LibraryInitializedV3": {
       "ModuleProperites": {},
@@ -6604,27 +6169,6 @@
       "UniqueId": "LibraryNotInUse",
       "splitArgs": [],
       "macroName": "QuicTraceLogInfo"
-    },
-    "LibraryRawDataPathInvalidProcs": {
-      "ModuleProperites": {},
-      "TraceString": "[ lib] Tried to set invalid raw datapath procs",
-      "UniqueId": "LibraryRawDataPathInvalidProcs",
-      "splitArgs": [],
-      "macroName": "QuicTraceLogError"
-    },
-    "LibraryRawDataPathProcsSet": {
-      "ModuleProperites": {},
-      "TraceString": "[ lib] Setting raw datapath procs",
-      "UniqueId": "LibraryRawDataPathProcsSet",
-      "splitArgs": [],
-      "macroName": "QuicTraceLogInfo"
-    },
-    "LibraryRawDataPathProcsSetAfterDataPathInit": {
-      "ModuleProperites": {},
-      "TraceString": "[ lib] Tried to change raw datapath procs after datapath initialization",
-      "UniqueId": "LibraryRawDataPathProcsSetAfterDataPathInit",
-      "splitArgs": [],
-      "macroName": "QuicTraceLogError"
     },
     "LibraryRelease": {
       "ModuleProperites": {},
@@ -6803,22 +6347,6 @@
         {
           "DefinationEncoding": "p",
           "MacroVariableName": "arg2"
-        }
-      ],
-      "macroName": "QuicTraceEvent"
-    },
-    "ListenerError": {
-      "ModuleProperites": {},
-      "TraceString": "[list][%p] ERROR, %s.",
-      "UniqueId": "ListenerError",
-      "splitArgs": [
-        {
-          "DefinationEncoding": "p",
-          "MacroVariableName": "arg2"
-        },
-        {
-          "DefinationEncoding": "s",
-          "MacroVariableName": "arg3"
         }
       ],
       "macroName": "QuicTraceEvent"
@@ -7574,86 +7102,6 @@
         }
       ],
       "macroName": "QuicTraceLogStreamWarning"
-    },
-    "OfflodingStart": {
-      "ModuleProperites": {},
-      "TraceString": "[conn][%p] Path[%hhu] Successfully start encryption offloading",
-      "UniqueId": "OfflodingStart",
-      "splitArgs": [
-        {
-          "DefinationEncoding": "p",
-          "MacroVariableName": "arg1"
-        },
-        {
-          "DefinationEncoding": "hhu",
-          "MacroVariableName": "arg3"
-        }
-      ],
-      "macroName": "QuicTraceLogConnInfo"
-    },
-    "OfflodingStop": {
-      "ModuleProperites": {},
-      "TraceString": "[conn][%p] Path[%hhu] %s stop encryption offloading",
-      "UniqueId": "OfflodingStop",
-      "splitArgs": [
-        {
-          "DefinationEncoding": "p",
-          "MacroVariableName": "arg1"
-        },
-        {
-          "DefinationEncoding": "hhu",
-          "MacroVariableName": "arg3"
-        },
-        {
-          "DefinationEncoding": "s",
-          "MacroVariableName": "arg4"
-        }
-      ],
-      "macroName": "QuicTraceLogConnInfo"
-    },
-    "OnResetAck": {
-      "ModuleProperites": {},
-      "TraceString": "[strm][%p] Shutting down stream [abortively] from OnResetAck. Send Side.",
-      "UniqueId": "OnResetAck",
-      "splitArgs": [
-        {
-          "DefinationEncoding": "p",
-          "MacroVariableName": "arg1"
-        }
-      ],
-      "macroName": "QuicTraceLogStreamVerbose"
-    },
-    "OnResetReliableAck": {
-      "ModuleProperites": {},
-      "TraceString": "[strm][%p] Shutting down stream [reliably] from OnResetReliableAck. Send side.",
-      "UniqueId": "OnResetReliableAck",
-      "splitArgs": [
-        {
-          "DefinationEncoding": "p",
-          "MacroVariableName": "arg1"
-        }
-      ],
-      "macroName": "QuicTraceLogStreamVerbose"
-    },
-    "OnStreamAckReliableReset": {
-      "ModuleProperites": {},
-      "TraceString": "[strm][%p] Shutting down stream [reliable] from OnStreamAck. Send side. UnAckedOffset=%llu, ReliableOffsetSend=%llu",
-      "UniqueId": "OnStreamAckReliableReset",
-      "splitArgs": [
-        {
-          "DefinationEncoding": "p",
-          "MacroVariableName": "arg1"
-        },
-        {
-          "DefinationEncoding": "llu",
-          "MacroVariableName": "arg3"
-        },
-        {
-          "DefinationEncoding": "llu",
-          "MacroVariableName": "arg4"
-        }
-      ],
-      "macroName": "QuicTraceLogStreamVerbose"
     },
     "OpenSsl1RttDataStart": {
       "ModuleProperites": {},
@@ -9016,18 +8464,6 @@
       "splitArgs": [],
       "macroName": "QuicTraceLogWarning"
     },
-    "PlatformWorkerThreadShutdown": {
-      "ModuleProperites": {},
-      "TraceString": "[ lib][%p] Worker shutdown",
-      "UniqueId": "PlatformWorkerThreadShutdown",
-      "splitArgs": [
-        {
-          "DefinationEncoding": "p",
-          "MacroVariableName": "arg2"
-        }
-      ],
-      "macroName": "QuicTraceLogVerbose"
-    },
     "PlatformWorkerThreadStart": {
       "ModuleProperites": {},
       "TraceString": "[ lib][%p] Worker start",
@@ -9117,26 +8553,6 @@
       ],
       "macroName": "QuicTraceLogInfo"
     },
-    "ProcessorInfo": {
-      "ModuleProperites": {},
-      "TraceString": "[ dll] Proc[%u] Group[%hu] Index[%u]",
-      "UniqueId": "ProcessorInfo",
-      "splitArgs": [
-        {
-          "DefinationEncoding": "u",
-          "MacroVariableName": "arg2"
-        },
-        {
-          "DefinationEncoding": "hu",
-          "MacroVariableName": "arg3"
-        },
-        {
-          "DefinationEncoding": "u",
-          "MacroVariableName": "arg4"
-        }
-      ],
-      "macroName": "QuicTraceLogInfo"
-    },
     "ProcessorInfoV2": {
       "ModuleProperites": {},
       "TraceString": "[ dll] Proc[%u] Group[%hu] Index[%u] Active=%hhu",
@@ -9160,38 +8576,6 @@
         }
       ],
       "macroName": "QuicTraceLogInfo"
-    },
-    "ProcessReliableProcessResetFrame": {
-      "ModuleProperites": {},
-      "TraceString": "[strm][%p] Shutting down stream Abortively in ProcessResetFrame. Recv Side.",
-      "UniqueId": "ProcessReliableProcessResetFrame",
-      "splitArgs": [
-        {
-          "DefinationEncoding": "p",
-          "MacroVariableName": "arg1"
-        }
-      ],
-      "macroName": "QuicTraceLogStreamVerbose"
-    },
-    "ProcessReliableReset": {
-      "ModuleProperites": {},
-      "TraceString": "[strm][%p] Shutting down stream from Process Reliable Reset Frame. Recv Side. BaseOffset: %llu, RecvMaxLength: %llu",
-      "UniqueId": "ProcessReliableReset",
-      "splitArgs": [
-        {
-          "DefinationEncoding": "p",
-          "MacroVariableName": "arg1"
-        },
-        {
-          "DefinationEncoding": "llu",
-          "MacroVariableName": "arg3"
-        },
-        {
-          "DefinationEncoding": "llu",
-          "MacroVariableName": "arg4"
-        }
-      ],
-      "macroName": "QuicTraceLogStreamVerbose"
     },
     "QueueDatagrams": {
       "ModuleProperites": {},
@@ -9220,46 +8604,6 @@
         }
       ],
       "macroName": "QuicTraceLogStreamVerbose"
-    },
-    "QuicConnRecvDatagrams": {
-      "ModuleProperites": {},
-      "TraceString": "[conn][%p] Recv %u UDP datagrams, %u bytes",
-      "UniqueId": "QuicConnRecvDatagrams",
-      "splitArgs": [
-        {
-          "DefinationEncoding": "p",
-          "MacroVariableName": "arg2"
-        },
-        {
-          "DefinationEncoding": "u",
-          "MacroVariableName": "arg3"
-        },
-        {
-          "DefinationEncoding": "u",
-          "MacroVariableName": "arg4"
-        }
-      ],
-      "macroName": "QuicTraceEvent"
-    },
-    "QuicConnRecvUdpDatagrams": {
-      "ModuleProperites": {},
-      "TraceString": "[conn][%p] Recv %u UDP datagrams, %u bytes",
-      "UniqueId": "QuicConnRecvUdpDatagrams",
-      "splitArgs": [
-        {
-          "DefinationEncoding": "p",
-          "MacroVariableName": "arg2"
-        },
-        {
-          "DefinationEncoding": "u",
-          "MacroVariableName": "arg3"
-        },
-        {
-          "DefinationEncoding": "u",
-          "MacroVariableName": "arg4"
-        }
-      ],
-      "macroName": "QuicTraceEvent"
     },
     "Receive": {
       "ModuleProperites": {},
@@ -9457,22 +8801,6 @@
       ],
       "macroName": "QuicTraceEvent"
     },
-    "RegistrationCreated": {
-      "ModuleProperites": {},
-      "TraceString": "[ reg][%p] Created, AppName=%s",
-      "UniqueId": "RegistrationCreated",
-      "splitArgs": [
-        {
-          "DefinationEncoding": "p",
-          "MacroVariableName": "arg2"
-        },
-        {
-          "DefinationEncoding": "s",
-          "MacroVariableName": "arg3"
-        }
-      ],
-      "macroName": "QuicTraceEvent"
-    },
     "RegistrationCreatedV2": {
       "ModuleProperites": {},
       "TraceString": "[ reg][%p] Created, AppName=%s, ExecProfile=%u",
@@ -9489,22 +8817,6 @@
         {
           "DefinationEncoding": "u",
           "MacroVariableName": "arg4"
-        }
-      ],
-      "macroName": "QuicTraceEvent"
-    },
-    "RegistrationRundown": {
-      "ModuleProperites": {},
-      "TraceString": "[ reg][%p] Rundown, AppName=%s",
-      "UniqueId": "RegistrationRundown",
-      "splitArgs": [
-        {
-          "DefinationEncoding": "p",
-          "MacroVariableName": "arg2"
-        },
-        {
-          "DefinationEncoding": "s",
-          "MacroVariableName": "arg3"
         }
       ],
       "macroName": "QuicTraceEvent"
@@ -9557,50 +8869,6 @@
       ],
       "macroName": "QuicTraceLogStreamInfo"
     },
-    "ReliableResetEnabledUpdated": {
-      "ModuleProperites": {},
-      "TraceString": "[conn][%p] Updated reliable reset frame enabled to %hhu",
-      "UniqueId": "ReliableResetEnabledUpdated",
-      "splitArgs": [
-        {
-          "DefinationEncoding": "p",
-          "MacroVariableName": "arg1"
-        },
-        {
-          "DefinationEncoding": "hhu",
-          "MacroVariableName": "arg3"
-        }
-      ],
-      "macroName": "QuicTraceLogConnVerbose"
-    },
-    "ReliableResetFrameReceived": {
-      "ModuleProperites": {},
-      "TraceString": "[conn][%p] Received a reliable reset frame. Local reliable reset extension preferences: %hhu",
-      "UniqueId": "ReliableResetFrameReceived",
-      "splitArgs": [
-        {
-          "DefinationEncoding": "p",
-          "MacroVariableName": "arg1"
-        },
-        {
-          "DefinationEncoding": "hhu",
-          "MacroVariableName": "arg3"
-        }
-      ],
-      "macroName": "QuicTraceLogConnInfo"
-    },
-    "ReliableResetNotNegotiated": {
-      "ModuleProperites": {},
-      "TraceString": "[strm][%p] Tried to use ReliableReset without negotiation.",
-      "UniqueId": "ReliableResetNotNegotiated",
-      "splitArgs": [
-        {
-          "DefinationEncoding": "p",
-          "MacroVariableName": "arg1"
-        }
-      ],
-      "macroName": "QuicTraceLogStreamWarning"
-    },
     "ReliableResetNotNegotiatedError": {
       "ModuleProperites": {},
       "TraceString": "[strm][%p] Received ReliableReset without negotiation.",
@@ -9612,38 +8880,6 @@
         }
       ],
       "macroName": "QuicTraceLogStreamWarning"
-    },
-    "ReliableResetOnStreamAck": {
-      "ModuleProperites": {},
-      "TraceString": "[strm][%p] Shutting down stream [reliable] from OnStreamAck. Send side.",
-      "UniqueId": "ReliableResetOnStreamAck",
-      "splitArgs": [
-        {
-          "DefinationEncoding": "p",
-          "MacroVariableName": "arg1"
-        }
-      ],
-      "macroName": "QuicTraceLogStreamVerbose"
-    },
-    "ReliableResetReceiveComplete": {
-      "ModuleProperites": {},
-      "TraceString": "[strm][%p] Shutting down stream from ReceiveComplete Recv Side. BaseOffset: %llu, RecvMaxLength: %llu",
-      "UniqueId": "ReliableResetReceiveComplete",
-      "splitArgs": [
-        {
-          "DefinationEncoding": "p",
-          "MacroVariableName": "arg1"
-        },
-        {
-          "DefinationEncoding": "llu",
-          "MacroVariableName": "arg3"
-        },
-        {
-          "DefinationEncoding": "llu",
-          "MacroVariableName": "arg4"
-        }
-      ],
-      "macroName": "QuicTraceLogStreamVerbose"
     },
     "ReliableSendOffsetSet": {
       "ModuleProperites": {},
@@ -9716,46 +8952,6 @@
         }
       ],
       "macroName": "QuicTraceLogStreamWarning"
-    },
-    "ResetReliableAck": {
-      "ModuleProperites": {},
-      "TraceString": "[strm][%p] Reset Reliable ACKed in OnResetReliableAck. Send side. UnAckedOffset=%llu, ReliableOffsetSend=%llu",
-      "UniqueId": "ResetReliableAck",
-      "splitArgs": [
-        {
-          "DefinationEncoding": "p",
-          "MacroVariableName": "arg1"
-        },
-        {
-          "DefinationEncoding": "llu",
-          "MacroVariableName": "arg3"
-        },
-        {
-          "DefinationEncoding": "llu",
-          "MacroVariableName": "arg4"
-        }
-      ],
-      "macroName": "QuicTraceLogStreamVerbose"
-    },
-    "ResetReliableAckShutDown": {
-      "ModuleProperites": {},
-      "TraceString": "[strm][%p] Shutting down stream [reliably] from OnResetReliableAck. Send side. UnAckedOffset=%llu, ReliableOffsetSend=%llu",
-      "UniqueId": "ResetReliableAckShutDown",
-      "splitArgs": [
-        {
-          "DefinationEncoding": "p",
-          "MacroVariableName": "arg1"
-        },
-        {
-          "DefinationEncoding": "llu",
-          "MacroVariableName": "arg3"
-        },
-        {
-          "DefinationEncoding": "llu",
-          "MacroVariableName": "arg4"
-        }
-      ],
-      "macroName": "QuicTraceLogStreamVerbose"
     },
     "ResetTooBig": {
       "ModuleProperites": {},
@@ -9844,34 +9040,6 @@
         }
       ],
       "macroName": "QuicTraceLogConnInfo"
-    },
-    "RttUpdatedMsg": {
-      "ModuleProperites": {},
-      "TraceString": "[conn][%p] Updated Rtt=%u.%03u ms, Var=%u.%03u",
-      "UniqueId": "RttUpdatedMsg",
-      "splitArgs": [
-        {
-          "DefinationEncoding": "p",
-          "MacroVariableName": "arg1"
-        },
-        {
-          "DefinationEncoding": "u",
-          "MacroVariableName": "arg3"
-        },
-        {
-          "DefinationEncoding": "03u",
-          "MacroVariableName": "arg4"
-        },
-        {
-          "DefinationEncoding": "u",
-          "MacroVariableName": "arg5"
-        },
-        {
-          "DefinationEncoding": "03u",
-          "MacroVariableName": "arg6"
-        }
-      ],
-      "macroName": "QuicTraceLogConnVerbose"
     },
     "RttUpdatedV2": {
       "ModuleProperites": {},
@@ -10216,7 +9384,7 @@
     },
     "SendDump": {
       "ModuleProperites": {},
-      "TraceString": "[strm][%p] SF:%hX FC:%llu QS:%llu MAX:%llu UNA:%llu NXT:%llu RECOV:%llu-%llu",
+      "TraceString": "[strm][%p] SF:%hX FC:%llu QS:%llu MAX:%llu UNA:%llu NXT:%llu RECOV:%llu-%llu REL: %llu",
       "UniqueId": "SendDump",
       "splitArgs": [
         {
@@ -10254,6 +9422,10 @@
         {
           "DefinationEncoding": "llu",
           "MacroVariableName": "arg10"
+        },
+        {
+          "DefinationEncoding": "llu",
+          "MacroVariableName": "arg11"
         }
       ],
       "macroName": "QuicTraceLogStreamVerbose"
@@ -11128,7 +10300,7 @@
     },
     "SettingEncryptionOffloadAllowed": {
       "ModuleProperites": {},
-      "TraceString": "[sett] EncryptionOffloadAllowed         = %hhu",
+      "TraceString": "[sett] EncryptionOffloadAllowed = %hhu",
       "UniqueId": "SettingEncryptionOffloadAllowed",
       "splitArgs": [
         {
@@ -11482,30 +10654,6 @@
       ],
       "macroName": "QuicTraceEvent"
     },
-    "StreamGracefulShutdown": {
-      "ModuleProperites": {},
-      "TraceString": "[strm][%p] Shutting down [gracefully] from OnStreamAck. Send Side.",
-      "UniqueId": "StreamGracefulShutdown",
-      "splitArgs": [
-        {
-          "DefinationEncoding": "p",
-          "MacroVariableName": "arg1"
-        }
-      ],
-      "macroName": "QuicTraceLogStreamVerbose"
-    },
-    "StreamOnResetAck": {
-      "ModuleProperites": {},
-      "TraceString": "[strm][%p] Shutting down stream [abortively] from OnResetAck. Send Side.",
-      "UniqueId": "StreamOnResetAck",
-      "splitArgs": [
-        {
-          "DefinationEncoding": "p",
-          "MacroVariableName": "arg1"
-        }
-      ],
-      "macroName": "QuicTraceLogStreamVerbose"
-    },
     "StreamOutFlowBlocked": {
       "ModuleProperites": {},
       "TraceString": "[strm][%p] Send Blocked Flags: %hhu",
@@ -11521,18 +10669,6 @@
         }
       ],
       "macroName": "QuicTraceEvent"
-    },
-    "StreamProcessReliableReset": {
-      "ModuleProperites": {},
-      "TraceString": "[strm][%p] Shutting down stream from Process Reliable Reset Frame. Recv Side.",
-      "UniqueId": "StreamProcessReliableReset",
-      "splitArgs": [
-        {
-          "DefinationEncoding": "p",
-          "MacroVariableName": "arg1"
-        }
-      ],
-      "macroName": "QuicTraceLogStreamVerbose"
     },
     "StreamReceiveFrame": {
       "ModuleProperites": {},
@@ -11577,90 +10713,6 @@
         }
       ],
       "macroName": "QuicTraceEvent"
-    },
-    "StreamReliableProcessResetFrame": {
-      "ModuleProperites": {},
-      "TraceString": "[strm][%p] Shutting down stream Abortively in ProcessResetFrame. Recv Side.",
-      "UniqueId": "StreamReliableProcessResetFrame",
-      "splitArgs": [
-        {
-          "DefinationEncoding": "p",
-          "MacroVariableName": "arg1"
-        }
-      ],
-      "macroName": "QuicTraceLogStreamVerbose"
-    },
-    "StreamReliableReset": {
-      "ModuleProperites": {},
-      "TraceString": "[strm][%p] Shutting down stream from OnStreamAck. Send side.",
-      "UniqueId": "StreamReliableReset",
-      "splitArgs": [
-        {
-          "DefinationEncoding": "p",
-          "MacroVariableName": "arg1"
-        }
-      ],
-      "macroName": "QuicTraceLogStreamVerbose"
-    },
-    "StreamReliableResetOnResetReliableAck": {
-      "ModuleProperites": {},
-      "TraceString": "[strm][%p] Shutting down stream from OnResetReliableAck. Send side.",
-      "UniqueId": "StreamReliableResetOnResetReliableAck",
-      "splitArgs": [
-        {
-          "DefinationEncoding": "p",
-          "MacroVariableName": "arg1"
-        }
-      ],
-      "macroName": "QuicTraceLogStreamVerbose"
-    },
-    "StreamReliableResetOnStreamAck": {
-      "ModuleProperites": {},
-      "TraceString": "[strm][%p] Shutting down stream from OnStreamAck. Send side.",
-      "UniqueId": "StreamReliableResetOnStreamAck",
-      "splitArgs": [
-        {
-          "DefinationEncoding": "p",
-          "MacroVariableName": "arg1"
-        }
-      ],
-      "macroName": "QuicTraceLogStreamVerbose"
-    },
-    "StreamReliableResetProcessReliableResetFrame": {
-      "ModuleProperites": {},
-      "TraceString": "[strm][%p] Shutting down stream from ProcessReliableResetFrame. Recv side.",
-      "UniqueId": "StreamReliableResetProcessReliableResetFrame",
-      "splitArgs": [
-        {
-          "DefinationEncoding": "p",
-          "MacroVariableName": "arg1"
-        }
-      ],
-      "macroName": "QuicTraceLogStreamVerbose"
-    },
-    "StreamReliableResetReceiveComplete": {
-      "ModuleProperites": {},
-      "TraceString": "[strm][%p] Shutting down stream from ReceiveComplete Recv Side.",
-      "UniqueId": "StreamReliableResetReceiveComplete",
-      "splitArgs": [
-        {
-          "DefinationEncoding": "p",
-          "MacroVariableName": "arg1"
-        }
-      ],
-      "macroName": "QuicTraceLogStreamVerbose"
-    },
-    "StreamReliableResetRecvGraceful": {
-      "ModuleProperites": {},
-      "TraceString": "[strm][%p] Shutting down stream [gracefully] Recv Side.",
-      "UniqueId": "StreamReliableResetRecvGraceful",
-      "splitArgs": [
-        {
-          "DefinationEncoding": "p",
-          "MacroVariableName": "arg1"
-        }
-      ],
-      "macroName": "QuicTraceLogStreamVerbose"
     },
     "StreamRundown": {
       "ModuleProperites": {},
@@ -11717,22 +10769,6 @@
         }
       ],
       "macroName": "QuicTraceEvent"
-    },
-    "SuccessfulRouteResolution": {
-      "ModuleProperites": {},
-      "TraceString": "[conn][%p] Processing successful route completion Path[%hhu]",
-      "UniqueId": "SuccessfulRouteResolution",
-      "splitArgs": [
-        {
-          "DefinationEncoding": "p",
-          "MacroVariableName": "arg1"
-        },
-        {
-          "DefinationEncoding": "hhu",
-          "MacroVariableName": "arg3"
-        }
-      ],
-      "macroName": "QuicTraceLogConnInfo"
     },
     "TestCaseEnd": {
       "ModuleProperites": {},
@@ -12116,22 +11152,6 @@
       ],
       "macroName": "QuicTraceLogStreamInfo"
     },
-    "UdpRecv": {
-      "ModuleProperites": {},
-      "TraceString": "[conn][%p] Recv %u UDP datagrams",
-      "UniqueId": "UdpRecv",
-      "splitArgs": [
-        {
-          "DefinationEncoding": "p",
-          "MacroVariableName": "arg1"
-        },
-        {
-          "DefinationEncoding": "u",
-          "MacroVariableName": "arg3"
-        }
-      ],
-      "macroName": "QuicTraceLogConnVerbose"
-    },
     "UdpRecvBatch": {
       "ModuleProperites": {},
       "TraceString": "[conn][%p] Batch Recv %u UDP datagrams",
@@ -12464,42 +11484,6 @@
       "splitArgs": [],
       "macroName": "QuicTraceLogInfo"
     },
-    "WindowsUserProcessorState": {
-      "ModuleProperites": {},
-      "TraceString": "[ dll] Processors:%u, Groups:%u, NUMA Nodes:%u",
-      "UniqueId": "WindowsUserProcessorState",
-      "splitArgs": [
-        {
-          "DefinationEncoding": "u",
-          "MacroVariableName": "arg2"
-        },
-        {
-          "DefinationEncoding": "u",
-          "MacroVariableName": "arg3"
-        },
-        {
-          "DefinationEncoding": "u",
-          "MacroVariableName": "arg4"
-        }
-      ],
-      "macroName": "QuicTraceLogInfo"
-    },
-    "WindowsUserProcessorStateV2": {
-      "ModuleProperites": {},
-      "TraceString": "[ dll] Processors:%u, Groups:%u",
-      "UniqueId": "WindowsUserProcessorStateV2",
-      "splitArgs": [
-        {
-          "DefinationEncoding": "u",
-          "MacroVariableName": "arg2"
-        },
-        {
-          "DefinationEncoding": "u",
-          "MacroVariableName": "arg3"
-        }
-      ],
-      "macroName": "QuicTraceLogInfo"
-    },
     "WindowsUserProcessorStateV3": {
       "ModuleProperites": {},
       "TraceString": "[ dll] Processors: (%u active, %u max), Groups: (%hu active, %hu max)",
@@ -12794,42 +11778,6 @@
       "ModuleProperites": {},
       "TraceString": "[ xdp][%p] XDP uninitialize complete",
       "UniqueId": "XdpUninitializeComplete",
-      "splitArgs": [
-        {
-          "DefinationEncoding": "p",
-          "MacroVariableName": "arg2"
-        }
-      ],
-      "macroName": "QuicTraceLogVerbose"
-    },
-    "XdpWorkerAsyncIO": {
-      "ModuleProperites": {},
-      "TraceString": "[ xdp][%p] XDP async IO",
-      "UniqueId": "XdpWorkerAsyncIO",
-      "splitArgs": [
-        {
-          "DefinationEncoding": "p",
-          "MacroVariableName": "arg2"
-        }
-      ],
-      "macroName": "QuicTraceLogVerbose"
-    },
-    "XdpWorkerShutdown": {
-      "ModuleProperites": {},
-      "TraceString": "[ xdp][%p] XDP worker shutdown",
-      "UniqueId": "XdpWorkerShutdown",
-      "splitArgs": [
-        {
-          "DefinationEncoding": "p",
-          "MacroVariableName": "arg2"
-        }
-      ],
-      "macroName": "QuicTraceLogVerbose"
-    },
-    "XdpWorkerShutdownComplete": {
-      "ModuleProperites": {},
-      "TraceString": "[ xdp][%p] XDP worker shutdown complete",
-      "UniqueId": "XdpWorkerShutdownComplete",
       "splitArgs": [
         {
           "DefinationEncoding": "p",
@@ -13491,11 +12439,6 @@
         "EncodingString": "[conn][%p] Applying new settings"
       },
       {
-        "UniquenessHash": "abf37194-1390-d9bc-6ee7-88c908a22b58",
-        "TraceID": "BadShutdownImmediate",
-        "EncodingString": "[strm][%p] App tried ditching this stream but it still has stuff to do."
-      },
-      {
         "UniquenessHash": "5d83e63e-7ce5-0102-8dd2-cbcf5946da2e",
         "TraceID": "BindingCleanup",
         "EncodingString": "[bind][%p] Cleaning up"
@@ -13756,11 +12699,6 @@
         "EncodingString": "[conn][%p] Canceling %hhu"
       },
       {
-        "UniquenessHash": "1ba77489-7234-8b64-59a9-09e06557a5e4",
-        "TraceID": "ConnCongestion",
-        "EncodingString": "[conn][%p] Congestion event: IsEcn=%hu"
-      },
-      {
         "UniquenessHash": "631f94ef-27ad-9be6-98cf-966dbce8bad9",
         "TraceID": "ConnCongestionV2",
         "EncodingString": "[conn][%p] Congestion event: IsEcn=%hu"
@@ -13916,11 +12854,6 @@
         "EncodingString": "[conn][%p] Send Blocked Flags: %hhu"
       },
       {
-        "UniquenessHash": "9165bf3c-da91-8d88-41bc-6709ad299bed",
-        "TraceID": "ConnOutFlowStats",
-        "EncodingString": "[conn][%p] OUT: BytesSent=%llu InFlight=%u InFlightMax=%u CWnd=%u SSThresh=%u ConnFC=%llu ISB=%llu PostedBytes=%llu SRtt=%u"
-      },
-      {
         "UniquenessHash": "da346e40-b8f9-5953-f473-9bc5526dfc85",
         "TraceID": "ConnOutFlowStatsV2",
         "EncodingString": "[conn][%p] OUT: BytesSent=%llu InFlight=%u CWnd=%u ConnFC=%llu ISB=%llu PostedBytes=%llu SRtt=%llu 1Way=%llu"
@@ -14031,16 +12964,6 @@
         "EncodingString": "[conn][%p] Spurious congestion event"
       },
       {
-        "UniquenessHash": "dca59082-cdf8-b1a4-60f1-a5e1c25e8263",
-        "TraceID": "ConnStats",
-        "EncodingString": "[conn][%p] STATS: SRtt=%u CongestionCount=%u PersistentCongestionCount=%u SendTotalBytes=%llu RecvTotalBytes=%llu CongestionWindow=%u Cc=%s"
-      },
-      {
-        "UniquenessHash": "08f10184-5cf8-584f-cff9-1574f1c32b4f",
-        "TraceID": "ConnStatsV2",
-        "EncodingString": "[conn][%p] STATS: SRtt=%u CongestionCount=%u PersistentCongestionCount=%u SendTotalBytes=%llu RecvTotalBytes=%llu CongestionWindow=%u Cc=%s EcnCongestionCount=%u"
-      },
-      {
         "UniquenessHash": "d642254e-2cef-c718-0275-fa330f25d71c",
         "TraceID": "ConnStatsV3",
         "EncodingString": "[conn][%p] STATS: SRtt=%llu CongestionCount=%u PersistentCongestionCount=%u SendTotalBytes=%llu RecvTotalBytes=%llu CongestionWindow=%u Cc=%s EcnCongestionCount=%u"
@@ -14146,11 +13069,6 @@
         "EncodingString": "[%p] Couldn't allocate receive buffers."
       },
       {
-        "UniquenessHash": "a3d48581-00d1-fbbf-3ede-f8e9a4a22187",
-        "TraceID": "DatapathDropAllocRecvContextFailure",
-        "EncodingString": "[%p] Couldn't allocate receive context."
-      },
-      {
         "UniquenessHash": "b503f2a8-8676-cb38-1cab-733b1b6168c4",
         "TraceID": "DatapathDropEmptyMdl",
         "EncodingString": "[%p] Dropping datagram with empty mdl."
@@ -14196,11 +13114,6 @@
         "EncodingString": "[data][%p] Querying route, local=%!ADDR!, remote=%!ADDR!"
       },
       {
-        "UniquenessHash": "b88fe9ef-f6ed-09b0-1711-28ec0fc2ab52",
-        "TraceID": "DatapathInitialize",
-        "EncodingString": "[data][%p] Datapath initialize"
-      },
-      {
         "UniquenessHash": "d68a3d43-333c-e62d-ec53-bb88a64aa2f4",
         "TraceID": "DataPathInitialized",
         "EncodingString": "[data] Initialized, DatapathFeatures=%u"
@@ -14231,21 +13144,6 @@
         "EncodingString": "[data] UDP send segmentation helper socket failed to open (async), 0x%x"
       },
       {
-        "UniquenessHash": "b3dade23-d541-7915-0704-5eadc35da54a",
-        "TraceID": "DatapathProcContextInitialize",
-        "EncodingString": "[data][%p] Proc context initialize"
-      },
-      {
-        "UniquenessHash": "69554dc4-612c-f81a-69ed-96e8a2af3e6e",
-        "TraceID": "DatapathProcContextUninitialize",
-        "EncodingString": "[data][%p] Proc context uninitialize"
-      },
-      {
-        "UniquenessHash": "607ba1e4-fadf-ba1e-5973-58402f63d7f8",
-        "TraceID": "DatapathProcContextUninitializeComplete",
-        "EncodingString": "[data][%p] Proc context uninitialize complete"
-      },
-      {
         "UniquenessHash": "1ba702fe-3407-9bab-a2bf-4f694b478ac0",
         "TraceID": "DatapathQueryRecvMaxCoalescedSizeFailed",
         "EncodingString": "[data] Query for UDP_RECV_MAX_COALESCED_SIZE failed, 0x%x"
@@ -14269,11 +13167,6 @@
         "UniquenessHash": "74f297f4-8e97-b395-7e1b-bf46a620caa1",
         "TraceID": "DatapathQueryRssScalabilityInfoFailedAsync",
         "EncodingString": "[data] Query for SIO_QUERY_RSS_SCALABILITY_INFO failed (async), 0x%x"
-      },
-      {
-        "UniquenessHash": "fd2c68c0-8a5e-b4bf-9d40-937c67e99fdd",
-        "TraceID": "DatapathQueryUdpSegmentFailed",
-        "EncodingString": "[data] Query for UDP_SEGMENT failed, 0x%x"
       },
       {
         "UniquenessHash": "e9dcd981-9b8a-a04f-303a-c3acf58a93eb",
@@ -14321,34 +13214,9 @@
         "EncodingString": "[data][%p] Shut down (complete)"
       },
       {
-        "UniquenessHash": "313a165a-4ec1-9450-6b07-56ed0db4c004",
-        "TraceID": "DatapathShutDownReturn",
-        "EncodingString": "[data][%p] Shut down (return)"
-      },
-      {
         "UniquenessHash": "740050a5-e389-9654-6631-ca5f73069045",
         "TraceID": "DatapathSocketContextComplete",
         "EncodingString": "[data][%p] Socket context shutdown"
-      },
-      {
-        "UniquenessHash": "6f6dce93-1958-2d78-48bb-85ec608e7dd5",
-        "TraceID": "DatapathSocketContextInitialize",
-        "EncodingString": "[data][%p] Socket context initialize"
-      },
-      {
-        "UniquenessHash": "962231c6-69f1-b99d-0c1f-5b3965001bb6",
-        "TraceID": "DatapathSocketContextUninitialize",
-        "EncodingString": "[data][%p] Socket context uninitialize"
-      },
-      {
-        "UniquenessHash": "615cfda5-5955-cd8f-8459-42d55feec9cb",
-        "TraceID": "DatapathSocketContextUninitializeComplete",
-        "EncodingString": "[data][%p] Socket context uninitialize complete"
-      },
-      {
-        "UniquenessHash": "d9d68a37-2903-ee85-4a9b-80a652220455",
-        "TraceID": "DatapathSocketUninitializeComplete",
-        "EncodingString": "[data][%p] Socket uninitialize complete"
       },
       {
         "UniquenessHash": "3a4da7bb-462a-a423-bd9e-bcc366e59258",
@@ -14359,16 +13227,6 @@
         "UniquenessHash": "a07c9538-e6d7-3c41-1367-ce58f2df4d9e",
         "TraceID": "DatapathTooLarge",
         "EncodingString": "[data][%p] Received larger than expected datagram from %!ADDR!"
-      },
-      {
-        "UniquenessHash": "cb0364c1-2a73-8a23-8655-1ee367ab8b3c",
-        "TraceID": "DatapathUninitialize",
-        "EncodingString": "[data][%p] Datapath uninitialize"
-      },
-      {
-        "UniquenessHash": "0fb8caf8-28ee-7a18-34ea-52babe06d391",
-        "TraceID": "DatapathUninitializeComplete",
-        "EncodingString": "[data][%p] Datapath uninitialize complete"
       },
       {
         "UniquenessHash": "29acd049-f710-a71e-1271-698510cfc519",
@@ -14389,16 +13247,6 @@
         "UniquenessHash": "fc873bff-2380-b7f7-a8be-4ff93b6d72d7",
         "TraceID": "DatapathUroPreallocExceeded",
         "EncodingString": "[data][%p] Exceeded URO preallocation capacity."
-      },
-      {
-        "UniquenessHash": "6482ddf5-3328-7814-1cb9-0eeef2e3afe5",
-        "TraceID": "DatapathWakeupForECTimeout",
-        "EncodingString": "[data][%p] Datapath wakeup for EC wake or timeout"
-      },
-      {
-        "UniquenessHash": "406ad3fd-813a-21c4-b38a-52fbf3253ff3",
-        "TraceID": "DatapathWakeupForShutdown",
-        "EncodingString": "[data][%p] Datapath wakeup for shutdown"
       },
       {
         "UniquenessHash": "244561c5-e612-a194-99af-e39c0b17c234",
@@ -14559,16 +13407,6 @@
         "UniquenessHash": "c53376e2-b465-d6a1-047c-4e5e64c263af",
         "TraceID": "DrainCrypto",
         "EncodingString": "[conn][%p] Draining %u crypto bytes"
-      },
-      {
-        "UniquenessHash": "b978c2f3-b3a9-e423-d442-4860da0dc056",
-        "TraceID": "EcnEnabled",
-        "EncodingString": "[conn][%p] Updated ECN enabled to %hhu"
-      },
-      {
-        "UniquenessHash": "2fd085ac-656c-8e23-9f2f-a7c4116dbe83",
-        "TraceID": "EcnValidationSuccess",
-        "EncodingString": "[conn][%p] ECN succeeded."
       },
       {
         "UniquenessHash": "59a602dd-2f8a-6b1d-4fe2-2ac0c1316f05",
@@ -15026,16 +13864,6 @@
         "EncodingString": "[conn][%p] Failed to get packet type for control frames, 0x%x"
       },
       {
-        "UniquenessHash": "1ec6223a-a19f-a735-9a21-ed1d8d73b5d3",
-        "TraceID": "GracefulRecv",
-        "EncodingString": "[strm][%p] Shutting down stream [gracefully] Recv Side."
-      },
-      {
-        "UniquenessHash": "5f7f4d4e-dafa-668f-9f15-913a5bee40ab",
-        "TraceID": "GracefulShutdown",
-        "EncodingString": "[strm][%p] Shutting down [gracefully] from OnStreamAck. Send Side."
-      },
-      {
         "UniquenessHash": "eeb31991-927b-2f3c-bfb7-12b7dea50ead",
         "TraceID": "HandshakeConfirmedAck",
         "EncodingString": "[conn][%p] Handshake confirmed (ack)"
@@ -15136,11 +13964,6 @@
         "EncodingString": "[conn][%p] Indicating QUIC_CONNECTION_EVENT_PEER_CERTIFICATE_RECEIVED (0x%x, 0x%x)"
       },
       {
-        "UniquenessHash": "df8cd7bd-ef29-fc9c-b3e0-7dc89bee82d5",
-        "TraceID": "IndicatePeerNeedStreams",
-        "EncodingString": "[conn][%p] Indicating QUIC_CONNECTION_EVENT_PEER_NEEDS_STREAMS"
-      },
-      {
         "UniquenessHash": "11de3e8f-a75b-1030-5f71-f5065bee2aef",
         "TraceID": "IndicatePeerNeedStreamsV2",
         "EncodingString": "[conn][%p] Indicating QUIC_CONNECTION_EVENT_PEER_NEEDS_STREAMS type: %s"
@@ -15154,11 +13977,6 @@
         "UniquenessHash": "5b791afd-1ad0-2715-7c99-2671ee5be40e",
         "TraceID": "IndicatePeerSendAbort",
         "EncodingString": "[strm][%p] Indicating QUIC_STREAM_EVENT_PEER_SEND_ABORTED (0x%llX)"
-      },
-      {
-        "UniquenessHash": "7f8e2ccb-c362-e297-f242-eee58833499e",
-        "TraceID": "IndicatePeerSendReliableAbort",
-        "EncodingString": "[strm][%p] Indicating QUIC_STREAM_EVENT_PEER_RELIABLE_ABORT_SEND (0x%llX)"
       },
       {
         "UniquenessHash": "7b23cd90-0d41-8339-9622-e84277f95b5d",
@@ -15266,11 +14084,6 @@
         "EncodingString": "[ lib] CID Length = %hhu"
       },
       {
-        "UniquenessHash": "1324b8f1-5f38-c7ca-d7e9-51314f15e172",
-        "TraceID": "LibraryDataPathProcsSet",
-        "EncodingString": "[ lib] Setting datapath procs"
-      },
-      {
         "UniquenessHash": "2cbc406b-c1c0-ba4d-eee8-669f30330f4a",
         "TraceID": "LibraryError",
         "EncodingString": "[ lib] ERROR, %s."
@@ -15284,11 +14097,6 @@
         "UniquenessHash": "e9a6fe1f-54f6-7cc0-0dc8-8e6dfbc8beec",
         "TraceID": "LibraryExecutionConfigSet",
         "EncodingString": "[ lib] Setting execution config"
-      },
-      {
-        "UniquenessHash": "49364a79-a042-c58c-1024-f2b92b2bf039",
-        "TraceID": "LibraryInitializedV2",
-        "EncodingString": "[ lib] Initialized, PartitionCount=%u"
       },
       {
         "UniquenessHash": "30263067-f61b-8db4-d222-7633f14d7b32",
@@ -15334,21 +14142,6 @@
         "UniquenessHash": "1799d6aa-33d5-cb09-2058-09b8369d852f",
         "TraceID": "LibraryNotInUse",
         "EncodingString": "[ lib] No longer in use."
-      },
-      {
-        "UniquenessHash": "9a01e720-3c07-588a-6529-96d6248f5cd5",
-        "TraceID": "LibraryRawDataPathInvalidProcs",
-        "EncodingString": "[ lib] Tried to set invalid raw datapath procs"
-      },
-      {
-        "UniquenessHash": "7ba4f1de-7e3e-dc30-4598-7ef5527b83a5",
-        "TraceID": "LibraryRawDataPathProcsSet",
-        "EncodingString": "[ lib] Setting raw datapath procs"
-      },
-      {
-        "UniquenessHash": "4bf51fba-1c46-62f6-d154-1b30ecc46bfd",
-        "TraceID": "LibraryRawDataPathProcsSetAfterDataPathInit",
-        "EncodingString": "[ lib] Tried to change raw datapath procs after datapath initialization"
       },
       {
         "UniquenessHash": "0a866453-c89b-e8b7-d853-8f975458d9a9",
@@ -15429,11 +14222,6 @@
         "UniquenessHash": "c1f29de0-fe00-6ea3-b33e-690fb6e099d4",
         "TraceID": "ListenerDestroyed",
         "EncodingString": "[list][%p] Destroyed"
-      },
-      {
-        "UniquenessHash": "c11d30b9-28c1-6e74-528e-d5660eebfcc9",
-        "TraceID": "ListenerError",
-        "EncodingString": "[list][%p] ERROR, %s."
       },
       {
         "UniquenessHash": "f41800cd-1b46-84fe-faac-464cd08343fe",
@@ -15629,31 +14417,6 @@
         "UniquenessHash": "48b0b691-89c1-4bb2-1ba4-5bc91586b2b3",
         "TraceID": "NotAccepted",
         "EncodingString": "[strm][%p] New stream wasn't accepted, 0x%x"
-      },
-      {
-        "UniquenessHash": "b841a4ba-b59c-322a-e3ea-abb11df15daf",
-        "TraceID": "OfflodingStart",
-        "EncodingString": "[conn][%p] Path[%hhu] Successfully start encryption offloading"
-      },
-      {
-        "UniquenessHash": "634f4128-8be3-479b-2764-13aabd810d83",
-        "TraceID": "OfflodingStop",
-        "EncodingString": "[conn][%p] Path[%hhu] %s stop encryption offloading"
-      },
-      {
-        "UniquenessHash": "5dd5642c-a450-86ac-bd61-deaac4c3e22b",
-        "TraceID": "OnResetAck",
-        "EncodingString": "[strm][%p] Shutting down stream [abortively] from OnResetAck. Send Side."
-      },
-      {
-        "UniquenessHash": "2cc58e3e-a2c8-f337-a085-325bf53da75c",
-        "TraceID": "OnResetReliableAck",
-        "EncodingString": "[strm][%p] Shutting down stream [reliably] from OnResetReliableAck. Send side."
-      },
-      {
-        "UniquenessHash": "6f67e832-eb3d-e51d-c58e-12962752358b",
-        "TraceID": "OnStreamAckReliableReset",
-        "EncodingString": "[strm][%p] Shutting down stream [reliable] from OnStreamAck. Send side. UnAckedOffset=%llu, ReliableOffsetSend=%llu"
       },
       {
         "UniquenessHash": "eaede67a-124b-3b3f-95ba-363d08546d2a",
@@ -16116,11 +14879,6 @@
         "EncodingString": "[ lib] pthread_create failed, retrying without affinitization"
       },
       {
-        "UniquenessHash": "a1966729-6907-53f2-9390-1d40ba5e9d4d",
-        "TraceID": "PlatformWorkerThreadShutdown",
-        "EncodingString": "[ lib][%p] Worker shutdown"
-      },
-      {
         "UniquenessHash": "5c3773e2-ef60-26b9-4b3c-d433ca2656df",
         "TraceID": "PlatformWorkerThreadStart",
         "EncodingString": "[ lib][%p] Worker start"
@@ -16161,24 +14919,9 @@
         "EncodingString": "[perf] Print Buffer %d %s\\n"
       },
       {
-        "UniquenessHash": "001f1bee-3642-fdf5-1025-b39da67792a6",
-        "TraceID": "ProcessorInfo",
-        "EncodingString": "[ dll] Proc[%u] Group[%hu] Index[%u]"
-      },
-      {
         "UniquenessHash": "3379ba23-5dc4-936c-5dd0-224fcad9d9d5",
         "TraceID": "ProcessorInfoV2",
         "EncodingString": "[ dll] Proc[%u] Group[%hu] Index[%u] Active=%hhu"
-      },
-      {
-        "UniquenessHash": "d3961059-2b9a-e20d-88c5-d1fc421bbf13",
-        "TraceID": "ProcessReliableProcessResetFrame",
-        "EncodingString": "[strm][%p] Shutting down stream Abortively in ProcessResetFrame. Recv Side."
-      },
-      {
-        "UniquenessHash": "518b5117-c14d-ee4e-47c5-8264735c8638",
-        "TraceID": "ProcessReliableReset",
-        "EncodingString": "[strm][%p] Shutting down stream from Process Reliable Reset Frame. Recv Side. BaseOffset: %llu, RecvMaxLength: %llu"
       },
       {
         "UniquenessHash": "18ef147d-5376-d7f2-f624-3b27af96dd05",
@@ -16189,16 +14932,6 @@
         "UniquenessHash": "80596bbb-20e9-07e5-07f3-ebc7078fa612",
         "TraceID": "QueueRecvFlush",
         "EncodingString": "[strm][%p] Queuing recv flush"
-      },
-      {
-        "UniquenessHash": "d61a4398-ba19-c65b-995e-e71c9582edb4",
-        "TraceID": "QuicConnRecvDatagrams",
-        "EncodingString": "[conn][%p] Recv %u UDP datagrams, %u bytes"
-      },
-      {
-        "UniquenessHash": "6ac0022e-511b-ec8a-4ef3-15735ee7c35d",
-        "TraceID": "QuicConnRecvUdpDatagrams",
-        "EncodingString": "[conn][%p] Recv %u UDP datagrams, %u bytes"
       },
       {
         "UniquenessHash": "84eb0d5c-ea47-1349-64a1-66146e94d06e",
@@ -16266,19 +14999,9 @@
         "EncodingString": "[ reg][%p] Cleaning up"
       },
       {
-        "UniquenessHash": "71276afe-f6b2-286a-bc47-a9d4176e00a3",
-        "TraceID": "RegistrationCreated",
-        "EncodingString": "[ reg][%p] Created, AppName=%s"
-      },
-      {
         "UniquenessHash": "ac192139-6140-6e50-94ef-26748ce5e25d",
         "TraceID": "RegistrationCreatedV2",
         "EncodingString": "[ reg][%p] Created, AppName=%s, ExecProfile=%u"
-      },
-      {
-        "UniquenessHash": "6f6956ec-af60-d54a-176e-c9db6ac7a50a",
-        "TraceID": "RegistrationRundown",
-        "EncodingString": "[ reg][%p] Rundown, AppName=%s"
       },
       {
         "UniquenessHash": "c62e1ef6-4e2c-d370-bce8-970873aa3979",
@@ -16296,34 +15019,9 @@
         "EncodingString": "[strm][%p] Reliable recv offset set to %llu"
       },
       {
-        "UniquenessHash": "7c8196a9-c4d5-9b85-26ae-ee4492bfe6c8",
-        "TraceID": "ReliableResetEnabledUpdated",
-        "EncodingString": "[conn][%p] Updated reliable reset frame enabled to %hhu"
-      },
-      {
-        "UniquenessHash": "3ea0dcfb-b981-88e5-b801-74fb2684acaa",
-        "TraceID": "ReliableResetFrameReceived",
-        "EncodingString": "[conn][%p] Received a reliable reset frame. Local reliable reset extension preferences: %hhu"
-      },
-      {
-        "UniquenessHash": "a636de88-b1f3-5a09-7b3c-7fe8608567b5",
-        "TraceID": "ReliableResetNotNegotiated",
-        "EncodingString": "[strm][%p] Tried to use ReliableReset without negotiation."
-      },
-      {
         "UniquenessHash": "9c46c2ef-6922-0df3-433c-711969bca059",
         "TraceID": "ReliableResetNotNegotiatedError",
         "EncodingString": "[strm][%p] Received ReliableReset without negotiation."
-      },
-      {
-        "UniquenessHash": "8e06ef5e-6665-a253-c96c-596a2565274d",
-        "TraceID": "ReliableResetOnStreamAck",
-        "EncodingString": "[strm][%p] Shutting down stream [reliable] from OnStreamAck. Send side."
-      },
-      {
-        "UniquenessHash": "6ea13123-905c-3439-77cb-45bbd050b9bc",
-        "TraceID": "ReliableResetReceiveComplete",
-        "EncodingString": "[strm][%p] Shutting down stream from ReceiveComplete Recv Side. BaseOffset: %llu, RecvMaxLength: %llu"
       },
       {
         "UniquenessHash": "84836f4f-d47f-cc00-7cb2-530ac90c70d3",
@@ -16351,16 +15049,6 @@
         "EncodingString": "[strm][%p] Tried to reset at earlier final size!"
       },
       {
-        "UniquenessHash": "50002ed8-e6a9-b9ca-037a-59003c9e1f5f",
-        "TraceID": "ResetReliableAck",
-        "EncodingString": "[strm][%p] Reset Reliable ACKed in OnResetReliableAck. Send side. UnAckedOffset=%llu, ReliableOffsetSend=%llu"
-      },
-      {
-        "UniquenessHash": "46d87c29-7237-3ef0-b107-77b5f4db762f",
-        "TraceID": "ResetReliableAckShutDown",
-        "EncodingString": "[strm][%p] Shutting down stream [reliably] from OnResetReliableAck. Send side. UnAckedOffset=%llu, ReliableOffsetSend=%llu"
-      },
-      {
         "UniquenessHash": "a3253f53-3e9c-4e45-d114-c4e99cd3cdc6",
         "TraceID": "ResetTooBig",
         "EncodingString": "[strm][%p] Tried to reset with too big final size!"
@@ -16379,11 +15067,6 @@
         "UniquenessHash": "8662b462-9871-7631-034d-9d175232ab4f",
         "TraceID": "RouteResolutionStart",
         "EncodingString": "[conn][%p] Starting to look up neighbor on Path[%hhu] with status %u"
-      },
-      {
-        "UniquenessHash": "dc25a415-b386-47ec-0128-415c6f31795b",
-        "TraceID": "RttUpdatedMsg",
-        "EncodingString": "[conn][%p] Updated Rtt=%u.%03u ms, Var=%u.%03u"
       },
       {
         "UniquenessHash": "ff41b02a-ac3e-3b07-30f1-3040e2416019",
@@ -16496,9 +15179,9 @@
         "EncodingString": "[strm][%p] Updated sent 0RTT length to %llu"
       },
       {
-        "UniquenessHash": "11454ad7-905b-ea01-1cdd-f9918ca502dc",
+        "UniquenessHash": "89c18ecf-2197-1c4a-1ba7-e94e45d43160",
         "TraceID": "SendDump",
-        "EncodingString": "[strm][%p] SF:%hX FC:%llu QS:%llu MAX:%llu UNA:%llu NXT:%llu RECOV:%llu-%llu"
+        "EncodingString": "[strm][%p] SF:%hX FC:%llu QS:%llu MAX:%llu UNA:%llu NXT:%llu RECOV:%llu-%llu REL: %llu"
       },
       {
         "UniquenessHash": "b5af9a64-4d59-3aa3-f0d4-abcbbbfd0329",
@@ -16926,24 +15609,9 @@
         "EncodingString": "[strm][%p] ERROR, %s."
       },
       {
-        "UniquenessHash": "6f893311-b44e-0592-3329-8f00eb3367b3",
-        "TraceID": "StreamGracefulShutdown",
-        "EncodingString": "[strm][%p] Shutting down [gracefully] from OnStreamAck. Send Side."
-      },
-      {
-        "UniquenessHash": "4a667ad2-c50e-a395-df6e-eef65b198935",
-        "TraceID": "StreamOnResetAck",
-        "EncodingString": "[strm][%p] Shutting down stream [abortively] from OnResetAck. Send Side."
-      },
-      {
         "UniquenessHash": "638251a8-14f3-2929-34e2-e69cfdab2277",
         "TraceID": "StreamOutFlowBlocked",
         "EncodingString": "[strm][%p] Send Blocked Flags: %hhu"
-      },
-      {
-        "UniquenessHash": "19f2e767-5d68-3888-8822-98ad7c1536ea",
-        "TraceID": "StreamProcessReliableReset",
-        "EncodingString": "[strm][%p] Shutting down stream from Process Reliable Reset Frame. Recv Side."
       },
       {
         "UniquenessHash": "aaf00b3c-6719-7619-1362-6058d0d3be90",
@@ -16961,41 +15629,6 @@
         "EncodingString": "[strm][%p] Recv State: %hhu"
       },
       {
-        "UniquenessHash": "92616968-626c-a68e-e912-4093119f12b6",
-        "TraceID": "StreamReliableProcessResetFrame",
-        "EncodingString": "[strm][%p] Shutting down stream Abortively in ProcessResetFrame. Recv Side."
-      },
-      {
-        "UniquenessHash": "9351f46e-9d08-2d68-10e8-5c9215a7dc2b",
-        "TraceID": "StreamReliableReset",
-        "EncodingString": "[strm][%p] Shutting down stream from OnStreamAck. Send side."
-      },
-      {
-        "UniquenessHash": "ce8a6cd4-1ecd-b74d-fc68-8e34b0a4c375",
-        "TraceID": "StreamReliableResetOnResetReliableAck",
-        "EncodingString": "[strm][%p] Shutting down stream from OnResetReliableAck. Send side."
-      },
-      {
-        "UniquenessHash": "6bb4694b-2c10-fdfc-7673-fae38fb3cc22",
-        "TraceID": "StreamReliableResetOnStreamAck",
-        "EncodingString": "[strm][%p] Shutting down stream from OnStreamAck. Send side."
-      },
-      {
-        "UniquenessHash": "4bd00400-13c5-4745-387d-4a2a0b5c70d5",
-        "TraceID": "StreamReliableResetProcessReliableResetFrame",
-        "EncodingString": "[strm][%p] Shutting down stream from ProcessReliableResetFrame. Recv side."
-      },
-      {
-        "UniquenessHash": "cde4c5d6-6221-1f7d-c92b-4511f748c9f9",
-        "TraceID": "StreamReliableResetReceiveComplete",
-        "EncodingString": "[strm][%p] Shutting down stream from ReceiveComplete Recv Side."
-      },
-      {
-        "UniquenessHash": "8f8a0e45-6acd-4bcb-a985-d7e1374b6685",
-        "TraceID": "StreamReliableResetRecvGraceful",
-        "EncodingString": "[strm][%p] Shutting down stream [gracefully] Recv Side."
-      },
-      {
         "UniquenessHash": "c91c925c-07e9-3204-5459-5d3b19d137d8",
         "TraceID": "StreamRundown",
         "EncodingString": "[strm][%p] Rundown, Conn=%p ID=%llu IsLocal=%hhu"
@@ -17009,11 +15642,6 @@
         "UniquenessHash": "cc7f8746-a729-760b-90cc-8f3973b3fde2",
         "TraceID": "StreamWriteFrames",
         "EncodingString": "[strm][%p] Writing frames to packet %llu"
-      },
-      {
-        "UniquenessHash": "e8bf302f-52d7-c228-4cc8-a74a099b0baa",
-        "TraceID": "SuccessfulRouteResolution",
-        "EncodingString": "[conn][%p] Processing successful route completion Path[%hhu]"
       },
       {
         "UniquenessHash": "b79cc8df-4d28-f459-11b2-ba8160512a09",
@@ -17166,11 +15794,6 @@
         "EncodingString": "[strm][%p] Treating FIN after receive abort as reset"
       },
       {
-        "UniquenessHash": "cd3c6623-5c8b-d0a0-f653-dd7ae1b09077",
-        "TraceID": "UdpRecv",
-        "EncodingString": "[conn][%p] Recv %u UDP datagrams"
-      },
-      {
         "UniquenessHash": "d1b6f5eb-6243-10dc-b07a-0f545b66b5e6",
         "TraceID": "UdpRecvBatch",
         "EncodingString": "[conn][%p] Batch Recv %u UDP datagrams"
@@ -17291,16 +15914,6 @@
         "EncodingString": "[ dll] Loaded"
       },
       {
-        "UniquenessHash": "c900bbe4-0bbe-349f-7ad7-9ece1080a288",
-        "TraceID": "WindowsUserProcessorState",
-        "EncodingString": "[ dll] Processors:%u, Groups:%u, NUMA Nodes:%u"
-      },
-      {
-        "UniquenessHash": "75d23316-ce7e-8980-f3f4-677d2622ee5f",
-        "TraceID": "WindowsUserProcessorStateV2",
-        "EncodingString": "[ dll] Processors:%u, Groups:%u"
-      },
-      {
         "UniquenessHash": "77a73e5e-4f71-be29-4086-c7515afc8181",
         "TraceID": "WindowsUserProcessorStateV3",
         "EncodingString": "[ dll] Processors: (%u active, %u max), Groups: (%hu active, %hu max)"
@@ -17409,21 +16022,6 @@
         "UniquenessHash": "0b96925f-2b93-58f9-3664-c710e5f865b6",
         "TraceID": "XdpUninitializeComplete",
         "EncodingString": "[ xdp][%p] XDP uninitialize complete"
-      },
-      {
-        "UniquenessHash": "17a6a609-27f6-4335-a281-9dbfea21f6a3",
-        "TraceID": "XdpWorkerAsyncIO",
-        "EncodingString": "[ xdp][%p] XDP async IO"
-      },
-      {
-        "UniquenessHash": "3b3e0ae9-eaa0-90cb-adeb-37f9029cdfab",
-        "TraceID": "XdpWorkerShutdown",
-        "EncodingString": "[ xdp][%p] XDP worker shutdown"
-      },
-      {
-        "UniquenessHash": "f570dc1c-9f33-49d9-1556-ff41dd00a190",
-        "TraceID": "XdpWorkerShutdownComplete",
-        "EncodingString": "[ xdp][%p] XDP worker shutdown complete"
       },
       {
         "UniquenessHash": "e81fe3d6-c142-82bd-fbdf-75c0ef5e8d0f",

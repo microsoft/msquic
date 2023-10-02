@@ -1604,12 +1604,7 @@ QuicStreamOnResetReliableAck(
     _In_ QUIC_STREAM* Stream
     )
 {
-    QuicTraceLogStreamVerbose(
-        ResetReliableAck,
-        Stream,
-        "Reset Reliable ACKed in OnResetReliableAck. Send side. UnAckedOffset=%llu, ReliableOffsetSend=%llu",
-        Stream->UnAckedOffset, Stream->ReliableOffsetSend);
-
+    CXPLAT_DBG_ASSERT(Stream->Flags.LocalCloseResetReliable);
     if (Stream->UnAckedOffset >= Stream->ReliableOffsetSend && !Stream->Flags.LocalCloseAcked) {
         Stream->Flags.LocalCloseResetReliableAcked = TRUE;
         QuicTraceEvent(
@@ -1640,7 +1635,7 @@ QuicStreamSendDumpState(
         QuicTraceLogStreamVerbose(
             SendDump,
             Stream,
-            "SF:%hX FC:%llu QS:%llu MAX:%llu UNA:%llu NXT:%llu RECOV:%llu-%llu",
+            "SF:%hX FC:%llu QS:%llu MAX:%llu UNA:%llu NXT:%llu RECOV:%llu-%llu REL: %llu",
             Stream->SendFlags,
             Stream->MaxAllowedSendOffset,
             Stream->QueuedSendOffset,
@@ -1648,7 +1643,8 @@ QuicStreamSendDumpState(
             Stream->UnAckedOffset,
             Stream->NextSendOffset,
             Stream->Flags.InRecovery ? Stream->RecoveryNextOffset : 0,
-            Stream->Flags.InRecovery ? Stream->RecoveryEndOffset : 0);
+            Stream->Flags.InRecovery ? Stream->RecoveryEndOffset : 0,
+            Stream->ReliableOffsetSend);
 
         uint64_t UnAcked = Stream->UnAckedOffset;
         uint32_t i = 0;
