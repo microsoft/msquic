@@ -782,7 +782,7 @@ void SpinQuicSetRandomStreamParam(HQUIC Stream, uint16_t ThreadID)
 {
     SetParamHelper Helper;
 
-    switch (0x08000000 | (GetRandom(5))) {
+    switch (0x08000000 | (GetRandom(6))) {
     case QUIC_PARAM_STREAM_ID:                                      // QUIC_UINT62
         break; // Get Only
     case QUIC_PARAM_STREAM_0RTT_LENGTH:                             // QUIC_ADDR
@@ -794,6 +794,8 @@ void SpinQuicSetRandomStreamParam(HQUIC Stream, uint16_t ThreadID)
         break;
     case QUIC_PARAM_STREAM_STATISTICS:
         break; // Get Only
+    case QUIC_PARAM_STREAM_RELIABLE_OFFSET:
+        Helper.SetUint64(QUIC_PARAM_STREAM_RELIABLE_OFFSET, (uint64_t)GetRandom(UINT64_MAX));
     default:
         break;
     }
@@ -1320,6 +1322,18 @@ CXPLAT_THREAD_CALLBACK(RunThread, Context)
         if (0 == GetRandom(4)) {
             uint16_t LoadBalancingMode = QUIC_LOAD_BALANCING_SERVER_ID_IP;
             if (!QUIC_SUCCEEDED(MsQuic.SetParam(nullptr, QUIC_PARAM_GLOBAL_LOAD_BALACING_MODE, sizeof(LoadBalancingMode), &LoadBalancingMode))) {
+                break;
+            }
+        }
+
+        if (0 == GetRandom(4)) {
+            uint8_t StatelessResetKey[QUIC_STATELESS_RESET_KEY_LENGTH];
+            CxPlatRandom(sizeof(StatelessResetKey), StatelessResetKey);
+            if (!QUIC_SUCCEEDED(MsQuic.SetParam(
+                    nullptr,
+                    QUIC_PARAM_GLOBAL_STATELESS_RESET_KEY,
+                    sizeof(StatelessResetKey),
+                    StatelessResetKey))) {
                 break;
             }
         }

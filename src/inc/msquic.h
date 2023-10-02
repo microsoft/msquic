@@ -23,10 +23,10 @@ Supported Platforms:
 
 #ifdef _WIN32
 #pragma once
-#endif
 
 #pragma warning(disable:4201)  // nonstandard extension used: nameless struct/union
 #pragma warning(disable:4214)  // nonstandard extension used: bit field types other than int
+#endif
 
 #ifdef _KERNEL_MODE
 #include "msquic_winkernel.h"
@@ -69,6 +69,11 @@ typedef _In_range_(0, QUIC_UINT62_MAX) uint64_t QUIC_UINT62;
 // send in a resumption ticket.
 //
 #define QUIC_MAX_RESUMPTION_APP_DATA_LENGTH     1000
+
+//
+// The number of bytes of stateless reset key.
+//
+#define QUIC_STATELESS_RESET_KEY_LENGTH       32
 
 typedef enum QUIC_TLS_PROVIDER {
     QUIC_TLS_PROVIDER_SCHANNEL                  = 0x0000,
@@ -832,7 +837,7 @@ void
 #define QUIC_PARAM_GLOBAL_EXECUTION_CONFIG              0x01000009  // QUIC_EXECUTION_CONFIG
 #endif
 #define QUIC_PARAM_GLOBAL_TLS_PROVIDER                  0x0100000A  // QUIC_TLS_PROVIDER
-
+#define QUIC_PARAM_GLOBAL_STATELESS_RESET_KEY           0x0100000B  // uint8_t[] - Array size is QUIC_STATELESS_RESET_KEY_LENGTH
 //
 // Parameters for Registration.
 //
@@ -924,6 +929,9 @@ typedef struct QUIC_SCHANNEL_CONTEXT_ATTRIBUTE_EX_W {
 #define QUIC_PARAM_STREAM_IDEAL_SEND_BUFFER_SIZE        0x08000002  // uint64_t - bytes
 #define QUIC_PARAM_STREAM_PRIORITY                      0x08000003  // uint16_t - 0 (low) to 0xFFFF (high) - 0x7FFF (default)
 #define QUIC_PARAM_STREAM_STATISTICS                    0X08000004  // QUIC_STREAM_STATISTICS
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
+#define QUIC_PARAM_STREAM_RELIABLE_OFFSET               0x08000005  // uint64_t
+#endif
 
 typedef
 _IRQL_requires_max_(PASSIVE_LEVEL)

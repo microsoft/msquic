@@ -40,6 +40,25 @@ TRACEPOINT_EVENT(CLOG_STREAM_C, EventSilentDiscard,
 
 
 /*----------------------------------------------------------
+// Decoder Ring for ShutdownImmediatePendingReliableReset
+// [strm][%p] Invalid immediate shutdown request (pending reliable reset).
+// QuicTraceLogStreamWarning(
+                ShutdownImmediatePendingReliableReset,
+                Stream,
+                "Invalid immediate shutdown request (pending reliable reset).");
+// arg1 = arg1 = Stream = arg1
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_STREAM_C, ShutdownImmediatePendingReliableReset,
+    TP_ARGS(
+        const void *, arg1), 
+    TP_FIELDS(
+        ctf_integer_hex(uint64_t, arg1, arg1)
+    )
+)
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for UpdatePriority
 // [strm][%p] New send priority = %hu
 // QuicTraceLogStreamInfo(
@@ -57,6 +76,48 @@ TRACEPOINT_EVENT(CLOG_STREAM_C, UpdatePriority,
     TP_FIELDS(
         ctf_integer_hex(uint64_t, arg1, arg1)
         ctf_integer(unsigned short, arg3, arg3)
+    )
+)
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for MultipleReliableResetSendNotSupported
+// [strm][%p] Multiple RELIABLE_RESET frames sending not supported.
+// QuicTraceLogStreamInfo(
+                MultipleReliableResetSendNotSupported,
+                Stream,
+                "Multiple RELIABLE_RESET frames sending not supported.");
+// arg1 = arg1 = Stream = arg1
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_STREAM_C, MultipleReliableResetSendNotSupported,
+    TP_ARGS(
+        const void *, arg1), 
+    TP_FIELDS(
+        ctf_integer_hex(uint64_t, arg1, arg1)
+    )
+)
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for ReliableSendOffsetSet
+// [strm][%p] Reliable send offset set to %llu
+// QuicTraceLogStreamInfo(
+            ReliableSendOffsetSet,
+            Stream,
+            "Reliable send offset set to %llu",
+            *(uint64_t*)Buffer);
+// arg1 = arg1 = Stream = arg1
+// arg3 = arg3 = *(uint64_t*)Buffer = arg3
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_STREAM_C, ReliableSendOffsetSet,
+    TP_ARGS(
+        const void *, arg1,
+        unsigned long long, arg3), 
+    TP_FIELDS(
+        ctf_integer_hex(uint64_t, arg1, arg1)
+        ctf_integer(uint64_t, arg3, arg3)
     )
 )
 

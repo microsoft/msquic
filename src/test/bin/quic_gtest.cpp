@@ -1554,12 +1554,22 @@ TEST_P(WithFamilyArgs, RebindAddr) {
         };
         ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_NAT_ADDR_REBIND, Params));
     } else {
-#ifdef _WIN32
-        if (!UseDuoNic) {
-            GTEST_SKIP_("Raw socket with 127.0.0.2/::2 is not supported");
-        }
+        QuicTestNatAddrRebind(GetParam().Family, 0, FALSE);
+    }
+}
+
+TEST_P(WithFamilyArgs, RebindDatapathAddr) {
+#if defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
+    if (UseQTIP) {
+        //
+        // NAT rebind doesn't make sense for TCP and QTIP.
+        //
+        return;
+    }
 #endif
-        QuicTestNatAddrRebind(GetParam().Family, 0);
+    TestLoggerT<ParamType> Logger("QuicTestNatAddrRebind(datapath)", GetParam());
+    if (!TestingKernelMode) {
+        QuicTestNatAddrRebind(GetParam().Family, 0, TRUE);
     }
 }
 
@@ -1580,12 +1590,7 @@ TEST_P(WithRebindPaddingArgs, RebindAddrPadded) {
         };
         ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_NAT_PORT_REBIND, Params));
     } else {
-#ifdef _WIN32
-        if (!UseDuoNic) {
-            GTEST_SKIP_("Raw socket with 127.0.0.2/::2 is not supported");
-        }
-#endif
-        QuicTestNatAddrRebind(GetParam().Family, GetParam().Padding);
+        QuicTestNatAddrRebind(GetParam().Family, GetParam().Padding, FALSE);
     }
 }
 
@@ -1891,6 +1896,15 @@ TEST(Misc, ClientDisconnect) {
     }
 }
 
+TEST(Misc, StatelessResetKey) {
+    TestLogger Logger("QuicTestStatelessResetKey");
+    if (TestingKernelMode) {
+        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_STATELESS_RESET_KEY));
+    } else {
+        QuicTestStatelessResetKey();
+    }
+}
+
 TEST_P(WithKeyUpdateArgs1, KeyUpdate) {
     TestLoggerT<ParamType> Logger("QuicTestKeyUpdate", GetParam());
     if (TestingKernelMode) {
@@ -2100,6 +2114,24 @@ TEST(Misc, StreamBlockUnblockBidiConnFlowControl) {
         ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_STREAM_BLOCK_UNBLOCK_CONN_FLOW_CONTROL, TRUE));
     } else {
         QuicTestStreamBlockUnblockConnFlowControl(TRUE);
+    }
+}
+
+TEST(Misc, StreamReliableReset) {
+    TestLogger Logger("StreamReliableReset");
+    if (TestingKernelMode) {
+        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_STREAM_RELIABLE_RESET));
+    } else {
+        QuicTestStreamReliableReset();
+    }
+}
+
+TEST(Misc, StreamReliableResetMultipleSends) {
+    TestLogger Logger("StreamReliableResetMultipleSends");
+    if (TestingKernelMode) {
+        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_STREAM_RELIABLE_RESET_MULTIPLE_SENDS));
+    } else {
+        QuicTestStreamReliableResetMultipleSends();
     }
 }
 

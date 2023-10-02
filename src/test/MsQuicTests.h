@@ -358,7 +358,8 @@ QuicTestNatPortRebind(
 void
 QuicTestNatAddrRebind(
     _In_ int Family,
-    _In_ uint16_t KeepAlivePaddingSize
+    _In_ uint16_t KeepAlivePaddingSize,
+    _In_ bool RebindDatapathAddr
     );
 
 void
@@ -415,6 +416,11 @@ QuicTestServerDisconnect(
 void
 QuicTestClientDisconnect(
     bool StopListenerFirst
+    );
+
+void
+QuicTestStatelessResetKey(
+    void
     );
 
 void
@@ -536,6 +542,14 @@ QuicTestStreamAbortRecvFinRace(
 
 void
 QuicTestStreamAbortConnFlowControl(
+    );
+
+void
+QuicTestStreamReliableReset(
+    );
+
+void
+QuicTestStreamReliableResetMultipleSends(
     );
 
 void
@@ -1210,4 +1224,13 @@ typedef struct {
     QUIC_CTL_CODE(112, METHOD_BUFFERED, FILE_WRITE_DATA)
     // QUIC_RUN_FEATURE_NEGOTIATION
 
-#define QUIC_MAX_IOCTL_FUNC_CODE 112
+#define IOCTL_QUIC_RUN_STATELESS_RESET_KEY \
+    QUIC_CTL_CODE(113, METHOD_BUFFERED, FILE_WRITE_DATA)
+
+#define IOCTL_QUIC_RUN_STREAM_RELIABLE_RESET \
+    QUIC_CTL_CODE(114, METHOD_BUFFERED, FILE_WRITE_DATA)
+
+#define IOCTL_QUIC_RUN_STREAM_RELIABLE_RESET_MULTIPLE_SENDS \
+    QUIC_CTL_CODE(115, METHOD_BUFFERED, FILE_WRITE_DATA)
+
+#define QUIC_MAX_IOCTL_FUNC_CODE 115

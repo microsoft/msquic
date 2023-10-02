@@ -5,6 +5,8 @@
 
 --*/
 
+#pragma once
+
 #define QUIC_API_ENABLE_PREVIEW_FEATURES 1
 
 #include "platform_internal.h"

@@ -1,4 +1,4 @@
-FROM    martenseemann/quic-network-simulator-endpoint@sha256:ff6ab6273c22d0609e2c0a123a15310da8bcd27052e8aaf10a6cc799a0218a4c as source
+FROM    martenseemann/quic-network-simulator-endpoint@sha256:2ec0a19a54f4547f068a81afcb3e92251b8808934eb86e5cb6919d91c4958791 as source
 ENV     DEBIAN_FRONTEND=noninteractive
 RUN     apt-get update -y \
             && apt-get install -y \
@@ -17,7 +17,7 @@ ENV     PATH="/root/.dotnet/tools:${PATH}"
 RUN     cmake -DQUIC_BUILD_TOOLS=on -DQUIC_ENABLE_LOGGING=on ..
 RUN     cmake --build .
 
-FROM    martenseemann/quic-network-simulator-endpoint@sha256:ff6ab6273c22d0609e2c0a123a15310da8bcd27052e8aaf10a6cc799a0218a4c
+FROM    martenseemann/quic-network-simulator-endpoint@sha256:2ec0a19a54f4547f068a81afcb3e92251b8808934eb86e5cb6919d91c4958791
 RUN     apt-get update -y \
             && apt-get install -y \
             libatomic1 \
