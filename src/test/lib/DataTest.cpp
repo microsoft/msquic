@@ -3376,6 +3376,9 @@ QuicTestStreamReliableReset(
     TEST_TRUE(Listener.LastConnection->HandshakeComplete);
     CxPlatSleep(50); // Wait for things to idle out
 
+    //
+    // Note: we shouldn't be testing dropped packets during Release builds.
+    //
     for (uint64_t Bitmap = 0; Bitmap < 8; ++Bitmap) { // Try dropping the first 3 packets
         char Name[64]; sprintf_s(Name, sizeof(Name), "Try Reliably Shutting Down Stream %llu", (unsigned long long)Bitmap);
         TestScopeLogger logScope(Name);
