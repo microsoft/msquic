@@ -932,11 +932,11 @@ QuicStreamOnResetReliableAck(
     );
 
 //
-// Cleanups up state once we finish processing a RELIABLE_RESET frame.
+// Cancels any queued send requests. Usually right before we abort.
 //
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
-QuicStreamCleanupReliableReset(
+QuicStreamCleanupQueuedRequests(
     _In_ QUIC_STREAM* Stream
     );
 

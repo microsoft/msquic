@@ -3280,7 +3280,7 @@ QuicTestConnectAndIdleForDestCidChange(
     }
 }
 
-#define BUFFER_SIZE 10000
+#define BUFFER_SIZE 30000
 #define RELIABLE_SIZE 5000
 #define BUFFER_SIZE_MULTI_SENDS 10000
 #define RELIABLE_SIZE_MULTI_SENDS 20000
