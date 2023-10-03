@@ -177,6 +177,12 @@ QuicStreamSendShutdown(
         //
         QuicStreamCleanupQueuedRequests(Stream);
 
+        while (ApiSendRequests != NULL) {
+            QUIC_SEND_REQUEST* SendRequest = ApiSendRequests;
+            ApiSendRequests = ApiSendRequests->Next;
+            QuicStreamCompleteSendRequest(Stream, SendRequest, TRUE, FALSE);
+        }
+
         if (Silent) {
             //
             // If we are doing an abortive, silent shutdown, then the handle is
@@ -1575,16 +1581,7 @@ QuicStreamCleanupQueuedRequests(
         Stream->SendRequests = Req->Next;
         QuicStreamCompleteSendRequest(Stream, Req, TRUE, TRUE);
     }
-
     Stream->SendRequestsTail = &Stream->SendRequests;
-
-    QUIC_SEND_REQUEST* ApiSendRequests = Stream->ApiSendRequests;
-
-    while (ApiSendRequests != NULL) {
-        QUIC_SEND_REQUEST* SendRequest = ApiSendRequests;
-        ApiSendRequests = ApiSendRequests->Next;
-        QuicStreamCompleteSendRequest(Stream, SendRequest, TRUE, FALSE);
-    }
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
