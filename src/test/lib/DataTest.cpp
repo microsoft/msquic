@@ -3355,9 +3355,9 @@ QuicTestStreamReliableReset(
     TEST_QUIC_SUCCEEDED(ClientConfiguration.GetInitStatus());
 
     StreamReliableReset Context;
-    uint8_t SendDataBuffer[BUFFER_SIZE];
+    uint8_t *SendDataBuffer = new(std::nothrow) uint8_t[BUFFER_SIZE];
 
-    QUIC_BUFFER SendBuffer { sizeof(SendDataBuffer), SendDataBuffer };
+    QUIC_BUFFER SendBuffer { BUFFER_SIZE, SendDataBuffer };
     Context.ReceivedBufferSize = 0;
 
     MsQuicAutoAcceptListener Listener(Registration, ServerConfiguration, StreamReliableReset::ConnCallback, &Context);
@@ -3376,10 +3376,12 @@ QuicTestStreamReliableReset(
     TEST_TRUE(Listener.LastConnection->HandshakeComplete);
     CxPlatSleep(50); // Wait for things to idle out
 
-    //
-    // Note: we shouldn't be testing dropped packets during Release builds.
-    //
-    for (uint64_t Bitmap = 0; Bitmap < 8; ++Bitmap) { // Try dropping the first 3 packets
+    uint64_t Loss = 1;
+    #if DEBUG
+    Loss = 8;
+    #endif
+
+    for (uint64_t Bitmap = 0; Bitmap < Loss; ++Bitmap) {
         char Name[64]; sprintf_s(Name, sizeof(Name), "Try Reliably Shutting Down Stream %llu", (unsigned long long)Bitmap);
         TestScopeLogger logScope(Name);
         BitmapLossHelper LossHelper(Bitmap);
@@ -3427,9 +3429,9 @@ QuicTestStreamReliableResetMultipleSends(
     TEST_QUIC_SUCCEEDED(ClientConfiguration.GetInitStatus());
 
     StreamReliableReset Context;
-    uint8_t SendDataBuffer[BUFFER_SIZE_MULTI_SENDS];
+    uint8_t *SendDataBuffer = new(std::nothrow) uint8_t[BUFFER_SIZE_MULTI_SENDS];
 
-    QUIC_BUFFER SendBuffer { sizeof(SendDataBuffer), SendDataBuffer };
+    QUIC_BUFFER SendBuffer { BUFFER_SIZE_MULTI_SENDS, SendDataBuffer };
     Context.ReceivedBufferSize = 0;
     Context.SequenceNum = 0;
     Context.ShutdownErrorCode = 0;

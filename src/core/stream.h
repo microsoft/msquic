@@ -936,7 +936,7 @@ QuicStreamOnResetReliableAck(
 //
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
-QuicStreamCleanupQueuedRequests(
+QuicStreamCancelRequests(
     _In_ QUIC_STREAM* Stream
     );
 

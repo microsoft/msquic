@@ -175,7 +175,7 @@ QuicStreamSendShutdown(
         //
         // Make sure to deliver all send request cancelled callbacks first.
         //
-        QuicStreamCleanupQueuedRequests(Stream);
+        QuicStreamCancelRequests(Stream);
 
         while (ApiSendRequests != NULL) {
             QUIC_SEND_REQUEST* SendRequest = ApiSendRequests;
@@ -228,11 +228,7 @@ QuicStreamSendShutdown(
             QuicSendClearStreamSendFlag(
                 &Stream->Connection->Send,
                 Stream,
-                QUIC_STREAM_SEND_FLAG_DATA_BLOCKED |
-                QUIC_STREAM_SEND_FLAG_RELIABLE_ABORT |
-                QUIC_STREAM_SEND_FLAG_DATA |
-                QUIC_STREAM_SEND_FLAG_OPEN |
-                QUIC_STREAM_SEND_FLAG_FIN);
+                QUIC_STREAM_SEND_FLAG_ALL_SEND_PATH);
         }
     } else {
         if (Stream->Flags.LocalCloseReset) {
@@ -1539,12 +1535,8 @@ QuicStreamOnAck(
         QuicSendClearStreamSendFlag(
             &Stream->Connection->Send,
             Stream,
-            QUIC_STREAM_SEND_FLAG_DATA_BLOCKED |
-            QUIC_STREAM_SEND_FLAG_RELIABLE_ABORT |
-            QUIC_STREAM_SEND_FLAG_DATA |
-            QUIC_STREAM_SEND_FLAG_OPEN |
-            QUIC_STREAM_SEND_FLAG_FIN);
-        QuicStreamCleanupQueuedRequests(Stream);
+            QUIC_STREAM_SEND_FLAG_ALL_SEND_PATH);
+        QuicStreamCancelRequests(Stream);
         QuicStreamIndicateSendShutdownComplete(Stream, FALSE);
         QuicStreamTryCompleteShutdown(Stream);
     }
@@ -1569,7 +1561,7 @@ QuicStreamOnAck(
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
-QuicStreamCleanupQueuedRequests(
+QuicStreamCancelRequests(
     _In_ QUIC_STREAM* Stream
     )
 {
@@ -1623,12 +1615,8 @@ QuicStreamOnResetReliableAck(
         QuicSendClearStreamSendFlag(
             &Stream->Connection->Send,
             Stream,
-            QUIC_STREAM_SEND_FLAG_DATA_BLOCKED |
-            QUIC_STREAM_SEND_FLAG_RELIABLE_ABORT |
-            QUIC_STREAM_SEND_FLAG_DATA |
-            QUIC_STREAM_SEND_FLAG_OPEN |
-            QUIC_STREAM_SEND_FLAG_FIN);
-        QuicStreamCleanupQueuedRequests(Stream);
+            QUIC_STREAM_SEND_FLAG_ALL_SEND_PATH);
+        QuicStreamCancelRequests(Stream);
         QuicStreamIndicateSendShutdownComplete(Stream, FALSE);
         QuicStreamTryCompleteShutdown(Stream);
     } else {
