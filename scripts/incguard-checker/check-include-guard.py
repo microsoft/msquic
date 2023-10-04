@@ -336,8 +336,12 @@ def main():
     
     if len(warnings) == 0:
         print("Everything OK!")
+        exit_code = 0
     else:
         print("Total %d warnings." % len(warnings))
+        exit_code = 1
+    
+    sys.exit(exit_code)
 
 
 if __name__ == "__main__":
