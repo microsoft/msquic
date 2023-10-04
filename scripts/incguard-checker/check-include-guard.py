@@ -286,7 +286,6 @@ def check_header_file(file_info, file_encoding="utf-8", use_google_style=False, 
             fp = open(file_path, "w", encoding=file_encoding)
             fp.write(file_newcontent)
             fp.close()
-            print("fix " + file_rel)
 
 
 def main():
