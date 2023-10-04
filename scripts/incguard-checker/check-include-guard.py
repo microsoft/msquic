@@ -264,6 +264,10 @@ def check_header_file(file_info, file_encoding="utf-8", use_google_style=False, 
         else:
             raise Exception("Illegal state.")
 
+    #  Stop if we failed to process the tail part.
+    if state != ST_TAIL_OK:
+        return
+
     if auto_fix:
         if lineno_pragma_once >= 0:
             file_lines[lineno_pragma_once] = "#pragma once"
