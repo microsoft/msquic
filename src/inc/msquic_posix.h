@@ -14,8 +14,10 @@ Environment:
 
 --*/
 
-#ifndef _MSQUIC_SRC_INC_MSQUIC_POSIX_H_
-#define _MSQUIC_SRC_INC_MSQUIC_POSIX_H_
+#pragma once
+
+#ifndef _MSQUIC_POSIX_H_
+#define _MSQUIC_POSIX_H_
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -512,4 +514,4 @@ QuicAddrToString(
 }
 #endif
 
-#endif  //  #ifndef _MSQUIC_SRC_INC_MSQUIC_POSIX_H_
+#endif  //  _MSQUIC_POSIX_H_

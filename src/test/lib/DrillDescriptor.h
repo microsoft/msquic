@@ -5,8 +5,10 @@
 
 --*/
 
-#ifndef _MSQUIC_SRC_TEST_LIB_DRILLDESCRIPTOR_H_
-#define _MSQUIC_SRC_TEST_LIB_DRILLDESCRIPTOR_H_
+#pragma once
+
+#ifndef _DRILLDESCRIPTOR_H_
+#define _DRILLDESCRIPTOR_H_
 
 #ifdef _KERNEL_MODE
 class DrillBuffer : public Rtl::KArray<uint8_t>
@@ -146,4 +148,4 @@ QuicDrillEncodeQuicVarInt(
     uint64_t input
     );
 
-#endif  //  #ifndef _MSQUIC_SRC_TEST_LIB_DRILLDESCRIPTOR_H_
+#endif  //  _DRILLDESCRIPTOR_H_

@@ -5,8 +5,10 @@
 
 --*/
 
-#ifndef _MSQUIC_SRC_CORE_API_H_
-#define _MSQUIC_SRC_CORE_API_H_
+#pragma once
+
+#ifndef _API_H_
+#define _API_H_
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
@@ -282,4 +284,4 @@ MsQuicConnectionCertificateValidationComplete(
     _In_ QUIC_TLS_ALERT_CODES TlsAlert
     );
 
-#endif  //  #ifndef _MSQUIC_SRC_CORE_API_H_
+#endif  //  _API_H_

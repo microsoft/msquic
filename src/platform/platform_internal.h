@@ -5,8 +5,10 @@
 
 --*/
 
-#ifndef _MSQUIC_SRC_PLATFORM_PLATFORM_INTERNAL_H_
-#define _MSQUIC_SRC_PLATFORM_PLATFORM_INTERNAL_H_
+#pragma once
+
+#ifndef _PLATFORM_INTERNAL_H_
+#define _PLATFORM_INTERNAL_H_
 
 #ifdef _WIN32
 #pragma warning(disable:28922) // Redundant Pointer Test
@@ -1208,4 +1210,4 @@ RawUpdateRoute(
 
 #endif // CX_PLATFORM_LINUX || _WIN32
 
-#endif  //  #ifndef _MSQUIC_SRC_PLATFORM_PLATFORM_INTERNAL_H_
+#endif  //  _PLATFORM_INTERNAL_H_

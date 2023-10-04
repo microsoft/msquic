@@ -5,8 +5,10 @@
 
 --*/
 
-#ifndef _MSQUIC_SRC_CORE_LISTENER_H_
-#define _MSQUIC_SRC_CORE_LISTENER_H_
+#pragma once
+
+#ifndef _LISTENER_H_
+#define _LISTENER_H_
 
 //
 // Represents the Listener specific state.
@@ -210,4 +212,4 @@ QuicListenerParamGet(
         void* Buffer
     );
 
-#endif  //  #ifndef _MSQUIC_SRC_CORE_LISTENER_H_
+#endif  //  _LISTENER_H_

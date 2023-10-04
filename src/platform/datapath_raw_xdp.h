@@ -5,8 +5,10 @@
 
 --*/
 
-#ifndef _MSQUIC_SRC_PLATFORM_DATAPATH_RAW_XDP_H_
-#define _MSQUIC_SRC_PLATFORM_DATAPATH_RAW_XDP_H_
+#pragma once
+
+#ifndef _DATAPATH_RAW_XDP_H_
+#define _DATAPATH_RAW_XDP_H_
 
 #define QUIC_API_ENABLE_PREVIEW_FEATURES 1
 
@@ -45,4 +47,4 @@ typedef struct QUIC_CACHEALIGN XDP_PARTITION {
     uint16_t PartitionIndex;
 } XDP_PARTITION;
 
-#endif  //  #ifndef _MSQUIC_SRC_PLATFORM_DATAPATH_RAW_XDP_H_
+#endif  //  _DATAPATH_RAW_XDP_H_

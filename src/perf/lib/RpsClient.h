@@ -10,8 +10,10 @@ Abstract:
 
 --*/
 
-#ifndef _MSQUIC_SRC_PERF_LIB_RPSCLIENT_H_
-#define _MSQUIC_SRC_PERF_LIB_RPSCLIENT_H_
+#pragma once
+
+#ifndef _RPSCLIENT_H_
+#define _RPSCLIENT_H_
 
 #include "PerfHelpers.h"
 #include "PerfBase.h"
@@ -218,4 +220,4 @@ public:
     bool SpecificLocalAddresses {false};
 };
 
-#endif  //  #ifndef _MSQUIC_SRC_PERF_LIB_RPSCLIENT_H_
+#endif  //  _RPSCLIENT_H_

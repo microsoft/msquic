@@ -31,8 +31,10 @@ Notes:
 
 --*/
 
-#ifndef _MSQUIC_SRC_TEST_LIB_KARRAY_H_
-#define _MSQUIC_SRC_TEST_LIB_KARRAY_H_
+#pragma once
+
+#ifndef _KARRAY_H_
+#define _KARRAY_H_
 
 #include <new.h>
 #include <ntintsafe.h>
@@ -734,4 +736,4 @@ private:
 
 }
 
-#endif  //  #ifndef _MSQUIC_SRC_TEST_LIB_KARRAY_H_
+#endif  //  _KARRAY_H_

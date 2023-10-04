@@ -76,8 +76,10 @@ Usage examples:
 
 --*/
 
-#ifndef _MSQUIC_SRC_INC_QUIC_HASHTABLE_H_
-#define _MSQUIC_SRC_INC_QUIC_HASHTABLE_H_
+#pragma once
+
+#ifndef _QUIC_HASHTABLE_H_
+#define _QUIC_HASHTABLE_H_
 
 #if defined(__cplusplus)
 extern "C" {
@@ -253,4 +255,4 @@ CxPlatHashSimple(
 }
 #endif
 
-#endif  //  #ifndef _MSQUIC_SRC_INC_QUIC_HASHTABLE_H_
+#endif  //  _QUIC_HASHTABLE_H_

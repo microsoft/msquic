@@ -9,8 +9,10 @@ Abstract:
 
 --*/
 
-#ifndef _MSQUIC_SRC_TEST_LIB_TESTABSTRACTIONLAYER_H_
-#define _MSQUIC_SRC_TEST_LIB_TESTABSTRACTIONLAYER_H_
+#pragma once
+
+#ifndef _TESTABSTRACTIONLAYER_H_
+#define _TESTABSTRACTIONLAYER_H_
 
 #include "quic_platform.h"
 #include "quic_datapath.h"
@@ -73,4 +75,4 @@ const uint32_t TestWaitTimeout = 2000;
     } \
 }
 
-#endif  //  #ifndef _MSQUIC_SRC_TEST_LIB_TESTABSTRACTIONLAYER_H_
+#endif  //  _TESTABSTRACTIONLAYER_H_

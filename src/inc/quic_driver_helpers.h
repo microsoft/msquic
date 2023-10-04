@@ -8,8 +8,10 @@ Abstract:
     This file contains helpers for interacting with a kernel mode driver service.
 --*/
 
-#ifndef _MSQUIC_SRC_INC_QUIC_DRIVER_HELPERS_H_
-#define _MSQUIC_SRC_INC_QUIC_DRIVER_HELPERS_H_
+#pragma once
+
+#ifndef _QUIC_DRIVER_HELPERS_H_
+#define _QUIC_DRIVER_HELPERS_H_
 
 #define QUIC_TEST_APIS 1
 #include "quic_platform.h"
@@ -423,4 +425,4 @@ public:
 
 #endif
 
-#endif  //  #ifndef _MSQUIC_SRC_INC_QUIC_DRIVER_HELPERS_H_
+#endif  //  _QUIC_DRIVER_HELPERS_H_

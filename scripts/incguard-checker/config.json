@@ -1,0 +1,13 @@
+{
+    "skip": [
+        "^generated",
+        "/generated/",
+        "/hdr_histogram\\.h$",
+        "/resource\\.h$"
+    ],
+    "options": {
+        "use_pragma_once": true,
+        "use_google_style": false,
+        "auto_fix": false
+    }
+}

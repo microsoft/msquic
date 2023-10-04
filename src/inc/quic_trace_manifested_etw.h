@@ -1,5 +1,7 @@
-#ifndef _MSQUIC_SRC_INC_QUIC_TRACE_MANIFESTED_ETW_H_
-#define _MSQUIC_SRC_INC_QUIC_TRACE_MANIFESTED_ETW_H_
+#pragma once
+
+#ifndef _QUIC_TRACE_MANIFESTED_ETW_H_
+#define _QUIC_TRACE_MANIFESTED_ETW_H_
 
 #include <evntprov.h>
 
@@ -36,4 +38,4 @@ QuicEtwCallback(
 
 #define CLOG_BYTEARRAY(Len, Data) (uint8_t)(Len), (uint8_t*)(Data)
 
-#endif  //  #ifndef _MSQUIC_SRC_INC_QUIC_TRACE_MANIFESTED_ETW_H_
+#endif  //  _QUIC_TRACE_MANIFESTED_ETW_H_

@@ -9,8 +9,10 @@ Abstract:
 
 --*/
 
-#ifndef _MSQUIC_SRC_CORE_CID_H_
-#define _MSQUIC_SRC_CORE_CID_H_
+#pragma once
+
+#ifndef _CID_H_
+#define _CID_H_
 
 //
 // The maximum CID server ID length used by MsQuic.
@@ -328,4 +330,4 @@ QuicCidToStr(
     return QuicCidBufToStr(CID->Data, CID->Length);
 }
 
-#endif  //  #ifndef _MSQUIC_SRC_CORE_CID_H_
+#endif  //  _CID_H_

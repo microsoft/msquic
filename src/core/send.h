@@ -5,8 +5,10 @@
 
 --*/
 
-#ifndef _MSQUIC_SRC_CORE_SEND_H_
-#define _MSQUIC_SRC_CORE_SEND_H_
+#pragma once
+
+#ifndef _SEND_H_
+#define _SEND_H_
 
 #define SEND_PACKET_SHORT_HEADER_TYPE 0xff
 
@@ -506,4 +508,4 @@ QuicSendClearStreamSendFlag(
     _In_ uint32_t SendFlag
     );
 
-#endif  //  #ifndef _MSQUIC_SRC_CORE_SEND_H_
+#endif  //  _SEND_H_

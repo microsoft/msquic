@@ -5,8 +5,10 @@
 
 --*/
 
-#ifndef _MSQUIC_SRC_CORE_CONFIGURATION_H_
-#define _MSQUIC_SRC_CORE_CONFIGURATION_H_
+#pragma once
+
+#ifndef _CONFIGURATION_H_
+#define _CONFIGURATION_H_
 
 //
 // Represents a set of TLS and QUIC configurations and settings.
@@ -174,4 +176,4 @@ QuicConfigurationParamSet(
         const void* Buffer
     );
 
-#endif  //  #ifndef _MSQUIC_SRC_CORE_CONFIGURATION_H_
+#endif  //  _CONFIGURATION_H_

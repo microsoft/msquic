@@ -9,8 +9,10 @@ Abstract:
 
 --*/
 
-#ifndef _MSQUIC_SRC_TEST_MSQUICTESTS_H_
-#define _MSQUIC_SRC_TEST_MSQUICTESTS_H_
+#pragma once
+
+#ifndef _MSQUICTESTS_H_
+#define _MSQUICTESTS_H_
 
 #ifndef QUIC_OFFICIAL_RELEASE
 #define QUIC_API_ENABLE_PREVIEW_FEATURES
@@ -1238,4 +1240,4 @@ typedef struct {
 
 #define QUIC_MAX_IOCTL_FUNC_CODE 115
 
-#endif  //  #ifndef _MSQUIC_SRC_TEST_MSQUICTESTS_H_
+#endif  //  _MSQUICTESTS_H_

@@ -10,8 +10,10 @@ Abstract:
 
 --*/
 
-#ifndef _MSQUIC_SRC_PERF_LIB_PERFSERVER_H_
-#define _MSQUIC_SRC_PERF_LIB_PERFSERVER_H_
+#pragma once
+
+#ifndef _PERFSERVER_H_
+#define _PERFSERVER_H_
 
 #include "PerfHelpers.h"
 #include "PerfBase.h"
@@ -207,4 +209,4 @@ private:
         );
 };
 
-#endif  //  #ifndef _MSQUIC_SRC_PERF_LIB_PERFSERVER_H_
+#endif  //  _PERFSERVER_H_

@@ -9,8 +9,10 @@ Abstract:
 
 --*/
 
-#ifndef _MSQUIC_SRC_TEST_LIB_TESTLISTENER_H_
-#define _MSQUIC_SRC_TEST_LIB_TESTLISTENER_H_
+#pragma once
+
+#ifndef _TESTLISTENER_H_
+#define _TESTLISTENER_H_
 
 class TestListener;
 
@@ -113,4 +115,4 @@ public:
     void SetHasRandomLoss(bool Value) { HasRandomLoss = Value; }
 };
 
-#endif  //  #ifndef _MSQUIC_SRC_TEST_LIB_TESTLISTENER_H_
+#endif  //  _TESTLISTENER_H_

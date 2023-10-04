@@ -9,8 +9,10 @@ Abstract:
 
 --*/
 
-#ifndef _MSQUIC_SRC_TEST_LIB_TESTSTREAM_H_
-#define _MSQUIC_SRC_TEST_LIB_TESTSTREAM_H_
+#pragma once
+
+#ifndef _TESTSTREAM_H_
+#define _TESTSTREAM_H_
 
 class TestStream;
 
@@ -239,4 +241,4 @@ public:
     QUIC_STATUS SetReceiveEnabled(bool value);
 };
 
-#endif  //  #ifndef _MSQUIC_SRC_TEST_LIB_TESTSTREAM_H_
+#endif  //  _TESTSTREAM_H_

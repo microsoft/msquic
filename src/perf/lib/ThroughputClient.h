@@ -10,8 +10,10 @@ Abstract:
 
 --*/
 
-#ifndef _MSQUIC_SRC_PERF_LIB_THROUGHPUTCLIENT_H_
-#define _MSQUIC_SRC_PERF_LIB_THROUGHPUTCLIENT_H_
+#pragma once
+
+#ifndef _THROUGHPUTCLIENT_H_
+#define _THROUGHPUTCLIENT_H_
 
 #include "PerfHelpers.h"
 #include "PerfBase.h"
@@ -187,4 +189,4 @@ private:
         );
 };
 
-#endif  //  #ifndef _MSQUIC_SRC_PERF_LIB_THROUGHPUTCLIENT_H_
+#endif  //  _THROUGHPUTCLIENT_H_

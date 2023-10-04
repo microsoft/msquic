@@ -5,8 +5,10 @@
 
 --*/
 
-#ifndef _MSQUIC_SRC_CORE_OPERATION_H_
-#define _MSQUIC_SRC_CORE_OPERATION_H_
+#pragma once
+
+#ifndef _OPERATION_H_
+#define _OPERATION_H_
 
 #ifdef QUIC_CLOG
 #include "operation.h.clog.h"
@@ -382,4 +384,4 @@ QuicOperationQueueClear(
     _In_ QUIC_OPERATION_QUEUE* OperQ
     );
 
-#endif  //  #ifndef _MSQUIC_SRC_CORE_OPERATION_H_
+#endif  //  _OPERATION_H_

@@ -5,8 +5,10 @@
 
 --*/
 
-#ifndef _MSQUIC_SRC_CORE_DATAGRAM_H_
-#define _MSQUIC_SRC_CORE_DATAGRAM_H_
+#pragma once
+
+#ifndef _DATAGRAM_H_
+#define _DATAGRAM_H_
 
 typedef struct QUIC_DATAGRAM {
 
@@ -107,4 +109,4 @@ QuicDatagramProcessFrame(
     _Inout_ uint16_t* Offset
     );
 
-#endif  //  #ifndef _MSQUIC_SRC_CORE_DATAGRAM_H_
+#endif  //  _DATAGRAM_H_

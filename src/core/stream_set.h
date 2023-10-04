@@ -5,8 +5,10 @@
 
 --*/
 
-#ifndef _MSQUIC_SRC_CORE_STREAM_SET_H_
-#define _MSQUIC_SRC_CORE_STREAM_SET_H_
+#pragma once
+
+#ifndef _STREAM_SET_H_
+#define _STREAM_SET_H_
 
 //
 // Info for a particular type of stream (client/server;bidir/unidir)
@@ -215,4 +217,4 @@ QuicStreamSetGetMaxStreamIDs(
         uint64_t* MaxStreamIds
     );
 
-#endif  //  #ifndef _MSQUIC_SRC_CORE_STREAM_SET_H_
+#endif  //  _STREAM_SET_H_

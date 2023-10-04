@@ -5,8 +5,10 @@
 
 --*/
 
-#ifndef _MSQUIC_SRC_TEST_BIN_QUIIC_GTEST_H_
-#define _MSQUIC_SRC_TEST_BIN_QUIIC_GTEST_H_
+#pragma once
+
+#ifndef _QUIC_GTEST_H_
+#define _QUIC_GTEST_H_
 
 #define QUIC_TEST_APIS 1
 
@@ -877,4 +879,4 @@ class WithValidateTlsConfigArgs : public testing::Test,
     public testing::WithParamInterface<TlsConfigArgs> {
 };
 
-#endif  //  #ifndef _MSQUIC_SRC_TEST_BIN_QUIIC_GTEST_H_
+#endif  //  _QUIC_GTEST_H_

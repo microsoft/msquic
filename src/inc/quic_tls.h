@@ -9,8 +9,10 @@ Abstract:
 
 --*/
 
-#ifndef _MSQUIC_SRC_INC_QUIC_TLS_H_
-#define _MSQUIC_SRC_INC_QUIC_TLS_H_
+#pragma once
+
+#ifndef _QUIC_TLS_H_
+#define _QUIC_TLS_H_
 
 #include "msquic.h"
 #include "quic_crypt.h"
@@ -536,4 +538,4 @@ QuicTlsPopulateOffloadKeys(
 }
 #endif
 
-#endif  //  #ifndef _MSQUIC_SRC_INC_QUIC_TLS_H_
+#endif  //  _QUIC_TLS_H_

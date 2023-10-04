@@ -9,8 +9,10 @@ Abstract:
 
 --*/
 
-#ifndef _MSQUIC_SRC_INC_QUIC_CRYPT_H_
-#define _MSQUIC_SRC_INC_QUIC_CRYPT_H_
+#pragma once
+
+#ifndef _QUIC_CRYPT_H_
+#define _QUIC_CRYPT_H_
 
 #if defined(__cplusplus)
 extern "C" {
@@ -396,4 +398,4 @@ CxPlatCryptSupports(
 }
 #endif
 
-#endif  //  #ifndef _MSQUIC_SRC_INC_QUIC_CRYPT_H_
+#endif  //  _QUIC_CRYPT_H_

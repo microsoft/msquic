@@ -5,8 +5,10 @@
 
 --*/
 
-#ifndef _MSQUIC_SRC_PLATFORM_DATAPATH_RAW_H_
-#define _MSQUIC_SRC_PLATFORM_DATAPATH_RAW_H_
+#pragma once
+
+#ifndef _DATAPATH_RAW_H_
+#define _DATAPATH_RAW_H_
 
 #define QUIC_API_ENABLE_PREVIEW_FEATURES 1
 
@@ -466,4 +468,4 @@ typedef struct TCP_HEADER {
 #define ETHERNET_TYPE_IPV4 0x0008
 #define ETHERNET_TYPE_IPV6 0xdd86
 
-#endif  //  #ifndef _MSQUIC_SRC_PLATFORM_DATAPATH_RAW_H_
+#endif  //  _DATAPATH_RAW_H_

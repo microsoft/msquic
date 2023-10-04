@@ -9,8 +9,10 @@ Abstract:
 
 --*/
 
-#ifndef _MSQUIC_SRC_PLUGINS_DBG_QUICTYPES_H_
-#define _MSQUIC_SRC_PLUGINS_DBG_QUICTYPES_H_
+#pragma once
+
+#ifndef _QUICTYPES_H_
+#define _QUICTYPES_H_
 
 #include "quicdbg.h"
 
@@ -1563,4 +1565,4 @@ struct QuicLibrary : Struct {
     }
 };
 
-#endif  //  #ifndef _MSQUIC_SRC_PLUGINS_DBG_QUICTYPES_H_
+#endif  //  _QUICTYPES_H_

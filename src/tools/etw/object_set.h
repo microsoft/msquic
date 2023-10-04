@@ -13,8 +13,10 @@ Abstract:
 
 --*/
 
-#ifndef _MSQUIC_SRC_TOOLS_ETW_OBJECT_SET_H_
-#define _MSQUIC_SRC_TOOLS_ETW_OBJECT_SET_H_
+#pragma once
+
+#ifndef _OBJECT_SET_H_
+#define _OBJECT_SET_H_
 
 #include "quic_platform.h"
 #include <stdio.h>
@@ -203,4 +205,4 @@ inline OBJECT** ObjectSetSort(_Inout_ OBJECT_SET* Set, _In_opt_ int (__cdecl * C
     return ObjArray;
 }
 
-#endif  //  #ifndef _MSQUIC_SRC_TOOLS_ETW_OBJECT_SET_H_
+#endif  //  _OBJECT_SET_H_

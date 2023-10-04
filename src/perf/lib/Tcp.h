@@ -9,8 +9,10 @@ Abstract:
 
 --*/
 
-#ifndef _MSQUIC_SRC_PERF_LIB_TCP_H_
-#define _MSQUIC_SRC_PERF_LIB_TCP_H_
+#pragma once
+
+#ifndef _TCP_H_
+#define _TCP_H_
 
 #include "PerfHelpers.h"
 #include "quic_datapath.h"
@@ -268,4 +270,4 @@ public:
     void Send(TcpSendData* Data);
 };
 
-#endif  //  #ifndef _MSQUIC_SRC_PERF_LIB_TCP_H_
+#endif  //  _TCP_H_

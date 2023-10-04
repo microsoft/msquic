@@ -9,8 +9,10 @@ Abstract:
 
 --*/
 
-#ifndef _MSQUIC_SRC_TOOLS_ETW_QJSON_H_
-#define _MSQUIC_SRC_TOOLS_ETW_QJSON_H_
+#pragma once
+
+#ifndef _QJSON_H_
+#define _QJSON_H_
 
 typedef struct QJSON {
     HANDLE File;
@@ -153,4 +155,4 @@ inline void QjArrayWriteBool(_In_ QJSON* Qj, _In_ BOOLEAN Value)
     Qj->NeedsComma = TRUE;
 }
 
-#endif  //  #ifndef _MSQUIC_SRC_TOOLS_ETW_QJSON_H_
+#endif  //  _QJSON_H_

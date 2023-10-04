@@ -9,8 +9,10 @@ Abstract:
 
 --*/
 
-#ifndef _MSQUIC_SRC_TEST_LIB_TESTCONNECTION_H_
-#define _MSQUIC_SRC_TEST_LIB_TESTCONNECTION_H_
+#pragma once
+
+#ifndef _TESTCONNECTION_H_
+#define _TESTCONNECTION_H_
 
 class TestConnection;
 
@@ -312,4 +314,4 @@ public:
     QUIC_STATUS SetTlsSecrets(QUIC_TLS_SECRETS* Secrets);
 };
 
-#endif  //  #ifndef _MSQUIC_SRC_TEST_LIB_TESTCONNECTION_H_
+#endif  //  _TESTCONNECTION_H_

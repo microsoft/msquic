@@ -14,8 +14,10 @@ Environment:
 
 --*/
 
-#ifndef _MSQUIC_SRC_INC_MSQUIC_WINKERNEL_H_
-#define _MSQUIC_SRC_INC_MSQUIC_WINKERNEL_H_
+#pragma once
+
+#ifndef _MSQUIC_WINKERNEL_H_
+#define _MSQUIC_WINKERNEL_H_
 
 #include <ws2def.h>
 #include <ws2ipdef.h>
@@ -356,4 +358,4 @@ QuicAddrToString(
     return Status == STATUS_SUCCESS;
 }
 
-#endif  //  #ifndef _MSQUIC_SRC_INC_MSQUIC_WINKERNEL_H_
+#endif  //  _MSQUIC_WINKERNEL_H_

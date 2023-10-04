@@ -5,8 +5,10 @@
 
 --*/
 
-#ifndef _MSQUIC_SRC_CORE_LOOKUP_H_
-#define _MSQUIC_SRC_CORE_LOOKUP_H_
+#pragma once
+
+#ifndef _LOOKUP_H_
+#define _LOOKUP_H_
 
 typedef struct QUIC_PARTITIONED_HASHTABLE QUIC_PARTITIONED_HASHTABLE;
 
@@ -204,4 +206,4 @@ QuicLookupMoveLocalConnectionIDs(
     _In_ QUIC_CONNECTION* Connection
     );
 
-#endif  //  #ifndef _MSQUIC_SRC_CORE_LOOKUP_H_
+#endif  //  _LOOKUP_H_

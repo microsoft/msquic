@@ -5,8 +5,10 @@
 
 --*/
 
-#ifndef _MSQUIC_SRC_CORE_LIBRARY_H_
-#define _MSQUIC_SRC_CORE_LIBRARY_H_
+#pragma once
+
+#ifndef _LIBRARY_H_
+#define _LIBRARY_H_
 
 #if defined(__cplusplus)
 extern "C" {
@@ -648,4 +650,4 @@ QuicLibraryGenerateStatelessResetToken(
 }
 #endif
 
-#endif  //  #ifndef _MSQUIC_SRC_CORE_LIBRARY_H_
+#endif  //  _LIBRARY_H_

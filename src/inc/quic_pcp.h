@@ -10,8 +10,10 @@ Abstract:
 
 --*/
 
-#ifndef _MSQUIC_SRC_INC_QUIC_PCP_H_
-#define _MSQUIC_SRC_INC_QUIC_PCP_H_
+#pragma once
+
+#ifndef _QUIC_PCP_H_
+#define _QUIC_PCP_H_
 
 #include "quic_datapath.h"
 
@@ -128,4 +130,4 @@ CxPlatPcpSendPeerRequest(
 }
 #endif
 
-#endif  //  #ifndef _MSQUIC_SRC_INC_QUIC_PCP_H_
+#endif  //  _QUIC_PCP_H_

@@ -10,8 +10,10 @@ Abstract:
 
 --*/
 
-#ifndef _MSQUIC_SRC_INC_QUIC_DATAPATH_H_
-#define _MSQUIC_SRC_INC_QUIC_DATAPATH_H_
+#pragma once
+
+#ifndef _QUIC_DATAPATH_H_
+#define _QUIC_DATAPATH_H_
 
 #include "quic_platform.h"
 
@@ -777,4 +779,4 @@ CxPlatUpdateRoute(
 }
 #endif
 
-#endif  //  #ifndef _MSQUIC_SRC_INC_QUIC_DATAPATH_H_
+#endif  //  _QUIC_DATAPATH_H_

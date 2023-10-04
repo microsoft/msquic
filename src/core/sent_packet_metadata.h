@@ -5,8 +5,10 @@
 
 --*/
 
-#ifndef _MSQUIC_SRC_CORE_SENT_PACKET_METADATA_H_
-#define _MSQUIC_SRC_CORE_SENT_PACKET_METADATA_H_
+#pragma once
+
+#ifndef _SENT_PACKET_METADATA_H_
+#define _SENT_PACKET_METADATA_H_
 
 //
 // The maximum number of frames we will write to a single packet.
@@ -250,4 +252,4 @@ QuicSentPacketPoolReturnPacketMetadata(
     _In_ QUIC_SENT_PACKET_METADATA* Metadata
     );
 
-#endif  //  #ifndef _MSQUIC_SRC_CORE_SENT_PACKET_METADATA_H_
+#endif  //  _SENT_PACKET_METADATA_H_

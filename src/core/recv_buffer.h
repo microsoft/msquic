@@ -5,8 +5,10 @@
 
 --*/
 
-#ifndef _MSQUIC_SRC_CORE_RECV_BUFFER_H_
-#define _MSQUIC_SRC_CORE_RECV_BUFFER_H_
+#pragma once
+
+#ifndef _RECV_BUFFER_H_
+#define _RECV_BUFFER_H_
 
 typedef struct QUIC_RECV_BUFFER {
 
@@ -161,4 +163,4 @@ QuicRecvBufferDrain(
     _In_ uint64_t BufferLength
     );
 
-#endif  //  #ifndef _MSQUIC_SRC_CORE_RECV_BUFFER_H_
+#endif  //  _RECV_BUFFER_H_

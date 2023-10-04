@@ -5,8 +5,10 @@
 
 --*/
 
-#ifndef _MSQUIC_SRC_PLATFORM_UNITTEST_MAIN_H_
-#define _MSQUIC_SRC_PLATFORM_UNITTEST_MAIN_H_
+#pragma once
+
+#ifndef _MAIN_H_
+#define _MAIN_H_
 
 #undef min // gtest headers conflict with previous definitions of min/max.
 #undef max
@@ -23,4 +25,4 @@
 #define GTEST_SKIP_NO_RETURN_(message) \
   GTEST_MESSAGE_(message, ::testing::TestPartResult::kSkip)
 
-#endif  //  #ifndef _MSQUIC_SRC_PLATFORM_UNITTEST_MAIN_H_
+#endif  //  _MAIN_H_

@@ -5,8 +5,10 @@
 
 --*/
 
-#ifndef _MSQUIC_SRC_TOOLS_ETW_QUICETW_H_
-#define _MSQUIC_SRC_TOOLS_ETW_QUICETW_H_
+#pragma once
+
+#ifndef _QUICETW_H_
+#define _QUICETW_H_
 
 #include "quic_platform.h"
 #include "msquic.h"
@@ -1198,4 +1200,4 @@ QuicErrorToString(
     }
 }
 
-#endif  //  #ifndef _MSQUIC_SRC_TOOLS_ETW_QUICETW_H_
+#endif  //  _QUICETW_H_

@@ -9,8 +9,10 @@ Abstract:
 
 --*/
 
-#ifndef _MSQUIC_SRC_CORE_TRANSPORT_PARAMS_H_
-#define _MSQUIC_SRC_CORE_TRANSPORT_PARAMS_H_
+#pragma once
+
+#ifndef _TRANSPORT_PARAMS_H_
+#define _TRANSPORT_PARAMS_H_
 
 #if defined(__cplusplus)
 extern "C" {
@@ -209,4 +211,4 @@ QuicCryptoTlsCleanupTransportParameters(
 }
 #endif
 
-#endif  //  #ifndef _MSQUIC_SRC_CORE_TRANSPORT_PARAMS_H_
+#endif  //  _TRANSPORT_PARAMS_H_

@@ -5,8 +5,10 @@
 
 --*/
 
-#ifndef _MSQUIC_SRC_CORE_PACKET_SPACE_H_
-#define _MSQUIC_SRC_CORE_PACKET_SPACE_H_
+#pragma once
+
+#ifndef _PACKET_SPACE_H_
+#define _PACKET_SPACE_H_
 
 typedef enum QUIC_ENCRYPT_LEVEL {
 
@@ -155,4 +157,4 @@ QuicPacketSpaceReset(
     _In_ QUIC_PACKET_SPACE* Packets
     );
 
-#endif  //  #ifndef _MSQUIC_SRC_CORE_PACKET_SPACE_H_
+#endif  //  _PACKET_SPACE_H_

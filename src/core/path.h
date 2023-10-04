@@ -5,8 +5,10 @@
 
 --*/
 
-#ifndef _MSQUIC_SRC_CORE_PATH_H_
-#define _MSQUIC_SRC_CORE_PATH_H_
+#pragma once
+
+#ifndef _PATH_H_
+#define _PATH_H_
 
 //
 // ECN validation state transition:
@@ -325,4 +327,4 @@ QuicPathUpdateQeo(
     _In_ CXPLAT_QEO_OPERATION Operation
     );
 
-#endif  //  #ifndef _MSQUIC_SRC_CORE_PATH_H_
+#endif  //  _PATH_H_

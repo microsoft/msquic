@@ -9,8 +9,10 @@ Abstract:
 
 --*/
 
-#ifndef _MSQUIC_SRC_PERF_LIB_PERFCOMMON_H_
-#define _MSQUIC_SRC_PERF_LIB_PERFCOMMON_H_
+#pragma once
+
+#ifndef _PERFCOMMON_H_
+#define _PERFCOMMON_H_
 
 #define PERF_ALPN                           "perf"
 #define PERF_DEFAULT_PORT                   4433
@@ -44,4 +46,4 @@ extern QUIC_CONGESTION_CONTROL_ALGORITHM PerfDefaultCongestionControl;
 extern uint8_t PerfDefaultEcnEnabled;
 extern uint8_t PerfDefaultQeoAllowed;
 
-#endif  //  #ifndef _MSQUIC_SRC_PERF_LIB_PERFCOMMON_H_
+#endif  //  _PERFCOMMON_H_

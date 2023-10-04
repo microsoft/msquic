@@ -31,8 +31,10 @@ Abstract:
 
  --*/
 
-#ifndef _MSQUIC_SRC_INC_QUIC_TRACE_H_
-#define _MSQUIC_SRC_INC_QUIC_TRACE_H_
+#pragma once
+
+#ifndef _QUIC_TRACE_H_
+#define _QUIC_TRACE_H_
 
 #if !defined(QUIC_CLOG)
 #if !defined(QUIC_EVENTS_STUB) && !defined(QUIC_EVENTS_MANIFEST_ETW) && !defined(QUIC_EVENTS_STDOUT)
@@ -358,4 +360,4 @@ QuicEtwCallback(
 
 #endif // QUIC_CLOG
 
-#endif  //  #ifndef _MSQUIC_SRC_INC_QUIC_TRACE_H_
+#endif  //  _QUIC_TRACE_H_

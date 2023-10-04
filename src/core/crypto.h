@@ -10,8 +10,10 @@ Abstract:
 
 --*/
 
-#ifndef _MSQUIC_SRC_CORE_CRYPTO_H_
-#define _MSQUIC_SRC_CORE_CRYPTO_H_
+#pragma once
+
+#ifndef _CRYPTO_H_
+#define _CRYPTO_H_
 
 #if defined(__cplusplus)
 extern "C" {
@@ -446,4 +448,4 @@ QuicCryptoReNegotiateAlpn(
 }
 #endif
 
-#endif  //  #ifndef _MSQUIC_SRC_CORE_CRYPTO_H_
+#endif  //  _CRYPTO_H_

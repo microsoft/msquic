@@ -10,8 +10,10 @@ Abstract:
 
 --*/
 
-#ifndef _MSQUIC_SRC_PERF_LIB_HPSCLIENT_H_
-#define _MSQUIC_SRC_PERF_LIB_HPSCLIENT_H_
+#pragma once
+
+#ifndef _HPSCLIENT_H_
+#define _HPSCLIENT_H_
 
 #include "PerfHelpers.h"
 #include "PerfBase.h"
@@ -123,4 +125,4 @@ public:
     uint64_t StartTime {0};
 };
 
-#endif  //  #ifndef _MSQUIC_SRC_PERF_LIB_HPSCLIENT_H_
+#endif  //  _HPSCLIENT_H_

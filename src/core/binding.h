@@ -5,8 +5,10 @@
 
 --*/
 
-#ifndef _MSQUIC_SRC_CORE_BINDING_H_
-#define _MSQUIC_SRC_CORE_BINDING_H_
+#pragma once
+
+#ifndef _BINDING_H_
+#define _BINDING_H_
 
 typedef struct QUIC_PARTITIONED_HASHTABLE QUIC_PARTITIONED_HASHTABLE;
 typedef struct QUIC_STATELESS_CONTEXT QUIC_STATELESS_CONTEXT;
@@ -520,4 +522,4 @@ QuicRetryTokenDecrypt(
     return QUIC_SUCCEEDED(Status);
 }
 
-#endif  //  #ifndef _MSQUIC_SRC_CORE_BINDING_H_
+#endif  //  _BINDING_H_

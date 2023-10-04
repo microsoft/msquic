@@ -5,8 +5,10 @@
 
 --*/
 
-#ifndef _MSQUIC_SRC_CORE_TIMER_WHEEL_H_
-#define _MSQUIC_SRC_CORE_TIMER_WHEEL_H_
+#pragma once
+
+#ifndef _TIMER_WHEEL_H_
+#define _TIMER_WHEEL_H_
 
 typedef struct QUIC_CONNECTION QUIC_CONNECTION;
 
@@ -89,4 +91,4 @@ QuicTimerWheelGetExpired(
     _Inout_ CXPLAT_LIST_ENTRY* ListHead
     );
 
-#endif  //  #ifndef _MSQUIC_SRC_CORE_TIMER_WHEEL_H_
+#endif  //  _TIMER_WHEEL_H_

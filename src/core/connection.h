@@ -5,8 +5,10 @@
 
 --*/
 
-#ifndef _MSQUIC_SRC_CORE_CONNECTION_H_
-#define _MSQUIC_SRC_CORE_CONNECTION_H_
+#pragma once
+
+#ifndef _CONNECTION_H_
+#define _CONNECTION_H_
 
 #ifdef QUIC_CLOG
 #include "connection.h.clog.h"
@@ -1653,4 +1655,4 @@ QuicMtuDiscoveryCheckSearchCompleteTimeout(
     }
 }
 
-#endif  //  #ifndef _MSQUIC_SRC_CORE_CONNECTION_H_
+#endif  //  _CONNECTION_H_

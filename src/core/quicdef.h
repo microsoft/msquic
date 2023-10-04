@@ -5,8 +5,10 @@
 
 --*/
 
-#ifndef _MSQUIC_SRC_CORE_QUICDEF_H_
-#define _MSQUIC_SRC_CORE_QUICDEF_H_
+#pragma once
+
+#ifndef _QUICDEF_H_
+#define _QUICDEF_H_
 
 typedef struct QUIC_BINDING QUIC_BINDING;
 typedef struct QUIC_OPERATION QUIC_OPERATION;
@@ -675,4 +677,4 @@ CXPLAT_STATIC_ASSERT(
 
 #define QUIC_SETTING_CONGESTION_CONTROL_ALGORITHM   "CongestionControlAlgorithm"
 
-#endif  //  #ifndef _MSQUIC_SRC_CORE_QUICDEF_H_
+#endif  //  _QUICDEF_H_

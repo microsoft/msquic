@@ -5,8 +5,10 @@
 
 --*/
 
-#ifndef _MSQUIC_SRC_TOOLS_INTEROP_INTEROP_H_
-#define _MSQUIC_SRC_TOOLS_INTEROP_INTEROP_H_
+#pragma once
+
+#ifndef _INTEROP_H_
+#define _INTEROP_H_
 
 #define _CRT_NONSTDC_NO_DEPRECATE 1
 #define _CRT_SECURE_NO_WARNINGS 1
@@ -52,4 +54,4 @@ inline QuicTestFeature operator|(QuicTestFeature a, QuicTestFeature b)
 
 const QuicTestFeature QuicTestFeatureDataPath = StreamData | ZeroRtt;
 
-#endif  //  #ifndef _MSQUIC_SRC_TOOLS_INTEROP_INTEROP_H_
+#endif  //  _INTEROP_H_

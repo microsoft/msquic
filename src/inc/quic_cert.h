@@ -13,8 +13,10 @@ Environment:
 
 --*/
 
-#ifndef _MSQUIC_SRC_INC_QUIC_CERT_H_
-#define _MSQUIC_SRC_INC_QUIC_CERT_H_
+#pragma once
+
+#ifndef _QUIC_CERT_H_
+#define _QUIC_CERT_H_
 
 #define SIZEOF_CERT_CHAIN_LIST_LENGTH 3
 
@@ -191,4 +193,4 @@ CxPlatCertVerifyRawCertificate(
     _Out_opt_ uint32_t* PlatformVerificationError
     );
 
-#endif  //  #ifndef _MSQUIC_SRC_INC_QUIC_CERT_H_
+#endif  //  _QUIC_CERT_H_

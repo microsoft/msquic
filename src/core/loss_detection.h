@@ -5,8 +5,10 @@
 
 --*/
 
-#ifndef _MSQUIC_SRC_CORE_LOSS_DETECTION_H_
-#define _MSQUIC_SRC_CORE_LOSS_DETECTION_H_
+#pragma once
+
+#ifndef _LOSS_DETECTION_H_
+#define _LOSS_DETECTION_H_
 
 typedef struct QUIC_LOSS_DETECTION {
 
@@ -191,4 +193,4 @@ QuicLossDetectionProcessTimerOperation(
     _In_ QUIC_LOSS_DETECTION* LossDetection
     );
 
-#endif  //  #ifndef _MSQUIC_SRC_CORE_LOSS_DETECTION_H_
+#endif  //  _LOSS_DETECTION_H_

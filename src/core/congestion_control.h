@@ -5,8 +5,10 @@
 
 --*/
 
-#ifndef _MSQUIC_SRC_CORE_CONGESTION_CONTROL_H_
-#define _MSQUIC_SRC_CORE_CONGESTION_CONTROL_H_
+#pragma once
+
+#ifndef _CONGESTION_CONTROL_H_
+#define _CONGESTION_CONTROL_H_
 
 #include "bbr.h"
 #include "cubic.h"
@@ -374,4 +376,4 @@ QuicCongestionControlSetAppLimited(
     Cc->QuicCongestionControlSetAppLimited(Cc);
 }
 
-#endif  //  #ifndef _MSQUIC_SRC_CORE_CONGESTION_CONTROL_H_
+#endif  //  _CONGESTION_CONTROL_H_

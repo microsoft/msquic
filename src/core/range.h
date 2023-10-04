@@ -5,8 +5,10 @@
 
 --*/
 
-#ifndef _MSQUIC_SRC_CORE_RANGE_H_
-#define _MSQUIC_SRC_CORE_RANGE_H_
+#pragma once
+
+#ifndef _RANGE_H_
+#define _RANGE_H_
 
 #if defined(__cplusplus)
 extern "C" {
@@ -386,4 +388,4 @@ QuicRangeGetMaxSafe(
 }
 #endif
 
-#endif  //  #ifndef _MSQUIC_SRC_CORE_RANGE_H_
+#endif  //  _RANGE_H_

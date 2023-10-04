@@ -5,8 +5,10 @@
 
 --*/
 
-#ifndef _MSQUIC_SRC_TOOLS_ATTACK_PACKET_WRITER_H_
-#define _MSQUIC_SRC_TOOLS_ATTACK_PACKET_WRITER_H_
+#pragma once
+
+#ifndef _PACKET_WRITER_H_
+#define _PACKET_WRITER_H_
 
 #define VERIFY(X) if (!(X)) { printf(#X " FALSE!\n"); exit(0); }
 
@@ -51,4 +53,4 @@ public:
         );
 };
 
-#endif  //  #ifndef _MSQUIC_SRC_TOOLS_ATTACK_PACKET_WRITER_H_
+#endif  //  _PACKET_WRITER_H_

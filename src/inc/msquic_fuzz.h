@@ -21,8 +21,10 @@ Abstract:
 
 --*/
 
-#ifndef _MSQUIC_SRC_INC_MSQUIC_FUZZ_H_
-#define _MSQUIC_SRC_INC_MSQUIC_FUZZ_H_
+#pragma once
+
+#ifndef _MSQUIC_FUZZ_H_
+#define _MSQUIC_FUZZ_H_
 
 #if defined(__cplusplus)
 extern "C" {
@@ -169,4 +171,4 @@ MsQuicFuzzSimulateReceive(
 }
 #endif
 
-#endif  //  #ifndef _MSQUIC_SRC_INC_MSQUIC_FUZZ_H_
+#endif  //  _MSQUIC_FUZZ_H_

@@ -5,8 +5,10 @@
 
 --*/
 
-#ifndef _MSQUIC_SRC_TEST_LIB_PRECOMP_H_
-#define _MSQUIC_SRC_TEST_LIB_PRECOMP_H_
+#pragma once
+
+#ifndef _PRECOMP_H_
+#define _PRECOMP_H_
 
 //
 // Test code defaults to disabling certificate validation.
@@ -46,4 +48,4 @@
 #include "TestListener.h"
 #include "DrillDescriptor.h"
 
-#endif  //  #ifndef _MSQUIC_SRC_TEST_LIB_PRECOMP_H_
+#endif  //  _PRECOMP_H_

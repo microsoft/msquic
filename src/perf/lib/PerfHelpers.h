@@ -9,8 +9,10 @@ Abstract:
 
 --*/
 
-#ifndef _MSQUIC_SRC_PERF_LIB_PERFHELPERS_H_
-#define _MSQUIC_SRC_PERF_LIB_PERFHELPERS_H_
+#pragma once
+
+#ifndef _PERFHELPERS_H_
+#define _PERFHELPERS_H_
 
 #ifdef QUIC_CLOG
 #include "PerfHelpers.h.clog.h"
@@ -352,4 +354,4 @@ QuicPrintConnectionStatistics(
     }
 }
 
-#endif  //  #ifndef _MSQUIC_SRC_PERF_LIB_PERFHELPERS_H_
+#endif  //  _PERFHELPERS_H_

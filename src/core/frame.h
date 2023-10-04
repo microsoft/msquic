@@ -5,8 +5,10 @@
 
 --*/
 
-#ifndef _MSQUIC_SRC_CORE_FRAME_H_
-#define _MSQUIC_SRC_CORE_FRAME_H_
+#pragma once
+
+#ifndef _FRAME_H_
+#define _FRAME_H_
 
 //
 // QUIC Transport Error codes defined by the QUIC Transport RFC.
@@ -981,4 +983,4 @@ QuicFrameLogAll(
 }
 #endif
 
-#endif  //  #ifndef _MSQUIC_SRC_CORE_FRAME_H_
+#endif  //  _FRAME_H_

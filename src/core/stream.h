@@ -5,8 +5,10 @@
 
 --*/
 
-#ifndef _MSQUIC_SRC_CORE_STREAM_H_
-#define _MSQUIC_SRC_CORE_STREAM_H_
+#pragma once
+
+#ifndef _STREAM_H_
+#define _STREAM_H_
 
 #ifdef QUIC_CLOG
 #include "stream.h.clog.h"
@@ -1024,4 +1026,4 @@ QuicStreamRecvSetEnabledState(
     _In_ BOOLEAN NewRecvEnabled
     );
 
-#endif  //  #ifndef _MSQUIC_SRC_CORE_STREAM_H_
+#endif  //  _STREAM_H_

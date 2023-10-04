@@ -10,8 +10,10 @@ Abstract:
 
 --*/
 
-#ifndef _MSQUIC_SRC_PERF_LIB_PERFBASE_H_
-#define _MSQUIC_SRC_PERF_LIB_PERFBASE_H_
+#pragma once
+
+#ifndef _PERFBASE_H_
+#define _PERFBASE_H_
 
 #include "msquic.h"
 #include "quic_platform.h"
@@ -86,4 +88,4 @@ struct PerfBase {
         ) = 0;
 };
 
-#endif  //  #ifndef _MSQUIC_SRC_PERF_LIB_PERFBASE_H_
+#endif  //  _PERFBASE_H_

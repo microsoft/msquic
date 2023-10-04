@@ -5,8 +5,10 @@
 
 --*/
 
-#ifndef _MSQUIC_SRC_CORE_UNITTEST_MAIN_H_
-#define _MSQUIC_SRC_CORE_UNITTEST_MAIN_H_
+#pragma once
+
+#ifndef _MAIN_H_
+#define _MAIN_H_
 
 #include "precomp.h"
 
@@ -95,4 +97,4 @@ std::ostream& operator << (std::ostream& o, const QUIC_FRAME_TYPE& type) {
     }
 }
 
-#endif  //  #ifndef _MSQUIC_SRC_CORE_UNITTEST_MAIN_H_
+#endif  //  _MAIN_H_

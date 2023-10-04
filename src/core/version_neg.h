@@ -9,8 +9,10 @@ Abstract:
 
 --*/
 
-#ifndef _MSQUIC_SRC_CORE_VERSION_NEG_H_
-#define _MSQUIC_SRC_CORE_VERSION_NEG_H_
+#pragma once
+
+#ifndef _VERSION_NEG_H_
+#define _VERSION_NEG_H_
 
 #if defined(__cplusplus)
 extern "C" {
@@ -89,4 +91,4 @@ QuicVersionNegotiationExtEncodeVersionInfo(
 }
 #endif
 
-#endif  //  #ifndef _MSQUIC_SRC_CORE_VERSION_NEG_H_
+#endif  //  _VERSION_NEG_H_

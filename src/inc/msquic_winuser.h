@@ -14,8 +14,10 @@ Environment:
 
 --*/
 
-#ifndef _MSQUIC_SRC_INC_MSQUIC_WINUSER_H_
-#define _MSQUIC_SRC_INC_MSQUIC_WINUSER_H_
+#pragma once
+
+#ifndef _MSQUIC_WINUSER_H_
+#define _MSQUIC_WINUSER_H_
 
 #ifndef WIN32_LEAN_AND_MEAN
 #define WIN32_LEAN_AND_MEAN
@@ -371,4 +373,4 @@ QuicAddrToString(
 
 #endif // WINAPI_FAMILY != WINAPI_FAMILY_GAMES
 
-#endif  //  #ifndef _MSQUIC_SRC_INC_MSQUIC_WINUSER_H_
+#endif  //  _MSQUIC_WINUSER_H_

@@ -5,8 +5,10 @@
 
 --*/
 
-#ifndef _MSQUIC_SRC_CORE_PRECOMP_H_
-#define _MSQUIC_SRC_CORE_PRECOMP_H_
+#pragma once
+
+#ifndef _PRECOMP_H_
+#define _PRECOMP_H_
 
 #ifdef _WIN32
 #pragma warning(disable:4100)  // unreferenced formal parameter
@@ -82,4 +84,4 @@
 #include "bbr.h"
 #include "sliding_window_extremum.h"
 
-#endif  //  #ifndef _MSQUIC_SRC_CORE_PRECOMP_H_
+#endif  //  _PRECOMP_H_

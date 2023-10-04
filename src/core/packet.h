@@ -5,8 +5,10 @@
 
 --*/
 
-#ifndef _MSQUIC_SRC_CORE_PACKET_H_
-#define _MSQUIC_SRC_CORE_PACKET_H_
+#pragma once
+
+#ifndef _PACKET_H_
+#define _PACKET_H_
 
 #define CXPLAT_VERSION_SALT_LENGTH 20
 #define QUIC_VERSION_RETRY_INTEGRITY_SECRET_LENGTH 32
@@ -642,4 +644,4 @@ QuicPacketLogDropWithValue(
     _In_ uint64_t Value
     );
 
-#endif  //  #ifndef _MSQUIC_SRC_CORE_PACKET_H_
+#endif  //  _PACKET_H_

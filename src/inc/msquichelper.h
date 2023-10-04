@@ -13,8 +13,10 @@ Environment:
 
 --*/
 
-#ifndef _MSQUIC_SRC_INC_MSQUICHELPER_H_
-#define _MSQUIC_SRC_INC_MSQUICHELPER_H_
+#pragma once
+
+#ifndef _MSQUICHELPER_H_
+#define _MSQUICHELPER_H_
 
 #include "quic_platform.h"
 #include "msquic.h"
@@ -653,4 +655,4 @@ WriteSslKeyLogFile(
 
 #endif // defined(__cplusplus)
 
-#endif  //  #ifndef _MSQUIC_SRC_INC_MSQUICHELPER_H_
+#endif  //  _MSQUICHELPER_H_

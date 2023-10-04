@@ -18,8 +18,10 @@ Supported Platforms:
 
 --*/
 
-#ifndef _MSQUIC_SRC_INC_MSQUIC_H_
-#define _MSQUIC_SRC_INC_MSQUIC_H_
+#pragma once
+
+#ifndef _MSQUIC_H_
+#define _MSQUIC_H_
 
 #ifdef _WIN32
 #pragma warning(disable:4201)  // nonstandard extension used: nameless struct/union
@@ -1672,4 +1674,4 @@ MsQuicOpen2(
 }
 #endif
 
-#endif  //  #ifndef _MSQUIC_SRC_INC_MSQUIC_H_
+#endif  //  _MSQUIC_H_

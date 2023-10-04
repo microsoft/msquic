@@ -5,8 +5,10 @@
 
 --*/
 
-#ifndef _MSQUIC_SRC_CORE_MTU_DISCOVERY_H_
-#define _MSQUIC_SRC_CORE_MTU_DISCOVERY_H_
+#pragma once
+
+#ifndef _MTU_DISCOVERY_H_
+#define _MTU_DISCOVERY_H_
 
 typedef struct QUIC_MTU_DISCOVERY {
 
@@ -84,4 +86,4 @@ QuicMtuDiscoveryProbePacketDiscarded(
     _In_ uint16_t PacketMtu
     );
 
-#endif  //  #ifndef _MSQUIC_SRC_CORE_MTU_DISCOVERY_H_
+#endif  //  _MTU_DISCOVERY_H_
