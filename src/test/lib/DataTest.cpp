@@ -3410,7 +3410,6 @@ QuicTestStreamReliableReset(
         // Test that the error code we got was for the SEND shutdown.
         TEST_TRUE(Context.ShutdownErrorCode == AbortSendShutdownErrorCode);
     }
-    delete SendDataBuffer;
 }
 void
 QuicTestStreamReliableResetMultipleSends(
@@ -3430,9 +3429,9 @@ QuicTestStreamReliableResetMultipleSends(
     TEST_QUIC_SUCCEEDED(ClientConfiguration.GetInitStatus());
 
     StreamReliableReset Context;
-    uint8_t *SendDataBuffer = new(std::nothrow) uint8_t[BUFFER_SIZE_MULTI_SENDS];
+    UniquePtr<uint8_t> SendDataBuffer = UniquePtr<uint8_t>(new(std::nothrow) uint8_t[BUFFER_SIZE_MULTI_SENDS]);
 
-    QUIC_BUFFER SendBuffer { BUFFER_SIZE_MULTI_SENDS, SendDataBuffer };
+    QUIC_BUFFER SendBuffer { BUFFER_SIZE_MULTI_SENDS, SendDataBuffer.get() };
     Context.ReceivedBufferSize = 0;
     Context.SequenceNum = 0;
     Context.ShutdownErrorCode = 0;
@@ -3485,5 +3484,4 @@ QuicTestStreamReliableResetMultipleSends(
 
     // Test Error code matches what we sent.
     TEST_TRUE(Context.ShutdownErrorCode == AbortShutdownErrorCode);
-    delete SendDataBuffer;
 }
