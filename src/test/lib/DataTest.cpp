@@ -3410,6 +3410,7 @@ QuicTestStreamReliableReset(
         // Test that the error code we got was for the SEND shutdown.
         TEST_TRUE(Context.ShutdownErrorCode == AbortSendShutdownErrorCode);
     }
+    delete SendDataBuffer;
 }
 void
 QuicTestStreamReliableResetMultipleSends(
@@ -3484,4 +3485,5 @@ QuicTestStreamReliableResetMultipleSends(
 
     // Test Error code matches what we sent.
     TEST_TRUE(Context.ShutdownErrorCode == AbortShutdownErrorCode);
+    delete SendDataBuffer;
 }
