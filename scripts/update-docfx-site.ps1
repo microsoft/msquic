@@ -4,7 +4,7 @@ $env:GIT_REDIRECT_STDERR = '2>&1'
 git fetch
 # Stash any changes to the current branch
 git stash
-git checkout performance-dupe
+git checkout performance
 
 # Commit the output file.
 git config user.email "quicdev@microsoft.com"
