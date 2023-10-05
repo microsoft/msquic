@@ -632,6 +632,11 @@ CxPlatSocketContextInitialize(
     }
     FlushTxInitialized = TRUE;
 
+
+    if (SocketType == CXPLAT_SOCKET_TCP_SERVER) {
+        return Status;
+    }
+
     //
     // Create datagram socket.
     //
@@ -651,7 +656,6 @@ CxPlatSocketContextInitialize(
             "socket failed");
         goto Exit;
     }
-
     //
     // Set dual (IPv4 & IPv6) socket mode.
     //
@@ -1082,6 +1086,25 @@ CxPlatSocketContextUninitialize(
     if (!SocketContext->IoStarted) {
         CxPlatSocketContextUninitializeComplete(SocketContext);
     } else {
+        if (SocketContext->Binding->Type == CXPLAT_SOCKET_TCP ||
+            SocketContext->Binding->Type == CXPLAT_SOCKET_TCP_SERVER) {
+            //
+            // For TCP sockets, we should shutdown the socket before closing it.
+            //
+            SocketContext->Binding->DisconnectIndicated = TRUE;
+            if (shutdown(SocketContext->SocketFd, SHUT_RDWR) != 0) {
+                int Errno = errno;
+                if (Errno != ENOTCONN) {
+                    QuicTraceEvent(
+                        DatapathErrorStatus,
+                        "[data][%p] ERROR, %u, %s.",
+                        SocketContext->Binding,
+                        Errno,
+                        "shutdown");
+                }
+            }
+        }
+
         CxPlatRundownReleaseAndWait(&SocketContext->UpcallRundown); // Block until all upcalls complete.
 
         //
@@ -1320,6 +1343,10 @@ CxPlatSocketCreateTcpInternal(
     if (QUIC_FAILED(Status)) {
         goto Exit;
     }
+    if (Binding->Type == CXPLAT_SOCKET_TCP_SERVER) {
+        *NewBinding = Binding;
+        return Status;
+    }
 
     if (IsServerSocket) {
         //
@@ -1390,8 +1417,6 @@ SocketCreateTcpListener(
     )
 {
     QUIC_STATUS Status;
-    // int Result;
-    // int Option;
 
     CXPLAT_DBG_ASSERT(Datapath->TcpHandlers.Receive != NULL);
 
@@ -1457,7 +1482,7 @@ SocketCreateTcpListener(
 
     *Socket = Binding;
 
-    CxPlatSocketContextSetEvents(SocketContext, EPOLL_CTL_ADD, EPOLLIN | EPOLLOUT);
+    CxPlatSocketContextSetEvents(SocketContext, EPOLL_CTL_ADD, EPOLLIN);
 
     SocketContext->IoStarted = TRUE;
     Binding = NULL;
@@ -1936,12 +1961,25 @@ CxPlatSocketTcpRecvComplete(
     uint8_t* Buffer = (uint8_t*)IoBlock + DatapathPartition->Datapath->RecvBlockBufferOffset;
     int NumberOfBytesTransferred = read(SocketContext->SocketFd, Buffer, CXPLAT_LARGE_IO_BUFFER_SIZE);
 
-    if (NumberOfBytesTransferred <= 0) {
-        SocketContext->Binding->DisconnectIndicated = TRUE;
-        SocketContext->Binding->Datapath->TcpHandlers.Connect(
-            SocketContext->Binding,
-            SocketContext->Binding->ClientContext,
-            FALSE);
+    if (NumberOfBytesTransferred == 0) {
+        if (!SocketContext->Binding->DisconnectIndicated) {
+            SocketContext->Binding->DisconnectIndicated = TRUE;
+            SocketContext->Binding->Datapath->TcpHandlers.Connect(
+                SocketContext->Binding,
+                SocketContext->Binding->ClientContext,
+                FALSE);
+        }
+        goto Exit;
+    } else if (NumberOfBytesTransferred < 0) {
+        if (errno != EAGAIN && errno != EWOULDBLOCK) {
+            QuicTraceEvent(
+                DatapathErrorStatus,
+                "[data][%p] ERROR, %u, %s.",
+                SocketContext->Binding,
+                errno,
+                "read failed");
+        }
+        goto Exit;
     } else {
         DATAPATH_RX_PACKET* Datagram = (DATAPATH_RX_PACKET*)(IoBlock + 1);
         Datagram->IoBlock = IoBlock;
