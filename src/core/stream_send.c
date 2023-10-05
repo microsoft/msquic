@@ -240,6 +240,10 @@ QuicStreamSendShutdown(
         }
         Stream->Flags.LocalCloseResetReliable = TRUE;
         Stream->SendShutdownErrorCode = ErrorCode;
+
+        // Enqueue all the stuff in ApiSendRequests to SendRequests
+
+
         //
         // Queue up a RESET RELIABLE STREAM frame to be sent. We will clear up any flags later.
         //

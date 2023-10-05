@@ -3376,15 +3376,14 @@ QuicTestStreamReliableReset(
     TEST_TRUE(Listener.LastConnection->HandshakeComplete);
     CxPlatSleep(50); // Wait for things to idle out
 
-    uint64_t Loss = 1;
-    #if DEBUG
-    Loss = 8;
-    #endif
-
-    for (uint64_t Bitmap = 0; Bitmap < Loss; ++Bitmap) {
+#if DEBUG
+    for (uint64_t Bitmap = 0; Bitmap < 8; ++Bitmap) {
         char Name[64]; sprintf_s(Name, sizeof(Name), "Try Reliably Shutting Down Stream %llu", (unsigned long long)Bitmap);
         TestScopeLogger logScope(Name);
         BitmapLossHelper LossHelper(Bitmap);
+#else
+    {
+#endif
         MsQuicStream Stream(Connection, QUIC_STREAM_OPEN_FLAG_NONE, CleanUpManual, StreamReliableReset::ClientStreamCallback, &Context);
         TEST_QUIC_SUCCEEDED(Stream.GetInitStatus());
         TEST_QUIC_SUCCEEDED(Stream.Start());
