@@ -2055,7 +2055,7 @@ SendDataAlloc(
     )
 {
     CXPLAT_DBG_ASSERT(Socket != NULL);
-    CXPLAT_DBG_ASSERT(Config->MaxPacketSize <= MAX_UDP_PAYLOAD_LENGTH);
+    CXPLAT_DBG_ASSERT(Socket->Type != CXPLAT_SOCKET_UDP || Config->MaxPacketSize <= MAX_UDP_PAYLOAD_LENGTH);
     if (Config->Route->Queue == NULL) {
         Config->Route->Queue = &Socket->SocketContexts[0];
     }
@@ -2069,7 +2069,10 @@ SendDataAlloc(
         SendData->ClientBuffer.Buffer = SendData->Buffer;
         SendData->ClientBuffer.Length = 0;
         SendData->TotalSize = 0;
-        SendData->SegmentSize = Config->MaxPacketSize;
+        SendData->SegmentSize =
+            (Socket->Type != CXPLAT_SOCKET_UDP ||
+             Socket->Datapath->Features & CXPLAT_DATAPATH_FEATURE_SEND_SEGMENTATION)
+                ? Config->MaxPacketSize : 0;
         SendData->BufferCount = 0;
         SendData->AlreadySentCount = 0;
         SendData->ControlBufferLength = 0;
@@ -2417,6 +2420,30 @@ CxPlatSendDataSendMessages(
     return TRUE;
 }
 
+BOOLEAN
+CxPlatSendDataSendTcp(
+    _In_ CXPLAT_SEND_DATA* SendData
+    )
+{
+    uint32_t TotalSize = SendData->TotalSize;
+    uint8_t *Buffer = SendData->Buffer;
+    while (TotalSize > 0) {
+        int BytesSent =
+            send(
+                SendData->SocketContext->SocketFd,
+                Buffer,
+                TotalSize,
+                0);
+        if (BytesSent < 0) {
+            return FALSE;
+        }
+        Buffer += BytesSent;
+        TotalSize -= BytesSent;
+    }
+
+    return TRUE;
+}
+
 QUIC_STATUS
 CxPlatSendDataSend(
     _In_ CXPLAT_SEND_DATA* SendData
@@ -2424,35 +2451,47 @@ CxPlatSendDataSend(
 {
     CXPLAT_DBG_ASSERT(SendData != NULL);
     CXPLAT_DBG_ASSERT(SendData->AlreadySentCount < CXPLAT_MAX_IO_BATCH_SIZE);
+    CXPLAT_SOCKET_TYPE SocketType = SendData->SocketContext->Binding->Type;
 
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
     CXPLAT_SOCKET_CONTEXT* SocketContext = SendData->SocketContext;
     BOOLEAN Success =
+        SocketType == CXPLAT_SOCKET_UDP ?
 #ifdef UDP_SEGMENT
-        SendData->SegmentationSupported ?
-            CxPlatSendDataSendSegmented(SendData) :
+            SendData->SegmentationSupported ?
+                CxPlatSendDataSendSegmented(SendData) :
 #endif
-            CxPlatSendDataSendMessages(SendData);
+                CxPlatSendDataSendMessages(SendData) :
+            CxPlatSendDataSendTcp(SendData);
     if (!Success) {
         if (errno == EAGAIN || errno == EWOULDBLOCK) {
             Status = QUIC_STATUS_PENDING;
         } else {
             Status = errno;
+            if (SocketType == CXPLAT_SOCKET_UDP) {
 #ifdef UDP_SEGMENT
-            QuicTraceEvent(
-                DatapathErrorStatus,
-                "[data][%p] ERROR, %u, %s.",
-                SocketContext->Binding,
-                Status,
-                "sendmsg (GSO) failed");
+                QuicTraceEvent(
+                    DatapathErrorStatus,
+                    "[data][%p] ERROR, %u, %s.",
+                    SocketContext->Binding,
+                    Status,
+                    "sendmsg (GSO) failed");
 #else
-            QuicTraceEvent(
-                DatapathErrorStatus,
-                "[data][%p] ERROR, %u, %s.",
-                SocketContext->Binding,
-                Status,
-                "sendmmsg failed");
+                QuicTraceEvent(
+                    DatapathErrorStatus,
+                    "[data][%p] ERROR, %u, %s.",
+                    SocketContext->Binding,
+                    Status,
+                    "sendmmsg failed");
 #endif
+            } else {
+                QuicTraceEvent(
+                    DatapathErrorStatus,
+                    "[data][%p] ERROR, %u, %s.",
+                    SocketContext->Binding,
+                    Status,
+                    "send failed");
+            }
 
             if (Status == EIO &&
                 SocketContext->Binding->Datapath->Features & CXPLAT_DATAPATH_FEATURE_SEND_SEGMENTATION) {
@@ -2477,10 +2516,14 @@ CxPlatSendDataSend(
                 Status == EHOSTUNREACH ||
                 Status == ENETUNREACH) {
                 if (!SocketContext->Binding->PcpBinding) {
-                    SocketContext->Binding->Datapath->UdpHandlers.Unreachable(
-                        SocketContext->Binding,
-                        SocketContext->Binding->ClientContext,
-                        &SocketContext->Binding->RemoteAddress);
+                    if (SocketType == CXPLAT_SOCKET_UDP) {
+                        SocketContext->Binding->Datapath->UdpHandlers.Unreachable(
+                            SocketContext->Binding,
+                            SocketContext->Binding->ClientContext,
+                            &SocketContext->Binding->RemoteAddress);
+                    } else {
+                        // TODO - TCP error
+                    }
                 }
             }
         }
