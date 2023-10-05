@@ -3355,9 +3355,9 @@ QuicTestStreamReliableReset(
     TEST_QUIC_SUCCEEDED(ClientConfiguration.GetInitStatus());
 
     StreamReliableReset Context;
-    uint8_t *SendDataBuffer = new(std::nothrow) uint8_t[BUFFER_SIZE];
+    UniquePtr<uint8_t> SendDataBuffer = UniquePtr<uint8_t>(new(std::nothrow) uint8_t[BUFFER_SIZE]);
 
-    QUIC_BUFFER SendBuffer { BUFFER_SIZE, SendDataBuffer };
+    QUIC_BUFFER SendBuffer { BUFFER_SIZE, SendDataBuffer.get() };
     Context.ReceivedBufferSize = 0;
 
     MsQuicAutoAcceptListener Listener(Registration, ServerConfiguration, StreamReliableReset::ConnCallback, &Context);
