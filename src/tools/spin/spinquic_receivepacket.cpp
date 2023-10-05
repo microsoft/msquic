@@ -21,6 +21,8 @@
 #define NOMINMAX
 #endif
 #include "msquichelper.h"
+#include "precomp.h"
+#include "msquic.h"
 
 #define ASSERT_ON_FAILURE(x) \
     do { \
@@ -34,12 +36,59 @@ static QUIC_API_TABLE MsQuic;
 
 struct ListenerContext {
     HQUIC ServerConfiguration;
-    std::vector<HQUIC>* Connections;
+    HQUIC *Connection;
     uint16_t ThreadID;
 };
 
 const uint32_t MaxBufferSizes[] = { 0, 1, 2, 32, 50, 256, 500, 1000, 1024, 1400, 5000, 10000, 64000, 10000000 };
 static const size_t BufferCount = ARRAYSIZE(MaxBufferSizes);
+
+
+class PacketWriter
+{
+    uint32_t QuicVersion;
+    uint8_t CryptoBuffer[4096];
+    uint16_t CryptoBufferLength;
+
+    static
+    void
+    WriteInitialCryptoFrame(
+        _In_z_ const char* Alpn,
+        _In_z_ const char* Sni,
+        _Inout_ uint16_t* Offset,
+        _In_ uint16_t BufferLength,
+        _Out_writes_to_(BufferLength, *Offset)
+            uint8_t* Buffer
+        )
+{
+
+}
+
+public:
+
+    PacketWriter(
+        _In_ uint32_t Version,
+        _In_z_ const char* Alpn,
+        _In_z_ const char* Sni
+        )
+{
+
+}
+
+    void
+    WriteClientInitialPacket(
+        _In_ uint32_t PacketNumber,
+        _In_ uint8_t CidLength,
+        _In_ uint16_t BufferLength,
+        _Out_writes_to_(BufferLength, *PacketLength)
+            uint8_t* Buffer,
+        _Out_ uint16_t* PacketLength,
+        _Out_ uint16_t* HeaderLength
+        )
+{
+
+}
+};
 
 
 QUIC_STATUS
@@ -170,6 +219,7 @@ ServerListenerCallback(
     UNREFERENCED_PARAMETER(Listener);
     UNREFERENCED_PARAMETER(Context);
     HQUIC ServerConfiguration = ((ListenerContext*)Context)->ServerConfiguration;
+    HQUIC Connection = *((ListenerContext*)Context)->Connection;
     QUIC_STATUS Status = QUIC_STATUS_NOT_SUPPORTED;
     switch (Event->Type) {
     case QUIC_LISTENER_EVENT_NEW_CONNECTION:
@@ -180,6 +230,7 @@ ServerListenerCallback(
         //
         MsQuic.SetCallbackHandler(Event->NEW_CONNECTION.Connection, (void*)ServerConnectionCallback, NULL);
         Status = MsQuic.ConnectionSetConfiguration(Event->NEW_CONNECTION.Connection, ServerConfiguration);
+        Connection = Event->NEW_CONNECTION.Connection;
         break;
     default:
         break;
@@ -196,8 +247,8 @@ void makeServer(HQUIC *Listener){
     RegConfig.ExecutionProfile = QUIC_EXECUTION_PROFILE_TYPE_SCAVENGER;
 
     MsQuic.RegistrationOpen(&RegConfig, &Registration);
-    std::vector<HQUIC> Connections;
-    ListenerContext ListenerCtx = { nullptr, &Connections, 0};
+    HQUIC Connection;
+    ListenerContext ListenerCtx = { nullptr, &Connection, 0};
     QUIC_ADDR sockAddr = { 0 };
     QUIC_SETTINGS QuicSettings{0};
     const uint64_t IdleTimeoutMs = 2000;
@@ -221,6 +272,7 @@ void makeServer(HQUIC *Listener){
      MsQuic.ConfigurationLoadCredential(
                 ListenerCtx.ServerConfiguration,
                 CredConfig);
+   
     if (!QUIC_SUCCEEDED(
         (MsQuic.ListenerOpen(Registration, ServerListenerCallback, &ListenerCtx, Listener)))) {
         MsQuic.ListenerClose(*Listener);
@@ -242,7 +294,7 @@ void start(){
     
     // make a random parameter generator using fuzzing data
     // make a initial packet
-
+    
     // PacketWriter* Writer;
     // uint64_t PacketNumber = 0;
     // uint8_t Packet[512] = {0};
