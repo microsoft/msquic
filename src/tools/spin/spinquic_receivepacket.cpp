@@ -37,7 +37,7 @@ static QUIC_API_TABLE MsQuic;
 struct ListenerContext {
     HQUIC ServerConfiguration;
     HQUIC *Connection;
-    uint16_t ThreadID;
+    HQUIC *Stream;
 };
 
 const uint32_t MaxBufferSizes[] = { 0, 1, 2, 32, 50, 256, 500, 1000, 1024, 1400, 5000, 10000, 64000, 10000000 };
@@ -152,6 +152,7 @@ ServerConnectionCallback(
     )
 {
     UNREFERENCED_PARAMETER(Context);
+    HQUIC Stream = *((ListenerContext*)Context)->Stream;
     switch (Event->Type) {
     case QUIC_CONNECTION_EVENT_CONNECTED:
         //
@@ -193,6 +194,7 @@ ServerConnectionCallback(
         //
         printf("[strm][%p] Peer started\n", Event->PEER_STREAM_STARTED.Stream);
         MsQuic.SetCallbackHandler(Event->PEER_STREAM_STARTED.Stream, (void*)ServerStreamCallback, NULL);
+        Stream = Event->PEER_STREAM_STARTED.Stream;
         break;
     case QUIC_CONNECTION_EVENT_RESUMED:
         //
@@ -228,7 +230,7 @@ ServerListenerCallback(
         // proceed, the server must provide a configuration for QUIC to use. The
         // app MUST set the callback handler before returning.
         //
-        MsQuic.SetCallbackHandler(Event->NEW_CONNECTION.Connection, (void*)ServerConnectionCallback, NULL);
+        MsQuic.SetCallbackHandler(Event->NEW_CONNECTION.Connection, (void*)ServerConnectionCallback, &Context);
         Status = MsQuic.ConnectionSetConfiguration(Event->NEW_CONNECTION.Connection, ServerConfiguration);
         Connection = Event->NEW_CONNECTION.Connection;
         break;
@@ -248,7 +250,8 @@ void makeServer(HQUIC *Listener){
 
     MsQuic.RegistrationOpen(&RegConfig, &Registration);
     HQUIC Connection;
-    ListenerContext ListenerCtx = { nullptr, &Connection, 0};
+    HQUIC Stream;
+    ListenerContext ListenerCtx = { nullptr, &Connection, &Stream};
     QUIC_ADDR sockAddr = { 0 };
     QUIC_SETTINGS QuicSettings{0};
     const uint64_t IdleTimeoutMs = 2000;
