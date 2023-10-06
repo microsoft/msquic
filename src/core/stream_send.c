@@ -249,6 +249,34 @@ QuicStreamSendShutdown(
         }
         Stream->Flags.LocalCloseResetReliable = TRUE;
         Stream->SendShutdownErrorCode = ErrorCode;
+
+        while (ApiSendRequests != NULL) {
+            //
+            // App queued some data around the same time it called shutdown. Bad App!
+            // Enqueue all the stuff in ApiSendRequests to SendRequests.
+            //
+            QUIC_SEND_REQUEST* SendRequest = ApiSendRequests;
+            ApiSendRequests = ApiSendRequests->Next;
+            SendRequest->Next = NULL;
+            QuicStreamEnqueueSendRequest(Stream, SendRequest);
+
+            //
+            // Update flags.
+            //
+            QuicSendSetStreamSendFlag(
+                &Stream->Connection->Send,
+                Stream,
+                QUIC_STREAM_SEND_FLAG_DATA,
+                !!(SendRequest->Flags & QUIC_SEND_FLAG_DELAY_SEND));
+
+            if (Stream->Connection->Settings.SendBufferingEnabled) {
+                QuicSendBufferFill(Stream->Connection);
+            }
+
+            CXPLAT_DBG_ASSERT(Stream->SendRequests != NULL);
+            QuicStreamSendDumpState(Stream);
+        }
+
         //
         // Queue up a RESET RELIABLE STREAM frame to be sent. We will clear up any flags later.
         //
@@ -516,6 +544,62 @@ QuicStreamSendBufferRequest(
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
+QuicStreamEnqueueSendRequest(
+    _In_ QUIC_STREAM* Stream,
+    _Inout_ QUIC_SEND_REQUEST* SendRequest
+) {
+     Stream->Connection->SendBuffer.PostedBytes += SendRequest->TotalLength;
+
+    //
+    // Queue up the send request.
+    //
+
+    QuicStreamRemoveOutFlowBlockedReason(Stream, QUIC_FLOW_BLOCKED_APP);
+
+    SendRequest->StreamOffset = Stream->QueuedSendOffset;
+    Stream->QueuedSendOffset += SendRequest->TotalLength;
+
+    if (SendRequest->Flags & QUIC_SEND_FLAG_ALLOW_0_RTT &&
+        Stream->Queued0Rtt == SendRequest->StreamOffset) {
+        Stream->Queued0Rtt = Stream->QueuedSendOffset;
+    }
+
+    //
+    // The bookmarks are set to NULL once the entire request queue is
+    // consumed. So if a bookmark is NULL here, we should set it to
+    // point to the new request at the end of the queue, to prevent
+    // a subsequent search over the entire queue in the code that
+    // uses the bookmark.
+    //
+    if (Stream->SendBookmark == NULL) {
+        Stream->SendBookmark = SendRequest;
+    }
+    if (Stream->SendBufferBookmark == NULL) {
+        //
+        // If we have no SendBufferBookmark, that must mean we have no
+        // unbuffered send requests queued currently.
+        //
+        CXPLAT_DBG_ASSERT(
+            Stream->SendRequests == NULL ||
+            !!(Stream->SendRequests->Flags & QUIC_SEND_FLAG_BUFFERED));
+        Stream->SendBufferBookmark = SendRequest;
+    }
+
+    *Stream->SendRequestsTail = SendRequest;
+    Stream->SendRequestsTail = &SendRequest->Next;
+
+    QuicTraceLogStreamVerbose(
+        SendQueued,
+        Stream,
+        "Send Request [%p] queued with %llu bytes at offset %llu (flags 0x%x)",
+        SendRequest,
+        SendRequest->TotalLength,
+        SendRequest->StreamOffset,
+        SendRequest->Flags);
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
 QuicStreamSendFlush(
     _In_ QUIC_STREAM* Stream
     )
@@ -545,54 +629,7 @@ QuicStreamSendFlush(
             continue;
         }
 
-        Stream->Connection->SendBuffer.PostedBytes += SendRequest->TotalLength;
-
-        //
-        // Queue up the send request.
-        //
-
-        QuicStreamRemoveOutFlowBlockedReason(Stream, QUIC_FLOW_BLOCKED_APP);
-
-        SendRequest->StreamOffset = Stream->QueuedSendOffset;
-        Stream->QueuedSendOffset += SendRequest->TotalLength;
-
-        if (SendRequest->Flags & QUIC_SEND_FLAG_ALLOW_0_RTT &&
-            Stream->Queued0Rtt == SendRequest->StreamOffset) {
-            Stream->Queued0Rtt = Stream->QueuedSendOffset;
-        }
-
-        //
-        // The bookmarks are set to NULL once the entire request queue is
-        // consumed. So if a bookmark is NULL here, we should set it to
-        // point to the new request at the end of the queue, to prevent
-        // a subsequent search over the entire queue in the code that
-        // uses the bookmark.
-        //
-        if (Stream->SendBookmark == NULL) {
-            Stream->SendBookmark = SendRequest;
-        }
-        if (Stream->SendBufferBookmark == NULL) {
-            //
-            // If we have no SendBufferBookmark, that must mean we have no
-            // unbuffered send requests queued currently.
-            //
-            CXPLAT_DBG_ASSERT(
-                Stream->SendRequests == NULL ||
-                !!(Stream->SendRequests->Flags & QUIC_SEND_FLAG_BUFFERED));
-            Stream->SendBufferBookmark = SendRequest;
-        }
-
-        *Stream->SendRequestsTail = SendRequest;
-        Stream->SendRequestsTail = &SendRequest->Next;
-
-        QuicTraceLogStreamVerbose(
-            SendQueued,
-            Stream,
-            "Send Request [%p] queued with %llu bytes at offset %llu (flags 0x%x)",
-            SendRequest,
-            SendRequest->TotalLength,
-            SendRequest->StreamOffset,
-            SendRequest->Flags);
+        QuicStreamEnqueueSendRequest(Stream, SendRequest);
 
         if (SendRequest->Flags & QUIC_SEND_FLAG_START && !Stream->Flags.Started) {
             //
