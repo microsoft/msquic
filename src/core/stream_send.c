@@ -242,7 +242,7 @@ QuicStreamSendShutdown(
         Stream->SendShutdownErrorCode = ErrorCode;
 
         // Enqueue all the stuff in ApiSendRequests to SendRequests
-
+        // It is guaranteed enough sends were queued prior to calling Reliable Shutdown.
 
         //
         // Queue up a RESET RELIABLE STREAM frame to be sent. We will clear up any flags later.

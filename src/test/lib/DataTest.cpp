@@ -3355,7 +3355,7 @@ QuicTestStreamReliableReset(
     TEST_QUIC_SUCCEEDED(ClientConfiguration.GetInitStatus());
 
     StreamReliableReset Context;
-    UniquePtr<uint8_t> SendDataBuffer = UniquePtr<uint8_t>(new(std::nothrow) uint8_t[BUFFER_SIZE]);
+    UniquePtrArray<uint8_t> SendDataBuffer = UniquePtrArray<uint8_t>(new(std::nothrow) uint8_t[BUFFER_SIZE]);
 
     QUIC_BUFFER SendBuffer { BUFFER_SIZE, SendDataBuffer.get() };
     Context.ReceivedBufferSize = 0;
@@ -3428,7 +3428,7 @@ QuicTestStreamReliableResetMultipleSends(
     TEST_QUIC_SUCCEEDED(ClientConfiguration.GetInitStatus());
 
     StreamReliableReset Context;
-    UniquePtr<uint8_t> SendDataBuffer = UniquePtr<uint8_t>(new(std::nothrow) uint8_t[BUFFER_SIZE_MULTI_SENDS]);
+    UniquePtrArray<uint8_t> SendDataBuffer = UniquePtrArray<uint8_t>(new(std::nothrow) uint8_t[BUFFER_SIZE_MULTI_SENDS]);
 
     QUIC_BUFFER SendBuffer { BUFFER_SIZE_MULTI_SENDS, SendDataBuffer.get() };
     Context.ReceivedBufferSize = 0;
