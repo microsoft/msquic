@@ -1623,18 +1623,32 @@ CxPlatSocketHandleErrors(
             ErrNum,
             "Socket error event");
 
-        //
-        // Send unreachable notification to MsQuic if any related
-        // errors were received.
-        //
-        if (ErrNum == ECONNREFUSED ||
-            ErrNum == EHOSTUNREACH ||
-            ErrNum == ENETUNREACH) {
-            if (!SocketContext->Binding->PcpBinding) {
-                SocketContext->Binding->Datapath->UdpHandlers.Unreachable(
+        if (SocketContext->Binding->Type == CXPLAT_SOCKET_UDP) {
+            //
+            // Send unreachable notification to MsQuic if any related
+            // errors were received.
+            //
+            if (ErrNum == ECONNREFUSED ||
+                ErrNum == EHOSTUNREACH ||
+                ErrNum == ENETUNREACH) {
+                if (!SocketContext->Binding->PcpBinding) {
+                    SocketContext->Binding->Datapath->UdpHandlers.Unreachable(
+                        SocketContext->Binding,
+                        SocketContext->Binding->ClientContext,
+                        &SocketContext->Binding->RemoteAddress);
+                }
+            }
+        } else if (ErrNum == ENOTSOCK ||
+                   ErrNum == EINTR ||
+                   ErrNum == ECANCELED ||
+                   ErrNum == ECONNABORTED ||
+                   ErrNum == ECONNRESET) {
+            if (!SocketContext->Binding->DisconnectIndicated) {
+                SocketContext->Binding->DisconnectIndicated = TRUE;
+                SocketContext->Binding->Datapath->TcpHandlers.Connect(
                     SocketContext->Binding,
                     SocketContext->Binding->ClientContext,
-                    &SocketContext->Binding->RemoteAddress);
+                    FALSE);
             }
         }
     }
@@ -2257,6 +2271,13 @@ SocketSend(
         CxPlatSocketContextSetEvents(SocketContext, EPOLL_CTL_MOD, EPOLLIN | EPOLLOUT);
         Status = QUIC_STATUS_SUCCESS;
     } else {
+        if (Socket->Type != CXPLAT_SOCKET_UDP) {
+            SocketContext->Binding->Datapath->TcpHandlers.SendComplete(
+                SocketContext->Binding,
+                SocketContext->Binding->ClientContext,
+                errno,
+                SendData->TotalSize);
+        }
         CxPlatSendDataFree(SendData);
     }
 
@@ -2516,14 +2537,10 @@ CxPlatSendDataSend(
                 Status == EHOSTUNREACH ||
                 Status == ENETUNREACH) {
                 if (!SocketContext->Binding->PcpBinding) {
-                    if (SocketType == CXPLAT_SOCKET_UDP) {
-                        SocketContext->Binding->Datapath->UdpHandlers.Unreachable(
-                            SocketContext->Binding,
-                            SocketContext->Binding->ClientContext,
-                            &SocketContext->Binding->RemoteAddress);
-                    } else {
-                        // TODO - TCP error
-                    }
+                    SocketContext->Binding->Datapath->UdpHandlers.Unreachable(
+                        SocketContext->Binding,
+                        SocketContext->Binding->ClientContext,
+                        &SocketContext->Binding->RemoteAddress);
                 }
             }
         }
@@ -2566,6 +2583,13 @@ CxPlatSocketContextFlushTxQueue(
 
         CxPlatLockAcquire(&SocketContext->TxQueueLock);
         CxPlatListRemoveHead(&SocketContext->TxQueue);
+        if (SocketContext->Binding->Type != CXPLAT_SOCKET_UDP) {
+            SocketContext->Binding->Datapath->TcpHandlers.SendComplete(
+                SocketContext->Binding,
+                SocketContext->Binding->ClientContext,
+                errno,
+                SendData->TotalSize);
+        }
         CxPlatSendDataFree(SendData);
         if (!CxPlatListIsEmpty(&SocketContext->TxQueue)) {
             SendData =
