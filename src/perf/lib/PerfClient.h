@@ -23,35 +23,27 @@ class PerfClient;
 
 struct PerfClientConnection : public MsQuicConnection {
     CXPLAT_LIST_ENTRY Link; // For Worker's connection queue
-    PerfClient* Client {nullptr};
+    PerfClient& Client;
     PerfClientWorker* Worker {nullptr};
     uint32_t StreamCount {0};
-    MsQuicConnection(_In_ const MsQuicRegistration& Registration, _In_ PerfClient* Client)
+    PerfClientConnection(_In_ const MsQuicRegistration& Registration, _In_ PerfClient& Client)
         : MsQuicConnection(Registration, CleanUpManual, s_ConnectionCallback), Client(Client) { }
     QUIC_STATUS ConnectionCallback(_Inout_ QUIC_CONNECTION_EVENT* Event);
-    static QUIC_STATUS
-    s_ConnectionCallback(MsQuicConnection* /* Conn */, void* Context, QUIC_CONNECTION_EVENT* Event) {
+    static QUIC_STATUS s_ConnectionCallback(MsQuicConnection* /* Conn */, void* Context, QUIC_CONNECTION_EVENT* Event) {
         return ((PerfClientConnection*)Context)->ConnectionCallback(Event);
     }
-    QUIC_STATUS
-    StreamCallback(
-        _In_ PerfClientStream* StrmContext,
-        _In_ HQUIC StreamHandle,
-        _Inout_ QUIC_STREAM_EVENT* Event
-        );
+    QUIC_STATUS StreamCallback(_In_ PerfClientStream* StrmContext, _In_ HQUIC StreamHandle, _Inout_ QUIC_STREAM_EVENT* Event);
     void SendRequest(bool DelaySend);
 };
 
 struct PerfClientStream {
-    PerfClientStream(
-        _In_ PerfClientConnection* Connection,
-        _In_ uint64_t StartTime)
+    PerfClientStream(_In_ PerfClientConnection& Connection, _In_ uint64_t StartTime)
         : Connection{Connection}, StartTime{StartTime} { }
     static QUIC_STATUS
     s_StreamCallback(HQUIC Stream, void* Context, QUIC_STREAM_EVENT* Event) {
-        return ((PerfClientStream*)Context)->Connection->StreamCallback((PerfClientStream*)Context, Stream, Event);
+        return ((PerfClientStream*)Context)->Connection.StreamCallback((PerfClientStream*)Context, Stream, Event);
     }
-    PerfClientConnection* Connection;
+    PerfClientConnection& Connection;
     uint64_t StartTime;
 #if DEBUG
     uint8_t Padding[12];
@@ -59,7 +51,7 @@ struct PerfClientStream {
 };
 
 struct PerfClientWorker {
-    class PerfClient* Client {nullptr};
+    PerfClient* Client {nullptr};
     CxPlatLock Lock;
     CXPLAT_LIST_ENTRY Connections;
     CXPLAT_THREAD Thread;
@@ -110,9 +102,9 @@ struct PerfClientWorker {
     }
     void UpdateConnection(PerfClientConnection* Connection) {
         if (this != Connection->Worker) {
-            CxPlatLockAcquire(&Connection->Worker->Lock);
+            Connection->Worker->Lock.Acquire();
             CxPlatListEntryRemove(&Connection->Link);
-            CxPlatLockRelease(&Connection->Worker->Lock);
+            Connection->Worker->Lock.Release();
             QueueConnection(Connection);
         }
     }

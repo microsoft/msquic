@@ -15,49 +15,50 @@ Abstract:
 #include "PerfClient.cpp.clog.h"
 #endif
 
-static
-void
-PrintHelp(
-    ) {
-    WriteOutput(
-        "\n"
-        "Client options:\n"
-        "\n"
-        "  Remote options:"
-        "  -target:<####>              The target server to connect to.\n"
-        "  -ip:<0/4/6>                 A hint for the resolving the hostname to an IP address. (def:0)\n"
-        "  -port:<####>                The UDP port of the server. (def:%u)\n"
-        "  -cibir:<hex_bytes>          A CIBIR well-known idenfitier.\n"
-        "\n"
-        "  Local options:"
-        "  -bind:<addr>                The local IP address(es)/port(s) to bind to.\n"
-        "  -addrs:<####>               The max number of local addresses to use. (def:%u)\n"
-        "  -threads:<####>             The max number of worker threads to use.\n"
-        "  -affinitize:<0/1>           Affinitizes worker threads to a core. (def:0)\n"
+const char PERF_CLIENT_OPTIONS_TEXT[] =
+"\n"
+"Usage (client): secnetperf -target:<hostname/ip> [client options]\n"
+"\n"
+"Client Options:\n"
+"\n"
+"  Remote options:"
+"  -ip:<0/4/6>              A hint for the resolving the hostname to an IP address. (def:0)\n"
+"  -port:<####>             The UDP port of the server. (def:%u)\n"
+"  -cibir:<hex_bytes>       A CIBIR well-known idenfitier.\n"
+"\n"
+"  Local options:"
+"  -bind:<addr>             The local IP address(es)/port(s) to bind to.\n"
+"  -addrs:<####>            The max number of local addresses to use. (def:%u)\n"
+"  -threads:<####>          The max number of worker threads to use.\n"
+"  -affinitize:<0/1>        Affinitizes worker threads to a core. (def:0)\n"
 #ifdef QUIC_COMPARTMENT_ID
-        "  -comp:<####>                The network compartment ID to run in.\n"
+"  -comp:<####>             The network compartment ID to run in.\n"
 #endif
-        "\n"
-        "  Config options:"
-        "  -encrypt:<0/1>              Disables/enables encryption. (def:1)\n"
-        "  -pacing:<0/1>               Disables/enables send pacing. (def:1)\n"
-        "  -sendbuf:<0/1>              Disables/enables send buffering. (def:0)\n"
-        "  -stats:<0/1>                Print connection stats on connection shutdown. (def:0)\n"
-        "  -sstats:<0/1>               Print stream stats on stream shutdown. (def:0)\n"
-        "  -latency<0/1>               Print latency stats at end of run. (def:0)\n"
-        "\n"
-        "  Scenario options:"
-        "  -conns:<####>               The number of connections to use. (def:1)\n"
-        "  -streams:<####>             The number of streams to send on at a time. (def:0)\n"
-        "  -upload:<####>              The length of bytes to send on each stream. (def:0)\n"
-        "  -download:<####>            The length of bytes to receive on each stream. (def:0)\n"
-        "  -timed:<0/1>                Indicates the upload/download args are times (in ms). (def:0)\n"
-        "  -wait:<####>                The time (in ms) to wait for handshakes to complete. (def:0)\n"
-        "  -inline:<0/1>               Create new streams on callbacks. (def:0)\n"
-        "  -repeatconn:<0/1>           Continue to loop the scenario at the connection level. (def:0)\n"
-        "  -repeatstream:<0/1>         Continue to loop the scenario at the stream level. (def:0)\n"
-        "  -runtime:<####>             The total runtime (in ms). Only relevant for repeat scenarios. (def:0)\n"
-        "\n",
+"\n"
+"  Config options:"
+"  -encrypt:<0/1>           Disables/enables encryption. (def:1)\n"
+"  -pacing:<0/1>            Disables/enables send pacing. (def:1)\n"
+"  -sendbuf:<0/1>           Disables/enables send buffering. (def:0)\n"
+"  -stats:<0/1>             Print connection stats on connection shutdown. (def:0)\n"
+"  -sstats:<0/1>            Print stream stats on stream shutdown. (def:0)\n"
+"  -latency<0/1>            Print latency stats at end of run. (def:0)\n"
+"\n"
+"  Scenario options:"
+"  -conns:<####>            The number of connections to use. (def:1)\n"
+"  -streams:<####>          The number of streams to send on at a time. (def:0)\n"
+"  -upload:<####>           The length of bytes to send on each stream. (def:0)\n"
+"  -download:<####>         The length of bytes to receive on each stream. (def:0)\n"
+"  -timed:<0/1>             Indicates the upload/download args are times (in ms). (def:0)\n"
+"  -wait:<####>             The time (in ms) to wait for handshakes to complete. (def:0)\n"
+"  -inline:<0/1>            Create new streams on callbacks. (def:0)\n"
+"  -repeatconn:<0/1>        Continue to loop the scenario at the connection level. (def:0)\n"
+"  -repeatstream:<0/1>      Continue to loop the scenario at the stream level. (def:0)\n"
+"  -runtime:<####>          The total runtime (in ms). Only relevant for repeat scenarios. (def:0)\n"
+"\n";
+
+static void PrintHelp() {
+    WriteOutput(
+        PERF_CLIENT_OPTIONS_TEXT,
         PERF_DEFAULT_PORT,
         PERF_MAX_CLIENT_PORT_COUNT
         );
@@ -247,7 +248,7 @@ PerfClient::Start(
             return Status;
         }
 
-        Connections[i] = new(std:nothrow) PerfClientConnection(Registration, this);
+        Connections[i] = new(std::nothrow) PerfClientConnection(Registration, *this);
         if (!Connections[i]->IsValid()) {
             WriteOutput("ConnectionOpen failed, 0x%x\n", Connections[i]->GetInitStatus());
             return Connections[i]->GetInitStatus();
