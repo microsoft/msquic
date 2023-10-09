@@ -861,16 +861,6 @@ QuicStreamIndicateSendShutdownComplete(
     );
 
 //
-// Enqueues a SendRequest from the temporary queue to the actual queue.
-//
-_IRQL_requires_max_(PASSIVE_LEVEL)
-void
-QuicStreamEnqueueSendRequest(
-    _In_ QUIC_STREAM* Stream,
-    _Inout_ QUIC_SEND_REQUEST* SendRequest
-);
-
-//
 // Indicates data has been queued up to be sent out on the stream.
 //
 _IRQL_requires_max_(PASSIVE_LEVEL)

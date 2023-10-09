@@ -47,6 +47,16 @@ QuicStreamCompleteSendRequest(
     _In_ BOOLEAN PreviouslyPosted
     );
 
+//
+// Enqueues a SendRequest from the temporary queue to the actual queue.
+//
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+QuicStreamEnqueueSendRequest(
+    _In_ QUIC_STREAM* Stream,
+    _Inout_ QUIC_SEND_REQUEST* SendRequest
+    );
+
 #if DEBUG
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -259,15 +269,6 @@ QuicStreamSendShutdown(
             ApiSendRequests = ApiSendRequests->Next;
             SendRequest->Next = NULL;
             QuicStreamEnqueueSendRequest(Stream, SendRequest);
-
-            //
-            // Update flags.
-            //
-            QuicSendSetStreamSendFlag(
-                &Stream->Connection->Send,
-                Stream,
-                QUIC_STREAM_SEND_FLAG_DATA,
-                !!(SendRequest->Flags & QUIC_SEND_FLAG_DELAY_SEND));
 
             if (Stream->Connection->Settings.SendBufferingEnabled) {
                 QuicSendBufferFill(Stream->Connection);
@@ -547,7 +548,8 @@ void
 QuicStreamEnqueueSendRequest(
     _In_ QUIC_STREAM* Stream,
     _Inout_ QUIC_SEND_REQUEST* SendRequest
-) {
+    )
+{
      Stream->Connection->SendBuffer.PostedBytes += SendRequest->TotalLength;
 
     //
