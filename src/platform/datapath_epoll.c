@@ -1053,6 +1053,11 @@ CxPlatSocketContextUninitializeComplete(
                 TxEntry));
     }
 
+    if (SocketContext->Binding->Type == CXPLAT_SOCKET_TCP_LISTENER && SocketContext->AcceptSocket) {
+        SocketDelete(SocketContext->AcceptSocket);
+        SocketContext->AcceptSocket = NULL;
+    }
+
     if (SocketContext->SocketFd != INVALID_SOCKET) {
         epoll_ctl(*SocketContext->DatapathPartition->EventQ, EPOLL_CTL_DEL, SocketContext->SocketFd, NULL);
         close(SocketContext->SocketFd);
