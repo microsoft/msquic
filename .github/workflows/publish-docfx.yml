@@ -44,6 +44,10 @@ jobs:
     - run: chmod +x ./scripts/generate-docfx-yml.ps1
     - run: ./scripts/generate-docfx-yml.ps1 ./docs
       shell: pwsh
+    - run: chmod +x ./scripts/docfx-replace-url.ps1
+      shell: pwsh
+    - run: ./scripts/docfx-replace-url.ps1
+      shell: pwsh
     - run: docfx docfx.json
     - run: chmod +x ./scripts/update-docfx-site.ps1
     - name: Commit Changes
