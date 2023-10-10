@@ -2238,7 +2238,7 @@ QuicCryptoDecodeServerTicket(
         const uint8_t* Ticket,
     _In_ const uint8_t* AlpnList,
     _In_ uint16_t AlpnListLength,
-    _Out_ QUIC_TRANSPORT_PARAMETERS* DecodedTP,
+    _Inout_ QUIC_TRANSPORT_PARAMETERS* DecodedTP,
     _Outptr_result_buffer_maybenull_(*AppDataLength)
         const uint8_t** AppData,
     _Out_ uint32_t* AppDataLength
@@ -2491,7 +2491,7 @@ QuicCryptoDecodeClientTicket(
     _In_ uint16_t ClientTicketLength,
     _In_reads_bytes_(ClientTicketLength)
         const uint8_t* ClientTicket,
-    _Out_ QUIC_TRANSPORT_PARAMETERS* DecodedTP,
+    _Inout_ QUIC_TRANSPORT_PARAMETERS* DecodedTP,
     _Outptr_result_buffer_maybenull_(*ServerTicketLength)
         uint8_t** ServerTicket,
     _Out_ uint32_t* ServerTicketLength,
