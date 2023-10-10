@@ -2456,6 +2456,10 @@ CxPlatSendDataSendTcp(
                 TotalSize,
                 0);
         if (BytesSent < 0) {
+            // forcibly send inline
+            if (errno == EAGAIN || errno == EWOULDBLOCK) {
+                continue;
+            }
             return FALSE;
         }
         Buffer += BytesSent;
