@@ -15,7 +15,7 @@
       <meta name="docfx:rel" content="../">
       
       
-      <meta name="docfx:docurl" content="https://github.com/microsoft/msquic/blob/3833/merge/docs/TSG.md/#L1">
+      <meta name="docfx:docurl" content="https://github.com/microsoft/msquic/blob/jackhe/fix-link/docs/TSG.md/#L1">
       <meta name="loc:inThisArticle" content="In this article">
       <meta name="loc:searchResultsCount" content="{count} results for &quot;{query}&quot;">
       <meta name="loc:searchNoResults" content="No results for &quot;{query}&quot;">
@@ -113,8 +113,8 @@
 <li><a href="#collecting-a-packet-capture">I need to get a packet capture</a>.</li>
 </ol>
 <h2 id="understanding-error-codes">Understanding Error Codes</h2>
-<p>Some error codes are MsQuic specific (<code>QUIC_STATUS_*</code>), and some are simply a passthrough from the platform. You can find the MsQuic specific error codes in the platform specific header (<a href="../src/inc/msquic_posix.h">msquic_posix.h</a>, <a href="../src/inc/msquic_winkernel.h">msquic_winkernel.h</a>, or <a href="../src/inc/msquic_winuser.h">msquic_winuser.h</a>).</p>
-<p>From <a href="../src/inc/msquic_winuser.h">msquic_winuser.h</a>:</p>
+<p>Some error codes are MsQuic specific (<code>QUIC_STATUS_*</code>), and some are simply a passthrough from the platform. You can find the MsQuic specific error codes in the platform specific header (<a href="https://github.com/microsoft/msquic/tree/main/src/inc/msquic_posix.h">msquic_posix.h</a>, <a href="https://github.com/microsoft/msquic/tree/main/src/inc/msquic_winkernel.h">msquic_winkernel.h</a>, or <a href="https://github.com/microsoft/msquic/tree/main/src/inc/msquic_winuser.h">msquic_winuser.h</a>).</p>
+<p>From <a href="https://github.com/microsoft/msquic/tree/main/src/inc/msquic_winuser.h">msquic_winuser.h</a>:</p>
 <pre><code class="lang-C">#define QUIC_STATUS_ADDRESS_IN_USE          HRESULT_FROM_WIN32(WSAEADDRINUSE)               // 0x80072740
 #define QUIC_STATUS_CONNECTION_TIMEOUT      ERROR_QUIC_CONNECTION_TIMEOUT                   // 0x80410006
 #define QUIC_STATUS_CONNECTION_IDLE         ERROR_QUIC_CONNECTION_IDLE                      // 0x80410005
@@ -147,7 +147,7 @@
 </blockquote>
 <p>The error code indicated in this event is completely application defined (type of <code>QUIC_UINT62</code>). The transport has no understanding of the meaning of this value. It never generates these error codes itself. So, to map these values to some meaning will require the application protocol documentation.</p>
 <h2 id="why-isnt-application-data-flowing">Why isn't application data flowing?</h2>
-<p>Application data is exchanged via <a href="Streams.html">Streams</a> and queued by the app via <a href="api/StreamSend.html">StreamSend</a>. The act of queuing data doesn't mean it will be immediately sent to the peer. There are a number of things that can block or delay the exchange. The <code>QUIC_FLOW_BLOCK_REASON</code> enum in <a href="../src/inc/quic_trace.h">quic_trace.h</a> contains the full list of reasons that data may be blocked. Below is a short explanation of each:</p>
+<p>Application data is exchanged via <a href="Streams.html">Streams</a> and queued by the app via <a href="api/StreamSend.html">StreamSend</a>. The act of queuing data doesn't mean it will be immediately sent to the peer. There are a number of things that can block or delay the exchange. The <code>QUIC_FLOW_BLOCK_REASON</code> enum in <a href="https://github.com/microsoft/msquic/tree/main/src/inc/quic_trace.h">quic_trace.h</a> contains the full list of reasons that data may be blocked. Below is a short explanation of each:</p>
 <table>
 <thead>
 <tr>
@@ -195,11 +195,11 @@
 </code></pre>
 <p>This event indicates that stream <code>C16BA610</code> only has the <code>QUIC_FLOW_BLOCKED_APP</code> flag, so it is currently blocked because there is no more application data queued to be sent.</p>
 <p><img src="images/tx-blocked-state.png" alt=""></p>
-<p>The <a href="../src/plugins/trace/README.html">QUIC WPA plugin</a> also supports visualizing these blocked states via the <code>QUIC TX Blocked State</code> graph. It allows you to see what flags are blocking the connection as a whole (shown as stream 0) and what is blocking each individual stream, over the lifetime of the whole connection.</p>
+<p>The <a href="https://github.com/microsoft/msquic/tree/main/src/plugins/trace/README.md">QUIC WPA plugin</a> also supports visualizing these blocked states via the <code>QUIC TX Blocked State</code> graph. It allows you to see what flags are blocking the connection as a whole (shown as stream 0) and what is blocking each individual stream, over the lifetime of the whole connection.</p>
 <p>For instance, in the image above, you can see the stream (1) is blocked most of the time because there is no application data. Beyond that, the connection (&quot;stream&quot; 0) alternated between pacing and congestion control as the blocked reasons.</p>
 <h2 id="why-is-this-api-failing">Why is this API Failing?</h2>
 <p>The simplest way to determine exactly why a particular API is failing is via tracing. <a href="Diagnostics.html#trace-collection">Collect the traces</a> for the repro and convert them to text and open them in your favorite text editor (try <a href="Diagnostics.html#text-analysis-tool">TextAnalysisTool</a>!).</p>
-<p>MsQuic logs every API entry and exit. Depending on the platform and tool used to decode the traces to text, you may either have the number or an enum represented as the API type (see <code>QUIC_TRACE_API_TYPE</code> in <a href="../src/inc/quic_trace.h">quic_trace.h</a>), but all events look something like this:</p>
+<p>MsQuic logs every API entry and exit. Depending on the platform and tool used to decode the traces to text, you may either have the number or an enum represented as the API type (see <code>QUIC_TRACE_API_TYPE</code> in <a href="https://github.com/microsoft/msquic/tree/main/src/inc/quic_trace.h">quic_trace.h</a>), but all events look something like this:</p>
 <pre><code>[cpu][process.thread][time][ api] Enter &lt;API Type&gt; (&lt;pointer&gt;)
 [cpu][process.thread][time][ api] Exit [optional status code]
 </code></pre>
@@ -336,7 +336,7 @@ If you don't specify the component in the <code>filter</code> step, you can spec
 <p><strong>Important</strong> - The following is specific to Windows OS.</p>
 </blockquote>
 <p>It's extremely common that everything may be functional, but not just as fast as expected. So the normal next step is then to grab a performance trace for the scenario and then dive into the details to analyze what exactly is happening. When you're explicitly looking for where the CPU is spending its time in the scenario, you will need to collect CPU traces. One way to do this is to <a href="Diagnostics.html#using-wpr-to-collect-traces">use WPR</a> (with <code>Stacks.Light</code> profile).</p>
-<p>Once you have the ETL, open it <a href="../src/plugins/trace/README.html">in WPA</a> (MsQuic plugin is unnecessary). Then, go to the <code>Graph Explorer</code>, expand <code>Computation</code>, expand <code>CPU Usage (Sampled)</code> and open up <code>Utilization by Process, Thread, Stack</code>. The following is an example of a CPU trace a server in a client upload scenario:</p>
+<p>Once you have the ETL, open it <a href="https://github.com/microsoft/msquic/tree/main/src/plugins/trace/README.md">in WPA</a> (MsQuic plugin is unnecessary). Then, go to the <code>Graph Explorer</code>, expand <code>Computation</code>, expand <code>CPU Usage (Sampled)</code> and open up <code>Utilization by Process, Thread, Stack</code>. The following is an example of a CPU trace a server in a client upload scenario:</p>
 <p><img src="images/cpu-debug-1.png" alt=""></p>
 <p>The next step is to filter things down to only the important information. First, select the relavent time period: click and drag over the area, right click, select <code>Zoom</code>.</p>
 <p><img src="images/cpu-debug-2.png" alt=""></p>
@@ -406,7 +406,7 @@ Result: 25869 RPS, Min: 944, Max: 888078, 50th: 281889.000000, 90th: 369965.0000
 App Main returning status 0
 </code></pre>
 <p>As you can see from the output of <code>secnetperf.exe</code> the resulting <code>25869 RPS</code> is nowhere near what it should be. The next step is to grab a performance trace to see what is going on. For these type of issues the best way to collect the traces would be to <a href="Diagnostics.html#using-wpr-to-collect-traces">use WPR</a> (with <code>Scheduling.Verbose</code> or <code>Performance.Verbose</code> profiles).</p>
-<p>Once you have the ETL, open it <a href="../src/plugins/trace/README.html">in WPA using the MsQuic plugin</a>. First thing after opening, let's take a look at the QUIC Worker utilization. In the <code>Graph Explorer</code>, under <code>Computation</code>, expand <code>QUIC Workers</code> and open the one labeled <code>Utilization by Worker</code>. For the example above (server-side trace), here is what the output looks like:</p>
+<p>Once you have the ETL, open it <a href="https://github.com/microsoft/msquic/tree/main/src/plugins/trace/README.md">in WPA using the MsQuic plugin</a>. First thing after opening, let's take a look at the QUIC Worker utilization. In the <code>Graph Explorer</code>, under <code>Computation</code>, expand <code>QUIC Workers</code> and open the one labeled <code>Utilization by Worker</code>. For the example above (server-side trace), here is what the output looks like:</p>
 <p><img src="images/rss-debug-1.png" alt=""></p>
 <p>You can immediately see that only 2 different workers are being used, with worker <code>2</code> being used primarily.</p>
 <blockquote>
@@ -469,7 +469,7 @@ IndirectionTable: [Group:Number]                : 0:0   0:2     0:4     0:6     
 </article>
 
         <div class="contribution d-print-none">
-          <a href="https://github.com/microsoft/msquic/blob/3833/merge/docs/TSG.md/#L1" class="edit-link">Edit this page</a>
+          <a href="https://github.com/microsoft/msquic/blob/jackhe/fix-link/docs/TSG.md/#L1" class="edit-link">Edit this page</a>
         </div>
 
         <div class="next-article d-print-none border-top" id="nextArticle"></div>

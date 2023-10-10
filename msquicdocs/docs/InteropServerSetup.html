@@ -15,7 +15,7 @@
       <meta name="docfx:rel" content="../">
       
       
-      <meta name="docfx:docurl" content="https://github.com/microsoft/msquic/blob/3833/merge/docs/InteropServerSetup.md/#L1">
+      <meta name="docfx:docurl" content="https://github.com/microsoft/msquic/blob/jackhe/fix-link/docs/InteropServerSetup.md/#L1">
       <meta name="loc:inThisArticle" content="In this article">
       <meta name="loc:searchResultsCount" content="{count} results for &quot;{query}&quot;">
       <meta name="loc:searchNoResults" content="No results for &quot;{query}&quot;">
@@ -89,7 +89,7 @@
         <article data-uid="">
 <h1 id="setting-up-an-msquic-interop-server">Setting Up an MsQuic Interop Server</h1>
 
-<p>One of the tools in the MsQuic repo is <code>quicinteropserver</code> (<a href="../src/tools/interopserver">source</a>). It is our server solution used for QUIC interoperability testing. You can find the general requirements for this on the <a href="https://github.com/quicwg/base-drafts/wiki/18th-Implementation-Draft">QUIC WG Wiki</a>.</p>
+<p>One of the tools in the MsQuic repo is <code>quicinteropserver</code> (<a href="https://github.com/microsoft/msquic/tree/main/src/tools/interopserver">source</a>). It is our server solution used for QUIC interoperability testing. You can find the general requirements for this on the <a href="https://github.com/quicwg/base-drafts/wiki/18th-Implementation-Draft">QUIC WG Wiki</a>.</p>
 <h1 id="building">Building</h1>
 <p>The tool is automatically built with the rest of the repo. See complete build instructions <a href="BUILD.html">here</a>.</p>
 <p>There are a few additional things to note beyond the default build instructions. Currently, 0-RTT is only supported on Windows, when using the OpenSSL TLS library. To build for OpenSSL, you must use the <code>-Tls openssl</code> option when calling <code>build.ps</code>. If 0-RTT is not required/needed, then <code>-Tls schannel</code> should be fine to use on Windows, and <code>-Tls openssl</code> for Linux.</p>
@@ -155,7 +155,7 @@ sudo sh -c &quot;echo -n '%e.%p.%t.core' &gt; /proc/sys/kernel/core_pattern&quot
 </article>
 
         <div class="contribution d-print-none">
-          <a href="https://github.com/microsoft/msquic/blob/3833/merge/docs/InteropServerSetup.md/#L1" class="edit-link">Edit this page</a>
+          <a href="https://github.com/microsoft/msquic/blob/jackhe/fix-link/docs/InteropServerSetup.md/#L1" class="edit-link">Edit this page</a>
         </div>
 
         <div class="next-article d-print-none border-top" id="nextArticle"></div>

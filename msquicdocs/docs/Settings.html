@@ -15,7 +15,7 @@
       <meta name="docfx:rel" content="../">
       
       
-      <meta name="docfx:docurl" content="https://github.com/microsoft/msquic/blob/3833/merge/docs/Settings.md/#L1">
+      <meta name="docfx:docurl" content="https://github.com/microsoft/msquic/blob/jackhe/fix-link/docs/Settings.md/#L1">
       <meta name="loc:inThisArticle" content="In this article">
       <meta name="loc:searchResultsCount" content="{count} results for &quot;{query}&quot;">
       <meta name="loc:searchNoResults" content="No results for &quot;{query}&quot;">
@@ -158,7 +158,7 @@ Generally MsQuic already choses the best / most correct default values for all s
 <td>uint64_t</td>
 <td>IdleTimeoutMs</td>
 <td>30,000</td>
-<td>How long a connection can go idle before it is gracefully shut down. 0 to disable timeout</td>
+<td>How long a connection can go idle before it is silently shut down. 0 to disable timeout</td>
 </tr>
 <tr>
 <td>Max TLS Send Buffer (Client)</td>
@@ -513,6 +513,12 @@ Generally MsQuic already choses the best / most correct default values for all s
 <td>Get-Only</td>
 <td>The TLS provider being used by MsQuic for the TLS handshake.</td>
 </tr>
+<tr>
+<td><code>QUIC_PARAM_GLOBAL_STATELESS_RESET_KEY</code><br> 11</td>
+<td>uint8_t[]</td>
+<td>Set-Only</td>
+<td>Globally change the stateless reset key for all subsequent connections.</td>
+</tr>
 </tbody>
 </table>
 <h2 id="registration-parameters">Registration Parameters</h2>
@@ -865,6 +871,12 @@ Generally MsQuic already choses the best / most correct default values for all s
 <td>Get-only</td>
 <td>Stream-level statistics.</td>
 </tr>
+<tr>
+<td><code>QUIC_PARAM_STREAM_RELIABLE_OFFSET</code> <br> 5</td>
+<td>uint64_t</td>
+<td>Get/Set</td>
+<td>Part of the new Reliable Reset preview feature. Sets/Gets the number of bytes a sender must send before closing SEND path.</td>
+</tr>
 </tbody>
 </table>
 <h2 id="see-also">See Also</h2>
@@ -874,7 +886,7 @@ Generally MsQuic already choses the best / most correct default values for all s
 </article>
 
         <div class="contribution d-print-none">
-          <a href="https://github.com/microsoft/msquic/blob/3833/merge/docs/Settings.md/#L1" class="edit-link">Edit this page</a>
+          <a href="https://github.com/microsoft/msquic/blob/jackhe/fix-link/docs/Settings.md/#L1" class="edit-link">Edit this page</a>
         </div>
 
         <div class="next-article d-print-none border-top" id="nextArticle"></div>

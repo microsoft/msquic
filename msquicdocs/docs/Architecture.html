@@ -15,7 +15,7 @@
       <meta name="docfx:rel" content="../">
       
       
-      <meta name="docfx:docurl" content="https://github.com/microsoft/msquic/blob/3833/merge/docs/Architecture.md/#L1">
+      <meta name="docfx:docurl" content="https://github.com/microsoft/msquic/blob/jackhe/fix-link/docs/Architecture.md/#L1">
       <meta name="loc:inThisArticle" content="In this article">
       <meta name="loc:searchResultsCount" content="{count} results for &quot;{query}&quot;">
       <meta name="loc:searchNoResults" content="No results for &quot;{query}&quot;">
@@ -106,7 +106,17 @@ independent logic, built on the platform abstraction layers.</p>
 <h3 id="datapath">Datapath</h3>
 <p>Another large piece of the PAL is the abstraction of UDP and TCP sockets, named the &quot;datapath&quot; layer. This layer is designed to be highly parallelized and performant.</p>
 <p>It uses asynchronous callbacks driven by the current execution model (see <a href="#execution-model">below</a>) threads.</p>
-<p>Currently, it also has preview support of XDP on Windows.</p>
+<p>Currently, it also has preview support of XDP on Windows.<br>
+XDP datapath is used when</p>
+<ul>
+<li>XDP initialization succeeds
+<ul>
+<li>XDP deps are installed</li>
+<li>XDP capable NIC is available</li>
+</ul>
+</li>
+<li>Targetting to non-loopback address</li>
+</ul>
 <h3 id="crypto">Crypto</h3>
 <p>The PAL exposes various cryptographic interfaces as well, such has encryption/decryption and cryptographic hashing. This layer currently supports BCrypt and OpenSSL variants on Windows, and OpenSSL on Linux.</p>
 <h3 id="tls">TLS</h3>
@@ -132,7 +142,7 @@ independent logic, built on the platform abstraction layers.</p>
 </article>
 
         <div class="contribution d-print-none">
-          <a href="https://github.com/microsoft/msquic/blob/3833/merge/docs/Architecture.md/#L1" class="edit-link">Edit this page</a>
+          <a href="https://github.com/microsoft/msquic/blob/jackhe/fix-link/docs/Architecture.md/#L1" class="edit-link">Edit this page</a>
         </div>
 
         <div class="next-article d-print-none border-top" id="nextArticle"></div>

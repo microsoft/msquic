@@ -15,7 +15,7 @@
       <meta name="docfx:rel" content="../">
       
       
-      <meta name="docfx:docurl" content="https://github.com/microsoft/msquic/blob/3833/merge/docs/TEST.md/#L1">
+      <meta name="docfx:docurl" content="https://github.com/microsoft/msquic/blob/jackhe/fix-link/docs/TEST.md/#L1">
       <meta name="loc:inThisArticle" content="In this article">
       <meta name="loc:searchResultsCount" content="{count} results for &quot;{query}&quot;">
       <meta name="loc:searchNoResults" content="No results for &quot;{query}&quot;">
@@ -103,6 +103,9 @@ On Windows, <code>schannel</code> is the default TLS provider, but requires the 
 </blockquote>
 <pre><code class="lang-PowerShell">./scripts/test.ps1 -Tls openssl
 </code></pre>
+<p>Windows XDP datapath can be used unless a test explicitly specify loopback address by</p>
+<pre><code class="lang-Powershell">./scripts/test.ps1 -UseXdp
+</code></pre>
 <p>By default this will run all tests in series, with no log collection. To include log collection for failed tests, run:</p>
 <pre><code class="lang-PowerShell">./scripts/test.ps1 -LogProfile Full.Light
 </code></pre>
@@ -141,7 +144,7 @@ Write-Error: 4 test(s) failed.
 </article>
 
         <div class="contribution d-print-none">
-          <a href="https://github.com/microsoft/msquic/blob/3833/merge/docs/TEST.md/#L1" class="edit-link">Edit this page</a>
+          <a href="https://github.com/microsoft/msquic/blob/jackhe/fix-link/docs/TEST.md/#L1" class="edit-link">Edit this page</a>
         </div>
 
         <div class="next-article d-print-none border-top" id="nextArticle"></div>

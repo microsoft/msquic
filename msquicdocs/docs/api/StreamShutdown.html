@@ -15,7 +15,7 @@
       <meta name="docfx:rel" content="../../">
       
       
-      <meta name="docfx:docurl" content="https://github.com/microsoft/msquic/blob/3833/merge/docs/api/StreamShutdown.md/#L1">
+      <meta name="docfx:docurl" content="https://github.com/microsoft/msquic/blob/jackhe/fix-link/docs/api/StreamShutdown.md/#L1">
       <meta name="loc:inThisArticle" content="In this article">
       <meta name="loc:searchResultsCount" content="{count} results for &quot;{query}&quot;">
       <meta name="loc:searchNoResults" content="No results for &quot;{query}&quot;">
@@ -145,6 +145,8 @@ QUIC_STATUS
 <p>If the app doesn't care to wait for the acknowledgement of an abortive shutdown, it can use the <code>QUIC_STREAM_SHUTDOWN_FLAG_IMMEDIATE</code> flag, which will result in MsQuic immediately (not necessarily inline to the call though) indicating the <code>QUIC_STREAM_EVENT_SHUTDOWN_COMPLETE</code> event to the app, after which, the app may safely <a href="StreamClose.html">StreamClose</a> the stream. MsQuic will internally maintain the stream for as long as necessary and then clean it up.</p>
 <p>The stream can also be gracefully shutdown via the <code>QUIC_SEND_FLAG_FIN</code> flag. See <a href="StreamSend.html">StreamSend</a> for more details.</p>
 <p>Any stream (even one that hasn't been started) may be called to shutdown. If the stream has not been started yet, then the shutdown is effectively queued. If the app never calls <a href="StreamStart.html">StreamStart</a> then the shutdown will never been sent out on the wire.</p>
+<h1 id="reliable-reset">Reliable Reset</h1>
+<p>If an app decides to enable Preview Features, the shutdown path can be configured with the QUIC_PARAM_STREAM_RELIABLE_OFFSET Stream parameter, which determines the number of bytes a sender must deliver before it can shut down their SEND path.</p>
 <h1 id="see-also">See Also</h1>
 <p><a href="StreamOpen.html">StreamOpen</a><br>
 <a href="StreamClose.html">StreamClose</a><br>
@@ -155,7 +157,7 @@ QUIC_STATUS
 </article>
 
         <div class="contribution d-print-none">
-          <a href="https://github.com/microsoft/msquic/blob/3833/merge/docs/api/StreamShutdown.md/#L1" class="edit-link">Edit this page</a>
+          <a href="https://github.com/microsoft/msquic/blob/jackhe/fix-link/docs/api/StreamShutdown.md/#L1" class="edit-link">Edit this page</a>
         </div>
 
         <div class="next-article d-print-none border-top" id="nextArticle"></div>

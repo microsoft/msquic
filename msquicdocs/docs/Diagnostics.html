@@ -15,7 +15,7 @@
       <meta name="docfx:rel" content="../">
       
       
-      <meta name="docfx:docurl" content="https://github.com/microsoft/msquic/blob/3833/merge/docs/Diagnostics.md/#L1">
+      <meta name="docfx:docurl" content="https://github.com/microsoft/msquic/blob/jackhe/fix-link/docs/Diagnostics.md/#L1">
       <meta name="loc:inThisArticle" content="In this article">
       <meta name="loc:searchResultsCount" content="{count} results for &quot;{query}&quot;">
       <meta name="loc:searchNoResults" content="No results for &quot;{query}&quot;">
@@ -106,12 +106,12 @@ sudo apt-get update
 sudo apt-get install -y lttng-tools
 </code></pre>
 <h4 id="perf">Perf</h4>
-<p>For general tracing, refer <a href="../src/plugins/trace/README.html#linux">Stacks and CPU usage</a></p>
+<p>For general tracing, refer <a href="https://github.com/microsoft/msquic/tree/main/src/plugins/trace/README.md#linux">Stacks and CPU usage</a></p>
 <h3 id="macos">macOS</h3>
 <p>Tracing is currently unsupported on macOS.</p>
 <h1 id="trace-collection">Trace Collection</h1>
 <h2 id="windows-1">Windows</h2>
-<p>There are a lot of general tools and ways to collect and interact with ETW. In the sections below are our recommended ways to collect and consume the MsQuic ETW logs. <a href="../src/manifest/MsQuicEtw.man">MsQuicEtw.man</a> specifies all the details for each event. For instance:</p>
+<p>There are a lot of general tools and ways to collect and interact with ETW. In the sections below are our recommended ways to collect and consume the MsQuic ETW logs. <a href="https://github.com/microsoft/msquic/tree/main/src/manifest/MsQuicEtw.man">MsQuicEtw.man</a> specifies all the details for each event. For instance:</p>
 <pre><code class="lang-xml">   &lt;event
        keywords=&quot;ut:Connection ut:DataFlow&quot;
        level=&quot;win:Verbose&quot;
@@ -146,7 +146,7 @@ sudo apt-get install -y lttng-tools
 </li>
 <li><p><strong>level</strong> - The level at which to collect traces. <code>5</code> indicates the <code>verbose</code> level. <code>4</code> is <code>informational</code>.</p>
 </li>
-<li><p><strong>keywords</strong> - The set of flags that indicate which type of events should be collected. The command above collects <strong>all</strong> keywords (<code>0xffffffff</code>) which may be too verbose for some scenarios, such as high throughput testing or large number of parallel connections. For a detailed list of the available keywords, see <a href="../src/manifest/MsQuicEtw.man">MsQuicEtw.man</a> and see <code>&lt;keywords&gt;</code>.</p>
+<li><p><strong>keywords</strong> - The set of flags that indicate which type of events should be collected. The command above collects <strong>all</strong> keywords (<code>0xffffffff</code>) which may be too verbose for some scenarios, such as high throughput testing or large number of parallel connections. For a detailed list of the available keywords, see <a href="https://github.com/microsoft/msquic/tree/main/src/manifest/MsQuicEtw.man">MsQuicEtw.man</a> and see <code>&lt;keywords&gt;</code>.</p>
 </li>
 </ul>
 <p>Once you are done with collecting all the events, to <strong>stop</strong> the trace session, use the following command:</p>
@@ -154,7 +154,7 @@ sudo apt-get install -y lttng-tools
 </code></pre>
 <p>This will flush and finalize the output ETL file specified in the <code>netsh trace start</code> command. This ETL file can either be converted to text or used in the automated tools.</p>
 <h3 id="wprexe">wpr.exe</h3>
-<p><code>wpr.exe</code> is another inbox Windows command line tool that can be used to collect ETW traces, but it requires an additional &quot;profile&quot; file: <a href="../src/manifest/MsQuic.wprp">MsQuic.wprp</a>. This WPR profile file details several specifically tailored trace configurations. To use it, you must copy <a href="../src/manifest/MsQuic.wprp">MsQuic.wprp</a> to the machine you wish to collect the traces for, you can simply run the following to start trace collection:</p>
+<p><code>wpr.exe</code> is another inbox Windows command line tool that can be used to collect ETW traces, but it requires an additional &quot;profile&quot; file: <a href="https://github.com/microsoft/msquic/tree/main/src/manifest/MsQuic.wprp">MsQuic.wprp</a>. This WPR profile file details several specifically tailored trace configurations. To use it, you must copy <a href="https://github.com/microsoft/msquic/tree/main/src/manifest/MsQuic.wprp">MsQuic.wprp</a> to the machine you wish to collect the traces for, you can simply run the following to start trace collection:</p>
 <pre><code>wpr.exe -start MsQuic.wprp!PROFILE -filemode
 </code></pre>
 <p>You must replace <code>PROFILE</code> with the name of the profile you want to run. Some of the useful profiles are:</p>
@@ -233,11 +233,11 @@ export PATH=$PWD/submodules/clog/src/clog2text/clog2text_lttng/bin/Release/net6.
 The <code>clog.sidecar</code> file that was used to build MsQuic must be used. It can be found in the <code>./src/manifest</code> directory of the repository.</p>
 </blockquote>
 <h1 id="trace-analysis">Trace Analysis</h1>
-<p>MsQuic supports a custom plugin for Windows Performance Analyzer (WPA) to detailed analysis of ETW traces. See the <a href="../src/plugins/trace/README.html">WPA instructions</a> for more details.</p>
+<p>MsQuic supports a custom plugin for Windows Performance Analyzer (WPA) to detailed analysis of ETW traces. See the <a href="https://github.com/microsoft/msquic/tree/main/src/plugins/trace/README.md">WPA instructions</a> for more details.</p>
 <h2 id="text-analysis-tool">Text Analysis Tool</h2>
 <p>When viewing the traces as text, we recommend <a href="https://textanalysistool.github.io/">TextAnalysisTool.NET</a> (Windows only) and we have several filter files we maintain for it (<a href="./tat">folder</a>). The different filters are meant to quickly highlight and color code important information.</p>
 <p><img src="images/tat.png" alt=""></p>
-<p>You may also open the trace in Windows Performance Analyzer. See the <a href="../src/plugins/trace/README.html">WPA instructions</a> for more details.</p>
+<p>You may also open the trace in Windows Performance Analyzer. See the <a href="https://github.com/microsoft/msquic/tree/main/src/plugins/trace/README.md">WPA instructions</a> for more details.</p>
 <blockquote>
 <p><strong>Note</strong>
 WPA support for LTTng based logs is not yet available but will be supported in the future.</p>
@@ -297,7 +297,7 @@ QUIC_PERF_COUNTER_SEND_STATELESS_RETRY | Total stateless retry packets sent ever
 </article>
 
         <div class="contribution d-print-none">
-          <a href="https://github.com/microsoft/msquic/blob/3833/merge/docs/Diagnostics.md/#L1" class="edit-link">Edit this page</a>
+          <a href="https://github.com/microsoft/msquic/blob/jackhe/fix-link/docs/Diagnostics.md/#L1" class="edit-link">Edit this page</a>
         </div>
 
         <div class="next-article d-print-none border-top" id="nextArticle"></div>
