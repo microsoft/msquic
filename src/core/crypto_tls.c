@@ -345,6 +345,8 @@ QuicCryptoTlsReadExtensions(
       } Extension;
     */
 
+    BOOLEAN FoundSNI = FALSE;
+    BOOLEAN FoundALPN = FALSE;
     BOOLEAN FoundTransportParameters = FALSE;
     while (BufferLength) {
         //
@@ -374,23 +376,49 @@ QuicCryptoTlsReadExtensions(
         }
 
         if (ExtType == TlsExt_ServerName) {
+            if (FoundSNI) {
+                QuicTraceEvent(
+                    ConnError,
+                    "[conn][%p] ERROR, %s.",
+                    Connection,
+                    "Duplicate SNI extension present");
+                return QUIC_STATUS_INVALID_PARAMETER;
+            }
             QUIC_STATUS Status =
                 QuicCryptoTlsReadSniExtension(
                     Connection, Buffer, ExtLen, Info);
             if (QUIC_FAILED(Status)) {
                 return Status;
             }
+            FoundSNI = TRUE;
 
         } else if (ExtType == TlsExt_AppProtocolNegotiation) {
+            if (FoundALPN) {
+                QuicTraceEvent(
+                    ConnError,
+                    "[conn][%p] ERROR, %s.",
+                    Connection,
+                    "Duplicate ALPN extension present");
+                return QUIC_STATUS_INVALID_PARAMETER;
+            }
             QUIC_STATUS Status =
                 QuicCryptoTlsReadAlpnExtension(
                     Connection, Buffer, ExtLen, Info);
             if (QUIC_FAILED(Status)) {
                 return Status;
             }
+            FoundALPN = TRUE;
 
         } else if (Connection->Stats.QuicVersion != QUIC_VERSION_DRAFT_29) {
             if (ExtType == TLS_EXTENSION_TYPE_QUIC_TRANSPORT_PARAMETERS) {
+                if (FoundTransportParameters) {
+                    QuicTraceEvent(
+                        ConnError,
+                        "[conn][%p] ERROR, %s.",
+                        Connection,
+                        "Duplicate QUIC TP extension present");
+                    return QUIC_STATUS_INVALID_PARAMETER;
+                }
                 if (!QuicCryptoTlsDecodeTransportParameters(
                         Connection,
                         FALSE,
@@ -404,6 +432,14 @@ QuicCryptoTlsReadExtensions(
 
         } else {
             if (ExtType == TLS_EXTENSION_TYPE_QUIC_TRANSPORT_PARAMETERS_DRAFT) {
+                if (FoundTransportParameters) {
+                    QuicTraceEvent(
+                        ConnError,
+                        "[conn][%p] ERROR, %s.",
+                        Connection,
+                        "Duplicate QUIC (draft) TP extension present");
+                    return QUIC_STATUS_INVALID_PARAMETER;
+                }
                 if (!QuicCryptoTlsDecodeTransportParameters(
                         Connection,
                         FALSE,
@@ -1176,7 +1212,7 @@ QuicCryptoTlsDecodeTransportParameters(
     _In_reads_(TPLen)
         const uint8_t* TPBuf,
     _In_ uint16_t TPLen,
-    _Out_ QUIC_TRANSPORT_PARAMETERS* TransportParams
+    _Inout_ QUIC_TRANSPORT_PARAMETERS* TransportParams
     )
 {
     BOOLEAN Result = FALSE;
@@ -1185,6 +1221,9 @@ QuicCryptoTlsDecodeTransportParameters(
 
     UNREFERENCED_PARAMETER(Connection);
 
+    if (TransportParams->VersionInfo) {
+        CXPLAT_FREE(TransportParams->VersionInfo, QUIC_POOL_VERSION_INFO);
+    }
     CxPlatZeroMemory(TransportParams, sizeof(QUIC_TRANSPORT_PARAMETERS));
     TransportParams->MaxUdpPayloadSize = QUIC_TP_MAX_PACKET_SIZE_DEFAULT;
     TransportParams->AckDelayExponent = QUIC_TP_ACK_DELAY_EXPONENT_DEFAULT;

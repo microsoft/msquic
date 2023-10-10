@@ -2133,7 +2133,7 @@ QuicConnRecvResumptionTicket(
     )
 {
     BOOLEAN ResumptionAccepted = FALSE;
-    QUIC_TRANSPORT_PARAMETERS ResumedTP;
+    QUIC_TRANSPORT_PARAMETERS ResumedTP = {0};
     CxPlatZeroMemory(&ResumedTP, sizeof(ResumedTP));
     if (QuicConnIsServer(Connection)) {
         const uint8_t* AppData = NULL;
