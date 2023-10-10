@@ -87,13 +87,13 @@ tracepoint(CLOG_STREAM_SEND_C, IndicateSendComplete , arg1, arg3);\
 // Decoder Ring for SendQueued
 // [strm][%p] Send Request [%p] queued with %llu bytes at offset %llu (flags 0x%x)
 // QuicTraceLogStreamVerbose(
-            SendQueued,
-            Stream,
-            "Send Request [%p] queued with %llu bytes at offset %llu (flags 0x%x)",
-            SendRequest,
-            SendRequest->TotalLength,
-            SendRequest->StreamOffset,
-            SendRequest->Flags);
+        SendQueued,
+        Stream,
+        "Send Request [%p] queued with %llu bytes at offset %llu (flags 0x%x)",
+        SendRequest,
+        SendRequest->TotalLength,
+        SendRequest->StreamOffset,
+        SendRequest->Flags);
 // arg1 = arg1 = Stream = arg1
 // arg3 = arg3 = SendRequest = arg3
 // arg4 = arg4 = SendRequest->TotalLength = arg4
