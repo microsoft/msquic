@@ -45,8 +45,8 @@ Abstract:
 
 //
 // Every data structure here has a matching ETW manifest definition. If you
-// want to add something new, be sure to append it to each of the enum blocks
-// so as to preserve the existing values / order.
+// want to add something new, be sure to append it to the relevant enum block so
+// as to preserve the existing values / order.
 //
 typedef enum QUIC_FLOW_BLOCK_REASON {
     QUIC_FLOW_BLOCKED_SCHEDULING            = 0x01,
