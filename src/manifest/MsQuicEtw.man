@@ -4855,6 +4855,14 @@
             value="DATAGRAM_SEND"
             />
         <string
+            id="Enum.QUIC_TRACE_API_TYPE.COMPLETE_RESUMPTION_TICKET_VALIDATION"
+            value="COMPLETE_RESUMPTION_TICKET_VALIDATION"
+            />
+        <string
+            id="Enum.QUIC_TRACE_API_TYPE.COMPLETE_CERTIFICATE_VALIDATION"
+            value="COMPLETE_CERTIFICATE_VALIDATION"
+            />
+        <string
             id="Enum.QUIC_SEND_FLUSH_REASON.CONNECTION_FLAGS"
             value="CONNECTION_FLAGS"
             />
