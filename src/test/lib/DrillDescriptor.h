@@ -64,25 +64,25 @@ struct DrillPacketDescriptor {
     //
     // The type of datagram this describes.
     //
-    DrillPacketDescriptorType Type;
+    DrillPacketDescriptorType Type {VersionNegotiation};
 
-    QuicHeader Header;
+    QuicHeader Header {0};
 
-    uint32_t Version;
+    uint32_t Version {QUIC_VERSION_VER_NEG};
 
     //
     // Optional destination CID length. If not set, will use length of DestCid.
     //
-    uint8_t* DestCidLen;
+    uint8_t* DestCidLen {nullptr};
     DrillBuffer DestCid;
 
     //
     // Optional source CID length. If not set, will use length of SourceCid.
     //
-    uint8_t* SourceCidLen;
+    uint8_t* SourceCidLen {nullptr};
     DrillBuffer SourceCid;
 
-    DrillPacketDescriptor() : DestCidLen(nullptr), SourceCidLen(nullptr) {};
+    DrillPacketDescriptor() { Header.LongHeader = TRUE; }
 
     //
     // Write this descriptor to a byte array to send on the wire.
@@ -90,13 +90,19 @@ struct DrillPacketDescriptor {
     virtual DrillBuffer write() const;
 };
 
+struct DrillVNPacketDescriptor : DrillPacketDescriptor {
+    //
+    // Write this descriptor to a byte array to send on the wire.
+    //
+    virtual DrillBuffer write() const;
+};
 
 struct DrillInitialPacketDescriptor : DrillPacketDescriptor {
     //
     // Optional Token length for the token. If unspecified, uses the length
     // of Token below.
     //
-    uint64_t* TokenLen;
+    uint64_t* TokenLen {nullptr};
 
     //
     // Token is optional. If unspecified, then it is elidded.
@@ -107,13 +113,15 @@ struct DrillInitialPacketDescriptor : DrillPacketDescriptor {
     // If unspecified, this value is auto-calculated from the fields.
     // Otherwise, this value is used regardless of actual packet length.
     //
-    uint64_t* PacketLength;
+    uint64_t* PacketLength {nullptr};
 
     //
     // The caller must ensure the packet number length bits in the header
     // match the magnitude of this PacketNumber.
     //
-    uint32_t PacketNumber;
+    uint32_t PacketNumber {0};
+
+    DrillBuffer Payload;
 
 
     DrillInitialPacketDescriptor();
