@@ -512,6 +512,11 @@ QuicDrillTestServerVNPacket(
     TEST_QUIC_SUCCEEDED(Listener.GetLocalAddr(ServerLocalAddr));
 
     DrillSender Sender;
+
+    if (QuitTestIsFeatureSupported(CXPLAT_DATAPATH_FEATURE_RAW)) {
+        return;
+    }
+
     TEST_QUIC_SUCCEEDED(
         Sender.Initialize(
             QUIC_TEST_LOOPBACK_FOR_AF(QuicAddrFamily),
