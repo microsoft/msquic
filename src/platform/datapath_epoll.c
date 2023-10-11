@@ -634,6 +634,7 @@ CxPlatSocketContextInitialize(
 
 
     if (SocketType == CXPLAT_SOCKET_TCP_SERVER) {
+        SocketContext->SqeInitialized = TRUE;
         return Status;
     }
 
