@@ -558,34 +558,20 @@ CxPlatSocketConfigureRss(
 #endif
 }
 
-//
-// Socket context interface. It abstracts a (generally per-processor) UDP socket
-// and the corresponding logic/functionality like send and receive processing.
-//
-
 QUIC_STATUS
-CxPlatSocketContextInitialize(
-    _Inout_ CXPLAT_SOCKET_CONTEXT* SocketContext,
-    _In_ const CXPLAT_UDP_CONFIG* Config,
-    _In_ const uint16_t PartitionIndex,
-    _In_ CXPLAT_SOCKET_TYPE SocketType
+CxPlatSocketContextSqeInitialize(
+    _Inout_ CXPLAT_SOCKET_CONTEXT* SocketContext
     )
 {
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
-    int Result = 0;
-    int Option = 0;
-    QUIC_ADDR MappedAddress = {0};
-    socklen_t AssignedLocalAddressLength = 0;
+    CXPLAT_SOCKET* Binding = SocketContext->Binding;
     BOOLEAN ShutdownSqeInitialized = FALSE;
     BOOLEAN IoSqeInitialized = FALSE;
     BOOLEAN FlushTxInitialized = FALSE;
 
-    CXPLAT_SOCKET* Binding = SocketContext->Binding;
-    CXPLAT_DATAPATH* Datapath = Binding->Datapath;
-
-    CXPLAT_DBG_ASSERT(PartitionIndex < Datapath->PartitionCount);
-    SocketContext->DatapathPartition = &Datapath->Partitions[PartitionIndex];
-    CxPlatRefIncrement(&SocketContext->DatapathPartition->RefCount);
+    SocketContext->ShutdownSqe.CqeType = CXPLAT_CQE_TYPE_SOCKET_SHUTDOWN;
+    SocketContext->IoSqe.CqeType = CXPLAT_CQE_TYPE_SOCKET_IO;
+    SocketContext->FlushTxSqe.CqeType = CXPLAT_CQE_TYPE_SOCKET_FLUSH_TX;
 
     if (!CxPlatSqeInitialize(
             SocketContext->DatapathPartition->EventQ,
@@ -632,10 +618,53 @@ CxPlatSocketContextInitialize(
     }
     FlushTxInitialized = TRUE;
 
+    SocketContext->SqeInitialized = TRUE;
 
-    if (SocketType == CXPLAT_SOCKET_TCP_SERVER) {
-        SocketContext->SqeInitialized = TRUE;
-        return Status;
+Exit:
+
+    if (QUIC_FAILED(Status)) {
+        if (ShutdownSqeInitialized) {
+            CxPlatSqeCleanup(SocketContext->DatapathPartition->EventQ, &SocketContext->ShutdownSqe.Sqe);
+        }
+        if (IoSqeInitialized) {
+            CxPlatSqeCleanup(SocketContext->DatapathPartition->EventQ, &SocketContext->IoSqe.Sqe);
+        }
+        if (FlushTxInitialized) {
+            CxPlatSqeCleanup(SocketContext->DatapathPartition->EventQ, &SocketContext->FlushTxSqe.Sqe);
+        }
+    }
+
+    return Status;
+}
+
+//
+// Socket context interface. It abstracts a (generally per-processor) UDP socket
+// and the corresponding logic/functionality like send and receive processing.
+//
+QUIC_STATUS
+CxPlatSocketContextInitialize(
+    _Inout_ CXPLAT_SOCKET_CONTEXT* SocketContext,
+    _In_ const CXPLAT_UDP_CONFIG* Config,
+    _In_ const uint16_t PartitionIndex,
+    _In_ CXPLAT_SOCKET_TYPE SocketType
+    )
+{
+    QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
+    int Result = 0;
+    int Option = 0;
+    QUIC_ADDR MappedAddress = {0};
+    socklen_t AssignedLocalAddressLength = 0;
+
+    CXPLAT_SOCKET* Binding = SocketContext->Binding;
+    CXPLAT_DATAPATH* Datapath = Binding->Datapath;
+
+    CXPLAT_DBG_ASSERT(PartitionIndex < Datapath->PartitionCount);
+    SocketContext->DatapathPartition = &Datapath->Partitions[PartitionIndex];
+    CxPlatRefIncrement(&SocketContext->DatapathPartition->RefCount);
+
+    if (QUIC_FAILED(CxPlatSocketContextSqeInitialize(SocketContext)) ||
+        SocketType == CXPLAT_SOCKET_TCP_SERVER) {
+        goto Exit;
     }
 
     //
@@ -896,125 +925,112 @@ CxPlatSocketContextInitialize(
         MappedAddress.Ipv6.sin6_family = AF_INET6;
     }
 
-    if (SocketType != CXPLAT_SOCKET_TCP_SERVER) {
+    Result =
+        bind(
+            SocketContext->SocketFd,
+            &MappedAddress.Ip,
+            sizeof(MappedAddress));
+    if (Result == SOCKET_ERROR) {
+        Status = errno;
+        QuicTraceEvent(
+            DatapathErrorStatus,
+            "[data][%p] ERROR, %u, %s.",
+            Binding,
+            Status,
+            "bind failed");
+        goto Exit;
+    }
+
+    QUIC_ADDR_STR LocalAddressStr;
+    QUIC_ADDR_STR RemoteAddressStr;
+    QuicAddrToString(&MappedAddress, &LocalAddressStr);
+
+    if (Config->RemoteAddress != NULL) {
+        CxPlatZeroMemory(&MappedAddress, sizeof(MappedAddress));
+        CxPlatConvertToMappedV6(Config->RemoteAddress, &MappedAddress);
+
+        if (MappedAddress.Ipv6.sin6_family == QUIC_ADDRESS_FAMILY_INET6) {
+            MappedAddress.Ipv6.sin6_family = AF_INET6;
+        }
+        QuicAddrToString(&MappedAddress, &RemoteAddressStr);
         Result =
-            bind(
+            connect(
                 SocketContext->SocketFd,
                 &MappedAddress.Ip,
                 sizeof(MappedAddress));
-        if (Result == SOCKET_ERROR) {
+        if (Result == SOCKET_ERROR && errno != EINPROGRESS) {
             Status = errno;
             QuicTraceEvent(
                 DatapathErrorStatus,
                 "[data][%p] ERROR, %u, %s.",
                 Binding,
                 Status,
-                "bind failed");
+                "connect failed");
             goto Exit;
         }
-
-        QUIC_ADDR_STR LocalAddressStr;
-        QUIC_ADDR_STR RemoteAddressStr;
-        QuicAddrToString(&MappedAddress, &LocalAddressStr);
-
-        if (Config->RemoteAddress != NULL) {
-            CxPlatZeroMemory(&MappedAddress, sizeof(MappedAddress));
-            CxPlatConvertToMappedV6(Config->RemoteAddress, &MappedAddress);
-
-            if (MappedAddress.Ipv6.sin6_family == QUIC_ADDRESS_FAMILY_INET6) {
-                MappedAddress.Ipv6.sin6_family = AF_INET6;
-            }
-            QuicAddrToString(&MappedAddress, &RemoteAddressStr);
-            Result =
-                connect(
-                    SocketContext->SocketFd,
-                    &MappedAddress.Ip,
-                    sizeof(MappedAddress));
-            if (Result == SOCKET_ERROR && errno != EINPROGRESS) {
-                Status = errno;
-                QuicTraceEvent(
-                    DatapathErrorStatus,
-                    "[data][%p] ERROR, %u, %s.",
-                    Binding,
-                    Status,
-                    "connect failed");
-                goto Exit;
-            }
-            Binding->Connected = SocketType != CXPLAT_SOCKET_TCP;
-        }
-
-        //
-        // If no specific local port was indicated, then the stack just
-        // assigned this socket a port. We need to query it and use it for
-        // all the other sockets we are going to create.
-        //
-        AssignedLocalAddressLength = sizeof(Binding->LocalAddress);
-        Result =
-            getsockname(
-                SocketContext->SocketFd,
-                (struct sockaddr *)&Binding->LocalAddress,
-                &AssignedLocalAddressLength);
-        if (Result == SOCKET_ERROR) {
-            Status = errno;
-            QuicTraceEvent(
-                DatapathErrorStatus,
-                "[data][%p] ERROR, %u, %s.",
-                Binding,
-                Status,
-                "getsockname failed");
-            goto Exit;
-        }
-
-#if DEBUG
-        if (Config->LocalAddress && Config->LocalAddress->Ipv4.sin_port != 0) {
-            CXPLAT_DBG_ASSERT(Config->LocalAddress->Ipv4.sin_port == Binding->LocalAddress.Ipv4.sin_port);
-        } else if (Config->RemoteAddress && Config->LocalAddress && Config->LocalAddress->Ipv4.sin_port == 0) {
-            //
-            // A client socket being assigned the same port as a remote socket causes issues later
-            // in the datapath and binding paths. Check to make sure this case was not given to us.
-            //
-            CXPLAT_DBG_ASSERT(Binding->LocalAddress.Ipv4.sin_port != Config->RemoteAddress->Ipv4.sin_port);
-        }
-#endif
-
-        if (Binding->LocalAddress.Ipv6.sin6_family == AF_INET6) {
-            Binding->LocalAddress.Ipv6.sin6_family = QUIC_ADDRESS_FAMILY_INET6;
-        }
-
-        if (SocketType == CXPLAT_SOCKET_TCP_LISTENER) {
-            Result =
-                listen(
-                    SocketContext->SocketFd,
-                    100);
-            if (Result == SOCKET_ERROR) {
-                int error = errno;
-                QuicTraceEvent(
-                    DatapathErrorStatus,
-                    "[data][%p] ERROR, %u, %s.",
-                    Binding,
-                    error,
-                    "listen");
-                goto Exit;
-            }
-        }
+        Binding->Connected = SocketType != CXPLAT_SOCKET_TCP;
     }
 
-    SocketContext->SqeInitialized = TRUE;
+    //
+    // If no specific local port was indicated, then the stack just
+    // assigned this socket a port. We need to query it and use it for
+    // all the other sockets we are going to create.
+    //
+    AssignedLocalAddressLength = sizeof(Binding->LocalAddress);
+    Result =
+        getsockname(
+            SocketContext->SocketFd,
+            (struct sockaddr *)&Binding->LocalAddress,
+            &AssignedLocalAddressLength);
+    if (Result == SOCKET_ERROR) {
+        Status = errno;
+        QuicTraceEvent(
+            DatapathErrorStatus,
+            "[data][%p] ERROR, %u, %s.",
+            Binding,
+            Status,
+            "getsockname failed");
+        goto Exit;
+    }
+
+#if DEBUG
+    if (Config->LocalAddress && Config->LocalAddress->Ipv4.sin_port != 0) {
+        CXPLAT_DBG_ASSERT(Config->LocalAddress->Ipv4.sin_port == Binding->LocalAddress.Ipv4.sin_port);
+    } else if (Config->RemoteAddress && Config->LocalAddress && Config->LocalAddress->Ipv4.sin_port == 0) {
+        //
+        // A client socket being assigned the same port as a remote socket causes issues later
+        // in the datapath and binding paths. Check to make sure this case was not given to us.
+        //
+        CXPLAT_DBG_ASSERT(Binding->LocalAddress.Ipv4.sin_port != Config->RemoteAddress->Ipv4.sin_port);
+    }
+#endif
+
+    if (Binding->LocalAddress.Ipv6.sin6_family == AF_INET6) {
+        Binding->LocalAddress.Ipv6.sin6_family = QUIC_ADDRESS_FAMILY_INET6;
+    }
+
+    if (SocketType == CXPLAT_SOCKET_TCP_LISTENER) {
+        Result =
+            listen(
+                SocketContext->SocketFd,
+                100);
+        if (Result == SOCKET_ERROR) {
+            int error = errno;
+            QuicTraceEvent(
+                DatapathErrorStatus,
+                "[data][%p] ERROR, %u, %s.",
+                Binding,
+                error,
+                "listen");
+            goto Exit;
+        }
+    }
 
 Exit:
 
     if (QUIC_FAILED(Status)) {
         close(SocketContext->SocketFd);
         SocketContext->SocketFd = INVALID_SOCKET;
-        if (ShutdownSqeInitialized) {
-            CxPlatSqeCleanup(SocketContext->DatapathPartition->EventQ, &SocketContext->ShutdownSqe.Sqe);
-        }
-        if (IoSqeInitialized) {
-            CxPlatSqeCleanup(SocketContext->DatapathPartition->EventQ, &SocketContext->IoSqe.Sqe);
-        }
-        if (FlushTxInitialized) {
-            CxPlatSqeCleanup(SocketContext->DatapathPartition->EventQ, &SocketContext->FlushTxSqe.Sqe);
-        }
     }
 
     return Status;
@@ -1211,9 +1227,6 @@ SocketCreateUdp(
     for (uint32_t i = 0; i < SocketCount; i++) {
         Binding->SocketContexts[i].Binding = Binding;
         Binding->SocketContexts[i].SocketFd = INVALID_SOCKET;
-        Binding->SocketContexts[i].ShutdownSqe.CqeType = CXPLAT_CQE_TYPE_SOCKET_SHUTDOWN;
-        Binding->SocketContexts[i].IoSqe.CqeType = CXPLAT_CQE_TYPE_SOCKET_IO;
-        Binding->SocketContexts[i].FlushTxSqe.CqeType = CXPLAT_CQE_TYPE_SOCKET_FLUSH_TX;
         CxPlatListInitializeHead(&Binding->SocketContexts[i].TxQueue);
         CxPlatLockInitialize(&Binding->SocketContexts[i].TxQueueLock);
         CxPlatRundownInitialize(&Binding->SocketContexts[i].UpcallRundown);
@@ -1329,9 +1342,6 @@ CxPlatSocketCreateTcpInternal(
     SocketContext = &Binding->SocketContexts[0];
     SocketContext->Binding = Binding;
     SocketContext->SocketFd = INVALID_SOCKET;
-    SocketContext->ShutdownSqe.CqeType = CXPLAT_CQE_TYPE_SOCKET_SHUTDOWN;
-    SocketContext->IoSqe.CqeType = CXPLAT_CQE_TYPE_SOCKET_IO;
-    SocketContext->FlushTxSqe.CqeType = CXPLAT_CQE_TYPE_SOCKET_FLUSH_TX;
     CxPlatListInitializeHead(&SocketContext->TxQueue);
     CxPlatLockInitialize(&SocketContext->TxQueueLock);
     CxPlatRundownInitialize(&SocketContext->UpcallRundown);
@@ -1349,10 +1359,6 @@ CxPlatSocketCreateTcpInternal(
     if (QUIC_FAILED(Status)) {
         goto Exit;
     }
-    if (Binding->Type == CXPLAT_SOCKET_TCP_SERVER) {
-        *NewBinding = Binding;
-        return Status;
-    }
 
     if (IsServerSocket) {
         //
@@ -1362,6 +1368,12 @@ CxPlatSocketCreateTcpInternal(
         // based on RSS.
         //
         (void)CxPlatSocketConfigureRss(SocketContext, 1);
+    }
+
+    if (Type == CXPLAT_SOCKET_TCP_SERVER) {
+        *NewBinding = Binding;
+        Binding = NULL;
+        goto Exit;
     }
 
     CxPlatConvertFromMappedV6(&Binding->LocalAddress, &Binding->LocalAddress);
@@ -1465,9 +1477,6 @@ SocketCreateTcpListener(
     SocketContext = &Binding->SocketContexts[0];
     SocketContext->Binding = Binding;
     SocketContext->SocketFd = INVALID_SOCKET;
-    SocketContext->ShutdownSqe.CqeType = CXPLAT_CQE_TYPE_SOCKET_SHUTDOWN;
-    SocketContext->IoSqe.CqeType = CXPLAT_CQE_TYPE_SOCKET_IO;
-    SocketContext->FlushTxSqe.CqeType = CXPLAT_CQE_TYPE_SOCKET_FLUSH_TX;
     CxPlatListInitializeHead(&SocketContext->TxQueue);
     CxPlatLockInitialize(&SocketContext->TxQueueLock);
     CxPlatRundownInitialize(&SocketContext->UpcallRundown);
@@ -1512,10 +1521,6 @@ CxPlatSocketContextAcceptCompletion(
     UNREFERENCED_PARAMETER(Cqe);
     CXPLAT_DATAPATH* Datapath = SocketContext->Binding->Datapath;
 
-    if (!CxPlatRundownAcquire(&SocketContext->UpcallRundown)) {
-        return;
-    }
-
     QUIC_STATUS Status =
         CxPlatSocketCreateTcpInternal(
             Datapath,
@@ -1529,6 +1534,17 @@ CxPlatSocketContextAcceptCompletion(
     }
 
     SocketContext->AcceptSocket->SocketContexts[0].SocketFd = accept(SocketContext->SocketFd, NULL, NULL);
+    if (SocketContext->AcceptSocket->SocketContexts[0].SocketFd == INVALID_SOCKET) {
+        Status = errno;
+        QuicTraceEvent(
+            DatapathErrorStatus,
+            "[data][%p] ERROR, %u, %s.",
+            SocketContext->Binding,
+            Status,
+            "accept failed");
+        fprintf(stderr, "Accept failure: %d\n", Status);
+        goto Error;
+    }
 
     CxPlatSocketContextSetEvents(&SocketContext->AcceptSocket->SocketContexts[0], EPOLL_CTL_ADD, EPOLLIN);
     SocketContext->AcceptSocket->SocketContexts[0].IoStarted = TRUE;
@@ -1546,8 +1562,6 @@ Error:
         SocketDelete(SocketContext->AcceptSocket);
         SocketContext->AcceptSocket = NULL;
     }
-
-    CxPlatRundownRelease(&SocketContext->UpcallRundown);
 }
 
 void
@@ -1559,17 +1573,10 @@ CxPlatSocketContextConnectCompletion(
     UNREFERENCED_PARAMETER(Cqe);
     CXPLAT_DATAPATH* Datapath = SocketContext->Binding->Datapath;
 
-    if (!CxPlatRundownAcquire(&SocketContext->UpcallRundown)) {
-        return;
-    }
-
     Datapath->TcpHandlers.Connect(
         SocketContext->Binding,
         SocketContext->Binding->ClientContext,
         TRUE);
-    //  TODO: error case?
-
-    CxPlatRundownRelease(&SocketContext->UpcallRundown);
 }
 
 void
