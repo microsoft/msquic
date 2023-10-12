@@ -280,8 +280,19 @@ function Enable-TcpOffload {
         $iface = $_.Name
         if ((($_.Attributes -band [System.IO.FileAttributes]::Directory) -eq [System.IO.FileAttributes]::Directory) -and
             $iface -ne "lo") {
-            & sudo ethtool -K $iface large-receive-offload on
-            & sudo ethtool -K $iface tcp-segmentation-offload on
+            Write-Host "-------- before ${iface} ---------"
+            echo (ethtool -k ${iface})
+            Write-Host "-------- before ${iface} ---------"
+            $offloadOptions = @("large-receive-offload", "tcp-segmentation-offload")
+            foreach ($option in $offloadOptions) {
+                $output = & sudo ethtool -K $iface $option on 2>&1
+                if ($LASTEXITCODE -ne 0) {
+                    Write-Error "Failed to enable $option on ${iface}: $($output.Exception.Message)"
+                }
+            }
+            Write-Host "-------- after ${iface} ---------"
+            echo (ethtool -k ${iface})
+            Write-Host "-------- after ${iface} ---------"
         }
     }
 }
