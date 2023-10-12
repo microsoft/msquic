@@ -297,6 +297,7 @@ function Enable-TcpOffload {
     }
 }
 
+Write-Host "IsWindows: [$IsWindows] LocalPlatform: [$LocalPlatform] RemotePlatform: [$RemotePlatform] Protocol: [$Protocol]"
 if (($LocalPlatform -eq "linux") -and ($RemotePlatform -eq "linux") -and ($Protocol -eq "TCPTLS")) {
     Enable-TcpOffload
     Invoke-Command -Session $Session -ScriptBlock ${function:Enable-TcpOffload}
