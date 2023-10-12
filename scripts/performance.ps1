@@ -297,7 +297,7 @@ function Enable-TcpOffload {
     }
 }
 
-$PSBoundParameters | ForEach-Object {
+$PSBoundParameters.GetEnumerator() | ForEach-Object {
     Write-Output "$($_.Key) = $($_.Value)"
 }
 if (($LocalPlatform -eq "linux") -and ($RemotePlatform -eq "linux")) {
