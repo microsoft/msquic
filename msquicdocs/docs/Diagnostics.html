@@ -219,11 +219,21 @@ wevtutil.exe im path\to\MsQuicEtw.man /rf:path\to\msquic.dll /mf:path\to\msquic.
 <p>NOTE: <code>msquic.lttng.so</code> must be built to enable lttng logging - see <a href="https://lttng.org/docs/v2.13/#doc-liblttng-ust-dl">https://lttng.org/docs/v2.13/#doc-liblttng-ust-dl</a>
 and it must be placed in the same directory as the <code>msquic.so</code>.</p>
 <p>Building <code>clog2text_lttng</code>:</p>
-<pre><code>apt install --no-install-recommends -y dotnet-runtime-6.0 dotnet-sdk-6.0 dotnet-host
+<pre><code>cat &gt; /etc/apt/preferences.d/99microsoft-dotnet.pref &lt;&lt;EOF
+Package: *
+Pin: origin &quot;packages.microsoft.com&quot;
+Pin-Priority: 1001
+EOF
+apt update
+apt install --no-install-recommends -y dotnet-runtime-6.0 dotnet-sdk-6.0 dotnet-host
 git submodule update --init submodules/clog
 dotnet build submodules/clog/src/clog2text/clog2text_lttng/ -c Release
-export PATH=$PWD/submodules/clog/src/clog2text/clog2text_lttng/bin/Release/net6.0/:$PATH
 </code></pre>
+<blockquote>
+<p><strong>Note</strong><br>
+if you see error &quot;A fatal error occurred. The folder [/usr/share/dotnet/host/fxr] does not exist&quot;<br>
+follow steps in <a href="https://stackoverflow.com/questions/73753672/a-fatal-error-occurred-the-folder-usr-share-dotnet-host-fxr-does-not-exist">https://stackoverflow.com/questions/73753672/a-fatal-error-occurred-the-folder-usr-share-dotnet-host-fxr-does-not-exist</a></p>
+</blockquote>
 <p>To convert the trace, you can use the following commands:</p>
 <pre><code>babeltrace --names all ./msquic_lttng/* &gt; quic.babel.txt
 ~/.dotnet/tools/clog2text_lttng -i quic.babel.txt -s clog.sidecar -o quic.log --showTimestamp --showCpuInfo
