@@ -297,7 +297,7 @@ function Enable-TcpOffload {
     }
 }
 
-if (($LocalPlatform -eq "linux") -and ($RemotePlatform -eq "linux") -and ($Protocol -eq "TCP")) {
+if (($LocalPlatform -eq "linux") -and ($RemotePlatform -eq "linux") -and ($Protocol -eq "TCPTLS")) {
     Enable-TcpOffload
     Invoke-Command -Session $Session -ScriptBlock ${function:Enable-TcpOffload}
 }
