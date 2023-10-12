@@ -516,7 +516,6 @@ QuicDrillTestServerVNPacket(
     TEST_QUIC_SUCCEEDED(Listener.GetLocalAddr(ServerLocalAddr));
 
     DrillSender Sender;
-
     TEST_QUIC_SUCCEEDED(
         Sender.Initialize(
             QUIC_TEST_LOOPBACK_FOR_AF(QuicAddrFamily),
