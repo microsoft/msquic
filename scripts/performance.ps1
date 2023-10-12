@@ -287,7 +287,7 @@ function Enable-TcpOffload {
             foreach ($option in $offloadOptions) {
                 $output = & sudo ethtool -K $iface $option on 2>&1
                 if ($LASTEXITCODE -ne 0) {
-                    Write-Error "Failed to enable $option on ${iface}: $($output.Exception.Message)"
+                    Write-Host "Failed to enable $option on ${iface}: $($output.Exception.Message)"
                 }
             }
             Write-Host "-------- after ${iface} ---------"
