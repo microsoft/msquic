@@ -82,19 +82,47 @@ void EncodeDecodeAndCompare(
     auto TPBuffer = Buffer + CxPlatTlsTPHeaderSize;
     uint16_t TPBufferLength = (uint16_t)(BufferLength - CxPlatTlsTPHeaderSize);
 
-    QUIC_TRANSPORT_PARAMETERS Decoded;
+    QUIC_TRANSPORT_PARAMETERS Decoded = {0};
+    TransportParametersScope TPScope(&Decoded);
     BOOLEAN DecodedSuccessfully =
         QuicCryptoTlsDecodeTransportParameters(
             &JunkConnection, IsServer, TPBuffer, TPBufferLength, &Decoded);
 
     CXPLAT_FREE(Buffer, QUIC_POOL_TLS_TRANSPARAMS);
-    TransportParametersScope TPScope(&Decoded);
-
     ASSERT_EQ(ShouldDecodeSuccessfully, DecodedSuccessfully);
-
     if (ShouldDecodeSuccessfully) {
         CompareTransportParams(Original, &Decoded, IsServer);
     }
+}
+
+void DecodeTwice(
+    _In_ const QUIC_TRANSPORT_PARAMETERS* Original,
+    _In_ bool IsServer = false
+    )
+{
+    uint32_t BufferLength;
+    auto Buffer =
+        QuicCryptoTlsEncodeTransportParameters(
+            &JunkConnection, IsServer, Original, NULL, &BufferLength);
+    ASSERT_NE(nullptr, Buffer);
+
+    ASSERT_TRUE(UINT16_MAX >= (BufferLength - CxPlatTlsTPHeaderSize));
+
+    auto TPBuffer = Buffer + CxPlatTlsTPHeaderSize;
+    uint16_t TPBufferLength = (uint16_t)(BufferLength - CxPlatTlsTPHeaderSize);
+
+    QUIC_TRANSPORT_PARAMETERS Decoded = {0};
+    TransportParametersScope TPScope(&Decoded);
+    BOOLEAN DecodedSuccessfullyOnce =
+        QuicCryptoTlsDecodeTransportParameters(
+            &JunkConnection, IsServer, TPBuffer, TPBufferLength, &Decoded);
+    BOOLEAN DecodedSuccessfullyTwice =
+        QuicCryptoTlsDecodeTransportParameters(
+            &JunkConnection, IsServer, TPBuffer, TPBufferLength, &Decoded);
+
+    CXPLAT_FREE(Buffer, QUIC_POOL_TLS_TRANSPARAMS);
+    ASSERT_TRUE(DecodedSuccessfullyOnce);
+    ASSERT_TRUE(DecodedSuccessfullyTwice);
 }
 
 /*TEST(TransportParamTest, EmptyClient)
@@ -118,6 +146,15 @@ TEST(TransportParamTest, Preset1)
     Original.Flags |= QUIC_TP_FLAG_IDLE_TIMEOUT;
     Original.IdleTimeout = 100000;
     EncodeDecodeAndCompare(&Original);
+}
+
+TEST(TransportParamTest, Preset1DecodeTwice)
+{
+    QUIC_TRANSPORT_PARAMETERS Original;
+    CxPlatZeroMemory(&Original, sizeof(Original));
+    Original.Flags |= QUIC_TP_FLAG_IDLE_TIMEOUT;
+    Original.IdleTimeout = 100000;
+    DecodeTwice(&Original);
 }
 
 TEST(TransportParamTest, ZeroTP)
@@ -147,6 +184,18 @@ TEST(TransportParamTest, VersionNegotiationExtension)
     OriginalTP.Flags = QUIC_TP_FLAG_VERSION_NEGOTIATION;
 
     EncodeDecodeAndCompare(&OriginalTP);
+}
+
+TEST(TransportParamTest, VersionNegotiationExtensionDecodeTwice)
+{
+    QUIC_TRANSPORT_PARAMETERS OriginalTP;
+    CxPlatZeroMemory(&OriginalTP, sizeof(OriginalTP));
+    uint8_t VerInfo[21];
+    OriginalTP.VersionInfo = VerInfo;
+    OriginalTP.VersionInfoLength = sizeof(VerInfo);
+    OriginalTP.Flags = QUIC_TP_FLAG_VERSION_NEGOTIATION;
+
+    DecodeTwice(&OriginalTP);
 }
 
 TEST(TransportParamTest, CibirEncodingOne)

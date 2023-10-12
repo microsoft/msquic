@@ -485,6 +485,9 @@ size_t QUIC_IOCTL_BUFFER_SIZES[] =
     sizeof(QUIC_RUN_FEATURE_NEGOTIATION),
     sizeof(QUIC_RUN_FEATURE_NEGOTIATION),
     0,
+    0,
+    0,
+    sizeof(INT32),
 };
 
 CXPLAT_STATIC_ASSERT(
@@ -1363,10 +1366,23 @@ QuicTestCtlEvtIoDeviceControl(
                 Params->FeatureNegotiationParams.ServerSupport,
                 Params->FeatureNegotiationParams.ClientSupport));
         break;
+
+    case IOCTL_QUIC_RUN_STREAM_RELIABLE_RESET:
+        QuicTestCtlRun(QuicTestStreamReliableReset());
+        break;
+
+    case IOCTL_QUIC_RUN_STREAM_RELIABLE_RESET_MULTIPLE_SENDS:
+        QuicTestCtlRun(QuicTestStreamReliableResetMultipleSends());
+        break;
 #endif
 
     case IOCTL_QUIC_RUN_STATELESS_RESET_KEY:
         QuicTestCtlRun(QuicTestStatelessResetKey());
+        break;
+
+    case IOCTL_QUIC_RUN_DRILL_VN_PACKET_TOKEN:
+        CXPLAT_FRE_ASSERT(Params != nullptr);
+        QuicTestCtlRun(QuicDrillTestServerVNPacket(Params->Family));
         break;
 
     default:

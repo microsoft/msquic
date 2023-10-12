@@ -2006,6 +2006,31 @@ QuicFrameLog(
             Frame.Timestamp);
         break;
     }
+    
+    case QUIC_FRAME_RELIABLE_RESET_STREAM: {
+        QUIC_RELIABLE_RESET_STREAM_EX Frame;
+        if (!QuicReliableResetFrameDecode(PacketLength, Packet, Offset, &Frame)) {
+            QuicTraceLogVerbose(
+                FrameLogReliableResetStreamInvalid,
+                "[%c][%cX][%llu]   RELIABLE_RESET_STREAM [Invalid]",
+                PtkConnPre(Connection),
+                PktRxPre(Rx),
+                PacketNumber);
+            return FALSE;
+        }
+
+        QuicTraceLogVerbose(
+            FrameLogReliableResetStream,
+            "[%c][%cX][%llu]   RELIABLE_RESET_STREAM ID:%llu ErrorCode:0x%llX FinalSize:%llu ReliableSize:%llu",
+            PtkConnPre(Connection),
+            PktRxPre(Rx),
+            PacketNumber,
+            Frame.StreamID,
+            Frame.ErrorCode,
+            Frame.FinalSize,
+            Frame.ReliableSize);
+        break;
+    }
 
     default:
         CXPLAT_FRE_ASSERT(FALSE);

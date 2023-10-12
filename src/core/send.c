@@ -387,6 +387,7 @@ QuicSendSetStreamSendFlag(
     if (Stream->Flags.LocalCloseAcked) {
         SendFlags &=
             ~(QUIC_STREAM_SEND_FLAG_SEND_ABORT |
+              QUIC_STREAM_SEND_FLAG_RELIABLE_ABORT |
               QUIC_STREAM_SEND_FLAG_DATA_BLOCKED |
               QUIC_STREAM_SEND_FLAG_DATA |
               QUIC_STREAM_SEND_FLAG_OPEN |

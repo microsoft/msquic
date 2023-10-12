@@ -87,13 +87,13 @@ tracepoint(CLOG_STREAM_SEND_C, IndicateSendComplete , arg1, arg3);\
 // Decoder Ring for SendQueued
 // [strm][%p] Send Request [%p] queued with %llu bytes at offset %llu (flags 0x%x)
 // QuicTraceLogStreamVerbose(
-            SendQueued,
-            Stream,
-            "Send Request [%p] queued with %llu bytes at offset %llu (flags 0x%x)",
-            SendRequest,
-            SendRequest->TotalLength,
-            SendRequest->StreamOffset,
-            SendRequest->Flags);
+        SendQueued,
+        Stream,
+        "Send Request [%p] queued with %llu bytes at offset %llu (flags 0x%x)",
+        SendRequest,
+        SendRequest->TotalLength,
+        SendRequest->StreamOffset,
+        SendRequest->Flags);
 // arg1 = arg1 = Stream = arg1
 // arg3 = arg3 = SendRequest = arg3
 // arg4 = arg4 = SendRequest->TotalLength = arg4
@@ -283,6 +283,27 @@ tracepoint(CLOG_STREAM_SEND_C, Send0RttUpdated , arg1, arg3);\
 #ifndef _clog_3_ARGS_TRACE_SendQueueDrained
 #define _clog_3_ARGS_TRACE_SendQueueDrained(uniqueId, arg1, encoded_arg_string)\
 tracepoint(CLOG_STREAM_SEND_C, SendQueueDrained , arg1);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for ResetReliableAck
+// [strm][%p] Reset Reliable ACKed in OnResetReliableAck. Send side. UnAckedOffset=%llu, ReliableOffsetSend=%llu
+// QuicTraceLogStreamVerbose(
+        ResetReliableAck,
+        Stream,
+        "Reset Reliable ACKed in OnResetReliableAck. Send side. UnAckedOffset=%llu, ReliableOffsetSend=%llu",
+        Stream->UnAckedOffset, Stream->ReliableOffsetSend);
+// arg1 = arg1 = Stream = arg1
+// arg3 = arg3 = Stream->UnAckedOffset = arg3
+// arg4 = arg4 = Stream->ReliableOffsetSend = arg4
+----------------------------------------------------------*/
+#ifndef _clog_5_ARGS_TRACE_ResetReliableAck
+#define _clog_5_ARGS_TRACE_ResetReliableAck(uniqueId, arg1, encoded_arg_string, arg3, arg4)\
+tracepoint(CLOG_STREAM_SEND_C, ResetReliableAck , arg1, arg3, arg4);\
 
 #endif
 

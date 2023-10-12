@@ -2159,7 +2159,7 @@ QuicConnRecvResumptionTicket(
     )
 {
     BOOLEAN ResumptionAccepted = FALSE;
-    QUIC_TRANSPORT_PARAMETERS ResumedTP;
+    QUIC_TRANSPORT_PARAMETERS ResumedTP = {0};
     CxPlatZeroMemory(&ResumedTP, sizeof(ResumedTP));
     if (QuicConnIsServer(Connection)) {
         if (Connection->Crypto.TicketValidationRejecting) {
@@ -3849,7 +3849,8 @@ QuicConnRecvHeader(
                 //
                 // Do not return FALSE here, continue with the connection.
                 //
-            } else if (Packet->Invariant->LONG_HDR.Version == QUIC_VERSION_VER_NEG &&
+            } else if (QuicConnIsClient(Connection) &&
+                Packet->Invariant->LONG_HDR.Version == QUIC_VERSION_VER_NEG &&
                 !Connection->Stats.VersionNegotiation) {
                 //
                 // Version negotiation packet received.
@@ -4705,7 +4706,8 @@ QuicConnRecvFrames(
         case QUIC_FRAME_STREAM_6:
         case QUIC_FRAME_STREAM_7:
         case QUIC_FRAME_MAX_STREAM_DATA:
-        case QUIC_FRAME_STREAM_DATA_BLOCKED: {
+        case QUIC_FRAME_STREAM_DATA_BLOCKED:
+        case QUIC_FRAME_RELIABLE_RESET_STREAM: {
             if (Closed) {
                 if (!QuicStreamFrameSkip(
                         FrameType, PayloadLength, Payload, &Offset)) {
@@ -5316,7 +5318,7 @@ QuicConnRecvFrames(
         case QUIC_FRAME_IMMEDIATE_ACK: // Always accept the frame, because we always enable support.
             AckImmediately = TRUE;
             break;
-
+            
         case QUIC_FRAME_TIMESTAMP: { // Always accept the frame, because we always enable support.
             if (!Connection->State.TimestampRecvNegotiated) {
                 QuicTraceEvent(
@@ -5343,9 +5345,7 @@ QuicConnRecvFrames(
             Packet->SendTimestamp = Frame.Timestamp;
             break;
         }
-
-        case QUIC_FRAME_RELIABLE_RESET_STREAM:
-            // TODO - Implement this frame.
+        
         default:
             //
             // No default case necessary, as we have already validated the frame

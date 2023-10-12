@@ -209,6 +209,7 @@ These parameters are access by calling [GetParam](./api/GetParam.md) or [SetPara
 | `QUIC_PARAM_STREAM_IDEAL_SEND_BUFFER_SIZE`<br> 2  | uint64_t - bytes  | Get-only  | Ideal buffer size to queue to the stream. Assumes only one stream sends steadily.     |
 | `QUIC_PARAM_STREAM_PRIORITY` <br> 3               | uint16_t          | Get/Set   | Stream priority. |
 | `QUIC_PARAM_STREAM_STATISTICS` <br> 4             | QUIC_STREAM_STATISTICS | Get-only  | Stream-level statistics. |
+| `QUIC_PARAM_STREAM_RELIABLE_OFFSET` <br> 5        | uint64_t          | Get/Set   | Part of the new Reliable Reset preview feature. Sets/Gets the number of bytes a sender must send before closing SEND path.
 
 ## See Also
 

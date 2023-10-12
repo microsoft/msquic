@@ -70,6 +70,24 @@ tracepoint(CLOG_STREAM_C, EventSilentDiscard , arg1);\
 
 
 /*----------------------------------------------------------
+// Decoder Ring for ShutdownImmediatePendingReliableReset
+// [strm][%p] Invalid immediate shutdown request (pending reliable reset).
+// QuicTraceLogStreamWarning(
+                ShutdownImmediatePendingReliableReset,
+                Stream,
+                "Invalid immediate shutdown request (pending reliable reset).");
+// arg1 = arg1 = Stream = arg1
+----------------------------------------------------------*/
+#ifndef _clog_3_ARGS_TRACE_ShutdownImmediatePendingReliableReset
+#define _clog_3_ARGS_TRACE_ShutdownImmediatePendingReliableReset(uniqueId, arg1, encoded_arg_string)\
+tracepoint(CLOG_STREAM_C, ShutdownImmediatePendingReliableReset , arg1);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for UpdatePriority
 // [strm][%p] New send priority = %hu
 // QuicTraceLogStreamInfo(
@@ -83,6 +101,44 @@ tracepoint(CLOG_STREAM_C, EventSilentDiscard , arg1);\
 #ifndef _clog_4_ARGS_TRACE_UpdatePriority
 #define _clog_4_ARGS_TRACE_UpdatePriority(uniqueId, arg1, encoded_arg_string, arg3)\
 tracepoint(CLOG_STREAM_C, UpdatePriority , arg1, arg3);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for MultipleReliableResetSendNotSupported
+// [strm][%p] Multiple RELIABLE_RESET frames sending not supported.
+// QuicTraceLogStreamInfo(
+                MultipleReliableResetSendNotSupported,
+                Stream,
+                "Multiple RELIABLE_RESET frames sending not supported.");
+// arg1 = arg1 = Stream = arg1
+----------------------------------------------------------*/
+#ifndef _clog_3_ARGS_TRACE_MultipleReliableResetSendNotSupported
+#define _clog_3_ARGS_TRACE_MultipleReliableResetSendNotSupported(uniqueId, arg1, encoded_arg_string)\
+tracepoint(CLOG_STREAM_C, MultipleReliableResetSendNotSupported , arg1);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for ReliableSendOffsetSet
+// [strm][%p] Reliable send offset set to %llu
+// QuicTraceLogStreamInfo(
+            ReliableSendOffsetSet,
+            Stream,
+            "Reliable send offset set to %llu",
+            *(uint64_t*)Buffer);
+// arg1 = arg1 = Stream = arg1
+// arg3 = arg3 = *(uint64_t*)Buffer = arg3
+----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_ReliableSendOffsetSet
+#define _clog_4_ARGS_TRACE_ReliableSendOffsetSet(uniqueId, arg1, encoded_arg_string, arg3)\
+tracepoint(CLOG_STREAM_C, ReliableSendOffsetSet , arg1, arg3);\
 
 #endif
 
