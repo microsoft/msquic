@@ -3455,6 +3455,7 @@ QuicTestStreamReliableResetMultipleSends(
     SendContext send3 = {FALSE, 0};
     SendContext send4 = {FALSE, 0};
     SendContext send5 = {FALSE, 0};
+    SendContext send6 = {FALSE, 0};
     TEST_QUIC_SUCCEEDED(Stream.Send(&SendBuffer, 1, QUIC_SEND_FLAG_DELAY_SEND, &send1));
     TEST_QUIC_SUCCEEDED(Stream.Send(&SendBuffer, 1, QUIC_SEND_FLAG_DELAY_SEND, &send2));
     TEST_QUIC_SUCCEEDED(Stream.Send(&SendBuffer, 1, QUIC_SEND_FLAG_DELAY_SEND, &send3));
@@ -3463,8 +3464,15 @@ QuicTestStreamReliableResetMultipleSends(
     TEST_QUIC_SUCCEEDED(Stream.SetReliableOffset(RELIABLE_SIZE_MULTI_SENDS));
 
     const QUIC_UINT62 AbortShutdownErrorCode = 0x696969696969;
-    TEST_QUIC_SUCCEEDED(Stream.Shutdown(AbortShutdownErrorCode)); // Queues up a shutdown operation.
-    // Should behave similar to QUIC_STREAM_SHUTDOWN_FLAG_GRACEFUL, with some restrictions.
+    TEST_QUIC_SUCCEEDED(Stream.Shutdown(AbortShutdownErrorCode));
+
+    //
+    // An app shouldn't be sending after it just called shutdown, but we want to make sure this
+    // doesn't cause a memory leak or other problems.
+    //
+    Stream.Send(&SendBuffer, 1, QUIC_SEND_FLAG_NONE, &send6); // This may or may not succeed (race condition).
+
+
     TEST_TRUE(Context.ClientStreamShutdownComplete.WaitTimeout(TestWaitTimeout));
     TEST_TRUE(Context.ServerStreamShutdownComplete.WaitTimeout(TestWaitTimeout));
     TEST_TRUE(Context.ReceivedBufferSize >= RELIABLE_SIZE_MULTI_SENDS);

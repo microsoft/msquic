@@ -528,6 +528,7 @@ QuicPacketValidateInitialToken(
     const BOOLEAN IsNewToken = TokenBuffer[0] & 0x1;
     if (IsNewToken) {
         QuicPacketLogDrop(Owner, Packet, "New Token not supported");
+        *DropPacket = TRUE;
         return FALSE; // TODO - Support NEW_TOKEN tokens.
     }
 
