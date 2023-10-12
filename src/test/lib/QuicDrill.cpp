@@ -503,6 +503,10 @@ QuicDrillTestServerVNPacket(
     MsQuicRegistration Registration(true);
     TEST_QUIC_SUCCEEDED(Registration.GetInitStatus());
 
+    if (QuitTestIsFeatureSupported(CXPLAT_DATAPATH_FEATURE_RAW)) {
+        return;
+    }
+
     QUIC_ADDRESS_FAMILY QuicAddrFamily = (Family == 4) ? QUIC_ADDRESS_FAMILY_INET : QUIC_ADDRESS_FAMILY_INET6;
     QuicAddr ServerLocalAddr(QuicAddrFamily);
 
@@ -512,10 +516,6 @@ QuicDrillTestServerVNPacket(
     TEST_QUIC_SUCCEEDED(Listener.GetLocalAddr(ServerLocalAddr));
 
     DrillSender Sender;
-
-    if (QuitTestIsFeatureSupported(CXPLAT_DATAPATH_FEATURE_RAW)) {
-        return;
-    }
 
     TEST_QUIC_SUCCEEDED(
         Sender.Initialize(
