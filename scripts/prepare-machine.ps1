@@ -539,6 +539,7 @@ if ($IsLinux) {
         sudo apt-get install -y lttng-tools
         sudo apt-get install -y liblttng-ust-dev
         sudo apt-get install -y gdb
+        sudo apt-get install -y ethtool
 
         # Enable core dumps for the system.
         Write-Host "Setting core dump size limit"

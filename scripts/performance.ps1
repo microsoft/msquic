@@ -275,6 +275,22 @@ $RemotePlatform = Invoke-TestCommand -Session $Session -ScriptBlock {
     }
 }
 
+function Enable-TcpOffload {
+    Get-ChildItem "/sys/class/net" | ForEach-Object {
+        $iface = $_.Name
+        if ((($_.Attributes -band [System.IO.FileAttributes]::Directory) -eq [System.IO.FileAttributes]::Directory) -and
+            $iface -ne "lo") {
+            & sudo ethtool -K $iface large-receive-offload on
+            & sudo ethtool -K $iface tcp-segmentation-offload on
+        }
+    }
+}
+
+if (($LocalPlatform -eq "linux") -and ($RemotePlatform -eq "linux") -and ($Protocol -eq "TCP")) {
+    Enable-TcpOffload
+    Invoke-Command -Session $Session -ScriptBlock ${function:Enable-TcpOffload}
+}
+
 $OutputDir = Join-Path $RootDir "artifacts/PerfDataResults/$RemotePlatform/$($RemoteArch)_$($Config)_$($RemoteTls)$($ExtraArtifactDir)"
 New-Item -Path $OutputDir -ItemType Directory -Force | Out-Null
 
