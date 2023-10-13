@@ -936,13 +936,13 @@ CxPlatSocketContextInitialize(
                 Status,
                 "setsockopt(IPV6_DONTFRAG) failed");
             goto Exit;
-        }        
-        Option = FALSE;
+        }
+        Option = IP_PMTUDISC_DO;
         Result =
             setsockopt(
                 SocketContext->SocketFd,
                 IPPROTO_IP,
-                IP_DONTFRAG,
+                IP_MTU_DISCOVER,
                 (const void*)&Option,
                 sizeof(Option));
         if (Result == SOCKET_ERROR) {
@@ -952,9 +952,9 @@ CxPlatSocketContextInitialize(
                 "[data][%p] ERROR, %u, %s.",
                 Binding,
                 Status,
-                "setsockopt(IP_DONTFRAG) failed");
+                "setsockopt(IP_MTU_DISCOVER) failed");
             goto Exit;
-        }        
+        }
     }
     CxPlatCopyMemory(&MappedAddress, &Binding->LocalAddress, sizeof(MappedAddress));
     if (MappedAddress.Ipv6.sin6_family == QUIC_ADDRESS_FAMILY_INET6) {
@@ -1595,18 +1595,17 @@ CxPlatSocketContextAcceptCompletion(
         QuicTraceEvent(
             DatapathErrorStatus,
             "[data][%p] ERROR, %u, %s.",
-            Binding,
+            SocketContext->AcceptSocket->SocketContexts[0].Binding,
             Status,
             "setsockopt(IPV6_DONTFRAG) failed");
         goto Error;
     }
-
-    Option = FALSE;
+    Option = IP_PMTUDISC_DO;
     Result =
         setsockopt(
             SocketContext->AcceptSocket->SocketContexts[0].SocketFd,
             IPPROTO_IP,
-            IP_DONTFRAG,
+            IP_MTU_DISCOVER,
             (const void*)&Option,
             sizeof(Option));
     if (Result == SOCKET_ERROR) {
@@ -1614,9 +1613,9 @@ CxPlatSocketContextAcceptCompletion(
         QuicTraceEvent(
             DatapathErrorStatus,
             "[data][%p] ERROR, %u, %s.",
-            Binding,
+            SocketContext->AcceptSocket->SocketContexts[0].Binding,
             Status,
-            "setsockopt(IP_DONTFRAG) failed");
+            "setsockopt(IP_MTU_DISCOVER) failed");
         goto Error;
     }
 
