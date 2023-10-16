@@ -936,13 +936,13 @@ CxPlatSocketContextInitialize(
                 Status,
                 "setsockopt(IPV6_DONTFRAG) failed");
             goto Exit;
-        }
-        Option = IP_PMTUDISC_DO;
+        }        
+        Option = FALSE;
         Result =
             setsockopt(
                 SocketContext->SocketFd,
                 IPPROTO_IP,
-                IP_MTU_DISCOVER,
+                IP_DONTFRAG,
                 (const void*)&Option,
                 sizeof(Option));
         if (Result == SOCKET_ERROR) {
@@ -952,9 +952,9 @@ CxPlatSocketContextInitialize(
                 "[data][%p] ERROR, %u, %s.",
                 Binding,
                 Status,
-                "setsockopt(IP_MTU_DISCOVER) failed");
+                "setsockopt(IP_DONTFRAG) failed");
             goto Exit;
-        }
+        }        
     }
     CxPlatCopyMemory(&MappedAddress, &Binding->LocalAddress, sizeof(MappedAddress));
     if (MappedAddress.Ipv6.sin6_family == QUIC_ADDRESS_FAMILY_INET6) {
@@ -1595,17 +1595,18 @@ CxPlatSocketContextAcceptCompletion(
         QuicTraceEvent(
             DatapathErrorStatus,
             "[data][%p] ERROR, %u, %s.",
-            SocketContext->AcceptSocket->SocketContexts[0].Binding,
+            Binding,
             Status,
             "setsockopt(IPV6_DONTFRAG) failed");
         goto Error;
     }
-    Option = IP_PMTUDISC_DO;
+
+    Option = FALSE;
     Result =
         setsockopt(
             SocketContext->AcceptSocket->SocketContexts[0].SocketFd,
             IPPROTO_IP,
-            IP_MTU_DISCOVER,
+            IP_DONTFRAG,
             (const void*)&Option,
             sizeof(Option));
     if (Result == SOCKET_ERROR) {
@@ -1613,9 +1614,9 @@ CxPlatSocketContextAcceptCompletion(
         QuicTraceEvent(
             DatapathErrorStatus,
             "[data][%p] ERROR, %u, %s.",
-            SocketContext->AcceptSocket->SocketContexts[0].Binding,
+            Binding,
             Status,
-            "setsockopt(IP_MTU_DISCOVER) failed");
+            "setsockopt(IP_DONTFRAG) failed");
         goto Error;
     }
 
