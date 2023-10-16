@@ -918,44 +918,8 @@ CxPlatSocketContextInitialize(
                 goto Exit;
             }
         }
-    } else {
-        Option = FALSE;
-        Result =
-            setsockopt(
-                SocketContext->SocketFd,
-                IPPROTO_IPV6,
-                IPV6_DONTFRAG,
-                (const void*)&Option,
-                sizeof(Option));
-        if (Result == SOCKET_ERROR) {
-            Status = errno;
-            QuicTraceEvent(
-                DatapathErrorStatus,
-                "[data][%p] ERROR, %u, %s.",
-                Binding,
-                Status,
-                "setsockopt(IPV6_DONTFRAG) failed");
-            goto Exit;
-        }        
-        Option = FALSE;
-        Result =
-            setsockopt(
-                SocketContext->SocketFd,
-                IPPROTO_IP,
-                IP_DONTFRAG,
-                (const void*)&Option,
-                sizeof(Option));
-        if (Result == SOCKET_ERROR) {
-            Status = errno;
-            QuicTraceEvent(
-                DatapathErrorStatus,
-                "[data][%p] ERROR, %u, %s.",
-                Binding,
-                Status,
-                "setsockopt(IP_DONTFRAG) failed");
-            goto Exit;
-        }        
     }
+
     CxPlatCopyMemory(&MappedAddress, &Binding->LocalAddress, sizeof(MappedAddress));
     if (MappedAddress.Ipv6.sin6_family == QUIC_ADDRESS_FAMILY_INET6) {
         MappedAddress.Ipv6.sin6_family = AF_INET6;
@@ -1579,44 +1543,6 @@ CxPlatSocketContextAcceptCompletion(
             Status,
             "accept failed");
         fprintf(stderr, "Accept failure: %d\n", Status);
-        goto Error;
-    }
-
-    int Option = FALSE;
-    int Result =
-        setsockopt(
-            SocketContext->AcceptSocket->SocketContexts[0].SocketFd,
-            IPPROTO_IPV6,
-            IPV6_DONTFRAG,
-            (const void*)&Option,
-            sizeof(Option));
-    if (Result == SOCKET_ERROR) {
-        Status = errno;
-        QuicTraceEvent(
-            DatapathErrorStatus,
-            "[data][%p] ERROR, %u, %s.",
-            Binding,
-            Status,
-            "setsockopt(IPV6_DONTFRAG) failed");
-        goto Error;
-    }
-
-    Option = FALSE;
-    Result =
-        setsockopt(
-            SocketContext->AcceptSocket->SocketContexts[0].SocketFd,
-            IPPROTO_IP,
-            IP_DONTFRAG,
-            (const void*)&Option,
-            sizeof(Option));
-    if (Result == SOCKET_ERROR) {
-        Status = errno;
-        QuicTraceEvent(
-            DatapathErrorStatus,
-            "[data][%p] ERROR, %u, %s.",
-            Binding,
-            Status,
-            "setsockopt(IP_DONTFRAG) failed");
         goto Error;
     }
 
