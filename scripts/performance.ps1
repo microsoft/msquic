@@ -280,19 +280,20 @@ function Enable-TcpOffload {
         $iface = $_.Name
         if ((($_.Attributes -band [System.IO.FileAttributes]::Directory) -eq [System.IO.FileAttributes]::Directory) -and
             $iface -ne "lo") {
-            Write-Host "-------- before ${iface} ---------"
-            echo (ethtool -k ${iface})
-            Write-Host "-------- before ${iface} ---------"
-            $offloadOptions = @("large-receive-offload", "tcp-segmentation-offload")
+
+            $driver = ethtool -i $iface | Select-String "driver:" | ForEach-Object { $_.ToString().Split(":")[1].Trim() }
+            if ($driver -like "mlx5*") {
+                # LRO on mlx5 driver requires rx_striding_rq to be ON
+                sudo ethtool --set-priv-flags $iface rx_striding_rq on
+            }
+            $offloadOptions = @("lro", "tso")
             foreach ($option in $offloadOptions) {
                 $output = & sudo ethtool -K $iface $option on 2>&1
                 if ($LASTEXITCODE -ne 0) {
                     Write-Host "Failed to enable $option on ${iface}: $($output.Exception.Message)"
                 }
             }
-            Write-Host "-------- after ${iface} ---------"
             echo (ethtool -k ${iface})
-            Write-Host "-------- after ${iface} ---------"
         }
     }
 }
