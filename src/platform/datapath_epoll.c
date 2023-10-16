@@ -41,7 +41,7 @@ CXPLAT_STATIC_ASSERT((SIZEOF_STRUCT_MEMBER(QUIC_BUFFER, Buffer) == sizeof(void*)
 // packet/datagram payloads (i.e. IPv6) that can fit in the large buffer.
 //
 const uint16_t CXPLAT_MAX_IO_BATCH_SIZE =
-    (CXPLAT_LARGE_IO_BUFFER_SIZE / (CXPLAT_MAX_MTU - CXPLAT_MIN_IPV6_HEADER_SIZE - CXPLAT_UDP_HEADER_SIZE));
+    (CXPLAT_LARGE_IO_BUFFER_SIZE / (1280 - CXPLAT_MIN_IPV6_HEADER_SIZE - CXPLAT_UDP_HEADER_SIZE));
 
 //
 // Contains all the info for a single RX IO operation. Multiple RX packets may
