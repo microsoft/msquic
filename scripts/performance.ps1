@@ -293,15 +293,11 @@ function Enable-TcpOffload {
                     Write-Host "Failed to enable $option on ${iface}: $($output.Exception.Message)"
                 }
             }
-            echo (ethtool -k ${iface})
         }
     }
 }
 
-$PSBoundParameters.GetEnumerator() | ForEach-Object {
-    Write-Output "$($_.Key) = $($_.Value)"
-}
-if (($LocalPlatform -eq "linux") -and ($RemotePlatform -eq "linux")) {
+if ((!$Local) -and ($LocalPlatform -eq "linux") -and ($RemotePlatform -eq "linux")) {
     Enable-TcpOffload
     Invoke-Command -Session $Session -ScriptBlock ${function:Enable-TcpOffload}
 }
