@@ -23,6 +23,7 @@
 #include "msquichelper.h"
 #include "msquic.hpp"
 
+const MsQuicApi* MsQuic;
 #define MagicCid 0x989898989898989ull
 const QUIC_HKDF_LABELS HkdfLabels = { "quic key", "quic iv", "quic hp", "quic ku" };
 
@@ -34,7 +35,6 @@ const QUIC_HKDF_LABELS HkdfLabels = { "quic key", "quic iv", "quic hp", "quic ku
     } while (0)
 #define ASSERT_ON_NOT(x) CXPLAT_FRE_ASSERT(x)
 
-const MsQuicApi* MsQuic;
 static const char* Alpn = "fuzz";
 static uint32_t Version = QUIC_VERSION_DRAFT_29;
 const char* Sni = "localhost";
@@ -409,6 +409,8 @@ void WriteClientInitialPacket(
     uint8_t CryptoBuffer[4096];
     uint16_t BufferSize = sizeof(CryptoBuffer);
     uint16_t CryptoBufferLength = 0;
+        printf("sent\n");
+
     WriteInitialCryptoFrame(
          &CryptoBufferLength, BufferSize, CryptoBuffer);
     uint8_t CidBuffer[sizeof(QUIC_CID) + 256] = {0};
@@ -418,6 +420,8 @@ void WriteClientInitialPacket(
 
     uint16_t PayloadLengthOffset = 0;
     uint8_t PacketNumberLength;
+        printf("sent\n");
+
     *PacketLength =
         QuicPacketEncodeLongHeaderV1(
             QuicVersion,
@@ -432,6 +436,8 @@ void WriteClientInitialPacket(
             Buffer,
             &PayloadLengthOffset,
             &PacketNumberLength);
+                printf("sent\n");
+
     if (*PacketLength + CryptoBufferLength > BufferLength) {
         printf("Crypto Too Big!\n");
         exit(0);
@@ -454,8 +460,7 @@ void start(){
         UdpRecvCallback,
         UdpUnreachCallback,
     };
-    CxPlatSystemLoad();
-    CxPlatInitialize();
+    MsQuic = new MsQuicApi();
     QUIC_STATUS Status = CxPlatDataPathInitialize(
         0,
         &DatapathCallbacks,
@@ -478,7 +483,6 @@ void start(){
         return;
     }
     QuicAddrSetPort(&sockAddr, 9999);
-    MsQuic = new(std::nothrow) MsQuicApi();
     // make a server
     MsQuicRegistration Registration(true);
     QUIC_SUCCEEDED(Registration.GetInitStatus());
@@ -503,6 +507,7 @@ void start(){
     QUIC_ADDR_STR str;
     QuicAddrToString(&sockAddr, &str);
     printf("Local address: %s\n", str.Address);
+
     Status =
         CxPlatSocketCreateUdp(
             Datapath,
@@ -522,6 +527,7 @@ void start(){
     const uint64_t PacketNumber = 0;
     uint8_t Packet[512] = {0};
     uint16_t PacketLength, HeaderLength;
+
     WriteClientInitialPacket(
         PacketNumber,
         sizeof(uint64_t),
@@ -530,6 +536,109 @@ void start(){
         &PacketLength,
         &HeaderLength);
 
+    uint16_t PacketNumberOffset = HeaderLength - sizeof(uint32_t);
+
+    uint64_t* DestCid = (uint64_t*)(Packet + sizeof(QUIC_LONG_HEADER_V1));
+    uint64_t* SrcCid = (uint64_t*)(Packet + sizeof(QUIC_LONG_HEADER_V1) + sizeof(uint64_t) + sizeof(uint8_t));
+
+    uint64_t* OrigSrcCid = nullptr;
+    for (uint16_t i = HeaderLength; i < PacketLength; ++i) {
+        if (MagicCid == *(uint64_t*)&Packet[i]) {
+            OrigSrcCid = (uint64_t*)&Packet[i];
+        }
+    }
+    if (!OrigSrcCid) {
+        printf("Failed to find OrigSrcCid!\n");
+        return;
+    }
+
+    CxPlatRandom(sizeof(uint64_t), DestCid);
+    CxPlatRandom(sizeof(uint64_t), SrcCid);
+
+    // while (CxPlatTimeDiff64(TimeStart, CxPlatTimeMs64()) < TimeoutMs) {
+
+        CXPLAT_SEND_CONFIG SendConfig = { &Route, DatagramLength, CXPLAT_ECN_NON_ECT, 0 };
+        CXPLAT_SEND_DATA* SendData = CxPlatSendDataAlloc(Binding, &SendConfig);
+        if(!SendData){
+            printf("CxPlatSendDataAlloc failed\n");
+        }
+        // VERIFY(SendData);
+
+        while (!CxPlatSendDataIsFull(SendData)) {
+            QUIC_BUFFER* SendBuffer =
+                CxPlatSendDataAllocBuffer(SendData, DatagramLength);
+             if(!SendBuffer) {
+                printf("CxPlatSendDataAllocBuffer failed\n");
+                }
+
+            (*DestCid)++; (*SrcCid)++;
+            *OrigSrcCid = *SrcCid;
+            memcpy(SendBuffer->Buffer, Packet, PacketLength);
+
+            printf_buf("cleartext", SendBuffer->Buffer, PacketLength - CXPLAT_ENCRYPTION_OVERHEAD);
+
+            QUIC_PACKET_KEY* WriteKey;
+            
+            if(!QUIC_SUCCEEDED(
+            QuicPacketKeyCreateInitial(
+                FALSE,
+                &HkdfLabels,
+                InitialSalt.Data,
+                sizeof(uint64_t),
+                (uint8_t*)DestCid,
+                nullptr,
+                &WriteKey))){
+                    printf("QuicPacketKeyCreateInitial failed\n");
+                }
+
+            printf_buf("salt", InitialSalt.Data, InitialSalt.Length);
+            printf_buf("cid", DestCid, sizeof(uint64_t));
+
+            uint8_t Iv[CXPLAT_IV_LENGTH];
+            QuicCryptoCombineIvAndPacketNumber(
+                WriteKey->Iv, (uint8_t*)&PacketNumber, Iv);
+
+            CxPlatEncrypt(
+                WriteKey->PacketKey,
+                Iv,
+                HeaderLength,
+                SendBuffer->Buffer,
+                PacketLength - HeaderLength,
+                SendBuffer->Buffer + HeaderLength);
+
+            printf_buf("encrypted", SendBuffer->Buffer, PacketLength);
+
+            uint8_t HpMask[16];
+            CxPlatHpComputeMask(
+                WriteKey->HeaderKey,
+                1,
+                SendBuffer->Buffer + HeaderLength,
+                HpMask);
+
+            printf_buf("cipher_text", SendBuffer->Buffer + HeaderLength, 16);
+            printf_buf("hp_mask", HpMask, 16);
+
+            QuicPacketKeyFree(WriteKey);
+
+            SendBuffer->Buffer[0] ^= HpMask[0] & 0x0F;
+            for (uint8_t i = 0; i < 4; ++i) {
+                SendBuffer->Buffer[PacketNumberOffset + i] ^= HpMask[i + 1];
+            }
+
+            printf_buf("protected", SendBuffer->Buffer, PacketLength);
+
+            // InterlockedExchangeAdd64(&TotalPacketCount, 1);
+            // InterlockedExchangeAdd64(&TotalByteCount, DatagramLength);
+        }
+
+        
+        QUIC_SUCCEEDED(
+        CxPlatSocketSend(
+            Binding,
+            &Route,
+            SendData));
+        printf("Initial Packet Sent");
+    // }
 }
 
 #ifdef FUZZING
