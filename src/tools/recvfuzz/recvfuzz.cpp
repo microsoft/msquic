@@ -68,21 +68,20 @@ static const size_t BufferCount = ARRAYSIZE(MaxBufferSizes);
 class FuzzingData {
     const uint8_t* data;
     size_t size;
-    std::vector<size_t> EachSize;
     std::mutex mux;
     // TODO: support bit level pointers
-    std::vector<size_t> Ptrs;
-    std::vector<size_t> NumIterated;
+    size_t Ptrs;
+    size_t NumIterated;
     bool Cyclic;
 
-    bool CheckBoundary(uint16_t ThreadId, size_t Adding) {
+    bool CheckBoundary(size_t Adding) {
         // TODO: efficient cyclic access
-        if (EachSize[ThreadId] < Ptrs[ThreadId] + Adding) {
+        if (size < Ptrs + Adding) {
             if (!Cyclic) {
                 return false;
             }
-            Ptrs[ThreadId] = 0;
-            NumIterated[ThreadId]++;
+            Ptrs = 0;
+            NumIterated++;
         }
         return true;
     }
@@ -91,60 +90,50 @@ public:
     static const size_t MinDataSize = 148;
     static const size_t UtilityDataSize = 20;
     // hard code for determinisity
-    static const uint16_t NumSpinThread = 2;
 
     FuzzingData() : data(nullptr), size(0), Ptrs({}), NumIterated({}), Cyclic(true) {}
     FuzzingData(const uint8_t* data, size_t size) : data(data), size(size - UtilityDataSize), Ptrs({}), NumIterated({}), Cyclic(true) {}
     bool Initialize() {
-        // TODO: support non divisible size
-        if (size % (size_t)NumSpinThread != 0 || size < (size_t)NumSpinThread * 8) {
-            return false;
-        }
-
-        EachSize.resize(NumSpinThread + 1);
-        std::fill(EachSize.begin(), EachSize.end(), size / (size_t)NumSpinThread);
-        EachSize.back() = UtilityDataSize;
-        Ptrs.resize(NumSpinThread + 1);
-        std::fill(Ptrs.begin(), Ptrs.end(), 0);
-        NumIterated.resize(NumSpinThread + 1);
-        std::fill(NumIterated.begin(), NumIterated.end(), 0);
+        Ptrs = 0;
+        NumIterated = 0;
         return true;
-    }
-    bool TryGetByte(uint8_t* Val, uint16_t ThreadId = 0) {
-        if (!CheckBoundary(ThreadId, 1)) {
-            return false;
-        }
-        *Val = data[Ptrs[ThreadId]++ + EachSize[ThreadId] * ThreadId];
-        return true;
-    }
-    bool TryGetBool(bool* Flag, uint16_t ThreadId = 0) {
-        uint8_t Val = 0;
-        if (TryGetByte(&Val, ThreadId)) {
-            *Flag = (bool)(Val & 0b1);
-            return true;
-        }
-        return false;
     }
     template<typename T>
-    bool TryGetRandom(T UpperBound, T* Val, uint16_t ThreadId = 0) {
+    bool TryGetRandom(T UpperBound, T* Val) {
         int type_size = sizeof(T);
-        if (!CheckBoundary(ThreadId, type_size)) {
+        if (!CheckBoundary(type_size)) {
             return false;
         }
-        memcpy(Val, &data[Ptrs[ThreadId]] + EachSize[ThreadId] * ThreadId, type_size);
+        memcpy(Val, &data[Ptrs], type_size);
         *Val = (T)(*Val % UpperBound);
-        Ptrs[ThreadId] += type_size;
-        if (ThreadId == NumSpinThread) {
-            mux.unlock();
-        }
+        Ptrs += type_size;
         return true;
     }
     size_t GetIterateCount(uint16_t ThreadId) {
-        return NumIterated[ThreadId];
+        return NumIterated;
     }
 };
 
 static FuzzingData* FuzzData = nullptr;
+
+template<typename T>
+T GetRandom(T UpperBound) {
+    if (!FuzzData) {
+        return (T)(rand() % (int)UpperBound);
+    }
+    uint64_t out = 0;
+
+    if ((uint64_t)UpperBound <= 0xff) {
+        (void)FuzzData->TryGetRandom((uint8_t)UpperBound, (uint8_t*)&out, ThreadID);
+    } else if ((uint64_t)UpperBound <= 0xffff) {
+        (void)FuzzData->TryGetRandom((uint16_t)UpperBound, (uint16_t*)&out, ThreadID);
+    } else if ((uint64_t)UpperBound <= 0xffffffff) {
+        (void)FuzzData->TryGetRandom((uint32_t)UpperBound, (uint32_t*)&out, ThreadID);
+    } else {
+        (void)FuzzData->TryGetRandom((uint64_t)UpperBound, &out, ThreadID);
+    }
+    return (T)out;
+}
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 _Function_class_(CXPLAT_DATAPATH_RECEIVE_CALLBACK)
@@ -661,9 +650,9 @@ main(int argc, char **argv)
     RunTimeMs = 60000;
     TryGetValue(argc, argv, "timeout", &RunTimeMs);
     FuzzData = new FuzzingData();
-    // if (!FuzzData->Initialize()) {
-    //     return 0;
-    // }
+    if (!FuzzData->Initialize()) {
+        return 0;
+    }
     start();
 
     return 0;
