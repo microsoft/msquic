@@ -91,8 +91,8 @@ public:
     static const size_t UtilityDataSize = 20;
     // hard code for determinisity
 
-    FuzzingData() : data(nullptr), size(0), Ptrs({}), NumIterated({}), Cyclic(true) {}
-    FuzzingData(const uint8_t* data, size_t size) : data(data), size(size - UtilityDataSize), Ptrs({}), NumIterated({}), Cyclic(true) {}
+    FuzzingData() : data(nullptr), size(0), Ptrs(), NumIterated(), Cyclic(true) {}
+    FuzzingData(const uint8_t* data, size_t size) : data(data), size(size - UtilityDataSize), Ptrs(), NumIterated(), Cyclic(true) {}
     bool Initialize() {
         Ptrs = 0;
         NumIterated = 0;
@@ -109,7 +109,7 @@ public:
         Ptrs += type_size;
         return true;
     }
-    size_t GetIterateCount(uint16_t ThreadId) {
+    size_t GetIterateCount() {
         return NumIterated;
     }
 };
@@ -124,13 +124,13 @@ T GetRandom(T UpperBound) {
     uint64_t out = 0;
 
     if ((uint64_t)UpperBound <= 0xff) {
-        (void)FuzzData->TryGetRandom((uint8_t)UpperBound, (uint8_t*)&out, ThreadID);
+        (void)FuzzData->TryGetRandom((uint8_t)UpperBound, (uint8_t*)&out);
     } else if ((uint64_t)UpperBound <= 0xffff) {
-        (void)FuzzData->TryGetRandom((uint16_t)UpperBound, (uint16_t*)&out, ThreadID);
+        (void)FuzzData->TryGetRandom((uint16_t)UpperBound, (uint16_t*)&out);
     } else if ((uint64_t)UpperBound <= 0xffffffff) {
-        (void)FuzzData->TryGetRandom((uint32_t)UpperBound, (uint32_t*)&out, ThreadID);
+        (void)FuzzData->TryGetRandom((uint32_t)UpperBound, (uint32_t*)&out);
     } else {
-        (void)FuzzData->TryGetRandom((uint64_t)UpperBound, &out, ThreadID);
+        (void)FuzzData->TryGetRandom((uint64_t)UpperBound, &out);
     }
     return (T)out;
 }
