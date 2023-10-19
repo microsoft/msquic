@@ -495,7 +495,7 @@ function CMake-Generate {
         $Arguments += " -DQUIC_USE_XDP=on"
     }
     if ($Platform -eq "android") {
-        $NDK = $env:ANDROID_NDK_LATEST_HOME.Replace('26.0.10792818', '25.2.9519653') # Temporary work around
+        $NDK = $env:ANDROID_NDK_LATEST_HOME -replace '26\.\d+\.\d+', '25.2.9519653' # Temporary work around. Use RegEx to replace newer version.
         $env:PATH = "$NDK/toolchains/llvm/prebuilt/linux-x86_64/bin:$env:PATH"
         switch ($Arch) {
             "x86"   { $Arguments += " -DANDROID_ABI=x86"}
