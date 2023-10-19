@@ -243,7 +243,7 @@ else()
                 list(APPEND OPENSSL_CONFIG_FLAGS -latomic)
             else()
                 set(OPENSSL_CONFIG_CMD ${CMAKE_CURRENT_SOURCE_DIR}/${QUIC_OPENSSL}/config
-                            CC=${CMAKE_C_COMPILER} CXX=${CMAKE_CXX_COMPILER})
+                            CC=${CMAKE_C_COMPILER} CXX=${CMAKE_CXX_COMPILER} --debug)
             endif()
         endif()
     elseif(CX_PLATFORM STREQUAL "darwin")
