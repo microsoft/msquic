@@ -284,7 +284,7 @@ CxPlatWorkerEnsureStarted(
 
     CxPlatLockAcquire(&Worker->ECLock);
     const BOOLEAN StartWorker = !Worker->InitializedThread;
-    Worker->InitializedThread = FALSE;
+    Worker->InitializedThread = TRUE;
     CxPlatLockRelease(&Worker->ECLock);
 
     if (!StartWorker) {
