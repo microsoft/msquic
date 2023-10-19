@@ -56,6 +56,37 @@ QuicWorkerUninitialize(
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
+QuicWorkerStartThread(
+    _In_ QUIC_WORKER* Worker
+    )
+{
+    const uint16_t ThreadFlags =
+        Worker->ExecProfile == QUIC_EXECUTION_PROFILE_TYPE_REAL_TIME ?
+            CXPLAT_THREAD_FLAG_SET_AFFINITIZE : CXPLAT_THREAD_FLAG_NONE;
+
+    CXPLAT_THREAD_CONFIG ThreadConfig = {
+        ThreadFlags,
+        QuicLibraryGetPartitionProcessor(Worker->PartitionIndex),
+        "quic_worker",
+        QuicWorkerThread,
+        Worker
+    };
+
+    QUIC_STATUS Status = CxPlatThreadCreate(&ThreadConfig, &Worker->Thread);
+    if (QUIC_FAILED(Status)) {
+        QuicTraceEvent(
+            WorkerErrorStatus,
+            "[wrkr][%p] ERROR, %u, %s.",
+            Worker,
+            Status,
+            "CxPlatThreadCreate");
+    }
+
+    return Status;
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_STATUS
 QuicWorkerInitialize(
     _In_ const QUIC_REGISTRATION* Registration,
     _In_ QUIC_EXECUTION_PROFILE ExecProfile,
@@ -71,6 +102,7 @@ QuicWorkerInitialize(
         Registration);
 
     Worker->Enabled = TRUE;
+    Worker->ExecProfile = ExecProfile;
     Worker->PartitionIndex = PartitionIndex;
     CxPlatDispatchLockInitialize(&Worker->Lock);
     CxPlatEventInitialize(&Worker->Done, TRUE, FALSE);
@@ -95,36 +127,24 @@ QuicWorkerInitialize(
     Worker->ExecutionContext.NextTimeUs = UINT64_MAX;
     Worker->ExecutionContext.Ready = TRUE;
 
-#ifndef _KERNEL_MODE // Not supported on kernel mode
+#ifdef _KERNEL_MODE
+    //
+    // Kernel mode always has to start threads up front, because delay load
+    // requires creating the thread later at PASSIVE_LEVEL, but several of the
+    // places we would need to do so are at DISPATCH_LEVEL.
+    //
+    Status = QuicWorkerStartThread(Worker);
+#else
     if (ExecProfile != QUIC_EXECUTION_PROFILE_TYPE_MAX_THROUGHPUT) {
         Worker->IsExternal = TRUE;
         CxPlatAddExecutionContext(&Worker->ExecutionContext, PartitionIndex);
-    } else
-#endif // _KERNEL_MODE
-    {
-        const uint16_t ThreadFlags =
-            ExecProfile == QUIC_EXECUTION_PROFILE_TYPE_REAL_TIME ?
-                CXPLAT_THREAD_FLAG_SET_AFFINITIZE : CXPLAT_THREAD_FLAG_NONE;
-
-        CXPLAT_THREAD_CONFIG ThreadConfig = {
-            ThreadFlags,
-            QuicLibraryGetPartitionProcessor(PartitionIndex),
-            "quic_worker",
-            QuicWorkerThread,
-            Worker
-        };
-
-        Status = CxPlatThreadCreate(&ThreadConfig, &Worker->Thread);
-        if (QUIC_FAILED(Status)) {
-            QuicTraceEvent(
-                WorkerErrorStatus,
-                "[wrkr][%p] ERROR, %u, %s.",
-                Worker,
-                Status,
-                "CxPlatThreadCreate");
-            goto Error;
-        }
+    } else {
+        //
+        // Don't start the thread until it's needed.
+        //
+        Worker->DelayStart = TRUE;
     }
+#endif // _KERNEL_MODE
 
 Error:
 
@@ -225,6 +245,14 @@ QuicWorkerQueueConnection(
 
     CxPlatDispatchLockAcquire(&Worker->Lock);
 
+#ifndef _KERNEL_MODE // Not supported on kernel mode
+    BOOLEAN DelayStart = FALSE;
+    if (Worker->DelayStart) {
+        DelayStart = TRUE;
+        Worker->DelayStart = FALSE;
+    }
+#endif // _KERNEL_MODE
+
     BOOLEAN WakeWorkerThread;
     if (!Connection->WorkerProcessing && !Connection->HasQueuedWork) {
         WakeWorkerThread = QuicWorkerIsIdle(Worker);
@@ -252,6 +280,12 @@ QuicWorkerQueueConnection(
     if (WakeWorkerThread) {
         QuicWorkerThreadWake(Worker);
     }
+
+#ifndef _KERNEL_MODE
+    if (DelayStart) {
+        QuicWorkerStartThread(Worker);
+    }
+#endif // _KERNEL_MODE
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -264,6 +298,14 @@ QuicWorkerMoveConnection(
     CXPLAT_DBG_ASSERT(Connection->Worker != NULL);
 
     CxPlatDispatchLockAcquire(&Worker->Lock);
+
+#ifndef _KERNEL_MODE // Not supported on kernel mode
+    BOOLEAN DelayStart = FALSE;
+    if (Worker->DelayStart) {
+        DelayStart = TRUE;
+        Worker->DelayStart = FALSE;
+    }
+#endif // _KERNEL_MODE
 
     BOOLEAN WakeWorkerThread = QuicWorkerIsIdle(Worker);
 
@@ -283,6 +325,12 @@ QuicWorkerMoveConnection(
     if (WakeWorkerThread) {
         QuicWorkerThreadWake(Worker);
     }
+
+#ifndef _KERNEL_MODE
+    if (DelayStart) {
+        QuicWorkerStartThread(Worker);
+    }
+#endif // _KERNEL_MODE
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -293,6 +341,14 @@ QuicWorkerQueueOperation(
     )
 {
     CxPlatDispatchLockAcquire(&Worker->Lock);
+
+#ifndef _KERNEL_MODE // Not supported on kernel mode
+    BOOLEAN DelayStart = FALSE;
+    if (Worker->DelayStart) {
+        DelayStart = TRUE;
+        Worker->DelayStart = FALSE;
+    }
+#endif // _KERNEL_MODE
 
     BOOLEAN WakeWorkerThread;
     if (Worker->OperationCount < MsQuicLib.Settings.MaxStatelessOperations &&
@@ -319,6 +375,12 @@ QuicWorkerQueueOperation(
     } else if (WakeWorkerThread) {
         QuicWorkerThreadWake(Worker);
     }
+
+#ifndef _KERNEL_MODE
+    if (DelayStart) {
+        QuicWorkerStartThread(Worker);
+    }
+#endif // _KERNEL_MODE
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
