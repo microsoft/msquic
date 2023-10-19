@@ -2,6 +2,25 @@
 
 
 /*----------------------------------------------------------
+// Decoder Ring for WorkerStarting
+// [wrkr][%p] Starting thread
+// QuicTraceLogVerbose(
+        WorkerStarting,
+        "[wrkr][%p] Starting thread",
+        Worker);
+// arg2 = arg2 = Worker = arg2
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_WORKER_C, WorkerStarting,
+    TP_ARGS(
+        const void *, arg2), 
+    TP_FIELDS(
+        ctf_integer_hex(uint64_t, arg2, arg2)
+    )
+)
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for IndicateIdealProcChanged
 // [conn][%p] Indicating QUIC_CONNECTION_EVENT_IDEAL_PROCESSOR_CHANGED (Proc=%hu,Indx=%hu)
 // QuicTraceLogConnVerbose(
@@ -48,6 +67,33 @@ TRACEPOINT_EVENT(CLOG_WORKER_C, AbandonOnLibShutdown,
 
 
 /*----------------------------------------------------------
+// Decoder Ring for WorkerErrorStatus
+// [wrkr][%p] ERROR, %u, %s.
+// QuicTraceEvent(
+            WorkerErrorStatus,
+            "[wrkr][%p] ERROR, %u, %s.",
+            Worker,
+            Status,
+            "CxPlatThreadCreate");
+// arg2 = arg2 = Worker = arg2
+// arg3 = arg3 = Status = arg3
+// arg4 = arg4 = "CxPlatThreadCreate" = arg4
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_WORKER_C, WorkerErrorStatus,
+    TP_ARGS(
+        const void *, arg2,
+        unsigned int, arg3,
+        const char *, arg4), 
+    TP_FIELDS(
+        ctf_integer_hex(uint64_t, arg2, arg2)
+        ctf_integer(unsigned int, arg3, arg3)
+        ctf_string(arg4, arg4)
+    )
+)
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for WorkerCreated
 // [wrkr][%p] Created, IdealProc=%hu Owner=%p
 // QuicTraceEvent(
@@ -69,33 +115,6 @@ TRACEPOINT_EVENT(CLOG_WORKER_C, WorkerCreated,
         ctf_integer_hex(uint64_t, arg2, arg2)
         ctf_integer(unsigned short, arg3, arg3)
         ctf_integer_hex(uint64_t, arg4, arg4)
-    )
-)
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for WorkerErrorStatus
-// [wrkr][%p] ERROR, %u, %s.
-// QuicTraceEvent(
-                WorkerErrorStatus,
-                "[wrkr][%p] ERROR, %u, %s.",
-                Worker,
-                Status,
-                "CxPlatThreadCreate");
-// arg2 = arg2 = Worker = arg2
-// arg3 = arg3 = Status = arg3
-// arg4 = arg4 = "CxPlatThreadCreate" = arg4
-----------------------------------------------------------*/
-TRACEPOINT_EVENT(CLOG_WORKER_C, WorkerErrorStatus,
-    TP_ARGS(
-        const void *, arg2,
-        unsigned int, arg3,
-        const char *, arg4), 
-    TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg2, arg2)
-        ctf_integer(unsigned int, arg3, arg3)
-        ctf_string(arg4, arg4)
     )
 )
 

@@ -72,6 +72,11 @@ QuicWorkerStartThread(
         Worker
     };
 
+    QuicTraceLogVerbose(
+        WorkerStarting,
+        "[wrkr][%p] Starting thread",
+        Worker);
+
     QUIC_STATUS Status = CxPlatThreadCreate(&ThreadConfig, &Worker->Thread);
     if (QUIC_FAILED(Status)) {
         QuicTraceEvent(
@@ -137,7 +142,7 @@ QuicWorkerInitialize(
 #else
     if (ExecProfile != QUIC_EXECUTION_PROFILE_TYPE_MAX_THROUGHPUT) {
         Worker->IsExternal = TRUE;
-        CxPlatAddExecutionContext(&Worker->ExecutionContext, PartitionIndex);
+        CxPlatAddExecutionContext(&Worker->ExecutionContext, PartitionIndex, FALSE);
     } else {
         //
         // Don't start the thread until it's needed.

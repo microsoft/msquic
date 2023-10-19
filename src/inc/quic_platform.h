@@ -464,13 +464,14 @@ typedef struct CXPLAT_EXECUTION_CONTEXT {
 } CXPLAT_EXECUTION_CONTEXT;
 
 #ifdef _KERNEL_MODE // Not supported on kernel mode
-#define CxPlatAddExecutionContext(Context, IdealProcessor) CXPLAT_FRE_ASSERT(FALSE)
+#define CxPlatAddExecutionContext(Context, IdealProcessor, RunImmediately) CXPLAT_FRE_ASSERT(FALSE)
 #define CxPlatWakeExecutionContext(Context) CXPLAT_FRE_ASSERT(FALSE)
 #else
 void
 CxPlatAddExecutionContext(
     _Inout_ CXPLAT_EXECUTION_CONTEXT* Context,
-    _In_ uint16_t Index // Into the execution config processor array
+    _In_ uint16_t Index, // Into the execution config processor array
+    _In_ BOOLEAN RunImmediately
     );
 
 void

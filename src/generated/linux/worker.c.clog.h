@@ -14,6 +14,10 @@
 #include "worker.c.clog.h.lttng.h"
 #endif
 #include <lttng/tracepoint-event.h>
+#ifndef _clog_MACRO_QuicTraceLogVerbose
+#define _clog_MACRO_QuicTraceLogVerbose  1
+#define QuicTraceLogVerbose(a, ...) _clog_CAT(_clog_ARGN_SELECTOR(__VA_ARGS__), _clog_CAT(_,a(#a, __VA_ARGS__)))
+#endif
 #ifndef _clog_MACRO_QuicTraceLogConnVerbose
 #define _clog_MACRO_QuicTraceLogConnVerbose  1
 #define QuicTraceLogConnVerbose(a, ...) _clog_CAT(_clog_ARGN_SELECTOR(__VA_ARGS__), _clog_CAT(_,a(#a, __VA_ARGS__)))
@@ -25,6 +29,24 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
+/*----------------------------------------------------------
+// Decoder Ring for WorkerStarting
+// [wrkr][%p] Starting thread
+// QuicTraceLogVerbose(
+        WorkerStarting,
+        "[wrkr][%p] Starting thread",
+        Worker);
+// arg2 = arg2 = Worker = arg2
+----------------------------------------------------------*/
+#ifndef _clog_3_ARGS_TRACE_WorkerStarting
+#define _clog_3_ARGS_TRACE_WorkerStarting(uniqueId, encoded_arg_string, arg2)\
+tracepoint(CLOG_WORKER_C, WorkerStarting , arg2);\
+
+#endif
+
+
+
+
 /*----------------------------------------------------------
 // Decoder Ring for IndicateIdealProcChanged
 // [conn][%p] Indicating QUIC_CONNECTION_EVENT_IDEAL_PROCESSOR_CHANGED (Proc=%hu,Indx=%hu)
@@ -66,6 +88,28 @@ tracepoint(CLOG_WORKER_C, AbandonOnLibShutdown , arg1);\
 
 
 /*----------------------------------------------------------
+// Decoder Ring for WorkerErrorStatus
+// [wrkr][%p] ERROR, %u, %s.
+// QuicTraceEvent(
+            WorkerErrorStatus,
+            "[wrkr][%p] ERROR, %u, %s.",
+            Worker,
+            Status,
+            "CxPlatThreadCreate");
+// arg2 = arg2 = Worker = arg2
+// arg3 = arg3 = Status = arg3
+// arg4 = arg4 = "CxPlatThreadCreate" = arg4
+----------------------------------------------------------*/
+#ifndef _clog_5_ARGS_TRACE_WorkerErrorStatus
+#define _clog_5_ARGS_TRACE_WorkerErrorStatus(uniqueId, encoded_arg_string, arg2, arg3, arg4)\
+tracepoint(CLOG_WORKER_C, WorkerErrorStatus , arg2, arg3, arg4);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for WorkerCreated
 // [wrkr][%p] Created, IdealProc=%hu Owner=%p
 // QuicTraceEvent(
@@ -81,28 +125,6 @@ tracepoint(CLOG_WORKER_C, AbandonOnLibShutdown , arg1);\
 #ifndef _clog_5_ARGS_TRACE_WorkerCreated
 #define _clog_5_ARGS_TRACE_WorkerCreated(uniqueId, encoded_arg_string, arg2, arg3, arg4)\
 tracepoint(CLOG_WORKER_C, WorkerCreated , arg2, arg3, arg4);\
-
-#endif
-
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for WorkerErrorStatus
-// [wrkr][%p] ERROR, %u, %s.
-// QuicTraceEvent(
-                WorkerErrorStatus,
-                "[wrkr][%p] ERROR, %u, %s.",
-                Worker,
-                Status,
-                "CxPlatThreadCreate");
-// arg2 = arg2 = Worker = arg2
-// arg3 = arg3 = Status = arg3
-// arg4 = arg4 = "CxPlatThreadCreate" = arg4
-----------------------------------------------------------*/
-#ifndef _clog_5_ARGS_TRACE_WorkerErrorStatus
-#define _clog_5_ARGS_TRACE_WorkerErrorStatus(uniqueId, encoded_arg_string, arg2, arg3, arg4)\
-tracepoint(CLOG_WORKER_C, WorkerErrorStatus , arg2, arg3, arg4);\
 
 #endif
 

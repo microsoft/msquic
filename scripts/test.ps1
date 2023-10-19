@@ -180,7 +180,10 @@ param (
     [string]$OsRunner = "",
 
     [Parameter(Mandatory = $false)]
-    [int]$NumIterations = 1
+    [int]$NumIterations = 1,
+
+    [Parameter(Mandatory = $false)]
+    [Int32]$Timeout = 60000
 )
 
 Set-StrictMode -Version 'Latest'
@@ -285,7 +288,7 @@ if (!(Test-Path $PfxFile)) {
 }
 
 # Build up all the arguments to pass to the Powershell script.
-$TestArguments =  "-IsolationMode $IsolationMode -PfxPath $PfxFile"
+$TestArguments =  "-IsolationMode $IsolationMode -PfxPath $PfxFile -Timeout $Timeout"
 
 if ($DuoNic) {
     $TestArguments += " -DuoNic"
