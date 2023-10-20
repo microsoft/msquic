@@ -870,10 +870,7 @@ QuicSendWriteFrames(
             QUIC_ACK_FREQUENCY_EX Frame;
             Frame.SequenceNumber = Connection->SendAckFreqSeqNum;
             Frame.PacketTolerance = Connection->PeerPacketTolerance;
-            Frame.UpdateMaxAckDelay =
-                MS_TO_US(
-                    (uint64_t)Connection->Settings.MaxAckDelayMs +
-                    (uint64_t)MsQuicLib.TimerResolutionMs);
+            Frame.UpdateMaxAckDelay = QuicConnGetAckDelay(Connection);
             Frame.IgnoreOrder = FALSE;
             Frame.IgnoreCE = FALSE;
 
@@ -1489,6 +1486,7 @@ QuicSendStartDelayedAckTimer(
 {
     QUIC_CONNECTION* Connection = QuicSendGetConnection(Send);
 
+    CXPLAT_DBG_ASSERT(Connection->Settings.MaxAckDelayMs != 0);
     if (!Send->DelayedAckTimerActive &&
         !(Send->SendFlags & QUIC_CONN_SEND_FLAG_ACK) &&
         !Connection->State.ClosedLocally &&
