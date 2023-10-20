@@ -140,7 +140,7 @@ T GetRandom(T UpperBound) {
 _IRQL_requires_max_(DISPATCH_LEVEL)
 _Function_class_(CXPLAT_DATAPATH_RECEIVE_CALLBACK)
 void
-UdpRecvCallback(
+UdpRecvCallback( 
     _In_ CXPLAT_SOCKET* /* Binding */,
     _In_ void* /* Context */,
     _In_ CXPLAT_RECV_DATA* RecvBufferChain
@@ -425,7 +425,6 @@ void WriteClientInitialPacket(
             Buffer,
             &PayloadLengthOffset,
             &PacketNumberLength);
-
     if (*PacketLength + CryptoBufferLength > BufferLength) {
         printf("Crypto Too Big!\n");
         exit(0);
@@ -460,7 +459,8 @@ void start(){
         return;
     }
     QUIC_ADDR sockAddr = {0};
-    QUIC_ADDRESS_FAMILY Family = QUIC_ADDRESS_FAMILY_INET6; // fuzz
+    auto value = GetRandom(3);
+    QUIC_ADDRESS_FAMILY Family = (value == 0) ? QUIC_ADDRESS_FAMILY_INET6 : ((value == 1) ? QUIC_ADDRESS_FAMILY_INET : QUIC_ADDRESS_FAMILY_UNSPEC); // fuzz
     QuicAddrSetFamily(&sockAddr, Family);
     Status = CxPlatDataPathResolveAddress(
                     Datapath,
@@ -484,7 +484,6 @@ void start(){
     QUIC_SUCCEEDED(Listener.Start(Alpn, &sockAddr));
     QUIC_SUCCEEDED(Listener.GetInitStatus());
 
-    // Make  a Client
     CXPLAT_SOCKET* Binding;
     CXPLAT_UDP_CONFIG UdpConfig = {0};
     UdpConfig.LocalAddress = nullptr;
@@ -494,7 +493,7 @@ void start(){
     UdpConfig.CallbackContext = nullptr;
     QUIC_ADDR_STR str;
     QuicAddrToString(&sockAddr, &str);
-    printf("Local address: %s\n", str.Address);
+    printf("Remote address: %s\n", str.Address);
 
     Status =
         CxPlatSocketCreateUdp(
@@ -506,7 +505,7 @@ void start(){
     }
     //
     const StrBuffer InitialSalt("afbfec289993d24c9e9786f19c6111e04390a899");
-    const uint16_t DatagramLength = QUIC_MIN_INITIAL_LENGTH;
+    const uint16_t DatagramLength = QUIC_MIN_INITIAL_LENGTH; // fuzz maybe
     CXPLAT_ROUTE Route = {0};
     CxPlatSocketGetLocalAddress(Binding, &Route.LocalAddress);
     Route.RemoteAddress = sockAddr;
@@ -515,56 +514,66 @@ void start(){
 
 
     uint64_t StartTimeMs = CxPlatTimeMs64();
-    int packetcount = 0;
     while (CxPlatTimeDiff64(StartTimeMs, CxPlatTimeMs64()) < RunTimeMs) {
-        const uint64_t PacketNumber = 0;
-        uint8_t Packet[512] = {0};
-        uint16_t PacketLength, HeaderLength;
-
-        WriteClientInitialPacket(
-            PacketNumber,
-            sizeof(uint64_t),
-            sizeof(Packet),
-            Packet,
-            &PacketLength,
-            &HeaderLength);
-
-        uint16_t PacketNumberOffset = HeaderLength - sizeof(uint32_t);
-
-        uint64_t* DestCid = (uint64_t*)(Packet + sizeof(QUIC_LONG_HEADER_V1));
-        uint64_t* SrcCid = (uint64_t*)(Packet + sizeof(QUIC_LONG_HEADER_V1) + sizeof(uint64_t) + sizeof(uint8_t));
-
-        uint64_t* OrigSrcCid = nullptr;
-        for (uint16_t i = HeaderLength; i < PacketLength; ++i) {
-            if (MagicCid == *(uint64_t*)&Packet[i]) {
-                OrigSrcCid = (uint64_t*)&Packet[i];
-            }
-        }
-        if (!OrigSrcCid) {
-            printf("Failed to find OrigSrcCid!\n");
-            return;
-        }
-
-        CxPlatRandom(sizeof(uint64_t), DestCid);
-        CxPlatRandom(sizeof(uint64_t), SrcCid);
         CXPLAT_SEND_CONFIG SendConfig = { &Route, DatagramLength, CXPLAT_ECN_NON_ECT, 0 };
         CXPLAT_SEND_DATA* SendData = CxPlatSendDataAlloc(Binding, &SendConfig);
         if(!SendData){
             printf("CxPlatSendDataAlloc failed\n");
         }
-        // VERIFY(SendData);
+        while (CxPlatTimeDiff64(StartTimeMs, CxPlatTimeMs64()) < RunTimeMs && !CxPlatSendDataIsFull(SendData)) {
+            const uint64_t PacketNumber = 0; //fuzz
+            uint8_t Packet[512] = {0};
+            uint16_t PacketLength, HeaderLength;
 
-        while (!CxPlatSendDataIsFull(SendData)) {
+            WriteClientInitialPacket(
+                PacketNumber,
+                sizeof(uint64_t),
+                sizeof(Packet),
+                Packet,
+                &PacketLength,
+                &HeaderLength);
+
+            uint8_t *PacketBuffer = Packet;
+            QUIC_LONG_HEADER_V1* Header = (QUIC_LONG_HEADER_V1*)Packet;
+            Header->IsLongHeader = GetRandom(2);
+            Header->FixedBit = GetRandom(2);
+            Header->Reserved = GetRandom(2);
+            Header->PnLength = GetRandom(sizeof(uint32_t));
+            Header->DestCidLength  = (uint8_t)GetRandom(sizeof(uint64_t));
+
+            PacketBuffer += sizeof(QUIC_LONG_HEADER_V1) + sizeof(uint64_t); // point to the source id length
+            *PacketBuffer = (uint8_t)GetRandom(sizeof(uint64_t)); // fuzz the source id length
+
+            //  To Fuzz: PayloadLengthOffset, 
+            // PacketNumber, Packetnumberlength, DestCidlength, SourceCidLength, DestCid, SourceCid, PayloadLength
+
+
+            uint16_t PacketNumberOffset = HeaderLength - sizeof(uint32_t);
+
+            uint64_t* DestCid = (uint64_t*)(Packet + sizeof(QUIC_LONG_HEADER_V1));
+            uint64_t* SrcCid = (uint64_t*)(Packet + sizeof(QUIC_LONG_HEADER_V1) + sizeof(uint64_t) + sizeof(uint8_t));
+
+            uint64_t* OrigSrcCid = nullptr;
+            for (uint16_t i = HeaderLength; i < PacketLength; ++i) {
+                if (MagicCid == *(uint64_t*)&Packet[i]) {
+                    OrigSrcCid = (uint64_t*)&Packet[i];
+                }
+            }
+            if (!OrigSrcCid) {
+                printf("Failed to find OrigSrcCid!\n");
+                return;
+            }
+
+            CxPlatRandom(sizeof(uint64_t), DestCid); //fuzz
+            CxPlatRandom(sizeof(uint64_t), SrcCid); //fuzz
             QUIC_BUFFER* SendBuffer =
                 CxPlatSendDataAllocBuffer(SendData, DatagramLength);
              if(!SendBuffer) {
                 printf("CxPlatSendDataAllocBuffer failed\n");
                 }
-
             (*DestCid)++; (*SrcCid)++;
             *OrigSrcCid = *SrcCid;
             memcpy(SendBuffer->Buffer, Packet, PacketLength);
-
             // printf_buf("cleartext", SendBuffer->Buffer, PacketLength - CXPLAT_ENCRYPTION_OVERHEAD);
 
             QUIC_PACKET_KEY* WriteKey;
@@ -607,7 +616,6 @@ void start(){
 
             // printf_buf("cipher_text", SendBuffer->Buffer + HeaderLength, 16);
             // printf_buf("hp_mask", HpMask, 16);
-
             QuicPacketKeyFree(WriteKey);
 
             SendBuffer->Buffer[0] ^= HpMask[0] & 0x0F;
@@ -625,8 +633,6 @@ void start(){
             Binding,
             &Route,
             SendData));
-        printf("Initial Packet Sent: %d\n", packetcount);
-        packetcount++;
     }
 }
 
@@ -651,10 +657,11 @@ main(int argc, char **argv)
 {
     RunTimeMs = 60000;
     TryGetValue(argc, argv, "timeout", &RunTimeMs);
-    FuzzData = new FuzzingData();
-    if (!FuzzData->Initialize()) {
-        return 0;
-    }
+    uint32_t RngSeed = 0;
+    if (!TryGetValue(argc, argv, "seed", &RngSeed)) {
+        CxPlatRandom(sizeof(RngSeed), &RngSeed);
+    }    printf("Using seed value: %u\n", RngSeed);
+    srand(RngSeed);
     start();
 
     return 0;
