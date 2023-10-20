@@ -1354,6 +1354,7 @@ QuicConnTimerExpired(
     );
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
+inline
 uint64_t
 QuicConnGetAckDelay(
     _In_ const QUIC_CONNECTION* Connection
