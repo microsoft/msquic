@@ -29,11 +29,7 @@
       <meta name="loc:copy" content="Copy">
   </head>
 
-  <script type="module">
-    import options from './../public/main.js'
-    import { init } from './../public/docfx.min.js'
-    init(options)
-  </script>
+  <script type="module" src="./../public/docfx.min.js"></script>
 
   <script>
     const theme = localStorage.getItem('theme') || 'auto'
@@ -466,6 +462,7 @@ IndirectionTable: [Group:Number]                : 0:0   0:2     0:4     0:6     
 <p>In some high throughput scenarios, the default number of NIC receive buffers might not be enough to handle spikes in network traffic. When a spike is too large for the NIC to handle, it has to drop the excess packets, resulting in <code>Packet Received Discarded</code> counter increases.</p>
 <p>When this happens, usually the best way to handle this it to increase the <code>Receive Buffers</code> value in the NIC's Advanced settings (seen below).</p>
 <p><img src="images/nic-recv-buffers.png" alt=""></p>
+
 </article>
 
         <div class="contribution d-print-none">
@@ -473,7 +470,7 @@ IndirectionTable: [Group:Number]                : 0:0   0:2     0:4     0:6     
         </div>
 
         <div class="next-article d-print-none border-top" id="nextArticle"></div>
-        
+
       </div>
 
       <div class="affix">

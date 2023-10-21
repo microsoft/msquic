@@ -29,11 +29,7 @@
       <meta name="loc:copy" content="Copy">
   </head>
 
-  <script type="module">
-    import options from './../public/main.js'
-    import { init } from './../public/docfx.min.js'
-    init(options)
-  </script>
+  <script type="module" src="./../public/docfx.min.js"></script>
 
   <script>
     const theme = localStorage.getItem('theme') || 'auto'
@@ -141,6 +137,7 @@ Write-Error: 4 test(s) failed.
 <p><code>Debugger</code> - Run with the debugger attached.</p>
 <p><code>InitialBreak</code> - Break in the debugger on initial attach/start.</p>
 <p><code>BreakOnFailure</code> - Break into the debugger for any test failures.</p>
+
 </article>
 
         <div class="contribution d-print-none">
@@ -148,7 +145,7 @@ Write-Error: 4 test(s) failed.
         </div>
 
         <div class="next-article d-print-none border-top" id="nextArticle"></div>
-        
+
       </div>
 
       <div class="affix">

@@ -29,11 +29,7 @@
       <meta name="loc:copy" content="Copy">
   </head>
 
-  <script type="module">
-    import options from './../public/main.js'
-    import { init } from './../public/docfx.min.js'
-    init(options)
-  </script>
+  <script type="module" src="./../public/docfx.min.js"></script>
 
   <script>
     const theme = localStorage.getItem('theme') || 'auto'
@@ -152,6 +148,7 @@ sudo sh -c &quot;echo '* hard core unlimited' &gt;&gt; /etc/security/limits.conf
 # Set the core dump pattern.
 sudo sh -c &quot;echo -n '%e.%p.%t.core' &gt; /proc/sys/kernel/core_pattern&quot;
 </code></pre>
+
 </article>
 
         <div class="contribution d-print-none">
@@ -159,7 +156,7 @@ sudo sh -c &quot;echo -n '%e.%p.%t.core' &gt; /proc/sys/kernel/core_pattern&quot
         </div>
 
         <div class="next-article d-print-none border-top" id="nextArticle"></div>
-        
+
       </div>
 
       <div class="affix">

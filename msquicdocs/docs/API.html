@@ -29,11 +29,7 @@
       <meta name="loc:copy" content="Copy">
   </head>
 
-  <script type="module">
-    import options from './../public/main.js'
-    import { init } from './../public/docfx.min.js'
-    init(options)
-  </script>
+  <script type="module" src="./../public/docfx.min.js"></script>
 
   <script>
     const theme = localStorage.getItem('theme') || 'auto'
@@ -211,6 +207,7 @@
 <h2 id="datagrams">Datagrams</h2>
 <p>MsQuic supports the <a href="https://tools.ietf.org/html/draft-ietf-quic-datagram">unreliable datagram extension</a> which allows for the app to send and receive unreliable (i.e. not retransmitted on packet loss) data securely. To enable support for receiving datagrams, the app must set <code>DatagramReceiveEnabled</code> to <code>TRUE</code> in its <a href="api/QUIC_SETTINGS.html">QUIC_SETTINGS</a>. During the handshake, support for receiving datagrams is negotiated between endpoints. The app receives the <code>QUIC_CONNECTION_EVENT_DATAGRAM_STATE_CHANGED</code> event to indicate if the peer supports receiving datagrams (and what the current maximum size is).</p>
 <p>If the peer has enabled receiving datagrams, then an app may call <a href="api/DatagramSend.html">DatagramSend</a>. If/when the app receives a datagram from the peer it will receive a <code>QUIC_CONNECTION_EVENT_DATAGRAM_RECEIVED</code> event.</p>
+
 </article>
 
         <div class="contribution d-print-none">
@@ -218,7 +215,7 @@
         </div>
 
         <div class="next-article d-print-none border-top" id="nextArticle"></div>
-        
+
       </div>
 
       <div class="affix">

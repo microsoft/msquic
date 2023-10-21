@@ -29,11 +29,7 @@
       <meta name="loc:copy" content="Copy">
   </head>
 
-  <script type="module">
-    import options from './../../public/main.js'
-    import { init } from './../../public/docfx.min.js'
-    init(options)
-  </script>
+  <script type="module" src="./../../public/docfx.min.js"></script>
 
   <script>
     const theme = localStorage.getItem('theme') || 'auto'
@@ -109,6 +105,7 @@ QUIC_STATUS
 <p>The function returns a <a href="QUIC_STATUS.html">QUIC_STATUS</a>. The app may use <code>QUIC_FAILED</code> or <code>QUIC_SUCCEEDED</code> to determine if the function failed or succeeded.</p>
 <h1 id="remarks">Remarks</h1>
 <p><strong>TODO</strong></p>
+
 </article>
 
         <div class="contribution d-print-none">
@@ -116,7 +113,7 @@ QUIC_STATUS
         </div>
 
         <div class="next-article d-print-none border-top" id="nextArticle"></div>
-        
+
       </div>
 
       <div class="affix">

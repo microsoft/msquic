@@ -29,11 +29,7 @@
       <meta name="loc:copy" content="Copy">
   </head>
 
-  <script type="module">
-    import options from './../public/main.js'
-    import { init } from './../public/docfx.min.js'
-    init(options)
-  </script>
+  <script type="module" src="./../public/docfx.min.js"></script>
 
   <script>
     const theme = localStorage.getItem('theme') || 'auto'
@@ -304,6 +300,7 @@ QUIC_PERF_COUNTER_SEND_STATELESS_RETRY | Total stateless retry packets sent ever
 <p>Counters are also captured at the beginning of MsQuic ETW traces, and unlike PerfMon, includes all MsQuic instances running on the system, both user and kernel mode.</p>
 <h1 id="detailed-troubleshooting">Detailed Troubleshooting</h1>
 <p>For detailed trouble shooting steps please see the MsQuic <a href="TSG.html">Trouble Shooting Guide</a>.</p>
+
 </article>
 
         <div class="contribution d-print-none">
@@ -311,7 +308,7 @@ QUIC_PERF_COUNTER_SEND_STATELESS_RETRY | Total stateless retry packets sent ever
         </div>
 
         <div class="next-article d-print-none border-top" id="nextArticle"></div>
-        
+
       </div>
 
       <div class="affix">

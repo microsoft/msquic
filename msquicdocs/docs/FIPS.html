@@ -29,11 +29,7 @@
       <meta name="loc:copy" content="Copy">
   </head>
 
-  <script type="module">
-    import options from './../public/main.js'
-    import { init } from './../public/docfx.min.js'
-    init(options)
-  </script>
+  <script type="module" src="./../public/docfx.min.js"></script>
 
   <script>
     const theme = localStorage.getItem('theme') || 'auto'
@@ -100,6 +96,7 @@
 An incomplete list below is provided with steps for enabling FIPS mode on known Linux distributions.</p>
 <h3 id="rhel-8">RHEL 8</h3>
 <p>Steps and documentation can be found <a href="https://access.redhat.com/documentation/en-us/red_hat_enterprise_linux/8/html/security_hardening/using-the-system-wide-cryptographic-policies_security-hardening">here</a>.</p>
+
 </article>
 
         <div class="contribution d-print-none">
@@ -107,7 +104,7 @@ An incomplete list below is provided with steps for enabling FIPS mode on known 
         </div>
 
         <div class="next-article d-print-none border-top" id="nextArticle"></div>
-        
+
       </div>
 
       <div class="affix">

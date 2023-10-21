@@ -29,11 +29,7 @@
       <meta name="loc:copy" content="Copy">
   </head>
 
-  <script type="module">
-    import options from './../public/main.js'
-    import { init } from './../public/docfx.min.js'
-    init(options)
-  </script>
+  <script type="module" src="./../public/docfx.min.js"></script>
 
   <script>
     const theme = localStorage.getItem('theme') || 'auto'
@@ -106,6 +102,7 @@ Then follow the instructions above to get the new suppression file, but complete
 <blockquote>
 <p><strong>TODO</strong> - Perhaps we should automate the regeneration in a pipeline.</p>
 </blockquote>
+
 </article>
 
         <div class="contribution d-print-none">
@@ -113,7 +110,7 @@ Then follow the instructions above to get the new suppression file, but complete
         </div>
 
         <div class="next-article d-print-none border-top" id="nextArticle"></div>
-        
+
       </div>
 
       <div class="affix">

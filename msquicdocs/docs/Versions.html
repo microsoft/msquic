@@ -29,11 +29,7 @@
       <meta name="loc:copy" content="Copy">
   </head>
 
-  <script type="module">
-    import options from './../public/main.js'
-    import { init } from './../public/docfx.min.js'
-    init(options)
-  </script>
+  <script type="module" src="./../public/docfx.min.js"></script>
 
   <script>
     const theme = localStorage.getItem('theme') || 'auto'
@@ -176,6 +172,7 @@ MsQuic-&gt;SetParam(
 This setting <strong>MUST</strong> be set before <a href="api/ConnectionStart.html"><code>ConnectionStart</code></a> to take effect.</p>
 <h2 id="enabling-version-negotiation-extension-on-msquic-server">Enabling Version Negotiation Extension on MsQuic Server</h2>
 <p>Enabling the Version Negotiation Extension on server follows the same restrictions as setting the QUIC version on server, i.e. it <strong>MUST</strong> be set globally, using <a href="api/SetParam.html"><code>SetParam</code></a> before the <code>QUIC_CONFIGURATION</code> is opened for the server. It is set automatically when <code>QUIC_VERSION_SETTINGS</code> are set.</p>
+
 </article>
 
         <div class="contribution d-print-none">
@@ -183,7 +180,7 @@ This setting <strong>MUST</strong> be set before <a href="api/ConnectionStart.ht
         </div>
 
         <div class="next-article d-print-none border-top" id="nextArticle"></div>
-        
+
       </div>
 
       <div class="affix">

@@ -29,11 +29,7 @@
       <meta name="loc:copy" content="Copy">
   </head>
 
-  <script type="module">
-    import options from './../public/main.js'
-    import { init } from './../public/docfx.min.js'
-    init(options)
-  </script>
+  <script type="module" src="./../public/docfx.min.js"></script>
 
   <script>
     const theme = localStorage.getItem('theme') || 'auto'
@@ -258,6 +254,7 @@ cd vcpkg
 ./vcpkg install ms-quic
 </code></pre>
 <p>The <code>MsQuic</code> port in vcpkg is kept up to date by Microsoft team members and community contributors. If the version is out of date, please <a href="https://github.com/Microsoft/vcpkg">create an issue or pull   request</a> on the vcpkg repository.</p>
+
 </article>
 
         <div class="contribution d-print-none">
@@ -265,7 +262,7 @@ cd vcpkg
         </div>
 
         <div class="next-article d-print-none border-top" id="nextArticle"></div>
-        
+
       </div>
 
       <div class="affix">

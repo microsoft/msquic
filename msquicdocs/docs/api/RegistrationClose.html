@@ -29,11 +29,7 @@
       <meta name="loc:copy" content="Copy">
   </head>
 
-  <script type="module">
-    import options from './../../public/main.js'
-    import { init } from './../../public/docfx.min.js'
-    init(options)
-  </script>
+  <script type="module" src="./../../public/docfx.min.js"></script>
 
   <script>
     const theme = localStorage.getItem('theme') || 'auto'
@@ -106,6 +102,7 @@ void
 <p>The application <strong>must</strong> close/delete all child configurations and connection objects before closing the registration. This call <strong>will block</strong> on those outstanding objects being cleaned up. Do no call it on any MsQuic event callback, or it will deadlock.</p>
 <h1 id="see-also">See Also</h1>
 <p><a href="RegistrationOpen.html">RegistrationOpen</a><br></p>
+
 </article>
 
         <div class="contribution d-print-none">
@@ -113,7 +110,7 @@ void
         </div>
 
         <div class="next-article d-print-none border-top" id="nextArticle"></div>
-        
+
       </div>
 
       <div class="affix">

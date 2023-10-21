@@ -29,11 +29,7 @@
       <meta name="loc:copy" content="Copy">
   </head>
 
-  <script type="module">
-    import options from './../public/main.js'
-    import { init } from './../public/docfx.min.js'
-    init(options)
-  </script>
+  <script type="module" src="./../public/docfx.min.js"></script>
 
   <script>
     const theme = localStorage.getItem('theme') || 'auto'
@@ -145,6 +141,7 @@
 <p>Any value less than or equal to the initial <strong>TotalBufferLength</strong> value is allowed, including zero.</p>
 <p>Whenever a receive isn't fully accepted by the app, additional receive events are immediately disabled. The app is assumed to be at capacity and not able to consume more until further indication. To re-enable receive callbacks, the app must call <a href="api/StreamReceiveSetEnabled.html">StreamReceiveSetEnabled</a>.</p>
 <p>There are cases where an app may want to partially accept the current data, but still immediately get a callback with the rest of the data. To do this (only works in the synchronous flow) the app must return <code>QUIC_STATUS_CONTINUE</code>.</p>
+
 </article>
 
         <div class="contribution d-print-none">
@@ -152,7 +149,7 @@
         </div>
 
         <div class="next-article d-print-none border-top" id="nextArticle"></div>
-        
+
       </div>
 
       <div class="affix">
