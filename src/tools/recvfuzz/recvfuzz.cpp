@@ -448,7 +448,7 @@ void fuzzInitialPacket(CXPLAT_SOCKET* Binding, CXPLAT_ROUTE Route){
     while (CxPlatTimeDiff64(StartTimeMs, CxPlatTimeMs64()) < RunTimeMs) {
         CXPLAT_SEND_CONFIG SendConfig = { &Route, DatagramLength, CXPLAT_ECN_NON_ECT, 0 };
         CXPLAT_SEND_DATA* SendData = CxPlatSendDataAlloc(Binding, &SendConfig);
-        if(!SendData){
+        if (!SendData){
             printf("CxPlatSendDataAlloc failed\n");
         }
         while (CxPlatTimeDiff64(StartTimeMs, CxPlatTimeMs64()) < RunTimeMs && !CxPlatSendDataIsFull(SendData)) {
@@ -495,8 +495,9 @@ void fuzzInitialPacket(CXPLAT_SOCKET* Binding, CXPLAT_ROUTE Route){
             CxPlatRandom(sizeof(uint64_t), SrcCid); //fuzz
             QUIC_BUFFER* SendBuffer =
                 CxPlatSendDataAllocBuffer(SendData, DatagramLength);
-             if(!SendBuffer) {
+             if (!SendBuffer) {
                 printf("CxPlatSendDataAllocBuffer failed\n");
+                return;
                 }
             (*DestCid)++; (*SrcCid)++;
             *OrigSrcCid = *SrcCid;
@@ -505,16 +506,17 @@ void fuzzInitialPacket(CXPLAT_SOCKET* Binding, CXPLAT_ROUTE Route){
 
             QUIC_PACKET_KEY* WriteKey;
             
-            if(!QUIC_SUCCEEDED(
-            QuicPacketKeyCreateInitial(
-                FALSE,
-                &HkdfLabels,
-                InitialSalt.Data,
-                sizeof(uint64_t),
-                (uint8_t*)DestCid,
-                nullptr,
-                &WriteKey))){
-                    printf("QuicPacketKeyCreateInitial failed\n");
+            if (QUIC_FAILED(
+                QuicPacketKeyCreateInitial(
+                    FALSE,
+                    &HkdfLabels,
+                    InitialSalt.Data,
+                    sizeof(uint64_t),
+                    (uint8_t*)DestCid,
+                 nullptr,
+                    &WriteKey))) {
+                        printf("QuicPacketKeyCreateInitial failed\n");
+                        return;
                 }
 
             // printf_buf("salt", InitialSalt.Data, InitialSalt.Length);
@@ -564,7 +566,7 @@ void fuzzInitialPacket(CXPLAT_SOCKET* Binding, CXPLAT_ROUTE Route){
     printf("All Packets Sent!\n");
 }
 
-void start(){
+void start() {
     CXPLAT_DATAPATH* Datapath;
     const CXPLAT_UDP_DATAPATH_CALLBACKS DatapathCallbacks = {
         UdpRecvCallback,
@@ -625,6 +627,7 @@ void start(){
             &Binding);
     if (QUIC_FAILED(Status)) {
         printf("CxPlatSocketCreateUdp failed, 0x%x\n", Status);
+        return;
     }
 
 
