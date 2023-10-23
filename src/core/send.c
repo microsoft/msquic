@@ -870,7 +870,7 @@ QuicSendWriteFrames(
             QUIC_ACK_FREQUENCY_EX Frame;
             Frame.SequenceNumber = Connection->SendAckFreqSeqNum;
             Frame.PacketTolerance = Connection->PeerPacketTolerance;
-            Frame.UpdateMaxAckDelay = QuicConnGetAckDelay(Connection);
+            Frame.UpdateMaxAckDelay = MS_TO_US(QuicConnGetAckDelay(Connection));
             Frame.IgnoreOrder = FALSE;
             Frame.IgnoreCE = FALSE;
 
