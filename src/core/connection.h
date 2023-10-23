@@ -1353,6 +1353,26 @@ QuicConnTimerExpired(
     _In_ uint64_t TimeNow
     );
 
+_IRQL_requires_max_(PASSIVE_LEVEL)
+inline
+uint64_t
+QuicConnGetAckDelay(
+    _In_ const QUIC_CONNECTION* Connection
+    )
+{
+    if (Connection->Settings.MaxAckDelayMs &&
+        (MsQuicLib.ExecutionConfig == NULL ||
+         Connection->Settings.MaxAckDelayMs > US_TO_MS(MsQuicLib.ExecutionConfig->PollingIdleTimeoutUs))) {
+        //
+        // If we are using delayed ACKs, and the ACK delay is greater than the
+        // polling timeout, then we need to account for delay resulting from
+        // from the timer resolution.
+        //
+        return (uint64_t)Connection->Settings.MaxAckDelayMs + (uint64_t)MsQuicLib.TimerResolutionMs;
+    }
+    return (uint64_t)Connection->Settings.MaxAckDelayMs;
+}
+
 //
 // Called when the QUIC version is set.
 //
