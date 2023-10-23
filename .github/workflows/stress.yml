@@ -132,3 +132,13 @@ jobs:
       with:
         name: Stress-${{ matrix.vec.config }}-${{ matrix.vec.plat }}-${{ matrix.vec.os }}-${{ matrix.vec.arch }}-${{ matrix.vec.tls }}${{ matrix.vec.xdp }}${{ matrix.vec.sanitize }}
         path: artifacts
+    - name: recvfuzz (PR)
+      if: github.event_name == 'pull_request'
+      timeout-minutes: 15
+      shell: pwsh
+      run: .\artifacts\bin\windows\x64_Debug_schannel\recvfuzz.exe -AZP -Config ${{ matrix.vec.config }} -Arch ${{ matrix.vec.arch }} -Tls ${{ matrix.vec.tls }} -timeout ${{ env.pr-timeout }} ${{ matrix.vec.xdp }}
+    - name: recvfuzz (Official)
+      if: github.event_name != 'pull_request'
+      timeout-minutes: 65
+      shell: pwsh
+      run: .\artifacts\bin\windows\x64_Debug_schannel\recvfuzz.exe -AZP -Config ${{ matrix.vec.config }} -Arch ${{ matrix.vec.arch }} -Tls ${{ matrix.vec.tls }} -timeout ${{ env.main-timeout }} ${{ matrix.vec.xdp }}

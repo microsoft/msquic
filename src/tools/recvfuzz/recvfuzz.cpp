@@ -441,78 +441,9 @@ void WriteClientInitialPacket(
 }
 
 
-void start(){
-    CXPLAT_DATAPATH* Datapath;
-    const CXPLAT_UDP_DATAPATH_CALLBACKS DatapathCallbacks = {
-        UdpRecvCallback,
-        UdpUnreachCallback,
-    };
-    MsQuic = new MsQuicApi();
-    QUIC_STATUS Status = CxPlatDataPathInitialize(
-        0,
-        &DatapathCallbacks,
-        NULL,
-        NULL,
-        &Datapath);
-    if (QUIC_FAILED(Status)) {
-        printf("Datapath init failed 0x%x", Status);
-        return;
-    }
-    QUIC_ADDR sockAddr = {0};
-    auto value = GetRandom(3);
-    QUIC_ADDRESS_FAMILY Family = (value == 0) ? QUIC_ADDRESS_FAMILY_INET6 : ((value == 1) ? QUIC_ADDRESS_FAMILY_INET : QUIC_ADDRESS_FAMILY_UNSPEC); // fuzz
-    QuicAddrSetFamily(&sockAddr, Family);
-    Status = CxPlatDataPathResolveAddress(
-                    Datapath,
-                    Sni,
-                    &sockAddr);
-    if (QUIC_FAILED(Status)) {
-        printf("Address Resolution Failed 0x%x", Status);
-        return;
-    }
-    QuicAddrSetPort(&sockAddr, 9999);
-    // make a server
-    MsQuicRegistration Registration(true);
-    QUIC_SUCCEEDED(Registration.GetInitStatus());
-
-    auto CredConfig = CxPlatGetSelfSignedCert(CXPLAT_SELF_SIGN_CERT_USER, FALSE, NULL);
-
-    MsQuicConfiguration ServerConfiguration(Registration, Alpn, *CredConfig);
-
-    QUIC_SUCCEEDED(ServerConfiguration.GetInitStatus());
-    MsQuicAutoAcceptListener Listener(Registration, ServerConfiguration, MsQuicConnection::NoOpCallback);
-    QUIC_SUCCEEDED(Listener.Start(Alpn, &sockAddr));
-    QUIC_SUCCEEDED(Listener.GetInitStatus());
-
-    CXPLAT_SOCKET* Binding;
-    CXPLAT_UDP_CONFIG UdpConfig = {0};
-    UdpConfig.LocalAddress = nullptr;
-    UdpConfig.RemoteAddress = &sockAddr;
-    UdpConfig.Flags = 0;
-    UdpConfig.InterfaceIndex = 0;
-    UdpConfig.CallbackContext = nullptr;
-    QUIC_ADDR_STR str;
-    QuicAddrToString(&sockAddr, &str);
-    printf("Remote address: %s\n", str.Address);
-
-    Status =
-        CxPlatSocketCreateUdp(
-            Datapath,
-            &UdpConfig,
-            &Binding);
-    if (QUIC_FAILED(Status)) {
-        printf("CxPlatSocketCreateUdp failed, 0x%x\n", Status);
-    }
-    //
+void fuzzInitialPacket(CXPLAT_SOCKET* Binding, CXPLAT_ROUTE Route){
     const StrBuffer InitialSalt("afbfec289993d24c9e9786f19c6111e04390a899");
-    const uint16_t DatagramLength = QUIC_MIN_INITIAL_LENGTH; // fuzz maybe
-    CXPLAT_ROUTE Route = {0};
-    CxPlatSocketGetLocalAddress(Binding, &Route.LocalAddress);
-    Route.RemoteAddress = sockAddr;
-
-    //
-
-
+    const uint16_t DatagramLength = QUIC_MIN_INITIAL_LENGTH; 
     uint64_t StartTimeMs = CxPlatTimeMs64();
     while (CxPlatTimeDiff64(StartTimeMs, CxPlatTimeMs64()) < RunTimeMs) {
         CXPLAT_SEND_CONFIG SendConfig = { &Route, DatagramLength, CXPLAT_ECN_NON_ECT, 0 };
@@ -543,10 +474,6 @@ void start(){
 
             PacketBuffer += sizeof(QUIC_LONG_HEADER_V1) + sizeof(uint64_t); // point to the source id length
             *PacketBuffer = (uint8_t)GetRandom(sizeof(uint64_t)); // fuzz the source id length
-
-            //  To Fuzz: PayloadLengthOffset, 
-            // PacketNumber, Packetnumberlength, DestCidlength, SourceCidLength, DestCid, SourceCid, PayloadLength
-
 
             uint16_t PacketNumberOffset = HeaderLength - sizeof(uint32_t);
 
@@ -634,6 +561,80 @@ void start(){
             &Route,
             SendData));
     }
+    printf("All Packets Sent!\n");
+}
+
+void start(){
+    CXPLAT_DATAPATH* Datapath;
+    const CXPLAT_UDP_DATAPATH_CALLBACKS DatapathCallbacks = {
+        UdpRecvCallback,
+        UdpUnreachCallback,
+    };
+    MsQuic = new MsQuicApi();
+    QUIC_STATUS Status = CxPlatDataPathInitialize(
+        0,
+        &DatapathCallbacks,
+        NULL,
+        NULL,
+        &Datapath);
+    if (QUIC_FAILED(Status)) {
+        printf("Datapath init failed 0x%x", Status);
+        return;
+    }
+    QUIC_ADDR sockAddr = {0};
+    auto value = GetRandom(3);
+    QUIC_ADDRESS_FAMILY Family = (value == 0) ? QUIC_ADDRESS_FAMILY_INET6 : ((value == 1) ? QUIC_ADDRESS_FAMILY_INET : QUIC_ADDRESS_FAMILY_UNSPEC); // fuzz
+    QuicAddrSetFamily(&sockAddr, Family);
+    Status = CxPlatDataPathResolveAddress(
+                    Datapath,
+                    Sni,
+                    &sockAddr);
+    if (QUIC_FAILED(Status)) {
+        printf("Address Resolution Failed 0x%x", Status);
+        return;
+    }
+    QuicAddrSetPort(&sockAddr, 9999);
+    // make a server
+    MsQuicRegistration Registration(true);
+    QUIC_SUCCEEDED(Registration.GetInitStatus());
+
+    auto CredConfig = CxPlatGetSelfSignedCert(CXPLAT_SELF_SIGN_CERT_USER, FALSE, NULL);
+
+    MsQuicConfiguration ServerConfiguration(Registration, Alpn, *CredConfig);
+
+    QUIC_SUCCEEDED(ServerConfiguration.GetInitStatus());
+    MsQuicAutoAcceptListener Listener(Registration, ServerConfiguration, MsQuicConnection::NoOpCallback);
+    QUIC_SUCCEEDED(Listener.Start(Alpn, &sockAddr));
+    QUIC_SUCCEEDED(Listener.GetInitStatus());
+
+    CXPLAT_SOCKET* Binding;
+    CXPLAT_UDP_CONFIG UdpConfig = {0};
+    UdpConfig.LocalAddress = nullptr;
+    UdpConfig.RemoteAddress = &sockAddr;
+    UdpConfig.Flags = 0;
+    UdpConfig.InterfaceIndex = 0;
+    UdpConfig.CallbackContext = nullptr;
+    QUIC_ADDR_STR str;
+    QuicAddrToString(&sockAddr, &str);
+    printf("Remote address: %s\n", str.Address);
+
+    Status =
+        CxPlatSocketCreateUdp(
+            Datapath,
+            &UdpConfig,
+            &Binding);
+    if (QUIC_FAILED(Status)) {
+        printf("CxPlatSocketCreateUdp failed, 0x%x\n", Status);
+    }
+
+
+    //
+    CXPLAT_ROUTE Route = {0};
+    CxPlatSocketGetLocalAddress(Binding, &Route.LocalAddress);
+    Route.RemoteAddress = sockAddr;
+
+    //
+    fuzzInitialPacket(Binding, Route);
 }
 
 #ifdef FUZZING
