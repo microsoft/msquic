@@ -503,6 +503,8 @@ QuicConnUninitialize(
     QuicCryptoUninitialize(&Connection->Crypto);
     QuicTimerWheelRemoveConnection(&Connection->Worker->TimerWheel, Connection);
     QuicOperationQueueClear(Connection->Worker, &Connection->OperQ);
+    QuicLossDetectionUninitialize(&Connection->LossDetection);
+    QuicSendUninitialize(&Connection->Send);
 
     if (Connection->CloseReasonPhrase != NULL) {
         CXPLAT_FREE(Connection->CloseReasonPhrase, QUIC_POOL_CLOSE_REASON);
@@ -5318,7 +5320,7 @@ QuicConnRecvFrames(
         case QUIC_FRAME_IMMEDIATE_ACK: // Always accept the frame, because we always enable support.
             AckImmediately = TRUE;
             break;
-            
+
         case QUIC_FRAME_TIMESTAMP: { // Always accept the frame, because we always enable support.
             if (!Connection->State.TimestampRecvNegotiated) {
                 QuicTraceEvent(
@@ -5345,7 +5347,7 @@ QuicConnRecvFrames(
             Packet->SendTimestamp = Frame.Timestamp;
             break;
         }
-        
+
         default:
             //
             // No default case necessary, as we have already validated the frame
