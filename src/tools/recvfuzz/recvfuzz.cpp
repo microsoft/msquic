@@ -63,9 +63,6 @@ struct StrBuffer
     ~StrBuffer() { delete [] Data; }
 };
 
-const uint32_t MaxBufferSizes[] = { 0, 1, 2, 32, 50, 256, 500, 1000, 1024, 1400, 5000, 10000, 64000, 10000000 };
-static const size_t BufferCount = ARRAYSIZE(MaxBufferSizes);
-
 
 class FuzzingData {
     const uint8_t* data;
@@ -195,13 +192,16 @@ struct TlsContext
             OnRecvQuicTP,
             NULL
         };
-        QUIC_SUCCEEDED(
+        
+        if (QUIC_FAILED(
             CxPlatTlsSecConfigCreate(
                 &CredConfig,
                 CXPLAT_TLS_CREDENTIAL_FLAG_NONE,
                 &TlsCallbacks,
                 &SecConfig,
-                OnSecConfigCreateComplete));
+                OnSecConfigCreateComplete))) {
+                    printf("Failed to create sec config!\n");
+                }
 
         QUIC_CONNECTION Connection = {};
 
@@ -235,11 +235,13 @@ struct TlsContext
         Config.Connection = (QUIC_CONNECTION*)this;
         Config.ServerName = Sni;
 
-        QUIC_SUCCEEDED(
+        if (QUIC_FAILED(
             CxPlatTlsInitialize(
                 &Config,
                 &State,
-                &Ptr));
+                &Ptr))){
+                    printf("Failed to initialize TLS!\n");
+                }
     }
 
     ~TlsContext() {
@@ -441,10 +443,12 @@ void WriteClientInitialPacket(
 }
 
 
-void fuzzInitialPacket(CXPLAT_SOCKET* Binding, CXPLAT_ROUTE Route){
+void fuzzInitialPacket(CXPLAT_SOCKET* Binding, CXPLAT_ROUTE Route) {
     const StrBuffer InitialSalt("afbfec289993d24c9e9786f19c6111e04390a899");
     const uint16_t DatagramLength = QUIC_MIN_INITIAL_LENGTH; 
     uint64_t StartTimeMs = CxPlatTimeMs64();
+    int64_t PacketCount = 0;
+    int64_t TotalByteCount = 0;
     while (CxPlatTimeDiff64(StartTimeMs, CxPlatTimeMs64()) < RunTimeMs) {
         CXPLAT_SEND_CONFIG SendConfig = { &Route, DatagramLength, CXPLAT_ECN_NON_ECT, 0 };
         CXPLAT_SEND_DATA* SendData = CxPlatSendDataAlloc(Binding, &SendConfig);
@@ -551,8 +555,10 @@ void fuzzInitialPacket(CXPLAT_SOCKET* Binding, CXPLAT_ROUTE Route){
             for (uint8_t i = 0; i < 4; ++i) {
                 SendBuffer->Buffer[PacketNumberOffset + i] ^= HpMask[i + 1];
             }
-
+            
             // printf_buf("protected", SendBuffer->Buffer, PacketLength);
+            InterlockedExchangeAdd64(&PacketCount, 1);
+            InterlockedExchangeAdd64(&TotalByteCount, DatagramLength);
 
         }
 
@@ -563,7 +569,8 @@ void fuzzInitialPacket(CXPLAT_SOCKET* Binding, CXPLAT_ROUTE Route){
             &Route,
             SendData));
     }
-    printf("All Packets Sent!\n");
+    printf("Total Initial Packets sent: %Id\n", PacketCount);
+    printf("Total Bytes sent: %Id\n", TotalByteCount);
 }
 
 void start() {
