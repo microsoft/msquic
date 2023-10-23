@@ -2351,7 +2351,7 @@ QuicConnGenerateLocalTransportParameters(
                 Connection->Paths[0].Binding->Socket));
     LocalTP->MaxAckDelay = QuicConnGetAckDelay(Connection);
     LocalTP->MinAckDelay =
-        MsQuicLib.ExecutionConfig == NULL &&
+        MsQuicLib.ExecutionConfig != NULL &&
         MsQuicLib.ExecutionConfig->PollingIdleTimeoutUs != 0 ?
             0 : MS_TO_US(MsQuicLib.TimerResolutionMs);
     LocalTP->ActiveConnectionIdLimit = QUIC_ACTIVE_CONNECTION_ID_LIMIT;
