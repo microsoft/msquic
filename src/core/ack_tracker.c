@@ -182,11 +182,11 @@ QuicAckTrackerAckPacket(
     //   1. The packet included an IMMEDIATE_ACK frame.
     //   2. ACK delay is disabled (MaxAckDelayMs == 0).
     //   3. We have received 'PacketTolerance' ACK eliciting packets.
-    //   2. We received an ACK eliciting packet that doesn't directly follow the
+    //   4. We received an ACK eliciting packet that doesn't directly follow the
     //      previously received packet number. So we assume there might have
     //      been loss and should indicate this info to the peer. This logic is
     //      disabled if 'IgnoreReordering' is TRUE.
-    //   4. The delayed ACK timer fires after the configured time.
+    //   5. The delayed ACK timer fires after the configured time.
     //
     // If we don't queue an immediate ACK and this is the first ACK eliciting
     // packet received, we make sure the ACK delay timer is started.
