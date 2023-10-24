@@ -187,6 +187,11 @@ typedef struct CXPLAT_SEND_DATA {
     uint8_t Buffer[CXPLAT_LARGE_IO_BUFFER_SIZE];
 
     //
+    // The total number of bytes buffer sent (only used for TCP).
+    //
+    uint32_t TotalBytesSent;
+
+    //
     // IO vectors used for sends on the socket.
     //
     struct iovec Iovs[1]; // variable length, depends on if GSO is being used
@@ -2459,18 +2464,17 @@ CxPlatSendDataSendTcp(
     _In_ CXPLAT_SEND_DATA* SendData
     )
 {
-    while (SendData->TotalSize > 0) {
+    while (SendData->TotalSize > SendData->TotalBytesSent) {
         int BytesSent =
             send(
                 SendData->SocketContext->SocketFd,
-                SendData->Buffer,
-                SendData->TotalSize,
+                SendData->Buffer + SendData->TotalBytesSent,
+                SendData->TotalSize - SendData->TotalBytesSent,
                 0);
         if (BytesSent < 0) {
             return FALSE;
         }
-        SendData->Buffer += BytesSent;
-        SendData->TotalSize -= BytesSent;
+        SendData->TotalBytesSent += BytesSent;
     }
 
     return TRUE;
