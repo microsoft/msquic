@@ -2459,24 +2459,18 @@ CxPlatSendDataSendTcp(
     _In_ CXPLAT_SEND_DATA* SendData
     )
 {
-    uint32_t TotalSize = SendData->TotalSize;
-    uint8_t *Buffer = SendData->Buffer;
-    while (TotalSize > 0) {
+    while (SendData->TotalSize > 0) {
         int BytesSent =
             send(
                 SendData->SocketContext->SocketFd,
-                Buffer,
-                TotalSize,
+                SendData->Buffer,
+                SendData->TotalSize,
                 0);
         if (BytesSent < 0) {
-            // forcibly send inline
-            if (errno == EAGAIN || errno == EWOULDBLOCK) {
-                continue;
-            }
             return FALSE;
         }
-        Buffer += BytesSent;
-        TotalSize -= BytesSent;
+        SendData->Buffer += BytesSent;
+        SendData->TotalSize -= BytesSent;
     }
 
     return TRUE;
