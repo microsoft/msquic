@@ -503,6 +503,8 @@ QuicConnUninitialize(
     QuicCryptoUninitialize(&Connection->Crypto);
     QuicTimerWheelRemoveConnection(&Connection->Worker->TimerWheel, Connection);
     QuicOperationQueueClear(Connection->Worker, &Connection->OperQ);
+    QuicLossDetectionUninitialize(&Connection->LossDetection);
+    QuicSendUninitialize(&Connection->Send);
 
     if (Connection->CloseReasonPhrase != NULL) {
         CXPLAT_FREE(Connection->CloseReasonPhrase, QUIC_POOL_CLOSE_REASON);
