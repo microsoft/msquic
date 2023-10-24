@@ -569,8 +569,8 @@ void fuzzInitialPacket(CXPLAT_SOCKET* Binding, CXPLAT_ROUTE Route) {
             &Route,
             SendData));
     }
-    printf("Total Initial Packets sent: %lld\n", PacketCount);
-    printf("Total Bytes sent: %lld\n", TotalByteCount);
+    printf("Total Initial Packets sent: %lld\n", (long long)PacketCount);
+    printf("Total Bytes sent: %lld\n", (long long)TotalByteCount);
 }
 
 void start() {
