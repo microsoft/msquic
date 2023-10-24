@@ -2487,14 +2487,20 @@ CxPlatSendDataSend(
 
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
     CXPLAT_SOCKET_CONTEXT* SocketContext = SendData->SocketContext;
-    BOOLEAN Success =
-        SocketType == CXPLAT_SOCKET_UDP ?
+    BOOLEAN Success;
+
+    if (SocketType == CXPLAT_SOCKET_UDP) {
+        Success =
 #ifdef UDP_SEGMENT
             SendData->SegmentationSupported ?
-                CxPlatSendDataSendSegmented(SendData) :
+                CxPlatSendDataSendSegmented(SendData) : CxPlatSendDataSendMessages(SendData);
+#else
+            CxPlatSendDataSendMessages(SendData);
 #endif
-                CxPlatSendDataSendMessages(SendData) :
-            CxPlatSendDataSendTcp(SendData);
+    } else {
+        Success = CxPlatSendDataSendTcp(SendData);
+    }
+
     if (!Success) {
         if (errno == EAGAIN || errno == EWOULDBLOCK) {
             Status = QUIC_STATUS_PENDING;
