@@ -15,7 +15,6 @@ Abstract:
 #include <mutex>
 #include <algorithm>
 
-
 #define QUIC_TEST_APIS 1 // Needed for self signed cert API
 #define QUIC_API_ENABLE_INSECURE_FEATURES 1 // Needed for disabling 1-RTT encryption
 #ifndef NOMINMAX
@@ -26,16 +25,9 @@ Abstract:
 #include "msquic.hpp"
 
 const MsQuicApi* MsQuic;
-#define MagicCid 0x989898989898989ull
+uint64_t MagicCid = 0x989898989898989ull;
 const QUIC_HKDF_LABELS HkdfLabels = { "quic key", "quic iv", "quic hp", "quic ku" };
-uint64_t RunTimeMs;
-
-#define ASSERT_ON_FAILURE(x) \
-    do { \
-        QUIC_STATUS _STATUS; \
-        CXPLAT_FRE_ASSERT(QUIC_SUCCEEDED((_STATUS = x))); \
-    } while (0)
-#define ASSERT_ON_NOT(x) CXPLAT_FRE_ASSERT(x)
+uint64_t RunTimeMs = 60000;
 
 static const char* Alpn = "fuzz";
 static uint32_t Version = QUIC_VERSION_DRAFT_29;
@@ -63,40 +55,23 @@ struct StrBuffer
     ~StrBuffer() { delete [] Data; }
 };
 
-
 class FuzzingData {
-    const uint8_t* data;
-    size_t size;
-    std::mutex mux;
-    // TODO: support bit level pointers
-    size_t Ptrs;
-    size_t NumIterated;
-    bool Cyclic;
-
+    const uint8_t* data {nullptr};
+    size_t size {0};
+    size_t Ptrs {0};
+    size_t NumIterated {0};
     bool CheckBoundary(size_t Adding) {
-        // TODO: efficient cyclic access
         if (size < Ptrs + Adding) {
-            if (!Cyclic) {
-                return false;
-            }
             Ptrs = 0;
             NumIterated++;
         }
         return true;
     }
 public:
-    // 128 for main data, 20 for callback's issue workaround
-    static const size_t MinDataSize = 148;
-    static const size_t UtilityDataSize = 20;
-    // hard code for determinisity
+    static const size_t UtilityDataSize = 20; // hard code for determinisity
 
-    FuzzingData() : data(nullptr), size(0), Ptrs(), NumIterated(), Cyclic(true) {}
-    FuzzingData(const uint8_t* data, size_t size) : data(data), size(size - UtilityDataSize), Ptrs(), NumIterated(), Cyclic(true) {}
-    bool Initialize() {
-        Ptrs = 0;
-        NumIterated = 0;
-        return true;
-    }
+    FuzzingData() {}
+    FuzzingData(const uint8_t* data, size_t size) : data(data), size(size - UtilityDataSize) {}
     template<typename T>
     bool TryGetRandom(T UpperBound, T* Val) {
         int type_size = sizeof(T);
@@ -157,15 +132,6 @@ UdpUnreachCallback(
 {
 }
 
-void printf_buf(const char* name, void* buf, uint32_t len)
-{
-    printf("%s: ", name);
-    for (uint32_t i = 0; i < len; i++) {
-        printf("%.2X", ((uint8_t*)buf)[i]);
-    }
-    printf("\n");
-}
-
 struct TlsContext
 {
     CXPLAT_TLS* Ptr;
@@ -200,8 +166,8 @@ struct TlsContext
                 &TlsCallbacks,
                 &SecConfig,
                 OnSecConfigCreateComplete))) {
-                    printf("Failed to create sec config!\n");
-                }
+            printf("Failed to create sec config!\n");
+        }
 
         QUIC_CONNECTION Connection = {};
 
@@ -240,8 +206,8 @@ struct TlsContext
                 &Config,
                 &State,
                 &Ptr))){
-                    printf("Failed to initialize TLS!\n");
-                }
+            printf("Failed to initialize TLS!\n");
+        }
     }
 
     ~TlsContext() {
@@ -387,7 +353,6 @@ void WriteInitialCryptoFrame(
     }
 }
 
-
 void WriteClientInitialPacket(  
     _In_ uint32_t PacketNumber,
     _In_ uint8_t CidLength,
@@ -442,7 +407,6 @@ void WriteClientInitialPacket(
     *PacketLength += CXPLAT_ENCRYPTION_OVERHEAD;
 }
 
-
 void fuzzInitialPacket(CXPLAT_SOCKET* Binding, CXPLAT_ROUTE Route) {
     const StrBuffer InitialSalt("afbfec289993d24c9e9786f19c6111e04390a899");
     const uint16_t DatagramLength = QUIC_MIN_INITIAL_LENGTH; 
@@ -486,7 +450,7 @@ void fuzzInitialPacket(CXPLAT_SOCKET* Binding, CXPLAT_ROUTE Route) {
 
             uint64_t* OrigSrcCid = nullptr;
             for (uint16_t i = HeaderLength; i < PacketLength; ++i) {
-                if (MagicCid == *(uint64_t*)&Packet[i]) {
+                if (!memcmp(&MagicCid, Packet+i, sizeof(MagicCid))) {
                     OrigSrcCid = (uint64_t*)&Packet[i];
                 }
             }
@@ -506,8 +470,6 @@ void fuzzInitialPacket(CXPLAT_SOCKET* Binding, CXPLAT_ROUTE Route) {
             (*DestCid)++; (*SrcCid)++;
             *OrigSrcCid = *SrcCid;
             memcpy(SendBuffer->Buffer, Packet, PacketLength);
-            // printf_buf("cleartext", SendBuffer->Buffer, PacketLength - CXPLAT_ENCRYPTION_OVERHEAD);
-
             QUIC_PACKET_KEY* WriteKey;
             
             if (QUIC_FAILED(
@@ -519,13 +481,9 @@ void fuzzInitialPacket(CXPLAT_SOCKET* Binding, CXPLAT_ROUTE Route) {
                     (uint8_t*)DestCid,
                  nullptr,
                     &WriteKey))) {
-                        printf("QuicPacketKeyCreateInitial failed\n");
-                        return;
-                }
-
-            // printf_buf("salt", InitialSalt.Data, InitialSalt.Length);
-            // printf_buf("cid", DestCid, sizeof(uint64_t));
-
+                printf("QuicPacketKeyCreateInitial failed\n");
+                return;
+            }
             uint8_t Iv[CXPLAT_IV_LENGTH];
             QuicCryptoCombineIvAndPacketNumber(
                 WriteKey->Iv, (uint8_t*)&PacketNumber, Iv);
@@ -538,8 +496,6 @@ void fuzzInitialPacket(CXPLAT_SOCKET* Binding, CXPLAT_ROUTE Route) {
                 PacketLength - HeaderLength,
                 SendBuffer->Buffer + HeaderLength);
 
-            // printf_buf("encrypted", SendBuffer->Buffer, PacketLength);
-
             uint8_t HpMask[16];
             CxPlatHpComputeMask(
                 WriteKey->HeaderKey,
@@ -547,27 +503,23 @@ void fuzzInitialPacket(CXPLAT_SOCKET* Binding, CXPLAT_ROUTE Route) {
                 SendBuffer->Buffer + HeaderLength,
                 HpMask);
 
-            // printf_buf("cipher_text", SendBuffer->Buffer + HeaderLength, 16);
-            // printf_buf("hp_mask", HpMask, 16);
             QuicPacketKeyFree(WriteKey);
-
             SendBuffer->Buffer[0] ^= HpMask[0] & 0x0F;
             for (uint8_t i = 0; i < 4; ++i) {
                 SendBuffer->Buffer[PacketNumberOffset + i] ^= HpMask[i + 1];
             }
-            
-            // printf_buf("protected", SendBuffer->Buffer, PacketLength);
             InterlockedExchangeAdd64(&PacketCount, 1);
             InterlockedExchangeAdd64(&TotalByteCount, DatagramLength);
-
         }
-
         
-        QUIC_SUCCEEDED(
-        CxPlatSocketSend(
-            Binding,
-            &Route,
-            SendData));
+        if (QUIC_FAILED(
+            CxPlatSocketSend(
+                Binding,
+                &Route,
+                SendData))) {
+            printf("Send failed!\n");
+            exit(0);
+        }
     }
     printf("Total Initial Packets sent: %lld\n", (long long)PacketCount);
     printf("Total Bytes sent: %lld\n", (long long)TotalByteCount);
@@ -637,13 +589,10 @@ void start() {
         return;
     }
 
-
-    //
     CXPLAT_ROUTE Route = {0};
     CxPlatSocketGetLocalAddress(Binding, &Route.LocalAddress);
     Route.RemoteAddress = sockAddr;
 
-    //
     fuzzInitialPacket(Binding, Route);
 }
 
@@ -652,27 +601,26 @@ void start() {
 extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
 {
     FuzzData = new FuzzingData(data, size);
-    if (!FuzzData->Initialize()) {
-        return 0;
-    }
-
-
     start();
     delete FuzzData;
     return 0;
 }
+
 #else
+
 int
 QUIC_MAIN_EXPORT
 main(int argc, char **argv)
 {
-    RunTimeMs = 60000;
     TryGetValue(argc, argv, "timeout", &RunTimeMs);
+
     uint32_t RngSeed = 0;
     if (!TryGetValue(argc, argv, "seed", &RngSeed)) {
         CxPlatRandom(sizeof(RngSeed), &RngSeed);
-    }    printf("Using seed value: %u\n", RngSeed);
+    }   
+    printf("Using seed value: %u\n", RngSeed);
     srand(RngSeed);
+
     start();
 
     return 0;
