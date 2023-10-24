@@ -2101,6 +2101,7 @@ SendDataAlloc(
         SendData->ClientBuffer.Buffer = SendData->Buffer;
         SendData->ClientBuffer.Length = 0;
         SendData->TotalSize = 0;
+        SendData->TotalBytesSent = 0;
         SendData->SegmentSize =
             (Socket->Type != CXPLAT_SOCKET_UDP ||
              Socket->Datapath->Features & CXPLAT_DATAPATH_FEATURE_SEND_SEGMENTATION)
