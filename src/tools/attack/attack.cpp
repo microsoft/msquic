@@ -26,6 +26,19 @@
 
 #define ATTACK_PORT_DEFAULT 443
 
+#if DEBUG
+void printf_buf(const char* name, void* buf, uint32_t len)
+{
+    printf("%s: ", name);
+    for (uint32_t i = 0; i < len; i++) {
+        printf("%.2X", ((uint8_t*)buf)[i]);
+    }
+    printf("\n");
+}
+#else
+#define printf_buf(name, buf, len)
+#endif
+
 const QUIC_HKDF_LABELS HkdfLabels = { "quic key", "quic iv", "quic hp", "quic ku" };
 
 static CXPLAT_DATAPATH* Datapath;
@@ -83,10 +96,37 @@ struct StrBuffer
     ~StrBuffer() { delete [] Data; }
 };
 
+
+//========================================Callbacks========================================
+_IRQL_requires_max_(DISPATCH_LEVEL)
+_Function_class_(CXPLAT_DATAPATH_ACCEPT_CALLBACK)
+void
+AcceptCallback(
+    _In_ CXPLAT_SOCKET* /* ListenerSocket */,
+    _In_ void* ListenerContext,
+    _In_ CXPLAT_SOCKET* AcceptSocket,
+    _Out_ void** AcceptClientContext
+    )
+{
+    //TODO
+}
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+_Function_class_(CXPLAT_DATAPATH_CONNECT_CALLBACK)
+void
+ConnectCallback(
+    _In_ CXPLAT_SOCKET* /* Socket */,
+    _In_ void* Context,
+    _In_ BOOLEAN Connected
+    )
+{
+    //TODO
+}
+
 _IRQL_requires_max_(DISPATCH_LEVEL)
 _Function_class_(CXPLAT_DATAPATH_RECEIVE_CALLBACK)
 void
-UdpRecvCallback(
+ReceiveCallback(
     _In_ CXPLAT_SOCKET* /* Binding */,
     _In_ void* /* Context */,
     _In_ CXPLAT_RECV_DATA* RecvBufferChain
@@ -96,37 +136,75 @@ UdpRecvCallback(
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
+_Function_class_(CXPLAT_DATAPATH_SEND_COMPLETE_CALLBACK)
+void
+SendCompleteCallback(
+    _In_ CXPLAT_SOCKET* /* Socket */,
+    _In_ void* Context,
+    _In_ QUIC_STATUS /* Status */,
+    _In_ uint32_t ByteCount
+    )
+{
+    //TODO
+}
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
 _Function_class_(CXPLAT_DATAPATH_UNREACHABLE_CALLBACK)
 void
-UdpUnreachCallback(
+UnreachCallback(
     _In_ CXPLAT_SOCKET* /* Binding */,
     _In_ void* /* Context */,
     _In_ const QUIC_ADDR* /* RemoteAddress */
     )
 {
+    //TODO
 }
+
+static
+_IRQL_requires_max_(DISPATCH_LEVEL)
+_Function_class_(CXPLAT_ROUTE_RESOLUTION_CALLBACK)
+void
+ResolveRouteComplete(
+    _Inout_ void* Context,
+    _When_(Succeeded == FALSE, _Reserved_)
+    _When_(Succeeded == TRUE, _In_reads_bytes_(6))
+        const uint8_t* PhysicalAddress,
+    _In_ uint8_t PathId,
+    _In_ BOOLEAN Succeeded
+    )
+{
+    UNREFERENCED_PARAMETER(PathId);
+    if (Succeeded) {
+        CxPlatResolveRouteComplete(nullptr, (CXPLAT_ROUTE*)Context, PhysicalAddress, 0);
+    }
+}
+
+//=======================================================================================
 
 void RunAttackRandom(CXPLAT_SOCKET* Binding, uint16_t Length, bool ValidQuic)
 {
+    printf("Inside of the RunAttackRandom()\n");
     CXPLAT_ROUTE Route = {0};
     CxPlatSocketGetLocalAddress(Binding, &Route.LocalAddress);
-    Route.RemoteAddress = ServerAddress;
+    CxPlatSocketGetRemoteAddress(Binding, &Route.RemoteAddress);
+    QUIC_STATUS Status = CxPlatResolveRoute(Binding, &Route, 0, &Route, ResolveRouteComplete);
+    if (QUIC_FAILED(Status)) {
+        printf("CxPlatResolveRoute failed, 0x%x\n", Status);
+        return;
+    }
 
     uint64_t ConnectionId = 0;
     CxPlatRandom(sizeof(ConnectionId), &ConnectionId);
 
+    CXPLAT_SEND_CONFIG SendConfig = { &Route, Length, CXPLAT_ECN_NON_ECT, 0 };
+    CXPLAT_SEND_DATA* SendData;
+
     while (CxPlatTimeDiff64(TimeStart, CxPlatTimeMs64()) < TimeoutMs) {
-
-        CXPLAT_SEND_CONFIG SendConfig = { &Route, Length, CXPLAT_ECN_NON_ECT, 0 };
-        CXPLAT_SEND_DATA* SendData = CxPlatSendDataAlloc(Binding, &SendConfig);
-        if (SendData == nullptr) {
-            printf("CxPlatSendDataAlloc failed\n");
-            return;
+        while ((SendData = CxPlatSendDataAlloc(Binding, &SendConfig)) == nullptr) {
+            continue;
         }
-
-        while (!CxPlatSendDataIsFull(SendData)) {
-            QUIC_BUFFER* SendBuffer =
-                CxPlatSendDataAllocBuffer(SendData, Length);
+        do {
+            QUIC_BUFFER* SendBuffer = CxPlatSendDataAllocBuffer(SendData, Length);
             if (SendBuffer == nullptr) {
                 printf("CxPlatSendDataAllocBuffer failed\n");
                 CxPlatSendDataFree(SendData);
@@ -155,29 +233,16 @@ void RunAttackRandom(CXPLAT_SOCKET* Binding, uint16_t Length, bool ValidQuic)
 
             InterlockedExchangeAdd64(&TotalPacketCount, 1);
             InterlockedExchangeAdd64(&TotalByteCount, Length);
-        }
+        } while (!CxPlatSendDataIsFull(SendData));
 
-        VERIFY(
+        //VERIFY(
         QUIC_SUCCEEDED(
         CxPlatSocketSend(
             Binding,
             &Route,
-            SendData)));
+            SendData));
     }
 }
-
-#if DEBUG
-void printf_buf(const char* name, void* buf, uint32_t len)
-{
-    printf("%s: ", name);
-    for (uint32_t i = 0; i < len; i++) {
-        printf("%.2X", ((uint8_t*)buf)[i]);
-    }
-    printf("\n");
-}
-#else
-#define printf_buf(name, buf, len)
-#endif
 
 void RunAttackValidInitial(CXPLAT_SOCKET* Binding)
 {
@@ -299,20 +364,37 @@ void RunAttackValidInitial(CXPLAT_SOCKET* Binding)
 CXPLAT_THREAD_CALLBACK(RunAttackThread, /* Context */)
 {
     CXPLAT_SOCKET* Binding;
-    CXPLAT_UDP_CONFIG UdpConfig = {0};
-    UdpConfig.LocalAddress = nullptr;
-    UdpConfig.RemoteAddress = &ServerAddress;
-    UdpConfig.Flags = 0;
-    UdpConfig.InterfaceIndex = 0;
-    UdpConfig.CallbackContext = nullptr;
-    QUIC_STATUS Status =
+    if((strcmp("tcp", Alpn) == 0)) {
+        printf("Running a TCP attack!\n");
+        QUIC_STATUS Status = 
+        CxPlatSocketCreateTcp(
+            Datapath,
+            NULL, //LocalAddress?
+            &ServerAddress,
+            NULL, //CallbackContext?
+            &Binding);
+        if (QUIC_FAILED(Status)) {
+            printf("CxPlatSocketCreateTcp failed, 0x%x\n", Status);
+            CXPLAT_THREAD_RETURN(Status);
+        }
+    }
+    else {
+        printf("Running a UDP attack!\n");
+        CXPLAT_UDP_CONFIG UdpConfig = {0};
+        UdpConfig.LocalAddress = nullptr;
+        UdpConfig.RemoteAddress = &ServerAddress;
+        UdpConfig.Flags = 0;
+        UdpConfig.InterfaceIndex = 0;
+        UdpConfig.CallbackContext = nullptr;
+        QUIC_STATUS Status =
         CxPlatSocketCreateUdp(
             Datapath,
             &UdpConfig,
             &Binding);
-    if (QUIC_FAILED(Status)) {
-        printf("CxPlatSocketCreateUdp failed, 0x%x\n", Status);
-        CXPLAT_THREAD_RETURN(Status);
+        if (QUIC_FAILED(Status)) {
+            printf("CxPlatSocketCreateUdp failed, 0x%x\n", Status);
+            CXPLAT_THREAD_RETURN(Status);
+        }
     }
 
     switch (AttackType) {
@@ -379,17 +461,22 @@ main(
     )
 {
     int ErrorCode = -1;
-    const CXPLAT_UDP_DATAPATH_CALLBACKS DatapathCallbacks = {
-        UdpRecvCallback,
-        UdpUnreachCallback,
+    const CXPLAT_UDP_DATAPATH_CALLBACKS UdpCallbacks = {
+        ReceiveCallback,
+        UnreachCallback,
     };
-
+    const CXPLAT_TCP_DATAPATH_CALLBACKS TcpCallbacks = {
+        AcceptCallback,
+        ConnectCallback,
+        ReceiveCallback,
+        SendCompleteCallback
+    };
     CxPlatSystemLoad();
     CxPlatInitialize();
     CxPlatDataPathInitialize(
         0,
-        &DatapathCallbacks,
-        NULL,
+        &UdpCallbacks,
+        &TcpCallbacks,
         NULL,
         &Datapath);
 
