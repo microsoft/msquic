@@ -1304,7 +1304,6 @@ CxPlatSocketCreateTcpInternal(
 {
     QUIC_STATUS Status;
     uint16_t PartitionIndex;
-    BOOLEAN IsServerSocket = RemoteAddress == NULL;
 
     CXPLAT_DBG_ASSERT(Datapath->TcpHandlers.Receive != NULL);
 
@@ -1957,78 +1956,83 @@ Exit:
 }
 
 void
-CxPlatSocketTcpRecvComplete(
+CxPlatSocketReceiveTcpData(
     _In_ CXPLAT_SOCKET_CONTEXT* SocketContext
     )
 {
     CXPLAT_DATAPATH_PARTITION* DatapathPartition = SocketContext->DatapathPartition;
     DATAPATH_RX_IO_BLOCK* IoBlock = NULL;
 
-    uint32_t RetryCount = 0;
+    //
+    // Read in a loop until the blocking error is encountered unless EOF or other failures
+    // are met.
+    //
     do {
-        IoBlock = CxPlatPoolAlloc(&DatapathPartition->RecvBlockPool);
-    } while (IoBlock == NULL && ++RetryCount < 10);
-    if (IoBlock == NULL) {
-        QuicTraceEvent(
-            AllocFailure,
-            "Allocation of '%s' failed. (%llu bytes)",
-            "DATAPATH_RX_IO_BLOCK",
-            0);
-        goto Exit;
-    }
+        uint32_t RetryCount = 0;
+        do {
+            IoBlock = CxPlatPoolAlloc(&DatapathPartition->RecvBlockPool);
+        } while (IoBlock == NULL && ++RetryCount < 10);
+        if (IoBlock == NULL) {
+            QuicTraceEvent(
+                AllocFailure,
+                "Allocation of '%s' failed. (%llu bytes)",
+                "DATAPATH_RX_IO_BLOCK",
+                0);
+            goto Exit;
+        }
 
-    IoBlock->OwningPool = &DatapathPartition->RecvBlockPool;
-    IoBlock->Route.State = RouteResolved;
-    IoBlock->Route.Queue = SocketContext;
-    IoBlock->RefCount = 0;
+        IoBlock->OwningPool = &DatapathPartition->RecvBlockPool;
+        IoBlock->Route.State = RouteResolved;
+        IoBlock->Route.Queue = SocketContext;
+        IoBlock->RefCount = 0;
 
-    uint8_t* Buffer = (uint8_t*)IoBlock + DatapathPartition->Datapath->RecvBlockBufferOffset;
-    int NumberOfBytesTransferred = read(SocketContext->SocketFd, Buffer, SocketContext->Binding->RecvBufLen);
+        uint8_t* Buffer = (uint8_t*)IoBlock + DatapathPartition->Datapath->RecvBlockBufferOffset;
+        int NumberOfBytesTransferred = read(SocketContext->SocketFd, Buffer, SocketContext->Binding->RecvBufLen);
 
-    if (NumberOfBytesTransferred == 0) {
-        if (!SocketContext->Binding->DisconnectIndicated) {
-            SocketContext->Binding->DisconnectIndicated = TRUE;
-            SocketContext->Binding->Datapath->TcpHandlers.Connect(
+        if (NumberOfBytesTransferred == 0) {
+            if (!SocketContext->Binding->DisconnectIndicated) {
+                SocketContext->Binding->DisconnectIndicated = TRUE;
+                SocketContext->Binding->Datapath->TcpHandlers.Connect(
+                    SocketContext->Binding,
+                    SocketContext->Binding->ClientContext,
+                    FALSE);
+            }
+            goto Exit;
+        } else if (NumberOfBytesTransferred < 0) {
+            if (errno != EAGAIN && errno != EWOULDBLOCK) {
+                QuicTraceEvent(
+                    DatapathErrorStatus,
+                    "[data][%p] ERROR, %u, %s.",
+                    SocketContext->Binding,
+                    errno,
+                    "read failed");
+            }
+            goto Exit;
+        } else {
+            DATAPATH_RX_PACKET* Datagram = (DATAPATH_RX_PACKET*)(IoBlock + 1);
+            Datagram->IoBlock = IoBlock;
+            CXPLAT_RECV_DATA* Data = &Datagram->Data;
+
+            Data->Next = NULL;
+            Data->Buffer = Buffer;
+            Data->BufferLength = NumberOfBytesTransferred;
+            Data->Route = &IoBlock->Route;
+            Data->PartitionIndex = SocketContext->DatapathPartition->PartitionIndex;
+            Data->TypeOfService = 0;
+            Data->Allocated = TRUE;
+            Data->Route->DatapathType = Data->DatapathType = CXPLAT_DATAPATH_TYPE_USER;
+            Data->QueuedOnConnection = FALSE;
+            IoBlock->RefCount++;
+            IoBlock = NULL;
+
+            SocketContext->Binding->Datapath->TcpHandlers.Receive(
                 SocketContext->Binding,
                 SocketContext->Binding->ClientContext,
-                FALSE);
+                Data);
         }
-        goto Exit;
-    } else if (NumberOfBytesTransferred < 0) {
-        if (errno != EAGAIN && errno != EWOULDBLOCK) {
-            QuicTraceEvent(
-                DatapathErrorStatus,
-                "[data][%p] ERROR, %u, %s.",
-                SocketContext->Binding,
-                errno,
-                "read failed");
-        }
-        goto Exit;
-    } else {
-        DATAPATH_RX_PACKET* Datagram = (DATAPATH_RX_PACKET*)(IoBlock + 1);
-        Datagram->IoBlock = IoBlock;
-        CXPLAT_RECV_DATA* Data = &Datagram->Data;
-
-        Data->Next = NULL;
-        Data->Buffer = Buffer;
-        Data->BufferLength = NumberOfBytesTransferred;
-        Data->Route = &IoBlock->Route;
-        Data->PartitionIndex = SocketContext->DatapathPartition->PartitionIndex;
-        Data->TypeOfService = 0;
-        Data->Allocated = TRUE;
-        Data->Route->DatapathType = Data->DatapathType = CXPLAT_DATAPATH_TYPE_USER;
-        Data->QueuedOnConnection = FALSE;
-        IoBlock->RefCount++;
-        IoBlock = NULL;
-
-        SocketContext->Binding->Datapath->TcpHandlers.Receive(
-            SocketContext->Binding,
-            SocketContext->Binding->ClientContext,
-            Data);
-    }
+    } while (TRUE);
 
 Exit:
-
     if (IoBlock) {
         CxPlatPoolFree(&DatapathPartition->RecvBlockPool, IoBlock);
     }
@@ -2046,7 +2050,7 @@ CxPlatSocketReceive(
             CxPlatSocketReceiveMessages(SocketContext);
         }
     } else {
-        CxPlatSocketTcpRecvComplete(SocketContext);
+        CxPlatSocketReceiveTcpData(SocketContext);
     }
 }
 
