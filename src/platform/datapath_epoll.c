@@ -1339,6 +1339,8 @@ CxPlatSocketCreateTcpInternal(
     } else {
         Binding->LocalAddress.Ip.sa_family = QUIC_ADDRESS_FAMILY_INET6;
     }
+
+    Binding->RecvBufLen = Datapath->RecvBlockSize - Datapath->RecvBlockBufferOffset;
     PartitionIndex =
         RemoteAddress ?
             ((uint16_t)(CxPlatProcCurrentNumber() % Datapath->PartitionCount)) : 0;
@@ -1991,7 +1993,7 @@ CxPlatSocketTcpRecvComplete(
     IoBlock->RefCount = 0;
 
     uint8_t* Buffer = (uint8_t*)IoBlock + DatapathPartition->Datapath->RecvBlockBufferOffset;
-    int NumberOfBytesTransferred = read(SocketContext->SocketFd, Buffer, CXPLAT_LARGE_IO_BUFFER_SIZE);
+    int NumberOfBytesTransferred = read(SocketContext->SocketFd, Buffer, SocketContext->Binding->RecvBufLen);
 
     if (NumberOfBytesTransferred == 0) {
         if (!SocketContext->Binding->DisconnectIndicated) {
