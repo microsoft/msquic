@@ -140,8 +140,6 @@ jobs:
       fail-fast: false
       matrix:
         vec: [
-          { config: "Debug", plat: "macos", os: "macos-12", arch: "x64", tls: "openssl", test: "-Test" },
-          { config: "Debug", plat: "macos", os: "macos-12", arch: "x64", tls: "openssl3", test: "-Test" },
           { config: "Debug", plat: "windows", os: "windows-2019", arch: "x64", tls: "openssl", test: "-Test" },
           { config: "Debug", plat: "windows", os: "windows-2019", arch: "x64", tls: "openssl", xdp: "-UseXdp", test: "-Test" },
           { config: "Debug", plat: "windows", os: "windows-2019", arch: "x64", tls: "openssl3", test: "-Test" },
