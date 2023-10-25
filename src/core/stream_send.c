@@ -185,12 +185,7 @@ QuicStreamSendShutdown(
         //
         // Make sure to deliver all send request cancelled callbacks first.
         //
-        while (Stream->SendRequests) {
-            QUIC_SEND_REQUEST* Req = Stream->SendRequests;
-            Stream->SendRequests = Stream->SendRequests->Next;
-            QuicStreamCompleteSendRequest(Stream, Req, TRUE, TRUE);
-        }
-        Stream->SendRequestsTail = &Stream->SendRequests;
+        QuicStreamCancelRequests(Stream);
 
         while (ApiSendRequests != NULL) {
             QUIC_SEND_REQUEST* SendRequest = ApiSendRequests;
@@ -243,11 +238,7 @@ QuicStreamSendShutdown(
             QuicSendClearStreamSendFlag(
                 &Stream->Connection->Send,
                 Stream,
-                QUIC_STREAM_SEND_FLAG_DATA_BLOCKED |
-                QUIC_STREAM_SEND_FLAG_RELIABLE_ABORT |
-                QUIC_STREAM_SEND_FLAG_DATA |
-                QUIC_STREAM_SEND_FLAG_OPEN |
-                QUIC_STREAM_SEND_FLAG_FIN);
+                QUIC_STREAM_SEND_FLAG_ALL_SEND_PATH);
         }
     } else {
         if (Stream->Flags.LocalCloseReset) {
@@ -1576,8 +1567,17 @@ QuicStreamOnAck(
             "[strm][%p] Send State: %hhu",
             Stream,
             QuicStreamSendGetState(Stream));
-        QuicStreamCleanupReliableReset(Stream);
-        QuicStreamSendShutdown(Stream, FALSE, TRUE, FALSE, Stream->SendShutdownErrorCode);
+        //
+        // Set the flags and clear any outstanding send path frames.
+        //
+        Stream->Flags.LocalCloseAcked = TRUE;
+        QuicSendClearStreamSendFlag(
+            &Stream->Connection->Send,
+            Stream,
+            QUIC_STREAM_SEND_FLAG_ALL_SEND_PATH);
+        QuicStreamCancelRequests(Stream);
+        QuicStreamIndicateSendShutdownComplete(Stream, FALSE);
+        QuicStreamTryCompleteShutdown(Stream);
     }
 
     if (!QuicStreamHasPendingStreamData(Stream)) {
@@ -1600,23 +1600,19 @@ QuicStreamOnAck(
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
-QuicStreamCleanupReliableReset(
+QuicStreamCancelRequests(
     _In_ QUIC_STREAM* Stream
     )
 {
     //
-    // Cleanup. Cancels all send requests with offsets after ReliableOffsetSend.
-    // Assume this function gets called only when we're about to close the SEND
-    // Path of this stream once sufficient data has been received and ACK'd by the peer.
+    // Cleanup. Cancels all queued up send requests.
     //
     while (Stream->SendRequests) {
         QUIC_SEND_REQUEST* Req = Stream->SendRequests;
         Stream->SendRequests = Req->Next;
-        if (Stream->SendRequests == NULL) {
-            Stream->SendRequestsTail = &Stream->SendRequests;
-        }
-        QuicStreamCompleteSendRequest(Stream, Req, FALSE, TRUE);
+        QuicStreamCompleteSendRequest(Stream, Req, TRUE, TRUE);
     }
+    Stream->SendRequestsTail = &Stream->SendRequests;
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -1643,12 +1639,7 @@ QuicStreamOnResetReliableAck(
     _In_ QUIC_STREAM* Stream
     )
 {
-    QuicTraceLogStreamVerbose(
-        ResetReliableAck,
-        Stream,
-        "Reset Reliable ACKed in OnResetReliableAck. Send side. UnAckedOffset=%llu, ReliableOffsetSend=%llu",
-        Stream->UnAckedOffset, Stream->ReliableOffsetSend);
-
+    CXPLAT_DBG_ASSERT(Stream->Flags.LocalCloseResetReliable);
     if (Stream->UnAckedOffset >= Stream->ReliableOffsetSend && !Stream->Flags.LocalCloseAcked) {
         Stream->Flags.LocalCloseResetReliableAcked = TRUE;
         QuicTraceEvent(
@@ -1656,8 +1647,17 @@ QuicStreamOnResetReliableAck(
             "[strm][%p] Send State: %hhu",
             Stream,
             QuicStreamSendGetState(Stream));
-        QuicStreamCleanupReliableReset(Stream);
-        QuicStreamSendShutdown(Stream, FALSE, TRUE, FALSE, Stream->SendShutdownErrorCode);
+        //
+        // Set the flags and clear any outstanding send path frames.
+        //
+        Stream->Flags.LocalCloseAcked = TRUE;
+        QuicSendClearStreamSendFlag(
+            &Stream->Connection->Send,
+            Stream,
+            QUIC_STREAM_SEND_FLAG_ALL_SEND_PATH);
+        QuicStreamCancelRequests(Stream);
+        QuicStreamIndicateSendShutdownComplete(Stream, FALSE);
+        QuicStreamTryCompleteShutdown(Stream);
     } else {
         QuicTraceEvent(
             StreamSendState,
@@ -1679,7 +1679,7 @@ QuicStreamSendDumpState(
         QuicTraceLogStreamVerbose(
             SendDump,
             Stream,
-            "SF:%hX FC:%llu QS:%llu MAX:%llu UNA:%llu NXT:%llu RECOV:%llu-%llu",
+            "SF:%hX FC:%llu QS:%llu MAX:%llu UNA:%llu NXT:%llu RECOV:%llu-%llu REL: %llu",
             Stream->SendFlags,
             Stream->MaxAllowedSendOffset,
             Stream->QueuedSendOffset,
@@ -1687,7 +1687,8 @@ QuicStreamSendDumpState(
             Stream->UnAckedOffset,
             Stream->NextSendOffset,
             Stream->Flags.InRecovery ? Stream->RecoveryNextOffset : 0,
-            Stream->Flags.InRecovery ? Stream->RecoveryEndOffset : 0);
+            Stream->Flags.InRecovery ? Stream->RecoveryEndOffset : 0,
+            Stream->ReliableOffsetSend);
 
         uint64_t UnAcked = Stream->UnAckedOffset;
         uint32_t i = 0;

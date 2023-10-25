@@ -2488,6 +2488,7 @@ void QuicTestGlobalParam()
         }
     }
 
+#ifndef _KERNEL_MODE
     //
     // QUIC_PARAM_GLOBAL_DATAPATH_FEATURES
     //
@@ -2530,10 +2531,8 @@ void QuicTestGlobalParam()
                     &Length,
                     &ActualFeatures));
         }
-
     }
 
-#ifndef _KERNEL_MODE
 #ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
     //
     // QUIC_PARAM_GLOBAL_EXECUTION_CONFIG

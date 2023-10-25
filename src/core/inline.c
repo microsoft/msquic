@@ -779,6 +779,11 @@ QuicConnTimerSet(
     _In_ uint64_t DelayUs
     );
 
+uint64_t
+QuicConnGetAckDelay(
+    _In_ const QUIC_CONNECTION* Connection
+    );
+
 uint8_t
 QuicPacketTraceType(
     _In_ const QUIC_SENT_PACKET_METADATA* Metadata

@@ -179,19 +179,21 @@ QuicAckTrackerAckPacket(
     //
     // There are several conditions where we decide to send an ACK immediately:
     //
-    //   1. We have received 'PacketTolerance' ACK eliciting packets.
-    //   2. We received an ACK eliciting packet that doesn't directly follow the
+    //   1. The packet included an IMMEDIATE_ACK frame.
+    //   2. ACK delay is disabled (MaxAckDelayMs == 0).
+    //   3. We have received 'PacketTolerance' ACK eliciting packets.
+    //   4. We received an ACK eliciting packet that doesn't directly follow the
     //      previously received packet number. So we assume there might have
     //      been loss and should indicate this info to the peer. This logic is
     //      disabled if 'IgnoreReordering' is TRUE.
-    //   3. The delayed ACK timer fires after the configured time.
-    //   4. The packet included an IMMEDIATE_ACK frame.
+    //   5. The delayed ACK timer fires after the configured time.
     //
     // If we don't queue an immediate ACK and this is the first ACK eliciting
     // packet received, we make sure the ACK delay timer is started.
     //
 
     if (AckType == QUIC_ACK_TYPE_ACK_IMMEDIATE ||
+        Connection->Settings.MaxAckDelayMs == 0 ||
         (Tracker->AckElicitingPacketsToAcknowledge >= (uint16_t)Connection->PacketTolerance) ||
         (!Connection->State.IgnoreReordering &&
          (NewLargestPacketNumber &&
@@ -200,9 +202,7 @@ QuicAckTrackerAckPacket(
             &Tracker->PacketNumbersToAck,
           QuicRangeSize(&Tracker->PacketNumbersToAck) - 1)->Count == 1))) { // The gap is right before the last packet number.
         //
-        // Always send an ACK immediately if we have received enough ACK
-        // eliciting packets OR the latest one indicate a gap in the packet
-        // numbers, which likely means there was loss.
+        // Send the ACK immediately.
         //
         QuicSendSetSendFlag(&Connection->Send, QUIC_CONN_SEND_FLAG_ACK);
 

@@ -194,11 +194,20 @@ and it must be placed in the same directory as the `msquic.so`.
 
 Building `clog2text_lttng`:
 ```
+cat > /etc/apt/preferences.d/99microsoft-dotnet.pref <<EOF
+Package: *
+Pin: origin "packages.microsoft.com"
+Pin-Priority: 1001
+EOF
+apt update
 apt install --no-install-recommends -y dotnet-runtime-6.0 dotnet-sdk-6.0 dotnet-host
 git submodule update --init submodules/clog
 dotnet build submodules/clog/src/clog2text/clog2text_lttng/ -c Release
-export PATH=$PWD/submodules/clog/src/clog2text/clog2text_lttng/bin/Release/net6.0/:$PATH
 ```
+> **Note**  
+> if you see error "A fatal error occurred. The folder [/usr/share/dotnet/host/fxr] does not exist"  
+> follow steps in https://stackoverflow.com/questions/73753672/a-fatal-error-occurred-the-folder-usr-share-dotnet-host-fxr-does-not-exist
+
 
 To convert the trace, you can use the following commands:
 
