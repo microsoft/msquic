@@ -35,8 +35,7 @@ const char* Sni = "localhost";
 
 #define QUIC_MIN_INITIAL_LENGTH 1200
 
-struct StrBuffer
-{
+struct StrBuffer {
     uint8_t* Data;
     uint16_t Length;
 
@@ -58,19 +57,16 @@ struct StrBuffer
 class FuzzingData {
     const uint8_t* data {nullptr};
     size_t size {0};
-    size_t Ptrs {0};
-    size_t NumIterated {0};
+    size_t offset {0};
     bool CheckBoundary(size_t Adding) {
-        if (size < Ptrs + Adding) {
-            Ptrs = 0;
-            NumIterated++;
+        if (size < offset + Adding) {
+            offset = 0;
         }
         return true;
     }
 public:
     static const size_t UtilityDataSize = 20; // hard code for determinisity
 
-    FuzzingData() {}
     FuzzingData(const uint8_t* data, size_t size) : data(data), size(size - UtilityDataSize) {}
     template<typename T>
     bool TryGetRandom(T UpperBound, T* Val) {
@@ -78,14 +74,12 @@ public:
         if (!CheckBoundary(type_size)) {
             return false;
         }
-        memcpy(Val, &data[Ptrs], type_size);
+        memcpy(Val, &data[offset], type_size);
         *Val = (T)(*Val % UpperBound);
         Ptrs += type_size;
         return true;
     }
-    size_t GetIterateCount() {
-        return NumIterated;
-    }
+
 };
 
 static FuzzingData* FuzzData = nullptr;
@@ -95,8 +89,8 @@ T GetRandom(T UpperBound) {
     if (!FuzzData) {
         return (T)(rand() % (int)UpperBound);
     }
-    uint64_t out = 0;
 
+    uint64_t out = 0;
     if ((uint64_t)UpperBound <= 0xff) {
         (void)FuzzData->TryGetRandom((uint8_t)UpperBound, (uint8_t*)&out);
     } else if ((uint64_t)UpperBound <= 0xffff) {
@@ -134,14 +128,12 @@ UdpUnreachCallback(
 
 struct TlsContext
 {
-    CXPLAT_TLS* Ptr;
-    CXPLAT_SEC_CONFIG* SecConfig;
+    CXPLAT_TLS* Ptr {nullptr};
+    CXPLAT_SEC_CONFIG* SecConfig {nullptr};
     CXPLAT_TLS_PROCESS_STATE State;
     uint8_t AlpnListBuffer[256];
 
-    TlsContext() :
-        Ptr(nullptr), SecConfig(nullptr) {
-
+    TlsContext()  {
         AlpnListBuffer[0] = (uint8_t)strlen(Alpn);
         memcpy(&AlpnListBuffer[1], Alpn, AlpnListBuffer[0]);
 
@@ -328,8 +320,7 @@ private:
         return TRUE;
     }
 };
-
-static 
+ 
 void WriteInitialCryptoFrame(    
     _Inout_ uint16_t* Offset,
     _In_ uint16_t BufferLength,
@@ -543,8 +534,8 @@ void start() {
         return;
     }
     QUIC_ADDR sockAddr = {0};
-    auto value = GetRandom(3);
-    QUIC_ADDRESS_FAMILY Family = (value == 0) ? QUIC_ADDRESS_FAMILY_INET6 : ((value == 1) ? QUIC_ADDRESS_FAMILY_INET : QUIC_ADDRESS_FAMILY_UNSPEC); // fuzz
+    auto value = GetRandom(2);
+    QUIC_ADDRESS_FAMILY Family = (value == 0) ? QUIC_ADDRESS_FAMILY_INET6 : QUIC_ADDRESS_FAMILY_INET; // fuzz
     QuicAddrSetFamily(&sockAddr, Family);
     Status = CxPlatDataPathResolveAddress(
                     Datapath,
@@ -610,8 +601,7 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
 
 int
 QUIC_MAIN_EXPORT
-main(int argc, char **argv)
-{
+main(int argc, char **argv) {
     TryGetValue(argc, argv, "timeout", &RunTimeMs);
 
     uint32_t RngSeed = 0;
