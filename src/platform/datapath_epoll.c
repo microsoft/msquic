@@ -1367,16 +1367,6 @@ CxPlatSocketCreateTcpInternal(
         goto Exit;
     }
 
-    if (IsServerSocket) {
-        //
-        // The return value is being ignored here, as if a system does not support
-        // bpf we still want the server to work. If this happens, the sockets will
-        // round robin, but each flow will be sent to the same socket, just not
-        // based on RSS.
-        //
-        (void)CxPlatSocketConfigureRss(SocketContext, 1);
-    }
-
     if (Type == CXPLAT_SOCKET_TCP_SERVER) {
         *NewBinding = Binding;
         Binding = NULL;
