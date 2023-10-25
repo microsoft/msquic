@@ -782,6 +782,11 @@ typedef struct CXPLAT_SOCKET {
     uint16_t Mtu;
 
     //
+    // The size of a receive buffer's payload.
+    //
+    uint32_t RecvBufLen;
+
+    //
     // Indicates the binding connected to a remote IP address.
     //
     BOOLEAN Connected : 1;
