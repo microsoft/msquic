@@ -76,7 +76,7 @@ public:
         }
         memcpy(Val, &data[offset], type_size);
         *Val = (T)(*Val % UpperBound);
-        Ptrs += type_size;
+        offset += type_size;
         return true;
     }
 
