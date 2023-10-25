@@ -589,8 +589,7 @@ void start() {
 
 #ifdef FUZZING
 
-extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
-{
+extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size) {
     FuzzData = new FuzzingData(data, size);
     start();
     delete FuzzData;
