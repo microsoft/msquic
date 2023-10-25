@@ -146,11 +146,7 @@ jobs:
     - "1ES.ImageOverride=WSPrerelease"
     env:
       main-timeout: 3600000
-      main-repeat: 100
-      main-allocfail: 100
       pr-timeout: 600000
-      pr-repeat: 20
-      pr-allocfail: 100
     steps:
     - name: Checkout repository
       uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11
@@ -163,18 +159,18 @@ jobs:
     - name: Prepare Machine
       run: scripts/prepare-machine.ps1 -Tls ${{ matrix.vec.tls }} -ForTest ${{ matrix.vec.xdp }} -InstallCodeCoverage
       shell: pwsh
-    - name: spinquic (PR)
+    - name: recvfuzz (PR)
       if: github.event_name == 'pull_request'
       timeout-minutes: 15
       continue-on-error: true
       shell: pwsh
-      run: scripts/recvfuzz.ps1 -Config ${{ matrix.vec.config }} -Arch ${{ matrix.vec.arch }} -Tls ${{ matrix.vec.tls }} -Timeout ${{ env.pr-timeout }} -RepeatCount ${{ env.pr-repeat }} -AllocFail ${{ env.pr-allocfail }} ${{ matrix.vec.xdp }} -CodeCoverage -LogProfile Basic.Light
-    - name: spinquic (Official)
+      run: scripts/recvfuzz.ps1 -Config ${{ matrix.vec.config }} -Arch ${{ matrix.vec.arch }} -Tls ${{ matrix.vec.tls }} -timeout ${{ env.pr-timeout }} ${{ matrix.vec.xdp }} -CodeCoverage -LogProfile Basic.Light
+    - name: recvfuzz (Official)
       if: github.event_name != 'pull_request'
       timeout-minutes: 65
       continue-on-error: true
       shell: pwsh
-      run: scripts/recvfuzz.ps1 -Config ${{ matrix.vec.config }} -Arch ${{ matrix.vec.arch }} -Tls ${{ matrix.vec.tls }} -Timeout ${{ env.main-timeout }} -RepeatCount ${{ env.main-repeat }} -AllocFail ${{ env.main-allocfail }} ${{ matrix.vec.xdp }} -CodeCoverage -LogProfile Basic.Light
+      run: scripts/recvfuzz.ps1 -Config ${{ matrix.vec.config }} -Arch ${{ matrix.vec.arch }} -Tls ${{ matrix.vec.tls }} -timeout ${{ env.pr-timeout }} ${{ matrix.vec.xdp }} -CodeCoverage -LogProfile Basic.Light
     - name: Upload Results
       uses: actions/upload-artifact@a8a3f3ad30e3422c9c7b888a15615d19a852ae32
       with:
