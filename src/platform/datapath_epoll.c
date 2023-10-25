@@ -2251,7 +2251,7 @@ SocketSend(
     BOOLEAN SendPending = FALSE, FlushTxQueue = FALSE;
     CXPLAT_SOCKET_CONTEXT* SocketContext = SendData->SocketContext;
     CxPlatLockAcquire(&SocketContext->TxQueueLock);
-    if (/*SendData->Flags & CXPLAT_SEND_FLAGS_MAX_THROUGHPUT ||*/
+    if (SendData->Flags & CXPLAT_SEND_FLAGS_MAX_THROUGHPUT ||
         !CxPlatListIsEmpty(&SocketContext->TxQueue)) {
         FlushTxQueue = CxPlatListIsEmpty(&SocketContext->TxQueue);
         CxPlatListInsertTail(&SocketContext->TxQueue, &SendData->TxEntry);
