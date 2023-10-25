@@ -137,7 +137,10 @@ param (
     [string]$OsRunner = "",
 
     [Parameter(Mandatory = $false)]
-    [switch]$UseQtip = $false
+    [switch]$UseQtip = $false,
+
+    [Parameter(Mandatory = $false)]
+    [Int32]$Timeout = 60000
 )
 
 Set-StrictMode -Version 'Latest'
@@ -385,7 +388,7 @@ function Start-TestCase([String]$Name) {
 
     # Build up the argument list.
     $ResultsPath = Join-Path $LocalLogDir "results.xml"
-    $Arguments = "--gtest_catch_exceptions=0 --gtest_filter=$($Name) --gtest_output=xml:$($ResultsPath) --timeout 60000"
+    $Arguments = "--gtest_catch_exceptions=0 --gtest_filter=$($Name) --gtest_output=xml:$($ResultsPath) --timeout $Timeout"
     if ($BreakOnFailure) {
         $Arguments += " --gtest_break_on_failure"
     }

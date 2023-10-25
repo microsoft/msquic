@@ -2,6 +2,25 @@
 
 
 /*----------------------------------------------------------
+// Decoder Ring for PlatformWorkerThreadStarting
+// [ lib][%p] Worker starting
+// QuicTraceLogInfo(
+        PlatformWorkerThreadStarting,
+        "[ lib][%p] Worker starting",
+        Worker);
+// arg2 = arg2 = Worker = arg2
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_PLATFORM_WORKER_C, PlatformWorkerThreadStarting,
+    TP_ARGS(
+        const void *, arg2), 
+    TP_FIELDS(
+        ctf_integer_hex(uint64_t, arg2, arg2)
+    )
+)
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for PlatformWorkerThreadStart
 // [ lib][%p] Worker start
 // QuicTraceLogInfo(
@@ -76,5 +95,28 @@ TRACEPOINT_EVENT(CLOG_PLATFORM_WORKER_C, LibraryError,
         const char *, arg2), 
     TP_FIELDS(
         ctf_string(arg2, arg2)
+    )
+)
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for LibraryErrorStatus
+// [ lib] ERROR, %u, %s.
+// QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            Status,
+            "Create platform worker thread failed");
+// arg2 = arg2 = Status = arg2
+// arg3 = arg3 = "Create platform worker thread failed" = arg3
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_PLATFORM_WORKER_C, LibraryErrorStatus,
+    TP_ARGS(
+        unsigned int, arg2,
+        const char *, arg3), 
+    TP_FIELDS(
+        ctf_integer(unsigned int, arg2, arg2)
+        ctf_string(arg3, arg3)
     )
 )

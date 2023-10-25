@@ -8476,6 +8476,18 @@
       ],
       "macroName": "QuicTraceLogInfo"
     },
+    "PlatformWorkerThreadStarting": {
+      "ModuleProperites": {},
+      "TraceString": "[ lib][%p] Worker starting",
+      "UniqueId": "PlatformWorkerThreadStarting",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceLogInfo"
+    },
     "PlatformWorkerThreadStop": {
       "ModuleProperites": {},
       "TraceString": "[ lib][%p] Worker stop",
@@ -11633,6 +11645,18 @@
         }
       ],
       "macroName": "QuicTraceEvent"
+    },
+    "WorkerStarting": {
+      "ModuleProperites": {},
+      "TraceString": "[wrkr][%p] Starting thread",
+      "UniqueId": "WorkerStarting",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceLogVerbose"
     },
     "WorkerStop": {
       "ModuleProperites": {},
@@ -14884,6 +14908,11 @@
         "EncodingString": "[ lib][%p] Worker start"
       },
       {
+        "UniquenessHash": "8028a9dd-8ca4-413e-d6c7-a0d1ea3befa6",
+        "TraceID": "PlatformWorkerThreadStarting",
+        "EncodingString": "[ lib][%p] Worker starting"
+      },
+      {
         "UniquenessHash": "317dc2da-d83f-49ec-c0f0-872bcbf594dd",
         "TraceID": "PlatformWorkerThreadStop",
         "EncodingString": "[ lib][%p] Worker stop"
@@ -15962,6 +15991,11 @@
         "UniquenessHash": "be2a8e4f-7708-e894-48df-762d926dac26",
         "TraceID": "WorkerStart",
         "EncodingString": "[wrkr][%p] Start"
+      },
+      {
+        "UniquenessHash": "a7704c4d-6513-db55-3678-67dfd4c6b23d",
+        "TraceID": "WorkerStarting",
+        "EncodingString": "[wrkr][%p] Starting thread"
       },
       {
         "UniquenessHash": "2a4c81a8-bf45-5d2a-fa79-dc075733386b",

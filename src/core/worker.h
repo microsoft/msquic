@@ -37,14 +37,24 @@ typedef struct QUIC_CACHEALIGN QUIC_WORKER {
     BOOLEAN IsActive;
 
     //
-    // The index into the partition array (of processors).
+    // TRUE if the worker still needs its thread to be started.
     //
-    uint16_t PartitionIndex;
+    BOOLEAN DelayStart;
+
+    //
+    // The execution profile for this worker, inherited from the registration.
+    //
+    QUIC_EXECUTION_PROFILE ExecProfile;
 
     //
     // The average queue delay connections experience, in microseconds.
     //
     uint32_t AverageQueueDelay;
+
+    //
+    // The index into the partition array (of processors).
+    //
+    uint16_t PartitionIndex;
 
     //
     // Timers for the worker's connections.

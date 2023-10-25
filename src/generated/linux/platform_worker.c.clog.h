@@ -26,6 +26,24 @@
 extern "C" {
 #endif
 /*----------------------------------------------------------
+// Decoder Ring for PlatformWorkerThreadStarting
+// [ lib][%p] Worker starting
+// QuicTraceLogInfo(
+        PlatformWorkerThreadStarting,
+        "[ lib][%p] Worker starting",
+        Worker);
+// arg2 = arg2 = Worker = arg2
+----------------------------------------------------------*/
+#ifndef _clog_3_ARGS_TRACE_PlatformWorkerThreadStarting
+#define _clog_3_ARGS_TRACE_PlatformWorkerThreadStarting(uniqueId, encoded_arg_string, arg2)\
+tracepoint(CLOG_PLATFORM_WORKER_C, PlatformWorkerThreadStarting , arg2);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for PlatformWorkerThreadStart
 // [ lib][%p] Worker start
 // QuicTraceLogInfo(
@@ -93,6 +111,26 @@ tracepoint(CLOG_PLATFORM_WORKER_C, AllocFailure , arg2, arg3);\
 #ifndef _clog_3_ARGS_TRACE_LibraryError
 #define _clog_3_ARGS_TRACE_LibraryError(uniqueId, encoded_arg_string, arg2)\
 tracepoint(CLOG_PLATFORM_WORKER_C, LibraryError , arg2);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for LibraryErrorStatus
+// [ lib] ERROR, %u, %s.
+// QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            Status,
+            "Create platform worker thread failed");
+// arg2 = arg2 = Status = arg2
+// arg3 = arg3 = "Create platform worker thread failed" = arg3
+----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_LibraryErrorStatus
+#define _clog_4_ARGS_TRACE_LibraryErrorStatus(uniqueId, encoded_arg_string, arg2, arg3)\
+tracepoint(CLOG_PLATFORM_WORKER_C, LibraryErrorStatus , arg2, arg3);\
 
 #endif
 
