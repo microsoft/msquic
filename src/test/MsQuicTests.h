@@ -59,6 +59,7 @@ void QuicTestRegistrationShutdownBeforeConnOpen();
 void QuicTestRegistrationShutdownAfterConnOpen();
 void QuicTestRegistrationShutdownAfterConnOpenBeforeStart();
 void QuicTestRegistrationShutdownAfterConnOpenAndStart();
+void QuicTestConnectionCloseBeforeStreamClose();
 
 //
 // Rejection Tests

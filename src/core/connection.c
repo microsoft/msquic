@@ -7649,8 +7649,7 @@ QuicConnDrainOperations(
         }
     }
 
-    while (!Connection->State.HandleClosed &&
-           !Connection->State.UpdateWorker &&
+    while (!Connection->State.UpdateWorker &&
            OperationCount++ < MaxOperationCount) {
 
         Oper = QuicOperationDequeue(&Connection->OperQ);
@@ -7673,6 +7672,9 @@ QuicConnDrainOperations(
             break;
 
         case QUIC_OPER_TYPE_FLUSH_RECV:
+            if (Connection->State.HandleClosed) {
+                break; // Ignore if already closed by the app
+            }
             if (!QuicConnFlushRecv(Connection)) {
                 //
                 // Still have more data to recv. Put the operation back on the
@@ -7684,16 +7686,25 @@ QuicConnDrainOperations(
             break;
 
         case QUIC_OPER_TYPE_UNREACHABLE:
+            if (Connection->State.HandleClosed) {
+                break; // Ignore if already closed by the app
+            }
             QuicConnProcessUdpUnreachable(
                 Connection,
                 &Oper->UNREACHABLE.RemoteAddress);
             break;
 
         case QUIC_OPER_TYPE_FLUSH_STREAM_RECV:
+            if (Connection->State.HandleClosed) {
+                break; // Ignore if already closed by the app
+            }
             QuicStreamRecvFlush(Oper->FLUSH_STREAM_RECEIVE.Stream);
             break;
 
         case QUIC_OPER_TYPE_FLUSH_SEND:
+            if (Connection->State.HandleClosed) {
+                break; // Ignore if already closed by the app
+            }
             if (QuicSendFlush(&Connection->Send)) {
                 //
                 // We have no more data to send out so clear the pending flag.
@@ -7710,6 +7721,9 @@ QuicConnDrainOperations(
             break;
 
         case QUIC_OPER_TYPE_TIMER_EXPIRED:
+            if (Connection->State.HandleClosed) {
+                break; // Ignore if already closed by the app
+            }
             QuicConnProcessExpiredTimer(Connection, Oper->TIMER_EXPIRED.Type);
             break;
 
@@ -7718,6 +7732,9 @@ QuicConnDrainOperations(
             break;
 
         case QUIC_OPER_TYPE_ROUTE_COMPLETION:
+            if (Connection->State.HandleClosed) {
+                break; // Ignore if already closed by the app
+            }
             QuicConnProcessRouteCompletion(
                 Connection, Oper->ROUTE.PhysicalAddress, Oper->ROUTE.PathId, Oper->ROUTE.Succeeded);
             break;
