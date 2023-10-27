@@ -14,8 +14,9 @@ Abstract:
 #include "PerfHelpers.h"
 #include "quic_datapath.h"
 #include "quic_tls.h"
+#include "quic_var_int.h"
 
-#define TLS_BLOCK_SIZE 0x4000
+#define TLS_BLOCK_SIZE 0xFFFF
 
 class TcpWorker;
 class TcpServer;
@@ -160,6 +161,7 @@ class TcpConnection {
     friend class TcpEngine;
     friend class TcpWorker;
     friend class TcpServer;
+    friend class ThroughputClient;
     bool IsServer;
     bool Initialized{false};
     bool ClosedByApp{false};
@@ -169,6 +171,7 @@ class TcpConnection {
     bool IndicateConnect{false};
     bool IndicateDisconnect{false};
     bool IndicateSendComplete{false};
+    bool Encrypt{true};
     TcpConnection* Next{nullptr};
     TcpEngine* Engine;
     TcpWorker* Worker{nullptr};
@@ -238,7 +241,10 @@ class TcpConnection {
     bool Queue() { return Worker->QueueConnection(this); }
     void Process();
     bool InitializeTls();
-    bool ProcessTls(const uint8_t* Buffer, uint32_t BufferLength);
+    bool ProcessTls(const uint8_t* Buffer, uint32_t BufferLength, uint8_t KeyType);
+    bool TlsReadClientHello(const uint8_t* Buffer, uint32_t BufferLength);
+    uint8_t* TlsEncodeTransportParameters(uint32_t* TPLen);
+    bool TlsReadExtensions(const uint8_t* Buffer, uint16_t BufferLength);
     bool SendTlsData(const uint8_t* Buffer, uint16_t BufferLength, uint8_t KeyType);
     bool ProcessReceive();
     bool ProcessReceiveData(const uint8_t* Buffer, uint32_t BufferLength);
@@ -251,6 +257,38 @@ class TcpConnection {
     bool FinalizeSendBuffer(QUIC_BUFFER* SendBuffer);
     bool TryAddRef() { return CxPlatRefIncrementNonZero(&Ref, 1) != FALSE; }
     void Release() { if (CxPlatRefDecrement(&Ref)) delete this; }
+    static
+    uint32_t TlsReadUint24(const uint8_t* Buffer) {
+        return
+            (((uint32_t)Buffer[0] << 16) +
+            ((uint32_t)Buffer[1] << 8) +
+            (uint32_t)Buffer[2]);
+    }
+    static
+    uint16_t
+    TlsReadUint16( const uint8_t* Buffer) {
+        return
+            (((uint32_t)Buffer[0] << 8) +
+            (uint32_t)Buffer[1]);
+    }
+    static
+    uint8_t*
+    TlsWriteTransportParam(
+        QUIC_VAR_INT Id,
+        uint16_t Length,
+        const uint8_t* Param,
+        uint8_t* Buffer
+        )
+    {
+        Buffer = QuicVarIntEncode(Id, Buffer);
+        Buffer = QuicVarIntEncode(Length, Buffer);
+        CXPLAT_DBG_ASSERT(Param != NULL || Length == 0);
+        if (Param) {
+            CxPlatCopyMemory(Buffer, Param, Length);
+            Buffer += Length;
+        }
+        return Buffer;
+    }
 public:
     void* Context{nullptr}; // App context
     TcpConnection(

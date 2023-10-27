@@ -58,6 +58,9 @@ public:
         _Out_writes_bytes_(*Length) uint8_t* Data,
         _Inout_ uint32_t* Length
         ) override;
+    
+    bool
+    EncryptionEnabled() { return UseEncryption; }
 
 private:
 

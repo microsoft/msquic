@@ -10,6 +10,7 @@ Abstract:
 --*/
 
 #include "Tcp.h"
+#include "ThroughputClient.h"
 
 #ifdef QUIC_CLOG
 #include "Tcp.cpp.clog.h"
@@ -21,6 +22,15 @@ extern CXPLAT_DATAPATH* Datapath;
 
 #define FRAME_TYPE_CRYPTO   0
 #define FRAME_TYPE_STREAM   1
+
+#define TLS1_PROTOCOL_VERSION 0x0301
+#define TLS_MESSAGE_HEADER_LENGTH 4
+#define TLS_RANDOM_LENGTH 32
+#define TLS_SESSION_ID_LENGTH 32
+
+#define QUIC_TP_ID_DISABLE_1RTT_ENCRYPTION 0xBAAD
+#define TlsTransportParamLength(Id, Length) \
+    (QuicVarIntSize(Id) + QuicVarIntSize(Length) + (Length))
 
 #pragma pack(push)
 #pragma pack(1)
@@ -332,6 +342,7 @@ TcpConnection::TcpConnection(
         return;
     }
     QuicAddrSetPort(&Route.RemoteAddress, ServerPort);
+    Encrypt = ((ThroughputClient*)Context)->EncryptionEnabled();
     Engine->AddConnection(this, 0); // TODO - Correct index
     Initialized = true;
     if (QUIC_FAILED(
@@ -362,6 +373,7 @@ TcpConnection::TcpConnection(
         this);
     Initialized = true;
     IndicateAccept = true;
+    Encrypt = false;
     Engine->AddConnection(this, 0); // TODO - Correct index
     Queue();
 }
@@ -473,13 +485,56 @@ TcpConnection::SendCompleteCallback(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 BOOLEAN
 TcpConnection::TlsReceiveTpCallback(
-    _In_ QUIC_CONNECTION* /* Context */,
-    _In_ uint16_t TPLength,
-    _In_reads_(TPLength) const uint8_t* /* TPBuffer */
+    _In_ QUIC_CONNECTION* Context,
+    _In_ uint16_t TPLen,
+    _In_reads_(TPLength) const uint8_t* TPBuf
     )
 {
-    UNREFERENCED_PARAMETER(TPLength);
-    return TRUE;
+    TcpConnection* Conn = (TcpConnection*)Context;
+    BOOLEAN Result = FALSE;
+    uint64_t ParamsPresent = 0;
+    uint16_t Offset = 0;
+
+    while (Offset < TPLen) {
+
+        QUIC_VAR_INT Id = 0;
+        if (!QuicVarIntDecode(TPLen, TPBuf, &Offset, &Id)) {
+            goto Exit;
+        }
+
+        if (Id < (8 * sizeof(uint64_t))) { // We only duplicate detection for the first 64 IDs.
+            if (ParamsPresent & (1ULL << Id)) {
+                goto Exit;
+            }
+
+            ParamsPresent |= (1ULL << Id);
+        }
+
+        QUIC_VAR_INT ParamLength INIT_NO_SAL(0);
+        if (!QuicVarIntDecode(TPLen, TPBuf, &Offset, &ParamLength)) {
+            goto Exit;
+        } else if (ParamLength + Offset > TPLen) {
+            goto Exit;
+        }
+
+        uint16_t Length = (uint16_t)ParamLength;
+
+        switch (Id) {
+        case QUIC_TP_ID_DISABLE_1RTT_ENCRYPTION:
+            if (Length != 0) {
+                goto Exit;
+            }
+            Conn->Encrypt = false;
+            break;
+        default:
+            break;
+        }
+    }
+
+    Result = TRUE;
+
+Exit:
+    return Result;
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -557,11 +612,45 @@ void TcpConnection::Process()
     }
 }
 
+uint8_t*
+TcpConnection::TlsEncodeTransportParameters(uint32_t* TPLen)
+{
+    size_t RequiredTPLen = 0;
+    if (!this->Encrypt) {
+        RequiredTPLen +=
+            TlsTransportParamLength(QUIC_TP_ID_DISABLE_1RTT_ENCRYPTION, 0);
+    }
+
+    if (RequiredTPLen == 0) {
+        RequiredTPLen = 2;
+    }
+
+    uint8_t* TPBufBase = (uint8_t*)CXPLAT_ALLOC_NONPAGED(CxPlatTlsTPHeaderSize + RequiredTPLen, QUIC_POOL_TLS_TRANSPARAMS);
+    if (TPBufBase == NULL) {
+        return NULL;
+    }
+
+    CxPlatZeroMemory(TPBufBase, CxPlatTlsTPHeaderSize + RequiredTPLen);
+
+    *TPLen = (uint32_t)(CxPlatTlsTPHeaderSize + RequiredTPLen);
+    uint8_t* TPBuf = TPBufBase + CxPlatTlsTPHeaderSize;
+
+    if (!this->Encrypt) {
+        TPBuf =
+            TlsWriteTransportParam(
+                QUIC_TP_ID_DISABLE_1RTT_ENCRYPTION,
+                0,
+                NULL,
+                TPBuf);
+        printf("write disable encrypt\n");
+    }
+
+    return TPBufBase;
+}
+
 bool TcpConnection::InitializeTls()
 {
-    const uint32_t LocalTPLength = 2;
-    uint8_t* LocalTP = (uint8_t*)CXPLAT_ALLOC_NONPAGED(CxPlatTlsTPHeaderSize + LocalTPLength, QUIC_POOL_TLS_TRANSPARAMS);
-    CxPlatZeroMemory(LocalTP, LocalTPLength);
+    uint32_t LocalTPLength;
 
     CXPLAT_TLS_CONFIG Config;
     CxPlatZeroMemory(&Config, sizeof(Config));
@@ -573,7 +662,11 @@ bool TcpConnection::InitializeTls()
     Config.AlpnBufferLength = sizeof(FixedAlpnBuffer);
     Config.TPType = TLS_EXTENSION_TYPE_QUIC_TRANSPORT_PARAMETERS;
     Config.ServerName = "localhost";
-    Config.LocalTPBuffer = LocalTP;
+    Config.LocalTPBuffer = TlsEncodeTransportParameters(&LocalTPLength);
+    if (Config.LocalTPBuffer == NULL) {
+        WriteOutput("TlsEncodeTransportParameters FAILED\n");
+        return false;
+    }
     Config.LocalTPLength = CxPlatTlsTPHeaderSize + LocalTPLength;
     if (IsServer) {
         TlsState.NegotiatedAlpn = FixedAlpnBuffer;
@@ -581,21 +674,157 @@ bool TcpConnection::InitializeTls()
 
     if (QUIC_FAILED(
         CxPlatTlsInitialize(&Config, &TlsState, &Tls))) {
-        CXPLAT_FREE(LocalTP, QUIC_POOL_TLS_TRANSPARAMS);
+        CXPLAT_FREE(Config.LocalTPBuffer, QUIC_POOL_TLS_TRANSPARAMS);
         WriteOutput("CxPlatTlsInitialize FAILED\n");
         return false;
     }
 
-    return IsServer || ProcessTls(NULL, 0);
+    return IsServer || ProcessTls(NULL, 0, QUIC_PACKET_KEY_INITIAL);
 }
 
-bool TcpConnection::ProcessTls(const uint8_t* Buffer, uint32_t BufferLength)
+bool TcpConnection::TlsReadClientHello(
+    const uint8_t* Buffer,
+    uint32_t BufferLength
+    )
 {
-    //printf("ProcessTls %u bytes\n", BufferLength);
+    /*
+      struct {
+          ProtocolVersion client_version;
+          Random random;
+          SessionID session_id;
+          CipherSuite cipher_suites<2..2^16-2>;
+          CompressionMethod compression_methods<1..2^8-1>;
+          select (extensions_present) {
+              case false:
+                  struct {};
+              case true:
+                  Extension extensions<0..2^16-1>;
+          };
+      } ClientHello;
+    */
+
+    //
+    // Version
+    //
+    if (BufferLength < sizeof(uint16_t) ||
+        TlsReadUint16(Buffer) < TLS1_PROTOCOL_VERSION) {
+        return false;
+    }
+    BufferLength -= sizeof(uint16_t);
+    Buffer += sizeof(uint16_t);
+
+    //
+    // Random
+    //
+    if (BufferLength < TLS_RANDOM_LENGTH) {
+        return false;
+    }
+    BufferLength -= TLS_RANDOM_LENGTH;
+    Buffer += TLS_RANDOM_LENGTH;
+
+    //
+    // SessionID
+    //
+    if (BufferLength < sizeof(uint8_t) ||
+        Buffer[0] > TLS_SESSION_ID_LENGTH ||
+        BufferLength < sizeof(uint8_t) + Buffer[0]) {
+        return false;
+    }
+    BufferLength -= sizeof(uint8_t) + Buffer[0];
+    Buffer += sizeof(uint8_t) + Buffer[0];
+
+    //
+    // CipherSuite
+    //
+    if (BufferLength < sizeof(uint16_t)) {
+        return false;
+    }
+    uint16_t Len = TlsReadUint16(Buffer);
+    if ((Len % 2) || BufferLength < (uint32_t)(sizeof(uint16_t) + Len)) {
+        return false;
+    }
+    BufferLength -= sizeof(uint16_t) + Len;
+    Buffer += sizeof(uint16_t) + Len;
+
+    //
+    // CompressionMethod
+    //
+    if (BufferLength < sizeof(uint8_t) ||
+        Buffer[0] < 1 ||
+        BufferLength < sizeof(uint8_t) + Buffer[0]) {
+        return false;
+    }
+    BufferLength -= sizeof(uint8_t) + Buffer[0];
+    Buffer += sizeof(uint8_t) + Buffer[0];
+
+    //
+    // Extension List (optional)
+    //
+    if (BufferLength < sizeof(uint16_t)) {
+        return true; // OK to not have any more.
+    }
+    Len = TlsReadUint16(Buffer);
+    if (BufferLength < (uint32_t)(sizeof(uint16_t) + Len)) {
+        return false;
+    }
+
+    return TlsReadExtensions(Buffer + sizeof(uint16_t), Len);
+}
+
+bool
+TcpConnection::TlsReadExtensions(
+    const uint8_t* Buffer,
+    uint16_t BufferLength
+    )
+{
+    while (BufferLength) {
+        //
+        // Each extension will have at least 4 bytes of data. 2 to label
+        // the extension type and 2 for the length.
+        //
+        if (BufferLength < 2 * sizeof(uint16_t)) {
+            return false;
+        }
+
+        uint16_t ExtType = TlsReadUint16(Buffer);
+        uint16_t ExtLen = TlsReadUint16(Buffer + sizeof(uint16_t));
+        BufferLength -= 2 * sizeof(uint16_t);
+        Buffer += 2 * sizeof(uint16_t);
+        if (BufferLength < ExtLen) {
+            return false;
+        }
+
+        if (ExtType == TLS_EXTENSION_TYPE_QUIC_TRANSPORT_PARAMETERS) {
+            TcpConnection::TlsReceiveTpCallback((QUIC_CONNECTION*)(void*)this, ExtLen, Buffer);
+        }
+
+        BufferLength -= ExtLen;
+        Buffer += ExtLen;
+    }
+
+    return true;
+}
+
+bool TcpConnection::ProcessTls(const uint8_t* Buffer, uint32_t BufferLength, uint8_t KeyType)
+{
+    // printf("ProcessTls %u bytes\n", BufferLength);
     auto BaseOffset = TlsState.BufferTotalLength;
     TlsState.Buffer = TlsOutput;
     TlsState.BufferAllocLength = TLS_BLOCK_SIZE - sizeof(TcpFrame) - CXPLAT_ENCRYPTION_OVERHEAD;
     TlsState.BufferLength = 0;
+
+    if (IsServer && KeyType == QUIC_PACKET_KEY_INITIAL) {
+        //
+        // We are processing the initial packet from the client.
+        //
+        uint32_t MessageLength = TlsReadUint24(Buffer + 1);
+        if (BufferLength < TLS_MESSAGE_HEADER_LENGTH + MessageLength) {
+            return false;
+        }
+        if (!TlsReadClientHello(Buffer + TLS_MESSAGE_HEADER_LENGTH, MessageLength)) {
+            return false;
+        }
+    }
 
     auto Results =
         CxPlatTlsProcessData(
@@ -609,7 +838,7 @@ bool TcpConnection::ProcessTls(const uint8_t* Buffer, uint32_t BufferLength)
         return false;
     }
 
-    //printf("CxPlatTlsProcessData produced %hu bytes (%u, %u)\n", TlsState.BufferLength, TlsState.BufferOffsetHandshake, TlsState.BufferOffset1Rtt);
+    // printf("CxPlatTlsProcessData produced %hu bytes (%u, %u)\n", TlsState.BufferLength, TlsState.BufferOffsetHandshake, TlsState.BufferOffset1Rtt);
 
     CXPLAT_DBG_ASSERT(BaseOffset + TlsState.BufferLength == TlsState.BufferTotalLength);
 
@@ -648,6 +877,7 @@ bool TcpConnection::ProcessTls(const uint8_t* Buffer, uint32_t BufferLength)
 
 bool TcpConnection::SendTlsData(const uint8_t* Buffer, uint16_t BufferLength, uint8_t KeyType)
 {
+    // printf("SendTlsData %hu KeyType = %hhu\n", BufferLength, KeyType);
     auto SendBuffer = NewSendBuffer();
     if (!SendBuffer) {
         WriteOutput("NewSendBuffer FAILED\n");
@@ -771,7 +1001,7 @@ bool TcpConnection::ProcessReceiveFrame(TcpFrame* Frame)
 
     switch (Frame->FrameType) {
     case FRAME_TYPE_CRYPTO:
-        if (!ProcessTls(Frame->Data, Frame->Length)) {
+        if (!ProcessTls(Frame->Data, Frame->Length, Frame->KeyType)) {
             return false;
         }
         break;
