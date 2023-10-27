@@ -155,11 +155,7 @@ jobs:
     runs-on: ${{ matrix.vec.plat == 'windows' && matrix.vec.os == 'WSPrerelease' && fromJson('[''self-hosted'', ''1ES.Pool=1es-msquic-pool'', ''1ES.ImageOverride=WSPrerelease'']') || matrix.vec.os }}
     env:
       main-timeout: 3600000
-      main-repeat: 100
-      main-allocfail: 100
       pr-timeout: 600000
-      pr-repeat: 20
-      pr-allocfail: 100
     steps:
     - name: Checkout repository
       uses: actions/checkout@8ade135a41bc03ea155e62e844d188df1ea18608
