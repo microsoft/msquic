@@ -3280,7 +3280,7 @@ QuicTestConnectAndIdleForDestCidChange(
     }
 }
 
-#define BUFFER_SIZE 10000
+#define BUFFER_SIZE 30000
 #define RELIABLE_SIZE 5000
 #define BUFFER_SIZE_MULTI_SENDS 10000
 #define RELIABLE_SIZE_MULTI_SENDS 20000
@@ -3355,9 +3355,9 @@ QuicTestStreamReliableReset(
     TEST_QUIC_SUCCEEDED(ClientConfiguration.GetInitStatus());
 
     StreamReliableReset Context;
-    uint8_t SendDataBuffer[BUFFER_SIZE];
+    UniquePtrArray<uint8_t> SendDataBuffer = UniquePtrArray<uint8_t>(new(std::nothrow) uint8_t[BUFFER_SIZE]);
 
-    QUIC_BUFFER SendBuffer { sizeof(SendDataBuffer), SendDataBuffer };
+    QUIC_BUFFER SendBuffer { BUFFER_SIZE, SendDataBuffer.get() };
     Context.ReceivedBufferSize = 0;
 
     MsQuicAutoAcceptListener Listener(Registration, ServerConfiguration, StreamReliableReset::ConnCallback, &Context);
@@ -3376,10 +3376,14 @@ QuicTestStreamReliableReset(
     TEST_TRUE(Listener.LastConnection->HandshakeComplete);
     CxPlatSleep(50); // Wait for things to idle out
 
-    for (uint64_t Bitmap = 0; Bitmap < 8; ++Bitmap) { // Try dropping the first 3 packets
+#if DEBUG
+    for (uint64_t Bitmap = 0; Bitmap < 8; ++Bitmap) {
         char Name[64]; sprintf_s(Name, sizeof(Name), "Try Reliably Shutting Down Stream %llu", (unsigned long long)Bitmap);
         TestScopeLogger logScope(Name);
         BitmapLossHelper LossHelper(Bitmap);
+#else
+    {
+#endif
         MsQuicStream Stream(Connection, QUIC_STREAM_OPEN_FLAG_NONE, CleanUpManual, StreamReliableReset::ClientStreamCallback, &Context);
         TEST_QUIC_SUCCEEDED(Stream.GetInitStatus());
         TEST_QUIC_SUCCEEDED(Stream.Start());
@@ -3424,9 +3428,9 @@ QuicTestStreamReliableResetMultipleSends(
     TEST_QUIC_SUCCEEDED(ClientConfiguration.GetInitStatus());
 
     StreamReliableReset Context;
-    uint8_t SendDataBuffer[BUFFER_SIZE_MULTI_SENDS];
+    UniquePtrArray<uint8_t> SendDataBuffer = UniquePtrArray<uint8_t>(new(std::nothrow) uint8_t[BUFFER_SIZE_MULTI_SENDS]);
 
-    QUIC_BUFFER SendBuffer { sizeof(SendDataBuffer), SendDataBuffer };
+    QUIC_BUFFER SendBuffer { BUFFER_SIZE_MULTI_SENDS, SendDataBuffer.get() };
     Context.ReceivedBufferSize = 0;
     Context.SequenceNum = 0;
     Context.ShutdownErrorCode = 0;

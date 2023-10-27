@@ -503,6 +503,8 @@ QuicConnUninitialize(
     QuicCryptoUninitialize(&Connection->Crypto);
     QuicTimerWheelRemoveConnection(&Connection->Worker->TimerWheel, Connection);
     QuicOperationQueueClear(Connection->Worker, &Connection->OperQ);
+    QuicLossDetectionUninitialize(&Connection->LossDetection);
+    QuicSendUninitialize(&Connection->Send);
 
     if (Connection->CloseReasonPhrase != NULL) {
         CXPLAT_FREE(Connection->CloseReasonPhrase, QUIC_POOL_CLOSE_REASON);
@@ -2349,9 +2351,11 @@ QuicConnGenerateLocalTransportParameters(
         MaxUdpPayloadSizeFromMTU(
             CxPlatSocketGetLocalMtu(
                 Connection->Paths[0].Binding->Socket));
-    LocalTP->MaxAckDelay =
-        Connection->Settings.MaxAckDelayMs + MsQuicLib.TimerResolutionMs;
-    LocalTP->MinAckDelay = MS_TO_US(MsQuicLib.TimerResolutionMs);
+    LocalTP->MaxAckDelay = QuicConnGetAckDelay(Connection);
+    LocalTP->MinAckDelay =
+        MsQuicLib.ExecutionConfig != NULL &&
+        MsQuicLib.ExecutionConfig->PollingIdleTimeoutUs != 0 ?
+            0 : MS_TO_US(MsQuicLib.TimerResolutionMs);
     LocalTP->ActiveConnectionIdLimit = QUIC_ACTIVE_CONNECTION_ID_LIMIT;
     LocalTP->Flags =
         QUIC_TP_FLAG_INITIAL_MAX_DATA |
@@ -5296,7 +5300,9 @@ QuicConnRecvFrames(
 
             Connection->NextRecvAckFreqSeqNum = Frame.SequenceNumber + 1;
             Connection->State.IgnoreReordering = Frame.IgnoreOrder;
-            if (Frame.UpdateMaxAckDelay < 1000) {
+            if (Frame.UpdateMaxAckDelay == 0) {
+                Connection->Settings.MaxAckDelayMs = 0;
+            } else if (Frame.UpdateMaxAckDelay < 1000) {
                 Connection->Settings.MaxAckDelayMs = 1;
             } else {
                 CXPLAT_DBG_ASSERT(US_TO_MS(Frame.UpdateMaxAckDelay) <= UINT32_MAX);
@@ -5318,7 +5324,7 @@ QuicConnRecvFrames(
         case QUIC_FRAME_IMMEDIATE_ACK: // Always accept the frame, because we always enable support.
             AckImmediately = TRUE;
             break;
-            
+
         case QUIC_FRAME_TIMESTAMP: { // Always accept the frame, because we always enable support.
             if (!Connection->State.TimestampRecvNegotiated) {
                 QuicTraceEvent(
@@ -5345,7 +5351,7 @@ QuicConnRecvFrames(
             Packet->SendTimestamp = Frame.Timestamp;
             break;
         }
-        
+
         default:
             //
             // No default case necessary, as we have already validated the frame

@@ -128,6 +128,8 @@ QuicStreamInitialize(
     Stream->MaxAllowedRecvOffset = Stream->RecvBuffer.VirtualBufferLength;
     Stream->RecvWindowLastUpdate = CxPlatTimeUs64();
 
+    QuicConnAddRef(Connection, QUIC_CONN_REF_STREAM);
+
     Stream->Flags.Initialized = TRUE;
     *NewStream = Stream;
     Stream = NULL;
@@ -209,6 +211,8 @@ QuicStreamFree(
             Stream);
 #pragma warning(pop)
     }
+
+    QuicConnRelease(Connection, QUIC_CONN_REF_STREAM);
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -929,8 +933,8 @@ QuicStreamParamGet(
         if (!Stream->Flags.RemoteCloseResetReliable) {
             Status = QUIC_STATUS_INVALID_STATE;
             break;
-        } 
-        
+        }
+
         *(uint64_t*)Buffer = Stream->RecvMaxLength;
         Status = QUIC_STATUS_SUCCESS;
         break;

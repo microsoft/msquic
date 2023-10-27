@@ -206,6 +206,15 @@ QuicPacketTypeToEncryptLevelV2(
 
 #define QUIC_STREAM_SEND_FLAGS_ALL          0xFFFFU
 
+#define QUIC_STREAM_SEND_FLAG_ALL_SEND_PATH \
+( \
+    QUIC_STREAM_SEND_FLAG_DATA_BLOCKED | \
+    QUIC_STREAM_SEND_FLAG_RELIABLE_ABORT | \
+    QUIC_STREAM_SEND_FLAG_DATA | \
+    QUIC_STREAM_SEND_FLAG_OPEN | \
+    QUIC_STREAM_SEND_FLAG_FIN \
+)
+
 inline BOOLEAN HasStreamControlFrames(uint32_t Flags)
 {
     return Flags &

@@ -119,6 +119,13 @@ typedef struct DATAPATH_IO_SQE {
     DATAPATH_SQE DatapathSqe;
 } DATAPATH_IO_SQE;
 
+typedef enum CXPLAT_SOCKET_TYPE {
+    CXPLAT_SOCKET_UDP             = 0,
+    CXPLAT_SOCKET_TCP_LISTENER    = 1,
+    CXPLAT_SOCKET_TCP             = 2,
+    CXPLAT_SOCKET_TCP_SERVER      = 3
+} CXPLAT_SOCKET_TYPE;
+
 #ifdef _KERNEL_MODE
 
 #define CXPLAT_BASE_REG_PATH L"\\Registry\\Machine\\System\\CurrentControlSet\\Services\\MsQuic\\Parameters\\"
@@ -183,13 +190,6 @@ typedef struct CX_PLATFORM {
 #endif
 
 } CX_PLATFORM;
-
-typedef enum CXPLAT_SOCKET_TYPE {
-    CXPLAT_SOCKET_UDP             = 0,
-    CXPLAT_SOCKET_TCP_LISTENER    = 1,
-    CXPLAT_SOCKET_TCP             = 2,
-    CXPLAT_SOCKET_TCP_SERVER      = 3
-} CXPLAT_SOCKET_TYPE;
 
 //
 // Represents a single IO completion port and thread for processing work that is
@@ -751,6 +751,8 @@ typedef struct QUIC_CACHEALIGN CXPLAT_SOCKET_CONTEXT {
     uint8_t Freed : 1;
 #endif
 
+    CXPLAT_SOCKET* AcceptSocket;
+
 } CXPLAT_SOCKET_CONTEXT;
 
 //
@@ -780,14 +782,35 @@ typedef struct CXPLAT_SOCKET {
     uint16_t Mtu;
 
     //
+    // The size of a receive buffer's payload.
+    //
+    uint32_t RecvBufLen;
+
+    //
     // Indicates the binding connected to a remote IP address.
     //
     BOOLEAN Connected : 1;
 
     //
+    // Socket type.
+    //
+    uint8_t Type : 2; // CXPLAT_SOCKET_TYPE
+
+    //
+    // Flag indicates the socket has more than one socket, affinitized to all
+    // the processors.
+    //
+    uint8_t NumPerProcessorSockets : 1;
+
+    //
     // Flag indicates the socket has a default remote destination.
     //
     BOOLEAN HasFixedRemoteAddress : 1;
+
+    //
+    // Flag indicates the socket indicated a disconnect event.
+    //
+    uint8_t DisconnectIndicated : 1;
 
     //
     // Flag indicates the binding is being used for PCP.
