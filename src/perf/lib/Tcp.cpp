@@ -524,7 +524,9 @@ TcpConnection::TlsReceiveTpCallback(
             if (Length != 0) {
                 goto Exit;
             }
-            Conn->Encrypt = false;
+            if (!Conn->Encrypt) {
+                Conn->NegotiatedEncrypt = false;
+            }
             break;
         default:
             break;
@@ -616,7 +618,7 @@ uint8_t*
 TcpConnection::TlsEncodeTransportParameters(uint32_t* TPLen)
 {
     size_t RequiredTPLen = 0;
-    if (!this->Encrypt) {
+    if (!Encrypt) {
         RequiredTPLen +=
             TlsTransportParamLength(QUIC_TP_ID_DISABLE_1RTT_ENCRYPTION, 0);
     }
@@ -635,14 +637,13 @@ TcpConnection::TlsEncodeTransportParameters(uint32_t* TPLen)
     *TPLen = (uint32_t)(CxPlatTlsTPHeaderSize + RequiredTPLen);
     uint8_t* TPBuf = TPBufBase + CxPlatTlsTPHeaderSize;
 
-    if (!this->Encrypt) {
+    if (!Encrypt) {
         TPBuf =
             TlsWriteTransportParam(
                 QUIC_TP_ID_DISABLE_1RTT_ENCRYPTION,
                 0,
                 NULL,
                 TPBuf);
-        printf("write disable encrypt\n");
     }
 
     return TPBufBase;
@@ -890,10 +891,12 @@ bool TcpConnection::SendTlsData(const uint8_t* Buffer, uint16_t BufferLength, ui
     Frame->KeyType = KeyType;
     CxPlatCopyMemory(Frame->Data, Buffer, BufferLength);
 
-    if (!EncryptFrame(Frame)) {
-        WriteOutput("EncryptFrame FAILED\n");
-        FreeSendBuffer(SendBuffer);
-        return false;
+    if (NegotiatedEncrypt || KeyType != QUIC_PACKET_KEY_1_RTT) {
+        if (!EncryptFrame(Frame)) {
+            WriteOutput("EncryptFrame FAILED\n");
+            FreeSendBuffer(SendBuffer);
+            return false;
+        }
     }
 
     SendBuffer->Length = sizeof(TcpFrame) + Frame->Length + CXPLAT_ENCRYPTION_OVERHEAD;
@@ -986,16 +989,18 @@ bool TcpConnection::ProcessReceiveFrame(TcpFrame* Frame)
             return false; // Shouldn't be possible
         }
         CXPLAT_DBG_ASSERT(TlsState.ReadKeys[Frame->KeyType]->PacketKey);
-        if (QUIC_FAILED(
-            CxPlatDecrypt(
-                TlsState.ReadKeys[Frame->KeyType]->PacketKey,
-                FixedIv,
-                sizeof(TcpFrame),
-                (uint8_t*)Frame,
-                Frame->Length + CXPLAT_ENCRYPTION_OVERHEAD,
-                Frame->Data))) {
-            WriteOutput("CxPlatDecrypt FAILED\n");
-            return false;
+        if (NegotiatedEncrypt || Frame->KeyType != QUIC_PACKET_KEY_1_RTT) {
+            if (QUIC_FAILED(
+                CxPlatDecrypt(
+                    TlsState.ReadKeys[Frame->KeyType]->PacketKey,
+                    FixedIv,
+                    sizeof(TcpFrame),
+                    (uint8_t*)Frame,
+                    Frame->Length + CXPLAT_ENCRYPTION_OVERHEAD,
+                    Frame->Data))) {
+                WriteOutput("CxPlatDecrypt FAILED\n");
+                return false;
+            }
         }
     }
 
@@ -1082,10 +1087,12 @@ bool TcpConnection::ProcessSend()
                 (uint8_t)StreamFrame->Fin,
                 (uint8_t)StreamFrame->Abort);
 
-            if (!EncryptFrame(Frame)) {
-                WriteOutput("EncryptFrame FAILED\n");
-                FreeSendBuffer(SendBuffer);
-                return false;
+            if (NegotiatedEncrypt || Frame->KeyType != QUIC_PACKET_KEY_1_RTT) {
+                if (!EncryptFrame(Frame)) {
+                    WriteOutput("EncryptFrame FAILED\n");
+                    FreeSendBuffer(SendBuffer);
+                    return false;
+                }
             }
 
             SendBuffer->Length = sizeof(TcpFrame) + Frame->Length + CXPLAT_ENCRYPTION_OVERHEAD;

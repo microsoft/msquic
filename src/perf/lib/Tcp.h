@@ -172,6 +172,7 @@ class TcpConnection {
     bool IndicateDisconnect{false};
     bool IndicateSendComplete{false};
     bool Encrypt{true};
+    bool NegotiatedEncrypt{true};
     TcpConnection* Next{nullptr};
     TcpEngine* Engine;
     TcpWorker* Worker{nullptr};
