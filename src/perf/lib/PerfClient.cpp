@@ -25,6 +25,7 @@ const char PERF_CLIENT_OPTIONS_TEXT[] =
 "  -ip:<0/4/6>              A hint for the resolving the hostname to an IP address. (def:0)\n"
 "  -port:<####>             The UDP port of the server. (def:%u)\n"
 "  -cibir:<hex_bytes>       A CIBIR well-known idenfitier.\n"
+"  -incrementtarget:<0/1>   Append unique ID to target hostname for each worker (def:0).\n"
 "\n"
 "  Local options:"
 "  -bind:<addr>             The local IP address(es)/port(s) to bind to.\n"
@@ -107,6 +108,7 @@ PerfClient::Init(
     }
 
     TryGetValue(argc, argv, "port", &TargetPort);
+    TryGetValue(argc, argv, "incrementtarget", &IncrementTarget);
 
     const char* CibirBytes = nullptr;
     if (TryGetValue(argc, argv, "cibir", &CibirBytes)) {
@@ -225,103 +227,93 @@ PerfClient::Init(
     return QUIC_STATUS_SUCCESS;
 }
 
+static void AppendIntToString(char* String, uint8_t Value) {
+    const char* Hex = "0123456789ABCDEF";
+    String[0] = Hex[(Value >> 4) & 0xF];
+    String[1] = Hex[Value & 0xF];
+    String[2] = '\0';
+}
+
 QUIC_STATUS
 PerfClient::Start(
     _In_ CXPLAT_EVENT* StopEvent
     ) {
     CompletionEvent = StopEvent;
 
-    QUIC_STATUS Status = StartWorkers();
+    //
+    // Resolve the remote address to connect to (to optimize the HPS metric).
+    //
+    QUIC_STATUS Status;
+    CXPLAT_DATAPATH* Datapath = nullptr;
+    if (QUIC_FAILED(Status = CxPlatDataPathInitialize(0, nullptr, nullptr, nullptr, &Datapath))) {
+        WriteOutput("Failed to initialize datapath for resolution!\n");
+        return Status;
+    }
+    QUIC_ADDR RemoteAddr;
+    Status = CxPlatDataPathResolveAddress(Datapath, Target.get(), &RemoteAddr);
+    CxPlatDataPathUninitialize(Datapath);
     if (QUIC_FAILED(Status)) {
+        WriteOutput("Failed to resolve remote address!\n");
         return Status;
     }
 
-    Connections = UniquePtr<PerfClientConnection[]>(new(std::nothrow) PerfClientConnection[ConnectionCount]);
-    if (!Connections.get()) {
-        return QUIC_STATUS_OUT_OF_MEMORY;
+    //
+    // Configure and start all the workers.
+    //
+    CXPLAT_THREAD_CONFIG ThreadConfig = {
+        (uint16_t)(AffinitizeWorkers ? CXPLAT_THREAD_FLAG_SET_AFFINITIZE : CXPLAT_THREAD_FLAG_NONE),
+        0,
+        "Perf Worker",
+        PerfClientWorker::s_WorkerThread,
+        nullptr
+    };
+    const size_t TargetLen = strlen(Target.get());
+    for (uint32_t i = 0; i < WorkerCount; ++i) {
+        while (!CxPlatProcIsActive(ThreadConfig.IdealProcessor)) {
+            ++ThreadConfig.IdealProcessor;
+        }
+
+        auto Worker = &Workers[i];
+        Worker->Processor = ThreadConfig.IdealProcessor++;
+        ThreadConfig.Context = Worker;
+        Worker->RemoteAddr.SockAddr = RemoteAddr;
+        Worker->RemoteAddr.SetPort(TargetPort);
+
+        // Build up target hostname.
+        Worker->Target.reset(new(std::nothrow) char[TargetLen + 10]);
+        CxPlatCopyMemory(Worker->Target.get(), Target.get(), TargetLen);
+        if (IncrementTarget) {
+            AppendIntToString(Worker->Target.get() + TargetLen, (uint8_t)Worker->Processor);
+        } else {
+            Worker->Target.get()[TargetLen] = '\0';
+        }
+        Worker->Target.get()[TargetLen] = '\0';
+
+        Status = CxPlatThreadCreate(&ThreadConfig, &Workers[i].Thread);
+        if (QUIC_FAILED(Status)) {
+            WriteOutput("Failed to start worker thread on processor %hu!\n", Worker->Processor);
+            return Status;
+        }
+        Workers[i].ThreadStarted = true;
     }
 
+    //
+    // Queue the connections on the workers.
+    //
     for (uint32_t i = 0; i < ConnectionCount; ++i) {
-        Status = CxPlatSetCurrentThreadProcessorAffinity(Workers[i % WorkerCount].Processor);
-        if (QUIC_FAILED(Status)) {
-            WriteOutput("Setting Thread Group Failed 0x%x\n", Status);
-            return Status;
-        }
-
-        Connections[i] = new(std::nothrow) PerfClientConnection(Registration, *this);
-        if (!Connections[i]->IsValid()) {
-            WriteOutput("ConnectionOpen failed, 0x%x\n", Connections[i]->GetInitStatus());
-            return Connections[i]->GetInitStatus();
-        }
-
-        Workers[i % WorkerCount].QueueConnection(Connections[i]);
-
-        if (!UseEncryption) {
-            Status = Connections[i]->SetDisable1RttEncryption();
-            if (QUIC_FAILED(Status)) {
-                WriteOutput("SetDisable1RttEncryption failed!\n");
-                return Status;
-            }
-        }
-
-        Status = Connections[i]->SetShareUdpBinding();
-        if (QUIC_FAILED(Status)) {
-            WriteOutput("SetShareUdpBinding failed!\n");
-            return Status;
-        }
-
-        if (CibirIdLength) {
-            Status = Connections[i]->SetCibirId(CibirId, CibirIdLength+1);
-            if (QUIC_FAILED(Status)) {
-                WriteOutput("SetCibirId failed!\n");
-                return Status;
-            }
-        }
-
-        if (SpecificLocalAddresses || i >= MaxLocalAddrCount) {
-            Status = Connections[i]->SetLocalAddr(*(QuicAddr*)&LocalAddresses[i % MaxLocalAddrCount]);
-            if (QUIC_FAILED(Status)) {
-                WriteOutput("SetLocalAddr failed!\n");
-                return Status;
-            }
-        }
-
-        Status = Connections[i]->Start(Configuration, TargetFamily, Target.get(), TargetPort);
-        if (QUIC_FAILED(Status)) {
-            WriteOutput("Start failed, 0x%x\n", Status);
-            return Status;
-        }
-
-        if (!SpecificLocalAddresses && i < PERF_MAX_CLIENT_PORT_COUNT) {
-            Status = Connections[i]->GetLocalAddr(*(QuicAddr*)&LocalAddresses[i]);
-            if (QUIC_FAILED(Status)) {
-                WriteOutput("GetLocalAddr failed!\n");
-                return Status;
-            }
-        }
+        Workers[i % WorkerCount].QueueNewConnection();
     }
 
-    if (!CxPlatEventWaitWithTimeout(AllConnected.Handle, PERF_ALL_CONNECT_TIMEOUT)) {
-        if (ActiveConnections == 0) {
+    if (HandshakeWaitTime) {
+        CxPlatSleep(HandshakeWaitTime);
+        auto ConnectedConnections = GetConnectedConnections();
+        if (ConnectedConnections == 0) {
             WriteOutput("Failed to connect to the server\n");
             return QUIC_STATUS_CONNECTION_TIMEOUT;
         }
-        WriteOutput("WARNING: Only %u (of %u) connections connected successfully.\n", ActiveConnections, ConnectionCount);
-    }
-
-    WriteOutput("All Connected! Waiting for idle.\n");
-    CxPlatSleep(PERF_IDLE_WAIT);
-
-    WriteOutput("Start sending request...\n");
-    for (uint32_t i = 0; i < StreamCount; ++i) {
-        Connections[i % ConnectionCount]->Worker->QueueSendRequest();
-    }
-
-    uint32_t ThreadToSetAffinityTo = CxPlatProcActiveCount();
-    if (ThreadToSetAffinityTo > 2) {
-        ThreadToSetAffinityTo -= 2;
-        Status =
-            CxPlatSetCurrentThreadProcessorAffinity((uint16_t)ThreadToSetAffinityTo);
+        if (ConnectedConnections < ConnectionCount) {
+            WriteOutput("WARNING: Only %u (of %u) connections connected successfully.\n", ConnectedConnections, ConnectionCount);
+        }
     }
 
     return QUIC_STATUS_SUCCESS;
@@ -336,9 +328,13 @@ PerfClient::Wait(
     }
 
     CxPlatEventWaitWithTimeout(*CompletionEvent, Timeout);
-    StopWorkers();
+    Running = false;
+    for (uint32_t i = 0; i < WorkerCount; ++i) {
+        Workers[i].Uninitialize();
+    }
 
-    WriteOutput("Completed %llu requests!\n", (unsigned long long)CompletedRequests);
+    auto CompletedRequests = GetCompletedRequests();
+    WriteOutput("Completed %llu streams!\n", (unsigned long long)CompletedRequests);
     CachedCompletedRequests = CompletedRequests;
     return QUIC_STATUS_SUCCESS;
 }
@@ -348,7 +344,7 @@ PerfClient::GetExtraDataMetadata(
     _Out_ PerfExtraDataMetadata* Result
     )
 {
-    Result->TestType = PerfTestType::PerfClient;
+    Result->TestType = PerfTestType::Client;
     uint64_t DataLength = sizeof(RunTime) + sizeof(CachedCompletedRequests) + (CachedCompletedRequests * sizeof(uint32_t));
     CXPLAT_FRE_ASSERT(DataLength <= UINT32_MAX); // TODO Limit values properly
     Result->ExtraDataLength = (uint32_t)DataLength;
@@ -375,79 +371,31 @@ PerfClient::GetExtraData(
 }
 
 QUIC_STATUS
-PerfClient::StartWorkers(
-    )
-{
-    auto ThreadFlags = AffinitizeWorkers ? CXPLAT_THREAD_FLAG_SET_AFFINITIZE : CXPLAT_THREAD_FLAG_NONE;
-    CXPLAT_THREAD_CONFIG ThreadConfig = {
-        (uint16_t)ThreadFlags,
-        0,
-        "RPS Worker",
-        PerfClientWorker::s_WorkerThread,
-        nullptr
-    };
-
-    CXPLAT_DATAPATH* Datapath = nullptr;
-    if (QUIC_FAILED(CxPlatDataPathInitialize(0, nullptr, nullptr, nullptr, &Datapath))) {
-        WriteOutput("Failed to initialize datapath for resolution!\n");
-        return Status;
-    }
-    if (QUIC_FAILED(CxPlatDataPathResolveAddress(Datapath, Worker->Target.get(), &Worker->RemoteAddr))) {
-        WriteOutput("Failed to resolve remote address!\n");
-        break;
-    }
-    CxPlatDataPathUninitialize(Datapath);
-
-    for (uint32_t i = 0; i < WorkerCount; ++i) {
-        while (!CxPlatProcIsActive(ThreadConfig.IdealProcessor)) {
-            ++ThreadConfig.IdealProcessor;
-        }
-        Workers[i].Processor = ThreadConfig.IdealProcessor++;
-        ThreadConfig.Context = &Workers[i];
-
-        QUIC_STATUS Status = CxPlatThreadCreate(&ThreadConfig, &Workers[i].Thread);
-        if (QUIC_FAILED(Status)) {
-            return Status;
-        }
-        Workers[i].ThreadStarted = true;
-    }
-
-    return QUIC_STATUS_SUCCESS;
-}
-
-void
-PerfClient::StopWorkers(
-    )
-{
-    Running = false;
-    for (uint32_t i = 0; i < WorkerCount; ++i) {
-        Workers[i].Uninitialize();
-    }
-}
-
-QUIC_STATUS
 PerfClientConnection::ConnectionCallback(
     _Inout_ QUIC_CONNECTION_EVENT* Event
     ) {
     switch (Event->Type) {
     case QUIC_CONNECTION_EVENT_CONNECTED:
-        if ((uint32_t)InterlockedIncrement64((int64_t*)&Client->ActiveConnections) == Client->ConnectionCount) {
-            CxPlatEventSet(Client->AllConnected.Handle);
+        InterlockedIncrement64((int64_t*)&Worker.ConnnectedConnectionCount);
+        while (ActiveStreamCount < TotalStreamCount) {
+            ActiveStreamCount++;
+            StartNewStream();
         }
         break;
     case QUIC_CONNECTION_EVENT_SHUTDOWN_INITIATED_BY_TRANSPORT:
         //WriteOutput("Connection died, 0x%x\n", Event->SHUTDOWN_INITIATED_BY_TRANSPORT.Status);
         break;
     case QUIC_CONNECTION_EVENT_SHUTDOWN_COMPLETE:
-        if (Client->PrintStats) {
+        if (Client.PrintStats) {
             QuicPrintConnectionStatistics(MsQuic, Handle);
         }
+        InterlockedDecrement64((int64_t*)&Worker.ActiveConnectionCount);
         break;
     case QUIC_CONNECTION_EVENT_IDEAL_PROCESSOR_CHANGED:
-        if ((uint32_t)Event->IDEAL_PROCESSOR_CHANGED.IdealProcessor >= Client->WorkerCount) {
-            Event->IDEAL_PROCESSOR_CHANGED.IdealProcessor = (uint16_t)(Client->WorkerCount - 1);
+        /*if ((uint32_t)Event->IDEAL_PROCESSOR_CHANGED.IdealProcessor >= Client.WorkerCount) {
+            Event->IDEAL_PROCESSOR_CHANGED.IdealProcessor = (uint16_t)(Client.WorkerCount - 1);
         }
-        Client->Workers[Event->IDEAL_PROCESSOR_CHANGED.IdealProcessor].UpdateConnection(this);
+        Client->Workers[Event->IDEAL_PROCESSOR_CHANGED.IdealProcessor].UpdateConnection(this);*/
         break;
     default:
         break;
@@ -464,19 +412,19 @@ PerfClientConnection::StreamCallback(
     switch (Event->Type) {
     case QUIC_STREAM_EVENT_RECEIVE:
         if (Event->RECEIVE.Flags & QUIC_RECEIVE_FLAG_FIN) {
-            uint64_t ToPlaceIndex = (uint64_t)InterlockedIncrement64((int64_t*)&Worker->Client->CompletedRequests) - 1;
+            uint64_t ToPlaceIndex = (uint64_t)InterlockedIncrement64((int64_t*)&Worker.CompletedRequests) - 1;
             uint64_t EndTime = CxPlatTimeUs64();
             uint64_t Delta = CxPlatTimeDiff64(Stream->StartTime, EndTime);
-            if (ToPlaceIndex < Worker->Client->MaxLatencyIndex) {
+            if (ToPlaceIndex < Client.MaxLatencyIndex) {
                 if (Delta > UINT32_MAX) {
                     Delta = UINT32_MAX;
                 }
-                Worker->Client->LatencyValues[(size_t)ToPlaceIndex] = (uint32_t)Delta;
+                Client.LatencyValues[(size_t)ToPlaceIndex] = (uint32_t)Delta;
             }
         }
         break;
     case QUIC_STREAM_EVENT_SEND_COMPLETE:
-        InterlockedIncrement64((int64_t*)&Worker->Client->SendCompletedRequests);
+        InterlockedIncrement64((int64_t*)&Worker.SendCompletedRequests);
         break;
     case QUIC_STREAM_EVENT_PEER_SEND_ABORTED:
     case QUIC_STREAM_EVENT_PEER_RECEIVE_ABORTED:
@@ -487,48 +435,14 @@ PerfClientConnection::StreamCallback(
             0);
         break;
     case QUIC_STREAM_EVENT_SHUTDOWN_COMPLETE:
-        Worker->Client->StreamAllocator.Free(Stream);
+        Worker.StreamAllocator.Free(Stream);
         MsQuic->StreamClose(StreamHandle);
-        Worker->QueueSendRequest();
+        Worker.QueueSendRequest();
         break;
     default:
         break;
     }
     return QUIC_STATUS_SUCCESS;
-}
-
-void
-PerfClientConnection::SendRequest(bool DelaySend) {
-
-    uint64_t StartTime = CxPlatTimeUs64();
-    PerfClientStream* Stream = Worker->Client->StreamAllocator.Alloc(this, StartTime);
-
-    HQUIC Handle = nullptr;
-    if (QUIC_SUCCEEDED(
-        MsQuic->StreamOpen(
-            Handle,
-            QUIC_STREAM_OPEN_FLAG_NONE,
-            PerfClientStream::s_StreamCallback,
-            Stream,
-            &Handle))) {
-        InterlockedIncrement64((int64_t*)&Worker->Client->StartedRequests);
-        QUIC_SEND_FLAGS Flags = QUIC_SEND_FLAG_START | QUIC_SEND_FLAG_FIN;
-        if (DelaySend) {
-            Flags |= QUIC_SEND_FLAG_DELAY_SEND;
-        }
-        if (QUIC_FAILED(
-            MsQuic->StreamSend(
-                Handle,
-                Worker->Client->RequestBuffer,
-                1,
-                Flags,
-                nullptr))) {
-            MsQuic->StreamClose(Handle);
-            Worker->Client->StreamAllocator.Free(Stream);
-        }
-    } else {
-        Worker->Client->StreamAllocator.Free(Stream);
-    }
 }
 
 void
@@ -538,30 +452,106 @@ PerfClientWorker::WorkerThread() {
         NETIO_STATUS status;
         if (!NETIO_SUCCESS(status = QuicCompartmentIdSetCurrent(Client->CompartmentId))) {
             WriteOutput("Failed to set compartment ID = %d: 0x%x\n", Client->CompartmentId, status);
-            return QUIC_STATUS_INVALID_PARAMETER;
+            return;
         }
     }
 #endif
 
     while (Client->Running) {
-        while (StreamCount != 0) {
-            InterlockedDecrement((long*)&StreamCount);
-            auto Connection = GetConnection();
-            if (!Connection) break; // Means we're shutting down
-            Connection->SendRequest(StreamCount != 0);
+        while (ActiveConnectionCount < TotalConnectionCount) {
+            InterlockedIncrement((long*)&ActiveConnectionCount);
+            StartNewConnection();
         }
         WakeEvent.WaitForever();
     }
 }
 
 void
-PerfClientWorker::QueueSendRequest() {
-    if (Client->Running) {
-        if (ThreadStarted && !Client->SendInline) {
-            InterlockedIncrement((long*)&StreamCount);
-            CxPlatEventSet(WakeEvent);
-        } else {
-            GetConnection()->SendRequest(false); // Inline if thread isn't running
+PerfClientWorker::StartNewConnection() {
+    auto Connection = ConnectionAllocator.Alloc(Client->Registration, *Client, *this);
+    if (!Connection->IsValid()) {
+        WriteOutput("ConnectionOpen failed, 0x%x\n", Connection->GetInitStatus());
+        return;
+    }
+
+    QUIC_STATUS Status;
+    if (!Client->UseEncryption) {
+        Status = Connection->SetDisable1RttEncryption();
+        if (QUIC_FAILED(Status)) {
+            WriteOutput("SetDisable1RttEncryption failed, 0x%x\n", Status);
+            Connection->Close();
+            return;
         }
+    }
+
+    Status = Connection->SetShareUdpBinding();
+    if (QUIC_FAILED(Status)) {
+        WriteOutput("SetShareUdpBinding failed, 0x%x\n", Status);
+        Connection->Close();
+        return;
+    }
+
+    if (Client->CibirIdLength) {
+        Status = Connection->SetCibirId(Client->CibirId, Client->CibirIdLength+1);
+        if (QUIC_FAILED(Status)) {
+            WriteOutput("SetCibirId failed, 0x%x\n", Status);
+            Connection->Close();
+            return;
+        }
+    }
+
+    /*if (Client->SpecificLocalAddresses || i >= Client->MaxLocalAddrCount) {
+        Status = Connection->SetLocalAddr(*(QuicAddr*)&Client->LocalAddresses[i % Client->MaxLocalAddrCount]);
+        if (QUIC_FAILED(Status)) {
+            WriteOutput("SetLocalAddr failed!\n");
+            Connection->Close();
+            return;
+        }
+    }*/
+
+    Status = Connection->Start(Client->Configuration, Client->TargetFamily, Target.get(), RemoteAddr.GetPort());
+    if (QUIC_FAILED(Status)) {
+        WriteOutput("Start failed, 0x%x\n", Status);
+        Connection->Close();
+        return;
+    }
+
+    /*if (!Client->SpecificLocalAddresses && i < PERF_MAX_CLIENT_PORT_COUNT) {
+        Status = Connection->GetLocalAddr(*(QuicAddr*)&Client->LocalAddresses[i]);
+        if (QUIC_FAILED(Status)) {
+            WriteOutput("GetLocalAddr failed!\n");
+            return;
+        }
+    }*/
+}
+
+void
+PerfClientConnection::StartNewStream(bool DelaySend) {
+    auto Stream = Worker.StreamAllocator.Alloc(this);
+    HQUIC Handle = nullptr;
+    if (QUIC_SUCCEEDED(
+        MsQuic->StreamOpen(
+            Handle,
+            QUIC_STREAM_OPEN_FLAG_NONE,
+            PerfClientStream::s_StreamCallback,
+            Stream,
+            &Handle))) {
+        InterlockedIncrement64((int64_t*)&Worker.StartedRequests);
+        QUIC_SEND_FLAGS Flags = QUIC_SEND_FLAG_START | QUIC_SEND_FLAG_FIN;
+        if (DelaySend) {
+            Flags |= QUIC_SEND_FLAG_DELAY_SEND;
+        }
+        if (QUIC_FAILED(
+            MsQuic->StreamSend(
+                Handle,
+                Client.RequestBuffer,
+                1,
+                Flags,
+                nullptr))) {
+            MsQuic->StreamClose(Handle);
+            Worker.StreamAllocator.Free(Stream);
+        }
+    } else {
+        Worker.StreamAllocator.Free(Stream);
     }
 }

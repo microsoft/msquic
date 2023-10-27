@@ -17,6 +17,7 @@ Abstract:
 
 enum class PerfTestType {
     Server,
+    Client,
     ThroughputClient,
     RpsClient,
     HpsClient

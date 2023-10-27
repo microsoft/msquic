@@ -9,7 +9,6 @@ Abstract:
 
 --*/
 
-
 #pragma once
 
 #include "PerfHelpers.h"
@@ -24,21 +23,22 @@ class PerfClient;
 struct PerfClientConnection : public MsQuicConnection {
     CXPLAT_LIST_ENTRY Link; // For Worker's connection queue
     PerfClient& Client;
-    PerfClientWorker* Worker {nullptr};
-    uint32_t StreamCount {0};
-    PerfClientConnection(_In_ const MsQuicRegistration& Registration, _In_ PerfClient& Client)
-        : MsQuicConnection(Registration, CleanUpManual, s_ConnectionCallback), Client(Client) { }
+    PerfClientWorker& Worker;
+    uint64_t TotalStreamCount {0};
+    uint64_t ActiveStreamCount {0};
+    PerfClientConnection(_In_ const MsQuicRegistration& Registration, _In_ PerfClient& Client, _In_ PerfClientWorker& Worker)
+        : MsQuicConnection(Registration, CleanUpAutoDelete, s_ConnectionCallback), Client(Client), Worker(Worker) { }
     QUIC_STATUS ConnectionCallback(_Inout_ QUIC_CONNECTION_EVENT* Event);
     static QUIC_STATUS s_ConnectionCallback(MsQuicConnection* /* Conn */, void* Context, QUIC_CONNECTION_EVENT* Event) {
         return ((PerfClientConnection*)Context)->ConnectionCallback(Event);
     }
     QUIC_STATUS StreamCallback(_In_ PerfClientStream* StrmContext, _In_ HQUIC StreamHandle, _Inout_ QUIC_STREAM_EVENT* Event);
-    void SendRequest(bool DelaySend);
+    void StartNewStream(bool DelaySend = false);
 };
 
 struct PerfClientStream {
-    PerfClientStream(_In_ PerfClientConnection& Connection, _In_ uint64_t StartTime)
-        : Connection{Connection}, StartTime{StartTime} { }
+    PerfClientStream(_In_ PerfClientConnection& Connection)
+        : Connection{Connection}, StartTime{CxPlatTimeUs64()} { }
     static QUIC_STATUS
     s_StreamCallback(HQUIC Stream, void* Context, QUIC_STREAM_EVENT* Event) {
         return ((PerfClientStream*)Context)->Connection.StreamCallback((PerfClientStream*)Context, Stream, Event);
@@ -53,19 +53,33 @@ struct PerfClientStream {
 struct PerfClientWorker {
     PerfClient* Client {nullptr};
     CxPlatLock Lock;
-    CXPLAT_LIST_ENTRY Connections;
     CXPLAT_THREAD Thread;
     CxPlatEvent WakeEvent;
     bool ThreadStarted {false};
-    uint32_t ConnectionCount {0};
-    uint32_t CompletionCount {0};
     uint16_t Processor {UINT16_MAX};
-    PerfClientWorker() {
-        CxPlatListInitializeHead(&Connections);
+    uint64_t TotalConnectionCount {0};
+    uint64_t ConnnectedConnectionCount {0};
+    uint64_t ActiveConnectionCount {0};
+    uint64_t StartedRequests {0};
+    uint64_t SendCompletedRequests {0};
+    uint64_t CompletedRequests {0};
+    UniquePtr<char[]> Target;
+    QuicAddr LocalAddr;
+    QuicAddr RemoteAddr;
+    QuicPoolAllocator<PerfClientConnection> ConnectionAllocator;
+    QuicPoolAllocator<PerfClientStream> StreamAllocator;
+    PerfClientWorker() { }
+    ~PerfClientWorker() { WaitForThread(); }
+    void Uninitialize() { WaitForThread(); }
+    void QueueNewConnection() {
+        InterlockedIncrement((unsigned*)&TotalConnectionCount);
+        WakeEvent.Set();
     }
-    ~PerfClientWorker() {
-        WaitForThread();
+    static CXPLAT_THREAD_CALLBACK(s_WorkerThread, Context) {
+        ((PerfClientWorker*)Context)->WorkerThread();
+        CXPLAT_THREAD_RETURN(QUIC_STATUS_SUCCESS);
     }
+private:
     void WaitForThread() {
         if (ThreadStarted) {
             WakeEvent.Set();
@@ -74,47 +88,8 @@ struct PerfClientWorker {
             ThreadStarted = false;
         }
     }
-    void Uninitialize() {
-        Lock.Acquire();
-        CxPlatListInitializeHead(&Connections); // TODO - Cleanup
-        Lock.Release();
-        WaitForThread();
-    }
-    PerfClientConnection* GetConnection() {
-        PerfClientConnection* Connection = nullptr;
-        Lock.Acquire();
-        if (!CxPlatListIsEmpty(&Connections)) {
-            Connection =
-                CXPLAT_CONTAINING_RECORD(
-                    CxPlatListRemoveHead(&Connections),
-                    PerfClientConnection,
-                    Link);
-            CxPlatListInsertTail(&Connections, &Connection->Link);
-        }
-        Lock.Release();
-        return Connection;
-    }
-    void QueueNewConnection() {
-        Lock.Acquire();
-        bool Wake = 0 == ConnectionCount++;
-        Lock.Release();
-        if (Wake) WakeEvent.Set();
-    }
-    void UpdateConnection(PerfClientConnection* Connection) {
-        if (this != Connection->Worker) {
-            Connection->Worker->Lock.Acquire();
-            CxPlatListEntryRemove(&Connection->Link);
-            Connection->Worker->Lock.Release();
-            QueueConnection(Connection);
-        }
-    }
-    void QueueSendRequest();
-
+    void StartNewConnection();
     void WorkerThread();
-    CXPLAT_THREAD_CALLBACK(s_WorkerThread, Context) {
-        ((PerfClientWorker*)Context)->WorkerThread();
-        CXPLAT_THREAD_RETURN(QUIC_STATUS_SUCCESS);
-    }
 };
 
 class PerfClient : public PerfBase {
@@ -128,11 +103,6 @@ public:
     }
 
     ~PerfClient() override {
-        if (Connections.get()) {
-            for (uint32_t i = 0 ; i < ConnectionCount; ++i) {
-                delete Connections[i];
-            }
-        }
         Running = false;
     }
 
@@ -151,9 +121,6 @@ public:
         _Out_writes_bytes_(*Length) uint8_t* Data,
         _Inout_ uint32_t* Length
         ) override;
-
-    QUIC_STATUS StartWorkers();
-    void StopWorkers();
 
     MsQuicRegistration Registration {
         "perf-client",
@@ -175,10 +142,10 @@ public:
     // Target parameters
     UniquePtr<char[]> Target;
     QUIC_ADDRESS_FAMILY TargetFamily {QUIC_ADDRESS_FAMILY_UNSPEC};
-    QUIC_ADDR RemoteAddr;
     uint16_t TargetPort {PERF_DEFAULT_PORT};
     uint32_t CibirIdLength {0};
     uint8_t CibirId[7]; // {offset, values}
+    uint8_t IncrementTarget {FALSE};
     // Local execution parameters
     QUIC_ADDR LocalAddresses[PERF_MAX_CLIENT_PORT_COUNT];
     uint32_t MaxLocalAddrCount {PERF_MAX_CLIENT_PORT_COUNT};
@@ -224,15 +191,45 @@ public:
     } RequestBuffer;
 
     CXPLAT_EVENT* CompletionEvent {nullptr};
-    uint32_t ActiveConnections {0};
-    CxPlatEvent AllConnected {true};
-    uint64_t StartedRequests {0};
-    uint64_t SendCompletedRequests {0};
-    uint64_t CompletedRequests {0};
     uint64_t CachedCompletedRequests {0};
     UniquePtr<uint32_t[]> LatencyValues {nullptr};
     uint64_t MaxLatencyIndex {0};
-    QuicPoolAllocator<PerfClientStream> StreamAllocator;
     PerfClientWorker Workers[PERF_MAX_THREAD_COUNT];
     bool Running {true};
+
+    uint32_t GetConnectedConnections() const {
+        uint32_t ConnectedConnections = 0;
+        for (uint32_t i = 0; i < WorkerCount; ++i) {
+            ConnectedConnections += Workers[i].ConnnectedConnectionCount;
+        }
+        return ConnectedConnections;
+    }
+    uint32_t GetActiveConnections() const {
+        uint32_t ActiveConnections = 0;
+        for (uint32_t i = 0; i < WorkerCount; ++i) {
+            ActiveConnections += Workers[i].ActiveConnectionCount;
+        }
+        return ActiveConnections;
+    }
+    uint64_t GetStartedRequests() const {
+        uint64_t StartedRequests = 0;
+        for (uint32_t i = 0; i < WorkerCount; ++i) {
+            StartedRequests += Workers[i].StartedRequests;
+        }
+        return StartedRequests;
+    }
+    uint64_t GetSendCompletedRequests() const {
+        uint64_t SendCompletedRequests = 0;
+        for (uint32_t i = 0; i < WorkerCount; ++i) {
+            SendCompletedRequests += Workers[i].SendCompletedRequests;
+        }
+        return SendCompletedRequests;
+    }
+    uint64_t GetCompletedRequests() const {
+        uint64_t CompletedRequests = 0;
+        for (uint32_t i = 0; i < WorkerCount; ++i) {
+            CompletedRequests += Workers[i].CompletedRequests;
+        }
+        return CompletedRequests;
+    }
 };
