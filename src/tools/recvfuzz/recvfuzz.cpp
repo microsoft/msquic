@@ -28,6 +28,8 @@ const MsQuicApi* MsQuic;
 uint64_t MagicCid = 0x989898989898989ull;
 const QUIC_HKDF_LABELS HkdfLabels = { "quic key", "quic iv", "quic hp", "quic ku" };
 uint64_t RunTimeMs = 60000;
+uint8_t mode;
+uint8_t numIteration;
 
 static const char* Alpn = "fuzz";
 static uint32_t Version = QUIC_VERSION_DRAFT_29;
@@ -65,9 +67,7 @@ class FuzzingData {
         return true;
     }
 public:
-    static const size_t UtilityDataSize = 20; // hard code for determinisity
-
-    FuzzingData(const uint8_t* data, size_t size) : data(data), size(size - UtilityDataSize) {}
+    FuzzingData(const uint8_t* data, size_t size) : data(data), size(size) {}
     template<typename T>
     bool TryGetRandom(T UpperBound, T* Val) {
         int type_size = sizeof(T);
@@ -87,7 +87,7 @@ static FuzzingData* FuzzData = nullptr;
 template<typename T>
 T GetRandom(T UpperBound) {
     if (!FuzzData) {
-        return (T)(rand() % (int)UpperBound);
+        return (T)(rand() % (int)(UpperBound));
     }
 
     uint64_t out = 0;
@@ -398,6 +398,14 @@ void WriteClientInitialPacket(
     *PacketLength += CXPLAT_ENCRYPTION_OVERHEAD;
 }
 
+void fuzzPacket(uint8_t* Packet, uint16_t PacketLength) {
+    for(int i = 0; i < numIteration; i++){
+        uint16_t offset = (uint16_t)GetRandom(PacketLength); // offset
+        uint8_t value = (uint8_t)GetRandom(256); // value
+        *(Packet + offset) = value;  
+    }
+}
+
 void fuzzInitialPacket(CXPLAT_SOCKET* Binding, CXPLAT_ROUTE Route) {
     const StrBuffer InitialSalt("afbfec289993d24c9e9786f19c6111e04390a899");
     const uint16_t DatagramLength = QUIC_MIN_INITIAL_LENGTH; 
@@ -423,17 +431,6 @@ void fuzzInitialPacket(CXPLAT_SOCKET* Binding, CXPLAT_ROUTE Route) {
                 &PacketLength,
                 &HeaderLength);
 
-            uint8_t *PacketBuffer = Packet;
-            QUIC_LONG_HEADER_V1* Header = (QUIC_LONG_HEADER_V1*)Packet;
-            Header->IsLongHeader = GetRandom(2);
-            Header->FixedBit = GetRandom(2);
-            Header->Reserved = GetRandom(2);
-            Header->PnLength = GetRandom(sizeof(uint32_t));
-            Header->DestCidLength  = (uint8_t)GetRandom(sizeof(uint64_t));
-
-            PacketBuffer += sizeof(QUIC_LONG_HEADER_V1) + sizeof(uint64_t); // point to the source id length
-            *PacketBuffer = (uint8_t)GetRandom(sizeof(uint64_t)); // fuzz the source id length
-
             uint16_t PacketNumberOffset = HeaderLength - sizeof(uint32_t);
 
             uint64_t* DestCid = (uint64_t*)(Packet + sizeof(QUIC_LONG_HEADER_V1));
@@ -452,6 +449,7 @@ void fuzzInitialPacket(CXPLAT_SOCKET* Binding, CXPLAT_ROUTE Route) {
 
             CxPlatRandom(sizeof(uint64_t), DestCid); //fuzz
             CxPlatRandom(sizeof(uint64_t), SrcCid); //fuzz
+            fuzzPacket(Packet, sizeof(Packet));
             QUIC_BUFFER* SendBuffer =
                 CxPlatSendDataAllocBuffer(SendData, DatagramLength);
              if (!SendBuffer) {
@@ -516,6 +514,24 @@ void fuzzInitialPacket(CXPLAT_SOCKET* Binding, CXPLAT_ROUTE Route) {
     printf("Total Bytes sent: %lld\n", (long long)TotalByteCount);
 }
 
+void fuzzHandshakePacket() {
+// TODO
+}
+
+void makeServer(QUIC_ADDR* sockAddr){
+    MsQuicRegistration Registration(true);
+    QUIC_SUCCEEDED(Registration.GetInitStatus());
+
+    auto CredConfig = CxPlatGetSelfSignedCert(CXPLAT_SELF_SIGN_CERT_USER, FALSE, NULL);
+
+    MsQuicConfiguration ServerConfiguration(Registration, Alpn, *CredConfig);
+
+    QUIC_SUCCEEDED(ServerConfiguration.GetInitStatus());
+    MsQuicAutoAcceptListener Listener(Registration, ServerConfiguration, MsQuicConnection::NoOpCallback);
+    QUIC_SUCCEEDED(Listener.Start(Alpn, sockAddr));
+    QUIC_SUCCEEDED(Listener.GetInitStatus());
+}
+
 void start() {
     CXPLAT_DATAPATH* Datapath;
     const CXPLAT_UDP_DATAPATH_CALLBACKS DatapathCallbacks = {
@@ -547,17 +563,7 @@ void start() {
     }
     QuicAddrSetPort(&sockAddr, 9999);
     // make a server
-    MsQuicRegistration Registration(true);
-    QUIC_SUCCEEDED(Registration.GetInitStatus());
-
-    auto CredConfig = CxPlatGetSelfSignedCert(CXPLAT_SELF_SIGN_CERT_USER, FALSE, NULL);
-
-    MsQuicConfiguration ServerConfiguration(Registration, Alpn, *CredConfig);
-
-    QUIC_SUCCEEDED(ServerConfiguration.GetInitStatus());
-    MsQuicAutoAcceptListener Listener(Registration, ServerConfiguration, MsQuicConnection::NoOpCallback);
-    QUIC_SUCCEEDED(Listener.Start(Alpn, &sockAddr));
-    QUIC_SUCCEEDED(Listener.GetInitStatus());
+    makeServer(&sockAddr);
 
     CXPLAT_SOCKET* Binding;
     CXPLAT_UDP_CONFIG UdpConfig = {0};
@@ -584,7 +590,14 @@ void start() {
     CxPlatSocketGetLocalAddress(Binding, &Route.LocalAddress);
     Route.RemoteAddress = sockAddr;
 
-    fuzzInitialPacket(Binding, Route);
+    // Fuzzing
+    if (mode == 0) {
+        printf("Running Initial Packet Fuzzing\n");
+        fuzzInitialPacket(Binding, Route);
+    } else if (mode == 1){
+        printf("Running Handshake Packet Fuzzing\n");
+        fuzzHandshakePacket();
+    }
 }
 
 #ifdef FUZZING
@@ -602,14 +615,14 @@ int
 QUIC_MAIN_EXPORT
 main(int argc, char **argv) {
     TryGetValue(argc, argv, "timeout", &RunTimeMs);
-
     uint32_t RngSeed = 0;
     if (!TryGetValue(argc, argv, "seed", &RngSeed)) {
         CxPlatRandom(sizeof(RngSeed), &RngSeed);
     }   
     printf("Using seed value: %u\n", RngSeed);
     srand(RngSeed);
-
+    mode = (uint8_t)GetRandom(2);
+    numIteration = (uint8_t)GetRandom(256);
     start();
 
     return 0;
