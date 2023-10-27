@@ -70,6 +70,7 @@ void PrintUsageList()
 {
     printf("The following are the different types of attacks supported by the tool.\n\n");
 
+    printf("#0 - TCP Syn packets.\n");
     printf("#1 - Random UDP 1 byte UDP packets.\n");
     printf("#2 - Random UDP full length UDP packets.\n");
     printf("#3 - Random QUIC Initial packets.\n");
@@ -99,65 +100,27 @@ struct StrBuffer
 
 //========================================Callbacks========================================
 _IRQL_requires_max_(DISPATCH_LEVEL)
-_Function_class_(CXPLAT_DATAPATH_ACCEPT_CALLBACK)
-void
-AcceptCallback(
-    _In_ CXPLAT_SOCKET* /* ListenerSocket */,
-    _In_ void* ListenerContext,
-    _In_ CXPLAT_SOCKET* AcceptSocket,
-    _Out_ void** AcceptClientContext
-    )
-{
-    //TODO
-}
-
-_IRQL_requires_max_(DISPATCH_LEVEL)
-_Function_class_(CXPLAT_DATAPATH_CONNECT_CALLBACK)
-void
-ConnectCallback(
-    _In_ CXPLAT_SOCKET* /* Socket */,
-    _In_ void* Context,
-    _In_ BOOLEAN Connected
-    )
-{
-    //TODO
-}
-
-_IRQL_requires_max_(DISPATCH_LEVEL)
 _Function_class_(CXPLAT_DATAPATH_RECEIVE_CALLBACK)
 void
-ReceiveCallback(
+UdpRecvCallback(
     _In_ CXPLAT_SOCKET* /* Binding */,
     _In_ void* /* Context */,
     _In_ CXPLAT_RECV_DATA* RecvBufferChain
     )
 {
+    printf("Inside of the UdpRecvCallback().\n");
     CxPlatRecvDataReturn(RecvBufferChain);
-}
-
-_IRQL_requires_max_(DISPATCH_LEVEL)
-_Function_class_(CXPLAT_DATAPATH_SEND_COMPLETE_CALLBACK)
-void
-SendCompleteCallback(
-    _In_ CXPLAT_SOCKET* /* Socket */,
-    _In_ void* Context,
-    _In_ QUIC_STATUS /* Status */,
-    _In_ uint32_t ByteCount
-    )
-{
-    //TODO
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 _Function_class_(CXPLAT_DATAPATH_UNREACHABLE_CALLBACK)
 void
-UnreachCallback(
+UdpUnreachCallback(
     _In_ CXPLAT_SOCKET* /* Binding */,
     _In_ void* /* Context */,
     _In_ const QUIC_ADDR* /* RemoteAddress */
     )
 {
-    //TODO
 }
 
 static
@@ -182,8 +145,7 @@ ResolveRouteComplete(
 //=======================================================================================
 
 void RunAttackRandom(CXPLAT_SOCKET* Binding, uint16_t Length, bool ValidQuic)
-{
-    printf("Inside of the RunAttackRandom()\n");
+{   
     CXPLAT_ROUTE Route = {0};
     CxPlatSocketGetLocalAddress(Binding, &Route.LocalAddress);
     CxPlatSocketGetRemoteAddress(Binding, &Route.RemoteAddress);
@@ -200,7 +162,7 @@ void RunAttackRandom(CXPLAT_SOCKET* Binding, uint16_t Length, bool ValidQuic)
     CXPLAT_SEND_DATA* SendData;
 
     while (CxPlatTimeDiff64(TimeStart, CxPlatTimeMs64()) < TimeoutMs) {
-        while ((SendData = CxPlatSendDataAlloc(Binding, &SendConfig)) == nullptr) {
+        if ((SendData = CxPlatSendDataAlloc(Binding, &SendConfig)) == nullptr) {
             continue;
         }
         do {
@@ -235,12 +197,14 @@ void RunAttackRandom(CXPLAT_SOCKET* Binding, uint16_t Length, bool ValidQuic)
             InterlockedExchangeAdd64(&TotalByteCount, Length);
         } while (!CxPlatSendDataIsFull(SendData));
 
-        //VERIFY(
+        Route.LocalAddress.Ipv4.sin_port++;
+        VERIFY(
         QUIC_SUCCEEDED(
         CxPlatSocketSend(
             Binding,
             &Route,
-            SendData));
+            SendData)));
+        CxPlatSendDataFree(SendData);
     }
 }
 
@@ -364,40 +328,26 @@ void RunAttackValidInitial(CXPLAT_SOCKET* Binding)
 CXPLAT_THREAD_CALLBACK(RunAttackThread, /* Context */)
 {
     CXPLAT_SOCKET* Binding;
-    if((strcmp("tcp", Alpn) == 0)) {
-        printf("Running a TCP attack!\n");
-        QUIC_STATUS Status = 
-        CxPlatSocketCreateTcp(
-            Datapath,
-            NULL, //LocalAddress?
-            &ServerAddress,
-            NULL, //CallbackContext?
-            &Binding);
-        if (QUIC_FAILED(Status)) {
-            printf("CxPlatSocketCreateTcp failed, 0x%x\n", Status);
-            CXPLAT_THREAD_RETURN(Status);
-        }
-    }
-    else {
-        printf("Running a UDP attack!\n");
-        CXPLAT_UDP_CONFIG UdpConfig = {0};
-        UdpConfig.LocalAddress = nullptr;
-        UdpConfig.RemoteAddress = &ServerAddress;
-        UdpConfig.Flags = 0;
-        UdpConfig.InterfaceIndex = 0;
-        UdpConfig.CallbackContext = nullptr;
-        QUIC_STATUS Status =
-        CxPlatSocketCreateUdp(
-            Datapath,
-            &UdpConfig,
-            &Binding);
-        if (QUIC_FAILED(Status)) {
-            printf("CxPlatSocketCreateUdp failed, 0x%x\n", Status);
-            CXPLAT_THREAD_RETURN(Status);
-        }
+    CXPLAT_UDP_CONFIG UdpConfig = {0};
+    UdpConfig.LocalAddress = nullptr;
+    UdpConfig.RemoteAddress = &ServerAddress;
+    UdpConfig.Flags = 0;
+    UdpConfig.InterfaceIndex = 0;
+    UdpConfig.CallbackContext = nullptr;
+    QUIC_STATUS Status =
+    CxPlatSocketCreateUdp(
+        Datapath,
+        &UdpConfig,
+        &Binding);
+    if (QUIC_FAILED(Status)) {
+        printf("CxPlatSocketCreateUdp failed, 0x%x\n", Status);
+        CXPLAT_THREAD_RETURN(Status);
     }
 
     switch (AttackType) {
+    case 0:
+        RunAttackRandom(Binding, 1, false);
+        break;
     case 1:
         RunAttackRandom(Binding, 1, false);
         break;
@@ -415,7 +365,6 @@ CXPLAT_THREAD_CALLBACK(RunAttackThread, /* Context */)
     }
 
     CxPlatSocketDelete(Binding);
-
     CXPLAT_THREAD_RETURN(QUIC_STATUS_SUCCESS);
 }
 
@@ -461,25 +410,6 @@ main(
     )
 {
     int ErrorCode = -1;
-    const CXPLAT_UDP_DATAPATH_CALLBACKS UdpCallbacks = {
-        ReceiveCallback,
-        UnreachCallback,
-    };
-    const CXPLAT_TCP_DATAPATH_CALLBACKS TcpCallbacks = {
-        AcceptCallback,
-        ConnectCallback,
-        ReceiveCallback,
-        SendCompleteCallback
-    };
-    CxPlatSystemLoad();
-    CxPlatInitialize();
-    CxPlatDataPathInitialize(
-        0,
-        &UdpCallbacks,
-        &TcpCallbacks,
-        NULL,
-        &Datapath);
-
     if (argc < 2) {
         PrintUsage();
         goto Error;
@@ -495,7 +425,7 @@ main(
             goto Error;
         }
 
-        if (AttackType < 1 || AttackType > 4) {
+        if (AttackType < 0 || AttackType > 4) {
             printf("Invalid -type:'%u' specified!\n", AttackType);
             goto Error;
         }
@@ -505,6 +435,33 @@ main(
         TryGetValue(argc, argv, "sni", &ServerName);
         TryGetValue(argc, argv, "timeout", &TimeoutMs);
         TryGetValue(argc, argv, "threads", &ThreadCount);
+
+            const CXPLAT_UDP_DATAPATH_CALLBACKS DatapathCallbacks = {
+        UdpRecvCallback,
+        UdpUnreachCallback,
+    };
+    QUIC_EXECUTION_CONFIG DatapathFlags = {
+        QUIC_EXECUTION_CONFIG_FLAG_QTIP,
+    };
+    
+    CxPlatSystemLoad();
+    CxPlatInitialize();
+
+    if (AttackType == 0) {
+        CxPlatDataPathInitialize(
+            0,
+            &DatapathCallbacks,
+            NULL,
+            &DatapathFlags,
+            &Datapath);
+    } else {
+        CxPlatDataPathInitialize(
+            0,
+            &DatapathCallbacks,
+            NULL,
+            NULL,
+            &Datapath);
+    }
 
         if (IpAddress == nullptr) {
             if (ServerName == nullptr) {
