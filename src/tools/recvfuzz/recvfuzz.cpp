@@ -405,7 +405,7 @@ void fuzzPacket(uint8_t* Packet, uint16_t PacketLength) {
     }
 }
 
-void fuzzInitialPacket(CXPLAT_SOCKET* Binding, CXPLAT_ROUTE Route, uint64_t StartTimeMs, int64_t PacketCount, int64_t TotalByteCount, bool fuzzing = true) {
+void fuzzInitialPacket(CXPLAT_SOCKET* Binding, CXPLAT_ROUTE Route, uint64_t StartTimeMs, int64_t* PacketCount, int64_t* TotalByteCount, bool fuzzing = true) {
     const StrBuffer InitialSalt("afbfec289993d24c9e9786f19c6111e04390a899");
     const uint16_t DatagramLength = QUIC_MIN_INITIAL_LENGTH; 
     CXPLAT_SEND_CONFIG SendConfig = { &Route, DatagramLength, CXPLAT_ECN_NON_ECT, 0 };
@@ -494,8 +494,8 @@ void fuzzInitialPacket(CXPLAT_SOCKET* Binding, CXPLAT_ROUTE Route, uint64_t Star
         for (uint8_t i = 0; i < 4; ++i) {
             SendBuffer->Buffer[PacketNumberOffset + i] ^= HpMask[i + 1];
         }
-        InterlockedExchangeAdd64(&PacketCount, 1);
-        InterlockedExchangeAdd64(&TotalByteCount, DatagramLength);
+        InterlockedExchangeAdd64(PacketCount, 1);
+        InterlockedExchangeAdd64(TotalByteCount, DatagramLength);
     }
     
     if (QUIC_FAILED(
@@ -519,17 +519,17 @@ void fuzz(CXPLAT_SOCKET* Binding, CXPLAT_ROUTE Route) {
     uint8_t mode;
     uint64_t StartTimeMs = CxPlatTimeMs64();
     while (CxPlatTimeDiff64(StartTimeMs, CxPlatTimeMs64()) < RunTimeMs) {
-        printf("Total Initial Packets sent: %lld\n", (long long)PacketCount);
-        printf("Total Bytes sent: %lld\n", (long long)TotalByteCount);
         mode = (uint8_t)GetRandom(2);
         if (mode == 0) {
             printf("Running Initial Packet Fuzzing\n");
-            fuzzInitialPacket(Binding, Route, StartTimeMs, PacketCount, TotalByteCount);
+            fuzzInitialPacket(Binding, Route, StartTimeMs, &PacketCount, &TotalByteCount);
         } else if (mode == 1){
             printf("Running Handshake Packet Fuzzing\n");
             fuzzHandshakePacket();
         }
     }
+        printf("Total Packets sent: %lld\n", (long long)PacketCount);
+        printf("Total Bytes sent: %lld\n", (long long)TotalByteCount);
 
 }
 
