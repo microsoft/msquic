@@ -10226,10 +10226,46 @@
       ],
       "macroName": "QuicTraceLogVerbose"
     },
+    "SettingDumpStreamRecvWindowBidiLocalDefault": {
+      "ModuleProperites": {},
+      "TraceString": "[sett] StreamRecvWindowBidiLocalDefault  = %u",
+      "UniqueId": "SettingDumpStreamRecvWindowBidiLocalDefault",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceLogVerbose"
+    },
+    "SettingDumpStreamRecvWindowBidiRemoteDefault": {
+      "ModuleProperites": {},
+      "TraceString": "[sett] StreamRecvWindowBidiRemoteDefault = %u",
+      "UniqueId": "SettingDumpStreamRecvWindowBidiRemoteDefault",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceLogVerbose"
+    },
     "SettingDumpStreamRecvWindowDefault": {
       "ModuleProperites": {},
       "TraceString": "[sett] StreamRecvWindowDefault= %u",
       "UniqueId": "SettingDumpStreamRecvWindowDefault",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceLogVerbose"
+    },
+    "SettingDumpStreamRecvWindowUnidiDefault": {
+      "ModuleProperites": {},
+      "TraceString": "[sett] StreamRecvWindowUnidiDefault      = %u",
+      "UniqueId": "SettingDumpStreamRecvWindowUnidiDefault",
       "splitArgs": [
         {
           "DefinationEncoding": "u",
@@ -15464,9 +15500,24 @@
         "EncodingString": "[sett] StreamRecvBufferDefault= %u"
       },
       {
+        "UniquenessHash": "fdc700fa-3864-c7ad-b206-118edec7df3c",
+        "TraceID": "SettingDumpStreamRecvWindowBidiLocalDefault",
+        "EncodingString": "[sett] StreamRecvWindowBidiLocalDefault  = %u"
+      },
+      {
+        "UniquenessHash": "2237fc34-ff7e-3399-8836-01efea9bb06c",
+        "TraceID": "SettingDumpStreamRecvWindowBidiRemoteDefault",
+        "EncodingString": "[sett] StreamRecvWindowBidiRemoteDefault = %u"
+      },
+      {
         "UniquenessHash": "2da1de63-c2be-a594-45de-7dd6cb192b7e",
         "TraceID": "SettingDumpStreamRecvWindowDefault",
         "EncodingString": "[sett] StreamRecvWindowDefault= %u"
+      },
+      {
+        "UniquenessHash": "fdef2995-409f-a4fe-175f-a592671e0680",
+        "TraceID": "SettingDumpStreamRecvWindowUnidiDefault",
+        "EncodingString": "[sett] StreamRecvWindowUnidiDefault      = %u"
       },
       {
         "UniquenessHash": "4eaf58f9-d813-f2de-2388-6f550e14f27d",
