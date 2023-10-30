@@ -1246,6 +1246,15 @@ namespace Microsoft.Quic
         [NativeTypeName("QUIC_SETTINGS::(anonymous union)")]
         internal _Anonymous2_e__Union Anonymous2;
 
+        [NativeTypeName("uint32_t")]
+        internal uint StreamRecvWindowBidiLocalDefault;
+
+        [NativeTypeName("uint32_t")]
+        internal uint StreamRecvWindowBidiRemoteDefault;
+
+        [NativeTypeName("uint32_t")]
+        internal uint StreamRecvWindowUnidiDefault;
+
         internal ref ulong IsSetFlags
         {
             get
@@ -1841,7 +1850,7 @@ namespace Microsoft.Quic
                 }
 
                 [NativeTypeName("uint64_t : 1")]
-                internal ulong EncryptionOffloadAllowed
+                internal ulong StreamRecvWindowBidiLocalDefault
                 {
                     get
                     {
@@ -1855,7 +1864,7 @@ namespace Microsoft.Quic
                 }
 
                 [NativeTypeName("uint64_t : 1")]
-                internal ulong ReliableResetEnabled
+                internal ulong StreamRecvWindowBidiRemoteDefault
                 {
                     get
                     {
@@ -1869,7 +1878,7 @@ namespace Microsoft.Quic
                 }
 
                 [NativeTypeName("uint64_t : 1")]
-                internal ulong OneWayDelayEnabled
+                internal ulong StreamRecvWindowUnidiDefault
                 {
                     get
                     {
@@ -1882,17 +1891,59 @@ namespace Microsoft.Quic
                     }
                 }
 
-                [NativeTypeName("uint64_t : 26")]
-                internal ulong RESERVED
+                [NativeTypeName("uint64_t : 1")]
+                internal ulong EncryptionOffloadAllowed
                 {
                     get
                     {
-                        return (_bitfield >> 38) & 0x3FFFFFFUL;
+                        return (_bitfield >> 38) & 0x1UL;
                     }
 
                     set
                     {
-                        _bitfield = (_bitfield & ~(0x3FFFFFFUL << 38)) | ((value & 0x3FFFFFFUL) << 38);
+                        _bitfield = (_bitfield & ~(0x1UL << 38)) | ((value & 0x1UL) << 38);
+                    }
+                }
+
+                [NativeTypeName("uint64_t : 1")]
+                internal ulong ReliableResetEnabled
+                {
+                    get
+                    {
+                        return (_bitfield >> 39) & 0x1UL;
+                    }
+
+                    set
+                    {
+                        _bitfield = (_bitfield & ~(0x1UL << 39)) | ((value & 0x1UL) << 39);
+                    }
+                }
+
+                [NativeTypeName("uint64_t : 1")]
+                internal ulong OneWayDelayEnabled
+                {
+                    get
+                    {
+                        return (_bitfield >> 40) & 0x1UL;
+                    }
+
+                    set
+                    {
+                        _bitfield = (_bitfield & ~(0x1UL << 40)) | ((value & 0x1UL) << 40);
+                    }
+                }
+
+                [NativeTypeName("uint64_t : 23")]
+                internal ulong RESERVED
+                {
+                    get
+                    {
+                        return (_bitfield >> 41) & 0x7FFFFFUL;
+                    }
+
+                    set
+                    {
+                        _bitfield = (_bitfield & ~(0x7FFFFFUL << 41)) | ((value & 0x7FFFFFUL) << 41);
                     }
                 }
             }
