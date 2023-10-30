@@ -672,13 +672,16 @@ typedef struct QUIC_SETTINGS {
             uint64_t GreaseQuicBitEnabled                   : 1;
             uint64_t EcnEnabled                             : 1;
             uint64_t HyStartEnabled                         : 1;
+            uint64_t StreamRecvWindowBidiLocalDefault       : 1;
+            uint64_t StreamRecvWindowBidiRemoteDefault      : 1;
+            uint64_t StreamRecvWindowUnidiDefault           : 1;
 #ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
             uint64_t EncryptionOffloadAllowed               : 1;
             uint64_t ReliableResetEnabled                   : 1;
             uint64_t OneWayDelayEnabled                     : 1;
-            uint64_t RESERVED                               : 26;
+            uint64_t RESERVED                               : 23;
 #else
-            uint64_t RESERVED                               : 29;
+            uint64_t RESERVED                               : 26;
 #endif
         } IsSet;
     };
@@ -731,6 +734,9 @@ typedef struct QUIC_SETTINGS {
 #endif
         };
     };
+    uint32_t StreamRecvWindowBidiLocalDefault;
+    uint32_t StreamRecvWindowBidiRemoteDefault;
+    uint32_t StreamRecvWindowUnidiDefault;
 
 } QUIC_SETTINGS;
 

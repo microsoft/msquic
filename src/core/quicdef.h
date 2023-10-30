@@ -652,6 +652,9 @@ CXPLAT_STATIC_ASSERT(
 #define QUIC_SETTING_MAX_TLS_CLIENT_SEND_BUFFER     "TlsClientMaxSendBuffer"
 #define QUIC_SETTING_MAX_TLS_SERVER_SEND_BUFFER     "TlsServerMaxSendBuffer"
 #define QUIC_SETTING_STREAM_FC_WINDOW_SIZE          "StreamRecvWindowDefault"
+#define QUIC_SETTING_STREAM_FC_BIDI_LOCAL_WINDOW_SIZE "StreamRecvWindowBidiLocalDefault"
+#define QUIC_SETTING_STREAM_FC_BIDI_REMOTE_WINDOW_SIZE "StreamRecvWindowBidiRemoteDefault"
+#define QUIC_SETTING_STREAM_FC_UNIDI_WINDOW_SIZE    "StreamRecvWindowUnidiDefault"
 #define QUIC_SETTING_STREAM_RECV_BUFFER_SIZE        "StreamRecvBufferDefault"
 #define QUIC_SETTING_CONN_FLOW_CONTROL_WINDOW       "ConnFlowControlWindow"
 
