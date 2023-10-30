@@ -412,12 +412,12 @@ void buildInitialPacket(CXPLAT_SOCKET* Binding, CXPLAT_ROUTE Route, int64_t* Pac
         printf("CxPlatSendDataAlloc failed\n");
     }
     while (!CxPlatSendDataIsFull(SendData)) {
-        const uint32_t PacketNumber = GetRandom(1000);
+        const uint64_t PacketNumber = GetRandom(1000);
         uint8_t Packet[512] = {0};
         uint16_t PacketLength, HeaderLength;
 
         WriteClientInitialPacket(
-            PacketNumber,
+            (uint32_t)PacketNumber,
             sizeof(uint64_t),
             sizeof(Packet),
             Packet,
