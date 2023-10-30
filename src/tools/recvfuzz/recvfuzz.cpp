@@ -56,7 +56,7 @@ struct StrBuffer {
 
 class FuzzingData {
     const uint8_t* data {nullptr};
-    size_t size {0};
+    const size_t size {0};
     size_t offset {0};
     bool CheckBoundary(size_t Adding) {
         if (size < offset + Adding) {
@@ -65,7 +65,7 @@ class FuzzingData {
         return true;
     }
 public:
-    FuzzingData(const uint8_t* data, size_t size) : data(data), size(size) {}
+    FuzzingData(const uint8_t* data, const size_t size) : data(data), size(size) {}
     template<typename T>
     bool TryGetRandom(T UpperBound, T* Val) {
         int type_size = sizeof(T);
@@ -85,7 +85,7 @@ static FuzzingData* FuzzData = nullptr;
 template<typename T>
 T GetRandom(T UpperBound) {
     if (!FuzzData) {
-        return (T)(rand() % (int)(UpperBound));
+        return (T)(rand() % (int)UpperBound);
     }
 
     uint64_t out = 0;
@@ -399,22 +399,20 @@ void WriteClientInitialPacket(
 void fuzzPacket(uint8_t* Packet, uint16_t PacketLength) {
     uint8_t numIteration = (uint8_t)GetRandom(256);
     for(int i = 0; i < numIteration; i++){
-        uint16_t offset = (uint16_t)GetRandom(PacketLength); // offset
-        uint8_t value = (uint8_t)GetRandom(256); // value
-        *(Packet + offset) = value;  
+        Packet[GetRandom(PacketLength)] = (uint8_t)GetRandom(256); 
     }
 }
 
-void fuzzInitialPacket(CXPLAT_SOCKET* Binding, CXPLAT_ROUTE Route, uint64_t StartTimeMs, int64_t* PacketCount, int64_t* TotalByteCount, bool fuzzing = true) {
+void buildInitialPacket(CXPLAT_SOCKET* Binding, CXPLAT_ROUTE Route, int64_t* PacketCount, int64_t* TotalByteCount, bool fuzzing = true) {
     const StrBuffer InitialSalt("afbfec289993d24c9e9786f19c6111e04390a899");
     const uint16_t DatagramLength = QUIC_MIN_INITIAL_LENGTH; 
     CXPLAT_SEND_CONFIG SendConfig = { &Route, DatagramLength, CXPLAT_ECN_NON_ECT, 0 };
     CXPLAT_SEND_DATA* SendData = CxPlatSendDataAlloc(Binding, &SendConfig);
-    if (!SendData){
+    if (!SendData) {
         printf("CxPlatSendDataAlloc failed\n");
     }
-    while (CxPlatTimeDiff64(StartTimeMs, CxPlatTimeMs64()) < RunTimeMs && !CxPlatSendDataIsFull(SendData)) {
-        const uint64_t PacketNumber = 0; //fuzz
+    while (!CxPlatSendDataIsFull(SendData)) {
+        const uint32_t PacketNumber = GetRandom(1000);
         uint8_t Packet[512] = {0};
         uint16_t PacketLength, HeaderLength;
 
@@ -444,16 +442,15 @@ void fuzzInitialPacket(CXPLAT_SOCKET* Binding, CXPLAT_ROUTE Route, uint64_t Star
 
         CxPlatRandom(sizeof(uint64_t), DestCid); //fuzz
         CxPlatRandom(sizeof(uint64_t), SrcCid); //fuzz
-        if(fuzzing){
+        if (fuzzing) {
             fuzzPacket(Packet, sizeof(Packet));
         }
         QUIC_BUFFER* SendBuffer =
             CxPlatSendDataAllocBuffer(SendData, DatagramLength);
             if (!SendBuffer) {
-            printf("CxPlatSendDataAllocBuffer failed\n");
-            return;
+                printf("CxPlatSendDataAllocBuffer failed\n");
+                return;
             }
-        (*DestCid)++; (*SrcCid)++;
         *OrigSrcCid = *SrcCid;
         memcpy(SendBuffer->Buffer, Packet, PacketLength);
         QUIC_PACKET_KEY* WriteKey;
@@ -506,7 +503,6 @@ void fuzzInitialPacket(CXPLAT_SOCKET* Binding, CXPLAT_ROUTE Route, uint64_t Star
         printf("Send failed!\n");
         exit(0);
     }
-
 }
 
 void fuzzHandshakePacket() {
@@ -519,18 +515,15 @@ void fuzz(CXPLAT_SOCKET* Binding, CXPLAT_ROUTE Route) {
     uint8_t mode;
     uint64_t StartTimeMs = CxPlatTimeMs64();
     while (CxPlatTimeDiff64(StartTimeMs, CxPlatTimeMs64()) < RunTimeMs) {
-        mode = (uint8_t)GetRandom(2);
+        mode = 0; //(uint8_t)GetRandom(2);
         if (mode == 0) {
-            printf("Running Initial Packet Fuzzing\n");
-            fuzzInitialPacket(Binding, Route, StartTimeMs, &PacketCount, &TotalByteCount);
-        } else if (mode == 1){
-            printf("Running Handshake Packet Fuzzing\n");
+            buildInitialPacket(Binding, Route, &PacketCount, &TotalByteCount);
+        } else if (mode == 1) {
             fuzzHandshakePacket();
         }
     }
         printf("Total Packets sent: %lld\n", (long long)PacketCount);
         printf("Total Bytes sent: %lld\n", (long long)TotalByteCount);
-
 }
 
 void start() {
