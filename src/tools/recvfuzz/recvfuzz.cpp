@@ -28,8 +28,6 @@ const MsQuicApi* MsQuic;
 uint64_t MagicCid = 0x989898989898989ull;
 const QUIC_HKDF_LABELS HkdfLabels = { "quic key", "quic iv", "quic hp", "quic ku" };
 uint64_t RunTimeMs = 60000;
-uint8_t mode;
-uint8_t numIteration;
 
 static const char* Alpn = "fuzz";
 static uint32_t Version = QUIC_VERSION_DRAFT_29;
@@ -399,6 +397,7 @@ void WriteClientInitialPacket(
 }
 
 void fuzzPacket(uint8_t* Packet, uint16_t PacketLength) {
+    uint8_t numIteration = (uint8_t)GetRandom(256);
     for(int i = 0; i < numIteration; i++){
         uint16_t offset = (uint16_t)GetRandom(PacketLength); // offset
         uint8_t value = (uint8_t)GetRandom(256); // value
@@ -406,130 +405,132 @@ void fuzzPacket(uint8_t* Packet, uint16_t PacketLength) {
     }
 }
 
-void fuzzInitialPacket(CXPLAT_SOCKET* Binding, CXPLAT_ROUTE Route) {
+void fuzzInitialPacket(CXPLAT_SOCKET* Binding, CXPLAT_ROUTE Route, uint64_t StartTimeMs, int64_t PacketCount, int64_t TotalByteCount, bool fuzzing = true) {
     const StrBuffer InitialSalt("afbfec289993d24c9e9786f19c6111e04390a899");
     const uint16_t DatagramLength = QUIC_MIN_INITIAL_LENGTH; 
-    uint64_t StartTimeMs = CxPlatTimeMs64();
-    int64_t PacketCount = 0;
-    int64_t TotalByteCount = 0;
-    while (CxPlatTimeDiff64(StartTimeMs, CxPlatTimeMs64()) < RunTimeMs) {
-        CXPLAT_SEND_CONFIG SendConfig = { &Route, DatagramLength, CXPLAT_ECN_NON_ECT, 0 };
-        CXPLAT_SEND_DATA* SendData = CxPlatSendDataAlloc(Binding, &SendConfig);
-        if (!SendData){
-            printf("CxPlatSendDataAlloc failed\n");
+    CXPLAT_SEND_CONFIG SendConfig = { &Route, DatagramLength, CXPLAT_ECN_NON_ECT, 0 };
+    CXPLAT_SEND_DATA* SendData = CxPlatSendDataAlloc(Binding, &SendConfig);
+    if (!SendData){
+        printf("CxPlatSendDataAlloc failed\n");
+    }
+    while (CxPlatTimeDiff64(StartTimeMs, CxPlatTimeMs64()) < RunTimeMs && !CxPlatSendDataIsFull(SendData)) {
+        const uint64_t PacketNumber = 0; //fuzz
+        uint8_t Packet[512] = {0};
+        uint16_t PacketLength, HeaderLength;
+
+        WriteClientInitialPacket(
+            PacketNumber,
+            sizeof(uint64_t),
+            sizeof(Packet),
+            Packet,
+            &PacketLength,
+            &HeaderLength);
+
+        uint16_t PacketNumberOffset = HeaderLength - sizeof(uint32_t);
+
+        uint64_t* DestCid = (uint64_t*)(Packet + sizeof(QUIC_LONG_HEADER_V1));
+        uint64_t* SrcCid = (uint64_t*)(Packet + sizeof(QUIC_LONG_HEADER_V1) + sizeof(uint64_t) + sizeof(uint8_t));
+
+        uint64_t* OrigSrcCid = nullptr;
+        for (uint16_t i = HeaderLength; i < PacketLength; ++i) {
+            if (!memcmp(&MagicCid, Packet+i, sizeof(MagicCid))) {
+                OrigSrcCid = (uint64_t*)&Packet[i];
+            }
         }
-        while (CxPlatTimeDiff64(StartTimeMs, CxPlatTimeMs64()) < RunTimeMs && !CxPlatSendDataIsFull(SendData)) {
-            const uint64_t PacketNumber = 0; //fuzz
-            uint8_t Packet[512] = {0};
-            uint16_t PacketLength, HeaderLength;
+        if (!OrigSrcCid) {
+            printf("Failed to find OrigSrcCid!\n");
+            return;
+        }
 
-            WriteClientInitialPacket(
-                PacketNumber,
-                sizeof(uint64_t),
-                sizeof(Packet),
-                Packet,
-                &PacketLength,
-                &HeaderLength);
-
-            uint16_t PacketNumberOffset = HeaderLength - sizeof(uint32_t);
-
-            uint64_t* DestCid = (uint64_t*)(Packet + sizeof(QUIC_LONG_HEADER_V1));
-            uint64_t* SrcCid = (uint64_t*)(Packet + sizeof(QUIC_LONG_HEADER_V1) + sizeof(uint64_t) + sizeof(uint8_t));
-
-            uint64_t* OrigSrcCid = nullptr;
-            for (uint16_t i = HeaderLength; i < PacketLength; ++i) {
-                if (!memcmp(&MagicCid, Packet+i, sizeof(MagicCid))) {
-                    OrigSrcCid = (uint64_t*)&Packet[i];
-                }
-            }
-            if (!OrigSrcCid) {
-                printf("Failed to find OrigSrcCid!\n");
-                return;
-            }
-
-            CxPlatRandom(sizeof(uint64_t), DestCid); //fuzz
-            CxPlatRandom(sizeof(uint64_t), SrcCid); //fuzz
+        CxPlatRandom(sizeof(uint64_t), DestCid); //fuzz
+        CxPlatRandom(sizeof(uint64_t), SrcCid); //fuzz
+        if(fuzzing){
             fuzzPacket(Packet, sizeof(Packet));
-            QUIC_BUFFER* SendBuffer =
-                CxPlatSendDataAllocBuffer(SendData, DatagramLength);
-             if (!SendBuffer) {
-                printf("CxPlatSendDataAllocBuffer failed\n");
-                return;
-                }
-            (*DestCid)++; (*SrcCid)++;
-            *OrigSrcCid = *SrcCid;
-            memcpy(SendBuffer->Buffer, Packet, PacketLength);
-            QUIC_PACKET_KEY* WriteKey;
-            
-            if (QUIC_FAILED(
-                QuicPacketKeyCreateInitial(
-                    FALSE,
-                    &HkdfLabels,
-                    InitialSalt.Data,
-                    sizeof(uint64_t),
-                    (uint8_t*)DestCid,
-                 nullptr,
-                    &WriteKey))) {
-                printf("QuicPacketKeyCreateInitial failed\n");
-                return;
-            }
-            uint8_t Iv[CXPLAT_IV_LENGTH];
-            QuicCryptoCombineIvAndPacketNumber(
-                WriteKey->Iv, (uint8_t*)&PacketNumber, Iv);
-
-            CxPlatEncrypt(
-                WriteKey->PacketKey,
-                Iv,
-                HeaderLength,
-                SendBuffer->Buffer,
-                PacketLength - HeaderLength,
-                SendBuffer->Buffer + HeaderLength);
-
-            uint8_t HpMask[16];
-            CxPlatHpComputeMask(
-                WriteKey->HeaderKey,
-                1,
-                SendBuffer->Buffer + HeaderLength,
-                HpMask);
-
-            QuicPacketKeyFree(WriteKey);
-            SendBuffer->Buffer[0] ^= HpMask[0] & 0x0F;
-            for (uint8_t i = 0; i < 4; ++i) {
-                SendBuffer->Buffer[PacketNumberOffset + i] ^= HpMask[i + 1];
-            }
-            InterlockedExchangeAdd64(&PacketCount, 1);
-            InterlockedExchangeAdd64(&TotalByteCount, DatagramLength);
         }
+        QUIC_BUFFER* SendBuffer =
+            CxPlatSendDataAllocBuffer(SendData, DatagramLength);
+            if (!SendBuffer) {
+            printf("CxPlatSendDataAllocBuffer failed\n");
+            return;
+            }
+        (*DestCid)++; (*SrcCid)++;
+        *OrigSrcCid = *SrcCid;
+        memcpy(SendBuffer->Buffer, Packet, PacketLength);
+        QUIC_PACKET_KEY* WriteKey;
         
         if (QUIC_FAILED(
-            CxPlatSocketSend(
-                Binding,
-                &Route,
-                SendData))) {
-            printf("Send failed!\n");
-            exit(0);
+            QuicPacketKeyCreateInitial(
+                FALSE,
+                &HkdfLabels,
+                InitialSalt.Data,
+                sizeof(uint64_t),
+                (uint8_t*)DestCid,
+                nullptr,
+                &WriteKey))) {
+            printf("QuicPacketKeyCreateInitial failed\n");
+            return;
         }
+        uint8_t Iv[CXPLAT_IV_LENGTH];
+        QuicCryptoCombineIvAndPacketNumber(
+            WriteKey->Iv, (uint8_t*)&PacketNumber, Iv);
+
+        CxPlatEncrypt(
+            WriteKey->PacketKey,
+            Iv,
+            HeaderLength,
+            SendBuffer->Buffer,
+            PacketLength - HeaderLength,
+            SendBuffer->Buffer + HeaderLength);
+
+        uint8_t HpMask[16];
+        CxPlatHpComputeMask(
+            WriteKey->HeaderKey,
+            1,
+            SendBuffer->Buffer + HeaderLength,
+            HpMask);
+
+        QuicPacketKeyFree(WriteKey);
+        SendBuffer->Buffer[0] ^= HpMask[0] & 0x0F;
+        for (uint8_t i = 0; i < 4; ++i) {
+            SendBuffer->Buffer[PacketNumberOffset + i] ^= HpMask[i + 1];
+        }
+        InterlockedExchangeAdd64(&PacketCount, 1);
+        InterlockedExchangeAdd64(&TotalByteCount, DatagramLength);
     }
-    printf("Total Initial Packets sent: %lld\n", (long long)PacketCount);
-    printf("Total Bytes sent: %lld\n", (long long)TotalByteCount);
+    
+    if (QUIC_FAILED(
+        CxPlatSocketSend(
+            Binding,
+            &Route,
+            SendData))) {
+        printf("Send failed!\n");
+        exit(0);
+    }
+
 }
 
 void fuzzHandshakePacket() {
 // TODO
 }
 
-void makeServer(QUIC_ADDR* sockAddr){
-    MsQuicRegistration Registration(true);
-    QUIC_SUCCEEDED(Registration.GetInitStatus());
+void fuzz(CXPLAT_SOCKET* Binding, CXPLAT_ROUTE Route) {
+    int64_t PacketCount = 0;
+    int64_t TotalByteCount = 0;
+    uint8_t mode;
+    uint64_t StartTimeMs = CxPlatTimeMs64();
+    while (CxPlatTimeDiff64(StartTimeMs, CxPlatTimeMs64()) < RunTimeMs) {
+        printf("Total Initial Packets sent: %lld\n", (long long)PacketCount);
+        printf("Total Bytes sent: %lld\n", (long long)TotalByteCount);
+        mode = (uint8_t)GetRandom(2);
+        if (mode == 0) {
+            printf("Running Initial Packet Fuzzing\n");
+            fuzzInitialPacket(Binding, Route, StartTimeMs, PacketCount, TotalByteCount);
+        } else if (mode == 1){
+            printf("Running Handshake Packet Fuzzing\n");
+            fuzzHandshakePacket();
+        }
+    }
 
-    auto CredConfig = CxPlatGetSelfSignedCert(CXPLAT_SELF_SIGN_CERT_USER, FALSE, NULL);
-
-    MsQuicConfiguration ServerConfiguration(Registration, Alpn, *CredConfig);
-
-    QUIC_SUCCEEDED(ServerConfiguration.GetInitStatus());
-    MsQuicAutoAcceptListener Listener(Registration, ServerConfiguration, MsQuicConnection::NoOpCallback);
-    QUIC_SUCCEEDED(Listener.Start(Alpn, sockAddr));
-    QUIC_SUCCEEDED(Listener.GetInitStatus());
 }
 
 void start() {
@@ -563,7 +564,17 @@ void start() {
     }
     QuicAddrSetPort(&sockAddr, 9999);
     // make a server
-    makeServer(&sockAddr);
+    MsQuicRegistration Registration(true);
+    QUIC_SUCCEEDED(Registration.GetInitStatus());
+
+    auto CredConfig = CxPlatGetSelfSignedCert(CXPLAT_SELF_SIGN_CERT_USER, FALSE, NULL);
+
+    MsQuicConfiguration ServerConfiguration(Registration, Alpn, *CredConfig);
+
+    QUIC_SUCCEEDED(ServerConfiguration.GetInitStatus());
+    MsQuicAutoAcceptListener Listener(Registration, ServerConfiguration, MsQuicConnection::NoOpCallback);
+    QUIC_SUCCEEDED(Listener.Start(Alpn, &sockAddr));
+    QUIC_SUCCEEDED(Listener.GetInitStatus());
 
     CXPLAT_SOCKET* Binding;
     CXPLAT_UDP_CONFIG UdpConfig = {0};
@@ -591,13 +602,7 @@ void start() {
     Route.RemoteAddress = sockAddr;
 
     // Fuzzing
-    if (mode == 0) {
-        printf("Running Initial Packet Fuzzing\n");
-        fuzzInitialPacket(Binding, Route);
-    } else if (mode == 1){
-        printf("Running Handshake Packet Fuzzing\n");
-        fuzzHandshakePacket();
-    }
+    fuzz(Binding, Route);
 }
 
 #ifdef FUZZING
@@ -621,8 +626,6 @@ main(int argc, char **argv) {
     }   
     printf("Using seed value: %u\n", RngSeed);
     srand(RngSeed);
-    mode = (uint8_t)GetRandom(2);
-    numIteration = (uint8_t)GetRandom(256);
     start();
 
     return 0;
