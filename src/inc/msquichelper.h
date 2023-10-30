@@ -265,6 +265,7 @@ EncodeHexBuffer(
     #define HEX_TO_CHAR(x) ((x) > 9 ? ('a' + ((x) - 10)) : '0' + (x))
     for (uint8_t i = 0; i < BufferLen; i++) {
         HexString[i*2]     = HEX_TO_CHAR(Buffer[i] >> 4);
+#pragma GCC diagnostic ignored "-Wstringop-overflow"
         HexString[i*2 + 1] = HEX_TO_CHAR(Buffer[i] & 0xf);
     }
 }
