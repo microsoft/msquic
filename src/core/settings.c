@@ -516,11 +516,17 @@ QuicSettingApply(
         Destination->IsSet.StreamRecvWindowDefault = TRUE;
 
         //
-        // set also window size for individual stream types, they will be overwritten by a more specific settings if set
+        // Also set window size for individual stream types, they will be overwritten by a more specific settings if set
         //
-        Destination->StreamRecvWindowBidiLocalDefault = Source->StreamRecvWindowDefault;
-        Destination->StreamRecvWindowBidiRemoteDefault = Source->StreamRecvWindowDefault;
-        Destination->StreamRecvWindowUnidiDefault = Source->StreamRecvWindowDefault;
+        if (!Destination->IsSet.StreamRecvWindowBidiLocalDefault || OverWrite) {
+            Destination->StreamRecvWindowBidiLocalDefault = Source->StreamRecvWindowDefault;
+        }
+        if (!Destination->IsSet.StreamRecvWindowBidiRemoteDefault || OverWrite) {
+            Destination->StreamRecvWindowBidiRemoteDefault = Source->StreamRecvWindowDefault;
+        }
+        if (!Destination->IsSet.StreamRecvWindowUnidiDefault || OverWrite) {
+            Destination->StreamRecvWindowUnidiDefault = Source->StreamRecvWindowDefault;
+        }
     }
     if (Source->IsSet.StreamRecvWindowBidiLocalDefault && (!Destination->IsSet.StreamRecvWindowBidiLocalDefault || OverWrite)) {
         if (Source->StreamRecvWindowBidiLocalDefault == 0 || (Source->StreamRecvWindowBidiLocalDefault & (Source->StreamRecvWindowBidiLocalDefault - 1)) != 0) {
