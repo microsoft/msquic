@@ -1710,9 +1710,6 @@ QuicSettingsSettingsToInternal(
     SETTING_COPY_TO_INTERNAL(TlsClientMaxSendBuffer, Settings, InternalSettings);
     SETTING_COPY_TO_INTERNAL(TlsServerMaxSendBuffer, Settings, InternalSettings);
     SETTING_COPY_TO_INTERNAL(StreamRecvWindowDefault, Settings, InternalSettings);
-    SETTING_COPY_TO_INTERNAL(StreamRecvWindowBidiLocalDefault, Settings, InternalSettings);
-    SETTING_COPY_TO_INTERNAL(StreamRecvWindowBidiRemoteDefault, Settings, InternalSettings);
-    SETTING_COPY_TO_INTERNAL(StreamRecvWindowUnidiDefault, Settings, InternalSettings);
     SETTING_COPY_TO_INTERNAL(StreamRecvBufferDefault, Settings, InternalSettings);
     SETTING_COPY_TO_INTERNAL(ConnFlowControlWindow, Settings, InternalSettings);
     SETTING_COPY_TO_INTERNAL(MaxWorkerQueueDelayUs, Settings, InternalSettings);
@@ -1793,6 +1790,27 @@ QuicSettingsSettingsToInternal(
         SettingsSize,
         InternalSettings);
 
+    SETTING_COPY_TO_INTERNAL_SIZED(
+        StreamRecvWindowBidiLocalDefault,
+        QUIC_SETTINGS,
+        Settings,
+        SettingsSize,
+        InternalSettings);
+
+    SETTING_COPY_TO_INTERNAL_SIZED(
+        StreamRecvWindowBidiRemoteDefault,
+        QUIC_SETTINGS,
+        Settings,
+        SettingsSize,
+        InternalSettings);
+
+    SETTING_COPY_TO_INTERNAL_SIZED(
+        StreamRecvWindowUnidiDefault,
+        QUIC_SETTINGS,
+        Settings,
+        SettingsSize,
+        InternalSettings);
+
     return QUIC_STATUS_SUCCESS;
 }
 
@@ -1845,9 +1863,6 @@ QuicSettingsGetSettings(
     SETTING_COPY_FROM_INTERNAL(TlsClientMaxSendBuffer, Settings, InternalSettings);
     SETTING_COPY_FROM_INTERNAL(TlsServerMaxSendBuffer, Settings, InternalSettings);
     SETTING_COPY_FROM_INTERNAL(StreamRecvWindowDefault, Settings, InternalSettings);
-    SETTING_COPY_FROM_INTERNAL(StreamRecvWindowBidiLocalDefault, Settings, InternalSettings);
-    SETTING_COPY_FROM_INTERNAL(StreamRecvWindowBidiRemoteDefault, Settings, InternalSettings);
-    SETTING_COPY_FROM_INTERNAL(StreamRecvWindowUnidiDefault, Settings, InternalSettings);
     SETTING_COPY_FROM_INTERNAL(StreamRecvBufferDefault, Settings, InternalSettings);
     SETTING_COPY_FROM_INTERNAL(ConnFlowControlWindow, Settings, InternalSettings);
     SETTING_COPY_FROM_INTERNAL(MaxWorkerQueueDelayUs, Settings, InternalSettings);
@@ -1923,6 +1938,26 @@ QuicSettingsGetSettings(
     SETTING_COPY_FLAG_FROM_INTERNAL_SIZED(
         Flags,
         OneWayDelayEnabled,
+        QUIC_SETTINGS,
+        Settings,
+        *SettingsLength,
+        InternalSettings);
+
+    SETTING_COPY_FROM_INTERNAL_SIZED(
+        StreamRecvWindowBidiLocalDefault,
+        QUIC_SETTINGS,
+        Settings,
+        *SettingsLength,
+        InternalSettings);
+
+    SETTING_COPY_FROM_INTERNAL_SIZED(
+        StreamRecvWindowBidiRemoteDefault,
+        QUIC_SETTINGS,
+        Settings,
+        *SettingsLength,
+        InternalSettings);
+
+    SETTING_COPY_FROM_INTERNAL_SIZED(StreamRecvWindowUnidiDefault,
         QUIC_SETTINGS,
         Settings,
         *SettingsLength,
