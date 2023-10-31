@@ -126,7 +126,18 @@
             uint64_t DestCidUpdateIdleTimeoutMs             : 1;
             uint64_t GreaseQuicBitEnabled                   : 1;
             uint64_t EcnEnabled                             : 1;
-            uint64_t RESERVED                               : 30;
+            uint64_t HyStartEnabled                         : 1;
+            uint64_t StreamRecvWindowBidiLocalDefault       : 1;
+            uint64_t StreamRecvWindowBidiRemoteDefault      : 1;
+            uint64_t StreamRecvWindowUnidiDefault           : 1;
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
+            uint64_t EncryptionOffloadAllowed               : 1;
+            uint64_t ReliableResetEnabled                   : 1;
+            uint64_t OneWayDelayEnabled                     : 1;
+            uint64_t RESERVED                               : 23;
+#else
+            uint64_t RESERVED                               : 26;
+#endif
         } IsSet;
     };
 
@@ -164,6 +175,23 @@
     uint8_t MaxOperationsPerDrain;
     uint8_t MtuDiscoveryMissingProbeCount;
     uint32_t DestCidUpdateIdleTimeoutMs;
+    union {
+        uint64_t Flags;
+        struct {
+            uint64_t HyStartEnabled            : 1;
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
+            uint64_t EncryptionOffloadAllowed  : 1;
+            uint64_t ReliableResetEnabled      : 1;
+            uint64_t OneWayDelayEnabled        : 1;
+            uint64_t ReservedFlags             : 60;
+#else
+            uint64_t ReservedFlags             : 63;
+#endif
+        };
+    };
+    uint32_t StreamRecvWindowBidiLocalDefault;
+    uint32_t StreamRecvWindowBidiRemoteDefault;
+    uint32_t StreamRecvWindowUnidiDefault;
 
 } QUIC_SETTINGS;
 </code></pre>
@@ -186,8 +214,8 @@
 <p>How much server TLS data to buffer.  If the application expects very large server certificates, or long server certificate chains, this value should be increased.</p>
 <p><strong>Default value:</strong>  8,192</p>
 <p><code>StreamRecvWindowDefault</code></p>
-<p>Initial stream receive window size.</p>
-<p><strong>Default value:</strong> 32,768</p>
+<p>Initial stream receive flow control window size. This applies to all stream types. Limits for specific stream types can be set using <code>StreamRecvWindowBidirLocalDefault</code>, <code>StreamRecvWindowBidirRemoteDefault</code> and <code>StreamRecvWindowUnidirDefault</code>. The value must be a power of 2.</p>
+<p><strong>Default value:</strong> 65,536</p>
 <p><code>StreamRecvBufferDefault</code></p>
 <p>Stream initial buffer size.</p>
 <p><strong>Default value:</strong> 4,096</p>
@@ -275,6 +303,15 @@
 <p><code>EcnEnabled</code></p>
 <p>Enable sender-side ECN support. The connection will validate and react to ECN feedback from peer.</p>
 <p><strong>Default value:</strong> 0 (<code>FALSE</code>)</p>
+<p><code>StreamRecvWindowBidirLocalDefault</code></p>
+<p>Initial stream receive flow control window size for locally initiated bidirectional streams. If set, this value overwrites the <code>StreamRecvWindowDefault</code>.</p>
+<p><strong>Default value:</strong> 0 (no overwrite)</p>
+<p><code>StreamRecvWindowBidirRemoteDefault</code></p>
+<p>Initial stream receive flow control window size for remotely initiated bidirectional streams. If set, this value overwrites the <code>StreamRecvWindowDefault</code>.</p>
+<p><strong>Default value:</strong> 0 (no overwrite)</p>
+<p><code>StreamRecvWindowUnidiDefault</code></p>
+<p>Initial stream receive flow control window size for remotely initiated unidirectional streams. If set, this value overwrites the <code>StreamRecvWindowDefault</code>.</p>
+<p><strong>Default value:</strong> 0 (no overwrite)</p>
 <h1 id="remarks">Remarks</h1>
 <p>When setting new values for the settings, the app must set the corresponding <code>.IsSet.*</code> parameter for each actual parameter that is being set or updated. For example:</p>
 <pre><code class="lang-C">QUIC_SETTINGS Settings {0};

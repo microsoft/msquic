@@ -174,8 +174,29 @@ Generally MsQuic already choses the best / most correct default values for all s
 <td>Stream Receive Window</td>
 <td>uint32_t</td>
 <td>StreamRecvWindowDefault</td>
-<td>32,768</td>
-<td>Initial stream receive window size.</td>
+<td>65,536</td>
+<td>Initial stream receive window size for all stream types.</td>
+</tr>
+<tr>
+<td>Stream Receive Window (Bidirectional, locally created)</td>
+<td>uint32_t</td>
+<td>StreamRecvWindowBidiLocalDefault</td>
+<td>-</td>
+<td>If set, overrides stream receive window size for locally initiated bidirectional streams.</td>
+</tr>
+<tr>
+<td>Stream Receive Window (Bidirectional, remotely created)</td>
+<td>uint32_t</td>
+<td>StreamRecvWindowBidiRemoteDefault</td>
+<td>-</td>
+<td>If set, overrides stream receive window size for remote initiated bidirectional streams.</td>
+</tr>
+<tr>
+<td>Stream Receive Window (Unidirectional)</td>
+<td>uint32_t</td>
+<td>StreamRecvWindowUnidiDefault</td>
+<td>-</td>
+<td>If set, overrides stream receive window size for remote initiated unidirectional streams.</td>
 </tr>
 <tr>
 <td>Stream Receive Buffer</td>
