@@ -114,7 +114,7 @@ QuicStreamInitialize(
         }
     }
 
-    int32_t FlowControlWindowSize = Stream->Flags.Unidirectional
+    const uint32_t FlowControlWindowSize = Stream->Flags.Unidirectional
         ? Connection->Settings.StreamRecvWindowUnidiDefault
         : OpenedRemotely
             ? Connection->Settings.StreamRecvWindowBidiRemoteDefault

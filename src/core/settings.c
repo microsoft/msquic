@@ -515,7 +515,9 @@ QuicSettingApply(
         Destination->StreamRecvWindowDefault = Source->StreamRecvWindowDefault;
         Destination->IsSet.StreamRecvWindowDefault = TRUE;
 
+        //
         // set also window size for individual stream types, they will be overwritten by a more specific settings if set
+        //
         Destination->StreamRecvWindowBidiLocalDefault = Source->StreamRecvWindowDefault;
         Destination->StreamRecvWindowBidiRemoteDefault = Source->StreamRecvWindowDefault;
         Destination->StreamRecvWindowUnidiDefault = Source->StreamRecvWindowDefault;
@@ -675,11 +677,6 @@ QuicSettingApply(
     if (Source->IsSet.ReliableResetEnabled && (!Destination->IsSet.ReliableResetEnabled || OverWrite)) {
         Destination->ReliableResetEnabled = Source->ReliableResetEnabled;
         Destination->IsSet.ReliableResetEnabled = TRUE;
-    }
-
-    if (Source->IsSet.OneWayDelayEnabled && (!Destination->IsSet.OneWayDelayEnabled || OverWrite)) {
-        Destination->OneWayDelayEnabled = Source->OneWayDelayEnabled;
-        Destination->IsSet.OneWayDelayEnabled = TRUE;
     }
 
     if (Source->IsSet.OneWayDelayEnabled && (!Destination->IsSet.OneWayDelayEnabled || OverWrite)) {
@@ -1561,6 +1558,7 @@ QuicSettingsDumpNew(
         QuicTraceLogVerbose(SettingOneWayDelayEnabled,              "[sett] OneWayDelayEnabled         = %hhu", Settings->OneWayDelayEnabled);
     }
 }
+
 #define SETTINGS_SIZE_THRU_FIELD(SettingsType, Field) \
     (FIELD_OFFSET(SettingsType, Field) + sizeof(((SettingsType*)0)->Field))
 
