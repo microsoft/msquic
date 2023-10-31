@@ -2198,9 +2198,9 @@ QuicConnRecvResumptionTicket(
         //
         if (ResumedTP.ActiveConnectionIdLimit > QUIC_ACTIVE_CONNECTION_ID_LIMIT ||
             ResumedTP.InitialMaxData > Connection->Send.MaxData ||
-            ResumedTP.InitialMaxStreamDataBidiLocal > Connection->Settings.StreamRecvWindowDefault ||
-            ResumedTP.InitialMaxStreamDataBidiRemote > Connection->Settings.StreamRecvWindowDefault ||
-            ResumedTP.InitialMaxStreamDataUni > Connection->Settings.StreamRecvWindowDefault ||
+            ResumedTP.InitialMaxStreamDataBidiLocal > Connection->Settings.StreamRecvWindowBidiLocalDefault ||
+            ResumedTP.InitialMaxStreamDataBidiRemote > Connection->Settings.StreamRecvWindowBidiRemoteDefault ||
+            ResumedTP.InitialMaxStreamDataUni > Connection->Settings.StreamRecvWindowUnidiDefault ||
             ResumedTP.InitialMaxUniStreams > Connection->Streams.Types[STREAM_ID_FLAG_IS_CLIENT | STREAM_ID_FLAG_IS_UNI_DIR].MaxTotalStreamCount ||
             ResumedTP.InitialMaxBidiStreams > Connection->Streams.Types[STREAM_ID_FLAG_IS_CLIENT | STREAM_ID_FLAG_IS_BI_DIR].MaxTotalStreamCount) {
             //
@@ -2344,9 +2344,9 @@ QuicConnGenerateLocalTransportParameters(
             Link);
 
     LocalTP->InitialMaxData = Connection->Send.MaxData;
-    LocalTP->InitialMaxStreamDataBidiLocal = Connection->Settings.StreamRecvWindowDefault;
-    LocalTP->InitialMaxStreamDataBidiRemote = Connection->Settings.StreamRecvWindowDefault;
-    LocalTP->InitialMaxStreamDataUni = Connection->Settings.StreamRecvWindowDefault;
+    LocalTP->InitialMaxStreamDataBidiLocal = Connection->Settings.StreamRecvWindowBidiLocalDefault;
+    LocalTP->InitialMaxStreamDataBidiRemote = Connection->Settings.StreamRecvWindowBidiRemoteDefault;
+    LocalTP->InitialMaxStreamDataUni = Connection->Settings.StreamRecvWindowUnidiDefault;
     LocalTP->MaxUdpPayloadSize =
         MaxUdpPayloadSizeFromMTU(
             CxPlatSocketGetLocalMtu(

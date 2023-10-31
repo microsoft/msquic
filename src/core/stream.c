@@ -114,11 +114,17 @@ QuicStreamInitialize(
         }
     }
 
+    const uint32_t FlowControlWindowSize = Stream->Flags.Unidirectional
+        ? Connection->Settings.StreamRecvWindowUnidiDefault
+        : OpenedRemotely
+            ? Connection->Settings.StreamRecvWindowBidiRemoteDefault
+            : Connection->Settings.StreamRecvWindowBidiLocalDefault;
+
     Status =
         QuicRecvBufferInitialize(
             &Stream->RecvBuffer,
             InitialRecvBufferLength,
-            Connection->Settings.StreamRecvWindowDefault,
+            FlowControlWindowSize,
             FALSE,
             PreallocatedRecvBuffer);
     if (QUIC_FAILED(Status)) {
