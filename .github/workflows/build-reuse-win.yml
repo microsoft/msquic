@@ -74,7 +74,7 @@ jobs:
         repository: microsoft/msquic
         ref: ${{ inputs.ref }}
     - name: Install Perl
-      uses: shogo82148/actions-setup-perl@90aae5bc694fba230daa9573de620d6fe9198181
+      uses: shogo82148/actions-setup-perl@a898263d06c9cf32dd8b6d3ea28790baf8d30cd5
       with:
         perl-version: '5.34'
     - name: Install NASM
