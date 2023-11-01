@@ -51,10 +51,9 @@ void PrintUsageList()
 {
     printf("The following are the different types of attacks supported by the tool.\n\n");
 
-    printf("#0 - Random TCP syn packets.\n");
-    printf("#1 - Random UDP 1 byte packets.\n");
-    printf("#2 - Random UDP full length packets.\n");
-    printf("#3 - Random QUIC initial packets.\n");
+    printf("#1 - Flood with TCP Syn packets.\n");
+    printf("#2 - Flood with random UDP packets.\n");
+    printf("#3 - Flood with random QUIC initial packets.\n");
     printf("#4 - Valid QUIC initial packets.\n");
 }
 
@@ -121,9 +120,8 @@ ResolveRouteComplete(
     }
 }
 
-
 //========================================Attacks========================================
-void RunAttackRandom(CXPLAT_SOCKET* Binding, uint16_t Length, bool ValidQuic, bool TCP = false)
+void RunAttackFlooding(CXPLAT_SOCKET* Binding, uint16_t Length, bool ValidQuic, bool TCP = false)
 {
     uint64_t ConnectionId = 0;
     CxPlatRandom(sizeof(ConnectionId), &ConnectionId);
@@ -316,22 +314,16 @@ CXPLAT_THREAD_CALLBACK(RunAttackThread, /* Context */)
     }
 
     switch (AttackType) {
-    case 0:
-        RunAttackRandom(Binding, 1, false, true);
-        break;
     case 1:
-        RunAttackRandom(Binding, QUIC_MIN_INITIAL_LENGTH, false, true);
+        RunAttackFlooding(Binding, 40, false, true);
         break;
     case 2:
-        RunAttackRandom(Binding, 1, false);
+        RunAttackFlooding(Binding, QUIC_MIN_INITIAL_LENGTH, false);
         break;
     case 3:
-        RunAttackRandom(Binding, QUIC_MIN_INITIAL_LENGTH, false);
+        RunAttackFlooding(Binding, QUIC_MIN_INITIAL_LENGTH, true);
         break;
     case 4:
-        RunAttackRandom(Binding, QUIC_MIN_INITIAL_LENGTH, true);
-        break;
-    case 5:
         RunAttackQuic(Binding);
         break;
     default:
@@ -392,7 +384,7 @@ main(
         return 0;
     }
     else if (!TryGetValue(argc, argv, "type", &AttackType) ||
-    (AttackType < 0 || AttackType > 5)) {
+    (AttackType < 1 || AttackType > 4)) {
         PrintUsage();
         return -1;
     } else {
@@ -408,7 +400,7 @@ main(
         UdpUnreachCallback,
     };
     QUIC_EXECUTION_CONFIG DatapathFlags = { 
-        ((AttackType == 0 || AttackType == 1) ? QUIC_EXECUTION_CONFIG_FLAG_QTIP : QUIC_EXECUTION_CONFIG_FLAG_NONE),
+        ((AttackType == 1) ? QUIC_EXECUTION_CONFIG_FLAG_QTIP : QUIC_EXECUTION_CONFIG_FLAG_NONE),
     };
     CxPlatSystemLoad();
     CxPlatInitialize();
