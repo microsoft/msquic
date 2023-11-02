@@ -129,9 +129,13 @@ void RunAttackFlooding(CXPLAT_SOCKET* Binding, uint16_t Length, bool ValidQuic, 
     CXPLAT_ROUTE Route = {0};
     CxPlatSocketGetLocalAddress(Binding, &Route.LocalAddress);
     CxPlatSocketGetRemoteAddress(Binding, &Route.RemoteAddress);
-    if (QUIC_FAILED(CxPlatResolveRoute(Binding, &Route, 0, &Route, ResolveRouteComplete))) {
-        printf("CxPlatResolveRoute failed!\n");
-        return;
+
+    if (CxPlatIsRawInitialized(Datapath))
+    {
+        if (QUIC_FAILED(CxPlatResolveRoute(Binding, &Route, 0, &Route, ResolveRouteComplete))) {
+            printf("CxPlatResolveRoute failed!\n");
+            return;
+        }
     }
 
     CXPLAT_SEND_CONFIG SendConfig = { &Route, Length, CXPLAT_ECN_NON_ECT, 0 };
@@ -315,7 +319,13 @@ CXPLAT_THREAD_CALLBACK(RunAttackThread, /* Context */)
 
     switch (AttackType) {
     case 1:
-        RunAttackFlooding(Binding, 40, false, true);
+        if (CxPlatIsRawInitialized(Datapath))
+        {
+            RunAttackFlooding(Binding, 40, false, true);
+            
+        } else {
+            printf("XDP support is needed for this attack to work!\n");
+        }
         break;
     case 2:
         RunAttackFlooding(Binding, QUIC_MIN_INITIAL_LENGTH, false);
