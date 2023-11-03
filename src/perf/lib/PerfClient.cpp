@@ -437,7 +437,7 @@ PerfClientConnection::StreamCallback(
     case QUIC_STREAM_EVENT_SHUTDOWN_COMPLETE:
         Worker.StreamAllocator.Free(Stream);
         MsQuic->StreamClose(StreamHandle);
-        Worker.QueueSendRequest();
+        //Worker.QueueSendRequest();
         break;
     default:
         break;
@@ -468,7 +468,7 @@ PerfClientWorker::WorkerThread() {
 
 void
 PerfClientWorker::StartNewConnection() {
-    auto Connection = ConnectionAllocator.Alloc(Client->Registration, *Client, *this);
+    auto Connection = ConnectionAllocator.Alloc(Client->Registration, *Client, *this); // TODO - Fix destructor part
     if (!Connection->IsValid()) {
         WriteOutput("ConnectionOpen failed, 0x%x\n", Connection->GetInitStatus());
         return;
