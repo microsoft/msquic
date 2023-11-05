@@ -27,7 +27,7 @@ struct PerfClientConnection : public MsQuicConnection {
     uint64_t TotalStreamCount {0};
     uint64_t ActiveStreamCount {0};
     PerfClientConnection(_In_ const MsQuicRegistration& Registration, _In_ PerfClient& Client, _In_ PerfClientWorker& Worker)
-        : MsQuicConnection(Registration, CleanUpAutoDelete, s_ConnectionCallback), Client(Client), Worker(Worker) { }
+        : MsQuicConnection(Registration, CleanUpAutoDelete, s_ConnectionCallback, this), Client(Client), Worker(Worker) { }
     QUIC_STATUS ConnectionCallback(_Inout_ QUIC_CONNECTION_EVENT* Event);
     static QUIC_STATUS s_ConnectionCallback(MsQuicConnection* /* Conn */, void* Context, QUIC_CONNECTION_EVENT* Event) {
         return ((PerfClientConnection*)Context)->ConnectionCallback(Event);

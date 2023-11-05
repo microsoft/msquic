@@ -232,6 +232,15 @@ InterlockedIncrement64(
     return __sync_add_and_fetch(Addend, (int64_t)1);
 }
 
+inline
+short
+InterlockedDecrement64(
+    _Inout_ _Interlocked_operand_ int64_t volatile *Addend
+    )
+{
+    return __sync_sub_and_fetch(Addend, (int64_t)1);
+}
+
 #define QuicReadPtrNoFence(p) ((void*)(*p)) // TODO
 
 //

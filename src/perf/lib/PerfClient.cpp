@@ -21,13 +21,13 @@ const char PERF_CLIENT_OPTIONS_TEXT[] =
 "\n"
 "Client Options:\n"
 "\n"
-"  Remote options:"
+"  Remote options:\n"
 "  -ip:<0/4/6>              A hint for the resolving the hostname to an IP address. (def:0)\n"
 "  -port:<####>             The UDP port of the server. (def:%u)\n"
 "  -cibir:<hex_bytes>       A CIBIR well-known idenfitier.\n"
 "  -incrementtarget:<0/1>   Append unique ID to target hostname for each worker (def:0).\n"
 "\n"
-"  Local options:"
+"  Local options:\n"
 "  -bind:<addr>             The local IP address(es)/port(s) to bind to.\n"
 "  -addrs:<####>            The max number of local addresses to use. (def:%u)\n"
 "  -threads:<####>          The max number of worker threads to use.\n"
@@ -36,7 +36,7 @@ const char PERF_CLIENT_OPTIONS_TEXT[] =
 "  -comp:<####>             The network compartment ID to run in.\n"
 #endif
 "\n"
-"  Config options:"
+"  Config options:\n"
 "  -encrypt:<0/1>           Disables/enables encryption. (def:1)\n"
 "  -pacing:<0/1>            Disables/enables send pacing. (def:1)\n"
 "  -sendbuf:<0/1>           Disables/enables send buffering. (def:0)\n"
@@ -44,7 +44,7 @@ const char PERF_CLIENT_OPTIONS_TEXT[] =
 "  -sstats:<0/1>            Print stream stats on stream shutdown. (def:0)\n"
 "  -latency<0/1>            Print latency stats at end of run. (def:0)\n"
 "\n"
-"  Scenario options:"
+"  Scenario options:\n"
 "  -conns:<####>            The number of connections to use. (def:1)\n"
 "  -streams:<####>          The number of streams to send on at a time. (def:0)\n"
 "  -upload:<####>           The length of bytes to send on each stream. (def:0)\n"
@@ -327,7 +327,9 @@ PerfClient::Wait(
         Timeout = RunTime;
     }
 
+    WriteOutput("Waiting up to %d ms!\n", Timeout);
     CxPlatEventWaitWithTimeout(*CompletionEvent, Timeout);
+    
     Running = false;
     for (uint32_t i = 0; i < WorkerCount; ++i) {
         Workers[i].Uninitialize();
@@ -523,7 +525,8 @@ PerfClientWorker::StartNewConnection() {
 
 void
 PerfClientConnection::StartNewStream(bool DelaySend) {
-    auto Stream = Worker.StreamAllocator.Alloc(this);
+    UNREFERENCED_PARAMETER(DelaySend);
+    auto Stream = Worker.StreamAllocator.Alloc(*this);
     if (QUIC_FAILED(
         MsQuic->StreamOpen(
             Handle,
