@@ -35,6 +35,16 @@ struct PerfClientConnection : public MsQuicConnection {
     QUIC_STATUS StreamCallback(_In_ PerfClientStream* StrmContext, _In_ HQUIC StreamHandle, _Inout_ QUIC_STREAM_EVENT* Event);
     void StartNewStream(bool DelaySend = false);
     void SendData(_In_ PerfClientStream* Stream);
+    void SendComplete(
+        _In_ PerfClientStream* Stream,
+        _In_ const QUIC_BUFFER* Buffer,
+        _In_ bool Canceled
+        );
+    void Receive(
+        _In_ PerfClientStream* Stream,
+        _In_ uint64_t Length,
+        _In_ bool Finished
+        );
 };
 
 struct PerfClientStream {
@@ -52,6 +62,7 @@ struct PerfClientStream {
     PerfClientConnection& Connection;
     HQUIC Handle {nullptr};
     uint64_t StartTime {CxPlatTimeUs64()};
+    uint64_t IdealSendBuffer {PERF_DEFAULT_SEND_BUFFER_SIZE};
     uint64_t OutstandingBytes {0};
     uint64_t BytesSent {0};
     uint64_t BytesCompleted {0};
@@ -86,6 +97,12 @@ struct PerfClientWorker {
     void QueueNewConnection() {
         InterlockedIncrement((unsigned*)&TotalConnectionCount);
         WakeEvent.Set();
+    }
+    void OnConnectionComplete() {
+        InterlockedDecrement((long*)&ActiveConnectionCount);
+        if (Client->RepeateConnections) {
+            WakeEvent.Set();
+        }
     }
     static CXPLAT_THREAD_CALLBACK(s_WorkerThread, Context) {
         ((PerfClientWorker*)Context)->WorkerThread();
