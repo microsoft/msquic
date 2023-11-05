@@ -34,17 +34,29 @@ struct PerfClientConnection : public MsQuicConnection {
     }
     QUIC_STATUS StreamCallback(_In_ PerfClientStream* StrmContext, _In_ HQUIC StreamHandle, _Inout_ QUIC_STREAM_EVENT* Event);
     void StartNewStream(bool DelaySend = false);
+    void SendData(_In_ PerfClientStream* Stream);
 };
 
 struct PerfClientStream {
     PerfClientStream(_In_ PerfClientConnection& Connection)
-        : Connection{Connection}, StartTime{CxPlatTimeUs64()} { }
+        : Connection{Connection} { }
+    ~PerfClientStream() {
+        if (Handle) {
+            MsQuic->StreamClose(Handle);
+        }
+    }
     static QUIC_STATUS
     s_StreamCallback(HQUIC Stream, void* Context, QUIC_STREAM_EVENT* Event) {
         return ((PerfClientStream*)Context)->Connection.StreamCallback((PerfClientStream*)Context, Stream, Event);
     }
     PerfClientConnection& Connection;
-    uint64_t StartTime;
+    HQUIC Handle {nullptr};
+    uint64_t StartTime {CxPlatTimeUs64()};
+    uint64_t OutstandingBytes {0};
+    uint64_t BytesSent {0};
+    uint64_t BytesCompleted {0};
+    bool Complete {false};
+    QUIC_BUFFER LastBuffer;
 #if DEBUG
     uint8_t Padding[12];
 #endif

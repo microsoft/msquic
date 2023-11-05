@@ -528,30 +528,60 @@ PerfClientWorker::StartNewConnection() {
 void
 PerfClientConnection::StartNewStream(bool DelaySend) {
     auto Stream = Worker.StreamAllocator.Alloc(this);
-    HQUIC Handle = nullptr;
-    if (QUIC_SUCCEEDED(
+    if (QUIC_FAILED(
         MsQuic->StreamOpen(
             Handle,
             QUIC_STREAM_OPEN_FLAG_NONE,
             PerfClientStream::s_StreamCallback,
             Stream,
-            &Handle))) {
-        InterlockedIncrement64((int64_t*)&Worker.StartedRequests);
-        QUIC_SEND_FLAGS Flags = QUIC_SEND_FLAG_START | QUIC_SEND_FLAG_FIN;
-        if (DelaySend) {
-            Flags |= QUIC_SEND_FLAG_DELAY_SEND;
-        }
-        if (QUIC_FAILED(
-            MsQuic->StreamSend(
-                Handle,
-                Client.RequestBuffer,
-                1,
-                Flags,
-                nullptr))) {
-            MsQuic->StreamClose(Handle);
-            Worker.StreamAllocator.Free(Stream);
-        }
-    } else {
+            &Stream->Handle))) {
         Worker.StreamAllocator.Free(Stream);
+        return;
+    }
+
+    InterlockedIncrement64((int64_t*)&Worker.StartedRequests);
+    QUIC_SEND_FLAGS Flags = QUIC_SEND_FLAG_START | QUIC_SEND_FLAG_FIN;
+    if (DelaySend) {
+        Flags |= QUIC_SEND_FLAG_DELAY_SEND;
+    }
+    MsQuic->StreamSend(
+        Stream->Handle,
+        Client.RequestBuffer,
+        1,
+        Flags,
+        nullptr);
+}
+
+void
+PerfClientConnection::SendData(
+    _In_ PerfClientStream* Stream
+    )
+{
+    while (!Stream->Complete && Stream->OutstandingBytes < Stream->IdealSendBuffer) {
+
+        uint64_t BytesLeftToSend =
+            Client.Timed ? UINT64_MAX : (Client.Upload - Stream->BytesSent);
+        uint32_t DataLength = Client.IoSize;
+        QUIC_BUFFER* Buffer = Client.RequestBuffer;
+        QUIC_SEND_FLAGS Flags = QUIC_SEND_FLAG_START;
+
+        if ((uint64_t)DataLength >= BytesLeftToSend) {
+            DataLength = (uint32_t)BytesLeftToSend;
+            Stream->LastBuffer.Buffer = Buffer->Buffer;
+            Stream->LastBuffer.Length = DataLength;
+            Buffer = &Stream->LastBuffer;
+            Flags = QUIC_SEND_FLAG_FIN;
+            Stream->Complete = TRUE;
+
+        } else if (Client.Timed &&
+                   CxPlatTimeDiff64(Stream->StartTime, CxPlatTimeUs64()) >= MS_TO_US(Client.Upload)) {
+            Flags = QUIC_SEND_FLAG_FIN;
+            Stream->Complete = TRUE;
+        }
+
+        Stream->BytesSent += DataLength;
+        Stream->OutstandingBytes += DataLength;
+
+        MsQuic->StreamSend(Stream->Handle, Buffer, 1, Flags, Buffer);
     }
 }
