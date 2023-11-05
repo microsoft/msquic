@@ -24,7 +24,6 @@ struct PerfClientConnection : public MsQuicConnection {
     CXPLAT_LIST_ENTRY Link; // For Worker's connection queue
     PerfClient& Client;
     PerfClientWorker& Worker;
-    uint64_t TotalStreamCount {0};
     uint64_t ActiveStreamCount {0};
     PerfClientConnection(_In_ const MsQuicRegistration& Registration, _In_ PerfClient& Client, _In_ PerfClientWorker& Worker)
         : MsQuicConnection(Registration, CleanUpAutoDelete, s_ConnectionCallback, this), Client(Client), Worker(Worker) { }
@@ -66,7 +65,8 @@ struct PerfClientStream {
     uint64_t OutstandingBytes {0};
     uint64_t BytesSent {0};
     uint64_t BytesCompleted {0};
-    bool Complete {false};
+    bool SendComplete {false};
+    bool RecvComplete {false};
     QUIC_BUFFER LastBuffer;
 #if DEBUG
     uint8_t Padding[12];
@@ -209,8 +209,8 @@ public:
         operator QUIC_BUFFER* () noexcept { return Buffer; }
         ~PerfIoBuffer() noexcept { if (Buffer) { CXPLAT_FREE(Buffer, QUIC_POOL_PERF); } }
         void Init(uint32_t IoSize, uint64_t Initial) noexcept {
-            Buffer = (QUIC_BUFFER*)CXPLAT_ALLOC_NONPAGED(sizeof(QUIC_BUFFER) + sizeof(uint64_t) + IoSize, QUIC_POOL_PERF);
-            Buffer->Length = sizeof(uint64_t) + IoSize;
+            Buffer = (QUIC_BUFFER*)CXPLAT_ALLOC_NONPAGED(sizeof(QUIC_BUFFER) + IoSize, QUIC_POOL_PERF);
+            Buffer->Length = IoSize;
             Buffer->Buffer = (uint8_t*)(Buffer + 1);
             *(uint64_t*)(Buffer->Buffer) = CxPlatByteSwapUint64(Initial);
             for (uint32_t i = 0; i < IoSize; ++i) {

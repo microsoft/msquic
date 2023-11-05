@@ -329,15 +329,19 @@ PerfClient::Wait(
 
     WriteOutput("Waiting up to %d ms!\n", Timeout);
     CxPlatEventWaitWithTimeout(*CompletionEvent, Timeout);
-    
+
+    WriteOutput("Done!\n");
     Running = false;
     for (uint32_t i = 0; i < WorkerCount; ++i) {
         Workers[i].Uninitialize();
     }
 
-    auto CompletedRequests = GetCompletedRequests();
-    WriteOutput("Completed %llu streams!\n", (unsigned long long)CompletedRequests);
-    CachedCompletedRequests = CompletedRequests;
+    if (StreamCount) {
+        auto CompletedRequests = GetCompletedRequests();
+        WriteOutput("Completed %llu streams!\n", (unsigned long long)CompletedRequests);
+        CachedCompletedRequests = CompletedRequests;
+    }
+
     return QUIC_STATUS_SUCCESS;
 }
 
@@ -379,8 +383,7 @@ PerfClientConnection::ConnectionCallback(
     switch (Event->Type) {
     case QUIC_CONNECTION_EVENT_CONNECTED:
         InterlockedIncrement64((int64_t*)&Worker.ConnnectedConnectionCount);
-        while (ActiveStreamCount < TotalStreamCount) {
-            ActiveStreamCount++;
+        for (uint32_t i = 0; i < Client.StreamCount; ++i) {
             StartNewStream();
         }
         break;
@@ -419,24 +422,93 @@ PerfClientConnection::StreamCallback(
         SendComplete(Stream, (QUIC_BUFFER*)Event->SEND_COMPLETE.ClientContext, Event->SEND_COMPLETE.Canceled);
         break;
     case QUIC_STREAM_EVENT_PEER_SEND_ABORTED:
-    case QUIC_STREAM_EVENT_PEER_RECEIVE_ABORTED: // TODO - Better support unidirectional
-        if (!Stream->Complete) {
-            WriteOutput("Peer stream aborted!\n");
+        if (!Stream->RecvComplete) {
+            WriteOutput("Peer stream aborted recv!\n");
         }
         MsQuic->StreamShutdown(StreamHandle, QUIC_STREAM_SHUTDOWN_FLAG_ABORT, 0);
-        Stream->Complete = true;
+        Stream->RecvComplete = true;
+        break;
+    case QUIC_STREAM_EVENT_PEER_RECEIVE_ABORTED:
+        if (!Stream->SendComplete) {
+            WriteOutput("Peer stream aborted send!\n");
+        }
+        MsQuic->StreamShutdown(StreamHandle, QUIC_STREAM_SHUTDOWN_FLAG_ABORT_SEND, 0);
+        Stream->SendComplete = true;
+        break;
+    case QUIC_STREAM_EVENT_SEND_SHUTDOWN_COMPLETE:
+        if (Client.PrintStreamStats) {
+            QUIC_STREAM_STATISTICS Stats = {0};
+            uint32_t BufferLength = sizeof(Stats);
+            MsQuic->GetParam(StreamHandle, QUIC_PARAM_STREAM_STATISTICS, &BufferLength, &Stats);
+            WriteOutput("Flow blocked timing:\n");
+            WriteOutput(
+                "SCHEDULING:             %llu us\n",
+                (unsigned long long)Stats.ConnBlockedBySchedulingUs);
+            WriteOutput(
+                "PACING:                 %llu us\n",
+                (unsigned long long)Stats.ConnBlockedByPacingUs);
+            WriteOutput(
+                "AMPLIFICATION_PROT:     %llu us\n",
+                (unsigned long long)Stats.ConnBlockedByAmplificationProtUs);
+            WriteOutput(
+                "CONGESTION_CONTROL:     %llu us\n",
+                (unsigned long long)Stats.ConnBlockedByCongestionControlUs);
+            WriteOutput(
+                "CONN_FLOW_CONTROL:      %llu us\n",
+                (unsigned long long)Stats.ConnBlockedByFlowControlUs);
+            WriteOutput(
+                "STREAM_ID_FLOW_CONTROL: %llu us\n",
+                (unsigned long long)Stats.StreamBlockedByIdFlowControlUs);
+            WriteOutput(
+                "STREAM_FLOW_CONTROL:    %llu us\n",
+                (unsigned long long)Stats.StreamBlockedByFlowControlUs);
+            WriteOutput(
+                "APP:                    %llu us\n",
+                (unsigned long long)Stats.StreamBlockedByAppUs);
+        }
         break;
     case QUIC_STREAM_EVENT_SHUTDOWN_COMPLETE:
         InterlockedIncrement64((int64_t*)&Worker.SendCompletedRequests);
         Worker.StreamAllocator.Free(Stream);
         MsQuic->StreamClose(StreamHandle);
         ActiveStreamCount--;
+        
+        {
+            auto EndTime = CxPlatTimeUs64();
+            uint64_t ElapsedMicroseconds = EndTime - Stream->StartTime;
+            uint64_t TotalBytes = Stream->BytesCompleted - sizeof(uint64_t);
+            uint32_t SendRate = (uint32_t)((TotalBytes * 1000 * 1000 * 8) / (1000 * ElapsedMicroseconds));
 
-        while (Client.RepeatStreams && ActiveStreamCount < TotalStreamCount) {
+            if (!Stream->RecvComplete && TotalBytes == 0) {
+                WriteOutput("Error: Did not complete any bytes! Failed to connect?\n");
+            } else {
+                WriteOutput(
+                    "Result: %llu bytes @ %u kbps (%u.%03u ms).\n",
+                    (unsigned long long)TotalBytes,
+                    SendRate,
+                    (uint32_t)(ElapsedMicroseconds / 1000),
+                    (uint32_t)(ElapsedMicroseconds % 1000));
+                if (!Stream->RecvComplete) {
+                    WriteOutput(
+                        "Warning: Did not complete all bytes (sent: %llu, completed: %llu).\n",
+                        (unsigned long long)Stream->BytesSent,
+                        (unsigned long long)TotalBytes);
+                }
+            }
+        }
+
+        while (Client.RepeatStreams && ActiveStreamCount < Client.StreamCount) {
             ActiveStreamCount++;
             StartNewStream();
         }
         break;
+    case QUIC_STREAM_EVENT_IDEAL_SEND_BUFFER_SIZE:
+        if (Client.Upload &&
+            !Client.UseSendBuffering &&
+            Stream->IdealSendBuffer < Event->IDEAL_SEND_BUFFER_SIZE.ByteCount) {
+            Stream->IdealSendBuffer = Event->IDEAL_SEND_BUFFER_SIZE.ByteCount;
+            SendData(Stream);
+        }
     default:
         break;
     }
@@ -526,6 +598,7 @@ PerfClientWorker::StartNewConnection() {
 void
 PerfClientConnection::StartNewStream(bool DelaySend) {
     UNREFERENCED_PARAMETER(DelaySend);
+    ++ActiveStreamCount;
     auto Stream = Worker.StreamAllocator.Alloc(*this);
     if (QUIC_FAILED(
         MsQuic->StreamOpen(
@@ -547,12 +620,12 @@ PerfClientConnection::SendData(
     _In_ PerfClientStream* Stream
     )
 {
-    while (!Stream->Complete && Stream->OutstandingBytes < Stream->IdealSendBuffer) {
+    while (!Stream->SendComplete && Stream->OutstandingBytes < Stream->IdealSendBuffer) {
 
         const uint64_t BytesLeftToSend =
             Client.Timed ?
                 UINT64_MAX : // Timed sends forever
-                (Client.Upload + sizeof(uint64_t) - Stream->BytesSent); // sizeof(uint64_t) accounts for response payload size
+                (Client.Upload + sizeof(uint64_t) - Stream->BytesSent); // sizeof(uint64_t) accounts for request size
         uint32_t DataLength = Client.IoSize;
         QUIC_BUFFER* Buffer = Client.RequestBuffer;
         QUIC_SEND_FLAGS Flags = QUIC_SEND_FLAG_START;
@@ -562,13 +635,13 @@ PerfClientConnection::SendData(
             Stream->LastBuffer.Buffer = Buffer->Buffer;
             Stream->LastBuffer.Length = DataLength;
             Buffer = &Stream->LastBuffer;
-            Flags = QUIC_SEND_FLAG_FIN;
-            Stream->Complete = TRUE;
+            Flags |= QUIC_SEND_FLAG_FIN;
+            Stream->SendComplete = true;
 
         } else if (Client.Timed &&
                    CxPlatTimeDiff64(Stream->StartTime, CxPlatTimeUs64()) >= MS_TO_US(Client.Upload)) {
-            Flags = QUIC_SEND_FLAG_FIN;
-            Stream->Complete = TRUE;
+            Flags |= QUIC_SEND_FLAG_FIN;
+            Stream->SendComplete = true;
         }
 
         Stream->BytesSent += DataLength;
@@ -621,6 +694,6 @@ PerfClientConnection::Receive(
             }
             Client.LatencyValues[(size_t)ToPlaceIndex] = (uint32_t)Delta;
         }
-        Stream->Complete = true;
+        Stream->RecvComplete = true;
     }
 }
