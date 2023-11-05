@@ -3,6 +3,7 @@
 
 set(SOURCES
     HpsClient.cpp
+    PerfClient.cpp
     PerfServer.cpp
     SecNetPerfMain.cpp
     RpsClient.cpp

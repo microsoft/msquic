@@ -95,14 +95,14 @@ struct PerfClientWorker {
     ~PerfClientWorker() { WaitForThread(); }
     void Uninitialize() { WaitForThread(); }
     void QueueNewConnection() {
-        InterlockedIncrement((unsigned*)&TotalConnectionCount);
+        InterlockedIncrement((long*)&TotalConnectionCount);
         WakeEvent.Set();
     }
     void OnConnectionComplete() {
         InterlockedDecrement((long*)&ActiveConnectionCount);
-        if (Client->RepeateConnections) {
+        /*if (Client->RepeateConnections) {
             WakeEvent.Set();
-        }
+        }*/
     }
     static CXPLAT_THREAD_CALLBACK(s_WorkerThread, Context) {
         ((PerfClientWorker*)Context)->WorkerThread();

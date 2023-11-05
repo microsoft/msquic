@@ -11,6 +11,7 @@ Abstract:
 
 #include "PerfHelpers.h"
 #include "PerfServer.h"
+#include "PerfClient.h"
 #include "ThroughputClient.h"
 #include "RpsClient.h"
 #include "HpsClient.h"
@@ -285,6 +286,8 @@ QuicMainStart(
             TestToRun = new(std::nothrow) RpsClient;
         } else if (IsValue(TestName, "HPS")) {
             TestToRun = new(std::nothrow) HpsClient;
+        } else if (IsValue(TestName, "client")) {
+            TestToRun = new(std::nothrow) PerfClient;
         } else {
             PrintHelp();
             delete MsQuic;
