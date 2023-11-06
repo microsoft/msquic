@@ -28,8 +28,8 @@ const char PERF_CLIENT_OPTIONS_TEXT[] =
 "  -incrementtarget:<0/1>   Append unique ID to target hostname for each worker (def:0).\n"
 "\n"
 "  Local options:\n"
-"  -bind:<addr>             The local IP address(es)/port(s) to bind to.\n"
-"  -addrs:<####>            The max number of local addresses to use. (def:%u)\n"
+//"  -bind:<addr>             The local IP address(es)/port(s) to bind to.\n"
+//"  -addrs:<####>            The max number of local addresses to use. (def:%u)\n"
 "  -threads:<####>          The max number of worker threads to use.\n"
 "  -affinitize:<0/1>        Affinitizes worker threads to a core. (def:0)\n"
 #ifdef QUIC_COMPARTMENT_ID
@@ -51,18 +51,17 @@ const char PERF_CLIENT_OPTIONS_TEXT[] =
 "  -upload:<####>           The length of bytes to send on each stream. (def:0)\n"
 "  -download:<####>         The length of bytes to receive on each stream. (def:0)\n"
 "  -timed:<0/1>             Indicates the upload/download args are times (in ms). (def:0)\n"
-"  -wait:<####>             The time (in ms) to wait for handshakes to complete. (def:0)\n"
-"  -inline:<0/1>            Create new streams on callbacks. (def:0)\n"
-"  -repeatconn:<0/1>        Continue to loop the scenario at the connection level. (def:0)\n"
-"  -repeatstream:<0/1>      Continue to loop the scenario at the stream level. (def:0)\n"
+//"  -inline:<0/1>            Create new streams on callbacks. (def:0)\n"
+"  -rconn:<0/1>             Continue to loop the scenario at the connection level. (def:0)\n"
+"  -rstream:<0/1>           Continue to loop the scenario at the stream level. (def:0)\n"
 "  -runtime:<####>          The total runtime (in ms). Only relevant for repeat scenarios. (def:0)\n"
 "\n";
 
 static void PrintHelp() {
     WriteOutput(
         PERF_CLIENT_OPTIONS_TEXT,
-        PERF_DEFAULT_PORT,
-        PERF_MAX_CLIENT_PORT_COUNT
+        PERF_DEFAULT_PORT
+        //PERF_MAX_CLIENT_PORT_COUNT
         );
 }
 
@@ -124,7 +123,7 @@ PerfClient::Init(
     // Local address and execution configuration options
     //
 
-    TryGetValue(argc, argv, "addrs", &MaxLocalAddrCount);
+    /*TryGetValue(argc, argv, "addrs", &MaxLocalAddrCount);
 
     char* LocalAddress = (char*)GetValue(argc, argv, "bind");
     if (LocalAddress != nullptr) {
@@ -148,7 +147,7 @@ PerfClient::Init(
     if (MaxLocalAddrCount > PERF_MAX_CLIENT_PORT_COUNT) {
         WriteOutput("Too many local addresses!\n");
         return QUIC_STATUS_INVALID_PARAMETER;
-    }
+    }*/
 
     WorkerCount = CxPlatProcActiveCount();
     TryGetValue(argc, argv, "threads", &WorkerCount);
@@ -197,14 +196,17 @@ PerfClient::Init(
     }
     TryGetValue(argc, argv, "request", &Upload);
     TryGetValue(argc, argv, "upload", &Upload);
+    TryGetValue(argc, argv, "up", &Upload);
     TryGetValue(argc, argv, "response", &Download);
     TryGetValue(argc, argv, "download", &Download);
+    TryGetValue(argc, argv, "down", &Download);
     TryGetValue(argc, argv, "timed", &Timed);
-    TryGetValue(argc, argv, "wait", &HandshakeWaitTime);
-    TryGetValue(argc, argv, "inline", &SendInline);
-    TryGetValue(argc, argv, "repeatconn", &RepeatConnections);
-    TryGetValue(argc, argv, "repeatstream", &RepeatStreams);
+    //TryGetValue(argc, argv, "inline", &SendInline);
+    TryGetValue(argc, argv, "rconn", &RepeatConnections);
+    TryGetValue(argc, argv, "rstream", &RepeatStreams);
     TryGetValue(argc, argv, "runtime", &RunTime);
+    TryGetValue(argc, argv, "time", &RunTime);
+    TryGetValue(argc, argv, "run", &RunTime);
 
     //
     // Other state initialization
@@ -304,18 +306,6 @@ PerfClient::Start(
     //
     for (uint32_t i = 0; i < ConnectionCount; ++i) {
         Workers[i % WorkerCount].QueueNewConnection();
-    }
-
-    if (HandshakeWaitTime) {
-        CxPlatSleep(HandshakeWaitTime);
-        auto ConnectedConnections = GetConnectedConnections();
-        if (ConnectedConnections == 0) {
-            WriteOutput("Failed to connect to the server\n");
-            return QUIC_STATUS_CONNECTION_TIMEOUT;
-        }
-        if (ConnectedConnections < ConnectionCount) {
-            WriteOutput("WARNING: Only %u (of %u) connections connected successfully.\n", ConnectedConnections, ConnectionCount);
-        }
     }
 
     return QUIC_STATUS_SUCCESS;
@@ -689,16 +679,15 @@ PerfClientConnection::StreamShutdownComplete(
     _In_ PerfClientStream* Stream
     )
 {
-    if (Client.Upload) {
+    if (Client.Upload && Client.PrintThroughput) {
         const auto TotalBytes = Stream->BytesAcked;
         if (TotalBytes < sizeof(uint64_t)) {
             WriteOutput("Error: Failed to send request length! Failed to connect?\n");
         } else if (!Client.Timed && TotalBytes < Client.Upload) {
             WriteOutput("Error: Failed to send all bytes.\n");
-        } else if (Client.PrintThroughput) {
+        } else {
             const auto ElapsedMicroseconds = Stream->SendEndTime - Stream->StartTime;
             const auto Rate = (uint32_t)((TotalBytes * 1000 * 1000 * 8) / (1000 * ElapsedMicroseconds));
-
             WriteOutput(
                 "  Upload: %llu bytes @ %u kbps (%u.%03u ms).\n",
                 (unsigned long long)TotalBytes,
@@ -708,14 +697,13 @@ PerfClientConnection::StreamShutdownComplete(
         }
     }
 
-    if (Client.Download) {
+    if (Client.Download && Client.PrintThroughput) {
         const auto TotalBytes = Stream->BytesReceived;
         if (TotalBytes == 0 || (!Client.Timed && TotalBytes < Client.Download)) {
             WriteOutput("Error: Failed to receive all bytes.\n");
-        } else if (Client.PrintThroughput) {
+        } else {
             const auto ElapsedMicroseconds = Stream->RecvEndTime - Stream->RecvStartTime;
             const auto Rate = (uint32_t)((TotalBytes * 1000 * 1000 * 8) / (1000 * ElapsedMicroseconds));
-
             WriteOutput(
                 "Download: %llu bytes @ %u kbps (%u.%03u ms).\n",
                 (unsigned long long)TotalBytes,
