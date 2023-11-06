@@ -24,7 +24,8 @@ struct PerfClientConnection : public MsQuicConnection {
     CXPLAT_LIST_ENTRY Link; // For Worker's connection queue
     PerfClient& Client;
     PerfClientWorker& Worker;
-    uint64_t ActiveStreamCount {0};
+    uint64_t StreamsCreated {0};
+    uint64_t StreamsActive {0};
     PerfClientConnection(_In_ const MsQuicRegistration& Registration, _In_ PerfClient& Client, _In_ PerfClientWorker& Worker)
         : MsQuicConnection(Registration, CleanUpAutoDelete, s_ConnectionCallback, this), Client(Client), Worker(Worker) { }
     QUIC_STATUS ConnectionCallback(_Inout_ QUIC_CONNECTION_EVENT* Event);
@@ -44,6 +45,10 @@ struct PerfClientConnection : public MsQuicConnection {
         _In_ uint64_t Length,
         _In_ bool Finished
         );
+    void
+    StreamShutdownComplete(
+        _In_ PerfClientStream* Stream
+        );
 };
 
 struct PerfClientStream {
@@ -61,12 +66,15 @@ struct PerfClientStream {
     PerfClientConnection& Connection;
     HQUIC Handle {nullptr};
     uint64_t StartTime {CxPlatTimeUs64()};
+    uint64_t RecvStartTime {0};
+    uint64_t SendEndTime {0};
+    uint64_t RecvEndTime {0};
     uint64_t IdealSendBuffer {PERF_DEFAULT_SEND_BUFFER_SIZE};
-    uint64_t OutstandingBytes {0};
     uint64_t BytesSent {0};
-    uint64_t BytesCompleted {0};
+    uint64_t BytesOutstanding {0};
+    uint64_t BytesAcked {0};
+    uint64_t BytesReceived {0};
     bool SendComplete {false};
-    bool RecvComplete {false};
     QUIC_BUFFER LastBuffer;
 #if DEBUG
     uint8_t Padding[12];
@@ -80,12 +88,13 @@ struct PerfClientWorker {
     CxPlatEvent WakeEvent;
     bool ThreadStarted {false};
     uint16_t Processor {UINT16_MAX};
-    uint64_t TotalConnectionCount {0};
-    uint64_t ConnnectedConnectionCount {0};
-    uint64_t ActiveConnectionCount {0};
-    uint64_t StartedRequests {0};
-    uint64_t SendCompletedRequests {0};
-    uint64_t CompletedRequests {0};
+    uint64_t ConnectionsQueued {0};
+    uint64_t ConnectionsCreated {0};
+    uint64_t ConnectionsConnected {0};
+    uint64_t ConnectionsActive {0};
+    uint64_t ConnectionsCompleted {0};
+    uint64_t StreamsStarted {0};
+    uint64_t StreamsCompleted {0};
     UniquePtr<char[]> Target;
     QuicAddr LocalAddr;
     QuicAddr RemoteAddr;
@@ -95,15 +104,10 @@ struct PerfClientWorker {
     ~PerfClientWorker() { WaitForThread(); }
     void Uninitialize() { WaitForThread(); }
     void QueueNewConnection() {
-        InterlockedIncrement((long*)&TotalConnectionCount);
+        InterlockedIncrement64((int64_t*)&ConnectionsQueued);
         WakeEvent.Set();
     }
-    void OnConnectionComplete() {
-        InterlockedDecrement((long*)&ActiveConnectionCount);
-        /*if (Client->RepeateConnections) {
-            WakeEvent.Set();
-        }*/
-    }
+    void OnConnectionComplete();
     static CXPLAT_THREAD_CALLBACK(s_WorkerThread, Context) {
         ((PerfClientWorker*)Context)->WorkerThread();
         CXPLAT_THREAD_RETURN(QUIC_STATUS_SUCCESS);
@@ -188,9 +192,10 @@ public:
     uint8_t UseEncryption {TRUE};
     uint8_t UsePacing {TRUE};
     uint8_t UseSendBuffering {FALSE};
-    uint8_t PrintStats {FALSE};
-    uint8_t PrintStreamStats {FALSE};
-    uint8_t PrintLatencyStats {FALSE};
+    uint8_t PrintThroughput {FALSE};
+    uint8_t PrintConnections {FALSE};
+    uint8_t PrintStreams {FALSE};
+    uint8_t PrintLatency {FALSE};
     // Scenario parameters
     uint32_t ConnectionCount {1};
     uint32_t StreamCount {0};
@@ -200,7 +205,7 @@ public:
     uint8_t Timed {FALSE};
     uint32_t HandshakeWaitTime {0};
     uint8_t SendInline {FALSE};
-    uint8_t RepeateConnections {FALSE};
+    uint8_t RepeatConnections {FALSE};
     uint8_t RepeatStreams {FALSE};
     uint32_t RunTime {0};
 
@@ -220,7 +225,7 @@ public:
     } RequestBuffer;
 
     CXPLAT_EVENT* CompletionEvent {nullptr};
-    uint64_t CachedCompletedRequests {0};
+    uint64_t CachedStreamsCompleted {0};
     UniquePtr<uint32_t[]> LatencyValues {nullptr};
     uint64_t MaxLatencyIndex {0};
     PerfClientWorker Workers[PERF_MAX_THREAD_COUNT];
@@ -229,36 +234,42 @@ public:
     uint32_t GetConnectedConnections() const {
         uint32_t ConnectedConnections = 0;
         for (uint32_t i = 0; i < WorkerCount; ++i) {
-            ConnectedConnections += Workers[i].ConnnectedConnectionCount;
+            ConnectedConnections += Workers[i].ConnectionsConnected;
         }
         return ConnectedConnections;
     }
-    uint32_t GetActiveConnections() const {
-        uint32_t ActiveConnections = 0;
+    uint32_t GetConnectionsActive() const {
+        uint32_t ConnectionsActive = 0;
         for (uint32_t i = 0; i < WorkerCount; ++i) {
-            ActiveConnections += Workers[i].ActiveConnectionCount;
+            ConnectionsActive += Workers[i].ConnectionsActive;
         }
-        return ActiveConnections;
+        return ConnectionsActive;
     }
-    uint64_t GetStartedRequests() const {
-        uint64_t StartedRequests = 0;
+    uint32_t GetConnectionsCompleted() const {
+        uint32_t ConnectionsCompleted = 0;
         for (uint32_t i = 0; i < WorkerCount; ++i) {
-            StartedRequests += Workers[i].StartedRequests;
+            ConnectionsCompleted += Workers[i].ConnectionsCompleted;
         }
-        return StartedRequests;
+        return ConnectionsCompleted;
     }
-    uint64_t GetSendCompletedRequests() const {
-        uint64_t SendCompletedRequests = 0;
+    uint64_t GetStreamsStarted() const {
+        uint64_t StreamsStarted = 0;
         for (uint32_t i = 0; i < WorkerCount; ++i) {
-            SendCompletedRequests += Workers[i].SendCompletedRequests;
+            StreamsStarted += Workers[i].StreamsStarted;
         }
-        return SendCompletedRequests;
+        return StreamsStarted;
     }
-    uint64_t GetCompletedRequests() const {
-        uint64_t CompletedRequests = 0;
+    uint64_t GetStreamsCompleted() const {
+        uint64_t StreamsCompleted = 0;
         for (uint32_t i = 0; i < WorkerCount; ++i) {
-            CompletedRequests += Workers[i].CompletedRequests;
+            StreamsCompleted += Workers[i].StreamsCompleted;
         }
-        return CompletedRequests;
+        return StreamsCompleted;
+    }
+
+    void OnConnectionsComplete() { // Called when a worker has completed its set of connections
+        if (GetConnectionsCompleted() == ConnectionCount) {
+            CxPlatEventSet(*CompletionEvent);
+        }
     }
 };
