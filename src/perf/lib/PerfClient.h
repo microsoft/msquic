@@ -32,7 +32,7 @@ struct PerfClientConnection : public MsQuicConnection {
     static QUIC_STATUS s_ConnectionCallback(MsQuicConnection* /* Conn */, void* Context, QUIC_CONNECTION_EVENT* Event) {
         return ((PerfClientConnection*)Context)->ConnectionCallback(Event);
     }
-    QUIC_STATUS StreamCallback(_In_ PerfClientStream* StrmContext, _In_ HQUIC StreamHandle, _Inout_ QUIC_STREAM_EVENT* Event);
+    QUIC_STATUS StreamCallback(_In_ PerfClientStream* StrmContext, _Inout_ QUIC_STREAM_EVENT* Event);
     void StartNewStream(bool DelaySend = false);
     void SendData(_In_ PerfClientStream* Stream);
     void SendComplete(
@@ -60,8 +60,8 @@ struct PerfClientStream {
         }
     }
     static QUIC_STATUS
-    s_StreamCallback(HQUIC Stream, void* Context, QUIC_STREAM_EVENT* Event) {
-        return ((PerfClientStream*)Context)->Connection.StreamCallback((PerfClientStream*)Context, Stream, Event);
+    s_StreamCallback(HQUIC, void* Context, QUIC_STREAM_EVENT* Event) {
+        return ((PerfClientStream*)Context)->Connection.StreamCallback((PerfClientStream*)Context, Event);
     }
     PerfClientConnection& Connection;
     HQUIC Handle {nullptr};

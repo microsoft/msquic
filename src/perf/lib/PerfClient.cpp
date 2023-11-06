@@ -320,24 +320,25 @@ PerfClient::Wait(
     }
 
     if (Timeout) {
-        WriteOutput("Running! Waiting up to %d ms!\n", Timeout);
+        //WriteOutput("Running! Waiting up to %d ms!\n", Timeout);
         CxPlatEventWaitWithTimeout(*CompletionEvent, Timeout);
     } else {
-        WriteOutput("Running!\n");
+        //WriteOutput("Running!\n");
         CxPlatEventWaitForever(*CompletionEvent);
     }
 
-    WriteOutput("Done!\n");
     Running = false;
     for (uint32_t i = 0; i < WorkerCount; ++i) {
         Workers[i].Uninitialize();
     }
 
-    if (StreamCount) {
-        auto StreamsCompleted = GetStreamsCompleted();
-        WriteOutput("Completed %llu streams!\n", (unsigned long long)StreamsCompleted);
-        CachedStreamsCompleted = StreamsCompleted;
-    }
+    auto ConnectionsComplete = GetConnectionsCompleted();
+    auto StreamsCompleted = GetStreamsCompleted();
+    WriteOutput(
+        "Completed %llu connections and %llu streams!\n",
+        (unsigned long long)ConnectionsComplete,
+        (unsigned long long)StreamsCompleted);
+    CachedStreamsCompleted = StreamsCompleted;
 
     return QUIC_STATUS_SUCCESS;
 }
@@ -380,12 +381,13 @@ PerfClientConnection::ConnectionCallback(
     switch (Event->Type) {
     case QUIC_CONNECTION_EVENT_CONNECTED:
         InterlockedIncrement64((int64_t*)&Worker.ConnectionsConnected);
-        for (uint32_t i = 0; i < Client.StreamCount; ++i) {
-            StartNewStream();
+        if (!Client.StreamCount) {
+            Shutdown(0);
+        } else {
+            for (uint32_t i = 0; i < Client.StreamCount; ++i) {
+                StartNewStream();
+            }
         }
-        break;
-    case QUIC_CONNECTION_EVENT_SHUTDOWN_INITIATED_BY_TRANSPORT:
-        //WriteOutput("Connection died, 0x%x\n", Event->SHUTDOWN_INITIATED_BY_TRANSPORT.Status);
         break;
     case QUIC_CONNECTION_EVENT_SHUTDOWN_COMPLETE:
         if (Client.PrintConnections) {
@@ -408,7 +410,6 @@ PerfClientConnection::ConnectionCallback(
 QUIC_STATUS
 PerfClientConnection::StreamCallback(
     _In_ PerfClientStream* Stream,
-    _In_ HQUIC StreamHandle,
     _Inout_ QUIC_STREAM_EVENT* Event
     ) {
     switch (Event->Type) {
@@ -423,47 +424,20 @@ PerfClientConnection::StreamCallback(
             WriteOutput("Peer stream aborted recv!\n");
             Stream->RecvEndTime = CxPlatTimeUs64();
         }
-        MsQuic->StreamShutdown(StreamHandle, QUIC_STREAM_SHUTDOWN_FLAG_ABORT, 0);
+        MsQuic->StreamShutdown(Stream->Handle, QUIC_STREAM_SHUTDOWN_FLAG_ABORT, 0);
         break;
     case QUIC_STREAM_EVENT_PEER_RECEIVE_ABORTED:
         if (!Stream->SendEndTime) {
             WriteOutput("Peer stream aborted send!\n");
             Stream->SendEndTime = CxPlatTimeUs64();
         }
-        MsQuic->StreamShutdown(StreamHandle, QUIC_STREAM_SHUTDOWN_FLAG_ABORT_SEND, 0);
+        MsQuic->StreamShutdown(Stream->Handle, QUIC_STREAM_SHUTDOWN_FLAG_ABORT_SEND, 0);
         Stream->SendComplete = true;
         break;
     case QUIC_STREAM_EVENT_SEND_SHUTDOWN_COMPLETE:
         Stream->SendEndTime = CxPlatTimeUs64();
         if (Client.PrintStreams) {
-            QUIC_STREAM_STATISTICS Stats = {0};
-            uint32_t BufferLength = sizeof(Stats);
-            MsQuic->GetParam(StreamHandle, QUIC_PARAM_STREAM_STATISTICS, &BufferLength, &Stats);
-            WriteOutput("Flow blocked timing:\n");
-            WriteOutput(
-                "SCHEDULING:             %llu us\n",
-                (unsigned long long)Stats.ConnBlockedBySchedulingUs);
-            WriteOutput(
-                "PACING:                 %llu us\n",
-                (unsigned long long)Stats.ConnBlockedByPacingUs);
-            WriteOutput(
-                "AMPLIFICATION_PROT:     %llu us\n",
-                (unsigned long long)Stats.ConnBlockedByAmplificationProtUs);
-            WriteOutput(
-                "CONGESTION_CONTROL:     %llu us\n",
-                (unsigned long long)Stats.ConnBlockedByCongestionControlUs);
-            WriteOutput(
-                "CONN_FLOW_CONTROL:      %llu us\n",
-                (unsigned long long)Stats.ConnBlockedByFlowControlUs);
-            WriteOutput(
-                "STREAM_ID_FLOW_CONTROL: %llu us\n",
-                (unsigned long long)Stats.StreamBlockedByIdFlowControlUs);
-            WriteOutput(
-                "STREAM_FLOW_CONTROL:    %llu us\n",
-                (unsigned long long)Stats.StreamBlockedByFlowControlUs);
-            WriteOutput(
-                "APP:                    %llu us\n",
-                (unsigned long long)Stats.StreamBlockedByAppUs);
+            QuicPrintStreamStatistics(MsQuic, Stream->Handle);
         }
         break;
     case QUIC_STREAM_EVENT_SHUTDOWN_COMPLETE:
@@ -507,7 +481,7 @@ PerfClientWorker::OnConnectionComplete() {
     InterlockedIncrement64((int64_t*)&ConnectionsCompleted);
     InterlockedDecrement64((int64_t*)&ConnectionsActive);
     if (Client->RepeatConnections) {
-        // TODO - WakeEvent.Set();
+        QueueNewConnection();
     } else {
         if (!ConnectionsActive && ConnectionsCreated == ConnectionsQueued) {
             Client->OnConnectionsComplete();

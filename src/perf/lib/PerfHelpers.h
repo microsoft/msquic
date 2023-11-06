@@ -350,3 +350,32 @@ QuicPrintConnectionStatistics(
             (unsigned long long)Statistics.RecvDecryptionFailures);
     }
 }
+
+inline
+void
+QuicPrintStreamStatistics(
+    _In_ const QUIC_API_TABLE* ApiTable,
+    _In_ HQUIC Stream
+    )
+{
+    QUIC_STREAM_STATISTICS Stats = {0};
+    uint32_t BufferLength = sizeof(Stats);
+    ApiTable->GetParam(Stream, QUIC_PARAM_STREAM_STATISTICS, &BufferLength, &Stats);
+    WriteOutput("Flow blocked timing:\n");
+    WriteOutput("SCHEDULING:             %llu us\n",
+        (unsigned long long)Stats.ConnBlockedBySchedulingUs);
+    WriteOutput("PACING:                 %llu us\n",
+        (unsigned long long)Stats.ConnBlockedByPacingUs);
+    WriteOutput("AMPLIFICATION_PROT:     %llu us\n",
+        (unsigned long long)Stats.ConnBlockedByAmplificationProtUs);
+    WriteOutput("CONGESTION_CONTROL:     %llu us\n",
+        (unsigned long long)Stats.ConnBlockedByCongestionControlUs);
+    WriteOutput("CONN_FLOW_CONTROL:      %llu us\n",
+        (unsigned long long)Stats.ConnBlockedByFlowControlUs);
+    WriteOutput("STREAM_ID_FLOW_CONTROL: %llu us\n",
+        (unsigned long long)Stats.StreamBlockedByIdFlowControlUs);
+    WriteOutput("STREAM_FLOW_CONTROL:    %llu us\n",
+        (unsigned long long)Stats.StreamBlockedByFlowControlUs);
+    WriteOutput("APP:                    %llu us\n",
+        (unsigned long long)Stats.StreamBlockedByAppUs);
+}
