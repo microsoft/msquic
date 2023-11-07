@@ -166,9 +166,11 @@ PerfClient::Init(
     TryGetValue(argc, argv, "pacing", &UsePacing);
     TryGetValue(argc, argv, "sendbuf", &UseSendBuffering);
     TryGetValue(argc, argv, "ptput", &PrintThroughput);
+    TryGetValue(argc, argv, "pconnection", &PrintConnections);
     TryGetValue(argc, argv, "pconn", &PrintConnections);
     TryGetValue(argc, argv, "pstream", &PrintStreams);
     TryGetValue(argc, argv, "platency", &PrintLatency);
+    TryGetValue(argc, argv, "plat", &PrintLatency);
 
     if (UseSendBuffering || !UsePacing) { // Update settings if non-default
         MsQuicSettings Settings;
@@ -208,17 +210,26 @@ PerfClient::Init(
     TryGetValue(argc, argv, "time", &RunTime);
     TryGetValue(argc, argv, "run", &RunTime);
 
+    if ((RepeatConnections || RepeatStreams) && !RunTime) {
+        WriteOutput("Must specify a 'runtime' if using a repeat parameter!\n");
+        return QUIC_STATUS_INVALID_PARAMETER;
+    }
+
     //
     // Other state initialization
     //
 
     RequestBuffer.Init(IoSize, Timed ? UINT64_MAX : Download);
-    if (PrintLatency && RunTime) {
-        MaxLatencyIndex = ((uint64_t)RunTime / 1000) * PERF_MAX_REQUESTS_PER_SECOND;
-        if (MaxLatencyIndex > (UINT32_MAX / sizeof(uint32_t))) {
-            MaxLatencyIndex = UINT32_MAX / sizeof(uint32_t);
-            WriteOutput("Warning! Limiting request latency tracking to %llu requests\n",
-                (unsigned long long)MaxLatencyIndex);
+    if (PrintLatency) {
+        if (RunTime) {
+            MaxLatencyIndex = ((uint64_t)RunTime / 1000) * PERF_MAX_REQUESTS_PER_SECOND;
+            if (MaxLatencyIndex > (UINT32_MAX / sizeof(uint32_t))) {
+                MaxLatencyIndex = UINT32_MAX / sizeof(uint32_t);
+                WriteOutput("Warning! Limiting request latency tracking to %llu requests\n",
+                    (unsigned long long)MaxLatencyIndex);
+            }
+        } else {
+            MaxLatencyIndex = ConnectionCount * StreamCount;
         }
 
         LatencyValues = UniquePtr<uint32_t[]>(new(std::nothrow) uint32_t[(size_t)MaxLatencyIndex]);
@@ -320,10 +331,8 @@ PerfClient::Wait(
     }
 
     if (Timeout) {
-        //WriteOutput("Running! Waiting up to %d ms!\n", Timeout);
         CxPlatEventWaitWithTimeout(*CompletionEvent, Timeout);
     } else {
-        //WriteOutput("Running!\n");
         CxPlatEventWaitForever(*CompletionEvent);
     }
 
@@ -332,13 +341,10 @@ PerfClient::Wait(
         Workers[i].Uninitialize();
     }
 
-    auto ConnectionsComplete = GetConnectionsCompleted();
-    auto StreamsCompleted = GetStreamsCompleted();
     WriteOutput(
         "Completed %llu connections and %llu streams!\n",
-        (unsigned long long)ConnectionsComplete,
-        (unsigned long long)StreamsCompleted);
-    CachedStreamsCompleted = StreamsCompleted;
+        (unsigned long long)GetConnectionsCompleted(),
+        (unsigned long long)GetStreamsCompleted());
 
     return QUIC_STATUS_SUCCESS;
 }
@@ -349,9 +355,16 @@ PerfClient::GetExtraDataMetadata(
     )
 {
     Result->TestType = PerfTestType::Client;
-    uint64_t DataLength = sizeof(RunTime) + sizeof(CachedStreamsCompleted) + (CachedStreamsCompleted * sizeof(uint32_t));
-    CXPLAT_FRE_ASSERT(DataLength <= UINT32_MAX); // TODO Limit values properly
-    Result->ExtraDataLength = (uint32_t)DataLength;
+    if (!MaxLatencyIndex) {
+        Result->ExtraDataLength = 0; // Not capturing this extra data
+    } else {
+        const auto DataLength =
+            sizeof(RunTime) +
+            sizeof(CurLatencyIndex) +
+            (GetStreamsCompleted() * sizeof(uint32_t));
+        CXPLAT_FRE_ASSERT(DataLength <= UINT32_MAX); // TODO Limit values properly
+        Result->ExtraDataLength = (uint32_t)DataLength;
+    }
 }
 
 QUIC_STATUS
@@ -360,99 +373,14 @@ PerfClient::GetExtraData(
     _Inout_ uint32_t* Length
     )
 {
-    CXPLAT_FRE_ASSERT(*Length >= sizeof(RunTime) + sizeof(CachedStreamsCompleted));
+    CXPLAT_FRE_ASSERT(MaxLatencyIndex); // Shouldn't be called if we're not tracking latency
+    CXPLAT_FRE_ASSERT(*Length >= sizeof(RunTime) + sizeof(CurLatencyIndex));
     CxPlatCopyMemory(Data, &RunTime, sizeof(RunTime));
     Data += sizeof(RunTime);
-    CxPlatCopyMemory(Data, &CachedStreamsCompleted, sizeof(CachedStreamsCompleted));
-    Data += sizeof(CachedStreamsCompleted);
-    uint64_t BufferLength = *Length - sizeof(RunTime) - sizeof(CachedStreamsCompleted);
-    if (BufferLength > CachedStreamsCompleted * sizeof(uint32_t)) {
-        BufferLength = CachedStreamsCompleted * sizeof(uint32_t);
-        *Length = (uint32_t)(BufferLength + sizeof(RunTime) + sizeof(CachedStreamsCompleted));
-    }
-    CxPlatCopyMemory(Data, LatencyValues.get(), (uint32_t)BufferLength);
-    return QUIC_STATUS_SUCCESS;
-}
-
-QUIC_STATUS
-PerfClientConnection::ConnectionCallback(
-    _Inout_ QUIC_CONNECTION_EVENT* Event
-    ) {
-    switch (Event->Type) {
-    case QUIC_CONNECTION_EVENT_CONNECTED:
-        InterlockedIncrement64((int64_t*)&Worker.ConnectionsConnected);
-        if (!Client.StreamCount) {
-            Shutdown(0);
-        } else {
-            for (uint32_t i = 0; i < Client.StreamCount; ++i) {
-                StartNewStream();
-            }
-        }
-        break;
-    case QUIC_CONNECTION_EVENT_SHUTDOWN_COMPLETE:
-        if (Client.PrintConnections) {
-            QuicPrintConnectionStatistics(MsQuic, Handle);
-        }
-        Worker.OnConnectionComplete();
-        break;
-    case QUIC_CONNECTION_EVENT_IDEAL_PROCESSOR_CHANGED:
-        /*if ((uint32_t)Event->IDEAL_PROCESSOR_CHANGED.IdealProcessor >= Client.WorkerCount) {
-            Event->IDEAL_PROCESSOR_CHANGED.IdealProcessor = (uint16_t)(Client.WorkerCount - 1);
-        }
-        Client->Workers[Event->IDEAL_PROCESSOR_CHANGED.IdealProcessor].UpdateConnection(this);*/
-        break;
-    default:
-        break;
-    }
-    return QUIC_STATUS_SUCCESS;
-}
-
-QUIC_STATUS
-PerfClientConnection::StreamCallback(
-    _In_ PerfClientStream* Stream,
-    _Inout_ QUIC_STREAM_EVENT* Event
-    ) {
-    switch (Event->Type) {
-    case QUIC_STREAM_EVENT_RECEIVE:
-        Receive(Stream, Event->RECEIVE.TotalBufferLength, Event->RECEIVE.Flags & QUIC_RECEIVE_FLAG_FIN);
-        break;
-    case QUIC_STREAM_EVENT_SEND_COMPLETE:
-        SendComplete(Stream, (QUIC_BUFFER*)Event->SEND_COMPLETE.ClientContext, Event->SEND_COMPLETE.Canceled);
-        break;
-    case QUIC_STREAM_EVENT_PEER_SEND_ABORTED:
-        if (!Stream->RecvEndTime) {
-            WriteOutput("Peer stream aborted recv!\n");
-            Stream->RecvEndTime = CxPlatTimeUs64();
-        }
-        MsQuic->StreamShutdown(Stream->Handle, QUIC_STREAM_SHUTDOWN_FLAG_ABORT, 0);
-        break;
-    case QUIC_STREAM_EVENT_PEER_RECEIVE_ABORTED:
-        if (!Stream->SendEndTime) {
-            WriteOutput("Peer stream aborted send!\n");
-            Stream->SendEndTime = CxPlatTimeUs64();
-        }
-        MsQuic->StreamShutdown(Stream->Handle, QUIC_STREAM_SHUTDOWN_FLAG_ABORT_SEND, 0);
-        Stream->SendComplete = true;
-        break;
-    case QUIC_STREAM_EVENT_SEND_SHUTDOWN_COMPLETE:
-        Stream->SendEndTime = CxPlatTimeUs64();
-        if (Client.PrintStreams) {
-            QuicPrintStreamStatistics(MsQuic, Stream->Handle);
-        }
-        break;
-    case QUIC_STREAM_EVENT_SHUTDOWN_COMPLETE:
-        StreamShutdownComplete(Stream);
-        break;
-    case QUIC_STREAM_EVENT_IDEAL_SEND_BUFFER_SIZE:
-        if (Client.Upload &&
-            !Client.UseSendBuffering &&
-            Stream->IdealSendBuffer < Event->IDEAL_SEND_BUFFER_SIZE.ByteCount) {
-            Stream->IdealSendBuffer = Event->IDEAL_SEND_BUFFER_SIZE.ByteCount;
-            SendData(Stream);
-        }
-    default:
-        break;
-    }
+    uint64_t LatencyCount = (*Length - sizeof(RunTime) - sizeof(LatencyCount)) / sizeof(uint32_t);
+    CxPlatCopyMemory(Data, &LatencyCount, sizeof(LatencyCount));
+    Data += sizeof(CurLatencyIndex);
+    CxPlatCopyMemory(Data, LatencyValues.get(), LatencyCount * sizeof(uint32_t));
     return QUIC_STATUS_SUCCESS;
 }
 
@@ -491,58 +419,98 @@ PerfClientWorker::OnConnectionComplete() {
 
 void
 PerfClientWorker::StartNewConnection() {
+    BOOLEAN Value;
     InterlockedIncrement64((int64_t*)&ConnectionsCreated);
     InterlockedIncrement64((int64_t*)&ConnectionsActive);
-    auto Connection = ConnectionAllocator.Alloc(Client->Registration, *Client, *this); // TODO - Fix destructor part
-    if (!Connection->IsValid()) {
-        WriteOutput("ConnectionOpen failed, 0x%x\n", Connection->GetInitStatus());
+    auto Connection = ConnectionAllocator.Alloc(*Client, *this);
+    if (QUIC_FAILED(
+        MsQuic->ConnectionOpen(
+            Client->Registration,
+            PerfClientConnection::s_ConnectionCallback,
+            Connection,
+            &Connection->Handle))) {
+        ConnectionAllocator.Free(Connection);
         return;
     }
 
     QUIC_STATUS Status;
     if (!Client->UseEncryption) {
-        Status = Connection->SetDisable1RttEncryption();
+        Value = TRUE;
+        Status =
+            MsQuic->SetParam(
+                Connection->Handle,
+                QUIC_PARAM_CONN_DISABLE_1RTT_ENCRYPTION,
+                sizeof(Value),
+                &Value);
         if (QUIC_FAILED(Status)) {
             WriteOutput("SetDisable1RttEncryption failed, 0x%x\n", Status);
-            Connection->Close();
+            ConnectionAllocator.Free(Connection);
             return;
         }
     }
 
-    Status = Connection->SetShareUdpBinding();
+    /* TODO - When to use it?
+    Value = TRUE;
+    Status =
+        MsQuic->SetParam(
+            Connection->Handle,
+            QUIC_PARAM_CONN_SHARE_UDP_BINDING,
+            sizeof(Value),
+            &Value);
     if (QUIC_FAILED(Status)) {
         WriteOutput("SetShareUdpBinding failed, 0x%x\n", Status);
-        Connection->Close();
+        ConnectionAllocator.Free(Connection);
         return;
-    }
+    }*/
 
     if (Client->CibirIdLength) {
-        Status = Connection->SetCibirId(Client->CibirId, Client->CibirIdLength+1);
+        Status =
+            MsQuic->SetParam(
+                Connection->Handle,
+                QUIC_PARAM_CONN_CIBIR_ID,
+                Client->CibirIdLength+1,
+                Client->CibirId);
         if (QUIC_FAILED(Status)) {
             WriteOutput("SetCibirId failed, 0x%x\n", Status);
-            Connection->Close();
+            ConnectionAllocator.Free(Connection);
             return;
         }
     }
 
     /*if (Client->SpecificLocalAddresses || i >= Client->MaxLocalAddrCount) {
-        Status = Connection->SetLocalAddr(*(QuicAddr*)&Client->LocalAddresses[i % Client->MaxLocalAddrCount]);
+        Status =
+            MsQuic->SetParam(
+                Connection->Handle,
+                QUIC_PARAM_CONN_LOCAL_ADDRESS,
+                sizeof(QUIC_ADDR),
+                &Client->LocalAddresses[i % Client->MaxLocalAddrCount]);
         if (QUIC_FAILED(Status)) {
             WriteOutput("SetLocalAddr failed!\n");
-            Connection->Close();
+            ConnectionAllocator.Free(Connection);
             return;
         }
     }*/
 
-    Status = Connection->Start(Client->Configuration, Client->TargetFamily, Target.get(), RemoteAddr.GetPort());
+    Status =
+        MsQuic->ConnectionStart(
+            Connection->Handle,
+            Client->Configuration,
+            Client->TargetFamily,
+            Target.get(),
+            RemoteAddr.GetPort());
     if (QUIC_FAILED(Status)) {
         WriteOutput("Start failed, 0x%x\n", Status);
-        Connection->Close();
+        ConnectionAllocator.Free(Connection);
         return;
     }
 
     /*if (!Client->SpecificLocalAddresses && i < PERF_MAX_CLIENT_PORT_COUNT) {
-        Status = Connection->GetLocalAddr(*(QuicAddr*)&Client->LocalAddresses[i]);
+        Status =
+            MsQuic->GetParam(
+                Connection->Handle,
+                QUIC_PARAM_CONN_LOCAL_ADDRESS,
+                sizeof(QUIC_ADDR),
+                &Client->LocalAddresses[i]);
         if (QUIC_FAILED(Status)) {
             WriteOutput("GetLocalAddr failed!\n");
             return;
@@ -550,9 +518,42 @@ PerfClientWorker::StartNewConnection() {
     }*/
 }
 
+QUIC_STATUS
+PerfClientConnection::ConnectionCallback(
+    _Inout_ QUIC_CONNECTION_EVENT* Event
+    ) {
+    switch (Event->Type) {
+    case QUIC_CONNECTION_EVENT_CONNECTED:
+        InterlockedIncrement64((int64_t*)&Worker.ConnectionsConnected);
+        if (!Client.StreamCount) {
+            MsQuic->ConnectionShutdown(Handle, QUIC_CONNECTION_SHUTDOWN_FLAG_NONE, 0);
+        } else {
+            for (uint32_t i = 0; i < Client.StreamCount; ++i) {
+                StartNewStream();
+            }
+        }
+        break;
+    case QUIC_CONNECTION_EVENT_SHUTDOWN_COMPLETE:
+        if (Client.PrintConnections) {
+            QuicPrintConnectionStatistics(MsQuic, Handle);
+        }
+        Worker.OnConnectionComplete();
+        Worker.ConnectionAllocator.Free(this);
+        break;
+    case QUIC_CONNECTION_EVENT_IDEAL_PROCESSOR_CHANGED:
+        /*if ((uint32_t)Event->IDEAL_PROCESSOR_CHANGED.IdealProcessor >= Client.WorkerCount) {
+            Event->IDEAL_PROCESSOR_CHANGED.IdealProcessor = (uint16_t)(Client.WorkerCount - 1);
+        }
+        Client->Workers[Event->IDEAL_PROCESSOR_CHANGED.IdealProcessor].UpdateConnection(this);*/
+        break;
+    default:
+        break;
+    }
+    return QUIC_STATUS_SUCCESS;
+}
+
 void
-PerfClientConnection::StartNewStream(bool DelaySend) {
-    UNREFERENCED_PARAMETER(DelaySend);
+PerfClientConnection::StartNewStream() {
     StreamsCreated++;
     StreamsActive++;
     auto Stream = Worker.StreamAllocator.Alloc(*this);
@@ -568,99 +569,154 @@ PerfClientConnection::StartNewStream(bool DelaySend) {
     }
 
     InterlockedIncrement64((int64_t*)&Worker.StreamsStarted);
-    SendData(Stream);
+    Stream->Send();
 }
 
 void
-PerfClientConnection::SendData(
-    _In_ PerfClientStream* Stream
-    )
-{
-    while (!Stream->SendComplete && Stream->BytesOutstanding < Stream->IdealSendBuffer) {
+PerfClientConnection::OnStreamShutdownComplete() {
+    StreamsActive--;
+    if (Client.RepeatStreams) {
+        while (StreamsActive < Client.StreamCount) {
+            StartNewStream();
+        }
+    } else {
+        if (!StreamsActive && StreamsCreated == Client.StreamCount) {
+            MsQuic->ConnectionShutdown(Handle, QUIC_CONNECTION_SHUTDOWN_FLAG_NONE, 0);
+        }
+    }
+}
+
+QUIC_STATUS
+PerfClientStream::StreamCallback(
+    _Inout_ QUIC_STREAM_EVENT* Event
+    ) {
+    switch (Event->Type) {
+    case QUIC_STREAM_EVENT_RECEIVE:
+        OnReceive(Event->RECEIVE.TotalBufferLength, Event->RECEIVE.Flags & QUIC_RECEIVE_FLAG_FIN);
+        break;
+    case QUIC_STREAM_EVENT_SEND_COMPLETE:
+        OnSendComplete((QUIC_BUFFER*)Event->SEND_COMPLETE.ClientContext, Event->SEND_COMPLETE.Canceled);
+        break;
+    case QUIC_STREAM_EVENT_PEER_SEND_ABORTED:
+        if (!RecvEndTime) {
+            WriteOutput("Peer stream aborted recv!\n");
+            RecvEndTime = CxPlatTimeUs64();
+        }
+        MsQuic->StreamShutdown(Handle, QUIC_STREAM_SHUTDOWN_FLAG_ABORT, 0);
+        break;
+    case QUIC_STREAM_EVENT_PEER_RECEIVE_ABORTED:
+        if (!SendEndTime) {
+            WriteOutput("Peer stream aborted send!\n");
+            SendEndTime = CxPlatTimeUs64();
+        }
+        MsQuic->StreamShutdown(Handle, QUIC_STREAM_SHUTDOWN_FLAG_ABORT_SEND, 0);
+        SendComplete = true;
+        break;
+    case QUIC_STREAM_EVENT_SEND_SHUTDOWN_COMPLETE:
+        SendEndTime = CxPlatTimeUs64();
+        if (Connection.Client.PrintStreams) {
+            QuicPrintStreamStatistics(MsQuic, Handle);
+        }
+        break;
+    case QUIC_STREAM_EVENT_SHUTDOWN_COMPLETE:
+        OnStreamShutdownComplete();
+        break;
+    case QUIC_STREAM_EVENT_IDEAL_SEND_BUFFER_SIZE:
+        if (Connection.Client.Upload &&
+            !Connection.Client.UseSendBuffering &&
+            IdealSendBuffer < Event->IDEAL_SEND_BUFFER_SIZE.ByteCount) {
+            IdealSendBuffer = Event->IDEAL_SEND_BUFFER_SIZE.ByteCount;
+            Send();
+        }
+    default:
+        break;
+    }
+    return QUIC_STATUS_SUCCESS;
+}
+
+void
+PerfClientStream::Send() {
+    auto& Client = Connection.Client;
+    while (!SendComplete && BytesOutstanding < IdealSendBuffer) {
 
         const uint64_t BytesLeftToSend =
             Client.Timed ?
                 UINT64_MAX : // Timed sends forever
-                (Client.Upload ? (Client.Upload - Stream->BytesSent) : sizeof(uint64_t));
+                (Client.Upload ? (Client.Upload - BytesSent) : sizeof(uint64_t));
         uint32_t DataLength = Client.IoSize;
         QUIC_BUFFER* Buffer = Client.RequestBuffer;
         QUIC_SEND_FLAGS Flags = QUIC_SEND_FLAG_START;
 
         if ((uint64_t)DataLength >= BytesLeftToSend) {
             DataLength = (uint32_t)BytesLeftToSend;
-            Stream->LastBuffer.Buffer = Buffer->Buffer;
-            Stream->LastBuffer.Length = DataLength;
-            Buffer = &Stream->LastBuffer;
+            LastBuffer.Buffer = Buffer->Buffer;
+            LastBuffer.Length = DataLength;
+            Buffer = &LastBuffer;
             Flags |= QUIC_SEND_FLAG_FIN;
-            Stream->SendComplete = true;
+            SendComplete = true;
 
         } else if (Client.Timed &&
-                   CxPlatTimeDiff64(Stream->StartTime, CxPlatTimeUs64()) >= MS_TO_US(Client.Upload)) {
+                   CxPlatTimeDiff64(StartTime, CxPlatTimeUs64()) >= MS_TO_US(Client.Upload)) {
             Flags |= QUIC_SEND_FLAG_FIN;
-            Stream->SendComplete = true;
+            SendComplete = true;
         }
 
-        Stream->BytesSent += DataLength;
-        Stream->BytesOutstanding += DataLength;
+        BytesSent += DataLength;
+        BytesOutstanding += DataLength;
 
-        MsQuic->StreamSend(Stream->Handle, Buffer, 1, Flags, Buffer);
+        MsQuic->StreamSend(Handle, Buffer, 1, Flags, Buffer);
     }
 }
 
 void
-PerfClientConnection::SendComplete(
-    _In_ PerfClientStream* Stream,
+PerfClientStream::OnSendComplete(
     _In_ const QUIC_BUFFER* Buffer,
     _In_ bool Canceled
-    )
-{
-    Stream->BytesOutstanding -= Buffer->Length;
+    ) {
+    BytesOutstanding -= Buffer->Length;
     if (!Canceled) {
-        Stream->BytesAcked += Buffer->Length;
-        SendData(Stream);
+        BytesAcked += Buffer->Length;
+        Send();
     }
 }
 
 void
-PerfClientConnection::Receive(
-    _In_ PerfClientStream* Stream,
+PerfClientStream::OnReceive(
     _In_ uint64_t Length,
     _In_ bool Finished
-    )
-{
-    Stream->BytesReceived += Length;
+    ) {
+    BytesReceived += Length;
 
     uint64_t Now = 0;
-    if (!Stream->RecvStartTime) {
+    if (!RecvStartTime) {
         Now = CxPlatTimeUs64();
-        Stream->RecvStartTime = Now;
+        RecvStartTime = Now;
     }
 
     if (Finished) {
         if (Now == 0) Now = CxPlatTimeUs64();
-        Stream->RecvEndTime = Now;
-    } if (Client.Timed) {
+        RecvEndTime = Now;
+    } if (Connection.Client.Timed) {
         if (Now == 0) Now = CxPlatTimeUs64();
-        if (CxPlatTimeDiff64(Stream->RecvStartTime, Now) >= MS_TO_US(Client.Download)) {
-            MsQuic->StreamShutdown(Stream->Handle, QUIC_STREAM_SHUTDOWN_FLAG_ABORT_RECEIVE, 0);
-            Stream->RecvEndTime = Now;
+        if (CxPlatTimeDiff64(RecvStartTime, Now) >= MS_TO_US(Connection.Client.Download)) {
+            MsQuic->StreamShutdown(Handle, QUIC_STREAM_SHUTDOWN_FLAG_ABORT_RECEIVE, 0);
+            RecvEndTime = Now;
         }
     }
 }
 
 void
-PerfClientConnection::StreamShutdownComplete(
-    _In_ PerfClientStream* Stream
-    )
-{
-    if (Client.Upload && Client.PrintThroughput) {
-        const auto TotalBytes = Stream->BytesAcked;
-        if (TotalBytes < sizeof(uint64_t)) {
-            WriteOutput("Error: Failed to send request length! Failed to connect?\n");
-        } else if (!Client.Timed && TotalBytes < Client.Upload) {
-            WriteOutput("Error: Failed to send all bytes.\n");
-        } else {
-            const auto ElapsedMicroseconds = Stream->SendEndTime - Stream->StartTime;
+PerfClientStream::OnStreamShutdownComplete() {
+    auto& Client = Connection.Client;
+    auto SendSuccess = SendEndTime != 0;
+    if (Client.Upload) {
+        const auto TotalBytes = BytesAcked;
+        if (TotalBytes < sizeof(uint64_t) || (!Client.Timed && TotalBytes < Client.Upload)) {
+            SendSuccess = false;
+        }
+
+        if (Client.PrintThroughput && SendSuccess) {
+            const auto ElapsedMicroseconds = SendEndTime - StartTime;
             const auto Rate = (uint32_t)((TotalBytes * 1000 * 1000 * 8) / (1000 * ElapsedMicroseconds));
             WriteOutput(
                 "  Upload: %llu bytes @ %u kbps (%u.%03u ms).\n",
@@ -671,12 +727,15 @@ PerfClientConnection::StreamShutdownComplete(
         }
     }
 
-    if (Client.Download && Client.PrintThroughput) {
-        const auto TotalBytes = Stream->BytesReceived;
+    auto RecvSuccess = RecvStartTime !=0 && RecvEndTime != 0;
+    if (Client.Download) {
+        const auto TotalBytes = BytesReceived;
         if (TotalBytes == 0 || (!Client.Timed && TotalBytes < Client.Download)) {
-            WriteOutput("Error: Failed to receive all bytes.\n");
-        } else {
-            const auto ElapsedMicroseconds = Stream->RecvEndTime - Stream->RecvStartTime;
+            RecvSuccess = false;
+        }
+
+        if (Client.PrintThroughput && RecvSuccess) {
+            const auto ElapsedMicroseconds = RecvEndTime - RecvStartTime;
             const auto Rate = (uint32_t)((TotalBytes * 1000 * 1000 * 8) / (1000 * ElapsedMicroseconds));
             WriteOutput(
                 "Download: %llu bytes @ %u kbps (%u.%03u ms).\n",
@@ -687,22 +746,17 @@ PerfClientConnection::StreamShutdownComplete(
         }
     }
 
-    const auto Latency = CxPlatTimeDiff64(Stream->StartTime, Stream->RecvEndTime);
-    const auto ToPlaceIndex = (uint64_t)InterlockedIncrement64((int64_t*)&Worker.StreamsCompleted) - 1;
-    if (ToPlaceIndex < Client.MaxLatencyIndex) {
-        Client.LatencyValues[(size_t)ToPlaceIndex] = Latency > UINT32_MAX ? UINT32_MAX : (uint32_t)Latency;
-    }
-
-    Worker.StreamAllocator.Free(Stream);
-
-    StreamsActive--;
-    if (Client.RepeatStreams) {
-        while (StreamsActive < Client.StreamCount) {
-            StartNewStream();
-        }
-    } else {
-        if (!StreamsActive && StreamsCreated == Client.StreamCount) {
-            Shutdown(0);
+    if (SendSuccess && RecvSuccess) {
+        const auto Index = (uint64_t)InterlockedIncrement64((int64_t*)&Connection.Client.CurLatencyIndex) - 1;
+        if (Index < Client.MaxLatencyIndex) {
+            const auto Latency = CxPlatTimeDiff64(StartTime, RecvEndTime);
+            Client.LatencyValues[(size_t)Index] = Latency > UINT32_MAX ? UINT32_MAX : (uint32_t)Latency;
+            InterlockedIncrement64((int64_t*)&Connection.Worker.StreamsCompleted);
         }
     }
+
+    auto& Conn = Connection;
+    Connection.Worker.StreamAllocator.Free(this);
+
+    Conn.OnStreamShutdownComplete();
 }

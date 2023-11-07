@@ -20,35 +20,20 @@ struct PerfClientStream;
 struct PerfClientWorker;
 class PerfClient;
 
-struct PerfClientConnection : public MsQuicConnection {
+struct PerfClientConnection {
     CXPLAT_LIST_ENTRY Link; // For Worker's connection queue
+    HQUIC Handle {nullptr};
     PerfClient& Client;
     PerfClientWorker& Worker;
     uint64_t StreamsCreated {0};
     uint64_t StreamsActive {0};
-    PerfClientConnection(_In_ const MsQuicRegistration& Registration, _In_ PerfClient& Client, _In_ PerfClientWorker& Worker)
-        : MsQuicConnection(Registration, CleanUpAutoDelete, s_ConnectionCallback, this), Client(Client), Worker(Worker) { }
+    PerfClientConnection(_In_ PerfClient& Client, _In_ PerfClientWorker& Worker) : Client(Client), Worker(Worker) { }
     QUIC_STATUS ConnectionCallback(_Inout_ QUIC_CONNECTION_EVENT* Event);
-    static QUIC_STATUS s_ConnectionCallback(MsQuicConnection* /* Conn */, void* Context, QUIC_CONNECTION_EVENT* Event) {
+    static QUIC_STATUS s_ConnectionCallback(HQUIC, void* Context, QUIC_CONNECTION_EVENT* Event) {
         return ((PerfClientConnection*)Context)->ConnectionCallback(Event);
     }
-    QUIC_STATUS StreamCallback(_In_ PerfClientStream* StrmContext, _Inout_ QUIC_STREAM_EVENT* Event);
-    void StartNewStream(bool DelaySend = false);
-    void SendData(_In_ PerfClientStream* Stream);
-    void SendComplete(
-        _In_ PerfClientStream* Stream,
-        _In_ const QUIC_BUFFER* Buffer,
-        _In_ bool Canceled
-        );
-    void Receive(
-        _In_ PerfClientStream* Stream,
-        _In_ uint64_t Length,
-        _In_ bool Finished
-        );
-    void
-    StreamShutdownComplete(
-        _In_ PerfClientStream* Stream
-        );
+    void StartNewStream();
+    void OnStreamShutdownComplete();
 };
 
 struct PerfClientStream {
@@ -61,7 +46,7 @@ struct PerfClientStream {
     }
     static QUIC_STATUS
     s_StreamCallback(HQUIC, void* Context, QUIC_STREAM_EVENT* Event) {
-        return ((PerfClientStream*)Context)->Connection.StreamCallback((PerfClientStream*)Context, Event);
+        return ((PerfClientStream*)Context)->StreamCallback(Event);
     }
     PerfClientConnection& Connection;
     HQUIC Handle {nullptr};
@@ -76,12 +61,14 @@ struct PerfClientStream {
     uint64_t BytesReceived {0};
     bool SendComplete {false};
     QUIC_BUFFER LastBuffer;
-#if DEBUG
-    uint8_t Padding[12];
-#endif
+    QUIC_STATUS StreamCallback(_Inout_ QUIC_STREAM_EVENT* Event);
+    void Send();
+    void OnSendComplete(_In_ const QUIC_BUFFER* Buffer, _In_ bool Canceled);
+    void OnReceive(_In_ uint64_t Length, _In_ bool Finished);
+    void OnStreamShutdownComplete();
 };
 
-struct PerfClientWorker {
+struct QUIC_CACHEALIGN PerfClientWorker {
     PerfClient* Client {nullptr};
     CxPlatLock Lock;
     CXPLAT_THREAD Thread;
@@ -224,9 +211,9 @@ public:
     } RequestBuffer;
 
     CXPLAT_EVENT* CompletionEvent {nullptr};
-    uint64_t CachedStreamsCompleted {0};
-    UniquePtr<uint32_t[]> LatencyValues {nullptr};
+    UniquePtr<uint32_t[]> LatencyValues {nullptr}; // TODO - Move to Worker
     uint64_t MaxLatencyIndex {0};
+    uint64_t CurLatencyIndex {0};
     PerfClientWorker Workers[PERF_MAX_THREAD_COUNT];
     bool Running {true};
 

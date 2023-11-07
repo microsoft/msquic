@@ -144,7 +144,7 @@ QuicUserMain(
         return Status;
     }
 
-    if (Metadata.TestType == PerfTestType::RpsClient || Metadata.TestType == PerfTestType::Client) {
+    if (Metadata.ExtraDataLength) {
         UniquePtr<uint8_t[]> Buffer = UniquePtr<uint8_t[]>(new (std::nothrow) uint8_t[Metadata.ExtraDataLength]);
         if (Buffer.get() == nullptr) {
             QuicMainFree();
