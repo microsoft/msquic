@@ -64,7 +64,7 @@ void PrintUsageList()
     printf("#4 - Valid QUIC initial packets.\n");
 }
 
-struct RRCallbackContext {
+struct CallbackContext {
     CXPLAT_ROUTE* Route;
     CXPLAT_EVENT* Event;
 };
@@ -137,9 +137,9 @@ ResolveRouteComplete(
     _In_ BOOLEAN Succeeded
     )
 {
-    RRCallbackContext* RRContext = (RRCallbackContext*) Context;
-    CxPlatResolveRouteComplete(nullptr, RRContext->Route, PhysicalAddress, 0);
-    CxPlatEventSet(RRContext->Event);
+    CallbackContext* CContext = (CallbackContext*) Context;
+    CxPlatResolveRouteComplete(nullptr, CContext->Route, PhysicalAddress, 0);
+    CxPlatEventSet(CContext->Event);
 }
 
 void RunAttackRandom(CXPLAT_SOCKET* Binding, uint16_t Length, bool ValidQuic, bool TCP = false)
@@ -147,7 +147,7 @@ void RunAttackRandom(CXPLAT_SOCKET* Binding, uint16_t Length, bool ValidQuic, bo
     CXPLAT_ROUTE Route = {0};
     CxPlatSocketGetLocalAddress(Binding, &Route.LocalAddress);
     CxPlatSocketGetRemoteAddress(Binding, &Route.RemoteAddress);
-    RRCallbackContext Context = {&Route, };
+    CallbackContext Context = {&Route, };
     QUIC_STATUS Status = CxPlatResolveRoute(Binding, &Route, 0, &Context, ResolveRouteComplete);
     if (Status == QUIC_STATUS_PENDING) {
         CxPlatEventInitialize(Context.Event, FALSE, FALSE);
@@ -173,6 +173,7 @@ void RunAttackRandom(CXPLAT_SOCKET* Binding, uint16_t Length, bool ValidQuic, bo
             QUIC_BUFFER* SendBuffer =
                 CxPlatSendDataAllocBuffer(SendData, Length);
             if (SendBuffer == nullptr) {
+                printf("CxPlatSendDataAllocBuffer failed\n");
                 CxPlatSendDataFree(SendData);
                 continue;
             }
@@ -225,7 +226,7 @@ void RunAttackValidInitial(CXPLAT_SOCKET* Binding)
     CXPLAT_ROUTE Route = {0};
     CxPlatSocketGetLocalAddress(Binding, &Route.LocalAddress);
     CxPlatSocketGetRemoteAddress(Binding, &Route.RemoteAddress);
-    RRCallbackContext Context = {&Route, };
+    CallbackContext Context = {&Route, };
     QUIC_STATUS Status = CxPlatResolveRoute(Binding, &Route, 0, &Context, ResolveRouteComplete);
     if (Status == QUIC_STATUS_PENDING) {
         CxPlatEventInitialize(Context.Event, FALSE, FALSE);
@@ -276,6 +277,7 @@ void RunAttackValidInitial(CXPLAT_SOCKET* Binding)
             QUIC_BUFFER* SendBuffer =
                 CxPlatSendDataAllocBuffer(SendData, DatagramLength);
             if (SendBuffer == nullptr) {
+                printf("CxPlatSendDataAllocBuffer failed\n");
                 CxPlatSendDataFree(SendData);
                 continue;
             }
