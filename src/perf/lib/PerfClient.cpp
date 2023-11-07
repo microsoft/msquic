@@ -361,7 +361,7 @@ PerfClient::GetExtraDataMetadata(
         const auto DataLength =
             sizeof(RunTime) +
             sizeof(CurLatencyIndex) +
-            (GetStreamsCompleted() * sizeof(uint32_t));
+            (LatencyCount * sizeof(uint32_t));
         CXPLAT_FRE_ASSERT(DataLength <= UINT32_MAX); // TODO Limit values properly
         Result->ExtraDataLength = (uint32_t)DataLength;
     }
@@ -541,7 +541,8 @@ PerfClientConnection::ConnectionCallback(
         Worker.ConnectionAllocator.Free(this);
         break;
     case QUIC_CONNECTION_EVENT_IDEAL_PROCESSOR_CHANGED:
-        /*if ((uint32_t)Event->IDEAL_PROCESSOR_CHANGED.IdealProcessor >= Client.WorkerCount) {
+        /* Support change in worker to align processor?
+        if ((uint32_t)Event->IDEAL_PROCESSOR_CHANGED.IdealProcessor >= Client.WorkerCount) {
             Event->IDEAL_PROCESSOR_CHANGED.IdealProcessor = (uint16_t)(Client.WorkerCount - 1);
         }
         Client->Workers[Event->IDEAL_PROCESSOR_CHANGED.IdealProcessor].UpdateConnection(this);*/
@@ -598,17 +599,11 @@ PerfClientStream::StreamCallback(
         OnSendComplete((QUIC_BUFFER*)Event->SEND_COMPLETE.ClientContext, Event->SEND_COMPLETE.Canceled);
         break;
     case QUIC_STREAM_EVENT_PEER_SEND_ABORTED:
-        if (!RecvEndTime) {
-            WriteOutput("Peer stream aborted recv!\n");
-            RecvEndTime = CxPlatTimeUs64();
-        }
+        if (!RecvEndTime) { RecvEndTime = CxPlatTimeUs64(); }
         MsQuic->StreamShutdown(Handle, QUIC_STREAM_SHUTDOWN_FLAG_ABORT, 0);
         break;
     case QUIC_STREAM_EVENT_PEER_RECEIVE_ABORTED:
-        if (!SendEndTime) {
-            WriteOutput("Peer stream aborted send!\n");
-            SendEndTime = CxPlatTimeUs64();
-        }
+        if (!SendEndTime) { SendEndTime = CxPlatTimeUs64(); }
         MsQuic->StreamShutdown(Handle, QUIC_STREAM_SHUTDOWN_FLAG_ABORT_SEND, 0);
         SendComplete = true;
         break;
@@ -622,9 +617,8 @@ PerfClientStream::StreamCallback(
         OnStreamShutdownComplete();
         break;
     case QUIC_STREAM_EVENT_IDEAL_SEND_BUFFER_SIZE:
-        if (Connection.Client.Upload &&
-            !Connection.Client.UseSendBuffering &&
-            IdealSendBuffer < Event->IDEAL_SEND_BUFFER_SIZE.ByteCount) {
+        if (Connection.Client.Upload && !Connection.Client.UseSendBuffering &&
+            IdealSendBuffer != Event->IDEAL_SEND_BUFFER_SIZE.ByteCount) {
             IdealSendBuffer = Event->IDEAL_SEND_BUFFER_SIZE.ByteCount;
             Send();
         }
@@ -751,12 +745,12 @@ PerfClientStream::OnStreamShutdownComplete() {
         if (Index < Client.MaxLatencyIndex) {
             const auto Latency = CxPlatTimeDiff64(StartTime, RecvEndTime);
             Client.LatencyValues[(size_t)Index] = Latency > UINT32_MAX ? UINT32_MAX : (uint32_t)Latency;
-            InterlockedIncrement64((int64_t*)&Connection.Worker.StreamsCompleted);
+            InterlockedIncrement64((int64_t*)&Connection.Client.LatencyCount);
         }
+        InterlockedIncrement64((int64_t*)&Connection.Worker.StreamsCompleted);
     }
 
     auto& Conn = Connection;
     Connection.Worker.StreamAllocator.Free(this);
-
     Conn.OnStreamShutdownComplete();
 }

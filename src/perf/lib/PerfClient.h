@@ -21,10 +21,9 @@ struct PerfClientWorker;
 class PerfClient;
 
 struct PerfClientConnection {
-    CXPLAT_LIST_ENTRY Link; // For Worker's connection queue
-    HQUIC Handle {nullptr};
     PerfClient& Client;
     PerfClientWorker& Worker;
+    HQUIC Handle {nullptr};
     uint64_t StreamsCreated {0};
     uint64_t StreamsActive {0};
     PerfClientConnection(_In_ PerfClient& Client, _In_ PerfClientWorker& Worker) : Client(Client), Worker(Worker) { }
@@ -40,8 +39,7 @@ struct PerfClientConnection {
 struct PerfClientStream {
     PerfClientStream(_In_ PerfClientConnection& Connection) : Connection{Connection} { }
     ~PerfClientStream() { if (Handle) { MsQuic->StreamClose(Handle); } }
-    static QUIC_STATUS
-    s_StreamCallback(HQUIC, void* Context, QUIC_STREAM_EVENT* Event) {
+    static QUIC_STATUS s_StreamCallback(HQUIC, void* Context, QUIC_STREAM_EVENT* Event) {
         return ((PerfClientStream*)Context)->StreamCallback(Event);
     }
     PerfClientConnection& Connection;
@@ -118,9 +116,7 @@ public:
         }
     }
 
-    ~PerfClient() override {
-        Running = false;
-    }
+    ~PerfClient() override { Running = false; }
 
     QUIC_STATUS
     Init(
@@ -210,6 +206,7 @@ public:
     UniquePtr<uint32_t[]> LatencyValues {nullptr}; // TODO - Move to Worker
     uint64_t MaxLatencyIndex {0};
     uint64_t CurLatencyIndex {0};
+    uint64_t LatencyCount {0};
     PerfClientWorker Workers[PERF_MAX_THREAD_COUNT];
     bool Running {true};
 
