@@ -51,7 +51,7 @@ QuicHandleRpsClient(
 
     uint32_t RPS = (uint32_t)((CachedCompletedRequests * 1000ull) / (uint64_t)RunTime);
     if (RPS == 0) {
-        //printf("Error: No requests were completed\n");
+        printf("Error: No requests were completed\n");
         return QUIC_STATUS_SUCCESS;
     }
 

@@ -901,7 +901,7 @@ struct MsQuicConnection {
         InitStatus = QUIC_STATUS_SUCCESS;
     }
 
-    virtual ~MsQuicConnection() noexcept {
+    ~MsQuicConnection() noexcept {
         Close();
         delete[] ResumptionTicket;
     }
@@ -1111,19 +1111,6 @@ struct MsQuicConnection {
                 QUIC_PARAM_CONN_CIBIR_ID,
                 Length,
                 Value);
-    }
-#endif
-
-#ifdef QUIC_API_ENABLE_INSECURE_FEATURES
-    QUIC_STATUS
-    SetDisable1RttEncryption(_In_ bool Disable = true) noexcept {
-        BOOLEAN Value = Disable ? TRUE : FALSE;
-        return
-            MsQuic->SetParam(
-                Handle,
-                QUIC_PARAM_CONN_DISABLE_1RTT_ENCRYPTION,
-                sizeof(Value),
-                &Value);
     }
 #endif
 
@@ -1344,7 +1331,7 @@ struct MsQuicStream {
         InitStatus = QUIC_STATUS_SUCCESS;
     }
 
-    virtual ~MsQuicStream() noexcept {
+    ~MsQuicStream() noexcept {
         Close();
     }
 
