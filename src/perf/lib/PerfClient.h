@@ -28,6 +28,7 @@ struct PerfClientConnection {
     uint64_t StreamsCreated {0};
     uint64_t StreamsActive {0};
     PerfClientConnection(_In_ PerfClient& Client, _In_ PerfClientWorker& Worker) : Client(Client), Worker(Worker) { }
+    ~PerfClientConnection() { if (Handle) { MsQuic->ConnectionClose(Handle); } }
     QUIC_STATUS ConnectionCallback(_Inout_ QUIC_CONNECTION_EVENT* Event);
     static QUIC_STATUS s_ConnectionCallback(HQUIC, void* Context, QUIC_CONNECTION_EVENT* Event) {
         return ((PerfClientConnection*)Context)->ConnectionCallback(Event);
@@ -37,13 +38,8 @@ struct PerfClientConnection {
 };
 
 struct PerfClientStream {
-    PerfClientStream(_In_ PerfClientConnection& Connection)
-        : Connection{Connection} { }
-    ~PerfClientStream() {
-        if (Handle) {
-            MsQuic->StreamClose(Handle);
-        }
-    }
+    PerfClientStream(_In_ PerfClientConnection& Connection) : Connection{Connection} { }
+    ~PerfClientStream() { if (Handle) { MsQuic->StreamClose(Handle); } }
     static QUIC_STATUS
     s_StreamCallback(HQUIC, void* Context, QUIC_STREAM_EVENT* Event) {
         return ((PerfClientStream*)Context)->StreamCallback(Event);
