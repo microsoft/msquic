@@ -28,13 +28,13 @@ const char PERF_CLIENT_OPTIONS_TEXT[] =
 "  -incrementtarget:<0/1>   Append unique ID to target hostname for each worker (def:0).\n"
 "\n"
 "  Local options:\n"
-//"  -bind:<addr>             The local IP address(es)/port(s) to bind to.\n"
-//"  -addrs:<####>            The max number of local addresses to use. (def:%u)\n"
 "  -threads:<####>          The max number of worker threads to use.\n"
 "  -affinitize:<0/1>        Affinitizes worker threads to a core. (def:0)\n"
 #ifdef QUIC_COMPARTMENT_ID
 "  -comp:<####>             The network compartment ID to run in.\n"
 #endif
+"  -bind:<addr>             The local IP address(es)/port(s) to bind to.\n"
+"  -share:<0/1>             Shares the same local bindings. (def:0)\n"
 "\n"
 "  Config options:\n"
 "  -encrypt:<0/1>           Disables/enables encryption. (def:1)\n"
@@ -61,7 +61,6 @@ static void PrintHelp() {
     WriteOutput(
         PERF_CLIENT_OPTIONS_TEXT,
         PERF_DEFAULT_PORT
-        //PERF_MAX_CLIENT_PORT_COUNT
         );
 }
 
@@ -123,40 +122,39 @@ PerfClient::Init(
     // Local address and execution configuration options
     //
 
-    /*TryGetValue(argc, argv, "addrs", &MaxLocalAddrCount);
-
-    char* LocalAddress = (char*)GetValue(argc, argv, "bind");
-    if (LocalAddress != nullptr) {
-        SpecificLocalAddresses = true;
-        MaxLocalAddrCount = 0;
-        while (LocalAddress) {
-            char* AddrEnd = strchr(LocalAddress, ',');
-            if (AddrEnd) {
-                *AddrEnd = '\0';
-                AddrEnd++;
-            }
-            if (!ConvertArgToAddress(LocalAddress, 0, &LocalAddresses[MaxLocalAddrCount++])) {
-                WriteOutput("Failed to decode bind IP address: '%s'!\nMust be *, a IPv4 or a IPv6 address.\n", LocalAddress);
-                PrintHelp();
-                return QUIC_STATUS_INVALID_PARAMETER;
-            }
-            LocalAddress = AddrEnd;
-        }
-    }
-
-    if (MaxLocalAddrCount > PERF_MAX_CLIENT_PORT_COUNT) {
-        WriteOutput("Too many local addresses!\n");
-        return QUIC_STATUS_INVALID_PARAMETER;
-    }*/
-
     WorkerCount = CxPlatProcActiveCount();
     TryGetValue(argc, argv, "threads", &WorkerCount);
     TryGetValue(argc, argv, "workers", &WorkerCount);
     TryGetValue(argc, argv, "affinitize", &AffinitizeWorkers);
 
 #ifdef QUIC_COMPARTMENT_ID
-    TryGetValue(argc, argv, "comp",  &CompartmentId);
+    TryGetValue(argc, argv, "comp", &CompartmentId);
 #endif
+
+    TryGetValue(argc, argv, "share", &SpecificLocalAddresses);
+
+    char* LocalAddress = (char*)GetValue(argc, argv, "bind");
+    if (LocalAddress != nullptr) {
+        SpecificLocalAddresses = true;
+        uint32_t Index = 0;
+        while (LocalAddress && Index < WorkerCount) {
+            char* AddrEnd = strchr(LocalAddress, ',');
+            if (AddrEnd) {
+                *AddrEnd = '\0';
+                AddrEnd++;
+            }
+            if (!ConvertArgToAddress(LocalAddress, 0, &Workers[Index++].LocalAddr.SockAddr)) {
+                WriteOutput("Failed to decode bind IP address: '%s'!\nMust be *, a IPv4 or a IPv6 address.\n", LocalAddress);
+                PrintHelp();
+                return QUIC_STATUS_INVALID_PARAMETER;
+            }
+            LocalAddress = AddrEnd;
+        }
+
+        for (uint32_t i = Index; i < WorkerCount; ++i) {
+            Workers[i].LocalAddr.SockAddr = Workers[(i-Index)%Index].LocalAddr.SockAddr;
+        }
+    }
 
     //
     // General configuration options
@@ -449,20 +447,6 @@ PerfClientWorker::StartNewConnection() {
         }
     }
 
-    /* TODO - When to use it?
-    Value = TRUE;
-    Status =
-        MsQuic->SetParam(
-            Connection->Handle,
-            QUIC_PARAM_CONN_SHARE_UDP_BINDING,
-            sizeof(Value),
-            &Value);
-    if (QUIC_FAILED(Status)) {
-        WriteOutput("SetShareUdpBinding failed, 0x%x\n", Status);
-        ConnectionAllocator.Free(Connection);
-        return;
-    }*/
-
     if (Client->CibirIdLength) {
         Status =
             MsQuic->SetParam(
@@ -477,19 +461,34 @@ PerfClientWorker::StartNewConnection() {
         }
     }
 
-    /*if (Client->SpecificLocalAddresses || i >= Client->MaxLocalAddrCount) {
+    if (Client->SpecificLocalAddresses) {
+        Value = TRUE;
         Status =
             MsQuic->SetParam(
                 Connection->Handle,
-                QUIC_PARAM_CONN_LOCAL_ADDRESS,
-                sizeof(QUIC_ADDR),
-                &Client->LocalAddresses[i % Client->MaxLocalAddrCount]);
+                QUIC_PARAM_CONN_SHARE_UDP_BINDING,
+                sizeof(Value),
+                &Value);
         if (QUIC_FAILED(Status)) {
-            WriteOutput("SetLocalAddr failed!\n");
+            WriteOutput("SetShareUdpBinding failed, 0x%x\n", Status);
             ConnectionAllocator.Free(Connection);
             return;
         }
-    }*/
+
+        if (LocalAddr.GetFamily() != QUIC_ADDRESS_FAMILY_UNSPEC) {
+            Status =
+                MsQuic->SetParam(
+                    Connection->Handle,
+                    QUIC_PARAM_CONN_LOCAL_ADDRESS,
+                    sizeof(QUIC_ADDR),
+                    &LocalAddr);
+            if (QUIC_FAILED(Status)) {
+                WriteOutput("SetLocalAddr failed!\n");
+                ConnectionAllocator.Free(Connection);
+                return;
+            }
+        }
+    }
 
     Status =
         MsQuic->ConnectionStart(
@@ -504,18 +503,19 @@ PerfClientWorker::StartNewConnection() {
         return;
     }
 
-    /*if (!Client->SpecificLocalAddresses && i < PERF_MAX_CLIENT_PORT_COUNT) {
-        Status =
+    if (Client->SpecificLocalAddresses && LocalAddr.GetFamily() == QUIC_ADDRESS_FAMILY_UNSPEC) {
+        uint32_t Size = sizeof(QUIC_ADDR);
+        Status = // FYI, this can race with ConnectionStart failing
             MsQuic->GetParam(
                 Connection->Handle,
                 QUIC_PARAM_CONN_LOCAL_ADDRESS,
-                sizeof(QUIC_ADDR),
-                &Client->LocalAddresses[i]);
+                &Size,
+                &LocalAddr);
         if (QUIC_FAILED(Status)) {
             WriteOutput("GetLocalAddr failed!\n");
             return;
         }
-    }*/
+    }
 }
 
 QUIC_STATUS
@@ -539,13 +539,6 @@ PerfClientConnection::ConnectionCallback(
         }
         Worker.OnConnectionComplete();
         Worker.ConnectionAllocator.Free(this);
-        break;
-    case QUIC_CONNECTION_EVENT_IDEAL_PROCESSOR_CHANGED:
-        /* Support change in worker to align processor?
-        if ((uint32_t)Event->IDEAL_PROCESSOR_CHANGED.IdealProcessor >= Client.WorkerCount) {
-            Event->IDEAL_PROCESSOR_CHANGED.IdealProcessor = (uint16_t)(Client.WorkerCount - 1);
-        }
-        Client->Workers[Event->IDEAL_PROCESSOR_CHANGED.IdealProcessor].UpdateConnection(this);*/
         break;
     default:
         break;

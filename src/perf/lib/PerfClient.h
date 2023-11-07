@@ -159,11 +159,9 @@ public:
     uint8_t CibirId[7]; // {offset, values}
     uint8_t IncrementTarget {FALSE};
     // Local execution parameters
-    //QUIC_ADDR LocalAddresses[PERF_MAX_CLIENT_PORT_COUNT];
-    //uint32_t MaxLocalAddrCount {PERF_MAX_CLIENT_PORT_COUNT};
-    //uint8_t SpecificLocalAddresses {FALSE};
     uint32_t WorkerCount;
     uint8_t AffinitizeWorkers {FALSE};
+    uint8_t SpecificLocalAddresses {FALSE};
 #ifdef QUIC_COMPARTMENT_ID
     uint16_t CompartmentId {UINT16_MAX};
 #endif

@@ -19,7 +19,6 @@ Abstract:
 #define PERF_DEFAULT_CONN_FLOW_CONTROL      0x8000000
 #define PERF_DEFAULT_STREAM_COUNT           10000
 #define PERF_MAX_THREAD_COUNT               128
-#define PERF_MAX_CLIENT_PORT_COUNT          256
 #define PERF_MAX_REQUESTS_PER_SECOND        2000000 // best guess - must increase if we can do better
 
 #define PERF_DEFAULT_SEND_BUFFER_SIZE       0x20000
