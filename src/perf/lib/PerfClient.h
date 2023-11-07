@@ -15,14 +15,9 @@ Abstract:
 #include "PerfBase.h"
 #include "PerfCommon.h"
 
-struct PerfClientConnection;
-struct PerfClientStream;
-struct PerfClientWorker;
-class PerfClient;
-
 struct PerfClientConnection {
-    PerfClient& Client;
-    PerfClientWorker& Worker;
+    struct PerfClient& Client;
+    struct PerfClientWorker& Worker;
     HQUIC Handle {nullptr};
     uint64_t StreamsCreated {0};
     uint64_t StreamsActive {0};
@@ -106,33 +101,18 @@ private:
     void WorkerThread();
 };
 
-class PerfClient : public PerfBase {
-public:
-
+struct PerfClient : public PerfBase {
     PerfClient() {
-        //CxPlatZeroMemory(LocalAddresses, sizeof(LocalAddresses));
         for (uint32_t i = 0; i < PERF_MAX_THREAD_COUNT; ++i) {
             Workers[i].Client = this;
         }
     }
-
     ~PerfClient() override { Running = false; }
-
-    QUIC_STATUS
-    Init(
-        _In_ int argc,
-        _In_reads_(argc) _Null_terminated_ char* argv[]
-        ) override;
-
+    QUIC_STATUS Init(_In_ int argc, _In_reads_(argc) _Null_terminated_ char* argv[]) override;
     QUIC_STATUS Start(_In_ CXPLAT_EVENT* StopEvent) override;
     QUIC_STATUS Wait(_In_ int Timeout) override;
     void GetExtraDataMetadata(_Out_ PerfExtraDataMetadata* Result) override;
-
-    QUIC_STATUS
-    GetExtraData(
-        _Out_writes_bytes_(*Length) uint8_t* Data,
-        _Inout_ uint32_t* Length
-        ) override;
+    QUIC_STATUS GetExtraData(_Out_writes_bytes_(*Length) uint8_t* Data, _Inout_ uint32_t* Length) override;
 
     MsQuicRegistration Registration {
         "perf-client",
