@@ -770,12 +770,6 @@ CxPlatUpdateRoute(
     _In_ CXPLAT_ROUTE* SrcRoute
     );
 
-_IRQL_requires_max_(PASSIVE_LEVEL)
-BOOLEAN
-CxPlatIsRawInitialized(
-    _In_ CXPLAT_DATAPATH* Datapath
-    );
-
 #if defined(__cplusplus)
 }
 #endif

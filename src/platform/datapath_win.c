@@ -801,15 +801,3 @@ CxPlatUpdateRoute(
         DstRoute->DatapathType = SrcRoute->DatapathType;
     }
 }
-
-_IRQL_requires_max_(PASSIVE_LEVEL)
-BOOLEAN
-CxPlatIsRawInitialized(
-    _In_ CXPLAT_DATAPATH* Datapath
-    )
-{
-    if (Datapath->RawDataPath != NULL) {
-        return TRUE;
-    }
-    return FALSE;
-}
