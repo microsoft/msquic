@@ -12,26 +12,46 @@ Abstract:
 #pragma once
 
 #include "PerfHelpers.h"
-#include "PerfBase.h"
 #include "PerfCommon.h"
 
 struct PerfClientConnection {
     struct PerfClient& Client;
     struct PerfClientWorker& Worker;
+    union {
     HQUIC Handle {nullptr};
+    TcpConnection* TcpConn;
+    };
+    HashTable StreamTable;
     uint64_t StreamsCreated {0};
     uint64_t StreamsActive {0};
     PerfClientConnection(_In_ PerfClient& Client, _In_ PerfClientWorker& Worker) : Client(Client), Worker(Worker) { }
-    ~PerfClientConnection() { if (Handle) { MsQuic->ConnectionClose(Handle); } }
+    ~PerfClientConnection();
+    void Initialize();
+    void StartNewStream();
+    void OnConnectionComplete();
+    void OnShutdownComplete();
+    void OnStreamShutdownComplete();
     QUIC_STATUS ConnectionCallback(_Inout_ QUIC_CONNECTION_EVENT* Event);
-    static QUIC_STATUS s_ConnectionCallback(HQUIC, void* Context, QUIC_CONNECTION_EVENT* Event) {
+    static QUIC_STATUS s_ConnectionCallback(HQUIC, void* Context, _Inout_ QUIC_CONNECTION_EVENT* Event) {
         return ((PerfClientConnection*)Context)->ConnectionCallback(Event);
     }
-    void StartNewStream();
-    void OnStreamShutdownComplete();
+    static void TcpConnectCallback(_In_ TcpConnection* Connection, bool IsConnected);
+    static void TcpSendCompleteCallback(_In_ TcpConnection* Connection, _In_ TcpSendData* SendDataChain);
+    static void
+    TcpReceiveCallback(
+        _In_ TcpConnection* Connection,
+        uint32_t StreamID,
+        bool Open,
+        bool Fin,
+        bool Abort,
+        uint32_t Length,
+        _In_ uint8_t* Buffer
+        );
+    struct PerfClientStream* GetTcpStream(uint32_t ID);
 };
 
 struct PerfClientStream {
+    CXPLAT_HASHTABLE_ENTRY Entry; // To TCP StreamTable (must be first)
     PerfClientStream(_In_ PerfClientConnection& Connection) : Connection{Connection} { }
     ~PerfClientStream() { if (Handle) { MsQuic->StreamClose(Handle); } }
     static QUIC_STATUS s_StreamCallback(HQUIC, void* Context, QUIC_STREAM_EVENT* Event) {
@@ -52,7 +72,7 @@ struct PerfClientStream {
     QUIC_BUFFER LastBuffer;
     QUIC_STATUS StreamCallback(_Inout_ QUIC_STREAM_EVENT* Event);
     void Send();
-    void OnSendComplete(_In_ const QUIC_BUFFER* Buffer, _In_ bool Canceled);
+    void OnSendComplete(_In_ uint32_t Length, _In_ bool Canceled);
     void OnReceive(_In_ uint64_t Length, _In_ bool Finished);
     void OnStreamShutdownComplete();
 };
@@ -76,6 +96,8 @@ struct QUIC_CACHEALIGN PerfClientWorker {
     QuicAddr RemoteAddr;
     QuicPoolAllocator<PerfClientConnection> ConnectionAllocator;
     QuicPoolAllocator<PerfClientStream> StreamAllocator;
+    QuicPoolAllocator<TcpConnection> TcpConnectionAllocator;
+    QuicPoolAllocator<TcpSendData> TcpSendDataAllocator;
     PerfClientWorker() { }
     ~PerfClientWorker() { WaitForThread(); }
     void Uninitialize() { WaitForThread(); }
@@ -107,7 +129,7 @@ struct PerfClient : public PerfBase {
             Workers[i].Client = this;
         }
     }
-    ~PerfClient() override { Running = false; }
+    ~PerfClient() override { Running = false; delete Engine; }
     QUIC_STATUS Init(_In_ int argc, _In_reads_(argc) _Null_terminated_ char* argv[]) override;
     QUIC_STATUS Start(_In_ CXPLAT_EVENT* StopEvent) override;
     QUIC_STATUS Wait(_In_ int Timeout) override;
@@ -146,6 +168,7 @@ struct PerfClient : public PerfBase {
     uint16_t CompartmentId {UINT16_MAX};
 #endif
     // General parameters
+    uint8_t UseTCP {TRUE};
     uint8_t UseEncryption {TRUE};
     uint8_t UsePacing {TRUE};
     uint8_t UseSendBuffering {FALSE};
@@ -186,6 +209,7 @@ struct PerfClient : public PerfBase {
     uint64_t CurLatencyIndex {0};
     uint64_t LatencyCount {0};
     PerfClientWorker Workers[PERF_MAX_THREAD_COUNT];
+    TcpEngine* Engine {nullptr};
     bool Running {true};
 
     uint32_t GetConnectedConnections() const {

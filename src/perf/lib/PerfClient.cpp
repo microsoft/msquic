@@ -37,6 +37,7 @@ const char PERF_CLIENT_OPTIONS_TEXT[] =
 "  -share:<0/1>             Shares the same local bindings. (def:0)\n"
 "\n"
 "  Config options:\n"
+"  -tcp:<0/1>               Disables/enables TCP usage (instead of QUIC). (def:0)\n"
 "  -encrypt:<0/1>           Disables/enables encryption. (def:1)\n"
 "  -pacing:<0/1>            Disables/enables send pacing. (def:1)\n"
 "  -sendbuf:<0/1>           Disables/enables send buffering. (def:0)\n"
@@ -52,8 +53,8 @@ const char PERF_CLIENT_OPTIONS_TEXT[] =
 "  -download:<####>         The length of bytes to receive on each stream. (def:0)\n"
 "  -timed:<0/1>             Indicates the upload/download args are times (in ms). (def:0)\n"
 //"  -inline:<0/1>            Create new streams on callbacks. (def:0)\n"
-"  -rconn:<0/1>             Continue to loop the scenario at the connection level. (def:0)\n"
-"  -rstream:<0/1>           Continue to loop the scenario at the stream level. (def:0)\n"
+"  -rconn:<0/1>             Repeat the scenario at the connection level. (def:0)\n"
+"  -rstream:<0/1>           Repeat the scenario at the stream level. (def:0)\n"
 "  -runtime:<####>          The total runtime (in ms). Only relevant for repeat scenarios. (def:0)\n"
 "\n";
 
@@ -160,6 +161,7 @@ PerfClient::Init(
     // General configuration options
     //
 
+    TryGetValue(argc, argv, "tcp", &UseTCP);
     TryGetValue(argc, argv, "encrypt", &UseEncryption);
     TryGetValue(argc, argv, "pacing", &UsePacing);
     TryGetValue(argc, argv, "sendbuf", &UseSendBuffering);
@@ -213,9 +215,29 @@ PerfClient::Init(
         return QUIC_STATUS_INVALID_PARAMETER;
     }
 
+    if (UseTCP) {
+        if (!UseEncryption) {
+            WriteOutput("TCP mode doesn't support disabling encryption!\n");
+            return QUIC_STATUS_INVALID_PARAMETER;
+        }
+    }
+
+    if ((Upload || Download) && !StreamCount) {
+        StreamCount = 1; // Just up/down args imply they want a stream
+    }
+
     //
     // Other state initialization
     //
+
+    if (UseTCP) {
+        Engine =
+            new(std::nothrow) TcpEngine(
+                nullptr,
+                PerfClientConnection::TcpConnectCallback,
+                PerfClientConnection::TcpReceiveCallback,
+                PerfClientConnection::TcpSendCompleteCallback);
+    }
 
     RequestBuffer.Init(IoSize, Timed ? UINT64_MAX : Download);
     if (PrintLatency) {
@@ -417,133 +439,156 @@ PerfClientWorker::OnConnectionComplete() {
 
 void
 PerfClientWorker::StartNewConnection() {
-    BOOLEAN Value;
     InterlockedIncrement64((int64_t*)&ConnectionsCreated);
     InterlockedIncrement64((int64_t*)&ConnectionsActive);
-    auto Connection = ConnectionAllocator.Alloc(*Client, *this);
-    if (QUIC_FAILED(
-        MsQuic->ConnectionOpen(
-            Client->Registration,
-            PerfClientConnection::s_ConnectionCallback,
-            Connection,
-            &Connection->Handle))) {
-        ConnectionAllocator.Free(Connection);
-        return;
-    }
+    ConnectionAllocator.Alloc(*Client, *this)->Initialize();
+}
 
-    QUIC_STATUS Status;
-    if (!Client->UseEncryption) {
-        Value = TRUE;
-        Status =
-            MsQuic->SetParam(
-                Connection->Handle,
-                QUIC_PARAM_CONN_DISABLE_1RTT_ENCRYPTION,
-                sizeof(Value),
-                &Value);
-        if (QUIC_FAILED(Status)) {
-            WriteOutput("SetDisable1RttEncryption failed, 0x%x\n", Status);
-            ConnectionAllocator.Free(Connection);
-            return;
-        }
+PerfClientConnection::~PerfClientConnection() {
+    if (Client.UseTCP) {
+        if (TcpConn) { TcpConn->Close(); } // TODO - Free to pool instead
+    } else {
+        if (Handle) { MsQuic->ConnectionClose(Handle); }
     }
+}
 
-    if (Client->CibirIdLength) {
-        Status =
-            MsQuic->SetParam(
-                Connection->Handle,
-                QUIC_PARAM_CONN_CIBIR_ID,
-                Client->CibirIdLength+1,
-                Client->CibirId);
-        if (QUIC_FAILED(Status)) {
-            WriteOutput("SetCibirId failed, 0x%x\n", Status);
-            ConnectionAllocator.Free(Connection);
-            return;
-        }
-    }
-
-    if (Client->SpecificLocalAddresses) {
-        Value = TRUE;
-        Status =
-            MsQuic->SetParam(
-                Connection->Handle,
-                QUIC_PARAM_CONN_SHARE_UDP_BINDING,
-                sizeof(Value),
-                &Value);
-        if (QUIC_FAILED(Status)) {
-            WriteOutput("SetShareUdpBinding failed, 0x%x\n", Status);
-            ConnectionAllocator.Free(Connection);
+void
+PerfClientConnection::Initialize() {
+    if (Client.UseTCP) {
+        auto CredConfig = MsQuicCredentialConfig(QUIC_CREDENTIAL_FLAG_CLIENT | QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION);
+        TcpConn =
+            Worker.TcpConnectionAllocator.Alloc(
+                Client.Engine,
+                &CredConfig,
+                Client.TargetFamily,
+                Worker.Target.get(),
+                Worker.RemoteAddr.GetPort(),
+                Worker.LocalAddr.GetFamily() != QUIC_ADDRESS_FAMILY_UNSPEC ? &Worker.LocalAddr.SockAddr : nullptr,
+                this);
+        if (!TcpConn->IsInitialized()) {
+            Worker.ConnectionAllocator.Free(this);
             return;
         }
 
-        if (LocalAddr.GetFamily() != QUIC_ADDRESS_FAMILY_UNSPEC) {
+    } else {
+        BOOLEAN Value;
+        if (QUIC_FAILED(
+            MsQuic->ConnectionOpen(
+                Client.Registration,
+                PerfClientConnection::s_ConnectionCallback,
+                this,
+                &Handle))) {
+            Worker.ConnectionAllocator.Free(this);
+            return;
+        }
+
+        QUIC_STATUS Status;
+        if (!Client.UseEncryption) {
+            Value = TRUE;
             Status =
                 MsQuic->SetParam(
-                    Connection->Handle,
-                    QUIC_PARAM_CONN_LOCAL_ADDRESS,
-                    sizeof(QUIC_ADDR),
-                    &LocalAddr);
+                    Handle,
+                    QUIC_PARAM_CONN_DISABLE_1RTT_ENCRYPTION,
+                    sizeof(Value),
+                    &Value);
             if (QUIC_FAILED(Status)) {
-                WriteOutput("SetLocalAddr failed!\n");
-                ConnectionAllocator.Free(Connection);
+                WriteOutput("SetDisable1RttEncryption failed, 0x%x\n", Status);
+                Worker.ConnectionAllocator.Free(this);
+                return;
+            }
+        }
+
+        if (Client.CibirIdLength) {
+            Status =
+                MsQuic->SetParam(
+                    Handle,
+                    QUIC_PARAM_CONN_CIBIR_ID,
+                    Client.CibirIdLength+1,
+                    Client.CibirId);
+            if (QUIC_FAILED(Status)) {
+                WriteOutput("SetCibirId failed, 0x%x\n", Status);
+                Worker.ConnectionAllocator.Free(this);
+                return;
+            }
+        }
+
+        if (Client.SpecificLocalAddresses) {
+            Value = TRUE;
+            Status =
+                MsQuic->SetParam(
+                    Handle,
+                    QUIC_PARAM_CONN_SHARE_UDP_BINDING,
+                    sizeof(Value),
+                    &Value);
+            if (QUIC_FAILED(Status)) {
+                WriteOutput("SetShareUdpBinding failed, 0x%x\n", Status);
+                Worker.ConnectionAllocator.Free(this);
+                return;
+            }
+
+            if (Worker.LocalAddr.GetFamily() != QUIC_ADDRESS_FAMILY_UNSPEC) {
+                Status =
+                    MsQuic->SetParam(
+                        Handle,
+                        QUIC_PARAM_CONN_LOCAL_ADDRESS,
+                        sizeof(QUIC_ADDR),
+                        &Worker.LocalAddr);
+                if (QUIC_FAILED(Status)) {
+                    WriteOutput("SetLocalAddr failed!\n");
+                    Worker.ConnectionAllocator.Free(this);
+                    return;
+                }
+            }
+        }
+
+        Status =
+            MsQuic->ConnectionStart(
+                Handle,
+                Client.Configuration,
+                Client.TargetFamily,
+                Worker.Target.get(),
+                Worker.RemoteAddr.GetPort());
+        if (QUIC_FAILED(Status)) {
+            WriteOutput("Start failed, 0x%x\n", Status);
+            Worker.ConnectionAllocator.Free(this);
+            return;
+        }
+
+        if (Client.SpecificLocalAddresses && Worker.LocalAddr.GetFamily() == QUIC_ADDRESS_FAMILY_UNSPEC) {
+            uint32_t Size = sizeof(QUIC_ADDR);
+            Status = // FYI, this can race with ConnectionStart failing
+                MsQuic->GetParam(
+                    Handle,
+                    QUIC_PARAM_CONN_LOCAL_ADDRESS,
+                    &Size,
+                    &Worker.LocalAddr);
+            if (QUIC_FAILED(Status)) {
+                WriteOutput("GetLocalAddr failed!\n");
                 return;
             }
         }
     }
+}
 
-    Status =
-        MsQuic->ConnectionStart(
-            Connection->Handle,
-            Client->Configuration,
-            Client->TargetFamily,
-            Target.get(),
-            RemoteAddr.GetPort());
-    if (QUIC_FAILED(Status)) {
-        WriteOutput("Start failed, 0x%x\n", Status);
-        ConnectionAllocator.Free(Connection);
-        return;
-    }
-
-    if (Client->SpecificLocalAddresses && LocalAddr.GetFamily() == QUIC_ADDRESS_FAMILY_UNSPEC) {
-        uint32_t Size = sizeof(QUIC_ADDR);
-        Status = // FYI, this can race with ConnectionStart failing
-            MsQuic->GetParam(
-                Connection->Handle,
-                QUIC_PARAM_CONN_LOCAL_ADDRESS,
-                &Size,
-                &LocalAddr);
-        if (QUIC_FAILED(Status)) {
-            WriteOutput("GetLocalAddr failed!\n");
-            return;
+void
+PerfClientConnection::OnConnectionComplete() {
+    InterlockedIncrement64((int64_t*)&Worker.ConnectionsConnected);
+    if (!Client.StreamCount) {
+        MsQuic->ConnectionShutdown(Handle, QUIC_CONNECTION_SHUTDOWN_FLAG_NONE, 0);
+    } else {
+        for (uint32_t i = 0; i < Client.StreamCount; ++i) {
+            StartNewStream();
         }
     }
 }
 
-QUIC_STATUS
-PerfClientConnection::ConnectionCallback(
-    _Inout_ QUIC_CONNECTION_EVENT* Event
-    ) {
-    switch (Event->Type) {
-    case QUIC_CONNECTION_EVENT_CONNECTED:
-        InterlockedIncrement64((int64_t*)&Worker.ConnectionsConnected);
-        if (!Client.StreamCount) {
-            MsQuic->ConnectionShutdown(Handle, QUIC_CONNECTION_SHUTDOWN_FLAG_NONE, 0);
-        } else {
-            for (uint32_t i = 0; i < Client.StreamCount; ++i) {
-                StartNewStream();
-            }
-        }
-        break;
-    case QUIC_CONNECTION_EVENT_SHUTDOWN_COMPLETE:
-        if (Client.PrintConnections) {
-            QuicPrintConnectionStatistics(MsQuic, Handle);
-        }
-        Worker.OnConnectionComplete();
-        Worker.ConnectionAllocator.Free(this);
-        break;
-    default:
-        break;
+void
+PerfClientConnection::OnShutdownComplete() {
+    if (Client.PrintConnections) {
+        QuicPrintConnectionStatistics(MsQuic, Handle);
     }
-    return QUIC_STATUS_SUCCESS;
+    Worker.OnConnectionComplete();
+    Worker.ConnectionAllocator.Free(this);
 }
 
 void
@@ -551,19 +596,29 @@ PerfClientConnection::StartNewStream() {
     StreamsCreated++;
     StreamsActive++;
     auto Stream = Worker.StreamAllocator.Alloc(*this);
-    if (QUIC_FAILED(
-        MsQuic->StreamOpen(
-            Handle,
-            QUIC_STREAM_OPEN_FLAG_NONE,
-            PerfClientStream::s_StreamCallback,
-            Stream,
-            &Stream->Handle))) {
-        Worker.StreamAllocator.Free(Stream);
-        return;
+    if (Client.UseTCP) {
+        Stream->Entry.Signature = (uint32_t)Worker.StreamsStarted;
+        StreamTable.Insert(&Stream->Entry);
+    } else {
+        if (QUIC_FAILED(
+            MsQuic->StreamOpen(
+                Handle,
+                QUIC_STREAM_OPEN_FLAG_NONE,
+                PerfClientStream::s_StreamCallback,
+                Stream,
+                &Stream->Handle))) {
+            Worker.StreamAllocator.Free(Stream);
+            return;
+        }
     }
 
     InterlockedIncrement64((int64_t*)&Worker.StreamsStarted);
     Stream->Send();
+}
+
+PerfClientStream*
+PerfClientConnection::GetTcpStream(uint32_t ID) {
+    return (PerfClientStream*)StreamTable.Lookup(ID);
 }
 
 void
@@ -581,6 +636,85 @@ PerfClientConnection::OnStreamShutdownComplete() {
 }
 
 QUIC_STATUS
+PerfClientConnection::ConnectionCallback(
+    _Inout_ QUIC_CONNECTION_EVENT* Event
+    ) {
+    switch (Event->Type) {
+    case QUIC_CONNECTION_EVENT_CONNECTED:
+        OnConnectionComplete();
+        break;
+    case QUIC_CONNECTION_EVENT_SHUTDOWN_COMPLETE:
+        OnShutdownComplete();
+        break;
+    default:
+        break;
+    }
+    return QUIC_STATUS_SUCCESS;
+}
+
+void
+PerfClientConnection::TcpConnectCallback(
+    _In_ TcpConnection* Connection,
+    bool IsConnected
+    ) {
+    auto This = (PerfClientConnection*)Connection->Context;
+    if (!IsConnected) {
+        This->OnConnectionComplete();
+    } else {
+        // TODO - Iterate through streams
+        This->OnShutdownComplete();
+    }
+}
+void
+PerfClientConnection::TcpSendCompleteCallback(
+    _In_ TcpConnection* Connection,
+    _In_ TcpSendData* SendDataChain
+    ) {
+    auto This = (PerfClientConnection*)Connection->Context;
+    while (SendDataChain) {
+        auto Data = SendDataChain;
+        SendDataChain = Data->Next;
+
+        auto Stream = This->GetTcpStream(SendDataChain->StreamId);
+        if (Stream) {
+            Stream->OnSendComplete(Data->Length, FALSE);
+            if ((Data->Fin || Data->Abort) && !Stream->SendEndTime) {
+                Stream->SendEndTime = CxPlatTimeUs64();
+                if (Stream->RecvEndTime) {
+                    Stream->OnStreamShutdownComplete();
+                }
+            }
+        }
+        This->Worker.TcpSendDataAllocator.Free(Data);
+    }
+}
+
+void
+PerfClientConnection::TcpReceiveCallback(
+    _In_ TcpConnection* Connection,
+    uint32_t StreamID,
+    bool Open,
+    bool Fin,
+    bool Abort,
+    uint32_t Length,
+    _In_ uint8_t* Buffer
+    ) {
+    UNREFERENCED_PARAMETER(Open);
+    UNREFERENCED_PARAMETER(Buffer);
+    auto This = (PerfClientConnection*)Connection->Context;
+    auto Stream = This->GetTcpStream(StreamID);
+    if (Stream) {
+        Stream->OnReceive(Length, Fin);
+        if (Abort) {
+            if (!Stream->RecvEndTime) { Stream->RecvEndTime = CxPlatTimeUs64(); }
+            if (Stream->SendEndTime) {
+                Stream->OnStreamShutdownComplete();
+            }
+        }
+    }
+}
+
+QUIC_STATUS
 PerfClientStream::StreamCallback(
     _Inout_ QUIC_STREAM_EVENT* Event
     ) {
@@ -589,7 +723,7 @@ PerfClientStream::StreamCallback(
         OnReceive(Event->RECEIVE.TotalBufferLength, Event->RECEIVE.Flags & QUIC_RECEIVE_FLAG_FIN);
         break;
     case QUIC_STREAM_EVENT_SEND_COMPLETE:
-        OnSendComplete((QUIC_BUFFER*)Event->SEND_COMPLETE.ClientContext, Event->SEND_COMPLETE.Canceled);
+        OnSendComplete(((QUIC_BUFFER*)Event->SEND_COMPLETE.ClientContext)->Length, Event->SEND_COMPLETE.Canceled);
         break;
     case QUIC_STREAM_EVENT_PEER_SEND_ABORTED:
         if (!RecvEndTime) { RecvEndTime = CxPlatTimeUs64(); }
@@ -651,18 +785,28 @@ PerfClientStream::Send() {
         BytesSent += DataLength;
         BytesOutstanding += DataLength;
 
-        MsQuic->StreamSend(Handle, Buffer, 1, Flags, Buffer);
+        if (Client.UseTCP) {
+            auto SendData = Connection.Worker.TcpSendDataAllocator.Alloc();
+            SendData->StreamId = (uint32_t)Entry.Signature;
+            SendData->Open = BytesSent == DataLength ? TRUE : FALSE;
+            SendData->Buffer = Buffer->Buffer;
+            SendData->Length = DataLength;
+            SendData->Fin = Flags & QUIC_SEND_FLAG_FIN;
+            Connection.TcpConn->Send(SendData);
+        } else {
+            MsQuic->StreamSend(Handle, Buffer, 1, Flags, Buffer);
+        }
     }
 }
 
 void
 PerfClientStream::OnSendComplete(
-    _In_ const QUIC_BUFFER* Buffer,
+    _In_ uint32_t Length,
     _In_ bool Canceled
     ) {
-    BytesOutstanding -= Buffer->Length;
+    BytesOutstanding -= Length;
     if (!Canceled) {
-        BytesAcked += Buffer->Length;
+        BytesAcked += Length;
         Send();
     }
 }
@@ -686,8 +830,18 @@ PerfClientStream::OnReceive(
     } if (Connection.Client.Timed) {
         if (Now == 0) Now = CxPlatTimeUs64();
         if (CxPlatTimeDiff64(RecvStartTime, Now) >= MS_TO_US(Connection.Client.Download)) {
-            MsQuic->StreamShutdown(Handle, QUIC_STREAM_SHUTDOWN_FLAG_ABORT_RECEIVE, 0);
             RecvEndTime = Now;
+            if (Connection.Client.UseTCP) {
+                auto SendData = Connection.Worker.TcpSendDataAllocator.Alloc();
+                SendData->StreamId = (uint32_t)Entry.Signature;
+                SendData->Abort = true;
+                Connection.TcpConn->Send(SendData);
+                if (SendEndTime) {
+                    OnStreamShutdownComplete();
+                }
+            } else {
+                MsQuic->StreamShutdown(Handle, QUIC_STREAM_SHUTDOWN_FLAG_ABORT_RECEIVE, 0);
+            }
         }
     }
 }
