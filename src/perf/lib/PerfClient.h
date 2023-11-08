@@ -168,7 +168,7 @@ struct PerfClient : public PerfBase {
     uint16_t CompartmentId {UINT16_MAX};
 #endif
     // General parameters
-    uint8_t UseTCP {TRUE};
+    uint8_t UseTCP {FALSE};
     uint8_t UseEncryption {TRUE};
     uint8_t UsePacing {TRUE};
     uint8_t UseSendBuffering {FALSE};
