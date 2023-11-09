@@ -212,7 +212,7 @@
                 "Tls": ["schannel", "openssl", "openssl3"],
                 "Arch": ["x64", "x86", "arm", "arm64"],
                 "Exe": "secnetperf",
-                "Arguments": "-exec:lowlat -test:client -target:$RemoteAddress"
+                "Arguments": "-exec:lowlat -test:client -target:$RemoteAddress -rstream:1"
             },
             "Variables": [
                 {
@@ -257,7 +257,7 @@
                 "Tls": ["schannel", "openssl", "openssl3"],
                 "Arch": ["x64", "x86", "arm", "arm64"],
                 "Exe": "secnetperf",
-                "Arguments": "-exec:lowlat -test:client -target:$RemoteAddress -tcp:1"
+                "Arguments": "-exec:lowlat -test:client -target:$RemoteAddress -tcp:1 -rstream:1"
             },
             "Variables": [
                 {
