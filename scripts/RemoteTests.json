@@ -12,7 +12,7 @@
                 "Tls": ["schannel", "openssl", "openssl3"],
                 "Arch": ["x64", "x86", "arm", "arm64"],
                 "Exe": "secnetperf",
-                "Arguments": "-exec:maxtput -test:Throughput -target:$RemoteAddress -bind:$LocalAddress:4434 -ip:4 -uni:1 -timed:1 -upload:12000 -stats:1 -sstats:1"
+                "Arguments": "-exec:maxtput -test:client -target:$RemoteAddress -bind:$LocalAddress:4434 -ip:4 -stream:1 -timed:1 -upload:12000 -ptput:1 -pconn:1 -pstream:1"
             },
             "Variables": [
                 {
@@ -46,7 +46,7 @@
                 "Tls": ["schannel", "openssl", "openssl3"],
                 "Arch": ["x64", "x86", "arm", "arm64"],
                 "Exe": "secnetperf",
-                "Arguments": "-exec:maxtput -test:Throughput -target:$RemoteAddress -bind:$LocalAddress:4434 -ip:4 -uni:1 -timed:1 -upload:12000 -tcp:1"
+                "Arguments": "-exec:maxtput -test:client -target:$RemoteAddress -bind:$LocalAddress:4434 -ip:4 -stream:1 -timed:1 -upload:12000 -ptput:1 -pconn:1 -pstream:1 -tcp:1"
             },
             "Variables": [
             ],
@@ -212,7 +212,52 @@
                 "Tls": ["schannel", "openssl", "openssl3"],
                 "Arch": ["x64", "x86", "arm", "arm64"],
                 "Exe": "secnetperf",
-                "Arguments": "-exec:lowlat -test:RPS -target:$RemoteAddress"
+                "Arguments": "-exec:lowlat -test:client -target:$RemoteAddress"
+            },
+            "Variables": [
+                {
+                    "Name": "ConnectionCount",
+                    "Local": {
+                        "1": "-conns:1 -requests:1 -runtime:30000",
+                        "40": "-conns:40 -requests:20",
+                        "250": "-conns:250 -requests:7500",
+                        "1000": "-conns:1 -requests:1000"
+                    },
+                    "Default": "250"
+                },
+                {
+                    "Name": "RequestSize",
+                    "Local": {
+                        "0": "-request:0"
+                    },
+                    "Default": "0"
+                },
+                {
+                    "Name": "ResponseSize",
+                    "Local": {
+                        "0": "-response:0",
+                        "512": "-response:512",
+                        "4096": "-response:4096",
+                        "16384": "-response:16384"
+                    },
+                    "Default": "4096"
+                }
+            ],
+            "AllowLoopback": false,
+            "Iterations": 5,
+            "RemoteReadyMatcher": "Started!",
+            "ResultsMatcher": "Result: (.*) RPS, Min: (.*), Max: (.*), 50th: (.*), 90th: (.*), 99th: (.*), 99.9th: (.*), 99.99th: (.*), 99.999th: (.*), 99.9999th: (.*), StdErr: (.*)",
+            "Formats": ["{0} RPS", "Minimum: {0}", "Maximum: {0}", "Percentiles: 50th: {0}", "90th: {0}", "99th: {0}", "99.9th: {0}", "99.99th: {0}", "99.999th: {0}", "99.9999th: {0}", "Standard Error: {0}"],
+            "RegressionThreshold": "-50.0"
+        },
+        {
+            "TestName": "TCPRPS",
+            "Local": {
+                "Platform": "Windows",
+                "Tls": ["schannel", "openssl", "openssl3"],
+                "Arch": ["x64", "x86", "arm", "arm64"],
+                "Exe": "secnetperf",
+                "Arguments": "-exec:lowlat -test:client -target:$RemoteAddress -tcp:1"
             },
             "Variables": [
                 {
