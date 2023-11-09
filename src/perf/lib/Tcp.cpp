@@ -411,7 +411,7 @@ TcpConnection::ConnectCallback(
         This,
         Connected);
     if (Connected) {
-        This->IndicateConnect = true;
+        This->StartTls = true;
     } else {
         This->IndicateDisconnect = true;
     }
@@ -507,15 +507,6 @@ void TcpConnection::Process()
         Engine->AcceptHandler(Server, this);
         StartTls = true;
     }
-    if (IndicateConnect) {
-        IndicateConnect = false;
-        QuicTraceLogVerbose(
-            PerfTcpAppConnect,
-            "[perf][tcp][%p] App Connect",
-            this);
-        Engine->ConnectHandler(this, true);
-        StartTls = true;
-    }
     if (StartTls) {
         StartTls = false;
         QuicTraceLogVerbose(
@@ -530,6 +521,14 @@ void TcpConnection::Process()
         if (!ProcessReceive()) {
             IndicateDisconnect = true;
         }
+    }
+    if (IndicateConnect) {
+        IndicateConnect = false;
+        QuicTraceLogVerbose(
+            PerfTcpAppConnect,
+            "[perf][tcp][%p] App Connect",
+            this);
+        Engine->ConnectHandler(this, true);
     }
     if (TlsState.WriteKey >= QUIC_PACKET_KEY_1_RTT && SendData) {
         if (!ProcessSend()) {
@@ -612,6 +611,10 @@ bool TcpConnection::ProcessTls(const uint8_t* Buffer, uint32_t BufferLength)
     //printf("CxPlatTlsProcessData produced %hu bytes (%u, %u)\n", TlsState.BufferLength, TlsState.BufferOffsetHandshake, TlsState.BufferOffset1Rtt);
 
     CXPLAT_DBG_ASSERT(BaseOffset + TlsState.BufferLength == TlsState.BufferTotalLength);
+
+    if (Results & CXPLAT_TLS_RESULT_HANDSHAKE_COMPLETE) {
+        IndicateConnect = true;
+    }
 
     while (BaseOffset < TlsState.BufferTotalLength) {
         if (TlsState.BufferOffsetHandshake) {
@@ -921,7 +924,7 @@ bool TcpConnection::FinalizeSendBuffer(QUIC_BUFFER* SendBuffer)
 {
     TotalSendOffset += SendBuffer->Length;
     if (SendBuffer->Length != TLS_BLOCK_SIZE ||
-        CxPlatSendDataIsFull(BatchedSendData)) {
+        CxPlatSendDataIsFull(BatchedSendData)) {   
         if (QUIC_FAILED(
             CxPlatSocketSend(Socket, &Route, BatchedSendData))) {
             WriteOutput("CxPlatSocketSend FAILED\n");

@@ -25,7 +25,7 @@ const char PERF_CLIENT_OPTIONS_TEXT[] =
 "  -ip:<0/4/6>              A hint for the resolving the hostname to an IP address. (def:0)\n"
 "  -port:<####>             The UDP port of the server. (def:%u)\n"
 "  -cibir:<hex_bytes>       A CIBIR well-known idenfitier.\n"
-"  -incrementtarget:<0/1>   Append unique ID to target hostname for each worker (def:0).\n"
+"  -inctarget:<0/1>         Append unique ID to target hostname for each worker (def:0).\n"
 "\n"
 "  Local options:\n"
 "  -threads:<####>          The max number of worker threads to use.\n"
@@ -70,7 +70,7 @@ PerfClient::Init(
     _In_ int argc,
     _In_reads_(argc) _Null_terminated_ char* argv[]
     ) {
-    if (argc > 0 && (IsArg(argv[0], "?") || IsArg(argv[0], "help"))) {
+    if (GetValue(argc, argv, "?") || GetValue(argc, argv, "help")) {
         PrintHelp();
         return QUIC_STATUS_INVALID_PARAMETER;
     }
@@ -85,17 +85,15 @@ PerfClient::Init(
 
     const char* target;
     if (!TryGetValue(argc, argv, "target", &target) &&
-        !TryGetValue(argc, argv, "server", &target)) {
-        WriteOutput("Must specify '-target' argument!\n");
+        !TryGetValue(argc, argv, "server", &target) &&
+        !TryGetValue(argc, argv, "to", &target)) {
+        WriteOutput("Must specify 'target' argument!\n");
         PrintHelp();
         return QUIC_STATUS_INVALID_PARAMETER;
     }
 
     size_t Len = strlen(target);
     Target.reset(new(std::nothrow) char[Len + 1]);
-    if (!Target.get()) {
-        return QUIC_STATUS_OUT_OF_MEMORY;
-    }
     CxPlatCopyMemory(Target.get(), target, Len);
     Target[Len] = '\0';
 
@@ -109,6 +107,7 @@ PerfClient::Init(
 
     TryGetValue(argc, argv, "port", &TargetPort);
     TryGetValue(argc, argv, "incrementtarget", &IncrementTarget);
+    TryGetValue(argc, argv, "inctarget", &IncrementTarget);
 
     const char* CibirBytes = nullptr;
     if (TryGetValue(argc, argv, "cibir", &CibirBytes)) {
@@ -172,18 +171,6 @@ PerfClient::Init(
     TryGetValue(argc, argv, "platency", &PrintLatency);
     TryGetValue(argc, argv, "plat", &PrintLatency);
 
-    if (UseSendBuffering || !UsePacing) { // Update settings if non-default
-        MsQuicSettings Settings;
-        Configuration.GetSettings(Settings);
-        if (!UseSendBuffering) {
-            Settings.SetSendBufferingEnabled(UseSendBuffering != 0);
-        }
-        if (!UsePacing) {
-            Settings.SetPacingEnabled(UsePacing != 0);
-        }
-        Configuration.SetSettings(Settings);
-    }
-
     //
     // Scenario options
     //
@@ -220,6 +207,14 @@ PerfClient::Init(
             WriteOutput("TCP mode doesn't support disabling encryption!\n");
             return QUIC_STATUS_INVALID_PARAMETER;
         }
+        if (CibirBytes) {
+            WriteOutput("TCP mode doesn't support CIBIR!\n");
+            return QUIC_STATUS_INVALID_PARAMETER;
+        }
+        if (SpecificLocalAddresses) {
+            WriteOutput("TCP mode doesn't support specifying/sharing local address(es)!\n");
+            return QUIC_STATUS_INVALID_PARAMETER;
+        }
     }
 
     if ((Upload || Download) && !StreamCount) {
@@ -227,7 +222,7 @@ PerfClient::Init(
     }
 
     //
-    // Other state initialization
+    // Initialization
     //
 
     if (UseTCP) {
@@ -237,6 +232,18 @@ PerfClient::Init(
                 PerfClientConnection::TcpConnectCallback,
                 PerfClientConnection::TcpReceiveCallback,
                 PerfClientConnection::TcpSendCompleteCallback);
+    } else {
+        if (UseSendBuffering || !UsePacing) { // Update settings if non-default
+            MsQuicSettings Settings;
+            Configuration.GetSettings(Settings);
+            if (!UseSendBuffering) {
+                Settings.SetSendBufferingEnabled(UseSendBuffering != 0);
+            }
+            if (!UsePacing) {
+                Settings.SetPacingEnabled(UsePacing != 0);
+            }
+            Configuration.SetSettings(Settings);
+        }
     }
 
     RequestBuffer.Init(IoSize, Timed ? UINT64_MAX : Download);
@@ -253,9 +260,6 @@ PerfClient::Init(
         }
 
         LatencyValues = UniquePtr<uint32_t[]>(new(std::nothrow) uint32_t[(size_t)MaxLatencyIndex]);
-        if (LatencyValues == nullptr) {
-            return QUIC_STATUS_OUT_OF_MEMORY;
-        }
         CxPlatZeroMemory(LatencyValues.get(), (size_t)(sizeof(uint32_t) * MaxLatencyIndex));
     }
 
@@ -587,6 +591,7 @@ PerfClientConnection::OnShutdownComplete() {
     if (Client.PrintConnections) {
         QuicPrintConnectionStatistics(MsQuic, Handle);
     }
+    // TODO - Clean up leftover TCP streams
     Worker.OnConnectionComplete();
     Worker.ConnectionAllocator.Free(this);
 }
@@ -630,7 +635,13 @@ PerfClientConnection::OnStreamShutdownComplete() {
         }
     } else {
         if (!StreamsActive && StreamsCreated == Client.StreamCount) {
-            MsQuic->ConnectionShutdown(Handle, QUIC_CONNECTION_SHUTDOWN_FLAG_NONE, 0);
+            if (Client.UseTCP) {
+                TcpConn->Close();
+                TcpConn = nullptr;
+                OnShutdownComplete();
+            } else {
+                MsQuic->ConnectionShutdown(Handle, QUIC_CONNECTION_SHUTDOWN_FLAG_NONE, 0);
+            }
         }
     }
 }
@@ -658,10 +669,10 @@ PerfClientConnection::TcpConnectCallback(
     bool IsConnected
     ) {
     auto This = (PerfClientConnection*)Connection->Context;
-    if (!IsConnected) {
+    printf("conn connected=%d\n", IsConnected ? 1 : 0);
+    if (IsConnected) {
         This->OnConnectionComplete();
     } else {
-        // TODO - Iterate through streams
         This->OnShutdownComplete();
     }
 }
@@ -675,7 +686,7 @@ PerfClientConnection::TcpSendCompleteCallback(
         auto Data = SendDataChain;
         SendDataChain = Data->Next;
 
-        auto Stream = This->GetTcpStream(SendDataChain->StreamId);
+        auto Stream = This->GetTcpStream(Data->StreamId);
         if (Stream) {
             Stream->OnSendComplete(Data->Length, FALSE);
             if ((Data->Fin || Data->Abort) && !Stream->SendEndTime) {
@@ -701,6 +712,7 @@ PerfClientConnection::TcpReceiveCallback(
     ) {
     UNREFERENCED_PARAMETER(Open);
     UNREFERENCED_PARAMETER(Buffer);
+    printf("conn recv\n");
     auto This = (PerfClientConnection*)Connection->Context;
     auto Stream = This->GetTcpStream(StreamID);
     if (Stream) {
@@ -783,7 +795,9 @@ PerfClientStream::Send() {
         }
 
         BytesSent += DataLength;
-        BytesOutstanding += DataLength;
+        InterlockedExchangeAdd64((int64_t*)&BytesOutstanding, (int64_t)DataLength);
+        
+        printf("stream send %u\n", DataLength);
 
         if (Client.UseTCP) {
             auto SendData = Connection.Worker.TcpSendDataAllocator.Alloc();
@@ -791,7 +805,7 @@ PerfClientStream::Send() {
             SendData->Open = BytesSent == DataLength ? TRUE : FALSE;
             SendData->Buffer = Buffer->Buffer;
             SendData->Length = DataLength;
-            SendData->Fin = Flags & QUIC_SEND_FLAG_FIN;
+            SendData->Fin = (Flags & QUIC_SEND_FLAG_FIN) ? TRUE : FALSE;
             Connection.TcpConn->Send(SendData);
         } else {
             MsQuic->StreamSend(Handle, Buffer, 1, Flags, Buffer);
@@ -804,6 +818,7 @@ PerfClientStream::OnSendComplete(
     _In_ uint32_t Length,
     _In_ bool Canceled
     ) {
+    printf("stream send complete %u\n", Length);
     BytesOutstanding -= Length;
     if (!Canceled) {
         BytesAcked += Length;
@@ -816,6 +831,7 @@ PerfClientStream::OnReceive(
     _In_ uint64_t Length,
     _In_ bool Finished
     ) {
+    printf("stream recv %lu\n", Length);
     BytesReceived += Length;
 
     uint64_t Now = 0;
@@ -848,6 +864,7 @@ PerfClientStream::OnReceive(
 
 void
 PerfClientStream::OnStreamShutdownComplete() {
+    printf("stream shutdown complete\n");
     auto& Client = Connection.Client;
     auto SendSuccess = SendEndTime != 0;
     if (Client.Upload) {
