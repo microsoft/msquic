@@ -95,6 +95,15 @@ struct HashTable {
         }
         return NULL;
     }
+    void EnumBegin(CXPLAT_HASHTABLE_ENUMERATOR* Enumerator) {
+        CxPlatHashtableEnumerateBegin(&Table, Enumerator);
+    }
+    void EnumEnd(CXPLAT_HASHTABLE_ENUMERATOR* Enumerator) {
+        CxPlatHashtableEnumerateEnd(&Table, Enumerator);
+    }
+    CXPLAT_HASHTABLE_ENTRY* EnumNext(CXPLAT_HASHTABLE_ENUMERATOR* Enumerator) {
+        return CxPlatHashtableEnumerateNext(&Table, Enumerator);
+    }
 };
 
 #endif // CXPLAT_HASH_MIN_SIZE

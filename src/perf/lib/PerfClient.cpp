@@ -596,7 +596,21 @@ PerfClientConnection::OnShutdownComplete() {
     if (Client.PrintConnections && !Client.UseTCP) {
         QuicPrintConnectionStatistics(MsQuic, Handle);
     }
-    // TODO - Clean up leftover TCP streams
+    if (Client.UseTCP) {
+        // Clean up leftover TCP streams
+        CXPLAT_HASHTABLE_ENUMERATOR Enum;
+        StreamTable.EnumBegin(&Enum);
+        for (;;) {
+            auto Stream = (PerfClientStream*)StreamTable.EnumNext(&Enum);
+            if (Stream == NULL) {
+                break;
+            }
+            StreamTable.Remove(&Stream->Entry);
+            Worker.StreamAllocator.Free(Stream);
+        }
+        StreamTable.EnumEnd(&Enum);
+    }
+
     Worker.OnConnectionComplete();
     Worker.ConnectionAllocator.Free(this);
 }
@@ -936,6 +950,9 @@ PerfClientStream::OnStreamShutdownComplete() {
     }
 
     auto& Conn = Connection;
+    if (Connection.Client.UseTCP) {
+        Connection.StreamTable.Remove(&Entry);
+    }
     Connection.Worker.StreamAllocator.Free(this);
     Conn.OnStreamShutdownComplete();
 }
