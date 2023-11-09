@@ -56,7 +56,7 @@ struct StrBuffer {
 
 class FuzzingData {
     const uint8_t* data {nullptr};
-    size_t size {0};
+    const size_t size {0};
     size_t offset {0};
     bool CheckBoundary(size_t Adding) {
         if (size < offset + Adding) {
@@ -65,9 +65,7 @@ class FuzzingData {
         return true;
     }
 public:
-    static const size_t UtilityDataSize = 20; // hard code for determinisity
-
-    FuzzingData(const uint8_t* data, size_t size) : data(data), size(size - UtilityDataSize) {}
+    FuzzingData(const uint8_t* data, const size_t size) : data(data), size(size) {}
     template<typename T>
     bool TryGetRandom(T UpperBound, T* Val) {
         int type_size = sizeof(T);
@@ -398,122 +396,134 @@ void WriteClientInitialPacket(
     *PacketLength += CXPLAT_ENCRYPTION_OVERHEAD;
 }
 
-void fuzzInitialPacket(CXPLAT_SOCKET* Binding, CXPLAT_ROUTE Route) {
+void fuzzPacket(uint8_t* Packet, uint16_t PacketLength) {
+    uint8_t numIteration = (uint8_t)GetRandom(256);
+    for(int i = 0; i < numIteration; i++){
+        Packet[GetRandom(PacketLength)] = (uint8_t)GetRandom(256); 
+    }
+}
+
+void buildInitialPacket(CXPLAT_SOCKET* Binding, CXPLAT_ROUTE Route, int64_t* PacketCount, int64_t* TotalByteCount, bool fuzzing = true) {
     const StrBuffer InitialSalt("afbfec289993d24c9e9786f19c6111e04390a899");
     const uint16_t DatagramLength = QUIC_MIN_INITIAL_LENGTH; 
-    uint64_t StartTimeMs = CxPlatTimeMs64();
-    int64_t PacketCount = 0;
-    int64_t TotalByteCount = 0;
-    while (CxPlatTimeDiff64(StartTimeMs, CxPlatTimeMs64()) < RunTimeMs) {
-        CXPLAT_SEND_CONFIG SendConfig = { &Route, DatagramLength, CXPLAT_ECN_NON_ECT, 0 };
-        CXPLAT_SEND_DATA* SendData = CxPlatSendDataAlloc(Binding, &SendConfig);
-        if (!SendData){
-            printf("CxPlatSendDataAlloc failed\n");
+    CXPLAT_SEND_CONFIG SendConfig = { &Route, DatagramLength, CXPLAT_ECN_NON_ECT, 0 };
+    CXPLAT_SEND_DATA* SendData = CxPlatSendDataAlloc(Binding, &SendConfig);
+    if (!SendData) {
+        printf("CxPlatSendDataAlloc failed\n");
+    }
+    while (!CxPlatSendDataIsFull(SendData)) {
+        const uint64_t PacketNumber = GetRandom(1000);
+        uint8_t Packet[512] = {0};
+        uint16_t PacketLength, HeaderLength;
+
+        WriteClientInitialPacket(
+            (uint32_t)PacketNumber,
+            sizeof(uint64_t),
+            sizeof(Packet),
+            Packet,
+            &PacketLength,
+            &HeaderLength);
+
+        uint16_t PacketNumberOffset = HeaderLength - sizeof(uint32_t);
+
+        uint64_t* DestCid = (uint64_t*)(Packet + sizeof(QUIC_LONG_HEADER_V1));
+        uint64_t* SrcCid = (uint64_t*)(Packet + sizeof(QUIC_LONG_HEADER_V1) + sizeof(uint64_t) + sizeof(uint8_t));
+
+        uint64_t* OrigSrcCid = nullptr;
+        for (uint16_t i = HeaderLength; i < PacketLength; ++i) {
+            if (!memcmp(&MagicCid, Packet+i, sizeof(MagicCid))) {
+                OrigSrcCid = (uint64_t*)&Packet[i];
+            }
         }
-        while (CxPlatTimeDiff64(StartTimeMs, CxPlatTimeMs64()) < RunTimeMs && !CxPlatSendDataIsFull(SendData)) {
-            const uint64_t PacketNumber = 0; //fuzz
-            uint8_t Packet[512] = {0};
-            uint16_t PacketLength, HeaderLength;
+        if (!OrigSrcCid) {
+            printf("Failed to find OrigSrcCid!\n");
+            return;
+        }
 
-            WriteClientInitialPacket(
-                PacketNumber,
-                sizeof(uint64_t),
-                sizeof(Packet),
-                Packet,
-                &PacketLength,
-                &HeaderLength);
-
-            uint8_t *PacketBuffer = Packet;
-            QUIC_LONG_HEADER_V1* Header = (QUIC_LONG_HEADER_V1*)Packet;
-            Header->IsLongHeader = GetRandom(2);
-            Header->FixedBit = GetRandom(2);
-            Header->Reserved = GetRandom(2);
-            Header->PnLength = GetRandom(sizeof(uint32_t));
-            Header->DestCidLength  = (uint8_t)GetRandom(sizeof(uint64_t));
-
-            PacketBuffer += sizeof(QUIC_LONG_HEADER_V1) + sizeof(uint64_t); // point to the source id length
-            *PacketBuffer = (uint8_t)GetRandom(sizeof(uint64_t)); // fuzz the source id length
-
-            uint16_t PacketNumberOffset = HeaderLength - sizeof(uint32_t);
-
-            uint64_t* DestCid = (uint64_t*)(Packet + sizeof(QUIC_LONG_HEADER_V1));
-            uint64_t* SrcCid = (uint64_t*)(Packet + sizeof(QUIC_LONG_HEADER_V1) + sizeof(uint64_t) + sizeof(uint8_t));
-
-            uint64_t* OrigSrcCid = nullptr;
-            for (uint16_t i = HeaderLength; i < PacketLength; ++i) {
-                if (!memcmp(&MagicCid, Packet+i, sizeof(MagicCid))) {
-                    OrigSrcCid = (uint64_t*)&Packet[i];
-                }
-            }
-            if (!OrigSrcCid) {
-                printf("Failed to find OrigSrcCid!\n");
-                return;
-            }
-
-            CxPlatRandom(sizeof(uint64_t), DestCid); //fuzz
-            CxPlatRandom(sizeof(uint64_t), SrcCid); //fuzz
-            QUIC_BUFFER* SendBuffer =
-                CxPlatSendDataAllocBuffer(SendData, DatagramLength);
-             if (!SendBuffer) {
+        CxPlatRandom(sizeof(uint64_t), DestCid); //fuzz
+        CxPlatRandom(sizeof(uint64_t), SrcCid); //fuzz
+        if (fuzzing) {
+            fuzzPacket(Packet, sizeof(Packet));
+        }
+        QUIC_BUFFER* SendBuffer =
+            CxPlatSendDataAllocBuffer(SendData, DatagramLength);
+            if (!SendBuffer) {
                 printf("CxPlatSendDataAllocBuffer failed\n");
                 return;
-                }
-            (*DestCid)++; (*SrcCid)++;
-            *OrigSrcCid = *SrcCid;
-            memcpy(SendBuffer->Buffer, Packet, PacketLength);
-            QUIC_PACKET_KEY* WriteKey;
-            
-            if (QUIC_FAILED(
-                QuicPacketKeyCreateInitial(
-                    FALSE,
-                    &HkdfLabels,
-                    InitialSalt.Data,
-                    sizeof(uint64_t),
-                    (uint8_t*)DestCid,
-                 nullptr,
-                    &WriteKey))) {
-                printf("QuicPacketKeyCreateInitial failed\n");
-                return;
             }
-            uint8_t Iv[CXPLAT_IV_LENGTH];
-            QuicCryptoCombineIvAndPacketNumber(
-                WriteKey->Iv, (uint8_t*)&PacketNumber, Iv);
-
-            CxPlatEncrypt(
-                WriteKey->PacketKey,
-                Iv,
-                HeaderLength,
-                SendBuffer->Buffer,
-                PacketLength - HeaderLength,
-                SendBuffer->Buffer + HeaderLength);
-
-            uint8_t HpMask[16];
-            CxPlatHpComputeMask(
-                WriteKey->HeaderKey,
-                1,
-                SendBuffer->Buffer + HeaderLength,
-                HpMask);
-
-            QuicPacketKeyFree(WriteKey);
-            SendBuffer->Buffer[0] ^= HpMask[0] & 0x0F;
-            for (uint8_t i = 0; i < 4; ++i) {
-                SendBuffer->Buffer[PacketNumberOffset + i] ^= HpMask[i + 1];
-            }
-            InterlockedExchangeAdd64(&PacketCount, 1);
-            InterlockedExchangeAdd64(&TotalByteCount, DatagramLength);
-        }
+        *OrigSrcCid = *SrcCid;
+        memcpy(SendBuffer->Buffer, Packet, PacketLength);
+        QUIC_PACKET_KEY* WriteKey;
         
         if (QUIC_FAILED(
-            CxPlatSocketSend(
-                Binding,
-                &Route,
-                SendData))) {
-            printf("Send failed!\n");
-            exit(0);
+            QuicPacketKeyCreateInitial(
+                FALSE,
+                &HkdfLabels,
+                InitialSalt.Data,
+                sizeof(uint64_t),
+                (uint8_t*)DestCid,
+                nullptr,
+                &WriteKey))) {
+            printf("QuicPacketKeyCreateInitial failed\n");
+            return;
+        }
+        uint8_t Iv[CXPLAT_IV_LENGTH];
+        QuicCryptoCombineIvAndPacketNumber(
+            WriteKey->Iv, (uint8_t*)&PacketNumber, Iv);
+
+        CxPlatEncrypt(
+            WriteKey->PacketKey,
+            Iv,
+            HeaderLength,
+            SendBuffer->Buffer,
+            PacketLength - HeaderLength,
+            SendBuffer->Buffer + HeaderLength);
+
+        uint8_t HpMask[16];
+        CxPlatHpComputeMask(
+            WriteKey->HeaderKey,
+            1,
+            SendBuffer->Buffer + HeaderLength,
+            HpMask);
+
+        QuicPacketKeyFree(WriteKey);
+        SendBuffer->Buffer[0] ^= HpMask[0] & 0x0F;
+        for (uint8_t i = 0; i < 4; ++i) {
+            SendBuffer->Buffer[PacketNumberOffset + i] ^= HpMask[i + 1];
+        }
+        InterlockedExchangeAdd64(PacketCount, 1);
+        InterlockedExchangeAdd64(TotalByteCount, DatagramLength);
+    }
+    
+    if (QUIC_FAILED(
+        CxPlatSocketSend(
+            Binding,
+            &Route,
+            SendData))) {
+        printf("Send failed!\n");
+        exit(0);
+    }
+}
+
+void fuzzHandshakePacket() {
+// TODO
+}
+
+void fuzz(CXPLAT_SOCKET* Binding, CXPLAT_ROUTE Route) {
+    int64_t PacketCount = 0;
+    int64_t TotalByteCount = 0;
+    uint8_t mode;
+    uint64_t StartTimeMs = CxPlatTimeMs64();
+    while (CxPlatTimeDiff64(StartTimeMs, CxPlatTimeMs64()) < RunTimeMs) {
+        mode = 0; //(uint8_t)GetRandom(2);
+        if (mode == 0) {
+            buildInitialPacket(Binding, Route, &PacketCount, &TotalByteCount);
+        } else if (mode == 1) {
+            fuzzHandshakePacket();
         }
     }
-    printf("Total Initial Packets sent: %lld\n", (long long)PacketCount);
-    printf("Total Bytes sent: %lld\n", (long long)TotalByteCount);
+        printf("Total Packets sent: %lld\n", (long long)PacketCount);
+        printf("Total Bytes sent: %lld\n", (long long)TotalByteCount);
 }
 
 void start() {
@@ -584,7 +594,8 @@ void start() {
     CxPlatSocketGetLocalAddress(Binding, &Route.LocalAddress);
     Route.RemoteAddress = sockAddr;
 
-    fuzzInitialPacket(Binding, Route);
+    // Fuzzing
+    fuzz(Binding, Route);
 }
 
 #ifdef FUZZING
@@ -602,14 +613,12 @@ int
 QUIC_MAIN_EXPORT
 main(int argc, char **argv) {
     TryGetValue(argc, argv, "timeout", &RunTimeMs);
-
     uint32_t RngSeed = 0;
     if (!TryGetValue(argc, argv, "seed", &RngSeed)) {
         CxPlatRandom(sizeof(RngSeed), &RngSeed);
     }   
     printf("Using seed value: %u\n", RngSeed);
     srand(RngSeed);
-
     start();
 
     return 0;

@@ -20,6 +20,9 @@ typedef struct QUIC_SETTINGS_INTERNAL {
             uint64_t TlsClientMaxSendBuffer                 : 1;
             uint64_t TlsServerMaxSendBuffer                 : 1;
             uint64_t StreamRecvWindowDefault                : 1;
+            uint64_t StreamRecvWindowBidiLocalDefault       : 1;
+            uint64_t StreamRecvWindowBidiRemoteDefault      : 1;
+            uint64_t StreamRecvWindowUnidiDefault           : 1;
             uint64_t StreamRecvBufferDefault                : 1;
             uint64_t ConnFlowControlWindow                  : 1;
             uint64_t MaxWorkerQueueDelayUs                  : 1;
@@ -57,7 +60,7 @@ typedef struct QUIC_SETTINGS_INTERNAL {
             uint64_t EncryptionOffloadAllowed               : 1;
             uint64_t ReliableResetEnabled                   : 1;
             uint64_t OneWayDelayEnabled                     : 1;
-            uint64_t RESERVED                               : 21;
+            uint64_t RESERVED                               : 18;
         } IsSet;
     };
 
@@ -69,6 +72,9 @@ typedef struct QUIC_SETTINGS_INTERNAL {
     uint32_t TlsClientMaxSendBuffer;
     uint32_t TlsServerMaxSendBuffer;
     uint32_t StreamRecvWindowDefault;
+    uint32_t StreamRecvWindowBidiLocalDefault;
+    uint32_t StreamRecvWindowBidiRemoteDefault;
+    uint32_t StreamRecvWindowUnidiDefault;
     uint32_t StreamRecvBufferDefault;
     uint32_t ConnFlowControlWindow;
     uint32_t MaxWorkerQueueDelayUs;
