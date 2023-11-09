@@ -215,22 +215,22 @@ struct PerfClient : public PerfBase {
     TcpEngine* Engine {nullptr};
     bool Running {true};
 
-    uint32_t GetConnectedConnections() const {
-        uint32_t ConnectedConnections = 0;
+    uint64_t GetConnectedConnections() const {
+        uint64_t ConnectedConnections = 0;
         for (uint32_t i = 0; i < WorkerCount; ++i) {
             ConnectedConnections += Workers[i].ConnectionsConnected;
         }
         return ConnectedConnections;
     }
-    uint32_t GetConnectionsActive() const {
-        uint32_t ConnectionsActive = 0;
+    uint64_t GetConnectionsActive() const {
+        uint64_t ConnectionsActive = 0;
         for (uint32_t i = 0; i < WorkerCount; ++i) {
             ConnectionsActive += Workers[i].ConnectionsActive;
         }
         return ConnectionsActive;
     }
-    uint32_t GetConnectionsCompleted() const {
-        uint32_t ConnectionsCompleted = 0;
+    uint64_t GetConnectionsCompleted() const {
+        uint64_t ConnectionsCompleted = 0;
         for (uint32_t i = 0; i < WorkerCount; ++i) {
             ConnectionsCompleted += Workers[i].ConnectionsCompleted;
         }

@@ -20,6 +20,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="HpsClient.cpp" />
+    <ClCompile Include="PerfClient.cpp" />
     <ClCompile Include="PerfServer.cpp" />
     <ClCompile Include="SecNetPerfMain.cpp" />
     <ClCompile Include="RpsClient.cpp" />

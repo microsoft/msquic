@@ -401,10 +401,10 @@ PerfClient::GetExtraData(
     CXPLAT_FRE_ASSERT(*Length >= sizeof(RunTime) + sizeof(CurLatencyIndex));
     CxPlatCopyMemory(Data, &RunTime, sizeof(RunTime));
     Data += sizeof(RunTime);
-    uint64_t LatencyCount = (*Length - sizeof(RunTime) - sizeof(LatencyCount)) / sizeof(uint32_t);
-    CxPlatCopyMemory(Data, &LatencyCount, sizeof(LatencyCount));
+    uint64_t Count = (*Length - sizeof(RunTime) - sizeof(Count)) / sizeof(uint32_t);
+    CxPlatCopyMemory(Data, &Count, sizeof(Count));
     Data += sizeof(CurLatencyIndex);
-    CxPlatCopyMemory(Data, LatencyValues.get(), LatencyCount * sizeof(uint32_t));
+    CxPlatCopyMemory(Data, LatencyValues.get(), Count * sizeof(uint32_t));
     return QUIC_STATUS_SUCCESS;
 }
 
