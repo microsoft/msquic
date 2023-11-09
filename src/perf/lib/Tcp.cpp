@@ -925,9 +925,10 @@ bool TcpConnection::FinalizeSendBuffer(QUIC_BUFFER* SendBuffer)
     TotalSendOffset += SendBuffer->Length;
     if (SendBuffer->Length != TLS_BLOCK_SIZE ||
         CxPlatSendDataIsFull(BatchedSendData)) {   
+        QUIC_STATUS Status;
         if (QUIC_FAILED(
-            CxPlatSocketSend(Socket, &Route, BatchedSendData))) {
-            WriteOutput("CxPlatSocketSend FAILED\n");
+            Status = CxPlatSocketSend(Socket, &Route, BatchedSendData))) {
+            WriteOutput("CxPlatSocketSend FAILED, %hu\n", Status);
             return false;
         }
         BatchedSendData = nullptr;

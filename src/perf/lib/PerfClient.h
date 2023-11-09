@@ -73,6 +73,7 @@ struct PerfClientStream {
     QUIC_STATUS StreamCallback(_Inout_ QUIC_STREAM_EVENT* Event);
     void Send();
     void OnSendComplete(_In_ uint32_t Length, _In_ bool Canceled);
+    void OnSendShutdownComplete();
     void OnReceive(_In_ uint64_t Length, _In_ bool Finished);
     void OnStreamShutdownComplete();
 };

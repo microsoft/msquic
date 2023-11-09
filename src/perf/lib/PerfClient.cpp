@@ -578,7 +578,12 @@ void
 PerfClientConnection::OnConnectionComplete() {
     InterlockedIncrement64((int64_t*)&Worker.ConnectionsConnected);
     if (!Client.StreamCount) {
-        MsQuic->ConnectionShutdown(Handle, QUIC_CONNECTION_SHUTDOWN_FLAG_NONE, 0);
+        if (Client.UseTCP) {
+            TcpConn->Close();
+            TcpConn = nullptr;
+        } else {
+            MsQuic->ConnectionShutdown(Handle, QUIC_CONNECTION_SHUTDOWN_FLAG_NONE, 0);
+        }
     } else {
         for (uint32_t i = 0; i < Client.StreamCount; ++i) {
             StartNewStream();
@@ -588,7 +593,7 @@ PerfClientConnection::OnConnectionComplete() {
 
 void
 PerfClientConnection::OnShutdownComplete() {
-    if (Client.PrintConnections) {
+    if (Client.PrintConnections && !Client.UseTCP) {
         QuicPrintConnectionStatistics(MsQuic, Handle);
     }
     // TODO - Clean up leftover TCP streams
@@ -669,7 +674,7 @@ PerfClientConnection::TcpConnectCallback(
     bool IsConnected
     ) {
     auto This = (PerfClientConnection*)Connection->Context;
-    printf("conn connected=%d\n", IsConnected ? 1 : 0);
+    //printf("conn connected=%d\n", IsConnected ? 1 : 0);
     if (IsConnected) {
         This->OnConnectionComplete();
     } else {
@@ -712,7 +717,7 @@ PerfClientConnection::TcpReceiveCallback(
     ) {
     UNREFERENCED_PARAMETER(Open);
     UNREFERENCED_PARAMETER(Buffer);
-    printf("conn recv\n");
+    //printf("conn recv, fin=%hhu, abort=%hhu\n", Fin ? TRUE: FALSE, Abort ? TRUE : FALSE);
     auto This = (PerfClientConnection*)Connection->Context;
     auto Stream = This->GetTcpStream(StreamID);
     if (Stream) {
@@ -747,10 +752,7 @@ PerfClientStream::StreamCallback(
         SendComplete = true;
         break;
     case QUIC_STREAM_EVENT_SEND_SHUTDOWN_COMPLETE:
-        SendEndTime = CxPlatTimeUs64();
-        if (Connection.Client.PrintStreams) {
-            QuicPrintStreamStatistics(MsQuic, Handle);
-        }
+        OnSendShutdownComplete();
         break;
     case QUIC_STREAM_EVENT_SHUTDOWN_COMPLETE:
         OnStreamShutdownComplete();
@@ -797,7 +799,7 @@ PerfClientStream::Send() {
         BytesSent += DataLength;
         InterlockedExchangeAdd64((int64_t*)&BytesOutstanding, (int64_t)DataLength);
         
-        printf("stream send %u\n", DataLength);
+        //printf("stream send %u\n", DataLength);
 
         if (Client.UseTCP) {
             auto SendData = Connection.Worker.TcpSendDataAllocator.Alloc();
@@ -818,11 +820,25 @@ PerfClientStream::OnSendComplete(
     _In_ uint32_t Length,
     _In_ bool Canceled
     ) {
-    printf("stream send complete %u\n", Length);
+    //printf("stream send complete %u\n", Length);
     BytesOutstanding -= Length;
     if (!Canceled) {
         BytesAcked += Length;
         Send();
+        if (Connection.Client.UseTCP && SendComplete && BytesAcked == BytesSent) {
+            OnSendShutdownComplete(); // TODO - Problem that with send buffering this LIES
+            if (RecvEndTime) {
+                OnStreamShutdownComplete();
+            }
+        }
+    }
+}
+
+void
+PerfClientStream::OnSendShutdownComplete() {
+    SendEndTime = CxPlatTimeUs64();
+    if (Connection.Client.PrintStreams && !Connection.Client.UseTCP) {
+        QuicPrintStreamStatistics(MsQuic, Handle);
     }
 }
 
@@ -831,7 +847,7 @@ PerfClientStream::OnReceive(
     _In_ uint64_t Length,
     _In_ bool Finished
     ) {
-    printf("stream recv %lu\n", Length);
+    //printf("stream recv %lu\n", Length);
     BytesReceived += Length;
 
     uint64_t Now = 0;
@@ -843,7 +859,10 @@ PerfClientStream::OnReceive(
     if (Finished) {
         if (Now == 0) Now = CxPlatTimeUs64();
         RecvEndTime = Now;
-    } if (Connection.Client.Timed) {
+        if (Connection.Client.UseTCP && SendEndTime) {
+            OnStreamShutdownComplete();
+        }
+    } else if (Connection.Client.Timed) {
         if (Now == 0) Now = CxPlatTimeUs64();
         if (CxPlatTimeDiff64(RecvStartTime, Now) >= MS_TO_US(Connection.Client.Download)) {
             RecvEndTime = Now;
@@ -864,7 +883,7 @@ PerfClientStream::OnReceive(
 
 void
 PerfClientStream::OnStreamShutdownComplete() {
-    printf("stream shutdown complete\n");
+    //printf("stream shutdown complete\n");
     auto& Client = Connection.Client;
     auto SendSuccess = SendEndTime != 0;
     if (Client.Upload) {
@@ -874,7 +893,8 @@ PerfClientStream::OnStreamShutdownComplete() {
         }
 
         if (Client.PrintThroughput && SendSuccess) {
-            const auto ElapsedMicroseconds = SendEndTime - StartTime;
+            //const auto ElapsedMicroseconds = SendEndTime - StartTime;
+            const auto ElapsedMicroseconds = RecvEndTime - StartTime;
             const auto Rate = (uint32_t)((TotalBytes * 1000 * 1000 * 8) / (1000 * ElapsedMicroseconds));
             WriteOutput(
                 "  Upload: %llu bytes @ %u kbps (%u.%03u ms).\n",
@@ -893,7 +913,8 @@ PerfClientStream::OnStreamShutdownComplete() {
         }
 
         if (Client.PrintThroughput && RecvSuccess) {
-            const auto ElapsedMicroseconds = RecvEndTime - RecvStartTime;
+            //const auto ElapsedMicroseconds = RecvEndTime - (RecvEndTime == RecvStartTime ? StartTime : RecvStartTime);
+            const auto ElapsedMicroseconds = RecvEndTime - StartTime;
             const auto Rate = (uint32_t)((TotalBytes * 1000 * 1000 * 8) / (1000 * ElapsedMicroseconds));
             WriteOutput(
                 "Download: %llu bytes @ %u kbps (%u.%03u ms).\n",
