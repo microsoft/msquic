@@ -189,7 +189,7 @@ class TcpConnection {
     uint8_t TlsOutput[TLS_BLOCK_SIZE];
     uint8_t BufferedData[TLS_BLOCK_SIZE];
     uint32_t BufferedDataLength{0};
-    TcpConnection(TcpEngine* Engine, CXPLAT_SEC_CONFIG* SecConfig, CXPLAT_SOCKET* Socket);
+    TcpConnection(TcpEngine* Engine, CXPLAT_SEC_CONFIG* SecConfig, CXPLAT_SOCKET* Socket, void* Context);
     static
     _IRQL_requires_max_(DISPATCH_LEVEL)
     _Function_class_(CXPLAT_DATAPATH_CONNECT_CALLBACK)

@@ -233,7 +233,7 @@ InterlockedIncrement64(
 }
 
 inline
-short
+int64_t
 InterlockedDecrement64(
     _Inout_ _Interlocked_operand_ int64_t volatile *Addend
     )

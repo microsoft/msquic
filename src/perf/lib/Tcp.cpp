@@ -286,8 +286,7 @@ TcpServer::AcceptCallback(
     )
 {
     auto This = (TcpServer*)ListenerContext;
-    auto Connection = new(std::nothrow) TcpConnection(This->Engine, This->SecConfig, AcceptSocket);
-    Connection->Context = This;
+    auto Connection = new(std::nothrow) TcpConnection(This->Engine, This->SecConfig, AcceptSocket, This);
     *AcceptClientContext = Connection;
 }
 
@@ -350,8 +349,9 @@ TcpConnection::TcpConnection(
 TcpConnection::TcpConnection(
     TcpEngine* Engine,
     CXPLAT_SEC_CONFIG* SecConfig,
-    CXPLAT_SOCKET* Socket) :
-    IsServer(true), Engine(Engine), Socket(Socket), SecConfig(SecConfig)
+    CXPLAT_SOCKET* Socket,
+    void* Context) :
+    IsServer(true), Engine(Engine), Socket(Socket), SecConfig(SecConfig), Context(Context)
 {
     CxPlatRefInitialize(&Ref);
     CxPlatDispatchLockInitialize(&Lock);
@@ -507,7 +507,7 @@ void TcpConnection::Process()
         Engine->AcceptHandler(Server, this);
         StartTls = true;
     }
-    if (StartTls) {
+    if (StartTls && !IndicateDisconnect) {
         StartTls = false;
         QuicTraceLogVerbose(
             PerfTcpStartTls,
@@ -517,12 +517,12 @@ void TcpConnection::Process()
             IndicateDisconnect = true;
         }
     }
-    if (ReceiveData) {
+    if (ReceiveData && !IndicateDisconnect) {
         if (!ProcessReceive()) {
             IndicateDisconnect = true;
         }
     }
-    if (IndicateConnect) {
+    if (IndicateConnect && !ClosedByApp) {
         IndicateConnect = false;
         QuicTraceLogVerbose(
             PerfTcpAppConnect,
@@ -530,7 +530,7 @@ void TcpConnection::Process()
             this);
         Engine->ConnectHandler(this, true);
     }
-    if (TlsState.WriteKey >= QUIC_PACKET_KEY_1_RTT && SendData) {
+    if (TlsState.WriteKey >= QUIC_PACKET_KEY_1_RTT && SendData && !IndicateDisconnect) {
         if (!ProcessSend()) {
             IndicateDisconnect = true;
         }

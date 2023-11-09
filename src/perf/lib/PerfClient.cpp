@@ -606,6 +606,7 @@ PerfClientConnection::OnConnectionComplete() {
             }
             Worker.Lock.Release();
             if (ConnToFree) ConnToFree->Close();
+            OnShutdownComplete();
         } else {
             MsQuic->ConnectionShutdown(Handle, QUIC_CONNECTION_SHUTDOWN_FLAG_NONE, 0);
         }
@@ -720,7 +721,6 @@ PerfClientConnection::TcpConnectCallback(
     bool IsConnected
     ) {
     auto This = (PerfClientConnection*)Connection->Context;
-    //printf("conn connected=%d\n", IsConnected ? 1 : 0);
     if (IsConnected) {
         This->OnConnectionComplete();
     } else {
@@ -733,17 +733,21 @@ PerfClientConnection::TcpSendCompleteCallback(
     _In_ TcpSendData* SendDataChain
     ) {
     auto This = (PerfClientConnection*)Connection->Context;
+    PerfClientStream* Stream = nullptr;
     while (SendDataChain) {
         auto Data = SendDataChain;
         SendDataChain = Data->Next;
 
-        auto Stream = This->GetTcpStream(Data->StreamId);
+        if (!Stream || Stream->Entry.Signature != Data->StreamId) {
+            Stream = This->GetTcpStream(Data->StreamId);
+        }
         if (Stream) {
             Stream->OnSendComplete(Data->Length, FALSE);
             if ((Data->Fin || Data->Abort) && !Stream->SendEndTime) {
                 Stream->SendEndTime = CxPlatTimeUs64();
                 if (Stream->RecvEndTime) {
                     Stream->OnStreamShutdownComplete();
+                    Stream = nullptr;
                 }
             }
         }
@@ -868,7 +872,7 @@ PerfClientStream::OnSendComplete(
         BytesAcked += Length;
         Send();
         if (Connection.Client.UseTCP && SendComplete && BytesAcked == BytesSent) {
-            OnSendShutdownComplete(); // TODO - Problem that with send buffering this LIES
+            OnSendShutdownComplete();
             if (RecvEndTime) {
                 OnStreamShutdownComplete();
             }
