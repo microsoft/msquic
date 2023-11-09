@@ -15,6 +15,7 @@ Abstract:
 #include "PerfCommon.h"
 
 struct PerfClientConnection {
+    CXPLAT_LIST_ENTRY Entry; // To TCP ConnectionTable
     struct PerfClient& Client;
     struct PerfClientWorker& Worker;
     union {
@@ -95,11 +96,12 @@ struct QUIC_CACHEALIGN PerfClientWorker {
     UniquePtr<char[]> Target;
     QuicAddr LocalAddr;
     QuicAddr RemoteAddr;
+    CXPLAT_LIST_ENTRY ConnectionTable; // TCP only
     QuicPoolAllocator<PerfClientConnection> ConnectionAllocator;
     QuicPoolAllocator<PerfClientStream> StreamAllocator;
     QuicPoolAllocator<TcpConnection> TcpConnectionAllocator;
     QuicPoolAllocator<TcpSendData> TcpSendDataAllocator;
-    PerfClientWorker() { }
+    PerfClientWorker() { CxPlatListInitializeHead(&ConnectionTable); }
     ~PerfClientWorker() { WaitForThread(); }
     void Uninitialize() { WaitForThread(); }
     void QueueNewConnection() {

@@ -426,6 +426,18 @@ PerfClientWorker::WorkerThread() {
         }
         WakeEvent.WaitForever();
     }
+
+    if (Client->UseTCP) {
+        // Clean up any oustanding TCP connections
+        Lock.Acquire();
+        while (!CxPlatListIsEmpty(&ConnectionTable)) {
+            auto Connection = (PerfClientConnection*)CxPlatListRemoveHead(&ConnectionTable);
+            Connection->TcpConn->Close(); // TODO - Any race conditions here?
+            Connection->TcpConn = nullptr;
+            ConnectionAllocator.Free(Connection);
+        }
+        Lock.Release();
+    }
 }
 
 void
@@ -459,6 +471,9 @@ PerfClientConnection::~PerfClientConnection() {
 void
 PerfClientConnection::Initialize() {
     if (Client.UseTCP) {
+        Worker.Lock.Acquire();
+        CxPlatListInsertTail(&Worker.ConnectionTable, &Entry);
+        Worker.Lock.Release();
         auto CredConfig = MsQuicCredentialConfig(QUIC_CREDENTIAL_FLAG_CLIENT | QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION);
         TcpConn =
             Worker.TcpConnectionAllocator.Alloc(
@@ -470,6 +485,9 @@ PerfClientConnection::Initialize() {
                 Worker.LocalAddr.GetFamily() != QUIC_ADDRESS_FAMILY_UNSPEC ? &Worker.LocalAddr.SockAddr : nullptr,
                 this);
         if (!TcpConn->IsInitialized()) {
+            Worker.Lock.Acquire();
+            CxPlatListEntryRemove(&Entry);
+            Worker.Lock.Release();
             Worker.ConnectionAllocator.Free(this);
             return;
         }
@@ -579,8 +597,15 @@ PerfClientConnection::OnConnectionComplete() {
     InterlockedIncrement64((int64_t*)&Worker.ConnectionsConnected);
     if (!Client.StreamCount) {
         if (Client.UseTCP) {
-            TcpConn->Close();
-            TcpConn = nullptr;
+            TcpConnection* ConnToFree = nullptr;
+            Worker.Lock.Acquire();
+            if (TcpConn) {
+                CxPlatListEntryRemove(&Entry);
+                ConnToFree = TcpConn;
+                TcpConn = nullptr;
+            }
+            Worker.Lock.Release();
+            if (ConnToFree) ConnToFree->Close();
         } else {
             MsQuic->ConnectionShutdown(Handle, QUIC_CONNECTION_SHUTDOWN_FLAG_NONE, 0);
         }
@@ -655,8 +680,15 @@ PerfClientConnection::OnStreamShutdownComplete() {
     } else {
         if (!StreamsActive && StreamsCreated == Client.StreamCount) {
             if (Client.UseTCP) {
-                TcpConn->Close();
-                TcpConn = nullptr;
+                TcpConnection* ConnToFree = nullptr;
+                Worker.Lock.Acquire();
+                if (TcpConn) {
+                    CxPlatListEntryRemove(&Entry);
+                    ConnToFree = TcpConn;
+                    TcpConn = nullptr;
+                }
+                Worker.Lock.Release();
+                if (ConnToFree) ConnToFree->Close();
                 OnShutdownComplete();
             } else {
                 MsQuic->ConnectionShutdown(Handle, QUIC_CONNECTION_SHUTDOWN_FLAG_NONE, 0);
@@ -731,7 +763,6 @@ PerfClientConnection::TcpReceiveCallback(
     ) {
     UNREFERENCED_PARAMETER(Open);
     UNREFERENCED_PARAMETER(Buffer);
-    //printf("conn recv, fin=%hhu, abort=%hhu\n", Fin ? TRUE: FALSE, Abort ? TRUE : FALSE);
     auto This = (PerfClientConnection*)Connection->Context;
     auto Stream = This->GetTcpStream(StreamID);
     if (Stream) {
@@ -813,8 +844,6 @@ PerfClientStream::Send() {
         BytesSent += DataLength;
         InterlockedExchangeAdd64((int64_t*)&BytesOutstanding, (int64_t)DataLength);
         
-        //printf("stream send %u\n", DataLength);
-
         if (Client.UseTCP) {
             auto SendData = Connection.Worker.TcpSendDataAllocator.Alloc();
             SendData->StreamId = (uint32_t)Entry.Signature;
@@ -834,7 +863,6 @@ PerfClientStream::OnSendComplete(
     _In_ uint32_t Length,
     _In_ bool Canceled
     ) {
-    //printf("stream send complete %u\n", Length);
     BytesOutstanding -= Length;
     if (!Canceled) {
         BytesAcked += Length;
@@ -861,7 +889,6 @@ PerfClientStream::OnReceive(
     _In_ uint64_t Length,
     _In_ bool Finished
     ) {
-    //printf("stream recv %lu\n", Length);
     BytesReceived += Length;
 
     uint64_t Now = 0;
@@ -897,7 +924,6 @@ PerfClientStream::OnReceive(
 
 void
 PerfClientStream::OnStreamShutdownComplete() {
-    //printf("stream shutdown complete\n");
     auto& Client = Connection.Client;
     auto SendSuccess = SendEndTime != 0;
     if (Client.Upload) {
