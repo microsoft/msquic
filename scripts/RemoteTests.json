@@ -219,9 +219,9 @@
                     "Name": "ConnectionCount",
                     "Local": {
                         "1": "-conns:1 -requests:1 -runtime:30000",
-                        "40": "-conns:40 -requests:20",
-                        "250": "-conns:250 -requests:7500",
-                        "1000": "-conns:1 -requests:1000"
+                        "40": "-conns:40 -requests:20 -runtime:10000",
+                        "250": "-conns:250 -requests:7500 -runtime:10000",
+                        "1000": "-conns:1 -requests:1000 -runtime:10000"
                     },
                     "Default": "250"
                 },
@@ -264,9 +264,9 @@
                     "Name": "ConnectionCount",
                     "Local": {
                         "1": "-conns:1 -requests:1 -runtime:30000",
-                        "40": "-conns:40 -requests:20",
-                        "250": "-conns:250 -requests:7500",
-                        "1000": "-conns:1 -requests:1000"
+                        "40": "-conns:40 -requests:20 -runtime:10000",
+                        "250": "-conns:250 -requests:7500 -runtime:10000",
+                        "1000": "-conns:1 -requests:1000 -runtime:10000"
                     },
                     "Default": "250"
                 },
