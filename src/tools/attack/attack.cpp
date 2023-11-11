@@ -66,7 +66,7 @@ void PrintUsageList()
 
 struct CallbackContext {
     CXPLAT_ROUTE* Route;
-    CXPLAT_EVENT* Event;
+    CXPLAT_EVENT Event;
 };
 
 struct StrBuffer
@@ -124,8 +124,11 @@ ResolveRouteComplete(
     _In_ BOOLEAN Succeeded
     )
 {
+    UNREFERENCED_PARAMETER(PathId);
     CallbackContext* CContext = (CallbackContext*) Context;
-    CxPlatResolveRouteComplete(nullptr, CContext->Route, PhysicalAddress, 0);
+    if(Succeeded) {
+        CxPlatResolveRouteComplete(nullptr, CContext->Route, PhysicalAddress, 0);
+    }
     CxPlatEventSet(CContext->Event);
 }
 
@@ -137,7 +140,7 @@ void RunAttackRandom(CXPLAT_SOCKET* Binding, uint16_t Length, bool ValidQuic, bo
     CallbackContext Context = {&Route, };
     QUIC_STATUS Status = CxPlatResolveRoute(Binding, &Route, 0, &Context, ResolveRouteComplete);
     if (Status == QUIC_STATUS_PENDING) {
-        CxPlatEventInitialize(Context.Event, FALSE, FALSE);
+        CxPlatEventInitialize(&(Context.Event), FALSE, FALSE);
         BOOLEAN EventSet = CxPlatEventWaitWithTimeout(Context.Event, (DWORD)TimeoutMs);
         CxPlatEventUninitialize(Context.Event);
         if (!EventSet) {
@@ -212,7 +215,7 @@ void RunAttackValidInitial(CXPLAT_SOCKET* Binding)
     CallbackContext Context = {&Route, };
     QUIC_STATUS Status = CxPlatResolveRoute(Binding, &Route, 0, &Context, ResolveRouteComplete);
     if (Status == QUIC_STATUS_PENDING) {
-        CxPlatEventInitialize(Context.Event, FALSE, FALSE);
+        CxPlatEventInitialize(&(Context.Event), FALSE, FALSE);
         BOOLEAN EventSet = CxPlatEventWaitWithTimeout(Context.Event, (DWORD)TimeoutMs);
         CxPlatEventUninitialize(Context.Event);
         if (!EventSet) {
