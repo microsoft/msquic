@@ -502,7 +502,6 @@ QuicConnUninitialize(
     QuicRangeUninitialize(&Connection->DecodedAckRanges);
     QuicCryptoUninitialize(&Connection->Crypto);
     QuicTimerWheelRemoveConnection(&Connection->Worker->TimerWheel, Connection);
-    QuicOperationQueueClear(Connection->Worker, &Connection->OperQ);
     QuicLossDetectionUninitialize(&Connection->LossDetection);
     QuicSendUninitialize(&Connection->Send);
 
