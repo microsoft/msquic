@@ -131,9 +131,55 @@ jobs:
         name: Spin-${{ matrix.vec.config }}-${{ matrix.vec.plat }}-${{ matrix.vec.os }}-${{ matrix.vec.arch }}-${{ matrix.vec.tls }}${{ matrix.vec.xdp }}${{ matrix.vec.sanitize }}
         path: artifacts/coverage/*.cov
 
+  recvfuzz-winlatest:
+    name: Recv Fuzz WinPrerelease
+    needs: [build-windows]
+    strategy:
+      fail-fast: false
+      matrix:
+        vec: [
+          { config: "Debug", plat: "windows", os: "windows-2022", arch: "x64", tls: "schannel", test: "-Test" },
+        ]
+    runs-on:
+    - self-hosted
+    - "1ES.Pool=1es-msquic-pool"
+    - "1ES.ImageOverride=WSPrerelease"
+    env:
+      main-timeout: 3600000
+      pr-timeout: 600000
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11
+      with:
+        fetch-depth: 0
+    - uses: actions/download-artifact@9bc31d5ccc31df68ecc42ccf4149144866c47d8a
+      with:
+        name: ${{ matrix.vec.config }}-${{ matrix.vec.plat }}-${{ matrix.vec.os }}-${{ matrix.vec.arch }}-${{ matrix.vec.tls }}${{ matrix.vec.sanitize }}${{ matrix.vec.test }}
+        path: artifacts
+    - name: Prepare Machine
+      run: scripts/prepare-machine.ps1 -Tls ${{ matrix.vec.tls }} -ForTest ${{ matrix.vec.xdp }} -InstallCodeCoverage
+      shell: pwsh
+    - name: recvfuzz (PR)
+      if: github.event_name == 'pull_request'
+      timeout-minutes: 15
+      continue-on-error: true
+      shell: pwsh
+      run: scripts/recvfuzz.ps1 -Config ${{ matrix.vec.config }} -Arch ${{ matrix.vec.arch }} -Tls ${{ matrix.vec.tls }} -timeout ${{ env.pr-timeout }} ${{ matrix.vec.xdp }} -CodeCoverage -LogProfile Basic.Light
+    - name: recvfuzz (Official)
+      if: github.event_name != 'pull_request'
+      timeout-minutes: 65
+      continue-on-error: true
+      shell: pwsh
+      run: scripts/recvfuzz.ps1 -Config ${{ matrix.vec.config }} -Arch ${{ matrix.vec.arch }} -Tls ${{ matrix.vec.tls }} -timeout ${{ env.main-timeout }} ${{ matrix.vec.xdp }} -CodeCoverage -LogProfile Basic.Light
+    - name: Upload Results
+      uses: actions/upload-artifact@a8a3f3ad30e3422c9c7b888a15615d19a852ae32
+      with:
+        name: RecvFuzz-${{ matrix.vec.config }}-${{ matrix.vec.plat }}-${{ matrix.vec.os }}-${{ matrix.vec.arch }}-${{ matrix.vec.tls }}${{ matrix.vec.xdp }}${{ matrix.vec.sanitize }}
+        path: artifacts/coverage/*.cov
+
   merge-coverage:
     name: Merge Coverage
-    needs: [bvt-winlatest, stress-winlatest]
+    needs: [bvt-winlatest, stress-winlatest, recvfuzz-winlatest]
     runs-on: windows-2022
     steps:
     - name: Checkout repository
@@ -156,6 +202,11 @@ jobs:
       name: Download SpinQuic Coverage Results
       with:
         name: Spin-Debug-windows-windows-2022-x64-schannel
+        path: artifacts\coverage\windows\x64_Debug_schannel
+    - uses: actions/download-artifact@9bc31d5ccc31df68ecc42ccf4149144866c47d8a
+      name: Download RecvFuzz Coverage Results
+      with:
+        name: RecvFuzz-Debug-windows-windows-2022-x64-schannel
         path: artifacts\coverage\windows\x64_Debug_schannel
     - name: Dir Folder for Artifacts
       shell: pwsh
@@ -194,4 +245,3 @@ jobs:
         output: 'both'
     - name: Write to Job Summary
       run: cat code-coverage-results.md >> $GITHUB_STEP_SUMMARY
-

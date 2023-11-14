@@ -150,7 +150,7 @@ CxPlatWorkersLazyStart(
     }
 
     CXPLAT_THREAD_CONFIG ThreadConfig = {
-        CXPLAT_THREAD_FLAG_SET_AFFINITIZE,
+        CXPLAT_THREAD_FLAG_SET_IDEAL_PROC,
         0,
         "cxplat_worker",
         CxPlatWorkerThread,
