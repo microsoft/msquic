@@ -288,7 +288,8 @@ PerfClient::Start(
         WriteOutput("Failed to initialize datapath for resolution!\n");
         return Status;
     }
-    QUIC_ADDR RemoteAddr;
+    QUIC_ADDR RemoteAddr = {0};
+    QuicAddrSetFamily(&RemoteAddr, QuicAddrGetFamily(Workers[0].LocalAddr));
     Status = CxPlatDataPathResolveAddress(Datapath, Target.get(), &RemoteAddr);
     CxPlatDataPathUninitialize(Datapath);
     if (QUIC_FAILED(Status)) {
@@ -483,6 +484,7 @@ PerfClientConnection::Initialize() {
                 Worker.Target.get(),
                 Worker.RemoteAddr.GetPort(),
                 Worker.LocalAddr.GetFamily() != QUIC_ADDRESS_FAMILY_UNSPEC ? &Worker.LocalAddr.SockAddr : nullptr,
+                &Worker.RemoteAddr.SockAddr,
                 this);
         if (!TcpConn->IsInitialized()) {
             Worker.Lock.Acquire();
@@ -847,7 +849,7 @@ PerfClientStream::Send() {
 
         BytesSent += DataLength;
         InterlockedExchangeAdd64((int64_t*)&BytesOutstanding, (int64_t)DataLength);
-        
+
         if (Client.UseTCP) {
             auto SendData = Connection.Worker.TcpSendDataAllocator.Alloc();
             SendData->StreamId = (uint32_t)Entry.Signature;

@@ -435,6 +435,7 @@ ThroughputClient::StartTcp()
             TargetData.get(),
             Port,
             (QuicAddrGetFamily(&LocalIpAddr) != QUIC_ADDRESS_FAMILY_UNSPEC) ? &LocalIpAddr : nullptr,
+            nullptr,
             this);
     if (!TcpConn || !TcpConn->IsInitialized()) {
         if (TcpConn) {

@@ -300,6 +300,7 @@ TcpConnection::TcpConnection(
         const char* ServerName,
     _In_ uint16_t ServerPort,
     const QUIC_ADDR* LocalAddress,
+    const QUIC_ADDR* RemoteAddress,
     void* Context) :
     IsServer(false), Engine(Engine), Context(Context)
 {
@@ -321,14 +322,18 @@ TcpConnection::TcpConnection(
     if (LocalAddress) {
         Family = QuicAddrGetFamily(LocalAddress);
     }
-    QuicAddrSetFamily(&Route.RemoteAddress, Family);
-    if (QUIC_FAILED(
-        CxPlatDataPathResolveAddress(
-            Datapath,
-            ServerName,
-            &Route.RemoteAddress))) {
-        WriteOutput("CxPlatDataPathResolveAddress FAILED\n");
-        return;
+    if (RemoteAddress) {
+        Route.RemoteAddress = *RemoteAddress;
+    } else {
+        QuicAddrSetFamily(&Route.RemoteAddress, Family);
+        if (QUIC_FAILED(
+            CxPlatDataPathResolveAddress(
+                Datapath,
+                ServerName,
+                &Route.RemoteAddress))) {
+            WriteOutput("CxPlatDataPathResolveAddress FAILED\n");
+            return;
+        }
     }
     QuicAddrSetPort(&Route.RemoteAddress, ServerPort);
     Engine->AddConnection(this, 0); // TODO - Correct index
@@ -924,7 +929,7 @@ bool TcpConnection::FinalizeSendBuffer(QUIC_BUFFER* SendBuffer)
 {
     TotalSendOffset += SendBuffer->Length;
     if (SendBuffer->Length != TLS_BLOCK_SIZE ||
-        CxPlatSendDataIsFull(BatchedSendData)) {   
+        CxPlatSendDataIsFull(BatchedSendData)) {
         QUIC_STATUS Status;
         if (QUIC_FAILED(
             Status = CxPlatSocketSend(Socket, &Route, BatchedSendData))) {

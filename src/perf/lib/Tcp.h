@@ -261,6 +261,7 @@ public:
             const char* ServerName,
         _In_ uint16_t ServerPort,
         _In_ const QUIC_ADDR* LocalAddress = nullptr,
+        _In_ const QUIC_ADDR* RemoteAddress = nullptr,
         _In_ void* Context = nullptr);
     bool IsInitialized() const { return Initialized; }
     void Close();
