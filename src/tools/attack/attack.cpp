@@ -141,7 +141,7 @@ void RunAttackRandom(CXPLAT_SOCKET* Binding, uint16_t Length, bool ValidQuic, bo
     QUIC_STATUS Status = CxPlatResolveRoute(Binding, &Route, 0, &Context, ResolveRouteComplete);
     if (Status == QUIC_STATUS_PENDING) {
         CxPlatEventInitialize(&(Context.Event), FALSE, FALSE);
-        BOOLEAN EventSet = CxPlatEventWaitWithTimeout(Context.Event, (DWORD)TimeoutMs);
+        BOOLEAN EventSet = CxPlatEventWaitWithTimeout(Context.Event, (uint32_t)TimeoutMs);
         CxPlatEventUninitialize(Context.Event);
         if (!EventSet) {
             printf("Failed to CxPlatResolveRoute before timeout!\n");
@@ -216,7 +216,7 @@ void RunAttackValidInitial(CXPLAT_SOCKET* Binding)
     QUIC_STATUS Status = CxPlatResolveRoute(Binding, &Route, 0, &Context, ResolveRouteComplete);
     if (Status == QUIC_STATUS_PENDING) {
         CxPlatEventInitialize(&(Context.Event), FALSE, FALSE);
-        BOOLEAN EventSet = CxPlatEventWaitWithTimeout(Context.Event, (DWORD)TimeoutMs);
+        BOOLEAN EventSet = CxPlatEventWaitWithTimeout(Context.Event, (uint32_t)TimeoutMs);
         CxPlatEventUninitialize(Context.Event);
         if (!EventSet) {
             printf("Failed to CxPlatResolveRoute before timeout!\n");
