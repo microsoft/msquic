@@ -75,6 +75,7 @@
 ../src/bin/winuser/dllmain.c
 ../src/bin/winkernel/driver.c
 ../src/bin/winkernel/msquicpcw.c
+../src/bin/winkernel/nmrprovider.c
 ../src/bin/static/empty.c
 ../src/core/operation.h
 ../src/core/stream.h

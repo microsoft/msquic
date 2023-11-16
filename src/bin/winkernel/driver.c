@@ -40,6 +40,20 @@ MsQuicPcwCleanup(
     void
     );
 
+_No_competing_thread_
+_IRQL_requires_max_(PASSIVE_LEVEL)
+NTSTATUS
+MsQuicRegisterNmrProvider(
+    void
+    );
+
+_No_competing_thread_
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+MsQuicDeregisterNmrProvider(
+    void
+    );
+
 INITCODE DRIVER_INITIALIZE DriverEntry;
 PAGEDX EVT_WDF_DRIVER_UNLOAD EvtDriverUnload;
 
@@ -118,6 +132,11 @@ Return Value:
         goto Error;
     }
 
+    Status = MsQuicRegisterNmrProvider();
+    if (!NT_SUCCESS(Status)) {
+        goto Error;
+    }
+
 Error:
 
     if (!NT_SUCCESS(Status)) {
@@ -151,6 +170,8 @@ Arguments:
     UNREFERENCED_PARAMETER(Driver);
 
     PAGED_CODE();
+
+    MsQuicDeregisterNmrProvider();
     MsQuicPcwCleanup();
     MsQuicLibraryUnload();
 }

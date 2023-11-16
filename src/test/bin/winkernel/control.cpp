@@ -65,6 +65,96 @@ WDFDEVICE QuicTestCtlDevice = nullptr;
 QUIC_DEVICE_EXTENSION* QuicTestCtlExtension = nullptr;
 QUIC_TEST_CLIENT* QuicTestClient = nullptr;
 
+typedef struct QuicTestNmrClient {
+    NPI_CLIENT_CHARACTERISTICS NpiClientCharacteristics;
+    HANDLE NmrClientHandle;
+    NPI_MODULEID ModuleId;
+    KEVENT RegistrationCompleteEvent;
+    MSQUIC_NMR_DISPATCH* ProviderDispatch;
+} QuicTestNmrClient;
+
+static QuicTestNmrClient NmrClient;
+
+static
+NTSTATUS
+QuicTestClientAttachProvider(
+    _In_ HANDLE NmrBindingHandle,
+    _In_ VOID *ClientContext,
+    _In_ CONST NPI_REGISTRATION_INSTANCE *ProviderRegistrationInstance
+    )
+{
+    UNREFERENCED_PARAMETER(ProviderRegistrationInstance);
+
+    NTSTATUS Status;
+    QuicTestNmrClient* Client = (QuicTestNmrClient*)ClientContext;
+    PVOID ProviderContext;
+
+    #pragma warning(suppress:6387) // _Param_(2) could be '0' - by design.
+    Status =
+        NmrClientAttachProvider(
+            NmrBindingHandle,
+            NULL,
+            NULL,
+            &ProviderContext,
+            (const void**)&Client->ProviderDispatch);
+    return Status;
+}
+
+static
+NTSTATUS
+QuicTestClientDetachProvider(
+    _In_ VOID *ClientBindingContext
+    )
+{
+    UNREFERENCED_PARAMETER(ClientBindingContext);
+    //
+    // The contract of QUIC test NMR client is that the detach must be
+    // initiated by the client after the client is done with the provider.
+    //
+    // Provider-initiated detach behavior is an undefined behavior for now.
+    //
+    return STATUS_SUCCESS;
+}
+
+NTSTATUS
+QuicTestRegisterNmrClient(
+    void
+    )
+{
+    NPI_REGISTRATION_INSTANCE *ClientRegistrationInstance;
+    NTSTATUS Status = STATUS_SUCCESS;
+
+    KeInitializeEvent(&NmrClient.RegistrationCompleteEvent, NotificationEvent, FALSE);
+    NmrClient.ModuleId.Length = sizeof(NmrClient.ModuleId);
+    NmrClient.ModuleId.Type = MIT_GUID;
+    NmrClient.ModuleId.Guid = MSQUIC_MODULE_ID;
+
+    NmrClient.NpiClientCharacteristics.Length = sizeof(NmrClient.NpiClientCharacteristics);
+    NmrClient.NpiClientCharacteristics.ClientAttachProvider = QuicTestClientAttachProvider;
+    NmrClient.NpiClientCharacteristics.ClientDetachProvider = QuicTestClientDetachProvider;
+
+    ClientRegistrationInstance = &NmrClient.NpiClientCharacteristics.ClientRegistrationInstance;
+    ClientRegistrationInstance->Size = sizeof(*ClientRegistrationInstance);
+    ClientRegistrationInstance->Version = 0;
+    ClientRegistrationInstance->NpiId = &MSQUIC_NPI_ID;
+    ClientRegistrationInstance->ModuleId = &NmrClient.ModuleId;
+
+    Status =
+        NmrRegisterClient(
+            &NmrClient.NpiClientCharacteristics, &NmrClient, &NmrClient.NmrClientHandle);
+    if (!NT_SUCCESS(Status)) {
+        goto Exit;
+    }
+
+    LARGE_INTEGER Timeout;
+    Timeout.QuadPart = -1000 * 10000; // 1s
+    Status = KeWaitForSingleObject(&NmrClient.RegistrationCompleteEvent, Executive, KernelMode, FALSE, &Timeout);
+
+Exit:
+    return Status;
+}
+
+
 _No_competing_thread_
 INITCODE
 NTSTATUS
@@ -81,7 +171,20 @@ QuicTestCtlInitialize(
     WDF_IO_QUEUE_CONFIG QueueConfig;
     WDFQUEUE Queue;
 
-    MsQuic = new (std::nothrow) MsQuicApi();
+    Status = QuicTestRegisterNmrClient();
+    if (!NT_SUCCESS(Status)) {
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            Status,
+            "QuicTestRegisterNmrClient failed");
+        goto Error;
+    }
+
+    MsQuic =
+        new (std::nothrow) MsQuicApi(
+            NmrClient.ProviderDispatch->MsQuicOpenVersion,
+            NmrClient.ProviderDispatch->MsQuicClose);
     if (!MsQuic) {
         goto Error;
     }

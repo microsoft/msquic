@@ -24,6 +24,7 @@ Environment:
 #include <minwindef.h>
 #include <ntstatus.h>
 #include <basetsd.h>
+#include <netioddk.h>
 
 typedef INT8 int8_t;
 typedef INT16 int16_t;
