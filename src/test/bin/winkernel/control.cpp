@@ -326,7 +326,7 @@ QuicTestCtlUninitialize(
 
     if (InterlockedFetchAndSetBoolean(&NmrClient.Deleting)) {
         //
-        // We are already in the middleing detaching the client.
+        // We are already in the middle of detaching the client.
         // Complete it now.
         //
         NmrClientDetachProviderComplete(NmrClient.NmrClientHandle);
