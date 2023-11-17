@@ -337,7 +337,7 @@ QuicTestCtlUninitialize(
         CXPLAT_FRE_ASSERTMSG(Status == STATUS_PENDING, "client deregistration failed");
         if (Status == STATUS_PENDING) {
             //
-            // Wait for the deregistration to be completed
+            // Wait for the deregistration to complete.
             //
             NmrWaitForClientDeregisterComplete(NmrClient.NmrClientHandle);
         }
