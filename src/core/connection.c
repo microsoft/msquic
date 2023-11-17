@@ -7785,7 +7785,6 @@ QuicConnDrainOperations(
         if (!Connection->State.Uninitialized) {
             QuicConnUninitialize(Connection);
         }
-        HasMoreWorkToDo = FALSE;
     }
 
     QuicStreamSetDrainClosedStreams(&Connection->Streams);
