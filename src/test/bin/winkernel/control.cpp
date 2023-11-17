@@ -94,7 +94,7 @@ QuicTestClientAttachProvider(
     Status =
         NmrClientAttachProvider(
             NmrBindingHandle,
-            NULL,
+            Client,
             NULL,
             &ProviderContext,
             (const void**)&Client->ProviderDispatch);
@@ -313,7 +313,17 @@ QuicTestCtlUninitialize(
     QuicTraceLogVerbose(
         TestControlUninitializing,
         "[test] Control interface uninitializing");
-    
+
+    if (QuicTestCtlDevice != nullptr) {
+        NT_ASSERT(QuicTestCtlExtension != nullptr);
+        QuicTestCtlExtension = nullptr;
+
+        WdfObjectDelete(QuicTestCtlDevice);
+        QuicTestCtlDevice = nullptr;
+    }
+
+    delete MsQuic;
+
     if (InterlockedFetchAndSetBoolean(&NmrClient.Deleting)) {
         //
         // We are already in the middleing detaching the client.
@@ -333,16 +343,6 @@ QuicTestCtlUninitialize(
         }
         NmrClient.NmrClientHandle = NULL;
     }
-
-    if (QuicTestCtlDevice != nullptr) {
-        NT_ASSERT(QuicTestCtlExtension != nullptr);
-        QuicTestCtlExtension = nullptr;
-
-        WdfObjectDelete(QuicTestCtlDevice);
-        QuicTestCtlDevice = nullptr;
-    }
-
-    delete MsQuic;
 
     QuicTraceLogVerbose(
         TestControlUninitialized,
