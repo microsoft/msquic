@@ -14,6 +14,10 @@
 #include "nmrprovider.c.clog.h.lttng.h"
 #endif
 #include <lttng/tracepoint-event.h>
+#ifndef _clog_MACRO_QuicTraceLogInfo
+#define _clog_MACRO_QuicTraceLogInfo  1
+#define QuicTraceLogInfo(a, ...) _clog_CAT(_clog_ARGN_SELECTOR(__VA_ARGS__), _clog_CAT(_,a(#a, __VA_ARGS__)))
+#endif
 #ifndef _clog_MACRO_QuicTraceEvent
 #define _clog_MACRO_QuicTraceEvent  1
 #define QuicTraceEvent(a, ...) _clog_CAT(_clog_ARGN_SELECTOR(__VA_ARGS__), _clog_CAT(_,a(#a, __VA_ARGS__)))
@@ -21,6 +25,56 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
+/*----------------------------------------------------------
+// Decoder Ring for ProviderAttachClient
+// [ nmr][%p] Client attached Ver %hu Size %hu Number %u ModuleID { %x-%x-%x-%x }
+// QuicTraceLogInfo(
+        ProviderAttachClient,
+        "[ nmr][%p] Client attached Ver %hu Size %hu Number %u ModuleID { %x-%x-%x-%x }",
+        NmrBindingHandle,
+        ClientRegistrationInstance->Version,
+        ClientRegistrationInstance->Size,
+        ClientRegistrationInstance->Number,
+        ClientRegistrationInstance->ModuleId->Guid.Data1,
+        ClientRegistrationInstance->ModuleId->Guid.Data2,
+        ClientRegistrationInstance->ModuleId->Guid.Data3,
+        *((uint64_t*)ClientRegistrationInstance->ModuleId->Guid.Data));
+// arg2 = arg2 = NmrBindingHandle = arg2
+// arg3 = arg3 = ClientRegistrationInstance->Version = arg3
+// arg4 = arg4 = ClientRegistrationInstance->Size = arg4
+// arg5 = arg5 = ClientRegistrationInstance->Number = arg5
+// arg6 = arg6 = ClientRegistrationInstance->ModuleId->Guid.Data1 = arg6
+// arg7 = arg7 = ClientRegistrationInstance->ModuleId->Guid.Data2 = arg7
+// arg8 = arg8 = ClientRegistrationInstance->ModuleId->Guid.Data3 = arg8
+// arg9 = arg9 = *((uint64_t*)ClientRegistrationInstance->ModuleId->Guid.Data) = arg9
+----------------------------------------------------------*/
+#ifndef _clog_10_ARGS_TRACE_ProviderAttachClient
+#define _clog_10_ARGS_TRACE_ProviderAttachClient(uniqueId, encoded_arg_string, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9)\
+tracepoint(CLOG_NMRPROVIDER_C, ProviderAttachClient , arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for ProviderDetachClient
+// [ nmr][%p] Client detached
+// QuicTraceLogInfo(
+        ProviderDetachClient,
+        "[ nmr][%p] Client detached",
+        ProviderBindingContext);
+// arg2 = arg2 = ProviderBindingContext = arg2
+----------------------------------------------------------*/
+#ifndef _clog_3_ARGS_TRACE_ProviderDetachClient
+#define _clog_3_ARGS_TRACE_ProviderDetachClient(uniqueId, encoded_arg_string, arg2)\
+tracepoint(CLOG_NMRPROVIDER_C, ProviderDetachClient , arg2);\
+
+#endif
+
+
+
+
 /*----------------------------------------------------------
 // Decoder Ring for LibraryErrorStatus
 // [ lib] ERROR, %u, %s.
