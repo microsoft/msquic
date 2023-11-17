@@ -71,6 +71,7 @@ typedef struct QuicTestNmrClient {
     NPI_MODULEID ModuleId;
     KEVENT RegistrationCompleteEvent;
     MSQUIC_NMR_DISPATCH* ProviderDispatch;
+    BOOLEAN Deleting;
 } QuicTestNmrClient;
 
 static QuicTestNmrClient NmrClient;
@@ -106,14 +107,12 @@ QuicTestClientDetachProvider(
     _In_ VOID *ClientBindingContext
     )
 {
-    UNREFERENCED_PARAMETER(ClientBindingContext);
-    //
-    // The contract of QUIC test NMR client is that the detach must be
-    // initiated by the client after the client is done with the provider.
-    //
-    // Provider-initiated detach behavior is an undefined behavior for now.
-    //
-    return STATUS_SUCCESS;
+    QuicTestNmrClient* Client = (QuicTestNmrClient*)ClientBindingContext;
+    if (InterlockedFetchAndSetBoolean(&Client->Deleting)) {
+        return STATUS_SUCCESS;
+    } else {
+        return STATUS_PENDING;
+    }
 }
 
 NTSTATUS
@@ -314,6 +313,26 @@ QuicTestCtlUninitialize(
     QuicTraceLogVerbose(
         TestControlUninitializing,
         "[test] Control interface uninitializing");
+    
+    if (InterlockedFetchAndSetBoolean(&NmrClient.Deleting)) {
+        //
+        // We are already in the middleing detaching the client.
+        // Complete it now.
+        //
+        NmrClientDetachProviderComplete(NmrClient.NmrClientHandle);
+    }
+
+    if (NmrClient.NmrClientHandle) {
+        NTSTATUS Status = NmrDeregisterClient(NmrClient.NmrClientHandle);
+        CXPLAT_FRE_ASSERTMSG(Status == STATUS_PENDING, "client deregistration failed");
+        if (Status == STATUS_PENDING) {
+            //
+            // Wait for the deregistration to be completed
+            //
+            NmrWaitForClientDeregisterComplete(NmrClient.NmrClientHandle);
+        }
+        NmrClient.NmrClientHandle = NULL;
+    }
 
     if (QuicTestCtlDevice != nullptr) {
         NT_ASSERT(QuicTestCtlExtension != nullptr);
