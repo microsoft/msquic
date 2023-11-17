@@ -1,3 +1,14 @@
+/*++
+
+    Copyright (c) Microsoft Corporation.
+    Licensed under the MIT License.
+
+Abstract:
+
+    NMR provider for MsQuic.
+
+--*/
+
 #include "quic_platform.h"
 #include <wdm.h>
 #include "msquic.h"
@@ -14,7 +25,7 @@ typedef struct MSQUIC_NMR_PROVIDER {
 
 MSQUIC_NMR_PROVIDER NmrProvider;
 
-MSQUIC_NMR_DISPATCH MsQuicNmrDispatch = {
+const MSQUIC_NMR_DISPATCH MsQuicNmrDispatch = {
     .Version = 0,
     .Reserved = 0,
     .MsQuicOpenVersion = MsQuicOpenVersion,
@@ -24,31 +35,52 @@ MSQUIC_NMR_DISPATCH MsQuicNmrDispatch = {
 NTSTATUS
 MsQuicNmrProviderAttachClient(
     _In_ HANDLE NmrBindingHandle,
-    _In_ VOID *ProviderContext,
-    _In_ CONST NPI_REGISTRATION_INSTANCE *ClientRegistrationInstance,
-    _In_ VOID *ClientBindingContext,
-    _In_ CONST VOID *ClientDispatch,
-    _Out_ VOID **ProviderBindingContext,
-    _Out_ CONST VOID **ProviderDispatch
-    )
+    _In_ void *ProviderContext,
+    _In_ const NPI_REGISTRATION_INSTANCE *ClientRegistrationInstance,
+    _In_ void *ClientBindingContext,
+    _In_ const void *ClientDispatch,
+    _Out_ void **ProviderBindingContext,
+    _Out_ const void **ProviderDispatch
+)
 {
-    UNREFERENCED_PARAMETER(NmrBindingHandle);
-    UNREFERENCED_PARAMETER(ProviderContext);
-    UNREFERENCED_PARAMETER(ClientRegistrationInstance);
     UNREFERENCED_PARAMETER(ClientBindingContext);
+    UNREFERENCED_PARAMETER(ProviderContext);
     UNREFERENCED_PARAMETER(ClientDispatch);
 
-    *ProviderBindingContext = NULL;
+    *ProviderBindingContext = NmrBindingHandle;
     *ProviderDispatch = &MsQuicNmrDispatch;
+
+    QuicTraceLogInfo(
+        ProviderAttachClient,
+        "[ nmr][%p] Client attached Ver %hu Size %hu Number %u ModuleID"
+        "{%08lX-%04hX-%04hX-%02hhX%02hhX-%02hhX%02hhX%02hhX%02hhX%02hhX%02hhX}",
+        NmrBindingHandle,
+        ClientRegistrationInstance->Version,
+        ClientRegistrationInstance->Size,
+        ClientRegistrationInstance->Number,
+        ClientRegistrationInstance->ModuleId->Guid.Data1,
+        ClientRegistrationInstance->ModuleId->Guid.Data2,
+        ClientRegistrationInstance->ModuleId->Guid.Data3,
+        ClientRegistrationInstance->ModuleId->Guid.Data4[0],
+        ClientRegistrationInstance->ModuleId->Guid.Data4[1],
+        ClientRegistrationInstance->ModuleId->Guid.Data4[2],
+        ClientRegistrationInstance->ModuleId->Guid.Data4[3],
+        ClientRegistrationInstance->ModuleId->Guid.Data4[4],
+        ClientRegistrationInstance->ModuleId->Guid.Data4[5],
+        ClientRegistrationInstance->ModuleId->Guid.Data4[6],
+        ClientRegistrationInstance->ModuleId->Guid.Data4[7]);
     return STATUS_SUCCESS;
 }
 
 NTSTATUS
 MsQuicNmrProviderDetachClient(
-    _In_ VOID *ProviderBindingContext
+    _In_ void *ProviderBindingContext
     )
 {
-    UNREFERENCED_PARAMETER(ProviderBindingContext);
+    QuicTraceLogInfo(
+        ProviderDetachClient,
+        "[ nmr][%p] Client detached",
+        ProviderBindingContext);
     return STATUS_SUCCESS;
 }
 

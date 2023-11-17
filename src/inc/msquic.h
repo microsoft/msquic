@@ -1664,17 +1664,17 @@ void
 
 #ifdef _KERNEL_MODE
 
-static const GUID MSQUIC_NPI_ID = {
+DECLSPEC_SELECTANY GUID MSQUIC_NPI_ID = {
     0xC43138E3, 0xCD13, 0x4CB1, { 0x9C, 0xAE, 0xE0, 0x05, 0xC8, 0x55, 0x7A, 0xBA }
 }; // C43138E3-CD13-4CB1-9CAE-E005C8557ABA
 
-static const GUID MSQUIC_MODULE_ID = {
+DECLSPEC_SELECTANY GUID MSQUIC_MODULE_ID = {
     0x698F7C72, 0xC2E6, 0x49CD, { 0x8C, 0x39, 0x98, 0x85, 0x1D, 0x50, 0x19, 0x01 }
 }; // 698F7C72-C2E6-49CD-8C39-98851D501901
 
 typedef struct MSQUIC_NMR_DISPATCH {
-    USHORT Version;
-    USHORT Reserved;
+    uint16_t  Version;
+    uint16_t  Reserved;
     MsQuicOpenVersionFn MsQuicOpenVersion;
     MsQuicCloseFn MsQuicClose;
 } MSQUIC_NMR_DISPATCH;

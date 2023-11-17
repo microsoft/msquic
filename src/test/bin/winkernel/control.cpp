@@ -69,7 +69,7 @@ typedef struct QuicTestNmrClient {
     NPI_CLIENT_CHARACTERISTICS NpiClientCharacteristics;
     HANDLE NmrClientHandle;
     NPI_MODULEID ModuleId;
-    KEVENT RegistrationCompleteEvent;
+    CXPLAT_EVENT RegistrationCompleteEvent;
     MSQUIC_NMR_DISPATCH* ProviderDispatch;
     BOOLEAN Deleting;
 } QuicTestNmrClient;
@@ -80,15 +80,15 @@ static
 NTSTATUS
 QuicTestClientAttachProvider(
     _In_ HANDLE NmrBindingHandle,
-    _In_ VOID *ClientContext,
-    _In_ CONST NPI_REGISTRATION_INSTANCE *ProviderRegistrationInstance
+    _In_ void *ClientContext,
+    _In_ const NPI_REGISTRATION_INSTANCE *ProviderRegistrationInstance
     )
 {
     UNREFERENCED_PARAMETER(ProviderRegistrationInstance);
 
     NTSTATUS Status;
     QuicTestNmrClient* Client = (QuicTestNmrClient*)ClientContext;
-    PVOID ProviderContext;
+    void* ProviderContext;
 
     #pragma warning(suppress:6387) // _Param_(2) could be '0' - by design.
     Status =
@@ -98,13 +98,20 @@ QuicTestClientAttachProvider(
             NULL,
             &ProviderContext,
             (const void**)&Client->ProviderDispatch);
+    if (!NT_SUCCESS(Status)) {
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            Status,
+            "NmrClientAttachProvider failed");
+    }
     return Status;
 }
 
 static
 NTSTATUS
 QuicTestClientDetachProvider(
-    _In_ VOID *ClientBindingContext
+    _In_ void *ClientBindingContext
     )
 {
     QuicTestNmrClient* Client = (QuicTestNmrClient*)ClientBindingContext;
@@ -123,7 +130,7 @@ QuicTestRegisterNmrClient(
     NPI_REGISTRATION_INSTANCE *ClientRegistrationInstance;
     NTSTATUS Status = STATUS_SUCCESS;
 
-    KeInitializeEvent(&NmrClient.RegistrationCompleteEvent, NotificationEvent, FALSE);
+    CxPlatEventInitialize(&NmrClient.RegistrationCompleteEvent, FALSE, FALSE);
     NmrClient.ModuleId.Length = sizeof(NmrClient.ModuleId);
     NmrClient.ModuleId.Type = MIT_GUID;
     NmrClient.ModuleId.Guid = MSQUIC_MODULE_ID;
@@ -142,12 +149,23 @@ QuicTestRegisterNmrClient(
         NmrRegisterClient(
             &NmrClient.NpiClientCharacteristics, &NmrClient, &NmrClient.NmrClientHandle);
     if (!NT_SUCCESS(Status)) {
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            Status,
+            "NmrRegisterClient failed");
         goto Exit;
     }
 
-    LARGE_INTEGER Timeout;
-    Timeout.QuadPart = -1000 * 10000; // 1s
-    Status = KeWaitForSingleObject(&NmrClient.RegistrationCompleteEvent, Executive, KernelMode, FALSE, &Timeout);
+    if (!CxPlatEventWaitWithTimeout(NmrClient.RegistrationCompleteEvent, 1000)) {
+        Status = STATUS_TIMEOUT;
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            Status,
+            "client registration timed out");
+        goto Exit;
+    }
 
 Exit:
     return Status;

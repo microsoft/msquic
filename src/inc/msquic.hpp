@@ -298,7 +298,6 @@ public:
 class MsQuicApi : public QUIC_API_TABLE {
     const void* ApiTable {nullptr};
     QUIC_STATUS InitStatus {QUIC_STATUS_INVALID_STATE};
-    MsQuicOpenVersionFn OpenFn {nullptr};
     MsQuicCloseFn CloseFn {nullptr};
 public:
     MsQuicApi(
