@@ -27,10 +27,10 @@ extern "C" {
 #endif
 /*----------------------------------------------------------
 // Decoder Ring for ProviderAttachClient
-// [ nmr][%p] Client attached Ver %hu Size %hu Number %u ModuleID { %x-%x-%x-%x }
+// [ nmr][%p] Client attached Ver %hu Size %hu Number %u ModuleID { %x-%x-%x-%llx }
 // QuicTraceLogInfo(
         ProviderAttachClient,
-        "[ nmr][%p] Client attached Ver %hu Size %hu Number %u ModuleID { %x-%x-%x-%x }",
+        "[ nmr][%p] Client attached Ver %hu Size %hu Number %u ModuleID { %x-%x-%x-%llx }",
         NmrBindingHandle,
         ClientRegistrationInstance->Version,
         ClientRegistrationInstance->Size,
@@ -38,7 +38,7 @@ extern "C" {
         ClientRegistrationInstance->ModuleId->Guid.Data1,
         ClientRegistrationInstance->ModuleId->Guid.Data2,
         ClientRegistrationInstance->ModuleId->Guid.Data3,
-        *((uint64_t*)ClientRegistrationInstance->ModuleId->Guid.Data));
+        *((uint64_t*)ClientRegistrationInstance->ModuleId->Guid.Data4));
 // arg2 = arg2 = NmrBindingHandle = arg2
 // arg3 = arg3 = ClientRegistrationInstance->Version = arg3
 // arg4 = arg4 = ClientRegistrationInstance->Size = arg4
@@ -46,7 +46,7 @@ extern "C" {
 // arg6 = arg6 = ClientRegistrationInstance->ModuleId->Guid.Data1 = arg6
 // arg7 = arg7 = ClientRegistrationInstance->ModuleId->Guid.Data2 = arg7
 // arg8 = arg8 = ClientRegistrationInstance->ModuleId->Guid.Data3 = arg8
-// arg9 = arg9 = *((uint64_t*)ClientRegistrationInstance->ModuleId->Guid.Data) = arg9
+// arg9 = arg9 = *((uint64_t*)ClientRegistrationInstance->ModuleId->Guid.Data4) = arg9
 ----------------------------------------------------------*/
 #ifndef _clog_10_ARGS_TRACE_ProviderAttachClient
 #define _clog_10_ARGS_TRACE_ProviderAttachClient(uniqueId, encoded_arg_string, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9)\

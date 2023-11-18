@@ -52,7 +52,7 @@ MsQuicNmrProviderAttachClient(
 
     QuicTraceLogInfo(
         ProviderAttachClient,
-        "[ nmr][%p] Client attached Ver %hu Size %hu Number %u ModuleID { %x-%x-%x-%x }",
+        "[ nmr][%p] Client attached Ver %hu Size %hu Number %u ModuleID { %x-%x-%x-%llx }",
         NmrBindingHandle,
         ClientRegistrationInstance->Version,
         ClientRegistrationInstance->Size,
@@ -60,7 +60,7 @@ MsQuicNmrProviderAttachClient(
         ClientRegistrationInstance->ModuleId->Guid.Data1,
         ClientRegistrationInstance->ModuleId->Guid.Data2,
         ClientRegistrationInstance->ModuleId->Guid.Data3,
-        *((uint64_t*)ClientRegistrationInstance->ModuleId->Guid.Data));
+        *((uint64_t*)ClientRegistrationInstance->ModuleId->Guid.Data4));
     return STATUS_SUCCESS;
 }
 

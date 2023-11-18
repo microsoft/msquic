@@ -8579,7 +8579,7 @@
     },
     "ProviderAttachClient": {
       "ModuleProperites": {},
-      "TraceString": "[ nmr][%p] Client attached Ver %hu Size %hu Number %u ModuleID { %x-%x-%x-%x }",
+      "TraceString": "[ nmr][%p] Client attached Ver %hu Size %hu Number %u ModuleID { %x-%x-%x-%llx }",
       "UniqueId": "ProviderAttachClient",
       "splitArgs": [
         {
@@ -8611,7 +8611,7 @@
           "MacroVariableName": "arg8"
         },
         {
-          "DefinationEncoding": "x",
+          "DefinationEncoding": "llx",
           "MacroVariableName": "arg9"
         }
       ],
@@ -15012,9 +15012,9 @@
         "EncodingString": "[ dll] Proc[%u] Group[%hu] Index[%u] Active=%hhu"
       },
       {
-        "UniquenessHash": "5eaf03f7-528b-5dc7-876a-db700616d522",
+        "UniquenessHash": "6509226e-b945-543f-bf07-0147bcb93ca5",
         "TraceID": "ProviderAttachClient",
-        "EncodingString": "[ nmr][%p] Client attached Ver %hu Size %hu Number %u ModuleID { %x-%x-%x-%x }"
+        "EncodingString": "[ nmr][%p] Client attached Ver %hu Size %hu Number %u ModuleID { %x-%x-%x-%llx }"
       },
       {
         "UniquenessHash": "6b3701bb-e123-0217-1320-5d55303df4c4",
