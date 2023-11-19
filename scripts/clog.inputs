@@ -95,9 +95,11 @@
 ../src/test/lib/DatagramTest.cpp
 ../src/test/lib/OwnershipTest.cpp
 ../src/perf/lib/PerfHelpers.h
+../src/perf/lib/PerfClient.cpp
 ../src/perf/lib/PerfServer.cpp
 ../src/perf/lib/SecNetPerfMain.cpp
 ../src/perf/lib/HpsClient.h
+../src/perf/lib/PerfClient.h
 ../src/perf/lib/PerfServer.h
 ../src/perf/lib/CMakeLists.txt
 ../src/perf/lib/Tcp.h
