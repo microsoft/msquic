@@ -139,15 +139,15 @@ TRACEPOINT_EVENT(CLOG_TCP_CPP, PerfTcpAppAccept,
 
 
 /*----------------------------------------------------------
-// Decoder Ring for PerfTcpAppConnect
-// [perf][tcp][%p] App Connect
+// Decoder Ring for PerfTcpStartTls
+// [perf][tcp][%p] Start TLS
 // QuicTraceLogVerbose(
-            PerfTcpAppConnect,
-            "[perf][tcp][%p] App Connect",
+            PerfTcpStartTls,
+            "[perf][tcp][%p] Start TLS",
             this);
 // arg2 = arg2 = this = arg2
 ----------------------------------------------------------*/
-TRACEPOINT_EVENT(CLOG_TCP_CPP, PerfTcpAppConnect,
+TRACEPOINT_EVENT(CLOG_TCP_CPP, PerfTcpStartTls,
     TP_ARGS(
         const void *, arg2), 
     TP_FIELDS(
@@ -158,15 +158,15 @@ TRACEPOINT_EVENT(CLOG_TCP_CPP, PerfTcpAppConnect,
 
 
 /*----------------------------------------------------------
-// Decoder Ring for PerfTcpStartTls
-// [perf][tcp][%p] Start TLS
+// Decoder Ring for PerfTcpAppConnect
+// [perf][tcp][%p] App Connect
 // QuicTraceLogVerbose(
-            PerfTcpStartTls,
-            "[perf][tcp][%p] Start TLS",
+            PerfTcpAppConnect,
+            "[perf][tcp][%p] App Connect",
             this);
 // arg2 = arg2 = this = arg2
 ----------------------------------------------------------*/
-TRACEPOINT_EVENT(CLOG_TCP_CPP, PerfTcpStartTls,
+TRACEPOINT_EVENT(CLOG_TCP_CPP, PerfTcpAppConnect,
     TP_ARGS(
         const void *, arg2), 
     TP_FIELDS(
