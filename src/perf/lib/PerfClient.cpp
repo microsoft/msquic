@@ -439,7 +439,7 @@ PerfClientWorker::WorkerThread() {
             auto Connection = (PerfClientConnection*)CxPlatListRemoveHead(&ConnectionTable);
             Connection->TcpConn->Close(); // TODO - Any race conditions here?
             Connection->TcpConn = nullptr;
-            ConnectionAllocator.Free(Connection);
+            ConnectionPool.Free(Connection);
         }
         Lock.Release();
     }
@@ -462,7 +462,7 @@ void
 PerfClientWorker::StartNewConnection() {
     InterlockedIncrement64((int64_t*)&ConnectionsCreated);
     InterlockedIncrement64((int64_t*)&ConnectionsActive);
-    ConnectionAllocator.Alloc(*Client, *this)->Initialize();
+    ConnectionPool.Alloc(*Client, *this)->Initialize();
 }
 
 PerfClientConnection::~PerfClientConnection() {
@@ -481,7 +481,7 @@ PerfClientConnection::Initialize() {
         Worker.Lock.Release();
         auto CredConfig = MsQuicCredentialConfig(QUIC_CREDENTIAL_FLAG_CLIENT | QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION);
         TcpConn =
-            Worker.TcpConnectionAllocator.Alloc(
+            Worker.TcpConnectionPool.Alloc(
                 Client.Engine,
                 &CredConfig,
                 Client.TargetFamily,
@@ -494,7 +494,7 @@ PerfClientConnection::Initialize() {
             Worker.Lock.Acquire();
             CxPlatListEntryRemove(&Entry);
             Worker.Lock.Release();
-            Worker.ConnectionAllocator.Free(this);
+            Worker.ConnectionPool.Free(this);
             return;
         }
 
@@ -506,7 +506,7 @@ PerfClientConnection::Initialize() {
                 PerfClientConnection::s_ConnectionCallback,
                 this,
                 &Handle))) {
-            Worker.ConnectionAllocator.Free(this);
+            Worker.ConnectionPool.Free(this);
             return;
         }
 
@@ -521,7 +521,7 @@ PerfClientConnection::Initialize() {
                     &Value);
             if (QUIC_FAILED(Status)) {
                 WriteOutput("SetDisable1RttEncryption failed, 0x%x\n", Status);
-                Worker.ConnectionAllocator.Free(this);
+                Worker.ConnectionPool.Free(this);
                 return;
             }
         }
@@ -535,7 +535,7 @@ PerfClientConnection::Initialize() {
                     Client.CibirId);
             if (QUIC_FAILED(Status)) {
                 WriteOutput("SetCibirId failed, 0x%x\n", Status);
-                Worker.ConnectionAllocator.Free(this);
+                Worker.ConnectionPool.Free(this);
                 return;
             }
         }
@@ -550,7 +550,7 @@ PerfClientConnection::Initialize() {
                     &Value);
             if (QUIC_FAILED(Status)) {
                 WriteOutput("SetShareUdpBinding failed, 0x%x\n", Status);
-                Worker.ConnectionAllocator.Free(this);
+                Worker.ConnectionPool.Free(this);
                 return;
             }
 
@@ -563,7 +563,7 @@ PerfClientConnection::Initialize() {
                         &Worker.LocalAddr);
                 if (QUIC_FAILED(Status)) {
                     WriteOutput("SetLocalAddr failed!\n");
-                    Worker.ConnectionAllocator.Free(this);
+                    Worker.ConnectionPool.Free(this);
                     return;
                 }
             }
@@ -578,7 +578,7 @@ PerfClientConnection::Initialize() {
                 Worker.RemoteAddr.GetPort());
         if (QUIC_FAILED(Status)) {
             WriteOutput("Start failed, 0x%x\n", Status);
-            Worker.ConnectionAllocator.Free(this);
+            Worker.ConnectionPool.Free(this);
             return;
         }
 
@@ -638,20 +638,20 @@ PerfClientConnection::OnShutdownComplete() {
                 break;
             }
             StreamTable.Remove(&Stream->Entry);
-            Worker.StreamAllocator.Free(Stream);
+            Worker.StreamPool.Free(Stream);
         }
         StreamTable.EnumEnd(&Enum);
     }
 
     Worker.OnConnectionComplete();
-    Worker.ConnectionAllocator.Free(this);
+    Worker.ConnectionPool.Free(this);
 }
 
 void
 PerfClientConnection::StartNewStream() {
     StreamsCreated++;
     StreamsActive++;
-    auto Stream = Worker.StreamAllocator.Alloc(*this);
+    auto Stream = Worker.StreamPool.Alloc(*this);
     if (Client.UseTCP) {
         Stream->Entry.Signature = (uint32_t)Worker.StreamsStarted;
         StreamTable.Insert(&Stream->Entry);
@@ -663,7 +663,7 @@ PerfClientConnection::StartNewStream() {
                 PerfClientStream::s_StreamCallback,
                 Stream,
                 &Stream->Handle))) {
-            Worker.StreamAllocator.Free(Stream);
+            Worker.StreamPool.Free(Stream);
             return;
         }
     }
@@ -678,7 +678,7 @@ PerfClientConnection::GetTcpStream(uint32_t ID) {
 }
 
 void
-PerfClientConnection::OnStreamShutdownComplete() {
+PerfClientConnection::OnStreamShutdown() {
     StreamsActive--;
     if (Client.RepeatStreams) {
         while (StreamsActive < Client.StreamCount) {
@@ -749,15 +749,8 @@ PerfClientConnection::TcpSendCompleteCallback(
         }
         if (Stream) {
             Stream->OnSendComplete(Data->Length, FALSE);
-            if ((Data->Fin || Data->Abort) && !Stream->SendEndTime) {
-                Stream->SendEndTime = CxPlatTimeUs64();
-                if (Stream->RecvEndTime) {
-                    Stream->OnStreamShutdownComplete();
-                    Stream = nullptr;
-                }
-            }
         }
-        This->Worker.TcpSendDataAllocator.Free(Data);
+        This->Worker.TcpSendDataPool.Free(Data);
     }
 }
 
@@ -765,29 +758,25 @@ void
 PerfClientConnection::TcpReceiveCallback(
     _In_ TcpConnection* Connection,
     uint32_t StreamID,
-    bool Open,
+    bool /* Open */,
     bool Fin,
     bool Abort,
     uint32_t Length,
-    _In_ uint8_t* Buffer
+    _In_ uint8_t* /* Buffer */
     ) {
-    UNREFERENCED_PARAMETER(Open);
-    UNREFERENCED_PARAMETER(Buffer);
     auto This = (PerfClientConnection*)Connection->Context;
     auto Stream = This->GetTcpStream(StreamID);
     if (Stream) {
-        Stream->OnReceive(Length, Fin);
         if (Abort) {
-            if (!Stream->RecvEndTime) { Stream->RecvEndTime = CxPlatTimeUs64(); }
-            if (Stream->SendEndTime) {
-                Stream->OnStreamShutdownComplete();
-            }
+            Stream->OnReceiveShutdown();
+        } else {
+            Stream->OnReceive(Length, Fin);
         }
     }
 }
 
 QUIC_STATUS
-PerfClientStream::StreamCallback(
+PerfClientStream::QuicStreamCallback(
     _Inout_ QUIC_STREAM_EVENT* Event
     ) {
     switch (Event->Type) {
@@ -798,19 +787,20 @@ PerfClientStream::StreamCallback(
         OnSendComplete(((QUIC_BUFFER*)Event->SEND_COMPLETE.ClientContext)->Length, Event->SEND_COMPLETE.Canceled);
         break;
     case QUIC_STREAM_EVENT_PEER_SEND_ABORTED:
-        if (!RecvEndTime) { RecvEndTime = CxPlatTimeUs64(); }
         MsQuic->StreamShutdown(Handle, QUIC_STREAM_SHUTDOWN_FLAG_ABORT, 0);
+        OnReceiveShutdown();
         break;
     case QUIC_STREAM_EVENT_PEER_RECEIVE_ABORTED:
-        if (!SendEndTime) { SendEndTime = CxPlatTimeUs64(); }
-        MsQuic->StreamShutdown(Handle, QUIC_STREAM_SHUTDOWN_FLAG_ABORT_SEND, 0);
         SendComplete = true;
+        MsQuic->StreamShutdown(Handle, QUIC_STREAM_SHUTDOWN_FLAG_ABORT_SEND, 0);
+        OnSendShutdown();
         break;
     case QUIC_STREAM_EVENT_SEND_SHUTDOWN_COMPLETE:
-        OnSendShutdownComplete();
+        OnSendShutdown();
         break;
     case QUIC_STREAM_EVENT_SHUTDOWN_COMPLETE:
-        OnStreamShutdownComplete();
+        OnSendShutdown();
+        OnReceiveShutdown();
         break;
     case QUIC_STREAM_EVENT_IDEAL_SEND_BUFFER_SIZE:
         if (Connection.Client.Upload && !Connection.Client.UseSendBuffering &&
@@ -855,7 +845,7 @@ PerfClientStream::Send() {
         InterlockedExchangeAdd64((int64_t*)&BytesOutstanding, (int64_t)DataLength);
 
         if (Client.UseTCP) {
-            auto SendData = Connection.Worker.TcpSendDataAllocator.Alloc();
+            auto SendData = Connection.Worker.TcpSendDataPool.Alloc();
             SendData->StreamId = (uint32_t)Entry.Signature;
             SendData->Open = BytesSent == DataLength ? TRUE : FALSE;
             SendData->Buffer = Buffer->Buffer;
@@ -877,20 +867,34 @@ PerfClientStream::OnSendComplete(
     if (!Canceled) {
         BytesAcked += Length;
         Send();
-        if (Connection.Client.UseTCP && SendComplete && BytesAcked == BytesSent) {
-            OnSendShutdownComplete();
-            if (RecvEndTime) {
-                OnStreamShutdownComplete();
-            }
+        if (SendComplete && BytesAcked == BytesSent) {
+            OnSendShutdown();
         }
     }
 }
 
 void
-PerfClientStream::OnSendShutdownComplete() {
-    SendEndTime = CxPlatTimeUs64();
-    if (Connection.Client.PrintStreams && !Connection.Client.UseTCP) {
-        QuicPrintStreamStatistics(MsQuic, Handle);
+PerfClientStream::OnSendShutdown(uint64_t Now) {
+    if (SendEndTime) return; // Already shutdown
+    SendEndTime = Now ? Now : CxPlatTimeUs64();
+    if (Connection.Client.PrintStreams) {
+        if (Connection.Client.UseTCP) {
+            // TODO - Print TCP stream stats
+        } else {
+            QuicPrintStreamStatistics(MsQuic, Handle);
+        }
+    }
+    if (RecvEndTime) {
+        OnShutdown();
+    }
+}
+
+void
+PerfClientStream::OnReceiveShutdown(uint64_t Now) {
+    if (RecvEndTime) return; // Already shutdown
+    RecvEndTime = Now ? Now : CxPlatTimeUs64();
+    if (SendEndTime) {
+        OnShutdown();
     }
 }
 
@@ -908,32 +912,25 @@ PerfClientStream::OnReceive(
     }
 
     if (Finished) {
-        if (Now == 0) Now = CxPlatTimeUs64();
-        RecvEndTime = Now;
-        if (Connection.Client.UseTCP && SendEndTime) {
-            OnStreamShutdownComplete();
-        }
+        OnReceiveShutdown(Now);
     } else if (Connection.Client.Timed) {
         if (Now == 0) Now = CxPlatTimeUs64();
         if (CxPlatTimeDiff64(RecvStartTime, Now) >= MS_TO_US(Connection.Client.Download)) {
-            RecvEndTime = Now;
             if (Connection.Client.UseTCP) {
-                auto SendData = Connection.Worker.TcpSendDataAllocator.Alloc();
+                auto SendData = Connection.Worker.TcpSendDataPool.Alloc();
                 SendData->StreamId = (uint32_t)Entry.Signature;
                 SendData->Abort = true;
                 Connection.TcpConn->Send(SendData);
-                if (SendEndTime) {
-                    OnStreamShutdownComplete();
-                }
             } else {
                 MsQuic->StreamShutdown(Handle, QUIC_STREAM_SHUTDOWN_FLAG_ABORT_RECEIVE, 0);
             }
+            OnReceiveShutdown(Now);
         }
     }
 }
 
 void
-PerfClientStream::OnStreamShutdownComplete() {
+PerfClientStream::OnShutdown() {
     auto& Client = Connection.Client;
     auto SendSuccess = SendEndTime != 0;
     if (Client.Upload) {
@@ -955,7 +952,7 @@ PerfClientStream::OnStreamShutdownComplete() {
         }
     }
 
-    auto RecvSuccess = RecvStartTime !=0 && RecvEndTime != 0;
+    auto RecvSuccess = RecvStartTime != 0 && RecvEndTime != 0;
     if (Client.Download) {
         const auto TotalBytes = BytesReceived;
         if (TotalBytes == 0 || (!Client.Timed && TotalBytes < Client.Download)) {
@@ -988,7 +985,9 @@ PerfClientStream::OnStreamShutdownComplete() {
     auto& Conn = Connection;
     if (Connection.Client.UseTCP) {
         Connection.StreamTable.Remove(&Entry);
+    } else {
+        MsQuic->SetCallbackHandler(Handle, nullptr, nullptr); // Prevent further callbacks
     }
-    Connection.Worker.StreamAllocator.Free(this);
-    Conn.OnStreamShutdownComplete();
+    Connection.Worker.StreamPool.Free(this);
+    Conn.OnStreamShutdown();
 }

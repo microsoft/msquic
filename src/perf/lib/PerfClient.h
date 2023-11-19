@@ -31,7 +31,7 @@ struct PerfClientConnection {
     void StartNewStream();
     void OnConnectionComplete();
     void OnShutdownComplete();
-    void OnStreamShutdownComplete();
+    void OnStreamShutdown();
     QUIC_STATUS ConnectionCallback(_Inout_ QUIC_CONNECTION_EVENT* Event);
     static QUIC_STATUS s_ConnectionCallback(HQUIC, void* Context, _Inout_ QUIC_CONNECTION_EVENT* Event) {
         return ((PerfClientConnection*)Context)->ConnectionCallback(Event);
@@ -56,7 +56,7 @@ struct PerfClientStream {
     PerfClientStream(_In_ PerfClientConnection& Connection) : Connection{Connection} { }
     ~PerfClientStream() { if (Handle) { MsQuic->StreamClose(Handle); } }
     static QUIC_STATUS s_StreamCallback(HQUIC, void* Context, QUIC_STREAM_EVENT* Event) {
-        return ((PerfClientStream*)Context)->StreamCallback(Event);
+        return ((PerfClientStream*)Context)->QuicStreamCallback(Event);
     }
     PerfClientConnection& Connection;
     HQUIC Handle {nullptr};
@@ -71,12 +71,13 @@ struct PerfClientStream {
     uint64_t BytesReceived {0};
     bool SendComplete {false};
     QUIC_BUFFER LastBuffer;
-    QUIC_STATUS StreamCallback(_Inout_ QUIC_STREAM_EVENT* Event);
+    QUIC_STATUS QuicStreamCallback(_Inout_ QUIC_STREAM_EVENT* Event);
     void Send();
     void OnSendComplete(_In_ uint32_t Length, _In_ bool Canceled);
-    void OnSendShutdownComplete();
     void OnReceive(_In_ uint64_t Length, _In_ bool Finished);
-    void OnStreamShutdownComplete();
+    void OnSendShutdown(uint64_t Now = 0);
+    void OnReceiveShutdown(uint64_t Now = 0);
+    void OnShutdown();
 };
 
 struct QUIC_CACHEALIGN PerfClientWorker {
@@ -97,10 +98,10 @@ struct QUIC_CACHEALIGN PerfClientWorker {
     QuicAddr LocalAddr;
     QuicAddr RemoteAddr;
     CXPLAT_LIST_ENTRY ConnectionTable; // TCP only
-    CxPlatPoolT<PerfClientConnection> ConnectionAllocator;
-    CxPlatPoolT<PerfClientStream> StreamAllocator;
-    CxPlatPoolT<TcpConnection> TcpConnectionAllocator;
-    CxPlatPoolT<TcpSendData> TcpSendDataAllocator;
+    CxPlatPoolT<PerfClientConnection> ConnectionPool;
+    CxPlatPoolT<PerfClientStream> StreamPool;
+    CxPlatPoolT<TcpConnection> TcpConnectionPool;
+    CxPlatPoolT<TcpSendData> TcpSendDataPool;
     PerfClientWorker() { CxPlatListInitializeHead(&ConnectionTable); }
     ~PerfClientWorker() { WaitForThread(); }
     void Uninitialize() { WaitForThread(); }
