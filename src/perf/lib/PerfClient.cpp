@@ -409,7 +409,7 @@ PerfClient::GetExtraData(
     uint64_t Count = (*Length - sizeof(RunTime) - sizeof(Count)) / sizeof(uint32_t);
     CxPlatCopyMemory(Data, &Count, sizeof(Count));
     Data += sizeof(CurLatencyIndex);
-    CxPlatCopyMemory(Data, LatencyValues.get(), Count * sizeof(uint32_t));
+    CxPlatCopyMemory(Data, LatencyValues.get(), (size_t)(Count * sizeof(uint32_t)));
     return QUIC_STATUS_SUCCESS;
 }
 

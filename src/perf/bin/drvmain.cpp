@@ -91,7 +91,7 @@ void __cdecl operator delete (_In_opt_ void* Mem, _In_opt_ size_t) {
     }
 }
 
-void __cdecl operator delete(_In_opt_ void* Mem, std::size_t sz, std::align_val_t al) {
+void __cdecl operator delete(_In_opt_ void* Mem, size_t, std::align_val_t) {
     if (Mem != nullptr) {
         ExFreePoolWithTag(Mem, QUIC_POOL_PERF);
     }
