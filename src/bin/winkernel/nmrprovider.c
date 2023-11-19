@@ -41,7 +41,7 @@ MsQuicNmrProviderAttachClient(
     _In_ const void *ClientDispatch,
     _Out_ void **ProviderBindingContext,
     _Out_ const void **ProviderDispatch
-)
+    )
 {
     UNREFERENCED_PARAMETER(ClientBindingContext);
     UNREFERENCED_PARAMETER(ProviderContext);

@@ -298,14 +298,11 @@ public:
 class MsQuicApi : public QUIC_API_TABLE {
     const void* ApiTable {nullptr};
     QUIC_STATUS InitStatus {QUIC_STATUS_INVALID_STATE};
-    MsQuicCloseFn CloseFn {nullptr};
+    const MsQuicCloseFn CloseFn {nullptr};
 public:
     MsQuicApi(
         MsQuicOpenVersionFn _OpenFn = MsQuicOpenVersion,
-        MsQuicCloseFn _CloseFn = MsQuicClose) noexcept {
-
-        CloseFn = _CloseFn;
-
+        MsQuicCloseFn _CloseFn = MsQuicClose) noexcept : CloseFn(_CloseFn) {
         if (QUIC_SUCCEEDED(InitStatus = _OpenFn(QUIC_API_VERSION_2, &ApiTable))) {
             QUIC_API_TABLE* thisTable = this;
             memcpy(thisTable, ApiTable, sizeof(QUIC_API_TABLE));

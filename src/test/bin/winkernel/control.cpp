@@ -105,6 +105,7 @@ QuicTestClientAttachProvider(
             Status,
             "NmrClientAttachProvider failed");
     }
+    CxPlatEventSet(Client->RegistrationCompleteEvent);
     return Status;
 }
 
@@ -158,7 +159,7 @@ QuicTestRegisterNmrClient(
     }
 
     if (!CxPlatEventWaitWithTimeout(NmrClient.RegistrationCompleteEvent, 1000)) {
-        Status = STATUS_TIMEOUT;
+        Status = STATUS_UNSUCCESSFUL;
         QuicTraceEvent(
             LibraryErrorStatus,
             "[ lib] ERROR, %u, %s.",
