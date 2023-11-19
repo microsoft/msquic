@@ -97,8 +97,8 @@ public:
         TcpAcceptHandler AcceptHandler,
         TcpConnectHandler ConnectHandler,
         TcpReceiveHandler ReceiveHandler,
-        TcpSendCompleteHandler SendCompleteHandler);
-    ~TcpEngine();
+        TcpSendCompleteHandler SendCompleteHandler) noexcept;
+    ~TcpEngine() noexcept;
     bool IsInitialized() const { return Initialized; }
     void AddConnection(TcpConnection* Connection, uint16_t PartitionIndex);
 };

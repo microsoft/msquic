@@ -105,7 +105,7 @@ TcpEngine::TcpEngine(
     TcpAcceptHandler AcceptHandler,
     TcpConnectHandler ConnectHandler,
     TcpReceiveHandler ReceiveHandler,
-    TcpSendCompleteHandler SendCompleteHandler) :
+    TcpSendCompleteHandler SendCompleteHandler) noexcept :
     ProcCount((uint16_t)CxPlatProcActiveCount()), Workers(new(std::nothrow) TcpWorker[ProcCount]),
     AcceptHandler(AcceptHandler), ConnectHandler(ConnectHandler),
     ReceiveHandler(ReceiveHandler), SendCompleteHandler(SendCompleteHandler)
@@ -120,7 +120,7 @@ TcpEngine::TcpEngine(
 #endif
 }
 
-TcpEngine::~TcpEngine()
+TcpEngine::~TcpEngine() noexcept
 {
     Shutdown = true;
     for (uint16_t i = 0; i < ProcCount; ++i) {
