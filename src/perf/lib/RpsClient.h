@@ -210,7 +210,7 @@ public:
     uint64_t CachedCompletedRequests {0};
     UniquePtr<uint32_t[]> LatencyValues {nullptr};
     uint64_t MaxLatencyIndex {0};
-    QuicPoolAllocator<StreamContext> StreamContextAllocator;
+    CxPlatPoolT<StreamContext> StreamContextAllocator;
     RpsWorkerContext Workers[PERF_MAX_THREAD_COUNT];
     UniquePtr<RpsConnectionContext[]> Connections {nullptr};
     bool Running {true};

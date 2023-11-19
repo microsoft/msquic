@@ -124,7 +124,7 @@ private:
         MsQuicCredentialConfig(
             QUIC_CREDENTIAL_FLAG_CLIENT |
             QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION)};
-    QuicPoolAllocator<StreamContext> StreamContextAllocator;
+    CxPlatPoolT<StreamContext> StreamContextAllocator;
     UniquePtr<char[]> TargetData;
     CXPLAT_EVENT* StopEvent {nullptr};
     QUIC_BUFFER* DataBuffer {nullptr};

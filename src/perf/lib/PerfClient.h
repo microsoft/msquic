@@ -97,10 +97,10 @@ struct QUIC_CACHEALIGN PerfClientWorker {
     QuicAddr LocalAddr;
     QuicAddr RemoteAddr;
     CXPLAT_LIST_ENTRY ConnectionTable; // TCP only
-    QuicPoolAllocator<PerfClientConnection> ConnectionAllocator;
-    QuicPoolAllocator<PerfClientStream> StreamAllocator;
-    QuicPoolAllocator<TcpConnection> TcpConnectionAllocator;
-    QuicPoolAllocator<TcpSendData> TcpSendDataAllocator;
+    CxPlatPoolT<PerfClientConnection> ConnectionAllocator;
+    CxPlatPoolT<PerfClientStream> StreamAllocator;
+    CxPlatPoolT<TcpConnection> TcpConnectionAllocator;
+    CxPlatPoolT<TcpSendData> TcpSendDataAllocator;
     PerfClientWorker() { CxPlatListInitializeHead(&ConnectionTable); }
     ~PerfClientWorker() { WaitForThread(); }
     void Uninitialize() { WaitForThread(); }

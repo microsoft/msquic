@@ -73,6 +73,45 @@ struct CxPlatPool {
     void Free(void* Ptr) noexcept { CxPlatPoolFree(&Handle, Ptr); }
 };
 
+//
+// Implementation of std::forward, to allow use in kernel mode.
+// Based on reference implementation in MSVC's STL.
+//
+
+template <class _Ty>
+struct CxPlatRemoveReference {
+    using type                 = _Ty;
+    using _Const_thru_ref_type = const _Ty;
+};
+
+template <class _Ty>
+using CxPlatRemoveReferenceT = typename CxPlatRemoveReference<_Ty>::type;
+
+template <class _Ty>
+constexpr _Ty&& CxPlatForward(
+    CxPlatRemoveReferenceT<_Ty>& _Arg) noexcept { // forward an lvalue as either an lvalue or an rvalue
+    return static_cast<_Ty&&>(_Arg);
+}
+
+template<typename T, uint32_t Tag = 'lPxC', bool Paged = false>
+class CxPlatPoolT {
+    CXPLAT_POOL Pool;
+public:
+    CxPlatPoolT() noexcept { CxPlatPoolInitialize(Paged, sizeof(T), Tag, &Pool); }
+    ~CxPlatPoolT() noexcept { CxPlatPoolUninitialize(&Pool); }
+    template <class... Args>
+    T* Alloc(Args&&... args) noexcept {
+        void* Raw = CxPlatPoolAlloc(&Pool);
+        return Raw ? new (Raw) T (CxPlatForward<Args>(args)...) : nullptr;
+    }
+    void Free(T* Obj) noexcept {
+        if (Obj != nullptr) {
+            Obj->~T();
+            CxPlatPoolFree(&Pool, Obj);
+        }
+    }
+};
+
 #ifdef CXPLAT_HASH_MIN_SIZE
 
 struct HashTable {

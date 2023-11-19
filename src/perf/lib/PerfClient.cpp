@@ -51,6 +51,7 @@ const char PERF_CLIENT_OPTIONS_TEXT[] =
 "  -streams:<####>          The number of streams to send on at a time. (def:0)\n"
 "  -upload:<####>           The length of bytes to send on each stream. (def:0)\n"
 "  -download:<####>         The length of bytes to receive on each stream. (def:0)\n"
+"  -iosize:<####>           The size of each send request queued.\n"
 "  -timed:<0/1>             Indicates the upload/download args are times (in ms). (def:0)\n"
 //"  -inline:<0/1>            Create new streams on callbacks. (def:0)\n"
 "  -rconn:<0/1>             Repeat the scenario at the connection level. (def:0)\n"
@@ -86,7 +87,9 @@ PerfClient::Init(
     const char* target;
     if (!TryGetValue(argc, argv, "target", &target) &&
         !TryGetValue(argc, argv, "server", &target) &&
-        !TryGetValue(argc, argv, "to", &target)) {
+        !TryGetValue(argc, argv, "to", &target) &&
+        !TryGetValue(argc, argv, "remote", &target) &&
+        !TryGetValue(argc, argv, "peer", &target)) {
         WriteOutput("Must specify 'target' argument!\n");
         PrintHelp();
         return QUIC_STATUS_INVALID_PARAMETER;
@@ -98,7 +101,8 @@ PerfClient::Init(
     Target[Len] = '\0';
 
     uint16_t Ip;
-    if (TryGetValue(argc, argv, "ip", &Ip)) {
+    if (TryGetValue(argc, argv, "ip", &Ip) ||
+        TryGetValue(argc, argv, "af", &Ip)) {
         switch (Ip) {
         case 4: TargetFamily = QUIC_ADDRESS_FAMILY_INET; break;
         case 6: TargetFamily = QUIC_ADDRESS_FAMILY_INET6; break;

@@ -149,7 +149,7 @@ private:
     CXPLAT_EVENT* StopEvent {nullptr};
     QUIC_BUFFER* DataBuffer {nullptr};
     uint8_t PrintStats {FALSE};
-    QuicPoolAllocator<StreamContext> StreamContextAllocator;
+    CxPlatPoolT<StreamContext> StreamContextAllocator;
 
     TcpEngine Engine;
     TcpServer Server;
