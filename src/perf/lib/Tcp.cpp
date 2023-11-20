@@ -933,7 +933,7 @@ bool TcpConnection::FinalizeSendBuffer(QUIC_BUFFER* SendBuffer)
         QUIC_STATUS Status;
         if (QUIC_FAILED(
             Status = CxPlatSocketSend(Socket, &Route, BatchedSendData))) {
-            WriteOutput("CxPlatSocketSend FAILED, %hu\n", Status);
+            WriteOutput("CxPlatSocketSend FAILED, %u\n", Status);
             return false;
         }
         BatchedSendData = nullptr;
