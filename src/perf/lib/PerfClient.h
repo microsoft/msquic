@@ -201,8 +201,8 @@ struct PerfClient : public PerfBase {
             Buffer->Length = IoSize;
             Buffer->Buffer = (uint8_t*)(Buffer + 1);
             *(uint64_t*)(Buffer->Buffer) = CxPlatByteSwapUint64(Initial);
-            for (uint32_t i = 0; i < IoSize; ++i) {
-                Buffer->Buffer[sizeof(uint64_t) + i] = (uint8_t)i;
+            for (uint32_t i = sizeof(uint64_t); i < IoSize; ++i) {
+                Buffer->Buffer[i] = (uint8_t)i;
             }
         }
     } RequestBuffer;

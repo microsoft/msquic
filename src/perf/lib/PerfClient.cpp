@@ -318,7 +318,7 @@ PerfClient::Start(
         }
 
         auto Worker = &Workers[i];
-        Worker->Processor = ThreadConfig.IdealProcessor++;
+        Worker->Processor = ThreadConfig.IdealProcessor;
         ThreadConfig.Context = Worker;
         Worker->RemoteAddr.SockAddr = RemoteAddr;
         Worker->RemoteAddr.SetPort(TargetPort);
@@ -339,6 +339,7 @@ PerfClient::Start(
             return Status;
         }
         Workers[i].ThreadStarted = true;
+        ThreadConfig.IdealProcessor++;
     }
 
     //

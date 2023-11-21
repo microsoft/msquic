@@ -391,6 +391,11 @@ TcpConnection::~TcpConnection()
         CxPlatDispatchLockRelease(&Lock);
         CxPlatRecvDataReturn(RecvDataChain);
 
+        if (BatchedSendData) {
+            CxPlatSendDataFree(BatchedSendData);
+            BatchedSendData = nullptr;
+        }
+
         CxPlatSocketDelete(Socket);
     }
     if (!IsServer && SecConfig) {
@@ -540,7 +545,7 @@ void TcpConnection::Process()
             IndicateDisconnect = true;
         }
     }
-    if (BatchedSendData) {
+    if (BatchedSendData && !IndicateDisconnect) {
         if (QUIC_FAILED(
             CxPlatSocketSend(Socket, &Route, BatchedSendData))) {
             IndicateDisconnect = true;
@@ -729,7 +734,9 @@ bool TcpConnection::ProcessReceiveData(const uint8_t* Buffer, uint32_t BufferLen
         Buffer += BytesNeeded;
         BufferLength -= BytesNeeded;
 
-        ProcessReceiveFrame(Frame);
+        if (!ProcessReceiveFrame(Frame)) {
+            return false;
+        }
         BufferedDataLength = 0;
     }
 
@@ -740,7 +747,9 @@ bool TcpConnection::ProcessReceiveData(const uint8_t* Buffer, uint32_t BufferLen
             goto BufferData;
         }
 
-        ProcessReceiveFrame(Frame);
+        if (!ProcessReceiveFrame(Frame)) {
+            return false;
+        }
 
         Buffer += sizeof(TcpFrame) + Frame->Length + CXPLAT_ENCRYPTION_OVERHEAD;
         BufferLength -= sizeof(TcpFrame) + Frame->Length + CXPLAT_ENCRYPTION_OVERHEAD;
@@ -930,10 +939,7 @@ bool TcpConnection::FinalizeSendBuffer(QUIC_BUFFER* SendBuffer)
     TotalSendOffset += SendBuffer->Length;
     if (SendBuffer->Length != TLS_BLOCK_SIZE ||
         CxPlatSendDataIsFull(BatchedSendData)) {
-        QUIC_STATUS Status;
-        if (QUIC_FAILED(
-            Status = CxPlatSocketSend(Socket, &Route, BatchedSendData))) {
-            WriteOutput("CxPlatSocketSend FAILED, %u\n", Status);
+        if (QUIC_FAILED(CxPlatSocketSend(Socket, &Route, BatchedSendData))) {
             return false;
         }
         BatchedSendData = nullptr;
