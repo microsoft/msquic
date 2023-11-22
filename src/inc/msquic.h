@@ -1646,6 +1646,41 @@ MsQuicClose(
 
 #endif
 
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Check_return_
+typedef
+QUIC_STATUS
+(QUIC_API *MsQuicOpenVersionFn)(
+    _In_ uint32_t Version,
+    _Out_ _Pre_defensive_ const void** QuicApi
+    );
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+typedef
+void
+(QUIC_API *MsQuicCloseFn)(
+    _In_ _Pre_defensive_ const void* QuicApi
+    );
+
+#ifdef _KERNEL_MODE
+
+DECLSPEC_SELECTANY GUID MSQUIC_NPI_ID = {
+    0xC43138E3, 0xCD13, 0x4CB1, { 0x9C, 0xAE, 0xE0, 0x05, 0xC8, 0x55, 0x7A, 0xBA }
+}; // C43138E3-CD13-4CB1-9CAE-E005C8557ABA
+
+DECLSPEC_SELECTANY GUID MSQUIC_MODULE_ID = {
+    0x698F7C72, 0xC2E6, 0x49CD, { 0x8C, 0x39, 0x98, 0x85, 0x1D, 0x50, 0x19, 0x01 }
+}; // 698F7C72-C2E6-49CD-8C39-98851D501901
+
+typedef struct MSQUIC_NMR_DISPATCH {
+    uint16_t  Version;
+    uint16_t  Reserved;
+    MsQuicOpenVersionFn MsQuicOpenVersion;
+    MsQuicCloseFn MsQuicClose;
+} MSQUIC_NMR_DISPATCH;
+
+#endif
+
 //
 // Version specific helpers that wrap MsQuicOpenVersion.
 //
