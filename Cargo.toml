@@ -32,7 +32,7 @@ include = [
     "/submodules/openssl/ssl",
     "/submodules/openssl/util",
     "/submodules/openssl/VMS",
-    "/submodules/xdp-for-windows",
+    "/submodules/xdp-for-windows/published/external",
     "/scripts/build.rs",
     "/src/*.rs",
     "/src/bin",
