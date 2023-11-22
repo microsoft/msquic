@@ -73,7 +73,7 @@ if ("${CX_PLATFORM}" STREQUAL "windows")
         platform
         PRIVATE
         ${EXTRA_PLATFORM_INCLUDE_DIRECTORIES}
-        ${PROJECT_SOURCE_DIR}/submodules/xdp-for-windows/include/published/external)
+        ${PROJECT_SOURCE_DIR}/submodules/xdp-for-windows/published/external)
 endif()
 
 if (MSVC AND (QUIC_TLS STREQUAL "openssl" OR QUIC_TLS STREQUAL "schannel") AND NOT QUIC_ENABLE_SANITIZERS)
