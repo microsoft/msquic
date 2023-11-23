@@ -891,10 +891,22 @@ bool TcpConnection::ProcessSend()
 
 void TcpConnection::ProcessSendComplete()
 {
-    uint64_t Offset = TotalSendCompleteOffset;
-    while (SentData && SentData->Offset <= Offset) {
+    TcpSendData* CompleteData = nullptr;
+    TcpSendData** Tail = &CompleteData;
+    CxPlatDispatchLockAcquire(&Lock);
+    while (SentData && SentData->Offset <= TotalSendCompleteOffset) {
         TcpSendData* Data = SentData;
         SentData = Data->Next;
+        Data->Next = NULL;
+        *Tail = Data;
+        Tail = &Data->Next;
+    }
+    bool ReleaseRef = SentData == nullptr;
+    CxPlatDispatchLockRelease(&Lock);
+
+    while (CompleteData) {
+        TcpSendData* Data = CompleteData;
+        CompleteData = Data->Next;
         Data->Next = NULL;
         QuicTraceLogVerbose(
             PerfTcpAppSendComplete,
@@ -902,6 +914,10 @@ void TcpConnection::ProcessSendComplete()
             this,
             Data->Length);
         Engine->SendCompleteHandler(this, Data);
+    }
+
+    if (ReleaseRef) {
+        Release();
     }
 }
 
@@ -959,12 +975,16 @@ void TcpConnection::Send(TcpSendData* Data)
         (uint8_t)Data->Abort);
 
     CxPlatDispatchLockAcquire(&Lock);
+    bool AddRef = SendData == nullptr;
     TcpSendData** Tail = &SendData;
     while (*Tail) {
         Tail = &((*Tail)->Next);
     }
     *Tail = Data;
     CxPlatDispatchLockRelease(&Lock);
+    if (AddRef) {
+        TryAddRef();
+    }
     if (TlsState.WriteKey >= QUIC_PACKET_KEY_1_RTT) {
         Queue();
     }
