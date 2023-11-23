@@ -53,11 +53,7 @@ struct PerfClientConnection {
 
 struct PerfClientStream {
     CXPLAT_HASHTABLE_ENTRY Entry; // To TCP StreamTable (must be first)
-    PerfClientStream(_In_ PerfClientConnection& Connection) : Connection{Connection} {
-        if (Connection.Client.UseSendBuffering) {
-            IdealSendBuffer = 1; // Hack to only keep 1 outstanding send at a time
-        }
-    }
+    PerfClientStream(_In_ PerfClientConnection& Connection);
     ~PerfClientStream() { if (Handle) { MsQuic->StreamClose(Handle); } }
     static QUIC_STATUS s_StreamCallback(HQUIC, void* Context, QUIC_STREAM_EVENT* Event) {
         return ((PerfClientStream*)Context)->QuicStreamCallback(Event);
