@@ -162,12 +162,14 @@ class TcpConnection {
     friend class TcpServer;
     bool IsServer;
     bool Initialized{false};
+    bool Shutdown{false};
+    bool ShutdownComplete{false};
     bool ClosedByApp{false};
+    bool Closed{false};
     bool QueuedOnWorker{false};
     bool StartTls{false};
     bool IndicateAccept{false};
     bool IndicateConnect{false};
-    bool IndicateDisconnect{false};
     bool IndicateSendComplete{false};
     TcpConnection* Next{nullptr};
     TcpEngine* Engine;
