@@ -673,6 +673,13 @@ PerfClientConnection::StartNewStream() {
     Stream->Send();
 }
 
+PerfClientStream::PerfClientStream(_In_ PerfClientConnection& Connection)
+    : Connection{Connection} {
+    if (Connection.Client.UseSendBuffering) {
+        IdealSendBuffer = 1; // Hack to only keep 1 outstanding send at a time
+    }
+}
+
 PerfClientStream*
 PerfClientConnection::GetTcpStream(uint32_t ID) {
     return (PerfClientStream*)StreamTable.Lookup(ID);
