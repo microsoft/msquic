@@ -37,7 +37,7 @@ jobs:
 
     steps:
       - name: Harden Runner
-        uses: step-security/harden-runner@1b05615854632b887b69ae1be8cbefe72d3ae423
+        uses: step-security/harden-runner@eb238b55efaa70779f274895e782ed17c84f2895
         with:
           egress-policy: audit
 
@@ -65,7 +65,7 @@ jobs:
       # Build and push Docker image with Buildx (don't push on PR)
       # https://github.com/docker/build-push-action
       - name: Build and push Docker image
-        uses: docker/build-push-action@0565240e2d4ab88bba5387d719585280857ece09
+        uses: docker/build-push-action@4a13e500e55cf31b7a5d59a38ab2040ab0f42f56
         with:
           context: .docker/ubuntu-${{ matrix.version }}
           file: .docker/ubuntu-${{ matrix.version }}/Dockerfile

@@ -69,6 +69,8 @@ The **PATCH** version **only changes** when a servicing fix is made to an existi
 
 In general, MsQuic uses a callback model for all asynchronous events up to the app. This includes things like connection state changes, new streams being created, stream data being received, and stream sends completing. All these events are indicated to the app via the callback handler, on a thread owned by MsQuic.
 
+Generally, MsQuic creates multiple threads to parallelize work, and therefore will make parallel/overlapping upcalls to the application, but not for the same connection. All upcalls to the app for a single connection and all child streams are always delivered serially. This is not to say, though, it will always be on the same thread. MsQuic does support the ability to shuffle connections around to better balance the load.
+
 Apps are expected to keep any execution time in the callback **to a minimum**. MsQuic does not use separate threads for the protocol execution and upcalls to the app. Therefore, any significant delays on the callback **will delay the protocol**. Any significant time or work needed to be completed by the app must happen on its own thread.
 
 This doesn't mean the app isn't allowed to do any work in the callback. In fact, many things are expressly designed to be most efficient when the app does them on the callback. For instance, closing a handle to a connection or stream is ideally implemented in the "shutdown complete" indications.

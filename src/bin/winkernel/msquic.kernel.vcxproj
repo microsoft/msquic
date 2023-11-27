@@ -25,6 +25,7 @@
   <ItemGroup>
     <ClCompile Include="driver.c" />
     <ClCompile Include="msquicpcw.c" />
+    <ClCompile Include="nmrprovider.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="resource.h" />
