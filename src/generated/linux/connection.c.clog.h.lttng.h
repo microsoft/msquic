@@ -1104,6 +1104,25 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, IndicateConnectionShutdownComplete,
 
 
 /*----------------------------------------------------------
+// Decoder Ring for AbandonInternallyClosed
+// [conn][%p] Abandoning internal, closed connection
+// QuicTraceLogConnVerbose(
+                AbandonInternallyClosed,
+                Connection,
+                "Abandoning internal, closed connection");
+// arg1 = arg1 = Connection = arg1
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_CONNECTION_C, AbandonInternallyClosed,
+    TP_ARGS(
+        const void *, arg1), 
+    TP_FIELDS(
+        ctf_integer_hex(uint64_t, arg1, arg1)
+    )
+)
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for IndicateResumed
 // [conn][%p] Indicating QUIC_CONNECTION_EVENT_RESUMED
 // QuicTraceLogConnVerbose(

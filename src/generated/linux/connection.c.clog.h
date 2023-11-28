@@ -1016,6 +1016,24 @@ tracepoint(CLOG_CONNECTION_C, IndicateConnectionShutdownComplete , arg1);\
 
 
 /*----------------------------------------------------------
+// Decoder Ring for AbandonInternallyClosed
+// [conn][%p] Abandoning internal, closed connection
+// QuicTraceLogConnVerbose(
+                AbandonInternallyClosed,
+                Connection,
+                "Abandoning internal, closed connection");
+// arg1 = arg1 = Connection = arg1
+----------------------------------------------------------*/
+#ifndef _clog_3_ARGS_TRACE_AbandonInternallyClosed
+#define _clog_3_ARGS_TRACE_AbandonInternallyClosed(uniqueId, arg1, encoded_arg_string)\
+tracepoint(CLOG_CONNECTION_C, AbandonInternallyClosed , arg1);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for IndicateResumed
 // [conn][%p] Indicating QUIC_CONNECTION_EVENT_RESUMED
 // QuicTraceLogConnVerbose(
