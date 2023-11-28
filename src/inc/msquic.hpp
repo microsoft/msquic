@@ -296,18 +296,21 @@ public:
 };
 
 class MsQuicApi : public QUIC_API_TABLE {
-    const QUIC_API_TABLE* ApiTable {nullptr};
-    QUIC_STATUS InitStatus;
+    const void* ApiTable {nullptr};
+    QUIC_STATUS InitStatus {QUIC_STATUS_INVALID_STATE};
+    const MsQuicCloseFn CloseFn {nullptr};
 public:
-    MsQuicApi() noexcept {
-        if (QUIC_SUCCEEDED(InitStatus = MsQuicOpen2(&ApiTable))) {
+    MsQuicApi(
+        MsQuicOpenVersionFn _OpenFn = MsQuicOpenVersion,
+        MsQuicCloseFn _CloseFn = MsQuicClose) noexcept : CloseFn(_CloseFn) {
+        if (QUIC_SUCCEEDED(InitStatus = _OpenFn(QUIC_API_VERSION_2, &ApiTable))) {
             QUIC_API_TABLE* thisTable = this;
-            memcpy(thisTable, ApiTable, sizeof(*ApiTable));
+            memcpy(thisTable, ApiTable, sizeof(QUIC_API_TABLE));
         }
     }
     ~MsQuicApi() noexcept {
         if (QUIC_SUCCEEDED(InitStatus)) {
-            MsQuicClose(ApiTable);
+            CloseFn(ApiTable);
             ApiTable = nullptr;
             QUIC_API_TABLE* thisTable = this;
             memset(thisTable, 0, sizeof(*thisTable));
