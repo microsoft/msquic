@@ -431,6 +431,7 @@ QuicWorkerProcessTimers(
         QuicConnTimerExpired(Connection, TimeNow);
         QuicConfigurationDetachSilo();
         Connection->WorkerThreadID = 0;
+        QuicConnRelease(Connection, QUIC_CONN_REF_WORKER);
     }
 }
 
