@@ -5,7 +5,16 @@ NOTE:
 This script assumes the latest MsQuic commit is built and downloaded as artifacts in the current session.
 This should have been accomplished in netperf/quic.yml.
 
+.PARAMETER Logging
+    If true, will enable logging for the test. This will create a log file in the artifacts directory.
+    Default is false.
+
 #>
+
+param (
+    [Parameter(Mandatory = $false, ParameterSetName='Logging')]
+    [switch]$Logging = $false,
+)
 
 # Set up the connection to the peer over remote powershell.
 Write-Output "Connecting to netperf-peer..."
@@ -41,7 +50,12 @@ Invoke-Command -Session $Session -ScriptBlock {
     C:\_work\quic\scripts\prepare-machine.ps1 -ForTest
 }
 
-.\scripts\log.ps1 -Start -Profile Full.Light
+# Logging to collect quic traces while running the tests.
+
+if ($Logging) {
+    Write-Output "Starting logging..."
+    .\scripts\log.ps1 -Start -Profile Full.Light
+}
 
 # Run secnetperf on the server.
 Write-Output "Starting secnetperf server..."
@@ -51,12 +65,26 @@ $Job = Invoke-Command -Session $Session -ScriptBlock {
 
 # Run secnetperf on the client.
 Write-Output "Running tests on the client..."
-for ($i = 0; $i -lt 1; $i++) {
-    Write-Output "Running test $i..."
-    .\artifacts\bin\windows\x64_Release_schannel\secnetperf.exe -target:netperf-peer -exec:maxtput -test:tput -upload:10000 -timed:1
+
+# Define the array of Secnetperf run commands
+# TODO: Add more tests here. Include TCP tests too.
+$commands = @(
+    ".\artifacts\bin\windows\x64_Release_schannel\secnetperf.exe -target:netperf-peer -exec:maxtput -test:tput -upload:10000 -timed:1",
+)
+# Along with their metadata
+$commandMetadata = @(
+    "Max throughput test with QUIC with -upload:10000, -timed:1",
+)
+
+for ($i = 0; $i -lt $commands.Count; $i++) {
+    Write-Output "Running test: $($commandMetadata[$i])"
+    Invoke-Expression $commands[$i]
 }
 
-.\scripts\log.ps1 -Stop -OutputPath .\artifacts\logs\quic
+if ($Logging) {
+    Write-Output "Stopping logging..."
+    .\scripts\log.ps1 -Stop -OutputPath .\artifacts\logs\quic
+}
 #Get-Content .\artifacts\logs\quic.log
 
 function Wait-ForRemote {
@@ -85,17 +113,19 @@ Write-Output Wait-ForRemote $Job
 
 } finally {
 
-# Grab other logs
-Write-Output "Grabbing registry..."
-reg export "HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion\ProfileNotification" .\artifacts\logs\ProfileNotification.reg
-Write-Output "Grabbing profsvc logs..."
-dir C:\Windows\system32\Logfiles\WMI\prof*
-Write-Output "Stopping session..."
-logman stop profsvc -ets -ErrorAction Ignore
-Start-Sleep 5
-Write-Output "Copying profsvc logs..."
-Copy-Item $env:WINDIR\System32\LogFiles\WMI\profsvc.etl.* .\artifacts\logs
-dir .\artifacts\logs
-#netsh trace convert .\artifacts\logs\profsvc.etl
-
+    if ($Logging) {
+        # TODO: Logging seems to be having some issues. Need to investigate. For now, disable logging and focus on persisting the perf data.
+        # Grab other logs
+        Write-Output "Grabbing registry..."
+        reg export "HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion\ProfileNotification" .\artifacts\logs\ProfileNotification.reg
+        Write-Output "Grabbing profsvc logs..."
+        dir C:\Windows\system32\Logfiles\WMI\prof*
+        Write-Output "Stopping session..."
+        logman stop profsvc -ets -ErrorAction Ignore
+        Start-Sleep 5
+        Write-Output "Copying profsvc logs..."
+        Copy-Item $env:WINDIR\System32\LogFiles\WMI\profsvc.etl.* .\artifacts\logs
+        dir .\artifacts\logs
+        #netsh trace convert .\artifacts\logs\profsvc.etl
+    }
 }
