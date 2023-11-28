@@ -5836,9 +5836,9 @@ QuicConnRecvDatagrams(
         }
     }
 
-    if (!Connection->State.UpdateWorker &&
-        Connection->State.Connected &&
-        RecvState.UpdatePartitionId) {
+    if (!Connection->State.UpdateWorker && Connection->State.Connected &&
+        !Connection->State.ShutdownComplete && RecvState.UpdatePartitionId) {
+        CXPLAT_DBG_ASSERT(Connection->Registration);
         CXPLAT_DBG_ASSERT(!Connection->Registration->NoPartitioning);
         CXPLAT_DBG_ASSERT(RecvState.PartitionIndex != QuicPartitionIdGetIndex(Connection->PartitionID));
         Connection->PartitionID = QuicPartitionIdCreate(RecvState.PartitionIndex);
