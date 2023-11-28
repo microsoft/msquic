@@ -323,7 +323,6 @@ QuicConnFree(
     QuicCryptoUninitialize(&Connection->Crypto);
     QuicLossDetectionUninitialize(&Connection->LossDetection);
     QuicSendUninitialize(&Connection->Send);
-    QuicTimerWheelRemoveConnection(&Connection->Worker->TimerWheel, Connection);
     for (uint32_t i = 0; i < ARRAYSIZE(Connection->Packets); i++) {
         if (Connection->Packets[i] != NULL) {
             QuicPacketSpaceUninitialize(Connection->Packets[i]);
@@ -350,6 +349,7 @@ QuicConnFree(
     }
     QuicConnUnregister(Connection);
     if (Connection->Worker != NULL) {
+        QuicTimerWheelRemoveConnection(&Connection->Worker->TimerWheel, Connection);
         QuicOperationQueueClear(Connection->Worker, &Connection->OperQ);
     }
     if (Connection->ReceiveQueue != NULL) {

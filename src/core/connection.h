@@ -1032,7 +1032,6 @@ QuicConnValidate(
     )
 {
     CXPLAT_FRE_ASSERT(!Connection->State.Freed);
-    CXPLAT_FRE_ASSERT(Connection->RefCount);
 }
 #else
 #define QuicConnValidate(Connection)
@@ -1057,8 +1056,7 @@ QuicConnAddRef(
     UNREFERENCED_PARAMETER(Ref);
 #endif
 
-    CXPLAT_FRE_ASSERT(
-        InterlockedIncrement((volatile long*)&Connection->RefCount) != 1);
+    InterlockedIncrement((volatile long*)&Connection->RefCount);
 }
 
 //
