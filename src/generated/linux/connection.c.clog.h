@@ -1517,24 +1517,6 @@ tracepoint(CLOG_CONNECTION_C, TestTPSet , arg1, arg3, arg4);\
 
 
 /*----------------------------------------------------------
-// Decoder Ring for AbandonInternallyClosed
-// [conn][%p] Abandoning internal, closed connection
-// QuicTraceLogConnVerbose(
-            AbandonInternallyClosed,
-            Connection,
-            "Abandoning internal, closed connection");
-// arg1 = arg1 = Connection = arg1
-----------------------------------------------------------*/
-#ifndef _clog_3_ARGS_TRACE_AbandonInternallyClosed
-#define _clog_3_ARGS_TRACE_AbandonInternallyClosed(uniqueId, arg1, encoded_arg_string)\
-tracepoint(CLOG_CONNECTION_C, AbandonInternallyClosed , arg1);\
-
-#endif
-
-
-
-
-/*----------------------------------------------------------
 // Decoder Ring for AllocFailure
 // Allocation of '%s' failed. (%llu bytes)
 // QuicTraceEvent(
@@ -1679,26 +1661,6 @@ tracepoint(CLOG_CONNECTION_C, ConnInitializeComplete , arg2);\
 
 
 /*----------------------------------------------------------
-// Decoder Ring for ConnUnregistered
-// [conn][%p] Unregistered from %p
-// QuicTraceEvent(
-            ConnUnregistered,
-            "[conn][%p] Unregistered from %p",
-            Connection,
-            Connection->Registration);
-// arg2 = arg2 = Connection = arg2
-// arg3 = arg3 = Connection->Registration = arg3
-----------------------------------------------------------*/
-#ifndef _clog_4_ARGS_TRACE_ConnUnregistered
-#define _clog_4_ARGS_TRACE_ConnUnregistered(uniqueId, encoded_arg_string, arg2, arg3)\
-tracepoint(CLOG_CONNECTION_C, ConnUnregistered , arg2, arg3);\
-
-#endif
-
-
-
-
-/*----------------------------------------------------------
 // Decoder Ring for ConnDestroyed
 // [conn][%p] Destroyed
 // QuicTraceEvent(
@@ -1728,6 +1690,26 @@ tracepoint(CLOG_CONNECTION_C, ConnDestroyed , arg2);\
 #ifndef _clog_3_ARGS_TRACE_ConnHandleClosed
 #define _clog_3_ARGS_TRACE_ConnHandleClosed(uniqueId, encoded_arg_string, arg2)\
 tracepoint(CLOG_CONNECTION_C, ConnHandleClosed , arg2);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for ConnUnregistered
+// [conn][%p] Unregistered from %p
+// QuicTraceEvent(
+            ConnUnregistered,
+            "[conn][%p] Unregistered from %p",
+            Connection,
+            Connection->Registration);
+// arg2 = arg2 = Connection = arg2
+// arg3 = arg3 = Connection->Registration = arg3
+----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_ConnUnregistered
+#define _clog_4_ARGS_TRACE_ConnUnregistered(uniqueId, encoded_arg_string, arg2, arg3)\
+tracepoint(CLOG_CONNECTION_C, ConnUnregistered , arg2, arg3);\
 
 #endif
 

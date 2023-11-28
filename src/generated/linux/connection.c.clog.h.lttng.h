@@ -1680,25 +1680,6 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, TestTPSet,
 
 
 /*----------------------------------------------------------
-// Decoder Ring for AbandonInternallyClosed
-// [conn][%p] Abandoning internal, closed connection
-// QuicTraceLogConnVerbose(
-            AbandonInternallyClosed,
-            Connection,
-            "Abandoning internal, closed connection");
-// arg1 = arg1 = Connection = arg1
-----------------------------------------------------------*/
-TRACEPOINT_EVENT(CLOG_CONNECTION_C, AbandonInternallyClosed,
-    TP_ARGS(
-        const void *, arg1), 
-    TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg1, arg1)
-    )
-)
-
-
-
-/*----------------------------------------------------------
 // Decoder Ring for AllocFailure
 // Allocation of '%s' failed. (%llu bytes)
 // QuicTraceEvent(
@@ -1876,29 +1857,6 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, ConnInitializeComplete,
 
 
 /*----------------------------------------------------------
-// Decoder Ring for ConnUnregistered
-// [conn][%p] Unregistered from %p
-// QuicTraceEvent(
-            ConnUnregistered,
-            "[conn][%p] Unregistered from %p",
-            Connection,
-            Connection->Registration);
-// arg2 = arg2 = Connection = arg2
-// arg3 = arg3 = Connection->Registration = arg3
-----------------------------------------------------------*/
-TRACEPOINT_EVENT(CLOG_CONNECTION_C, ConnUnregistered,
-    TP_ARGS(
-        const void *, arg2,
-        const void *, arg3), 
-    TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg2, arg2)
-        ctf_integer_hex(uint64_t, arg3, arg3)
-    )
-)
-
-
-
-/*----------------------------------------------------------
 // Decoder Ring for ConnDestroyed
 // [conn][%p] Destroyed
 // QuicTraceEvent(
@@ -1931,6 +1889,29 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, ConnHandleClosed,
         const void *, arg2), 
     TP_FIELDS(
         ctf_integer_hex(uint64_t, arg2, arg2)
+    )
+)
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for ConnUnregistered
+// [conn][%p] Unregistered from %p
+// QuicTraceEvent(
+            ConnUnregistered,
+            "[conn][%p] Unregistered from %p",
+            Connection,
+            Connection->Registration);
+// arg2 = arg2 = Connection = arg2
+// arg3 = arg3 = Connection->Registration = arg3
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_CONNECTION_C, ConnUnregistered,
+    TP_ARGS(
+        const void *, arg2,
+        const void *, arg3), 
+    TP_FIELDS(
+        ctf_integer_hex(uint64_t, arg2, arg2)
+        ctf_integer_hex(uint64_t, arg3, arg3)
     )
 )
 
