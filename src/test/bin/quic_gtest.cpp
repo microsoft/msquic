@@ -359,7 +359,7 @@ TEST(OwnershipValidation, RegistrationShutdownAfterConnOpenAndStart) {
 TEST(OwnershipValidation, ConnectionCloseBeforeStreamClose) {
     TestLogger Logger("ConnectionCloseBeforeStreamClose");
     if (TestingKernelMode) {
-        // TODO ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_REG_SHUTDOWN_AFTER_OPEN_AND_START));
+        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_CONN_CLOSE_BEFORE_STREAM_CLOSE));
     } else {
         QuicTestConnectionCloseBeforeStreamClose();
     }

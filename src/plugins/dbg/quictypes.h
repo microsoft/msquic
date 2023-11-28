@@ -1323,8 +1323,8 @@ struct Worker : Struct {
         }
     }
 
-    UINT8 IdealProcessor() {
-        return ReadType<UINT8>("IdealProcessor");
+    UINT16 PartitionIndex() {
+        return ReadType<UINT16>("PartitionIndex");
     }
 
     UINT32 ThreadID() {

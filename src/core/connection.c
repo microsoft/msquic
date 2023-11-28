@@ -1501,6 +1501,17 @@ QuicConnTryClose(
         Connection->State.ClosedRemotely = TRUE;
     } else {
         Connection->State.ClosedLocally = TRUE;
+        if (!Connection->State.ExternalOwner) {
+            //
+            // Don't continue processing the connection, since it has been
+            // closed locally and it's not referenced externally.
+            //
+            QuicTraceLogConnVerbose(
+                AbandonInternallyClosed,
+                Connection,
+                "Abandoning internal, closed connection");
+            Connection->State.ProcessShutdownComplete = TRUE;
+        }
     }
 
     if (!ClosedRemotely) {

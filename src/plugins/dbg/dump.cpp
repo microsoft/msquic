@@ -86,10 +86,10 @@ EXT_COMMAND(
                         Registration.GetAppName().Data);
                 }
 
-                Dml("  <link cmd=\"!quicworker 0x%I64X\">Worker 0x%I64X</link>\t[Proc %d] %s\n",
+                Dml("  <link cmd=\"!quicworker 0x%I64X\">Worker 0x%I64X</link>\t[Partition %d] %s\n",
                     Worker.Addr,
                     Worker.Addr,
-                    Worker.IdealProcessor(),
+                    Worker.PartitionIndex(),
                     Worker.StateStr());
 
                 auto Connections = Worker.GetConnections();
