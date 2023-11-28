@@ -110,6 +110,7 @@ QuicTimerWheelUninitialize(
                     StillInTimerWheel,
                     Connection,
                     "Still in timer wheel! Connection was likely leaked!");
+                CXPLAT_DBG_ASSERT(!Connection);
                 Entry = Entry->Flink;
             }
             CXPLAT_TEL_ASSERT(CxPlatListIsEmpty(&TimerWheel->Slots[i]));
