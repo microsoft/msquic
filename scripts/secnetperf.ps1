@@ -3,17 +3,15 @@
 NOTE:
 
 This script assumes the latest MsQuic commit is built and downloaded as artifacts in the current session.
-This should have been accomplished in netperf/quic.yml.
 
-.PARAMETER Logging
-    If true, will enable logging for the test. This will create a log file in the artifacts directory.
-    Default is false.
+.PARAMETER LogProfile
+    Configures the logging scope for the test. None by default.
 
 #>
 
 param (
-    [Parameter(Mandatory = $false, ParameterSetName='Logging')]
-    [switch]$Logging = $false
+    [ValidateSet("", "Basic.Light", "Datapath.Light", "Datapath.Verbose", "Stacks.Light", "Stacks.Verbose", "RPS.Light", "RPS.Verbose", "Performance.Light", "Basic.Verbose", "Performance.Light", "Performance.Verbose", "Full.Light", "Full.Verbose", "SpinQuic.Light", "SpinQuicWarnings.Light")]
+    [string]$LogProfile = ""
 )
 
 # Set up the connection to the peer over remote powershell.
@@ -52,9 +50,9 @@ Invoke-Command -Session $Session -ScriptBlock {
 
 # Logging to collect quic traces while running the tests.
 
-if ($Logging) {
-    Write-Output "Starting logging..."
-    .\scripts\log.ps1 -Start -Profile Full.Light
+if ($LogProfile -ne "") {
+    Write-Output "Starting logging with log profile: $LogProfile..."
+    .\scripts\log.ps1 -Start -Profile $LogProfile
 }
 
 # Run secnetperf on the server.
@@ -62,6 +60,10 @@ Write-Output "Starting secnetperf server..."
 $Job = Invoke-Command -Session $Session -ScriptBlock {
     C:\_work\quic\artifacts\bin\windows\x64_Release_schannel\secnetperf.exe -exec:maxtput
 } -AsJob
+
+# Wait for the server to start.
+Write-Output "Waiting for server to start..."
+Start-Sleep -Seconds 5
 
 # Run secnetperf on the client.
 Write-Output "Running tests on the client..."
@@ -81,7 +83,7 @@ for ($i = 0; $i -lt $commands.Count; $i++) {
     Invoke-Expression $commands[$i]
 }
 
-if ($Logging) {
+if ($LogProfile -ne "") {
     Write-Output "Stopping logging..."
     .\scripts\log.ps1 -Stop -OutputPath .\artifacts\logs\quic
 }
@@ -112,20 +114,5 @@ function Wait-ForRemote {
 Write-Output Wait-ForRemote $Job
 
 } finally {
-
-    if ($Logging) {
-        # TODO: Logging seems to be having some issues. Need to investigate. For now, disable logging and focus on persisting the perf data.
-        # Grab other logs
-        Write-Output "Grabbing registry..."
-        reg export "HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion\ProfileNotification" .\artifacts\logs\ProfileNotification.reg
-        Write-Output "Grabbing profsvc logs..."
-        dir C:\Windows\system32\Logfiles\WMI\prof*
-        Write-Output "Stopping session..."
-        logman stop profsvc -ets -ErrorAction Ignore
-        Start-Sleep 5
-        Write-Output "Copying profsvc logs..."
-        Copy-Item $env:WINDIR\System32\LogFiles\WMI\profsvc.etl.* .\artifacts\logs
-        dir .\artifacts\logs
-        #netsh trace convert .\artifacts\logs\profsvc.etl
-    }
+    # TODO: Do any further book keeping here.
 }
