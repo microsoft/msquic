@@ -215,10 +215,6 @@ PerfClient::Init(
             WriteOutput("TCP mode doesn't support CIBIR!\n");
             return QUIC_STATUS_INVALID_PARAMETER;
         }
-        if (SpecificLocalAddresses) {
-            WriteOutput("TCP mode doesn't support specifying/sharing local address(es)!\n");
-            return QUIC_STATUS_INVALID_PARAMETER;
-        }
     }
 
     if ((Upload || Download) && !StreamCount) {
@@ -240,7 +236,7 @@ PerfClient::Init(
         if (UseSendBuffering || !UsePacing) { // Update settings if non-default
             MsQuicSettings Settings;
             Configuration.GetSettings(Settings);
-            if (!UseSendBuffering) {
+            if (UseSendBuffering) {
                 Settings.SetSendBufferingEnabled(UseSendBuffering != 0);
             }
             if (!UsePacing) {
