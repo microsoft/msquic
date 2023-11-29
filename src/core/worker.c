@@ -474,8 +474,7 @@ QuicWorkerProcessConnection(
     Connection->WorkerThreadID = ThreadID;
     Connection->Stats.Schedule.DrainCount++;
 
-    if (Connection->State.UpdateWorker &&
-        !Connection->State.ShutdownComplete) {
+    if (Connection->State.UpdateWorker) {
         //
         // The connection was recently placed into this worker and needs any
         // pre-existing timers to be transitioned to this worker for processing.
@@ -538,8 +537,7 @@ QuicWorkerProcessConnection(
     QuicConfigurationDetachSilo();
 
     if (DoneWithConnection) {
-        if (Connection->State.UpdateWorker &&
-            !Connection->State.ShutdownComplete) {
+        if (Connection->State.UpdateWorker) {
             //
             // Now that we know we want to process this connection, assign it
             // to the correct registration. Remove it from the current worker's
