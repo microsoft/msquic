@@ -13,7 +13,7 @@ This should have been accomplished in netperf/quic.yml.
 
 param (
     [Parameter(Mandatory = $false, ParameterSetName='Logging')]
-    [switch]$Logging = $false,
+    [switch]$Logging = $false
 )
 
 # Set up the connection to the peer over remote powershell.
@@ -69,11 +69,11 @@ Write-Output "Running tests on the client..."
 # Define the array of Secnetperf run commands
 # TODO: Add more tests here. Include TCP tests too.
 $commands = @(
-    ".\artifacts\bin\windows\x64_Release_schannel\secnetperf.exe -target:netperf-peer -exec:maxtput -test:tput -upload:10000 -timed:1",
+    ".\artifacts\bin\windows\x64_Release_schannel\secnetperf.exe -target:netperf-peer -exec:maxtput -test:tput -upload:10000 -timed:1"
 )
 # Along with their metadata
 $commandMetadata = @(
-    "Max throughput test with QUIC with -upload:10000, -timed:1",
+    "Max throughput test with QUIC with -upload:10000, -timed:1"
 )
 
 for ($i = 0; $i -lt $commands.Count; $i++) {
