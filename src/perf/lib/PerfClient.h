@@ -140,6 +140,7 @@ struct PerfClient : public PerfBase {
     void GetExtraDataMetadata(_Out_ PerfExtraDataMetadata* Result) override;
     QUIC_STATUS GetExtraData(_Out_writes_bytes_(*Length) uint8_t* Data, _Inout_ uint32_t* Length) override;
 
+    UniquePtr<uint32_t[]> LatencyValues {nullptr}; // TODO - Move to Worker
     MsQuicRegistration Registration {
         "perf-client",
         PerfDefaultExecutionProfile,
@@ -208,7 +209,6 @@ struct PerfClient : public PerfBase {
     } RequestBuffer;
 
     CXPLAT_EVENT* CompletionEvent {nullptr};
-    UniquePtr<uint32_t[]> LatencyValues {nullptr}; // TODO - Move to Worker
     uint64_t MaxLatencyIndex {0};
     uint64_t CurLatencyIndex {0};
     uint64_t LatencyCount {0};

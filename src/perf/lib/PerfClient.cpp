@@ -264,6 +264,9 @@ PerfClient::Init(
         }
 
         LatencyValues = UniquePtr<uint32_t[]>(new(std::nothrow) uint32_t[(size_t)MaxLatencyIndex]);
+        if (LatencyValues == nullptr) {
+            return QUIC_STATUS_OUT_OF_MEMORY;
+        }
         CxPlatZeroMemory(LatencyValues.get(), (size_t)(sizeof(uint32_t) * MaxLatencyIndex));
     }
 
@@ -981,11 +984,13 @@ PerfClientStream::OnShutdown() {
     }
 
     if (SendSuccess && RecvSuccess) {
-        const auto Index = (uint64_t)InterlockedIncrement64((int64_t*)&Connection.Client.CurLatencyIndex) - 1;
-        if (Index < Client.MaxLatencyIndex) {
-            const auto Latency = CxPlatTimeDiff64(StartTime, RecvEndTime);
-            Client.LatencyValues[(size_t)Index] = Latency > UINT32_MAX ? UINT32_MAX : (uint32_t)Latency;
-            InterlockedIncrement64((int64_t*)&Connection.Client.LatencyCount);
+        if (Client.Running) {
+            const auto Index = (uint64_t)InterlockedIncrement64((int64_t*)&Connection.Client.CurLatencyIndex) - 1;
+            if (Index < Client.MaxLatencyIndex) {
+                const auto Latency = CxPlatTimeDiff64(StartTime, RecvEndTime);
+                Client.LatencyValues[(size_t)Index] = Latency > UINT32_MAX ? UINT32_MAX : (uint32_t)Latency;
+                InterlockedIncrement64((int64_t*)&Connection.Client.LatencyCount);
+            }
         }
         InterlockedIncrement64((int64_t*)&Connection.Worker.StreamsCompleted);
     }
