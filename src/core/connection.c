@@ -1385,6 +1385,7 @@ QuicConnOnShutdownComplete(
         return;
     }
     Connection->State.ShutdownComplete = TRUE;
+    Connection->State.UpdateWorker = FALSE;
 
     QuicTraceEvent(
         ConnShutdownComplete,
