@@ -10,7 +10,7 @@ This script assumes the latest MsQuic commit is built and downloaded as artifact
 #>
 
 param (
-    [ValidateSet("", "Basic.Light", "Datapath.Light", "Datapath.Verbose", "Stacks.Light", "Stacks.Verbose", "RPS.Light", "RPS.Verbose", "Performance.Light", "Basic.Verbose", "Performance.Light", "Performance.Verbose", "Full.Light", "Full.Verbose", "SpinQuic.Light", "SpinQuicWarnings.Light")]
+    [ValidateSet("", "NULL", "Basic.Light", "Datapath.Light", "Datapath.Verbose", "Stacks.Light", "Stacks.Verbose", "RPS.Light", "RPS.Verbose", "Performance.Light", "Basic.Verbose", "Performance.Light", "Performance.Verbose", "Full.Light", "Full.Verbose", "SpinQuic.Light", "SpinQuicWarnings.Light")]
     [string]$LogProfile = ""
 )
 
@@ -50,7 +50,7 @@ Invoke-Command -Session $Session -ScriptBlock {
 
 # Logging to collect quic traces while running the tests.
 
-if ($LogProfile -ne "") {
+if ($LogProfile -ne "" -and $LogProfile -ne "NULL") {
     Write-Output "Starting logging with log profile: $LogProfile..."
     .\scripts\log.ps1 -Start -Profile $LogProfile
 }
@@ -83,7 +83,7 @@ for ($i = 0; $i -lt $commands.Count; $i++) {
     Invoke-Expression $commands[$i]
 }
 
-if ($LogProfile -ne "") {
+if ($LogProfile -ne "" -and $LogProfile -ne "NULL") {
     Write-Output "Stopping logging..."
     .\scripts\log.ps1 -Stop -OutputPath .\artifacts\logs\quic
 }
