@@ -265,7 +265,6 @@ void QuicTestConnectionCloseBeforeStreamClose()
         QUIC_UINT62 StreamID = 0;
         TEST_QUIC_SUCCEEDED(Stream.GetID(&StreamID));
         TEST_QUIC_SUCCEEDED(Stream.SetPriority(0xFFFF));
-
     }
 
     {
