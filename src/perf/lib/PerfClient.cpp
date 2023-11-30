@@ -439,7 +439,17 @@ PerfClientWorker::WorkerThread() {
             auto Connection = (PerfClientConnection*)CxPlatListRemoveHead(&ConnectionTable);
             Connection->TcpConn->Close(); // TODO - Any race conditions here?
             Connection->TcpConn = nullptr;
-            ConnectionPool.Free(Connection);
+            CXPLAT_HASHTABLE_ENUMERATOR Enum;
+            Connection->StreamTable.EnumBegin(&Enum);
+            for (;;) {
+                auto Stream = (PerfClientStream*)Connection->StreamTable.EnumNext(&Enum);
+                if (Stream == NULL) {
+                    break;
+                }
+                Connection->StreamTable.Remove(&Stream->Entry);
+                StreamPool.Free(Stream);
+            }
+            Connection->StreamTable.EnumEnd(&Enum);
         }
         Lock.Release();
     }
@@ -467,7 +477,7 @@ PerfClientWorker::StartNewConnection() {
 
 PerfClientConnection::~PerfClientConnection() {
     if (Client.UseTCP) {
-        if (TcpConn) { TcpConn->Close(); } // TODO - Free to pool instead
+        if (TcpConn) { TcpConn->Close(); TcpConn = nullptr; } // TODO - Free to pool instead
     } else {
         if (Handle) { MsQuic->ConnectionClose(Handle); }
     }
@@ -480,8 +490,8 @@ PerfClientConnection::Initialize() {
         CxPlatListInsertTail(&Worker.ConnectionTable, &Entry);
         Worker.Lock.Release();
         auto CredConfig = MsQuicCredentialConfig(QUIC_CREDENTIAL_FLAG_CLIENT | QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION);
-        TcpConn =
-            Worker.TcpConnectionPool.Alloc(
+        TcpConn = // TODO: replace new/delete with pool alloc/free
+            new TcpConnection(
                 Client.Engine,
                 &CredConfig,
                 Client.TargetFamily,

@@ -171,6 +171,7 @@ class TcpConnection {
     bool IndicateAccept{false};
     bool IndicateConnect{false};
     bool IndicateSendComplete{false};
+    int16_t Uninit{0};
     TcpConnection* Next{nullptr};
     TcpEngine* Engine;
     TcpWorker* Worker{nullptr};

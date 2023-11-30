@@ -403,6 +403,7 @@ TcpConnection::~TcpConnection()
     }
     CXPLAT_DBG_ASSERT(!QueuedOnWorker);
     CxPlatDispatchLockUninitialize(&Lock);
+    ++Uninit;
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
