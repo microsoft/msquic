@@ -14,6 +14,49 @@ param (
     [string]$LogProfile = ""
 )
 
+# TODO: Add more metadata parameters to persist.
+
+$ThisTest = @{}
+
+$ClientOS = "Windows Server 2022" # TODO: make param
+$ClientArch = "x64" # TODO: make param
+$ClientCpu = "Intel(R) Xeon(R) Platinum 8272CL CPU @ 2.60GHz" # TODO: make param
+$ClientNic = "Mellanox ConnectX-5" # TODO: make param
+
+$ServerOS = "Windows Server 2022" # TODO: make param
+$ServerArch = "x64" # TODO: make param
+$ServerCpu = "Intel(R) Xeon(R) Platinum 8272CL CPU @ 2.60GHz" # TODO: make param
+$ServerNic = "Mellanox ConnectX-5" # TODO: make param
+
+$MsQuicCommit = "12345678" # TODO: make param
+
+$ThisEnvironment = @{
+    "Client" = @{
+        "OS" = $ClientOS
+        "Arch" = $ClientArch
+        "CPU" = $ClientCpu
+        "NIC" = $ClientNic
+    };
+    "Server" = @{
+        "OS" = $ServerOS
+        "Arch" = $ServerArch
+        "CPU" = $ServerCpu
+        "NIC" = $ServerNic
+    }
+}
+
+$ThisConfiguration = @{
+    "MsQuicCommit" = $MsQuicCommit
+    "PerfTool" = "secnetperf"
+}
+
+$ThisTest["TestEnv"] = $ThisEnvironment
+$ThisTest["TestConfig"] = $ThisConfiguration
+
+
+
+
+
 # Set up the connection to the peer over remote powershell.
 Write-Output "Connecting to netperf-peer..."
 $Session = New-PSSession -ComputerName "netperf-peer" -ConfigurationName PowerShell.7
@@ -63,7 +106,7 @@ $Job = Invoke-Command -Session $Session -ScriptBlock {
 
 # Wait for the server to start.
 Write-Output "Waiting for server to start..."
-Start-Sleep -Seconds 5
+Start-Sleep -Seconds 10
 
 # Run secnetperf on the client.
 Write-Output "Running tests on the client..."
@@ -71,16 +114,24 @@ Write-Output "Running tests on the client..."
 # Define the array of Secnetperf run commands
 # TODO: Add more tests here. Include TCP tests too.
 $commands = @(
-    ".\artifacts\bin\windows\x64_Release_schannel\secnetperf.exe -target:netperf-peer -exec:maxtput -test:tput -upload:10000 -timed:1"
+    ".\artifacts\bin\windows\x64_Release_schannel\secnetperf.exe -target:netperf-peer -exec:maxtput -test:tput -upload:10000 -timed:1",
+    ".\artifacts\bin\windows\x64_Release_schannel\secnetperf.exe -target:netperf-peer -exec:maxtput -test:tput -upload:10000 -timed:1 -tcp:1"
 )
 # Along with their metadata
 $commandMetadata = @(
-    "Max throughput test with QUIC with -upload:10000, -timed:1"
+    "Max throughput test using QUIC protocol with -upload:10000, -timed:1",
+    "Max throughput test using TCP protocol with -upload:10000, -timed:1"
 )
+
+$ConsoleOutput = @{}
 
 for ($i = 0; $i -lt $commands.Count; $i++) {
     Write-Output "Running test: $($commandMetadata[$i])"
-    Invoke-Expression $commands[$i]
+    $Output = Invoke-Expression $commands[$i]
+    $Output
+    $ConsoleOutput[$commandMetadata[$i]] = $Output
+    # Wait for a bit in between tests.
+    Start-Sleep -Seconds 1
 }
 
 if ($LogProfile -ne "" -and $LogProfile -ne "NULL") {
@@ -112,6 +163,12 @@ function Wait-ForRemote {
 
 # Kill the server process.
 Write-Output Wait-ForRemote $Job
+
+# Save the test results.
+Write-Output "Saving test results..."
+$ThisTest["TestRuns"] = $ConsoleOutput
+$jsonString = $ThisTest | ConvertTo-Json -Depth 10
+Set-Content -Path 'test_result.json' -Value $jsonString
 
 } finally {
     # TODO: Do any further book keeping here.
