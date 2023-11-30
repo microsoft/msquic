@@ -200,7 +200,7 @@ typedef union QUIC_CONNECTION_STATE {
         BOOLEAN ResumptionEnabled : 1;
 
         //
-        // When true, this indicates that reordering shouldn't elict an
+        // When true,acknowledgment that reordering shouldn't elict an
         // immediate acknowledgement.
         //
         BOOLEAN IgnoreReordering : 1;

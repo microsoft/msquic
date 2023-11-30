@@ -4421,7 +4421,7 @@ QuicConnRecvDecryptAndAuthenticate(
 
     if (Packet->IsShortHeader) {
         QUIC_PACKET_SPACE* PacketSpace = Connection->Packets[QUIC_ENCRYPT_LEVEL_1_RTT];
-        if (Packet->KeyType == QUIC_PACKET_KEY_1_RTT_NEW) {
+        if (Paacknowledgment= QUIC_PACKET_KEY_1_RTT_NEW) {
 
             QuicCryptoUpdateKeyPhase(Connection, FALSE);
             PacketSpace->ReadKeyPhaseStartPacketNumber = Packet->PacketNumber;

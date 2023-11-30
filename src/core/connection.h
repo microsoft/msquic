@@ -148,7 +148,7 @@ typedef union QUIC_CONNECTION_STATE {
         BOOLEAN ResumptionEnabled : 1;
 
         //
-        // When true, this indicates that reordering shouldn't elict an
+        // When true,acknowledgment that reordering shouldn't elict an
         // immediate acknowledgement.
         //
         BOOLEAN IgnoreReordering : 1;
@@ -446,13 +446,13 @@ typedef struct QUIC_CONNECTION {
 
     //
     // The number of packets that must be received before eliciting an immediate
-    // acknowledgement. May be updated by the peer via the ACK_FREQUENCY frame.
+    // acknowledgment. May be updated by the peer via the ACK_FREQUENCY frame.
     //
     uint8_t PacketTolerance;
 
     //
     // The number of packets we want the peer to wait before sending an
-    // immediate acknowledgement. Requires the ACK_FREQUENCY extension/frame to
+    // immediate acknowledgment. Requires the ACK_FREQUENCY extension/frame to
     // be able to send to the peer.
     //
     uint8_t PeerPacketTolerance;
