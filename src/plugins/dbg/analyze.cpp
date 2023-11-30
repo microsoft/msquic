@@ -42,8 +42,8 @@ void EXT_CLASS::AnalyzeConnection(UINT64 Addr)
         Dml("The connection has been freed.\n");
     } else if (state.HandleClosed) {
         Dml("The connection has been closed by the application and is in the process of being deleted.\n");
-    } else if (state.HandleShutdown) {
-        Dml("The connection has completed the shutdown process and is ready to be closed by the application.\n");
+    } else if (state.ShutdownComplete) {
+        Dml("The connection has completed the shutdown process.\n");
     } else if (state.ClosedLocally || state.ClosedRemotely) {
         Dml("The connection is in the process of shutting down.");
         if (state.ClosedLocally) {

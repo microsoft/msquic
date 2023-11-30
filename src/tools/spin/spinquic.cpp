@@ -173,17 +173,19 @@ class SpinQuicWatchdog {
     CXPLAT_THREAD WatchdogThread;
     CXPLAT_EVENT ShutdownEvent;
     uint32_t TimeoutMs;
+    CXPLAT_THREAD_ID OriginThread;
     static
     CXPLAT_THREAD_CALLBACK(WatchdogThreadCallback, Context) {
         auto This = (SpinQuicWatchdog*)Context;
         if (!CxPlatEventWaitWithTimeout(This->ShutdownEvent, This->TimeoutMs)) {
-            printf("Watchdog timeout fired!\n");
+            printf("Watchdog timeout fired while waiting on thread 0x%x!\n", (int)This->OriginThread);
             CXPLAT_FRE_ASSERTMSG(FALSE, "Watchdog timeout fired!");
         }
         CXPLAT_THREAD_RETURN(0);
     }
 public:
-    SpinQuicWatchdog(uint32_t WatchdogTimeoutMs) : TimeoutMs(WatchdogTimeoutMs) {
+    SpinQuicWatchdog(uint32_t WatchdogTimeoutMs) :
+        TimeoutMs(WatchdogTimeoutMs), OriginThread(CxPlatCurThreadID()) {
         CxPlatEventInitialize(&ShutdownEvent, TRUE, FALSE);
         CXPLAT_THREAD_CONFIG Config = { 0 };
         Config.Name = "spin_watchdog";

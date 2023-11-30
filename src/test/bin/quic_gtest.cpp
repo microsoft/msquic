@@ -356,6 +356,15 @@ TEST(OwnershipValidation, RegistrationShutdownAfterConnOpenAndStart) {
     }
 }
 
+TEST(OwnershipValidation, ConnectionCloseBeforeStreamClose) {
+    TestLogger Logger("ConnectionCloseBeforeStreamClose");
+    if (TestingKernelMode) {
+        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_CONN_CLOSE_BEFORE_STREAM_CLOSE));
+    } else {
+        QuicTestConnectionCloseBeforeStreamClose();
+    }
+}
+
 TEST_P(WithBool, ValidateStream) {
     TestLoggerT<ParamType> Logger("QuicTestValidateStream", GetParam());
     if (TestingKernelMode) {

@@ -431,6 +431,7 @@ QuicWorkerProcessTimers(
         QuicConnTimerExpired(Connection, TimeNow);
         QuicConfigurationDetachSilo();
         Connection->WorkerThreadID = 0;
+        QuicConnRelease(Connection, QUIC_CONN_REF_WORKER);
     }
 }
 
@@ -474,12 +475,6 @@ QuicWorkerProcessConnection(
     Connection->Stats.Schedule.DrainCount++;
 
     if (Connection->State.UpdateWorker) {
-        //
-        // If the connection is uninitialized already, it shouldn't have been
-        // queued to move to a new worker in the first place.
-        //
-        CXPLAT_DBG_ASSERT(!Connection->State.Uninitialized);
-
         //
         // The connection was recently placed into this worker and needs any
         // pre-existing timers to be transitioned to this worker for processing.
@@ -543,11 +538,6 @@ QuicWorkerProcessConnection(
 
     if (DoneWithConnection) {
         if (Connection->State.UpdateWorker) {
-            //
-            // The connection should never be queued to a new worker if it's
-            // already been uninitialized.
-            //
-            CXPLAT_DBG_ASSERT(!Connection->State.Uninitialized);
             //
             // Now that we know we want to process this connection, assign it
             // to the correct registration. Remove it from the current worker's
