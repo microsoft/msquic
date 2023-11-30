@@ -259,7 +259,13 @@ void QuicTestConnectionCloseBeforeStreamClose()
         TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
         MsQuicStream Stream(Connection, QUIC_STREAM_OPEN_FLAG_NONE);
         TEST_QUIC_SUCCEEDED(Stream.GetInitStatus());
+        TEST_QUIC_SUCCEEDED(Stream.Start());
         Connection.Close();
+
+        QUIC_UINT62 StreamID = 0;
+        TEST_QUIC_SUCCEEDED(Stream.GetID(&StreamID));
+        TEST_QUIC_SUCCEEDED(Stream.SetPriority(0xFFFF));
+
     }
 
     {
