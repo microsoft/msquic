@@ -450,6 +450,7 @@ PerfClientWorker::WorkerThread() {
                 StreamPool.Free(Stream);
             }
             Connection->StreamTable.EnumEnd(&Enum);
+            ConnectionPool.Free(Connection);
         }
         Lock.Release();
     }
