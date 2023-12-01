@@ -57,12 +57,29 @@ struct CxPlatEvent {
     bool WaitTimeout(uint32_t TimeoutMs) { return CxPlatEventWaitWithTimeout(Handle, TimeoutMs); }
 };
 
+struct CxPlatRundown {
+    CXPLAT_RUNDOWN_REF Ref;
+    CxPlatRundown() noexcept { CxPlatRundownInitialize(&Ref); }
+    ~CxPlatRundown() noexcept { CxPlatRundownUninitialize(&Ref); }
+    bool Acquire() noexcept { return CxPlatRundownAcquire(&Ref); }
+    void Release() noexcept { CxPlatRundownRelease(&Ref); }
+    void ReleaseAndWait() { CxPlatRundownReleaseAndWait(&Ref); }
+};
+
 struct CxPlatLock {
     CXPLAT_LOCK Handle;
     CxPlatLock() noexcept { CxPlatLockInitialize(&Handle); }
     ~CxPlatLock() noexcept { CxPlatLockUninitialize(&Handle); }
     void Acquire() noexcept { CxPlatLockAcquire(&Handle); }
     void Release() noexcept { CxPlatLockRelease(&Handle); }
+};
+
+struct CxPlatLockDispatch {
+    CXPLAT_DISPATCH_LOCK Handle;
+    CxPlatLockDispatch() noexcept { CxPlatDispatchLockInitialize(&Handle); }
+    ~CxPlatLockDispatch() noexcept { CxPlatDispatchLockUninitialize(&Handle); }
+    void Acquire() noexcept { CxPlatDispatchLockAcquire(&Handle); }
+    void Release() noexcept { CxPlatDispatchLockRelease(&Handle); }
 };
 
 struct CxPlatPool {

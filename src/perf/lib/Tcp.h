@@ -85,6 +85,9 @@ class TcpEngine {
     bool Shutdown{false};
     const uint16_t ProcCount;
     TcpWorker* Workers;
+    CxPlatRundown Rundown;
+    CxPlatLockDispatch ConnectionLock;
+    CXPLAT_LIST_ENTRY Connections;
 public:
     static const CXPLAT_TCP_DATAPATH_CALLBACKS TcpCallbacks;
     static const CXPLAT_TLS_CALLBACKS TlsCallbacks;
@@ -101,6 +104,7 @@ public:
     ~TcpEngine() noexcept;
     bool IsInitialized() const { return Initialized; }
     void AddConnection(TcpConnection* Connection, uint16_t PartitionIndex);
+    void RemoveConnection(TcpConnection* Connection);
 };
 
 class TcpWorker {
@@ -171,11 +175,13 @@ class TcpConnection {
     bool IndicateAccept{false};
     bool IndicateConnect{false};
     bool IndicateSendComplete{false};
-    int16_t Uninit{0};
     TcpConnection* Next{nullptr};
+    CXPLAT_LIST_ENTRY EngineEntry;
     TcpEngine* Engine;
     TcpWorker* Worker{nullptr};
+    CXPLAT_THREAD_ID WorkerThreadID{0};
     uint16_t PartitionIndex;
+    CXPLAT_EVENT CloseComplete;
     CXPLAT_REF_COUNT Ref;
     CXPLAT_DISPATCH_LOCK Lock;
     CXPLAT_ROUTE Route{0};
@@ -268,5 +274,5 @@ public:
         _In_ void* Context = nullptr);
     bool IsInitialized() const { return Initialized; }
     void Close();
-    void Send(TcpSendData* Data);
+    bool Send(TcpSendData* Data);
 };

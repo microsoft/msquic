@@ -15,7 +15,7 @@ Abstract:
 #include "PerfCommon.h"
 
 struct PerfClientConnection {
-    CXPLAT_LIST_ENTRY Entry; // To TCP ConnectionTable
+    CXPLAT_LIST_ENTRY WorkerEntry; // To TCP ConnectionTable
     struct PerfClient& Client;
     struct PerfClientWorker& Worker;
     union {
@@ -32,6 +32,7 @@ struct PerfClientConnection {
     void OnConnectionComplete();
     void OnShutdownComplete();
     void OnStreamShutdown();
+    void Shutdown();
     QUIC_STATUS ConnectionCallback(_Inout_ QUIC_CONNECTION_EVENT* Event);
     static QUIC_STATUS s_ConnectionCallback(HQUIC, void* Context, _Inout_ QUIC_CONNECTION_EVENT* Event) {
         return ((PerfClientConnection*)Context)->ConnectionCallback(Event);
@@ -133,14 +134,22 @@ struct PerfClient : public PerfBase {
             Workers[i].Client = this;
         }
     }
-    ~PerfClient() override { Running = false; delete Engine; }
+    ~PerfClient() override { Running = false; }
     QUIC_STATUS Init(_In_ int argc, _In_reads_(argc) _Null_terminated_ char* argv[]) override;
     QUIC_STATUS Start(_In_ CXPLAT_EVENT* StopEvent) override;
     QUIC_STATUS Wait(_In_ int Timeout) override;
     void GetExtraDataMetadata(_Out_ PerfExtraDataMetadata* Result) override;
     QUIC_STATUS GetExtraData(_Out_writes_bytes_(*Length) uint8_t* Data, _Inout_ uint32_t* Length) override;
 
+    bool Running {true};
+    CXPLAT_EVENT* CompletionEvent {nullptr};
+    uint64_t MaxLatencyIndex {0};
+    uint64_t CurLatencyIndex {0};
+    uint64_t LatencyCount {0};
     UniquePtr<uint32_t[]> LatencyValues {nullptr}; // TODO - Move to Worker
+    PerfClientWorker Workers[PERF_MAX_THREAD_COUNT];
+
+    UniquePtr<TcpEngine> Engine;
     MsQuicRegistration Registration {
         "perf-client",
         PerfDefaultExecutionProfile,
@@ -207,14 +216,6 @@ struct PerfClient : public PerfBase {
             }
         }
     } RequestBuffer;
-
-    CXPLAT_EVENT* CompletionEvent {nullptr};
-    uint64_t MaxLatencyIndex {0};
-    uint64_t CurLatencyIndex {0};
-    uint64_t LatencyCount {0};
-    PerfClientWorker Workers[PERF_MAX_THREAD_COUNT];
-    TcpEngine* Engine {nullptr};
-    bool Running {true};
 
     uint64_t GetConnectedConnections() const {
         uint64_t ConnectedConnections = 0;
