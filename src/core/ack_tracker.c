@@ -9,18 +9,18 @@ Abstract:
     (for duplicate packet detection) and all the packet numbers that need
     to be acknowledged via an ACK_FRAME sent back to the peer. It does all
     the framing for the ACK_FRAME. It also handles the receipt of an
-    acknowledgement for a previously sent ACK_FRAME. In response to that
-    acknowledgement, the Ack Tracker removes the packet number range (less than
+    acknowledgment for a previously sent ACK_FRAME. In response to that
+    acknowledgment, the Ack Tracker removes the packet number range (less than
     the largest packet number) that was sent in the ACK_FRAME from the current
     internal tracking structures. The result is that the Ack Tracker will
     continue to send ACK_FRAMES for received packet numbers until it receives
-    an acknowledgement for the frame; then those packet numbers are no longer
+    an acknowledgment for the frame; then those packet numbers are no longer
     sent in ACK_FRAMES.
 
     The reason the Ack Tracker removes all packet numbers less than or equal to
     the largest packet number in an ACK_FRAME when that frame is acknowledged
     is because we make the assumption that by the time it gets that
-    acknowledgement, everything in that range was either completely lost or
+    acknowledgment, everything in that range was either completely lost or
     included in the ACK_FRAME and has been acknowledged.
 
     There is a possible scenario where the Ack Tracker receives packets out of

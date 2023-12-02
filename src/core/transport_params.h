@@ -77,7 +77,7 @@ typedef struct QUIC_TRANSPORT_PARAMETERS {
 
     //
     // A variable-length integer representing the minimum amount of time in
-    // microseconds by which the endpoint can delay an acknowledgement. Values
+    // microseconds by which the endpoint can delay an acknowledgment. Values
     // of 2^24 or greater are invalid.
     //
     // The presence of the parameter also advertises support of the ACK

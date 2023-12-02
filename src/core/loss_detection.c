@@ -1584,7 +1584,7 @@ QuicLossDetectionProcessAckBlocks(
 
         //
         // Handle packet loss (and any possible congestion events) before
-        // data acknowledgement so that we have an accurate bytes in flight
+        // data acknowledgment so that we have an accurate bytes in flight
         // calculation for congestion events.
         //
         QuicLossDetectionDetectAndHandleLostPackets(LossDetection, TimeNow);
