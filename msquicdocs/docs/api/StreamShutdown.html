@@ -128,7 +128,7 @@ QUIC_STATUS
 </tr>
 <tr>
 <td><strong>QUIC_STREAM_SHUTDOWN_FLAG_IMMEDIATE</strong><br>8</td>
-<td>Indicates the app does not want to wait for the acknowledgement of the shutdown before getting the <code>QUIC_STREAM_EVENT_SHUTDOWN_COMPLETE</code> event. Only allowed for abortive shutdowns.</td>
+<td>Indicates the app does not want to wait for the acknowledgment of the shutdown before getting the <code>QUIC_STREAM_EVENT_SHUTDOWN_COMPLETE</code> event. Only allowed for abortive shutdowns.</td>
 </tr>
 </tbody>
 </table>
@@ -139,7 +139,7 @@ QUIC_STATUS
 <p>The function returns a <a href="QUIC_STATUS.html">QUIC_STATUS</a>. The app may use <code>QUIC_FAILED</code> or <code>QUIC_SUCCEEDED</code> to determine if the function failed or succeeded.</p>
 <h1 id="remarks">Remarks</h1>
 <p>This function allows an app to (either gracefully or abortively) shut down one or both directions of a stream. For abortive shutdowns, the app specifies an <code>ErrorCode</code> that is transmitted to the peer to indicate why the shutdown happened. Graceful shutdowns have no error code as they are implied to be the normal operation of a stream.</p>
-<p>If the app doesn't care to wait for the acknowledgement of an abortive shutdown, it can use the <code>QUIC_STREAM_SHUTDOWN_FLAG_IMMEDIATE</code> flag, which will result in MsQuic immediately (not necessarily inline to the call though) indicating the <code>QUIC_STREAM_EVENT_SHUTDOWN_COMPLETE</code> event to the app, after which, the app may safely <a href="StreamClose.html">StreamClose</a> the stream. MsQuic will internally maintain the stream for as long as necessary and then clean it up.</p>
+<p>If the app doesn't care to wait for the acknowledgment of an abortive shutdown, it can use the <code>QUIC_STREAM_SHUTDOWN_FLAG_IMMEDIATE</code> flag, which will result in MsQuic immediately (not necessarily inline to the call though) indicating the <code>QUIC_STREAM_EVENT_SHUTDOWN_COMPLETE</code> event to the app, after which, the app may safely <a href="StreamClose.html">StreamClose</a> the stream. MsQuic will internally maintain the stream for as long as necessary and then clean it up.</p>
 <p>The stream can also be gracefully shutdown via the <code>QUIC_SEND_FLAG_FIN</code> flag. See <a href="StreamSend.html">StreamSend</a> for more details.</p>
 <p>Any stream (even one that hasn't been started) may be called to shutdown. If the stream has not been started yet, then the shutdown is effectively queued. If the app never calls <a href="StreamStart.html">StreamStart</a> then the shutdown will never been sent out on the wire.</p>
 <h1 id="reliable-reset">Reliable Reset</h1>
