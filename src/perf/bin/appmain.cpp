@@ -382,7 +382,7 @@ main(
     constexpr const char* DriverSearch = "driverName";
     size_t DriverLen = strlen(DriverSearch);
 
-    UniquePtr<char*[]> ArgValues = UniquePtr<char*[]>(new char*[argc]);
+    UniquePtr<char*[]> ArgValues = UniquePtr<char*[]>(new (std::nothrow) char*[argc]);
 
     if (ArgValues.get() == nullptr) {
         return QUIC_STATUS_OUT_OF_MEMORY;

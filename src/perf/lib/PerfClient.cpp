@@ -501,7 +501,7 @@ PerfClientConnection::Initialize() {
         Worker.Lock.Release();
         auto CredConfig = MsQuicCredentialConfig(QUIC_CREDENTIAL_FLAG_CLIENT | QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION);
         TcpConn = // TODO: replace new/delete with pool alloc/free
-            new TcpConnection(
+            new (std::nothrow) TcpConnection(
                 Client.Engine.get(),
                 &CredConfig,
                 Client.TargetFamily,

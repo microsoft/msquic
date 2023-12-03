@@ -74,14 +74,16 @@ struct CxPlatLock {
     void Release() noexcept { CxPlatLockRelease(&Handle); }
 };
 
+#pragma warning(push)
+#pragma warning(disable:28167) // TODO - Fix SAL annotations for IRQL changes
 struct CxPlatLockDispatch {
     CXPLAT_DISPATCH_LOCK Handle;
     CxPlatLockDispatch() noexcept { CxPlatDispatchLockInitialize(&Handle); }
     ~CxPlatLockDispatch() noexcept { CxPlatDispatchLockUninitialize(&Handle); }
-    _IRQL_raises_(DISPATCH_LEVEL)
     void Acquire() noexcept { CxPlatDispatchLockAcquire(&Handle); }
     void Release() noexcept { CxPlatDispatchLockRelease(&Handle); }
 };
+#pragma warning(pop)
 
 struct CxPlatPool {
     CXPLAT_POOL Handle;
