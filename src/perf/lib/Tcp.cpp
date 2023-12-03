@@ -126,11 +126,7 @@ TcpEngine::~TcpEngine() noexcept
     // Loop over all connections and shut them down.
     ConnectionLock.Acquire();
     while (!CxPlatListIsEmpty(&Connections)) {
-        auto Connection =
-            CXPLAT_CONTAINING_RECORD(
-                CxPlatListRemoveHead(&Connections),
-                TcpConnection,
-                EngineEntry);
+        auto Connection = (TcpConnection*)CxPlatListRemoveHead(&Connections);
         Connection->EngineEntry.Flink = NULL;
         Connection->Shutdown = true;
         Connection->TotalSendCompleteOffset = UINT64_MAX;
@@ -364,7 +360,7 @@ TcpConnection::TcpConnection(
         }
     }
     QuicAddrSetPort(&Route.RemoteAddress, ServerPort);
-    Engine->AddConnection(this, 0); // TODO - Correct index
+    Engine->AddConnection(this, (uint16_t)CxPlatProcCurrentNumber());
     Initialized = true;
     if (QUIC_FAILED(
         CxPlatSocketCreateTcp(
@@ -396,7 +392,7 @@ TcpConnection::TcpConnection(
         this);
     Initialized = true;
     IndicateAccept = true;
-    Engine->AddConnection(this, 0); // TODO - Correct index
+    Engine->AddConnection(this, (uint16_t)CxPlatProcCurrentNumber());
     Queue();
 }
 
@@ -1070,8 +1066,7 @@ void TcpConnection::Close()
         PerfTcpAppClose,
         "[perf][tcp][%p] App Close",
         this);
-    BOOLEAN IsWorkerThread = WorkerThreadID == CxPlatCurThreadID();
-    if (IsWorkerThread) {
+    if (WorkerThreadID == CxPlatCurThreadID()) {
         ClosedByApp = true;
         Shutdown = true;
         TotalSendCompleteOffset = UINT64_MAX;

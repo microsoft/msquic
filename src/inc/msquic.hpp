@@ -78,6 +78,7 @@ struct CxPlatLockDispatch {
     CXPLAT_DISPATCH_LOCK Handle;
     CxPlatLockDispatch() noexcept { CxPlatDispatchLockInitialize(&Handle); }
     ~CxPlatLockDispatch() noexcept { CxPlatDispatchLockUninitialize(&Handle); }
+    _IRQL_raises_(DISPATCH_LEVEL)
     void Acquire() noexcept { CxPlatDispatchLockAcquire(&Handle); }
     void Release() noexcept { CxPlatDispatchLockRelease(&Handle); }
 };

@@ -164,6 +164,7 @@ class TcpConnection {
     friend class TcpEngine;
     friend class TcpWorker;
     friend class TcpServer;
+    CXPLAT_LIST_ENTRY EngineEntry; // Must be first
     bool IsServer;
     bool Initialized{false};
     bool Shutdown{false};
@@ -176,7 +177,6 @@ class TcpConnection {
     bool IndicateConnect{false};
     bool IndicateSendComplete{false};
     TcpConnection* Next{nullptr};
-    CXPLAT_LIST_ENTRY EngineEntry;
     TcpEngine* Engine;
     TcpWorker* Worker{nullptr};
     CXPLAT_THREAD_ID WorkerThreadID{0};
