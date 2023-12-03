@@ -2117,6 +2117,7 @@ TEST(Misc, StreamBlockUnblockBidiConnFlowControl) {
     }
 }
 
+#ifdef QUIC_PARAM_STREAM_RELIABLE_OFFSET
 TEST(Misc, StreamReliableReset) {
     TestLogger Logger("StreamReliableReset");
     if (TestingKernelMode) {
@@ -2134,6 +2135,7 @@ TEST(Misc, StreamReliableResetMultipleSends) {
         QuicTestStreamReliableResetMultipleSends();
     }
 }
+#endif // QUIC_PARAM_STREAM_RELIABLE_OFFSET
 
 TEST(Misc, StreamBlockUnblockUnidiConnFlowControl) {
     TestLogger Logger("StreamBlockUnblockUnidiConnFlowControl");

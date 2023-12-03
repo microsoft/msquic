@@ -1490,6 +1490,7 @@ QuicTestCtlEvtIoDeviceControl(
                 Params->CustomCertValidationParams.AcceptCert,
                 Params->CustomCertValidationParams.AsyncValidation));
         break;
+
 #ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
     case IOCTL_QUIC_RELIABLE_RESET_NEGOTIATION:
         CXPLAT_FRE_ASSERT(Params != nullptr);
@@ -1499,6 +1500,7 @@ QuicTestCtlEvtIoDeviceControl(
                 Params->FeatureNegotiationParams.ServerSupport,
                 Params->FeatureNegotiationParams.ClientSupport));
         break;
+
     case IOCTL_QUIC_ONE_WAY_DELAY_NEGOTIATION:
         CXPLAT_FRE_ASSERT(Params != nullptr);
         QuicTestCtlRun(
