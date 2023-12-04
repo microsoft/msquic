@@ -7,6 +7,33 @@ This script assumes the latest MsQuic commit is built and downloaded as artifact
 .PARAMETER LogProfile
     Configures the logging scope for the test. None by default.
 
+.PARAMETER MsQuicCommit
+    The MsQuic commit to use for the test. Defaults to "manual" which means the latest commit built and downloaded as artifacts in the current session.
+
+.PARAMETER ClientOS
+    The OS of the client machine. Defaults to "Windows Server 2022".
+
+.PARAMETER ClientArch
+    The architecture of the client machine. Defaults to "x64".
+
+.PARAMETER ClientCpu
+    The CPU of the client machine. Defaults to "Intel(R) Xeon(R) Platinum 8272CL CPU @ 2.60GHz".
+
+.PARAMETER ClientNic
+    The NIC of the client machine. Defaults to "Mellanox ConnectX-5".
+
+.PARAMETER ServerOS
+    The OS of the server machine. Defaults to "Windows Server 2022".
+
+.PARAMETER ServerArch
+    The architecture of the server machine. Defaults to "x64".
+
+.PARAMETER ServerCpu
+    The CPU of the server machine. Defaults to "Intel(R) Xeon(R) Platinum 8272CL CPU @ 2.60GHz".
+
+.PARAMETER ServerNic
+    The NIC of the server machine. Defaults to "Mellanox ConnectX-5".
+
 #>
 
 param (
@@ -62,18 +89,6 @@ $ThisTest = @{}
 $ThisTest["RunDate"] = $formattedDate
 
 $ThisTest["MachineName"] = $env:COMPUTERNAME
-
-$ClientOS = "Windows Server 2022" # TODO: make param
-$ClientArch = "x64" # TODO: make param
-$ClientCpu = "Intel(R) Xeon(R) Platinum 8272CL CPU @ 2.60GHz" # TODO: make param
-$ClientNic = "Mellanox ConnectX-5" # TODO: make param
-
-$ServerOS = "Windows Server 2022" # TODO: make param
-$ServerArch = "x64" # TODO: make param
-$ServerCpu = "Intel(R) Xeon(R) Platinum 8272CL CPU @ 2.60GHz" # TODO: make param
-$ServerNic = "Mellanox ConnectX-5" # TODO: make param
-
-$MsQuicCommit = "12345678" # TODO: make param
 
 $ThisEnvironment = @{
     "Client" = @{
