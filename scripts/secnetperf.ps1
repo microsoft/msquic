@@ -11,12 +11,57 @@ This script assumes the latest MsQuic commit is built and downloaded as artifact
 
 param (
     [ValidateSet("", "NULL", "Basic.Light", "Datapath.Light", "Datapath.Verbose", "Stacks.Light", "Stacks.Verbose", "RPS.Light", "RPS.Verbose", "Performance.Light", "Basic.Verbose", "Performance.Light", "Performance.Verbose", "Full.Light", "Full.Verbose", "SpinQuic.Light", "SpinQuicWarnings.Light")]
-    [string]$LogProfile = ""
+    [string]$LogProfile = "",
+
+    [string]$MsQuicCommit = "manual",
+
+    [Parameter(Mandatory = $false)]
+    [string]$ClientOS = "Windows Server 2022",
+
+    [Parameter(Mandatory = $false)]
+    [string]$ClientArch = "x64",
+
+    [Parameter(Mandatory = $false)]
+    [string]$ClientCpu = "Intel(R) Xeon(R) Platinum 8272CL CPU @ 2.60GHz",
+
+    [Parameter(Mandatory = $false)]
+    [string]$ClientNic = "Mellanox ConnectX-5",
+
+    [Parameter(Mandatory = $false)]
+    [string]$ServerOS = "Windows Server 2022",
+
+    [Parameter(Mandatory = $false)]
+    [string]$ServerArch = "x64",
+
+    [Parameter(Mandatory = $false)]
+    [string]$ServerCpu = "Intel(R) Xeon(R) Platinum 8272CL CPU @ 2.60GHz",
+
+    [Parameter(Mandatory = $false)]
+    [string]$ServerNic = "Mellanox ConnectX-5"
 )
 
-# TODO: Add more metadata parameters to persist.
+# Get the current date and time
+$currentDate = Get-Date
+
+# Define the Pacific Standard Time zone ID
+# Note: Windows time zones might not use "PST" as the identifier.
+# Instead, it often uses specific city names or "Pacific Standard Time"
+$pstZoneId = "Pacific Standard Time"
+
+# Get the TimeZoneInfo object for Pacific Standard Time
+$pstZone = [TimeZoneInfo]::FindSystemTimeZoneById($pstZoneId)
+
+# Convert the current date and time to Pacific Standard Time
+$pstDate = [TimeZoneInfo]::ConvertTime($currentDate, $pstZone)
+
+# Format the date in the "yyyy-MM-dd-HH-mm-ss" format
+$formattedDate = $pstDate.ToString("yyyy-MM-dd-HH-mm-ss")
 
 $ThisTest = @{}
+
+$ThisTest["RunDate"] = $formattedDate
+
+$ThisTest["MachineName"] = $env:COMPUTERNAME
 
 $ClientOS = "Windows Server 2022" # TODO: make param
 $ClientArch = "x64" # TODO: make param
