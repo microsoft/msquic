@@ -152,6 +152,16 @@
     },
     {
       "type": "Conceptual",
+      "source_relative_path": "docs/Sample.md",
+      "output": {
+        ".html": {
+          "relative_path": "docs/Sample.html"
+        }
+      },
+      "version": ""
+    },
+    {
+      "type": "Conceptual",
       "source_relative_path": "docs/Settings.md",
       "output": {
         ".html": {
