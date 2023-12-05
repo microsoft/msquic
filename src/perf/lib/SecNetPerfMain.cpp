@@ -41,6 +41,7 @@ CXPLAT_DATAPATH_RECEIVE_CALLBACK DatapathReceive;
 CXPLAT_DATAPATH_UNREACHABLE_CALLBACK DatapathUnreachable;
 CXPLAT_DATAPATH* Datapath;
 CXPLAT_SOCKET* Binding;
+CxPlatWatchdog* Watchdog;
 bool ServerMode = false;
 uint32_t MaxRuntime = 0;
 
@@ -49,38 +50,6 @@ uint32_t MaxRuntime = 0;
         QUIC_STATUS _STATUS; \
         CXPLAT_FRE_ASSERT(QUIC_SUCCEEDED((_STATUS = x))); \
     } while (0)
-
-class SecNetPerfWatchdog {
-    CXPLAT_THREAD WatchdogThread;
-    CXPLAT_EVENT ShutdownEvent;
-    uint32_t TimeoutMs;
-    static
-    CXPLAT_THREAD_CALLBACK(WatchdogThreadCallback, Context) {
-        auto This = (SecNetPerfWatchdog*)Context;
-        if (!CxPlatEventWaitWithTimeout(This->ShutdownEvent, This->TimeoutMs)) {
-            WriteOutput("Watchdog timeout fired!\n");
-            CXPLAT_FRE_ASSERTMSG(FALSE, "Watchdog timeout fired!");
-        }
-        CXPLAT_THREAD_RETURN(0);
-    }
-public:
-    SecNetPerfWatchdog(uint32_t WatchdogTimeoutMs) : TimeoutMs(WatchdogTimeoutMs) {
-        CxPlatEventInitialize(&ShutdownEvent, TRUE, FALSE);
-        CXPLAT_THREAD_CONFIG Config = { 0 };
-        Config.Name = "perf_watchdog";
-        Config.Callback = WatchdogThreadCallback;
-        Config.Context = this;
-        ASSERT_ON_FAILURE(CxPlatThreadCreate(&Config, &WatchdogThread));
-    }
-    ~SecNetPerfWatchdog() {
-        CxPlatEventSet(ShutdownEvent);
-        CxPlatThreadWait(&WatchdogThread);
-        CxPlatThreadDelete(&WatchdogThread);
-        CxPlatEventUninitialize(ShutdownEvent);
-    }
-};
-
-SecNetPerfWatchdog* Watchdog;
 
 static
 void
@@ -141,7 +110,7 @@ QuicMainStart(
     TryGetValue(argc, argv, "watchdog", &WatchdogTimeout);
 
     if (WatchdogTimeout != 0) {
-        Watchdog = new(std::nothrow) SecNetPerfWatchdog{WatchdogTimeout};
+        Watchdog = new(std::nothrow) CxPlatWatchdog(WatchdogTimeout, "perf_watchdog");
     }
 
     QUIC_STATUS Status;
