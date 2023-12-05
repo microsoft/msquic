@@ -202,7 +202,7 @@ public:
     CXPLAT_EVENT* CompletionEvent {nullptr};
     QUIC_ADDR LocalAddresses[RPS_MAX_CLIENT_PORT_COUNT];
     uint32_t LocalAddressCount {RPS_MAX_CLIENT_PORT_COUNT};
-    uint32_t ActiveConnections {0};
+    alignas(16) uint32_t ActiveConnections {0};
     CxPlatEvent AllConnected {true};
     uint64_t StartedRequests {0};
     uint64_t SendCompletedRequests {0};

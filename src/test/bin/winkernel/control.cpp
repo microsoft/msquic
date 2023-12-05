@@ -172,7 +172,6 @@ Exit:
     return Status;
 }
 
-
 _No_competing_thread_
 INITCODE
 NTSTATUS
@@ -629,6 +628,7 @@ size_t QUIC_IOCTL_BUFFER_SIZES[] =
     0,
     0,
     sizeof(INT32),
+    0,
 };
 
 CXPLAT_STATIC_ASSERT(
@@ -1490,6 +1490,7 @@ QuicTestCtlEvtIoDeviceControl(
                 Params->CustomCertValidationParams.AcceptCert,
                 Params->CustomCertValidationParams.AsyncValidation));
         break;
+
 #ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
     case IOCTL_QUIC_RELIABLE_RESET_NEGOTIATION:
         CXPLAT_FRE_ASSERT(Params != nullptr);
@@ -1499,6 +1500,7 @@ QuicTestCtlEvtIoDeviceControl(
                 Params->FeatureNegotiationParams.ServerSupport,
                 Params->FeatureNegotiationParams.ClientSupport));
         break;
+
     case IOCTL_QUIC_ONE_WAY_DELAY_NEGOTIATION:
         CXPLAT_FRE_ASSERT(Params != nullptr);
         QuicTestCtlRun(
@@ -1524,6 +1526,10 @@ QuicTestCtlEvtIoDeviceControl(
     case IOCTL_QUIC_RUN_DRILL_VN_PACKET_TOKEN:
         CXPLAT_FRE_ASSERT(Params != nullptr);
         QuicTestCtlRun(QuicDrillTestServerVNPacket(Params->Family));
+        break;
+
+    case IOCTL_QUIC_RUN_CONN_CLOSE_BEFORE_STREAM_CLOSE:
+        QuicTestCtlRun(QuicTestConnectionCloseBeforeStreamClose());
         break;
 
     default:

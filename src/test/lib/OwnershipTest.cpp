@@ -230,3 +230,49 @@ void QuicTestRegistrationShutdownAfterConnOpenAndStart()
     TEST_TRUE(State.StateEvent.WaitTimeout(2000));
     TEST_EQUAL(1, State.ShutdownCount);
 }
+
+void QuicTestConnectionCloseBeforeStreamClose()
+{
+    MsQuicRegistration Registration;
+    TEST_TRUE(Registration.IsValid());
+
+    MsQuicRegistration ServerRegistration{true};
+    TEST_TRUE(ServerRegistration.IsValid());
+
+    MsQuicAlpn Alpn("MsQuicTest");
+    MsQuicCredentialConfig ClientCredConfig;
+    MsQuicConfiguration ClientConfiguration(Registration, Alpn, ClientCredConfig);
+    TEST_QUIC_SUCCEEDED(ClientConfiguration.GetInitStatus());
+
+    MsQuicConfiguration ServerConfiguration(ServerRegistration, Alpn, ServerSelfSignedCredConfig);
+    TEST_QUIC_SUCCEEDED(ServerConfiguration.GetInitStatus());
+
+    MsQuicAutoAcceptListener Listener(ServerRegistration, ServerConfiguration, MsQuicConnection::NoOpCallback);
+    TEST_QUIC_SUCCEEDED(Listener.GetInitStatus());
+    QUIC_ADDRESS_FAMILY QuicAddrFamily = QUIC_ADDRESS_FAMILY_INET;
+    QuicAddr ServerLocalAddr(QuicAddrFamily);
+    TEST_QUIC_SUCCEEDED(Listener.Start(Alpn, &ServerLocalAddr.SockAddr));
+    TEST_QUIC_SUCCEEDED(Listener.GetLocalAddr(ServerLocalAddr));
+
+    {
+        MsQuicConnection Connection(Registration);
+        TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
+        MsQuicStream Stream(Connection, QUIC_STREAM_OPEN_FLAG_NONE);
+        TEST_QUIC_SUCCEEDED(Stream.GetInitStatus());
+        TEST_QUIC_SUCCEEDED(Stream.Start());
+        Connection.Close();
+
+        QUIC_UINT62 StreamID = 0;
+        TEST_QUIC_SUCCEEDED(Stream.GetID(&StreamID));
+        TEST_QUIC_SUCCEEDED(Stream.SetPriority(0xFFFF));
+    }
+
+    {
+        MsQuicConnection Connection(Registration);
+        TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
+        MsQuicStream Stream(Connection, QUIC_STREAM_OPEN_FLAG_NONE);
+        TEST_QUIC_SUCCEEDED(Stream.GetInitStatus());
+        TEST_QUIC_SUCCEEDED(Stream.Start());
+        Connection.Close();
+    }
+}

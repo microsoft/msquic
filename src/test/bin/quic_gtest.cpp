@@ -356,6 +356,15 @@ TEST(OwnershipValidation, RegistrationShutdownAfterConnOpenAndStart) {
     }
 }
 
+TEST(OwnershipValidation, ConnectionCloseBeforeStreamClose) {
+    TestLogger Logger("ConnectionCloseBeforeStreamClose");
+    if (TestingKernelMode) {
+        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_CONN_CLOSE_BEFORE_STREAM_CLOSE));
+    } else {
+        QuicTestConnectionCloseBeforeStreamClose();
+    }
+}
+
 TEST_P(WithBool, ValidateStream) {
     TestLoggerT<ParamType> Logger("QuicTestValidateStream", GetParam());
     if (TestingKernelMode) {
@@ -2117,6 +2126,7 @@ TEST(Misc, StreamBlockUnblockBidiConnFlowControl) {
     }
 }
 
+#ifdef QUIC_PARAM_STREAM_RELIABLE_OFFSET
 TEST(Misc, StreamReliableReset) {
     TestLogger Logger("StreamReliableReset");
     if (TestingKernelMode) {
@@ -2134,6 +2144,7 @@ TEST(Misc, StreamReliableResetMultipleSends) {
         QuicTestStreamReliableResetMultipleSends();
     }
 }
+#endif // QUIC_PARAM_STREAM_RELIABLE_OFFSET
 
 TEST(Misc, StreamBlockUnblockUnidiConnFlowControl) {
     TestLogger Logger("StreamBlockUnblockUnidiConnFlowControl");

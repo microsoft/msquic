@@ -297,7 +297,7 @@ CXPLAT_STATIC_ASSERT(QUIC_INITIAL_PACKET_LENGTH >= QUIC_MIN_INITIAL_PACKET_LENGT
 //
 // The number of milliseconds that must elapse before a connection is
 // considered disconnected; that is, the time a connection waits for an
-// expected acknowledgement for packets it has sent before it considers the
+// expected acknowledgment for packets it has sent before it considers the
 // path dead.
 //
 #define QUIC_DEFAULT_DISCONNECT_TIMEOUT         16000   // 16 seconds, in ms
