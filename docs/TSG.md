@@ -88,10 +88,10 @@ symptom: Peer complains starting stream is failed due to remote abortion.
 
 The remote stream maybe aborted locally by
 
-1. Local calls the [StreamShutdown](./api/StreamShutdown.md) with **abortive** flags
-1. Local calls the [StreamClose](./api/StreamClose.md)
-1. Local calls the [ConnectionShutdown](./api/ConnectionShutdown.md)
-1. Connection callback handler returns the value other than `QUIC_STATUS_SUCCESS` for event: `QUIC_CONNECTION_EVENT_PEER_STREAM_STARTED` 
+- Local calls the [StreamShutdown](./api/StreamShutdown.md) with **abortive** flags
+- Local calls the [StreamClose](./api/StreamClose.md)
+- Local calls the [ConnectionShutdown](./api/ConnectionShutdown.md)
+- Connection callback handler returns the value other than `QUIC_STATUS_SUCCESS` for event: `QUIC_CONNECTION_EVENT_PEER_STREAM_STARTED` 
 
 ## Why isn't application data flowing?
 
