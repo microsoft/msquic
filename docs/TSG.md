@@ -5,8 +5,8 @@ This document is meant to be a step-by-step guide for trouble shooting any issue
 ## What kind of Issue are you having?
 
 1. [I am debugging a crash.](#debugging-a-crash)
-2. [Something is not functionally working as I expect.](#trouble-shooting-a-functional-issue)
-3. [Performance is not what I expect it to be.](#trouble-shooting-a-performance-issue)
+1. [Something is not functionally working as I expect.](#trouble-shooting-a-functional-issue)
+1. [Performance is not what I expect it to be.](#trouble-shooting-a-performance-issue)
 
 # Debugging a Crash
 
@@ -15,14 +15,16 @@ This document is meant to be a step-by-step guide for trouble shooting any issue
 # Trouble Shooting a Functional Issue
 
 1. [I am getting an error code I don't understand.](#understanding-error-codes)
-2. [The connection is unexpectedly shutting down.](#why-is-the-connection-shutting-down)
-3. [No application (stream) data seems to be flowing.](#why-isnt-application-data-flowing)
-4. [Why is this API failing?](#why-is-this-api-failing)
-5. [An MsQuic API is hanging.](#why-is-the-api-hanging-or-deadlocking)
-6. [I am having problems with SMB over QUIC.](#trouble-shooting-smb-over-quic-issues)
-7. [No credentials when loading a server certificate from PEM with Schannel.](#convert-pem-to-pkcs12-for-schannel)
-8. [TLS handshake fails in Chrome and Edge for HTTP/3 (including WebTransport) even though HTTP/1.1 and HTTP/2 work.](#using-a-self-signed-certificate-for-http3)
-9. [I need to get a packet capture](#collecting-a-packet-capture).
+1. [The connection is unexpectedly shutting down.](#why-is-the-connection-shutting-down)
+1. [The stream is aborted](#the-stream-is-aborted)
+1. [No application (stream) data seems to be flowing.](#why-isnt-application-data-flowing)
+1. [Why is this API failing?](#why-is-this-api-failing)
+1. [An MsQuic API is hanging.](#why-is-the-api-hanging-or-deadlocking)
+1. [I am having problems with SMB over QUIC.](#trouble-shooting-smb-over-quic-issues)
+1. [No credentials when loading a server certificate from PEM with Schannel.](#convert-pem-to-pkcs12-for-schannel)
+1. [TLS handshake fails in Chrome and Edge for HTTP/3 (including WebTransport) even though HTTP/1.1 and HTTP/2 work.](#using-a-self-signed-certificate-for-http3)
+1. [I need to get a packet capture](#collecting-a-packet-capture).
+1. [MsQuic logging?](#logging)
 
 ## Understanding Error Codes
 
@@ -75,6 +77,21 @@ As indicated in [Understanding shutdown by Transport](#understanding-shutdown-by
 > TODO - Add an example event
 
 The error code indicated in this event is completely application defined (type of `QUIC_UINT62`). The transport has no understanding of the meaning of this value. It never generates these error codes itself. So, to map these values to some meaning will require the application protocol documentation.
+
+## The stream is aborted.
+
+Stream abortion is stream terminated abruptly. 
+
+### Remote Stream is aborted by my side?
+
+symptom: Peer complains starting stream is failed due to remote abortion.
+
+The remote stream maybe aborted locally by
+
+1. Local calls the [StreamShutdown](./api/StreamShutdown.md) with **abortive** flags
+1. Local calls the [StreamClose](./api/StreamClose.md)
+1. Local calls the [ConnectionShutdown](./api/ConnectionShutdown.md)
+1. Connection callback handler returns the value other than `QUIC_STATUS_SUCCESS` for event: `QUIC_CONNECTION_EVENT_PEER_STREAM_STARTED` 
 
 ## Why isn't application data flowing?
 
@@ -229,7 +246,15 @@ See [FlyByWireless.CustomCertificate.Generate()](https://github.com/wegylexy/web
 
 ### Linux Packet Capture
 
-> TODO
+``` sh
+# Capture from any interface, all the udp traffic on the host and write it to the msquic.pcap file 
+tcpdump -i any udp -w msquic.pcap
+```
+
+```sh 
+# wireshark to view it. (You need load SSLKEYLOGFILE for the session key to decrypt the session)
+wireshark ./msquic.pcap
+```
 
 ### Window Packet Capture
 
@@ -268,6 +293,19 @@ This produced `pktmon.pcapng` in your current directory that can then be opened 
 
 > **Note**
 > If you don't specify the component in the `filter` step, you can specify it at the `etl2pcap` step: `pktmon etl2pcap pktmon.etl -c 9` and it will produce the same final output `pcapng` file.
+
+
+## Logging
+
+### Linux
+
+The simplest and fastest method to get MsQuic logging to stdout is to build msquic with following cmake arguments:
+
+```sh
+cmake -D QUIC_ENABLE_LOGGING=ON -D QUIC_LOGGING_TYPE=stdout ...
+```
+
+There is another logging backend: `lttng`, which has some depedencies and require setup: [BUILD](./BUILD.md#Install Depedencies)
 
 # Trouble Shooting a Performance Issue
 
