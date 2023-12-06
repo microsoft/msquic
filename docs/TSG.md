@@ -14,6 +14,7 @@ This document is meant to be a step-by-step guide for trouble shooting any issue
 
 # Trouble Shooting a Functional Issue
 
+1. [MsQuic logging?](#logging)
 1. [I am getting an error code I don't understand.](#understanding-error-codes)
 1. [The connection is unexpectedly shutting down.](#why-is-the-connection-shutting-down)
 1. [The stream is aborted](#the-stream-is-aborted)
@@ -24,7 +25,10 @@ This document is meant to be a step-by-step guide for trouble shooting any issue
 1. [No credentials when loading a server certificate from PEM with Schannel.](#convert-pem-to-pkcs12-for-schannel)
 1. [TLS handshake fails in Chrome and Edge for HTTP/3 (including WebTransport) even though HTTP/1.1 and HTTP/2 work.](#using-a-self-signed-certificate-for-http3)
 1. [I need to get a packet capture](#collecting-a-packet-capture).
-1. [MsQuic logging?](#logging)
+
+## Logging
+
+See [Tracing](./Diagnostics.md#Built-in Tracing)
 
 ## Understanding Error Codes
 
@@ -293,19 +297,6 @@ This produced `pktmon.pcapng` in your current directory that can then be opened 
 
 > **Note**
 > If you don't specify the component in the `filter` step, you can specify it at the `etl2pcap` step: `pktmon etl2pcap pktmon.etl -c 9` and it will produce the same final output `pcapng` file.
-
-
-## Logging
-
-### Linux
-
-The simplest and fastest method to get MsQuic logging to stdout is to build msquic with following cmake arguments:
-
-```sh
-cmake -D QUIC_ENABLE_LOGGING=ON -D QUIC_LOGGING_TYPE=stdout ...
-```
-
-There is another logging backend: `lttng`, which has some depedencies and require setup: [BUILD](./BUILD.md#Install Depedencies)
 
 # Trouble Shooting a Performance Issue
 
