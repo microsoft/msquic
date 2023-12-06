@@ -99,8 +99,10 @@
 </blockquote>
 <h1 id="trouble-shooting-a-functional-issue">Trouble Shooting a Functional Issue</h1>
 <ol>
+<li><a href="#logging">MsQuic logging?</a></li>
 <li><a href="#understanding-error-codes">I am getting an error code I don't understand.</a></li>
 <li><a href="#why-is-the-connection-shutting-down">The connection is unexpectedly shutting down.</a></li>
+<li><a href="#the-stream-is-aborted">The stream is aborted</a></li>
 <li><a href="#why-isnt-application-data-flowing">No application (stream) data seems to be flowing.</a></li>
 <li><a href="#why-is-this-api-failing">Why is this API failing?</a></li>
 <li><a href="#why-is-the-api-hanging-or-deadlocking">An MsQuic API is hanging.</a></li>
@@ -109,6 +111,8 @@
 <li><a href="#using-a-self-signed-certificate-for-http3">TLS handshake fails in Chrome and Edge for HTTP/3 (including WebTransport) even though HTTP/1.1 and HTTP/2 work.</a></li>
 <li><a href="#collecting-a-packet-capture">I need to get a packet capture</a>.</li>
 </ol>
+<h2 id="logging">Logging</h2>
+<p>See [Tracing](./Diagnostics.md#Built-in Tracing)</p>
 <h2 id="understanding-error-codes">Understanding Error Codes</h2>
 <p>Some error codes are MsQuic specific (<code>QUIC_STATUS_*</code>), and some are simply a passthrough from the platform. You can find the MsQuic specific error codes in the platform specific header (<a href="https://github.com/microsoft/msquic/tree/main/src/inc/msquic_posix.h">msquic_posix.h</a>, <a href="https://github.com/microsoft/msquic/tree/main/src/inc/msquic_winkernel.h">msquic_winkernel.h</a>, or <a href="https://github.com/microsoft/msquic/tree/main/src/inc/msquic_winuser.h">msquic_winuser.h</a>).</p>
 <p>From <a href="https://github.com/microsoft/msquic/tree/main/src/inc/msquic_winuser.h">msquic_winuser.h</a>:</p>
@@ -143,6 +147,17 @@
 <p>TODO - Add an example event</p>
 </blockquote>
 <p>The error code indicated in this event is completely application defined (type of <code>QUIC_UINT62</code>). The transport has no understanding of the meaning of this value. It never generates these error codes itself. So, to map these values to some meaning will require the application protocol documentation.</p>
+<h2 id="the-stream-is-aborted">The stream is aborted.</h2>
+<p>Stream abortion is stream terminated abruptly.</p>
+<h3 id="remote-stream-is-aborted-by-my-side">Remote Stream is aborted by my side?</h3>
+<p>symptom: Peer complains starting stream is failed due to remote abortion.</p>
+<p>The remote stream maybe aborted locally by</p>
+<ul>
+<li>Local calls the <a href="api/StreamShutdown.html">StreamShutdown</a> with <strong>abortive</strong> flags</li>
+<li>Local calls the <a href="api/StreamClose.html">StreamClose</a></li>
+<li>Local calls the <a href="api/ConnectionShutdown.html">ConnectionShutdown</a></li>
+<li>Connection callback handler returns the value other than <code>QUIC_STATUS_SUCCESS</code> for event: <code>QUIC_CONNECTION_EVENT_PEER_STREAM_STARTED</code></li>
+</ul>
 <h2 id="why-isnt-application-data-flowing">Why isn't application data flowing?</h2>
 <p>Application data is exchanged via <a href="Streams.html">Streams</a> and queued by the app via <a href="api/StreamSend.html">StreamSend</a>. The act of queuing data doesn't mean it will be immediately sent to the peer. There are a number of things that can block or delay the exchange. The <code>QUIC_FLOW_BLOCK_REASON</code> enum in <a href="https://github.com/microsoft/msquic/tree/main/src/inc/quic_trace.h">quic_trace.h</a> contains the full list of reasons that data may be blocked. Below is a short explanation of each:</p>
 <table>
@@ -284,9 +299,12 @@ Share the generated cab file with SMB developers.
 <p>See <a href="https://github.com/wegylexy/webtransport/blob/c55d9cc5a11f3a8b8dfd2a12c8d02ad462dc693d/Server/CustomCertificate.cs#L8-L33">FlyByWireless.CustomCertificate.Generate()</a> on how to generate such a certificate.</p>
 <h2 id="collecting-a-packet-capture">Collecting a Packet Capture</h2>
 <h3 id="linux-packet-capture">Linux Packet Capture</h3>
-<blockquote>
-<p>TODO</p>
-</blockquote>
+<pre><code class="lang-sh"># Capture from any interface, all the udp traffic on the host and write it to the msquic.pcap file 
+tcpdump -i any udp -w msquic.pcap
+</code></pre>
+<pre><code class="lang-sh"># wireshark to view it. (You need load SSLKEYLOGFILE for the session key to decrypt the session)
+wireshark ./msquic.pcap
+</code></pre>
 <h3 id="window-packet-capture">Window Packet Capture</h3>
 <p>On Windows, <a href="https://docs.microsoft.com/en-us/windows-server/networking/technologies/pktmon/pktmon?msclkid=79c406dcab7711ec976873fd5c4a48bf">Packet Monitor</a> (<code>pktmon</code>) is the best way to collect a packet capture.</p>
 <p>The (optional) first step is usually to find the interface you want to collect the capture on. Do this by first running <code>pktmon list</code>:</p>
