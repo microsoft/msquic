@@ -28,7 +28,7 @@ This document is meant to be a step-by-step guide for trouble shooting any issue
 
 ## Logging
 
-See [Tracing](./Diagnostics.md#Built-in Tracing)
+See [Tracing](./Diagnostics.md#Built-in-Tracing)
 
 ## Understanding Error Codes
 
