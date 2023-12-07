@@ -594,8 +594,6 @@ SecNetPerfCtlEvtIoCanceled(
     )
 {
     NTSTATUS Status;
-
-
     WDFFILEOBJECT FileObject = WdfRequestGetFileObject(Request);
     if (FileObject == nullptr) {
         Status = STATUS_DEVICE_NOT_READY;
@@ -775,7 +773,7 @@ SecNetPerfCtlStart(
     _In_ int Length
     )
 {
-    char** Argv = new(std::nothrow) char* [Length];
+    auto Argv = new(std::nothrow) char* [Length];
     if (!Argv) {
         return QUIC_STATUS_OUT_OF_MEMORY;
     }
@@ -829,37 +827,32 @@ SecNetPerfCtlGetExtraData(
     )
 {
     CXPLAT_FRE_ASSERT(OutputBufferLength < UINT32_MAX);
-    uint8_t* LocalBuffer = nullptr;
-    uint32_t BufferLength = (uint32_t)OutputBufferLength;
-
+    uint8_t* OutputBuffer = nullptr;
     NTSTATUS Status =
         WdfRequestRetrieveOutputBuffer(
             Request,
-            BufferLength,
-            (void**)&LocalBuffer,
+            OutputBufferLength,
+            (void**)&OutputBuffer,
             nullptr);
     if (!NT_SUCCESS(Status)) {
         WdfRequestComplete(Request, Status);
         return;
     }
 
-    QUIC_STATUS QuicStatus =
-        QuicMainGetExtraData(
-            LocalBuffer,
-            BufferLength);
-
     WdfRequestCompleteWithInformation(
         Request,
-        QuicStatus,
+        QuicMainGetExtraData(
+            OutputBuffer,
+            (uint32_t)OutputBufferLength),
         BufferLength);
 }
 
 VOID
 SecNetPerfCtlEvtIoDeviceControl(
-    _In_ WDFQUEUE Queue,
+    _In_ WDFQUEUE /* Queue */,
     _In_ WDFREQUEST Request,
     _In_ size_t OutputBufferLength,
-    _In_ size_t InputBufferLength,
+    _In_ size_t /* InputBufferLength */,
     _In_ ULONG IoControlCode
     )
 {
@@ -903,9 +896,7 @@ SecNetPerfCtlEvtIoDeviceControl(
     // Handle IOCTL for read
     //
     if (IoControlCode == IOCTL_QUIC_READ_DATA) {
-        SecNetPerfCtlReadPrints(
-            Request,
-            Client);
+        SecNetPerfCtlReadPrints(Request, Client);
         return;
     } else if (IoControlCode == IOCTL_QUIC_GET_EXTRA_DATA_LENGTH) {
         SecNetPerfCtlGetExtraDataLength(Request);
@@ -995,6 +986,4 @@ Error:
         Status);
 
     WdfRequestComplete(Request, Status);
-    UNREFERENCED_PARAMETER(InputBufferLength);
-    UNREFERENCED_PARAMETER(Queue);
 }
