@@ -12,7 +12,7 @@
 [![crates.io](https://img.shields.io/crates/v/msquic)](https://crates.io/crates/msquic)
 [![nuget](https://img.shields.io/nuget/vpre/Microsoft.Native.Quic.MsQuic.Schannel?style=plastic)](https://www.nuget.org/profiles/msquic)
 
-MsQuic is a Microsoft implementation of the [IETF QUIC](https://datatracker.ietf.org/wg/quic/about/)
+MSQuic is a Microsoft implementation of the [IETF QUIC](https://datatracker.ietf.org/wg/quic/about/)
 protocol. It is cross-platform, written in C and designed to be a general purpose QUIC library. MsQuic also has C++ API wrapper classes and exposes interop layers for both Rust and C#.
 
 ## Protocol Features
