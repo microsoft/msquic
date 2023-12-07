@@ -125,7 +125,7 @@ QuicMainStart(
     // Try to see if there is a client target specified on the command line to
     // determine if we are a client or server.
     //
-    const char* Target;
+    const char* Target = nullptr;
     TryGetValue(argc, argv, "target", &Target);
     TryGetValue(argc, argv, "server", &Target);
     TryGetValue(argc, argv, "to", &Target);
@@ -281,17 +281,8 @@ QuicMainFree(
     Watchdog = nullptr;
 }
 
-QUIC_STATUS
-QuicMainGetExtraDataLength(
-    _Out_ uint32_t* DataLength
-    )
-{
-    if (Client == nullptr) {
-        return QUIC_STATUS_INVALID_STATE;
-    }
-
-    Client->GetExtraDataLength(DataLength);
-    return QUIC_STATUS_SUCCESS;
+uint32_t QuicMainGetExtraDataLength() {
+    return Client ? Client->GetExtraDataLength() : 0;
 }
 
 QUIC_STATUS

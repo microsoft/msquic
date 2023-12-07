@@ -326,20 +326,18 @@ PerfClient::Wait(
     return QUIC_STATUS_SUCCESS;
 }
 
-void
+uint32_t
 PerfClient::GetExtraDataLength(
-    _Out_ uint32_t* DataLength
     )
 {
     if (!MaxLatencyIndex) {
-       *DataLength = 0; // Not capturing this extra data
-    } else {
-        *DataLength =
-            (uint32_t)(
-            sizeof(RunTime) +
-            sizeof(CurLatencyIndex) +
-            (LatencyCount * sizeof(uint32_t)));
+       return 0; // Not capturing this extra data
     }
+    return
+        (uint32_t)(
+        sizeof(RunTime) +
+        sizeof(CurLatencyIndex) +
+        (LatencyCount * sizeof(uint32_t)));
 }
 
 QUIC_STATUS

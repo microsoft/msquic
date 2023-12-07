@@ -110,10 +110,7 @@ QuicUserMain(
     _In_opt_z_ const char* FileName
     ) {
     CxPlatEvent StopEvent {true};
-
-    QUIC_STATUS Status;
-
-    Status = QuicMainStart(argc, argv, &StopEvent.Handle, SelfSignedCredConfig);
+    QUIC_STATUS Status = QuicMainStart(argc, argv, &StopEvent.Handle, SelfSignedCredConfig);
     if (QUIC_FAILED(Status)) {
         QuicMainFree();
         return Status;
@@ -129,14 +126,7 @@ QuicUserMain(
         return Status;
     }
 
-    uint32_t DataLength;
-    Status = QuicMainGetExtraDataLength(&DataLength);
-    if (QUIC_FAILED(Status)) {
-        printf("Get extra data length failed with status %d\n", Status);
-        QuicMainFree();
-        return Status;
-    }
-
+    uint32_t DataLength = QuicMainGetExtraDataLength();
     if (DataLength) {
         UniquePtr<uint8_t[]> Buffer = UniquePtr<uint8_t[]>(new (std::nothrow) uint8_t[DataLength]);
         if (Buffer.get() == nullptr) {

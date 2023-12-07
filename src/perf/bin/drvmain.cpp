@@ -805,33 +805,23 @@ SecNetPerfCtlGetExtraDataLength(
     _In_ WDFREQUEST Request
     )
 {
-    QUIC_STATUS QuicStatus;
-    uint32_t DataLength = 0;
-
-    QuicStatus = QuicMainGetExtraDataLength(&DataLength);
-    if (QUIC_FAILED(QuicStatus)) {
-        WdfRequestComplete(Request, QuicStatus);
-        return;
-    }
-
-    void* LocalBuffer = nullptr;
-
+    uint32_t* DataLength;
     NTSTATUS Status =
         WdfRequestRetrieveOutputBuffer(
             Request,
-            sizeof(DataLength),
-            &LocalBuffer,
+            sizeof(*DataLength),
+            (void**)&DataLength,
             nullptr);
     if (!NT_SUCCESS(Status)) {
         WdfRequestComplete(Request, Status);
         return;
     }
 
-    CxPlatCopyMemory(LocalBuffer, &DataLength, sizeof(DataLength));
+    *DataLength = QuicMainGetExtraDataLength();
     WdfRequestCompleteWithInformation(
         Request,
         Status,
-        sizeof(DataLength));
+        sizeof(*DataLength));
 }
 
 void

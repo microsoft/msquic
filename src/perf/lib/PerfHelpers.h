@@ -54,9 +54,8 @@ QuicMainFree(
     );
 
 extern
-QUIC_STATUS
+uint32_t
 QuicMainGetExtraDataLength(
-    _Out_ uint32_t* DataLength
     );
 
 extern
