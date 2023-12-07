@@ -187,6 +187,7 @@ struct PerfClient {
     uint8_t UsePacing {TRUE};
     uint8_t UseSendBuffering {FALSE};
     uint8_t PrintThroughput {FALSE};
+    uint8_t PrintIoRate {FALSE};
     uint8_t PrintConnections {FALSE};
     uint8_t PrintStreams {FALSE};
     uint8_t PrintLatency {FALSE};

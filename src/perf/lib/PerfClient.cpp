@@ -42,6 +42,7 @@ const char PERF_CLIENT_OPTIONS_TEXT[] =
 "  -pacing:<0/1>            Disables/enables send pacing. (def:1)\n"
 "  -sendbuf:<0/1>           Disables/enables send buffering. (def:0)\n"
 "  -ptput:<0/1>             Print throughput information. (def:0)\n"
+"  -prate:<0/1>             Print IO rate information. (def:0)\n"
 "  -pconn:<0/1>             Print connection statistics. (def:0)\n"
 "  -pstream:<0/1>           Print stream statistics. (def:0)\n"
 "  -platency<0/1>           Print latency statistics. (def:0)\n"
@@ -71,10 +72,6 @@ PerfClient::Init(
     _In_ int argc,
     _In_reads_(argc) _Null_terminated_ char* argv[]
     ) {
-    if (GetValue(argc, argv, "?") || GetValue(argc, argv, "help")) {
-        PrintHelp();
-        return QUIC_STATUS_INVALID_PARAMETER;
-    }
 
     if (!Configuration.IsValid()) {
         return Configuration.GetInitStatus();
@@ -85,15 +82,11 @@ PerfClient::Init(
     //
 
     const char* target;
-    if (!TryGetValue(argc, argv, "target", &target) &&
-        !TryGetValue(argc, argv, "server", &target) &&
-        !TryGetValue(argc, argv, "to", &target) &&
-        !TryGetValue(argc, argv, "remote", &target) &&
-        !TryGetValue(argc, argv, "peer", &target)) {
-        WriteOutput("Must specify 'target' argument!\n");
-        PrintHelp();
-        return QUIC_STATUS_INVALID_PARAMETER;
-    }
+    TryGetValue(argc, argv, "target", &target);
+    TryGetValue(argc, argv, "server", &target);
+    TryGetValue(argc, argv, "to", &target);
+    TryGetValue(argc, argv, "remote", &target);
+    TryGetValue(argc, argv, "peer", &target);
 
     size_t Len = strlen(target);
     Target.reset(new(std::nothrow) char[Len + 1]);
@@ -169,6 +162,7 @@ PerfClient::Init(
     TryGetValue(argc, argv, "pacing", &UsePacing);
     TryGetValue(argc, argv, "sendbuf", &UseSendBuffering);
     TryGetValue(argc, argv, "ptput", &PrintThroughput);
+    TryGetValue(argc, argv, "prate", &PrintIoRate);
     TryGetValue(argc, argv, "pconnection", &PrintConnections);
     TryGetValue(argc, argv, "pconn", &PrintConnections);
     TryGetValue(argc, argv, "pstream", &PrintStreams);
@@ -371,10 +365,31 @@ PerfClient::Wait(
         Workers[i].Uninitialize();
     }
 
-    WriteOutput(
-        "Completed %llu connections and %llu streams!\n",
-        (unsigned long long)GetConnectionsCompleted(),
-        (unsigned long long)GetStreamsCompleted());
+    auto CompletedConnections = GetConnectionsCompleted();
+    auto CompletedStreams = GetStreamsCompleted();
+    if (CompletedConnections && CompletedStreams) {
+        WriteOutput(
+            "Completed %llu connections and %llu streams!\n",
+            (unsigned long long)CompletedConnections,
+            (unsigned long long)CompletedStreams);
+    } else if (CompletedConnections) {
+        WriteOutput("Completed %llu connections!\n", (unsigned long long)CompletedConnections);
+    } else if (CompletedStreams) {
+        WriteOutput("Completed %llu streams!\n", (unsigned long long)CompletedStreams);
+    } else {
+        WriteOutput("No connections or streams completed!\n");
+    }
+
+    if (PrintIoRate) {
+        if (CompletedConnections) {
+            unsigned long long HPS = CompletedConnections * 1000 / RunTime;
+            WriteOutput("Result: %llu HPS\n", HPS);
+        }
+        if (CompletedStreams) {
+            unsigned long long RPS = CompletedStreams * 1000 / RunTime;
+            WriteOutput("Result: %llu RPS\n", RPS);
+        }
+    }
 
     return QUIC_STATUS_SUCCESS;
 }

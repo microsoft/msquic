@@ -22,8 +22,6 @@ const MsQuicApi* MsQuic;
 volatile int BufferCurrent;
 char Buffer[BufferLength];
 
-PerfServer* Server;
-PerfClient* Client;
 QUIC_EXECUTION_PROFILE PerfDefaultExecutionProfile = QUIC_EXECUTION_PROFILE_LOW_LATENCY;
 QUIC_CONGESTION_CONTROL_ALGORITHM PerfDefaultCongestionControl = QUIC_CONGESTION_CONTROL_ALGORITHM_CUBIC;
 uint8_t PerfDefaultEcnEnabled = false;
@@ -34,20 +32,14 @@ uint8_t PerfDefaultQeoAllowed = false;
 const uint8_t SecNetPerfShutdownGuid[16] = { // {ff15e657-4f26-570e-88ab-0796b258d11c}
     0x57, 0xe6, 0x15, 0xff, 0x26, 0x4f, 0x0e, 0x57,
     0x88, 0xab, 0x07, 0x96, 0xb2, 0x58, 0xd1, 0x1c};
-CXPLAT_THREAD ControlThreadHandle;
 CXPLAT_DATAPATH_RECEIVE_CALLBACK DatapathReceive;
 CXPLAT_DATAPATH_UNREACHABLE_CALLBACK DatapathUnreachable;
 CXPLAT_DATAPATH* Datapath;
 CXPLAT_SOCKET* Binding;
 CxPlatWatchdog* Watchdog;
-bool ClientMode = false;
+PerfServer* Server;
+PerfClient* Client;
 uint32_t MaxRuntime = 0;
-
-#define ASSERT_ON_FAILURE(x) \
-    do { \
-        QUIC_STATUS _STATUS; \
-        CXPLAT_FRE_ASSERT(QUIC_SUCCEEDED((_STATUS = x))); \
-    } while (0)
 
 static
 void
@@ -59,25 +51,64 @@ PrintHelp(
         "\n"
         "Server: secnetperf [options]\n"
         "\n"
-        "  -bind:<addr>                A local IP address to bind to.\n"
-        "  -port:<####>                The UDP port of the server. Ignored if \"bind\" is passed. (def:%u)\n"
-        "  -serverid:<####>            The ID of the server (used for load balancing).\n"
-        "  -cibir:<hex_bytes>          A CIBIR well-known idenfitier.\n"
+        "  -bind:<addr>             A local IP address to bind to.\n"
+        "  -port:<####>             The UDP port of the server. Ignored if \"bind\" is passed. (def:%u)\n"
+        "  -serverid:<####>         The ID of the server (used for load balancing).\n"
+        "  -cibir:<hex_bytes>       A CIBIR well-known idenfitier.\n"
         "\n"
-        "Client: secnetperf -Target:<hostname/ip> [options]\n"
-        "Both:\n"
-        "  -exec:<profile>             Execution profile to use {lowlat, maxtput, scavenger, realtime}.\n"
-        "  -cc:<algo>                  Congestion control algorithm to use {cubic, bbr}.\n"
-        "  -pollidle:<time_us>         Amount of time to poll while idle before sleeping (default: 0).\n"
-        "  -ecn:<0/1>                  Enables/disables sender-side ECN support. (def:0)\n"
-        "  -qeo:<0/1>                  Allows/disallowes QUIC encryption offload. (def:0)\n"
+        "Client: secnetperf -target:<hostname/ip> [options]\n"
+        "\n"
+        "  Remote options:\n"
+        "  -ip:<0/4/6>              A hint for the resolving the hostname to an IP address. (def:0)\n"
+        "  -port:<####>             The UDP port of the server. (def:%u)\n"
+        "  -cibir:<hex_bytes>       A CIBIR well-known idenfitier.\n"
+        "  -inctarget:<0/1>         Append unique ID to target hostname for each worker (def:0).\n"
+        "\n"
+        "  Local options:\n"
+        "  -threads:<####>          The max number of worker threads to use.\n"
+        "  -affinitize:<0/1>        Affinitizes worker threads to a core. (def:0)\n"
+        #ifdef QUIC_COMPARTMENT_ID
+        "  -comp:<####>             The network compartment ID to run in.\n"
+        #endif
+        "  -bind:<addr>             The local IP address(es)/port(s) to bind to.\n"
+        "  -share:<0/1>             Shares the same local bindings. (def:0)\n"
+        "\n"
+        "  Config options:\n"
+        "  -tcp:<0/1>               Disables/enables TCP usage (instead of QUIC). (def:0)\n"
+        "  -encrypt:<0/1>           Disables/enables encryption. (def:1)\n"
+        "  -pacing:<0/1>            Disables/enables send pacing. (def:1)\n"
+        "  -sendbuf:<0/1>           Disables/enables send buffering. (def:0)\n"
+        "  -ptput:<0/1>             Print throughput information. (def:0)\n"
+        "  -pconn:<0/1>             Print connection statistics. (def:0)\n"
+        "  -pstream:<0/1>           Print stream statistics. (def:0)\n"
+        "  -platency<0/1>           Print latency statistics. (def:0)\n"
+        "\n"
+        "  Scenario options:\n"
+        "  -conns:<####>            The number of connections to use. (def:1)\n"
+        "  -streams:<####>          The number of streams to send on at a time. (def:0)\n"
+        "  -upload:<####>           The length of bytes to send on each stream. (def:0)\n"
+        "  -download:<####>         The length of bytes to receive on each stream. (def:0)\n"
+        "  -iosize:<####>           The size of each send request queued.\n"
+        "  -timed:<0/1>             Indicates the upload/download args are times (in ms). (def:0)\n"
+        //"  -inline:<0/1>            Create new streams on callbacks. (def:0)\n"
+        "  -rconn:<0/1>             Repeat the scenario at the connection level. (def:0)\n"
+        "  -rstream:<0/1>           Repeat the scenario at the stream level. (def:0)\n"
+        "  -runtime:<####>          The total runtime (in ms). Only relevant for repeat scenarios. (def:0)\n"
+        "\n"
+        "Both (client & server) options:\n"
+        "  -exec:<profile>          Execution profile to use {lowlat, maxtput, scavenger, realtime}.\n"
+        "  -cc:<algo>               Congestion control algorithm to use {cubic, bbr}.\n"
+        "  -pollidle:<time_us>      Amount of time to poll while idle before sleeping (default: 0).\n"
+        "  -ecn:<0/1>               Enables/disables sender-side ECN support. (def:0)\n"
+        "  -qeo:<0/1>               Allows/disallowes QUIC encryption offload. (def:0)\n"
 #ifndef _KERNEL_MODE
-        "  -cpu:<cpu_index>            Specify the processor(s) to use.\n"
-        "  -cipher:<value>             Decimal value of 1 or more QUIC_ALLOWED_CIPHER_SUITE_FLAGS.\n"
-        "  -qtip:<0/1>                 Enables/disables QUIC over TCP support. (def:0)\n"
-        "  -rio:<0/1>                  Enables/disables RIO support. (def:0)\n"
+        "  -cpu:<cpu_index>         Specify the processor(s) to use.\n"
+        "  -cipher:<value>          Decimal value of 1 or more QUIC_ALLOWED_CIPHER_SUITE_FLAGS.\n"
+        "  -qtip:<0/1>              Enables/disables QUIC over TCP support. (def:0)\n"
+        "  -rio:<0/1>               Enables/disables RIO support. (def:0)\n"
 #endif // _KERNEL_MODE
         "\n",
+        PERF_DEFAULT_PORT,
         PERF_DEFAULT_PORT
         );
 }
@@ -91,12 +122,12 @@ QuicMainStart(
     ) {
     argc--; argv++; // Skip app name
 
-    if (argc != 0 && (IsArg(argv[0], "?") || IsArg(argv[0], "help"))) {
+    if (GetFlag(argc, argv, "?") || GetFlag(argc, argv, "help")) {
         PrintHelp();
         return QUIC_STATUS_INVALID_PARAMETER;
     }
 
-    ClientMode =
+    bool ClientMode =
         GetValue(argc, argv, "target") ||
         GetValue(argc, argv, "server") ||
         GetValue(argc, argv, "to") ||
