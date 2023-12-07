@@ -66,9 +66,11 @@ QuicMainGetExtraData(
     _Inout_ uint32_t* Length
     );
 
+#ifdef _KERNEL_MODE
 extern volatile int BufferCurrent;
 constexpr int BufferLength = 40 * 1024 * 1024;
 extern char Buffer[BufferLength];
+#endif // _KERNEL_MODE
 
 inline
 int

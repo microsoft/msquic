@@ -30,7 +30,7 @@ typedef struct {
 #endif
 
 QUIC_STATUS
-QuicHandleRpsClient(
+QuicHandleExtraData(
     _In_reads_(Length) uint8_t* ExtraData,
     _In_ uint32_t Length,
     _In_opt_z_ const char* FileName)
@@ -106,7 +106,6 @@ QUIC_STATUS
 QuicUserMain(
     _In_ int argc,
     _In_reads_(argc) _Null_terminated_ char* argv[],
-    _In_ bool KeyboardWait,
     _In_ const QUIC_CREDENTIAL_CONFIG* SelfSignedCredConfig,
     _In_opt_z_ const char* FileName
     ) {
@@ -122,12 +121,6 @@ QuicUserMain(
 
     printf("Started!\n\n");
     fflush(stdout);
-
-    if (KeyboardWait) {
-        printf("Press enter to exit\n");
-        getchar();
-        CxPlatEventSet(StopEvent);
-    }
 
     Status = QuicMainStop();
     if (QUIC_FAILED(Status)) {
@@ -156,7 +149,7 @@ QuicUserMain(
             QuicMainFree();
             return Status;
         }
-        Status = QuicHandleRpsClient(Buffer.get(), DataLength, FileName);
+        Status = QuicHandleExtraData(Buffer.get(), DataLength, FileName);
     }
 
     QuicMainFree();
@@ -170,7 +163,6 @@ QUIC_STATUS
 QuicKernelMain(
     _In_ int argc,
     _In_reads_(argc) _Null_terminated_ char* argv[],
-    _In_ bool /*KeyboardWait*/,
     _In_ const QUIC_CREDENTIAL_CONFIG* SelfSignedParams,
     _In_ bool PrivateTestLibrary,
     _In_z_ const char* DriverName,
@@ -331,10 +323,10 @@ QuicKernelMain(
                         &DataLength, 10000);
                 if (RunSuccess) {
                     QUIC_STATUS Status =
-                        QuicHandleRpsClient(Buffer.get(), DataLength, FileName);
+                        QuicHandleExtraData(Buffer.get(), DataLength, FileName);
                     if (QUIC_FAILED(Status)) {
                         RunSuccess = false;
-                        printf("Handle RPS Data Failed\n");
+                        printf("Handle extra data failed\n");
                     }
                 } else {
                     printf("Failed to get extra data\n");
@@ -344,7 +336,7 @@ QuicKernelMain(
                 RunSuccess = false;
             }
         } else if (!RunSuccess) {
-            printf("Failed to get metadata\n");
+            printf("Failed to get extra data length\n");
         }
 
     } else {
@@ -373,7 +365,6 @@ main(
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
     QUIC_CREDENTIAL_CONFIG* SelfSignedCredConfig = nullptr;
     QUIC_STATUS RetVal = 0;
-    bool KeyboardWait = false;
     const char* FileName = nullptr;
     const char* DriverName = nullptr;
     bool PrivateTestLibrary = false;
@@ -415,8 +406,6 @@ main(
             RetVal = QUIC_STATUS_NOT_SUPPORTED;
             goto Exit;
 #endif
-        } else if (strcmp("--kbwait", argv[i]) == 0) {
-            KeyboardWait = true;
         } else if (strncmp("--extraOutputFile", argv[i], 17) == 0) {
             FileName = argv[i] + 18;
         } else {
@@ -445,13 +434,13 @@ main(
     if (DriverName != nullptr) {
 #if defined(_WIN32) && !defined(QUIC_RESTRICTED_BUILD)
         printf("Entering kernel mode main\n");
-        RetVal = QuicKernelMain(ArgCount, ArgValues.get(), KeyboardWait, SelfSignedCredConfig, PrivateTestLibrary, DriverName, FileName);
+        RetVal = QuicKernelMain(ArgCount, ArgValues.get(), SelfSignedCredConfig, PrivateTestLibrary, DriverName, FileName);
 #else
         UNREFERENCED_PARAMETER(PrivateTestLibrary);
         CXPLAT_FRE_ASSERT(FALSE);
 #endif
     } else {
-        RetVal = QuicUserMain(ArgCount, ArgValues.get(), KeyboardWait, SelfSignedCredConfig, FileName);
+        RetVal = QuicUserMain(ArgCount, ArgValues.get(), SelfSignedCredConfig, FileName);
     }
 
 Exit:

@@ -19,27 +19,21 @@ Abstract:
 #endif
 
 const MsQuicApi* MsQuic;
-volatile int BufferCurrent;
-char Buffer[BufferLength];
+CXPLAT_DATAPATH* Datapath;
+CxPlatWatchdog* Watchdog;
+PerfServer* Server;
+PerfClient* Client;
 
+uint32_t MaxRuntime = 0;
 QUIC_EXECUTION_PROFILE PerfDefaultExecutionProfile = QUIC_EXECUTION_PROFILE_LOW_LATENCY;
 QUIC_CONGESTION_CONTROL_ALGORITHM PerfDefaultCongestionControl = QUIC_CONGESTION_CONTROL_ALGORITHM_CUBIC;
 uint8_t PerfDefaultEcnEnabled = false;
 uint8_t PerfDefaultQeoAllowed = false;
 
-#include "quic_datapath.h"
-
-const uint8_t SecNetPerfShutdownGuid[16] = { // {ff15e657-4f26-570e-88ab-0796b258d11c}
-    0x57, 0xe6, 0x15, 0xff, 0x26, 0x4f, 0x0e, 0x57,
-    0x88, 0xab, 0x07, 0x96, 0xb2, 0x58, 0xd1, 0x1c};
-CXPLAT_DATAPATH_RECEIVE_CALLBACK DatapathReceive;
-CXPLAT_DATAPATH_UNREACHABLE_CALLBACK DatapathUnreachable;
-CXPLAT_DATAPATH* Datapath;
-CXPLAT_SOCKET* Binding;
-CxPlatWatchdog* Watchdog;
-PerfServer* Server;
-PerfClient* Client;
-uint32_t MaxRuntime = 0;
+#ifdef _KERNEL_MODE
+volatile int BufferCurrent;
+char Buffer[BufferLength];
+#endif
 
 static
 void
@@ -127,72 +121,23 @@ QuicMainStart(
         return QUIC_STATUS_INVALID_PARAMETER;
     }
 
-    bool ClientMode =
-        GetValue(argc, argv, "target") ||
-        GetValue(argc, argv, "server") ||
-        GetValue(argc, argv, "to") ||
-        GetValue(argc, argv, "remote") ||
-        GetValue(argc, argv, "peer");
+    //
+    // Try to see if there is a client target specified on the command line to
+    // determine if we are a client or server.
+    //
+    const char* Target;
+    TryGetValue(argc, argv, "target", &Target);
+    TryGetValue(argc, argv, "server", &Target);
+    TryGetValue(argc, argv, "to", &Target);
+    TryGetValue(argc, argv, "remote", &Target);
+    TryGetValue(argc, argv, "peer", &Target);
 
     TryGetValue(argc, argv, "maxruntime", &MaxRuntime);
 
-    uint32_t WatchdogTimeout = 0;
-    TryGetValue(argc, argv, "watchdog", &WatchdogTimeout);
-
-    if (WatchdogTimeout != 0) {
-        Watchdog = new(std::nothrow) CxPlatWatchdog(WatchdogTimeout, "perf_watchdog");
-    }
-
-    QUIC_STATUS Status;
-
-    const CXPLAT_UDP_DATAPATH_CALLBACKS DatapathCallbacks = {
-        DatapathReceive,
-        DatapathUnreachable
-    };
-
-    Status = CxPlatDataPathInitialize(0, &DatapathCallbacks, &TcpEngine::TcpCallbacks, nullptr, &Datapath);
-    if (QUIC_FAILED(Status)) {
-        WriteOutput("Datapath for shutdown failed to initialize: %d\n", Status);
-        return Status;
-    }
-
-    if (!ClientMode) {
-        QuicAddr LocalAddress {QUIC_ADDRESS_FAMILY_INET, (uint16_t)9999};
-        CXPLAT_UDP_CONFIG UdpConfig = {0};
-        UdpConfig.LocalAddress = &LocalAddress.SockAddr;
-        UdpConfig.RemoteAddress = nullptr;
-        UdpConfig.Flags = 0;
-        UdpConfig.InterfaceIndex = 0;
-        UdpConfig.CallbackContext = StopEvent;
-#ifdef QUIC_OWNING_PROCESS
-        UdpConfig.OwningProcess = QuicProcessGetCurrentProcess();
-#endif
-
-        Status = CxPlatSocketCreateUdp(Datapath, &UdpConfig, &Binding);
-        if (QUIC_FAILED(Status)) {
-            CxPlatDataPathUninitialize(Datapath);
-            Datapath = nullptr;
-            //
-            // Must explicitly set binding to null, as CxPlatSocketCreateUdp
-            // can set the Binding variable even in invalid cases.
-            //
-            Binding = nullptr;
-            WriteOutput("Datapath Binding for shutdown failed to initialize: %d\n", Status);
-            return Status;
-        }
-    }
-
+    QUIC_STATUS Status = QUIC_STATUS_OUT_OF_MEMORY;
     MsQuic = new(std::nothrow) MsQuicApi;
-    if (MsQuic == nullptr) {
-        WriteOutput("MsQuic Alloc Out of Memory\n");
-        return QUIC_STATUS_OUT_OF_MEMORY;
-    }
-    if (QUIC_FAILED(Status = MsQuic->GetInitStatus())) {
-        delete MsQuic;
-        MsQuic = nullptr;
-        delete Watchdog;
-        Watchdog = nullptr;
-        WriteOutput("MsQuic Failed To Initialize: %d\n", Status);
+    if (!MsQuic || QUIC_FAILED(Status = MsQuic->GetInitStatus())) {
+        WriteOutput("MsQuic failed To initialize, 0x%x.\n", Status);
         return Status;
     }
 
@@ -276,31 +221,38 @@ QuicMainStart(
     TryGetValue(argc, argv, "ecn", &PerfDefaultEcnEnabled);
     TryGetValue(argc, argv, "qeo", &PerfDefaultQeoAllowed);
 
-    if (ClientMode) {
+    uint32_t WatchdogTimeout = 0;
+    if (TryGetValue(argc, argv, "watchdog", &WatchdogTimeout) && WatchdogTimeout != 0) {
+        Watchdog = new(std::nothrow) CxPlatWatchdog(WatchdogTimeout, "perf_watchdog");
+    }
+
+    const CXPLAT_UDP_DATAPATH_CALLBACKS DatapathCallbacks = {
+        PerfServer::DatapathReceive,
+        PerfServer::DatapathUnreachable
+    };
+    Status = CxPlatDataPathInitialize(0, &DatapathCallbacks, &TcpEngine::TcpCallbacks, nullptr, &Datapath);
+    if (QUIC_FAILED(Status)) {
+        WriteOutput("Datapath for shutdown failed to initialize: %d\n", Status);
+        return Status;
+    }
+
+    if (Target) {
         Client = new(std::nothrow) PerfClient;
-        if ((QUIC_SUCCEEDED(Status = Client->Init(argc, argv)) &&
+        if ((QUIC_SUCCEEDED(Status = Client->Init(argc, argv, Target, Datapath)) &&
              QUIC_SUCCEEDED(Status = Client->Start(StopEvent)))) {
             return QUIC_STATUS_SUCCESS;
         }
-        WriteOutput("Client Failed To Start: %d\n", Status);
-        delete Client;
-        Client = nullptr;
     } else {
         Server = new(std::nothrow) PerfServer(SelfSignedCredConfig);
-        if ((QUIC_SUCCEEDED(Status = Server->Init(argc, argv)) &&
+        if ((QUIC_SUCCEEDED(Status = Server->Init(argc, argv, Datapath)) &&
              QUIC_SUCCEEDED(Status = Server->Start(StopEvent)))) {
             return QUIC_STATUS_SUCCESS;
         }
-        WriteOutput("Server Failed To Start: %d\n", Status);
-        delete Server;
-        Server = nullptr;
     }
 
-    delete MsQuic;
-    MsQuic = nullptr;
-    delete Watchdog;
-    Watchdog = nullptr;
-    return Status;
+    PrintHelp();
+
+    return Status; // QuicMainFree is called on failure
 }
 
 QUIC_STATUS
@@ -319,11 +271,6 @@ QuicMainFree(
     Server = nullptr;
     delete MsQuic;
     MsQuic = nullptr;
-
-    if (Binding) {
-        CxPlatSocketDelete(Binding);
-        Binding = nullptr;
-    }
 
     if (Datapath) {
         CxPlatDataPathUninitialize(Datapath);
@@ -359,33 +306,4 @@ QuicMainGetExtraData(
     }
 
     return Client->GetExtraData(Data, Length);
-}
-
-void
-DatapathReceive(
-    _In_ CXPLAT_SOCKET*,
-    _In_ void* Context,
-    _In_ CXPLAT_RECV_DATA* Data
-    )
-{
-    if (Data->BufferLength != sizeof(SecNetPerfShutdownGuid)) {
-        return;
-    }
-    if (memcmp(Data->Buffer, SecNetPerfShutdownGuid, sizeof(SecNetPerfShutdownGuid))) {
-        return;
-    }
-    CXPLAT_EVENT* Event = static_cast<CXPLAT_EVENT*>(Context);
-    CxPlatEventSet(*Event);
-}
-
-void
-DatapathUnreachable(
-    _In_ CXPLAT_SOCKET*,
-    _In_ void*,
-    _In_ const QUIC_ADDR*
-    )
-{
-    //
-    // Do nothing, we never send
-    //
 }

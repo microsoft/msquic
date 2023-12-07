@@ -15,64 +15,13 @@ Abstract:
 #include "PerfClient.cpp.clog.h"
 #endif
 
-const char PERF_CLIENT_OPTIONS_TEXT[] =
-"\n"
-"Usage (client): secnetperf -target:<hostname/ip> [client options]\n"
-"\n"
-"Client Options:\n"
-"\n"
-"  Remote options:\n"
-"  -ip:<0/4/6>              A hint for the resolving the hostname to an IP address. (def:0)\n"
-"  -port:<####>             The UDP port of the server. (def:%u)\n"
-"  -cibir:<hex_bytes>       A CIBIR well-known idenfitier.\n"
-"  -inctarget:<0/1>         Append unique ID to target hostname for each worker (def:0).\n"
-"\n"
-"  Local options:\n"
-"  -threads:<####>          The max number of worker threads to use.\n"
-"  -affinitize:<0/1>        Affinitizes worker threads to a core. (def:0)\n"
-#ifdef QUIC_COMPARTMENT_ID
-"  -comp:<####>             The network compartment ID to run in.\n"
-#endif
-"  -bind:<addr>             The local IP address(es)/port(s) to bind to.\n"
-"  -share:<0/1>             Shares the same local bindings. (def:0)\n"
-"\n"
-"  Config options:\n"
-"  -tcp:<0/1>               Disables/enables TCP usage (instead of QUIC). (def:0)\n"
-"  -encrypt:<0/1>           Disables/enables encryption. (def:1)\n"
-"  -pacing:<0/1>            Disables/enables send pacing. (def:1)\n"
-"  -sendbuf:<0/1>           Disables/enables send buffering. (def:0)\n"
-"  -ptput:<0/1>             Print throughput information. (def:0)\n"
-"  -prate:<0/1>             Print IO rate information. (def:0)\n"
-"  -pconn:<0/1>             Print connection statistics. (def:0)\n"
-"  -pstream:<0/1>           Print stream statistics. (def:0)\n"
-"  -platency<0/1>           Print latency statistics. (def:0)\n"
-"\n"
-"  Scenario options:\n"
-"  -conns:<####>            The number of connections to use. (def:1)\n"
-"  -streams:<####>          The number of streams to send on at a time. (def:0)\n"
-"  -upload:<####>           The length of bytes to send on each stream. (def:0)\n"
-"  -download:<####>         The length of bytes to receive on each stream. (def:0)\n"
-"  -iosize:<####>           The size of each send request queued.\n"
-"  -timed:<0/1>             Indicates the upload/download args are times (in ms). (def:0)\n"
-//"  -inline:<0/1>            Create new streams on callbacks. (def:0)\n"
-"  -rconn:<0/1>             Repeat the scenario at the connection level. (def:0)\n"
-"  -rstream:<0/1>           Repeat the scenario at the stream level. (def:0)\n"
-"  -runtime:<####>          The total runtime (in ms). Only relevant for repeat scenarios. (def:0)\n"
-"\n";
-
-static void PrintHelp() {
-    WriteOutput(
-        PERF_CLIENT_OPTIONS_TEXT,
-        PERF_DEFAULT_PORT
-        );
-}
-
 QUIC_STATUS
 PerfClient::Init(
     _In_ int argc,
-    _In_reads_(argc) _Null_terminated_ char* argv[]
+    _In_reads_(argc) _Null_terminated_ char* argv[],
+    _In_z_ const char* target,
+    _In_ CXPLAT_DATAPATH* Datapath
     ) {
-
     if (!Configuration.IsValid()) {
         return Configuration.GetInitStatus();
     }
@@ -80,13 +29,6 @@ PerfClient::Init(
     //
     // Remote target/server options
     //
-
-    const char* target;
-    TryGetValue(argc, argv, "target", &target);
-    TryGetValue(argc, argv, "server", &target);
-    TryGetValue(argc, argv, "to", &target);
-    TryGetValue(argc, argv, "remote", &target);
-    TryGetValue(argc, argv, "peer", &target);
 
     size_t Len = strlen(target);
     Target.reset(new(std::nothrow) char[Len + 1]);
@@ -142,7 +84,6 @@ PerfClient::Init(
             }
             if (!ConvertArgToAddress(LocalAddress, 0, &Workers[Index++].LocalAddr.SockAddr)) {
                 WriteOutput("Failed to decode bind IP address: '%s'!\nMust be *, a IPv4 or a IPv6 address.\n", LocalAddress);
-                PrintHelp();
                 return QUIC_STATUS_INVALID_PARAMETER;
             }
             LocalAddress = AddrEnd;
@@ -241,6 +182,16 @@ PerfClient::Init(
         }
     }
 
+    //
+    // Resolve the remote address to connect to (to optimize the HPS metric).
+    //
+    QuicAddrSetFamily(&RemoteAddr, QuicAddrGetFamily(Workers[0].LocalAddr));
+    QUIC_STATUS Status = CxPlatDataPathResolveAddress(Datapath, Target.get(), &RemoteAddr);
+    if (QUIC_FAILED(Status)) {
+        WriteOutput("Failed to resolve remote address!\n");
+        return Status;
+    }
+
     RequestBuffer.Init(IoSize, Timed ? UINT64_MAX : Download);
     if (PrintLatency) {
         if (RunTime) {
@@ -278,24 +229,6 @@ PerfClient::Start(
     CompletionEvent = StopEvent;
 
     //
-    // Resolve the remote address to connect to (to optimize the HPS metric).
-    //
-    QUIC_STATUS Status;
-    CXPLAT_DATAPATH* Datapath = nullptr;
-    if (QUIC_FAILED(Status = CxPlatDataPathInitialize(0, nullptr, nullptr, nullptr, &Datapath))) {
-        WriteOutput("Failed to initialize datapath for resolution!\n");
-        return Status;
-    }
-    QUIC_ADDR RemoteAddr = {0};
-    QuicAddrSetFamily(&RemoteAddr, QuicAddrGetFamily(Workers[0].LocalAddr));
-    Status = CxPlatDataPathResolveAddress(Datapath, Target.get(), &RemoteAddr);
-    CxPlatDataPathUninitialize(Datapath);
-    if (QUIC_FAILED(Status)) {
-        WriteOutput("Failed to resolve remote address!\n");
-        return Status;
-    }
-
-    //
     // Configure and start all the workers.
     //
     CXPLAT_THREAD_CONFIG ThreadConfig = {
@@ -327,7 +260,7 @@ PerfClient::Start(
         }
         Worker->Target.get()[TargetLen] = '\0';
 
-        Status = CxPlatThreadCreate(&ThreadConfig, &Workers[i].Thread);
+        QUIC_STATUS Status = CxPlatThreadCreate(&ThreadConfig, &Workers[i].Thread);
         if (QUIC_FAILED(Status)) {
             WriteOutput("Failed to start worker thread on processor %hu!\n", Worker->Processor);
             return Status;
@@ -365,17 +298,16 @@ PerfClient::Wait(
         Workers[i].Uninitialize();
     }
 
-    auto CompletedConnections = GetConnectionsCompleted();
-    auto CompletedStreams = GetStreamsCompleted();
+    unsigned long long CompletedConnections = GetConnectionsCompleted();
+    unsigned long long CompletedStreams = GetStreamsCompleted();
     if (CompletedConnections && CompletedStreams) {
         WriteOutput(
             "Completed %llu connections and %llu streams!\n",
-            (unsigned long long)CompletedConnections,
-            (unsigned long long)CompletedStreams);
+            CompletedConnections, CompletedStreams);
     } else if (CompletedConnections) {
-        WriteOutput("Completed %llu connections!\n", (unsigned long long)CompletedConnections);
+        WriteOutput("Completed %llu connections!\n", CompletedConnections);
     } else if (CompletedStreams) {
-        WriteOutput("Completed %llu streams!\n", (unsigned long long)CompletedStreams);
+        WriteOutput("Completed %llu streams!\n", CompletedStreams);
     } else {
         WriteOutput("No connections or streams completed!\n");
     }

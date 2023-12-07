@@ -135,7 +135,11 @@ struct PerfClient {
         }
     }
     ~PerfClient() { Running = false; }
-    QUIC_STATUS Init(_In_ int argc, _In_reads_(argc) _Null_terminated_ char* argv[]);
+    QUIC_STATUS Init(
+        _In_ int argc,
+        _In_reads_(argc) _Null_terminated_ char* argv[],
+        _In_z_ const char* target,
+        _In_ CXPLAT_DATAPATH* Datapath);
     QUIC_STATUS Start(_In_ CXPLAT_EVENT* StopEvent);
     QUIC_STATUS Wait(_In_ int Timeout);
     void GetExtraDataLength(_Out_ uint32_t* DataLength);
@@ -171,6 +175,7 @@ struct PerfClient {
     UniquePtr<char[]> Target;
     QUIC_ADDRESS_FAMILY TargetFamily {QUIC_ADDRESS_FAMILY_UNSPEC};
     uint16_t TargetPort {PERF_DEFAULT_PORT};
+    QUIC_ADDR RemoteAddr {0};
     uint32_t CibirIdLength {0};
     uint8_t CibirId[7]; // {offset, values}
     uint8_t IncrementTarget {FALSE};

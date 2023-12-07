@@ -30,6 +30,10 @@ public:
     }
 
     ~PerfServer() {
+        if (TeardownBinding) {
+            CxPlatSocketDelete(TeardownBinding);
+            TeardownBinding = nullptr;
+        }
         if (DataBuffer) {
             CXPLAT_FREE(DataBuffer, QUIC_POOL_PERF);
         }
@@ -38,7 +42,8 @@ public:
     QUIC_STATUS
     Init(
         _In_ int argc,
-        _In_reads_(argc) _Null_terminated_ char* argv[]
+        _In_reads_(argc) _Null_terminated_ char* argv[],
+        _In_ CXPLAT_DATAPATH* Datapath
         );
 
     QUIC_STATUS
@@ -50,6 +55,9 @@ public:
     Wait(
         int Timeout
         );
+
+    static CXPLAT_DATAPATH_RECEIVE_CALLBACK DatapathReceive;
+    static CXPLAT_DATAPATH_UNREACHABLE_CALLBACK DatapathUnreachable;
 
 private:
 
@@ -145,6 +153,8 @@ private:
 
     uint32_t CibirIdLength {0};
     uint8_t CibirId[7]; // {offset, values}
+
+    CXPLAT_SOCKET* TeardownBinding {nullptr};
 
     void
     SendTcpResponse(
