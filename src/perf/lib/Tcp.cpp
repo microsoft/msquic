@@ -111,14 +111,12 @@ TcpEngine::TcpEngine(
     ReceiveHandler(ReceiveHandler), SendCompleteHandler(SendCompleteHandler)
 {
     CxPlatListInitializeHead(&Connections);
-#ifndef QUIC_NO_SHARED_DATAPATH
     for (uint16_t i = 0; i < ProcCount; ++i) {
         if (!Workers[i].Initialize(this)) {
             return;
         }
     }
     Initialized = true;
-#endif
 }
 
 TcpEngine::~TcpEngine() noexcept
@@ -360,7 +358,7 @@ TcpConnection::TcpConnection(
         }
     }
     QuicAddrSetPort(&Route.RemoteAddress, ServerPort);
-    Engine->AddConnection(this, (uint16_t)CxPlatProcCurrentNumber());
+    Engine->AddConnection(this, 0); // TODO - Correct index
     Initialized = true;
     if (QUIC_FAILED(
         CxPlatSocketCreateTcp(
@@ -392,7 +390,7 @@ TcpConnection::TcpConnection(
         this);
     Initialized = true;
     IndicateAccept = true;
-    Engine->AddConnection(this, (uint16_t)CxPlatProcCurrentNumber());
+    Engine->AddConnection(this, 0); // TODO - Correct index
     Queue();
 }
 
