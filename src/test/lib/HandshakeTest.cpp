@@ -370,6 +370,13 @@ QuicTestConnect(
                         ClientSecrets.ServerTrafficSecret0,
                         ServerSecrets.SecretLength));
 
+                uint8_t ClientOrigCid[32], ServerOrigCid[32];
+                uint32_t ClientOrigCidLen, ServerOrigCidLen;
+                TEST_QUIC_SUCCEEDED(Client.GetOrigDestCid(ClientOrigCid, ClientOrigCidLen));
+                TEST_QUIC_SUCCEEDED(Server->GetOrigDestCid(ServerOrigCid, ServerOrigCidLen));
+                TEST_EQUAL(ClientOrigCidLen, ServerOrigCidLen);
+                TEST_TRUE(!memcmp(ClientOrigCid, ServerOrigCid, ClientOrigCidLen));
+
                 if (ClientUsesOldVersion) {
                     TEST_EQUAL(Server->GetQuicVersion(), OLD_SUPPORTED_VERSION);
                 } else {
