@@ -691,10 +691,9 @@ CXPLAT_THREAD_CALLBACK(PerformanceWaitForStopThreadCb, Context)
 
     char* LocalBuffer = nullptr;
     DWORD ReturnedLength = 0;
-    QUIC_STATUS StopStatus;
     NTSTATUS Status;
 
-    StopStatus = QuicMainStop();
+    QuicMainStop();
 
     if (Client->Canceled) {
         QuicTraceLogInfo(
@@ -719,7 +718,6 @@ CXPLAT_THREAD_CALLBACK(PerformanceWaitForStopThreadCb, Context)
             (size_t)BufferCurrent + 1,
             (void**)&LocalBuffer,
             nullptr);
-
     if (!NT_SUCCESS(Status)) {
         goto Exit;
     }
@@ -738,7 +736,7 @@ CXPLAT_THREAD_CALLBACK(PerformanceWaitForStopThreadCb, Context)
 Exit:
     WdfRequestCompleteWithInformation(
         Request,
-        StopStatus,
+        QUIC_STATUS_SUCCESS,
         ReturnedLength);
 }
 
@@ -848,7 +846,7 @@ SecNetPerfCtlGetExtraData(
     QUIC_STATUS QuicStatus =
         QuicMainGetExtraData(
             LocalBuffer,
-            &BufferLength);
+            BufferLength);
 
     WdfRequestCompleteWithInformation(
         Request,

@@ -44,7 +44,7 @@ QuicMainStart(
     );
 
 extern
-QUIC_STATUS
+void
 QuicMainStop(
     );
 
@@ -61,8 +61,8 @@ QuicMainGetExtraDataLength(
 extern
 QUIC_STATUS
 QuicMainGetExtraData(
-    _Out_writes_bytes_(*Length) uint8_t* Data,
-    _Inout_ uint32_t* Length
+    _Out_writes_bytes_(Length) uint8_t* Data,
+    _In_ uint32_t Length
     );
 
 #ifdef _KERNEL_MODE

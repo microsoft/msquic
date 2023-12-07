@@ -118,7 +118,7 @@ PerfServer::Start(
     return Listener.Start(Alpn, &LocalAddr);
 }
 
-QUIC_STATUS
+void
 PerfServer::Wait(
     _In_ int Timeout
     ) {
@@ -128,7 +128,6 @@ PerfServer::Wait(
         CxPlatEventWaitForever(*StopEvent);
     }
     Registration.Shutdown(QUIC_CONNECTION_SHUTDOWN_FLAG_NONE, 0);
-    return QUIC_STATUS_SUCCESS;
 }
 
 void

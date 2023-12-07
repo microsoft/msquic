@@ -279,7 +279,7 @@ PerfClient::Start(
     return QUIC_STATUS_SUCCESS;
 }
 
-QUIC_STATUS
+void
 PerfClient::Wait(
     _In_ int Timeout
     ) {
@@ -322,8 +322,6 @@ PerfClient::Wait(
             WriteOutput("Result: %llu RPS\n", RPS);
         }
     }
-
-    return QUIC_STATUS_SUCCESS;
 }
 
 uint32_t
@@ -342,15 +340,15 @@ PerfClient::GetExtraDataLength(
 
 QUIC_STATUS
 PerfClient::GetExtraData(
-    _Out_writes_bytes_(*Length) uint8_t* Data,
-    _Inout_ uint32_t* Length
+    _Out_writes_bytes_(Length) uint8_t* Data,
+    _In_ uint32_t Length
     )
 {
     CXPLAT_FRE_ASSERT(MaxLatencyIndex); // Shouldn't be called if we're not tracking latency
-    CXPLAT_FRE_ASSERT(*Length >= sizeof(RunTime) + sizeof(CurLatencyIndex));
+    CXPLAT_FRE_ASSERT(Length >= sizeof(RunTime) + sizeof(CurLatencyIndex));
     CxPlatCopyMemory(Data, &RunTime, sizeof(RunTime));
     Data += sizeof(RunTime);
-    uint64_t Count = (*Length - sizeof(RunTime) - sizeof(Count)) / sizeof(uint32_t);
+    uint64_t Count = (Length - sizeof(RunTime) - sizeof(Count)) / sizeof(uint32_t);
     CxPlatCopyMemory(Data, &Count, sizeof(Count));
     Data += sizeof(CurLatencyIndex);
     CxPlatCopyMemory(Data, LatencyValues.get(), (size_t)(Count * sizeof(uint32_t)));

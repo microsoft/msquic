@@ -255,10 +255,10 @@ QuicMainStart(
     return Status; // QuicMainFree is called on failure
 }
 
-QUIC_STATUS
+void
 QuicMainStop(
     ) {
-    return Client ? Client->Wait((int)MaxRuntime) : Server->Wait((int)MaxRuntime);
+    Client ? Client->Wait((int)MaxRuntime) : Server->Wait((int)MaxRuntime);
 }
 
 void
@@ -287,14 +287,9 @@ uint32_t QuicMainGetExtraDataLength() {
 
 QUIC_STATUS
 QuicMainGetExtraData(
-    _Out_writes_bytes_(*Length) uint8_t* Data,
-    _Inout_ uint32_t* Length
+    _Out_writes_bytes_(Length) uint8_t* Data,
+    _In_ uint32_t Length
     )
 {
-    if (Client == nullptr) {
-        *Length = 0;
-        return QUIC_STATUS_INVALID_STATE;
-    }
-
-    return Client->GetExtraData(Data, Length);
+    return Client ? Client->GetExtraData(Data, Length) : QUIC_STATUS_INVALID_STATE;
 }

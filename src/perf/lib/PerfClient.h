@@ -141,9 +141,9 @@ struct PerfClient {
         _In_z_ const char* target,
         _In_ CXPLAT_DATAPATH* Datapath);
     QUIC_STATUS Start(_In_ CXPLAT_EVENT* StopEvent);
-    QUIC_STATUS Wait(_In_ int Timeout);
+    void Wait(_In_ int Timeout);
     uint32_t GetExtraDataLength();
-    QUIC_STATUS GetExtraData(_Out_writes_bytes_(*Length) uint8_t* Data, _Inout_ uint32_t* Length);
+    QUIC_STATUS GetExtraData(_Out_writes_bytes_(Length) uint8_t* Data, _In_ uint32_t Length);
 
     bool Running {true};
     CXPLAT_EVENT* CompletionEvent {nullptr};

@@ -33,7 +33,8 @@ QUIC_STATUS
 QuicHandleExtraData(
     _In_reads_(Length) uint8_t* ExtraData,
     _In_ uint32_t Length,
-    _In_opt_z_ const char* FileName)
+    _In_opt_z_ const char* FileName
+    )
 {
     if (Length < sizeof(uint32_t) + sizeof(uint32_t)) {
         return QUIC_STATUS_INVALID_PARAMETER;
@@ -112,36 +113,28 @@ QuicUserMain(
     CxPlatEvent StopEvent {true};
     QUIC_STATUS Status = QuicMainStart(argc, argv, &StopEvent.Handle, SelfSignedCredConfig);
     if (QUIC_FAILED(Status)) {
-        QuicMainFree();
-        return Status;
+        goto Exit;
     }
 
     printf("Started!\n\n");
     fflush(stdout);
+    QuicMainStop();
 
-    Status = QuicMainStop();
-    if (QUIC_FAILED(Status)) {
-        printf("Stop failed with status %d\n", Status);
-        QuicMainFree();
-        return Status;
-    }
-
-    uint32_t DataLength = QuicMainGetExtraDataLength();
-    if (DataLength) {
-        UniquePtr<uint8_t[]> Buffer = UniquePtr<uint8_t[]>(new (std::nothrow) uint8_t[DataLength]);
+    if (const uint32_t DataLength = QuicMainGetExtraDataLength(); DataLength) {
+        auto Buffer = UniquePtr<uint8_t[]>(new (std::nothrow) uint8_t[DataLength]);
         if (Buffer.get() == nullptr) {
-            QuicMainFree();
-            return QUIC_STATUS_OUT_OF_MEMORY;
+            Status = QUIC_STATUS_OUT_OF_MEMORY;
+            goto Exit;
         }
-        Status = QuicMainGetExtraData(Buffer.get(), &DataLength);
+        Status = QuicMainGetExtraData(Buffer.get(), DataLength);
         if (QUIC_FAILED(Status)) {
-            printf("Get Extra Data failed with status %d\n", Status);
-            QuicMainFree();
-            return Status;
+            printf("Get extra data failed\n");
+            goto Exit;
         }
         Status = QuicHandleExtraData(Buffer.get(), DataLength, FileName);
     }
 
+Exit:
     QuicMainFree();
     printf("App Main returning status %d\n", Status);
     return Status;
@@ -160,45 +153,34 @@ QuicKernelMain(
     )
 {
     size_t TotalLength = sizeof(argc);
-
-    //
-    // Get total length
-    //
     for (int i = 0; i < argc; ++i) {
         TotalLength += strlen(argv[i]) + 1;
     }
+    CXPLAT_FRE_ASSERT(TotalLength < UINT32_MAX);
 
-    if (TotalLength > UINT_MAX) {
-        printf("Too many arguments to pass to the driver\n");
-        return QUIC_STATUS_OUT_OF_MEMORY;
-    }
-
-    char* Data = static_cast<char*>(CXPLAT_ALLOC_NONPAGED(TotalLength, QUIC_POOL_PERF));
-    if (!Data) {
+    auto Data = UniquePtr<char[]>(new (std::nothrow) char[TotalLength]);
+    if (!Data.get()) {
         printf("Failed to allocate arguments to pass\n");
         return QUIC_STATUS_OUT_OF_MEMORY;
     }
 
-    char* DataCurrent = Data;
-
+    char* DataCurrent = Data.get();
     CxPlatCopyMemory(DataCurrent, &argc, sizeof(argc));
-
     DataCurrent += sizeof(argc);
 
     for (int i = 0; i < argc; ++i) {
-        size_t ArgLen = strlen(argv[i]);
+        const size_t ArgLen = strlen(argv[i]);
         CxPlatCopyMemory(DataCurrent, argv[i], ArgLen);
         DataCurrent += ArgLen;
         DataCurrent[0] = '\0';
         ++DataCurrent;
     }
-    CXPLAT_DBG_ASSERT(DataCurrent == (Data + TotalLength));
+    CXPLAT_FRE_ASSERT(DataCurrent == (Data.get() + TotalLength));
 
     constexpr uint32_t OutBufferSize = 1024 * 1000;
-    char* OutBuffer = (char*)CXPLAT_ALLOC_NONPAGED(OutBufferSize, QUIC_POOL_PERF); // 1 MB
-    if (!OutBuffer) {
+    auto OutBuffer = UniquePtr<char[]>(new (std::nothrow) char[OutBufferSize]); // 1 MB
+    if (!OutBuffer.get()) {
         printf("Failed to allocate space for output buffer\n");
-        CXPLAT_FREE(Data, QUIC_POOL_PERF);
         return QUIC_STATUS_OUT_OF_MEMORY;
     }
 
@@ -216,14 +198,12 @@ QuicKernelMain(
     if (PrivateTestLibrary) {
         if (!MsQuicPrivDriverService.Initialize("msquicpriv", "")) {
             printf("Failed to initialize msquicpriv driver service\n");
-            CXPLAT_FREE(Data, QUIC_POOL_PERF);
             return QUIC_STATUS_INVALID_STATE;
         }
 
         if (!MsQuicPrivDriverService.Start()) {
             printf("Starting msquicpriv Driver Service Failed\n");
             MsQuicPrivDriverService.Uninitialize();
-            CXPLAT_FREE(Data, QUIC_POOL_PERF);
             return QUIC_STATUS_INVALID_STATE;
         }
     }
@@ -231,14 +211,12 @@ QuicKernelMain(
     if (!DriverService.Initialize(DriverName, DependentDriverNames)) {
         printf("Failed to initialize driver service\n");
         MsQuicPrivDriverService.Uninitialize();
-        CXPLAT_FREE(Data, QUIC_POOL_PERF);
         return QUIC_STATUS_INVALID_STATE;
     }
     if (!DriverService.Start()) {
         printf("Starting Driver Service Failed\n");
         DriverService.Uninitialize();
         MsQuicPrivDriverService.Uninitialize();
-        CXPLAT_FREE(Data, QUIC_POOL_PERF);
         return QUIC_STATUS_INVALID_STATE;
     }
 
@@ -252,30 +230,27 @@ QuicKernelMain(
         printf("Intializing Driver Client Failed.\n");
         DriverService.Uninitialize();
         MsQuicPrivDriverService.Uninitialize();
-        CXPLAT_FREE(Data, QUIC_POOL_PERF);
         return QUIC_STATUS_INVALID_STATE;
     }
 
     uint32_t OutBufferWritten = 0;
     bool RunSuccess = false;
-    if (!DriverClient.Run(IOCTL_QUIC_RUN_PERF, Data, (uint32_t)TotalLength, 30000)) {
+    if (!DriverClient.Run(IOCTL_QUIC_RUN_PERF, Data.get(), (uint32_t)TotalLength, 30000)) {
         printf("Failed To Run\n");
-        CXPLAT_FREE(Data, QUIC_POOL_PERF);
 
         RunSuccess =
             DriverClient.Read(
                 IOCTL_QUIC_READ_DATA,
-                OutBuffer,
+                OutBuffer.get(),
                 OutBufferSize,
                 &OutBufferWritten,
                 10000);
         printf("OutBufferWritten %d\n", OutBufferWritten);
         if (RunSuccess) {
-            printf("%s\n", OutBuffer);
+            printf("%s\n", OutBuffer.get());
         } else {
             printf("Failed to exit\n");
         }
-        CXPLAT_FREE(OutBuffer, QUIC_POOL_PERF);
         DriverClient.Run(IOCTL_CXPLAT_FREE_PERF);
         DriverClient.Uninitialize();
         DriverService.Uninitialize();
@@ -287,12 +262,12 @@ QuicKernelMain(
     RunSuccess =
         DriverClient.Read(
             IOCTL_QUIC_READ_DATA,
-            OutBuffer,
+            OutBuffer.get(),
             OutBufferSize,
             &OutBufferWritten,
             INFINITE);
     if (RunSuccess) {
-        printf("%s\n", OutBuffer);
+        printf("%s\n", OutBuffer.get());
 
         uint32_t DataLength = 0;
         RunSuccess =
@@ -303,7 +278,7 @@ QuicKernelMain(
                 &OutBufferWritten,
                 10000);
         if (RunSuccess && DataLength) {
-            UniquePtr<uint8_t[]> Buffer = UniquePtr<uint8_t[]>(new (std::nothrow) uint8_t[DataLength]);
+            auto Buffer = UniquePtr<uint8_t[]>(new (std::nothrow) uint8_t[DataLength]);
             if (Buffer.get() != nullptr) {
                 RunSuccess =
                     DriverClient.Read(
@@ -333,13 +308,7 @@ QuicKernelMain(
         printf("Run end failed\n");
     }
 
-    CXPLAT_FREE(Data, QUIC_POOL_PERF);
-    CXPLAT_FREE(OutBuffer, QUIC_POOL_PERF);
     DriverClient.Run(IOCTL_CXPLAT_FREE_PERF);
-
-    DriverClient.Uninitialize();
-    DriverService.Uninitialize();
-    MsQuicPrivDriverService.Uninitialize();
 
     return RunSuccess ? QUIC_STATUS_SUCCESS : QUIC_STATUS_INTERNAL_ERROR;
 }
@@ -354,20 +323,7 @@ main(
     ) {
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
     QUIC_CREDENTIAL_CONFIG* SelfSignedCredConfig = nullptr;
-    QUIC_STATUS RetVal = 0;
-    const char* FileName = nullptr;
-    const char* DriverName = nullptr;
-    bool PrivateTestLibrary = false;
     uint8_t CipherSuite = 0;
-    constexpr const char* DriverSearch = "driverName";
-    size_t DriverLen = strlen(DriverSearch);
-
-    UniquePtr<char*[]> ArgValues = UniquePtr<char*[]>(new (std::nothrow) char*[argc]);
-
-    if (ArgValues.get() == nullptr) {
-        return QUIC_STATUS_OUT_OF_MEMORY;
-    }
-    int ArgCount = 0;
 
     CxPlatSystemLoad();
     if (QUIC_FAILED(Status = CxPlatInitialize())) {
@@ -376,33 +332,15 @@ main(
         return Status;
     }
 
-    for (int i = 0; i < argc; ++i) {
-
-        if (_strnicmp(argv[i] + 1, DriverSearch, DriverLen) == 0) {
-#if defined(_WIN32) && !defined(QUIC_RESTRICTED_BUILD)
-            //
-            // See if private driver
-            //
-            constexpr const char* DriverSearchPriv = "driverNamePriv";
-            size_t DriverLenPriv = strlen(DriverSearchPriv);
-            if (_strnicmp(argv[i] + 1, DriverSearchPriv, DriverLenPriv) == 0) {
-                PrivateTestLibrary = true;
-                DriverName = argv[i] + 1 + DriverLenPriv + 1;
-            } else {
-                DriverName = argv[i] + 1 + DriverLen + 1;
-            }
-#else
-            printf("Cannot run kernel mode tests on non windows platforms\n");
-            RetVal = QUIC_STATUS_NOT_SUPPORTED;
-            goto Exit;
-#endif
-        } else if (strncmp("--extraOutputFile", argv[i], 17) == 0) {
-            FileName = argv[i] + 18;
-        } else {
-            ArgValues[ArgCount] = argv[i];
-            ArgCount++;
-        }
+    const char* DriverName = nullptr;
+    bool PrivateTestLibrary = false;
+     if (!TryGetValue(argc, argv, "driverName", &DriverName) &&
+        TryGetValue(argc, argv, "driverNamePriv", &DriverName)) {
+        PrivateTestLibrary = true;
     }
+
+    const char* FileName = nullptr;
+    TryGetValue(argc, argv, "extraOutputFile", &FileName);
 
     SelfSignedCredConfig =
         CxPlatGetSelfSignedCert(
@@ -412,7 +350,7 @@ main(
             FALSE, NULL);
     if (!SelfSignedCredConfig) {
         printf("Creating self signed certificate failed\n");
-        RetVal = QUIC_STATUS_INTERNAL_ERROR;
+        Status = QUIC_STATUS_INTERNAL_ERROR;
         goto Exit;
     }
 
@@ -424,13 +362,14 @@ main(
     if (DriverName != nullptr) {
 #if defined(_WIN32) && !defined(QUIC_RESTRICTED_BUILD)
         printf("Entering kernel mode main\n");
-        RetVal = QuicKernelMain(ArgCount, ArgValues.get(), SelfSignedCredConfig, PrivateTestLibrary, DriverName, FileName);
+        Status = QuicKernelMain(argc, argv, SelfSignedCredConfig, PrivateTestLibrary, DriverName, FileName);
 #else
+        printf("Kernel mode main not supported on this platform\n");
         UNREFERENCED_PARAMETER(PrivateTestLibrary);
-        CXPLAT_FRE_ASSERT(FALSE);
+        Status = QUIC_STATUS_NOT_SUPPORTED;
 #endif
     } else {
-        RetVal = QuicUserMain(ArgCount, ArgValues.get(), SelfSignedCredConfig, FileName);
+        Status = QuicUserMain(argc, argv, SelfSignedCredConfig, FileName);
     }
 
 Exit:
@@ -441,5 +380,5 @@ Exit:
     CxPlatUninitialize();
     CxPlatSystemUnload();
 
-    return RetVal;
+    return Status;
 }

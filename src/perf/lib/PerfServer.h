@@ -45,16 +45,8 @@ public:
         _In_reads_(argc) _Null_terminated_ char* argv[],
         _In_ CXPLAT_DATAPATH* Datapath
         );
-
-    QUIC_STATUS
-    Start(
-        _In_ CXPLAT_EVENT* StopEvent
-        );
-
-    QUIC_STATUS
-    Wait(
-        int Timeout
-        );
+    QUIC_STATUS Start(_In_ CXPLAT_EVENT* StopEvent);
+    void Wait(int Timeout);
 
     static CXPLAT_DATAPATH_RECEIVE_CALLBACK DatapathReceive;
     static CXPLAT_DATAPATH_UNREACHABLE_CALLBACK DatapathUnreachable;

@@ -154,11 +154,10 @@ void TcpEngine::AddConnection(TcpConnection* Connection, uint16_t PartitionIndex
 
 void TcpEngine::RemoveConnection(TcpConnection* Connection)
 {
-    CXPLAT_DBG_ASSERT(Connection->Worker);
-    Connection->Worker = nullptr;
     ConnectionLock.Acquire();
     if (Connection->EngineEntry.Flink) {
         CxPlatListEntryRemove(&Connection->EngineEntry);
+        Connection->EngineEntry.Flink = NULL;
     }
     ConnectionLock.Release();
     Rundown.Release();
