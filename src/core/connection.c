@@ -2427,8 +2427,6 @@ QuicConnGenerateLocalTransportParameters(
                 LocalTP->OriginalDestinationConnectionID,
                 Connection->OrigDestCID->Data,
                 Connection->OrigDestCID->Length);
-            CXPLAT_FREE(Connection->OrigDestCID, QUIC_POOL_CID);
-            Connection->OrigDestCID = NULL;
 
             if (Connection->State.HandshakeUsedRetryPacket) {
                 CXPLAT_DBG_ASSERT(SourceCid->Link.Next != NULL);
@@ -2648,8 +2646,6 @@ QuicConnValidateTransportParameterCIDs(
                 "Original destination CID from TP doesn't match");
             return FALSE;
         }
-        CXPLAT_FREE(Connection->OrigDestCID, QUIC_POOL_CID);
-        Connection->OrigDestCID = NULL;
         if (Connection->State.HandshakeUsedRetryPacket) {
             if (!(Connection->PeerTransportParams.Flags & QUIC_TP_FLAG_RETRY_SOURCE_CONNECTION_ID)) {
                 QuicTraceEvent(
