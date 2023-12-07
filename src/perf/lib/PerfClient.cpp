@@ -379,29 +379,6 @@ PerfClientWorker::WorkerThread() {
         }
         WakeEvent.WaitForever();
     }
-
-    /*if (Client->UseTCP) {
-        // Clean up any oustanding TCP connections
-        Lock.Acquire();
-        while (!CxPlatListIsEmpty(&ConnectionTable)) {
-            auto Connection = (PerfClientConnection*)CxPlatListRemoveHead(&ConnectionTable);
-            Connection->TcpConn->Close(); // TODO - Any race conditions here?
-            Connection->TcpConn = nullptr;
-            CXPLAT_HASHTABLE_ENUMERATOR Enum;
-            Connection->StreamTable.EnumBegin(&Enum);
-            for (;;) {
-                auto Stream = (PerfClientStream*)Connection->StreamTable.EnumNext(&Enum);
-                if (Stream == NULL) {
-                    break;
-                }
-                Connection->StreamTable.Remove(&Stream->Entry);
-                StreamPool.Free(Stream);
-            }
-            Connection->StreamTable.EnumEnd(&Enum);
-            ConnectionPool.Free(Connection);
-        }
-        Lock.Release();
-    }*/
 }
 
 void
@@ -426,15 +403,7 @@ PerfClientWorker::StartNewConnection() {
 
 PerfClientConnection::~PerfClientConnection() {
     if (Client.UseTCP) {
-        TcpConnection* ConnToFree = nullptr;
-        Worker.Lock.Acquire();
-        if (TcpConn) {
-            CxPlatListEntryRemove(&WorkerEntry);
-            ConnToFree = TcpConn;
-            TcpConn = nullptr;
-        }
-        Worker.Lock.Release();
-        if (ConnToFree) ConnToFree->Close();
+        if (TcpConn) { TcpConn->Close(); }
     } else {
         if (Handle) { MsQuic->ConnectionClose(Handle); }
     }
@@ -443,9 +412,6 @@ PerfClientConnection::~PerfClientConnection() {
 void
 PerfClientConnection::Initialize() {
     if (Client.UseTCP) {
-        Worker.Lock.Acquire();
-        CxPlatListInsertTail(&Worker.ConnectionTable, &WorkerEntry);
-        Worker.Lock.Release();
         auto CredConfig = MsQuicCredentialConfig(QUIC_CREDENTIAL_FLAG_CLIENT | QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION);
         TcpConn = // TODO: replace new/delete with pool alloc/free
             new (std::nothrow) TcpConnection(
@@ -458,9 +424,7 @@ PerfClientConnection::Initialize() {
                 &Worker.RemoteAddr.SockAddr,
                 this);
         if (!TcpConn->IsInitialized()) {
-            Worker.Lock.Acquire();
-            CxPlatListEntryRemove(&WorkerEntry);
-            Worker.Lock.Release();
+            TcpConn->Close();
             Worker.ConnectionPool.Free(this);
             return;
         }
@@ -659,15 +623,8 @@ PerfClientConnection::OnStreamShutdown() {
 void
 PerfClientConnection::Shutdown() {
     if (Client.UseTCP) {
-        TcpConnection* ConnToFree = nullptr;
-        Worker.Lock.Acquire();
-        if (TcpConn) {
-            CxPlatListEntryRemove(&WorkerEntry);
-            ConnToFree = TcpConn;
-            TcpConn = nullptr;
-        }
-        Worker.Lock.Release();
-        if (ConnToFree) ConnToFree->Close();
+        TcpConn->Close();
+        TcpConn = nullptr;
         OnShutdownComplete();
     } else {
         MsQuic->ConnectionShutdown(Handle, QUIC_CONNECTION_SHUTDOWN_FLAG_NONE, 0);

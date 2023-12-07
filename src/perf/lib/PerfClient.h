@@ -15,7 +15,6 @@ Abstract:
 #include "PerfCommon.h"
 
 struct PerfClientConnection {
-    CXPLAT_LIST_ENTRY WorkerEntry; // To TCP ConnectionTable
     struct PerfClient& Client;
     struct PerfClientWorker& Worker;
     union {
