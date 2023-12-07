@@ -156,6 +156,11 @@ PerfClient::Init(
         StreamCount = 1; // Just up/down args imply they want a stream
     }
 
+    if (RepeatStreams && !StreamCount) {
+        WriteOutput("Must specify a 'streams' if using 'rstream'!\n");
+        return QUIC_STATUS_INVALID_PARAMETER;
+    }
+
     //
     // Initialization
     //
@@ -300,17 +305,6 @@ PerfClient::Wait(
 
     unsigned long long CompletedConnections = GetConnectionsCompleted();
     unsigned long long CompletedStreams = GetStreamsCompleted();
-    if (CompletedConnections && CompletedStreams) {
-        WriteOutput(
-            "Completed %llu connections and %llu streams!\n",
-            CompletedConnections, CompletedStreams);
-    } else if (CompletedConnections) {
-        WriteOutput("Completed %llu connections!\n", CompletedConnections);
-    } else if (CompletedStreams) {
-        WriteOutput("Completed %llu streams!\n", CompletedStreams);
-    } else {
-        WriteOutput("No connections or streams completed!\n");
-    }
 
     if (PrintIoRate) {
         if (CompletedConnections) {
@@ -321,7 +315,20 @@ PerfClient::Wait(
             unsigned long long RPS = CompletedStreams * 1000 / RunTime;
             WriteOutput("Result: %llu RPS\n", RPS);
         }
+    } else if (!PrintThroughput && !PrintLatency) {
+        if (CompletedConnections && CompletedStreams) {
+            WriteOutput(
+                "Completed %llu connections and %llu streams!\n",
+                CompletedConnections, CompletedStreams);
+        } else if (CompletedConnections) {
+            WriteOutput("Completed %llu connections!\n", CompletedConnections);
+        } else if (CompletedStreams) {
+            WriteOutput("Completed %llu streams!\n", CompletedStreams);
+        } else {
+            WriteOutput("No connections or streams completed!\n");
+        }
     }
+
 }
 
 uint32_t

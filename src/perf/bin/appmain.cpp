@@ -23,7 +23,7 @@ typedef struct {
 #include "quic_driver_helpers.h"
 #endif // _WIN32
 
-QUIC_STATUS
+void
 QuicHandleExtraData(
     _In_reads_(Length) uint8_t* ExtraData,
     _In_ uint32_t Length,
@@ -45,18 +45,16 @@ QuicHandleExtraData(
     uint32_t RPS = (uint32_t)((CachedCompletedRequests * 1000ull) / (uint64_t)RunTime);
     if (RPS == 0) {
         printf("Error: No requests were completed\n");
-        return QUIC_STATUS_SUCCESS;
+        return;
     }
 
-    uint32_t* Data = (uint32_t*)ExtraData;
     Statistics LatencyStats;
     Percentiles PercentileStats;
-    GetStatistics(Data, MaxCount, &LatencyStats, &PercentileStats);
+    GetStatistics((uint32_t*)ExtraData, MaxCount, &LatencyStats, &PercentileStats);
     WriteOutput(
-        "Result: %u RPS, Min: %d, Max: %d, 50th: %.0f, 90th: %.0f, 99th: %.0f, 99.9th: %.0f, 99.99th: %.0f, 99.999th: %.0f, 99.9999th: %.0f, StdErr: %f\n",
+        "Result: %u RPS, Latency(us) 0th: %d, 50th: %.0f, 90th: %.0f, 99th: %.0f, 99.9th: %.0f, 99.99th: %.0f, 99.999th: %.0f, 99.9999th: %.0f, Max: %d\n",
         RPS,
         LatencyStats.Min,
-        LatencyStats.Max,
         PercentileStats.P50,
         PercentileStats.P90,
         PercentileStats.P99,
@@ -64,35 +62,32 @@ QuicHandleExtraData(
         PercentileStats.P99p99,
         PercentileStats.P99p999,
         PercentileStats.P99p9999,
-        LatencyStats.StandardError);
+        LatencyStats.Max);
 
-    QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
     if (FileName != nullptr) {
-        FILE* FilePtr = nullptr;
-
 #ifdef _WIN32
+        FILE* FilePtr = nullptr;
         errno_t FileErr = fopen_s(&FilePtr, FileName, "w");
 #else
-        FilePtr = fopen(FileName, "w");
+        FILE* FilePtr = fopen(FileName, "w");
         int FileErr = (FilePtr == nullptr) ? 1 : 0;
 #endif
-        if (FileErr == 0) {
-            struct hdr_histogram* histogram = nullptr;
-            int HstStatus = hdr_init(1, LatencyStats.Max, 3, &histogram);
-            if (HstStatus == 0) {
-                for (size_t i = 0; i < MaxCount; i++) {
-                    hdr_record_value(histogram, Data[i]);
-                }
-                hdr_percentiles_print(histogram, FilePtr, 5, 1.0, CLASSIC);
-            } else {
-                Status = QUIC_STATUS_OUT_OF_MEMORY;
-            }
-            fclose(FilePtr);
-        } else {
-            Status = QUIC_STATUS_INVALID_PARAMETER;
+        if (FileErr) {
+            printf("Failed to open file '%s' for write\n", FileName);
+            return;
         }
+        struct hdr_histogram* histogram = nullptr;
+        if (hdr_init(1, LatencyStats.Max, 3, &histogram)) {
+            printf("Failed to create histogram\n");
+        } else {
+            for (size_t i = 0; i < MaxCount; i++) {
+                hdr_record_value(histogram, ((uint32_t*)ExtraData)[i]);
+            }
+            hdr_percentiles_print(histogram, FilePtr, 5, 1.0, CLASSIC);
+            hdr_close(histogram);
+        }
+        fclose(FilePtr);
     }
-    return Status;
 }
 
 QUIC_STATUS
@@ -116,7 +111,7 @@ QuicUserMain(
         auto Buffer = UniquePtr<uint8_t[]>(new (std::nothrow) uint8_t[DataLength]);
         CXPLAT_FRE_ASSERT(Buffer.get() != nullptr);
         QuicMainGetExtraData(Buffer.get(), DataLength);
-        Status = QuicHandleExtraData(Buffer.get(), DataLength, FileName);
+        QuicHandleExtraData(Buffer.get(), DataLength, FileName);
     }
 
 Exit:
@@ -255,14 +250,10 @@ QuicKernelMain(
                     IOCTL_QUIC_GET_EXTRA_DATA,
                     (void*)Buffer.get(),
                     DataLength,
-                    &DataLength, 10000);
+                    &DataLength,
+                    10000);
             if (RunSuccess) {
-                QUIC_STATUS Status =
-                    QuicHandleExtraData(Buffer.get(), DataLength, FileName);
-                if (QUIC_FAILED(Status)) {
-                    RunSuccess = false;
-                    printf("Handle extra data failed\n");
-                }
+                QuicHandleExtraData(Buffer.get(), DataLength, FileName);
             }
         }
     } else {
