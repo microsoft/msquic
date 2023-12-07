@@ -95,17 +95,10 @@
 ../src/test/lib/QuicDrill.cpp
 ../src/test/lib/DatagramTest.cpp
 ../src/test/lib/OwnershipTest.cpp
-../src/perf/lib/PerfHelpers.h
 ../src/perf/lib/PerfClient.cpp
 ../src/perf/lib/PerfServer.cpp
-../src/perf/lib/SecNetPerfMain.cpp
-../src/perf/lib/PerfClient.h
-../src/perf/lib/PerfServer.h
 ../src/perf/lib/CMakeLists.txt
-../src/perf/lib/Tcp.h
 ../src/perf/lib/Tcp.cpp
-../src/perf/lib/PerfCommon.h
-../src/perf/lib/LatencyHelpers.h
 ../src/core/unittest/SettingsTest.cpp
 ../src/core/unittest/SpinFrame.cpp
 ../src/core/unittest/SlidingWindowExtremumTest.cpp
@@ -129,6 +122,5 @@
 ../src/perf/bin/histogram/hdr_histogram.h
 ../src/perf/bin/histogram/hdr_histogram.c
 ../src/perf/bin/drvmain.cpp
-../src/perf/bin/appmain.cpp
 ../src/tools/interop/interop.cpp
 ../src/tools/interop/interop.h

@@ -14,10 +14,6 @@ Abstract:
 #include "PerfClient.h"
 #include "Tcp.h"
 
-#ifdef QUIC_CLOG
-#include "SecNetPerfMain.cpp.clog.h"
-#endif
-
 const MsQuicApi* MsQuic;
 CXPLAT_DATAPATH* Datapath;
 CxPlatWatchdog* Watchdog;
@@ -256,7 +252,7 @@ QuicMainStart(
 }
 
 void
-QuicMainStop(
+QuicMainWaitForCompletion(
     ) {
     Client ? Client->Wait((int)MaxRuntime) : Server->Wait((int)MaxRuntime);
 }
@@ -285,11 +281,12 @@ uint32_t QuicMainGetExtraDataLength() {
     return Client ? Client->GetExtraDataLength() : 0;
 }
 
-QUIC_STATUS
+void
 QuicMainGetExtraData(
     _Out_writes_bytes_(Length) uint8_t* Data,
     _In_ uint32_t Length
     )
 {
-    return Client ? Client->GetExtraData(Data, Length) : QUIC_STATUS_INVALID_STATE;
+    CXPLAT_FRE_ASSERT(Client);
+    Client->GetExtraData(Data, Length);
 }

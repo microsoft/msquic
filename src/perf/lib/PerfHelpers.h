@@ -11,10 +11,6 @@ Abstract:
 
 #pragma once
 
-#ifdef QUIC_CLOG
-#include "PerfHelpers.h.clog.h"
-#endif
-
 #ifndef _KERNEL_MODE
 #define QUIC_TEST_APIS 1 // For self-signed cert API
 #endif
@@ -45,7 +41,7 @@ QuicMainStart(
 
 extern
 void
-QuicMainStop(
+QuicMainWaitForCompletion(
     );
 
 extern
@@ -59,7 +55,7 @@ QuicMainGetExtraDataLength(
     );
 
 extern
-QUIC_STATUS
+void
 QuicMainGetExtraData(
     _Out_writes_bytes_(Length) uint8_t* Data,
     _In_ uint32_t Length

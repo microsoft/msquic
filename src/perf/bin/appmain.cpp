@@ -13,12 +13,7 @@ Abstract:
 #include "LatencyHelpers.h"
 #include "histogram/hdr_histogram.h"
 
-#ifdef QUIC_CLOG
-#include "appmain.cpp.clog.h"
-#endif
-
 #ifdef _WIN32
-
 #include <winioctl.h>
 #include "PerfIoctls.h"
 typedef struct {
@@ -26,8 +21,7 @@ typedef struct {
     QUIC_CERTIFICATE_HASH ClientCertHash;
 } QUIC_RUN_CERTIFICATE_PARAMS;
 #include "quic_driver_helpers.h"
-
-#endif
+#endif // _WIN32
 
 QUIC_STATUS
 QuicHandleExtraData(
@@ -36,9 +30,7 @@ QuicHandleExtraData(
     _In_opt_z_ const char* FileName
     )
 {
-    if (Length < sizeof(uint32_t) + sizeof(uint32_t)) {
-        return QUIC_STATUS_INVALID_PARAMETER;
-    }
+    CXPLAT_FRE_ASSERT(Length >= sizeof(uint32_t) + sizeof(uint32_t));
     uint32_t RunTime;
     uint64_t CachedCompletedRequests;
     CxPlatCopyMemory(&RunTime, ExtraData, sizeof(RunTime));
@@ -118,19 +110,12 @@ QuicUserMain(
 
     printf("Started!\n\n");
     fflush(stdout);
-    QuicMainStop();
+    QuicMainWaitForCompletion();
 
     if (const uint32_t DataLength = QuicMainGetExtraDataLength(); DataLength) {
         auto Buffer = UniquePtr<uint8_t[]>(new (std::nothrow) uint8_t[DataLength]);
-        if (Buffer.get() == nullptr) {
-            Status = QUIC_STATUS_OUT_OF_MEMORY;
-            goto Exit;
-        }
-        Status = QuicMainGetExtraData(Buffer.get(), DataLength);
-        if (QUIC_FAILED(Status)) {
-            printf("Get extra data failed\n");
-            goto Exit;
-        }
+        CXPLAT_FRE_ASSERT(Buffer.get() != nullptr);
+        QuicMainGetExtraData(Buffer.get(), DataLength);
         Status = QuicHandleExtraData(Buffer.get(), DataLength, FileName);
     }
 
@@ -159,10 +144,7 @@ QuicKernelMain(
     CXPLAT_FRE_ASSERT(TotalLength < UINT32_MAX);
 
     auto Data = UniquePtr<char[]>(new (std::nothrow) char[TotalLength]);
-    if (!Data.get()) {
-        printf("Failed to allocate arguments to pass\n");
-        return QUIC_STATUS_OUT_OF_MEMORY;
-    }
+    CXPLAT_FRE_ASSERT(Data.get() != nullptr);
 
     char* DataCurrent = Data.get();
     CxPlatCopyMemory(DataCurrent, &argc, sizeof(argc));
@@ -179,10 +161,7 @@ QuicKernelMain(
 
     constexpr uint32_t OutBufferSize = 1024 * 1000;
     auto OutBuffer = UniquePtr<char[]>(new (std::nothrow) char[OutBufferSize]); // 1 MB
-    if (!OutBuffer.get()) {
-        printf("Failed to allocate space for output buffer\n");
-        return QUIC_STATUS_OUT_OF_MEMORY;
-    }
+    CXPLAT_FRE_ASSERT(OutBuffer.get() != nullptr);
 
     QuicDriverService MsQuicPrivDriverService;
     QuicDriverService DriverService;
@@ -203,20 +182,16 @@ QuicKernelMain(
 
         if (!MsQuicPrivDriverService.Start()) {
             printf("Starting msquicpriv Driver Service Failed\n");
-            MsQuicPrivDriverService.Uninitialize();
             return QUIC_STATUS_INVALID_STATE;
         }
     }
 
     if (!DriverService.Initialize(DriverName, DependentDriverNames)) {
         printf("Failed to initialize driver service\n");
-        MsQuicPrivDriverService.Uninitialize();
         return QUIC_STATUS_INVALID_STATE;
     }
     if (!DriverService.Start()) {
         printf("Starting Driver Service Failed\n");
-        DriverService.Uninitialize();
-        MsQuicPrivDriverService.Uninitialize();
         return QUIC_STATUS_INVALID_STATE;
     }
 
@@ -228,8 +203,6 @@ QuicKernelMain(
 
     if (!DriverClient.Initialize(&CertParams, DriverName)) {
         printf("Intializing Driver Client Failed.\n");
-        DriverService.Uninitialize();
-        MsQuicPrivDriverService.Uninitialize();
         return QUIC_STATUS_INVALID_STATE;
     }
 
@@ -252,8 +225,6 @@ QuicKernelMain(
             printf("Failed to exit\n");
         }
         DriverClient.Run(IOCTL_CXPLAT_FREE_PERF);
-        DriverClient.Uninitialize();
-        DriverService.Uninitialize();
         return QUIC_STATUS_INVALID_STATE;
     }
     printf("Started!\n\n");
@@ -270,40 +241,30 @@ QuicKernelMain(
         printf("%s\n", OutBuffer.get());
 
         uint32_t DataLength = 0;
-        RunSuccess =
-            DriverClient.Read(
-                IOCTL_QUIC_GET_EXTRA_DATA_LENGTH,
-                (void*)&DataLength,
-                sizeof(DataLength),
-                &OutBufferWritten,
-                10000);
-        if (RunSuccess && DataLength) {
+        DriverClient.Read(
+            IOCTL_QUIC_GET_EXTRA_DATA_LENGTH,
+            (void*)&DataLength,
+            sizeof(DataLength),
+            &OutBufferWritten,
+            10000);
+        if (DataLength) {
             auto Buffer = UniquePtr<uint8_t[]>(new (std::nothrow) uint8_t[DataLength]);
-            if (Buffer.get() != nullptr) {
-                RunSuccess =
-                    DriverClient.Read(
-                        IOCTL_QUIC_GET_EXTRA_DATA,
-                        (void*)Buffer.get(),
-                        DataLength,
-                        &DataLength, 10000);
-                if (RunSuccess) {
-                    QUIC_STATUS Status =
-                        QuicHandleExtraData(Buffer.get(), DataLength, FileName);
-                    if (QUIC_FAILED(Status)) {
-                        RunSuccess = false;
-                        printf("Handle extra data failed\n");
-                    }
-                } else {
-                    printf("Failed to get extra data\n");
+            CXPLAT_FRE_ASSERT(Buffer.get() != nullptr);
+            RunSuccess =
+                DriverClient.Read(
+                    IOCTL_QUIC_GET_EXTRA_DATA,
+                    (void*)Buffer.get(),
+                    DataLength,
+                    &DataLength, 10000);
+            if (RunSuccess) {
+                QUIC_STATUS Status =
+                    QuicHandleExtraData(Buffer.get(), DataLength, FileName);
+                if (QUIC_FAILED(Status)) {
+                    RunSuccess = false;
+                    printf("Handle extra data failed\n");
                 }
-            } else {
-                printf("Out of memory\n");
-                RunSuccess = false;
             }
-        } else if (!RunSuccess) {
-            printf("Failed to get extra data length\n");
         }
-
     } else {
         printf("Run end failed\n");
     }
@@ -326,11 +287,7 @@ main(
     uint8_t CipherSuite = 0;
 
     CxPlatSystemLoad();
-    if (QUIC_FAILED(Status = CxPlatInitialize())) {
-        printf("Platform failed to initialize\n");
-        CxPlatSystemUnload();
-        return Status;
-    }
+    CXPLAT_FRE_ASSERT(QUIC_SUCCEEDED(CxPlatInitialize()));
 
     const char* DriverName = nullptr;
     bool PrivateTestLibrary = false;

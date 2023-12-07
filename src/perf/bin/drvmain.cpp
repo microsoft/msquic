@@ -71,7 +71,7 @@ SecNetPerfCtlInitialize(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 SecNetPerfCtlUninitialize(
-        void
+    void
     );
 
 _Ret_maybenull_ _Post_writable_byte_size_(_Size)
@@ -212,8 +212,6 @@ SecNetPerfDriverUnload(
     CxPlatSystemUnload();
 }
 
-#define PERF_REG_PATH                 L"\\Parameters"
-
 _No_competing_thread_
 INITCODE
 NTSTATUS
@@ -224,8 +222,7 @@ SecNetPerfGetServiceName(
 {
     USHORT BaseRegPathLength = BaseRegPath->Length / sizeof(WCHAR);
     if (BaseRegPath->Buffer[BaseRegPathLength - 1] == L'\\') {
-        //LogWarning("[config] Trimming trailing '\\' from registry!");
-        BaseRegPathLength--;
+        BaseRegPathLength--; // Trim trailing slash
     }
 
     //
@@ -323,11 +320,6 @@ SecNetPerfCtlInitialize(
         goto Error;
     }
 
-#if 0 // Disable this trace while we find a solution to %.*S
-    Q uicTraceLogVerbose(
-        PerfControlInitialized,
-        "[perf] Control interface initialized with %.*S", DeviceName.Length, DeviceName.Buffer);
-#endif
     WDF_FILEOBJECT_CONFIG_INIT(
         &FileConfig,
         SecNetPerfCtlEvtFileCreate,
@@ -404,7 +396,6 @@ SecNetPerfCtlInitialize(
             WDF_NO_OBJECT_ATTRIBUTES,
             &Queue);
     __analysis_assume(QueueConfig.EvtIoStop == 0);
-
     if (!NT_SUCCESS(Status)) {
         QuicTraceEvent(
             LibraryErrorStatus,
@@ -687,11 +678,7 @@ CXPLAT_THREAD_CALLBACK(PerformanceWaitForStopThreadCb, Context)
         return;
     }
 
-    char* LocalBuffer = nullptr;
-    DWORD ReturnedLength = 0;
-    NTSTATUS Status;
-
-    QuicMainStop();
+    QuicMainWaitForCompletion();
 
     if (Client->Canceled) {
         QuicTraceLogInfo(
@@ -702,7 +689,7 @@ CXPLAT_THREAD_CALLBACK(PerformanceWaitForStopThreadCb, Context)
     }
 
     CxPlatLockAcquire(&Client->CleanupLock);
-    Status = WdfRequestUnmarkCancelable(Request);
+    NTSTATUS Status = WdfRequestUnmarkCancelable(Request);
     bool ExistingCancellation = Client->CleanupHandleCancellation;
     Client->CleanupHandleCancellation = TRUE;
     CxPlatLockRelease(&Client->CleanupLock);
@@ -710,6 +697,8 @@ CXPLAT_THREAD_CALLBACK(PerformanceWaitForStopThreadCb, Context)
         return;
     }
 
+    DWORD ReturnedLength = 0;
+    char* LocalBuffer = nullptr;
     Status =
         WdfRequestRetrieveOutputBuffer(
             Request,
@@ -744,14 +733,13 @@ SecNetPerfCtlReadPrints(
     _In_ QUIC_DRIVER_CLIENT* Client
     )
 {
-    QUIC_STATUS Status;
-    CXPLAT_THREAD_CONFIG ThreadConfig;
-    CxPlatZeroMemory(&ThreadConfig, sizeof(ThreadConfig));
+    CXPLAT_THREAD_CONFIG ThreadConfig = {0};
     ThreadConfig.Name = "PerfWait";
     ThreadConfig.Callback = PerformanceWaitForStopThreadCb;
     ThreadConfig.Context = Client;
     Client->Request = Request;
-    if (QUIC_FAILED(Status = CxPlatThreadCreate(&ThreadConfig, &Client->Thread))) {
+    QUIC_STATUS Status = CxPlatThreadCreate(&ThreadConfig, &Client->Thread);
+    if (QUIC_FAILED(Status)) {
         if (Client->Thread) {
             Client->Canceled = true;
             CxPlatEventSet(Client->StopEvent);
@@ -839,12 +827,11 @@ SecNetPerfCtlGetExtraData(
         return;
     }
 
+    QuicMainGetExtraData(OutputBuffer, (uint32_t)OutputBufferLength);
     WdfRequestCompleteWithInformation(
         Request,
-        QuicMainGetExtraData(
-            OutputBuffer,
-            (uint32_t)OutputBufferLength),
-        BufferLength);
+        QUIC_STATUS_SUCCESS,
+        OutputBufferLength);
 }
 
 VOID

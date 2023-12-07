@@ -338,7 +338,7 @@ PerfClient::GetExtraDataLength(
         (LatencyCount * sizeof(uint32_t)));
 }
 
-QUIC_STATUS
+void
 PerfClient::GetExtraData(
     _Out_writes_bytes_(Length) uint8_t* Data,
     _In_ uint32_t Length
@@ -352,7 +352,6 @@ PerfClient::GetExtraData(
     CxPlatCopyMemory(Data, &Count, sizeof(Count));
     Data += sizeof(CurLatencyIndex);
     CxPlatCopyMemory(Data, LatencyValues.get(), (size_t)(Count * sizeof(uint32_t)));
-    return QUIC_STATUS_SUCCESS;
 }
 
 void
