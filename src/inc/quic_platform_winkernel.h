@@ -461,8 +461,12 @@ _CxPlatEventWaitWithTimeout(
     )
 {
     LARGE_INTEGER Timeout100Ns;
-    Timeout100Ns.QuadPart = Int32x32To64(TimeoutMs, -10000);
-    return KeWaitForSingleObject(Event, Executive, KernelMode, FALSE, &Timeout100Ns);
+    if (TimeoutMs == 0xffffffff) {
+        return KeWaitForSingleObject(Event, Executive, KernelMode, FALSE, NULL);
+    } else {
+        Timeout100Ns.QuadPart = Int32x32To64(TimeoutMs, -10000);
+        return KeWaitForSingleObject(Event, Executive, KernelMode, FALSE, &Timeout100Ns);
+    }
 }
 #define CxPlatEventWaitWithTimeout(Event, TimeoutMs) \
     (STATUS_SUCCESS == _CxPlatEventWaitWithTimeout(&Event, TimeoutMs))
@@ -471,8 +475,24 @@ _CxPlatEventWaitWithTimeout(
 // Event Queue Interfaces
 //
 
-typedef KEVENT CXPLAT_EVENTQ; // Event queue
-typedef void* CXPLAT_CQE;
+typedef struct CXPLAT_EVENTQ {
+    CXPLAT_DISPATCH_LOCK Lock;
+    LIST_ENTRY Events;
+    CXPLAT_EVENT EventsAvailable;
+} CXPLAT_EVENTQ;
+
+typedef struct CXPLAT_CQE {
+    void* UserData;
+} CXPLAT_CQE;
+
+#define CXPLAT_SQE CXPLAT_SQE
+#define CXPLAT_SQE_DEFAULT {0}
+typedef struct CXPLAT_SQE {
+    void* UserData;
+    int Overlapped; // Used as the completion context to platform IO routines.
+    LIST_ENTRY Link;
+    BOOLEAN IsQueued; // Prevent double queueing.
+} CXPLAT_SQE;
 
 inline
 BOOLEAN
@@ -480,7 +500,10 @@ CxPlatEventQInitialize(
     _Out_ CXPLAT_EVENTQ* queue
     )
 {
-    KeInitializeEvent(queue, SynchronizationEvent, FALSE);
+    CxPlatZeroMemory(queue, sizeof(*queue));
+    CxPlatDispatchLockInitialize(&queue->Lock);
+    InitializeListHead(&queue->Events);
+    CxPlatEventInitialize(&queue->EventsAvailable, TRUE, FALSE);
     return TRUE;
 }
 
@@ -490,22 +513,53 @@ CxPlatEventQCleanup(
     _In_ CXPLAT_EVENTQ* queue
     )
 {
-    UNREFERENCED_PARAMETER(queue);
+    CxPlatEventUninitialize(queue->EventsAvailable);
+    CXPLAT_DBG_ASSERT(IsListEmpty(&queue->Events));
+    CxPlatDispatchLockUninitialize(&queue->Lock);
 }
 
 inline
 BOOLEAN
-_CxPlatEventQEnqueue(
+CxPlatEventQAssociateHandle(
     _In_ CXPLAT_EVENTQ* queue,
+    _In_ HANDLE fileHandle
+    )
+{
+    UNREFERENCED_PARAMETER(queue);
+    UNREFERENCED_PARAMETER(fileHandle);
+    return FALSE;
+}
+
+inline
+BOOLEAN
+CxPlatEventQEnqueue(
+    _In_ CXPLAT_EVENTQ* queue,
+    _In_ CXPLAT_SQE* sqe,
     _In_opt_ void* user_data
     )
 {
-    UNREFERENCED_PARAMETER(user_data);
-    KeSetEvent(queue, IO_NO_INCREMENT, FALSE);
+    BOOLEAN SignalEvent;
+
+    CxPlatDispatchLockAcquire(&queue->Lock);
+
+    if (sqe->IsQueued) {
+        CxPlatDispatchLockRelease(&queue->Lock);
+        return TRUE;
+    }
+
+    sqe->IsQueued = TRUE;
+    sqe->UserData = user_data;
+    SignalEvent = IsListEmpty(&queue->Events);
+    InsertTailList(&queue->Events, &sqe->Link);
+
+    CxPlatDispatchLockRelease(&queue->Lock);
+
+    if (SignalEvent) {
+        CxPlatEventSet(queue->EventsAvailable);
+    }
+
     return TRUE;
 }
-
-#define CxPlatEventQEnqueue(queue, sqe, user_data) _CxPlatEventQEnqueue(queue, user_data)
 
 inline
 uint32_t
@@ -516,9 +570,40 @@ CxPlatEventQDequeue(
     _In_ uint32_t wait_time // milliseconds
     )
 {
-    UNREFERENCED_PARAMETER(count);
-    *events = NULL;
-    return STATUS_SUCCESS == _CxPlatEventWaitWithTimeout(queue, wait_time) ? 1 : 0;
+    LIST_ENTRY* Entry;
+    uint32_t EventsDequeued = 0;
+
+    // TODO: this fn signature needs better SAL
+    RtlZeroMemory(events, sizeof(*events));
+
+    CxPlatEventReset(queue->EventsAvailable);
+
+    CxPlatDispatchLockAcquire(&queue->Lock);
+
+    if (IsListEmpty(&queue->Events)) {
+        CxPlatDispatchLockRelease(&queue->Lock);
+        CxPlatEventWaitWithTimeout(queue->EventsAvailable, wait_time);
+        CxPlatDispatchLockAcquire(&queue->Lock);
+    }
+
+    while (EventsDequeued < count && !IsListEmpty(&queue->Events)) {
+        Entry = RemoveHeadList(&queue->Events);
+        CXPLAT_SQE* Sqe = CXPLAT_CONTAINING_RECORD(Entry, CXPLAT_SQE, Link);
+        // TODO: this fn signature needs better SAL
+#pragma warning(push)
+#pragma warning(disable:6386)
+        events[EventsDequeued].UserData = Sqe->UserData;
+#pragma warning(pop)
+
+        CXPLAT_DBG_ASSERT(Sqe->IsQueued);
+        Sqe->IsQueued = FALSE;
+
+        EventsDequeued++;
+    }
+
+    CxPlatDispatchLockRelease(&queue->Lock);
+
+    return EventsDequeued;
 }
 
 inline
@@ -538,8 +623,16 @@ CxPlatCqeUserData(
     _In_ const CXPLAT_CQE* cqe
     )
 {
-    return *cqe;
+    return cqe->UserData;
 }
+
+typedef struct DATAPATH_SQE DATAPATH_SQE;
+
+void
+CxPlatDatapathSqeInitialize(
+    _Out_ DATAPATH_SQE* DatapathSqe,
+    _In_ uint32_t CqeType
+    );
 
 //
 // Time Measurement Interfaces
@@ -711,7 +804,9 @@ CxPlatSleep(
     KeWaitForSingleObject(&SleepTimer, Executive, KernelMode, FALSE, NULL);
 }
 
-#define CxPlatSchedulerYield() // no-op
+#define CxPlatSchedulerYield() \
+    LARGE_INTEGER Timeout = {0}; \
+    KeDelayExecutionThread(KernelMode, FALSE, &Timeout)
 
 //
 // Create Thread Interfaces

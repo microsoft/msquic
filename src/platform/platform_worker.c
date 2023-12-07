@@ -138,7 +138,7 @@ CxPlatWorkersLazyStart(
     CXPLAT_DBG_ASSERT(CxPlatWorkerCount > 0 && CxPlatWorkerCount <= UINT16_MAX);
 
     const size_t WorkersSize = sizeof(CXPLAT_WORKER) * CxPlatWorkerCount;
-    CxPlatWorkers = (CXPLAT_WORKER*)CXPLAT_ALLOC_PAGED(WorkersSize, QUIC_POOL_PLATFORM_WORKER);
+    CxPlatWorkers = (CXPLAT_WORKER*)CXPLAT_ALLOC_NONPAGED(WorkersSize, QUIC_POOL_PLATFORM_WORKER);
     if (CxPlatWorkers == NULL) {
         QuicTraceEvent(
             AllocFailure,
@@ -221,6 +221,9 @@ Error:
         for (uint32_t i = 0; i < CxPlatWorkerCount; ++i) {
             if (CxPlatWorkers[i].InitializedThread) {
                 CxPlatWorkers[i].StoppingThread = TRUE;
+                // QuicTraceLogInfo(
+                //     LogInfo,
+                //     "[ xdp] INFO, Queueing shutdown (lazy start).");
                 CxPlatEventQEnqueue(
                     &CxPlatWorkers[i].EventQ,
                     &CxPlatWorkers[i].ShutdownSqe,
@@ -271,6 +274,9 @@ CxPlatWorkersUninit(
 
         for (uint32_t i = 0; i < CxPlatWorkerCount; ++i) {
             CxPlatWorkers[i].StoppingThread = TRUE;
+            // QuicTraceLogInfo(
+            //     LogInfo,
+            //     "[ xdp] INFO, Queueing shutdown (uninit).");
             CxPlatEventQEnqueue(
                 &CxPlatWorkers[i].EventQ,
                 &CxPlatWorkers[i].ShutdownSqe,
@@ -326,6 +332,9 @@ CxPlatAddExecutionContext(
     CxPlatLockRelease(&Worker->ECLock);
 
     if (QueueEvent) {
+        // QuicTraceLogInfo(
+        //     LogInfo,
+        //     "[ xdp] INFO, Queueing poll update (add EC).");
         CxPlatEventQEnqueue(
             &Worker->EventQ,
             &Worker->UpdatePollSqe,
@@ -340,6 +349,9 @@ CxPlatWakeExecutionContext(
 {
     CXPLAT_WORKER* Worker = (CXPLAT_WORKER*)Context->CxPlatContext;
     if (!InterlockedFetchAndSetBoolean(&Worker->Running)) {
+        // QuicTraceLogInfo(
+        //     LogInfo,
+        //     "[ xdp] INFO, Queueing wake.");
         CxPlatEventQEnqueue(&Worker->EventQ, &Worker->WakeSqe, (void*)&WorkerWakeEventPayload);
     }
 }
@@ -442,12 +454,21 @@ CxPlatProcessEvents(
 #if DEBUG
                 CXPLAT_DBG_ASSERT(Worker->StoppingThread);
 #endif
+                // QuicTraceLogInfo(
+                //     LogInfo,
+                //     "[ xdp] INFO, Dequeueing shutdown.");
                 return TRUE; // NULL user data means shutdown.
             }
             switch (CxPlatCqeType(&Cqes[i])) {
             case CXPLAT_CQE_TYPE_WORKER_WAKE:
+                // QuicTraceLogInfo(
+                //     LogInfo,
+                //     "[ xdp] INFO, Dequeueing wake.");
                 break; // No-op, just wake up to do polling stuff.
             case CXPLAT_CQE_TYPE_WORKER_UPDATE_POLL:
+                // QuicTraceLogInfo(
+                //     LogInfo,
+                //     "[ xdp] INFO, Dequeueing update poll.");
                 CxPlatUpdateExecutionContexts(Worker);
                 break;
             default: // Pass the rest to the datapath

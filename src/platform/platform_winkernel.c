@@ -158,6 +158,8 @@ CxPlatInitialize(
         goto Error;
     }
 
+    CxPlatWorkersInit();
+
     //
     // TODO - Apparently this can be increased via hot memory add. Figure out
     // how to know when to update this value.
@@ -190,6 +192,7 @@ CxPlatUninitialize(
     )
 {
     PAGED_CODE();
+    CxPlatWorkersUninit();
     CxPlatCryptUninitialize();
     BCryptCloseAlgorithmProvider(CxPlatform.RngAlgorithm, 0);
     CxPlatform.RngAlgorithm = NULL;

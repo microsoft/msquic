@@ -463,10 +463,6 @@ typedef struct CXPLAT_EXECUTION_CONTEXT {
 
 } CXPLAT_EXECUTION_CONTEXT;
 
-#ifdef _KERNEL_MODE // Not supported on kernel mode
-#define CxPlatAddExecutionContext(Context, IdealProcessor) CXPLAT_FRE_ASSERT(FALSE)
-#define CxPlatWakeExecutionContext(Context) CXPLAT_FRE_ASSERT(FALSE)
-#else
 void
 CxPlatAddExecutionContext(
     _Inout_ CXPLAT_EXECUTION_CONTEXT* Context,
@@ -477,7 +473,6 @@ void
 CxPlatWakeExecutionContext(
     _In_ CXPLAT_EXECUTION_CONTEXT* Context
     );
-#endif
 
 //
 // The "type" of the completion queue event is stored as the first uint32_t of

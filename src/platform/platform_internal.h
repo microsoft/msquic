@@ -152,6 +152,166 @@ typedef struct CX_PLATFORM {
 
 } CX_PLATFORM;
 
+typedef struct _WSK_DATAGRAM_SOCKET {
+    const WSK_PROVIDER_DATAGRAM_DISPATCH* Dispatch;
+} WSK_DATAGRAM_SOCKET, * PWSK_DATAGRAM_SOCKET;
+
+//
+// Per-port state.
+//
+typedef struct CXPLAT_SOCKET {
+
+    //
+    // Flag indicates the binding has a default remote destination.
+    //
+    BOOLEAN Connected : 1;
+
+    //
+    // Flag indicates the binding is being used for PCP.
+    //
+    BOOLEAN PcpBinding : 1;
+
+    uint8_t UseTcp : 1;                  // Quic over TCP
+
+    uint8_t RawSocketAvailable : 1;
+
+    //
+    // Parent datapath.
+    //
+    CXPLAT_DATAPATH* Datapath;
+
+    //
+    // UDP socket used for sending/receiving datagrams.
+    //
+    union {
+        PWSK_SOCKET Socket;
+        PWSK_DATAGRAM_SOCKET DgrmSocket;
+    };
+
+    //
+    // Event used to wait for completion of socket functions.
+    //
+    CXPLAT_EVENT WskCompletionEvent;
+
+    //
+    // The local address and UDP port.
+    //
+    SOCKADDR_INET LocalAddress;
+
+    //
+    // The remote address and UDP port.
+    //
+    SOCKADDR_INET RemoteAddress;
+
+    //
+    // The local interface's MTU.
+    //
+    UINT16 Mtu;
+
+    //
+    // Client context pointer.
+    //
+    void *ClientContext;
+
+    //
+    // IRP used for socket functions.
+    //
+    union {
+        IRP Irp;
+        UCHAR IrpBuffer[sizeof(IRP) + sizeof(IO_STACK_LOCATION)];
+    };
+
+    CXPLAT_RUNDOWN_REF PerProcRundown[0];
+
+} CXPLAT_SOCKET;
+
+//
+// Represents the per-processor state of the datapath context.
+//
+typedef struct CXPLAT_DATAPATH_PROC_CONTEXT {
+
+    //
+    // Pool of send contexts to be shared by all sockets on this core.
+    //
+    CXPLAT_POOL SendDataPool;
+
+    //
+    // Pool of send buffers to be shared by all sockets on this core.
+    //
+    CXPLAT_POOL SendBufferPool;
+
+    //
+    // Pool of large segmented send buffers to be shared by all sockets on this
+    // core.
+    //
+    CXPLAT_POOL LargeSendBufferPool;
+
+    //
+    // Pool of receive datagram contexts and buffers to be shared by all sockets
+    // on this core. Index 0 is regular, Index 1 is URO.
+    //
+    //
+    CXPLAT_POOL RecvDatagramPools[2];
+
+    //
+    // Pool of receive data buffers. Index 0 is 4096, Index 1 is 65536.
+    //
+    CXPLAT_POOL RecvBufferPools[2];
+
+    int64_t OutstandingPendingBytes;
+
+} CXPLAT_DATAPATH_PROC_CONTEXT;
+
+//
+// Structure that maintains all the internal state for the
+// CxPlatDataPath interface.
+//
+typedef struct CXPLAT_DATAPATH {
+
+    //
+    // Set of supported features.
+    //
+    uint32_t Features;
+
+    uint8_t UseTcp : 1;
+
+    //
+    // The registration with WinSock Kernel.
+    //
+    WSK_REGISTRATION WskRegistration;
+    WSK_PROVIDER_NPI WskProviderNpi;
+    WSK_CLIENT_DATAGRAM_DISPATCH WskDispatch;
+
+    //
+    // The UDP callback function pointers.
+    //
+    CXPLAT_UDP_DATAPATH_CALLBACKS UdpHandlers;
+
+    //
+    // The size of the buffer to allocate for client's receive context structure.
+    //
+    uint32_t ClientRecvDataLength;
+
+    //
+    // The size of each receive datagram array element, including client context,
+    // internal context, and padding.
+    //
+    uint32_t DatagramStride;
+
+    CXPLAT_DATAPATH_RAW* RawDataPath;
+
+    //
+    // The number of processors.
+    //
+    uint32_t ProcCount;
+
+    //
+    // Per-processor completion contexts.
+    //
+    CXPLAT_DATAPATH_PROC_CONTEXT ProcContexts[0];
+
+} CXPLAT_DATAPATH;
+
 #elif _WIN32
 
 #pragma warning(push)
@@ -941,7 +1101,7 @@ typedef struct CXPLAT_DATAPATH {
 
 #endif // CX_PLATFORM_LINUX
 
-#if defined(CX_PLATFORM_LINUX) || _WIN32
+#if defined(CX_PLATFORM_LINUX) || _WIN32 || _KERNEL_MODE
 
 typedef struct CXPLAT_SOCKET_RAW CXPLAT_SOCKET_RAW;
 
@@ -1222,4 +1382,4 @@ RawUpdateRoute(
     _In_ CXPLAT_ROUTE* SrcRoute
     );
 
-#endif // CX_PLATFORM_LINUX || _WIN32
+#endif // CX_PLATFORM_LINUX || _WIN32 || _KERNEL_MODE
