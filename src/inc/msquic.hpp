@@ -168,7 +168,7 @@ struct HashTable {
 #endif // CXPLAT_HASH_MIN_SIZE
 
 class CxPlatThread {
-    CXPLAT_THREAD Thread;
+    CXPLAT_THREAD Thread {0};
     bool Initialized : 1;
     bool WaitOnDelete : 1;
 public:

@@ -128,18 +128,18 @@ private:
     void WorkerThread();
 };
 
-struct PerfClient : public PerfBase {
+struct PerfClient {
     PerfClient() {
         for (uint32_t i = 0; i < PERF_MAX_THREAD_COUNT; ++i) {
             Workers[i].Client = this;
         }
     }
-    ~PerfClient() override { Running = false; }
-    QUIC_STATUS Init(_In_ int argc, _In_reads_(argc) _Null_terminated_ char* argv[]) override;
-    QUIC_STATUS Start(_In_ CXPLAT_EVENT* StopEvent) override;
-    QUIC_STATUS Wait(_In_ int Timeout) override;
-    void GetExtraDataMetadata(_Out_ PerfExtraDataMetadata* Result) override;
-    QUIC_STATUS GetExtraData(_Out_writes_bytes_(*Length) uint8_t* Data, _Inout_ uint32_t* Length) override;
+    ~PerfClient() { Running = false; }
+    QUIC_STATUS Init(_In_ int argc, _In_reads_(argc) _Null_terminated_ char* argv[]);
+    QUIC_STATUS Start(_In_ CXPLAT_EVENT* StopEvent);
+    QUIC_STATUS Wait(_In_ int Timeout);
+    void GetExtraDataLength(_Out_ uint32_t* DataLength);
+    QUIC_STATUS GetExtraData(_Out_writes_bytes_(*Length) uint8_t* Data, _Inout_ uint32_t* Length);
 
     bool Running {true};
     CXPLAT_EVENT* CompletionEvent {nullptr};

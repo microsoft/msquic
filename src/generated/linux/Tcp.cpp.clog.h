@@ -189,9 +189,9 @@ tracepoint(CLOG_TCP_CPP, PerfTcpAppConnect , arg2);\
 // Decoder Ring for PerfTcpAppDisconnect
 // [perf][tcp][%p] App Disconnect
 // QuicTraceLogVerbose(
-            PerfTcpAppDisconnect,
-            "[perf][tcp][%p] App Disconnect",
-            this);
+                PerfTcpAppDisconnect,
+                "[perf][tcp][%p] App Disconnect",
+                this);
 // arg2 = arg2 = this = arg2
 ----------------------------------------------------------*/
 #ifndef _clog_3_ARGS_TRACE_PerfTcpAppDisconnect

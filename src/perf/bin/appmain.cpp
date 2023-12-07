@@ -136,27 +136,27 @@ QuicUserMain(
         return Status;
     }
 
-    PerfExtraDataMetadata Metadata;
-    Status = QuicMainGetExtraDataMetadata(&Metadata);
+    uint32_t DataLength;
+    Status = QuicMainGetExtraDataLength(&DataLength);
     if (QUIC_FAILED(Status)) {
-        printf("Get Extra Metadata failed with status %d\n", Status);
+        printf("Get extra data length failed with status %d\n", Status);
         QuicMainFree();
         return Status;
     }
 
-    if (Metadata.ExtraDataLength) {
-        UniquePtr<uint8_t[]> Buffer = UniquePtr<uint8_t[]>(new (std::nothrow) uint8_t[Metadata.ExtraDataLength]);
+    if (DataLength) {
+        UniquePtr<uint8_t[]> Buffer = UniquePtr<uint8_t[]>(new (std::nothrow) uint8_t[DataLength]);
         if (Buffer.get() == nullptr) {
             QuicMainFree();
             return QUIC_STATUS_OUT_OF_MEMORY;
         }
-        Status = QuicMainGetExtraData(Buffer.get(), &Metadata.ExtraDataLength);
+        Status = QuicMainGetExtraData(Buffer.get(), &DataLength);
         if (QUIC_FAILED(Status)) {
             printf("Get Extra Data failed with status %d\n", Status);
             QuicMainFree();
             return Status;
         }
-        Status = QuicHandleRpsClient(Buffer.get(), Metadata.ExtraDataLength, FileName);
+        Status = QuicHandleRpsClient(Buffer.get(), DataLength, FileName);
     }
 
     QuicMainFree();
@@ -312,27 +312,26 @@ QuicKernelMain(
     if (RunSuccess) {
         printf("%s\n", OutBuffer);
 
-        PerfExtraDataMetadata Metadata;
-        Metadata.TestType = PerfTestType::Server;
+        uint32_t DataLength = 0;
         RunSuccess =
             DriverClient.Read(
-                IOCTL_QUIC_GET_METADATA,
-                (void*)&Metadata,
-                sizeof(Metadata),
+                IOCTL_QUIC_GET_EXTRA_DATA_LENGTH,
+                (void*)&DataLength,
+                sizeof(DataLength),
                 &OutBufferWritten,
                 10000);
-        if (RunSuccess && Metadata.TestType == PerfTestType::RpsClient) {
-            UniquePtr<uint8_t[]> Buffer = UniquePtr<uint8_t[]>(new (std::nothrow) uint8_t[Metadata.ExtraDataLength]);
+        if (RunSuccess && DataLength) {
+            UniquePtr<uint8_t[]> Buffer = UniquePtr<uint8_t[]>(new (std::nothrow) uint8_t[DataLength]);
             if (Buffer.get() != nullptr) {
                 RunSuccess =
                     DriverClient.Read(
                         IOCTL_QUIC_GET_EXTRA_DATA,
                         (void*)Buffer.get(),
-                        Metadata.ExtraDataLength,
-                        &Metadata.ExtraDataLength, 10000);
+                        DataLength,
+                        &DataLength, 10000);
                 if (RunSuccess) {
                     QUIC_STATUS Status =
-                        QuicHandleRpsClient(Buffer.get(), Metadata.ExtraDataLength, FileName);
+                        QuicHandleRpsClient(Buffer.get(), DataLength, FileName);
                     if (QUIC_FAILED(Status)) {
                         RunSuccess = false;
                         printf("Handle RPS Data Failed\n");

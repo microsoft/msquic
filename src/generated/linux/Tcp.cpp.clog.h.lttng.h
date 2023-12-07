@@ -180,9 +180,9 @@ TRACEPOINT_EVENT(CLOG_TCP_CPP, PerfTcpAppConnect,
 // Decoder Ring for PerfTcpAppDisconnect
 // [perf][tcp][%p] App Disconnect
 // QuicTraceLogVerbose(
-            PerfTcpAppDisconnect,
-            "[perf][tcp][%p] App Disconnect",
-            this);
+                PerfTcpAppDisconnect,
+                "[perf][tcp][%p] App Disconnect",
+                this);
 // arg2 = arg2 = this = arg2
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_TCP_CPP, PerfTcpAppDisconnect,

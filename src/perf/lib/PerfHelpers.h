@@ -27,15 +27,12 @@ Abstract:
 #include "msquic.hpp"
 #include "msquichelper.h"
 #include "quic_hashtable.h"
-#include "PerfBase.h"
 #include "Tcp.h"
 
 #ifndef _KERNEL_MODE
 #include <stdlib.h>
 #include <stdio.h>
 #endif
-
-#define QUIC_TEST_SESSION_CLOSED    1
 
 extern
 QUIC_STATUS
@@ -58,8 +55,8 @@ QuicMainFree(
 
 extern
 QUIC_STATUS
-QuicMainGetExtraDataMetadata(
-    _Out_ PerfExtraDataMetadata* Metadata
+QuicMainGetExtraDataLength(
+    _Out_ uint32_t* DataLength
     );
 
 extern

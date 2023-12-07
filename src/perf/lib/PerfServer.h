@@ -13,10 +13,9 @@ Abstract:
 #pragma once
 
 #include "PerfHelpers.h"
-#include "PerfBase.h"
 #include "PerfCommon.h"
 
-class PerfServer : public PerfBase {
+class PerfServer {
 public:
     PerfServer(const QUIC_CREDENTIAL_CONFIG* CredConfig) :
         Engine(TcpAcceptCallback, TcpConnectCallback, TcpReceiveCallback, TcpSendCompleteCallback),
@@ -30,7 +29,7 @@ public:
                 Configuration.GetInitStatus();
     }
 
-    ~PerfServer() override {
+    ~PerfServer() {
         if (DataBuffer) {
             CXPLAT_FREE(DataBuffer, QUIC_POOL_PERF);
         }
@@ -40,28 +39,17 @@ public:
     Init(
         _In_ int argc,
         _In_reads_(argc) _Null_terminated_ char* argv[]
-        ) override;
+        );
 
     QUIC_STATUS
     Start(
         _In_ CXPLAT_EVENT* StopEvent
-        ) override;
+        );
 
     QUIC_STATUS
     Wait(
         int Timeout
-        ) override;
-
-    void
-    GetExtraDataMetadata(
-        _Out_ PerfExtraDataMetadata* Result
-        ) override;
-
-    QUIC_STATUS
-    GetExtraData(
-        _Out_writes_bytes_(*Length) uint8_t* Data,
-        _Inout_ uint32_t* Length
-        ) override;
+        );
 
 private:
 

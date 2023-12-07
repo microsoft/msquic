@@ -42,7 +42,7 @@ PerfServer::Init(
         MsQuicGlobalSettings GlobalSettings;
         GlobalSettings.SetFixedServerID(ServerId);
         GlobalSettings.SetLoadBalancingMode(QUIC_LOAD_BALANCING_SERVER_ID_FIXED);
-   
+
         QUIC_STATUS Status;
 	    if (QUIC_FAILED(Status = GlobalSettings.Set())) {
 	    	WriteOutput("Failed to set global settings %d\n", Status);
@@ -102,26 +102,6 @@ PerfServer::Wait(
         CxPlatEventWaitForever(*StopEvent);
     }
     Registration.Shutdown(QUIC_CONNECTION_SHUTDOWN_FLAG_NONE, 0);
-    return QUIC_STATUS_SUCCESS;
-}
-
-void
-PerfServer::GetExtraDataMetadata(
-    _Out_ PerfExtraDataMetadata* Result
-    )
-{
-    Result->TestType = PerfTestType::Server;
-    Result->ExtraDataLength = 0;
-}
-
-
-QUIC_STATUS
-PerfServer::GetExtraData(
-    _Out_writes_bytes_(*Length) uint8_t*,
-    _Inout_ uint32_t* Length
-    )
-{
-    *Length = 0;
     return QUIC_STATUS_SUCCESS;
 }
 

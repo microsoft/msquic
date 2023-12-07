@@ -380,20 +380,18 @@ PerfClient::Wait(
 }
 
 void
-PerfClient::GetExtraDataMetadata(
-    _Out_ PerfExtraDataMetadata* Result
+PerfClient::GetExtraDataLength(
+    _Out_ uint32_t* DataLength
     )
 {
-    Result->TestType = PerfTestType::Client;
     if (!MaxLatencyIndex) {
-        Result->ExtraDataLength = 0; // Not capturing this extra data
+       *DataLength = 0; // Not capturing this extra data
     } else {
-        const auto DataLength =
+        *DataLength =
+            (uint32_t)(
             sizeof(RunTime) +
             sizeof(CurLatencyIndex) +
-            (LatencyCount * sizeof(uint32_t));
-        CXPLAT_FRE_ASSERT(DataLength <= UINT32_MAX); // TODO Limit values properly
-        Result->ExtraDataLength = (uint32_t)DataLength;
+            (LatencyCount * sizeof(uint32_t)));
     }
 }
 

@@ -801,14 +801,14 @@ SecNetPerfCtlStart(
 }
 
 void
-SecNetPerfCtlGetMetadata(
+SecNetPerfCtlGetExtraDataLength(
     _In_ WDFREQUEST Request
     )
 {
     QUIC_STATUS QuicStatus;
-    PerfExtraDataMetadata Metadata;
+    uint32_t DataLength = 0;
 
-    QuicStatus = QuicMainGetExtraDataMetadata(&Metadata);
+    QuicStatus = QuicMainGetExtraDataLength(&DataLength);
     if (QUIC_FAILED(QuicStatus)) {
         WdfRequestComplete(Request, QuicStatus);
         return;
@@ -819,7 +819,7 @@ SecNetPerfCtlGetMetadata(
     NTSTATUS Status =
         WdfRequestRetrieveOutputBuffer(
             Request,
-            sizeof(Metadata),
+            sizeof(DataLength),
             &LocalBuffer,
             nullptr);
     if (!NT_SUCCESS(Status)) {
@@ -827,11 +827,11 @@ SecNetPerfCtlGetMetadata(
         return;
     }
 
-    CxPlatCopyMemory(LocalBuffer, &Metadata, sizeof(Metadata));
+    CxPlatCopyMemory(LocalBuffer, &DataLength, sizeof(DataLength));
     WdfRequestCompleteWithInformation(
         Request,
         Status,
-        sizeof(Metadata));
+        sizeof(DataLength));
 }
 
 void
@@ -919,8 +919,8 @@ SecNetPerfCtlEvtIoDeviceControl(
             Request,
             Client);
         return;
-    } else if (IoControlCode == IOCTL_QUIC_GET_METADATA) {
-        SecNetPerfCtlGetMetadata(Request);
+    } else if (IoControlCode == IOCTL_QUIC_GET_EXTRA_DATA_LENGTH) {
+        SecNetPerfCtlGetExtraDataLength(Request);
         return;
     } else if (IoControlCode == IOCTL_QUIC_GET_EXTRA_DATA) {
         SecNetPerfCtlGetExtraData(Request, OutputBufferLength);

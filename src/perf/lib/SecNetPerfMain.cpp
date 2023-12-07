@@ -12,9 +12,6 @@ Abstract:
 #include "PerfHelpers.h"
 #include "PerfServer.h"
 #include "PerfClient.h"
-#include "ThroughputClient.h"
-#include "RpsClient.h"
-#include "HpsClient.h"
 #include "Tcp.h"
 
 #ifdef QUIC_CLOG
@@ -25,7 +22,8 @@ const MsQuicApi* MsQuic;
 volatile int BufferCurrent;
 char Buffer[BufferLength];
 
-PerfBase* TestToRun;
+PerfServer* Server;
+PerfClient* Client;
 QUIC_EXECUTION_PROFILE PerfDefaultExecutionProfile = QUIC_EXECUTION_PROFILE_LOW_LATENCY;
 QUIC_CONGESTION_CONTROL_ALGORITHM PerfDefaultCongestionControl = QUIC_CONGESTION_CONTROL_ALGORITHM_CUBIC;
 uint8_t PerfDefaultEcnEnabled = false;
@@ -42,7 +40,7 @@ CXPLAT_DATAPATH_UNREACHABLE_CALLBACK DatapathUnreachable;
 CXPLAT_DATAPATH* Datapath;
 CXPLAT_SOCKET* Binding;
 CxPlatWatchdog* Watchdog;
-bool ServerMode = false;
+bool ClientMode = false;
 uint32_t MaxRuntime = 0;
 
 #define ASSERT_ON_FAILURE(x) \
@@ -66,7 +64,7 @@ PrintHelp(
         "  -serverid:<####>            The ID of the server (used for load balancing).\n"
         "  -cibir:<hex_bytes>          A CIBIR well-known idenfitier.\n"
         "\n"
-        "Client: secnetperf -TestName:<Throughput|RPS|HPS> [options]\n"
+        "Client: secnetperf -Target:<hostname/ip> [options]\n"
         "Both:\n"
         "  -exec:<profile>             Execution profile to use {lowlat, maxtput, scavenger, realtime}.\n"
         "  -cc:<algo>                  Congestion control algorithm to use {cubic, bbr}.\n"
@@ -98,12 +96,13 @@ QuicMainStart(
         return QUIC_STATUS_INVALID_PARAMETER;
     }
 
-    const char* TestName = GetValue(argc, argv, "TestName");
-    if (TestName == nullptr) {
-        TestName = GetValue(argc, argv, "test");
-    }
+    ClientMode =
+        GetValue(argc, argv, "target") ||
+        GetValue(argc, argv, "server") ||
+        GetValue(argc, argv, "to") ||
+        GetValue(argc, argv, "remote") ||
+        GetValue(argc, argv, "peer");
 
-    ServerMode = TestName == nullptr;
     TryGetValue(argc, argv, "maxruntime", &MaxRuntime);
 
     uint32_t WatchdogTimeout = 0;
@@ -126,7 +125,7 @@ QuicMainStart(
         return Status;
     }
 
-    if (ServerMode) {
+    if (!ClientMode) {
         QuicAddr LocalAddress {QUIC_ADDRESS_FAMILY_INET, (uint16_t)9999};
         CXPLAT_UDP_CONFIG UdpConfig = {0};
         UdpConfig.LocalAddress = &LocalAddress.SockAddr;
@@ -246,46 +245,26 @@ QuicMainStart(
     TryGetValue(argc, argv, "ecn", &PerfDefaultEcnEnabled);
     TryGetValue(argc, argv, "qeo", &PerfDefaultQeoAllowed);
 
-    if (ServerMode) {
-        TestToRun = new(std::nothrow) PerfServer(SelfSignedCredConfig);
-    } else {
-        if (IsValue(TestName, "Throughput") || IsValue(TestName, "tput")) {
-            TestToRun = new(std::nothrow) ThroughputClient;
-        } else if (IsValue(TestName, "RPS")) {
-            TestToRun = new(std::nothrow) RpsClient;
-        } else if (IsValue(TestName, "HPS")) {
-            TestToRun = new(std::nothrow) HpsClient;
-        } else if (IsValue(TestName, "client")) {
-            TestToRun = new(std::nothrow) PerfClient;
-        } else {
-            PrintHelp();
-            delete MsQuic;
-            MsQuic = nullptr;
-            delete Watchdog;
-            Watchdog = nullptr;
-            return QUIC_STATUS_INVALID_PARAMETER;
+    if (ClientMode) {
+        Client = new(std::nothrow) PerfClient;
+        if ((QUIC_SUCCEEDED(Status = Client->Init(argc, argv)) &&
+             QUIC_SUCCEEDED(Status = Client->Start(StopEvent)))) {
+            return QUIC_STATUS_SUCCESS;
         }
+        WriteOutput("Client Failed To Start: %d\n", Status);
+        delete Client;
+        Client = nullptr;
+    } else {
+        Server = new(std::nothrow) PerfServer(SelfSignedCredConfig);
+        if ((QUIC_SUCCEEDED(Status = Server->Init(argc, argv)) &&
+             QUIC_SUCCEEDED(Status = Server->Start(StopEvent)))) {
+            return QUIC_STATUS_SUCCESS;
+        }
+        WriteOutput("Server Failed To Start: %d\n", Status);
+        delete Server;
+        Server = nullptr;
     }
 
-    if (TestToRun != nullptr) {
-        Status = TestToRun->Init(argc, argv);
-        if (QUIC_SUCCEEDED(Status)) {
-            Status = TestToRun->Start(StopEvent);
-            if (QUIC_SUCCEEDED(Status)) {
-                return QUIC_STATUS_SUCCESS;
-            } else {
-                WriteOutput("Test Failed To Start: %d\n", Status);
-            }
-        } else {
-            WriteOutput("Test Failed To Initialize: %d\n", Status);
-        }
-    } else {
-        WriteOutput("Test Alloc Out Of Memory\n");
-        Status = QUIC_STATUS_OUT_OF_MEMORY;
-    }
-
-    delete TestToRun;
-    TestToRun = nullptr;
     delete MsQuic;
     MsQuic = nullptr;
     delete Watchdog;
@@ -296,15 +275,17 @@ QuicMainStart(
 QUIC_STATUS
 QuicMainStop(
     ) {
-    return TestToRun ? TestToRun->Wait((int)MaxRuntime) : QUIC_STATUS_SUCCESS;
+    return Client ? Client->Wait((int)MaxRuntime) : Server->Wait((int)MaxRuntime);
 }
 
 void
 QuicMainFree(
     )
 {
-    delete TestToRun;
-    TestToRun = nullptr;
+    delete Client;
+    Client = nullptr;
+    delete Server;
+    Server = nullptr;
     delete MsQuic;
     MsQuic = nullptr;
 
@@ -323,15 +304,15 @@ QuicMainFree(
 }
 
 QUIC_STATUS
-QuicMainGetExtraDataMetadata(
-    _Out_ PerfExtraDataMetadata* Metadata
+QuicMainGetExtraDataLength(
+    _Out_ uint32_t* DataLength
     )
 {
-    if (TestToRun == nullptr) {
+    if (Client == nullptr) {
         return QUIC_STATUS_INVALID_STATE;
     }
 
-    TestToRun->GetExtraDataMetadata(Metadata);
+    Client->GetExtraDataLength(DataLength);
     return QUIC_STATUS_SUCCESS;
 }
 
@@ -341,12 +322,12 @@ QuicMainGetExtraData(
     _Inout_ uint32_t* Length
     )
 {
-    if (TestToRun == nullptr) {
+    if (Client == nullptr) {
         *Length = 0;
         return QUIC_STATUS_INVALID_STATE;
     }
 
-    return TestToRun->GetExtraData(Data, Length);
+    return Client->GetExtraData(Data, Length);
 }
 
 void
