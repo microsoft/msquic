@@ -48,7 +48,7 @@ struct ForwardedSend {
 };
 
 QUIC_STATUS StreamCallback(
-    _In_ struct MsQuicStream* Stream,
+    _In_ struct MsQuicStream* /* Stream */,
     _In_opt_ void* Context,
     _Inout_ QUIC_STREAM_EVENT* Event
     )
@@ -101,7 +101,7 @@ QUIC_STATUS StreamCallback(
 }
 
 QUIC_STATUS ConnectionCallback(
-    _In_ struct MsQuicConnection* Connection,
+    _In_ struct MsQuicConnection* /* Connection */,
     _In_opt_ void* Context,
     _Inout_ QUIC_CONNECTION_EVENT* Event
     )
