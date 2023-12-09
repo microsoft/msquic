@@ -135,18 +135,23 @@ $commands = @(
 for ($i = 0; $i -lt $commands.Count; $i++) {
     Write-Output "Running test: $($commands[$i])"
     $rawOutput = Invoke-Expression $commands[$i]
+    $pattern = '@ (\d+) kbps'
 
-    @($rawOutput -match '@ (\d+) kbps')
+    foreach ($line in $rawOutput) {
+        if ($line -match $pattern) {
 
-    $scalar = $matches[1]
+            $num = $matches[1]
 
-    # Generate SQL statement
-    $SQL += @"
+            # Generate SQL statement
+            $SQL += @"
 
 INSERT INTO Secnetperf_test_runs (Secnetperf_test_ID, Client_environment_ID, Server_environment_ID, Result, Latency_stats_ID, Units)
-VALUES ('$($testIds[$i])', 'azure_vm', 'azure_vm', $scalar, NULL, 'kbps');
+VALUES ('$($testIds[$i])', 'azure_vm', 'azure_vm', $num, NULL, 'kbps');
 
 "@
+            break
+        }
+    }
 
     Start-Sleep -Seconds 1
 }
