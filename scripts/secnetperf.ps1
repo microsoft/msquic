@@ -136,7 +136,7 @@ for ($i = 0; $i -lt $commands.Count; $i++) {
     Write-Output "Running test: $($commands[$i])"
     $rawOutput = Invoke-Expression $commands[$i]
 
-    @($testbad -match '@ (\d+) kbps')
+    @($rawOutput -match '@ (\d+) kbps')
 
     $scalar = $matches[1]
 
