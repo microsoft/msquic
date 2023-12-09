@@ -103,26 +103,26 @@ INSERT OR IGNORE INTO Secnetperf_builds (Secnetperf_Commit, Build_date_time, TLS
 VALUES ('$MsQuicCommit', '$(Get-Date -Format "yyyy-MM-dd HH:mm:ss")', 1, 'TODO');
 
 INSERT OR IGNORE INTO Secnetperf_tests (Secnetperf_test_ID, Secnetperf_build_ID, Kernel_mode, Run_arguments, Test_name)
-VALUES (throughput-upload-quic-'$MsQuicCommit', '$MsQuicCommit', 0, '-target:netperf-peer -exec:maxtput -test:tput -upload:10000 -timed:1', 'throughput-upload-quic');
+VALUES ('throughput-upload-quic-$MsQuicCommit', '$MsQuicCommit', 0, '-target:netperf-peer -exec:maxtput -test:tput -upload:10000 -timed:1', 'throughput-upload-quic');
 
 INSERT OR IGNORE INTO Secnetperf_tests (Secnetperf_test_ID, Secnetperf_build_ID, Kernel_mode, Run_arguments, Test_name)
-VALUES (throughput-upload-tcp-'$MsQuicCommit', '$MsQuicCommit', 0, '-target:netperf-peer -exec:maxtput -test:tput -upload:10000 -timed:1 -tcp:1', 'throughput-upload-tcp');
+VALUES ('throughput-upload-tcp-$MsQuicCommit', '$MsQuicCommit', 0, '-target:netperf-peer -exec:maxtput -test:tput -upload:10000 -timed:1 -tcp:1', 'throughput-upload-tcp');
 
 INSERT OR IGNORE INTO Secnetperf_tests (Secnetperf_test_ID, Secnetperf_build_ID, Kernel_mode, Run_arguments, Test_name)
-VALUES (throughput-download-quic-'$MsQuicCommit', '$MsQuicCommit', 0, '-target:netperf-peer -exec:maxtput -test:tput -download:10000 -timed:1', 'throughput-download-quic');
+VALUES ('throughput-download-quic-$MsQuicCommit', '$MsQuicCommit', 0, '-target:netperf-peer -exec:maxtput -test:tput -download:10000 -timed:1', 'throughput-download-quic');
 
 INSERT OR IGNORE INTO Secnetperf_tests (Secnetperf_test_ID, Secnetperf_build_ID, Kernel_mode, Run_arguments, Test_name)
-VALUES (throughput-download-tcp-'$MsQuicCommit', '$MsQuicCommit', 0, '-target:netperf-peer -exec:maxtput -test:tput -download:10000 -timed:1 -tcp:1', 'throughput-download-tcp');
+VALUES ('throughput-download-tcp-$MsQuicCommit', '$MsQuicCommit', 0, '-target:netperf-peer -exec:maxtput -test:tput -download:10000 -timed:1 -tcp:1', 'throughput-download-tcp');
 
 "@
 
 # TODO: Make a more elaborate execution strategy instead of just a list of commands. Also add more tests.
 
 $testIds = @(
-    "throughput-upload-quic-'$MsQuicCommit'",
-    "throughput-upload-tcp-'$MsQuicCommit'",
-    "throughput-download-quic-'$MsQuicCommit'",
-    "throughput-download-tcp-'$MsQuicCommit'"
+    "throughput-upload-quic-$MsQuicCommit",
+    "throughput-upload-tcp-$MsQuicCommit",
+    "throughput-download-quic-$MsQuicCommit",
+    "throughput-download-tcp-$MsQuicCommit"
 )
 
 $commands = @(
@@ -134,14 +134,17 @@ $commands = @(
 
 for ($i = 0; $i -lt $commands.Count; $i++) {
     Write-Output "Running test: $($commands[$i])"
-    $Output = Invoke-Expression $commands[$i]
-    $Output = @($Output -match '\d+')
+    $rawOutput = Invoke-Expression $commands[$i]
+
+    @($testbad -match '@ (\d+) kbps')
+
+    $scalar = $matches[1]
 
     # Generate SQL statement
     $SQL += @"
 
-        INSERT INTO Secnetperf_test_runs (Secnetperf_test_ID, Client_environment_ID, Server_environment_ID, Result, Latency_stats_ID)
-        VALUES ('$($testIds[$i])', azure_vm, azure_vm, '$Output', NULL);
+INSERT INTO Secnetperf_test_runs (Secnetperf_test_ID, Client_environment_ID, Server_environment_ID, Result, Latency_stats_ID, Units)
+VALUES ('$($testIds[$i])', 'azure_vm', 'azure_vm', $scalar, NULL, 'kbps');
 
 "@
 
