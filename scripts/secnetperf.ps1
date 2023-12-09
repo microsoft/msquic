@@ -133,7 +133,7 @@ $commands = @(
 )
 
 for ($i = 0; $i -lt $commands.Count; $i++) {
-    Write-Output "Running test: $($commandMetadata[$i])"
+    Write-Output "Running test: $($commands[$i])"
     $Output = Invoke-Expression $commands[$i]
     $Output = @($Output -match '\d+')
 
