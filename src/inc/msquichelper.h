@@ -34,6 +34,7 @@ typedef struct QUIC_CREDENTIAL_CONFIG_HELPER {
     };
 } QUIC_CREDENTIAL_CONFIG_HELPER;
 
+#if defined(__cplusplus)
 //
 // Converts the QUIC Status Code to a string for console output.
 //
@@ -70,6 +71,7 @@ QuicStatusToString(
 
     return "UNKNOWN";
 }
+#endif // defined(__cplusplus)
 
 //
 // Helper function to get the RTT (in microseconds) from a MsQuic Connection or Stream handle.
