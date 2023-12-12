@@ -1505,7 +1505,6 @@ class ExecutableSpec {
 
 class TestDefinition {
     [string]$TestName;
-    [boolean]$SkipKernel;
     [string]$FailureDefault;
     [ExecutableSpec]$Local;
     [VariableSpec[]]$Variables;
@@ -1573,7 +1572,7 @@ function Test-CanRunTest {
     if ($Local -and !$Test.AllowLoopback) {
         return $false
     }
-    if ($script:Kernel -and $Test.SkipKernel) {
+    if ($script:Kernel -and $Test.TestName.Contains("Tcp")) {
         return $false
     }
     if ($script:XDP -and $Test.TestName.Contains("Tcp")) {

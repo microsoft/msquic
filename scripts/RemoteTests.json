@@ -50,7 +50,6 @@
             },
             "Variables": [
             ],
-            "SkipKernel": true,
             "AllowLoopback": true,
             "Iterations": 5,
             "RemoteReadyMatcher": "Started!",
@@ -104,7 +103,6 @@
             },
             "Variables": [
             ],
-            "SkipKernel": true,
             "AllowLoopback": true,
             "Iterations": 5,
             "RemoteReadyMatcher": "Started!",
@@ -150,7 +148,6 @@
             },
             "Variables": [
             ],
-            "SkipKernel": true,
             "AllowLoopback": true,
             "Iterations": 5,
             "RemoteReadyMatcher": "Started!",
@@ -196,7 +193,6 @@
             },
             "Variables": [
             ],
-            "SkipKernel": true,
             "AllowLoopback": true,
             "Iterations": 5,
             "RemoteReadyMatcher": "Started!",
@@ -288,7 +284,6 @@
                     "Default": "4096"
                 }
             ],
-            "SkipKernel": true,
             "AllowLoopback": false,
             "Iterations": 5,
             "RemoteReadyMatcher": "Started!",
@@ -379,7 +374,6 @@
                     "Default": "4096"
                 }
             ],
-            "SkipKernel": true,
             "AllowLoopback": false,
             "Iterations": 5,
             "RemoteReadyMatcher": "Started!",
@@ -414,7 +408,6 @@
                 "Arguments": "-exec:maxtput -target:$RemoteAddress -inctarget:1 -rconn:1 -conns:8000 -run:10000 -tcp:1 -prate:1"
             },
             "Variables": [],
-            "SkipKernel": true,
             "AllowLoopback": false,
             "Iterations": 5,
             "RemoteReadyMatcher": "Started!",
@@ -449,7 +442,6 @@
                 "Arguments": "-exec:maxtput -target:$RemoteAddress -inctarget:1 -rconn:1 -conns:8000 -share:1 -run:10000 -tcp:1 -prate:1"
             },
             "Variables": [],
-            "SkipKernel": true,
             "AllowLoopback": false,
             "Iterations": 5,
             "RemoteReadyMatcher": "Started!",
