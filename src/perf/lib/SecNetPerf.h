@@ -19,16 +19,32 @@ Abstract:
 #define QUIC_API_ENABLE_PREVIEW_FEATURES  1 // For CIBIR extension
 
 #include "quic_platform.h"
+#include "quic_hashtable.h"
 #include "quic_trace.h"
 #include "msquic.hpp"
 #include "msquichelper.h"
-#include "quic_hashtable.h"
-#include "Tcp.h"
 
 #ifndef _KERNEL_MODE
 #include <stdlib.h>
 #include <stdio.h>
 #endif
+
+#define PERF_ALPN                           "perf"
+#define PERF_DEFAULT_PORT                   4433
+#define PERF_DEFAULT_DISCONNECT_TIMEOUT     (10 * 1000)
+#define PERF_DEFAULT_IDLE_TIMEOUT           (30 * 1000)
+#define PERF_DEFAULT_CONN_FLOW_CONTROL      0x8000000
+#define PERF_DEFAULT_STREAM_COUNT           10000
+#define PERF_DEFAULT_SEND_BUFFER_SIZE       0x20000
+#define PERF_DEFAULT_IO_SIZE                0x10000
+
+#define PERF_MAX_THREAD_COUNT               128
+#define PERF_MAX_REQUESTS_PER_SECOND        2000000 // best guess - must increase if we can do better
+
+extern QUIC_EXECUTION_PROFILE PerfDefaultExecutionProfile;
+extern QUIC_CONGESTION_CONTROL_ALGORITHM PerfDefaultCongestionControl;
+extern uint8_t PerfDefaultEcnEnabled;
+extern uint8_t PerfDefaultQeoAllowed;
 
 extern
 QUIC_STATUS

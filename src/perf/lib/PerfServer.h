@@ -12,8 +12,8 @@ Abstract:
 
 #pragma once
 
-#include "PerfHelpers.h"
-#include "PerfCommon.h"
+#include "SecNetPerf.h"
+#include "Tcp.h"
 
 class PerfServer {
 public:

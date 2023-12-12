@@ -11,7 +11,7 @@ Abstract:
 
 #pragma once
 
-#include "PerfHelpers.h"
+#include "SecNetPerf.h"
 #include "quic_datapath.h"
 #include "quic_tls.h"
 

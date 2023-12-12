@@ -288,6 +288,7 @@
                     "Default": "4096"
                 }
             ],
+            "SkipKernel": true,
             "AllowLoopback": false,
             "Iterations": 5,
             "RemoteReadyMatcher": "Started!",
@@ -378,6 +379,7 @@
                     "Default": "4096"
                 }
             ],
+            "SkipKernel": true,
             "AllowLoopback": false,
             "Iterations": 5,
             "RemoteReadyMatcher": "Started!",
@@ -392,7 +394,7 @@
                 "Tls": ["schannel", "openssl", "openssl3"],
                 "Arch": ["x64", "x86", "arm", "arm64"],
                 "Exe": "secnetperf",
-                "Arguments": "-exec:maxtput -target:$RemoteAddress -inctarget:1 -rconn:1 -conns:256 -run:10000 -tcp:0 -prate:1"
+                "Arguments": "-exec:maxtput -target:$RemoteAddress -inctarget:1 -rconn:1 -conns:8000 -run:10000 -tcp:0 -prate:1"
             },
             "Variables": [],
             "AllowLoopback": false,
@@ -409,9 +411,10 @@
                 "Tls": ["schannel", "openssl", "openssl3"],
                 "Arch": ["x64", "x86", "arm", "arm64"],
                 "Exe": "secnetperf",
-                "Arguments": "-exec:maxtput -target:$RemoteAddress -inctarget:1 -rconn:1 -conns:256 -run:10000 -tcp:1 -prate:1"
+                "Arguments": "-exec:maxtput -target:$RemoteAddress -inctarget:1 -rconn:1 -conns:8000 -run:10000 -tcp:1 -prate:1"
             },
             "Variables": [],
+            "SkipKernel": true,
             "AllowLoopback": false,
             "Iterations": 5,
             "RemoteReadyMatcher": "Started!",
@@ -426,7 +429,7 @@
                 "Tls": ["openssl", "openssl3"],
                 "Arch": ["x64", "arm"],
                 "Exe": "secnetperf",
-                "Arguments": "-exec:maxtput -target:$RemoteAddress -inctarget:1 -rconn:1 -conns:256 -share:1 -run:10000 -tcp:0 -prate:1"
+                "Arguments": "-exec:maxtput -target:$RemoteAddress -inctarget:1 -rconn:1 -conns:8000 -share:1 -run:10000 -tcp:0 -prate:1"
             },
             "Variables": [],
             "AllowLoopback": false,
@@ -443,9 +446,10 @@
                 "Tls": ["openssl", "openssl3"],
                 "Arch": ["x64", "arm"],
                 "Exe": "secnetperf",
-                "Arguments": "-exec:maxtput -target:$RemoteAddress -inctarget:1 -rconn:1 -conns:256 -share:1 -run:10000 -tcp:1 -prate:1"
+                "Arguments": "-exec:maxtput -target:$RemoteAddress -inctarget:1 -rconn:1 -conns:8000 -share:1 -run:10000 -tcp:1 -prate:1"
             },
             "Variables": [],
+            "SkipKernel": true,
             "AllowLoopback": false,
             "Iterations": 5,
             "RemoteReadyMatcher": "Started!",

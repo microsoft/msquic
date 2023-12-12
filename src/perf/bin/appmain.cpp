@@ -9,7 +9,7 @@ Abstract:
 
 --*/
 
-#include "PerfHelpers.h"
+#include "SecNetPerf.h"
 #include "LatencyHelpers.h"
 #include "histogram/hdr_histogram.h"
 

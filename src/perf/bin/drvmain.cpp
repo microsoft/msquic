@@ -9,7 +9,7 @@ Abstract:
 
 --*/
 
-#include "PerfHelpers.h"
+#include "SecNetPerf.h"
 #include "PerfIoctls.h"
 #include <new.h>
 
