@@ -18,13 +18,20 @@ uint16_t FrontEndPort;
 const char* BackEndTarget;
 uint16_t BackEndPort;
 QUIC_CERTIFICATE_HASH Cert;
+bool BufferedMode = true;
 
 const MsQuicApi* MsQuic;
 MsQuicRegistration* Registration;
 MsQuicConfiguration* FrontEndConfiguration;
 MsQuicConfiguration* BackEndConfiguration;
 
-bool ParseArgs(char **argv) {
+#define USAGE \
+    "Usage: quicforward <alpn> <local-port> <target-name/ip>:<target-port> <thumbprint> [0/1-buffered-mode]\n"
+
+bool ParseArgs(int argc, char **argv) {
+    if (argc < 5) {
+        return false;
+    }
     Alpn = argv[1];
     FrontEndPort = (uint16_t)atoi(argv[2]);
     BackEndTarget = argv[3];
@@ -39,12 +46,41 @@ bool ParseArgs(char **argv) {
         printf("Invalid thumbprint.\n");
         return false;
     }
+    if (argc > 5) {
+        BufferedMode = atoi(argv[5]) != 0;
+    }
     return true;
 }
 
 struct ForwardedSend {
     uint64_t TotalLength;
     QUIC_BUFFER Buffers[2];
+    static ForwardedSend* New(QUIC_STREAM_EVENT* Event) {
+        if (BufferedMode) {
+            auto SendContext = (ForwardedSend*)malloc(sizeof(ForwardedSend) + Event->RECEIVE.TotalBufferLength);
+            SendContext->TotalLength = Event->RECEIVE.TotalBufferLength;
+            SendContext->Buffers[0].Buffer = (uint8_t*)SendContext + sizeof(ForwardedSend);
+            SendContext->Buffers[0].Length = 0;
+            for (uint32_t i = 0; i < Event->RECEIVE.BufferCount; ++i) {
+                memcpy(
+                    SendContext->Buffers[0].Buffer + SendContext->Buffers[0].Length,
+                    Event->RECEIVE.Buffers[i].Buffer,
+                    Event->RECEIVE.Buffers[i].Length);
+                SendContext->Buffers[0].Length += Event->RECEIVE.Buffers[i].Length;
+            }
+            return SendContext;
+        }
+        auto SendContext = new(std::nothrow) ForwardedSend;
+        SendContext->TotalLength = Event->RECEIVE.TotalBufferLength;
+        for (uint32_t i = 0; i < Event->RECEIVE.BufferCount; ++i) {
+            SendContext->Buffers[i] = Event->RECEIVE.Buffers[i];
+        }
+        return SendContext;
+    }
+    static void Delete(ForwardedSend* SendContext) {
+        if (BufferedMode) { free(SendContext); }
+        else { delete SendContext; }
+    }
 };
 
 QUIC_STATUS StreamCallback(
@@ -57,29 +93,21 @@ QUIC_STATUS StreamCallback(
     switch (Event->Type) {
     case QUIC_STREAM_EVENT_RECEIVE: {
         //printf("s[%p] Received %llu bytes\n", Stream, Event->RECEIVE.TotalBufferLength);
-        auto SendContext = new(std::nothrow) ForwardedSend;
-        SendContext->TotalLength = Event->RECEIVE.TotalBufferLength;
-        for (uint32_t i = 0; i < Event->RECEIVE.BufferCount; ++i) {
-            SendContext->Buffers[i] = Event->RECEIVE.Buffers[i];
-        }
+        auto SendContext = ForwardedSend::New(Event);
         QUIC_SEND_FLAGS Flags = QUIC_SEND_FLAG_START;
-        if (Event->RECEIVE.Flags & QUIC_RECEIVE_FLAG_FIN) {
-            Flags |= QUIC_SEND_FLAG_FIN;
-        }
-        if (Event->RECEIVE.Flags & QUIC_RECEIVE_FLAG_0_RTT) {
-            Flags |= QUIC_SEND_FLAG_ALLOW_0_RTT;
-        }
+        if (Event->RECEIVE.Flags & QUIC_RECEIVE_FLAG_FIN)   { Flags |= QUIC_SEND_FLAG_FIN; }
+        if (Event->RECEIVE.Flags & QUIC_RECEIVE_FLAG_0_RTT) { Flags |= QUIC_SEND_FLAG_ALLOW_0_RTT; }
         CXPLAT_FRE_ASSERT(QUIC_SUCCEEDED(
             PeerStream->Send(SendContext->Buffers, Event->RECEIVE.BufferCount, Flags, SendContext)));
-        return QUIC_STATUS_PENDING;
+        return BufferedMode ? QUIC_STATUS_SUCCESS : QUIC_STATUS_PENDING;
     }
     case QUIC_STREAM_EVENT_SEND_COMPLETE: {
         auto SendContext = (ForwardedSend*)Event->SEND_COMPLETE.ClientContext;
         //printf("s[%p] Sent %llu bytes\n", Stream, SendContext->TotalLength);
-        if (!Event->SEND_COMPLETE.Canceled && PeerStream) {
+        if (!BufferedMode && !Event->SEND_COMPLETE.Canceled && PeerStream) {
             PeerStream->ReceiveComplete(SendContext->TotalLength);
         }
-        delete SendContext;
+        ForwardedSend::Delete(SendContext);
         break;
     }
     case QUIC_STREAM_EVENT_PEER_SEND_ABORTED:
@@ -121,20 +149,8 @@ QUIC_STATUS ConnectionCallback(
         break;
     case QUIC_CONNECTION_EVENT_PEER_STREAM_STARTED: {
         //printf("c[%p] Peer stream started\n", Connection);
-        auto PeerStream =
-            new(std::nothrow)
-            MsQuicStream(
-                *PeerConn,
-                Event->PEER_STREAM_STARTED.Flags,
-                CleanUpAutoDelete,
-                StreamCallback);
-        auto LocalStream =
-            new(std::nothrow)
-            MsQuicStream(
-                Event->PEER_STREAM_STARTED.Stream,
-                CleanUpAutoDelete,
-                StreamCallback,
-                PeerStream);
+        auto PeerStream = new(std::nothrow) MsQuicStream(*PeerConn, Event->PEER_STREAM_STARTED.Flags, CleanUpAutoDelete, StreamCallback);
+        auto LocalStream = new(std::nothrow) MsQuicStream(Event->PEER_STREAM_STARTED.Stream, CleanUpAutoDelete, StreamCallback, PeerStream);
         PeerStream->Context = LocalStream;
         //printf("s[%p] Started -> [%p]\n", LocalStream, PeerStream);
         break;
@@ -156,19 +172,8 @@ QUIC_STATUS ListenerCallback(
     )
 {
     if (Event->Type == QUIC_LISTENER_EVENT_NEW_CONNECTION) {
-        auto BackEndConn =
-            new(std::nothrow)
-            MsQuicConnection(
-                *Registration,
-                CleanUpAutoDelete,
-                ConnectionCallback);
-        auto FrontEndConn =
-            new(std::nothrow)
-            MsQuicConnection(
-                Event->NEW_CONNECTION.Connection,
-                CleanUpAutoDelete,
-                ConnectionCallback,
-                BackEndConn);
+        auto BackEndConn = new(std::nothrow) MsQuicConnection(*Registration, CleanUpAutoDelete, ConnectionCallback);
+        auto FrontEndConn = new(std::nothrow) MsQuicConnection(Event->NEW_CONNECTION.Connection, CleanUpAutoDelete, ConnectionCallback, BackEndConn);
         BackEndConn->Context = FrontEndConn;
         //printf("c[%p] Created -> [%p]\n", FrontEndConn, BackEndConn);
         CXPLAT_FRE_ASSERT(QUIC_SUCCEEDED(BackEndConn->Start(*BackEndConfiguration, BackEndTarget, BackEndPort)));
@@ -178,8 +183,8 @@ QUIC_STATUS ListenerCallback(
 }
 
 int QUIC_MAIN_EXPORT main(int argc, char **argv) {
-    if (argc < 5 || !ParseArgs(argv)) {
-        printf("Usage: quicforward <alpn> <local-port> <target-name/ip>:<target-port> <thumbprint>\n");
+    if (!ParseArgs(argc, argv)) {
+        printf(USAGE);
         return 1;
     }
 
@@ -192,8 +197,7 @@ int QUIC_MAIN_EXPORT main(int argc, char **argv) {
     Settings.SetSendBufferingEnabled(false);
     Settings.SetPeerBidiStreamCount(1000);
     Settings.SetPeerUnidiStreamCount(1000);
-    MsQuicCredentialConfig FrontEndCredConfig(QUIC_CREDENTIAL_FLAG_NONE, &Cert);
-    MsQuicConfiguration FrontEndConfig(Reg, Alpn, Settings, FrontEndCredConfig);
+    MsQuicConfiguration FrontEndConfig(Reg, Alpn, Settings, MsQuicCredentialConfig(QUIC_CREDENTIAL_FLAG_NONE, &Cert));
     CXPLAT_FRE_ASSERT(FrontEndConfig.IsValid());
     FrontEndConfiguration = &FrontEndConfig;
     MsQuicConfiguration BackEndConfig(Reg, Alpn, Settings, MsQuicCredentialConfig(QUIC_CREDENTIAL_FLAG_CLIENT | QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION));
