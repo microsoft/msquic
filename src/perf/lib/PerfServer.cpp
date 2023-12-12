@@ -83,7 +83,7 @@ PerfServer::Init(
     UdpConfig.RemoteAddress = nullptr;
     UdpConfig.Flags = 0;
     UdpConfig.InterfaceIndex = 0;
-    UdpConfig.CallbackContext = StopEvent;
+    UdpConfig.CallbackContext = this;
 #ifdef QUIC_OWNING_PROCESS
     UdpConfig.OwningProcess = QuicProcessGetCurrentProcess();
 #endif
@@ -141,8 +141,10 @@ PerfServer::DatapathReceive(
         memcmp(Data->Buffer, SecNetPerfShutdownGuid, sizeof(SecNetPerfShutdownGuid))) {
         return;
     }
-    CXPLAT_EVENT* Event = static_cast<CXPLAT_EVENT*>(Context);
-    CxPlatEventSet(*Event);
+    auto Server = (PerfServer*)Context;
+    if (Server->StopEvent) {
+        CxPlatEventSet(*Server->StopEvent);
+    }
 }
 
 void PerfServer::DatapathUnreachable(_In_ CXPLAT_SOCKET*, _In_ void*, _In_ const QUIC_ADDR*) { }
