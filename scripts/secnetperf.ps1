@@ -116,6 +116,8 @@ VALUES ('throughput-download-tcp-$MsQuicCommit', '$MsQuicCommit', 0, '-target:ne
 
 "@
 
+$json = @{}
+
 # TODO: Make a more elaborate execution strategy instead of just a list of commands. Also add more tests.
 
 $testIds = @(
@@ -149,6 +151,9 @@ INSERT INTO Secnetperf_test_runs (Secnetperf_test_ID, Client_environment_ID, Ser
 VALUES ('$($testIds[$i])', 'azure_vm', 'azure_vm', $num, NULL, 'kbps');
 
 "@
+
+            # Generate JSON
+            $json[$testIds[$i]] = $num
             break
         }
     }
@@ -200,6 +205,11 @@ Write-Output "Saving test results..."
 $FileName = "test-results-$plat-$os-$arch-$tls.sql"
 
 Set-Content -Path $FileName -Value $SQL
+
+# Save as a .json file
+$FileName = "json-test-results-$plat-$os-$arch-$tls.json"
+
+$json | ConvertTo-Json | Set-Content -Path $FileName
 
 } finally {
     # TODO: Do any further book keeping here.
