@@ -57,7 +57,7 @@ struct ForwardedSend {
     QUIC_BUFFER Buffers[2];
     static ForwardedSend* New(QUIC_STREAM_EVENT* Event) {
         if (BufferedMode) {
-            auto SendContext = (ForwardedSend*)malloc(sizeof(ForwardedSend) + Event->RECEIVE.TotalBufferLength);
+            auto SendContext = (ForwardedSend*)malloc(sizeof(ForwardedSend) + (size_t)Event->RECEIVE.TotalBufferLength);
             SendContext->TotalLength = Event->RECEIVE.TotalBufferLength;
             SendContext->Buffers[0].Buffer = (uint8_t*)SendContext + sizeof(ForwardedSend);
             SendContext->Buffers[0].Length = 0;
