@@ -246,7 +246,7 @@
             "AllowLoopback": false,
             "Iterations": 5,
             "RemoteReadyMatcher": "Started!",
-            "ResultsMatcher": "Result: (.*) RPS, Latency|us 0th: (.*), 50th: (.*), 90th: (.*), 99th: (.*), 99.9th: (.*), 99.99th: (.*), 99.999th: (.*), 99.9999th: (.*), Max: (.*)",
+            "ResultsMatcher": "Result: (.*) RPS, Latency,us 0th: (.*), 50th: (.*), 90th: (.*), 99th: (.*), 99.9th: (.*), 99.99th: (.*), 99.999th: (.*), 99.9999th: (.*), Max: (.*)",
             "Formats": ["{0} RPS", "Minimum: {0}", "50th: {0}", "90th: {0}", "99th: {0}", "99.9th: {0}", "99.99th: {0}", "99.999th: {0}", "99.9999th: {0}", "Maximum: {0}"],
             "RegressionThreshold": "-50.0"
         },
@@ -291,7 +291,7 @@
             "AllowLoopback": false,
             "Iterations": 5,
             "RemoteReadyMatcher": "Started!",
-            "ResultsMatcher": "Result: (.*) RPS, Latency|us 0th: (.*), 50th: (.*), 90th: (.*), 99th: (.*), 99.9th: (.*), 99.99th: (.*), 99.999th: (.*), 99.9999th: (.*), Max: (.*)",
+            "ResultsMatcher": "Result: (.*) RPS, Latency,us 0th: (.*), 50th: (.*), 90th: (.*), 99th: (.*), 99.9th: (.*), 99.99th: (.*), 99.999th: (.*), 99.9999th: (.*), Max: (.*)",
             "Formats": ["{0} RPS", "Minimum: {0}", "50th: {0}", "90th: {0}", "99th: {0}", "99.9th: {0}", "99.99th: {0}", "99.999th: {0}", "99.9999th: {0}", "Maximum: {0}"],
             "RegressionThreshold": "-50.0"
         },
@@ -336,7 +336,7 @@
             "AllowLoopback": false,
             "Iterations": 5,
             "RemoteReadyMatcher": "Started!",
-            "ResultsMatcher": "Result: (.*) RPS, Latency|us 0th: (.*), 50th: (.*), 90th: (.*), 99th: (.*), 99.9th: (.*), 99.99th: (.*), 99.999th: (.*), 99.9999th: (.*), Max: (.*)",
+            "ResultsMatcher": "Result: (.*) RPS, Latency,us 0th: (.*), 50th: (.*), 90th: (.*), 99th: (.*), 99.9th: (.*), 99.99th: (.*), 99.999th: (.*), 99.9999th: (.*), Max: (.*)",
             "Formats": ["{0} RPS", "Minimum: {0}", "50th: {0}", "90th: {0}", "99th: {0}", "99.9th: {0}", "99.99th: {0}", "99.999th: {0}", "99.9999th: {0}", "Maximum: {0}"],
             "RegressionThreshold": "-75.0"
         },
@@ -381,7 +381,7 @@
             "AllowLoopback": false,
             "Iterations": 5,
             "RemoteReadyMatcher": "Started!",
-            "ResultsMatcher": "Result: (.*) RPS, Latency|us 0th: (.*), 50th: (.*), 90th: (.*), 99th: (.*), 99.9th: (.*), 99.99th: (.*), 99.999th: (.*), 99.9999th: (.*), Max: (.*)",
+            "ResultsMatcher": "Result: (.*) RPS, Latency,us 0th: (.*), 50th: (.*), 90th: (.*), 99th: (.*), 99.9th: (.*), 99.99th: (.*), 99.999th: (.*), 99.9999th: (.*), Max: (.*)",
             "Formats": ["{0} RPS", "Minimum: {0}", "50th: {0}", "90th: {0}", "99th: {0}", "99.9th: {0}", "99.99th: {0}", "99.999th: {0}", "99.9999th: {0}", "Maximum: {0}"],
             "RegressionThreshold": "-75.0"
         },
