@@ -85,6 +85,12 @@ public:
             ASSERT_TRUE(DriverService.Initialize(DriverName, DependentDriverNames));
             ASSERT_TRUE(DriverService.Start());
             ASSERT_TRUE(DriverClient.Initialize(&CertParams, DriverName));
+
+            QUIC_TEST_CONFIGURATION_PARAMS Params {
+                UseDuoNic,
+            };
+            ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_TEST_CONFIGURATION, Params));
+
         } else {
             printf("Initializing for User Mode tests\n");
             MsQuic = new(std::nothrow) MsQuicApi();
@@ -849,12 +855,12 @@ TEST_P(WithFamilyArgs, ClientSharedLocalPort) {
 
 TEST_P(WithFamilyArgs, InterfaceBinding) {
     TestLoggerT<ParamType> Logger("QuicTestInterfaceBinding", GetParam());
+    if (UseDuoNic) {
+        GTEST_SKIP_("DuoNIC is not supported");
+    }
     if (TestingKernelMode) {
         ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_INTERFACE_BINDING, GetParam().Family));
     } else {
-        if (UseDuoNic) {
-            GTEST_SKIP_("DuoNIC is not supported");
-        }
         QuicTestInterfaceBinding(GetParam().Family);
     }
 }

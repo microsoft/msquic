@@ -54,7 +54,7 @@ typedef enum CXPLAT_ECN_TYPE {
 } CXPLAT_ECN_TYPE;
 
 //
-// Helper to get the ECN type from the Type of Service field of recieved data.
+// Helper to get the ECN type from the Type of Service field of received data.
 //
 #define CXPLAT_ECN_FROM_TOS(ToS) (CXPLAT_ECN_TYPE)((ToS) & 0x3)
 
@@ -584,7 +584,7 @@ CxPlatSocketCreateTcpListener(
     );
 
 //
-// Deletes a socket. This function blocks on all outstandind upcalls and on
+// Deletes a socket. This function blocks on all outstanding upcalls and on
 // return guarantees no further callbacks will occur. DO NOT call this function
 // on an upcall!
 //
