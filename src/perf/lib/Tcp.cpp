@@ -395,7 +395,7 @@ TcpConnection::TcpConnection(
 
 TcpConnection::~TcpConnection()
 {
-    CXPLAT_DBG_ASSERT(Shutdown);
+    CXPLAT_DBG_ASSERT(Shutdown || !Initialized);
     QuicTraceLogVerbose(
         PerfTcpDestroyed,
         "[perf][tcp][%p] Destroyed",
@@ -1063,7 +1063,9 @@ void TcpConnection::Close()
         PerfTcpAppClose,
         "[perf][tcp][%p] App Close",
         this);
-    if (WorkerThreadID == CxPlatCurThreadID()) {
+    if (!Initialized) {
+         // no-op
+    } else if (WorkerThreadID == CxPlatCurThreadID()) {
         ClosedByApp = true;
         Shutdown = true;
         TotalSendCompleteOffset = UINT64_MAX;

@@ -164,7 +164,7 @@ class TcpConnection {
     friend class TcpEngine;
     friend class TcpWorker;
     friend class TcpServer;
-    CXPLAT_LIST_ENTRY EngineEntry; // Must be first
+    CXPLAT_LIST_ENTRY EngineEntry{nullptr,nullptr}; // Must be first
     bool IsServer;
     bool Initialized{false};
     bool Shutdown{false};
