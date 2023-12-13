@@ -198,8 +198,8 @@ public:
 #ifdef CXPLAT_FRE_ASSERT
 
 class CxPlatWatchdog {
-    CxPlatThread WatchdogThread;
     CxPlatEvent ShutdownEvent {true};
+    CxPlatThread WatchdogThread;
     uint32_t TimeoutMs;
     static CXPLAT_THREAD_CALLBACK(WatchdogThreadCallback, Context) {
         auto This = (CxPlatWatchdog*)Context;
