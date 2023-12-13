@@ -23,6 +23,7 @@ function(quic_tool_warnings)
 endfunction()
 
 add_subdirectory(attack)
+add_subdirectory(forwarder)
 add_subdirectory(interop)
 add_subdirectory(interopserver)
 add_subdirectory(ip/client)
