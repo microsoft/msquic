@@ -155,6 +155,8 @@ typedef union QUIC_STREAM_FLAGS {
 
         BOOLEAN InStreamTable           : 1;    // The stream is currently in the connection's table.
         BOOLEAN DelayIdFcUpdate         : 1;    // Delay stream ID FC updates to StreamClose.
+
+        BOOLEAN CancelOnLoss            : 1;    // Indicates that the stream is to be canceled if loss is detected.
     };
 } QUIC_STREAM_FLAGS;
 
