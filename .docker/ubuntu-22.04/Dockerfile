@@ -4,6 +4,8 @@ LABEL org.opencontainers.image.source https://github.com/microsoft/msquic
 
 ENV DEBIAN_FRONTEND=noninteractive
 
+SHELL ["/bin/bash", "-c"]
+
 RUN apt-get update && apt-get install --no-install-recommends -y apt-transport-https \
     ca-certificates \
     gnupg \
@@ -57,7 +59,11 @@ RUN mv /etc/apt/sources.list /etc/apt/sources.list.int && \
     cat /etc/apt/sources.list.int | grep "^deb" | sed 's/deb /deb [arch=amd64] /g' > /etc/apt/sources.list && \
     rm /etc/apt/sources.list.int
 
-COPY arm-cross-compile-sources.list /etc/apt/sources.list.d/
+RUN echo $' \n\
+deb [arch=armhf,arm64] http://ports.ubuntu.com/ jammy main restricted universe multiverse \n\
+deb [arch=armhf,arm64] http://ports.ubuntu.com/ jammy-updates main restricted universe multiverse \n\
+deb [arch=armhf,arm64] http://ports.ubuntu.com/ jammy-backports main restricted universe multiverse \n\
+' > /etc/apt/sources.list.d/arm-cross-compile-sources.list
 
 RUN apt-get update
 
