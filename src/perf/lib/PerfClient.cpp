@@ -532,10 +532,12 @@ PerfClientConnection::Initialize() {
 }
 
 void
-PerfClientConnection::OnConnectionComplete() {
+PerfClientConnection::OnHandshakeComplete() {
     InterlockedIncrement64((int64_t*)&Worker.ConnectionsConnected);
     if (!Client.StreamCount) {
         Shutdown();
+        WorkerConnComplete = true;
+        Worker.OnConnectionComplete();
     } else {
         for (uint32_t i = 0; i < Client.StreamCount; ++i) {
             StartNewStream();
@@ -563,7 +565,9 @@ PerfClientConnection::OnShutdownComplete() {
         StreamTable.EnumEnd(&Enum);
     }
 
-    Worker.OnConnectionComplete();
+    if (!WorkerConnComplete) {
+        Worker.OnConnectionComplete();
+    }
     Worker.ConnectionPool.Free(this);
 }
 
@@ -639,7 +643,7 @@ PerfClientConnection::ConnectionCallback(
     ) {
     switch (Event->Type) {
     case QUIC_CONNECTION_EVENT_CONNECTED:
-        OnConnectionComplete();
+        OnHandshakeComplete();
         break;
     case QUIC_CONNECTION_EVENT_SHUTDOWN_COMPLETE:
         OnShutdownComplete();
@@ -657,7 +661,7 @@ PerfClientConnection::TcpConnectCallback(
     ) {
     auto This = (PerfClientConnection*)Connection->Context;
     if (IsConnected) {
-        This->OnConnectionComplete();
+        This->OnHandshakeComplete();
     } else {
         This->OnShutdownComplete();
     }

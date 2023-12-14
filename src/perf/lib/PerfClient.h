@@ -24,11 +24,12 @@ struct PerfClientConnection {
     HashTable StreamTable;
     uint64_t StreamsCreated {0};
     uint64_t StreamsActive {0};
+    bool WorkerConnComplete {false}; // Indicated completion to worker
     PerfClientConnection(_In_ PerfClient& Client, _In_ PerfClientWorker& Worker) : Client(Client), Worker(Worker) { }
     ~PerfClientConnection();
     void Initialize();
     void StartNewStream();
-    void OnConnectionComplete();
+    void OnHandshakeComplete();
     void OnShutdownComplete();
     void OnStreamShutdown();
     void Shutdown();
