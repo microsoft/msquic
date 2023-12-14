@@ -119,7 +119,6 @@ private:
             WakeEvent.Set();
             CxPlatThreadWait(&Thread);
             CxPlatThreadDelete(&Thread);
-            Thread = nullptr;
             ThreadStarted = false;
         }
     }
