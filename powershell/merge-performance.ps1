@@ -127,11 +127,21 @@ foreach ($File in $Files) {
         $Configuration.ResponseSize = $Data.ResponseSize;
         $Configuration.ParallelRequests = $Data.ParallelRequests;
         $Model.RpsConfig = $Configuration;
+    } elseif ($Data.TestName -eq "TcpRPS") {
+        $Configuration = [RpsConfiguration]::new();
+        $Configuration.ConnectionCount = $Data.ConnectionCount;
+        $Configuration.RequestSize = $Data.RequestSize;
+        $Configuration.ResponseSize = $Data.ResponseSize;
+        $Configuration.ParallelRequests = $Data.ParallelRequests;
+        $Model.RpsConfig = $Configuration;
     } elseif ($Data.TestName -eq "HPS") {
         $Configuration = [HpsConfiguration]::new();
         $Model.HpsConfig = $Configuration;
+    } elseif ($Data.TestName -eq "TcpHPS") {
+        $Configuration = [HpsConfiguration]::new();
+        $Model.HpsConfig = $Configuration;
     } else {
-        Write-Error "Unknown Test Name ${$Data.TestName}"
+        Write-Error "Unknown Test Name $Data"
     }
 
     $CommitModel.Tests.Add($Model)
