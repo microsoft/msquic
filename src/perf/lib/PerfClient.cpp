@@ -237,7 +237,7 @@ PerfClient::Start(
     // Configure and start all the workers.
     //
     CXPLAT_THREAD_CONFIG ThreadConfig = {
-        (uint16_t)(AffinitizeWorkers ? CXPLAT_THREAD_FLAG_SET_AFFINITIZE : CXPLAT_THREAD_FLAG_NONE),
+        (uint16_t)(AffinitizeWorkers ? CXPLAT_THREAD_FLAG_SET_AFFINITIZE : CXPLAT_THREAD_FLAG_SET_IDEAL_PROC),
         0,
         "Perf Worker",
         PerfClientWorker::s_WorkerThread,
