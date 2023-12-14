@@ -12,11 +12,10 @@ Abstract:
 
 #pragma once
 
-#include "PerfHelpers.h"
-#include "PerfBase.h"
-#include "PerfCommon.h"
+#include "SecNetPerf.h"
+#include "Tcp.h"
 
-class PerfServer : public PerfBase {
+class PerfServer {
 public:
     PerfServer(const QUIC_CREDENTIAL_CONFIG* CredConfig) :
         Engine(TcpAcceptCallback, TcpConnectCallback, TcpReceiveCallback, TcpSendCompleteCallback),
@@ -30,7 +29,11 @@ public:
                 Configuration.GetInitStatus();
     }
 
-    ~PerfServer() override {
+    ~PerfServer() {
+        if (TeardownBinding) {
+            CxPlatSocketDelete(TeardownBinding);
+            TeardownBinding = nullptr;
+        }
         if (DataBuffer) {
             CXPLAT_FREE(DataBuffer, QUIC_POOL_PERF);
         }
@@ -39,29 +42,14 @@ public:
     QUIC_STATUS
     Init(
         _In_ int argc,
-        _In_reads_(argc) _Null_terminated_ char* argv[]
-        ) override;
+        _In_reads_(argc) _Null_terminated_ char* argv[],
+        _In_ CXPLAT_DATAPATH* Datapath
+        );
+    QUIC_STATUS Start(_In_ CXPLAT_EVENT* StopEvent);
+    void Wait(int Timeout);
 
-    QUIC_STATUS
-    Start(
-        _In_ CXPLAT_EVENT* StopEvent
-        ) override;
-
-    QUIC_STATUS
-    Wait(
-        int Timeout
-        ) override;
-
-    void
-    GetExtraDataMetadata(
-        _Out_ PerfExtraDataMetadata* Result
-        ) override;
-
-    QUIC_STATUS
-    GetExtraData(
-        _Out_writes_bytes_(*Length) uint8_t* Data,
-        _Inout_ uint32_t* Length
-        ) override;
+    static CXPLAT_DATAPATH_RECEIVE_CALLBACK DatapathReceive;
+    static CXPLAT_DATAPATH_UNREACHABLE_CALLBACK DatapathUnreachable;
 
 private:
 
@@ -149,7 +137,7 @@ private:
     CXPLAT_EVENT* StopEvent {nullptr};
     QUIC_BUFFER* DataBuffer {nullptr};
     uint8_t PrintStats {FALSE};
-    QuicPoolAllocator<StreamContext> StreamContextAllocator;
+    CxPlatPoolT<StreamContext> StreamContextAllocator;
 
     TcpEngine Engine;
     TcpServer Server;
@@ -157,6 +145,8 @@ private:
 
     uint32_t CibirIdLength {0};
     uint8_t CibirId[7]; // {offset, values}
+
+    CXPLAT_SOCKET* TeardownBinding {nullptr};
 
     void
     SendTcpResponse(
