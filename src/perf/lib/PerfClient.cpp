@@ -255,6 +255,12 @@ PerfClient::Start(
         Worker->RemoteAddr.SockAddr = RemoteAddr;
         Worker->RemoteAddr.SetPort(TargetPort);
 
+        // Calculate how many connections this worker will be responsible for.
+        Worker->ConnectionsQueued = ConnectionCount / WorkerCount;
+        if (ConnectionCount % WorkerCount > i) {
+            Worker->ConnectionsQueued++;
+        }
+
         // Build up target hostname.
         Worker->Target.reset(new(std::nothrow) char[TargetLen + 10]);
         CxPlatCopyMemory(Worker->Target.get(), Target.get(), TargetLen);
@@ -272,13 +278,6 @@ PerfClient::Start(
         }
         Workers[i].ThreadStarted = true;
         ThreadConfig.IdealProcessor++;
-    }
-
-    //
-    // Queue the connections on the workers.
-    //
-    for (uint32_t i = 0; i < ConnectionCount; ++i) {
-        Workers[i % WorkerCount].QueueNewConnection();
     }
 
     return QUIC_STATUS_SUCCESS;
