@@ -503,6 +503,18 @@ PerfClientConnection::Initialize() {
         }
 
         Status =
+            MsQuic->SetParam(
+                Handle,
+                QUIC_PARAM_CONN_REMOTE_ADDRESS,
+                sizeof(QUIC_ADDR),
+                &Worker.RemoteAddr);
+        if (QUIC_FAILED(Status)) {
+            WriteOutput("SetRemoteAddr failed!\n");
+            Worker.ConnectionPool.Free(this);
+            return;
+        }
+
+        Status =
             MsQuic->ConnectionStart(
                 Handle,
                 Client.Configuration,
