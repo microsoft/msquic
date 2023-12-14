@@ -269,7 +269,6 @@ PerfClient::Start(
         } else {
             Worker->Target.get()[TargetLen] = '\0';
         }
-        Worker->Target.get()[TargetLen] = '\0';
 
         QUIC_STATUS Status = CxPlatThreadCreate(&ThreadConfig, &Workers[i].Thread);
         if (QUIC_FAILED(Status)) {
