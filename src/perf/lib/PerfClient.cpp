@@ -299,6 +299,8 @@ PerfClient::Wait(
     }
 
     Running = false;
+    Registration.Shutdown(QUIC_CONNECTION_SHUTDOWN_FLAG_NONE, 0);
+
     for (uint32_t i = 0; i < WorkerCount; ++i) {
         Workers[i].Uninitialize();
     }
@@ -374,7 +376,7 @@ PerfClientWorker::WorkerThread() {
 #endif
 
     while (Client->Running) {
-        while (ConnectionsCreated < ConnectionsQueued) {
+        while (Client->Running && ConnectionsCreated < ConnectionsQueued) {
             StartNewConnection();
         }
         WakeEvent.WaitForever();

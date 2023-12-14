@@ -83,8 +83,8 @@ struct PerfClientStream {
 struct QUIC_CACHEALIGN PerfClientWorker {
     PerfClient* Client {nullptr};
     CxPlatLock Lock;
-    CXPLAT_THREAD Thread;
     CxPlatEvent WakeEvent;
+    CXPLAT_THREAD Thread;
     bool ThreadStarted {false};
     uint16_t Processor {UINT16_MAX};
     uint64_t ConnectionsQueued {0};
@@ -97,12 +97,11 @@ struct QUIC_CACHEALIGN PerfClientWorker {
     UniquePtr<char[]> Target;
     QuicAddr LocalAddr;
     QuicAddr RemoteAddr;
-    CXPLAT_LIST_ENTRY ConnectionTable; // TCP only
     CxPlatPoolT<PerfClientConnection> ConnectionPool;
     CxPlatPoolT<PerfClientStream> StreamPool;
     CxPlatPoolT<TcpConnection> TcpConnectionPool;
     CxPlatPoolT<TcpSendData> TcpSendDataPool;
-    PerfClientWorker() { CxPlatListInitializeHead(&ConnectionTable); }
+    PerfClientWorker() { }
     ~PerfClientWorker() { WaitForThread(); }
     void Uninitialize() { WaitForThread(); }
     void QueueNewConnection() {
@@ -120,6 +119,7 @@ private:
             WakeEvent.Set();
             CxPlatThreadWait(&Thread);
             CxPlatThreadDelete(&Thread);
+            Thread = nullptr;
             ThreadStarted = false;
         }
     }
