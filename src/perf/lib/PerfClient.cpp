@@ -384,6 +384,13 @@ PerfClientWorker::WorkerThread() {
 }
 
 void
+PerfClientWorker::StartNewConnection() {
+    InterlockedIncrement64((int64_t*)&ConnectionsCreated);
+    InterlockedIncrement64((int64_t*)&ConnectionsActive);
+    ConnectionPool.Alloc(*Client, *this)->Initialize();
+}
+
+void
 PerfClientWorker::OnConnectionComplete() {
     InterlockedIncrement64((int64_t*)&ConnectionsCompleted);
     InterlockedDecrement64((int64_t*)&ConnectionsActive);
@@ -394,13 +401,6 @@ PerfClientWorker::OnConnectionComplete() {
             Client->OnConnectionsComplete();
         }
     }
-}
-
-void
-PerfClientWorker::StartNewConnection() {
-    InterlockedIncrement64((int64_t*)&ConnectionsCreated);
-    InterlockedIncrement64((int64_t*)&ConnectionsActive);
-    ConnectionPool.Alloc(*Client, *this)->Initialize();
 }
 
 PerfClientConnection::~PerfClientConnection() {
@@ -432,7 +432,6 @@ PerfClientConnection::Initialize() {
         }
 
     } else {
-        BOOLEAN Value;
         if (QUIC_FAILED(
             MsQuic->ConnectionOpen(
                 Client.Registration,
@@ -444,6 +443,7 @@ PerfClientConnection::Initialize() {
         }
 
         QUIC_STATUS Status;
+        BOOLEAN Value;
         if (!Client.UseEncryption) {
             Value = TRUE;
             Status =
