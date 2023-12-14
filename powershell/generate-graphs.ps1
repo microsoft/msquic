@@ -156,7 +156,7 @@ function Get-ThroughputTests {
 
     foreach ($CommitModel in $CommitData) {
         foreach ($Test in $CommitModel.Tests) {
-            if ($null -eq $Test.TputConfig) {
+            if ($null -eq $Test.TputConfig -or $Test.TestName.StartsWith("Tcp")) {
                 continue
             }
             if ($Tests.ContainsKey($Test.TputConfig)) {
@@ -279,7 +279,7 @@ function Get-RpsTests {
 
     foreach ($CommitModel in $CommitData) {
         foreach ($Test in $CommitModel.Tests) {
-            if ($null -eq $Test.RpsConfig) {
+            if ($null -eq $Test.RpsConfig -or $Test.TestName.StartsWith("Tcp")) {
                 continue
             }
             if ($Tests.ContainsKey($Test.RpsConfig)) {
@@ -389,7 +389,7 @@ function Get-HpsTests {
 
     foreach ($CommitModel in $CommitData) {
         foreach ($Test in $CommitModel.Tests) {
-            if ($null -eq $Test.HpsConfig) {
+            if ($null -eq $Test.HpsConfig -or $Test.TestName.StartsWith("Tcp")) {
                 continue
             }
             if ($Tests.ContainsKey($Test.HpsConfig)) {
@@ -506,11 +506,11 @@ function Get-PercentileFromLatencyFile {
         [double]$Percentile # as a fraction (i.e. 0.9 for 90%)
     )
 
-    Write-Debug "Searching for $Percentile percentile in $FilePath"
+    #Write-Debug "Searching for $Percentile percentile in $FilePath"
 
     $LatencyResults = Get-LatencyData $FilePath
     $LatencyResults = $LatencyResults | Where-Object {[double]$_[0] -ge $Percentile} | Select-Object -First 1 # Find P90
-    Write-Debug "Found: $($LatencyResults[1])"
+    #Write-Debug "Found: $($LatencyResults[1])"
     return [double]$LatencyResults[1]
 }
 
@@ -556,7 +556,7 @@ function Get-MedianLatencyFile {
 
     $Sorted = $Percentiles | Sort-Object -Property {$_[0]}
     $MedianFile = $Sorted[[int](($Sorted.Length - 1) / 2)][1] # Assumes an odd Length
-    Write-Debug "Found $MedianFile"
+    #Write-Debug "Found $MedianFile"
     return [String]$MedianFile
 }
 
