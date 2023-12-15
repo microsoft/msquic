@@ -86,24 +86,20 @@ CxPlatProcessorInfoInit(
     DWORD InfoLength = 0;
     SYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX* Info = NULL;
 
-    const uint32_t ActiveProcessorCount = CxPlatProcCount();
-    const uint32_t MaxProcessorCount = CxPlatProcCount();
-
-    CXPLAT_DBG_ASSERT(MaxProcessorCount > 0);
-    CXPLAT_DBG_ASSERT(MaxProcessorCount <= UINT16_MAX);
+    const uint32_t ActiveProcessorCount = GetActiveProcessorCount(ALL_PROCESSOR_GROUPS);
     CXPLAT_DBG_ASSERT(ActiveProcessorCount > 0);
-    CXPLAT_DBG_ASSERT(ActiveProcessorCount <= MaxProcessorCount);
+    CXPLAT_DBG_ASSERT(ActiveProcessorCount <= UINT16_MAX);
     CXPLAT_FRE_ASSERT(CxPlatProcessorInfo == NULL);
     CxPlatProcessorInfo =
         CXPLAT_ALLOC_NONPAGED(
-            MaxProcessorCount * sizeof(CXPLAT_PROCESSOR_INFO),
+            ActiveProcessorCount * sizeof(CXPLAT_PROCESSOR_INFO),
             QUIC_POOL_PLATFORM_PROC);
     if (CxPlatProcessorInfo == NULL) {
         QuicTraceEvent(
             AllocFailure,
             "Allocation of '%s' failed. (%llu bytes)",
             "CxPlatProcessorInfo",
-            MaxProcessorCount * sizeof(CXPLAT_PROCESSOR_INFO));
+            ActiveProcessorCount * sizeof(CXPLAT_PROCESSOR_INFO));
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         goto Error;
     }
@@ -134,7 +130,7 @@ CxPlatProcessorInfoInit(
         WindowsUserProcessorStateV3,
         "[ dll] Processors: (%u active, %u max), Groups: (%hu active, %hu max)",
         ActiveProcessorCount,
-        MaxProcessorCount,
+        GetMaximumProcessorCount(ALL_PROCESSOR_GROUPS),
         Info->Group.ActiveGroupCount,
         Info->Group.MaximumGroupCount);
 
@@ -161,7 +157,7 @@ CxPlatProcessorInfoInit(
         CxPlatProcessorCount += Info->Group.GroupInfo[i].ActiveProcessorCount;
     }
 
-    for (uint32_t Proc = 0; Proc < MaxProcessorCount; ++Proc) {
+    for (uint32_t Proc = 0; Proc < ActiveProcessorCount; ++Proc) {
         for (WORD Group = 0; Group < Info->Group.ActiveGroupCount; ++Group) {
             if (Proc >= CxPlatProcessorGroupInfo[Group].Offset &&
                 Proc < CxPlatProcessorGroupInfo[Group].Offset + Info->Group.GroupInfo[Group].ActiveProcessorCount) {
