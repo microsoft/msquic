@@ -103,7 +103,7 @@ PerfServer::Start(
     _In_ CXPLAT_EVENT* _StopEvent
     ) {
     if (!Server.Start(&LocalAddr)) {
-        printf("Warning: TCP Server failed to start!\n");
+        WriteOutput("Warning: TCP Server failed to start!\n");
     }
 
     StopEvent = _StopEvent;
