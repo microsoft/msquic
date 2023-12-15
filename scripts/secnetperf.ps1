@@ -37,26 +37,46 @@ param (
 
 # Set up the connection to the peer over remote powershell.
 Write-Output "Connecting to netperf-peer..."
-$Session = New-PSSession -ComputerName "netperf-peer" -ConfigurationName PowerShell.7
+
+if ($plat -eq "windows") {
+    $Session = New-PSSession -ComputerName "netperf-peer" -ConfigurationName PowerShell.7
+} else {
+    $Session = New-PSSession -HostName "netperf-peer" -UserName secnetperf -SSHTransport 
+}
 if ($null -eq $Session) {
     Write-Error "Failed to create remote session"
     exit
 }
+
 $RemoteAddress = $Session.ComputerName
 Write-Output "Successfully conencted to peer: $RemoteAddress"
 
 # Make sure nothing is running from a previous run.
-Invoke-Command -Session $Session -ScriptBlock {
-    Get-Process | Where-Object { $_.Name -eq "secnetperf.exe" } | Stop-Process
+if ($plat -eq "windows") {
+    Invoke-Command -Session $Session -ScriptBlock {
+        Get-Process | Where-Object { $_.Name -eq "secnetperf.exe" } | Stop-Process
+    }
+} else {
+    Invoke-Command -Session $Session -ScriptBlock {
+        Get-Process | Where-Object { $_.Name -eq "secnetperf" } | Stop-Process
+    }
 }
 
 # Copy the artifacts to the peer.
 Write-Output "Copying files to peer..."
-Invoke-Command -Session $Session -ScriptBlock {
-    Remove-Item -Force -Recurse "C:\_work" -ErrorAction Ignore
+if ($plat -eq "windows") {
+    Invoke-Command -Session $Session -ScriptBlock {
+        Remove-Item -Force -Recurse "C:\_work" -ErrorAction Ignore
+    }
+    Copy-Item -ToSession $Session .\artifacts -Destination C:\_work\quic\artifacts -Recurse
+    Copy-Item -ToSession $Session .\scripts -Destination C:\_work\quic\scripts -Recurse
+} else {
+    Invoke-Command -Session $Session -ScriptBlock {
+        Remove-Item -Force -Recurse "/_work" -ErrorAction Ignore
+    }
+    Copy-Item -ToSession $Session ./artifacts -Destination /_work/quic/artifacts -Recurse
+    Copy-Item -ToSession $Session ./scripts -Destination /_work/quic/scripts -Recurse
 }
-Copy-Item -ToSession $Session .\artifacts -Destination C:\_work\quic\artifacts -Recurse
-Copy-Item -ToSession $Session .\scripts -Destination C:\_work\quic\scripts -Recurse
 
 try {
 
@@ -65,22 +85,38 @@ mkdir .\artifacts\logs | Out-Null
 # Prepare the machines for the testing.
 Write-Output "Preparing machines for testing..."
 .\scripts\prepare-machine.ps1 -ForTest
-Invoke-Command -Session $Session -ScriptBlock {
-    C:\_work\quic\scripts\prepare-machine.ps1 -ForTest
+
+if ($plat -eq "windows") {
+    Invoke-Command -Session $Session -ScriptBlock {
+        C:\_work\quic\scripts\prepare-machine.ps1 -ForTest
+    }
+} else {
+    Invoke-Command -Session $Session -ScriptBlock {
+        /_work/quic/scripts/prepare-machine.ps1 -ForTest
+    }
 }
 
 # Logging to collect quic traces while running the tests.
 
-if ($LogProfile -ne "" -and $LogProfile -ne "NULL") {
+if ($LogProfile -ne "" -and $LogProfile -ne "NULL") { # TODO: Linux back slash works?
     Write-Output "Starting logging with log profile: $LogProfile..."
     .\scripts\log.ps1 -Start -Profile $LogProfile
 }
 
 # Run secnetperf on the server.
 Write-Output "Starting secnetperf server..."
-$Job = Invoke-Command -Session $Session -ScriptBlock {
-    C:\_work\quic\artifacts\bin\windows\x64_Release_schannel\secnetperf.exe -exec:maxtput
-} -AsJob
+
+if ($plat -eq "windows") {
+    $Job = Invoke-Command -Session $Session -ScriptBlock {
+        C:\_work\quic\artifacts\bin\windows\x64_Release_schannel\secnetperf.exe -exec:maxtput
+    } -AsJob
+} else {
+    $Job = Invoke-Command -Session $Session -ScriptBlock {
+        $env:LD_LIBRARY_PATH = "${env:LD_LIBRARY_PATH}:/_work/quic/artifacts/bin/linux/x64_Release_openssl/"
+        /_work/quic/artifacts/bin/linux/x64_Release_openssl/secnetperf -exec:maxtput
+    } -AsJob
+}
+
 
 # Wait for the server to start.
 Write-Output "Waiting for server to start..."
@@ -116,6 +152,13 @@ VALUES ('throughput-download-tcp-$MsQuicCommit', '$MsQuicCommit', 0, '-target:ne
 
 "@
 
+$exe = ".\artifacts\bin\windows\x64_Release_schannel\secnetperf.exe"
+
+if ($plat -eq "linux") {
+    $env:LD_LIBRARY_PATH = "${env:LD_LIBRARY_PATH}:./artifacts/bin/linux/x64_Release_openssl/"
+    $exe = "./artifacts/bin/linux/x64_Release_openssl/secnetperf"
+}
+
 $json = @{}
 
 # TODO: Make a more elaborate execution strategy instead of just a list of commands. Also add more tests.
@@ -128,10 +171,10 @@ $testIds = @(
 )
 
 $commands = @(
-    ".\artifacts\bin\windows\x64_Release_schannel\secnetperf.exe -target:netperf-peer -exec:maxtput -test:tput -upload:10000 -timed:1",
-    ".\artifacts\bin\windows\x64_Release_schannel\secnetperf.exe -target:netperf-peer -exec:maxtput -test:tput -upload:10000 -timed:1 -tcp:1",
-    ".\artifacts\bin\windows\x64_Release_schannel\secnetperf.exe -target:netperf-peer -exec:maxtput -test:tput -download:10000 -timed:1",
-    ".\artifacts\bin\windows\x64_Release_schannel\secnetperf.exe -target:netperf-peer -exec:maxtput -test:tput -download:10000 -timed:1 -tcp: 1"
+    "$exe -target:netperf-peer -exec:maxtput -test:tput -upload:10000 -timed:1",
+    "$exe -target:netperf-peer -exec:maxtput -test:tput -upload:10000 -timed:1 -tcp:1",
+    "$exe -target:netperf-peer -exec:maxtput -test:tput -download:10000 -timed:1",
+    "$exe -target:netperf-peer -exec:maxtput -test:tput -download:10000 -timed:1 -tcp: 1"
 )
 
 for ($i = 0; $i -lt $commands.Count; $i++) {
@@ -168,7 +211,7 @@ VALUES ('$($testIds[$i])', 'azure_vm', 'azure_vm', $num, NULL, 'kbps');
 ####################################################################################################
 
 
-if ($LogProfile -ne "" -and $LogProfile -ne "NULL") {
+if ($LogProfile -ne "" -and $LogProfile -ne "NULL") { # TODO: Linux back slash works?
     Write-Output "Stopping logging..."
     .\scripts\log.ps1 -Stop -OutputPath .\artifacts\logs\quic
 }
