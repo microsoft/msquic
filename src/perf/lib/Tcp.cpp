@@ -106,7 +106,7 @@ TcpEngine::TcpEngine(
     TcpConnectHandler ConnectHandler,
     TcpReceiveHandler ReceiveHandler,
     TcpSendCompleteHandler SendCompleteHandler) noexcept :
-    ProcCount((uint16_t)CxPlatProcActiveCount()), Workers(new(std::nothrow) TcpWorker[ProcCount]),
+    ProcCount((uint16_t)CxPlatProcCount()), Workers(new(std::nothrow) TcpWorker[ProcCount]),
     AcceptHandler(AcceptHandler), ConnectHandler(ConnectHandler),
     ReceiveHandler(ReceiveHandler), SendCompleteHandler(SendCompleteHandler)
 {
@@ -357,7 +357,7 @@ TcpConnection::TcpConnection(
         }
     }
     QuicAddrSetPort(&Route.RemoteAddress, ServerPort);
-    Engine->AddConnection(this, 0); // TODO - Correct index
+    Engine->AddConnection(this, (uint16_t)CxPlatProcCurrentNumber());
     Initialized = true;
     if (QUIC_FAILED(
         CxPlatSocketCreateTcp(
@@ -389,7 +389,7 @@ TcpConnection::TcpConnection(
         this);
     Initialized = true;
     IndicateAccept = true;
-    Engine->AddConnection(this, 0); // TODO - Correct index
+    Engine->AddConnection(this, (uint16_t)CxPlatProcCurrentNumber());
     Queue();
 }
 

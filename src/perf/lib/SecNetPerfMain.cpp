@@ -159,7 +159,7 @@ QuicMainStart(
     if ((CpuStr = GetValue(argc, argv, "cpu")) != nullptr) {
         SetConfig = true;
         if (strtol(CpuStr, nullptr, 10) == -1) {
-            for (uint16_t i = 0; i < CxPlatProcActiveCount() && Config->ProcessorCount < 256; ++i) {
+            for (uint16_t i = 0; i < CxPlatProcCount() && Config->ProcessorCount < 256; ++i) {
                 Config->ProcessorList[Config->ProcessorCount++] = i;
             }
         } else {

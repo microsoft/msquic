@@ -881,10 +881,9 @@ typedef ULONG_PTR CXPLAT_THREAD_ID;
 // Processor Count and Index
 //
 
-#define CxPlatProcMaxCount() KeQueryMaximumProcessorCountEx(ALL_PROCESSOR_GROUPS)
-#define CxPlatProcActiveCount() KeQueryActiveProcessorCountEx(ALL_PROCESSOR_GROUPS)
-#define CxPlatProcCurrentNumber() KeGetCurrentProcessorIndex()
-#define CxPlatProcIsActive(Index) TRUE // TODO
+extern uint32_t CxPlatProcessorCount;
+#define CxPlatProcCount() CxPlatProcessorCount
+#define CxPlatProcCurrentNumber() (KeGetCurrentProcessorIndex() % CxPlatProcessorCount)
 
 //
 // Rundown Protection Interfaces
@@ -956,61 +955,6 @@ NdisSetThreadObjectCompartmentId(
     IN PETHREAD ThreadObject,
     IN NET_IF_COMPARTMENT_ID CompartmentId
     );
-
-inline
-QUIC_STATUS
-CxPlatSetCurrentThreadProcessorAffinity(
-    _In_ uint16_t ProcessorIndex
-    )
-{
-    PROCESSOR_NUMBER ProcInfo;
-    QUIC_STATUS Status =
-        KeGetProcessorNumberFromIndex(
-            ProcessorIndex,
-            &ProcInfo);
-    if (QUIC_FAILED(Status)) {
-        return Status;
-    }
-    GROUP_AFFINITY Affinity = {0};
-    Affinity.Mask = (KAFFINITY)(1ull << ProcInfo.Number);
-    Affinity.Group = ProcInfo.Group;
-    return
-        ZwSetInformationThread(
-            ZwCurrentThread(),
-            ThreadGroupInformation,
-            &Affinity,
-            sizeof(Affinity));
-}
-
-inline
-QUIC_STATUS
-CxPlatSetCurrentThreadGroupAffinity(
-    _In_ uint16_t ProcessorGroup
-    )
-{
-    GROUP_AFFINITY Affinity = {0};
-    GROUP_AFFINITY ExistingAffinity = {0};
-    QUIC_STATUS Status;
-    if (QUIC_FAILED(
-        Status =
-            ZwQueryInformationThread(
-                ZwCurrentThread(),
-                ThreadGroupInformation,
-                &ExistingAffinity,
-                sizeof(ExistingAffinity),
-                NULL))) {
-        return Status;
-    }
-
-    Affinity.Mask = ExistingAffinity.Mask;
-    Affinity.Group = ProcessorGroup;
-    return
-        ZwSetInformationThread(
-            ZwCurrentThread(),
-            ThreadGroupInformation,
-            &Affinity,
-            sizeof(Affinity));
-}
 
 #define QuicCompartmentIdGetCurrent() NdisGetThreadObjectCompartmentId(PsGetCurrentThread())
 #define QuicCompartmentIdSetCurrent(CompartmentId) \

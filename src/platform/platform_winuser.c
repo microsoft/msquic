@@ -24,6 +24,7 @@ uint64_t CxPlatTotalMemory;
 CX_PLATFORM CxPlatform = { NULL };
 CXPLAT_PROCESSOR_INFO* CxPlatProcessorInfo;
 CXPLAT_PROCESSOR_GROUP_INFO* CxPlatProcessorGroupInfo;
+uint32_t CxPlatProcessorCount;
 #ifdef TIMERR_NOERROR
 TIMECAPS CxPlatTimerCapabilities;
 #endif // TIMERR_NOERROR
@@ -84,10 +85,9 @@ CxPlatProcessorInfoInit(
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
     DWORD InfoLength = 0;
     SYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX* Info = NULL;
-    uint32_t CurrentProcessorCount;
 
-    const uint32_t ActiveProcessorCount = CxPlatProcActiveCount();
-    const uint32_t MaxProcessorCount = CxPlatProcMaxCount();
+    const uint32_t ActiveProcessorCount = CxPlatProcCount();
+    const uint32_t MaxProcessorCount = CxPlatProcCount();
 
     CXPLAT_DBG_ASSERT(MaxProcessorCount > 0);
     CXPLAT_DBG_ASSERT(MaxProcessorCount <= UINT16_MAX);
@@ -153,17 +153,18 @@ CxPlatProcessorInfoInit(
         goto Error;
     }
 
-    CurrentProcessorCount = 0;
+    CxPlatProcessorCount = 0;
     for (WORD i = 0; i < Info->Group.ActiveGroupCount; ++i) {
         CxPlatProcessorGroupInfo[i].Mask = Info->Group.GroupInfo[i].ActiveProcessorMask;
-        CxPlatProcessorGroupInfo[i].Offset = CurrentProcessorCount;
-        CurrentProcessorCount += Info->Group.GroupInfo[i].MaximumProcessorCount;
+        CxPlatProcessorGroupInfo[i].Count = Info->Group.GroupInfo[i].ActiveProcessorCount;
+        CxPlatProcessorGroupInfo[i].Offset = CxPlatProcessorCount;
+        CxPlatProcessorCount += Info->Group.GroupInfo[i].ActiveProcessorCount;
     }
 
     for (uint32_t Proc = 0; Proc < MaxProcessorCount; ++Proc) {
         for (WORD Group = 0; Group < Info->Group.ActiveGroupCount; ++Group) {
             if (Proc >= CxPlatProcessorGroupInfo[Group].Offset &&
-                Proc < CxPlatProcessorGroupInfo[Group].Offset + Info->Group.GroupInfo[Group].MaximumProcessorCount) {
+                Proc < CxPlatProcessorGroupInfo[Group].Offset + Info->Group.GroupInfo[Group].ActiveProcessorCount) {
                 CxPlatProcessorInfo[Proc].Group = Group;
                 CxPlatProcessorInfo[Proc].Index = (Proc - CxPlatProcessorGroupInfo[Group].Offset);
                 QuicTraceLogInfo(
@@ -603,7 +604,7 @@ CxPlatGetAllocFailDenominator(
 
 #if defined(QUIC_RESTRICTED_BUILD)
 DWORD
-CxPlatProcActiveCount(
+CxPlatProcCount(
     )
 {
     PSYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX ProcInfo;
@@ -625,7 +626,7 @@ CxPlatProcActiveCount(
 }
 
 DWORD
-CxPlatProcMaxCount(
+CxPlatProcCount(
     )
 {
     PSYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX ProcInfo;
