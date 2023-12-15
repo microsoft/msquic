@@ -77,6 +77,55 @@ CxPlatGetProcessorGroupInfo(
     _Out_ PDWORD BufferLength
     );
 
+#if defined(QUIC_RESTRICTED_BUILD)
+DWORD
+CxPlatProcActiveCount(
+    )
+{
+    PSYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX ProcInfo;
+    DWORD ProcLength;
+    DWORD Count;
+
+    if (QUIC_FAILED(CxPlatGetProcessorGroupInfo(RelationGroup, &ProcInfo, &ProcLength))) {
+        CXPLAT_DBG_ASSERT(FALSE);
+        return 0;
+    }
+
+    Count = 0;
+    for (WORD i = 0; i < ProcInfo->Group.ActiveGroupCount; i++) {
+        Count += ProcInfo->Group.GroupInfo[i].ActiveProcessorCount;
+    }
+    CXPLAT_FREE(ProcInfo, QUIC_POOL_PLATFORM_TMP_ALLOC);
+    CXPLAT_DBG_ASSERT(Count != 0);
+    return Count;
+}
+
+DWORD
+CxPlatProcMaxCount(
+    )
+{
+    PSYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX ProcInfo;
+    DWORD ProcLength;
+    DWORD Count;
+
+    if (QUIC_FAILED(CxPlatGetProcessorGroupInfo(RelationGroup, &ProcInfo, &ProcLength))) {
+        CXPLAT_DBG_ASSERT(FALSE);
+        return 0;
+    }
+
+    Count = 0;
+    for (WORD i = 0; i < ProcInfo->Group.ActiveGroupCount; i++) {
+        Count += ProcInfo->Group.GroupInfo[i].MaximumProcessorCount;
+    }
+    CXPLAT_FREE(ProcInfo, QUIC_POOL_PLATFORM_TMP_ALLOC);
+    CXPLAT_DBG_ASSERT(Count != 0);
+    return Count;
+}
+#else
+#define CxPlatProcMaxCount() GetMaximumProcessorCount(ALL_PROCESSOR_GROUPS)
+#define CxPlatProcActiveCount() GetActiveProcessorCount(ALL_PROCESSOR_GROUPS)
+#endif
+
 QUIC_STATUS
 CxPlatProcessorInfoInit(
     void
@@ -86,7 +135,7 @@ CxPlatProcessorInfoInit(
     DWORD InfoLength = 0;
     SYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX* Info = NULL;
 
-    const uint32_t ActiveProcessorCount = GetActiveProcessorCount(ALL_PROCESSOR_GROUPS);
+    const uint32_t ActiveProcessorCount = CxPlatProcActiveCount();
     CXPLAT_DBG_ASSERT(ActiveProcessorCount > 0);
     CXPLAT_DBG_ASSERT(ActiveProcessorCount <= UINT16_MAX);
     CXPLAT_FRE_ASSERT(CxPlatProcessorInfo == NULL);
@@ -130,7 +179,7 @@ CxPlatProcessorInfoInit(
         WindowsUserProcessorStateV3,
         "[ dll] Processors: (%u active, %u max), Groups: (%hu active, %hu max)",
         ActiveProcessorCount,
-        GetMaximumProcessorCount(ALL_PROCESSOR_GROUPS),
+        CxPlatProcMaxCount(),
         Info->Group.ActiveGroupCount,
         Info->Group.MaximumGroupCount);
 
@@ -595,52 +644,6 @@ CxPlatGetAllocFailDenominator(
     )
 {
     return CxPlatform.AllocFailDenominator;
-}
-#endif
-
-#if defined(QUIC_RESTRICTED_BUILD)
-DWORD
-CxPlatProcCount(
-    )
-{
-    PSYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX ProcInfo;
-    DWORD ProcLength;
-    DWORD Count;
-
-    if (QUIC_FAILED(CxPlatGetProcessorGroupInfo(RelationGroup, &ProcInfo, &ProcLength))) {
-        CXPLAT_DBG_ASSERT(FALSE);
-        return 0;
-    }
-
-    Count = 0;
-    for (WORD i = 0; i < ProcInfo->Group.ActiveGroupCount; i++) {
-        Count += ProcInfo->Group.GroupInfo[i].ActiveProcessorCount;
-    }
-    CXPLAT_FREE(ProcInfo, QUIC_POOL_PLATFORM_TMP_ALLOC);
-    CXPLAT_DBG_ASSERT(Count != 0);
-    return Count;
-}
-
-DWORD
-CxPlatProcCount(
-    )
-{
-    PSYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX ProcInfo;
-    DWORD ProcLength;
-    DWORD Count;
-
-    if (QUIC_FAILED(CxPlatGetProcessorGroupInfo(RelationGroup, &ProcInfo, &ProcLength))) {
-        CXPLAT_DBG_ASSERT(FALSE);
-        return 0;
-    }
-
-    Count = 0;
-    for (WORD i = 0; i < ProcInfo->Group.ActiveGroupCount; i++) {
-        Count += ProcInfo->Group.GroupInfo[i].MaximumProcessorCount;
-    }
-    CXPLAT_FREE(ProcInfo, QUIC_POOL_PLATFORM_TMP_ALLOC);
-    CXPLAT_DBG_ASSERT(Count != 0);
-    return Count;
 }
 #endif
 
