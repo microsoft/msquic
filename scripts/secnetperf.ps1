@@ -72,10 +72,11 @@ if ($plat -eq "windows") {
     Copy-Item -ToSession $Session .\scripts -Destination C:\_work\quic\scripts -Recurse
 } else {
     Invoke-Command -Session $Session -ScriptBlock {
-        Remove-Item -Force -Recurse "/_work" -ErrorAction Ignore
+        Remove-Item -Force -Recurse "/home/secnetperf/_work" -ErrorAction Ignore
+        mkdir /home/secnetperf/_work
     }
-    Copy-Item -ToSession $Session ./artifacts -Destination /_work/quic/artifacts -Recurse
-    Copy-Item -ToSession $Session ./scripts -Destination /_work/quic/scripts -Recurse
+    Copy-Item -ToSession $Session ./artifacts -Destination /home/secnetperf/_work/artifacts -Recurse
+    Copy-Item -ToSession $Session ./scripts -Destination /home/secnetperf/_work/scripts -Recurse
 }
 
 try {
@@ -92,7 +93,7 @@ if ($plat -eq "windows") {
     }
 } else {
     Invoke-Command -Session $Session -ScriptBlock {
-        /_work/quic/scripts/prepare-machine.ps1 -ForTest
+        /home/secnetperf/_work/scripts/prepare-machine.ps1 -ForTest
     }
 }
 
@@ -112,8 +113,8 @@ if ($plat -eq "windows") {
     } -AsJob
 } else {
     $Job = Invoke-Command -Session $Session -ScriptBlock {
-        $env:LD_LIBRARY_PATH = "${env:LD_LIBRARY_PATH}:/_work/quic/artifacts/bin/linux/x64_Release_openssl/"
-        /_work/quic/artifacts/bin/linux/x64_Release_openssl/secnetperf -exec:maxtput
+        $env:LD_LIBRARY_PATH = "${env:LD_LIBRARY_PATH}:/home/secnetperf/_work/artifacts/bin/linux/x64_Release_openssl/"
+        /home/secnetperf/_work/artifacts/bin/linux/x64_Release_openssl/secnetperf -exec:maxtput
     } -AsJob
 }
 
