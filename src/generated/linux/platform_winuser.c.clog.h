@@ -162,26 +162,6 @@ tracepoint(CLOG_PLATFORM_WINUSER_C, WindowsUserUninitialized );\
 
 
 /*----------------------------------------------------------
-// Decoder Ring for AllocFailure
-// Allocation of '%s' failed. (%llu bytes)
-// QuicTraceEvent(
-            AllocFailure,
-            "Allocation of '%s' failed. (%llu bytes)",
-            "CxPlatProcessorInfo",
-            MaxProcessorCount * sizeof(CXPLAT_PROCESSOR_INFO));
-// arg2 = arg2 = "CxPlatProcessorInfo" = arg2
-// arg3 = arg3 = MaxProcessorCount * sizeof(CXPLAT_PROCESSOR_INFO) = arg3
-----------------------------------------------------------*/
-#ifndef _clog_4_ARGS_TRACE_AllocFailure
-#define _clog_4_ARGS_TRACE_AllocFailure(uniqueId, encoded_arg_string, arg2, arg3)\
-tracepoint(CLOG_PLATFORM_WINUSER_C, AllocFailure , arg2, arg3);\
-
-#endif
-
-
-
-
-/*----------------------------------------------------------
 // Decoder Ring for LibraryError
 // [ lib] ERROR, %s.
 // QuicTraceEvent(
@@ -205,14 +185,34 @@ tracepoint(CLOG_PLATFORM_WINUSER_C, LibraryError , arg2);\
 // QuicTraceEvent(
             LibraryErrorStatus,
             "[ lib] ERROR, %u, %s.",
-            Error,
-            "GlobalMemoryStatusEx failed");
-// arg2 = arg2 = Error = arg2
-// arg3 = arg3 = "GlobalMemoryStatusEx failed" = arg3
+            ActiveProcessorCount,
+            "Invalid active processor count");
+// arg2 = arg2 = ActiveProcessorCount = arg2
+// arg3 = arg3 = "Invalid active processor count" = arg3
 ----------------------------------------------------------*/
 #ifndef _clog_4_ARGS_TRACE_LibraryErrorStatus
 #define _clog_4_ARGS_TRACE_LibraryErrorStatus(uniqueId, encoded_arg_string, arg2, arg3)\
 tracepoint(CLOG_PLATFORM_WINUSER_C, LibraryErrorStatus , arg2, arg3);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for AllocFailure
+// Allocation of '%s' failed. (%llu bytes)
+// QuicTraceEvent(
+            AllocFailure,
+            "Allocation of '%s' failed. (%llu bytes)",
+            "CxPlatProcessorInfo",
+            ActiveProcessorCount * sizeof(CXPLAT_PROCESSOR_INFO));
+// arg2 = arg2 = "CxPlatProcessorInfo" = arg2
+// arg3 = arg3 = ActiveProcessorCount * sizeof(CXPLAT_PROCESSOR_INFO) = arg3
+----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_AllocFailure
+#define _clog_4_ARGS_TRACE_AllocFailure(uniqueId, encoded_arg_string, arg2, arg3)\
+tracepoint(CLOG_PLATFORM_WINUSER_C, AllocFailure , arg2, arg3);\
 
 #endif
 

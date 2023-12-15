@@ -77,55 +77,6 @@ CxPlatGetProcessorGroupInfo(
     _Out_ PDWORD BufferLength
     );
 
-#if defined(QUIC_RESTRICTED_BUILD)
-DWORD
-CxPlatProcActiveCount(
-    )
-{
-    PSYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX ProcInfo;
-    DWORD ProcLength;
-    DWORD Count;
-
-    if (QUIC_FAILED(CxPlatGetProcessorGroupInfo(RelationGroup, &ProcInfo, &ProcLength))) {
-        CXPLAT_DBG_ASSERT(FALSE);
-        return 0;
-    }
-
-    Count = 0;
-    for (WORD i = 0; i < ProcInfo->Group.ActiveGroupCount; i++) {
-        Count += ProcInfo->Group.GroupInfo[i].ActiveProcessorCount;
-    }
-    CXPLAT_FREE(ProcInfo, QUIC_POOL_PLATFORM_TMP_ALLOC);
-    CXPLAT_DBG_ASSERT(Count != 0);
-    return Count;
-}
-
-DWORD
-CxPlatProcMaxCount(
-    )
-{
-    PSYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX ProcInfo;
-    DWORD ProcLength;
-    DWORD Count;
-
-    if (QUIC_FAILED(CxPlatGetProcessorGroupInfo(RelationGroup, &ProcInfo, &ProcLength))) {
-        CXPLAT_DBG_ASSERT(FALSE);
-        return 0;
-    }
-
-    Count = 0;
-    for (WORD i = 0; i < ProcInfo->Group.ActiveGroupCount; i++) {
-        Count += ProcInfo->Group.GroupInfo[i].MaximumProcessorCount;
-    }
-    CXPLAT_FREE(ProcInfo, QUIC_POOL_PLATFORM_TMP_ALLOC);
-    CXPLAT_DBG_ASSERT(Count != 0);
-    return Count;
-}
-#else
-#define CxPlatProcMaxCount() GetMaximumProcessorCount(ALL_PROCESSOR_GROUPS)
-#define CxPlatProcActiveCount() GetActiveProcessorCount(ALL_PROCESSOR_GROUPS)
-#endif
-
 QUIC_STATUS
 CxPlatProcessorInfoInit(
     void
@@ -134,25 +85,7 @@ CxPlatProcessorInfoInit(
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
     DWORD InfoLength = 0;
     SYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX* Info = NULL;
-
-    const uint32_t ActiveProcessorCount = CxPlatProcActiveCount();
-    CXPLAT_DBG_ASSERT(ActiveProcessorCount > 0);
-    CXPLAT_DBG_ASSERT(ActiveProcessorCount <= UINT16_MAX);
-    CXPLAT_FRE_ASSERT(CxPlatProcessorInfo == NULL);
-    CxPlatProcessorInfo =
-        CXPLAT_ALLOC_NONPAGED(
-            ActiveProcessorCount * sizeof(CXPLAT_PROCESSOR_INFO),
-            QUIC_POOL_PLATFORM_PROC);
-    if (CxPlatProcessorInfo == NULL) {
-        QuicTraceEvent(
-            AllocFailure,
-            "Allocation of '%s' failed. (%llu bytes)",
-            "CxPlatProcessorInfo",
-            ActiveProcessorCount * sizeof(CXPLAT_PROCESSOR_INFO));
-        Status = QUIC_STATUS_OUT_OF_MEMORY;
-        goto Error;
-    }
-
+    uint32_t ActiveProcessorCount = 0, MaxProcessorCount = 0;
     Status =
         CxPlatGetProcessorGroupInfo(
             RelationGroup,
@@ -175,13 +108,45 @@ CxPlatProcessorInfoInit(
         goto Error;
     }
 
+    for (WORD i = 0; i < Info->Group.ActiveGroupCount; ++i) {
+        ActiveProcessorCount += Info->Group.GroupInfo[i].ActiveProcessorCount;
+        MaxProcessorCount += Info->Group.GroupInfo[i].MaximumProcessorCount;
+    }
+
+    CXPLAT_DBG_ASSERT(ActiveProcessorCount > 0);
+    CXPLAT_DBG_ASSERT(ActiveProcessorCount <= UINT16_MAX);
+    if (ActiveProcessorCount == 0 || ActiveProcessorCount > UINT16_MAX) {
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            ActiveProcessorCount,
+            "Invalid active processor count");
+        Status = QUIC_STATUS_INTERNAL_ERROR;
+        goto Error;
+    }
+
     QuicTraceLogInfo(
         WindowsUserProcessorStateV3,
         "[ dll] Processors: (%u active, %u max), Groups: (%hu active, %hu max)",
         ActiveProcessorCount,
-        CxPlatProcMaxCount(),
+        MaxProcessorCount,
         Info->Group.ActiveGroupCount,
         Info->Group.MaximumGroupCount);
+
+    CXPLAT_FRE_ASSERT(CxPlatProcessorInfo == NULL);
+    CxPlatProcessorInfo =
+        CXPLAT_ALLOC_NONPAGED(
+            ActiveProcessorCount * sizeof(CXPLAT_PROCESSOR_INFO),
+            QUIC_POOL_PLATFORM_PROC);
+    if (CxPlatProcessorInfo == NULL) {
+        QuicTraceEvent(
+            AllocFailure,
+            "Allocation of '%s' failed. (%llu bytes)",
+            "CxPlatProcessorInfo",
+            ActiveProcessorCount * sizeof(CXPLAT_PROCESSOR_INFO));
+        Status = QUIC_STATUS_OUT_OF_MEMORY;
+        goto Error;
+    }
 
     CXPLAT_DBG_ASSERT(CxPlatProcessorGroupInfo == NULL);
     CxPlatProcessorGroupInfo =
