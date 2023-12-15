@@ -132,7 +132,7 @@ CxPlatWorkersLazyStart(
         CxPlatWorkerCount = Config->ProcessorCount;
         ProcessorList = Config->ProcessorList;
     } else {
-        CxPlatWorkerCount = CxPlatProcMaxCount();
+        CxPlatWorkerCount = CxPlatProcCount();
         ProcessorList = NULL;
     }
     CXPLAT_DBG_ASSERT(CxPlatWorkerCount > 0 && CxPlatWorkerCount <= UINT16_MAX);
@@ -162,7 +162,7 @@ CxPlatWorkersLazyStart(
         CxPlatLockInitialize(&CxPlatWorkers[i].ECLock);
         CxPlatWorkers[i].InitializedECLock = TRUE;
         CxPlatWorkers[i].IdealProcessor = ProcessorList ? ProcessorList[i] : (uint16_t)i;
-        CXPLAT_DBG_ASSERT(CxPlatWorkers[i].IdealProcessor < CxPlatProcMaxCount());
+        CXPLAT_DBG_ASSERT(CxPlatWorkers[i].IdealProcessor < CxPlatProcCount());
         ThreadConfig.IdealProcessor = CxPlatWorkers[i].IdealProcessor;
         ThreadConfig.Context = &CxPlatWorkers[i];
         if (!CxPlatEventQInitialize(&CxPlatWorkers[i].EventQ)) {

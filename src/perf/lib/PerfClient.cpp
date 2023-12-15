@@ -61,7 +61,7 @@ PerfClient::Init(
     // Local address and execution configuration options
     //
 
-    WorkerCount = CxPlatProcActiveCount();
+    WorkerCount = CxPlatProcCount();
     TryGetValue(argc, argv, "threads", &WorkerCount);
     TryGetValue(argc, argv, "workers", &WorkerCount);
     TryGetValue(argc, argv, "affinitize", &AffinitizeWorkers);
@@ -245,13 +245,8 @@ PerfClient::Start(
     };
     const size_t TargetLen = strlen(Target.get());
     for (uint32_t i = 0; i < WorkerCount; ++i) {
-        while (!CxPlatProcIsActive(ThreadConfig.IdealProcessor)) {
-            ++ThreadConfig.IdealProcessor;
-        }
-
         auto Worker = &Workers[i];
-        Worker->Processor = ThreadConfig.IdealProcessor;
-        ThreadConfig.Context = Worker;
+        Worker->Processor = (uint16_t)i;
         Worker->RemoteAddr.SockAddr = RemoteAddr;
         Worker->RemoteAddr.SetPort(TargetPort);
 
@@ -270,13 +265,15 @@ PerfClient::Start(
             Worker->Target.get()[TargetLen] = '\0';
         }
 
+        // Start the worker thread.
+        ThreadConfig.Context = Worker;
+        ThreadConfig.IdealProcessor = (uint16_t)i;
         QUIC_STATUS Status = CxPlatThreadCreate(&ThreadConfig, &Workers[i].Thread);
         if (QUIC_FAILED(Status)) {
             WriteOutput("Failed to start worker thread on processor %hu!\n", Worker->Processor);
             return Status;
         }
         Workers[i].ThreadStarted = true;
-        ThreadConfig.IdealProcessor++;
     }
 
     return QUIC_STATUS_SUCCESS;

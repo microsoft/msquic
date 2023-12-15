@@ -984,19 +984,15 @@ typedef struct CXPLAT_PROCESSOR_INFO {
 
 typedef struct CXPLAT_PROCESSOR_GROUP_INFO {
     KAFFINITY Mask;  // Bit mask of active processors in the group
+    uint32_t Count;  // Count of active processors in the group
     uint32_t Offset; // Base process index offset this group starts at
 } CXPLAT_PROCESSOR_GROUP_INFO;
 
 extern CXPLAT_PROCESSOR_INFO* CxPlatProcessorInfo;
 extern CXPLAT_PROCESSOR_GROUP_INFO* CxPlatProcessorGroupInfo;
 
-#if defined(QUIC_RESTRICTED_BUILD)
-DWORD CxPlatProcMaxCount();
-DWORD CxPlatProcActiveCount();
-#else
-#define CxPlatProcMaxCount() GetMaximumProcessorCount(ALL_PROCESSOR_GROUPS)
-#define CxPlatProcActiveCount() GetActiveProcessorCount(ALL_PROCESSOR_GROUPS)
-#endif
+extern uint32_t CxPlatProcessorCount;
+#define CxPlatProcCount() CxPlatProcessorCount
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 inline
@@ -1006,19 +1002,8 @@ CxPlatProcCurrentNumber(
     ) {
     PROCESSOR_NUMBER ProcNumber;
     GetCurrentProcessorNumberEx(&ProcNumber);
-    return CxPlatProcessorGroupInfo[ProcNumber.Group].Offset + ProcNumber.Number;
-}
-
-_IRQL_requires_max_(DISPATCH_LEVEL)
-inline
-BOOLEAN
-CxPlatProcIsActive(
-    uint32_t Index
-    )
-{
-    CXPLAT_DBG_ASSERT(Index < CxPlatProcMaxCount());
-    const CXPLAT_PROCESSOR_INFO* Proc = &CxPlatProcessorInfo[Index];
-    return !!(CxPlatProcessorGroupInfo[Proc->Group].Mask & (1ULL << Proc->Index));
+    const CXPLAT_PROCESSOR_GROUP_INFO* Group = &CxPlatProcessorGroupInfo[ProcNumber.Group];
+    return Group->Offset + (ProcNumber.Number % Group->Count);
 }
 
 
@@ -1145,7 +1130,7 @@ CxPlatThreadCreate(
         return GetLastError();
     }
 #endif // CXPLAT_USE_CUSTOM_THREAD_CONTEXT
-    CXPLAT_DBG_ASSERT(Config->IdealProcessor < CxPlatProcMaxCount());
+    CXPLAT_DBG_ASSERT(Config->IdealProcessor < CxPlatProcCount());
     const CXPLAT_PROCESSOR_INFO* ProcInfo = &CxPlatProcessorInfo[Config->IdealProcessor];
     GROUP_AFFINITY Group = {0};
     if (Config->Flags & CXPLAT_THREAD_FLAG_SET_AFFINITIZE) {
@@ -1260,66 +1245,9 @@ CxPlatUtf8ToWideChar(
 #define QUIC_UNSPECIFIED_COMPARTMENT_ID NET_IF_COMPARTMENT_ID_UNSPECIFIED
 #define QUIC_DEFAULT_COMPARTMENT_ID     NET_IF_COMPARTMENT_ID_PRIMARY
 
-inline
-QUIC_STATUS
-CxPlatSetCurrentThreadProcessorAffinity(
-    _In_ uint16_t ProcessorIndex
-    )
-{
-    const CXPLAT_PROCESSOR_INFO* ProcInfo = &CxPlatProcessorInfo[ProcessorIndex];
-    GROUP_AFFINITY Group = {0};
-    Group.Mask = (KAFFINITY)(1ull << ProcInfo->Index);
-    Group.Group = ProcInfo->Group;
-    if (SetThreadGroupAffinity(GetCurrentThread(), &Group, NULL)) {
-        return QUIC_STATUS_SUCCESS;
-    }
-    return HRESULT_FROM_WIN32(GetLastError());
-}
-
 #define QuicCompartmentIdGetCurrent() GetCurrentThreadCompartmentId()
 #define QuicCompartmentIdSetCurrent(CompartmentId) \
     HRESULT_FROM_WIN32(SetCurrentThreadCompartmentId(CompartmentId))
-
-inline
-QUIC_STATUS
-CxPlatSetCurrentThreadGroupAffinity(
-    _In_ uint16_t ProcessorGroup
-    )
-{
-    GROUP_AFFINITY Group = {0};
-    GROUP_AFFINITY ExistingGroup = {0};
-    if (!GetThreadGroupAffinity(GetCurrentThread(), &ExistingGroup)) {
-        return HRESULT_FROM_WIN32(GetLastError());
-    }
-    Group.Mask = ExistingGroup.Mask;
-    Group.Group = ProcessorGroup;
-    if (SetThreadGroupAffinity(GetCurrentThread(), &Group, NULL)) {
-        return QUIC_STATUS_SUCCESS;
-    }
-    return HRESULT_FROM_WIN32(GetLastError());
-}
-
-#else
-
-inline
-QUIC_STATUS
-CxPlatSetCurrentThreadProcessorAffinity(
-    _In_ uint16_t ProcessorIndex
-    )
-{
-    UNREFERENCED_PARAMETER(ProcessorIndex);
-    return QUIC_STATUS_SUCCESS;
-}
-
-inline
-QUIC_STATUS
-CxPlatSetCurrentThreadGroupAffinity(
-    _In_ uint16_t ProcessorGroup
-    )
-{
-    UNREFERENCED_PARAMETER(ProcessorGroup);
-    return QUIC_STATUS_SUCCESS;
-}
 
 #endif
 

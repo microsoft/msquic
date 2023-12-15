@@ -2554,8 +2554,8 @@ void QuicTestGlobalParam()
             uint32_t DataLength = sizeof(Data);
             QUIC_EXECUTION_CONFIG* Config = (QUIC_EXECUTION_CONFIG*)Data;
             Config->ProcessorCount = 4;
-            if (CxPlatProcMaxCount() < Config->ProcessorCount) {
-                Config->ProcessorCount = CxPlatProcMaxCount();
+            if (CxPlatProcCount() < Config->ProcessorCount) {
+                Config->ProcessorCount = CxPlatProcCount();
                 DataLength = QUIC_EXECUTION_CONFIG_MIN_SIZE + sizeof(uint16_t) * Config->ProcessorCount;
             }
             for (uint16_t i = 0; i < (uint16_t)Config->ProcessorCount; ++i) {

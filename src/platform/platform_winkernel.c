@@ -58,6 +58,7 @@ typedef struct _SYSTEM_BASIC_INFORMATION {
 
 uint64_t CxPlatPerfFreq;
 uint64_t CxPlatTotalMemory;
+uint32_t CxPlatProcessorCount;
 CX_PLATFORM CxPlatform = { NULL };
 QUIC_TRACE_RUNDOWN_CALLBACK* QuicTraceRundownCallback;
 
@@ -115,6 +116,9 @@ CxPlatInitialize(
     SYSTEM_BASIC_INFORMATION Sbi;
 
     PAGED_CODE();
+
+    CxPlatProcessorCount =
+        (uint32_t)KeQueryActiveProcessorCountEx(ALL_PROCESSOR_GROUPS);
 
     QUIC_STATUS Status =
         BCryptOpenAlgorithmProvider(
