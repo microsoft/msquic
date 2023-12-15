@@ -83,6 +83,16 @@ struct CxPlatLockDispatch {
     void Acquire() noexcept { CxPlatDispatchLockAcquire(&Handle); }
     void Release() noexcept { CxPlatDispatchLockRelease(&Handle); }
 };
+
+struct CxPlatRwLockDispatch {
+    CXPLAT_DISPATCH_RW_LOCK Handle;
+    CxPlatRwLockDispatch() noexcept { CxPlatDispatchRwLockInitialize(&Handle); }
+    ~CxPlatRwLockDispatch() noexcept { CxPlatDispatchRwLockUninitialize(&Handle); }
+    void AcquireShared() noexcept { CxPlatDispatchRwLockAcquireShared(&Handle); }
+    void AcquireExclusive() noexcept { CxPlatDispatchRwLockAcquireExclusive(&Handle); }
+    void ReleaseShared() noexcept { CxPlatDispatchRwLockReleaseShared(&Handle); }
+    void ReleaseExclusive() noexcept { CxPlatDispatchRwLockReleaseExclusive(&Handle); }
+};
 #pragma warning(pop)
 
 struct CxPlatPool {
@@ -134,11 +144,11 @@ public:
 
 #ifdef CXPLAT_HASH_MIN_SIZE
 
-struct HashTable {
+struct CxPlatHashTable {
     bool Initialized;
     CXPLAT_HASHTABLE Table;
-    HashTable() noexcept { Initialized = CxPlatHashtableInitializeEx(&Table, CXPLAT_HASH_MIN_SIZE); }
-    ~HashTable() noexcept { if (Initialized) { CxPlatHashtableUninitialize(&Table); } }
+    CxPlatHashTable() noexcept { Initialized = CxPlatHashtableInitializeEx(&Table, CXPLAT_HASH_MIN_SIZE); }
+    ~CxPlatHashTable() noexcept { if (Initialized) { CxPlatHashtableUninitialize(&Table); } }
     void Insert(CXPLAT_HASHTABLE_ENTRY* Entry) noexcept { CxPlatHashtableInsert(&Table, Entry, Entry->Signature, nullptr); }
     void Remove(CXPLAT_HASHTABLE_ENTRY* Entry) noexcept { CxPlatHashtableRemove(&Table, Entry, nullptr); }
     CXPLAT_HASHTABLE_ENTRY* Lookup(uint64_t Signature) noexcept {

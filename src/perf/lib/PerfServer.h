@@ -53,6 +53,14 @@ public:
 
 private:
 
+    struct TcpConnectionContext {
+        PerfServer* Server;
+        CxPlatHashTable StreamTable;
+        TcpConnectionContext(PerfServer* Server) : Server(Server) { }
+    };
+
+    CxPlatPoolT<TcpConnectionContext> TcpConnectionContextAllocator;
+
     struct StreamContext {
         StreamContext(
             PerfServer* Server, bool Unidirectional, bool BufferedIo) :
@@ -75,6 +83,9 @@ private:
         uint32_t IoSize{PERF_DEFAULT_IO_SIZE};
         QUIC_BUFFER LastBuffer;
     };
+
+    CxPlatPoolT<StreamContext> StreamContextAllocator;
+    CxPlatPoolT<TcpSendData> TcpSendDataAllocator;
 
     QUIC_STATUS
     ListenerCallback(
@@ -137,11 +148,9 @@ private:
     CXPLAT_EVENT* StopEvent {nullptr};
     QUIC_BUFFER* DataBuffer {nullptr};
     uint8_t PrintStats {FALSE};
-    CxPlatPoolT<StreamContext> StreamContextAllocator;
 
     TcpEngine Engine;
     TcpServer Server;
-    HashTable StreamTable;
 
     uint32_t CibirIdLength {0};
     uint8_t CibirId[7]; // {offset, values}
