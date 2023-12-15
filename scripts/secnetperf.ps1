@@ -84,17 +84,24 @@ try {
 mkdir .\artifacts\logs | Out-Null
 
 # Prepare the machines for the testing.
-Write-Output "Preparing machines for testing..."
-.\scripts\prepare-machine.ps1 -ForTest
 
 if ($plat -eq "windows") {
+
+    Write-Output "Preparing machines for testing..."
+    .\scripts\prepare-machine.ps1 -ForTest
+
     Invoke-Command -Session $Session -ScriptBlock {
         C:\_work\quic\scripts\prepare-machine.ps1 -ForTest
     }
 } else {
-    Invoke-Command -Session $Session -ScriptBlock {
-        /home/secnetperf/_work/scripts/prepare-machine.ps1 -ForTest
-    }
+    Write-Output "Skipping prepare machine for now on Linux..."
+
+    # Write-Output "Preparing machines for testing..."
+    # .\scripts\prepare-machine.ps1 -ForTest
+
+    # Invoke-Command -Session $Session -ScriptBlock {
+    #     /home/secnetperf/_work/scripts/prepare-machine.ps1 -ForTest
+    # }
 }
 
 # Logging to collect quic traces while running the tests.
