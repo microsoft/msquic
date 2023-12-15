@@ -246,7 +246,7 @@ PerfClient::Start(
     const size_t TargetLen = strlen(Target.get());
     for (uint32_t i = 0; i < WorkerCount; ++i) {
         auto Worker = &Workers[i];
-        Worker->Processor = (uint16_t)WorkerCount;
+        Worker->Processor = (uint16_t)i;
         Worker->RemoteAddr.SockAddr = RemoteAddr;
         Worker->RemoteAddr.SetPort(TargetPort);
 
@@ -267,7 +267,7 @@ PerfClient::Start(
 
         // Start the worker thread.
         ThreadConfig.Context = Worker;
-        ThreadConfig.IdealProcessor = (uint16_t)WorkerCount;
+        ThreadConfig.IdealProcessor = (uint16_t)i;
         QUIC_STATUS Status = CxPlatThreadCreate(&ThreadConfig, &Workers[i].Thread);
         if (QUIC_FAILED(Status)) {
             WriteOutput("Failed to start worker thread on processor %hu!\n", Worker->Processor);
