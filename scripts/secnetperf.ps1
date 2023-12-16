@@ -189,8 +189,8 @@ $commands = @(
     "$exe -target:netperf-peer -exec:maxtput -upload:10000 -timed:1 -ptput:1 -tcp:1",
     "$exe -target:netperf-peer -exec:maxtput -download:10000 -timed:1 -ptput:1",
     "$exe -target:netperf-peer -exec:maxtput -download:10000 -timed:1 -ptput:1 -tcp:1",
-    "$exe -target:netperf-peer -exec:maxtput -rstream:1 -up:512 -down:4000 -run:10000 -plat:1",
-    "$exe -target:netperf-peer -exec:maxtput -rstream:1 -up:512 -down:4000 -run:10000 -plat:1 -tcp:1",
+    "$exe -target:netperf-peer -rstream:1 -up:512 -down:4000 -run:10000 -plat:1",
+    "$exe -target:netperf-peer -rstream:1 -up:512 -down:4000 -run:10000 -plat:1 -tcp:1",
     "$exe -target:netperf-peer -exec:maxtput -rconn:1 -inctarget:1 -conns:100 -run:10000 -prate:1",
     "$exe -target:netperf-peer -exec:maxtput -rconn:1 -inctarget:1 -conns:100 -run:10000 -prate:1 -tcp:1"
 )
