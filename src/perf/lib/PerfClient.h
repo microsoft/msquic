@@ -21,7 +21,7 @@ struct PerfClientConnection {
     HQUIC Handle {nullptr};
     TcpConnection* TcpConn;
     };
-    HashTable StreamTable;
+    CxPlatHashTable StreamTable;
     uint64_t StreamsCreated {0};
     uint64_t StreamsActive {0};
     bool WorkerConnComplete {false}; // Indicated completion to worker
