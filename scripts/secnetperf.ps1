@@ -41,7 +41,7 @@ Write-Output "Connecting to netperf-peer..."
 if ($plat -eq "windows") {
     $Session = New-PSSession -ComputerName "netperf-peer" -ConfigurationName PowerShell.7
 } else {
-    $Session = New-PSSession -HostName "netperf-peer" -UserName secnetperf -SSHTransport 
+    $Session = New-PSSession -HostName "netperf-peer" -UserName secnetperf -SSHTransport
 }
 if ($null -eq $Session) {
     Write-Error "Failed to create remote session"
@@ -148,16 +148,16 @@ INSERT OR IGNORE INTO Secnetperf_builds (Secnetperf_Commit, Build_date_time, TLS
 VALUES ('$MsQuicCommit', '$(Get-Date -Format "yyyy-MM-dd HH:mm:ss")', 1, 'TODO');
 
 INSERT OR IGNORE INTO Secnetperf_tests (Secnetperf_test_ID, Secnetperf_build_ID, Kernel_mode, Run_arguments, Test_name)
-VALUES ('throughput-upload-quic-$MsQuicCommit', '$MsQuicCommit', 0, '-target:netperf-peer -exec:maxtput -test:tput -upload:10000 -timed:1', 'throughput-upload-quic');
+VALUES ('throughput-upload-quic-$MsQuicCommit', '$MsQuicCommit', 0, '-target:netperf-peer -exec:maxtput -upload:10000 -timed:1', 'throughput-upload-quic');
 
 INSERT OR IGNORE INTO Secnetperf_tests (Secnetperf_test_ID, Secnetperf_build_ID, Kernel_mode, Run_arguments, Test_name)
-VALUES ('throughput-upload-tcp-$MsQuicCommit', '$MsQuicCommit', 0, '-target:netperf-peer -exec:maxtput -test:tput -upload:10000 -timed:1 -tcp:1', 'throughput-upload-tcp');
+VALUES ('throughput-upload-tcp-$MsQuicCommit', '$MsQuicCommit', 0, '-target:netperf-peer -exec:maxtput -upload:10000 -timed:1 -tcp:1', 'throughput-upload-tcp');
 
 INSERT OR IGNORE INTO Secnetperf_tests (Secnetperf_test_ID, Secnetperf_build_ID, Kernel_mode, Run_arguments, Test_name)
-VALUES ('throughput-download-quic-$MsQuicCommit', '$MsQuicCommit', 0, '-target:netperf-peer -exec:maxtput -test:tput -download:10000 -timed:1', 'throughput-download-quic');
+VALUES ('throughput-download-quic-$MsQuicCommit', '$MsQuicCommit', 0, '-target:netperf-peer -exec:maxtput -download:10000 -timed:1', 'throughput-download-quic');
 
 INSERT OR IGNORE INTO Secnetperf_tests (Secnetperf_test_ID, Secnetperf_build_ID, Kernel_mode, Run_arguments, Test_name)
-VALUES ('throughput-download-tcp-$MsQuicCommit', '$MsQuicCommit', 0, '-target:netperf-peer -exec:maxtput -test:tput -download:10000 -timed:1 -tcp:1', 'throughput-download-tcp');
+VALUES ('throughput-download-tcp-$MsQuicCommit', '$MsQuicCommit', 0, '-target:netperf-peer -exec:maxtput -download:10000 -timed:1 -tcp:1', 'throughput-download-tcp');
 
 "@
 
@@ -177,14 +177,22 @@ $testIds = @(
     "throughput-upload-quic-$MsQuicCommit",
     "throughput-upload-tcp-$MsQuicCommit",
     "throughput-download-quic-$MsQuicCommit",
-    "throughput-download-tcp-$MsQuicCommit"
+    "throughput-download-tcp-$MsQuicCommit",
+    "rps-1conn-1stream-quic-$MsQuicCommit",
+    "rps-1conn-1stream-tcp-$MsQuicCommit",
+    "hps-quic-$MsQuicCommit",
+    "hps-tcp-$MsQuicCommit"
 )
 
 $commands = @(
-    "$exe -target:netperf-peer -exec:maxtput -test:tput -upload:10000 -timed:1",
-    "$exe -target:netperf-peer -exec:maxtput -test:tput -upload:10000 -timed:1 -tcp:1",
-    "$exe -target:netperf-peer -exec:maxtput -test:tput -download:10000 -timed:1",
-    "$exe -target:netperf-peer -exec:maxtput -test:tput -download:10000 -timed:1 -tcp: 1"
+    "$exe -target:netperf-peer -exec:maxtput -upload:10000 -timed:1 -ptput:1",
+    "$exe -target:netperf-peer -exec:maxtput -upload:10000 -timed:1 -ptput:1 -tcp:1",
+    "$exe -target:netperf-peer -exec:maxtput -download:10000 -timed:1 -ptput:1",
+    "$exe -target:netperf-peer -exec:maxtput -download:10000 -timed:1 -ptput:1 -tcp:1",
+    "$exe -target:netperf-peer -exec:maxtput -rstream:1 -up:512 -down:4000 -run:10000 -plat:1",
+    "$exe -target:netperf-peer -exec:maxtput -rstream:1 -up:512 -down:4000 -run:10000 -plat:1 -tcp:1",
+    "$exe -target:netperf-peer -exec:maxtput -rconn:1 -inctarget:1 -conns:100 -run:10000 -prate:1",
+    "$exe -target:netperf-peer -exec:maxtput -rconn:1 -inctarget:1 -conns:100 -run:10000 -prate:1 -tcp:1"
 )
 
 for ($i = 0; $i -lt $commands.Count; $i++) {
