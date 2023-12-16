@@ -127,7 +127,7 @@ jobs:
       shell: pwsh
       run: scripts/spin.ps1 -AZP -Config ${{ matrix.vec.config }} -Arch ${{ matrix.vec.arch }} -Tls ${{ matrix.vec.tls }} -Timeout ${{ env.main-timeout }} -RepeatCount ${{ env.main-repeat }} -AllocFail ${{ env.main-allocfail }} ${{ matrix.vec.xdp }}
     - name: Upload on Failure
-      uses: actions/upload-artifact@a8a3f3ad30e3422c9c7b888a15615d19a852ae32
+      uses: actions/upload-artifact@c7d193f32edcb7bfad88892161225aeda64e9392
       if: failure()
       with:
         name: Stress-${{ matrix.vec.config }}-${{ matrix.vec.plat }}-${{ matrix.vec.os }}-${{ matrix.vec.arch }}-${{ matrix.vec.tls }}${{ matrix.vec.xdp }}${{ matrix.vec.sanitize }}
@@ -187,7 +187,7 @@ jobs:
       shell: pwsh
       run: scripts/recvfuzz.ps1 -AZP -Config ${{ matrix.vec.config }} -Arch ${{ matrix.vec.arch }} -Tls ${{ matrix.vec.tls }} -timeout ${{ env.main-timeout }} ${{ matrix.vec.xdp }}
     - name: Upload on Failure
-      uses: actions/upload-artifact@a8a3f3ad30e3422c9c7b888a15615d19a852ae32
+      uses: actions/upload-artifact@c7d193f32edcb7bfad88892161225aeda64e9392
       if: failure()
       with:
         name: Stress-${{ matrix.vec.config }}-${{ matrix.vec.plat }}-${{ matrix.vec.os }}-${{ matrix.vec.arch }}-${{ matrix.vec.tls }}${{ matrix.vec.xdp }}${{ matrix.vec.sanitize }}
