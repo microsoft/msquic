@@ -83,7 +83,7 @@ jobs:
       shell: pwsh
       run: scripts/prepare-machine.ps1 -ForTest
     - name: Download Build Artifacts
-      uses: actions/download-artifact@9bc31d5ccc31df68ecc42ccf4149144866c47d8a
+      uses: actions/download-artifact@7a1cd3216ca9260cd8022db641d960b1db4d1be4
       with:
         name: Debug-${{ matrix.vec.plat }}-${{ matrix.vec.os }}-${{ matrix.vec.arch }}-${{ matrix.vec.tls }}
         path: artifacts
