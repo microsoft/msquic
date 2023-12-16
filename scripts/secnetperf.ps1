@@ -121,6 +121,7 @@ if ($plat -eq "windows") {
 } else {
     $Job = Invoke-Command -Session $Session -ScriptBlock {
         $env:LD_LIBRARY_PATH = "${env:LD_LIBRARY_PATH}:/home/secnetperf/_work/artifacts/bin/linux/x64_Release_openssl/"
+        chmod +x /home/secnetperf/_work/artifacts/bin/linux/x64_Release_openssl/secnetperf
         /home/secnetperf/_work/artifacts/bin/linux/x64_Release_openssl/secnetperf -exec:maxtput
     } -AsJob
 }
@@ -165,6 +166,7 @@ $exe = ".\artifacts\bin\windows\x64_Release_schannel\secnetperf.exe"
 if ($plat -eq "linux") {
     $env:LD_LIBRARY_PATH = "${env:LD_LIBRARY_PATH}:./artifacts/bin/linux/x64_Release_openssl/"
     $exe = "./artifacts/bin/linux/x64_Release_openssl/secnetperf"
+    chmod +x ./artifacts/bin/linux/x64_Release_openssl/secnetperf
 }
 
 $json = @{}
