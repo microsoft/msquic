@@ -531,8 +531,8 @@ TEST(SettingsTest, GlobalExecutionConfigSetAndGet)
     uint8_t RawConfig[QUIC_EXECUTION_CONFIG_MIN_SIZE + 2 * sizeof(uint16_t)] = {0};
     QUIC_EXECUTION_CONFIG* Config = (QUIC_EXECUTION_CONFIG*)RawConfig;
     Config->ProcessorCount = 2;
-    if (CxPlatProcMaxCount() < 2) {
-        Config->ProcessorCount = CxPlatProcMaxCount();
+    if (CxPlatProcCount() < 2) {
+        Config->ProcessorCount = CxPlatProcCount();
     }
     Config->ProcessorList[0] = 0;
     Config->ProcessorList[1] = 1;
@@ -585,7 +585,7 @@ TEST(SettingsTest, GlobalExecutionConfigSetAndGet)
     // Passing an invalid processor number.
     //
     Config->ProcessorCount = 1;
-    Config->ProcessorList[0] = (uint16_t)CxPlatProcMaxCount();
+    Config->ProcessorList[0] = (uint16_t)CxPlatProcCount();
     ASSERT_EQ(
         QUIC_STATUS_INVALID_PARAMETER,
         QuicLibrarySetGlobalParam(

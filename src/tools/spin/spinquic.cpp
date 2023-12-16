@@ -173,17 +173,19 @@ class SpinQuicWatchdog {
     CXPLAT_THREAD WatchdogThread;
     CXPLAT_EVENT ShutdownEvent;
     uint32_t TimeoutMs;
+    CXPLAT_THREAD_ID OriginThread;
     static
     CXPLAT_THREAD_CALLBACK(WatchdogThreadCallback, Context) {
         auto This = (SpinQuicWatchdog*)Context;
         if (!CxPlatEventWaitWithTimeout(This->ShutdownEvent, This->TimeoutMs)) {
-            printf("Watchdog timeout fired!\n");
+            printf("Watchdog timeout fired while waiting on thread 0x%x!\n", (int)This->OriginThread);
             CXPLAT_FRE_ASSERTMSG(FALSE, "Watchdog timeout fired!");
         }
         CXPLAT_THREAD_RETURN(0);
     }
 public:
-    SpinQuicWatchdog(uint32_t WatchdogTimeoutMs) : TimeoutMs(WatchdogTimeoutMs) {
+    SpinQuicWatchdog(uint32_t WatchdogTimeoutMs) :
+        TimeoutMs(WatchdogTimeoutMs), OriginThread(CxPlatCurThreadID()) {
         CxPlatEventInitialize(&ShutdownEvent, TRUE, FALSE);
         CXPLAT_THREAD_CONFIG Config = { 0 };
         Config.Name = "spin_watchdog";
@@ -1483,9 +1485,9 @@ void start() {
 
         if (GetRandom(2) == 0) {
             const uint32_t ProcCount =
-                CxPlatProcMaxCount() == 1 ?
+                CxPlatProcCount() == 1 ?
                     1 :
-                    1 + GetRandom(CxPlatProcMaxCount() - 1);
+                    1 + GetRandom(CxPlatProcCount() - 1);
             printf("Using %u partitions...\n", ProcCount);
             ExecConfigSize = QUIC_EXECUTION_CONFIG_MIN_SIZE + sizeof(uint16_t)*ProcCount;
             ExecConfig = (QUIC_EXECUTION_CONFIG*)malloc(ExecConfigSize);

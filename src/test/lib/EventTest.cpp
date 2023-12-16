@@ -1457,6 +1457,7 @@ QuicTestValidateStreamEvents9(
 {
     TestScopeLogger ScopeLogger(__FUNCTION__);
 
+#ifdef QUIC_PARAM_STREAM_RELIABLE_OFFSET
     MsQuicSettings Settings;
     Settings.SetPeerBidiStreamCount(1).SetMinimumMtu(1280).SetMaximumMtu(1280);
     Settings.SetReliableResetEnabled(true);
@@ -1575,6 +1576,11 @@ QuicTestValidateStreamEvents9(
      TEST_TRUE(Server.Complete.WaitTimeout(1000));
     } // Stream scope
     } // Connections scope
+#else // QUIC_PARAM_STREAM_RELIABLE_OFFSET
+    UNREFERENCED_PARAMETER(Registration);
+    UNREFERENCED_PARAMETER(Listener);
+    UNREFERENCED_PARAMETER(ServerLocalAddr);
+#endif // QUIC_PARAM_STREAM_RELIABLE_OFFSET
 }
 
 void QuicTestValidateStreamEvents(uint32_t Test)

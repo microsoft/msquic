@@ -388,6 +388,21 @@ TestConnection::SetRemoteAddr(
             &remoteAddr.SockAddr);
 }
 
+QUIC_STATUS
+TestConnection::GetOrigDestCid(
+    _Out_ uint8_t Bytes[32],
+    _Out_ uint32_t& Length
+    )
+{
+    Length = sizeof(uint8_t[32]);
+    return
+        MsQuic->GetParam(
+            QuicConnection,
+            QUIC_PARAM_CONN_ORIG_DEST_CID,
+            &Length,
+            Bytes);
+}
+
 QUIC_SETTINGS
 TestConnection::GetSettings() const
 {

@@ -139,25 +139,6 @@ TRACEPOINT_EVENT(CLOG_TCP_CPP, PerfTcpAppAccept,
 
 
 /*----------------------------------------------------------
-// Decoder Ring for PerfTcpAppConnect
-// [perf][tcp][%p] App Connect
-// QuicTraceLogVerbose(
-            PerfTcpAppConnect,
-            "[perf][tcp][%p] App Connect",
-            this);
-// arg2 = arg2 = this = arg2
-----------------------------------------------------------*/
-TRACEPOINT_EVENT(CLOG_TCP_CPP, PerfTcpAppConnect,
-    TP_ARGS(
-        const void *, arg2), 
-    TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg2, arg2)
-    )
-)
-
-
-
-/*----------------------------------------------------------
 // Decoder Ring for PerfTcpStartTls
 // [perf][tcp][%p] Start TLS
 // QuicTraceLogVerbose(
@@ -177,12 +158,31 @@ TRACEPOINT_EVENT(CLOG_TCP_CPP, PerfTcpStartTls,
 
 
 /*----------------------------------------------------------
+// Decoder Ring for PerfTcpAppConnect
+// [perf][tcp][%p] App Connect
+// QuicTraceLogVerbose(
+            PerfTcpAppConnect,
+            "[perf][tcp][%p] App Connect",
+            this);
+// arg2 = arg2 = this = arg2
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_TCP_CPP, PerfTcpAppConnect,
+    TP_ARGS(
+        const void *, arg2), 
+    TP_FIELDS(
+        ctf_integer_hex(uint64_t, arg2, arg2)
+    )
+)
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for PerfTcpAppDisconnect
 // [perf][tcp][%p] App Disconnect
 // QuicTraceLogVerbose(
-            PerfTcpAppDisconnect,
-            "[perf][tcp][%p] App Disconnect",
-            this);
+                PerfTcpAppDisconnect,
+                "[perf][tcp][%p] App Disconnect",
+                this);
 // arg2 = arg2 = this = arg2
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_TCP_CPP, PerfTcpAppDisconnect,

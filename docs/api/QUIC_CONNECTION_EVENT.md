@@ -107,7 +107,7 @@ This event is delivered whenever the transport (e.g. QUIC layer) determines the 
 
 - The handshake fails (any number of reasons).
 - The connection is idle for long enough.
-- The connection disconnects (loses contact with peer; no acknowledgements).
+- The connection disconnects (loses contact with peer; no acknowledgments).
 - The connection encounters a protocol violation.
 
 `Status`

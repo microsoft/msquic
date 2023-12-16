@@ -60,6 +60,7 @@ MsQuic has several features that differentiates it from other QUIC implementatio
   * For building the library, see the [Build docs](./docs/BUILD.md).
   * For testing the library, see the [Testing docs](./docs/TEST.md).
   * For using the API, see the [API docs](./docs/API.md) or the [Sample](./src/tools/sample/sample.c).
+  * For running a sample server and client app, see the [Quick Start Guide](./docs/Sample.md).
   * For deploying QUIC, see the [Deployment docs](./docs/Deployment.md).
   * For diagnosing issues, see the [Diagnostics docs](./docs/Diagnostics.md) and the [Trouble Shooting Guide](./docs/TSG.md).
   * For other frequently asked questions, see the [FAQs](./docs/FAQ.md).

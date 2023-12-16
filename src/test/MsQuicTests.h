@@ -59,6 +59,7 @@ void QuicTestRegistrationShutdownBeforeConnOpen();
 void QuicTestRegistrationShutdownAfterConnOpen();
 void QuicTestRegistrationShutdownAfterConnOpenBeforeStart();
 void QuicTestRegistrationShutdownAfterConnOpenAndStart();
+void QuicTestConnectionCloseBeforeStreamClose();
 
 //
 // Rejection Tests
@@ -671,6 +672,13 @@ static const GUID QUIC_TEST_DEVICE_INSTANCE =
 //
 
 typedef struct {
+    BOOLEAN UseDuoNic;
+} QUIC_TEST_CONFIGURATION_PARAMS;
+
+#define IOCTL_QUIC_TEST_CONFIGURATION \
+    QUIC_CTL_CODE(0, METHOD_BUFFERED, FILE_WRITE_DATA)
+
+typedef struct {
     QUIC_CERTIFICATE_HASH ServerCertHash;
     QUIC_CERTIFICATE_HASH ClientCertHash;
 } QUIC_RUN_CERTIFICATE_PARAMS;
@@ -1242,4 +1250,7 @@ typedef struct {
     QUIC_CTL_CODE(116, METHOD_BUFFERED, FILE_WRITE_DATA)
     // int - Family
 
-#define QUIC_MAX_IOCTL_FUNC_CODE 116
+#define IOCTL_QUIC_RUN_CONN_CLOSE_BEFORE_STREAM_CLOSE \
+    QUIC_CTL_CODE(117, METHOD_BUFFERED, FILE_WRITE_DATA)
+
+#define QUIC_MAX_IOCTL_FUNC_CODE 117

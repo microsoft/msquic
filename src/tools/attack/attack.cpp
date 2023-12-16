@@ -22,7 +22,7 @@
 
 #define ATTACK_TIMEOUT_DEFAULT_MS (60 * 1000)
 
-#define ATTACK_THREADS_DEFAULT CxPlatProcActiveCount()
+#define ATTACK_THREADS_DEFAULT CxPlatProcCount()
 
 #define ATTACK_PORT_DEFAULT 443
 
@@ -311,7 +311,7 @@ void RunAttackValidInitial(CXPLAT_SOCKET* Binding)
 
             InterlockedExchangeAdd64(&TotalPacketCount, 1);
             InterlockedExchangeAdd64(&TotalByteCount, DatagramLength);
-        } while (CxPlatTimeDiff64(TimeStart, CxPlatTimeMs64()) < TimeoutMs && 
+        } while (CxPlatTimeDiff64(TimeStart, CxPlatTimeMs64()) < TimeoutMs &&
             !CxPlatSendDataIsFull(SendData));
 
         CxPlatSocketSend(
@@ -372,7 +372,7 @@ void RunAttack()
     CXPLAT_THREAD* Threads =
         (CXPLAT_THREAD*)CXPLAT_ALLOC_PAGED(ThreadCount * sizeof(CXPLAT_THREAD), QUIC_POOL_TOOL);
 
-    uint32_t ProcCount = CxPlatProcActiveCount();
+    uint32_t ProcCount = CxPlatProcCount();
     TimeStart = CxPlatTimeMs64();
 
     for (uint32_t i = 0; i < ThreadCount; ++i) {
@@ -407,13 +407,13 @@ main(
     )
 {
     int ErrorCode = -1;
-    
+
     if (argc < 2) {
         PrintUsage();
     } else if (strcmp("-list", argv[1]) == 0) {
         PrintUsageList();
         ErrorCode = 0;
-    } else if (!TryGetValue(argc, argv, "type", &AttackType) || 
+    } else if (!TryGetValue(argc, argv, "type", &AttackType) ||
         (AttackType < 0 || AttackType > 4)) {
         PrintUsage();
     } else {
@@ -421,7 +421,7 @@ main(
             UdpRecvCallback,
             UdpUnreachCallback,
         };
-        QUIC_EXECUTION_CONFIG DatapathFlags = { 
+        QUIC_EXECUTION_CONFIG DatapathFlags = {
             ((AttackType == 0) ? QUIC_EXECUTION_CONFIG_FLAG_QTIP : QUIC_EXECUTION_CONFIG_FLAG_NONE),
         };
         CxPlatSystemLoad();
@@ -432,13 +432,13 @@ main(
             NULL,
             &DatapathFlags,
             &Datapath);
-        
+
         TryGetValue(argc, argv, "ip", &IpAddress);
         TryGetValue(argc, argv, "alpn", &Alpn);
         TryGetValue(argc, argv, "sni", &ServerName);
         TryGetValue(argc, argv, "timeout", &TimeoutMs);
         TryGetValue(argc, argv, "threads", &ThreadCount);
-        
+
         if (IpAddress == nullptr) {
             if (ServerName == nullptr) {
                 printf("'ip' or 'sni' must be specified!\n");

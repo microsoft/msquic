@@ -26,127 +26,65 @@ stats | `-stats:<0,1>` | Prints out statistics at the end of each connection.
 
 # Client
 
-Since tests are client-driven, the client side of secnetperf generally has several arguments passed in to specify which test to run. Many of the arguments are also test specific, but the following (overlap with server) do apply to all:
+Since tests are client-driven, the client side of secnetperf generally has several arguments passed in to specify which scenarios to run.
 
-Argument | Usage | Meaning
+```
+> secnetperf -test:client -target:perf-server -download:10000000
+```
+
+The `target` must be specified to indicate the hostname of the server to connect to. Note that `server`, `to`, `remote`, and `peer` are all aliases for `target`.
+
+## Remote Options
+
+The following options configure the behavior around connecting to the remote peer:
+
+Alias | Usage | Meaning
 --- | --- | ---
-cc | `-cc:<cubic,bbr>` | Congestion control algorithm used.
-cipher | `-cipher:<value>` | Decimal value of 1 or more `QUIC_ALLOWED_CIPHER_SUITE_FLAGS`.
-cpu | `-cpu:<cpu_indexes>` | Comma-separated list of CPUs to run on.
-ecn | `-ecn:<0,1>` | Enables sender-side ECN support.
-exec | `-exec:<lowlat,maxtput,scavenger,realtime>` | The execution profile used for the application.
-pollidle | `-pollidle:<time_us>` | The time, in microseconds, to poll while idle before sleeping (falling back to interrupt-driven IO).
-
-## Throughput Test
-
-To run the throughput test, you must specify the `-test:tput` option, followed by a number of other arguments (most of which are optional).
-
-### Examples
-
-```
-> secnetperf.exe -exec:maxtput -test:tput -target:127.0.0.1 -download:10000000
-```
-
-```
-> secnetperf.exe -test:tput -target:127.0.0.1 -upload:10000 -timed:1 -stats:1
-```
-
-### Required
-
-Argument | Usage | Meaning
---- | --- | ---
-target,server | `-target:<hostname_or_IP>` | The target server to connect to. May be a hostname or an IP address.
-download | `-download:<####>` | The length of data in bytes (or time with `-timed:1` arg) to receive. Mutually exclusive with `-upload` arg.
-upload | `-upload:<####>` | The length of data in bytes (or time with `-timed:1` arg) to send. Mutually exclusive with `-download` arg.
-
-### Optional
-
-Argument | Usage | Meaning
---- | --- | ---
-bind | `-bind:<address>` | Binds to the specified local address.
-cc | `-cc:<cubic,bbr>` | Congestion control algorithm used.
+ip, af | `-ip:<0,4,6>` | A address family hint for resolving the hostname to IP address.
+port | `-port:<value>` | The UDP port of the remote peer.
 cibir | `-cibir:<hex_bytes>` | The well-known CIBIR identifier.
-comp | `-comp:<####>` | The compartment ID to run in. **Windows Only**
-core | `-core:<####>` | The CPU to use for the main thread.
-encrypt | `-encrypt:<0,1>` | Enables/disables encryption.
-iosize | `-iosize:<####>` | The size of each send request queued.
-ip | `-ip:<0,4,6> ` | A hint for the resolving the hostname to an IP address.
-pacing | `-pacing:<0,1>` | Whether to use pacing.
-port | `-port:<####>` | The UDP port of the server.
-sendbuf | `-sendbuf:<0,1>` | Whether to use send buffering.
-sstats | `-sstats:<0,1>` | Prints out stream-level statistics at the end of each stream.
-stats | `-stats:<0,1>` | Prints out statistics at the end of each connection.
-tcp | `-tcp:<0,1>` | Indicates TCP/TLS should be used instead of QUIC. **Windows Only**
-timed | `-timed:<0,1>` | Indicates the `upload` & `download` arg represent time (ms).
+incttarget | `-inctarget:<0,1>` | Set to 1 to append core index to target hostname.
 
-## RPS Test
+## Local Options
 
-To run the "request per second" test, you must specify the `-test:rps` option, followed by a number of other arguments (most of which are optional).
+The following options configure the behavior related to local execution:
 
-### Examples
-
-```
-> secnetperf.exe -test:rps -target:127.0.0.1
-```
-
-```
-> secnetperf.exe -test:rps -target:127.0.0.1 -runtime:1000 -response:8096 -stats:1
-```
-
-### Required
-
-Argument | Usage | Meaning
+Alias | Usage | Meaning
 --- | --- | ---
-target,server | `-target:<hostname_or_IP>` | The target server to connect to. May be a hostname or an IP address.
+threads | `-threads:<value>` | The max number of worker threads to use.
+affinitize | `-affinitize:<0,1>` | Affinitizes worker threads to a core.
+comp | `-comp:<value>` | The network compartment ID to run in. **Windows Only**
+bind | `-bind:<addr(s)>` | The local IP address(es)/port(s) to bind to.
+share | `-share:<0,1>` | Set to 1 to append core index to target hostname.
 
-### Optional
+## General Configuration Options
 
-Argument | Usage | Meaning
+The following options control various general configuration options:
+
+Alias | Usage | Meaning
 --- | --- | ---
-addrs | `-addrs:<####>` | The number of local addresses to use.
-affinitize | `-affinitize:<0,1>` | Affinitizes threads to a core.
-bind | `-bind:<address>` | Binds to the specified local address.
-cibir | `-cibir:<hex_bytes>` | The well-known CIBIR identifier.
-conns | `-conns:<####>` | The number of connections to use.
-encrypt | `-encrypt:<0,1>` | Enables/disables encryption.
-inline | `-inline:<0,1>` | Configured sending requests inline.
-ip | `-ip:<0,4,6> ` | A hint for the resolving the hostname to an IP address.
-port | `-port:<####>` | The UDP port of the server.
-requests | `-requests:<####>` | The number of requests to send at a time.
-request | `-request:<####>` | The length of request payloads.
-response | `-response:<####>` | The length of request payloads.
-runtime | `-runtime:<####>` | The total runtime (in ms).
-sendbuf | `-sendbuf:<0,1>` | Whether to use send buffering.
-stats | `-stats:<0,1>` | Prints out statistics at the end of each connection.
-threads | `-threads:<####>` | The number of threads to use (capped to number of cores).
+tcp | `-tcp:<0,1>` | Disables/enables TCP usage (instead of QUIC).
+encrypt | `-encrypt:<0,1>` | Disables/enables encryption.
+pacing | `-pacing:<0,1>` | Disables/enables send pacing.
+sendbuf | `-sendbuf:<0,1>` | Disables/enables send buffering.
+ptput | `-ptput:<0,1>` | Print throughput information.
+pconnection, pconn | `-pconn:<0,1>` | Print connection statistics.
+pstream | `-pstream:<0,1>` | Print stream statistics.
+platency, plat | `-platency:<0,1>` | Print latency statistics.
+praw | `-praw:<0,1>` | Print raw information.
 
-## HPS Test
+## Scenario Options
 
-To run the "handshakes per second" test, you must specify the `-test:hps` option, followed by a number of other arguments (most of which are optional).
+The following options configure the various scenario behaviors:
 
-### Examples
-
-```
-> secnetperf.exe -test:hps -target:127.0.0.1
-```
-
-```
-> secnetperf.exe -test:hps -target:127.0.0.1 -runtime:1000 -response:8096 -stats:1
-```
-
-### Required
-
-Argument | Usage | Meaning
+Alias | Usage | Meaning
 --- | --- | ---
-target,server | `-target:<hostname_or_IP>` | The target server to connect to. May be a hostname or an IP address.
-
-### Optional
-
-Argument | Usage | Meaning
---- | --- | ---
-bind | `-bind:<address>` | Binds to the specified local address.
-incrementtarget | `-incrementtarget<0,1>` | Set to 1 to append core index to target.
-parallel | `-parallel:<####>` | The number of parallel connections per core.
-port | `-port:<####>` | The UDP port of the server.
-runtime | `-runtime:<####>` | The total runtime (in ms).
-threads | `-threads:<####>` | The number of threads to use (capped to number of cores).
+conns | `-conns:<value>` | The number of connections to use.
+streams, requests | `-streams:<value>` | The number of streams to send on at a time.
+upload, up, request | `-upload:<value>` | The length of bytes to send on each stream.
+download, down, response | `-download:<value>` | The length of bytes to receive on each stream.
+iosize | `-iosize:<value>` | The size of each send request queued.
+timed | `-timed:<0,1>` | Indicates the upload/download args are times (in ms).
+rconn | `-rconn:<0,1>` | Repeat the scenario at the connection level.
+rstream | `-rstream:<0,1>` | Repeat the scenario at the stream level.
+runtime, run, time | `-runtime:<value>` | The total runtime (in ms). Only relevant for repeat scenarios.

@@ -97,10 +97,10 @@ TRACEPOINT_EVENT(CLOG_TIMER_WHEEL_C, TimerWheelRemoveConnection,
 // Decoder Ring for TimerWheelUpdateConnection
 // [time][%p] Updating Connection %p.
 // QuicTraceLogVerbose(
-            TimerWheelUpdateConnection,
-            "[time][%p] Updating Connection %p.",
-            TimerWheel,
-            Connection);
+        TimerWheelUpdateConnection,
+        "[time][%p] Updating Connection %p.",
+        TimerWheel,
+        Connection);
 // arg2 = arg2 = TimerWheel = arg2
 // arg3 = arg3 = Connection = arg3
 ----------------------------------------------------------*/

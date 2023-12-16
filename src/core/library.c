@@ -129,7 +129,7 @@ QuicLibraryInitializePartitions(
 {
     CXPLAT_DBG_ASSERT(MsQuicLib.PerProc == NULL);
 
-    MsQuicLib.ProcessorCount = (uint16_t)CxPlatProcMaxCount();
+    MsQuicLib.ProcessorCount = (uint16_t)CxPlatProcCount();
     CXPLAT_FRE_ASSERT(MsQuicLib.ProcessorCount > 0);
 
     if (MsQuicLib.ExecutionConfig && MsQuicLib.ExecutionConfig->ProcessorCount) {
@@ -992,7 +992,7 @@ QuicLibrarySetGlobalParam(
         }
 
         for (uint32_t i = 0; i < Config->ProcessorCount; ++i) {
-            if (Config->ProcessorList[i] >= CxPlatProcMaxCount()) {
+            if (Config->ProcessorList[i] >= CxPlatProcCount()) {
                 return QUIC_STATUS_INVALID_PARAMETER;
             }
         }
