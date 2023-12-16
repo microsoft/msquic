@@ -192,6 +192,8 @@ for ($i = 0; $i -lt $commands.Count; $i++) {
     $rawOutput = Invoke-Expression $commands[$i]
     $pattern = '@ (\d+) kbps'
 
+    $rawOutput
+
     foreach ($line in $rawOutput) {
         if ($line -match $pattern) {
 
