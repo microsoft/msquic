@@ -42,7 +42,7 @@ QuicHandleExtraData(
     RestOfBufferLength &= 0xFFFFFFFC; // Round down to nearest multiple of 4
     uint32_t MaxCount = CXPLAT_MIN((uint32_t)CachedCompletedRequests, RestOfBufferLength);
 
-    uint32_t RPS = (uint32_t)((CachedCompletedRequests * 1000ull) / US_TO_MS(RunTime));
+    uint32_t RPS = (uint32_t)((CachedCompletedRequests * 1000ull * 1000ull) / RunTime);
     if (RPS == 0) {
         printf("Error: No requests were completed\n");
         return;

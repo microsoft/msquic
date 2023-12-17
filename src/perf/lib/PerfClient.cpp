@@ -340,7 +340,7 @@ PerfClient::Wait(
     _In_ int Timeout
     ) {
     if (Timeout == 0) {
-        Timeout = 1 + US_TO_MS(RunTime);
+        Timeout = RunTime ? max(1, (int)US_TO_MS(RunTime)) : 0;
     }
 
     if (Timeout) {
@@ -361,11 +361,11 @@ PerfClient::Wait(
 
     if (PrintIoRate) {
         if (CompletedConnections) {
-            unsigned long long HPS = CompletedConnections * 1000 / US_TO_MS(RunTime);
+            unsigned long long HPS = CompletedConnections * 1000 * 1000 / RunTime;
             WriteOutput("Result: %llu HPS\n", HPS);
         }
         if (CompletedStreams) {
-            unsigned long long RPS = CompletedStreams * 1000 / US_TO_MS(RunTime);
+            unsigned long long RPS = CompletedStreams * 1000 * 1000 / RunTime;
             WriteOutput("Result: %llu RPS\n", RPS);
         }
     } else if (!PrintThroughput && !PrintLatency) {
