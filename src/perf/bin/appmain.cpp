@@ -30,9 +30,9 @@ QuicHandleExtraData(
     _In_opt_z_ const char* FileName
     )
 {
-    CXPLAT_FRE_ASSERT(Length >= sizeof(uint32_t) + sizeof(uint32_t));
-    uint32_t RunTime;
+    uint64_t RunTime;
     uint64_t CachedCompletedRequests;
+    CXPLAT_FRE_ASSERT(Length >= sizeof(RunTime) + sizeof(CachedCompletedRequests));
     CxPlatCopyMemory(&RunTime, ExtraData, sizeof(RunTime));
     ExtraData += sizeof(RunTime);
     CxPlatCopyMemory(&CachedCompletedRequests, ExtraData, sizeof(CachedCompletedRequests));
@@ -42,7 +42,7 @@ QuicHandleExtraData(
     RestOfBufferLength &= 0xFFFFFFFC; // Round down to nearest multiple of 4
     uint32_t MaxCount = CXPLAT_MIN((uint32_t)CachedCompletedRequests, RestOfBufferLength);
 
-    uint32_t RPS = (uint32_t)((CachedCompletedRequests * 1000ull) / (uint64_t)RunTime);
+    uint32_t RPS = (uint32_t)((CachedCompletedRequests * 1000ull) / US_TO_MS(RunTime));
     if (RPS == 0) {
         printf("Error: No requests were completed\n");
         return;
