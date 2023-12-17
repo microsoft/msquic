@@ -190,7 +190,9 @@ PerfClient::Init(
     TryGetVariableUnitValue(argc, argv, RunVarNames, &RunTime, &IsTimeUnit);
     //TryGetValue(argc, argv, "inline", &SendInline);
     TryGetValue(argc, argv, "rconn", &RepeatConnections);
+    TryGetValue(argc, argv, "rc", &RepeatConnections);
     TryGetValue(argc, argv, "rstream", &RepeatStreams);
+    TryGetValue(argc, argv, "rs", &RepeatStreams);
 
     if ((RepeatConnections || RepeatStreams) && !RunTime) {
         WriteOutput("Must specify a 'runtime' if using a repeat parameter!\n");
