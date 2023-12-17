@@ -339,8 +339,8 @@ void
 PerfClient::Wait(
     _In_ int Timeout
     ) {
-    if (Timeout == 0) {
-        Timeout = RunTime ? max(1, (int)US_TO_MS(RunTime)) : 0;
+    if (Timeout == 0 && RunTime != 0) {
+        Timeout = RunTime < 1000 ? 1 : (int)US_TO_MS(RunTime);
     }
 
     if (Timeout) {

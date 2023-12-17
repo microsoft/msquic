@@ -12,7 +12,7 @@
                 "Tls": ["schannel", "openssl", "openssl3"],
                 "Arch": ["x64", "x86", "arm", "arm64"],
                 "Exe": "secnetperf",
-                "Arguments": "-exec:maxtput -target:$RemoteAddress -bind:$LocalAddress:4434 -ip:4 -up:12s -ptput:1 -pconn:1 -pstream:1 -tcp:0"
+                "Arguments": "-exec:maxtput -target:$RemoteAddress -bind:$LocalAddress:4434 -ip:4 -up:12s -ptput:1 -tcp:0"
             },
             "Variables": [
                 {
@@ -46,7 +46,7 @@
                 "Tls": ["schannel", "openssl", "openssl3"],
                 "Arch": ["x64", "x86", "arm", "arm64"],
                 "Exe": "secnetperf",
-                "Arguments": "-exec:maxtput -target:$RemoteAddress -bind:$LocalAddress:4434 -ip:4 -up:12s -ptput:1 -pconn:1 -pstream:1 -tcp:1"
+                "Arguments": "-exec:maxtput -target:$RemoteAddress -bind:$LocalAddress:4434 -ip:4 -up:12s -ptput:1 -tcp:1"
             },
             "Variables": [
             ],
@@ -65,7 +65,7 @@
                 "Tls": ["openssl", "openssl3"],
                 "Arch": ["x64", "arm"],
                 "Exe": "secnetperf",
-                "Arguments": "-exec:maxtput -target:$RemoteAddress -bind:$LocalAddress:4434 -ip:4 -up:12s -ptput:1 -pconn:1 -pstream:1 -tcp:0"
+                "Arguments": "-exec:maxtput -target:$RemoteAddress -bind:$LocalAddress:4434 -ip:4 -up:12s -ptput:1 -tcp:0"
             },
             "Variables": [
                 {
@@ -99,7 +99,7 @@
                 "Tls": ["openssl", "openssl3"],
                 "Arch": ["x64", "arm"],
                 "Exe": "secnetperf",
-                "Arguments": "-exec:maxtput -target:$RemoteAddress -bind:$LocalAddress:4434 -ip:4 -up:12s -ptput:1 -pconn:1 -pstream:1 -tcp:1"
+                "Arguments": "-exec:maxtput -target:$RemoteAddress -bind:$LocalAddress:4434 -ip:4 -up:12s -ptput:1 -tcp:1"
             },
             "Variables": [
             ],
