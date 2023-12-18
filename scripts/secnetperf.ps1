@@ -38,7 +38,7 @@ param (
 # Set up the connection to the peer over remote powershell.
 Write-Output "Connecting to netperf-peer..."
 
-if ($plat -eq "windows") {
+if ($isWindows) {
     $Session = New-PSSession -ComputerName "netperf-peer" -ConfigurationName PowerShell.7
 } else {
     $Session = New-PSSession -HostName "netperf-peer" -UserName secnetperf -SSHTransport
@@ -52,7 +52,7 @@ $RemoteAddress = $Session.ComputerName
 Write-Output "Successfully conencted to peer: $RemoteAddress"
 
 # Make sure nothing is running from a previous run.
-if ($plat -eq "windows") {
+if ($isWindows) {
     Invoke-Command -Session $Session -ScriptBlock {
         Get-Process | Where-Object { $_.Name -eq "secnetperf.exe" } | Stop-Process
     }
@@ -64,7 +64,7 @@ if ($plat -eq "windows") {
 
 # Copy the artifacts to the peer.
 Write-Output "Copying files to peer..."
-if ($plat -eq "windows") {
+if ($isWindows) {
     Invoke-Command -Session $Session -ScriptBlock {
         Remove-Item -Force -Recurse "C:\_work" -ErrorAction Ignore
     }
@@ -85,7 +85,7 @@ mkdir .\artifacts\logs | Out-Null
 
 # Prepare the machines for the testing.
 
-if ($plat -eq "windows") {
+if ($isWindows) {
 
     Write-Output "Preparing machines for testing..."
     .\scripts\prepare-machine.ps1 -ForTest
@@ -114,7 +114,7 @@ if ($LogProfile -ne "" -and $LogProfile -ne "NULL") { # TODO: Linux back slash w
 # Run secnetperf on the server.
 Write-Output "Starting secnetperf server..."
 
-if ($plat -eq "windows") {
+if ($isWindows) {
     $Job = Invoke-Command -Session $Session -ScriptBlock {
         C:\_work\quic\artifacts\bin\windows\x64_Release_schannel\secnetperf.exe -exec:maxtput
     } -AsJob
@@ -163,7 +163,7 @@ VALUES ('throughput-download-tcp-$MsQuicCommit', '$MsQuicCommit', 0, '-target:ne
 
 $exe = ".\artifacts\bin\windows\x64_Release_schannel\secnetperf.exe"
 
-if ($plat -eq "linux") {
+if (!$isWindows) {
     $env:LD_LIBRARY_PATH = "${env:LD_LIBRARY_PATH}:./artifacts/bin/linux/x64_Release_openssl/"
     $exe = "./artifacts/bin/linux/x64_Release_openssl/secnetperf"
     chmod +x ./artifacts/bin/linux/x64_Release_openssl/secnetperf
