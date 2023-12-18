@@ -22,10 +22,10 @@ const uint8_t SecNetPerfShutdownGuid[16] = { // {ff15e657-4f26-570e-88ab-0796b25
 QUIC_STATUS
 PerfServer::Init(
     _In_ int argc,
-    _In_reads_(argc) _Null_terminated_ char* argv[],
-    _In_ CXPLAT_DATAPATH* Datapath
+    _In_reads_(argc) _Null_terminated_ char* argv[]
     ) {
     if (QUIC_FAILED(InitStatus)) {
+        WriteOutput("PerfServer failed to initialize\n");
         return InitStatus;
     }
 
@@ -42,7 +42,7 @@ PerfServer::Init(
         QuicAddrSetPort(&LocalAddr, Port);
     }
 
-    uint16_t ServerId = 0;
+    uint32_t ServerId = 0;
     if (TryGetValue(argc, argv, "serverid", &ServerId)) {
         MsQuicGlobalSettings GlobalSettings;
         GlobalSettings.SetFixedServerID(ServerId);
@@ -57,33 +57,25 @@ PerfServer::Init(
 
     const char* CibirBytes = nullptr;
     if (TryGetValue(argc, argv, "cibir", &CibirBytes)) {
-        CibirId[0] = 0; // offset
+        uint32_t CibirIdLength;
+        uint8_t CibirId[7] = {0}; // {offset, values}
         if ((CibirIdLength = DecodeHexBuffer(CibirBytes, 6, CibirId+1)) == 0) {
             WriteOutput("Cibir ID must be a hex string <= 6 bytes.\n");
             return QUIC_STATUS_INVALID_PARAMETER;
         }
-    }
 
-    DataBuffer = (QUIC_BUFFER*)CXPLAT_ALLOC_NONPAGED(sizeof(QUIC_BUFFER) + PERF_DEFAULT_IO_SIZE, QUIC_POOL_PERF);
-    if (!DataBuffer) {
-        return QUIC_STATUS_OUT_OF_MEMORY;
-    }
-    DataBuffer->Length = PERF_DEFAULT_IO_SIZE;
-    DataBuffer->Buffer = (uint8_t*)(DataBuffer + 1);
-    for (uint32_t i = 0; i < PERF_DEFAULT_IO_SIZE; ++i) {
-        DataBuffer->Buffer[i] = (uint8_t)i;
+        QUIC_STATUS Status;
+        if (QUIC_FAILED(Status = Listener.SetCibirId(CibirId, (uint8_t)CibirIdLength+1))) {
+            WriteOutput("Failed to set CibirId!\n");
+            return Status;
+        }
     }
 
     //
     // Set up the special UDP listener to allow remote tear down.
     //
     QuicAddr TeardownLocalAddress {QUIC_ADDRESS_FAMILY_INET, (uint16_t)9999};
-    CXPLAT_UDP_CONFIG UdpConfig = {0};
-    UdpConfig.LocalAddress = &TeardownLocalAddress.SockAddr;
-    UdpConfig.RemoteAddress = nullptr;
-    UdpConfig.Flags = 0;
-    UdpConfig.InterfaceIndex = 0;
-    UdpConfig.CallbackContext = this;
+    CXPLAT_UDP_CONFIG UdpConfig = {&TeardownLocalAddress.SockAddr, 0};
 #ifdef QUIC_OWNING_PROCESS
     UdpConfig.OwningProcess = QuicProcessGetCurrentProcess();
 #endif
@@ -102,20 +94,11 @@ QUIC_STATUS
 PerfServer::Start(
     _In_ CXPLAT_EVENT* _StopEvent
     ) {
+    StopEvent = _StopEvent;
     if (!Server.Start(&LocalAddr)) {
         WriteOutput("Warning: TCP Server failed to start!\n");
     }
-
-    StopEvent = _StopEvent;
-
-    QUIC_STATUS Status;
-    if (CibirIdLength &&
-        QUIC_FAILED(Status = Listener.SetCibirId(CibirId, (uint8_t)CibirIdLength+1))) {
-        WriteOutput("Failed to set CibirId!\n");
-        return Status;
-    }
-
-    return Listener.Start(Alpn, &LocalAddr);
+    return Listener.Start(PERF_ALPN, &LocalAddr);
 }
 
 void
@@ -147,16 +130,12 @@ PerfServer::DatapathReceive(
     }
 }
 
-void PerfServer::DatapathUnreachable(_In_ CXPLAT_SOCKET*, _In_ void*, _In_ const QUIC_ADDR*) { }
-
 QUIC_STATUS
 PerfServer::ListenerCallback(
-    _In_ MsQuicListener* /*Listener*/,
     _Inout_ QUIC_LISTENER_EVENT* Event
     ) {
     QUIC_STATUS Status = QUIC_STATUS_NOT_SUPPORTED;
-    switch (Event->Type) {
-    case QUIC_LISTENER_EVENT_NEW_CONNECTION: {
+    if (Event->Type == QUIC_LISTENER_EVENT_NEW_CONNECTION) {
         BOOLEAN value = TRUE;
         MsQuic->SetParam(Event->NEW_CONNECTION.Connection, QUIC_PARAM_CONN_DISABLE_1RTT_ENCRYPTION, sizeof(value), &value);
         QUIC_CONNECTION_CALLBACK_HANDLER Handler =
@@ -165,10 +144,6 @@ PerfServer::ListenerCallback(
             };
         MsQuic->SetCallbackHandler(Event->NEW_CONNECTION.Connection, (void*)Handler, this);
         Status = MsQuic->ConnectionSetConfiguration(Event->NEW_CONNECTION.Connection, Configuration);
-        break;
-    }
-    default:
-        break;
     }
     return Status;
 }
@@ -188,21 +163,12 @@ PerfServer::ConnectionCallback(
         }
         break;
     case QUIC_CONNECTION_EVENT_PEER_STREAM_STARTED: {
-        auto Context =
-            StreamContextAllocator.Alloc(
-                this,
-                Event->PEER_STREAM_STARTED.Flags & QUIC_STREAM_OPEN_FLAG_UNIDIRECTIONAL,
-                false); // TODO - Support buffered IO
-        if (!Context) {
-            return QUIC_STATUS_OUT_OF_MEMORY;
-        }
+        bool Unidirectional = Event->PEER_STREAM_STARTED.Flags & QUIC_STREAM_OPEN_FLAG_UNIDIRECTIONAL;
+        auto Context = StreamContextAllocator.Alloc(this, Unidirectional, false); // TODO - Support buffered IO
+        if (!Context) { return QUIC_STATUS_OUT_OF_MEMORY; }
         QUIC_STREAM_CALLBACK_HANDLER Handler =
             [](HQUIC Stream, void* Context, QUIC_STREAM_EVENT* Event) -> QUIC_STATUS {
-                return ((PerfServer::StreamContext*)Context)->Server->
-                    StreamCallback(
-                        (PerfServer::StreamContext*)Context,
-                        Stream,
-                        Event);
+                return ((StreamContext*)Context)->Server->StreamCallback((StreamContext*)Context, Stream, Event);
             };
         MsQuic->SetCallbackHandler(Event->PEER_STREAM_STARTED.Stream, (void*)Handler, Context);
         break;
@@ -215,7 +181,7 @@ PerfServer::ConnectionCallback(
 
 QUIC_STATUS
 PerfServer::StreamCallback(
-    _In_ PerfServer::StreamContext* Context,
+    _In_ StreamContext* Context,
     _In_ HQUIC StreamHandle,
     _Inout_ QUIC_STREAM_EVENT* Event
     ) {
@@ -238,7 +204,7 @@ PerfServer::StreamCallback(
     case QUIC_STREAM_EVENT_SEND_COMPLETE:
         Context->OutstandingBytes -= ((QUIC_BUFFER*)Event->SEND_COMPLETE.ClientContext)->Length;
         if (!Event->SEND_COMPLETE.Canceled) {
-            SendResponse(Context, StreamHandle);
+            SendResponse(Context, StreamHandle, false);
         }
         break;
     case QUIC_STREAM_EVENT_PEER_SEND_SHUTDOWN:
@@ -249,7 +215,7 @@ PerfServer::StreamCallback(
                 // TODO - Not supported right now
                 MsQuic->StreamShutdown(StreamHandle, QUIC_STREAM_SHUTDOWN_FLAG_ABORT, 0);
             } else {
-                SendResponse(Context, StreamHandle);
+                SendResponse(Context, StreamHandle, false);
             }
         } else if (!Context->Unidirectional) {
             MsQuic->StreamShutdown(StreamHandle, QUIC_STREAM_SHUTDOWN_FLAG_GRACEFUL, 0);
@@ -259,7 +225,7 @@ PerfServer::StreamCallback(
     case QUIC_STREAM_EVENT_PEER_RECEIVE_ABORTED:
         MsQuic->StreamShutdown(StreamHandle, QUIC_STREAM_SHUTDOWN_FLAG_ABORT, 0);
         break;
-    case QUIC_STREAM_EVENT_SHUTDOWN_COMPLETE: {
+    case QUIC_STREAM_EVENT_SHUTDOWN_COMPLETE:
         MsQuic->StreamClose(StreamHandle);
         StreamContextAllocator.Free(Context);
         break;
@@ -267,28 +233,28 @@ PerfServer::StreamCallback(
         if (!Context->BufferedIo &&
             Context->IdealSendBuffer < Event->IDEAL_SEND_BUFFER_SIZE.ByteCount) {
             Context->IdealSendBuffer = Event->IDEAL_SEND_BUFFER_SIZE.ByteCount;
-            SendResponse(Context, StreamHandle);
+            SendResponse(Context, StreamHandle, false);
         }
         break;
     default:
         break;
-    }
     }
     return QUIC_STATUS_SUCCESS;
 }
 
 void
 PerfServer::SendResponse(
-    _In_ PerfServer::StreamContext* Context,
-    _In_ HQUIC StreamHandle
+    _In_ StreamContext* Context,
+    _In_ void* Handle,
+    _In_ bool IsTcp
     )
 {
     while (Context->BytesSent < Context->ResponseSize &&
            Context->OutstandingBytes < Context->IdealSendBuffer) {
 
         uint64_t BytesLeftToSend = Context->ResponseSize - Context->BytesSent;
-        uint32_t IoSize = Context->IoSize;
-        QUIC_BUFFER* Buffer = DataBuffer;
+        uint32_t IoSize = PERF_DEFAULT_IO_SIZE;
+        QUIC_BUFFER* Buffer = ResponseBuffer;
         QUIC_SEND_FLAGS Flags = QUIC_SEND_FLAG_NONE;
 
         if ((uint64_t)IoSize >= BytesLeftToSend) {
@@ -302,37 +268,17 @@ PerfServer::SendResponse(
         Context->BytesSent += IoSize;
         Context->OutstandingBytes += IoSize;
 
-        MsQuic->StreamSend(StreamHandle, Buffer, 1, Flags, Buffer);
-    }
-}
-
-void
-PerfServer::SendTcpResponse(
-    _In_ PerfServer::StreamContext* Context,
-    _In_ TcpConnection* Connection
-    )
-{
-    while (Context->BytesSent < Context->ResponseSize &&
-           Context->OutstandingBytes < Context->IdealSendBuffer) {
-
-        uint64_t BytesLeftToSend = Context->ResponseSize - Context->BytesSent;
-
-        auto SendData = TcpSendDataAllocator.Alloc();
-        SendData->StreamId = (uint32_t)Context->Entry.Signature;
-        SendData->Open = Context->BytesSent == 0 ? 1 : 0;
-        SendData->Buffer = DataBuffer->Buffer;
-        if ((uint64_t)Context->IoSize >= BytesLeftToSend) {
-            SendData->Length = (uint32_t)BytesLeftToSend;
-            SendData->Fin = true;
+        if (IsTcp) {
+            auto SendData = TcpSendDataAllocator.Alloc();
+            SendData->StreamId = (uint32_t)Context->Entry.Signature;
+            SendData->Open = Context->BytesSent == 0 ? 1 : 0;
+            SendData->Buffer = Buffer->Buffer;
+            SendData->Length = IoSize;
+            SendData->Fin = (Flags & QUIC_SEND_FLAG_FIN) ? TRUE : FALSE;
+            ((TcpConnection*)Handle)->Send(SendData);
         } else {
-            SendData->Length = Context->IoSize;
-            SendData->Fin = false;
+            MsQuic->StreamSend((HQUIC)Handle, Buffer, 1, Flags, Buffer);
         }
-
-        Context->BytesSent += SendData->Length;
-        Context->OutstandingBytes += SendData->Length;
-
-        Connection->Send(SendData);
     }
 }
 
@@ -403,19 +349,19 @@ PerfServer::TcpReceiveCallback(
         SendData->StreamId = StreamID;
         SendData->Open = Open ? TRUE : FALSE;
         SendData->Abort = TRUE;
-        SendData->Buffer = Server->DataBuffer->Buffer;
+        SendData->Buffer = Server->ResponseBuffer.Raw();
         SendData->Length = 0;
         Connection->Send(SendData);
 
     } else if (Fin) {
         if (Stream->ResponseSizeSet && Stream->ResponseSize != 0) {
-            Server->SendTcpResponse(Stream, Connection);
+            Server->SendResponse(Stream, Connection, true);
         } else {
             auto SendData = Server->TcpSendDataAllocator.Alloc();
             SendData->StreamId = StreamID;
             SendData->Open = TRUE;
             SendData->Fin = TRUE;
-            SendData->Buffer = Server->DataBuffer->Buffer;
+            SendData->Buffer = Server->ResponseBuffer.Raw();
             SendData->Length = 0;
             Connection->Send(SendData);
         }
@@ -443,7 +389,7 @@ PerfServer::TcpSendCompleteCallback(
         if (Entry) {
             auto Stream = CXPLAT_CONTAINING_RECORD(Entry, StreamContext, Entry);
             Stream->OutstandingBytes -= Data->Length;
-            Server->SendTcpResponse(Stream, Connection);
+            Server->SendResponse(Stream, Connection, true);
             if ((Data->Fin || Data->Abort) && !Stream->SendShutdown) {
                 Stream->SendShutdown = true;
                 if (Stream->RecvShutdown) {
