@@ -196,12 +196,17 @@ $commands = @(
 )
 
 for ($i = 0; $i -lt $commands.Count; $i++) {
-    Write-Output "Running test: $($commands[$i])"
-    $rawOutput = Invoke-Expression $commands[$i]
+    try {
+        Write-Output "Running test: $($commands[$i])"
+        $rawOutput = Invoke-Expression $commands[$i]
+        $rawOutput
+    } catch {
+        Write-Error "Failed to run test: $($commands[$i])"
+        Write-Error $_
+        continue
+    }
+
     $pattern = '@ (\d+) kbps'
-
-    $rawOutput
-
     foreach ($line in $rawOutput) {
         if ($line -match $pattern) {
 
