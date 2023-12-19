@@ -159,7 +159,7 @@ void RunAttackRandom(CXPLAT_SOCKET* Binding, uint16_t DatagramLength, bool Valid
 
     uint64_t BucketTime = CxPlatTimeMs64(), CurTime;
     uint64_t BucketCount = 0;
-    uint64_t BucketThreshold = max(1, AttackRate / ThreadCount);
+    uint64_t BucketThreshold = CXPLAT_MAX(1, AttackRate / ThreadCount);
     
     while (CxPlatTimeDiff64(TimeStart, (CurTime = CxPlatTimeMs64())) < TimeoutMs) {
 
@@ -274,7 +274,7 @@ void RunAttackValidInitial(CXPLAT_SOCKET* Binding)
 
     uint64_t BucketTime = CxPlatTimeMs64(), CurTime;
     uint64_t BucketCount = 0;
-    uint64_t BucketThreshold = max(1, AttackRate / ThreadCount);
+    uint64_t BucketThreshold = CXPLAT_MAX(1, AttackRate / ThreadCount);
 
     while (CxPlatTimeDiff64(TimeStart, (CurTime = CxPlatTimeMs64())) < TimeoutMs) {
 
