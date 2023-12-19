@@ -86,13 +86,13 @@ mkdir .\artifacts\logs | Out-Null
 # Prepare the machines for the testing.
 
 if ($isWindows) {
+    Write-Output "Skipping prepare machine for now on Windows..."
+    # Write-Output "Preparing machines for testing..."
+    # .\scripts\prepare-machine.ps1 -ForTest
 
-    Write-Output "Preparing machines for testing..."
-    .\scripts\prepare-machine.ps1 -ForTest
-
-    Invoke-Command -Session $Session -ScriptBlock {
-        C:\_work\quic\scripts\prepare-machine.ps1 -ForTest
-    }
+    # Invoke-Command -Session $Session -ScriptBlock {
+    #     C:\_work\quic\scripts\prepare-machine.ps1 -ForTest
+    # }
 } else {
     Write-Output "Skipping prepare machine for now on Linux..."
 
