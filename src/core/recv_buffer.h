@@ -5,7 +5,49 @@
 
 --*/
 
+//
+// Represents a single contiguous range of bytes.
+//
+typedef struct QUIC_RECV_CHUNK {
+    struct QUIC_RECV_CHUNK* Next;
+    uint32_t AllocLength : 31;      // Allocation size of Buffer
+    uint32_t ExternalReference : 1; // Indicates the buffer is being used externally.
+    uint8_t Buffer[0];
+} QUIC_RECV_CHUNK;
+
+#define MAX_RECV_CHUNK_SIZE 0x40000000UL // 1GB
+
 typedef struct QUIC_RECV_BUFFER {
+
+    //
+    // A list of chunks that make up the buffer.
+    //
+    QUIC_RECV_CHUNK* Chunks;
+
+    //
+    // Optional, preallocated initial chunk.
+    //
+    QUIC_RECV_CHUNK* PreallocatedChunk;
+
+    //
+    // The ranges that currently have bytes written to them.
+    //
+    QUIC_RANGE WrittenRanges;
+
+    //
+    // The stream offset of the byte at BufferStart.
+    //
+    uint64_t BaseOffset;
+
+    //
+    // Start of the head in the circular of the first chunk.
+    //
+    uint32_t BufferStart;
+
+    //
+    // Length of the buffer indicated to peers.
+    //
+    uint32_t VirtualBufferLength;
 
     //
     // Flag to indicate that after a drain, copy any remaining bytes to the
@@ -14,53 +56,11 @@ typedef struct QUIC_RECV_BUFFER {
     BOOLEAN CopyOnDrain : 1;
 
     //
-    // Flag to indicate that some external code is currently referencing the
-    // internal buffer pointer. Don't free or reallocate the buffer out from
-    // under it.
+    // Flag to indicate multiple receives can be indicated to the app at once.
+    // This also changes the draining logic to consider a chunk still referenced
+    // by the app until it has been completely drained.
     //
-    BOOLEAN ExternalBufferReference : 1;
-
-    //
-    // Previous buffer that needs to be freed as soon as the external reference
-    // is released.
-    //
-    uint8_t * OldBuffer;
-
-    //
-    // Circular buffer used for storing the writes.
-    //
-    uint8_t * Buffer;
-
-    //
-    // Optional, preallocated initial buffer.
-    //
-    uint8_t * PreallocatedBuffer;
-
-    //
-    // Length of memory allocated for 'Buffer'. Dynamically grows up to
-    // VirtualBufferLength.
-    //
-    uint32_t AllocBufferLength;
-
-    //
-    // Length of the buffer indicated to peers.
-    //
-    uint32_t VirtualBufferLength;
-
-    //
-    // The stream offset of the byte at BufferStart.
-    //
-    uint64_t BaseOffset;
-
-    //
-    // Start of the head in the circular 'Buffer'.
-    //
-    uint32_t BufferStart;
-
-    //
-    // The ranges that currently have bytes written to them.
-    //
-    QUIC_RANGE WrittenRanges;
+    BOOLEAN MultiReceiveMode : 1;
 
 } QUIC_RECV_BUFFER;
 
@@ -71,7 +71,7 @@ QuicRecvBufferInitialize(
     _In_ uint32_t AllocBufferLength,
     _In_ uint32_t VirtualBufferLength,
     _In_ BOOLEAN CopyOnDrain,
-    _In_opt_ uint8_t* PreallocatedBuffer
+    _In_opt_ QUIC_RECV_CHUNK* PreallocatedChunk
     );
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -115,6 +115,7 @@ QuicRecvBufferHasUnreadData(
 // to the client.
 //
 _IRQL_requires_max_(DISPATCH_LEVEL)
+_Success_(return == QUIC_STATUS_SUCCESS)
 QUIC_STATUS
 QuicRecvBufferWrite(
     _In_ QUIC_RECV_BUFFER* RecvBuffer,

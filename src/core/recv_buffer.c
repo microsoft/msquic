@@ -54,7 +54,7 @@ QuicRecvBufferInitialize(
     _In_ uint32_t AllocBufferLength,
     _In_ uint32_t VirtualBufferLength,
     _In_ BOOLEAN CopyOnDrain,
-    _In_opt_ uint8_t* PreallocatedBuffer
+    _In_opt_ QUIC_RECV_CHUNK* PreallocatedChunk
     )
 {
     QUIC_STATUS Status;
@@ -63,18 +63,18 @@ QuicRecvBufferInitialize(
     CXPLAT_DBG_ASSERT(VirtualBufferLength != 0 && (VirtualBufferLength & (VirtualBufferLength - 1)) == 0); // Power of 2
     CXPLAT_DBG_ASSERT(AllocBufferLength <= VirtualBufferLength);
 
-    if (PreallocatedBuffer != NULL) {
-        RecvBuffer->PreallocatedBuffer = PreallocatedBuffer;
-        RecvBuffer->Buffer = PreallocatedBuffer;
+    if (PreallocatedChunk != NULL) {
+        RecvBuffer->PreallocatedChunk = PreallocatedChunk;
+        RecvBuffer->Chunks = PreallocatedChunk;
     } else {
-        RecvBuffer->PreallocatedBuffer = NULL;
-        RecvBuffer->Buffer = CXPLAT_ALLOC_NONPAGED(AllocBufferLength, QUIC_POOL_RECVBUF);
-        if (RecvBuffer->Buffer == NULL) {
+        RecvBuffer->PreallocatedChunk = NULL;
+        RecvBuffer->Chunks = CXPLAT_ALLOC_NONPAGED(sizeof(QUIC_RECV_CHUNK) + AllocBufferLength, QUIC_POOL_RECVBUF);
+        if (RecvBuffer->Chunks == NULL) {
             QuicTraceEvent(
                 AllocFailure,
                 "Allocation of '%s' failed. (%llu bytes)",
                 "recv_buffer",
-                AllocBufferLength);
+                sizeof(QUIC_RECV_CHUNK) + AllocBufferLength);
             Status = QUIC_STATUS_OUT_OF_MEMORY;
             goto Error;
         }
@@ -82,13 +82,14 @@ QuicRecvBufferInitialize(
 
     QuicRangeInitialize(QUIC_MAX_RANGE_ALLOC_SIZE, &RecvBuffer->WrittenRanges);
 
-    RecvBuffer->AllocBufferLength = AllocBufferLength;
-    RecvBuffer->VirtualBufferLength = VirtualBufferLength;
-    RecvBuffer->BufferStart = 0;
+    RecvBuffer->Chunks->Next = NULL;
+    RecvBuffer->Chunks->AllocLength = AllocBufferLength;
+    RecvBuffer->Chunks->ExternalReference = FALSE;
     RecvBuffer->BaseOffset = 0;
+    RecvBuffer->BufferStart = 0;
+    RecvBuffer->VirtualBufferLength = VirtualBufferLength;
     RecvBuffer->CopyOnDrain = CopyOnDrain;
-    RecvBuffer->ExternalBufferReference = FALSE;
-    RecvBuffer->OldBuffer = NULL;
+    RecvBuffer->MultiReceiveMode = FALSE;
     Status = QUIC_STATUS_SUCCESS;
 
 Error:
@@ -103,15 +104,13 @@ QuicRecvBufferUninitialize(
     )
 {
     QuicRangeUninitialize(&RecvBuffer->WrittenRanges);
-    if (RecvBuffer->Buffer != RecvBuffer->PreallocatedBuffer) {
-        CXPLAT_FREE(RecvBuffer->Buffer, QUIC_POOL_RECVBUF);
+    while (RecvBuffer->Chunks) {
+        QUIC_RECV_CHUNK* Chunk = RecvBuffer->Chunks;
+        RecvBuffer->Chunks = Chunk->Next;
+        if (Chunk != RecvBuffer->PreallocatedChunk) {
+            CXPLAT_FREE(Chunk, QUIC_POOL_RECVBUF);
+        }
     }
-    RecvBuffer->Buffer = NULL;
-    if (RecvBuffer->OldBuffer != NULL &&
-        RecvBuffer->OldBuffer != RecvBuffer->PreallocatedBuffer) {
-        CXPLAT_FREE(RecvBuffer->OldBuffer, QUIC_POOL_RECVBUF);
-    }
-    RecvBuffer->OldBuffer = NULL;
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -226,6 +225,7 @@ QuicRecvBufferHasUnreadData(
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
+_Success_(return == QUIC_STATUS_SUCCESS)
 QUIC_STATUS
 QuicRecvBufferWrite(
     _In_ QUIC_RECV_BUFFER* RecvBuffer,
@@ -236,29 +236,19 @@ QuicRecvBufferWrite(
     _Out_ BOOLEAN* ReadyToRead
     )
 {
-    QUIC_STATUS Status;
-    BOOLEAN WrittenRangesUpdated;
-    QUIC_SUBRANGE* UpdatedRange = NULL;
-
     CXPLAT_DBG_ASSERT(BufferLength != 0);
-
     //
     // Default the ready to read to false, as most exit cases need this.
     //
     *ReadyToRead = FALSE;
 
-    uint32_t RelativeOffset;
-    uint32_t WriteBufferStart;
-
-    uint64_t AbsoluteLength = BufferOffset + BufferLength;
-
     //
     // Check if the input buffer has already been completely written.
     //
+    uint64_t AbsoluteLength = BufferOffset + BufferLength;
     if (AbsoluteLength <= RecvBuffer->BaseOffset) {
-        Status = QUIC_STATUS_SUCCESS;
         *WriteLength = 0;
-        goto Error;
+        return QUIC_STATUS_SUCCESS;
     }
 
     //
@@ -266,8 +256,7 @@ QuicRecvBufferWrite(
     // allowed (stream) max data size.
     //
     if (AbsoluteLength > RecvBuffer->BaseOffset + RecvBuffer->VirtualBufferLength) {
-        Status = QUIC_STATUS_BUFFER_TOO_SMALL;
-        goto Error;
+        return QUIC_STATUS_BUFFER_TOO_SMALL;
     }
 
     //
@@ -278,8 +267,7 @@ QuicRecvBufferWrite(
     uint64_t CurrentMaxLength = QuicRecvBufferGetTotalLength(RecvBuffer);
     if (AbsoluteLength > CurrentMaxLength) {
         if (AbsoluteLength - CurrentMaxLength > *WriteLength) {
-            Status = QUIC_STATUS_BUFFER_TOO_SMALL;
-            goto Error;
+            return QUIC_STATUS_BUFFER_TOO_SMALL;
         }
         *WriteLength = AbsoluteLength - CurrentMaxLength;
     } else {
@@ -287,31 +275,29 @@ QuicRecvBufferWrite(
     }
 
     //
-    // Check to see if the input buffer is trying to write beyond the
-    // currently allocated length.
+    // Check to see if the input buffer is trying to write beyond the currently
+    // allocated length.
     //
-    if (AbsoluteLength > RecvBuffer->BaseOffset + RecvBuffer->AllocBufferLength) {
-
+    if (AbsoluteLength > RecvBuffer->BaseOffset + RecvBuffer->Chunks->AllocLength) {
         //
         // Make room for the new data.
         //
-
-        uint32_t NewBufferLength = RecvBuffer->AllocBufferLength << 1;
+        uint32_t NewBufferLength = RecvBuffer->Chunks->AllocLength << 1;
         while (AbsoluteLength > RecvBuffer->BaseOffset + NewBufferLength) {
             NewBufferLength <<= 1;
         }
 
-        Status = QuicRecvBufferResize(RecvBuffer, NewBufferLength);
-
+        QUIC_STATUS Status = QuicRecvBufferResize(RecvBuffer, NewBufferLength);
         if (QUIC_FAILED(Status)) {
-            goto Error;
+            return Status;
         }
     }
 
     //
     // Set the input range as a valid written range.
     //
-    UpdatedRange =
+    BOOLEAN WrittenRangesUpdated;
+    QUIC_SUBRANGE* UpdatedRange =
         QuicRangeAddRange(
             &RecvBuffer->WrittenRanges,
             BufferOffset,
@@ -323,19 +309,19 @@ QuicRecvBufferWrite(
             "Allocation of '%s' failed. (%llu bytes)",
             "recv_buffer range",
             0);
-        Status = QUIC_STATUS_OUT_OF_MEMORY;
-        goto Error;
-    } else if (!WrittenRangesUpdated) {
+        return QUIC_STATUS_OUT_OF_MEMORY;
+    }
+    if (!WrittenRangesUpdated) {
         //
         // No changes are necessary. Exit immediately.
         //
-        Status = QUIC_STATUS_SUCCESS;
-        goto Error;
+        return QUIC_STATUS_SUCCESS;
     }
 
     //
     // Calculate the relative offset from the stream buffer's current base offset.
     //
+    uint32_t RelativeOffset;
     if (BufferOffset < RecvBuffer->BaseOffset) {
         uint16_t Diff = (uint16_t)(RecvBuffer->BaseOffset - BufferOffset);
         BufferLength -= Diff;
@@ -349,7 +335,7 @@ QuicRecvBufferWrite(
     // Calculate the actual starting point in the buffer that we will write to,
     // accounting for wrap around.
     //
-    WriteBufferStart = (RecvBuffer->BufferStart + RelativeOffset) % RecvBuffer->AllocBufferLength;
+    uint32_t WriteBufferStart = (RecvBuffer->BufferStart + RelativeOffset) % RecvBuffer->AllocBufferLength;
 
     //
     // Copy the data; but make sure to account for wrap around on the circular buffer.
@@ -393,12 +379,7 @@ QuicRecvBufferWrite(
     // We have data to read if we just wrote to the front of the buffer.
     //
     *ReadyToRead = UpdatedRange->Low == 0;
-
-    Status = QUIC_STATUS_SUCCESS;
-
-Error:
-
-    return Status;
+    return QUIC_STATUS_SUCCESS;
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -466,54 +447,84 @@ QuicRecvBufferDrain(
     _In_ uint64_t BufferLength
     )
 {
-    CXPLAT_DBG_ASSERT(RecvBuffer->ExternalBufferReference);
-    RecvBuffer->ExternalBufferReference = FALSE;
+    do {
+        CXPLAT_DBG_ASSERT(RecvBuffer->Chunks);
+        CXPLAT_DBG_ASSERT(RecvBuffer->Chunks->ExternalReference);
 
-    if (RecvBuffer->OldBuffer != NULL) {
-        if (RecvBuffer->OldBuffer != RecvBuffer->PreallocatedBuffer) {
-            CXPLAT_FREE(RecvBuffer->OldBuffer, QUIC_POOL_RECVBUF);
+        //
+        // Calculate the the number of contiguous bytes written to the first
+        // chunk by taking the minimum of the chunk's alloc length and total
+        // written length of the first contiguous range.
+        //
+        const uint64_t ContiguousLength =
+            QuicRangeGet(&RecvBuffer->WrittenRanges, 0)->Count - RecvBuffer->BaseOffset;
+        uint32_t WrittenLength = RecvBuffer->Chunks->AllocLength;
+        if (WrittenLength > ContiguousLength) {
+            WrittenLength = (uint32_t)ContiguousLength;
         }
-        RecvBuffer->OldBuffer = NULL;
-    }
 
-    if (BufferLength == 0) {
-        return FALSE;
-    }
+        if ((uint64_t)WrittenLength > BufferLength) {
+            //
+            // Only part of the chunk is being drained.
+            //
+            if (RecvBuffer->CopyOnDrain) {
+                CXPLAT_DBG_ASSERT(RecvBuffer->BufferStart == 0);
+                //
+                // Copy remaining bytes in the buffer to the beginning.
+                //
+                CxPlatMoveMemory(
+                    RecvBuffer->Chunks->Buffer,
+                    RecvBuffer->Chunks->Buffer + BufferLength,
+                    (size_t)(WrittenLength - (uint32_t)BufferLength));
+            } else {
+                //
+                // Increment the buffer start, making sure to account for circular
+                // buffer wrap around.
+                //
+                RecvBuffer->BufferStart =
+                    (uint32_t)(RecvBuffer->BufferStart + BufferLength) % RecvBuffer->Chunks->AllocLength;
+            }
 
-    RecvBuffer->BaseOffset += BufferLength;
-    uint64_t TotalWrittenLength = QuicRangeGetMax(&RecvBuffer->WrittenRanges) + 1;
+            RecvBuffer->BaseOffset += BufferLength;
+            if (!RecvBuffer->MultiReceiveMode) {
+                RecvBuffer->Chunks->ExternalReference = FALSE;
+            }
 
-    if (RecvBuffer->BaseOffset == TotalWrittenLength) {
-        //
-        // All buffer has been drained. Just reset start back to beginning.
-        //
+            //
+            // Return FALSE to indicate not all the data has been drained.
+            //
+            return FALSE;
+        }
+
+        RecvBuffer->Chunks->ExternalReference = FALSE;
         RecvBuffer->BufferStart = 0;
-        return TRUE;
-    }
+        RecvBuffer->BaseOffset += WrittenLength;
+        BufferLength -= WrittenLength;
 
-    if (RecvBuffer->CopyOnDrain) {
-        CXPLAT_DBG_ASSERT(RecvBuffer->BufferStart == 0);
+        if (!RecvBuffer->Chunks->Next) {
+            //
+            // No more chunks to drain, so we should also be out of buffer
+            // length to drain. Return TRUE to indicate all data has been
+            // drained.
+            //
+            CXPLAT_FRE_ASSERTMSG(BufferLength == 0, "App drained more than was available!");
+            return TRUE;
+        }
+
         //
-        // Copy remaining bytes in the buffer to the beginning.
+        // Cleanup the chunk that was just drained.
         //
-        CxPlatMoveMemory(
-            RecvBuffer->Buffer,
-            RecvBuffer->Buffer + BufferLength,
-            (size_t)(TotalWrittenLength - RecvBuffer->BaseOffset));
-    } else {
-        //
-        // Increment the buffer start, making sure to account for circular
-        // buffer wrap around.
-        //
-        RecvBuffer->BufferStart =
-            (uint32_t)(RecvBuffer->BufferStart + BufferLength) % RecvBuffer->AllocBufferLength;
-    }
+        QUIC_RECV_CHUNK* OldChunk = RecvBuffer->Chunks;
+        RecvBuffer->Chunks = OldChunk->Next;
+        if (OldChunk != RecvBuffer->PreallocatedChunk) {
+            CXPLAT_FREE(OldChunk, QUIC_POOL_RECVBUF);
+        }
+
+    } while (BufferLength != 0);
 
     //
-    // Not all data was drained, but that doesn't mean it wasn't drained up to
-    // the first gap. Get the length of the first sub range and compare that to
-    // the current base read point. If all of it has been read, then there isn't
-    // any more data available for read right now.
+    // Should be impossible to get here.
     //
-    return RecvBuffer->BaseOffset == QuicRangeGet(&RecvBuffer->WrittenRanges, 0)->Count;
+    CXPLAT_FRE_ASSERTMSG(FALSE, "Should be impossible to reach here!");
+    return FALSE;
 }
