@@ -279,6 +279,9 @@ $FileName = "json-test-results-$plat-$os-$arch-$tls.json"
 
 $json | ConvertTo-Json | Set-Content -Path $FileName
 
+} catch {
+    Write-Error "Failed to run some tests..."
+    Write-Error $_
 } finally {
     # TODO: Do any further book keeping here.
 }
