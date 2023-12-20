@@ -172,8 +172,8 @@ TEST(RecvBufferTest, WriteFillGap)
             &InOutWriteLength,
             &ReadyToRead));
     ASSERT_TRUE(ReadyToRead);
-    ASSERT_EQ(0, InOutWriteLength);
-    ASSERT_EQ(30, RecvBuf.GetTotalLength());
+    ASSERT_EQ(0ull, InOutWriteLength);
+    ASSERT_EQ(30ull, RecvBuf.GetTotalLength());
     uint64_t ReadOffset;
     uint32_t ReadBufferCount = 1;
     QUIC_BUFFER ReadBuffer;
@@ -184,7 +184,7 @@ TEST(RecvBufferTest, WriteFillGap)
             &ReadBuffer));
     ASSERT_EQ(0ull, ReadOffset);
     ASSERT_EQ(1ul, ReadBufferCount);
-    ASSERT_EQ(30, ReadBuffer.Length);
+    ASSERT_EQ(30u, ReadBuffer.Length);
 }
 
 TEST(RecvBufferTest, Overwrite)
@@ -210,8 +210,8 @@ TEST(RecvBufferTest, Overwrite)
             &InOutWriteLength,
             &ReadyToRead));
     ASSERT_FALSE(ReadyToRead);
-    ASSERT_EQ(0, InOutWriteLength); // No newly written data
-    ASSERT_EQ(30, RecvBuf.GetTotalLength());
+    ASSERT_EQ(0ull, InOutWriteLength); // No newly written data
+    ASSERT_EQ(30ull, RecvBuf.GetTotalLength());
 }
 
 TEST(RecvBufferTest, OverwritePartial)
@@ -237,8 +237,8 @@ TEST(RecvBufferTest, OverwritePartial)
             &InOutWriteLength,
             &ReadyToRead));
     ASSERT_TRUE(ReadyToRead);
-    ASSERT_EQ(5, InOutWriteLength); // Only 5 newly written bytes
-    ASSERT_EQ(35, RecvBuf.GetTotalLength());
+    ASSERT_EQ(5ull, InOutWriteLength); // Only 5 newly written bytes
+    ASSERT_EQ(35ull, RecvBuf.GetTotalLength());
 }
 
 TEST(RecvBufferTest, WriteTooMuch)
@@ -295,7 +295,7 @@ TEST(RecvBufferTest, WriteWhilePendingRead)
             &ReadBuffer));
     ASSERT_EQ(0ull, ReadOffset);
     ASSERT_EQ(1ul, ReadBufferCount);
-    ASSERT_EQ(20, ReadBuffer.Length);
+    ASSERT_EQ(20u, ReadBuffer.Length);
     InOutWriteLength = DEF_TEST_BUFFER_LENGTH;
     ASSERT_EQ(
         QUIC_STATUS_SUCCESS,
@@ -305,7 +305,61 @@ TEST(RecvBufferTest, WriteWhilePendingRead)
             &InOutWriteLength,
             &ReadyToRead));
     ASSERT_TRUE(ReadyToRead); // Still ready to read
-    ASSERT_EQ(20, InOutWriteLength); // No newly written data
-    ASSERT_EQ(40, RecvBuf.GetTotalLength());
+    ASSERT_EQ(20ull, InOutWriteLength); // No newly written data
+    ASSERT_EQ(40ull, RecvBuf.GetTotalLength());
     ASSERT_FALSE(RecvBuf.Drain(20));
+}
+
+TEST(RecvBufferTest, WriteLarge)
+{
+    const uint32_t VirtualBufferLength = DEF_TEST_BUFFER_LENGTH << 4;
+    RecvBuffer RecvBuf;
+    ASSERT_EQ(QUIC_STATUS_SUCCESS, RecvBuf.Initialize(true, false, DEF_TEST_BUFFER_LENGTH, VirtualBufferLength));
+    uint64_t InOutWriteLength = VirtualBufferLength; // FC limit same as recv buffer size
+    BOOLEAN ReadyToRead = FALSE;
+    ASSERT_EQ(
+        QUIC_STATUS_SUCCESS,
+        RecvBuf.Write(
+            0,
+            256,
+            &InOutWriteLength,
+            &ReadyToRead));
+    ASSERT_TRUE(ReadyToRead);
+    ASSERT_TRUE(ReadyToRead);
+    ASSERT_EQ(256ull, InOutWriteLength);
+    ASSERT_EQ(256ull, RecvBuf.GetTotalLength());
+}
+
+TEST(RecvBufferTest, MultiWriteLarge)
+{
+    const uint32_t VirtualBufferLength = DEF_TEST_BUFFER_LENGTH << 4;
+    RecvBuffer RecvBuf;
+    ASSERT_EQ(QUIC_STATUS_SUCCESS, RecvBuf.Initialize(true, false, DEF_TEST_BUFFER_LENGTH, VirtualBufferLength));
+    for (uint32_t i = 0; i < 4; ++i) {
+        uint64_t InOutWriteLength = VirtualBufferLength; // FC limit same as recv buffer size
+        BOOLEAN ReadyToRead = FALSE;
+        ASSERT_EQ(
+            QUIC_STATUS_SUCCESS,
+            RecvBuf.Write(
+                i * 64,
+                64,
+                &InOutWriteLength,
+                &ReadyToRead));
+        ASSERT_TRUE(ReadyToRead);
+        ASSERT_TRUE(ReadyToRead);
+        ASSERT_EQ(64ull, InOutWriteLength);
+        ASSERT_EQ((i + 1) * 64ull, RecvBuf.GetTotalLength());
+    }
+    uint64_t ReadOffset;
+    uint32_t ReadBufferCount = 1;
+    QUIC_BUFFER ReadBuffer;
+    ASSERT_TRUE(
+        RecvBuf.Read(
+            &ReadOffset,
+            &ReadBufferCount,
+            &ReadBuffer));
+    ASSERT_EQ(0ull, ReadOffset);
+    ASSERT_EQ(1ul, ReadBufferCount);
+    ASSERT_EQ(256u, ReadBuffer.Length);
+    ASSERT_TRUE(RecvBuf.Drain(256));
 }
