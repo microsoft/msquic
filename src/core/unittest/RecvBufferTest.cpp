@@ -123,7 +123,7 @@ void TestSingleWriteRead(uint16_t WriteLength, uint64_t WriteOffset, uint64_t Dr
             &ReadyToRead));
     ASSERT_EQ(WriteOffset == 0, ReadyToRead != FALSE); // Only ready to read if we wrote to the front
     ASSERT_EQ(WriteLength+WriteOffset, InOutWriteLength); // All data was newly written
-    ASSERT_EQ(WriteLength+WriteOffset, RecvBuf.GetTotalLength()); // otal length should be offset plus write length
+    ASSERT_EQ(WriteLength+WriteOffset, RecvBuf.GetTotalLength()); // Total length should be offset plus write length
     uint64_t ReadOffset;
     QUIC_BUFFER ReadBuffer;
     ASSERT_EQ(
