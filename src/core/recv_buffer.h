@@ -5,6 +5,10 @@
 
 --*/
 
+#if defined(__cplusplus)
+extern "C" {
+#endif
+
 //
 // Represents a single contiguous range of bytes.
 //
@@ -158,3 +162,7 @@ QuicRecvBufferDrain(
     _In_ QUIC_RECV_BUFFER* RecvBuffer,
     _In_ uint64_t BufferLength
     );
+
+#if defined(__cplusplus)
+}
+#endif
