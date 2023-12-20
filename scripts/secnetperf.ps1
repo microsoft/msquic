@@ -206,9 +206,18 @@ for ($i = 0; $i -lt $commands.Count; $i++) {
         continue
     }
 
-    $pattern = '@ (\d+) kbps'
+    if ($testIds[$i].Contains("rps")) {
+        $latency_percentiles = '(?<=\d{1,3}(?:\.\d{1,2})?th: )\d+'
+        $Perc = [regex]::Matches($rawOutput, $latency_percentiles) | ForEach-Object {$_.Value}
+        $json[$testIds[$i]] = $Perc
+        # TODO: SQL += ...
+        continue
+    }
+
+    $throughput = '@ (\d+) kbps'
+
     foreach ($line in $rawOutput) {
-        if ($line -match $pattern) {
+        if ($line -match $throughput) {
 
             $num = $matches[1]
 
