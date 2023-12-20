@@ -15,6 +15,7 @@ Abstract:
 #endif
 
 #define DEF_TEST_BUFFER_LENGTH 64
+#define LARGE_TEST_BUFFER_LENGTH 1024
 
 struct RecvBuffer {
     QUIC_RECV_BUFFER RecvBuf {0};
