@@ -839,6 +839,8 @@ QuicLibrarySetGlobalParam(
             "[ lib] Updated load balancing mode = %hu",
             MsQuicLib.Settings.LoadBalancingMode);
 
+        QuicLibApplyLoadBalancingSetting();
+
         Status = QUIC_STATUS_SUCCESS;
         break;
     }
