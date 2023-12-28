@@ -60,12 +60,13 @@ else()
         if(NOT TARGET ${CURRENT_TARGET})
             string(FIND ${CURRENT_TARGET} "$<LINK_ONLY:" LINK_ONLY)
             string(FIND ${CURRENT_TARGET} "Threads::Threads" THREADS_TARGET)
+            string(FIND ${CURRENT_TARGET} "dl" DL_TARGET)
             string(FIND ${CURRENT_TARGET} "${CMAKE_STATIC_LIBRARY_SUFFIX}" SUFFIX_INDEX)
             if(${SUFFIX_INDEX} EQUAL "-1")
                 string(APPEND CURRENT_TARGET "${CMAKE_STATIC_LIBRARY_SUFFIX}")
             endif()
 
-            if(${LINK_ONLY} EQUAL "-1" AND ${THREADS_TARGET} EQUAL "-1")
+            if(${LINK_ONLY} EQUAL "-1" AND ${THREADS_TARGET} EQUAL "-1" AND ${DL_TARGET} EQUAL "-1")
                 # This is expected to be a generator expression that maps
                 # to a static library
                 set_property(
