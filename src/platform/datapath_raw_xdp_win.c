@@ -1425,9 +1425,9 @@ CxPlatXdpExecute(
             Queue->TxXsk = NULL;
             Queue = Queue->Next;
         }
-        QuicTraceLogInfo(
-            LogInfo,
-            "[ xdp] INFO, Queueing shutdown.");
+        // QuicTraceLogInfo(
+        //     LogInfo,
+        //     "[ xdp] INFO, Queueing shutdown.");
         CxPlatEventQEnqueue(Partition->EventQ, &Partition->ShutdownSqe.Sqe, &Partition->ShutdownSqe);
         return FALSE;
     }
