@@ -1919,35 +1919,15 @@ tracepoint(CLOG_CONNECTION_C, ConnSetTimer , arg2, arg3, arg4);\
 
 
 /*----------------------------------------------------------
-// Decoder Ring for ConnCancelTimer
-// [conn][%p] Canceling %hhu
+// Decoder Ring for ConnExpiredTimer
+// [conn][%p] %hhu expired
 // QuicTraceEvent(
-                ConnCancelTimer,
-                "[conn][%p] Canceling %hhu",
+                ConnExpiredTimer,
+                "[conn][%p] %hhu expired",
                 Connection,
                 (uint8_t)Type);
 // arg2 = arg2 = Connection = arg2
 // arg3 = arg3 = (uint8_t)Type = arg3
-----------------------------------------------------------*/
-#ifndef _clog_4_ARGS_TRACE_ConnCancelTimer
-#define _clog_4_ARGS_TRACE_ConnCancelTimer(uniqueId, encoded_arg_string, arg2, arg3)\
-tracepoint(CLOG_CONNECTION_C, ConnCancelTimer , arg2, arg3);\
-
-#endif
-
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for ConnExpiredTimer
-// [conn][%p] %hhu expired
-// QuicTraceEvent(
-            ConnExpiredTimer,
-            "[conn][%p] %hhu expired",
-            Connection,
-            (uint8_t)Temp[j].Type);
-// arg2 = arg2 = Connection = arg2
-// arg3 = arg3 = (uint8_t)Temp[j].Type = arg3
 ----------------------------------------------------------*/
 #ifndef _clog_4_ARGS_TRACE_ConnExpiredTimer
 #define _clog_4_ARGS_TRACE_ConnExpiredTimer(uniqueId, encoded_arg_string, arg2, arg3)\
@@ -1962,10 +1942,10 @@ tracepoint(CLOG_CONNECTION_C, ConnExpiredTimer , arg2, arg3);\
 // Decoder Ring for ConnExecTimerOper
 // [conn][%p] Execute: %u
 // QuicTraceEvent(
-                ConnExecTimerOper,
-                "[conn][%p] Execute: %u",
-                Connection,
-                QUIC_CONN_TIMER_ACK_DELAY);
+                    ConnExecTimerOper,
+                    "[conn][%p] Execute: %u",
+                    Connection,
+                    QUIC_CONN_TIMER_ACK_DELAY);
 // arg2 = arg2 = Connection = arg2
 // arg3 = arg3 = QUIC_CONN_TIMER_ACK_DELAY = arg3
 ----------------------------------------------------------*/

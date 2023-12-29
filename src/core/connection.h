@@ -231,23 +231,6 @@ typedef enum QUIC_CONNECTION_REF {
 } QUIC_CONNECTION_REF;
 
 //
-// A single timer entry on the connection.
-//
-typedef struct QUIC_CONN_TIMER_ENTRY {
-
-    //
-    // The type of timer this entry is for.
-    //
-    QUIC_CONN_TIMER_TYPE Type;
-
-    //
-    // The absolute time (in us) for timer expiration.
-    //
-    uint64_t ExpirationTime;
-
-} QUIC_CONN_TIMER_ENTRY;
-
-//
 // Per connection statistics.
 //
 typedef struct QUIC_CONN_STATS {
@@ -508,9 +491,14 @@ typedef struct QUIC_CONNECTION {
     uint8_t CibirId[2 + QUIC_MAX_CIBIR_LENGTH];
 
     //
-    // Sorted array of all timers for the connection.
+    // Expiration time (absolute time in us) for each timer type. We use UINT64_MAX as a sentinel
+    // to indicate that the timer is not set.
     //
-    QUIC_CONN_TIMER_ENTRY Timers[QUIC_CONN_TIMER_COUNT];
+    uint64_t ExpirationTimes[QUIC_CONN_TIMER_COUNT];
+    //
+    // Earliest expiration time of all timers types.
+    //
+    uint64_t EarliestExpirationTime;
 
     //
     // Receive packet queue.
@@ -736,7 +724,7 @@ QuicConnGetNextExpirationTime(
     _In_ const QUIC_CONNECTION * const Connection
     )
 {
-    return Connection->Timers[0].ExpirationTime;
+    return Connection->EarliestExpirationTime;
 }
 
 //
