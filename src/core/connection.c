@@ -1120,6 +1120,20 @@ QuicConnReplaceRetiredCids(
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
+uint64_t
+QuicGetEarliestExpirationTime(
+    _In_ const QUIC_CONNECTION* Connection
+    )
+{
+    uint64_t EarliestExpirationTime = UINT64_MAX;
+    for (QUIC_CONN_TIMER_TYPE Type = 0; Type < QUIC_CONN_TIMER_COUNT; ++Type) {
+        EarliestExpirationTime =
+            CXPLAT_MIN(EarliestExpirationTime, Connection->ExpirationTimes[Type]);
+    }
+    return EarliestExpirationTime;
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicConnTimerSetEx(
     _Inout_ QUIC_CONNECTION* Connection,
@@ -1129,6 +1143,7 @@ QuicConnTimerSetEx(
     )
 {
     const uint64_t NewExpirationTime = TimeNow + Delay;
+    uint64_t NewEarliestExpirationTime = UINT64_MAX;
 
     QuicTraceEvent(
         ConnSetTimer,
@@ -1138,7 +1153,8 @@ QuicConnTimerSetEx(
         Delay);
 
     Connection->ExpirationTimes[Type] = NewExpirationTime;
-    if (Connection->EarliestExpirationTime > NewExpirationTime) {
+    NewEarliestExpirationTime  = QuicGetEarliestExpirationTime(Connection);
+    if (NewEarliestExpirationTime != Connection->EarliestExpirationTime) {
         Connection->EarliestExpirationTime = NewExpirationTime;
         QuicTimerWheelUpdateConnection(&Connection->Worker->TimerWheel, Connection);
     }
@@ -1151,23 +1167,20 @@ QuicConnTimerCancel(
     _In_ QUIC_CONN_TIMER_TYPE Type
     )
 {
-    uint64_t NewEarliestExpirationTime = UINT64_MAX;
-
+    CXPLAT_DBG_ASSERT(Connection->EarliestExpirationTime != UINT64_MAX);
     CXPLAT_DBG_ASSERT(Connection->EarliestExpirationTime <= Connection->ExpirationTimes[Type]);
 
     if (Connection->ExpirationTimes[Type] == Connection->EarliestExpirationTime) {
+        uint64_t NewEarliestExpirationTime = UINT64_MAX;
+
         //
         // We might be canceling the ealiest timer, so we need to find the new
         // expiration time for this connection.
         //
         Connection->ExpirationTimes[Type] = UINT64_MAX;
-        for (QUIC_CONN_TIMER_TYPE i = 0; i < QUIC_CONN_TIMER_COUNT; ++i) {
-            NewEarliestExpirationTime =
-                CXPLAT_MIN(NewEarliestExpirationTime, Connection->ExpirationTimes[i]);
-        }
+        NewEarliestExpirationTime = QuicGetEarliestExpirationTime(Connection);
 
-        if (NewEarliestExpirationTime < Connection->EarliestExpirationTime ||
-            NewEarliestExpirationTime == UINT64_MAX) {
+        if (NewEarliestExpirationTime != Connection->EarliestExpirationTime) {
             //
             // We've either found a new earliest expiration time, or there will be no timers scheduled.
             //
