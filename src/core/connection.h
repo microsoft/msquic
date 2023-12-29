@@ -717,18 +717,6 @@ QuicConnIsClosed(
 }
 
 //
-// Returns the earliest expiration time across all timers for the connection.
-//
-inline
-uint64_t
-QuicConnGetNextExpirationTime(
-    _In_ const QUIC_CONNECTION * const Connection
-    )
-{
-    return Connection->EarliestExpirationTime;
-}
-
-//
 // Helper to get the owning QUIC_CONNECTION for the stream set module.
 //
 inline

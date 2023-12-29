@@ -1144,7 +1144,6 @@ QuicConnTimerSetEx(
     )
 {
     const uint64_t NewExpirationTime = TimeNow + Delay;
-    uint64_t NewEarliestExpirationTime;
 
     QuicTraceEvent(
         ConnSetTimer,
@@ -1154,7 +1153,7 @@ QuicConnTimerSetEx(
         Delay);
 
     Connection->ExpirationTimes[Type] = NewExpirationTime;
-    NewEarliestExpirationTime  = QuicGetEarliestExpirationTime(Connection);
+    uint64_t NewEarliestExpirationTime  = QuicGetEarliestExpirationTime(Connection);
     if (NewEarliestExpirationTime != Connection->EarliestExpirationTime) {
         Connection->EarliestExpirationTime = NewEarliestExpirationTime;
         QuicTimerWheelUpdateConnection(&Connection->Worker->TimerWheel, Connection);
@@ -1178,14 +1177,12 @@ QuicConnTimerCancel(
     }
 
     if (Connection->ExpirationTimes[Type] == Connection->EarliestExpirationTime) {
-        uint64_t NewEarliestExpirationTime = UINT64_MAX;
-
         //
         // We might be canceling the earliest timer, so we need to find the new
         // expiration time for this connection.
         //
         Connection->ExpirationTimes[Type] = UINT64_MAX;
-        NewEarliestExpirationTime = QuicGetEarliestExpirationTime(Connection);
+        uint64_t NewEarliestExpirationTime = QuicGetEarliestExpirationTime(Connection);
 
         if (NewEarliestExpirationTime != Connection->EarliestExpirationTime) {
             //

@@ -174,7 +174,7 @@ QuicTimerWheelResize(
                     CxPlatListRemoveHead(&OldSlots[i]),
                     QUIC_CONNECTION,
                     TimerLink);
-            uint64_t ExpirationTime = QuicConnGetNextExpirationTime(Connection);
+            uint64_t ExpirationTime = Connection->EarliestExpirationTime;
             CXPLAT_DBG_ASSERT(TimerWheel->SlotCount != 0);
             uint32_t SlotIndex = TIME_TO_SLOT_INDEX(TimerWheel, ExpirationTime);
 
@@ -189,7 +189,7 @@ QuicTimerWheelResize(
             while (Entry != ListHead) {
                 QUIC_CONNECTION* ConnectionEntry =
                     CXPLAT_CONTAINING_RECORD(Entry, QUIC_CONNECTION, TimerLink);
-                uint64_t EntryExpirationTime = QuicConnGetNextExpirationTime(ConnectionEntry);
+                uint64_t EntryExpirationTime = ConnectionEntry->EarliestExpirationTime;
 
                 if (ExpirationTime > EntryExpirationTime) {
                     break;
@@ -231,7 +231,7 @@ QuicTimerWheelUpdate(
                     TimerWheel->Slots[i].Flink,
                     QUIC_CONNECTION,
                     TimerLink);
-            uint64_t EntryExpirationTime = QuicConnGetNextExpirationTime(ConnectionEntry);
+            uint64_t EntryExpirationTime = ConnectionEntry->EarliestExpirationTime;
             if (EntryExpirationTime < TimerWheel->NextExpirationTime) {
                 TimerWheel->NextExpirationTime = EntryExpirationTime;
                 TimerWheel->NextConnection = ConnectionEntry;
@@ -290,7 +290,7 @@ QuicTimerWheelUpdateConnection(
     _Inout_ QUIC_CONNECTION* Connection
     )
 {
-    uint64_t ExpirationTime = QuicConnGetNextExpirationTime(Connection);
+    uint64_t ExpirationTime = Connection->EarliestExpirationTime;
 
     if (Connection->TimerLink.Flink != NULL) {
         //
@@ -349,7 +349,7 @@ QuicTimerWheelUpdateConnection(
     while (Entry != ListHead) {
         QUIC_CONNECTION* ConnectionEntry =
             CXPLAT_CONTAINING_RECORD(Entry, QUIC_CONNECTION, TimerLink);
-        uint64_t EntryExpirationTime = QuicConnGetNextExpirationTime(ConnectionEntry);
+        uint64_t EntryExpirationTime = ConnectionEntry->EarliestExpirationTime;
 
         if (ExpirationTime > EntryExpirationTime) {
             break;
@@ -414,7 +414,7 @@ QuicTimerWheelGetExpired(
         while (Entry != ListHead) {
             QUIC_CONNECTION* ConnectionEntry =
                 CXPLAT_CONTAINING_RECORD(Entry, QUIC_CONNECTION, TimerLink);
-            uint64_t EntryExpirationTime = QuicConnGetNextExpirationTime(ConnectionEntry);
+            uint64_t EntryExpirationTime = ConnectionEntry->EarliestExpirationTime;
             if (EntryExpirationTime > TimeNow) {
                 break;
             }
