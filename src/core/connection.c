@@ -1125,10 +1125,11 @@ QuicGetEarliestExpirationTime(
     _In_ const QUIC_CONNECTION* Connection
     )
 {
-    uint64_t EarliestExpirationTime = UINT64_MAX;
-    for (QUIC_CONN_TIMER_TYPE Type = 0; Type < QUIC_CONN_TIMER_COUNT; ++Type) {
-        EarliestExpirationTime =
-            CXPLAT_MIN(EarliestExpirationTime, Connection->ExpirationTimes[Type]);
+    uint64_t EarliestExpirationTime = Connection->ExpirationTimes[0];
+    for (QUIC_CONN_TIMER_TYPE Type = 1; Type < QUIC_CONN_TIMER_COUNT; ++Type) {
+        if (Connection->ExpirationTimes[Type] < EarliestExpirationTime) {
+            EarliestExpirationTime = Connection->ExpirationTimes[Type];
+        }
     }
     return EarliestExpirationTime;
 }
@@ -1253,9 +1254,8 @@ QuicConnTimerExpired(
                         0);
                 }
             }
-        } else {
-            Connection->EarliestExpirationTime =
-                CXPLAT_MIN(Connection->EarliestExpirationTime, Connection->ExpirationTimes[Type]);
+        } else if (Connection->ExpirationTimes[Type] < Connection->EarliestExpirationTime) {
+            Connection->EarliestExpirationTime = Connection->ExpirationTimes[Type];
         }
     }
 
