@@ -77,6 +77,9 @@ param (
     [switch]$InstallXdpDriver,
 
     [Parameter(Mandatory = $false)]
+    [string]$XdpInstallerUri = "",
+
+    [Parameter(Mandatory = $false)]
     [switch]$UninstallXdp,
 
     [Parameter(Mandatory = $false)]
@@ -209,9 +212,12 @@ function Install-SigningCertificates {
 # NB: XDP can be uninstalled via Uninstall-Xdp
 function Install-Xdp-Driver {
     if (!$IsWindows) { return } # Windows only
-    Write-Host "Downloading XDP msi"
     $MsiPath = Join-Path $ArtifactsPath "xdp.msi"
-    Invoke-WebRequest -Uri (Get-Content (Join-Path $PSScriptRoot "xdp.json") | ConvertFrom-Json).installer -OutFile $MsiPath
+    if ($XdpInstallerUri -eq "") {
+        $XdpInstallerUri = (Get-Content (Join-Path $PSScriptRoot "xdp.json") | ConvertFrom-Json).installer
+    }
+    Write-Host "Downloading XDP msi from $XdpInstallerUri"
+    Invoke-WebRequest -Uri $XdpInstallerUri -OutFile $MsiPath
     Write-Host "Installing XDP driver"
     msiexec.exe /i $MsiPath /quiet | Out-Null
 }
