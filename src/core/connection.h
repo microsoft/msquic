@@ -494,8 +494,8 @@ typedef struct QUIC_CONNECTION {
     // Expiration time (absolute time in us) for each timer type. We use UINT64_MAX as a sentinel
     // to indicate that the timer is not set.
     //
-
     uint64_t ExpirationTimes[QUIC_CONN_TIMER_COUNT];
+
     //
     // Earliest expiration time of all timers types.
     //
