@@ -1167,8 +1167,14 @@ QuicConnTimerCancel(
     _In_ QUIC_CONN_TIMER_TYPE Type
     )
 {
-    CXPLAT_DBG_ASSERT(Connection->EarliestExpirationTime != UINT64_MAX);
     CXPLAT_DBG_ASSERT(Connection->EarliestExpirationTime <= Connection->ExpirationTimes[Type]);
+
+    if (Connection->EarliestExpirationTime == UINT64_MAX) {
+        //
+        // No timers are currently scheduled.
+        //
+        return;
+    }
 
     if (Connection->ExpirationTimes[Type] == Connection->EarliestExpirationTime) {
         uint64_t NewEarliestExpirationTime = UINT64_MAX;
