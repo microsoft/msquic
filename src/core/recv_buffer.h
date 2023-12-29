@@ -9,11 +9,17 @@
 extern "C" {
 #endif
 
+typedef enum QUIC_RECV_BUF_MODE {
+    QUIC_RECV_BUF_MODE_SINGLE,      // Only one receive with a single contiguous buffer at a time.
+    QUIC_RECV_BUF_MODE_CIRCULAR,    // Only one receive that may indicate two contiguous buffers at a time.
+    QUIC_RECV_BUF_MODE_MULTIPLE     // Multiple independent receives that may indicate up to two contiguous buffers at a time.
+} QUIC_RECV_BUF_MODE;
+
 //
 // Represents a single contiguous range of bytes.
 //
 typedef struct QUIC_RECV_CHUNK {
-    struct QUIC_RECV_CHUNK* Next;
+    CXPLAT_LIST_ENTRY Link;         // Link in the list of chunks.
     uint32_t AllocLength : 31;      // Allocation size of Buffer
     uint32_t ExternalReference : 1; // Indicates the buffer is being used externally.
     uint8_t Buffer[0];
@@ -26,7 +32,7 @@ typedef struct QUIC_RECV_BUFFER {
     //
     // A list of chunks that make up the buffer.
     //
-    QUIC_RECV_CHUNK* Chunks;
+    CXPLAT_LIST_ENTRY Chunks;
 
     //
     // Optional, preallocated initial chunk.
@@ -39,14 +45,25 @@ typedef struct QUIC_RECV_BUFFER {
     QUIC_RANGE WrittenRanges;
 
     //
-    // The stream offset of the byte at BufferStart.
+    // The length of all pending reads to the app.
+    //
+    uint64_t ReadPendingLength;
+
+    //
+    // The stream offset of the byte at ReadStart.
     //
     uint64_t BaseOffset;
 
     //
     // Start of the head in the circular of the first chunk.
     //
-    uint32_t BufferStart;
+    uint32_t ReadStart;
+
+    //
+    // The length of data available to read in the first chunk, starting at
+    // ReadStart. Only used (i.e. non-zero) in multiple receive mode.
+    //
+    uint32_t ReadLength;
 
     //
     // Length of the buffer indicated to peers.
@@ -54,17 +71,10 @@ typedef struct QUIC_RECV_BUFFER {
     uint32_t VirtualBufferLength;
 
     //
-    // Flag to indicate that after a drain, copy any remaining bytes to the
-    // front of the buffer or reset the pointers to 0.
+    // Controls the behavior of the buffer, which changes the logic for
+    // writing, reading and draining.
     //
-    BOOLEAN CopyOnDrain : 1;
-
-    //
-    // Flag to indicate multiple receives can be indicated to the app at once.
-    // This also changes the draining logic to consider a chunk still referenced
-    // by the app until it has been completely drained.
-    //
-    BOOLEAN MultiReceiveMode : 1;
+    QUIC_RECV_BUF_MODE RecvMode;
 
 } QUIC_RECV_BUFFER;
 
@@ -74,7 +84,7 @@ QuicRecvBufferInitialize(
     _Inout_ QUIC_RECV_BUFFER* RecvBuffer,
     _In_ uint32_t AllocBufferLength,
     _In_ uint32_t VirtualBufferLength,
-    _In_ BOOLEAN CopyOnDrain,
+    _In_ QUIC_RECV_BUF_MODE RecvMode,
     _In_opt_ QUIC_RECV_CHUNK* PreallocatedChunk
     );
 
@@ -115,31 +125,29 @@ QuicRecvBufferHasUnreadData(
 //
 // Buffers a (possibly out-of-order or duplicate) range of bytes.
 //
-// Returns TRUE if in-order bytes are ready to be delivered
-// to the client.
+// Returns TRUE if new in-order bytes are ready to be delivered to the client.
 //
 _IRQL_requires_max_(DISPATCH_LEVEL)
 _Success_(return == QUIC_STATUS_SUCCESS)
 QUIC_STATUS
 QuicRecvBufferWrite(
     _In_ QUIC_RECV_BUFFER* RecvBuffer,
-    _In_ uint64_t BufferOffset,
-    _In_ uint16_t BufferLength,
-    _In_reads_bytes_(BufferLength) uint8_t const* Buffer,
-    _Inout_ uint64_t* WriteLength,
+    _In_ uint64_t WriteOffset,
+    _In_ uint16_t WriteLength,
+    _In_reads_bytes_(WriteLength) uint8_t const* WriteBuffer,
+    _Inout_ uint64_t* WriteLimit,
     _Out_ BOOLEAN* ReadyToRead
     );
 
 //
-// Returns a pointer into the buffer for data ready to be delivered
-// to the client.
+// Returns a pointer into the buffer for data ready to be delivered to the
+// client.
 //
-// Since this returns an internal pointer, the caller must retain
-// exclusive access to the buffer until it calls QuicRecvBufferDrain.
+// Since this returns an internal pointer, the caller must retain exclusive
+// access to the buffer until it calls QuicRecvBufferDrain.
 //
 _IRQL_requires_max_(DISPATCH_LEVEL)
-_Success_(return != FALSE)
-BOOLEAN
+void
 QuicRecvBufferRead(
     _In_ QUIC_RECV_BUFFER* RecvBuffer,
     _Out_ uint64_t* BufferOffset,
@@ -149,10 +157,11 @@ QuicRecvBufferRead(
     );
 
 //
-// Marks a number of bytes at the beginning of the buffer as
-// delivered (freeing space in the buffer).
+// Marks a number of bytes at the beginning of the buffer as delivered (freeing
+// space in the buffer).
 //
-// Invalidates the pointer returned by QuicRecvBufferRead.
+// When receive mode isn't MULTIPLE it invalidates the pointer returned by
+// QuicRecvBufferRead.
 //
 // Returns TRUE if there is no more data available to be read.
 //
