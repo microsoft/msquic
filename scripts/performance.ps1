@@ -640,7 +640,7 @@ try {
         Invoke-TestCommand -Session $Session -ScriptBlock {
             param ($RemoteDirectory, $ExtraArgs)
             Invoke-Expression "$(Join-Path $RemoteDirectory prepare-machine.ps1) -InstallXdpDriver -Force $ExtraArgs"
-        } -ArgumentList $RemoteDirectory
+        } -ArgumentList @($RemoteDirectory, $ExtraArgs)
     }
 
     foreach ($Test in $Tests.Tests) {
