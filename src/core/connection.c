@@ -1180,7 +1180,7 @@ QuicConnTimerCancel(
         uint64_t NewEarliestExpirationTime = UINT64_MAX;
 
         //
-        // We might be canceling the ealiest timer, so we need to find the new
+        // We might be canceling the earliest timer, so we need to find the new
         // expiration time for this connection.
         //
         Connection->ExpirationTimes[Type] = UINT64_MAX;
