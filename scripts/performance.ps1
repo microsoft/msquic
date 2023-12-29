@@ -102,9 +102,6 @@ param (
     [string]$WinRMUser = "",
 
     [Parameter(Mandatory = $false)]
-    [pscredential]$Credential = "",
-
-    [Parameter(Mandatory = $false)]
     [switch]$Kernel = $false,
 
     [Parameter(Mandatory = $false)]
@@ -233,8 +230,6 @@ if ($Local) {
     if ($Remote -eq "") {
         if ($WinRMUser -ne "") {
             $Session = New-PSSession -ComputerName $ComputerName -Credential $WinRMUser -ConfigurationName PowerShell.7
-        } elseif ($Credential -ne $null) {
-            $Session = New-PSSession -ComputerName $ComputerName -Credential $Credential -ConfigurationName PowerShell.7
         } else {
             $Session = New-PSSession -ComputerName $ComputerName -ConfigurationName PowerShell.7
         }
@@ -319,12 +314,11 @@ if ($Local) {
         $RemoteDirectory = Invoke-TestCommand -Session $Session -ScriptBlock {
             Join-Path (Get-Location) "Tests"
         }
-        $RemoteDirectory = "C:\msquic\artifacts\bin"
     }
 }
 
-# $CurrentCommitHash = Get-GitHash -RepoDir $RootDir
-# $CurrentCommitDate = Get-CommitDate -RepoDir $RootDir
+$CurrentCommitHash = Get-GitHash -RepoDir $RootDir
+$CurrentCommitDate = Get-CommitDate -RepoDir $RootDir
 
 if ($PGO -and $Local) {
     # PGO needs the server and client executing out of separate directories.
@@ -371,34 +365,34 @@ function LocalTeardown {
 $RemoteExePath = Get-ExePath -PathRoot $RemoteDirectory -Platform $RemotePlatform -IsRemote $true
 $LocalExePath = Get-ExePath -PathRoot $LocalDirectory -Platform $LocalPlatform -IsRemote $false
 
-# # See if we are an AZP PR
-# $PrBranchName = $env:SYSTEM_PULLREQUEST_TARGETBRANCH
-# if ([string]::IsNullOrWhiteSpace($PrBranchName)) {
-#     # Mainline build, just get branch name
-#     $AzpBranchName = $env:BUILD_SOURCEBRANCH
-#     if ([string]::IsNullOrWhiteSpace($AzpBranchName)) {
-#         # Non azure build
-#         $BranchName = Get-CurrentBranch -RepoDir $RootDir
-#     } else {
-#         # Azure Build
-#         $BuildReason = $env:BUILD_REASON
-#         if ("Manual" -eq $BuildReason) {
-#             $BranchName = "main"
-#         } else {
-#             $BranchName = $AzpBranchName.Substring(11);
-#         }
-#     }
-# } else {
-#     # PR Build
-#     $BranchName = $PrBranchName
-# }
+# See if we are an AZP PR
+$PrBranchName = $env:SYSTEM_PULLREQUEST_TARGETBRANCH
+if ([string]::IsNullOrWhiteSpace($PrBranchName)) {
+    # Mainline build, just get branch name
+    $AzpBranchName = $env:BUILD_SOURCEBRANCH
+    if ([string]::IsNullOrWhiteSpace($AzpBranchName)) {
+        # Non azure build
+        $BranchName = Get-CurrentBranch -RepoDir $RootDir
+    } else {
+        # Azure Build
+        $BuildReason = $env:BUILD_REASON
+        if ("Manual" -eq $BuildReason) {
+            $BranchName = "main"
+        } else {
+            $BranchName = $AzpBranchName.Substring(11);
+        }
+    }
+} else {
+    # PR Build
+    $BranchName = $PrBranchName
+}
 
-# if (![string]::IsNullOrWhiteSpace($ForceBranchName)) {
-#     $BranchName = $ForceBranchName
-# }
+if (![string]::IsNullOrWhiteSpace($ForceBranchName)) {
+    $BranchName = $ForceBranchName
+}
 
-# $LastCommitHashes = Get-LatestCommitHashes -Branch $BranchName
-# $PreviousResults = Get-LatestCpuTestResults -Branch $BranchName -CommitHashes $LastCommitHashes
+$LastCommitHashes = Get-LatestCommitHashes -Branch $BranchName
+$PreviousResults = Get-LatestCpuTestResults -Branch $BranchName -CommitHashes $LastCommitHashes
 
 function Invoke-Test {
     param ([TestRunDefinition]$Test, [RemoteConfig]$RemoteConfig)
@@ -576,13 +570,13 @@ function Invoke-Test {
         Merge-PGOCounts -Path $LocalExePath
     }
 
-    # Publish-TestResults -Test $Test `
-    #                     -AllRunsResults $AllRunsResults `
-    #                     -CurrentCommitHash $CurrentCommitHash `
-    #                     -CurrentCommitDate $CurrentCommitDate `
-    #                     -PreviousResults $PreviousResults `
-    #                     -OutputDir $OutputDir `
-    #                     -ExePath $LocalExe
+    Publish-TestResults -Test $Test `
+                        -AllRunsResults $AllRunsResults `
+                        -CurrentCommitHash $CurrentCommitHash `
+                        -CurrentCommitDate $CurrentCommitDate `
+                        -PreviousResults $PreviousResults `
+                        -OutputDir $OutputDir `
+                        -ExePath $LocalExe
 }
 
 $LocalDataCache = LocalSetup
@@ -635,13 +629,13 @@ try {
     Cancel-LocalTracing -LocalDirectory $LocalDirectory
     Cancel-RemoteLogs -RemoteDirectory $RemoteDirectory
 
-    # Invoke-Expression "$(Join-Path $LocalDirectory prepare-machine.ps1) -UninstallXdp"
-    # if (!$Local) {
-    #     Invoke-TestCommand -Session $Session -ScriptBlock {
-    #         param ($RemoteDirectory)
-    #         Invoke-Expression "$(Join-Path $RemoteDirectory prepare-machine.ps1) -UninstallXdp"
-    #     } -ArgumentList $RemoteDirectory
-    # }
+    Invoke-Expression "$(Join-Path $LocalDirectory prepare-machine.ps1) -UninstallXdp"
+    if (!$Local) {
+        Invoke-TestCommand -Session $Session -ScriptBlock {
+            param ($RemoteDirectory)
+            Invoke-Expression "$(Join-Path $RemoteDirectory prepare-machine.ps1) -UninstallXdp"
+        } -ArgumentList $RemoteDirectory
+    }
 
     if ($XDP) {
         Invoke-Expression "$(Join-Path $LocalDirectory prepare-machine.ps1) -InstallXdpDriver -Force"
