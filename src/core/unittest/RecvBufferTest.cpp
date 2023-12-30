@@ -56,6 +56,7 @@ struct RecvBuffer {
         _Out_ BOOLEAN* ReadyToRead
         ) {
         auto BufferToWrite = new (std::nothrow) uint8_t[WriteLength];
+        CXPLAT_FRE_ASSERT(BufferToWrite);
         for (uint16_t i = 0; i < WriteLength; ++i) {
             BufferToWrite[i] = (uint8_t)(WriteOffset + i);
         }
@@ -414,4 +415,41 @@ TEST(RecvBufferTest, ReadCircular)
     ASSERT_EQ(48u, ReadBuffers[0].Length);
     ASSERT_EQ(16u, ReadBuffers[1].Length);
     ASSERT_TRUE(RecvBuf.Drain(64));
+}
+
+TEST(RecvBufferTest, ReadCircularNewChunk)
+{
+    RecvBuffer RecvBuf;
+    ASSERT_EQ(QUIC_STATUS_SUCCESS, RecvBuf.Initialize(QUIC_RECV_BUF_MODE_CIRCULAR, false, DEF_TEST_BUFFER_LENGTH, LARGE_TEST_BUFFER_LENGTH));
+    uint64_t InOutWriteLength = LARGE_TEST_BUFFER_LENGTH; // FC limit same as recv buffer size
+    BOOLEAN ReadyToRead = FALSE;
+    ASSERT_EQ(
+        QUIC_STATUS_SUCCESS,
+        RecvBuf.Write(
+            0,
+            32,
+            &InOutWriteLength,
+            &ReadyToRead));
+    ASSERT_TRUE(ReadyToRead);
+    ASSERT_EQ(32ull, InOutWriteLength);
+    ASSERT_EQ(32ull, RecvBuf.GetTotalLength());
+    uint64_t ReadOffset;
+    QUIC_BUFFER ReadBuffers[2];
+    uint32_t BufferCount = 2;
+    RecvBuf.Read(&ReadOffset, &BufferCount, ReadBuffers);
+    ASSERT_EQ(0ull, ReadOffset);
+    ASSERT_EQ(1u, BufferCount);
+    ASSERT_EQ(32u, ReadBuffers[0].Length);
+    InOutWriteLength = LARGE_TEST_BUFFER_LENGTH;
+    ASSERT_EQ(
+        QUIC_STATUS_SUCCESS,
+        RecvBuf.Write(
+            32,
+            48,
+            &InOutWriteLength,
+            &ReadyToRead));
+    ASSERT_TRUE(ReadyToRead);
+    ASSERT_EQ(48ull, InOutWriteLength);
+    ASSERT_EQ(80ull, RecvBuf.GetTotalLength());
+    ASSERT_FALSE(RecvBuf.Drain(32));
 }

@@ -61,7 +61,7 @@ typedef struct QUIC_RECV_BUFFER {
 
     //
     // The length of data available to read in the first chunk, starting at
-    // ReadStart. Only used (i.e. non-zero) in multiple receive mode.
+    // ReadStart.
     //
     uint32_t ReadLength;
 

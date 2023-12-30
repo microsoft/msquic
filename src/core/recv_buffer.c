@@ -19,7 +19,7 @@ Abstract:
     allowed to grow to. Generally, the physical buffer can stay much smaller
     than the virtual buffer length if the application is draining the data as
     it comes in. Only when data is received faster than the application can
-    drain it does the physical buffer start to increase in size to accomodate
+    drain it does the physical buffer start to increase in size to accommodate
     the queued up buffer.
 
     When physical buffer space runs out, assuming more 'virtual' space is
@@ -397,6 +397,11 @@ QuicRecvBufferCopyIntoChunks(
         } else {
             CxPlatCopyMemory(Chunk->Buffer + ChunkOffset, WriteBuffer, WriteLength);
         }
+
+        if (Chunk->Link.Flink == &RecvBuffer->Chunks) {
+            RecvBuffer->ReadLength =
+                (uint32_t)(QuicRangeGet(&RecvBuffer->WrittenRanges, 0)->Count - RecvBuffer->BaseOffset);
+        }
     } else {
         //
         // In multiple mode we may have to write to multiple (two max) chunks.
@@ -460,6 +465,8 @@ QuicRecvBufferCopyIntoChunks(
             ChunkLength = Chunk->AllocLength;
 
         } while (TRUE);
+
+        // TODO - Update ReadLength
     }
 }
 
@@ -522,7 +529,7 @@ QuicRecvBufferWrite(
         //
         // If we don't currently have enough room then we will want to resize
         // the last chunk to be big enough to hold everything. We do this by
-        // repeatidly doubling its size until it is large enough.
+        // repeatedly doubling its size until it is large enough.
         //
         uint32_t NewBufferLength =
             CXPLAT_CONTAINING_RECORD(
@@ -751,7 +758,11 @@ QuicRecvBufferDrain(
     )
 {
     CXPLAT_DBG_ASSERT(DrainLength <= RecvBuffer->ReadPendingLength);
-    RecvBuffer->ReadPendingLength -= DrainLength;
+    if (RecvBuffer->RecvMode != QUIC_RECV_BUF_MODE_MULTIPLE) {
+        RecvBuffer->ReadPendingLength = 0;
+    } else {
+        RecvBuffer->ReadPendingLength -= DrainLength;
+    }
 
     do {
         CXPLAT_DBG_ASSERT(!CxPlatListIsEmpty(&RecvBuffer->Chunks));
@@ -763,26 +774,7 @@ QuicRecvBufferDrain(
                 Link);
         CXPLAT_DBG_ASSERT(Chunk->ExternalReference);
 
-        //
-        // Calculate the the number of contiguous bytes written to the chunk by
-        // taking the minimum of the chunk's available space (alloc length
-        // subtract the start offset) length and total written length of the
-        // first contiguous range.
-        //
-        const uint64_t ContiguousLength =
-            QuicRangeGet(&RecvBuffer->WrittenRanges, 0)->Count - RecvBuffer->BaseOffset;
-        uint32_t WrittenLength = Chunk->AllocLength - RecvBuffer->ReadStart;
-        if (WrittenLength > ContiguousLength) {
-            WrittenLength = (uint32_t)ContiguousLength;
-        }
-        if (RecvBuffer->ReadLength) {
-            if (WrittenLength > RecvBuffer->ReadLength) {
-                WrittenLength = RecvBuffer->ReadLength;
-            }
-            RecvBuffer->ReadLength -= WrittenLength;
-        }
-
-        if ((uint64_t)WrittenLength > DrainLength) {
+        if ((uint64_t)RecvBuffer->ReadLength > DrainLength) {
             //
             // Only part of the chunk is being drained.
             //
@@ -800,20 +792,22 @@ QuicRecvBufferDrain(
                     CXPLAT_FREE(Chunk, QUIC_POOL_RECVBUF);
                 }
                 RecvBuffer->ReadStart = 0;
+                RecvBuffer->ReadLength =
+                    (uint32_t)(QuicRangeGet(&RecvBuffer->WrittenRanges, 0)->Count - RecvBuffer->BaseOffset);
                 return FALSE; // Not all data drained.
             }
 
             if (RecvBuffer->RecvMode == QUIC_RECV_BUF_MODE_SINGLE) {
                 CXPLAT_DBG_ASSERT(RecvBuffer->ReadStart == 0);
                 //
-                // In single mode, we need to keep any renamining bytes at the
+                // In single mode, we need to keep any remaining bytes at the
                 // front of the buffer, so copy remaining bytes in the buffer
                 // to the beginning.
                 //
                 CxPlatMoveMemory(
                     Chunk->Buffer,
                     Chunk->Buffer + DrainLength,
-                    (size_t)(WrittenLength - (uint32_t)DrainLength));
+                    (size_t)(RecvBuffer->ReadLength - (uint32_t)DrainLength));
 
             } else { // Circular and multiple mode.
                 //
@@ -823,6 +817,8 @@ QuicRecvBufferDrain(
                 RecvBuffer->ReadStart =
                     (uint32_t)((RecvBuffer->ReadStart + DrainLength) % Chunk->AllocLength);
             }
+
+            RecvBuffer->ReadLength -= (uint32_t)DrainLength;
 
             if (RecvBuffer->RecvMode != QUIC_RECV_BUF_MODE_MULTIPLE) {
                 //
@@ -836,9 +832,11 @@ QuicRecvBufferDrain(
         }
 
         Chunk->ExternalReference = FALSE;
+        DrainLength -= RecvBuffer->ReadLength;
         RecvBuffer->ReadStart = 0;
-        RecvBuffer->BaseOffset += WrittenLength;
-        DrainLength -= WrittenLength;
+        RecvBuffer->BaseOffset += RecvBuffer->ReadLength;
+        RecvBuffer->ReadLength =
+            (uint32_t)(QuicRangeGet(&RecvBuffer->WrittenRanges, 0)->Count - RecvBuffer->BaseOffset);
 
         if (Chunk->Link.Flink == &RecvBuffer->Chunks) {
             //
@@ -847,6 +845,7 @@ QuicRecvBufferDrain(
             // drained.
             //
             CXPLAT_FRE_ASSERTMSG(DrainLength == 0, "App drained more than was available!");
+            CXPLAT_DBG_ASSERT(RecvBuffer->ReadLength == 0);
             return TRUE;
         }
 
@@ -856,6 +855,21 @@ QuicRecvBufferDrain(
         CxPlatListEntryRemove(&Chunk->Link);
         if (Chunk != RecvBuffer->PreallocatedChunk) {
             CXPLAT_FREE(Chunk, QUIC_POOL_RECVBUF);
+        }
+
+        if (RecvBuffer->RecvMode == QUIC_RECV_BUF_MODE_MULTIPLE) {
+            //
+            // The whole leftover buffer might not fit in just the next chunk.
+            //
+            Chunk =
+                CXPLAT_CONTAINING_RECORD(
+                    RecvBuffer->Chunks.Flink,
+                    QUIC_RECV_CHUNK,
+                    Link);
+            CXPLAT_DBG_ASSERT(Chunk->ExternalReference);
+            if (Chunk->AllocLength < RecvBuffer->ReadLength) {
+                RecvBuffer->ReadLength = Chunk->AllocLength;
+            }
         }
 
     } while (DrainLength != 0);
