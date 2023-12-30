@@ -76,7 +76,7 @@ jobs:
       shell: pwsh
       run: scripts/prepare-machine.ps1 -ForBuild
     - name: Download Build Artifacts
-      uses: actions/download-artifact@7a1cd3216ca9260cd8022db641d960b1db4d1be4
+      uses: actions/download-artifact@f44cd7b40bfd40b6aa1cc1b9b5b7bf03d3c67110
       with:
         name: ${{ inputs.config }}-linux-${{ inputs.os }}-${{ inputs.arch }}-${{ inputs.tls }}-UseSystemOpenSSLCrypto${{ inputs.sanitize }}${{ inputs.test }}
         path: artifacts

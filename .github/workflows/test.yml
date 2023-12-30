@@ -118,13 +118,13 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11
     - name: Download Build Artifacts
-      uses: actions/download-artifact@7a1cd3216ca9260cd8022db641d960b1db4d1be4
+      uses: actions/download-artifact@f44cd7b40bfd40b6aa1cc1b9b5b7bf03d3c67110
       if: matrix.vec.plat == 'windows'
       with: # note that BVT for WinServerPrerelease uses binaries built on windows-2022.
         name: ${{ matrix.vec.config }}-${{ matrix.vec.plat }}-${{ matrix.vec.os == 'WinServerPrerelease' && 'windows-2022' || matrix.vec.os }}-${{ matrix.vec.arch }}-${{ matrix.vec.tls }}${{ matrix.vec.sanitize }}${{ matrix.vec.test }}
         path: artifacts
     - name: Download Build Artifacts
-      uses: actions/download-artifact@7a1cd3216ca9260cd8022db641d960b1db4d1be4
+      uses: actions/download-artifact@f44cd7b40bfd40b6aa1cc1b9b5b7bf03d3c67110
       if: matrix.vec.plat == 'linux'
       with:
         name: ${{ matrix.vec.config }}-${{ matrix.vec.plat }}-${{ matrix.vec.os }}-${{ matrix.vec.arch }}-${{ matrix.vec.tls }}${{ matrix.vec.systemcrypto }}${{ matrix.vec.sanitize }}${{ matrix.vec.test }}
@@ -178,12 +178,12 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11
     - name: Download Build Artifacts
-      uses: actions/download-artifact@7a1cd3216ca9260cd8022db641d960b1db4d1be4
+      uses: actions/download-artifact@f44cd7b40bfd40b6aa1cc1b9b5b7bf03d3c67110
       with: # note that BVT for WinServerPrerelease uses binaries built on windows-2022.
         name: ${{ matrix.vec.config }}-${{ matrix.vec.plat }}-${{ matrix.vec.os == 'WinServerPrerelease' && 'windows-2022' || matrix.vec.os }}-${{ matrix.vec.arch }}-${{ matrix.vec.tls }}${{ matrix.vec.test }}
         path: artifacts
     - name: Download Build Artifacts for Testing From WinUser
-      uses: actions/download-artifact@7a1cd3216ca9260cd8022db641d960b1db4d1be4
+      uses: actions/download-artifact@f44cd7b40bfd40b6aa1cc1b9b5b7bf03d3c67110
       with: # note that BVT for WinServerPrerelease uses binaries built on windows-2022.
         name: ${{ matrix.vec.config }}-windows-${{ matrix.vec.os == 'WinServerPrerelease' && 'windows-2022' || matrix.vec.os }}-${{ matrix.vec.arch }}-${{ matrix.vec.tls }}${{ matrix.vec.test }}
         path: artifacts
@@ -226,7 +226,7 @@ jobs:
       uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11
       with:
         fetch-depth: 0
-    - uses: actions/download-artifact@7a1cd3216ca9260cd8022db641d960b1db4d1be4
+    - uses: actions/download-artifact@f44cd7b40bfd40b6aa1cc1b9b5b7bf03d3c67110
       with:
         name: ${{ matrix.vec.config }}-${{ matrix.vec.plat }}-${{ matrix.vec.os }}-${{ matrix.vec.arch }}-${{ matrix.vec.tls }}${{ matrix.vec.sanitize }}${{ matrix.vec.test }}
         path: artifacts
