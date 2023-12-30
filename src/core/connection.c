@@ -1119,7 +1119,7 @@ QuicConnReplaceRetiredCids(
     return TRUE;
 }
 
-_IRQL_requires_max_(PASSIVE_LEVEL)
+_IRQL_requires_max_(DISPATCH_LEVEL)
 uint64_t
 QuicGetEarliestExpirationTime(
     _In_ const QUIC_CONNECTION* Connection
