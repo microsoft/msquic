@@ -25,8 +25,6 @@ typedef struct QUIC_RECV_CHUNK {
     uint8_t Buffer[0];
 } QUIC_RECV_CHUNK;
 
-#define MAX_RECV_CHUNK_SIZE 0x40000000UL // 1GB
-
 typedef struct QUIC_RECV_BUFFER {
 
     //
@@ -95,11 +93,22 @@ QuicRecvBufferUninitialize(
     );
 
 //
-// Get the buffer's total length from 0.
+// Get the buffer's total length from offset 0. This does not necessarily mean
+// all of this buffer is available to be read, as some of it may have already
+// been read and drained, or only partially received (i.e. there are gaps).
 //
 _IRQL_requires_max_(DISPATCH_LEVEL)
 uint64_t
 QuicRecvBufferGetTotalLength(
+    _In_ QUIC_RECV_BUFFER* RecvBuffer
+    );
+
+//
+// Returns TRUE there is any unread data in the receive buffer.
+//
+_IRQL_requires_max_(DISPATCH_LEVEL)
+BOOLEAN
+QuicRecvBufferHasUnreadData(
     _In_ QUIC_RECV_BUFFER* RecvBuffer
     );
 
@@ -114,18 +123,10 @@ QuicRecvBufferSetVirtualBufferLength(
     );
 
 //
-// Returns TRUE there is any unread data in the receive buffer.
-//
-_IRQL_requires_max_(DISPATCH_LEVEL)
-BOOLEAN
-QuicRecvBufferHasUnreadData(
-    _In_ QUIC_RECV_BUFFER* RecvBuffer
-    );
-
-//
 // Buffers a (possibly out-of-order or duplicate) range of bytes.
 //
-// Returns TRUE if new in-order bytes are ready to be delivered to the client.
+// NewDataReady indicates if new in-order bytes are ready to be delivered to the
+// client.
 //
 _IRQL_requires_max_(DISPATCH_LEVEL)
 _Success_(return == QUIC_STATUS_SUCCESS)
@@ -136,7 +137,7 @@ QuicRecvBufferWrite(
     _In_ uint16_t WriteLength,
     _In_reads_bytes_(WriteLength) uint8_t const* WriteBuffer,
     _Inout_ uint64_t* WriteLimit,
-    _Out_ BOOLEAN* ReadyToRead
+    _Out_ BOOLEAN* NewDataReady
     );
 
 //

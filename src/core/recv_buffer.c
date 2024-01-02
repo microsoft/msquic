@@ -147,6 +147,32 @@ QuicRecvBufferGetSpan(
     return (uint32_t)(QuicRecvBufferGetTotalLength(RecvBuffer) - RecvBuffer->BaseOffset);
 }
 
+_IRQL_requires_max_(DISPATCH_LEVEL)
+BOOLEAN
+QuicRecvBufferHasUnreadData(
+    _In_ QUIC_RECV_BUFFER* RecvBuffer
+    )
+{
+    const QUIC_SUBRANGE* FirstRange = QuicRangeGetSafe(&RecvBuffer->WrittenRanges, 0);
+    if (FirstRange == NULL || FirstRange->Low != 0) {
+        return FALSE;
+    }
+    CXPLAT_DBG_ASSERT(FirstRange->Count >= RecvBuffer->BaseOffset);
+    const uint64_t ContiguousLength = FirstRange->Count - RecvBuffer->BaseOffset;
+    return ContiguousLength > RecvBuffer->ReadPendingLength;
+}
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+void
+QuicRecvBufferSetVirtualBufferLength(
+    _In_ QUIC_RECV_BUFFER* RecvBuffer,
+    _In_ uint32_t NewLength
+    )
+{
+    CXPLAT_FRE_ASSERT(NewLength >= RecvBuffer->VirtualBufferLength); // Don't support decrease.
+    RecvBuffer->VirtualBufferLength = NewLength;
+}
+
 //
 // Allocates a new contiguous buffer of the target size. Depending on the
 // receive mode and any external references, this may copy the existing buffer,
@@ -270,26 +296,6 @@ QuicRecvBufferResize(
     RecvBuffer->ReadStart = 0;
 
     return TRUE;
-}
-
-_IRQL_requires_max_(DISPATCH_LEVEL)
-void
-QuicRecvBufferSetVirtualBufferLength(
-    _In_ QUIC_RECV_BUFFER* RecvBuffer,
-    _In_ uint32_t NewLength
-    )
-{
-    CXPLAT_FRE_ASSERT(NewLength >= RecvBuffer->VirtualBufferLength); // Don't support decrease.
-    RecvBuffer->VirtualBufferLength = NewLength;
-}
-
-_IRQL_requires_max_(DISPATCH_LEVEL)
-BOOLEAN
-QuicRecvBufferHasUnreadData(
-    _In_ QUIC_RECV_BUFFER* RecvBuffer
-    )
-{
-    return QuicRecvBufferGetTotalLength(RecvBuffer) > RecvBuffer->BaseOffset;
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -748,8 +754,145 @@ QuicRecvBufferRead(
     }
 }
 
-#pragma warning(push)
-#pragma warning(disable:6001) // SAL thinks there we are 'Using uninitialized memory' for 'Chunk' on the second loop iteration
+//
+// Handles draining just part of the first chunk.
+//
+void
+QuicRecvBufferPartialDrain(
+    _In_ QUIC_RECV_BUFFER* RecvBuffer,
+    _In_ uint64_t DrainLength
+    )
+{
+    CXPLAT_DBG_ASSERT(!CxPlatListIsEmpty(&RecvBuffer->Chunks));
+    QUIC_RECV_CHUNK* Chunk =
+        CXPLAT_CONTAINING_RECORD(
+            RecvBuffer->Chunks.Flink,
+            QUIC_RECV_CHUNK,
+            Link);
+    CXPLAT_DBG_ASSERT(Chunk->ExternalReference);
+
+    if (Chunk->Link.Flink != &RecvBuffer->Chunks &&
+        RecvBuffer->RecvMode != QUIC_RECV_BUF_MODE_MULTIPLE) {
+        //
+        // In single/circular mode, if there is another chunk, then that means
+        // we no longer need this chunk at all because the other chunk contains
+        // a copy of all this data already. Free this one and continue
+        // operating on the next one.
+        //
+        CxPlatListEntryRemove(&Chunk->Link);
+        if (Chunk != RecvBuffer->PreallocatedChunk) {
+            CXPLAT_FREE(Chunk, QUIC_POOL_RECVBUF);
+        }
+
+        CXPLAT_DBG_ASSERT(!CxPlatListIsEmpty(&RecvBuffer->Chunks));
+        Chunk =
+            CXPLAT_CONTAINING_RECORD(
+                RecvBuffer->Chunks.Flink,
+                QUIC_RECV_CHUNK,
+                Link);
+        CXPLAT_DBG_ASSERT(!Chunk->ExternalReference);
+        RecvBuffer->ReadStart = 0;
+    }
+
+    RecvBuffer->BaseOffset += DrainLength;
+    if (DrainLength != 0) {
+        if (RecvBuffer->RecvMode == QUIC_RECV_BUF_MODE_SINGLE) {
+            CXPLAT_DBG_ASSERT(RecvBuffer->ReadStart == 0);
+            //
+            // In single mode, we need to keep any remaining bytes at the front
+            // of the buffer, so copy remaining bytes in the buffer to the
+            // beginning.
+            //
+            CxPlatMoveMemory(
+                Chunk->Buffer,
+                Chunk->Buffer + DrainLength,
+                (size_t)(RecvBuffer->ReadLength - (uint32_t)DrainLength));
+
+        } else { // Circular and multiple mode.
+            //
+            // Increment the buffer start, making sure to account for circular
+            // buffer wrap around.
+            //
+            RecvBuffer->ReadStart =
+                (uint32_t)((RecvBuffer->ReadStart + DrainLength) % Chunk->AllocLength);
+        }
+
+        RecvBuffer->ReadLength -= (uint32_t)DrainLength;
+    }
+
+    if (RecvBuffer->RecvMode != QUIC_RECV_BUF_MODE_MULTIPLE) {
+        //
+        // Unless we are in multiple mode, a partial drain means the app isn't
+        // referencing any chunks anymore.
+        //
+        Chunk->ExternalReference = FALSE;
+    }
+}
+
+//
+// Handles draining the entire first chunk (and possibly more). Return the new
+// drain length.
+//
+_IRQL_requires_max_(DISPATCH_LEVEL)
+uint64_t
+QuicRecvBufferFullDrain(
+    _In_ QUIC_RECV_BUFFER* RecvBuffer,
+    _In_ uint64_t DrainLength
+    )
+{
+    CXPLAT_DBG_ASSERT(!CxPlatListIsEmpty(&RecvBuffer->Chunks));
+    QUIC_RECV_CHUNK* Chunk =
+        CXPLAT_CONTAINING_RECORD(
+            RecvBuffer->Chunks.Flink,
+            QUIC_RECV_CHUNK,
+            Link);
+    CXPLAT_DBG_ASSERT(Chunk->ExternalReference);
+
+    Chunk->ExternalReference = FALSE;
+    DrainLength -= RecvBuffer->ReadLength;
+    RecvBuffer->ReadStart = 0;
+    RecvBuffer->BaseOffset += RecvBuffer->ReadLength;
+    RecvBuffer->ReadLength =
+        (uint32_t)(QuicRangeGet(&RecvBuffer->WrittenRanges, 0)->Count - RecvBuffer->BaseOffset);
+
+    if (Chunk->Link.Flink == &RecvBuffer->Chunks) {
+        //
+        // No more chunks to drain, so we should also be out of buffer length
+        // to drain too. Return TRUE to indicate all data has been drained.
+        //
+        CXPLAT_FRE_ASSERTMSG(DrainLength == 0, "App drained more than was available!");
+        CXPLAT_DBG_ASSERT(RecvBuffer->ReadLength == 0);
+        return 0;
+    }
+
+    //
+    // Cleanup the chunk that was just drained.
+    //
+    CxPlatListEntryRemove(&Chunk->Link);
+    if (Chunk != RecvBuffer->PreallocatedChunk) {
+        CXPLAT_FREE(Chunk, QUIC_POOL_RECVBUF);
+    }
+
+    if (RecvBuffer->RecvMode == QUIC_RECV_BUF_MODE_MULTIPLE) {
+        //
+        // The rest of the contiguous data might not fit in just the next chunk
+        // so we need to update the ReadLength of the first chunk to be no more
+        // than the next chunk's allocation length.
+        //
+        Chunk =
+            CXPLAT_CONTAINING_RECORD(
+                RecvBuffer->Chunks.Flink,
+                QUIC_RECV_CHUNK,
+                Link);
+        CXPLAT_DBG_ASSERT(Chunk->ExternalReference);
+        if (Chunk->AllocLength < RecvBuffer->ReadLength) {
+            RecvBuffer->ReadLength = Chunk->AllocLength;
+        }
+    }
+
+    return DrainLength;
+}
+
 _IRQL_requires_max_(DISPATCH_LEVEL)
 BOOLEAN
 QuicRecvBufferDrain(
@@ -765,119 +908,13 @@ QuicRecvBufferDrain(
     }
 
     do {
-        CXPLAT_DBG_ASSERT(!CxPlatListIsEmpty(&RecvBuffer->Chunks));
-
-        QUIC_RECV_CHUNK* Chunk =
-            CXPLAT_CONTAINING_RECORD(
-                RecvBuffer->Chunks.Flink,
-                QUIC_RECV_CHUNK,
-                Link);
-        CXPLAT_DBG_ASSERT(Chunk->ExternalReference);
-
         if ((uint64_t)RecvBuffer->ReadLength > DrainLength) {
-            //
-            // Only part of the chunk is being drained.
-            //
-            RecvBuffer->BaseOffset += DrainLength;
-
-            if (Chunk->Link.Flink != &RecvBuffer->Chunks &&
-                RecvBuffer->RecvMode != QUIC_RECV_BUF_MODE_MULTIPLE) {
-                //
-                // In single/circular mode, if there is another chunk, then that
-                // means we no longer need this chunk at all (because the other)
-                // chunk contains a copy of all this data already.
-                //
-                CxPlatListEntryRemove(&Chunk->Link);
-                if (Chunk != RecvBuffer->PreallocatedChunk) {
-                    CXPLAT_FREE(Chunk, QUIC_POOL_RECVBUF);
-                }
-                RecvBuffer->ReadStart = 0;
-                RecvBuffer->ReadLength =
-                    (uint32_t)(QuicRangeGet(&RecvBuffer->WrittenRanges, 0)->Count - RecvBuffer->BaseOffset);
-                return FALSE; // Not all data drained.
-            }
-
-            if (RecvBuffer->RecvMode == QUIC_RECV_BUF_MODE_SINGLE) {
-                CXPLAT_DBG_ASSERT(RecvBuffer->ReadStart == 0);
-                //
-                // In single mode, we need to keep any remaining bytes at the
-                // front of the buffer, so copy remaining bytes in the buffer
-                // to the beginning.
-                //
-                CxPlatMoveMemory(
-                    Chunk->Buffer,
-                    Chunk->Buffer + DrainLength,
-                    (size_t)(RecvBuffer->ReadLength - (uint32_t)DrainLength));
-
-            } else { // Circular and multiple mode.
-                //
-                // Increment the buffer start, making sure to account for
-                // circular buffer wrap around.
-                //
-                RecvBuffer->ReadStart =
-                    (uint32_t)((RecvBuffer->ReadStart + DrainLength) % Chunk->AllocLength);
-            }
-
-            RecvBuffer->ReadLength -= (uint32_t)DrainLength;
-
-            if (RecvBuffer->RecvMode != QUIC_RECV_BUF_MODE_MULTIPLE) {
-                //
-                // Unless we are in multiple mode, a partial drain means the app
-                // isn't referencing any chunks anymore.
-                //
-                Chunk->ExternalReference = FALSE;
-            }
-
-            return FALSE; // Not all data drained.
+            QuicRecvBufferPartialDrain(RecvBuffer, DrainLength);
+            return FALSE;
         }
 
-        Chunk->ExternalReference = FALSE;
-        DrainLength -= RecvBuffer->ReadLength;
-        RecvBuffer->ReadStart = 0;
-        RecvBuffer->BaseOffset += RecvBuffer->ReadLength;
-        RecvBuffer->ReadLength =
-            (uint32_t)(QuicRangeGet(&RecvBuffer->WrittenRanges, 0)->Count - RecvBuffer->BaseOffset);
-
-        if (Chunk->Link.Flink == &RecvBuffer->Chunks) {
-            //
-            // No more chunks to drain, so we should also be out of buffer
-            // length to drain too. Return TRUE to indicate all data has been
-            // drained.
-            //
-            CXPLAT_FRE_ASSERTMSG(DrainLength == 0, "App drained more than was available!");
-            CXPLAT_DBG_ASSERT(RecvBuffer->ReadLength == 0);
-            return TRUE;
-        }
-
-        //
-        // Cleanup the chunk that was just drained.
-        //
-        CxPlatListEntryRemove(&Chunk->Link);
-        if (Chunk != RecvBuffer->PreallocatedChunk) {
-            CXPLAT_FREE(Chunk, QUIC_POOL_RECVBUF);
-        }
-
-        if (RecvBuffer->RecvMode == QUIC_RECV_BUF_MODE_MULTIPLE) {
-            //
-            // The whole leftover buffer might not fit in just the next chunk.
-            //
-            Chunk =
-                CXPLAT_CONTAINING_RECORD(
-                    RecvBuffer->Chunks.Flink,
-                    QUIC_RECV_CHUNK,
-                    Link);
-            CXPLAT_DBG_ASSERT(Chunk->ExternalReference);
-            if (Chunk->AllocLength < RecvBuffer->ReadLength) {
-                RecvBuffer->ReadLength = Chunk->AllocLength;
-            }
-        }
-
+        DrainLength = QuicRecvBufferFullDrain(RecvBuffer, DrainLength);
     } while (DrainLength != 0);
 
-    //
-    // Should be impossible to get here.
-    //
-    CXPLAT_FRE_ASSERTMSG(FALSE, "Should be impossible to reach here!");
-    return FALSE;
+    return TRUE;
 }
-#pragma warning(pop)
