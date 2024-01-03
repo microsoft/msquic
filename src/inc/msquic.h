@@ -1679,6 +1679,150 @@ typedef struct MSQUIC_NMR_DISPATCH {
     MsQuicCloseFn MsQuicClose;
 } MSQUIC_NMR_DISPATCH;
 
+//
+// Stores the internal NMR client state. It's meant to be opaque to the users.
+//
+typedef struct __MSQUIC_NMR_CLIENT {
+    NPI_CLIENT_CHARACTERISTICS NpiClientCharacteristics;
+    HANDLE NmrClientHandle;
+    NPI_MODULEID ModuleId;
+    CXPLAT_EVENT RegistrationCompleteEvent;
+    MSQUIC_NMR_DISPATCH* ProviderDispatch;
+    BOOLEAN Deleting;
+} __MSQUIC_NMR_CLIENT;
+
+#define QUIC_GET_DISPATCH(h) (((__MSQUIC_NMR_CLIENT*)(h))->ProviderDispatch)
+
+static
+NTSTATUS
+__MsQuicClientAttachProvider(
+    _In_ HANDLE NmrBindingHandle,
+    _In_ void *ClientContext,
+    _In_ const NPI_REGISTRATION_INSTANCE *ProviderRegistrationInstance
+    )
+{
+    UNREFERENCED_PARAMETER(ProviderRegistrationInstance);
+
+    NTSTATUS Status;
+    __MSQUIC_NMR_CLIENT* Client = (__MSQUIC_NMR_CLIENT*)ClientContext;
+    void* ProviderContext;
+
+    #pragma warning(suppress:6387) // _Param_(2) could be '0' - by design.
+    Status =
+        NmrClientAttachProvider(
+            NmrBindingHandle,
+            Client,
+            NULL,
+            &ProviderContext,
+            (const void**)&Client->ProviderDispatch);
+    KeSetEvent(&Client->RegistrationCompleteEvent, IO_NO_INCREMENT, FALSE);
+    return Status;
+}
+
+static
+NTSTATUS
+__MsQuicClientDetachProvider(
+    _In_ void *ClientBindingContext
+    )
+{
+    __MSQUIC_NMR_CLIENT* Client = (__MSQUIC_NMR_CLIENT*)ClientBindingContext;
+    if (InterlockedOr8((char*)&Client->Deleting, 1)) {
+        return STATUS_SUCCESS;
+    } else {
+        return STATUS_PENDING;
+    }
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+__forceinline
+void
+MsQuicNmrClientDeregister(
+    _Inout_ HANDLE* ClientHandle
+    )
+{
+    __MSQUIC_NMR_CLIENT* Client = (__MSQUIC_NMR_CLIENT*)(*ClientHandle);
+
+    if (InterlockedOr8((char*)&Client->Deleting, 1)) {
+        //
+        // We are already in the middle of detaching the client.
+        // Complete it now.
+        //
+        NmrClientDetachProviderComplete(Client->NmrClientHandle);
+    }
+
+    if (Client->NmrClientHandle) {
+        if (NmrDeregisterClient(Client->NmrClientHandle) == STATUS_PENDING) {
+            //
+            // Wait for the deregistration to complete.
+            //
+            NmrWaitForClientDeregisterComplete(Client->NmrClientHandle);
+        }
+        Client->NmrClientHandle = NULL;
+    }
+
+    ExFreePoolWithTag(Client, 'cNQM');
+    *ClientHandle = NULL;
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+__forceinline
+NTSTATUS
+MsQuicNmrClientRegister(
+    _Out_ HANDLE* ClientHandle,
+    _In_ GUID* ClientModuleId
+    )
+{
+    NPI_REGISTRATION_INSTANCE *ClientRegistrationInstance;
+    NTSTATUS Status = STATUS_SUCCESS;
+
+    __MSQUIC_NMR_CLIENT* Client =
+        (__MSQUIC_NMR_CLIENT*)ExAllocatePool2(POOL_FLAG_NON_PAGED, sizeof(*Client), 'cNQM');
+    if (Client == NULL) {
+        Status = STATUS_INSUFFICIENT_RESOURCES;
+        goto Exit;
+    }
+
+    KeInitializeEvent(&Client->RegistrationCompleteEvent, SynchronizationEvent, FALSE);
+
+    Client->ModuleId.Length = sizeof(Client->ModuleId);
+    Client->ModuleId.Type = MIT_GUID;
+    Client->ModuleId.Guid = *ClientModuleId;
+
+    Client->NpiClientCharacteristics.Length = sizeof(Client->NpiClientCharacteristics);
+    Client->NpiClientCharacteristics.ClientAttachProvider = __MsQuicClientAttachProvider;
+    Client->NpiClientCharacteristics.ClientDetachProvider = __MsQuicClientDetachProvider;
+
+    ClientRegistrationInstance = &Client->NpiClientCharacteristics.ClientRegistrationInstance;
+    ClientRegistrationInstance->Size = sizeof(*ClientRegistrationInstance);
+    ClientRegistrationInstance->Version = 0;
+    ClientRegistrationInstance->NpiId = &MSQUIC_NPI_ID;
+    ClientRegistrationInstance->ModuleId = &Client->ModuleId;
+
+    Status =
+        NmrRegisterClient(
+            &Client->NpiClientCharacteristics, Client, &Client->NmrClientHandle);
+    if (!NT_SUCCESS(Status)) {
+        goto Exit;
+    }
+
+    Status =
+        KeWaitForSingleObject(
+            &Client->RegistrationCompleteEvent, Executive, KernelMode, FALSE, NULL);
+    if (Status != STATUS_SUCCESS) {
+        Status = STATUS_UNSUCCESSFUL;
+        goto Exit;
+    }
+
+    *ClientHandle = Client;
+
+Exit:
+    if (!NT_SUCCESS(Status) && Client != NULL) {
+        MsQuicNmrClientDeregister((HANDLE*)&Client);
+    }
+
+    return Status;
+}
+
 #endif
 
 //
