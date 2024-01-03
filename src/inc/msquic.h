@@ -1686,7 +1686,7 @@ typedef struct __MSQUIC_NMR_CLIENT {
     NPI_CLIENT_CHARACTERISTICS NpiClientCharacteristics;
     HANDLE NmrClientHandle;
     NPI_MODULEID ModuleId;
-    CXPLAT_EVENT RegistrationCompleteEvent;
+    KEVENT RegistrationCompleteEvent;
     MSQUIC_NMR_DISPATCH* ProviderDispatch;
     BOOLEAN Deleting;
 } __MSQUIC_NMR_CLIENT;
