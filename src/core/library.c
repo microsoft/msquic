@@ -856,6 +856,9 @@ QuicLibrarySetGlobalParam(
 
         MsQuicLib.Settings.LoadBalancingMode = *(uint16_t*)Buffer;
         MsQuicLib.Settings.IsSet.LoadBalancingMode = TRUE;
+
+        QuicLibApplyLoadBalancingSetting();
+
         QuicTraceLogInfo(
             LibraryLoadBalancingModeSet,
             "[ lib] Updated load balancing mode = %hu",
