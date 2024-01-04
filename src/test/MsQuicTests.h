@@ -468,6 +468,9 @@ QuicAbortiveTransfers(
     );
 
 void
+QuicCancelOnLossSend();
+
+void
 QuicTestCidUpdate(
     _In_ int Family,
     _In_ uint16_t Iterations

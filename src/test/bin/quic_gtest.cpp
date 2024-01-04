@@ -1967,6 +1967,15 @@ TEST_P(WithAbortiveArgs, AbortiveShutdown) {
     }
 }
 
+TEST_P(WithCancelOnLossArgs, CancelOnLossSend) {
+    TestLoggerT<ParamType> Logger("QuicCancelOnLossSend", GetParam());
+    if (TestingKernelMode) {
+        // TODO
+    } else {
+        QuicCancelOnLossSend();
+    }
+}
+
 TEST_P(WithCidUpdateArgs, CidUpdate) {
     TestLoggerT<ParamType> Logger("QuicTestCidUpdate", GetParam());
     if (TestingKernelMode) {
@@ -2430,6 +2439,11 @@ INSTANTIATE_TEST_SUITE_P(
     Misc,
     WithAbortiveArgs,
     testing::ValuesIn(AbortiveArgs::Generate()));
+
+INSTANTIATE_TEST_SUITE_P(
+    Misc,
+    WithCancelOnLossArgs,
+    testing::ValuesIn(CancelOnLossArgs::Generate()));
 
 INSTANTIATE_TEST_SUITE_P(
     Misc,

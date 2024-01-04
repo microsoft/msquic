@@ -1363,6 +1363,161 @@ QuicAbortiveTransfers(
     }
 }
 
+struct CancelOnLossContext
+{
+    MsQuicConfiguration* Configuration = nullptr;
+    MsQuicConnection* Connection = nullptr;
+    MsQuicStream* Stream = nullptr;
+
+    CxPlatEvent ConnectedEvent{};
+};
+
+
+_Function_class_(MsQuicStreamCallback)
+QUIC_STATUS
+QuicCancelOnLossStreamHandler(
+    _In_ struct MsQuicStream* /* Stream */,
+    _In_opt_ void* /* Context */,
+    _Inout_ QUIC_STREAM_EVENT* /* Event */
+)
+{
+    return QUIC_STATUS_SUCCESS;
+}
+
+_Function_class_(MsQuicConnectionCallback)
+QUIC_STATUS
+QuicCancelOnLossConnectionHandler(
+    _In_ struct MsQuicConnection* /* Connection */,
+    _In_opt_ void* Context,
+    _Inout_ QUIC_CONNECTION_EVENT* Event
+)
+{
+    if (Context == nullptr) {
+        return QUIC_STATUS_INVALID_PARAMETER;
+    }
+
+    auto TestContext = reinterpret_cast<CancelOnLossContext*>(Context);
+
+    QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
+
+    switch (Event->Type) {
+    case QUIC_CONNECTION_EVENT_PEER_STREAM_STARTED:
+        TestContext->Stream = new MsQuicStream(
+            Event->PEER_STREAM_STARTED.Stream,
+            CleanUpAutoDelete,
+            QuicCancelOnLossStreamHandler,
+            Context);
+        break;
+    case QUIC_CONNECTION_EVENT_CONNECTED:
+        CxPlatEventSet(TestContext->ConnectedEvent.Handle);
+        break;
+    default:
+        break;
+    }
+
+    return Status;
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Function_class_(QUIC_LISTENER_CALLBACK)
+QUIC_STATUS
+QuicCancelOnLossListenerHandler(
+    _In_ MsQuicListener* /* Listener */,
+    _In_opt_ void* Context,
+    _Inout_ QUIC_LISTENER_EVENT* Event
+)
+{
+    if (Context == nullptr) {
+        return QUIC_STATUS_INVALID_PARAMETER;
+    }
+
+    auto TestContext = reinterpret_cast<CancelOnLossContext*>(Context);
+
+    QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
+
+    switch (Event->Type) {
+    case QUIC_LISTENER_EVENT_NEW_CONNECTION:
+        TestContext->Connection = new MsQuicConnection(
+            Event->NEW_CONNECTION.Connection,
+            CleanUpAutoDelete,
+            QuicCancelOnLossConnectionHandler,
+            Context);
+        TestContext->Connection->SetConfiguration(*TestContext->Configuration);
+        break;
+    default:
+        break;
+    }
+
+    return Status;
+}
+
+void
+QuicCancelOnLossSend()
+{
+    MsQuicRegistration Registration;
+    TEST_TRUE(Registration.IsValid());
+
+    MsQuicAlpn Alpn("MsQuicTest");
+
+    MsQuicConfiguration ServerConfiguration(Registration, Alpn, ServerSelfSignedCredConfig);
+    TEST_TRUE(ServerConfiguration.IsValid());
+
+    MsQuicCredentialConfig ClientCredConfig;
+    MsQuicConfiguration ClientConfiguration(Registration, Alpn, ClientCredConfig);
+    TEST_TRUE(ClientConfiguration.IsValid());
+
+    uint8_t RawBuffer[] = "cancel_on_loss_test";
+    QUIC_BUFFER MessageBuffer = { sizeof(RawBuffer), RawBuffer };
+
+    //
+    // Start the server
+    //
+    CancelOnLossContext ServerContext{ &ServerConfiguration };
+    QuicAddr ServerLocalAddr;
+
+    MsQuicListener Listener(Registration, CleanUpManual, QuicCancelOnLossListenerHandler, &ServerContext);
+    TEST_TRUE(Listener.IsValid());
+    TEST_TRUE(Listener.Start(Alpn) == QUIC_STATUS_SUCCESS);
+    TEST_TRUE(Listener.GetLocalAddr(ServerLocalAddr) == QUIC_STATUS_SUCCESS);
+
+    //
+    // Start the client
+    //
+    CancelOnLossContext ClientContext{ &ClientConfiguration };
+
+    ClientContext.Connection = new MsQuicConnection(
+        Registration,
+        CleanUpManual,
+        QuicCancelOnLossConnectionHandler,
+        &ClientContext);
+    TEST_TRUE(ClientContext.Connection->IsValid());
+
+    QUIC_STATUS Status = ClientContext.Connection->Start(
+        ClientConfiguration,
+        QUIC_ADDRESS_FAMILY_INET,
+        QUIC_TEST_LOOPBACK_FOR_AF(QUIC_ADDRESS_FAMILY_INET),
+        ServerLocalAddr.GetPort());
+    if (QUIC_FAILED(Status)) {
+        TEST_FAILURE("Failed to start a connection from the client.");
+        return;
+    }
+
+    constexpr uint32_t ConnectTimeoutMs{ 2'000 };
+
+    if (!CxPlatEventWaitWithTimeout(ClientContext.ConnectedEvent.Handle, ConnectTimeoutMs)) {
+        TEST_FAILURE("Client failed to get connected before timeout!");
+        return;
+    }
+    if (!CxPlatEventWaitWithTimeout(ServerContext.ConnectedEvent.Handle, ConnectTimeoutMs)) {
+        TEST_FAILURE("Server failed to get connected before timeout!");
+        return;
+    }
+
+    delete ClientContext.Connection;
+
+    // TODO: implement stream & send test logic
+}
+
 struct RecvResumeTestContext {
     RecvResumeTestContext(
         _In_ HQUIC ServerConfiguration,

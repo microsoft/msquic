@@ -574,6 +574,15 @@ struct AbortiveArgs {
     }
 };
 
+struct CancelOnLossArgs {
+    int dummy{ 0 };
+    static ::std::vector<CancelOnLossArgs> Generate() {
+        ::std::vector<CancelOnLossArgs> list;
+        list.push_back({ 1 });
+        return list;
+    }
+};
+
 std::ostream& operator << (std::ostream& o, const AbortiveArgs& args) {
     return o <<
         (args.Family == 4 ? "v4" : "v6") << "/" <<
@@ -590,6 +599,14 @@ std::ostream& operator << (std::ostream& o, const AbortiveArgs& args) {
 
 class WithAbortiveArgs : public testing::Test,
     public testing::WithParamInterface<AbortiveArgs> {
+};
+
+std::ostream& operator << (std::ostream& o, const CancelOnLossArgs& args) {
+    return o << "(n/a)";
+}
+
+class WithCancelOnLossArgs : public testing::Test,
+    public testing::WithParamInterface<CancelOnLossArgs> {
 };
 
 struct CidUpdateArgs {
