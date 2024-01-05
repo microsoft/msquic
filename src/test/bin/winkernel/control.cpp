@@ -1532,6 +1532,13 @@ QuicTestCtlEvtIoDeviceControl(
         QuicTestCtlRun(QuicTestConnectionCloseBeforeStreamClose());
         break;
 
+    case IOCTL_QUIC_RUN_CANCEL_ON_LOSS:
+        CXPLAT_FRE_ASSERT(Params != nullptr);
+        QuicTestCtlRun(
+            QuicCancelOnLossSend(
+                Params->DropPackets));
+        break;
+
     default:
         Status = STATUS_NOT_IMPLEMENTED;
         break;

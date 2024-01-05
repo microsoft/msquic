@@ -1970,7 +1970,10 @@ TEST_P(WithAbortiveArgs, AbortiveShutdown) {
 TEST_P(WithCancelOnLossArgs, CancelOnLossSend) {
     TestLoggerT<ParamType> Logger("QuicCancelOnLossSend", GetParam());
     if (TestingKernelMode) {
-        // TODO
+        QUIC_RUN_CANCEL_ON_LOSS_PARAMS Params = {
+            GetParam().DropPackets
+        };
+        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_CANCEL_ON_LOSS, Params));
     } else {
         QuicCancelOnLossSend(GetParam().DropPackets);
     }
