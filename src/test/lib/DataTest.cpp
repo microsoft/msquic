@@ -1543,6 +1543,7 @@ QuicCancelOnLossSend(
     Settings.SetIdleTimeoutMs(1'000);
     Settings.SetServerResumptionLevel(QUIC_SERVER_NO_RESUME);
     Settings.SetPeerBidiStreamCount(1);
+    Settings.SetMinimumMtu(1280).SetMaximumMtu(1280); // avoid running path MTU discovery (PMTUD)
 
     uint8_t RawBuffer[] = "cancel on loss message";
     QUIC_BUFFER MessageBuffer = { sizeof(RawBuffer), RawBuffer };
@@ -1598,6 +1599,9 @@ QuicCancelOnLossSend(
         return;
     }
 
+    // Sleep a bit to wait for all handshake packets to be exchanged.
+    CxPlatSleep(100);
+
     // Set up stream.
     ClientContext.Stream = new MsQuicStream(
         *ClientContext.Connection,
@@ -1621,7 +1625,7 @@ QuicCancelOnLossSend(
 
     // If requested, drop packets.
     if (DropPackets) {
-        LossHelper.DropPackets(4); // does not work with 1 or 2, intermittently fails with 3
+        LossHelper.DropPackets(1);
     }
 
     // Wait for the send phase to conclude.
