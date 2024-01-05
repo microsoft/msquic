@@ -1972,7 +1972,7 @@ TEST_P(WithCancelOnLossArgs, CancelOnLossSend) {
     if (TestingKernelMode) {
         // TODO
     } else {
-        QuicCancelOnLossSend();
+        QuicCancelOnLossSend(GetParam().DropPackets);
     }
 }
 

@@ -1365,11 +1365,36 @@ QuicAbortiveTransfers(
 
 struct CancelOnLossContext
 {
-    MsQuicConfiguration* Configuration = nullptr;
+    CancelOnLossContext(bool IsServer, MsQuicConfiguration* Configuration)
+        : IsServer{ IsServer }
+        , Configuration{ Configuration }
+    { }
+
+    ~CancelOnLossContext() {
+        delete Stream;
+        Stream = nullptr;
+
+        delete Connection;
+        Connection = nullptr;
+    }
+
+    // Static parameters
+    static constexpr uint64_t SuccessExitCode = 42;
+    static constexpr uint64_t ErrorExitCode = 24;
+
+    // State
+    const bool IsServer = false;
+    const MsQuicConfiguration* Configuration = nullptr;
     MsQuicConnection* Connection = nullptr;
     MsQuicStream* Stream = nullptr;
 
-    CxPlatEvent ConnectedEvent{};
+    // Connection tracking
+    CxPlatEvent ConnectedEvent = {};
+
+    // Test case tracking
+    bool GotCanceledOnLoss = false;
+    uint64_t ExitCode = 0;
+    CxPlatEvent DoneSendingEvent = {};
 };
 
 
@@ -1377,11 +1402,61 @@ _Function_class_(MsQuicStreamCallback)
 QUIC_STATUS
 QuicCancelOnLossStreamHandler(
     _In_ struct MsQuicStream* /* Stream */,
-    _In_opt_ void* /* Context */,
-    _Inout_ QUIC_STREAM_EVENT* /* Event */
+    _In_opt_ void* Context,
+    _Inout_ QUIC_STREAM_EVENT* Event
 )
 {
-    return QUIC_STATUS_SUCCESS;
+    if (Context == nullptr) {
+        return QUIC_STATUS_INVALID_PARAMETER;
+    }
+
+    auto TestContext = reinterpret_cast<CancelOnLossContext*>(Context);
+
+    QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
+
+    switch (Event->Type) {
+    case QUIC_STREAM_EVENT_RECEIVE:
+        if (TestContext->IsServer) { // only server receives
+            TestContext->DoneSendingEvent.Set();
+            TestContext->ExitCode = CancelOnLossContext::SuccessExitCode;
+        }
+        break;
+    case QUIC_STREAM_EVENT_PEER_SEND_ABORTED:
+        if (TestContext->IsServer) { // server-side 'cancel on loss' detection
+            TestContext->DoneSendingEvent.Set();
+            TestContext->ExitCode = Event->PEER_SEND_ABORTED.ErrorCode;
+        }
+        else {
+            Status = QUIC_STATUS_INVALID_STATE;
+        }
+        break;
+    case QUIC_STREAM_EVENT_PEER_SEND_SHUTDOWN:
+        if (TestContext->IsServer) {
+            TestContext->DoneSendingEvent.Set();
+        }
+        break;
+    case QUIC_STREAM_EVENT_SEND_COMPLETE:
+        if (!TestContext->IsServer) { // only client sends
+            TestContext->DoneSendingEvent.Set();
+        }
+        else {
+            Status = QUIC_STATUS_INVALID_STATE;
+        }
+        break;
+    case QUIC_STREAM_EVENT_CANCEL_ON_LOSS:
+        if (!TestContext->IsServer) { // only client sends
+            TestContext->GotCanceledOnLoss = true;
+            Event->CANCEL_ON_LOSS.ErrorCode = CancelOnLossContext::ErrorExitCode;
+        }
+        else {
+            Status = QUIC_STATUS_INVALID_STATE;
+        }
+        break;
+    default:
+        break;
+    }
+
+    return Status;
 }
 
 _Function_class_(MsQuicConnectionCallback)
@@ -1404,12 +1479,12 @@ QuicCancelOnLossConnectionHandler(
     case QUIC_CONNECTION_EVENT_PEER_STREAM_STARTED:
         TestContext->Stream = new MsQuicStream(
             Event->PEER_STREAM_STARTED.Stream,
-            CleanUpAutoDelete,
+            CleanUpManual,
             QuicCancelOnLossStreamHandler,
             Context);
         break;
     case QUIC_CONNECTION_EVENT_CONNECTED:
-        CxPlatEventSet(TestContext->ConnectedEvent.Handle);
+        TestContext->ConnectedEvent.Set();
         break;
     default:
         break;
@@ -1439,7 +1514,7 @@ QuicCancelOnLossListenerHandler(
     case QUIC_LISTENER_EVENT_NEW_CONNECTION:
         TestContext->Connection = new MsQuicConnection(
             Event->NEW_CONNECTION.Connection,
-            CleanUpAutoDelete,
+            CleanUpManual,
             QuicCancelOnLossConnectionHandler,
             Context);
         TestContext->Connection->SetConfiguration(*TestContext->Configuration);
@@ -1452,27 +1527,34 @@ QuicCancelOnLossListenerHandler(
 }
 
 void
-QuicCancelOnLossSend()
+QuicCancelOnLossSend(bool DropPackets)
 {
     MsQuicRegistration Registration;
     TEST_TRUE(Registration.IsValid());
 
     MsQuicAlpn Alpn("MsQuicTest");
 
-    MsQuicConfiguration ServerConfiguration(Registration, Alpn, ServerSelfSignedCredConfig);
+    MsQuicSettings Settings;
+    Settings.SetIdleTimeoutMs(1'000);
+    Settings.SetServerResumptionLevel(QUIC_SERVER_NO_RESUME);
+    Settings.SetPeerBidiStreamCount(2);
+
+    MsQuicConfiguration ServerConfiguration(Registration, Alpn, Settings, ServerSelfSignedCredConfig);
     TEST_TRUE(ServerConfiguration.IsValid());
 
     MsQuicCredentialConfig ClientCredConfig;
-    MsQuicConfiguration ClientConfiguration(Registration, Alpn, ClientCredConfig);
+    MsQuicConfiguration ClientConfiguration(Registration, Alpn, Settings, ClientCredConfig);
     TEST_TRUE(ClientConfiguration.IsValid());
 
-    uint8_t RawBuffer[] = "cancel_on_loss_test";
+    uint8_t RawBuffer[] = "cancel on loss message";
     QUIC_BUFFER MessageBuffer = { sizeof(RawBuffer), RawBuffer };
+
+    SelectiveLossHelper LossHelper;
 
     //
     // Start the server
     //
-    CancelOnLossContext ServerContext{ &ServerConfiguration };
+    CancelOnLossContext ServerContext{ true, &ServerConfiguration };
     QuicAddr ServerLocalAddr;
 
     MsQuicListener Listener(Registration, CleanUpManual, QuicCancelOnLossListenerHandler, &ServerContext);
@@ -1483,7 +1565,7 @@ QuicCancelOnLossSend()
     //
     // Start the client
     //
-    CancelOnLossContext ClientContext{ &ClientConfiguration };
+    CancelOnLossContext ClientContext{ false, &ClientConfiguration };
 
     ClientContext.Connection = new MsQuicConnection(
         Registration,
@@ -1502,20 +1584,58 @@ QuicCancelOnLossSend()
         return;
     }
 
-    constexpr uint32_t ConnectTimeoutMs{ 2'000 };
+    constexpr uint32_t EventWaitTimeoutMs{ 1'000 };
 
-    if (!CxPlatEventWaitWithTimeout(ClientContext.ConnectedEvent.Handle, ConnectTimeoutMs)) {
+    if (!ClientContext.ConnectedEvent.WaitTimeout(EventWaitTimeoutMs)) {
         TEST_FAILURE("Client failed to get connected before timeout!");
         return;
     }
-    if (!CxPlatEventWaitWithTimeout(ServerContext.ConnectedEvent.Handle, ConnectTimeoutMs)) {
+    if (!ServerContext.ConnectedEvent.WaitTimeout(EventWaitTimeoutMs)) {
         TEST_FAILURE("Server failed to get connected before timeout!");
         return;
     }
 
-    delete ClientContext.Connection;
+    // Set up stream
+    ClientContext.Stream = new MsQuicStream(
+        *ClientContext.Connection,
+        QUIC_STREAM_OPEN_FLAG_NONE,
+        CleanUpManual,
+        QuicCancelOnLossStreamHandler,
+        &ClientContext);
+    TEST_TRUE(ClientContext.Stream->IsValid());
+    Status = ClientContext.Stream->Start();
+    if (QUIC_FAILED(Status)) {
+        TEST_FAILURE("Client failed to start stream.");
+        return;
+    }
 
-    // TODO: implement stream & send test logic
+    // Send test message
+    Status = ClientContext.Stream->Send(&MessageBuffer, 1, QUIC_SEND_FLAG_CANCEL_ON_LOSS);
+    if (QUIC_FAILED(Status)) {
+        TEST_FAILURE("Client failed to send message.");
+        return;
+    }
+
+    if (DropPackets) {
+        LossHelper.DropPackets(3); // does not work with 1 or 2
+    }
+
+    if (!ClientContext.DoneSendingEvent.WaitTimeout(EventWaitTimeoutMs)) {
+        TEST_FAILURE("Timed out waiting for send phase to conclude on client.");
+        return;
+    }
+    if (!ServerContext.DoneSendingEvent.WaitTimeout(EventWaitTimeoutMs)) {
+        TEST_FAILURE("Timed out waiting for send phase to conclude on server.");
+    }
+
+    if (DropPackets) {
+        TEST_TRUE(ClientContext.GotCanceledOnLoss);
+        TEST_EQUAL(ServerContext.ExitCode, CancelOnLossContext::ErrorExitCode);
+    }
+    else {
+        TEST_FALSE(ClientContext.GotCanceledOnLoss);
+        TEST_EQUAL(ServerContext.ExitCode, CancelOnLossContext::SuccessExitCode);
+    }
 }
 
 struct RecvResumeTestContext {

@@ -468,7 +468,9 @@ QuicAbortiveTransfers(
     );
 
 void
-QuicCancelOnLossSend();
+QuicCancelOnLossSend(
+    _In_ bool DropPackets
+);
 
 void
 QuicTestCidUpdate(
