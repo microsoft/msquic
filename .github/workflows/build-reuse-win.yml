@@ -78,7 +78,7 @@ jobs:
       with:
         perl-version: '5.34'
     - name: Install NASM
-      uses: ilammy/setup-nasm@321e6ed62a1fc77024a3bd853deb33645e8b22c4
+      uses: ilammy/setup-nasm@13cbeb366c45c4379d3478cdcbadd8295feb5028
     - name: Prepare Machine
       shell: pwsh
       run: scripts/prepare-machine.ps1 -ForBuild -Tls ${{ inputs.tls }}
