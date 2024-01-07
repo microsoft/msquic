@@ -170,7 +170,7 @@ _IRQL_requires_max_(DISPATCH_LEVEL)
 BOOLEAN
 QuicRecvBufferDrain(
     _In_ QUIC_RECV_BUFFER* RecvBuffer,
-    _In_ uint64_t BufferLength
+    _In_ uint64_t DrainLength
     );
 
 #if defined(__cplusplus)
