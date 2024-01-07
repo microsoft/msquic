@@ -117,7 +117,7 @@ QuicRecvBufferHasUnreadData(
 //
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
-QuicRecvBufferSetVirtualBufferLength(
+QuicRecvBufferIncreaseVirtualBufferLength(
     _In_ QUIC_RECV_BUFFER* RecvBuffer,
     _In_ uint32_t NewLength
     );

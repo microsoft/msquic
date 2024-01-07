@@ -805,7 +805,7 @@ QuicStreamOnBytesDelivered(
                     TimeNow,
                     Stream->RecvWindowLastUpdate);
 
-                QuicRecvBufferSetVirtualBufferLength(
+                QuicRecvBufferIncreaseVirtualBufferLength(
                     &Stream->RecvBuffer,
                     Stream->RecvBuffer.VirtualBufferLength * 2);
             }

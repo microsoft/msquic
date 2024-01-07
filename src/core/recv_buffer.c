@@ -164,12 +164,12 @@ QuicRecvBufferHasUnreadData(
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
-QuicRecvBufferSetVirtualBufferLength(
+QuicRecvBufferIncreaseVirtualBufferLength(
     _In_ QUIC_RECV_BUFFER* RecvBuffer,
     _In_ uint32_t NewLength
     )
 {
-    CXPLAT_FRE_ASSERT(NewLength >= RecvBuffer->VirtualBufferLength); // Don't support decrease.
+    CXPLAT_DBG_ASSERT(NewLength >= RecvBuffer->VirtualBufferLength); // Don't support decrease.
     RecvBuffer->VirtualBufferLength = NewLength;
 }
 
@@ -264,7 +264,7 @@ QuicRecvBufferResize(
     }
 
     //
-    // If the chunk is already referenced, then if we're in multiple receive
+    // If the chunk is already referenced, and if we're in multiple receive
     // mode, we can just add the new chunk to the end of the list. Otherwise,
     // we need to copy the data from the existing chunks into the new chunk.
     //
@@ -425,9 +425,11 @@ QuicRecvBufferCopyIntoChunks(
         if (Chunk->Link.Flink == &RecvBuffer->Chunks) {
             CXPLAT_DBG_ASSERT(WriteLength <= Chunk->AllocLength); // Should always fit if we only have one
             ChunkLength = Chunk->AllocLength;
+            RecvBuffer->ReadLength =
+                (uint32_t)(QuicRangeGet(&RecvBuffer->WrittenRanges, 0)->Count - RecvBuffer->BaseOffset);
         } else {
             ChunkLength = RecvBuffer->ReadLength;
-            while (BaseOffset + ChunkLength < WriteOffset) {
+            while (BaseOffset + ChunkLength <= WriteOffset) {
                 BaseOffset += ChunkLength;
                 Chunk =
                     CXPLAT_CONTAINING_RECORD(
@@ -471,8 +473,6 @@ QuicRecvBufferCopyIntoChunks(
             ChunkLength = Chunk->AllocLength;
 
         } while (TRUE);
-
-        // TODO - Update ReadLength
     }
 }
 
@@ -884,7 +884,6 @@ QuicRecvBufferFullDrain(
                 RecvBuffer->Chunks.Flink,
                 QUIC_RECV_CHUNK,
                 Link);
-        CXPLAT_DBG_ASSERT(Chunk->ExternalReference);
         if (Chunk->AllocLength < RecvBuffer->ReadLength) {
             RecvBuffer->ReadLength = Chunk->AllocLength;
         }
