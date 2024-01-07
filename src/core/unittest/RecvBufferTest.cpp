@@ -63,7 +63,7 @@ struct RecvBuffer {
         for (uint16_t i = 0; i < WriteLength; ++i) {
             BufferToWrite[i] = (uint8_t)(WriteOffset + i);
         }
-        printf("Write: Offset=%llu, Length=%u\n", WriteOffset, WriteLength);
+        printf("Write: Offset=%llu, Length=%u\n", (unsigned long long)WriteOffset, WriteLength);
         auto Status = QuicRecvBufferWrite(&RecvBuf, WriteOffset, WriteLength, BufferToWrite, WriteLimit, NewDataReady);
         delete [] BufferToWrite;
         Dump();
@@ -76,7 +76,7 @@ struct RecvBuffer {
             QUIC_BUFFER* Buffers) {
         QuicRecvBufferRead(&RecvBuf, BufferOffset, BufferCount, Buffers);
         auto Offset = *BufferOffset;
-        printf("Read: Offset=%llu [ ", *BufferOffset);
+        printf("Read: Offset=%llu [ ", (unsigned long long)*BufferOffset);
         for (uint32_t i = 0; i < *BufferCount; ++i) {
             printf("%u ", Buffers[i].Length);
             ValidateBuffer(Buffers[i].Buffer, Buffers[i].Length, Offset);
@@ -87,7 +87,7 @@ struct RecvBuffer {
     }
     bool Drain(_In_ uint64_t BufferLength) {
         auto Result = QuicRecvBufferDrain(&RecvBuf, BufferLength) != FALSE;
-        printf("Drain: Len=%llu, Res=%u\n", BufferLength, Result);
+        printf("Drain: Len=%llu, Res=%u\n", (unsigned long long)BufferLength, Result);
         Dump();
         return Result;
     }
@@ -99,13 +99,13 @@ struct RecvBuffer {
     }
     void Dump() {
         printf("RecvBuffer: %p [mode=%u,vlen=%u,base=%llu,pending=%llu]\n",
-            &RecvBuf, RecvBuf.RecvMode, RecvBuf.VirtualBufferLength, RecvBuf.BaseOffset, RecvBuf.ReadPendingLength);
+            &RecvBuf, RecvBuf.RecvMode, RecvBuf.VirtualBufferLength, (unsigned long long)RecvBuf.BaseOffset, (unsigned long long)RecvBuf.ReadPendingLength);
 
         printf(" Written Ranges:\n");
         uint32_t i = 0;
         QUIC_SUBRANGE* Sub;
         while ((Sub = QuicRangeGetSafe(&RecvBuf.WrittenRanges, i++)) != nullptr) {
-            printf("  [%llu, %llu]\n", Sub->Low, Sub->Count);
+            printf("  [%llu, %llu]\n", (unsigned long long)Sub->Low, (unsigned long long)Sub->Count);
         }
 
         printf(" Chunks:\n");
