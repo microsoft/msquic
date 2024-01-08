@@ -1477,7 +1477,7 @@ QuicCancelOnLossConnectionHandler(
 
     switch (Event->Type) {
     case QUIC_CONNECTION_EVENT_PEER_STREAM_STARTED:
-        TestContext->Stream = new MsQuicStream(
+        TestContext->Stream = new(std::nothrow) MsQuicStream(
             Event->PEER_STREAM_STARTED.Stream,
             CleanUpManual,
             QuicCancelOnLossStreamHandler,
@@ -1534,7 +1534,7 @@ QuicCancelOnLossSend(
     CancelOnLossContext ClientContext{ DropPackets, false /* IsServer */, &ClientConfiguration};
 
     // Initiate connection.
-    ClientContext.Connection = new MsQuicConnection(
+    ClientContext.Connection = new(std::nothrow) MsQuicConnection(
         Registration,
         CleanUpManual,
         QuicCancelOnLossConnectionHandler,
@@ -1567,7 +1567,7 @@ QuicCancelOnLossSend(
     CxPlatSleep(100);
 
     // Set up stream.
-    ClientContext.Stream = new MsQuicStream(
+    ClientContext.Stream = new(std::nothrow) MsQuicStream(
         *ClientContext.Connection,
         QUIC_STREAM_OPEN_FLAG_NONE,
         CleanUpManual,
