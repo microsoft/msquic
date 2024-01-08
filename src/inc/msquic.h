@@ -240,13 +240,14 @@ typedef enum QUIC_SEND_FLAGS {
     QUIC_SEND_FLAG_FIN                      = 0x0004,   // Indicates the request is the one last sent on the stream.
     QUIC_SEND_FLAG_DGRAM_PRIORITY           = 0x0008,   // Indicates the datagram is higher priority than others.
     QUIC_SEND_FLAG_DELAY_SEND               = 0x0010,   // Indicates the send should be delayed because more will be queued soon.
+    QUIC_SEND_FLAG_CANCEL_ON_LOSS           = 0x0020,   // Indicates that a stream is to be cancelled when packet loss is detected.
 } QUIC_SEND_FLAGS;
 
 DEFINE_ENUM_FLAG_OPERATORS(QUIC_SEND_FLAGS)
 
 typedef enum QUIC_DATAGRAM_SEND_STATE {
     QUIC_DATAGRAM_SEND_UNKNOWN,                         // Not yet sent.
-    QUIC_DATAGRAM_SEND_SENT,                            // Sent and awaiting acknowledegment
+    QUIC_DATAGRAM_SEND_SENT,                            // Sent and awaiting acknowledgment
     QUIC_DATAGRAM_SEND_LOST_SUSPECT,                    // Suspected as lost, but still tracked
     QUIC_DATAGRAM_SEND_LOST_DISCARDED,                  // Lost and not longer being tracked
     QUIC_DATAGRAM_SEND_ACKNOWLEDGED,                    // Acknowledged
@@ -1385,6 +1386,7 @@ typedef enum QUIC_STREAM_EVENT_TYPE {
     QUIC_STREAM_EVENT_SHUTDOWN_COMPLETE         = 7,
     QUIC_STREAM_EVENT_IDEAL_SEND_BUFFER_SIZE    = 8,
     QUIC_STREAM_EVENT_PEER_ACCEPTED             = 9,
+    QUIC_STREAM_EVENT_CANCEL_ON_LOSS            = 10,
 } QUIC_STREAM_EVENT_TYPE;
 
 typedef struct QUIC_STREAM_EVENT {
@@ -1430,6 +1432,9 @@ typedef struct QUIC_STREAM_EVENT {
         struct {
             uint64_t ByteCount;
         } IDEAL_SEND_BUFFER_SIZE;
+        struct {
+            /* out */ QUIC_UINT62 ErrorCode;
+        } CANCEL_ON_LOSS;
     };
 } QUIC_STREAM_EVENT;
 

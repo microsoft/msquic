@@ -64,6 +64,12 @@ When the send has been completely shut down the app will get a `QUIC_STREAM_EVEN
 
 An app can opt in to sending stream data with 0-RTT keys (if available) by including the `QUIC_SEND_FLAG_ALLOW_0_RTT` flag on [StreamSend](api/StreamSend.md) call. MsQuic doesn't make any guarantees that the data will actually be sent with 0-RTT keys. There are several reasons it may not happen, such as keys not being available, packet loss, flow control, etc.
 
+## Cancel On Loss
+
+In case it is desirable to cancel a stream when packet loss is deteced instead of retransmitting the affected packets, the `QUIC_SEND_FLAG_CANCEL_ON_LOSS` can be supplied on a [StreamSend](api/StreamSend.md) call. Doing so will irreversibly switch the associated stream to this behavior. This includes *every* subsequent send call on the same stream, even if the call itself does not include the above flag.
+
+If a stream gets canceled because it is in 'cancel on loss' mode, a `QUIC_STREAM_EVENT_CANCEL_ON_LOSS` event will get emitted. The event allows the app to provide an error code that is communicated to the peer via a `QUIC_STREAM_EVENT_PEER_SEND_ABORTED` event.
+
 # Receiving
 
 Data is received and delivered to apps via the `QUIC_STREAM_EVENT_RECEIVE` event. The event indicates zero, one or more contiguous buffers up to the application.

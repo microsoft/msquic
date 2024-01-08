@@ -468,6 +468,11 @@ QuicAbortiveTransfers(
     );
 
 void
+QuicCancelOnLossSend(
+    _In_ bool DropPackets
+    );
+
+void
 QuicTestCidUpdate(
     _In_ int Family,
     _In_ uint16_t Iterations
@@ -1253,4 +1258,17 @@ typedef struct {
 #define IOCTL_QUIC_RUN_CONN_CLOSE_BEFORE_STREAM_CLOSE \
     QUIC_CTL_CODE(117, METHOD_BUFFERED, FILE_WRITE_DATA)
 
-#define QUIC_MAX_IOCTL_FUNC_CODE 117
+#pragma pack(push)
+#pragma pack(1)
+
+typedef struct {
+    bool DropPackets;
+} QUIC_RUN_CANCEL_ON_LOSS_PARAMS;
+
+#pragma pack(pop)
+
+#define IOCTL_QUIC_RUN_CANCEL_ON_LOSS \
+    QUIC_CTL_CODE(118, METHOD_BUFFERED, FILE_WRITE_DATA)
+    // QUIC_RUN_CANCEL_ON_LOSS_PARAMS
+
+#define QUIC_MAX_IOCTL_FUNC_CODE 118

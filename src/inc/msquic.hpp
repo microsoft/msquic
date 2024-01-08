@@ -864,7 +864,7 @@ struct MsQuicListener {
     QUIC_STATUS
     Start(
         _In_ const MsQuicAlpn& Alpns,
-        _In_ const QUIC_ADDR* Address = nullptr
+        _In_opt_ const QUIC_ADDR* Address = nullptr
         ) noexcept {
         return MsQuic->ListenerStart(Handle, Alpns, Alpns.Length(), Address);
     }
