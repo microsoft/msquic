@@ -1967,6 +1967,7 @@ TEST_P(WithAbortiveArgs, AbortiveShutdown) {
     }
 }
 
+#if QUIC_TEST_DATAPATH_HOOKS_ENABLED
 TEST_P(WithCancelOnLossArgs, CancelOnLossSend) {
     TestLoggerT<ParamType> Logger("QuicCancelOnLossSend", GetParam());
     if (TestingKernelMode) {
@@ -1978,6 +1979,7 @@ TEST_P(WithCancelOnLossArgs, CancelOnLossSend) {
         QuicCancelOnLossSend(GetParam().DropPackets);
     }
 }
+#endif
 
 TEST_P(WithCidUpdateArgs, CidUpdate) {
     TestLoggerT<ParamType> Logger("QuicTestCidUpdate", GetParam());
@@ -2443,10 +2445,14 @@ INSTANTIATE_TEST_SUITE_P(
     WithAbortiveArgs,
     testing::ValuesIn(AbortiveArgs::Generate()));
 
+#if QUIC_TEST_DATAPATH_HOOKS_ENABLED
+
 INSTANTIATE_TEST_SUITE_P(
     Misc,
     WithCancelOnLossArgs,
     testing::ValuesIn(CancelOnLossArgs::Generate()));
+
+#endif
 
 INSTANTIATE_TEST_SUITE_P(
     Misc,

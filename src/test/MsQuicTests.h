@@ -470,7 +470,7 @@ QuicAbortiveTransfers(
 void
 QuicCancelOnLossSend(
     _In_ bool DropPackets
-);
+    );
 
 void
 QuicTestCidUpdate(
@@ -1262,6 +1262,6 @@ typedef struct {
 
 #define IOCTL_QUIC_RUN_CANCEL_ON_LOSS \
     QUIC_CTL_CODE(118, METHOD_BUFFERED, FILE_WRITE_DATA)
-// QUIC_RUN_CANCEL_ON_LOSS_PARAMS
+    // QUIC_RUN_CANCEL_ON_LOSS_PARAMS
 
 #define QUIC_MAX_IOCTL_FUNC_CODE 118

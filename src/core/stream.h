@@ -124,7 +124,7 @@ typedef union QUIC_STREAM_FLAGS {
         BOOLEAN LocalCloseReset         : 1;    // Locally closed (locally aborted).
         BOOLEAN LocalCloseResetReliable : 1;    // Indicates that we should shutdown the send path once we sent/ACK'd ReliableOffsetSend bytes.
         BOOLEAN LocalCloseResetReliableAcked : 1; // Indicates the peer has acknowledged we will stop sending once we sent/ACK'd ReliableOffsetSend bytes.
-        BOOLEAN RemoteCloseResetReliable : 1;   // Indicates that the peer initiaited a reliable reset. Keep Recv path available for RecvMaxLength bytes.
+        BOOLEAN RemoteCloseResetReliable : 1;   // Indicates that the peer initiated a reliable reset. Keep Recv path available for RecvMaxLength bytes.
         BOOLEAN ReceivedStopSending     : 1;    // Peer sent STOP_SENDING frame.
         BOOLEAN LocalCloseAcked         : 1;    // Any close acknowledged.
         BOOLEAN FinAcked                : 1;    // Our FIN was acknowledged.
@@ -144,6 +144,8 @@ typedef union QUIC_STREAM_FLAGS {
         BOOLEAN ReceiveCallPending      : 1;    // There is an uncompleted receive to the app.
         BOOLEAN ReceiveCallActive       : 1;    // There is an active receive to the app.
         BOOLEAN SendDelayed             : 1;    // A delayed send is currently queued.
+        BOOLEAN CancelOnLoss            : 1;    // Indicates that the stream is to be canceled
+                                                // if loss is detected.
 
         BOOLEAN HandleSendShutdown      : 1;    // Send shutdown complete callback delivered.
         BOOLEAN HandleShutdown          : 1;    // Shutdown callback delivered.
@@ -155,8 +157,6 @@ typedef union QUIC_STREAM_FLAGS {
 
         BOOLEAN InStreamTable           : 1;    // The stream is currently in the connection's table.
         BOOLEAN DelayIdFcUpdate         : 1;    // Delay stream ID FC updates to StreamClose.
-
-        BOOLEAN CancelOnLoss            : 1;    // Indicates that the stream is to be canceled if loss is detected.
     };
 } QUIC_STREAM_FLAGS;
 

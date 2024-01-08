@@ -1534,9 +1534,7 @@ QuicTestCtlEvtIoDeviceControl(
 
     case IOCTL_QUIC_RUN_CANCEL_ON_LOSS:
         CXPLAT_FRE_ASSERT(Params != nullptr);
-        QuicTestCtlRun(
-            QuicCancelOnLossSend(
-                Params->DropPackets));
+        QuicTestCtlRun(QuicCancelOnLossSend(Params->DropPackets));
         break;
 
     default:

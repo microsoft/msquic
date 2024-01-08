@@ -1405,7 +1405,7 @@ QuicCancelOnLossStreamHandler(
     _In_ struct MsQuicStream* /* Stream */,
     _In_opt_ void* Context,
     _Inout_ QUIC_STREAM_EVENT* Event
-)
+    )
 {
     if (Context == nullptr) {
         return QUIC_STATUS_INVALID_PARAMETER;
@@ -1426,8 +1426,7 @@ QuicCancelOnLossStreamHandler(
         if (TestContext->IsServer) { // server-side 'cancel on loss' detection
             TestContext->SendPhaseEndedEvent.Set();
             TestContext->ExitCode = Event->PEER_SEND_ABORTED.ErrorCode;
-        }
-        else {
+        } else {
             Status = QUIC_STATUS_INVALID_STATE;
         }
         break;
@@ -1441,8 +1440,7 @@ QuicCancelOnLossStreamHandler(
             if (!TestContext->IsDropScenario) { // if drop scenario, we use 'cancel on loss' event
                 TestContext->SendPhaseEndedEvent.Set();
             }
-        }
-        else {
+        } else {
             Status = QUIC_STATUS_INVALID_STATE;
         }
         break;
@@ -1450,8 +1448,7 @@ QuicCancelOnLossStreamHandler(
         if (!TestContext->IsServer && TestContext->IsDropScenario) { // only client sends & only happens if in drop scenario
             Event->CANCEL_ON_LOSS.ErrorCode = CancelOnLossContext::ErrorExitCode;
             TestContext->SendPhaseEndedEvent.Set();
-        }
-        else {
+        } else {
             Status = QUIC_STATUS_INVALID_STATE;
         }
         break;
@@ -1468,7 +1465,7 @@ QuicCancelOnLossConnectionHandler(
     _In_ struct MsQuicConnection* /* Connection */,
     _In_opt_ void* Context,
     _Inout_ QUIC_CONNECTION_EVENT* Event
-)
+    )
 {
     if (Context == nullptr) {
         return QUIC_STATUS_INVALID_PARAMETER;
@@ -1532,7 +1529,7 @@ QuicCancelOnLossListenerHandler(
 void
 QuicCancelOnLossSend(
     _In_ bool DropPackets
-)
+    )
 {
     MsQuicRegistration Registration;
     TEST_TRUE(Registration.IsValid());
@@ -1640,8 +1637,7 @@ QuicCancelOnLossSend(
     // Check results.
     if (DropPackets) {
         TEST_EQUAL(ServerContext.ExitCode, CancelOnLossContext::ErrorExitCode);
-    }
-    else {
+    } else {
         TEST_EQUAL(ServerContext.ExitCode, CancelOnLossContext::SuccessExitCode);
     }
 }

@@ -613,8 +613,10 @@ QuicStreamSendFlush(
 
         CXPLAT_DBG_ASSERT(!(SendRequest->Flags & QUIC_SEND_FLAG_BUFFERED));
 
+        //
         // If a send has the 'cancel on loss' flag set, we irreversibly switch
         // the associated stream over to that behavior.
+        //
         if (!Stream->Flags.CancelOnLoss &&
             (SendRequest->Flags & QUIC_SEND_FLAG_CANCEL_ON_LOSS) != 0) {
             Stream->Flags.CancelOnLoss = TRUE;
@@ -1371,25 +1373,26 @@ QuicStreamOnLoss(
 Done:
 
     if (AddSendFlags != 0) {
-
-        // Check stream's 'cancel on loss' flag to determine how to handle the resends queued up at this point.
+        //
+        // Check stream's 'cancel on loss' flag to determine how to handle
+        // the resends queued up at this point.
+        //
         if (Stream->Flags.CancelOnLoss) {
             QUIC_STREAM_EVENT Event;
             Event.Type = QUIC_STREAM_EVENT_CANCEL_ON_LOSS;
             Event.CANCEL_ON_LOSS.ErrorCode = 0;
-
-            // Call to app callback requesting error code.
             (void)QuicStreamIndicateEvent(Stream, &Event);
 
+            //
             // Immediately terminate stream (in both directions, if open)
             // giving the error code from the app.
+            //
             QuicStreamShutdown(
                 Stream,
                 QUIC_STREAM_SHUTDOWN_FLAG_ABORT,
                 Event.CANCEL_ON_LOSS.ErrorCode);
 
-            // Don't resend any data.
-            return FALSE;
+            return FALSE; // Don't resend any data.
         }
 
         if (!Stream->Flags.InRecovery) {

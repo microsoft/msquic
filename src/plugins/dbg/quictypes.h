@@ -62,6 +62,8 @@ typedef union QUIC_STREAM_FLAGS {
         BOOLEAN ReceiveCallPending      : 1;    // There is an uncompleted receive to the app.
         BOOLEAN ReceiveCallActive       : 1;    // There is an active receive to the app.
         BOOLEAN SendDelayed             : 1;    // A delayed send is currently queued.
+        BOOLEAN CancelOnLoss            : 1;    // Indicates that the stream is to be canceled
+                                                // if loss is detected.
 
         BOOLEAN HandleSendShutdown      : 1;    // Send shutdown complete callback delivered.
         BOOLEAN HandleShutdown          : 1;    // Shutdown callback delivered.
