@@ -126,6 +126,9 @@
 <p>When the send has been completely shut down the app will get a <code>QUIC_STREAM_EVENT_SEND_SHUTDOWN_COMPLETE</code> event. This will happen immediately on an abortive send or after a graceful send has been acknowledged by the peer.</p>
 <h2 id="0-rtt">0-RTT</h2>
 <p>An app can opt in to sending stream data with 0-RTT keys (if available) by including the <code>QUIC_SEND_FLAG_ALLOW_0_RTT</code> flag on <a href="api/StreamSend.html">StreamSend</a> call. MsQuic doesn't make any guarantees that the data will actually be sent with 0-RTT keys. There are several reasons it may not happen, such as keys not being available, packet loss, flow control, etc.</p>
+<h2 id="cancel-on-loss">Cancel On Loss</h2>
+<p>In case it is desirable to cancel a stream when packet loss is deteced instead of retransmitting the affected packets, the <code>QUIC_SEND_FLAG_CANCEL_ON_LOSS</code> can be supplied on a <a href="api/StreamSend.html">StreamSend</a> call. Doing so will irreversibly switch the associated stream to this behavior. This includes <em>every</em> subsequent send call on the same stream, even if the call itself does not include the above flag.</p>
+<p>If a stream gets canceled because it is in 'cancel on loss' mode, a <code>QUIC_STREAM_EVENT_CANCEL_ON_LOSS</code> event will get emitted. The event allows the app to provide an error code that is communicated to the peer via a <code>QUIC_STREAM_EVENT_PEER_SEND_ABORTED</code> event.</p>
 <h1 id="receiving">Receiving</h1>
 <p>Data is received and delivered to apps via the <code>QUIC_STREAM_EVENT_RECEIVE</code> event. The event indicates zero, one or more contiguous buffers up to the application.</p>
 <p>Typically, the buffer count is one, which means that most events will include a single buffer containing the received data.</p>

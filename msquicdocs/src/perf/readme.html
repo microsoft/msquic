@@ -149,101 +149,30 @@
 </tbody>
 </table>
 <h1 id="client">Client</h1>
-<p>Since tests are client-driven, the client side of secnetperf generally has several arguments passed in to specify which test to run. Many of the arguments are also test specific, but the following (overlap with server) do apply to all:</p>
-<table>
-<thead>
-<tr>
-<th>Argument</th>
-<th>Usage</th>
-<th>Meaning</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>cc</td>
-<td><code>-cc:&lt;cubic,bbr&gt;</code></td>
-<td>Congestion control algorithm used.</td>
-</tr>
-<tr>
-<td>cipher</td>
-<td><code>-cipher:&lt;value&gt;</code></td>
-<td>Decimal value of 1 or more <code>QUIC_ALLOWED_CIPHER_SUITE_FLAGS</code>.</td>
-</tr>
-<tr>
-<td>cpu</td>
-<td><code>-cpu:&lt;cpu_indexes&gt;</code></td>
-<td>Comma-separated list of CPUs to run on.</td>
-</tr>
-<tr>
-<td>ecn</td>
-<td><code>-ecn:&lt;0,1&gt;</code></td>
-<td>Enables sender-side ECN support.</td>
-</tr>
-<tr>
-<td>exec</td>
-<td><code>-exec:&lt;lowlat,maxtput,scavenger,realtime&gt;</code></td>
-<td>The execution profile used for the application.</td>
-</tr>
-<tr>
-<td>pollidle</td>
-<td><code>-pollidle:&lt;time_us&gt;</code></td>
-<td>The time, in microseconds, to poll while idle before sleeping (falling back to interrupt-driven IO).</td>
-</tr>
-</tbody>
-</table>
-<h2 id="throughput-test">Throughput Test</h2>
-<p>To run the throughput test, you must specify the <code>-test:tput</code> option, followed by a number of other arguments (most of which are optional).</p>
-<h3 id="examples">Examples</h3>
-<pre><code>&gt; secnetperf.exe -exec:maxtput -test:tput -target:127.0.0.1 -download:10000000
+<p>Since tests are client-driven, the client side of secnetperf generally has several arguments passed in to specify which scenarios to run.</p>
+<pre><code>&gt; secnetperf -test:client -target:perf-server -download:10000000
 </code></pre>
-<pre><code>&gt; secnetperf.exe -test:tput -target:127.0.0.1 -upload:10000 -timed:1 -stats:1
-</code></pre>
-<h3 id="required">Required</h3>
+<p>The <code>target</code> must be specified to indicate the hostname of the server to connect to. Note that <code>server</code>, <code>to</code>, <code>remote</code>, and <code>peer</code> are all aliases for <code>target</code>.</p>
+<h2 id="remote-options">Remote Options</h2>
+<p>The following options configure the behavior around connecting to the remote peer:</p>
 <table>
 <thead>
 <tr>
-<th>Argument</th>
+<th>Alias</th>
 <th>Usage</th>
 <th>Meaning</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td>target,server</td>
-<td><code>-target:&lt;hostname_or_IP&gt;</code></td>
-<td>The target server to connect to. May be a hostname or an IP address.</td>
+<td>ip, af</td>
+<td><code>-ip:&lt;0,4,6&gt;</code></td>
+<td>A address family hint for resolving the hostname to IP address.</td>
 </tr>
 <tr>
-<td>download</td>
-<td><code>-download:&lt;####&gt;</code></td>
-<td>The length of data in bytes (or time with <code>-timed:1</code> arg) to receive. Mutually exclusive with <code>-upload</code> arg.</td>
-</tr>
-<tr>
-<td>upload</td>
-<td><code>-upload:&lt;####&gt;</code></td>
-<td>The length of data in bytes (or time with <code>-timed:1</code> arg) to send. Mutually exclusive with <code>-download</code> arg.</td>
-</tr>
-</tbody>
-</table>
-<h3 id="optional">Optional</h3>
-<table>
-<thead>
-<tr>
-<th>Argument</th>
-<th>Usage</th>
-<th>Meaning</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>bind</td>
-<td><code>-bind:&lt;address&gt;</code></td>
-<td>Binds to the specified local address.</td>
-</tr>
-<tr>
-<td>cc</td>
-<td><code>-cc:&lt;cubic,bbr&gt;</code></td>
-<td>Congestion control algorithm used.</td>
+<td>port</td>
+<td><code>-port:&lt;value&gt;</code></td>
+<td>The UDP port of the remote peer.</td>
 </tr>
 <tr>
 <td>cibir</td>
@@ -251,246 +180,163 @@
 <td>The well-known CIBIR identifier.</td>
 </tr>
 <tr>
-<td>comp</td>
-<td><code>-comp:&lt;####&gt;</code></td>
-<td>The compartment ID to run in. <strong>Windows Only</strong></td>
-</tr>
-<tr>
-<td>core</td>
-<td><code>-core:&lt;####&gt;</code></td>
-<td>The CPU to use for the main thread.</td>
-</tr>
-<tr>
-<td>encrypt</td>
-<td><code>-encrypt:&lt;0,1&gt;</code></td>
-<td>Enables/disables encryption.</td>
-</tr>
-<tr>
-<td>iosize</td>
-<td><code>-iosize:&lt;####&gt;</code></td>
-<td>The size of each send request queued.</td>
-</tr>
-<tr>
-<td>ip</td>
-<td><code>-ip:&lt;0,4,6&gt; </code></td>
-<td>A hint for the resolving the hostname to an IP address.</td>
-</tr>
-<tr>
-<td>pacing</td>
-<td><code>-pacing:&lt;0,1&gt;</code></td>
-<td>Whether to use pacing.</td>
-</tr>
-<tr>
-<td>port</td>
-<td><code>-port:&lt;####&gt;</code></td>
-<td>The UDP port of the server.</td>
-</tr>
-<tr>
-<td>sendbuf</td>
-<td><code>-sendbuf:&lt;0,1&gt;</code></td>
-<td>Whether to use send buffering.</td>
-</tr>
-<tr>
-<td>sstats</td>
-<td><code>-sstats:&lt;0,1&gt;</code></td>
-<td>Prints out stream-level statistics at the end of each stream.</td>
-</tr>
-<tr>
-<td>stats</td>
-<td><code>-stats:&lt;0,1&gt;</code></td>
-<td>Prints out statistics at the end of each connection.</td>
-</tr>
-<tr>
-<td>tcp</td>
-<td><code>-tcp:&lt;0,1&gt;</code></td>
-<td>Indicates TCP/TLS should be used instead of QUIC. <strong>Windows Only</strong></td>
-</tr>
-<tr>
-<td>timed</td>
-<td><code>-timed:&lt;0,1&gt;</code></td>
-<td>Indicates the <code>upload</code> &amp; <code>download</code> arg represent time (ms).</td>
+<td>incttarget</td>
+<td><code>-inctarget:&lt;0,1&gt;</code></td>
+<td>Set to 1 to append core index to target hostname.</td>
 </tr>
 </tbody>
 </table>
-<h2 id="rps-test">RPS Test</h2>
-<p>To run the &quot;request per second&quot; test, you must specify the <code>-test:rps</code> option, followed by a number of other arguments (most of which are optional).</p>
-<h3 id="examples-1">Examples</h3>
-<pre><code>&gt; secnetperf.exe -test:rps -target:127.0.0.1
-</code></pre>
-<pre><code>&gt; secnetperf.exe -test:rps -target:127.0.0.1 -runtime:1000 -response:8096 -stats:1
-</code></pre>
-<h3 id="required-1">Required</h3>
+<h2 id="local-options">Local Options</h2>
+<p>The following options configure the behavior related to local execution:</p>
 <table>
 <thead>
 <tr>
-<th>Argument</th>
+<th>Alias</th>
 <th>Usage</th>
 <th>Meaning</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td>target,server</td>
-<td><code>-target:&lt;hostname_or_IP&gt;</code></td>
-<td>The target server to connect to. May be a hostname or an IP address.</td>
-</tr>
-</tbody>
-</table>
-<h3 id="optional-1">Optional</h3>
-<table>
-<thead>
-<tr>
-<th>Argument</th>
-<th>Usage</th>
-<th>Meaning</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>addrs</td>
-<td><code>-addrs:&lt;####&gt;</code></td>
-<td>The number of local addresses to use.</td>
+<td>threads</td>
+<td><code>-threads:&lt;value&gt;</code></td>
+<td>The max number of worker threads to use.</td>
 </tr>
 <tr>
 <td>affinitize</td>
 <td><code>-affinitize:&lt;0,1&gt;</code></td>
-<td>Affinitizes threads to a core.</td>
+<td>Affinitizes worker threads to a core.</td>
+</tr>
+<tr>
+<td>comp</td>
+<td><code>-comp:&lt;value&gt;</code></td>
+<td>The network compartment ID to run in. <strong>Windows Only</strong></td>
 </tr>
 <tr>
 <td>bind</td>
-<td><code>-bind:&lt;address&gt;</code></td>
-<td>Binds to the specified local address.</td>
+<td><code>-bind:&lt;addr(s)&gt;</code></td>
+<td>The local IP address(es)/port(s) to bind to.</td>
 </tr>
 <tr>
-<td>cibir</td>
-<td><code>-cibir:&lt;hex_bytes&gt;</code></td>
-<td>The well-known CIBIR identifier.</td>
+<td>share</td>
+<td><code>-share:&lt;0,1&gt;</code></td>
+<td>Set to 1 to append core index to target hostname.</td>
 </tr>
+</tbody>
+</table>
+<h2 id="general-configuration-options">General Configuration Options</h2>
+<p>The following options control various general configuration options:</p>
+<table>
+<thead>
 <tr>
-<td>conns</td>
-<td><code>-conns:&lt;####&gt;</code></td>
-<td>The number of connections to use.</td>
+<th>Alias</th>
+<th>Usage</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>tcp</td>
+<td><code>-tcp:&lt;0,1&gt;</code></td>
+<td>Disables/enables TCP usage (instead of QUIC).</td>
 </tr>
 <tr>
 <td>encrypt</td>
 <td><code>-encrypt:&lt;0,1&gt;</code></td>
-<td>Enables/disables encryption.</td>
+<td>Disables/enables encryption.</td>
 </tr>
 <tr>
-<td>inline</td>
-<td><code>-inline:&lt;0,1&gt;</code></td>
-<td>Configured sending requests inline.</td>
-</tr>
-<tr>
-<td>ip</td>
-<td><code>-ip:&lt;0,4,6&gt; </code></td>
-<td>A hint for the resolving the hostname to an IP address.</td>
-</tr>
-<tr>
-<td>port</td>
-<td><code>-port:&lt;####&gt;</code></td>
-<td>The UDP port of the server.</td>
-</tr>
-<tr>
-<td>requests</td>
-<td><code>-requests:&lt;####&gt;</code></td>
-<td>The number of requests to send at a time.</td>
-</tr>
-<tr>
-<td>request</td>
-<td><code>-request:&lt;####&gt;</code></td>
-<td>The length of request payloads.</td>
-</tr>
-<tr>
-<td>response</td>
-<td><code>-response:&lt;####&gt;</code></td>
-<td>The length of request payloads.</td>
-</tr>
-<tr>
-<td>runtime</td>
-<td><code>-runtime:&lt;####&gt;</code></td>
-<td>The total runtime (in ms).</td>
+<td>pacing</td>
+<td><code>-pacing:&lt;0,1&gt;</code></td>
+<td>Disables/enables send pacing.</td>
 </tr>
 <tr>
 <td>sendbuf</td>
 <td><code>-sendbuf:&lt;0,1&gt;</code></td>
-<td>Whether to use send buffering.</td>
+<td>Disables/enables send buffering.</td>
 </tr>
 <tr>
-<td>stats</td>
-<td><code>-stats:&lt;0,1&gt;</code></td>
-<td>Prints out statistics at the end of each connection.</td>
+<td>ptput</td>
+<td><code>-ptput:&lt;0,1&gt;</code></td>
+<td>Print throughput information.</td>
 </tr>
 <tr>
-<td>threads</td>
-<td><code>-threads:&lt;####&gt;</code></td>
-<td>The number of threads to use (capped to number of cores).</td>
+<td>pconnection, pconn</td>
+<td><code>-pconn:&lt;0,1&gt;</code></td>
+<td>Print connection statistics.</td>
+</tr>
+<tr>
+<td>pstream</td>
+<td><code>-pstream:&lt;0,1&gt;</code></td>
+<td>Print stream statistics.</td>
+</tr>
+<tr>
+<td>platency, plat</td>
+<td><code>-platency:&lt;0,1&gt;</code></td>
+<td>Print latency statistics.</td>
+</tr>
+<tr>
+<td>praw</td>
+<td><code>-praw:&lt;0,1&gt;</code></td>
+<td>Print raw information.</td>
 </tr>
 </tbody>
 </table>
-<h2 id="hps-test">HPS Test</h2>
-<p>To run the &quot;handshakes per second&quot; test, you must specify the <code>-test:hps</code> option, followed by a number of other arguments (most of which are optional).</p>
-<h3 id="examples-2">Examples</h3>
-<pre><code>&gt; secnetperf.exe -test:hps -target:127.0.0.1
-</code></pre>
-<pre><code>&gt; secnetperf.exe -test:hps -target:127.0.0.1 -runtime:1000 -response:8096 -stats:1
-</code></pre>
-<h3 id="required-2">Required</h3>
+<h2 id="scenario-options">Scenario Options</h2>
+<p>The following options configure the various scenario behaviors:</p>
 <table>
 <thead>
 <tr>
-<th>Argument</th>
+<th>Alias</th>
 <th>Usage</th>
 <th>Meaning</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td>target,server</td>
-<td><code>-target:&lt;hostname_or_IP&gt;</code></td>
-<td>The target server to connect to. May be a hostname or an IP address.</td>
-</tr>
-</tbody>
-</table>
-<h3 id="optional-2">Optional</h3>
-<table>
-<thead>
-<tr>
-<th>Argument</th>
-<th>Usage</th>
-<th>Meaning</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>bind</td>
-<td><code>-bind:&lt;address&gt;</code></td>
-<td>Binds to the specified local address.</td>
+<td>conns</td>
+<td><code>-conns:&lt;value&gt;</code></td>
+<td>The number of connections to use.</td>
 </tr>
 <tr>
-<td>incrementtarget</td>
-<td><code>-incrementtarget&lt;0,1&gt;</code></td>
-<td>Set to 1 to append core index to target.</td>
+<td>streams, requests</td>
+<td><code>-streams:&lt;value&gt;</code></td>
+<td>The number of streams to send on at a time.</td>
 </tr>
 <tr>
-<td>parallel</td>
-<td><code>-parallel:&lt;####&gt;</code></td>
-<td>The number of parallel connections per core.</td>
+<td>upload, up, request</td>
+<td><code>-upload:&lt;value&gt;</code></td>
+<td>The length of bytes to send on each stream.</td>
 </tr>
 <tr>
-<td>port</td>
-<td><code>-port:&lt;####&gt;</code></td>
-<td>The UDP port of the server.</td>
+<td>download, down, response</td>
+<td><code>-download:&lt;value&gt;</code></td>
+<td>The length of bytes to receive on each stream.</td>
 </tr>
 <tr>
-<td>runtime</td>
-<td><code>-runtime:&lt;####&gt;</code></td>
-<td>The total runtime (in ms).</td>
+<td>iosize</td>
+<td><code>-iosize:&lt;value&gt;</code></td>
+<td>The size of each send request queued.</td>
 </tr>
 <tr>
-<td>threads</td>
-<td><code>-threads:&lt;####&gt;</code></td>
-<td>The number of threads to use (capped to number of cores).</td>
+<td>timed</td>
+<td><code>-timed:&lt;0,1&gt;</code></td>
+<td>Indicates the upload/download args are times (in ms).</td>
+</tr>
+<tr>
+<td>rconn</td>
+<td><code>-rconn:&lt;0,1&gt;</code></td>
+<td>Repeat the scenario at the connection level.</td>
+</tr>
+<tr>
+<td>rstream</td>
+<td><code>-rstream:&lt;0,1&gt;</code></td>
+<td>Repeat the scenario at the stream level.</td>
+</tr>
+<tr>
+<td>runtime, run, time</td>
+<td><code>-runtime:&lt;value&gt;</code></td>
+<td>The total runtime (in ms). Only relevant for repeat scenarios.</td>
 </tr>
 </tbody>
 </table>
