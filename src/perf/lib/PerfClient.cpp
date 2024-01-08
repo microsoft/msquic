@@ -15,8 +15,8 @@ Abstract:
 #include "PerfClient.cpp.clog.h"
 #endif
 
-const char* TimeUnits[] = { "m", "s", "ms", "us" };
-const uint64_t TimeMult[] = { 60 * 1000 * 1000, 1000 * 1000, 1000, 1 };
+const char* TimeUnits[] = { "m", "ms", "us", "s" };
+const uint64_t TimeMult[] = { 60 * 1000 * 1000, 1000, 1, 1000 * 1000 };
 const char* SizeUnits[] = { "gb", "mb", "kb", "b" };
 const uint64_t SizeMult[] = { 1000 * 1000 * 1000, 1000 * 1000, 1000, 1 };
 
