@@ -629,6 +629,7 @@ size_t QUIC_IOCTL_BUFFER_SIZES[] =
     0,
     sizeof(INT32),
     0,
+    sizeof(QUIC_RUN_CANCEL_ON_LOSS_PARAMS),
 };
 
 CXPLAT_STATIC_ASSERT(
@@ -646,6 +647,7 @@ typedef union {
     QUIC_RUN_ABORTIVE_SHUTDOWN_PARAMS Params4;
     QUIC_RUN_CID_UPDATE_PARAMS Params5;
     QUIC_RUN_RECEIVE_RESUME_PARAMS Params6;
+    QUIC_RUN_CANCEL_ON_LOSS_PARAMS Params7;
     UINT8 EnableKeepAlive;
     UINT8 StopListenerFirst;
     QUIC_RUN_DRILL_INITIAL_PACKET_CID_PARAMS DrillParams;
@@ -1534,7 +1536,7 @@ QuicTestCtlEvtIoDeviceControl(
 
     case IOCTL_QUIC_RUN_CANCEL_ON_LOSS:
         CXPLAT_FRE_ASSERT(Params != nullptr);
-        QuicTestCtlRun(QuicCancelOnLossSend(Params->DropPackets));
+        QuicTestCtlRun(QuicCancelOnLossSend(Params->Params7.DropPackets));
         break;
 
     default:
