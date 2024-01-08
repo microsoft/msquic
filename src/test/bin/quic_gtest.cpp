@@ -1973,6 +1973,20 @@ TEST_P(WithAbortiveArgs, AbortiveShutdown) {
     }
 }
 
+#if QUIC_TEST_DATAPATH_HOOKS_ENABLED
+TEST_P(WithCancelOnLossArgs, CancelOnLossSend) {
+    TestLoggerT<ParamType> Logger("QuicCancelOnLossSend", GetParam());
+    if (TestingKernelMode) {
+        QUIC_RUN_CANCEL_ON_LOSS_PARAMS Params = {
+            GetParam().DropPackets
+        };
+        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_CANCEL_ON_LOSS, Params));
+    } else {
+        QuicCancelOnLossSend(GetParam().DropPackets);
+    }
+}
+#endif
+
 TEST_P(WithCidUpdateArgs, CidUpdate) {
     TestLoggerT<ParamType> Logger("QuicTestCidUpdate", GetParam());
     if (TestingKernelMode) {
@@ -2436,6 +2450,15 @@ INSTANTIATE_TEST_SUITE_P(
     Misc,
     WithAbortiveArgs,
     testing::ValuesIn(AbortiveArgs::Generate()));
+
+#if QUIC_TEST_DATAPATH_HOOKS_ENABLED
+
+INSTANTIATE_TEST_SUITE_P(
+    Misc,
+    WithCancelOnLossArgs,
+    testing::ValuesIn(CancelOnLossArgs::Generate()));
+
+#endif
 
 INSTANTIATE_TEST_SUITE_P(
     Misc,

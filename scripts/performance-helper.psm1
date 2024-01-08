@@ -545,7 +545,7 @@ function Invoke-LocalExe {
         mkdir $HistogramDir | Out-Null
     }
     $HistogramFilePath = Join-Path $HistogramDir $HistogramFileName
-    $RunArgs = "--extraOutputFile:$HistogramFilePath $RunArgs"
+    $RunArgs = "-extraOutputFile:$HistogramFilePath $RunArgs"
     if ($IsLinux -and $Record) {
         # `perf record -F max` generates too big data to finish within default Timeout (120s)
         $Timeout = 2000
@@ -890,15 +890,18 @@ class RpsConfiguration {
 
 class RPSRequest {
     [string]$PlatformName;
+    [string]$TestName;
     [int]$ConnectionCount;
     [int]$RequestSize;
     [int]$ResponseSize;
     [int]$ParallelRequests;
 
     RPSRequest (
-        [TestRunDefinition]$Test
+        [TestRunDefinition]$Test,
+        [string]$TestName
     ) {
         $this.PlatformName = $Test.ToTestPlatformString();
+        $this.TestName = $TestName
         $this.ConnectionCount = $Test.VariableValues["ConnectionCount"];
         $this.RequestSize = $Test.VariableValues["RequestSize"];
         $this.ResponseSize = $Test.VariableValues["ResponseSize"];
@@ -925,7 +928,7 @@ function Get-LatestRPSRemoteTestResults($CpuData, [RpsRequest]$Request) {
                     continue;
                 }
 
-                if ($TestConfig -eq $Test.RpsConfig -and $Request.PlatformName -eq $Test.PlatformName) {
+                if ($Test.TestName -eq $Request.TestName -and $TestConfig -eq $Test.RpsConfig -and $Request.PlatformName -eq $Test.PlatformName) {
                     $Values.Add((Get-MedianTestResults -FullResults $Test.Results))
                     break;
                 }
@@ -956,9 +959,10 @@ class RPSTestPublishResult {
         [RPSRequest]$Request,
         [double[]]$RunResults,
         [string]$MachineName,
-        [string]$CommitHash
+        [string]$CommitHash,
+        [boolean]$Tcp
     ) {
-        $this.TestName = "RPS"
+        $this.TestName = $Tcp ? "TcpRPS" : "RPS"
         $this.MachineName = $MachineName
         $this.PlatformName = $Request.PlatformName
         $this.CommitHash = $CommitHash
@@ -972,9 +976,9 @@ class RPSTestPublishResult {
 }
 
 function Publish-RPSTestResults {
-    param ([TestRunDefinition]$Test, $AllRunsFullResults, $CurrentCommitHash, $CurrentCommitDate, $PreviousResults, $OutputDir, $ExePath)
+    param ([TestRunDefinition]$Test, $AllRunsFullResults, $CurrentCommitHash, $CurrentCommitDate, $PreviousResults, $OutputDir, $ExePath, $Tcp)
 
-    $Request = [RPSRequest]::new($Test)
+    $Request = [RPSRequest]::new($Test, $Tcp ? "TcpRPS" : "RPS")
 
     $AllRunsResults = Get-TestResultAtIndex -FullResults $AllRunsFullResults -Index 1
     $MedianCurrentResult = Get-MedianTestResults -FullResults $AllRunsResults
@@ -1009,7 +1013,7 @@ function Publish-RPSTestResults {
         if (Test-Path 'env:AGENT_MACHINENAME') {
             $MachineName = $MachineName + ":" + $env:AGENT_MACHINENAME
         }
-        $Results = [RPSTestPublishResult]::new($Request, $AllRunsResults, $MachineName, $CurrentCommitHash.Substring(0, 7))
+        $Results = [RPSTestPublishResult]::new($Request, $AllRunsResults, $MachineName, $CurrentCommitHash.Substring(0, 7), $Tcp)
         $Results.AuthKey = $CurrentCommitDate;
 
         $ResultFile = Join-Path $OutputDir "results_$Test.json"
@@ -1035,11 +1039,14 @@ class HpsConfiguration {
 
 class HPSRequest {
     [string]$PlatformName;
+    [string]$TestName;
 
     HPSRequest (
-        [TestRunDefinition]$Test
+        [TestRunDefinition]$Test,
+        [string]$TestName
     ) {
         $this.PlatformName = $Test.ToTestPlatformString();
+        $this.TestName = $TestName
     }
 
     [HpsConfiguration] GetConfiguration() {
@@ -1058,7 +1065,7 @@ function Get-LatestHPSRemoteTestResults($CpuData, [HpsRequest]$Request) {
                     continue;
                 }
 
-                if ($TestConfig -eq $Test.HpsConfig -and $Request.PlatformName -eq $Test.PlatformName) {
+                if ($Test.TestName -eq $Request.TestName -and $TestConfig -eq $Test.HpsConfig -and $Request.PlatformName -eq $Test.PlatformName) {
                     $Values.Add((Get-MedianTestResults -FullResults $Test.Results))
                     break;
                 }
@@ -1085,9 +1092,10 @@ class HPSTestPublishResult {
         [HPSRequest]$Request,
         [double[]]$RunResults,
         [string]$MachineName,
-        [string]$CommitHash
+        [string]$CommitHash,
+        [boolean]$Tcp
     ) {
-        $this.TestName = "HPS"
+        $this.TestName = $Tcp ? "TcpHPS" : "HPS"
         $this.MachineName = $MachineName
         $this.PlatformName = $Request.PlatformName
         $this.CommitHash = $CommitHash
@@ -1097,9 +1105,9 @@ class HPSTestPublishResult {
 }
 
 function Publish-HPSTestResults {
-    param ([TestRunDefinition]$Test, $AllRunsFullResults, $CurrentCommitHash, $CurrentCommitDate, $PreviousResults, $OutputDir, $ExePath)
+    param ([TestRunDefinition]$Test, $AllRunsFullResults, $CurrentCommitHash, $CurrentCommitDate, $PreviousResults, $OutputDir, $ExePath, $Tcp)
 
-    $Request = [HPSRequest]::new($Test)
+    $Request = [HPSRequest]::new($Test, $Tcp ? "TcpHPS" : "HPS")
 
     $AllRunsResults = Get-TestResultAtIndex -FullResults $AllRunsFullResults -Index 1
     $MedianCurrentResult = Get-MedianTestResults -FullResults $AllRunsResults
@@ -1134,7 +1142,7 @@ function Publish-HPSTestResults {
         if (Test-Path 'env:AGENT_MACHINENAME') {
             $MachineName = $MachineName + ":" + $env:AGENT_MACHINENAME
         }
-        $Results = [HPSTestPublishResult]::new($Request, $AllRunsResults, $MachineName, $CurrentCommitHash.Substring(0, 7))
+        $Results = [HPSTestPublishResult]::new($Request, $AllRunsResults, $MachineName, $CurrentCommitHash.Substring(0, 7), $Tcp)
         $Results.AuthKey = $CurrentCommitDate;
 
         $ResultFile = Join-Path $OutputDir "results_$Test.json"
@@ -1159,8 +1167,12 @@ function Publish-TestResults {
         Publish-ThroughputTestResults -Test $Test -AllRunsFullResults $AllRunsResults -CurrentCommitHash $CurrentCommitHash -CurrentCommitDate $CurrentCommitDate -PreviousResults $PreviousResults -OutputDir $OutputDir -ServerToClient $true -ExePath $ExePath -Tcp $true
     } elseif ($Test.TestName -eq "RPS") {
         Publish-RPSTestResults -Test $Test -AllRunsFullResults $AllRunsResults -CurrentCommitHash $CurrentCommitHash -CurrentCommitDate $CurrentCommitDate -PreviousResults $PreviousResults -OutputDir $OutputDir -ExePath $ExePath
+    } elseif ($Test.TestName -eq "TcpRPS") {
+        Publish-RPSTestResults -Test $Test -AllRunsFullResults $AllRunsResults -CurrentCommitHash $CurrentCommitHash -CurrentCommitDate $CurrentCommitDate -PreviousResults $PreviousResults -OutputDir $OutputDir -ExePath $ExePath -Tcp $true
     } elseif ($Test.TestName -eq "HPS") {
         Publish-HPSTestResults -Test $Test -AllRunsFullResults $AllRunsResults -CurrentCommitHash $CurrentCommitHash -CurrentCommitDate $CurrentCommitDate -PreviousResults $PreviousResults -OutputDir $OutputDir -ExePath $ExePath
+    } elseif ($Test.TestName -eq "TcpHPS") {
+        Publish-HPSTestResults -Test $Test -AllRunsFullResults $AllRunsResults -CurrentCommitHash $CurrentCommitHash -CurrentCommitDate $CurrentCommitDate -PreviousResults $PreviousResults -OutputDir $OutputDir -ExePath $ExePath -Tcp $true
     } else {
         Write-Host "Unknown Test Type"
     }
@@ -1493,7 +1505,6 @@ class ExecutableSpec {
 
 class TestDefinition {
     [string]$TestName;
-    [boolean]$SkipKernel;
     [string]$FailureDefault;
     [ExecutableSpec]$Local;
     [VariableSpec[]]$Variables;
@@ -1561,7 +1572,7 @@ function Test-CanRunTest {
     if ($Local -and !$Test.AllowLoopback) {
         return $false
     }
-    if ($script:Kernel -and $Test.SkipKernel) {
+    if ($script:Kernel -and $Test.TestName.Contains("Tcp")) {
         return $false
     }
     if ($script:XDP -and $Test.TestName.Contains("Tcp")) {

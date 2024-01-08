@@ -57,6 +57,15 @@ struct CxPlatEvent {
     bool WaitTimeout(uint32_t TimeoutMs) { return CxPlatEventWaitWithTimeout(Handle, TimeoutMs); }
 };
 
+struct CxPlatRundown {
+    CXPLAT_RUNDOWN_REF Ref;
+    CxPlatRundown() noexcept { CxPlatRundownInitialize(&Ref); }
+    ~CxPlatRundown() noexcept { CxPlatRundownUninitialize(&Ref); }
+    bool Acquire() noexcept { return CxPlatRundownAcquire(&Ref); }
+    void Release() noexcept { CxPlatRundownRelease(&Ref); }
+    void ReleaseAndWait() { CxPlatRundownReleaseAndWait(&Ref); }
+};
+
 struct CxPlatLock {
     CXPLAT_LOCK Handle;
     CxPlatLock() noexcept { CxPlatLockInitialize(&Handle); }
@@ -64,6 +73,27 @@ struct CxPlatLock {
     void Acquire() noexcept { CxPlatLockAcquire(&Handle); }
     void Release() noexcept { CxPlatLockRelease(&Handle); }
 };
+
+#pragma warning(push)
+#pragma warning(disable:28167) // TODO - Fix SAL annotations for IRQL changes
+struct CxPlatLockDispatch {
+    CXPLAT_DISPATCH_LOCK Handle;
+    CxPlatLockDispatch() noexcept { CxPlatDispatchLockInitialize(&Handle); }
+    ~CxPlatLockDispatch() noexcept { CxPlatDispatchLockUninitialize(&Handle); }
+    void Acquire() noexcept { CxPlatDispatchLockAcquire(&Handle); }
+    void Release() noexcept { CxPlatDispatchLockRelease(&Handle); }
+};
+
+struct CxPlatRwLockDispatch {
+    CXPLAT_DISPATCH_RW_LOCK Handle;
+    CxPlatRwLockDispatch() noexcept { CxPlatDispatchRwLockInitialize(&Handle); }
+    ~CxPlatRwLockDispatch() noexcept { CxPlatDispatchRwLockUninitialize(&Handle); }
+    void AcquireShared() noexcept { CxPlatDispatchRwLockAcquireShared(&Handle); }
+    void AcquireExclusive() noexcept { CxPlatDispatchRwLockAcquireExclusive(&Handle); }
+    void ReleaseShared() noexcept { CxPlatDispatchRwLockReleaseShared(&Handle); }
+    void ReleaseExclusive() noexcept { CxPlatDispatchRwLockReleaseExclusive(&Handle); }
+};
+#pragma warning(pop)
 
 struct CxPlatPool {
     CXPLAT_POOL Handle;
@@ -73,20 +103,59 @@ struct CxPlatPool {
     void Free(void* Ptr) noexcept { CxPlatPoolFree(&Handle, Ptr); }
 };
 
+//
+// Implementation of std::forward, to allow use in kernel mode.
+// Based on reference implementation in MSVC's STL.
+//
+
+template <class _Ty>
+struct CxPlatRemoveReference {
+    using type                 = _Ty;
+    using _Const_thru_ref_type = const _Ty;
+};
+
+template <class _Ty>
+using CxPlatRemoveReferenceT = typename CxPlatRemoveReference<_Ty>::type;
+
+template <class _Ty>
+constexpr _Ty&& CxPlatForward(
+    CxPlatRemoveReferenceT<_Ty>& _Arg) noexcept { // forward an lvalue as either an lvalue or an rvalue
+    return static_cast<_Ty&&>(_Arg);
+}
+
+template<typename T, uint32_t Tag = 'lPxC', bool Paged = false>
+class CxPlatPoolT {
+    CXPLAT_POOL Pool;
+public:
+    CxPlatPoolT() noexcept { CxPlatPoolInitialize(Paged, sizeof(T), Tag, &Pool); }
+    ~CxPlatPoolT() noexcept { CxPlatPoolUninitialize(&Pool); }
+    template <class... Args>
+    T* Alloc(Args&&... args) noexcept {
+        void* Raw = CxPlatPoolAlloc(&Pool);
+        return Raw ? new (Raw) T (CxPlatForward<Args>(args)...) : nullptr;
+    }
+    void Free(T* Obj) noexcept {
+        if (Obj != nullptr) {
+            Obj->~T();
+            CxPlatPoolFree(&Pool, Obj);
+        }
+    }
+};
+
 #ifdef CXPLAT_HASH_MIN_SIZE
 
-struct HashTable {
+struct CxPlatHashTable {
     bool Initialized;
     CXPLAT_HASHTABLE Table;
-    HashTable() noexcept { Initialized = CxPlatHashtableInitializeEx(&Table, CXPLAT_HASH_MIN_SIZE); }
-    ~HashTable() noexcept { if (Initialized) { CxPlatHashtableUninitialize(&Table); } }
-    void Insert(CXPLAT_HASHTABLE_ENTRY* Entry) { CxPlatHashtableInsert(&Table, Entry, Entry->Signature, nullptr); }
-    void Remove(CXPLAT_HASHTABLE_ENTRY* Entry) { CxPlatHashtableRemove(&Table, Entry, nullptr); }
-    CXPLAT_HASHTABLE_ENTRY* Lookup(uint64_t Signature) {
+    CxPlatHashTable() noexcept { Initialized = CxPlatHashtableInitializeEx(&Table, CXPLAT_HASH_MIN_SIZE); }
+    ~CxPlatHashTable() noexcept { if (Initialized) { CxPlatHashtableUninitialize(&Table); } }
+    void Insert(CXPLAT_HASHTABLE_ENTRY* Entry) noexcept { CxPlatHashtableInsert(&Table, Entry, Entry->Signature, nullptr); }
+    void Remove(CXPLAT_HASHTABLE_ENTRY* Entry) noexcept { CxPlatHashtableRemove(&Table, Entry, nullptr); }
+    CXPLAT_HASHTABLE_ENTRY* Lookup(uint64_t Signature) noexcept {
         CXPLAT_HASHTABLE_LOOKUP_CONTEXT LookupContext;
         return CxPlatHashtableLookup(&Table, Signature, &LookupContext);
     }
-    CXPLAT_HASHTABLE_ENTRY* LookupEx(uint64_t Signature, bool (*Equals)(CXPLAT_HASHTABLE_ENTRY* Entry, void* Context), void* Context) {
+    CXPLAT_HASHTABLE_ENTRY* LookupEx(uint64_t Signature, bool (*Equals)(CXPLAT_HASHTABLE_ENTRY* Entry, void* Context), void* Context) noexcept {
         CXPLAT_HASHTABLE_LOOKUP_CONTEXT LookupContext;
         CXPLAT_HASHTABLE_ENTRY* Entry = CxPlatHashtableLookup(&Table, Signature, &LookupContext);
         while (Entry != NULL) {
@@ -95,15 +164,52 @@ struct HashTable {
         }
         return NULL;
     }
+    void EnumBegin(CXPLAT_HASHTABLE_ENUMERATOR* Enumerator) noexcept {
+        CxPlatHashtableEnumerateBegin(&Table, Enumerator);
+    }
+    void EnumEnd(CXPLAT_HASHTABLE_ENUMERATOR* Enumerator) noexcept {
+        CxPlatHashtableEnumerateEnd(&Table, Enumerator);
+    }
+    CXPLAT_HASHTABLE_ENTRY* EnumNext(CXPLAT_HASHTABLE_ENUMERATOR* Enumerator) noexcept {
+        return CxPlatHashtableEnumerateNext(&Table, Enumerator);
+    }
 };
 
 #endif // CXPLAT_HASH_MIN_SIZE
 
+class CxPlatThread {
+    CXPLAT_THREAD Thread {0};
+    bool Initialized : 1;
+    bool WaitOnDelete : 1;
+public:
+    CxPlatThread(bool WaitOnDelete = true) noexcept : Initialized(false), WaitOnDelete(WaitOnDelete) { }
+    ~CxPlatThread() noexcept {
+        if (Initialized) {
+            if (WaitOnDelete) {
+                CxPlatThreadWait(&Thread);
+            }
+            CxPlatThreadDelete(&Thread);
+        }
+    }
+    QUIC_STATUS Create(CXPLAT_THREAD_CONFIG* Config) noexcept {
+        auto Status = CxPlatThreadCreate(Config, &Thread);
+        if (QUIC_SUCCEEDED(Status)) {
+            Initialized = true;
+        }
+        return Status;
+    }
+    void Wait() noexcept {
+        if (Initialized) {
+            CxPlatThreadWait(&Thread);
+        }
+    }
+};
+
 #ifdef CXPLAT_FRE_ASSERT
 
 class CxPlatWatchdog {
-    CXPLAT_THREAD WatchdogThread;
     CxPlatEvent ShutdownEvent {true};
+    CxPlatThread WatchdogThread;
     uint32_t TimeoutMs;
     static CXPLAT_THREAD_CALLBACK(WatchdogThreadCallback, Context) {
         auto This = (CxPlatWatchdog*)Context;
@@ -113,18 +219,17 @@ class CxPlatWatchdog {
         CXPLAT_THREAD_RETURN(0);
     }
 public:
-    CxPlatWatchdog(uint32_t WatchdogTimeoutMs) : TimeoutMs(WatchdogTimeoutMs) {
+    CxPlatWatchdog(uint32_t WatchdogTimeoutMs, const char* Name = "cxplat_watchdog") noexcept
+        : TimeoutMs(WatchdogTimeoutMs) {
         CXPLAT_THREAD_CONFIG Config;
         memset(&Config, 0, sizeof(CXPLAT_THREAD_CONFIG));
-        Config.Name = "cxplat_watchdog";
+        Config.Name = Name;
         Config.Callback = WatchdogThreadCallback;
         Config.Context = this;
-        CXPLAT_FRE_ASSERT(QUIC_SUCCEEDED(CxPlatThreadCreate(&Config, &WatchdogThread)));
+        CXPLAT_FRE_ASSERT(QUIC_SUCCEEDED(WatchdogThread.Create(&Config)));
     }
-    ~CxPlatWatchdog() {
+    ~CxPlatWatchdog() noexcept {
         ShutdownEvent.Set();
-        CxPlatThreadWait(&WatchdogThread);
-        CxPlatThreadDelete(&WatchdogThread);
     }
 };
 
@@ -759,7 +864,7 @@ struct MsQuicListener {
     QUIC_STATUS
     Start(
         _In_ const MsQuicAlpn& Alpns,
-        _In_ const QUIC_ADDR* Address = nullptr
+        _In_opt_ const QUIC_ADDR* Address = nullptr
         ) noexcept {
         return MsQuic->ListenerStart(Handle, Alpns, Alpns.Length(), Address);
     }

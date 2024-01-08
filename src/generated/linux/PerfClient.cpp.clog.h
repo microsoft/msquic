@@ -8,5 +8,5 @@ extern "C" {
 }
 #endif
 #ifdef CLOG_INLINE_IMPLEMENTATION
-#include "quic.clog_PerfCommon.h.clog.h.c"
+#include "quic.clog_PerfClient.cpp.clog.h.c"
 #endif

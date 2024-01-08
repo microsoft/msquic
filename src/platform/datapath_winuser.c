@@ -765,7 +765,7 @@ DataPathInitialize(
     int WsaError;
     QUIC_STATUS Status;
     WSADATA WsaData;
-    uint32_t PartitionCount = CxPlatProcMaxCount();
+    uint32_t PartitionCount = CxPlatProcCount();
     uint32_t DatapathLength;
     CXPLAT_DATAPATH* Datapath = NULL;
     BOOLEAN WsaInitialized = FALSE;
@@ -1123,7 +1123,7 @@ SocketCreateUdp(
     QUIC_STATUS Status;
     const BOOLEAN IsServerSocket = Config->RemoteAddress == NULL;
     const BOOLEAN NumPerProcessorSockets = IsServerSocket && Datapath->PartitionCount > 1;
-    const uint16_t SocketCount = NumPerProcessorSockets ? (uint16_t)CxPlatProcMaxCount() : 1;
+    const uint16_t SocketCount = NumPerProcessorSockets ? (uint16_t)CxPlatProcCount() : 1;
     INET_PORT_RESERVATION_INSTANCE PortReservation;
     int Result, Option;
 
@@ -2261,7 +2261,7 @@ SocketDelete(
     }
 
     const uint16_t SocketCount =
-        Socket->NumPerProcessorSockets ? (uint16_t)CxPlatProcMaxCount() : 1;
+        Socket->NumPerProcessorSockets ? (uint16_t)CxPlatProcCount() : 1;
     for (uint16_t i = 0; i < SocketCount; ++i) {
         CxPlatSocketContextUninitialize(&Socket->PerProcSockets[i]);
     }
