@@ -1493,39 +1493,6 @@ QuicCancelOnLossConnectionHandler(
     return Status;
 }
 
-_IRQL_requires_max_(PASSIVE_LEVEL)
-_Function_class_(QUIC_LISTENER_CALLBACK)
-QUIC_STATUS
-QuicCancelOnLossListenerHandler(
-    _In_ MsQuicListener* /* Listener */,
-    _In_opt_ void* Context,
-    _Inout_ QUIC_LISTENER_EVENT* Event
-)
-{
-    if (Context == nullptr) {
-        return QUIC_STATUS_INVALID_PARAMETER;
-    }
-
-    auto TestContext = reinterpret_cast<CancelOnLossContext*>(Context);
-
-    QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
-
-    switch (Event->Type) {
-    case QUIC_LISTENER_EVENT_NEW_CONNECTION:
-        TestContext->Connection = new MsQuicConnection(
-            Event->NEW_CONNECTION.Connection,
-            CleanUpManual,
-            QuicCancelOnLossConnectionHandler,
-            Context);
-        TestContext->Connection->SetConfiguration(*TestContext->Configuration);
-        break;
-    default:
-        break;
-    }
-
-    return Status;
-}
-
 void
 QuicCancelOnLossSend(
     _In_ bool DropPackets
@@ -1554,7 +1521,7 @@ QuicCancelOnLossSend(
     CancelOnLossContext ServerContext{ DropPackets, true /* IsServer */, &ServerConfiguration};
     QuicAddr ServerLocalAddr;
 
-    MsQuicListener Listener(Registration, CleanUpManual, QuicCancelOnLossListenerHandler, &ServerContext);
+    MsQuicAutoAcceptListener Listener(Registration, ServerConfiguration, QuicCancelOnLossConnectionHandler, &ServerContext);
     TEST_TRUE(Listener.IsValid());
     TEST_EQUAL(Listener.Start(Alpn), QUIC_STATUS_SUCCESS);
     TEST_EQUAL(Listener.GetLocalAddr(ServerLocalAddr), QUIC_STATUS_SUCCESS);
@@ -1639,6 +1606,10 @@ QuicCancelOnLossSend(
         TEST_EQUAL(ServerContext.ExitCode, CancelOnLossContext::ErrorExitCode);
     } else {
         TEST_EQUAL(ServerContext.ExitCode, CancelOnLossContext::SuccessExitCode);
+    }
+
+    if (Listener.LastConnection) {
+        Listener.LastConnection->Close();
     }
 }
 
