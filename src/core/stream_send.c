@@ -150,7 +150,7 @@ QuicStreamSendShutdown(
 
         while (ApiSendRequests != NULL) {
             //
-            // These sends were queued by the app after queueing a graceful
+            // These sends were queued by the app after queuing a graceful
             // shutdown. Bad app!
             //
             QUIC_SEND_REQUEST* SendRequest = ApiSendRequests;
@@ -171,7 +171,7 @@ QuicStreamSendShutdown(
 
     } else if (Stream->ReliableOffsetSend == 0 || Stream->Flags.LocalCloseResetReliable) {
         //
-        // Enter abortive branch if we are not aborting reliablely or we have done it already.
+        // Enter abortive branch if we are not aborting reliably or we have done it already.
         // Essentially, Reset trumps Reliable Reset, so if we have to call shutdown again, we reset.
         //
 
@@ -612,6 +612,15 @@ QuicStreamSendFlush(
         TotalBytesSent += (int64_t) SendRequest->TotalLength;
 
         CXPLAT_DBG_ASSERT(!(SendRequest->Flags & QUIC_SEND_FLAG_BUFFERED));
+
+        //
+        // If a send has the 'cancel on loss' flag set, we irreversibly switch
+        // the associated stream over to that behavior.
+        //
+        if (!Stream->Flags.CancelOnLoss &&
+            (SendRequest->Flags & QUIC_SEND_FLAG_CANCEL_ON_LOSS) != 0) {
+            Stream->Flags.CancelOnLoss = TRUE;
+        }
 
         if (!Stream->Flags.SendEnabled) {
             //
@@ -1364,6 +1373,27 @@ QuicStreamOnLoss(
 Done:
 
     if (AddSendFlags != 0) {
+        //
+        // Check stream's 'cancel on loss' flag to determine how to handle
+        // the resends queued up at this point.
+        //
+        if (Stream->Flags.CancelOnLoss) {
+            QUIC_STREAM_EVENT Event;
+            Event.Type = QUIC_STREAM_EVENT_CANCEL_ON_LOSS;
+            Event.CANCEL_ON_LOSS.ErrorCode = 0;
+            (void)QuicStreamIndicateEvent(Stream, &Event);
+
+            //
+            // Immediately terminate stream (in both directions, if open)
+            // giving the error code from the app.
+            //
+            QuicStreamShutdown(
+                Stream,
+                QUIC_STREAM_SHUTDOWN_FLAG_ABORT,
+                Event.CANCEL_ON_LOSS.ErrorCode);
+
+            return FALSE; // Don't resend any data.
+        }
 
         if (!Stream->Flags.InRecovery) {
             Stream->Flags.InRecovery = TRUE; // TODO - Do we really need to be in recovery if no real data bytes need to be recovered?

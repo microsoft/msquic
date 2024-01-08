@@ -592,6 +592,24 @@ class WithAbortiveArgs : public testing::Test,
     public testing::WithParamInterface<AbortiveArgs> {
 };
 
+struct CancelOnLossArgs {
+    bool DropPackets;
+    static ::std::vector<CancelOnLossArgs> Generate() {
+        ::std::vector<CancelOnLossArgs> list;
+        for (bool DropPackets : {false, true})
+            list.push_back({ DropPackets });
+        return list;
+    }
+};
+
+std::ostream& operator << (std::ostream& o, const CancelOnLossArgs& args) {
+    return o << "DropPackets: " << (args.DropPackets ? "true" : "false");
+}
+
+class WithCancelOnLossArgs : public testing::Test,
+    public testing::WithParamInterface<CancelOnLossArgs> {
+};
+
 struct CidUpdateArgs {
     int Family;
     uint16_t Iterations;
