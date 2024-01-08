@@ -19,8 +19,7 @@ QUIC_STATUS
 PerfClient::Init(
     _In_ int argc,
     _In_reads_(argc) _Null_terminated_ char* argv[],
-    _In_z_ const char* target,
-    _In_ CXPLAT_DATAPATH* Datapath
+    _In_z_ const char* target
     ) {
     if (!Configuration.IsValid()) {
         return Configuration.GetInitStatus();

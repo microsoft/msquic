@@ -19,6 +19,7 @@ Abstract:
 #define QUIC_API_ENABLE_PREVIEW_FEATURES  1 // For CIBIR extension
 
 #include "quic_platform.h"
+#include "quic_datapath.h"
 #include "quic_hashtable.h"
 #include "quic_trace.h"
 #include "msquic.hpp"
@@ -45,6 +46,8 @@ extern QUIC_EXECUTION_PROFILE PerfDefaultExecutionProfile;
 extern QUIC_CONGESTION_CONTROL_ALGORITHM PerfDefaultCongestionControl;
 extern uint8_t PerfDefaultEcnEnabled;
 extern uint8_t PerfDefaultQeoAllowed;
+
+extern CXPLAT_DATAPATH* Datapath;
 
 extern
 QUIC_STATUS

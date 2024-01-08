@@ -234,19 +234,19 @@ QuicMainStart(
 
     if (Target) {
         Client = new(std::nothrow) PerfClient;
-        if ((QUIC_SUCCEEDED(Status = Client->Init(argc, argv, Target, Datapath)) &&
+        if ((QUIC_SUCCEEDED(Status = Client->Init(argc, argv, Target)) &&
              QUIC_SUCCEEDED(Status = Client->Start(StopEvent)))) {
             return QUIC_STATUS_SUCCESS;
         }
     } else {
         Server = new(std::nothrow) PerfServer(SelfSignedCredConfig);
-        if ((QUIC_SUCCEEDED(Status = Server->Init(argc, argv, Datapath)) &&
+        if ((QUIC_SUCCEEDED(Status = Server->Init(argc, argv)) &&
              QUIC_SUCCEEDED(Status = Server->Start(StopEvent)))) {
             return QUIC_STATUS_SUCCESS;
         }
     }
 
-    PrintHelp();
+    WriteOutput("\nPlease run 'secnetperf -help' for command line options.\n");
 
     return Status; // QuicMainFree is called on failure
 }
