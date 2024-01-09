@@ -1774,7 +1774,8 @@ __forceinline
 NTSTATUS
 MsQuicNmrClientRegister(
     _Out_ HANDLE* ClientHandle,
-    _In_ GUID* ClientModuleId
+    _In_ GUID* ClientModuleId,
+    _In_ ULONG TimeoutMs
     )
 {
     NPI_REGISTRATION_INSTANCE *ClientRegistrationInstance;
@@ -1810,9 +1811,15 @@ MsQuicNmrClientRegister(
         goto Exit;
     }
 
+    LARGE_INTEGER Timeout;
+    Timeout.QuadPart = UInt32x32To64(TimeoutMs, 10000);
+    Timeout.QuadPart = -Timeout.QuadPart;
+
     Status =
         KeWaitForSingleObject(
-            &Client->RegistrationCompleteEvent, Executive, KernelMode, FALSE, NULL);
+            &Client->RegistrationCompleteEvent,
+            Executive, KernelMode, FALSE,
+            TimeoutMs != 0 ? &Timeout : NULL);
     if (Status != STATUS_SUCCESS) {
         Status = STATUS_UNSUCCESSFUL;
         goto Exit;
