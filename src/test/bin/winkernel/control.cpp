@@ -82,7 +82,7 @@ QuicTestCtlInitialize(
     WDF_IO_QUEUE_CONFIG QueueConfig;
     WDFQUEUE Queue;
 
-    Status = MsQuicNmrClientRegister(&NmrClient, &MSQUIC_MODULE_ID);
+    Status = MsQuicNmrClientRegister(&NmrClient, &MSQUIC_MODULE_ID, 5000);
     if (!NT_SUCCESS(Status)) {
         QuicTraceEvent(
             LibraryErrorStatus,
