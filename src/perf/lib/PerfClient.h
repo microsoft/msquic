@@ -176,7 +176,7 @@ struct PerfClient {
     QUIC_ADDR RemoteAddr {0};
     uint32_t CibirIdLength {0};
     uint8_t CibirId[7]; // {offset, values}
-    uint8_t IncrementTarget {FALSE};
+    uint8_t IncrementTarget {TRUE};
     // Local execution parameters
     uint32_t WorkerCount;
     uint8_t AffinitizeWorkers {FALSE};
@@ -198,13 +198,13 @@ struct PerfClient {
     uint32_t ConnectionCount {1};
     uint32_t StreamCount {0};
     uint32_t IoSize {PERF_DEFAULT_IO_SIZE};
-    uint32_t Upload {0};
-    uint32_t Download {0};
+    uint64_t Upload {0};
+    uint64_t Download {0};
     uint8_t Timed {FALSE};
     //uint8_t SendInline {FALSE};
     uint8_t RepeatConnections {FALSE};
     uint8_t RepeatStreams {FALSE};
-    uint32_t RunTime {0};
+    uint64_t RunTime {0};
 
     struct PerfIoBuffer {
         QUIC_BUFFER* Buffer {nullptr};
