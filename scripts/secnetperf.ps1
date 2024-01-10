@@ -11,12 +11,16 @@ This script assumes the latest MsQuic commit is built and downloaded as artifact
     The MsQuic commit to use for the test. Defaults to "manual" which means the latest commit built and downloaded as artifacts in the current session.
 
 .PARAMETER plat
+    The platform (linux or windows) this test is running on.
 
 .PARAMETER os
+    The full OS name and version being tested (i.e., ubuntu-20.04).
 
 .PARAMETER arch
+    The architecture being tested (i.e., x64).
 
 .PARAMETER tls
+    The TLS library being used (openssl or schannel). Not all libraries are supported on all platforms.
 
 #>
 
