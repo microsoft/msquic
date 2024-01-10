@@ -228,43 +228,43 @@ $lowlat = @(
 $SQL += Run-Secnetperf $maxtputIds $maxtput $exe $json
 
 # Start and restart the SecNetPerf server without maxtput.
-Write-Output "Restarting server without maxtput..."
+# Write-Output "Restarting server without maxtput..."
 
-if ($isWindows) {
-    Invoke-Command -Session $Session -ScriptBlock {
-        Get-Process | Where-Object { $_.Name -eq "secnetperf.exe" } | Stop-Process
-    }
-} else {
-    Invoke-Command -Session $Session -ScriptBlock {
-        Get-Process | Where-Object { $_.Name -eq "secnetperf" } | Stop-Process
-    }
-}
+# if ($isWindows) {
+#     Invoke-Command -Session $Session -ScriptBlock {
+#         Get-Process | Where-Object { $_.Name -eq "secnetperf.exe" } | Stop-Process
+#     }
+# } else {
+#     Invoke-Command -Session $Session -ScriptBlock {
+#         Get-Process | Where-Object { $_.Name -eq "secnetperf" } | Stop-Process
+#     }
+# }
 
-Start-Sleep -Seconds 5
+# Start-Sleep -Seconds 5
 
-if ($isWindows) {
-    $Job = Invoke-Command -Session $Session -ScriptBlock {
-        C:\_work\quic\artifacts\bin\windows\x64_Release_schannel\secnetperf.exe 
-    } -AsJob
-} else {
-    $Job = Invoke-Command -Session $Session -ScriptBlock {
-        $env:LD_LIBRARY_PATH = "${env:LD_LIBRARY_PATH}:/home/secnetperf/_work/artifacts/bin/linux/x64_Release_openssl/"
-        chmod +x /home/secnetperf/_work/artifacts/bin/linux/x64_Release_openssl/secnetperf
-        /home/secnetperf/_work/artifacts/bin/linux/x64_Release_openssl/secnetperf 
-    } -AsJob
-}
+# if ($isWindows) {
+#     $Job = Invoke-Command -Session $Session -ScriptBlock {
+#         C:\_work\quic\artifacts\bin\windows\x64_Release_schannel\secnetperf.exe 
+#     } -AsJob
+# } else {
+#     $Job = Invoke-Command -Session $Session -ScriptBlock {
+#         $env:LD_LIBRARY_PATH = "${env:LD_LIBRARY_PATH}:/home/secnetperf/_work/artifacts/bin/linux/x64_Release_openssl/"
+#         chmod +x /home/secnetperf/_work/artifacts/bin/linux/x64_Release_openssl/secnetperf
+#         /home/secnetperf/_work/artifacts/bin/linux/x64_Release_openssl/secnetperf 
+#     } -AsJob
+# }
 
-# Wait for the server to start.
-Write-Output "Waiting for server to start..."
-$ReadyToStart = Wait-ForRemoteReady -Job $Job -Matcher "Started!"
-if (!$ReadyToStart) {
-    Stop-Job -Job $RemoteJob
-    $RemoteResult = Receive-Job -Job $Job -ErrorAction $ErrorAction
-    $RemoteResult = $RemoteResult -join "`n"
-    Write-GHError "Server failed to start! Output:"
-    Write-Output $RemoteResult
-    throw "Server failed to start!"
-}
+# # Wait for the server to start.
+# Write-Output "Waiting for server to start..."
+# $ReadyToStart = Wait-ForRemoteReady -Job $Job -Matcher "Started!"
+# if (!$ReadyToStart) {
+#     Stop-Job -Job $RemoteJob
+#     $RemoteResult = Receive-Job -Job $Job -ErrorAction $ErrorAction
+#     $RemoteResult = $RemoteResult -join "`n"
+#     Write-GHError "Server failed to start! Output:"
+#     Write-Output $RemoteResult
+#     throw "Server failed to start!"
+# }
 
 $SQL += Run-Secnetperf $lowlatIds $lowlat $exe $json
 

@@ -1,6 +1,11 @@
+# Write a GitHub error message to the console.
+function Write-GHError($msg) {
+    Write-Host "::error::$msg"
+}
+
 function Run-Secnetperf($testIds, $commands, $exe, $json) {
 
-    Write-Host "Running tests"
+    Write-Host "Running Secnetperf tests..."
 
     $SQL = @"
 "@
@@ -10,21 +15,21 @@ function Run-Secnetperf($testIds, $commands, $exe, $json) {
     for ($tcp = 0; $tcp -lt 2; $tcp++) {
     for ($try = 0; $try -lt 3; $try++) {
         $command = "$exe -target:netperf-peer $($commands[$i]) -tcp:$tcp -trimout"
-        Write-Output "Running test: $command"
+        Write-Host "Running test: $command"
 
         try {
             $rawOutput = Invoke-Expression $command
         } catch {
             Write-GHError "Failed to run test: $($commands[$i])"
             Write-GHError $_
-            $encounterFailures = $true
+            $script:encounterFailures = $true
             continue
         }
 
         if ($rawOutput.Contains("Error")) {
             $rawOutput = $rawOutput.Substring(7) # Skip over the 'Error: ' prefix
             Write-GHError $rawOutput
-            $encounterFailures = $true
+            $script:encounterFailures = $true
             continue
         }
         Write-Host $rawOutput
