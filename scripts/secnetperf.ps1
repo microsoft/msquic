@@ -153,7 +153,11 @@ Write-Output "Waiting for server to start..."
 $ReadyToStart = Wait-ForRemoteReady -Job $Job -Matcher "Started!"
 if (!$ReadyToStart) {
     Stop-Job -Job $RemoteJob
-    Write-Error "Server failed to start"
+    $RemoteResult = Receive-Job -Job $Job -ErrorAction $ErrorAction
+    $RemoteResult = $RemoteResult -join "`n"
+    Write-Output "::error::Server failed to start! Output:"
+    Write-Output $RemoteResult
+    throw "Server failed to start!"
 }
 
 # Run secnetperf on the client.
