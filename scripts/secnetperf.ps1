@@ -83,6 +83,8 @@ if ($isWindows) {
     Copy-Item -ToSession $Session ./scripts -Destination /home/secnetperf/_work/scripts -Recurse
 }
 
+$encounterFailures = $false
+
 try {
 
 mkdir .\artifacts\logs | Out-Null
@@ -199,17 +201,20 @@ for ($try = 0; $try -lt 3; $try++) {
 
     try {
         $rawOutput = Invoke-Expression $command
-        $rawOutput
     } catch {
         Write-Host "::error::Failed to run test: $($commands[$i])"
         Write-Host "::error::$_"
+        $encounterFailures = $true
         continue
     }
 
     if ($rawOutput.Contains("Error")) {
+        $rawOutput.Substring(7) # Skip over the 'Error: ' prefix
         Write-Host "::error::$rawOutput"
+        $encounterFailures = $true
         continue
     }
+    $rawOutput
 
     if ($testIds[$i].Contains("rps")) {
         $latency_percentiles = '(?<=\d{1,3}(?:\.\d{1,2})?th: )\d+'
@@ -302,8 +307,14 @@ $FileName = "json-test-results-$plat-$os-$arch-$tls.json"
 $json | ConvertTo-Json | Set-Content -Path $FileName
 
 } catch {
-    Write-Error "Failed to run some tests..."
+    Write-Error "Exception occurred while running tests..."
     Write-Error $_
+    exit 1
 } finally {
     # TODO: Do any further book keeping here.
+}
+
+if ($encounterFailures) {
+    Write-Error "Errors occurred while running tests."
+    exit 1
 }
