@@ -159,8 +159,8 @@ function Wait-ForRemoteReady {
 Write-Output "Waiting for server to start..."
 $ReadyToStart = Wait-ForRemoteReady -Job $Job -Matcher "Started!"
 if (!$ReadyToStart) {
-    Stop-Job -Job $RemoteJob
-    $RemoteResult = Receive-Job -Job $Job -ErrorAction $ErrorAction
+    Stop-Job -Job $Job
+    $RemoteResult = Receive-Job -Job $Job -ErrorAction Stop
     $RemoteResult = $RemoteResult -join "`n"
     Write-GHError "Server failed to start! Output:"
     Write-Output $RemoteResult
