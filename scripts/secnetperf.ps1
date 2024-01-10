@@ -194,7 +194,7 @@ $commands = @(
 for ($i = 0; $i -lt $commands.Count; $i++) {
 for ($tcp = 0; $tcp -lt 2; $tcp++) {
 for ($try = 0; $try -lt 3; $try++) {
-    $command = "$exe -target:netperf-peer $($commands[$i]) -tcp:$tcp"
+    $command = "$exe -target:netperf-peer $($commands[$i]) -tcp:$tcp -trimout"
     Write-Output "Running test: $command"
 
     try {
