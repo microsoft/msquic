@@ -167,6 +167,27 @@ if (!$ReadyToStart) {
     throw "Server failed to start!"
 }
 
+function Wait-ForRemote {
+    param ($Job, $ErrorAction = "Stop")
+    # Ping side-channel socket on 9999 to tell the app to die
+    $Socket = New-Object System.Net.Sockets.UDPClient
+    $BytesToSend = @(
+        0x57, 0xe6, 0x15, 0xff, 0x26, 0x4f, 0x0e, 0x57,
+        0x88, 0xab, 0x07, 0x96, 0xb2, 0x58, 0xd1, 0x1c
+    )
+    for ($i = 0; $i -lt 120; $i++) {
+        $Socket.Send($BytesToSend, $BytesToSend.Length, $RemoteAddress, 9999) | Out-Null
+        $Completed = Wait-Job -Job $Job -Timeout 1
+        if ($null -ne $Completed) {
+            break;
+        }
+    }
+
+    Stop-Job -Job $Job | Out-Null
+    $RetVal = Receive-Job -Job $Job -ErrorAction $ErrorAction
+    return $RetVal -join "`n"
+}
+
 # Run secnetperf on the client.
 Write-Output "Running tests on the client..."
 
@@ -228,43 +249,33 @@ $lowlat = @(
 $SQL += Run-Secnetperf $maxtputIds $maxtput $exe $json
 
 # Start and restart the SecNetPerf server without maxtput.
-# Write-Output "Restarting server without maxtput..."
-
-# if ($isWindows) {
-#     Invoke-Command -Session $Session -ScriptBlock {
-#         Get-Process | Where-Object { $_.Name -eq "secnetperf.exe" } | Stop-Process
-#     }
-# } else {
-#     Invoke-Command -Session $Session -ScriptBlock {
-#         Get-Process | Where-Object { $_.Name -eq "secnetperf" } | Stop-Process
-#     }
-# }
-
-# Start-Sleep -Seconds 5
-
-# if ($isWindows) {
-#     $Job = Invoke-Command -Session $Session -ScriptBlock {
-#         C:\_work\quic\artifacts\bin\windows\x64_Release_schannel\secnetperf.exe 
-#     } -AsJob
-# } else {
-#     $Job = Invoke-Command -Session $Session -ScriptBlock {
-#         $env:LD_LIBRARY_PATH = "${env:LD_LIBRARY_PATH}:/home/secnetperf/_work/artifacts/bin/linux/x64_Release_openssl/"
-#         chmod +x /home/secnetperf/_work/artifacts/bin/linux/x64_Release_openssl/secnetperf
-#         /home/secnetperf/_work/artifacts/bin/linux/x64_Release_openssl/secnetperf 
-#     } -AsJob
-# }
-
-# # Wait for the server to start.
-# Write-Output "Waiting for server to start..."
-# $ReadyToStart = Wait-ForRemoteReady -Job $Job -Matcher "Started!"
-# if (!$ReadyToStart) {
-#     Stop-Job -Job $RemoteJob
-#     $RemoteResult = Receive-Job -Job $Job -ErrorAction $ErrorAction
-#     $RemoteResult = $RemoteResult -join "`n"
-#     Write-GHError "Server failed to start! Output:"
-#     Write-Output $RemoteResult
-#     throw "Server failed to start!"
-# }
+Write-Host "Restarting server without maxtput..."
+Write-Host "`nStopping server. Server Output:"
+$RemoteResults = Wait-ForRemote $Job
+Write-Host $RemoteResults.ToString()
+Write-Host "Starting server back up again..."
+if ($isWindows) {
+    $Job = Invoke-Command -Session $Session -ScriptBlock {
+        C:\_work\quic\artifacts\bin\windows\x64_Release_schannel\secnetperf.exe 
+    } -AsJob
+} else {
+    $Job = Invoke-Command -Session $Session -ScriptBlock {
+        $env:LD_LIBRARY_PATH = "${env:LD_LIBRARY_PATH}:/home/secnetperf/_work/artifacts/bin/linux/x64_Release_openssl/"
+        chmod +x /home/secnetperf/_work/artifacts/bin/linux/x64_Release_openssl/secnetperf
+        /home/secnetperf/_work/artifacts/bin/linux/x64_Release_openssl/secnetperf 
+    } -AsJob
+}
+# Wait for the server to start.
+Write-Output "Waiting for server to start..."
+$ReadyToStart = Wait-ForRemoteReady -Job $Job -Matcher "Started!"
+if (!$ReadyToStart) {
+    Stop-Job -Job $RemoteJob
+    $RemoteResult = Receive-Job -Job $Job -ErrorAction $ErrorAction
+    $RemoteResult = $RemoteResult -join "`n"
+    Write-GHError "Server failed to start! Output:"
+    Write-Output $RemoteResult
+    throw "Server failed to start!"
+}
 
 $SQL += Run-Secnetperf $lowlatIds $lowlat $exe $json
 
@@ -273,27 +284,6 @@ $SQL += Run-Secnetperf $lowlatIds $lowlat $exe $json
     # END TEST EXECUTION
 
 ####################################################################################################
-
-function Wait-ForRemote {
-    param ($Job, $ErrorAction = "Stop")
-    # Ping side-channel socket on 9999 to tell the app to die
-    $Socket = New-Object System.Net.Sockets.UDPClient
-    $BytesToSend = @(
-        0x57, 0xe6, 0x15, 0xff, 0x26, 0x4f, 0x0e, 0x57,
-        0x88, 0xab, 0x07, 0x96, 0xb2, 0x58, 0xd1, 0x1c
-    )
-    for ($i = 0; $i -lt 120; $i++) {
-        $Socket.Send($BytesToSend, $BytesToSend.Length, $RemoteAddress, 9999) | Out-Null
-        $Completed = Wait-Job -Job $Job -Timeout 1
-        if ($null -ne $Completed) {
-            break;
-        }
-    }
-
-    Stop-Job -Job $Job | Out-Null
-    $RetVal = Receive-Job -Job $Job -ErrorAction $ErrorAction
-    return $RetVal -join "`n"
-}
 
 # Kill the server process.
 Write-Output "`nStopping server. Server Output:"
