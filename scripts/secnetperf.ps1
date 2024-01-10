@@ -92,13 +92,13 @@ mkdir .\artifacts\logs | Out-Null
 # Prepare the machines for the testing.
 
 if ($isWindows) {
-    Write-Output "Skipping prepare machine for now on Windows..."
+    #Write-Output "Skipping prepare machine for now on Windows..."
     # Write-Output "Preparing machines for testing..."
     # .\scripts\prepare-machine.ps1 -ForTest
 
-    # Invoke-Command -Session $Session -ScriptBlock {
-    #     C:\_work\quic\scripts\prepare-machine.ps1 -ForTest
-    # }
+    Invoke-Command -Session $Session -ScriptBlock {
+        C:\_work\quic\scripts\prepare-machine.ps1 -ForTest
+    }
 } else {
     Write-Output "Skipping prepare machine for now on Linux..."
 
@@ -267,7 +267,6 @@ if ($LogProfile -ne "" -and $LogProfile -ne "NULL") { # TODO: Linux back slash w
     Write-Output "Stopping logging..."
     .\scripts\log.ps1 -Stop -OutputPath .\artifacts\logs\quic
 }
-#Get-Content .\artifacts\logs\quic.log
 
 function Wait-ForRemote {
     param ($Job, $ErrorAction = "Stop")
@@ -291,20 +290,15 @@ function Wait-ForRemote {
 }
 
 # Kill the server process.
-Write-Output Wait-ForRemote $Job
+$RemoteResults = Wait-ForRemote $Job
+Write-Output $RemoteResults.ToString()
 
-# Save the test results.
-Write-Output "Saving test results..."
+# Save the test results (sql and json).
+Write-Output "`nWriting test-results-$plat-$os-$arch-$tls.sql..."
+$SQL | Set-Content -Path "test-results-$plat-$os-$arch-$tls.sql"
 
-# Save as a .sql file
-$FileName = "test-results-$plat-$os-$arch-$tls.sql"
-
-Set-Content -Path $FileName -Value $SQL
-
-# Save as a .json file
-$FileName = "json-test-results-$plat-$os-$arch-$tls.json"
-
-$json | ConvertTo-Json | Set-Content -Path $FileName
+Write-Output "`nWriting json-test-results-$plat-$os-$arch-$tls.json..."
+$json | ConvertTo-Json | Set-Content -Path "json-test-results-$plat-$os-$arch-$tls.json"
 
 } catch {
     Write-Error "Exception occurred while running tests..."
