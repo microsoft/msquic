@@ -132,10 +132,29 @@ if ($isWindows) {
     } -AsJob
 }
 
+function Wait-ForRemoteReady {
+    param ($Job, $Matcher)
+    $StopWatch =  [system.diagnostics.stopwatch]::StartNew()
+    while ($StopWatch.ElapsedMilliseconds -lt 10000) {
+        $CurrentResults = Receive-Job -Job $Job -Keep -ErrorAction Continue
+        if (![string]::IsNullOrWhiteSpace($CurrentResults)) {
+            $DidMatch = $CurrentResults -match $Matcher
+            if ($DidMatch) {
+                return $true
+            }
+        }
+        Start-Sleep -Seconds 0.1 | Out-Null
+    }
+    return $false
+}
 
 # Wait for the server to start.
 Write-Output "Waiting for server to start..."
-Start-Sleep -Seconds 10
+$ReadyToStart = Wait-ForRemoteReady -Job $Job -Matcher "Started!"
+if (!$ReadyToStart) {
+    Stop-Job -Job $RemoteJob
+    Write-Error "Server failed to start"
+}
 
 # Run secnetperf on the client.
 Write-Output "Running tests on the client..."
@@ -209,12 +228,12 @@ for ($try = 0; $try -lt 3; $try++) {
     }
 
     if ($rawOutput.Contains("Error")) {
-        $rawOutput.Substring(7) # Skip over the 'Error: ' prefix
+        $rawOutput = $rawOutput.Substring(7) # Skip over the 'Error: ' prefix
         Write-Host "::error::$rawOutput"
         $encounterFailures = $true
         continue
     }
-    $rawOutput
+    Write-Host $rawOutput
 
     if ($testIds[$i].Contains("rps")) {
         $latency_percentiles = '(?<=\d{1,3}(?:\.\d{1,2})?th: )\d+'
@@ -290,6 +309,7 @@ function Wait-ForRemote {
 }
 
 # Kill the server process.
+Write-Output "`nStopping server. Server Output:"
 $RemoteResults = Wait-ForRemote $Job
 Write-Output $RemoteResults.ToString()
 
