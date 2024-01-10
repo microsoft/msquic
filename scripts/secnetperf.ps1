@@ -39,6 +39,8 @@ param (
     [string]$tls = "schannel"
 )
 
+. .\scripts\secnetperf-run-test.ps1
+
 # Write a GitHub error message to the console.
 function Write-GHError($msg) {
     Write-Host "::error::$msg"
@@ -58,7 +60,7 @@ if ($null -eq $Session) {
 }
 
 $RemoteAddress = $Session.ComputerName
-Write-Output "Successfully conencted to peer: $RemoteAddress"
+Write-Output "Successfully connected to peer: $RemoteAddress"
 
 # Make sure nothing is running from a previous run.
 if ($isWindows) {
@@ -174,8 +176,6 @@ Write-Output "Running tests on the client..."
 
 ####################################################################################################
 
-# TODO:
-
 $SQL = @"
 
 INSERT OR IGNORE INTO Secnetperf_builds (Secnetperf_Commit, Build_date_time, TLS_enabled, Advanced_build_config)
@@ -205,84 +205,68 @@ if (!$isWindows) {
 
 $json = @{}
 
-# TODO: Make a more elaborate execution strategy instead of just a list of commands. Also add more tests.
-
-$testIds = @(
+$maxtputIds = @(
     "throughput-upload",
     "throughput-download",
-    "rps-1conn-1stream",
     "hps"
 )
 
-$commands = @(
+$lowlatIds = @(
+    "rps-1conn-1stream"
+)
+
+$maxtput = @(
     "-exec:maxtput -up:10s -ptput:1",
     "-exec:maxtput -down:10s -ptput:1",
-    "-exec:lowlat -rstream:1 -up:512 -down:4000 -run:10s -plat:1",
     "-exec:maxtput -rconn:1 -share:1 -conns:100 -run:10s -prate:1"
 )
 
-for ($i = 0; $i -lt $commands.Count; $i++) {
-for ($tcp = 0; $tcp -lt 2; $tcp++) {
-for ($try = 0; $try -lt 3; $try++) {
-    $command = "$exe -target:netperf-peer $($commands[$i]) -tcp:$tcp -trimout"
-    Write-Output "Running test: $command"
+$lowlat = @(
+    "-exec:lowlat -rstream:1 -up:512 -down:4000 -run:10s -plat:1"
+)
 
-    try {
-        $rawOutput = Invoke-Expression $command
-    } catch {
-        Write-GHError "Failed to run test: $($commands[$i])"
-        Write-GHError $_
-        $encounterFailures = $true
-        continue
+$SQL += Run-Secnetperf $maxtputIds $maxtput $exe $json
+
+# Start and restart the SecNetPerf server without maxtput.
+Write-Output "Restarting server without maxtput..."
+
+if ($isWindows) {
+    Invoke-Command -Session $Session -ScriptBlock {
+        Get-Process | Where-Object { $_.Name -eq "secnetperf.exe" } | Stop-Process
     }
-
-    if ($rawOutput.Contains("Error")) {
-        $rawOutput = $rawOutput.Substring(7) # Skip over the 'Error: ' prefix
-        Write-GHError $rawOutput
-        $encounterFailures = $true
-        continue
+} else {
+    Invoke-Command -Session $Session -ScriptBlock {
+        Get-Process | Where-Object { $_.Name -eq "secnetperf" } | Stop-Process
     }
-    Write-Host $rawOutput
+}
 
-    if ($testIds[$i].Contains("rps")) {
-        $latency_percentiles = '(?<=\d{1,3}(?:\.\d{1,2})?th: )\d+'
-        $Perc = [regex]::Matches($rawOutput, $latency_percentiles) | ForEach-Object {$_.Value}
-        $json[$testIds[$i]] = $Perc
-        # TODO: SQL += ...
-        continue
-    }
+Start-Sleep -Seconds 5
 
-    $throughput = '@ (\d+) kbps'
+if ($isWindows) {
+    $Job = Invoke-Command -Session $Session -ScriptBlock {
+        C:\_work\quic\artifacts\bin\windows\x64_Release_schannel\secnetperf.exe 
+    } -AsJob
+} else {
+    $Job = Invoke-Command -Session $Session -ScriptBlock {
+        $env:LD_LIBRARY_PATH = "${env:LD_LIBRARY_PATH}:/home/secnetperf/_work/artifacts/bin/linux/x64_Release_openssl/"
+        chmod +x /home/secnetperf/_work/artifacts/bin/linux/x64_Release_openssl/secnetperf
+        /home/secnetperf/_work/artifacts/bin/linux/x64_Release_openssl/secnetperf 
+    } -AsJob
+}
 
-    $testId = $testIds[$i]
-    if ($tcp -eq 1) {
-        $testId += "-tcp"
-    } else {
-        $testId += "quic"
-    }
-    $testId += "-$MsQuicCommit"
+# Wait for the server to start.
+Write-Output "Waiting for server to start..."
+$ReadyToStart = Wait-ForRemoteReady -Job $Job -Matcher "Started!"
+if (!$ReadyToStart) {
+    Stop-Job -Job $RemoteJob
+    $RemoteResult = Receive-Job -Job $Job -ErrorAction $ErrorAction
+    $RemoteResult = $RemoteResult -join "`n"
+    Write-GHError "Server failed to start! Output:"
+    Write-Output $RemoteResult
+    throw "Server failed to start!"
+}
 
-    foreach ($line in $rawOutput) {
-        if ($line -match $throughput) {
-
-            $num = $matches[1]
-
-            # Generate SQL statement
-            $SQL += @"
-
-INSERT INTO Secnetperf_test_runs (Secnetperf_test_ID, Client_environment_ID, Server_environment_ID, Result, Latency_stats_ID, Units)
-VALUES ('$($testIds[$i])', 'azure_vm', 'azure_vm', $num, NULL, 'kbps');
-
-"@
-
-            # Generate JSON
-            $json[$testIds[$i]] = $num
-            break
-        }
-    }
-
-    Start-Sleep -Seconds 1
-}}}
+$SQL += Run-Secnetperf $lowlatIds $lowlat $exe $json
 
 ####################################################################################################
 
