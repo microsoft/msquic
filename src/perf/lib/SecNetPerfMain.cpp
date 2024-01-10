@@ -52,7 +52,7 @@ PrintHelp(
         "  -ip:<0/4/6>              A hint for the resolving the hostname to an IP address. (def:0)\n"
         "  -port:<####>             The UDP port of the server. (def:%u)\n"
         "  -cibir:<hex_bytes>       A CIBIR well-known idenfitier.\n"
-        "  -inctarget:<0/1>         Append unique ID to target hostname for each worker (def:0).\n"
+        "  -inctarget:<0/1>         Append unique ID to target hostname for each worker (def:1).\n"
         "\n"
         "  Local options:\n"
         "  -threads:<####>          The max number of worker threads to use.\n"
@@ -76,14 +76,13 @@ PrintHelp(
         "  Scenario options:\n"
         "  -conns:<####>            The number of connections to use. (def:1)\n"
         "  -streams:<####>          The number of streams to send on at a time. (def:0)\n"
-        "  -upload:<####>           The length of bytes to send on each stream. (def:0)\n"
-        "  -download:<####>         The length of bytes to receive on each stream. (def:0)\n"
+        "  -upload:<####>[unit]     The length of bytes to send on each stream, with an optional (time or length) unit. (def:0)\n"
+        "  -download:<####>[unit]   The length of bytes to receive on each stream, with an optional (time or length) unit. (def:0)\n"
         "  -iosize:<####>           The size of each send request queued.\n"
-        "  -timed:<0/1>             Indicates the upload/download args are times (in ms). (def:0)\n"
         //"  -inline:<0/1>            Create new streams on callbacks. (def:0)\n"
         "  -rconn:<0/1>             Repeat the scenario at the connection level. (def:0)\n"
         "  -rstream:<0/1>           Repeat the scenario at the stream level. (def:0)\n"
-        "  -runtime:<####>          The total runtime (in ms). Only relevant for repeat scenarios. (def:0)\n"
+        "  -runtime:<####>[unit]    The total runtime, with an optional unit (def unit is us). Only relevant for repeat scenarios. (def:0)\n"
         "\n"
         "Both (client & server) options:\n"
         "  -exec:<profile>          Execution profile to use {lowlat, maxtput, scavenger, realtime}.\n"
@@ -234,19 +233,19 @@ QuicMainStart(
 
     if (Target) {
         Client = new(std::nothrow) PerfClient;
-        if ((QUIC_SUCCEEDED(Status = Client->Init(argc, argv, Target, Datapath)) &&
+        if ((QUIC_SUCCEEDED(Status = Client->Init(argc, argv, Target)) &&
              QUIC_SUCCEEDED(Status = Client->Start(StopEvent)))) {
             return QUIC_STATUS_SUCCESS;
         }
     } else {
         Server = new(std::nothrow) PerfServer(SelfSignedCredConfig);
-        if ((QUIC_SUCCEEDED(Status = Server->Init(argc, argv, Datapath)) &&
+        if ((QUIC_SUCCEEDED(Status = Server->Init(argc, argv)) &&
              QUIC_SUCCEEDED(Status = Server->Start(StopEvent)))) {
             return QUIC_STATUS_SUCCESS;
         }
     }
 
-    PrintHelp();
+    WriteOutput("\nPlease run 'secnetperf -help' for command line options.\n");
 
     return Status; // QuicMainFree is called on failure
 }

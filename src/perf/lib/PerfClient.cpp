@@ -15,12 +15,63 @@ Abstract:
 #include "PerfClient.cpp.clog.h"
 #endif
 
+const char* TimeUnits[] = { "m", "ms", "us", "s" };
+const uint64_t TimeMult[] = { 60 * 1000 * 1000, 1000, 1, 1000 * 1000 };
+const char* SizeUnits[] = { "gb", "mb", "kb", "b" };
+const uint64_t SizeMult[] = { 1000 * 1000 * 1000, 1000 * 1000, 1000, 1 };
+
+_Success_(return != false)
+bool
+TryGetVariableUnitValue(
+    _In_ int argc,
+    _In_reads_(argc) _Null_terminated_ char* argv[],
+    _In_z_ const char** names,
+    _Out_ uint64_t* pValue,
+    _Out_ bool* isTimed
+    )
+{
+    *isTimed = false; // Default
+
+    // Search for the first matching name.
+    char* value = nullptr;
+    while (*names && (value = (char*)GetValue(argc, argv, *names)) == nullptr) {
+        names++;
+    }
+    if (!value) { return false; }
+
+    // Search to see if the value has a time unit specified at the end.
+    for (uint32_t i = 0; i < ARRAYSIZE(TimeUnits); ++i) {
+        size_t len = strlen(TimeUnits[i]);
+        if (len < strlen(value) &&
+            _strnicmp(value + strlen(value) - len, TimeUnits[i], len) == 0) {
+            *isTimed = true;
+            value[strlen(value) - len] = '\0';
+            *pValue = (uint64_t)atoi(value) * TimeMult[i];
+            return true;
+        }
+    }
+
+    // Search to see if the value has a size unit specified at the end.
+    for (uint32_t i = 0; i < ARRAYSIZE(SizeUnits); ++i) {
+        size_t len = strlen(SizeUnits[i]);
+        if (len < strlen(value) &&
+            _strnicmp(value + strlen(value) - len, SizeUnits[i], len) == 0) {
+            value[strlen(value) - len] = '\0';
+            *pValue = (uint64_t)atoi(value) * SizeMult[i];
+            return true;
+        }
+    }
+
+    // Default to bytes if no unit is specified.
+    *pValue = (uint64_t)atoi(value);
+    return true;
+}
+
 QUIC_STATUS
 PerfClient::Init(
     _In_ int argc,
     _In_reads_(argc) _Null_terminated_ char* argv[],
-    _In_z_ const char* target,
-    _In_ CXPLAT_DATAPATH* Datapath
+    _In_z_ const char* target
     ) {
     if (!Configuration.IsValid()) {
         return Configuration.GetInitStatus();
@@ -122,19 +173,25 @@ PerfClient::Init(
         WriteOutput("'iosize' too small'!\n");
         return QUIC_STATUS_INVALID_PARAMETER;
     }
-    TryGetValue(argc, argv, "request", &Upload);
-    TryGetValue(argc, argv, "upload", &Upload);
-    TryGetValue(argc, argv, "up", &Upload);
-    TryGetValue(argc, argv, "response", &Download);
-    TryGetValue(argc, argv, "download", &Download);
-    TryGetValue(argc, argv, "down", &Download);
     TryGetValue(argc, argv, "timed", &Timed);
+
+    bool IsTimeUnit = false;
+    const char* UploadVarNames[] = {"upload", "up", "request", nullptr};
+    if (TryGetVariableUnitValue(argc, argv, UploadVarNames, &Upload, &IsTimeUnit)) {
+        Timed = IsTimeUnit ? 1 : 0;
+    }
+
+    const char* DownloadVarNames[] = {"download", "down", "response", nullptr};
+    if (TryGetVariableUnitValue(argc, argv, DownloadVarNames, &Download, &IsTimeUnit)) {
+        Timed = IsTimeUnit ? 1 : 0;
+    }
+    const char* RunVarNames[] = {"runtime", "time", "run", nullptr};
+    TryGetVariableUnitValue(argc, argv, RunVarNames, &RunTime, &IsTimeUnit);
     //TryGetValue(argc, argv, "inline", &SendInline);
     TryGetValue(argc, argv, "rconn", &RepeatConnections);
+    TryGetValue(argc, argv, "rc", &RepeatConnections);
     TryGetValue(argc, argv, "rstream", &RepeatStreams);
-    TryGetValue(argc, argv, "runtime", &RunTime);
-    TryGetValue(argc, argv, "time", &RunTime);
-    TryGetValue(argc, argv, "run", &RunTime);
+    TryGetValue(argc, argv, "rs", &RepeatStreams);
 
     if ((RepeatConnections || RepeatStreams) && !RunTime) {
         WriteOutput("Must specify a 'runtime' if using a repeat parameter!\n");
@@ -200,7 +257,7 @@ PerfClient::Init(
     RequestBuffer.Init(IoSize, Timed ? UINT64_MAX : Download);
     if (PrintLatency) {
         if (RunTime) {
-            MaxLatencyIndex = ((uint64_t)RunTime / 1000) * PERF_MAX_REQUESTS_PER_SECOND;
+            MaxLatencyIndex = ((uint64_t)RunTime / (1000 * 1000)) * PERF_MAX_REQUESTS_PER_SECOND;
             if (MaxLatencyIndex > (UINT32_MAX / sizeof(uint32_t))) {
                 MaxLatencyIndex = UINT32_MAX / sizeof(uint32_t);
                 WriteOutput("Warning! Limiting request latency tracking to %llu requests\n",
@@ -283,8 +340,8 @@ void
 PerfClient::Wait(
     _In_ int Timeout
     ) {
-    if (Timeout == 0) {
-        Timeout = RunTime;
+    if (Timeout == 0 && RunTime != 0) {
+        Timeout = RunTime < 1000 ? 1 : (int)US_TO_MS(RunTime);
     }
 
     if (Timeout) {
@@ -305,11 +362,11 @@ PerfClient::Wait(
 
     if (PrintIoRate) {
         if (CompletedConnections) {
-            unsigned long long HPS = CompletedConnections * 1000 / RunTime;
+            unsigned long long HPS = CompletedConnections * 1000 * 1000 / RunTime;
             WriteOutput("Result: %llu HPS\n", HPS);
         }
         if (CompletedStreams) {
-            unsigned long long RPS = CompletedStreams * 1000 / RunTime;
+            unsigned long long RPS = CompletedStreams * 1000 * 1000 / RunTime;
             WriteOutput("Result: %llu RPS\n", RPS);
         }
     } else if (!PrintThroughput && !PrintLatency) {
@@ -776,7 +833,7 @@ PerfClientStream::Send() {
             SendComplete = true;
 
         } else if (Client.Timed &&
-                   CxPlatTimeDiff64(StartTime, CxPlatTimeUs64()) >= MS_TO_US(Client.Upload)) {
+                   CxPlatTimeDiff64(StartTime, CxPlatTimeUs64()) >= Client.Upload) {
             Flags |= QUIC_SEND_FLAG_FIN;
             SendComplete = true;
         }
@@ -855,7 +912,7 @@ PerfClientStream::OnReceive(
         OnReceiveShutdown(Now);
     } else if (Connection.Client.Timed) {
         if (Now == 0) Now = CxPlatTimeUs64();
-        if (CxPlatTimeDiff64(RecvStartTime, Now) >= MS_TO_US(Connection.Client.Download)) {
+        if (CxPlatTimeDiff64(RecvStartTime, Now) >= Connection.Client.Download) {
             if (Connection.Client.UseTCP) {
                 auto SendData = Connection.Worker.TcpSendDataPool.Alloc();
                 SendData->StreamId = (uint32_t)Entry.Signature;

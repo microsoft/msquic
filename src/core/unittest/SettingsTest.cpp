@@ -525,6 +525,31 @@ TEST(SettingsTest, GlobalSettingsSizesSet)
     }
 }
 
+TEST(SettingsTest, GlobalLoadBalancingServerIDSet)
+{
+    uint16_t Mode = QUIC_LOAD_BALANCING_SERVER_ID_IP;
+    uint16_t OldMode = MsQuicLib.Settings.LoadBalancingMode;
+
+    ASSERT_EQ(
+        QUIC_STATUS_SUCCESS,
+        QuicLibrarySetGlobalParam(
+            QUIC_PARAM_GLOBAL_LOAD_BALACING_MODE,
+            sizeof(Mode),
+            &Mode));
+
+    ASSERT_EQ(Mode, MsQuicLib.Settings.LoadBalancingMode);
+    ASSERT_EQ(5, MsQuicLib.CidServerIdLength);
+    ASSERT_EQ(QUIC_CID_PID_LENGTH + QUIC_CID_PAYLOAD_LENGTH + 5, MsQuicLib.CidTotalLength);
+
+    // Revert
+    ASSERT_EQ(
+        QUIC_STATUS_SUCCESS,
+        QuicLibrarySetGlobalParam(
+            QUIC_PARAM_GLOBAL_LOAD_BALACING_MODE,
+            sizeof(OldMode),
+            &OldMode));
+}
+
 #ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
 TEST(SettingsTest, GlobalExecutionConfigSetAndGet)
 {
