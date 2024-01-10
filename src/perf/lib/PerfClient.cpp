@@ -359,6 +359,7 @@ PerfClient::Wait(
 
     if (GetConnectedConnections() == 0) {
         WriteOutput("Error: No Successful Connections!\n");
+        return;
     }
 
     unsigned long long CompletedConnections = GetConnectionsCompleted();

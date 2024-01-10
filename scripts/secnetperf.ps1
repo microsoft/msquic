@@ -201,8 +201,13 @@ for ($try = 0; $try -lt 3; $try++) {
         $rawOutput = Invoke-Expression $command
         $rawOutput
     } catch {
-        Write-Error "Failed to run test: $($commands[$i])"
-        Write-Error $_
+        Write-Host "::error::Failed to run test: $($commands[$i])"
+        Write-Host "::error::$_"
+        continue
+    }
+
+    if ($rawOutput.Contains("Error")) {
+        Write-Host "::error::$rawOutput"
         continue
     }
 
