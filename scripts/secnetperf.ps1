@@ -39,6 +39,11 @@ param (
     [string]$tls = "schannel"
 )
 
+# Write a GitHub error message to the console.
+function Write-GHError($msg) {
+    Write-Host "::error::$msg"
+}
+
 # Set up the connection to the peer over remote powershell.
 Write-Output "Connecting to netperf-peer..."
 
@@ -48,8 +53,8 @@ if ($isWindows) {
     $Session = New-PSSession -HostName "netperf-peer" -UserName secnetperf -SSHTransport
 }
 if ($null -eq $Session) {
-    Write-Error "Failed to create remote session"
-    exit
+    Write-GHError "Failed to create remote session"
+    exit 1
 }
 
 $RemoteAddress = $Session.ComputerName
@@ -92,13 +97,13 @@ mkdir .\artifacts\logs | Out-Null
 # Prepare the machines for the testing.
 
 if ($isWindows) {
-    #Write-Output "Skipping prepare machine for now on Windows..."
+    Write-Output "Skipping prepare machine for now on Windows..."
     # Write-Output "Preparing machines for testing..."
     # .\scripts\prepare-machine.ps1 -ForTest
 
-    Invoke-Command -Session $Session -ScriptBlock {
-        C:\_work\quic\scripts\prepare-machine.ps1 -ForTest
-    }
+    #Invoke-Command -Session $Session -ScriptBlock {
+    #    C:\_work\quic\scripts\prepare-machine.ps1 -ForTest
+    #}
 } else {
     Write-Output "Skipping prepare machine for now on Linux..."
 
@@ -155,7 +160,7 @@ if (!$ReadyToStart) {
     Stop-Job -Job $RemoteJob
     $RemoteResult = Receive-Job -Job $Job -ErrorAction $ErrorAction
     $RemoteResult = $RemoteResult -join "`n"
-    Write-Output "::error::Server failed to start! Output:"
+    Write-GHError "Server failed to start! Output:"
     Write-Output $RemoteResult
     throw "Server failed to start!"
 }
@@ -225,15 +230,15 @@ for ($try = 0; $try -lt 3; $try++) {
     try {
         $rawOutput = Invoke-Expression $command
     } catch {
-        Write-Host "::error::Failed to run test: $($commands[$i])"
-        Write-Host "::error::$_"
+        Write-GHError "Failed to run test: $($commands[$i])"
+        Write-GHError $_
         $encounterFailures = $true
         continue
     }
 
     if ($rawOutput.Contains("Error")) {
         $rawOutput = $rawOutput.Substring(7) # Skip over the 'Error: ' prefix
-        Write-Host "::error::$rawOutput"
+        Write-GHError $rawOutput
         $encounterFailures = $true
         continue
     }
@@ -285,12 +290,6 @@ VALUES ('$($testIds[$i])', 'azure_vm', 'azure_vm', $num, NULL, 'kbps');
 
 ####################################################################################################
 
-
-if ($LogProfile -ne "" -and $LogProfile -ne "NULL") { # TODO: Linux back slash works?
-    Write-Output "Stopping logging..."
-    .\scripts\log.ps1 -Stop -OutputPath .\artifacts\logs\quic
-}
-
 function Wait-ForRemote {
     param ($Job, $ErrorAction = "Stop")
     # Ping side-channel socket on 9999 to tell the app to die
@@ -317,6 +316,11 @@ Write-Output "`nStopping server. Server Output:"
 $RemoteResults = Wait-ForRemote $Job
 Write-Output $RemoteResults.ToString()
 
+if ($LogProfile -ne "" -and $LogProfile -ne "NULL") { # TODO: Linux back slash works?
+    Write-Output "Stopping logging..."
+    .\scripts\log.ps1 -Stop -OutputPath .\artifacts\logs\quic
+}
+
 # Save the test results (sql and json).
 Write-Output "`nWriting test-results-$plat-$os-$arch-$tls.sql..."
 $SQL | Set-Content -Path "test-results-$plat-$os-$arch-$tls.sql"
@@ -325,14 +329,13 @@ Write-Output "`nWriting json-test-results-$plat-$os-$arch-$tls.json..."
 $json | ConvertTo-Json | Set-Content -Path "json-test-results-$plat-$os-$arch-$tls.json"
 
 } catch {
-    Write-Error "Exception occurred while running tests..."
-    Write-Error $_
-    exit 1
+    Write-GHError "Exception occurred while running tests..."
+    Write-GHError $_
+    $encounterFailures = $true
 } finally {
     # TODO: Do any further book keeping here.
 }
 
 if ($encounterFailures) {
-    Write-Error "Errors occurred while running tests."
     exit 1
 }
