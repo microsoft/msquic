@@ -178,31 +178,27 @@ $json = @{}
 # TODO: Make a more elaborate execution strategy instead of just a list of commands. Also add more tests.
 
 $testIds = @(
-    "throughput-upload-quic-$MsQuicCommit",
-    "throughput-upload-tcp-$MsQuicCommit",
-    "throughput-download-quic-$MsQuicCommit",
-    "throughput-download-tcp-$MsQuicCommit",
-    "rps-1conn-1stream-quic-$MsQuicCommit",
-    "rps-1conn-1stream-tcp-$MsQuicCommit",
-    "hps-quic-$MsQuicCommit",
-    "hps-tcp-$MsQuicCommit"
+    "throughput-upload",
+    "throughput-download",
+    "rps-1conn-1stream",
+    "hps"
 )
 
 $commands = @(
-    "$exe -target:netperf-peer -exec:maxtput -up:10s -ptput:1 -tcp:0",
-    "$exe -target:netperf-peer -exec:maxtput -up:10s -ptput:1 -tcp:1",
-    "$exe -target:netperf-peer -exec:maxtput -down:10s -ptput:1 -tcp:0",
-    "$exe -target:netperf-peer -exec:maxtput -down:10s -ptput:1 -tcp:1",
-    "$exe -target:netperf-peer -exec:lowlat -rstream:1 -up:512 -down:4000 -run:10s -plat:1 -tcp:0",
-    "$exe -target:netperf-peer -exec:lowlat -rstream:1 -up:512 -down:4000 -run:10s -plat:1 -tcp:1",
-    "$exe -target:netperf-peer -exec:maxtput -rconn:1 -share:1 -conns:100 -run:10s -prate:1 -tcp:0",
-    "$exe -target:netperf-peer -exec:maxtput -rconn:1 -share:1 -conns:100 -run:10s -prate:1 -tcp:1"
+    "-exec:maxtput -up:10s -ptput:1",
+    "-exec:maxtput -down:10s -ptput:1",
+    "-exec:lowlat -rstream:1 -up:512 -down:4000 -run:10s -plat:1",
+    "-exec:maxtput -rconn:1 -share:1 -conns:100 -run:10s -prate:1"
 )
 
 for ($i = 0; $i -lt $commands.Count; $i++) {
+for ($tcp = 0; $tcp -lt 2; $tcp++) {
+for ($try = 0; $try -lt 3; $try++) {
+    $command = "$exe -target:netperf-peer $($commands[$i]) -tcp:$tcp"
+    Write-Output "Running test: $command"
+
     try {
-        Write-Output "Running test: $($commands[$i])"
-        $rawOutput = Invoke-Expression $commands[$i]
+        $rawOutput = Invoke-Expression $command
         $rawOutput
     } catch {
         Write-Error "Failed to run test: $($commands[$i])"
@@ -219,6 +215,14 @@ for ($i = 0; $i -lt $commands.Count; $i++) {
     }
 
     $throughput = '@ (\d+) kbps'
+
+    $testId = $testIds[$i]
+    if ($tcp -eq 1) {
+        $testId += "-tcp"
+    } else {
+        $testId += "quic"
+    }
+    $testId += "-$MsQuicCommit"
 
     foreach ($line in $rawOutput) {
         if ($line -match $throughput) {
@@ -240,7 +244,7 @@ VALUES ('$($testIds[$i])', 'azure_vm', 'azure_vm', $num, NULL, 'kbps');
     }
 
     Start-Sleep -Seconds 1
-}
+}}}
 
 ####################################################################################################
 
