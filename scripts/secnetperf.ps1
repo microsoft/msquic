@@ -164,7 +164,7 @@ VALUES ('throughput-download-tcp-$MsQuicCommit', '$MsQuicCommit', 0, '-target:ne
 
 "@
 
-$exe = "./$RemoteDir/$SecNetPerfPath"
+$exe = "./$SecNetPerfPath"
 
 $json = @{}
 
