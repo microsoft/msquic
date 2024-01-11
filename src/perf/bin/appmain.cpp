@@ -98,12 +98,15 @@ QuicUserMain(
     _In_opt_z_ const char* FileName
     ) {
     CxPlatEvent StopEvent {true};
+    auto SimpleOutput = GetFlag(argc, argv, "trimout");
     QUIC_STATUS Status = QuicMainStart(argc, argv, &StopEvent.Handle, SelfSignedCredConfig);
     if (QUIC_FAILED(Status)) {
         goto Exit;
     }
 
-    printf("Started!\n\n");
+    if (!SimpleOutput) {
+        printf("Started!\n\n");
+    }
     fflush(stdout);
     QuicMainWaitForCompletion();
 
@@ -116,7 +119,9 @@ QuicUserMain(
 
 Exit:
     QuicMainFree();
-    printf("App Main returning status %d\n", Status);
+    if (!SimpleOutput) {
+        printf("App Main returning status %d\n", Status);
+    }
     return Status;
 }
 

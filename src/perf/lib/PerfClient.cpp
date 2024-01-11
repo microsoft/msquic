@@ -357,6 +357,11 @@ PerfClient::Wait(
         Workers[i].Uninitialize();
     }
 
+    if (GetConnectedConnections() == 0) {
+        WriteOutput("Error: No Successful Connections!\n");
+        return;
+    }
+
     unsigned long long CompletedConnections = GetConnectionsCompleted();
     unsigned long long CompletedStreams = GetStreamsCompleted();
 
@@ -382,7 +387,6 @@ PerfClient::Wait(
             WriteOutput("No connections or streams completed!\n");
         }
     }
-
 }
 
 uint32_t
