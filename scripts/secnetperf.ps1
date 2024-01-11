@@ -182,7 +182,7 @@ $SQL += Invoke-SecnetperfTest $maxtputIds $maxtput $exe $json $LogProfile
 
 # Start and restart the SecNetPerf server without maxtput.
 Write-Host "Restarting server without maxtput..."
-Stop-RemoteServer $Job
+Stop-RemoteServer $Job $RemoteName
 $Job = Start-RemoteServer $Session "$RemoteDir/$SecNetPerfPath -exec:lowlat"
 
 $SQL += Invoke-SecnetperfTest $lowlatIds $lowlat $exe $json $LogProfile
@@ -195,7 +195,7 @@ $SQL += Invoke-SecnetperfTest $lowlatIds $lowlat $exe $json $LogProfile
 
 # Kill the server process.
 Write-Host "`Stopping server..."
-Stop-RemoteServer $Job
+Stop-RemoteServer $Job $RemoteName
 
 # if ($LogProfile -ne "" -and $LogProfile -ne "NULL") {
 #     Write-Host "Stopping logging..."
