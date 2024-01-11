@@ -28,31 +28,46 @@ param (
     [ValidateSet("", "NULL", "Basic.Light", "Datapath.Light", "Datapath.Verbose", "Stacks.Light", "Stacks.Verbose", "RPS.Light", "RPS.Verbose", "Performance.Light", "Basic.Verbose", "Performance.Light", "Performance.Verbose", "Full.Light", "Full.Verbose", "SpinQuic.Light", "SpinQuicWarnings.Light")]
     [string]$LogProfile = "",
 
+    [Parameter(Mandatory = $true)]
     [string]$MsQuicCommit = "manual",
 
+    [Parameter(Mandatory = $true)]
+    [ValidateSet("windows", "linux")]
     [string]$plat = "windows",
 
-    [string]$os = "windows server 2022",
+    [Parameter(Mandatory = $true)]
+    [string]$os = "windows-2022",
 
+    [Parameter(Mandatory = $true)]
+    [ValidateSet("x64", "arm64")]
     [string]$arch = "x64",
 
-    [string]$tls = "schannel"
+    [Parameter(Mandatory = $true)]
+    [ValidateSet("openssl", "openssl3", "schannel")]
+    [string]$tls = "schannel",
+
+    [Parameter(Mandatory = $false)]
+    [string]$RemoteName = "netperf-peer"
 )
 
-. .\scripts\secnetperf-run-test.ps1
-
-# Write a GitHub error message to the console.
-function Write-GHError($msg) {
-    Write-Host "::error::$msg"
+# Set up some important paths.
+$RemoteDir = "C:/_work"
+if (!$isWindows) {
+    $RemoteDir = "/home/secnetperf/_work"
 }
+$SecNetPerfDir = "artifacts/bin/$plat/$($arch)_Release_$tls"
+$SecNetPerfPath = "$SecNetPerfDir/secnetperf"
+
+# Include the helper functions.
+. .\scripts\secnetperf-helpers.psm1
 
 # Set up the connection to the peer over remote powershell.
-Write-Output "Connecting to netperf-peer..."
+Write-Output "Connecting to $RemoteName..."
 
 if ($isWindows) {
-    $Session = New-PSSession -ComputerName "netperf-peer" -ConfigurationName PowerShell.7
+    $Session = New-PSSession -ComputerName $RemoteName -ConfigurationName PowerShell.7
 } else {
-    $Session = New-PSSession -HostName "netperf-peer" -UserName secnetperf -SSHTransport
+    $Session = New-PSSession -HostName $RemoteName -UserName secnetperf -SSHTransport
 }
 if ($null -eq $Session) {
     Write-GHError "Failed to create remote session"
@@ -63,34 +78,19 @@ $RemoteAddress = $Session.ComputerName
 Write-Output "Successfully connected to peer: $RemoteAddress"
 
 # Make sure nothing is running from a previous run.
-if ($isWindows) {
-    Invoke-Command -Session $Session -ScriptBlock {
-        Get-Process | Where-Object { $_.Name -eq "secnetperf.exe" } | Stop-Process
-    }
-} else {
-    Invoke-Command -Session $Session -ScriptBlock {
-        Get-Process | Where-Object { $_.Name -eq "secnetperf" } | Stop-Process
-    }
+Invoke-Command -Session $Session -ScriptBlock {
+    Get-Process | Where-Object { $_.Name -eq "secnetperf" } | Stop-Process
 }
 
 # Copy the artifacts to the peer.
 Write-Output "Copying files to peer..."
-if ($isWindows) {
-    Invoke-Command -Session $Session -ScriptBlock {
-        Remove-Item -Force -Recurse "C:\_work" -ErrorAction Ignore
-    }
-    Copy-Item -ToSession $Session .\artifacts -Destination C:\_work\quic\artifacts -Recurse
-    Copy-Item -ToSession $Session .\scripts -Destination C:\_work\quic\scripts -Recurse
-    Copy-Item -ToSession $Session .\src\manifest\MsQuic.wprp -Destination C:\_work\quic\scripts
-} else {
-    Invoke-Command -Session $Session -ScriptBlock {
-        Remove-Item -Force -Recurse "/home/secnetperf/_work" -ErrorAction Ignore
-        mkdir /home/secnetperf/_work
-    }
-    Copy-Item -ToSession $Session ./artifacts -Destination /home/secnetperf/_work/artifacts -Recurse
-    Copy-Item -ToSession $Session ./scripts -Destination /home/secnetperf/_work/scripts -Recurse
-    Copy-Item -ToSession $Session ./src/manifest/MsQuic.wprp -Destination /home/secnetperf/_work/scripts
+Invoke-Command -Session $Session -ScriptBlock {
+    Remove-Item -Force -Recurse $Using:RemoteDir -ErrorAction Ignore | Out-Null
+    mkdir $Using:RemoteDir | Out-Null
 }
+Copy-Item -ToSession $Session ./artifacts -Destination "$RemoteDir/artifacts" -Recurse
+Copy-Item -ToSession $Session ./scripts -Destination "$RemoteDir/scripts" -Recurse
+Copy-Item -ToSession $Session ./src/manifest/MsQuic.wprp -Destination "$RemoteDir/scripts"
 
 $encounterFailures = $false
 
@@ -118,6 +118,17 @@ if ($isWindows) {
     # }
 }
 
+if (!$isWindows) {
+    # Make sure the secnetperf binary is executable.
+    Write-Output "Updating secnetperf permissions..."
+    Invoke-Command -Session $Session -ScriptBlock {
+        $env:LD_LIBRARY_PATH = "${env:LD_LIBRARY_PATH}:$Using:RemoteDir/$Using:SecNetPerfDir"
+        chmod +x "$Using:RemoteDir/$Using:SecNetPerfPath"
+    }
+    $env:LD_LIBRARY_PATH = "${env:LD_LIBRARY_PATH}:./$RemoteDir/$SecNetPerfDir"
+    chmod +x "./$RemoteDir/$SecNetPerfPath"
+}
+
 # Logging to collect quic traces while running the tests.
 
 # if ($LogProfile -ne "" -and $LogProfile -ne "NULL") { # TODO: Linux back slash works?
@@ -127,34 +138,9 @@ if ($isWindows) {
 
 # Run secnetperf on the server.
 Write-Output "Starting secnetperf server..."
-
-if ($isWindows) {
-    $Job = Invoke-Command -Session $Session -ScriptBlock {
-        C:\_work\quic\artifacts\bin\windows\x64_Release_schannel\secnetperf.exe -exec:maxtput
-    } -AsJob
-} else {
-    $Job = Invoke-Command -Session $Session -ScriptBlock {
-        $env:LD_LIBRARY_PATH = "${env:LD_LIBRARY_PATH}:/home/secnetperf/_work/artifacts/bin/linux/x64_Release_openssl/"
-        chmod +x /home/secnetperf/_work/artifacts/bin/linux/x64_Release_openssl/secnetperf
-        /home/secnetperf/_work/artifacts/bin/linux/x64_Release_openssl/secnetperf -exec:maxtput
-    } -AsJob
-}
-
-function Wait-ForRemoteReady {
-    param ($Job, $Matcher)
-    $StopWatch =  [system.diagnostics.stopwatch]::StartNew()
-    while ($StopWatch.ElapsedMilliseconds -lt 10000) {
-        $CurrentResults = Receive-Job -Job $Job -Keep -ErrorAction Continue
-        if (![string]::IsNullOrWhiteSpace($CurrentResults)) {
-            $DidMatch = $CurrentResults -match $Matcher
-            if ($DidMatch) {
-                return $true
-            }
-        }
-        Start-Sleep -Seconds 0.1 | Out-Null
-    }
-    return $false
-}
+$Job = Invoke-Command -Session $Session -ScriptBlock {
+    & "$Using:RemoteDir/$Using:SecNetPerfPath -exec:maxtput"
+} -AsJob
 
 # Wait for the server to start.
 Write-Output "Waiting for server to start..."
@@ -166,27 +152,6 @@ if (!$ReadyToStart) {
     Write-GHError "Server failed to start! Output:"
     Write-Output $RemoteResult
     throw "Server failed to start!"
-}
-
-function Wait-ForRemote {
-    param ($Job, $ErrorAction = "Stop")
-    # Ping side-channel socket on 9999 to tell the app to die
-    $Socket = New-Object System.Net.Sockets.UDPClient
-    $BytesToSend = @(
-        0x57, 0xe6, 0x15, 0xff, 0x26, 0x4f, 0x0e, 0x57,
-        0x88, 0xab, 0x07, 0x96, 0xb2, 0x58, 0xd1, 0x1c
-    )
-    for ($i = 0; $i -lt 120; $i++) {
-        $Socket.Send($BytesToSend, $BytesToSend.Length, $RemoteAddress, 9999) | Out-Null
-        $Completed = Wait-Job -Job $Job -Timeout 1
-        if ($null -ne $Completed) {
-            break;
-        }
-    }
-
-    Stop-Job -Job $Job | Out-Null
-    $RetVal = Receive-Job -Job $Job -ErrorAction $ErrorAction
-    return $RetVal -join "`n"
 }
 
 # Run secnetperf on the client.
@@ -219,13 +184,7 @@ VALUES ('throughput-download-tcp-$MsQuicCommit', '$MsQuicCommit', 0, '-target:ne
 
 "@
 
-$exe = ".\artifacts\bin\windows\x64_Release_schannel\secnetperf.exe"
-
-if (!$isWindows) {
-    $env:LD_LIBRARY_PATH = "${env:LD_LIBRARY_PATH}:./artifacts/bin/linux/x64_Release_openssl/"
-    $exe = "./artifacts/bin/linux/x64_Release_openssl/secnetperf"
-    chmod +x ./artifacts/bin/linux/x64_Release_openssl/secnetperf
-}
+$exe = "./$RemoteDir/$SecNetPerfPath"
 
 $json = @{}
 
@@ -249,25 +208,19 @@ $lowlat = @(
     "-exec:lowlat -rstream:1 -up:512 -down:4000 -run:10s -plat:1"
 )
 
-$SQL += Run-Secnetperf $maxtputIds $maxtput $exe $json $LogProfile
+$SQL += Invoke-SecnetperfTest $maxtputIds $maxtput $exe $json $LogProfile
 
 # Start and restart the SecNetPerf server without maxtput.
 Write-Host "Restarting server without maxtput..."
 Write-Host "`nStopping server. Server Output:"
 $RemoteResults = Wait-ForRemote $Job
 Write-Host $RemoteResults.ToString()
+
 Write-Host "Starting server back up again..."
-if ($isWindows) {
-    $Job = Invoke-Command -Session $Session -ScriptBlock {
-        C:\_work\quic\artifacts\bin\windows\x64_Release_schannel\secnetperf.exe -exec:lowlat
-    } -AsJob
-} else {
-    $Job = Invoke-Command -Session $Session -ScriptBlock {
-        $env:LD_LIBRARY_PATH = "${env:LD_LIBRARY_PATH}:/home/secnetperf/_work/artifacts/bin/linux/x64_Release_openssl/"
-        chmod +x /home/secnetperf/_work/artifacts/bin/linux/x64_Release_openssl/secnetperf
-        /home/secnetperf/_work/artifacts/bin/linux/x64_Release_openssl/secnetperf -exec:lowlat
-    } -AsJob
-}
+$Job = Invoke-Command -Session $Session -ScriptBlock {
+    & "$Using:RemoteDir/$Using:SecNetPerfPath -exec:lowlat"
+} -AsJob
+
 # Wait for the server to start.
 Write-Output "Waiting for server to start..."
 $ReadyToStart = Wait-ForRemoteReady -Job $Job -Matcher "Started!"
@@ -280,7 +233,7 @@ if (!$ReadyToStart) {
     throw "Server failed to start!"
 }
 
-$SQL += Run-Secnetperf $lowlatIds $lowlat $exe $json $LogProfile
+$SQL += Invoke-SecnetperfTest $lowlatIds $lowlat $exe $json $LogProfile
 
 ####################################################################################################
 

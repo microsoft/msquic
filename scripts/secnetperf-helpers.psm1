@@ -1,4 +1,57 @@
-function Run-Secnetperf($testIds, $commands, $exe, $json, $LogProfile) {
+<#
+.SYNOPSIS
+    Various helper functions for running secnetperf tests.
+#>
+
+# Write a GitHub error message to the console.
+function Write-GHError($msg) {
+    Write-Host "::error::$msg"
+}
+
+# Waits for a remote job to be ready based on looking for a particular string in
+# the output.
+function Wait-ForRemoteReady {
+    param ($Job, $Matcher)
+    $StopWatch =  [system.diagnostics.stopwatch]::StartNew()
+    while ($StopWatch.ElapsedMilliseconds -lt 10000) {
+        $CurrentResults = Receive-Job -Job $Job -Keep -ErrorAction Continue
+        if (![string]::IsNullOrWhiteSpace($CurrentResults)) {
+            $DidMatch = $CurrentResults -match $Matcher
+            if ($DidMatch) {
+                return $true
+            }
+        }
+        Start-Sleep -Seconds 0.1 | Out-Null
+    }
+    return $false
+}
+
+# Sends a special UDP packet to tell the remote secnetperf to shutdown, and then
+# waits for the job to complete. Finally, it returns the console output of the
+# job.
+function Wait-ForRemote {
+    param ($Job, $ErrorAction = "Stop")
+    # Ping side-channel socket on 9999 to tell the app to die
+    $Socket = New-Object System.Net.Sockets.UDPClient
+    $BytesToSend = @(
+        0x57, 0xe6, 0x15, 0xff, 0x26, 0x4f, 0x0e, 0x57,
+        0x88, 0xab, 0x07, 0x96, 0xb2, 0x58, 0xd1, 0x1c
+    )
+    for ($i = 0; $i -lt 120; $i++) {
+        $Socket.Send($BytesToSend, $BytesToSend.Length, $RemoteAddress, 9999) | Out-Null
+        $Completed = Wait-Job -Job $Job -Timeout 1
+        if ($null -ne $Completed) {
+            break;
+        }
+    }
+
+    Stop-Job -Job $Job | Out-Null
+    $RetVal = Receive-Job -Job $Job -ErrorAction $ErrorAction
+    return $RetVal -join "`n"
+}
+
+# Invokes all the secnetperf tests.
+function Invoke-SecnetperfTest($testIds, $commands, $exe, $json, $LogProfile) {
 
     Write-Host "Running Secnetperf tests..."
 
@@ -26,7 +79,7 @@ function Run-Secnetperf($testIds, $commands, $exe, $json, $LogProfile) {
             continue
         }
 
-        if ($rawOutput -eq $null) {
+        if ($null -eq $rawOutput) {
             Write-GHError "RawOutput is null. Failed to run test: $($commands[$i])"
             $script:encounterFailures = $true
             continue
@@ -38,7 +91,7 @@ function Run-Secnetperf($testIds, $commands, $exe, $json, $LogProfile) {
             $script:encounterFailures = $true
             continue
         }
-        
+
         Write-Host $rawOutput
 
         if ($testIds[$i].Contains("rps")) {
@@ -85,9 +138,9 @@ VALUES ('$($testIds[$i])', 'azure_vm', 'azure_vm', $num, NULL, 'kbps');
 
         Start-Sleep -Seconds 1
     }
-    
 
-    
+
+
     }}
 
     return $SQL
