@@ -54,9 +54,9 @@ param (
 )
 
 # Set up some important paths.
-$RemoteDir = "C:/_work"
+$RemoteDir = "C:/_work/quic"
 if (!$isWindows) {
-    $RemoteDir = "/home/secnetperf/_work"
+    $RemoteDir = "/home/secnetperf/_work/quic"
 }
 $SecNetPerfDir = "artifacts/bin/$plat/$($arch)_Release_$tls"
 $SecNetPerfPath = "$SecNetPerfDir/secnetperf"
@@ -74,10 +74,8 @@ if ($null -eq $Session) {
     exit 1
 }
 
-$RemoteAddress = $Session.ComputerName
-Write-Output "Successfully connected to peer: $RemoteAddress"
-
 # Make sure nothing is running from a previous run.
+Write-Output "Killing any previous secnetperf on peer..."
 Invoke-Command -Session $Session -ScriptBlock {
     Get-Process | Where-Object { $_.Name -eq "secnetperf" } | Stop-Process
 }
@@ -91,6 +89,9 @@ Invoke-Command -Session $Session -ScriptBlock {
 Copy-Item -ToSession $Session ./artifacts -Destination "$RemoteDir/artifacts" -Recurse
 Copy-Item -ToSession $Session ./scripts -Destination "$RemoteDir/scripts" -Recurse
 Copy-Item -ToSession $Session ./src/manifest/MsQuic.wprp -Destination "$RemoteDir/scripts"
+Invoke-Command -Session $Session -ScriptBlock {
+    dir "$Using:RemoteDir/scripts"
+}
 
 $encounterFailures = $false
 
@@ -99,24 +100,14 @@ try {
 mkdir .\artifacts\logs | Out-Null
 
 # Prepare the machines for the testing.
-
-if ($isWindows) {
+if ($isWindows) { # TODO: Run on Linux too?
     Write-Output "Preparing local machine for testing..."
     .\scripts\prepare-machine.ps1 -ForTest
 
     Write-Output "Preparing peer machine for testing..."
     Invoke-Command -Session $Session -ScriptBlock {
-       & "$Using:RemoteDir\scripts\prepare-machine.ps1 -ForTest"
+       & "$Using:RemoteDir/scripts/prepare-machine.ps1 -ForTest"
     }
-} else {
-    Write-Output "Skipping prepare machine for now on Linux..."
-
-    # Write-Output "Preparing machines for testing..."
-    # .\scripts\prepare-machine.ps1 -ForTest
-
-    # Invoke-Command -Session $Session -ScriptBlock {
-    #     /home/secnetperf/_work/scripts/prepare-machine.ps1 -ForTest
-    # }
 }
 
 if (!$isWindows) {
@@ -131,7 +122,6 @@ if (!$isWindows) {
 }
 
 # Logging to collect quic traces while running the tests.
-
 # if ($LogProfile -ne "" -and $LogProfile -ne "NULL") { # TODO: Linux back slash works?
 #     Write-Output "Starting logging with log profile: $LogProfile..."
 #     .\scripts\log.ps1 -Start -Profile $LogProfile
