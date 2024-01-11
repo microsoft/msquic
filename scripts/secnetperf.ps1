@@ -24,6 +24,9 @@ This script assumes the latest MsQuic commit is built and downloaded as artifact
 
 #>
 
+# Import the helper module.
+Using module .\secnetperf-helpers.psm1
+
 param (
     [ValidateSet("", "NULL", "Basic.Light", "Datapath.Light", "Datapath.Verbose", "Stacks.Light", "Stacks.Verbose", "RPS.Light", "RPS.Verbose", "Performance.Light", "Basic.Verbose", "Performance.Light", "Performance.Verbose", "Full.Light", "Full.Verbose", "SpinQuic.Light", "SpinQuicWarnings.Light")]
     [string]$LogProfile = "",
@@ -57,9 +60,6 @@ if (!$isWindows) {
 }
 $SecNetPerfDir = "artifacts/bin/$plat/$($arch)_Release_$tls"
 $SecNetPerfPath = "$SecNetPerfDir/secnetperf"
-
-# Include the helper functions.
-. .\scripts\secnetperf-helpers.psm1
 
 # Set up the connection to the peer over remote powershell.
 Write-Output "Connecting to $RemoteName..."
@@ -101,11 +101,12 @@ mkdir .\artifacts\logs | Out-Null
 # Prepare the machines for the testing.
 
 if ($isWindows) {
-    Write-Output "Preparing machines for testing..."
+    Write-Output "Preparing local machine for testing..."
     .\scripts\prepare-machine.ps1 -ForTest
 
+    Write-Output "Preparing peer machine for testing..."
     Invoke-Command -Session $Session -ScriptBlock {
-       C:\_work\quic\scripts\prepare-machine.ps1 -ForTest
+       & "$Using:RemoteDir\scripts\prepare-machine.ps1 -ForTest"
     }
 } else {
     Write-Output "Skipping prepare machine for now on Linux..."
@@ -138,7 +139,7 @@ if (!$isWindows) {
 
 # Run secnetperf on the server.
 Write-Output "Starting secnetperf server..."
-$Job = Start-RemoteServer "$RemoteDir/$SecNetPerfPath -exec:maxtput"
+$Job = Start-RemoteServer $Session "$RemoteDir/$SecNetPerfPath -exec:maxtput"
 if ($null -eq $Job) {
     throw "Server failed to start!"
 }
@@ -206,7 +207,7 @@ $RemoteResults = Stop-RemoteServer $Job
 Write-Host $RemoteResults.ToString()
 
 Write-Host "Starting server back up again..."
-$Job = Start-RemoteServer "$RemoteDir/$SecNetPerfPath -exec:lowlat"
+$Job = Start-RemoteServer $Session "$RemoteDir/$SecNetPerfPath -exec:lowlat"
 if ($null -eq $Job) {
     throw "Server failed to start!"
 }

@@ -11,14 +11,16 @@ function Write-GHError($msg) {
 # Waits for a remote job to be ready based on looking for a particular string in
 # the output.
 function Start-RemoteServer {
-    param ($Command)
+    param ($Session, $Command)
+    # Start the server on the remote in an async job.
     $Job = Invoke-Command -Session $Session -ScriptBlock { $Using:Command } -AsJob
+    # Poll the job for 10 seconds to see if it started.
     $StopWatch =  [system.diagnostics.stopwatch]::StartNew()
     $Started = $false
     while ($StopWatch.ElapsedMilliseconds -lt 10000) {
         $CurrentResults = Receive-Job -Job $Job -Keep -ErrorAction Continue
         if (![string]::IsNullOrWhiteSpace($CurrentResults)) {
-            $DidMatch = $CurrentResults -match "Started!"
+            $DidMatch = $CurrentResults -match "Started!" # Look for the special string to indicate success.
             if ($DidMatch) {
                 $Started = $true
                 break;
@@ -27,6 +29,7 @@ function Start-RemoteServer {
         Start-Sleep -Seconds 0.1 | Out-Null
     }
     if (!$Started) {
+        # On failure, dump the output of the job.
         Stop-Job -Job $Job
         $RemoteResult = Receive-Job -Job $Job -ErrorAction Stop
         $RemoteResult = $RemoteResult -join "`n"
@@ -34,7 +37,7 @@ function Start-RemoteServer {
         Write-Output $RemoteResult
         return $null
     }
-    return $Job
+    return $Job # Success!
 }
 
 # Sends a special UDP packet to tell the remote secnetperf to shutdown, and then
