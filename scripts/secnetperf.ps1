@@ -96,16 +96,16 @@ $encounterFailures = $false
 
 try {
 
-mkdir .\artifacts\logs | Out-Null
+mkdir ./artifacts/logs | Out-Null
 
 # Prepare the machines for the testing.
 if ($isWindows) { # TODO: Run on Linux too?
     Write-Output "Preparing local machine for testing..."
-    .\scripts\prepare-machine.ps1 -ForTest
+    ./scripts/prepare-machine.ps1 -ForTest
 
     Write-Output "Preparing peer machine for testing..."
     Invoke-Command -Session $Session -ScriptBlock {
-       & "$Using:RemoteDir/scripts/prepare-machine.ps1 -ForTest"
+        iex "$Using:RemoteDir/scripts/prepare-machine.ps1 -ForTest"
     }
 }
 
@@ -214,7 +214,7 @@ Write-Output "`nStopping server. Server Output:"
 $RemoteResults = Stop-RemoteServer $Job
 Write-Output $RemoteResults.ToString()
 
-# if ($LogProfile -ne "" -and $LogProfile -ne "NULL") { # TODO: Linux back slash works?
+# if ($LogProfile -ne "" -and $LogProfile -ne "NULL") {
 #     Write-Output "Stopping logging..."
 #     .\scripts\log.ps1 -Stop -OutputPath .\artifacts\logs\quic
 # }

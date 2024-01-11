@@ -13,7 +13,7 @@ function Write-GHError($msg) {
 function Start-RemoteServer {
     param ($Session, $Command)
     # Start the server on the remote in an async job.
-    $Job = Invoke-Command -Session $Session -ScriptBlock { $Using:Command } -AsJob
+    $Job = Invoke-Command -Session $Session -ScriptBlock { iex $Using:Command } -AsJob
     # Poll the job for 10 seconds to see if it started.
     $StopWatch =  [system.diagnostics.stopwatch]::StartNew()
     $Started = $false
