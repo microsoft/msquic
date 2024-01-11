@@ -34,7 +34,7 @@ function Start-RemoteServer {
         Write-GHError "Server failed to start! Output:"
         $RemoteResult = Receive-Job -Job $Job -ErrorAction Stop
         $RemoteResult = $RemoteResult -join "`n"
-        Write-Output $RemoteResult.ToString()
+        Write-Host $RemoteResult.ToString()
         return $null
     }
     return $Job # Success!
@@ -44,7 +44,7 @@ function Start-RemoteServer {
 # waits for the job to complete. Finally, it returns the console output of the
 # job.
 function Stop-RemoteServer {
-    param ($Job, $ErrorAction = "Stop")
+    param ($Job)
     # Ping side-channel socket on 9999 to tell the app to die
     $Socket = New-Object System.Net.Sockets.UDPClient
     $BytesToSend = @(
@@ -60,9 +60,9 @@ function Stop-RemoteServer {
     }
 
     Stop-Job -Job $Job | Out-Null
-    $RemoteResult = Receive-Job -Job $Job -ErrorAction $ErrorAction
+    $RemoteResult = Receive-Job -Job $Job -ErrorAction Stop
     $RemoteResult = $RemoteResult -join "`n"
-    Write-Output $RemoteResult.ToString()
+    Write-Host $RemoteResult.ToString()
 }
 
 # Invokes all the secnetperf tests.

@@ -188,10 +188,7 @@ $SQL += Invoke-SecnetperfTest $maxtputIds $maxtput $exe $json $LogProfile
 
 # Start and restart the SecNetPerf server without maxtput.
 Write-Host "Restarting server without maxtput..."
-Write-Output "`nStopping server."
 Stop-RemoteServer $Job
-
-Write-Host "Starting server back up again..."
 $Job = Start-RemoteServer $Session "$RemoteDir/$SecNetPerfPath -exec:lowlat"
 if ($null -eq $Job) {
     throw "Server failed to start!"
