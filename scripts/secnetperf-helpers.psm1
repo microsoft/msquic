@@ -31,7 +31,7 @@ function Start-RemoteServer {
     if (!$Started) {
         # On failure, dump the output of the job.
         Stop-Job -Job $Job
-        Write-GHError "Server failed to start! Output:"
+        Write-GHError "Server failed to start!"
         $RemoteResult = Receive-Job -Job $Job -ErrorAction Stop
         $RemoteResult = $RemoteResult -join "`n"
         Write-Host $RemoteResult.ToString()

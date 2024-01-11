@@ -191,6 +191,7 @@ Write-Host "Restarting server without maxtput..."
 Stop-RemoteServer $Job
 $Job = Start-RemoteServer $Session "$RemoteDir/$SecNetPerfPath -exec:lowlat"
 if ($null -eq $Job) {
+    Write-Host 'ERROR, ERROR, ERROR'
     throw "Server failed to start!"
 }
 
