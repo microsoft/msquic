@@ -63,7 +63,6 @@ $SecNetPerfPath = "$SecNetPerfDir/secnetperf"
 
 # Set up the connection to the peer over remote powershell.
 Write-Output "Connecting to $RemoteName..."
-
 if ($isWindows) {
     $Session = New-PSSession -ComputerName $RemoteName -ConfigurationName PowerShell.7
 } else {
@@ -117,8 +116,8 @@ if (!$isWindows) {
         $env:LD_LIBRARY_PATH = "${env:LD_LIBRARY_PATH}:$Using:RemoteDir/$Using:SecNetPerfDir"
         chmod +x "$Using:RemoteDir/$Using:SecNetPerfPath"
     }
-    $env:LD_LIBRARY_PATH = "${env:LD_LIBRARY_PATH}:./$RemoteDir/$SecNetPerfDir"
-    chmod +x "./$RemoteDir/$SecNetPerfPath"
+    $env:LD_LIBRARY_PATH = "${env:LD_LIBRARY_PATH}:./$SecNetPerfDir"
+    chmod +x "./$SecNetPerfPath"
 }
 
 # Logging to collect quic traces while running the tests.
