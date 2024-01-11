@@ -190,6 +190,8 @@ function Wait-ForRemote {
 # Run secnetperf on the client.
 Write-Output "Running tests on the client..."
 
+$PSDefaultParameterValues["Disabled"] = $true
+
 ####################################################################################################
 
     # TEST EXECUTION

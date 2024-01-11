@@ -13,15 +13,15 @@ function Run-Secnetperf($testIds, $commands, $exe, $json, $LogProfile) {
 
     for ($i = 0; $i -lt $commands.Count; $i++) {
     for ($tcp = 0; $tcp -lt 2; $tcp++) {
+
+    if ($LogProfile -ne "" -and $LogProfile -ne "NULL") { # Start logging.
+        Write-Host "Starting logging with log profile: $LogProfile..."
+        .\scripts\log.ps1 -Start -Profile $LogProfile
+    }
+
     for ($try = 0; $try -lt 3; $try++) {
         $command = "$exe -target:netperf-peer $($commands[$i]) -tcp:$tcp -trimout"
         Write-Host "Running test: $command"
-
-        if ($LogProfile -ne "" -and $LogProfile -ne "NULL") { # Start logging.
-            Write-Output "Starting logging with log profile: $LogProfile..."
-            .\scripts\log.ps1 -Start -Profile $LogProfile
-        }
-
         try {
             $rawOutput = Invoke-Expression $command
         } catch {
@@ -38,11 +38,6 @@ function Run-Secnetperf($testIds, $commands, $exe, $json, $LogProfile) {
             continue
         }
         Write-Host $rawOutput
-
-        if ($LogProfile -ne "" -and $LogProfile -ne "NULL") { # Stop logging.
-            Write-Output "Stopping logging..."
-            Invoke-Expression ".\scripts\log.ps1 -Stop -OutputPath .\artifacts\logs\$command"
-        }
 
         if ($testIds[$i].Contains("rps")) {
             $latency_percentiles = '(?<=\d{1,3}(?:\.\d{1,2})?th: )\d+'
@@ -81,8 +76,17 @@ VALUES ('$($testIds[$i])', 'azure_vm', 'azure_vm', $num, NULL, 'kbps');
             }
         }
 
+        if ($LogProfile -ne "" -and $LogProfile -ne "NULL") { # Stop logging.
+            Write-Host "Stopping logging..."
+            Invoke-Expression ".\scripts\log.ps1 -Stop -OutputPath .\artifacts\logs\$command"
+        }
+
         Start-Sleep -Seconds 1
-    }}}
+    }
+    
+
+    
+    }}
 
     return $SQL
 }
