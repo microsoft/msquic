@@ -138,19 +138,8 @@ if (!$isWindows) {
 
 # Run secnetperf on the server.
 Write-Output "Starting secnetperf server..."
-$Job = Invoke-Command -Session $Session -ScriptBlock {
-    & "$Using:RemoteDir/$Using:SecNetPerfPath -exec:maxtput"
-} -AsJob
-
-# Wait for the server to start.
-Write-Output "Waiting for server to start..."
-$ReadyToStart = Wait-ForRemoteReady -Job $Job -Matcher "Started!"
-if (!$ReadyToStart) {
-    Stop-Job -Job $Job
-    $RemoteResult = Receive-Job -Job $Job -ErrorAction Stop
-    $RemoteResult = $RemoteResult -join "`n"
-    Write-GHError "Server failed to start! Output:"
-    Write-Output $RemoteResult
+$Job = Start-RemoteServer "$RemoteDir/$SecNetPerfPath -exec:maxtput"
+if ($null -eq $Job) {
     throw "Server failed to start!"
 }
 
@@ -213,23 +202,12 @@ $SQL += Invoke-SecnetperfTest $maxtputIds $maxtput $exe $json $LogProfile
 # Start and restart the SecNetPerf server without maxtput.
 Write-Host "Restarting server without maxtput..."
 Write-Host "`nStopping server. Server Output:"
-$RemoteResults = Wait-ForRemote $Job
+$RemoteResults = Stop-RemoteServer $Job
 Write-Host $RemoteResults.ToString()
 
 Write-Host "Starting server back up again..."
-$Job = Invoke-Command -Session $Session -ScriptBlock {
-    & "$Using:RemoteDir/$Using:SecNetPerfPath -exec:lowlat"
-} -AsJob
-
-# Wait for the server to start.
-Write-Output "Waiting for server to start..."
-$ReadyToStart = Wait-ForRemoteReady -Job $Job -Matcher "Started!"
-if (!$ReadyToStart) {
-    Stop-Job -Job $RemoteJob
-    $RemoteResult = Receive-Job -Job $Job -ErrorAction $ErrorAction
-    $RemoteResult = $RemoteResult -join "`n"
-    Write-GHError "Server failed to start! Output:"
-    Write-Output $RemoteResult
+$Job = Start-RemoteServer "$RemoteDir/$SecNetPerfPath -exec:lowlat"
+if ($null -eq $Job) {
     throw "Server failed to start!"
 }
 
@@ -243,7 +221,7 @@ $SQL += Invoke-SecnetperfTest $lowlatIds $lowlat $exe $json $LogProfile
 
 # Kill the server process.
 Write-Output "`nStopping server. Server Output:"
-$RemoteResults = Wait-ForRemote $Job
+$RemoteResults = Stop-RemoteServer $Job
 Write-Output $RemoteResults.ToString()
 
 # if ($LogProfile -ne "" -and $LogProfile -ne "NULL") { # TODO: Linux back slash works?

@@ -10,26 +10,37 @@ function Write-GHError($msg) {
 
 # Waits for a remote job to be ready based on looking for a particular string in
 # the output.
-function Wait-ForRemoteReady {
-    param ($Job, $Matcher)
+function Start-RemoteServer {
+    param ($Command)
+    $Job = Invoke-Command -Session $Session -ScriptBlock { $Using:Command } -AsJob
     $StopWatch =  [system.diagnostics.stopwatch]::StartNew()
+    $Started = $false
     while ($StopWatch.ElapsedMilliseconds -lt 10000) {
         $CurrentResults = Receive-Job -Job $Job -Keep -ErrorAction Continue
         if (![string]::IsNullOrWhiteSpace($CurrentResults)) {
-            $DidMatch = $CurrentResults -match $Matcher
+            $DidMatch = $CurrentResults -match "Started!"
             if ($DidMatch) {
-                return $true
+                $Started = $true
+                break;
             }
         }
         Start-Sleep -Seconds 0.1 | Out-Null
     }
-    return $false
+    if (!$Started) {
+        Stop-Job -Job $Job
+        $RemoteResult = Receive-Job -Job $Job -ErrorAction Stop
+        $RemoteResult = $RemoteResult -join "`n"
+        Write-GHError "Server failed to start! Output:"
+        Write-Output $RemoteResult
+        return $null
+    }
+    return $Job
 }
 
 # Sends a special UDP packet to tell the remote secnetperf to shutdown, and then
 # waits for the job to complete. Finally, it returns the console output of the
 # job.
-function Wait-ForRemote {
+function Stop-RemoteServer {
     param ($Job, $ErrorAction = "Stop")
     # Ping side-channel socket on 9999 to tell the app to die
     $Socket = New-Object System.Net.Sockets.UDPClient
@@ -47,7 +58,7 @@ function Wait-ForRemote {
 
     Stop-Job -Job $Job | Out-Null
     $RetVal = Receive-Job -Job $Job -ErrorAction $ErrorAction
-    return $RetVal -join "`n"
+    $RetVal = $RetVal -join "`n"
 }
 
 # Invokes all the secnetperf tests.
