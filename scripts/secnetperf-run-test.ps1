@@ -26,13 +26,20 @@ function Run-Secnetperf($testIds, $commands, $exe, $json, $LogProfile) {
             continue
         }
 
+        if ($rawOutput -eq $null) {
+            Write-GHError "RawOutput is null. Failed to run test: $($commands[$i])"
+            $script:encounterFailures = $true
+            continue
+        }
+
         if ($rawOutput.Contains("Error")) {
             $rawOutput = $rawOutput.Substring(7) # Skip over the 'Error: ' prefix
             Write-GHError $rawOutput
             $script:encounterFailures = $true
             continue
         }
-        Write-Host $rawOutput
+        
+        $rawOutput
 
         if ($testIds[$i].Contains("rps")) {
             $latency_percentiles = '(?<=\d{1,3}(?:\.\d{1,2})?th: )\d+'
