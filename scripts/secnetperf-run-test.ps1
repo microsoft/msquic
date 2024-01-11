@@ -1,8 +1,3 @@
-# Write a GitHub error message to the console.
-function Write-GHError($msg) {
-    Write-Host "::error::$msg"
-}
-
 function Run-Secnetperf($testIds, $commands, $exe, $json, $LogProfile) {
 
     Write-Host "Running Secnetperf tests..."
