@@ -80,7 +80,7 @@ VALUES ('$($testIds[$i])', 'azure_vm', 'azure_vm', $num, NULL, 'kbps');
 
         if ($LogProfile -ne "" -and $LogProfile -ne "NULL") { # Stop logging.
             Write-Host "Stopping logging..."
-            Invoke-Expression ".\scripts\log.ps1 -Stop -OutputPath .\artifacts\logs\$command"
+            .\scripts\log.ps1 -Stop -OutputPath ".\artifacts\logs\$command"
         }
 
         Start-Sleep -Seconds 1
