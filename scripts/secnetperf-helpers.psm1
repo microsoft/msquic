@@ -52,7 +52,7 @@ function Stop-RemoteServer {
         0x88, 0xab, 0x07, 0x96, 0xb2, 0x58, 0xd1, 0x1c
     )
     for ($i = 0; $i -lt 30; $i++) {
-        $Socket.Send($BytesToSend, $BytesToSend.Length, $RemoteAddress, 9999) | Out-Null
+        $Socket.Send($BytesToSend, $BytesToSend.Length, $RemoteName, 9999) | Out-Null
         $Completed = Wait-Job -Job $Job -Timeout 1
         if ($null -ne $Completed) {
             return
