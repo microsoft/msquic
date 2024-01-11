@@ -39,7 +39,7 @@ function Run-Secnetperf($testIds, $commands, $exe, $json, $LogProfile) {
             continue
         }
         
-        $rawOutput
+        Write-Host $rawOutput
 
         if ($testIds[$i].Contains("rps")) {
             $latency_percentiles = '(?<=\d{1,3}(?:\.\d{1,2})?th: )\d+'
