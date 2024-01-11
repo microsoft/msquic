@@ -3,7 +3,7 @@ function Write-GHError($msg) {
     Write-Host "::error::$msg"
 }
 
-function Run-Secnetperf($testIds, $commands, $exe, $json) {
+function Run-Secnetperf($testIds, $commands, $exe, $json, $LogProfile) {
 
     Write-Host "Running Secnetperf tests..."
 
@@ -16,6 +16,11 @@ function Run-Secnetperf($testIds, $commands, $exe, $json) {
     for ($try = 0; $try -lt 3; $try++) {
         $command = "$exe -target:netperf-peer $($commands[$i]) -tcp:$tcp -trimout"
         Write-Host "Running test: $command"
+
+        if ($LogProfile -ne "" -and $LogProfile -ne "NULL") { # Start logging.
+            Write-Output "Starting logging with log profile: $LogProfile..."
+            .\scripts\log.ps1 -Start -Profile $LogProfile
+        }
 
         try {
             $rawOutput = Invoke-Expression $command
@@ -33,6 +38,11 @@ function Run-Secnetperf($testIds, $commands, $exe, $json) {
             continue
         }
         Write-Host $rawOutput
+
+        if ($LogProfile -ne "" -and $LogProfile -ne "NULL") { # Stop logging.
+            Write-Output "Stopping logging..."
+            Invoke-Expression ".\scripts\log.ps1 -Stop -OutputPath .\artifacts\logs\$command"
+        }
 
         if ($testIds[$i].Contains("rps")) {
             $latency_percentiles = '(?<=\d{1,3}(?:\.\d{1,2})?th: )\d+'

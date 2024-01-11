@@ -99,13 +99,12 @@ mkdir .\artifacts\logs | Out-Null
 # Prepare the machines for the testing.
 
 if ($isWindows) {
-    Write-Output "Skipping prepare machine for now on Windows..."
-    # Write-Output "Preparing machines for testing..."
-    # .\scripts\prepare-machine.ps1 -ForTest
+    Write-Output "Preparing machines for testing..."
+    .\scripts\prepare-machine.ps1 -ForTest
 
-    #Invoke-Command -Session $Session -ScriptBlock {
-    #    C:\_work\quic\scripts\prepare-machine.ps1 -ForTest
-    #}
+    Invoke-Command -Session $Session -ScriptBlock {
+       C:\_work\quic\scripts\prepare-machine.ps1 -ForTest
+    }
 } else {
     Write-Output "Skipping prepare machine for now on Linux..."
 
@@ -119,10 +118,10 @@ if ($isWindows) {
 
 # Logging to collect quic traces while running the tests.
 
-if ($LogProfile -ne "" -and $LogProfile -ne "NULL") { # TODO: Linux back slash works?
-    Write-Output "Starting logging with log profile: $LogProfile..."
-    .\scripts\log.ps1 -Start -Profile $LogProfile
-}
+# if ($LogProfile -ne "" -and $LogProfile -ne "NULL") { # TODO: Linux back slash works?
+#     Write-Output "Starting logging with log profile: $LogProfile..."
+#     .\scripts\log.ps1 -Start -Profile $LogProfile
+# }
 
 # Run secnetperf on the server.
 Write-Output "Starting secnetperf server..."
@@ -246,7 +245,7 @@ $lowlat = @(
     "-exec:lowlat -rstream:1 -up:512 -down:4000 -run:10s -plat:1"
 )
 
-$SQL += Run-Secnetperf $maxtputIds $maxtput $exe $json
+$SQL += Run-Secnetperf $maxtputIds $maxtput $exe $json $LogProfile
 
 # Start and restart the SecNetPerf server without maxtput.
 Write-Host "Restarting server without maxtput..."
@@ -256,13 +255,13 @@ Write-Host $RemoteResults.ToString()
 Write-Host "Starting server back up again..."
 if ($isWindows) {
     $Job = Invoke-Command -Session $Session -ScriptBlock {
-        C:\_work\quic\artifacts\bin\windows\x64_Release_schannel\secnetperf.exe 
+        C:\_work\quic\artifacts\bin\windows\x64_Release_schannel\secnetperf.exe -exec:lowlat
     } -AsJob
 } else {
     $Job = Invoke-Command -Session $Session -ScriptBlock {
         $env:LD_LIBRARY_PATH = "${env:LD_LIBRARY_PATH}:/home/secnetperf/_work/artifacts/bin/linux/x64_Release_openssl/"
         chmod +x /home/secnetperf/_work/artifacts/bin/linux/x64_Release_openssl/secnetperf
-        /home/secnetperf/_work/artifacts/bin/linux/x64_Release_openssl/secnetperf 
+        /home/secnetperf/_work/artifacts/bin/linux/x64_Release_openssl/secnetperf -exec:lowlat
     } -AsJob
 }
 # Wait for the server to start.
@@ -277,7 +276,7 @@ if (!$ReadyToStart) {
     throw "Server failed to start!"
 }
 
-$SQL += Run-Secnetperf $lowlatIds $lowlat $exe $json
+$SQL += Run-Secnetperf $lowlatIds $lowlat $exe $json $LogProfile
 
 ####################################################################################################
 
@@ -290,10 +289,10 @@ Write-Output "`nStopping server. Server Output:"
 $RemoteResults = Wait-ForRemote $Job
 Write-Output $RemoteResults.ToString()
 
-if ($LogProfile -ne "" -and $LogProfile -ne "NULL") { # TODO: Linux back slash works?
-    Write-Output "Stopping logging..."
-    .\scripts\log.ps1 -Stop -OutputPath .\artifacts\logs\quic
-}
+# if ($LogProfile -ne "" -and $LogProfile -ne "NULL") { # TODO: Linux back slash works?
+#     Write-Output "Stopping logging..."
+#     .\scripts\log.ps1 -Stop -OutputPath .\artifacts\logs\quic
+# }
 
 # Save the test results (sql and json).
 Write-Output "`nWriting test-results-$plat-$os-$arch-$tls.sql..."
