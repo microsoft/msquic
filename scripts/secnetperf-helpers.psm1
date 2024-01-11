@@ -68,7 +68,7 @@ function Stop-RemoteServer {
 }
 
 # Invokes all the secnetperf tests.
-function Invoke-SecnetperfTest($testIds, $commands, $exe, $json, $LogProfile) {
+function Invoke-SecnetperfTest($MsQuicCommit, $commands, $exe, $json, $LogProfile) {
 
     Write-Host "Running Secnetperf tests..."
 
@@ -77,7 +77,12 @@ function Invoke-SecnetperfTest($testIds, $commands, $exe, $json, $LogProfile) {
     $json = @{}
 
     for ($i = 0; $i -lt $commands.Count; $i++) {
+    $testid = $i + 1
     for ($tcp = 0; $tcp -lt 2; $tcp++) {
+
+    $SQL += @"
+    INSERT OR IGNORE INTO Secnetperf_tests (Secnetperf_test_ID, Kernel_mode, Run_arguments) VALUES ($testid, 0, "$($commands[$i]) -tcp:$tcp")
+"@
 
     $command = "$exe -target:netperf-peer $($commands[$i]) -tcp:$tcp -trimout"
     Write-Host "> $command"
@@ -110,6 +115,12 @@ function Invoke-SecnetperfTest($testIds, $commands, $exe, $json, $LogProfile) {
             continue
         }
 
+        $env = 2
+
+        if ($isWindows) {
+            $env = 1
+        }
+
         Write-Host $rawOutput
 
         if ($testIds[$i].Contains("rps")) {
@@ -135,11 +146,11 @@ function Invoke-SecnetperfTest($testIds, $commands, $exe, $json, $LogProfile) {
 
                 $num = $matches[1]
 
-                # Generate SQL statement
+                # Generate SQL statement. Assume LAST_INSERT_ROW_ID()
                 $SQL += @"
 
-INSERT INTO Secnetperf_test_runs (Secnetperf_test_ID, Client_environment_ID, Server_environment_ID, Result, Latency_stats_ID, Units)
-VALUES ('$($testIds[$i])', 'azure_vm', 'azure_vm', $num, NULL, 'kbps');
+INSERT INTO Secnetperf_test_runs (Secnetperf_test_ID, Secnetperf_commit, Client_environment_ID, Server_environment_ID, Result, Latency_stats_ID)
+VALUES ($testid, '$MsQuicCommit', $env, $env, $num, NULL);
 
 "@
 
