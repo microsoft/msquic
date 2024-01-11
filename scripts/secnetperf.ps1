@@ -81,6 +81,7 @@ if ($isWindows) {
     }
     Copy-Item -ToSession $Session .\artifacts -Destination C:\_work\quic\artifacts -Recurse
     Copy-Item -ToSession $Session .\scripts -Destination C:\_work\quic\scripts -Recurse
+    Copy-Item -ToSession $Session .\src\manifest\MsQuic.wprp -Destination C:\_work\quic\scripts
 } else {
     Invoke-Command -Session $Session -ScriptBlock {
         Remove-Item -Force -Recurse "/home/secnetperf/_work" -ErrorAction Ignore
@@ -88,6 +89,7 @@ if ($isWindows) {
     }
     Copy-Item -ToSession $Session ./artifacts -Destination /home/secnetperf/_work/artifacts -Recurse
     Copy-Item -ToSession $Session ./scripts -Destination /home/secnetperf/_work/scripts -Recurse
+    Copy-Item -ToSession $Session ./src/manifest/MsQuic.wprp -Destination /home/secnetperf/_work/scripts
 }
 
 $encounterFailures = $false
