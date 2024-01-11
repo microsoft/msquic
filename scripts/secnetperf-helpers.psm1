@@ -31,10 +31,10 @@ function Start-RemoteServer {
     if (!$Started) {
         # On failure, dump the output of the job.
         Stop-Job -Job $Job
+        Write-GHError "Server failed to start! Output:"
         $RemoteResult = Receive-Job -Job $Job -ErrorAction Stop
         $RemoteResult = $RemoteResult -join "`n"
-        Write-GHError "Server failed to start! Output:"
-        Write-Output $RemoteResult
+        Write-Output $RemoteResult.ToString()
         return $null
     }
     return $Job # Success!
@@ -60,8 +60,9 @@ function Stop-RemoteServer {
     }
 
     Stop-Job -Job $Job | Out-Null
-    $RetVal = Receive-Job -Job $Job -ErrorAction $ErrorAction
-    $RetVal = $RetVal -join "`n"
+    $RemoteResult = Receive-Job -Job $Job -ErrorAction $ErrorAction
+    $RemoteResult = $RemoteResult -join "`n"
+    Write-Output $RemoteResult.ToString()
 }
 
 # Invokes all the secnetperf tests.

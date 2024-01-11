@@ -88,9 +88,6 @@ Invoke-Command -Session $Session -ScriptBlock {
 Copy-Item -ToSession $Session ./artifacts -Destination "$RemoteDir/artifacts" -Recurse
 Copy-Item -ToSession $Session ./scripts -Destination "$RemoteDir/scripts" -Recurse
 Copy-Item -ToSession $Session ./src/manifest/MsQuic.wprp -Destination "$RemoteDir/scripts"
-Invoke-Command -Session $Session -ScriptBlock {
-    dir "$Using:RemoteDir/scripts"
-}
 
 $encounterFailures = $false
 
@@ -191,9 +188,8 @@ $SQL += Invoke-SecnetperfTest $maxtputIds $maxtput $exe $json $LogProfile
 
 # Start and restart the SecNetPerf server without maxtput.
 Write-Host "Restarting server without maxtput..."
-Write-Host "`nStopping server. Server Output:"
-$RemoteResults = Stop-RemoteServer $Job
-Write-Host $RemoteResults.ToString()
+Write-Output "`nStopping server."
+Stop-RemoteServer $Job
 
 Write-Host "Starting server back up again..."
 $Job = Start-RemoteServer $Session "$RemoteDir/$SecNetPerfPath -exec:lowlat"
@@ -210,9 +206,8 @@ $SQL += Invoke-SecnetperfTest $lowlatIds $lowlat $exe $json $LogProfile
 ####################################################################################################
 
 # Kill the server process.
-Write-Output "`nStopping server. Server Output:"
-$RemoteResults = Stop-RemoteServer $Job
-Write-Output $RemoteResults.ToString()
+Write-Output "`nStopping server."
+Stop-RemoteServer $Job
 
 # if ($LogProfile -ne "" -and $LogProfile -ne "NULL") {
 #     Write-Output "Stopping logging..."
