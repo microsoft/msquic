@@ -62,7 +62,7 @@ $SecNetPerfDir = "artifacts/bin/$plat/$($arch)_Release_$tls"
 $SecNetPerfPath = "$SecNetPerfDir/secnetperf"
 
 # Set up the connection to the peer over remote powershell.
-Write-Output "Connecting to $RemoteName..."
+Write-Host "Connecting to $RemoteName..."
 if ($isWindows) {
     $Session = New-PSSession -ComputerName $RemoteName -ConfigurationName PowerShell.7
 } else {
@@ -74,13 +74,13 @@ if ($null -eq $Session) {
 }
 
 # Make sure nothing is running from a previous run.
-Write-Output "Killing any previous secnetperf on peer..."
+Write-Host "Killing any previous secnetperf on peer..."
 Invoke-Command -Session $Session -ScriptBlock {
     Get-Process | Where-Object { $_.Name -eq "secnetperf" } | Stop-Process
 }
 
 # Copy the artifacts to the peer.
-Write-Output "Copying files to peer..."
+Write-Host "Copying files to peer..."
 Invoke-Command -Session $Session -ScriptBlock {
     Remove-Item -Force -Recurse $Using:RemoteDir -ErrorAction Ignore | Out-Null
     mkdir $Using:RemoteDir | Out-Null
@@ -97,10 +97,10 @@ mkdir ./artifacts/logs | Out-Null
 
 # Prepare the machines for the testing.
 if ($isWindows) { # TODO: Run on Linux too?
-    Write-Output "Preparing local machine for testing..."
+    Write-Host "Preparing local machine for testing..."
     ./scripts/prepare-machine.ps1 -ForTest
 
-    Write-Output "Preparing peer machine for testing..."
+    Write-Host "Preparing peer machine for testing..."
     Invoke-Command -Session $Session -ScriptBlock {
         iex "$Using:RemoteDir/scripts/prepare-machine.ps1 -ForTest"
     }
@@ -108,7 +108,7 @@ if ($isWindows) { # TODO: Run on Linux too?
 
 if (!$isWindows) {
     # Make sure the secnetperf binary is executable.
-    Write-Output "Updating secnetperf permissions..."
+    Write-Host "Updating secnetperf permissions..."
     Invoke-Command -Session $Session -ScriptBlock {
         $env:LD_LIBRARY_PATH = "${env:LD_LIBRARY_PATH}:$Using:RemoteDir/$Using:SecNetPerfDir"
         chmod +x "$Using:RemoteDir/$Using:SecNetPerfPath"
@@ -119,21 +119,15 @@ if (!$isWindows) {
 
 # Logging to collect quic traces while running the tests.
 # if ($LogProfile -ne "" -and $LogProfile -ne "NULL") { # TODO: Linux back slash works?
-#     Write-Output "Starting logging with log profile: $LogProfile..."
+#     Write-Host "Starting logging with log profile: $LogProfile..."
 #     .\scripts\log.ps1 -Start -Profile $LogProfile
 # }
 
 # Run secnetperf on the server.
-Write-Output "Starting secnetperf server..."
+Write-Host "Starting secnetperf server..."
 $Job = Start-RemoteServer $Session "$RemoteDir/$SecNetPerfPath -exec:maxtput"
-if ($null -eq $Job) {
-    throw "Server failed to start!"
-}
 
-# Run secnetperf on the client.
-Write-Output "Running tests on the client..."
-
-$PSDefaultParameterValues["Disabled"] = $true
+$PSDefaultParameterValues["Disabled"] = $true # TODO: Why?
 
 ####################################################################################################
 
@@ -190,10 +184,6 @@ $SQL += Invoke-SecnetperfTest $maxtputIds $maxtput $exe $json $LogProfile
 Write-Host "Restarting server without maxtput..."
 Stop-RemoteServer $Job
 $Job = Start-RemoteServer $Session "$RemoteDir/$SecNetPerfPath -exec:lowlat"
-if ($null -eq $Job) {
-    Write-Host 'ERROR, ERROR, ERROR'
-    throw "Server failed to start!"
-}
 
 $SQL += Invoke-SecnetperfTest $lowlatIds $lowlat $exe $json $LogProfile
 
@@ -204,23 +194,23 @@ $SQL += Invoke-SecnetperfTest $lowlatIds $lowlat $exe $json $LogProfile
 ####################################################################################################
 
 # Kill the server process.
-Write-Output "`nStopping server."
+Write-Host "`Stopping server..."
 Stop-RemoteServer $Job
 
 # if ($LogProfile -ne "" -and $LogProfile -ne "NULL") {
-#     Write-Output "Stopping logging..."
+#     Write-Host "Stopping logging..."
 #     .\scripts\log.ps1 -Stop -OutputPath .\artifacts\logs\quic
 # }
 
 # Save the test results (sql and json).
-Write-Output "`nWriting test-results-$plat-$os-$arch-$tls.sql..."
+Write-Host "`Writing test-results-$plat-$os-$arch-$tls.sql..."
 $SQL | Set-Content -Path "test-results-$plat-$os-$arch-$tls.sql"
 
-Write-Output "`nWriting json-test-results-$plat-$os-$arch-$tls.json..."
+Write-Host "`Writing json-test-results-$plat-$os-$arch-$tls.json..."
 $json | ConvertTo-Json | Set-Content -Path "json-test-results-$plat-$os-$arch-$tls.json"
 
 } catch {
-    Write-GHError "Exception occurred while running tests..."
+    Write-GHError "Exception occurred!"
     Write-GHError $_
     $encounterFailures = $true
 } finally {
