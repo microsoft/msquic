@@ -68,7 +68,7 @@ function Stop-RemoteServer {
 }
 
 # Invokes all the secnetperf tests.
-function Invoke-SecnetperfTest($testIds, $commands, $exe, $json, $LogProfile) {
+function Invoke-SecnetperfTest($MsQuicCommit, $commands, $exe, $start, $LogProfile) {
 
     Write-Host "Running Secnetperf tests..."
 
@@ -76,9 +76,15 @@ function Invoke-SecnetperfTest($testIds, $commands, $exe, $json, $LogProfile) {
 "@
     $json = @{}
 
+
     for ($i = 0; $i -lt $commands.Count; $i++) {
     for ($tcp = 0; $tcp -lt 2; $tcp++) {
+    $testid = $i + 1 + $start
+    $SQL += @"
 
+INSERT OR IGNORE INTO Secnetperf_tests (Secnetperf_test_ID, Kernel_mode, Run_arguments) VALUES ($testid, 0, "$($commands[$i]) -tcp:$tcp")
+
+"@
     $command = "$exe -target:netperf-peer $($commands[$i]) -tcp:$tcp -trimout"
     Write-Host "> $command"
 
@@ -110,41 +116,49 @@ function Invoke-SecnetperfTest($testIds, $commands, $exe, $json, $LogProfile) {
             continue
         }
 
+        $env = 2
+        if ($isWindows) {
+            $env = 1
+        }
+
         Write-Host $rawOutput
 
-        if ($testIds[$i].Contains("rps")) {
+        $transport = "quic"
+
+        if ($tcp -eq 1) {
+            $transport = "tcp"
+        }
+
+        if ($command.Contains("lowlat")) {
             $latency_percentiles = '(?<=\d{1,3}(?:\.\d{1,2})?th: )\d+'
             $Perc = [regex]::Matches($rawOutput, $latency_percentiles) | ForEach-Object {$_.Value}
-            $json[$testIds[$i]] = $Perc
+            $json["latency-$transport"] = $Perc
             # TODO: SQL += ...
             continue
         }
 
         $throughput = '@ (\d+) kbps'
 
-        $testId = $testIds[$i]
-        if ($tcp -eq 1) {
-            $testId += "-tcp"
-        } else {
-            $testId += "quic"
+        $metric = "download"
+        if ($command.Contains("-up")) {
+            $metric = "upload"
         }
-        $testId += "-$MsQuicCommit"
 
         foreach ($line in $rawOutput) {
             if ($line -match $throughput) {
 
                 $num = $matches[1]
 
-                # Generate SQL statement
+                # Generate SQL statement. Assume LAST_INSERT_ROW_ID()
                 $SQL += @"
 
-INSERT INTO Secnetperf_test_runs (Secnetperf_test_ID, Client_environment_ID, Server_environment_ID, Result, Latency_stats_ID, Units)
-VALUES ('$($testIds[$i])', 'azure_vm', 'azure_vm', $num, NULL, 'kbps');
+INSERT INTO Secnetperf_test_runs (Secnetperf_test_ID, Secnetperf_commit, Client_environment_ID, Server_environment_ID, Result, Latency_stats_ID)
+VALUES ($testid, '$MsQuicCommit', $env, $env, $num, NULL);
 
 "@
 
-                # Generate JSON
-                $json[$testIds[$i]] = $num
+                # Generate JSON as intermediary file for dashboard
+                $json["throughput-$metric-$transport"] = $num
                 break
             }
         }
@@ -161,5 +175,5 @@ VALUES ('$($testIds[$i])', 'azure_vm', 'azure_vm', $num, NULL, 'kbps');
 
     }}
 
-    return $SQL
+    return $SQL, $json
 }

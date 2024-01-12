@@ -140,33 +140,11 @@ $SQL = @"
 INSERT OR IGNORE INTO Secnetperf_builds (Secnetperf_Commit, Build_date_time, TLS_enabled, Advanced_build_config)
 VALUES ('$MsQuicCommit', '$(Get-Date -Format "yyyy-MM-dd HH:mm:ss")', 1, 'TODO');
 
-INSERT OR IGNORE INTO Secnetperf_tests (Secnetperf_test_ID, Secnetperf_build_ID, Kernel_mode, Run_arguments, Test_name)
-VALUES ('throughput-upload-quic-$MsQuicCommit', '$MsQuicCommit', 0, '-target:netperf-peer -exec:maxtput -upload:10s', 'throughput-upload-quic');
-
-INSERT OR IGNORE INTO Secnetperf_tests (Secnetperf_test_ID, Secnetperf_build_ID, Kernel_mode, Run_arguments, Test_name)
-VALUES ('throughput-upload-tcp-$MsQuicCommit', '$MsQuicCommit', 0, '-target:netperf-peer -exec:maxtput -upload:10s -tcp:1', 'throughput-upload-tcp');
-
-INSERT OR IGNORE INTO Secnetperf_tests (Secnetperf_test_ID, Secnetperf_build_ID, Kernel_mode, Run_arguments, Test_name)
-VALUES ('throughput-download-quic-$MsQuicCommit', '$MsQuicCommit', 0, '-target:netperf-peer -exec:maxtput -download:10s', 'throughput-download-quic');
-
-INSERT OR IGNORE INTO Secnetperf_tests (Secnetperf_test_ID, Secnetperf_build_ID, Kernel_mode, Run_arguments, Test_name)
-VALUES ('throughput-download-tcp-$MsQuicCommit', '$MsQuicCommit', 0, '-target:netperf-peer -exec:maxtput -download:10s -tcp:1', 'throughput-download-tcp');
-
 "@
 
 $exe = "./$SecNetPerfPath"
 
 $json = @{}
-
-$maxtputIds = @(
-    "throughput-upload",
-    "throughput-download",
-    "hps"
-)
-
-$lowlatIds = @(
-    "rps-1conn-1stream"
-)
 
 $maxtput = @(
     "-exec:maxtput -up:10s -ptput:1",
@@ -178,14 +156,18 @@ $lowlat = @(
     "-exec:lowlat -rstream:1 -up:512 -down:4000 -run:10s -plat:1"
 )
 
-$SQL += Invoke-SecnetperfTest $maxtputIds $maxtput $exe $json $LogProfile
+$res = Invoke-SecnetperfTest $MsQuicCommit $maxtput $exe 0 $LogProfile
+$SQL += $res[0]
+$json += $res[1]
 
 # Start and restart the SecNetPerf server without maxtput.
 Write-Host "Restarting server without maxtput..."
 Stop-RemoteServer $Job $RemoteName
 $Job = Start-RemoteServer $Session "$RemoteDir/$SecNetPerfPath -exec:lowlat"
 
-$SQL += Invoke-SecnetperfTest $lowlatIds $lowlat $exe $json $LogProfile
+$res = Invoke-SecnetperfTest $MsQuicCommit $lowlat $exe 3 $LogProfile
+$SQL += $res[0]
+$json += $res[1]
 
 ####################################################################################################
 
