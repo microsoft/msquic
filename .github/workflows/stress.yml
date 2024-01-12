@@ -102,12 +102,12 @@ jobs:
     - uses: actions/download-artifact@f44cd7b40bfd40b6aa1cc1b9b5b7bf03d3c67110
       if: matrix.vec.plat == 'windows'
       with:
-        name: ${{ matrix.vec.config }}-${{ matrix.vec.plat }}-${{ matrix.vec.os == 'WinServerPrerelease' && 'windows-2022' || matrix.vec.os }}-${{ matrix.vec.arch }}-${{ matrix.vec.tls }}${{ matrix.vec.sanitize }}${{ matrix.vec.test }}
+        name: ${{ matrix.vec.config }}-${{ matrix.vec.plat }}-${{ matrix.vec.os == 'WinServerPrerelease' && 'windows-2022' || matrix.vec.os }}-${{ matrix.vec.arch }}-${{ matrix.vec.tls }}${{ matrix.vec.sanitize }}${{ matrix.vec.build }}
         path: artifacts
     - uses: actions/download-artifact@f44cd7b40bfd40b6aa1cc1b9b5b7bf03d3c67110
       if: matrix.vec.plat == 'linux' || matrix.vec.plat == 'macos'
       with:
-        name: ${{ matrix.vec.config }}-${{ matrix.vec.plat }}-${{ matrix.vec.os }}-${{ matrix.vec.arch }}-${{ matrix.vec.tls }}${{ matrix.vec.sanitize }}${{ matrix.vec.test }}
+        name: ${{ matrix.vec.config }}-${{ matrix.vec.plat }}-${{ matrix.vec.os }}-${{ matrix.vec.arch }}-${{ matrix.vec.tls }}${{ matrix.vec.sanitize }}${{ matrix.vec.build }}
         path: artifacts
     - name: Fix permissions for Unix
       if: matrix.vec.plat == 'linux' || matrix.vec.plat == 'macos'
@@ -162,12 +162,12 @@ jobs:
     - uses: actions/download-artifact@f44cd7b40bfd40b6aa1cc1b9b5b7bf03d3c67110
       if: matrix.vec.plat == 'windows'
       with:
-        name: ${{ matrix.vec.config }}-${{ matrix.vec.plat }}-${{ matrix.vec.os == 'WinServerPrerelease' && 'windows-2022' || matrix.vec.os }}-${{ matrix.vec.arch }}-${{ matrix.vec.tls }}${{ matrix.vec.sanitize }}${{ matrix.vec.test }}
+        name: ${{ matrix.vec.config }}-${{ matrix.vec.plat }}-${{ matrix.vec.os == 'WinServerPrerelease' && 'windows-2022' || matrix.vec.os }}-${{ matrix.vec.arch }}-${{ matrix.vec.tls }}${{ matrix.vec.sanitize }}${{ matrix.vec.build }}
         path: artifacts
     - uses: actions/download-artifact@f44cd7b40bfd40b6aa1cc1b9b5b7bf03d3c67110
       if: matrix.vec.plat == 'linux' || matrix.vec.plat == 'macos'
       with:
-        name: ${{ matrix.vec.config }}-${{ matrix.vec.plat }}-${{ matrix.vec.os }}-${{ matrix.vec.arch }}-${{ matrix.vec.tls }}${{ matrix.vec.sanitize }}${{ matrix.vec.test }}
+        name: ${{ matrix.vec.config }}-${{ matrix.vec.plat }}-${{ matrix.vec.os }}-${{ matrix.vec.arch }}-${{ matrix.vec.tls }}${{ matrix.vec.sanitize }}${{ matrix.vec.build }}
         path: artifacts
     - name: Fix permissions for Unix
       if: matrix.vec.plat == 'linux' || matrix.vec.plat == 'macos'
