@@ -69,19 +69,29 @@ function Stop-RemoteServer {
 
 # Invokes all the secnetperf tests.
 function Invoke-Secnetperf {
-    param ($Session, $RemoteName, $RemoteDir, $SecNetPerfPath, $LogProfile, $ExeArgs, $testId)
+    param ($Session, $RemoteName, $RemoteDir, $SecNetPerfPath, $LogProfile, $ExeArgs, $MsQuicCommit, $i)
 
     $SQL = ""
     $json = @{}
 
+    $env = 2
+    if ($isWindows) {
+        $env = 1
+    }
+
     for ($tcp = 0; $tcp -lt 2; $tcp++) {
 
-    $fullTestId = $testId
+    $testid = $i + 1
+    $transport = "quic"
     if ($tcp -eq 1) {
-        $fullTestId += "-tcp"
-    } else {
-        $fullTestId += "-quic"
+        $transport = "tcp"
     }
+
+    $SQL += @"
+
+INSERT OR IGNORE INTO Secnetperf_tests (Secnetperf_test_ID, Kernel_mode, Run_arguments) VALUES ($testid, 0, "$ExeArgs -tcp:$tcp")
+
+"@
 
     $execMode = $ExeArgs.Substring(0, $ExeArgs.IndexOf(' '))
     $command = "./$SecNetPerfPath -target:netperf-peer $ExeArgs -tcp:$tcp -trimout"
@@ -118,26 +128,31 @@ function Invoke-Secnetperf {
 
         Write-Host $rawOutput
 
-        if ($testId.Contains("rps")) {
+        if ($exeArgs.Contains("plat:1")) {
             $latency_percentiles = '(?<=\d{1,3}(?:\.\d{1,2})?th: )\d+'
             $Perc = [regex]::Matches($rawOutput, $latency_percentiles) | ForEach-Object {$_.Value}
-            $json[$testId] = $Perc
+            $json["latency-$transport"] = $Perc
             # TODO: SQL += ...
             continue
+        }
+
+        $metric = "download"
+        if ($exeArgs.Contains("-up")) {
+            $metric = "upload"
         }
 
         foreach ($line in $rawOutput) {
             if ($line -match '@ (\d+) kbps') {
                 $num = $matches[1]
-                # Generate SQL statement
+                # Generate SQL statement. Assume LAST_INSERT_ROW_ID()
                 $SQL += @"
 
-INSERT INTO Secnetperf_test_runs (Secnetperf_test_ID, Client_environment_ID, Server_environment_ID, Result, Latency_stats_ID, Units)
-VALUES ('$testId', 'azure_vm', 'azure_vm', $num, NULL, 'kbps');
+INSERT INTO Secnetperf_test_runs (Secnetperf_test_ID, Secnetperf_commit, Client_environment_ID, Server_environment_ID, Result, Latency_stats_ID)
+VALUES ($testid, '$MsQuicCommit', $env, $env, $num, NULL);
 
 "@
-                # Generate JSON
-                $json["$fullTestId-$MsQuicCommit"] = $num
+                # Generate JSON as intermediary file for dashboard
+                $json["throughput-$metric-$transport"] = $num
                 break
             }
         }
@@ -151,4 +166,6 @@ VALUES ('$testId', 'azure_vm', 'azure_vm', $num, NULL, 'kbps');
     }
 
     } # end for tcp
+
+    return $SQL, $json
 }

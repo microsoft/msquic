@@ -124,28 +124,9 @@ $SQL = @"
 INSERT OR IGNORE INTO Secnetperf_builds (Secnetperf_Commit, Build_date_time, TLS_enabled, Advanced_build_config)
 VALUES ('$MsQuicCommit', '$(Get-Date -Format "yyyy-MM-dd HH:mm:ss")', 1, 'TODO');
 
-INSERT OR IGNORE INTO Secnetperf_tests (Secnetperf_test_ID, Secnetperf_build_ID, Kernel_mode, Run_arguments, Test_name)
-VALUES ('throughput-upload-quic-$MsQuicCommit', '$MsQuicCommit', 0, '-target:netperf-peer -exec:maxtput -upload:10s', 'throughput-upload-quic');
-
-INSERT OR IGNORE INTO Secnetperf_tests (Secnetperf_test_ID, Secnetperf_build_ID, Kernel_mode, Run_arguments, Test_name)
-VALUES ('throughput-upload-tcp-$MsQuicCommit', '$MsQuicCommit', 0, '-target:netperf-peer -exec:maxtput -upload:10s -tcp:1', 'throughput-upload-tcp');
-
-INSERT OR IGNORE INTO Secnetperf_tests (Secnetperf_test_ID, Secnetperf_build_ID, Kernel_mode, Run_arguments, Test_name)
-VALUES ('throughput-download-quic-$MsQuicCommit', '$MsQuicCommit', 0, '-target:netperf-peer -exec:maxtput -download:10s', 'throughput-download-quic');
-
-INSERT OR IGNORE INTO Secnetperf_tests (Secnetperf_test_ID, Secnetperf_build_ID, Kernel_mode, Run_arguments, Test_name)
-VALUES ('throughput-download-tcp-$MsQuicCommit', '$MsQuicCommit', 0, '-target:netperf-peer -exec:maxtput -download:10s -tcp:1', 'throughput-download-tcp');
-
 "@
 
 $json = @{}
-
-$testIds = @(
-    "throughput-upload",
-    "throughput-download",
-    "hps",
-    "rps-1conn-1stream"
-)
 
 $exeArgs = @(
     "-exec:maxtput -up:10s -ptput:1",
@@ -154,9 +135,10 @@ $exeArgs = @(
     "-exec:lowlat -rstream:1 -up:512 -down:4000 -run:10s -plat:1"
 )
 
-
 for ($i = 0; $i -lt $exeArgs.Count; $i++) {
-    $SQL += Invoke-Secnetperf $Session, $RemoteName, $RemoteDir, $SecNetPerfPath, $LogProfile, $exeArgs[$i] $testIds[$i]
+    $res = Invoke-Secnetperf $Session $RemoteName $RemoteDir $SecNetPerfPath $LogProfile $exeArgs[$i] $MsQuicCommit $i
+    $SQL += $res[0]
+    $json += $res[1]
 }
 
 # Save the test results (sql and json).
