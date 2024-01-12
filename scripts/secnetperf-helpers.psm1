@@ -106,7 +106,7 @@ function Invoke-Secnetperf {
 
     if ($LogProfile -ne "" -and $LogProfile -ne "NULL") {
         Invoke-Command -Session $Session -ScriptBlock {
-            & "$Using:RemoteDir/scripts/log.ps1" -Start -Profile $LogProfile -ProfileInScriptDirectory
+            & "$Using:RemoteDir/scripts/log.ps1" -Start -Profile $Using:LogProfile -ProfileInScriptDirectory
         }
         .\scripts\log.ps1 -Start -Profile $LogProfile
     }
