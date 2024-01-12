@@ -1722,7 +1722,11 @@ __MsQuicClientAttachProvider(
                 NULL,
                 &ProviderContext,
                 (const void**)&Client->ProviderDispatch);
-        KeSetEvent(&Client->RegistrationCompleteEvent, IO_NO_INCREMENT, FALSE);
+        if (NT_SUCCESS(Status)) {
+            KeSetEvent(&Client->RegistrationCompleteEvent, IO_NO_INCREMENT, FALSE);
+        } else {
+            InterlockedDecrement(&Client->BindingCount);
+        }
     } else {
         Status = STATUS_NOINTERFACE;
     }
