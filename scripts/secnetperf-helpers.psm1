@@ -11,11 +11,6 @@ function Write-GHError($msg) {
     Write-Host "::error::$msg"
 }
 
-# Write a GitHub warning message to the console.
-function Write-GHWarning($msg) {
-    Write-Host "::warning::$msg"
-}
-
 # Waits for a remote job to be ready based on looking for a particular string in
 # the output.
 function Start-RemoteServer {
@@ -39,7 +34,7 @@ function Start-RemoteServer {
     Stop-Job -Job $Job
     $RemoteResult = Receive-Job -Job $Job -ErrorAction Stop
     $RemoteResult = $RemoteResult -join "`n"
-    Write-GHWarning $RemoteResult.ToString()
+    Write-Host $RemoteResult.ToString()
     throw "Server failed to start!"
 }
 
@@ -66,7 +61,7 @@ function Stop-RemoteServer {
     Stop-Job -Job $Job
     $RemoteResult = Receive-Job -Job $Job -ErrorAction Stop
     $RemoteResult = $RemoteResult -join "`n"
-    Write-GHWarning $RemoteResult.ToString()
+    Write-Host $RemoteResult.ToString()
     throw "Server failed to stop!"
 }
 
