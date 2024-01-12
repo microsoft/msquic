@@ -157,9 +157,9 @@ function Invoke-Secnetperf {
         $encounterFailures = $true
     } finally {
         # Stop the server
-        Stop-RemoteServer $Job $RemoteName
+        try { Stop-RemoteServer $Job $RemoteName } catch { } # Ignore failures for now
         if ($LogProfile -ne "" -and $LogProfile -ne "NULL") {
-            .\scripts\log.ps1 -Stop -OutputPath "./artifacts/logs/$metric-$transport/client" -RawLogOnly
+            .\scripts\log.ps1 -Stop -OutputPath "./artifacts/logs/$metric-$tcp/client" -RawLogOnly
         }
     }}
 
