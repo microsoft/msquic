@@ -105,6 +105,9 @@ function Invoke-Secnetperf {
     Write-Host "> $command"
 
     if ($LogProfile -ne "" -and $LogProfile -ne "NULL") {
+        Invoke-Command -Session $Session -ScriptBlock {
+            & "$Using:RemoteDir/scripts/log.ps1" -Start -Profile $LogProfile -ProfileInScriptDirectory
+        }
         .\scripts\log.ps1 -Start -Profile $LogProfile
     }
 
@@ -150,6 +153,10 @@ function Invoke-Secnetperf {
         try { Stop-RemoteServer $Job $RemoteName | Out-Null } catch { } # Ignore failures for now
         if ($LogProfile -ne "" -and $LogProfile -ne "NULL") {
             .\scripts\log.ps1 -Stop -OutputPath "./artifacts/logs/$metric-$tcp/client" -RawLogOnly
+            Invoke-Command -Session $Session -ScriptBlock {
+                & "$Using:RemoteDir/scripts/log.ps1" -Stop -OutputPath "$Using:RemoteDir/artifacts/logs/$Using:metric-$Using:tcp/server" -RawLogOnly
+            }
+            Copy-Item -FromSession $Session "$RemoteDir/artifacts/logs/$metric-$tcp/server*" "./artifacts/logs/$metric-$tcp/"
         }
     }}
 
