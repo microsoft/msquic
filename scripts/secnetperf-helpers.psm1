@@ -137,7 +137,7 @@ function Invoke-Secnetperf {
             Write-GHError $_
             $hasFailures = $true
         }
-        Start-Sleep -Seconds 1
+        Start-Sleep -Seconds 1 | Out-Null
     }
 
     } catch {
@@ -147,7 +147,7 @@ function Invoke-Secnetperf {
         $hasFailures = $true
     } finally {
         # Stop the server
-        try { Stop-RemoteServer $Job $RemoteName } catch { } # Ignore failures for now
+        try { Stop-RemoteServer $Job $RemoteName | Out-Null } catch { } # Ignore failures for now
         if ($LogProfile -ne "" -and $LogProfile -ne "NULL") {
             .\scripts\log.ps1 -Stop -OutputPath "./artifacts/logs/$metric-$tcp/client" -RawLogOnly
         }
