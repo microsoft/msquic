@@ -19,7 +19,7 @@ function Start-RemoteServer {
     $Job = Invoke-Command -Session $Session -ScriptBlock { iex $Using:Command } -AsJob
     # Poll the job for 10 seconds to see if it started.
     $StopWatch =  [system.diagnostics.stopwatch]::StartNew()
-    while ($StopWatch.ElapsedMilliseconds -lt 10000) {
+    while ($StopWatch.ElapsedMilliseconds -lt 30000) {
         $CurrentResults = Receive-Job -Job $Job -Keep -ErrorAction Continue
         if (![string]::IsNullOrWhiteSpace($CurrentResults)) {
             $DidMatch = $CurrentResults -match "Started!" # Look for the special string to indicate success.
