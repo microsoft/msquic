@@ -150,8 +150,8 @@ Write-Host "`Writing json-test-results-$plat-$os-$arch-$tls.json..."
 $json | ConvertTo-Json | Set-Content -Path "json-test-results-$plat-$os-$arch-$tls.json"
 
 } catch {
-    Write-GHError "Exception occurred!"
-    Write-GHError $_
+    Write-GHError "Outer exception while running tests!"
+    $_.Exception | Format-List -Force | Write-GHError
     $encounterFailures = $true
 } finally {
     # TODO: Do any further book keeping here.
