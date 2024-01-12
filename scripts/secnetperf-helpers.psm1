@@ -120,7 +120,7 @@ function Invoke-Secnetperf {
         try {
             $rawOutput = Invoke-Expression $command
             if ($null -eq $rawOutput) {
-                throw "Output is empty!."
+                throw "Output is empty!"
             }
             if ($rawOutput.Contains("Error")) {
                 throw $rawOutput.Substring(7) # Skip over the 'Error: ' prefix
