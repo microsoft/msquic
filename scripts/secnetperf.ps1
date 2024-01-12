@@ -136,9 +136,9 @@ $exeArgs = @(
 )
 
 for ($i = 0; $i -lt $exeArgs.Count; $i++) {
-    $res = Invoke-Secnetperf $Session $RemoteName $RemoteDir $SecNetPerfPath $LogProfile $exeArgs[$i] $MsQuicCommit $i
-    $SQL += $res[0]
-    $json += $res[1]
+    $res = Invoke-Secnetperf $Session $RemoteName $RemoteDir $SecNetPerfPath $LogProfile $exeArgs[$i] $MsQuicCommit ($i+1) $SQL $json
+    $SQL = $res[0]
+    $json = $res[1]
     if ($res[2]) { $encounterFailures = $true }
 }
 
@@ -152,7 +152,6 @@ $json | ConvertTo-Json | Set-Content -Path "json-test-results-$plat-$os-$arch-$t
 } catch {
     Write-GHError "Outer exception while running tests!"
     Write-GHError $_
-    Get-Error
     $_ | Format-List *
     $encounterFailures = $true
 }

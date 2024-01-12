@@ -69,12 +69,9 @@ function Stop-RemoteServer {
 
 # Invokes secnetperf with the given arguments for both TCP and QUIC.
 function Invoke-Secnetperf {
-    param ($Session, $RemoteName, $RemoteDir, $SecNetPerfPath, $LogProfile, $ExeArgs, $MsQuicCommit, $i)
+    param ($Session, $RemoteName, $RemoteDir, $SecNetPerfPath, $LogProfile, $ExeArgs, $MsQuicCommit, $testid, $SQL, $json)
 
-    $SQL = ""
-    $json = @{}
     $encounterFailures = $true
-    $testid = $i + 1
     $env = $isWindows ? 1 : 2
 
     # TODO: Improve this stuff
@@ -113,7 +110,6 @@ INSERT OR IGNORE INTO Secnetperf_tests (Secnetperf_test_ID, Kernel_mode, Run_arg
         } catch {
             Write-GHError "Invoke-Expression exception encountered!"
             Write-GHError $_
-            Get-Error
             $_ | Format-List *
             $encounterFailures = $true
             continue
@@ -162,7 +158,6 @@ VALUES ($testid, '$MsQuicCommit', $env, $env, $num, NULL);
     } catch {
         Write-GHError "Inner exception while running test case!"
         Write-GHError $_
-        Get-Error
         $_ | Format-List *
         $encounterFailures = $true
     } finally {
