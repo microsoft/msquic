@@ -117,23 +117,7 @@ if (!$isWindows) {
     chmod +x "./$SecNetPerfPath"
 }
 
-# Logging to collect quic traces while running the tests.
-# if ($LogProfile -ne "" -and $LogProfile -ne "NULL") { # TODO: Linux back slash works?
-#     Write-Host "Starting logging with log profile: $LogProfile..."
-#     .\scripts\log.ps1 -Start -Profile $LogProfile
-# }
-
-# Run secnetperf on the server.
-Write-Host "Starting secnetperf server..."
-$Job = Start-RemoteServer $Session "$RemoteDir/$SecNetPerfPath -exec:maxtput"
-
 $PSDefaultParameterValues["Disabled"] = $true # TODO: Why?
-
-####################################################################################################
-
-    # TEST EXECUTION
-
-####################################################################################################
 
 $SQL = @"
 
@@ -154,53 +138,26 @@ VALUES ('throughput-download-tcp-$MsQuicCommit', '$MsQuicCommit', 0, '-target:ne
 
 "@
 
-$exe = "./$SecNetPerfPath"
-
 $json = @{}
 
-$maxtputIds = @(
+$testIds = @(
     "throughput-upload",
     "throughput-download",
-    "hps"
-)
-
-$lowlatIds = @(
+    "hps",
     "rps-1conn-1stream"
 )
 
-$maxtput = @(
+$exeArgs = @(
     "-exec:maxtput -up:10s -ptput:1",
     "-exec:maxtput -down:10s -ptput:1",
-    "-exec:maxtput -rconn:1 -share:1 -conns:100 -run:10s -prate:1"
-)
-
-$lowlat = @(
+    "-exec:maxtput -rconn:1 -share:1 -conns:100 -run:10s -prate:1",
     "-exec:lowlat -rstream:1 -up:512 -down:4000 -run:10s -plat:1"
 )
 
-$SQL += Invoke-SecnetperfTest $maxtputIds $maxtput $exe $json $LogProfile
 
-# Start and restart the SecNetPerf server without maxtput.
-Write-Host "Restarting server without maxtput..."
-Stop-RemoteServer $Job $RemoteName
-$Job = Start-RemoteServer $Session "$RemoteDir/$SecNetPerfPath -exec:lowlat"
-
-$SQL += Invoke-SecnetperfTest $lowlatIds $lowlat $exe $json $LogProfile
-
-####################################################################################################
-
-    # END TEST EXECUTION
-
-####################################################################################################
-
-# Kill the server process.
-Write-Host "`Stopping server..."
-Stop-RemoteServer $Job $RemoteName
-
-# if ($LogProfile -ne "" -and $LogProfile -ne "NULL") {
-#     Write-Host "Stopping logging..."
-#     .\scripts\log.ps1 -Stop -OutputPath .\artifacts\logs\quic
-# }
+for ($i = 0; $i -lt $exeArgs.Count; $i++) {
+    $SQL += Invoke-Secnetperf $Session, $RemoteName, $RemoteDir, $SecNetPerfPath, $LogProfile, $exeArgs[$i] $testIds[$i]
+}
 
 # Save the test results (sql and json).
 Write-Host "`Writing test-results-$plat-$os-$arch-$tls.sql..."

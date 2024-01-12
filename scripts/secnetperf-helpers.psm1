@@ -68,37 +68,43 @@ function Stop-RemoteServer {
 }
 
 # Invokes all the secnetperf tests.
-function Invoke-SecnetperfTest($testIds, $commands, $exe, $json, $LogProfile) {
+function Invoke-Secnetperf {
+    param ($Session, $RemoteName, $RemoteDir, $SecNetPerfPath, $LogProfile, $ExeArgs, $testId)
 
-    Write-Host "Running Secnetperf tests..."
-
-    $SQL = @"
-"@
+    $SQL = ""
     $json = @{}
 
-    for ($i = 0; $i -lt $commands.Count; $i++) {
     for ($tcp = 0; $tcp -lt 2; $tcp++) {
 
-    $command = "$exe -target:netperf-peer $($commands[$i]) -tcp:$tcp -trimout"
+    $fullTestId = $testId
+    if ($tcp -eq 1) {
+        $fullTestId += "-tcp"
+    } else {
+        $fullTestId += "-quic"
+    }
+
+    $execMode = $ExeArgs.Substring(0, $ExeArgs.IndexOf(' '))
+    $command = "./$SecNetPerfPath -target:netperf-peer $ExeArgs -tcp:$tcp -trimout"
     Write-Host "> $command"
 
-    if ($LogProfile -ne "" -and $LogProfile -ne "NULL") { # Start logging.
-        Write-Host "Starting logging with log profile: $LogProfile..."
+    if ($LogProfile -ne "" -and $LogProfile -ne "NULL") {
         .\scripts\log.ps1 -Start -Profile $LogProfile
     }
+
+    # Start the server running
+    $Job = Start-RemoteServer $Session "$RemoteDir/$SecNetPerfPath $execMode"
 
     for ($try = 0; $try -lt 3; $try++) {
         try {
             $rawOutput = Invoke-Expression $command
         } catch {
-            Write-GHError "Failed to run test: $($commands[$i])"
             Write-GHError $_
             $script:encounterFailures = $true
             continue
         }
 
         if ($null -eq $rawOutput) {
-            Write-GHError "RawOutput is null. Failed to run test: $($commands[$i])"
+            Write-GHError "RawOutput is null."
             $script:encounterFailures = $true
             continue
         }
@@ -112,54 +118,37 @@ function Invoke-SecnetperfTest($testIds, $commands, $exe, $json, $LogProfile) {
 
         Write-Host $rawOutput
 
-        if ($testIds[$i].Contains("rps")) {
+        if ($testId.Contains("rps")) {
             $latency_percentiles = '(?<=\d{1,3}(?:\.\d{1,2})?th: )\d+'
             $Perc = [regex]::Matches($rawOutput, $latency_percentiles) | ForEach-Object {$_.Value}
-            $json[$testIds[$i]] = $Perc
+            $json[$testId] = $Perc
             # TODO: SQL += ...
             continue
         }
 
-        $throughput = '@ (\d+) kbps'
-
-        $testId = $testIds[$i]
-        if ($tcp -eq 1) {
-            $testId += "-tcp"
-        } else {
-            $testId += "quic"
-        }
-        $testId += "-$MsQuicCommit"
-
         foreach ($line in $rawOutput) {
-            if ($line -match $throughput) {
-
+            if ($line -match '@ (\d+) kbps') {
                 $num = $matches[1]
-
                 # Generate SQL statement
                 $SQL += @"
 
 INSERT INTO Secnetperf_test_runs (Secnetperf_test_ID, Client_environment_ID, Server_environment_ID, Result, Latency_stats_ID, Units)
-VALUES ('$($testIds[$i])', 'azure_vm', 'azure_vm', $num, NULL, 'kbps');
+VALUES ('$testId', 'azure_vm', 'azure_vm', $num, NULL, 'kbps');
 
 "@
-
                 # Generate JSON
-                $json[$testIds[$i]] = $num
+                $json["$fullTestId-$MsQuicCommit"] = $num
                 break
             }
-        }
-
-        if ($LogProfile -ne "" -and $LogProfile -ne "NULL") { # Stop logging.
-            Write-Host "Stopping logging..."
-            .\scripts\log.ps1 -Stop -OutputPath ".\artifacts\logs\$command"
         }
 
         Start-Sleep -Seconds 1
     }
 
+    Stop-RemoteServer $Job $RemoteName
+    if ($LogProfile -ne "" -and $LogProfile -ne "NULL") {
+        .\scripts\log.ps1 -Stop -OutputPath "./artifacts/logs/$fullTestId/client" -RawLogOnly
+    }
 
-
-    }}
-
-    return $SQL
+    } # end for tcp
 }
