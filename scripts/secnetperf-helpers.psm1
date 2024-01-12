@@ -116,30 +116,32 @@ function Invoke-SecnetperfTest($MsQuicCommit, $commands, $exe, $json, $LogProfil
         }
 
         $env = 2
-
         if ($isWindows) {
             $env = 1
         }
 
         Write-Host $rawOutput
 
-        if ($testIds[$i].Contains("rps")) {
+        $transport = "quic"
+
+        if ($tcp -eq 1) {
+            $transport = "tcp"
+        }
+
+        if ($command.Contains("lowlat")) {
             $latency_percentiles = '(?<=\d{1,3}(?:\.\d{1,2})?th: )\d+'
             $Perc = [regex]::Matches($rawOutput, $latency_percentiles) | ForEach-Object {$_.Value}
-            $json[$testIds[$i]] = $Perc
+            $json["latency-$transport"] = $Perc
             # TODO: SQL += ...
             continue
         }
 
         $throughput = '@ (\d+) kbps'
 
-        $testId = $testIds[$i]
-        if ($tcp -eq 1) {
-            $testId += "-tcp"
-        } else {
-            $testId += "quic"
+        $metric = "download"
+        if ($command.Contains("-up")) {
+            $metric = "upload"
         }
-        $testId += "-$MsQuicCommit"
 
         foreach ($line in $rawOutput) {
             if ($line -match $throughput) {
@@ -154,8 +156,8 @@ VALUES ($testid, '$MsQuicCommit', $env, $env, $num, NULL);
 
 "@
 
-                # Generate JSON
-                $json[$testIds[$i]] = $num
+                # Generate JSON as intermediary file for dashboard
+                $json["throughput-$metric-$transport"] = $num
                 break
             }
         }
