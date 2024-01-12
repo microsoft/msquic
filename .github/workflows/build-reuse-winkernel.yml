@@ -45,9 +45,9 @@ on:
         #   - openssl
         #   - openssl3
         #   - schannel
-      test:
+      build:
         required: false
-        default: ''
+        default: '' # Empty string means build all
         type: string
 
 permissions: read-all
@@ -71,11 +71,11 @@ jobs:
       shell: pwsh
       run: msbuild msquic.kernel.sln -t:restore /p:RestorePackagesConfig=true /p:Configuration=${{ inputs.config }} /p:Platform=${{ inputs.arch }}
     - name: Build
-      if: inputs.test == '-Test'
+      if: inputs.build == '-Test'
       shell: pwsh
       run: msbuild msquic.kernel.sln /p:Configuration=${{ inputs.config }} /p:Platform=${{ inputs.arch }} /p:QUIC_VER_SUFFIX=-official /p:QUIC_VER_GIT_HASH=${{ github.sha }}
     - name: Build
-      if: inputs.test == ''
+      if: inputs.build == ''
       shell: pwsh
       run: msbuild msquic.kernel.sln /p:Configuration=${{ inputs.config }} /p:Platform=${{ inputs.arch }} /p:QUIC_VER_SUFFIX=-official
     - name: Sign Kernel
@@ -90,5 +90,5 @@ jobs:
     - name: Upload build artifacts
       uses: actions/upload-artifact@c7d193f32edcb7bfad88892161225aeda64e9392
       with:
-        name: ${{ inputs.config }}-${{ inputs.plat }}-${{ inputs.os }}-${{ inputs.arch }}-${{ inputs.tls }}${{ inputs.test }}
+        name: ${{ inputs.config }}-${{ inputs.plat }}-${{ inputs.os }}-${{ inputs.arch }}-${{ inputs.tls }}${{ inputs.build }}
         path: artifacts

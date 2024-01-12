@@ -55,9 +55,9 @@ on:
         required: false
         default: ''
         type: string
-      test:
+      build:
         required: false
-        default: ''
+        default: '' # Empty string means build all
         type: string
 
 permissions: read-all
@@ -83,11 +83,15 @@ jobs:
       shell: pwsh
       run: scripts/prepare-machine.ps1 -ForBuild -Tls ${{ inputs.tls }}
     - name: Build For Test
-      if: inputs.test == '-Test'
+      if: inputs.build == '-Test'
       shell: pwsh
       run: scripts/build.ps1 -Config ${{ inputs.config }} -Platform ${{ inputs.plat }} -Arch ${{ inputs.arch }} -Tls ${{ inputs.tls }} -DisablePerf -DynamicCRT ${{ inputs.sanitize }}
+    - name: Build For Perf
+      if: inputs.build == '-Perf'
+      shell: pwsh
+      run: scripts/build.ps1 -Config ${{ inputs.config }} -Platform ${{ inputs.plat }} -Arch ${{ inputs.arch }} -Tls ${{ inputs.tls }} -DisableTools -DisableTest -DynamicCRT ${{ inputs.sanitize }}
     - name: Build
-      if: inputs.test == ''
+      if: inputs.build == ''
       shell: pwsh
       run: scripts/build.ps1 -Config ${{ inputs.config }} -Platform ${{ inputs.plat }} -Arch ${{ inputs.arch }} -Tls ${{ inputs.tls }} ${{ inputs.sanitize }} ${{ inputs.static }}
     - name: Filter Build Artifacts
@@ -99,5 +103,5 @@ jobs:
     - name: Upload build artifacts
       uses: actions/upload-artifact@c7d193f32edcb7bfad88892161225aeda64e9392
       with:
-        name: ${{ inputs.config }}-${{ inputs.plat }}-${{ inputs.os }}-${{ inputs.arch }}-${{ inputs.tls }}${{ inputs.sanitize }}${{ inputs.static }}${{ inputs.test }}
+        name: ${{ inputs.config }}-${{ inputs.plat }}-${{ inputs.os }}-${{ inputs.arch }}-${{ inputs.tls }}${{ inputs.sanitize }}${{ inputs.static }}${{ inputs.build }}
         path: artifacts
