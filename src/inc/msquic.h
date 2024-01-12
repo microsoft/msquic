@@ -1775,7 +1775,7 @@ NTSTATUS
 MsQuicNmrClientRegister(
     _Out_ HANDLE* ClientHandle,
     _In_ GUID* ClientModuleId,
-    _In_ ULONG TimeoutMs
+    _In_ ULONG TimeoutMs // zero = no wait, non-zero = some wait
     )
 {
     NPI_REGISTRATION_INSTANCE *ClientRegistrationInstance;
@@ -1819,7 +1819,7 @@ MsQuicNmrClientRegister(
         KeWaitForSingleObject(
             &Client->RegistrationCompleteEvent,
             Executive, KernelMode, FALSE,
-            TimeoutMs != 0 ? &Timeout : NULL);
+            &Timeout);
     if (Status != STATUS_SUCCESS) {
         Status = STATUS_UNSUCCESSFUL;
         goto Exit;
