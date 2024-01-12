@@ -97,7 +97,7 @@ INSERT OR IGNORE INTO Secnetperf_builds (Secnetperf_Commit, Build_date_time, TLS
 VALUES ('$MsQuicCommit', '$(Get-Date -Format "yyyy-MM-dd HH:mm:ss")', 1, 'TODO');
 "@
 $json = @{}
-$exeArgs = @(
+$allTests = @(
     "-exec:maxtput -up:10s -ptput:1",
     "-exec:maxtput -down:10s -ptput:1",
     "-exec:maxtput -rconn:1 -share:1 -conns:100 -run:10s -prate:1",
@@ -133,20 +133,17 @@ if (!$isWindows) {
 }
 
 # Run all the test cases.
-for ($i = 0; $i -lt $exeArgs.Count; $i++) {
-    $ExeArgs = $exeArgs[$i]
+for ($i = 0; $i -lt $allTests.Count; $i++) {
+    $ExeArgs = $allTests[$i]
     $Output = Invoke-Secnetperf $Session $RemoteName $RemoteDir $SecNetPerfPath $LogProfile $ExeArgs
-    Write-Host "Test Complete:`n"
-    Write-Host $Output.GetType()
-    Write-Host $Output
     $Test = $Output[-1]
     if ($Test.HasFailures) { $hasFailures = $true }
 
     # Process the results and add them to the SQL and JSON.
-    $testid = $i + 1
+    $TestId = $i + 1
     $SQL += @"
-`nINSERT OR IGNORE INTO Secnetperf_tests (Secnetperf_test_ID, Kernel_mode, Run_arguments) VALUES ($testid, 0, "$ExeArgs -tcp:0")
-INSERT OR IGNORE INTO Secnetperf_tests (Secnetperf_test_ID, Kernel_mode, Run_arguments) VALUES ($testid, 0, "$ExeArgs -tcp:1")
+`nINSERT OR IGNORE INTO Secnetperf_tests (Secnetperf_test_ID, Kernel_mode, Run_arguments) VALUES ($TestId, 0, "$ExeArgs -tcp:0")
+INSERT OR IGNORE INTO Secnetperf_tests (Secnetperf_test_ID, Kernel_mode, Run_arguments) VALUES ($TestId, 0, "$ExeArgs -tcp:1")
 "@
 
     for ($tcp = 0; $tcp -lt $Test.Values.Length; $tcp++) {
@@ -157,7 +154,7 @@ INSERT OR IGNORE INTO Secnetperf_tests (Secnetperf_test_ID, Kernel_mode, Run_arg
                 # Generate SQL statement. Assume LAST_INSERT_ROW_ID()
                 $SQL += @"
 `nINSERT INTO Secnetperf_test_runs (Secnetperf_test_ID, Secnetperf_commit, Client_environment_ID, Server_environment_ID, Result, Latency_stats_ID)
-VALUES ($testid, '$MsQuicCommit', $env, $env, $item, NULL);
+VALUES ($TestId, '$MsQuicCommit', $env, $env, $item, NULL);
 "@
             }
         }
