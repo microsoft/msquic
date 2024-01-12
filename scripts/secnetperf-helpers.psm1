@@ -68,7 +68,7 @@ function Stop-RemoteServer {
 }
 
 # Invokes all the secnetperf tests.
-function Invoke-SecnetperfTest($MsQuicCommit, $commands, $exe, $json, $LogProfile) {
+function Invoke-SecnetperfTest($MsQuicCommit, $commands, $exe, $start, $LogProfile) {
 
     Write-Host "Running Secnetperf tests..."
 
@@ -76,14 +76,15 @@ function Invoke-SecnetperfTest($MsQuicCommit, $commands, $exe, $json, $LogProfil
 "@
     $json = @{}
 
+
     for ($i = 0; $i -lt $commands.Count; $i++) {
-    $testid = $i + 1
     for ($tcp = 0; $tcp -lt 2; $tcp++) {
-
+    $testid = $i + 1 + $start
     $SQL += @"
-    INSERT OR IGNORE INTO Secnetperf_tests (Secnetperf_test_ID, Kernel_mode, Run_arguments) VALUES ($testid, 0, "$($commands[$i]) -tcp:$tcp")
-"@
 
+INSERT OR IGNORE INTO Secnetperf_tests (Secnetperf_test_ID, Kernel_mode, Run_arguments) VALUES ($testid, 0, "$($commands[$i]) -tcp:$tcp")
+
+"@
     $command = "$exe -target:netperf-peer $($commands[$i]) -tcp:$tcp -trimout"
     Write-Host "> $command"
 
@@ -174,5 +175,5 @@ VALUES ($testid, '$MsQuicCommit', $env, $env, $num, NULL);
 
     }}
 
-    return $SQL
+    return $SQL, $json
 }

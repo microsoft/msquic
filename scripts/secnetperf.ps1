@@ -156,14 +156,18 @@ $lowlat = @(
     "-exec:lowlat -rstream:1 -up:512 -down:4000 -run:10s -plat:1"
 )
 
-$SQL += Invoke-SecnetperfTest $MsQuicCommit $maxtput $exe $json $LogProfile
+$res = Invoke-SecnetperfTest $MsQuicCommit $maxtput $exe 0 $LogProfile
+$SQL += $res[0]
+$json += $res[1]
 
 # Start and restart the SecNetPerf server without maxtput.
 Write-Host "Restarting server without maxtput..."
 Stop-RemoteServer $Job $RemoteName
 $Job = Start-RemoteServer $Session "$RemoteDir/$SecNetPerfPath -exec:lowlat"
 
-$SQL += Invoke-SecnetperfTest $MsQuicCommit $lowlat $exe $json $LogProfile
+$res = Invoke-SecnetperfTest $MsQuicCommit $lowlat $exe 3 $LogProfile
+$SQL += $res[0]
+$json += $res[1]
 
 ####################################################################################################
 
