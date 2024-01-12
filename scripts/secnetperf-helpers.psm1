@@ -79,6 +79,13 @@ function Invoke-Secnetperf {
         $env = 1
     }
 
+    $metric = "throughput-download"
+    if ($exeArgs.Contains("plat:1")) {
+        $metric = "latency"
+    } elseif ($exeArgs.Contains("-up")) {
+        $metric = "throughput-upload"
+    }
+
     for ($tcp = 0; $tcp -lt 2; $tcp++) {
 
     $testid = $i + 1
@@ -136,11 +143,6 @@ INSERT OR IGNORE INTO Secnetperf_tests (Secnetperf_test_ID, Kernel_mode, Run_arg
             continue
         }
 
-        $metric = "download"
-        if ($exeArgs.Contains("-up")) {
-            $metric = "upload"
-        }
-
         foreach ($line in $rawOutput) {
             if ($line -match '@ (\d+) kbps') {
                 $num = $matches[1]
@@ -152,7 +154,7 @@ VALUES ($testid, '$MsQuicCommit', $env, $env, $num, NULL);
 
 "@
                 # Generate JSON as intermediary file for dashboard
-                $json["throughput-$metric-$transport"] = $num
+                $json["metric-$transport"] = $num
                 break
             }
         }
@@ -162,7 +164,7 @@ VALUES ($testid, '$MsQuicCommit', $env, $env, $num, NULL);
 
     Stop-RemoteServer $Job $RemoteName
     if ($LogProfile -ne "" -and $LogProfile -ne "NULL") {
-        .\scripts\log.ps1 -Stop -OutputPath "./artifacts/logs/$fullTestId/client" -RawLogOnly
+        .\scripts\log.ps1 -Stop -OutputPath "./artifacts/logs/$metric-$transport/client" -RawLogOnly
     }
 
     } # end for tcp
