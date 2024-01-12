@@ -1689,6 +1689,7 @@ typedef struct MSQUIC_NMR_DISPATCH {
 //
 typedef struct __MSQUIC_NMR_CLIENT {
     NPI_CLIENT_CHARACTERISTICS NpiClientCharacteristics;
+    LONG BindingCount;
     HANDLE NmrClientHandle;
     NPI_MODULEID ModuleId;
     KEVENT RegistrationCompleteEvent;
@@ -1712,15 +1713,20 @@ __MsQuicClientAttachProvider(
     __MSQUIC_NMR_CLIENT* Client = (__MSQUIC_NMR_CLIENT*)ClientContext;
     void* ProviderContext;
 
-    #pragma warning(suppress:6387) // _Param_(2) could be '0' - by design.
-    Status =
-        NmrClientAttachProvider(
-            NmrBindingHandle,
-            Client,
-            NULL,
-            &ProviderContext,
-            (const void**)&Client->ProviderDispatch);
-    KeSetEvent(&Client->RegistrationCompleteEvent, IO_NO_INCREMENT, FALSE);
+    if (InterlockedIncrement(&Client->BindingCount) == 1) {
+        #pragma warning(suppress:6387) // _Param_(2) could be '0' - by design.
+        Status =
+            NmrClientAttachProvider(
+                NmrBindingHandle,
+                Client,
+                NULL,
+                &ProviderContext,
+                (const void**)&Client->ProviderDispatch);
+        KeSetEvent(&Client->RegistrationCompleteEvent, IO_NO_INCREMENT, FALSE);
+    } else {
+        Status = STATUS_NOINTERFACE;
+    }
+
     return Status;
 }
 
