@@ -139,6 +139,7 @@ for ($i = 0; $i -lt $exeArgs.Count; $i++) {
     $res = Invoke-Secnetperf $Session $RemoteName $RemoteDir $SecNetPerfPath $LogProfile $exeArgs[$i] $MsQuicCommit $i
     $SQL += $res[0]
     $json += $res[1]
+    if ($res[2]) { $encounterFailures = $true }
 }
 
 # Save the test results (sql and json).

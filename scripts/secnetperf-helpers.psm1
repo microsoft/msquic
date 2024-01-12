@@ -73,12 +73,12 @@ function Invoke-Secnetperf {
 
     $SQL = ""
     $json = @{}
+    $encounterFailures = $true
 
-    $env = 2
-    if ($isWindows) {
-        $env = 1
-    }
+    $testid = $i + 1
+    $env = $isWindows ? 1 : 2
 
+    # TODO: Improve this stuff
     $metric = "throughput-download"
     if ($exeArgs.Contains("plat:1")) {
         $metric = "latency"
@@ -88,11 +88,7 @@ function Invoke-Secnetperf {
 
     for ($tcp = 0; $tcp -lt 2; $tcp++) {
 
-    $testid = $i + 1
-    $transport = "quic"
-    if ($tcp -eq 1) {
-        $transport = "tcp"
-    }
+    $transport = $tcp -eq 1 ? "tcp" : "quic"
 
     $SQL += @"
 
@@ -116,20 +112,20 @@ INSERT OR IGNORE INTO Secnetperf_tests (Secnetperf_test_ID, Kernel_mode, Run_arg
             $rawOutput = Invoke-Expression $command
         } catch {
             Write-GHError $_
-            $script:encounterFailures = $true
+            $encounterFailures = $true
             continue
         }
 
         if ($null -eq $rawOutput) {
             Write-GHError "RawOutput is null."
-            $script:encounterFailures = $true
+            $encounterFailures = $true
             continue
         }
 
         if ($rawOutput.Contains("Error")) {
             $rawOutput = $rawOutput.Substring(7) # Skip over the 'Error: ' prefix
             Write-GHError $rawOutput
-            $script:encounterFailures = $true
+            $encounterFailures = $true
             continue
         }
 
@@ -138,26 +134,23 @@ INSERT OR IGNORE INTO Secnetperf_tests (Secnetperf_test_ID, Kernel_mode, Run_arg
         if ($exeArgs.Contains("plat:1")) {
             $latency_percentiles = '(?<=\d{1,3}(?:\.\d{1,2})?th: )\d+'
             $Perc = [regex]::Matches($rawOutput, $latency_percentiles) | ForEach-Object {$_.Value}
-            $json["latency-$transport"] = $Perc
+            $json["$metric-$transport"] = $Perc
             # TODO: SQL += ...
             continue
         }
 
-        foreach ($line in $rawOutput) {
-            if ($line -match '@ (\d+) kbps') {
-                $num = $matches[1]
-                # Generate SQL statement. Assume LAST_INSERT_ROW_ID()
-                $SQL += @"
+        $rawOutput -match '@ (\d+) kbps'
+        $num = $matches[1]
+        # Generate SQL statement. Assume LAST_INSERT_ROW_ID()
+        $SQL += @"
 
 INSERT INTO Secnetperf_test_runs (Secnetperf_test_ID, Secnetperf_commit, Client_environment_ID, Server_environment_ID, Result, Latency_stats_ID)
 VALUES ($testid, '$MsQuicCommit', $env, $env, $num, NULL);
 
 "@
-                # Generate JSON as intermediary file for dashboard
-                $json["metric-$transport"] = $num
-                break
-            }
-        }
+        # Generate JSON as intermediary file for dashboard
+        $json["$metric-$transport"] = $num
+        break
 
         Start-Sleep -Seconds 1
     }
@@ -169,5 +162,5 @@ VALUES ($testid, '$MsQuicCommit', $env, $env, $num, NULL);
 
     } # end for tcp
 
-    return $SQL, $json
+    return $SQL, $json, $encounterFailures
 }
