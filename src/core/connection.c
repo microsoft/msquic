@@ -990,6 +990,16 @@ QuicConnRetireCid(
     DestCid->CID.Retired = TRUE;
     DestCid->CID.NeedsToSend = TRUE;
     QuicSendSetSendFlag(&Connection->Send, QUIC_CONN_SEND_FLAG_RETIRE_CONNECTION_ID);
+
+    Connection->RetiredDestCidCount++;
+    if (Connection->RetiredDestCidCount > 8 * QUIC_ACTIVE_CONNECTION_ID_LIMIT) {
+        QuicTraceEvent(
+            ConnError,
+            "[conn][%p] ERROR, %s.",
+            Connection,
+            "Peer exceeded retire CID limit");
+        QuicConnSilentlyAbort(Connection);
+    }
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)

@@ -393,6 +393,11 @@ typedef struct QUIC_CONNECTION {
     uint8_t DestCidCount;
 
     //
+    // Number of retired desintation CIDs we currently have cached.
+    //
+    uint8_t RetiredDestCidCount;
+
+    //
     // The maximum number of source CIDs to give the peer. This is a minimum of
     // what we're willing to support and what the peer is willing to accept.
     //
