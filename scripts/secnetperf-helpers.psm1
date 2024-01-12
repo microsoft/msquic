@@ -71,7 +71,8 @@ function Stop-RemoteServer {
 function Invoke-Secnetperf {
     param ($Session, $RemoteName, $RemoteDir, $SecNetPerfPath, $LogProfile, $ExeArgs, $MsQuicCommit, $i)
 
-    $SQL = ""
+    $SQL = @"
+"@
     $json = @{}
     $encounterFailures = $true
 
@@ -150,7 +151,6 @@ VALUES ($testid, '$MsQuicCommit', $env, $env, $num, NULL);
 "@
         # Generate JSON as intermediary file for dashboard
         $json["$metric-$transport"] = $num
-        break
 
         Start-Sleep -Seconds 1
     }
