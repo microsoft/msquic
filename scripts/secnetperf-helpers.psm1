@@ -67,14 +67,30 @@ function Stop-RemoteServer {
     throw "Server failed to stop!"
 }
 
+class TestResult {
+    [string]$Metric;
+    [System.Object[]]$Results;
+    [bool]$EncounteredFailures;
+
+    TestResult (
+        [string]$Metric,
+        [System.Object[]]$Results,
+        [string]$EncounteredFailures
+    ) {
+        $this.Metric = $Metric;
+        $this.Results = $Results;
+        $this.EncounteredFailures = $EncounteredFailures;
+    }
+}
+
 # Invokes secnetperf with the given arguments for both TCP and QUIC.
 function Invoke-Secnetperf {
-    param ($Session, $RemoteName, $RemoteDir, $SecNetPerfPath, $LogProfile, $ExeArgs, $MsQuicCommit, $testid, $SQL, $json)
+    param ($Session, $RemoteName, $RemoteDir, $SecNetPerfPath, $LogProfile, $ExeArgs)
 
+    $Results = @(@(), @())
     $encounterFailures = $true
-    $env = $isWindows ? 1 : 2
 
-    # TODO: Improve this stuff
+    # TODO: This logic is pretty fragile. Needs improvement.
     $metric = "throughput-download"
     if ($exeArgs.Contains("plat:1")) {
         $metric = "latency"
@@ -85,13 +101,6 @@ function Invoke-Secnetperf {
     for ($tcp = 0; $tcp -lt 2; $tcp++) {
 
     $execMode = $ExeArgs.Substring(0, $ExeArgs.IndexOf(' ')) # First arg is the exec mode
-    $transport = $tcp -eq 1 ? "tcp" : "quic"
-    $SQL += @"
-
-INSERT OR IGNORE INTO Secnetperf_tests (Secnetperf_test_ID, Kernel_mode, Run_arguments) VALUES ($testid, 0, "$ExeArgs -tcp:$tcp")
-
-"@
-
     $command = "./$SecNetPerfPath -target:netperf-peer $ExeArgs -tcp:$tcp -trimout"
     Write-Host "> $command"
 
@@ -132,25 +141,11 @@ INSERT OR IGNORE INTO Secnetperf_tests (Secnetperf_test_ID, Kernel_mode, Run_arg
 
         if ($exeArgs.Contains("plat:1")) {
             $latency_percentiles = '(?<=\d{1,3}(?:\.\d{1,2})?th: )\d+'
-            $Perc = [regex]::Matches($rawOutput, $latency_percentiles) | ForEach-Object {$_.Value}
-            Write-Host "json['$metric-$transport'] = $Perc"
-            $json["$metric-$transport"] = $Perc
-            # TODO: SQL += ...
-            continue
+            $Results[$tcp] += [regex]::Matches($rawOutput, $latency_percentiles) | ForEach-Object {$_.Value}
+        } else {
+            $rawOutput -match '@ (\d+) kbps'
+            $Results[$tcp] += $matches[1]
         }
-
-        $rawOutput -match '@ (\d+) kbps'
-        $num = $matches[1]
-        # Generate SQL statement. Assume LAST_INSERT_ROW_ID()
-        $SQL += @"
-
-INSERT INTO Secnetperf_test_runs (Secnetperf_test_ID, Secnetperf_commit, Client_environment_ID, Server_environment_ID, Result, Latency_stats_ID)
-VALUES ($testid, '$MsQuicCommit', $env, $env, $num, NULL);
-
-"@
-        # Generate JSON as intermediary file for dashboard
-        Write-Host "json['$metric-$transport'] = $num"
-        $json["$metric-$transport"] = $num
 
         Start-Sleep -Seconds 1
     }
@@ -166,9 +161,7 @@ VALUES ($testid, '$MsQuicCommit', $env, $env, $num, NULL);
         if ($LogProfile -ne "" -and $LogProfile -ne "NULL") {
             .\scripts\log.ps1 -Stop -OutputPath "./artifacts/logs/$metric-$transport/client" -RawLogOnly
         }
-    }
+    }}
 
-    } # end for tcp
-
-    return $SQL, $json, $encounterFailures
+    return TestResult::New($metric, $Results, $encounterFailures)
 }

@@ -135,11 +135,32 @@ $exeArgs = @(
     "-exec:lowlat -rstream:1 -up:512 -down:4000 -run:10s -plat:1"
 )
 
+$env = $isWindows ? 1 : 2
+
 for ($i = 0; $i -lt $exeArgs.Count; $i++) {
-    $res = Invoke-Secnetperf $Session $RemoteName $RemoteDir $SecNetPerfPath $LogProfile $exeArgs[$i] $MsQuicCommit ($i+1) $SQL $json
-    $SQL = $res[0]
-    $json = $res[1]
-    if ($res[2]) { $encounterFailures = $true }
+    $ExeArgs = $exeArgs[$i]
+    $testid = $i + 1
+    $Result = Invoke-Secnetperf $Session $RemoteName $RemoteDir $SecNetPerfPath $LogProfile $ExeArgs
+    if ($Result.EncounteredFailures) { $encounterFailures = $true }
+
+    # Process the results and add them to the SQL and JSON.
+    $SQL += @"
+INSERT OR IGNORE INTO Secnetperf_tests (Secnetperf_test_ID, Kernel_mode, Run_arguments) VALUES ($testid, 0, "$ExeArgs -tcp:0")
+INSERT OR IGNORE INTO Secnetperf_tests (Secnetperf_test_ID, Kernel_mode, Run_arguments) VALUES ($testid, 0, "$ExeArgs -tcp:1")
+"@
+    for ($i = 0; $i -lt $Result.Results.Length; $i++) {
+        $transport = $i -eq 1 ? "tcp" : "quic"
+        foreach ($item in $Result.Results[$i]) {
+            $json["$metric-$transport"] = $item
+            if ($metric.startsWith("throughput")) {
+                # Generate SQL statement. Assume LAST_INSERT_ROW_ID()
+                $SQL += @"
+INSERT INTO Secnetperf_test_runs (Secnetperf_test_ID, Secnetperf_commit, Client_environment_ID, Server_environment_ID, Result, Latency_stats_ID)
+VALUES ($testid, '$MsQuicCommit', $env, $env, $item, NULL);
+"@
+            }
+        }
+    }
 }
 
 # Save the test results (sql and json).
