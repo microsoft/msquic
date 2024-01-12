@@ -26,7 +26,7 @@ jobs:
       fail-fast: false
       matrix:
         vec: [
-          { config: "Debug", plat: "windows", os: "windows-2022", arch: "x64", tls: "schannel", test: "-Test" },
+          { config: "Debug", plat: "windows", os: "windows-2022", arch: "x64", tls: "schannel", build: "-Test" },
         ]
     uses: ./.github/workflows/build-reuse-win.yml
     with:
@@ -36,7 +36,7 @@ jobs:
       arch: ${{ matrix.vec.arch }}
       tls: ${{ matrix.vec.tls }}
       sanitize: ${{ matrix.vec.sanitize }}
-      test: ${{ matrix.vec.test }}
+      build: ${{ matrix.vec.build }}
 
   bvt-winlatest:
     name: BVT WinPrerelease
@@ -45,7 +45,7 @@ jobs:
       fail-fast: false
       matrix:
         vec: [
-          { config: "Debug", plat: "windows", os: "windows-2022", arch: "x64", tls: "schannel", test: "-Test" },
+          { config: "Debug", plat: "windows", os: "windows-2022", arch: "x64", tls: "schannel", build: "-Test" },
         ]
     runs-on:
      - self-hosted
@@ -58,7 +58,7 @@ jobs:
     - name: Download Build Artifacts
       uses: actions/download-artifact@f44cd7b40bfd40b6aa1cc1b9b5b7bf03d3c67110
       with:
-        name: ${{ matrix.vec.config }}-${{ matrix.vec.plat }}-${{ matrix.vec.os }}-${{ matrix.vec.arch }}-${{ matrix.vec.tls }}${{ matrix.vec.sanitize }}${{ matrix.vec.test }}
+        name: ${{ matrix.vec.config }}-${{ matrix.vec.plat }}-${{ matrix.vec.os }}-${{ matrix.vec.arch }}-${{ matrix.vec.tls }}${{ matrix.vec.sanitize }}${{ matrix.vec.build }}
         path: artifacts
     - name: Prepare Machine
       run: scripts/prepare-machine.ps1 -Tls ${{ matrix.vec.tls }} -ForTest -InstallCodeCoverage
@@ -88,7 +88,7 @@ jobs:
       fail-fast: false
       matrix:
         vec: [
-          { config: "Debug", plat: "windows", os: "windows-2022", arch: "x64", tls: "schannel", test: "-Test" },
+          { config: "Debug", plat: "windows", os: "windows-2022", arch: "x64", tls: "schannel", build: "-Test" },
         ]
     runs-on:
     - self-hosted
@@ -108,7 +108,7 @@ jobs:
         fetch-depth: 0
     - uses: actions/download-artifact@f44cd7b40bfd40b6aa1cc1b9b5b7bf03d3c67110
       with:
-        name: ${{ matrix.vec.config }}-${{ matrix.vec.plat }}-${{ matrix.vec.os }}-${{ matrix.vec.arch }}-${{ matrix.vec.tls }}${{ matrix.vec.sanitize }}${{ matrix.vec.test }}
+        name: ${{ matrix.vec.config }}-${{ matrix.vec.plat }}-${{ matrix.vec.os }}-${{ matrix.vec.arch }}-${{ matrix.vec.tls }}${{ matrix.vec.sanitize }}${{ matrix.vec.build }}
         path: artifacts
     - name: Prepare Machine
       run: scripts/prepare-machine.ps1 -Tls ${{ matrix.vec.tls }} -ForTest ${{ matrix.vec.xdp }} -InstallCodeCoverage
@@ -138,7 +138,7 @@ jobs:
       fail-fast: false
       matrix:
         vec: [
-          { config: "Debug", plat: "windows", os: "windows-2022", arch: "x64", tls: "schannel", test: "-Test" },
+          { config: "Debug", plat: "windows", os: "windows-2022", arch: "x64", tls: "schannel", build: "-Test" },
         ]
     runs-on:
     - self-hosted
@@ -154,7 +154,7 @@ jobs:
         fetch-depth: 0
     - uses: actions/download-artifact@f44cd7b40bfd40b6aa1cc1b9b5b7bf03d3c67110
       with:
-        name: ${{ matrix.vec.config }}-${{ matrix.vec.plat }}-${{ matrix.vec.os }}-${{ matrix.vec.arch }}-${{ matrix.vec.tls }}${{ matrix.vec.sanitize }}${{ matrix.vec.test }}
+        name: ${{ matrix.vec.config }}-${{ matrix.vec.plat }}-${{ matrix.vec.os }}-${{ matrix.vec.arch }}-${{ matrix.vec.tls }}${{ matrix.vec.sanitize }}${{ matrix.vec.build }}
         path: artifacts
     - name: Prepare Machine
       run: scripts/prepare-machine.ps1 -Tls ${{ matrix.vec.tls }} -ForTest ${{ matrix.vec.xdp }} -InstallCodeCoverage
