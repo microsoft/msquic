@@ -69,16 +69,16 @@ function Stop-RemoteServer {
 
 class TestResult {
     [string]$Metric;
-    [System.Object[]]$Results;
+    [System.Object[]]$Values;
     [bool]$EncounteredFailures;
 
     TestResult (
         [string]$Metric,
-        [System.Object[]]$Results,
+        [System.Object[]]$Values,
         [string]$EncounteredFailures
     ) {
         $this.Metric = $Metric;
-        $this.Results = $Results;
+        $this.Values = $Values;
         $this.EncounteredFailures = $EncounteredFailures;
     }
 }
@@ -116,42 +116,29 @@ function Invoke-Secnetperf {
     for ($try = 0; $try -lt 3; $try++) {
         try {
             $rawOutput = Invoke-Expression $command
+            if ($null -eq $rawOutput) {
+                throw "Output is empty!."
+            }
+            if ($rawOutput.Contains("Error")) {
+                throw $rawOutput.Substring(7) # Skip over the 'Error: ' prefix
+            }
+            Write-Host $rawOutput
+            if ($exeArgs.Contains("plat:1")) {
+                $latency_percentiles = '(?<=\d{1,3}(?:\.\d{1,2})?th: )\d+'
+                $Results[$tcp] += [regex]::Matches($rawOutput, $latency_percentiles) | ForEach-Object {$_.Value}
+            } else {
+                $rawOutput -match '@ (\d+) kbps'
+                $Results[$tcp] += $matches[1]
+            }
         } catch {
-            Write-GHError "Invoke-Expression exception encountered!"
             Write-GHError $_
-            $_ | Format-List *
             $encounterFailures = $true
-            continue
         }
-
-        if ($null -eq $rawOutput) {
-            Write-GHError "RawOutput is null."
-            $encounterFailures = $true
-            continue
-        }
-
-        if ($rawOutput.Contains("Error")) {
-            $rawOutput = $rawOutput.Substring(7) # Skip over the 'Error: ' prefix
-            Write-GHError $rawOutput
-            $encounterFailures = $true
-            continue
-        }
-
-        Write-Host $rawOutput
-
-        if ($exeArgs.Contains("plat:1")) {
-            $latency_percentiles = '(?<=\d{1,3}(?:\.\d{1,2})?th: )\d+'
-            $Results[$tcp] += [regex]::Matches($rawOutput, $latency_percentiles) | ForEach-Object {$_.Value}
-        } else {
-            $rawOutput -match '@ (\d+) kbps'
-            $Results[$tcp] += $matches[1]
-        }
-
         Start-Sleep -Seconds 1
     }
 
     } catch {
-        Write-GHError "Inner exception while running test case!"
+        Write-GHError "Exception while running test case!"
         Write-GHError $_
         $_ | Format-List *
         $encounterFailures = $true
