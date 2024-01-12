@@ -71,8 +71,7 @@ function Stop-RemoteServer {
 function Invoke-Secnetperf {
     param ($Session, $RemoteName, $RemoteDir, $SecNetPerfPath, $LogProfile, $ExeArgs, $MsQuicCommit, $i)
 
-    $SQL = @"
-"@
+    $SQL = ""
     $json = @{}
     $encounterFailures = $true
     $testid = $i + 1

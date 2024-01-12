@@ -155,8 +155,6 @@ $json | ConvertTo-Json | Set-Content -Path "json-test-results-$plat-$os-$arch-$t
     Get-Error
     $_ | Format-List *
     $encounterFailures = $true
-} finally {
-    # TODO: Do any further book keeping here.
 }
 
 if ($encounterFailures) {
