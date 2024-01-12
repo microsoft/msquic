@@ -163,5 +163,5 @@ function Invoke-Secnetperf {
         }
     }}
 
-    return TestResult::New($metric, $Results, $encounterFailures)
+    return [TestResult]::New($metric, $Results, $encounterFailures)
 }

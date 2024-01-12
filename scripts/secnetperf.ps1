@@ -173,6 +173,7 @@ $json | ConvertTo-Json | Set-Content -Path "json-test-results-$plat-$os-$arch-$t
 } catch {
     Write-GHError "Outer exception while running tests!"
     Write-GHError $_
+    Get-Error
     $_ | Format-List *
     $encounterFailures = $true
 }
