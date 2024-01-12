@@ -72,7 +72,7 @@
   </PropertyGroup>
   <ItemGroup>
     <ResourceCompile Include="msquicpriv.rc">
-      <PreprocessorDefinitions>VER_BUILD_ID=$(QUIC_VER_BUILD_ID);VER_SUFFIX=$(QUIC_VER_SUFFIX);VER_GIT_HASH=$(QUIC_VER_GIT_HASH);%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>QUIC_TEST_NMR_PROVIDER;VER_BUILD_ID=$(QUIC_VER_BUILD_ID);VER_SUFFIX=$(QUIC_VER_SUFFIX);VER_GIT_HASH=$(QUIC_VER_GIT_HASH);%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ResourceCompile>
   </ItemGroup>
   <PropertyGroup>

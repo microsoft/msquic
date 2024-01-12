@@ -95,6 +95,11 @@ MsQuicRegisterNmrProvider(
     NmrProvider.NpiProviderCharacteristics.ProviderAttachClient = MsQuicNmrProviderAttachClient;
     NmrProvider.NpiProviderCharacteristics.ProviderDetachClient = MsQuicNmrProviderDetachClient;
 
+#ifdef QUIC_TEST_NMR_PROVIDER
+    C_ASSERT(MSQUIC_NPI_ID.Guid.Data4[7] != 0xff);
+    MSQUIC_NPI_ID.Guid.Data4[7] = 0xff;
+#endif
+
     ProviderRegistrationInstance = &NmrProvider.NpiProviderCharacteristics.ProviderRegistrationInstance;
     ProviderRegistrationInstance->Version = 0;
     ProviderRegistrationInstance->Size = sizeof(*ProviderRegistrationInstance);

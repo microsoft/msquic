@@ -82,6 +82,9 @@ QuicTestCtlInitialize(
     WDF_IO_QUEUE_CONFIG QueueConfig;
     WDFQUEUE Queue;
 
+    C_ASSERT(MSQUIC_NPI_ID.Guid.Data4[7] != 0xff);
+    MSQUIC_NPI_ID.Guid.Data4[7] = 0xff; // To avoid collisions with the inbox driver.
+
     Status = MsQuicNmrClientRegister(&NmrClient, &MSQUIC_MODULE_ID, 5000);
     if (!NT_SUCCESS(Status)) {
         QuicTraceEvent(
