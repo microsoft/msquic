@@ -1689,6 +1689,7 @@ typedef struct MSQUIC_NMR_DISPATCH {
 //
 typedef struct __MSQUIC_NMR_CLIENT {
     NPI_CLIENT_CHARACTERISTICS NpiClientCharacteristics;
+    LONG BindingCount;
     HANDLE NmrClientHandle;
     NPI_MODULEID ModuleId;
     KEVENT RegistrationCompleteEvent;
@@ -1712,15 +1713,24 @@ __MsQuicClientAttachProvider(
     __MSQUIC_NMR_CLIENT* Client = (__MSQUIC_NMR_CLIENT*)ClientContext;
     void* ProviderContext;
 
-    #pragma warning(suppress:6387) // _Param_(2) could be '0' - by design.
-    Status =
-        NmrClientAttachProvider(
-            NmrBindingHandle,
-            Client,
-            NULL,
-            &ProviderContext,
-            (const void**)&Client->ProviderDispatch);
-    KeSetEvent(&Client->RegistrationCompleteEvent, IO_NO_INCREMENT, FALSE);
+    if (InterlockedIncrement(&Client->BindingCount) == 1) {
+        #pragma warning(suppress:6387) // _Param_(2) could be '0' - by design.
+        Status =
+            NmrClientAttachProvider(
+                NmrBindingHandle,
+                Client,
+                NULL,
+                &ProviderContext,
+                (const void**)&Client->ProviderDispatch);
+        if (NT_SUCCESS(Status)) {
+            KeSetEvent(&Client->RegistrationCompleteEvent, IO_NO_INCREMENT, FALSE);
+        } else {
+            InterlockedDecrement(&Client->BindingCount);
+        }
+    } else {
+        Status = STATUS_NOINTERFACE;
+    }
+
     return Status;
 }
 
@@ -1775,7 +1785,7 @@ NTSTATUS
 MsQuicNmrClientRegister(
     _Out_ HANDLE* ClientHandle,
     _In_ GUID* ClientModuleId,
-    _In_ ULONG TimeoutMs
+    _In_ ULONG TimeoutMs // zero = no wait, non-zero = some wait
     )
 {
     NPI_REGISTRATION_INSTANCE *ClientRegistrationInstance;
@@ -1819,7 +1829,7 @@ MsQuicNmrClientRegister(
         KeWaitForSingleObject(
             &Client->RegistrationCompleteEvent,
             Executive, KernelMode, FALSE,
-            TimeoutMs != 0 ? &Timeout : NULL);
+            &Timeout);
     if (Status != STATUS_SUCCESS) {
         Status = STATUS_UNSUCCESSFUL;
         goto Exit;
