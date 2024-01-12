@@ -97,6 +97,8 @@ function Invoke-Secnetperf {
     $metric = "throughput-download"
     if ($exeArgs.Contains("plat:1")) {
         $metric = "latency"
+    } elseif ($exeArgs.Contains("prate:1")) {
+        $metric = "hps"
     } elseif ($exeArgs.Contains("-up")) {
         $metric = "throughput-upload"
     }
@@ -126,10 +128,13 @@ function Invoke-Secnetperf {
                 throw $rawOutput.Substring(7) # Skip over the 'Error: ' prefix
             }
             Write-Host $rawOutput
-            if ($exeArgs.Contains("plat:1")) {
+            if ($metric -eq "latency") {
                 $latency_percentiles = '(?<=\d{1,3}(?:\.\d{1,2})?th: )\d+'
                 $values[$tcp] += [regex]::Matches($rawOutput, $latency_percentiles) | ForEach-Object {$_.Value}
-            } else {
+            } elseif ($metric -eq "hps") {
+                $rawOutput -match '(\d+) HPS'
+                $values[$tcp] += $matches[1]
+            } else { # throughput
                 $rawOutput -match '@ (\d+) kbps'
                 $values[$tcp] += $matches[1]
             }

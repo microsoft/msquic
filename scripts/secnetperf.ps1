@@ -159,8 +159,6 @@ VALUES ($TestId, '$MsQuicCommit', $env, $env, $item, NULL);
             }
         }
     }
-
-    Write-Host "Iteration Complate"
 }
 
 } catch {
