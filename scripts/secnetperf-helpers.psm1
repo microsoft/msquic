@@ -75,7 +75,7 @@ class TestResult {
     TestResult (
         [string]$Metric,
         [System.Object[]]$Values,
-        [string]$EncounteredFailures
+        [bool]$EncounteredFailures
     ) {
         $this.Metric = $Metric;
         $this.Values = $Values;
