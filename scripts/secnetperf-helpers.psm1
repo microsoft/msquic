@@ -68,18 +68,18 @@ function Stop-RemoteServer {
 }
 
 class TestResult {
-    [string]$Metric;
+    [String]$Metric;
     [System.Object[]]$Values;
-    [bool]$EncounteredFailures;
+    [Boolean]$HasFailures;
 
     TestResult (
-        [string]$Metric,
+        [String]$Metric,
         [System.Object[]]$Values,
-        [bool]$EncounteredFailures
+        [Boolean]$HasFailures
     ) {
         $this.Metric = $Metric;
         $this.Values = $Values;
-        $this.EncounteredFailures = $EncounteredFailures;
+        $this.HasFailures = $HasFailures;
     }
 }
 
@@ -87,8 +87,8 @@ class TestResult {
 function Invoke-Secnetperf {
     param ($Session, $RemoteName, $RemoteDir, $SecNetPerfPath, $LogProfile, $ExeArgs)
 
-    $Results = @(@(), @())
-    $encounterFailures = $true
+    $values = @(@(), @())
+    $hasFailures = $true
 
     # TODO: This logic is pretty fragile. Needs improvement.
     $metric = "throughput-download"
@@ -125,14 +125,14 @@ function Invoke-Secnetperf {
             Write-Host $rawOutput
             if ($exeArgs.Contains("plat:1")) {
                 $latency_percentiles = '(?<=\d{1,3}(?:\.\d{1,2})?th: )\d+'
-                $Results[$tcp] += [regex]::Matches($rawOutput, $latency_percentiles) | ForEach-Object {$_.Value}
+                $values[$tcp] += [regex]::Matches($rawOutput, $latency_percentiles) | ForEach-Object {$_.Value}
             } else {
                 $rawOutput -match '@ (\d+) kbps'
-                $Results[$tcp] += $matches[1]
+                $values[$tcp] += $matches[1]
             }
         } catch {
             Write-GHError $_
-            $encounterFailures = $true
+            $hasFailures = $true
         }
         Start-Sleep -Seconds 1
     }
@@ -141,7 +141,7 @@ function Invoke-Secnetperf {
         Write-GHError "Exception while running test case!"
         Write-GHError $_
         $_ | Format-List *
-        $encounterFailures = $true
+        $hasFailures = $true
     } finally {
         # Stop the server
         try { Stop-RemoteServer $Job $RemoteName } catch { } # Ignore failures for now
@@ -150,5 +150,5 @@ function Invoke-Secnetperf {
         }
     }}
 
-    return [TestResult]::New($metric, $Results, $encounterFailures)
+    return [TestResult]::New($metric, $values, $hasFailures)
 }

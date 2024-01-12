@@ -104,7 +104,7 @@ $exeArgs = @(
     "-exec:lowlat -rstream:1 -up:512 -down:4000 -run:10s -plat:1"
 )
 $env = $isWindows ? 1 : 2
-$encounterFailures = $false
+$hasFailures = $false
 
 try {
 
@@ -135,8 +135,8 @@ if (!$isWindows) {
 # Run all the test cases.
 for ($i = 0; $i -lt $exeArgs.Count; $i++) {
     $ExeArgs = $exeArgs[$i]
-    $Result = Invoke-Secnetperf $Session $RemoteName $RemoteDir $SecNetPerfPath $LogProfile $ExeArgs
-    if ($Result.EncounteredFailures) { $encounterFailures = $true }
+    $Test = Invoke-Secnetperf $Session $RemoteName $RemoteDir $SecNetPerfPath $LogProfile $ExeArgs
+    if ($Test.HasFailures) { $hasFailures = $true }
 
     # Process the results and add them to the SQL and JSON.
     $testid = $i + 1
@@ -145,11 +145,11 @@ for ($i = 0; $i -lt $exeArgs.Count; $i++) {
 INSERT OR IGNORE INTO Secnetperf_tests (Secnetperf_test_ID, Kernel_mode, Run_arguments) VALUES ($testid, 0, "$ExeArgs -tcp:1")
 "@
 
-    for ($tcp = 0; $tcp -lt $Result.Values.Length; $tcp++) {
+    for ($tcp = 0; $tcp -lt $Test.Values.Length; $tcp++) {
         $transport = $tcp -eq 1 ? "tcp" : "quic"
-        foreach ($item in $Result.Values[$tcp]) {
-            $json["$($Result.Metric)-$transport"] = $item
-            if ($Result.Metric.startsWith("throughput")) {
+        foreach ($item in $Test.Values[$tcp]) {
+            $json["$($Test.Metric)-$transport"] = $item
+            if ($Test.Metric.startsWith("throughput")) {
                 # Generate SQL statement. Assume LAST_INSERT_ROW_ID()
                 $SQL += @"
 `nINSERT INTO Secnetperf_test_runs (Secnetperf_test_ID, Secnetperf_commit, Client_environment_ID, Server_environment_ID, Result, Latency_stats_ID)
@@ -167,7 +167,7 @@ VALUES ($testid, '$MsQuicCommit', $env, $env, $item, NULL);
     Write-GHError $_
     Get-Error
     $_ | Format-List *
-    $encounterFailures = $true
+    $hasFailures = $true
 } finally {
     # Save the test results (sql and json).
     Write-Host "`Writing test-results-$plat-$os-$arch-$tls.sql..."
@@ -177,6 +177,6 @@ VALUES ($testid, '$MsQuicCommit', $env, $env, $item, NULL);
     $json | ConvertTo-Json | Set-Content -Path "json-test-results-$plat-$os-$arch-$tls.json"
 }
 
-if ($encounterFailures) {
+if ($hasFailures) {
     exit 1
 }
