@@ -112,7 +112,10 @@ INSERT OR IGNORE INTO Secnetperf_tests (Secnetperf_test_ID, Kernel_mode, Run_arg
         try {
             $rawOutput = Invoke-Expression $command
         } catch {
+            Write-GHError "Invoke-Expression exception encountered!"
             Write-GHError $_
+            Get-Error
+            $_ | Format-List *
             $encounterFailures = $true
             continue
         }
@@ -159,7 +162,9 @@ VALUES ($testid, '$MsQuicCommit', $env, $env, $num, NULL);
 
     } catch {
         Write-GHError "Inner exception while running test case!"
-        $_.Exception | Format-List -Force | Write-GHError
+        Write-GHError $_
+        Get-Error
+        $_ | Format-List *
         $encounterFailures = $true
     } finally {
         # Stop the server
