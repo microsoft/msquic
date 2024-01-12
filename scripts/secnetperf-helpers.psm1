@@ -82,7 +82,7 @@ function Invoke-SecnetperfTest($MsQuicCommit, $commands, $exe, $start, $LogProfi
     $testid = $i + 1 + $start
     $SQL += @"
 
-INSERT OR IGNORE INTO Secnetperf_tests (Secnetperf_test_ID, Kernel_mode, Run_arguments) VALUES ($testid, 0, "$($commands[$i]) -tcp:$tcp")
+INSERT OR IGNORE INTO Secnetperf_tests (Secnetperf_test_ID, Kernel_mode, Run_arguments) VALUES ($testid, 0, "$($commands[$i]) -tcp:$tcp");
 
 "@
     $command = "$exe -target:netperf-peer $($commands[$i]) -tcp:$tcp -trimout"
@@ -152,7 +152,7 @@ INSERT OR IGNORE INTO Secnetperf_tests (Secnetperf_test_ID, Kernel_mode, Run_arg
                 # Generate SQL statement. Assume LAST_INSERT_ROW_ID()
                 $SQL += @"
 
-INSERT INTO Secnetperf_test_runs (Secnetperf_test_ID, Secnetperf_commit, Client_environment_ID, Server_environment_ID, Result, Latency_stats_ID)
+INSERT INTO Secnetperf_test_runs (Secnetperf_test_ID, Secnetperf_commit, Client_environment_ID, Server_environment_ID, Result, Secnetperf_latency_stats_ID)
 VALUES ($testid, '$MsQuicCommit', $env, $env, $num, NULL);
 
 "@
