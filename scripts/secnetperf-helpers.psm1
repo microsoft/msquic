@@ -3,6 +3,9 @@
     Various helper functions for running secnetperf tests.
 #>
 
+Set-StrictMode -Version 'Latest'
+$PSDefaultParameterValues['*:ErrorAction'] = 'Stop'
+
 # Write a GitHub error message to the console.
 function Write-GHError($msg) {
     Write-Host "::error::$msg"

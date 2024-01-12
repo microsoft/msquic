@@ -136,6 +136,7 @@ if (!$isWindows) {
 for ($i = 0; $i -lt $exeArgs.Count; $i++) {
     $ExeArgs = $exeArgs[$i]
     $Test = Invoke-Secnetperf $Session $RemoteName $RemoteDir $SecNetPerfPath $LogProfile $ExeArgs
+    Write-Host "Test Complete:`n$Test"
     if ($Test.HasFailures) { $hasFailures = $true }
 
     # Process the results and add them to the SQL and JSON.
