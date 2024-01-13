@@ -106,8 +106,10 @@ function Invoke-Secnetperf {
 
     if ($LogProfile -ne "" -and $LogProfile -ne "NULL") {
         Invoke-Command -Session $Session -ScriptBlock {
+            try { & "$Using:RemoteDir/scripts/log.ps1" -Cancel } catch {} # Cancel any previous logging
             & "$Using:RemoteDir/scripts/log.ps1" -Start -Profile $Using:LogProfile -ProfileInScriptDirectory
         }
+        try { .\scripts\log.ps1 -Cancel } catch {} # Cancel any previous logging
         .\scripts\log.ps1 -Start -Profile $LogProfile
     }
 
@@ -152,11 +154,14 @@ function Invoke-Secnetperf {
         # Stop the server
         try { Stop-RemoteServer $Job $RemoteName | Out-Null } catch { } # Ignore failures for now
         if ($LogProfile -ne "" -and $LogProfile -ne "NULL") {
-            .\scripts\log.ps1 -Stop -OutputPath "./artifacts/logs/$metric-$tcp/client" -RawLogOnly
+            try { .\scripts\log.ps1 -Stop -OutputPath "./artifacts/logs/$metric-$tcp/client" -RawLogOnly }
+            catch { Write-Host "Failed to stop logging on client!" }
             Invoke-Command -Session $Session -ScriptBlock {
-                & "$Using:RemoteDir/scripts/log.ps1" -Stop -OutputPath "$Using:RemoteDir/artifacts/logs/$Using:metric-$Using:tcp/server" -RawLogOnly
+                try { & "$Using:RemoteDir/scripts/log.ps1" -Stop -OutputPath "$Using:RemoteDir/artifacts/logs/$Using:metric-$Using:tcp/server" -RawLogOnly }
+                catch { Write-Host "Failed to stop logging on server!" }
             }
-            Copy-Item -FromSession $Session "$RemoteDir/artifacts/logs/$metric-$tcp/server*" "./artifacts/logs/$metric-$tcp/"
+            try { Copy-Item -FromSession $Session "$RemoteDir/artifacts/logs/$metric-$tcp/server*" "./artifacts/logs/$metric-$tcp/" }
+            catch { Write-Host "Failed to copy server logs!" }
         }
     }}
 
