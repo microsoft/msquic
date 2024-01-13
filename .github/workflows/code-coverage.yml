@@ -76,7 +76,7 @@ jobs:
       continue-on-error: true
       run: scripts/test.ps1 -NoProgress -IsolationMode Batch -CodeCoverage -Config ${{ matrix.vec.config }} -Arch ${{ matrix.vec.arch }} -Tls ${{ matrix.vec.tls }} -LogProfile Full.Light ${{ matrix.vec.xdp }} ${{ matrix.vec.qtip }}
     - name: Upload Results
-      uses: actions/upload-artifact@c7d193f32edcb7bfad88892161225aeda64e9392
+      uses: actions/upload-artifact@1eb3cb2b3e0f29609092a73eb033bb759a334595
       with:
         name: BVT-${{ matrix.vec.config }}-${{ matrix.vec.plat }}-${{ matrix.vec.os }}-${{ matrix.vec.arch }}-${{ matrix.vec.tls }}${{ matrix.vec.qtip }}${{ matrix.vec.systemcrypto }}${{ matrix.vec.sanitize }}
         path: artifacts/coverage/*.cov
@@ -126,7 +126,7 @@ jobs:
       shell: pwsh
       run: scripts/spin.ps1 -Config ${{ matrix.vec.config }} -Arch ${{ matrix.vec.arch }} -Tls ${{ matrix.vec.tls }} -Timeout ${{ env.main-timeout }} -RepeatCount ${{ env.main-repeat }} -AllocFail ${{ env.main-allocfail }} ${{ matrix.vec.xdp }} -CodeCoverage -LogProfile Basic.Light
     - name: Upload Results
-      uses: actions/upload-artifact@c7d193f32edcb7bfad88892161225aeda64e9392
+      uses: actions/upload-artifact@1eb3cb2b3e0f29609092a73eb033bb759a334595
       with:
         name: Spin-${{ matrix.vec.config }}-${{ matrix.vec.plat }}-${{ matrix.vec.os }}-${{ matrix.vec.arch }}-${{ matrix.vec.tls }}${{ matrix.vec.xdp }}${{ matrix.vec.sanitize }}
         path: artifacts/coverage/*.cov
@@ -172,7 +172,7 @@ jobs:
       shell: pwsh
       run: scripts/recvfuzz.ps1 -Config ${{ matrix.vec.config }} -Arch ${{ matrix.vec.arch }} -Tls ${{ matrix.vec.tls }} -timeout ${{ env.main-timeout }} ${{ matrix.vec.xdp }} -CodeCoverage -LogProfile Basic.Light
     - name: Upload Results
-      uses: actions/upload-artifact@c7d193f32edcb7bfad88892161225aeda64e9392
+      uses: actions/upload-artifact@1eb3cb2b3e0f29609092a73eb033bb759a334595
       with:
         name: RecvFuzz-${{ matrix.vec.config }}-${{ matrix.vec.plat }}-${{ matrix.vec.os }}-${{ matrix.vec.arch }}-${{ matrix.vec.tls }}${{ matrix.vec.xdp }}${{ matrix.vec.sanitize }}
         path: artifacts/coverage/*.cov
@@ -216,7 +216,7 @@ jobs:
       shell: pwsh
       run: scripts/merge-coverage.ps1 -Config Debug -Arch x64 -Tls schannel
     - name: Upload Results
-      uses: actions/upload-artifact@c7d193f32edcb7bfad88892161225aeda64e9392
+      uses: actions/upload-artifact@1eb3cb2b3e0f29609092a73eb033bb759a334595
       with:
         name: merged
         path: artifacts\coverage\windows\x64_Debug_schannel\msquiccoverage.xml
