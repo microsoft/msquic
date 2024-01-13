@@ -12,6 +12,7 @@ Abstract:
 #include "quic_platform.h"
 #include <wdm.h>
 #include "msquic.h"
+#include "msquicp.h"
 #include "quic_trace.h"
 #ifdef QUIC_CLOG
 #include "nmrprovider.c.clog.h"
@@ -96,8 +97,7 @@ MsQuicRegisterNmrProvider(
     NmrProvider.NpiProviderCharacteristics.ProviderDetachClient = MsQuicNmrProviderDetachClient;
 
 #ifdef QUIC_TEST_NMR_PROVIDER
-    C_ASSERT(MSQUIC_NPI_ID.Guid.Data4[7] != 0xff);
-    MSQUIC_NPI_ID.Guid.Data4[7] = 0xff;
+    QUIC_ENABLE_PRIVATE_NMR_PROVIDER();
 #endif
 
     ProviderRegistrationInstance = &NmrProvider.NpiProviderCharacteristics.ProviderRegistrationInstance;
