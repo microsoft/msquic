@@ -140,7 +140,7 @@ typedef struct QUIC_PRIVATE_TRANSPORT_PARAMETER {
 
 #define QUIC_ENABLE_PRIVATE_NMR_PROVIDER(...) \
 do { \
-    MSQUIC_NPI_ID.Data4[7] = 0xff; \
+    MSQUIC_NPI_ID.Data1 = 0xDEADC0DE; \
 } while (FALSE)
 
 #if defined(__cplusplus)
