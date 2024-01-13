@@ -157,10 +157,11 @@ function Invoke-Secnetperf {
             try { .\scripts\log.ps1 -Stop -OutputPath "./artifacts/logs/$metric-$tcp/client" -RawLogOnly }
             catch { Write-Host "Failed to stop logging on client!" }
             Invoke-Command -Session $Session -ScriptBlock {
-                try { & "$Using:RemoteDir/scripts/log.ps1" -Stop -OutputPath "$Using:RemoteDir/artifacts/logs/$Using:metric-$Using:tcp/server" -RawLogOnly }
+                try { & "$Using:RemoteDir/scripts/log.ps1" -Stop -OutputPath "$Using:RemoteDir/artifacts/logs/$Using:metric-$Using:tcp/server" -RawLogOnly
+                      dir "$Using:RemoteDir/artifacts/logs/$Using:metric-$Using:tcp" }
                 catch { Write-Host "Failed to stop logging on server!" }
             }
-            try { Copy-Item -FromSession $Session "$RemoteDir/artifacts/logs/$metric-$tcp/server*" "./artifacts/logs/$metric-$tcp/" }
+            try { Copy-Item -FromSession $Session "$RemoteDir/artifacts/logs/$metric-$tcp/*" "./artifacts/logs/$metric-$tcp/" }
             catch { Write-Host "Failed to copy server logs!" }
         }
     }}
