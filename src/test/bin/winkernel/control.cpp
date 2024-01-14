@@ -84,7 +84,9 @@ QuicTestCtlInitialize(
     WDF_IO_QUEUE_CONFIG QueueConfig;
     WDFQUEUE Queue;
 
+#ifdef QUIC_TEST_NMR_PROVIDER
     QUIC_ENABLE_PRIVATE_NMR_PROVIDER();
+#endif
 
     Status = MsQuicNmrClientRegister(&NmrClient, &MSQUIC_MODULE_ID, 5000);
     if (!NT_SUCCESS(Status)) {
