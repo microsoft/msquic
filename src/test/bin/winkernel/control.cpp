@@ -18,6 +18,8 @@ Abstract:
 #include "control.cpp.clog.h"
 #endif
 
+#include "msquicp.h"
+
 const MsQuicApi* MsQuic;
 QUIC_CREDENTIAL_CONFIG ServerSelfSignedCredConfig;
 QUIC_CREDENTIAL_CONFIG ServerSelfSignedCredConfigClientAuth;
@@ -81,6 +83,10 @@ QuicTestCtlInitialize(
     QUIC_DEVICE_EXTENSION* DeviceContext;
     WDF_IO_QUEUE_CONFIG QueueConfig;
     WDFQUEUE Queue;
+
+#ifdef QUIC_TEST_NMR_PROVIDER
+    QUIC_ENABLE_PRIVATE_NMR_PROVIDER();
+#endif
 
     Status = MsQuicNmrClientRegister(&NmrClient, &MSQUIC_MODULE_ID, 5000);
     if (!NT_SUCCESS(Status)) {

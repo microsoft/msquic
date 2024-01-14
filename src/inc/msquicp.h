@@ -138,6 +138,11 @@ typedef struct QUIC_PRIVATE_TRANSPORT_PARAMETER {
 #define QUIC_PARAM_STREAM_RELIABLE_OFFSET_RECV          0x88000000  // uint64_t
 #endif
 
+#define QUIC_ENABLE_PRIVATE_NMR_PROVIDER(...) \
+do { \
+    MSQUIC_NPI_ID.Data1 = 0xDEADC0DE; \
+} while (FALSE)
+
 #if defined(__cplusplus)
 }
 #endif
