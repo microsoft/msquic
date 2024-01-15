@@ -29,8 +29,8 @@ function Configure-DumpCollection {
             New-Item -Path $WerDumpRegPath -Force | Out-Null
         }
         $DumpDir = Join-Path (Split-Path $PSScriptRoot -Parent) "artifacts/crashdumps"
-        Set-ItemProperty -Path $Using:WerDumpRegPath -Name DumpFolder -Value $DumpDir
-        Set-ItemProperty -Path $Using:WerDumpRegPath -Name DumpType -Value 2
+        Set-ItemProperty -Path $WerDumpRegPath -Name DumpFolder -Value $DumpDir
+        Set-ItemProperty -Path $WerDumpRegPath -Name DumpType -Value 2
     } else {
         # TODO: Configure Linux to collect dumps.
     }
