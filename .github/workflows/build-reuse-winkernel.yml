@@ -73,11 +73,11 @@ jobs:
     - name: Build
       if: inputs.build == '-Test'
       shell: pwsh
-      run: msbuild msquic.kernel.sln /p:Configuration=${{ inputs.config }} /p:Platform=${{ inputs.arch }} /p:QUIC_VER_SUFFIX=-official /p:QUIC_VER_GIT_HASH=${{ github.sha }}
+      run: msbuild msquic.kernel.sln /m /p:Configuration=${{ inputs.config }} /p:Platform=${{ inputs.arch }} /p:QUIC_VER_SUFFIX=-official /p:QUIC_VER_GIT_HASH=${{ github.sha }}
     - name: Build
       if: inputs.build == ''
       shell: pwsh
-      run: msbuild msquic.kernel.sln /p:Configuration=${{ inputs.config }} /p:Platform=${{ inputs.arch }} /p:QUIC_VER_SUFFIX=-official
+      run: msbuild msquic.kernel.sln /m /p:Configuration=${{ inputs.config }} /p:Platform=${{ inputs.arch }} /p:QUIC_VER_SUFFIX=-official
     - name: Sign Kernel
       shell: pwsh
       run: scripts/sign.ps1 -Config ${{ inputs.config }} -Arch ${{ inputs.arch }} -Tls ${{ inputs.tls }}
