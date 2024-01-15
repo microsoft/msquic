@@ -167,7 +167,7 @@ function Invoke-Secnetperf {
     for ($tcp = 0; $tcp -lt 2; $tcp++) {
 
     $execMode = $ExeArgs.Substring(0, $ExeArgs.IndexOf(' ')) # First arg is the exec mode
-    $command = "./$SecNetPerfPath -target:netperf-peer $ExeArgs -tcp:$tcp -trimout"
+    $command = "./$SecNetPerfPath -target:netperf-peer $ExeArgs -tcp:$tcp -trimout -watchdog:45000"
     Write-Host "> $command"
 
     if ($LogProfile -ne "" -and $LogProfile -ne "NULL") {
@@ -181,18 +181,19 @@ function Invoke-Secnetperf {
 
     try {
 
-    # Start the server running
+    # Start the server running.
     $Job = Start-RemoteServer $Session "$RemoteDir/$SecNetPerfPath $execMode"
 
+    # Run the test multiple times, failing (for now) only if all tries fail.
     $successCount = 0
     for ($try = 0; $try -lt 3; $try++) {
         try {
             $rawOutput = Invoke-Expression $command
             if ($null -eq $rawOutput) {
-                throw "Output is empty!"
+                throw "secnetperf: No console output (possibly crashed)!"
             }
             if ($rawOutput.Contains("Error")) {
-                throw $rawOutput.Substring(7) # Skip over the 'Error: ' prefix
+                throw "secnetperf: $($rawOutput.Substring(7))" # Skip over the 'Error: ' prefix
             }
             Write-Host $rawOutput
             if ($metric -eq "latency") {
@@ -214,6 +215,7 @@ function Invoke-Secnetperf {
     }
     if ($successCount -eq 0) {
         $hasFailures = $true # For now, consider failure only if all failed
+        Write-GHError "secnetperf: All test tries failed!"
     }
 
     } catch {
@@ -223,8 +225,11 @@ function Invoke-Secnetperf {
         $hasFailures = $true
     } finally {
         $ArtifactName = $tcp -eq 0 ? "$metric-quic" : "$metric-tcp"
-        # Stop the server
+
+        # Stop the server.
         try { Stop-RemoteServer $Job $RemoteName | Out-Null } catch { } # Ignore failures for now
+
+        # Stop logging and copy the logs to the artifacts folder.
         if ($LogProfile -ne "" -and $LogProfile -ne "NULL") {
             try { .\scripts\log.ps1 -Stop -OutputPath "./artifacts/logs/$ArtifactName/client" -RawLogOnly }
             catch { Write-Host "Failed to stop logging on client!" }
@@ -237,6 +242,7 @@ function Invoke-Secnetperf {
             try { Copy-Item -FromSession $Session "$RemoteDir/artifacts/logs/$ArtifactName/*" "./artifacts/logs/$ArtifactName/" }
             catch { Write-Host "Failed to copy server logs!" }
         }
+
         # Grab any crash dumps that were generated.
         if (Collect-LocalDumps "./artifacts/logs/$ArtifactName/clientdumps") {
             Write-Host "Dump file(s) generated locally"
