@@ -124,9 +124,10 @@ TcpEngine::~TcpEngine() noexcept
     // Loop over all connections and shut them down.
     ShuttingDown = true;
     ConnectionLock.Acquire();
-    while (!CxPlatListIsEmpty(&Connections)) {
+    CXPLAT_LIST_ENTRY* Entry = Connections.Flink;
+    while (Entry != &Connections) {
         auto Connection = (TcpConnection*)CxPlatListRemoveHead(&Connections);
-        Connection->EngineEntry.Flink = NULL;
+        Entry = Entry->Flink;
         Connection->Shutdown = true;
         Connection->TotalSendCompleteOffset = UINT64_MAX;
         Connection->Queue();
@@ -165,7 +166,6 @@ void TcpEngine::RemoveConnection(TcpConnection* Connection)
     ConnectionLock.Acquire();
     if (Connection->EngineEntry.Flink) {
         CxPlatListEntryRemove(&Connection->EngineEntry);
-        Connection->EngineEntry.Flink = NULL;
     }
     ConnectionLock.Release();
     if (Connection->HasRundownRef) {
