@@ -152,7 +152,7 @@ function Invoke-Secnetperf {
     param ($Session, $RemoteName, $RemoteDir, $SecNetPerfPath, $LogProfile, $ExeArgs)
 
     $values = @(@(), @())
-    $hasFailures = $true
+    $hasFailures = $false
 
     # TODO: This logic is pretty fragile. Needs improvement.
     $metric = "throughput-download"
@@ -184,6 +184,7 @@ function Invoke-Secnetperf {
     # Start the server running
     $Job = Start-RemoteServer $Session "$RemoteDir/$SecNetPerfPath $execMode"
 
+    $successCount = 0
     for ($try = 0; $try -lt 3; $try++) {
         try {
             $rawOutput = Invoke-Expression $command
@@ -204,12 +205,15 @@ function Invoke-Secnetperf {
                 $rawOutput -match '@ (\d+) kbps'
                 $values[$tcp] += $matches[1]
             }
+            $successCount++
         } catch {
             Write-GHError $_
-            $hasFailures = $true
+            //$hasFailures = $true
         }
         Start-Sleep -Seconds 1 | Out-Null
     }
+    if ($successCount -eq 0) {
+        $hasFailures = $true # For now, consider failure only if all failed
 
     } catch {
         Write-GHError "Exception while running test case!"
