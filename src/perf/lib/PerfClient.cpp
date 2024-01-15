@@ -461,7 +461,7 @@ PerfClientWorker::OnConnectionComplete() {
 
 PerfClientConnection::~PerfClientConnection() {
     if (Client.UseTCP) {
-        if (TcpConn) { TcpConn->Close(); }
+        if (TcpConn) { TcpConn->Close(); TcpConn = nullptr; }
     } else {
         if (Handle) { MsQuic->ConnectionClose(Handle); }
     }
@@ -472,17 +472,18 @@ PerfClientConnection::Initialize() {
     if (Client.UseTCP) {
         auto CredConfig = MsQuicCredentialConfig(QUIC_CREDENTIAL_FLAG_CLIENT | QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION);
         TcpConn = // TODO: replace new/delete with pool alloc/free
-            new (std::nothrow) TcpConnection(
-                Client.Engine.get(),
-                &CredConfig,
+            new (std::nothrow) TcpConnection(Client.Engine.get(), &CredConfig, this);
+        if (!TcpConn->IsInitialized()) {
+            Worker.ConnectionPool.Free(this);
+            return;
+        }
+
+        if (!TcpConn->Start(
                 Client.TargetFamily,
                 Worker.Target.get(),
                 Worker.RemoteAddr.GetPort(),
                 Worker.LocalAddr.GetFamily() != QUIC_ADDRESS_FAMILY_UNSPEC ? &Worker.LocalAddr.SockAddr : nullptr,
-                &Worker.RemoteAddr.SockAddr,
-                this);
-        if (!TcpConn->IsInitialized()) {
-            TcpConn->Close();
+                &Worker.RemoteAddr.SockAddr)) {
             Worker.ConnectionPool.Free(this);
             return;
         }

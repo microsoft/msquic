@@ -266,14 +266,15 @@ public:
     TcpConnection(
         _In_ TcpEngine* Engine,
         _In_ const QUIC_CREDENTIAL_CONFIG* CredConfig,
+        _In_ void* Context = nullptr);
+    bool IsInitialized() const { return Initialized; }
+    void Close();
+    bool Start(
         _In_ QUIC_ADDRESS_FAMILY Family,
         _In_reads_or_z_opt_(QUIC_MAX_SNI_LENGTH)
             const char* ServerName,
         _In_ uint16_t ServerPort,
         _In_ const QUIC_ADDR* LocalAddress = nullptr,
-        _In_ const QUIC_ADDR* RemoteAddress = nullptr,
-        _In_ void* Context = nullptr);
-    bool IsInitialized() const { return Initialized; }
-    void Close();
+        _In_ const QUIC_ADDR* RemoteAddress = nullptr);
     bool Send(TcpSendData* Data);
 };

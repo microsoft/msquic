@@ -325,12 +325,6 @@ TcpServer::AcceptCallback(
 TcpConnection::TcpConnection(
     TcpEngine* Engine,
     const QUIC_CREDENTIAL_CONFIG* CredConfig,
-    _In_ QUIC_ADDRESS_FAMILY Family,
-    _In_reads_or_z_opt_(QUIC_MAX_SNI_LENGTH)
-        const char* ServerName,
-    _In_ uint16_t ServerPort,
-    const QUIC_ADDR* LocalAddress,
-    const QUIC_ADDR* RemoteAddress,
     void* Context) :
     IsServer(false), Engine(Engine), Context(Context)
 {
@@ -350,6 +344,22 @@ TcpConnection::TcpConnection(
         WriteOutput("SecConfig load FAILED\n");
         return;
     }
+    if (!Engine->AddConnection(this, (uint16_t)CxPlatProcCurrentNumber())) {
+        return;
+    }
+    Initialized = true;
+}
+
+bool
+TcpConnection::Start(
+    _In_ QUIC_ADDRESS_FAMILY Family,
+    _In_reads_or_z_opt_(QUIC_MAX_SNI_LENGTH)
+        const char* ServerName,
+    _In_ uint16_t ServerPort,
+    const QUIC_ADDR* LocalAddress,
+    const QUIC_ADDR* RemoteAddress
+    )
+{
     if (LocalAddress) {
         Family = QuicAddrGetFamily(LocalAddress);
     }
@@ -363,14 +373,10 @@ TcpConnection::TcpConnection(
                 ServerName,
                 &Route.RemoteAddress))) {
             WriteOutput("CxPlatDataPathResolveAddress FAILED\n");
-            return;
+            return false;
         }
     }
     QuicAddrSetPort(&Route.RemoteAddress, ServerPort);
-    if (!Engine->AddConnection(this, (uint16_t)CxPlatProcCurrentNumber())) {
-        return;
-    }
-    Initialized = true;
     if (QUIC_FAILED(
         CxPlatSocketCreateTcp(
             Datapath,
@@ -378,10 +384,10 @@ TcpConnection::TcpConnection(
             &Route.RemoteAddress,
             this,
             &Socket))) {
-        Initialized = false;
-        return;
+        return false;
     }
     Queue();
+    return true;
 }
 
 TcpConnection::TcpConnection(
@@ -1079,7 +1085,8 @@ void TcpConnection::Close()
         "[perf][tcp][%p] App Close",
         this);
     if (!Initialized) {
-         // no-op
+        ClosedByApp = true;
+        Closed = true;
     } else if (WorkerThreadID == CxPlatCurThreadID()) {
         ClosedByApp = true;
         Shutdown = true;
