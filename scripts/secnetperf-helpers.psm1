@@ -19,13 +19,13 @@ function Configure-DumpCollection {
     param ($Session)
     if ($isWindows) {
         Invoke-Command -Session $Session -ScriptBlock {
-            if (!(Test-Path $Using:WerDumpRegPath) -and (Test-Administrator)) {
+            if (!(Test-Path $Using:WerDumpRegPath)) {
                 New-Item -Path $Using:WerDumpRegPath -Force | Out-Null
             }
             Set-ItemProperty -Path $Using:WerDumpRegPath -Name DumpFolder -Value "C:/_work/quic/artifacts/crashdumps"
             Set-ItemProperty -Path $Using:WerDumpRegPath -Name DumpType -Value 2
         }
-        if (!(Test-Path $WerDumpRegPath) -and (Test-Administrator)) {
+        if (!(Test-Path $WerDumpRegPath)) {
             New-Item -Path $WerDumpRegPath -Force | Out-Null
         }
         $DumpDir = Join-Path (Split-Path $PSScriptRoot -Parent) "artifacts/crashdumps"
