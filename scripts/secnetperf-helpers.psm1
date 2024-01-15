@@ -208,12 +208,13 @@ function Invoke-Secnetperf {
             $successCount++
         } catch {
             Write-GHError $_
-            //$hasFailures = $true
+            #$hasFailures = $true
         }
         Start-Sleep -Seconds 1 | Out-Null
     }
     if ($successCount -eq 0) {
         $hasFailures = $true # For now, consider failure only if all failed
+    }
 
     } catch {
         Write-GHError "Exception while running test case!"
