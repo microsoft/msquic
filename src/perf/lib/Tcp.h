@@ -81,6 +81,7 @@ typedef TcpSendCompleteCallback* TcpSendCompleteHandler;
 class TcpEngine {
     friend class TcpWorker;
     bool Initialized{false};
+    bool ShuttingDown{false};
     bool Shutdown{false};
     const uint16_t ProcCount;
     TcpWorker* Workers;
@@ -102,7 +103,7 @@ public:
         TcpSendCompleteHandler SendCompleteHandler) noexcept;
     ~TcpEngine() noexcept;
     bool IsInitialized() const { return Initialized; }
-    void AddConnection(TcpConnection* Connection, uint16_t PartitionIndex);
+    bool AddConnection(TcpConnection* Connection, uint16_t PartitionIndex);
     void RemoveConnection(TcpConnection* Connection);
 };
 
