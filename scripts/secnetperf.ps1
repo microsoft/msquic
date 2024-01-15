@@ -121,6 +121,9 @@ if ($isWindows) { # TODO: Run on Linux too?
     }
 }
 
+# Configure the dump collection.
+Configure-DumpCollection $Session
+
 if (!$isWindows) {
     # Make sure the secnetperf binary is executable.
     Write-Host "Updating secnetperf permissions..."

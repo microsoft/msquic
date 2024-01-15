@@ -6,9 +6,72 @@
 Set-StrictMode -Version 'Latest'
 $PSDefaultParameterValues['*:ErrorAction'] = 'Stop'
 
+# Path to the WER registry key used for collecting dumps on Windows.
+$WerDumpRegPath = "HKLM:\Software\Microsoft\Windows\Windows Error Reporting\LocalDumps\secnetperf.exe"
+
 # Write a GitHub error message to the console.
 function Write-GHError($msg) {
     Write-Host "::error::$msg"
+}
+
+# Configured the remote machine to collect dumps on crash.
+function Configure-DumpCollection {
+    param ($Session)
+    if ($isWindows) {
+        Invoke-Command -Session $Session -ScriptBlock {
+            Set-ItemProperty -Path $Using:WerDumpRegPath -Name DumpFolder -Value "C:/_work/quic/artifacts/crashdumps"
+            Set-ItemProperty -Path $Using:WerDumpRegPath -Name DumpType -Value 2
+        }
+        $DumpDir = Join-Path (Split-Path $PSScriptRoot -Parent) "artifacts/crashdumps"
+        Set-ItemProperty -Path $Using:WerDumpRegPath -Name DumpFolder -Value $DumpDir
+        Set-ItemProperty -Path $Using:WerDumpRegPath -Name DumpType -Value 2
+    } else {
+        # TODO: Configure Linux to collect dumps.
+    }
+}
+
+# Collects any crash dumps that were generated locally by secnetperf.
+function Collect-LocalDumps {
+    param ($OutputDir)
+    if ($isWindows) {
+        $DumpFiles = (Get-ChildItem "./artifacts/crashdumps") | Where-Object { $_.Extension -eq ".dmp" }
+        if ($DumpFiles) {
+            Write-Host "Dump file(s) generated locally"
+            mkdir $OutputDir | Out-Null
+            foreach ($File in $DumpFiles) {
+                Copy-Item -Path $File.FullName -Destination $OutputDir
+            }
+            # Delete all the files in the crashdumps folder.
+            Remove-Item -Path "./artifacts/crashdumps/*" -Force
+            return $true
+        }
+    } else {
+    }
+    return $false
+}
+
+# Collect any crash dumps that were generated on the remote machine.
+function Collect-RemoteDumps {
+    param ($Session, $OutputDir)
+    if ($isWindows) {
+        $DumpFiles = Invoke-Command -Session $Session -ScriptBlock {
+            Get-ChildItem "C:/_work/quic/artifacts/crashdumps" | Where-Object { $_.Extension -eq ".dmp" }
+        }
+        if ($DumpFiles) {
+            Write-Host "Dump file(s) generated on peer"
+            mkdir $OutputDir | Out-Null
+            foreach ($File in $DumpFiles) {
+                Copy-Item -FromSession $Session -Path $File.FullName -Destination $OutputDir
+            }
+            # Delete all the files in the crashdumps folder.
+            Invoke-Command -Session $Session -ScriptBlock {
+                Remove-Item -Path "C:/_work/quic/artifacts/crashdumps/*" -Force
+            }
+            return $true
+        }
+    } else {
+    }
+    return $false
 }
 
 # Waits for a remote job to be ready based on looking for a particular string in
@@ -164,6 +227,8 @@ function Invoke-Secnetperf {
             try { Copy-Item -FromSession $Session "$RemoteDir/artifacts/logs/$metric-$tcp/*" "./artifacts/logs/$metric-$tcp/" }
             catch { Write-Host "Failed to copy server logs!" }
         }
+        Collect-LocalDumps "./artifacts/logs/$metric-$tcp/clientdumps"
+        Collect-RemoteDumps $Session "./artifacts/logs/$metric-$tcp/serverdumps"
     }}
 
     return [TestResult]::new($metric, $values, $hasFailures)
