@@ -75,7 +75,7 @@ PerfServer::Init(
     // Set up the special UDP listener to allow remote tear down.
     //
     QuicAddr TeardownLocalAddress {QUIC_ADDRESS_FAMILY_INET, (uint16_t)9999};
-    CXPLAT_UDP_CONFIG UdpConfig = {&TeardownLocalAddress.SockAddr, 0};
+    CXPLAT_UDP_CONFIG UdpConfig = {&TeardownLocalAddress.SockAddr, 0, 0, 0, 0, this, 0};
 #ifdef QUIC_OWNING_PROCESS
     UdpConfig.OwningProcess = QuicProcessGetCurrentProcess();
 #endif

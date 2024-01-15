@@ -1000,6 +1000,9 @@ bool TcpConnection::EncryptFrame(TcpFrame* Frame)
 
 QUIC_BUFFER* TcpConnection::NewSendBuffer()
 {
+    if (Shutdown) { // TODO: How do we actually get into this state?
+        return nullptr;
+    }
     if (!BatchedSendData) {
         CXPLAT_SEND_CONFIG SendConfig = { &Route, TLS_BLOCK_SIZE, CXPLAT_ECN_NON_ECT, 0 };
         BatchedSendData = CxPlatSendDataAlloc(Socket, &SendConfig);
