@@ -176,6 +176,7 @@ class TcpConnection {
     bool IndicateAccept{false};
     bool IndicateConnect{false};
     bool IndicateSendComplete{false};
+    bool HasRundownRef{false};
     TcpConnection* Next{nullptr};
     TcpEngine* Engine;
     TcpWorker* Worker{nullptr};

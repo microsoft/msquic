@@ -149,30 +149,26 @@ bool TcpEngine::AddConnection(TcpConnection* Connection, uint16_t PartitionIndex
     Connection->PartitionIndex = PartitionIndex;
     Connection->Worker = &Workers[PartitionIndex];
     if (Rundown.Acquire()) {
+        Connection->HasRundownRef = true;
         ConnectionLock.Acquire();
         if (!ShuttingDown) {
             CxPlatListInsertTail(&Connections, &Connection->EngineEntry);
             Added = true;
         }
         ConnectionLock.Release();
-        if (!Added) {
-            Rundown.Release();
-        }
     }
     return Added;
 }
 
 void TcpEngine::RemoveConnection(TcpConnection* Connection)
 {
-    bool Removed = false;
     ConnectionLock.Acquire();
     if (Connection->EngineEntry.Flink) {
         CxPlatListEntryRemove(&Connection->EngineEntry);
         Connection->EngineEntry.Flink = NULL;
-        Removed = true;
     }
     ConnectionLock.Release();
-    if (Removed) {
+    if (Connection->HasRundownRef) {
         Rundown.Release();
     }
 }
