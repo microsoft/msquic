@@ -122,7 +122,6 @@ TcpEngine::TcpEngine(
 TcpEngine::~TcpEngine() noexcept
 {
     // Loop over all connections and shut them down.
-    Shutdown = true;
     ConnectionLock.Acquire();
     while (!CxPlatListIsEmpty(&Connections)) {
         auto Connection = (TcpConnection*)CxPlatListRemoveHead(&Connections);
@@ -134,6 +133,7 @@ TcpEngine::~TcpEngine() noexcept
     ConnectionLock.Release();
     Rundown.ReleaseAndWait();
 
+    Shutdown = true;
     for (uint16_t i = 0; i < ProcCount; ++i) {
         Workers[i].Shutdown();
     }
