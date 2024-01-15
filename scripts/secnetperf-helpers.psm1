@@ -219,21 +219,22 @@ function Invoke-Secnetperf {
         $_ | Format-List *
         $hasFailures = $true
     } finally {
+        $ArtifactName = $tcp -eq 0 ? "$metric-quic" : "$metric-tcp"
         # Stop the server
         try { Stop-RemoteServer $Job $RemoteName | Out-Null } catch { } # Ignore failures for now
         if ($LogProfile -ne "" -and $LogProfile -ne "NULL") {
-            try { .\scripts\log.ps1 -Stop -OutputPath "./artifacts/logs/$metric-$tcp/client" -RawLogOnly }
+            try { .\scripts\log.ps1 -Stop -OutputPath "./artifacts/logs/$ArtifactName/client" -RawLogOnly }
             catch { Write-Host "Failed to stop logging on client!" }
             Invoke-Command -Session $Session -ScriptBlock {
-                try { & "$Using:RemoteDir/scripts/log.ps1" -Stop -OutputPath "$Using:RemoteDir/artifacts/logs/$Using:metric-$Using:tcp/server" -RawLogOnly
-                      dir "$Using:RemoteDir/artifacts/logs/$Using:metric-$Using:tcp" }
+                try { & "$Using:RemoteDir/scripts/log.ps1" -Stop -OutputPath "$Using:RemoteDir/artifacts/logs/$Using:ArtifactName/server" -RawLogOnly
+                      dir "$Using:RemoteDir/artifacts/logs/$Using:ArtifactName" }
                 catch { Write-Host "Failed to stop logging on server!" }
             }
-            try { Copy-Item -FromSession $Session "$RemoteDir/artifacts/logs/$metric-$tcp/*" "./artifacts/logs/$metric-$tcp/" }
+            try { Copy-Item -FromSession $Session "$RemoteDir/artifacts/logs/$ArtifactName/*" "./artifacts/logs/$ArtifactName/" }
             catch { Write-Host "Failed to copy server logs!" }
         }
-        if (Collect-LocalDumps "./artifacts/logs/$metric-$tcp/clientdumps" -or `
-            Collect-RemoteDumps $Session "./artifacts/logs/$metric-$tcp/serverdumps") {
+        if (Collect-LocalDumps "./artifacts/logs/$ArtifactName/clientdumps" -or `
+            Collect-RemoteDumps $Session "./artifacts/logs/$ArtifactName/serverdumps") {
             $hasFailures = $true
         }
     }}
