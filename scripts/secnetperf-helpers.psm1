@@ -19,18 +19,17 @@ function Configure-DumpCollection {
     param ($Session)
     if ($isWindows) {
         Invoke-Command -Session $Session -ScriptBlock {
-            if (!(Test-Path $Using:WerDumpRegPath)) {
-                New-Item -Path $Using:WerDumpRegPath -Force | Out-Null
-            }
-            Set-ItemProperty -Path $Using:WerDumpRegPath -Name DumpFolder -Value "C:/_work/quic/artifacts/crashdumps"
-            Set-ItemProperty -Path $Using:WerDumpRegPath -Name DumpType -Value 2
-        }
-        if (!(Test-Path $WerDumpRegPath)) {
-            New-Item -Path $WerDumpRegPath -Force | Out-Null
+            $DumpDir = "C:/_work/quic/artifacts/crashdumps"
+            New-Item -Path $DumpDir -ItemType Directory -ErrorAction Ignore | Out-Null
+            New-Item -Path $Using:WerDumpRegPath -Force -ErrorAction Ignore | Out-Null
+            Set-ItemProperty -Path $Using:WerDumpRegPath -Name DumpFolder -Value $DumpDir | Out-Null
+            Set-ItemProperty -Path $Using:WerDumpRegPath -Name DumpType -Value 2 | Out-Null
         }
         $DumpDir = Join-Path (Split-Path $PSScriptRoot -Parent) "artifacts/crashdumps"
-        Set-ItemProperty -Path $WerDumpRegPath -Name DumpFolder -Value $DumpDir
-        Set-ItemProperty -Path $WerDumpRegPath -Name DumpType -Value 2
+        New-Item -Path $DumpDir -ItemType Directory -ErrorAction Ignore | Out-Null
+        New-Item -Path $WerDumpRegPath -Force -ErrorAction Ignore | Out-Null
+        Set-ItemProperty -Path $WerDumpRegPath -Name DumpFolder -Value $DumpDir | Out-Null
+        Set-ItemProperty -Path $WerDumpRegPath -Name DumpType -Value 2 | Out-Null
     } else {
         # TODO: Configure Linux to collect dumps.
     }
