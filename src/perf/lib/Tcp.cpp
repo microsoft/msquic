@@ -142,22 +142,14 @@ TcpEngine::~TcpEngine() noexcept
 
 bool TcpEngine::AddConnection(TcpConnection* Connection, uint16_t PartitionIndex)
 {
-    bool Added = false;
     CXPLAT_DBG_ASSERT(PartitionIndex < ProcCount);
     CXPLAT_DBG_ASSERT(!Connection->Worker);
     Connection->PartitionIndex = PartitionIndex;
     Connection->Worker = &Workers[PartitionIndex];
     CXPLAT_FRE_ASSERT(Rundown.Acquire());
     ConnectionLock.Acquire();
-    if (!Shutdown) {
-        CxPlatListInsertTail(&Connections, &Connection->EngineEntry);
-        Added = true;
-    }
+    CxPlatListInsertTail(&Connections, &Connection->EngineEntry);
     ConnectionLock.Release();
-    if (!Added) {
-        Rundown.Release();
-    }
-    return Added;
 }
 
 void TcpEngine::RemoveConnection(TcpConnection* Connection)
@@ -365,9 +357,7 @@ TcpConnection::TcpConnection(
         }
     }
     QuicAddrSetPort(&Route.RemoteAddress, ServerPort);
-    if (!Engine->AddConnection(this, (uint16_t)CxPlatProcCurrentNumber())) {
-        return;
-    }
+    Engine->AddConnection(this, (uint16_t)CxPlatProcCurrentNumber());
     Initialized = true;
     if (QUIC_FAILED(
         CxPlatSocketCreateTcp(
@@ -399,7 +389,7 @@ TcpConnection::TcpConnection(
         this);
     Initialized = true;
     IndicateAccept = true;
-    CXPLAT_FRE_ASSERT(Engine->AddConnection(this, (uint16_t)CxPlatProcCurrentNumber()));
+    Engine->AddConnection(this, (uint16_t)CxPlatProcCurrentNumber());
     Queue();
 }
 

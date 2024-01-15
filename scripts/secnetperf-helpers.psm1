@@ -41,7 +41,6 @@ function Collect-LocalDumps {
     if ($isWindows) {
         $DumpFiles = (Get-ChildItem "./artifacts/crashdumps") | Where-Object { $_.Extension -eq ".dmp" }
         if ($DumpFiles) {
-            Write-Host "Dump file(s) generated locally"
             mkdir $OutputDir | Out-Null
             foreach ($File in $DumpFiles) {
                 Copy-Item -Path $File.FullName -Destination $OutputDir
@@ -63,7 +62,6 @@ function Collect-RemoteDumps {
             Get-ChildItem "C:/_work/quic/artifacts/crashdumps" | Where-Object { $_.Extension -eq ".dmp" }
         }
         if ($DumpFiles) {
-            Write-Host "Dump file(s) generated on peer"
             mkdir $OutputDir | Out-Null
             foreach ($File in $DumpFiles) {
                 Copy-Item -FromSession $Session -Path $File.FullName -Destination $OutputDir
@@ -226,15 +224,21 @@ function Invoke-Secnetperf {
             try { .\scripts\log.ps1 -Stop -OutputPath "./artifacts/logs/$ArtifactName/client" -RawLogOnly }
             catch { Write-Host "Failed to stop logging on client!" }
             Invoke-Command -Session $Session -ScriptBlock {
-                try { & "$Using:RemoteDir/scripts/log.ps1" -Stop -OutputPath "$Using:RemoteDir/artifacts/logs/$Using:ArtifactName/server" -RawLogOnly
-                      dir "$Using:RemoteDir/artifacts/logs/$Using:ArtifactName" }
-                catch { Write-Host "Failed to stop logging on server!" }
+                try {
+                    & "$Using:RemoteDir/scripts/log.ps1" -Stop -OutputPath "$Using:RemoteDir/artifacts/logs/$Using:ArtifactName/server" -RawLogOnly
+                    dir "$Using:RemoteDir/artifacts/logs/$Using:ArtifactName"
+                } catch { Write-Host "Failed to stop logging on server!" }
             }
             try { Copy-Item -FromSession $Session "$RemoteDir/artifacts/logs/$ArtifactName/*" "./artifacts/logs/$ArtifactName/" }
             catch { Write-Host "Failed to copy server logs!" }
         }
-        if (Collect-LocalDumps "./artifacts/logs/$ArtifactName/clientdumps" -or `
-            Collect-RemoteDumps $Session "./artifacts/logs/$ArtifactName/serverdumps") {
+        # Grab any crash dumps that were generated.
+        if (Collect-LocalDumps "./artifacts/logs/$ArtifactName/clientdumps") {
+            Write-Host "Dump file(s) generated locally"
+            $hasFailures = $true
+        }
+        if (Collect-RemoteDumps $Session "./artifacts/logs/$ArtifactName/serverdumps") {
+            Write-Host "Dump file(s) generated on peer"
             $hasFailures = $true
         }
     }}
