@@ -102,7 +102,7 @@ public:
         TcpSendCompleteHandler SendCompleteHandler) noexcept;
     ~TcpEngine() noexcept;
     bool IsInitialized() const { return Initialized; }
-    void AddConnection(TcpConnection* Connection, uint16_t PartitionIndex);
+    bool AddConnection(TcpConnection* Connection, uint16_t PartitionIndex);
     void RemoveConnection(TcpConnection* Connection);
 };
 

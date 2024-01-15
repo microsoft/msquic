@@ -122,6 +122,7 @@ TcpEngine::TcpEngine(
 TcpEngine::~TcpEngine() noexcept
 {
     // Loop over all connections and shut them down.
+    Shutdown = true;
     ConnectionLock.Acquire();
     while (!CxPlatListIsEmpty(&Connections)) {
         auto Connection = (TcpConnection*)CxPlatListRemoveHead(&Connections);
@@ -133,23 +134,30 @@ TcpEngine::~TcpEngine() noexcept
     ConnectionLock.Release();
     Rundown.ReleaseAndWait();
 
-    Shutdown = true;
     for (uint16_t i = 0; i < ProcCount; ++i) {
         Workers[i].Shutdown();
     }
     delete [] Workers;
 }
 
-void TcpEngine::AddConnection(TcpConnection* Connection, uint16_t PartitionIndex)
+bool TcpEngine::AddConnection(TcpConnection* Connection, uint16_t PartitionIndex)
 {
+    bool Added = false;
     CXPLAT_DBG_ASSERT(PartitionIndex < ProcCount);
     CXPLAT_DBG_ASSERT(!Connection->Worker);
     Connection->PartitionIndex = PartitionIndex;
     Connection->Worker = &Workers[PartitionIndex];
     CXPLAT_FRE_ASSERT(Rundown.Acquire());
     ConnectionLock.Acquire();
-    CxPlatListInsertTail(&Connections, &Connection->EngineEntry);
+    if (!Shutdown) {
+        CxPlatListInsertTail(&Connections, &Connection->EngineEntry);
+        Added = true;
+    }
     ConnectionLock.Release();
+    if (!Added) {
+        Rundown.Release();
+    }
+    return Added;
 }
 
 void TcpEngine::RemoveConnection(TcpConnection* Connection)
@@ -357,7 +365,9 @@ TcpConnection::TcpConnection(
         }
     }
     QuicAddrSetPort(&Route.RemoteAddress, ServerPort);
-    Engine->AddConnection(this, (uint16_t)CxPlatProcCurrentNumber());
+    if (!Engine->AddConnection(this, (uint16_t)CxPlatProcCurrentNumber())) {
+        return;
+    }
     Initialized = true;
     if (QUIC_FAILED(
         CxPlatSocketCreateTcp(
@@ -389,7 +399,7 @@ TcpConnection::TcpConnection(
         this);
     Initialized = true;
     IndicateAccept = true;
-    Engine->AddConnection(this, (uint16_t)CxPlatProcCurrentNumber());
+    CXPLAT_FRE_ASSERT(Engine->AddConnection(this, (uint16_t)CxPlatProcCurrentNumber()));
     Queue();
 }
 
@@ -719,7 +729,7 @@ bool TcpConnection::SendTlsData(const uint8_t* Buffer, uint16_t BufferLength, ui
 {
     auto SendBuffer = NewSendBuffer();
     if (!SendBuffer) {
-        WriteOutput("NewSendBuffer FAILED\n");
+        //WriteOutput("NewSendBuffer FAILED\n");
         return false;
     }
 
@@ -898,7 +908,7 @@ bool TcpConnection::ProcessSend()
         do {
             auto SendBuffer = NewSendBuffer();
             if (!SendBuffer) {
-                WriteOutput("NewSendBuffer FAILED\n");
+                //WriteOutput("NewSendBuffer FAILED\n");
                 return false;
             }
 
@@ -1000,7 +1010,7 @@ bool TcpConnection::EncryptFrame(TcpFrame* Frame)
 
 QUIC_BUFFER* TcpConnection::NewSendBuffer()
 {
-    if (Shutdown) { // TODO: How do we actually get into this state?
+    if (Shutdown || !Socket) { // Queue (from Engine shutdown) happened before socket creation finished
         return nullptr;
     }
     if (!BatchedSendData) {

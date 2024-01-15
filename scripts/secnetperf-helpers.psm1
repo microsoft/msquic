@@ -232,8 +232,10 @@ function Invoke-Secnetperf {
             try { Copy-Item -FromSession $Session "$RemoteDir/artifacts/logs/$metric-$tcp/*" "./artifacts/logs/$metric-$tcp/" }
             catch { Write-Host "Failed to copy server logs!" }
         }
-        Collect-LocalDumps "./artifacts/logs/$metric-$tcp/clientdumps"
-        Collect-RemoteDumps $Session "./artifacts/logs/$metric-$tcp/serverdumps"
+        if (Collect-LocalDumps "./artifacts/logs/$metric-$tcp/clientdumps" -or `
+            Collect-RemoteDumps $Session "./artifacts/logs/$metric-$tcp/serverdumps") {
+            $hasFailures = $true
+        }
     }}
 
     return [TestResult]::new($metric, $values, $hasFailures)
