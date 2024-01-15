@@ -140,7 +140,7 @@ TcpEngine::~TcpEngine() noexcept
     delete [] Workers;
 }
 
-bool TcpEngine::AddConnection(TcpConnection* Connection, uint16_t PartitionIndex)
+void TcpEngine::AddConnection(TcpConnection* Connection, uint16_t PartitionIndex)
 {
     CXPLAT_DBG_ASSERT(PartitionIndex < ProcCount);
     CXPLAT_DBG_ASSERT(!Connection->Worker);
