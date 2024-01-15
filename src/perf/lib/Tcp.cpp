@@ -126,7 +126,7 @@ TcpEngine::~TcpEngine() noexcept
     ConnectionLock.Acquire();
     CXPLAT_LIST_ENTRY* Entry = Connections.Flink;
     while (Entry != &Connections) {
-        auto Connection = (TcpConnection*)CxPlatListRemoveHead(&Connections);
+        auto Connection = (TcpConnection*)Entry;
         Entry = Entry->Flink;
         Connection->Shutdown = true;
         Connection->TotalSendCompleteOffset = UINT64_MAX;
