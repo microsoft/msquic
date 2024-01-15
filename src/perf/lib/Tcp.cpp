@@ -344,9 +344,6 @@ TcpConnection::TcpConnection(
         WriteOutput("SecConfig load FAILED\n");
         return;
     }
-    if (!Engine->AddConnection(this, (uint16_t)CxPlatProcCurrentNumber())) {
-        return;
-    }
     Initialized = true;
 }
 
@@ -360,6 +357,9 @@ TcpConnection::Start(
     const QUIC_ADDR* RemoteAddress
     )
 {
+    if (!Engine->AddConnection(this, (uint16_t)CxPlatProcCurrentNumber())) {
+        return false;
+    }
     if (LocalAddress) {
         Family = QuicAddrGetFamily(LocalAddress);
     }
