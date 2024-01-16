@@ -199,7 +199,11 @@ function Invoke-Secnetperf {
             Write-Host $rawOutput
             if ($metric -eq "latency") {
                 $latency_percentiles = '(?<=\d{1,3}(?:\.\d{1,2})?th: )\d+'
-                $values[$tcp] += [regex]::Matches($rawOutput, $latency_percentiles) | ForEach-Object {$_.Value}
+                $perc = [regex]::Matches($rawOutput, $latency_percentiles) | ForEach-Object {$_.Value}
+                $values[$tcp] += $perc
+                Write-Host "TODO: Debugging Latency regex, remove this later!"
+                Write-Host $perc
+                Write-Host $values[$tcp]
             } elseif ($metric -eq "hps") {
                 $rawOutput -match '(\d+) HPS'
                 $values[$tcp] += $matches[1]
