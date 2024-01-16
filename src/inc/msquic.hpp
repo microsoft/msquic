@@ -207,20 +207,30 @@ public:
 
 #ifdef CXPLAT_FRE_ASSERT
 
+#ifndef _KERNEL_MODE
+#include <stdio.h> // For printf below
+#endif
+
 class CxPlatWatchdog {
     CxPlatEvent ShutdownEvent {true};
     CxPlatThread WatchdogThread;
     uint32_t TimeoutMs;
+    bool WriteToConsole;
     static CXPLAT_THREAD_CALLBACK(WatchdogThreadCallback, Context) {
         auto This = (CxPlatWatchdog*)Context;
         if (!This->ShutdownEvent.WaitTimeout(This->TimeoutMs)) {
+#ifndef _KERNEL_MODE // Not supported in kernel mode
+            if (This->WriteToConsole) {
+                printf("Error: Watchdog timeout fired!\n");
+            }
+#endif
             CXPLAT_FRE_ASSERTMSG(FALSE, "Watchdog timeout fired!");
         }
         CXPLAT_THREAD_RETURN(0);
     }
 public:
-    CxPlatWatchdog(uint32_t WatchdogTimeoutMs, const char* Name = "cxplat_watchdog") noexcept
-        : TimeoutMs(WatchdogTimeoutMs) {
+    CxPlatWatchdog(uint32_t WatchdogTimeoutMs, const char* Name = "cxplat_watchdog", bool WriteToConsole = false) noexcept
+        : TimeoutMs(WatchdogTimeoutMs), WriteToConsole(WriteToConsole) {
         CXPLAT_THREAD_CONFIG Config;
         memset(&Config, 0, sizeof(CXPLAT_THREAD_CONFIG));
         Config.Name = Name;

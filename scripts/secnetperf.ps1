@@ -136,6 +136,7 @@ if (!$isWindows) {
 }
 
 # Run all the test cases.
+Write-Host "Setup complete! Running all tests..."
 for ($i = 0; $i -lt $allTests.Count; $i++) {
     $ExeArgs = $allTests[$i]
     $Output = Invoke-Secnetperf $Session $RemoteName $RemoteDir $SecNetPerfPath $LogProfile $ExeArgs
@@ -163,6 +164,8 @@ VALUES ($TestId, '$MsQuicCommit', $env, $env, $item, NULL);
         }
     }
 }
+
+Write-Host "Tests complete!"
 
 } catch {
     Write-GHError "Exception while running tests!"

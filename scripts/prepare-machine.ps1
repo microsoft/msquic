@@ -330,7 +330,7 @@ function Install-TestCertificates {
     if (!$IsWindows -or !(Win-SupportsCerts)) { return } # Windows only
     $DnsNames = $env:computername,"localhost","127.0.0.1","::1","192.168.1.11","192.168.1.12","fc00::1:11","fc00::1:12"
     $NewRoot = $false
-    Write-Host "Searching for MsQuicTestRoot certificate..."
+    Write-Debug "Searching for MsQuicTestRoot certificate..."
     $RootCert = Get-ChildItem -path Cert:\LocalMachine\Root\* -Recurse | Where-Object {$_.Subject -eq "CN=MsQuicTestRoot"}
     if (!$RootCert) {
         Write-Host "MsQuicTestRoot not found! Creating new MsQuicTestRoot certificate..."
@@ -342,10 +342,10 @@ function Install-TestCertificates {
         $NewRoot = $true
         Write-Host "New MsQuicTestRoot certificate installed!"
     } else {
-        Write-Host "Found existing MsQuicTestRoot certificate!"
+        Write-Debug "Found existing MsQuicTestRoot certificate!"
     }
 
-    Write-Host "Searching for MsQuicTestServer certificate..."
+    Write-Debug "Searching for MsQuicTestServer certificate..."
     $ServerCert = Get-ChildItem -path Cert:\LocalMachine\My\* -Recurse | Where-Object {$_.Subject -eq "CN=MsQuicTestServer"}
     if (!$ServerCert) {
         Write-Host "MsQuicTestServer not found! Creating new MsQuicTestServer certificate..."
@@ -356,10 +356,10 @@ function Install-TestCertificates {
         Remove-Item $TempServerPath
         Write-Host "New MsQuicTestServer certificate installed!"
     } else {
-        Write-Host "Found existing MsQuicTestServer certificate!"
+        Write-Debug "Found existing MsQuicTestServer certificate!"
     }
 
-    Write-Host "Searching for MsQuicTestExpiredServer certificate..."
+    Write-Debug "Searching for MsQuicTestExpiredServer certificate..."
     $ExpiredServerCert = Get-ChildItem -path Cert:\LocalMachine\My\* -Recurse | Where-Object {$_.Subject -eq "CN=MsQuicTestExpiredServer"}
     if (!$ExpiredServerCert) {
         Write-Host "MsQuicTestExpiredServer not found! Creating new MsQuicTestExpiredServer certificate..."
@@ -370,10 +370,10 @@ function Install-TestCertificates {
         Remove-Item $TempExpiredServerPath
         Write-Host "New MsQuicTestExpiredServer certificate installed!"
     } else {
-        Write-Host "Found existing MsQuicTestExpiredServer certificate!"
+        Write-Debug "Found existing MsQuicTestExpiredServer certificate!"
     }
 
-    Write-Host "Searching for MsQuicTestClient certificate..."
+    Write-Debug "Searching for MsQuicTestClient certificate..."
     $ClientCert = Get-ChildItem -path Cert:\LocalMachine\My\* -Recurse | Where-Object {$_.Subject -eq "CN=MsQuicTestClient"}
     if (!$ClientCert) {
         Write-Host "MsQuicTestClient not found! Creating new MsQuicTestClient certificate..."
@@ -384,10 +384,10 @@ function Install-TestCertificates {
         Remove-Item $TempClientPath
         Write-Host "New MsQuicTestClient certificate installed!"
     } else {
-        Write-Host "Found existing MsQuicTestClient certificate!"
+        Write-Debug "Found existing MsQuicTestClient certificate!"
     }
 
-    Write-Host "Searching for MsQuicTestExpiredClient certificate..."
+    Write-Debug "Searching for MsQuicTestExpiredClient certificate..."
     $ExpiredClientCert = Get-ChildItem -path Cert:\LocalMachine\My\* -Recurse | Where-Object {$_.Subject -eq "CN=MsQuicTestExpiredClient"}
     if (!$ExpiredClientCert) {
         Write-Host "MsQuicTestExpiredClient not found! Creating new MsQuicTestExpiredClient certificate..."
@@ -398,7 +398,7 @@ function Install-TestCertificates {
         Remove-Item $TempExpiredClientPath
         Write-Host "New MsQuicTestExpiredClient certificate installed!"
     } else {
-        Write-Host "Found existing MsQuicTestExpiredClient certificate!"
+        Write-Debug "Found existing MsQuicTestExpiredClient certificate!"
     }
 
     if ($NewRoot) {
