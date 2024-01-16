@@ -89,7 +89,7 @@ jobs:
     - name: Build For Perf
       if: inputs.build == '-Perf'
       shell: pwsh
-      run: scripts/build.ps1 -Config ${{ inputs.config }} -Platform ${{ inputs.plat }} -Arch ${{ inputs.arch }} -Tls ${{ inputs.tls }} -DisableTools -DisableTest -DynamicCRT ${{ inputs.sanitize }}
+      run: scripts/build.ps1 -Config ${{ inputs.config }} -Platform ${{ inputs.plat }} -Arch ${{ inputs.arch }} -Tls ${{ inputs.tls }} -DisableTools -DisableTest ${{ inputs.sanitize }}
     - name: Build
       if: inputs.build == ''
       shell: pwsh
