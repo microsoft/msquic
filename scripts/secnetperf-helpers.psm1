@@ -3,14 +3,78 @@
     Various helper functions for running secnetperf tests.
 #>
 
+Set-StrictMode -Version 'Latest'
+$PSDefaultParameterValues['*:ErrorAction'] = 'Stop'
+
+# Path to the WER registry key used for collecting dumps on Windows.
+$WerDumpRegPath = "HKLM:\Software\Microsoft\Windows\Windows Error Reporting\LocalDumps\secnetperf.exe"
+
 # Write a GitHub error message to the console.
 function Write-GHError($msg) {
     Write-Host "::error::$msg"
 }
 
-# Write a GitHub warning message to the console.
-function Write-GHWarning($msg) {
-    Write-Host "::warning::$msg"
+# Configured the remote machine to collect dumps on crash.
+function Configure-DumpCollection {
+    param ($Session)
+    if ($isWindows) {
+        Invoke-Command -Session $Session -ScriptBlock {
+            $DumpDir = "C:/_work/quic/artifacts/crashdumps"
+            New-Item -Path $DumpDir -ItemType Directory -ErrorAction Ignore | Out-Null
+            New-Item -Path $Using:WerDumpRegPath -Force -ErrorAction Ignore | Out-Null
+            Set-ItemProperty -Path $Using:WerDumpRegPath -Name DumpFolder -Value $DumpDir | Out-Null
+            Set-ItemProperty -Path $Using:WerDumpRegPath -Name DumpType -Value 2 | Out-Null
+        }
+        $DumpDir = Join-Path (Split-Path $PSScriptRoot -Parent) "artifacts/crashdumps"
+        New-Item -Path $DumpDir -ItemType Directory -ErrorAction Ignore | Out-Null
+        New-Item -Path $WerDumpRegPath -Force -ErrorAction Ignore | Out-Null
+        Set-ItemProperty -Path $WerDumpRegPath -Name DumpFolder -Value $DumpDir | Out-Null
+        Set-ItemProperty -Path $WerDumpRegPath -Name DumpType -Value 2 | Out-Null
+    } else {
+        # TODO: Configure Linux to collect dumps.
+    }
+}
+
+# Collects any crash dumps that were generated locally by secnetperf.
+function Collect-LocalDumps {
+    param ($OutputDir)
+    if ($isWindows) {
+        $DumpFiles = (Get-ChildItem "./artifacts/crashdumps") | Where-Object { $_.Extension -eq ".dmp" }
+        if ($DumpFiles) {
+            mkdir $OutputDir | Out-Null
+            foreach ($File in $DumpFiles) {
+                Copy-Item -Path $File.FullName -Destination $OutputDir
+            }
+            # Delete all the files in the crashdumps folder.
+            Remove-Item -Path "./artifacts/crashdumps/*" -Force
+            return $true
+        }
+    } else {
+    }
+    return $false
+}
+
+# Collect any crash dumps that were generated on the remote machine.
+function Collect-RemoteDumps {
+    param ($Session, $OutputDir)
+    if ($isWindows) {
+        $DumpFiles = Invoke-Command -Session $Session -ScriptBlock {
+            Get-ChildItem "C:/_work/quic/artifacts/crashdumps" | Where-Object { $_.Extension -eq ".dmp" }
+        }
+        if ($DumpFiles) {
+            mkdir $OutputDir | Out-Null
+            foreach ($File in $DumpFiles) {
+                Copy-Item -FromSession $Session -Path $File.FullName -Destination $OutputDir
+            }
+            # Delete all the files in the crashdumps folder.
+            Invoke-Command -Session $Session -ScriptBlock {
+                Remove-Item -Path "C:/_work/quic/artifacts/crashdumps/*" -Force
+            }
+            return $true
+        }
+    } else {
+    }
+    return $false
 }
 
 # Waits for a remote job to be ready based on looking for a particular string in
@@ -21,7 +85,7 @@ function Start-RemoteServer {
     $Job = Invoke-Command -Session $Session -ScriptBlock { iex $Using:Command } -AsJob
     # Poll the job for 10 seconds to see if it started.
     $StopWatch =  [system.diagnostics.stopwatch]::StartNew()
-    while ($StopWatch.ElapsedMilliseconds -lt 10000) {
+    while ($StopWatch.ElapsedMilliseconds -lt 30000) {
         $CurrentResults = Receive-Job -Job $Job -Keep -ErrorAction Continue
         if (![string]::IsNullOrWhiteSpace($CurrentResults)) {
             $DidMatch = $CurrentResults -match "Started!" # Look for the special string to indicate success.
@@ -36,7 +100,7 @@ function Start-RemoteServer {
     Stop-Job -Job $Job
     $RemoteResult = Receive-Job -Job $Job -ErrorAction Stop
     $RemoteResult = $RemoteResult -join "`n"
-    Write-GHWarning $RemoteResult.ToString()
+    Write-Host $RemoteResult.ToString()
     throw "Server failed to start!"
 }
 
@@ -63,117 +127,133 @@ function Stop-RemoteServer {
     Stop-Job -Job $Job
     $RemoteResult = Receive-Job -Job $Job -ErrorAction Stop
     $RemoteResult = $RemoteResult -join "`n"
-    Write-GHWarning $RemoteResult.ToString()
+    Write-Host $RemoteResult.ToString()
     throw "Server failed to stop!"
 }
 
-# Invokes all the secnetperf tests.
-function Invoke-SecnetperfTest($MsQuicCommit, $commands, $exe, $start, $LogProfile) {
+class TestResult {
+    [String]$Metric;
+    [System.Object[]]$Values;
+    [Boolean]$HasFailures;
 
-    Write-Host "Running Secnetperf tests..."
+    TestResult (
+        [String]$Metric,
+        [System.Object[]]$Values,
+        [Boolean]$HasFailures
+    ) {
+        $this.Metric = $Metric;
+        $this.Values = $Values;
+        $this.HasFailures = $HasFailures;
+    }
+}
 
-    $SQL = @"
-"@
-    $json = @{}
+# Invokes secnetperf with the given arguments for both TCP and QUIC.
+function Invoke-Secnetperf {
+    param ($Session, $RemoteName, $RemoteDir, $SecNetPerfPath, $LogProfile, $ExeArgs)
 
+    $values = @(@(), @())
+    $hasFailures = $false
 
-    for ($i = 0; $i -lt $commands.Count; $i++) {
+    # TODO: This logic is pretty fragile. Needs improvement.
+    $metric = "throughput-download"
+    if ($exeArgs.Contains("plat:1")) {
+        $metric = "latency"
+    } elseif ($exeArgs.Contains("prate:1")) {
+        $metric = "hps"
+    } elseif ($exeArgs.Contains("-up")) {
+        $metric = "throughput-upload"
+    }
+
     for ($tcp = 0; $tcp -lt 2; $tcp++) {
-    $testid = $i + 1 + $start
-    $SQL += @"
 
-INSERT OR IGNORE INTO Secnetperf_tests (Secnetperf_test_ID, Kernel_mode, Run_arguments) VALUES ($testid, 0, "$($commands[$i]) -tcp:$tcp");
-
-"@
-    $command = "$exe -target:netperf-peer $($commands[$i]) -tcp:$tcp -trimout"
+    $execMode = $ExeArgs.Substring(0, $ExeArgs.IndexOf(' ')) # First arg is the exec mode
+    $command = "./$SecNetPerfPath -target:netperf-peer $ExeArgs -tcp:$tcp -trimout -watchdog:45000"
     Write-Host "> $command"
 
-    if ($LogProfile -ne "" -and $LogProfile -ne "NULL") { # Start logging.
-        Write-Host "Starting logging with log profile: $LogProfile..."
+    if ($LogProfile -ne "" -and $LogProfile -ne "NULL") {
+        Invoke-Command -Session $Session -ScriptBlock {
+            try { & "$Using:RemoteDir/scripts/log.ps1" -Cancel } catch {} # Cancel any previous logging
+            & "$Using:RemoteDir/scripts/log.ps1" -Start -Profile $Using:LogProfile -ProfileInScriptDirectory
+        }
+        try { .\scripts\log.ps1 -Cancel } catch {} # Cancel any previous logging
         .\scripts\log.ps1 -Start -Profile $LogProfile
     }
 
+    try {
+
+    # Start the server running.
+    $Job = Start-RemoteServer $Session "$RemoteDir/$SecNetPerfPath $execMode"
+
+    # Run the test multiple times, failing (for now) only if all tries fail.
+    # TODO: Once all failures have been fixed, consider all errors fatal.
+    $successCount = 0
     for ($try = 0; $try -lt 3; $try++) {
         try {
             $rawOutput = Invoke-Expression $command
-        } catch {
-            Write-GHError "Failed to run test: $($commands[$i])"
-            Write-GHError $_
-            $script:encounterFailures = $true
-            continue
-        }
-
-        if ($null -eq $rawOutput) {
-            Write-GHError "RawOutput is null. Failed to run test: $($commands[$i])"
-            $script:encounterFailures = $true
-            continue
-        }
-
-        if ($rawOutput.Contains("Error")) {
-            $rawOutput = $rawOutput.Substring(7) # Skip over the 'Error: ' prefix
-            Write-GHError $rawOutput
-            $script:encounterFailures = $true
-            continue
-        }
-
-        $env = 2
-        if ($isWindows) {
-            $env = 1
-        }
-
-        Write-Host $rawOutput
-
-        $transport = "quic"
-
-        if ($tcp -eq 1) {
-            $transport = "tcp"
-        }
-
-        if ($command.Contains("lowlat")) {
-            $latency_percentiles = '(?<=\d{1,3}(?:\.\d{1,2})?th: )\d+'
-            $Perc = [regex]::Matches($rawOutput, $latency_percentiles) | ForEach-Object {$_.Value}
-            $json["latency-$transport"] = $Perc
-            # TODO: SQL += ...
-            continue
-        }
-
-        $throughput = '@ (\d+) kbps'
-
-        $metric = "download"
-        if ($command.Contains("-up")) {
-            $metric = "upload"
-        }
-
-        foreach ($line in $rawOutput) {
-            if ($line -match $throughput) {
-
-                $num = $matches[1]
-
-                # Generate SQL statement. Assume LAST_INSERT_ROW_ID()
-                $SQL += @"
-
-INSERT INTO Secnetperf_test_runs (Secnetperf_test_ID, Secnetperf_commit, Client_environment_ID, Server_environment_ID, Result, Secnetperf_latency_stats_ID)
-VALUES ($testid, '$MsQuicCommit', $env, $env, $num, NULL);
-
-"@
-
-                # Generate JSON as intermediary file for dashboard
-                $json["throughput-$metric-$transport"] = $num
-                break
+            if ($null -eq $rawOutput) {
+                throw "secnetperf: No console output (possibly crashed)!"
             }
+            if ($rawOutput.Contains("Error")) {
+                throw "secnetperf: $($rawOutput.Substring(7))" # Skip over the 'Error: ' prefix
+            }
+            Write-Host $rawOutput
+            if ($metric -eq "latency") {
+                $latency_percentiles = '(?<=\d{1,3}(?:\.\d{1,2})?th: )\d+'
+                $values[$tcp] += [regex]::Matches($rawOutput, $latency_percentiles) | ForEach-Object {$_.Value}
+            } elseif ($metric -eq "hps") {
+                $rawOutput -match '(\d+) HPS'
+                $values[$tcp] += $matches[1]
+            } else { # throughput
+                $rawOutput -match '@ (\d+) kbps'
+                $values[$tcp] += $matches[1]
+            }
+            $successCount++
+        } catch {
+            Write-GHError $_
+            #$hasFailures = $true
         }
-
-        if ($LogProfile -ne "" -and $LogProfile -ne "NULL") { # Stop logging.
-            Write-Host "Stopping logging..."
-            .\scripts\log.ps1 -Stop -OutputPath ".\artifacts\logs\$command"
-        }
-
-        Start-Sleep -Seconds 1
+        Start-Sleep -Seconds 1 | Out-Null
+    }
+    if ($successCount -eq 0) {
+        $hasFailures = $true # For now, consider failure only if all failed
+        Write-GHError "secnetperf: All test tries failed!"
     }
 
+    } catch {
+        Write-GHError "Exception while running test case!"
+        Write-GHError $_
+        $_ | Format-List *
+        $hasFailures = $true
+    } finally {
+        $ArtifactName = $tcp -eq 0 ? "$metric-quic" : "$metric-tcp"
 
+        # Stop the server.
+        try { Stop-RemoteServer $Job $RemoteName | Out-Null } catch { } # Ignore failures for now
 
+        # Stop logging and copy the logs to the artifacts folder.
+        if ($LogProfile -ne "" -and $LogProfile -ne "NULL") {
+            try { .\scripts\log.ps1 -Stop -OutputPath "./artifacts/logs/$ArtifactName/client" -RawLogOnly }
+            catch { Write-Host "Failed to stop logging on client!" }
+            Invoke-Command -Session $Session -ScriptBlock {
+                try {
+                    & "$Using:RemoteDir/scripts/log.ps1" -Stop -OutputPath "$Using:RemoteDir/artifacts/logs/$Using:ArtifactName/server" -RawLogOnly
+                    dir "$Using:RemoteDir/artifacts/logs/$Using:ArtifactName"
+                } catch { Write-Host "Failed to stop logging on server!" }
+            }
+            try { Copy-Item -FromSession $Session "$RemoteDir/artifacts/logs/$ArtifactName/*" "./artifacts/logs/$ArtifactName/" }
+            catch { Write-Host "Failed to copy server logs!" }
+        }
+
+        # Grab any crash dumps that were generated.
+        if (Collect-LocalDumps "./artifacts/logs/$ArtifactName/clientdumps") {
+            Write-Host "Dump file(s) generated locally"
+            #$hasFailures = $true
+        }
+        if (Collect-RemoteDumps $Session "./artifacts/logs/$ArtifactName/serverdumps") {
+            Write-Host "Dump file(s) generated on peer"
+            #$hasFailures = $true
+        }
     }}
 
-    return $SQL, $json
+    return [TestResult]::new($metric, $values, $hasFailures)
 }

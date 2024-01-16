@@ -218,7 +218,7 @@ QuicMainStart(
 
     uint32_t WatchdogTimeout = 0;
     if (TryGetValue(argc, argv, "watchdog", &WatchdogTimeout) && WatchdogTimeout != 0) {
-        Watchdog = new(std::nothrow) CxPlatWatchdog(WatchdogTimeout, "perf_watchdog");
+        Watchdog = new(std::nothrow) CxPlatWatchdog(WatchdogTimeout, "perf_watchdog", true);
     }
 
     const CXPLAT_UDP_DATAPATH_CALLBACKS DatapathCallbacks = {

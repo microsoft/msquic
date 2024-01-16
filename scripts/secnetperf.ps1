@@ -53,6 +53,9 @@ param (
     [string]$RemoteName = "netperf-peer"
 )
 
+Set-StrictMode -Version 'Latest'
+$PSDefaultParameterValues['*:ErrorAction'] = 'Stop'
+
 # Set up some important paths.
 $RemoteDir = "C:/_work/quic"
 if (!$isWindows) {
@@ -89,7 +92,19 @@ Copy-Item -ToSession $Session ./artifacts -Destination "$RemoteDir/artifacts" -R
 Copy-Item -ToSession $Session ./scripts -Destination "$RemoteDir/scripts" -Recurse
 Copy-Item -ToSession $Session ./src/manifest/MsQuic.wprp -Destination "$RemoteDir/scripts"
 
-$encounterFailures = $false
+$SQL = @"
+INSERT OR IGNORE INTO Secnetperf_builds (Secnetperf_Commit, Build_date_time, TLS_enabled, Advanced_build_config)
+VALUES ('$MsQuicCommit', '$(Get-Date -Format "yyyy-MM-dd HH:mm:ss")', 1, 'TODO');
+"@
+$json = @{}
+$allTests = @(
+    "-exec:maxtput -up:10s -ptput:1",
+    "-exec:maxtput -down:10s -ptput:1",
+    "-exec:maxtput -rconn:1 -share:1 -conns:100 -run:10s -prate:1",
+    "-exec:lowlat -rstream:1 -up:512 -down:4000 -run:10s -plat:1"
+)
+$env = $isWindows ? 1 : 2
+$hasFailures = $false
 
 try {
 
@@ -106,6 +121,9 @@ if ($isWindows) { # TODO: Run on Linux too?
     }
 }
 
+# Configure the dump collection.
+Configure-DumpCollection $Session
+
 if (!$isWindows) {
     # Make sure the secnetperf binary is executable.
     Write-Host "Updating secnetperf permissions..."
@@ -117,88 +135,53 @@ if (!$isWindows) {
     chmod +x "./$SecNetPerfPath"
 }
 
-# Logging to collect quic traces while running the tests.
-# if ($LogProfile -ne "" -and $LogProfile -ne "NULL") { # TODO: Linux back slash works?
-#     Write-Host "Starting logging with log profile: $LogProfile..."
-#     .\scripts\log.ps1 -Start -Profile $LogProfile
-# }
+# Run all the test cases.
+Write-Host "Setup complete! Running all tests..."
+for ($i = 0; $i -lt $allTests.Count; $i++) {
+    $ExeArgs = $allTests[$i]
+    $Output = Invoke-Secnetperf $Session $RemoteName $RemoteDir $SecNetPerfPath $LogProfile $ExeArgs
+    $Test = $Output[-1]
+    if ($Test.HasFailures) { $hasFailures = $true }
 
-# Run secnetperf on the server.
-Write-Host "Starting secnetperf server..."
-$Job = Start-RemoteServer $Session "$RemoteDir/$SecNetPerfPath -exec:maxtput"
-
-$PSDefaultParameterValues["Disabled"] = $true # TODO: Why?
-
-####################################################################################################
-
-    # TEST EXECUTION
-
-####################################################################################################
-
-$SQL = @"
-
-INSERT OR IGNORE INTO Secnetperf_builds (Secnetperf_Commit, Build_date_time, TLS_enabled, Advanced_build_config)
-VALUES ('$MsQuicCommit', '$(Get-Date -Format "yyyy-MM-dd HH:mm:ss")', 1, 'TODO');
-
+    # Process the results and add them to the SQL and JSON.
+    $TestId = $i + 1
+    $SQL += @"
+`nINSERT OR IGNORE INTO Secnetperf_tests (Secnetperf_test_ID, Kernel_mode, Run_arguments) VALUES ($TestId, 0, "$ExeArgs -tcp:0");
+INSERT OR IGNORE INTO Secnetperf_tests (Secnetperf_test_ID, Kernel_mode, Run_arguments) VALUES ($TestId, 0, "$ExeArgs -tcp:1");
 "@
 
-$exe = "./$SecNetPerfPath"
-
-$json = @{}
-
-$maxtput = @(
-    "-exec:maxtput -up:10s -ptput:1",
-    "-exec:maxtput -down:10s -ptput:1",
-    "-exec:maxtput -rconn:1 -share:1 -conns:100 -run:10s -prate:1"
-)
-
-$lowlat = @(
-    "-exec:lowlat -rstream:1 -up:512 -down:4000 -run:10s -plat:1"
-)
-
-$res = Invoke-SecnetperfTest $MsQuicCommit $maxtput $exe 0 $LogProfile
-$SQL += $res[0]
-$json += $res[1]
-
-# Start and restart the SecNetPerf server without maxtput.
-Write-Host "Restarting server without maxtput..."
-Stop-RemoteServer $Job $RemoteName
-$Job = Start-RemoteServer $Session "$RemoteDir/$SecNetPerfPath -exec:lowlat"
-
-$res = Invoke-SecnetperfTest $MsQuicCommit $lowlat $exe 3 $LogProfile
-$SQL += $res[0]
-$json += $res[1]
-
-####################################################################################################
-
-    # END TEST EXECUTION
-
-####################################################################################################
-
-# Kill the server process.
-Write-Host "`Stopping server..."
-Stop-RemoteServer $Job $RemoteName
-
-# if ($LogProfile -ne "" -and $LogProfile -ne "NULL") {
-#     Write-Host "Stopping logging..."
-#     .\scripts\log.ps1 -Stop -OutputPath .\artifacts\logs\quic
-# }
-
-# Save the test results (sql and json).
-Write-Host "`Writing test-results-$plat-$os-$arch-$tls.sql..."
-$SQL | Set-Content -Path "test-results-$plat-$os-$arch-$tls.sql"
-
-Write-Host "`Writing json-test-results-$plat-$os-$arch-$tls.json..."
-$json | ConvertTo-Json | Set-Content -Path "json-test-results-$plat-$os-$arch-$tls.json"
-
-} catch {
-    Write-GHError "Exception occurred!"
-    Write-GHError $_
-    $encounterFailures = $true
-} finally {
-    # TODO: Do any further book keeping here.
+    for ($tcp = 0; $tcp -lt $Test.Values.Length; $tcp++) {
+        $transport = $tcp -eq 1 ? "tcp" : "quic"
+        foreach ($item in $Test.Values[$tcp]) {
+            $json["$($Test.Metric)-$transport"] = $item
+            if ($Test.Metric.startsWith("throughput")) {
+                # Generate SQL statement. Assume LAST_INSERT_ROW_ID()
+                $SQL += @"
+`nINSERT INTO Secnetperf_test_runs (Secnetperf_test_ID, Secnetperf_commit, Client_environment_ID, Server_environment_ID, Result, Secnetperf_latency_stats_ID)
+VALUES ($TestId, '$MsQuicCommit', $env, $env, $item, NULL);
+"@
+            }
+        }
+    }
 }
 
-if ($encounterFailures) {
+Write-Host "Tests complete!"
+
+} catch {
+    Write-GHError "Exception while running tests!"
+    Write-GHError $_
+    Get-Error
+    $_ | Format-List *
+    $hasFailures = $true
+} finally {
+    # Save the test results (sql and json).
+    Write-Host "`Writing test-results-$plat-$os-$arch-$tls.sql..."
+    $SQL | Set-Content -Path "test-results-$plat-$os-$arch-$tls.sql"
+
+    Write-Host "`Writing json-test-results-$plat-$os-$arch-$tls.json..."
+    $json | ConvertTo-Json | Set-Content -Path "json-test-results-$plat-$os-$arch-$tls.json"
+}
+
+if ($hasFailures) {
     exit 1
 }
