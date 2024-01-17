@@ -255,7 +255,5 @@ function Invoke-Secnetperf {
         }
     }}
 
-    Write-Host "Values prior to return: $values"
-
     return [TestResult]::new($metric, $values, $hasFailures)
 }
