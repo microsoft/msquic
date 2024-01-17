@@ -141,6 +141,7 @@ for ($i = 0; $i -lt $allTests.Count; $i++) {
     $ExeArgs = $allTests[$i]
     $Output = Invoke-Secnetperf $Session $RemoteName $RemoteDir $SecNetPerfPath $LogProfile $ExeArgs
     $Test = $Output[-1]
+    Write-Host "Values after return: $($Test.Values)"
     if ($Test.HasFailures) { $hasFailures = $true }
 
     # Process the results and add them to the SQL and JSON.
