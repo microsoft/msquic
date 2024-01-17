@@ -152,10 +152,9 @@ INSERT OR IGNORE INTO Secnetperf_tests (Secnetperf_test_ID, Kernel_mode, Run_arg
 
     for ($tcp = 0; $tcp -lt $Test.Values.Length; $tcp++) {
         $transport = $tcp -eq 1 ? "tcp" : "quic"
-        foreach ($item in $Test.Values[$tcp]) {
-            $json["$($Test.Metric)-$transport"] = $item
-            if ($Test.Metric.startsWith("throughput")) {
-                # Generate SQL statement. Assume LAST_INSERT_ROW_ID()
+        $json["$($Test.Metric)-$transport"] = $Test.Values[$tcp]
+        if ($Test.Metric.startsWith("throughput")) {
+            foreach ($item in $Test.Values[$tcp]) {
                 $SQL += @"
 `nINSERT INTO Secnetperf_test_runs (Secnetperf_test_ID, Secnetperf_commit, Client_environment_ID, Server_environment_ID, Result, Secnetperf_latency_stats_ID)
 VALUES ($TestId, '$MsQuicCommit', $env, $env, $item, NULL);
