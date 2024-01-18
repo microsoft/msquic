@@ -165,7 +165,7 @@ function Wait-LocalTest {
         throw "secnetperf: Nonzero exit code: $($Process.ExitCode)"
     }
     [System.Threading.Tasks.Task]::WaitAll(@($StdOut, $StdError))
-    $consoleTxt = $StdOut.Result
+    $consoleTxt = $StdOut.Result.Trim()
     if ($null -eq $consoleTxt) {
         throw "secnetperf: No console output (possibly crashed)!"
     }
