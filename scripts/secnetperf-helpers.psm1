@@ -139,9 +139,11 @@ function Start-LocalTest {
         $pinfo.FileName = $FullPath
         $pinfo.Arguments = $FullArgs
     } else {
-        $pinfo.FileName = "bash"
-        $pinfo.Arguments = "-c `"ulimit -c unlimited && LSAN_OPTIONS=report_objects=1 ASAN_OPTIONS=disable_coredump=0:abort_on_error=1 UBSAN_OPTIONS=halt_on_error=1:print_stacktrace=1 $($FullPath) $($FullArgs) && echo Done`""
-        $pinfo.WorkingDirectory = $OutputDir
+        $pinfo.FileName = $FullPath
+        $pinfo.Arguments = $FullArgs
+        #$pinfo.FileName = "bash"
+        #$pinfo.Arguments = "-c `"ulimit -c unlimited && LSAN_OPTIONS=report_objects=1 ASAN_OPTIONS=disable_coredump=0:abort_on_error=1 UBSAN_OPTIONS=halt_on_error=1:print_stacktrace=1 $FullPath $FullArgs && echo Done`""
+        #$pinfo.WorkingDirectory = $OutputDir
     }
     $pinfo.RedirectStandardOutput = $true
     $pinfo.RedirectStandardError = $true
@@ -173,6 +175,21 @@ function Wait-LocalTest {
         throw "secnetperf: $($consoleTxt.Substring(7))" # Skip over the 'Error: ' prefix
     }
     return $consoleTxt
+}
+
+# Parses the console output of secnetperf to extract the metric value.
+function Get-TestOutput {
+    param ($Output, $Metric)
+    if ($Metric -eq "latency") {
+        $latency_percentiles = '(?<=\d{1,3}(?:\.\d{1,2})?th: )\d+'
+        return [regex]::Matches($Output, $latency_percentiles) | ForEach-Object {$_.Value}
+    } elseif ($Metric -eq "hps") {
+        $rawOutput -match '(\d+) HPS'
+        return $matches[1]
+    } else { # throughput
+        $Output -match '@ (\d+) kbps'
+        return $matches[1]
+    }
 }
 
 # Invokes secnetperf with the given arguments for both TCP and QUIC.
@@ -228,16 +245,7 @@ function Invoke-Secnetperf {
             $process = Start-LocalTest $fullPath $fullArgs $localDumpDir
             $rawOutput = Wait-LocalTest $process 60000 # 1 minute timeout
             Write-Host $rawOutput
-            if ($metric -eq "latency") {
-                $latency_percentiles = '(?<=\d{1,3}(?:\.\d{1,2})?th: )\d+'
-                $values[$tcp] += [regex]::Matches($rawOutput, $latency_percentiles) | ForEach-Object {$_.Value}
-            } elseif ($metric -eq "hps") {
-                $rawOutput -match '(\d+) HPS'
-                $values[$tcp] += $matches[1]
-            } else { # throughput
-                $rawOutput -match '@ (\d+) kbps'
-                $values[$tcp] += $matches[1]
-            }
+            $values[$tcp] += Get-TestOutput $rawOutput $metric
             $successCount++
         } catch {
             Write-GHError $_

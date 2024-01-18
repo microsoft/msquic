@@ -5,9 +5,35 @@ on:
   push:
     branches:
     - main
+    paths:
+    - .github/workflows/netperf.yml
+    - .gitmodules
+    - scripts/secnetperf.ps1
+    - scripts/secnetperf-helpers.psm1
+    - scripts/prepare-machine.ps1
+    - src/bin/*
+    - src/core/*
+    - src/platform/*
+    - src/perf/*
+    - submodules/openssl/*
+    - submodules/openssl3/*
+    - submodules/xdp-for-windows/*
   pull_request:
     branches:
     - main
+    paths:
+    - .github/workflows/netperf.yml
+    - .gitmodules
+    - scripts/secnetperf.ps1
+    - scripts/secnetperf-helpers.psm1
+    - scripts/prepare-machine.ps1
+    - src/bin/*
+    - src/core/*
+    - src/platform/*
+    - src/perf/*
+    - submodules/openssl/*
+    - submodules/openssl3/*
+    - submodules/xdp-for-windows/*
 
 concurrency:
   # Cancel any workflow currently in progress for the same PR.
