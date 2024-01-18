@@ -41,7 +41,7 @@ function Collect-LocalDumps {
     if ($isWindows) {
         $DumpFiles = (Get-ChildItem "./artifacts/crashdumps") | Where-Object { $_.Extension -eq ".dmp" }
         if ($DumpFiles) {
-            mkdir $OutputDir | Out-Null
+            mkdir $OutputDir -ErrorAction Ignore | Out-Null
             foreach ($File in $DumpFiles) {
                 Copy-Item -Path $File.FullName -Destination $OutputDir
             }
@@ -61,7 +61,7 @@ function Collect-RemoteDumps {
             Get-ChildItem "C:/_work/quic/artifacts/crashdumps" | Where-Object { $_.Extension -eq ".dmp" }
         }
         if ($DumpFiles) {
-            mkdir $OutputDir | Out-Null
+            mkdir $OutputDir -ErrorAction Ignore | Out-Null
             foreach ($File in $DumpFiles) {
                 Copy-Item -FromSession $Session -Path $File.FullName -Destination $OutputDir
             }
