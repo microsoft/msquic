@@ -82,23 +82,23 @@ function Collect-RemoteDumps {
 function Start-RemoteServer {
     param ($Session, $Command)
     # Start the server on the remote in an async job.
-    $Job = Invoke-Command -Session $Session -ScriptBlock { iex $Using:Command } -AsJob
+    $job = Invoke-Command -Session $Session -ScriptBlock { iex $Using:Command } -AsJob
     # Poll the job for 10 seconds to see if it started.
     $StopWatch =  [system.diagnostics.stopwatch]::StartNew()
     while ($StopWatch.ElapsedMilliseconds -lt 30000) {
-        $CurrentResults = Receive-Job -Job $Job -Keep -ErrorAction Continue
+        $CurrentResults = Receive-Job -Job $job -Keep -ErrorAction Continue
         if (![string]::IsNullOrWhiteSpace($CurrentResults)) {
             $DidMatch = $CurrentResults -match "Started!" # Look for the special string to indicate success.
             if ($DidMatch) {
-                return $Job
+                return $job
             }
         }
         Start-Sleep -Seconds 0.1 | Out-Null
     }
 
     # On failure, dump the output of the job.
-    Stop-Job -Job $Job
-    $RemoteResult = Receive-Job -Job $Job -ErrorAction Stop
+    Stop-Job -Job $job
+    $RemoteResult = Receive-Job -Job $job -ErrorAction Stop
     $RemoteResult = $RemoteResult -join "`n"
     Write-Host $RemoteResult.ToString()
     throw "Server failed to start!"
@@ -131,20 +131,48 @@ function Stop-RemoteServer {
     throw "Server failed to stop!"
 }
 
-class TestResult {
-    [String]$Metric;
-    [System.Object[]]$Values;
-    [Boolean]$HasFailures;
-
-    TestResult (
-        [String]$Metric,
-        [System.Object[]]$Values,
-        [Boolean]$HasFailures
-    ) {
-        $this.Metric = $Metric;
-        $this.Values = $Values;
-        $this.HasFailures = $HasFailures;
+# Creates a new local process to asynchronously run the test.
+function Start-LocalTest {
+    param ($FullPath, $FullArgs, $OutputDir)
+    $pinfo = New-Object System.Diagnostics.ProcessStartInfo
+    if ($IsWindows) {
+        $pinfo.FileName = $FullPath
+        $pinfo.Arguments = $FullArgs
+    } else {
+        $pinfo.FileName = "bash"
+        $pinfo.Arguments = "-c `"ulimit -c unlimited && LSAN_OPTIONS=report_objects=1 ASAN_OPTIONS=disable_coredump=0:abort_on_error=1 UBSAN_OPTIONS=halt_on_error=1:print_stacktrace=1 $($FullPath) $($FullArgs) && echo Done`""
+        $pinfo.WorkingDirectory = $OutputDir
     }
+    $pinfo.RedirectStandardOutput = $true
+    $pinfo.RedirectStandardError = $true
+    $pinfo.UseShellExecute = $false
+    $p = New-Object System.Diagnostics.Process
+    $p.StartInfo = $pinfo
+    $p.Start() | Out-Null
+    $p
+}
+
+# Waits for a local test process to complete, and then returns the console output.
+function Wait-LocalTest {
+    param ($Process, $TimeoutMs)
+    $StdOut = $Process.StandardOutput.ReadToEndAsync()
+    $StdError = $Process.StandardError.ReadToEndAsync()
+    if (!$Process.WaitForExit($TimeoutMs)) {
+        $Process.Kill() # TODO - Use procdump or livedump to get a dump first!
+        throw "secnetperf: Client timed out!"
+    }
+    if ($Process.ExitCode -ne 0) {
+        throw "secnetperf: Nonzero exit code: $($Process.ExitCode)"
+    }
+    [System.Threading.Tasks.Task]::WaitAll(@($StdOut, $StdError))
+    $consoleTxt = $StdOut.Result
+    if ($null -eq $consoleTxt) {
+        throw "secnetperf: No console output (possibly crashed)!"
+    }
+    if ($consoleTxt.Contains("Error")) {
+        throw "secnetperf: $($consoleTxt.Substring(7))" # Skip over the 'Error: ' prefix
+    }
+    return $consoleTxt
 }
 
 # Invokes secnetperf with the given arguments for both TCP and QUIC.
@@ -166,9 +194,12 @@ function Invoke-Secnetperf {
 
     for ($tcp = 0; $tcp -lt 2; $tcp++) {
 
+    $artifactName = $tcp -eq 0 ? "$metric-quic" : "$metric-tcp"
+    $localDumpDir = Join-Path (Split-Path $PSScriptRoot -Parent) "./artifacts/logs/$artifactName/clientdumps"
     $execMode = $ExeArgs.Substring(0, $ExeArgs.IndexOf(' ')) # First arg is the exec mode
-    $command = "./$SecNetPerfPath -target:netperf-peer $ExeArgs -tcp:$tcp -trimout -watchdog:45000"
-    Write-Host "> $command"
+    $fullPath = Join-Path (Split-Path $PSScriptRoot -Parent) $SecNetPerfPath
+    $fullArgs = "-target:netperf-peer $ExeArgs -tcp:$tcp -trimout -watchdog:45000"
+    Write-Host "> $fullArgs"
 
     if ($LogProfile -ne "" -and $LogProfile -ne "NULL") {
         Invoke-Command -Session $Session -ScriptBlock {
@@ -182,20 +213,15 @@ function Invoke-Secnetperf {
     try {
 
     # Start the server running.
-    $Job = Start-RemoteServer $Session "$RemoteDir/$SecNetPerfPath $execMode"
+    $job = Start-RemoteServer $Session "$RemoteDir/$SecNetPerfPath $execMode"
 
     # Run the test multiple times, failing (for now) only if all tries fail.
     # TODO: Once all failures have been fixed, consider all errors fatal.
     $successCount = 0
     for ($try = 0; $try -lt 3; $try++) {
         try {
-            $rawOutput = Invoke-Expression $command
-            if ($null -eq $rawOutput) {
-                throw "secnetperf: No console output (possibly crashed)!"
-            }
-            if ($rawOutput.Contains("Error")) {
-                throw "secnetperf: $($rawOutput.Substring(7))" # Skip over the 'Error: ' prefix
-            }
+            $process = Start-LocalTest $fullPath $fullArgs $localDumpDir
+            $rawOutput = Wait-LocalTest $process 60000 # 1 minute timeout
             Write-Host $rawOutput
             if ($metric -eq "latency") {
                 $latency_percentiles = '(?<=\d{1,3}(?:\.\d{1,2})?th: )\d+'
@@ -225,35 +251,37 @@ function Invoke-Secnetperf {
         $_ | Format-List *
         $hasFailures = $true
     } finally {
-        $ArtifactName = $tcp -eq 0 ? "$metric-quic" : "$metric-tcp"
-
         # Stop the server.
-        try { Stop-RemoteServer $Job $RemoteName | Out-Null } catch { } # Ignore failures for now
+        try { Stop-RemoteServer $job $RemoteName | Out-Null } catch { } # Ignore failures for now
 
         # Stop logging and copy the logs to the artifacts folder.
         if ($LogProfile -ne "" -and $LogProfile -ne "NULL") {
-            try { .\scripts\log.ps1 -Stop -OutputPath "./artifacts/logs/$ArtifactName/client" -RawLogOnly }
+            try { .\scripts\log.ps1 -Stop -OutputPath "./artifacts/logs/$artifactName/client" -RawLogOnly }
             catch { Write-Host "Failed to stop logging on client!" }
             Invoke-Command -Session $Session -ScriptBlock {
                 try {
-                    & "$Using:RemoteDir/scripts/log.ps1" -Stop -OutputPath "$Using:RemoteDir/artifacts/logs/$Using:ArtifactName/server" -RawLogOnly
-                    dir "$Using:RemoteDir/artifacts/logs/$Using:ArtifactName"
+                    & "$Using:RemoteDir/scripts/log.ps1" -Stop -OutputPath "$Using:RemoteDir/artifacts/logs/$Using:artifactName/server" -RawLogOnly
+                    dir "$Using:RemoteDir/artifacts/logs/$Using:artifactName"
                 } catch { Write-Host "Failed to stop logging on server!" }
             }
-            try { Copy-Item -FromSession $Session "$RemoteDir/artifacts/logs/$ArtifactName/*" "./artifacts/logs/$ArtifactName/" }
+            try { Copy-Item -FromSession $Session "$RemoteDir/artifacts/logs/$artifactName/*" "./artifacts/logs/$artifactName/" }
             catch { Write-Host "Failed to copy server logs!" }
         }
 
         # Grab any crash dumps that were generated.
-        if (Collect-LocalDumps "./artifacts/logs/$ArtifactName/clientdumps") {
+        if (Collect-LocalDumps $localDumpDir) {
             Write-Host "Dump file(s) generated locally"
             #$hasFailures = $true
         }
-        if (Collect-RemoteDumps $Session "./artifacts/logs/$ArtifactName/serverdumps") {
+        if (Collect-RemoteDumps $Session "./artifacts/logs/$artifactName/serverdumps") {
             Write-Host "Dump file(s) generated on peer"
             #$hasFailures = $true
         }
     }}
 
-    return [TestResult]::new($metric, $values, $hasFailures)
+    return [pscustomobject]@{
+        Metric = $metric
+        Values = $values
+        HasFailures = $hasFailures
+    }
 }
