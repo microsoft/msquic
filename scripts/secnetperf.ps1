@@ -131,8 +131,22 @@ if (!$isWindows) {
         $env:LD_LIBRARY_PATH = "${env:LD_LIBRARY_PATH}:$Using:RemoteDir/$Using:SecNetPerfDir"
         chmod +x "$Using:RemoteDir/$Using:SecNetPerfPath"
     }
-    $env:LD_LIBRARY_PATH = "${env:LD_LIBRARY_PATH}:./$SecNetPerfDir"
+    $fullPath = Join-Path (Split-Path $PSScriptRoot -Parent) $SecNetPerfDir
+    $env:LD_LIBRARY_PATH = "${env:LD_LIBRARY_PATH}:$fullPath"
     chmod +x "./$SecNetPerfPath"
+
+    if ((Get-Content "/etc/security/limits.conf") -notcontains "root soft core unlimited") {
+        # Enable core dumps for the system.
+        Write-Host "Setting core dump size limit..."
+        sudo sh -c "echo 'root soft core unlimited' >> /etc/security/limits.conf"
+        sudo sh -c "echo 'root hard core unlimited' >> /etc/security/limits.conf"
+        sudo sh -c "echo '* soft core unlimited' >> /etc/security/limits.conf"
+        sudo sh -c "echo '* hard core unlimited' >> /etc/security/limits.conf"
+    }
+
+    # Set the core dump pattern.
+    Write-Host "Setting core dump pattern..."
+    sudo sh -c "echo -n '%e.%p.%t.core' > /proc/sys/kernel/core_pattern"
 }
 
 # Run all the test cases.
@@ -165,6 +179,18 @@ VALUES ($TestId, '$MsQuicCommit', $env, $env, $item, NULL);
 }
 
 Write-Host "Tests complete!"
+
+if (Get-ChildItem -Path ./artifacts/logs -File -Recurse) {
+    # Logs or dumps were generated. Copy the necessary symbols/files to the same
+    # direcotry be able to open them.
+    Write-Host "Copying debugging files to logs directory..."
+    if ($isWindows) {
+        Copy-Item "$SecNetPerfDir/*.pdb" ./artifacts/logs
+    } else {
+        Copy-Item "$SecNetPerfDir/libmsquic.so" ./artifacts/logs
+        Copy-Item "$SecNetPerfDir/secnetperf" ./artifacts/logs
+    }
+}
 
 } catch {
     Write-GHError "Exception while running tests!"
