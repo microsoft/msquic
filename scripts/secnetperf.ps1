@@ -184,7 +184,7 @@ Write-Host "Tests complete!"
 if (Get-ChildItem -Path ./artifacts/logs -File -Recurse) {
     # Logs or dumps were generated. Copy the necessary symbols/files to the same
     # direcotry be able to open them.
-    Write-Host "Copying debuggig files to logs directory..."
+    Write-Host "Copying debugging files to logs directory..."
     if ($isWindows) {
         Copy-Item "$SecNetPerfDir/*.pdb" ./artifacts/logs
     } else {
