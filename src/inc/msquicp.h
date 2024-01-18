@@ -5,7 +5,8 @@
 
 Abstract:
 
-    Private definitions for MsQuic.
+    Private definitions for MsQuic. The are not meant for general consumption
+    and are subject to change without warning.
 
 --*/
 

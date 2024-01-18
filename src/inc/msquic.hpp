@@ -10,6 +10,10 @@ Abstract:
 
     For more detailed information, see ../docs/API.md
 
+    NOTE! This header file not guaranteed to remain binary compatible between
+    releases. It is included here for convenience only. For a stable interface
+    use msquic.h.
+
 Supported Platforms:
 
     Windows User mode
