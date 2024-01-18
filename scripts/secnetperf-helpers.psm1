@@ -134,6 +134,7 @@ function Stop-RemoteServer {
 # Creates a new local process to asynchronously run the test.
 function Start-LocalTest {
     param ($FullPath, $FullArgs, $OutputDir)
+    mkdir $OutputDir -ErrorAction Ignore | Out-Null
     $pinfo = New-Object System.Diagnostics.ProcessStartInfo
     if ($IsWindows) {
         $pinfo.FileName = $FullPath
