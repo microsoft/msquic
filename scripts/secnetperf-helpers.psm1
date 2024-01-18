@@ -134,21 +134,13 @@ function Stop-RemoteServer {
 # Creates a new local process to asynchronously run the test.
 function Start-LocalTest {
     param ($FullPath, $FullArgs, $OutputDir)
-    if (!(Test-Path $FullPath)) {
-        throw "$FullPath does not exist!"
-    }
-    if (!(Test-Path $OutputDir)) {
-        throw "$OutputDir does not exist!"
-    }
     $pinfo = New-Object System.Diagnostics.ProcessStartInfo
     if ($IsWindows) {
         $pinfo.FileName = $FullPath
         $pinfo.Arguments = $FullArgs
     } else {
-        $pinfo.FileName = $FullPath
-        $pinfo.Arguments = $FullArgs
-        #$pinfo.FileName = "bash"
-        #$pinfo.Arguments = "-c `"ulimit -c unlimited && LSAN_OPTIONS=report_objects=1 ASAN_OPTIONS=disable_coredump=0:abort_on_error=1 UBSAN_OPTIONS=halt_on_error=1:print_stacktrace=1 $FullPath $FullArgs && echo Done`""
+        $pinfo.FileName = "bash"
+        $pinfo.Arguments = "-c `"ulimit -c unlimited && LSAN_OPTIONS=report_objects=1 ASAN_OPTIONS=disable_coredump=0:abort_on_error=1 UBSAN_OPTIONS=halt_on_error=1:print_stacktrace=1 $FullPath $FullArgs && echo Done`""
         $pinfo.WorkingDirectory = $OutputDir
     }
     $pinfo.RedirectStandardOutput = $true
@@ -215,17 +207,14 @@ function Invoke-Secnetperf {
         $metric = "throughput-upload"
     }
 
-    New-Item -ItemType Directory "artifacts/logs" -ErrorAction Ignore | Out-Null
-
     for ($tcp = 0; $tcp -lt 2; $tcp++) {
 
-    #Write-Host "> secnetperf $ExeArgs -tcp:$tcp"
-    $artifactName = $tcp -eq 0 ? "$metric-quic" : "$metric-tcp"
+    # Set up all the parameters and paths for running the test.
+    Write-Host "> secnetperf $ExeArgs -tcp:$tcp"
     $execMode = $ExeArgs.Substring(0, $ExeArgs.IndexOf(' ')) # First arg is the exec mode
     $fullPath = Join-Path (Split-Path $PSScriptRoot -Parent) $SecNetPerfPath
     $fullArgs = "-target:netperf-peer $ExeArgs -tcp:$tcp -trimout -watchdog:45000"
-    Write-Host "> $fullPath $fullArgs"
-
+    $artifactName = $tcp -eq 0 ? "$metric-quic" : "$metric-tcp"
     New-Item -ItemType Directory "artifacts/logs/$artifactName" -ErrorAction Ignore | Out-Null
     $localDumpDir = Join-Path (Split-Path $PSScriptRoot -Parent) "artifacts/logs/$artifactName/clientdumps"
     New-Item -ItemType Directory $localDumpDir -ErrorAction Ignore | Out-Null

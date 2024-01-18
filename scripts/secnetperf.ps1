@@ -134,6 +134,17 @@ if (!$isWindows) {
     $fullPath = Join-Path (Split-Path $PSScriptRoot -Parent) $SecNetPerfDir
     $env:LD_LIBRARY_PATH = "${env:LD_LIBRARY_PATH}:$fullPath"
     chmod +x "./$SecNetPerfPath"
+
+    # Enable core dumps for the system.
+    Write-Host "Setting core dump size limit..."
+    sudo sh -c "echo 'root soft core unlimited' >> /etc/security/limits.conf"
+    sudo sh -c "echo 'root hard core unlimited' >> /etc/security/limits.conf"
+    sudo sh -c "echo '* soft core unlimited' >> /etc/security/limits.conf"
+    sudo sh -c "echo '* hard core unlimited' >> /etc/security/limits.conf"
+
+    # Set the core dump pattern.
+    Write-Host "Setting core dump pattern..."
+    sudo sh -c "echo -n '%e.%p.%t.core' > /proc/sys/kernel/core_pattern"
 }
 
 # Run all the test cases.
