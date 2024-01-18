@@ -29,8 +29,8 @@ MSQUIC_NMR_PROVIDER NmrProvider;
 const MSQUIC_NMR_DISPATCH MsQuicNmrDispatch = {
     .Version = 0,
     .Reserved = 0,
-    .MsQuicOpenVersion = MsQuicOpenVersion,
-    .MsQuicClose = MsQuicClose,
+    .OpenVersion = MsQuicOpenVersion,
+    .Close = MsQuicClose,
 };
 
 NTSTATUS
