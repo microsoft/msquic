@@ -134,6 +134,12 @@ function Stop-RemoteServer {
 # Creates a new local process to asynchronously run the test.
 function Start-LocalTest {
     param ($FullPath, $FullArgs, $OutputDir)
+    if (!(Test-Path $FullPath)) {
+        throw "$FullPath does not exist!"
+    }
+    if (!(Test-Path $OutputDir)) {
+        throw "$OutputDir does not exist!"
+    }
     $pinfo = New-Object System.Diagnostics.ProcessStartInfo
     if ($IsWindows) {
         $pinfo.FileName = $FullPath
