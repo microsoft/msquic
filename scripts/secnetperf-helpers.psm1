@@ -166,7 +166,7 @@ function Wait-LocalTest {
     }
     [System.Threading.Tasks.Task]::WaitAll(@($StdOut, $StdError))
     $consoleTxt = $StdOut.Result.Trim()
-    if ($null -eq $consoleTxt) {
+    if ($null -eq $consoleTxt -or $consoleTxt.Length -eq 0) {
         throw "secnetperf: No console output (possibly crashed)!"
     }
     if ($consoleTxt.Contains("Error")) {
