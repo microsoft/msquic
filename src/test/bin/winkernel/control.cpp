@@ -103,8 +103,8 @@ QuicTestCtlInitialize(
 
     MsQuic =
         new (std::nothrow) MsQuicApi(
-            QUIC_GET_DISPATCH(NmrClient)->MsQuicOpenVersion,
-            QUIC_GET_DISPATCH(NmrClient)->MsQuicClose);
+            QUIC_GET_DISPATCH(NmrClient)->OpenVersion,
+            QUIC_GET_DISPATCH(NmrClient)->Close);
     if (!MsQuic) {
         goto Error;
     }

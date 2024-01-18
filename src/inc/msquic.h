@@ -1680,8 +1680,8 @@ DECLSPEC_SELECTANY GUID MSQUIC_MODULE_ID = {
 typedef struct MSQUIC_NMR_DISPATCH {
     uint16_t  Version;
     uint16_t  Reserved;
-    MsQuicOpenVersionFn MsQuicOpenVersion;
-    MsQuicCloseFn MsQuicClose;
+    MsQuicOpenVersionFn OpenVersion;
+    MsQuicCloseFn Close;
 } MSQUIC_NMR_DISPATCH;
 
 //
