@@ -37,7 +37,7 @@ static const char* IpAddress;
 static QUIC_ADDR ServerAddress;
 static uint64_t TimeoutMs = ATTACK_TIMEOUT_DEFAULT_MS;
 static uint32_t ThreadCount = ATTACK_THREADS_DEFAULT;
-static const char* Alpn = "h3-29";
+static const char* Alpn = "h3";
 static uint32_t Version = QUIC_VERSION_1;
 
 static uint64_t TimeStart;
