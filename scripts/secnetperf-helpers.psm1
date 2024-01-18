@@ -49,7 +49,6 @@ function Collect-LocalDumps {
             Remove-Item -Path "./artifacts/crashdumps/*" -Force
             return $true
         }
-    } else {
     }
     return $false
 }
@@ -73,6 +72,7 @@ function Collect-RemoteDumps {
             return $true
         }
     } else {
+        # TODO - Collect Linux dumps.
     }
     return $false
 }
