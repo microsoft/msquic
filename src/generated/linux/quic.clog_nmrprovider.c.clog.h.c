@@ -4,4 +4,4 @@
 #else
 #define TRACEPOINT_DEFINE
 #endif
-#include "ThroughputClient.cpp.clog.h"
+#include "nmrprovider.c.clog.h"

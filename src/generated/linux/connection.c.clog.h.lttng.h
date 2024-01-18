@@ -1104,6 +1104,25 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, IndicateConnectionShutdownComplete,
 
 
 /*----------------------------------------------------------
+// Decoder Ring for AbandonInternallyClosed
+// [conn][%p] Abandoning internal, closed connection
+// QuicTraceLogConnVerbose(
+                AbandonInternallyClosed,
+                Connection,
+                "Abandoning internal, closed connection");
+// arg1 = arg1 = Connection = arg1
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_CONNECTION_C, AbandonInternallyClosed,
+    TP_ARGS(
+        const void *, arg1), 
+    TP_FIELDS(
+        ctf_integer_hex(uint64_t, arg1, arg1)
+    )
+)
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for IndicateResumed
 // [conn][%p] Indicating QUIC_CONNECTION_EVENT_RESUMED
 // QuicTraceLogConnVerbose(
@@ -1680,25 +1699,6 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, TestTPSet,
 
 
 /*----------------------------------------------------------
-// Decoder Ring for AbandonInternallyClosed
-// [conn][%p] Abandoning internal, closed connection
-// QuicTraceLogConnVerbose(
-            AbandonInternallyClosed,
-            Connection,
-            "Abandoning internal, closed connection");
-// arg1 = arg1 = Connection = arg1
-----------------------------------------------------------*/
-TRACEPOINT_EVENT(CLOG_CONNECTION_C, AbandonInternallyClosed,
-    TP_ARGS(
-        const void *, arg1), 
-    TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg1, arg1)
-    )
-)
-
-
-
-/*----------------------------------------------------------
 // Decoder Ring for AllocFailure
 // Allocation of '%s' failed. (%llu bytes)
 // QuicTraceEvent(
@@ -1876,29 +1876,6 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, ConnInitializeComplete,
 
 
 /*----------------------------------------------------------
-// Decoder Ring for ConnUnregistered
-// [conn][%p] Unregistered from %p
-// QuicTraceEvent(
-            ConnUnregistered,
-            "[conn][%p] Unregistered from %p",
-            Connection,
-            Connection->Registration);
-// arg2 = arg2 = Connection = arg2
-// arg3 = arg3 = Connection->Registration = arg3
-----------------------------------------------------------*/
-TRACEPOINT_EVENT(CLOG_CONNECTION_C, ConnUnregistered,
-    TP_ARGS(
-        const void *, arg2,
-        const void *, arg3), 
-    TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg2, arg2)
-        ctf_integer_hex(uint64_t, arg3, arg3)
-    )
-)
-
-
-
-/*----------------------------------------------------------
 // Decoder Ring for ConnDestroyed
 // [conn][%p] Destroyed
 // QuicTraceEvent(
@@ -1931,6 +1908,29 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, ConnHandleClosed,
         const void *, arg2), 
     TP_FIELDS(
         ctf_integer_hex(uint64_t, arg2, arg2)
+    )
+)
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for ConnUnregistered
+// [conn][%p] Unregistered from %p
+// QuicTraceEvent(
+            ConnUnregistered,
+            "[conn][%p] Unregistered from %p",
+            Connection,
+            Connection->Registration);
+// arg2 = arg2 = Connection = arg2
+// arg3 = arg3 = Connection->Registration = arg3
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_CONNECTION_C, ConnUnregistered,
+    TP_ARGS(
+        const void *, arg2,
+        const void *, arg3), 
+    TP_FIELDS(
+        ctf_integer_hex(uint64_t, arg2, arg2)
+        ctf_integer_hex(uint64_t, arg3, arg3)
     )
 )
 
@@ -2154,38 +2154,15 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, ConnSetTimer,
 
 
 /*----------------------------------------------------------
-// Decoder Ring for ConnCancelTimer
-// [conn][%p] Canceling %hhu
+// Decoder Ring for ConnExpiredTimer
+// [conn][%p] %hhu expired
 // QuicTraceEvent(
-                ConnCancelTimer,
-                "[conn][%p] Canceling %hhu",
+                ConnExpiredTimer,
+                "[conn][%p] %hhu expired",
                 Connection,
                 (uint8_t)Type);
 // arg2 = arg2 = Connection = arg2
 // arg3 = arg3 = (uint8_t)Type = arg3
-----------------------------------------------------------*/
-TRACEPOINT_EVENT(CLOG_CONNECTION_C, ConnCancelTimer,
-    TP_ARGS(
-        const void *, arg2,
-        unsigned char, arg3), 
-    TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg2, arg2)
-        ctf_integer(unsigned char, arg3, arg3)
-    )
-)
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for ConnExpiredTimer
-// [conn][%p] %hhu expired
-// QuicTraceEvent(
-            ConnExpiredTimer,
-            "[conn][%p] %hhu expired",
-            Connection,
-            (uint8_t)Temp[j].Type);
-// arg2 = arg2 = Connection = arg2
-// arg3 = arg3 = (uint8_t)Temp[j].Type = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CONNECTION_C, ConnExpiredTimer,
     TP_ARGS(
@@ -2203,10 +2180,10 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, ConnExpiredTimer,
 // Decoder Ring for ConnExecTimerOper
 // [conn][%p] Execute: %u
 // QuicTraceEvent(
-                ConnExecTimerOper,
-                "[conn][%p] Execute: %u",
-                Connection,
-                QUIC_CONN_TIMER_ACK_DELAY);
+                    ConnExecTimerOper,
+                    "[conn][%p] Execute: %u",
+                    Connection,
+                    QUIC_CONN_TIMER_ACK_DELAY);
 // arg2 = arg2 = Connection = arg2
 // arg3 = arg3 = QUIC_CONN_TIMER_ACK_DELAY = arg3
 ----------------------------------------------------------*/

@@ -85,6 +85,12 @@ public:
             ASSERT_TRUE(DriverService.Initialize(DriverName, DependentDriverNames));
             ASSERT_TRUE(DriverService.Start());
             ASSERT_TRUE(DriverClient.Initialize(&CertParams, DriverName));
+
+            QUIC_TEST_CONFIGURATION_PARAMS Params {
+                UseDuoNic,
+            };
+            ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_TEST_CONFIGURATION, Params));
+
         } else {
             printf("Initializing for User Mode tests\n");
             MsQuic = new(std::nothrow) MsQuicApi();
@@ -353,6 +359,15 @@ TEST(OwnershipValidation, RegistrationShutdownAfterConnOpenAndStart) {
         ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_REG_SHUTDOWN_AFTER_OPEN_AND_START));
     } else {
         QuicTestRegistrationShutdownAfterConnOpenAndStart();
+    }
+}
+
+TEST(OwnershipValidation, ConnectionCloseBeforeStreamClose) {
+    TestLogger Logger("ConnectionCloseBeforeStreamClose");
+    if (TestingKernelMode) {
+        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_CONN_CLOSE_BEFORE_STREAM_CLOSE));
+    } else {
+        QuicTestConnectionCloseBeforeStreamClose();
     }
 }
 
@@ -840,12 +855,12 @@ TEST_P(WithFamilyArgs, ClientSharedLocalPort) {
 
 TEST_P(WithFamilyArgs, InterfaceBinding) {
     TestLoggerT<ParamType> Logger("QuicTestInterfaceBinding", GetParam());
+    if (UseDuoNic) {
+        GTEST_SKIP_("DuoNIC is not supported");
+    }
     if (TestingKernelMode) {
         ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_INTERFACE_BINDING, GetParam().Family));
     } else {
-        if (UseDuoNic) {
-            GTEST_SKIP_("DuoNIC is not supported");
-        }
         QuicTestInterfaceBinding(GetParam().Family);
     }
 }
@@ -1958,6 +1973,20 @@ TEST_P(WithAbortiveArgs, AbortiveShutdown) {
     }
 }
 
+#if QUIC_TEST_DATAPATH_HOOKS_ENABLED
+TEST_P(WithCancelOnLossArgs, CancelOnLossSend) {
+    TestLoggerT<ParamType> Logger("QuicCancelOnLossSend", GetParam());
+    if (TestingKernelMode) {
+        QUIC_RUN_CANCEL_ON_LOSS_PARAMS Params = {
+            GetParam().DropPackets
+        };
+        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_CANCEL_ON_LOSS, Params));
+    } else {
+        QuicCancelOnLossSend(GetParam().DropPackets);
+    }
+}
+#endif
+
 TEST_P(WithCidUpdateArgs, CidUpdate) {
     TestLoggerT<ParamType> Logger("QuicTestCidUpdate", GetParam());
     if (TestingKernelMode) {
@@ -2117,6 +2146,7 @@ TEST(Misc, StreamBlockUnblockBidiConnFlowControl) {
     }
 }
 
+#ifdef QUIC_PARAM_STREAM_RELIABLE_OFFSET
 TEST(Misc, StreamReliableReset) {
     TestLogger Logger("StreamReliableReset");
     if (TestingKernelMode) {
@@ -2134,6 +2164,7 @@ TEST(Misc, StreamReliableResetMultipleSends) {
         QuicTestStreamReliableResetMultipleSends();
     }
 }
+#endif // QUIC_PARAM_STREAM_RELIABLE_OFFSET
 
 TEST(Misc, StreamBlockUnblockUnidiConnFlowControl) {
     TestLogger Logger("StreamBlockUnblockUnidiConnFlowControl");
@@ -2419,6 +2450,15 @@ INSTANTIATE_TEST_SUITE_P(
     Misc,
     WithAbortiveArgs,
     testing::ValuesIn(AbortiveArgs::Generate()));
+
+#if QUIC_TEST_DATAPATH_HOOKS_ENABLED
+
+INSTANTIATE_TEST_SUITE_P(
+    Misc,
+    WithCancelOnLossArgs,
+    testing::ValuesIn(CancelOnLossArgs::Generate()));
+
+#endif
 
 INSTANTIATE_TEST_SUITE_P(
     Misc,

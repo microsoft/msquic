@@ -158,29 +158,6 @@ TRACEPOINT_EVENT(CLOG_PLATFORM_WINUSER_C, WindowsUserUninitialized,
 
 
 /*----------------------------------------------------------
-// Decoder Ring for AllocFailure
-// Allocation of '%s' failed. (%llu bytes)
-// QuicTraceEvent(
-            AllocFailure,
-            "Allocation of '%s' failed. (%llu bytes)",
-            "CxPlatProcessorInfo",
-            MaxProcessorCount * sizeof(CXPLAT_PROCESSOR_INFO));
-// arg2 = arg2 = "CxPlatProcessorInfo" = arg2
-// arg3 = arg3 = MaxProcessorCount * sizeof(CXPLAT_PROCESSOR_INFO) = arg3
-----------------------------------------------------------*/
-TRACEPOINT_EVENT(CLOG_PLATFORM_WINUSER_C, AllocFailure,
-    TP_ARGS(
-        const char *, arg2,
-        unsigned long long, arg3), 
-    TP_FIELDS(
-        ctf_string(arg2, arg2)
-        ctf_integer(uint64_t, arg3, arg3)
-    )
-)
-
-
-
-/*----------------------------------------------------------
 // Decoder Ring for LibraryError
 // [ lib] ERROR, %s.
 // QuicTraceEvent(
@@ -205,10 +182,10 @@ TRACEPOINT_EVENT(CLOG_PLATFORM_WINUSER_C, LibraryError,
 // QuicTraceEvent(
             LibraryErrorStatus,
             "[ lib] ERROR, %u, %s.",
-            Error,
-            "GlobalMemoryStatusEx failed");
-// arg2 = arg2 = Error = arg2
-// arg3 = arg3 = "GlobalMemoryStatusEx failed" = arg3
+            ActiveProcessorCount,
+            "Invalid active processor count");
+// arg2 = arg2 = ActiveProcessorCount = arg2
+// arg3 = arg3 = "Invalid active processor count" = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_PLATFORM_WINUSER_C, LibraryErrorStatus,
     TP_ARGS(
@@ -217,6 +194,29 @@ TRACEPOINT_EVENT(CLOG_PLATFORM_WINUSER_C, LibraryErrorStatus,
     TP_FIELDS(
         ctf_integer(unsigned int, arg2, arg2)
         ctf_string(arg3, arg3)
+    )
+)
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for AllocFailure
+// Allocation of '%s' failed. (%llu bytes)
+// QuicTraceEvent(
+            AllocFailure,
+            "Allocation of '%s' failed. (%llu bytes)",
+            "CxPlatProcessorInfo",
+            ActiveProcessorCount * sizeof(CXPLAT_PROCESSOR_INFO));
+// arg2 = arg2 = "CxPlatProcessorInfo" = arg2
+// arg3 = arg3 = ActiveProcessorCount * sizeof(CXPLAT_PROCESSOR_INFO) = arg3
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_PLATFORM_WINUSER_C, AllocFailure,
+    TP_ARGS(
+        const char *, arg2,
+        unsigned long long, arg3), 
+    TP_FIELDS(
+        ctf_string(arg2, arg2)
+        ctf_integer(uint64_t, arg3, arg3)
     )
 )
 

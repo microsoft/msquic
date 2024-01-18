@@ -670,7 +670,9 @@ QuicListenerClaimConnection(
         Connection->ClientCallbackHandler != NULL,
         "App MUST set callback handler or close connection!");
 
-    Connection->State.UpdateWorker = TRUE;
+    if (!Connection->State.ShutdownComplete) {
+        Connection->State.UpdateWorker = TRUE;
+    }
 
     return !Connection->State.HandleClosed;
 }

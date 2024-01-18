@@ -8,5 +8,5 @@ extern "C" {
 }
 #endif
 #ifdef CLOG_INLINE_IMPLEMENTATION
-#include "quic.clog_SecNetPerfMain.cpp.clog.h.c"
+#include "quic.clog_RecvBufferTest.cpp.clog.h.c"
 #endif

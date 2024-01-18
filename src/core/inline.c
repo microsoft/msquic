@@ -653,11 +653,6 @@ QuicRangeCompare(
     const QUIC_SUBRANGE* Sub
     );
 
-uint64_t
-QuicConnGetNextExpirationTime(
-    _In_ const QUIC_CONNECTION * const Connection
-    );
-
 BOOLEAN
 QuicPacketIsHandshake(
     _In_ const QUIC_HEADER_INVARIANT* Packet

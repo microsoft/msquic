@@ -1,0 +1,33 @@
+name: Netperf
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+    - main
+  pull_request:
+    branches:
+    - main
+
+concurrency:
+  # Cancel any workflow currently in progress for the same PR.
+  # Allow running concurrently with any other commits.
+  group: perf-${{ github.event.pull_request.number || github.sha }}
+  cancel-in-progress: true
+
+permissions: read-all
+
+jobs:
+  run:
+    name: Run Perf
+    runs-on: windows-latest
+    steps:
+    - name: Run NetPerf Workflow
+      shell: pwsh
+      run: |
+        $url = "https://raw.githubusercontent.com/microsoft/netperf/main/run-workflow.ps1"
+        if ('${{ secrets.NET_PERF_TRIGGER }}' -eq '') {
+            Write-Host "Not able to run because no secrets are available!"
+            return
+        }
+        iex "& { $(irm $url) } ${{ secrets.NET_PERF_TRIGGER }} quic ${{ github.sha }} ${{ github.ref }} ${{ github.event.pull_request.number }}"

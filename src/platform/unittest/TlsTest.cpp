@@ -1129,7 +1129,7 @@ TEST_F(TlsTest, HandshakeParallel)
     CXPLAT_THREAD Threads[64];
     CxPlatZeroMemory(&Threads, sizeof(Threads));
     const uint32_t ThreadCount =
-        CXPLAT_MIN(ARRAYSIZE(Threads), CxPlatProcActiveCount() * 4);
+        CXPLAT_MIN(ARRAYSIZE(Threads), CxPlatProcCount() * 4);
 
     for (uint32_t i = 0; i < ThreadCount; ++i) {
         VERIFY_QUIC_SUCCESS(CxPlatThreadCreate(&Config, &Threads[i]));
