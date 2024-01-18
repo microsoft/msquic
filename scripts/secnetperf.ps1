@@ -135,12 +135,14 @@ if (!$isWindows) {
     $env:LD_LIBRARY_PATH = "${env:LD_LIBRARY_PATH}:$fullPath"
     chmod +x "./$SecNetPerfPath"
 
-    # Enable core dumps for the system.
-    Write-Host "Setting core dump size limit..."
-    sudo sh -c "echo 'root soft core unlimited' >> /etc/security/limits.conf"
-    sudo sh -c "echo 'root hard core unlimited' >> /etc/security/limits.conf"
-    sudo sh -c "echo '* soft core unlimited' >> /etc/security/limits.conf"
-    sudo sh -c "echo '* hard core unlimited' >> /etc/security/limits.conf"
+    if ((Get-Content "/etc/security/limits.conf") -notcontains "root soft core unlimited") {
+        # Enable core dumps for the system.
+        Write-Host "Setting core dump size limit..."
+        sudo sh -c "echo 'root soft core unlimited' >> /etc/security/limits.conf"
+        sudo sh -c "echo 'root hard core unlimited' >> /etc/security/limits.conf"
+        sudo sh -c "echo '* soft core unlimited' >> /etc/security/limits.conf"
+        sudo sh -c "echo '* hard core unlimited' >> /etc/security/limits.conf"
+    }
 
     # Set the core dump pattern.
     Write-Host "Setting core dump pattern..."
