@@ -195,7 +195,7 @@ function Invoke-Secnetperf {
     for ($tcp = 0; $tcp -lt 2; $tcp++) {
 
     $artifactName = $tcp -eq 0 ? "$metric-quic" : "$metric-tcp"
-    $localDumpDir = Join-Path (Split-Path $PSScriptRoot -Parent) "./artifacts/logs/$artifactName/clientdumps"
+    $localDumpDir = Join-Path (Split-Path $PSScriptRoot -Parent) "artifacts/logs/$artifactName/clientdumps"
     $execMode = $ExeArgs.Substring(0, $ExeArgs.IndexOf(' ')) # First arg is the exec mode
     $fullPath = Join-Path (Split-Path $PSScriptRoot -Parent) $SecNetPerfPath
     $fullArgs = "-target:netperf-peer $ExeArgs -tcp:$tcp -trimout -watchdog:45000"
