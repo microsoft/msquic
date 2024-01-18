@@ -181,6 +181,18 @@ VALUES ($TestId, '$MsQuicCommit', $env, $env, $item, NULL);
 
 Write-Host "Tests complete!"
 
+if (Get-ChildItem -Path ./artifacts/logs -File -Recurse) {
+    # Logs or dumps were generated. Copy the necessary symbols/files to the same
+    # direcotry be able to open them.
+    Write-Host "Copying debuggig files to logs directory..."
+    if ($isWindows) {
+        Copy-Item "$SecNetPerfDir/*.pdb" ./artifacts/logs
+    } else {
+        Copy-Item "$SecNetPerfDir/libmsquic.so" ./artifacts/logs
+        Copy-Item "$SecNetPerfDir/secnetperf" ./artifacts/logs
+    }
+}
+
 } catch {
     Write-GHError "Exception while running tests!"
     Write-GHError $_
