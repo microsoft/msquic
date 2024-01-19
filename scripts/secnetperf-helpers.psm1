@@ -91,6 +91,14 @@ function Install-XDP {
     Invoke-Command -Session $Session -ScriptBlock {
         msiexec.exe /i $Using:RemoteDir/artifacts/xdp.msi /quiet | Out-Null
     }
+    if ((Get-Service -Name "xdp").Status -ne "Running") {
+        throw "XDP service not running!"
+    }
+    Invoke-Command -Session $Session -ScriptBlock {
+        if ((Get-Service -Name "xdp").Status -ne "Running") {
+            throw "XDP service not running!"
+        }
+    }
 }
 
 # Uninstalls the XDP driver on both local and remote machines.
