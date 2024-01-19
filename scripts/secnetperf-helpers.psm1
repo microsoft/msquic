@@ -132,6 +132,38 @@ function Uninstall-XDP {
     }
 }
 
+# Installs the necessary drivers to run WSK tests.
+function Install-Kernel {
+    param ($Session, $RemoteDir, $SecNetPerfDir)
+    $localSysPath = Repo-Path "$SecNetPerfDir/msquicpriv.sys"
+    $remoteSysPath = "$RemoteDir/msquicpriv.sys"
+    Write-Host "Installing msquicpriv locally"
+    sc.exe create "msquicpriv" type= kernel binpath= $localSysPath start= demand | Out-Null
+    net.exe start msquicpriv
+    Write-Host "Installing msquicpriv on peer"
+    Invoke-Command -Session $Session -ScriptBlock {
+        sc.exe create "msquicpriv" type= kernel binpath= $Using:remoteSysPath start= demand | Out-Null
+        net.exe start msquicpriv
+    }
+}
+
+# Stops and uninstalls the WSK driver on both local and remote machines.
+function Uninstall-Kernel {
+    param ($Session)
+    Write-Host "Stopping msquicpriv driver locally"
+    try { net.exe stop msquicpriv } catch {}
+    Write-Host "Stopping msquicpriv driver on peer"
+    Invoke-Command -Session $Session -ScriptBlock {
+        try { net.exe stop msquicpriv } catch {}
+    }
+    Write-Host "Uninstalling msquicpriv driver locally"
+    try { sc.exe delete msquicpriv } catch {}
+    Write-Host "Uninstalling msquicpriv driver on peer"
+    Invoke-Command -Session $Session -ScriptBlock {
+        try { sc.exe delete msquicpriv } catch {}
+    }
+}
+
 # Waits for a remote job to be ready based on looking for a particular string in
 # the output.
 function Start-RemoteServer {
@@ -264,10 +296,18 @@ function Invoke-Secnetperf {
     for ($tcp = 0; $tcp -le $tcpSupported; $tcp++) {
 
     # Set up all the parameters and paths for running the test.
-    Write-Host "> secnetperf $ExeArgs -tcp:$tcp"
     $execMode = $ExeArgs.Substring(0, $ExeArgs.IndexOf(' ')) # First arg is the exec mode
-    $fullPath = Repo-Path $SecNetPerfPath
-    $fullArgs = "-target:netperf-peer $ExeArgs -tcp:$tcp -trimout -watchdog:45000"
+    $clientPath = Repo-Path $SecNetPerfPath
+    $serverArgs = "$execMode -io:$io"
+    $clientArgs = "-target:netperf-peer $ExeArgs -tcp:$tcp -trimout -watchdog:45000"
+    if ($io -eq "xdp") {
+        $serverArgs += " -pollidle:10000"
+        $clientArgs += " -pollidle:10000"
+    }
+    if ($io -eq "wsk") {
+        $serverArgs += " -driverNamePriv:secnetperfdrvpriv"
+        $clientArgs += " -driverNamePriv:secnetperfdrvpriv"
+    }
     $artifactName = $tcp -eq 0 ? "$metric-quic" : "$metric-tcp"
     New-Item -ItemType Directory "artifacts/logs/$artifactName" -ErrorAction Ignore | Out-Null
     $localDumpDir = Repo-Path "artifacts/logs/$artifactName/clientdumps"
@@ -283,17 +323,19 @@ function Invoke-Secnetperf {
         .\scripts\log.ps1 -Start -Profile $LogProfile
     }
 
+    Write-Host "> secnetperf $clientArgs"
+
     try {
 
     # Start the server running.
-    $job = Start-RemoteServer $Session "$RemoteDir/$SecNetPerfPath $execMode"
+    $job = Start-RemoteServer $Session "$RemoteDir/$SecNetPerfPath $serverArgs"
 
     # Run the test multiple times, failing (for now) only if all tries fail.
     # TODO: Once all failures have been fixed, consider all errors fatal.
     $successCount = 0
     for ($try = 0; $try -lt 3; $try++) {
         try {
-            $process = Start-LocalTest $fullPath $fullArgs $localDumpDir
+            $process = Start-LocalTest $clientPath $clientArgs $localDumpDir
             $rawOutput = Wait-LocalTest $process 60000 # 1 minute timeout
             Write-Host $rawOutput
             $values[$tcp] += Get-TestOutput $rawOutput $metric

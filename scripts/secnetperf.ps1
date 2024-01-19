@@ -96,6 +96,18 @@ Invoke-Command -Session $Session -ScriptBlock {
     Get-Process | Where-Object { $_.Name -eq "secnetperf" } | Stop-Process
 }
 
+if ($io -eq "wsk") {
+    # WSK also needs the kernel mode binaries in the usermode path.
+    Write-Host "Moving kernel binaries to usermode path"
+    $KernelDir = "artifacts/bin/winkernel/$($arch)_Release_$tls"
+    Copy-Item "$KernelDir/secnetperfdrvpriv.sys" $SecNetPerfDir
+    Copy-Item "$KernelDir/secnetperfdrvpriv.pdb" $SecNetPerfDir
+    Copy-Item "$KernelDir/msquicpriv.sys" $SecNetPerfDir
+    Copy-Item "$KernelDir/msquicpriv.pdb" $SecNetPerfDir
+    # Remove all the other kernel binaries since we don't need them any more.
+    Remove-Item -Force -Recurse $KernelDir | Out-Null
+}
+
 # Copy the artifacts to the peer.
 Write-Host "Copying files to peer"
 Invoke-Command -Session $Session -ScriptBlock {
@@ -147,6 +159,11 @@ if ($io -eq "xdp") {
     Install-XDP $Session $RemoteDir
 }
 
+if ($io -eq "wsk") {
+    # Install the kernel drivers needed for testing.
+    Install-Kernel $Session $RemoteDir $SecNetPerfDir
+}
+
 if (!$isWindows) {
     # Make sure the secnetperf binary is executable.
     Write-Host "Updating secnetperf permissions"
@@ -176,9 +193,6 @@ if (!$isWindows) {
 Write-Host "Setup complete! Running all tests"
 for ($i = 0; $i -lt $allTests.Count; $i++) {
     $ExeArgs = $allTests[$i] + " -io:$io"
-    if ($io -eq "xdp") {
-        $ExeArgs += " -pollidle:10000"
-    }
     $Output = Invoke-Secnetperf $Session $RemoteName $RemoteDir $SecNetPerfPath $LogProfile $ExeArgs $io
     $Test = $Output[-1]
     if ($Test.HasFailures) { $hasFailures = $true }
@@ -226,6 +240,10 @@ if (Get-ChildItem -Path ./artifacts/logs -File -Recurse) {
     $_ | Format-List *
     $hasFailures = $true
 } finally {
+
+    if ($io -eq "wsk") {
+        Uninstall-Kernel $Session
+    }
 
     if ($io -eq "xdp") {
         Uninstall-XDP $Session $RemoteDir
