@@ -140,7 +140,7 @@ Configure-DumpCollection $Session
 
 if ($io -eq "xdp") {
     # Install XDP if we're using it for IO.
-    Install-XDP $Session
+    Install-XDP $Session $RemoteDir
 }
 
 if (!$isWindows) {
@@ -225,7 +225,7 @@ if (Get-ChildItem -Path ./artifacts/logs -File -Recurse) {
 } finally {
 
     if ($io -eq "xdp") {
-        Uninstall-XDP $Session
+        Uninstall-XDP $Session $RemoteDir
     }
 
     # Save the test results (sql and json).
