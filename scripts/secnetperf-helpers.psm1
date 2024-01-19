@@ -84,6 +84,20 @@ function Collect-RemoteDumps {
     return $false
 }
 
+# Waits for a given driver to be started up to a given timeout.
+function Wait-DriverStarted {
+    param ($DriverName, $TimeoutMs)
+    $stopWatch = [system.diagnostics.stopwatch]::StartNew()
+    while ($stopWatch.ElapsedMilliseconds -lt $TimeoutMs) {
+        $Driver = Get-Service -Name $DriverName -ErrorAction Ignore
+        if ($null -ne $Driver -and $Driver.Status -eq "Running") {
+            return
+        }
+        Start-Sleep -Seconds 0.1 | Out-Null
+    }
+    throw "$DriverName failed to start!"
+}
+
 # Download and install XDP on both local and remote machines.
 function Install-XDP {
     param ($Session, $RemoteDir)
@@ -91,27 +105,18 @@ function Install-XDP {
     $msiPath = Repo-Path "artifacts/xdp.msi"
     Write-Host "Downloading XDP installer"
     Invoke-WebRequest -Uri $installerUri -OutFile $msiPath
-    dir $msiPath
-    where.exe msiexec.exe
     Write-Host "Installing XDP driver locally"
-    $logFile = Repo-Path "artifacts/xdp-install.log"
-    iex "msiexec.exe /i $msiPath /quiet /L*vx $logFile"
-    Get-Content $logFile
+    msiexec.exe /i $msiPath /quiet | Out-Null
     Write-Host "Installing XDP driver on peer"
     Copy-Item -ToSession $Session $msiPath -Destination "$RemoteDir/artifacts/xdp.msi" -Recurse
     Invoke-Command -Session $Session -ScriptBlock {
         msiexec.exe /i $Using:RemoteDir/artifacts/xdp.msi /quiet
     }
     Write-Host "Verifing local XDP install"
-    Start-Sleep -Seconds 1 | Out-Null # Wait for the service to start
-    if ((Get-Service -Name "xdp").Status -ne "Running") {
-        throw "XDP service not running!"
-    }
+    Wait-DriverStarted "xdp" 10000
     Write-Host "Verifing peer XDP install"
     Invoke-Command -Session $Session -ScriptBlock {
-        if ((Get-Service -Name "xdp").Status -ne "Running") {
-            throw "XDP service not running!"
-        }
+        Wait-DriverStarted "xdp" 10000
     }
 }
 
