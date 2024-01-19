@@ -14,6 +14,12 @@ function Write-GHError($msg) {
     Write-Host "::error::$msg"
 }
 
+# Returns the full path to a file in the repo, given a relative path.
+function Repo-Path {
+    param ($Path)
+    return Join-Path (Split-Path $PSScriptRoot -Parent) $Path
+}
+
 # Configured the remote machine to collect dumps on crash.
 function Configure-DumpCollection {
     param ($Session)
@@ -25,7 +31,7 @@ function Configure-DumpCollection {
             Set-ItemProperty -Path $Using:WerDumpRegPath -Name DumpFolder -Value $DumpDir | Out-Null
             Set-ItemProperty -Path $Using:WerDumpRegPath -Name DumpType -Value 2 | Out-Null
         }
-        $DumpDir = Join-Path (Split-Path $PSScriptRoot -Parent) "artifacts/crashdumps"
+        $DumpDir = Repo-Path "artifacts/crashdumps"
         New-Item -Path $DumpDir -ItemType Directory -ErrorAction Ignore | Out-Null
         New-Item -Path $WerDumpRegPath -Force -ErrorAction Ignore | Out-Null
         Set-ItemProperty -Path $WerDumpRegPath -Name DumpFolder -Value $DumpDir | Out-Null
@@ -77,6 +83,55 @@ function Collect-RemoteDumps {
     return $false
 }
 
+# Waits for a given driver to be started up to a given timeout.
+function Wait-DriverStarted {
+    param ($DriverName, $TimeoutMs)
+    $stopWatch = [system.diagnostics.stopwatch]::StartNew()
+    while ($stopWatch.ElapsedMilliseconds -lt $TimeoutMs) {
+        $Driver = Get-Service -Name $DriverName -ErrorAction Ignore
+        if ($null -ne $Driver -and $Driver.Status -eq "Running") {
+            Write-Host "$DriverName is running"
+            return
+        }
+        Start-Sleep -Seconds 0.1 | Out-Null
+    }
+    throw "$DriverName failed to start!"
+}
+
+# Download and install XDP on both local and remote machines.
+function Install-XDP {
+    param ($Session, $RemoteDir)
+    $installerUri = (Get-Content (Join-Path $PSScriptRoot "xdp.json") | ConvertFrom-Json).installer
+    $msiPath = Repo-Path "artifacts/xdp.msi"
+    Write-Host "Downloading XDP installer"
+    Invoke-WebRequest -Uri $installerUri -OutFile $msiPath
+    Write-Host "Installing XDP driver locally"
+    msiexec.exe /i $msiPath /quiet | Out-Null
+    Wait-DriverStarted "xdp" 10000
+    Write-Host "Installing XDP driver on peer"
+    $remoteMsiPath = Join-Path $RemoteDir "artifacts/xdp.msi"
+    Copy-Item -ToSession $Session $msiPath -Destination $remoteMsiPath
+    $WaitDriverStartedStr = "${function:Wait-DriverStarted}"
+    Invoke-Command -Session $Session -ScriptBlock {
+        msiexec.exe /i $Using:remoteMsiPath /quiet | Out-Host
+        $WaitDriverStarted = [scriptblock]::Create($Using:WaitDriverStartedStr)
+        & $WaitDriverStarted xdp 10000
+    }
+}
+
+# Uninstalls the XDP driver on both local and remote machines.
+function Uninstall-XDP {
+    param ($Session, $RemoteDir)
+    $msiPath = Repo-Path "artifacts/xdp.msi"
+    $remoteMsiPath = Join-Path $RemoteDir "artifacts/xdp.msi"
+    Write-Host "Uninstalling XDP driver locally"
+    try { msiexec.exe /x $msiPath /quiet | Out-Null } catch {}
+    Write-Host "Uninstalling XDP driver on peer"
+    Invoke-Command -Session $Session -ScriptBlock {
+        try { msiexec.exe /x $Using:remoteMsiPath /quiet | Out-Null } catch {}
+    }
+}
+
 # Waits for a remote job to be ready based on looking for a particular string in
 # the output.
 function Start-RemoteServer {
@@ -84,8 +139,8 @@ function Start-RemoteServer {
     # Start the server on the remote in an async job.
     $job = Invoke-Command -Session $Session -ScriptBlock { iex $Using:Command } -AsJob
     # Poll the job for 10 seconds to see if it started.
-    $StopWatch =  [system.diagnostics.stopwatch]::StartNew()
-    while ($StopWatch.ElapsedMilliseconds -lt 30000) {
+    $stopWatch = [system.diagnostics.stopwatch]::StartNew()
+    while ($stopWatch.ElapsedMilliseconds -lt 30000) {
         $CurrentResults = Receive-Job -Job $job -Keep -ErrorAction Continue
         if (![string]::IsNullOrWhiteSpace($CurrentResults)) {
             $DidMatch = $CurrentResults -match "Started!" # Look for the special string to indicate success.
@@ -192,11 +247,7 @@ function Get-TestOutput {
 
 # Invokes secnetperf with the given arguments for both TCP and QUIC.
 function Invoke-Secnetperf {
-    param ($Session, $RemoteName, $RemoteDir, $SecNetPerfPath, $LogProfile, $ExeArgs)
-
-    $values = @(@(), @())
-    $hasFailures = $false
-
+    param ($Session, $RemoteName, $RemoteDir, $SecNetPerfPath, $LogProfile, $ExeArgs, $io)
     # TODO: This logic is pretty fragile. Needs improvement.
     $metric = "throughput-download"
     if ($exeArgs.Contains("plat:1")) {
@@ -207,18 +258,22 @@ function Invoke-Secnetperf {
         $metric = "throughput-upload"
     }
 
-    for ($tcp = 0; $tcp -lt 2; $tcp++) {
+    $values = @(@(), @())
+    $hasFailures = $false
+    $tcpSupported = ($io -ne "xdp" -and $io -ne "wsk") ? 1 : 0
+    for ($tcp = 0; $tcp -le $tcpSupported; $tcp++) {
 
     # Set up all the parameters and paths for running the test.
     Write-Host "> secnetperf $ExeArgs -tcp:$tcp"
     $execMode = $ExeArgs.Substring(0, $ExeArgs.IndexOf(' ')) # First arg is the exec mode
-    $fullPath = Join-Path (Split-Path $PSScriptRoot -Parent) $SecNetPerfPath
+    $fullPath = Repo-Path $SecNetPerfPath
     $fullArgs = "-target:netperf-peer $ExeArgs -tcp:$tcp -trimout -watchdog:45000"
     $artifactName = $tcp -eq 0 ? "$metric-quic" : "$metric-tcp"
     New-Item -ItemType Directory "artifacts/logs/$artifactName" -ErrorAction Ignore | Out-Null
-    $localDumpDir = Join-Path (Split-Path $PSScriptRoot -Parent) "artifacts/logs/$artifactName/clientdumps"
+    $localDumpDir = Repo-Path "artifacts/logs/$artifactName/clientdumps"
     New-Item -ItemType Directory $localDumpDir -ErrorAction Ignore | Out-Null
 
+    # Start logging on both sides, if configured.
     if ($LogProfile -ne "" -and $LogProfile -ne "NULL") {
         Invoke-Command -Session $Session -ScriptBlock {
             try { & "$Using:RemoteDir/scripts/log.ps1" -Cancel } catch {} # Cancel any previous logging
@@ -263,15 +318,13 @@ function Invoke-Secnetperf {
         # Stop the server.
         try { Stop-RemoteServer $job $RemoteName | Out-Null } catch { } # Ignore failures for now
 
-        # Stop logging and copy the logs to the artifacts folder.
+        # Stop any logging and copy the logs to the artifacts folder.
         if ($LogProfile -ne "" -and $LogProfile -ne "NULL") {
             try { .\scripts\log.ps1 -Stop -OutputPath "./artifacts/logs/$artifactName/client" -RawLogOnly }
             catch { Write-Host "Failed to stop logging on client!" }
             Invoke-Command -Session $Session -ScriptBlock {
-                try {
-                    & "$Using:RemoteDir/scripts/log.ps1" -Stop -OutputPath "$Using:RemoteDir/artifacts/logs/$Using:artifactName/server" -RawLogOnly
-                    dir "$Using:RemoteDir/artifacts/logs/$Using:artifactName"
-                } catch { Write-Host "Failed to stop logging on server!" }
+                try { & "$Using:RemoteDir/scripts/log.ps1" -Stop -OutputPath "$Using:RemoteDir/artifacts/logs/$Using:artifactName/server" -RawLogOnly }
+                catch { Write-Host "Failed to stop logging on server!" }
             }
             try { Copy-Item -FromSession $Session "$RemoteDir/artifacts/logs/$artifactName/*" "./artifacts/logs/$artifactName/" }
             catch { Write-Host "Failed to copy server logs!" }
