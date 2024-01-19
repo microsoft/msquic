@@ -15,15 +15,10 @@ function Write-GHError($msg) {
     Write-Host "::error::$msg"
 }
 
-# Returns the root directory of the repo.
-function Repo-Root {
-    return (Split-Path $PSScriptRoot -Parent)
-}
-
 # Returns the full path to a file in the repo, given a relative path.
 function Repo-Path {
     param ($Path)
-    return Join-Path Repo-Root $Path
+    return Join-Path (Split-Path $PSScriptRoot -Parent) $Path
 }
 
 # Configured the remote machine to collect dumps on crash.

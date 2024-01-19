@@ -53,7 +53,7 @@ param (
     [string]$tls = "schannel",
 
     [Parameter(Mandatory = $true)]
-    [ValidateSet("", "iocp", "rio", "xdp", "wsk", "epoll")] # TODO: qtip?
+    [ValidateSet("", "iocp", "rio", "xdp", "qtip", "wsk", "epoll", "kqueue")]
     [string]$io = "",
 
     [Parameter(Mandatory = $false)]
@@ -175,10 +175,8 @@ if (!$isWindows) {
 # Run all the test cases.
 Write-Host "Setup complete! Running all tests..."
 for ($i = 0; $i -lt $allTests.Count; $i++) {
-    $ExeArgs = $allTests[$i]
-    if ($io -eq "rio") {
-        $ExeArgs += " -rio:1"
-    } elseif ($io -eq "xdp") {
+    $ExeArgs = $allTests[$i] + " -io:$io"
+    if ($io -eq "xdp") {
         $ExeArgs += " -pollidle:10000"
     }
     $Output = Invoke-Secnetperf $Session $RemoteName $RemoteDir $SecNetPerfPath $LogProfile $ExeArgs

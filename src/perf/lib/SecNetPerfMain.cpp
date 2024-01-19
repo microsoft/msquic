@@ -85,16 +85,18 @@ PrintHelp(
         "  -runtime:<####>[unit]    The total runtime, with an optional unit (def unit is us). Only relevant for repeat scenarios. (def:0)\n"
         "\n"
         "Both (client & server) options:\n"
-        "  -exec:<profile>          Execution profile to use {lowlat, maxtput, scavenger, realtime}.\n"
-        "  -cc:<algo>               Congestion control algorithm to use {cubic, bbr}.\n"
+        "  -exec:<profile>          Execution profile to use.\n"
+        "                            - {lowlat, maxtput, scavenger, realtime}.\n"
+        "  -cc:<algo>               Congestion control algorithm to use.\n"
+        "                            - {cubic, bbr}.\n"
         "  -pollidle:<time_us>      Amount of time to poll while idle before sleeping (default: 0).\n"
         "  -ecn:<0/1>               Enables/disables sender-side ECN support. (def:0)\n"
         "  -qeo:<0/1>               Allows/disallowes QUIC encryption offload. (def:0)\n"
+        "  -io:<mode>               Configures a requested network IO model to be used.\n"
+        "                            - {iocp, rio, xdp, qtip, wsk, epoll, kqueue}\n"
 #ifndef _KERNEL_MODE
         "  -cpu:<cpu_index>         Specify the processor(s) to use.\n"
         "  -cipher:<value>          Decimal value of 1 or more QUIC_ALLOWED_CIPHER_SUITE_FLAGS.\n"
-        "  -qtip:<0/1>              Enables/disables QUIC over TCP support. (def:0)\n"
-        "  -rio:<0/1>               Enables/disables RIO support. (def:0)\n"
 #endif // _KERNEL_MODE
         "\n",
         PERF_DEFAULT_PORT,
@@ -141,15 +143,15 @@ QuicMainStart(
     Config->PollingIdleTimeoutUs = UINT32_MAX; // Default to no sleep.
     bool SetConfig = false;
 
+    const char* IoMode = GetValue(argc, argv, "io");
+
 #ifndef _KERNEL_MODE
-    uint8_t QuicOverTcpEnabled;
-    if (TryGetValue(argc, argv, "qtip", &QuicOverTcpEnabled)) {
+    if (IoMode && IsValue(IoMode, "qtip")) {
         Config->Flags |= QUIC_EXECUTION_CONFIG_FLAG_QTIP;
         SetConfig = true;
     }
 
-    uint8_t RioEnabled;
-    if (TryGetValue(argc, argv, "rio", &RioEnabled)) {
+    if (IoMode && IsValue(IoMode, "rio")) {
         Config->Flags |= QUIC_EXECUTION_CONFIG_FLAG_RIO;
         SetConfig = true;
     }
