@@ -263,6 +263,7 @@ function Invoke-Secnetperf {
     $localDumpDir = Repo-Path "artifacts/logs/$artifactName/clientdumps"
     New-Item -ItemType Directory $localDumpDir -ErrorAction Ignore | Out-Null
 
+    # Start logging on both sides, if configured.
     if ($LogProfile -ne "" -and $LogProfile -ne "NULL") {
         Invoke-Command -Session $Session -ScriptBlock {
             try { & "$Using:RemoteDir/scripts/log.ps1" -Cancel } catch {} # Cancel any previous logging
@@ -307,7 +308,7 @@ function Invoke-Secnetperf {
         # Stop the server.
         try { Stop-RemoteServer $job $RemoteName | Out-Null } catch { } # Ignore failures for now
 
-        # Stop logging and copy the logs to the artifacts folder.
+        # Stop any logging and copy the logs to the artifacts folder.
         if ($LogProfile -ne "" -and $LogProfile -ne "NULL") {
             try { .\scripts\log.ps1 -Stop -OutputPath "./artifacts/logs/$artifactName/client" -RawLogOnly }
             catch { Write-Host "Failed to stop logging on client!" }

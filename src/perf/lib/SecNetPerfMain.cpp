@@ -143,9 +143,9 @@ QuicMainStart(
     Config->PollingIdleTimeoutUs = UINT32_MAX; // Default to no sleep.
     bool SetConfig = false;
 
+#ifndef _KERNEL_MODE
     const char* IoMode = GetValue(argc, argv, "io");
 
-#ifndef _KERNEL_MODE
     if (IoMode && IsValue(IoMode, "qtip")) {
         Config->Flags |= QUIC_EXECUTION_CONFIG_FLAG_QTIP;
         SetConfig = true;
