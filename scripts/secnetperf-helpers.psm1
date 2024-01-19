@@ -113,7 +113,6 @@ function Install-XDP {
     Copy-Item -ToSession $Session $msiPath -Destination $remoteMsiPath
     $WaitDriverStartedStr = "${function:Wait-DriverStarted}"
     Invoke-Command -Session $Session -ScriptBlock {
-        dir $Using:remoteMsiPath
         msiexec.exe /i $Using:remoteMsiPath /quiet | Out-Host
         $WaitDriverStarted = [scriptblock]::Create($Using:WaitDriverStartedStr)
         & $WaitDriverStarted xdp 10000
@@ -124,11 +123,12 @@ function Install-XDP {
 function Uninstall-XDP {
     param ($Session, $RemoteDir)
     $msiPath = Repo-Path "artifacts/xdp.msi"
+    $remoteMsiPath = Join-Path $RemoteDir "artifacts/xdp.msi"
     Write-Host "Uninstalling XDP driver locally"
     try { msiexec.exe /x $msiPath /quiet | Out-Null } catch {}
     Write-Host "Uninstalling XDP driver on peer"
     Invoke-Command -Session $Session -ScriptBlock {
-        try { msiexec.exe /x "$Using:RemoteDir/artifacts/xdp.msi" /quiet | Out-Null } catch {}
+        try { msiexec.exe /x $Using:remoteMsiPath /quiet | Out-Null } catch {}
     }
 }
 
@@ -247,7 +247,7 @@ function Get-TestOutput {
 
 # Invokes secnetperf with the given arguments for both TCP and QUIC.
 function Invoke-Secnetperf {
-    param ($Session, $RemoteName, $RemoteDir, $SecNetPerfPath, $LogProfile, $ExeArgs)
+    param ($Session, $RemoteName, $RemoteDir, $SecNetPerfPath, $LogProfile, $ExeArgs, $io)
 
     $values = @(@(), @())
     $hasFailures = $false
@@ -262,7 +262,13 @@ function Invoke-Secnetperf {
         $metric = "throughput-upload"
     }
 
-    for ($tcp = 0; $tcp -lt 2; $tcp++) {
+    $tcpSupported = ($io -ne "xdp" -and $io -ne "wsk") ? 1 : 0
+    $ExeArgs = $allTests[$i] + " -io:$io"
+    if ($io -eq "xdp") {
+        $ExeArgs += " -pollidle:10000"
+    }
+
+    for ($tcp = 0; $tcp -le $tcpSupported; $tcp++) {
 
     # Set up all the parameters and paths for running the test.
     Write-Host "> secnetperf $ExeArgs -tcp:$tcp"

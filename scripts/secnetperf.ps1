@@ -175,11 +175,7 @@ if (!$isWindows) {
 # Run all the test cases.
 Write-Host "Setup complete! Running all tests"
 for ($i = 0; $i -lt $allTests.Count; $i++) {
-    $ExeArgs = $allTests[$i] + " -io:$io"
-    if ($io -eq "xdp") {
-        $ExeArgs += " -pollidle:10000"
-    }
-    $Output = Invoke-Secnetperf $Session $RemoteName $RemoteDir $SecNetPerfPath $LogProfile $ExeArgs
+    $Output = Invoke-Secnetperf $Session $RemoteName $RemoteDir $SecNetPerfPath $LogProfile $ExeArgs $io
     $Test = $Output[-1]
     if ($Test.HasFailures) { $hasFailures = $true }
 
@@ -191,6 +187,7 @@ INSERT OR IGNORE INTO Secnetperf_tests (Secnetperf_test_ID, Kernel_mode, Run_arg
 "@
 
     for ($tcp = 0; $tcp -lt $Test.Values.Length; $tcp++) {
+        if ($Test.Values[$tcp].Length -eq 0) { continue }
         $transport = $tcp -eq 1 ? "tcp" : "quic"
         $json["$($Test.Metric)-$transport"] = $Test.Values[$tcp]
         if ($Test.Metric.startsWith("throughput")) {
