@@ -262,8 +262,9 @@ function Invoke-Secnetperf {
         $metric = "throughput-upload"
     }
 
+    # Process the IO mode and update args as necessary.
     $tcpSupported = ($io -ne "xdp" -and $io -ne "wsk") ? 1 : 0
-    $ExeArgs = $allTests[$i] + " -io:$io"
+    $ExeArgs += " -io:$io"
     if ($io -eq "xdp") {
         $ExeArgs += " -pollidle:10000"
     }
