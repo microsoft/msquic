@@ -133,6 +133,10 @@ if ($isWindows) { # TODO: Run on Linux too?
     Invoke-Command -Session $Session -ScriptBlock {
         iex "$Using:RemoteDir/scripts/prepare-machine.ps1 -ForTest"
     }
+
+    $HasTestSigning = $false
+    try { $HasTestSigning = ("$(bcdedit)" | Select-String -Pattern "testsigning\s+Yes").Matches.Success } catch { }
+    if (!$HasTestSigning) { Write-Host "Test Signing Not Enabled!" }
 }
 
 # Configure the dump collection.
