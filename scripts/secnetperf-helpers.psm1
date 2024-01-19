@@ -83,6 +83,20 @@ function Collect-RemoteDumps {
     return $false
 }
 
+# Waits for a given driver to be started up to a given timeout.
+function Wait-DriverStarted {
+    param ($DriverName, $TimeoutMs)
+    $stopWatch = [system.diagnostics.stopwatch]::StartNew()
+    while ($stopWatch.ElapsedMilliseconds -lt $TimeoutMs) {
+        $Driver = Get-Service -Name $DriverName -ErrorAction Ignore
+        if ($null -ne $Driver -and $Driver.Status -eq "Running") {
+            return
+        }
+        Start-Sleep -Seconds 0.1 | Out-Null
+    }
+    throw "$DriverName failed to start!"
+}
+
 # Download and install XDP on both local and remote machines.
 function Install-XDP {
     param ($Session, $RemoteDir)
@@ -97,8 +111,12 @@ function Install-XDP {
     Invoke-Command -Session $Session -ScriptBlock {
         msiexec.exe /i "$Using:RemoteDir/artifacts/xdp.msi" /quiet | Out-Null
     }
-    Write-Host "Local XDP status: $((Get-Service -Name xdp).Status)"
-    Write-Host "Peer XDP status: $(Invoke-Command -Session $Session -ScriptBlock { (Get-Service -Name xdp).Status }))"
+    Wait-DriverStarted "xdp" 10000
+    $WaitDriverStartedStr = "${function:Wait-DriverStarted}"
+    Invoke-Command -Session $Session -ScriptBlock {
+        $WaitDriverStarted = [scriptblock]::Create($Using:WaitDriverStartedStr)
+        & $WaitDriverStarted xdp 10000
+    }
 }
 
 # Uninstalls the XDP driver on both local and remote machines.
