@@ -22,6 +22,9 @@ This script assumes the latest MsQuic commit is built and downloaded as artifact
 .PARAMETER tls
     The TLS library being used (openssl or schannel). Not all libraries are supported on all platforms.
 
+.PARAMETER io
+    The network IO interface to be used (not all are supported on all platforms).
+
 #>
 
 # Import the helper module.
@@ -49,6 +52,10 @@ param (
     [ValidateSet("openssl", "openssl3", "schannel")]
     [string]$tls = "schannel",
 
+    [Parameter(Mandatory = $true)]
+    [ValidateSet("", "iocp", "rio", "xdp", "wsk", "epoll")] # TODO: qtip?
+    [string]$io = "",
+
     [Parameter(Mandatory = $false)]
     [string]$RemoteName = "netperf-peer"
 )
@@ -63,6 +70,13 @@ if (!$isWindows) {
 }
 $SecNetPerfDir = "artifacts/bin/$plat/$($arch)_Release_$tls"
 $SecNetPerfPath = "$SecNetPerfDir/secnetperf"
+if ($io -eq "") {
+    if ($isWindows) {
+        $io = "iocp"
+    } else {
+        $io = "epoll"
+    }
+}
 
 # Set up the connection to the peer over remote powershell.
 Write-Host "Connecting to $RemoteName..."
@@ -124,6 +138,11 @@ if ($isWindows) { # TODO: Run on Linux too?
 # Configure the dump collection.
 Configure-DumpCollection $Session
 
+if ($io -eq "xdp") {
+    # Install XDP if we're using it for IO.
+    Install-XDP $Session
+}
+
 if (!$isWindows) {
     # Make sure the secnetperf binary is executable.
     Write-Host "Updating secnetperf permissions..."
@@ -153,6 +172,11 @@ if (!$isWindows) {
 Write-Host "Setup complete! Running all tests..."
 for ($i = 0; $i -lt $allTests.Count; $i++) {
     $ExeArgs = $allTests[$i]
+    if ($io -eq "rio") {
+        $ExeArgs += " -rio:1"
+    } elseif ($io -eq "xdp") {
+        $ExeArgs += " -pollidle:10000"
+    }
     $Output = Invoke-Secnetperf $Session $RemoteName $RemoteDir $SecNetPerfPath $LogProfile $ExeArgs
     $Test = $Output[-1]
     if ($Test.HasFailures) { $hasFailures = $true }
@@ -199,6 +223,11 @@ if (Get-ChildItem -Path ./artifacts/logs -File -Recurse) {
     $_ | Format-List *
     $hasFailures = $true
 } finally {
+
+    if ($io -eq "xdp") {
+        Uninstall-XDP $Session
+    }
+
     # Save the test results (sql and json).
     Write-Host "`Writing test-results-$plat-$os-$arch-$tls.sql..."
     $SQL | Set-Content -Path "test-results-$plat-$os-$arch-$tls.sql"

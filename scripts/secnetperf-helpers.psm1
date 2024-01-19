@@ -77,6 +77,33 @@ function Collect-RemoteDumps {
     return $false
 }
 
+# Download and install XDP on both local and remote machines.
+function Install-XDP {
+    param ($Session, $RemoteDir)
+    $installerUri = (Get-Content (Join-Path $PSScriptRoot "xdp.json") | ConvertFrom-Json).installer
+    Write-Host "Downloading $installerUri..."
+    Invoke-WebRequest -Uri $installerUri -OutFile ./artifacts/xdp.msi
+    Write-Host "Copying xdp.msi to peer..."
+    Copy-Item -ToSession $Session ./artifacts/xdp.msi -Destination "$RemoteDir/artifacts/xdp.msi" -Recurse
+    Write-Host "Installing XDP driver locally"
+    msiexec.exe /i ./artifacts/xdp.msi /quiet | Out-Null
+    Write-Host "Installing XDP driver on peer"
+    Invoke-Command -Session $Session -ScriptBlock {
+        msiexec.exe /i $Using:RemoteDir/artifacts/xdp.msi /quiet | Out-Null
+    }
+}
+
+# Uninstalls the XDP driver on both local and remote machines.
+function Uninstall-XDP {
+    param ($Session, $RemoteDir)
+    Write-Host "Uninstalling XDP driver locally"
+    try { msiexec.exe /x ./artifacts/xdp.msi /quiet | Out-Null } catch {}
+    Write-Host "Uninstalling XDP driver on peer"
+    Invoke-Command -Session $Session -ScriptBlock {
+        try { msiexec.exe /x $Using:RemoteDir/artifacts/xdp.msi /quiet | Out-Null } catch {}
+    }
+}
+
 # Waits for a remote job to be ready based on looking for a particular string in
 # the output.
 function Start-RemoteServer {
