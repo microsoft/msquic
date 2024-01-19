@@ -92,7 +92,8 @@ function Install-XDP {
     Write-Host "Downloading XDP installer"
     Invoke-WebRequest -Uri $installerUri -OutFile $msiPath
     Write-Host "Installing XDP driver locally"
-    msiexec.exe /i $msiPath /quiet
+    msiexec.exe /i $msiPath /quiet /L*vx "artifacts/logfile.log"
+    Get-Content "artifacts/logfile.log"
     Write-Host "Installing XDP driver on peer"
     Copy-Item -ToSession $Session $msiPath -Destination "$RemoteDir/artifacts/xdp.msi" -Recurse
     Invoke-Command -Session $Session -ScriptBlock {
@@ -130,8 +131,8 @@ function Start-RemoteServer {
     # Start the server on the remote in an async job.
     $job = Invoke-Command -Session $Session -ScriptBlock { iex $Using:Command } -AsJob
     # Poll the job for 10 seconds to see if it started.
-    $StopWatch =  [system.diagnostics.stopwatch]::StartNew()
-    while ($StopWatch.ElapsedMilliseconds -lt 30000) {
+    $stopWatch = [system.diagnostics.stopwatch]::StartNew()
+    while ($stopWatch.ElapsedMilliseconds -lt 30000) {
         $CurrentResults = Receive-Job -Job $job -Keep -ErrorAction Continue
         if (![string]::IsNullOrWhiteSpace($CurrentResults)) {
             $DidMatch = $CurrentResults -match "Started!" # Look for the special string to indicate success.
@@ -315,10 +316,8 @@ function Invoke-Secnetperf {
             try { .\scripts\log.ps1 -Stop -OutputPath "./artifacts/logs/$artifactName/client" -RawLogOnly }
             catch { Write-Host "Failed to stop logging on client!" }
             Invoke-Command -Session $Session -ScriptBlock {
-                try {
-                    & "$Using:RemoteDir/scripts/log.ps1" -Stop -OutputPath "$Using:RemoteDir/artifacts/logs/$Using:artifactName/server" -RawLogOnly
-                    dir "$Using:RemoteDir/artifacts/logs/$Using:artifactName"
-                } catch { Write-Host "Failed to stop logging on server!" }
+                try { & "$Using:RemoteDir/scripts/log.ps1" -Stop -OutputPath "$Using:RemoteDir/artifacts/logs/$Using:artifactName/server" -RawLogOnly }
+                catch { Write-Host "Failed to stop logging on server!" }
             }
             try { Copy-Item -FromSession $Session "$RemoteDir/artifacts/logs/$artifactName/*" "./artifacts/logs/$artifactName/" }
             catch { Write-Host "Failed to copy server logs!" }
