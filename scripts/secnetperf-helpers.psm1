@@ -107,15 +107,12 @@ function Install-XDP {
     Invoke-WebRequest -Uri $installerUri -OutFile $msiPath
     Write-Host "Installing XDP driver locally"
     msiexec.exe /i $msiPath /quiet | Out-Null
+    Wait-DriverStarted "xdp" 10000
     Write-Host "Installing XDP driver on peer"
     Copy-Item -ToSession $Session $msiPath -Destination "$RemoteDir/artifacts/xdp.msi"
-    Invoke-Command -Session $Session -ScriptBlock {
-        dir "$Using:RemoteDir/artifacts/xdp.msi"
-        msiexec.exe /i "$Using:RemoteDir/artifacts/xdp.msi" /quiet | Out-Null
-    }
-    Wait-DriverStarted "xdp" 10000
     $WaitDriverStartedStr = "${function:Wait-DriverStarted}"
     Invoke-Command -Session $Session -ScriptBlock {
+        msiexec.exe /i "$Using:RemoteDir/artifacts/xdp.msi" /quiet | Out-Host
         $WaitDriverStarted = [scriptblock]::Create($Using:WaitDriverStartedStr)
         & $WaitDriverStarted xdp 10000
     }
