@@ -114,7 +114,7 @@ function Uninstall-XDP {
     try { msiexec.exe /x $msiPath /quiet | Out-Null } catch {}
     Write-Host "Uninstalling XDP driver on peer"
     Invoke-Command -Session $Session -ScriptBlock {
-        try { msiexec.exe /x $Using:RemoteDir/artifacts/xdp.msi /quiet | Out-Null } catch {}
+        try { msiexec.exe /x "$Using:RemoteDir/artifacts/xdp.msi" /quiet | Out-Null } catch {}
     }
 }
 
