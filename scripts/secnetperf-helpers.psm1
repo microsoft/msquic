@@ -5,6 +5,7 @@
 
 Set-StrictMode -Version 'Latest'
 $PSDefaultParameterValues['*:ErrorAction'] = 'Stop'
+$env:PSDscAllowUnapprovedVerbs = $true
 
 # Path to the WER registry key used for collecting dumps on Windows.
 $WerDumpRegPath = "HKLM:\Software\Microsoft\Windows\Windows Error Reporting\LocalDumps\secnetperf.exe"
@@ -12,6 +13,17 @@ $WerDumpRegPath = "HKLM:\Software\Microsoft\Windows\Windows Error Reporting\Loca
 # Write a GitHub error message to the console.
 function Write-GHError($msg) {
     Write-Host "::error::$msg"
+}
+
+# Returns the root directory of the repo.
+function Repo-Root {
+    return (Split-Path $PSScriptRoot -Parent)
+}
+
+# Returns the full path to a file in the repo, given a relative path.
+function Repo-Path {
+    param ($Path)
+    return Join-Path Repo-Root $Path
 }
 
 # Configured the remote machine to collect dumps on crash.
@@ -25,7 +37,7 @@ function Configure-DumpCollection {
             Set-ItemProperty -Path $Using:WerDumpRegPath -Name DumpFolder -Value $DumpDir | Out-Null
             Set-ItemProperty -Path $Using:WerDumpRegPath -Name DumpType -Value 2 | Out-Null
         }
-        $DumpDir = Join-Path (Split-Path $PSScriptRoot -Parent) "artifacts/crashdumps"
+        $DumpDir = Repo-Path "artifacts/crashdumps"
         New-Item -Path $DumpDir -ItemType Directory -ErrorAction Ignore | Out-Null
         New-Item -Path $WerDumpRegPath -Force -ErrorAction Ignore | Out-Null
         Set-ItemProperty -Path $WerDumpRegPath -Name DumpFolder -Value $DumpDir | Out-Null
@@ -81,12 +93,13 @@ function Collect-RemoteDumps {
 function Install-XDP {
     param ($Session, $RemoteDir)
     $installerUri = (Get-Content (Join-Path $PSScriptRoot "xdp.json") | ConvertFrom-Json).installer
-    Write-Host "Downloading $installerUri..."
-    Invoke-WebRequest -Uri $installerUri -OutFile ./artifacts/xdp.msi
+    $msiPath = Repo-Path "artifacts/xdp.msi"
+    Write-Host "Downloading $installerUri to $msiPath ..."
+    Invoke-WebRequest -Uri $installerUri -OutFile $msiPath
     Write-Host "Copying xdp.msi to peer..."
-    Copy-Item -ToSession $Session ./artifacts/xdp.msi -Destination "$RemoteDir/artifacts/xdp.msi" -Recurse
+    Copy-Item -ToSession $Session $msiPath -Destination "$RemoteDir/artifacts/xdp.msi" -Recurse
     Write-Host "Installing XDP driver locally"
-    msiexec.exe /i ./artifacts/xdp.msi /quiet
+    msiexec.exe /i $msiPath /quiet
     Write-Host "Installing XDP driver on peer"
     Invoke-Command -Session $Session -ScriptBlock {
         msiexec.exe /i $Using:RemoteDir/artifacts/xdp.msi /quiet
@@ -104,8 +117,9 @@ function Install-XDP {
 # Uninstalls the XDP driver on both local and remote machines.
 function Uninstall-XDP {
     param ($Session, $RemoteDir)
+    $msiPath = Repo-Path "artifacts/xdp.msi"
     Write-Host "Uninstalling XDP driver locally"
-    try { msiexec.exe /x ./artifacts/xdp.msi /quiet | Out-Null } catch {}
+    try { msiexec.exe /x $msiPath /quiet | Out-Null } catch {}
     Write-Host "Uninstalling XDP driver on peer"
     Invoke-Command -Session $Session -ScriptBlock {
         try { msiexec.exe /x $Using:RemoteDir/artifacts/xdp.msi /quiet | Out-Null } catch {}
@@ -247,11 +261,11 @@ function Invoke-Secnetperf {
     # Set up all the parameters and paths for running the test.
     Write-Host "> secnetperf $ExeArgs -tcp:$tcp"
     $execMode = $ExeArgs.Substring(0, $ExeArgs.IndexOf(' ')) # First arg is the exec mode
-    $fullPath = Join-Path (Split-Path $PSScriptRoot -Parent) $SecNetPerfPath
+    $fullPath = Repo-Path $SecNetPerfPath
     $fullArgs = "-target:netperf-peer $ExeArgs -tcp:$tcp -trimout -watchdog:45000"
     $artifactName = $tcp -eq 0 ? "$metric-quic" : "$metric-tcp"
     New-Item -ItemType Directory "artifacts/logs/$artifactName" -ErrorAction Ignore | Out-Null
-    $localDumpDir = Join-Path (Split-Path $PSScriptRoot -Parent) "artifacts/logs/$artifactName/clientdumps"
+    $localDumpDir = Repo-Path "artifacts/logs/$artifactName/clientdumps"
     New-Item -ItemType Directory $localDumpDir -ErrorAction Ignore | Out-Null
 
     if ($LogProfile -ne "" -and $LogProfile -ne "NULL") {
