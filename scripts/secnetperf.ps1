@@ -175,7 +175,10 @@ if (!$isWindows) {
 # Run all the test cases.
 Write-Host "Setup complete! Running all tests"
 for ($i = 0; $i -lt $allTests.Count; $i++) {
-    $ExeArgs = $allTests[$i]
+    $ExeArgs = $allTests[$i] + " -io:$io"
+    if ($io -eq "xdp") {
+        $ExeArgs += " -pollidle:10000"
+    }
     $Output = Invoke-Secnetperf $Session $RemoteName $RemoteDir $SecNetPerfPath $LogProfile $ExeArgs $io
     $Test = $Output[-1]
     if ($Test.HasFailures) { $hasFailures = $true }

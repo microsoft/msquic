@@ -248,10 +248,6 @@ function Get-TestOutput {
 # Invokes secnetperf with the given arguments for both TCP and QUIC.
 function Invoke-Secnetperf {
     param ($Session, $RemoteName, $RemoteDir, $SecNetPerfPath, $LogProfile, $ExeArgs, $io)
-
-    $values = @(@(), @())
-    $hasFailures = $false
-
     # TODO: This logic is pretty fragile. Needs improvement.
     $metric = "throughput-download"
     if ($exeArgs.Contains("plat:1")) {
@@ -262,13 +258,9 @@ function Invoke-Secnetperf {
         $metric = "throughput-upload"
     }
 
-    # Process the IO mode and update args as necessary.
+    $values = @(@(), @())
+    $hasFailures = $false
     $tcpSupported = ($io -ne "xdp" -and $io -ne "wsk") ? 1 : 0
-    $ExeArgs += " -io:$io"
-    if ($io -eq "xdp") {
-        $ExeArgs += " -pollidle:10000"
-    }
-
     for ($tcp = 0; $tcp -le $tcpSupported; $tcp++) {
 
     # Set up all the parameters and paths for running the test.
