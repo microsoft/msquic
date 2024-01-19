@@ -90,6 +90,7 @@ function Wait-DriverStarted {
     while ($stopWatch.ElapsedMilliseconds -lt $TimeoutMs) {
         $Driver = Get-Service -Name $DriverName -ErrorAction Ignore
         if ($null -ne $Driver -and $Driver.Status -eq "Running") {
+            Write-Host "$DriverName is running"
             return
         }
         Start-Sleep -Seconds 0.1 | Out-Null
@@ -107,8 +108,9 @@ function Install-XDP {
     Write-Host "Installing XDP driver locally"
     msiexec.exe /i $msiPath /quiet | Out-Null
     Write-Host "Installing XDP driver on peer"
-    Copy-Item -ToSession $Session $msiPath -Destination "$RemoteDir/artifacts/xdp.msi" -Recurse
+    Copy-Item -ToSession $Session $msiPath -Destination "$RemoteDir/artifacts/xdp.msi"
     Invoke-Command -Session $Session -ScriptBlock {
+        dir "$Using:RemoteDir/artifacts/xdp.msi"
         msiexec.exe /i "$Using:RemoteDir/artifacts/xdp.msi" /quiet | Out-Null
     }
     Wait-DriverStarted "xdp" 10000
