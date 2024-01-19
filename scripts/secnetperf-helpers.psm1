@@ -91,6 +91,7 @@ function Install-XDP {
     $msiPath = Repo-Path "artifacts/xdp.msi"
     Write-Host "Downloading XDP installer"
     Invoke-WebRequest -Uri $installerUri -OutFile $msiPath
+    dir $msiPath
     Write-Host "Installing XDP driver locally"
     $logFile = Repo-Path "artifacts/xdp-install.log"
     msiexec.exe /i $msiPath /quiet /L*vx $logFile
