@@ -96,14 +96,10 @@ function Install-XDP {
     Write-Host "Installing XDP driver on peer"
     Copy-Item -ToSession $Session $msiPath -Destination "$RemoteDir/artifacts/xdp.msi" -Recurse
     Invoke-Command -Session $Session -ScriptBlock {
-        msiexec.exe /i $Using:RemoteDir/artifacts/xdp.msi /quiet | Out-Null
+        msiexec.exe /i "$Using:RemoteDir/artifacts/xdp.msi" /quiet | Out-Null
     }
-    Write-Host "Local XDP status:"
-    Get-Service -Name xdp -ErrorAction Ignore
-    Write-Host "Peer XDP status:"
-    Invoke-Command -Session $Session -ScriptBlock {
-        Get-Service -Name xdp -ErrorAction Ignore
-    }
+    Write-Host "Local XDP status: $((Get-Service -Name xdp).Status)"
+    Write-Host "Peer XDP status: $(Invoke-Command -Session $Session -ScriptBlock { (Get-Service -Name xdp).Status }))"
 }
 
 # Uninstalls the XDP driver on both local and remote machines.
