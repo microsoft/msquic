@@ -52,7 +52,7 @@ param (
     [ValidateSet("openssl", "openssl3", "schannel")]
     [string]$tls = "schannel",
 
-    [Parameter(Mandatory = $true)]
+    [Parameter(Mandatory = $false)]
     [ValidateSet("", "iocp", "rio", "xdp", "qtip", "wsk", "epoll", "kqueue")]
     [string]$io = "",
 
