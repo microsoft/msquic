@@ -92,8 +92,9 @@ function Install-XDP {
     Write-Host "Downloading XDP installer"
     Invoke-WebRequest -Uri $installerUri -OutFile $msiPath
     Write-Host "Installing XDP driver locally"
-    msiexec.exe /i $msiPath /quiet /L*vx "artifacts/logfile.log"
-    Get-Content "artifacts/logfile.log"
+    $logFile = Repo-Path "artifacts/xdp-install.log"
+    msiexec.exe /i $msiPath /quiet /L*vx $logFile
+    Get-Content $logFile
     Write-Host "Installing XDP driver on peer"
     Copy-Item -ToSession $Session $msiPath -Destination "$RemoteDir/artifacts/xdp.msi" -Recurse
     Invoke-Command -Session $Session -ScriptBlock {
