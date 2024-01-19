@@ -231,11 +231,11 @@ if (Get-ChildItem -Path ./artifacts/logs -File -Recurse) {
     }
 
     # Save the test results (sql and json).
-    Write-Host "`Writing test-results-$plat-$os-$arch-$tls.sql..."
-    $SQL | Set-Content -Path "test-results-$plat-$os-$arch-$tls.sql"
+    Write-Host "`Writing test-results-$plat-$os-$arch-$tls-$io.sql..."
+    $SQL | Set-Content -Path "test-results-$plat-$os-$arch-$tls-$io.sql"
 
-    Write-Host "`Writing json-test-results-$plat-$os-$arch-$tls.json..."
-    $json | ConvertTo-Json | Set-Content -Path "json-test-results-$plat-$os-$arch-$tls.json"
+    Write-Host "`Writing json-test-results-$plat-$os-$arch-$tls-$io.json..."
+    $json | ConvertTo-Json | Set-Content -Path "json-test-results-$plat-$os-$arch-$tls-$io.json"
 }
 
 if ($hasFailures) {

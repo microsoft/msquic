@@ -91,17 +91,19 @@ function Install-XDP {
     $msiPath = Repo-Path "artifacts/xdp.msi"
     Write-Host "Downloading $installerUri to $msiPath ..."
     Invoke-WebRequest -Uri $installerUri -OutFile $msiPath
-    Write-Host "Copying xdp.msi to peer..."
-    Copy-Item -ToSession $Session $msiPath -Destination "$RemoteDir/artifacts/xdp.msi" -Recurse
     Write-Host "Installing XDP driver locally"
     msiexec.exe /i $msiPath /quiet
     Write-Host "Installing XDP driver on peer"
+    Copy-Item -ToSession $Session $msiPath -Destination "$RemoteDir/artifacts/xdp.msi" -Recurse
     Invoke-Command -Session $Session -ScriptBlock {
         msiexec.exe /i $Using:RemoteDir/artifacts/xdp.msi /quiet
     }
+    Write-Host "Verifing local XDP install..."
+    Start-Sleep -Seconds 1 | Out-Null # Wait for the service to start
     if ((Get-Service -Name "xdp").Status -ne "Running") {
         throw "XDP service not running!"
     }
+    Write-Host "Verifing peer XDP install..."
     Invoke-Command -Session $Session -ScriptBlock {
         if ((Get-Service -Name "xdp").Status -ne "Running") {
             throw "XDP service not running!"
