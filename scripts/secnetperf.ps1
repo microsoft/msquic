@@ -111,12 +111,15 @@ INSERT OR IGNORE INTO Secnetperf_builds (Secnetperf_Commit, Build_date_time, TLS
 VALUES ('$MsQuicCommit', '$(Get-Date -Format "yyyy-MM-dd HH:mm:ss")', 1, 'TODO');
 "@
 $json = @{}
-$allTests = @(
-    "-exec:maxtput -up:10s -ptput:1",
-    "-exec:maxtput -down:10s -ptput:1",
-    "-exec:maxtput -rconn:1 -share:1 -conns:100 -run:10s -prate:1",
-    "-exec:lowlat -rstream:1 -up:512 -down:4000 -run:10s -plat:1"
-)
+
+$allTests = [System.Collections.Specialized.OrderedDictionary]::new()
+
+# > All tests:
+$allTests["maxtput-up-1"] = "-exec:maxtput -up:10s -ptput:1"
+$allTests["maxtput-down-1"] = "-exec:maxtput -down:10s -ptput:1"
+$allTests["maxtput-rconn-1"] = "-exec:maxtput -rconn:1 -share:1 -conns:100 -run:10s -prate:1"
+$allTests["lowlat-rstream-1"] = "-exec:lowlat -rstream:1 -up:512 -down:4000 -run:10s -plat:1"
+
 $env = $isWindows ? 1 : 2
 $hasFailures = $false
 
@@ -174,8 +177,8 @@ if (!$isWindows) {
 
 # Run all the test cases.
 Write-Host "Setup complete! Running all tests"
-for ($i = 0; $i -lt $allTests.Count; $i++) {
-    $ExeArgs = $allTests[$i] + " -io:$io"
+for ($testId in $allTests.Keys) {
+    $ExeArgs = $allTests[$testId] + " -io:$io"
     if ($io -eq "xdp") {
         $ExeArgs += " -pollidle:10000"
     }
@@ -184,10 +187,9 @@ for ($i = 0; $i -lt $allTests.Count; $i++) {
     if ($Test.HasFailures) { $hasFailures = $true }
 
     # Process the results and add them to the SQL and JSON.
-    $TestId = $i + 1
     $SQL += @"
-`nINSERT OR IGNORE INTO Secnetperf_tests (Secnetperf_test_ID, Kernel_mode, Run_arguments) VALUES ($TestId, 0, "$ExeArgs -tcp:0");
-INSERT OR IGNORE INTO Secnetperf_tests (Secnetperf_test_ID, Kernel_mode, Run_arguments) VALUES ($TestId, 0, "$ExeArgs -tcp:1");
+`nINSERT OR IGNORE INTO Secnetperf_tests (Secnetperf_test_ID, Kernel_mode, Run_arguments) VALUES ($TestId-tcp-0, 0, "$ExeArgs -tcp:0");
+INSERT OR IGNORE INTO Secnetperf_tests (Secnetperf_test_ID, Kernel_mode, Run_arguments) VALUES ($TestId-tcp-1, 0, "$ExeArgs -tcp:1");
 "@
 
     for ($tcp = 0; $tcp -lt $Test.Values.Length; $tcp++) {
@@ -198,7 +200,20 @@ INSERT OR IGNORE INTO Secnetperf_tests (Secnetperf_test_ID, Kernel_mode, Run_arg
             foreach ($item in $Test.Values[$tcp]) {
                 $SQL += @"
 `nINSERT INTO Secnetperf_test_runs (Secnetperf_test_ID, Secnetperf_commit, Client_environment_ID, Server_environment_ID, Result, Secnetperf_latency_stats_ID)
-VALUES ($TestId, '$MsQuicCommit', $env, $env, $item, NULL);
+VALUES ($TestId-tcp-$tcp, '$MsQuicCommit', $env, $env, $item, NULL);
+"@
+            }
+        }
+
+        if ($Test.Metric.startsWith("latency")) {
+            # Test.Values[...] is a flattened 1D array of the form: [ first run, second run, third run... ], ie. if each run has 8 values, then the array will have 24 elements.
+            for ($offset = 0; $offset -lt $Test.Values[$tcp].Length; $offset += 8) {
+                $SQL += @"
+INSERT INTO Secnetperf_latency_stats (p0, p50, p90, p99, p999, p9999, p99999, p999999)
+VALUES ($($Test.Values[$tcp][$offset]), $($Test.Values[$tcp][$offset+1]), $($Test.Values[$tcp][$offset+2]), $($Test.Values[$tcp][$offset+3]), $($Test.Values[$tcp][$offset+4]), $($Test.Values[$tcp][$offset+5]), $($Test.Values[$tcp][$offset+6]), $($Test.Values[$tcp][$offset+7]));
+
+`nINSERT INTO Secnetperf_test_runs (Secnetperf_test_ID, Secnetperf_commit, Client_environment_ID, Server_environment_ID, Result, Secnetperf_latency_stats_ID)
+VALUES ($TestId-tcp-$tcp, '$MsQuicCommit', $env, $env, NULL, LAST_INSERT_ROWID());
 "@
             }
         }
