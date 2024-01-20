@@ -247,7 +247,7 @@ Write-Host "Tests complete!"
                 Copy-Item "$SecNetPerfDir/secnetperf" ./artifacts/logs
             }
         }
-    }
+    } catch { }
 
     # Save the test results (sql and json).
     Write-Host "`Writing test-results-$plat-$os-$arch-$tls-$io.sql"
