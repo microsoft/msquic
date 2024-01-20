@@ -148,15 +148,9 @@ if ($isWindows) {
 # Configure the dump collection.
 Configure-DumpCollection $Session
 
-if ($io -eq "xdp") {
-    # Install XDP if we're using it for IO.
-    Install-XDP $Session $RemoteDir
-}
-
-if ($io -eq "wsk") {
-    # Install the kernel drivers needed for testing.
-    Install-Kernel $Session $RemoteDir $SecNetPerfDir
-}
+# Install any dependent drivers.
+if ($io -eq "xdp") { Install-XDP $Session $RemoteDir }
+if ($io -eq "wsk") { Install-Kernel $Session $RemoteDir $SecNetPerfDir }
 
 if (!$isWindows) {
     # Make sure the secnetperf binary is executable.

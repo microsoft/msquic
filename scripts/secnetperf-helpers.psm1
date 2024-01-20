@@ -174,21 +174,21 @@ function Uninstall-Kernel {
 function Cleanup-State {
     param ($Session, $RemoteDir)
     Write-Host "Cleaning up any previous state"
-    Uninstall-XDP $Session $RemoteDir | Out-Null
-    Uninstall-Kernel $Session | Out-Null
     Get-Process | Where-Object { $_.Name -eq "secnetperf" } | Stop-Process
     Invoke-Command -Session $Session -ScriptBlock {
         Get-Process | Where-Object { $_.Name -eq "secnetperf" } | Stop-Process
     }
+    Uninstall-Kernel $Session | Out-Null
+    Uninstall-XDP $Session $RemoteDir | Out-Null
+    if ($null -ne (Get-Process | Where-Object { $_.Name -eq "secnetperf" })) { throw "secnetperf still running!" }
     if ($null -ne (Get-Service xdp -ErrorAction Ignore)) { throw "xdp still running!" }
     if ($null -ne (Get-Service msquicpriv -ErrorAction Ignore)) { throw "secnetperfdrvpriv still running!" }
     if ($null -ne (Get-Service msquicpriv -ErrorAction Ignore)) { throw "msquicpriv still running!" }
-    if ($null -ne (Get-Process | Where-Object { $_.Name -eq "secnetperf" })) { throw "secnetperf still running!" }
     Invoke-Command -Session $Session -ScriptBlock {
+        if ($null -ne (Get-Process | Where-Object { $_.Name -eq "secnetperf" })) { throw "secnetperf still running remotely!" }
         if ($null -ne (Get-Service xdp -ErrorAction Ignore)) { throw "xdp still running remotely!" }
         if ($null -ne (Get-Service msquicpriv -ErrorAction Ignore)) { throw "secnetperfdrvpriv still running remotely!" }
         if ($null -ne (Get-Service msquicpriv -ErrorAction Ignore)) { throw "msquicpriv still running remotely!" }
-        if ($null -ne (Get-Process | Where-Object { $_.Name -eq "secnetperf" })) { throw "secnetperf still running remotely!" }
     }
 }
 
@@ -270,8 +270,12 @@ function Start-LocalTest {
 # Use procdump64.exe to collect a dump of a local process.
 function Collect-LocalDump {
     param ($Process, $OutputDir)
-    $dumpExe = Repo-Path "artifacts/vm-setup/procdump64.exe"
-    if (!(Test-Path $dumpExe)) { return; }
+    if (!isWindows) { return } # Not supported on Windows
+    $dumpExe = Repo-Path "artifacts/corenet-ci-main/vm-setup/procdump64.exe"
+    if (!(Test-Path $dumpExe)) {
+        Write-Host "procdump64.exe not found!"
+        return;
+    }
     $dumpPath = Join-Path $OutputDir "secnetperf.$($Process.Id).dmp"
     $dumpArgs = "-accepteula -ma $($Process.Id) $dumpPath"
     & $dumpExe $dumpArgs
@@ -370,6 +374,7 @@ function Invoke-Secnetperf {
         .\scripts\log.ps1 -Start -Profile $LogProfile
     }
 
+    Write-Host "> secnetperf $serverArgs"
     Write-Host "> secnetperf $clientArgs"
 
     try {
@@ -415,7 +420,7 @@ function Invoke-Secnetperf {
                 try { & "$Using:RemoteDir/scripts/log.ps1" -Stop -OutputPath "$Using:RemoteDir/artifacts/logs/$Using:artifactName/server" -RawLogOnly }
                 catch { Write-Host "Failed to stop logging on server!" }
             }
-            try { Copy-Item -FromSession $Session "$RemoteDir/artifacts/logs/$artifactName/*" "./artifacts/logs/$artifactName/" }
+            try { Copy-Item -FromSession $Session "$RemoteDir/artifacts/logs/$artifactName/*" "./artifacts/logs/$artifactName/" -Recurse }
             catch { Write-Host "Failed to copy server logs!" }
         }
 
