@@ -138,12 +138,17 @@ mkdir ./artifacts/logs | Out-Null
 
 # Prepare the machines for the testing.
 if ($isWindows) { # TODO: Run on Linux too?
+    $prepareArgs = "-ForTest"
+    if ($io -eq "wsk") {
+        $prepareArgs += " -ForKernel"
+    }
+
     Write-Host "Preparing local machine for testing"
-    ./scripts/prepare-machine.ps1 -ForTest
+    iex "./scripts/prepare-machine.ps1 $prepareArgs"
 
     Write-Host "Preparing peer machine for testing"
     Invoke-Command -Session $Session -ScriptBlock {
-        iex "$Using:RemoteDir/scripts/prepare-machine.ps1 -ForTest"
+        iex "$Using:RemoteDir/scripts/prepare-machine.ps1 $Using:prepareArgs"
     }
 
     $HasTestSigning = $false
