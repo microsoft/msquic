@@ -281,12 +281,24 @@ function Collect-LocalDump {
     & $procDump -accepteula -ma $($Process.Id) $dumpPath
 }
 
+# Use livekd64.exe to collect a dump of the kernel.
+function Collect-LiveKD {
+    param ($OutputDir)
+    if (!$isWindows) { return } # Not supported on Windows
+    $liveKD = Repo-Path "artifacts/corenet-ci-main/vm-setup/livekd64.exe"
+    $KD = Repo-Path "artifacts/corenet-ci-main/vm-setup/kd.exe"
+    $dumpPath = Join-Path $OutputDir "kernel.dmp"
+    Write-Host "Capturing live kernel dump to $dumpPath"
+    & $liveKD -o $dumpPath -k $KD -ml -accepteula
+}
+
 # Waits for a local test process to complete, and then returns the console output.
 function Wait-LocalTest {
     param ($Process, $OutputDir, $TimeoutMs)
     $StdOut = $Process.StandardOutput.ReadToEndAsync()
     $StdError = $Process.StandardError.ReadToEndAsync()
     if (!$Process.WaitForExit($TimeoutMs)) {
+        Collect-LiveKD $OutputDir
         Collect-LocalDump $Process $OutputDir
         try { $Process.Kill() } catch { }
         try {
