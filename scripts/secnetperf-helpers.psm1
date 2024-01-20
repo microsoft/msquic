@@ -270,7 +270,7 @@ function Start-LocalTest {
 # Use procdump64.exe to collect a dump of a local process.
 function Collect-LocalDump {
     param ($Process, $OutputDir)
-    if (!isWindows) { return } # Not supported on Windows
+    if (!$isWindows) { return } # Not supported on Windows
     $dumpExe = Repo-Path "artifacts/corenet-ci-main/vm-setup/procdump64.exe"
     if (!(Test-Path $dumpExe)) {
         Write-Host "procdump64.exe not found!"
@@ -385,7 +385,7 @@ function Invoke-Secnetperf {
     # Run the test multiple times, failing (for now) only if all tries fail.
     # TODO: Once all failures have been fixed, consider all errors fatal.
     $successCount = 0
-    for ($try = 0; $try -lt 3; $try++) {
+    for ($try = 0; $try -lt 1; $try++) {
         try {
             $process = Start-LocalTest $clientPath $clientArgs $localDumpDir
             $rawOutput = Wait-LocalTest $process $localDumpDir 30000 # 1 minute timeout
