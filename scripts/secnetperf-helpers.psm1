@@ -152,17 +152,42 @@ function Install-Kernel {
 # Stops and uninstalls the WSK driver on both local and remote machines.
 function Uninstall-Kernel {
     param ($Session)
-    Write-Host "Stopping msquicpriv driver locally"
-    try { net.exe stop msquicpriv 2>&1 | Out-Null } catch {}
-    Write-Host "Stopping msquicpriv driver on peer"
+    Write-Host "Stopping kernel drivers locally"
+    try { net.exe stop secnetperfdrvpriv /y 2>&1 | Out-Null } catch {}
+    try { net.exe stop msquicpriv /y 2>&1 | Out-Null } catch {}
+    Write-Host "Stopping kernel drivers on peer"
     Invoke-Command -Session $Session -ScriptBlock {
-        try { net.exe stop msquicpriv 2>&1 | Out-Null } catch {}
+        try { net.exe stop secnetperfdrvpriv 2>&1 /y | Out-Null } catch {}
+        try { net.exe stop msquicpriv 2>&1 /y | Out-Null } catch {}
     }
-    Write-Host "Uninstalling msquicpriv driver locally"
-    try { sc.exe delete msquicpriv 2>&1 | Out-Null } catch {}
-    Write-Host "Uninstalling msquicpriv driver on peer"
+    Write-Host "Uninstalling drivers locally"
+    try { sc.exe delete secnetperfdrvpriv /y 2>&1 | Out-Null } catch {}
+    try { sc.exe delete msquicpriv /y 2>&1 | Out-Null } catch {}
+    Write-Host "Uninstalling drivers on peer"
     Invoke-Command -Session $Session -ScriptBlock {
-        try { sc.exe delete msquicpriv 2>&1 | Out-Null } catch {}
+        try { sc.exe delete secnetperfdrvpriv /y 2>&1 | Out-Null } catch {}
+        try { sc.exe delete msquicpriv /y 2>&1 | Out-Null } catch {}
+    }
+}
+
+# Cleans up all state after a run.
+function Cleanup-State {
+    param ($Session, $RemoteDir)
+    Uninstall-XDP $Session $RemoteDir | Out-Null
+    Uninstall-Kernel $Session | Out-Null
+    Get-Process | Where-Object { $_.Name -eq "secnetperf" } | Stop-Process
+    Invoke-Command -Session $Session -ScriptBlock {
+        Get-Process | Where-Object { $_.Name -eq "secnetperf" } | Stop-Process
+    }
+    if ($null -ne (Get-Service xdp -ErrorAction Ignore)) { throw "xdp still running!" }
+    if ($null -ne (Get-Service msquicpriv -ErrorAction Ignore)) { throw "secnetperfdrvpriv still running!" }
+    if ($null -ne (Get-Service msquicpriv -ErrorAction Ignore)) { throw "msquicpriv still running!" }
+    if ($null -ne (Get-Process | Where-Object { $_.Name -eq "secnetperf" })) { throw "secnetperf still running!" }
+    Invoke-Command -Session $Session -ScriptBlock {
+        if ($null -ne (Get-Service xdp -ErrorAction Ignore)) { throw "xdp still running remotely!" }
+        if ($null -ne (Get-Service msquicpriv -ErrorAction Ignore)) { throw "secnetperfdrvpriv still running remotely!" }
+        if ($null -ne (Get-Service msquicpriv -ErrorAction Ignore)) { throw "msquicpriv still running remotely!" }
+        if ($null -ne (Get-Process | Where-Object { $_.Name -eq "secnetperf" })) { throw "secnetperf still running remotely!" }
     }
 }
 

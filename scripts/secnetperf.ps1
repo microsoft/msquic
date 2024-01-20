@@ -91,10 +91,7 @@ if ($null -eq $Session) {
 }
 
 # Make sure nothing is running from a previous run.
-Write-Host "Killing any previous secnetperf on peer"
-Invoke-Command -Session $Session -ScriptBlock {
-    Get-Process | Where-Object { $_.Name -eq "secnetperf" } | Stop-Process
-}
+Cleanup-State $Session $RemoteDir
 
 if ($io -eq "wsk") {
     # WSK also needs the kernel mode binaries in the usermode path.
@@ -111,7 +108,7 @@ if ($io -eq "wsk") {
 # Copy the artifacts to the peer.
 Write-Host "Copying files to peer"
 Invoke-Command -Session $Session -ScriptBlock {
-    Remove-Item -Force -Recurse $Using:RemoteDir -ErrorAction Ignore | Out-Null
+    Remove-Item -Force -Recurse $Using:RemoteDir | Out-Null
     mkdir $Using:RemoteDir | Out-Null
 }
 Copy-Item -ToSession $Session ./artifacts -Destination "$RemoteDir/artifacts" -Recurse
@@ -232,8 +229,7 @@ Write-Host "Tests complete!"
 } finally {
 
     # Perform any necessary cleanup.
-    if ($io -eq "wsk") { Uninstall-Kernel $Session }
-    if ($io -eq "xdp") { Uninstall-XDP $Session $RemoteDir }
+    try { Cleanup-State $Session $RemoteDir} catch { }
 
     try {
         if (Get-ChildItem -Path ./artifacts/logs -File -Recurse) {
