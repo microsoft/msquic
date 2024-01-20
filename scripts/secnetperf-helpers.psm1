@@ -136,7 +136,7 @@ function Uninstall-XDP {
 function Install-Kernel {
     param ($Session, $RemoteDir, $SecNetPerfDir)
     $localSysPath = Repo-Path "$SecNetPerfDir/msquicpriv.sys"
-    $remoteSysPath = "$RemoteDir/msquicpriv.sys"
+    $remoteSysPath = Join-Path $RemoteDir "msquicpriv.sys"
     Write-Host "Installing msquicpriv locally"
     sc.exe create "msquicpriv" type= kernel binpath= $localSysPath start= demand | Out-Null
     net.exe start msquicpriv
@@ -151,16 +151,16 @@ function Install-Kernel {
 function Uninstall-Kernel {
     param ($Session)
     Write-Host "Stopping msquicpriv driver locally"
-    try { net.exe stop msquicpriv } catch {}
+    try { net.exe stop msquicpriv | Out-Null } catch {}
     Write-Host "Stopping msquicpriv driver on peer"
     Invoke-Command -Session $Session -ScriptBlock {
-        try { net.exe stop msquicpriv } catch {}
+        try { net.exe stop msquicpriv | Out-Null } catch {}
     }
     Write-Host "Uninstalling msquicpriv driver locally"
-    try { sc.exe delete msquicpriv } catch {}
+    try { sc.exe delete msquicpriv | Out-Null } catch {}
     Write-Host "Uninstalling msquicpriv driver on peer"
     Invoke-Command -Session $Session -ScriptBlock {
-        try { sc.exe delete msquicpriv } catch {}
+        try { sc.exe delete msquicpriv | Out-Null } catch {}
     }
 }
 
