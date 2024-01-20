@@ -271,14 +271,14 @@ function Start-LocalTest {
 function Collect-LocalDump {
     param ($Process, $OutputDir)
     if (!$isWindows) { return } # Not supported on Windows
-    $dumpExe = Repo-Path "artifacts/corenet-ci-main/vm-setup/procdump64.exe"
-    if (!(Test-Path $dumpExe)) {
+    $procDump = Repo-Path "artifacts/corenet-ci-main/vm-setup/procdump64.exe"
+    if (!(Test-Path $procDump)) {
         Write-Host "procdump64.exe not found!"
         return;
     }
     $dumpPath = Join-Path $OutputDir "secnetperf.$($Process.Id).dmp"
-    $dumpArgs = "-accepteula -ma $($Process.Id) $dumpPath"
-    & $dumpExe $dumpArgs
+    Write-Host "Capturing process dump of $($Process.Id) to $dumpPath"
+    & $procDump -accepteula -ma $($Process.Id) $dumpPath
 }
 
 # Waits for a local test process to complete, and then returns the console output.
