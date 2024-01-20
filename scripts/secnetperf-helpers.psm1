@@ -138,11 +138,12 @@ function Install-Kernel {
     $localSysPath = Repo-Path "$SecNetPerfDir/msquicpriv.sys"
     $remoteSysPath = Join-Path $RemoteDir "$SecNetPerfDir/msquicpriv.sys"
     Write-Host "Installing msquicpriv locally"
+    if (!(Test-Path $Using:localSysPath)) { throw "msquicpriv.sys not found!" }
     sc.exe create "msquicpriv" type= kernel binpath= $localSysPath start= demand | Out-Null
     net.exe start msquicpriv
     Write-Host "Installing msquicpriv on peer"
     Invoke-Command -Session $Session -ScriptBlock {
-        dir $Using:remoteSysPath
+        if (!(Test-Path $Using:remoteSysPath)) { throw "msquicpriv.sys not found!" }
         sc.exe create "msquicpriv" type= kernel binpath= $Using:remoteSysPath start= demand | Out-Null
         net.exe start msquicpriv
     }

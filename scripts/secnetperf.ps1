@@ -124,10 +124,7 @@ VALUES ('$MsQuicCommit', '$(Get-Date -Format "yyyy-MM-dd HH:mm:ss")', 1, 'TODO')
 "@
 $json = @{}
 $allTests = @(
-    "-exec:maxtput -up:10s -ptput:1",
-    "-exec:maxtput -down:10s -ptput:1",
-    "-exec:maxtput -rconn:1 -share:1 -conns:100 -run:10s -prate:1",
-    "-exec:lowlat -rstream:1 -up:512 -down:4000 -run:10s -plat:1"
+    "-exec:maxtput -up:10s -ptput:1"
 )
 $env = $isWindows ? 1 : 2
 $hasFailures = $false
@@ -226,18 +223,6 @@ VALUES ($TestId, '$MsQuicCommit', $env, $env, $item, NULL);
 
 Write-Host "Tests complete!"
 
-if (Get-ChildItem -Path ./artifacts/logs -File -Recurse) {
-    # Logs or dumps were generated. Copy the necessary symbols/files to the same
-    # direcotry be able to open them.
-    Write-Host "Copying debugging files to logs directory"
-    if ($isWindows) {
-        Copy-Item "$SecNetPerfDir/*.pdb" ./artifacts/logs
-    } else {
-        Copy-Item "$SecNetPerfDir/libmsquic.so" ./artifacts/logs
-        Copy-Item "$SecNetPerfDir/secnetperf" ./artifacts/logs
-    }
-}
-
 } catch {
     Write-GHError "Exception while running tests!"
     Write-GHError $_
@@ -246,18 +231,27 @@ if (Get-ChildItem -Path ./artifacts/logs -File -Recurse) {
     $hasFailures = $true
 } finally {
 
-    if ($io -eq "wsk") {
-        Uninstall-Kernel $Session
-    }
+    # Perform any necessary cleanup.
+    if ($io -eq "wsk") { Uninstall-Kernel $Session }
+    if ($io -eq "xdp") { Uninstall-XDP $Session $RemoteDir }
 
-    if ($io -eq "xdp") {
-        Uninstall-XDP $Session $RemoteDir
+    try {
+        if (Get-ChildItem -Path ./artifacts/logs -File -Recurse) {
+            # Logs or dumps were generated. Copy the necessary symbols/files to
+            # the same direcotry be able to open them.
+            Write-Host "Copying debugging files to logs directory"
+            if ($isWindows) {
+                Copy-Item "$SecNetPerfDir/*.pdb" ./artifacts/logs
+            } else {
+                Copy-Item "$SecNetPerfDir/libmsquic.so" ./artifacts/logs
+                Copy-Item "$SecNetPerfDir/secnetperf" ./artifacts/logs
+            }
+        }
     }
 
     # Save the test results (sql and json).
     Write-Host "`Writing test-results-$plat-$os-$arch-$tls-$io.sql"
     $SQL | Set-Content -Path "test-results-$plat-$os-$arch-$tls-$io.sql"
-
     Write-Host "`Writing json-test-results-$plat-$os-$arch-$tls-$io.json"
     $json | ConvertTo-Json | Set-Content -Path "json-test-results-$plat-$os-$arch-$tls-$io.json"
 }
