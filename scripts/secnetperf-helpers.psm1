@@ -142,6 +142,7 @@ function Install-Kernel {
     net.exe start msquicpriv
     Write-Host "Installing msquicpriv on peer"
     Invoke-Command -Session $Session -ScriptBlock {
+        dir $Using:remoteSysPath
         sc.exe create "msquicpriv" type= kernel binpath= $Using:remoteSysPath start= demand | Out-Null
         net.exe start msquicpriv
     }
