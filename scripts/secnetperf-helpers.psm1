@@ -203,17 +203,22 @@ function Cleanup-State {
     Invoke-Command -Session $Session -ScriptBlock {
         Get-Process | Where-Object { $_.Name -eq "secnetperf" } | Stop-Process
     }
-    Uninstall-Kernel $Session | Out-Null
-    Uninstall-XDP $Session $RemoteDir | Out-Null
     if ($null -ne (Get-Process | Where-Object { $_.Name -eq "secnetperf" })) { throw "secnetperf still running!" }
-    if ($null -ne (Get-Service xdp -ErrorAction Ignore)) { throw "xdp still running!" }
-    if ($null -ne (Get-Service msquicpriv -ErrorAction Ignore)) { throw "secnetperfdrvpriv still running!" }
-    if ($null -ne (Get-Service msquicpriv -ErrorAction Ignore)) { throw "msquicpriv still running!" }
     Invoke-Command -Session $Session -ScriptBlock {
         if ($null -ne (Get-Process | Where-Object { $_.Name -eq "secnetperf" })) { throw "secnetperf still running remotely!" }
-        if ($null -ne (Get-Service xdp -ErrorAction Ignore)) { throw "xdp still running remotely!" }
-        if ($null -ne (Get-Service msquicpriv -ErrorAction Ignore)) { throw "secnetperfdrvpriv still running remotely!" }
-        if ($null -ne (Get-Service msquicpriv -ErrorAction Ignore)) { throw "msquicpriv still running remotely!" }
+    }
+    if ($IsWindows) {
+        Uninstall-Kernel $Session | Out-Null
+        Uninstall-XDP $Session $RemoteDir | Out-Null
+        if ($null -ne (Get-Service xdp -ErrorAction Ignore)) { throw "xdp still running!" }
+        if ($null -ne (Get-Service msquicpriv -ErrorAction Ignore)) { throw "secnetperfdrvpriv still running!" }
+        if ($null -ne (Get-Service msquicpriv -ErrorAction Ignore)) { throw "msquicpriv still running!" }
+        Invoke-Command -Session $Session -ScriptBlock {
+            if ($null -ne (Get-Process | Where-Object { $_.Name -eq "secnetperf" })) { throw "secnetperf still running remotely!" }
+            if ($null -ne (Get-Service xdp -ErrorAction Ignore)) { throw "xdp still running remotely!" }
+            if ($null -ne (Get-Service msquicpriv -ErrorAction Ignore)) { throw "secnetperfdrvpriv still running remotely!" }
+            if ($null -ne (Get-Service msquicpriv -ErrorAction Ignore)) { throw "msquicpriv still running remotely!" }
+        }
     }
 }
 
