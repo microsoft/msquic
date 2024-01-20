@@ -140,7 +140,7 @@ mkdir ./artifacts/logs | Out-Null
 if ($isWindows) { # TODO: Run on Linux too?
     $prepareArgs = "-ForTest"
     if ($io -eq "wsk") {
-        $prepareArgs += " -ForKernel"
+        $prepareArgs += " -InstallSigningCertificates"
     }
 
     Write-Host "Preparing local machine for testing"
