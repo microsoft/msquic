@@ -121,7 +121,10 @@ VALUES ('$MsQuicCommit', '$(Get-Date -Format "yyyy-MM-dd HH:mm:ss")', 1, 'TODO')
 "@
 $json = @{}
 $allTests = @(
-    "-exec:maxtput -up:10s -ptput:1"
+    "-exec:maxtput -up:10s -ptput:1",
+    "-exec:maxtput -down:10s -ptput:1",
+    "-exec:maxtput -rconn:1 -share:1 -conns:100 -run:10s -prate:1",
+    "-exec:lowlat -rstream:1 -up:512 -down:4000 -run:10s -plat:1"
 )
 $env = $isWindows ? 1 : 2
 $hasFailures = $false

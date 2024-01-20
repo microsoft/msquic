@@ -83,6 +83,31 @@ function Collect-RemoteDumps {
     return $false
 }
 
+# Use procdump64.exe to collect a dump of a local process.
+function Collect-LocalDump {
+    param ($Process, $OutputDir)
+    if (!$isWindows) { return } # Not supported on Windows
+    $procDump = Repo-Path "artifacts/corenet-ci-main/vm-setup/procdump64.exe"
+    if (!(Test-Path $procDump)) {
+        Write-Host "procdump64.exe not found!"
+        return;
+    }
+    $dumpPath = Join-Path $OutputDir "secnetperf.$($Process.Id).dmp"
+    Write-Host "Capturing process dump of $($Process.Id) to $dumpPath"
+    & $procDump -accepteula -ma $($Process.Id) $dumpPath
+}
+
+# Use livekd64.exe to collect a dump of the kernel.
+function Collect-LiveKD {
+    param ($OutputDir)
+    if (!$isWindows) { return } # Not supported on Windows
+    $liveKD = Repo-Path "artifacts/corenet-ci-main/vm-setup/livekd64.exe"
+    $KD = Repo-Path "artifacts/corenet-ci-main/vm-setup/kd.exe"
+    $dumpPath = Join-Path $OutputDir "kernel.dmp"
+    Write-Host "Capturing live kernel dump to $dumpPath"
+    & $liveKD -o $dumpPath -k $KD -ml -accepteula
+}
+
 # Waits for a given driver to be started up to a given timeout.
 function Wait-DriverStarted {
     param ($DriverName, $TimeoutMs)
@@ -267,38 +292,13 @@ function Start-LocalTest {
     $p
 }
 
-# Use procdump64.exe to collect a dump of a local process.
-function Collect-LocalDump {
-    param ($Process, $OutputDir)
-    if (!$isWindows) { return } # Not supported on Windows
-    $procDump = Repo-Path "artifacts/corenet-ci-main/vm-setup/procdump64.exe"
-    if (!(Test-Path $procDump)) {
-        Write-Host "procdump64.exe not found!"
-        return;
-    }
-    $dumpPath = Join-Path $OutputDir "secnetperf.$($Process.Id).dmp"
-    Write-Host "Capturing process dump of $($Process.Id) to $dumpPath"
-    & $procDump -accepteula -ma $($Process.Id) $dumpPath
-}
-
-# Use livekd64.exe to collect a dump of the kernel.
-function Collect-LiveKD {
-    param ($OutputDir)
-    if (!$isWindows) { return } # Not supported on Windows
-    $liveKD = Repo-Path "artifacts/corenet-ci-main/vm-setup/livekd64.exe"
-    $KD = Repo-Path "artifacts/corenet-ci-main/vm-setup/kd.exe"
-    $dumpPath = Join-Path $OutputDir "kernel.dmp"
-    Write-Host "Capturing live kernel dump to $dumpPath"
-    & $liveKD -o $dumpPath -k $KD -ml -accepteula
-}
-
 # Waits for a local test process to complete, and then returns the console output.
 function Wait-LocalTest {
-    param ($Process, $OutputDir, $TimeoutMs)
+    param ($Process, $OutputDir, $testKernel, $TimeoutMs)
     $StdOut = $Process.StandardOutput.ReadToEndAsync()
     $StdError = $Process.StandardError.ReadToEndAsync()
     if (!$Process.WaitForExit($TimeoutMs)) {
-        Collect-LiveKD $OutputDir
+        if ($testKernel) { Collect-LiveKD $OutputDir }
         Collect-LocalDump $Process $OutputDir
         try { $Process.Kill() } catch { }
         try {
@@ -362,7 +362,7 @@ function Invoke-Secnetperf {
     $execMode = $ExeArgs.Substring(0, $ExeArgs.IndexOf(' ')) # First arg is the exec mode
     $clientPath = Repo-Path $SecNetPerfPath
     $serverArgs = "$execMode -io:$io"
-    $clientArgs = "-target:netperf-peer $ExeArgs -tcp:$tcp -trimout -watchdog:45000"
+    $clientArgs = "-target:netperf-peer $ExeArgs -tcp:$tcp -trimout -watchdog:25000"
     if ($io -eq "xdp") {
         $serverArgs += " -pollidle:10000"
         $clientArgs += " -pollidle:10000"
@@ -386,7 +386,6 @@ function Invoke-Secnetperf {
         .\scripts\log.ps1 -Start -Profile $LogProfile
     }
 
-    Write-Host "> secnetperf $serverArgs"
     Write-Host "> secnetperf $clientArgs"
 
     try {
@@ -397,10 +396,10 @@ function Invoke-Secnetperf {
     # Run the test multiple times, failing (for now) only if all tries fail.
     # TODO: Once all failures have been fixed, consider all errors fatal.
     $successCount = 0
-    for ($try = 0; $try -lt 1; $try++) {
+    for ($try = 0; $try -lt 3; $try++) {
         try {
             $process = Start-LocalTest $clientPath $clientArgs $localDumpDir
-            $rawOutput = Wait-LocalTest $process $localDumpDir 30000 # 1 minute timeout
+            $rawOutput = Wait-LocalTest $process $localDumpDir ($io -eq "wsk") 30000
             Write-Host $rawOutput
             $values[$tcp] += Get-TestOutput $rawOutput $metric
             $successCount++
