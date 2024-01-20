@@ -229,7 +229,7 @@ Write-Host "Tests complete!"
 } finally {
 
     # Perform any necessary cleanup.
-    try { Cleanup-State $Session $RemoteDir} catch { }
+    try { Cleanup-State $Session $RemoteDir } catch { }
 
     try {
         if (Get-ChildItem -Path ./artifacts/logs -File -Recurse) {

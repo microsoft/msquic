@@ -138,7 +138,7 @@ function Install-Kernel {
     $localSysPath = Repo-Path "$SecNetPerfDir/msquicpriv.sys"
     $remoteSysPath = Join-Path $RemoteDir "$SecNetPerfDir/msquicpriv.sys"
     Write-Host "Installing msquicpriv locally"
-    if (!(Test-Path $Using:localSysPath)) { throw "msquicpriv.sys not found!" }
+    if (!(Test-Path $localSysPath)) { throw "msquicpriv.sys not found!" }
     sc.exe create "msquicpriv" type= kernel binpath= $localSysPath start= demand | Out-Null
     net.exe start msquicpriv
     Write-Host "Installing msquicpriv on peer"
@@ -173,6 +173,7 @@ function Uninstall-Kernel {
 # Cleans up all state after a run.
 function Cleanup-State {
     param ($Session, $RemoteDir)
+    Write-Host "Cleaning up any previous state"
     Uninstall-XDP $Session $RemoteDir | Out-Null
     Uninstall-Kernel $Session | Out-Null
     Get-Process | Where-Object { $_.Name -eq "secnetperf" } | Stop-Process
