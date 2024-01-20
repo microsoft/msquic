@@ -274,10 +274,20 @@ function Wait-LocalTest {
     $StdError = $Process.StandardError.ReadToEndAsync()
     if (!$Process.WaitForExit($TimeoutMs)) {
         $Process.Kill() # TODO - Use procdump or livedump to get a dump first!
-        throw "secnetperf: Client timed out!"
+        $consoleTxt = ""
+        try {
+            [System.Threading.Tasks.Task]::WaitAll(@($StdOut, $StdError))
+            $consoleTxt = $StdOut.Result.Trim()
+        } catch {}
+        throw "secnetperf: Client timed out!`n$consoleTxt"
     }
     if ($Process.ExitCode -ne 0) {
-        throw "secnetperf: Nonzero exit code: $($Process.ExitCode)"
+        $consoleTxt = ""
+        try {
+            [System.Threading.Tasks.Task]::WaitAll(@($StdOut, $StdError))
+            $consoleTxt = $StdOut.Result.Trim()
+        } catch {}
+        throw "secnetperf: Nonzero exit code: $($Process.ExitCode)`n$consoleTxt"
     }
     [System.Threading.Tasks.Task]::WaitAll(@($StdOut, $StdError))
     $consoleTxt = $StdOut.Result.Trim()
