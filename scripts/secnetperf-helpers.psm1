@@ -267,27 +267,36 @@ function Start-LocalTest {
     $p
 }
 
+# Use procdump64.exe to collect a dump of a local process.
+function Collect-LocalDump {
+    param ($Process, $OutputDir)
+    $dumpExe = Repo-Path "artifacts/vm-setup/procdump64.exe"
+    if (!(Test-Path $dumpExe)) { return; }
+    $dumpPath = Join-Path $OutputDir "secnetperf.$($Process.Id).dmp"
+    $dumpArgs = "-accepteula -ma $($Process.Id) $dumpPath"
+    & $dumpExe $dumpArgs
+}
+
 # Waits for a local test process to complete, and then returns the console output.
 function Wait-LocalTest {
-    param ($Process, $TimeoutMs)
+    param ($Process, $OutputDir, $TimeoutMs)
     $StdOut = $Process.StandardOutput.ReadToEndAsync()
     $StdError = $Process.StandardError.ReadToEndAsync()
     if (!$Process.WaitForExit($TimeoutMs)) {
-        $Process.Kill() # TODO - Use procdump or livedump to get a dump first!
-        $consoleTxt = ""
+        Collect-LocalDump $Process $OutputDir
+        try { $Process.Kill() } catch { }
         try {
             [System.Threading.Tasks.Task]::WaitAll(@($StdOut, $StdError))
-            $consoleTxt = $StdOut.Result.Trim()
+            Write-Host $StdOut.Result.Trim()
         } catch {}
-        throw "secnetperf: Client timed out!`n$consoleTxt"
+        throw "secnetperf: Client timed out!"
     }
     if ($Process.ExitCode -ne 0) {
-        $consoleTxt = ""
         try {
             [System.Threading.Tasks.Task]::WaitAll(@($StdOut, $StdError))
-            $consoleTxt = $StdOut.Result.Trim()
+            Write-Host $StdOut.Result.Trim()
         } catch {}
-        throw "secnetperf: Nonzero exit code: $($Process.ExitCode)`n$consoleTxt"
+        throw "secnetperf: Nonzero exit code: $($Process.ExitCode)"
     }
     [System.Threading.Tasks.Task]::WaitAll(@($StdOut, $StdError))
     $consoleTxt = $StdOut.Result.Trim()
@@ -374,7 +383,7 @@ function Invoke-Secnetperf {
     for ($try = 0; $try -lt 3; $try++) {
         try {
             $process = Start-LocalTest $clientPath $clientArgs $localDumpDir
-            $rawOutput = Wait-LocalTest $process 60000 # 1 minute timeout
+            $rawOutput = Wait-LocalTest $process $localDumpDir 30000 # 1 minute timeout
             Write-Host $rawOutput
             $values[$tcp] += Get-TestOutput $rawOutput $metric
             $successCount++
