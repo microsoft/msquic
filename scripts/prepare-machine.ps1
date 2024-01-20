@@ -197,9 +197,9 @@ function Install-SigningCertificates {
 
     Write-Host "Installing driver signing certificates"
     try {
-        CertUtil.exe -addstore Root "$SetupPath\CoreNetSignRoot.cer"
-        CertUtil.exe -addstore TrustedPublisher "$SetupPath\CoreNetSignRoot.cer"
-        CertUtil.exe -addstore Root "$SetupPath\testroot-sha2.cer" # For duonic
+        CertUtil.exe -addstore Root "$SetupPath\CoreNetSignRoot.cer" 2>&1 | Out-Null
+        CertUtil.exe -addstore TrustedPublisher "$SetupPath\CoreNetSignRoot.cer" 2>&1 | Out-Null
+        CertUtil.exe -addstore Root "$SetupPath\testroot-sha2.cer" 2>&1 | Out-Null # For duonic
     } catch {
         Write-Host "WARNING: Exception encountered while installing signing certs. Drivers may not start!"
     }
@@ -337,7 +337,7 @@ function Install-TestCertificates {
         $RootCert = New-SelfSignedCertificate -Subject "CN=MsQuicTestRoot" -FriendlyName MsQuicTestRoot -KeyUsageProperty Sign -KeyUsage CertSign,DigitalSignature -CertStoreLocation cert:\CurrentUser\My -HashAlgorithm SHA256 -Provider "Microsoft Software Key Storage Provider" -KeyExportPolicy Exportable -KeyAlgorithm ECDSA_nistP521 -CurveExport CurveName -NotAfter(Get-Date).AddYears(5) -TextExtension @("2.5.29.19 = {text}ca=1&pathlength=0") -Type Custom
         $TempRootPath = Join-Path $Env:TEMP "MsQuicTestRoot.cer"
         Export-Certificate -Type CERT -Cert $RootCert -FilePath $TempRootPath
-        CertUtil.exe -addstore Root $TempRootPath
+        CertUtil.exe -addstore Root $TempRootPath 2>&1 | Out-Null
         Remove-Item $TempRootPath
         $NewRoot = $true
         Write-Host "New MsQuicTestRoot certificate installed!"
