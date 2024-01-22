@@ -679,7 +679,8 @@ typedef struct QUIC_SETTINGS {
             uint64_t EncryptionOffloadAllowed               : 1;
             uint64_t ReliableResetEnabled                   : 1;
             uint64_t OneWayDelayEnabled                     : 1;
-            uint64_t RESERVED                               : 23;
+            uint64_t NetStatsEventEnabled                   : 1;
+            uint64_t RESERVED                               : 22;
 #else
             uint64_t RESERVED                               : 26;
 #endif
@@ -728,7 +729,8 @@ typedef struct QUIC_SETTINGS {
             uint64_t EncryptionOffloadAllowed  : 1;
             uint64_t ReliableResetEnabled      : 1;
             uint64_t OneWayDelayEnabled        : 1;
-            uint64_t ReservedFlags             : 60;
+            uint64_t NetStatsEventEnabled      : 1;
+            uint64_t ReservedFlags             : 59;
 #else
             uint64_t ReservedFlags             : 63;
 #endif
@@ -1161,7 +1163,7 @@ typedef enum QUIC_CONNECTION_EVENT_TYPE {
 #ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
     QUIC_CONNECTION_EVENT_RELIABLE_RESET_NEGOTIATED         = 16,   // Only indicated if QUIC_SETTINGS.ReliableResetEnabled is TRUE.
     QUIC_CONNECTION_EVENT_ONE_WAY_DELAY_NEGOTIATED          = 17,   // Only indicated if QUIC_SETTINGS.OneWayDelayEnabled is TRUE.
-    QUIC_CONNECTION_EVENT_DATA_ACKED                        = 18,
+    QUIC_CONNECTION_EVENT_NETWORK_STATISTICS                = 18,   // Only indicated if QUIC_SETTINGS.EnableNetStatsEvent is TRUE.
 #endif
 } QUIC_CONNECTION_EVENT_TYPE;
 
@@ -1251,7 +1253,7 @@ typedef struct QUIC_CONNECTION_EVENT {
            uint64_t SmoothedRTT;                // Smoothed RTT value
            uint32_t CongestionWindow;           // Congestion Window
            uint64_t Bandwidth;                  // Estimated bandwidth
-        } DATA_ACKED;
+        } NETWORK_STATISTICS;
 #endif
     };
 } QUIC_CONNECTION_EVENT;

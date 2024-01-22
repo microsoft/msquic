@@ -71,6 +71,9 @@ void QuicTestConnectionRejection(bool RejectByClosing);
 //
 
 void QuicTestValidateConnectionEvents(uint32_t Test);
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
+void QuicTestValidateNetStatsConnEvent(uint32_t Test);
+#endif
 void QuicTestValidateStreamEvents(uint32_t Test);
 
 //
@@ -810,6 +813,10 @@ typedef struct {
 #define IOCTL_QUIC_RUN_VERSION_NEGOTIATION \
     QUIC_CTL_CODE(27, METHOD_BUFFERED, FILE_WRITE_DATA)
     // int - Family
+
+#define IOCTL_QUIC_RUN_VALIDATE_NET_STATS_CONN_EVENT \
+    QUIC_CTL_CODE(28, METHOD_BUFFERED, FILE_WRITE_DATA)
+    // uint32_t - Test
 
 #pragma pack(push)
 #pragma pack(1)

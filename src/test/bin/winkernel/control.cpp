@@ -918,6 +918,13 @@ QuicTestCtlEvtIoDeviceControl(
         QuicTestCtlRun(QuicTestValidateConnectionEvents(Params->Test));
         break;
 
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
+    case IOCTL_QUIC_RUN_VALIDATE_NET_STATS_CONN_EVENT:
+        CXPLAT_FRE_ASSERT(Params != nullptr);
+        QuicTestCtlRun(QuicTestValidateNetStatsConnEvents(Params->Test));
+        break;
+#endif
+
     case IOCTL_QUIC_RUN_VALIDATE_STREAM_EVENTS:
         CXPLAT_FRE_ASSERT(Params != nullptr);
         QuicTestCtlRun(QuicTestValidateStreamEvents(Params->Test));

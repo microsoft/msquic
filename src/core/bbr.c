@@ -301,7 +301,7 @@ QuicConnLogBbr(
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
-IndicateConnectionEvent(
+BbrCongestionControlIndicateConnectionEvent(
     _In_ QUIC_CONNECTION* const Connection,
     _In_ const QUIC_CONGESTION_CONTROL* Cc
     )
@@ -309,24 +309,24 @@ IndicateConnectionEvent(
     const QUIC_CONGESTION_CONTROL_BBR* Bbr = &Cc->Bbr;
     const QUIC_PATH* Path = &Connection->Paths[0];
     QUIC_CONNECTION_EVENT Event;
-    Event.Type = QUIC_CONNECTION_EVENT_DATA_ACKED;
-    Event.DATA_ACKED.BytesInFlight = Bbr->BytesInFlight;
-    Event.DATA_ACKED.PostedBytes = Connection->SendBuffer.PostedBytes;
-    Event.DATA_ACKED.IdealBytes = Connection->SendBuffer.IdealBytes;
-    Event.DATA_ACKED.SmoothedRTT = Path->SmoothedRtt;
-    Event.DATA_ACKED.CongestionWindow = BbrCongestionControlGetCongestionWindow(Cc);
-    Event.DATA_ACKED.Bandwidth = BbrCongestionControlGetBandwidth(Cc) / BW_UNIT;
+    Event.Type = QUIC_CONNECTION_EVENT_NETWORK_STATISTICS;
+    Event.NETWORK_STATISTICS.BytesInFlight = Bbr->BytesInFlight;
+    Event.NETWORK_STATISTICS.PostedBytes = Connection->SendBuffer.PostedBytes;
+    Event.NETWORK_STATISTICS.IdealBytes = Connection->SendBuffer.IdealBytes;
+    Event.NETWORK_STATISTICS.SmoothedRTT = Path->SmoothedRtt;
+    Event.NETWORK_STATISTICS.CongestionWindow = BbrCongestionControlGetCongestionWindow(Cc);
+    Event.NETWORK_STATISTICS.Bandwidth = BbrCongestionControlGetBandwidth(Cc) / BW_UNIT;
 
     QuicTraceLogConnVerbose(
         IndicateDataAcked,
         Connection,
-        "Indicating QUIC_CONNECTION_EVENT_DATA_ACKED [BytesInFlight=%u,PostedBytes=%llu,IdealBytes=%llu,SmoothedRTT=%llu,CongestionWindow=%u,Bandwidth=%llu]",
-        Event.DATA_ACKED.BytesInFlight,
-        Event.DATA_ACKED.PostedBytes,
-        Event.DATA_ACKED.IdealBytes,
-        Event.DATA_ACKED.SmoothedRTT,
-        Event.DATA_ACKED.CongestionWindow,
-        Event.DATA_ACKED.Bandwidth);
+        "Indicating QUIC_CONNECTION_EVENT_NETWORK_STATISTICS [BytesInFlight=%u,PostedBytes=%llu,IdealBytes=%llu,SmoothedRTT=%llu,CongestionWindow=%u,Bandwidth=%llu]",
+        Event.NETWORK_STATISTICS.BytesInFlight,
+        Event.NETWORK_STATISTICS.PostedBytes,
+        Event.NETWORK_STATISTICS.IdealBytes,
+        Event.NETWORK_STATISTICS.SmoothedRTT,
+        Event.NETWORK_STATISTICS.CongestionWindow,
+        Event.NETWORK_STATISTICS.Bandwidth);
     QuicConnIndicateEvent(Connection, &Event);
 }
 
@@ -770,7 +770,11 @@ BbrCongestionControlOnDataAcknowledged(
         BbrCongestionControlUpdateCongestionWindow(
             Cc, AckEvent->NumTotalAckedRetransmittableBytes, AckEvent->NumRetransmittableBytes);
 
-        IndicateConnectionEvent(Connection, Cc);
+#if defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
+	if (Connection->Settings.NetStatsEventEnabled) {
+	    BbrCongestionControlIndicateConnectionEvent(Connection, Cc);
+	}
+#endif
         return BbrCongestionControlUpdateBlockedState(Cc, PreviousCanSendState);
     }
 
@@ -880,7 +884,11 @@ BbrCongestionControlOnDataAcknowledged(
     BbrCongestionControlUpdateCongestionWindow(
         Cc, AckEvent->NumTotalAckedRetransmittableBytes, AckEvent->NumRetransmittableBytes);
 
-    IndicateConnectionEvent(Connection, Cc);
+#if defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
+    if (Connection->Settings.NetStatsEventEnabled) {
+        BbrCongestionControlIndicateConnectionEvent(Connection, Cc);
+    }
+#endif
     return BbrCongestionControlUpdateBlockedState(Cc, PreviousCanSendState);
 }
 

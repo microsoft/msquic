@@ -162,6 +162,9 @@ QuicSettingsSetDefault(
     if (!Settings->IsSet.OneWayDelayEnabled) {
         Settings->OneWayDelayEnabled = QUIC_DEFAULT_ONE_WAY_DELAY_ENABLED;
     }
+    if (!Settings->IsSet.NetStatsEventEnabled) {
+        Settings->NetStatsEventEnabled = QUIC_DEFAULT_NET_STATS_EVENT_ENABLED;
+    }
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -323,6 +326,9 @@ QuicSettingsCopy(
     }
     if (!Destination->IsSet.OneWayDelayEnabled) {
         Destination->OneWayDelayEnabled = Source->OneWayDelayEnabled;
+    }
+    if (!Destination->IsSet.NetStatsEventEnabled) {
+        Destination->NetStatsEventEnabled = Source->NetStatsEventEnabled;
     }
 }
 
@@ -690,6 +696,10 @@ QuicSettingApply(
         Destination->IsSet.OneWayDelayEnabled = TRUE;
     }
 
+    if (Source->IsSet.NetStatsEventEnabled && (!Destination->IsSet.NetStatsEventEnabled || OverWrite)) {
+        Destination->NetStatsEventEnabled = Source->NetStatsEventEnabled;
+        Destination->IsSet.NetStatsEventEnabled = TRUE;
+    }
     return TRUE;
 }
 
@@ -1338,6 +1348,16 @@ VersionSettingsFail:
             &ValueLen);
         Settings->OneWayDelayEnabled = !!Value;
     }
+    if (!Settings->IsSet.NetStatsEventEnabled) {
+        Value = QUIC_DEFAULT_NET_STATS_EVENT_ENABLED;
+        ValueLen = sizeof(Value);
+        CxPlatStorageReadValue(
+            Storage,
+            QUIC_SETTING_NET_STATS_EVENT_ENABLED,
+            (uint8_t*)&Value,
+            &ValueLen);
+        Settings->NetStatsEventEnabled = !!Value;
+    }
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -1405,6 +1425,7 @@ QuicSettingsDump(
     QuicTraceLogVerbose(SettingEncryptionOffloadAllowed,    "[sett] EncryptionOffloadAllowed = %hhu", Settings->EncryptionOffloadAllowed);
     QuicTraceLogVerbose(SettingReliableResetEnabled,        "[sett] ReliableResetEnabled   = %hhu", Settings->ReliableResetEnabled);
     QuicTraceLogVerbose(SettingOneWayDelayEnabled,          "[sett] OneWayDelayEnabled     = %hhu", Settings->OneWayDelayEnabled);
+    QuicTraceLogVerbose(SettingNetStatsEventEnabled,        "[sett] NetStatsEventEnabled   = %hhu", Settings->NetStatsEventEnabled);
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -1562,6 +1583,9 @@ QuicSettingsDumpNew(
     }
     if (Settings->IsSet.OneWayDelayEnabled) {
         QuicTraceLogVerbose(SettingOneWayDelayEnabled,              "[sett] OneWayDelayEnabled         = %hhu", Settings->OneWayDelayEnabled);
+    }
+    if (Settings->IsSet.NetStatsEventEnabled) {
+        QuicTraceLogVerbose(SettingNetStatsEventEnabled,            "[sett] NetStatsEventEnabled       = %hhu", Settings->NetStatsEventEnabled);
     }
 }
 
@@ -1811,6 +1835,14 @@ QuicSettingsSettingsToInternal(
         SettingsSize,
         InternalSettings);
 
+    SETTING_COPY_FLAG_TO_INTERNAL_SIZED(
+        Flags,
+        NetStatsEventEnabled,
+        QUIC_SETTINGS,
+        Settings,
+        SettingsSize,
+        InternalSettings);
+
     return QUIC_STATUS_SUCCESS;
 }
 
@@ -1957,7 +1989,16 @@ QuicSettingsGetSettings(
         *SettingsLength,
         InternalSettings);
 
-    SETTING_COPY_FROM_INTERNAL_SIZED(StreamRecvWindowUnidiDefault,
+    SETTING_COPY_FROM_INTERNAL_SIZED(
+        StreamRecvWindowUnidiDefault,
+        QUIC_SETTINGS,
+        Settings,
+        *SettingsLength,
+        InternalSettings);
+
+    SETTING_COPY_FLAG_FROM_INTERNAL_SIZED(
+        Flags,
+        NetStatsEventEnabled,
         QUIC_SETTINGS,
         Settings,
         *SettingsLength,
