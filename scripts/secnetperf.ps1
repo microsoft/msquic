@@ -91,15 +91,24 @@ if ($null -eq $Session) {
 }
 
 # Make sure nothing is running from a previous run.
-Write-Host "Killing any previous secnetperf on peer"
-Invoke-Command -Session $Session -ScriptBlock {
-    Get-Process | Where-Object { $_.Name -eq "secnetperf" } | Stop-Process
+Cleanup-State $Session $RemoteDir
+
+if ($io -eq "wsk") {
+    # WSK also needs the kernel mode binaries in the usermode path.
+    Write-Host "Moving kernel binaries to usermode path"
+    $KernelDir = "artifacts/bin/winkernel/$($arch)_Release_$tls"
+    Copy-Item "$KernelDir/secnetperfdrvpriv.sys" $SecNetPerfDir
+    Copy-Item "$KernelDir/secnetperfdrvpriv.pdb" $SecNetPerfDir
+    Copy-Item "$KernelDir/msquicpriv.sys" $SecNetPerfDir
+    Copy-Item "$KernelDir/msquicpriv.pdb" $SecNetPerfDir
+    # Remove all the other kernel binaries since we don't need them any more.
+    Remove-Item -Force -Recurse $KernelDir | Out-Null
 }
 
 # Copy the artifacts to the peer.
 Write-Host "Copying files to peer"
 Invoke-Command -Session $Session -ScriptBlock {
-    Remove-Item -Force -Recurse $Using:RemoteDir -ErrorAction Ignore | Out-Null
+    Remove-Item -Force -Recurse $Using:RemoteDir | Out-Null
     mkdir $Using:RemoteDir | Out-Null
 }
 Copy-Item -ToSession $Session ./artifacts -Destination "$RemoteDir/artifacts" -Recurse
@@ -128,13 +137,13 @@ try {
 mkdir ./artifacts/logs | Out-Null
 
 # Prepare the machines for the testing.
-if ($isWindows) { # TODO: Run on Linux too?
+if ($isWindows) {
     Write-Host "Preparing local machine for testing"
-    ./scripts/prepare-machine.ps1 -ForTest
+    ./scripts/prepare-machine.ps1 -ForTest -InstallSigningCertificates
 
     Write-Host "Preparing peer machine for testing"
     Invoke-Command -Session $Session -ScriptBlock {
-        iex "$Using:RemoteDir/scripts/prepare-machine.ps1 -ForTest"
+        & "$Using:RemoteDir/scripts/prepare-machine.ps1" -ForTest -InstallSigningCertificates
     }
 
     $HasTestSigning = $false
@@ -145,10 +154,9 @@ if ($isWindows) { # TODO: Run on Linux too?
 # Configure the dump collection.
 Configure-DumpCollection $Session
 
-if ($io -eq "xdp") {
-    # Install XDP if we're using it for IO.
-    Install-XDP $Session $RemoteDir
-}
+# Install any dependent drivers.
+if ($io -eq "xdp") { Install-XDP $Session $RemoteDir }
+if ($io -eq "wsk") { Install-Kernel $Session $RemoteDir $SecNetPerfDir }
 
 if (!$isWindows) {
     # Make sure the secnetperf binary is executable.
@@ -179,9 +187,6 @@ if (!$isWindows) {
 Write-Host "Setup complete! Running all tests"
 for ($testId in $allTests.Keys) {
     $ExeArgs = $allTests[$testId] + " -io:$io"
-    if ($io -eq "xdp") {
-        $ExeArgs += " -pollidle:10000"
-    }
     $Output = Invoke-Secnetperf $Session $RemoteName $RemoteDir $SecNetPerfPath $LogProfile $ExeArgs $io
     $Test = $Output[-1]
     if ($Test.HasFailures) { $hasFailures = $true }
@@ -222,18 +227,6 @@ VALUES ($TestId-tcp-$tcp, '$MsQuicCommit', $env, $env, NULL, LAST_INSERT_ROWID()
 
 Write-Host "Tests complete!"
 
-if (Get-ChildItem -Path ./artifacts/logs -File -Recurse) {
-    # Logs or dumps were generated. Copy the necessary symbols/files to the same
-    # direcotry be able to open them.
-    Write-Host "Copying debugging files to logs directory"
-    if ($isWindows) {
-        Copy-Item "$SecNetPerfDir/*.pdb" ./artifacts/logs
-    } else {
-        Copy-Item "$SecNetPerfDir/libmsquic.so" ./artifacts/logs
-        Copy-Item "$SecNetPerfDir/secnetperf" ./artifacts/logs
-    }
-}
-
 } catch {
     Write-GHError "Exception while running tests!"
     Write-GHError $_
@@ -242,14 +235,26 @@ if (Get-ChildItem -Path ./artifacts/logs -File -Recurse) {
     $hasFailures = $true
 } finally {
 
-    if ($io -eq "xdp") {
-        Uninstall-XDP $Session $RemoteDir
-    }
+    # Perform any necessary cleanup.
+    try { Cleanup-State $Session $RemoteDir } catch { }
+
+    try {
+        if (Get-ChildItem -Path ./artifacts/logs -File -Recurse) {
+            # Logs or dumps were generated. Copy the necessary symbols/files to
+            # the same direcotry be able to open them.
+            Write-Host "Copying debugging files to logs directory"
+            if ($isWindows) {
+                Copy-Item "$SecNetPerfDir/*.pdb" ./artifacts/logs
+            } else {
+                Copy-Item "$SecNetPerfDir/libmsquic.so" ./artifacts/logs
+                Copy-Item "$SecNetPerfDir/secnetperf" ./artifacts/logs
+            }
+        }
+    } catch { }
 
     # Save the test results (sql and json).
     Write-Host "`Writing test-results-$plat-$os-$arch-$tls-$io.sql"
     $SQL | Set-Content -Path "test-results-$plat-$os-$arch-$tls-$io.sql"
-
     Write-Host "`Writing json-test-results-$plat-$os-$arch-$tls-$io.json"
     $json | ConvertTo-Json | Set-Content -Path "json-test-results-$plat-$os-$arch-$tls-$io.json"
 }
