@@ -83,6 +83,31 @@ function Collect-RemoteDumps {
     return $false
 }
 
+# Use procdump64.exe to collect a dump of a local process.
+function Collect-LocalDump {
+    param ($Process, $OutputDir)
+    if (!$isWindows) { return } # Not supported on Windows
+    $procDump = Repo-Path "artifacts/corenet-ci-main/vm-setup/procdump64.exe"
+    if (!(Test-Path $procDump)) {
+        Write-Host "procdump64.exe not found!"
+        return;
+    }
+    $dumpPath = Join-Path $OutputDir "secnetperf.$($Process.Id).dmp"
+    Write-Host "Capturing process dump of $($Process.Id) to $dumpPath"
+    & $procDump -accepteula -ma $($Process.Id) $dumpPath
+}
+
+# Use livekd64.exe to collect a dump of the kernel.
+function Collect-LiveKD {
+    param ($OutputDir)
+    if (!$isWindows) { return } # Not supported on Windows
+    $liveKD = Repo-Path "artifacts/corenet-ci-main/vm-setup/livekd64.exe"
+    $KD = Repo-Path "artifacts/corenet-ci-main/vm-setup/kd.exe"
+    $dumpPath = Join-Path $OutputDir "kernel.dmp"
+    Write-Host "Capturing live kernel dump to $dumpPath"
+    & $liveKD -o $dumpPath -k $KD -ml -accepteula
+}
+
 # Waits for a given driver to be started up to a given timeout.
 function Wait-DriverStarted {
     param ($DriverName, $TimeoutMs)
@@ -129,6 +154,71 @@ function Uninstall-XDP {
     Write-Host "Uninstalling XDP driver on peer"
     Invoke-Command -Session $Session -ScriptBlock {
         try { msiexec.exe /x $Using:remoteMsiPath /quiet | Out-Null } catch {}
+    }
+}
+
+# Installs the necessary drivers to run WSK tests.
+function Install-Kernel {
+    param ($Session, $RemoteDir, $SecNetPerfDir)
+    $localSysPath = Repo-Path "$SecNetPerfDir/msquicpriv.sys"
+    $remoteSysPath = Join-Path $RemoteDir "$SecNetPerfDir/msquicpriv.sys"
+    Write-Host "Installing msquicpriv locally"
+    if (!(Test-Path $localSysPath)) { throw "msquicpriv.sys not found!" }
+    sc.exe create "msquicpriv" type= kernel binpath= $localSysPath start= demand | Out-Null
+    net.exe start msquicpriv
+    Write-Host "Installing msquicpriv on peer"
+    Invoke-Command -Session $Session -ScriptBlock {
+        if (!(Test-Path $Using:remoteSysPath)) { throw "msquicpriv.sys not found!" }
+        sc.exe create "msquicpriv" type= kernel binpath= $Using:remoteSysPath start= demand | Out-Null
+        net.exe start msquicpriv
+    }
+}
+
+# Stops and uninstalls the WSK driver on both local and remote machines.
+function Uninstall-Kernel {
+    param ($Session)
+    Write-Host "Stopping kernel drivers locally"
+    try { net.exe stop secnetperfdrvpriv /y 2>&1 | Out-Null } catch {}
+    try { net.exe stop msquicpriv /y 2>&1 | Out-Null } catch {}
+    Write-Host "Stopping kernel drivers on peer"
+    Invoke-Command -Session $Session -ScriptBlock {
+        try { net.exe stop secnetperfdrvpriv 2>&1 /y | Out-Null } catch {}
+        try { net.exe stop msquicpriv 2>&1 /y | Out-Null } catch {}
+    }
+    Write-Host "Uninstalling drivers locally"
+    try { sc.exe delete secnetperfdrvpriv /y 2>&1 | Out-Null } catch {}
+    try { sc.exe delete msquicpriv /y 2>&1 | Out-Null } catch {}
+    Write-Host "Uninstalling drivers on peer"
+    Invoke-Command -Session $Session -ScriptBlock {
+        try { sc.exe delete secnetperfdrvpriv /y 2>&1 | Out-Null } catch {}
+        try { sc.exe delete msquicpriv /y 2>&1 | Out-Null } catch {}
+    }
+}
+
+# Cleans up all state after a run.
+function Cleanup-State {
+    param ($Session, $RemoteDir)
+    Write-Host "Cleaning up any previous state"
+    Get-Process | Where-Object { $_.Name -eq "secnetperf" } | Stop-Process
+    Invoke-Command -Session $Session -ScriptBlock {
+        Get-Process | Where-Object { $_.Name -eq "secnetperf" } | Stop-Process
+    }
+    if ($null -ne (Get-Process | Where-Object { $_.Name -eq "secnetperf" })) { throw "secnetperf still running!" }
+    Invoke-Command -Session $Session -ScriptBlock {
+        if ($null -ne (Get-Process | Where-Object { $_.Name -eq "secnetperf" })) { throw "secnetperf still running remotely!" }
+    }
+    if ($IsWindows) {
+        Uninstall-Kernel $Session | Out-Null
+        Uninstall-XDP $Session $RemoteDir | Out-Null
+        if ($null -ne (Get-Service xdp -ErrorAction Ignore)) { throw "xdp still running!" }
+        if ($null -ne (Get-Service msquicpriv -ErrorAction Ignore)) { throw "secnetperfdrvpriv still running!" }
+        if ($null -ne (Get-Service msquicpriv -ErrorAction Ignore)) { throw "msquicpriv still running!" }
+        Invoke-Command -Session $Session -ScriptBlock {
+            if ($null -ne (Get-Process | Where-Object { $_.Name -eq "secnetperf" })) { throw "secnetperf still running remotely!" }
+            if ($null -ne (Get-Service xdp -ErrorAction Ignore)) { throw "xdp still running remotely!" }
+            if ($null -ne (Get-Service msquicpriv -ErrorAction Ignore)) { throw "secnetperfdrvpriv still running remotely!" }
+            if ($null -ne (Get-Service msquicpriv -ErrorAction Ignore)) { throw "msquicpriv still running remotely!" }
+        }
     }
 }
 
@@ -209,14 +299,24 @@ function Start-LocalTest {
 
 # Waits for a local test process to complete, and then returns the console output.
 function Wait-LocalTest {
-    param ($Process, $TimeoutMs)
+    param ($Process, $OutputDir, $testKernel, $TimeoutMs)
     $StdOut = $Process.StandardOutput.ReadToEndAsync()
     $StdError = $Process.StandardError.ReadToEndAsync()
     if (!$Process.WaitForExit($TimeoutMs)) {
-        $Process.Kill() # TODO - Use procdump or livedump to get a dump first!
+        if ($testKernel) { Collect-LiveKD $OutputDir }
+        Collect-LocalDump $Process $OutputDir
+        try { $Process.Kill() } catch { }
+        try {
+            [System.Threading.Tasks.Task]::WaitAll(@($StdOut, $StdError))
+            Write-Host $StdOut.Result.Trim()
+        } catch {}
         throw "secnetperf: Client timed out!"
     }
     if ($Process.ExitCode -ne 0) {
+        try {
+            [System.Threading.Tasks.Task]::WaitAll(@($StdOut, $StdError))
+            Write-Host $StdOut.Result.Trim()
+        } catch {}
         throw "secnetperf: Nonzero exit code: $($Process.ExitCode)"
     }
     [System.Threading.Tasks.Task]::WaitAll(@($StdOut, $StdError))
@@ -264,10 +364,18 @@ function Invoke-Secnetperf {
     for ($tcp = 0; $tcp -le $tcpSupported; $tcp++) {
 
     # Set up all the parameters and paths for running the test.
-    Write-Host "> secnetperf $ExeArgs -tcp:$tcp"
     $execMode = $ExeArgs.Substring(0, $ExeArgs.IndexOf(' ')) # First arg is the exec mode
-    $fullPath = Repo-Path $SecNetPerfPath
-    $fullArgs = "-target:netperf-peer $ExeArgs -tcp:$tcp -trimout -watchdog:45000"
+    $clientPath = Repo-Path $SecNetPerfPath
+    $serverArgs = "$execMode -io:$io"
+    $clientArgs = "-target:netperf-peer $ExeArgs -tcp:$tcp -trimout -watchdog:25000"
+    if ($io -eq "xdp") {
+        $serverArgs += " -pollidle:10000"
+        $clientArgs += " -pollidle:10000"
+    }
+    if ($io -eq "wsk") {
+        $serverArgs += " -driverNamePriv:secnetperfdrvpriv"
+        $clientArgs += " -driverNamePriv:secnetperfdrvpriv"
+    }
     $artifactName = $tcp -eq 0 ? "$metric-quic" : "$metric-tcp"
     New-Item -ItemType Directory "artifacts/logs/$artifactName" -ErrorAction Ignore | Out-Null
     $localDumpDir = Repo-Path "artifacts/logs/$artifactName/clientdumps"
@@ -283,18 +391,20 @@ function Invoke-Secnetperf {
         .\scripts\log.ps1 -Start -Profile $LogProfile
     }
 
+    Write-Host "> secnetperf $clientArgs"
+
     try {
 
     # Start the server running.
-    $job = Start-RemoteServer $Session "$RemoteDir/$SecNetPerfPath $execMode"
+    $job = Start-RemoteServer $Session "$RemoteDir/$SecNetPerfPath $serverArgs"
 
     # Run the test multiple times, failing (for now) only if all tries fail.
     # TODO: Once all failures have been fixed, consider all errors fatal.
     $successCount = 0
     for ($try = 0; $try -lt 3; $try++) {
         try {
-            $process = Start-LocalTest $fullPath $fullArgs $localDumpDir
-            $rawOutput = Wait-LocalTest $process 60000 # 1 minute timeout
+            $process = Start-LocalTest $clientPath $clientArgs $localDumpDir
+            $rawOutput = Wait-LocalTest $process $localDumpDir ($io -eq "wsk") 30000
             Write-Host $rawOutput
             $values[$tcp] += Get-TestOutput $rawOutput $metric
             $successCount++
@@ -326,7 +436,7 @@ function Invoke-Secnetperf {
                 try { & "$Using:RemoteDir/scripts/log.ps1" -Stop -OutputPath "$Using:RemoteDir/artifacts/logs/$Using:artifactName/server" -RawLogOnly }
                 catch { Write-Host "Failed to stop logging on server!" }
             }
-            try { Copy-Item -FromSession $Session "$RemoteDir/artifacts/logs/$artifactName/*" "./artifacts/logs/$artifactName/" }
+            try { Copy-Item -FromSession $Session "$RemoteDir/artifacts/logs/$artifactName/*" "./artifacts/logs/$artifactName/" -Recurse }
             catch { Write-Host "Failed to copy server logs!" }
         }
 
