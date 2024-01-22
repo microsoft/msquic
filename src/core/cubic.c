@@ -669,6 +669,29 @@ Exit:
 
     Cubic->TimeOfLastAck = TimeNowUs;
     Cubic->TimeOfLastAckValid = TRUE;
+
+    const QUIC_PATH* Path = &Connection->Paths[0];
+    QUIC_CONNECTION_EVENT Event;
+    Event.Type = QUIC_CONNECTION_EVENT_DATA_ACKED;
+    Event.DATA_ACKED.BytesInFlight = Cubic->BytesInFlight;
+    Event.DATA_ACKED.PostedBytes = Connection->SendBuffer.PostedBytes;
+    Event.DATA_ACKED.IdealBytes = Connection->SendBuffer.IdealBytes;
+    Event.DATA_ACKED.SmoothedRTT = Path->SmoothedRtt;
+    Event.DATA_ACKED.CongestionWindow = Cubic->CongestionWindow;
+    Event.DATA_ACKED.Bandwidth = Cubic->CongestionWindow / Path->SmoothedRtt;
+
+    QuicTraceLogConnVerbose(
+        IndicateDataAcked,
+        Connection,
+        "Indicating QUIC_CONNECTION_EVENT_DATA_ACKED [BytesInFlight=%u,PostedBytes=%llu,IdealBytes=%llu,SmoothedRTT=%llu,CongestionWindow=%u,Bandwidth=%llu]",
+        Event.DATA_ACKED.BytesInFlight,
+        Event.DATA_ACKED.PostedBytes,
+        Event.DATA_ACKED.IdealBytes,
+        Event.DATA_ACKED.SmoothedRTT,
+        Event.DATA_ACKED.CongestionWindow,
+        Event.DATA_ACKED.Bandwidth);
+    QuicConnIndicateEvent(Connection, &Event);
+
     return CubicCongestionControlUpdateBlockedState(Cc, PreviousCanSendState);
 }
 

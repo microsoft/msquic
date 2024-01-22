@@ -1161,6 +1161,7 @@ typedef enum QUIC_CONNECTION_EVENT_TYPE {
 #ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
     QUIC_CONNECTION_EVENT_RELIABLE_RESET_NEGOTIATED         = 16,   // Only indicated if QUIC_SETTINGS.ReliableResetEnabled is TRUE.
     QUIC_CONNECTION_EVENT_ONE_WAY_DELAY_NEGOTIATED          = 17,   // Only indicated if QUIC_SETTINGS.OneWayDelayEnabled is TRUE.
+    QUIC_CONNECTION_EVENT_DATA_ACKED                        = 18,
 #endif
 } QUIC_CONNECTION_EVENT_TYPE;
 
@@ -1243,6 +1244,14 @@ typedef struct QUIC_CONNECTION_EVENT {
             BOOLEAN SendNegotiated;             // TRUE if sending one-way delay timestamps is negotiated.
             BOOLEAN ReceiveNegotiated;          // TRUE if receiving one-way delay timestamps is negotiated.
         } ONE_WAY_DELAY_NEGOTIATED;
+        struct {
+           uint32_t BytesInFlight;              // Bytes that were sent on the wire, but not yet acked
+           uint64_t PostedBytes;                // Total bytes queued, but not yet acked. These may contain sent bytes that may have portentially lost too.
+           uint64_t IdealBytes;                 // Ideal number of bytes required to be available to  avoid limiting throughput
+           uint64_t SmoothedRTT;                // Smoothed RTT value
+           uint32_t CongestionWindow;           // Congestion Window
+           uint64_t Bandwidth;                  // Estimated bandwidth
+        } DATA_ACKED;
 #endif
     };
 } QUIC_CONNECTION_EVENT;

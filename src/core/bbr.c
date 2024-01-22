@@ -300,6 +300,37 @@ QuicConnLogBbr(
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
+void
+IndicateConnectionEvent(
+    _In_ QUIC_CONNECTION* const Connection,
+    _In_ const QUIC_CONGESTION_CONTROL* Cc
+    )
+{
+    const QUIC_CONGESTION_CONTROL_BBR* Bbr = &Cc->Bbr;
+    const QUIC_PATH* Path = &Connection->Paths[0];
+    QUIC_CONNECTION_EVENT Event;
+    Event.Type = QUIC_CONNECTION_EVENT_DATA_ACKED;
+    Event.DATA_ACKED.BytesInFlight = Bbr->BytesInFlight;
+    Event.DATA_ACKED.PostedBytes = Connection->SendBuffer.PostedBytes;
+    Event.DATA_ACKED.IdealBytes = Connection->SendBuffer.IdealBytes;
+    Event.DATA_ACKED.SmoothedRTT = Path->SmoothedRtt;
+    Event.DATA_ACKED.CongestionWindow = BbrCongestionControlGetCongestionWindow(Cc);
+    Event.DATA_ACKED.Bandwidth = BbrCongestionControlGetBandwidth(Cc) / BW_UNIT;
+
+    QuicTraceLogConnVerbose(
+        IndicateDataAcked,
+        Connection,
+        "Indicating QUIC_CONNECTION_EVENT_DATA_ACKED [BytesInFlight=%u,PostedBytes=%llu,IdealBytes=%llu,SmoothedRTT=%llu,CongestionWindow=%u,Bandwidth=%llu]",
+        Event.DATA_ACKED.BytesInFlight,
+        Event.DATA_ACKED.PostedBytes,
+        Event.DATA_ACKED.IdealBytes,
+        Event.DATA_ACKED.SmoothedRTT,
+        Event.DATA_ACKED.CongestionWindow,
+        Event.DATA_ACKED.Bandwidth);
+    QuicConnIndicateEvent(Connection, &Event);
+}
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
 BOOLEAN
 BbrCongestionControlCanSend(
     _In_ QUIC_CONGESTION_CONTROL* Cc
@@ -739,6 +770,7 @@ BbrCongestionControlOnDataAcknowledged(
         BbrCongestionControlUpdateCongestionWindow(
             Cc, AckEvent->NumTotalAckedRetransmittableBytes, AckEvent->NumRetransmittableBytes);
 
+        IndicateConnectionEvent(Connection, Cc);
         return BbrCongestionControlUpdateBlockedState(Cc, PreviousCanSendState);
     }
 
@@ -848,6 +880,7 @@ BbrCongestionControlOnDataAcknowledged(
     BbrCongestionControlUpdateCongestionWindow(
         Cc, AckEvent->NumTotalAckedRetransmittableBytes, AckEvent->NumRetransmittableBytes);
 
+    IndicateConnectionEvent(Connection, Cc);
     return BbrCongestionControlUpdateBlockedState(Cc, PreviousCanSendState);
 }
 
