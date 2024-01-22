@@ -185,7 +185,7 @@ if (!$isWindows) {
 
 # Run all the test cases.
 Write-Host "Setup complete! Running all tests"
-for ($testId in $allTests.Keys) {
+foreach ($testId in $allTests.Keys) {
     $ExeArgs = $allTests[$testId] + " -io:$io"
     $Output = Invoke-Secnetperf $Session $RemoteName $RemoteDir $SecNetPerfPath $LogProfile $ExeArgs $io
     $Test = $Output[-1]
