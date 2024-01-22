@@ -14,6 +14,7 @@ Abstract:
 #include <map>
 #include <mutex>
 #include <algorithm>
+#include <list>
 
 #define QUIC_TEST_APIS 1 // Needed for self signed cert API
 #define QUIC_API_ENABLE_INSECURE_FEATURES 1 // Needed for disabling 1-RTT encryption
@@ -24,13 +25,16 @@ Abstract:
 #include "msquichelper.h"
 #include "msquic.hpp"
 
+
 const MsQuicApi* MsQuic;
 uint64_t MagicCid = 0x989898989898989ull;
 const QUIC_HKDF_LABELS HkdfLabels = { "quic key", "quic iv", "quic hp", "quic ku" };
 uint64_t RunTimeMs = 60000;
+HANDLE RecvPacketEvent;
+std::list<QUIC_RX_PACKET> PacketQueue;
 
 static const char* Alpn = "fuzz";
-static uint32_t Version = QUIC_VERSION_DRAFT_29;
+static uint32_t Version = QUIC_VERSION_1;
 const char* Sni = "localhost";
 
 #define QUIC_MIN_INITIAL_LENGTH 1200
@@ -105,11 +109,29 @@ _IRQL_requires_max_(DISPATCH_LEVEL)
 _Function_class_(CXPLAT_DATAPATH_RECEIVE_CALLBACK)
 void
 UdpRecvCallback( 
-    _In_ CXPLAT_SOCKET* /* Binding */,
-    _In_ void* /* Context */,
+    _In_ CXPLAT_SOCKET* Binding ,
+    _In_ void* Context,
     _In_ CXPLAT_RECV_DATA* RecvBufferChain
     )
 {
+    CXPLAT_RECV_DATA* Datagram;
+    const uint16_t Partition = RecvBufferChain->PartitionIndex;
+    const uint64_t PartitionShifted = ((uint64_t)Partition + 1) << 40;
+    while ((Datagram = RecvBufferChain) != NULL) {
+
+        RecvBufferChain = Datagram->Next;
+        Datagram->Next = NULL;
+
+        uint8_t *Buffer = Datagram->Buffer;
+        uint16_t Length = Datagram->BufferLength;
+        QUIC_RX_PACKET* Packet = (QUIC_RX_PACKET*)Datagram;
+        Packet->PacketId =
+            PartitionShifted | InterlockedIncrement64((int64_t*)&QuicLibraryGetPerProc()->ReceivePacketId);
+        Packet->AvailBuffer = Datagram->Buffer;
+        Packet->AvailBufferLength = Datagram->BufferLength;
+        PacketQueue.push_back(*Packet);
+    }
+    SetEvent(RecvPacketEvent);
     CxPlatRecvDataReturn(RecvBufferChain);
 }
 
@@ -134,7 +156,6 @@ struct TlsContext
     TlsContext()  {
         AlpnListBuffer[0] = (uint8_t)strlen(Alpn);
         memcpy(&AlpnListBuffer[1], Alpn, AlpnListBuffer[0]);
-
         CxPlatZeroMemory(&State, sizeof(State));
         State.Buffer = (uint8_t*)CXPLAT_ALLOC_NONPAGED(8000, QUIC_POOL_TOOL);
         State.BufferAllocLength = 8000;
@@ -319,6 +340,30 @@ private:
     }
 };
  
+void WriteAckFrame(
+    _In_ uint64_t AcknowldedgePacket,
+    _Inout_ uint16_t Offset,
+    _In_ uint16_t BufferLength,
+    _Out_writes_to_(BufferLength, *Offset) uint8_t* Buffer
+)
+{
+    QUIC_RANGE AckRange;
+    QuicRangeInitialize(QUIC_MAX_RANGE_DECODE_ACKS, &AckRange);
+    BOOLEAN RangeUpdated;
+    QuicRangeAddRange(&AckRange, AcknowldedgePacket, 1, &RangeUpdated);
+    uint64_t AckDelay = 40;
+    if (!QuicAckFrameEncode(
+            &AckRange, 
+            AckDelay, 
+            nullptr, 
+            &Offset, 
+            BufferLength, 
+            Buffer)) {
+        printf("QuicAckFrameEncode failure!\n");
+        }
+
+}
+
 void WriteInitialCryptoFrame(    
     _Inout_ uint16_t* Offset,
     _In_ uint16_t BufferLength,
@@ -349,16 +394,17 @@ void WriteClientInitialPacket(
     _Out_writes_to_(BufferLength, *PacketLength)
         uint8_t* Buffer,
     _Out_ uint16_t* PacketLength,
-    _Out_ uint16_t* HeaderLength
+    _Out_ uint16_t* HeaderLength,
+    _In_ bool Ack
     )
 {
     uint32_t QuicVersion = Version;
-    uint8_t CryptoBuffer[4096];
-    uint16_t BufferSize = sizeof(CryptoBuffer);
-    uint16_t CryptoBufferLength = 0;
+    uint8_t FrameBuffer[4096];
+    uint16_t BufferSize = sizeof(FrameBuffer);
+    uint16_t FrameBufferLength = 0;
 
     WriteInitialCryptoFrame(
-         &CryptoBufferLength, BufferSize, CryptoBuffer);
+         &FrameBufferLength, BufferSize, FrameBuffer);
     uint8_t CidBuffer[sizeof(QUIC_CID) + 256] = {0};
     QUIC_CID* Cid = (QUIC_CID*)CidBuffer;
     Cid->IsInitial = TRUE;
@@ -381,18 +427,18 @@ void WriteClientInitialPacket(
             Buffer,
             &PayloadLengthOffset,
             &PacketNumberLength);
-    if (*PacketLength + CryptoBufferLength > BufferLength) {
+    if (*PacketLength + FrameBufferLength > BufferLength) {
         printf("Crypto Too Big!\n");
         exit(0);
     }
 
     QuicVarIntEncode2Bytes(
-        PacketNumberLength + CryptoBufferLength + CXPLAT_ENCRYPTION_OVERHEAD,
+        PacketNumberLength + FrameBufferLength + CXPLAT_ENCRYPTION_OVERHEAD,
         Buffer + PayloadLengthOffset);
     *HeaderLength = *PacketLength;
 
-    CxPlatCopyMemory(Buffer + *PacketLength, CryptoBuffer, CryptoBufferLength);
-    *PacketLength += CryptoBufferLength;
+    CxPlatCopyMemory(Buffer + *PacketLength, FrameBuffer, FrameBufferLength);
+    *PacketLength += FrameBufferLength;
     *PacketLength += CXPLAT_ENCRYPTION_OVERHEAD;
 }
 
@@ -403,14 +449,16 @@ void fuzzPacket(uint8_t* Packet, uint16_t PacketLength) {
     }
 }
 
-void buildInitialPacket(CXPLAT_SOCKET* Binding, CXPLAT_ROUTE Route, int64_t* PacketCount, int64_t* TotalByteCount, bool fuzzing = true) {
-    const StrBuffer InitialSalt("afbfec289993d24c9e9786f19c6111e04390a899");
+void sendInitialPacket(CXPLAT_SOCKET* Binding, CXPLAT_ROUTE Route, int64_t* PacketCount, int64_t* TotalByteCount, bool fuzzing = true) {
+    const StrBuffer InitialSalt("38762cf7f55934b34d179ae6a4c80cadccbb7f0a");
     const uint16_t DatagramLength = QUIC_MIN_INITIAL_LENGTH; 
     CXPLAT_SEND_CONFIG SendConfig = { &Route, DatagramLength, CXPLAT_ECN_NON_ECT, 0 };
     CXPLAT_SEND_DATA* SendData = CxPlatSendDataAlloc(Binding, &SendConfig);
     if (!SendData) {
         printf("CxPlatSendDataAlloc failed\n");
     }
+    uint64_t d = 1;
+    uint64_t s = 2;
     while (!CxPlatSendDataIsFull(SendData)) {
         const uint64_t PacketNumber = GetRandom(1000);
         uint8_t Packet[512] = {0};
@@ -422,7 +470,8 @@ void buildInitialPacket(CXPLAT_SOCKET* Binding, CXPLAT_ROUTE Route, int64_t* Pac
             sizeof(Packet),
             Packet,
             &PacketLength,
-            &HeaderLength);
+            &HeaderLength, 
+            false);
 
         uint16_t PacketNumberOffset = HeaderLength - sizeof(uint32_t);
 
@@ -439,9 +488,12 @@ void buildInitialPacket(CXPLAT_SOCKET* Binding, CXPLAT_ROUTE Route, int64_t* Pac
             printf("Failed to find OrigSrcCid!\n");
             return;
         }
-
-        CxPlatRandom(sizeof(uint64_t), DestCid); //fuzz
-        CxPlatRandom(sizeof(uint64_t), SrcCid); //fuzz
+        *DestCid = d;
+        d+=2;
+        *SrcCid = s;
+        s+=2;
+        // CxPlatRandom(sizeof(uint64_t), DestCid); //fuzz
+        // CxPlatRandom(sizeof(uint64_t), SrcCid); //fuzz
         if (fuzzing) {
             fuzzPacket(Packet, sizeof(Packet));
         }
@@ -493,6 +545,10 @@ void buildInitialPacket(CXPLAT_SOCKET* Binding, CXPLAT_ROUTE Route, int64_t* Pac
         }
         InterlockedExchangeAdd64(PacketCount, 1);
         InterlockedExchangeAdd64(TotalByteCount, DatagramLength);
+        QUIC_LONG_HEADER_V1* Header = (QUIC_LONG_HEADER_V1*)Packet;
+
+        // printf("Sending Packet Type: %d\n", Header->Type);
+        
     }
     
     if (QUIC_FAILED(
@@ -505,7 +561,19 @@ void buildInitialPacket(CXPLAT_SOCKET* Binding, CXPLAT_ROUTE Route, int64_t* Pac
     }
 }
 
-void fuzzHandshakePacket() {
+void sendHandshakePacket(CXPLAT_SOCKET* Binding, CXPLAT_ROUTE Route, int64_t* PacketCount, int64_t* TotalByteCount) {
+
+    
+    // WriteAckFrame (1, 0, 0, NULL);
+    if (WaitForSingleObject(RecvPacketEvent, 100) != (DWORD)WAIT_OBJECT_0) {
+        printf("WaitForSingleObject failed\n");
+        return;
+    }
+    // wait for the server to send a Retry Packet
+    // send another Initial Packet
+    // wait for the server to send a Handshake Packet
+    
+
 // TODO
 }
 
@@ -515,11 +583,43 @@ void fuzz(CXPLAT_SOCKET* Binding, CXPLAT_ROUTE Route) {
     uint8_t mode;
     uint64_t StartTimeMs = CxPlatTimeMs64();
     while (CxPlatTimeDiff64(StartTimeMs, CxPlatTimeMs64()) < RunTimeMs) {
-        mode = 0; //(uint8_t)GetRandom(2);
+        mode = 1;//(uint8_t)GetRandom(2);
         if (mode == 0) {
-            buildInitialPacket(Binding, Route, &PacketCount, &TotalByteCount);
+            sendInitialPacket(Binding, Route, &PacketCount, &TotalByteCount);
         } else if (mode == 1) {
-            fuzzHandshakePacket();
+            bool serverHello = false;
+            printf("Sending Handshake Packet\n");
+            RecvPacketEvent = CreateEvent(NULL, TRUE, FALSE, NULL);
+            do {
+                sendInitialPacket(Binding, Route, &PacketCount, &TotalByteCount, false);
+            } while (serverHello == false && WaitForSingleObject(RecvPacketEvent, 50) != (DWORD)WAIT_OBJECT_0 && CxPlatTimeDiff64(StartTimeMs, CxPlatTimeMs64()) < RunTimeMs);
+            serverHello=true;
+            for(auto packet : PacketQueue)  {
+                if (packet.LH->Type == QUIC_INITIAL_V1) {
+                    QUIC_VAR_INT FrameType INIT_NO_SAL(0);
+                    uint16_t packetLength;
+                    uint8_t *packetBuffer = (uint8_t *)packet.AvailBuffer;
+                    uint8_t *sourceCidLength = (uint8_t *)(packetBuffer + sizeof(QUIC_LONG_HEADER_V1) + packet.LH->DestCidLength);
+                    uint8_t *tokenLength = (uint8_t *)(packetBuffer + sizeof(QUIC_LONG_HEADER_V1) + packet.LH->DestCidLength + sizeof(uint8_t) + *sourceCidLength);
+                    uint16_t payloadLength = 0;    
+                    uint16_t headerLength =
+                        sizeof(QUIC_LONG_HEADER_V1) +
+                        packet.LH->DestCidLength +
+                        sizeof(uint8_t) +
+                        *sourceCidLength +
+                        sizeof(uint8_t) +
+                        *tokenLength;
+                    
+                    packetLength = headerLength + payloadLength;
+                    QuicVarIntDecode(packetLength + sizeof(uint16_t), packet.AvailBuffer, &headerLength, &FrameType);
+                    if(FrameType == QUIC_FRAME_ACK) {
+                        printf("Received ACK Frame\n");
+                    } else if (FrameType == QUIC_FRAME_CRYPTO) {
+                        printf("Received Crypto Frame\n");
+                    }
+                }
+            }
+            sendHandshakePacket(Binding, Route, &PacketCount, &TotalByteCount);
         }
     }
         printf("Total Packets sent: %lld\n", (long long)PacketCount);
@@ -555,7 +655,7 @@ void start() {
         printf("Address Resolution Failed 0x%x", Status);
         return;
     }
-    QuicAddrSetPort(&sockAddr, 9999);
+    QuicAddrSetPort(&sockAddr, 443);
     // make a server
     MsQuicRegistration Registration(true);
     QUIC_SUCCEEDED(Registration.GetInitStatus());
@@ -593,7 +693,8 @@ void start() {
     CXPLAT_ROUTE Route = {0};
     CxPlatSocketGetLocalAddress(Binding, &Route.LocalAddress);
     Route.RemoteAddress = sockAddr;
-
+    QuicAddrToString(&Route.LocalAddress, &str);
+    printf("Local address: %s\n", str.Address);
     // Fuzzing
     fuzz(Binding, Route);
 }
