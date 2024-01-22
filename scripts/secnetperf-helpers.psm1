@@ -335,9 +335,13 @@ function Get-TestOutput {
     param ($Output, $Metric)
     if ($Metric -eq "latency") {
         $latency_percentiles = '(?<=\d{1,3}(?:\.\d{1,2})?th: )\d+'
-        return [regex]::Matches($Output, $latency_percentiles) | ForEach-Object {$_.Value}
+        $RPS_regex = 'Result:\s+(\d+)\s+RPS'
+        $percentiles [regex]::Matches($Output, $latency_percentiles) | ForEach-Object {$_.Value}
+        $rps = [regex]::Matches($Output, $RPS_regex)
+        $percentiles += $rps
+        return $percentiles
     } elseif ($Metric -eq "hps") {
-        $rawOutput -match '(\d+) HPS' | Out-Null
+        $Output -match '(\d+) HPS' | Out-Null
         return $matches[1]
     } else { # throughput
         $Output -match '@ (\d+) kbps' | Out-Null

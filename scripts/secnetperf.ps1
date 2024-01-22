@@ -124,10 +124,10 @@ $json = @{}
 $allTests = [System.Collections.Specialized.OrderedDictionary]::new()
 
 # > All tests:
-$allTests["maxtput-up-1"] = "-exec:maxtput -up:10s -ptput:1"
-$allTests["maxtput-down-1"] = "-exec:maxtput -down:10s -ptput:1"
-$allTests["maxtput-rconn-1"] = "-exec:maxtput -rconn:1 -share:1 -conns:100 -run:10s -prate:1"
-$allTests["lowlat-rstream-1"] = "-exec:lowlat -rstream:1 -up:512 -down:4000 -run:10s -plat:1"
+$allTests["tput-up-10s"] = "-exec:maxtput -up:10s -ptput:1"
+$allTests["tput-down-10s"] = "-exec:maxtput -down:10s -ptput:1"
+$allTests["hps-conns-100-10s"] = "-exec:maxtput -rconn:1 -share:1 -conns:100 -run:10s -prate:1"
+$allTests["rps-up-512-down-4000-10s"] = "-exec:lowlat -rstream:1 -up:512 -down:4000 -run:10s -plat:1"
 
 $env = $isWindows ? 1 : 2
 $hasFailures = $false
@@ -204,21 +204,21 @@ INSERT OR IGNORE INTO Secnetperf_tests (Secnetperf_test_ID, Kernel_mode, Run_arg
         if ($Test.Metric.startsWith("throughput")) {
             foreach ($item in $Test.Values[$tcp]) {
                 $SQL += @"
-`nINSERT INTO Secnetperf_test_runs (Secnetperf_test_ID, Secnetperf_commit, Client_environment_ID, Server_environment_ID, Result, Secnetperf_latency_stats_ID)
-VALUES ($TestId-tcp-$tcp, '$MsQuicCommit', $env, $env, $item, NULL);
+`nINSERT INTO Secnetperf_test_runs (Secnetperf_test_ID, Secnetperf_commit, Client_environment_ID, Server_environment_ID, Result, Secnetperf_latency_stats_ID, io, tls)
+VALUES ($TestId-tcp-$tcp, '$MsQuicCommit', $env, $env, $item, NULL, $io, $tls);
 "@
             }
         }
 
         if ($Test.Metric.startsWith("latency")) {
-            # Test.Values[...] is a flattened 1D array of the form: [ first run, second run, third run... ], ie. if each run has 8 values, then the array will have 24 elements.
-            for ($offset = 0; $offset -lt $Test.Values[$tcp].Length; $offset += 8) {
+            # Test.Values[...] is a flattened 1D array of the form: [ first run + RPS, second run + RPS, third run + RPS..... ], ie. if each run has 8 values + RPS, then the array has 27 elements (8*3 + 3)
+            for ($offset = 0; $offset -lt $Test.Values[$tcp].Length; $offset += 9) {
                 $SQL += @"
 INSERT INTO Secnetperf_latency_stats (p0, p50, p90, p99, p999, p9999, p99999, p999999)
 VALUES ($($Test.Values[$tcp][$offset]), $($Test.Values[$tcp][$offset+1]), $($Test.Values[$tcp][$offset+2]), $($Test.Values[$tcp][$offset+3]), $($Test.Values[$tcp][$offset+4]), $($Test.Values[$tcp][$offset+5]), $($Test.Values[$tcp][$offset+6]), $($Test.Values[$tcp][$offset+7]));
 
-`nINSERT INTO Secnetperf_test_runs (Secnetperf_test_ID, Secnetperf_commit, Client_environment_ID, Server_environment_ID, Result, Secnetperf_latency_stats_ID)
-VALUES ($TestId-tcp-$tcp, '$MsQuicCommit', $env, $env, NULL, LAST_INSERT_ROWID());
+`nINSERT INTO Secnetperf_test_runs (Secnetperf_test_ID, Secnetperf_commit, Client_environment_ID, Server_environment_ID, Result, Secnetperf_latency_stats_ID, io, tls)
+VALUES ($TestId-tcp-$tcp, '$MsQuicCommit', $env, $env, $($Test.Values[$tcp][$offset+8]), LAST_INSERT_ROWID(), $io, $tls);
 "@
             }
         }
