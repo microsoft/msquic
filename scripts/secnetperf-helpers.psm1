@@ -308,20 +308,22 @@ function Wait-LocalTest {
         try { $Process.Kill() } catch { }
         try {
             [System.Threading.Tasks.Task]::WaitAll(@($StdOut, $StdError))
-            Write-Host $StdOut.Result.Trim()
+            $Out = $StdOut.Result.Trim()
+            if ($Out.Length -ne 0) { Write-Host $Out }
         } catch {}
         throw "secnetperf: Client timed out!"
     }
     if ($Process.ExitCode -ne 0) {
         try {
             [System.Threading.Tasks.Task]::WaitAll(@($StdOut, $StdError))
-            Write-Host $StdOut.Result.Trim()
+            $Out = $StdOut.Result.Trim()
+            if ($Out.Length -ne 0) { Write-Host $Out }
         } catch {}
         throw "secnetperf: Nonzero exit code: $($Process.ExitCode)"
     }
     [System.Threading.Tasks.Task]::WaitAll(@($StdOut, $StdError))
     $consoleTxt = $StdOut.Result.Trim()
-    if ($null -eq $consoleTxt -or $consoleTxt.Length -eq 0) {
+    if ($consoleTxt.Length -eq 0) {
         throw "secnetperf: No console output (possibly crashed)!"
     }
     if ($consoleTxt.Contains("Error")) {
@@ -450,6 +452,9 @@ function Invoke-Secnetperf {
             #$hasFailures = $true
         }
     }}
+
+    # Clear out any exit codes from previous commands.
+    $global:LastExitCode = 0
 
     return [pscustomobject]@{
         Metric = $metric
