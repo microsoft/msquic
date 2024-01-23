@@ -2255,11 +2255,6 @@ SocketDelete(
     CXPLAT_DBG_ASSERT(!Socket->Uninitialized);
     Socket->Uninitialized = TRUE;
 
-    if (Socket->UseTcp) {
-        CxPlatSocketRelease(Socket);
-        return;
-    }
-
     const uint16_t SocketCount =
         Socket->NumPerProcessorSockets ? (uint16_t)CxPlatProcCount() : 1;
     for (uint16_t i = 0; i < SocketCount; ++i) {
