@@ -101,7 +101,7 @@ if ($io -eq "wsk") {
     Copy-Item "$KernelDir/secnetperfdrvpriv.pdb" $SecNetPerfDir
     Copy-Item "$KernelDir/msquicpriv.sys" $SecNetPerfDir
     Copy-Item "$KernelDir/msquicpriv.pdb" $SecNetPerfDir
-    # Remove all the other kernel binaries since we don"t need them any more.
+    # Remove all the other kernel binaries since we don't need them any more.
     Remove-Item -Force -Recurse $KernelDir | Out-Null
 }
 
