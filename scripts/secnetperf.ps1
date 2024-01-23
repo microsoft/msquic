@@ -124,10 +124,10 @@ $json = @{}
 $allTests = [System.Collections.Specialized.OrderedDictionary]::new()
 
 # > All tests:
-$allTests["tput-up-10s"] = "-exec:maxtput -up:10s -ptput:1"
-$allTests["tput-down-10s"] = "-exec:maxtput -down:10s -ptput:1"
-$allTests["hps-conns-100-10s"] = "-exec:maxtput -rconn:1 -share:1 -conns:100 -run:10s -prate:1"
-$allTests["rps-up-512-down-4000-10s"] = "-exec:lowlat -rstream:1 -up:512 -down:4000 -run:10s -plat:1"
+$allTests["tput-up"] = "-exec:maxtput -up:10s -ptput:1"
+$allTests["tput-down"] = "-exec:maxtput -down:10s -ptput:1"
+$allTests["hps-conns-100"] = "-exec:maxtput -rconn:1 -share:1 -conns:100 -run:10s -prate:1"
+$allTests["rps-up-512-down-4000"] = "-exec:lowlat -rstream:1 -up:512 -down:4000 -run:10s -plat:1"
 
 $env = $isWindows ? 1 : 2
 $hasFailures = $false
