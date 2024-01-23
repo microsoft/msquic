@@ -246,6 +246,9 @@ Write-Host "Tests complete!"
     $json | ConvertTo-Json | Set-Content -Path "json-test-results-$plat-$os-$arch-$tls-$io.json"
 }
 
+# Clear out any exit codes from previous commands.
+$global:LastExitCode = 0
+
 if ($hasFailures) {
     exit 1
 }

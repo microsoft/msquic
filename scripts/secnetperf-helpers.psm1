@@ -451,9 +451,6 @@ function Invoke-Secnetperf {
         }
     }}
 
-    # Clear out any exit codes from previous commands.
-    $global:LastExitCode = 0
-
     return [pscustomobject]@{
         Metric = $metric
         Values = $values
