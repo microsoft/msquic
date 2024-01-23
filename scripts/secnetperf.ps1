@@ -108,7 +108,9 @@ if ($io -eq "wsk") {
 # Copy the artifacts to the peer.
 Write-Host "Copying files to peer"
 Invoke-Command -Session $Session -ScriptBlock {
-    Remove-Item -Force -Recurse $Using:RemoteDir | Out-Null
+    if (Test-Path $Using:RemoteDir) {
+        Remove-Item -Force -Recurse $Using:RemoteDir | Out-Null
+    }
     mkdir $Using:RemoteDir | Out-Null
 }
 Copy-Item -ToSession $Session ./artifacts -Destination "$RemoteDir/artifacts" -Recurse
