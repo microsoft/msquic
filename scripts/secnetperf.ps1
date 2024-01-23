@@ -60,8 +60,8 @@ param (
     [string]$RemoteName = "netperf-peer"
 )
 
-Set-StrictMode -Version 'Latest'
-$PSDefaultParameterValues['*:ErrorAction'] = 'Stop'
+Set-StrictMode -Version "Latest"
+$PSDefaultParameterValues["*:ErrorAction"] = "Stop"
 
 # Set up some important paths.
 $RemoteDir = "C:/_work/quic"
@@ -119,15 +119,18 @@ Copy-Item -ToSession $Session ./src/manifest/MsQuic.wprp -Destination "$RemoteDi
 
 $SQL = @"
 INSERT OR IGNORE INTO Secnetperf_builds (Secnetperf_Commit, Build_date_time, TLS_enabled, Advanced_build_config)
-VALUES ('$MsQuicCommit', '$(Get-Date -Format "yyyy-MM-dd HH:mm:ss")', 1, 'TODO');
+VALUES ("$MsQuicCommit", "$(Get-Date -Format "yyyy-MM-dd HH:mm:ss")", 1, "TODO");
 "@
 $json = @{}
-$allTests = @(
-    "-exec:maxtput -up:10s -ptput:1",
-    "-exec:maxtput -down:10s -ptput:1",
-    "-exec:maxtput -rconn:1 -share:1 -conns:100 -run:10s -prate:1",
-    "-exec:lowlat -rstream:1 -up:512 -down:4000 -run:10s -plat:1"
-)
+
+$allTests = [System.Collections.Specialized.OrderedDictionary]::new()
+
+# > All tests:
+$allTests["tput-up"] = "-exec:maxtput -up:10s -ptput:1"
+$allTests["tput-down"] = "-exec:maxtput -down:10s -ptput:1"
+$allTests["hps-conns-100"] = "-exec:maxtput -rconn:1 -share:1 -conns:100 -run:10s -prate:1"
+$allTests["rps-up-512-down-4000"] = "-exec:lowlat -rstream:1 -up:512 -down:4000 -run:10s -plat:1"
+
 $env = $isWindows ? 1 : 2
 $hasFailures = $false
 
@@ -171,30 +174,29 @@ if (!$isWindows) {
     if ((Get-Content "/etc/security/limits.conf") -notcontains "root soft core unlimited") {
         # Enable core dumps for the system.
         Write-Host "Setting core dump size limit"
-        sudo sh -c "echo 'root soft core unlimited' >> /etc/security/limits.conf"
-        sudo sh -c "echo 'root hard core unlimited' >> /etc/security/limits.conf"
-        sudo sh -c "echo '* soft core unlimited' >> /etc/security/limits.conf"
-        sudo sh -c "echo '* hard core unlimited' >> /etc/security/limits.conf"
+        sudo sh -c "echo "root soft core unlimited" >> /etc/security/limits.conf"
+        sudo sh -c "echo "root hard core unlimited" >> /etc/security/limits.conf"
+        sudo sh -c "echo "* soft core unlimited" >> /etc/security/limits.conf"
+        sudo sh -c "echo "* hard core unlimited" >> /etc/security/limits.conf"
     }
 
     # Set the core dump pattern.
     Write-Host "Setting core dump pattern"
-    sudo sh -c "echo -n '%e.%p.%t.core' > /proc/sys/kernel/core_pattern"
+    sudo sh -c "echo -n "%e.%p.%t.core" > /proc/sys/kernel/core_pattern"
 }
 
 # Run all the test cases.
 Write-Host "Setup complete! Running all tests"
-for ($i = 0; $i -lt $allTests.Count; $i++) {
-    $ExeArgs = $allTests[$i] + " -io:$io"
+foreach ($testId in $allTests.Keys) {
+    $ExeArgs = $allTests[$testId] + " -io:$io"
     $Output = Invoke-Secnetperf $Session $RemoteName $RemoteDir $SecNetPerfPath $LogProfile $ExeArgs $io
     $Test = $Output[-1]
     if ($Test.HasFailures) { $hasFailures = $true }
 
     # Process the results and add them to the SQL and JSON.
-    $TestId = $i + 1
     $SQL += @"
-`nINSERT OR IGNORE INTO Secnetperf_tests (Secnetperf_test_ID, Kernel_mode, Run_arguments) VALUES ($TestId, 0, "$ExeArgs -tcp:0");
-INSERT OR IGNORE INTO Secnetperf_tests (Secnetperf_test_ID, Kernel_mode, Run_arguments) VALUES ($TestId, 0, "$ExeArgs -tcp:1");
+`nINSERT OR IGNORE INTO Secnetperf_tests (Secnetperf_test_ID, Kernel_mode, Run_arguments) VALUES ("$TestId-tcp-0", 0, "$ExeArgs -tcp:0");
+INSERT OR IGNORE INTO Secnetperf_tests (Secnetperf_test_ID, Kernel_mode, Run_arguments) VALUES ("$TestId-tcp-1, 0", "$ExeArgs -tcp:1");
 "@
 
     for ($tcp = 0; $tcp -lt $Test.Values.Length; $tcp++) {
@@ -204,8 +206,20 @@ INSERT OR IGNORE INTO Secnetperf_tests (Secnetperf_test_ID, Kernel_mode, Run_arg
         if ($Test.Metric.startsWith("throughput")) {
             foreach ($item in $Test.Values[$tcp]) {
                 $SQL += @"
-`nINSERT INTO Secnetperf_test_runs (Secnetperf_test_ID, Secnetperf_commit, Client_environment_ID, Server_environment_ID, Result, Secnetperf_latency_stats_ID)
-VALUES ($TestId, '$MsQuicCommit', $env, $env, $item, NULL);
+`nINSERT INTO Secnetperf_test_runs (Secnetperf_test_ID, Secnetperf_commit, Client_environment_ID, Server_environment_ID, Result, Secnetperf_latency_stats_ID, io, tls)
+VALUES ("$TestId-tcp-$tcp", "$MsQuicCommit", $env, $env, $item, NULL, "$io", "$tls");
+"@
+            }
+        }
+
+        if ($Test.Metric.startsWith("latency")) {
+            # Test.Values[...] is a flattened 1D array of the form: [ first run + RPS, second run + RPS, third run + RPS..... ], ie. if each run has 8 values + RPS, then the array has 27 elements (8*3 + 3)
+            for ($offset = 0; $offset -lt $Test.Values[$tcp].Length; $offset += 9) {
+                $SQL += @"
+`nINSERT INTO Secnetperf_latency_stats (p0, p50, p90, p99, p999, p9999, p99999, p999999)
+VALUES ($($Test.Values[$tcp][$offset]), $($Test.Values[$tcp][$offset+1]), $($Test.Values[$tcp][$offset+2]), $($Test.Values[$tcp][$offset+3]), $($Test.Values[$tcp][$offset+4]), $($Test.Values[$tcp][$offset+5]), $($Test.Values[$tcp][$offset+6]), $($Test.Values[$tcp][$offset+7]));
+INSERT INTO Secnetperf_test_runs (Secnetperf_test_ID, Secnetperf_commit, Client_environment_ID, Server_environment_ID, Result, Secnetperf_latency_stats_ID, io, tls)
+VALUES ("$TestId-tcp-$tcp", "$MsQuicCommit", $env, $env, $($Test.Values[$tcp][$offset+8]), LAST_INSERT_ROWID(), "$io", "$tls");
 "@
             }
         }
