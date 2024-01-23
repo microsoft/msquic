@@ -3,8 +3,8 @@
     Various helper functions for running secnetperf tests.
 #>
 
-Set-StrictMode -Version 'Latest'
-$PSDefaultParameterValues['*:ErrorAction'] = 'Stop'
+Set-StrictMode -Version "Latest"
+$PSDefaultParameterValues["*:ErrorAction"] = "Stop"
 
 # Path to the WER registry key used for collecting dumps on Windows.
 $WerDumpRegPath = "HKLM:\Software\Microsoft\Windows\Windows Error Reporting\LocalDumps\secnetperf.exe"
@@ -285,7 +285,7 @@ function Start-LocalTest {
         $pinfo.Arguments = $FullArgs
     } else {
         $pinfo.FileName = "bash"
-        $pinfo.Arguments = "-c `"ulimit -c unlimited && LSAN_OPTIONS=report_objects=1 ASAN_OPTIONS=disable_coredump=0:abort_on_error=1 UBSAN_OPTIONS=halt_on_error=1:print_stacktrace=1 $FullPath $FullArgs && echo ''`""
+        $pinfo.Arguments = "-c `"ulimit -c unlimited && LSAN_OPTIONS=report_objects=1 ASAN_OPTIONS=disable_coredump=0:abort_on_error=1 UBSAN_OPTIONS=halt_on_error=1:print_stacktrace=1 $FullPath $FullArgs && echo ""`""
         $pinfo.WorkingDirectory = $OutputDir
     }
     $pinfo.RedirectStandardOutput = $true
@@ -325,7 +325,7 @@ function Wait-LocalTest {
         throw "secnetperf: No console output (possibly crashed)!"
     }
     if ($consoleTxt.Contains("Error")) {
-        throw "secnetperf: $($consoleTxt.Substring(7))" # Skip over the 'Error: ' prefix
+        throw "secnetperf: $($consoleTxt.Substring(7))" # Skip over the "Error: " prefix
     }
     return $consoleTxt
 }
@@ -334,17 +334,17 @@ function Wait-LocalTest {
 function Get-TestOutput {
     param ($Output, $Metric)
     if ($Metric -eq "latency") {
-        $latency_percentiles = '(?<=\d{1,3}(?:\.\d{1,2})?th: )\d+'
-        $RPS_regex = 'Result:\s+(\d+)\s+RPS'
+        $latency_percentiles = "(?<=\d{1,3}(?:\.\d{1,2})?th: )\d+"
+        $RPS_regex = "Result:\s+(\d+)"
         $percentiles = [regex]::Matches($Output, $latency_percentiles) | ForEach-Object {$_.Value}
         $rps = [regex]::Matches($Output, $RPS_regex)
         $percentiles += $rps
         return $percentiles
     } elseif ($Metric -eq "hps") {
-        $Output -match '(\d+) HPS' | Out-Null
+        $Output -match "(\d+) HPS" | Out-Null
         return $matches[1]
     } else { # throughput
-        $Output -match '@ (\d+) kbps' | Out-Null
+        $Output -match "@ (\d+) kbps" | Out-Null
         return $matches[1]
     }
 }
@@ -368,7 +368,7 @@ function Invoke-Secnetperf {
     for ($tcp = 0; $tcp -le $tcpSupported; $tcp++) {
 
     # Set up all the parameters and paths for running the test.
-    $execMode = $ExeArgs.Substring(0, $ExeArgs.IndexOf(' ')) # First arg is the exec mode
+    $execMode = $ExeArgs.Substring(0, $ExeArgs.IndexOf(" ")) # First arg is the exec mode
     $clientPath = Repo-Path $SecNetPerfPath
     $serverArgs = "$execMode -io:$io"
     $clientArgs = "-target:netperf-peer $ExeArgs -tcp:$tcp -trimout -watchdog:25000"

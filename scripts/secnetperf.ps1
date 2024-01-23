@@ -60,8 +60,8 @@ param (
     [string]$RemoteName = "netperf-peer"
 )
 
-Set-StrictMode -Version 'Latest'
-$PSDefaultParameterValues['*:ErrorAction'] = 'Stop'
+Set-StrictMode -Version "Latest"
+$PSDefaultParameterValues["*:ErrorAction"] = "Stop"
 
 # Set up some important paths.
 $RemoteDir = "C:/_work/quic"
@@ -101,7 +101,7 @@ if ($io -eq "wsk") {
     Copy-Item "$KernelDir/secnetperfdrvpriv.pdb" $SecNetPerfDir
     Copy-Item "$KernelDir/msquicpriv.sys" $SecNetPerfDir
     Copy-Item "$KernelDir/msquicpriv.pdb" $SecNetPerfDir
-    # Remove all the other kernel binaries since we don't need them any more.
+    # Remove all the other kernel binaries since we don"t need them any more.
     Remove-Item -Force -Recurse $KernelDir | Out-Null
 }
 
@@ -117,7 +117,7 @@ Copy-Item -ToSession $Session ./src/manifest/MsQuic.wprp -Destination "$RemoteDi
 
 $SQL = @"
 INSERT OR IGNORE INTO Secnetperf_builds (Secnetperf_Commit, Build_date_time, TLS_enabled, Advanced_build_config)
-VALUES ('$MsQuicCommit', '$(Get-Date -Format "yyyy-MM-dd HH:mm:ss")', 1, 'TODO');
+VALUES ("$MsQuicCommit", "$(Get-Date -Format "yyyy-MM-dd HH:mm:ss")", 1, "TODO");
 "@
 $json = @{}
 
@@ -172,15 +172,15 @@ if (!$isWindows) {
     if ((Get-Content "/etc/security/limits.conf") -notcontains "root soft core unlimited") {
         # Enable core dumps for the system.
         Write-Host "Setting core dump size limit"
-        sudo sh -c "echo 'root soft core unlimited' >> /etc/security/limits.conf"
-        sudo sh -c "echo 'root hard core unlimited' >> /etc/security/limits.conf"
-        sudo sh -c "echo '* soft core unlimited' >> /etc/security/limits.conf"
-        sudo sh -c "echo '* hard core unlimited' >> /etc/security/limits.conf"
+        sudo sh -c "echo "root soft core unlimited" >> /etc/security/limits.conf"
+        sudo sh -c "echo "root hard core unlimited" >> /etc/security/limits.conf"
+        sudo sh -c "echo "* soft core unlimited" >> /etc/security/limits.conf"
+        sudo sh -c "echo "* hard core unlimited" >> /etc/security/limits.conf"
     }
 
     # Set the core dump pattern.
     Write-Host "Setting core dump pattern"
-    sudo sh -c "echo -n '%e.%p.%t.core' > /proc/sys/kernel/core_pattern"
+    sudo sh -c "echo -n "%e.%p.%t.core" > /proc/sys/kernel/core_pattern"
 }
 
 # Run all the test cases.
@@ -193,8 +193,8 @@ foreach ($testId in $allTests.Keys) {
 
     # Process the results and add them to the SQL and JSON.
     $SQL += @"
-`nINSERT OR IGNORE INTO Secnetperf_tests (Secnetperf_test_ID, Kernel_mode, Run_arguments) VALUES ($TestId-tcp-0, 0, "$ExeArgs -tcp:0");
-INSERT OR IGNORE INTO Secnetperf_tests (Secnetperf_test_ID, Kernel_mode, Run_arguments) VALUES ($TestId-tcp-1, 0, "$ExeArgs -tcp:1");
+`nINSERT OR IGNORE INTO Secnetperf_tests (Secnetperf_test_ID, Kernel_mode, Run_arguments) VALUES ("$TestId-tcp-0", 0, "$ExeArgs -tcp:0");
+INSERT OR IGNORE INTO Secnetperf_tests (Secnetperf_test_ID, Kernel_mode, Run_arguments) VALUES ("$TestId-tcp-1, 0", "$ExeArgs -tcp:1");
 "@
 
     for ($tcp = 0; $tcp -lt $Test.Values.Length; $tcp++) {
@@ -205,7 +205,7 @@ INSERT OR IGNORE INTO Secnetperf_tests (Secnetperf_test_ID, Kernel_mode, Run_arg
             foreach ($item in $Test.Values[$tcp]) {
                 $SQL += @"
 `nINSERT INTO Secnetperf_test_runs (Secnetperf_test_ID, Secnetperf_commit, Client_environment_ID, Server_environment_ID, Result, Secnetperf_latency_stats_ID, io, tls)
-VALUES ($TestId-tcp-$tcp, '$MsQuicCommit', $env, $env, $item, NULL, $io, $tls);
+VALUES ("$TestId-tcp-$tcp", "$MsQuicCommit", $env, $env, $item, NULL, "$io", "$tls");
 "@
             }
         }
@@ -218,7 +218,7 @@ INSERT INTO Secnetperf_latency_stats (p0, p50, p90, p99, p999, p9999, p99999, p9
 VALUES ($($Test.Values[$tcp][$offset]), $($Test.Values[$tcp][$offset+1]), $($Test.Values[$tcp][$offset+2]), $($Test.Values[$tcp][$offset+3]), $($Test.Values[$tcp][$offset+4]), $($Test.Values[$tcp][$offset+5]), $($Test.Values[$tcp][$offset+6]), $($Test.Values[$tcp][$offset+7]));
 
 `nINSERT INTO Secnetperf_test_runs (Secnetperf_test_ID, Secnetperf_commit, Client_environment_ID, Server_environment_ID, Result, Secnetperf_latency_stats_ID, io, tls)
-VALUES ($TestId-tcp-$tcp, '$MsQuicCommit', $env, $env, $($Test.Values[$tcp][$offset+8]), LAST_INSERT_ROWID(), $io, $tls);
+VALUES ("$TestId-tcp-$tcp", "$MsQuicCommit", $env, $env, $($Test.Values[$tcp][$offset+8]), LAST_INSERT_ROWID(), "$io", "$tls");
 "@
             }
         }
