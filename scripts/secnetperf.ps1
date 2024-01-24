@@ -196,7 +196,7 @@ foreach ($testId in $allTests.Keys) {
     # Process the results and add them to the SQL and JSON.
     $SQL += @"
 `nINSERT OR IGNORE INTO Secnetperf_tests (Secnetperf_test_ID, Kernel_mode, Run_arguments) VALUES ("$TestId-tcp-0", 0, "$ExeArgs -tcp:0");
-INSERT OR IGNORE INTO Secnetperf_tests (Secnetperf_test_ID, Kernel_mode, Run_arguments) VALUES ("$TestId-tcp-1, 0", "$ExeArgs -tcp:1");
+INSERT OR IGNORE INTO Secnetperf_tests (Secnetperf_test_ID, Kernel_mode, Run_arguments) VALUES ("$TestId-tcp-1", 0, "$ExeArgs -tcp:1");
 "@
 
     for ($tcp = 0; $tcp -lt $Test.Values.Length; $tcp++) {
