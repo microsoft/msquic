@@ -670,7 +670,6 @@ Exit:
     Cubic->TimeOfLastAck = TimeNowUs;
     Cubic->TimeOfLastAckValid = TRUE;
 
-#if defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
     if (Connection->Settings.NetStatsEventEnabled) {
         const QUIC_PATH* Path = &Connection->Paths[0];
         QUIC_CONNECTION_EVENT Event;
@@ -694,7 +693,6 @@ Exit:
            Event.NETWORK_STATISTICS.Bandwidth);
        QuicConnIndicateEvent(Connection, &Event);
     }
-#endif
 
     return CubicCongestionControlUpdateBlockedState(Cc, PreviousCanSendState);
 }

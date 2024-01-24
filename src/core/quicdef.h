@@ -535,7 +535,7 @@ CXPLAT_STATIC_ASSERT(
 //
 // The default settings for allowing Network Statistics event to be raised.
 //
-#define QUIC_DEFAULT_NET_STATS_EVENT_ENABLED           FALSE
+#define QUIC_DEFAULT_NET_STATS_EVENT_ENABLED         FALSE
 
 //
 // The number of rounds in Cubic Slow Start to sample RTT.

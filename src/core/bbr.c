@@ -770,11 +770,9 @@ BbrCongestionControlOnDataAcknowledged(
         BbrCongestionControlUpdateCongestionWindow(
             Cc, AckEvent->NumTotalAckedRetransmittableBytes, AckEvent->NumRetransmittableBytes);
 
-#if defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
-	if (Connection->Settings.NetStatsEventEnabled) {
-	    BbrCongestionControlIndicateConnectionEvent(Connection, Cc);
-	}
-#endif
+        if (Connection->Settings.NetStatsEventEnabled) {
+            BbrCongestionControlIndicateConnectionEvent(Connection, Cc);
+        }
         return BbrCongestionControlUpdateBlockedState(Cc, PreviousCanSendState);
     }
 
@@ -884,11 +882,10 @@ BbrCongestionControlOnDataAcknowledged(
     BbrCongestionControlUpdateCongestionWindow(
         Cc, AckEvent->NumTotalAckedRetransmittableBytes, AckEvent->NumRetransmittableBytes);
 
-#if defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
     if (Connection->Settings.NetStatsEventEnabled) {
         BbrCongestionControlIndicateConnectionEvent(Connection, Cc);
     }
-#endif
+
     return BbrCongestionControlUpdateBlockedState(Cc, PreviousCanSendState);
 }
 

@@ -76,7 +76,7 @@ static uint32_t PopCount(T Value) {
     return Count;
 }
 
-/* TEST(SettingsTest, TestAllSettingsFieldsSet)
+TEST(SettingsTest, TestAllSettingsFieldsSet)
 {
     QUIC_SETTINGS Settings;
     QUIC_SETTINGS_INTERNAL InternalSettings;
@@ -143,7 +143,7 @@ TEST(SettingsTest, TestAllGlobalSettingsFieldsSet)
     Settings.IsSetFlags = 0;
     Settings.IsSet.RESERVED = ~Settings.IsSet.RESERVED;
     ASSERT_EQ(FieldCount, (sizeof(Settings.IsSetFlags) * 8) - PopCount(Settings.IsSetFlags));
-} */
+}
 
 // TEST(SettingsTest, TestAllVersionSettingsFieldsSet)
 // {

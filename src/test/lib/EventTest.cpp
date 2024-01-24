@@ -190,16 +190,16 @@ struct ConnValidator {
             return;
         }
 
-	if (EventsExpectedAtleastOnce != nullptr) {
+        if (EventsExpectedAtleastOnce != nullptr) {
             uint8_t Count = 0;
             while (EventsExpectedAtleastOnce[Count] != nullptr) {
                 if (EventsExpectedAtleastOnce[Count]->Type == Event->Type) {
                     EventsExpectedAtleastOnce[Count]->Success = true;
                     return; 
-	        }
-	        Count++;
-	    }
-	}
+                }
+                Count++;
+            }
+        }
 
         if (Event->Type == QUIC_CONNECTION_EVENT_CONNECTED) {
             HandshakeComplete.Set();
@@ -223,11 +223,11 @@ struct ConnValidator {
         while (EventsExpectedAtleastOnce[Count] != nullptr) {
             if (EventsExpectedAtleastOnce[Count]->Success == false) {
                 *EventIndex = Count;
-                return false; 
-	    }
-	    Count++;
-	}
-	return true;
+                return false;
+            }
+            Count++;
+        }
+        return true;
     }
 };
 
@@ -625,14 +625,14 @@ QuicTestValidateNetStatsConnEvent1(
     Client.SetEventsExpectedAtleastOnce(
         new(std::nothrow) ConnEventValidator* [2] {
             new(std::nothrow) ConnEventValidator(QUIC_CONNECTION_EVENT_NETWORK_STATISTICS),
-	    nullptr
+            nullptr
         }
     );
 
     Server.SetEventsExpectedAtleastOnce(
         new(std::nothrow) ConnEventValidator* [2] {
             new(std::nothrow) ConnEventValidator(QUIC_CONNECTION_EVENT_NETWORK_STATISTICS),
-	    nullptr
+            nullptr
         }
     );
 
@@ -706,14 +706,14 @@ QuicTestValidateNetStatsConnEvent2(
     Client.SetEventsExpectedAtleastOnce(
         new(std::nothrow) ConnEventValidator* [2] {
             new(std::nothrow) ConnEventValidator(QUIC_CONNECTION_EVENT_NETWORK_STATISTICS),
-	    nullptr
+            nullptr
         }
     );
 
     Server.SetEventsExpectedAtleastOnce(
         new(std::nothrow) ConnEventValidator* [2] {
             new(std::nothrow) ConnEventValidator(QUIC_CONNECTION_EVENT_NETWORK_STATISTICS),
-	    nullptr
+            nullptr
         }
     );
 
