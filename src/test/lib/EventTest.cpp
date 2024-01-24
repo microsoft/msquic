@@ -217,17 +217,18 @@ struct ConnValidator {
         }
     }
     bool Success() const { return ExpectedEvents[CurrentEvent] == nullptr; }
-    bool SuccessOfEventsExpectedAtleastOnce(uint8_t *EventIndex) const { 
-        if (EventsExpectedAtleastOnce == nullptr) { return true; }
-        uint8_t Count = 0;
-        while (EventsExpectedAtleastOnce[Count] != nullptr) {
-            if (EventsExpectedAtleastOnce[Count]->Success == false) {
-                *EventIndex = Count;
-                return false;
-            }
-            Count++;
-        }
-        return true;
+    void CheckEventsExpectedAtleastOnce() const {
+       if (EventsExpectedAtleastOnce != nullptr) {
+           uint8_t Count = 0;
+           while (EventsExpectedAtleastOnce[Count] != nullptr) {
+               if (EventsExpectedAtleastOnce[Count]->Success == false) {
+                   TEST_FAILURE("QuicTestValidateNetStatsEvent1: Expected event did not occur. Event type %u  was expected to happen on server at least once", EventsExpectedAtleastOnce[Count]->Type);
+                   return;
+               }
+               Count++;
+           }
+           return;
+       }
     }
 };
 
@@ -656,14 +657,8 @@ QuicTestValidateNetStatsConnEvent1(
     TEST_TRUE(Client.Complete.WaitTimeout(2000));
     TEST_TRUE(Server.Complete.WaitTimeout(1000));
 
-    uint8_t EventIndex = UINT8_MAX;
-    if (!Server.SuccessOfEventsExpectedAtleastOnce(&EventIndex) && EventIndex != UINT8_MAX) {
-        TEST_FAILURE("QuicTestValidateNetStatsEvent1: Expected event did not occur. Event type %u  was expected to happen on server at least once", Server.EventsExpectedAtleastOnce[EventIndex]);
-    }
-    EventIndex = UINT8_MAX;
-    if (!Client.SuccessOfEventsExpectedAtleastOnce(&EventIndex) && EventIndex != UINT8_MAX) {
-        TEST_FAILURE("QuicTestValidateNetStatsEvent1: Expected event did not occur. Event type %u  was expected to happen on server at least once", Server.EventsExpectedAtleastOnce[EventIndex]);
-    }
+    Server.CheckEventsExpectedAtleastOnce();
+    Client.CheckEventsExpectedAtleastOnce();
 }
 
 void
@@ -737,14 +732,8 @@ QuicTestValidateNetStatsConnEvent2(
     TEST_TRUE(Client.Complete.WaitTimeout(2000));
     TEST_TRUE(Server.Complete.WaitTimeout(1000));
 
-    uint8_t EventIndex = UINT8_MAX;
-    if (!Server.SuccessOfEventsExpectedAtleastOnce(&EventIndex) && EventIndex != UINT8_MAX) {
-        TEST_FAILURE("QuicTestValidateNetStatsEvent: Expected event did not occur. Event type %u  was expected to happen on server at least once", Server.EventsExpectedAtleastOnce[EventIndex]);
-    }
-    EventIndex = UINT8_MAX;
-    if (!Client.SuccessOfEventsExpectedAtleastOnce(&EventIndex) && EventIndex != UINT8_MAX) {
-        TEST_FAILURE("QuicTestValidateNetStatsEvent: Expected event did not occur. Event type %u  was expected to happen on server at least once", Server.EventsExpectedAtleastOnce[EventIndex]);
-    }
+    Server.CheckEventsExpectedAtleastOnce();
+    Client.CheckEventsExpectedAtleastOnce();
 }
 void QuicTestValidateNetStatsConnEvent(uint32_t Test)
 {

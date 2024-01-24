@@ -54,7 +54,7 @@ typedef struct QUIC_SETTINGS {
             uint64_t ReliableResetEnabled                   : 1;
             uint64_t OneWayDelayEnabled                     : 1;
             uint64_t NetStatsEventEnabled                   : 1;
-            uint64_t RESERVED                               : 23;
+            uint64_t RESERVED                               : 22;
 #else
             uint64_t RESERVED                               : 26;
 #endif
@@ -104,7 +104,7 @@ typedef struct QUIC_SETTINGS {
             uint64_t ReliableResetEnabled      : 1;
             uint64_t OneWayDelayEnabled        : 1;
             uint64_t NetStatsEventEnabled      : 1;
-            uint64_t ReservedFlags             : 60;
+            uint64_t ReservedFlags             : 59;
 #else
             uint64_t ReservedFlags             : 63;
 #endif
