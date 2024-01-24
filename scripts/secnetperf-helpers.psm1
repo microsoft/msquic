@@ -351,15 +351,13 @@ function Get-TestOutput {
 
 # Invokes secnetperf with the given arguments for both TCP and QUIC.
 function Invoke-Secnetperf {
-    param ($Session, $RemoteName, $RemoteDir, $SecNetPerfPath, $LogProfile, $ExeArgs, $io)
-    # TODO: This logic is pretty fragile. Needs improvement.
-    $metric = "throughput-download"
+    param ($Session, $RemoteName, $RemoteDir, $SecNetPerfPath, $LogProfile, $TestId, $ExeArgs, $io)
+
+    $metric = "throughput"
     if ($exeArgs.Contains("plat:1")) {
         $metric = "latency"
     } elseif ($exeArgs.Contains("prate:1")) {
         $metric = "hps"
-    } elseif ($exeArgs.Contains("-up")) {
-        $metric = "throughput-upload"
     }
 
     $values = @(@(), @())
@@ -380,7 +378,11 @@ function Invoke-Secnetperf {
         $serverArgs += " -driverNamePriv:secnetperfdrvpriv"
         $clientArgs += " -driverNamePriv:secnetperfdrvpriv"
     }
-    $artifactName = $tcp -eq 0 ? "$metric-quic" : "$metric-tcp"
+    if ($metric -eq "throughput") {
+        $serverArgs += " -pconn:1 -pstream:1"
+        $clientArgs += " -pconn:1 -pstream:1"
+    }
+    $artifactName = $tcp -eq 0 ? "$TestId-quic" : "$TestId-tcp"
     New-Item -ItemType Directory "artifacts/logs/$artifactName" -ErrorAction Ignore | Out-Null
     $localDumpDir = Repo-Path "artifacts/logs/$artifactName/clientdumps"
     New-Item -ItemType Directory $localDumpDir -ErrorAction Ignore | Out-Null

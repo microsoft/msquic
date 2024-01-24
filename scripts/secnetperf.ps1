@@ -189,7 +189,7 @@ if (!$isWindows) {
 Write-Host "Setup complete! Running all tests"
 foreach ($testId in $allTests.Keys) {
     $ExeArgs = $allTests[$testId] + " -io:$io"
-    $Output = Invoke-Secnetperf $Session $RemoteName $RemoteDir $SecNetPerfPath $LogProfile $ExeArgs $io
+    $Output = Invoke-Secnetperf $Session $RemoteName $RemoteDir $SecNetPerfPath $LogProfile $testId $ExeArgs $io
     $Test = $Output[-1]
     if ($Test.HasFailures) { $hasFailures = $true }
 
@@ -202,17 +202,15 @@ INSERT OR IGNORE INTO Secnetperf_tests (Secnetperf_test_ID, Kernel_mode, Run_arg
     for ($tcp = 0; $tcp -lt $Test.Values.Length; $tcp++) {
         if ($Test.Values[$tcp].Length -eq 0) { continue }
         $transport = $tcp -eq 1 ? "tcp" : "quic"
-        $json["$($Test.Metric)-$transport"] = $Test.Values[$tcp]
-        if ($Test.Metric.startsWith("throughput")) {
+        $json["$testId-$transport"] = $Test.Values[$tcp]
+        if ($Test.Metric -eq "throughput") {
             foreach ($item in $Test.Values[$tcp]) {
                 $SQL += @"
 `nINSERT INTO Secnetperf_test_runs (Secnetperf_test_ID, Secnetperf_commit, Client_environment_ID, Server_environment_ID, Result, Secnetperf_latency_stats_ID, io, tls)
 VALUES ("$TestId-tcp-$tcp", "$MsQuicCommit", $env, $env, $item, NULL, "$io", "$tls");
 "@
             }
-        }
-
-        if ($Test.Metric.startsWith("latency")) {
+        } elseif ($Test.Metric -eq "latency") {
             # Test.Values[...] is a flattened 1D array of the form: [ first run + RPS, second run + RPS, third run + RPS..... ], ie. if each run has 8 values + RPS, then the array has 27 elements (8*3 + 3)
             for ($offset = 0; $offset -lt $Test.Values[$tcp].Length; $offset += 9) {
                 $SQL += @"
