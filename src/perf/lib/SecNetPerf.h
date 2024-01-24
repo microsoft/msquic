@@ -140,28 +140,33 @@ QuicPrintConnectionStatistics(
 {
     QUIC_STATISTICS_V2 Statistics;
     uint32_t StatsSize = sizeof(Statistics);
-    if (QUIC_SUCCEEDED(
-        ApiTable->GetParam(
-            Connection,
-            QUIC_PARAM_CONN_STATISTICS_V2,
-            &StatsSize,
-            &Statistics))) {
-        WriteOutput(
-            "[conn][%p] STATS: EcnCapable=%u RTT=%u us SendTotalPackets=%llu SendSuspectedLostPackets=%llu SendSpuriousLostPackets=%llu SendCongestionCount=%u SendEcnCongestionCount=%u RecvTotalPackets=%llu RecvReorderedPackets=%llu RecvDroppedPackets=%llu RecvDuplicatePackets=%llu RecvDecryptionFailures=%llu\n",
-            Connection,
-            Statistics.EcnCapable,
-            Statistics.Rtt,
-            (unsigned long long)Statistics.SendTotalPackets,
-            (unsigned long long)Statistics.SendSuspectedLostPackets,
-            (unsigned long long)Statistics.SendSpuriousLostPackets,
-            Statistics.SendCongestionCount,
-            Statistics.SendEcnCongestionCount,
-            (unsigned long long)Statistics.RecvTotalPackets,
-            (unsigned long long)Statistics.RecvReorderedPackets,
-            (unsigned long long)Statistics.RecvDroppedPackets,
-            (unsigned long long)Statistics.RecvDuplicatePackets,
-            (unsigned long long)Statistics.RecvDecryptionFailures);
-    }
+    ApiTable->GetParam(Connection, QUIC_PARAM_CONN_STATISTICS_V2, &StatsSize, &Statistics);
+    WriteOutput(
+        "Connection Statistics:\n"
+        "  RTT                       %u us\n"
+        "  EcnCapable                %u\n"
+        "  SendTotalPackets          %llu\n"
+        "  SendSuspectedLostPackets  %llu\n"
+        "  SendSpuriousLostPackets   %llu\n"
+        "  SendCongestionCount       %u\n"
+        "  SendEcnCongestionCount    %u\n"
+        "  RecvTotalPackets          %llu\n"
+        "  RecvReorderedPackets      %llu\n"
+        "  RecvDroppedPackets        %llu\n"
+        "  RecvDuplicatePackets      %llu\n"
+        "  RecvDecryptionFailures    %llu\n",
+        Statistics.Rtt,
+        Statistics.EcnCapable,
+        (unsigned long long)Statistics.SendTotalPackets,
+        (unsigned long long)Statistics.SendSuspectedLostPackets,
+        (unsigned long long)Statistics.SendSpuriousLostPackets,
+        Statistics.SendCongestionCount,
+        Statistics.SendEcnCongestionCount,
+        (unsigned long long)Statistics.RecvTotalPackets,
+        (unsigned long long)Statistics.RecvReorderedPackets,
+        (unsigned long long)Statistics.RecvDroppedPackets,
+        (unsigned long long)Statistics.RecvDuplicatePackets,
+        (unsigned long long)Statistics.RecvDecryptionFailures);
 }
 
 inline
@@ -174,21 +179,22 @@ QuicPrintStreamStatistics(
     QUIC_STREAM_STATISTICS Stats = {0};
     uint32_t BufferLength = sizeof(Stats);
     ApiTable->GetParam(Stream, QUIC_PARAM_STREAM_STATISTICS, &BufferLength, &Stats);
-    WriteOutput("Flow blocked timing:\n");
-    WriteOutput("SCHEDULING:             %llu us\n",
-        (unsigned long long)Stats.ConnBlockedBySchedulingUs);
-    WriteOutput("PACING:                 %llu us\n",
-        (unsigned long long)Stats.ConnBlockedByPacingUs);
-    WriteOutput("AMPLIFICATION_PROT:     %llu us\n",
-        (unsigned long long)Stats.ConnBlockedByAmplificationProtUs);
-    WriteOutput("CONGESTION_CONTROL:     %llu us\n",
-        (unsigned long long)Stats.ConnBlockedByCongestionControlUs);
-    WriteOutput("CONN_FLOW_CONTROL:      %llu us\n",
-        (unsigned long long)Stats.ConnBlockedByFlowControlUs);
-    WriteOutput("STREAM_ID_FLOW_CONTROL: %llu us\n",
-        (unsigned long long)Stats.StreamBlockedByIdFlowControlUs);
-    WriteOutput("STREAM_FLOW_CONTROL:    %llu us\n",
-        (unsigned long long)Stats.StreamBlockedByFlowControlUs);
-    WriteOutput("APP:                    %llu us\n",
+    WriteOutput(
+        "Stream Timings (flow blocked):\n"
+        "  SCHEDULING:               %llu us\n"
+        "  PACING:                   %llu us\n"
+        "  AMPLIFICATION_PROT:       %llu us\n"
+        "  CONGESTION_CONTROL:       %llu us\n"
+        "  CONN_FLOW_CONTROL:        %llu us\n"
+        "  STREAM_ID_FLOW_CONTROL:   %llu us\n"
+        "  STREAM_FLOW_CONTROL:      %llu us\n"
+        "  APP:                      %llu us\n",
+        (unsigned long long)Stats.ConnBlockedBySchedulingUs,
+        (unsigned long long)Stats.ConnBlockedByPacingUs,
+        (unsigned long long)Stats.ConnBlockedByAmplificationProtUs,
+        (unsigned long long)Stats.ConnBlockedByCongestionControlUs,
+        (unsigned long long)Stats.ConnBlockedByFlowControlUs,
+        (unsigned long long)Stats.StreamBlockedByIdFlowControlUs,
+        (unsigned long long)Stats.StreamBlockedByFlowControlUs,
         (unsigned long long)Stats.StreamBlockedByAppUs);
 }
