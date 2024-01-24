@@ -946,7 +946,7 @@ PerfClientStream::OnShutdown() {
             const auto ElapsedMicroseconds = RecvEndTime - StartTime;
             const auto Rate = (uint32_t)((TotalBytes * 1000 * 1000 * 8) / (1000 * ElapsedMicroseconds));
             WriteOutput(
-                "  Upload: %llu bytes @ %u kbps (%u.%03u ms).\n",
+                "Result: Upload %llu bytes @ %u kbps (%u.%03u ms).\n",
                 (unsigned long long)TotalBytes,
                 Rate,
                 (uint32_t)(ElapsedMicroseconds / 1000),
@@ -966,7 +966,7 @@ PerfClientStream::OnShutdown() {
             const auto ElapsedMicroseconds = RecvEndTime - StartTime;
             const auto Rate = (uint32_t)((TotalBytes * 1000 * 1000 * 8) / (1000 * ElapsedMicroseconds));
             WriteOutput(
-                "Download: %llu bytes @ %u kbps (%u.%03u ms).\n",
+                "Result: Download %llu bytes @ %u kbps (%u.%03u ms).\n",
                 (unsigned long long)TotalBytes,
                 Rate,
                 (uint32_t)(ElapsedMicroseconds / 1000),

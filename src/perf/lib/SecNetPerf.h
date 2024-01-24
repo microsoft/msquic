@@ -147,7 +147,7 @@ QuicPrintConnectionStatistics(
             &StatsSize,
             &Statistics))) {
         WriteOutput(
-            "[conn][%p] STATS: EcnCapable=%u RTT=%u us SendTotalPackets=%llu SendSuspectedLostPackets=%llu SendSpuriousLostPackets=%llu SendCongestionCount=%u SendEcnCongestionCount=%u RecvTotalPackets=%llu RecvReorderedPackets=%llu RecvDroppedPackets=%llu RecvDuplicatePackets=%llu RecvDecryptionFailures=%llu\n",
+            "Connection statistics: EcnCapable=%u RTT=%u us SendTotalPackets=%llu SendSuspectedLostPackets=%llu SendSpuriousLostPackets=%llu SendCongestionCount=%u SendEcnCongestionCount=%u RecvTotalPackets=%llu RecvReorderedPackets=%llu RecvDroppedPackets=%llu RecvDuplicatePackets=%llu RecvDecryptionFailures=%llu\n",
             Connection,
             Statistics.EcnCapable,
             Statistics.Rtt,
@@ -174,21 +174,21 @@ QuicPrintStreamStatistics(
     QUIC_STREAM_STATISTICS Stats = {0};
     uint32_t BufferLength = sizeof(Stats);
     ApiTable->GetParam(Stream, QUIC_PARAM_STREAM_STATISTICS, &BufferLength, &Stats);
-    WriteOutput("Flow blocked timing:\n");
-    WriteOutput("SCHEDULING:             %llu us\n",
+    WriteOutput("Stream flow blocked timing:\n");
+    WriteOutput("  SCHEDULING:             %llu us\n",
         (unsigned long long)Stats.ConnBlockedBySchedulingUs);
-    WriteOutput("PACING:                 %llu us\n",
+    WriteOutput("  PACING:                 %llu us\n",
         (unsigned long long)Stats.ConnBlockedByPacingUs);
-    WriteOutput("AMPLIFICATION_PROT:     %llu us\n",
+    WriteOutput("  AMPLIFICATION_PROT:     %llu us\n",
         (unsigned long long)Stats.ConnBlockedByAmplificationProtUs);
-    WriteOutput("CONGESTION_CONTROL:     %llu us\n",
+    WriteOutput("  CONGESTION_CONTROL:     %llu us\n",
         (unsigned long long)Stats.ConnBlockedByCongestionControlUs);
-    WriteOutput("CONN_FLOW_CONTROL:      %llu us\n",
+    WriteOutput("  CONN_FLOW_CONTROL:      %llu us\n",
         (unsigned long long)Stats.ConnBlockedByFlowControlUs);
-    WriteOutput("STREAM_ID_FLOW_CONTROL: %llu us\n",
+    WriteOutput("  STREAM_ID_FLOW_CONTROL: %llu us\n",
         (unsigned long long)Stats.StreamBlockedByIdFlowControlUs);
-    WriteOutput("STREAM_FLOW_CONTROL:    %llu us\n",
+    WriteOutput("  STREAM_FLOW_CONTROL:    %llu us\n",
         (unsigned long long)Stats.StreamBlockedByFlowControlUs);
-    WriteOutput("APP:                    %llu us\n",
+    WriteOutput("  APP:                    %llu us\n",
         (unsigned long long)Stats.StreamBlockedByAppUs);
 }

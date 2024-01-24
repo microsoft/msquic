@@ -49,7 +49,9 @@ function Collect-LocalDumps {
         if ($DumpFiles) {
             mkdir $OutputDir -ErrorAction Ignore | Out-Null
             foreach ($File in $DumpFiles) {
-                Copy-Item -Path $File.FullName -Destination $OutputDir
+                $NewFileName = $File.Name -replace "secnetperf.exe", "secnetperf.exe.client"
+                $NewFilePath = Join-Path $OutputDir $NewFileName
+                Copy-Item -Path $File.FullName -Destination $NewFilePath
             }
             # Delete all the files in the crashdumps folder.
             Remove-Item -Path "./artifacts/crashdumps/*" -Force
@@ -69,7 +71,9 @@ function Collect-RemoteDumps {
         if ($DumpFiles) {
             mkdir $OutputDir -ErrorAction Ignore | Out-Null
             foreach ($File in $DumpFiles) {
-                Copy-Item -FromSession $Session -Path $File.FullName -Destination $OutputDir
+                $NewFileName = $File.Name -replace "secnetperf.exe", "secnetperf.exe.server"
+                $NewFilePath = Join-Path $OutputDir $NewFileName
+                Copy-Item -FromSession $Session -Path $File.FullName -Destination $NewFilePath
             }
             # Delete all the files in the crashdumps folder.
             Invoke-Command -Session $Session -ScriptBlock {
@@ -92,17 +96,17 @@ function Collect-LocalDump {
         Write-Host "procdump64.exe not found!"
         return;
     }
-    $dumpPath = Join-Path $OutputDir "secnetperf.exe.$($Process.Id).dmp"
+    $dumpPath = Join-Path $OutputDir "secnetperf.exe.client.$($Process.Id).dmp"
     & $procDump -accepteula -ma $($Process.Id) $dumpPath
 }
 
 # Use livekd64.exe to collect a dump of the kernel.
 function Collect-LiveKD {
-    param ($OutputDir)
+    param ($OutputDir, $Prefix)
     if (!$isWindows) { return } # Not supported on Windows
     $liveKD = Repo-Path "artifacts/corenet-ci-main/vm-setup/livekd64.exe"
     $KD = Repo-Path "artifacts/corenet-ci-main/vm-setup/kd.exe"
-    $dumpPath = Join-Path $OutputDir "kernel.$(New-Guid).dmp"
+    $dumpPath = Join-Path $OutputDir "kernel.$Prefix.$(New-Guid).dmp"
     & $liveKD -o $dumpPath -k $KD -ml -accepteula
 }
 
@@ -301,7 +305,7 @@ function Wait-LocalTest {
     $StdOut = $Process.StandardOutput.ReadToEndAsync()
     $StdError = $Process.StandardError.ReadToEndAsync()
     if (!$Process.WaitForExit($TimeoutMs)) {
-        if ($testKernel) { Collect-LiveKD $OutputDir }
+        if ($testKernel) { Collect-LiveKD $OutputDir "client" }
         Collect-LocalDump $Process $OutputDir
         try { $Process.Kill() } catch { }
         try {
@@ -381,11 +385,14 @@ function Invoke-Secnetperf {
     if ($metric -eq "throughput") {
         $serverArgs += " -pconn:1 -pstream:1"
         $clientArgs += " -pconn:1 -pstream:1"
+    } elseif ($metric -eq "latency") {
+        $serverArgs += " -pconn:1"
+        $clientArgs += " -pconn:1"
     }
     $artifactName = $tcp -eq 0 ? "$TestId-quic" : "$TestId-tcp"
     New-Item -ItemType Directory "artifacts/logs/$artifactName" -ErrorAction Ignore | Out-Null
-    $localDumpDir = Repo-Path "artifacts/logs/$artifactName/clientdumps"
-    New-Item -ItemType Directory $localDumpDir -ErrorAction Ignore | Out-Null
+    $artifactDir = Repo-Path "artifacts/logs/$artifactName"
+    New-Item -ItemType Directory $artifactDir -ErrorAction Ignore | Out-Null
 
     # Start logging on both sides, if configured.
     if ($LogProfile -ne "" -and $LogProfile -ne "NULL") {
@@ -409,8 +416,8 @@ function Invoke-Secnetperf {
     $successCount = 0
     for ($try = 0; $try -lt 3; $try++) {
         try {
-            $process = Start-LocalTest $clientPath $clientArgs $localDumpDir
-            $rawOutput = Wait-LocalTest $process $localDumpDir ($io -eq "wsk") 30000
+            $process = Start-LocalTest $clientPath $clientArgs $artifactDir
+            $rawOutput = Wait-LocalTest $process $artifactDir ($io -eq "wsk") 30000
             Write-Host $rawOutput
             $values[$tcp] += Get-TestOutput $rawOutput $metric
             $successCount++
@@ -436,21 +443,21 @@ function Invoke-Secnetperf {
 
         # Stop any logging and copy the logs to the artifacts folder.
         if ($LogProfile -ne "" -and $LogProfile -ne "NULL") {
-            try { .\scripts\log.ps1 -Stop -OutputPath "./artifacts/logs/$artifactName/client" -RawLogOnly }
+            try { .\scripts\log.ps1 -Stop -OutputPath "$artifactDir/client" -RawLogOnly }
             catch { Write-Host "Failed to stop logging on client!" }
             Invoke-Command -Session $Session -ScriptBlock {
                 try { & "$Using:RemoteDir/scripts/log.ps1" -Stop -OutputPath "$Using:RemoteDir/artifacts/logs/$Using:artifactName/server" -RawLogOnly }
                 catch { Write-Host "Failed to stop logging on server!" }
             }
-            try { Copy-Item -FromSession $Session "$RemoteDir/artifacts/logs/$artifactName/*" "./artifacts/logs/$artifactName/" -Recurse }
+            try { Copy-Item -FromSession $Session "$RemoteDir/artifacts/logs/$artifactName/*" $artifactDir -Recurse }
             catch { Write-Host "Failed to copy server logs!" }
         }
 
         # Grab any crash dumps that were generated.
-        if (Collect-LocalDumps $localDumpDir) {
+        if (Collect-LocalDumps $artifactDir) {
             #$hasFailures = $true
         }
-        if (Collect-RemoteDumps $Session "./artifacts/logs/$artifactName/serverdumps") {
+        if (Collect-RemoteDumps $Session $artifactDir) {
             Write-GHError "Dump file(s) generated by server"
             #$hasFailures = $true
         }

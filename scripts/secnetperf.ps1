@@ -182,7 +182,7 @@ if (!$isWindows) {
 
     # Set the core dump pattern.
     Write-Host "Setting core dump pattern"
-    sudo sh -c "echo -n "%e.%p.%t.core" > /proc/sys/kernel/core_pattern"
+    sudo sh -c "echo -n "%e.client.%p.%t.core" > /proc/sys/kernel/core_pattern"
 }
 
 # Run all the test cases.
