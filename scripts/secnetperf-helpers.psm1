@@ -415,6 +415,7 @@ function Invoke-Secnetperf {
     # TODO: Once all failures have been fixed, consider all errors fatal.
     $successCount = 0
     for ($try = 0; $try -lt 3; $try++) {
+        Write-Host "==============================`nRUN $($try+1):"
         try {
             $process = Start-LocalTest $clientPath $clientArgs $artifactDir
             $rawOutput = Wait-LocalTest $process $artifactDir ($io -eq "wsk") 30000
