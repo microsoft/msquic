@@ -19,15 +19,13 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="HpsClient.cpp" />
+    <ClCompile Include="PerfClient.cpp" />
     <ClCompile Include="PerfServer.cpp" />
     <ClCompile Include="SecNetPerfMain.cpp" />
-    <ClCompile Include="RpsClient.cpp" />
     <ClCompile Include="Tcp.cpp" />
-    <ClCompile Include="ThroughputClient.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="PerfHelpers.h" />
+    <ClInclude Include="SecNetPerf.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{11633785-79cc-4c7d-ab6a-aecdf29a1fa7}</ProjectGuid>

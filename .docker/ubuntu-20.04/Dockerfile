@@ -1,8 +1,10 @@
-FROM ubuntu:20.04@sha256:c9820a44b950956a790c354700c1166a7ec648bc0d215fa438d3a339812f1d01
+FROM ubuntu:20.04@sha256:f2034e7195f61334e6caff6ecf2e965f92d11e888309065da85ff50c617732b8
 
 LABEL org.opencontainers.image.source https://github.com/microsoft/msquic
 
 ENV DEBIAN_FRONTEND=noninteractive
+
+SHELL ["/bin/bash", "-c"]
 
 RUN apt-get update && apt-get install --no-install-recommends -y apt-transport-https \
     ca-certificates \
@@ -53,9 +55,15 @@ RUN wget -q https://packages.microsoft.com/config/ubuntu/18.04/packages-microsof
 RUN dpkg --add-architecture arm64
 RUN dpkg --add-architecture armhf
 
-RUN cat /etc/apt/sources.list | grep "^deb" | sed 's/deb /deb [arch=amd64] /g' > /etc/apt/sources.list
+RUN mv /etc/apt/sources.list /etc/apt/sources.list.int && \
+    cat /etc/apt/sources.list.int | grep "^deb" | sed 's/deb /deb [arch=amd64] /g' > /etc/apt/sources.list && \
+    rm /etc/apt/sources.list.int
 
-COPY arm-cross-compile-sources.list /etc/apt/sources.list.d/
+RUN echo $' \n\
+deb [arch=armhf,arm64] http://ports.ubuntu.com/ focal main restricted universe multiverse \n\
+deb [arch=armhf,arm64] http://ports.ubuntu.com/ focal-updates main restricted universe multiverse \n\
+deb [arch=armhf,arm64] http://ports.ubuntu.com/ focal-backports main restricted universe multiverse \n\
+' > /etc/apt/sources.list.d/arm-cross-compile-sources.list
 
 RUN apt-get update
 

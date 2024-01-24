@@ -18,6 +18,8 @@ Abstract:
 #include "control.cpp.clog.h"
 #endif
 
+#include "msquicp.h"
+
 const MsQuicApi* MsQuic;
 QUIC_CREDENTIAL_CONFIG ServerSelfSignedCredConfig;
 QUIC_CREDENTIAL_CONFIG ServerSelfSignedCredConfigClientAuth;
@@ -64,113 +66,7 @@ PAGEDX EVT_WDF_FILE_CLEANUP QuicTestCtlEvtFileCleanup;
 WDFDEVICE QuicTestCtlDevice = nullptr;
 QUIC_DEVICE_EXTENSION* QuicTestCtlExtension = nullptr;
 QUIC_TEST_CLIENT* QuicTestClient = nullptr;
-
-typedef struct QuicTestNmrClient {
-    NPI_CLIENT_CHARACTERISTICS NpiClientCharacteristics;
-    HANDLE NmrClientHandle;
-    NPI_MODULEID ModuleId;
-    CXPLAT_EVENT RegistrationCompleteEvent;
-    MSQUIC_NMR_DISPATCH* ProviderDispatch;
-    BOOLEAN Deleting;
-} QuicTestNmrClient;
-
-static QuicTestNmrClient NmrClient;
-
-static
-NTSTATUS
-QuicTestClientAttachProvider(
-    _In_ HANDLE NmrBindingHandle,
-    _In_ void *ClientContext,
-    _In_ const NPI_REGISTRATION_INSTANCE *ProviderRegistrationInstance
-    )
-{
-    UNREFERENCED_PARAMETER(ProviderRegistrationInstance);
-
-    NTSTATUS Status;
-    QuicTestNmrClient* Client = (QuicTestNmrClient*)ClientContext;
-    void* ProviderContext;
-
-    #pragma warning(suppress:6387) // _Param_(2) could be '0' - by design.
-    Status =
-        NmrClientAttachProvider(
-            NmrBindingHandle,
-            Client,
-            NULL,
-            &ProviderContext,
-            (const void**)&Client->ProviderDispatch);
-    if (!NT_SUCCESS(Status)) {
-        QuicTraceEvent(
-            LibraryErrorStatus,
-            "[ lib] ERROR, %u, %s.",
-            Status,
-            "NmrClientAttachProvider failed");
-    }
-    CxPlatEventSet(Client->RegistrationCompleteEvent);
-    return Status;
-}
-
-static
-NTSTATUS
-QuicTestClientDetachProvider(
-    _In_ void *ClientBindingContext
-    )
-{
-    QuicTestNmrClient* Client = (QuicTestNmrClient*)ClientBindingContext;
-    if (InterlockedFetchAndSetBoolean(&Client->Deleting)) {
-        return STATUS_SUCCESS;
-    } else {
-        return STATUS_PENDING;
-    }
-}
-
-NTSTATUS
-QuicTestRegisterNmrClient(
-    void
-    )
-{
-    NPI_REGISTRATION_INSTANCE *ClientRegistrationInstance;
-    NTSTATUS Status = STATUS_SUCCESS;
-
-    CxPlatEventInitialize(&NmrClient.RegistrationCompleteEvent, FALSE, FALSE);
-    NmrClient.ModuleId.Length = sizeof(NmrClient.ModuleId);
-    NmrClient.ModuleId.Type = MIT_GUID;
-    NmrClient.ModuleId.Guid = MSQUIC_MODULE_ID;
-
-    NmrClient.NpiClientCharacteristics.Length = sizeof(NmrClient.NpiClientCharacteristics);
-    NmrClient.NpiClientCharacteristics.ClientAttachProvider = QuicTestClientAttachProvider;
-    NmrClient.NpiClientCharacteristics.ClientDetachProvider = QuicTestClientDetachProvider;
-
-    ClientRegistrationInstance = &NmrClient.NpiClientCharacteristics.ClientRegistrationInstance;
-    ClientRegistrationInstance->Size = sizeof(*ClientRegistrationInstance);
-    ClientRegistrationInstance->Version = 0;
-    ClientRegistrationInstance->NpiId = &MSQUIC_NPI_ID;
-    ClientRegistrationInstance->ModuleId = &NmrClient.ModuleId;
-
-    Status =
-        NmrRegisterClient(
-            &NmrClient.NpiClientCharacteristics, &NmrClient, &NmrClient.NmrClientHandle);
-    if (!NT_SUCCESS(Status)) {
-        QuicTraceEvent(
-            LibraryErrorStatus,
-            "[ lib] ERROR, %u, %s.",
-            Status,
-            "NmrRegisterClient failed");
-        goto Exit;
-    }
-
-    if (!CxPlatEventWaitWithTimeout(NmrClient.RegistrationCompleteEvent, 1000)) {
-        Status = STATUS_UNSUCCESSFUL;
-        QuicTraceEvent(
-            LibraryErrorStatus,
-            "[ lib] ERROR, %u, %s.",
-            Status,
-            "client registration timed out");
-        goto Exit;
-    }
-
-Exit:
-    return Status;
-}
+HANDLE NmrClient = nullptr;
 
 _No_competing_thread_
 INITCODE
@@ -188,20 +84,27 @@ QuicTestCtlInitialize(
     WDF_IO_QUEUE_CONFIG QueueConfig;
     WDFQUEUE Queue;
 
-    Status = QuicTestRegisterNmrClient();
+#ifdef QUIC_TEST_NMR_PROVIDER
+    QUIC_ENABLE_PRIVATE_NMR_PROVIDER();
+#endif
+
+    Status = MsQuicNmrClientRegister(&NmrClient, &MSQUIC_MODULE_ID, 5000);
     if (!NT_SUCCESS(Status)) {
         QuicTraceEvent(
             LibraryErrorStatus,
             "[ lib] ERROR, %u, %s.",
             Status,
-            "QuicTestRegisterNmrClient failed");
+            "MsQuicNmrClientRegister failed");
         goto Error;
     }
 
+    CXPLAT_DBG_ASSERT(
+        NmrClient != nullptr && QUIC_GET_DISPATCH(NmrClient) != nullptr);
+
     MsQuic =
         new (std::nothrow) MsQuicApi(
-            NmrClient.ProviderDispatch->MsQuicOpenVersion,
-            NmrClient.ProviderDispatch->MsQuicClose);
+            QUIC_GET_DISPATCH(NmrClient)->OpenVersion,
+            QUIC_GET_DISPATCH(NmrClient)->Close);
     if (!MsQuic) {
         goto Error;
     }
@@ -342,24 +245,8 @@ QuicTestCtlUninitialize(
 
     delete MsQuic;
 
-    if (InterlockedFetchAndSetBoolean(&NmrClient.Deleting)) {
-        //
-        // We are already in the middle of detaching the client.
-        // Complete it now.
-        //
-        NmrClientDetachProviderComplete(NmrClient.NmrClientHandle);
-    }
-
-    if (NmrClient.NmrClientHandle) {
-        NTSTATUS Status = NmrDeregisterClient(NmrClient.NmrClientHandle);
-        CXPLAT_FRE_ASSERTMSG(Status == STATUS_PENDING, "client deregistration failed");
-        if (Status == STATUS_PENDING) {
-            //
-            // Wait for the deregistration to complete.
-            //
-            NmrWaitForClientDeregisterComplete(NmrClient.NmrClientHandle);
-        }
-        NmrClient.NmrClientHandle = NULL;
+    if (NmrClient != nullptr) {
+        MsQuicNmrClientDeregister(&NmrClient);
     }
 
     QuicTraceLogVerbose(
@@ -511,7 +398,7 @@ error:
 
 size_t QUIC_IOCTL_BUFFER_SIZES[] =
 {
-    0,
+    sizeof(QUIC_TEST_CONFIGURATION_PARAMS),
     sizeof(QUIC_RUN_CERTIFICATE_PARAMS),
     0,
     0,
@@ -629,14 +516,16 @@ size_t QUIC_IOCTL_BUFFER_SIZES[] =
     0,
     sizeof(INT32),
     0,
+    sizeof(QUIC_RUN_CANCEL_ON_LOSS_PARAMS),
     sizeof(uint32_t),
 };
 
 CXPLAT_STATIC_ASSERT(
     QUIC_MAX_IOCTL_FUNC_CODE + 1 == (sizeof(QUIC_IOCTL_BUFFER_SIZES)/sizeof(size_t)),
-    "QUIC_IOCTL_BUFFER_SIZES must be kept in sync with the IOTCLs");
+    "QUIC_IOCTL_BUFFER_SIZES must be kept in sync with the IOCTLs");
 
 typedef union {
+    QUIC_TEST_CONFIGURATION_PARAMS TestConfigurationParams;
     QUIC_RUN_CERTIFICATE_PARAMS CertParams;
     QUIC_CERTIFICATE_HASH_STORE CertHashStore;
     UINT8 Connect;
@@ -647,6 +536,7 @@ typedef union {
     QUIC_RUN_ABORTIVE_SHUTDOWN_PARAMS Params4;
     QUIC_RUN_CID_UPDATE_PARAMS Params5;
     QUIC_RUN_RECEIVE_RESUME_PARAMS Params6;
+    QUIC_RUN_CANCEL_ON_LOSS_PARAMS Params7;
     UINT8 EnableKeepAlive;
     UINT8 StopListenerFirst;
     QUIC_RUN_DRILL_INITIAL_PACKET_CID_PARAMS DrillParams;
@@ -717,7 +607,7 @@ QuicTestCtlEvtIoDeviceControl(
     }
 
     ULONG FunctionCode = IoGetFunctionCodeFromCtlCode(IoControlCode);
-    if (FunctionCode == 0 || FunctionCode > QUIC_MAX_IOCTL_FUNC_CODE) {
+    if (FunctionCode > QUIC_MAX_IOCTL_FUNC_CODE) {
         Status = STATUS_NOT_IMPLEMENTED;
         QuicTraceEvent(
             LibraryErrorStatus,
@@ -779,6 +669,11 @@ QuicTestCtlEvtIoDeviceControl(
     }
 
     switch (IoControlCode) {
+
+    case IOCTL_QUIC_TEST_CONFIGURATION:
+        CXPLAT_FRE_ASSERT(Params != nullptr);
+        UseDuoNic = Params->TestConfigurationParams.UseDuoNic;
+        break;
 
     case IOCTL_QUIC_SET_CERT_PARAMS:
         CXPLAT_FRE_ASSERT(Params != nullptr);
@@ -1533,10 +1428,15 @@ QuicTestCtlEvtIoDeviceControl(
         QuicTestCtlRun(QuicTestConnectionCloseBeforeStreamClose());
         break;
 
+    case IOCTL_QUIC_RUN_CANCEL_ON_LOSS:
+        CXPLAT_FRE_ASSERT(Params != nullptr);
+        QuicTestCtlRun(QuicCancelOnLossSend(Params->Params7.DropPackets));
+        break;
+        
 #ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
     case IOCTL_QUIC_RUN_VALIDATE_NET_STATS_CONN_EVENT:
         CXPLAT_FRE_ASSERT(Params != nullptr);
-        QuicTestCtlRun(QuicTestValidateNetStatsConnEvents(Params->Test));
+        QuicTestCtlRun(QuicTestValidateNetStatsConnEvent(Params->Test));
         break;
 #endif
 

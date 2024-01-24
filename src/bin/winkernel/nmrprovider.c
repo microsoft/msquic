@@ -12,6 +12,7 @@ Abstract:
 #include "quic_platform.h"
 #include <wdm.h>
 #include "msquic.h"
+#include "msquicp.h"
 #include "quic_trace.h"
 #ifdef QUIC_CLOG
 #include "nmrprovider.c.clog.h"
@@ -28,8 +29,8 @@ MSQUIC_NMR_PROVIDER NmrProvider;
 const MSQUIC_NMR_DISPATCH MsQuicNmrDispatch = {
     .Version = 0,
     .Reserved = 0,
-    .MsQuicOpenVersion = MsQuicOpenVersion,
-    .MsQuicClose = MsQuicClose,
+    .OpenVersion = MsQuicOpenVersion,
+    .Close = MsQuicClose,
 };
 
 NTSTATUS
@@ -94,6 +95,10 @@ MsQuicRegisterNmrProvider(
     NmrProvider.NpiProviderCharacteristics.Length = sizeof(NmrProvider.NpiProviderCharacteristics);
     NmrProvider.NpiProviderCharacteristics.ProviderAttachClient = MsQuicNmrProviderAttachClient;
     NmrProvider.NpiProviderCharacteristics.ProviderDetachClient = MsQuicNmrProviderDetachClient;
+
+#ifdef QUIC_TEST_NMR_PROVIDER
+    QUIC_ENABLE_PRIVATE_NMR_PROVIDER();
+#endif
 
     ProviderRegistrationInstance = &NmrProvider.NpiProviderCharacteristics.ProviderRegistrationInstance;
     ProviderRegistrationInstance->Version = 0;

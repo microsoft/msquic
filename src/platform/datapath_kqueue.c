@@ -460,7 +460,7 @@ CxPlatDataPathInitialize(
     if (Config && Config->ProcessorCount) {
         PartitionCount = Config->ProcessorCount;
     } else {
-        PartitionCount = CxPlatProcMaxCount();
+        PartitionCount = CxPlatProcCount();
     }
 
     const size_t DatapathLength =

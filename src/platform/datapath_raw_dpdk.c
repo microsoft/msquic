@@ -90,7 +90,7 @@ CxPlatDpdkReadConfig(
     _In_opt_ CXPLAT_DATAPATH_CONFIG* Config
     )
 {
-    Dpdk->Cpu = (uint16_t)(CxPlatProcMaxCount() - 1);
+    Dpdk->Cpu = (uint16_t)(CxPlatProcCount() - 1);
 
     //
     // Read user-specified global config.

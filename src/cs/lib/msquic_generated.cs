@@ -193,6 +193,7 @@ namespace Microsoft.Quic
         FIN = 0x0004,
         DGRAM_PRIORITY = 0x0008,
         DELAY_SEND = 0x0010,
+        CANCEL_ON_LOSS = 0x0020,
     }
 
     internal enum QUIC_DATAGRAM_SEND_STATE
@@ -2821,6 +2822,7 @@ namespace Microsoft.Quic
         SHUTDOWN_COMPLETE = 7,
         IDEAL_SEND_BUFFER_SIZE = 8,
         PEER_ACCEPTED = 9,
+        CANCEL_ON_LOSS = 10,
     }
 
     internal partial struct QUIC_STREAM_EVENT
@@ -2894,6 +2896,14 @@ namespace Microsoft.Quic
             }
         }
 
+        internal ref _Anonymous_e__Union._CANCEL_ON_LOSS_e__Struct CANCEL_ON_LOSS
+        {
+            get
+            {
+                return ref MemoryMarshal.GetReference(MemoryMarshal.CreateSpan(ref Anonymous.CANCEL_ON_LOSS, 1));
+            }
+        }
+
         [StructLayout(LayoutKind.Explicit)]
         internal partial struct _Anonymous_e__Union
         {
@@ -2928,6 +2938,10 @@ namespace Microsoft.Quic
             [FieldOffset(0)]
             [NativeTypeName("struct (anonymous struct)")]
             internal _IDEAL_SEND_BUFFER_SIZE_e__Struct IDEAL_SEND_BUFFER_SIZE;
+
+            [FieldOffset(0)]
+            [NativeTypeName("struct (anonymous struct)")]
+            internal _CANCEL_ON_LOSS_e__Struct CANCEL_ON_LOSS;
 
             internal partial struct _START_COMPLETE_e__Struct
             {
@@ -3085,6 +3099,12 @@ namespace Microsoft.Quic
             {
                 [NativeTypeName("uint64_t")]
                 internal ulong ByteCount;
+            }
+
+            internal partial struct _CANCEL_ON_LOSS_e__Struct
+            {
+                [NativeTypeName("QUIC_UINT62")]
+                internal ulong ErrorCode;
             }
         }
     }

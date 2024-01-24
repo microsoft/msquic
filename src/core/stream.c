@@ -274,24 +274,24 @@ QuicStreamStart(
     uint64_t Now = CxPlatTimeUs64();
     Stream->BlockedTimings.CachedConnSchedulingUs =
         Stream->Connection->BlockedTimings.Scheduling.CumulativeTimeUs +
-        Stream->Connection->BlockedTimings.Scheduling.LastStartTimeUs != 0 ?
-            CxPlatTimeDiff64(Stream->Connection->BlockedTimings.Scheduling.LastStartTimeUs, Now) : 0;
+        (Stream->Connection->BlockedTimings.Scheduling.LastStartTimeUs != 0 ?
+            CxPlatTimeDiff64(Stream->Connection->BlockedTimings.Scheduling.LastStartTimeUs, Now) : 0);
     Stream->BlockedTimings.CachedConnPacingUs =
         Stream->Connection->BlockedTimings.Pacing.CumulativeTimeUs +
-        Stream->Connection->BlockedTimings.Pacing.LastStartTimeUs != 0 ?
-        CxPlatTimeDiff64(Stream->Connection->BlockedTimings.Pacing.LastStartTimeUs, Now) : 0;
+        (Stream->Connection->BlockedTimings.Pacing.LastStartTimeUs != 0 ?
+            CxPlatTimeDiff64(Stream->Connection->BlockedTimings.Pacing.LastStartTimeUs, Now) : 0);
     Stream->BlockedTimings.CachedConnAmplificationProtUs =
         Stream->Connection->BlockedTimings.AmplificationProt.CumulativeTimeUs +
-        Stream->Connection->BlockedTimings.AmplificationProt.LastStartTimeUs != 0 ?
-        CxPlatTimeDiff64(Stream->Connection->BlockedTimings.AmplificationProt.LastStartTimeUs, Now) : 0;
+        (Stream->Connection->BlockedTimings.AmplificationProt.LastStartTimeUs != 0 ?
+            CxPlatTimeDiff64(Stream->Connection->BlockedTimings.AmplificationProt.LastStartTimeUs, Now) : 0);
     Stream->BlockedTimings.CachedConnCongestionControlUs =
         Stream->Connection->BlockedTimings.CongestionControl.CumulativeTimeUs +
-        Stream->Connection->BlockedTimings.CongestionControl.LastStartTimeUs != 0 ?
-        CxPlatTimeDiff64(Stream->Connection->BlockedTimings.CongestionControl.LastStartTimeUs, Now) : 0;
+        (Stream->Connection->BlockedTimings.CongestionControl.LastStartTimeUs != 0 ?
+            CxPlatTimeDiff64(Stream->Connection->BlockedTimings.CongestionControl.LastStartTimeUs, Now) : 0);
     Stream->BlockedTimings.CachedConnFlowControlUs =
         Stream->Connection->BlockedTimings.FlowControl.CumulativeTimeUs +
-        Stream->Connection->BlockedTimings.FlowControl.LastStartTimeUs != 0 ?
-        CxPlatTimeDiff64(Stream->Connection->BlockedTimings.FlowControl.LastStartTimeUs, Now) : 0;
+        (Stream->Connection->BlockedTimings.FlowControl.LastStartTimeUs != 0 ?
+            CxPlatTimeDiff64(Stream->Connection->BlockedTimings.FlowControl.LastStartTimeUs, Now) : 0);
 
     QuicTraceEvent(
         StreamCreated,

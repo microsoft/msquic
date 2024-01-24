@@ -145,6 +145,7 @@ class QuicDriverClient {
     HANDLE DeviceHandle;
 public:
     QuicDriverClient() : DeviceHandle(INVALID_HANDLE_VALUE) { }
+    ~QuicDriverClient() { Uninitialize(); }
     bool Initialize(
         _In_ QUIC_RUN_CERTIFICATE_PARAMS* CertParams,
         _In_z_ const char* DriverName
@@ -196,6 +197,7 @@ public:
     void Uninitialize() {
         if (DeviceHandle != INVALID_HANDLE_VALUE) {
             CxPlatCloseHandle(DeviceHandle);
+            DeviceHandle = INVALID_HANDLE_VALUE;
         }
     }
     bool Run(

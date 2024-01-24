@@ -471,6 +471,11 @@ QuicAbortiveTransfers(
     );
 
 void
+QuicCancelOnLossSend(
+    _In_ bool DropPackets
+    );
+
+void
 QuicTestCidUpdate(
     _In_ int Family,
     _In_ uint16_t Iterations
@@ -673,6 +678,13 @@ static const GUID QUIC_TEST_DEVICE_INSTANCE =
 //
 // IOCTL Interface
 //
+
+typedef struct {
+    BOOLEAN UseDuoNic;
+} QUIC_TEST_CONFIGURATION_PARAMS;
+
+#define IOCTL_QUIC_TEST_CONFIGURATION \
+    QUIC_CTL_CODE(0, METHOD_BUFFERED, FILE_WRITE_DATA)
 
 typedef struct {
     QUIC_CERTIFICATE_HASH ServerCertHash;
@@ -1249,8 +1261,21 @@ typedef struct {
 #define IOCTL_QUIC_RUN_CONN_CLOSE_BEFORE_STREAM_CLOSE \
     QUIC_CTL_CODE(117, METHOD_BUFFERED, FILE_WRITE_DATA)
 
-#define IOCTL_QUIC_RUN_VALIDATE_NET_STATS_CONN_EVENT \
+#pragma pack(push)
+#pragma pack(1)
+
+typedef struct {
+    bool DropPackets;
+} QUIC_RUN_CANCEL_ON_LOSS_PARAMS;
+
+#pragma pack(pop)
+
+#define IOCTL_QUIC_RUN_CANCEL_ON_LOSS \
     QUIC_CTL_CODE(118, METHOD_BUFFERED, FILE_WRITE_DATA)
+    // QUIC_RUN_CANCEL_ON_LOSS_PARAMS
+
+#define IOCTL_QUIC_RUN_VALIDATE_NET_STATS_CONN_EVENT \
+    QUIC_CTL_CODE(119, METHOD_BUFFERED, FILE_WRITE_DATA)
     // uint32_t - Test
 
-#define QUIC_MAX_IOCTL_FUNC_CODE 118
+#define QUIC_MAX_IOCTL_FUNC_CODE 119
