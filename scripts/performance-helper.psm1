@@ -1304,6 +1304,9 @@ class TestRunDefinition {
         if ($script:Kernel -and $this.Local.Platform -eq "Windows") {
             $Platform = 'Winkernel'
         }
+        if ($script:XDP -and $script:Kernel -and $this.Local.Platform -eq "Windows") {
+            $Platform = 'WinkernelXDP'
+        }
         if ($script:XDP -and $this.Local.Platform -eq "Windows") {
             $Platform = 'WinXDP'
         }

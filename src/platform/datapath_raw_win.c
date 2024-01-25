@@ -120,7 +120,7 @@ RawDataPathInitialize(
         return QUIC_STATUS_INVALID_PARAMETER;
     }
 
-    CXPLAT_DATAPATH_RAW* DataPath = CXPLAT_ALLOC_PAGED(DatapathSize, QUIC_POOL_DATAPATH);
+    CXPLAT_DATAPATH_RAW* DataPath = CXPLAT_ALLOC_NONPAGED(DatapathSize, QUIC_POOL_DATAPATH);
     if (DataPath == NULL) {
         QuicTraceEvent(
             AllocFailure,
@@ -557,7 +557,7 @@ CXPLAT_THREAD_CALLBACK(CxPlatRouteResolutionWorkerThread, Context)
                     CxPlatListRemoveHead(&Operations), CXPLAT_ROUTE_RESOLUTION_OPERATION, WorkerLink);
             NETIO_STATUS Status =
             Status = GetIpNetEntry2(&Operation->IpnetRow);
-            if (Status != ERROR_SUCCESS || Operation->IpnetRow.State <= NlnsIncomplete) {
+            if (Status != 0 || Operation->IpnetRow.State <= NlnsIncomplete) {
                 Status =
                     ResolveIpNetEntry2(&Operation->IpnetRow, NULL);
                 if (Status != 0) {
@@ -602,5 +602,5 @@ CXPLAT_THREAD_CALLBACK(CxPlatRouteResolutionWorkerThread, Context)
         CXPLAT_FREE(Operation, QUIC_POOL_ROUTE_RESOLUTION_OPER);
     }
 
-    return 0;
+    CXPLAT_THREAD_RETURN(0);
 }

@@ -154,9 +154,6 @@ if ($Kernel) {
     if ($PGO) {
         Write-Error "'-PGO' is not supported in kernel mode!"
     }
-    if ($XDP) {
-        Write-Error "'-XDP' is not supported in kernel mode!"
-    }
     if ($QTIP) {
         Write-Error "'-QTIP' is not supported in kernel mode!"
     }
@@ -638,11 +635,12 @@ try {
     }
 
     if ($XDP) {
-        Invoke-Expression "$(Join-Path $LocalDirectory prepare-machine.ps1) -InstallXdpDriver -Force"
+        $ExtraArgs = if ($Kernel) { "-XdpInstallerUri `"https://xdpfileserver.z1.web.core.windows.net/xdp-for-windows-4f336a7-Release.msi`"" } else { "" }
+        Invoke-Expression "$(Join-Path $LocalDirectory prepare-machine.ps1) -InstallXdpDriver -Force $ExtraArgs"
         Invoke-TestCommand -Session $Session -ScriptBlock {
-            param ($RemoteDirectory)
-            Invoke-Expression "$(Join-Path $RemoteDirectory prepare-machine.ps1) -InstallXdpDriver -Force"
-        } -ArgumentList $RemoteDirectory
+            param ($RemoteDirectory, $ExtraArgs)
+            Invoke-Expression "$(Join-Path $RemoteDirectory prepare-machine.ps1) -InstallXdpDriver -Force $ExtraArgs"
+        } -ArgumentList @($RemoteDirectory, $ExtraArgs)
     }
 
     foreach ($Test in $Tests.Tests) {

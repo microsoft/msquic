@@ -225,11 +225,11 @@ CxPlatDpRawParseIPv4(
     _In_ const CXPLAT_DATAPATH* Datapath,
     _Inout_ CXPLAT_RECV_DATA* Packet,
     _In_reads_bytes_(Length)
-        const IPV4_HEADER* IP,
+        const CXPLAT_IPV4_HEADER* IP,
     _In_ uint16_t Length
     )
 {
-    if (Length < sizeof(IPV4_HEADER)) {
+    if (Length < sizeof(CXPLAT_IPV4_HEADER)) {
         QuicTraceEvent(
             DatapathErrorStatus,
             "[data][%p] ERROR, %u, %s.",
@@ -262,14 +262,14 @@ CxPlatDpRawParseIPv4(
 
     Packet->TypeOfService = IP->EcnField;
     Packet->Route->RemoteAddress.Ipv4.sin_family = AF_INET;
-    CxPlatCopyMemory(&Packet->Route->RemoteAddress.Ipv4.sin_addr, IP->Source, sizeof(IP->Source));
+    CxPlatCopyMemory(&Packet->Route->RemoteAddress.Ipv4.sin_addr, IP->SourceAddress, sizeof(IP->SourceAddress));
     Packet->Route->LocalAddress.Ipv4.sin_family = AF_INET;
-    CxPlatCopyMemory(&Packet->Route->LocalAddress.Ipv4.sin_addr, IP->Destination, sizeof(IP->Destination));
+    CxPlatCopyMemory(&Packet->Route->LocalAddress.Ipv4.sin_addr, IP->DestinationAddress, sizeof(IP->DestinationAddress));
 
     if (IP->Protocol == IPPROTO_UDP) {
-        CxPlatDpRawParseUdp(Datapath, Packet, (UDP_HEADER*)IP->Data, IPTotalLength - sizeof(IPV4_HEADER));
+        CxPlatDpRawParseUdp(Datapath, Packet, (UDP_HEADER*)IP->Data, IPTotalLength - sizeof(CXPLAT_IPV4_HEADER));
     } else if (IP->Protocol == IPPROTO_TCP) {
-        CxPlatDpRawParseTcp(Datapath, Packet, (TCP_HEADER*)IP->Data, IPTotalLength - sizeof(IPV4_HEADER));
+        CxPlatDpRawParseTcp(Datapath, Packet, (TCP_HEADER*)IP->Data, IPTotalLength - sizeof(CXPLAT_IPV4_HEADER));
     } else {
         QuicTraceEvent(
             DatapathErrorStatus,
@@ -287,12 +287,12 @@ CxPlatDpRawParseIPv6(
     _In_ const CXPLAT_DATAPATH* Datapath,
     _Inout_ CXPLAT_RECV_DATA* Packet,
     _In_reads_bytes_(Length)
-        const IPV6_HEADER* IP,
+        const CXPLAT_IPV6_HEADER* IP,
     _In_ uint16_t Length
     )
 {
 
-    if (Length < sizeof(IPV6_HEADER)) {
+    if (Length < sizeof(CXPLAT_IPV6_HEADER)) {
         QuicTraceEvent(
             DatapathErrorStatus,
             "[data][%p] ERROR, %u, %s.",
@@ -303,7 +303,7 @@ CxPlatDpRawParseIPv6(
     }
 
     uint16_t IPPayloadLength = CxPlatByteSwapUint16(IP->PayloadLength);
-    if (IPPayloadLength + sizeof(IPV6_HEADER) > Length) {
+    if (IPPayloadLength + sizeof(CXPLAT_IPV6_HEADER) > Length) {
         QuicTraceEvent(
             DatapathErrorStatus,
             "[data][%p] ERROR, %u, %s.",
@@ -330,9 +330,9 @@ CxPlatDpRawParseIPv6(
 
     Packet->TypeOfService = (uint8_t)VersionClassEcnFlow.EcnField;
     Packet->Route->RemoteAddress.Ipv6.sin6_family = AF_INET6;
-    CxPlatCopyMemory(&Packet->Route->RemoteAddress.Ipv6.sin6_addr, IP->Source, sizeof(IP->Source));
+    CxPlatCopyMemory(&Packet->Route->RemoteAddress.Ipv6.sin6_addr, IP->SourceAddress, sizeof(IP->SourceAddress));
     Packet->Route->LocalAddress.Ipv6.sin6_family = AF_INET6;
-    CxPlatCopyMemory(&Packet->Route->LocalAddress.Ipv6.sin6_addr, IP->Destination, sizeof(IP->Destination));
+    CxPlatCopyMemory(&Packet->Route->LocalAddress.Ipv6.sin6_addr, IP->DestinationAddress, sizeof(IP->DestinationAddress));
 
     if (IP->NextHeader == IPPROTO_UDP) {
         CxPlatDpRawParseUdp(Datapath, Packet, (UDP_HEADER*)IP->Data, IPPayloadLength);
@@ -368,7 +368,7 @@ CxPlatDpRawParseEthernet(
     _In_ uint16_t Length
     )
 {
-    if (Length < sizeof(ETHERNET_HEADER)) {
+    if (Length < sizeof(CXPLAT_ETHERNET_HEADER)) {
         QuicTraceEvent(
             DatapathErrorStatus,
             "[data][%p] ERROR, %u, %s.",
@@ -378,9 +378,9 @@ CxPlatDpRawParseEthernet(
         return;
     }
 
-    Length -= sizeof(ETHERNET_HEADER);
+    Length -= sizeof(CXPLAT_ETHERNET_HEADER);
 
-    const ETHERNET_HEADER* Ethernet = (const ETHERNET_HEADER*)Payload;
+    const CXPLAT_ETHERNET_HEADER* Ethernet = (const CXPLAT_ETHERNET_HEADER*)Payload;
 
     if (IsEthernetBroadcast(Ethernet->Destination) || IsEthernetMulticast(Ethernet->Destination)) {
         QuicTraceEvent(
@@ -396,10 +396,10 @@ CxPlatDpRawParseEthernet(
     CxPlatCopyMemory(&Packet->Route->NextHopLinkLayerAddress, Ethernet->Source, sizeof(Ethernet->Source));
 
     uint16_t EthernetType = Ethernet->Type;
-    if (EthernetType == ETHERNET_TYPE_IPV4) {
-        CxPlatDpRawParseIPv4(Datapath, Packet, (IPV4_HEADER*)Ethernet->Data, Length);
-    } else if (EthernetType == ETHERNET_TYPE_IPV6) {
-        CxPlatDpRawParseIPv6(Datapath, Packet, (IPV6_HEADER*)Ethernet->Data, Length);
+    if (EthernetType == CXPLAT_ETHERNET_TYPE_IPV4) {
+        CxPlatDpRawParseIPv4(Datapath, Packet, (CXPLAT_IPV4_HEADER*)Ethernet->Data, Length);
+    } else if (EthernetType == CXPLAT_ETHERNET_TYPE_IPV6) {
+        CxPlatDpRawParseIPv6(Datapath, Packet, (CXPLAT_IPV6_HEADER*)Ethernet->Data, Length);
     } else {
         QuicTraceEvent(
             DatapathErrorStatus,
@@ -420,8 +420,8 @@ CxPlatDpRawCalculateHeaderBackFill(
     HEADER_BACKFILL HeaderBackFill;
     HeaderBackFill.TransportLayer = UseTcp ? sizeof(TCP_HEADER) : sizeof(UDP_HEADER);
     HeaderBackFill.NetworkLayer =
-        Family == QUIC_ADDRESS_FAMILY_INET ? sizeof(IPV4_HEADER) : sizeof(IPV6_HEADER);
-    HeaderBackFill.LinkLayer = sizeof(ETHERNET_HEADER);
+        Family == QUIC_ADDRESS_FAMILY_INET ? sizeof(CXPLAT_IPV4_HEADER) : sizeof(CXPLAT_IPV6_HEADER);
+    HeaderBackFill.LinkLayer = sizeof(CXPLAT_ETHERNET_HEADER);
     HeaderBackFill.AllLayer =
         HeaderBackFill.TransportLayer + HeaderBackFill.NetworkLayer + HeaderBackFill.LinkLayer;
     return HeaderBackFill;
@@ -665,7 +665,7 @@ CxPlatFramingWriteHeaders(
     uint8_t TransportProtocol;
     TCP_HEADER* TCP = NULL;
     UDP_HEADER* UDP = NULL;
-    ETHERNET_HEADER* Ethernet;
+    CXPLAT_ETHERNET_HEADER* Ethernet;
     uint16_t EthType;
     uint16_t IpHeaderLen;
     QUIC_ADDRESS_FAMILY Family = QuicAddrGetFamily(&Route->RemoteAddress);
@@ -710,41 +710,41 @@ CxPlatFramingWriteHeaders(
     // Fill IPv4/IPv6 header.
     //
     if (Family == QUIC_ADDRESS_FAMILY_INET) {
-        IPV4_HEADER* IPv4 = (IPV4_HEADER*)(Transport - sizeof(IPV4_HEADER));
+        CXPLAT_IPV4_HEADER* IPv4 = (CXPLAT_IPV4_HEADER*)(Transport - sizeof(CXPLAT_IPV4_HEADER));
         IPv4->VersionAndHeaderLength = IPV4_DEFAULT_VERHLEN;
         IPv4->TypeOfService = 0;
         IPv4->EcnField = ECN;
-        IPv4->TotalLength = htons(sizeof(IPV4_HEADER) + TransportLength + (uint16_t)Buffer->Length);
+        IPv4->TotalLength = CxPlatByteSwapUint16(sizeof(CXPLAT_IPV4_HEADER) + TransportLength + (uint16_t)Buffer->Length);
         IPv4->Identification = 0;
         IPv4->FlagsAndFragmentOffset = 0;
         IPv4->TimeToLive = IP_DEFAULT_HOP_LIMIT;
         IPv4->Protocol = TransportProtocol;
         IPv4->HeaderChecksum = 0;
-        CxPlatCopyMemory(IPv4->Source, &Route->LocalAddress.Ipv4.sin_addr, sizeof(Route->LocalAddress.Ipv4.sin_addr));
-        CxPlatCopyMemory(IPv4->Destination, &Route->RemoteAddress.Ipv4.sin_addr, sizeof(Route->RemoteAddress.Ipv4.sin_addr));
-        IPv4->HeaderChecksum = SkipNetworkLayerXsum ? 0 : ~CxPlatFramingChecksum((uint8_t*)IPv4, sizeof(IPV4_HEADER), 0);
-        EthType = ETHERNET_TYPE_IPV4;
-        Ethernet = (ETHERNET_HEADER*)(((uint8_t*)IPv4) - sizeof(ETHERNET_HEADER));
-        IpHeaderLen = sizeof(IPV4_HEADER);
+        CxPlatCopyMemory(IPv4->SourceAddress, &Route->LocalAddress.Ipv4.sin_addr, sizeof(Route->LocalAddress.Ipv4.sin_addr));
+        CxPlatCopyMemory(IPv4->DestinationAddress, &Route->RemoteAddress.Ipv4.sin_addr, sizeof(Route->RemoteAddress.Ipv4.sin_addr));
+        IPv4->HeaderChecksum = SkipNetworkLayerXsum ? 0 : ~CxPlatFramingChecksum((uint8_t*)IPv4, sizeof(CXPLAT_IPV4_HEADER), 0);
+        EthType = CXPLAT_ETHERNET_TYPE_IPV4;
+        Ethernet = (CXPLAT_ETHERNET_HEADER*)(((uint8_t*)IPv4) - sizeof(CXPLAT_ETHERNET_HEADER));
+        IpHeaderLen = sizeof(CXPLAT_IPV4_HEADER);
         if (!SkipTransportLayerXsum) {
             if (Socket->UseTcp) {
                 TCP->Checksum =
                     CxPlatFramingTransportChecksum(
-                        IPv4->Source, IPv4->Destination,
+                        IPv4->SourceAddress, IPv4->DestinationAddress,
                         sizeof(Route->LocalAddress.Ipv4.sin_addr),
                         IPPROTO_TCP,
                         (uint8_t*)TCP, sizeof(TCP_HEADER) + Buffer->Length);
             } else {
                 UDP->Checksum =
                     CxPlatFramingTransportChecksum(
-                        IPv4->Source, IPv4->Destination,
+                        IPv4->SourceAddress, IPv4->DestinationAddress,
                         sizeof(Route->LocalAddress.Ipv4.sin_addr),
                         IPPROTO_UDP,
                         (uint8_t*)UDP, sizeof(UDP_HEADER) + Buffer->Length);
             }
         }
     } else {
-        IPV6_HEADER* IPv6 = (IPV6_HEADER*)(Transport - sizeof(IPV6_HEADER));
+        CXPLAT_IPV6_HEADER* IPv6 = (CXPLAT_IPV6_HEADER*)(Transport - sizeof(CXPLAT_IPV6_HEADER));
         //
         // IPv6 Version, Traffic Class, ECN Field and Flow Label fields in host
         // byte order.
@@ -765,26 +765,26 @@ CxPlatFramingWriteHeaders(
         VersionClassEcnFlow.Flow = (uint32_t)(uintptr_t)Socket;
 
         IPv6->VersionClassEcnFlow = CxPlatByteSwapUint32(VersionClassEcnFlow.Value);
-        IPv6->PayloadLength = htons(TransportLength + (uint16_t)Buffer->Length);
+        IPv6->PayloadLength = CxPlatByteSwapUint16(TransportLength + (uint16_t)Buffer->Length);
         IPv6->HopLimit = IP_DEFAULT_HOP_LIMIT;
         IPv6->NextHeader = TransportProtocol;
-        CxPlatCopyMemory(IPv6->Source, &Route->LocalAddress.Ipv6.sin6_addr, sizeof(Route->LocalAddress.Ipv6.sin6_addr));
-        CxPlatCopyMemory(IPv6->Destination, &Route->RemoteAddress.Ipv6.sin6_addr, sizeof(Route->RemoteAddress.Ipv6.sin6_addr));
-        EthType = ETHERNET_TYPE_IPV6;
-        Ethernet = (ETHERNET_HEADER*)(((uint8_t*)IPv6) - sizeof(ETHERNET_HEADER));
-        IpHeaderLen = sizeof(IPV6_HEADER);
+        CxPlatCopyMemory(IPv6->SourceAddress, &Route->LocalAddress.Ipv6.sin6_addr, sizeof(Route->LocalAddress.Ipv6.sin6_addr));
+        CxPlatCopyMemory(IPv6->DestinationAddress, &Route->RemoteAddress.Ipv6.sin6_addr, sizeof(Route->RemoteAddress.Ipv6.sin6_addr));
+        EthType = CXPLAT_ETHERNET_TYPE_IPV6;
+        Ethernet = (CXPLAT_ETHERNET_HEADER*)(((uint8_t*)IPv6) - sizeof(CXPLAT_ETHERNET_HEADER));
+        IpHeaderLen = sizeof(CXPLAT_IPV6_HEADER);
         if (!SkipTransportLayerXsum) {
             if (Socket->UseTcp) {
                 TCP->Checksum =
                     CxPlatFramingTransportChecksum(
-                        IPv6->Source, IPv6->Destination,
+                        IPv6->SourceAddress, IPv6->DestinationAddress,
                         sizeof(Route->LocalAddress.Ipv6.sin6_addr),
                         IPPROTO_TCP,
                         (uint8_t*)TCP, sizeof(TCP_HEADER) + Buffer->Length);
             } else {
                 UDP->Checksum =
                     CxPlatFramingTransportChecksum(
-                        IPv6->Source, IPv6->Destination,
+                        IPv6->SourceAddress, IPv6->DestinationAddress,
                         sizeof(Route->LocalAddress.Ipv6.sin6_addr),
                         IPPROTO_UDP,
                         (uint8_t*)UDP, sizeof(UDP_HEADER) + Buffer->Length);
@@ -800,6 +800,6 @@ CxPlatFramingWriteHeaders(
     CxPlatCopyMemory(Ethernet->Destination, Route->NextHopLinkLayerAddress, sizeof(Route->NextHopLinkLayerAddress));
     CxPlatCopyMemory(Ethernet->Source, Route->LocalLinkLayerAddress, sizeof(Route->LocalLinkLayerAddress));
 
-    Buffer->Length += TransportLength + IpHeaderLen + sizeof(ETHERNET_HEADER);
-    Buffer->Buffer -= TransportLength + IpHeaderLen + sizeof(ETHERNET_HEADER);
+    Buffer->Length += TransportLength + IpHeaderLen + sizeof(CXPLAT_ETHERNET_HEADER);
+    Buffer->Buffer -= TransportLength + IpHeaderLen + sizeof(CXPLAT_ETHERNET_HEADER);
 }

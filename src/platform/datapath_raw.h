@@ -244,7 +244,9 @@ typedef struct CXPLAT_SOCKET_RAW {
     CXPLAT_HASHTABLE_ENTRY Entry;
     CXPLAT_RUNDOWN_REF Rundown;
     CXPLAT_DATAPATH_RAW* RawDatapath;
+#ifndef _KERNEL_MODE
     SOCKET AuxSocket;
+#endif
     BOOLEAN Wildcard;                // Using a wildcard local address. Optimization
                                      // to avoid always reading LocalAddress.
     uint8_t CibirIdLength;           // CIBIR ID length. Value of 0 indicates CIBIR isn't used
@@ -374,14 +376,14 @@ CxPlatFramingWriteHeaders(
 #pragma pack(push)
 #pragma pack(1)
 
-typedef struct ETHERNET_HEADER {
+typedef struct CXPLAT_ETHERNET_HEADER {
     uint8_t Destination[6];
     uint8_t Source[6];
     uint16_t Type;
     uint8_t Data[0];
-} ETHERNET_HEADER;
+} CXPLAT_ETHERNET_HEADER;
 
-typedef struct IPV4_HEADER {
+typedef struct CXPLAT_IPV4_HEADER {
     uint8_t VersionAndHeaderLength;
     union {
         uint8_t TypeOfServiceAndEcnField;
@@ -396,20 +398,20 @@ typedef struct IPV4_HEADER {
     uint8_t TimeToLive;
     uint8_t Protocol;
     uint16_t HeaderChecksum;
-    uint8_t Source[4];
-    uint8_t Destination[4];
+    uint8_t SourceAddress[4];
+    uint8_t DestinationAddress[4];
     uint8_t Data[0];
-} IPV4_HEADER;
+} CXPLAT_IPV4_HEADER;
 
-typedef struct IPV6_HEADER {
+typedef struct CXPLAT_IPV6_HEADER {
     uint32_t VersionClassEcnFlow;
     uint16_t PayloadLength;
     uint8_t NextHeader;
     uint8_t HopLimit;
-    uint8_t Source[16];
-    uint8_t Destination[16];
+    uint8_t SourceAddress[16];
+    uint8_t DestinationAddress[16];
     uint8_t Data[0];
-} IPV6_HEADER;
+} CXPLAT_IPV6_HEADER;
 
 typedef struct IPV6_EXTENSION {
     uint8_t NextHeader;
@@ -456,11 +458,16 @@ typedef struct TCP_HEADER {
 #define TH_CWR 0x80
 
 #define IPV4_VERSION 4
+#ifndef _KERNEL_MODE
 #define IPV6_VERSION 6
+#endif
 #define IPV4_VERSION_BYTE (IPV4_VERSION << 4)
-#define IPV4_DEFAULT_VERHLEN ((IPV4_VERSION_BYTE) | (sizeof(IPV4_HEADER) / sizeof(uint32_t)))
+#ifndef _KERNEL_MODE
+#define IPV4_DEFAULT_VERHLEN ((IPV4_VERSION_BYTE) | (sizeof(CXPLAT_IPV4_HEADER) / sizeof(uint32_t)))
+#endif
 
 #define IP_DEFAULT_HOP_LIMIT 128
 
-#define ETHERNET_TYPE_IPV4 0x0008
-#define ETHERNET_TYPE_IPV6 0xdd86
+
+#define CXPLAT_ETHERNET_TYPE_IPV4 0x0008
+#define CXPLAT_ETHERNET_TYPE_IPV6 0xdd86
