@@ -297,7 +297,6 @@ main(
     const char* FileName = nullptr;
     TryGetValue(argc, argv, "extraOutputFile", &FileName);
 
-    SelfSignedCredConfig = nullptr;
     if (!TryGetTarget(argc, argv)) { // Only create certificate on server
         SelfSignedCredConfig =
             CxPlatGetSelfSignedCert(CXPLAT_SELF_SIGN_CERT_USER, FALSE, NULL);
