@@ -485,19 +485,11 @@ function Invoke-Secnetperf {
             try { .\scripts\log.ps1 -Stop -OutputPath "$artifactDir/client" -RawLogOnly }
             catch { Write-Host "Failed to stop logging on client!" }
             Invoke-Command -Session $Session -ScriptBlock {
-                try {
-                    & "$Using:RemoteDir/scripts/log.ps1" -Stop -OutputPath "$Using:remoteArtifactDir/server" -RawLogOnly
-                    dir $Using:remoteArtifactDir -Recurse
-                } catch {
-                    Write-Host "Failed to stop logging on server!"
-                    Write-GHError $_
-                }
+                try { & "$Using:RemoteDir/scripts/log.ps1" -Stop -OutputPath "$Using:remoteArtifactDir/server" -RawLogOnly }
+                catch { Write-Host "Failed to stop logging on server!" }
             }
             try { Copy-Item -FromSession $Session "$remoteArtifactDir/*" $artifactDir -Recurse }
-            catch {
-                Write-Host "Failed to copy server logs!"
-                Write-GHError $_
-            }
+            catch { Write-Host "Failed to copy server logs!" }
         }
 
         # Grab any crash dumps that were generated.
