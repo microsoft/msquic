@@ -349,12 +349,8 @@ function Check-TestFilter {
         if ($pattern -like '-*') {
             continue
         }
-
-        Write-Host "Testing positive pattern: $pattern"
-
         if ($ExeArgs -like $pattern) {
             foreach ($negativePattern in $negativePatterns) {
-                Write-Host "Testing negative pattern: $negativePattern"
                 if ($ExeArgs -like $negativePattern) {
                     return $false
                 }
