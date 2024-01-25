@@ -422,7 +422,7 @@ function Invoke-Secnetperf {
         $clientArgs += " -pconn:1"
     }
 
-    if (!Check-TestFilter $clientArgs $Filter) {
+    if (!(Check-TestFilter $clientArgs $Filter)) {
         Write-Host "> secnetperf $clientArgs SKIPPED!"
         continue
     }
