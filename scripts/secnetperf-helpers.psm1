@@ -481,7 +481,8 @@ function Invoke-Secnetperf {
             try { .\scripts\log.ps1 -Stop -OutputPath "$artifactDir/client" -RawLogOnly }
             catch { Write-Host "Failed to stop logging on client!" }
             Invoke-Command -Session $Session -ScriptBlock {
-                try { & "$Using:RemoteDir/scripts/log.ps1" -Stop -OutputPath "$Using:RemoteDir/artifacts/logs/$Using:artifactName/server" -RawLogOnly }
+                try { & "$Using:RemoteDir/scripts/log.ps1" -Stop -OutputPath "$Using:RemoteDir/artifacts/logs/$Using:artifactName/server" -RawLogOnly
+                dir $Using:RemoteDir/artifacts/logs/$Using:artifactName -Recurse }
                 catch { Write-Host "Failed to stop logging on server!" }
             }
             try { Copy-Item -FromSession $Session "$RemoteDir/artifacts/logs/$artifactName/*" $artifactDir -Recurse }
