@@ -297,15 +297,15 @@ main(
     const char* FileName = nullptr;
     TryGetValue(argc, argv, "extraOutputFile", &FileName);
 
-    bool IsServer = TryGetTarget(argc, argv) != nullptr;
-    SelfSignedCredConfig =
-        IsServer ?
-            CxPlatGetSelfSignedCert(CXPLAT_SELF_SIGN_CERT_USER, FALSE, NULL) :
-            nullptr;
-    if (!SelfSignedCredConfig) {
-        printf("Creating self signed certificate failed\n");
-        Status = QUIC_STATUS_INTERNAL_ERROR;
-        goto Exit;
+    SelfSignedCredConfig = nullptr;
+    if (!TryGetTarget(argc, argv)) { // Only create certificate on server
+        SelfSignedCredConfig =
+            CxPlatGetSelfSignedCert(CXPLAT_SELF_SIGN_CERT_USER, FALSE, NULL);
+        if (!SelfSignedCredConfig) {
+            printf("Creating self signed certificate failed\n");
+            Status = QUIC_STATUS_INTERNAL_ERROR;
+            goto Exit;
+        }
     }
 
     if (TryGetValue(argc, argv, "cipher", &CipherSuite)) {
