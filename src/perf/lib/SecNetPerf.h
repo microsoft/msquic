@@ -55,7 +55,7 @@ QuicMainStart(
     _In_ int argc,
     _In_reads_(argc) _Null_terminated_ char* argv[],
     _In_ CXPLAT_EVENT* StopEvent,
-    _In_ const QUIC_CREDENTIAL_CONFIG* SelfSignedCredConfig
+    _In_opt_ const QUIC_CREDENTIAL_CONFIG* SelfSignedCredConfig
     );
 
 extern
@@ -80,6 +80,22 @@ QuicMainGetExtraData(
     _In_ uint32_t Length
     );
 
+inline
+const char*
+TryGetTarget(
+    _In_ int argc,
+    _In_reads_(argc) _Null_terminated_ char* argv[]
+    )
+{
+    const char* Target = nullptr;
+    TryGetValue(argc, argv, "target", &Target);
+    TryGetValue(argc, argv, "server", &Target);
+    TryGetValue(argc, argv, "to", &Target);
+    TryGetValue(argc, argv, "remote", &Target);
+    TryGetValue(argc, argv, "peer", &Target);
+    return Target;
+}
+
 #ifdef _KERNEL_MODE
 extern volatile int BufferCurrent;
 constexpr int BufferLength = 40 * 1024 * 1024;
@@ -103,7 +119,7 @@ WriteOutput(
     va_end(args);
     return rval;
 #else
-    char Buf[256];
+    char Buf[512];
     char* BufEnd;
     va_list args;
     va_start(args, format);
