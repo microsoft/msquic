@@ -334,6 +334,34 @@ function Wait-LocalTest {
     return $consoleTxt
 }
 
+# Test the args to see if they match one of the positive patterns but none of
+# the negative patterns (prefixed by '-'). '?' matches any single character;
+# '*' matches any substring; ';' separates two patterns.
+function Check-TestFilter {
+    param ($ExeArgs, $Filter)
+
+    if (!$Filter) { return $true } # No filter means run everything
+
+    $positivePatterns = $Filter.Split(';')
+    $negativePatterns = $positivePatterns | Where-Object { $_ -like '-*' } | ForEach-Object { $_.TrimStart('-') }
+
+    foreach ($pattern in $positivePatterns) {
+        if ($pattern -like '-*') {
+            continue
+        }
+        if ($ExeArgs -like $pattern) {
+            foreach ($negativePattern in $negativePatterns) {
+                if ($ExeArgs -like $negativePattern) {
+                    return $false
+                }
+            }
+            return $true
+        }
+    }
+
+    return $false
+}
+
 # Parses the console output of secnetperf to extract the metric value.
 function Get-TestOutput {
     param ($Output, $Metric)
@@ -355,7 +383,7 @@ function Get-TestOutput {
 
 # Invokes secnetperf with the given arguments for both TCP and QUIC.
 function Invoke-Secnetperf {
-    param ($Session, $RemoteName, $RemoteDir, $SecNetPerfPath, $LogProfile, $TestId, $ExeArgs, $io)
+    param ($Session, $RemoteName, $RemoteDir, $SecNetPerfPath, $LogProfile, $TestId, $ExeArgs, $io, $Filter)
 
     $metric = "throughput"
     if ($exeArgs.Contains("plat:1")) {
@@ -389,6 +417,12 @@ function Invoke-Secnetperf {
         $serverArgs += " -pconn:1"
         $clientArgs += " -pconn:1"
     }
+
+    if (!(Check-TestFilter $clientArgs $Filter)) {
+        Write-Host "> secnetperf $clientArgs SKIPPED!"
+        continue
+    }
+
     $artifactName = $tcp -eq 0 ? "$TestId-quic" : "$TestId-tcp"
     New-Item -ItemType Directory "artifacts/logs/$artifactName" -ErrorAction Ignore | Out-Null
     $artifactDir = Repo-Path "artifacts/logs/$artifactName"

@@ -25,6 +25,11 @@ This script assumes the latest MsQuic commit is built and downloaded as artifact
 .PARAMETER io
     The network IO interface to be used (not all are supported on all platforms).
 
+.PARAMETER filter
+    Run only the tests whose arguments match one of the positive patterns but
+    none of the negative patterns (prefixed by '-'). '?' matches any single
+    character; '*' matches any substring; ';' separates two patterns.
+
 #>
 
 # Import the helper module.
@@ -55,6 +60,9 @@ param (
     [Parameter(Mandatory = $false)]
     [ValidateSet("", "iocp", "rio", "xdp", "qtip", "wsk", "epoll", "kqueue")]
     [string]$io = "",
+
+    [Parameter(Mandatory = $false)]
+    [string]$filter = "",
 
     [Parameter(Mandatory = $false)]
     [string]$RemoteName = "netperf-peer"
@@ -189,7 +197,7 @@ if (!$isWindows) {
 Write-Host "Setup complete! Running all tests"
 foreach ($testId in $allTests.Keys) {
     $ExeArgs = $allTests[$testId] + " -io:$io"
-    $Output = Invoke-Secnetperf $Session $RemoteName $RemoteDir $SecNetPerfPath $LogProfile $testId $ExeArgs $io
+    $Output = Invoke-Secnetperf $Session $RemoteName $RemoteDir $SecNetPerfPath $LogProfile $testId $ExeArgs $io $filter
     $Test = $Output[-1]
     if ($Test.HasFailures) { $hasFailures = $true }
 
