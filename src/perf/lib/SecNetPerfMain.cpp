@@ -122,12 +122,7 @@ QuicMainStart(
     // Try to see if there is a client target specified on the command line to
     // determine if we are a client or server.
     //
-    const char* Target = nullptr;
-    TryGetValue(argc, argv, "target", &Target);
-    TryGetValue(argc, argv, "server", &Target);
-    TryGetValue(argc, argv, "to", &Target);
-    TryGetValue(argc, argv, "remote", &Target);
-    TryGetValue(argc, argv, "peer", &Target);
+    const char* Target = TryGetTarget(argc, argv);
 
     TryGetValue(argc, argv, "maxruntime", &MaxRuntime);
 

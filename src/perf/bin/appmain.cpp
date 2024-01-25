@@ -131,7 +131,7 @@ QUIC_STATUS
 QuicKernelMain(
     _In_ int argc,
     _In_reads_(argc) _Null_terminated_ char* argv[],
-    _In_ const QUIC_CREDENTIAL_CONFIG* SelfSignedParams,
+    _In_opt_ const QUIC_CREDENTIAL_CONFIG* SelfSignedParams,
     _In_ bool PrivateTestLibrary,
     _In_z_ const char* DriverName,
     _In_opt_z_ const char* FileName
@@ -196,10 +196,12 @@ QuicKernelMain(
     }
 
     QUIC_RUN_CERTIFICATE_PARAMS CertParams = { 0 };
-    CxPlatCopyMemory(
-        &CertParams.ServerCertHash.ShaHash,
-        (QUIC_CERTIFICATE_HASH*)(SelfSignedParams + 1),
-        sizeof(QUIC_CERTIFICATE_HASH));
+    if (SelfSignedParams) {
+        CxPlatCopyMemory(
+            &CertParams.ServerCertHash.ShaHash,
+            (QUIC_CERTIFICATE_HASH*)(SelfSignedParams + 1),
+            sizeof(QUIC_CERTIFICATE_HASH));
+    }
 
     if (!DriverClient.Initialize(&CertParams, DriverName)) {
         printf("Intializing Driver Client Failed.\n");
@@ -295,12 +297,15 @@ main(
     const char* FileName = nullptr;
     TryGetValue(argc, argv, "extraOutputFile", &FileName);
 
+    bool IsServer = TryGetTarget(argc, argv) != nullptr;
     SelfSignedCredConfig =
-        CxPlatGetSelfSignedCert(
-            DriverName != nullptr ?
-                CXPLAT_SELF_SIGN_CERT_MACHINE :
-                CXPLAT_SELF_SIGN_CERT_USER,
-            FALSE, NULL);
+        IsServer ?
+            CxPlatGetSelfSignedCert(
+                DriverName != nullptr ?
+                    CXPLAT_SELF_SIGN_CERT_MACHINE :
+                    CXPLAT_SELF_SIGN_CERT_USER,
+                FALSE, NULL) :
+            nullptr;
     if (!SelfSignedCredConfig) {
         printf("Creating self signed certificate failed\n");
         Status = QUIC_STATUS_INTERNAL_ERROR;
