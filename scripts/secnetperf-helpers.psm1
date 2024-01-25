@@ -426,7 +426,11 @@ function Invoke-Secnetperf {
     $artifactName = $tcp -eq 0 ? "$TestId-quic" : "$TestId-tcp"
     New-Item -ItemType Directory "artifacts/logs/$artifactName" -ErrorAction Ignore | Out-Null
     $artifactDir = Repo-Path "artifacts/logs/$artifactName"
+    $remoteArtifactDir = "$RemoteDir/artifacts/logs/$artifactName"
     New-Item -ItemType Directory $artifactDir -ErrorAction Ignore | Out-Null
+    Invoke-Command -Session $Session -ScriptBlock {
+        New-Item -ItemType Directory $Using:remoteArtifactDir -ErrorAction Ignore | Out-Null
+    }
 
     # Start logging on both sides, if configured.
     if ($LogProfile -ne "" -and $LogProfile -ne "NULL") {
@@ -481,10 +485,10 @@ function Invoke-Secnetperf {
             try { .\scripts\log.ps1 -Stop -OutputPath "$artifactDir/client" -RawLogOnly }
             catch { Write-Host "Failed to stop logging on client!" }
             Invoke-Command -Session $Session -ScriptBlock {
-                try { & "$Using:RemoteDir/scripts/log.ps1" -Stop -OutputPath "$Using:RemoteDir/artifacts/logs/$Using:artifactName/server" -RawLogOnly }
+                try { & "$Using:RemoteDir/scripts/log.ps1" -Stop -OutputPath "$Using:remoteArtifactDir/server" -RawLogOnly }
                 catch { Write-Host "Failed to stop logging on server!" }
             }
-            try { Copy-Item -FromSession $Session "$RemoteDir/artifacts/logs/$artifactName/*" $artifactDir -Recurse }
+            try { Copy-Item -FromSession $Session "$remoteArtifactDir/*" $artifactDir -Recurse }
             catch { Write-Host "Failed to copy server logs!" }
         }
 
