@@ -473,6 +473,7 @@ GetPrivateRsaKey(
     DWORD ExportPolicyProperty = NCRYPT_ALLOW_PLAINTEXT_EXPORT_FLAG;
     NCRYPT_PROV_HANDLE Provider = (NCRYPT_PROV_HANDLE)NULL;
     DWORD KeySize = CXPLAT_KEY_SIZE;
+    BOOLEAN PreviousKeyExists = FALSE;
 
     *Key = (NCRYPT_KEY_HANDLE)NULL;
 
@@ -512,6 +513,13 @@ ReadKey:
             hr,
             "NCryptOpenKey failed");
         goto Cleanup;
+    } else if (PreviousKeyExists) {
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            hr,
+            "NCryptOpenKey failed even though key existed");
+        goto Cleanup;
     }
 
     //
@@ -526,6 +534,7 @@ ReadKey:
             0,
             0);
     if (hr == NTE_EXISTS) {
+        PreviousKeyExists = TRUE;
         goto ReadKey; // Key already created, in other thread/process.
     } else if (FAILED(hr)) {
         QuicTraceEvent(
