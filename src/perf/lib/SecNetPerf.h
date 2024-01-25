@@ -119,7 +119,7 @@ WriteOutput(
     va_end(args);
     return rval;
 #else
-    char Buf[256];
+    char Buf[512];
     char* BufEnd;
     va_list args;
     va_start(args, format);
