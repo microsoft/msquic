@@ -173,6 +173,12 @@ struct ConnValidator {
             }
             delete [] ExpectedEvents;
         }
+        if (EventsExpectedAtleastOnce) {
+            for (uint32_t i = 0; EventsExpectedAtleastOnce[i] != nullptr; ++i) {
+                delete EventsExpectedAtleastOnce[i];
+            }
+            delete [] EventsExpectedAtleastOnce;
+        }
     }
     void SetExpectedEvents(ConnEventValidator** expectedEvents) {
         ExpectedEvents = expectedEvents;
