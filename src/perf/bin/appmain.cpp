@@ -94,7 +94,7 @@ QUIC_STATUS
 QuicUserMain(
     _In_ int argc,
     _In_reads_(argc) _Null_terminated_ char* argv[],
-    _In_ const QUIC_CREDENTIAL_CONFIG* SelfSignedCredConfig,
+    _In_opt_ const QUIC_CREDENTIAL_CONFIG* SelfSignedCredConfig,
     _In_opt_z_ const char* FileName
     ) {
     CxPlatEvent StopEvent {true};
@@ -300,11 +300,7 @@ main(
     bool IsServer = TryGetTarget(argc, argv) != nullptr;
     SelfSignedCredConfig =
         IsServer ?
-            CxPlatGetSelfSignedCert(
-                DriverName != nullptr ?
-                    CXPLAT_SELF_SIGN_CERT_MACHINE :
-                    CXPLAT_SELF_SIGN_CERT_USER,
-                FALSE, NULL) :
+            CxPlatGetSelfSignedCert(CXPLAT_SELF_SIGN_CERT_USER, FALSE, NULL) :
             nullptr;
     if (!SelfSignedCredConfig) {
         printf("Creating self signed certificate failed\n");

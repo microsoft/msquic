@@ -55,7 +55,7 @@ QuicMainStart(
     _In_ int argc,
     _In_reads_(argc) _Null_terminated_ char* argv[],
     _In_ CXPLAT_EVENT* StopEvent,
-    _In_ const QUIC_CREDENTIAL_CONFIG* SelfSignedCredConfig
+    _In_opt_ const QUIC_CREDENTIAL_CONFIG* SelfSignedCredConfig
     );
 
 extern
