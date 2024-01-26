@@ -134,24 +134,6 @@
 </thead>
 <tbody>
 <tr>
-<td>LTSC</td>
-<td><a href="https://github.com/microsoft/msquic/tree/release/1.0">release/1.0</a></td>
-<td>None</td>
-<td>Nov 13 2020</td>
-<td>Jan 5 2021</td>
-<td>Jan 4 2026</td>
-<td>Windows</td>
-</tr>
-<tr>
-<td>SAC</td>
-<td><a href="https://github.com/microsoft/msquic/tree/release/2.0">release/2.0</a></td>
-<td>None</td>
-<td>Mar 1 2022</td>
-<td>May 1 2022</td>
-<td>Nov 1 2023</td>
-<td>Windows, Linux</td>
-</tr>
-<tr>
 <td>SAC</td>
 <td><a href="https://github.com/microsoft/msquic/tree/release/2.1">release/2.1</a></td>
 <td><a href="https://docs.microsoft.com/en-us/windows/release-health/status-windows-server-2022">Server 2022</a><br>Windows 11<br>.NET 7</td>
@@ -163,10 +145,19 @@
 <tr>
 <td>SAC</td>
 <td><a href="https://github.com/microsoft/msquic/tree/release/2.2">release/2.2</a></td>
-<td>TBD</td>
+<td>Windows 11</td>
 <td>Apr 18 2023</td>
 <td>June 1 2023</td>
 <td>Dec 1 2024</td>
+<td>Windows, Linux</td>
+</tr>
+<tr>
+<td>SAC</td>
+<td><a href="https://github.com/microsoft/msquic/tree/release/2.3">release/2.3</a></td>
+<td>TBD</td>
+<td>Jan 26 2024</td>
+<td>TBD</td>
+<td>TBD</td>
 <td>Windows, Linux</td>
 </tr>
 </tbody>
@@ -532,6 +523,60 @@
 <li>Block Wildcard Address Client Connections (#3483)</li>
 <li>Handle sending path challenge on paths that have not resolved route yet (#3545)</li>
 <li>Fix QUIC_TLS_SECRETS on Server and Client. (#3539)</li>
+</ul>
+<h2 id="msquic-v23-sac">MsQuic v2.3 (SAC)</h2>
+<p><a href="https://github.com/microsoft/msquic/releases/tag/v2.3.0">MsQuic v2.3</a> is an official release. Signed Windows binaries and <a href="https://www.nuget.org/profiles/msquic">NuGet packages</a> are available. Signed Linux package are also available.</p>
+<p>Official (v1) RFC, v2 (WG-LC) and draft-29 are supported by this release.</p>
+<h3 id="breaking-changes-2">Breaking Changes</h3>
+<ul>
+<li>None</li>
+</ul>
+<h3 id="official-features">Official Features</h3>
+<ul>
+<li>CPU and Partitioning Improvements (#3641, #3658, #3702, #4009)</li>
+<li>LB support for SecNetPerf (#3701)</li>
+<li>Support retrieving the initial destination CID from GetParam (#3755)</li>
+<li>Datapath Refactoring (#3826, #3827)</li>
+<li>Migrate Send Logic to 64-bit Time (#3848)</li>
+<li>Linux TCP support in secnetperf (#3895)</li>
+<li>Streams Hold References on Connections (#3931)</li>
+<li>Receive Path Fuzzing (#3896, #3942)</li>
+<li>Support setting flow control limits for individual stream types (#3948)</li>
+<li>NMR Support for Kernel Mode (#3961, #4035, #4045)</li>
+<li>Support Using Streams after Connection Closure (#3938)</li>
+</ul>
+<h3 id="preview-features">Preview Features</h3>
+<ul>
+<li>QEO Prototyping (#3600, #3607, #3630, #3632, #3651, #3790, #3791)</li>
+<li>Improve XDP Support (#3660, #3693, #3592, #3628, #3770, #3796, #3819, #3967)</li>
+<li>Add C++ Headers (#3769, #3774, #4063)</li>
+<li>Reliable Reset Stream Support (#3778, #3817)</li>
+<li>One-Way Delay Feature Support (#3846)</li>
+<li>Add 'cancel on loss' send mode to MsQuicStream. (#4037)</li>
+<li>Event generation to report network statistics (#4071)</li>
+</ul>
+<h3 id="bug-fixes--other-changes">Bug Fixes &amp; Other Changes</h3>
+<ul>
+<li>Lots of automation fixes and improvements</li>
+<li>Shutdown Stream on Send/Start Failure (#3637)</li>
+<li>Fix transport error code for new alpn negotiation (#3647)</li>
+<li>Support Delaying Stream ID FC Updates to StreamClose (#3665)</li>
+<li>Fix worker event handle leak in MsQuic!RegistrationClose (#3694)</li>
+<li>Minor Changes to Improve Listener Code Coverage (#3757)</li>
+<li>Disable Segmentation Support on EIO (#3867)</li>
+<li>Fix leakage of NumaNodeMasks (#3882)</li>
+<li>Adjust CXPLAT_MAX_IO_BATCH_SIZE arithmetic (#3919)</li>
+<li>Better Delayed ACK Support (#3933)</li>
+<li>Fix epoll TCP implementation (#3940)</li>
+<li>Add XDP support and TCP Syn flooding into the attack tool. (#3950)</li>
+<li>Refactor Performance Testing (#3953, #4016, #4015)</li>
+<li>Update TCP testing to Run in Parallel (#4010)</li>
+<li>Add 'attacking rate' option to the attacking tool. (#4017)</li>
+<li>Simplify timer operations (#4032)</li>
+<li>Apply lb settings after lb mode change (#4036)</li>
+<li>Fix stream blockedtimings stats initialization (#4046)</li>
+<li>Lots of changes for netperf performance automation</li>
+<li>Update Schannel Logic to Handler Larger Output Buffers (#4083)</li>
 </ul>
 
 </article>
