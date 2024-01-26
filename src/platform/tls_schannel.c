@@ -2123,6 +2123,36 @@ CxPlatTlsWriteDataToSchannel(
     }
 
     switch (SecStatus) {
+    case SEC_E_BUFFER_TOO_SMALL: {
+        //
+        // The output buffer for the TLS response is too small. We need to grow
+        // the buffer and try again.
+        //
+        QuicTraceLogConnInfo(
+            SchannelOutBufferTooSmall,
+            TlsContext->Connection,
+            "Increasing TLS output buffer size");
+        uint16_t NewBufferLength = State->BufferAllocLength << 2; // TODO - Where to get the new length from?
+        uint8_t* NewBuffer = CXPLAT_ALLOC_NONPAGED(NewBufferLength, QUIC_POOL_TLS_BUFFER);
+        if (NewBuffer == NULL) {
+            QuicTraceEvent(
+                AllocFailure,
+                "Allocation of '%s' failed. (%llu bytes)",
+                "New TLS RX Buffer",
+                NewBufferLength);
+            Result |= CXPLAT_TLS_RESULT_ERROR;
+            break;
+        }
+        if (State->BufferLength) {
+            CxPlatCopyMemory(NewBuffer, State->Buffer, State->BufferLength);
+        }
+        CXPLAT_FREE(State->Buffer, QUIC_POOL_TLS_BUFFER);
+        State->Buffer = NewBuffer;
+        State->BufferAllocLength = NewBufferLength;
+        Result |= CXPLAT_TLS_RESULT_CONTINUE;
+        break;
+    }
+
     case SEC_E_OK:
 
         //

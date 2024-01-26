@@ -318,7 +318,7 @@ struct StatelessRetryHelper
 };
 
 #define PRIVATE_TP_TYPE   77
-#define PRIVATE_TP_LENGTH 2345
+#define PRIVATE_TP_LENGTH 4132
 
 struct PrivateTransportHelper : QUIC_PRIVATE_TRANSPORT_PARAMETER
 {
