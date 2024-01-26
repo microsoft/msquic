@@ -221,7 +221,7 @@ QuicTestConnect(
     }
 
     StatelessRetryHelper RetryHelper(ServerStatelessRetry);
-    PrivateTransportHelper TpHelper(MultiPacketClientInitial);
+    PrivateTransportHelper TpHelper(MultiPacketClientInitial, !!ResumptionTicket);
     RandomLossHelper LossHelper(RandomLossPercentage);
 
     {

@@ -9310,6 +9310,18 @@
       ],
       "macroName": "QuicTraceLogConnInfo"
     },
+    "SchannelOutBufferTooSmall": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] Increasing TLS output buffer size",
+      "UniqueId": "SchannelOutBufferTooSmall",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        }
+      ],
+      "macroName": "QuicTraceLogConnInfo"
+    },
     "SchannelProcessingData": {
       "ModuleProperites": {},
       "TraceString": "[conn][%p] Processing %u received bytes",
@@ -15278,6 +15290,11 @@
         "UniquenessHash": "1197fc0e-03e3-58cf-6637-f912c96fa67b",
         "TraceID": "SchannelMissingData",
         "EncodingString": "[conn][%p] TLS message missing %u bytes of data"
+      },
+      {
+        "UniquenessHash": "71eb6726-56e9-ad9d-83d2-930ce22a51f3",
+        "TraceID": "SchannelOutBufferTooSmall",
+        "EncodingString": "[conn][%p] Increasing TLS output buffer size"
       },
       {
         "UniquenessHash": "183e91b7-6ad7-7a8b-0d77-94004bde6757",
