@@ -2132,7 +2132,16 @@ CxPlatTlsWriteDataToSchannel(
             SchannelOutBufferTooSmall,
             TlsContext->Connection,
             "Increasing TLS output buffer size");
-        uint16_t NewBufferLength = State->BufferAllocLength << 2; // TODO - Where to get the new length from?
+        uint16_t NewBufferLength = State->BufferAllocLength << 1;
+        if (NewBufferLength < State->BufferAllocLength) { // Integer overflow.
+            QuicTraceEvent(
+                TlsError,
+                "[ tls][%p] ERROR, %s.",
+                TlsContext->Connection,
+                "TLS buffer too large");
+            Result |= CXPLAT_TLS_RESULT_ERROR;
+            break;
+        }
         uint8_t* NewBuffer = CXPLAT_ALLOC_NONPAGED(NewBufferLength, QUIC_POOL_TLS_BUFFER);
         if (NewBuffer == NULL) {
             QuicTraceEvent(
