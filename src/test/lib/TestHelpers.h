@@ -318,15 +318,16 @@ struct StatelessRetryHelper
 };
 
 #define PRIVATE_TP_TYPE   77
-#define PRIVATE_TP_LENGTH 4132
+#define PRIVATE_TP_LENGTH 4134
+#define PRIVATE_TP_LENGTH_RESUMPTION 1234
 
 struct PrivateTransportHelper : QUIC_PRIVATE_TRANSPORT_PARAMETER
 {
-    PrivateTransportHelper(bool Enabled) {
+    PrivateTransportHelper(bool Enabled, bool Resumption = false) {
         if (Enabled) {
             Type = PRIVATE_TP_TYPE;
-            Length = PRIVATE_TP_LENGTH;
-            Buffer = new(std::nothrow) uint8_t[PRIVATE_TP_LENGTH];
+            Length = Resumption ? PRIVATE_TP_LENGTH_RESUMPTION : PRIVATE_TP_LENGTH;
+            Buffer = new(std::nothrow) uint8_t[Length];
             TEST_TRUE(Buffer != nullptr);
         } else {
             Buffer = nullptr;
