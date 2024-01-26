@@ -6,6 +6,7 @@
       <meta name="viewport" content="width=device-width, initial-scale=1.0">
       <meta name="title" content="QUIC_SETTINGS structure ">
       
+      
       <link rel="icon" href="../../favicon.ico">
       <link rel="stylesheet" href="../../public/docfx.min.css">
       <link rel="stylesheet" href="../../public/main.css">
@@ -135,7 +136,8 @@
             uint64_t EncryptionOffloadAllowed               : 1;
             uint64_t ReliableResetEnabled                   : 1;
             uint64_t OneWayDelayEnabled                     : 1;
-            uint64_t RESERVED                               : 23;
+            uint64_t NetStatsEventEnabled                   : 1;
+            uint64_t RESERVED                               : 22;
 #else
             uint64_t RESERVED                               : 26;
 #endif
@@ -184,7 +186,8 @@
             uint64_t EncryptionOffloadAllowed  : 1;
             uint64_t ReliableResetEnabled      : 1;
             uint64_t OneWayDelayEnabled        : 1;
-            uint64_t ReservedFlags             : 60;
+            uint64_t NetStatsEventEnabled      : 1;
+            uint64_t ReservedFlags             : 59;
 #else
             uint64_t ReservedFlags             : 63;
 #endif
