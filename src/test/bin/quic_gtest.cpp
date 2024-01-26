@@ -399,6 +399,17 @@ TEST_P(WithValidateConnectionEventArgs, ValidateConnectionEvents) {
     }
 }
 
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
+TEST_P(WithValidateNetStatsConnEventArgs, ValidateNetStatConnEvent) {
+    TestLoggerT<ParamType> Logger("QuicTestValidateNetStatsConnEvent", GetParam());
+    if (TestingKernelMode) {
+        ASSERT_TRUE(DriverClient.Run<uint32_t>(IOCTL_QUIC_RUN_VALIDATE_NET_STATS_CONN_EVENT, GetParam().Test));
+    } else {
+        QuicTestValidateNetStatsConnEvent(GetParam().Test);
+    }
+}
+#endif
+
 TEST_P(WithValidateStreamEventArgs, ValidateStreamEvents) {
     TestLoggerT<ParamType> Logger("QuicTestValidateStreamEvents", GetParam());
     if (TestingKernelMode) {
@@ -2297,6 +2308,13 @@ INSTANTIATE_TEST_SUITE_P(
     ParameterValidation,
     WithValidateConnectionEventArgs,
     testing::ValuesIn(ValidateConnectionEventArgs::Generate()));
+
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
+INSTANTIATE_TEST_SUITE_P(
+    ParameterValidation,
+    WithValidateNetStatsConnEventArgs,
+    testing::ValuesIn(ValidateNetStatsConnEventArgs::Generate()));
+#endif
 
 INSTANTIATE_TEST_SUITE_P(
     ParameterValidation,

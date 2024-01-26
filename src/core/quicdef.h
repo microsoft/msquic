@@ -533,6 +533,11 @@ CXPLAT_STATIC_ASSERT(
 #define QUIC_DEFAULT_ONE_WAY_DELAY_ENABLED           FALSE
 
 //
+// The default settings for allowing Network Statistics event to be raised.
+//
+#define QUIC_DEFAULT_NET_STATS_EVENT_ENABLED         FALSE
+
+//
 // The number of rounds in Cubic Slow Start to sample RTT.
 //
 #define QUIC_HYSTART_DEFAULT_N_SAMPLING             8
@@ -637,6 +642,7 @@ CXPLAT_STATIC_ASSERT(
 #define QUIC_SETTING_ENCRYPTION_OFFLOAD_ALLOWED     "EncryptionOffloadAllowed"
 #define QUIC_SETTING_RELIABLE_RESET_ENABLED         "ReliableResetEnabled"
 #define QUIC_SETTING_ONE_WAY_DELAY_ENABLED          "OneWayDelayEnabled"
+#define QUIC_SETTING_NET_STATS_EVENT_ENABLED        "NetStatsEventEnabled"
 
 #define QUIC_SETTING_INITIAL_WINDOW_PACKETS         "InitialWindowPackets"
 #define QUIC_SETTING_SEND_IDLE_TIMEOUT_MS           "SendIdleTimeoutMs"
