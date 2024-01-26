@@ -446,7 +446,7 @@ Official (v1) RFC, v2 (WG-LC) and draft-29 are supported by this release.
 
 ### Preview Features
 
-- QEP Prototyping (#3600, #3607, #3630, #3632, #3651, #3790, #3791)
+- QEO Prototyping (#3600, #3607, #3630, #3632, #3651, #3790, #3791)
 - Improve XDP Support (#3660, #3693, #3592, #3628, #3770, #3796, #3819, #3967)
 - Add C++ Headers (#3769, #3774, #4063)
 - Reliable Reset Stream Support (#3778, #3817)
