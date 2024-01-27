@@ -23,9 +23,7 @@ MsQuic support lifecycle is governed by the Windows Server servicing channels: [
 * **PRE** indicates prerelease branches (**not** officially supported).
 * **TBD** indicates release branches that are set to be classified as one of the above.
 
-> **Important** Main and prerelease branches are considered not **officially supported**.
->  * Prerelease branches get no further changes.
->  * Main is under active development (i.e. not stable), however it does receive security and bug fixes.
+> **Important** Main is not considered **officially supported**. It is under active development (i.e. not stable), however it does receive security and bug fixes.
 
 ## End of support
 
