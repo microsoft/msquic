@@ -487,11 +487,6 @@ typedef struct QUIC_ACH_CONTEXT {
 #endif
 
     //
-    // CredConfig certificate hash used to find the server certificate.
-    //
-    SCHANNEL_CERT_HASH_STORE CertHash;
-
-    //
     // Security config to pass back to the caller.
     //
     CXPLAT_SEC_CONFIG* SecConfig;
@@ -515,6 +510,11 @@ typedef struct QUIC_ACH_CONTEXT {
     // Holds the list of blocked chaining modes for the lifetime of the ACH call.
     //
     UNICODE_STRING BlockedChainingModes[1];
+
+    //
+    // CredConfig certificate hash used to find the server certificate.
+    //
+    SCHANNEL_CERT_HASH_STORE CertHash[0];
 
 } QUIC_ACH_CONTEXT;
 
@@ -788,15 +788,18 @@ CxPlatTlsAllocateAchContext(
     _In_ CXPLAT_SEC_CONFIG_CREATE_COMPLETE_HANDLER Callback
     )
 {
-    QUIC_ACH_CONTEXT* AchContext = CXPLAT_ALLOC_NONPAGED(sizeof(QUIC_ACH_CONTEXT), QUIC_POOL_TLS_ACHCTX);
+    uint32_t CredCount =
+        CredConfig->Flags & QUIC_CREDENTIAL_FLAG_SET_MULTIPLE ? CredConfig->MultipleCount : 1;
+    size_t AchSize = sizeof(QUIC_ACH_CONTEXT) + sizeof(SCHANNEL_CERT_HASH_STORE) * CredCount;
+    QUIC_ACH_CONTEXT* AchContext = CXPLAT_ALLOC_NONPAGED(AchSize, QUIC_POOL_TLS_ACHCTX);
     if (AchContext == NULL) {
         QuicTraceEvent(
             AllocFailure,
             "Allocation of '%s' failed. (%llu bytes)",
             "QUIC_ACH_CONTEXT",
-            sizeof(QUIC_ACH_CONTEXT));
+            AchSize);
     } else {
-        RtlZeroMemory(AchContext, sizeof(*AchContext));
+        RtlZeroMemory(AchContext, AchSize);
         AchContext->CredConfig = *CredConfig;
         AchContext->CompletionContext = Context;
         AchContext->CompletionCallback = Callback;
@@ -971,6 +974,7 @@ CxPlatTlsSecConfigCreate(
     SECURITY_STATUS SecStatus;
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
     BOOLEAN IsClient = !!(CredConfig->Flags & QUIC_CREDENTIAL_FLAG_CLIENT);
+    uint32_t CredCount = 1;
 
     if (CredConfig->Reserved != NULL) {
         return QUIC_STATUS_INVALID_PARAMETER; // Not currently used and should be NULL.
@@ -1019,6 +1023,7 @@ CxPlatTlsSecConfigCreate(
         if (!IsClient) {
             return QUIC_STATUS_INVALID_PARAMETER; // Server requires a certificate.
         }
+        CredCount = 0;
         break;
     case QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH:
     case QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH_STORE:
@@ -1035,6 +1040,11 @@ CxPlatTlsSecConfigCreate(
     case QUIC_CREDENTIAL_TYPE_CERTIFICATE_FILE:
     default:
         return QUIC_STATUS_NOT_SUPPORTED;
+    }
+
+    if (CredCount != 0 &&
+        CredConfig->Flags & QUIC_CREDENTIAL_FLAG_SET_MULTIPLE) {
+        CredCount = CredConfig->MultipleCount;
     }
 
     if (CredConfig->Flags & QUIC_CREDENTIAL_FLAG_SET_ALLOWED_CIPHER_SUITES &&
@@ -1212,22 +1222,24 @@ CxPlatTlsSecConfigCreate(
     } else if (CredConfig->Type == QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH) {
         CXPLAT_DBG_ASSERT(CredConfig->CertificateHash != NULL);
 
-        QUIC_CERTIFICATE_HASH* CertHash = CredConfig->CertificateHash;
-        AchContext->CertHash.dwLength = sizeof(AchContext->CertHash);
-        AchContext->CertHash.dwFlags |= SCH_MACHINE_CERT_HASH;
-        AchContext->CertHash.hProv = 0;
+        for (uint32_t i = 0; i < CredCount; ++i) {
+            QUIC_CERTIFICATE_HASH* CertHash = CredConfig->CertificateHash + i;
+            AchContext->CertHash[i].dwLength = sizeof(AchContext->CertHash);
+            AchContext->CertHash[i].dwFlags |= SCH_MACHINE_CERT_HASH;
+            AchContext->CertHash[i].hProv = 0;
 
-        RtlCopyMemory(
-            AchContext->CertHash.ShaHash,
-            CertHash->ShaHash,
-            sizeof(AchContext->CertHash.ShaHash));
+            RtlCopyMemory(
+                AchContext->CertHash[i].ShaHash,
+                CertHash->ShaHash,
+                sizeof(AchContext->CertHash[i].ShaHash));
+        }
 
         //
         // Assume the Machine MY store if unspecified.
         //
         RtlCopyMemory(AchContext->CertHash.pwszStoreName, L"MY", sizeof(L"MY"));
 
-        Credentials->cCreds = 1;
+        Credentials->cCreds = CredCount;
         Credentials->paCred = (PVOID)&AchContext->CertHash;
         Credentials->dwCredFormat = SCH_CRED_FORMAT_CERT_HASH_STORE;
         Credentials->dwFlags |= SCH_MACHINE_CERT_HASH;
@@ -1235,39 +1247,41 @@ CxPlatTlsSecConfigCreate(
     } else if (CredConfig->Type == QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH_STORE) {
         CXPLAT_DBG_ASSERT(CredConfig->CertificateHashStore != NULL);
 
-        QUIC_CERTIFICATE_HASH_STORE* CertHashStore = CredConfig->CertificateHashStore;
-        AchContext->CertHash.dwLength = sizeof(AchContext->CertHash);
-        if (CertHashStore->Flags & QUIC_CERTIFICATE_HASH_STORE_FLAG_MACHINE_STORE) {
-            AchContext->CertHash.dwFlags |= SCH_MACHINE_CERT_HASH;
-        }
-        RtlCopyMemory(
-            AchContext->CertHash.ShaHash,
-            &(CertHashStore->ShaHash),
-            sizeof(AchContext->CertHash.ShaHash));
+        for (uint32_t i = 0; i < CredCount; ++i) {
+            QUIC_CERTIFICATE_HASH_STORE* CertHashStore = CredConfig->CertificateHashStore + i;
+            AchContext->CertHash[i].dwLength = sizeof(AchContext->CertHash[i]);
+            if (CertHashStore->Flags & QUIC_CERTIFICATE_HASH_STORE_FLAG_MACHINE_STORE) {
+                AchContext->CertHash[i].dwFlags |= SCH_MACHINE_CERT_HASH;
+            }
+            RtlCopyMemory(
+                AchContext->CertHash[i].ShaHash,
+                &(CertHashStore->ShaHash),
+                sizeof(AchContext->CertHash[i].ShaHash));
 
 #pragma warning(push)
 #pragma warning(disable:6387) // Parameter 3 is allowed to be NULL when the value isn't wanted.
 #pragma warning(disable:6385) // SAL ignores the annotations on strnlen_s because of the (ULONG) cast. Probably.
-        Status =
-            RtlUTF8ToUnicodeN(
-                AchContext->CertHash.pwszStoreName,
-                sizeof(AchContext->CertHash.pwszStoreName),
-                NULL,
-                CertHashStore->StoreName,
-                (ULONG)strnlen_s(
+            Status =
+                RtlUTF8ToUnicodeN(
+                    AchContext->CertHash[i].pwszStoreName,
+                    sizeof(AchContext->CertHash[i].pwszStoreName),
+                    NULL,
                     CertHashStore->StoreName,
-                    sizeof(CertHashStore->StoreName)));
+                    (ULONG)strnlen_s(
+                        CertHashStore->StoreName,
+                        sizeof(CertHashStore->StoreName)));
 #pragma warning(pop)
-        if (!NT_SUCCESS(Status)) {
-            QuicTraceEvent(
-                LibraryErrorStatus,
-                "[ lib] ERROR, %u, %s.",
-                Status,
-                "Convert cert store name to unicode");
-            goto Error;
+            if (!NT_SUCCESS(Status)) {
+                QuicTraceEvent(
+                    LibraryErrorStatus,
+                    "[ lib] ERROR, %u, %s.",
+                    Status,
+                    "Convert cert store name to unicode");
+                goto Error;
+            }
         }
 
-        Credentials->cCreds = 1;
+        Credentials->cCreds = CredCount;
         Credentials->paCred = (PVOID)&AchContext->CertHash;
         Credentials->dwCredFormat = SCH_CRED_FORMAT_CERT_HASH_STORE;
         Credentials->dwFlags |= SCH_MACHINE_CERT_HASH;
@@ -1303,6 +1317,11 @@ CxPlatTlsSecConfigCreate(
 #else
 
     if (CredConfig->Type != QUIC_CREDENTIAL_TYPE_NONE) {
+        if (CredCount != 1) {
+            Status = QUIC_STATUS_NOT_SUPPORTED; // TODO - Support multiple certificates in UM
+            goto Error;
+        }
+
         Status = CxPlatCertCreate(CredConfig, &CertContext);
         if (QUIC_FAILED(Status)) {
             QuicTraceEvent(
@@ -1313,12 +1332,13 @@ CxPlatTlsSecConfigCreate(
             goto Error;
         }
 
-        Credentials->cCreds = 1;
+        Credentials->cCreds = CredCount;
         Credentials->paCred = &CertContext;
 
     } else {
         CXPLAT_DBG_ASSERT(IsClient);
-        Credentials->cCreds = 0;
+        CXPLAT_DBG_ASSERT(CredCount == 0);
+        Credentials->cCreds = CredCount;
         Credentials->paCred = NULL;
     }
 #endif
