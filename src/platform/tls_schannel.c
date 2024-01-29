@@ -1232,12 +1232,12 @@ CxPlatTlsSecConfigCreate(
                 AchContext->CertHash[i].ShaHash,
                 CertHash->ShaHash,
                 sizeof(AchContext->CertHash[i].ShaHash));
-        }
 
-        //
-        // Assume the Machine MY store if unspecified.
-        //
-        RtlCopyMemory(AchContext->CertHash[i].pwszStoreName, L"MY", sizeof(L"MY"));
+            //
+            // Assume the Machine MY store if unspecified.
+            //
+            RtlCopyMemory(AchContext->CertHash[i].pwszStoreName, L"MY", sizeof(L"MY"));
+        }
 
         Credentials->cCreds = CredCount;
         Credentials->paCred = (PVOID)&AchContext->CertHash;
