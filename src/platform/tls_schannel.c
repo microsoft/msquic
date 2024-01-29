@@ -1224,7 +1224,7 @@ CxPlatTlsSecConfigCreate(
 
         for (uint32_t i = 0; i < CredCount; ++i) {
             QUIC_CERTIFICATE_HASH* CertHash = CredConfig->CertificateHash + i;
-            AchContext->CertHash[i].dwLength = sizeof(AchContext->CertHash);
+            AchContext->CertHash[i].dwLength = sizeof(AchContext->CertHash[i]);
             AchContext->CertHash[i].dwFlags |= SCH_MACHINE_CERT_HASH;
             AchContext->CertHash[i].hProv = 0;
 
@@ -1237,7 +1237,7 @@ CxPlatTlsSecConfigCreate(
         //
         // Assume the Machine MY store if unspecified.
         //
-        RtlCopyMemory(AchContext->CertHash.pwszStoreName, L"MY", sizeof(L"MY"));
+        RtlCopyMemory(AchContext->CertHash[i].pwszStoreName, L"MY", sizeof(L"MY"));
 
         Credentials->cCreds = CredCount;
         Credentials->paCred = (PVOID)&AchContext->CertHash;

@@ -99,6 +99,7 @@ namespace Microsoft.Quic
         REVOCATION_CHECK_CACHE_ONLY = 0x00040000,
         INPROC_PEER_CERTIFICATE = 0x00080000,
         SET_CA_CERTIFICATE_FILE = 0x00100000,
+        SET_MULTIPLE = 0x00200000,
     }
 
     [System.Flags]
@@ -309,6 +310,9 @@ namespace Microsoft.Quic
 
         [NativeTypeName("const char *")]
         internal sbyte* CaCertificateFile;
+
+        [NativeTypeName("uint32_t")]
+        internal uint MultipleCount;
 
         internal ref QUIC_CERTIFICATE_HASH* CertificateHash
         {
