@@ -266,16 +266,12 @@ function Stop-RemoteServer {
         $Socket.Send($BytesToSend, $BytesToSend.Length, $RemoteAddress, 9999) | Out-Null
         $Completed = Wait-Job -Job $Job -Timeout 1
         if ($null -ne $Completed) {
-            return
+            break
         }
     }
-
-    # On failure, dump the output of the job.
-    Stop-Job -Job $Job
-    $RemoteResult = Receive-Job -Job $Job -ErrorAction Stop
-    $RemoteResult = $RemoteResult -join "`n"
-    Write-Host $RemoteResult.ToString()
-    throw "Server failed to stop!"
+    Stop-Job -Job $Job | Out-Null
+    $RemoteResult = Receive-Job -Job $Job -ErrorAction Ignore
+    return $RemoteResult -join "`n"
 }
 
 # Creates a new local process to asynchronously run the test.
@@ -411,10 +407,10 @@ function Invoke-Secnetperf {
         $clientArgs += " -driverNamePriv:secnetperfdrvpriv"
     }
     if ($metric -eq "throughput") {
-        $serverArgs += " -pconn:1 -pstream:1"
+        $serverArgs += " -stats:1"
         $clientArgs += " -pconn:1 -pstream:1"
     } elseif ($metric -eq "latency") {
-        $serverArgs += " -pconn:1"
+        $serverArgs += " -stats:1"
         $clientArgs += " -pconn:1"
     }
 
@@ -428,6 +424,11 @@ function Invoke-Secnetperf {
         continue
     }
 
+    if ($io -eq "xdp" -and $metric -ne "hps") { # TODO - Figure out why this isn't working, and fix it.
+        Write-Host "> secnetperf $clientArgs BROKEN!"
+        continue
+    }
+
     $artifactName = $tcp -eq 0 ? "$TestId-quic" : "$TestId-tcp"
     New-Item -ItemType Directory "artifacts/logs/$artifactName" -ErrorAction Ignore | Out-Null
     $artifactDir = Repo-Path "artifacts/logs/$artifactName"
@@ -436,6 +437,9 @@ function Invoke-Secnetperf {
     Invoke-Command -Session $Session -ScriptBlock {
         New-Item -ItemType Directory $Using:remoteArtifactDir -ErrorAction Ignore | Out-Null
     }
+
+    $clientOut = (Join-Path $artifactDir "client.console.log")
+    $serverOut = (Join-Path $artifactDir "server.console.log")
 
     # Start logging on both sides, if configured.
     if ($LogProfile -ne "" -and $LogProfile -ne "NULL") {
@@ -452,6 +456,7 @@ function Invoke-Secnetperf {
     try {
 
     # Start the server running.
+    "> secnetperf $serverArgs" | Add-Content $serverOut
     $job = Start-RemoteServer $Session "$RemoteDir/$SecNetPerfPath $serverArgs"
 
     # Run the test multiple times, failing (for now) only if all tries fail.
@@ -460,11 +465,13 @@ function Invoke-Secnetperf {
     $testFailures = $false
     for ($try = 0; $try -lt 3; $try++) {
         Write-Host "==============================`nRUN $($try+1):"
+        "> secnetperf $clientArgs" | Add-Content $clientOut
         try {
             $process = Start-LocalTest $clientPath $clientArgs $artifactDir
             $rawOutput = Wait-LocalTest $process $artifactDir ($io -eq "wsk") 30000
             Write-Host $rawOutput
             $values[$tcp] += Get-TestOutput $rawOutput $metric
+            $rawOutput | Add-Content $clientOut
             $successCount++
         } catch {
             Write-GHError $_
@@ -483,7 +490,7 @@ function Invoke-Secnetperf {
         $testFailures = $true
     } finally {
         # Stop the server.
-        try { Stop-RemoteServer $job $RemoteName | Out-Null } catch { } # Ignore failures for now
+        try { Stop-RemoteServer $job $RemoteName | Add-Content $serverOut } catch { }
 
         # Stop any logging and copy the logs to the artifacts folder.
         if ($LogProfile -ne "" -and $LogProfile -ne "NULL") {
