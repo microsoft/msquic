@@ -119,7 +119,7 @@ Invoke-Command -Session $Session -ScriptBlock {
     if (Test-Path $Using:RemoteDir) {
         Remove-Item -Force -Recurse $Using:RemoteDir | Out-Null
     }
-    mkdir $Using:RemoteDir | Out-Null
+    New-Item -ItemType Directory -Path $Using:RemoteDir -Force | Out-Null
 }
 Copy-Item -ToSession $Session ./artifacts -Destination "$RemoteDir/artifacts" -Recurse
 Copy-Item -ToSession $Session ./scripts -Destination "$RemoteDir/scripts" -Recurse
