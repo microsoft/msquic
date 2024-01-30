@@ -3150,10 +3150,12 @@ QuicConnQueueRecvPackets(
     }
 
     //
-    // Based the limit of queued packets on the connection-wide flow control.
+    // Base the limit of queued packets on the connection-wide flow control, but
+    // allow at least a few packets even if the app configured an extremely
+    // tiny FC window.
     //
     const uint32_t QueueLimit =
-        Connection->Settings.ConnFlowControlWindow / QUIC_MIN_INITIAL_PACKET_LENGTH;
+        CXPLAT_MAX(10, Connection->Settings.ConnFlowControlWindow >> 10);
 
     QuicTraceLogConnVerbose(
         QueueDatagrams,
