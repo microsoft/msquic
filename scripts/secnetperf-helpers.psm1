@@ -407,10 +407,10 @@ function Invoke-Secnetperf {
         $clientArgs += " -driverNamePriv:secnetperfdrvpriv"
     }
     if ($metric -eq "throughput") {
-        $serverArgs += " -pconn:1 -pstream:1"
+        $serverArgs += " -pstats:1"
         $clientArgs += " -pconn:1 -pstream:1"
     } elseif ($metric -eq "latency") {
-        $serverArgs += " -pconn:1"
+        $serverArgs += " -pstats:1"
         $clientArgs += " -pconn:1"
     }
 
@@ -466,7 +466,7 @@ function Invoke-Secnetperf {
             $rawOutput = Wait-LocalTest $process $artifactDir ($io -eq "wsk") 30000
             Write-Host $rawOutput
             $values[$tcp] += Get-TestOutput $rawOutput $metric
-            $rawOutput | Set-Content -Path (Join-Path $artifactDir "client.console.log")
+            $rawOutput | Add-Content -Path (Join-Path $artifactDir "client.console.log")
             $successCount++
         } catch {
             Write-GHError $_
