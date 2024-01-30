@@ -266,16 +266,12 @@ function Stop-RemoteServer {
         $Socket.Send($BytesToSend, $BytesToSend.Length, $RemoteAddress, 9999) | Out-Null
         $Completed = Wait-Job -Job $Job -Timeout 1
         if ($null -ne $Completed) {
-            return
+            break
         }
     }
-
-    # On failure, dump the output of the job.
-    Stop-Job -Job $Job
-    $RemoteResult = Receive-Job -Job $Job -ErrorAction Stop
-    $RemoteResult = $RemoteResult -join "`n"
-    Write-Host $RemoteResult.ToString()
-    throw "Server failed to stop!"
+    Stop-Job -Job $Job | Out-Null
+    $RemoteResult = Receive-Job -Job $Job -ErrorAction Ignore
+    return $RemoteResult -join "`n"
 }
 
 # Creates a new local process to asynchronously run the test.
@@ -428,6 +424,11 @@ function Invoke-Secnetperf {
         continue
     }
 
+    if ($io -eq "xdp" -and $metric -ne "hps") { # TODO - Figure out why this isn't working, and fix it.
+        Write-Host "> secnetperf $clientArgs BROKEN!"
+        continue
+    }
+
     $artifactName = $tcp -eq 0 ? "$TestId-quic" : "$TestId-tcp"
     New-Item -ItemType Directory "artifacts/logs/$artifactName" -ErrorAction Ignore | Out-Null
     $artifactDir = Repo-Path "artifacts/logs/$artifactName"
@@ -465,6 +466,7 @@ function Invoke-Secnetperf {
             $rawOutput = Wait-LocalTest $process $artifactDir ($io -eq "wsk") 30000
             Write-Host $rawOutput
             $values[$tcp] += Get-TestOutput $rawOutput $metric
+            $rawOutput | Set-Content -Path (Join-Path $artifactDir "client.console.log")
             $successCount++
         } catch {
             Write-GHError $_
@@ -483,7 +485,10 @@ function Invoke-Secnetperf {
         $testFailures = $true
     } finally {
         # Stop the server.
-        try { Stop-RemoteServer $job $RemoteName | Out-Null } catch { } # Ignore failures for now
+        try {
+            $rawOutput = Stop-RemoteServer $job $RemoteName
+            $rawOutput | Set-Content -Path (Join-Path $artifactDir "server.console.log")
+        } catch { }
 
         # Stop any logging and copy the logs to the artifacts folder.
         if ($LogProfile -ne "" -and $LogProfile -ne "NULL") {

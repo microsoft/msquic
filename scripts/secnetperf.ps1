@@ -85,6 +85,10 @@ if ($io -eq "") {
         $io = "epoll"
     }
 }
+if ($isWindows -and ($LogProfile -eq "" -or $LogProfile -eq "NULL")) {
+    # Always collect basic, low volume logs on Windows.
+    $LogProfile = "Basic.Light"
+}
 
 # Set up the connection to the peer over remote powershell.
 Write-Host "Connecting to $RemoteName"
