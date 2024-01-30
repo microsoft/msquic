@@ -490,10 +490,7 @@ function Invoke-Secnetperf {
         $testFailures = $true
     } finally {
         # Stop the server.
-        try {
-            $rawOutput = Stop-RemoteServer $job $RemoteName
-            $rawOutput | Add-Content -Path (Join-Path $artifactDir "server.console.log")
-        } catch { }
+        try { Stop-RemoteServer $job $RemoteName | Add-Content $serverOut } catch { }
 
         # Stop any logging and copy the logs to the artifacts folder.
         if ($LogProfile -ne "" -and $LogProfile -ne "NULL") {
