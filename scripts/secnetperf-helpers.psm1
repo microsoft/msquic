@@ -407,10 +407,10 @@ function Invoke-Secnetperf {
         $clientArgs += " -driverNamePriv:secnetperfdrvpriv"
     }
     if ($metric -eq "throughput") {
-        $serverArgs += " -pstats:1"
+        $serverArgs += " -stats:1"
         $clientArgs += " -pconn:1 -pstream:1"
     } elseif ($metric -eq "latency") {
-        $serverArgs += " -pstats:1"
+        $serverArgs += " -stats:1"
         $clientArgs += " -pconn:1"
     }
 
@@ -438,6 +438,9 @@ function Invoke-Secnetperf {
         New-Item -ItemType Directory $Using:remoteArtifactDir -ErrorAction Ignore | Out-Null
     }
 
+    $clientOut = (Join-Path $artifactDir "client.console.log")
+    $serverOut = (Join-Path $artifactDir "server.console.log")
+
     # Start logging on both sides, if configured.
     if ($LogProfile -ne "" -and $LogProfile -ne "NULL") {
         Invoke-Command -Session $Session -ScriptBlock {
@@ -453,6 +456,7 @@ function Invoke-Secnetperf {
     try {
 
     # Start the server running.
+    "> secnetperf $serverArgs" | Add-Content $serverOut
     $job = Start-RemoteServer $Session "$RemoteDir/$SecNetPerfPath $serverArgs"
 
     # Run the test multiple times, failing (for now) only if all tries fail.
@@ -461,12 +465,13 @@ function Invoke-Secnetperf {
     $testFailures = $false
     for ($try = 0; $try -lt 3; $try++) {
         Write-Host "==============================`nRUN $($try+1):"
+        "> secnetperf $clientArgs" | Add-Content $clientOut
         try {
             $process = Start-LocalTest $clientPath $clientArgs $artifactDir
             $rawOutput = Wait-LocalTest $process $artifactDir ($io -eq "wsk") 30000
             Write-Host $rawOutput
             $values[$tcp] += Get-TestOutput $rawOutput $metric
-            $rawOutput | Add-Content -Path (Join-Path $artifactDir "client.console.log")
+            $rawOutput | Add-Content $clientOut
             $successCount++
         } catch {
             Write-GHError $_
@@ -487,7 +492,7 @@ function Invoke-Secnetperf {
         # Stop the server.
         try {
             $rawOutput = Stop-RemoteServer $job $RemoteName
-            $rawOutput | Set-Content -Path (Join-Path $artifactDir "server.console.log")
+            $rawOutput | Add-Content -Path (Join-Path $artifactDir "server.console.log")
         } catch { }
 
         # Stop any logging and copy the logs to the artifacts folder.
