@@ -198,11 +198,7 @@ typedef struct QUIC_RX_PACKET QUIC_RX_PACKET;
 // The maximum number of received packets that may be queued on a single
 // connection. When this limit is reached, any additional packets are dropped.
 //
-#ifdef _KERNEL_MODE
-#define QUIC_MAX_RECEIVE_QUEUE_COUNT            1024
-#else
 #define QUIC_MAX_RECEIVE_QUEUE_COUNT            8192
-#endif
 
 //
 // The maximum number of received packets that may be processed in a single
