@@ -195,12 +195,6 @@ typedef struct QUIC_RX_PACKET QUIC_RX_PACKET;
 #define QUIC_MAX_CRYPTO_BATCH_COUNT             8
 
 //
-// The maximum number of received packets that may be queued on a single
-// connection. When this limit is reached, any additional packets are dropped.
-//
-#define QUIC_MAX_RECEIVE_QUEUE_COUNT            8192
-
-//
 // The maximum number of received packets that may be processed in a single
 // flush operation.
 //

@@ -3149,6 +3149,12 @@ QuicConnQueueRecvPackets(
         PacketsTail = (QUIC_RX_PACKET**)&((*PacketsTail)->Next);
     }
 
+    //
+    // Based the limit of queued packets on the connection-wide flow control.
+    //
+    const uint32_t QueueLimit =
+        Connection->Settings.ConnFlowControlWindow / QUIC_MIN_INITIAL_PACKET_LENGTH;
+
     QuicTraceLogConnVerbose(
         QueueDatagrams,
         Connection,
@@ -3157,7 +3163,7 @@ QuicConnQueueRecvPackets(
 
     BOOLEAN QueueOperation;
     CxPlatDispatchLockAcquire(&Connection->ReceiveQueueLock);
-    if (Connection->ReceiveQueueCount >= QUIC_MAX_RECEIVE_QUEUE_COUNT) {
+    if (Connection->ReceiveQueueCount >= QueueLimit) {
         QueueOperation = FALSE;
     } else {
         *Connection->ReceiveQueueTail = Packets;
