@@ -89,6 +89,7 @@ if ($isWindows -and ($LogProfile -eq "" -or $LogProfile -eq "NULL")) {
     # Always collect basic, low volume logs on Windows.
     $LogProfile = "Basic.Light"
 }
+$useXDP = ($io -eq "xdp" -or $io -eq "qtip")
 
 # Set up the connection to the peer over remote powershell.
 Write-Host "Connecting to $RemoteName"
@@ -169,7 +170,7 @@ if ($isWindows) {
 Configure-DumpCollection $Session
 
 # Install any dependent drivers.
-if ($io -eq "xdp") { Install-XDP $Session $RemoteDir }
+if ($useXDP) { Install-XDP $Session $RemoteDir }
 if ($io -eq "wsk") { Install-Kernel $Session $RemoteDir $SecNetPerfDir }
 
 if (!$isWindows) {
