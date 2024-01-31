@@ -424,11 +424,6 @@ function Invoke-Secnetperf {
         continue
     }
 
-    if ($io -eq "xdp" -and $metric -ne "hps") { # TODO - Figure out why this isn't working, and fix it.
-        Write-Host "> secnetperf $clientArgs BROKEN!"
-        continue
-    }
-
     $artifactName = $tcp -eq 0 ? "$TestId-quic" : "$TestId-tcp"
     New-Item -ItemType Directory "artifacts/logs/$artifactName" -ErrorAction Ignore | Out-Null
     $artifactDir = Repo-Path "artifacts/logs/$artifactName"
