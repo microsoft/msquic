@@ -398,9 +398,9 @@ function Invoke-Secnetperf {
     $clientPath = Repo-Path $SecNetPerfPath
     $serverArgs = "$execMode -io:$io"
     $clientArgs = "-target:netperf-peer $ExeArgs -tcp:$tcp -trimout -watchdog:25000"
-    if ($io -eq "xdp") {
-        $serverArgs += " -pollidle:10000"
-        $clientArgs += " -pollidle:10000"
+    if ($metric -eq "latency") {
+        $serverArgs += " -pollidle:1000"
+        $clientArgs += " -pollidle:1000"
     }
     if ($io -eq "wsk") {
         $serverArgs += " -driverNamePriv:secnetperfdrvpriv"
