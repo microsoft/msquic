@@ -1087,9 +1087,13 @@ CxPlatDpRawInitialize(
                 }
                 CxPlatZeroMemory(Interface, sizeof(*Interface));
                 Interface->ActualIfIndex = Interface->IfIndex = Adapter->IfIndex;
+                memcpy(
+                    Interface->PhysicalAddress, Adapter->PhysicalAddress,
+                    sizeof(Interface->PhysicalAddress));
 
                 // Look for VF which associated with Adapter
                 // It has same MAC address. and empirically these flags
+                /* TODO - Currently causes issues some times
                 for (int i = 0; i < (int) pIfTable->NumEntries; i++) {
                     MIB_IF_ROW2* pIfRow = &pIfTable->Table[i];
                     if (!pIfRow->InterfaceAndOperStatusFlags.FilterInterface &&
@@ -1107,10 +1111,7 @@ CxPlatDpRawInitialize(
                             Interface->ActualIfIndex);
                         break; // assuming there is 1:1 matching
                     }
-                }
-                memcpy(
-                    Interface->PhysicalAddress, Adapter->PhysicalAddress,
-                    sizeof(Interface->PhysicalAddress));
+                }*/
 
                 Status =
                     CxPlatDpRawInterfaceInitialize(
