@@ -390,7 +390,7 @@ function Invoke-Secnetperf {
 
     $values = @(@(), @())
     $hasFailures = $false
-    $tcpSupported = ($io -ne "xdp" -and $io -ne "wsk") ? 1 : 0
+    $tcpSupported = ($io -ne "xdp" -and $io -ne "qtip" -and $io -ne "wsk") ? 1 : 0
     for ($tcp = 0; $tcp -le $tcpSupported; $tcp++) {
 
     # Set up all the parameters and paths for running the test.
