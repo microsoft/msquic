@@ -152,17 +152,17 @@ mkdir ./artifacts/logs | Out-Null
 
 # Prepare the machines for the testing.
 if ($isWindows) {
-    Write-Host "Preparing local machine for testing"
-    ./scripts/prepare-machine.ps1 -ForTest -InstallSigningCertificates
+    # Write-Host "Preparing local machine for testing"
+    # ./scripts/prepare-machine.ps1 -ForTest -InstallSigningCertificates
 
-    Write-Host "Preparing peer machine for testing"
-    Invoke-Command -Session $Session -ScriptBlock {
-        & "$Using:RemoteDir/scripts/prepare-machine.ps1" -ForTest -InstallSigningCertificates
-    }
+    # Write-Host "Preparing peer machine for testing"
+    # Invoke-Command -Session $Session -ScriptBlock {
+    #     & "$Using:RemoteDir/scripts/prepare-machine.ps1" -ForTest -InstallSigningCertificates
+    # }
 
-    $HasTestSigning = $false
-    try { $HasTestSigning = ("$(bcdedit)" | Select-String -Pattern "testsigning\s+Yes").Matches.Success } catch { }
-    if (!$HasTestSigning) { Write-Host "Test Signing Not Enabled!" }
+    # $HasTestSigning = $false
+    # try { $HasTestSigning = ("$(bcdedit)" | Select-String -Pattern "testsigning\s+Yes").Matches.Success } catch { }
+    # if (!$HasTestSigning) { Write-Host "Test Signing Not Enabled!" }
 }
 
 # Configure the dump collection.
