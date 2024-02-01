@@ -93,7 +93,7 @@ if ($isWindows -and ($LogProfile -eq "" -or $LogProfile -eq "NULL")) {
 # Set up the connection to the peer over remote powershell.
 Write-Host "Connecting to $RemoteName"
 if ($isWindows) {
-    $Session = New-PSSession -ComputerName $RemoteName
+    $Session = New-PSSession -ComputerName $RemoteName -ConfigurationName PowerShell.7
 } else {
     $Session = New-PSSession -HostName $RemoteName -UserName secnetperf -SSHTransport
 }
