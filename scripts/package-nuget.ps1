@@ -112,8 +112,8 @@ foreach ($Arch in $Architectures) {
 
 $HeaderDir = Join-Path $RootDir "src/inc"
 $Headers = @(Join-Path $HeaderDir "msquic.h")
-$Headers = @(Join-Path $HeaderDir "msquicp.h")
-$Headers = @(Join-Path $HeaderDir "msquic.hpp")
+$Headers += Join-Path $HeaderDir  "msquicp.h"
+$Headers += Join-Path $HeaderDir  "msquic.hpp"
 $Headers += Join-Path $HeaderDir  "msquic_winuser.h"
 
 $IncludePath = Join-Path $NativeDir "include"
