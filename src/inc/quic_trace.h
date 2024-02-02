@@ -325,7 +325,7 @@ QuicEtwCallback(
 #define QuicTraceLogInfoEnabled()    EventEnabledQuicLogInfo()
 #define QuicTraceLogVerboseEnabled() EventEnabledQuicLogVerbose()
 
-#define QUIC_ETW_BUFFER_LENGTH 128
+#define QUIC_ETW_BUFFER_LENGTH 256
 
 #define LogEtw(EventName, Fmt, ...) \
     if (EventEnabledQuicLog##EventName()) { \
