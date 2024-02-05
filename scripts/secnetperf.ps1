@@ -134,7 +134,7 @@ INSERT OR IGNORE INTO Secnetperf_builds (Secnetperf_Commit, Build_date_time, TLS
 VALUES ("$MsQuicCommit", "$(Get-Date -Format "yyyy-MM-dd HH:mm:ss")", 1, "TODO");
 "@
 $json = @{}
-
+$json["commit"] = "$MsQuicCommit"
 $allTests = [System.Collections.Specialized.OrderedDictionary]::new()
 
 # > All tests:
