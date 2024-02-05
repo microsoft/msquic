@@ -215,7 +215,7 @@ INSERT OR IGNORE INTO Secnetperf_tests (Secnetperf_test_ID, Kernel_mode, Run_arg
         if ($Test.Values[$tcp].Length -eq 0) { continue }
         $transport = $tcp -eq 1 ? "tcp" : "quic"
         $json["$testId-$transport"] = $Test.Values[$tcp]
-        if ($Test.Metric -eq "throughput") {
+        if ($Test.Metric -eq "throughput" -or $Test.Metric -eq "hps") {
             foreach ($item in $Test.Values[$tcp]) {
                 $SQL += @"
 `nINSERT INTO Secnetperf_test_runs (Secnetperf_test_ID, Secnetperf_commit, Client_environment_ID, Server_environment_ID, Result, Secnetperf_latency_stats_ID, io, tls)
