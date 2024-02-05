@@ -22,7 +22,7 @@ Generally, for any existing TCP based deployments that are adding QUIC support, 
 - NAT bindings for UDP flows on the internet generally timeout much quicker than TCP; resulting in flow changes much more often.
   - QUIC, as a protocol, is able to survive these changes, unlike TCP.
 
-For more details, please see the [Manageability draft](https://tools.ietf.org/html/draft-ietf-quic-manageability).
+For more details, please see the [Manageability RFC](https://datatracker.ietf.org/doc/html/rfc9312).
 
 # Configuration
 
