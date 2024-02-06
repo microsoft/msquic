@@ -4330,7 +4330,12 @@ CxPlatSocketGetTcpStatistics(
             NULL);
     if (Result == SOCKET_ERROR) { // TODO - Support fallback to v0?
         int WsaError = WSAGetLastError();
-        printf("WSAIoctl failed, 0x%x\n", WsaError);
+        QuicTraceEvent(
+            DatapathErrorStatus,
+            "[data][%p] ERROR, %u, %s.",
+            SocketProc->Parent,
+            WsaError,
+            "WSAIoctl TCP_INFO_v1");
         return HRESULT_FROM_WIN32(WsaError);
     }
 
