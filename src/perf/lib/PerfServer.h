@@ -69,6 +69,7 @@ private:
         PerfServer* Server;
         CxPlatHashTable StreamTable;
         TcpConnectionContext(PerfServer* Server) : Server(Server) { }
+        ~TcpConnectionContext();
     };
 
     CxPlatPoolT<TcpConnectionContext> TcpConnectionContextAllocator;

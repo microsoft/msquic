@@ -616,9 +616,6 @@ PerfClientConnection::OnHandshakeComplete() {
 
 void
 PerfClientConnection::OnShutdownComplete() {
-    if (Client.PrintConnections && !Client.UseTCP) {
-        QuicPrintConnectionStatistics(MsQuic, Handle);
-    }
     if (Client.UseTCP) {
         // Clean up leftover TCP streams
         CXPLAT_HASHTABLE_ENUMERATOR Enum;
@@ -698,6 +695,9 @@ PerfClientConnection::OnStreamShutdown() {
 void
 PerfClientConnection::Shutdown() {
     if (Client.UseTCP) {
+        if (Client.PrintConnections) {
+            TcpPrintConnectionStatistics(TcpConn);
+        }
         TcpConn->Close();
         TcpConn = nullptr;
         OnShutdownComplete();
@@ -715,6 +715,9 @@ PerfClientConnection::ConnectionCallback(
         OnHandshakeComplete();
         break;
     case QUIC_CONNECTION_EVENT_SHUTDOWN_COMPLETE:
+        if (Client.PrintConnections) {
+            QuicPrintConnectionStatistics(MsQuic, Handle);
+        }
         OnShutdownComplete();
         break;
     default:
