@@ -304,9 +304,12 @@ PerfServer::TcpConnectCallback(
     )
 {
     if (!IsConnected) {
-        Connection->Close();
         auto This = (TcpConnectionContext*)Connection->Context;
         auto Server = This->Server;
+        if (Server->PrintStats) {
+            TcpPrintConnectionStatistics(Connection);
+        }
+        Connection->Close();
         Server->TcpConnectionContextAllocator.Free(This);
     }
 }

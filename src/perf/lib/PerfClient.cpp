@@ -616,8 +616,12 @@ PerfClientConnection::OnHandshakeComplete() {
 
 void
 PerfClientConnection::OnShutdownComplete() {
-    if (Client.PrintConnections && !Client.UseTCP) {
-        QuicPrintConnectionStatistics(MsQuic, Handle);
+    if (Client.PrintConnections) {
+        if (Client.UseTCP) {
+            TcpPrintConnectionStatistics(TcpConn);
+        } else {
+            QuicPrintConnectionStatistics(MsQuic, Handle);
+        }
     }
     if (Client.UseTCP) {
         // Clean up leftover TCP streams

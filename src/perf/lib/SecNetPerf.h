@@ -154,12 +154,13 @@ QuicPrintConnectionStatistics(
     _In_ HQUIC Connection
     )
 {
-    QUIC_STATISTICS_V2 Statistics;
-    uint32_t StatsSize = sizeof(Statistics);
-    ApiTable->GetParam(Connection, QUIC_PARAM_CONN_STATISTICS_V2, &StatsSize, &Statistics);
+    QUIC_STATISTICS_V2 Stats;
+    uint32_t StatsSize = sizeof(Stats);
+    ApiTable->GetParam(Connection, QUIC_PARAM_CONN_STATISTICS_V2, &StatsSize, &Stats);
     WriteOutput(
         "Connection Statistics:\n"
         "  RTT                       %u us\n"
+        "  MinRTT                    %u us\n"
         "  EcnCapable                %u\n"
         "  SendTotalPackets          %llu\n"
         "  SendSuspectedLostPackets  %llu\n"
@@ -171,18 +172,19 @@ QuicPrintConnectionStatistics(
         "  RecvDroppedPackets        %llu\n"
         "  RecvDuplicatePackets      %llu\n"
         "  RecvDecryptionFailures    %llu\n",
-        Statistics.Rtt,
-        Statistics.EcnCapable,
-        (unsigned long long)Statistics.SendTotalPackets,
-        (unsigned long long)Statistics.SendSuspectedLostPackets,
-        (unsigned long long)Statistics.SendSpuriousLostPackets,
-        Statistics.SendCongestionCount,
-        Statistics.SendEcnCongestionCount,
-        (unsigned long long)Statistics.RecvTotalPackets,
-        (unsigned long long)Statistics.RecvReorderedPackets,
-        (unsigned long long)Statistics.RecvDroppedPackets,
-        (unsigned long long)Statistics.RecvDuplicatePackets,
-        (unsigned long long)Statistics.RecvDecryptionFailures);
+        Stats.Rtt,
+        Stats.MinRtt,
+        Stats.EcnCapable,
+        (unsigned long long)Stats.SendTotalPackets,
+        (unsigned long long)Stats.SendSuspectedLostPackets,
+        (unsigned long long)Stats.SendSpuriousLostPackets,
+        Stats.SendCongestionCount,
+        Stats.SendEcnCongestionCount,
+        (unsigned long long)Stats.RecvTotalPackets,
+        (unsigned long long)Stats.RecvReorderedPackets,
+        (unsigned long long)Stats.RecvDroppedPackets,
+        (unsigned long long)Stats.RecvDuplicatePackets,
+        (unsigned long long)Stats.RecvDecryptionFailures);
 }
 
 inline
