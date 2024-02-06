@@ -144,6 +144,9 @@ TestStream::StartPing(
         }
 
         InterlockedIncrement(&OutstandingSendRequestCount);
+#ifdef CXPLAT_RAISE_IRQL
+        CXPLAT_RAISE_IRQL();
+#endif
         QUIC_STATUS Status =
             MsQuic->StreamSend(
                 QuicStream,
@@ -151,6 +154,9 @@ TestStream::StartPing(
                 SendBuffer->BufferCount,
                 Flags,
                 SendBuffer);
+#ifdef CXPLAT_RAISE_IRQL
+        CXPLAT_LOWER_IRQL();
+#endif
         if (QUIC_FAILED(Status)) {
             InterlockedDecrement(&OutstandingSendRequestCount);
             delete SendBuffer;
@@ -246,6 +252,9 @@ TestStream::HandleStreamRecv(
         if (!IsUnidirectional) {
             auto SendBuffer = new(std::nothrow) QuicSendBuffer(Length, Buffer);
 
+#ifdef CXPLAT_RAISE_IRQL
+            CXPLAT_RAISE_IRQL();
+#endif
             QUIC_STATUS Status =
                 MsQuic->StreamSend(
                     QuicStream,
@@ -253,6 +262,9 @@ TestStream::HandleStreamRecv(
                     SendBuffer->BufferCount,
                     QUIC_SEND_FLAG_NONE,
                     SendBuffer);
+#ifdef CXPLAT_RAISE_IRQL
+            CXPLAT_LOWER_IRQL();
+#endif
 
             if (QUIC_FAILED(Status)) {
                 delete SendBuffer;
@@ -285,6 +297,9 @@ TestStream::HandleStreamSendComplete(
             if (InterlockedSubtract64(&BytesToSend, SendBufferLength) == 0) {
                 Flags |= QUIC_SEND_FLAG_FIN;
             }
+#ifdef CXPLAT_RAISE_IRQL
+            CXPLAT_RAISE_IRQL();
+#endif
             QUIC_STATUS Status =
                 MsQuic->StreamSend(
                     QuicStream,
@@ -292,6 +307,9 @@ TestStream::HandleStreamSendComplete(
                     SendBuffer->BufferCount,
                     Flags,
                     SendBuffer);
+#ifdef CXPLAT_RAISE_IRQL
+            CXPLAT_LOWER_IRQL();
+#endif
             if (QUIC_FAILED(Status)) {
                 InterlockedDecrement(&OutstandingSendRequestCount);
                 delete SendBuffer;
