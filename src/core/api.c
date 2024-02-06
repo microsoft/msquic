@@ -1082,10 +1082,13 @@ MsQuicStreamSend(
     SendRequest->TotalLength = TotalLength;
     SendRequest->ClientContext = ClientSendContext;
 
+#pragma warning(push)
+#pragma warning(disable:6240) // CXPLAT_AT_DISPATCH only really does anything for kernel mode
     SendInline =
         !Connection->Settings.SendBufferingEnabled &&
         !CXPLAT_AT_DISPATCH() && // Never run inline if at DISPATCH
         Connection->WorkerThreadID == CxPlatCurThreadID();
+#pragma warning(pop)
 
     CxPlatDispatchLockAcquire(&Stream->ApiSendRequestLock);
     if (!Stream->Flags.SendEnabled) {
