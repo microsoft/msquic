@@ -1083,11 +1083,9 @@ MsQuicStreamSend(
     SendRequest->ClientContext = ClientSendContext;
 
     SendInline =
-        !Connection->Settings.SendBufferingEnabled
-#ifdef CXPLAT_AT_DISPATCH
-        && !CXPLAT_AT_DISPATCH() // Never run inline if at DISPATCH
-#endif
-        && Connection->WorkerThreadID == CxPlatCurThreadID();
+        !Connection->Settings.SendBufferingEnabled &&
+        !CXPLAT_AT_DISPATCH() && // Never run inline if at DISPATCH
+        Connection->WorkerThreadID == CxPlatCurThreadID();
 
     CxPlatDispatchLockAcquire(&Stream->ApiSendRequestLock);
     if (!Stream->Flags.SendEnabled) {

@@ -220,6 +220,7 @@ GetModuleHandleW(
 #define CXPLAT_IRQL() PASSIVE_LEVEL
 
 #define CXPLAT_PASSIVE_CODE() CXPLAT_DBG_ASSERT(CXPLAT_IRQL() == PASSIVE_LEVEL)
+#define CXPLAT_AT_DISPATCH() FALSE
 
 //
 // Wrapper functions
