@@ -298,6 +298,7 @@ CxPlatLogAssert(
 
 #define CXPLAT_IRQL() 0
 #define CXPLAT_PASSIVE_CODE()
+#define CXPLAT_AT_DISPATCH() FALSE
 
 //
 // Memory management interfaces.
