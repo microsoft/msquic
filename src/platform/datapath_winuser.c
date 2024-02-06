@@ -4313,6 +4313,7 @@ CxPlatSocketGetTcpStatistics(
     _Out_ CXPLAT_TCP_STATISTICS* Statistics
     )
 {
+#if (NTDDI_VERSION >= NTDDI_WIN10_RS5)
     CXPLAT_SOCKET_PROC* SocketProc = &Socket->PerProcSockets[0];
     DWORD Version = 1;
     TCP_INFO_v1 Info = { 0 };
@@ -4368,6 +4369,11 @@ CxPlatSocketGetTcpStatistics(
     Statistics->SndLimBytesSnd = Info.SndLimBytesSnd;
 
     return QUIC_STATUS_SUCCESS;
+#else
+    UNREFERENCED_PARAMETER(Socket);
+    UNREFERENCED_PARAMETER(Statistics);
+    return QUIC_STATUS_NOT_SUPPORTED;
+#endif
 }
 
 void
