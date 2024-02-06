@@ -4322,14 +4322,16 @@ CxPlatSocketGetTcpStatistics(
             SocketProc->Socket,
             SIO_TCP_INFO,
             &Version,
-            0,
+            sizeof(Version),
             &Info,
             InfoSize,
             &InfoSize,
             NULL,
             NULL);
-    if (Result == SOCKET_ERROR) {
-        return HRESULT_FROM_WIN32(WSAGetLastError()); // TODO - Support fallback to v0?
+    if (Result == SOCKET_ERROR) { // TODO - Support fallback to v0?
+        int WsaError = WSAGetLastError();
+        printf("WSAIoctl failed, 0x%x\n", WsaError);
+        return HRESULT_FROM_WIN32(WsaError);
     }
 
     Statistics->Mss = Info.Mss;

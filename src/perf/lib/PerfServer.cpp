@@ -314,6 +314,22 @@ PerfServer::TcpConnectCallback(
     }
 }
 
+PerfServer::TcpConnectionContext::~TcpConnectionContext()
+{
+    // Clean up leftover TCP streams
+    CXPLAT_HASHTABLE_ENUMERATOR Enum;
+    StreamTable.EnumBegin(&Enum);
+    for (;;) {
+        auto Stream = (StreamContext*)StreamTable.EnumNext(&Enum);
+        if (Stream == NULL) {
+            break;
+        }
+        StreamTable.Remove(&Stream->Entry);
+        Server->StreamContextAllocator.Free(Stream);
+    }
+    StreamTable.EnumEnd(&Enum);
+}
+
 _IRQL_requires_max_(DISPATCH_LEVEL)
 _Function_class_(TcpReceiveCallback)
 void
