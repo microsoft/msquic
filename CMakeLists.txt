@@ -801,6 +801,13 @@ if(QUIC_BUILD_TEST)
         target_compile_options(gtest_main PRIVATE /guard:cf)
     endif()
 
+    if(WIN32 AND QUIC_ENABLE_SANITIZERS)
+        target_compile_options(gtest PRIVATE /fsanitize=address)
+        target_compile_options(gtest_main PRIVATE /fsanitize=address)
+        target_compile_definitions(gtest PRIVATE _DISABLE_VECTOR_ANNOTATION)
+        target_compile_definitions(gtest_main PRIVATE _DISABLE_VECTOR_ANNOTATION)
+    endif()
+
     add_subdirectory(src/core/unittest)
     add_subdirectory(src/platform/unittest)
     add_subdirectory(src/test/lib)
