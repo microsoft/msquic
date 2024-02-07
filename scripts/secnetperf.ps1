@@ -98,7 +98,14 @@ $useXDP = ($io -eq "xdp" -or $io -eq "qtip")
 # Set up the connection to the peer over remote powershell.
 Write-Host "Connecting to $RemoteName"
 if ($isWindows) {
-    $Session = New-PSSession -ComputerName $RemoteName -ConfigurationName PowerShell.7
+    if ($os -eq "windows-2025") {
+        $username = (Get-ItemProperty 'HKLM:\Software\Microsoft\Windows NT\CurrentVersion\Winlogon').DefaultUserName
+        $password = (Get-ItemProperty 'HKLM:\Software\Microsoft\Windows NT\CurrentVersion\Winlogon').DefaultPassword | ConvertTo-SecureString -AsPlainText -Force
+        $cred = New-Object System.Management.Automation.PSCredential ($username, $password)
+        $Session = New-PSSession -ComputerName $RemoteName -Credential $cred -ConfigurationName PowerShell.7
+    } else {
+        $Session = New-PSSession -ComputerName $RemoteName -ConfigurationName PowerShell.7
+    }
 } else {
     $Session = New-PSSession -HostName $RemoteName -UserName secnetperf -SSHTransport
 }
