@@ -517,6 +517,7 @@ size_t QUIC_IOCTL_BUFFER_SIZES[] =
     sizeof(INT32),
     0,
     sizeof(QUIC_RUN_CANCEL_ON_LOSS_PARAMS),
+    sizeof(uint32_t),
 };
 
 CXPLAT_STATIC_ASSERT(
@@ -1431,6 +1432,13 @@ QuicTestCtlEvtIoDeviceControl(
         CXPLAT_FRE_ASSERT(Params != nullptr);
         QuicTestCtlRun(QuicCancelOnLossSend(Params->Params7.DropPackets));
         break;
+        
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
+    case IOCTL_QUIC_RUN_VALIDATE_NET_STATS_CONN_EVENT:
+        CXPLAT_FRE_ASSERT(Params != nullptr);
+        QuicTestCtlRun(QuicTestValidateNetStatsConnEvent(Params->Test));
+        break;
+#endif
 
     default:
         Status = STATUS_NOT_IMPLEMENTED;

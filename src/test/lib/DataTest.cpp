@@ -1605,7 +1605,9 @@ QuicCancelOnLossSend(
     if (DropPackets) {
         TEST_EQUAL(ServerContext.ExitCode, CancelOnLossContext::ErrorExitCode);
     } else {
-        TEST_EQUAL(ServerContext.ExitCode, CancelOnLossContext::SuccessExitCode);
+        if (ServerContext.ExitCode != CancelOnLossContext::SuccessExitCode) {
+          TEST_FAILURE("ServerContext.ExitCode %u, CancelOnLossContext::SuccessExitCode: %u", ServerContext.ExitCode, CancelOnLossContext::SuccessExitCode);
+  }
     }
 
     if (Listener.LastConnection) {

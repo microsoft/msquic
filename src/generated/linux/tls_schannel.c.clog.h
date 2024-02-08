@@ -100,6 +100,24 @@ tracepoint(CLOG_TLS_SCHANNEL_C, SchannelAchCompleteInline , arg2);\
 
 
 /*----------------------------------------------------------
+// Decoder Ring for SchannelOutBufferTooSmall
+// [conn][%p] Increasing TLS output buffer size
+// QuicTraceLogConnInfo(
+            SchannelOutBufferTooSmall,
+            TlsContext->Connection,
+            "Increasing TLS output buffer size");
+// arg1 = arg1 = TlsContext->Connection = arg1
+----------------------------------------------------------*/
+#ifndef _clog_3_ARGS_TRACE_SchannelOutBufferTooSmall
+#define _clog_3_ARGS_TRACE_SchannelOutBufferTooSmall(uniqueId, arg1, encoded_arg_string)\
+tracepoint(CLOG_TLS_SCHANNEL_C, SchannelOutBufferTooSmall , arg1);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for SchannelHandshakeComplete
 // [conn][%p] Handshake complete (resume=%hu)
 // QuicTraceLogConnInfo(

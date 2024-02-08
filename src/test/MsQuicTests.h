@@ -71,6 +71,9 @@ void QuicTestConnectionRejection(bool RejectByClosing);
 //
 
 void QuicTestValidateConnectionEvents(uint32_t Test);
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
+void QuicTestValidateNetStatsConnEvent(uint32_t Test);
+#endif
 void QuicTestValidateStreamEvents(uint32_t Test);
 
 //
@@ -1271,4 +1274,8 @@ typedef struct {
     QUIC_CTL_CODE(118, METHOD_BUFFERED, FILE_WRITE_DATA)
     // QUIC_RUN_CANCEL_ON_LOSS_PARAMS
 
-#define QUIC_MAX_IOCTL_FUNC_CODE 118
+#define IOCTL_QUIC_RUN_VALIDATE_NET_STATS_CONN_EVENT \
+    QUIC_CTL_CODE(119, METHOD_BUFFERED, FILE_WRITE_DATA)
+    // uint32_t - Test
+
+#define QUIC_MAX_IOCTL_FUNC_CODE 119

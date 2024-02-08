@@ -277,4 +277,62 @@ public:
         _In_ const QUIC_ADDR* LocalAddress = nullptr,
         _In_ const QUIC_ADDR* RemoteAddress = nullptr);
     bool Send(TcpSendData* Data);
+    bool GetStats(CXPLAT_TCP_STATISTICS* Stats) {
+        return QUIC_SUCCEEDED(CxPlatSocketGetTcpStatistics(Socket, Stats));
+    }
 };
+
+inline
+void
+TcpPrintConnectionStatistics(
+    _In_ TcpConnection* Conn
+    )
+{
+    CXPLAT_TCP_STATISTICS Stats;
+    if (!Conn->GetStats(&Stats)) {
+        return;
+    }
+
+    WriteOutput(
+        "Connection Statistics:\n"
+        "  RTT                       %u us\n"
+        "  MinRTT                    %u us\n"
+        "  TimestampsEnabled         %hhu\n"
+        "  BytesOut                  %llu\n"
+        "  BytesIn                   %llu\n"
+        "  BytesReordered            %u\n"
+        "  BytesRetrans              %u\n"
+        "  FastRetrans               %u\n"
+        "  DupAcksIn                 %u\n"
+        "  TimeoutEpisodes           %u\n"
+        "  SynRetrans                %hhu\n"
+        "  SndLimTransRwin           %u\n"
+        "  SndLimTimeRwin            %u\n"
+        "  SndLimBytesRwin           %llu\n"
+        "  SndLimTransCwnd           %u\n"
+        "  SndLimTimeCwnd            %u\n"
+        "  SndLimBytesCwnd           %llu\n"
+        "  SndLimTransSnd            %u\n"
+        "  SndLimTimeSnd             %u\n"
+        "  SndLimBytesSnd            %llu\n",
+        Stats.RttUs,
+        Stats.MinRttUs,
+        Stats.TimestampsEnabled,
+        (unsigned long long)Stats.BytesOut,
+        (unsigned long long)Stats.BytesIn,
+        Stats.BytesReordered,
+        Stats.BytesRetrans,
+        Stats.FastRetrans,
+        Stats.DupAcksIn,
+        Stats.TimeoutEpisodes,
+        Stats.SynRetrans,
+        Stats.SndLimTransRwin,
+        Stats.SndLimTimeRwin,
+        (unsigned long long)Stats.SndLimBytesRwin,
+        Stats.SndLimTransCwnd,
+        Stats.SndLimTimeCwnd,
+        (unsigned long long)Stats.SndLimBytesCwnd,
+        Stats.SndLimTransSnd,
+        Stats.SndLimTimeSnd,
+        (unsigned long long)Stats.SndLimBytesSnd);
+}

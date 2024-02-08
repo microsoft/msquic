@@ -780,6 +780,26 @@ class WithValidateConnectionEventArgs : public testing::Test,
     public testing::WithParamInterface<ValidateConnectionEventArgs> {
 };
 
+#if defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
+struct ValidateNetStatsConnEventArgs {
+    uint32_t Test;
+    static ::std::vector<ValidateNetStatsConnEventArgs> Generate() {
+        ::std::vector<ValidateNetStatsConnEventArgs> list;
+        for (uint32_t Test = 0; Test < 2; ++Test)
+            list.push_back({ Test });
+        return list;
+    }
+};
+
+std::ostream& operator << (std::ostream& o, const ValidateNetStatsConnEventArgs& args) {
+    return o << args.Test;
+}
+
+class WithValidateNetStatsConnEventArgs : public testing::Test,
+    public testing::WithParamInterface<ValidateNetStatsConnEventArgs> {
+};
+#endif
+
 struct ValidateStreamEventArgs {
     uint32_t Test;
     static ::std::vector<ValidateStreamEventArgs> Generate() {

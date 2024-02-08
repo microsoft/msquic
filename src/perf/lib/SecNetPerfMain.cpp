@@ -109,7 +109,7 @@ QuicMainStart(
     _In_ int argc,
     _In_reads_(argc) _Null_terminated_ char* argv[],
     _In_ CXPLAT_EVENT* StopEvent,
-    _In_ const QUIC_CREDENTIAL_CONFIG* SelfSignedCredConfig
+    _In_opt_ const QUIC_CREDENTIAL_CONFIG* SelfSignedCredConfig
     ) {
     argc--; argv++; // Skip app name
 
@@ -122,12 +122,7 @@ QuicMainStart(
     // Try to see if there is a client target specified on the command line to
     // determine if we are a client or server.
     //
-    const char* Target = nullptr;
-    TryGetValue(argc, argv, "target", &Target);
-    TryGetValue(argc, argv, "server", &Target);
-    TryGetValue(argc, argv, "to", &Target);
-    TryGetValue(argc, argv, "remote", &Target);
-    TryGetValue(argc, argv, "peer", &Target);
+    const char* Target = TryGetTarget(argc, argv);
 
     TryGetValue(argc, argv, "maxruntime", &MaxRuntime);
 
@@ -240,6 +235,7 @@ QuicMainStart(
             return QUIC_STATUS_SUCCESS;
         }
     } else {
+        CXPLAT_FRE_ASSERT(SelfSignedCredConfig);
         Server = new(std::nothrow) PerfServer(SelfSignedCredConfig);
         if ((QUIC_SUCCEEDED(Status = Server->Init(argc, argv)) &&
              QUIC_SUCCEEDED(Status = Server->Start(StopEvent)))) {

@@ -25,6 +25,11 @@ This script assumes the latest MsQuic commit is built and downloaded as artifact
 .PARAMETER io
     The network IO interface to be used (not all are supported on all platforms).
 
+.PARAMETER filter
+    Run only the tests whose arguments match one of the positive patterns but
+    none of the negative patterns (prefixed by '-'). '?' matches any single
+    character; '*' matches any substring; ';' separates two patterns.
+
 #>
 
 # Import the helper module.
@@ -36,6 +41,10 @@ param (
 
     [Parameter(Mandatory = $true)]
     [string]$MsQuicCommit = "manual",
+
+    [Parameter(Mandatory = $true)]
+    [ValidateSet("azure", "lab")]
+    [string]$environment = "azure",
 
     [Parameter(Mandatory = $true)]
     [ValidateSet("windows", "linux")]
@@ -57,11 +66,14 @@ param (
     [string]$io = "",
 
     [Parameter(Mandatory = $false)]
+    [string]$filter = "",
+
+    [Parameter(Mandatory = $false)]
     [string]$RemoteName = "netperf-peer"
 )
 
-Set-StrictMode -Version 'Latest'
-$PSDefaultParameterValues['*:ErrorAction'] = 'Stop'
+Set-StrictMode -Version "Latest"
+$PSDefaultParameterValues["*:ErrorAction"] = "Stop"
 
 # Set up some important paths.
 $RemoteDir = "C:/_work/quic"
@@ -76,6 +88,10 @@ if ($io -eq "") {
     } else {
         $io = "epoll"
     }
+}
+if ($isWindows -and ($LogProfile -eq "" -or $LogProfile -eq "NULL")) {
+    # Always collect basic, low volume logs on Windows.
+    $LogProfile = "Basic.Light"
 }
 
 # Set up the connection to the peer over remote powershell.
@@ -111,7 +127,7 @@ Invoke-Command -Session $Session -ScriptBlock {
     if (Test-Path $Using:RemoteDir) {
         Remove-Item -Force -Recurse $Using:RemoteDir | Out-Null
     }
-    mkdir $Using:RemoteDir | Out-Null
+    New-Item -ItemType Directory -Path $Using:RemoteDir -Force | Out-Null
 }
 Copy-Item -ToSession $Session ./artifacts -Destination "$RemoteDir/artifacts" -Recurse
 Copy-Item -ToSession $Session ./scripts -Destination "$RemoteDir/scripts" -Recurse
@@ -119,15 +135,18 @@ Copy-Item -ToSession $Session ./src/manifest/MsQuic.wprp -Destination "$RemoteDi
 
 $SQL = @"
 INSERT OR IGNORE INTO Secnetperf_builds (Secnetperf_Commit, Build_date_time, TLS_enabled, Advanced_build_config)
-VALUES ('$MsQuicCommit', '$(Get-Date -Format "yyyy-MM-dd HH:mm:ss")', 1, 'TODO');
+VALUES ("$MsQuicCommit", "$(Get-Date -Format "yyyy-MM-dd HH:mm:ss")", 1, "TODO");
 "@
 $json = @{}
-$allTests = @(
-    "-exec:maxtput -up:10s -ptput:1",
-    "-exec:maxtput -down:10s -ptput:1",
-    "-exec:maxtput -rconn:1 -share:1 -conns:100 -run:10s -prate:1",
-    "-exec:lowlat -rstream:1 -up:512 -down:4000 -run:10s -plat:1"
-)
+$json["commit"] = "$MsQuicCommit"
+$allTests = [System.Collections.Specialized.OrderedDictionary]::new()
+
+# > All tests:
+$allTests["tput-up"] = "-exec:maxtput -up:12s -ptput:1"
+$allTests["tput-down"] = "-exec:maxtput -down:12s -ptput:1"
+$allTests["hps-conns-100"] = "-exec:maxtput -rconn:1 -share:1 -conns:100 -run:12s -prate:1"
+$allTests["rps-up-512-down-4000"] = "-exec:lowlat -rstream:1 -up:512 -down:4000 -run:20s -plat:1"
+
 $env = $isWindows ? 1 : 2
 $hasFailures = $false
 
@@ -171,41 +190,50 @@ if (!$isWindows) {
     if ((Get-Content "/etc/security/limits.conf") -notcontains "root soft core unlimited") {
         # Enable core dumps for the system.
         Write-Host "Setting core dump size limit"
-        sudo sh -c "echo 'root soft core unlimited' >> /etc/security/limits.conf"
-        sudo sh -c "echo 'root hard core unlimited' >> /etc/security/limits.conf"
-        sudo sh -c "echo '* soft core unlimited' >> /etc/security/limits.conf"
-        sudo sh -c "echo '* hard core unlimited' >> /etc/security/limits.conf"
+        sudo sh -c "echo "root soft core unlimited" >> /etc/security/limits.conf"
+        sudo sh -c "echo "root hard core unlimited" >> /etc/security/limits.conf"
+        sudo sh -c "echo "* soft core unlimited" >> /etc/security/limits.conf"
+        sudo sh -c "echo "* hard core unlimited" >> /etc/security/limits.conf"
     }
 
     # Set the core dump pattern.
     Write-Host "Setting core dump pattern"
-    sudo sh -c "echo -n '%e.%p.%t.core' > /proc/sys/kernel/core_pattern"
+    sudo sh -c "echo -n "%e.client.%p.%t.core" > /proc/sys/kernel/core_pattern"
 }
 
 # Run all the test cases.
 Write-Host "Setup complete! Running all tests"
-for ($i = 0; $i -lt $allTests.Count; $i++) {
-    $ExeArgs = $allTests[$i] + " -io:$io"
-    $Output = Invoke-Secnetperf $Session $RemoteName $RemoteDir $SecNetPerfPath $LogProfile $ExeArgs $io
+foreach ($testId in $allTests.Keys) {
+    $ExeArgs = $allTests[$testId] + " -io:$io"
+    $Output = Invoke-Secnetperf $Session $RemoteName $RemoteDir $SecNetPerfPath $LogProfile $testId $ExeArgs $io $filter
     $Test = $Output[-1]
     if ($Test.HasFailures) { $hasFailures = $true }
 
     # Process the results and add them to the SQL and JSON.
-    $TestId = $i + 1
     $SQL += @"
-`nINSERT OR IGNORE INTO Secnetperf_tests (Secnetperf_test_ID, Kernel_mode, Run_arguments) VALUES ($TestId, 0, "$ExeArgs -tcp:0");
-INSERT OR IGNORE INTO Secnetperf_tests (Secnetperf_test_ID, Kernel_mode, Run_arguments) VALUES ($TestId, 0, "$ExeArgs -tcp:1");
+`nINSERT OR IGNORE INTO Secnetperf_tests (Secnetperf_test_ID, Kernel_mode, Run_arguments) VALUES ("$TestId-tcp-0", 0, "$ExeArgs -tcp:0");
+INSERT OR IGNORE INTO Secnetperf_tests (Secnetperf_test_ID, Kernel_mode, Run_arguments) VALUES ("$TestId-tcp-1", 0, "$ExeArgs -tcp:1");
 "@
 
     for ($tcp = 0; $tcp -lt $Test.Values.Length; $tcp++) {
         if ($Test.Values[$tcp].Length -eq 0) { continue }
         $transport = $tcp -eq 1 ? "tcp" : "quic"
-        $json["$($Test.Metric)-$transport"] = $Test.Values[$tcp]
-        if ($Test.Metric.startsWith("throughput")) {
+        $json["$testId-$transport"] = $Test.Values[$tcp]
+        if ($Test.Metric -eq "throughput" -or $Test.Metric -eq "hps") {
             foreach ($item in $Test.Values[$tcp]) {
                 $SQL += @"
-`nINSERT INTO Secnetperf_test_runs (Secnetperf_test_ID, Secnetperf_commit, Client_environment_ID, Server_environment_ID, Result, Secnetperf_latency_stats_ID)
-VALUES ($TestId, '$MsQuicCommit', $env, $env, $item, NULL);
+`nINSERT INTO Secnetperf_test_runs (Secnetperf_test_ID, Secnetperf_commit, Client_environment_ID, Server_environment_ID, Result, Secnetperf_latency_stats_ID, io, tls)
+VALUES ("$TestId-tcp-$tcp", "$MsQuicCommit", $env, $env, $item, NULL, "$io", "$tls");
+"@
+            }
+        } elseif ($Test.Metric -eq "latency") {
+            # Test.Values[...] is a flattened 1D array of the form: [ first run + RPS, second run + RPS, third run + RPS..... ], ie. if each run has 8 values + RPS, then the array has 27 elements (8*3 + 3)
+            for ($offset = 0; $offset -lt $Test.Values[$tcp].Length; $offset += 9) {
+                $SQL += @"
+`nINSERT INTO Secnetperf_latency_stats (p0, p50, p90, p99, p999, p9999, p99999, p999999)
+VALUES ($($Test.Values[$tcp][$offset]), $($Test.Values[$tcp][$offset+1]), $($Test.Values[$tcp][$offset+2]), $($Test.Values[$tcp][$offset+3]), $($Test.Values[$tcp][$offset+4]), $($Test.Values[$tcp][$offset+5]), $($Test.Values[$tcp][$offset+6]), $($Test.Values[$tcp][$offset+7]));
+INSERT INTO Secnetperf_test_runs (Secnetperf_test_ID, Secnetperf_commit, Client_environment_ID, Server_environment_ID, Result, Secnetperf_latency_stats_ID, io, tls)
+VALUES ("$TestId-tcp-$tcp", "$MsQuicCommit", $env, $env, $($Test.Values[$tcp][$offset+8]), LAST_INSERT_ROWID(), "$io", "$tls");
 "@
             }
         }
@@ -240,10 +268,10 @@ Write-Host "Tests complete!"
     } catch { }
 
     # Save the test results (sql and json).
-    Write-Host "`Writing test-results-$plat-$os-$arch-$tls-$io.sql"
-    $SQL | Set-Content -Path "test-results-$plat-$os-$arch-$tls-$io.sql"
-    Write-Host "`Writing json-test-results-$plat-$os-$arch-$tls-$io.json"
-    $json | ConvertTo-Json | Set-Content -Path "json-test-results-$plat-$os-$arch-$tls-$io.json"
+    Write-Host "`Writing test-results-$environment-$plat-$os-$arch-$tls-$io.sql"
+    $SQL | Set-Content -Path "test-results-$environment-$plat-$os-$arch-$tls-$io.sql"
+    Write-Host "`Writing json-test-results-$environment-$plat-$os-$arch-$tls-$io.json"
+    $json | ConvertTo-Json | Set-Content -Path "json-test-results-$environment-$plat-$os-$arch-$tls-$io.json"
 }
 
 # Clear out any exit codes from previous commands.

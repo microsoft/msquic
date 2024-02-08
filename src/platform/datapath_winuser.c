@@ -4301,6 +4301,76 @@ CxPlatDataPathStartRioSends(
     }
 }
 
+_IRQL_requires_max_(DISPATCH_LEVEL)
+QUIC_STATUS
+CxPlatSocketGetTcpStatistics(
+    _In_ CXPLAT_SOCKET* Socket,
+    _Out_ CXPLAT_TCP_STATISTICS* Statistics
+    )
+{
+#if (NTDDI_VERSION >= NTDDI_WIN10_RS5)
+    CXPLAT_SOCKET_PROC* SocketProc = &Socket->PerProcSockets[0];
+    DWORD Version = 1;
+    TCP_INFO_v1 Info = { 0 };
+    DWORD InfoSize = sizeof(Info);
+    int Result =
+        WSAIoctl(
+            SocketProc->Socket,
+            SIO_TCP_INFO,
+            &Version,
+            sizeof(Version),
+            &Info,
+            InfoSize,
+            &InfoSize,
+            NULL,
+            NULL);
+    if (Result == SOCKET_ERROR) { // TODO - Support fallback to v0?
+        int WsaError = WSAGetLastError();
+        QuicTraceEvent(
+            DatapathErrorStatus,
+            "[data][%p] ERROR, %u, %s.",
+            SocketProc->Parent,
+            WsaError,
+            "WSAIoctl TCP_INFO_v1");
+        return HRESULT_FROM_WIN32(WsaError);
+    }
+
+    Statistics->Mss = Info.Mss;
+    Statistics->ConnectionTimeMs = Info.ConnectionTimeMs;
+    Statistics->TimestampsEnabled = Info.TimestampsEnabled;
+    Statistics->RttUs = Info.RttUs;
+    Statistics->MinRttUs = Info.MinRttUs;
+    Statistics->BytesInFlight = Info.BytesInFlight;
+    Statistics->Cwnd = Info.Cwnd;
+    Statistics->SndWnd = Info.SndWnd;
+    Statistics->RcvWnd = Info.RcvWnd;
+    Statistics->RcvBuf = Info.RcvBuf;
+    Statistics->BytesOut = Info.BytesOut;
+    Statistics->BytesIn = Info.BytesIn;
+    Statistics->BytesReordered = Info.BytesReordered;
+    Statistics->BytesRetrans = Info.BytesRetrans;
+    Statistics->FastRetrans = Info.FastRetrans;
+    Statistics->DupAcksIn = Info.DupAcksIn;
+    Statistics->TimeoutEpisodes = Info.TimeoutEpisodes;
+    Statistics->SynRetrans = Info.SynRetrans;
+    Statistics->SndLimTransRwin = Info.SndLimTransRwin;
+    Statistics->SndLimTimeRwin = Info.SndLimTimeRwin;
+    Statistics->SndLimTransCwnd = Info.SndLimTransCwnd;
+    Statistics->SndLimTimeCwnd = Info.SndLimTimeCwnd;
+    Statistics->SndLimTransSnd = Info.SndLimTransSnd;
+    Statistics->SndLimTimeSnd = Info.SndLimTimeSnd;
+    Statistics->SndLimBytesRwin = Info.SndLimBytesRwin;
+    Statistics->SndLimBytesCwnd = Info.SndLimBytesCwnd;
+    Statistics->SndLimBytesSnd = Info.SndLimBytesSnd;
+
+    return QUIC_STATUS_SUCCESS;
+#else
+    UNREFERENCED_PARAMETER(Socket);
+    UNREFERENCED_PARAMETER(Statistics);
+    return QUIC_STATUS_NOT_SUPPORTED;
+#endif
+}
+
 void
 DataPathProcessCqe(
     _In_ CXPLAT_CQE* Cqe

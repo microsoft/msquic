@@ -66,7 +66,7 @@ jobs:
   build-windows-reuse:
     if: inputs.plat == 'windows' || inputs.plat == 'uwp'
     name: Build
-    runs-on: ${{ inputs.sanitize  == '-Sanitize' && 'windows-2019' || inputs.os }} # use windows-2019 for ASAN
+    runs-on: ${{ inputs.os }}
     steps:
     - name: Checkout repository
       uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11
@@ -74,7 +74,7 @@ jobs:
         repository: microsoft/msquic
         ref: ${{ inputs.ref }}
     - name: Install Perl
-      uses: shogo82148/actions-setup-perl@ea0507898383e7dbce382138da0c21af1849eb9e
+      uses: shogo82148/actions-setup-perl@3d69de4658363aa141f2d961d0f4a17584a36150
       with:
         perl-version: '5.34'
     - name: Install NASM
@@ -101,7 +101,7 @@ jobs:
         Remove-Item artifacts/corenet-ci-main -Recurse -Force -ErrorAction Ignore
         Remove-Item artifacts/xdp -Recurse -Force -ErrorAction Ignore
     - name: Upload build artifacts
-      uses: actions/upload-artifact@694cdabd8bdb0f10b2cea11669e1bf5453eed0a6
+      uses: actions/upload-artifact@26f96dfa697d77e81fd5907df203aa23a56210a8
       with:
         name: ${{ inputs.config }}-${{ inputs.plat }}-${{ inputs.os }}-${{ inputs.arch }}-${{ inputs.tls }}${{ inputs.sanitize }}${{ inputs.static }}${{ inputs.build }}
         path: artifacts

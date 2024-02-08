@@ -3040,7 +3040,7 @@
               value="5153"
               />
           <event
-              keywords="ut:Connection ut:Packet ut:RPS"
+              keywords="ut:Connection ut:Packet ut:RPS ut:LowVolume"
               level="win:Informational"
               message="$(string.Etw.ConnDropPacket)"
               opcode="Connection"
@@ -3049,7 +3049,7 @@
               value="5154"
               />
           <event
-              keywords="ut:Connection ut:Packet ut:RPS"
+              keywords="ut:Connection ut:Packet ut:RPS ut:LowVolume"
               level="win:Informational"
               message="$(string.Etw.ConnDropPacketEx)"
               opcode="Connection"
@@ -3627,7 +3627,7 @@
               value="7171"
               />
           <event
-              keywords="ut:Binding ut:Packet ut:RPS"
+              keywords="ut:Binding ut:Packet ut:RPS ut:LowVolume"
               level="win:Informational"
               message="$(string.Etw.BindingDropPacket)"
               opcode="Binding"
@@ -3636,7 +3636,7 @@
               value="7172"
               />
           <event
-              keywords="ut:Binding ut:Packet ut:RPS"
+              keywords="ut:Binding ut:Packet ut:RPS ut:LowVolume"
               level="win:Informational"
               message="$(string.Etw.BindingDropPacketEx)"
               opcode="Binding"

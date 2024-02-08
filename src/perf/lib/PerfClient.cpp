@@ -616,9 +616,6 @@ PerfClientConnection::OnHandshakeComplete() {
 
 void
 PerfClientConnection::OnShutdownComplete() {
-    if (Client.PrintConnections && !Client.UseTCP) {
-        QuicPrintConnectionStatistics(MsQuic, Handle);
-    }
     if (Client.UseTCP) {
         // Clean up leftover TCP streams
         CXPLAT_HASHTABLE_ENUMERATOR Enum;
@@ -698,6 +695,9 @@ PerfClientConnection::OnStreamShutdown() {
 void
 PerfClientConnection::Shutdown() {
     if (Client.UseTCP) {
+        if (Client.PrintConnections) {
+            TcpPrintConnectionStatistics(TcpConn);
+        }
         TcpConn->Close();
         TcpConn = nullptr;
         OnShutdownComplete();
@@ -715,6 +715,9 @@ PerfClientConnection::ConnectionCallback(
         OnHandshakeComplete();
         break;
     case QUIC_CONNECTION_EVENT_SHUTDOWN_COMPLETE:
+        if (Client.PrintConnections) {
+            QuicPrintConnectionStatistics(MsQuic, Handle);
+        }
         OnShutdownComplete();
         break;
     default:
@@ -946,7 +949,7 @@ PerfClientStream::OnShutdown() {
             const auto ElapsedMicroseconds = RecvEndTime - StartTime;
             const auto Rate = (uint32_t)((TotalBytes * 1000 * 1000 * 8) / (1000 * ElapsedMicroseconds));
             WriteOutput(
-                "  Upload: %llu bytes @ %u kbps (%u.%03u ms).\n",
+                "Result: Upload %llu bytes @ %u kbps (%u.%03u ms).\n",
                 (unsigned long long)TotalBytes,
                 Rate,
                 (uint32_t)(ElapsedMicroseconds / 1000),
@@ -966,7 +969,7 @@ PerfClientStream::OnShutdown() {
             const auto ElapsedMicroseconds = RecvEndTime - StartTime;
             const auto Rate = (uint32_t)((TotalBytes * 1000 * 1000 * 8) / (1000 * ElapsedMicroseconds));
             WriteOutput(
-                "Download: %llu bytes @ %u kbps (%u.%03u ms).\n",
+                "Result: Download %llu bytes @ %u kbps (%u.%03u ms).\n",
                 (unsigned long long)TotalBytes,
                 Rate,
                 (uint32_t)(ElapsedMicroseconds / 1000),
