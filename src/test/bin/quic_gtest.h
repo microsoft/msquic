@@ -592,6 +592,24 @@ class WithAbortiveArgs : public testing::Test,
     public testing::WithParamInterface<AbortiveArgs> {
 };
 
+struct CancelOnLossArgs {
+    bool DropPackets;
+    static ::std::vector<CancelOnLossArgs> Generate() {
+        ::std::vector<CancelOnLossArgs> list;
+        for (bool DropPackets : {false, true})
+            list.push_back({ DropPackets });
+        return list;
+    }
+};
+
+std::ostream& operator << (std::ostream& o, const CancelOnLossArgs& args) {
+    return o << "DropPackets: " << (args.DropPackets ? "true" : "false");
+}
+
+class WithCancelOnLossArgs : public testing::Test,
+    public testing::WithParamInterface<CancelOnLossArgs> {
+};
+
 struct CidUpdateArgs {
     int Family;
     uint16_t Iterations;
@@ -761,6 +779,26 @@ std::ostream& operator << (std::ostream& o, const ValidateConnectionEventArgs& a
 class WithValidateConnectionEventArgs : public testing::Test,
     public testing::WithParamInterface<ValidateConnectionEventArgs> {
 };
+
+#if defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
+struct ValidateNetStatsConnEventArgs {
+    uint32_t Test;
+    static ::std::vector<ValidateNetStatsConnEventArgs> Generate() {
+        ::std::vector<ValidateNetStatsConnEventArgs> list;
+        for (uint32_t Test = 0; Test < 2; ++Test)
+            list.push_back({ Test });
+        return list;
+    }
+};
+
+std::ostream& operator << (std::ostream& o, const ValidateNetStatsConnEventArgs& args) {
+    return o << args.Test;
+}
+
+class WithValidateNetStatsConnEventArgs : public testing::Test,
+    public testing::WithParamInterface<ValidateNetStatsConnEventArgs> {
+};
+#endif
 
 struct ValidateStreamEventArgs {
     uint32_t Test;

@@ -151,9 +151,9 @@ QuicConnAlloc(
     Path->IsActive = TRUE;
     Connection->PathsCount = 1;
 
-    for (uint32_t i = 0; i < ARRAYSIZE(Connection->Timers); i++) {
-        Connection->Timers[i].Type = (QUIC_CONN_TIMER_TYPE)i;
-        Connection->Timers[i].ExpirationTime = UINT64_MAX;
+    Connection->EarliestExpirationTime = UINT64_MAX;
+    for (QUIC_CONN_TIMER_TYPE Type = 0; Type < QUIC_CONN_TIMER_COUNT; ++Type) {
+        Connection->ExpirationTimes[Type] = UINT64_MAX;
     }
 
     if (IsServer) {
@@ -1119,6 +1119,21 @@ QuicConnReplaceRetiredCids(
     return TRUE;
 }
 
+_IRQL_requires_max_(DISPATCH_LEVEL)
+uint64_t
+QuicGetEarliestExpirationTime(
+    _In_ const QUIC_CONNECTION* Connection
+    )
+{
+    uint64_t EarliestExpirationTime = Connection->ExpirationTimes[0];
+    for (QUIC_CONN_TIMER_TYPE Type = 1; Type < QUIC_CONN_TIMER_COUNT; ++Type) {
+        if (Connection->ExpirationTimes[Type] < EarliestExpirationTime) {
+            EarliestExpirationTime = Connection->ExpirationTimes[Type];
+        }
+    }
+    return EarliestExpirationTime;
+}
+
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicConnTimerSetEx(
@@ -1137,56 +1152,10 @@ QuicConnTimerSetEx(
         (uint8_t)Type,
         Delay);
 
-    //
-    // Find the current and new index in the timer array for this timer.
-    //
-
-    uint32_t NewIndex = ARRAYSIZE(Connection->Timers);
-    uint32_t CurIndex = 0;
-    for (uint32_t i = 0; i < ARRAYSIZE(Connection->Timers); ++i) {
-        if (Connection->Timers[i].Type == Type) {
-            CurIndex = i;
-        }
-        if (i < NewIndex &&
-            NewExpirationTime < Connection->Timers[i].ExpirationTime) {
-            NewIndex = i;
-        }
-    }
-
-    if (NewIndex < CurIndex) {
-        //
-        // Need to move the timer forward in the array.
-        //
-        CxPlatMoveMemory(
-            Connection->Timers + NewIndex + 1,
-            Connection->Timers + NewIndex,
-            sizeof(QUIC_CONN_TIMER_ENTRY) * (CurIndex - NewIndex));
-        Connection->Timers[NewIndex].Type = Type;
-        Connection->Timers[NewIndex].ExpirationTime = NewExpirationTime;
-
-    } else if (NewIndex > CurIndex + 1) {
-        //
-        // Need to move the timer back in the array. Ignore changes that
-        // wouldn't actually move it at all.
-        //
-        CxPlatMoveMemory(
-            Connection->Timers + CurIndex,
-            Connection->Timers + CurIndex + 1,
-            sizeof(QUIC_CONN_TIMER_ENTRY) * (NewIndex - CurIndex - 1));
-        Connection->Timers[NewIndex - 1].Type = Type;
-        Connection->Timers[NewIndex - 1].ExpirationTime = NewExpirationTime;
-    } else {
-        //
-        // Didn't move, so just update the expiration time.
-        //
-        Connection->Timers[CurIndex].ExpirationTime = NewExpirationTime;
-        NewIndex = CurIndex;
-    }
-
-    if (NewIndex == 0 || CurIndex == 0) {
-        //
-        // The first timer was updated, so make sure the timer wheel is updated.
-        //
+    Connection->ExpirationTimes[Type] = NewExpirationTime;
+    uint64_t NewEarliestExpirationTime  = QuicGetEarliestExpirationTime(Connection);
+    if (NewEarliestExpirationTime != Connection->EarliestExpirationTime) {
+        Connection->EarliestExpirationTime = NewEarliestExpirationTime;
         QuicTimerWheelUpdateConnection(&Connection->Worker->TimerWheel, Connection);
     }
 }
@@ -1198,66 +1167,32 @@ QuicConnTimerCancel(
     _In_ QUIC_CONN_TIMER_TYPE Type
     )
 {
-    for (uint32_t i = 0;
-        i < ARRAYSIZE(Connection->Timers) &&
-            Connection->Timers[i].ExpirationTime != UINT64_MAX;
-        ++i) {
+    CXPLAT_DBG_ASSERT(Connection->EarliestExpirationTime <= Connection->ExpirationTimes[Type]);
 
+    if (Connection->EarliestExpirationTime == UINT64_MAX) {
         //
-        // Find the correct timer (by type), invalidate it, and move it past all
-        // the other valid timers.
+        // No timers are currently scheduled.
         //
+        return;
+    }
 
-        if (Connection->Timers[i].Type == Type) {
+    if (Connection->ExpirationTimes[Type] == Connection->EarliestExpirationTime) {
+        //
+        // We might be canceling the earliest timer, so we need to find the new
+        // expiration time for this connection.
+        //
+        Connection->ExpirationTimes[Type] = UINT64_MAX;
+        uint64_t NewEarliestExpirationTime = QuicGetEarliestExpirationTime(Connection);
 
-            QuicTraceEvent(
-                ConnCancelTimer,
-                "[conn][%p] Canceling %hhu",
-                Connection,
-                (uint8_t)Type);
-
-            if (Connection->Timers[i].ExpirationTime != UINT64_MAX) {
-
-                //
-                // Find the end of the valid timers (if any more).
-                //
-
-                uint32_t j = i + 1;
-                while (j < ARRAYSIZE(Connection->Timers) &&
-                    Connection->Timers[j].ExpirationTime != UINT64_MAX) {
-                    ++j;
-                }
-
-                if (j == i + 1) {
-                    //
-                    // No more valid timers, just invalidate this one and leave it
-                    // where it is.
-                    //
-                    Connection->Timers[i].ExpirationTime = UINT64_MAX;
-                } else {
-
-                    //
-                    // Move the valid timers forward and then put this timer after
-                    // them.
-                    //
-                    CxPlatMoveMemory(
-                        Connection->Timers + i,
-                        Connection->Timers + i + 1,
-                        sizeof(QUIC_CONN_TIMER_ENTRY) * (j - i - 1));
-                    Connection->Timers[j - 1].Type = Type;
-                    Connection->Timers[j - 1].ExpirationTime = UINT64_MAX;
-                }
-
-                if (i == 0) {
-                    //
-                    // The first timer was removed, so make sure the timer wheel is updated.
-                    //
-                    QuicTimerWheelUpdateConnection(&Connection->Worker->TimerWheel, Connection);
-                }
-            }
-
-            break;
+        if (NewEarliestExpirationTime != Connection->EarliestExpirationTime) {
+            //
+            // We've either found a new earliest expiration time, or there will be no timers scheduled.
+            //
+            Connection->EarliestExpirationTime = NewEarliestExpirationTime;
+            QuicTimerWheelUpdateConnection(&Connection->Worker->TimerWheel, Connection);
         }
+    } else {
+        Connection->ExpirationTimes[Type] = UINT64_MAX;
     }
 }
 
@@ -1268,66 +1203,56 @@ QuicConnTimerExpired(
     _In_ uint64_t TimeNow
     )
 {
-    uint32_t i = 0;
-    QUIC_CONN_TIMER_ENTRY Temp[QUIC_CONN_TIMER_COUNT];
     BOOLEAN FlushSendImmediate = FALSE;
 
-    while (i < ARRAYSIZE(Connection->Timers) &&
-           Connection->Timers[i].ExpirationTime <= TimeNow) {
-        Connection->Timers[i].ExpirationTime = UINT64_MAX;
-        ++i;
-    }
+    Connection->EarliestExpirationTime = UINT64_MAX;
 
-    CXPLAT_DBG_ASSERT(i != 0);
-
-    CxPlatCopyMemory(
-        Temp,
-        Connection->Timers,
-        i * sizeof(QUIC_CONN_TIMER_ENTRY));
-    if (i < ARRAYSIZE(Connection->Timers)) {
-        CxPlatMoveMemory(
-            Connection->Timers,
-            Connection->Timers + i,
-            (QUIC_CONN_TIMER_COUNT - i) * sizeof(QUIC_CONN_TIMER_ENTRY));
-        CxPlatCopyMemory(
-            Connection->Timers + (QUIC_CONN_TIMER_COUNT - i),
-            Temp,
-            i * sizeof(QUIC_CONN_TIMER_ENTRY));
-    }
-
-    for (uint32_t j = 0; j < i; ++j) {
-        QuicTraceEvent(
-            ConnExpiredTimer,
-            "[conn][%p] %hhu expired",
-            Connection,
-            (uint8_t)Temp[j].Type);
-        if (Temp[j].Type == QUIC_CONN_TIMER_ACK_DELAY) {
+    //
+    // Queue up operations for all expired timers and update the earliest expiration time
+    // on the fly. Note that we must not call any functions that might update the timer wheel.
+    //
+    for (QUIC_CONN_TIMER_TYPE Type = 0; Type < QUIC_CONN_TIMER_COUNT; ++Type) {
+        if (Connection->ExpirationTimes[Type] <= TimeNow) {
+            Connection->ExpirationTimes[Type] = UINT64_MAX;
             QuicTraceEvent(
-                ConnExecTimerOper,
-                "[conn][%p] Execute: %u",
+                ConnExpiredTimer,
+                "[conn][%p] %hhu expired",
                 Connection,
-                QUIC_CONN_TIMER_ACK_DELAY);
-            QuicSendProcessDelayedAckTimer(&Connection->Send);
-            FlushSendImmediate = TRUE;
-        } else if (Temp[j].Type == QUIC_CONN_TIMER_PACING) {
-            QuicTraceEvent(
-                ConnExecTimerOper,
-                "[conn][%p] Execute: %u",
-                Connection,
-                QUIC_CONN_TIMER_PACING);
-            FlushSendImmediate = TRUE;
-        } else {
-            QUIC_OPERATION* Oper;
-            if ((Oper = QuicOperationAlloc(Connection->Worker, QUIC_OPER_TYPE_TIMER_EXPIRED)) != NULL) {
-                Oper->TIMER_EXPIRED.Type = Temp[j].Type;
-                QuicConnQueueOper(Connection, Oper);
-            } else {
+                (uint8_t)Type);
+            if (Type == QUIC_CONN_TIMER_ACK_DELAY) {
                 QuicTraceEvent(
-                    AllocFailure,
-                    "Allocation of '%s' failed. (%llu bytes)",
-                    "expired timer operation",
-                    0);
+                    ConnExecTimerOper,
+                    "[conn][%p] Execute: %u",
+                    Connection,
+                    QUIC_CONN_TIMER_ACK_DELAY);
+                QuicSendProcessDelayedAckTimer(&Connection->Send);
+                FlushSendImmediate = TRUE;
+            } else if (Type == QUIC_CONN_TIMER_PACING) {
+                QuicTraceEvent(
+                    ConnExecTimerOper,
+                    "[conn][%p] Execute: %u",
+                    Connection,
+                    QUIC_CONN_TIMER_PACING);
+                FlushSendImmediate = TRUE;
+            } else {
+                QUIC_OPERATION* Oper;
+                if ((Oper = QuicOperationAlloc(Connection->Worker, QUIC_OPER_TYPE_TIMER_EXPIRED)) != NULL) {
+                    Oper->TIMER_EXPIRED.Type = Type;
+                    QuicConnQueueOper(Connection, Oper);
+                } else {
+                    //
+                    // TODO: ideally, we should put this event back to the timer wheel
+                    // so it can fire again later.
+                    //
+                    QuicTraceEvent(
+                        AllocFailure,
+                        "Allocation of '%s' failed. (%llu bytes)",
+                        "expired timer operation",
+                        0);
+                }
             }
+        } else if (Connection->ExpirationTimes[Type] < Connection->EarliestExpirationTime) {
+            Connection->EarliestExpirationTime = Connection->ExpirationTimes[Type];
         }
     }
 
@@ -3224,6 +3149,14 @@ QuicConnQueueRecvPackets(
         PacketsTail = (QUIC_RX_PACKET**)&((*PacketsTail)->Next);
     }
 
+    //
+    // Base the limit of queued packets on the connection-wide flow control, but
+    // allow at least a few packets even if the app configured an extremely
+    // tiny FC window.
+    //
+    const uint32_t QueueLimit =
+        CXPLAT_MAX(10, Connection->Settings.ConnFlowControlWindow >> 10);
+
     QuicTraceLogConnVerbose(
         QueueDatagrams,
         Connection,
@@ -3232,7 +3165,7 @@ QuicConnQueueRecvPackets(
 
     BOOLEAN QueueOperation;
     CxPlatDispatchLockAcquire(&Connection->ReceiveQueueLock);
-    if (Connection->ReceiveQueueCount >= QUIC_MAX_RECEIVE_QUEUE_COUNT) {
+    if (Connection->ReceiveQueueCount >= QueueLimit) {
         QueueOperation = FALSE;
     } else {
         *Connection->ReceiveQueueTail = Packets;

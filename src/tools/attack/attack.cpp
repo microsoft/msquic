@@ -40,8 +40,8 @@ static QUIC_ADDR ServerAddress;
 static uint64_t TimeoutMs = ATTACK_TIMEOUT_DEFAULT_MS;
 static uint32_t ThreadCount = ATTACK_THREADS_DEFAULT;
 static uint64_t AttackRate = ATTACK_RATE_DEFAULT;
-static const char* Alpn = "h3-29";
-static uint32_t Version = QUIC_VERSION_DRAFT_29;
+static const char* Alpn = "h3";
+static uint32_t Version = QUIC_VERSION_1;
 
 static uint64_t TimeStart;
 static int64_t TotalPacketCount;
@@ -225,7 +225,7 @@ void RunAttackRandom(CXPLAT_SOCKET* Binding, uint16_t DatagramLength, bool Valid
 
 void RunAttackValidInitial(CXPLAT_SOCKET* Binding)
 {
-    const StrBuffer InitialSalt("afbfec289993d24c9e9786f19c6111e04390a899");
+    const StrBuffer InitialSalt("38762cf7f55934b34d179ae6a4c80cadccbb7f0a");
     const uint16_t DatagramLength = QUIC_MIN_INITIAL_LENGTH;
     const uint64_t PacketNumber = 0;
 

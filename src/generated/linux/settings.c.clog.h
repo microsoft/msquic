@@ -768,6 +768,21 @@ tracepoint(CLOG_SETTINGS_C, SettingOneWayDelayEnabled , arg2);\
 
 
 /*----------------------------------------------------------
+// Decoder Ring for SettingNetStatsEventEnabled
+// [sett] NetStatsEventEnabled   = %hhu
+// QuicTraceLogVerbose(SettingNetStatsEventEnabled,        "[sett] NetStatsEventEnabled   = %hhu", Settings->NetStatsEventEnabled);
+// arg2 = arg2 = Settings->NetStatsEventEnabled = arg2
+----------------------------------------------------------*/
+#ifndef _clog_3_ARGS_TRACE_SettingNetStatsEventEnabled
+#define _clog_3_ARGS_TRACE_SettingNetStatsEventEnabled(uniqueId, encoded_arg_string, arg2)\
+tracepoint(CLOG_SETTINGS_C, SettingNetStatsEventEnabled , arg2);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for SettingDumpLFixedServerID
 // [sett] FixedServerID          = %u
 // QuicTraceLogVerbose(SettingDumpLFixedServerID,              "[sett] FixedServerID          = %u", Settings->FixedServerID);

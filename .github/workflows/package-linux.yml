@@ -61,12 +61,12 @@ jobs:
       shell: pwsh
       run: scripts/prepare-machine.ps1 -ForTest
     - name: Download Package
-      uses: actions/download-artifact@7a1cd3216ca9260cd8022db641d960b1db4d1be4
+      uses: actions/download-artifact@6b208ae046db98c579e8a3aa621ab581ff575935
       with:
         name: ${{ matrix.vec.config }}-linux-${{ matrix.vec.os }}-${{ matrix.vec.arch }}-${{ matrix.vec.tls }}-UseSystemOpenSSLCrypto
         path: artifacts
     - name: Download Build Artifacts
-      uses: actions/download-artifact@7a1cd3216ca9260cd8022db641d960b1db4d1be4
+      uses: actions/download-artifact@6b208ae046db98c579e8a3aa621ab581ff575935
       with:
         name: Package-${{ matrix.vec.config }}-linux-${{ matrix.vec.os }}-${{ matrix.vec.arch }}-${{ matrix.vec.tls }}-UseSystemOpenSSLCrypto
         path: artifacts

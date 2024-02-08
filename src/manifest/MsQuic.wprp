@@ -189,9 +189,6 @@
 
     <Profile Id="Basic.Light.File" Name="Basic" Description="Low Volume MsQuic ETW Events" LoggingMode="File" DetailLevel="Light">
       <Collectors>
-        <SystemCollectorId Value="SC_HighVolume">
-          <SystemProviderId Value="SP_SystemThreadExecution" />
-        </SystemCollectorId>
         <EventCollectorId Value="EC_LowVolume">
           <EventProviders>
             <EventProviderId Value="EP_MsQuicEtw_LowVolume" />

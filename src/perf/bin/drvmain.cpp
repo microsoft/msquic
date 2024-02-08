@@ -34,7 +34,7 @@ WDF_DECLARE_CONTEXT_TYPE_WITH_NAME(QUIC_DEVICE_EXTENSION, SecNetPerfCtlGetDevice
 typedef struct QUIC_DRIVER_CLIENT {
     LIST_ENTRY Link;
     QUIC_CREDENTIAL_CONFIG SelfSignedCredConfig;
-    QUIC_CERTIFICATE_HASH SelfSignedCertHash;
+    QUIC_CERTIFICATE_HASH_STORE SelfSignedCertHash;
     bool SelfSignedValid;
     CXPLAT_EVENT StopEvent;
     WDFREQUEST Request;
@@ -623,9 +623,11 @@ SecNetPerfCtlSetSecurityConfig(
     _In_ const QUIC_CERTIFICATE_HASH* CertHash
     )
 {
-    Client->SelfSignedCredConfig.Type = QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH;
+    Client->SelfSignedCredConfig.Type = QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH_STORE;
     Client->SelfSignedCredConfig.Flags = QUIC_CREDENTIAL_FLAG_NONE;
-    Client->SelfSignedCredConfig.CertificateHash = &Client->SelfSignedCertHash;
+    Client->SelfSignedCredConfig.CertificateHashStore = &Client->SelfSignedCertHash;
+    Client->SelfSignedCertHash.Flags = QUIC_CERTIFICATE_HASH_STORE_FLAG_NONE;
+    RtlCopyMemory(&Client->SelfSignedCertHash.StoreName, "MY", sizeof("MY"));
     RtlCopyMemory(&Client->SelfSignedCertHash.ShaHash, CertHash, sizeof(QUIC_CERTIFICATE_HASH));
     Client->SelfSignedValid = true;
     return QUIC_STATUS_SUCCESS;

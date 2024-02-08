@@ -1,4 +1,4 @@
-FROM ubuntu:20.04@sha256:c9820a44b950956a790c354700c1166a7ec648bc0d215fa438d3a339812f1d01
+FROM ubuntu:20.04@sha256:f2034e7195f61334e6caff6ecf2e965f92d11e888309065da85ff50c617732b8
 
 LABEL org.opencontainers.image.source https://github.com/microsoft/msquic
 

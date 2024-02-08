@@ -239,6 +239,10 @@ CxPlatLogAssert(
 #define CXPLAT_IRQL() KeGetCurrentIrql()
 
 #define CXPLAT_PASSIVE_CODE() CXPLAT_DBG_ASSERT(CXPLAT_IRQL() == PASSIVE_LEVEL)
+#define CXPLAT_AT_DISPATCH() (CXPLAT_IRQL() == DISPATCH_LEVEL)
+
+#define CXPLAT_RAISE_IRQL() KIRQL OldIrql; KeRaiseIrql(DISPATCH_LEVEL, &OldIrql)
+#define CXPLAT_LOWER_IRQL() KeLowerIrql(OldIrql)
 
 //
 // Allocation/Memory Interfaces

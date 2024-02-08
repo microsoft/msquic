@@ -60,7 +60,8 @@ typedef struct QUIC_SETTINGS_INTERNAL {
             uint64_t EncryptionOffloadAllowed               : 1;
             uint64_t ReliableResetEnabled                   : 1;
             uint64_t OneWayDelayEnabled                     : 1;
-            uint64_t RESERVED                               : 18;
+            uint64_t NetStatsEventEnabled                   : 1;
+            uint64_t RESERVED                               : 17;
         } IsSet;
     };
 
@@ -109,6 +110,7 @@ typedef struct QUIC_SETTINGS_INTERNAL {
     uint8_t EncryptionOffloadAllowed        : 1;
     uint8_t ReliableResetEnabled            : 1;
     uint8_t OneWayDelayEnabled              : 1;
+    uint8_t NetStatsEventEnabled            : 1;
     uint8_t MtuDiscoveryMissingProbeCount;
 
 } QUIC_SETTINGS_INTERNAL;

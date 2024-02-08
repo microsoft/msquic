@@ -399,6 +399,17 @@ TEST_P(WithValidateConnectionEventArgs, ValidateConnectionEvents) {
     }
 }
 
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
+TEST_P(WithValidateNetStatsConnEventArgs, ValidateNetStatConnEvent) {
+    TestLoggerT<ParamType> Logger("QuicTestValidateNetStatsConnEvent", GetParam());
+    if (TestingKernelMode) {
+        ASSERT_TRUE(DriverClient.Run<uint32_t>(IOCTL_QUIC_RUN_VALIDATE_NET_STATS_CONN_EVENT, GetParam().Test));
+    } else {
+        QuicTestValidateNetStatsConnEvent(GetParam().Test);
+    }
+}
+#endif
+
 TEST_P(WithValidateStreamEventArgs, ValidateStreamEvents) {
     TestLoggerT<ParamType> Logger("QuicTestValidateStreamEvents", GetParam());
     if (TestingKernelMode) {
@@ -1973,6 +1984,20 @@ TEST_P(WithAbortiveArgs, AbortiveShutdown) {
     }
 }
 
+#if QUIC_TEST_DATAPATH_HOOKS_ENABLED
+TEST_P(WithCancelOnLossArgs, CancelOnLossSend) {
+    TestLoggerT<ParamType> Logger("QuicCancelOnLossSend", GetParam());
+    if (TestingKernelMode) {
+        QUIC_RUN_CANCEL_ON_LOSS_PARAMS Params = {
+            GetParam().DropPackets
+        };
+        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_CANCEL_ON_LOSS, Params));
+    } else {
+        QuicCancelOnLossSend(GetParam().DropPackets);
+    }
+}
+#endif
+
 TEST_P(WithCidUpdateArgs, CidUpdate) {
     TestLoggerT<ParamType> Logger("QuicTestCidUpdate", GetParam());
     if (TestingKernelMode) {
@@ -2284,6 +2309,13 @@ INSTANTIATE_TEST_SUITE_P(
     WithValidateConnectionEventArgs,
     testing::ValuesIn(ValidateConnectionEventArgs::Generate()));
 
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
+INSTANTIATE_TEST_SUITE_P(
+    ParameterValidation,
+    WithValidateNetStatsConnEventArgs,
+    testing::ValuesIn(ValidateNetStatsConnEventArgs::Generate()));
+#endif
+
 INSTANTIATE_TEST_SUITE_P(
     ParameterValidation,
     WithValidateStreamEventArgs,
@@ -2436,6 +2468,15 @@ INSTANTIATE_TEST_SUITE_P(
     Misc,
     WithAbortiveArgs,
     testing::ValuesIn(AbortiveArgs::Generate()));
+
+#if QUIC_TEST_DATAPATH_HOOKS_ENABLED
+
+INSTANTIATE_TEST_SUITE_P(
+    Misc,
+    WithCancelOnLossArgs,
+    testing::ValuesIn(CancelOnLossArgs::Generate()));
+
+#endif
 
 INSTANTIATE_TEST_SUITE_P(
     Misc,
