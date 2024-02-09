@@ -40,7 +40,7 @@ QUIC has many benefits when compared to existing "TLS over TCP" scenarios:
   * Improved congestion control and loss recovery.
   * Survives a change in the clients IP address or port.
   * Stateless load balancing.
-  * Easily extendable for new features and extensions.
+  * Easily extendable for new features and extensions. 
 
 ## Library Features
 
