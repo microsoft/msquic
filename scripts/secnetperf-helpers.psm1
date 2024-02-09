@@ -23,33 +23,37 @@ function Repo-Path {
 function Collect-EnvironmentInfo {
     param ($Session)
     if (!$isWindows) { return; }
-    Write-Host "Local Machine Environment:"
-    Write-Host "Get-NetAdapter"
+    Write-Output "Local Machine Environment:"
+    Write-Output "Get-NetAdapter"
     Get-NetAdapter
-    Write-Host "Get-NetAdapterHardwareInfo"
+    Write-Output "Get-NetAdapterHardwareInfo"
     Get-NetAdapterHardwareInfo
-    Write-Host "Get-NetAdapterChecksumOffload"
+    Write-Output "Get-NetAdapterChecksumOffload"
     Get-NetAdapterChecksumOffload
-    Write-Host "Get-NetAdapterLso"
+    Write-Output "Get-NetAdapterLso"
     Get-NetAdapterLso
-    Write-Host "Get-NetAdapterRsc"
+    Write-Output "Get-NetAdapterRsc"
     Get-NetAdapterRsc
-    Write-Host "Get-NetAdapterUso"
+    Write-Output "Get-NetAdapterUso"
     Get-NetAdapterUso
+    Write-Output "Get-NetAdapterStatistics"
+    Get-NetAdapterStatistics
     Invoke-Command -Session $Session -ScriptBlock {
-        Write-Host "Peer Machine Environment:"
-        Write-Host "Get-NetAdapter"
+        Write-Output "Peer Machine Environment:"
+        Write-Output "Get-NetAdapter"
         Get-NetAdapter
-        Write-Host "Get-NetAdapterHardwareInfo"
+        Write-Output "Get-NetAdapterHardwareInfo"
         Get-NetAdapterHardwareInfo
-        Write-Host "Get-NetAdapterChecksumOffload"
+        Write-Output "Get-NetAdapterChecksumOffload"
         Get-NetAdapterChecksumOffload
-        Write-Host "Get-NetAdapterLso"
+        Write-Output "Get-NetAdapterLso"
         Get-NetAdapterLso
-        Write-Host "Get-NetAdapterRsc"
+        Write-Output "Get-NetAdapterRsc"
         Get-NetAdapterRsc
-        Write-Host "Get-NetAdapterUso"
+        Write-Output "Get-NetAdapterUso"
         Get-NetAdapterUso
+        Write-Output "Get-NetAdapterStatistics"
+        Get-NetAdapterStatistics
     }
 }
 

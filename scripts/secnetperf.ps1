@@ -138,7 +138,7 @@ Copy-Item -ToSession $Session ./scripts -Destination "$RemoteDir/scripts" -Recur
 Copy-Item -ToSession $Session ./src/manifest/MsQuic.wprp -Destination "$RemoteDir/scripts"
 
 # Dump some information about the environment.
-Collect-EnvironmentInfo
+Collect-EnvironmentInfo $Session
 
 $SQL = @"
 INSERT OR IGNORE INTO Secnetperf_builds (Secnetperf_Commit, Build_date_time, TLS_enabled, Advanced_build_config)
@@ -177,7 +177,7 @@ if ($isWindows) {
 }
 
 # Configure the dump collection.
-Configure-DumpCollection $Session
+Configure-DumpCollection $Session > ./artifacts/logs/env-pre.log
 
 # Install any dependent drivers.
 if ($useXDP) { Install-XDP $Session $RemoteDir }
@@ -250,7 +250,7 @@ VALUES ("$TestId-tcp-$tcp", "$MsQuicCommit", $env, $env, $($Test.Values[$tcp][$o
 Write-Host "Tests complete!"
 
 # Dump some information about the environment.
-Collect-EnvironmentInfo
+Configure-DumpCollection $Session > ./artifacts/logs/env-post.log
 
 } catch {
     Write-GHError "Exception while running tests!"
