@@ -177,7 +177,7 @@ if ($isWindows) {
 }
 
 # Configure the dump collection.
-Configure-DumpCollection $Session | Set-Content -Path ./artifacts/logs/env-pre.log
+Configure-DumpCollection $Session > ./artifacts/logs/env-pre.log
 
 # Install any dependent drivers.
 if ($useXDP) { Install-XDP $Session $RemoteDir }
@@ -250,7 +250,7 @@ VALUES ("$TestId-tcp-$tcp", "$MsQuicCommit", $env, $env, $($Test.Values[$tcp][$o
 Write-Host "Tests complete!"
 
 # Dump some information about the environment.
-Configure-DumpCollection $Session | Set-Content -Path ./artifacts/logs/env-post.log
+Configure-DumpCollection $Session > ./artifacts/logs/env-post.log
 
 } catch {
     Write-GHError "Exception while running tests!"
