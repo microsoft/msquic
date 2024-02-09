@@ -211,7 +211,7 @@ struct TlsContext
     CXPLAT_TLS_PROCESS_STATE State;
     uint8_t AlpnListBuffer[256];
 
-    TlsContext()  {
+    TlsContext(uint64_t initSrcCid)  {
         AlpnListBuffer[0] = (uint8_t)strlen(Alpn);
         memcpy(&AlpnListBuffer[1], Alpn, AlpnListBuffer[0]);
         CxPlatZeroMemory(&State, sizeof(State));
@@ -253,7 +253,7 @@ struct TlsContext
         TP.InitialMaxUniStreams = 3;
         TP.Flags |= QUIC_TP_FLAG_INITIAL_SOURCE_CONNECTION_ID;
         TP.InitialSourceConnectionIDLength = sizeof(uint64_t);
-        *(uint64_t*)&TP.InitialSourceConnectionID[0] = MagicCid;
+        *(uint64_t*)&TP.InitialSourceConnectionID[0] = initSrcCid;
 
         CXPLAT_TLS_CONFIG Config = {0};
         Config.IsServer = FALSE;
@@ -472,10 +472,6 @@ void WriteClientInitialPacket(
 
     QUIC_CID* DestCid = (QUIC_CID*)DestCidBuffer;
     QUIC_CID* SourceCid = (QUIC_CID*)SourceCidBuffer;
-
-
-    
-    
     
     DestCid->IsInitial = TRUE;
     DestCid->Length = InitialPacketParams.DestCidLen;
@@ -553,29 +549,28 @@ void sendInitialPacket(CXPLAT_SOCKET* Binding, CXPLAT_ROUTE Route, int64_t* Pack
         else {
             memcpy(DestCid, InitialPacketParams.DestCid, InitialPacketParams.DestCidLen);
         }
-        if (InitialPacketParams.SourceCid == nullptr) {
-            CxPlatRandom(sizeof(uint64_t), SrcCid);
-        }
-        else {
-            memcpy(SrcCid, InitialPacketParams.SourceCid, InitialPacketParams.SourceCidLen);
-        }
+        
+        memcpy(SrcCid, InitialPacketParams.SourceCid, InitialPacketParams.SourceCidLen);
+        
         // *DestCid = d;
         // d+=2;
         // *SrcCid = s;
         // s+=2;
-        if (InitialPacketParams.FrameType == QUIC_FRAME_CRYPTO) {
-            uint8_t* OrigSrcCid = nullptr;
-            for (uint16_t i = HeaderLength; i < PacketLength; ++i) {
-                if (!memcmp(&MagicCid, Packet+i, sizeof(MagicCid))) {
-                    OrigSrcCid = &Packet[i];
-                }
-            }
-            if (!OrigSrcCid) {
-                printf("Failed to find OrigSrcCid!\n");
-                return;
-            }
-            memcpy(OrigSrcCid, SrcCid, sizeof(uint64_t));
-        }
+        // if (InitialPacketParams.FrameType == QUIC_FRAME_CRYPTO) {
+        //     uint8_t* OrigSrcCid = nullptr;
+        //     for (uint16_t i = HeaderLength; i < PacketLength; ++i) {
+        //         if (!memcmp(&MagicCid, Packet+i, sizeof(MagicCid))) {
+        //             OrigSrcCid = &Packet[i];
+        //         }
+        //     }
+        //     if (!OrigSrcCid) {
+        //         printf("Failed to find OrigSrcCid!\n");
+        //         return;
+        //     }
+        //     memcpy(OrigSrcCid, SrcCid, sizeof(uint64_t));
+            
+        //     // *(uint64_t*)&ClientContext.InitialSourceConnectionID[0] = MagicCid;
+        // }
 
 
         if (fuzzing) {
@@ -603,8 +598,8 @@ void sendInitialPacket(CXPLAT_SOCKET* Binding, CXPLAT_ROUTE Route, int64_t* Pack
                 return;
             }
         }
-        ClientContext->State.ReadKey = QUIC_PACKET_KEY_INITIAL;
-        ClientContext->State.WriteKey = QUIC_PACKET_KEY_INITIAL;
+        // ClientContext->State.ReadKey = QUIC_PACKET_KEY_INITIAL;
+        // ClientContext->State.WriteKey = QUIC_PACKET_KEY_INITIAL;
         // ClientContext->State.ReadKeys[0] = InitialPacketParams.ReadKey;
         // ClientContext->State.WriteKeys[0] = InitialPacketParams.WriteKey;
         uint8_t Iv[CXPLAT_IV_LENGTH];
@@ -671,16 +666,20 @@ void fuzz(CXPLAT_SOCKET* Binding, CXPLAT_ROUTE Route) {
             QUIC_FRAME_CRYPTO,
             0
         };
+        uint64_t SrcCid;
+        CxPlatRandom(sizeof(uint64_t), &SrcCid);
+        InitialPacketParams.SourceCid = (uint8_t *)&SrcCid;
+        TlsContext ClientContext(SrcCid);
         mode = 1;//(uint8_t)GetRandom(2);
         if (mode == 0) {
-            sendInitialPacket(Binding, Route, &PacketCount, &TotalByteCount);
-        } else if (mode == 1) {
-            TlsContext ClientContext;
             ClientContext.ProcessData();
+            sendInitialPacket(Binding, Route, &PacketCount, &TotalByteCount, true, &ClientContext);
+        } else if (mode == 1) {
             bool serverHello = false;
             printf("Sending Handshake Packet\n");
             RecvPacketEvent = CreateEvent(NULL, TRUE, FALSE, NULL);
             do {
+                ClientContext.ProcessData();
                 sendInitialPacket(Binding, Route, &PacketCount, &TotalByteCount, false, &ClientContext);
             } while (serverHello == false && WaitForSingleObject(RecvPacketEvent, 100) != (DWORD)WAIT_OBJECT_0 && CxPlatTimeDiff64(StartTimeMs, CxPlatTimeMs64()) < RunTimeMs);
             serverHello=true;
@@ -782,10 +781,6 @@ void fuzz(CXPLAT_SOCKET* Binding, CXPLAT_ROUTE Route) {
                                 printf("Failed to process data!\n");
                             }
                             printf("Result: %d\n", Result);
-                            // QuicCryptoProcessFrame(
-                            //     ClientContext.Ptr->Connection->Crypto,
-                            //     packet.KeyType,
-                            //     &Frame);
                         }
                     }
                 }
