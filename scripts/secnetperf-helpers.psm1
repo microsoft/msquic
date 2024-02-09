@@ -20,6 +20,7 @@ function Repo-Path {
     return Join-Path (Split-Path $PSScriptRoot -Parent) $Path
 }
 
+# Dumps out various environment information for debugging.
 function Collect-EnvironmentInfo {
     param ($Session)
     if (!$isWindows) { return; }
