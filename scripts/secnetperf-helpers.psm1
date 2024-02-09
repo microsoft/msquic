@@ -20,6 +20,39 @@ function Repo-Path {
     return Join-Path (Split-Path $PSScriptRoot -Parent) $Path
 }
 
+function Collect-EnvironmentInfo {
+    param ($Session)
+    if (!$isWindows) { return; }
+    Write-Host "Local Machine Environment:"
+    Write-Host "Get-NetAdapter"
+    Get-NetAdapter
+    Write-Host "Get-NetAdapterHardwareInfo"
+    Get-NetAdapterHardwareInfo
+    Write-Host "Get-NetAdapterChecksumOffload"
+    Get-NetAdapterChecksumOffload
+    Write-Host "Get-NetAdapterLso"
+    Get-NetAdapterLso
+    Write-Host "Get-NetAdapterRsc"
+    Get-NetAdapterRsc
+    Write-Host "Get-NetAdapterUso"
+    Get-NetAdapterUso
+    Invoke-Command -Session $Session -ScriptBlock {
+        Write-Host "Peer Machine Environment:"
+        Write-Host "Get-NetAdapter"
+        Get-NetAdapter
+        Write-Host "Get-NetAdapterHardwareInfo"
+        Get-NetAdapterHardwareInfo
+        Write-Host "Get-NetAdapterChecksumOffload"
+        Get-NetAdapterChecksumOffload
+        Write-Host "Get-NetAdapterLso"
+        Get-NetAdapterLso
+        Write-Host "Get-NetAdapterRsc"
+        Get-NetAdapterRsc
+        Write-Host "Get-NetAdapterUso"
+        Get-NetAdapterUso
+    }
+}
+
 # Configured the remote machine to collect dumps on crash.
 function Configure-DumpCollection {
     param ($Session)

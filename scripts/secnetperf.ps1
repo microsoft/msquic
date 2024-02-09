@@ -137,6 +137,9 @@ Copy-Item -ToSession $Session ./artifacts -Destination "$RemoteDir/artifacts" -R
 Copy-Item -ToSession $Session ./scripts -Destination "$RemoteDir/scripts" -Recurse
 Copy-Item -ToSession $Session ./src/manifest/MsQuic.wprp -Destination "$RemoteDir/scripts"
 
+# Dump some information about the environment.
+Collect-EnvironmentInfo
+
 $SQL = @"
 INSERT OR IGNORE INTO Secnetperf_builds (Secnetperf_Commit, Build_date_time, TLS_enabled, Advanced_build_config)
 VALUES ("$MsQuicCommit", "$(Get-Date -Format "yyyy-MM-dd HH:mm:ss")", 1, "TODO");
@@ -245,6 +248,9 @@ VALUES ("$TestId-tcp-$tcp", "$MsQuicCommit", $env, $env, $($Test.Values[$tcp][$o
 }
 
 Write-Host "Tests complete!"
+
+# Dump some information about the environment.
+Collect-EnvironmentInfo
 
 } catch {
     Write-GHError "Exception while running tests!"
