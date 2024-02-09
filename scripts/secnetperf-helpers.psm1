@@ -25,10 +25,14 @@ function Collect-EnvironmentInfo {
     param ($Session)
     if (!$isWindows) { return; }
     Write-Output "Local Machine Environment:"
+    Write-Output "Get-NetOffloadGlobalSetting"
+    Get-NetOffloadGlobalSetting
     Write-Output "Get-NetAdapter"
     Get-NetAdapter
     Write-Output "Get-NetAdapterHardwareInfo"
     Get-NetAdapterHardwareInfo
+    Write-Output "Get-NetAdapterRss"
+    Get-NetAdapterRss
     Write-Output "Get-NetAdapterChecksumOffload"
     Get-NetAdapterChecksumOffload
     Write-Output "Get-NetAdapterLso"
@@ -39,12 +43,17 @@ function Collect-EnvironmentInfo {
     Get-NetAdapterUso
     Write-Output "Get-NetAdapterStatistics"
     Get-NetAdapterStatistics
+
     Invoke-Command -Session $Session -ScriptBlock {
         Write-Output "Peer Machine Environment:"
+        Write-Output "Get-NetOffloadGlobalSetting"
+        Get-NetOffloadGlobalSetting
         Write-Output "Get-NetAdapter"
         Get-NetAdapter
         Write-Output "Get-NetAdapterHardwareInfo"
         Get-NetAdapterHardwareInfo
+        Write-Output "Get-NetAdapterRss"
+        Get-NetAdapterRss
         Write-Output "Get-NetAdapterChecksumOffload"
         Get-NetAdapterChecksumOffload
         Write-Output "Get-NetAdapterLso"
