@@ -113,6 +113,12 @@ if ($null -eq $Session) {
 # Make sure nothing is running from a previous run.
 Cleanup-State $Session $RemoteDir
 
+# Ensure logging directories exist on both machines.
+mkdir ./artifacts/logs | Out-Null
+Invoke-Command -Session $Session -ScriptBlock {
+    mkdir $Using:RemoteDir/artifacts/logs | Out-Null
+}
+
 # Collect some info about machine state.
 if ($isWindows) {
     Write-Host "Collecting information on local machine state"
@@ -177,11 +183,6 @@ $env = $isWindows ? 1 : 2
 $hasFailures = $false
 
 try {
-
-mkdir ./artifacts/logs | Out-Null
-Invoke-Command -Session $Session -ScriptBlock {
-    mkdir $Using:RemoteDir/artifacts/logs | Out-Null
-}
 
 # Prepare the machines for the testing.
 if ($isWindows) {
