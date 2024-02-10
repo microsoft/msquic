@@ -199,12 +199,12 @@ if ($isWindows) {
     if (!$HasTestSigning) { Write-Host "Test Signing Not Enabled!" }
 }
 
+# Configure the dump collection.
+Configure-DumpCollection $Session
+
 # Install any dependent drivers.
 if ($useXDP) { Install-XDP $Session $RemoteDir }
 if ($io -eq "wsk") { Install-Kernel $Session $RemoteDir $SecNetPerfDir }
-
-# Configure the dump collection.
-Configure-DumpCollection $Session
 
 if (!$isWindows) {
     # Make sure the secnetperf binary is executable.
