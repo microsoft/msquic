@@ -87,7 +87,7 @@ jobs:
     - name: Prepare Machine
       shell: pwsh
       run: scripts/prepare-machine.ps1 -ForTest -InstallDuoNic
-    - uses: actions/download-artifact@6b208ae046db98c579e8a3aa621ab581ff575935
+    - uses: actions/download-artifact@eaceaf801fd36c7dee90939fad912460b18a1ffe
       with:
         name: bin
         path: artifacts/bin
@@ -119,7 +119,7 @@ jobs:
       uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11
       with:
         fetch-depth: 0
-    - uses: actions/download-artifact@6b208ae046db98c579e8a3aa621ab581ff575935
+    - uses: actions/download-artifact@eaceaf801fd36c7dee90939fad912460b18a1ffe
       with:
         name: data
         path: artifacts/PerfDataResults/windows/x64_Release_schannel/WAN
