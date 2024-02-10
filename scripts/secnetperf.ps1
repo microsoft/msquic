@@ -113,6 +113,28 @@ if ($null -eq $Session) {
 # Make sure nothing is running from a previous run.
 Cleanup-State $Session $RemoteDir
 
+# Collect some info about machine state.
+if ($isWindows) {
+    Write-Host "Collecting information on local machine state"
+    try {
+        Get-NetView -OutputDirectory ./artifacts/logs -SkipWindowsRegistry -SkipNetsh -SkipNetshTrace
+        Remove-Item ./artifacts/logs/msdbg.$env:COMPUTERNAME -recurse
+        $filePath = (Get-ChildItem -Path ./artifacts/logs/ -Recurse -Filter msdbg.$env:COMPUTERNAME*.zip)[0].FullName
+        Rename-Item $filePath 'get-netview.local.zip'
+    } catch { }
+
+    Write-Host "Collecting information on peer machine state"
+    try {
+        Invoke-Command -Session $Session -ScriptBlock {
+            Get-NetView -OutputDirectory $Using:RemoteDir/artifacts/logs -SkipWindowsRegistry -SkipNetsh -SkipNetshTrace
+            Remove-Item $Using:RemoteDir/artifacts/logs/msdbg.$env:COMPUTERNAME -recurse
+            $filePath = (Get-ChildItem -Path $Using:RemoteDir/artifacts/logs/ -Recurse -Filter msdbg.$env:COMPUTERNAME*.zip)[0].FullName
+            Rename-Item $filePath 'get-netview.peer.zip'
+        }
+        Copy-Item -FromSession $Session -Path '$RemoteDir/artifacts/logs/get-netview.peer.zip' -Destination ./artifacts/logs/
+    } catch { }
+}
+
 if ($io -eq "wsk") {
     # WSK also needs the kernel mode binaries in the usermode path.
     Write-Host "Moving kernel binaries to usermode path"
@@ -136,9 +158,6 @@ Invoke-Command -Session $Session -ScriptBlock {
 Copy-Item -ToSession $Session ./artifacts -Destination "$RemoteDir/artifacts" -Recurse
 Copy-Item -ToSession $Session ./scripts -Destination "$RemoteDir/scripts" -Recurse
 Copy-Item -ToSession $Session ./src/manifest/MsQuic.wprp -Destination "$RemoteDir/scripts"
-
-# Dump some information about the environment.
-Collect-EnvironmentInfo $Session
 
 $SQL = @"
 INSERT OR IGNORE INTO Secnetperf_builds (Secnetperf_Commit, Build_date_time, TLS_enabled, Advanced_build_config)
@@ -179,31 +198,12 @@ if ($isWindows) {
     if (!$HasTestSigning) { Write-Host "Test Signing Not Enabled!" }
 }
 
-# Configure the dump collection.
-if ($isWindows) {
-    Write-Host "Collecting information on local machine state"
-    try {
-        Get-NetView -OutputDirectory ./artifacts/logs -SkipWindowsRegistry -SkipNetsh -SkipNetshTrace
-        Remove-Item ./artifacts/logs/msdbg.$env:COMPUTERNAME -recurse
-        $filePath = (Get-ChildItem -Path ./artifacts/logs/ -Recurse -Filter msdbg.$env:COMPUTERNAME*.zip)[0].FullName
-        Rename-Item $filePath 'get-netview.local.zip'
-    } catch { }
-
-    Write-Host "Collecting information on peer machine state"
-    try {
-        Invoke-Command -Session $Session -ScriptBlock {
-            Get-NetView -OutputDirectory $Using:RemoteDir/artifacts/logs -SkipWindowsRegistry -SkipNetsh -SkipNetshTrace
-            Remove-Item $Using:RemoteDir/artifacts/logs/msdbg.$env:COMPUTERNAME -recurse
-            $filePath = (Get-ChildItem -Path $Using:RemoteDir/artifacts/logs/ -Recurse -Filter msdbg.$env:COMPUTERNAME*.zip)[0].FullName
-            Rename-Item $filePath 'get-netview.peer.zip'
-        }
-        Copy-Item -FromSession $Session -Path '$RemoteDir/artifacts/logs/get-netview.peer.zip' -Destination ./artifacts/logs/
-    } catch { }
-}
-
 # Install any dependent drivers.
 if ($useXDP) { Install-XDP $Session $RemoteDir }
 if ($io -eq "wsk") { Install-Kernel $Session $RemoteDir $SecNetPerfDir }
+
+# Configure the dump collection.
+Configure-DumpCollection $Session
 
 if (!$isWindows) {
     # Make sure the secnetperf binary is executable.
