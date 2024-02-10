@@ -160,6 +160,9 @@ $hasFailures = $false
 try {
 
 mkdir ./artifacts/logs | Out-Null
+Invoke-Command -Session $Session -ScriptBlock {
+    mkdir $Using:RemoteDir/artifacts/logs | Out-Null
+}
 
 # Prepare the machines for the testing.
 if ($isWindows) {
@@ -177,7 +180,26 @@ if ($isWindows) {
 }
 
 # Configure the dump collection.
-Configure-DumpCollection $Session > ./artifacts/logs/env-pre.log
+if ($isWindows) {
+    Write-Host "Collecting information on local machine state"
+    try {
+        Get-NetView -OutputDirectory ./artifacts/logs -SkipWindowsRegistry -SkipNetsh -SkipNetshTrace
+        Remove-Item ./artifacts/logs/msdbg.$env:COMPUTERNAME -recurse
+        $filePath = (Get-ChildItem -Path ./artifacts/logs/ -Recurse -Filter msdbg.$env:COMPUTERNAME*.zip)[0].FullName
+        Rename-Item $filePath 'get-netview.local.zip'
+    } catch { }
+
+    Write-Host "Collecting information on peer machine state"
+    try {
+        Invoke-Command -Session $Session -ScriptBlock {
+            Get-NetView -OutputDirectory $Using:RemoteDir/artifacts/logs -SkipWindowsRegistry -SkipNetsh -SkipNetshTrace
+            Remove-Item $Using:RemoteDir/artifacts/logs/msdbg.$env:COMPUTERNAME -recurse
+            $filePath = (Get-ChildItem -Path $Using:RemoteDir/artifacts/logs/ -Recurse -Filter msdbg.$env:COMPUTERNAME*.zip)[0].FullName
+            Rename-Item $filePath 'get-netview.peer.zip'
+        }
+        Copy-Item -FromSession $Session -Path '$RemoteDir/artifacts/logs/get-netview.peer.zip' -Destination ./artifacts/logs/
+    } catch { }
+}
 
 # Install any dependent drivers.
 if ($useXDP) { Install-XDP $Session $RemoteDir }
@@ -248,9 +270,6 @@ VALUES ("$TestId-tcp-$tcp", "$MsQuicCommit", $env, $env, $($Test.Values[$tcp][$o
 }
 
 Write-Host "Tests complete!"
-
-# Dump some information about the environment.
-Configure-DumpCollection $Session > ./artifacts/logs/env-post.log
 
 } catch {
     Write-GHError "Exception while running tests!"
