@@ -151,6 +151,7 @@ if ($isWindows) {
         Remove-Item ./artifacts/logs/msdbg.$env:COMPUTERNAME -recurse
         $filePath = (Get-ChildItem -Path ./artifacts/logs/ -Recurse -Filter msdbg.$env:COMPUTERNAME*.zip)[0].FullName
         Rename-Item $filePath "get-netview.local.zip"
+        Write-Host "Generated get-netview.local.zip"
     } catch { }
 
     Write-Host "Collecting information on peer machine state"
@@ -160,6 +161,7 @@ if ($isWindows) {
             Remove-Item $Using:RemoteDir/artifacts/logs/msdbg.$env:COMPUTERNAME -recurse
             $filePath = (Get-ChildItem -Path $Using:RemoteDir/artifacts/logs/ -Recurse -Filter msdbg.$env:COMPUTERNAME*.zip)[0].FullName
             Rename-Item $filePath "get-netview.peer.zip"
+            Write-Host "Generated get-netview.peer.zip"
         }
         Copy-Item -FromSession $Session -Path "$RemoteDir/artifacts/logs/get-netview.peer.zip" -Destination ./artifacts/logs/
     } catch { }
