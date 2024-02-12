@@ -153,19 +153,20 @@ if ($isWindows) {
         $Arguments += " -SkipNetshTrace"
     }
 
-    Write-Host "Collecting information on local machine state"
+    Write-Host "::group::Collecting information on local machine state"
     try {
-        Invoke-Expression "Get-NetView -OutputDirectory ./artifacts/logs $Arguments | Out-Null"
+        Invoke-Expression "Get-NetView -OutputDirectory ./artifacts/logs $Arguments"
         Remove-Item ./artifacts/logs/msdbg.$env:COMPUTERNAME -recurse
         $filePath = (Get-ChildItem -Path ./artifacts/logs/ -Recurse -Filter msdbg.$env:COMPUTERNAME*.zip)[0].FullName
         Rename-Item $filePath "get-netview.local.zip"
         Write-Host "Generated get-netview.local.zip"
     } catch { Write-Host $_ }
+    Write-Host "::endgroup::"
 
-    Write-Host "Collecting information on peer machine state"
+    Write-Host "::group::Collecting information on peer machine state"
     try {
         Invoke-Command -Session $Session -ScriptBlock {
-            Invoke-Expression "Get-NetView -OutputDirectory $Using:RemoteDir/artifacts/logs $Using:Arguments | Out-Null"
+            Invoke-Expression "Get-NetView -OutputDirectory $Using:RemoteDir/artifacts/logs $Using:Arguments"
             Remove-Item $Using:RemoteDir/artifacts/logs/msdbg.$env:COMPUTERNAME -recurse
             $filePath = (Get-ChildItem -Path $Using:RemoteDir/artifacts/logs/ -Recurse -Filter msdbg.$env:COMPUTERNAME*.zip)[0].FullName
             Rename-Item $filePath "get-netview.peer.zip"
@@ -173,6 +174,7 @@ if ($isWindows) {
         Copy-Item -FromSession $Session -Path "$RemoteDir/artifacts/logs/get-netview.peer.zip" -Destination ./artifacts/logs/
         Write-Host "Generated get-netview.peer.zip"
     } catch { Write-Host $_ }
+    Write-Host "::endgroup::"
 }
 
 $SQL = @"
