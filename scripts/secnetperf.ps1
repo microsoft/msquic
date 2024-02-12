@@ -145,9 +145,17 @@ Invoke-Command -Session $Session -ScriptBlock {
 
 # Collect some info about machine state.
 if ($isWindows) {
+    $Arguments = "-SkipNetsh"
+    if (Get-Help Get-NetView -Parameter SkipWindowsRegistry -ErrorAction Ignore) {
+        $Arguments += " -SkipWindowsRegistry"
+    }
+    if (Get-Help Get-NetView -Parameter SkipNetshTrace -ErrorAction Ignore) {
+        $Arguments += " -SkipNetshTrace"
+    }
+
     Write-Host "Collecting information on local machine state"
     try {
-        iex "& { $(irm 'aka.ms/Get-NetView') } -OutputDirectory ./artifacts/logs -SkipWindowsRegistry -SkipNetshTrace" | Out-Null
+        Invoke-Expression "Get-NetView -OutputDirectory ./artifacts/logs $Arguments" | Out-Null
         Remove-Item ./artifacts/logs/msdbg.$env:COMPUTERNAME -recurse
         $filePath = (Get-ChildItem -Path ./artifacts/logs/ -Recurse -Filter msdbg.$env:COMPUTERNAME*.zip)[0].FullName
         Rename-Item $filePath "get-netview.local.zip"
@@ -157,7 +165,7 @@ if ($isWindows) {
     Write-Host "Collecting information on peer machine state"
     try {
         Invoke-Command -Session $Session -ScriptBlock {
-            iex "& { $(irm 'aka.ms/Get-NetView') } -OutputDirectory $Using:RemoteDir/artifacts/logs -SkipWindowsRegistry -SkipNetshTrace" | Out-Null
+            Invoke-Expression "Get-NetView -OutputDirectory $Using:RemoteDir/artifacts/log $Using:Arguments" | Out-Null
             Remove-Item $Using:RemoteDir/artifacts/logs/msdbg.$env:COMPUTERNAME -recurse
             $filePath = (Get-ChildItem -Path $Using:RemoteDir/artifacts/logs/ -Recurse -Filter msdbg.$env:COMPUTERNAME*.zip)[0].FullName
             Rename-Item $filePath "get-netview.peer.zip"
