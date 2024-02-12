@@ -89,7 +89,8 @@ if ($io -eq "") {
         $io = "epoll"
     }
 }
-if ($isWindows -and ($LogProfile -eq "" -or $LogProfile -eq "NULL")) {
+$NoLogs = ($LogProfile -eq "" -or $LogProfile -eq "NULL")
+if ($isWindows -and $NoLogs) {
     # Always collect basic, low volume logs on Windows.
     $LogProfile = "Basic.Light"
 }
@@ -144,7 +145,7 @@ Invoke-Command -Session $Session -ScriptBlock {
 }
 
 # Collect some info about machine state.
-if ($isWindows) {
+if ($NoLogs -and $isWindows) {
     $Arguments = "-SkipNetsh"
     if (Get-Help Get-NetView -Parameter SkipWindowsRegistry -ErrorAction Ignore) {
         $Arguments += " -SkipWindowsRegistry"
