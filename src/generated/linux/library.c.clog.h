@@ -347,8 +347,8 @@ tracepoint(CLOG_LIBRARY_C, AllocFailure , arg2, arg3);\
 // QuicTraceEvent(
         PerfCountersRundown,
         "[ lib] Perf counters Rundown, Counters=%!CID!",
-        CASTED_CLOG_BYTEARRAY(sizeof(PerfCounterSamples), PerfCounterSamples));
-// arg2 = arg2 = CASTED_CLOG_BYTEARRAY(sizeof(PerfCounterSamples), PerfCounterSamples) = arg2
+        CASTED_CLOG_BYTEARRAY16(sizeof(PerfCounterSamples), PerfCounterSamples));
+// arg2 = arg2 = CASTED_CLOG_BYTEARRAY16(sizeof(PerfCounterSamples), PerfCounterSamples) = arg2
 ----------------------------------------------------------*/
 #ifndef _clog_4_ARGS_TRACE_PerfCountersRundown
 #define _clog_4_ARGS_TRACE_PerfCountersRundown(uniqueId, encoded_arg_string, arg2, arg2_len)\
