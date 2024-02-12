@@ -870,6 +870,8 @@ CxPlatInternalEventWaitWithTimeout(
     struct timespec Ts = {0, 0};
     int Result;
 
+    CXPLAT_DBG_ASSERT(TimeoutMs != UINT32_MAX);
+
     //
     // Get absolute time.
     //
