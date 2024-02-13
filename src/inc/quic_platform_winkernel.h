@@ -465,7 +465,8 @@ _CxPlatEventWaitWithTimeout(
     )
 {
     LARGE_INTEGER Timeout100Ns;
-    Timeout100Ns.QuadPart = Int32x32To64(TimeoutMs, -10000);
+    CXPLAT_DBG_ASSERT(TimeoutMs != UINT32_MAX);
+    Timeout100Ns.QuadPart = -1 * UInt32x32To64(TimeoutMs, 10000);
     return KeWaitForSingleObject(Event, Executive, KernelMode, FALSE, &Timeout100Ns);
 }
 #define CxPlatEventWaitWithTimeout(Event, TimeoutMs) \
