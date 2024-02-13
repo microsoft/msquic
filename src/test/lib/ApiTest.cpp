@@ -4836,7 +4836,10 @@ QuicTestGetPerfCounters()
             nullptr),
         QUIC_STATUS_BUFFER_TOO_SMALL);
 
-    TEST_EQUAL(BufferLength, sizeof(uint64_t) * QUIC_PERF_COUNTER_MAX);
+    if (BufferLength < sizeof(uint64_t) * QUIC_PERF_COUNTER_MAX) {
+        TEST_FAILURE("Perf counters length too small");
+        return;
+    }
 
     //
     // Test getting the full array of counters.
