@@ -673,7 +673,7 @@ typedef HANDLE CXPLAT_EVENT;
 #define CxPlatEventWaitForever(Event) WaitForSingleObject(Event, INFINITE)
 inline
 BOOLEAN
-_CxPlatEventWaitWithTimeout(
+CxPlatEventWaitWithTimeout(
     _In_ CXPLAT_EVENT Event,
     _In_ uint32_t TimeoutMs
     )
@@ -681,7 +681,6 @@ _CxPlatEventWaitWithTimeout(
     CXPLAT_DBG_ASSERT(TimeoutMs != UINT32_MAX);
     return WAIT_OBJECT_0 == WaitForSingleObject(Event, TimeoutMs);
 }
-#define CxPlatEventWaitWithTimeout(Event, TimeoutMs) _CxPlatEventWaitWithTimeout(Event, TimeoutMs)
 
 //
 // Event Queue Interfaces
