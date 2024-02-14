@@ -11,8 +11,7 @@ Abstract:
 
 #pragma once
 
-#include "PerfHelpers.h"
-#include "quic_datapath.h"
+#include "SecNetPerf.h"
 #include "quic_tls.h"
 
 #define TLS_BLOCK_SIZE 0x4000
@@ -82,9 +81,13 @@ typedef TcpSendCompleteCallback* TcpSendCompleteHandler;
 class TcpEngine {
     friend class TcpWorker;
     bool Initialized{false};
+    bool ShuttingDown{false};
     bool Shutdown{false};
     const uint16_t ProcCount;
     TcpWorker* Workers;
+    CxPlatRundown Rundown;
+    CxPlatLockDispatch ConnectionLock;
+    CXPLAT_LIST_ENTRY Connections;
 public:
     static const CXPLAT_TCP_DATAPATH_CALLBACKS TcpCallbacks;
     static const CXPLAT_TLS_CALLBACKS TlsCallbacks;
@@ -97,10 +100,11 @@ public:
         TcpAcceptHandler AcceptHandler,
         TcpConnectHandler ConnectHandler,
         TcpReceiveHandler ReceiveHandler,
-        TcpSendCompleteHandler SendCompleteHandler);
-    ~TcpEngine();
+        TcpSendCompleteHandler SendCompleteHandler) noexcept;
+    ~TcpEngine() noexcept;
     bool IsInitialized() const { return Initialized; }
-    void AddConnection(TcpConnection* Connection, uint16_t PartitionIndex);
+    bool AddConnection(TcpConnection* Connection, uint16_t PartitionIndex);
+    void RemoveConnection(TcpConnection* Connection);
 };
 
 class TcpWorker {
@@ -160,19 +164,25 @@ class TcpConnection {
     friend class TcpEngine;
     friend class TcpWorker;
     friend class TcpServer;
+    CXPLAT_LIST_ENTRY EngineEntry{nullptr,nullptr}; // Must be first
     bool IsServer;
     bool Initialized{false};
+    bool Shutdown{false};
+    bool ShutdownComplete{false};
     bool ClosedByApp{false};
+    bool Closed{false};
     bool QueuedOnWorker{false};
     bool StartTls{false};
     bool IndicateAccept{false};
     bool IndicateConnect{false};
-    bool IndicateDisconnect{false};
     bool IndicateSendComplete{false};
+    bool HasRundownRef{false};
     TcpConnection* Next{nullptr};
     TcpEngine* Engine;
     TcpWorker* Worker{nullptr};
+    CXPLAT_THREAD_ID WorkerThreadID{0};
     uint16_t PartitionIndex;
+    CXPLAT_EVENT CloseComplete;
     CXPLAT_REF_COUNT Ref;
     CXPLAT_DISPATCH_LOCK Lock;
     CXPLAT_ROUTE Route{0};
@@ -189,7 +199,7 @@ class TcpConnection {
     uint8_t TlsOutput[TLS_BLOCK_SIZE];
     uint8_t BufferedData[TLS_BLOCK_SIZE];
     uint32_t BufferedDataLength{0};
-    TcpConnection(TcpEngine* Engine, CXPLAT_SEC_CONFIG* SecConfig, CXPLAT_SOCKET* Socket);
+    TcpConnection(TcpEngine* Engine, CXPLAT_SEC_CONFIG* SecConfig, CXPLAT_SOCKET* Socket, void* Context);
     static
     _IRQL_requires_max_(DISPATCH_LEVEL)
     _Function_class_(CXPLAT_DATAPATH_CONNECT_CALLBACK)
@@ -256,13 +266,73 @@ public:
     TcpConnection(
         _In_ TcpEngine* Engine,
         _In_ const QUIC_CREDENTIAL_CONFIG* CredConfig,
+        _In_ void* Context = nullptr);
+    bool IsInitialized() const { return Initialized; }
+    void Close();
+    bool Start(
         _In_ QUIC_ADDRESS_FAMILY Family,
         _In_reads_or_z_opt_(QUIC_MAX_SNI_LENGTH)
             const char* ServerName,
         _In_ uint16_t ServerPort,
         _In_ const QUIC_ADDR* LocalAddress = nullptr,
-        _In_ void* Context = nullptr);
-    bool IsInitialized() const { return Initialized; }
-    void Close();
-    void Send(TcpSendData* Data);
+        _In_ const QUIC_ADDR* RemoteAddress = nullptr);
+    bool Send(TcpSendData* Data);
+    bool GetStats(CXPLAT_TCP_STATISTICS* Stats) {
+        return QUIC_SUCCEEDED(CxPlatSocketGetTcpStatistics(Socket, Stats));
+    }
 };
+
+inline
+void
+TcpPrintConnectionStatistics(
+    _In_ TcpConnection* Conn
+    )
+{
+    CXPLAT_TCP_STATISTICS Stats;
+    if (!Conn->GetStats(&Stats)) {
+        return;
+    }
+
+    WriteOutput(
+        "Connection Statistics:\n"
+        "  RTT                       %u us\n"
+        "  MinRTT                    %u us\n"
+        "  TimestampsEnabled         %hhu\n"
+        "  BytesOut                  %llu\n"
+        "  BytesIn                   %llu\n"
+        "  BytesReordered            %u\n"
+        "  BytesRetrans              %u\n"
+        "  FastRetrans               %u\n"
+        "  DupAcksIn                 %u\n"
+        "  TimeoutEpisodes           %u\n"
+        "  SynRetrans                %hhu\n"
+        "  SndLimTransRwin           %u\n"
+        "  SndLimTimeRwin            %u\n"
+        "  SndLimBytesRwin           %llu\n"
+        "  SndLimTransCwnd           %u\n"
+        "  SndLimTimeCwnd            %u\n"
+        "  SndLimBytesCwnd           %llu\n"
+        "  SndLimTransSnd            %u\n"
+        "  SndLimTimeSnd             %u\n"
+        "  SndLimBytesSnd            %llu\n",
+        Stats.RttUs,
+        Stats.MinRttUs,
+        Stats.TimestampsEnabled,
+        (unsigned long long)Stats.BytesOut,
+        (unsigned long long)Stats.BytesIn,
+        Stats.BytesReordered,
+        Stats.BytesRetrans,
+        Stats.FastRetrans,
+        Stats.DupAcksIn,
+        Stats.TimeoutEpisodes,
+        Stats.SynRetrans,
+        Stats.SndLimTransRwin,
+        Stats.SndLimTimeRwin,
+        (unsigned long long)Stats.SndLimBytesRwin,
+        Stats.SndLimTransCwnd,
+        Stats.SndLimTimeCwnd,
+        (unsigned long long)Stats.SndLimBytesCwnd,
+        Stats.SndLimTransSnd,
+        Stats.SndLimTimeSnd,
+        (unsigned long long)Stats.SndLimBytesSnd);
+}

@@ -23,9 +23,7 @@ MsQuic support lifecycle is governed by the Windows Server servicing channels: [
 * **PRE** indicates prerelease branches (**not** officially supported).
 * **TBD** indicates release branches that are set to be classified as one of the above.
 
-> **Important** Main and prerelease branches are considered not **officially supported**.
->  * Prerelease branches get no further changes.
->  * Main is under active development (i.e. not stable), however it does receive security and bug fixes.
+> **Important** Main is not considered **officially supported**. It is under active development (i.e. not stable), however it does receive security and bug fixes.
 
 ## End of support
 
@@ -39,10 +37,9 @@ This table describes all officially supported MsQuic releases.
 
 | [Type](Release.md#release-support-policies) | Branch | Consumer | Fork Date | Release Date | End of Support | Supported Platforms |
 | -- | -- | -- | -- | -- | -- | -- |
-| LTSC | [release/1.0](https://github.com/microsoft/msquic/tree/release/1.0) | None | Nov 13 2020 | Jan 5 2021 | Jan 4 2026 | Windows |
-| SAC | [release/2.0](https://github.com/microsoft/msquic/tree/release/2.0) | None | Mar 1 2022 | May 1 2022 | Nov 1 2023 | Windows, Linux |
 | SAC | [release/2.1](https://github.com/microsoft/msquic/tree/release/2.1) | [Server 2022](https://docs.microsoft.com/en-us/windows/release-health/status-windows-server-2022)<br>Windows 11<br>.NET 7 | Aug 5 2022 | Oct 5 2022 | Apr 5 2024 | Windows, Linux |
-| SAC | [release/2.2](https://github.com/microsoft/msquic/tree/release/2.2) | TBD | Apr 18 2023 | June 1 2023 | Dec 1 2024 | Windows, Linux |
+| SAC | [release/2.2](https://github.com/microsoft/msquic/tree/release/2.2) | Windows 11 | Apr 18 2023 | June 1 2023 | Dec 1 2024 | Windows, Linux |
+| SAC | [release/2.3](https://github.com/microsoft/msquic/tree/release/2.3) | TBD | Jan 26 2024 | TBD | TBD | Windows, Linux |
 
 <br>\* Future **Release Dates** are subject to change.
 <br>\** **End of Support** dates do not include possible [extended support](https://docs.microsoft.com/en-us/windows-server/get-started-19/servicing-channels-19#long-term-servicing-channel-ltsc) extensions.
@@ -420,3 +417,60 @@ Official (v1) RFC, v2 (WG-LC) and draft-29 are supported by this release.
 - Block Wildcard Address Client Connections (#3483)
 - Handle sending path challenge on paths that have not resolved route yet (#3545)
 - Fix QUIC_TLS_SECRETS on Server and Client. (#3539)
+
+## MsQuic v2.3 (SAC)
+
+[MsQuic v2.3](https://github.com/microsoft/msquic/releases/tag/v2.3.0) is an official release. Signed Windows binaries and [NuGet packages](https://www.nuget.org/profiles/msquic) are available. Signed Linux package are also available.
+
+Official (v1) RFC, v2 (WG-LC) and draft-29 are supported by this release.
+
+### Breaking Changes
+
+- None
+
+### Official Features
+
+- CPU and Partitioning Improvements (#3641, #3658, #3702, #4009)
+- LB support for SecNetPerf (#3701)
+- Support retrieving the initial destination CID from GetParam (#3755)
+- Datapath Refactoring (#3826, #3827)
+- Migrate Send Logic to 64-bit Time (#3848)
+- Linux TCP support in secnetperf (#3895)
+- Streams Hold References on Connections (#3931)
+- Receive Path Fuzzing (#3896, #3942)
+- Support setting flow control limits for individual stream types (#3948)
+- NMR Support for Kernel Mode (#3961, #4035, #4045)
+- Support Using Streams after Connection Closure (#3938)
+
+### Preview Features
+
+- QEO Prototyping (#3600, #3607, #3630, #3632, #3651, #3790, #3791)
+- Improve XDP Support (#3660, #3693, #3592, #3628, #3770, #3796, #3819, #3967)
+- Add C++ Headers (#3769, #3774, #4063)
+- Reliable Reset Stream Support (#3778, #3817)
+- One-Way Delay Feature Support (#3846)
+- Add 'cancel on loss' send mode to MsQuicStream. (#4037)
+- Event generation to report network statistics (#4071)
+
+### Bug Fixes & Other Changes
+
+- Lots of automation fixes and improvements
+- Shutdown Stream on Send/Start Failure (#3637)
+- Fix transport error code for new alpn negotiation (#3647)
+- Support Delaying Stream ID FC Updates to StreamClose (#3665)
+- Fix worker event handle leak in MsQuic!RegistrationClose (#3694)
+- Minor Changes to Improve Listener Code Coverage (#3757)
+- Disable Segmentation Support on EIO (#3867)
+- Fix leakage of NumaNodeMasks (#3882)
+- Adjust CXPLAT_MAX_IO_BATCH_SIZE arithmetic (#3919)
+- Better Delayed ACK Support (#3933)
+- Fix epoll TCP implementation (#3940)
+- Add XDP support and TCP Syn flooding into the attack tool. (#3950)
+- Refactor Performance Testing (#3953, #4016, #4015)
+- Update TCP testing to Run in Parallel (#4010)
+- Add 'attacking rate' option to the attacking tool. (#4017)
+- Simplify timer operations (#4032)
+- Apply lb settings after lb mode change (#4036)
+- Fix stream blockedtimings stats initialization (#4046)
+- Lots of changes for netperf performance automation
+- Update Schannel Logic to Handler Larger Output Buffers (#4083)

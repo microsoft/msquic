@@ -189,9 +189,6 @@
 
     <Profile Id="Basic.Light.File" Name="Basic" Description="Low Volume MsQuic ETW Events" LoggingMode="File" DetailLevel="Light">
       <Collectors>
-        <SystemCollectorId Value="SC_HighVolume">
-          <SystemProviderId Value="SP_SystemThreadExecution" />
-        </SystemCollectorId>
         <EventCollectorId Value="EC_LowVolume">
           <EventProviders>
             <EventProviderId Value="EP_MsQuicEtw_LowVolume" />
@@ -311,4 +308,12 @@
     <Profile Id="SpinQuicWarnings.Light.Memory" Base="SpinQuicWarnings.Light.File" Name="SpinQuicWarnings" Description="Used for SpinQuic Testing" LoggingMode="Memory" DetailLevel="Light"/>
 
   </Profiles>
+  <TraceMergeProperties>
+    <TraceMergeProperty  Id="MsquicTraceMerge_Default" Name="MsquicTraceMerge_Default">
+    <CustomEvents>
+      <CustomEvent Value="ImageId"/>
+      <CustomEvent Value="BuildInfo"/>
+    </CustomEvents>
+    </TraceMergeProperty>
+  </TraceMergeProperties>
 </WindowsPerformanceRecorder>

@@ -765,7 +765,7 @@ DataPathInitialize(
     int WsaError;
     QUIC_STATUS Status;
     WSADATA WsaData;
-    uint32_t PartitionCount = CxPlatProcMaxCount();
+    uint32_t PartitionCount = CxPlatProcCount();
     uint32_t DatapathLength;
     CXPLAT_DATAPATH* Datapath = NULL;
     BOOLEAN WsaInitialized = FALSE;
@@ -1123,7 +1123,7 @@ SocketCreateUdp(
     QUIC_STATUS Status;
     const BOOLEAN IsServerSocket = Config->RemoteAddress == NULL;
     const BOOLEAN NumPerProcessorSockets = IsServerSocket && Datapath->PartitionCount > 1;
-    const uint16_t SocketCount = NumPerProcessorSockets ? (uint16_t)CxPlatProcMaxCount() : 1;
+    const uint16_t SocketCount = NumPerProcessorSockets ? (uint16_t)CxPlatProcCount() : 1;
     INET_PORT_RESERVATION_INSTANCE PortReservation;
     int Result, Option;
 
@@ -2255,13 +2255,8 @@ SocketDelete(
     CXPLAT_DBG_ASSERT(!Socket->Uninitialized);
     Socket->Uninitialized = TRUE;
 
-    if (Socket->UseTcp) {
-        CxPlatSocketRelease(Socket);
-        return;
-    }
-
     const uint16_t SocketCount =
-        Socket->NumPerProcessorSockets ? (uint16_t)CxPlatProcMaxCount() : 1;
+        Socket->NumPerProcessorSockets ? (uint16_t)CxPlatProcCount() : 1;
     for (uint16_t i = 0; i < SocketCount; ++i) {
         CxPlatSocketContextUninitialize(&Socket->PerProcSockets[i]);
     }
@@ -4304,6 +4299,76 @@ CxPlatDataPathStartRioSends(
             &SendData->LocalAddress,
             SendData);
     }
+}
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+QUIC_STATUS
+CxPlatSocketGetTcpStatistics(
+    _In_ CXPLAT_SOCKET* Socket,
+    _Out_ CXPLAT_TCP_STATISTICS* Statistics
+    )
+{
+#if (NTDDI_VERSION >= NTDDI_WIN10_RS5)
+    CXPLAT_SOCKET_PROC* SocketProc = &Socket->PerProcSockets[0];
+    DWORD Version = 1;
+    TCP_INFO_v1 Info = { 0 };
+    DWORD InfoSize = sizeof(Info);
+    int Result =
+        WSAIoctl(
+            SocketProc->Socket,
+            SIO_TCP_INFO,
+            &Version,
+            sizeof(Version),
+            &Info,
+            InfoSize,
+            &InfoSize,
+            NULL,
+            NULL);
+    if (Result == SOCKET_ERROR) { // TODO - Support fallback to v0?
+        int WsaError = WSAGetLastError();
+        QuicTraceEvent(
+            DatapathErrorStatus,
+            "[data][%p] ERROR, %u, %s.",
+            SocketProc->Parent,
+            WsaError,
+            "WSAIoctl TCP_INFO_v1");
+        return HRESULT_FROM_WIN32(WsaError);
+    }
+
+    Statistics->Mss = Info.Mss;
+    Statistics->ConnectionTimeMs = Info.ConnectionTimeMs;
+    Statistics->TimestampsEnabled = Info.TimestampsEnabled;
+    Statistics->RttUs = Info.RttUs;
+    Statistics->MinRttUs = Info.MinRttUs;
+    Statistics->BytesInFlight = Info.BytesInFlight;
+    Statistics->Cwnd = Info.Cwnd;
+    Statistics->SndWnd = Info.SndWnd;
+    Statistics->RcvWnd = Info.RcvWnd;
+    Statistics->RcvBuf = Info.RcvBuf;
+    Statistics->BytesOut = Info.BytesOut;
+    Statistics->BytesIn = Info.BytesIn;
+    Statistics->BytesReordered = Info.BytesReordered;
+    Statistics->BytesRetrans = Info.BytesRetrans;
+    Statistics->FastRetrans = Info.FastRetrans;
+    Statistics->DupAcksIn = Info.DupAcksIn;
+    Statistics->TimeoutEpisodes = Info.TimeoutEpisodes;
+    Statistics->SynRetrans = Info.SynRetrans;
+    Statistics->SndLimTransRwin = Info.SndLimTransRwin;
+    Statistics->SndLimTimeRwin = Info.SndLimTimeRwin;
+    Statistics->SndLimTransCwnd = Info.SndLimTransCwnd;
+    Statistics->SndLimTimeCwnd = Info.SndLimTimeCwnd;
+    Statistics->SndLimTransSnd = Info.SndLimTransSnd;
+    Statistics->SndLimTimeSnd = Info.SndLimTimeSnd;
+    Statistics->SndLimBytesRwin = Info.SndLimBytesRwin;
+    Statistics->SndLimBytesCwnd = Info.SndLimBytesCwnd;
+    Statistics->SndLimBytesSnd = Info.SndLimBytesSnd;
+
+    return QUIC_STATUS_SUCCESS;
+#else
+    UNREFERENCED_PARAMETER(Socket);
+    UNREFERENCED_PARAMETER(Statistics);
+    return QUIC_STATUS_NOT_SUPPORTED;
+#endif
 }
 
 void

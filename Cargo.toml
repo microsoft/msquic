@@ -1,6 +1,6 @@
 [package]
 name = "msquic"
-version = "2.3.0-beta"
+version = "2.4.0-beta"
 edition = "2018"
 authors = ["Microsoft"]
 description = "Microsoft implementation of the IETF QUIC protocol"
@@ -32,6 +32,7 @@ include = [
     "/submodules/openssl/ssl",
     "/submodules/openssl/util",
     "/submodules/openssl/VMS",
+    "/submodules/xdp-for-windows/published/external",
     "/scripts/build.rs",
     "/src/*.rs",
     "/src/bin",
@@ -40,7 +41,6 @@ include = [
     "/src/generated",
     "/src/manifest",
     "/src/platform",
-    "/artifacts/xdp/include",
     "/THIRD-PARTY-NOTICES",
 ]
 

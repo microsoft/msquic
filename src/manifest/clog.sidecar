@@ -5527,6 +5527,42 @@
       ],
       "macroName": "QuicTraceLogConnVerbose"
     },
+    "IndicateDataAcked": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] Indicating QUIC_CONNECTION_EVENT_NETWORK_STATISTICS [BytesInFlight=%u,PostedBytes=%llu,IdealBytes=%llu,SmoothedRTT=%llu,CongestionWindow=%u,Bandwidth=%llu]",
+      "UniqueId": "IndicateDataAcked",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        },
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg3"
+        },
+        {
+          "DefinationEncoding": "llu",
+          "MacroVariableName": "arg4"
+        },
+        {
+          "DefinationEncoding": "llu",
+          "MacroVariableName": "arg5"
+        },
+        {
+          "DefinationEncoding": "llu",
+          "MacroVariableName": "arg6"
+        },
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg7"
+        },
+        {
+          "DefinationEncoding": "llu",
+          "MacroVariableName": "arg8"
+        }
+      ],
+      "macroName": "QuicTraceLogConnVerbose"
+    },
     "IndicateDatagramReceived": {
       "ModuleProperites": {},
       "TraceString": "[conn][%p] Indicating DATAGRAM_RECEIVED [len=%hu]",
@@ -5905,7 +5941,7 @@
     },
     "IndicateStreamShutdownComplete": {
       "ModuleProperites": {},
-      "TraceString": "[strm][%p] Indicating QUIC_STREAM_EVENT_SHUTDOWN_COMPLETE [ConnectionShutdown=%hhu, ConnectionShutdownByApp=%hhu, ConnectionClosedRemotely=%hhu, ConnectionErrorCode=0x%llx, ConnectionCloseStatus=0x%x]",
+      "TraceString": "[strm][%p] Indicating QUIC_STREAM_EVENT_SHUTDOWN_COMPLETE [Shutdown=%hhu, ShutdownByApp=%hhu, ClosedRemotely=%hhu, ErrorCode=0x%llx, CloseStatus=0x%x]",
       "UniqueId": "IndicateStreamShutdownComplete",
       "splitArgs": [
         {
@@ -8577,6 +8613,58 @@
       ],
       "macroName": "QuicTraceLogInfo"
     },
+    "ProviderAttachClient": {
+      "ModuleProperites": {},
+      "TraceString": "[ nmr][%p] Client attached Ver %hu Size %hu Number %u ModuleID { %x-%x-%x-%llx }",
+      "UniqueId": "ProviderAttachClient",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "hu",
+          "MacroVariableName": "arg3"
+        },
+        {
+          "DefinationEncoding": "hu",
+          "MacroVariableName": "arg4"
+        },
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg5"
+        },
+        {
+          "DefinationEncoding": "x",
+          "MacroVariableName": "arg6"
+        },
+        {
+          "DefinationEncoding": "x",
+          "MacroVariableName": "arg7"
+        },
+        {
+          "DefinationEncoding": "x",
+          "MacroVariableName": "arg8"
+        },
+        {
+          "DefinationEncoding": "llx",
+          "MacroVariableName": "arg9"
+        }
+      ],
+      "macroName": "QuicTraceLogInfo"
+    },
+    "ProviderDetachClient": {
+      "ModuleProperites": {},
+      "TraceString": "[ nmr][%p] Client detached",
+      "UniqueId": "ProviderDetachClient",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceLogInfo"
+    },
     "QueueDatagrams": {
       "ModuleProperites": {},
       "TraceString": "[conn][%p] Queuing %u UDP datagrams",
@@ -9218,6 +9306,18 @@
         {
           "DefinationEncoding": "u",
           "MacroVariableName": "arg3"
+        }
+      ],
+      "macroName": "QuicTraceLogConnInfo"
+    },
+    "SchannelOutBufferTooSmall": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] Increasing TLS output buffer size",
+      "UniqueId": "SchannelOutBufferTooSmall",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
         }
       ],
       "macroName": "QuicTraceLogConnInfo"
@@ -10362,6 +10462,18 @@
       "ModuleProperites": {},
       "TraceString": "[sett] HyStartEnabled         = %hhu",
       "UniqueId": "SettingHyStartEnabled",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "hhu",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceLogVerbose"
+    },
+    "SettingNetStatsEventEnabled": {
+      "ModuleProperites": {},
+      "TraceString": "[sett] NetStatsEventEnabled   = %hhu",
+      "UniqueId": "SettingNetStatsEventEnabled",
       "splitArgs": [
         {
           "DefinationEncoding": "hhu",
@@ -13960,6 +14072,11 @@
         "EncodingString": "[conn][%p] Indicating QUIC_CONNECTION_EVENT_SHUTDOWN_COMPLETE"
       },
       {
+        "UniquenessHash": "6857b60e-1d57-db79-b415-c1d06ff89106",
+        "TraceID": "IndicateDataAcked",
+        "EncodingString": "[conn][%p] Indicating QUIC_CONNECTION_EVENT_NETWORK_STATISTICS [BytesInFlight=%u,PostedBytes=%llu,IdealBytes=%llu,SmoothedRTT=%llu,CongestionWindow=%u,Bandwidth=%llu]"
+      },
+      {
         "UniquenessHash": "6cac678c-2cc7-84af-5059-9622332c579b",
         "TraceID": "IndicateDatagramReceived",
         "EncodingString": "[conn][%p] Indicating DATAGRAM_RECEIVED [len=%hu]"
@@ -14075,9 +14192,9 @@
         "EncodingString": "[conn][%p] Indicating QUIC_CONNECTION_EVENT_STREAMS_AVAILABLE [bi=%hu uni=%hu]"
       },
       {
-        "UniquenessHash": "8e93c5ca-e390-1474-788f-e2ea6ae4d674",
+        "UniquenessHash": "c7899737-8445-73b7-9221-5db9217dbdce",
         "TraceID": "IndicateStreamShutdownComplete",
-        "EncodingString": "[strm][%p] Indicating QUIC_STREAM_EVENT_SHUTDOWN_COMPLETE [ConnectionShutdown=%hhu, ConnectionShutdownByApp=%hhu, ConnectionClosedRemotely=%hhu, ConnectionErrorCode=0x%llx, ConnectionCloseStatus=0x%x]"
+        "EncodingString": "[strm][%p] Indicating QUIC_STREAM_EVENT_SHUTDOWN_COMPLETE [Shutdown=%hhu, ShutdownByApp=%hhu, ClosedRemotely=%hhu, ErrorCode=0x%llx, CloseStatus=0x%x]"
       },
       {
         "UniquenessHash": "e98e6411-dfab-d3a6-e7bd-d1782209846d",
@@ -14960,6 +15077,16 @@
         "EncodingString": "[ dll] Proc[%u] Group[%hu] Index[%u] Active=%hhu"
       },
       {
+        "UniquenessHash": "6509226e-b945-543f-bf07-0147bcb93ca5",
+        "TraceID": "ProviderAttachClient",
+        "EncodingString": "[ nmr][%p] Client attached Ver %hu Size %hu Number %u ModuleID { %x-%x-%x-%llx }"
+      },
+      {
+        "UniquenessHash": "6b3701bb-e123-0217-1320-5d55303df4c4",
+        "TraceID": "ProviderDetachClient",
+        "EncodingString": "[ nmr][%p] Client detached"
+      },
+      {
         "UniquenessHash": "18ef147d-5376-d7f2-f624-3b27af96dd05",
         "TraceID": "QueueDatagrams",
         "EncodingString": "[conn][%p] Queuing %u UDP datagrams"
@@ -15163,6 +15290,11 @@
         "UniquenessHash": "1197fc0e-03e3-58cf-6637-f912c96fa67b",
         "TraceID": "SchannelMissingData",
         "EncodingString": "[conn][%p] TLS message missing %u bytes of data"
+      },
+      {
+        "UniquenessHash": "71eb6726-56e9-ad9d-83d2-930ce22a51f3",
+        "TraceID": "SchannelOutBufferTooSmall",
+        "EncodingString": "[conn][%p] Increasing TLS output buffer size"
       },
       {
         "UniquenessHash": "183e91b7-6ad7-7a8b-0d77-94004bde6757",
@@ -15558,6 +15690,11 @@
         "UniquenessHash": "3204077b-15dd-eacb-1594-51d66d8db668",
         "TraceID": "SettingHyStartEnabled",
         "EncodingString": "[sett] HyStartEnabled         = %hhu"
+      },
+      {
+        "UniquenessHash": "b2b7c2a6-35c7-4b14-47f2-dca7aad8817a",
+        "TraceID": "SettingNetStatsEventEnabled",
+        "EncodingString": "[sett] NetStatsEventEnabled   = %hhu"
       },
       {
         "UniquenessHash": "9ede3ef3-06f4-9d8a-7335-f95b1c93cfa9",

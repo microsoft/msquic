@@ -110,6 +110,7 @@ QuicTimerWheelUninitialize(
                     StillInTimerWheel,
                     Connection,
                     "Still in timer wheel! Connection was likely leaked!");
+                CXPLAT_DBG_ASSERT(!Connection);
                 Entry = Entry->Flink;
             }
             CXPLAT_TEL_ASSERT(CxPlatListIsEmpty(&TimerWheel->Slots[i]));
@@ -173,7 +174,7 @@ QuicTimerWheelResize(
                     CxPlatListRemoveHead(&OldSlots[i]),
                     QUIC_CONNECTION,
                     TimerLink);
-            uint64_t ExpirationTime = QuicConnGetNextExpirationTime(Connection);
+            uint64_t ExpirationTime = Connection->EarliestExpirationTime;
             CXPLAT_DBG_ASSERT(TimerWheel->SlotCount != 0);
             uint32_t SlotIndex = TIME_TO_SLOT_INDEX(TimerWheel, ExpirationTime);
 
@@ -188,7 +189,7 @@ QuicTimerWheelResize(
             while (Entry != ListHead) {
                 QUIC_CONNECTION* ConnectionEntry =
                     CXPLAT_CONTAINING_RECORD(Entry, QUIC_CONNECTION, TimerLink);
-                uint64_t EntryExpirationTime = QuicConnGetNextExpirationTime(ConnectionEntry);
+                uint64_t EntryExpirationTime = ConnectionEntry->EarliestExpirationTime;
 
                 if (ExpirationTime > EntryExpirationTime) {
                     break;
@@ -230,7 +231,7 @@ QuicTimerWheelUpdate(
                     TimerWheel->Slots[i].Flink,
                     QUIC_CONNECTION,
                     TimerLink);
-            uint64_t EntryExpirationTime = QuicConnGetNextExpirationTime(ConnectionEntry);
+            uint64_t EntryExpirationTime = ConnectionEntry->EarliestExpirationTime;
             if (EntryExpirationTime < TimerWheel->NextExpirationTime) {
                 TimerWheel->NextExpirationTime = EntryExpirationTime;
                 TimerWheel->NextConnection = ConnectionEntry;
@@ -277,6 +278,8 @@ QuicTimerWheelRemoveConnection(
         if (Connection == TimerWheel->NextConnection) {
             QuicTimerWheelUpdate(TimerWheel);
         }
+
+        QuicConnRelease(Connection, QUIC_CONN_REF_TIMER_WHEEL);
     }
 }
 
@@ -287,7 +290,7 @@ QuicTimerWheelUpdateConnection(
     _Inout_ QUIC_CONNECTION* Connection
     )
 {
-    uint64_t ExpirationTime = QuicConnGetNextExpirationTime(Connection);
+    uint64_t ExpirationTime = Connection->EarliestExpirationTime;
 
     if (Connection->TimerLink.Flink != NULL) {
         //
@@ -295,96 +298,100 @@ QuicTimerWheelUpdateConnection(
         //
         CxPlatListEntryRemove(&Connection->TimerLink);
 
-        if (ExpirationTime == UINT64_MAX) {
-            TimerWheel->ConnectionCount--;
-        }
+        if (ExpirationTime == UINT64_MAX || Connection->State.ShutdownComplete) {
+            //
+            // No more timers left, go ahead and invalidate its link.
+            //
+            Connection->TimerLink.Flink = NULL;
+            QuicTraceLogVerbose(
+                TimerWheelRemoveConnection,
+                "[time][%p] Removing Connection %p.",
+                TimerWheel,
+                Connection);
 
-    } else {
-
-        //
-        // It wasn't in the wheel already, so we must be adding it to the
-        // wheel.
-        //
-        if (ExpirationTime != UINT64_MAX) {
-            TimerWheel->ConnectionCount++;
-        }
-    }
-
-    if (ExpirationTime == UINT64_MAX) {
-        //
-        // No more timers left, go ahead and invalidate its link.
-        //
-        Connection->TimerLink.Flink = NULL;
-        QuicTraceLogVerbose(
-            TimerWheelRemoveConnection,
-            "[time][%p] Removing Connection %p.",
-            TimerWheel,
-            Connection);
-
-        if (Connection == TimerWheel->NextConnection) {
-            QuicTimerWheelUpdate(TimerWheel);
-        }
-
-    } else {
-
-        CXPLAT_DBG_ASSERT(TimerWheel->SlotCount != 0);
-        uint32_t SlotIndex = TIME_TO_SLOT_INDEX(TimerWheel, ExpirationTime);
-
-        //
-        // Insert the connection into the slot, in the correct order. We search
-        // the slot's list in reverse order, with the assumption that most new
-        // timers will on average be later than existing ones.
-        //
-        CXPLAT_LIST_ENTRY* ListHead = &TimerWheel->Slots[SlotIndex];
-        CXPLAT_LIST_ENTRY* Entry = ListHead->Blink;
-
-        while (Entry != ListHead) {
-            QUIC_CONNECTION* ConnectionEntry =
-                CXPLAT_CONTAINING_RECORD(Entry, QUIC_CONNECTION, TimerLink);
-            uint64_t EntryExpirationTime = QuicConnGetNextExpirationTime(ConnectionEntry);
-
-            if (ExpirationTime > EntryExpirationTime) {
-                break;
+            if (Connection == TimerWheel->NextConnection) {
+                QuicTimerWheelUpdate(TimerWheel);
             }
 
-            Entry = Entry->Blink;
+            QuicConnRelease(Connection, QUIC_CONN_REF_TIMER_WHEEL);
+            TimerWheel->ConnectionCount--;
+            return; // Nothing else to do.
         }
 
+    } else if (ExpirationTime != UINT64_MAX && !Connection->State.ShutdownComplete) {
         //
-        // Insert after the current entry.
+        // It wasn't in the wheel already, so we must be adding it to the wheel.
         //
-        CxPlatListInsertHead(Entry, &Connection->TimerLink);
+        TimerWheel->ConnectionCount++;
+        QuicConnAddRef(Connection, QUIC_CONN_REF_TIMER_WHEEL);
 
+    } else {
+        return; // Ignore
+    }
+
+    //
+    // We are adding/updating the connection in the timer wheel.
+    //
+
+    CXPLAT_DBG_ASSERT(ExpirationTime != UINT64_MAX);
+    CXPLAT_DBG_ASSERT(!Connection->State.ShutdownComplete);
+    CXPLAT_DBG_ASSERT(TimerWheel->SlotCount != 0);
+    uint32_t SlotIndex = TIME_TO_SLOT_INDEX(TimerWheel, ExpirationTime);
+
+    //
+    // Insert the connection into the slot, in the correct order. We search
+    // the slot's list in reverse order, with the assumption that most new
+    // timers will on average be later than existing ones.
+    //
+    CXPLAT_LIST_ENTRY* ListHead = &TimerWheel->Slots[SlotIndex];
+    CXPLAT_LIST_ENTRY* Entry = ListHead->Blink;
+
+    while (Entry != ListHead) {
+        QUIC_CONNECTION* ConnectionEntry =
+            CXPLAT_CONTAINING_RECORD(Entry, QUIC_CONNECTION, TimerLink);
+        uint64_t EntryExpirationTime = ConnectionEntry->EarliestExpirationTime;
+
+        if (ExpirationTime > EntryExpirationTime) {
+            break;
+        }
+
+        Entry = Entry->Blink;
+    }
+
+    //
+    // Insert after the current entry.
+    //
+    CxPlatListInsertHead(Entry, &Connection->TimerLink);
+
+    QuicTraceLogVerbose(
+        TimerWheelUpdateConnection,
+        "[time][%p] Updating Connection %p.",
+        TimerWheel,
+        Connection);
+
+    //
+    // Make sure the next expiration time/connection is still correct.
+    //
+    if (ExpirationTime < TimerWheel->NextExpirationTime) {
+        TimerWheel->NextExpirationTime = ExpirationTime;
+        TimerWheel->NextConnection = Connection;
         QuicTraceLogVerbose(
-            TimerWheelUpdateConnection,
-            "[time][%p] Updating Connection %p.",
+            TimerWheelNextExpiration,
+            "[time][%p] Next Expiration = {%llu, %p}.",
             TimerWheel,
+            ExpirationTime,
             Connection);
+    } else if (Connection == TimerWheel->NextConnection) {
+        QuicTimerWheelUpdate(TimerWheel);
+    }
 
-        //
-        // Make sure the next expiration time/connection is still correct.
-        //
-        if (ExpirationTime < TimerWheel->NextExpirationTime) {
-            TimerWheel->NextExpirationTime = ExpirationTime;
-            TimerWheel->NextConnection = Connection;
-            QuicTraceLogVerbose(
-                TimerWheelNextExpiration,
-                "[time][%p] Next Expiration = {%llu, %p}.",
-                TimerWheel,
-                ExpirationTime,
-                Connection);
-        } else if (Connection == TimerWheel->NextConnection) {
-            QuicTimerWheelUpdate(TimerWheel);
-        }
-
-        //
-        // Resize the timer wheel if we have too many connections for the
-        // current size.
-        //
-        if (TimerWheel->ConnectionCount >
-            TimerWheel->SlotCount * QUIC_TIMER_WHEEL_MAX_LOAD_FACTOR) {
-            QuicTimerWheelResize(TimerWheel);
-        }
+    //
+    // Resize the timer wheel if we have too many connections for the
+    // current size.
+    //
+    if (TimerWheel->ConnectionCount >
+        TimerWheel->SlotCount * QUIC_TIMER_WHEEL_MAX_LOAD_FACTOR) {
+        QuicTimerWheelResize(TimerWheel);
     }
 }
 
@@ -400,20 +407,29 @@ QuicTimerWheelGetExpired(
     // Iterate through every slot to find all the connections that now have
     // expired timers.
     //
+    BOOLEAN NeedsUpdate = FALSE;
     for (uint32_t i = 0; i < TimerWheel->SlotCount; ++i) {
         CXPLAT_LIST_ENTRY* ListHead = &TimerWheel->Slots[i];
         CXPLAT_LIST_ENTRY* Entry = ListHead->Flink;
         while (Entry != ListHead) {
             QUIC_CONNECTION* ConnectionEntry =
                 CXPLAT_CONTAINING_RECORD(Entry, QUIC_CONNECTION, TimerLink);
-            uint64_t EntryExpirationTime = QuicConnGetNextExpirationTime(ConnectionEntry);
+            uint64_t EntryExpirationTime = ConnectionEntry->EarliestExpirationTime;
             if (EntryExpirationTime > TimeNow) {
                 break;
             }
             Entry = Entry->Flink;
             CxPlatListEntryRemove(&ConnectionEntry->TimerLink);
             CxPlatListInsertTail(OutputListHead, &ConnectionEntry->TimerLink);
+            if (ConnectionEntry == TimerWheel->NextConnection) {
+                NeedsUpdate = TRUE;
+            }
+            QuicConnAddRef(ConnectionEntry, QUIC_CONN_REF_WORKER);
+            QuicConnRelease(ConnectionEntry, QUIC_CONN_REF_TIMER_WHEEL);
             TimerWheel->ConnectionCount--;
         }
+    }
+    if (NeedsUpdate) {
+        QuicTimerWheelUpdate(TimerWheel);
     }
 }

@@ -25,6 +25,7 @@
   <ItemGroup>
     <ClCompile Include="driver.c" />
     <ClCompile Include="msquicpcw.c" />
+    <ClCompile Include="nmrprovider.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="resource.h" />
@@ -108,12 +109,12 @@
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)'=='Debug'">
     <ClCompile>
-      <PreprocessorDefinitions>QUIC_EVENTS_MANIFEST_ETW;QUIC_LOGS_MANIFEST_ETW;QUIC_TELEMETRY_ASSERTS=1;SECURITY_KERNEL;SECURITY_WIN32;_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>QUIC_TEST_NMR_PROVIDER;QUIC_EVENTS_MANIFEST_ETW;QUIC_LOGS_MANIFEST_ETW;QUIC_TELEMETRY_ASSERTS=1;SECURITY_KERNEL;SECURITY_WIN32;_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)'=='Release'">
     <ClCompile>
-      <PreprocessorDefinitions>QUIC_EVENTS_MANIFEST_ETW;QUIC_LOGS_MANIFEST_ETW;QUIC_TELEMETRY_ASSERTS=1;SECURITY_KERNEL;SECURITY_WIN32;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>QUIC_TEST_NMR_PROVIDER;QUIC_EVENTS_MANIFEST_ETW;QUIC_LOGS_MANIFEST_ETW;QUIC_TELEMETRY_ASSERTS=1;SECURITY_KERNEL;SECURITY_WIN32;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">

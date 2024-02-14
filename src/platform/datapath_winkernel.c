@@ -827,7 +827,7 @@ CxPlatDataPathInitialize(
 
     DatapathLength =
         sizeof(CXPLAT_DATAPATH) +
-        CxPlatProcMaxCount() * sizeof(CXPLAT_DATAPATH_PROC_CONTEXT);
+        CxPlatProcCount() * sizeof(CXPLAT_DATAPATH_PROC_CONTEXT);
 
     Datapath = CXPLAT_ALLOC_NONPAGED(DatapathLength, QUIC_POOL_DATAPATH);
     if (Datapath == NULL) {
@@ -845,7 +845,7 @@ CxPlatDataPathInitialize(
         Datapath->UdpHandlers = *UdpCallbacks;
     }
     Datapath->ClientRecvDataLength = ClientRecvDataLength;
-    Datapath->ProcCount = (uint32_t)CxPlatProcMaxCount();
+    Datapath->ProcCount = (uint32_t)CxPlatProcCount();
     Datapath->WskDispatch.WskReceiveFromEvent = CxPlatDataPathSocketReceive;
     Datapath->DatagramStride =
         ALIGN_UP(
@@ -1400,7 +1400,7 @@ CxPlatSocketCreateUdp(
 
     BindingSize =
         sizeof(CXPLAT_SOCKET) +
-        CxPlatProcMaxCount() * sizeof(CXPLAT_RUNDOWN_REF);
+        CxPlatProcCount() * sizeof(CXPLAT_RUNDOWN_REF);
 
     Binding = (CXPLAT_SOCKET*)CXPLAT_ALLOC_NONPAGED(BindingSize, QUIC_POOL_SOCKET);
     if (Binding == NULL) {
@@ -1436,7 +1436,7 @@ CxPlatSocketCreateUdp(
         Binding->LocalAddress.si_family = QUIC_ADDRESS_FAMILY_INET6;
     }
     Binding->Mtu = CXPLAT_MAX_MTU;
-    for (uint32_t i = 0; i < CxPlatProcMaxCount(); ++i) {
+    for (uint32_t i = 0; i < CxPlatProcCount(); ++i) {
         CxPlatRundownInitialize(&Binding->Rundown[i]);
     }
     if (Config->Flags & CXPLAT_SOCKET_FLAG_PCP) {
@@ -1905,7 +1905,7 @@ CxPlatSocketDeleteComplete(
     )
 {
     IoCleanupIrp(&Binding->Irp);
-    for (uint32_t i = 0; i < CxPlatProcMaxCount(); ++i) {
+    for (uint32_t i = 0; i < CxPlatProcCount(); ++i) {
         CxPlatRundownUninitialize(&Binding->Rundown[i]);
     }
     CXPLAT_FREE(Binding, QUIC_POOL_SOCKET);
@@ -1964,7 +1964,7 @@ CxPlatSocketDelete(
 
     if (Binding->Socket != NULL) {
 
-        for (uint32_t i = 0; i < CxPlatProcMaxCount(); ++i) {
+        for (uint32_t i = 0; i < CxPlatProcCount(); ++i) {
             CxPlatRundownReleaseAndWait(&Binding->Rundown[i]);
         }
 
@@ -3112,6 +3112,18 @@ CxPlatSocketSend(
     }
 
     return STATUS_SUCCESS;
+}
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+QUIC_STATUS
+CxPlatSocketGetTcpStatistics(
+    _In_ CXPLAT_SOCKET* Socket,
+    _Out_ CXPLAT_TCP_STATISTICS* Statistics
+    )
+{
+    UNREFERENCED_PARAMETER(Socket);
+    UNREFERENCED_PARAMETER(Statistics);
+    return QUIC_STATUS_NOT_SUPPORTED;
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)

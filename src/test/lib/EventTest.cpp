@@ -152,15 +152,16 @@ struct ConnValidator {
     HQUIC Handle;
     HQUIC Configuration;
     ConnEventValidator** ExpectedEvents;
+    ConnEventValidator** EventsExpectedAtleastOnce;
     uint32_t CurrentEvent;
     CxPlatEvent Complete;
     CxPlatEvent HandshakeComplete;
     ConnValidator(HQUIC Configuration = nullptr) :
         Handle(nullptr), Configuration(Configuration),
-        ExpectedEvents(nullptr), CurrentEvent(0), Complete(true) { }
+        ExpectedEvents(nullptr), EventsExpectedAtleastOnce(nullptr), CurrentEvent(0), Complete(true) { }
     ConnValidator(ConnEventValidator** expectedEvents, HQUIC Configuration = nullptr) :
         Handle(nullptr), Configuration(Configuration),
-        ExpectedEvents(expectedEvents), CurrentEvent(0), Complete(true) { }
+        ExpectedEvents(expectedEvents), EventsExpectedAtleastOnce(nullptr), CurrentEvent(0), Complete(true) { }
     ~ConnValidator() {
         if (Handle) {
             MsQuic->ConnectionClose(Handle);
@@ -172,9 +173,18 @@ struct ConnValidator {
             }
             delete [] ExpectedEvents;
         }
+        if (EventsExpectedAtleastOnce) {
+            for (uint32_t i = 0; EventsExpectedAtleastOnce[i] != nullptr; ++i) {
+                delete EventsExpectedAtleastOnce[i];
+            }
+            delete [] EventsExpectedAtleastOnce;
+        }
     }
     void SetExpectedEvents(ConnEventValidator** expectedEvents) {
         ExpectedEvents = expectedEvents;
+    }
+    void SetEventsExpectedAtleastOnce(ConnEventValidator** events) {
+        EventsExpectedAtleastOnce = events;
     }
     void ValidateEvent(_Inout_ QUIC_CONNECTION_EVENT* Event) {
         if (Event->Type == QUIC_CONNECTION_EVENT_IDEAL_PROCESSOR_CHANGED) {
@@ -184,6 +194,17 @@ struct ConnValidator {
             // ignore them and validate all other events.
             //
             return;
+        }
+
+        if (EventsExpectedAtleastOnce != nullptr) {
+            uint8_t Count = 0;
+            while (EventsExpectedAtleastOnce[Count] != nullptr) {
+                if (EventsExpectedAtleastOnce[Count]->Type == Event->Type) {
+                    EventsExpectedAtleastOnce[Count]->Success = true;
+                    return; 
+                }
+                Count++;
+            }
         }
 
         if (Event->Type == QUIC_CONNECTION_EVENT_CONNECTED) {
@@ -202,6 +223,19 @@ struct ConnValidator {
         }
     }
     bool Success() const { return ExpectedEvents[CurrentEvent] == nullptr; }
+    void CheckEventsExpectedAtleastOnce() const {
+       if (EventsExpectedAtleastOnce != nullptr) {
+           uint8_t Count = 0;
+           while (EventsExpectedAtleastOnce[Count] != nullptr) {
+               if (EventsExpectedAtleastOnce[Count]->Success == false) {
+                   TEST_FAILURE("QuicTestValidateNetStatsEvent1: Expected event did not occur. Event type %u  was expected to happen on server at least once", EventsExpectedAtleastOnce[Count]->Type);
+                   return;
+               }
+               Count++;
+           }
+           return;
+       }
+    }
 };
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -556,6 +590,193 @@ void QuicTestValidateConnectionEvents(uint32_t Test)
 
     } // Listener Scope
 }
+
+#if defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
+void
+QuicTestValidateNetStatsConnEvent1(
+    _In_ MsQuicRegistration& Registration,
+    _In_ MsQuicListener& Listener,
+    _In_ QuicAddr& ServerLocalAddr
+    )
+{
+    TestScopeLogger ScopeLogger(__FUNCTION__);
+
+    MsQuicSettings Settings;
+    Settings.SetMinimumMtu(1280).SetMaximumMtu(1280);
+    Settings.SetCongestionControlAlgorithm(QUIC_CONGESTION_CONTROL_ALGORITHM_BBR);
+    Settings.SetNetStatsEventEnabled(true);
+    MsQuicConfiguration ServerConfiguration(Registration, "MsQuicTest", Settings, ServerSelfSignedCredConfig);
+    TEST_TRUE(ServerConfiguration.IsValid());
+
+    MsQuicConfiguration ClientConfiguration(Registration, "MsQuicTest", Settings, MsQuicCredentialConfig());
+    TEST_TRUE(ClientConfiguration.IsValid());
+
+    ConnValidator Client(
+        new(std::nothrow) ConnEventValidator* [4] {
+            new(std::nothrow) ConnEventValidator(QUIC_CONNECTION_EVENT_DATAGRAM_STATE_CHANGED),
+            new(std::nothrow) ConnEventValidator(QUIC_CONNECTION_EVENT_CONNECTED, QUIC_EVENT_ACTION_SHUTDOWN_CONNECTION),
+            new(std::nothrow) ConnEventValidator(QUIC_CONNECTION_EVENT_SHUTDOWN_COMPLETE),
+            nullptr
+        }
+    );
+    ConnValidator Server(
+        new(std::nothrow) ConnEventValidator* [4] {
+            new(std::nothrow) ConnEventValidator(QUIC_CONNECTION_EVENT_CONNECTED, 0, true),
+            new(std::nothrow) ConnEventValidator(QUIC_CONNECTION_EVENT_SHUTDOWN_INITIATED_BY_PEER),
+            new(std::nothrow) ConnEventValidator(QUIC_CONNECTION_EVENT_SHUTDOWN_COMPLETE),
+            nullptr
+        },
+        ServerConfiguration
+    );
+
+    Client.SetEventsExpectedAtleastOnce(
+        new(std::nothrow) ConnEventValidator* [2] {
+            new(std::nothrow) ConnEventValidator(QUIC_CONNECTION_EVENT_NETWORK_STATISTICS),
+            nullptr
+        }
+    );
+
+    Server.SetEventsExpectedAtleastOnce(
+        new(std::nothrow) ConnEventValidator* [2] {
+            new(std::nothrow) ConnEventValidator(QUIC_CONNECTION_EVENT_NETWORK_STATISTICS),
+            nullptr
+        }
+    );
+
+    Listener.Context = &Server;
+
+    TEST_QUIC_SUCCEEDED(
+        MsQuic->ConnectionOpen(
+            Registration,
+            ConnValidatorCallback,
+            &Client,
+            &Client.Handle));
+    TEST_QUIC_SUCCEEDED(
+        MsQuic->ConnectionStart(
+            Client.Handle,
+            ClientConfiguration,
+            QuicAddrGetFamily(&ServerLocalAddr.SockAddr),
+            QUIC_TEST_LOOPBACK_FOR_AF(
+                QuicAddrGetFamily(&ServerLocalAddr.SockAddr)),
+            ServerLocalAddr.GetPort()));
+
+    TEST_TRUE(Client.Complete.WaitTimeout(2000));
+    TEST_TRUE(Server.Complete.WaitTimeout(1000));
+
+    Server.CheckEventsExpectedAtleastOnce();
+    Client.CheckEventsExpectedAtleastOnce();
+}
+
+void
+QuicTestValidateNetStatsConnEvent2(
+    _In_ MsQuicRegistration& Registration,
+    _In_ MsQuicListener& Listener,
+    _In_ QuicAddr& ServerLocalAddr
+    )
+{
+    TestScopeLogger ScopeLogger(__FUNCTION__);
+
+    MsQuicSettings Settings;
+    Settings.SetMinimumMtu(1280).SetMaximumMtu(1280);
+    Settings.SetCongestionControlAlgorithm(QUIC_CONGESTION_CONTROL_ALGORITHM_CUBIC);
+    Settings.SetNetStatsEventEnabled(true);
+    MsQuicConfiguration ServerConfiguration(Registration, "MsQuicTest", Settings, ServerSelfSignedCredConfig);
+    TEST_TRUE(ServerConfiguration.IsValid());
+
+    MsQuicConfiguration ClientConfiguration(Registration, "MsQuicTest", Settings, MsQuicCredentialConfig());
+    TEST_TRUE(ClientConfiguration.IsValid());
+
+    ConnValidator Client(
+        new(std::nothrow) ConnEventValidator* [4] {
+            new(std::nothrow) ConnEventValidator(QUIC_CONNECTION_EVENT_DATAGRAM_STATE_CHANGED),
+            new(std::nothrow) ConnEventValidator(QUIC_CONNECTION_EVENT_CONNECTED, QUIC_EVENT_ACTION_SHUTDOWN_CONNECTION),
+            new(std::nothrow) ConnEventValidator(QUIC_CONNECTION_EVENT_SHUTDOWN_COMPLETE),
+            nullptr
+        }
+    );
+    ConnValidator Server(
+        new(std::nothrow) ConnEventValidator* [4] {
+            new(std::nothrow) ConnEventValidator(QUIC_CONNECTION_EVENT_CONNECTED, 0, true),
+            new(std::nothrow) ConnEventValidator(QUIC_CONNECTION_EVENT_SHUTDOWN_INITIATED_BY_PEER),
+            new(std::nothrow) ConnEventValidator(QUIC_CONNECTION_EVENT_SHUTDOWN_COMPLETE),
+            nullptr
+        },
+        ServerConfiguration
+    );
+
+    Client.SetEventsExpectedAtleastOnce(
+        new(std::nothrow) ConnEventValidator* [2] {
+            new(std::nothrow) ConnEventValidator(QUIC_CONNECTION_EVENT_NETWORK_STATISTICS),
+            nullptr
+        }
+    );
+
+    Server.SetEventsExpectedAtleastOnce(
+        new(std::nothrow) ConnEventValidator* [2] {
+            new(std::nothrow) ConnEventValidator(QUIC_CONNECTION_EVENT_NETWORK_STATISTICS),
+            nullptr
+        }
+    );
+
+    Listener.Context = &Server;
+
+    TEST_QUIC_SUCCEEDED(
+        MsQuic->ConnectionOpen(
+            Registration,
+            ConnValidatorCallback,
+            &Client,
+            &Client.Handle));
+    TEST_QUIC_SUCCEEDED(
+        MsQuic->ConnectionStart(
+            Client.Handle,
+            ClientConfiguration,
+            QuicAddrGetFamily(&ServerLocalAddr.SockAddr),
+            QUIC_TEST_LOOPBACK_FOR_AF(
+                QuicAddrGetFamily(&ServerLocalAddr.SockAddr)),
+            ServerLocalAddr.GetPort()));
+
+    TEST_TRUE(Client.Complete.WaitTimeout(2000));
+    TEST_TRUE(Server.Complete.WaitTimeout(1000));
+
+    Server.CheckEventsExpectedAtleastOnce();
+    Client.CheckEventsExpectedAtleastOnce();
+}
+void QuicTestValidateNetStatsConnEvent(uint32_t Test)
+{
+    MsQuicRegistration Registration(true);
+    TEST_TRUE(Registration.IsValid());
+
+    MsQuicAlpn Alpn("MsQuicTest");
+
+#if defined(QUIC_DISABLE_0RTT_TESTS) // TODO: Fix openssl/XDP bug and enable this back
+    if (Test == 2) {
+        return;
+    }
+#endif
+    if (Test == 2 && QuitTestIsFeatureSupported(CXPLAT_DATAPATH_FEATURE_RAW)) {
+        return;
+    }
+
+    { // Listener Scope
+
+    MsQuicListener Listener(Registration, CleanUpManual, ListenerEventValidatorCallback);
+    TEST_QUIC_SUCCEEDED(Listener.GetInitStatus());
+    TEST_QUIC_SUCCEEDED(Listener.Start(Alpn));
+
+    QuicAddr ServerLocalAddr;
+    TEST_QUIC_SUCCEEDED(Listener.GetLocalAddr(ServerLocalAddr));
+
+    typedef void (*TestFunc)(MsQuicRegistration& Registration, MsQuicListener& Listener, QuicAddr& ServerLocalAddr);
+    const TestFunc Tests[] = {
+        QuicTestValidateNetStatsConnEvent1,
+        QuicTestValidateNetStatsConnEvent2
+    };
+
+    Tests[Test](Registration, Listener, ServerLocalAddr);
+
+    } // Listener Scope
+}
+#endif
 
 void
 QuicTestValidateStreamEvents1(
@@ -1457,6 +1678,7 @@ QuicTestValidateStreamEvents9(
 {
     TestScopeLogger ScopeLogger(__FUNCTION__);
 
+#ifdef QUIC_PARAM_STREAM_RELIABLE_OFFSET
     MsQuicSettings Settings;
     Settings.SetPeerBidiStreamCount(1).SetMinimumMtu(1280).SetMaximumMtu(1280);
     Settings.SetReliableResetEnabled(true);
@@ -1575,6 +1797,11 @@ QuicTestValidateStreamEvents9(
      TEST_TRUE(Server.Complete.WaitTimeout(1000));
     } // Stream scope
     } // Connections scope
+#else // QUIC_PARAM_STREAM_RELIABLE_OFFSET
+    UNREFERENCED_PARAMETER(Registration);
+    UNREFERENCED_PARAMETER(Listener);
+    UNREFERENCED_PARAMETER(ServerLocalAddr);
+#endif // QUIC_PARAM_STREAM_RELIABLE_OFFSET
 }
 
 void QuicTestValidateStreamEvents(uint32_t Test)

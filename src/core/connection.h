@@ -36,9 +36,8 @@ typedef union QUIC_CONNECTION_STATE {
         BOOLEAN ClosedLocally   : 1;    // Locally closed.
         BOOLEAN ClosedRemotely  : 1;    // Remotely closed.
         BOOLEAN AppClosed       : 1;    // Application (not transport) closed connection.
-        BOOLEAN HandleShutdown  : 1;    // Shutdown callback delivered for handle.
+        BOOLEAN ShutdownComplete : 1;   // Shutdown callback delivered for handle.
         BOOLEAN HandleClosed    : 1;    // Handle closed by application layer.
-        BOOLEAN Uninitialized   : 1;    // Uninitialize started/completed.
         BOOLEAN Freed           : 1;    // Freed. Used for Debugging.
 
         //
@@ -120,9 +119,9 @@ typedef union QUIC_CONNECTION_STATE {
         BOOLEAN ShutdownCompleteTimedOut : 1;
 
         //
-        // The application needs to be notified of a shutdown complete event.
+        // The connection is shutdown and the completion for it needs to be run.
         //
-        BOOLEAN SendShutdownCompleteNotif : 1;
+        BOOLEAN ProcessShutdownComplete : 1;
 
         //
         // Indicates whether this connection shares bindings with others.
@@ -148,7 +147,7 @@ typedef union QUIC_CONNECTION_STATE {
         BOOLEAN ResumptionEnabled : 1;
 
         //
-        // When true, this indicates that reordering shouldn't elict an
+        // When true,acknowledgment that reordering shouldn't elict an
         // immediate acknowledgement.
         //
         BOOLEAN IgnoreReordering : 1;
@@ -223,29 +222,13 @@ typedef enum QUIC_CONNECTION_REF {
     QUIC_CONN_REF_LOOKUP_TABLE,         // Per registered CID.
     QUIC_CONN_REF_LOOKUP_RESULT,        // For connections returned from lookups.
     QUIC_CONN_REF_WORKER,               // Worker is (queued for) processing.
+    QUIC_CONN_REF_TIMER_WHEEL,          // The timer wheel is tracking the connection.
     QUIC_CONN_REF_ROUTE,                // Route resolution is undergoing.
     QUIC_CONN_REF_STREAM,               // A stream depends on the connection.
 
     QUIC_CONN_REF_COUNT
 
 } QUIC_CONNECTION_REF;
-
-//
-// A single timer entry on the connection.
-//
-typedef struct QUIC_CONN_TIMER_ENTRY {
-
-    //
-    // The type of timer this entry is for.
-    //
-    QUIC_CONN_TIMER_TYPE Type;
-
-    //
-    // The absolute time (in us) for timer expiration.
-    //
-    uint64_t ExpirationTime;
-
-} QUIC_CONN_TIMER_ENTRY;
 
 //
 // Per connection statistics.
@@ -446,13 +429,13 @@ typedef struct QUIC_CONNECTION {
 
     //
     // The number of packets that must be received before eliciting an immediate
-    // acknowledgement. May be updated by the peer via the ACK_FREQUENCY frame.
+    // acknowledgment. May be updated by the peer via the ACK_FREQUENCY frame.
     //
     uint8_t PacketTolerance;
 
     //
     // The number of packets we want the peer to wait before sending an
-    // immediate acknowledgement. Requires the ACK_FREQUENCY extension/frame to
+    // immediate acknowledgment. Requires the ACK_FREQUENCY extension/frame to
     // be able to send to the peer.
     //
     uint8_t PeerPacketTolerance;
@@ -508,9 +491,15 @@ typedef struct QUIC_CONNECTION {
     uint8_t CibirId[2 + QUIC_MAX_CIBIR_LENGTH];
 
     //
-    // Sorted array of all timers for the connection.
+    // Expiration time (absolute time in us) for each timer type. We use UINT64_MAX as a sentinel
+    // to indicate that the timer is not set.
     //
-    QUIC_CONN_TIMER_ENTRY Timers[QUIC_CONN_TIMER_COUNT];
+    uint64_t ExpirationTimes[QUIC_CONN_TIMER_COUNT];
+
+    //
+    // Earliest expiration time of all timers types.
+    //
+    uint64_t EarliestExpirationTime;
 
     //
     // Receive packet queue.
@@ -725,18 +714,6 @@ QuicConnIsClosed(
     )
 {
     return Connection->State.ClosedLocally || Connection->State.ClosedRemotely;
-}
-
-//
-// Returns the earliest expiration time across all timers for the connection.
-//
-inline
-uint64_t
-QuicConnGetNextExpirationTime(
-    _In_ const QUIC_CONNECTION * const Connection
-    )
-{
-    return Connection->Timers[0].ExpirationTime;
 }
 
 //
@@ -1115,6 +1092,15 @@ BOOLEAN
 QuicConnRegister(
     _Inout_ QUIC_CONNECTION* Connection,
     _Inout_ QUIC_REGISTRATION* Registration
+    );
+
+//
+// Unregisters the connection from the registration.
+//
+_IRQL_requires_max_(DISPATCH_LEVEL)
+void
+QuicConnUnregister(
+    _Inout_ QUIC_CONNECTION* Connection
     );
 
 //

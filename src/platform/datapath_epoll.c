@@ -396,7 +396,7 @@ DataPathInitialize(
     }
 
     const uint32_t PartitionCount = (Config && Config->ProcessorCount)
-        ? Config->ProcessorCount : CxPlatProcMaxCount();
+        ? Config->ProcessorCount : CxPlatProcCount();
 
     const size_t DatapathLength =
         sizeof(CXPLAT_DATAPATH) + PartitionCount * sizeof(CXPLAT_DATAPATH_PARTITION);
@@ -1187,7 +1187,7 @@ SocketCreateUdp(
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
     const BOOLEAN IsServerSocket = Config->RemoteAddress == NULL;
     const BOOLEAN NumPerProcessorSockets = IsServerSocket && Datapath->PartitionCount > 1;
-    const uint16_t SocketCount = NumPerProcessorSockets ? (uint16_t)CxPlatProcMaxCount() : 1;
+    const uint16_t SocketCount = NumPerProcessorSockets ? (uint16_t)CxPlatProcCount() : 1;
 
     CXPLAT_DBG_ASSERT(Datapath->UdpHandlers.Receive != NULL || Config->Flags & CXPLAT_SOCKET_FLAG_PCP);
 
@@ -1592,7 +1592,7 @@ SocketDelete(
 #endif
 
     const uint16_t SocketCount =
-        Socket->NumPerProcessorSockets ? (uint16_t)CxPlatProcMaxCount() : 1;
+        Socket->NumPerProcessorSockets ? (uint16_t)CxPlatProcCount() : 1;
 
     for (uint32_t i = 0; i < SocketCount; ++i) {
         CxPlatSocketContextUninitialize(&Socket->SocketContexts[i]);
@@ -2627,6 +2627,18 @@ CxPlatSocketContextFlushTxQueue(
         //
         CxPlatSocketContextSetEvents(SocketContext, EPOLL_CTL_MOD, EPOLLIN);
     }
+}
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+QUIC_STATUS
+CxPlatSocketGetTcpStatistics(
+    _In_ CXPLAT_SOCKET* Socket,
+    _Out_ CXPLAT_TCP_STATISTICS* Statistics
+    )
+{
+    UNREFERENCED_PARAMETER(Socket);
+    UNREFERENCED_PARAMETER(Statistics);
+    return QUIC_STATUS_NOT_SUPPORTED;
 }
 
 void

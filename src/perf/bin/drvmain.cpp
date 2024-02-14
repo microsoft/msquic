@@ -9,7 +9,7 @@ Abstract:
 
 --*/
 
-#include "PerfHelpers.h"
+#include "SecNetPerf.h"
 #include "PerfIoctls.h"
 #include <new.h>
 
@@ -34,7 +34,7 @@ WDF_DECLARE_CONTEXT_TYPE_WITH_NAME(QUIC_DEVICE_EXTENSION, SecNetPerfCtlGetDevice
 typedef struct QUIC_DRIVER_CLIENT {
     LIST_ENTRY Link;
     QUIC_CREDENTIAL_CONFIG SelfSignedCredConfig;
-    QUIC_CERTIFICATE_HASH SelfSignedCertHash;
+    QUIC_CERTIFICATE_HASH_STORE SelfSignedCertHash;
     bool SelfSignedValid;
     CXPLAT_EVENT StopEvent;
     WDFREQUEST Request;
@@ -71,7 +71,7 @@ SecNetPerfCtlInitialize(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 SecNetPerfCtlUninitialize(
-        void
+    void
     );
 
 _Ret_maybenull_ _Post_writable_byte_size_(_Size)
@@ -86,6 +86,13 @@ void __cdecl operator delete (/*_In_opt_*/ void* Mem) {
 }
 
 void __cdecl operator delete (_In_opt_ void* Mem, _In_opt_ size_t) {
+    if (Mem != nullptr) {
+        ExFreePoolWithTag(Mem, QUIC_POOL_PERF);
+    }
+}
+
+namespace std { enum class align_val_t : size_t {}; } // Work around
+void __cdecl operator delete(_In_opt_ void* Mem, size_t, std::align_val_t) {
     if (Mem != nullptr) {
         ExFreePoolWithTag(Mem, QUIC_POOL_PERF);
     }
@@ -205,8 +212,6 @@ SecNetPerfDriverUnload(
     CxPlatSystemUnload();
 }
 
-#define PERF_REG_PATH                 L"\\Parameters"
-
 _No_competing_thread_
 INITCODE
 NTSTATUS
@@ -217,8 +222,7 @@ SecNetPerfGetServiceName(
 {
     USHORT BaseRegPathLength = BaseRegPath->Length / sizeof(WCHAR);
     if (BaseRegPath->Buffer[BaseRegPathLength - 1] == L'\\') {
-        //LogWarning("[config] Trimming trailing '\\' from registry!");
-        BaseRegPathLength--;
+        BaseRegPathLength--; // Trim trailing slash
     }
 
     //
@@ -316,11 +320,6 @@ SecNetPerfCtlInitialize(
         goto Error;
     }
 
-#if 0 // Disable this trace while we find a solution to %.*S
-    Q uicTraceLogVerbose(
-        PerfControlInitialized,
-        "[perf] Control interface initialized with %.*S", DeviceName.Length, DeviceName.Buffer);
-#endif
     WDF_FILEOBJECT_CONFIG_INIT(
         &FileConfig,
         SecNetPerfCtlEvtFileCreate,
@@ -397,7 +396,6 @@ SecNetPerfCtlInitialize(
             WDF_NO_OBJECT_ATTRIBUTES,
             &Queue);
     __analysis_assume(QueueConfig.EvtIoStop == 0);
-
     if (!NT_SUCCESS(Status)) {
         QuicTraceEvent(
             LibraryErrorStatus,
@@ -587,8 +585,6 @@ SecNetPerfCtlEvtIoCanceled(
     )
 {
     NTSTATUS Status;
-
-
     WDFFILEOBJECT FileObject = WdfRequestGetFileObject(Request);
     if (FileObject == nullptr) {
         Status = STATUS_DEVICE_NOT_READY;
@@ -627,9 +623,11 @@ SecNetPerfCtlSetSecurityConfig(
     _In_ const QUIC_CERTIFICATE_HASH* CertHash
     )
 {
-    Client->SelfSignedCredConfig.Type = QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH;
+    Client->SelfSignedCredConfig.Type = QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH_STORE;
     Client->SelfSignedCredConfig.Flags = QUIC_CREDENTIAL_FLAG_NONE;
-    Client->SelfSignedCredConfig.CertificateHash = &Client->SelfSignedCertHash;
+    Client->SelfSignedCredConfig.CertificateHashStore = &Client->SelfSignedCertHash;
+    Client->SelfSignedCertHash.Flags = QUIC_CERTIFICATE_HASH_STORE_FLAG_NONE;
+    RtlCopyMemory(&Client->SelfSignedCertHash.StoreName, "MY", sizeof("MY"));
     RtlCopyMemory(&Client->SelfSignedCertHash.ShaHash, CertHash, sizeof(QUIC_CERTIFICATE_HASH));
     Client->SelfSignedValid = true;
     return QUIC_STATUS_SUCCESS;
@@ -682,12 +680,7 @@ CXPLAT_THREAD_CALLBACK(PerformanceWaitForStopThreadCb, Context)
         return;
     }
 
-    char* LocalBuffer = nullptr;
-    DWORD ReturnedLength = 0;
-    QUIC_STATUS StopStatus;
-    NTSTATUS Status;
-
-    StopStatus = QuicMainStop();
+    QuicMainWaitForCompletion();
 
     if (Client->Canceled) {
         QuicTraceLogInfo(
@@ -698,7 +691,7 @@ CXPLAT_THREAD_CALLBACK(PerformanceWaitForStopThreadCb, Context)
     }
 
     CxPlatLockAcquire(&Client->CleanupLock);
-    Status = WdfRequestUnmarkCancelable(Request);
+    NTSTATUS Status = WdfRequestUnmarkCancelable(Request);
     bool ExistingCancellation = Client->CleanupHandleCancellation;
     Client->CleanupHandleCancellation = TRUE;
     CxPlatLockRelease(&Client->CleanupLock);
@@ -706,13 +699,14 @@ CXPLAT_THREAD_CALLBACK(PerformanceWaitForStopThreadCb, Context)
         return;
     }
 
+    DWORD ReturnedLength = 0;
+    char* LocalBuffer = nullptr;
     Status =
         WdfRequestRetrieveOutputBuffer(
             Request,
             (size_t)BufferCurrent + 1,
             (void**)&LocalBuffer,
             nullptr);
-
     if (!NT_SUCCESS(Status)) {
         goto Exit;
     }
@@ -731,7 +725,7 @@ CXPLAT_THREAD_CALLBACK(PerformanceWaitForStopThreadCb, Context)
 Exit:
     WdfRequestCompleteWithInformation(
         Request,
-        StopStatus,
+        QUIC_STATUS_SUCCESS,
         ReturnedLength);
 }
 
@@ -741,14 +735,13 @@ SecNetPerfCtlReadPrints(
     _In_ QUIC_DRIVER_CLIENT* Client
     )
 {
-    QUIC_STATUS Status;
-    CXPLAT_THREAD_CONFIG ThreadConfig;
-    CxPlatZeroMemory(&ThreadConfig, sizeof(ThreadConfig));
+    CXPLAT_THREAD_CONFIG ThreadConfig = {0};
     ThreadConfig.Name = "PerfWait";
     ThreadConfig.Callback = PerformanceWaitForStopThreadCb;
     ThreadConfig.Context = Client;
     Client->Request = Request;
-    if (QUIC_FAILED(Status = CxPlatThreadCreate(&ThreadConfig, &Client->Thread))) {
+    QUIC_STATUS Status = CxPlatThreadCreate(&ThreadConfig, &Client->Thread);
+    if (QUIC_FAILED(Status)) {
         if (Client->Thread) {
             Client->Canceled = true;
             CxPlatEventSet(Client->StopEvent);
@@ -770,7 +763,7 @@ SecNetPerfCtlStart(
     _In_ int Length
     )
 {
-    char** Argv = new(std::nothrow) char* [Length];
+    auto Argv = new(std::nothrow) char* [Length];
     if (!Argv) {
         return QUIC_STATUS_OUT_OF_MEMORY;
     }
@@ -794,37 +787,27 @@ SecNetPerfCtlStart(
 }
 
 void
-SecNetPerfCtlGetMetadata(
+SecNetPerfCtlGetExtraDataLength(
     _In_ WDFREQUEST Request
     )
 {
-    QUIC_STATUS QuicStatus;
-    PerfExtraDataMetadata Metadata;
-
-    QuicStatus = QuicMainGetExtraDataMetadata(&Metadata);
-    if (QUIC_FAILED(QuicStatus)) {
-        WdfRequestComplete(Request, QuicStatus);
-        return;
-    }
-
-    void* LocalBuffer = nullptr;
-
+    uint32_t* DataLength;
     NTSTATUS Status =
         WdfRequestRetrieveOutputBuffer(
             Request,
-            sizeof(Metadata),
-            &LocalBuffer,
+            sizeof(*DataLength),
+            (void**)&DataLength,
             nullptr);
     if (!NT_SUCCESS(Status)) {
         WdfRequestComplete(Request, Status);
         return;
     }
 
-    CxPlatCopyMemory(LocalBuffer, &Metadata, sizeof(Metadata));
+    *DataLength = QuicMainGetExtraDataLength();
     WdfRequestCompleteWithInformation(
         Request,
         Status,
-        sizeof(Metadata));
+        sizeof(*DataLength));
 }
 
 void
@@ -834,37 +817,31 @@ SecNetPerfCtlGetExtraData(
     )
 {
     CXPLAT_FRE_ASSERT(OutputBufferLength < UINT32_MAX);
-    uint8_t* LocalBuffer = nullptr;
-    uint32_t BufferLength = (uint32_t)OutputBufferLength;
-
+    uint8_t* OutputBuffer = nullptr;
     NTSTATUS Status =
         WdfRequestRetrieveOutputBuffer(
             Request,
-            BufferLength,
-            (void**)&LocalBuffer,
+            OutputBufferLength,
+            (void**)&OutputBuffer,
             nullptr);
     if (!NT_SUCCESS(Status)) {
         WdfRequestComplete(Request, Status);
         return;
     }
 
-    QUIC_STATUS QuicStatus =
-        QuicMainGetExtraData(
-            LocalBuffer,
-            &BufferLength);
-
+    QuicMainGetExtraData(OutputBuffer, (uint32_t)OutputBufferLength);
     WdfRequestCompleteWithInformation(
         Request,
-        QuicStatus,
-        BufferLength);
+        QUIC_STATUS_SUCCESS,
+        OutputBufferLength);
 }
 
 VOID
 SecNetPerfCtlEvtIoDeviceControl(
-    _In_ WDFQUEUE Queue,
+    _In_ WDFQUEUE /* Queue */,
     _In_ WDFREQUEST Request,
     _In_ size_t OutputBufferLength,
-    _In_ size_t InputBufferLength,
+    _In_ size_t /* InputBufferLength */,
     _In_ ULONG IoControlCode
     )
 {
@@ -908,12 +885,10 @@ SecNetPerfCtlEvtIoDeviceControl(
     // Handle IOCTL for read
     //
     if (IoControlCode == IOCTL_QUIC_READ_DATA) {
-        SecNetPerfCtlReadPrints(
-            Request,
-            Client);
+        SecNetPerfCtlReadPrints(Request, Client);
         return;
-    } else if (IoControlCode == IOCTL_QUIC_GET_METADATA) {
-        SecNetPerfCtlGetMetadata(Request);
+    } else if (IoControlCode == IOCTL_QUIC_GET_EXTRA_DATA_LENGTH) {
+        SecNetPerfCtlGetExtraDataLength(Request);
         return;
     } else if (IoControlCode == IOCTL_QUIC_GET_EXTRA_DATA) {
         SecNetPerfCtlGetExtraData(Request, OutputBufferLength);
@@ -1000,6 +975,4 @@ Error:
         Status);
 
     WdfRequestComplete(Request, Status);
-    UNREFERENCED_PARAMETER(InputBufferLength);
-    UNREFERENCED_PARAMETER(Queue);
 }

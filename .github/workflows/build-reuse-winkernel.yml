@@ -45,9 +45,9 @@ on:
         #   - openssl
         #   - openssl3
         #   - schannel
-      test:
+      build:
         required: false
-        default: ''
+        default: '' # Empty string means build all
         type: string
 
 permissions: read-all
@@ -66,18 +66,18 @@ jobs:
       shell: pwsh
       run: scripts/prepare-machine.ps1 -ForBuild -ForKernel
     - name: Add msbuild to PATH
-      uses: microsoft/setup-msbuild@1ff57057b5cfdc39105cd07a01d78e9b0ea0c14c
+      uses: microsoft/setup-msbuild@6fb02220983dee41ce7ae257b6f4d8f9bf5ed4ce
     - name: Nuget Restore
       shell: pwsh
       run: msbuild msquic.kernel.sln -t:restore /p:RestorePackagesConfig=true /p:Configuration=${{ inputs.config }} /p:Platform=${{ inputs.arch }}
     - name: Build
-      if: inputs.test == '-Test'
+      if: inputs.build == '-Test'
       shell: pwsh
-      run: msbuild msquic.kernel.sln /p:Configuration=${{ inputs.config }} /p:Platform=${{ inputs.arch }} /p:QUIC_VER_SUFFIX=-official /p:QUIC_VER_GIT_HASH=${{ github.sha }}
+      run: msbuild msquic.kernel.sln /m /p:Configuration=${{ inputs.config }} /p:Platform=${{ inputs.arch }} /p:QUIC_VER_SUFFIX=-official /p:QUIC_VER_GIT_HASH=${{ github.sha }}
     - name: Build
-      if: inputs.test == ''
+      if: inputs.build == ''
       shell: pwsh
-      run: msbuild msquic.kernel.sln /p:Configuration=${{ inputs.config }} /p:Platform=${{ inputs.arch }} /p:QUIC_VER_SUFFIX=-official
+      run: msbuild msquic.kernel.sln /m /p:Configuration=${{ inputs.config }} /p:Platform=${{ inputs.arch }} /p:QUIC_VER_SUFFIX=-official
     - name: Sign Kernel
       shell: pwsh
       run: scripts/sign.ps1 -Config ${{ inputs.config }} -Arch ${{ inputs.arch }} -Tls ${{ inputs.tls }}
@@ -88,7 +88,7 @@ jobs:
         Remove-Item artifacts/corenet-ci-main -Recurse -Force -ErrorAction Ignore
         Remove-Item artifacts/xdp -Recurse -Force -ErrorAction Ignore
     - name: Upload build artifacts
-      uses: actions/upload-artifact@a8a3f3ad30e3422c9c7b888a15615d19a852ae32
+      uses: actions/upload-artifact@5d5d22a31266ced268874388b861e4b58bb5c2f3
       with:
-        name: ${{ inputs.config }}-${{ inputs.plat }}-${{ inputs.os }}-${{ inputs.arch }}-${{ inputs.tls }}${{ inputs.test }}
+        name: ${{ inputs.config }}-${{ inputs.plat }}-${{ inputs.os }}-${{ inputs.arch }}-${{ inputs.tls }}${{ inputs.build }}
         path: artifacts

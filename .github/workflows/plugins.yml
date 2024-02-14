@@ -5,19 +5,19 @@ on:
     branches: [ main ]
     paths:
     - .github/workflows/plugins.yml
-    - src/plugins/*
+    - src/plugins/**
   pull_request:
     branches: [ main ]
     paths:
     - .github/workflows/plugins.yml
-    - src/plugins/*
+    - src/plugins/**
 
 permissions: read-all
 
 jobs:
   build_dbgext:
     name: Build WinDbg Extension
-    runs-on: windows-2019 # TODO - Need to figure out why -2022 doesn't have the prerequisites
+    runs-on: windows-2022
     strategy:
       fail-fast: false
       matrix:
@@ -27,10 +27,10 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11
     - name: Setup MSBuild.exe
-      uses: microsoft/setup-msbuild@1ff57057b5cfdc39105cd07a01d78e9b0ea0c14c
+      uses: microsoft/setup-msbuild@6fb02220983dee41ce7ae257b6f4d8f9bf5ed4ce
     - name: Build
       run: msbuild src\plugins\msquic.windbg.sln /p:configuration=${{ matrix.configuration }} /p:platform=${{ matrix.platform }}
-    - uses: actions/upload-artifact@a8a3f3ad30e3422c9c7b888a15615d19a852ae32
+    - uses: actions/upload-artifact@5d5d22a31266ced268874388b861e4b58bb5c2f3
       with:
         name: bin_windbg_${{ matrix.configuration }}_${{ matrix.platform }}
         path: |
@@ -51,12 +51,12 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11
     - name: Setup .NET
-      uses: actions/setup-dotnet@3447fd6a9f9e57506b15f895c5b76d3b197dc7c2
+      uses: actions/setup-dotnet@4d6c8fcf3c8f7a60068d26b594648e99df24cee3
       with:
         dotnet-version: 6.0.x
     - name: Build
       run: dotnet build src\plugins\QuicTrace.sln -c ${{ matrix.configuration }}
-    - uses: actions/upload-artifact@a8a3f3ad30e3422c9c7b888a15615d19a852ae32
+    - uses: actions/upload-artifact@5d5d22a31266ced268874388b861e4b58bb5c2f3
       with:
         name: bin_quictrace_${{ matrix.configuration }}
         path: artifacts/bin

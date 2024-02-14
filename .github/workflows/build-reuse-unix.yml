@@ -69,9 +69,9 @@ on:
         required: false
         default: ''
         type: string
-      test:
+      build:
         required: false
-        default: ''
+        default: '' # Empty string means build all
         type: string
 
 permissions: read-all
@@ -97,15 +97,19 @@ jobs:
       shell: pwsh
       run: scripts/prepare-machine.ps1 ${{ inputs.plat == 'linux' && '-ForContainerBuild' || '-ForBuild' }} -Tls ${{ inputs.tls }}
     - name: Build For Test
-      if: inputs.test == '-Test'
+      if: inputs.build == '-Test'
       shell: pwsh
       run: scripts/build.ps1 -Config ${{ inputs.config }} -Platform ${{ inputs.plat }} -Arch ${{ inputs.arch }} -Tls ${{ inputs.tls }} -DisablePerf ${{ inputs.static }} ${{ inputs.clang }} ${{ inputs.systemcrypto }} ${{ inputs.codecheck }} ${{ inputs.sanitize }} -OneBranch
+    - name: Build For Perf
+      if: inputs.build == '-Perf'
+      shell: pwsh
+      run: scripts/build.ps1 -Config ${{ inputs.config }} -Platform ${{ inputs.plat }} -Arch ${{ inputs.arch }} -Tls ${{ inputs.tls }} -DisableTools -DisableTest ${{ inputs.static }} ${{ inputs.clang }} ${{ inputs.systemcrypto }} ${{ inputs.codecheck }} ${{ inputs.sanitize }}
     - name: Build
-      if: inputs.test == ''
+      if: inputs.build == ''
       shell: pwsh
       run: scripts/build.ps1 -Config ${{ inputs.config }} -Platform ${{ inputs.plat }} -Arch ${{ inputs.arch }} -Tls ${{ inputs.tls }} ${{ inputs.static }} ${{ inputs.clang }} ${{ inputs.systemcrypto }} ${{ inputs.codecheck }} ${{ inputs.sanitize }} -OneBranch
     - name: Upload build artifacts
-      uses: actions/upload-artifact@a8a3f3ad30e3422c9c7b888a15615d19a852ae32
+      uses: actions/upload-artifact@5d5d22a31266ced268874388b861e4b58bb5c2f3
       with:
-        name: ${{ inputs.config }}-${{ inputs.plat }}-${{ inputs.os }}-${{ inputs.arch }}-${{ inputs.tls }}${{ inputs.static }}${{ inputs.clang }}${{ inputs.systemcrypto }}${{ inputs.codecheck }}${{ inputs.sanitize }}${{ inputs.test }}
+        name: ${{ inputs.config }}-${{ inputs.plat }}-${{ inputs.os }}-${{ inputs.arch }}-${{ inputs.tls }}${{ inputs.static }}${{ inputs.clang }}${{ inputs.systemcrypto }}${{ inputs.codecheck }}${{ inputs.sanitize }}${{ inputs.build }}
         path: artifacts

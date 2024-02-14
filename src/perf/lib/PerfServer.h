@@ -12,11 +12,10 @@ Abstract:
 
 #pragma once
 
-#include "PerfHelpers.h"
-#include "PerfBase.h"
-#include "PerfCommon.h"
+#include "SecNetPerf.h"
+#include "Tcp.h"
 
-class PerfServer : public PerfBase {
+class PerfServer {
 public:
     PerfServer(const QUIC_CREDENTIAL_CONFIG* CredConfig) :
         Engine(TcpAcceptCallback, TcpConnectCallback, TcpReceiveCallback, TcpSendCompleteCallback),
@@ -30,9 +29,10 @@ public:
                 Configuration.GetInitStatus();
     }
 
-    ~PerfServer() override {
-        if (DataBuffer) {
-            CXPLAT_FREE(DataBuffer, QUIC_POOL_PERF);
+    ~PerfServer() {
+        if (TeardownBinding) {
+            CxPlatSocketDelete(TeardownBinding);
+            TeardownBinding = nullptr;
         }
     }
 
@@ -40,30 +40,39 @@ public:
     Init(
         _In_ int argc,
         _In_reads_(argc) _Null_terminated_ char* argv[]
-        ) override;
+        );
+    QUIC_STATUS Start(_In_ CXPLAT_EVENT* StopEvent);
+    void Wait(int Timeout);
 
-    QUIC_STATUS
-    Start(
-        _In_ CXPLAT_EVENT* StopEvent
-        ) override;
-
-    QUIC_STATUS
-    Wait(
-        int Timeout
-        ) override;
-
-    void
-    GetExtraDataMetadata(
-        _Out_ PerfExtraDataMetadata* Result
-        ) override;
-
-    QUIC_STATUS
-    GetExtraData(
-        _Out_writes_bytes_(*Length) uint8_t* Data,
-        _Inout_ uint32_t* Length
-        ) override;
+    static CXPLAT_DATAPATH_RECEIVE_CALLBACK DatapathReceive;
+    static void DatapathUnreachable(_In_ CXPLAT_SOCKET*, _In_ void*, _In_ const QUIC_ADDR*) { }
 
 private:
+
+    struct PerfIoBuffer {
+        QUIC_BUFFER* Buffer {nullptr};
+        operator QUIC_BUFFER* () noexcept { return Buffer; }
+        uint8_t* Raw() noexcept { return Buffer->Buffer; }
+        PerfIoBuffer() {
+            Buffer = (QUIC_BUFFER*)CXPLAT_ALLOC_NONPAGED(sizeof(QUIC_BUFFER) + PERF_DEFAULT_IO_SIZE, QUIC_POOL_PERF);
+            CXPLAT_FRE_ASSERT(Buffer);
+            Buffer->Length = PERF_DEFAULT_IO_SIZE;
+            Buffer->Buffer = (uint8_t*)(Buffer + 1);
+            for (uint32_t i = sizeof(uint64_t); i < PERF_DEFAULT_IO_SIZE; ++i) {
+                Buffer->Buffer[i] = (uint8_t)i;
+            }
+        }
+        ~PerfIoBuffer() noexcept { CXPLAT_FREE(Buffer, QUIC_POOL_PERF); }
+    } ResponseBuffer;
+
+    struct TcpConnectionContext {
+        PerfServer* Server;
+        CxPlatHashTable StreamTable;
+        TcpConnectionContext(PerfServer* Server) : Server(Server) { }
+        ~TcpConnectionContext();
+    };
+
+    CxPlatPoolT<TcpConnectionContext> TcpConnectionContextAllocator;
 
     struct StreamContext {
         StreamContext(
@@ -84,25 +93,16 @@ private:
         uint64_t ResponseSize{0};
         uint64_t BytesSent{0};
         uint64_t OutstandingBytes{0};
-        uint32_t IoSize{PERF_DEFAULT_IO_SIZE};
         QUIC_BUFFER LastBuffer;
     };
 
+    CxPlatPoolT<StreamContext> StreamContextAllocator; // TODO - Make this per-CPU
+    CxPlatPoolT<TcpSendData> TcpSendDataAllocator;
+
     QUIC_STATUS
     ListenerCallback(
-        _In_ MsQuicListener* Listener,
         _Inout_ QUIC_LISTENER_EVENT* Event
         );
-
-    static
-    QUIC_STATUS
-    ListenerCallbackStatic(
-        _In_ MsQuicListener* Listener,
-        _In_ void* Context,
-        _Inout_ QUIC_LISTENER_EVENT* Event
-        ) {
-        return ((PerfServer*)Context)->ListenerCallback(Listener, Event);
-    }
 
     QUIC_STATUS
     ConnectionCallback(
@@ -120,18 +120,20 @@ private:
     void
     SendResponse(
         _In_ StreamContext* Context,
-        _In_ HQUIC StreamHandle
+        _In_ void* Handle,
+        _In_ bool IsTcp
         );
+
+    CXPLAT_SOCKET* TeardownBinding {nullptr};
 
     QUIC_STATUS InitStatus;
     MsQuicRegistration Registration {
         "secnetperf-server",
         PerfDefaultExecutionProfile,
         true};
-    MsQuicAlpn Alpn {PERF_ALPN};
     MsQuicConfiguration Configuration {
         Registration,
-        Alpn,
+        PERF_ALPN,
         MsQuicSettings()
             .SetConnFlowControlWindow(PERF_DEFAULT_CONN_FLOW_CONTROL)
             .SetPeerBidiStreamCount(PERF_DEFAULT_STREAM_COUNT)
@@ -147,61 +149,23 @@ private:
     MsQuicListener Listener {Registration, CleanUpManual, ListenerCallbackStatic, this};
     QUIC_ADDR LocalAddr;
     CXPLAT_EVENT* StopEvent {nullptr};
-    QUIC_BUFFER* DataBuffer {nullptr};
     uint8_t PrintStats {FALSE};
-    QuicPoolAllocator<StreamContext> StreamContextAllocator;
 
     TcpEngine Engine;
     TcpServer Server;
-    HashTable StreamTable;
 
-    uint32_t CibirIdLength {0};
-    uint8_t CibirId[7]; // {offset, values}
-
-    void
-    SendTcpResponse(
-        _In_ StreamContext* Context,
-        _In_ TcpConnection* Connection
-        );
-
-    _IRQL_requires_max_(DISPATCH_LEVEL)
-    _Function_class_(TcpAcceptCallback)
     static
-    void
-    TcpAcceptCallback(
-        _In_ TcpServer* Server,
-        _In_ TcpConnection* Connection
-        );
+    QUIC_STATUS
+    ListenerCallbackStatic(
+        _In_ MsQuicListener* /*Listener*/,
+        _In_ void* Context,
+        _Inout_ QUIC_LISTENER_EVENT* Event
+        ) {
+        return ((PerfServer*)Context)->ListenerCallback(Event);
+    }
 
-    _IRQL_requires_max_(DISPATCH_LEVEL)
-    _Function_class_(TcpConnectCallback)
-    static
-    void
-    TcpConnectCallback(
-        _In_ TcpConnection* Connection,
-        bool IsConnected
-        );
-
-    _IRQL_requires_max_(DISPATCH_LEVEL)
-    _Function_class_(TcpReceiveCallback)
-    static
-    void
-    TcpReceiveCallback(
-        _In_ TcpConnection* Connection,
-        uint32_t StreamID,
-        bool Open,
-        bool Fin,
-        bool Abort,
-        uint32_t Length,
-        uint8_t* Buffer
-        );
-
-    _IRQL_requires_max_(DISPATCH_LEVEL)
-    _Function_class_(TcpSendCompleteCallback)
-    static
-    void
-    TcpSendCompleteCallback(
-        _In_ TcpConnection* Connection,
-        TcpSendData* SendDataChain
-        );
+    static TcpAcceptCallback TcpAcceptCallback;
+    static TcpConnectCallback TcpConnectCallback;
+    static TcpReceiveCallback TcpReceiveCallback;
+    static TcpSendCompleteCallback TcpSendCompleteCallback;
 };

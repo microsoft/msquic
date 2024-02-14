@@ -64,6 +64,12 @@ When the send has been completely shut down the app will get a `QUIC_STREAM_EVEN
 
 An app can opt in to sending stream data with 0-RTT keys (if available) by including the `QUIC_SEND_FLAG_ALLOW_0_RTT` flag on [StreamSend](api/StreamSend.md) call. MsQuic doesn't make any guarantees that the data will actually be sent with 0-RTT keys. There are several reasons it may not happen, such as keys not being available, packet loss, flow control, etc.
 
+## Cancel On Loss
+
+In case it is desirable to cancel a stream when packet loss is deteced instead of retransmitting the affected packets, the `QUIC_SEND_FLAG_CANCEL_ON_LOSS` can be supplied on a [StreamSend](api/StreamSend.md) call. Doing so will irreversibly switch the associated stream to this behavior. This includes *every* subsequent send call on the same stream, even if the call itself does not include the above flag.
+
+If a stream gets canceled because it is in 'cancel on loss' mode, a `QUIC_STREAM_EVENT_CANCEL_ON_LOSS` event will get emitted. The event allows the app to provide an error code that is communicated to the peer via a `QUIC_STREAM_EVENT_PEER_SEND_ABORTED` event.
+
 # Receiving
 
 Data is received and delivered to apps via the `QUIC_STREAM_EVENT_RECEIVE` event. The event indicates zero, one or more contiguous buffers up to the application.
@@ -78,7 +84,7 @@ The app then may respond to the event in a number of ways:
 
 ## Synchronous vs Asynchronous
 
-The app has the option of either processing the received data in the callback (synchronous) or queuing the work to a separate thread (asynchronous). If the app processes the data synchronously it must do so in a timely manner. Any significant delays will delay other QUIC processing (such as sending acknowledgements), which can cause protocol issues (dropped connections).
+The app has the option of either processing the received data in the callback (synchronous) or queuing the work to a separate thread (asynchronous). If the app processes the data synchronously it must do so in a timely manner. Any significant delays will delay other QUIC processing (such as sending acknowledgments), which can cause protocol issues (dropped connections).
 
 If the app wants to queue the data to a separate thread, the app must return `QUIC_STATUS_PENDING` from the receive callback. This informs MsQuic that the app still has an outstanding reference on the buffers, and it will not modify or free them. Once the app is done with the buffers it must call [StreamReceiveComplete](api/StreamReceiveComplete.md).
 

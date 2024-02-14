@@ -1,7 +1,0 @@
-deb [arch=armhf,arm64] http://ports.ubuntu.com/ focal main restricted
-deb [arch=armhf,arm64] http://ports.ubuntu.com/ focal-updates main restricted
-deb [arch=armhf,arm64] http://ports.ubuntu.com/ focal universe
-deb [arch=armhf,arm64] http://ports.ubuntu.com/ focal-updates universe
-deb [arch=armhf,arm64] http://ports.ubuntu.com/ focal multiverse
-deb [arch=armhf,arm64] http://ports.ubuntu.com/ focal-updates multiverse
-deb [arch=armhf,arm64] http://ports.ubuntu.com/ focal-backports main restricted universe multiverse

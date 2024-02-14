@@ -1162,8 +1162,8 @@ DummyStreamCallback(
 }
 
 struct CloseFromCallbackContext {
-    uint16_t CloseCount;
-    volatile uint16_t CurrentCount;
+    short CloseCount;
+    volatile short CurrentCount;
     uint8_t RawBuffer[100];
     QUIC_BUFFER BufferToSend { sizeof(RawBuffer), RawBuffer };
 
@@ -1192,12 +1192,7 @@ struct CloseFromCallbackContext {
             }
         }
 
-#ifdef _WIN32
-        auto count = (uint16_t)InterlockedIncrement16((volatile short*)&Ctx->CurrentCount);
-#else
-        auto count = (uint16_t)__sync_add_and_fetch((volatile short*)&Ctx->CurrentCount, 1);
-#endif
-        if (Ctx->CloseCount == count-1) {
+        if (Ctx->CloseCount == InterlockedIncrement16(&Ctx->CurrentCount) - 1) {
             Conn->Close();
         }
 
@@ -1218,7 +1213,7 @@ QuicTestConnectionCloseFromCallback() {
     for (uint16_t i = 0; i < 20; i++) {
         CxPlatWatchdog Watchdog(2000);
 
-        CloseFromCallbackContext Context {i, 0};
+        CloseFromCallbackContext Context {(short)i, 0};
 
         MsQuicRegistration Registration(true);
         TEST_QUIC_SUCCEEDED(Registration.GetInitStatus());
@@ -2559,8 +2554,8 @@ void QuicTestGlobalParam()
             uint32_t DataLength = sizeof(Data);
             QUIC_EXECUTION_CONFIG* Config = (QUIC_EXECUTION_CONFIG*)Data;
             Config->ProcessorCount = 4;
-            if (CxPlatProcMaxCount() < Config->ProcessorCount) {
-                Config->ProcessorCount = CxPlatProcMaxCount();
+            if (CxPlatProcCount() < Config->ProcessorCount) {
+                Config->ProcessorCount = CxPlatProcCount();
                 DataLength = QUIC_EXECUTION_CONFIG_MIN_SIZE + sizeof(uint16_t) * Config->ProcessorCount;
             }
             for (uint16_t i = 0; i < (uint16_t)Config->ProcessorCount; ++i) {
@@ -5003,6 +4998,8 @@ void QuicTestStreamParam()
             TEST_EQUAL(Length, sizeof(QUIC_STREAM_STATISTICS));
         }
     }
+
+#ifdef QUIC_PARAM_STREAM_RELIABLE_OFFSET
     //
     // QUIC_PARAM_STREAM_RELIABLE_OFFSET
     // QUIC_PARAM_STREAM_RELIABLE_OFFSET_RECV
@@ -5071,6 +5068,7 @@ void QuicTestStreamParam()
                     &Buffer));
         }
     }
+#endif // QUIC_PARAM_STREAM_RELIABLE_OFFSET
 }
 
 void
@@ -5088,7 +5086,10 @@ QuicTestGetPerfCounters()
             nullptr),
         QUIC_STATUS_BUFFER_TOO_SMALL);
 
-    TEST_EQUAL(BufferLength, sizeof(uint64_t) * QUIC_PERF_COUNTER_MAX);
+    if (BufferLength < sizeof(uint64_t) * QUIC_PERF_COUNTER_MAX) {
+        TEST_FAILURE("Perf counters length too small");
+        return;
+    }
 
     //
     // Test getting the full array of counters.

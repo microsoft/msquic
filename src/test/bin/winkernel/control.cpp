@@ -18,6 +18,8 @@ Abstract:
 #include "control.cpp.clog.h"
 #endif
 
+#include "msquicp.h"
+
 const MsQuicApi* MsQuic;
 QUIC_CREDENTIAL_CONFIG ServerSelfSignedCredConfig;
 QUIC_CREDENTIAL_CONFIG ServerSelfSignedCredConfigClientAuth;
@@ -64,6 +66,7 @@ PAGEDX EVT_WDF_FILE_CLEANUP QuicTestCtlEvtFileCleanup;
 WDFDEVICE QuicTestCtlDevice = nullptr;
 QUIC_DEVICE_EXTENSION* QuicTestCtlExtension = nullptr;
 QUIC_TEST_CLIENT* QuicTestClient = nullptr;
+HANDLE NmrClient = nullptr;
 
 _No_competing_thread_
 INITCODE
@@ -81,7 +84,27 @@ QuicTestCtlInitialize(
     WDF_IO_QUEUE_CONFIG QueueConfig;
     WDFQUEUE Queue;
 
-    MsQuic = new (std::nothrow) MsQuicApi();
+#ifdef QUIC_TEST_NMR_PROVIDER
+    QUIC_ENABLE_PRIVATE_NMR_PROVIDER();
+#endif
+
+    Status = MsQuicNmrClientRegister(&NmrClient, &MSQUIC_MODULE_ID, 5000);
+    if (!NT_SUCCESS(Status)) {
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            Status,
+            "MsQuicNmrClientRegister failed");
+        goto Error;
+    }
+
+    CXPLAT_DBG_ASSERT(
+        NmrClient != nullptr && QUIC_GET_DISPATCH(NmrClient) != nullptr);
+
+    MsQuic =
+        new (std::nothrow) MsQuicApi(
+            QUIC_GET_DISPATCH(NmrClient)->OpenVersion,
+            QUIC_GET_DISPATCH(NmrClient)->Close);
     if (!MsQuic) {
         goto Error;
     }
@@ -221,6 +244,10 @@ QuicTestCtlUninitialize(
     }
 
     delete MsQuic;
+
+    if (NmrClient != nullptr) {
+        MsQuicNmrClientDeregister(&NmrClient);
+    }
 
     QuicTraceLogVerbose(
         TestControlUninitialized,
@@ -371,7 +398,7 @@ error:
 
 size_t QUIC_IOCTL_BUFFER_SIZES[] =
 {
-    0,
+    sizeof(QUIC_TEST_CONFIGURATION_PARAMS),
     sizeof(QUIC_RUN_CERTIFICATE_PARAMS),
     0,
     0,
@@ -488,13 +515,17 @@ size_t QUIC_IOCTL_BUFFER_SIZES[] =
     0,
     0,
     sizeof(INT32),
+    0,
+    sizeof(QUIC_RUN_CANCEL_ON_LOSS_PARAMS),
+    sizeof(uint32_t),
 };
 
 CXPLAT_STATIC_ASSERT(
     QUIC_MAX_IOCTL_FUNC_CODE + 1 == (sizeof(QUIC_IOCTL_BUFFER_SIZES)/sizeof(size_t)),
-    "QUIC_IOCTL_BUFFER_SIZES must be kept in sync with the IOTCLs");
+    "QUIC_IOCTL_BUFFER_SIZES must be kept in sync with the IOCTLs");
 
 typedef union {
+    QUIC_TEST_CONFIGURATION_PARAMS TestConfigurationParams;
     QUIC_RUN_CERTIFICATE_PARAMS CertParams;
     QUIC_CERTIFICATE_HASH_STORE CertHashStore;
     UINT8 Connect;
@@ -505,6 +536,7 @@ typedef union {
     QUIC_RUN_ABORTIVE_SHUTDOWN_PARAMS Params4;
     QUIC_RUN_CID_UPDATE_PARAMS Params5;
     QUIC_RUN_RECEIVE_RESUME_PARAMS Params6;
+    QUIC_RUN_CANCEL_ON_LOSS_PARAMS Params7;
     UINT8 EnableKeepAlive;
     UINT8 StopListenerFirst;
     QUIC_RUN_DRILL_INITIAL_PACKET_CID_PARAMS DrillParams;
@@ -575,7 +607,7 @@ QuicTestCtlEvtIoDeviceControl(
     }
 
     ULONG FunctionCode = IoGetFunctionCodeFromCtlCode(IoControlCode);
-    if (FunctionCode == 0 || FunctionCode > QUIC_MAX_IOCTL_FUNC_CODE) {
+    if (FunctionCode > QUIC_MAX_IOCTL_FUNC_CODE) {
         Status = STATUS_NOT_IMPLEMENTED;
         QuicTraceEvent(
             LibraryErrorStatus,
@@ -637,6 +669,11 @@ QuicTestCtlEvtIoDeviceControl(
     }
 
     switch (IoControlCode) {
+
+    case IOCTL_QUIC_TEST_CONFIGURATION:
+        CXPLAT_FRE_ASSERT(Params != nullptr);
+        UseDuoNic = Params->TestConfigurationParams.UseDuoNic;
+        break;
 
     case IOCTL_QUIC_SET_CERT_PARAMS:
         CXPLAT_FRE_ASSERT(Params != nullptr);
@@ -1349,6 +1386,7 @@ QuicTestCtlEvtIoDeviceControl(
                 Params->CustomCertValidationParams.AcceptCert,
                 Params->CustomCertValidationParams.AsyncValidation));
         break;
+
 #ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
     case IOCTL_QUIC_RELIABLE_RESET_NEGOTIATION:
         CXPLAT_FRE_ASSERT(Params != nullptr);
@@ -1358,6 +1396,7 @@ QuicTestCtlEvtIoDeviceControl(
                 Params->FeatureNegotiationParams.ServerSupport,
                 Params->FeatureNegotiationParams.ClientSupport));
         break;
+
     case IOCTL_QUIC_ONE_WAY_DELAY_NEGOTIATION:
         CXPLAT_FRE_ASSERT(Params != nullptr);
         QuicTestCtlRun(
@@ -1384,6 +1423,22 @@ QuicTestCtlEvtIoDeviceControl(
         CXPLAT_FRE_ASSERT(Params != nullptr);
         QuicTestCtlRun(QuicDrillTestServerVNPacket(Params->Family));
         break;
+
+    case IOCTL_QUIC_RUN_CONN_CLOSE_BEFORE_STREAM_CLOSE:
+        QuicTestCtlRun(QuicTestConnectionCloseBeforeStreamClose());
+        break;
+
+    case IOCTL_QUIC_RUN_CANCEL_ON_LOSS:
+        CXPLAT_FRE_ASSERT(Params != nullptr);
+        QuicTestCtlRun(QuicCancelOnLossSend(Params->Params7.DropPackets));
+        break;
+        
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
+    case IOCTL_QUIC_RUN_VALIDATE_NET_STATS_CONN_EVENT:
+        CXPLAT_FRE_ASSERT(Params != nullptr);
+        QuicTestCtlRun(QuicTestValidateNetStatsConnEvent(Params->Test));
+        break;
+#endif
 
     default:
         Status = STATUS_NOT_IMPLEMENTED;

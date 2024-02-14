@@ -253,6 +253,8 @@ public:
     QUIC_STATUS GetRemoteAddr(_Out_ QuicAddr &remoteAddr);
     QUIC_STATUS SetRemoteAddr(_In_ const QuicAddr &remoteAddr);
 
+    QUIC_STATUS GetOrigDestCid(_Out_ uint8_t Bytes[32], _Out_ uint32_t& Length);
+
     bool GetEcnEnabled();
     QUIC_STATUS SetEcnEnabled(bool value);
 

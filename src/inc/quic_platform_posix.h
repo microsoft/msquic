@@ -232,6 +232,15 @@ InterlockedIncrement64(
     return __sync_add_and_fetch(Addend, (int64_t)1);
 }
 
+inline
+int64_t
+InterlockedDecrement64(
+    _Inout_ _Interlocked_operand_ int64_t volatile *Addend
+    )
+{
+    return __sync_sub_and_fetch(Addend, (int64_t)1);
+}
+
 #define QuicReadPtrNoFence(p) ((void*)(*p)) // TODO
 
 //
@@ -289,6 +298,7 @@ CxPlatLogAssert(
 
 #define CXPLAT_IRQL() 0
 #define CXPLAT_PASSIVE_CODE()
+#define CXPLAT_AT_DISPATCH() FALSE
 
 //
 // Memory management interfaces.
@@ -860,6 +870,8 @@ CxPlatInternalEventWaitWithTimeout(
     struct timespec Ts = {0, 0};
     int Result;
 
+    CXPLAT_DBG_ASSERT(TimeoutMs != UINT32_MAX);
+
     //
     // Get absolute time.
     //
@@ -1289,16 +1301,12 @@ CxPlatCurThreadID(
 //
 
 extern uint32_t CxPlatProcessorCount;
-
-#define CxPlatProcMaxCount() CxPlatProcessorCount
-#define CxPlatProcActiveCount() CxPlatProcessorCount
+#define CxPlatProcCount() CxPlatProcessorCount
 
 uint32_t
 CxPlatProcCurrentNumber(
     void
     );
-
-#define CxPlatProcIsActive(Index) TRUE // TODO
 
 //
 // Rundown Protection Interfaces.
@@ -1382,13 +1390,6 @@ CxPlatConvertFromMappedV6(
     _In_ const QUIC_ADDR* InAddr,
     _Out_ QUIC_ADDR* OutAddr
     );
-
-QUIC_STATUS
-CxPlatSetCurrentThreadProcessorAffinity(
-    _In_ uint16_t ProcessorIndex
-    );
-
-#define CxPlatSetCurrentThreadGroupAffinity(ProcessorGroup) QUIC_STATUS_SUCCESS
 
 #define CXPLAT_CPUID(FunctionId, eax, ebx, ecx, dx)
 

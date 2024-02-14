@@ -54,7 +54,7 @@ typedef enum CXPLAT_ECN_TYPE {
 } CXPLAT_ECN_TYPE;
 
 //
-// Helper to get the ECN type from the Type of Service field of recieved data.
+// Helper to get the ECN type from the Type of Service field of received data.
 //
 #define CXPLAT_ECN_FROM_TOS(ToS) (CXPLAT_ECN_TYPE)((ToS) & 0x3)
 
@@ -584,7 +584,7 @@ CxPlatSocketCreateTcpListener(
     );
 
 //
-// Deletes a socket. This function blocks on all outstandind upcalls and on
+// Deletes a socket. This function blocks on all outstanding upcalls and on
 // return guarantees no further callbacks will occur. DO NOT call this function
 // on an upcall!
 //
@@ -718,6 +718,46 @@ CxPlatSocketSend(
     _In_ CXPLAT_SOCKET* Socket,
     _In_ const CXPLAT_ROUTE* Route,
     _In_ CXPLAT_SEND_DATA* SendData
+    );
+
+typedef struct CXPLAT_TCP_STATISTICS { // Mostly copied from TCP_INFO_v1 for now
+    uint32_t Mss;
+    uint64_t ConnectionTimeMs;
+    BOOLEAN TimestampsEnabled;
+    uint32_t RttUs;
+    uint32_t MinRttUs;
+    uint32_t BytesInFlight;
+    uint32_t Cwnd;
+    uint32_t SndWnd;
+    uint32_t RcvWnd;
+    uint32_t RcvBuf;
+    uint64_t BytesOut;
+    uint64_t BytesIn;
+    uint32_t BytesReordered;
+    uint32_t BytesRetrans;
+    uint32_t FastRetrans;
+    uint32_t DupAcksIn;
+    uint32_t TimeoutEpisodes;
+    uint8_t SynRetrans;
+    uint32_t SndLimTransRwin;
+    uint32_t SndLimTimeRwin;
+    uint64_t SndLimBytesRwin;
+    uint32_t SndLimTransCwnd;
+    uint32_t SndLimTimeCwnd;
+    uint64_t SndLimBytesCwnd;
+    uint32_t SndLimTransSnd;
+    uint32_t SndLimTimeSnd;
+    uint64_t SndLimBytesSnd;
+} CXPLAT_TCP_STATISTICS;
+
+//
+// Queries socket statistics.
+//
+_IRQL_requires_max_(DISPATCH_LEVEL)
+QUIC_STATUS
+CxPlatSocketGetTcpStatistics(
+    _In_ CXPLAT_SOCKET* Socket,
+    _Out_ CXPLAT_TCP_STATISTICS* Statistics
     );
 
 //
