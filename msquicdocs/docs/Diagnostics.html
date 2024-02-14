@@ -298,7 +298,8 @@ QUIC_PERF_COUNTER_WORK_OPER_COMPLETED | Total worker operations processed ever
 QUIC_PERF_COUNTER_PATH_VALIDATED | Total path challenges that succeed ever
 QUIC_PERF_COUNTER_PATH_FAILURE | Total path challenges that fail ever
 QUIC_PERF_COUNTER_SEND_STATELESS_RESET | Total stateless reset packets sent ever
-QUIC_PERF_COUNTER_SEND_STATELESS_RETRY | Total stateless retry packets sent ever</p>
+QUIC_PERF_COUNTER_SEND_STATELESS_RETRY | Total stateless retry packets sent ever
+QUIC_PERF_COUNTER_CONN_LOAD_REJECT | Total connections rejected due to worker load.</p>
 <h2 id="windows-performance-monitor">Windows Performance Monitor</h2>
 <p>On the latest version of Windows, these counters are also exposed via PerfMon.exe under the <code>QUIC Performance Diagnostics</code> category. The values exposed via PerfMon <strong>only represent kernel mode usages</strong> of MsQuic, and do not include user mode counters.</p>
 <p><img src="images/perfmon.png" alt=""></p>
