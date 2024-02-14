@@ -142,7 +142,7 @@ extern QUIC_TRACE_RUNDOWN_CALLBACK* QuicTraceRundownCallback;
 #endif
 
 #define CASTED_CLOG_BYTEARRAY(Len, Data) CLOG_BYTEARRAY((unsigned char)(Len), (const unsigned char*)(Data))
-#define CASTED_CLOG_BYTEARRAY16(Len, Data) CLOG_BYTEARRAY16((unsigned short)(Len), (const unsigned char*)(Data))
+#define CASTED_CLOG_BYTEARRAY16(Len, Data) CLOG_BYTEARRAY((unsigned short)(Len), (const unsigned char*)(Data))
 #else
 
 #if defined(QUIC_EVENTS_STDOUT) || defined(QUIC_LOGS_STDOUT) ||                \
