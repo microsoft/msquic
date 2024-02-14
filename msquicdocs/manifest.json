@@ -212,6 +212,16 @@
     },
     {
       "type": "Conceptual",
+      "source_relative_path": "docs/ThreatModel.md",
+      "output": {
+        ".html": {
+          "relative_path": "docs/ThreatModel.html"
+        }
+      },
+      "version": ""
+    },
+    {
+      "type": "Conceptual",
       "source_relative_path": "docs/Versions.md",
       "output": {
         ".html": {
