@@ -308,6 +308,9 @@ QuicTraceGlobalEvent(
             case QUIC_PERF_COUNTER_SEND_STATELESS_RETRY:
                 printf("    Total stateless retry packets sent ever:            ");
                 break;
+            case QUIC_PERF_COUNTER_CONN_LOAD_REJECT:
+                printf("    Total connections rejected due to worker load:      ");
+                break;
             default:
                 printf("    Unknown:                                            ");
                 break;
