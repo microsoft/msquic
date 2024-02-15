@@ -49,9 +49,7 @@ struct PacketParams {
     QUIC_LONG_HEADER_TYPE_V1 PacketType;
     QUIC_FRAME_TYPE FrameTypes[2];
     uint64_t largestAcknowledge; // For ACK Frame
-} PacketParams;
-
-
+};
 
 struct StrBuffer {
     uint8_t* Data;
@@ -453,7 +451,7 @@ void WriteClientPacket(
     _Out_ uint16_t* PacketLength,
     _Out_ uint16_t* HeaderLength,
     _In_ TlsContext* ClientContext,
-    _In_ QUIC_LONG_HEADER_TYPE_V1 PacketType
+    _In_ PacketParams PacketParams
     )
 {
     uint32_t QuicVersion = Version;
@@ -488,7 +486,7 @@ void WriteClientPacket(
     *PacketLength =
         QuicPacketEncodeLongHeaderV1(
             QuicVersion,
-            (uint8_t)PacketType,
+            (uint8_t)PacketParams.PacketType,
             1, // Fixed bit must be 1 in this case
             DestCid,
             SourceCid,
@@ -521,7 +519,7 @@ void fuzzPacket(uint8_t* Packet, uint16_t PacketLength) {
     }
 }
 
-void sendPacket(CXPLAT_SOCKET* Binding, CXPLAT_ROUTE Route, int64_t* PacketCount, int64_t* TotalByteCount, bool fuzzing = true, TlsContext* ClientContext = nullptr) {
+void sendPacket(CXPLAT_SOCKET* Binding, CXPLAT_ROUTE Route, int64_t* PacketCount, int64_t* TotalByteCount,  PacketParams PacketParams, bool fuzzing = true, TlsContext* ClientContext = nullptr) {
     const uint16_t DatagramLength = QUIC_MIN_INITIAL_LENGTH; 
     CXPLAT_SEND_CONFIG SendConfig = { &Route, DatagramLength, CXPLAT_ECN_NON_ECT, 0 };
     CXPLAT_SEND_DATA* SendData = CxPlatSendDataAlloc(Binding, &SendConfig);
@@ -541,7 +539,7 @@ void sendPacket(CXPLAT_SOCKET* Binding, CXPLAT_ROUTE Route, int64_t* PacketCount
             &PacketLength,
             &HeaderLength,
             ClientContext,
-            PacketParams.PacketType);
+            PacketParams);
 
         uint16_t PacketNumberOffset = HeaderLength - sizeof(uint32_t);
 
@@ -635,7 +633,7 @@ void fuzz(CXPLAT_SOCKET* Binding, CXPLAT_ROUTE Route) {
     uint8_t mode;
     uint64_t StartTimeMs = CxPlatTimeMs64();
     uint64_t SrcCid;
-    PacketParams = {
+    PacketParams PacketParams = {
         sizeof(uint64_t),
         sizeof(uint64_t),
         nullptr,
@@ -664,7 +662,7 @@ void fuzz(CXPLAT_SOCKET* Binding, CXPLAT_ROUTE Route) {
             CxPlatRandom(sizeof(uint64_t), &SrcCid);
             PacketParams.SourceCid = (uint8_t *)&SrcCid;
             TlsContext InitialClientContext(SrcCid);
-            sendPacket(Binding, Route, &PacketCount, &TotalByteCount, true, &InitialClientContext);
+            sendPacket(Binding, Route, &PacketCount, &TotalByteCount, PacketParams, true, &InitialClientContext);
         } else if (mode == 1) {
             if (!ClientContext.State.HandshakeComplete) {
                 uint8_t recvBuffer[4096];
@@ -674,11 +672,16 @@ void fuzz(CXPLAT_SOCKET* Binding, CXPLAT_ROUTE Route) {
                 do {
                     ClientContext.ProcessData();
                     PacketParams.PacketType = QUIC_INITIAL_V1;
-                    sendPacket(Binding, Route, &PacketCount, &TotalByteCount, false, &ClientContext);
+                    printf("Sending Client Hello\n");
+                    sendPacket(Binding, Route, &PacketCount, &TotalByteCount, PacketParams, false, &ClientContext);
                 } while (WaitForSingleObject(RecvPacketEvent, 100) != (DWORD)WAIT_OBJECT_0 && CxPlatTimeDiff64(StartTimeMs, CxPlatTimeMs64()) < RunTimeMs);
                 int k = 0; 
                 while (!PacketQueue.empty())  {
                     QUIC_RX_PACKET packet = PacketQueue.front();
+                    if (memcmp(packet.DestCid, PacketParams.SourceCid, packet.DestCidLen) != 0) {
+                        PacketQueue.pop_front();
+                        continue;
+                    }
                     uint8_t Cipher[CXPLAT_HP_SAMPLE_LENGTH];
                     uint8_t HpMask[16];
                     CxPlatCopyMemory(
@@ -687,10 +690,7 @@ void fuzz(CXPLAT_SOCKET* Binding, CXPLAT_ROUTE Route) {
                         CXPLAT_HP_SAMPLE_LENGTH);
                     // same step for all long header packets
                     
-                    QUIC_PACKET_KEY_TYPE KeyType = packet.KeyType;   
-                    if (ClientContext.State.ReadKeys[KeyType] == NULL) {
-                        continue;
-                    }         
+                    QUIC_PACKET_KEY_TYPE KeyType = packet.KeyType;         
                     CxPlatHpComputeMask(
                         ClientContext.State.ReadKeys[KeyType]->HeaderKey,
                         1,
@@ -779,7 +779,8 @@ void fuzz(CXPLAT_SOCKET* Binding, CXPLAT_ROUTE Route) {
                                 PacketParams.DestCid = (uint8_t *)packet.SourceCid;
                                 PacketParams.DestCidLen = packet.SourceCidLen;
                                 PacketParams.PacketType = QUIC_INITIAL_V1;
-                                sendPacket(Binding, Route, &PacketCount, &TotalByteCount, false, &ClientContext);
+                                printf("Sending ACK Packet\n");
+                                sendPacket(Binding, Route, &PacketCount, &TotalByteCount, PacketParams, false, &ClientContext);
                             }
                             
                         }
@@ -796,7 +797,7 @@ void fuzz(CXPLAT_SOCKET* Binding, CXPLAT_ROUTE Route) {
                 PacketParams.FrameTypes[0] = QUIC_FRAME_ACK;
                 PacketParams.FrameTypes[1] = QUIC_FRAME_CRYPTO;
                 printf("Sending Handshake Packet\n");
-                sendPacket(Binding, Route, &PacketCount, &TotalByteCount, true, &ClientContext);
+                sendPacket(Binding, Route, &PacketCount, &TotalByteCount, PacketParams, true, &ClientContext);
             }
             
         }
@@ -834,7 +835,7 @@ void start() {
         printf("Address Resolution Failed 0x%x", Status);
         return;
     }
-    QuicAddrSetPort(&sockAddr, 443);
+    QuicAddrSetPort(&sockAddr, 9999);
     // make a server
     MsQuicRegistration Registration(true);
     QUIC_SUCCEEDED(Registration.GetInitStatus());
