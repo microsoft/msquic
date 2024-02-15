@@ -153,7 +153,7 @@ $DistDir = Join-Path $BaseArtifactsDir "dist"
 $CurrentCommitHash = Get-GitHash -RepoDir $RootDir
 $RepoRemote = Get-GitRemote -RepoDir $RootDir
 
-$Version = "2.3.3"
+$Version = "2.3.4"
 
 $BuildId = $env:BUILD_BUILDID
 if ($null -ne $BuildId) {
