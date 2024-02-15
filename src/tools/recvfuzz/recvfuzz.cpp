@@ -227,7 +227,7 @@ struct TlsContext
             OnRecvQuicTP,
             NULL
         };
-        
+         
         if (QUIC_FAILED(
             CxPlatTlsSecConfigCreate(
                 &CredConfig,
@@ -629,115 +629,6 @@ void sendPacket(CXPLAT_SOCKET* Binding, CXPLAT_ROUTE Route, int64_t* PacketCount
     }
 }
 
-void sendHandshakePacket(CXPLAT_SOCKET* Binding, CXPLAT_ROUTE Route, int64_t* PacketCount, int64_t* TotalByteCount, bool fuzzing = true, TlsContext* ClientContext = nullptr) {
-    const uint16_t DatagramLength = QUIC_MIN_INITIAL_LENGTH; 
-    CXPLAT_SEND_CONFIG SendConfig = { &Route, DatagramLength, CXPLAT_ECN_NON_ECT, 0 };
-    CXPLAT_SEND_DATA* SendData = CxPlatSendDataAlloc(Binding, &SendConfig);
-    if (!SendData) {
-        printf("CxPlatSendDataAlloc failed\n");
-    }
-    // uint64_t d = 1;
-    // uint64_t s = 2;
-    while (!CxPlatSendDataIsFull(SendData)) {
-        uint8_t Packet[512] = {0};
-        uint16_t PacketLength, HeaderLength;
-        uint64_t packetNum = PacketParams.packetNumber++;
-        WriteClientPacket(
-            (uint32_t)packetNum,
-            sizeof(Packet),
-            Packet,
-            &PacketLength,
-            &HeaderLength,
-            ClientContext,
-            QUIC_HANDSHAKE_V1);
-
-        uint16_t PacketNumberOffset = HeaderLength - sizeof(uint32_t);
-
-        uint8_t* DestCid = (uint8_t*)(Packet + sizeof(QUIC_LONG_HEADER_V1));
-        uint8_t* SrcCid = (uint8_t*)(Packet + sizeof(QUIC_LONG_HEADER_V1) + PacketParams.DestCidLen + sizeof(uint8_t));
-        if (PacketParams.DestCid == nullptr) {
-            CxPlatRandom(sizeof(uint64_t), DestCid);
-        }
-        else {
-            memcpy(DestCid, PacketParams.DestCid, PacketParams.DestCidLen);
-        }
-        
-        memcpy(SrcCid, PacketParams.SourceCid, PacketParams.SourceCidLen);
-        
-        if (fuzzing) {
-            fuzzPacket(Packet, sizeof(Packet));
-        }
-        QUIC_BUFFER* SendBuffer =
-            CxPlatSendDataAllocBuffer(SendData, DatagramLength);
-            if (!SendBuffer) {
-                printf("CxPlatSendDataAllocBuffer failed\n");
-                return;
-            }
-       
-        memcpy(SendBuffer->Buffer, Packet, PacketLength);
-        if(ClientContext->State.WriteKeys[0] == nullptr) {
-            if (QUIC_FAILED(
-                QuicPacketKeyCreateInitial(
-                    FALSE,
-                    &HkdfLabels,
-                    InitialSalt.Data,
-                    PacketParams.DestCidLen,
-                    (uint8_t*)DestCid,
-                    &ClientContext->State.ReadKeys[0],
-                    &ClientContext->State.WriteKeys[0]))) {
-                printf("QuicPacketKeyCreateInitial failed\n");
-                return;
-            }
-            ClientContext->State.ReadKey = QUIC_PACKET_KEY_INITIAL;
-            ClientContext->State.WriteKey = QUIC_PACKET_KEY_INITIAL;
-        }
-
-        uint8_t Iv[CXPLAT_IV_LENGTH];
-        int KeyType = 2;
-        QuicCryptoCombineIvAndPacketNumber(
-            ClientContext->State.WriteKeys[KeyType]->Iv, (uint8_t*)&packetNum, Iv);
-
-        CxPlatEncrypt(
-            ClientContext->State.WriteKeys[KeyType]->PacketKey,
-            Iv,
-            HeaderLength,
-            SendBuffer->Buffer,
-            PacketLength - HeaderLength,
-            SendBuffer->Buffer + HeaderLength);
-
-        uint8_t HpMask[16];
-        CxPlatHpComputeMask(
-            ClientContext->State.WriteKeys[KeyType]->HeaderKey,
-            1,
-            SendBuffer->Buffer + HeaderLength,
-            HpMask);
-
-        // QuicPacketKeyFree(Keys.WriteKey);
-        SendBuffer->Buffer[0] ^= HpMask[0] & 0x0F;
-        for (uint8_t i = 0; i < 4; ++i) {
-            SendBuffer->Buffer[PacketNumberOffset + i] ^= HpMask[i + 1];
-        }
-        InterlockedExchangeAdd64(PacketCount, 1);
-        InterlockedExchangeAdd64(TotalByteCount, DatagramLength);
-        QUIC_LONG_HEADER_V1* Header = (QUIC_LONG_HEADER_V1*)Packet;
-
-        // printf("Sending Packet Type: %d\n", Header->Type);
-        if (!fuzzing) {
-            break;
-        }
-        
-    }
-    
-    if (QUIC_FAILED(
-        CxPlatSocketSend(
-            Binding,
-            &Route,
-            SendData))) {
-        printf("Send failed!\n");
-        exit(0);
-    }
-}
-
 void fuzz(CXPLAT_SOCKET* Binding, CXPLAT_ROUTE Route) {
     int64_t PacketCount = 0;
     int64_t TotalByteCount = 0;
@@ -796,7 +687,10 @@ void fuzz(CXPLAT_SOCKET* Binding, CXPLAT_ROUTE Route) {
                         CXPLAT_HP_SAMPLE_LENGTH);
                     // same step for all long header packets
                     
-                    QUIC_PACKET_KEY_TYPE KeyType = packet.KeyType;
+                    QUIC_PACKET_KEY_TYPE KeyType = packet.KeyType;   
+                    if (ClientContext.State.ReadKeys[KeyType] == NULL) {
+                        return;
+                    }         
                     CxPlatHpComputeMask(
                         ClientContext.State.ReadKeys[KeyType]->HeaderKey,
                         1,
