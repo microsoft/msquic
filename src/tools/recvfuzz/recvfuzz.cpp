@@ -689,7 +689,7 @@ void fuzz(CXPLAT_SOCKET* Binding, CXPLAT_ROUTE Route) {
                     
                     QUIC_PACKET_KEY_TYPE KeyType = packet.KeyType;   
                     if (ClientContext.State.ReadKeys[KeyType] == NULL) {
-                        return;
+                        continue;
                     }         
                     CxPlatHpComputeMask(
                         ClientContext.State.ReadKeys[KeyType]->HeaderKey,
