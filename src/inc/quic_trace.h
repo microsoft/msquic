@@ -142,6 +142,7 @@ extern QUIC_TRACE_RUNDOWN_CALLBACK* QuicTraceRundownCallback;
 #endif
 
 #define CASTED_CLOG_BYTEARRAY(Len, Data) CLOG_BYTEARRAY((unsigned char)(Len), (const unsigned char*)(Data))
+#define CASTED_CLOG_BYTEARRAY16(Len, Data) CLOG_BYTEARRAY((unsigned short)(Len), (const unsigned char*)(Data))
 #else
 
 #if defined(QUIC_EVENTS_STDOUT) || defined(QUIC_LOGS_STDOUT) ||                \
@@ -210,9 +211,13 @@ casted_clog_bytearray(const uint8_t * const data,
     UNREFERENCED_PARAMETER(head);
     return 0;
 }
+
 #endif
 
 #define CASTED_CLOG_BYTEARRAY(Len, Data)                                       \
+    casted_clog_bytearray((const uint8_t *)(Data), (Len), &__head)
+
+#define CASTED_CLOG_BYTEARRAY16(Len, Data)                                       \
     casted_clog_bytearray((const uint8_t *)(Data), (Len), &__head)
 
 #endif
@@ -260,6 +265,9 @@ QuicEtwCallback(
 
 #define CLOG_BYTEARRAY(Len, Data) (uint8_t)(Len), (uint8_t*)(Data)
 #define CASTED_CLOG_BYTEARRAY(Len, Data) CLOG_BYTEARRAY((unsigned char)(Len), (const unsigned char*)(Data))
+
+#define CLOG_BYTEARRAY16(Len, Data) (uint16_t)(Len), (uint8_t*)(Data)
+#define CASTED_CLOG_BYTEARRAY16(Len, Data) CLOG_BYTEARRAY16((unsigned short)(Len), (const unsigned char*)(Data))
 
 
 #endif // QUIC_EVENTS_MANIFEST_ETW
