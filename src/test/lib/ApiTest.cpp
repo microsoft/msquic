@@ -4801,6 +4801,7 @@ QuicTestGetPerfCounters()
     // Test getting the full array of counters.
     //
     uint64_t Counters[QUIC_PERF_COUNTER_MAX];
+    BufferLength = sizeof(Counters);
     TEST_QUIC_SUCCEEDED(
         MsQuic->GetParam(
             nullptr,
