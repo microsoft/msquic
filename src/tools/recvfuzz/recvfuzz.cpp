@@ -732,6 +732,8 @@ void fuzz(CXPLAT_SOCKET* Binding, CXPLAT_ROUTE Route) {
                             packet.PayloadLength,  // BufferLength
                             (uint8_t*)Payload))) {  // Buffer
                         printf("CxPlatDecrypt failed\n");
+                        PacketQueue.pop_front();
+                        continue;
                         }
                     packet.PayloadLength -= CXPLAT_ENCRYPTION_OVERHEAD;
                     
@@ -796,7 +798,6 @@ void fuzz(CXPLAT_SOCKET* Binding, CXPLAT_ROUTE Route) {
                 PacketParams.numFrames = 2;
                 PacketParams.FrameTypes[0] = QUIC_FRAME_ACK;
                 PacketParams.FrameTypes[1] = QUIC_FRAME_CRYPTO;
-                printf("Sending Handshake Packet\n");
                 sendPacket(Binding, Route, &PacketCount, &TotalByteCount, PacketParams, true, &ClientContext);
             }
             
