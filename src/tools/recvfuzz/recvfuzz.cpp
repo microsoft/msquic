@@ -798,6 +798,7 @@ void fuzz(CXPLAT_SOCKET* Binding, CXPLAT_ROUTE Route) {
                 PacketParams.numFrames = 2;
                 PacketParams.FrameTypes[0] = QUIC_FRAME_ACK;
                 PacketParams.FrameTypes[1] = QUIC_FRAME_CRYPTO;
+                printf("Sending Handshake Packet\n");
                 sendPacket(Binding, Route, &PacketCount, &TotalByteCount, PacketParams, true, &ClientContext);
             }
             
