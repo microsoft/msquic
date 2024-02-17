@@ -48,7 +48,7 @@ jobs:
       uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11
     - name: Install Perl
       if: runner.os == 'Windows'
-      uses: shogo82148/actions-setup-perl@ea0507898383e7dbce382138da0c21af1849eb9e
+      uses: shogo82148/actions-setup-perl@28eae78d12c2bba1163aec45d123f6d9228bc307
       with:
         perl-version: '5.34'
     - name: Install NASM
