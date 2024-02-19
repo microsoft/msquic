@@ -34,7 +34,7 @@ HANDLE RecvPacketEvent;
 HANDLE FreePacketEvent;
 QUIC_RX_PACKET Batch[QUIC_MAX_CRYPTO_BATCH_COUNT];
 uint8_t BatchCount = 0;
-
+std::list<QUIC_RX_PACKET> PacketQueue;
 
 static const char* Alpn = "fuzz";
 static uint32_t Version = QUIC_VERSION_1;
@@ -184,15 +184,17 @@ UdpRecvCallback(
                 Packet->KeyType = QuicPacketTypeToKeyTypeV1(Packet->LH->Type);
             }
             Packet->Encrypted = TRUE;
-            Batch[BatchCount++] = *Packet;
+            PacketQueue.push_back(*Packet);
             Packet->AvailBuffer += Packet->AvailBufferLength;
         } while (Packet->AvailBuffer - Datagram->Buffer < Datagram->BufferLength);
         // QuicPacketKeyFree(Keys.ReadKey);
     }
     SetEvent(RecvPacketEvent);
-    DWORD WaitResult = WaitForSingleObject(FreePacketEvent, INFINITE);
+    DWORD WaitResult = WaitForSingleObject(FreePacketEvent, 1000);
     if (WaitResult == WAIT_OBJECT_0) {
         CxPlatRecvDataReturn(RecvBufferChain);
+    } else {
+        exit(0);
     }
 }
 
@@ -683,8 +685,9 @@ void fuzz(CXPLAT_SOCKET* Binding, CXPLAT_ROUTE Route) {
                         sendPacket(Binding, Route, &PacketCount, &TotalByteCount, PacketParams, false, &HandshakeClientContext);
                     } while (WaitForSingleObject(RecvPacketEvent, 100) != (DWORD)WAIT_OBJECT_0 && CxPlatTimeDiff64(StartTimeMs, CxPlatTimeMs64()) < RunTimeMs);
                 }
-                for (int j = 0; j < BatchCount; j++) {
-                    QUIC_RX_PACKET packet = Batch[j];
+                while (!PacketQueue.empty()) {
+                    QUIC_RX_PACKET packet = PacketQueue.front();
+                    PacketQueue.pop_front();
                     if (memcmp(packet.DestCid, PacketParams.SourceCid, packet.DestCidLen) != 0) {
                         continue;
                     }
@@ -778,7 +781,7 @@ void fuzz(CXPLAT_SOCKET* Binding, CXPLAT_ROUTE Route) {
                                 &recvBufferLength,
                                 &HandshakeClientContext.State);
                             if (Result & CXPLAT_TLS_RESULT_ERROR) {
-                                printf("Failed to process data!\n");
+                                printf("Failed to process handshake data!\n");
                             }
                             bufferoffset += recvBufferLength;
                             PacketParams.largestAcknowledge = packet.PacketNumber;
@@ -806,6 +809,7 @@ void fuzz(CXPLAT_SOCKET* Binding, CXPLAT_ROUTE Route) {
                 BatchCount = 0;
             }
             else {
+                bufferoffset = 0;
                 PacketParams.PacketType = QUIC_HANDSHAKE_V1;
                 PacketParams.numFrames = 2;
                 PacketParams.FrameTypes[0] = QUIC_FRAME_ACK;
