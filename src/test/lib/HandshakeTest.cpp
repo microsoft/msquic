@@ -820,14 +820,6 @@ QuicTestConnectAndIdle(
     }
 }
 
-void hexdump(FILE* f, void *ptr, int buflen) {
-  unsigned char *buf = (unsigned char*)ptr;
-  int i;
-  for (i=0; i<buflen; i+=1) {
-    fprintf(f, "%02x", buf[i]);
-  }
-}
-
 void
 QuicTestCustomServerCertificateValidation(
     _In_ bool AcceptCert,
@@ -865,7 +857,6 @@ QuicTestCustomServerCertificateValidation(
             }
             Listener.Context = &ServerAcceptCtx;
 
-            QUIC_TLS_SECRETS TlsSecrets{};
             {
                 TestConnection Client(Registration);
                 TEST_TRUE(Client.IsValid());
