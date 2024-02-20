@@ -820,6 +820,14 @@ QuicTestConnectAndIdle(
     }
 }
 
+void hexdump(FILE* f, void *ptr, int buflen) {
+  unsigned char *buf = (unsigned char*)ptr;
+  int i;
+  for (i=0; i<buflen; i+=1) {
+    fprintf(f, "%02x", buf[i]);
+  }
+}
+
 void
 QuicTestCustomServerCertificateValidation(
     _In_ bool AcceptCert,
@@ -857,6 +865,7 @@ QuicTestCustomServerCertificateValidation(
             }
             Listener.Context = &ServerAcceptCtx;
 
+            QUIC_TLS_SECRETS TlsSecrets{};
             {
                 TestConnection Client(Registration);
                 TEST_TRUE(Client.IsValid());
@@ -885,13 +894,11 @@ QuicTestCustomServerCertificateValidation(
                 }
                 TEST_EQUAL(AcceptCert, Client.GetIsConnected());
 
-                if (AcceptCert) { // Server will be deleted on reject case, so can't validate.
-                    TEST_NOT_EQUAL(nullptr, Server);
-                    if (!Server->WaitForConnectionComplete()) {
-                        return;
-                    }
-                    TEST_TRUE(Server->GetIsConnected());
+                TEST_NOT_EQUAL(nullptr, Server);
+                if (!Server->WaitForConnectionComplete()) {
+                    return;
                 }
+                TEST_EQUAL(AcceptCert, Server->GetIsConnected());
             }
         }
     }
@@ -998,16 +1005,15 @@ QuicTestCustomClientCertificateValidation(
                 if (!Client.WaitForConnectionComplete()) {
                     return;
                 }
-
-                if (AcceptCert) { // Server will be deleted on reject case, so can't validate.
-                    TEST_NOT_EQUAL(nullptr, Server);
-                    if (!Server->WaitForConnectionComplete()) {
-                        return;
-                    }
-                    TEST_TRUE(Server->GetIsConnected());
-                }
                 // In all cases, the client "connects", but in the rejection case, it gets disconnected.
                 TEST_TRUE(Client.GetIsConnected());
+
+                TEST_NOT_EQUAL(nullptr, Server);
+                if (!Server->WaitForConnectionComplete()) {
+                    return;
+                }
+
+                TEST_EQUAL(AcceptCert, Server->GetIsConnected());
             }
         }
     }
