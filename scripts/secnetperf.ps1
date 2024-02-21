@@ -184,13 +184,27 @@ VALUES ("$MsQuicCommit", "$(Get-Date -Format "yyyy-MM-dd HH:mm:ss")", 1, "TODO")
 "@
 $json = @{}
 $json["commit"] = "$MsQuicCommit"
+# Persist environment information:
+if ($isWindows) {
+    $windowsEnv = Get-CimInstance Win32_OperatingSystem | Select-Object Version
+    $json["os_version"] = $windowsEnv.Version
+} else {
+    $osInfo = bash -c "cat /etc/os-release"
+    $osInfoLines = $osInfo -split "`n"
+    $osName = $osInfoLines | Where-Object { $_ -match '^PRETTY_NAME=' } | ForEach-Object { $_ -replace '^PRETTY_NAME="|"$', '' }
+    $kernelVersion = bash -c "uname -r"
+    $json["os_version"] = "$osName $kernelVersion"
+}
 $allTests = [System.Collections.Specialized.OrderedDictionary]::new()
+
+# Create file to persist full latency curve data:
+New-Item -ItemType File -Name "full_latency_curve.txt" | Out-Null
 
 # > All tests:
 $allTests["tput-up"] = "-exec:maxtput -up:12s -ptput:1"
 $allTests["tput-down"] = "-exec:maxtput -down:12s -ptput:1"
 $allTests["hps-conns-100"] = "-exec:maxtput -rconn:1 -share:1 -conns:100 -run:12s -prate:1"
-$allTests["rps-up-512-down-4000"] = "-exec:lowlat -rstream:1 -up:512 -down:4000 -run:20s -plat:1"
+$allTests["rps-up-512-down-4000"] = "-exec:lowlat -rstream:1 -up:512 -down:4000 -run:20s -plat:1 -extraOutputFile full_latency_curve.txt"
 
 $env = $isWindows ? 1 : 2
 $hasFailures = $false
