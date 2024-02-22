@@ -198,13 +198,13 @@ if ($isWindows) {
 $allTests = [System.Collections.Specialized.OrderedDictionary]::new()
 
 # Create file to persist full latency curve data:
-New-Item -ItemType File -Name "full_latency_curve.txt"
+New-Item -ItemType File -Name "full-latency-curve.txt"
 
 # > All tests:
 $allTests["tput-up"] = "-exec:maxtput -up:12s -ptput:1"
 $allTests["tput-down"] = "-exec:maxtput -down:12s -ptput:1"
 $allTests["hps-conns-100"] = "-exec:maxtput -rconn:1 -share:1 -conns:100 -run:12s -prate:1"
-$allTests["rps-up-512-down-4000"] = "-exec:lowlat -rstream:1 -up:512 -down:4000 -run:20s -plat:1 -extraOutputFile:full_latency_curve.txt"
+$allTests["rps-up-512-down-4000"] = "-exec:lowlat -rstream:1 -up:512 -down:4000 -run:20s -plat:1 -extraOutputFile:full-latency-curve.txt"
 
 $env = $isWindows ? 1 : 2
 $hasFailures = $false
