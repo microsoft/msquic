@@ -80,7 +80,7 @@ $RemoteDir = "C:/_work/quic"
 $localDir = "C:/actions-runner/_work/netperf/netperf"
 if (!$isWindows) {
     $RemoteDir = "/home/secnetperf/_work/quic"
-    $localDir = "/home/secnetperf/_work/netperf/netperf"
+    $localDir = "/home/secnetperf/actions-runner/_work/netperf/netperf"
 }
 $SecNetPerfDir = "artifacts/bin/$plat/$($arch)_Release_$tls"
 $SecNetPerfPath = "$SecNetPerfDir/secnetperf"
