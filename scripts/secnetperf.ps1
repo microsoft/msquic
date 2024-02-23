@@ -77,8 +77,10 @@ $PSDefaultParameterValues["*:ErrorAction"] = "Stop"
 
 # Set up some important paths.
 $RemoteDir = "C:/_work/quic"
+$localDir = "C:/actions-runner/_work/netperf/netperf"
 if (!$isWindows) {
     $RemoteDir = "/home/secnetperf/_work/quic"
+    $localDir = "/home/secnetperf/_work/netperf/netperf"
 }
 $SecNetPerfDir = "artifacts/bin/$plat/$($arch)_Release_$tls"
 $SecNetPerfPath = "$SecNetPerfDir/secnetperf"
@@ -259,7 +261,7 @@ if (!$isWindows) {
 Write-Host "Setup complete! Running all tests"
 foreach ($testId in $allTests.Keys) {
     $ExeArgs = $allTests[$testId] + " -io:$io"
-    $Output = Invoke-Secnetperf $Session $RemoteName $RemoteDir $SecNetPerfPath $LogProfile $testId $ExeArgs $io $filter
+    $Output = Invoke-Secnetperf $Session $RemoteName $RemoteDir $localDir $SecNetPerfPath $LogProfile $testId $ExeArgs $io $filter
     $Test = $Output[-1]
     if ($Test.HasFailures) { $hasFailures = $true }
 
