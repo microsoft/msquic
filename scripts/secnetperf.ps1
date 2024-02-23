@@ -145,7 +145,7 @@ Invoke-Command -Session $Session -ScriptBlock {
 }
 
 # Collect some info about machine state.
-if ($NoLogs -and $isWindows) {
+if (!$NoLogs -and $isWindows) {
     $Arguments = "-SkipNetsh"
     if (Get-Help Get-NetView -Parameter SkipWindowsRegistry -ErrorAction Ignore) {
         $Arguments += " -SkipWindowsRegistry"
