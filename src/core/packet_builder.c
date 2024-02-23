@@ -479,8 +479,22 @@ QuicPacketBuilderGetPacketTypeAndKeyForControlFrames(
     CXPLAT_DBG_ASSERT(SendFlags != 0);
     QuicSendValidate(&Builder->Connection->Send);
 
+    QUIC_PACKET_KEY_TYPE MaxKeyType = Connection->Crypto.TlsState.WriteKey;
+
+    if (QuicConnIsClient(Connection) &&
+        !Connection->State.HandshakeConfirmed &&
+        MaxKeyType == QUIC_PACKET_KEY_1_RTT &&
+        (SendFlags & QUIC_CONN_SEND_FLAG_CONNECTION_CLOSE)) {
+        //
+        // Server is not allowed to process 1-RTT packets until the handshake is confirmed and since we are
+        // closing the connection, the handshake is unlikely to complete. Ensure the CONNECTION_CLOSE is sent
+        // in a packet which server can process.
+        //
+        MaxKeyType = QUIC_PACKET_KEY_HANDSHAKE;
+    }
+
     for (QUIC_PACKET_KEY_TYPE KeyType = 0;
-         KeyType <= Connection->Crypto.TlsState.WriteKey;
+         KeyType <= MaxKeyType;
          ++KeyType) {
 
         if (KeyType == QUIC_PACKET_KEY_0_RTT) {
@@ -538,7 +552,7 @@ QuicPacketBuilderGetPacketTypeAndKeyForControlFrames(
         if (Connection->Crypto.TlsState.WriteKey == QUIC_PACKET_KEY_0_RTT) {
             *PacketKeyType = QUIC_PACKET_KEY_INITIAL;
         } else {
-            *PacketKeyType = Connection->Crypto.TlsState.WriteKey;
+            *PacketKeyType = MaxKeyType;
         }
         return TRUE;
     }
