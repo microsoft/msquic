@@ -413,6 +413,9 @@ function Invoke-Secnetperf {
         $serverArgs += " -stats:1"
         $clientArgs += " -pconn:1"
     }
+    if ($testId.Contains("rps")) {
+        $clientArgs += " -extraOutputFile:$RemoteDir/latency.txt"
+    }
 
     if (!(Check-TestFilter $clientArgs $Filter)) {
         Write-Host "> secnetperf $clientArgs SKIPPED!"
