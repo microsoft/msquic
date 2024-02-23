@@ -74,6 +74,7 @@ QuicHandleExtraData(
 #endif
         if (FileErr) {
             printf("Failed to open file '%s' for write\n", FileName);
+            printf("Error code: %d\n", FileErr);
             return;
         }
         struct hdr_histogram* histogram = nullptr;

@@ -414,6 +414,10 @@ function Invoke-Secnetperf {
         $clientArgs += " -pconn:1"
     }
     if ($testId.Contains("rps")) {
+        New-Item -ItemType File -Name "latency.txt" -Path $RemoteDir
+        if (!$isWindows) {
+            chmod +rw $RemoteDir/latency.txt
+        }
         $clientArgs += " -extraOutputFile:$RemoteDir/latency.txt"
     }
 
