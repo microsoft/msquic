@@ -80,7 +80,7 @@ $RemoteDir = "C:/_work/quic"
 $localDir = "C:/actions-runner/_work/netperf/netperf"
 if (!$isWindows) {
     $RemoteDir = "/home/secnetperf/_work/quic"
-    if ($env -eq "lab") {
+    if ($environment -eq "lab") {
         $localDir = "/home/secnetperf/_work/netperf/netperf"
     } else {
         $localDir = "/home/secnetperf/actions-runner/_work/netperf/netperf"
