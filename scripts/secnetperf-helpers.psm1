@@ -379,7 +379,7 @@ function Get-TestOutput {
 
 # Invokes secnetperf with the given arguments for both TCP and QUIC.
 function Invoke-Secnetperf {
-    param ($Session, $RemoteName, $RemoteDir, $localDir, $SecNetPerfPath, $LogProfile, $TestId, $ExeArgs, $io, $Filter)
+    param ($Session, $RemoteName, $RemoteDir, $SecNetPerfPath, $LogProfile, $TestId, $ExeArgs, $io, $Filter)
 
     $metric = "throughput"
     if ($exeArgs.Contains("plat:1")) {
@@ -414,15 +414,11 @@ function Invoke-Secnetperf {
         $clientArgs += " -pconn:1"
     }
     if ($testId.Contains("rps")) {
+        $latencyDir = Repo-Path "latency.txt"
         if (!$isWindows) {
-            # check if $localDir/latency.txt exists
-            if (!(Test-Path $localDir/latency.txt)) {
-                # create the file and give it necessary permissions
-                New-Item -ItemType File -Path $localDir -Name "latency.txt"
-            }
-            chmod +rw "$localDir/latency.txt"
+            chmod +rw "$latencyDir/latency.txt"
         }
-        $clientArgs += " -extraOutputFile:$localDir/latency.txt"
+        $clientArgs += " -extraOutputFile:$latencyDir/latency.txt"
     }
 
     if (!(Check-TestFilter $clientArgs $Filter)) {

@@ -77,14 +77,8 @@ $PSDefaultParameterValues["*:ErrorAction"] = "Stop"
 
 # Set up some important paths.
 $RemoteDir = "C:/_work/quic"
-$localDir = "C:/actions-runner/_work/netperf/netperf"
 if (!$isWindows) {
     $RemoteDir = "/home/secnetperf/_work/quic"
-    if ($environment -eq "lab") {
-        $localDir = "/home/secnetperf/_work/netperf/netperf"
-    } else {
-        $localDir = "/home/secnetperf/actions-runner/_work/netperf/netperf"
-    }
 }
 $SecNetPerfDir = "artifacts/bin/$plat/$($arch)_Release_$tls"
 $SecNetPerfPath = "$SecNetPerfDir/secnetperf"
@@ -119,6 +113,9 @@ if ($null -eq $Session) {
 
 # Make sure nothing is running from a previous run.
 Cleanup-State $Session $RemoteDir
+
+# Create intermediary files.
+New-Item -ItemType File -Name "latency.txt"
 
 if ($io -eq "wsk") {
     # WSK also needs the kernel mode binaries in the usermode path.
@@ -265,7 +262,7 @@ if (!$isWindows) {
 Write-Host "Setup complete! Running all tests"
 foreach ($testId in $allTests.Keys) {
     $ExeArgs = $allTests[$testId] + " -io:$io"
-    $Output = Invoke-Secnetperf $Session $RemoteName $RemoteDir $localDir $SecNetPerfPath $LogProfile $testId $ExeArgs $io $filter
+    $Output = Invoke-Secnetperf $Session $RemoteName $RemoteDir $SecNetPerfPath $LogProfile $testId $ExeArgs $io $filter
     $Test = $Output[-1]
     if ($Test.HasFailures) { $hasFailures = $true }
 
