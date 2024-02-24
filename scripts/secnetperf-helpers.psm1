@@ -413,6 +413,13 @@ function Invoke-Secnetperf {
         $serverArgs += " -stats:1"
         $clientArgs += " -pconn:1"
     }
+    if ($testId.Contains("rps")) {
+        $latencyDir = Repo-Path "latency.txt"
+        if (!$isWindows) {
+            chmod +rw "$latencyDir"
+        }
+        $clientArgs += " -extraOutputFile:$latencyDir"
+    }
 
     if (!(Check-TestFilter $clientArgs $Filter)) {
         Write-Host "> secnetperf $clientArgs SKIPPED!"

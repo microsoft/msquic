@@ -114,6 +114,9 @@ if ($null -eq $Session) {
 # Make sure nothing is running from a previous run.
 Cleanup-State $Session $RemoteDir
 
+# Create intermediary files.
+New-Item -ItemType File -Name "latency.txt"
+
 if ($io -eq "wsk") {
     # WSK also needs the kernel mode binaries in the usermode path.
     Write-Host "Moving kernel binaries to usermode path"
@@ -184,6 +187,17 @@ VALUES ("$MsQuicCommit", "$(Get-Date -Format "yyyy-MM-dd HH:mm:ss")", 1, "TODO")
 "@
 $json = @{}
 $json["commit"] = "$MsQuicCommit"
+# Persist environment information:
+if ($isWindows) {
+    $windowsEnv = Get-CimInstance Win32_OperatingSystem | Select-Object Version
+    $json["os_version"] = $windowsEnv.Version
+} else {
+    $osInfo = bash -c "cat /etc/os-release"
+    $osInfoLines = $osInfo -split "`n"
+    $osName = $osInfoLines | Where-Object { $_ -match '^PRETTY_NAME=' } | ForEach-Object { $_ -replace '^PRETTY_NAME="|"$', '' }
+    $kernelVersion = bash -c "uname -r"
+    $json["os_version"] = "$osName $kernelVersion"
+}
 $allTests = [System.Collections.Specialized.OrderedDictionary]::new()
 
 # > All tests:
