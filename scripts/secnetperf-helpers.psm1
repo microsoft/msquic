@@ -416,9 +416,9 @@ function Invoke-Secnetperf {
     if ($testId.Contains("rps")) {
         $latencyDir = Repo-Path "latency.txt"
         if (!$isWindows) {
-            chmod +rw "$latencyDir/latency.txt"
+            chmod +rw "$latencyDir"
         }
-        $clientArgs += " -extraOutputFile:$latencyDir/latency.txt"
+        $clientArgs += " -extraOutputFile:$latencyDir"
     }
 
     if (!(Check-TestFilter $clientArgs $Filter)) {
