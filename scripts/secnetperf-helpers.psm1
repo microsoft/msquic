@@ -404,19 +404,19 @@ function Get-LatencyOutput {
 
     # Parse through the data and extract the Value and Percentile columns and
     # convert to an array. Ignore the trailing data.
-    $data = @()
+    $values = @()
+    $percentiles = @()
     foreach ($line in $contents) {
         if ($line -match "^\s*(\d+\.\d+)\s+(\d+\.\d+)") {
-            $value = [int]$matches[1]
-            $percentile = [double]$matches[2]
-            $data += New-Object PSObject -Property @{
-                "Value" = $value
-                "Percentile" = $percentile
-            }
+            $values += [int]$matches[1]
+            $percentiles += [double]$matches[2]
         }
     }
 
-    return $data
+    return [pscustomobject]@{
+        Values = $values
+        Percentiles = $percentiles
+    }
 }
 
 # Invokes secnetperf with the given arguments for both TCP and QUIC.
