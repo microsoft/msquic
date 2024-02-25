@@ -520,7 +520,7 @@ function Invoke-Secnetperf {
             Write-Host $rawOutput
             $values[$tcp] += Get-TestOutput $rawOutput $metric
             if ($extraOutput) {
-                $latency[$tcp] = Get-LatencyOutput $extraOutput
+                $latency[$tcp] += Get-LatencyOutput $extraOutput
             }
             $rawOutput | Add-Content $clientOut
             $successCount++
