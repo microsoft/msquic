@@ -423,16 +423,23 @@ function Get-LatencyOutput {
 function Invoke-Secnetperf {
     param ($Session, $RemoteName, $RemoteDir, $SecNetPerfPath, $LogProfile, $TestId, $ExeArgs, $io, $Filter)
 
+    $values = @(@(), @())
+    $latency = $null
+    $extraOutput = $null
+    $hasFailures = $false
+    $tcpSupported = ($io -ne "xdp" -and $io -ne "qtip" -and $io -ne "wsk") ? 1 : 0
     $metric = "throughput"
     if ($exeArgs.Contains("plat:1")) {
         $metric = "latency"
+        $latency = @(@(), @())
+        $extraOutput = Repo-Path "latency.txt"
+        if (!$isWindows) {
+            chmod +rw "$extraOutput"
+        }
     } elseif ($exeArgs.Contains("prate:1")) {
         $metric = "hps"
     }
 
-    $values = @(@(), @())
-    $hasFailures = $false
-    $tcpSupported = ($io -ne "xdp" -and $io -ne "qtip" -and $io -ne "wsk") ? 1 : 0
     for ($tcp = 0; $tcp -le $tcpSupported; $tcp++) {
 
     # Set up all the parameters and paths for running the test.
@@ -455,15 +462,7 @@ function Invoke-Secnetperf {
         $serverArgs += " -stats:1"
         $clientArgs += " -pconn:1"
     }
-
-    $latency = $null
-    $extraOutput = $null
-    if ($metric -eq "latency") {
-        $latency = @(@(), @())
-        $extraOutput = Repo-Path "latency.txt"
-        if (!$isWindows) {
-            chmod +rw "$extraOutput"
-        }
+    if ($extraOutput) {
         $clientArgs += " -extraOutputFile:$extraOutput"
     }
 
