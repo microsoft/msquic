@@ -282,6 +282,7 @@ function Start-LocalTest {
         $pinfo.FileName = $FullPath
         $pinfo.Arguments = $FullArgs
     } else {
+        # We use bash to execute the test so we can collect core dumps.
         $pinfo.FileName = "bash"
         $pinfo.Arguments = "-c `"ulimit -c unlimited && LSAN_OPTIONS=report_objects=1 ASAN_OPTIONS=disable_coredump=0:abort_on_error=1 UBSAN_OPTIONS=halt_on_error=1:print_stacktrace=1 $FullPath $FullArgs && echo ''`""
         $pinfo.WorkingDirectory = $OutputDir
@@ -300,7 +301,9 @@ function Wait-LocalTest {
     param ($Process, $OutputDir, $testKernel, $TimeoutMs)
     $StdOut = $Process.StandardOutput.ReadToEndAsync()
     $StdError = $Process.StandardError.ReadToEndAsync()
+    # Wait for the process to exit.
     if (!$Process.WaitForExit($TimeoutMs)) {
+        # We timed out waiting for completion. Collect a dump of the current state.
         if ($testKernel) { Collect-LiveKD $OutputDir "client" }
         Collect-LocalDump $Process $OutputDir
         try { $Process.Kill() } catch { }
@@ -311,6 +314,7 @@ function Wait-LocalTest {
         } catch {}
         throw "secnetperf: Client timed out!"
     }
+    # Verify the process cleanly exitted.
     if ($Process.ExitCode -ne 0) {
         try {
             [System.Threading.Tasks.Task]::WaitAll(@($StdOut, $StdError))
@@ -319,6 +323,7 @@ function Wait-LocalTest {
         } catch {}
         throw "secnetperf: Nonzero exit code: $($Process.ExitCode)"
     }
+    # Wait for the output streams to flush.
     [System.Threading.Tasks.Task]::WaitAll(@($StdOut, $StdError))
     $consoleTxt = $StdOut.Result.Trim()
     if ($consoleTxt.Length -eq 0) {
@@ -377,6 +382,43 @@ function Get-TestOutput {
     }
 }
 
+function Get-LatencyOutput {
+    param ($FilePath)
+    # The data is in the format of:
+    #
+    #       Value   Percentile   TotalCount 1/(1-Percentile)
+    #
+    #      93.000     0.000000            1         1.00
+    #     118.000     0.100000        18203         1.11
+    #     120.000     0.200000        29488         1.25
+    #         ...          ...          ...          ...
+    #    9847.000     0.999992       139772    131072.00
+    #   41151.000     0.999993       139773    145635.56
+    #   41151.000     1.000000       139773          inf
+    ##[Mean    =      142.875, StdDeviation   =      137.790]
+    ##[Max     =    41151.000, Total count    =       139773]
+    ##[Buckets =            6, SubBuckets     =         2048]
+
+    $contents = Get-Content $FilePath
+    Remove-Item $FilePath
+
+    # Parse through the data and extract the Value and Percentile columns and
+    # convert to an array. Ignore the trailing data.
+    $data = @()
+    foreach ($line in $contents) {
+        if ($line -match "^\s*(\d+\.\d+)\s+(\d+\.\d+)") {
+            $value = [int]$matches[1]
+            $percentile = [double]$matches[2]
+            $data += New-Object PSObject -Property @{
+                "Value" = $value
+                "Percentile" = $percentile
+            }
+        }
+    }
+
+    return $data
+}
+
 # Invokes secnetperf with the given arguments for both TCP and QUIC.
 function Invoke-Secnetperf {
     param ($Session, $RemoteName, $RemoteDir, $SecNetPerfPath, $LogProfile, $TestId, $ExeArgs, $io, $Filter)
@@ -413,12 +455,16 @@ function Invoke-Secnetperf {
         $serverArgs += " -stats:1"
         $clientArgs += " -pconn:1"
     }
-    if ($testId.Contains("rps")) {
-        $latencyDir = Repo-Path "latency.txt"
+
+    $latency = $null
+    $extraOutput = $null
+    if ($metric -eq "latency") {
+        $latency = @(@(), @())
+        $extraOutput = Repo-Path "latency.txt"
         if (!$isWindows) {
-            chmod +rw "$latencyDir"
+            chmod +rw "$extraOutput"
         }
-        $clientArgs += " -extraOutputFile:$latencyDir"
+        $clientArgs += " -extraOutputFile:$extraOutput"
     }
 
     if (!(Check-TestFilter $clientArgs $Filter)) {
@@ -473,6 +519,9 @@ function Invoke-Secnetperf {
             $rawOutput = Wait-LocalTest $process $artifactDir ($io -eq "wsk") 30000
             Write-Host $rawOutput
             $values[$tcp] += Get-TestOutput $rawOutput $metric
+            if ($extraOutput) {
+                $latency[$tcp] = Get-LatencyOutput $extraOutput
+            }
             $rawOutput | Add-Content $clientOut
             $successCount++
         } catch {
@@ -523,6 +572,7 @@ function Invoke-Secnetperf {
     return [pscustomobject]@{
         Metric = $metric
         Values = $values
+        Latency = $latency
         HasFailures = $hasFailures
     }
 }

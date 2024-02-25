@@ -284,6 +284,7 @@ VALUES ("$TestId-tcp-$tcp", "$MsQuicCommit", $env, $env, $item, NULL, "$io", "$t
 "@
             }
         } elseif ($Test.Metric -eq "latency") {
+            $json["$testId-$transport-lat"] = $Test.Latency[$tcp]
             # Test.Values[...] is a flattened 1D array of the form: [ first run + RPS, second run + RPS, third run + RPS..... ], ie. if each run has 8 values + RPS, then the array has 27 elements (8*3 + 3)
             for ($offset = 0; $offset -lt $Test.Values[$tcp].Length; $offset += 9) {
                 $SQL += @"
