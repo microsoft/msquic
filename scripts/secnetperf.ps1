@@ -329,7 +329,7 @@ Write-Host "Tests complete!"
     Write-Host "`Writing test-results-$environment-$plat-$os-$arch-$tls-$io.sql"
     $SQL | Set-Content -Path "test-results-$environment-$plat-$os-$arch-$tls-$io.sql"
     Write-Host "`Writing json-test-results-$environment-$plat-$os-$arch-$tls-$io.json"
-    $json | ConvertTo-Json | Set-Content -Path "json-test-results-$environment-$plat-$os-$arch-$tls-$io.json"
+    $json | ConvertTo-Json -Depth 4 | Set-Content -Path "json-test-results-$environment-$plat-$os-$arch-$tls-$io.json"
 }
 
 # Clear out any exit codes from previous commands.
