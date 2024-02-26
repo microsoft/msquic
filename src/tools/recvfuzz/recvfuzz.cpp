@@ -31,7 +31,7 @@ uint64_t MagicCid = 0x989898989898989ull;
 const QUIC_HKDF_LABELS HkdfLabels = { "quic key", "quic iv", "quic hp", "quic ku" };
 uint64_t RunTimeMs = 60000;
 HANDLE RecvPacketEvent;
-HANDLE FreePacketEvent;
+std::mutex PacketQueueMutex;
 QUIC_RX_PACKET Batch[QUIC_MAX_CRYPTO_BATCH_COUNT];
 uint8_t BatchCount = 0;
 std::list<QUIC_RX_PACKET> PacketQueue;
@@ -133,9 +133,7 @@ UdpRecvCallback(
 {
     CXPLAT_RECV_DATA* Datagram;
     const uint16_t Partition = RecvBufferChain->PartitionIndex;
-    QUIC_CONNECTION* Connection = (QUIC_CONNECTION *)CxPlatPoolAlloc(&QuicLibraryGetPerProc()->ConnectionPool);
     const uint64_t PartitionShifted = ((uint64_t)Partition + 1) << 40;
-    FreePacketEvent = CreateEvent(NULL, TRUE, FALSE, NULL);
     while ((Datagram = RecvBufferChain) != NULL) {
 
         RecvBufferChain = Datagram->Next;
@@ -184,18 +182,15 @@ UdpRecvCallback(
                 Packet->KeyType = QuicPacketTypeToKeyTypeV1(Packet->LH->Type);
             }
             Packet->Encrypted = TRUE;
-            PacketQueue.push_back(*Packet);
+            std::lock_guard<std::mutex> lock(PacketQueueMutex);
+            QUIC_RX_PACKET* PacketCopy = (QUIC_RX_PACKET *)CXPLAT_ALLOC_NONPAGED(sizeof(QUIC_RX_PACKET), QUIC_POOL_TOOL); 
+            memcpy(PacketCopy, Packet, sizeof(QUIC_RX_PACKET));
+            PacketQueue.push_back(*PacketCopy);
             Packet->AvailBuffer += Packet->AvailBufferLength;
         } while (Packet->AvailBuffer - Datagram->Buffer < Datagram->BufferLength);
         // QuicPacketKeyFree(Keys.ReadKey);
     }
     SetEvent(RecvPacketEvent);
-    DWORD WaitResult = WaitForSingleObject(FreePacketEvent, 1000);
-    if (WaitResult == WAIT_OBJECT_0) {
-        CxPlatRecvDataReturn(RecvBufferChain);
-    } else {
-        exit(0);
-    }
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -685,6 +680,7 @@ void fuzz(CXPLAT_SOCKET* Binding, CXPLAT_ROUTE Route) {
                         sendPacket(Binding, Route, &PacketCount, &TotalByteCount, PacketParams, false, &HandshakeClientContext);
                     } while (WaitForSingleObject(RecvPacketEvent, 100) != (DWORD)WAIT_OBJECT_0 && CxPlatTimeDiff64(StartTimeMs, CxPlatTimeMs64()) < RunTimeMs);
                 }
+                std::lock_guard<std::mutex> lock(PacketQueueMutex);
                 while (!PacketQueue.empty()) {
                     QUIC_RX_PACKET packet = PacketQueue.front();
                     PacketQueue.pop_front();
@@ -816,9 +812,7 @@ void fuzz(CXPLAT_SOCKET* Binding, CXPLAT_ROUTE Route) {
                 PacketParams.FrameTypes[1] = QUIC_FRAME_CRYPTO;
                 printf("Sending Handshake Packet\n");
                 sendPacket(Binding, Route, &PacketCount, &TotalByteCount, PacketParams, true, &HandshakeClientContext);
-            }
-            SetEvent(FreePacketEvent);
-            
+            }            
         }
     }
         printf("Total Packets sent: %lld\n", (long long)PacketCount);
