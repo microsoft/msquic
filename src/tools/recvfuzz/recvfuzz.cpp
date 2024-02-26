@@ -804,6 +804,7 @@ void fuzz(CXPLAT_SOCKET* Binding, CXPLAT_ROUTE Route) {
                         }
                     }
                     if (HandshakeClientContext.State.HandshakeComplete) {
+                        handshakeComplete = TRUE;
                         break;
                     }
                 }
