@@ -671,7 +671,7 @@ void fuzz(CXPLAT_SOCKET* Binding, CXPLAT_ROUTE Route) {
             InitialClientContext.ProcessData();
             sendPacket(Binding, Route, &PacketCount, &TotalByteCount, PacketParams, true, &InitialClientContext);
         } else if (mode == 1) {
-            if (!HandshakeClientContext.State.HandshakeComplete) {
+            if (handshakeComplete == FALSE) {
                 // QUIC_RECV_BUFFER RecvBuffer[4096];
                 RecvPacketEvent = CreateEvent(NULL, TRUE, FALSE, NULL);
                 if (ServerHello == FALSE) {
