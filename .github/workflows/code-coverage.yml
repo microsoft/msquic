@@ -56,7 +56,7 @@ jobs:
       with:
         fetch-depth: 0
     - name: Download Build Artifacts
-      uses: actions/download-artifact@6b208ae046db98c579e8a3aa621ab581ff575935
+      uses: actions/download-artifact@eaceaf801fd36c7dee90939fad912460b18a1ffe
       with:
         name: ${{ matrix.vec.config }}-${{ matrix.vec.plat }}-${{ matrix.vec.os }}-${{ matrix.vec.arch }}-${{ matrix.vec.tls }}${{ matrix.vec.sanitize }}${{ matrix.vec.build }}
         path: artifacts
@@ -76,7 +76,7 @@ jobs:
       continue-on-error: true
       run: scripts/test.ps1 -NoProgress -IsolationMode Batch -CodeCoverage -Config ${{ matrix.vec.config }} -Arch ${{ matrix.vec.arch }} -Tls ${{ matrix.vec.tls }} -LogProfile Full.Light ${{ matrix.vec.xdp }} ${{ matrix.vec.qtip }}
     - name: Upload Results
-      uses: actions/upload-artifact@26f96dfa697d77e81fd5907df203aa23a56210a8
+      uses: actions/upload-artifact@5d5d22a31266ced268874388b861e4b58bb5c2f3
       with:
         name: BVT-${{ matrix.vec.config }}-${{ matrix.vec.plat }}-${{ matrix.vec.os }}-${{ matrix.vec.arch }}-${{ matrix.vec.tls }}${{ matrix.vec.qtip }}${{ matrix.vec.systemcrypto }}${{ matrix.vec.sanitize }}
         path: artifacts/coverage/*.cov
@@ -106,7 +106,7 @@ jobs:
       uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11
       with:
         fetch-depth: 0
-    - uses: actions/download-artifact@6b208ae046db98c579e8a3aa621ab581ff575935
+    - uses: actions/download-artifact@eaceaf801fd36c7dee90939fad912460b18a1ffe
       with:
         name: ${{ matrix.vec.config }}-${{ matrix.vec.plat }}-${{ matrix.vec.os }}-${{ matrix.vec.arch }}-${{ matrix.vec.tls }}${{ matrix.vec.sanitize }}${{ matrix.vec.build }}
         path: artifacts
@@ -126,7 +126,7 @@ jobs:
       shell: pwsh
       run: scripts/spin.ps1 -Config ${{ matrix.vec.config }} -Arch ${{ matrix.vec.arch }} -Tls ${{ matrix.vec.tls }} -Timeout ${{ env.main-timeout }} -RepeatCount ${{ env.main-repeat }} -AllocFail ${{ env.main-allocfail }} ${{ matrix.vec.xdp }} -CodeCoverage -LogProfile Basic.Light
     - name: Upload Results
-      uses: actions/upload-artifact@26f96dfa697d77e81fd5907df203aa23a56210a8
+      uses: actions/upload-artifact@5d5d22a31266ced268874388b861e4b58bb5c2f3
       with:
         name: Spin-${{ matrix.vec.config }}-${{ matrix.vec.plat }}-${{ matrix.vec.os }}-${{ matrix.vec.arch }}-${{ matrix.vec.tls }}${{ matrix.vec.xdp }}${{ matrix.vec.sanitize }}
         path: artifacts/coverage/*.cov
@@ -152,7 +152,7 @@ jobs:
       uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11
       with:
         fetch-depth: 0
-    - uses: actions/download-artifact@6b208ae046db98c579e8a3aa621ab581ff575935
+    - uses: actions/download-artifact@eaceaf801fd36c7dee90939fad912460b18a1ffe
       with:
         name: ${{ matrix.vec.config }}-${{ matrix.vec.plat }}-${{ matrix.vec.os }}-${{ matrix.vec.arch }}-${{ matrix.vec.tls }}${{ matrix.vec.sanitize }}${{ matrix.vec.build }}
         path: artifacts
@@ -172,7 +172,7 @@ jobs:
       shell: pwsh
       run: scripts/recvfuzz.ps1 -Config ${{ matrix.vec.config }} -Arch ${{ matrix.vec.arch }} -Tls ${{ matrix.vec.tls }} -timeout ${{ env.main-timeout }} ${{ matrix.vec.xdp }} -CodeCoverage -LogProfile Basic.Light
     - name: Upload Results
-      uses: actions/upload-artifact@26f96dfa697d77e81fd5907df203aa23a56210a8
+      uses: actions/upload-artifact@5d5d22a31266ced268874388b861e4b58bb5c2f3
       with:
         name: RecvFuzz-${{ matrix.vec.config }}-${{ matrix.vec.plat }}-${{ matrix.vec.os }}-${{ matrix.vec.arch }}-${{ matrix.vec.tls }}${{ matrix.vec.xdp }}${{ matrix.vec.sanitize }}
         path: artifacts/coverage/*.cov
@@ -193,17 +193,17 @@ jobs:
       shell: pwsh
       run: |
         New-Item -ItemType Directory -Force -Path artifacts\coverage\windows\x64_Debug_schannel
-    - uses: actions/download-artifact@6b208ae046db98c579e8a3aa621ab581ff575935
+    - uses: actions/download-artifact@eaceaf801fd36c7dee90939fad912460b18a1ffe
       name: Download BVT Coverage Results
       with:
         name: BVT-Debug-windows-windows-2022-x64-schannel
         path: artifacts\coverage\windows\x64_Debug_schannel
-    - uses: actions/download-artifact@6b208ae046db98c579e8a3aa621ab581ff575935
+    - uses: actions/download-artifact@eaceaf801fd36c7dee90939fad912460b18a1ffe
       name: Download SpinQuic Coverage Results
       with:
         name: Spin-Debug-windows-windows-2022-x64-schannel
         path: artifacts\coverage\windows\x64_Debug_schannel
-    - uses: actions/download-artifact@6b208ae046db98c579e8a3aa621ab581ff575935
+    - uses: actions/download-artifact@eaceaf801fd36c7dee90939fad912460b18a1ffe
       name: Download RecvFuzz Coverage Results
       with:
         name: RecvFuzz-Debug-windows-windows-2022-x64-schannel
@@ -216,7 +216,7 @@ jobs:
       shell: pwsh
       run: scripts/merge-coverage.ps1 -Config Debug -Arch x64 -Tls schannel
     - name: Upload Results
-      uses: actions/upload-artifact@26f96dfa697d77e81fd5907df203aa23a56210a8
+      uses: actions/upload-artifact@5d5d22a31266ced268874388b861e4b58bb5c2f3
       with:
         name: merged
         path: artifacts\coverage\windows\x64_Debug_schannel\msquiccoverage.xml
@@ -228,12 +228,12 @@ jobs:
     steps:
     - name: Checkout repository
       uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11
-    - uses: actions/download-artifact@6b208ae046db98c579e8a3aa621ab581ff575935
+    - uses: actions/download-artifact@eaceaf801fd36c7dee90939fad912460b18a1ffe
       name: Download Merged Coverage Report
       with:
         name: merged
     - name: Upload coverage reports to Codecov
-      uses: codecov/codecov-action@e0b68c6749509c5f83f984dd99a76a1c1a231044
+      uses: codecov/codecov-action@0cfda1dd0a4ad9efc75517f399d859cd1ea4ced1
       with:
         files: msquiccoverage.xml
     - name: Code Coverage Summary Report

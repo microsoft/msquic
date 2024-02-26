@@ -89,15 +89,20 @@ if ($io -eq "") {
         $io = "epoll"
     }
 }
-if ($isWindows -and ($LogProfile -eq "" -or $LogProfile -eq "NULL")) {
+$NoLogs = ($LogProfile -eq "" -or $LogProfile -eq "NULL")
+if ($isWindows -and $NoLogs) {
     # Always collect basic, low volume logs on Windows.
     $LogProfile = "Basic.Light"
 }
+$useXDP = ($io -eq "xdp" -or $io -eq "qtip")
 
 # Set up the connection to the peer over remote powershell.
 Write-Host "Connecting to $RemoteName"
 if ($isWindows) {
-    $Session = New-PSSession -ComputerName $RemoteName -ConfigurationName PowerShell.7
+    $username = (Get-ItemProperty 'HKLM:\Software\Microsoft\Windows NT\CurrentVersion\Winlogon').DefaultUserName
+    $password = (Get-ItemProperty 'HKLM:\Software\Microsoft\Windows NT\CurrentVersion\Winlogon').DefaultPassword | ConvertTo-SecureString -AsPlainText -Force
+    $cred = New-Object System.Management.Automation.PSCredential ($username, $password)
+    $Session = New-PSSession -ComputerName $RemoteName -Credential $cred -ConfigurationName PowerShell.7
 } else {
     $Session = New-PSSession -HostName $RemoteName -UserName secnetperf -SSHTransport
 }
@@ -108,6 +113,9 @@ if ($null -eq $Session) {
 
 # Make sure nothing is running from a previous run.
 Cleanup-State $Session $RemoteDir
+
+# Create intermediary files.
+New-Item -ItemType File -Name "latency.txt"
 
 if ($io -eq "wsk") {
     # WSK also needs the kernel mode binaries in the usermode path.
@@ -133,12 +141,63 @@ Copy-Item -ToSession $Session ./artifacts -Destination "$RemoteDir/artifacts" -R
 Copy-Item -ToSession $Session ./scripts -Destination "$RemoteDir/scripts" -Recurse
 Copy-Item -ToSession $Session ./src/manifest/MsQuic.wprp -Destination "$RemoteDir/scripts"
 
+# Create the logs directories on both machines.
+New-Item -ItemType Directory -Path ./artifacts/logs | Out-Null
+Invoke-Command -Session $Session -ScriptBlock {
+    New-Item -ItemType Directory -Path $Using:RemoteDir/artifacts/logs | Out-Null
+}
+
+# Collect some info about machine state.
+if (!$NoLogs -and $isWindows) {
+    $Arguments = "-SkipNetsh"
+    if (Get-Help Get-NetView -Parameter SkipWindowsRegistry -ErrorAction Ignore) {
+        $Arguments += " -SkipWindowsRegistry"
+    }
+    if (Get-Help Get-NetView -Parameter SkipNetshTrace -ErrorAction Ignore) {
+        $Arguments += " -SkipNetshTrace"
+    }
+
+    Write-Host "::group::Collecting information on local machine state"
+    try {
+        Invoke-Expression "Get-NetView -OutputDirectory ./artifacts/logs $Arguments"
+        Remove-Item ./artifacts/logs/msdbg.$env:COMPUTERNAME -recurse
+        $filePath = (Get-ChildItem -Path ./artifacts/logs/ -Recurse -Filter msdbg.$env:COMPUTERNAME*.zip)[0].FullName
+        Rename-Item $filePath "get-netview.local.zip"
+        Write-Host "Generated get-netview.local.zip"
+    } catch { Write-Host $_ }
+    Write-Host "::endgroup::"
+
+    Write-Host "::group::Collecting information on peer machine state"
+    try {
+        Invoke-Command -Session $Session -ScriptBlock {
+            Invoke-Expression "Get-NetView -OutputDirectory $Using:RemoteDir/artifacts/logs $Using:Arguments"
+            Remove-Item $Using:RemoteDir/artifacts/logs/msdbg.$env:COMPUTERNAME -recurse
+            $filePath = (Get-ChildItem -Path $Using:RemoteDir/artifacts/logs/ -Recurse -Filter msdbg.$env:COMPUTERNAME*.zip)[0].FullName
+            Rename-Item $filePath "get-netview.peer.zip"
+        }
+        Copy-Item -FromSession $Session -Path "$RemoteDir/artifacts/logs/get-netview.peer.zip" -Destination ./artifacts/logs/
+        Write-Host "Generated get-netview.peer.zip"
+    } catch { Write-Host $_ }
+    Write-Host "::endgroup::"
+}
+
 $SQL = @"
 INSERT OR IGNORE INTO Secnetperf_builds (Secnetperf_Commit, Build_date_time, TLS_enabled, Advanced_build_config)
 VALUES ("$MsQuicCommit", "$(Get-Date -Format "yyyy-MM-dd HH:mm:ss")", 1, "TODO");
 "@
 $json = @{}
 $json["commit"] = "$MsQuicCommit"
+# Persist environment information:
+if ($isWindows) {
+    $windowsEnv = Get-CimInstance Win32_OperatingSystem | Select-Object Version
+    $json["os_version"] = $windowsEnv.Version
+} else {
+    $osInfo = bash -c "cat /etc/os-release"
+    $osInfoLines = $osInfo -split "`n"
+    $osName = $osInfoLines | Where-Object { $_ -match '^PRETTY_NAME=' } | ForEach-Object { $_ -replace '^PRETTY_NAME="|"$', '' }
+    $kernelVersion = bash -c "uname -r"
+    $json["os_version"] = "$osName $kernelVersion"
+}
 $allTests = [System.Collections.Specialized.OrderedDictionary]::new()
 
 # > All tests:
@@ -151,8 +210,6 @@ $env = $isWindows ? 1 : 2
 $hasFailures = $false
 
 try {
-
-mkdir ./artifacts/logs | Out-Null
 
 # Prepare the machines for the testing.
 if ($isWindows) {
@@ -173,7 +230,7 @@ if ($isWindows) {
 Configure-DumpCollection $Session
 
 # Install any dependent drivers.
-if ($io -eq "xdp") { Install-XDP $Session $RemoteDir }
+if ($useXDP) { Install-XDP $Session $RemoteDir }
 if ($io -eq "wsk") { Install-Kernel $Session $RemoteDir $SecNetPerfDir }
 
 if (!$isWindows) {

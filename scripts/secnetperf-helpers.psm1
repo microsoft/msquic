@@ -390,7 +390,7 @@ function Invoke-Secnetperf {
 
     $values = @(@(), @())
     $hasFailures = $false
-    $tcpSupported = ($io -ne "xdp" -and $io -ne "wsk") ? 1 : 0
+    $tcpSupported = ($io -ne "xdp" -and $io -ne "qtip" -and $io -ne "wsk") ? 1 : 0
     for ($tcp = 0; $tcp -le $tcpSupported; $tcp++) {
 
     # Set up all the parameters and paths for running the test.
@@ -398,7 +398,7 @@ function Invoke-Secnetperf {
     $clientPath = Repo-Path $SecNetPerfPath
     $serverArgs = "$execMode -io:$io"
     $clientArgs = "-target:netperf-peer $ExeArgs -tcp:$tcp -trimout -watchdog:25000"
-    if ($io -eq "xdp") {
+    if ($io -eq "xdp" -or $io -eq "qtip") {
         $serverArgs += " -pollidle:10000"
         $clientArgs += " -pollidle:10000"
     }
@@ -412,6 +412,13 @@ function Invoke-Secnetperf {
     } elseif ($metric -eq "latency") {
         $serverArgs += " -stats:1"
         $clientArgs += " -pconn:1"
+    }
+    if ($testId.Contains("rps")) {
+        $latencyDir = Repo-Path "latency.txt"
+        if (!$isWindows) {
+            chmod +rw "$latencyDir"
+        }
+        $clientArgs += " -extraOutputFile:$latencyDir"
     }
 
     if (!(Check-TestFilter $clientArgs $Filter)) {
