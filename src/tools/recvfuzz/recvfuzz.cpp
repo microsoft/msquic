@@ -212,7 +212,7 @@ struct TlsContext
     CXPLAT_TLS_PROCESS_STATE State;
     uint8_t AlpnListBuffer[256];
 
-    TlsContext(uint64_t initSrcCid = MagicCid)  {
+    void CreateContext(uint64_t initSrcCid = MagicCid)  {
         AlpnListBuffer[0] = (uint8_t)strlen(Alpn);
         memcpy(&AlpnListBuffer[1], Alpn, AlpnListBuffer[0]);
         CxPlatZeroMemory(&State, sizeof(State));
@@ -566,7 +566,7 @@ void sendPacket(CXPLAT_SOCKET* Binding, CXPLAT_ROUTE Route, int64_t* PacketCount
                 printf("CxPlatSendDataAllocBuffer failed\n");
                 return;
             }
-       
+        CxPlatZeroMemory(SendBuffer->Buffer, DatagramLength);
         memcpy(SendBuffer->Buffer, Packet, PacketLength);
         if(ClientContext->State.WriteKeys[0] == nullptr) {
             if (QUIC_FAILED(
@@ -646,12 +646,11 @@ void fuzz(CXPLAT_SOCKET* Binding, CXPLAT_ROUTE Route) {
     };
     RecvPacketEvent = CreateEvent(NULL, TRUE, FALSE, NULL);
     PacketParams.FrameTypes[0] = QUIC_FRAME_CRYPTO;
-    CxPlatRandom(sizeof(uint64_t), &SrcCid);
-    PacketParams.SourceCid = (uint8_t *)&SrcCid;
-    TlsContext HandshakeClientContext(SrcCid); 
+    TlsContext HandshakeClientContext; 
     bool ServerHello = FALSE;
     uint8_t recvBuffer[4096];
     uint32_t bufferoffset = 0;
+    bool handshakeComplete = FALSE;
     while (CxPlatTimeDiff64(StartTimeMs, CxPlatTimeMs64()) < RunTimeMs) {
         mode = 1;//(uint8_t)GetRandom(2);
         if (mode == 0) {
@@ -667,7 +666,9 @@ void fuzz(CXPLAT_SOCKET* Binding, CXPLAT_ROUTE Route) {
             PacketParams.FrameTypes[0] = QUIC_FRAME_CRYPTO;
             CxPlatRandom(sizeof(uint64_t), &SrcCid);
             PacketParams.SourceCid = (uint8_t *)&SrcCid;
-            TlsContext InitialClientContext(SrcCid);
+            TlsContext InitialClientContext;
+            InitialClientContext.CreateContext(SrcCid);
+            InitialClientContext.ProcessData();
             sendPacket(Binding, Route, &PacketCount, &TotalByteCount, PacketParams, true, &InitialClientContext);
         } else if (mode == 1) {
             if (!HandshakeClientContext.State.HandshakeComplete) {
@@ -675,6 +676,9 @@ void fuzz(CXPLAT_SOCKET* Binding, CXPLAT_ROUTE Route) {
                 RecvPacketEvent = CreateEvent(NULL, TRUE, FALSE, NULL);
                 if (ServerHello == FALSE) {
                     do {
+                        CxPlatRandom(sizeof(uint64_t), &SrcCid);
+                        PacketParams.SourceCid = (uint8_t *)&SrcCid;
+                        HandshakeClientContext.CreateContext(SrcCid);
                         HandshakeClientContext.ProcessData();
                         PacketParams.PacketType = QUIC_INITIAL_V1;
                         printf("Sending Client Hello\n");
@@ -813,7 +817,8 @@ void fuzz(CXPLAT_SOCKET* Binding, CXPLAT_ROUTE Route) {
                 PacketParams.FrameTypes[1] = QUIC_FRAME_CRYPTO;
                 printf("Sending Handshake Packet\n");
                 sendPacket(Binding, Route, &PacketCount, &TotalByteCount, PacketParams, true, &HandshakeClientContext);
-            }            
+            } 
+            handshakeComplete = HandshakeClientContext.State.HandshakeComplete;         
         }
     }
         printf("Total Packets sent: %lld\n", (long long)PacketCount);
