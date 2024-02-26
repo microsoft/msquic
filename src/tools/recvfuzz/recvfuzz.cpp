@@ -31,8 +31,6 @@ uint64_t MagicCid = 0x989898989898989ull;
 const QUIC_HKDF_LABELS HkdfLabels = { "quic key", "quic iv", "quic hp", "quic ku" };
 uint64_t RunTimeMs = 60000;
 HANDLE RecvPacketEvent;
-HANDLE FreePacketEvent;
-
 
 // std::mutex PacketQueueMutex;
 QUIC_RX_PACKET Batch[QUIC_MAX_CRYPTO_BATCH_COUNT];
@@ -195,13 +193,7 @@ UdpRecvCallback(
         } while (Packet->AvailBuffer - Datagram->Buffer < Datagram->BufferLength);
         
         SetEvent(RecvPacketEvent);
-        DWORD WaitResult = WaitForSingleObject(FreePacketEvent, 1000);
-        if (WaitResult == WAIT_OBJECT_0) {
-            CxPlatRecvDataReturn(RecvBufferChain);
-            FreePacketEvent = CreateEvent(NULL, TRUE, FALSE, NULL);
-        } else {
-            exit(0);
-        }
+        CxPlatRecvDataReturn(RecvBufferChain);
         // QuicPacketKeyFree(Keys.ReadKey);
     }
     
@@ -659,7 +651,6 @@ void fuzz(CXPLAT_SOCKET* Binding, CXPLAT_ROUTE Route) {
         1
     };
     RecvPacketEvent = CreateEvent(NULL, TRUE, FALSE, NULL);
-    FreePacketEvent = CreateEvent(NULL, TRUE, FALSE, NULL);
     PacketParams.FrameTypes[0] = QUIC_FRAME_CRYPTO;
     TlsContext HandshakeClientContext; 
     bool ServerHello = FALSE;
@@ -837,7 +828,6 @@ void fuzz(CXPLAT_SOCKET* Binding, CXPLAT_ROUTE Route) {
                 sendPacket(Binding, Route, &PacketCount, &TotalByteCount, PacketParams, true, &HandshakeClientContext);
             }
             handshakeComplete = HandshakeClientContext.State.HandshakeComplete;
-            SetEvent(FreePacketEvent); 
         }
     }
         printf("Total Packets sent: %lld\n", (long long)PacketCount);
