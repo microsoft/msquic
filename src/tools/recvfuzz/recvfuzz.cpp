@@ -644,6 +644,7 @@ void fuzz(CXPLAT_SOCKET* Binding, CXPLAT_ROUTE Route) {
         0,
         1
     };
+    RecvPacketEvent = CreateEvent(NULL, TRUE, FALSE, NULL);
     PacketParams.FrameTypes[0] = QUIC_FRAME_CRYPTO;
     CxPlatRandom(sizeof(uint64_t), &SrcCid);
     PacketParams.SourceCid = (uint8_t *)&SrcCid;
