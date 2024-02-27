@@ -700,13 +700,17 @@ void fuzz(CXPLAT_SOCKET* Binding, CXPLAT_ROUTE Route) {
                     }
                     uint8_t Cipher[CXPLAT_HP_SAMPLE_LENGTH];
                     uint8_t HpMask[16];
+                    printf("Packet Header Length: %d\n", packet->HeaderLength);    
+                    printf("Packet Payload Length: %d\n", packet->PayloadLength);
+                    printf("Packet Avail Buffer Length: %d\n", packet->AvailBufferLength);   
+                       
                     CxPlatCopyMemory(
                         Cipher,
                         packet->AvailBuffer + packet->HeaderLength + 4,
                         CXPLAT_HP_SAMPLE_LENGTH);
                     // same step for all long header packets
                     
-                    QUIC_PACKET_KEY_TYPE KeyType = packet->KeyType;             
+                    QUIC_PACKET_KEY_TYPE KeyType = packet->KeyType;   
                     if (QUIC_FAILED(
                         CxPlatHpComputeMask(
                             HandshakeClientContext.State.ReadKeys[KeyType]->HeaderKey,
