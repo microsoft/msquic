@@ -182,7 +182,7 @@ UdpRecvCallback(
             }
             Packet->Encrypted = TRUE;
             // std::lock_guard<std::mutex> lock(PacketQueueMutex);
-            
+            printf(" Received Avail Buffer Length: %d\n", Packet->AvailBufferLength);
             if (Packet->LH->Type == QUIC_INITIAL_V1 || Packet->LH->Type == QUIC_HANDSHAKE_V1) {
                 QUIC_RX_PACKET* PacketCopy = (QUIC_RX_PACKET *)CXPLAT_ALLOC_NONPAGED(sizeof(QUIC_RX_PACKET), QUIC_POOL_TOOL); 
                 memcpy(PacketCopy, Packet, sizeof(QUIC_RX_PACKET));
@@ -696,7 +696,7 @@ void fuzz(CXPLAT_SOCKET* Binding, CXPLAT_ROUTE Route) {
                 // std::lock_guard<std::mutex> lock(PacketQueueMutex);
                 while (!PacketQueue.empty()) {
                     QUIC_RX_PACKET* packet = PacketQueue.front();
-                    if (packet->DestCidLen ==NULL|| packet->DestCid == NULL || (memcmp(packet->DestCid, PacketParams.SourceCid, PacketParams.SourceCidLen) != 0) || packet->PayloadLength < 4 + CXPLAT_HP_SAMPLE_LENGTH) {
+                    if (packet->DestCidLen ==NULL || packet->DestCid == NULL || (memcmp(packet->DestCid, PacketParams.SourceCid, PacketParams.SourceCidLen) != 0) || packet->PayloadLength < 4 + CXPLAT_HP_SAMPLE_LENGTH) {
                         CXPLAT_FREE(packet->AvailBuffer, QUIC_POOL_TOOL);
                         CXPLAT_FREE(packet, QUIC_POOL_TOOL);
                         PacketQueue.pop_front(); 
