@@ -133,8 +133,6 @@ UdpRecvCallback(
     )
 {
     CXPLAT_RECV_DATA* Datagram;
-    const uint16_t Partition = RecvBufferChain->PartitionIndex;
-    const uint64_t PartitionShifted = ((uint64_t)Partition + 1) << 40;
     while ((Datagram = RecvBufferChain) != NULL) {
 
         RecvBufferChain = Datagram->Next;
@@ -193,7 +191,9 @@ UdpRecvCallback(
         } while (Packet->AvailBuffer - Datagram->Buffer < Datagram->BufferLength);
         
         SetEvent(RecvPacketEvent);
-        CxPlatRecvDataReturn(RecvBufferChain);
+        if(RecvBufferChain != NULL) {
+            CxPlatRecvDataReturn(RecvBufferChain);
+        }
         // QuicPacketKeyFree(Keys.ReadKey);
     }
     
