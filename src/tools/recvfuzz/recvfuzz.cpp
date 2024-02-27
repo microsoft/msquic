@@ -182,11 +182,15 @@ UdpRecvCallback(
             }
             Packet->Encrypted = TRUE;
             // std::lock_guard<std::mutex> lock(PacketQueueMutex);
-            QUIC_RX_PACKET* PacketCopy = (QUIC_RX_PACKET *)CXPLAT_ALLOC_NONPAGED(sizeof(QUIC_RX_PACKET), QUIC_POOL_TOOL); 
-            memcpy(PacketCopy, Packet, sizeof(QUIC_RX_PACKET));
-            PacketCopy->AvailBuffer = (uint8_t*)CXPLAT_ALLOC_NONPAGED(Packet->AvailBufferLength, QUIC_POOL_TOOL);
-            memcpy((void *)PacketCopy->AvailBuffer, Packet->AvailBuffer, Packet->AvailBufferLength);
-            PacketQueue.push_back(PacketCopy);
+            
+            if (Packet->LH->Type == QUIC_INITIAL_V1 || Packet->LH->Type == QUIC_HANDSHAKE_V1) {
+                QUIC_RX_PACKET* PacketCopy = (QUIC_RX_PACKET *)CXPLAT_ALLOC_NONPAGED(sizeof(QUIC_RX_PACKET), QUIC_POOL_TOOL); 
+                memcpy(PacketCopy, Packet, sizeof(QUIC_RX_PACKET));
+                PacketCopy->AvailBuffer = (uint8_t*)CXPLAT_ALLOC_NONPAGED(Packet->AvailBufferLength, QUIC_POOL_TOOL);
+                memcpy((void *)PacketCopy->AvailBuffer, Packet->AvailBuffer, Packet->AvailBufferLength);
+                PacketQueue.push_back(PacketCopy);
+            }
+            
             Packet->AvailBuffer += Packet->AvailBufferLength;
         } while (Packet->AvailBuffer - Datagram->Buffer < Datagram->BufferLength);
         
@@ -692,11 +696,14 @@ void fuzz(CXPLAT_SOCKET* Binding, CXPLAT_ROUTE Route) {
                 // std::lock_guard<std::mutex> lock(PacketQueueMutex);
                 while (!PacketQueue.empty()) {
                     QUIC_RX_PACKET* packet = PacketQueue.front();
-                    if (packet->DestCidLen ==NULL|| packet->DestCid == NULL || (memcmp(packet->DestCid, PacketParams.SourceCid, packet->DestCidLen) != 0) || packet->PayloadLength < 4 + CXPLAT_HP_SAMPLE_LENGTH) {
+                    if (packet->DestCidLen ==NULL|| packet->DestCid == NULL || (memcmp(packet->DestCid, PacketParams.SourceCid, PacketParams.SourceCidLen) != 0) || packet->PayloadLength < 4 + CXPLAT_HP_SAMPLE_LENGTH) {
                         CXPLAT_FREE(packet->AvailBuffer, QUIC_POOL_TOOL);
                         CXPLAT_FREE(packet, QUIC_POOL_TOOL);
                         PacketQueue.pop_front(); 
                         continue;
+                    }
+                    if (packet->LH->Type == QUIC_INITIAL_V1) {
+                        bufferoffset = 0;
                     }
                     uint8_t Cipher[CXPLAT_HP_SAMPLE_LENGTH];
                     uint8_t HpMask[16];
