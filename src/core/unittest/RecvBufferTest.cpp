@@ -105,7 +105,7 @@ struct RecvBuffer {
         uint32_t i = 0;
         QUIC_SUBRANGE* Sub;
         while ((Sub = QuicRangeGetSafe(&RecvBuf.WrittenRanges, i++)) != nullptr) {
-            printf("  [%llu, %llu]\n", (unsigned long long)Sub->Low, (unsigned long long)Sub->Count);
+            printf("  [%llu, %llu]\n", (unsigned long long)Sub->Low, (unsigned long long)(Sub->Low+Sub->Count-1));
         }
 
         printf(" Chunks:\n");
@@ -564,6 +564,65 @@ TEST_P(WithMode, ReadPendingMultiWrite)
     ASSERT_EQ(48u, ReadBuffers[0].Length);
     ASSERT_TRUE(RecvBuf.Drain(48));
     ASSERT_FALSE(RecvBuf.HasUnreadData());
+}
+
+TEST_P(WithMode, RecvCrypto) // Note - Values based on a previous failing MsQuic crypto test failure
+{
+#define CRYTPO_RECV_SIZE 128
+#define CRYPTO_FC_SIZE 32768
+    RecvBuffer RecvBuf;
+    auto Mode = GetParam();
+    ASSERT_EQ(QUIC_STATUS_SUCCESS, RecvBuf.Initialize(Mode, false, CRYTPO_RECV_SIZE, CRYPTO_FC_SIZE));
+    uint64_t InOutWriteLength = CRYPTO_FC_SIZE; // FC limit same as recv buffer size
+    BOOLEAN NewDataReady = FALSE;
+    ASSERT_EQ(
+        QUIC_STATUS_SUCCESS,
+        RecvBuf.Write(
+            48,
+            16,
+            &InOutWriteLength,
+            &NewDataReady));
+    ASSERT_FALSE(NewDataReady);
+    ASSERT_FALSE(RecvBuf.HasUnreadData());
+    InOutWriteLength = CRYPTO_FC_SIZE;
+    ASSERT_EQ(
+        QUIC_STATUS_SUCCESS,
+        RecvBuf.Write(
+            0,
+            32,
+            &InOutWriteLength,
+            &NewDataReady));
+    ASSERT_TRUE(NewDataReady);
+    ASSERT_TRUE(RecvBuf.HasUnreadData());
+    uint64_t ReadOffset;
+    QUIC_BUFFER ReadBuffers[3];
+    uint32_t BufferCount = ARRAYSIZE(ReadBuffers);
+    RecvBuf.Read(&ReadOffset, &BufferCount, ReadBuffers);
+    ASSERT_FALSE(RecvBuf.Drain(16)); // Partial drain
+    ASSERT_TRUE(Mode == QUIC_RECV_BUF_MODE_MULTIPLE || RecvBuf.HasUnreadData());
+    InOutWriteLength = CRYPTO_FC_SIZE;
+    ASSERT_EQ(
+        QUIC_STATUS_SUCCESS,
+        RecvBuf.Write(
+            32,
+            16,
+            &InOutWriteLength,
+            &NewDataReady));
+    ASSERT_TRUE(NewDataReady);
+    ASSERT_TRUE(RecvBuf.HasUnreadData());
+    ASSERT_EQ(0ull, InOutWriteLength);
+    ASSERT_EQ(64ull, RecvBuf.GetTotalLength());
+    BufferCount = ARRAYSIZE(ReadBuffers);
+    RecvBuf.Read(&ReadOffset, &BufferCount, ReadBuffers);
+    ASSERT_FALSE(RecvBuf.HasUnreadData());
+    ASSERT_EQ(1ul, BufferCount);
+    if (Mode == QUIC_RECV_BUF_MODE_MULTIPLE) {
+        ASSERT_EQ(32ull, ReadOffset);
+        ASSERT_EQ(32u, ReadBuffers[0].Length);
+    } else {
+        ASSERT_EQ(16ull, ReadOffset);
+        ASSERT_EQ(48u, ReadBuffers[0].Length);
+    }
 }
 
 INSTANTIATE_TEST_SUITE_P(

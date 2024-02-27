@@ -806,7 +806,7 @@ QuicRecvBufferPartialDrain(
             CxPlatMoveMemory(
                 Chunk->Buffer,
                 Chunk->Buffer + DrainLength,
-                (size_t)(RecvBuffer->ReadLength - (uint32_t)DrainLength));
+                (size_t)(Chunk->AllocLength - (uint32_t)DrainLength)); // TODO - Might be able to copy less than the full alloc length
 
         } else { // Circular and multiple mode.
             //
