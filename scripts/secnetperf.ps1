@@ -326,10 +326,10 @@ Write-Host "Tests complete!"
     } catch { }
 
     # Save the test results (sql and json).
-    Write-Host "`Writing test-results-$environment-$plat-$os-$arch-$tls-$io.sql"
-    $SQL | Set-Content -Path "test-results-$environment-$plat-$os-$arch-$tls-$io.sql"
-    Write-Host "`Writing json-test-results-$environment-$plat-$os-$arch-$tls-$io.json"
-    $json | ConvertTo-Json | Set-Content -Path "json-test-results-$environment-$plat-$os-$arch-$tls-$io.json"
+    Write-Host "`Writing test-results-$environment-$os-$arch-$tls-$io.sql"
+    $SQL | Set-Content -Path "test-results-$environment-$os-$arch-$tls-$io.sql"
+    Write-Host "`Writing json-test-results-$environment-$os-$arch-$tls-$io.json"
+    $json | ConvertTo-Json | Set-Content -Path "json-test-results-$environment-$os-$arch-$tls-$io.json"
 }
 
 # Clear out any exit codes from previous commands.
