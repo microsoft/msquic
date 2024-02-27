@@ -190,12 +190,10 @@ UdpRecvCallback(
             Packet->AvailBuffer += Packet->AvailBufferLength;
         } while (Packet->AvailBuffer - Datagram->Buffer < Datagram->BufferLength);
         
-        SetEvent(RecvPacketEvent);
-        if(RecvBufferChain != NULL) {
-            CxPlatRecvDataReturn(RecvBufferChain);
-        }
         // QuicPacketKeyFree(Keys.ReadKey);
     }
+    SetEvent(RecvPacketEvent);
+    CxPlatRecvDataReturn(RecvBufferChain);
     
 }
 
@@ -695,6 +693,8 @@ void fuzz(CXPLAT_SOCKET* Binding, CXPLAT_ROUTE Route) {
                 while (!PacketQueue.empty()) {
                     QUIC_RX_PACKET* packet = PacketQueue.front();
                     if (memcmp(packet->DestCid, PacketParams.SourceCid, packet->DestCidLen) != 0) {
+                        CXPLAT_FREE(packet->AvailBuffer, QUIC_POOL_TOOL);
+                        CXPLAT_FREE(packet, QUIC_POOL_TOOL);
                         PacketQueue.pop_front(); 
                         continue;
                     }
@@ -751,6 +751,8 @@ void fuzz(CXPLAT_SOCKET* Binding, CXPLAT_ROUTE Route) {
                             packet->PayloadLength,  // BufferLength
                             (uint8_t*)Payload))) {  // Buffer
                         printf("CxPlatDecrypt failed\n");
+                        CXPLAT_FREE(packet->AvailBuffer, QUIC_POOL_TOOL);
+                        CXPLAT_FREE(packet, QUIC_POOL_TOOL);
                         PacketQueue.pop_front(); 
                         continue;
                         }
@@ -814,6 +816,8 @@ void fuzz(CXPLAT_SOCKET* Binding, CXPLAT_ROUTE Route) {
                         handshakeComplete = TRUE;
                         break;
                     }
+                    CXPLAT_FREE(packet->AvailBuffer, QUIC_POOL_TOOL);
+                    CXPLAT_FREE(packet, QUIC_POOL_TOOL);
                     PacketQueue.pop_front(); 
                 }
                 BatchCount = 0;
