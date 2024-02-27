@@ -692,7 +692,7 @@ void fuzz(CXPLAT_SOCKET* Binding, CXPLAT_ROUTE Route) {
                 // std::lock_guard<std::mutex> lock(PacketQueueMutex);
                 while (!PacketQueue.empty()) {
                     QUIC_RX_PACKET* packet = PacketQueue.front();
-                    if (memcmp(packet->DestCid, PacketParams.SourceCid, packet->DestCidLen) != 0) {
+                    if (packet->DestCid == NULL || (memcmp(packet->DestCid, PacketParams.SourceCid, packet->DestCidLen) != 0) || packet->PayloadLength < 4 + CXPLAT_HP_SAMPLE_LENGTH) {
                         CXPLAT_FREE(packet->AvailBuffer, QUIC_POOL_TOOL);
                         CXPLAT_FREE(packet, QUIC_POOL_TOOL);
                         PacketQueue.pop_front(); 
