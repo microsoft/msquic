@@ -1803,7 +1803,7 @@ QuicCryptoProcessData(
         Buffer.Length = 0;
         Buffer.Buffer = NULL;
 
-    } else {
+    } else if (QuicRecvBufferHasUnreadData(&Crypto->RecvBuffer)) {
         uint64_t BufferOffset;
         QuicRecvBufferRead(
             &Crypto->RecvBuffer,
@@ -1889,6 +1889,8 @@ QuicCryptoProcessData(
             }
             return Status;
         }
+    } else {
+        goto Error; // No data to process right now.
     }
 
     CXPLAT_DBG_ASSERT(Crypto->TLS != NULL);
