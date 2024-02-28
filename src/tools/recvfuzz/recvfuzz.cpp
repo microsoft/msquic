@@ -31,6 +31,7 @@ uint64_t MagicCid = 0x989898989898989ull;
 const QUIC_HKDF_LABELS HkdfLabels = { "quic key", "quic iv", "quic hp", "quic ku" };
 uint64_t RunTimeMs = 60000;
 HANDLE RecvPacketEvent;
+// std::mutex Lock;
 
 // std::mutex PacketQueueMutex;
 QUIC_RX_PACKET Batch[QUIC_MAX_CRYPTO_BATCH_COUNT];
@@ -182,13 +183,17 @@ UdpRecvCallback(
             }
             Packet->Encrypted = TRUE;
             // std::lock_guard<std::mutex> lock(PacketQueueMutex);
+            printf("Received Header Length: %d\n", Packet->HeaderLength);
             printf(" Received Avail Buffer Length: %d\n", Packet->AvailBufferLength);
             if (Packet->LH->Type == QUIC_INITIAL_V1 || Packet->LH->Type == QUIC_HANDSHAKE_V1) {
                 QUIC_RX_PACKET* PacketCopy = (QUIC_RX_PACKET *)CXPLAT_ALLOC_NONPAGED(sizeof(QUIC_RX_PACKET), QUIC_POOL_TOOL); 
                 memcpy(PacketCopy, Packet, sizeof(QUIC_RX_PACKET));
                 PacketCopy->AvailBuffer = (uint8_t*)CXPLAT_ALLOC_NONPAGED(Packet->AvailBufferLength, QUIC_POOL_TOOL);
                 memcpy((void *)PacketCopy->AvailBuffer, Packet->AvailBuffer, Packet->AvailBufferLength);
+                // std::lock_guard<std::mutex> LockScope(Lock);
                 PacketQueue.push_back(PacketCopy);
+            } else {
+                break;
             }
             
             Packet->AvailBuffer += Packet->AvailBufferLength;
@@ -694,6 +699,7 @@ void fuzz(CXPLAT_SOCKET* Binding, CXPLAT_ROUTE Route) {
                     } while (WaitForSingleObject(RecvPacketEvent, 100) != (DWORD)WAIT_OBJECT_0 && CxPlatTimeDiff64(StartTimeMs, CxPlatTimeMs64()) < RunTimeMs);
                 }
                 // std::lock_guard<std::mutex> lock(PacketQueueMutex);
+                // std::lock_guard<std::mutex> LockScope(Lock);
                 while (!PacketQueue.empty()) {
                     QUIC_RX_PACKET* packet = PacketQueue.front();
                     if (packet->DestCidLen ==NULL || packet->DestCid == NULL || (memcmp(packet->DestCid, PacketParams.SourceCid, PacketParams.SourceCidLen) != 0) || packet->PayloadLength < 4 + CXPLAT_HP_SAMPLE_LENGTH) {

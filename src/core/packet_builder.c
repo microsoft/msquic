@@ -856,7 +856,7 @@ QuicPacketBuilderFinalize(
                 // Individually do header protection for long header packets as
                 // they generally use different keys.
                 //
-
+                printf("TOtal sent length: %d\n", Builder->HeaderLength + PayloadLength);
                 if (QUIC_FAILED(
                     Status =
                     CxPlatHpComputeMask(
