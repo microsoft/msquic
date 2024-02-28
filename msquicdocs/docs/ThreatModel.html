@@ -105,7 +105,7 @@
 <li><strong>Code injection</strong>: An attacker could potentially inject malicious code into the process.</li>
 <li><strong>Data tampering</strong>: An attacker could potentially modify the data being sent or received by the application.</li>
 </ul>
-<p>These are not actually threats to MsQuic, but rather to the application using MsQuic. We are no more priviliged than the calling application. The application should implement its own security measures to protect against these threats.</p>
+<p>These are not actually threats to MsQuic, but rather to the application using MsQuic. We are no more priviliged than the calling application. The application should implement its own security measures to protect against these threats, including using the most up-to-date version of MsQuic to keep up with the latest security fixes.</p>
 <h2 id="conclusion">Conclusion</h2>
 <p>Because MsQuic is an in-proc library, it does not create any additional attack surfaces that don't already exist in the application. The primary threats are at the network level, and the QUIC protocol uses TLS to mitigate these threats. MsQuic leverages many different types of tests (function, stress and fuzzing) to ensure that it is secure and reliable.</p>
 
