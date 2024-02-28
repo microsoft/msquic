@@ -25,7 +25,7 @@ MsQuic runs in the same process as the calling application, for user mode. In th
 - **Code injection**: An attacker could potentially inject malicious code into the process.
 - **Data tampering**: An attacker could potentially modify the data being sent or received by the application.
 
-These are not actually threats to MsQuic, but rather to the application using MsQuic. We are no more priviliged than the calling application. The application should implement its own security measures to protect against these threats.
+These are not actually threats to MsQuic, but rather to the application using MsQuic. We are no more priviliged than the calling application. The application should implement its own security measures to protect against these threats, including using the most up-to-date version of MsQuic to keep up with the latest security fixes.
 
 ## Conclusion
 
