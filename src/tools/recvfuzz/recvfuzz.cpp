@@ -614,12 +614,10 @@ void sendPacket(CXPLAT_SOCKET* Binding, CXPLAT_ROUTE Route, int64_t* PacketCount
         }
         InterlockedExchangeAdd64(PacketCount, 1);
         InterlockedExchangeAdd64(TotalByteCount, DatagramLength);
-        QUIC_LONG_HEADER_V1* Header = (QUIC_LONG_HEADER_V1*)Packet;
 
         if (!fuzzing) {
             break;
         }
-        
     }
     
     if (QUIC_FAILED(
