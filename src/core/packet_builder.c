@@ -856,7 +856,7 @@ QuicPacketBuilderFinalize(
                 // Individually do header protection for long header packets as
                 // they generally use different keys.
                 //
-                
+
                 if (QUIC_FAILED(
                     Status =
                     CxPlatHpComputeMask(
