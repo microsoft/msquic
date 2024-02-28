@@ -173,6 +173,16 @@ QuicRecvBufferDrain(
     _In_ uint64_t DrainLength
     );
 
+//
+// Indicates the caller is abandoning any pending read.
+//   N.B. Currently only supported for QUIC_RECV_BUF_MODE_SINGLE mode.
+//
+_IRQL_requires_max_(DISPATCH_LEVEL)
+void
+QuicRecvBufferResetRead(
+    _In_ QUIC_RECV_BUFFER* RecvBuffer
+    );
+
 #if defined(__cplusplus)
 }
 #endif

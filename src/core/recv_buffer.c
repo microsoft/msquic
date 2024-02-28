@@ -917,3 +917,20 @@ QuicRecvBufferDrain(
 
     return TRUE;
 }
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+void
+QuicRecvBufferResetRead(
+    _In_ QUIC_RECV_BUFFER* RecvBuffer
+    )
+{
+    CXPLAT_DBG_ASSERT(RecvBuffer->RecvMode == QUIC_RECV_BUF_MODE_SINGLE);
+    CXPLAT_DBG_ASSERT(!CxPlatListIsEmpty(&RecvBuffer->Chunks));
+    QUIC_RECV_CHUNK* Chunk =
+        CXPLAT_CONTAINING_RECORD(
+            RecvBuffer->Chunks.Flink,
+            QUIC_RECV_CHUNK,
+            Link);
+    Chunk->ExternalReference = FALSE;
+    RecvBuffer->ReadPendingLength = 0;
+}

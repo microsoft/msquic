@@ -1779,6 +1779,7 @@ QuicCryptoCustomTicketValidationComplete(
             QuicPacketKeyFree(Crypto->TlsState.WriteKeys[i]);
             Crypto->TlsState.WriteKeys[i] = NULL;
         }
+        QuicRecvBufferResetRead(&Crypto->RecvBuffer);
         QUIC_CONNECTION* Connection = QuicCryptoGetConnection(Crypto);
         QUIC_STATUS Status = QuicCryptoInitializeTls(Crypto, Connection->Configuration->SecurityConfig, Connection->HandshakeTP);
         if (Status != QUIC_STATUS_SUCCESS) {
@@ -1803,7 +1804,7 @@ QuicCryptoProcessData(
         Buffer.Length = 0;
         Buffer.Buffer = NULL;
 
-    } else if (QuicRecvBufferHasUnreadData(&Crypto->RecvBuffer)) {
+    } else {
         uint64_t BufferOffset;
         QuicRecvBufferRead(
             &Crypto->RecvBuffer,
@@ -1889,8 +1890,6 @@ QuicCryptoProcessData(
             }
             return Status;
         }
-    } else {
-        goto Error; // No data to process right now.
     }
 
     CXPLAT_DBG_ASSERT(Crypto->TLS != NULL);
