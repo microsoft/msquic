@@ -134,16 +134,18 @@ UdpRecvCallback(
     )
 {
     CXPLAT_RECV_DATA* Datagram;
+    printf("end of datagram\n");
     while ((Datagram = RecvBufferChain) != NULL) {
         RecvBufferChain = Datagram->Next;
         Datagram->Next = NULL;
+        printf("Datagram Length: %d\n", Datagram->BufferLength);
         if (!Datagram->Allocated) {
             continue;
         }
         uint8_t DestCidLen, SourceCidLen;
         const uint8_t* DestCid, *SourceCid;
         
-        QUIC_RX_PACKET* Packet = (QUIC_RX_PACKET*)Datagram;
+        QUIC_RX_PACKET* Packet = (QUIC_RX_PACKET *)CXPLAT_ALLOC_NONPAGED(sizeof(QUIC_RX_PACKET), QUIC_POOL_TOOL);
         Packet->AvailBuffer = Datagram->Buffer;
         
         int j = 0;
@@ -711,10 +713,6 @@ void fuzz(CXPLAT_SOCKET* Binding, CXPLAT_ROUTE Route) {
                     }
                     uint8_t Cipher[CXPLAT_HP_SAMPLE_LENGTH];
                     uint8_t HpMask[16];
-                    printf("Packet Header Length: %d\n", packet->HeaderLength);    
-                    printf("Packet Payload Length: %d\n", packet->PayloadLength);
-                    printf("Packet Avail Buffer Length: %d\n", packet->AvailBufferLength);   
-                       
                     CxPlatCopyMemory(
                         Cipher,
                         packet->AvailBuffer + packet->HeaderLength + 4,
