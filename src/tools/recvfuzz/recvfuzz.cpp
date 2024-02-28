@@ -135,16 +135,17 @@ UdpRecvCallback(
 {
     CXPLAT_RECV_DATA* Datagram;
     while ((Datagram = RecvBufferChain) != NULL) {
-
         RecvBufferChain = Datagram->Next;
         Datagram->Next = NULL;
-
+        if (!Datagram->Allocated) {
+            continue;
+        }
         uint8_t DestCidLen, SourceCidLen;
         const uint8_t* DestCid, *SourceCid;
         
         QUIC_RX_PACKET* Packet = (QUIC_RX_PACKET*)Datagram;
         Packet->AvailBuffer = Datagram->Buffer;
-  
+        
         int j = 0;
         do {
             Packet->AvailBufferLength = Datagram->BufferLength;
