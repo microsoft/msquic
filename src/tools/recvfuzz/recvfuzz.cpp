@@ -192,8 +192,6 @@ UdpRecvCallback(
                 memcpy((void *)PacketCopy->AvailBuffer, Packet->AvailBuffer, Packet->AvailBufferLength);
                 // std::lock_guard<std::mutex> LockScope(Lock);
                 PacketQueue.push_back(PacketCopy);
-            } else {
-                break;
             }
             
             Packet->AvailBuffer += Packet->AvailBufferLength;
