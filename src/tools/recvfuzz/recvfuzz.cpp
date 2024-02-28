@@ -174,7 +174,6 @@ UdpRecvCallback(
                 &LengthVarInt);
             Packet->HeaderLength = Offset;
             Packet->PayloadLength = (uint16_t)LengthVarInt;
-            Packet->AvailBufferLength = Packet->HeaderLength + Packet->PayloadLength;
             Packet->ValidatedHeaderVer = TRUE;
             if (Packet->LH->Version == QUIC_VERSION_2) {
                 Packet->KeyType = QuicPacketTypeToKeyTypeV2(Packet->LH->Type);
@@ -185,14 +184,15 @@ UdpRecvCallback(
             // std::lock_guard<std::mutex> lock(PacketQueueMutex);
             printf("Received Header Length: %d\n", Packet->HeaderLength);
             printf(" Received Avail Buffer Length: %d\n", Packet->AvailBufferLength);
-            if (Packet->LH->Type == QUIC_INITIAL_V1 || Packet->LH->Type == QUIC_HANDSHAKE_V1) {
+            if (Packet->AvailBufferLength >= Packet->HeaderLength && (Packet->LH->Type == QUIC_INITIAL_V1 || Packet->LH->Type == QUIC_HANDSHAKE_V1)) {
+                Packet->AvailBufferLength = Packet->HeaderLength + Packet->PayloadLength;
                 QUIC_RX_PACKET* PacketCopy = (QUIC_RX_PACKET *)CXPLAT_ALLOC_NONPAGED(sizeof(QUIC_RX_PACKET), QUIC_POOL_TOOL); 
                 memcpy(PacketCopy, Packet, sizeof(QUIC_RX_PACKET));
                 PacketCopy->AvailBuffer = (uint8_t*)CXPLAT_ALLOC_NONPAGED(Packet->AvailBufferLength, QUIC_POOL_TOOL);
                 memcpy((void *)PacketCopy->AvailBuffer, Packet->AvailBuffer, Packet->AvailBufferLength);
                 // std::lock_guard<std::mutex> LockScope(Lock);
                 PacketQueue.push_back(PacketCopy);
-            }
+            } 
             
             Packet->AvailBuffer += Packet->AvailBufferLength;
         } while (Packet->AvailBuffer - Datagram->Buffer < Datagram->BufferLength);
