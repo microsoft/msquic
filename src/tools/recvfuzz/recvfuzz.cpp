@@ -647,7 +647,7 @@ void fuzz(CXPLAT_SOCKET* Binding, CXPLAT_ROUTE Route) {
     bool handshakeComplete = FALSE;
     bool indicateMode = TRUE;
     while (CxPlatTimeDiff64(StartTimeMs, CxPlatTimeMs64()) < RunTimeMs) {
-        mode = 1;
+        mode = (uint8_t)GetRandom(2);
         if (mode == 0) {
             PacketParams = {
                 sizeof(uint64_t),
@@ -832,6 +832,12 @@ void fuzz(CXPLAT_SOCKET* Binding, CXPLAT_ROUTE Route) {
     }
         printf("Total Packets sent: %lld\n", (long long)PacketCount);
         printf("Total Bytes sent: %lld\n", (long long)TotalByteCount);
+        while (!PacketQueue.empty()) {
+            QUIC_RX_PACKET* packet = PacketQueue.front();
+            CXPLAT_FREE(packet->AvailBuffer, QUIC_POOL_TOOL);
+            CXPLAT_FREE(packet, QUIC_POOL_TOOL);
+            PacketQueue.pop_front();
+        }
 }
 
 void start() {
