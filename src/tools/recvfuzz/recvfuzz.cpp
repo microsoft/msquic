@@ -183,7 +183,6 @@ UdpRecvCallback(
             Packet->Encrypted = TRUE;
             // std::lock_guard<std::mutex> lock(PacketQueueMutex);
             printf("Received Header Length: %d\n", Packet->HeaderLength);
-            printf(" Received Avail Buffer Length: %d\n", Packet->AvailBufferLength);
             if (Packet->AvailBufferLength >= Packet->HeaderLength && (Packet->LH->Type == QUIC_INITIAL_V1 || Packet->LH->Type == QUIC_HANDSHAKE_V1)) {
                 Packet->AvailBufferLength = Packet->HeaderLength + Packet->PayloadLength;
                 QUIC_RX_PACKET* PacketCopy = (QUIC_RX_PACKET *)CXPLAT_ALLOC_NONPAGED(sizeof(QUIC_RX_PACKET), QUIC_POOL_TOOL); 
@@ -193,7 +192,7 @@ UdpRecvCallback(
                 // std::lock_guard<std::mutex> LockScope(Lock);
                 PacketQueue.push_back(PacketCopy);
             } 
-            
+            printf(" Received Avail Buffer Length: %d\n", Packet->AvailBufferLength);
             Packet->AvailBuffer += Packet->AvailBufferLength;
         } while (Packet->AvailBuffer - Datagram->Buffer < Datagram->BufferLength);
         
