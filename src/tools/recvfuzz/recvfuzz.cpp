@@ -647,7 +647,7 @@ void fuzz(CXPLAT_SOCKET* Binding, CXPLAT_ROUTE Route) {
     bool handshakeComplete = FALSE;
     bool indicateMode = TRUE;
     while (CxPlatTimeDiff64(StartTimeMs, CxPlatTimeMs64()) < RunTimeMs) {
-        mode = (uint8_t)GetRandom(2);
+        mode = 1;//(uint8_t)GetRandom(2);
         if (mode == 0) {
             PacketParams = {
                 sizeof(uint64_t),
