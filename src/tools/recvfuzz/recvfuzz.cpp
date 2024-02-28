@@ -188,9 +188,8 @@ UdpRecvCallback(
             Packet->AvailBuffer += Packet->AvailBufferLength;
         } while (Packet->AvailBuffer - Datagram->Buffer < Datagram->BufferLength);
         CXPLAT_FREE(Packet, QUIC_POOL_TOOL);
-        
     }
-    CxPlatEventSet(RecvPacketEvent);
+    RecvPacketEvent.Set();
     CxPlatRecvDataReturn(RecvBufferChain);
     
 }
@@ -230,7 +229,7 @@ struct TlsContext
             OnRecvQuicTP,
             NULL
         };
-         
+        
         if (QUIC_FAILED(
             CxPlatTlsSecConfigCreate(
                 &CredConfig,
@@ -401,7 +400,6 @@ private:
     }
 };
 
-
 void WriteAckFrame(
     _In_ uint64_t LargestAcknowledge,
     _Inout_ uint16_t* Offset,
@@ -422,8 +420,7 @@ void WriteAckFrame(
             BufferLength, 
             Buffer)) {
         printf("QuicAckFrameEncode failure!\n");
-        }
-
+    }
 }
 
 void WriteCryptoFrame(    
@@ -464,7 +461,7 @@ void WriteClientPacket(
     uint8_t FrameBuffer[4096];
     uint16_t BufferSize = sizeof(FrameBuffer);
     uint16_t FrameBufferLength = 0;
-    for(int i = 0; i < PacketParams.numFrames; i++) {
+    for( int i = 0; i < PacketParams.numFrames; i++) {
         if (PacketParams.FrameTypes[i] == QUIC_FRAME_ACK) {
             WriteAckFrame(PacketParams.largestAcknowledge, &FrameBufferLength, BufferSize, FrameBuffer);
         }
@@ -532,8 +529,6 @@ void sendPacket(CXPLAT_SOCKET* Binding, CXPLAT_ROUTE Route, int64_t* PacketCount
     if (!SendData) {
         printf("CxPlatSendDataAlloc failed\n");
     }
-    // uint64_t d = 1;
-    // uint64_t s = 2;
     while (!CxPlatSendDataIsFull(SendData)) {
         uint8_t Packet[512] = {0};
         uint16_t PacketLength, HeaderLength;
@@ -553,8 +548,7 @@ void sendPacket(CXPLAT_SOCKET* Binding, CXPLAT_ROUTE Route, int64_t* PacketCount
         uint8_t* SrcCid = (uint8_t*)(Packet + sizeof(QUIC_LONG_HEADER_V1) + PacketParams.DestCidLen + sizeof(uint8_t));
         if (PacketParams.DestCid == nullptr) {
             CxPlatRandom(sizeof(uint64_t), DestCid);
-        }
-        else {
+        } else {
             memcpy(DestCid, PacketParams.DestCid, PacketParams.DestCidLen);
         }
         
@@ -571,7 +565,7 @@ void sendPacket(CXPLAT_SOCKET* Binding, CXPLAT_ROUTE Route, int64_t* PacketCount
             }
         CxPlatZeroMemory(SendBuffer->Buffer, DatagramLength);
         memcpy(SendBuffer->Buffer, Packet, PacketLength);
-        if(ClientContext->State.WriteKeys[0] == nullptr) {
+        if (ClientContext->State.WriteKeys[0] == nullptr) {
             if (QUIC_FAILED(
                 QuicPacketKeyCreateInitial(
                     FALSE,
@@ -607,7 +601,6 @@ void sendPacket(CXPLAT_SOCKET* Binding, CXPLAT_ROUTE Route, int64_t* PacketCount
             SendBuffer->Buffer + HeaderLength,
             HpMask);
 
-        // QuicPacketKeyFree(Keys.WriteKey);
         SendBuffer->Buffer[0] ^= HpMask[0] & 0x0F;
         for (uint8_t i = 0; i < 4; ++i) {
             SendBuffer->Buffer[PacketNumberOffset + i] ^= HpMask[i + 1];
@@ -826,8 +819,7 @@ void fuzz(CXPLAT_SOCKET* Binding, CXPLAT_ROUTE Route) {
                     PacketQueue.pop_front(); 
                 }
                 BatchCount = 0;
-            }
-            else {
+            } else {
                 bufferoffset = 0;
                 PacketParams.PacketType = QUIC_HANDSHAKE_V1;
                 PacketParams.numFrames = 2;
@@ -892,8 +884,6 @@ void start() {
     UdpConfig.Flags = 0;
     UdpConfig.InterfaceIndex = 0;
     UdpConfig.CallbackContext = nullptr;
-    QUIC_ADDR_STR str;
-    QuicAddrToString(&sockAddr, &str);
     Status =
         CxPlatSocketCreateUdp(
             Datapath,
@@ -907,7 +897,6 @@ void start() {
     CXPLAT_ROUTE Route = {0};
     CxPlatSocketGetLocalAddress(Binding, &Route.LocalAddress);
     Route.RemoteAddress = sockAddr;
-    QuicAddrToString(&Route.LocalAddress, &str);
     // Fuzzing
     fuzz(Binding, Route);
 }
