@@ -280,8 +280,8 @@ INSERT OR IGNORE INTO Secnetperf_tests (Secnetperf_test_ID, Kernel_mode, Run_arg
         if ($Test.Metric -eq "throughput" -or $Test.Metric -eq "hps") {
             foreach ($item in $Test.Values[$tcp]) {
                 $SQL += @"
-`nINSERT INTO Secnetperf_test_runs (Secnetperf_test_ID, Secnetperf_commit, Client_environment_ID, Server_environment_ID, Result, Secnetperf_latency_stats_ID, io, tls)
-VALUES ("$TestId-tcp-$tcp", "$MsQuicCommit", $envIDClient, $envIDServer, $item, NULL, "$io", "$tls");
+`nINSERT INTO Secnetperf_test_runs (Secnetperf_test_ID, Secnetperf_commit, Client_environment_ID, Server_environment_ID, Result, Secnetperf_latency_stats_ID, io, tls, Run_date)
+VALUES ("$TestId-tcp-$tcp", "$MsQuicCommit", $envIDClient, $envIDServer, $item, NULL, "$io", "$tls", "$(Get-Date -Format "yyyy-MM-dd HH:mm:ss")");
 "@
             }
         } elseif ($Test.Metric -eq "latency") {
@@ -291,8 +291,8 @@ VALUES ("$TestId-tcp-$tcp", "$MsQuicCommit", $envIDClient, $envIDServer, $item, 
                 $SQL += @"
 `nINSERT INTO Secnetperf_latency_stats (p0, p50, p90, p99, p999, p9999, p99999, p999999)
 VALUES ($($Test.Values[$tcp][$offset]), $($Test.Values[$tcp][$offset+1]), $($Test.Values[$tcp][$offset+2]), $($Test.Values[$tcp][$offset+3]), $($Test.Values[$tcp][$offset+4]), $($Test.Values[$tcp][$offset+5]), $($Test.Values[$tcp][$offset+6]), $($Test.Values[$tcp][$offset+7]));
-INSERT INTO Secnetperf_test_runs (Secnetperf_test_ID, Secnetperf_commit, Client_environment_ID, Server_environment_ID, Result, Secnetperf_latency_stats_ID, io, tls)
-VALUES ("$TestId-tcp-$tcp", "$MsQuicCommit", $envIDClient, $envIDServer, $($Test.Values[$tcp][$offset+8]), LAST_INSERT_ROWID(), "$io", "$tls");
+INSERT INTO Secnetperf_test_runs (Secnetperf_test_ID, Secnetperf_commit, Client_environment_ID, Server_environment_ID, Result, Secnetperf_latency_stats_ID, io, tls, Run_date)
+VALUES ("$TestId-tcp-$tcp", "$MsQuicCommit", $envIDClient, $envIDServer, $($Test.Values[$tcp][$offset+8]), LAST_INSERT_ROWID(), "$io", "$tls", "$(Get-Date -Format "yyyy-MM-dd HH:mm:ss")");
 "@
             }
         }
