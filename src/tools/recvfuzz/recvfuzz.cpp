@@ -649,7 +649,7 @@ void fuzz(CXPLAT_SOCKET* Binding, CXPLAT_ROUTE Route) {
     TlsContext HandshakeClientContext;
     HandshakeClientContext.CreateContext();
     TlsContext InitialClientContext;
-    HandshakeClientContext.CreateContext();
+    InitialClientContext.CreateContext();
     bool ServerHello = FALSE;
     uint8_t recvBuffer[8192];
     uint32_t bufferoffset = 0;
