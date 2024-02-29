@@ -761,7 +761,7 @@ void fuzz(CXPLAT_SOCKET* Binding, CXPLAT_ROUTE Route) {
                         CXPLAT_FREE(packet, QUIC_POOL_TOOL);
                         PacketQueue.pop_front(); 
                         continue;
-                        }
+                    }
                     packet->PayloadLength -= CXPLAT_ENCRYPTION_OVERHEAD;
                     
                     QUIC_VAR_INT FrameType INIT_NO_SAL(0);
