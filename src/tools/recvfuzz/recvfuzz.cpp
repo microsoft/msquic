@@ -437,7 +437,10 @@ void WriteCryptoFrame(
         CxPlatRandom(sizeof(uint64_t), &SrcCid);
         PacketParams->SourceCid = (uint8_t *)&SrcCid;
         ClientContext->CreateContext(SrcCid);
-        ClientContext->ProcessData();
+        auto Result = ClientContext->ProcessData();
+        if (Result & CXPLAT_TLS_RESULT_ERROR) {
+            return;
+        }
     }
     QUIC_CRYPTO_EX Frame = {
         0, ClientContext->State.BufferLength, ClientContext->State.Buffer
