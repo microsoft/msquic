@@ -326,7 +326,6 @@ private:
 
         if (Result & CXPLAT_TLS_RESULT_ERROR) {
             printf("Failed to process data!\n");
-            exit(0);
         }
 
         return Result;
