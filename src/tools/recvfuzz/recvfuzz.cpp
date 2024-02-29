@@ -816,7 +816,6 @@ void fuzz(CXPLAT_SOCKET* Binding, CXPLAT_ROUTE Route) {
                                 printf("Sending ACK Packet\n");
                                 sendPacket(Binding, Route, &PacketCount, &TotalByteCount, &HandshakePacketParams, false, &HandshakeClientContext);
                             }
-                            
                         }
                     }
                     if (HandshakeClientContext.State.HandshakeComplete) {
