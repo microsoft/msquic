@@ -471,7 +471,7 @@ void WriteClientPacket(
     uint8_t FrameBuffer[4096];
     uint16_t BufferSize = sizeof(FrameBuffer);
     uint16_t FrameBufferLength = 0;
-    for( int i = 0; i < PacketParams->numFrames; i++) {
+    for (int i = 0; i < PacketParams->numFrames; i++) {
         if (PacketParams->FrameTypes[i] == QUIC_FRAME_ACK) {
             WriteAckFrame(PacketParams->largestAcknowledge, &FrameBufferLength, BufferSize, FrameBuffer);
         }
