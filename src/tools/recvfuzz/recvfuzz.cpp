@@ -678,7 +678,7 @@ void fuzz(CXPLAT_SOCKET* Binding, CXPLAT_ROUTE Route) {
             InitialPacketParams.mode = 0;
             sendPacket(Binding, Route, &PacketCount, &TotalByteCount, &InitialPacketParams, true, &InitialClientContext);
         } else if (mode == 1) {
-            if (handshakeComplete == FALSE) {
+            if (!handshakeComplete) {
                 CxPlatEventInitialize(&(RecvPacketEvent), TRUE, FALSE);
                 if (ServerHello == FALSE) {
                     do {
