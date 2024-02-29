@@ -720,7 +720,7 @@ void fuzz(CXPLAT_SOCKET* Binding, CXPLAT_ROUTE Route) {
                             Cipher,
                             HpMask))) {
                         printf("Failed to Compute Mask\n");
-                        }
+                    }
                     uint8_t CompressedPacketNumberLength = 0;
                     ((uint8_t*)packet->AvailBuffer)[0] ^= HpMask[0] & 0x0F; 
                     CompressedPacketNumberLength = packet->LH->PnLength + 1;
