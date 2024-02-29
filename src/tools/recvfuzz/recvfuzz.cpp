@@ -695,7 +695,7 @@ void fuzz(CXPLAT_SOCKET* Binding, CXPLAT_ROUTE Route) {
 
                 while (!PacketQueue.empty()) {
                     QUIC_RX_PACKET* packet = PacketQueue.front();
-                    if (packet->DestCidLen ==NULL || packet->DestCid == NULL || (memcmp(packet->DestCid, HandshakePacketParams.SourceCid, HandshakePacketParams.SourceCidLen) != 0) || packet->PayloadLength < 4 + CXPLAT_HP_SAMPLE_LENGTH) {
+                    if (!packet->DestCidLen || !packet->DestCid || (memcmp(packet->DestCid, HandshakePacketParams.SourceCid, HandshakePacketParams.SourceCidLen) != 0) || packet->PayloadLength < 4 + CXPLAT_HP_SAMPLE_LENGTH) {
                         CXPLAT_FREE(packet->AvailBuffer, QUIC_POOL_TOOL);
                         CXPLAT_FREE(packet, QUIC_POOL_TOOL);
                         PacketQueue.pop_front(); 
