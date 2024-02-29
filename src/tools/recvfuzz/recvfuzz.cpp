@@ -769,7 +769,7 @@ void fuzz(CXPLAT_SOCKET* Binding, CXPLAT_ROUTE Route) {
                     uint16_t PayloadLength = packet->PayloadLength;
                     while (offset < PayloadLength) {
                         QuicVarIntDecode(PayloadLength, Payload, &offset, &FrameType);
-                        if(FrameType == QUIC_FRAME_ACK) {
+                        if (FrameType == QUIC_FRAME_ACK) {
                             QUIC_VAR_INT temp INIT_NO_SAL(0);
                             for(int i=0; i < 4; i++) {
                                 QuicVarIntDecode(PayloadLength, Payload, &offset, &temp);
