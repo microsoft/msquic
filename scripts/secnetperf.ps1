@@ -210,6 +210,8 @@ $envIDClient = "__CLIENT_ENV__"
 $envIDServer = "__SERVER_ENV__"
 $hasFailures = $false
 
+$json["run_args"] = $allTests
+
 try {
 
 # Prepare the machines for the testing.
