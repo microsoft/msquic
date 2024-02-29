@@ -668,6 +668,7 @@ void fuzz(CXPLAT_SOCKET* Binding, CXPLAT_ROUTE Route) {
                 printf("Sending Initial Packets\n");
                 indicateMode = FALSE;
             }
+            printf("Debug satatement\n");
             InitialPacketParams.PacketType = QUIC_INITIAL_V1;
             InitialPacketParams.FrameTypes[0] = QUIC_FRAME_CRYPTO;
             InitialPacketParams.mode = 0;
