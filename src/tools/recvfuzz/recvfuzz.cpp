@@ -680,7 +680,7 @@ void fuzz(CXPLAT_SOCKET* Binding, CXPLAT_ROUTE Route) {
         } else if (mode == 1) {
             if (!handshakeComplete) {
                 CxPlatEventInitialize(&(RecvPacketEvent), TRUE, FALSE);
-                if (ServerHello == FALSE) {
+                if (!ServerHello) {
                     do {
                         CxPlatRandom(sizeof(uint64_t), &SrcCid);
                         HandshakePacketParams.SourceCid = (uint8_t *)&SrcCid;
