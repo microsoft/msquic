@@ -776,7 +776,7 @@ void fuzz(CXPLAT_SOCKET* Binding, CXPLAT_ROUTE Route) {
                             }
                             printf("Received ACK Frame\n");
                         }
-                        if(FrameType == QUIC_FRAME_CRYPTO) {
+                        if (FrameType == QUIC_FRAME_CRYPTO) {
                             printf("Received CRYPTO Frame\n");
                             QUIC_CRYPTO_EX Frame;
                             QuicCryptoFrameDecode(packet->PayloadLength, Payload, &offset, &Frame);
