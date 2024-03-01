@@ -678,7 +678,6 @@ void fuzz(CXPLAT_SOCKET* Binding, CXPLAT_ROUTE Route) {
             sendPacket(Binding, Route, &PacketCount, &TotalByteCount, &InitialPacketParams, true, &InitialClientContext);
         } else if (mode == 1) {
             if (!handshakeComplete) {
-                CxPlatEventInitialize(&(RecvPacketEvent), TRUE, FALSE);
                 if (!ServerHello) {
                     do {
                         CxPlatRandom(sizeof(uint64_t), &SrcCid);
@@ -689,12 +688,13 @@ void fuzz(CXPLAT_SOCKET* Binding, CXPLAT_ROUTE Route) {
                         HandshakePacketParams.mode = 1;
                         printf("Sending Client Hello\n");
                         sendPacket(Binding, Route, &PacketCount, &TotalByteCount, &HandshakePacketParams, false, &HandshakeClientContext);
-                    } while (!CxPlatEventWaitWithTimeout(RecvPacketEvent, 100) && CxPlatTimeDiff64(StartTimeMs, CxPlatTimeMs64()) < RunTimeMs);
+                    } while (!RecvPacketEvent.WaitTimeout(200) && CxPlatTimeDiff64(StartTimeMs, CxPlatTimeMs64()) < RunTimeMs);
+                    RecvPacketEvent.Reset();
                 }
 
                 while (!PacketQueue.empty()) {
                     QUIC_RX_PACKET* packet = PacketQueue.front();
-                    if (!packet->DestCidLen || !packet->DestCid || (memcmp(packet->DestCid, HandshakePacketParams.SourceCid, HandshakePacketParams.SourceCidLen) != 0) || packet->PayloadLength < 4 + CXPLAT_HP_SAMPLE_LENGTH) {
+                    if (packet->DestCidLen == NULL || packet->DestCid == NULL || (memcmp(packet->DestCid, HandshakePacketParams.SourceCid, HandshakePacketParams.SourceCidLen) != 0) || packet->PayloadLength < 4 + CXPLAT_HP_SAMPLE_LENGTH) {
                         CXPLAT_FREE(packet->AvailBuffer, QUIC_POOL_TOOL);
                         CXPLAT_FREE(packet, QUIC_POOL_TOOL);
                         PacketQueue.pop_front(); 
@@ -838,9 +838,6 @@ void fuzz(CXPLAT_SOCKET* Binding, CXPLAT_ROUTE Route) {
             }
             handshakeComplete = HandshakeClientContext.State.HandshakeComplete;
         }
-    }
-        printf("Total Packets sent: %lld\n", (long long)PacketCount);
-        printf("Total Bytes sent: %lld\n", (long long)TotalByteCount);
         while (!PacketQueue.empty()) {
             QUIC_RX_PACKET* packet = PacketQueue.front();
             if (packet->AvailBuffer != nullptr) {
@@ -850,6 +847,9 @@ void fuzz(CXPLAT_SOCKET* Binding, CXPLAT_ROUTE Route) {
             
             PacketQueue.pop_front();
         }
+    }
+        printf("Total Packets sent: %lld\n", (long long)PacketCount);
+        printf("Total Bytes sent: %lld\n", (long long)TotalByteCount);
 }
 
 void start() {
