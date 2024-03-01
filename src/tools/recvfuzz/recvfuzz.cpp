@@ -134,9 +134,6 @@ UdpRecvCallback(
     while ((Datagram = RecvBufferChain) != NULL) {
         RecvBufferChain = Datagram->Next;
         Datagram->Next = NULL;
-        if (!Datagram->Allocated) {
-            continue;
-        }
         uint8_t DestCidLen, SourceCidLen;
         const uint8_t* DestCid, *SourceCid;
         
@@ -326,6 +323,7 @@ private:
 
         if (Result & CXPLAT_TLS_RESULT_ERROR) {
             printf("Failed to process data!\n");
+            exit(0);
         }
 
         return Result;
@@ -538,6 +536,7 @@ void sendPacket(CXPLAT_SOCKET* Binding, CXPLAT_ROUTE Route, int64_t* PacketCount
     CXPLAT_SEND_DATA* SendData = CxPlatSendDataAlloc(Binding, &SendConfig);
     if (!SendData) {
         printf("CxPlatSendDataAlloc failed\n");
+        return;
     }
     while (!CxPlatSendDataIsFull(SendData)) {
         uint8_t Packet[512] = {0};
