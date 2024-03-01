@@ -1285,6 +1285,6 @@ typedef struct {
 
 #define IOCTL_QUIC_RUN_HANDSHAKE_SHUTDOWN \
     QUIC_CTL_CODE(120, METHOD_BUFFERED, FILE_WRITE_DATA)
-    // uint8_t - ClientShutdown
+    // BOOLEAN - ClientShutdown
 
 #define QUIC_MAX_IOCTL_FUNC_CODE 120

@@ -518,6 +518,7 @@ size_t QUIC_IOCTL_BUFFER_SIZES[] =
     0,
     sizeof(QUIC_RUN_CANCEL_ON_LOSS_PARAMS),
     sizeof(uint32_t),
+    sizeof(BOOLEAN),
 };
 
 CXPLAT_STATIC_ASSERT(
