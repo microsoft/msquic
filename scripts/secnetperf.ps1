@@ -227,7 +227,7 @@ function CheckRegressionTput($values, $testid, $transport, $regressionJson) {
     } else {
         $Testid += "-tcp-1"
     }
-    $baseline = $regressionJson[$Testid][$envStr]["baseline"]
+    $baseline = $regressionJson.$Testid.$envStr.baseline
     if ($avg -lt $baseline) {
         Write-GHError "Regression detected in $Testid for $envStr. Baseline: $baseline, New: $avg"
     }
