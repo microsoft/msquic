@@ -635,7 +635,7 @@ void sendPacket(CXPLAT_SOCKET* Binding, CXPLAT_ROUTE Route, int64_t* PacketCount
 void fuzz(CXPLAT_SOCKET* Binding, CXPLAT_ROUTE Route) {
     int64_t PacketCount = 0;
     int64_t TotalByteCount = 0;
-    uint8_t mode;
+    uint8_t mode = 1;
     uint64_t StartTimeMs = CxPlatTimeMs64();
     uint64_t SrcCid;
     PacketParams HandshakePacketParams = {
@@ -658,7 +658,6 @@ void fuzz(CXPLAT_SOCKET* Binding, CXPLAT_ROUTE Route) {
     bool handshakeComplete = FALSE;
     bool indicateMode = TRUE;
     while (CxPlatTimeDiff64(StartTimeMs, CxPlatTimeMs64()) < RunTimeMs) {
-        mode = (uint8_t)GetRandom(2);
         if (mode == 0) {
             PacketParams InitialPacketParams = {
                 sizeof(uint64_t),
@@ -694,7 +693,7 @@ void fuzz(CXPLAT_SOCKET* Binding, CXPLAT_ROUTE Route) {
 
                 while (!PacketQueue.empty()) {
                     QUIC_RX_PACKET* packet = PacketQueue.front();
-                    if (packet->DestCidLen == NULL || packet->DestCid == NULL || (memcmp(packet->DestCid, HandshakePacketParams.SourceCid, HandshakePacketParams.SourceCidLen) != 0) || packet->PayloadLength < 4 + CXPLAT_HP_SAMPLE_LENGTH) {
+                    if (!packet->DestCidLen || !packet->DestCid || (memcmp(packet->DestCid, HandshakePacketParams.SourceCid, HandshakePacketParams.SourceCidLen) != 0) || packet->PayloadLength < 4 + CXPLAT_HP_SAMPLE_LENGTH) {
                         CXPLAT_FREE(packet->AvailBuffer, QUIC_POOL_TOOL);
                         CXPLAT_FREE(packet, QUIC_POOL_TOOL);
                         PacketQueue.pop_front(); 
@@ -847,6 +846,7 @@ void fuzz(CXPLAT_SOCKET* Binding, CXPLAT_ROUTE Route) {
             
             PacketQueue.pop_front();
         }
+        mode = (uint8_t)GetRandom(2);
     }
         printf("Total Packets sent: %lld\n", (long long)PacketCount);
         printf("Total Bytes sent: %lld\n", (long long)TotalByteCount);
