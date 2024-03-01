@@ -323,7 +323,6 @@ private:
 
         if (Result & CXPLAT_TLS_RESULT_ERROR) {
             printf("Failed to process data!\n");
-            exit(0);
         }
 
         return Result;
@@ -398,7 +397,7 @@ private:
     }
 };
 
-void WriteAckFrame(
+int WriteAckFrame(
     _In_ uint64_t LargestAcknowledge,
     _Inout_ uint16_t* Offset,
     _In_ uint16_t BufferLength,
@@ -418,10 +417,12 @@ void WriteAckFrame(
             BufferLength, 
             Buffer)) {
         printf("QuicAckFrameEncode failure!\n");
+        return 0;
     }
+    return 1;
 }
 
-void WriteCryptoFrame(    
+int WriteCryptoFrame(    
     _Inout_ uint16_t* Offset,
     _In_ uint16_t BufferLength,
     _Out_writes_to_(BufferLength, *Offset)
@@ -437,7 +438,7 @@ void WriteCryptoFrame(
         ClientContext->CreateContext(SrcCid);
         auto Result = ClientContext->ProcessData();
         if (Result & CXPLAT_TLS_RESULT_ERROR) {
-            return;
+            return 0;
         }
     }
     QUIC_CRYPTO_EX Frame = {
@@ -450,11 +451,12 @@ void WriteCryptoFrame(
             BufferLength,
             Buffer)) {
         printf("QuicCryptoFrameEncode failure!\n");
-        exit(0);
+        return 0;
     }
+    return 1;
 }
 
-void WriteClientPacket(  
+int WriteClientPacket(  
     _In_ uint32_t PacketNumber,
     _In_ uint16_t BufferLength,
     _Out_writes_to_(BufferLength, *PacketLength)
@@ -465,18 +467,18 @@ void WriteClientPacket(
     _In_ PacketParams* PacketParams
     )
 {
+    int result = 1;
     uint32_t QuicVersion = Version;
     uint8_t FrameBuffer[4096];
     uint16_t BufferSize = sizeof(FrameBuffer);
     uint16_t FrameBufferLength = 0;
     for (int i = 0; i < PacketParams->numFrames; i++) {
         if (PacketParams->FrameTypes[i] == QUIC_FRAME_ACK) {
-            WriteAckFrame(PacketParams->largestAcknowledge, &FrameBufferLength, BufferSize, FrameBuffer);
+            result = WriteAckFrame(PacketParams->largestAcknowledge, &FrameBufferLength, BufferSize, FrameBuffer);
         }
 
         if (PacketParams->FrameTypes[i] == QUIC_FRAME_CRYPTO) {
-            WriteCryptoFrame(
-                &FrameBufferLength, BufferSize, FrameBuffer, ClientContext, PacketParams);
+            result = WriteCryptoFrame(&FrameBufferLength, BufferSize, FrameBuffer, ClientContext, PacketParams);
         }
     }
     uint8_t DestCidBuffer[sizeof(QUIC_CID) + 256] = {0};
@@ -521,6 +523,8 @@ void WriteClientPacket(
     CxPlatCopyMemory(Buffer + *PacketLength, FrameBuffer, FrameBufferLength);
     *PacketLength += FrameBufferLength;
     *PacketLength += CXPLAT_ENCRYPTION_OVERHEAD;
+
+    return result;
 }
 
 void fuzzPacket(uint8_t* Packet, uint16_t PacketLength) {
@@ -542,15 +546,18 @@ void sendPacket(CXPLAT_SOCKET* Binding, CXPLAT_ROUTE Route, int64_t* PacketCount
         uint8_t Packet[512] = {0};
         uint16_t PacketLength, HeaderLength;
         uint64_t packetNum = PacketParams->packetNumber++;
-        WriteClientPacket(
-            (uint32_t)packetNum,
-            sizeof(Packet),
-            Packet,
-            &PacketLength,
-            &HeaderLength,
-            ClientContext,
-            PacketParams);
-
+        int result = WriteClientPacket(
+                        (uint32_t)packetNum,
+                        sizeof(Packet),
+                        Packet,
+                        &PacketLength,
+                        &HeaderLength,
+                        ClientContext,
+                        PacketParams);
+        if (result == 0) {
+            return;
+        }
+        
         uint16_t PacketNumberOffset = HeaderLength - sizeof(uint32_t);
 
         uint8_t* DestCid = (uint8_t*)(Packet + sizeof(QUIC_LONG_HEADER_V1));
