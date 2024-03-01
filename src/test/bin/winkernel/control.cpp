@@ -557,6 +557,7 @@ typedef union {
     BOOLEAN Bidirectional;
     QUIC_RUN_FEATURE_NEGOTIATION FeatureNegotiationParams;
     QUIC_HANDSHAKE_LOSS_PARAMS HandshakeLossParams;
+    BOOLEAN ClientShutdown;
 } QUIC_IOCTL_PARAMS;
 
 #define QuicTestCtlRun(X) \
@@ -1439,6 +1440,11 @@ QuicTestCtlEvtIoDeviceControl(
         QuicTestCtlRun(QuicTestValidateNetStatsConnEvent(Params->Test));
         break;
 #endif
+
+    case IOCTL_QUIC_RUN_HANDSHAKE_SHUTDOWN:
+        CXPLAT_FRE_ASSERT(Params != nullptr);
+        QuicTestCtlRun(QuicTestHandshakeShutdown(Params->ClientShutdown));
+        break;
 
     default:
         Status = STATUS_NOT_IMPLEMENTED;
