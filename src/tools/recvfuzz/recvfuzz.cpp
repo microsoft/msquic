@@ -844,6 +844,10 @@ void fuzz(CXPLAT_SOCKET* Binding, CXPLAT_ROUTE Route) {
             }
             handshakeComplete = HandshakeClientContext.State.HandshakeComplete;
         }
+        mode = (uint8_t)GetRandom(2);
+    }
+        printf("Total Packets sent: %lld\n", (long long)PacketCount);
+        printf("Total Bytes sent: %lld\n", (long long)TotalByteCount);
         while (!PacketQueue.empty()) {
             QUIC_RX_PACKET* packet = PacketQueue.front();
             if (packet->AvailBuffer != nullptr) {
@@ -853,10 +857,6 @@ void fuzz(CXPLAT_SOCKET* Binding, CXPLAT_ROUTE Route) {
             
             PacketQueue.pop_front();
         }
-        mode = (uint8_t)GetRandom(2);
-    }
-        printf("Total Packets sent: %lld\n", (long long)PacketCount);
-        printf("Total Bytes sent: %lld\n", (long long)TotalByteCount);
 }
 
 void start() {
