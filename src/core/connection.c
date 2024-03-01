@@ -1451,13 +1451,15 @@ QuicConnTryClose(
     }
 
     if (!ClosedRemotely) {
-
         if ((Flags & QUIC_CLOSE_APPLICATION) &&
-            Connection->Crypto.TlsState.WriteKey < QUIC_PACKET_KEY_1_RTT) {
+            !Connection->State.HandshakeConfirmed) {
             //
             // Application close can only happen if we are using 1-RTT keys.
-            // Otherwise we have to send "user_canceled" TLS error code as a
-            // connection close. Overwrite all application provided parameters.
+            // But until the handshake is confirmed, we can't be sure if the
+            // peer is able to process the close frame.
+            //
+            // Send "user_canceled" TLS error code as a connection close instead.
+            // Overwrite all application provided parameters.
             //
             Flags &= ~QUIC_CLOSE_APPLICATION;
             ErrorCode = QUIC_ERROR_CRYPTO_USER_CANCELED;
@@ -5628,9 +5630,7 @@ QuicConnRecvDatagrams(
                     Packet->BufferLength - (uint16_t)(Packet->AvailBuffer - Packet->Buffer);
             }
 
-            if (Connection->Crypto.CertValidationPending ||
-                Connection->Crypto.TicketValidationPending ||
-                !QuicConnRecvHeader(
+            if (!QuicConnRecvHeader(
                     Connection,
                     Packet,
                     Cipher + BatchCount * CXPLAT_HP_SAMPLE_LENGTH)) {
