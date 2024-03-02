@@ -181,10 +181,6 @@ if (!$NoLogs -and $isWindows) {
     Write-Host "::endgroup::"
 }
 
-$SQL = @"
-INSERT OR IGNORE INTO Secnetperf_builds (Secnetperf_Commit, Build_date_time, TLS_enabled, Advanced_build_config)
-VALUES ("$MsQuicCommit", "$(Get-Date -Format "yyyy-MM-dd HH:mm:ss")", 1, "TODO");
-"@
 $json = @{}
 $json["commit"] = "$MsQuicCommit"
 # Persist environment information:
@@ -221,12 +217,7 @@ function CheckRegressionTput($values, $testid, $transport, $regressionJson) {
     }
     $avg = $sum / $values.Length
     $envStr = "$os-$arch-$environment-$io-$tls"
-    $Testid = $testid
-    if ($transport -eq "quic") {
-        $Testid += "-tcp-0"
-    } else {
-        $Testid += "-tcp-1"
-    }
+    $Testid = "$testid-$transport"
     $baseline = $regressionJson.$Testid.$envStr.baseline
     if ($avg -lt $baseline) {
         Write-GHError "Regression detected in $Testid for $envStr. Baseline: $baseline, New: $avg"
@@ -299,12 +290,6 @@ foreach ($testId in $allTests.Keys) {
     $Test = $Output[-1]
     if ($Test.HasFailures) { $hasFailures = $true }
 
-    # Process the results and add them to the SQL and JSON.
-    $SQL += @"
-`nINSERT OR IGNORE INTO Secnetperf_tests (Secnetperf_test_ID, Kernel_mode, Run_arguments) VALUES ("$TestId-tcp-0", 0, "$ExeArgs -tcp:0");
-INSERT OR IGNORE INTO Secnetperf_tests (Secnetperf_test_ID, Kernel_mode, Run_arguments) VALUES ("$TestId-tcp-1", 0, "$ExeArgs -tcp:1");
-"@
-
     for ($tcp = 0; $tcp -lt $Test.Values.Length; $tcp++) {
         if ($Test.Values[$tcp].Length -eq 0) { continue }
         $transport = $tcp -eq 1 ? "tcp" : "quic"
@@ -313,25 +298,10 @@ INSERT OR IGNORE INTO Secnetperf_tests (Secnetperf_test_ID, Kernel_mode, Run_arg
             if (CheckRegressionTput $Test.Values[$tcp] $testId $transport $regressionJson) {
                 $hasFailures = $true
             }
-            foreach ($item in $Test.Values[$tcp]) {
-                $SQL += @"
-`nINSERT INTO Secnetperf_test_runs (Secnetperf_test_ID, Secnetperf_commit, Client_environment_ID, Server_environment_ID, Result, Secnetperf_latency_stats_ID, io, tls, Run_date)
-VALUES ("$TestId-tcp-$tcp", "$MsQuicCommit", $envIDClient, $envIDServer, $item, NULL, "$io", "$tls", "$(Get-Date -Format "yyyy-MM-dd HH:mm:ss")");
-"@
-            }
         } elseif ($Test.Metric -eq "latency") {
             $json["$testId-$transport-lat"] = $Test.Latency[$tcp]
             if (CheckRegressionLat $Test.Latency[$tcp] $regressionJson) {
                 $hasFailures = $true
-            }
-            # Test.Values[...] is a flattened 1D array of the form: [ first run + RPS, second run + RPS, third run + RPS..... ], ie. if each run has 8 values + RPS, then the array has 27 elements (8*3 + 3)
-            for ($offset = 0; $offset -lt $Test.Values[$tcp].Length; $offset += 9) {
-                $SQL += @"
-`nINSERT INTO Secnetperf_latency_stats (p0, p50, p90, p99, p999, p9999, p99999, p999999)
-VALUES ($($Test.Values[$tcp][$offset]), $($Test.Values[$tcp][$offset+1]), $($Test.Values[$tcp][$offset+2]), $($Test.Values[$tcp][$offset+3]), $($Test.Values[$tcp][$offset+4]), $($Test.Values[$tcp][$offset+5]), $($Test.Values[$tcp][$offset+6]), $($Test.Values[$tcp][$offset+7]));
-INSERT INTO Secnetperf_test_runs (Secnetperf_test_ID, Secnetperf_commit, Client_environment_ID, Server_environment_ID, Result, Secnetperf_latency_stats_ID, io, tls, Run_date)
-VALUES ("$TestId-tcp-$tcp", "$MsQuicCommit", $envIDClient, $envIDServer, $($Test.Values[$tcp][$offset+8]), LAST_INSERT_ROWID(), "$io", "$tls", "$(Get-Date -Format "yyyy-MM-dd HH:mm:ss")");
-"@
             }
         }
     }
@@ -364,9 +334,7 @@ Write-Host "Tests complete!"
         }
     } catch { }
 
-    # Save the test results (sql and json).
-    Write-Host "`Writing test-results-$environment-$os-$arch-$tls-$io.sql"
-    $SQL | Set-Content -Path "test-results-$environment-$os-$arch-$tls-$io.sql"
+    # Save the test results.
     Write-Host "`Writing json-test-results-$environment-$os-$arch-$tls-$io.json"
     $json | ConvertTo-Json -Depth 4 | Set-Content -Path "json-test-results-$environment-$os-$arch-$tls-$io.json"
 }
