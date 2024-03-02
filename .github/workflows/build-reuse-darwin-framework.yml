@@ -58,12 +58,12 @@ jobs:
         repository: microsoft/msquic
         ref: ${{ inputs.ref }}
     - name: Download Build Artifacts (x64)
-      uses: actions/download-artifact@eaceaf801fd36c7dee90939fad912460b18a1ffe
+      uses: actions/download-artifact@c850b930e6ba138125429b7e5c93fc707a7f8427
       with:
         name: ${{ inputs.config }}-macos-macos-12-x64-${{ inputs.tls }}${{ inputs.static }}
         path: artifacts
     - name: Download Build Artifacts (arm64)
-      uses: actions/download-artifact@eaceaf801fd36c7dee90939fad912460b18a1ffe
+      uses: actions/download-artifact@c850b930e6ba138125429b7e5c93fc707a7f8427
       with:
         name: ${{ inputs.config }}-macos-macos-12-arm64-${{ inputs.tls }}${{ inputs.static }}
         path: artifacts
@@ -95,7 +95,7 @@ jobs:
         repository: microsoft/msquic
         ref: ${{ inputs.ref }}
     - name: Download Build Artifacts (x64)
-      uses: actions/download-artifact@eaceaf801fd36c7dee90939fad912460b18a1ffe
+      uses: actions/download-artifact@c850b930e6ba138125429b7e5c93fc707a7f8427
       with:
         name: ${{ inputs.config }}-${{ matrix.vec.plat }}-macos-12-${{ matrix.vec.arch }}-${{ inputs.tls }}${{ inputs.static }}
         path: artifacts
@@ -119,17 +119,17 @@ jobs:
         repository: microsoft/msquic
         ref: ${{ inputs.ref }}
     - name: Download Build Artifacts (iOS x64)
-      uses: actions/download-artifact@eaceaf801fd36c7dee90939fad912460b18a1ffe
+      uses: actions/download-artifact@c850b930e6ba138125429b7e5c93fc707a7f8427
       with:
         name: Framework-${{ inputs.config }}-ios-macos-12-x64-openssl
         path: artifacts
     - name: Download Build Artifacts (iOS arm64)
-      uses: actions/download-artifact@eaceaf801fd36c7dee90939fad912460b18a1ffe
+      uses: actions/download-artifact@c850b930e6ba138125429b7e5c93fc707a7f8427
       with:
         name: Framework-${{ inputs.config }}-ios-macos-12-arm64-openssl
         path: artifacts
     - name: Download Build Artifacts (MacOS Universal)
-      uses: actions/download-artifact@eaceaf801fd36c7dee90939fad912460b18a1ffe
+      uses: actions/download-artifact@c850b930e6ba138125429b7e5c93fc707a7f8427
       with:
         name: Framework-${{ inputs.config }}-macos-macos-12-universal-openssl
         path: artifacts
