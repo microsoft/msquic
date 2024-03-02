@@ -212,6 +212,33 @@ $hasFailures = $false
 
 $json["run_args"] = $allTests
 
+function CheckRegressionTput($values, $testid, $transport, $regressionJson) {
+    # Returns true if there is a regression in this new run.
+
+    $sum = 0
+    foreach ($item in $values) {
+        $sum += $item
+    }
+    $avg = $sum / $values.Length
+    $envStr = "$os-$arch-$environment-$io-$tls"
+    $Testid = $testid
+    if ($transport -eq "quic") {
+        $Testid += "-tcp-0"
+    } else {
+        $Testid += "-tcp-1"
+    }
+    $baseline = $regressionJson.$Testid.$envStr.baseline
+    if ($avg -lt $baseline) {
+        Write-GHError "Regression detected in $Testid for $envStr. Baseline: $baseline, New: $avg"
+    }
+    return $avg -lt $baseline
+}
+
+function CheckRegressionLat($values, $regressionJson) {
+    # TODO: Generate and collect latency thresholds.
+    return $false
+}
+
 try {
 
 # Prepare the machines for the testing.
@@ -261,6 +288,9 @@ if (!$isWindows) {
     sudo sh -c "echo -n "%e.client.%p.%t.core" > /proc/sys/kernel/core_pattern"
 }
 
+Write-Host "Fetching regression.json"
+$regressionJson = Get-Content -Raw -Path "regression.json" | ConvertFrom-Json
+
 # Run all the test cases.
 Write-Host "Setup complete! Running all tests"
 foreach ($testId in $allTests.Keys) {
@@ -280,6 +310,9 @@ INSERT OR IGNORE INTO Secnetperf_tests (Secnetperf_test_ID, Kernel_mode, Run_arg
         $transport = $tcp -eq 1 ? "tcp" : "quic"
         $json["$testId-$transport"] = $Test.Values[$tcp]
         if ($Test.Metric -eq "throughput" -or $Test.Metric -eq "hps") {
+            if (CheckRegressionTput $Test.Values[$tcp] $testId $transport $regressionJson) {
+                $hasFailures = $true
+            }
             foreach ($item in $Test.Values[$tcp]) {
                 $SQL += @"
 `nINSERT INTO Secnetperf_test_runs (Secnetperf_test_ID, Secnetperf_commit, Client_environment_ID, Server_environment_ID, Result, Secnetperf_latency_stats_ID, io, tls, Run_date)
@@ -288,6 +321,9 @@ VALUES ("$TestId-tcp-$tcp", "$MsQuicCommit", $envIDClient, $envIDServer, $item, 
             }
         } elseif ($Test.Metric -eq "latency") {
             $json["$testId-$transport-lat"] = $Test.Latency[$tcp]
+            if (CheckRegressionLat $Test.Latency[$tcp] $regressionJson) {
+                $hasFailures = $true
+            }
             # Test.Values[...] is a flattened 1D array of the form: [ first run + RPS, second run + RPS, third run + RPS..... ], ie. if each run has 8 values + RPS, then the array has 27 elements (8*3 + 3)
             for ($offset = 0; $offset -lt $Test.Values[$tcp].Length; $offset += 9) {
                 $SQL += @"
