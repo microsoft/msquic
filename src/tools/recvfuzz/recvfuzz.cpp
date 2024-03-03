@@ -657,8 +657,6 @@ void fuzz(CXPLAT_SOCKET* Binding, CXPLAT_ROUTE Route) {
     HandshakePacketParams.FrameTypes[0] = QUIC_FRAME_CRYPTO;
     TlsContext HandshakeClientContext;
     HandshakeClientContext.CreateContext();
-    TlsContext InitialClientContext;
-    InitialClientContext.CreateContext();
     bool ServerHello = FALSE;
     uint8_t recvBuffer[8192];
     uint32_t bufferoffset = 0;
@@ -678,6 +676,7 @@ void fuzz(CXPLAT_SOCKET* Binding, CXPLAT_ROUTE Route) {
                 printf("Sending Initial Packets\n");
                 indicateMode = FALSE;
             }
+            TlsContext InitialClientContext;
             InitialPacketParams.PacketType = QUIC_INITIAL_V1;
             InitialPacketParams.FrameTypes[0] = QUIC_FRAME_CRYPTO;
             InitialPacketParams.mode = 0;
