@@ -1815,7 +1815,11 @@ QuicCryptoProcessData(
     uint32_t BufferCount = 1;
     QUIC_BUFFER Buffer;
 
-    if (Crypto->CertValidationPending || Crypto->TicketValidationPending) {
+    if (Crypto->CertValidationPending ||
+        (Crypto->TicketValidationPending && !Crypto->TicketValidationRejecting)) {
+        //
+        // An async validation is pending, don't process any more data until it is complete.
+        //
         return Status;
     }
 
