@@ -9606,18 +9606,6 @@
       ],
       "macroName": "QuicTraceLogStreamVerbose"
     },
-    "ServerRead1RttStart": {
-      "ModuleProperites": {},
-      "TraceString": "[conn][%p] Reading 1-RTT data starts now",
-      "UniqueId": "ServerRead1RttStart",
-      "splitArgs": [
-        {
-          "DefinationEncoding": "p",
-          "MacroVariableName": "arg1"
-        }
-      ],
-      "macroName": "QuicTraceLogConnInfo"
-    },
     "ServerResumptionTicketDecodeFailAlpnLengthEncodedWrong": {
       "ModuleProperites": {},
       "TraceString": "[test] Attempting to decode Negotiated ALPN length (improperly encoded) %x (Actual: %u)",
@@ -15382,11 +15370,6 @@
         "UniquenessHash": "bd391397-df8d-a396-230b-c7846fcbda3b",
         "TraceID": "SendQueueDrained",
         "EncodingString": "[strm][%p] Send queue completely drained"
-      },
-      {
-        "UniquenessHash": "153fc716-61b1-941b-2659-2ce8f528f806",
-        "TraceID": "ServerRead1RttStart",
-        "EncodingString": "[conn][%p] Reading 1-RTT data starts now"
       },
       {
         "UniquenessHash": "10a2af3e-b6e9-d046-42b5-49a1f96ef4f2",

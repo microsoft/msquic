@@ -82,25 +82,6 @@ TRACEPOINT_EVENT(CLOG_CRYPTO_C, ZeroRttRejected,
 
 
 /*----------------------------------------------------------
-// Decoder Ring for ServerRead1RttStart
-// [conn][%p] Reading 1-RTT data starts now
-// QuicTraceLogConnInfo(
-                    ServerRead1RttStart,
-                    Connection,
-                    "Reading 1-RTT data starts now");
-// arg1 = arg1 = Connection = arg1
-----------------------------------------------------------*/
-TRACEPOINT_EVENT(CLOG_CRYPTO_C, ServerRead1RttStart,
-    TP_ARGS(
-        const void *, arg1), 
-    TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg1, arg1)
-    )
-)
-
-
-
-/*----------------------------------------------------------
 // Decoder Ring for HandshakeConfirmedServer
 // [conn][%p] Handshake confirmed (server)
 // QuicTraceLogConnInfo(
