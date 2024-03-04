@@ -1041,7 +1041,9 @@ QuicTestShutdownDuringHandshake(
         {
             UniquePtr<TestConnection> Server;
             ServerAcceptContext ServerAcceptCtx((TestConnection**)&Server);
-            ServerAcceptCtx.ExpectedTransportCloseStatus = QUIC_STATUS_USER_CANCELED;
+            if (ClientShutdown) {
+                ServerAcceptCtx.ExpectedTransportCloseStatus = QUIC_STATUS_USER_CANCELED;
+            }
             Listener.Context = &ServerAcceptCtx;
 
             {
@@ -1050,7 +1052,9 @@ QuicTestShutdownDuringHandshake(
 
                 Client.SetExpectedCustomValidationResult(TRUE);
                 Client.SetAsyncCustomValidationResult(TRUE);
-                Client.SetExpectedTransportCloseStatus(QUIC_STATUS_USER_CANCELED);
+                if (ClientShutdown) {
+                    Client.SetExpectedTransportCloseStatus(QUIC_STATUS_USER_CANCELED);
+                }
 
                 TEST_QUIC_SUCCEEDED(
                     Client.Start(
@@ -1063,8 +1067,7 @@ QuicTestShutdownDuringHandshake(
                 CxPlatSleep(1000);
 
                 //
-                // By now, the handshake is waiting for custom certificate validation, If the
-                // connection is shut down now, it should be shutdown still at transport level.
+                // By now, the handshake is waiting for custom certificate validation.
                 //
                 if (ClientShutdown) {
                     Client.Shutdown(QUIC_CONNECTION_SHUTDOWN_FLAG_NONE, QUIC_TEST_NO_ERROR);
@@ -1076,6 +1079,8 @@ QuicTestShutdownDuringHandshake(
                         return;
                     }
 
+                    // server may not process app-level close before handshake finishes, so
+                    // we expect the transport close
                     TEST_EQUAL(TRUE, Server->GetTransportClosed());
                 } else {
                     Server->Shutdown(QUIC_CONNECTION_SHUTDOWN_FLAG_NONE, QUIC_TEST_NO_ERROR);
@@ -1087,7 +1092,9 @@ QuicTestShutdownDuringHandshake(
                         return;
                     }
 
-                    TEST_EQUAL(TRUE, Client.GetTransportClosed());
+                    // server can send the app-level close since client has keys to process it
+                    TEST_EQUAL(TRUE, Client.GetPeerClosed());
+                    TEST_EQUAL(QUIC_TEST_NO_ERROR, Client.GetPeerCloseErrorCode());
                 }   
             }
         }

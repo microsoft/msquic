@@ -1452,6 +1452,7 @@ QuicConnTryClose(
 
     if (!ClosedRemotely) {
         if ((Flags & QUIC_CLOSE_APPLICATION) &&
+            QuicConnIsClient(Connection) &&
             !Connection->State.HandshakeConfirmed) {
             //
             // Application close can only happen if we are using 1-RTT keys.
