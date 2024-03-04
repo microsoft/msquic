@@ -3697,6 +3697,15 @@ QuicConnGetKeyOrDeferDatagram(
         return FALSE;
     }
 
+    if (QuicConnIsServer(Connection) && !Connection->State.HandshakeConfirmed &&
+        Packet->KeyType == QUIC_PACKET_KEY_1_RTT) {
+        //
+        // A server MUST NOT process incoming 1-RTT protected packets before the TLS
+        // handshake is complete.
+        //
+        return FALSE;
+    }
+
     _Analysis_assume_(Packet->KeyType >= 0 && Packet->KeyType < QUIC_PACKET_KEY_COUNT);
     if (Connection->Crypto.TlsState.ReadKeys[Packet->KeyType] == NULL) {
         //
