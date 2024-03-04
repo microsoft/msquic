@@ -1487,6 +1487,15 @@ QuicCryptoProcessTlsCompletion(
         CXPLAT_TEL_ASSERT(Crypto->TlsState.ReadKeys[Crypto->TlsState.ReadKey] != NULL);
 
         if (QuicConnIsServer(Connection)) {
+            if (Crypto->TlsState.ReadKey == QUIC_PACKET_KEY_HANDSHAKE &&
+                (Crypto->ResultFlags & CXPLAT_TLS_RESULT_HANDSHAKE_COMPLETE)) {
+                Crypto->TlsState.ReadKey = QUIC_PACKET_KEY_1_RTT;
+                QuicTraceLogConnInfo(
+                    ServerRead1RttStart,
+                    Connection,
+                    "Reading 1-RTT data starts now");
+            }
+
             if (Crypto->TlsState.ReadKey == QUIC_PACKET_KEY_HANDSHAKE) {
                 //
                 // Done with the client's Initial flight.
