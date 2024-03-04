@@ -2505,19 +2505,11 @@ CxPlatTlsWriteDataToSchannel(
                         Result |= CXPLAT_TLS_RESULT_ERROR;
                         break;
                     }
-                    //
-                    // For clients, we can start using the 1-RTT key immediately
-                    // On Servers, we have to wait until the handshake is complete,
-                    // including potential asynchronous certificate validation.
-                    // The ReadKey will be set in QuicCryptoProcessTlsCompletion
-                    //
-                    if (!TlsContext->IsServer) {
-                        State->ReadKey = QUIC_PACKET_KEY_1_RTT;
-                        QuicTraceLogConnInfo(
-                            SchannelRead1RttStart,
-                            TlsContext->Connection,
-                            "Reading 1-RTT data starts now");
-                    }
+                    State->ReadKey = QUIC_PACKET_KEY_1_RTT;
+                    QuicTraceLogConnInfo(
+                        SchannelRead1RttStart,
+                        TlsContext->Connection,
+                        "Reading 1-RTT data starts now");
                     if (TlsContext->TlsSecrets != NULL) {
                         TlsContext->TlsSecrets->SecretLength = (uint8_t)NewPeerTrafficSecrets[i]->TrafficSecretSize;
                         if (TlsContext->IsServer) {
