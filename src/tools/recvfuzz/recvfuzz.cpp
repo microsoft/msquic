@@ -440,11 +440,14 @@ int WriteCryptoFrame(
     if (PacketParams->mode == 0) {
         uint64_t SrcCid;
         CxPlatRandom(sizeof(uint64_t), &SrcCid);
-        PacketParams->SourceCid = (uint8_t *)&SrcCid;
-        ClientContext->CreateContext(SrcCid);
-        auto Result = ClientContext->ProcessData();
-        if (Result & CXPLAT_TLS_RESULT_ERROR) {
-            return 0;
+        if (ClientContext == nullptr) {
+            ClientContext = new TlsContext();
+            PacketParams->SourceCid = (uint8_t *)&SrcCid;
+            ClientContext->CreateContext(SrcCid);
+            auto Result = ClientContext->ProcessData();
+            if (Result & CXPLAT_TLS_RESULT_ERROR) {
+                return 0;
+            }
         }
     }
     QUIC_CRYPTO_EX Frame = {
@@ -587,7 +590,9 @@ void sendPacket(CXPLAT_SOCKET* Binding, CXPLAT_ROUTE Route, int64_t* PacketCount
             }
         CxPlatZeroMemory(SendBuffer->Buffer, DatagramLength);
         memcpy(SendBuffer->Buffer, Packet, PacketLength);
-        if (ClientContext->State.WriteKeys[0] == nullptr) {
+        QUIC_PACKET_KEY* WriteKey = nullptr;
+        QUIC_PACKET_KEY_TYPE KeyType = QuicPacketTypeToKeyTypeV1((uint8_t)PacketParams->PacketType);
+        if (PacketParams->mode == 0) {
             if (QUIC_FAILED(
                 QuicPacketKeyCreateInitial(
                     FALSE,
@@ -595,21 +600,37 @@ void sendPacket(CXPLAT_SOCKET* Binding, CXPLAT_ROUTE Route, int64_t* PacketCount
                     InitialSalt.Data,
                     PacketParams->DestCidLen,
                     (uint8_t*)DestCid,
-                    &ClientContext->State.ReadKeys[0],
-                    &ClientContext->State.WriteKeys[0]))) {
+                    nullptr,
+                    &WriteKey))) {
                 printf("QuicPacketKeyCreateInitial failed\n");
                 return;
             }
-            ClientContext->State.ReadKey = QUIC_PACKET_KEY_INITIAL;
-            ClientContext->State.WriteKey = QUIC_PACKET_KEY_INITIAL;
         }
-        QUIC_PACKET_KEY_TYPE KeyType = QuicPacketTypeToKeyTypeV1((uint8_t)PacketParams->PacketType);
+        else {
+            if (ClientContext->State.WriteKeys[0] == nullptr) {
+                if (QUIC_FAILED(
+                    QuicPacketKeyCreateInitial(
+                        FALSE,
+                        &HkdfLabels,
+                        InitialSalt.Data,
+                        PacketParams->DestCidLen,
+                        (uint8_t*)DestCid,
+                        &ClientContext->State.ReadKeys[0],
+                        &ClientContext->State.WriteKeys[0]))) {
+                    printf("QuicPacketKeyCreateInitial failed\n");
+                    return;
+                }
+                ClientContext->State.ReadKey = QUIC_PACKET_KEY_INITIAL;
+                ClientContext->State.WriteKey = QUIC_PACKET_KEY_INITIAL;
+            }
+            WriteKey = ClientContext->State.WriteKeys[KeyType];
+        }
         uint8_t Iv[CXPLAT_IV_LENGTH];
         QuicCryptoCombineIvAndPacketNumber(
-            ClientContext->State.WriteKeys[KeyType]->Iv, (uint8_t*)&packetNum, Iv);
+            WriteKey->Iv, (uint8_t*)&packetNum, Iv);
 
         CxPlatEncrypt(
-            ClientContext->State.WriteKeys[KeyType]->PacketKey,
+            WriteKey->PacketKey,
             Iv,
             HeaderLength,
             SendBuffer->Buffer,
@@ -618,7 +639,7 @@ void sendPacket(CXPLAT_SOCKET* Binding, CXPLAT_ROUTE Route, int64_t* PacketCount
 
         uint8_t HpMask[16];
         CxPlatHpComputeMask(
-            ClientContext->State.WriteKeys[KeyType]->HeaderKey,
+            WriteKey->HeaderKey,
             1,
             SendBuffer->Buffer + HeaderLength,
             HpMask);
@@ -630,16 +651,6 @@ void sendPacket(CXPLAT_SOCKET* Binding, CXPLAT_ROUTE Route, int64_t* PacketCount
         InterlockedExchangeAdd64(PacketCount, 1);
         InterlockedExchangeAdd64(TotalByteCount, DatagramLength);
 
-        if (PacketParams->mode == 0) {
-            CXPLAT_FREE(ClientContext->State.Buffer, QUIC_POOL_TOOL);
-            ClientContext->State.Buffer = nullptr;
-            for (uint8_t i = 0; i < QUIC_PACKET_KEY_COUNT; ++i) {
-                QuicPacketKeyFree(ClientContext->State.ReadKeys[i]);
-                ClientContext->State.ReadKeys[i] = nullptr;
-                QuicPacketKeyFree(ClientContext->State.WriteKeys[i]);
-                ClientContext->State.WriteKeys[i] = nullptr;
-            }
-        }
         if (!fuzzing) {
             break;
         }
@@ -692,11 +703,10 @@ void fuzz(CXPLAT_SOCKET* Binding, CXPLAT_ROUTE Route) {
                 printf("Sending Initial Packets\n");
                 indicateMode = FALSE;
             }
-            TlsContext InitialClientContext;
             InitialPacketParams.PacketType = QUIC_INITIAL_V1;
             InitialPacketParams.FrameTypes[0] = QUIC_FRAME_CRYPTO;
             InitialPacketParams.mode = 0;
-            sendPacket(Binding, Route, &PacketCount, &TotalByteCount, &InitialPacketParams, true, &InitialClientContext);
+            sendPacket(Binding, Route, &PacketCount, &TotalByteCount, &InitialPacketParams, true);
         } else if (mode == 1) {
             if (!handshakeComplete) {
                 if (!ServerHello) {
