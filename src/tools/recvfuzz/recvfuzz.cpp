@@ -187,9 +187,8 @@ UdpRecvCallback(
         } while (Packet->AvailBuffer - Datagram->Buffer < Datagram->BufferLength);
         CXPLAT_FREE(Packet, QUIC_POOL_TOOL);
     }
-        CxPlatRecvDataReturn(RecvBufferChain);
     RecvPacketEvent.Set();
-    
+    CxPlatRecvDataReturn(RecvBufferChain); 
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
