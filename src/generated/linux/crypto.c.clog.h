@@ -108,6 +108,24 @@ tracepoint(CLOG_CRYPTO_C, ZeroRttRejected , arg1);\
 
 
 /*----------------------------------------------------------
+// Decoder Ring for ServerRead1RttStart
+// [conn][%p] Reading 1-RTT data starts now
+// QuicTraceLogConnInfo(
+                    ServerRead1RttStart,
+                    Connection,
+                    "Reading 1-RTT data starts now");
+// arg1 = arg1 = Connection = arg1
+----------------------------------------------------------*/
+#ifndef _clog_3_ARGS_TRACE_ServerRead1RttStart
+#define _clog_3_ARGS_TRACE_ServerRead1RttStart(uniqueId, arg1, encoded_arg_string)\
+tracepoint(CLOG_CRYPTO_C, ServerRead1RttStart , arg1);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for HandshakeConfirmedServer
 // [conn][%p] Handshake confirmed (server)
 // QuicTraceLogConnInfo(

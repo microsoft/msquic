@@ -179,9 +179,9 @@ tracepoint(CLOG_TLS_SCHANNEL_C, SchannelReadHandshakeStart , arg1);\
 // Decoder Ring for SchannelRead1RttStart
 // [conn][%p] Reading 1-RTT data starts now
 // QuicTraceLogConnInfo(
-                        SchannelRead1RttStart,
-                        TlsContext->Connection,
-                        "Reading 1-RTT data starts now");
+                            SchannelRead1RttStart,
+                            TlsContext->Connection,
+                            "Reading 1-RTT data starts now");
 // arg1 = arg1 = TlsContext->Connection = arg1
 ----------------------------------------------------------*/
 #ifndef _clog_3_ARGS_TRACE_SchannelRead1RttStart

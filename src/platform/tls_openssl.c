@@ -2112,7 +2112,11 @@ CxPlatTlsProcessData(
         TlsContext->ResultFlags |= CXPLAT_TLS_RESULT_HANDSHAKE_COMPLETE;
 
         if (TlsContext->IsServer) {
-            TlsContext->State->ReadKey = QUIC_PACKET_KEY_1_RTT;
+            //
+            // Don't raise the ReadKey yet, as we have to wait until the handshake is complete,
+            // including potential asynchronous certificate validation. The ReadKey will be set
+            // in QuicCryptoProcessTlsCompletion
+            //
             TlsContext->ResultFlags |= CXPLAT_TLS_RESULT_READ_KEY_UPDATED;
         } else if (!TlsContext->PeerTPReceived) {
             //
