@@ -563,6 +563,7 @@ void sendPacket(CXPLAT_SOCKET* Binding, CXPLAT_ROUTE Route, int64_t* PacketCount
                         ClientContext,
                         PacketParams);
         if (result == 0) {
+            CxPlatSendDataFree(SendData);
             return;
         }
         
