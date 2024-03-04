@@ -284,10 +284,16 @@ struct TlsContext
         if (ClientSecConfig) {
             CxPlatTlsSecConfigDelete(ClientSecConfig);
         }
-        CXPLAT_FREE(State.Buffer, QUIC_POOL_TOOL);
+        if (State.Buffer != nullptr) {
+            CXPLAT_FREE(State.Buffer, QUIC_POOL_TOOL);
+        }
         for (uint8_t i = 0; i < QUIC_PACKET_KEY_COUNT; ++i) {
-            QuicPacketKeyFree(State.ReadKeys[i]);
-            QuicPacketKeyFree(State.WriteKeys[i]);
+            if (State.ReadKeys[i] != nullptr) {
+                QuicPacketKeyFree(State.ReadKeys[i]);
+            }
+            if (State.WriteKeys[i] != nullptr) {
+                QuicPacketKeyFree(State.WriteKeys[i]);
+            }
         }
     }
 
@@ -624,6 +630,16 @@ void sendPacket(CXPLAT_SOCKET* Binding, CXPLAT_ROUTE Route, int64_t* PacketCount
         InterlockedExchangeAdd64(PacketCount, 1);
         InterlockedExchangeAdd64(TotalByteCount, DatagramLength);
 
+        if (PacketParams->mode == 0) {
+            CXPLAT_FREE(ClientContext->State.Buffer, QUIC_POOL_TOOL);
+            ClientContext->State.Buffer = nullptr;
+            for (uint8_t i = 0; i < QUIC_PACKET_KEY_COUNT; ++i) {
+                QuicPacketKeyFree(ClientContext->State.ReadKeys[i]);
+                ClientContext->State.ReadKeys[i] = nullptr;
+                QuicPacketKeyFree(ClientContext->State.WriteKeys[i]);
+                ClientContext->State.WriteKeys[i] = nullptr;
+            }
+        }
         if (!fuzzing) {
             break;
         }
