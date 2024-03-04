@@ -1721,7 +1721,7 @@ QuicCryptoCustomCertValidationComplete(
             "Custom cert validation succeeded");
         QuicCryptoProcessDataComplete(Crypto, Crypto->PendingValidationBufferLength);
 
-        // more data may have been received while processing the custom cert validation
+        // more data may have been received while waiting for user to perform the validation
         QuicCryptoProcessData(Crypto, FALSE);
     } else {
         QuicTraceEvent(
@@ -1761,7 +1761,7 @@ QuicCryptoCustomTicketValidationComplete(
         Crypto->TicketValidationPending = FALSE;
         QuicCryptoProcessDataComplete(Crypto, Crypto->PendingValidationBufferLength);
 
-        // more data may have been received while processing the custom cert validation
+        // more data may have been received while waiting for user to perform the validation
         QuicCryptoProcessData(Crypto, FALSE);
     } else {
         //
