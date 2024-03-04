@@ -28,9 +28,9 @@ extern "C" {
                 AllocFailure,
                 "Allocation of '%s' failed. (%llu bytes)",
                 "recv_buffer",
-                AllocBufferLength);
+                sizeof(QUIC_RECV_CHUNK) + AllocBufferLength);
 // arg2 = arg2 = "recv_buffer" = arg2
-// arg3 = arg3 = AllocBufferLength = arg3
+// arg3 = arg3 = sizeof(QUIC_RECV_CHUNK) + AllocBufferLength = arg3
 ----------------------------------------------------------*/
 #ifndef _clog_4_ARGS_TRACE_AllocFailure
 #define _clog_4_ARGS_TRACE_AllocFailure(uniqueId, encoded_arg_string, arg2, arg3)\

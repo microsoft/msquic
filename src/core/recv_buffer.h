@@ -9,42 +9,59 @@
 extern "C" {
 #endif
 
+typedef enum QUIC_RECV_BUF_MODE {
+    QUIC_RECV_BUF_MODE_SINGLE,      // Only one receive with a single contiguous buffer at a time.
+    QUIC_RECV_BUF_MODE_CIRCULAR,    // Only one receive that may indicate two contiguous buffers at a time.
+    QUIC_RECV_BUF_MODE_MULTIPLE     // Multiple independent receives that may indicate up to two contiguous buffers at a time.
+} QUIC_RECV_BUF_MODE;
+
+//
+// Represents a single contiguous range of bytes.
+//
+typedef struct QUIC_RECV_CHUNK {
+    CXPLAT_LIST_ENTRY Link;         // Link in the list of chunks.
+    uint32_t AllocLength : 31;      // Allocation size of Buffer
+    uint32_t ExternalReference : 1; // Indicates the buffer is being used externally.
+    uint8_t Buffer[0];
+} QUIC_RECV_CHUNK;
+
 typedef struct QUIC_RECV_BUFFER {
 
     //
-    // Flag to indicate that after a drain, copy any remaining bytes to the
-    // front of the buffer or reset the pointers to 0.
+    // A list of chunks that make up the buffer.
     //
-    BOOLEAN CopyOnDrain : 1;
+    CXPLAT_LIST_ENTRY Chunks;
 
     //
-    // Flag to indicate that some external code is currently referencing the
-    // internal buffer pointer. Don't free or reallocate the buffer out from
-    // under it.
+    // Optional, preallocated initial chunk.
     //
-    BOOLEAN ExternalBufferReference : 1;
+    QUIC_RECV_CHUNK* PreallocatedChunk;
 
     //
-    // Previous buffer that needs to be freed as soon as the external reference
-    // is released.
+    // The ranges that currently have bytes written to them.
     //
-    uint8_t * OldBuffer;
+    QUIC_RANGE WrittenRanges;
 
     //
-    // Circular buffer used for storing the writes.
+    // The length of all pending reads to the app.
     //
-    uint8_t * Buffer;
+    uint64_t ReadPendingLength;
 
     //
-    // Optional, preallocated initial buffer.
+    // The stream offset of the byte at ReadStart.
     //
-    uint8_t * PreallocatedBuffer;
+    uint64_t BaseOffset;
 
     //
-    // Length of memory allocated for 'Buffer'. Dynamically grows up to
-    // VirtualBufferLength.
+    // Start of the head in the circular of the first chunk.
     //
-    uint32_t AllocBufferLength;
+    uint32_t ReadStart;
+
+    //
+    // The length of data available to read in the first chunk, starting at
+    // ReadStart.
+    //
+    uint32_t ReadLength;
 
     //
     // Length of the buffer indicated to peers.
@@ -52,19 +69,10 @@ typedef struct QUIC_RECV_BUFFER {
     uint32_t VirtualBufferLength;
 
     //
-    // The stream offset of the byte at BufferStart.
+    // Controls the behavior of the buffer, which changes the logic for
+    // writing, reading and draining.
     //
-    uint64_t BaseOffset;
-
-    //
-    // Start of the head in the circular 'Buffer'.
-    //
-    uint32_t BufferStart;
-
-    //
-    // The ranges that currently have bytes written to them.
-    //
-    QUIC_RANGE WrittenRanges;
+    QUIC_RECV_BUF_MODE RecvMode;
 
 } QUIC_RECV_BUFFER;
 
@@ -74,8 +82,8 @@ QuicRecvBufferInitialize(
     _Inout_ QUIC_RECV_BUFFER* RecvBuffer,
     _In_ uint32_t AllocBufferLength,
     _In_ uint32_t VirtualBufferLength,
-    _In_ BOOLEAN CopyOnDrain,
-    _In_opt_ uint8_t* PreallocatedBuffer
+    _In_ QUIC_RECV_BUF_MODE RecvMode,
+    _In_opt_ QUIC_RECV_CHUNK* PreallocatedChunk
     );
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -85,22 +93,14 @@ QuicRecvBufferUninitialize(
     );
 
 //
-// Get the buffer's total length from 0.
+// Get the buffer's total length from offset 0. This does not necessarily mean
+// all of this buffer is available to be read, as some of it may have already
+// been read and drained, or only partially received (i.e. there are gaps).
 //
 _IRQL_requires_max_(DISPATCH_LEVEL)
 uint64_t
 QuicRecvBufferGetTotalLength(
     _In_ QUIC_RECV_BUFFER* RecvBuffer
-    );
-
-//
-// Changes the buffer's virtual buffer length.
-//
-_IRQL_requires_max_(DISPATCH_LEVEL)
-void
-QuicRecvBufferSetVirtualBufferLength(
-    _In_ QUIC_RECV_BUFFER* RecvBuffer,
-    _In_ uint32_t NewLength
     );
 
 //
@@ -113,32 +113,42 @@ QuicRecvBufferHasUnreadData(
     );
 
 //
-// Buffers a (possibly out-of-order or duplicate) range of bytes.
-//
-// Returns TRUE if in-order bytes are ready to be delivered
-// to the client.
+// Changes the buffer's virtual buffer length.
 //
 _IRQL_requires_max_(DISPATCH_LEVEL)
-QUIC_STATUS
-QuicRecvBufferWrite(
+void
+QuicRecvBufferIncreaseVirtualBufferLength(
     _In_ QUIC_RECV_BUFFER* RecvBuffer,
-    _In_ uint64_t BufferOffset,
-    _In_ uint16_t BufferLength,
-    _In_reads_bytes_(BufferLength) uint8_t const* Buffer,
-    _Inout_ uint64_t* WriteLength,
-    _Out_ BOOLEAN* ReadyToRead
+    _In_ uint32_t NewLength
     );
 
 //
-// Returns a pointer into the buffer for data ready to be delivered
-// to the client.
+// Buffers a (possibly out-of-order or duplicate) range of bytes.
 //
-// Since this returns an internal pointer, the caller must retain
-// exclusive access to the buffer until it calls QuicRecvBufferDrain.
+// NewDataReady indicates if new in-order bytes are ready to be delivered to the
+// client.
 //
 _IRQL_requires_max_(DISPATCH_LEVEL)
-_Success_(return != FALSE)
-BOOLEAN
+_Success_(return == QUIC_STATUS_SUCCESS)
+QUIC_STATUS
+QuicRecvBufferWrite(
+    _In_ QUIC_RECV_BUFFER* RecvBuffer,
+    _In_ uint64_t WriteOffset,
+    _In_ uint16_t WriteLength,
+    _In_reads_bytes_(WriteLength) uint8_t const* WriteBuffer,
+    _Inout_ uint64_t* WriteLimit,
+    _Out_ BOOLEAN* NewDataReady
+    );
+
+//
+// Returns a pointer into the buffer for data ready to be delivered to the
+// client.
+//
+// Since this returns an internal pointer, the caller must retain exclusive
+// access to the buffer until it calls QuicRecvBufferDrain.
+//
+_IRQL_requires_max_(DISPATCH_LEVEL)
+void
 QuicRecvBufferRead(
     _In_ QUIC_RECV_BUFFER* RecvBuffer,
     _Out_ uint64_t* BufferOffset,
@@ -148,10 +158,11 @@ QuicRecvBufferRead(
     );
 
 //
-// Marks a number of bytes at the beginning of the buffer as
-// delivered (freeing space in the buffer).
+// Marks a number of bytes at the beginning of the buffer as delivered (freeing
+// space in the buffer).
 //
-// Invalidates the pointer returned by QuicRecvBufferRead.
+// When receive mode isn't MULTIPLE it invalidates the pointer returned by
+// QuicRecvBufferRead.
 //
 // Returns TRUE if there is no more data available to be read.
 //
@@ -159,7 +170,17 @@ _IRQL_requires_max_(DISPATCH_LEVEL)
 BOOLEAN
 QuicRecvBufferDrain(
     _In_ QUIC_RECV_BUFFER* RecvBuffer,
-    _In_ uint64_t BufferLength
+    _In_ uint64_t DrainLength
+    );
+
+//
+// Indicates the caller is abandoning any pending read.
+//   N.B. Currently only supported for QUIC_RECV_BUF_MODE_SINGLE mode.
+//
+_IRQL_requires_max_(DISPATCH_LEVEL)
+void
+QuicRecvBufferResetRead(
+    _In_ QUIC_RECV_BUFFER* RecvBuffer
     );
 
 #if defined(__cplusplus)

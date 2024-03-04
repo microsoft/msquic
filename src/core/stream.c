@@ -27,7 +27,7 @@ QuicStreamInitialize(
 {
     QUIC_STATUS Status;
     QUIC_STREAM* Stream;
-    uint8_t* PreallocatedRecvBuffer = NULL;
+    QUIC_RECV_CHUNK* PreallocatedRecvChunk = NULL;
     uint32_t InitialRecvBufferLength;
     QUIC_WORKER* Worker = Connection->Worker;
 
@@ -107,8 +107,8 @@ QuicStreamInitialize(
 
     InitialRecvBufferLength = Connection->Settings.StreamRecvBufferDefault;
     if (InitialRecvBufferLength == QUIC_DEFAULT_STREAM_RECV_BUFFER_SIZE) {
-        PreallocatedRecvBuffer = CxPlatPoolAlloc(&Worker->DefaultReceiveBufferPool);
-        if (PreallocatedRecvBuffer == NULL) {
+        PreallocatedRecvChunk = CxPlatPoolAlloc(&Worker->DefaultReceiveBufferPool);
+        if (PreallocatedRecvChunk == NULL) {
             Status = QUIC_STATUS_OUT_OF_MEMORY;
             goto Exit;
         }
@@ -125,8 +125,8 @@ QuicStreamInitialize(
             &Stream->RecvBuffer,
             InitialRecvBufferLength,
             FlowControlWindowSize,
-            FALSE,
-            PreallocatedRecvBuffer);
+            QUIC_RECV_BUF_MODE_CIRCULAR,
+            PreallocatedRecvChunk);
     if (QUIC_FAILED(Status)) {
         goto Exit;
     }
@@ -139,7 +139,7 @@ QuicStreamInitialize(
     Stream->Flags.Initialized = TRUE;
     *NewStream = Stream;
     Stream = NULL;
-    PreallocatedRecvBuffer = NULL;
+    PreallocatedRecvChunk = NULL;
 
 Exit:
 
@@ -154,8 +154,8 @@ Exit:
         Stream->Flags.Freed = TRUE;
         CxPlatPoolFree(&Worker->StreamPool, Stream);
     }
-    if (PreallocatedRecvBuffer) {
-        CxPlatPoolFree(&Worker->DefaultReceiveBufferPool, PreallocatedRecvBuffer);
+    if (PreallocatedRecvChunk) {
+        CxPlatPoolFree(&Worker->DefaultReceiveBufferPool, PreallocatedRecvChunk);
     }
 
     return Status;
@@ -199,10 +199,10 @@ QuicStreamFree(
         QuicOperationFree(Worker, Stream->ReceiveCompleteOperation);
     }
 
-    if (Stream->RecvBuffer.PreallocatedBuffer) {
+    if (Stream->RecvBuffer.PreallocatedChunk) {
         CxPlatPoolFree(
             &Worker->DefaultReceiveBufferPool,
-            Stream->RecvBuffer.PreallocatedBuffer);
+            Stream->RecvBuffer.PreallocatedChunk);
     }
 
     Stream->Flags.Freed = TRUE;
