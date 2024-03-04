@@ -1452,12 +1452,12 @@ QuicConnTryClose(
 
     if (!ClosedRemotely) {
         if ((Flags & QUIC_CLOSE_APPLICATION) &&
-            QuicConnIsClient(Connection) &&
-            !Connection->State.HandshakeConfirmed) {
+            (Connection->Crypto.TlsState.WriteKey < QUIC_PACKET_KEY_1_RTT ||
+            (QuicConnIsClient(Connection) && !Connection->State.HandshakeConfirmed))) {
             //
             // Application close can only happen if we are using 1-RTT keys.
-            // But until the handshake is confirmed, we can't be sure if the
-            // peer is able to process the close frame.
+            // In case of Clients, we may have 1-RTT write keys earlier but
+            // server may not process 1-RTT packets until the handshake is confirmed.
             //
             // Send "user_canceled" TLS error code as a connection close instead.
             // Overwrite all application provided parameters.
