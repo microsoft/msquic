@@ -1444,7 +1444,7 @@ QuicTestCtlEvtIoDeviceControl(
 
     case IOCTL_QUIC_RUN_HANDSHAKE_SHUTDOWN:
         CXPLAT_FRE_ASSERT(Params != nullptr);
-        QuicTestCtlRun(QuicTestHandshakeShutdown(Params->ClientShutdown));
+        QuicTestCtlRun(QuicTestShutdownDuringHandshake(Params->ClientShutdown));
         break;
 
     default:
