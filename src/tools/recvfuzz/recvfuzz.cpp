@@ -187,8 +187,8 @@ UdpRecvCallback(
         } while (Packet->AvailBuffer - Datagram->Buffer < Datagram->BufferLength);
         CXPLAT_FREE(Packet, QUIC_POOL_TOOL);
     }
+        CxPlatRecvDataReturn(RecvBufferChain);
     RecvPacketEvent.Set();
-    CxPlatRecvDataReturn(RecvBufferChain);
     
 }
 
@@ -329,6 +329,7 @@ private:
 
         if (Result & CXPLAT_TLS_RESULT_ERROR) {
             printf("Failed to process data!\n");
+            exit(0);
         }
 
         return Result;
