@@ -542,7 +542,7 @@ void fuzzPacket(uint8_t* Packet, uint16_t PacketLength) {
     }
 }
 
-void sendPacket(CXPLAT_SOCKET* Binding, CXPLAT_ROUTE Route, int64_t* PacketCount, int64_t* TotalByteCount,  PacketParams* PacketParams, bool fuzzing = true, TlsContext* ClientContext = nullptr) {
+void sendPacket(CXPLAT_SOCKET* Binding, CXPLAT_ROUTE Route, int64_t* PacketCount, int64_t* TotalByteCount,  PacketParams* PacketParams, uint64_t StartTimeMs, bool fuzzing = true, TlsContext* ClientContext = nullptr) {
     const uint16_t DatagramLength = QUIC_MIN_INITIAL_LENGTH; 
     CXPLAT_SEND_CONFIG SendConfig = { &Route, DatagramLength, CXPLAT_ECN_NON_ECT, 0 };
     CXPLAT_SEND_DATA* SendData = CxPlatSendDataAlloc(Binding, &SendConfig);
@@ -550,7 +550,7 @@ void sendPacket(CXPLAT_SOCKET* Binding, CXPLAT_ROUTE Route, int64_t* PacketCount
         printf("CxPlatSendDataAlloc failed\n");
         return;
     }
-    while (!CxPlatSendDataIsFull(SendData)) {
+    while (!CxPlatSendDataIsFull(SendData) && CxPlatTimeDiff64(StartTimeMs, CxPlatTimeMs64()) < RunTimeMs) {
         uint8_t Packet[512] = {0};
         uint16_t PacketLength, HeaderLength;
         uint64_t packetNum = PacketParams->packetNumber++;
@@ -706,7 +706,7 @@ void fuzz(CXPLAT_SOCKET* Binding, CXPLAT_ROUTE Route) {
             InitialPacketParams.PacketType = QUIC_INITIAL_V1;
             InitialPacketParams.FrameTypes[0] = QUIC_FRAME_CRYPTO;
             InitialPacketParams.mode = 0;
-            sendPacket(Binding, Route, &PacketCount, &TotalByteCount, &InitialPacketParams, true);
+            sendPacket(Binding, Route, &PacketCount, &TotalByteCount, &InitialPacketParams, StartTimeMs, true);
         } else if (mode == 1) {
             if (!handshakeComplete) {
                 if (!ServerHello) {
@@ -718,7 +718,7 @@ void fuzz(CXPLAT_SOCKET* Binding, CXPLAT_ROUTE Route) {
                         HandshakePacketParams.PacketType = QUIC_INITIAL_V1;
                         HandshakePacketParams.mode = 1;
                         printf("Sending Client Hello\n");
-                        sendPacket(Binding, Route, &PacketCount, &TotalByteCount, &HandshakePacketParams, false, &HandshakeClientContext);
+                        sendPacket(Binding, Route, &PacketCount, &TotalByteCount, &HandshakePacketParams, StartTimeMs, false, &HandshakeClientContext);
                     } while (!RecvPacketEvent.WaitTimeout(200) && CxPlatTimeDiff64(StartTimeMs, CxPlatTimeMs64()) < RunTimeMs);
                     RecvPacketEvent.Reset();
                 }
@@ -844,7 +844,7 @@ void fuzz(CXPLAT_SOCKET* Binding, CXPLAT_ROUTE Route) {
                                 HandshakePacketParams.PacketType = QUIC_INITIAL_V1;
                                 HandshakePacketParams.mode = 1;
                                 printf("Sending ACK Packet\n");
-                                sendPacket(Binding, Route, &PacketCount, &TotalByteCount, &HandshakePacketParams, false, &HandshakeClientContext);
+                                sendPacket(Binding, Route, &PacketCount, &TotalByteCount, &HandshakePacketParams, StartTimeMs, false, &HandshakeClientContext);
                             }
                         }
                     }
@@ -865,7 +865,7 @@ void fuzz(CXPLAT_SOCKET* Binding, CXPLAT_ROUTE Route) {
                 HandshakePacketParams.FrameTypes[0] = QUIC_FRAME_ACK;
                 HandshakePacketParams.FrameTypes[1] = QUIC_FRAME_CRYPTO;
                 HandshakePacketParams.mode = 1;
-                sendPacket(Binding, Route, &PacketCount, &TotalByteCount, &HandshakePacketParams, true, &HandshakeClientContext);
+                sendPacket(Binding, Route, &PacketCount, &TotalByteCount, &HandshakePacketParams, StartTimeMs, true, &HandshakeClientContext);
             }
             handshakeComplete = HandshakeClientContext.State.HandshakeComplete;
         }
