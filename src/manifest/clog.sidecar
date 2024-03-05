@@ -10602,6 +10602,30 @@
       ],
       "macroName": "QuicTraceLogError"
     },
+    "SettingsStreamMultiReceiveEnabled": {
+      "ModuleProperites": {},
+      "TraceString": "[sett] StreamMultiReceiveEnabled= %hhu",
+      "UniqueId": "SettingsStreamMultiReceiveEnabled",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "hhu",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceLogVerbose"
+    },
+    "SettingStreamMultiReceiveEnabled": {
+      "ModuleProperites": {},
+      "TraceString": "[sett] StreamMultiReceiveEnabled  = %hhu",
+      "UniqueId": "SettingStreamMultiReceiveEnabled",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "hhu",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceLogVerbose"
+    },
     "ShutdownImmediatePendingReliableReset": {
       "ModuleProperites": {},
       "TraceString": "[strm][%p] Invalid immediate shutdown request (pending reliable reset).",
@@ -15735,6 +15759,16 @@
         "UniquenessHash": "81035efa-7e5c-22d0-3a02-16a2f7cc7f1f",
         "TraceID": "SettingsLoadInvalidOfferedVersion",
         "EncodingString": "Invalid OfferedVersion loaded from storage! 0x%x at position %d"
+      },
+      {
+        "UniquenessHash": "7db0f817-cc89-749d-01ec-356d35f7189a",
+        "TraceID": "SettingsStreamMultiReceiveEnabled",
+        "EncodingString": "[sett] StreamMultiReceiveEnabled= %hhu"
+      },
+      {
+        "UniquenessHash": "45ba4873-08cc-5dee-18d4-fe33c464ee1f",
+        "TraceID": "SettingStreamMultiReceiveEnabled",
+        "EncodingString": "[sett] StreamMultiReceiveEnabled  = %hhu"
       },
       {
         "UniquenessHash": "f34a9d8e-7798-1d30-2104-37dac8a3c0e0",

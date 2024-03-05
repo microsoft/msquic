@@ -10,6 +10,8 @@ Abstract:
 
 --*/
 
+#define QUIC_API_ENABLE_PREVIEW_FEATURES 1 // for multiple receive
+
 #include "msquichelper.h"
 #include "msquic.hpp"
 
@@ -19,6 +21,7 @@ const char* BackEndTarget;
 uint16_t BackEndPort;
 QUIC_CERTIFICATE_HASH Cert;
 bool BufferedMode = true;
+uint32_t FlowControlWindow = 0;
 
 const MsQuicApi* MsQuic;
 MsQuicRegistration* Registration;
@@ -26,7 +29,7 @@ MsQuicConfiguration* FrontEndConfiguration;
 MsQuicConfiguration* BackEndConfiguration;
 
 #define USAGE \
-    "Usage: quicforward <alpn> <local-port> <target-name/ip>:<target-port> <thumbprint> [0/1-buffered-mode]\n"
+    "Usage: quicforward <alpn> <local-port> <target-name/ip>:<target-port> <thumbprint> [0/1-buffered-mode] [fc-window]\n"
 
 bool ParseArgs(int argc, char **argv) {
     if (argc < 5) {
@@ -48,6 +51,9 @@ bool ParseArgs(int argc, char **argv) {
     }
     if (argc > 5) {
         BufferedMode = atoi(argv[5]) != 0;
+    }
+    if (argc > 6) {
+        FlowControlWindow = (uint32_t)atoi(argv[6]);
     }
     return true;
 }
@@ -195,8 +201,13 @@ int QUIC_MAIN_EXPORT main(int argc, char **argv) {
     Registration = &Reg;
     MsQuicSettings Settings;
     Settings.SetSendBufferingEnabled(false);
+    Settings.SetStreamMultiReceiveEnabled(false);
     Settings.SetPeerBidiStreamCount(1000);
     Settings.SetPeerUnidiStreamCount(1000);
+    if (FlowControlWindow) {
+        Settings.SetStreamRecvWindowDefault(FlowControlWindow);
+        Settings.SetConnFlowControlWindow(FlowControlWindow);
+    }
     MsQuicConfiguration FrontEndConfig(Reg, Alpn, Settings, MsQuicCredentialConfig(QUIC_CREDENTIAL_FLAG_NONE, &Cert));
     CXPLAT_FRE_ASSERT(FrontEndConfig.IsValid());
     FrontEndConfiguration = &FrontEndConfig;
