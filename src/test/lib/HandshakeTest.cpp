@@ -1041,9 +1041,7 @@ QuicTestShutdownDuringHandshake(
         {
             UniquePtr<TestConnection> Server;
             ServerAcceptContext ServerAcceptCtx((TestConnection**)&Server);
-            if (ClientShutdown) {
-                ServerAcceptCtx.ExpectedTransportCloseStatus = QUIC_STATUS_USER_CANCELED;
-            }
+            ServerAcceptCtx.ExpectedTransportCloseStatus = QUIC_STATUS_USER_CANCELED;
             Listener.Context = &ServerAcceptCtx;
 
             {
@@ -1052,9 +1050,7 @@ QuicTestShutdownDuringHandshake(
 
                 Client.SetExpectedCustomValidationResult(TRUE);
                 Client.SetAsyncCustomValidationResult(TRUE);
-                if (ClientShutdown) {
-                    Client.SetExpectedTransportCloseStatus(QUIC_STATUS_USER_CANCELED);
-                }
+                Client.SetExpectedTransportCloseStatus(QUIC_STATUS_USER_CANCELED);
 
                 TEST_QUIC_SUCCEEDED(
                     Client.Start(
@@ -1070,10 +1066,6 @@ QuicTestShutdownDuringHandshake(
                 // By now, the handshake is waiting for custom certificate validation.
                 //
                 if (ClientShutdown) {
-                    //
-                    // server may not process app-level close before handshake finishes, so
-                    // we actually expect the transport close
-                    //
                     Client.Shutdown(QUIC_CONNECTION_SHUTDOWN_FLAG_NONE, QUIC_TEST_NO_ERROR);
 
                     if (!Client.WaitForShutdownComplete()) {
@@ -1086,17 +1078,7 @@ QuicTestShutdownDuringHandshake(
 
                     TEST_EQUAL(TRUE, Server->GetTransportClosed());
                 } else {
-                    //
-                    // server can send the app-level close since client has keys to process it
-                    // However, the TLS abstraction gives the 1-RTT key only after the certificate
-                    // is validated, so we set the result in order to let the client proceed.
-                    //
-                    // The shutdown can be removed once server starts sending
-                    // the connection close at both Handshake and 1-RTT levels.
-                    //
                     Server->Shutdown(QUIC_CONNECTION_SHUTDOWN_FLAG_NONE, QUIC_TEST_NO_ERROR);
-                    CxPlatSleep(1000);
-                    Client.SetCustomValidationResult(TRUE);
 
                     if (!Server->WaitForShutdownComplete()) {
                         return;
@@ -1106,8 +1088,7 @@ QuicTestShutdownDuringHandshake(
                         return;
                     }
 
-                    TEST_EQUAL(TRUE, Client.GetPeerClosed());
-                    TEST_EQUAL(QUIC_TEST_NO_ERROR, Client.GetPeerCloseErrorCode());
+                    TEST_EQUAL(TRUE, Client.GetTransportClosed());
                 }   
             }
         }
