@@ -43,7 +43,6 @@ param (
     [string]$MsQuicCommit = "manual",
 
     [Parameter(Mandatory = $true)]
-    [ValidateSet("azure", "lab")]
     [string]$environment = "azure",
 
     [Parameter(Mandatory = $true)]
