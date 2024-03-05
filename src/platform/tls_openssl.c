@@ -1834,7 +1834,6 @@ Exit:
         CxPlatTlsUninitialize(TlsContext);
         TlsContext = NULL;
     }
-    printf("Status: %d\n", Status);
     return Status;
 }
 

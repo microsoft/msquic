@@ -279,7 +279,6 @@ struct TlsContext
     }
 
     ~TlsContext() {
-        printf("Cleaning up TLS Context\n");
         CxPlatTlsUninitialize(Ptr);
         if (ClientSecConfig) {
             CxPlatTlsSecConfigDelete(ClientSecConfig);
@@ -329,7 +328,6 @@ private:
 
         if (Result & CXPLAT_TLS_RESULT_ERROR) {
             printf("Failed to process data!\n");
-            printf("Runtime %lld\n", RunTimeMs);
         }
 
         return Result;
