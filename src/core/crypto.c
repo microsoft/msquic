@@ -1721,8 +1721,10 @@ QuicCryptoCustomCertValidationComplete(
             "Custom cert validation succeeded");
         QuicCryptoProcessDataComplete(Crypto, Crypto->PendingValidationBufferLength);
 
-        // more data may have been received while waiting for user to perform the validation
-        QuicCryptoProcessData(Crypto, FALSE);
+        if (QuicRecvBufferHasUnreadData(&Crypto->RecvBuffer)) {
+            // more data was received while waiting for user to perform the validation
+            QuicCryptoProcessData(Crypto, FALSE);
+        }
     } else {
         QuicTraceEvent(
             ConnError,
@@ -1761,8 +1763,10 @@ QuicCryptoCustomTicketValidationComplete(
         Crypto->TicketValidationPending = FALSE;
         QuicCryptoProcessDataComplete(Crypto, Crypto->PendingValidationBufferLength);
 
-        // more data may have been received while waiting for user to perform the validation
-        QuicCryptoProcessData(Crypto, FALSE);
+        if (QuicRecvBufferHasUnreadData(&Crypto->RecvBuffer)) {
+            // more data was received while waiting for user to perform the validation
+            QuicCryptoProcessData(Crypto, FALSE);
+        }
     } else {
         //
         // Need to rollback status before processing client's initial packet, because outgoing buffer and
@@ -1821,16 +1825,12 @@ QuicCryptoProcessData(
     } else {
         uint64_t BufferOffset;
 
-        BOOLEAN DataAvailable =
-            QuicRecvBufferRead(
-                &Crypto->RecvBuffer,
-                &BufferOffset,
-                &BufferCount,
-                &Buffer);
+        QuicRecvBufferRead(
+            &Crypto->RecvBuffer,
+            &BufferOffset,
+            &BufferCount,
+            &Buffer);
 
-        if (!DataAvailable) {
-            return Status;
-        }
         CXPLAT_DBG_ASSERT(BufferCount == 1);
 
         QUIC_CONNECTION* Connection = QuicCryptoGetConnection(Crypto);
