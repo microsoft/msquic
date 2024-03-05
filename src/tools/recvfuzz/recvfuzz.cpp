@@ -279,6 +279,7 @@ struct TlsContext
     }
 
     ~TlsContext() {
+        printf("Cleaning up TLS Context\n");
         CxPlatTlsUninitialize(Ptr);
         if (ClientSecConfig) {
             CxPlatTlsSecConfigDelete(ClientSecConfig);
@@ -328,6 +329,7 @@ private:
 
         if (Result & CXPLAT_TLS_RESULT_ERROR) {
             printf("Failed to process data!\n");
+            printf("Runtime %lld\n", RunTimeMs);
         }
 
         return Result;
@@ -431,7 +433,7 @@ int WriteCryptoFrame(
     _Inout_ uint16_t* Offset,
     _In_ uint16_t BufferLength,
     _Out_writes_to_(BufferLength, *Offset)
-        uint8_t* Buffer,
+        uint8_t* Buffer,  
     _In_ TlsContext* ClientContext,
     _In_ PacketParams* PacketParams
     )
@@ -460,6 +462,23 @@ int WriteCryptoFrame(
             Buffer)) {
         printf("QuicCryptoFrameEncode failure!\n");
         return 0;
+    }
+    if (PacketParams->mode == 0) {
+        CxPlatTlsUninitialize(ClientContext->Ptr);
+        if (ClientContext->ClientSecConfig) {
+            CxPlatTlsSecConfigDelete(ClientContext->ClientSecConfig);
+        }
+        if (ClientContext->State.Buffer != nullptr) {
+            CXPLAT_FREE(ClientContext->State.Buffer, QUIC_POOL_TOOL);
+        }
+        for (uint8_t i = 0; i < QUIC_PACKET_KEY_COUNT; ++i) {
+            if (ClientContext->State.ReadKeys[i] != nullptr) {
+                QuicPacketKeyFree(ClientContext->State.ReadKeys[i]);
+            }
+            if (ClientContext->State.WriteKeys[i] != nullptr) {
+                QuicPacketKeyFree(ClientContext->State.WriteKeys[i]);
+            }
+        }
     }
     return 1;
 }
