@@ -217,7 +217,12 @@ function CheckRegressionTput($values, $testid, $transport, $regressionJson) {
     $avg = $sum / $values.Length
     $envStr = "$os-$arch-$environment-$io-$tls"
     $Testid = "$testid-$transport"
-    $baseline = $regressionJson.$Testid.$envStr.baseline
+    try {
+        $baseline = $regressionJson.$Testid.$envStr.baseline
+    } catch {
+        Write-Host "No regression baseline found"
+        return $false
+    }
     if ($avg -lt $baseline) {
         Write-GHError "Regression detected in $Testid for $envStr. Baseline: $baseline, New: $avg"
     }
@@ -294,12 +299,12 @@ foreach ($testId in $allTests.Keys) {
         $transport = $tcp -eq 1 ? "tcp" : "quic"
         $json["$testId-$transport"] = $Test.Values[$tcp]
         if ($Test.Metric -eq "throughput" -or $Test.Metric -eq "hps") {
-            if ($regressionJson -and (CheckRegressionTput $Test.Values[$tcp] $testId $transport $regressionJson)) {
+            if (CheckRegressionTput $Test.Values[$tcp] $testId $transport $regressionJson) {
                 $hasFailures = $true
             }
         } elseif ($Test.Metric -eq "latency") {
             $json["$testId-$transport-lat"] = $Test.Latency[$tcp]
-            if ($regressionJson -and (CheckRegressionLat $Test.Latency[$tcp] $regressionJson)) {
+            if (CheckRegressionLat $Test.Latency[$tcp] $regressionJson) {
                 $hasFailures = $true
             }
         }
