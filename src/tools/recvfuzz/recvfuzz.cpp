@@ -179,9 +179,9 @@ UdpRecvCallback(
             Packet.Encrypted = TRUE;
             if (Packet.AvailBufferLength >= Packet.HeaderLength && (Packet.LH->Type == QUIC_INITIAL_V1 || Packet.LH->Type == QUIC_HANDSHAKE_V1)) {
                 Packet.AvailBufferLength = Packet.HeaderLength + Packet.PayloadLength;
-                QUIC_RX_PACKET* PacketCopy = (QUIC_RX_PACKET *)CXPLAT_ALLOC_NONPAGED(sizeof(QUIC_RX_PACKET), QUIC_POOL_TOOL); 
+                QUIC_RX_PACKET* PacketCopy = (QUIC_RX_PACKET *)CXPLAT_ALLOC_NONPAGED(sizeof(QUIC_RX_PACKET) + Packet.AvailBufferLength, QUIC_POOL_TOOL); 
                 memcpy(PacketCopy, &Packet, sizeof(QUIC_RX_PACKET));
-                PacketCopy->AvailBuffer = (uint8_t*)CXPLAT_ALLOC_NONPAGED(Packet.AvailBufferLength, QUIC_POOL_TOOL);
+                PacketCopy->AvailBuffer = (uint8_t*)(PacketCopy + 1);
                 memcpy((void *)PacketCopy->AvailBuffer, Packet.AvailBuffer, Packet.AvailBufferLength);
                 PacketQueue.push_back(PacketCopy);
             } 
@@ -745,7 +745,6 @@ void fuzz(CXPLAT_SOCKET* Binding, CXPLAT_ROUTE Route) {
                 while (!PacketQueue.empty()) {
                     QUIC_RX_PACKET* packet = PacketQueue.front();
                     if (!packet->DestCidLen || !packet->DestCid || (memcmp(packet->DestCid, HandshakePacketParams.SourceCid, HandshakePacketParams.SourceCidLen) != 0) || packet->PayloadLength < 4 + CXPLAT_HP_SAMPLE_LENGTH) {
-                        CXPLAT_FREE(packet->AvailBuffer, QUIC_POOL_TOOL);
                         CXPLAT_FREE(packet, QUIC_POOL_TOOL);
                         PacketQueue.pop_front(); 
                         continue;
@@ -806,7 +805,6 @@ void fuzz(CXPLAT_SOCKET* Binding, CXPLAT_ROUTE Route) {
                             packet->PayloadLength,  // BufferLength
                             (uint8_t*)Payload))) {  // Buffer
                         printf("CxPlatDecrypt failed\n");
-                        CXPLAT_FREE(packet->AvailBuffer, QUIC_POOL_TOOL);
                         CXPLAT_FREE(packet, QUIC_POOL_TOOL);
                         PacketQueue.pop_front(); 
                         continue;
@@ -872,7 +870,6 @@ void fuzz(CXPLAT_SOCKET* Binding, CXPLAT_ROUTE Route) {
                         printf("Handshake Completed! Sending Handshake packets\n");
                         break;
                     }
-                    CXPLAT_FREE(packet->AvailBuffer, QUIC_POOL_TOOL);
                     CXPLAT_FREE(packet, QUIC_POOL_TOOL);
                     PacketQueue.pop_front(); 
                 }
@@ -895,11 +892,7 @@ void fuzz(CXPLAT_SOCKET* Binding, CXPLAT_ROUTE Route) {
         printf("Total Bytes sent: %lld\n", (long long)TotalByteCount);
         while (!PacketQueue.empty()) {
             QUIC_RX_PACKET* packet = PacketQueue.front();
-            if (packet->AvailBuffer != nullptr) {
-                CXPLAT_FREE(packet->AvailBuffer, QUIC_POOL_TOOL);
-            }
-            CXPLAT_FREE(packet, QUIC_POOL_TOOL);
-            
+            CXPLAT_FREE(packet, QUIC_POOL_TOOL); 
             PacketQueue.pop_front();
         }
 }
