@@ -29,7 +29,7 @@ const MsQuicApi* MsQuic;
 uint64_t MagicCid = 0x989898989898989ull;
 const QUIC_HKDF_LABELS HkdfLabels = { "quic key", "quic iv", "quic hp", "quic ku" };
 uint64_t RunTimeMs = 60000;
-CxPlatEvent RecvPacketEvent;
+CxPlatEvent RecvPacketEvent(TRUE);
 QUIC_RX_PACKET Batch[QUIC_MAX_CRYPTO_BATCH_COUNT];
 uint8_t BatchCount = 0;
 std::list<QUIC_RX_PACKET*> PacketQueue;
@@ -401,7 +401,7 @@ private:
     }
 };
 
-int WriteAckFrame(
+bool WriteAckFrame(
     _In_ uint64_t LargestAcknowledge,
     _Inout_ uint16_t* Offset,
     _In_ uint16_t BufferLength,
@@ -421,12 +421,12 @@ int WriteAckFrame(
             BufferLength, 
             Buffer)) {
         printf("QuicAckFrameEncode failure!\n");
-        return 0;
+        return false;
     }
-    return 1;
+    return true;
 }
 
-int WriteCryptoFrame(    
+bool WriteCryptoFrame(    
     _Inout_ uint16_t* Offset,
     _In_ uint16_t BufferLength,
     _Out_writes_to_(BufferLength, *Offset)
@@ -444,7 +444,7 @@ int WriteCryptoFrame(
             ClientContext->CreateContext(SrcCid);
             auto Result = ClientContext->ProcessData();
             if (!(Result & CXPLAT_TLS_RESULT_DATA)) {
-                return 0;
+                return false;
             }
         }
     }
@@ -458,7 +458,7 @@ int WriteCryptoFrame(
             BufferLength,
             Buffer)) {
         printf("QuicCryptoFrameEncode failure!\n");
-        return 0;
+        return false;
     }
     if (PacketParams->mode == 0) {
         CxPlatTlsUninitialize(ClientContext->Ptr);
@@ -477,10 +477,10 @@ int WriteCryptoFrame(
             }
         }
     }
-    return 1;
+    return true;
 }
 
-int WriteClientPacket(  
+bool WriteClientPacket(  
     _In_ uint32_t PacketNumber,
     _In_ uint16_t BufferLength,
     _Out_writes_to_(BufferLength, *PacketLength)
@@ -491,7 +491,7 @@ int WriteClientPacket(
     _In_ PacketParams* PacketParams
     )
 {
-    int result = 1;
+    bool result = true;
     uint32_t QuicVersion = Version;
     uint8_t FrameBuffer[4096];
     uint16_t BufferSize = sizeof(FrameBuffer);
@@ -536,7 +536,7 @@ int WriteClientPacket(
             &PacketNumberLength);
     if (*PacketLength + FrameBufferLength > BufferLength) {
         printf("Crypto Too Big!\n");
-        exit(0);
+        return false;
     }
 
     QuicVarIntEncode2Bytes(
@@ -694,7 +694,6 @@ void fuzz(CXPLAT_SOCKET* Binding, CXPLAT_ROUTE Route) {
         0,
         1
     };
-    CxPlatEventInitialize(&(RecvPacketEvent), TRUE, FALSE);
     HandshakePacketParams.FrameTypes[0] = QUIC_FRAME_CRYPTO;
     TlsContext HandshakeClientContext;
     HandshakeClientContext.CreateContext();
