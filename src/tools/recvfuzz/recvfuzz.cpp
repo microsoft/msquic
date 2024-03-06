@@ -570,15 +570,14 @@ void sendPacket(CXPLAT_SOCKET* Binding, CXPLAT_ROUTE Route, int64_t* PacketCount
         uint8_t Packet[512] = {0};
         uint16_t PacketLength, HeaderLength;
         uint64_t packetNum = PacketParams->packetNumber++;
-        int result = WriteClientPacket(
-                        (uint32_t)packetNum,
-                        sizeof(Packet),
-                        Packet,
-                        &PacketLength,
-                        &HeaderLength,
-                        ClientContext,
-                        PacketParams);
-        if (result == 0) {
+        if (!WriteClientPacket(
+                (uint32_t)packetNum,
+                sizeof(Packet),
+                Packet,
+                &PacketLength,
+                &HeaderLength,
+                ClientContext,
+                PacketParams)) {
             CxPlatSendDataFree(SendData);
             return;
         }
