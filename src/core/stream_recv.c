@@ -1014,15 +1014,10 @@ QuicStreamReceiveCompletePending(
         (void**)&Stream->ReceiveCompleteOperation,
         &Stream->ReceiveCompleteOperationStorage);
 
-    uint64_t BufferLength, NewBufferLength = Stream->RecvCompletionLength;
-    do {
-        BufferLength = NewBufferLength;
-        NewBufferLength = (uint64_t)
-            InterlockedCompareExchange64(
-                (int64_t*)&Stream->RecvCompletionLength,
-                0,
-                BufferLength);
-    } while (BufferLength != NewBufferLength);
+    uint64_t BufferLength = Stream->RecvCompletionLength;
+    InterlockedExchangeAdd64(
+        (int64_t*)&Stream->RecvCompletionLength,
+        (int64_t)-BufferLength);
 
     if (QuicStreamReceiveComplete(Stream, BufferLength)) {
         QuicStreamRecvFlush(Stream);
