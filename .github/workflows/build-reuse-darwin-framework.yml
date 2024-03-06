@@ -3,6 +3,10 @@ name: Build Darwin Universal
 on:
   workflow_call:
     inputs:
+      ref:
+        required: false
+        default: ''
+        type: string
       config:
         required: false
         default: 'Release'
@@ -35,6 +39,7 @@ jobs:
         arch: [x64, arm64]
     uses: ./.github/workflows/build-reuse-unix.yml
     with:
+      ref: ${{ inputs.ref }}
       config: ${{ inputs.config }}
       plat: ${{ matrix.plat }}
       os: macos-12
@@ -49,6 +54,9 @@ jobs:
     steps:
     - name: Checkout repository
       uses: actions/checkout@3df4ab11eba7bda6032a0b82a6bb43b11571feac
+      with:
+        repository: microsoft/msquic
+        ref: ${{ inputs.ref }}
     - name: Download Build Artifacts (x64)
       uses: actions/download-artifact@9bc31d5ccc31df68ecc42ccf4149144866c47d8a
       with:
@@ -83,6 +91,9 @@ jobs:
     steps:
     - name: Checkout repository
       uses: actions/checkout@3df4ab11eba7bda6032a0b82a6bb43b11571feac
+      with:
+        repository: microsoft/msquic
+        ref: ${{ inputs.ref }}
     - name: Download Build Artifacts (x64)
       uses: actions/download-artifact@9bc31d5ccc31df68ecc42ccf4149144866c47d8a
       with:
@@ -104,6 +115,9 @@ jobs:
     steps:
     - name: Checkout repository
       uses: actions/checkout@3df4ab11eba7bda6032a0b82a6bb43b11571feac
+      with:
+        repository: microsoft/msquic
+        ref: ${{ inputs.ref }}
     - name: Download Build Artifacts (iOS x64)
       uses: actions/download-artifact@9bc31d5ccc31df68ecc42ccf4149144866c47d8a
       with:
