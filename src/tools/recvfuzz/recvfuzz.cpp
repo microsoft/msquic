@@ -189,7 +189,7 @@ UdpRecvCallback(
         } while (Packet.AvailBuffer - Datagram->Buffer < Datagram->BufferLength);
     }
     RecvPacketEvent.Set();
-    if(FreePacketEvent.WaitTimeout(400)) {
+    if (FreePacketEvent.WaitTimeout(400)) {
         CxPlatRecvDataReturn(CopyRecvBufferChain);
         FreePacketEvent.Reset();
     }
