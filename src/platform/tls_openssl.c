@@ -1834,6 +1834,7 @@ Exit:
         CxPlatTlsUninitialize(TlsContext);
         TlsContext = NULL;
     }
+    
     return Status;
 }
 

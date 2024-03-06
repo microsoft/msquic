@@ -137,55 +137,54 @@ UdpRecvCallback(
         uint8_t DestCidLen, SourceCidLen;
         const uint8_t* DestCid, *SourceCid;
         
-        QUIC_RX_PACKET* Packet = (QUIC_RX_PACKET *)CXPLAT_ALLOC_NONPAGED(sizeof(QUIC_RX_PACKET), QUIC_POOL_TOOL);
-        Packet->AvailBuffer = Datagram->Buffer;
+        QUIC_RX_PACKET Packet;
+        Packet.AvailBuffer = Datagram->Buffer;
         
         do {
-            Packet->AvailBufferLength = Datagram->BufferLength;
-            DestCidLen = Packet->Invariant->LONG_HDR.DestCidLength;
-            DestCid = Packet->Invariant->LONG_HDR.DestCid;
+            Packet.AvailBufferLength = Datagram->BufferLength;
+            DestCidLen = Packet.Invariant->LONG_HDR.DestCidLength;
+            DestCid = Packet.Invariant->LONG_HDR.DestCid;
             SourceCidLen = *(DestCid + DestCidLen);
             SourceCid = DestCid + sizeof(uint8_t) + DestCidLen;
             uint16_t Offset = MIN_INV_LONG_HDR_LENGTH + DestCidLen + SourceCidLen;
-            Packet->DestCidLen = DestCidLen;
-            Packet->SourceCidLen = SourceCidLen;
-            Packet->DestCid = DestCid;
-            Packet->SourceCid = SourceCid;
-            if (Packet->LH->Type == QUIC_INITIAL_V1) {
+            Packet.DestCidLen = DestCidLen;
+            Packet.SourceCidLen = SourceCidLen;
+            Packet.DestCid = DestCid;
+            Packet.SourceCid = SourceCid;
+            if (Packet.LH->Type == QUIC_INITIAL_V1) {
                 QUIC_VAR_INT TokenLengthVarInt;
                 QuicVarIntDecode(
-                        Packet->AvailBufferLength,
-                        Packet->AvailBuffer,
+                        Packet.AvailBufferLength,
+                        Packet.AvailBuffer,
                         &Offset,
                         &TokenLengthVarInt);
                 Offset += (uint16_t)TokenLengthVarInt;
             }
             QUIC_VAR_INT LengthVarInt;
             QuicVarIntDecode(
-                Packet->AvailBufferLength,
-                Packet->AvailBuffer,
+                Packet.AvailBufferLength,
+                Packet.AvailBuffer,
                 &Offset,
                 &LengthVarInt);
-            Packet->HeaderLength = Offset;
-            Packet->PayloadLength = (uint16_t)LengthVarInt;
-            Packet->ValidatedHeaderVer = TRUE;
-            if (Packet->LH->Version == QUIC_VERSION_2) {
-                Packet->KeyType = QuicPacketTypeToKeyTypeV2(Packet->LH->Type);
+            Packet.HeaderLength = Offset;
+            Packet.PayloadLength = (uint16_t)LengthVarInt;
+            Packet.ValidatedHeaderVer = TRUE;
+            if (Packet.LH->Version == QUIC_VERSION_2) {
+                Packet.KeyType = QuicPacketTypeToKeyTypeV2(Packet.LH->Type);
             } else {
-                Packet->KeyType = QuicPacketTypeToKeyTypeV1(Packet->LH->Type);
+                Packet.KeyType = QuicPacketTypeToKeyTypeV1(Packet.LH->Type);
             }
-            Packet->Encrypted = TRUE;
-            if (Packet->AvailBufferLength >= Packet->HeaderLength && (Packet->LH->Type == QUIC_INITIAL_V1 || Packet->LH->Type == QUIC_HANDSHAKE_V1)) {
-                Packet->AvailBufferLength = Packet->HeaderLength + Packet->PayloadLength;
+            Packet.Encrypted = TRUE;
+            if (Packet.AvailBufferLength >= Packet.HeaderLength && (Packet.LH->Type == QUIC_INITIAL_V1 || Packet.LH->Type == QUIC_HANDSHAKE_V1)) {
+                Packet.AvailBufferLength = Packet.HeaderLength + Packet.PayloadLength;
                 QUIC_RX_PACKET* PacketCopy = (QUIC_RX_PACKET *)CXPLAT_ALLOC_NONPAGED(sizeof(QUIC_RX_PACKET), QUIC_POOL_TOOL); 
-                memcpy(PacketCopy, Packet, sizeof(QUIC_RX_PACKET));
-                PacketCopy->AvailBuffer = (uint8_t*)CXPLAT_ALLOC_NONPAGED(Packet->AvailBufferLength, QUIC_POOL_TOOL);
-                memcpy((void *)PacketCopy->AvailBuffer, Packet->AvailBuffer, Packet->AvailBufferLength);
+                memcpy(PacketCopy, &Packet, sizeof(QUIC_RX_PACKET));
+                PacketCopy->AvailBuffer = (uint8_t*)CXPLAT_ALLOC_NONPAGED(Packet.AvailBufferLength, QUIC_POOL_TOOL);
+                memcpy((void *)PacketCopy->AvailBuffer, Packet.AvailBuffer, Packet.AvailBufferLength);
                 PacketQueue.push_back(PacketCopy);
             } 
-            Packet->AvailBuffer += Packet->AvailBufferLength;
-        } while (Packet->AvailBuffer - Datagram->Buffer < Datagram->BufferLength);
-        CXPLAT_FREE(Packet, QUIC_POOL_TOOL);
+            Packet.AvailBuffer += Packet.AvailBufferLength;
+        } while (Packet.AvailBuffer - Datagram->Buffer < Datagram->BufferLength);
     }
     RecvPacketEvent.Set();
     CxPlatRecvDataReturn(RecvBufferChain); 
