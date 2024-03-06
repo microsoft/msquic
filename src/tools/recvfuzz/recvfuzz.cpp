@@ -620,8 +620,7 @@ void sendPacket(CXPLAT_SOCKET* Binding, CXPLAT_ROUTE Route, int64_t* PacketCount
                 printf("QuicPacketKeyCreateInitial failed\n");
                 return;
             }
-        }
-        else {
+        } else {
             if (ClientContext->State.WriteKeys[0] == nullptr) {
                 if (QUIC_FAILED(
                     QuicPacketKeyCreateInitial(
