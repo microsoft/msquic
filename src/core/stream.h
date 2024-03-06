@@ -141,7 +141,6 @@ typedef union QUIC_STREAM_FLAGS {
         BOOLEAN ReceiveEnabled          : 1;    // Application is ready for receive callbacks.
         BOOLEAN ReceiveFlushQueued      : 1;    // The receive flush operation is queued.
         BOOLEAN ReceiveDataPending      : 1;    // Data (or FIN) is queued and ready for delivery.
-        BOOLEAN ReceiveCallPending      : 1;    // There is an uncompleted receive to the app.
         BOOLEAN ReceiveCallActive       : 1;    // There is an active receive to the app.
         BOOLEAN SendDelayed             : 1;    // A delayed send is currently queued.
         BOOLEAN CancelOnLoss            : 1;    // Indicates that the stream is to be canceled
@@ -414,7 +413,12 @@ typedef struct QUIC_STREAM {
     uint64_t RecvMaxLength;
 
     //
-    // The length of the pending receive call to the app.
+    // The count of the number of pending receive calls to the app.
+    //
+    uint32_t RecvCallPendingCount;
+
+    //
+    // The number of bytes of all the pending receive calls to the app.
     //
     uint64_t RecvPendingLength;
 
@@ -423,6 +427,11 @@ typedef struct QUIC_STREAM {
     // indicates that no inline call was made.
     //
     uint64_t RecvInlineCompletionLength;
+
+    //
+    // The length of completed receives not yet processed by MsQuic.
+    //
+    volatile uint64_t RecvCompletionLength;
 
     //
     // The error code for why the receive path was shutdown.
@@ -438,6 +447,8 @@ typedef struct QUIC_STREAM {
     // Preallocated operation for receive complete
     //
     QUIC_OPERATION* ReceiveCompleteOperation;
+    QUIC_OPERATION ReceiveCompleteOperationStorage;
+    QUIC_API_CONTEXT ReceiveCompleteApiCtxStorage;
 
     //
     // Stream blocked timings.
@@ -972,8 +983,7 @@ QuicStreamRecvShutdown(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicStreamReceiveCompletePending(
-    _In_ QUIC_STREAM* Stream,
-    _In_ uint64_t BufferLength
+    _In_ QUIC_STREAM* Stream
     );
 
 //

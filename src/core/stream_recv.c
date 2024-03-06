@@ -47,7 +47,7 @@ QuicStreamRecvShutdown(
         Stream->Flags.RemoteCloseAcked = TRUE;
         Stream->Flags.ReceiveEnabled = FALSE;
         Stream->Flags.ReceiveDataPending = FALSE;
-        Stream->Flags.ReceiveCallPending = FALSE;
+        Stream->RecvCallPendingCount = 0;
         goto Exit;
     }
 
@@ -73,7 +73,7 @@ QuicStreamRecvShutdown(
     //
     Stream->Flags.ReceiveEnabled = FALSE;
     Stream->Flags.ReceiveDataPending = FALSE;
-    Stream->Flags.ReceiveCallPending = FALSE;
+    Stream->RecvCallPendingCount = 0;
 
     Stream->RecvShutdownErrorCode = ErrorCode;
     Stream->Flags.SentStopSending = TRUE;
@@ -134,7 +134,7 @@ QuicStreamRecvQueueFlush(
 
     if (Stream->Flags.ReceiveEnabled &&
         Stream->Flags.ReceiveDataPending &&
-        !Stream->Flags.ReceiveCallPending) {
+        !Stream->RecvCallPendingCount) {
 
         if (AllowInlineFlush) {
             QuicStreamRecvFlush(Stream);
@@ -872,7 +872,7 @@ QuicStreamRecvFlush(
         return;
     }
 
-    CXPLAT_TEL_ASSERT(!Stream->Flags.ReceiveCallPending);
+    CXPLAT_TEL_ASSERT(!Stream->RecvCallPendingCount);
 
     BOOLEAN FlushRecv = TRUE;
     while (FlushRecv) {
@@ -926,23 +926,10 @@ QuicStreamRecvFlush(
             Event.RECEIVE.Flags |= QUIC_RECEIVE_FLAG_FIN; // TODO - 0-RTT flag?
         }
 
-        if (Stream->ReceiveCompleteOperation == NULL) {
-            Stream->ReceiveCompleteOperation =
-                QuicOperationAlloc(
-                    Stream->Connection->Worker, QUIC_OPER_TYPE_API_CALL);
-            if (Stream->ReceiveCompleteOperation == NULL) {
-                QuicConnFatalError(
-                    Stream->Connection, QUIC_STATUS_INTERNAL_ERROR, NULL);
-                break;
-            }
-            Stream->ReceiveCompleteOperation->API_CALL.Context->Type = QUIC_API_TYPE_STRM_RECV_COMPLETE;
-            Stream->ReceiveCompleteOperation->API_CALL.Context->STRM_RECV_COMPLETE.Stream = NULL;
-        }
-
         Stream->Flags.ReceiveEnabled = FALSE;
-        Stream->Flags.ReceiveCallPending = TRUE;
         Stream->Flags.ReceiveCallActive = TRUE;
-        Stream->RecvPendingLength = Event.RECEIVE.TotalBufferLength;
+        Stream->RecvCallPendingCount++;
+        Stream->RecvPendingLength += Event.RECEIVE.TotalBufferLength;
         Stream->RecvInlineCompletionLength = UINT64_MAX;
 
         QuicTraceEvent(
@@ -968,7 +955,7 @@ QuicStreamRecvFlush(
         //
         // Should be impossible to have already completed inline.
         //
-        CXPLAT_DBG_ASSERT(Stream->Flags.ReceiveCallPending);
+        CXPLAT_DBG_ASSERT(Stream->RecvCallPendingCount);
 
         if (Status == QUIC_STATUS_PENDING) {
             if (Stream->RecvInlineCompletionLength != UINT64_MAX) {
@@ -1018,10 +1005,18 @@ QuicStreamRecvFlush(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicStreamReceiveCompletePending(
-    _In_ QUIC_STREAM* Stream,
-    _In_ uint64_t BufferLength
+    _In_ QUIC_STREAM* Stream
     )
 {
+    InterlockedExchangePointer(
+        (void**)&Stream->ReceiveCompleteOperation,
+        &Stream->ReceiveCompleteOperationStorage);
+
+    uint64_t BufferLength = Stream->RecvCompletionLength;
+    InterlockedExchangeAdd64(
+        (int64_t*)&Stream->RecvCompletionLength,
+        -(int64_t)BufferLength);
+
     if (QuicStreamReceiveComplete(Stream, BufferLength)) {
         QuicStreamRecvFlush(Stream);
     }
@@ -1049,17 +1044,16 @@ QuicStreamReceiveComplete(
     _In_ uint64_t BufferLength
     )
 {
-    if (!Stream->Flags.ReceiveCallPending) {
+    if (!Stream->RecvCallPendingCount) {
         return FALSE;
     }
+    Stream->RecvCallPendingCount--;
 
     QuicPerfCounterAdd(QUIC_PERF_COUNTER_APP_RECV_BYTES, BufferLength);
 
     CXPLAT_FRE_ASSERTMSG(
         BufferLength <= Stream->RecvPendingLength,
         "App overflowed read buffer!");
-
-    Stream->Flags.ReceiveCallPending = FALSE;
 
     QuicTraceEvent(
         StreamAppReceiveComplete,

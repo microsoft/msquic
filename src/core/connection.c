@@ -7425,8 +7425,7 @@ QuicConnProcessApiOperation(
 
     case QUIC_API_TYPE_STRM_RECV_COMPLETE:
         QuicStreamReceiveCompletePending(
-            ApiCtx->STRM_RECV_COMPLETE.Stream,
-            ApiCtx->STRM_RECV_COMPLETE.BufferLength);
+            ApiCtx->STRM_RECV_COMPLETE.Stream);
         break;
 
     case QUIC_API_TYPE_STRM_RECV_SET_ENABLED:
