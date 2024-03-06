@@ -43,7 +43,6 @@ param (
     [string]$MsQuicCommit = "manual",
 
     [Parameter(Mandatory = $true)]
-    [ValidateSet("azure", "lab")]
     [string]$environment = "azure",
 
     [Parameter(Mandatory = $true)]
@@ -218,7 +217,12 @@ function CheckRegressionTput($values, $testid, $transport, $regressionJson) {
     $avg = $sum / $values.Length
     $envStr = "$os-$arch-$environment-$io-$tls"
     $Testid = "$testid-$transport"
-    $baseline = $regressionJson.$Testid.$envStr.baseline
+    try {
+        $baseline = $regressionJson.$Testid.$envStr.baseline
+    } catch {
+        Write-Host "No regression baseline found"
+        return $false
+    }
     if ($avg -lt $baseline) {
         Write-GHError "Regression detected in $Testid for $envStr. Baseline: $baseline, New: $avg"
     }
