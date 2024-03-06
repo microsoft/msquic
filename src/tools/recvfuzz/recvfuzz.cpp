@@ -30,6 +30,7 @@ uint64_t MagicCid = 0x989898989898989ull;
 const QUIC_HKDF_LABELS HkdfLabels = { "quic key", "quic iv", "quic hp", "quic ku" };
 uint64_t RunTimeMs = 60000;
 CxPlatEvent RecvPacketEvent(TRUE);
+CxPlatEvent FreePacketEvent(TRUE);
 QUIC_RX_PACKET Batch[QUIC_MAX_CRYPTO_BATCH_COUNT];
 uint8_t BatchCount = 0;
 std::list<QUIC_RX_PACKET*> PacketQueue;
@@ -131,6 +132,7 @@ UdpRecvCallback(
     )
 {
     CXPLAT_RECV_DATA* Datagram;
+    CXPLAT_RECV_DATA* CopyRecvBufferChain = RecvBufferChain;
     while ((Datagram = RecvBufferChain) != NULL) {
         RecvBufferChain = Datagram->Next;
         Datagram->Next = NULL;
@@ -187,7 +189,11 @@ UdpRecvCallback(
         } while (Packet.AvailBuffer - Datagram->Buffer < Datagram->BufferLength);
     }
     RecvPacketEvent.Set();
-    CxPlatRecvDataReturn(RecvBufferChain); 
+    if(FreePacketEvent.WaitTimeout(400)) {
+        CxPlatRecvDataReturn(CopyRecvBufferChain);
+        FreePacketEvent.Reset();
+    }
+     
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -883,6 +889,7 @@ void fuzz(CXPLAT_SOCKET* Binding, CXPLAT_ROUTE Route) {
             handshakeComplete = HandshakeClientContext.State.HandshakeComplete;
         }
         mode = (uint8_t)GetRandom(2);
+        FreePacketEvent.Set();
     }
         printf("Total Packets sent: %lld\n", (long long)PacketCount);
         printf("Total Bytes sent: %lld\n", (long long)TotalByteCount);
