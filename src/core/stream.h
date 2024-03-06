@@ -420,6 +420,11 @@ typedef struct QUIC_STREAM {
     uint64_t RecvPendingLength;
 
     //
+    // The length of completed receives not yet processed by MsQuic.
+    //
+    volatile uint64_t RecvCompletionLength;
+
+    //
     // The length of any inline receive complete call by the app. UINT64_MAX
     // indicates that no inline call was made.
     //
@@ -439,6 +444,9 @@ typedef struct QUIC_STREAM {
     // Preallocated operation for receive complete
     //
     QUIC_OPERATION* ReceiveCompleteOperation;
+    QUIC_OPERATION ReceiveCompleteOperationStorage;
+    QUIC_API_CONTEXT ReceiveCompleteApiCtxStorage;
+
 
     //
     // Stream blocked timings.
@@ -973,8 +981,7 @@ QuicStreamRecvShutdown(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicStreamReceiveCompletePending(
-    _In_ QUIC_STREAM* Stream,
-    _In_ uint64_t BufferLength
+    _In_ QUIC_STREAM* Stream
     );
 
 //

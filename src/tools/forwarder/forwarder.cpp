@@ -99,12 +99,20 @@ QUIC_STATUS StreamCallback(
     switch (Event->Type) {
     case QUIC_STREAM_EVENT_RECEIVE: {
         //printf("s[%p] Received %llu bytes\n", Stream, Event->RECEIVE.TotalBufferLength);
+        //if (!Event->RECEIVE.TotalBufferLength && !BufferedMode) {
+        //    return QUIC_STATUS_SUCCESS; // Ignore zero length when not in buffered mode
+        //}
         auto SendContext = ForwardedSend::New(Event);
         QUIC_SEND_FLAGS Flags = QUIC_SEND_FLAG_START;
         if (Event->RECEIVE.Flags & QUIC_RECEIVE_FLAG_FIN)   { Flags |= QUIC_SEND_FLAG_FIN; }
         if (Event->RECEIVE.Flags & QUIC_RECEIVE_FLAG_0_RTT) { Flags |= QUIC_SEND_FLAG_ALLOW_0_RTT; }
-        CXPLAT_FRE_ASSERT(QUIC_SUCCEEDED(
-            PeerStream->Send(SendContext->Buffers, Event->RECEIVE.BufferCount, Flags, SendContext)));
+        auto Status =
+            PeerStream->Send(SendContext->Buffers, Event->RECEIVE.BufferCount, Flags, SendContext);
+        if (Status == QUIC_STATUS_ABORTED || Status == QUIC_STATUS_INVALID_STATE) {
+            ForwardedSend::Delete(SendContext);
+            return QUIC_STATUS_SUCCESS;
+        }
+        CXPLAT_FRE_ASSERT(QUIC_SUCCEEDED(Status));
         return BufferedMode ? QUIC_STATUS_SUCCESS : QUIC_STATUS_PENDING;
     }
     case QUIC_STREAM_EVENT_SEND_COMPLETE: {
@@ -197,11 +205,11 @@ int QUIC_MAIN_EXPORT main(int argc, char **argv) {
     MsQuicApi _MsQuic;
     CXPLAT_FRE_ASSERT(_MsQuic.IsValid());
     MsQuic = &_MsQuic;
-    MsQuicRegistration Reg(true);
+    MsQuicRegistration Reg("forwarder", QUIC_EXECUTION_PROFILE_TYPE_MAX_THROUGHPUT, true); // TODO - make a knob for low lat vs max tput
     Registration = &Reg;
     MsQuicSettings Settings;
     Settings.SetSendBufferingEnabled(false);
-    Settings.SetStreamMultiReceiveEnabled(false);
+    Settings.SetStreamMultiReceiveEnabled(true);
     Settings.SetPeerBidiStreamCount(1000);
     Settings.SetPeerUnidiStreamCount(1000);
     if (FlowControlWindow) {

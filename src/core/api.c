@@ -1303,7 +1303,8 @@ MsQuicStreamReceiveComplete(
         (Connection->WorkerThreadID == CxPlatCurThreadID()) ||
         !Connection->State.HandleClosed);
 
-    if (!Stream->Flags.Started || !Stream->Flags.ReceiveCallPending) {
+    if (!Stream->Flags.Started ||
+        (!Stream->Flags.ReceiveCallPending && !Stream->Flags.ReceiveMultiple)) {
         QuicTraceEvent(
             ApiError,
             "[ api] Error %u",
@@ -1334,29 +1335,25 @@ MsQuicStreamReceiveComplete(
         goto Exit;
     }
 
+    InterlockedExchangeAdd64(
+        (int64_t*)&Stream->RecvCompletionLength, (int64_t)BufferLength);
+
     Oper = InterlockedFetchAndClearPointer((void**)&Stream->ReceiveCompleteOperation);
-    if (Oper == NULL) {
-        QuicTraceEvent(
-            ApiError,
-            "[ api] Error %u",
-            (uint32_t)QUIC_STATUS_NOT_SUPPORTED);
-        goto Exit; // Duplicate calls to receive complete
+    if (Oper) {
+        Oper->API_CALL.Context->STRM_RECV_COMPLETE.Stream = Stream;
+
+        //
+        // Async stream operations need to hold a ref on the stream so that the
+        // stream isn't freed before the operation can be processed. The ref is
+        // released after the operation is processed.
+        //
+        QuicStreamAddRef(Stream, QUIC_STREAM_REF_OPERATION);
+
+        //
+        // Queue the operation but don't wait for the completion.
+        //
+        QuicConnQueueOper(Connection, Oper);
     }
-
-    Oper->API_CALL.Context->STRM_RECV_COMPLETE.Stream = Stream;
-    Oper->API_CALL.Context->STRM_RECV_COMPLETE.BufferLength = BufferLength;
-
-    //
-    // Async stream operations need to hold a ref on the stream so that the
-    // stream isn't freed before the operation can be processed. The ref is
-    // released after the operation is processed.
-    //
-    QuicStreamAddRef(Stream, QUIC_STREAM_REF_OPERATION);
-
-    //
-    // Queue the operation but don't wait for the completion.
-    //
-    QuicConnQueueOper(Connection, Oper);
 
 Exit:
 

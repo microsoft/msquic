@@ -926,19 +926,6 @@ QuicStreamRecvFlush(
             Event.RECEIVE.Flags |= QUIC_RECEIVE_FLAG_FIN; // TODO - 0-RTT flag?
         }
 
-        if (Stream->ReceiveCompleteOperation == NULL) {
-            Stream->ReceiveCompleteOperation =
-                QuicOperationAlloc(
-                    Stream->Connection->Worker, QUIC_OPER_TYPE_API_CALL);
-            if (Stream->ReceiveCompleteOperation == NULL) {
-                QuicConnFatalError(
-                    Stream->Connection, QUIC_STATUS_INTERNAL_ERROR, NULL);
-                break;
-            }
-            Stream->ReceiveCompleteOperation->API_CALL.Context->Type = QUIC_API_TYPE_STRM_RECV_COMPLETE;
-            Stream->ReceiveCompleteOperation->API_CALL.Context->STRM_RECV_COMPLETE.Stream = NULL;
-        }
-
         Stream->Flags.ReceiveEnabled = Stream->Flags.ReceiveMultiple;
         Stream->Flags.ReceiveCallPending = TRUE;
         Stream->Flags.ReceiveCallActive = TRUE;
@@ -1020,10 +1007,23 @@ QuicStreamRecvFlush(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicStreamReceiveCompletePending(
-    _In_ QUIC_STREAM* Stream,
-    _In_ uint64_t BufferLength
+    _In_ QUIC_STREAM* Stream
     )
 {
+    InterlockedExchangePointer(
+        (void**)&Stream->ReceiveCompleteOperation,
+        &Stream->ReceiveCompleteOperationStorage);
+
+    uint64_t BufferLength, NewBufferLength = Stream->RecvCompletionLength;
+    do {
+        BufferLength = NewBufferLength;
+        NewBufferLength = (uint64_t)
+            InterlockedCompareExchange64(
+                (int64_t*)&Stream->RecvCompletionLength,
+                0,
+                BufferLength);
+    } while (BufferLength != NewBufferLength);
+
     if (QuicStreamReceiveComplete(Stream, BufferLength)) {
         QuicStreamRecvFlush(Stream);
     }
