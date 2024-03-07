@@ -132,7 +132,7 @@ QuicStreamRecvQueueFlush(
 
     if (Stream->Flags.ReceiveEnabled &&
         Stream->Flags.ReceiveDataPending &&
-        !Stream->RecvPendingLength) {
+        Stream->RecvPendingLength == 0) {
 
         if (AllowInlineFlush) {
             QuicStreamRecvFlush(Stream);
@@ -1041,7 +1041,7 @@ QuicStreamReceiveComplete(
     //
     // Reclaim any buffer space comsumed by the app.
     //
-    if (!Stream->RecvPendingLength ||
+    if (Stream->RecvPendingLength == 0 ||
         QuicRecvBufferDrain(&Stream->RecvBuffer, BufferLength)) {
         Stream->Flags.ReceiveDataPending = FALSE; // No more pending data to deliver.
     }
@@ -1052,7 +1052,7 @@ QuicStreamReceiveComplete(
         QuicStreamOnBytesDelivered(Stream, BufferLength);
     }
 
-    if (!Stream->RecvPendingLength) {
+    if (Stream->RecvPendingLength == 0) {
         //
         // All data was drained, so additional callbacks can continue to be
         // delivered.
