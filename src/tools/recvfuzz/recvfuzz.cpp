@@ -132,6 +132,7 @@ UdpRecvCallback(
     )
 {
     CXPLAT_RECV_DATA* Datagram;
+    CXPLAT_RECV_DATA* CopyRecvBufferChain = RecvBufferChain;
     while ((Datagram = RecvBufferChain) != NULL) {
         RecvBufferChain = Datagram->Next;
         Datagram->Next = NULL;
@@ -178,10 +179,14 @@ UdpRecvCallback(
             Packet.Encrypted = TRUE;
             if (Packet.AvailBufferLength >= Packet.HeaderLength && (memcmp(Packet.DestCid, &CurrSrcCid, sizeof(uint64_t)) == 0) && (Packet.LH->Type == QUIC_INITIAL_V1 || Packet.LH->Type == QUIC_HANDSHAKE_V1)) {
                 Packet.AvailBufferLength = Packet.HeaderLength + Packet.PayloadLength;
-                QUIC_RX_PACKET* PacketCopy = (QUIC_RX_PACKET *)CXPLAT_ALLOC_NONPAGED(sizeof(QUIC_RX_PACKET) + Packet.AvailBufferLength, QUIC_POOL_TOOL); 
+                QUIC_RX_PACKET* PacketCopy = (QUIC_RX_PACKET *)CXPLAT_ALLOC_NONPAGED(sizeof(QUIC_RX_PACKET) + Packet.AvailBufferLength + Packet.DestCidLen + Packet.SourceCidLen, QUIC_POOL_TOOL); 
                 memcpy(PacketCopy, &Packet, sizeof(QUIC_RX_PACKET));
                 PacketCopy->AvailBuffer = (uint8_t*)(PacketCopy + 1);
                 memcpy((void *)PacketCopy->AvailBuffer, Packet.AvailBuffer, Packet.AvailBufferLength);
+                PacketCopy->DestCid = PacketCopy->AvailBuffer + Packet.AvailBufferLength;
+                memcpy((void *)PacketCopy->DestCid, Packet.DestCid, Packet.DestCidLen);
+                PacketCopy->SourceCid = PacketCopy->DestCid + Packet.DestCidLen;
+                memcpy((void *)PacketCopy->SourceCid, Packet.SourceCid, Packet.SourceCidLen);
                 PacketQueue.push_back(PacketCopy);
             } 
             Packet.AvailBuffer += Packet.AvailBufferLength;
@@ -190,7 +195,7 @@ UdpRecvCallback(
     if (!PacketQueue.empty()) {
         RecvPacketEvent.Set();
     }
-    CxPlatRecvDataReturn(RecvBufferChain);
+    CxPlatRecvDataReturn(CopyRecvBufferChain);
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -853,6 +858,10 @@ void fuzz(CXPLAT_SOCKET* Binding, CXPLAT_ROUTE Route) {
                     HandshakePacketParams.numFrames = 2;
                     HandshakePacketParams.FrameTypes[0] = QUIC_FRAME_ACK;
                     HandshakePacketParams.FrameTypes[1] = QUIC_FRAME_CRYPTO;
+                    HandshakePacketParams.SourceCid = (uint8_t *)packet->DestCid;
+                    HandshakePacketParams.SourceCidLen = packet->DestCidLen;
+                    HandshakePacketParams.DestCid = (uint8_t *)packet->SourceCid;
+                    HandshakePacketParams.DestCidLen = packet->SourceCidLen;
                     HandshakePacketParams.mode = 1;
                     HandshakePacketParams.numPackets = (uint8_t)GetRandom(3) + 1;
                     sendPacket(Binding, Route, &HandshakePacketCount, &TotalByteCount, &HandshakePacketParams, true, &HandshakeClientContext);
@@ -870,7 +879,9 @@ void fuzz(CXPLAT_SOCKET* Binding, CXPLAT_ROUTE Route) {
         mode = (uint8_t)GetRandom(10);
         while (!PacketQueue.empty()) {
             QUIC_RX_PACKET* packet = PacketQueue.front();
-            CXPLAT_FREE(packet, QUIC_POOL_TOOL); 
+            if (packet != nullptr) {
+                CXPLAT_FREE(packet, QUIC_POOL_TOOL); 
+            }
             PacketQueue.pop_front();
         }
     }
