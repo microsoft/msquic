@@ -33,7 +33,7 @@ CxPlatEvent RecvPacketEvent(TRUE);
 QUIC_RX_PACKET Batch[QUIC_MAX_CRYPTO_BATCH_COUNT];
 uint8_t BatchCount = 0;
 std::list<QUIC_RX_PACKET*> PacketQueue;
-uint64_t CurrSrcCid;
+uint64_t CurrSrcCid = 0;
 
 static const char* Alpn = "fuzz";
 static uint32_t Version = QUIC_VERSION_1;
