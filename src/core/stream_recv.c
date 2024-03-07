@@ -983,7 +983,11 @@ QuicStreamRecvFlush(
             (int64_t*)&Stream->RecvCompletionLength,
             -(int64_t)BufferLength);
 
-        FlushRecv = QuicStreamReceiveComplete(Stream, BufferLength);
+        if (Status == QUIC_STATUS_SUCCESS || BufferLength) {
+            FlushRecv = QuicStreamReceiveComplete(Stream, BufferLength);
+        } else {
+            FlushRecv = FALSE;
+        }
     }
 }
 
@@ -1054,6 +1058,13 @@ QuicStreamReceiveComplete(
         // continue to be delivered.
         //
         Stream->Flags.ReceiveEnabled = TRUE;
+
+    } else {
+        //
+        // The app didn't drain all the data, so we will need to wait for them
+        // to request a new receive.
+        //
+        Stream->RecvPendingLength = 0;
     }
 
     if (!Stream->Flags.ReceiveEnabled) {
