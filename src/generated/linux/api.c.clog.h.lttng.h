@@ -153,25 +153,6 @@ TRACEPOINT_EVENT(CLOG_API_C, StreamAppSend,
 
 
 /*----------------------------------------------------------
-// Decoder Ring for ApiError
-// [ api] Error %u
-// QuicTraceEvent(
-            ApiError,
-            "[ api] Error %u",
-            (uint32_t)QUIC_STATUS_INVALID_STATE);
-// arg2 = arg2 = (uint32_t)QUIC_STATUS_INVALID_STATE = arg2
-----------------------------------------------------------*/
-TRACEPOINT_EVENT(CLOG_API_C, ApiError,
-    TP_ARGS(
-        unsigned int, arg2), 
-    TP_FIELDS(
-        ctf_integer(unsigned int, arg2, arg2)
-    )
-)
-
-
-
-/*----------------------------------------------------------
 // Decoder Ring for StreamAppReceiveCompleteCall
 // [strm][%p] Receive complete call [%llu bytes]
 // QuicTraceEvent(
