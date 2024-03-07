@@ -177,7 +177,7 @@ UdpRecvCallback(
                 Packet.KeyType = QuicPacketTypeToKeyTypeV1(Packet.LH->Type);
             }
             Packet.Encrypted = TRUE;
-            if (Packet.AvailBufferLength >= Packet.HeaderLength && (memcmp(Packet.DestCid, &CurrSrcCid, Packet.DestCidLen) == 0) && (Packet.LH->Type == QUIC_INITIAL_V1 || Packet.LH->Type == QUIC_HANDSHAKE_V1)) {
+            if (Packet.AvailBufferLength >= Packet.HeaderLength && (memcmp(Packet.DestCid, &CurrSrcCid, sizeof(uint64_t)) == 0) && (Packet.LH->Type == QUIC_INITIAL_V1 || Packet.LH->Type == QUIC_HANDSHAKE_V1)) {
                 Packet.AvailBufferLength = Packet.HeaderLength + Packet.PayloadLength;
                 QUIC_RX_PACKET* PacketCopy = (QUIC_RX_PACKET *)CXPLAT_ALLOC_NONPAGED(sizeof(QUIC_RX_PACKET) + Packet.AvailBufferLength, QUIC_POOL_TOOL); 
                 memcpy(PacketCopy, &Packet, sizeof(QUIC_RX_PACKET));
