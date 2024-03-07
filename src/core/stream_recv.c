@@ -1017,7 +1017,7 @@ QuicStreamReceiveCompletePending(
     uint64_t BufferLength = Stream->RecvCompletionLength;
     InterlockedExchangeAdd64(
         (int64_t*)&Stream->RecvCompletionLength,
-        (int64_t)-BufferLength);
+        -(int64_t)BufferLength);
 
     if (QuicStreamReceiveComplete(Stream, BufferLength)) {
         QuicStreamRecvFlush(Stream);
