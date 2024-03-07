@@ -177,7 +177,9 @@ UdpRecvCallback(
                 Packet.KeyType = QuicPacketTypeToKeyTypeV1(Packet.LH->Type);
             }
             Packet.Encrypted = TRUE;
-            if (Packet.AvailBufferLength >= Packet.HeaderLength && (memcmp(Packet.DestCid, &CurrSrcCid, sizeof(uint64_t)) == 0) && (Packet.LH->Type == QUIC_INITIAL_V1 || Packet.LH->Type == QUIC_HANDSHAKE_V1)) {
+            if (Packet.AvailBufferLength >= Packet.HeaderLength && 
+                    (memcmp(Packet.DestCid, &CurrSrcCid, sizeof(uint64_t)) == 0) && 
+                    (Packet.LH->Type == QUIC_INITIAL_V1 || Packet.LH->Type == QUIC_HANDSHAKE_V1)) {
                 Packet.AvailBufferLength = Packet.HeaderLength + Packet.PayloadLength;
                 QUIC_RX_PACKET* PacketCopy = (QUIC_RX_PACKET *)CXPLAT_ALLOC_NONPAGED(sizeof(QUIC_RX_PACKET) + Packet.AvailBufferLength + Packet.DestCidLen + Packet.SourceCidLen, QUIC_POOL_TOOL); 
                 memcpy(PacketCopy, &Packet, sizeof(QUIC_RX_PACKET));
@@ -552,7 +554,14 @@ void fuzzPacket(uint8_t* Packet, uint16_t PacketLength) {
     }
 }
 
-void sendPacket(CXPLAT_SOCKET* Binding, CXPLAT_ROUTE Route, int64_t* PacketCount, int64_t* TotalByteCount,  PacketParams* PacketParams, bool fuzzing = true, TlsContext* ClientContext = nullptr) {
+void sendPacket(
+        CXPLAT_SOCKET* Binding, 
+        CXPLAT_ROUTE Route, 
+        int64_t* PacketCount, 
+        int64_t* TotalByteCount,  
+        PacketParams* PacketParams, 
+        bool fuzzing = true, 
+        TlsContext* ClientContext = nullptr) {
     const uint16_t DatagramLength = QUIC_MIN_INITIAL_LENGTH; 
     CXPLAT_SEND_CONFIG SendConfig = { &Route, DatagramLength, CXPLAT_ECN_NON_ECT, 0 };
     CXPLAT_SEND_DATA* SendData = CxPlatSendDataAlloc(Binding, &SendConfig);
@@ -679,13 +688,14 @@ void fuzz(CXPLAT_SOCKET* Binding, CXPLAT_ROUTE Route) {
     int64_t InitialPacketCount = 0;
     int64_t HandshakePacketCount = 0;
     int64_t TotalByteCount = 0;
-    uint8_t mode = 1;
+    uint8_t mode;
     uint64_t StartTimeMs = CxPlatTimeMs64();
     bool ServerHello = FALSE;
     uint8_t recvBuffer[8192];
     uint32_t bufferoffset = 0;
     bool handshakeComplete = FALSE;
     while (CxPlatTimeDiff64(StartTimeMs, CxPlatTimeMs64()) < RunTimeMs) {
+        mode = (uint8_t)GetRandom(10);
         if (mode < 1) {
             PacketParams InitialPacketParams = {
                 sizeof(uint64_t),
@@ -729,7 +739,7 @@ void fuzz(CXPLAT_SOCKET* Binding, CXPLAT_ROUTE Route) {
 
             while (!PacketQueue.empty()) {
                 QUIC_RX_PACKET* packet = PacketQueue.front();
-                if (!packet->DestCidLen || !packet->DestCid || packet->PayloadLength < 4 + CXPLAT_HP_SAMPLE_LENGTH) {
+                if (!packet->DestCidLen || !packet->DestCid || packet->PayloadLength < 4 + CXPLAT_HP_SAMPLE_LENGTH || memcmp(packet->DestCid, &CurrSrcCid, sizeof(uint64_t)) != 0) {
                     CXPLAT_FREE(packet, QUIC_POOL_TOOL);
                     PacketQueue.pop_front(); 
                     continue;
@@ -876,19 +886,17 @@ void fuzz(CXPLAT_SOCKET* Binding, CXPLAT_ROUTE Route) {
             }
             HandshakeClientContext.Cleanup();             
         }
-        mode = (uint8_t)GetRandom(10);
-        while (!PacketQueue.empty()) {
-            QUIC_RX_PACKET* packet = PacketQueue.front();
-            if (packet != nullptr) {
-                CXPLAT_FREE(packet, QUIC_POOL_TOOL); 
-            }
-            PacketQueue.pop_front();
-        }
     }
-        printf("Total Initial Packets sent: %lld\n", (long long)InitialPacketCount);
-        printf("Total Handshake Packets sent: %lld\n", (long long)HandshakePacketCount);
-        printf("Total Bytes sent: %lld\n", (long long)TotalByteCount);
-        
+    while (!PacketQueue.empty()) {
+        QUIC_RX_PACKET* packet = PacketQueue.front();
+        if (packet != nullptr) {
+            CXPLAT_FREE(packet, QUIC_POOL_TOOL); 
+        }
+        PacketQueue.pop_front();
+    }
+    printf("Total Initial Packets sent: %lld\n", (long long)InitialPacketCount);
+    printf("Total Handshake Packets sent: %lld\n", (long long)HandshakePacketCount);
+    printf("Total Bytes sent: %lld\n", (long long)TotalByteCount);
 }
 
 void start() {
