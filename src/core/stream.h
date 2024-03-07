@@ -392,11 +392,6 @@ typedef struct QUIC_STREAM {
     uint64_t RecvWindowLastUpdate;
 
     //
-    // Flags indicating the state of queued events.
-    //
-    uint8_t EventFlags;
-
-    //
     // The structure for tracking received buffers.
     //
     QUIC_RECV_BUFFER RecvBuffer;
@@ -407,29 +402,18 @@ typedef struct QUIC_STREAM {
     uint64_t RecvMax0RttLength;
 
     //
-    // Maximum allowed inbound byte offset, established when the FIN
-    // is received.
+    // Maximum allowed inbound byte offset, established when the FIN is received.
     //
     uint64_t RecvMaxLength;
 
     //
-    // The count of the number of pending receive calls to the app.
-    //
-    uint32_t RecvCallPendingCount;
-
-    //
-    // The number of bytes of all the pending receive calls to the app.
+    // The number of bytes that are currently outstanding up to the app.
     //
     uint64_t RecvPendingLength;
 
     //
-    // The length of any inline receive complete call by the app. UINT64_MAX
-    // indicates that no inline call was made.
-    //
-    uint64_t RecvInlineCompletionLength;
-
-    //
-    // The length of completed receives not yet processed by MsQuic.
+    // The number of received bytes the app has completed but not yet processed
+    // by MsQuic.
     //
     volatile uint64_t RecvCompletionLength;
 
@@ -984,16 +968,6 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicStreamReceiveCompletePending(
     _In_ QUIC_STREAM* Stream
-    );
-
-//
-// Completes a receive call inline from a callback.
-//
-_IRQL_requires_max_(PASSIVE_LEVEL)
-void
-QuicStreamReceiveCompleteInline(
-    _In_ QUIC_STREAM* Stream,
-    _In_ uint64_t BufferLength
     );
 
 //

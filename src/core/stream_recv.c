@@ -47,7 +47,7 @@ QuicStreamRecvShutdown(
         Stream->Flags.RemoteCloseAcked = TRUE;
         Stream->Flags.ReceiveEnabled = FALSE;
         Stream->Flags.ReceiveDataPending = FALSE;
-        Stream->RecvCallPendingCount = 0;
+        Stream->RecvPendingLength = 0; // TODO - Remove?
         goto Exit;
     }
 
@@ -73,7 +73,7 @@ QuicStreamRecvShutdown(
     //
     Stream->Flags.ReceiveEnabled = FALSE;
     Stream->Flags.ReceiveDataPending = FALSE;
-    Stream->RecvCallPendingCount = 0;
+    Stream->RecvPendingLength = 0; // TODO - Remove?
 
     Stream->RecvShutdownErrorCode = ErrorCode;
     Stream->Flags.SentStopSending = TRUE;
@@ -134,7 +134,7 @@ QuicStreamRecvQueueFlush(
 
     if (Stream->Flags.ReceiveEnabled &&
         Stream->Flags.ReceiveDataPending &&
-        !Stream->RecvCallPendingCount) {
+        !Stream->RecvPendingLength) {
 
         if (AllowInlineFlush) {
             QuicStreamRecvFlush(Stream);
@@ -872,7 +872,7 @@ QuicStreamRecvFlush(
         return;
     }
 
-    CXPLAT_TEL_ASSERT(!Stream->RecvCallPendingCount);
+    CXPLAT_TEL_ASSERT(!Stream->RecvPendingLength); // N.B. - Will be an invalid assert once we support multiple receives
 
     BOOLEAN FlushRecv = TRUE;
     while (FlushRecv) {
@@ -928,9 +928,7 @@ QuicStreamRecvFlush(
 
         Stream->Flags.ReceiveEnabled = FALSE;
         Stream->Flags.ReceiveCallActive = TRUE;
-        Stream->RecvCallPendingCount++;
         Stream->RecvPendingLength += Event.RECEIVE.TotalBufferLength;
-        Stream->RecvInlineCompletionLength = UINT64_MAX;
 
         QuicTraceEvent(
             StreamAppReceive,
@@ -952,31 +950,10 @@ QuicStreamRecvFlush(
             break;
         }
 
-        //
-        // Should be impossible to have already completed inline.
-        //
-        CXPLAT_DBG_ASSERT(Stream->RecvCallPendingCount);
-
-        if (Status == QUIC_STATUS_PENDING) {
-            if (Stream->RecvInlineCompletionLength != UINT64_MAX) {
-                //
-                // The app called StreamReceiveComplete inline to the callback
-                // so treat that as a synchronous completion.
-                //
-                Event.RECEIVE.TotalBufferLength = Stream->RecvInlineCompletionLength;
-            } else {
-                //
-                // If the pending call wasn't completed inline, then receive
-                // callbacks MUST be disabled still.
-                //
-                CXPLAT_TEL_ASSERTMSG_ARGS(
-                    !Stream->Flags.ReceiveEnabled,
-                    "App pended recv AND enabled additional recv callbacks",
-                    Stream->Connection->Registration->AppName,
-                    0, 0);
-                Stream->Flags.ReceiveEnabled = FALSE;
-                break;
-            }
+        if (Status == QUIC_STATUS_SUCCESS) {
+            InterlockedExchangeAdd64(
+                (int64_t*)&Stream->RecvCompletionLength,
+                (int64_t)Event.RECEIVE.TotalBufferLength);
 
         } else if (Status == QUIC_STATUS_CONTINUE) {
             CXPLAT_DBG_ASSERT(!Stream->Flags.SentStopSending);
@@ -985,8 +962,11 @@ QuicStreamRecvFlush(
             // receive callbacks, even if all the data wasn't drained.
             //
             Stream->Flags.ReceiveEnabled = TRUE;
+            InterlockedExchangeAdd64(
+                (int64_t*)&Stream->RecvCompletionLength,
+                (int64_t)Event.RECEIVE.TotalBufferLength);
 
-        } else {
+        } else if (Status != QUIC_STATUS_PENDING) {
             //
             // All other failure status returns are ignored and shouldn't be
             // used by the app.
@@ -998,7 +978,12 @@ QuicStreamRecvFlush(
                 Status, 0);
         }
 
-        FlushRecv = QuicStreamReceiveComplete(Stream, Event.RECEIVE.TotalBufferLength);
+        uint64_t BufferLength = Stream->RecvCompletionLength;
+        InterlockedExchangeAdd64(
+            (int64_t*)&Stream->RecvCompletionLength,
+            -(int64_t)BufferLength);
+
+        FlushRecv = QuicStreamReceiveComplete(Stream, BufferLength);
     }
 }
 
@@ -1023,60 +1008,46 @@ QuicStreamReceiveCompletePending(
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
-void
-QuicStreamReceiveCompleteInline(
-    _In_ QUIC_STREAM* Stream,
-    _In_ uint64_t BufferLength
-    )
-{
-    CXPLAT_FRE_ASSERTMSG(
-        BufferLength <= Stream->RecvPendingLength,
-        "App overflowed read buffer!");
-
-    CXPLAT_DBG_ASSERT(Stream->RecvInlineCompletionLength == UINT64_MAX); // Indicates double call.
-    Stream->RecvInlineCompletionLength = BufferLength;
-}
-
-_IRQL_requires_max_(PASSIVE_LEVEL)
 BOOLEAN
 QuicStreamReceiveComplete(
     _In_ QUIC_STREAM* Stream,
     _In_ uint64_t BufferLength
     )
 {
-    if (!Stream->RecvCallPendingCount) {
-        return FALSE;
-    }
-    Stream->RecvCallPendingCount--;
-
-    QuicPerfCounterAdd(QUIC_PERF_COUNTER_APP_RECV_BYTES, BufferLength);
-
-    CXPLAT_FRE_ASSERTMSG(
-        BufferLength <= Stream->RecvPendingLength,
-        "App overflowed read buffer!");
-
     QuicTraceEvent(
         StreamAppReceiveComplete,
         "[strm][%p] Receive complete [%llu bytes]",
         Stream,
         BufferLength);
 
-    //
-    // Reclaim any buffer space comsumed by the app.
-    //
-    if (Stream->RecvPendingLength == 0 ||
-        QuicRecvBufferDrain(&Stream->RecvBuffer, BufferLength)) {
+    if (BufferLength != 0) {
+        QuicPerfCounterAdd(QUIC_PERF_COUNTER_APP_RECV_BYTES, BufferLength);
+
+        CXPLAT_FRE_ASSERTMSG(
+            BufferLength <= Stream->RecvPendingLength,
+            "App overflowed read buffer!");
+        Stream->RecvPendingLength -= BufferLength;
+
+        //
+        // Reclaim any buffer space comsumed by the app.
+        //
+        if (QuicRecvBufferDrain(&Stream->RecvBuffer, BufferLength)) {
+            //
+            // No more pending data to deliver.
+            //
+            Stream->Flags.ReceiveDataPending = FALSE;
+        }
+
+        QuicStreamOnBytesDelivered(Stream, BufferLength);
+
+    } else if (!Stream->RecvPendingLength) {
         //
         // No more pending data to deliver.
         //
         Stream->Flags.ReceiveDataPending = FALSE;
     }
 
-    if (BufferLength != 0) {
-        QuicStreamOnBytesDelivered(Stream, BufferLength);
-    }
-
-    if (BufferLength == Stream->RecvPendingLength) {
+    if (!Stream->RecvPendingLength) {
         CXPLAT_DBG_ASSERT(!Stream->Flags.SentStopSending);
         //
         // All data was drained from the callback, so additional callbacks can

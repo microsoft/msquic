@@ -737,8 +737,6 @@ MsQuicStreamClose(
 
     } else {
 
-        QUIC_CONN_VERIFY(Connection, !Connection->State.HandleClosed);
-
         BOOLEAN AlreadyShutdownComplete = Stream->ClientCallbackHandler == NULL;
         if (AlreadyShutdownComplete) {
             //
@@ -928,7 +926,6 @@ MsQuicStreamShutdown(
     Connection = Stream->Connection;
 
     QUIC_CONN_VERIFY(Connection, !Connection->State.Freed);
-    QUIC_CONN_VERIFY(Connection, !Connection->State.HandleClosed);
 
     if (Flags & QUIC_STREAM_SHUTDOWN_FLAG_INLINE &&
         Connection->WorkerThreadID == CxPlatCurThreadID()) {
@@ -1303,13 +1300,7 @@ MsQuicStreamReceiveComplete(
         (Connection->WorkerThreadID == CxPlatCurThreadID()) ||
         !Connection->State.HandleClosed);
 
-    if (!Stream->RecvCallPendingCount) {
-        QuicTraceEvent(
-            ApiError,
-            "[ api] Error %u",
-            (uint32_t)QUIC_STATUS_INVALID_STATE);
-        goto Exit;
-    }
+    QUIC_CONN_VERIFY(Connection, BufferLength <= Stream->RecvPendingLength);
 
     QuicTraceEvent(
         StreamAppReceiveCompleteCall,
@@ -1317,25 +1308,13 @@ MsQuicStreamReceiveComplete(
         Stream,
         BufferLength);
 
-    if (Connection->WorkerThreadID == CxPlatCurThreadID() &&
-        Stream->Flags.ReceiveCallActive) {
-
-        CXPLAT_PASSIVE_CODE();
-
-        BOOLEAN AlreadyInline = Connection->State.InlineApiExecution;
-        if (!AlreadyInline) {
-            Connection->State.InlineApiExecution = TRUE;
-        }
-        QuicStreamReceiveCompleteInline(Stream, BufferLength);
-        if (!AlreadyInline) {
-            Connection->State.InlineApiExecution = FALSE;
-        }
-
-        goto Exit;
-    }
-
     InterlockedExchangeAdd64(
         (int64_t*)&Stream->RecvCompletionLength, (int64_t)BufferLength);
+
+    if (Connection->WorkerThreadID == CxPlatCurThreadID() &&
+        Stream->Flags.ReceiveCallActive) {
+        goto Exit; // No need to queue a completion operation when run inline
+    }
 
     Oper = InterlockedFetchAndClearPointer((void**)&Stream->ReceiveCompleteOperation);
     if (Oper) {
@@ -1439,8 +1418,6 @@ MsQuicSetParam(
         }
         goto Error;
     }
-
-    QUIC_CONN_VERIFY(Connection, !Connection->State.HandleClosed);
 
     QUIC_OPERATION Oper = { 0 };
     QUIC_API_CONTEXT ApiCtx;
@@ -1559,8 +1536,6 @@ MsQuicGetParam(
         }
         goto Error;
     }
-
-    QUIC_CONN_VERIFY(Connection, !Connection->State.HandleClosed);
 
     QUIC_OPERATION Oper = { 0 };
     QUIC_API_CONTEXT ApiCtx;
