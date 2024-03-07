@@ -198,6 +198,16 @@ InterlockedFetchAndSetBoolean(
 
 inline
 void*
+InterlockedExchangePointer(
+    _Inout_ _Interlocked_operand_ void* volatile *Target,
+    _In_opt_ void* Value
+    )
+{
+    return __sync_fetch_test_and_set(Target, Value);
+}
+
+inline
+void*
 InterlockedFetchAndClearPointer(
     _Inout_ _Interlocked_operand_ void* volatile *Target
     )
