@@ -132,6 +132,18 @@ typedef struct QUIC_NEW_CONNECTION_INFO {
 <p>This pointer indicates the negotiated ALPN between server and client.</p>
 <p><code>ServerName</code></p>
 <p>This pointer indicates the server name (SNI) of the new incoming connection.</p>
+<blockquote>
+<p>Note: this buffer comes directly from the TLS ClientHello, and its format is governed by TLS.
+From <a href="https://www.rfc-editor.org/rfc/rfc6066#section-3">RFC 6066</a>:</p>
+<blockquote>
+<p>&quot;HostName&quot; contains the fully qualified DNS hostname of the server,
+as understood by the client.  The hostname is represented as a byte
+string using ASCII encoding without a trailing dot.  This allows the
+support of internationalized domain names through the use of A-labels
+defined in [<a href="https://www.rfc-editor.org/rfc/rfc5890">RFC5890</a>].  DNS hostnames are case-insensitive.  The
+algorithm to compare hostnames is described in [<a href="https://www.rfc-editor.org/rfc/rfc5890#section-2.3.2.4">RFC5890, Section 2.3.2.4</a>].</p>
+</blockquote>
+</blockquote>
 <h1 id="see-also">See Also</h1>
 <p><a href="QUIC_LISTENER_CALLBACK.html">QUIC_LISTENER_CALLBACK</a><br>
 <a href="QUIC_LISTENER_EVENT.html">QUIC_LISTENER_EVENT</a><br></p>
