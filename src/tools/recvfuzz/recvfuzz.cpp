@@ -682,6 +682,7 @@ void sendPacket(
         printf("Send failed!\n");
         exit(0);
     }
+    CxPlatSendDataFree(SendData);
 }
 
 void fuzz(CXPLAT_SOCKET* Binding, CXPLAT_ROUTE Route) {
@@ -739,7 +740,9 @@ void fuzz(CXPLAT_SOCKET* Binding, CXPLAT_ROUTE Route) {
 
             while (!PacketQueue.empty()) {
                 QUIC_RX_PACKET* packet = PacketQueue.front();
-                if (!packet->DestCidLen || !packet->DestCid || packet->PayloadLength < 4 + CXPLAT_HP_SAMPLE_LENGTH || memcmp(packet->DestCid, &CurrSrcCid, sizeof(uint64_t)) != 0) {
+                if (!packet->DestCidLen || 
+                        !packet->DestCid || packet->PayloadLength < 4 + CXPLAT_HP_SAMPLE_LENGTH || 
+                        (memcmp(packet->DestCid, HandshakePacketParams.SourceCid, HandshakePacketParams.SourceCidLen) != 0)) {
                     CXPLAT_FREE(packet, QUIC_POOL_TOOL);
                     PacketQueue.pop_front(); 
                     continue;
