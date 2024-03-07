@@ -47,7 +47,6 @@ QuicStreamRecvShutdown(
         Stream->Flags.RemoteCloseAcked = TRUE;
         Stream->Flags.ReceiveEnabled = FALSE;
         Stream->Flags.ReceiveDataPending = FALSE;
-        Stream->RecvPendingLength = 0; // TODO - Remove?
         goto Exit;
     }
 
@@ -73,7 +72,6 @@ QuicStreamRecvShutdown(
     //
     Stream->Flags.ReceiveEnabled = FALSE;
     Stream->Flags.ReceiveDataPending = FALSE;
-    Stream->RecvPendingLength = 0; // TODO - Remove?
 
     Stream->RecvShutdownErrorCode = ErrorCode;
     Stream->Flags.SentStopSending = TRUE;
@@ -942,14 +940,6 @@ QuicStreamRecvFlush(
 
         Stream->Flags.ReceiveCallActive = FALSE;
 
-        if (Stream->Flags.SentStopSending || Stream->Flags.RemoteCloseFin) {
-            //
-            // The app has aborted their receive path. No need to process any
-            // more.
-            //
-            break;
-        }
-
         if (Status == QUIC_STATUS_SUCCESS) {
             InterlockedExchangeAdd64(
                 (int64_t*)&Stream->RecvCompletionLength,
@@ -1031,6 +1021,13 @@ QuicStreamReceiveComplete(
     _In_ uint64_t BufferLength
     )
 {
+    if (Stream->Flags.SentStopSending || Stream->Flags.RemoteCloseFin) {
+        //
+        // The app has aborted their receive path. No need to process any more.
+        //
+        return FALSE;
+    }
+
     QuicTraceEvent(
         StreamAppReceiveComplete,
         "[strm][%p] Receive complete [%llu bytes]",
@@ -1056,7 +1053,6 @@ QuicStreamReceiveComplete(
     }
 
     if (!Stream->RecvPendingLength) {
-        CXPLAT_DBG_ASSERT(!Stream->Flags.SentStopSending);
         //
         // All data was drained, so additional callbacks can continue to be
         // delivered.
