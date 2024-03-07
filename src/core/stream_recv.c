@@ -954,39 +954,47 @@ QuicStreamRecvFlush(
             InterlockedExchangeAdd64(
                 (int64_t*)&Stream->RecvCompletionLength,
                 (int64_t)Event.RECEIVE.TotalBufferLength);
+            FlushRecv = TRUE;
 
         } else if (Status == QUIC_STATUS_CONTINUE) {
             CXPLAT_DBG_ASSERT(!Stream->Flags.SentStopSending);
+            InterlockedExchangeAdd64(
+                (int64_t*)&Stream->RecvCompletionLength,
+                (int64_t)Event.RECEIVE.TotalBufferLength);
+            FlushRecv = TRUE;
             //
             // The app has explicitly indicated it wants to continue to
             // receive callbacks, even if all the data wasn't drained.
             //
             Stream->Flags.ReceiveEnabled = TRUE;
-            InterlockedExchangeAdd64(
-                (int64_t*)&Stream->RecvCompletionLength,
-                (int64_t)Event.RECEIVE.TotalBufferLength);
 
-        } else if (Status != QUIC_STATUS_PENDING) {
+        } else if (Status == QUIC_STATUS_PENDING) {
+            //
+            // The app called the receive complete API inline if
+            // RecvCompletionLength is non-zero.
+            //
+            FlushRecv = (Stream->RecvCompletionLength != 0);
+
+        } else {
             //
             // All other failure status returns are ignored and shouldn't be
-            // used by the app.
+            // used by the app. Treat as draining zero bytes, which will disable
+            // receive future callbacks.
             //
             CXPLAT_TEL_ASSERTMSG_ARGS(
                 QUIC_SUCCEEDED(Status),
                 "App failed recv callback",
                 Stream->Connection->Registration->AppName,
                 Status, 0);
+            FlushRecv = TRUE;
         }
 
-        uint64_t BufferLength = Stream->RecvCompletionLength;
-        InterlockedExchangeAdd64(
-            (int64_t*)&Stream->RecvCompletionLength,
-            -(int64_t)BufferLength);
-
-        if (Status == QUIC_STATUS_SUCCESS || BufferLength) {
+        if (FlushRecv) {
+            uint64_t BufferLength = Stream->RecvCompletionLength;
+            InterlockedExchangeAdd64(
+                (int64_t*)&Stream->RecvCompletionLength,
+                -(int64_t)BufferLength);
             FlushRecv = QuicStreamReceiveComplete(Stream, BufferLength);
-        } else {
-            FlushRecv = FALSE;
         }
     }
 }
@@ -1029,38 +1037,29 @@ QuicStreamReceiveComplete(
         Stream,
         BufferLength);
 
+    CXPLAT_TEL_ASSERTMSG(
+        BufferLength <= Stream->RecvPendingLength,
+        "App overflowed read buffer!");
+
+    //
+    // Reclaim any buffer space comsumed by the app.
+    //
+    if (!Stream->RecvPendingLength ||
+        QuicRecvBufferDrain(&Stream->RecvBuffer, BufferLength)) {
+        Stream->Flags.ReceiveDataPending = FALSE; // No more pending data to deliver.
+    }
+
     if (BufferLength != 0) {
-        QuicPerfCounterAdd(QUIC_PERF_COUNTER_APP_RECV_BYTES, BufferLength);
-
-        CXPLAT_FRE_ASSERTMSG(
-            BufferLength <= Stream->RecvPendingLength,
-            "App overflowed read buffer!");
         Stream->RecvPendingLength -= BufferLength;
-
-        //
-        // Reclaim any buffer space comsumed by the app.
-        //
-        if (QuicRecvBufferDrain(&Stream->RecvBuffer, BufferLength)) {
-            //
-            // No more pending data to deliver.
-            //
-            Stream->Flags.ReceiveDataPending = FALSE;
-        }
-
+        QuicPerfCounterAdd(QUIC_PERF_COUNTER_APP_RECV_BYTES, BufferLength);
         QuicStreamOnBytesDelivered(Stream, BufferLength);
-
-    } else if (!Stream->RecvPendingLength) {
-        //
-        // No more pending data to deliver.
-        //
-        Stream->Flags.ReceiveDataPending = FALSE;
     }
 
     if (!Stream->RecvPendingLength) {
         CXPLAT_DBG_ASSERT(!Stream->Flags.SentStopSending);
         //
-        // All data was drained from the callback, so additional callbacks can
-        // continue to be delivered.
+        // All data was drained, so additional callbacks can continue to be
+        // delivered.
         //
         Stream->Flags.ReceiveEnabled = TRUE;
 
