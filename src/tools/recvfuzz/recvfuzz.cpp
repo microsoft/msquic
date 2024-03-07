@@ -682,7 +682,6 @@ void sendPacket(
         printf("Send failed!\n");
         exit(0);
     }
-    CxPlatSendDataFree(SendData);
 }
 
 void fuzz(CXPLAT_SOCKET* Binding, CXPLAT_ROUTE Route) {
