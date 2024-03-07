@@ -31,7 +31,6 @@ const QUIC_HKDF_LABELS HkdfLabels = { "quic key", "quic iv", "quic hp", "quic ku
 uint64_t RunTimeMs = 60000;
 CxPlatEvent RecvPacketEvent(TRUE);
 QUIC_RX_PACKET Batch[QUIC_MAX_CRYPTO_BATCH_COUNT];
-uint8_t BatchCount = 0;
 std::list<QUIC_RX_PACKET*> PacketQueue;
 uint64_t CurrSrcCid = 0;
 
@@ -213,15 +212,13 @@ struct TlsContext
     CXPLAT_TLS_PROCESS_STATE State;
     uint8_t AlpnListBuffer[256];
 
-    TlsContext() {
+    void CreateContext(uint64_t initSrcCid = MagicCid)  {   
         AlpnListBuffer[0] = (uint8_t)strlen(Alpn);
         memcpy(&AlpnListBuffer[1], Alpn, AlpnListBuffer[0]);
         CxPlatZeroMemory(&State, sizeof(State));
         State.Buffer = (uint8_t*)CXPLAT_ALLOC_NONPAGED(8000, QUIC_POOL_TOOL);
         State.BufferAllocLength = 8000;
-    }
 
-    void CreateContext(uint64_t initSrcCid = MagicCid)  {   
         QUIC_CREDENTIAL_CONFIG CredConfig = {
             QUIC_CREDENTIAL_TYPE_NONE,
             QUIC_CREDENTIAL_FLAG_CLIENT | QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION,
@@ -283,7 +280,7 @@ struct TlsContext
         }
     }
 
-    ~TlsContext() {
+    void Cleanup() {
         CxPlatTlsUninitialize(Ptr);
         if (ClientSecConfig) {
             CxPlatTlsSecConfigDelete(ClientSecConfig);
@@ -467,21 +464,7 @@ bool WriteCryptoFrame(
         return false;
     }
     if (PacketParams->mode == 0) {
-        CxPlatTlsUninitialize(ClientContext->Ptr);
-        if (ClientContext->ClientSecConfig) {
-            CxPlatTlsSecConfigDelete(ClientContext->ClientSecConfig);
-        }
-        if (ClientContext->State.Buffer != nullptr) {
-            CXPLAT_FREE(ClientContext->State.Buffer, QUIC_POOL_TOOL);
-        }
-        for (uint8_t i = 0; i < QUIC_PACKET_KEY_COUNT; ++i) {
-            if (ClientContext->State.ReadKeys[i] != nullptr) {
-                QuicPacketKeyFree(ClientContext->State.ReadKeys[i]);
-            }
-            if (ClientContext->State.WriteKeys[i] != nullptr) {
-                QuicPacketKeyFree(ClientContext->State.WriteKeys[i]);
-            }
-        }
+        ClientContext->Cleanup();
     }
     return true;
 }
@@ -723,15 +706,20 @@ void fuzz(CXPLAT_SOCKET* Binding, CXPLAT_ROUTE Route) {
             };
             HandshakePacketParams.FrameTypes[0] = QUIC_FRAME_CRYPTO;
             RecvPacketEvent.Reset();
+            bool FirstPacket = TRUE;
             TlsContext HandshakeClientContext;
             do {
                 CxPlatRandom(sizeof(uint64_t), &CurrSrcCid);
                 HandshakePacketParams.SourceCid = (uint8_t *)&CurrSrcCid;
+                if (!FirstPacket) {
+                    HandshakeClientContext.Cleanup();
+                }
                 HandshakeClientContext.CreateContext(CurrSrcCid);
                 HandshakeClientContext.ProcessData();
                 HandshakePacketParams.PacketType = QUIC_INITIAL_V1;
                 HandshakePacketParams.mode = 1;
                 sendPacket(Binding, Route, &InitialPacketCount, &TotalByteCount, &HandshakePacketParams, false, &HandshakeClientContext);
+                FirstPacket = FALSE;
             } while (!RecvPacketEvent.WaitTimeout(400) && CxPlatTimeDiff64(StartTimeMs, CxPlatTimeMs64()) < RunTimeMs);
 
             while (!PacketQueue.empty()) {
@@ -877,8 +865,7 @@ void fuzz(CXPLAT_SOCKET* Binding, CXPLAT_ROUTE Route) {
                 CXPLAT_FREE(packet, QUIC_POOL_TOOL);
                 PacketQueue.pop_front(); 
             }
-            BatchCount = 0;
-             
+            HandshakeClientContext.Cleanup();             
         }
         mode = (uint8_t)GetRandom(10);
         while (!PacketQueue.empty()) {
