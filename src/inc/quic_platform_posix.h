@@ -203,7 +203,7 @@ InterlockedExchangePointer(
     _In_opt_ void* Value
     )
 {
-    return __sync_fetch_test_and_set(Target, Value);
+    return __sync_lock_test_and_set(Target, Value);
 }
 
 inline
