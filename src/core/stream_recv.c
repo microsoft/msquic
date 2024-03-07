@@ -1009,6 +1009,11 @@ QuicStreamReceiveCompletePending(
     if (QuicStreamReceiveComplete(Stream, BufferLength)) {
         QuicStreamRecvFlush(Stream);
     }
+
+    //
+    // Release the operation reference.
+    //
+    QuicStreamRelease(Stream, QUIC_STREAM_REF_OPERATION);
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
