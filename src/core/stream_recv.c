@@ -129,10 +129,7 @@ QuicStreamRecvQueueFlush(
     // The caller has indicated data is ready to be indicated to the
     // application. Queue a FLUSH_RECV if one isn't already queued.
     //
-
-    if (Stream->Flags.ReceiveEnabled &&
-        Stream->Flags.ReceiveDataPending &&
-        Stream->RecvPendingLength == 0) {
+    if (Stream->Flags.ReceiveEnabled && Stream->Flags.ReceiveDataPending) {
 
         if (AllowInlineFlush) {
             QuicStreamRecvFlush(Stream);
@@ -922,7 +919,7 @@ QuicStreamRecvFlush(
             Event.RECEIVE.Flags |= QUIC_RECEIVE_FLAG_FIN; // TODO - 0-RTT flag?
         }
 
-        Stream->Flags.ReceiveEnabled = FALSE;
+        Stream->Flags.ReceiveEnabled = Stream->Flags.ReceiveMultiple;
         Stream->Flags.ReceiveCallActive = TRUE;
         Stream->RecvPendingLength += Event.RECEIVE.TotalBufferLength;
         CXPLAT_DBG_ASSERT(Stream->RecvPendingLength <= Stream->RecvBuffer.ReadPendingLength);
