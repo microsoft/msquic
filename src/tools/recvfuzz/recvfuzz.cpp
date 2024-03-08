@@ -721,7 +721,7 @@ void fuzz(CXPLAT_SOCKET* Binding, CXPLAT_ROUTE Route) {
                 nullptr,
                 0,
                 1,
-                100
+                10
             };
             InitialPacketParams.PacketType = QUIC_INITIAL_V1;
             InitialPacketParams.FrameTypes[0] = QUIC_FRAME_CRYPTO;
