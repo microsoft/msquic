@@ -746,26 +746,6 @@ void fuzz(CXPLAT_SOCKET* Binding, CXPLAT_ROUTE Route) {
             RecvPacketEvent.Reset();
             bool FirstPacket = TRUE;
             do {
-                if (!FirstPacket) {
-                    // CxPlatTlsUninitialize(HandshakeClientContext.Ptr);
-                    // if (HandshakeClientContext.ClientSecConfig) {
-                    //     CxPlatTlsSecConfigDelete(HandshakeClientContext.ClientSecConfig);
-                    // }
-                    // if (HandshakeClientContext.State.Buffer != nullptr) {
-                    //     CXPLAT_FREE(HandshakeClientContext.State.Buffer, QUIC_POOL_TOOL);
-                    //     HandshakeClientContext.State.Buffer = nullptr;
-                    // }
-                    // for (uint8_t i = 0; i < QUIC_PACKET_KEY_COUNT; ++i) {
-                    //     if (HandshakeClientContext.State.ReadKeys[i] != nullptr) {
-                    //         QuicPacketKeyFree(HandshakeClientContext.State.ReadKeys[i]);
-                    //         HandshakeClientContext.State.ReadKeys[i] = nullptr;
-                    //     }
-                    //     if (HandshakeClientContext.State.WriteKeys[i] != nullptr) {
-                    //         QuicPacketKeyFree(HandshakeClientContext.State.WriteKeys[i]);
-                    //         HandshakeClientContext.State.WriteKeys[i] = nullptr;
-                    //     }
-                    // }
-                }
                 CxPlatRandom(sizeof(uint64_t), &CurrSrcCid);
                 HandshakePacketParams.SourceCid = (uint8_t *)&CurrSrcCid;
                 HandshakeClientContext.CreateContext(CurrSrcCid);
@@ -923,14 +903,7 @@ void fuzz(CXPLAT_SOCKET* Binding, CXPLAT_ROUTE Route) {
                 CXPLAT_FREE(packet, QUIC_POOL_TOOL);
                 PacketQueue.pop_front(); 
             } 
-            // CxPlatTlsUninitialize(HandshakeClientContext.Ptr);
-            // if (HandshakeClientContext.ClientSecConfig) {
-            //     CxPlatTlsSecConfigDelete(HandshakeClientContext.ClientSecConfig);
-            // }
-            // if (HandshakeClientContext.State.Buffer != nullptr) {
-            //     CXPLAT_FREE(HandshakeClientContext.State.Buffer, QUIC_POOL_TOOL);
-            //     HandshakeClientContext.State.Buffer = nullptr;
-            // }
+
             for (uint8_t i = 0; i < QUIC_PACKET_KEY_COUNT; ++i) {
                 if (HandshakeClientContext.State.ReadKeys[i] != nullptr) {
                     QuicPacketKeyFree(HandshakeClientContext.State.ReadKeys[i]);
