@@ -285,7 +285,9 @@ typedef struct QUIC_LIBRARY {
 
 extern QUIC_LIBRARY MsQuicLib;
 
-#ifdef CxPlatVerifierEnabled
+#if DEBUG // Enable all verifier checks in debug builds
+#define QUIC_LIB_VERIFY(Expr) CXPLAT_FRE_ASSERT(Expr)
+#elif defined(CxPlatVerifierEnabled)
 #define QUIC_LIB_VERIFY(Expr) \
     if (MsQuicLib.IsVerifying) { CXPLAT_FRE_ASSERT(Expr); }
 #else

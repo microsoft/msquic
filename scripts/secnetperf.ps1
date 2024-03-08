@@ -201,10 +201,7 @@ $allTests["tput-down"] = "-exec:maxtput -down:12s -ptput:1"
 $allTests["hps-conns-100"] = "-exec:maxtput -rconn:1 -share:1 -conns:100 -run:12s -prate:1"
 $allTests["rps-up-512-down-4000"] = "-exec:lowlat -rstream:1 -up:512 -down:4000 -run:20s -plat:1"
 
-$envIDClient = "__CLIENT_ENV__"
-$envIDServer = "__SERVER_ENV__"
 $hasFailures = $false
-
 $json["run_args"] = $allTests
 
 function CheckRegressionTput($values, $testid, $transport, $regressionJson) {
@@ -221,17 +218,18 @@ function CheckRegressionTput($values, $testid, $transport, $regressionJson) {
         $baseline = $regressionJson.$Testid.$envStr.baseline
     } catch {
         Write-Host "No regression baseline found"
-        return $false
+        return "NULL"
     }
     if ($avg -lt $baseline) {
         Write-GHError "Regression detected in $Testid for $envStr. Baseline: $baseline, New: $avg"
+        return ":( Baseline: $baseline, New (avg of runs): $avg"
     }
-    return $avg -lt $baseline
+    return "NULL"
 }
 
 function CheckRegressionLat($values, $regressionJson) {
     # TODO: Generate and collect latency thresholds.
-    return $false
+    return "NULL"
 }
 
 try {
@@ -299,13 +297,15 @@ foreach ($testId in $allTests.Keys) {
         $transport = $tcp -eq 1 ? "tcp" : "quic"
         $json["$testId-$transport"] = $Test.Values[$tcp]
         if ($Test.Metric -eq "throughput" -or $Test.Metric -eq "hps") {
-            if (CheckRegressionTput $Test.Values[$tcp] $testId $transport $regressionJson) {
-                $hasFailures = $true
+            $Regression = CheckRegressionTput $Test.Values[$tcp] $testId $transport $regressionJson
+            if ($Regression -ne "NULL") {
+                $json["$testId-$transport-regression"] = $Regression
             }
         } elseif ($Test.Metric -eq "latency") {
             $json["$testId-$transport-lat"] = $Test.Latency[$tcp]
-            if (CheckRegressionLat $Test.Latency[$tcp] $regressionJson) {
-                $hasFailures = $true
+            $Regression = CheckRegressionLat $Test.Latency[$tcp] $regressionJson
+            if ($Regression -ne "NULL") {
+                $json["$testId-$transport-lat-regression"] = $Regression
             }
         }
     }

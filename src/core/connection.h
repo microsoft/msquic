@@ -670,7 +670,9 @@ typedef struct QUIC_SERIALIZED_RESUMPTION_STATE {
     1024 /* Extra QUIC stuff */ \
 )
 
-#ifdef CxPlatVerifierEnabledByAddr
+#if DEBUG // Enable all verifier checks in debug builds
+#define QUIC_CONN_VERIFY(Connection, Expr) CXPLAT_FRE_ASSERT(Expr)
+#elif defined(CxPlatVerifierEnabledByAddr)
 #define QUIC_CONN_VERIFY(Connection, Expr) \
     if (Connection->State.IsVerifying) { CXPLAT_FRE_ASSERT(Expr); }
 #elif defined(CxPlatVerifierEnabled)
