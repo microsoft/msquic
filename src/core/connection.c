@@ -7339,6 +7339,9 @@ QuicConnProcessApiOperation(
     )
 {
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
+    QUIC_STATUS* ApiStatus = ApiCtx->Status;
+    CXPLAT_EVENT* ApiCompleted = ApiCtx->Completed;
+
     switch (ApiCtx->Type) {
 
     case QUIC_API_TYPE_CONN_CLOSE:
@@ -7425,8 +7428,7 @@ QuicConnProcessApiOperation(
 
     case QUIC_API_TYPE_STRM_RECV_COMPLETE:
         QuicStreamReceiveCompletePending(
-            ApiCtx->STRM_RECV_COMPLETE.Stream,
-            ApiCtx->STRM_RECV_COMPLETE.BufferLength);
+            ApiCtx->STRM_RECV_COMPLETE.Stream);
         break;
 
     case QUIC_API_TYPE_STRM_RECV_SET_ENABLED:
@@ -7464,11 +7466,11 @@ QuicConnProcessApiOperation(
         break;
     }
 
-    if (ApiCtx->Status) {
-        *ApiCtx->Status = Status;
+    if (ApiStatus) {
+        *ApiStatus = Status;
     }
-    if (ApiCtx->Completed) {
-        CxPlatEventSet(*ApiCtx->Completed);
+    if (ApiCompleted) {
+        CxPlatEventSet(*ApiCompleted);
     }
 }
 
