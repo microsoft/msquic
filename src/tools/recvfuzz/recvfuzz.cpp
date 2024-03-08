@@ -711,6 +711,7 @@ void fuzz(CXPLAT_SOCKET* Binding, CXPLAT_ROUTE Route) {
     uint8_t recvBuffer[8192];
     uint32_t bufferoffset = 0;
     bool handshakeComplete = FALSE;
+    TlsContext* HandshakeClientContext = new TlsContext();
     while (CxPlatTimeDiff64(StartTimeMs, CxPlatTimeMs64()) < RunTimeMs) {
         mode = (uint8_t)GetRandom(10);
         if (mode < 1) {
@@ -721,7 +722,7 @@ void fuzz(CXPLAT_SOCKET* Binding, CXPLAT_ROUTE Route) {
                 nullptr,
                 0,
                 1,
-                10
+                100
             };
             InitialPacketParams.PacketType = QUIC_INITIAL_V1;
             InitialPacketParams.FrameTypes[0] = QUIC_FRAME_CRYPTO;
@@ -738,7 +739,6 @@ void fuzz(CXPLAT_SOCKET* Binding, CXPLAT_ROUTE Route) {
             };
             HandshakePacketParams.FrameTypes[0] = QUIC_FRAME_CRYPTO;
             RecvPacketEvent.Reset();
-            TlsContext* HandshakeClientContext = new TlsContext();
             bool FirstPacket = TRUE;
             do {
                 if (!FirstPacket) {
