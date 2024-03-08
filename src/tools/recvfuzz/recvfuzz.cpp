@@ -219,15 +219,12 @@ struct TlsContext
     CXPLAT_TLS_PROCESS_STATE State;
     uint8_t AlpnListBuffer[256];
 
-    TlsContext() {
+    void CreateContext(uint64_t initSrcCid = MagicCid)  {   
         AlpnListBuffer[0] = (uint8_t)strlen(Alpn);
         memcpy(&AlpnListBuffer[1], Alpn, AlpnListBuffer[0]);
         CxPlatZeroMemory(&State, sizeof(State));
         State.Buffer = (uint8_t*)CXPLAT_ALLOC_NONPAGED(8000, QUIC_POOL_TOOL);
         State.BufferAllocLength = 8000;
-    }
-
-    void CreateContext(uint64_t initSrcCid = MagicCid)  {   
         QUIC_CREDENTIAL_CONFIG CredConfig = {
             QUIC_CREDENTIAL_TYPE_NONE,
             QUIC_CREDENTIAL_FLAG_CLIENT | QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION,
