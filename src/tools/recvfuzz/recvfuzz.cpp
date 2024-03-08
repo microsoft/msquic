@@ -219,13 +219,15 @@ struct TlsContext
     CXPLAT_TLS_PROCESS_STATE State;
     uint8_t AlpnListBuffer[256];
 
-    void CreateContext(uint64_t initSrcCid = MagicCid)  {   
+    TlsContext() {
         AlpnListBuffer[0] = (uint8_t)strlen(Alpn);
         memcpy(&AlpnListBuffer[1], Alpn, AlpnListBuffer[0]);
         CxPlatZeroMemory(&State, sizeof(State));
         State.Buffer = (uint8_t*)CXPLAT_ALLOC_NONPAGED(8000, QUIC_POOL_TOOL);
         State.BufferAllocLength = 8000;
+    }
 
+    void CreateContext(uint64_t initSrcCid = MagicCid)  {   
         QUIC_CREDENTIAL_CONFIG CredConfig = {
             QUIC_CREDENTIAL_TYPE_NONE,
             QUIC_CREDENTIAL_FLAG_CLIENT | QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION,
@@ -739,6 +741,7 @@ void fuzz(CXPLAT_SOCKET* Binding, CXPLAT_ROUTE Route) {
             HandshakePacketParams.FrameTypes[0] = QUIC_FRAME_CRYPTO;
             RecvPacketEvent.Reset();
             TlsContext HandshakeClientContext;
+            bool FirstPacket = TRUE;
             do {
                 CxPlatRandom(sizeof(uint64_t), &CurrSrcCid);
                 HandshakePacketParams.SourceCid = (uint8_t *)&CurrSrcCid;
