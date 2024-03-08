@@ -294,13 +294,16 @@ struct TlsContext
         }
         if (State.Buffer != nullptr) {
             CXPLAT_FREE(State.Buffer, QUIC_POOL_TOOL);
+            State.Buffer = nullptr;
         }
         for (uint8_t i = 0; i < QUIC_PACKET_KEY_COUNT; ++i) {
             if (State.ReadKeys[i] != nullptr) {
                 QuicPacketKeyFree(State.ReadKeys[i]);
+                State.ReadKeys[i] = nullptr;
             }
             if (State.WriteKeys[i] != nullptr) {
                 QuicPacketKeyFree(State.WriteKeys[i]);
+                State.WriteKeys[i] = nullptr;
             }
         }
     }
@@ -899,9 +902,7 @@ void fuzz(CXPLAT_SOCKET* Binding, CXPLAT_ROUTE Route) {
     }
     while (!PacketQueue.empty()) {
         QUIC_RX_PACKET* packet = PacketQueue.front();
-        if (packet != nullptr) {
-            CXPLAT_FREE(packet, QUIC_POOL_TOOL); 
-        }
+        CXPLAT_FREE(packet, QUIC_POOL_TOOL); 
         PacketQueue.pop_front();
     }
     printf("Total Initial Packets sent: %lld\n", (long long)InitialPacketCount);
