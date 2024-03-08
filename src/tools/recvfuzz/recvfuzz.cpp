@@ -624,6 +624,7 @@ void sendPacket(
             CxPlatSendDataAllocBuffer(SendData, DatagramLength);
             if (!SendBuffer) {
                 printf("CxPlatSendDataAllocBuffer failed\n");
+                CxPlatSendDataFree(SendData);
                 return;
             }
         CxPlatZeroMemory(SendBuffer->Buffer, DatagramLength);
@@ -641,6 +642,7 @@ void sendPacket(
                     nullptr,
                     &WriteKey))) {
                 printf("QuicPacketKeyCreateInitial failed\n");
+                CxPlatSendDataFree(SendData);
                 return;
             }
         } else {
@@ -655,6 +657,7 @@ void sendPacket(
                         &ClientContext->State.ReadKeys[0],
                         &ClientContext->State.WriteKeys[0]))) {
                     printf("QuicPacketKeyCreateInitial failed\n");
+                    CxPlatSendDataFree(SendData);
                     return;
                 }
                 ClientContext->State.ReadKey = QUIC_PACKET_KEY_INITIAL;
