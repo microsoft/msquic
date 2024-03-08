@@ -287,7 +287,7 @@ struct TlsContext
         }
     }
 
-    void Cleanup() {
+    ~TlsContext() {
         CxPlatTlsUninitialize(Ptr);
         if (ClientSecConfig) {
             CxPlatTlsSecConfigDelete(ClientSecConfig);
@@ -471,7 +471,21 @@ bool WriteCryptoFrame(
         return false;
     }
     if (PacketParams->mode == 0) {
-        ClientContext->Cleanup();
+        CxPlatTlsUninitialize(ClientContext->Ptr);
+        if (ClientContext->ClientSecConfig) {
+            CxPlatTlsSecConfigDelete(ClientContext->ClientSecConfig);
+        }
+        if (ClientContext->State.Buffer != nullptr) {
+            CXPLAT_FREE(ClientContext->State.Buffer, QUIC_POOL_TOOL);
+        }
+        for (uint8_t i = 0; i < QUIC_PACKET_KEY_COUNT; ++i) {
+            if (ClientContext->State.ReadKeys[i] != nullptr) {
+                QuicPacketKeyFree(ClientContext->State.ReadKeys[i]);
+            }
+            if (ClientContext->State.WriteKeys[i] != nullptr) {
+                QuicPacketKeyFree(ClientContext->State.WriteKeys[i]);
+            }
+        }
     }
     return true;
 }
@@ -721,20 +735,15 @@ void fuzz(CXPLAT_SOCKET* Binding, CXPLAT_ROUTE Route) {
             };
             HandshakePacketParams.FrameTypes[0] = QUIC_FRAME_CRYPTO;
             RecvPacketEvent.Reset();
-            bool FirstPacket = TRUE;
             TlsContext HandshakeClientContext;
             do {
                 CxPlatRandom(sizeof(uint64_t), &CurrSrcCid);
                 HandshakePacketParams.SourceCid = (uint8_t *)&CurrSrcCid;
-                if (!FirstPacket) {
-                    HandshakeClientContext.Cleanup();
-                }
                 HandshakeClientContext.CreateContext(CurrSrcCid);
                 HandshakeClientContext.ProcessData();
                 HandshakePacketParams.PacketType = QUIC_INITIAL_V1;
                 HandshakePacketParams.mode = 1;
                 sendPacket(Binding, Route, &InitialPacketCount, &TotalByteCount, &HandshakePacketParams, false, &HandshakeClientContext);
-                FirstPacket = FALSE;
             } while (!RecvPacketEvent.WaitTimeout(400) && CxPlatTimeDiff64(StartTimeMs, CxPlatTimeMs64()) < RunTimeMs);
 
             while (!PacketQueue.empty()) {
@@ -885,8 +894,7 @@ void fuzz(CXPLAT_SOCKET* Binding, CXPLAT_ROUTE Route) {
                 }
                 CXPLAT_FREE(packet, QUIC_POOL_TOOL);
                 PacketQueue.pop_front(); 
-            }
-            HandshakeClientContext.Cleanup();             
+            }            
         }
     }
     while (!PacketQueue.empty()) {
