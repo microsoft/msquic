@@ -1316,9 +1316,6 @@ MsQuicStreamReceiveComplete(
         goto Exit; // No need to queue a completion operation when run inline
     }
 
-    InterlockedExchangeAdd64(
-        (int64_t*)&Stream->RecvCompletionLength, (int64_t)BufferLength);
-
     Oper = InterlockedFetchAndClearPointer((void**)&Stream->ReceiveCompleteOperation);
     if (Oper) {
         //
