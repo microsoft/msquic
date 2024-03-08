@@ -220,9 +220,22 @@ function CheckRegressionResult($values, $testid, $transport, $regressionJson) {
         Write-Host "No regression baseline found"
         return "NULL"
     }
+
+    try {
+        $BestResult = $regressionJson.$Testid.$envStr.BestResult
+        $Noise = $regressionJson.$Testid.$envStr.Noise
+        $BestResultCommit = $regressionJson.$Testid.$envStr.BestResultCommit
+        if ($avg -lt $baseline) {
+            Write-GHError "Regression detected in $Testid for $envStr. Baseline: $baseline, New: $avg"
+            return "🤮 Baseline: $baseline, New: $avg, BestResult: $BestResult, Noise: $Noise, BestResultCommit: $BestResultCommit"
+        }
+    } catch {
+        Write-Host "Not using a watermark-based regression method."
+    }
+
     if ($avg -lt $baseline) {
         Write-GHError "Regression detected in $Testid for $envStr. Baseline: $baseline, New: $avg"
-        return "🤮 Baseline: $baseline, New (avg of runs): $avg"
+        return "🤮 Baseline: $baseline, New: $avg"
     }
     return "NULL"
 }
@@ -316,8 +329,8 @@ if (!$isWindows) {
     sudo sh -c "echo -n "%e.client.%p.%t.core" > /proc/sys/kernel/core_pattern"
 }
 
-Write-Host "Fetching regression.json"
-$regressionJson = Get-Content -Raw -Path "regression.json" | ConvertFrom-Json
+Write-Host "Fetching watermark_regression.json"
+$regressionJson = Get-Content -Raw -Path "watermark_regression.json" | ConvertFrom-Json
 
 # Run all the test cases.
 Write-Host "Setup complete! Running all tests"
