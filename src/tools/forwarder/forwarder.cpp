@@ -60,7 +60,7 @@ bool ParseArgs(int argc, char **argv) {
 
 struct ForwardedSend {
     uint64_t TotalLength;
-    QUIC_BUFFER Buffers[2];
+    QUIC_BUFFER Buffers[3];
     static ForwardedSend* New(QUIC_STREAM_EVENT* Event) {
         if (BufferedMode) {
             auto SendContext = (ForwardedSend*)malloc(sizeof(ForwardedSend) + (size_t)Event->RECEIVE.TotalBufferLength);
@@ -99,9 +99,6 @@ QUIC_STATUS StreamCallback(
     switch (Event->Type) {
     case QUIC_STREAM_EVENT_RECEIVE: {
         //printf("s[%p] Received %llu bytes\n", Stream, Event->RECEIVE.TotalBufferLength);
-        //if (!Event->RECEIVE.TotalBufferLength && !BufferedMode) {
-        //    return QUIC_STATUS_SUCCESS; // Ignore zero length when not in buffered mode
-        //}
         auto SendContext = ForwardedSend::New(Event);
         QUIC_SEND_FLAGS Flags = QUIC_SEND_FLAG_START;
         if (Event->RECEIVE.Flags & QUIC_RECEIVE_FLAG_FIN)   { Flags |= QUIC_SEND_FLAG_FIN; }

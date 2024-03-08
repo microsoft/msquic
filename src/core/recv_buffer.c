@@ -750,7 +750,15 @@ QuicRecvBufferRead(
         }
 
         *BufferOffset = RecvBuffer->BaseOffset + RecvBuffer->ReadPendingLength;
-        RecvBuffer->ReadPendingLength += WrittenLength;
+        RecvBuffer->ReadPendingLength = ContiguousLength;
+
+#if DEBUG
+        uint64_t TotalBuffersLength = 0;
+        for (uint32_t i = 0; i < *BufferCount; ++i) {
+            TotalBuffersLength += Buffers[i].Length;
+        }
+        CXPLAT_DBG_ASSERT(TotalBuffersLength <= RecvBuffer->ReadPendingLength);
+#endif
     }
 }
 

@@ -925,6 +925,7 @@ QuicStreamRecvFlush(
         Stream->Flags.ReceiveEnabled = FALSE;
         Stream->Flags.ReceiveCallActive = TRUE;
         Stream->RecvPendingLength += Event.RECEIVE.TotalBufferLength;
+        CXPLAT_DBG_ASSERT(Stream->RecvPendingLength <= Stream->RecvBuffer.ReadPendingLength);
 
         QuicTraceEvent(
             StreamAppReceive,
