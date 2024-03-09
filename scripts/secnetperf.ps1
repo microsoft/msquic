@@ -215,6 +215,7 @@ function CheckRegressionResult($values, $testid, $transport, $regressionJson) {
     $envStr = "$os-$arch-$environment-$io-$tls"
     $Testid = "$testid-$transport"
     try {
+        # TODO: baseline is a bad name. Use LowerThreshold / UpperThreshold instead.
         $baseline = $regressionJson.$Testid.$envStr.baseline
     } catch {
         Write-Host "No regression baseline found"
