@@ -227,7 +227,7 @@ function CheckRegressionResult($values, $testid, $transport, $regressionJson) {
         $Noise = $regressionJson.$Testid.$envStr.Noise
         $BestResultCommit = $regressionJson.$Testid.$envStr.BestResultCommit
         if ($avg -lt $baseline) {
-            Write-GHError "Regression detected in $Testid for $envStr. Baseline: $baseline, New: $avg"
+            Write-GHError "Regression detected in $Testid for $envStr. Baseline: $baseline, New: $avg, BestResult: $BestResult, Noise: $Noise, BestResultCommit: $BestResultCommit"
             return "🤮 Baseline: $baseline, New: $avg, BestResult: $BestResult, Noise: $Noise, BestResultCommit: $BestResultCommit"
         }
     } catch {
