@@ -8,6 +8,8 @@ Abstract:
     This tool creates a terminating QUIC proxy to forward all incoming traffic
     to a specified target.
 
+    N.B. Better synchronization between peer objects is needed around teardown.
+
 --*/
 
 #define QUIC_API_ENABLE_PREVIEW_FEATURES 1 // for multiple receive
@@ -79,7 +81,8 @@ struct ForwardedSend {
         auto SendContext = new(std::nothrow) ForwardedSend;
         SendContext->TotalLength = Event->RECEIVE.TotalBufferLength;
         for (uint32_t i = 0; i < Event->RECEIVE.BufferCount; ++i) {
-            SendContext->Buffers[i] = Event->RECEIVE.Buffers[i];
+            SendContext->Buffers[i].Length = Event->RECEIVE.Buffers[i].Length;
+            SendContext->Buffers[i].Buffer = Event->RECEIVE.Buffers[i].Buffer;
         }
         return SendContext;
     }
@@ -96,9 +99,16 @@ QUIC_STATUS StreamCallback(
     )
 {
     auto PeerStream = (MsQuicStream*)Context;
+    if (!PeerStream || !PeerStream->Handle) { return QUIC_STATUS_SUCCESS; }
     switch (Event->Type) {
     case QUIC_STREAM_EVENT_RECEIVE: {
         //printf("s[%p] Received %llu bytes\n", Stream, Event->RECEIVE.TotalBufferLength);
+        if (Event->RECEIVE.TotalBufferLength == 0) {
+            if (Event->RECEIVE.Flags & QUIC_RECEIVE_FLAG_FIN) {
+                PeerStream->Shutdown(0, QUIC_STREAM_SHUTDOWN_FLAG_GRACEFUL);
+            }
+            return QUIC_STATUS_SUCCESS;
+        }
         auto SendContext = ForwardedSend::New(Event);
         QUIC_SEND_FLAGS Flags = QUIC_SEND_FLAG_START;
         if (Event->RECEIVE.Flags & QUIC_RECEIVE_FLAG_FIN)   { Flags |= QUIC_SEND_FLAG_FIN; }

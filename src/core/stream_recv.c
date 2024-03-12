@@ -936,6 +936,10 @@ QuicStreamRecvFlush(
 
         Stream->Flags.ReceiveCallActive = FALSE;
 
+        if (Stream->Flags.ReceiveMultiple) {
+            QuicStreamOnBytesDelivered(Stream, Event.RECEIVE.TotalBufferLength);
+        }
+
         if (Status == QUIC_STATUS_SUCCESS) {
             InterlockedExchangeAdd64(
                 (int64_t*)&Stream->RecvCompletionLength,
@@ -944,15 +948,19 @@ QuicStreamRecvFlush(
 
         } else if (Status == QUIC_STATUS_CONTINUE) {
             CXPLAT_DBG_ASSERT(!Stream->Flags.SentStopSending);
-            InterlockedExchangeAdd64(
-                (int64_t*)&Stream->RecvCompletionLength,
-                (int64_t)Event.RECEIVE.TotalBufferLength);
-            FlushRecv = TRUE;
             //
             // The app has explicitly indicated it wants to continue to
             // receive callbacks, even if all the data wasn't drained.
             //
             Stream->Flags.ReceiveEnabled = TRUE;
+            if (Event.RECEIVE.TotalBufferLength == 0) {
+                continue;
+            }
+
+            InterlockedExchangeAdd64(
+                (int64_t*)&Stream->RecvCompletionLength,
+                (int64_t)Event.RECEIVE.TotalBufferLength);
+            FlushRecv = TRUE;
 
         } else if (Status == QUIC_STATUS_PENDING) {
             //
@@ -1045,7 +1053,9 @@ QuicStreamReceiveComplete(
     if (BufferLength != 0) {
         Stream->RecvPendingLength -= BufferLength;
         QuicPerfCounterAdd(QUIC_PERF_COUNTER_APP_RECV_BYTES, BufferLength);
-        QuicStreamOnBytesDelivered(Stream, BufferLength);
+        if (!Stream->Flags.ReceiveMultiple) {
+            QuicStreamOnBytesDelivered(Stream, BufferLength);
+        }
     }
 
     if (Stream->RecvPendingLength == 0) {
@@ -1079,9 +1089,10 @@ QuicStreamReceiveComplete(
     if (Stream->Flags.ReceiveDataPending) {
         //
         // There is still more data for the app to process and it still has
-        // receive callbacks enabled, so do another recv flush.
+        // receive callbacks enabled, so do another recv flush (if not already
+        // doing multi-receive mode).
         //
-        return TRUE;
+        return !Stream->Flags.ReceiveMultiple;
     }
 
     if (Stream->RecvBuffer.BaseOffset == Stream->RecvMaxLength) {
