@@ -29,8 +29,7 @@ const MsQuicApi* MsQuic;
 uint64_t MagicCid = 0x989898989898989ull;
 const QUIC_HKDF_LABELS HkdfLabels = { "quic key", "quic iv", "quic hp", "quic ku" };
 uint64_t RunTimeMs = 60000;
-CxPlatEvent RecvPacketEvent(TRUE);
-QUIC_RX_PACKET Batch[QUIC_MAX_CRYPTO_BATCH_COUNT];
+CxPlatEvent RecvPacketEvent(true);
 std::list<QUIC_RX_PACKET*> PacketQueue;
 uint64_t CurrSrcCid = 0;
 
@@ -46,12 +45,12 @@ struct PacketParams {
     uint8_t* DestCid;
     uint8_t* SourceCid;
     uint64_t packetNumber;
-    uint8_t numFrames;
-    uint8_t numPackets;
+    uint8_t NumFrames;
+    uint8_t NumPackets;
     QUIC_LONG_HEADER_TYPE_V1 PacketType;
-    uint8_t mode;
+    uint8_t Mode;
     QUIC_FRAME_TYPE FrameTypes[2];
-    uint64_t largestAcknowledge; // For ACK Frame
+    uint64_t LargestAcknowledge; // For ACK Frame
 };
 
 struct StrBuffer {
@@ -131,11 +130,8 @@ UdpRecvCallback(
     _In_ CXPLAT_RECV_DATA* RecvBufferChain
     )
 {
-    CXPLAT_RECV_DATA* Datagram;
-    CXPLAT_RECV_DATA* CopyRecvBufferChain = RecvBufferChain;
-    while ((Datagram = RecvBufferChain) != NULL) {
-        RecvBufferChain = Datagram->Next;
-        Datagram->Next = NULL;
+    CXPLAT_RECV_DATA* Datagram = RecvBufferChain;
+    while (Datagram != NULL) {
         uint8_t DestCidLen, SourceCidLen;
         const uint8_t* DestCid, *SourceCid;
         
@@ -193,11 +189,12 @@ UdpRecvCallback(
             } 
             Packet.AvailBuffer += Packet.AvailBufferLength;
         } while (Packet.AvailBuffer - Datagram->Buffer < Datagram->BufferLength);
+        Datagram = Datagram->Next;
     }
     if (!PacketQueue.empty()) {
         RecvPacketEvent.Set();
     }
-    CxPlatRecvDataReturn(CopyRecvBufferChain);
+    CxPlatRecvDataReturn(RecvBufferChain);
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -451,7 +448,7 @@ bool WriteCryptoFrame(
     _In_ PacketParams* PacketParams
     )
 {
-    if (PacketParams->mode == 0) {
+    if (PacketParams->Mode == 0) {
         uint64_t SrcCid;
         CxPlatRandom(sizeof(uint64_t), &SrcCid);
         if (ClientContext == nullptr) {
@@ -476,7 +473,7 @@ bool WriteCryptoFrame(
         printf("QuicCryptoFrameEncode failure!\n");
         return false;
     }
-    if (PacketParams->mode == 0) {
+    if (PacketParams->Mode == 0) {
         CxPlatTlsUninitialize(ClientContext->Ptr);
         if (ClientContext->ClientSecConfig) {
             CxPlatTlsSecConfigDelete(ClientContext->ClientSecConfig);
@@ -507,18 +504,30 @@ bool WriteClientPacket(
     _In_ PacketParams* PacketParams
     )
 {
-    bool result = true;
     uint32_t QuicVersion = Version;
     uint8_t FrameBuffer[4096];
     uint16_t BufferSize = sizeof(FrameBuffer);
     uint16_t FrameBufferLength = 0;
-    for (int i = 0; i < PacketParams->numFrames; i++) {
+    for (int i = 0; i < PacketParams->NumFrames; i++) {
         if (PacketParams->FrameTypes[i] == QUIC_FRAME_ACK) {
-            result = WriteAckFrame(PacketParams->largestAcknowledge, &FrameBufferLength, BufferSize, FrameBuffer);
+            if (!WriteAckFrame(
+                    PacketParams->LargestAcknowledge, 
+                    &FrameBufferLength, 
+                    BufferSize, 
+                    FrameBuffer)) {
+                return false;
+            }
         }
 
         if (PacketParams->FrameTypes[i] == QUIC_FRAME_CRYPTO) {
-            result = WriteCryptoFrame(&FrameBufferLength, BufferSize, FrameBuffer, ClientContext, PacketParams);
+            if (!WriteCryptoFrame(
+                    &FrameBufferLength, 
+                    BufferSize, 
+                    FrameBuffer, 
+                    ClientContext, 
+                    PacketParams)) {
+                return false;
+            }
         }
     }
     uint8_t DestCidBuffer[sizeof(QUIC_CID) + 256] = {0};
@@ -564,7 +573,7 @@ bool WriteClientPacket(
     *PacketLength += FrameBufferLength;
     *PacketLength += CXPLAT_ENCRYPTION_OVERHEAD;
 
-    return result;
+    return true;
 }
 
 void fuzzPacket(uint8_t* Packet, uint16_t PacketLength) {
@@ -575,13 +584,13 @@ void fuzzPacket(uint8_t* Packet, uint16_t PacketLength) {
 }
 
 void sendPacket(
-        CXPLAT_SOCKET* Binding, 
-        CXPLAT_ROUTE Route, 
-        int64_t* PacketCount, 
-        int64_t* TotalByteCount,  
-        PacketParams* PacketParams, 
-        bool fuzzing = true, 
-        TlsContext* ClientContext = nullptr) {
+    CXPLAT_SOCKET* Binding, 
+    CXPLAT_ROUTE Route, 
+    int64_t* PacketCount, 
+    int64_t* TotalByteCount,  
+    PacketParams* PacketParams, 
+    bool fuzzing = true, 
+    TlsContext* ClientContext = nullptr) {
     const uint16_t DatagramLength = QUIC_MIN_INITIAL_LENGTH; 
     CXPLAT_SEND_CONFIG SendConfig = { &Route, DatagramLength, CXPLAT_ECN_NON_ECT, 0 };
     CXPLAT_SEND_DATA* SendData = CxPlatSendDataAlloc(Binding, &SendConfig);
@@ -590,7 +599,7 @@ void sendPacket(
         return;
     }
     uint8_t numPacketsSent = 0;
-    while (!CxPlatSendDataIsFull(SendData) && numPacketsSent <= PacketParams->numPackets) {
+    while (!CxPlatSendDataIsFull(SendData) && numPacketsSent <= PacketParams->NumPackets) {
         uint8_t Packet[512] = {0};
         uint16_t PacketLength, HeaderLength;
         uint64_t packetNum = PacketParams->packetNumber++;
@@ -632,7 +641,7 @@ void sendPacket(
         memcpy(SendBuffer->Buffer, Packet, PacketLength);
         QUIC_PACKET_KEY* WriteKey = nullptr;
         QUIC_PACKET_KEY_TYPE KeyType = QuicPacketTypeToKeyTypeV1((uint8_t)PacketParams->PacketType);
-        if (PacketParams->mode == 0) {
+        if (PacketParams->Mode == 0) {
             if (QUIC_FAILED(
                 QuicPacketKeyCreateInitial(
                     FALSE,
@@ -731,7 +740,7 @@ void fuzz(CXPLAT_SOCKET* Binding, CXPLAT_ROUTE Route) {
             };
             InitialPacketParams.PacketType = QUIC_INITIAL_V1;
             InitialPacketParams.FrameTypes[0] = QUIC_FRAME_CRYPTO;
-            InitialPacketParams.mode = 0;
+            InitialPacketParams.Mode = 0;
             sendPacket(Binding, Route, &InitialPacketCount, &TotalByteCount, &InitialPacketParams, true);
         } else if (mode >= 1) {
             PacketParams HandshakePacketParams = {
@@ -751,7 +760,7 @@ void fuzz(CXPLAT_SOCKET* Binding, CXPLAT_ROUTE Route) {
                 HandshakeClientContext.CreateContext(CurrSrcCid);
                 HandshakeClientContext.ProcessData();
                 HandshakePacketParams.PacketType = QUIC_INITIAL_V1;
-                HandshakePacketParams.mode = 1;
+                HandshakePacketParams.Mode = 1;
                 sendPacket(Binding, Route, &InitialPacketCount, &TotalByteCount, &HandshakePacketParams, false, &HandshakeClientContext);
                 FirstPacket = FALSE;
             } while (!RecvPacketEvent.WaitTimeout(400) && CxPlatTimeDiff64(StartTimeMs, CxPlatTimeMs64()) < RunTimeMs);
@@ -866,18 +875,18 @@ void fuzz(CXPLAT_SOCKET* Binding, CXPLAT_ROUTE Route) {
                             printf("Failed to process handshake data!\n");
                         }
                         bufferoffset += recvBufferLength;
-                        HandshakePacketParams.largestAcknowledge = packet->PacketNumber;
+                        HandshakePacketParams.LargestAcknowledge = packet->PacketNumber;
                         if (packet->LH->Type == QUIC_INITIAL_V1) {
                             bufferoffset = 0;
-                            HandshakePacketParams.numFrames = 1;
+                            HandshakePacketParams.NumFrames = 1;
                             HandshakePacketParams.FrameTypes[0] = QUIC_FRAME_ACK;
-                            HandshakePacketParams.largestAcknowledge = packet->PacketNumber;
+                            HandshakePacketParams.LargestAcknowledge = packet->PacketNumber;
                             HandshakePacketParams.SourceCid = (uint8_t *)packet->DestCid;
                             HandshakePacketParams.SourceCidLen = packet->DestCidLen;
                             HandshakePacketParams.DestCid = (uint8_t *)packet->SourceCid;
                             HandshakePacketParams.DestCidLen = packet->SourceCidLen;
                             HandshakePacketParams.PacketType = QUIC_INITIAL_V1;
-                            HandshakePacketParams.mode = 1;
+                            HandshakePacketParams.Mode = 1;
                             sendPacket(Binding, Route, &InitialPacketCount, &TotalByteCount, &HandshakePacketParams, false, &HandshakeClientContext);
                         }
                     }
@@ -885,15 +894,15 @@ void fuzz(CXPLAT_SOCKET* Binding, CXPLAT_ROUTE Route) {
                 if (HandshakeClientContext.State.HandshakeComplete) {
                     bufferoffset = 0;
                     HandshakePacketParams.PacketType = QUIC_HANDSHAKE_V1;
-                    HandshakePacketParams.numFrames = 2;
+                    HandshakePacketParams.NumFrames = 2;
                     HandshakePacketParams.FrameTypes[0] = QUIC_FRAME_ACK;
                     HandshakePacketParams.FrameTypes[1] = QUIC_FRAME_CRYPTO;
                     HandshakePacketParams.SourceCid = (uint8_t *)packet->DestCid;
                     HandshakePacketParams.SourceCidLen = packet->DestCidLen;
                     HandshakePacketParams.DestCid = (uint8_t *)packet->SourceCid;
                     HandshakePacketParams.DestCidLen = packet->SourceCidLen;
-                    HandshakePacketParams.mode = 1;
-                    HandshakePacketParams.numPackets = (uint8_t)GetRandom(3) + 1;
+                    HandshakePacketParams.Mode = 1;
+                    HandshakePacketParams.NumPackets = (uint8_t)GetRandom(3) + 1;
                     sendPacket(Binding, Route, &HandshakePacketCount, &TotalByteCount, &HandshakePacketParams, true, &HandshakeClientContext);
                     handshakeComplete = FALSE;
                     CXPLAT_FREE(packet, QUIC_POOL_TOOL);
