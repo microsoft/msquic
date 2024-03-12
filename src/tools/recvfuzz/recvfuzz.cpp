@@ -134,7 +134,6 @@ UdpRecvCallback(
     while (Datagram != NULL) {
         uint8_t DestCidLen, SourceCidLen;
         const uint8_t* DestCid, *SourceCid;
-        
         QUIC_RX_PACKET Packet;
         Packet.AvailBuffer = Datagram->Buffer;
         
