@@ -136,7 +136,6 @@ UdpRecvCallback(
         const uint8_t* DestCid, *SourceCid;
         QUIC_RX_PACKET Packet;
         Packet.AvailBuffer = Datagram->Buffer;
-        
         do {
             Packet.AvailBufferLength = Datagram->BufferLength;
             DestCidLen = Packet.Invariant->LONG_HDR.DestCidLength;
