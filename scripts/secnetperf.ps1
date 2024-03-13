@@ -268,13 +268,13 @@ foreach ($testId in $allTests.Keys) {
         if ($Test.Values[$tcp].Length -eq 0) { continue }
         $transport = $tcp -eq 1 ? "tcp" : "quic"
         $json["$testId-$transport"] = $Test.Values[$tcp]
-        $ResultRegression = CheckRegressionResult $Test.Values[$tcp] $testId $transport $regressionJson
+        $ResultRegression = CheckRegressionResult $Test.Values[$tcp] $testId $transport $regressionJson "$os-$arch-$environment-$io-$tls"
         if ($ResultRegression -ne "NULL") {
             $json["$testId-$transport-regression"] = $ResultRegression
         }
         if ($Test.Metric -eq "latency") {
             $json["$testId-$transport-lat"] = $Test.Latency[$tcp]
-            $LatencyRegression = CheckRegressionLat $Test.Values[$tcp] $regressionJson
+            $LatencyRegression = CheckRegressionLat $Test.Values[$tcp] $regressionJson $testId $transport "$os-$arch-$environment-$io-$tls"
             if ($LatencyRegression -ne "NULL") {
                 $json["$testId-$transport-lat-regression"] = $LatencyRegression
             }

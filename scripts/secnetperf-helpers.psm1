@@ -576,7 +576,7 @@ function Invoke-Secnetperf {
     }
 }
 
-function CheckRegressionResult($values, $testid, $transport, $regressionJson) {
+function CheckRegressionResult($values, $testid, $transport, $regressionJson, $envStr) {
     # Returns true if there is a regression in this new run.
 
     $sum = 0
@@ -584,7 +584,6 @@ function CheckRegressionResult($values, $testid, $transport, $regressionJson) {
         $sum += $item
     }
     $avg = $sum / $values.Length
-    $envStr = "$os-$arch-$environment-$io-$tls"
     $Testid = "$testid-$transport"
     try {
         # TODO: baseline is a bad name. Use LowerThreshold / UpperThreshold instead.
@@ -613,7 +612,7 @@ function CheckRegressionResult($values, $testid, $transport, $regressionJson) {
     return "NULL"
 }
 
-function CheckRegressionLat($values, $regressionJson) {
+function CheckRegressionLat($values, $regressionJson, $testid, $transport, $envStr) {
     # $values is a flattened 1D array of the form:
     # [ first run + RPS, second run + RPS, third run + RPS..... ],
     # ie. if each run has 8 values + RPS, then the array has 27 elements (8*3 + 3)
@@ -631,7 +630,6 @@ function CheckRegressionLat($values, $regressionJson) {
     $P0Avg /= $NumRuns
     $P50Avg /= $NumRuns
     $P99Avg /= $NumRuns
-    $envStr = "$os-$arch-$environment-$io-$tls"
     $Testid = "$testid-$transport"
     try {
         $P0UpperBound= $regressionJson.$Testid.$envStr.latencyUpperBound.P0
