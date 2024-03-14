@@ -244,6 +244,10 @@ CxPlatLogAssert(
 #define CXPLAT_IRQL() KeGetCurrentIrql()
 
 #define CXPLAT_PASSIVE_CODE() CXPLAT_DBG_ASSERT(CXPLAT_IRQL() == PASSIVE_LEVEL)
+#define CXPLAT_AT_DISPATCH() (CXPLAT_IRQL() == DISPATCH_LEVEL)
+
+#define CXPLAT_RAISE_IRQL() KIRQL OldIrql; KeRaiseIrql(DISPATCH_LEVEL, &OldIrql)
+#define CXPLAT_LOWER_IRQL() KeLowerIrql(OldIrql)
 
 //
 // Allocation/Memory Interfaces
@@ -466,7 +470,8 @@ _CxPlatEventWaitWithTimeout(
     )
 {
     LARGE_INTEGER Timeout100Ns;
-    Timeout100Ns.QuadPart = Int32x32To64(TimeoutMs, -10000);
+    CXPLAT_DBG_ASSERT(TimeoutMs != UINT32_MAX);
+    Timeout100Ns.QuadPart = -1 * UInt32x32To64(TimeoutMs, 10000);
     return KeWaitForSingleObject(Event, Executive, KernelMode, FALSE, &Timeout100Ns);
 }
 #define CxPlatEventWaitWithTimeout(Event, TimeoutMs) \

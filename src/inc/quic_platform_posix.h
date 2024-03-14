@@ -302,6 +302,7 @@ CxPlatLogAssert(
 
 #define CXPLAT_IRQL() 0
 #define CXPLAT_PASSIVE_CODE()
+#define CXPLAT_AT_DISPATCH() FALSE
 
 //
 // Memory management interfaces.
@@ -872,6 +873,8 @@ CxPlatInternalEventWaitWithTimeout(
     BOOLEAN WaitSatisfied = FALSE;
     struct timespec Ts = {0, 0};
     int Result;
+
+    CXPLAT_DBG_ASSERT(TimeoutMs != UINT32_MAX);
 
     //
     // Get absolute time.

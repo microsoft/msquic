@@ -199,6 +199,7 @@ DumpMsQuicPerfCounters(
     printf("  PATH_FAILURE:          %llu\n", (unsigned long long)Counters[QUIC_PERF_COUNTER_PATH_FAILURE]);
     printf("  SEND_STATELESS_RESET:  %llu\n", (unsigned long long)Counters[QUIC_PERF_COUNTER_SEND_STATELESS_RESET]);
     printf("  SEND_STATELESS_RETRY:  %llu\n", (unsigned long long)Counters[QUIC_PERF_COUNTER_SEND_STATELESS_RETRY]);
+    printf("  CONN_LOAD_REJECT:      %llu\n", (unsigned long long)Counters[QUIC_PERF_COUNTER_CONN_LOAD_REJECT]);
 }
 
 //

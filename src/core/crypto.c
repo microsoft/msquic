@@ -152,7 +152,7 @@ QuicCryptoInitialize(
             &Crypto->RecvBuffer,
             InitialRecvBufferLength,
             QUIC_DEFAULT_STREAM_FC_WINDOW_SIZE / 2,
-            TRUE,
+            QUIC_RECV_BUF_MODE_SINGLE,
             NULL);
     if (QUIC_FAILED(Status)) {
         goto Exit;
@@ -1779,7 +1779,7 @@ QuicCryptoCustomTicketValidationComplete(
             QuicPacketKeyFree(Crypto->TlsState.WriteKeys[i]);
             Crypto->TlsState.WriteKeys[i] = NULL;
         }
-        Crypto->RecvBuffer.ExternalBufferReference = FALSE;
+        QuicRecvBufferResetRead(&Crypto->RecvBuffer);
         QUIC_CONNECTION* Connection = QuicCryptoGetConnection(Crypto);
         QUIC_STATUS Status = QuicCryptoInitializeTls(Crypto, Connection->Configuration->SecurityConfig, Connection->HandshakeTP);
         if (Status != QUIC_STATUS_SUCCESS) {
@@ -1806,15 +1806,12 @@ QuicCryptoProcessData(
 
     } else {
         uint64_t BufferOffset;
-        BOOLEAN DataAvailable =
-            QuicRecvBufferRead(
-                &Crypto->RecvBuffer,
-                &BufferOffset,
-                &BufferCount,
-                &Buffer);
+        QuicRecvBufferRead(
+            &Crypto->RecvBuffer,
+            &BufferOffset,
+            &BufferCount,
+            &Buffer);
 
-        UNREFERENCED_PARAMETER(DataAvailable);
-        CXPLAT_TEL_ASSERT(DataAvailable);
         CXPLAT_DBG_ASSERT(BufferCount == 1);
 
         QUIC_CONNECTION* Connection = QuicCryptoGetConnection(Crypto);

@@ -290,6 +290,7 @@ QUIC_PERF_COUNTER_PATH_VALIDATED | Total path challenges that succeed ever
 QUIC_PERF_COUNTER_PATH_FAILURE | Total path challenges that fail ever
 QUIC_PERF_COUNTER_SEND_STATELESS_RESET | Total stateless reset packets sent ever
 QUIC_PERF_COUNTER_SEND_STATELESS_RETRY | Total stateless retry packets sent ever
+QUIC_PERF_COUNTER_CONN_LOAD_REJECT | Total connections rejected due to worker load.
 
 ## Windows Performance Monitor
 

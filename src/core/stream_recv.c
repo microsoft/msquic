@@ -805,7 +805,7 @@ QuicStreamOnBytesDelivered(
                     TimeNow,
                     Stream->RecvWindowLastUpdate);
 
-                QuicRecvBufferSetVirtualBufferLength(
+                QuicRecvBufferIncreaseVirtualBufferLength(
                     &Stream->RecvBuffer,
                     Stream->RecvBuffer.VirtualBufferLength * 2);
             }
@@ -878,23 +878,22 @@ QuicStreamRecvFlush(
     while (FlushRecv) {
         CXPLAT_DBG_ASSERT(!Stream->Flags.SentStopSending);
 
-        QUIC_BUFFER RecvBuffers[2];
+        QUIC_BUFFER RecvBuffers[3];
         QUIC_STREAM_EVENT Event = {0};
         Event.Type = QUIC_STREAM_EVENT_RECEIVE;
-        Event.RECEIVE.BufferCount = 2;
+        Event.RECEIVE.BufferCount = ARRAYSIZE(RecvBuffers);
         Event.RECEIVE.Buffers = RecvBuffers;
 
         //
         // Try to read the next available buffers.
         //
-        BOOLEAN DataAvailable =
+        BOOLEAN DataAvailable = QuicRecvBufferHasUnreadData(&Stream->RecvBuffer);
+        if (DataAvailable) {
             QuicRecvBufferRead(
                 &Stream->RecvBuffer,
                 &Event.RECEIVE.AbsoluteOffset,
                 &Event.RECEIVE.BufferCount,
                 RecvBuffers);
-
-        if (DataAvailable) {
             for (uint32_t i = 0; i < Event.RECEIVE.BufferCount; ++i) {
                 Event.RECEIVE.TotalBufferLength += RecvBuffers[i].Length;
             }

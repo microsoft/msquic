@@ -697,6 +697,7 @@ QuicListenerAcceptConnection(
             Connection,
             QUIC_ERROR_CONNECTION_REFUSED);
         Listener->TotalRejectedConnections++;
+        QuicPerfCounterIncrement(QUIC_PERF_COUNTER_CONN_LOAD_REJECT);
         return;
     }
 

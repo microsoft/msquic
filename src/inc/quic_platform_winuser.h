@@ -225,6 +225,7 @@ GetModuleHandleW(
 #define CXPLAT_IRQL() PASSIVE_LEVEL
 
 #define CXPLAT_PASSIVE_CODE() CXPLAT_DBG_ASSERT(CXPLAT_IRQL() == PASSIVE_LEVEL)
+#define CXPLAT_AT_DISPATCH() FALSE
 
 //
 // Wrapper functions
@@ -675,8 +676,16 @@ typedef HANDLE CXPLAT_EVENT;
 #define CxPlatEventSet(Event) SetEvent(Event)
 #define CxPlatEventReset(Event) ResetEvent(Event)
 #define CxPlatEventWaitForever(Event) WaitForSingleObject(Event, INFINITE)
-#define CxPlatEventWaitWithTimeout(Event, timeoutMs) \
-    (WAIT_OBJECT_0 == WaitForSingleObject(Event, timeoutMs))
+inline
+BOOLEAN
+CxPlatEventWaitWithTimeout(
+    _In_ CXPLAT_EVENT Event,
+    _In_ uint32_t TimeoutMs
+    )
+{
+    CXPLAT_DBG_ASSERT(TimeoutMs != UINT32_MAX);
+    return WAIT_OBJECT_0 == WaitForSingleObject(Event, TimeoutMs);
+}
 
 //
 // Event Queue Interfaces

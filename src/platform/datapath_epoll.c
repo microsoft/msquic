@@ -2629,6 +2629,18 @@ CxPlatSocketContextFlushTxQueue(
     }
 }
 
+_IRQL_requires_max_(DISPATCH_LEVEL)
+QUIC_STATUS
+CxPlatSocketGetTcpStatistics(
+    _In_ CXPLAT_SOCKET* Socket,
+    _Out_ CXPLAT_TCP_STATISTICS* Statistics
+    )
+{
+    UNREFERENCED_PARAMETER(Socket);
+    UNREFERENCED_PARAMETER(Statistics);
+    return QUIC_STATUS_NOT_SUPPORTED;
+}
+
 void
 CxPlatDataPathSocketProcessIoCompletion(
     _In_ CXPLAT_SOCKET_CONTEXT* SocketContext,

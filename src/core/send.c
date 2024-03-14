@@ -1033,7 +1033,6 @@ CxPlatIsRouteReady(
     // We need to set the path challenge flag back on so that when route is resolved,
     // we know we need to continue to send the challenge.
     //
-    CXPLAT_DBG_ASSERT(Path->IsActive);
     if (Path->Route.State == RouteUnresolved || Path->Route.State == RouteSuspected) {
         QuicConnAddRef(Connection, QUIC_CONN_REF_ROUTE);
         QUIC_STATUS Status =

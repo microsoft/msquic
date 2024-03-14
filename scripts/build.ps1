@@ -236,6 +236,8 @@ $ArtifactsDir = $BuildConfig.ArtifactsDir
 if ($Generator -eq "") {
     if (!$IsWindows) {
         $Generator = "Unix Makefiles"
+    } else {
+        $Generator = "Visual Studio 17 2022"
     }
 }
 
