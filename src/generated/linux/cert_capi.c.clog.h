@@ -88,24 +88,6 @@ tracepoint(CLOG_CERT_CAPI_C, CertCapiFormattedChain , arg2);\
 
 
 /*----------------------------------------------------------
-// Decoder Ring for CertCapiSign
-// [cert] QuicCertSign alg=0x%4.4x
-// QuicTraceLogVerbose(
-        CertCapiSign,
-        "[cert] QuicCertSign alg=0x%4.4x",
-        SignatureAlgorithm);
-// arg2 = arg2 = SignatureAlgorithm = arg2
-----------------------------------------------------------*/
-#ifndef _clog_3_ARGS_TRACE_CertCapiSign
-#define _clog_3_ARGS_TRACE_CertCapiSign(uniqueId, encoded_arg_string, arg2)\
-tracepoint(CLOG_CERT_CAPI_C, CertCapiSign , arg2);\
-
-#endif
-
-
-
-
-/*----------------------------------------------------------
 // Decoder Ring for CertCapiVerify
 // [cert] QuicCertVerify alg=0x%4.4x
 // QuicTraceLogVerbose(

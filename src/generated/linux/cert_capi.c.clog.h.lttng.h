@@ -65,25 +65,6 @@ TRACEPOINT_EVENT(CLOG_CERT_CAPI_C, CertCapiFormattedChain,
 
 
 /*----------------------------------------------------------
-// Decoder Ring for CertCapiSign
-// [cert] QuicCertSign alg=0x%4.4x
-// QuicTraceLogVerbose(
-        CertCapiSign,
-        "[cert] QuicCertSign alg=0x%4.4x",
-        SignatureAlgorithm);
-// arg2 = arg2 = SignatureAlgorithm = arg2
-----------------------------------------------------------*/
-TRACEPOINT_EVENT(CLOG_CERT_CAPI_C, CertCapiSign,
-    TP_ARGS(
-        unsigned int, arg2), 
-    TP_FIELDS(
-        ctf_integer(unsigned int, arg2, arg2)
-    )
-)
-
-
-
-/*----------------------------------------------------------
 // Decoder Ring for CertCapiVerify
 // [cert] QuicCertVerify alg=0x%4.4x
 // QuicTraceLogVerbose(
