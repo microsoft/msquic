@@ -1459,7 +1459,7 @@ QuicSendFlush(
             // We're scheduling limited, so we should tell the peer to use our
             // (max) batch size + 1 as the peer tolerance as a hint that they
             // should expect more than a single batch before needing to send an
-            // acknowledgement back.
+            // acknowledgment back.
             //
             QuicConnUpdatePeerPacketTolerance(Connection, Builder.TotalCountDatagrams + 1);
         }

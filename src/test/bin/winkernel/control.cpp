@@ -511,7 +511,7 @@ error:
 
 size_t QUIC_IOCTL_BUFFER_SIZES[] =
 {
-    0,
+    sizeof(QUIC_TEST_CONFIGURATION_PARAMS),
     sizeof(QUIC_RUN_CERTIFICATE_PARAMS),
     0,
     0,
@@ -633,9 +633,10 @@ size_t QUIC_IOCTL_BUFFER_SIZES[] =
 
 CXPLAT_STATIC_ASSERT(
     QUIC_MAX_IOCTL_FUNC_CODE + 1 == (sizeof(QUIC_IOCTL_BUFFER_SIZES)/sizeof(size_t)),
-    "QUIC_IOCTL_BUFFER_SIZES must be kept in sync with the IOTCLs");
+    "QUIC_IOCTL_BUFFER_SIZES must be kept in sync with the IOCTLs");
 
 typedef union {
+    QUIC_TEST_CONFIGURATION_PARAMS TestConfigurationParams;
     QUIC_RUN_CERTIFICATE_PARAMS CertParams;
     QUIC_CERTIFICATE_HASH_STORE CertHashStore;
     UINT8 Connect;
@@ -716,7 +717,7 @@ QuicTestCtlEvtIoDeviceControl(
     }
 
     ULONG FunctionCode = IoGetFunctionCodeFromCtlCode(IoControlCode);
-    if (FunctionCode == 0 || FunctionCode > QUIC_MAX_IOCTL_FUNC_CODE) {
+    if (FunctionCode > QUIC_MAX_IOCTL_FUNC_CODE) {
         Status = STATUS_NOT_IMPLEMENTED;
         QuicTraceEvent(
             LibraryErrorStatus,
@@ -778,6 +779,11 @@ QuicTestCtlEvtIoDeviceControl(
     }
 
     switch (IoControlCode) {
+
+    case IOCTL_QUIC_TEST_CONFIGURATION:
+        CXPLAT_FRE_ASSERT(Params != nullptr);
+        UseDuoNic = Params->TestConfigurationParams.UseDuoNic;
+        break;
 
     case IOCTL_QUIC_SET_CERT_PARAMS:
         CXPLAT_FRE_ASSERT(Params != nullptr);
@@ -1490,6 +1496,7 @@ QuicTestCtlEvtIoDeviceControl(
                 Params->CustomCertValidationParams.AcceptCert,
                 Params->CustomCertValidationParams.AsyncValidation));
         break;
+
 #ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
     case IOCTL_QUIC_RELIABLE_RESET_NEGOTIATION:
         CXPLAT_FRE_ASSERT(Params != nullptr);
@@ -1499,6 +1506,7 @@ QuicTestCtlEvtIoDeviceControl(
                 Params->FeatureNegotiationParams.ServerSupport,
                 Params->FeatureNegotiationParams.ClientSupport));
         break;
+
     case IOCTL_QUIC_ONE_WAY_DELAY_NEGOTIATION:
         CXPLAT_FRE_ASSERT(Params != nullptr);
         QuicTestCtlRun(

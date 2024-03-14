@@ -15,10 +15,15 @@ Abstract:
 #include "PerfServer.cpp.clog.h"
 #endif
 
+const uint8_t SecNetPerfShutdownGuid[16] = { // {ff15e657-4f26-570e-88ab-0796b258d11c}
+    0x57, 0xe6, 0x15, 0xff, 0x26, 0x4f, 0x0e, 0x57,
+    0x88, 0xab, 0x07, 0x96, 0xb2, 0x58, 0xd1, 0x1c};
+
 QUIC_STATUS
 PerfServer::Init(
     _In_ int argc,
-    _In_reads_(argc) _Null_terminated_ char* argv[]
+    _In_reads_(argc) _Null_terminated_ char* argv[],
+    _In_ CXPLAT_DATAPATH* Datapath
     ) {
     if (QUIC_FAILED(InitStatus)) {
         return InitStatus;
@@ -42,7 +47,7 @@ PerfServer::Init(
         MsQuicGlobalSettings GlobalSettings;
         GlobalSettings.SetFixedServerID(ServerId);
         GlobalSettings.SetLoadBalancingMode(QUIC_LOAD_BALANCING_SERVER_ID_FIXED);
-   
+
         QUIC_STATUS Status;
 	    if (QUIC_FAILED(Status = GlobalSettings.Set())) {
 	    	WriteOutput("Failed to set global settings %d\n", Status);
@@ -69,6 +74,27 @@ PerfServer::Init(
         DataBuffer->Buffer[i] = (uint8_t)i;
     }
 
+    //
+    // Set up the special UDP listener to allow remote tear down.
+    //
+    QuicAddr TeardownLocalAddress {QUIC_ADDRESS_FAMILY_INET, (uint16_t)9999};
+    CXPLAT_UDP_CONFIG UdpConfig = {0};
+    UdpConfig.LocalAddress = &TeardownLocalAddress.SockAddr;
+    UdpConfig.RemoteAddress = nullptr;
+    UdpConfig.Flags = 0;
+    UdpConfig.InterfaceIndex = 0;
+    UdpConfig.CallbackContext = this;
+#ifdef QUIC_OWNING_PROCESS
+    UdpConfig.OwningProcess = QuicProcessGetCurrentProcess();
+#endif
+
+    QUIC_STATUS Status = CxPlatSocketCreateUdp(Datapath, &UdpConfig, &TeardownBinding);
+    if (QUIC_FAILED(Status)) {
+        TeardownBinding = nullptr;
+        WriteOutput("Failed to initialize teardown binding: %d\n", Status);
+        return Status;
+    }
+
     return QUIC_STATUS_SUCCESS;
 }
 
@@ -92,7 +118,7 @@ PerfServer::Start(
     return Listener.Start(Alpn, &LocalAddr);
 }
 
-QUIC_STATUS
+void
 PerfServer::Wait(
     _In_ int Timeout
     ) {
@@ -102,28 +128,26 @@ PerfServer::Wait(
         CxPlatEventWaitForever(*StopEvent);
     }
     Registration.Shutdown(QUIC_CONNECTION_SHUTDOWN_FLAG_NONE, 0);
-    return QUIC_STATUS_SUCCESS;
 }
 
 void
-PerfServer::GetExtraDataMetadata(
-    _Out_ PerfExtraDataMetadata* Result
+PerfServer::DatapathReceive(
+    _In_ CXPLAT_SOCKET*,
+    _In_ void* Context,
+    _In_ CXPLAT_RECV_DATA* Data
     )
 {
-    Result->TestType = PerfTestType::Server;
-    Result->ExtraDataLength = 0;
+    if (Data->BufferLength != sizeof(SecNetPerfShutdownGuid) ||
+        memcmp(Data->Buffer, SecNetPerfShutdownGuid, sizeof(SecNetPerfShutdownGuid))) {
+        return;
+    }
+    auto Server = (PerfServer*)Context;
+    if (Server->StopEvent) {
+        CxPlatEventSet(*Server->StopEvent);
+    }
 }
 
-
-QUIC_STATUS
-PerfServer::GetExtraData(
-    _Out_writes_bytes_(*Length) uint8_t*,
-    _Inout_ uint32_t* Length
-    )
-{
-    *Length = 0;
-    return QUIC_STATUS_SUCCESS;
-}
+void PerfServer::DatapathUnreachable(_In_ CXPLAT_SOCKET*, _In_ void*, _In_ const QUIC_ADDR*) { }
 
 QUIC_STATUS
 PerfServer::ListenerCallback(

@@ -1021,6 +1021,7 @@ CxPlatProcIsActive(
     uint32_t Index
     )
 {
+    CXPLAT_DBG_ASSERT(Index < CxPlatProcMaxCount());
     const CXPLAT_PROCESSOR_INFO* Proc = &CxPlatProcessorInfo[Index];
     return !!(CxPlatProcessorGroupInfo[Proc->Group].Mask & (1ULL << Proc->Index));
 }
@@ -1149,6 +1150,7 @@ CxPlatThreadCreate(
         return GetLastError();
     }
 #endif // CXPLAT_USE_CUSTOM_THREAD_CONTEXT
+    CXPLAT_DBG_ASSERT(Config->IdealProcessor < CxPlatProcMaxCount());
     const CXPLAT_PROCESSOR_INFO* ProcInfo = &CxPlatProcessorInfo[Config->IdealProcessor];
     GROUP_AFFINITY Group = {0};
     if (Config->Flags & CXPLAT_THREAD_FLAG_SET_AFFINITIZE) {

@@ -134,7 +134,7 @@ param (
     [switch]$BreakOnFailure = $false,
 
     [Parameter(Mandatory = $false)]
-    [ValidateSet("None", "Basic.Light", "Basic.Verbose", "Full.Light", "Full.Verbose")]
+    [ValidateSet("None", "Basic.Light", "Datapath.Light", "Datapath.Verbose", "Stacks.Light", "Stacks.Verbose", "RPS.Light", "RPS.Verbose", "Performance.Light", "Basic.Verbose", "Performance.Light", "Performance.Verbose", "Full.Light", "Full.Verbose", "SpinQuic.Light", "SpinQuicWarnings.Light")]
     [string]$LogProfile = "None",
 
     [Parameter(Mandatory = $false)]

@@ -105,23 +105,34 @@ TcpEngine::TcpEngine(
     TcpAcceptHandler AcceptHandler,
     TcpConnectHandler ConnectHandler,
     TcpReceiveHandler ReceiveHandler,
-    TcpSendCompleteHandler SendCompleteHandler) :
+    TcpSendCompleteHandler SendCompleteHandler) noexcept :
     ProcCount((uint16_t)CxPlatProcActiveCount()), Workers(new(std::nothrow) TcpWorker[ProcCount]),
     AcceptHandler(AcceptHandler), ConnectHandler(ConnectHandler),
     ReceiveHandler(ReceiveHandler), SendCompleteHandler(SendCompleteHandler)
 {
-#ifndef QUIC_NO_SHARED_DATAPATH
+    CxPlatListInitializeHead(&Connections);
     for (uint16_t i = 0; i < ProcCount; ++i) {
         if (!Workers[i].Initialize(this)) {
             return;
         }
     }
     Initialized = true;
-#endif
 }
 
-TcpEngine::~TcpEngine()
+TcpEngine::~TcpEngine() noexcept
 {
+    // Loop over all connections and shut them down.
+    ConnectionLock.Acquire();
+    while (!CxPlatListIsEmpty(&Connections)) {
+        auto Connection = (TcpConnection*)CxPlatListRemoveHead(&Connections);
+        Connection->EngineEntry.Flink = NULL;
+        Connection->Shutdown = true;
+        Connection->TotalSendCompleteOffset = UINT64_MAX;
+        Connection->Queue();
+    }
+    ConnectionLock.Release();
+    Rundown.ReleaseAndWait();
+
     Shutdown = true;
     for (uint16_t i = 0; i < ProcCount; ++i) {
         Workers[i].Shutdown();
@@ -135,6 +146,21 @@ void TcpEngine::AddConnection(TcpConnection* Connection, uint16_t PartitionIndex
     CXPLAT_DBG_ASSERT(!Connection->Worker);
     Connection->PartitionIndex = PartitionIndex;
     Connection->Worker = &Workers[PartitionIndex];
+    CXPLAT_FRE_ASSERT(Rundown.Acquire());
+    ConnectionLock.Acquire();
+    CxPlatListInsertTail(&Connections, &Connection->EngineEntry);
+    ConnectionLock.Release();
+}
+
+void TcpEngine::RemoveConnection(TcpConnection* Connection)
+{
+    ConnectionLock.Acquire();
+    if (Connection->EngineEntry.Flink) {
+        CxPlatListEntryRemove(&Connection->EngineEntry);
+        Connection->EngineEntry.Flink = NULL;
+    }
+    ConnectionLock.Release();
+    Rundown.Release();
 }
 
 // ############################# WORKER #############################
@@ -147,15 +173,9 @@ TcpWorker::TcpWorker()
 
 TcpWorker::~TcpWorker()
 {
+    CXPLAT_FRE_ASSERT(!Connections);
     if (Initialized) {
         CxPlatThreadDelete(&Thread);
-        while (Connections) {
-            auto Connection = Connections;
-            Connections = Connections->Next;
-            Connection->QueuedOnWorker = false;
-            // TODO - What?!
-            Connection->Release();
-        }
     }
     CxPlatDispatchLockUninitialize(&Lock);
     CxPlatEventUninitialize(WakeEvent);
@@ -286,8 +306,7 @@ TcpServer::AcceptCallback(
     )
 {
     auto This = (TcpServer*)ListenerContext;
-    auto Connection = new(std::nothrow) TcpConnection(This->Engine, This->SecConfig, AcceptSocket);
-    Connection->Context = This;
+    auto Connection = new(std::nothrow) TcpConnection(This->Engine, This->SecConfig, AcceptSocket, This);
     *AcceptClientContext = Connection;
 }
 
@@ -301,10 +320,12 @@ TcpConnection::TcpConnection(
         const char* ServerName,
     _In_ uint16_t ServerPort,
     const QUIC_ADDR* LocalAddress,
+    const QUIC_ADDR* RemoteAddress,
     void* Context) :
     IsServer(false), Engine(Engine), Context(Context)
 {
     CxPlatRefInitialize(&Ref);
+    CxPlatEventInitialize(&CloseComplete, TRUE, FALSE);
     CxPlatDispatchLockInitialize(&Lock);
     CxPlatZeroMemory(&TlsState, sizeof(TlsState));
     QuicTraceLogVerbose(
@@ -322,14 +343,18 @@ TcpConnection::TcpConnection(
     if (LocalAddress) {
         Family = QuicAddrGetFamily(LocalAddress);
     }
-    QuicAddrSetFamily(&Route.RemoteAddress, Family);
-    if (QUIC_FAILED(
-        CxPlatDataPathResolveAddress(
-            Datapath,
-            ServerName,
-            &Route.RemoteAddress))) {
-        WriteOutput("CxPlatDataPathResolveAddress FAILED\n");
-        return;
+    if (RemoteAddress) {
+        Route.RemoteAddress = *RemoteAddress;
+    } else {
+        QuicAddrSetFamily(&Route.RemoteAddress, Family);
+        if (QUIC_FAILED(
+            CxPlatDataPathResolveAddress(
+                Datapath,
+                ServerName,
+                &Route.RemoteAddress))) {
+            WriteOutput("CxPlatDataPathResolveAddress FAILED\n");
+            return;
+        }
     }
     QuicAddrSetPort(&Route.RemoteAddress, ServerPort);
     Engine->AddConnection(this, 0); // TODO - Correct index
@@ -350,10 +375,12 @@ TcpConnection::TcpConnection(
 TcpConnection::TcpConnection(
     TcpEngine* Engine,
     CXPLAT_SEC_CONFIG* SecConfig,
-    CXPLAT_SOCKET* Socket) :
-    IsServer(true), Engine(Engine), Socket(Socket), SecConfig(SecConfig)
+    CXPLAT_SOCKET* Socket,
+    void* Context) :
+    IsServer(true), Engine(Engine), Socket(Socket), SecConfig(SecConfig), Context(Context)
 {
     CxPlatRefInitialize(&Ref);
+    CxPlatEventInitialize(&CloseComplete, TRUE, FALSE);
     CxPlatDispatchLockInitialize(&Lock);
     CxPlatZeroMemory(&TlsState, sizeof(TlsState));
     QuicTraceLogVerbose(
@@ -368,6 +395,7 @@ TcpConnection::TcpConnection(
 
 TcpConnection::~TcpConnection()
 {
+    CXPLAT_DBG_ASSERT(Shutdown || !Initialized);
     QuicTraceLogVerbose(
         PerfTcpDestroyed,
         "[perf][tcp][%p] Destroyed",
@@ -386,12 +414,19 @@ TcpConnection::~TcpConnection()
         CxPlatDispatchLockRelease(&Lock);
         CxPlatRecvDataReturn(RecvDataChain);
 
+        if (BatchedSendData) {
+            CxPlatSendDataFree(BatchedSendData);
+            BatchedSendData = nullptr;
+        }
+
         CxPlatSocketDelete(Socket);
     }
     if (!IsServer && SecConfig) {
         CxPlatTlsSecConfigDelete(SecConfig);
     }
     CXPLAT_DBG_ASSERT(!QueuedOnWorker);
+    Engine->RemoveConnection(this);
+    CxPlatEventUninitialize(CloseComplete);
     CxPlatDispatchLockUninitialize(&Lock);
 }
 
@@ -411,9 +446,9 @@ TcpConnection::ConnectCallback(
         This,
         Connected);
     if (Connected) {
-        This->IndicateConnect = true;
+        This->StartTls = true;
     } else {
-        This->IndicateDisconnect = true;
+        This->Shutdown = true;
     }
     This->Queue();
 }
@@ -433,13 +468,18 @@ TcpConnection::ReceiveCallback(
         "[perf][tcp][%p] Receive callback",
         This);
     CxPlatDispatchLockAcquire(&This->Lock);
-    CXPLAT_RECV_DATA** Tail = &This->ReceiveData;
-    while (*Tail) {
-        Tail = &(*Tail)->Next;
+    if (!This->Shutdown) {
+        CXPLAT_RECV_DATA** Tail = &This->ReceiveData;
+        while (*Tail) {
+            Tail = &(*Tail)->Next;
+        }
+        *Tail = RecvDataChain;
+        RecvDataChain = nullptr;
     }
-    *Tail = RecvDataChain;
     CxPlatDispatchLockRelease(&This->Lock);
-    if (!This->Queue()) {
+    if (RecvDataChain) {
+        CxPlatRecvDataReturn(RecvDataChain);
+    } else if (!This->Queue()) {
         CxPlatDispatchLockAcquire(&This->Lock);
         RecvDataChain = This->ReceiveData;
         This->ReceiveData = nullptr;
@@ -464,10 +504,14 @@ TcpConnection::SendCompleteCallback(
         "[perf][tcp][%p] SendComplete callback",
         This);
     CxPlatDispatchLockAcquire(&This->Lock);
-    This->TotalSendCompleteOffset += ByteCount;
-    This->IndicateSendComplete = true;
+    if (This->TotalSendCompleteOffset != UINT64_MAX) {
+        This->TotalSendCompleteOffset += ByteCount;
+        This->IndicateSendComplete = true;
+    }
     CxPlatDispatchLockRelease(&This->Lock);
-    This->Queue();
+    if (This->TotalSendCompleteOffset != UINT64_MAX) {
+        This->Queue();
+    }
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -504,56 +548,77 @@ void TcpConnection::Process()
             PerfTcpAppAccept,
             "[perf][tcp][%p] App Accept",
             this);
+        WorkerThreadID = CxPlatCurThreadID();
         Engine->AcceptHandler(Server, this);
+        WorkerThreadID = 0;
         StartTls = true;
     }
-    if (IndicateConnect) {
-        IndicateConnect = false;
-        QuicTraceLogVerbose(
-            PerfTcpAppConnect,
-            "[perf][tcp][%p] App Connect",
-            this);
-        Engine->ConnectHandler(this, true);
-        StartTls = true;
-    }
-    if (StartTls) {
+    if (StartTls && !Shutdown) {
         StartTls = false;
         QuicTraceLogVerbose(
             PerfTcpStartTls,
             "[perf][tcp][%p] Start TLS",
             this);
         if (!InitializeTls()) {
-            IndicateDisconnect = true;
+            Shutdown = true;
         }
     }
-    if (ReceiveData) {
+    if (ReceiveData && !Shutdown) {
         if (!ProcessReceive()) {
-            IndicateDisconnect = true;
+            Shutdown = true;
         }
     }
-    if (TlsState.WriteKey >= QUIC_PACKET_KEY_1_RTT && SendData) {
+    if (IndicateConnect && !Shutdown) {
+        IndicateConnect = false;
+        QuicTraceLogVerbose(
+            PerfTcpAppConnect,
+            "[perf][tcp][%p] App Connect",
+            this);
+        WorkerThreadID = CxPlatCurThreadID();
+        Engine->ConnectHandler(this, true);
+        WorkerThreadID = 0;
+    }
+    if (TlsState.WriteKey >= QUIC_PACKET_KEY_1_RTT && SendData && !Shutdown) {
         if (!ProcessSend()) {
-            IndicateDisconnect = true;
+            Shutdown = true;
         }
     }
-    if (BatchedSendData) {
+    if (BatchedSendData && !Shutdown) {
         if (QUIC_FAILED(
             CxPlatSocketSend(Socket, &Route, BatchedSendData))) {
-            IndicateDisconnect = true;
+            Shutdown = true;
         }
         BatchedSendData = nullptr;
     }
     if (IndicateSendComplete) {
-        IndicateSendComplete = false;
         ProcessSendComplete();
     }
-    if (IndicateDisconnect && !ClosedByApp) {
-        QuicTraceLogVerbose(
-            PerfTcpAppDisconnect,
-            "[perf][tcp][%p] App Disconnect",
-            this);
-        IndicateDisconnect = false;
-        Engine->ConnectHandler(this, false);
+    if (Shutdown && !ShutdownComplete) {
+        ShutdownComplete = true;
+        CxPlatDispatchLockAcquire(&Lock);
+        TotalSendCompleteOffset = UINT64_MAX;
+        CxPlatDispatchLockRelease(&Lock);
+        ProcessSendComplete();
+        CXPLAT_DBG_ASSERT(!SentData);
+        CXPLAT_DBG_ASSERT(!SendData);
+        if (!ClosedByApp) {
+            QuicTraceLogVerbose(
+                PerfTcpAppDisconnect,
+                "[perf][tcp][%p] App Disconnect",
+                this);
+            WorkerThreadID = CxPlatCurThreadID();
+            Engine->ConnectHandler(this, false);
+            WorkerThreadID = 0;
+        }
+    }
+    if (ClosedByApp && !Closed) {
+        CXPLAT_DBG_ASSERT(Shutdown);
+        ShutdownComplete = true;
+        Closed = true;
+        ProcessSendComplete();
+        CXPLAT_DBG_ASSERT(!SentData);
+        CXPLAT_DBG_ASSERT(!SendData);
+        CxPlatEventSet(CloseComplete);
     }
 }
 
@@ -612,6 +677,10 @@ bool TcpConnection::ProcessTls(const uint8_t* Buffer, uint32_t BufferLength)
     //printf("CxPlatTlsProcessData produced %hu bytes (%u, %u)\n", TlsState.BufferLength, TlsState.BufferOffsetHandshake, TlsState.BufferOffset1Rtt);
 
     CXPLAT_DBG_ASSERT(BaseOffset + TlsState.BufferLength == TlsState.BufferTotalLength);
+
+    if (Results & CXPLAT_TLS_RESULT_HANDSHAKE_COMPLETE) {
+        IndicateConnect = true;
+    }
 
     while (BaseOffset < TlsState.BufferTotalLength) {
         if (TlsState.BufferOffsetHandshake) {
@@ -721,7 +790,9 @@ bool TcpConnection::ProcessReceiveData(const uint8_t* Buffer, uint32_t BufferLen
         Buffer += BytesNeeded;
         BufferLength -= BytesNeeded;
 
-        ProcessReceiveFrame(Frame);
+        if (!ProcessReceiveFrame(Frame)) {
+            return false;
+        }
         BufferedDataLength = 0;
     }
 
@@ -732,7 +803,9 @@ bool TcpConnection::ProcessReceiveData(const uint8_t* Buffer, uint32_t BufferLen
             goto BufferData;
         }
 
-        ProcessReceiveFrame(Frame);
+        if (!ProcessReceiveFrame(Frame)) {
+            return false;
+        }
 
         Buffer += sizeof(TcpFrame) + Frame->Length + CXPLAT_ENCRYPTION_OVERHEAD;
         BufferLength -= sizeof(TcpFrame) + Frame->Length + CXPLAT_ENCRYPTION_OVERHEAD;
@@ -785,14 +858,18 @@ bool TcpConnection::ProcessReceiveFrame(TcpFrame* Frame)
             (uint8_t)StreamFrame->Open,
             (uint8_t)StreamFrame->Fin,
             (uint8_t)StreamFrame->Abort);
-        Engine->ReceiveHandler(
-            this,
-            StreamFrame->Id,
-            StreamFrame->Open,
-            StreamFrame->Fin,
-            StreamFrame->Abort,
-            Frame->Length - sizeof(TcpStreamFrame),
-            StreamFrame->Data);
+        if (!Shutdown) {
+            WorkerThreadID = CxPlatCurThreadID();
+            Engine->ReceiveHandler(
+                this,
+                StreamFrame->Id,
+                StreamFrame->Open,
+                StreamFrame->Fin,
+                StreamFrame->Abort,
+                Frame->Length - sizeof(TcpStreamFrame),
+                StreamFrame->Data);
+            WorkerThreadID = 0;
+        }
         break;
     }
     default:
@@ -874,17 +951,36 @@ bool TcpConnection::ProcessSend()
 
 void TcpConnection::ProcessSendComplete()
 {
-    uint64_t Offset = TotalSendCompleteOffset;
-    while (SentData && SentData->Offset <= Offset) {
+    TcpSendData* CompleteData = nullptr;
+    TcpSendData** Tail = &CompleteData;
+    CxPlatDispatchLockAcquire(&Lock);
+    while (SentData && SentData->Offset <= TotalSendCompleteOffset) {
         TcpSendData* Data = SentData;
         SentData = Data->Next;
+        Data->Next = NULL;
+        *Tail = Data;
+        Tail = &Data->Next;
+    }
+    if (Shutdown) {
+        *Tail = SendData;
+        SendData = nullptr;
+    }
+    IndicateSendComplete = false;
+    CxPlatDispatchLockRelease(&Lock);
+
+    while (CompleteData) {
+        TcpSendData* Data = CompleteData;
+        CompleteData = Data->Next;
         Data->Next = NULL;
         QuicTraceLogVerbose(
             PerfTcpAppSendComplete,
             "[perf][tcp][%p] App Send complete %u bytes",
             this,
             Data->Length);
+        WorkerThreadID = CxPlatCurThreadID();
         Engine->SendCompleteHandler(this, Data);
+        WorkerThreadID = 0;
+        Release();
     }
 }
 
@@ -922,17 +1018,16 @@ bool TcpConnection::FinalizeSendBuffer(QUIC_BUFFER* SendBuffer)
     TotalSendOffset += SendBuffer->Length;
     if (SendBuffer->Length != TLS_BLOCK_SIZE ||
         CxPlatSendDataIsFull(BatchedSendData)) {
-        if (QUIC_FAILED(
-            CxPlatSocketSend(Socket, &Route, BatchedSendData))) {
-            WriteOutput("CxPlatSocketSend FAILED\n");
+        auto Status = CxPlatSocketSend(Socket, &Route, BatchedSendData);
+        BatchedSendData = nullptr;
+        if (QUIC_FAILED(Status)) {
             return false;
         }
-        BatchedSendData = nullptr;
     }
     return true;
 }
 
-void TcpConnection::Send(TcpSendData* Data)
+bool TcpConnection::Send(TcpSendData* Data)
 {
     QuicTraceLogVerbose(
         PerfTcpAppSend,
@@ -944,15 +1039,22 @@ void TcpConnection::Send(TcpSendData* Data)
         (uint8_t)Data->Abort);
 
     CxPlatDispatchLockAcquire(&Lock);
-    TcpSendData** Tail = &SendData;
-    while (*Tail) {
-        Tail = &((*Tail)->Next);
+    bool QueueSend = !Shutdown;
+    if (QueueSend) {
+        CXPLAT_FRE_ASSERT(TryAddRef());
+        TcpSendData** Tail = &SendData;
+        while (*Tail) {
+            Tail = &((*Tail)->Next);
+        }
+        *Tail = Data;
     }
-    *Tail = Data;
     CxPlatDispatchLockRelease(&Lock);
-    if (TlsState.WriteKey >= QUIC_PACKET_KEY_1_RTT) {
+
+    if (QueueSend && TlsState.WriteKey >= QUIC_PACKET_KEY_1_RTT) {
         Queue();
     }
+
+    return QueueSend;
 }
 
 void TcpConnection::Close()
@@ -961,6 +1063,21 @@ void TcpConnection::Close()
         PerfTcpAppClose,
         "[perf][tcp][%p] App Close",
         this);
-    ClosedByApp = true;
+    if (!Initialized) {
+         // no-op
+    } else if (WorkerThreadID == CxPlatCurThreadID()) {
+        ClosedByApp = true;
+        Shutdown = true;
+        TotalSendCompleteOffset = UINT64_MAX;
+        ProcessSendComplete();
+    } else {
+        CxPlatDispatchLockAcquire(&Lock);
+        ClosedByApp = true;
+        Shutdown = true;
+        TotalSendCompleteOffset = UINT64_MAX;
+        CxPlatDispatchLockRelease(&Lock);
+        Queue();
+        CxPlatEventWaitForever(CloseComplete);
+    }
     Release();
 }

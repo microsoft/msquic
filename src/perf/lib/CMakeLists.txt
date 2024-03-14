@@ -2,12 +2,10 @@
 # Licensed under the MIT License.
 
 set(SOURCES
-    HpsClient.cpp
+    PerfClient.cpp
     PerfServer.cpp
     SecNetPerfMain.cpp
-    RpsClient.cpp
     Tcp.cpp
-    ThroughputClient.cpp
 )
 
 add_library(perflib STATIC ${SOURCES})

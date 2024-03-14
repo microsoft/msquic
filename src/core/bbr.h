@@ -168,13 +168,13 @@ typedef struct QUIC_CONGESTION_CONTROL_BBR {
     uint64_t CycleStart;
 
     //
-    // Receiving acknowledgement of a packet after EndoOfRoundTrip will
+    // Receiving acknowledgment of a packet after EndoOfRoundTrip will
     // indicate the current round trip is ended
     //
     uint64_t EndOfRoundTrip;
 
     //
-    // Receiving acknowledgement of a packet after EndoOfRecovery will cause
+    // Receiving acknowledgment of a packet after EndoOfRecovery will cause
     // BBR to exit the recovery mode
     //
     uint64_t EndOfRecovery;

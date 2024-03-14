@@ -3336,7 +3336,7 @@ struct StreamReliableReset {
     }
 };
 
-
+#ifdef QUIC_PARAM_STREAM_RELIABLE_OFFSET
 void
 QuicTestStreamReliableReset(
     )
@@ -3410,6 +3410,7 @@ QuicTestStreamReliableReset(
         TEST_TRUE(Context.ShutdownErrorCode == AbortSendShutdownErrorCode);
     }
 }
+
 void
 QuicTestStreamReliableResetMultipleSends(
     )
@@ -3492,3 +3493,4 @@ QuicTestStreamReliableResetMultipleSends(
     // Test Error code matches what we sent.
     TEST_TRUE(Context.ShutdownErrorCode == AbortShutdownErrorCode);
 }
+#endif // QUIC_PARAM_STREAM_RELIABLE_OFFSET

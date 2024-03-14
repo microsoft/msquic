@@ -11,7 +11,7 @@ Abstract:
 
 #pragma once
 
-#include "PerfHelpers.h"
+#include "SecNetPerf.h"
 #include "quic_datapath.h"
 #include "quic_tls.h"
 
@@ -85,6 +85,9 @@ class TcpEngine {
     bool Shutdown{false};
     const uint16_t ProcCount;
     TcpWorker* Workers;
+    CxPlatRundown Rundown;
+    CxPlatLockDispatch ConnectionLock;
+    CXPLAT_LIST_ENTRY Connections;
 public:
     static const CXPLAT_TCP_DATAPATH_CALLBACKS TcpCallbacks;
     static const CXPLAT_TLS_CALLBACKS TlsCallbacks;
@@ -97,10 +100,11 @@ public:
         TcpAcceptHandler AcceptHandler,
         TcpConnectHandler ConnectHandler,
         TcpReceiveHandler ReceiveHandler,
-        TcpSendCompleteHandler SendCompleteHandler);
-    ~TcpEngine();
+        TcpSendCompleteHandler SendCompleteHandler) noexcept;
+    ~TcpEngine() noexcept;
     bool IsInitialized() const { return Initialized; }
     void AddConnection(TcpConnection* Connection, uint16_t PartitionIndex);
+    void RemoveConnection(TcpConnection* Connection);
 };
 
 class TcpWorker {
@@ -160,19 +164,24 @@ class TcpConnection {
     friend class TcpEngine;
     friend class TcpWorker;
     friend class TcpServer;
+    CXPLAT_LIST_ENTRY EngineEntry{nullptr,nullptr}; // Must be first
     bool IsServer;
     bool Initialized{false};
+    bool Shutdown{false};
+    bool ShutdownComplete{false};
     bool ClosedByApp{false};
+    bool Closed{false};
     bool QueuedOnWorker{false};
     bool StartTls{false};
     bool IndicateAccept{false};
     bool IndicateConnect{false};
-    bool IndicateDisconnect{false};
     bool IndicateSendComplete{false};
     TcpConnection* Next{nullptr};
     TcpEngine* Engine;
     TcpWorker* Worker{nullptr};
+    CXPLAT_THREAD_ID WorkerThreadID{0};
     uint16_t PartitionIndex;
+    CXPLAT_EVENT CloseComplete;
     CXPLAT_REF_COUNT Ref;
     CXPLAT_DISPATCH_LOCK Lock;
     CXPLAT_ROUTE Route{0};
@@ -189,7 +198,7 @@ class TcpConnection {
     uint8_t TlsOutput[TLS_BLOCK_SIZE];
     uint8_t BufferedData[TLS_BLOCK_SIZE];
     uint32_t BufferedDataLength{0};
-    TcpConnection(TcpEngine* Engine, CXPLAT_SEC_CONFIG* SecConfig, CXPLAT_SOCKET* Socket);
+    TcpConnection(TcpEngine* Engine, CXPLAT_SEC_CONFIG* SecConfig, CXPLAT_SOCKET* Socket, void* Context);
     static
     _IRQL_requires_max_(DISPATCH_LEVEL)
     _Function_class_(CXPLAT_DATAPATH_CONNECT_CALLBACK)
@@ -261,8 +270,9 @@ public:
             const char* ServerName,
         _In_ uint16_t ServerPort,
         _In_ const QUIC_ADDR* LocalAddress = nullptr,
+        _In_ const QUIC_ADDR* RemoteAddress = nullptr,
         _In_ void* Context = nullptr);
     bool IsInitialized() const { return Initialized; }
     void Close();
-    void Send(TcpSendData* Data);
+    bool Send(TcpSendData* Data);
 };
