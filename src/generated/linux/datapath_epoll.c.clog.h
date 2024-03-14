@@ -179,6 +179,24 @@ tracepoint(CLOG_DATAPATH_EPOLL_C, DatapathSend , arg2, arg3, arg4, arg5, arg6_le
 
 
 
+/*----------------------------------------------------------
+// Decoder Ring for LibraryError
+// [ lib] ERROR, %s.
+// QuicTraceEvent(
+                    LibraryError,
+                    "[ lib] ERROR, %s.",
+                    "Disabling segmentation support globally");
+// arg2 = arg2 = "Disabling segmentation support globally" = arg2
+----------------------------------------------------------*/
+#ifndef _clog_3_ARGS_TRACE_LibraryError
+#define _clog_3_ARGS_TRACE_LibraryError(uniqueId, encoded_arg_string, arg2)\
+tracepoint(CLOG_DATAPATH_EPOLL_C, LibraryError , arg2);\
+
+#endif
+
+
+
+
 #ifdef __cplusplus
 }
 #endif

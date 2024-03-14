@@ -69,12 +69,12 @@ jobs:
     runs-on: ${{ inputs.sanitize  == '-Sanitize' && 'windows-2019' || inputs.os }} # use windows-2019 for ASAN
     steps:
     - name: Checkout repository
-      uses: actions/checkout@3df4ab11eba7bda6032a0b82a6bb43b11571feac
+      uses: actions/checkout@8ade135a41bc03ea155e62e844d188df1ea18608
       with:
         repository: microsoft/msquic
         ref: ${{ inputs.ref }}
     - name: Install Perl
-      uses: shogo82148/actions-setup-perl@35426a57f184a35daee329bb17ae49332ff8a422
+      uses: shogo82148/actions-setup-perl@90aae5bc694fba230daa9573de620d6fe9198181
       with:
         perl-version: '5.34'
     - name: Install NASM
