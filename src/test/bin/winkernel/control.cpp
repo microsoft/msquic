@@ -65,6 +65,113 @@ WDFDEVICE QuicTestCtlDevice = nullptr;
 QUIC_DEVICE_EXTENSION* QuicTestCtlExtension = nullptr;
 QUIC_TEST_CLIENT* QuicTestClient = nullptr;
 
+typedef struct QuicTestNmrClient {
+    NPI_CLIENT_CHARACTERISTICS NpiClientCharacteristics;
+    HANDLE NmrClientHandle;
+    NPI_MODULEID ModuleId;
+    CXPLAT_EVENT RegistrationCompleteEvent;
+    MSQUIC_NMR_DISPATCH* ProviderDispatch;
+    BOOLEAN Deleting;
+} QuicTestNmrClient;
+
+static QuicTestNmrClient NmrClient;
+
+static
+NTSTATUS
+QuicTestClientAttachProvider(
+    _In_ HANDLE NmrBindingHandle,
+    _In_ void *ClientContext,
+    _In_ const NPI_REGISTRATION_INSTANCE *ProviderRegistrationInstance
+    )
+{
+    UNREFERENCED_PARAMETER(ProviderRegistrationInstance);
+
+    NTSTATUS Status;
+    QuicTestNmrClient* Client = (QuicTestNmrClient*)ClientContext;
+    void* ProviderContext;
+
+    #pragma warning(suppress:6387) // _Param_(2) could be '0' - by design.
+    Status =
+        NmrClientAttachProvider(
+            NmrBindingHandle,
+            Client,
+            NULL,
+            &ProviderContext,
+            (const void**)&Client->ProviderDispatch);
+    if (!NT_SUCCESS(Status)) {
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            Status,
+            "NmrClientAttachProvider failed");
+    }
+    CxPlatEventSet(Client->RegistrationCompleteEvent);
+    return Status;
+}
+
+static
+NTSTATUS
+QuicTestClientDetachProvider(
+    _In_ void *ClientBindingContext
+    )
+{
+    QuicTestNmrClient* Client = (QuicTestNmrClient*)ClientBindingContext;
+    if (InterlockedFetchAndSetBoolean(&Client->Deleting)) {
+        return STATUS_SUCCESS;
+    } else {
+        return STATUS_PENDING;
+    }
+}
+
+NTSTATUS
+QuicTestRegisterNmrClient(
+    void
+    )
+{
+    NPI_REGISTRATION_INSTANCE *ClientRegistrationInstance;
+    NTSTATUS Status = STATUS_SUCCESS;
+
+    CxPlatEventInitialize(&NmrClient.RegistrationCompleteEvent, FALSE, FALSE);
+    NmrClient.ModuleId.Length = sizeof(NmrClient.ModuleId);
+    NmrClient.ModuleId.Type = MIT_GUID;
+    NmrClient.ModuleId.Guid = MSQUIC_MODULE_ID;
+
+    NmrClient.NpiClientCharacteristics.Length = sizeof(NmrClient.NpiClientCharacteristics);
+    NmrClient.NpiClientCharacteristics.ClientAttachProvider = QuicTestClientAttachProvider;
+    NmrClient.NpiClientCharacteristics.ClientDetachProvider = QuicTestClientDetachProvider;
+
+    ClientRegistrationInstance = &NmrClient.NpiClientCharacteristics.ClientRegistrationInstance;
+    ClientRegistrationInstance->Size = sizeof(*ClientRegistrationInstance);
+    ClientRegistrationInstance->Version = 0;
+    ClientRegistrationInstance->NpiId = &MSQUIC_NPI_ID;
+    ClientRegistrationInstance->ModuleId = &NmrClient.ModuleId;
+
+    Status =
+        NmrRegisterClient(
+            &NmrClient.NpiClientCharacteristics, &NmrClient, &NmrClient.NmrClientHandle);
+    if (!NT_SUCCESS(Status)) {
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            Status,
+            "NmrRegisterClient failed");
+        goto Exit;
+    }
+
+    if (!CxPlatEventWaitWithTimeout(NmrClient.RegistrationCompleteEvent, 1000)) {
+        Status = STATUS_UNSUCCESSFUL;
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            Status,
+            "client registration timed out");
+        goto Exit;
+    }
+
+Exit:
+    return Status;
+}
+
 _No_competing_thread_
 INITCODE
 NTSTATUS
@@ -81,7 +188,20 @@ QuicTestCtlInitialize(
     WDF_IO_QUEUE_CONFIG QueueConfig;
     WDFQUEUE Queue;
 
-    MsQuic = new (std::nothrow) MsQuicApi();
+    Status = QuicTestRegisterNmrClient();
+    if (!NT_SUCCESS(Status)) {
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            Status,
+            "QuicTestRegisterNmrClient failed");
+        goto Error;
+    }
+
+    MsQuic =
+        new (std::nothrow) MsQuicApi(
+            NmrClient.ProviderDispatch->MsQuicOpenVersion,
+            NmrClient.ProviderDispatch->MsQuicClose);
     if (!MsQuic) {
         goto Error;
     }
@@ -221,6 +341,26 @@ QuicTestCtlUninitialize(
     }
 
     delete MsQuic;
+
+    if (InterlockedFetchAndSetBoolean(&NmrClient.Deleting)) {
+        //
+        // We are already in the middle of detaching the client.
+        // Complete it now.
+        //
+        NmrClientDetachProviderComplete(NmrClient.NmrClientHandle);
+    }
+
+    if (NmrClient.NmrClientHandle) {
+        NTSTATUS Status = NmrDeregisterClient(NmrClient.NmrClientHandle);
+        CXPLAT_FRE_ASSERTMSG(Status == STATUS_PENDING, "client deregistration failed");
+        if (Status == STATUS_PENDING) {
+            //
+            // Wait for the deregistration to complete.
+            //
+            NmrWaitForClientDeregisterComplete(NmrClient.NmrClientHandle);
+        }
+        NmrClient.NmrClientHandle = NULL;
+    }
 
     QuicTraceLogVerbose(
         TestControlUninitialized,
@@ -488,6 +628,7 @@ size_t QUIC_IOCTL_BUFFER_SIZES[] =
     0,
     0,
     sizeof(INT32),
+    0,
 };
 
 CXPLAT_STATIC_ASSERT(
@@ -1383,6 +1524,10 @@ QuicTestCtlEvtIoDeviceControl(
     case IOCTL_QUIC_RUN_DRILL_VN_PACKET_TOKEN:
         CXPLAT_FRE_ASSERT(Params != nullptr);
         QuicTestCtlRun(QuicDrillTestServerVNPacket(Params->Family));
+        break;
+
+    case IOCTL_QUIC_RUN_CONN_CLOSE_BEFORE_STREAM_CLOSE:
+        QuicTestCtlRun(QuicTestConnectionCloseBeforeStreamClose());
         break;
 
     default:

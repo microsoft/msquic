@@ -68,9 +68,6 @@ param (
     [switch]$InstallJom,
 
     [Parameter(Mandatory = $false)]
-    [switch]$InstallXdpSdk,
-
-    [Parameter(Mandatory = $false)]
     [switch]$UseXdp,
 
     [Parameter(Mandatory = $false)]
@@ -123,7 +120,6 @@ if ($ForBuild) {
     # enabled for any possible build.
     $InstallNasm = $true
     $InstallJom = $true
-    $InstallXdpSdk = $true
     $InstallCoreNetCiDeps = $true; # For kernel signing certs
 }
 
@@ -151,8 +147,6 @@ if ($ForTest) {
 }
 
 if ($InstallXdpDriver) {
-    # The XDP SDK contains XDP driver, so ensure it's downloaded.
-    $InstallXdpSdk = $true
     $InstallSigningCertificates = $true;
 }
 
@@ -211,26 +205,6 @@ function Install-SigningCertificates {
     }
 }
 
-# Downloads the latest version of XDP (for building).
-function Install-Xdp-Sdk {
-    if (!$IsWindows) { return } # Windows only
-    $XdpPath = Join-Path $ArtifactsPath "xdp"
-    if ($Force) {
-        rm -Force -Recurse $XdpPath -ErrorAction Ignore | Out-Null
-    }
-    if (!(Test-Path $XdpPath)) {
-        Write-Host "Downloading XDP kit"
-        $ZipPath = Join-Path $ArtifactsPath "xdp.zip"
-        Invoke-WebRequest -Uri (Get-Content (Join-Path $PSScriptRoot "xdp.json") | ConvertFrom-Json).kit -OutFile $ZipPath
-        Write-Host "Extracting XDP kit"
-        Expand-Archive -Path $ZipPath -DestinationPath $XdpPath -Force
-        New-Item -Path "$ArtifactsPath\bin\xdp" -ItemType Directory -Force
-        Copy-Item -Path "$XdpPath\symbols\*" -Destination "$ArtifactsPath\bin\xdp" -Force
-        Copy-Item -Path "$XdpPath\bin\*" -Destination "$ArtifactsPath\bin\xdp" -Force
-        Remove-Item -Path $ZipPath
-    }
-}
-
 # Installs the XDP driver (for testing).
 # NB: XDP can be uninstalled via Uninstall-Xdp
 function Install-Xdp-Driver {
@@ -249,11 +223,6 @@ function Uninstall-Xdp {
     if (Test-Path $MsiPath) {
         Write-Host "Uninstalling XDP driver"
         try { msiexec.exe /x $MsiPath /quiet | Out-Null } catch {}
-    }
-    $XdpPath = Join-Path $ArtifactsPath "xdp"
-    if (Test-Path $XdpPath) {
-        Write-Host "Deleting XDP kit"
-        rm -Force -Recurse $XdpPath -ErrorAction Ignore | Out-Null
     }
 }
 
@@ -483,6 +452,11 @@ if ($ForBuild -or $ForContainerBuild) {
     Write-Host "Initializing clog submodule"
     git submodule init submodules/clog
 
+    if (!$IsLinux) {
+        Write-Host "Initializing XDP-for-Windows submodule"
+        git submodule init submodules/xdp-for-windows
+    }
+
     if ($Tls -eq "openssl") {
         Write-Host "Initializing openssl submodule"
         git submodule init submodules/openssl
@@ -508,7 +482,6 @@ if ($ForBuild -or $ForContainerBuild) {
 if ($InstallCoreNetCiDeps) { Download-CoreNet-Deps }
 if ($InstallSigningCertificates) { Install-SigningCertificates }
 if ($InstallDuoNic) { Install-DuoNic }
-if ($InstallXdpSdk) { Install-Xdp-Sdk }
 if ($InstallXdpDriver) { Install-Xdp-Driver }
 if ($UninstallXdp) { Uninstall-Xdp }
 if ($InstallNasm) { Install-NASM }

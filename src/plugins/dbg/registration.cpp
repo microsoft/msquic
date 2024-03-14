@@ -50,9 +50,9 @@ EXT_COMMAND(
     auto Workers = Registration.GetWorkerPool();
     UCHAR WorkerCount = Workers.WorkerCount();
     for (UCHAR i = 0; i < WorkerCount; i++) {
-        Dml("\t<link cmd=\"!quicworker 0x%I64X\">Proc %d</link>\t%s\n",
+        Dml("\t<link cmd=\"!quicworker 0x%I64X\">Partition %d</link> \t%s\n",
             Workers.GetWorker(i).Addr,
-            Workers.GetWorker(i).IdealProcessor(),
+            Workers.GetWorker(i).PartitionIndex(),
             Workers.GetWorker(i).StateStr());
     }
 
@@ -67,9 +67,10 @@ EXT_COMMAND(
         }
 
         auto Connection = Connection::FromRegistrationLink(LinkAddr);
-        Dml("\t<link cmd=\"!quicconnection 0x%I64X\">0x%I64X</link>\n",
+        Dml("\t<link cmd=\"!quicconnection 0x%I64X\">0x%I64X</link>\t%s\n",
             Connection.Addr,
-            Connection.Addr);
+            Connection.Addr,
+            Connection.StateStr());
     }
 
     Dml("\n");

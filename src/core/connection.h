@@ -36,9 +36,8 @@ typedef union QUIC_CONNECTION_STATE {
         BOOLEAN ClosedLocally   : 1;    // Locally closed.
         BOOLEAN ClosedRemotely  : 1;    // Remotely closed.
         BOOLEAN AppClosed       : 1;    // Application (not transport) closed connection.
-        BOOLEAN HandleShutdown  : 1;    // Shutdown callback delivered for handle.
+        BOOLEAN ShutdownComplete : 1;   // Shutdown callback delivered for handle.
         BOOLEAN HandleClosed    : 1;    // Handle closed by application layer.
-        BOOLEAN Uninitialized   : 1;    // Uninitialize started/completed.
         BOOLEAN Freed           : 1;    // Freed. Used for Debugging.
 
         //
@@ -120,9 +119,9 @@ typedef union QUIC_CONNECTION_STATE {
         BOOLEAN ShutdownCompleteTimedOut : 1;
 
         //
-        // The application needs to be notified of a shutdown complete event.
+        // The connection is shutdown and the completion for it needs to be run.
         //
-        BOOLEAN SendShutdownCompleteNotif : 1;
+        BOOLEAN ProcessShutdownComplete : 1;
 
         //
         // Indicates whether this connection shares bindings with others.
@@ -223,6 +222,7 @@ typedef enum QUIC_CONNECTION_REF {
     QUIC_CONN_REF_LOOKUP_TABLE,         // Per registered CID.
     QUIC_CONN_REF_LOOKUP_RESULT,        // For connections returned from lookups.
     QUIC_CONN_REF_WORKER,               // Worker is (queued for) processing.
+    QUIC_CONN_REF_TIMER_WHEEL,          // The timer wheel is tracking the connection.
     QUIC_CONN_REF_ROUTE,                // Route resolution is undergoing.
     QUIC_CONN_REF_STREAM,               // A stream depends on the connection.
 
@@ -1115,6 +1115,15 @@ BOOLEAN
 QuicConnRegister(
     _Inout_ QUIC_CONNECTION* Connection,
     _Inout_ QUIC_REGISTRATION* Registration
+    );
+
+//
+// Unregisters the connection from the registration.
+//
+_IRQL_requires_max_(DISPATCH_LEVEL)
+void
+QuicConnUnregister(
+    _Inout_ QUIC_CONNECTION* Connection
     );
 
 //

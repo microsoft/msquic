@@ -116,7 +116,7 @@ if ("${CX_PLATFORM}" STREQUAL "windows")
         platform
         PRIVATE
         ${EXTRA_PLATFORM_INCLUDE_DIRECTORIES}
-        ${PROJECT_SOURCE_DIR}/artifacts/xdp/include)
+        ${PROJECT_SOURCE_DIR}/submodules/xdp-for-windows/published/external)
 else()
     include_directories(/usr/include/libnl3)
     target_include_directories(platform PRIVATE ${EXTRA_PLATFORM_INCLUDE_DIRECTORIES})

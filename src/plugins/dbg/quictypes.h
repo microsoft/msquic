@@ -88,9 +88,8 @@ typedef union QUIC_CONNECTION_STATE {
         BOOLEAN ClosedLocally   : 1;    // Locally closed.
         BOOLEAN ClosedRemotely  : 1;    // Remotely closed.
         BOOLEAN AppClosed       : 1;    // Application (not transport) closed connection.
-        BOOLEAN HandleShutdown  : 1;    // Shutdown callback delivered for handle.
+        BOOLEAN ShutdownComplete : 1;   // Shutdown callback delivered for handle.
         BOOLEAN HandleClosed    : 1;    // Handle closed by application layer.
-        BOOLEAN Uninitialized   : 1;    // Uninitialize started/completed.
         BOOLEAN Freed           : 1;    // Freed. Used for Debugging.
 
         //
@@ -174,7 +173,7 @@ typedef union QUIC_CONNECTION_STATE {
         //
         // The application needs to be notified of a shutdown complete event.
         //
-        BOOLEAN SendShutdownCompleteNotif : 1;
+        BOOLEAN ProcessShutdownComplete : 1;
 
         //
         // Indicates whether this connection shares bindings with others.
@@ -1197,7 +1196,7 @@ struct Connection : Struct {
             return "FREED";
         } else if (state.HandleClosed) {
             return "CLOSED";
-        } else if (state.HandleShutdown) {
+        } else if (state.ShutdownComplete) {
             return "SHUTDOWN";
         } else if (state.ClosedLocally || state.ClosedRemotely) {
             return "SHUTTING DOWN";
@@ -1324,8 +1323,8 @@ struct Worker : Struct {
         }
     }
 
-    UINT8 IdealProcessor() {
-        return ReadType<UINT8>("IdealProcessor");
+    UINT16 PartitionIndex() {
+        return ReadType<UINT16>("PartitionIndex");
     }
 
     UINT32 ThreadID() {

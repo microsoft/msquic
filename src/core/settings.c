@@ -96,6 +96,15 @@ QuicSettingsSetDefault(
     if (!Settings->IsSet.StreamRecvWindowDefault) {
         Settings->StreamRecvWindowDefault = QUIC_DEFAULT_STREAM_FC_WINDOW_SIZE;
     }
+    if (!Settings->IsSet.StreamRecvWindowBidiLocalDefault) {
+        Settings->StreamRecvWindowBidiLocalDefault = QUIC_DEFAULT_STREAM_FC_WINDOW_SIZE;
+    }
+    if (!Settings->IsSet.StreamRecvWindowBidiRemoteDefault) {
+        Settings->StreamRecvWindowBidiRemoteDefault = QUIC_DEFAULT_STREAM_FC_WINDOW_SIZE;
+    }
+    if (!Settings->IsSet.StreamRecvWindowUnidiDefault) {
+        Settings->StreamRecvWindowUnidiDefault = QUIC_DEFAULT_STREAM_FC_WINDOW_SIZE;
+    }
     if (!Settings->IsSet.StreamRecvBufferDefault) {
         Settings->StreamRecvBufferDefault = QUIC_DEFAULT_STREAM_RECV_BUFFER_SIZE;
     }
@@ -230,6 +239,15 @@ QuicSettingsCopy(
     }
     if (!Destination->IsSet.StreamRecvWindowDefault) {
         Destination->StreamRecvWindowDefault = Source->StreamRecvWindowDefault;
+    }
+    if (!Destination->IsSet.StreamRecvWindowBidiLocalDefault) {
+        Destination->StreamRecvWindowBidiLocalDefault = Source->StreamRecvWindowBidiLocalDefault;
+    }
+    if (!Destination->IsSet.StreamRecvWindowBidiRemoteDefault) {
+        Destination->StreamRecvWindowBidiRemoteDefault = Source->StreamRecvWindowBidiRemoteDefault;
+    }
+    if (!Destination->IsSet.StreamRecvWindowUnidiDefault) {
+        Destination->StreamRecvWindowUnidiDefault = Source->StreamRecvWindowUnidiDefault;
     }
     if (!Destination->IsSet.StreamRecvBufferDefault) {
         Destination->StreamRecvBufferDefault = Source->StreamRecvBufferDefault;
@@ -496,6 +514,40 @@ QuicSettingApply(
         }
         Destination->StreamRecvWindowDefault = Source->StreamRecvWindowDefault;
         Destination->IsSet.StreamRecvWindowDefault = TRUE;
+
+        //
+        // Also set window size for individual stream types, they will be overwritten by a more specific settings if set
+        //
+        if (!Destination->IsSet.StreamRecvWindowBidiLocalDefault || OverWrite) {
+            Destination->StreamRecvWindowBidiLocalDefault = Source->StreamRecvWindowDefault;
+        }
+        if (!Destination->IsSet.StreamRecvWindowBidiRemoteDefault || OverWrite) {
+            Destination->StreamRecvWindowBidiRemoteDefault = Source->StreamRecvWindowDefault;
+        }
+        if (!Destination->IsSet.StreamRecvWindowUnidiDefault || OverWrite) {
+            Destination->StreamRecvWindowUnidiDefault = Source->StreamRecvWindowDefault;
+        }
+    }
+    if (Source->IsSet.StreamRecvWindowBidiLocalDefault && (!Destination->IsSet.StreamRecvWindowBidiLocalDefault || OverWrite)) {
+        if (Source->StreamRecvWindowBidiLocalDefault == 0 || (Source->StreamRecvWindowBidiLocalDefault & (Source->StreamRecvWindowBidiLocalDefault - 1)) != 0) {
+            return FALSE; // Must be power of 2
+        }
+        Destination->StreamRecvWindowBidiLocalDefault = Source->StreamRecvWindowBidiLocalDefault;
+        Destination->IsSet.StreamRecvWindowBidiLocalDefault = TRUE;
+    }
+    if (Source->IsSet.StreamRecvWindowBidiRemoteDefault && (!Destination->IsSet.StreamRecvWindowBidiRemoteDefault || OverWrite)) {
+        if (Source->StreamRecvWindowBidiRemoteDefault == 0 || (Source->StreamRecvWindowBidiRemoteDefault & (Source->StreamRecvWindowBidiRemoteDefault - 1)) != 0) {
+            return FALSE; // Must be power of 2
+        }
+        Destination->StreamRecvWindowBidiRemoteDefault = Source->StreamRecvWindowBidiRemoteDefault;
+        Destination->IsSet.StreamRecvWindowBidiRemoteDefault = TRUE;
+    }
+    if (Source->IsSet.StreamRecvWindowUnidiDefault && (!Destination->IsSet.StreamRecvWindowUnidiDefault || OverWrite)) {
+        if (Source->StreamRecvWindowUnidiDefault == 0 || (Source->StreamRecvWindowUnidiDefault & (Source->StreamRecvWindowUnidiDefault - 1)) != 0) {
+            return FALSE; // Must be power of 2
+        }
+        Destination->StreamRecvWindowUnidiDefault = Source->StreamRecvWindowUnidiDefault;
+        Destination->IsSet.StreamRecvWindowUnidiDefault = TRUE;
     }
     if (Source->IsSet.StreamRecvBufferDefault && (!Destination->IsSet.StreamRecvBufferDefault || OverWrite)) {
         if (Source->StreamRecvBufferDefault < QUIC_DEFAULT_STREAM_RECV_BUFFER_SIZE) {
@@ -911,6 +963,33 @@ QuicSettingsLoad(
             &ValueLen);
     }
 
+    if (!Settings->IsSet.StreamRecvWindowBidiLocalDefault) {
+        ValueLen = sizeof(Settings->StreamRecvWindowBidiLocalDefault);
+        CxPlatStorageReadValue(
+            Storage,
+            QUIC_SETTING_STREAM_FC_BIDI_LOCAL_WINDOW_SIZE,
+            (uint8_t*)&Settings->StreamRecvWindowBidiLocalDefault,
+            &ValueLen);
+    }
+
+    if (!Settings->IsSet.StreamRecvWindowBidiRemoteDefault) {
+        ValueLen = sizeof(Settings->StreamRecvWindowBidiRemoteDefault);
+        CxPlatStorageReadValue(
+            Storage,
+            QUIC_SETTING_STREAM_FC_BIDI_REMOTE_WINDOW_SIZE,
+            (uint8_t*)&Settings->StreamRecvWindowBidiRemoteDefault,
+            &ValueLen);
+    }
+
+    if (!Settings->IsSet.StreamRecvWindowUnidiDefault) {
+        ValueLen = sizeof(Settings->StreamRecvWindowUnidiDefault);
+        CxPlatStorageReadValue(
+            Storage,
+            QUIC_SETTING_STREAM_FC_UNIDI_WINDOW_SIZE,
+            (uint8_t*)&Settings->StreamRecvWindowUnidiDefault,
+            &ValueLen);
+    }
+
     if (!Settings->IsSet.StreamRecvBufferDefault) {
         ValueLen = sizeof(Settings->StreamRecvBufferDefault);
         CxPlatStorageReadValue(
@@ -1291,7 +1370,9 @@ QuicSettingsDump(
     QuicTraceLogVerbose(SettingDumpTlsClientMaxSendBuffer,  "[sett] TlsClientMaxSendBuffer = %u", Settings->TlsClientMaxSendBuffer);
     QuicTraceLogVerbose(SettingDumpTlsServerMaxSendBuffer,  "[sett] TlsServerMaxSendBuffer = %u", Settings->TlsServerMaxSendBuffer);
     QuicTraceLogVerbose(SettingDumpStreamRecvWindowDefault, "[sett] StreamRecvWindowDefault= %u", Settings->StreamRecvWindowDefault);
-    QuicTraceLogVerbose(SettingDumpStreamRecvBufferDefault, "[sett] StreamRecvBufferDefault= %u", Settings->StreamRecvBufferDefault);
+    QuicTraceLogVerbose(SettingDumpStreamRecvWindowBidiLocalDefault,  "[sett] StreamRecvWindowBidiLocalDefault  = %u", Settings->StreamRecvWindowBidiLocalDefault);
+    QuicTraceLogVerbose(SettingDumpStreamRecvWindowBidiRemoteDefault, "[sett] StreamRecvWindowBidiRemoteDefault = %u", Settings->StreamRecvWindowBidiRemoteDefault);
+    QuicTraceLogVerbose(SettingDumpStreamRecvWindowUnidiDefault,      "[sett] StreamRecvWindowUnidiDefault      = %u", Settings->StreamRecvWindowUnidiDefault);
     QuicTraceLogVerbose(SettingDumpConnFlowControlWindow,   "[sett] ConnFlowControlWindow  = %u", Settings->ConnFlowControlWindow);
     QuicTraceLogVerbose(SettingDumpMaxBytesPerKey,          "[sett] MaxBytesPerKey         = %llu", Settings->MaxBytesPerKey);
     QuicTraceLogVerbose(SettingDumpServerResumptionLevel,   "[sett] ServerResumptionLevel  = %hhu", Settings->ServerResumptionLevel);
@@ -1401,6 +1482,15 @@ QuicSettingsDumpNew(
     }
     if (Settings->IsSet.StreamRecvWindowDefault) {
         QuicTraceLogVerbose(SettingDumpStreamRecvWindowDefault,     "[sett] StreamRecvWindowDefault= %u", Settings->StreamRecvWindowDefault);
+    }
+    if (Settings->IsSet.StreamRecvWindowBidiLocalDefault) {
+        QuicTraceLogVerbose(SettingDumpStreamRecvWindowBidiLocalDefault, "[sett] StreamRecvWindowBidiLocalDefault  = %u", Settings->StreamRecvWindowBidiLocalDefault);
+    }
+    if (Settings->IsSet.StreamRecvWindowBidiRemoteDefault) {
+        QuicTraceLogVerbose(SettingDumpStreamRecvWindowBidiRemoteDefault, "[sett] StreamRecvWindowBidiRemoteDefault = %u", Settings->StreamRecvWindowBidiRemoteDefault);
+    }
+    if (Settings->IsSet.StreamRecvWindowUnidiDefault) {
+        QuicTraceLogVerbose(SettingDumpStreamRecvWindowUnidiDefault,  "[sett] StreamRecvWindowUnidiDefault      = %u", Settings->StreamRecvWindowUnidiDefault);
     }
     if (Settings->IsSet.StreamRecvBufferDefault) {
         QuicTraceLogVerbose(SettingDumpStreamRecvBufferDefault,     "[sett] StreamRecvBufferDefault= %u", Settings->StreamRecvBufferDefault);
@@ -1700,6 +1790,27 @@ QuicSettingsSettingsToInternal(
         SettingsSize,
         InternalSettings);
 
+    SETTING_COPY_TO_INTERNAL_SIZED(
+        StreamRecvWindowBidiLocalDefault,
+        QUIC_SETTINGS,
+        Settings,
+        SettingsSize,
+        InternalSettings);
+
+    SETTING_COPY_TO_INTERNAL_SIZED(
+        StreamRecvWindowBidiRemoteDefault,
+        QUIC_SETTINGS,
+        Settings,
+        SettingsSize,
+        InternalSettings);
+
+    SETTING_COPY_TO_INTERNAL_SIZED(
+        StreamRecvWindowUnidiDefault,
+        QUIC_SETTINGS,
+        Settings,
+        SettingsSize,
+        InternalSettings);
+
     return QUIC_STATUS_SUCCESS;
 }
 
@@ -1827,6 +1938,26 @@ QuicSettingsGetSettings(
     SETTING_COPY_FLAG_FROM_INTERNAL_SIZED(
         Flags,
         OneWayDelayEnabled,
+        QUIC_SETTINGS,
+        Settings,
+        *SettingsLength,
+        InternalSettings);
+
+    SETTING_COPY_FROM_INTERNAL_SIZED(
+        StreamRecvWindowBidiLocalDefault,
+        QUIC_SETTINGS,
+        Settings,
+        *SettingsLength,
+        InternalSettings);
+
+    SETTING_COPY_FROM_INTERNAL_SIZED(
+        StreamRecvWindowBidiRemoteDefault,
+        QUIC_SETTINGS,
+        Settings,
+        *SettingsLength,
+        InternalSettings);
+
+    SETTING_COPY_FROM_INTERNAL_SIZED(StreamRecvWindowUnidiDefault,
         QUIC_SETTINGS,
         Settings,
         *SettingsLength,

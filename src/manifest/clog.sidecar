@@ -8771,6 +8771,58 @@
       ],
       "macroName": "QuicTraceLogInfo"
     },
+    "ProviderAttachClient": {
+      "ModuleProperites": {},
+      "TraceString": "[ nmr][%p] Client attached Ver %hu Size %hu Number %u ModuleID { %x-%x-%x-%llx }",
+      "UniqueId": "ProviderAttachClient",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "hu",
+          "MacroVariableName": "arg3"
+        },
+        {
+          "DefinationEncoding": "hu",
+          "MacroVariableName": "arg4"
+        },
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg5"
+        },
+        {
+          "DefinationEncoding": "x",
+          "MacroVariableName": "arg6"
+        },
+        {
+          "DefinationEncoding": "x",
+          "MacroVariableName": "arg7"
+        },
+        {
+          "DefinationEncoding": "x",
+          "MacroVariableName": "arg8"
+        },
+        {
+          "DefinationEncoding": "llx",
+          "MacroVariableName": "arg9"
+        }
+      ],
+      "macroName": "QuicTraceLogInfo"
+    },
+    "ProviderDetachClient": {
+      "ModuleProperites": {},
+      "TraceString": "[ nmr][%p] Client detached",
+      "UniqueId": "ProviderDetachClient",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceLogInfo"
+    },
     "QueueDatagrams": {
       "ModuleProperites": {},
       "TraceString": "[conn][%p] Queuing %u UDP datagrams",
@@ -10583,10 +10635,46 @@
       ],
       "macroName": "QuicTraceLogVerbose"
     },
+    "SettingDumpStreamRecvWindowBidiLocalDefault": {
+      "ModuleProperites": {},
+      "TraceString": "[sett] StreamRecvWindowBidiLocalDefault  = %u",
+      "UniqueId": "SettingDumpStreamRecvWindowBidiLocalDefault",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceLogVerbose"
+    },
+    "SettingDumpStreamRecvWindowBidiRemoteDefault": {
+      "ModuleProperites": {},
+      "TraceString": "[sett] StreamRecvWindowBidiRemoteDefault = %u",
+      "UniqueId": "SettingDumpStreamRecvWindowBidiRemoteDefault",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceLogVerbose"
+    },
     "SettingDumpStreamRecvWindowDefault": {
       "ModuleProperites": {},
       "TraceString": "[sett] StreamRecvWindowDefault= %u",
       "UniqueId": "SettingDumpStreamRecvWindowDefault",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceLogVerbose"
+    },
+    "SettingDumpStreamRecvWindowUnidiDefault": {
+      "ModuleProperites": {},
+      "TraceString": "[sett] StreamRecvWindowUnidiDefault      = %u",
+      "UniqueId": "SettingDumpStreamRecvWindowUnidiDefault",
       "splitArgs": [
         {
           "DefinationEncoding": "u",
@@ -15585,6 +15673,16 @@
         "EncodingString": "[ dll] Proc[%u] Group[%hu] Index[%u] Active=%hhu"
       },
       {
+        "UniquenessHash": "6509226e-b945-543f-bf07-0147bcb93ca5",
+        "TraceID": "ProviderAttachClient",
+        "EncodingString": "[ nmr][%p] Client attached Ver %hu Size %hu Number %u ModuleID { %x-%x-%x-%llx }"
+      },
+      {
+        "UniquenessHash": "6b3701bb-e123-0217-1320-5d55303df4c4",
+        "TraceID": "ProviderDetachClient",
+        "EncodingString": "[ nmr][%p] Client detached"
+      },
+      {
         "UniquenessHash": "18ef147d-5376-d7f2-f624-3b27af96dd05",
         "TraceID": "QueueDatagrams",
         "EncodingString": "[conn][%p] Queuing %u UDP datagrams"
@@ -16180,9 +16278,24 @@
         "EncodingString": "[sett] StreamRecvBufferDefault= %u"
       },
       {
+        "UniquenessHash": "fdc700fa-3864-c7ad-b206-118edec7df3c",
+        "TraceID": "SettingDumpStreamRecvWindowBidiLocalDefault",
+        "EncodingString": "[sett] StreamRecvWindowBidiLocalDefault  = %u"
+      },
+      {
+        "UniquenessHash": "2237fc34-ff7e-3399-8836-01efea9bb06c",
+        "TraceID": "SettingDumpStreamRecvWindowBidiRemoteDefault",
+        "EncodingString": "[sett] StreamRecvWindowBidiRemoteDefault = %u"
+      },
+      {
         "UniquenessHash": "2da1de63-c2be-a594-45de-7dd6cb192b7e",
         "TraceID": "SettingDumpStreamRecvWindowDefault",
         "EncodingString": "[sett] StreamRecvWindowDefault= %u"
+      },
+      {
+        "UniquenessHash": "fdef2995-409f-a4fe-175f-a592671e0680",
+        "TraceID": "SettingDumpStreamRecvWindowUnidiDefault",
+        "EncodingString": "[sett] StreamRecvWindowUnidiDefault      = %u"
       },
       {
         "UniquenessHash": "4eaf58f9-d813-f2de-2388-6f550e14f27d",

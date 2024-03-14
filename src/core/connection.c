@@ -278,7 +278,6 @@ QuicConnAlloc(
 Error:
 
     Connection->State.HandleClosed = TRUE;
-    Connection->State.Uninitialized = TRUE;
     for (uint32_t i = 0; i < ARRAYSIZE(Connection->Packets); i++) {
         if (Connection->Packets[i] != NULL) {
             QuicPacketSpaceUninitialize(Connection->Packets[i]);
@@ -317,16 +316,13 @@ QuicConnFree(
     CXPLAT_TEL_ASSERT(Connection->RefCount == 0);
     if (Connection->State.ExternalOwner) {
         CXPLAT_TEL_ASSERT(Connection->State.HandleClosed);
-        CXPLAT_TEL_ASSERT(Connection->State.Uninitialized);
-        CXPLAT_DBG_ASSERT(!Connection->State.Registered);
     }
     CXPLAT_TEL_ASSERT(Connection->SourceCids.Next == NULL);
     CXPLAT_TEL_ASSERT(CxPlatListIsEmpty(&Connection->Streams.ClosedStreams));
+    QuicRangeUninitialize(&Connection->DecodedAckRanges);
+    QuicCryptoUninitialize(&Connection->Crypto);
     QuicLossDetectionUninitialize(&Connection->LossDetection);
     QuicSendUninitialize(&Connection->Send);
-    //
-    // Free up packet space if it wasn't freed by QuicConnUninitialize
-    //
     for (uint32_t i = 0; i < ARRAYSIZE(Connection->Packets); i++) {
         if (Connection->Packets[i] != NULL) {
             QuicPacketSpaceUninitialize(Connection->Packets[i]);
@@ -351,18 +347,9 @@ QuicConnFree(
                 Link);
         CXPLAT_FREE(CID, QUIC_POOL_CIDLIST);
     }
-    if (Connection->State.Registered) {
-        CxPlatDispatchLockAcquire(&Connection->Registration->ConnectionLock);
-        CxPlatListEntryRemove(&Connection->RegistrationLink);
-        CxPlatDispatchLockRelease(&Connection->Registration->ConnectionLock);
-        Connection->State.Registered = FALSE;
-        QuicTraceEvent(
-            ConnUnregistered,
-            "[conn][%p] Unregistered from %p",
-            Connection,
-            Connection->Registration);
-    }
+    QuicConnUnregister(Connection);
     if (Connection->Worker != NULL) {
+        QuicTimerWheelRemoveConnection(&Connection->Worker->TimerWheel, Connection);
         QuicOperationQueueClear(Connection->Worker, &Connection->OperQ);
     }
     if (Connection->ReceiveQueue != NULL) {
@@ -411,6 +398,9 @@ QuicConnFree(
     if (Connection->Registration != NULL) {
         CxPlatRundownRelease(&Connection->Registration->Rundown);
     }
+    if (Connection->CloseReasonPhrase != NULL) {
+        CXPLAT_FREE(Connection->CloseReasonPhrase, QUIC_POOL_CLOSE_REASON);
+    }
     Connection->State.Freed = TRUE;
     QuicTraceEvent(
         ConnDestroyed,
@@ -450,67 +440,6 @@ QuicConnShutdown(
     QuicConnCloseLocally(Connection, CloseFlags, ErrorCode, NULL);
 }
 
-_IRQL_requires_max_(PASSIVE_LEVEL)
-void
-QuicConnUninitialize(
-    _In_ QUIC_CONNECTION* Connection
-    )
-{
-    CXPLAT_TEL_ASSERT(Connection->State.HandleClosed);
-    CXPLAT_TEL_ASSERT(!Connection->State.Uninitialized);
-
-    Connection->State.Uninitialized = TRUE;
-    Connection->State.UpdateWorker = FALSE;
-
-    //
-    // Ensure we are shut down.
-    //
-    QuicConnShutdown(
-        Connection,
-        QUIC_CONNECTION_SHUTDOWN_FLAG_SILENT,
-        QUIC_ERROR_NO_ERROR,
-        FALSE,
-        FALSE);
-
-    //
-    // Remove all entries in the binding's lookup tables so we don't get any
-    // more packets queued.
-    //
-    QUIC_PATH* Path = &Connection->Paths[0];
-    if (Path->Binding != NULL) {
-        if (Path->EncryptionOffloading) {
-            QuicPathUpdateQeo(Connection, Path, CXPLAT_QEO_OPERATION_REMOVE);
-        }
-
-        QuicBindingRemoveConnection(Connection->Paths[0].Binding, Connection);
-    }
-
-    //
-    // Clean up the packet space first, to return any deferred received
-    // packets back to the binding.
-    //
-    for (uint32_t i = 0; i < ARRAYSIZE(Connection->Packets); i++) {
-        if (Connection->Packets[i] != NULL) {
-            QuicPacketSpaceUninitialize(Connection->Packets[i]);
-            Connection->Packets[i] = NULL;
-        }
-    }
-
-    //
-    // Clean up the rest of the internal state.
-    //
-    QuicRangeUninitialize(&Connection->DecodedAckRanges);
-    QuicCryptoUninitialize(&Connection->Crypto);
-    QuicTimerWheelRemoveConnection(&Connection->Worker->TimerWheel, Connection);
-    QuicOperationQueueClear(Connection->Worker, &Connection->OperQ);
-    QuicLossDetectionUninitialize(&Connection->LossDetection);
-    QuicSendUninitialize(&Connection->Send);
-
-    if (Connection->CloseReasonPhrase != NULL) {
-        CXPLAT_FREE(Connection->CloseReasonPhrase, QUIC_POOL_CLOSE_REASON);
-    }
-}
-
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 QuicConnCloseHandle(
@@ -526,23 +455,11 @@ QuicConnCloseHandle(
         (uint64_t)QUIC_STATUS_ABORTED,
         NULL);
 
-    if (Connection->State.SendShutdownCompleteNotif) {
+    if (Connection->State.ProcessShutdownComplete) {
         QuicConnOnShutdownComplete(Connection);
     }
 
-    Connection->ClientCallbackHandler = NULL;
-
-    if (Connection->State.Registered) {
-        CxPlatDispatchLockAcquire(&Connection->Registration->ConnectionLock);
-        CxPlatListEntryRemove(&Connection->RegistrationLink);
-        CxPlatDispatchLockRelease(&Connection->Registration->ConnectionLock);
-        Connection->State.Registered = FALSE;
-        QuicTraceEvent(
-            ConnUnregistered,
-            "[conn][%p] Unregistered from %p",
-            Connection,
-            Connection->Registration);
-    }
+    QuicConnUnregister(Connection);
 
     QuicTraceEvent(
         ConnHandleClosed,
@@ -551,14 +468,12 @@ QuicConnCloseHandle(
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
-_Must_inspect_result_
-BOOLEAN
-QuicConnRegister(
-    _Inout_ QUIC_CONNECTION* Connection,
-    _Inout_ QUIC_REGISTRATION* Registration
+void
+QuicConnUnregister(
+    _Inout_ QUIC_CONNECTION* Connection
     )
 {
-    if (Connection->Registration != NULL) {
+    if (Connection->State.Registered) {
         CxPlatDispatchLockAcquire(&Connection->Registration->ConnectionLock);
         CxPlatListEntryRemove(&Connection->RegistrationLink);
         CxPlatDispatchLockRelease(&Connection->Registration->ConnectionLock);
@@ -572,9 +487,19 @@ QuicConnRegister(
         Connection->Registration = NULL;
         Connection->State.Registered = FALSE;
     }
+}
 
-    BOOLEAN Success = CxPlatRundownAcquire(&Registration->Rundown);
-    if (!Success) {
+_IRQL_requires_max_(DISPATCH_LEVEL)
+_Must_inspect_result_
+BOOLEAN
+QuicConnRegister(
+    _Inout_ QUIC_CONNECTION* Connection,
+    _Inout_ QUIC_REGISTRATION* Registration
+    )
+{
+    QuicConnUnregister(Connection);
+
+    if (!CxPlatRundownAcquire(&Registration->Rundown)) {
         return FALSE;
     }
     Connection->State.Registered = TRUE;
@@ -758,7 +683,7 @@ QuicConnIndicateEvent(
         QUIC_CONN_VERIFY(
             Connection,
             Connection->State.HandleClosed ||
-                Connection->State.HandleShutdown ||
+                Connection->State.ShutdownComplete ||
                 !Connection->State.ExternalOwner);
         Status = QUIC_STATUS_INVALID_STATE;
         QuicTraceLogConnWarning(
@@ -1455,11 +1380,12 @@ QuicConnOnShutdownComplete(
     _In_ QUIC_CONNECTION* Connection
     )
 {
-    Connection->State.SendShutdownCompleteNotif = FALSE;
-    if (Connection->State.HandleShutdown) {
+    Connection->State.ProcessShutdownComplete = FALSE;
+    if (Connection->State.ShutdownComplete) {
         return;
     }
-    Connection->State.HandleShutdown = TRUE;
+    Connection->State.ShutdownComplete = TRUE;
+    Connection->State.UpdateWorker = FALSE;
 
     QuicTraceEvent(
         ConnShutdownComplete,
@@ -1467,18 +1393,7 @@ QuicConnOnShutdownComplete(
         Connection,
         Connection->State.ShutdownCompleteTimedOut);
 
-    if (Connection->State.ExternalOwner == FALSE) {
-
-        //
-        // If the connection was never indicated to the application, then it
-        // needs to be cleaned up now.
-        //
-
-        QuicConnCloseHandle(Connection);
-        QuicConnUninitialize(Connection);
-        QuicConnRelease(Connection, QUIC_CONN_REF_HANDLE_OWNER);
-
-    } else {
+    if (Connection->State.ExternalOwner) {
 
         QUIC_CONNECTION_EVENT Event;
         Event.Type = QUIC_CONNECTION_EVENT_SHUTDOWN_COMPLETE;
@@ -1496,6 +1411,38 @@ QuicConnOnShutdownComplete(
         (void)QuicConnIndicateEvent(Connection, &Event);
 
         Connection->ClientCallbackHandler = NULL;
+    }
+
+    //
+    // Clean up any pending state that is irrelevant now.
+    //
+    QUIC_PATH* Path = &Connection->Paths[0];
+    if (Path->Binding != NULL) {
+        if (Path->EncryptionOffloading) {
+            QuicPathUpdateQeo(Connection, Path, CXPLAT_QEO_OPERATION_REMOVE);
+        }
+
+        //
+        // Remove all entries in the binding's lookup tables so we don't get any
+        // more packets queued.
+        //
+        QuicBindingRemoveConnection(Connection->Paths[0].Binding, Connection);
+    }
+
+    //
+    // Clean up the rest of the internal state.
+    //
+    QuicTimerWheelRemoveConnection(&Connection->Worker->TimerWheel, Connection);
+    QuicLossDetectionUninitialize(&Connection->LossDetection);
+    QuicSendUninitialize(&Connection->Send);
+
+    if (!Connection->State.ExternalOwner) {
+        //
+        // If the connection was never indicated to the application, then the
+        // "owner" ref still resides with the stack and needs to be released.
+        //
+        QuicConnUnregister(Connection);
+        QuicConnRelease(Connection, QUIC_CONN_REF_HANDLE_OWNER);
     }
 }
 
@@ -1546,7 +1493,7 @@ QuicConnTryClose(
             // Silent close forced after we already started the close process.
             //
             Connection->State.ShutdownCompleteTimedOut = FALSE;
-            Connection->State.SendShutdownCompleteNotif = TRUE;
+            Connection->State.ProcessShutdownComplete = TRUE;
         }
         return;
     }
@@ -1555,6 +1502,17 @@ QuicConnTryClose(
         Connection->State.ClosedRemotely = TRUE;
     } else {
         Connection->State.ClosedLocally = TRUE;
+        if (!Connection->State.ExternalOwner) {
+            //
+            // Don't continue processing the connection, since it has been
+            // closed locally and it's not referenced externally.
+            //
+            QuicTraceLogConnVerbose(
+                AbandonInternallyClosed,
+                Connection,
+                "Abandoning internal, closed connection");
+            Connection->State.ProcessShutdownComplete = TRUE;
+        }
     }
 
     if (!ClosedRemotely) {
@@ -1766,7 +1724,7 @@ QuicConnTryClose(
     if (SilentClose ||
         (Connection->State.ClosedRemotely && Connection->State.ClosedLocally)) {
         Connection->State.ShutdownCompleteTimedOut = FALSE;
-        Connection->State.SendShutdownCompleteNotif = TRUE;
+        Connection->State.ProcessShutdownComplete = TRUE;
     }
 }
 
@@ -1786,7 +1744,7 @@ QuicConnProcessShutdownTimerOperation(
     // Now that we are closed in both directions, we can complete the shutdown
     // of the connection.
     //
-    Connection->State.SendShutdownCompleteNotif = TRUE;
+    Connection->State.ProcessShutdownComplete = TRUE;
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -2198,9 +2156,9 @@ QuicConnRecvResumptionTicket(
         //
         if (ResumedTP.ActiveConnectionIdLimit > QUIC_ACTIVE_CONNECTION_ID_LIMIT ||
             ResumedTP.InitialMaxData > Connection->Send.MaxData ||
-            ResumedTP.InitialMaxStreamDataBidiLocal > Connection->Settings.StreamRecvWindowDefault ||
-            ResumedTP.InitialMaxStreamDataBidiRemote > Connection->Settings.StreamRecvWindowDefault ||
-            ResumedTP.InitialMaxStreamDataUni > Connection->Settings.StreamRecvWindowDefault ||
+            ResumedTP.InitialMaxStreamDataBidiLocal > Connection->Settings.StreamRecvWindowBidiLocalDefault ||
+            ResumedTP.InitialMaxStreamDataBidiRemote > Connection->Settings.StreamRecvWindowBidiRemoteDefault ||
+            ResumedTP.InitialMaxStreamDataUni > Connection->Settings.StreamRecvWindowUnidiDefault ||
             ResumedTP.InitialMaxUniStreams > Connection->Streams.Types[STREAM_ID_FLAG_IS_CLIENT | STREAM_ID_FLAG_IS_UNI_DIR].MaxTotalStreamCount ||
             ResumedTP.InitialMaxBidiStreams > Connection->Streams.Types[STREAM_ID_FLAG_IS_CLIENT | STREAM_ID_FLAG_IS_BI_DIR].MaxTotalStreamCount) {
             //
@@ -2344,9 +2302,9 @@ QuicConnGenerateLocalTransportParameters(
             Link);
 
     LocalTP->InitialMaxData = Connection->Send.MaxData;
-    LocalTP->InitialMaxStreamDataBidiLocal = Connection->Settings.StreamRecvWindowDefault;
-    LocalTP->InitialMaxStreamDataBidiRemote = Connection->Settings.StreamRecvWindowDefault;
-    LocalTP->InitialMaxStreamDataUni = Connection->Settings.StreamRecvWindowDefault;
+    LocalTP->InitialMaxStreamDataBidiLocal = Connection->Settings.StreamRecvWindowBidiLocalDefault;
+    LocalTP->InitialMaxStreamDataBidiRemote = Connection->Settings.StreamRecvWindowBidiRemoteDefault;
+    LocalTP->InitialMaxStreamDataUni = Connection->Settings.StreamRecvWindowUnidiDefault;
     LocalTP->MaxUdpPayloadSize =
         MaxUdpPayloadSizeFromMTU(
             CxPlatSocketGetLocalMtu(
@@ -5367,7 +5325,7 @@ Done:
         QuicConnLogOutFlowStats(Connection);
     }
 
-    if (Connection->State.HandleShutdown || Connection->State.HandleClosed) {
+    if (Connection->State.ShutdownComplete || Connection->State.HandleClosed) {
         QuicTraceLogVerbose(
             PacketRxNotAcked,
             "[%c][RX][%llu] not acked (connection is closed)",
@@ -5879,9 +5837,9 @@ QuicConnRecvDatagrams(
         }
     }
 
-    if (!Connection->State.UpdateWorker &&
-        Connection->State.Connected &&
-        RecvState.UpdatePartitionId) {
+    if (!Connection->State.UpdateWorker && Connection->State.Connected &&
+        !Connection->State.ShutdownComplete && RecvState.UpdatePartitionId) {
+        CXPLAT_DBG_ASSERT(Connection->Registration);
         CXPLAT_DBG_ASSERT(!Connection->Registration->NoPartitioning);
         CXPLAT_DBG_ASSERT(RecvState.PartitionIndex != QuicPartitionIdGetIndex(Connection->PartitionID));
         Connection->PartitionID = QuicPartitionIdCreate(RecvState.PartitionIndex);
@@ -7625,7 +7583,7 @@ QuicConnDrainOperations(
 
     CXPLAT_PASSIVE_CODE();
 
-    if (!Connection->State.Initialized && !Connection->State.Uninitialized) {
+    if (!Connection->State.Initialized && !Connection->State.ShutdownComplete) {
         //
         // TODO - Try to move this only after the connection is accepted by the
         // listener. But that's going to be pretty complicated.
@@ -7649,8 +7607,7 @@ QuicConnDrainOperations(
         }
     }
 
-    while (!Connection->State.HandleClosed &&
-           !Connection->State.UpdateWorker &&
+    while (!Connection->State.UpdateWorker &&
            OperationCount++ < MaxOperationCount) {
 
         Oper = QuicOperationDequeue(&Connection->OperQ);
@@ -7673,6 +7630,9 @@ QuicConnDrainOperations(
             break;
 
         case QUIC_OPER_TYPE_FLUSH_RECV:
+            if (Connection->State.ShutdownComplete) {
+                break; // Ignore if already shutdown
+            }
             if (!QuicConnFlushRecv(Connection)) {
                 //
                 // Still have more data to recv. Put the operation back on the
@@ -7684,16 +7644,25 @@ QuicConnDrainOperations(
             break;
 
         case QUIC_OPER_TYPE_UNREACHABLE:
+            if (Connection->State.ShutdownComplete) {
+                break; // Ignore if already shutdown
+            }
             QuicConnProcessUdpUnreachable(
                 Connection,
                 &Oper->UNREACHABLE.RemoteAddress);
             break;
 
         case QUIC_OPER_TYPE_FLUSH_STREAM_RECV:
+            if (Connection->State.ShutdownComplete) {
+                break; // Ignore if already shutdown
+            }
             QuicStreamRecvFlush(Oper->FLUSH_STREAM_RECEIVE.Stream);
             break;
 
         case QUIC_OPER_TYPE_FLUSH_SEND:
+            if (Connection->State.ShutdownComplete) {
+                break; // Ignore if already shutdown
+            }
             if (QuicSendFlush(&Connection->Send)) {
                 //
                 // We have no more data to send out so clear the pending flag.
@@ -7710,6 +7679,9 @@ QuicConnDrainOperations(
             break;
 
         case QUIC_OPER_TYPE_TIMER_EXPIRED:
+            if (Connection->State.ShutdownComplete) {
+                break; // Ignore if already shutdown
+            }
             QuicConnProcessExpiredTimer(Connection, Oper->TIMER_EXPIRED.Type);
             break;
 
@@ -7718,6 +7690,9 @@ QuicConnDrainOperations(
             break;
 
         case QUIC_OPER_TYPE_ROUTE_COMPLETION:
+            if (Connection->State.ShutdownComplete) {
+                break; // Ignore if already shutdown
+            }
             QuicConnProcessRouteCompletion(
                 Connection, Oper->ROUTE.PhysicalAddress, Oper->ROUTE.PathId, Oper->ROUTE.Succeeded);
             break;
@@ -7737,19 +7712,11 @@ QuicConnDrainOperations(
         QuicPerfCounterIncrement(QUIC_PERF_COUNTER_CONN_OPER_COMPLETED);
     }
 
-    if (!Connection->State.ExternalOwner && Connection->State.ClosedLocally) {
-        //
-        // Don't continue processing the connection, since it has been closed
-        // locally and it's not referenced externally.
-        //
-        QuicTraceLogConnVerbose(
-            AbandonInternallyClosed,
-            Connection,
-            "Abandoning internal, closed connection");
+    if (Connection->State.ProcessShutdownComplete) {
         QuicConnOnShutdownComplete(Connection);
     }
 
-    if (!Connection->State.HandleClosed) {
+    if (!Connection->State.ShutdownComplete) {
         if (OperationCount >= MaxOperationCount &&
             (Connection->Send.SendFlags & QUIC_CONN_SEND_FLAG_ACK)) {
             //
@@ -7759,17 +7726,6 @@ QuicConnDrainOperations(
             //
             (void)QuicSendFlush(&Connection->Send);
         }
-
-        if (Connection->State.SendShutdownCompleteNotif) {
-            QuicConnOnShutdownComplete(Connection);
-        }
-    }
-
-    if (Connection->State.HandleClosed) {
-        if (!Connection->State.Uninitialized) {
-            QuicConnUninitialize(Connection);
-        }
-        HasMoreWorkToDo = FALSE;
     }
 
     QuicStreamSetDrainClosedStreams(&Connection->Streams);
