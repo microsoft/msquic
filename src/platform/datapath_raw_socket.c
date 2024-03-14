@@ -17,20 +17,36 @@ Abstract:
 #pragma warning(disable:4116) // unnamed type definition in parentheses
 #pragma warning(disable:4100) // unreferenced formal parameter
 
+
+uint32_t
+CxPlatGetRawSocketSize(void) {
+    return sizeof(CXPLAT_SOCKET_RAW);
+}
+
 CXPLAT_SOCKET*
+CxPlatRawToSocket(_In_ CXPLAT_SOCKET_RAW* Socket) {
+    return (CXPLAT_SOCKET*)((unsigned char*)Socket + sizeof(CXPLAT_SOCKET_RAW) - sizeof(CXPLAT_SOCKET));
+}
+
+CXPLAT_SOCKET_RAW*
+CxPlatSocketToRaw(_In_ CXPLAT_SOCKET* Socket) {
+    return (CXPLAT_SOCKET_RAW*)((unsigned char*)Socket - sizeof(CXPLAT_SOCKET_RAW) + sizeof(CXPLAT_SOCKET));
+}
+
+CXPLAT_SOCKET_RAW*
 CxPlatGetSocket(
     _In_ const CXPLAT_SOCKET_POOL* Pool,
     _In_ const QUIC_ADDR* LocalAddress,
     _In_ const QUIC_ADDR* RemoteAddress
     )
 {
-    CXPLAT_SOCKET* Socket = NULL;
+    CXPLAT_SOCKET_RAW* Socket = NULL;
     CXPLAT_HASHTABLE_LOOKUP_CONTEXT Context;
     CXPLAT_HASHTABLE_ENTRY* Entry;
     CxPlatRwLockAcquireShared(&((CXPLAT_SOCKET_POOL*)Pool)->Lock);
     Entry = CxPlatHashtableLookup(&Pool->Sockets, LocalAddress->Ipv4.sin_port, &Context);
     while (Entry != NULL) {
-        CXPLAT_SOCKET* Temp = CXPLAT_CONTAINING_RECORD(Entry, CXPLAT_SOCKET, Entry);
+        CXPLAT_SOCKET_RAW* Temp = CXPLAT_CONTAINING_RECORD(Entry, CXPLAT_SOCKET_RAW, Entry);
         if (CxPlatSocketCompare(Temp, LocalAddress, RemoteAddress)) {
             if (CxPlatRundownAcquire(&Temp->Rundown)) {
                 Socket = Temp;
@@ -43,19 +59,8 @@ CxPlatGetSocket(
     return Socket;
 }
 
-_IRQL_requires_max_(PASSIVE_LEVEL)
 void
-QuicCopyRouteInfo(
-    _Inout_ CXPLAT_ROUTE* DstRoute,
-    _In_ CXPLAT_ROUTE* SrcRoute
-    )
-{
-    CxPlatCopyMemory(DstRoute, SrcRoute, (uint8_t*)&SrcRoute->State - (uint8_t*)SrcRoute);
-    CxPlatUpdateRoute(DstRoute, SrcRoute);
-}
-
-void
-CxPlatResolveRouteComplete(
+RawResolveRouteComplete(
     _In_ void* Context,
     _Inout_ CXPLAT_ROUTE* Route,
     _In_reads_bytes_(6) const uint8_t* PhysicalAddress,
@@ -80,7 +85,7 @@ CxPlatResolveRouteComplete(
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
-CxPlatUpdateRoute(
+RawUpdateRoute(
     _Inout_ CXPLAT_ROUTE* DstRoute,
     _In_ CXPLAT_ROUTE* SrcRoute
     )
@@ -492,7 +497,7 @@ CxPlatFramingTransportChecksum(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 CxPlatDpRawSocketAckFin(
-    _In_ CXPLAT_SOCKET* Socket,
+    _In_ CXPLAT_SOCKET_RAW* Socket,
     _In_ CXPLAT_RECV_DATA* Packet
     )
 {
@@ -500,7 +505,7 @@ CxPlatDpRawSocketAckFin(
 
     CXPLAT_ROUTE* Route = Packet->Route;
     CXPLAT_SEND_CONFIG SendConfig = { Route, 0, CXPLAT_ECN_NON_ECT, 0 };
-    CXPLAT_SEND_DATA *SendData = CxPlatSendDataAlloc(Socket, &SendConfig);
+    CXPLAT_SEND_DATA *SendData = CxPlatSendDataAlloc(CxPlatRawToSocket(Socket), &SendConfig);
     if (SendData == NULL) {
         return;
     }
@@ -531,7 +536,7 @@ CxPlatDpRawSocketAckFin(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 CxPlatDpRawSocketAckSyn(
-    _In_ CXPLAT_SOCKET* Socket,
+    _In_ CXPLAT_SOCKET_RAW* Socket,
     _In_ CXPLAT_RECV_DATA* Packet
     )
 {
@@ -539,7 +544,7 @@ CxPlatDpRawSocketAckSyn(
 
     CXPLAT_ROUTE* Route = Packet->Route;
     CXPLAT_SEND_CONFIG SendConfig = { Route, 0, CXPLAT_ECN_NON_ECT, 0 };
-    CXPLAT_SEND_DATA *SendData = CxPlatSendDataAlloc(Socket, &SendConfig);
+    CXPLAT_SEND_DATA *SendData = CxPlatSendDataAlloc(CxPlatRawToSocket(Socket), &SendConfig);
     if (SendData == NULL) {
         return;
     }
@@ -588,7 +593,7 @@ CxPlatDpRawSocketAckSyn(
             TH_ACK);
         CxPlatDpRawTxEnqueue(SendData);
 
-        SendData = CxPlatSendDataAlloc(Socket, &SendConfig);
+        SendData = CxPlatSendDataAlloc(CxPlatRawToSocket(Socket), &SendConfig);
         if (SendData == NULL) {
             return;
         }
@@ -616,14 +621,13 @@ CxPlatDpRawSocketAckSyn(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 CxPlatDpRawSocketSyn(
-    _In_ CXPLAT_SOCKET* Socket,
+    _In_ CXPLAT_SOCKET_RAW* Socket,
     _In_ const CXPLAT_ROUTE* Route
     )
 {
     CXPLAT_DBG_ASSERT(Socket->UseTcp);
-
     CXPLAT_SEND_CONFIG SendConfig = { (CXPLAT_ROUTE*)Route, 0, CXPLAT_ECN_NON_ECT, 0 };
-    CXPLAT_SEND_DATA *SendData = CxPlatSendDataAlloc(Socket, &SendConfig);
+    CXPLAT_SEND_DATA *SendData = CxPlatSendDataAlloc(CxPlatRawToSocket(Socket), &SendConfig);
     if (SendData == NULL) {
         return;
     }
@@ -650,7 +654,7 @@ CxPlatDpRawSocketSyn(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 CxPlatFramingWriteHeaders(
-    _In_ CXPLAT_SOCKET* Socket,
+    _In_ CXPLAT_SOCKET_RAW* Socket,
     _In_ const CXPLAT_ROUTE* Route,
     _Inout_ QUIC_BUFFER* Buffer,
     _In_ CXPLAT_ECN_TYPE ECN,
@@ -808,13 +812,14 @@ CxPlatFramingWriteHeaders(
 QUIC_STATUS
 CxPlatTryAddSocket(
     _In_ CXPLAT_SOCKET_POOL* Pool,
-    _In_ CXPLAT_SOCKET* Socket
+    _In_ CXPLAT_SOCKET_RAW* Socket
     )
 {
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
     int Result;
     CXPLAT_HASHTABLE_LOOKUP_CONTEXT Context;
     CXPLAT_HASHTABLE_ENTRY* Entry;
+    int Option;
     QUIC_ADDR MappedAddress = {0};
     SOCKET TempUdpSocket = INVALID_SOCKET;
     CxPlatAddressLengthType AssignedLocalAddressLength;
@@ -824,50 +829,30 @@ CxPlatTryAddSocket(
     // binding an auxiliary (dual stack) socket.
     //
 
-    Socket->AuxSocket =
-        socket(
-            AF_INET6,
-            Socket->UseTcp ? SOCK_STREAM : SOCK_DGRAM,
-            Socket->UseTcp ? IPPROTO_TCP : IPPROTO_UDP);
-    if (Socket->AuxSocket == INVALID_SOCKET) {
-        int WsaError = CxPlatSocketError();
-        QuicTraceEvent(
-            DatapathErrorStatus,
-            "[data][%p] ERROR, %u, %s.",
-            Socket,
-            WsaError,
-            "socket");
-        Status = CxPlatQuicErrorFromSocketError(WsaError);
-        goto Error;
-    }
+    if (Socket->UseTcp) {
+        Socket->AuxSocket =
+            socket(
+                AF_INET6,
+                SOCK_STREAM,
+                IPPROTO_TCP);
+        if (Socket->AuxSocket == INVALID_SOCKET) {
+            int WsaError = CxPlatSocketError();
+            QuicTraceEvent(
+                DatapathErrorStatus,
+                "[data][%p] ERROR, %u, %s.",
+                Socket,
+                WsaError,
+                "socket");
+            Status = CxPlatQuicErrorFromSocketError(WsaError);
+            goto Error;
+        }
 
-    int Option = FALSE;
-    Result =
-        setsockopt(
-            Socket->AuxSocket,
-            IPPROTO_IPV6,
-            IPV6_V6ONLY,
-            (char*)&Option,
-            sizeof(Option));
-    if (Result == SOCKET_ERROR) {
-        int WsaError = CxPlatSocketError();
-        QuicTraceEvent(
-            DatapathErrorStatus,
-            "[data][%p] ERROR, %u, %s.",
-            Socket,
-            WsaError,
-            "Set IPV6_V6ONLY");
-        Status = CxPlatQuicErrorFromSocketError(WsaError);
-        goto Error;
-    }
-
-    if (Socket->CibirIdLength) {
-        Option = TRUE;
+        Option = FALSE;
         Result =
             setsockopt(
                 Socket->AuxSocket,
-                SOL_SOCKET,
-                SO_REUSEADDR,
+                IPPROTO_IPV6,
+                IPV6_V6ONLY,
                 (char*)&Option,
                 sizeof(Option));
         if (Result == SOCKET_ERROR) {
@@ -877,49 +862,78 @@ CxPlatTryAddSocket(
                 "[data][%p] ERROR, %u, %s.",
                 Socket,
                 WsaError,
-                "Set SO_REUSEADDR");
+                "Set IPV6_V6ONLY");
             Status = CxPlatQuicErrorFromSocketError(WsaError);
             goto Error;
         }
-    }
 
-    CxPlatConvertToMappedV6(&Socket->LocalAddress, &MappedAddress);
-#if QUIC_ADDRESS_FAMILY_INET6 != AF_INET6
-    if (MappedAddress.Ipv6.sin6_family == QUIC_ADDRESS_FAMILY_INET6) {
-        MappedAddress.Ipv6.sin6_family = AF_INET6;
-    }
-#endif
+        if (Socket->CibirIdLength) {
+            Option = TRUE;
+            Result =
+                setsockopt(
+                    Socket->AuxSocket,
+                    SOL_SOCKET,
+                    SO_REUSEADDR,
+                    (char*)&Option,
+                    sizeof(Option));
+            if (Result == SOCKET_ERROR) {
+                int WsaError = CxPlatSocketError();
+                QuicTraceEvent(
+                    DatapathErrorStatus,
+                    "[data][%p] ERROR, %u, %s.",
+                    Socket,
+                    WsaError,
+                    "Set SO_REUSEADDR");
+                Status = CxPlatQuicErrorFromSocketError(WsaError);
+                goto Error;
+            }
+        }
 
-    CxPlatRwLockAcquireExclusive(&Pool->Lock);
-
-    Result =
-        bind(
-            Socket->AuxSocket,
-            (struct sockaddr*)&MappedAddress,
-            sizeof(MappedAddress));
-    if (Result == SOCKET_ERROR) {
-        int WsaError = CxPlatSocketError();
-        QuicTraceEvent(
-            DatapathErrorStatus,
-            "[data][%p] ERROR, %u, %s.",
-            Socket,
-            WsaError,
-            "bind");
-        CxPlatRwLockReleaseExclusive(&Pool->Lock);
-        Status = CxPlatQuicErrorFromSocketError(WsaError);
-        goto Error;
-    }
-
-    if (Socket->Connected) {
-        CxPlatZeroMemory(&MappedAddress, sizeof(MappedAddress));
-        CxPlatConvertToMappedV6(&Socket->RemoteAddress, &MappedAddress);
-
+        CxPlatConvertToMappedV6(&Socket->LocalAddress, &MappedAddress);
 #if QUIC_ADDRESS_FAMILY_INET6 != AF_INET6
         if (MappedAddress.Ipv6.sin6_family == QUIC_ADDRESS_FAMILY_INET6) {
             MappedAddress.Ipv6.sin6_family = AF_INET6;
         }
 #endif
-        if (Socket->UseTcp) {
+    }
+
+    CxPlatRwLockAcquireExclusive(&Pool->Lock);
+
+    if (Socket->UseTcp) {
+        QUIC_ADDR_STR LocalAddressString = {0};
+        QuicAddrToString(&MappedAddress, &LocalAddressString);
+        QuicTraceLogVerbose(
+            DatapathTcpAuxBinding,
+            "[data][%p] Binding TCP socket to %s",
+            Socket,
+            LocalAddressString.Address);
+        Result =
+            bind(
+                Socket->AuxSocket,
+                (struct sockaddr*)&MappedAddress,
+                sizeof(MappedAddress));
+        if (Result == SOCKET_ERROR) {
+            int WsaError = CxPlatSocketError();
+            QuicTraceEvent(
+                DatapathErrorStatus,
+                "[data][%p] ERROR, %u, %s.",
+                Socket,
+                WsaError,
+                "bind");
+            CxPlatRwLockReleaseExclusive(&Pool->Lock);
+            Status = CxPlatQuicErrorFromSocketError(WsaError);
+            goto Error;
+        }
+
+        if (Socket->Connected) {
+            CxPlatZeroMemory(&MappedAddress, sizeof(MappedAddress));
+            CxPlatConvertToMappedV6(&Socket->RemoteAddress, &MappedAddress);
+
+#if QUIC_ADDRESS_FAMILY_INET6 != AF_INET6
+            if (MappedAddress.Ipv6.sin6_family == QUIC_ADDRESS_FAMILY_INET6) {
+                MappedAddress.Ipv6.sin6_family = AF_INET6;
+            }
+#endif
             //
             // Create a temporary UDP socket bound to a wildcard port
             // and connect this socket to the remote address.
@@ -1042,23 +1056,6 @@ CxPlatTryAddSocket(
             Socket->LocalAddress.Ipv4.sin_port = LocalPortChosen;
             CXPLAT_FRE_ASSERT(Socket->LocalAddress.Ipv4.sin_port != 0);
         } else {
-            Result =
-                connect(
-                    Socket->AuxSocket,
-                    (struct sockaddr*)&MappedAddress,
-                    sizeof(MappedAddress));
-            if (Result == SOCKET_ERROR) {
-                int WsaError = CxPlatSocketError();
-                QuicTraceEvent(
-                    DatapathErrorStatus,
-                    "[data][%p] ERROR, %u, %s.",
-                    Socket,
-                    WsaError,
-                    "connect failed");
-                CxPlatRwLockReleaseExclusive(&Pool->Lock);
-                Status = CxPlatQuicErrorFromSocketError(WsaError);
-                goto Error;
-            }
             AssignedLocalAddressLength = sizeof(Socket->LocalAddress);
             Result =
                 getsockname(
@@ -1079,31 +1076,11 @@ CxPlatTryAddSocket(
             }
             CxPlatConvertFromMappedV6(&Socket->LocalAddress, &Socket->LocalAddress);
         }
-    } else {
-        AssignedLocalAddressLength = sizeof(Socket->LocalAddress);
-        Result =
-            getsockname(
-                Socket->AuxSocket,
-                (struct sockaddr*)&Socket->LocalAddress,
-                &AssignedLocalAddressLength);
-        if (Result == SOCKET_ERROR) {
-            int WsaError = CxPlatSocketError();
-            QuicTraceEvent(
-                DatapathErrorStatus,
-                "[data][%p] ERROR, %u, %s.",
-                Socket,
-                WsaError,
-                "getsockname");
-            CxPlatRwLockReleaseExclusive(&Pool->Lock);
-            Status = CxPlatQuicErrorFromSocketError(WsaError);
-            goto Error;
-        }
-        CxPlatConvertFromMappedV6(&Socket->LocalAddress, &Socket->LocalAddress);
     }
 
     Entry = CxPlatHashtableLookup(&Pool->Sockets, Socket->LocalAddress.Ipv4.sin_port, &Context);
     while (Entry != NULL) {
-        CXPLAT_SOCKET* Temp = CXPLAT_CONTAINING_RECORD(Entry, CXPLAT_SOCKET, Entry);
+        CXPLAT_SOCKET_RAW* Temp = CXPLAT_CONTAINING_RECORD(Entry, CXPLAT_SOCKET_RAW, Entry);
         if (CxPlatSocketCompare(Temp, &Socket->LocalAddress, &Socket->RemoteAddress)) {
             Status = QUIC_STATUS_ADDRESS_IN_USE;
             break;

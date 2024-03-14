@@ -52,8 +52,9 @@ struct xsk_umem_info {
     uint32_t TxHeadRoom;
 };
 
-typedef struct XDP_DATAPATH {
-    CXPLAT_DATAPATH;
+// TODO: remove this exception when finalizing members
+typedef struct XDP_DATAPATH { // NOLINT(clang-analyzer-optin.performance.Padding)
+    CXPLAT_DATAPATH_RAW;
     __attribute__((aligned(64)))
     //
     // Currently, all XDP interfaces share the same config.
@@ -136,7 +137,7 @@ typedef struct __attribute__((aligned(64))) XDP_TX_PACKET {
 } XDP_TX_PACKET;
 
 void
-CxPlatSocketContextSetEvents(
+XdpSocketContextSetEvents(
     _In_ XDP_QUEUE* Queue,
     _In_ int Operation,
     _In_ uint32_t Events
@@ -478,7 +479,8 @@ CxPlatDpRawInterfaceInitialize(
     // uint8_t Attached = IsXdpAttached(xdp_program__name(prog), Interface, XDP_MODE_SKB);
     // FIXME: eth0 on azure VM doesn't work with XDP_FLAGS_DRV_MODE
     XskCfg->xdp_flags = XDP_FLAGS_SKB_MODE;
-    if (QUIC_FAILED(AttachXdpProgram(prog, Interface, XskCfg))) {
+    Status = AttachXdpProgram(prog, Interface, XskCfg);
+    if (QUIC_FAILED(Status)) {
         goto Error;
     }
     Interface->XdpProg = prog;
@@ -638,7 +640,7 @@ CxPlatDpRawGetDatapathSize(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 CxPlatDpRawInitialize(
-    _Inout_ CXPLAT_DATAPATH* Datapath,
+    _Inout_ CXPLAT_DATAPATH_RAW* Datapath,
     _In_ uint32_t ClientRecvContextLength,
     _In_opt_ const QUIC_EXECUTION_CONFIG* Config
     )
@@ -742,7 +744,7 @@ CxPlatDpRawInitialize(
         Partition->Ec.NextTimeUs = UINT64_MAX;
         Partition->Ec.Callback = CxPlatXdpExecute;
         Partition->Ec.Context = &Xdp->Partitions[i];
-        Partition->ShutdownSqe.CqeType = CXPLAT_CQE_TYPE_SOCKET_SHUTDOWN;
+        Partition->ShutdownSqe.CqeType = CXPLAT_CQE_TYPE_XDP_SHUTDOWN;
         CxPlatRefIncrement(&Xdp->RefCount);
         Partition->EventQ = CxPlatWorkerGetEventQ((uint16_t)i);
 
@@ -764,8 +766,9 @@ CxPlatDpRawInitialize(
                 Status = QUIC_STATUS_INTERNAL_ERROR;
                 goto Error;
             }
-            Queue->RxIoSqe.CqeType = CXPLAT_CQE_TYPE_SOCKET_IO;
-            CxPlatSocketContextSetEvents(Queue, EPOLL_CTL_ADD, EPOLLIN);
+            Queue->RxIoSqe.CqeType = CXPLAT_CQE_TYPE_XDP_IO;
+            XdpSocketContextSetEvents(Queue, EPOLL_CTL_ADD, EPOLLIN);
+            // fprintf(stderr, "CxPlatDpRawInitialize Queue:%p\n", Queue);
 
             // if (!CxPlatSqeInitialize(
             //     Partition->EventQ,
@@ -774,8 +777,8 @@ CxPlatDpRawInitialize(
             //     Status = QUIC_STATUS_INTERNAL_ERROR;
             //     goto Error;
             // }
-            // Queue->TxIoSqe.CqeType = CXPLAT_CQE_TYPE_SOCKET_FLUSH_TX
-            // CxPlatSocketContextSetEvents(Queue, EPOLL_CTL_ADD, EPOLLIN);
+            // Queue->TxIoSqe.CqeType = CXPLAT_CQE_TYPE_XDP_FLUSH_TX
+            // XdpSocketContextSetEvents(Queue, EPOLL_CTL_ADD, EPOLLIN);
             // TODOL other queues
             ++QueueCount;
             Queue = Queue->Next;
@@ -824,14 +827,14 @@ CxPlatDpRawRelease(
             CxPlatDpRawInterfaceUninitialize(Interface);
             CxPlatFree(Interface, IF_TAG);
         }
-        CxPlatDataPathUninitializeComplete((CXPLAT_DATAPATH*)Xdp);
+        CxPlatDataPathUninitializeComplete((CXPLAT_DATAPATH_RAW*)Xdp);
     // }
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 CxPlatDpRawUninitialize(
-    _In_ CXPLAT_DATAPATH* Datapath
+    _In_ CXPLAT_DATAPATH_RAW* Datapath
     )
 {
     XDP_DATAPATH* Xdp = (XDP_DATAPATH*)Datapath;
@@ -851,7 +854,7 @@ CxPlatDpRawUninitialize(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 CxPlatDpRawUpdateConfig(
-    _In_ CXPLAT_DATAPATH* Datapath,
+    _In_ CXPLAT_DATAPATH_RAW* Datapath,
     _In_ QUIC_EXECUTION_CONFIG* Config
     )
 {
@@ -862,12 +865,12 @@ CxPlatDpRawUpdateConfig(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 CxPlatDpRawPlumbRulesOnSocket(
-    _In_ CXPLAT_SOCKET* Socket,
+    _In_ CXPLAT_SOCKET_RAW* Socket,
     _In_ BOOLEAN IsCreated
     )
 {
-    CXPLAT_LIST_ENTRY* Entry = Socket->Datapath->Interfaces.Flink;
-    for (; Entry != &Socket->Datapath->Interfaces; Entry = Entry->Flink) {
+    CXPLAT_LIST_ENTRY* Entry = Socket->RawDatapath->Interfaces.Flink;
+    for (; Entry != &Socket->RawDatapath->Interfaces; Entry = Entry->Flink) {
         XDP_INTERFACE* Interface = (XDP_INTERFACE*)CXPLAT_CONTAINING_RECORD(Entry, CXPLAT_INTERFACE, Link);
         struct bpf_map *port_map = bpf_object__find_map_by_name(xdp_program__bpf_obj(Interface->XdpProg), "port_map");
         if (!port_map) {
@@ -957,7 +960,7 @@ CxPlatDpRawRxFree(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 CXPLAT_SEND_DATA*
 CxPlatDpRawTxAlloc(
-    _In_ CXPLAT_SOCKET* Socket,
+    _In_ CXPLAT_SOCKET_RAW* Socket,
     _Inout_ CXPLAT_SEND_CONFIG* Config
     )
 {
@@ -986,6 +989,7 @@ CxPlatDpRawTxAlloc(
         Packet->Buffer.Buffer = &Packet->FrameBuffer[HeaderBackfill.AllLayer];
         Packet->ECN = Config->ECN;
         Packet->UmemRelativeAddr = BaseAddr;
+        Packet->DatapathType = Config->Route->DatapathType = CXPLAT_DATAPATH_TYPE_RAW;
     }
 
 Error:
@@ -1130,6 +1134,7 @@ void CxPlatXdpRx(
         Packet->Queue = Queue;
         Packet->RouteStorage.Queue = Queue;
         Packet->RecvData.Route = &Packet->RouteStorage;
+        Packet->RecvData.Route->DatapathType = Packet->RecvData.DatapathType = CXPLAT_DATAPATH_TYPE_RAW;
         Packet->RecvData.PartitionIndex = Queue->Partition->PartitionIndex;
 
         // TODO xsk_free_umem_frame if parse error?
@@ -1164,19 +1169,19 @@ void CxPlatXdpRx(
         xsk_ring_cons__release(&xsk->rx, Rcvd);
 
         CxPlatDpRawRxEthernet(
-            (CXPLAT_DATAPATH*)Queue->Partition->Xdp,
+            (CXPLAT_DATAPATH_RAW*)Queue->Partition->Xdp,
             Buffers,
             (uint16_t)Rcvd);
     }
 }
 
 void
-CxPlatDataPathProcessCqe(
+RawDataPathProcessCqe(
     _In_ CXPLAT_CQE* Cqe
     )
 {
     switch (CxPlatCqeType(Cqe)) {
-    case CXPLAT_CQE_TYPE_SOCKET_SHUTDOWN: {
+    case CXPLAT_CQE_TYPE_XDP_SHUTDOWN: {
         // XDP_PARTITION* Partition =
         //     CXPLAT_CONTAINING_RECORD(CxPlatCqeUserData(Cqe), XDP_PARTITION, ShutdownSqe);
 
@@ -1185,7 +1190,7 @@ CxPlatDataPathProcessCqe(
         // // CxPlatSocketContextUninitializeComplete(SocketContext);
         break;
     }
-    case CXPLAT_CQE_TYPE_SOCKET_IO: {
+    case CXPLAT_CQE_TYPE_XDP_IO: {
         // TODO: use DATAPATH_IO_SQE to distinguish Tx/RX
         DATAPATH_SQE* Sqe = (DATAPATH_SQE*)CxPlatCqeUserData(Cqe);
         XDP_QUEUE* Queue;
@@ -1198,7 +1203,7 @@ CxPlatDataPathProcessCqe(
         Queue->RxQueued = FALSE;
         break;
     }
-    case CXPLAT_CQE_TYPE_SOCKET_FLUSH_TX: {
+    case CXPLAT_CQE_TYPE_XDP_FLUSH_TX: {
 
     }
     }

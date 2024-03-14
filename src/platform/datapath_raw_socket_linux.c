@@ -45,13 +45,14 @@ CxPlatSockPoolUninitialize(
 void
 CxPlatRemoveSocket(
     _In_ CXPLAT_SOCKET_POOL* Pool,
-    _In_ CXPLAT_SOCKET* Socket
+    _In_ CXPLAT_SOCKET_RAW* Socket
     )
 {
     CxPlatRwLockAcquireExclusive(&Pool->Lock);
     CxPlatHashtableRemove(&Pool->Sockets, &Socket->Entry, NULL);
 
-    if (CxPlatCloseSocket(Socket->AuxSocket) == SOCKET_ERROR) {
+    if (Socket->AuxSocket != INVALID_SOCKET &&
+        CxPlatCloseSocket(Socket->AuxSocket) == SOCKET_ERROR) {
         int Error = CxPlatSocketError();
         QuicTraceEvent(
             DatapathErrorStatus,
@@ -252,8 +253,8 @@ ResolveRemotePhysicalAddress(
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
-CxPlatResolveRoute(
-    _In_ CXPLAT_SOCKET* Socket,
+RawResolveRoute(
+    _In_ CXPLAT_SOCKET_RAW* Socket,
     _Inout_ CXPLAT_ROUTE* Route,
     _In_ uint8_t PathId,
     _In_ void* Context,
@@ -289,8 +290,8 @@ CxPlatResolveRoute(
     }
 
     // get local IP and mac
-    CXPLAT_LIST_ENTRY* Entry = Socket->Datapath->Interfaces.Flink;
-    for (; Entry != &Socket->Datapath->Interfaces; Entry = Entry->Flink) {
+    CXPLAT_LIST_ENTRY* Entry = Socket->RawDatapath->Interfaces.Flink;
+    for (; Entry != &Socket->RawDatapath->Interfaces; Entry = Entry->Flink) {
         CXPLAT_INTERFACE* Interface = CXPLAT_CONTAINING_RECORD(Entry, CXPLAT_INTERFACE, Link);
         if (Interface->IfIndex == (uint32_t)oif) {
             CXPLAT_DBG_ASSERT(sizeof(Interface->PhysicalAddress) == sizeof(Route->LocalLinkLayerAddress));
@@ -324,3 +325,4 @@ CxPlatResolveRoute(
 
     return Status;
 }
+

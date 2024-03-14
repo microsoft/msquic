@@ -56,13 +56,14 @@ CxPlatSockPoolUninitialize(
 void
 CxPlatRemoveSocket(
     _In_ CXPLAT_SOCKET_POOL* Pool,
-    _In_ CXPLAT_SOCKET* Socket
+    _In_ CXPLAT_SOCKET_RAW* Socket
     )
 {
     CxPlatRwLockAcquireExclusive(&Pool->Lock);
     CxPlatHashtableRemove(&Pool->Sockets, &Socket->Entry, NULL);
 
-    if (closesocket(Socket->AuxSocket) == SOCKET_ERROR) {
+    if (Socket->AuxSocket != INVALID_SOCKET &&
+        closesocket(Socket->AuxSocket) == SOCKET_ERROR) {
         int Error = SocketError();
         QuicTraceEvent(
             DatapathErrorStatus,
@@ -77,8 +78,8 @@ CxPlatRemoveSocket(
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
-CxPlatResolveRoute(
-    _In_ CXPLAT_SOCKET* Socket,
+RawResolveRoute(
+    _In_ CXPLAT_SOCKET_RAW* Socket,
     _Inout_ CXPLAT_ROUTE* Route,
     _In_ uint8_t PathId,
     _In_ void* Context,
@@ -150,8 +151,8 @@ CxPlatResolveRoute(
     //
     // Find the interface that matches the route we just looked up.
     //
-    CXPLAT_LIST_ENTRY* Entry = Socket->Datapath->Interfaces.Flink;
-    for (; Entry != &Socket->Datapath->Interfaces; Entry = Entry->Flink) {
+    CXPLAT_LIST_ENTRY* Entry = Socket->RawDatapath->Interfaces.Flink;
+    for (; Entry != &Socket->RawDatapath->Interfaces; Entry = Entry->Flink) {
         CXPLAT_INTERFACE* Interface = CONTAINING_RECORD(Entry, CXPLAT_INTERFACE, Link);
         if (Interface->IfIndex == IpforwardRow.InterfaceIndex) {
             CXPLAT_DBG_ASSERT(sizeof(Interface->PhysicalAddress) == sizeof(Route->LocalLinkLayerAddress));
@@ -207,7 +208,7 @@ CxPlatResolveRoute(
              Route->NextHopLinkLayerAddress,
              IpnetRow.PhysicalAddress,
              sizeof(Route->NextHopLinkLayerAddress)) == 0)) {
-        CXPLAT_ROUTE_RESOLUTION_WORKER* Worker = Socket->Datapath->RouteResolutionWorker;
+        CXPLAT_ROUTE_RESOLUTION_WORKER* Worker = Socket->RawDatapath->RouteResolutionWorker;
         CXPLAT_ROUTE_RESOLUTION_OPERATION* Operation = CxPlatPoolAlloc(&Worker->OperationPool);
         if (Operation == NULL) {
             QuicTraceEvent(

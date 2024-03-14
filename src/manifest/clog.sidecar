@@ -2747,6 +2747,18 @@
       ],
       "macroName": "QuicTraceEvent"
     },
+    "DatapathInitFail": {
+      "ModuleProperites": {},
+      "TraceString": "[  dp] Failed to initialize datapath, status:%d",
+      "UniqueId": "DatapathInitFail",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "d",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceLogVerbose"
+    },
     "DatapathInitialize": {
       "ModuleProperites": {},
       "TraceString": "[data][%p] Datapath initialize",
@@ -3251,6 +3263,22 @@
         {
           "DefinationEncoding": "p",
           "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceLogVerbose"
+    },
+    "DatapathTcpAuxBinding": {
+      "ModuleProperites": {},
+      "TraceString": "[data][%p] Binding TCP socket to %s",
+      "UniqueId": "DatapathTcpAuxBinding",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "s",
+          "MacroVariableName": "arg3"
         }
       ],
       "macroName": "QuicTraceLogVerbose"
@@ -9251,6 +9279,30 @@
       ],
       "macroName": "QuicTraceEvent"
     },
+    "RawDatapathInitFail": {
+      "ModuleProperites": {},
+      "TraceString": "[ raw] Failed to initialize raw datapath, status:%d",
+      "UniqueId": "RawDatapathInitFail",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "d",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceLogVerbose"
+    },
+    "RawSockCreateFail": {
+      "ModuleProperites": {},
+      "TraceString": "[sock] Failed to create raw socket, status:%d",
+      "UniqueId": "RawSockCreateFail",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "d",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceLogVerbose"
+    },
     "Receive": {
       "ModuleProperites": {},
       "TraceString": "[strm][%p] Received %hu bytes, offset=%llu Ready=%hhu",
@@ -11178,6 +11230,18 @@
         }
       ],
       "macroName": "QuicTraceLogError"
+    },
+    "SockCreateFail": {
+      "ModuleProperites": {},
+      "TraceString": "[sock] Failed to create socket, status:%d",
+      "UniqueId": "SockCreateFail",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "d",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceLogVerbose"
     },
     "StartAckDelayTimer": {
       "ModuleProperites": {},
@@ -14188,6 +14252,11 @@
         "EncodingString": "[data][%p] Querying route, local=%!ADDR!, remote=%!ADDR!"
       },
       {
+        "UniquenessHash": "347329b5-b8ba-e31f-db52-0e01b53f6762",
+        "TraceID": "DatapathInitFail",
+        "EncodingString": "[  dp] Failed to initialize datapath, status:%d"
+      },
+      {
         "UniquenessHash": "b88fe9ef-f6ed-09b0-1711-28ec0fc2ab52",
         "TraceID": "DatapathInitialize",
         "EncodingString": "[data][%p] Datapath initialize"
@@ -14356,6 +14425,11 @@
         "UniquenessHash": "d9d68a37-2903-ee85-4a9b-80a652220455",
         "TraceID": "DatapathSocketUninitializeComplete",
         "EncodingString": "[data][%p] Socket uninitialize complete"
+      },
+      {
+        "UniquenessHash": "3a4da7bb-462a-a423-bd9e-bcc366e59258",
+        "TraceID": "DatapathTcpAuxBinding",
+        "EncodingString": "[data][%p] Binding TCP socket to %s"
       },
       {
         "UniquenessHash": "a07c9538-e6d7-3c41-1367-ce58f2df4d9e",
@@ -16193,6 +16267,16 @@
         "EncodingString": "[conn][%p] Recv %u UDP datagrams, %u bytes"
       },
       {
+        "UniquenessHash": "f4ecfd1f-95a5-724a-b299-4f8f08ba6543",
+        "TraceID": "RawDatapathInitFail",
+        "EncodingString": "[ raw] Failed to initialize raw datapath, status:%d"
+      },
+      {
+        "UniquenessHash": "4f370688-5822-225a-8c7e-ec4200d38f0a",
+        "TraceID": "RawSockCreateFail",
+        "EncodingString": "[sock] Failed to create raw socket, status:%d"
+      },
+      {
         "UniquenessHash": "84eb0d5c-ea47-1349-64a1-66146e94d06e",
         "TraceID": "Receive",
         "EncodingString": "[strm][%p] Received %hu bytes, offset=%llu Ready=%hhu"
@@ -16831,6 +16915,11 @@
         "UniquenessHash": "81035efa-7e5c-22d0-3a02-16a2f7cc7f1f",
         "TraceID": "SettingsLoadInvalidOfferedVersion",
         "EncodingString": "Invalid OfferedVersion loaded from storage! 0x%x at position %d"
+      },
+      {
+        "UniquenessHash": "7b00c1b9-3578-872f-c41f-75bb4f92de18",
+        "TraceID": "SockCreateFail",
+        "EncodingString": "[sock] Failed to create socket, status:%d"
       },
       {
         "UniquenessHash": "3811b30b-84d6-43cc-8312-918d88c99d3e",

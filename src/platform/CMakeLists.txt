@@ -12,20 +12,16 @@ endif()
 set(SOURCES crypt.c hashtable.c pcp.c platform_worker.c toeplitz.c)
 
 if("${CX_PLATFORM}" STREQUAL "windows")
-    set(SOURCES ${SOURCES} platform_winuser.c storage_winuser.c)
-    if(QUIC_USE_XDP)
-        set(SOURCES ${SOURCES} datapath_raw_win.c datapath_raw_socket.c datapath_raw_socket_win.c datapath_raw_xdp_win.c)
+    set(SOURCES ${SOURCES} platform_winuser.c storage_winuser.c datapath_win.c datapath_winuser.c)
+    if(QUIC_UWP_BUILD)
+        set(SOURCES ${SOURCES} datapath_raw_dummy.c)
     else()
-        set(SOURCES ${SOURCES} datapath_winuser.c)
+        set(SOURCES ${SOURCES} datapath_raw_win.c datapath_raw_socket.c datapath_raw_socket_win.c datapath_raw_xdp_win.c)
     endif()
 else()
     set(SOURCES ${SOURCES} inline.c platform_posix.c storage_posix.c cgroup.c)
     if(CX_PLATFORM STREQUAL "linux" AND NOT CMAKE_SYSTEM_NAME STREQUAL "FreeBSD")
-        if(QUIC_USE_XDP)
-            set(SOURCES ${SOURCES} datapath_raw_linux.c datapath_raw_socket.c datapath_raw_socket_linux.c datapath_raw_xdp_linux.c)
-        else()
-            set(SOURCES ${SOURCES} datapath_epoll.c)
-        endif()
+        set(SOURCES ${SOURCES} datapath_raw_linux.c datapath_raw_socket.c datapath_raw_socket_linux.c datapath_raw_xdp_linux.c datapath_epoll.c datapath_linux.c)
     else()
         set(SOURCES ${SOURCES} datapath_kqueue.c)
     endif()
@@ -52,62 +48,58 @@ endif()
 add_library(platform STATIC ${SOURCES})
 
 if ("${CX_PLATFORM}" STREQUAL "windows")
-    if (QUIC_USE_XDP)
-        target_link_libraries(
-            platform
-            PUBLIC
-            wbemuuid)
-    endif()
+    target_link_libraries(
+        platform
+        PUBLIC
+        wbemuuid)
     target_link_libraries(platform PUBLIC winmm)
 else()
-    if (QUIC_USE_XDP)
-        # XDP Tools and libbpf paths
-        set(XDP_TOOLS_DIR ${PROJECT_SOURCE_DIR}/submodules/xdp-tools)
-        set(LIBXDP_PATH ${XDP_TOOLS_DIR}/lib/libxdp/libxdp.so)
-        set(LIBBPF_PATH ${XDP_TOOLS_DIR}/lib/libbpf/src/libbpf.so)
+    # XDP Tools and libbpf paths
+    set(XDP_TOOLS_DIR ${PROJECT_SOURCE_DIR}/submodules/xdp-tools)
+    set(LIBXDP_PATH ${XDP_TOOLS_DIR}/lib/libxdp/libxdp.so)
+    set(LIBBPF_PATH ${XDP_TOOLS_DIR}/lib/libbpf/src/libbpf.so)
 
-        # Custom command to build XDP Tools
-        add_custom_command(
-            OUTPUT ${LIBXDP_PATH} ${LIBBPF_PATH}
-            COMMAND ./configure
-            COMMAND make
-            WORKING_DIRECTORY ${XDP_TOOLS_DIR}
-        )
+    # Custom command to build XDP Tools
+    add_custom_command(
+        OUTPUT ${LIBXDP_PATH} ${LIBBPF_PATH}
+        COMMAND ./configure
+        COMMAND make
+        WORKING_DIRECTORY ${XDP_TOOLS_DIR}
+    )
 
-        # Add custom target and make platform depend on it
-        add_custom_target(xdp_tools DEPENDS ${LIBXDP_PATH} ${LIBBPF_PATH})
-        add_dependencies(platform xdp_tools)
+    # Add custom target and make platform depend on it
+    add_custom_target(xdp_tools DEPENDS ${LIBXDP_PATH} ${LIBBPF_PATH})
+    add_dependencies(platform xdp_tools)
 
-        # Link platform to libxdp.so and libbpf.so
-        target_link_libraries(platform PUBLIC ${LIBXDP_PATH} ${LIBBPF_PATH})
+    # Link platform to libxdp.so and libbpf.so
+    target_link_libraries(platform PUBLIC ${LIBXDP_PATH} ${LIBBPF_PATH})
 
-        # Include directories for libxdp.so and libbpf.so
-        target_include_directories(platform PRIVATE ${XDP_TOOLS_DIR}/headers/xdp)
-        target_include_directories(platform PRIVATE ${XDP_TOOLS_DIR}/lib/libbpf/src)
-        target_include_directories(platform PRIVATE ${XDP_TOOLS_DIR}/lib/libbpf/src/root/usr/include) # TODO: use installed path
+    # Include directories for libxdp.so and libbpf.so
+    target_include_directories(platform PRIVATE ${XDP_TOOLS_DIR}/headers/xdp)
+    target_include_directories(platform PRIVATE ${XDP_TOOLS_DIR}/lib/libbpf/src)
+    target_include_directories(platform PRIVATE ${XDP_TOOLS_DIR}/lib/libbpf/src/root/usr/include) # TODO: use installed path
 
-        # XDP program setting
-        add_custom_command(
-            OUTPUT ${PROJECT_SOURCE_DIR}/datapath_raw_xdp_kern.o
-            COMMAND clang -O2 -g -target bpf -c ${PROJECT_SOURCE_DIR}/src/platform/datapath_raw_xdp_linux_kern.c -o ${PROJECT_SOURCE_DIR}/datapath_raw_xdp_kern.o -I${PROJECT_SOURCE_DIR}/submodules/xdp-tools/lib
-            DEPENDS ${PROJECT_SOURCE_DIR}/src/platform/datapath_raw_xdp_linux_kern.c
-        )
+    # XDP program setting
+    add_custom_command(
+        OUTPUT ${PROJECT_SOURCE_DIR}/datapath_raw_xdp_kern.o
+        COMMAND clang -O2 -g -target bpf -c ${PROJECT_SOURCE_DIR}/src/platform/datapath_raw_xdp_linux_kern.c -o ${PROJECT_SOURCE_DIR}/datapath_raw_xdp_kern.o -I${PROJECT_SOURCE_DIR}/submodules/xdp-tools/lib
+        DEPENDS ${PROJECT_SOURCE_DIR}/src/platform/datapath_raw_xdp_linux_kern.c
+    )
 
-        add_custom_target(
-            XDP_PROG ALL
-            DEPENDS ${PROJECT_SOURCE_DIR}/datapath_raw_xdp_kern.o
-        )
+    add_custom_target(
+        XDP_PROG ALL
+        DEPENDS ${PROJECT_SOURCE_DIR}/datapath_raw_xdp_kern.o
+    )
 
-        add_dependencies(platform XDP_PROG)
+    add_dependencies(platform XDP_PROG)
 
-        # Assuming ${XDP_TOOLS_LIB_DIR} is the directory where libxdp.so and libbpf.so are located
-        set_target_properties(platform PROPERTIES BUILD_WITH_INSTALL_RPATH TRUE)
-        set_target_properties(platform PROPERTIES INSTALL_RPATH "${XDP_TOOLS_DIR}/lib/libxdp;${XDP_TOOLS_DIR}/lib/libbpf/src")
+    # Assuming ${XDP_TOOLS_LIB_DIR} is the directory where libxdp.so and libbpf.so are located
+    set_target_properties(platform PROPERTIES BUILD_WITH_INSTALL_RPATH TRUE)
+    set_target_properties(platform PROPERTIES INSTALL_RPATH "${XDP_TOOLS_DIR}/lib/libxdp;${XDP_TOOLS_DIR}/lib/libbpf/src")
 
-        find_library(NL_LIB nl-3)
-        find_library(NL_ROUTE_LIB nl-route-3)
-        target_link_libraries(platform PUBLIC ${NL_LIB} ${NL_ROUTE_LIB})
-    endif()
+    find_library(NL_LIB nl-3)
+    find_library(NL_ROUTE_LIB nl-route-3)
+    target_link_libraries(platform PUBLIC ${NL_LIB} ${NL_ROUTE_LIB})
 endif()
 
 target_link_libraries(platform PUBLIC inc)
@@ -115,16 +107,14 @@ target_link_libraries(platform PRIVATE warnings main_binary_link_args)
 
 set_property(TARGET platform PROPERTY FOLDER "${QUIC_FOLDER_PREFIX}libraries")
 
-if ("${CX_PLATFORM}" STREQUAL "windows" AND QUIC_USE_XDP)
+if ("${CX_PLATFORM}" STREQUAL "windows")
     target_include_directories(
         platform
         PRIVATE
         ${EXTRA_PLATFORM_INCLUDE_DIRECTORIES}
         ${PROJECT_SOURCE_DIR}/artifacts/xdp/include)
 else()
-    if (QUIC_USE_XDP)
-        include_directories(/usr/include/libnl3)
-    endif()
+    include_directories(/usr/include/libnl3)
     target_include_directories(platform PRIVATE ${EXTRA_PLATFORM_INCLUDE_DIRECTORIES})
 endif()
 
