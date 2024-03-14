@@ -224,6 +224,7 @@ typedef enum QUIC_CONNECTION_REF {
     QUIC_CONN_REF_LOOKUP_RESULT,        // For connections returned from lookups.
     QUIC_CONN_REF_WORKER,               // Worker is (queued for) processing.
     QUIC_CONN_REF_ROUTE,                // Route resolution is undergoing.
+    QUIC_CONN_REF_STREAM,               // A stream depends on the connection.
 
     QUIC_CONN_REF_COUNT
 
@@ -1352,6 +1353,26 @@ QuicConnTimerExpired(
     _Inout_ QUIC_CONNECTION* Connection,
     _In_ uint64_t TimeNow
     );
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+inline
+uint64_t
+QuicConnGetAckDelay(
+    _In_ const QUIC_CONNECTION* Connection
+    )
+{
+    if (Connection->Settings.MaxAckDelayMs &&
+        (MsQuicLib.ExecutionConfig == NULL ||
+         Connection->Settings.MaxAckDelayMs > US_TO_MS(MsQuicLib.ExecutionConfig->PollingIdleTimeoutUs))) {
+        //
+        // If we are using delayed ACKs, and the ACK delay is greater than the
+        // polling timeout, then we need to account for delay resulting from
+        // from the timer resolution.
+        //
+        return (uint64_t)Connection->Settings.MaxAckDelayMs + (uint64_t)MsQuicLib.TimerResolutionMs;
+    }
+    return (uint64_t)Connection->Settings.MaxAckDelayMs;
+}
 
 //
 // Called when the QUIC version is set.

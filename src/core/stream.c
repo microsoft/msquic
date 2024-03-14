@@ -128,6 +128,8 @@ QuicStreamInitialize(
     Stream->MaxAllowedRecvOffset = Stream->RecvBuffer.VirtualBufferLength;
     Stream->RecvWindowLastUpdate = CxPlatTimeUs64();
 
+    QuicConnAddRef(Connection, QUIC_CONN_REF_STREAM);
+
     Stream->Flags.Initialized = TRUE;
     *NewStream = Stream;
     Stream = NULL;
@@ -209,6 +211,8 @@ QuicStreamFree(
             Stream);
 #pragma warning(pop)
     }
+
+    QuicConnRelease(Connection, QUIC_CONN_REF_STREAM);
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -574,6 +578,13 @@ QuicStreamShutdown(
         // and shutdown complete events now, if they haven't already been
         // delivered.
         //
+        if (Stream->Flags.RemoteCloseResetReliable || Stream->Flags.LocalCloseResetReliable) {
+             QuicTraceLogStreamWarning(
+                ShutdownImmediatePendingReliableReset,
+                Stream,
+                "Invalid immediate shutdown request (pending reliable reset).");
+            return;
+        }
         QuicStreamIndicateSendShutdownComplete(Stream, FALSE);
         QuicStreamIndicateShutdownComplete(Stream);
     }
@@ -633,7 +644,7 @@ QuicStreamParamSet(
 
     case QUIC_PARAM_STREAM_PRIORITY: {
 
-        if (BufferLength != sizeof(Stream->SendPriority)) {
+        if (BufferLength != sizeof(Stream->SendPriority) || Buffer == NULL) {
             Status = QUIC_STATUS_INVALID_PARAMETER;
             break;
         }
@@ -658,6 +669,58 @@ QuicStreamParamSet(
         Status = QUIC_STATUS_SUCCESS;
         break;
     }
+
+   case QUIC_PARAM_STREAM_RELIABLE_OFFSET:
+
+        if (BufferLength != sizeof(uint64_t) || Buffer == NULL) {
+            Status = QUIC_STATUS_INVALID_PARAMETER;
+            break;
+        }
+
+        if (!Stream->Connection->State.ReliableResetStreamNegotiated ||
+            *(uint64_t*)Buffer > Stream->QueuedSendOffset) {
+            Status = QUIC_STATUS_INVALID_STATE;
+            break;
+        }
+
+        if (Stream->Flags.LocalCloseReset) {
+            Status = QUIC_STATUS_INVALID_STATE;
+            break;
+        }
+
+        if (!Stream->Flags.LocalCloseResetReliable) {
+            //
+            // We haven't called shutdown reliable yet. App can set ReliableOffsetSend to be whatever.
+            //
+            Stream->ReliableOffsetSend = *(uint64_t*)Buffer;
+        } else if (*(uint64_t*)Buffer < Stream->ReliableOffsetSend) {
+            //
+            // TODO - Determine if we need to support this feature in future iterations.
+            //
+            // We have previously called shutdown reliable.
+            // Now we are loosening the conditions of the ReliableReset,
+            // but we have already sent the peer a stale frame, we must retransmit
+            // this new frame, and update the metadata.
+            //
+            QuicTraceLogStreamInfo(
+                MultipleReliableResetSendNotSupported,
+                Stream,
+                "Multiple RELIABLE_RESET frames sending not supported.");
+            Status = QUIC_STATUS_INVALID_STATE;
+            break;
+        } else {
+            Status = QUIC_STATUS_INVALID_STATE;
+            break;
+        }
+
+        QuicTraceLogStreamInfo(
+            ReliableSendOffsetSet,
+            Stream,
+            "Reliable send offset set to %llu",
+            *(uint64_t*)Buffer);
+
+        Status = QUIC_STATUS_SUCCESS;
+        break;
 
     default:
         Status = QUIC_STATUS_INVALID_PARAMETER;
@@ -838,6 +901,44 @@ QuicStreamParamGet(
         Status = QUIC_STATUS_SUCCESS;
         break;
     }
+
+    case QUIC_PARAM_STREAM_RELIABLE_OFFSET:
+        if (*BufferLength < sizeof(uint64_t)) {
+            *BufferLength = sizeof(uint64_t);
+            Status = QUIC_STATUS_BUFFER_TOO_SMALL;
+            break;
+        }
+        if (Buffer == NULL) {
+            Status = QUIC_STATUS_INVALID_PARAMETER;
+            break;
+        }
+        if (Stream->ReliableOffsetSend == 0) {
+            Status = QUIC_STATUS_INVALID_STATE;
+            break;
+        }
+        *(uint64_t*) Buffer = Stream->ReliableOffsetSend;
+        Status = QUIC_STATUS_SUCCESS;
+        break;
+
+    case QUIC_PARAM_STREAM_RELIABLE_OFFSET_RECV:
+        if (*BufferLength < sizeof(uint64_t)) {
+            *BufferLength = sizeof(uint64_t);
+            Status = QUIC_STATUS_BUFFER_TOO_SMALL;
+            break;
+        }
+        if (Buffer == NULL) {
+            Status = QUIC_STATUS_INVALID_PARAMETER;
+            break;
+        }
+        if (!Stream->Flags.RemoteCloseResetReliable) {
+            Status = QUIC_STATUS_INVALID_STATE;
+            break;
+        }
+
+        *(uint64_t*)Buffer = Stream->RecvMaxLength;
+        Status = QUIC_STATUS_SUCCESS;
+        break;
+
     default:
         Status = QUIC_STATUS_INVALID_PARAMETER;
         break;

@@ -87,6 +87,8 @@ std::ostream& operator << (std::ostream& o, const QUIC_FRAME_TYPE& type) {
             return o << "QUIC_FRAME_ACK_FREQUENCY";
         case QUIC_FRAME_IMMEDIATE_ACK:
             return o << "QUIC_FRAME_IMMEDIATE_ACK";
+        case QUIC_FRAME_RELIABLE_RESET_STREAM:
+            return o << "QUIC_FRAME_RELIABLE_RESET_STREAM";
         default:
             return o << "UNRECOGNIZED_FRAME_TYPE(" << (uint32_t) type << ")";
     }

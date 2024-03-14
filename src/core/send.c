@@ -387,6 +387,7 @@ QuicSendSetStreamSendFlag(
     if (Stream->Flags.LocalCloseAcked) {
         SendFlags &=
             ~(QUIC_STREAM_SEND_FLAG_SEND_ABORT |
+              QUIC_STREAM_SEND_FLAG_RELIABLE_ABORT |
               QUIC_STREAM_SEND_FLAG_DATA_BLOCKED |
               QUIC_STREAM_SEND_FLAG_DATA |
               QUIC_STREAM_SEND_FLAG_OPEN |
@@ -869,10 +870,7 @@ QuicSendWriteFrames(
             QUIC_ACK_FREQUENCY_EX Frame;
             Frame.SequenceNumber = Connection->SendAckFreqSeqNum;
             Frame.PacketTolerance = Connection->PeerPacketTolerance;
-            Frame.UpdateMaxAckDelay =
-                MS_TO_US(
-                    (uint64_t)Connection->Settings.MaxAckDelayMs +
-                    (uint64_t)MsQuicLib.TimerResolutionMs);
+            Frame.UpdateMaxAckDelay = MS_TO_US(QuicConnGetAckDelay(Connection));
             Frame.IgnoreOrder = FALSE;
             Frame.IgnoreCE = FALSE;
 
@@ -1488,6 +1486,7 @@ QuicSendStartDelayedAckTimer(
 {
     QUIC_CONNECTION* Connection = QuicSendGetConnection(Send);
 
+    CXPLAT_DBG_ASSERT(Connection->Settings.MaxAckDelayMs != 0);
     if (!Send->DelayedAckTimerActive &&
         !(Send->SendFlags & QUIC_CONN_SEND_FLAG_ACK) &&
         !Connection->State.ClosedLocally &&

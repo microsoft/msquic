@@ -18,7 +18,12 @@ Supported Platforms:
 
 --*/
 
+#ifdef _WIN32
 #pragma once
+#endif
+
+#ifndef _MSQUIC_HPP_
+#define _MSQUIC_HPP_
 
 #include "msquic.h"
 #include "msquicp.h"
@@ -1211,7 +1216,7 @@ private:
 };
 
 struct MsQuicAutoAcceptListener : public MsQuicListener {
-    const MsQuicConfiguration& Configuration;
+    const MsQuicConfiguration* Configuration;
     MsQuicConnectionCallback* ConnectionHandler;
     MsQuicConnection* LastConnection {nullptr};
     void* ConnectionContext;
@@ -1221,12 +1226,23 @@ struct MsQuicAutoAcceptListener : public MsQuicListener {
 
     MsQuicAutoAcceptListener(
         _In_ const MsQuicRegistration& Registration,
+        _In_ MsQuicConnectionCallback* _ConnectionHandler,
+        _In_ void* _ConnectionContext = nullptr
+        ) noexcept :
+        MsQuicListener(Registration, CleanUpManual, ListenerCallback, this),
+        Configuration(nullptr),
+        ConnectionHandler(_ConnectionHandler),
+        ConnectionContext(_ConnectionContext)
+    { }
+
+    MsQuicAutoAcceptListener(
+        _In_ const MsQuicRegistration& Registration,
         _In_ const MsQuicConfiguration& Config,
         _In_ MsQuicConnectionCallback* _ConnectionHandler,
         _In_ void* _ConnectionContext = nullptr
         ) noexcept :
         MsQuicListener(Registration, CleanUpManual, ListenerCallback, this),
-        Configuration(Config),
+        Configuration(&Config),
         ConnectionHandler(_ConnectionHandler),
         ConnectionContext(_ConnectionContext)
     { }
@@ -1248,14 +1264,15 @@ private:
         if (Event->Type == QUIC_LISTENER_EVENT_NEW_CONNECTION) {
             auto Connection = new(std::nothrow) MsQuicConnection(Event->NEW_CONNECTION.Connection, CleanUpAutoDelete, pThis->ConnectionHandler, pThis->ConnectionContext);
             if (Connection) {
-                Status = Connection->SetConfiguration(pThis->Configuration);
-                if (QUIC_FAILED(Status)) {
+                if (!pThis->Configuration ||
+                    QUIC_FAILED(Status = Connection->SetConfiguration(*pThis->Configuration))) {
                     //
                     // The connection is being rejected. Let MsQuic free the handle.
                     //
                     Connection->Handle = nullptr;
                     delete Connection;
                 } else {
+                    Status = QUIC_STATUS_SUCCESS;
                     pThis->LastConnection = Connection;
 #ifdef CX_PLATFORM_TYPE
                     InterlockedIncrement((long*)&pThis->AcceptedConnectionCount);
@@ -1441,6 +1458,40 @@ struct MsQuicStream {
                 Statistics);
     }
 
+    #ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
+    QUIC_STATUS
+    SetReliableOffset(_In_ uint64_t Offset) noexcept {
+        return
+            MsQuic->SetParam(
+                Handle,
+                QUIC_PARAM_STREAM_RELIABLE_OFFSET,
+                sizeof(Offset),
+                &Offset);
+    }
+
+    QUIC_STATUS
+    GetReliableOffset(_Out_ uint64_t* Offset) const noexcept {
+        uint32_t Size = sizeof(*Offset);
+        return
+            MsQuic->GetParam(
+                Handle,
+                QUIC_PARAM_STREAM_RELIABLE_OFFSET,
+                &Size,
+                Offset);
+    }
+
+    QUIC_STATUS
+    GetReliableOffsetRecv(_Out_ uint64_t* Offset) const noexcept {
+        uint32_t Size = sizeof(*Offset);
+        return
+            MsQuic->GetParam(
+                Handle,
+                QUIC_PARAM_STREAM_RELIABLE_OFFSET_RECV,
+                &Size,
+                Offset);
+    }
+    #endif
+
     QUIC_STATUS GetInitStatus() const noexcept { return InitStatus; }
     bool IsValid() const { return QUIC_SUCCEEDED(InitStatus); }
     MsQuicStream(const MsQuicStream& Other) = delete;
@@ -1518,3 +1569,5 @@ struct QuicBufferScope {
     operator QUIC_BUFFER* () noexcept { return Buffer; }
     ~QuicBufferScope() noexcept { if (Buffer) { delete[](uint8_t*) Buffer; } }
 };
+
+#endif  //  _WIN32

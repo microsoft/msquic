@@ -503,6 +503,8 @@ QuicConnUninitialize(
     QuicCryptoUninitialize(&Connection->Crypto);
     QuicTimerWheelRemoveConnection(&Connection->Worker->TimerWheel, Connection);
     QuicOperationQueueClear(Connection->Worker, &Connection->OperQ);
+    QuicLossDetectionUninitialize(&Connection->LossDetection);
+    QuicSendUninitialize(&Connection->Send);
 
     if (Connection->CloseReasonPhrase != NULL) {
         CXPLAT_FREE(Connection->CloseReasonPhrase, QUIC_POOL_CLOSE_REASON);
@@ -2159,7 +2161,7 @@ QuicConnRecvResumptionTicket(
     )
 {
     BOOLEAN ResumptionAccepted = FALSE;
-    QUIC_TRANSPORT_PARAMETERS ResumedTP;
+    QUIC_TRANSPORT_PARAMETERS ResumedTP = {0};
     CxPlatZeroMemory(&ResumedTP, sizeof(ResumedTP));
     if (QuicConnIsServer(Connection)) {
         if (Connection->Crypto.TicketValidationRejecting) {
@@ -2349,9 +2351,11 @@ QuicConnGenerateLocalTransportParameters(
         MaxUdpPayloadSizeFromMTU(
             CxPlatSocketGetLocalMtu(
                 Connection->Paths[0].Binding->Socket));
-    LocalTP->MaxAckDelay =
-        Connection->Settings.MaxAckDelayMs + MsQuicLib.TimerResolutionMs;
-    LocalTP->MinAckDelay = MS_TO_US(MsQuicLib.TimerResolutionMs);
+    LocalTP->MaxAckDelay = QuicConnGetAckDelay(Connection);
+    LocalTP->MinAckDelay =
+        MsQuicLib.ExecutionConfig != NULL &&
+        MsQuicLib.ExecutionConfig->PollingIdleTimeoutUs != 0 ?
+            0 : MS_TO_US(MsQuicLib.TimerResolutionMs);
     LocalTP->ActiveConnectionIdLimit = QUIC_ACTIVE_CONNECTION_ID_LIMIT;
     LocalTP->Flags =
         QUIC_TP_FLAG_INITIAL_MAX_DATA |
@@ -3849,7 +3853,8 @@ QuicConnRecvHeader(
                 //
                 // Do not return FALSE here, continue with the connection.
                 //
-            } else if (Packet->Invariant->LONG_HDR.Version == QUIC_VERSION_VER_NEG &&
+            } else if (QuicConnIsClient(Connection) &&
+                Packet->Invariant->LONG_HDR.Version == QUIC_VERSION_VER_NEG &&
                 !Connection->Stats.VersionNegotiation) {
                 //
                 // Version negotiation packet received.
@@ -4705,7 +4710,8 @@ QuicConnRecvFrames(
         case QUIC_FRAME_STREAM_6:
         case QUIC_FRAME_STREAM_7:
         case QUIC_FRAME_MAX_STREAM_DATA:
-        case QUIC_FRAME_STREAM_DATA_BLOCKED: {
+        case QUIC_FRAME_STREAM_DATA_BLOCKED:
+        case QUIC_FRAME_RELIABLE_RESET_STREAM: {
             if (Closed) {
                 if (!QuicStreamFrameSkip(
                         FrameType, PayloadLength, Payload, &Offset)) {
@@ -5294,7 +5300,9 @@ QuicConnRecvFrames(
 
             Connection->NextRecvAckFreqSeqNum = Frame.SequenceNumber + 1;
             Connection->State.IgnoreReordering = Frame.IgnoreOrder;
-            if (Frame.UpdateMaxAckDelay < 1000) {
+            if (Frame.UpdateMaxAckDelay == 0) {
+                Connection->Settings.MaxAckDelayMs = 0;
+            } else if (Frame.UpdateMaxAckDelay < 1000) {
                 Connection->Settings.MaxAckDelayMs = 1;
             } else {
                 CXPLAT_DBG_ASSERT(US_TO_MS(Frame.UpdateMaxAckDelay) <= UINT32_MAX);
@@ -5344,8 +5352,6 @@ QuicConnRecvFrames(
             break;
         }
 
-        case QUIC_FRAME_RELIABLE_RESET_STREAM:
-            // TODO - Implement this frame.
         default:
             //
             // No default case necessary, as we have already validated the frame

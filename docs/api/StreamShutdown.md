@@ -54,6 +54,10 @@ The stream can also be gracefully shutdown via the `QUIC_SEND_FLAG_FIN` flag. Se
 
 Any stream (even one that hasn't been started) may be called to shutdown. If the stream has not been started yet, then the shutdown is effectively queued. If the app never calls [StreamStart](StreamStart.md) then the shutdown will never been sent out on the wire.
 
+# Reliable Reset
+
+If an app decides to enable Preview Features, the shutdown path can be configured with the QUIC_PARAM_STREAM_RELIABLE_OFFSET Stream parameter, which determines the number of bytes a sender must deliver before it can shut down their SEND path.
+
 # See Also
 
 [StreamOpen](StreamOpen.md)<br>

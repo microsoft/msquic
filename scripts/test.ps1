@@ -67,6 +67,9 @@ This script runs the MsQuic tests.
 .Parameter DuoNic
     Uses DuoNic instead of loopback (DuoNic must already be installed via 'prepare-machine.ps1 -InstallDuoNic').
 
+.Parameter NumIterations
+    Number of times to run this particular command. Catches tricky edge cases due to random nature of networks.
+
 .EXAMPLE
     test.ps1
 
@@ -85,6 +88,8 @@ This script runs the MsQuic tests.
 .EXAMPLE
     test.ps1 -LogProfile Full.Verbose -Compress
 
+.EXAMPLE
+    test.ps1 -Filter ParameterValidation* -NumIterations 10
 #>
 
 param (
@@ -172,7 +177,10 @@ param (
     [switch]$UseQtip = $false,
 
     [Parameter(Mandatory = $false)]
-    [string]$OsRunner = ""
+    [string]$OsRunner = "",
+
+    [Parameter(Mandatory = $false)]
+    [int]$NumIterations = 1
 )
 
 Set-StrictMode -Version 'Latest'
@@ -344,12 +352,17 @@ if (![string]::IsNullOrWhiteSpace($ExtraArtifactDir)) {
     $TestArguments += " -ExtraArtifactDir $ExtraArtifactDir"
 }
 
-# Run the script.
-if (!$Kernel -and !$SkipUnitTests) {
-    Invoke-Expression ($RunTest + " -Path $MsQuicPlatTest " + $TestArguments)
-    Invoke-Expression ($RunTest + " -Path $MsQuicCoreTest " + $TestArguments)
+for ($iteration = 1; $iteration -le $NumIterations; $iteration++) {
+    if ($NumIterations -gt 1) {
+        Write-Host "------- Iteration $iteration -------"
+    }
+    # Run the script.
+    if (!$Kernel -and !$SkipUnitTests) {
+        Invoke-Expression ($RunTest + " -Path $MsQuicPlatTest " + $TestArguments)
+        Invoke-Expression ($RunTest + " -Path $MsQuicCoreTest " + $TestArguments)
+    }
+    Invoke-Expression ($RunTest + " -Path $MsQuicTest " + $TestArguments)
 }
-Invoke-Expression ($RunTest + " -Path $MsQuicTest " + $TestArguments)
 
 if ($CodeCoverage) {
     # Merge code coverage results

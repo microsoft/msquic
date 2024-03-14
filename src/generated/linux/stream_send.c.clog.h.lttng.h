@@ -70,13 +70,13 @@ TRACEPOINT_EVENT(CLOG_STREAM_SEND_C, IndicateSendComplete,
 // Decoder Ring for SendQueued
 // [strm][%p] Send Request [%p] queued with %llu bytes at offset %llu (flags 0x%x)
 // QuicTraceLogStreamVerbose(
-            SendQueued,
-            Stream,
-            "Send Request [%p] queued with %llu bytes at offset %llu (flags 0x%x)",
-            SendRequest,
-            SendRequest->TotalLength,
-            SendRequest->StreamOffset,
-            SendRequest->Flags);
+        SendQueued,
+        Stream,
+        "Send Request [%p] queued with %llu bytes at offset %llu (flags 0x%x)",
+        SendRequest,
+        SendRequest->TotalLength,
+        SendRequest->StreamOffset,
+        SendRequest->Flags);
 // arg1 = arg1 = Stream = arg1
 // arg3 = arg3 = SendRequest = arg3
 // arg4 = arg4 = SendRequest->TotalLength = arg4
@@ -310,11 +310,11 @@ TRACEPOINT_EVENT(CLOG_STREAM_SEND_C, SendQueueDrained,
 
 /*----------------------------------------------------------
 // Decoder Ring for SendDump
-// [strm][%p] SF:%hX FC:%llu QS:%llu MAX:%llu UNA:%llu NXT:%llu RECOV:%llu-%llu
+// [strm][%p] SF:%hX FC:%llu QS:%llu MAX:%llu UNA:%llu NXT:%llu RECOV:%llu-%llu REL: %llu
 // QuicTraceLogStreamVerbose(
             SendDump,
             Stream,
-            "SF:%hX FC:%llu QS:%llu MAX:%llu UNA:%llu NXT:%llu RECOV:%llu-%llu",
+            "SF:%hX FC:%llu QS:%llu MAX:%llu UNA:%llu NXT:%llu RECOV:%llu-%llu REL: %llu",
             Stream->SendFlags,
             Stream->MaxAllowedSendOffset,
             Stream->QueuedSendOffset,
@@ -322,7 +322,8 @@ TRACEPOINT_EVENT(CLOG_STREAM_SEND_C, SendQueueDrained,
             Stream->UnAckedOffset,
             Stream->NextSendOffset,
             Stream->Flags.InRecovery ? Stream->RecoveryNextOffset : 0,
-            Stream->Flags.InRecovery ? Stream->RecoveryEndOffset : 0);
+            Stream->Flags.InRecovery ? Stream->RecoveryEndOffset : 0,
+            Stream->ReliableOffsetSend);
 // arg1 = arg1 = Stream = arg1
 // arg3 = arg3 = Stream->SendFlags = arg3
 // arg4 = arg4 = Stream->MaxAllowedSendOffset = arg4
@@ -332,6 +333,7 @@ TRACEPOINT_EVENT(CLOG_STREAM_SEND_C, SendQueueDrained,
 // arg8 = arg8 = Stream->NextSendOffset = arg8
 // arg9 = arg9 = Stream->Flags.InRecovery ? Stream->RecoveryNextOffset : 0 = arg9
 // arg10 = arg10 = Stream->Flags.InRecovery ? Stream->RecoveryEndOffset : 0 = arg10
+// arg11 = arg11 = Stream->ReliableOffsetSend = arg11
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_STREAM_SEND_C, SendDump,
     TP_ARGS(
@@ -343,7 +345,8 @@ TRACEPOINT_EVENT(CLOG_STREAM_SEND_C, SendDump,
         unsigned long long, arg7,
         unsigned long long, arg8,
         unsigned long long, arg9,
-        unsigned long long, arg10), 
+        unsigned long long, arg10,
+        unsigned long long, arg11), 
     TP_FIELDS(
         ctf_integer_hex(uint64_t, arg1, arg1)
         ctf_integer(unsigned short, arg3, arg3)
@@ -354,6 +357,7 @@ TRACEPOINT_EVENT(CLOG_STREAM_SEND_C, SendDump,
         ctf_integer(uint64_t, arg8, arg8)
         ctf_integer(uint64_t, arg9, arg9)
         ctf_integer(uint64_t, arg10, arg10)
+        ctf_integer(uint64_t, arg11, arg11)
     )
 )
 
