@@ -484,6 +484,7 @@ size_t QUIC_IOCTL_BUFFER_SIZES[] =
     sizeof(QUIC_RUN_CUSTOM_CERT_VALIDATION),
     sizeof(QUIC_RUN_FEATURE_NEGOTIATION),
     sizeof(QUIC_RUN_FEATURE_NEGOTIATION),
+    0,
 };
 
 CXPLAT_STATIC_ASSERT(
@@ -897,7 +898,8 @@ QuicTestCtlEvtIoDeviceControl(
         QuicTestCtlRun(
             QuicTestNatAddrRebind(
                 Params->RebindParams.Family,
-                Params->RebindParams.Padding));
+                Params->RebindParams.Padding,
+                FALSE));
         break;
 
     case IOCTL_QUIC_RUN_CHANGE_MAX_STREAM_ID:
@@ -1362,6 +1364,11 @@ QuicTestCtlEvtIoDeviceControl(
                 Params->FeatureNegotiationParams.ClientSupport));
         break;
 #endif
+
+    case IOCTL_QUIC_RUN_STATELESS_RESET_KEY:
+        QuicTestCtlRun(QuicTestStatelessResetKey());
+        break;
+
     default:
         Status = STATUS_NOT_IMPLEMENTED;
         break;

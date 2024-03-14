@@ -499,7 +499,8 @@ QuicTestNatPortRebind(
 void
 QuicTestNatAddrRebind(
     _In_ int Family,
-    _In_ uint16_t KeepAlivePaddingSize
+    _In_ uint16_t KeepAlivePaddingSize,
+    _In_ bool RebindDatapathAddr
     )
 {
     RebindContext Context;
@@ -533,7 +534,13 @@ QuicTestNatAddrRebind(
     TEST_QUIC_SUCCEEDED(Connection.GetLocalAddr(OrigLocalAddr));
     ReplaceAddressHelper AddrHelper(OrigLocalAddr.SockAddr, OrigLocalAddr.SockAddr);
 
-    AddrHelper.IncrementAddr();
+    if (RebindDatapathAddr) {
+        QuicAddrFromString(UseDuoNic ? ((Family == AF_INET) ? "127.0.0.1" : "::1") : ((Family == AF_INET) ? "192.168.1.11" : "fc00::1:11"),
+                           OrigLocalAddr.GetPort(),
+                           &AddrHelper.New);
+    } else {
+        AddrHelper.IncrementAddr();
+    }
     if (KeepAlivePaddingSize) {
         Connection.SetKeepAlivePadding(KeepAlivePaddingSize);
     }

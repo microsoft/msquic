@@ -1112,6 +1112,37 @@ QuicLibrarySetGlobalParam(
         Status = QUIC_STATUS_SUCCESS;
         break;
 
+    case QUIC_PARAM_GLOBAL_STATELESS_RESET_KEY:
+        if (!MsQuicLib.LazyInitComplete) {
+            Status = QUIC_STATUS_INVALID_STATE;
+            break;
+        }
+        if (BufferLength != QUIC_STATELESS_RESET_KEY_LENGTH * sizeof(uint8_t)) {
+            Status = QUIC_STATUS_INVALID_PARAMETER;
+            break;
+        }
+
+        Status = QUIC_STATUS_SUCCESS;
+        for (uint16_t i = 0; i < MsQuicLib.ProcessorCount; ++i) {
+            CXPLAT_HASH* TokenHash = NULL;
+            Status =
+                CxPlatHashCreate(
+                    CXPLAT_HASH_SHA256,
+                    (uint8_t*)Buffer,
+                    QUIC_STATELESS_RESET_KEY_LENGTH * sizeof(uint8_t),
+                    &TokenHash);
+            if (QUIC_FAILED(Status)) {
+                break;
+            }
+
+            QUIC_LIBRARY_PP* PerProc = &MsQuicLib.PerProc[i];
+            CxPlatLockAcquire(&PerProc->ResetTokenLock);
+            CxPlatHashFree(PerProc->ResetTokenHash);
+            PerProc->ResetTokenHash = TokenHash;
+            CxPlatLockRelease(&PerProc->ResetTokenLock);
+        }
+        break;
+
     default:
         Status = QUIC_STATUS_INVALID_PARAMETER;
         break;

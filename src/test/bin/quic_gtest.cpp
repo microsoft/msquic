@@ -1554,12 +1554,22 @@ TEST_P(WithFamilyArgs, RebindAddr) {
         };
         ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_NAT_ADDR_REBIND, Params));
     } else {
-#ifdef _WIN32
-        if (!UseDuoNic) {
-            GTEST_SKIP_("Raw socket with 127.0.0.2/::2 is not supported");
-        }
+        QuicTestNatAddrRebind(GetParam().Family, 0, FALSE);
+    }
+}
+
+TEST_P(WithFamilyArgs, RebindDatapathAddr) {
+#if defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
+    if (UseQTIP) {
+        //
+        // NAT rebind doesn't make sense for TCP and QTIP.
+        //
+        return;
+    }
 #endif
-        QuicTestNatAddrRebind(GetParam().Family, 0);
+    TestLoggerT<ParamType> Logger("QuicTestNatAddrRebind(datapath)", GetParam());
+    if (!TestingKernelMode) {
+        QuicTestNatAddrRebind(GetParam().Family, 0, TRUE);
     }
 }
 
@@ -1580,12 +1590,7 @@ TEST_P(WithRebindPaddingArgs, RebindAddrPadded) {
         };
         ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_NAT_PORT_REBIND, Params));
     } else {
-#ifdef _WIN32
-        if (!UseDuoNic) {
-            GTEST_SKIP_("Raw socket with 127.0.0.2/::2 is not supported");
-        }
-#endif
-        QuicTestNatAddrRebind(GetParam().Family, GetParam().Padding);
+        QuicTestNatAddrRebind(GetParam().Family, GetParam().Padding, FALSE);
     }
 }
 
@@ -1888,6 +1893,15 @@ TEST(Misc, ClientDisconnect) {
         ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_CLIENT_DISCONNECT, Param));
     } else {
         QuicTestClientDisconnect(false); // TODO - Support true, when race condition is fixed.
+    }
+}
+
+TEST(Misc, StatelessResetKey) {
+    TestLogger Logger("QuicTestStatelessResetKey");
+    if (TestingKernelMode) {
+        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_STATELESS_RESET_KEY));
+    } else {
+        QuicTestStatelessResetKey();
     }
 }
 
