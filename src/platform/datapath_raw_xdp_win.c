@@ -990,7 +990,7 @@ CxPlatDpRawGetDatapathSize(
     )
 {
     const uint32_t PartitionCount =
-        (Config && Config->ProcessorCount) ? Config->ProcessorCount : CxPlatProcMaxCount();
+        (Config && Config->ProcessorCount) ? Config->ProcessorCount : CxPlatProcCount();
     return sizeof(XDP_DATAPATH) + (PartitionCount * sizeof(XDP_PARTITION));
 }
 
@@ -1019,7 +1019,7 @@ CxPlatDpRawInitialize(
     if (Config && Config->ProcessorCount) {
         Xdp->PartitionCount = Config->ProcessorCount;
     } else {
-        Xdp->PartitionCount = CxPlatProcMaxCount();
+        Xdp->PartitionCount = CxPlatProcCount();
     }
 
     QuicTraceLogVerbose(
@@ -1087,9 +1087,13 @@ CxPlatDpRawInitialize(
                 }
                 CxPlatZeroMemory(Interface, sizeof(*Interface));
                 Interface->ActualIfIndex = Interface->IfIndex = Adapter->IfIndex;
+                memcpy(
+                    Interface->PhysicalAddress, Adapter->PhysicalAddress,
+                    sizeof(Interface->PhysicalAddress));
 
                 // Look for VF which associated with Adapter
                 // It has same MAC address. and empirically these flags
+                /* TODO - Currently causes issues some times
                 for (int i = 0; i < (int) pIfTable->NumEntries; i++) {
                     MIB_IF_ROW2* pIfRow = &pIfTable->Table[i];
                     if (!pIfRow->InterfaceAndOperStatusFlags.FilterInterface &&
@@ -1107,10 +1111,7 @@ CxPlatDpRawInitialize(
                             Interface->ActualIfIndex);
                         break; // assuming there is 1:1 matching
                     }
-                }
-                memcpy(
-                    Interface->PhysicalAddress, Adapter->PhysicalAddress,
-                    sizeof(Interface->PhysicalAddress));
+                }*/
 
                 Status =
                     CxPlatDpRawInterfaceInitialize(
@@ -1679,8 +1680,8 @@ CxPlatDpRawTxAlloc(
 {
     QUIC_ADDRESS_FAMILY Family = QuicAddrGetFamily(&Config->Route->RemoteAddress);
     XDP_QUEUE* Queue = Config->Route->Queue;
-    CXPLAT_DBG_ASSERT(Queue != NULL); 
-    CXPLAT_DBG_ASSERT(&Queue->TxPool != NULL); 
+    CXPLAT_DBG_ASSERT(Queue != NULL);
+    CXPLAT_DBG_ASSERT(&Queue->TxPool != NULL);
     XDP_TX_PACKET* Packet = (XDP_TX_PACKET*)InterlockedPopEntrySList(&Queue->TxPool);
 
     if (Packet) {

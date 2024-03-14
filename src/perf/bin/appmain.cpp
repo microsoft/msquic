@@ -30,9 +30,9 @@ QuicHandleExtraData(
     _In_opt_z_ const char* FileName
     )
 {
-    CXPLAT_FRE_ASSERT(Length >= sizeof(uint32_t) + sizeof(uint32_t));
-    uint32_t RunTime;
+    uint64_t RunTime;
     uint64_t CachedCompletedRequests;
+    CXPLAT_FRE_ASSERT(Length >= sizeof(RunTime) + sizeof(CachedCompletedRequests));
     CxPlatCopyMemory(&RunTime, ExtraData, sizeof(RunTime));
     ExtraData += sizeof(RunTime);
     CxPlatCopyMemory(&CachedCompletedRequests, ExtraData, sizeof(CachedCompletedRequests));
@@ -42,7 +42,7 @@ QuicHandleExtraData(
     RestOfBufferLength &= 0xFFFFFFFC; // Round down to nearest multiple of 4
     uint32_t MaxCount = CXPLAT_MIN((uint32_t)CachedCompletedRequests, RestOfBufferLength);
 
-    uint32_t RPS = (uint32_t)((CachedCompletedRequests * 1000ull) / (uint64_t)RunTime);
+    uint32_t RPS = (uint32_t)((CachedCompletedRequests * 1000ull * 1000ull) / RunTime);
     if (RPS == 0) {
         printf("Error: No requests were completed\n");
         return;
@@ -94,16 +94,19 @@ QUIC_STATUS
 QuicUserMain(
     _In_ int argc,
     _In_reads_(argc) _Null_terminated_ char* argv[],
-    _In_ const QUIC_CREDENTIAL_CONFIG* SelfSignedCredConfig,
+    _In_opt_ const QUIC_CREDENTIAL_CONFIG* SelfSignedCredConfig,
     _In_opt_z_ const char* FileName
     ) {
     CxPlatEvent StopEvent {true};
+    auto SimpleOutput = GetFlag(argc, argv, "trimout");
     QUIC_STATUS Status = QuicMainStart(argc, argv, &StopEvent.Handle, SelfSignedCredConfig);
     if (QUIC_FAILED(Status)) {
         goto Exit;
     }
 
-    printf("Started!\n\n");
+    if (!SimpleOutput) {
+        printf("Started!\n\n");
+    }
     fflush(stdout);
     QuicMainWaitForCompletion();
 
@@ -116,7 +119,9 @@ QuicUserMain(
 
 Exit:
     QuicMainFree();
-    printf("App Main returning status %d\n", Status);
+    if (!SimpleOutput) {
+        printf("App Main returning status %d\n", Status);
+    }
     return Status;
 }
 
@@ -126,7 +131,7 @@ QUIC_STATUS
 QuicKernelMain(
     _In_ int argc,
     _In_reads_(argc) _Null_terminated_ char* argv[],
-    _In_ const QUIC_CREDENTIAL_CONFIG* SelfSignedParams,
+    _In_opt_ const QUIC_CREDENTIAL_CONFIG* SelfSignedParams,
     _In_ bool PrivateTestLibrary,
     _In_z_ const char* DriverName,
     _In_opt_z_ const char* FileName
@@ -191,10 +196,12 @@ QuicKernelMain(
     }
 
     QUIC_RUN_CERTIFICATE_PARAMS CertParams = { 0 };
-    CxPlatCopyMemory(
-        &CertParams.ServerCertHash.ShaHash,
-        (QUIC_CERTIFICATE_HASH*)(SelfSignedParams + 1),
-        sizeof(QUIC_CERTIFICATE_HASH));
+    if (SelfSignedParams) {
+        CxPlatCopyMemory(
+            &CertParams.ServerCertHash.ShaHash,
+            (QUIC_CERTIFICATE_HASH*)(SelfSignedParams + 1),
+            sizeof(QUIC_CERTIFICATE_HASH));
+    }
 
     if (!DriverClient.Initialize(&CertParams, DriverName)) {
         printf("Intializing Driver Client Failed.\n");
@@ -290,16 +297,14 @@ main(
     const char* FileName = nullptr;
     TryGetValue(argc, argv, "extraOutputFile", &FileName);
 
-    SelfSignedCredConfig =
-        CxPlatGetSelfSignedCert(
-            DriverName != nullptr ?
-                CXPLAT_SELF_SIGN_CERT_MACHINE :
-                CXPLAT_SELF_SIGN_CERT_USER,
-            FALSE, NULL);
-    if (!SelfSignedCredConfig) {
-        printf("Creating self signed certificate failed\n");
-        Status = QUIC_STATUS_INTERNAL_ERROR;
-        goto Exit;
+    if (!TryGetTarget(argc, argv)) { // Only create certificate on server
+        SelfSignedCredConfig =
+            CxPlatGetSelfSignedCert(CXPLAT_SELF_SIGN_CERT_USER, FALSE, NULL);
+        if (!SelfSignedCredConfig) {
+            printf("Creating self signed certificate failed\n");
+            Status = QUIC_STATUS_INTERNAL_ERROR;
+            goto Exit;
+        }
     }
 
     if (TryGetValue(argc, argv, "cipher", &CipherSuite)) {

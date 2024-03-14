@@ -52,7 +52,7 @@ PrintHelp(
         "  -ip:<0/4/6>              A hint for the resolving the hostname to an IP address. (def:0)\n"
         "  -port:<####>             The UDP port of the server. (def:%u)\n"
         "  -cibir:<hex_bytes>       A CIBIR well-known idenfitier.\n"
-        "  -inctarget:<0/1>         Append unique ID to target hostname for each worker (def:0).\n"
+        "  -inctarget:<0/1>         Append unique ID to target hostname for each worker (def:1).\n"
         "\n"
         "  Local options:\n"
         "  -threads:<####>          The max number of worker threads to use.\n"
@@ -76,26 +76,27 @@ PrintHelp(
         "  Scenario options:\n"
         "  -conns:<####>            The number of connections to use. (def:1)\n"
         "  -streams:<####>          The number of streams to send on at a time. (def:0)\n"
-        "  -upload:<####>           The length of bytes to send on each stream. (def:0)\n"
-        "  -download:<####>         The length of bytes to receive on each stream. (def:0)\n"
+        "  -upload:<####>[unit]     The length of bytes to send on each stream, with an optional (time or length) unit. (def:0)\n"
+        "  -download:<####>[unit]   The length of bytes to receive on each stream, with an optional (time or length) unit. (def:0)\n"
         "  -iosize:<####>           The size of each send request queued.\n"
-        "  -timed:<0/1>             Indicates the upload/download args are times (in ms). (def:0)\n"
         //"  -inline:<0/1>            Create new streams on callbacks. (def:0)\n"
         "  -rconn:<0/1>             Repeat the scenario at the connection level. (def:0)\n"
         "  -rstream:<0/1>           Repeat the scenario at the stream level. (def:0)\n"
-        "  -runtime:<####>          The total runtime (in ms). Only relevant for repeat scenarios. (def:0)\n"
+        "  -runtime:<####>[unit]    The total runtime, with an optional unit (def unit is us). Only relevant for repeat scenarios. (def:0)\n"
         "\n"
         "Both (client & server) options:\n"
-        "  -exec:<profile>          Execution profile to use {lowlat, maxtput, scavenger, realtime}.\n"
-        "  -cc:<algo>               Congestion control algorithm to use {cubic, bbr}.\n"
+        "  -exec:<profile>          Execution profile to use.\n"
+        "                            - {lowlat, maxtput, scavenger, realtime}.\n"
+        "  -cc:<algo>               Congestion control algorithm to use.\n"
+        "                            - {cubic, bbr}.\n"
         "  -pollidle:<time_us>      Amount of time to poll while idle before sleeping (default: 0).\n"
         "  -ecn:<0/1>               Enables/disables sender-side ECN support. (def:0)\n"
         "  -qeo:<0/1>               Allows/disallowes QUIC encryption offload. (def:0)\n"
+        "  -io:<mode>               Configures a requested network IO model to be used.\n"
+        "                            - {iocp, rio, xdp, qtip, wsk, epoll, kqueue}\n"
 #ifndef _KERNEL_MODE
         "  -cpu:<cpu_index>         Specify the processor(s) to use.\n"
         "  -cipher:<value>          Decimal value of 1 or more QUIC_ALLOWED_CIPHER_SUITE_FLAGS.\n"
-        "  -qtip:<0/1>              Enables/disables QUIC over TCP support. (def:0)\n"
-        "  -rio:<0/1>               Enables/disables RIO support. (def:0)\n"
 #endif // _KERNEL_MODE
         "\n",
         PERF_DEFAULT_PORT,
@@ -108,7 +109,7 @@ QuicMainStart(
     _In_ int argc,
     _In_reads_(argc) _Null_terminated_ char* argv[],
     _In_ CXPLAT_EVENT* StopEvent,
-    _In_ const QUIC_CREDENTIAL_CONFIG* SelfSignedCredConfig
+    _In_opt_ const QUIC_CREDENTIAL_CONFIG* SelfSignedCredConfig
     ) {
     argc--; argv++; // Skip app name
 
@@ -121,12 +122,7 @@ QuicMainStart(
     // Try to see if there is a client target specified on the command line to
     // determine if we are a client or server.
     //
-    const char* Target = nullptr;
-    TryGetValue(argc, argv, "target", &Target);
-    TryGetValue(argc, argv, "server", &Target);
-    TryGetValue(argc, argv, "to", &Target);
-    TryGetValue(argc, argv, "remote", &Target);
-    TryGetValue(argc, argv, "peer", &Target);
+    const char* Target = TryGetTarget(argc, argv);
 
     TryGetValue(argc, argv, "maxruntime", &MaxRuntime);
 
@@ -143,14 +139,14 @@ QuicMainStart(
     bool SetConfig = false;
 
 #ifndef _KERNEL_MODE
-    uint8_t QuicOverTcpEnabled;
-    if (TryGetValue(argc, argv, "qtip", &QuicOverTcpEnabled)) {
+    const char* IoMode = GetValue(argc, argv, "io");
+
+    if (IoMode && IsValue(IoMode, "qtip")) {
         Config->Flags |= QUIC_EXECUTION_CONFIG_FLAG_QTIP;
         SetConfig = true;
     }
 
-    uint8_t RioEnabled;
-    if (TryGetValue(argc, argv, "rio", &RioEnabled)) {
+    if (IoMode && IsValue(IoMode, "rio")) {
         Config->Flags |= QUIC_EXECUTION_CONFIG_FLAG_RIO;
         SetConfig = true;
     }
@@ -159,7 +155,7 @@ QuicMainStart(
     if ((CpuStr = GetValue(argc, argv, "cpu")) != nullptr) {
         SetConfig = true;
         if (strtol(CpuStr, nullptr, 10) == -1) {
-            for (uint16_t i = 0; i < CxPlatProcActiveCount() && Config->ProcessorCount < 256; ++i) {
+            for (uint16_t i = 0; i < CxPlatProcCount() && Config->ProcessorCount < 256; ++i) {
                 Config->ProcessorList[Config->ProcessorCount++] = i;
             }
         } else {
@@ -219,7 +215,7 @@ QuicMainStart(
 
     uint32_t WatchdogTimeout = 0;
     if (TryGetValue(argc, argv, "watchdog", &WatchdogTimeout) && WatchdogTimeout != 0) {
-        Watchdog = new(std::nothrow) CxPlatWatchdog(WatchdogTimeout, "perf_watchdog");
+        Watchdog = new(std::nothrow) CxPlatWatchdog(WatchdogTimeout, "perf_watchdog", true);
     }
 
     const CXPLAT_UDP_DATAPATH_CALLBACKS DatapathCallbacks = {
@@ -234,19 +230,20 @@ QuicMainStart(
 
     if (Target) {
         Client = new(std::nothrow) PerfClient;
-        if ((QUIC_SUCCEEDED(Status = Client->Init(argc, argv, Target, Datapath)) &&
+        if ((QUIC_SUCCEEDED(Status = Client->Init(argc, argv, Target)) &&
              QUIC_SUCCEEDED(Status = Client->Start(StopEvent)))) {
             return QUIC_STATUS_SUCCESS;
         }
     } else {
+        CXPLAT_FRE_ASSERT(SelfSignedCredConfig);
         Server = new(std::nothrow) PerfServer(SelfSignedCredConfig);
-        if ((QUIC_SUCCEEDED(Status = Server->Init(argc, argv, Datapath)) &&
+        if ((QUIC_SUCCEEDED(Status = Server->Init(argc, argv)) &&
              QUIC_SUCCEEDED(Status = Server->Start(StopEvent)))) {
             return QUIC_STATUS_SUCCESS;
         }
     }
 
-    PrintHelp();
+    WriteOutput("\nPlease run 'secnetperf -help' for command line options.\n");
 
     return Status; // QuicMainFree is called on failure
 }

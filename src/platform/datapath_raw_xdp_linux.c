@@ -633,7 +633,7 @@ CxPlatDpRawGetDatapathSize(
     )
 {
     const uint32_t PartitionCount =
-        (Config && Config->ProcessorCount) ? Config->ProcessorCount : CxPlatProcMaxCount();
+        (Config && Config->ProcessorCount) ? Config->ProcessorCount : CxPlatProcCount();
     return sizeof(XDP_DATAPATH) + (PartitionCount * sizeof(XDP_PARTITION));
 }
 

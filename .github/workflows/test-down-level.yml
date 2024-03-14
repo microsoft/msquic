@@ -23,7 +23,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        release: ['2.0.6','2.1.9','2.2.3']
+        release: ['2.0.6','2.1.9','2.2.3','2.3.0']
         os: [ubuntu-20.04, windows-latest]
         arch: [x64]
         tls: [schannel, openssl] # TODO - add openssl3
@@ -36,7 +36,7 @@ jobs:
     name: Test
     steps:
     - name: Harden Runner
-      uses: step-security/harden-runner@eb238b55efaa70779f274895e782ed17c84f2895
+      uses: step-security/harden-runner@63c24ba6bd7ba022e95695ff85de572c04a18142
       with:
         egress-policy: audit
     - name: Checkout repository

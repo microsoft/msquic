@@ -69,6 +69,25 @@ TRACEPOINT_EVENT(CLOG_TLS_SCHANNEL_C, SchannelAchCompleteInline,
 
 
 /*----------------------------------------------------------
+// Decoder Ring for SchannelOutBufferTooSmall
+// [conn][%p] Increasing TLS output buffer size
+// QuicTraceLogConnInfo(
+            SchannelOutBufferTooSmall,
+            TlsContext->Connection,
+            "Increasing TLS output buffer size");
+// arg1 = arg1 = TlsContext->Connection = arg1
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_TLS_SCHANNEL_C, SchannelOutBufferTooSmall,
+    TP_ARGS(
+        const void *, arg1), 
+    TP_FIELDS(
+        ctf_integer_hex(uint64_t, arg1, arg1)
+    )
+)
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for SchannelHandshakeComplete
 // [conn][%p] Handshake complete (resume=%hu)
 // QuicTraceLogConnInfo(

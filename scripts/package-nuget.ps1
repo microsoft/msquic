@@ -112,6 +112,8 @@ foreach ($Arch in $Architectures) {
 
 $HeaderDir = Join-Path $RootDir "src/inc"
 $Headers = @(Join-Path $HeaderDir "msquic.h")
+$Headers += Join-Path $HeaderDir  "msquicp.h"
+$Headers += Join-Path $HeaderDir  "msquic.hpp"
 $Headers += Join-Path $HeaderDir  "msquic_winuser.h"
 
 $IncludePath = Join-Path $NativeDir "include"
@@ -151,7 +153,7 @@ $DistDir = Join-Path $BaseArtifactsDir "dist"
 $CurrentCommitHash = Get-GitHash -RepoDir $RootDir
 $RepoRemote = Get-GitRemote -RepoDir $RootDir
 
-$Version = "2.3.0"
+$Version = "2.4.0"
 
 $BuildId = $env:BUILD_BUILDID
 if ($null -ne $BuildId) {

@@ -106,7 +106,7 @@ TcpEngine::TcpEngine(
     TcpConnectHandler ConnectHandler,
     TcpReceiveHandler ReceiveHandler,
     TcpSendCompleteHandler SendCompleteHandler) noexcept :
-    ProcCount((uint16_t)CxPlatProcActiveCount()), Workers(new(std::nothrow) TcpWorker[ProcCount]),
+    ProcCount((uint16_t)CxPlatProcCount()), Workers(new(std::nothrow) TcpWorker[ProcCount]),
     AcceptHandler(AcceptHandler), ConnectHandler(ConnectHandler),
     ReceiveHandler(ReceiveHandler), SendCompleteHandler(SendCompleteHandler)
 {
@@ -122,10 +122,12 @@ TcpEngine::TcpEngine(
 TcpEngine::~TcpEngine() noexcept
 {
     // Loop over all connections and shut them down.
+    ShuttingDown = true;
     ConnectionLock.Acquire();
-    while (!CxPlatListIsEmpty(&Connections)) {
-        auto Connection = (TcpConnection*)CxPlatListRemoveHead(&Connections);
-        Connection->EngineEntry.Flink = NULL;
+    CXPLAT_LIST_ENTRY* Entry = Connections.Flink;
+    while (Entry != &Connections) {
+        auto Connection = (TcpConnection*)Entry;
+        Entry = Entry->Flink;
         Connection->Shutdown = true;
         Connection->TotalSendCompleteOffset = UINT64_MAX;
         Connection->Queue();
@@ -140,16 +142,23 @@ TcpEngine::~TcpEngine() noexcept
     delete [] Workers;
 }
 
-void TcpEngine::AddConnection(TcpConnection* Connection, uint16_t PartitionIndex)
+bool TcpEngine::AddConnection(TcpConnection* Connection, uint16_t PartitionIndex)
 {
+    bool Added = false;
     CXPLAT_DBG_ASSERT(PartitionIndex < ProcCount);
     CXPLAT_DBG_ASSERT(!Connection->Worker);
     Connection->PartitionIndex = PartitionIndex;
     Connection->Worker = &Workers[PartitionIndex];
-    CXPLAT_FRE_ASSERT(Rundown.Acquire());
-    ConnectionLock.Acquire();
-    CxPlatListInsertTail(&Connections, &Connection->EngineEntry);
-    ConnectionLock.Release();
+    if (Rundown.Acquire()) {
+        Connection->HasRundownRef = true;
+        ConnectionLock.Acquire();
+        if (!ShuttingDown) {
+            CxPlatListInsertTail(&Connections, &Connection->EngineEntry);
+            Added = true;
+        }
+        ConnectionLock.Release();
+    }
+    return Added;
 }
 
 void TcpEngine::RemoveConnection(TcpConnection* Connection)
@@ -157,10 +166,11 @@ void TcpEngine::RemoveConnection(TcpConnection* Connection)
     ConnectionLock.Acquire();
     if (Connection->EngineEntry.Flink) {
         CxPlatListEntryRemove(&Connection->EngineEntry);
-        Connection->EngineEntry.Flink = NULL;
     }
     ConnectionLock.Release();
-    Rundown.Release();
+    if (Connection->HasRundownRef) {
+        Rundown.Release();
+    }
 }
 
 // ############################# WORKER #############################
@@ -315,12 +325,6 @@ TcpServer::AcceptCallback(
 TcpConnection::TcpConnection(
     TcpEngine* Engine,
     const QUIC_CREDENTIAL_CONFIG* CredConfig,
-    _In_ QUIC_ADDRESS_FAMILY Family,
-    _In_reads_or_z_opt_(QUIC_MAX_SNI_LENGTH)
-        const char* ServerName,
-    _In_ uint16_t ServerPort,
-    const QUIC_ADDR* LocalAddress,
-    const QUIC_ADDR* RemoteAddress,
     void* Context) :
     IsServer(false), Engine(Engine), Context(Context)
 {
@@ -340,6 +344,22 @@ TcpConnection::TcpConnection(
         WriteOutput("SecConfig load FAILED\n");
         return;
     }
+    Initialized = true;
+}
+
+bool
+TcpConnection::Start(
+    _In_ QUIC_ADDRESS_FAMILY Family,
+    _In_reads_or_z_opt_(QUIC_MAX_SNI_LENGTH)
+        const char* ServerName,
+    _In_ uint16_t ServerPort,
+    const QUIC_ADDR* LocalAddress,
+    const QUIC_ADDR* RemoteAddress
+    )
+{
+    if (!Engine->AddConnection(this, (uint16_t)CxPlatProcCurrentNumber())) {
+        return false;
+    }
     if (LocalAddress) {
         Family = QuicAddrGetFamily(LocalAddress);
     }
@@ -353,12 +373,10 @@ TcpConnection::TcpConnection(
                 ServerName,
                 &Route.RemoteAddress))) {
             WriteOutput("CxPlatDataPathResolveAddress FAILED\n");
-            return;
+            return false;
         }
     }
     QuicAddrSetPort(&Route.RemoteAddress, ServerPort);
-    Engine->AddConnection(this, 0); // TODO - Correct index
-    Initialized = true;
     if (QUIC_FAILED(
         CxPlatSocketCreateTcp(
             Datapath,
@@ -366,10 +384,10 @@ TcpConnection::TcpConnection(
             &Route.RemoteAddress,
             this,
             &Socket))) {
-        Initialized = false;
-        return;
+        return false;
     }
     Queue();
+    return true;
 }
 
 TcpConnection::TcpConnection(
@@ -389,7 +407,7 @@ TcpConnection::TcpConnection(
         this);
     Initialized = true;
     IndicateAccept = true;
-    Engine->AddConnection(this, 0); // TODO - Correct index
+    CXPLAT_FRE_ASSERT(Engine->AddConnection(this, (uint16_t)CxPlatProcCurrentNumber()));
     Queue();
 }
 
@@ -719,7 +737,7 @@ bool TcpConnection::SendTlsData(const uint8_t* Buffer, uint16_t BufferLength, ui
 {
     auto SendBuffer = NewSendBuffer();
     if (!SendBuffer) {
-        WriteOutput("NewSendBuffer FAILED\n");
+        //WriteOutput("NewSendBuffer FAILED\n");
         return false;
     }
 
@@ -898,7 +916,7 @@ bool TcpConnection::ProcessSend()
         do {
             auto SendBuffer = NewSendBuffer();
             if (!SendBuffer) {
-                WriteOutput("NewSendBuffer FAILED\n");
+                //WriteOutput("NewSendBuffer FAILED\n");
                 return false;
             }
 
@@ -1000,6 +1018,9 @@ bool TcpConnection::EncryptFrame(TcpFrame* Frame)
 
 QUIC_BUFFER* TcpConnection::NewSendBuffer()
 {
+    if (Shutdown || !Socket) { // Queue (from Engine shutdown) happened before socket creation finished
+        return nullptr;
+    }
     if (!BatchedSendData) {
         CXPLAT_SEND_CONFIG SendConfig = { &Route, TLS_BLOCK_SIZE, CXPLAT_ECN_NON_ECT, 0 };
         BatchedSendData = CxPlatSendDataAlloc(Socket, &SendConfig);
@@ -1064,7 +1085,8 @@ void TcpConnection::Close()
         "[perf][tcp][%p] App Close",
         this);
     if (!Initialized) {
-         // no-op
+        ClosedByApp = true;
+        Closed = true;
     } else if (WorkerThreadID == CxPlatCurThreadID()) {
         ClosedByApp = true;
         Shutdown = true;

@@ -42,9 +42,13 @@ on:
         required: false
         default: ''
         type: string
-      test:
+      sanitize:
         required: false
         default: ''
+        type: string
+      build:
+        required: false
+        default: '' # Empty string means build all
         type: string
 
 permissions: read-all
@@ -61,8 +65,8 @@ jobs:
       static: ${{ inputs.static }}
       systemcrypto: '-UseSystemOpenSSLCrypto' # packages must use libcrypto on system
       clang: ${{ inputs.clang }}
-      test: ${{ inputs.test }}
-  
+      build: ${{ inputs.build }}
+
   package:
     name: Package
     needs: [build-unix-reuse]
@@ -76,9 +80,9 @@ jobs:
       shell: pwsh
       run: scripts/prepare-machine.ps1 -ForBuild
     - name: Download Build Artifacts
-      uses: actions/download-artifact@9bc31d5ccc31df68ecc42ccf4149144866c47d8a
+      uses: actions/download-artifact@6b208ae046db98c579e8a3aa621ab581ff575935
       with:
-        name: ${{ inputs.config }}-linux-${{ inputs.os }}-${{ inputs.arch }}-${{ inputs.tls }}-UseSystemOpenSSLCrypto${{ inputs.sanitize }}${{ inputs.test }}
+        name: ${{ inputs.config }}-linux-${{ inputs.os }}-${{ inputs.arch }}-${{ inputs.tls }}-UseSystemOpenSSLCrypto${{ inputs.sanitize }}${{ inputs.build }}
         path: artifacts
     - name: Extract binaries # they are tar'd to preserve permissions and symlinks.
       run: |
@@ -89,7 +93,7 @@ jobs:
       shell: pwsh
       run: scripts/package-distribution.ps1
     - name: Upload build artifacts
-      uses: actions/upload-artifact@a8a3f3ad30e3422c9c7b888a15615d19a852ae32
+      uses: actions/upload-artifact@26f96dfa697d77e81fd5907df203aa23a56210a8
       with:
-        name: Package-${{ inputs.config }}-linux-${{ inputs.os }}-${{ inputs.arch }}-${{ inputs.tls }}-UseSystemOpenSSLCrypto${{ inputs.sanitize }}${{ inputs.test }}
+        name: Package-${{ inputs.config }}-linux-${{ inputs.os }}-${{ inputs.arch }}-${{ inputs.tls }}-UseSystemOpenSSLCrypto${{ inputs.sanitize }}${{ inputs.build }}
         path: artifacts/dist

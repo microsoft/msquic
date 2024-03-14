@@ -10,6 +10,10 @@ Abstract:
 
     For more detailed information, see ../docs/API.md
 
+    NOTE! This header file not guaranteed to remain binary compatible between
+    releases. It is included here for convenience only. For a stable interface
+    use msquic.h.
+
 Supported Platforms:
 
     Windows User mode
@@ -83,6 +87,16 @@ struct CxPlatLockDispatch {
     void Acquire() noexcept { CxPlatDispatchLockAcquire(&Handle); }
     void Release() noexcept { CxPlatDispatchLockRelease(&Handle); }
 };
+
+struct CxPlatRwLockDispatch {
+    CXPLAT_DISPATCH_RW_LOCK Handle;
+    CxPlatRwLockDispatch() noexcept { CxPlatDispatchRwLockInitialize(&Handle); }
+    ~CxPlatRwLockDispatch() noexcept { CxPlatDispatchRwLockUninitialize(&Handle); }
+    void AcquireShared() noexcept { CxPlatDispatchRwLockAcquireShared(&Handle); }
+    void AcquireExclusive() noexcept { CxPlatDispatchRwLockAcquireExclusive(&Handle); }
+    void ReleaseShared() noexcept { CxPlatDispatchRwLockReleaseShared(&Handle); }
+    void ReleaseExclusive() noexcept { CxPlatDispatchRwLockReleaseExclusive(&Handle); }
+};
 #pragma warning(pop)
 
 struct CxPlatPool {
@@ -134,11 +148,11 @@ public:
 
 #ifdef CXPLAT_HASH_MIN_SIZE
 
-struct HashTable {
+struct CxPlatHashTable {
     bool Initialized;
     CXPLAT_HASHTABLE Table;
-    HashTable() noexcept { Initialized = CxPlatHashtableInitializeEx(&Table, CXPLAT_HASH_MIN_SIZE); }
-    ~HashTable() noexcept { if (Initialized) { CxPlatHashtableUninitialize(&Table); } }
+    CxPlatHashTable() noexcept { Initialized = CxPlatHashtableInitializeEx(&Table, CXPLAT_HASH_MIN_SIZE); }
+    ~CxPlatHashTable() noexcept { if (Initialized) { CxPlatHashtableUninitialize(&Table); } }
     void Insert(CXPLAT_HASHTABLE_ENTRY* Entry) noexcept { CxPlatHashtableInsert(&Table, Entry, Entry->Signature, nullptr); }
     void Remove(CXPLAT_HASHTABLE_ENTRY* Entry) noexcept { CxPlatHashtableRemove(&Table, Entry, nullptr); }
     CXPLAT_HASHTABLE_ENTRY* Lookup(uint64_t Signature) noexcept {
@@ -197,20 +211,30 @@ public:
 
 #ifdef CXPLAT_FRE_ASSERT
 
+#ifndef _KERNEL_MODE
+#include <stdio.h> // For printf below
+#endif
+
 class CxPlatWatchdog {
     CxPlatEvent ShutdownEvent {true};
     CxPlatThread WatchdogThread;
     uint32_t TimeoutMs;
+    bool WriteToConsole;
     static CXPLAT_THREAD_CALLBACK(WatchdogThreadCallback, Context) {
         auto This = (CxPlatWatchdog*)Context;
         if (!This->ShutdownEvent.WaitTimeout(This->TimeoutMs)) {
+#ifndef _KERNEL_MODE // Not supported in kernel mode
+            if (This->WriteToConsole) {
+                printf("Error: Watchdog timeout fired!\n");
+            }
+#endif
             CXPLAT_FRE_ASSERTMSG(FALSE, "Watchdog timeout fired!");
         }
         CXPLAT_THREAD_RETURN(0);
     }
 public:
-    CxPlatWatchdog(uint32_t WatchdogTimeoutMs, const char* Name = "cxplat_watchdog") noexcept
-        : TimeoutMs(WatchdogTimeoutMs) {
+    CxPlatWatchdog(uint32_t WatchdogTimeoutMs, const char* Name = "cxplat_watchdog", bool WriteToConsole = false) noexcept
+        : TimeoutMs(WatchdogTimeoutMs), WriteToConsole(WriteToConsole) {
         CXPLAT_THREAD_CONFIG Config;
         memset(&Config, 0, sizeof(CXPLAT_THREAD_CONFIG));
         Config.Name = Name;
@@ -577,6 +601,7 @@ public:
     MsQuicSettings& SetEncryptionOffloadAllowed(bool Value) { EncryptionOffloadAllowed = Value; IsSet.EncryptionOffloadAllowed = TRUE; return *this; }
     MsQuicSettings& SetReliableResetEnabled(bool value) { ReliableResetEnabled = value; IsSet.ReliableResetEnabled = TRUE; return *this; }
     MsQuicSettings& SetOneWayDelayEnabled(bool value) { OneWayDelayEnabled = value; IsSet.OneWayDelayEnabled = TRUE; return *this; }
+    MsQuicSettings& SetNetStatsEventEnabled(bool value) { NetStatsEventEnabled = value; IsSet.NetStatsEventEnabled = TRUE; return *this; }
 #endif
 
     QUIC_STATUS
@@ -854,7 +879,7 @@ struct MsQuicListener {
     QUIC_STATUS
     Start(
         _In_ const MsQuicAlpn& Alpns,
-        _In_ const QUIC_ADDR* Address = nullptr
+        _In_opt_ const QUIC_ADDR* Address = nullptr
         ) noexcept {
         return MsQuic->ListenerStart(Handle, Alpns, Alpns.Length(), Address);
     }

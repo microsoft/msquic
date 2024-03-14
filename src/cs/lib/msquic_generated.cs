@@ -193,6 +193,7 @@ namespace Microsoft.Quic
         FIN = 0x0004,
         DGRAM_PRIORITY = 0x0008,
         DELAY_SEND = 0x0010,
+        CANCEL_ON_LOSS = 0x0020,
     }
 
     internal enum QUIC_DATAGRAM_SEND_STATE
@@ -1331,6 +1332,19 @@ namespace Microsoft.Quic
             }
         }
 
+        internal ulong NetStatsEventEnabled
+        {
+            get
+            {
+                return Anonymous2.Anonymous.NetStatsEventEnabled;
+            }
+
+            set
+            {
+                Anonymous2.Anonymous.NetStatsEventEnabled = value;
+            }
+        }
+
         internal ulong ReservedFlags
         {
             get
@@ -1933,17 +1947,31 @@ namespace Microsoft.Quic
                     }
                 }
 
-                [NativeTypeName("uint64_t : 23")]
-                internal ulong RESERVED
+                [NativeTypeName("uint64_t : 1")]
+                internal ulong NetStatsEventEnabled
                 {
                     get
                     {
-                        return (_bitfield >> 41) & 0x7FFFFFUL;
+                        return (_bitfield >> 41) & 0x1UL;
                     }
 
                     set
                     {
-                        _bitfield = (_bitfield & ~(0x7FFFFFUL << 41)) | ((value & 0x7FFFFFUL) << 41);
+                        _bitfield = (_bitfield & ~(0x1UL << 41)) | ((value & 0x1UL) << 41);
+                    }
+                }
+
+                [NativeTypeName("uint64_t : 22")]
+                internal ulong RESERVED
+                {
+                    get
+                    {
+                        return (_bitfield >> 42) & 0x3FFFFFUL;
+                    }
+
+                    set
+                    {
+                        _bitfield = (_bitfield & ~(0x3FFFFFUL << 42)) | ((value & 0x3FFFFFUL) << 42);
                     }
                 }
             }
@@ -2020,17 +2048,31 @@ namespace Microsoft.Quic
                     }
                 }
 
-                [NativeTypeName("uint64_t : 60")]
-                internal ulong ReservedFlags
+                [NativeTypeName("uint64_t : 1")]
+                internal ulong NetStatsEventEnabled
                 {
                     get
                     {
-                        return (_bitfield >> 4) & 0xFFFFFFFUL;
+                        return (_bitfield >> 4) & 0x1UL;
                     }
 
                     set
                     {
-                        _bitfield = (_bitfield & ~(0xFFFFFFFUL << 4)) | ((value & 0xFFFFFFFUL) << 4);
+                        _bitfield = (_bitfield & ~(0x1UL << 4)) | ((value & 0x1UL) << 4);
+                    }
+                }
+
+                [NativeTypeName("uint64_t : 59")]
+                internal ulong ReservedFlags
+                {
+                    get
+                    {
+                        return (_bitfield >> 5) & 0x7FFFFFFUL;
+                    }
+
+                    set
+                    {
+                        _bitfield = (_bitfield & ~(0x7FFFFFFUL << 5)) | ((value & 0x7FFFFFFUL) << 5);
                     }
                 }
             }
@@ -2314,6 +2356,7 @@ namespace Microsoft.Quic
         PEER_CERTIFICATE_RECEIVED = 15,
         RELIABLE_RESET_NEGOTIATED = 16,
         ONE_WAY_DELAY_NEGOTIATED = 17,
+        NETWORK_STATISTICS = 18,
     }
 
     internal partial struct QUIC_CONNECTION_EVENT
@@ -2467,6 +2510,14 @@ namespace Microsoft.Quic
             }
         }
 
+        internal ref _Anonymous_e__Union._NETWORK_STATISTICS_e__Struct NETWORK_STATISTICS
+        {
+            get
+            {
+                return ref MemoryMarshal.GetReference(MemoryMarshal.CreateSpan(ref Anonymous.NETWORK_STATISTICS, 1));
+            }
+        }
+
         [StructLayout(LayoutKind.Explicit)]
         internal partial struct _Anonymous_e__Union
         {
@@ -2541,6 +2592,10 @@ namespace Microsoft.Quic
             [FieldOffset(0)]
             [NativeTypeName("struct (anonymous struct)")]
             internal _ONE_WAY_DELAY_NEGOTIATED_e__Struct ONE_WAY_DELAY_NEGOTIATED;
+
+            [FieldOffset(0)]
+            [NativeTypeName("struct (anonymous struct)")]
+            internal _NETWORK_STATISTICS_e__Struct NETWORK_STATISTICS;
 
             internal unsafe partial struct _CONNECTED_e__Struct
             {
@@ -2731,6 +2786,27 @@ namespace Microsoft.Quic
                 [NativeTypeName("BOOLEAN")]
                 internal byte ReceiveNegotiated;
             }
+
+            internal partial struct _NETWORK_STATISTICS_e__Struct
+            {
+                [NativeTypeName("uint32_t")]
+                internal uint BytesInFlight;
+
+                [NativeTypeName("uint64_t")]
+                internal ulong PostedBytes;
+
+                [NativeTypeName("uint64_t")]
+                internal ulong IdealBytes;
+
+                [NativeTypeName("uint64_t")]
+                internal ulong SmoothedRTT;
+
+                [NativeTypeName("uint32_t")]
+                internal uint CongestionWindow;
+
+                [NativeTypeName("uint64_t")]
+                internal ulong Bandwidth;
+            }
         }
     }
 
@@ -2746,6 +2822,7 @@ namespace Microsoft.Quic
         SHUTDOWN_COMPLETE = 7,
         IDEAL_SEND_BUFFER_SIZE = 8,
         PEER_ACCEPTED = 9,
+        CANCEL_ON_LOSS = 10,
     }
 
     internal partial struct QUIC_STREAM_EVENT
@@ -2819,6 +2896,14 @@ namespace Microsoft.Quic
             }
         }
 
+        internal ref _Anonymous_e__Union._CANCEL_ON_LOSS_e__Struct CANCEL_ON_LOSS
+        {
+            get
+            {
+                return ref MemoryMarshal.GetReference(MemoryMarshal.CreateSpan(ref Anonymous.CANCEL_ON_LOSS, 1));
+            }
+        }
+
         [StructLayout(LayoutKind.Explicit)]
         internal partial struct _Anonymous_e__Union
         {
@@ -2853,6 +2938,10 @@ namespace Microsoft.Quic
             [FieldOffset(0)]
             [NativeTypeName("struct (anonymous struct)")]
             internal _IDEAL_SEND_BUFFER_SIZE_e__Struct IDEAL_SEND_BUFFER_SIZE;
+
+            [FieldOffset(0)]
+            [NativeTypeName("struct (anonymous struct)")]
+            internal _CANCEL_ON_LOSS_e__Struct CANCEL_ON_LOSS;
 
             internal partial struct _START_COMPLETE_e__Struct
             {
@@ -3010,6 +3099,12 @@ namespace Microsoft.Quic
             {
                 [NativeTypeName("uint64_t")]
                 internal ulong ByteCount;
+            }
+
+            internal partial struct _CANCEL_ON_LOSS_e__Struct
+            {
+                [NativeTypeName("QUIC_UINT62")]
+                internal ulong ErrorCode;
             }
         }
     }
