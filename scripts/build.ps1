@@ -212,7 +212,10 @@ param (
     [switch]$OneBranch = $false,
 
     [Parameter(Mandatory = $false)]
-    [string]$ToolchainFile = ""
+    [string]$ToolchainFile = "",
+
+    [Parameter(Mandatory = $false)]
+    [switch]$UseXdp = $false
 )
 
 Set-StrictMode -Version 'Latest'
@@ -363,6 +366,9 @@ function CMake-Generate {
         }
     } else {
         $Arguments += "-G $Generator"
+        if ($UseXdp) {
+            $Arguments += " -DQUIC_USE_XDP=on"
+        }
     }
     if ($Platform -eq "ios") {
         $IosTCFile = Join-Path $RootDir cmake toolchains ios.cmake

@@ -294,7 +294,9 @@ CxPlatSocketCreateUdp(
         goto Error;
     }
 
-    // (*NewSocket)->RawSocketAvailable = 0;
+#ifndef QUIC_USE_XDP
+    (*NewSocket)->RawSocketAvailable = 0;
+#else
     if (Datapath->RawDataPath) {
         Status =
             RawSocketCreateUdp(
@@ -313,6 +315,7 @@ CxPlatSocketCreateUdp(
             Status = QUIC_STATUS_SUCCESS;
         }
     }
+#endif
 
 Error:
     return Status;

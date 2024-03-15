@@ -655,7 +655,7 @@ CxPlatDpRawInitialize(
     if (Config && Config->ProcessorCount) {
         Xdp->PartitionCount = Config->ProcessorCount;
     } else {
-        Xdp->PartitionCount = CxPlatProcMaxCount();
+        Xdp->PartitionCount = CxPlatProcCount();
     }
 
     QuicTraceLogVerbose(
