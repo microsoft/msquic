@@ -251,6 +251,9 @@ QuicOperationQueueClear(
                     *ApiCtx->Status = QUIC_STATUS_INVALID_STATE;
                     CxPlatEventSet(*ApiCtx->Completed);
                 }
+                if (ApiCtx->Type == QUIC_API_TYPE_STRM_RECV_COMPLETE) {
+                    QuicStreamRelease(ApiCtx->STRM_RECV_COMPLETE.Stream, QUIC_STREAM_REF_OPERATION);
+                }
             }
         }
     }

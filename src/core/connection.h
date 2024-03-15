@@ -393,6 +393,11 @@ typedef struct QUIC_CONNECTION {
     uint8_t DestCidCount;
 
     //
+    // Number of retired desintation CIDs we currently have cached.
+    //
+    uint8_t RetiredDestCidCount;
+
+    //
     // The maximum number of source CIDs to give the peer. This is a minimum of
     // what we're willing to support and what the peer is willing to accept.
     //
@@ -670,7 +675,9 @@ typedef struct QUIC_SERIALIZED_RESUMPTION_STATE {
     1024 /* Extra QUIC stuff */ \
 )
 
-#ifdef CxPlatVerifierEnabledByAddr
+#if DEBUG // Enable all verifier checks in debug builds
+#define QUIC_CONN_VERIFY(Connection, Expr) CXPLAT_FRE_ASSERT(Expr)
+#elif defined(CxPlatVerifierEnabledByAddr)
 #define QUIC_CONN_VERIFY(Connection, Expr) \
     if (Connection->State.IsVerifying) { CXPLAT_FRE_ASSERT(Expr); }
 #elif defined(CxPlatVerifierEnabled)

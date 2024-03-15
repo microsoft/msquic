@@ -374,6 +374,9 @@ QUIC_STATUS QUIC_API SpinQuicHandleStreamEvent(HQUIC Stream, void* , QUIC_STREAM
     case QUIC_STREAM_EVENT_PEER_SEND_SHUTDOWN:
         MsQuic.StreamShutdown(Stream, (QUIC_STREAM_SHUTDOWN_FLAGS)GetRandom(16), 0);
         break;
+    case QUIC_STREAM_EVENT_PEER_SEND_ABORTED:
+        ctx->PendingRecvLength = 0;
+        break;
     case QUIC_STREAM_EVENT_RECEIVE: {
         int Random = GetRandom(5);
         if (Random == 0) {
@@ -997,7 +1000,12 @@ void Spin(Gbs& Gb, LockableVector<HQUIC>& Connections, std::vector<HQUIC>* Liste
                 std::lock_guard<std::mutex> Lock(ctx->Lock);
                 auto Stream = ctx->TryGetStream();
                 if (Stream == nullptr) continue;
-                MsQuic.StreamShutdown(Stream, (QUIC_STREAM_SHUTDOWN_FLAGS)GetRandom(16), 0);
+                auto Flags = (QUIC_STREAM_SHUTDOWN_FLAGS)GetRandom(16);
+                if (Flags & QUIC_STREAM_SHUTDOWN_FLAG_ABORT_RECEIVE) {
+                    auto StreamCtx = SpinQuicStream::Get(Stream);
+                    StreamCtx->PendingRecvLength = 0;
+                }
+                MsQuic.StreamShutdown(Stream, Flags, 0);
             }
             break;
         }

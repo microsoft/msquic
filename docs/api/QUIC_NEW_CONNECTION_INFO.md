@@ -72,6 +72,15 @@ This pointer indicates the negotiated ALPN between server and client.
 
 This pointer indicates the server name (SNI) of the new incoming connection.
 
+> Note: this buffer comes directly from the TLS ClientHello, and its format is governed by TLS.
+> From [RFC 6066](https://www.rfc-editor.org/rfc/rfc6066#section-3):
+> > "HostName" contains the fully qualified DNS hostname of the server,
+> > as understood by the client.  The hostname is represented as a byte
+> > string using ASCII encoding without a trailing dot.  This allows the
+> > support of internationalized domain names through the use of A-labels
+> > defined in [[RFC5890](https://www.rfc-editor.org/rfc/rfc5890)].  DNS hostnames are case-insensitive.  The
+> > algorithm to compare hostnames is described in [[RFC5890, Section 2.3.2.4](https://www.rfc-editor.org/rfc/rfc5890#section-2.3.2.4)].
+
 # See Also
 
 [QUIC_LISTENER_CALLBACK](QUIC_LISTENER_CALLBACK.md)<br>

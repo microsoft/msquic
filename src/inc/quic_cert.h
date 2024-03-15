@@ -139,22 +139,6 @@ CxPlatCertDeletePrivateKey(
     );
 
 //
-// Uses the certificate to sign the cert list.
-//
-_Success_(return != FALSE)
-BOOLEAN
-CxPlatCertSign(
-    _In_ void* PrivateKey,
-    _In_ const uint16_t SignatureAlgorithm,
-    _In_reads_(CertListToBeSignedLength)
-        const uint8_t *CertListToBeSigned,
-    _In_ size_t CertListToBeSignedLength,
-    _Out_writes_to_(*SignatureLength, *SignatureLength)
-        uint8_t *Signature,
-    _Inout_ size_t *SignatureLength
-    );
-
-//
 // Validates the signature of the cert list for the given certificate.
 //
 _Success_(return != FALSE)

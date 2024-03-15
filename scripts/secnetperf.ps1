@@ -201,38 +201,8 @@ $allTests["tput-down"] = "-exec:maxtput -down:12s -ptput:1"
 $allTests["hps-conns-100"] = "-exec:maxtput -rconn:1 -share:1 -conns:100 -run:12s -prate:1"
 $allTests["rps-up-512-down-4000"] = "-exec:lowlat -rstream:1 -up:512 -down:4000 -run:20s -plat:1"
 
-$envIDClient = "__CLIENT_ENV__"
-$envIDServer = "__SERVER_ENV__"
 $hasFailures = $false
-
 $json["run_args"] = $allTests
-
-function CheckRegressionTput($values, $testid, $transport, $regressionJson) {
-    # Returns true if there is a regression in this new run.
-
-    $sum = 0
-    foreach ($item in $values) {
-        $sum += $item
-    }
-    $avg = $sum / $values.Length
-    $envStr = "$os-$arch-$environment-$io-$tls"
-    $Testid = "$testid-$transport"
-    try {
-        $baseline = $regressionJson.$Testid.$envStr.baseline
-    } catch {
-        Write-Host "No regression baseline found"
-        return $false
-    }
-    if ($avg -lt $baseline) {
-        Write-GHError "Regression detected in $Testid for $envStr. Baseline: $baseline, New: $avg"
-    }
-    return $avg -lt $baseline
-}
-
-function CheckRegressionLat($values, $regressionJson) {
-    # TODO: Generate and collect latency thresholds.
-    return $false
-}
 
 try {
 
@@ -283,8 +253,8 @@ if (!$isWindows) {
     sudo sh -c "echo -n "%e.client.%p.%t.core" > /proc/sys/kernel/core_pattern"
 }
 
-Write-Host "Fetching regression.json"
-$regressionJson = Get-Content -Raw -Path "regression.json" | ConvertFrom-Json
+Write-Host "Fetching watermark_regression.json"
+$regressionJson = Get-Content -Raw -Path "watermark_regression.json" | ConvertFrom-Json
 
 # Run all the test cases.
 Write-Host "Setup complete! Running all tests"
@@ -298,14 +268,15 @@ foreach ($testId in $allTests.Keys) {
         if ($Test.Values[$tcp].Length -eq 0) { continue }
         $transport = $tcp -eq 1 ? "tcp" : "quic"
         $json["$testId-$transport"] = $Test.Values[$tcp]
-        if ($Test.Metric -eq "throughput" -or $Test.Metric -eq "hps") {
-            if (CheckRegressionTput $Test.Values[$tcp] $testId $transport $regressionJson) {
-                $hasFailures = $true
-            }
-        } elseif ($Test.Metric -eq "latency") {
+        $ResultRegression = CheckRegressionResult $Test.Values[$tcp] $testId $transport $regressionJson "$os-$arch-$environment-$io-$tls"
+        if ($ResultRegression -ne "NULL") {
+            $json["$testId-$transport-regression"] = $ResultRegression
+        }
+        if ($Test.Metric -eq "latency") {
             $json["$testId-$transport-lat"] = $Test.Latency[$tcp]
-            if (CheckRegressionLat $Test.Latency[$tcp] $regressionJson) {
-                $hasFailures = $true
+            $LatencyRegression = CheckRegressionLat $Test.Values[$tcp] $regressionJson $testId $transport "$os-$arch-$environment-$io-$tls"
+            if ($LatencyRegression -ne "NULL") {
+                $json["$testId-$transport-lat-regression"] = $LatencyRegression
             }
         }
     }

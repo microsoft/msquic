@@ -149,7 +149,6 @@ typedef struct QUIC_API_CONTEXT {
         } STRM_SEND;
         struct {
             QUIC_STREAM* Stream;
-            uint64_t BufferLength;
         } STRM_RECV_COMPLETE;
         struct {
             QUIC_STREAM* Stream;

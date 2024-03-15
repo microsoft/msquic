@@ -37,9 +37,9 @@ This table describes all officially supported MsQuic releases.
 
 | [Type](Release.md#release-support-policies) | Branch | Consumer | Fork Date | Release Date | End of Support | Supported Platforms |
 | -- | -- | -- | -- | -- | -- | -- |
-| SAC | [release/2.1](https://github.com/microsoft/msquic/tree/release/2.1) | [Server 2022](https://docs.microsoft.com/en-us/windows/release-health/status-windows-server-2022)<br>Windows 11<br>.NET 7 | Aug 5 2022 | Oct 5 2022 | Apr 5 2024 | Windows, Linux |
-| SAC | [release/2.2](https://github.com/microsoft/msquic/tree/release/2.2) | Windows 11 | Apr 18 2023 | June 1 2023 | Dec 1 2024 | Windows, Linux |
-| SAC | [release/2.3](https://github.com/microsoft/msquic/tree/release/2.3) | TBD | Jan 26 2024 | TBD | TBD | Windows, Linux |
+| SAC | [release/2.1](https://github.com/microsoft/msquic/tree/release/2.1) | .NET 7 | Aug 5 2022 | Oct 5 2022 | Apr 5 2024 | Windows, Linux |
+| SAC | [release/2.2](https://github.com/microsoft/msquic/tree/release/2.2) | [Windows Server 2022](https://docs.microsoft.com/en-us/windows/release-health/status-windows-server-2022)<br>Windows 11<br> | Apr 18 2023 | June 1 2023 | Dec 1 2024 | Windows, Linux |
+| SAC | [release/2.3](https://github.com/microsoft/msquic/tree/release/2.3) | [Windows Server 2025](https://techcommunity.microsoft.com/t5/windows-server-news-and-best/introducing-windows-server-2025/ba-p/4026374)<br>Windows 11 | Jan 26 2024 | Mar 12 2024 | Sept 12 2025 | Windows, Linux |
 
 <br>\* Future **Release Dates** are subject to change.
 <br>\** **End of Support** dates do not include possible [extended support](https://docs.microsoft.com/en-us/windows-server/get-started-19/servicing-channels-19#long-term-servicing-channel-ltsc) extensions.

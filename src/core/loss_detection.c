@@ -608,6 +608,8 @@ QuicLossDetectionOnPacketAcknowledged(
                 CXPLAT_DBG_ASSERT(DestCid->CID.Retired);
                 CXPLAT_DBG_ASSERT(Path == NULL || Path->DestCid != DestCid);
                 QUIC_CID_VALIDATE_NULL(Connection, DestCid);
+                CXPLAT_DBG_ASSERT(Connection->RetiredDestCidCount > 0);
+                Connection->RetiredDestCidCount--;
                 CXPLAT_FREE(DestCid, QUIC_POOL_CIDLIST);
             }
             break;
