@@ -595,26 +595,13 @@ function CheckRegressionResult($values, $testid, $transport, $regressionJson, $e
     }
 
     try {
-        $baseline = $regressionJson.$Testid.$envStr.baseline
-    } catch {
-        Write-Host "No regression baseline found"
-        return $res
-    }
+        $res.Baseline = $regressionJson.$Testid.$envStr.baseline
+        $res.BestResult = $regressionJson.$Testid.$envStr.BestResult
+        $res.BestResultCommit = $regressionJson.$Testid.$envStr.BestResultCommit
 
-    try {
-        $BestResult = $regressionJson.$Testid.$envStr.BestResult
-        $Noise = $regressionJson.$Testid.$envStr.Noise
-        $BestResultCommit = $regressionJson.$Testid.$envStr.BestResultCommit
-        if ($avg -lt $baseline) {
+        if ($avg -lt $res.Baseline) {
             Write-GHError "🤮 Regression detected in $Testid for $envStr. Baseline: $baseline, New: $avg, BestResult: $BestResult, Noise: $Noise, BestResultCommit: $BestResultCommit"
-            return @{
-                Baseline = $baseline
-                BestResult = $BestResult
-                BestResultCommit = $BestResultCommit
-                CumulativeResult = $avg
-                AggregateFunction = "AVG"
-                HasRegression = $true
-            }
+            $res.HasRegression = $true
         }
     } catch {
         Write-Host "Not using a watermark-based regression method. Skipping."
@@ -648,25 +635,17 @@ function CheckRegressionLat($values, $regressionJson, $testid, $transport, $envS
     }
 
     try {
-        $RPSLowerBound = $regressionJson.$Testid.$envStr.baseline
-        $BestResult = $regressionJson.$Testid.$envStr.BestResult
-        $BestResultCommit = $regressionJson.$Testid.$envStr.BestResultCommit
-    } catch {
-        Write-Host "No regression baseline found"
-        return $res
-    }
+        $res.Baseline = $regressionJson.$Testid.$envStr.baseline
+        $res.BestResult = $regressionJson.$Testid.$envStr.BestResult
+        $res.BestResultCommit = $regressionJson.$Testid.$envStr.BestResultCommit
 
-    if ($RpsAvg -lt $RPSLowerBound) {
-        Write-GHError "RPS Regression detected in $Testid for $envStr."
-        Write-GHError "RPS: $RpsAvg, RPS lower bound: $RPSLowerBound"
-        return @{
-            Baseline = $RPSLowerBound
-            BestResult = $BestResult
-            BestResultCommit = $BestResultCommit
-            CumulativeResult = $RpsAvg
-            AggregateFunction = "AVG"
-            HasRegression = $true
+        if ($RpsAvg -lt $res.Baseline) {
+            Write-GHError "RPS Regression detected in $Testid for $envStr."
+            Write-GHError "RPS: $RpsAvg, RPS lower bound: $RPSLowerBound"
+            $res.HasRegression = $true
         }
+    } catch {
+        Write-Host "Not using a watermark-based regression method."
     }
 
     return $res
