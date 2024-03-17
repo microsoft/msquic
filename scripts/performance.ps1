@@ -275,6 +275,33 @@ $RemotePlatform = Invoke-TestCommand -Session $Session -ScriptBlock {
     }
 }
 
+function Enable-TcpOffload {
+    Get-ChildItem "/sys/class/net" | ForEach-Object {
+        $iface = $_.Name
+        if ((($_.Attributes -band [System.IO.FileAttributes]::Directory) -eq [System.IO.FileAttributes]::Directory) -and
+            $iface -ne "lo") {
+
+            $driver = ethtool -i $iface | Select-String "driver:" | ForEach-Object { $_.ToString().Split(":")[1].Trim() }
+            if ($driver -like "mlx5*") {
+                # LRO on mlx5 driver requires rx_striding_rq to be ON
+                sudo ethtool --set-priv-flags $iface rx_striding_rq on
+            }
+            $offloadOptions = @("lro", "tso")
+            foreach ($option in $offloadOptions) {
+                $output = & sudo ethtool -K $iface $option on 2>&1
+                if ($LASTEXITCODE -ne 0) {
+                    Write-Host "Failed to enable $option on ${iface}: $($output.Exception.Message)"
+                }
+            }
+        }
+    }
+}
+
+if ((!$Local) -and ($LocalPlatform -eq "linux") -and ($RemotePlatform -eq "linux")) {
+    Enable-TcpOffload
+    Invoke-Command -Session $Session -ScriptBlock ${function:Enable-TcpOffload}
+}
+
 $OutputDir = Join-Path $RootDir "artifacts/PerfDataResults/$RemotePlatform/$($RemoteArch)_$($Config)_$($RemoteTls)$($ExtraArtifactDir)"
 New-Item -Path $OutputDir -ItemType Directory -Force | Out-Null
 
