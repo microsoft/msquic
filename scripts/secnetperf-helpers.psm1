@@ -598,6 +598,8 @@ function CheckRegressionResult($values, $testid, $transport, $regressionJson, $e
         $res.Baseline = $regressionJson.$Testid.$envStr.baseline
         $res.BestResult = $regressionJson.$Testid.$envStr.BestResult
         $res.BestResultCommit = $regressionJson.$Testid.$envStr.BestResultCommit
+        $res.CumulativeResult = $avg
+        $res.AggregateFunction = "AVG"
 
         if ($avg -lt $res.Baseline) {
             Write-GHError "🤮 Regression detected in $Testid for $envStr. Baseline: $baseline, New: $avg, BestResult: $BestResult, Noise: $Noise, BestResultCommit: $BestResultCommit"
@@ -638,6 +640,8 @@ function CheckRegressionLat($values, $regressionJson, $testid, $transport, $envS
         $res.Baseline = $regressionJson.$Testid.$envStr.baseline
         $res.BestResult = $regressionJson.$Testid.$envStr.BestResult
         $res.BestResultCommit = $regressionJson.$Testid.$envStr.BestResultCommit
+        $res.CumulativeResult = $RpsAvg
+        $res.AggregateFunction = "AVG"
 
         if ($RpsAvg -lt $res.Baseline) {
             Write-GHError "RPS Regression detected in $Testid for $envStr."
