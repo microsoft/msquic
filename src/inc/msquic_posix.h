@@ -489,16 +489,18 @@ QuicAddrToString(
     _Out_ QUIC_ADDR_STR* AddrStr
     )
 {
+    size_t AvailSpace = sizeof(AddrStr->Address);
     char* Address = AddrStr->Address;
     if (Addr->Ip.sa_family == QUIC_ADDRESS_FAMILY_INET6 && Addr->Ipv6.sin6_port != 0) {
         Address[0] = '[';
         Address++;
+        AvailSpace--;
     }
     if (inet_ntop(
             Addr->Ip.sa_family == QUIC_ADDRESS_FAMILY_INET ? AF_INET : AF_INET6,
             Addr->Ip.sa_family == QUIC_ADDRESS_FAMILY_INET ? (void*)&Addr->Ipv4.sin_addr : (void*)&Addr->Ipv6.sin6_addr,
             Address,
-            sizeof(QUIC_ADDR_STR)) == NULL) {
+            AvailSpace) == NULL) {
         return FALSE;
     }
     if (Addr->Ipv4.sin_port != 0) {
@@ -507,7 +509,8 @@ QuicAddrToString(
             Address[0] = ']';
             Address++;
         }
-        snprintf(Address, 64, ":%hu", ntohs(Addr->Ipv4.sin_port));
+        AvailSpace = sizeof(AddrStr->Address) - (Address - AddrStr->Address);
+        snprintf(Address, AvailSpace, ":%hu", ntohs(Addr->Ipv4.sin_port));
     }
     return TRUE;
 }
