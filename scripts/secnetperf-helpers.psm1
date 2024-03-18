@@ -602,7 +602,7 @@ function CheckRegressionResult($values, $testid, $transport, $regressionJson, $e
         $res.AggregateFunction = "AVG"
 
         if ($avg -lt $res.Baseline) {
-            Write-GHError "🤮 Regression detected in $Testid for $envStr. Baseline: $baseline, New: $avg, BestResult: $BestResult, Noise: $Noise, BestResultCommit: $BestResultCommit"
+            Write-GHError "Regression detected in $Testid for $envStr. See summary table for details."
             $res.HasRegression = $true
         }
     } catch {
@@ -644,8 +644,7 @@ function CheckRegressionLat($values, $regressionJson, $testid, $transport, $envS
         $res.AggregateFunction = "AVG"
 
         if ($RpsAvg -lt $res.Baseline) {
-            Write-GHError "RPS Regression detected in $Testid for $envStr."
-            Write-GHError "RPS: $RpsAvg, RPS lower bound: $RPSLowerBound"
+            Write-GHError "RPS Regression detected in $Testid for $envStr. See summary table for details."
             $res.HasRegression = $true
         }
     } catch {
