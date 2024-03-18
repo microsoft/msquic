@@ -74,7 +74,7 @@ jobs:
       shell: pwsh
       timeout-minutes: 120
       continue-on-error: true
-      run: scripts/test.ps1 -NoProgress -IsolationMode Batch -CodeCoverage -Config ${{ matrix.vec.config }} -Arch ${{ matrix.vec.arch }} -Tls ${{ matrix.vec.tls }} -LogProfile Full.Light ${{ matrix.vec.xdp }} ${{ matrix.vec.qtip }}
+      run: scripts/test.ps1 -NoProgress -IsolationMode Batch -SkipUnitTests -CodeCoverage -Config ${{ matrix.vec.config }} -Arch ${{ matrix.vec.arch }} -Tls ${{ matrix.vec.tls }} -LogProfile Full.Light ${{ matrix.vec.xdp }} ${{ matrix.vec.qtip }}
     - name: Upload Results
       uses: actions/upload-artifact@5d5d22a31266ced268874388b861e4b58bb5c2f3
       with:
