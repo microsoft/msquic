@@ -26,7 +26,7 @@ jobs:
       fail-fast: false
       matrix:
         vec: [
-          { config: "Debug", plat: "windows", os: "windows-2022", arch: "x64", tls: "schannel", build: "-Test" },
+          { config: "Debug", plat: "windows", os: "windows-2022", arch: "x64", tls: "openssl", build: "-Test" },
         ]
     uses: ./.github/workflows/build-reuse-win.yml
     with:
@@ -45,7 +45,7 @@ jobs:
       fail-fast: false
       matrix:
         vec: [
-          { config: "Debug", plat: "windows", os: "windows-2022", arch: "x64", tls: "schannel", build: "-Test" },
+          { config: "Debug", plat: "windows", os: "windows-2022", arch: "x64", tls: "openssl", build: "-Test" },
         ]
     runs-on:
      - self-hosted
@@ -88,7 +88,7 @@ jobs:
       fail-fast: false
       matrix:
         vec: [
-          { config: "Debug", plat: "windows", os: "windows-2022", arch: "x64", tls: "schannel", build: "-Test" },
+          { config: "Debug", plat: "windows", os: "windows-2022", arch: "x64", tls: "openssl", build: "-Test" },
         ]
     runs-on:
     - self-hosted
@@ -138,7 +138,7 @@ jobs:
       fail-fast: false
       matrix:
         vec: [
-          { config: "Debug", plat: "windows", os: "windows-2022", arch: "x64", tls: "schannel", build: "-Test" },
+          { config: "Debug", plat: "windows", os: "windows-2022", arch: "x64", tls: "openssl", build: "-Test" },
         ]
     runs-on:
     - self-hosted
@@ -192,34 +192,34 @@ jobs:
     - name: Create Folder for Artifacts
       shell: pwsh
       run: |
-        New-Item -ItemType Directory -Force -Path artifacts\coverage\windows\x64_Debug_schannel
+        New-Item -ItemType Directory -Force -Path artifacts\coverage\windows\x64_Debug_openssl
     - uses: actions/download-artifact@c850b930e6ba138125429b7e5c93fc707a7f8427
       name: Download BVT Coverage Results
       with:
-        name: BVT-Debug-windows-windows-2022-x64-schannel
-        path: artifacts\coverage\windows\x64_Debug_schannel
+        name: BVT-Debug-windows-windows-2022-x64-openssl
+        path: artifacts\coverage\windows\x64_Debug_openssl
     - uses: actions/download-artifact@c850b930e6ba138125429b7e5c93fc707a7f8427
       name: Download SpinQuic Coverage Results
       with:
-        name: Spin-Debug-windows-windows-2022-x64-schannel
-        path: artifacts\coverage\windows\x64_Debug_schannel
+        name: Spin-Debug-windows-windows-2022-x64-openssl
+        path: artifacts\coverage\windows\x64_Debug_openssl
     - uses: actions/download-artifact@c850b930e6ba138125429b7e5c93fc707a7f8427
       name: Download RecvFuzz Coverage Results
       with:
-        name: RecvFuzz-Debug-windows-windows-2022-x64-schannel
-        path: artifacts\coverage\windows\x64_Debug_schannel
+        name: RecvFuzz-Debug-windows-windows-2022-x64-openssl
+        path: artifacts\coverage\windows\x64_Debug_openssl
     - name: Dir Folder for Artifacts
       shell: pwsh
       run: |
-        dir artifacts\coverage\windows\x64_Debug_schannel
+        dir artifacts\coverage\windows\x64_Debug_openssl
     - name: Merge
       shell: pwsh
-      run: scripts/merge-coverage.ps1 -Config Debug -Arch x64 -Tls schannel
+      run: scripts/merge-coverage.ps1 -Config Debug -Arch x64 -Tls openssl
     - name: Upload Results
       uses: actions/upload-artifact@5d5d22a31266ced268874388b861e4b58bb5c2f3
       with:
         name: merged
-        path: artifacts\coverage\windows\x64_Debug_schannel\msquiccoverage.xml
+        path: artifacts\coverage\windows\x64_Debug_openssl\msquiccoverage.xml
 
   publish-coverage:
     name: Generate Summary
