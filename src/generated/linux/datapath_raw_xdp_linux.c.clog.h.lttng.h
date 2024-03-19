@@ -365,6 +365,25 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_LINUX_C, ReleaseCons,
 
 
 /*----------------------------------------------------------
+// Decoder Ring for XdpPartitionShutdown
+// [ xdp][%p] XDP partition shutdown
+// QuicTraceLogVerbose(
+            XdpPartitionShutdown,
+            "[ xdp][%p] XDP partition shutdown",
+            Partition);
+// arg2 = arg2 = Partition = arg2
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_LINUX_C, XdpPartitionShutdown,
+    TP_ARGS(
+        const void *, arg2), 
+    TP_FIELDS(
+        ctf_integer_hex(uint64_t, arg2, arg2)
+    )
+)
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for RxConsPeekFail
 // [ xdp][rx  ] Failed to peek from Rx queue
 // QuicTraceLogVerbose(

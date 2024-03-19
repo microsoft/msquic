@@ -748,13 +748,13 @@ CxPlatDpRawInitialize(
         CxPlatRefIncrement(&Xdp->RefCount);
         Partition->EventQ = CxPlatWorkerGetEventQ((uint16_t)i);
 
-        // if (!CxPlatSqeInitialize(
-        //         Partition->EventQ,
-        //         &Partition->ShutdownSqe.Sqe,
-        //         &Partition->ShutdownSqe)) {
-        //     Status = QUIC_STATUS_INTERNAL_ERROR;
-        //     goto Error;
-        // }
+        if (!CxPlatSqeInitialize(
+                Partition->EventQ,
+                &Partition->ShutdownSqe.Sqe,
+                &Partition->ShutdownSqe)) {
+            Status = QUIC_STATUS_INTERNAL_ERROR;
+            goto Error;
+        }
 
         uint32_t QueueCount = 0;
         XDP_QUEUE* Queue = Partition->Queues;
@@ -816,7 +816,7 @@ CxPlatDpRawRelease(
         XdpRelease,
         "[ xdp][%p] XDP release",
         Xdp);
-    // if (CxPlatRefDecrement(&Xdp->RefCount)) {
+    if (CxPlatRefDecrement(&Xdp->RefCount)) {
         QuicTraceLogVerbose(
             XdpUninitializeComplete,
             "[ xdp][%p] XDP uninitialize complete",
@@ -828,7 +828,7 @@ CxPlatDpRawRelease(
             CxPlatFree(Interface, IF_TAG);
         }
         CxPlatDataPathUninitializeComplete((CXPLAT_DATAPATH_RAW*)Xdp);
-    // }
+    }
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -1072,6 +1072,18 @@ CxPlatXdpExecute(
 {
     UNREFERENCED_PARAMETER(Context);
     UNREFERENCED_PARAMETER(State);
+
+    XDP_PARTITION* Partition = (XDP_PARTITION*)Context;
+    const XDP_DATAPATH* Xdp = Partition->Xdp;
+
+    if (!Xdp->Running) {
+        QuicTraceLogVerbose(
+            XdpPartitionShutdown,
+            "[ xdp][%p] XDP partition shutdown",
+            Partition);
+        CxPlatEventQEnqueue(Partition->EventQ, &Partition->ShutdownSqe.Sqe, &Partition->ShutdownSqe);
+        return FALSE;
+    }
     return TRUE;
 }
 
@@ -1182,12 +1194,10 @@ RawDataPathProcessCqe(
 {
     switch (CxPlatCqeType(Cqe)) {
     case CXPLAT_CQE_TYPE_XDP_SHUTDOWN: {
-        // XDP_PARTITION* Partition =
-        //     CXPLAT_CONTAINING_RECORD(CxPlatCqeUserData(Cqe), XDP_PARTITION, ShutdownSqe);
+        XDP_PARTITION* Partition =
+            CXPLAT_CONTAINING_RECORD(CxPlatCqeUserData(Cqe), XDP_PARTITION, ShutdownSqe);
 
-        // // CXPLAT_SOCKET_CONTEXT* SocketContext =
-        // //     CXPLAT_CONTAINING_RECORD(CxPlatCqeUserData(Cqe), CXPLAT_SOCKET_CONTEXT, ShutdownSqe);
-        // // CxPlatSocketContextUninitializeComplete(SocketContext);
+        CxPlatDpRawRelease((XDP_DATAPATH*)Partition->Xdp);
         break;
     }
     case CXPLAT_CQE_TYPE_XDP_IO: {
@@ -1201,6 +1211,7 @@ RawDataPathProcessCqe(
             "[ xdp][%p] XDP async IO complete (RX)",
             Queue);
         Queue->RxQueued = FALSE;
+        Queue->Partition->Ec.Ready = TRUE;
         break;
     }
     case CXPLAT_CQE_TYPE_XDP_FLUSH_TX: {
