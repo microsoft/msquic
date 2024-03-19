@@ -366,9 +366,6 @@ function CMake-Generate {
         }
     } else {
         $Arguments += "-G $Generator"
-        if ($UseXdp) {
-            $Arguments += " -DQUIC_USE_XDP=on"
-        }
     }
     if ($Platform -eq "ios") {
         $IosTCFile = Join-Path $RootDir cmake toolchains ios.cmake

@@ -58,18 +58,22 @@ CxPlatDataPathInitialize(
         goto Error;
     }
 
-    Status =
-        RawDataPathInitialize(
-            ClientRecvContextLength,
-            Config,
-            (*NewDataPath),
-            &((*NewDataPath)->RawDataPath));
-    if (QUIC_FAILED(Status)) {
-        QuicTraceLogVerbose(
-            RawDatapathInitFail,
-            "[ raw] Failed to initialize raw datapath, status:%d", Status);
-        Status = QUIC_STATUS_SUCCESS;
-        (*NewDataPath)->RawDataPath = NULL;
+    // temporally disable XDP by default
+    if (getenv("QUIC_ENABLE_XDP") != NULL &&
+        getenv("QUIC_ENABLE_XDP")[0] == '1') {
+        Status =
+            RawDataPathInitialize(
+                ClientRecvContextLength,
+                Config,
+                (*NewDataPath),
+                &((*NewDataPath)->RawDataPath));
+        if (QUIC_FAILED(Status)) {
+            QuicTraceLogVerbose(
+                RawDatapathInitFail,
+                "[ raw] Failed to initialize raw datapath, status:%d", Status);
+            Status = QUIC_STATUS_SUCCESS;
+            (*NewDataPath)->RawDataPath = NULL;
+        }
     }
 
 Error:
@@ -294,9 +298,7 @@ CxPlatSocketCreateUdp(
         goto Error;
     }
 
-#ifndef QUIC_USE_XDP
     (*NewSocket)->RawSocketAvailable = 0;
-#else
     if (Datapath->RawDataPath) {
         Status =
             RawSocketCreateUdp(
@@ -315,7 +317,6 @@ CxPlatSocketCreateUdp(
             Status = QUIC_STATUS_SUCCESS;
         }
     }
-#endif
 
 Error:
     return Status;
