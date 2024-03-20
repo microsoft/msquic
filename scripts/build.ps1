@@ -212,10 +212,7 @@ param (
     [switch]$OneBranch = $false,
 
     [Parameter(Mandatory = $false)]
-    [string]$ToolchainFile = "",
-
-    [Parameter(Mandatory = $false)]
-    [switch]$UseXdp = $false
+    [string]$ToolchainFile = ""
 )
 
 Set-StrictMode -Version 'Latest'
@@ -584,7 +581,7 @@ if (!$ConfigureOnly) {
     # Build the code.
     Log "Building..."
     CMake-Build
-    if ($IsLinux -and $UseXdp -and $Config -eq "Debug") {
+    if ($IsLinux -and $Config -eq "Debug") {
         # Experimental!
         # xdp-dispatcher.o need to be placed at
         # - "./" (libxdp Debug build)

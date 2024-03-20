@@ -220,6 +220,9 @@ if ($CodeCoverage) {
 if ($UseXdp) {
     # Helper for XDP usage
     $DuoNic = $true
+    if ($IsLinux) {
+        $env:QUIC_ENABLE_XDP = 1
+    }
 }
 
 $BuildConfig = & (Join-Path $PSScriptRoot get-buildconfig.ps1) -Tls $Tls -Arch $Arch -ExtraArtifactDir $ExtraArtifactDir -Config $Config
