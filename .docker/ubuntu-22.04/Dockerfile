@@ -10,18 +10,14 @@ RUN apt-get update && apt-get install --no-install-recommends -y apt-transport-h
     ca-certificates \
     gnupg \
     software-properties-common \
-    gcc-multilib \
     wget && \
     wget -O - https://apt.kitware.com/keys/kitware-archive-latest.asc 2>/dev/null | gpg --dearmor - | tee /etc/apt/trusted.gpg.d/kitware.gpg >/dev/null && \
     apt-add-repository 'deb https://apt.kitware.com/ubuntu/ jammy main' && \
     apt-add-repository ppa:lttng/stable-2.13 && \
     apt-get update && apt-get install -y tzdata && apt-get install -y \
     build-essential \
-    gcc-arm-linux-gnueabihf \
-    g++-arm-linux-gnueabihf \
+    gcc-multilib \
     binutils-arm-linux-gnueabihf \
-    gcc-aarch64-linux-gnu \
-    g++-aarch64-linux-gnu \
     binutils-aarch64-linux-gnu \
     cmake \
     clang \
