@@ -1306,17 +1306,18 @@ CxPlatSocketCreateTcpInternal(
     CXPLAT_DBG_ASSERT(Datapath->TcpHandlers.Receive != NULL);
 
     CXPLAT_SOCKET_CONTEXT* SocketContext = NULL;
-    uint32_t SocketLength = sizeof(CXPLAT_SOCKET) + sizeof(CXPLAT_SOCKET_CONTEXT);
-    CXPLAT_SOCKET* Binding = CXPLAT_ALLOC_PAGED(SocketLength, QUIC_POOL_SOCKET);
-    if (Binding == NULL) {
+    uint32_t RawSocketLength = CxPlatGetRawSocketSize() + sizeof(CXPLAT_SOCKET_CONTEXT);
+    CXPLAT_SOCKET_RAW* RawBinding = CXPLAT_ALLOC_PAGED(RawSocketLength, QUIC_POOL_SOCKET);
+    if (RawBinding == NULL) {
         QuicTraceEvent(
             AllocFailure,
             "Allocation of '%s' failed. (%llu bytes)",
             "CXPLAT_SOCKET",
-            SocketLength);
+            RawSocketLength);
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         goto Exit;
     }
+    CXPLAT_SOCKET* Binding = CxPlatRawToSocket(RawBinding);
 
     QuicTraceEvent(
         DatapathCreated,
@@ -1325,7 +1326,7 @@ CxPlatSocketCreateTcpInternal(
         CASTED_CLOG_BYTEARRAY(LocalAddress ? sizeof(*LocalAddress) : 0, LocalAddress),
         CASTED_CLOG_BYTEARRAY(RemoteAddress ? sizeof(*RemoteAddress) : 0, RemoteAddress));
 
-    CxPlatZeroMemory(Binding, SocketLength);
+    CxPlatZeroMemory(RawBinding, RawSocketLength);
     Binding->Datapath = Datapath;
     Binding->ClientContext = RecvCallbackContext;
     Binding->HasFixedRemoteAddress = TRUE;
@@ -1367,6 +1368,7 @@ CxPlatSocketCreateTcpInternal(
     if (Type == CXPLAT_SOCKET_TCP_SERVER) {
         *NewBinding = Binding;
         Binding = NULL;
+        RawBinding = NULL;
         goto Exit;
     }
 
@@ -1389,11 +1391,12 @@ CxPlatSocketCreateTcpInternal(
     SocketContext->IoStarted = TRUE;
 
     Binding = NULL;
+    RawBinding = NULL;
 
 Exit:
 
-    if (Binding != NULL) {
-        CxPlatSocketDelete(Binding);
+    if (RawBinding != NULL) {
+        SocketDelete(CxPlatRawToSocket(RawBinding));
     }
 
     return Status;
@@ -1433,17 +1436,18 @@ SocketCreateTcpListener(
     CXPLAT_DBG_ASSERT(Datapath->TcpHandlers.Receive != NULL);
 
     CXPLAT_SOCKET_CONTEXT* SocketContext = NULL;
-    uint32_t SocketLength = sizeof(CXPLAT_SOCKET) + sizeof(CXPLAT_SOCKET_CONTEXT);
-    CXPLAT_SOCKET* Binding = CXPLAT_ALLOC_PAGED(SocketLength, QUIC_POOL_SOCKET);
-    if (Binding == NULL) {
+    uint32_t RawSocketLength = CxPlatGetRawSocketSize() + sizeof(CXPLAT_SOCKET_CONTEXT);
+    CXPLAT_SOCKET_RAW* RawBinding = CXPLAT_ALLOC_PAGED(RawSocketLength, QUIC_POOL_SOCKET);
+    if (RawBinding == NULL) {
         QuicTraceEvent(
             AllocFailure,
             "Allocation of '%s' failed. (%llu bytes)",
             "CXPLAT_SOCKET",
-            SocketLength);
+            RawSocketLength);
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         goto Exit;
     }
+    CXPLAT_SOCKET* Binding = CxPlatRawToSocket(RawBinding);
 
     QuicTraceEvent(
         DatapathCreated,
@@ -1452,7 +1456,7 @@ SocketCreateTcpListener(
         CASTED_CLOG_BYTEARRAY(LocalAddress ? sizeof(*LocalAddress) : 0, LocalAddress),
         CASTED_CLOG_BYTEARRAY(0, NULL));
 
-    CxPlatZeroMemory(Binding, SocketLength);
+    CxPlatZeroMemory(RawBinding, RawSocketLength);
     Binding->Datapath = Datapath;
     Binding->ClientContext = CallbackContext;
     Binding->HasFixedRemoteAddress = FALSE;
@@ -1495,12 +1499,13 @@ SocketCreateTcpListener(
 
     SocketContext->IoStarted = TRUE;
     Binding = NULL;
+    RawBinding = NULL;
     Status = QUIC_STATUS_SUCCESS;
 
 Exit:
 
-    if (Binding != NULL) {
-        CxPlatSocketDelete(Binding);
+    if (RawBinding != NULL) {
+        SocketDelete(CxPlatRawToSocket(RawBinding));
     }
 
     return Status;
