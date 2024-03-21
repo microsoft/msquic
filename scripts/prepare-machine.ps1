@@ -514,7 +514,7 @@ if ($IsLinux) {
         sudo gem install public_suffix -v 4.0.7
         sudo gem install fpm
         if ($UseXdp) {
-            sudo apt-get -y install gcc-multilib libnl-3-dev libnl-genl-3-dev libnl-route-3-dev zlib1g-dev zlib1g pkg-config m4 clang libpcap-dev libelf-dev
+            sudo apt-get -y install libnl-3-dev libnl-genl-3-dev libnl-route-3-dev zlib1g-dev zlib1g pkg-config m4 clang libpcap-dev libelf-dev
         }
     }
 
