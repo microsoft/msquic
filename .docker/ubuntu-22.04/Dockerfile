@@ -16,8 +16,11 @@ RUN apt-get update && apt-get install --no-install-recommends -y apt-transport-h
     apt-add-repository ppa:lttng/stable-2.13 && \
     apt-get update && apt-get install -y tzdata && apt-get install -y \
     build-essential \
-    gcc-multilib \
+    gcc-arm-linux-gnueabihf \
+    g++-arm-linux-gnueabihf \
     binutils-arm-linux-gnueabihf \
+    gcc-aarch64-linux-gnu \
+    g++-aarch64-linux-gnu \
     binutils-aarch64-linux-gnu \
     cmake \
     clang \
