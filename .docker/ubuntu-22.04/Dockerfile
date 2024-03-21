@@ -39,6 +39,15 @@ RUN apt-get update && apt-get install --no-install-recommends -y apt-transport-h
     cppcheck \
     clang-tidy \
     gdb \
+    libnl-3-dev \
+    libnl-genl-3-dev \
+    libnl-route-3-dev \
+    zlib1g-dev \
+    zlib1g \
+    pkg-config \
+    m4 \
+    libpcap-dev \
+    libelf-dev \
   && rm -rf /var/lib/apt/lists/*
 
 RUN gem install fpm
@@ -51,6 +60,12 @@ RUN wget -q https://packages.microsoft.com/config/ubuntu/18.04/packages-microsof
         # INSTALL POWERSHELl
         powershell \
   && rm -rf /var/lib/apt/lists/*
+
+RUN wget -q https://github.com/libbpf/bpftool/releases/download/v7.2.0/bpftool-v7.2.0-amd64.tar.gz -O bpftool-amd64.tar.gz && \
+    tar xvzf bpftool-amd64.tar.gz && \
+    chmod +x ./bpftool && \
+    mv ./bpftool /usr/sbin/bpftool && \
+    rm -rf bpftool-amd64.tar.gz
 
 RUN dpkg --add-architecture arm64
 RUN dpkg --add-architecture armhf
