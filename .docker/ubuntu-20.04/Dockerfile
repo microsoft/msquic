@@ -31,7 +31,7 @@ RUN apt-get update && apt-get install --no-install-recommends -y apt-transport-h
     lttng-tools \
     perl \
     nasm \
-    ruby \
+    ruby3.0 \
     ruby-dev \
     rpm \
     libssl-dev \
