@@ -577,7 +577,6 @@ function Invoke-Secnetperf {
 }
 
 function CheckRegressionResult($values, $testid, $transport, $regressionJson, $envStr) {
-    # Returns true if there is a regression in this new run.
 
     $sum = 0
     foreach ($item in $values) {
@@ -585,68 +584,72 @@ function CheckRegressionResult($values, $testid, $transport, $regressionJson, $e
     }
     $avg = $sum / $values.Length
     $Testid = "$testid-$transport"
-    try {
-        # TODO: baseline is a bad name. Use LowerThreshold / UpperThreshold instead.
-        $baseline = $regressionJson.$Testid.$envStr.baseline
-    } catch {
-        Write-Host "No regression baseline found"
-        return "NULL"
+
+    $res = @{
+        Baseline = "N/A"
+        BestResult = "N/A"
+        BestResultCommit = "N/A"
+        CumulativeResult = "N/A"
+        AggregateFunction = "N/A"
+        HasRegression = $false
     }
 
     try {
-        $BestResult = $regressionJson.$Testid.$envStr.BestResult
-        $Noise = $regressionJson.$Testid.$envStr.Noise
-        $BestResultCommit = $regressionJson.$Testid.$envStr.BestResultCommit
-        if ($avg -lt $baseline) {
-            Write-GHError "🤮 Regression detected in $Testid for $envStr. Baseline: $baseline, New: $avg, BestResult: $BestResult, Noise: $Noise, BestResultCommit: $BestResultCommit"
-            return "🤮 Baseline: $baseline, New: $avg, BestResult: $BestResult, Noise: $Noise, BestResultCommit: $BestResultCommit"
+        $res.Baseline = $regressionJson.$Testid.$envStr.baseline
+        $res.BestResult = $regressionJson.$Testid.$envStr.BestResult
+        $res.BestResultCommit = $regressionJson.$Testid.$envStr.BestResultCommit
+        $res.CumulativeResult = $avg
+        $res.AggregateFunction = "AVG"
+
+        if ($avg -lt $res.Baseline) {
+            Write-GHError "Regression detected in $Testid for $envStr. See summary table for details."
+            $res.HasRegression = $true
+        }
+    } catch {
+        Write-Host "Not using a watermark-based regression method. Skipping."
+    }
+
+    return $res
+}
+
+function CheckRegressionLat($values, $regressionJson, $testid, $transport, $envStr) {
+
+    # TODO: Right now, we are not using a watermark based method for regression detection of latency percentile values because we don't know how to determine a "Best Ever" distribution.
+    #       (we are just looking at P0, P50, P99 columns, and computing the baseline for each percentile as the mean - 2 * std of the last 20 runs. )
+    #       So, the summary table omits a "BestEver" and "Baseline" column for latency. In fact, we ignore the "mean - 2*std" signal entirely. Need to determine how we compare distributions.
+
+    $RpsAvg = 0
+    $NumRuns = $values.Length / 9
+    for ($offset = 0; $offset -lt $values.Length; $offset += 9) {
+        $RpsAvg += $values[$offset + 8]
+    }
+
+    $RpsAvg /= $NumRuns
+    $Testid = "$testid-$transport"
+
+    $res = @{
+        Baseline = "N/A"
+        BestResult = "N/A"
+        BestResultCommit = "N/A"
+        CumulativeResult = "N/A"
+        AggregateFunction = "N/A"
+        HasRegression = $false
+    }
+
+    try {
+        $res.Baseline = $regressionJson.$Testid.$envStr.baseline
+        $res.BestResult = $regressionJson.$Testid.$envStr.BestResult
+        $res.BestResultCommit = $regressionJson.$Testid.$envStr.BestResultCommit
+        $res.CumulativeResult = $RpsAvg
+        $res.AggregateFunction = "AVG"
+
+        if ($RpsAvg -lt $res.Baseline) {
+            Write-GHError "RPS Regression detected in $Testid for $envStr. See summary table for details."
+            $res.HasRegression = $true
         }
     } catch {
         Write-Host "Not using a watermark-based regression method."
     }
 
-    if ($avg -lt $baseline) {
-        Write-GHError "Regression detected in $Testid for $envStr. Baseline: $baseline, New: $avg"
-        return "🤮 Baseline: $baseline, New: $avg"
-    }
-    return "NULL"
-}
-
-function CheckRegressionLat($values, $regressionJson, $testid, $transport, $envStr) {
-    # $values is a flattened 1D array of the form:
-    # [ first run + RPS, second run + RPS, third run + RPS..... ],
-    # ie. if each run has 8 values + RPS, then the array has 27 elements (8*3 + 3)
-    # We store each subarray as [P0, P50, P90, P99 ... RPS, P0, ...]
-    # So just compute the average of P0, P50, P99 across the N runs, and compare that against the baseline.
-    $P0Avg = 0
-    $P50Avg = 0
-    $P99Avg = 0
-    $NumRuns = $values.Length / 9
-    for ($offset = 0; $offset -lt $values.Length; $offset += 9) {
-        $P0Avg += $values[$offset]
-        $P50Avg += $values[$offset + 1]
-        $P99Avg += $values[$offset + 3]
-    }
-    $P0Avg /= $NumRuns
-    $P50Avg /= $NumRuns
-    $P99Avg /= $NumRuns
-    $Testid = "$testid-$transport"
-    try {
-        $P0UpperBound= $regressionJson.$Testid.$envStr.latencyUpperBound.P0
-        $P50UpperBound= $regressionJson.$Testid.$envStr.latencyUpperBound.P50
-        $P99UpperBound= $regressionJson.$Testid.$envStr.latencyUpperBound.P99
-    } catch {
-        Write-Host "No regression upper bounds found"
-        return "NULL"
-    }
-
-    # There is a regression if ALL 3 values are more than their upper bound.
-    if ($P0Avg -gt $P0UpperBound -and $P50Avg -gt $P50UpperBound -and $P99Avg -gt $P99UpperBound) {
-        Write-GHError "Latency Regression detected in $Testid for $envStr."
-        Write-GHError "P0: $P0Avg, P50: $P50Avg, P99: $P99Avg"
-        Write-GHError "P0 upper bound: $P0UpperBound, P50 upper bound: $P50UpperBound, P99 upper bound: $P99UpperBound"
-        return "🤮 (Percentile avg, Upperbound) P0: ($P0Avg, $P0UpperBound) P50: ($P50Avg, $P50UpperBound) P99: ($P99Avg, $P99UpperBound)"
-    }
-
-    return "NULL"
+    return $res
 }
