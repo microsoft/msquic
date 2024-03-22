@@ -81,7 +81,7 @@ jobs:
       matrix:
         config: ['Debug', 'Release']
         plat: [linux]
-        os: ['ubuntu-20.04', 'ubuntu-22.04']
+        os: ['20.04', '22.04']
         arch: [arm, arm64]
         tls: [openssl, openssl3]
         static: ['', '-Static']
@@ -102,7 +102,7 @@ jobs:
       matrix:
         config: ['Debug', 'Release']
         plat: [linux, android]
-        os: ['ubuntu-20.04', 'ubuntu-22.04']
+        os: ['20.04', '22.04']
         arch: [x86, x64]
         tls: [openssl, openssl3]
         systemcrypto: ['', '-UseSystemOpenSSLCrypto']
@@ -118,12 +118,12 @@ jobs:
           systemcrypto: '-UseSystemOpenSSLCrypto'
         # No openssl3 system crypto on ubuntu-20.04
         - plat: linux
-          os: 'ubuntu-20.04'
+          os: '20.04'
           tls: 'openssl3'
           systemcrypto: '-UseSystemOpenSSLCrypto'
         # No openssl system crypto on ubuntu-22.04
         - plat: linux
-          os: 'ubuntu-22.04'
+          os: '22.04'
           tls: 'openssl'
           systemcrypto: '-UseSystemOpenSSLCrypto'
         # Android doesn't use Clang
