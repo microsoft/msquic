@@ -473,7 +473,7 @@ if ($ForBuild -or $ForContainerBuild) {
     }
 
     git submodule update --jobs=8
-    if ($UseXdp -and $IsLinux) {
+    if ($IsLinux) {
         Write-Host "Initializing xdp-tools submodules"
         git submodule update --init --recursive --jobs=8 submodules/xdp-tools
     }
