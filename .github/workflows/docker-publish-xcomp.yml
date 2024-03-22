@@ -70,5 +70,5 @@ jobs:
           context: .docker/ubuntu-${{ matrix.version }}
           file: .docker/ubuntu-${{ matrix.version }}/Dockerfile
           push: ${{ github.event_name != 'pull_request' }}
-          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ matrix.version }}
+          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:ubuntu-${{ matrix.version }}
           labels: ${{ steps.meta.outputs.labels }}
