@@ -476,6 +476,8 @@ if ($ForBuild -or $ForContainerBuild) {
     if ($IsLinux) {
         Write-Host "Initializing xdp-tools submodules"
         git submodule update --init --recursive --jobs=8 submodules/xdp-tools
+        # temporal workaround for libxdp v1.4.0
+        sed -i 's/BPF_CFLAGS += -I$(HEADER_DIR)/BPF_CFLAGS += -I$(HEADER_DIR) ${ARCH_INCLUDES}/' submodules/xdp-tools/lib/libxdp/Makefile
     }
 }
 
