@@ -477,7 +477,7 @@ if ($ForBuild -or $ForContainerBuild) {
         Write-Host "Initializing xdp-tools submodules"
         git submodule update --init --recursive --jobs=8 submodules/xdp-tools
         # temporal workaround for libxdp v1.4.0
-        sed -i 's/BPF_CFLAGS += -I$(HEADER_DIR)/BPF_CFLAGS += -I$(HEADER_DIR) ${ARCH_INCLUDES}/' submodules/xdp-tools/lib/libxdp/Makefile
+        sed -i '/BPF_CFLAGS += -I$(HEADER_DIR)/ { /${ARCH_INCLUDES}/! s|$| ${ARCH_INCLUDES}| }' submodules/xdp-tools/lib/libxdp/Makefile
     }
 }
 
@@ -517,6 +517,7 @@ if ($IsLinux) {
         sudo gem install fpm
         if ($UseXdp) {
             sudo apt-get -y install libnl-3-dev libnl-genl-3-dev libnl-route-3-dev zlib1g-dev zlib1g pkg-config m4 clang libpcap-dev libelf-dev
+            sudo apt-get -y install --no-install-recommends libc6-dev-i386
         }
     }
 
