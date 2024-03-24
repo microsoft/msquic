@@ -478,10 +478,6 @@ if ($ForBuild -or $ForContainerBuild) {
         git submodule update --init --recursive --jobs=8 submodules/xdp-tools
         # temporal workaround for libxdp v1.4.0
         sed -i '/BPF_CFLAGS += -I$(HEADER_DIR)/ { /${ARCH_INCLUDES}/! s|$| ${ARCH_INCLUDES}| }' submodules/xdp-tools/lib/libxdp/Makefile
-
-        # TODO: remove. Just for testing automation
-        sudo apt-get update -y
-        sudo apt-get -y install --no-install-recommends libc6-dev-i386
     }
 }
 

@@ -25,7 +25,15 @@ if("${CX_PLATFORM}" STREQUAL "windows")
 else()
     set(SOURCES ${SOURCES} inline.c platform_posix.c storage_posix.c cgroup.c)
     if(CX_PLATFORM STREQUAL "linux" AND NOT CMAKE_SYSTEM_NAME STREQUAL "FreeBSD")
-        set(SOURCES ${SOURCES} datapath_raw_linux.c datapath_raw_socket.c datapath_raw_socket_linux.c datapath_raw_xdp_linux.c datapath_epoll.c datapath_linux.c)
+        set(SOURCES ${SOURCES} datapath_linux.c datapath_epoll.c)
+        if((${UBUNTU_VERSION} NOT STREQUAL "22.04") OR
+           (${SYSTEM_PROCESSOR} STREQUAL "arm") OR
+           (${SYSTEM_PROCESSOR} STREQUAL "arm64") OR
+           (${SYSTEM_PROCESSOR} STREQUAL "arm64ec"))
+            set(SOURCES ${SOURCES} datapath_raw_dummy.c)
+        else()
+            set(SOURCES ${SOURCES} datapath_raw_linux.c datapath_raw_socket.c datapath_raw_socket_linux.c datapath_raw_xdp_linux.c)
+        endif()
     else()
         set(SOURCES ${SOURCES} datapath_kqueue.c)
     endif()
@@ -57,7 +65,8 @@ if ("${CX_PLATFORM}" STREQUAL "windows")
         PUBLIC
         wbemuuid)
     target_link_libraries(platform PUBLIC winmm)
-else()
+elseif((${CX_PLATFORM} STREQUAL "linux") AND
+       (${UBUNTU_VERSION} STREQUAL "22.04"))
     # XDP Tools and libbpf paths
     set(XDP_TOOLS_DIR ${PROJECT_SOURCE_DIR}/submodules/xdp-tools)
     set(LIBXDP_PATH ${XDP_TOOLS_DIR}/lib/libxdp/libxdp.so)
@@ -117,7 +126,8 @@ if ("${CX_PLATFORM}" STREQUAL "windows")
         PRIVATE
         ${EXTRA_PLATFORM_INCLUDE_DIRECTORIES}
         ${PROJECT_SOURCE_DIR}/submodules/xdp-for-windows/published/external)
-else()
+elseif((${CX_PLATFORM} STREQUAL "linux") AND
+       (${UBUNTU_VERSION} STREQUAL "22.04"))
     include_directories(/usr/include/libnl3)
     target_include_directories(platform PRIVATE ${EXTRA_PLATFORM_INCLUDE_DIRECTORIES})
 endif()
