@@ -909,7 +909,7 @@ QuicRecvBufferDrain(
     do {
         if ((uint64_t)RecvBuffer->ReadLength > DrainLength ||
             //
-            // If there are more than 2 written ranges, it means that there may be
+            // If there are 2 or more written ranges, it means that there may be
             // more data later in the chunk that couldn't be read because there is a gap.
             //
             RecvBuffer->WrittenRanges.UsedLength > 1) {
