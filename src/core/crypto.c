@@ -1722,7 +1722,9 @@ QuicCryptoCustomCertValidationComplete(
         QuicCryptoProcessDataComplete(Crypto, Crypto->PendingValidationBufferLength);
 
         if (QuicRecvBufferHasUnreadData(&Crypto->RecvBuffer)) {
+            //
             // More data was received while waiting for user to perform the validation.
+            //
             QuicCryptoProcessData(Crypto, FALSE);
         }
     } else {
@@ -1764,7 +1766,9 @@ QuicCryptoCustomTicketValidationComplete(
         QuicCryptoProcessDataComplete(Crypto, Crypto->PendingValidationBufferLength);
 
         if (QuicRecvBufferHasUnreadData(&Crypto->RecvBuffer)) {
+            //
             // More data was received while waiting for user to perform the validation.
+            //
             QuicCryptoProcessData(Crypto, FALSE);
         }
     } else {
