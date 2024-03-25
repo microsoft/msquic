@@ -560,8 +560,7 @@ QuicPacketBuilderGetPacketTypeAndKeyForControlFrames(
 
     if (SendFlags & QUIC_CONN_SEND_FLAG_PING) {
         //
-        // PING is ready to be sent. This is always sent with the
-        // current write key.
+        // PING is ready to be sent. This is always sent with the current write key.
         //
         if (MaxKeyType == QUIC_PACKET_KEY_0_RTT) {
             *PacketKeyType = QUIC_PACKET_KEY_INITIAL;

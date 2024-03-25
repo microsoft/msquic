@@ -558,6 +558,11 @@ QuicSendWriteFrames(
                 AvailableBufferLength,
                 Builder->Datagram->Buffer)) {
 
+            //
+            // We potentially send the close frame on multiple protection levels.
+            // We send in increasing encryption level so clear the flag only once
+            // we send on the current protection level.
+            //
             if (Builder->Key->Type == Connection->Crypto.TlsState.WriteKey) {
                 Send->SendFlags &= ~(QUIC_CONN_SEND_FLAG_CONNECTION_CLOSE | QUIC_CONN_SEND_FLAG_APPLICATION_CLOSE);
             }
