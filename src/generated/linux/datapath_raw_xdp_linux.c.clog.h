@@ -167,8 +167,8 @@ tracepoint(CLOG_DATAPATH_RAW_XDP_LINUX_C, XdpConfigureUmem );\
 // Decoder Ring for XdpSocketCreate
 // [ xdp] Failed to create AF_XDP socket. ret:%d errno:%d
 // QuicTraceLogVerbose(
-                XdpSocketCreate,
-                "[ xdp] Failed to create AF_XDP socket. ret:%d errno:%d", ret, errno);
+                    XdpSocketCreate,
+                    "[ xdp] Failed to create AF_XDP socket. ret:%d errno:%d", ret, errno);
 // arg2 = arg2 = ret = arg2
 // arg3 = arg3 = errno = arg3
 ----------------------------------------------------------*/

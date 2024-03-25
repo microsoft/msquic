@@ -59,8 +59,8 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_LINUX_C, SockCreateFail,
 // Decoder Ring for RawSockCreateFail
 // [sock] Failed to create raw socket, status:%d
 // QuicTraceLogVerbose(
-                    RawSockCreateFail,
-                    "[sock] Failed to create raw socket, status:%d", Status);
+                RawSockCreateFail,
+                "[sock] Failed to create raw socket, status:%d", Status);
 // arg2 = arg2 = Status = arg2
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_DATAPATH_LINUX_C, RawSockCreateFail,
