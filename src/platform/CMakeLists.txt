@@ -26,16 +26,13 @@ else()
     set(SOURCES ${SOURCES} inline.c platform_posix.c storage_posix.c cgroup.c)
     if(CX_PLATFORM STREQUAL "linux" AND NOT CMAKE_SYSTEM_NAME STREQUAL "FreeBSD")
         set(SOURCES ${SOURCES} datapath_linux.c datapath_epoll.c)
-        if((${UBUNTU_VERSION} NOT STREQUAL "22.04") OR
-           (${SYSTEM_PROCESSOR} STREQUAL "arm") OR
-           (${SYSTEM_PROCESSOR} STREQUAL "arm64") OR
-           (${SYSTEM_PROCESSOR} STREQUAL "arm64ec") OR
-           (${SYSTEM_PROCESSOR} STREQUAL "aarch64"))
+        if((${UBUNTU_VERSION} STREQUAL "22.04") AND
+           (${SYSTEM_PROCESSOR} STREQUAL "x86_64"))
+           set(LINUX_XDP_ENABLED TRUE)
+           set(SOURCES ${SOURCES} datapath_raw_linux.c datapath_raw_socket.c datapath_raw_socket_linux.c datapath_raw_xdp_linux.c)
+       else()
             set(LINUX_XDP_ENABLED FALSE)
             set(SOURCES ${SOURCES} datapath_raw_dummy.c)
-        else()
-            set(LINUX_XDP_ENABLED TRUE)
-            set(SOURCES ${SOURCES} datapath_raw_linux.c datapath_raw_socket.c datapath_raw_socket_linux.c datapath_raw_xdp_linux.c)
         endif()
     else()
         set(SOURCES ${SOURCES} datapath_kqueue.c)
@@ -94,7 +91,12 @@ elseif(LINUX_XDP_ENABLED)
     target_include_directories(platform PRIVATE ${XDP_TOOLS_DIR}/lib/libbpf/src)
     target_include_directories(platform PRIVATE ${XDP_TOOLS_DIR}/lib/libbpf/src/root/usr/include) # TODO: use installed path
 
-    # XDP program setting
+    # building XDP program
+    # Experimental!
+    # xdp-dispatcher.o need to be placed at
+    # - "./" (libxdp Debug build)
+    # - "/usr/lib/bpf"
+    # - Specified by LIBXDP_OBJECT_PATH
     add_custom_command(
         OUTPUT ${PROJECT_SOURCE_DIR}/datapath_raw_xdp_kern.o
         COMMAND clang -O2 -g -target bpf -c ${PROJECT_SOURCE_DIR}/src/platform/datapath_raw_xdp_linux_kern.c -o ${PROJECT_SOURCE_DIR}/datapath_raw_xdp_kern.o -I${PROJECT_SOURCE_DIR}/submodules/xdp-tools/lib -I/usr/include/x86_64-linux-gnu

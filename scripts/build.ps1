@@ -581,15 +581,6 @@ if (!$ConfigureOnly) {
     # Build the code.
     Log "Building..."
     CMake-Build
-    if ($IsLinux -and $Config -eq "Debug") {
-        # Experimental!
-        # xdp-dispatcher.o need to be placed at
-        # - "./" (libxdp Debug build)
-        # - "/usr/lib/bpf"
-        # - Specified by LIBXDP_OBJECT_PATH
-        $LibXdpPath = Join-Path $RootDir "submodules/xdp-tools/lib/libxdp/xdp-dispatcher.o"
-        cp $LibXdpPath .
-    }
 }
 
 Log "Done."
