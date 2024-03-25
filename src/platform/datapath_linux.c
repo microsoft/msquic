@@ -59,8 +59,9 @@ CxPlatDataPathInitialize(
     }
 
     // temporally disable XDP by default
-    if (getenv("QUIC_ENABLE_XDP") != NULL &&
-        getenv("QUIC_ENABLE_XDP")[0] == '1') {
+    char* envValue = getenv("QUIC_ENABLE_XDP");
+    if (envValue != NULL &&
+        envValue[0] == '1') {
         Status =
             RawDataPathInitialize(
                 ClientRecvContextLength,
@@ -553,7 +554,7 @@ QuicCopyRouteInfo(
 
 void
 CxPlatResolveRouteComplete(
-    _In_ void* Connection,
+    _In_ void* Context,
     _Inout_ CXPLAT_ROUTE* Route,
     _In_reads_bytes_(6) const uint8_t* PhysicalAddress,
     _In_ uint8_t PathId
@@ -561,7 +562,7 @@ CxPlatResolveRouteComplete(
 {
     CXPLAT_DBG_ASSERT(Route->DatapathType != CXPLAT_DATAPATH_TYPE_USER);
     if (Route->State != RouteResolved) {
-        RawResolveRouteComplete(Connection, Route, PhysicalAddress, PathId);
+        RawResolveRouteComplete(Context, Route, PhysicalAddress, PathId);
     }
 }
 

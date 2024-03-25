@@ -11,14 +11,15 @@ Abstract:
 
 #define _CRT_SECURE_NO_WARNINGS 1 // TODO - Remove
 
+#include "bpf.h"
 #include "datapath_raw_linux.h"
 #include "datapath_raw_xdp.h"
 #include "libbpf.h"
-#include "bpf.h"
-#include "xsk.h"
 #include "libxdp.h"
-#include <linux/sockios.h>
+#include "xsk.h"
+#include <dirent.h>
 #include <linux/ethtool.h>
+#include <linux/sockios.h>
 #include <netpacket/packet.h>
 
 #ifdef QUIC_CLOG
@@ -178,55 +179,35 @@ CxPlatXdpExecute(
     _Inout_ CXPLAT_EXECUTION_STATE* State
     );
 
-// CXPLAT_RECV_DATA*
-// CxPlatDataPathRecvPacketToRecvData(
-//     _In_ const CXPLAT_RECV_PACKET* const Context
-//     )
-// {
-//     return (CXPLAT_RECV_DATA*)(((uint8_t*)Context) - sizeof(XDP_RX_PACKET));
-// }
-
-// CXPLAT_RECV_PACKET*
-// CxPlatDataPathRecvDataToRecvPacket(
-//     _In_ const CXPLAT_RECV_DATA* const Datagram
-//     )
-// {
-//     return (CXPLAT_RECV_PACKET*)(((uint8_t*)Datagram) + sizeof(XDP_RX_PACKET));
-// }
-
 QUIC_STATUS
 CxPlatGetInterfaceRssQueueCount(
     _In_ uint32_t InterfaceIndex,
     _Out_ uint16_t* Count
     )
 {
-    // TODO: check ethtool implementation
-    FILE *fp;
-    *Count = UINT16_MAX;
-
     char IfName[IF_NAMESIZE];
     if_indextoname(InterfaceIndex, IfName);
-    char cmd[128];
-    snprintf(cmd, sizeof(cmd), "ethtool -x %s", IfName);
-    fp = popen(cmd, "r");
-    if (fp == NULL) {
-        goto Error;
+
+    char Path[256];
+    snprintf(Path, sizeof(Path), "/sys/class/net/%s/queues/", IfName);
+
+    DIR* Dir = opendir(Path);
+    if (Dir == NULL) {
+        perror("opendir");
+        return QUIC_STATUS_INTERNAL_ERROR;
     }
 
-    char buf[256];
-    // Read and scan each line of the output for the number of rings
-    while (fgets(buf, sizeof(buf), fp) != NULL) {
-        if (strstr(buf, "RX flow hash indirection table for") != NULL) {
-            sscanf(buf, "RX flow hash indirection table for %*s with %hd", Count);
-            break;
+    struct dirent* Entry;
+    while ((Entry = readdir(Dir)) != NULL) {
+        if (strncmp(Entry->d_name, "rx-", 3) == 0) {
+            (*Count)++;
         }
     }
-    pclose(fp);
 
-Error:
-    if (*Count == UINT16_MAX) {
-        *Count = 1;
-    }
+    // print Count
+    fprintf(stderr, "[%s] RSS Queue Count: %d\n", IfName, *Count);
+
+    closedir(Dir);
     return QUIC_STATUS_SUCCESS;
 }
 
@@ -531,7 +512,7 @@ CxPlatDpRawInterfaceInitialize(
 
     CxPlatZeroMemory(Interface->Queues, Interface->QueueCount * sizeof(*Interface->Queues));
 
-    for (uint8_t i = 0; i < Interface->QueueCount; i++) {
+    for (uint16_t i = 0; i < Interface->QueueCount; i++) {
         XDP_QUEUE* Queue = &Interface->Queues[i];
 
         Queue->Interface = Interface;
@@ -554,6 +535,7 @@ CxPlatDpRawInterfaceInitialize(
             QuicTraceLogVerbose(
                 XdpConfigureUmem,
                 "[ xdp] Failed to configure Umem");
+            free(Umem);
             goto Error;
         }
 
@@ -606,7 +588,7 @@ CxPlatDpRawInterfaceInitialize(
     //
     // Add each queue to a worker (round robin).
     //
-    for (uint8_t i = 0; i < Interface->QueueCount; i++) {
+    for (uint16_t i = 0; i < Interface->QueueCount; i++) {
         XdpWorkerAddQueue(&Xdp->Partitions[i % Xdp->PartitionCount], &Interface->Queues[i]);
     }
 
@@ -954,7 +936,9 @@ CxPlatDpRawRxFree(
         }
     }
 
-    CxPlatLockRelease(&xsk_info->UmemLock);
+    if (Count > 0) {
+        CxPlatLockRelease(&xsk_info->UmemLock);
+    }
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -1108,11 +1092,10 @@ void CxPlatXdpRx(
             RxConsPeekFail,
             "[ xdp][rx  ] Failed to peek from Rx queue");
         return;
-    } else {
-        QuicTraceLogVerbose(
-            RxConsPeekSucceed,
-            "[ xdp][rx  ] Succeed peek %d from Rx queue", Rcvd);
     }
+    QuicTraceLogVerbose(
+        RxConsPeekSucceed,
+        "[ xdp][rx  ] Succeed peek %d from Rx queue", Rcvd);
 
     CxPlatLockAcquire(&xsk->UmemLock);
     // Stuff the ring with as much frames as possible

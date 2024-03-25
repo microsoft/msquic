@@ -515,10 +515,10 @@ if ($IsLinux) {
         sudo apt-get install -y ruby ruby-dev rpm
         sudo gem install public_suffix -v 4.0.7
         sudo gem install fpm
-        if ($UseXdp) {
-            sudo apt-get -y install libnl-3-dev libnl-genl-3-dev libnl-route-3-dev zlib1g-dev zlib1g pkg-config m4 clang libpcap-dev libelf-dev
-            sudo apt-get -y install --no-install-recommends libc6-dev-i386
-        }
+
+        # XDP dependencies
+        sudo apt-get -y install libnl-3-dev libnl-genl-3-dev libnl-route-3-dev zlib1g-dev zlib1g pkg-config m4 clang libpcap-dev libelf-dev
+        sudo apt-get -y install --no-install-recommends libc6-dev-i386
     }
 
     if ($ForTest) {
