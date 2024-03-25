@@ -29,7 +29,8 @@ else()
         if((${UBUNTU_VERSION} NOT STREQUAL "22.04") OR
            (${SYSTEM_PROCESSOR} STREQUAL "arm") OR
            (${SYSTEM_PROCESSOR} STREQUAL "arm64") OR
-           (${SYSTEM_PROCESSOR} STREQUAL "arm64ec"))
+           (${SYSTEM_PROCESSOR} STREQUAL "arm64ec") OR
+           (${SYSTEM_PROCESSOR} STREQUAL "aarch64") OR)
             set(SOURCES ${SOURCES} datapath_raw_dummy.c)
         else()
             set(SOURCES ${SOURCES} datapath_raw_linux.c datapath_raw_socket.c datapath_raw_socket_linux.c datapath_raw_xdp_linux.c)
