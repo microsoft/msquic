@@ -30,7 +30,7 @@ else()
            (${SYSTEM_PROCESSOR} STREQUAL "arm") OR
            (${SYSTEM_PROCESSOR} STREQUAL "arm64") OR
            (${SYSTEM_PROCESSOR} STREQUAL "arm64ec") OR
-           (${SYSTEM_PROCESSOR} STREQUAL "aarch64") OR)
+           (${SYSTEM_PROCESSOR} STREQUAL "aarch64"))
             set(SOURCES ${SOURCES} datapath_raw_dummy.c)
         else()
             set(SOURCES ${SOURCES} datapath_raw_linux.c datapath_raw_socket.c datapath_raw_socket_linux.c datapath_raw_xdp_linux.c)
