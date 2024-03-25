@@ -533,12 +533,11 @@ QuicSendWriteFrames(
 
         if (IsApplicationClose && ! Is1RttEncryptionLevel) {
             // 
-            // A CONNECTION_CLOSE of type 0x1d MUST be replaced by a
-            // CONNECTION_CLOSE of type 0x1c when sending the frame in Initial or
-            // Handshake packets. Otherwise, information about the application
-            // state might be revealed. Endpoints MUST clear the value of the
-            // Reason Phrase field and SHOULD use the APPLICATION_ERROR code when
-            // converting to a CONNECTION_CLOSE of type 0x1c.
+            // A CONNECTION_CLOSE of type 0x1d MUST be replaced by a CONNECTION_CLOSE of
+            // type 0x1c when sending the frame in Initial or Handshake packets. Otherwise,
+            // information about the application state might be revealed. Endpoints MUST
+            // clear the value of the Reason Phrase field and SHOULD use the APPLICATION_ERROR
+            // code when converting to a CONNECTION_CLOSE of type 0x1c.
             //
             CloseErrorCode = QUIC_ERROR_APPLICATION_ERROR;
             CloseReasonPhrase = NULL;
