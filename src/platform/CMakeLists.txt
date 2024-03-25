@@ -31,8 +31,10 @@ else()
            (${SYSTEM_PROCESSOR} STREQUAL "arm64") OR
            (${SYSTEM_PROCESSOR} STREQUAL "arm64ec") OR
            (${SYSTEM_PROCESSOR} STREQUAL "aarch64"))
+            set(LINUX_XDP_ENABLED FALSE)
             set(SOURCES ${SOURCES} datapath_raw_dummy.c)
         else()
+            set(LINUX_XDP_ENABLED TRUE)
             set(SOURCES ${SOURCES} datapath_raw_linux.c datapath_raw_socket.c datapath_raw_socket_linux.c datapath_raw_xdp_linux.c)
         endif()
     else()
@@ -66,8 +68,7 @@ if ("${CX_PLATFORM}" STREQUAL "windows")
         PUBLIC
         wbemuuid)
     target_link_libraries(platform PUBLIC winmm)
-elseif((${CX_PLATFORM} STREQUAL "linux") AND
-       (${UBUNTU_VERSION} STREQUAL "22.04"))
+elseif(LINUX_XDP_ENABLED)
     # XDP Tools and libbpf paths
     set(XDP_TOOLS_DIR ${PROJECT_SOURCE_DIR}/submodules/xdp-tools)
     set(LIBXDP_PATH ${XDP_TOOLS_DIR}/lib/libxdp/libxdp.so)
@@ -127,8 +128,7 @@ if ("${CX_PLATFORM}" STREQUAL "windows")
         PRIVATE
         ${EXTRA_PLATFORM_INCLUDE_DIRECTORIES}
         ${PROJECT_SOURCE_DIR}/submodules/xdp-for-windows/published/external)
-elseif((${CX_PLATFORM} STREQUAL "linux") AND
-       (${UBUNTU_VERSION} STREQUAL "22.04"))
+elseif(LINUX_XDP_ENABLED)
     include_directories(/usr/include/libnl3)
     target_include_directories(platform PRIVATE ${EXTRA_PLATFORM_INCLUDE_DIRECTORIES})
 endif()
