@@ -1451,30 +1451,6 @@ QuicConnTryClose(
         }
     }
 
-    // if (!ClosedRemotely) {
-    //     if ((Flags & QUIC_CLOSE_APPLICATION) &&
-    //         (Connection->Crypto.TlsState.WriteKey < QUIC_PACKET_KEY_1_RTT ||
-    //         (QuicConnIsClient(Connection) && !Connection->Crypto.TlsState.HandshakeComplete))) {
-    //         //
-    //         // Application close can only happen if we are using 1-RTT keys.
-    //         // In case of Clients, we may have 1-RTT write keys earlier but
-    //         // server may not process 1-RTT packets until the handshake is complete.
-    //         //
-    //         // Send "user_canceled" TLS error code as a connection close instead.
-    //         // Overwrite all application provided parameters.
-    //         //
-    //         Flags &= ~QUIC_CLOSE_APPLICATION;
-    //         ErrorCode = QUIC_ERROR_CRYPTO_USER_CANCELED;
-    //         RemoteReasonPhrase = NULL;
-    //         RemoteReasonPhraseLength = 0;
-
-    //         QuicTraceLogConnInfo(
-    //             CloseUserCanceled,
-    //             Connection,
-    //             "Connection close using user canceled error");
-    //     }
-    // }
-
     BOOLEAN ResultQuicStatus = !!(Flags & QUIC_CLOSE_QUIC_STATUS);
 
     BOOLEAN IsFirstCloseForConnection = TRUE;
