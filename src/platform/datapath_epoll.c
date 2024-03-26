@@ -1541,7 +1541,6 @@ CxPlatSocketContextAcceptCompletion(
             SocketContext->Binding,
             Status,
             "accept failed");
-        fprintf(stderr, "Accept failure: %d\n", Status);
         goto Error;
     }
 

@@ -12308,6 +12308,18 @@
       ],
       "macroName": "QuicTraceLogVerbose"
     },
+    "XdpLoadObject": {
+      "ModuleProperites": {},
+      "TraceString": "[ xdp] Successfully loaded xdp object of %s",
+      "UniqueId": "XdpLoadObject",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "s",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceLogVerbose"
+    },
     "XdpModeDowngrade": {
       "ModuleProperites": {},
       "TraceString": "[ xdp][%p] Downgrading from DRV mode to SKB mode for interface:%s",
@@ -16931,6 +16943,11 @@
         "UniquenessHash": "83b58d1d-bb4b-653f-d379-3631b103ed34",
         "TraceID": "XdpLoadBpfObjectError",
         "EncodingString": "[ xdp] ERROR:, loading BPF-OBJ file:%s, %d: [%s]."
+      },
+      {
+        "UniquenessHash": "7783db85-e3da-a62a-9eaa-9430fc3b40c4",
+        "TraceID": "XdpLoadObject",
+        "EncodingString": "[ xdp] Successfully loaded xdp object of %s"
       },
       {
         "UniquenessHash": "35b81be4-4ed1-ea3e-5c07-8f184e975d2f",

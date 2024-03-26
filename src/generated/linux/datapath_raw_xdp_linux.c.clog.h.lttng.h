@@ -133,6 +133,25 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_LINUX_C, XdpAttachSucceeds,
 
 
 /*----------------------------------------------------------
+// Decoder Ring for XdpLoadObject
+// [ xdp] Successfully loaded xdp object of %s
+// QuicTraceLogVerbose(
+    XdpLoadObject,
+    "[ xdp] Successfully loaded xdp object of %s",
+    FilePath);
+// arg2 = arg2 = FilePath = arg2
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_LINUX_C, XdpLoadObject,
+    TP_ARGS(
+        const char *, arg2), 
+    TP_FIELDS(
+        ctf_string(arg2, arg2)
+    )
+)
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for XdpConfigureUmem
 // [ xdp] Failed to configure Umem
 // QuicTraceLogVerbose(

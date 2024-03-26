@@ -72,7 +72,6 @@ typedef struct XDP_DATAPATH { // NOLINT(clang-analyzer-optin.performance.Padding
     BOOLEAN TxAlwaysPoke;
     BOOLEAN SkipXsum;
     BOOLEAN Running;        // Signal to stop workers.
-    // const XDP_API_TABLE *XdpApi;
 
     XDP_PARTITION Partitions[0];
 } XDP_DATAPATH;
@@ -118,7 +117,6 @@ typedef struct XDP_QUEUE {
     struct xsk_socket_info* xsk_info;
 } XDP_QUEUE;
 
-// -> CxPlat
 typedef struct __attribute__((aligned(64))) XDP_RX_PACKET {
     XDP_QUEUE* Queue;
     CXPLAT_ROUTE RouteStorage;
@@ -203,9 +201,6 @@ CxPlatGetInterfaceRssQueueCount(
             (*Count)++;
         }
     }
-
-    // print Count
-    fprintf(stderr, "[%s] RSS Queue Count: %d\n", IfName, *Count);
 
     closedir(Dir);
     return QUIC_STATUS_SUCCESS;
@@ -329,7 +324,6 @@ static uint64_t xsk_alloc_umem_frame(struct xsk_socket_info *xsk)
 {
     uint64_t frame;
     if (xsk->umem_frame_free == 0) {
-        // fprintf(stderr, "[%p] XSK UMEM alloc:\tOOM\n", xsk);
         QuicTraceLogVerbose(
             XdpUmemAllocFails,
             "[ xdp][umem] Out of UMEM frame, OOM");        
@@ -338,7 +332,6 @@ static uint64_t xsk_alloc_umem_frame(struct xsk_socket_info *xsk)
 
     frame = xsk->umem_frame_addr[--xsk->umem_frame_free];
     xsk->umem_frame_addr[xsk->umem_frame_free] = INVALID_UMEM_FRAME;
-    // fprintf(stderr, "[%p] XSK UMEM alloc:\t%d:%ld\n", xsk, xsk->umem_frame_free, frame);
     return frame;
 }
 
@@ -359,8 +352,6 @@ IsXdpAttached(const char* prog_name, XDP_INTERFACE *Interface, enum xdp_attach_m
                 QuicTraceLogVerbose(
                     XdpAttached,
                     "[ xdp] XDP program already attached to %s", Interface->IfName);
-                fprintf(stderr, "XDP program %s already attached to %s\n",
-                    prog_name, Interface->IfName);
                 return 2; // attached same
             }
             return 1; // attached, but different mode
@@ -453,9 +444,29 @@ CxPlatDpRawInterfaceInitialize(
     XskCfg->bind_flags |= XDP_USE_NEED_WAKEUP;
     Interface->XskCfg = XskCfg;
 
-    struct xdp_program *prog;
-
-    prog = xdp_program__open_file("./datapath_raw_xdp_kern.o", "xdp_prog", NULL);
+    struct xdp_program *prog = NULL;
+    const char* Filename = "datapath_raw_xdp_kern.o";
+    char* EnvPath = getenv("MSQUIC_XDP_OBJECT_PATH");
+    char* Paths[2] = {EnvPath, "."};
+    char FilePath[256];
+    for (int i = 0; i < 2; i++) {
+        if (Paths[i] != NULL) {
+            snprintf(FilePath, sizeof(FilePath), "%s/%s", Paths[i], Filename);
+            if (access(FilePath, F_OK) == 0) {
+                // The file exists at the path specified by the environment variable.
+                prog = xdp_program__open_file(FilePath, "xdp_prog", NULL);
+                break;
+            }
+        }
+    }
+    if (prog == NULL) {
+        Status = QUIC_STATUS_INTERNAL_ERROR;
+        goto Error;
+    }
+    QuicTraceLogVerbose(
+    XdpLoadObject,
+    "[ xdp] Successfully loaded xdp object of %s",
+    FilePath);
 
     // uint8_t Attached = IsXdpAttached(xdp_program__name(prog), Interface, XDP_MODE_SKB);
     // FIXME: eth0 on azure VM doesn't work with XDP_FLAGS_DRV_MODE
@@ -750,7 +761,6 @@ CxPlatDpRawInitialize(
             }
             Queue->RxIoSqe.CqeType = CXPLAT_CQE_TYPE_XDP_IO;
             XdpSocketContextSetEvents(Queue, EPOLL_CTL_ADD, EPOLLIN);
-            // fprintf(stderr, "CxPlatDpRawInitialize Queue:%p\n", Queue);
 
             // if (!CxPlatSqeInitialize(
             //     Partition->EventQ,
@@ -918,7 +928,6 @@ CxPlatDpRawRxFree(
     )
 {
     uint32_t Count = 0;
-    // struct xsk_socket_info *xsk_info = ((XDP_RX_PACKET*)PacketChain)->Queue->xsk_info;
     struct xsk_socket_info *xsk_info = NULL;
     if (PacketChain) {
         const XDP_RX_PACKET* Packet =

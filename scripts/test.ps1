@@ -217,19 +217,22 @@ if ($CodeCoverage) {
     }
 }
 
-if ($UseXdp) {
-    # Helper for XDP usage
-    $DuoNic = $true
-    if ($IsLinux) {
-        $env:QUIC_ENABLE_XDP = 1
-    }
-}
-
 $BuildConfig = & (Join-Path $PSScriptRoot get-buildconfig.ps1) -Tls $Tls -Arch $Arch -ExtraArtifactDir $ExtraArtifactDir -Config $Config
 
 $Tls = $BuildConfig.Tls
 $Arch = $BuildConfig.Arch
 $RootArtifactDir = $BuildConfig.ArtifactsDir
+
+if ($UseXdp) {
+    # Helper for XDP usage
+    $DuoNic = $true
+    if ($IsLinux) {
+        # Temporal feature flag for Linux
+        $env:MSQUIC_ENABLE_XDP = 1
+        $env:LIBXDP_OBJECT_PATH = $RootArtifactDir
+        $env:MSQUIC_XDP_OBJECT_PATH = $RootArtifactDir
+    }
+}
 
 # Root directory of the project.
 $RootDir = Split-Path $PSScriptRoot -Parent

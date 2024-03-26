@@ -81,6 +81,12 @@ elseif(LINUX_XDP_ENABLED)
         OUTPUT ${LIBXDP_PATH} ${LIBBPF_PATH}
         COMMAND ./configure
         COMMAND make
+        # Experimental!
+        # xdp-dispatcher.o need to be placed at
+        # - "./" (libxdp Debug build)
+        # - "/usr/lib/bpf"
+        # - Specified by LIBXDP_OBJECT_PATH
+        COMMAND cp ${XDP_TOOLS_DIR}/lib/libxdp/xdp-dispatcher.o ${QUIC_OUTPUT_DIR}/xdp-dispatcher.o
         WORKING_DIRECTORY ${XDP_TOOLS_DIR}
     )
 
@@ -97,20 +103,18 @@ elseif(LINUX_XDP_ENABLED)
     target_include_directories(platform PRIVATE ${XDP_TOOLS_DIR}/lib/libbpf/src/root/usr/include) # TODO: use installed path
 
     # building XDP program
-    # Experimental!
-    # xdp-dispatcher.o need to be placed at
-    # - "./" (libxdp Debug build)
-    # - "/usr/lib/bpf"
-    # - Specified by LIBXDP_OBJECT_PATH
     add_custom_command(
         OUTPUT ${PROJECT_SOURCE_DIR}/datapath_raw_xdp_kern.o
-        COMMAND clang -O2 -g -target bpf -c ${PROJECT_SOURCE_DIR}/src/platform/datapath_raw_xdp_linux_kern.c -o ${PROJECT_SOURCE_DIR}/datapath_raw_xdp_kern.o -I${PROJECT_SOURCE_DIR}/submodules/xdp-tools/lib -I/usr/include/x86_64-linux-gnu
+        # COMMAND clang -O2 -g -target bpf -c ${PROJECT_SOURCE_DIR}/src/platform/datapath_raw_xdp_linux_kern.c -o ${PROJECT_SOURCE_DIR}/datapath_raw_xdp_kern.o -I${PROJECT_SOURCE_DIR}/submodules/xdp-tools/lib -I/usr/include/x86_64-linux-gnu
+        OUTPUT ${QUIC_OUTPUT_DIR}/datapath_raw_xdp_kern.o
+        COMMAND clang -O2 -g -target bpf -c ${PROJECT_SOURCE_DIR}/src/platform/datapath_raw_xdp_linux_kern.c -o ${QUIC_OUTPUT_DIR}/datapath_raw_xdp_kern.o -I${PROJECT_SOURCE_DIR}/submodules/xdp-tools/lib -I/usr/include/x86_64-linux-gnu
         DEPENDS ${PROJECT_SOURCE_DIR}/src/platform/datapath_raw_xdp_linux_kern.c
     )
 
     add_custom_target(
         XDP_PROG ALL
-        DEPENDS ${PROJECT_SOURCE_DIR}/datapath_raw_xdp_kern.o
+        DEPENDS ${QUIC_OUTPUT_DIR}/datapath_raw_xdp_kern.o
+        # DEPENDS ${PROJECT_SOURCE_DIR}/datapath_raw_xdp_kern.o
     )
 
     add_dependencies(platform XDP_PROG)

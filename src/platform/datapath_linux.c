@@ -59,7 +59,7 @@ CxPlatDataPathInitialize(
     }
 
     // temporally disable XDP by default
-    char* envValue = getenv("QUIC_ENABLE_XDP");
+    char* envValue = getenv("MSQUIC_ENABLE_XDP");
     if (envValue != NULL &&
         envValue[0] == '1') {
         Status =

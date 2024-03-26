@@ -148,6 +148,24 @@ tracepoint(CLOG_DATAPATH_RAW_XDP_LINUX_C, XdpAttachSucceeds , arg2);\
 
 
 /*----------------------------------------------------------
+// Decoder Ring for XdpLoadObject
+// [ xdp] Successfully loaded xdp object of %s
+// QuicTraceLogVerbose(
+    XdpLoadObject,
+    "[ xdp] Successfully loaded xdp object of %s",
+    FilePath);
+// arg2 = arg2 = FilePath = arg2
+----------------------------------------------------------*/
+#ifndef _clog_3_ARGS_TRACE_XdpLoadObject
+#define _clog_3_ARGS_TRACE_XdpLoadObject(uniqueId, encoded_arg_string, arg2)\
+tracepoint(CLOG_DATAPATH_RAW_XDP_LINUX_C, XdpLoadObject , arg2);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for XdpConfigureUmem
 // [ xdp] Failed to configure Umem
 // QuicTraceLogVerbose(
