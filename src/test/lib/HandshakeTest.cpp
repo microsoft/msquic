@@ -1076,6 +1076,8 @@ QuicTestShutdownDuringHandshake(
                         return;
                     }
 
+                    // server is not allowed to respond to 1-RTT packets, so it will only
+                    // receive Handshake CONNECTION_CLOSE which cannot bear app error code
                     TEST_EQUAL(TRUE, Server->GetTransportClosed());
                 } else {
                     Server->Shutdown(QUIC_CONNECTION_SHUTDOWN_FLAG_NONE, QUIC_TEST_NO_ERROR);
@@ -1088,8 +1090,8 @@ QuicTestShutdownDuringHandshake(
                         return;
                     }
 
-                    TEST_EQUAL(TRUE, Client.GetTransportClosed());
-                }   
+                    TEST_EQUAL(TRUE, Client.GetPeerClosed());
+                }
             }
         }
     }
