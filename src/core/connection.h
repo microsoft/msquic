@@ -194,6 +194,12 @@ typedef union QUIC_CONNECTION_STATE {
         //
         BOOLEAN TimestampRecvNegotiated : 1;
 
+        //
+        // Indicates we received APPLICATION_ERROR transport error and are checking also
+        // later packets in case they contain CONNECTION_CLOSE frame with application-layer error.
+        //
+        BOOLEAN DelayedApplicationError : 1;
+
 #ifdef CxPlatVerifierEnabledByAddr
         //
         // The calling app is being verified (app or driver verifier).

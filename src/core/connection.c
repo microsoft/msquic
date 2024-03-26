@@ -1390,7 +1390,7 @@ QuicErrorCodeToStatus(
     case QUIC_ERROR_NO_ERROR:                       return QUIC_STATUS_SUCCESS;
     case QUIC_ERROR_CONNECTION_REFUSED:             return QUIC_STATUS_CONNECTION_REFUSED;
     case QUIC_ERROR_PROTOCOL_VIOLATION:             return QUIC_STATUS_PROTOCOL_ERROR;
-    case QUIC_ERROR_APPLICATION_ERROR:           
+    case QUIC_ERROR_APPLICATION_ERROR:
     case QUIC_ERROR_CRYPTO_USER_CANCELED:           return QUIC_STATUS_USER_CANCELED;
     case QUIC_ERROR_CRYPTO_HANDSHAKE_FAILURE:       return QUIC_STATUS_HANDSHAKE_FAILURE;
     case QUIC_ERROR_CRYPTO_NO_APPLICATION_PROTOCOL: return QUIC_STATUS_ALPN_NEG_FAILURE;
@@ -5079,12 +5079,33 @@ QuicConnRecvFrames(
             if (Frame.ApplicationClosed) {
                 Flags |= QUIC_CLOSE_APPLICATION;
             }
-            QuicConnTryClose(
-                Connection,
-                Flags,
-                Frame.ErrorCode,
-                Frame.ReasonPhrase,
-                (uint16_t)Frame.ReasonPhraseLength);
+
+            if (!Frame.ApplicationClosed && Frame.ErrorCode == QUIC_ERROR_APPLICATION_ERROR) {
+                //
+                // The APPLICATION_ERROR transport error should be sent only
+                // when closing the connection before the handshake is
+                // confirmed. In such case, we can also expect peer to send the
+                // application CONNECTION_CLOSE frame in a 1-RTT packet
+                // (presumably also in the same UDP datagram).
+                //
+                // We want to prioritize reporting the application-layer error
+                // code to the application, so we postpone the call to
+                // QuicConnTryClose and check again after processing incoming
+                // datagrams in case it does not arrive.
+                //
+                QuicTraceEvent(
+                    ConnDelayCloseApplicationError,
+                    "[conn][%p] Received APPLICATION_ERROR error, delaying close in expectation of a 1-RTT CONNECTION_CLOSE frame.",
+                    Connection);
+                Connection->State.DelayedApplicationError = TRUE;
+            } else {
+                QuicConnTryClose(
+                    Connection,
+                    Flags,
+                    Frame.ErrorCode,
+                    Frame.ReasonPhrase,
+                    (uint16_t)Frame.ReasonPhraseLength);
+            }
 
             AckEliciting = TRUE;
             Packet->HasNonProbingFrame = TRUE;
@@ -5722,6 +5743,20 @@ QuicConnRecvDatagrams(
             Cipher,
             &RecvState);
         BatchCount = 0; // cppcheck-suppress unreadVariable; NOLINT
+    }
+
+    if (Connection->State.DelayedApplicationError && Connection->CloseStatus == 0) {
+        //
+        // We received transport APPLICATION_ERROR, but didn't receive the expected
+        // CONNECTION_ERROR frame, so close the connection with originally postponed
+        // APPLICATION_ERROR.
+        //
+        QuicConnTryClose(
+            Connection,
+            QUIC_CLOSE_REMOTE | QUIC_CLOSE_SEND_NOTIFICATION,
+            QUIC_ERROR_APPLICATION_ERROR,
+            NULL,
+            (uint16_t)0);
     }
 
     if (RecvState.ResetIdleTimeout) {
