@@ -106,7 +106,7 @@ elseif(LINUX_XDP_ENABLED)
     )
 
     add_custom_target(xdp_prog ALL
-        DEPENDS ${QUIC_OUTPUT_DIR}/datapath_raw_xdp_kern.o ${QUIC_OUTPUT_DIR}/xdp-dispatcher.o)
+        DEPENDS ${QUIC_OUTPUT_DIR}/datapath_raw_xdp_kern.o)
     add_dependencies(platform xdp_prog)
 
     find_library(NL_LIB nl-3)
