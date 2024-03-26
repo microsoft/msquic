@@ -105,6 +105,10 @@ elseif(LINUX_XDP_ENABLED)
         DEPENDS ${PROJECT_SOURCE_DIR}/src/platform/datapath_raw_xdp_linux_kern.c
     )
 
+    add_custom_target(xdp_prog ALL
+        DEPENDS ${QUIC_OUTPUT_DIR}/datapath_raw_xdp_kern.o ${QUIC_OUTPUT_DIR}/xdp-dispatcher.o)
+    add_dependencies(platform xdp_prog)
+
     find_library(NL_LIB nl-3)
     find_library(NL_ROUTE_LIB nl-route-3)
     if (BUILD_SHARED_LIBS)
