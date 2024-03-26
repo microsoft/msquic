@@ -528,7 +528,7 @@ if ($IsLinux) {
         sudo apt-get install -y liblttng-ust-dev
         sudo apt-get install -y gdb
         if ($UseXdp) {
-            sudo apt-get -y install ethtool iproute2 iptables
+            sudo apt-get -y install iproute2 iptables libnl-3-200 libnl-3-dev libnl-route-3-200 libnl-genl-3-200
             Install-DuoNic
         }
 
