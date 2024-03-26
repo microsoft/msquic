@@ -403,8 +403,8 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_LINUX_C, RxConsPeekFail,
 // Decoder Ring for RxConsPeekSucceed
 // [ xdp][rx  ] Succeed peek %d from Rx queue
 // QuicTraceLogVerbose(
-            RxConsPeekSucceed,
-            "[ xdp][rx  ] Succeed peek %d from Rx queue", Rcvd);
+        RxConsPeekSucceed,
+        "[ xdp][rx  ] Succeed peek %d from Rx queue", Rcvd);
 // arg2 = arg2 = Rcvd = arg2
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_LINUX_C, RxConsPeekSucceed,
