@@ -1135,6 +1135,18 @@
       ],
       "macroName": "QuicTraceEvent"
     },
+    "ConnDelayCloseApplicationError": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] Received APPLICATION_ERROR error, delaying close in expectation of a 1-RTT CONNECTION_CLOSE frame.",
+      "UniqueId": "ConnDelayCloseApplicationError",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceEvent"
+    },
     "ConnDestCidAdded": {
       "ModuleProperites": {},
       "TraceString": "[conn][%p] (SeqNum=%llu) New Destination CID: %!CID!",
@@ -12860,6 +12872,11 @@
         "UniquenessHash": "e507ac6d-1899-3690-fceb-3231a0eedb86",
         "TraceID": "ConnCubic",
         "EncodingString": "[conn][%p] CUBIC: SlowStartThreshold=%u K=%u WindowMax=%u WindowLastMax=%u"
+      },
+      {
+        "UniquenessHash": "48dcb290-c1f4-bd02-8ea1-01c733006b3e",
+        "TraceID": "ConnDelayCloseApplicationError",
+        "EncodingString": "[conn][%p] Received APPLICATION_ERROR error, delaying close in expectation of a 1-RTT CONNECTION_CLOSE frame."
       },
       {
         "UniquenessHash": "e2133726-1e36-d515-e6b1-ab7ac6fdf53e",

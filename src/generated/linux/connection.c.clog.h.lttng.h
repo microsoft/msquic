@@ -2376,6 +2376,25 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, ConnPacketRecv,
 
 
 /*----------------------------------------------------------
+// Decoder Ring for ConnDelayCloseApplicationError
+// [conn][%p] Received APPLICATION_ERROR error, delaying close in expectation of a 1-RTT CONNECTION_CLOSE frame.
+// QuicTraceEvent(
+                    ConnDelayCloseApplicationError,
+                    "[conn][%p] Received APPLICATION_ERROR error, delaying close in expectation of a 1-RTT CONNECTION_CLOSE frame.",
+                    Connection);
+// arg2 = arg2 = Connection = arg2
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_CONNECTION_C, ConnDelayCloseApplicationError,
+    TP_ARGS(
+        const void *, arg2), 
+    TP_FIELDS(
+        ctf_integer_hex(uint64_t, arg2, arg2)
+    )
+)
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for ConnRecvUdpDatagrams
 // [conn][%p] Recv %u UDP datagrams, %u bytes
 // QuicTraceEvent(
