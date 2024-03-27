@@ -518,6 +518,7 @@ size_t QUIC_IOCTL_BUFFER_SIZES[] =
     0,
     sizeof(QUIC_RUN_CANCEL_ON_LOSS_PARAMS),
     sizeof(uint32_t),
+    sizeof(BOOLEAN),
 };
 
 CXPLAT_STATIC_ASSERT(
@@ -557,6 +558,7 @@ typedef union {
     BOOLEAN Bidirectional;
     QUIC_RUN_FEATURE_NEGOTIATION FeatureNegotiationParams;
     QUIC_HANDSHAKE_LOSS_PARAMS HandshakeLossParams;
+    BOOLEAN ClientShutdown;
 } QUIC_IOCTL_PARAMS;
 
 #define QuicTestCtlRun(X) \
@@ -1439,6 +1441,11 @@ QuicTestCtlEvtIoDeviceControl(
         QuicTestCtlRun(QuicTestValidateNetStatsConnEvent(Params->Test));
         break;
 #endif
+
+    case IOCTL_QUIC_RUN_HANDSHAKE_SHUTDOWN:
+        CXPLAT_FRE_ASSERT(Params != nullptr);
+        QuicTestCtlRun(QuicTestShutdownDuringHandshake(Params->ClientShutdown));
+        break;
 
     default:
         Status = STATUS_NOT_IMPLEMENTED;

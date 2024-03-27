@@ -1666,6 +1666,15 @@ TEST_P(WithHandshakeArgs10, HandshakeSpecificLossPatterns) {
 }
 #endif // QUIC_TEST_DATAPATH_HOOKS_ENABLED
 
+TEST_P(WithHandshakeArgs11, ShutdownDuringHandshake) {
+    TestLoggerT<ParamType> Logger("QuicTestShutdownDuringHandshake", GetParam());
+    if (TestingKernelMode) {
+        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_HANDSHAKE_SHUTDOWN, GetParam().ClientShutdown ? TRUE : FALSE));
+    } else {
+        QuicTestShutdownDuringHandshake(GetParam().ClientShutdown);
+    }
+}
+
 TEST_P(WithSendArgs1, Send) {
     TestLoggerT<ParamType> Logger("QuicTestConnectAndPing", GetParam());
     if (TestingKernelMode) {
@@ -2420,6 +2429,11 @@ INSTANTIATE_TEST_SUITE_P(
     WithHandshakeArgs10,
     testing::ValuesIn(HandshakeArgs10::Generate()));
 #endif
+
+INSTANTIATE_TEST_SUITE_P(
+    Handshake,
+    WithHandshakeArgs11,
+    testing::ValuesIn(HandshakeArgs11::Generate()));
 
 INSTANTIATE_TEST_SUITE_P(
     AppData,
