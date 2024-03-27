@@ -4087,6 +4087,13 @@
       ],
       "macroName": "QuicTraceLogConnInfo"
     },
+    "FailRxAlloc": {
+      "ModuleProperites": {},
+      "TraceString": "[ xdp][rx  ] OOM for Rx",
+      "UniqueId": "FailRxAlloc",
+      "splitArgs": [],
+      "macroName": "QuicTraceLogVerbose"
+    },
     "FailSendTo": {
       "ModuleProperites": {},
       "TraceString": "[ xdp][tx  ] Faild sendto. errno:%d, Umem addr:%lld",
@@ -14353,6 +14360,11 @@
         "UniquenessHash": "fff5ef57-9005-a7ec-fcbc-d630c6c812fa",
         "TraceID": "FailedRouteResolution",
         "EncodingString": "[conn][%p] Route resolution failed on Path[%hhu]. Switching paths..."
+      },
+      {
+        "UniquenessHash": "74414401-fe89-41bb-7a3b-4ab1df9e912c",
+        "TraceID": "FailRxAlloc",
+        "EncodingString": "[ xdp][rx  ] OOM for Rx"
       },
       {
         "UniquenessHash": "eff0bf3a-6d97-e11d-d4a2-543e2e480bdb",

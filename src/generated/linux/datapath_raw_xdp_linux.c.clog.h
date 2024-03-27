@@ -200,6 +200,22 @@ tracepoint(CLOG_DATAPATH_RAW_XDP_LINUX_C, XdpSocketCreate , arg2, arg3);\
 
 
 /*----------------------------------------------------------
+// Decoder Ring for FailRxAlloc
+// [ xdp][rx  ] OOM for Rx
+// QuicTraceLogVerbose(
+                    FailRxAlloc,
+                    "[ xdp][rx  ] OOM for Rx");
+----------------------------------------------------------*/
+#ifndef _clog_2_ARGS_TRACE_FailRxAlloc
+#define _clog_2_ARGS_TRACE_FailRxAlloc(uniqueId, encoded_arg_string)\
+tracepoint(CLOG_DATAPATH_RAW_XDP_LINUX_C, FailRxAlloc );\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for XdpInitialize
 // [ xdp][%p] XDP initialized, %u procs
 // QuicTraceLogVerbose(
@@ -390,39 +406,6 @@ tracepoint(CLOG_DATAPATH_RAW_XDP_LINUX_C, ReleaseCons , arg2);\
 #ifndef _clog_3_ARGS_TRACE_XdpPartitionShutdown
 #define _clog_3_ARGS_TRACE_XdpPartitionShutdown(uniqueId, encoded_arg_string, arg2)\
 tracepoint(CLOG_DATAPATH_RAW_XDP_LINUX_C, XdpPartitionShutdown , arg2);\
-
-#endif
-
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for RxConsPeekFail
-// [ xdp][rx  ] Failed to peek from Rx queue
-// QuicTraceLogVerbose(
-            RxConsPeekFail,
-            "[ xdp][rx  ] Failed to peek from Rx queue");
-----------------------------------------------------------*/
-#ifndef _clog_2_ARGS_TRACE_RxConsPeekFail
-#define _clog_2_ARGS_TRACE_RxConsPeekFail(uniqueId, encoded_arg_string)\
-tracepoint(CLOG_DATAPATH_RAW_XDP_LINUX_C, RxConsPeekFail );\
-
-#endif
-
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for RxConsPeekSucceed
-// [ xdp][rx  ] Succeed peek %d from Rx queue
-// QuicTraceLogVerbose(
-        RxConsPeekSucceed,
-        "[ xdp][rx  ] Succeed peek %d from Rx queue", Rcvd);
-// arg2 = arg2 = Rcvd = arg2
-----------------------------------------------------------*/
-#ifndef _clog_3_ARGS_TRACE_RxConsPeekSucceed
-#define _clog_3_ARGS_TRACE_RxConsPeekSucceed(uniqueId, encoded_arg_string, arg2)\
-tracepoint(CLOG_DATAPATH_RAW_XDP_LINUX_C, RxConsPeekSucceed , arg2);\
 
 #endif
 

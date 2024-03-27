@@ -189,6 +189,22 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_LINUX_C, XdpSocketCreate,
 
 
 /*----------------------------------------------------------
+// Decoder Ring for FailRxAlloc
+// [ xdp][rx  ] OOM for Rx
+// QuicTraceLogVerbose(
+                    FailRxAlloc,
+                    "[ xdp][rx  ] OOM for Rx");
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_LINUX_C, FailRxAlloc,
+    TP_ARGS(
+), 
+    TP_FIELDS(
+    )
+)
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for XdpInitialize
 // [ xdp][%p] XDP initialized, %u procs
 // QuicTraceLogVerbose(
@@ -397,40 +413,6 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_LINUX_C, XdpPartitionShutdown,
         const void *, arg2), 
     TP_FIELDS(
         ctf_integer_hex(uint64_t, arg2, arg2)
-    )
-)
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for RxConsPeekFail
-// [ xdp][rx  ] Failed to peek from Rx queue
-// QuicTraceLogVerbose(
-            RxConsPeekFail,
-            "[ xdp][rx  ] Failed to peek from Rx queue");
-----------------------------------------------------------*/
-TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_LINUX_C, RxConsPeekFail,
-    TP_ARGS(
-), 
-    TP_FIELDS(
-    )
-)
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for RxConsPeekSucceed
-// [ xdp][rx  ] Succeed peek %d from Rx queue
-// QuicTraceLogVerbose(
-        RxConsPeekSucceed,
-        "[ xdp][rx  ] Succeed peek %d from Rx queue", Rcvd);
-// arg2 = arg2 = Rcvd = arg2
-----------------------------------------------------------*/
-TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_LINUX_C, RxConsPeekSucceed,
-    TP_ARGS(
-        int, arg2), 
-    TP_FIELDS(
-        ctf_integer(int, arg2, arg2)
     )
 )
 

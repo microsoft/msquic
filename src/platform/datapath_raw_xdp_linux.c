@@ -415,8 +415,8 @@ CxPlatDpRawInterfaceInitialize(
     _In_ uint32_t ClientRecvContextLength
     )
 {
-    const uint32_t RxHeadroom = sizeof(XDP_RX_PACKET) + ALIGN_UP(ClientRecvContextLength, uint32_t);
-    const uint32_t TxHeadroom = FIELD_OFFSET(XDP_TX_PACKET, FrameBuffer);
+    const uint32_t RxHeadroom = ALIGN_UP(sizeof(XDP_RX_PACKET) + ClientRecvContextLength, 32);
+    const uint32_t TxHeadroom = ALIGN_UP(FIELD_OFFSET(XDP_TX_PACKET, FrameBuffer), 32);
     // WARN: variable frame size cause unexpected behavior
     // TODO: 2K mode
     const uint32_t FrameSize = FRAME_SIZE;
@@ -589,8 +589,14 @@ CxPlatDpRawInterfaceInitialize(
             return QUIC_STATUS_OUT_OF_MEMORY;
         }
         for (uint32_t i = 0; i < PROD_NUM_DESCS; i ++) {
-            *xsk_ring_prod__fill_addr(&xsk_info->umem->fq, FqIdx++) =
-                xsk_alloc_umem_frame(xsk_info) + RxHeadroom;
+            uint64_t addr = xsk_alloc_umem_frame(xsk_info);
+            if (addr == INVALID_UMEM_FRAME) {
+                QuicTraceLogVerbose(
+                    FailRxAlloc,
+                    "[ xdp][rx  ] OOM for Rx");
+                break;
+            }
+            *xsk_ring_prod__fill_addr(&xsk_info->umem->fq, FqIdx++) = addr + RxHeadroom;
         }
 
         xsk_ring_prod__submit(&xsk_info->umem->fq, PROD_NUM_DESCS);
@@ -939,8 +945,7 @@ CxPlatDpRawRxFree(
             Packet =
                 CXPLAT_CONTAINING_RECORD(PacketChain, XDP_RX_PACKET, RecvData);
             PacketChain = PacketChain->Next;
-            // NOTE: for some reason there is 8 bit gap
-            xsk_free_umem_frame(Packet->Queue->xsk_info, Packet->addr - xsk_info->umem->RxHeadRoom - 8);
+            xsk_free_umem_frame(Packet->Queue->xsk_info, Packet->addr - xsk_info->umem->RxHeadRoom);
             Count++;
         }
     }
@@ -1040,9 +1045,8 @@ CxPlatDpRawTxEnqueue(
     Completed = xsk_ring_cons__peek(&xsk_info->umem->cq, CONS_NUM_DESCS, &CqIdx);
     if (Completed > 0) {
         for (uint32_t i = 0; i < Completed; i++) {
-            xsk_free_umem_frame(xsk_info,
-                                *xsk_ring_cons__comp_addr(&xsk_info->umem->cq,
-                                                          CqIdx++) - xsk_info->umem->TxHeadRoom);
+            uint64_t addr = *xsk_ring_cons__comp_addr(&xsk_info->umem->cq, CqIdx++) - xsk_info->umem->TxHeadRoom;
+            xsk_free_umem_frame(xsk_info, addr);
         }
 
         xsk_ring_cons__release(&xsk_info->umem->cq, Completed);
@@ -1055,6 +1059,14 @@ CxPlatDpRawTxEnqueue(
     // Partition->Ec.Ready = TRUE;
     // CxPlatWakeExecutionContext(&Partition->Ec);
 }
+
+static
+BOOLEAN // Did work?
+CxPlatXdpRx(
+    _In_ const XDP_DATAPATH* Xdp,
+    _In_ XDP_QUEUE* Queue,
+    _In_ uint16_t PartitionIndex
+    );
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 BOOLEAN
@@ -1077,6 +1089,20 @@ CxPlatXdpExecute(
         CxPlatEventQEnqueue(Partition->EventQ, &Partition->ShutdownSqe.Sqe, &Partition->ShutdownSqe);
         return FALSE;
     }
+
+    BOOLEAN DidWork = FALSE;
+    XDP_QUEUE* Queue = Partition->Queues;
+    while (Queue) {
+        DidWork |= CxPlatXdpRx(Xdp, Queue, Partition->PartitionIndex);
+        // DidWork |= CxPlatXdpTx(Xdp, Queue);
+        Queue = Queue->Next;
+    }
+
+    if (DidWork) {
+        Partition->Ec.Ready = TRUE;
+        State->NoWorkCount = 0;
+    }
+
     return TRUE;
 }
 
@@ -1085,8 +1111,12 @@ static uint64_t xsk_umem_free_frames(struct xsk_socket_info *xsk)
     return xsk->umem_frame_free;
 }
 
-void CxPlatXdpRx(
-    _In_ XDP_QUEUE* Queue
+static
+BOOLEAN // Did work?
+CxPlatXdpRx(
+    _In_ const XDP_DATAPATH* Xdp,
+    _In_ XDP_QUEUE* Queue,
+    _In_ uint16_t PartitionIndex
     )
 {
     struct xsk_socket_info *xsk = Queue->xsk_info;
@@ -1096,37 +1126,9 @@ void CxPlatXdpRx(
     unsigned int ret;
 
     Rcvd = xsk_ring_cons__peek(&xsk->rx, RX_BATCH_SIZE, &RxIdx);
-    if (!Rcvd) {
-        QuicTraceLogVerbose(
-            RxConsPeekFail,
-            "[ xdp][rx  ] Failed to peek from Rx queue");
-        return;
-    }
-    QuicTraceLogVerbose(
-        RxConsPeekSucceed,
-        "[ xdp][rx  ] Succeed peek %d from Rx queue", Rcvd);
-
-    CxPlatLockAcquire(&xsk->UmemLock);
-    // Stuff the ring with as much frames as possible
-    Available = xsk_prod_nb_free(&xsk->umem->fq,
-                    xsk_umem_free_frames(xsk)); //TODO: remove lock and use  as big as possible?
-    if (Available > 0) {
-        ret = xsk_ring_prod__reserve(&xsk->umem->fq, Available, &FqIdx);
-
-        // This should not happen, but just in case
-        while (ret != Available) {
-            ret = xsk_ring_prod__reserve(&xsk->umem->fq, Rcvd, &FqIdx);
-        }
-        for (i = 0; i < Available; i++) {
-            *xsk_ring_prod__fill_addr(&xsk->umem->fq, FqIdx++) =
-                xsk_alloc_umem_frame(xsk) + xsk->umem->RxHeadRoom;
-        }
-        xsk_ring_prod__submit(&xsk->umem->fq, Available);
-    }
-    CxPlatLockRelease(&xsk->UmemLock);
 
     // Process received packets
-    CXPLAT_RECV_DATA* Buffers[RX_BATCH_SIZE];
+    CXPLAT_RECV_DATA* Buffers[RX_BATCH_SIZE] = {};
     uint32_t PacketCount = 0;
     for (i = 0; i < Rcvd; i++) {
         uint64_t addr = xsk_ring_cons__rx_desc(&xsk->rx, RxIdx)->addr;
@@ -1139,11 +1141,11 @@ void CxPlatXdpRx(
         Packet->RouteStorage.Queue = Queue;
         Packet->RecvData.Route = &Packet->RouteStorage;
         Packet->RecvData.Route->DatapathType = Packet->RecvData.DatapathType = CXPLAT_DATAPATH_TYPE_RAW;
-        Packet->RecvData.PartitionIndex = Queue->Partition->PartitionIndex;
+        Packet->RecvData.PartitionIndex = PartitionIndex;
 
         // TODO xsk_free_umem_frame if parse error?
         CxPlatDpRawParseEthernet(
-            (CXPLAT_DATAPATH*)Queue->Partition->Xdp,
+            (CXPLAT_DATAPATH*)Xdp,
             &Packet->RecvData,
             FrameBuffer,
             (uint16_t)len);
@@ -1164,19 +1166,50 @@ void CxPlatXdpRx(
         //
         Packet->RecvData.Route->State = RouteResolved;
 
-        Packet->addr = addr;
+        // NOTE: for some reason there is 32 byte gap
+        Packet->addr = addr + 32;
         Packet->RecvData.Allocated = TRUE;
         Buffers[PacketCount++] = &Packet->RecvData;
     }
 
     if (Rcvd) {
         xsk_ring_cons__release(&xsk->rx, Rcvd);
+    }
 
+    CxPlatLockAcquire(&xsk->UmemLock);
+    // Stuff the ring with as much frames as possible
+    Available = xsk_prod_nb_free(&xsk->umem->fq,
+                    xsk_umem_free_frames(xsk)); //TODO: remove lock and use  as big as possible?
+    if (Available > 0) {
+        ret = xsk_ring_prod__reserve(&xsk->umem->fq, Available, &FqIdx);
+
+        // This should not happen, but just in case
+        while (ret != Available) {
+            ret = xsk_ring_prod__reserve(&xsk->umem->fq, Rcvd, &FqIdx);
+        }
+        for (i = 0; i < Available; i++) {
+            uint64_t addr = xsk_alloc_umem_frame(xsk);
+            if (addr == INVALID_UMEM_FRAME) {
+                QuicTraceLogVerbose(
+                    FailRxAlloc,
+                    "[ xdp][rx  ] OOM for Rx");
+                break;
+            }
+            *xsk_ring_prod__fill_addr(&xsk->umem->fq, FqIdx++) = addr + xsk->umem->RxHeadRoom;
+        }
+        if (i > 0) {
+            xsk_ring_prod__submit(&xsk->umem->fq, i);
+        }
+    }
+    CxPlatLockRelease(&xsk->UmemLock);
+
+    if (PacketCount) {
         CxPlatDpRawRxEthernet(
             (CXPLAT_DATAPATH_RAW*)Queue->Partition->Xdp,
             Buffers,
-            (uint16_t)Rcvd);
+            (uint16_t)PacketCount);
     }
+    return PacketCount > 0 || i > 0;
 }
 
 void
@@ -1197,7 +1230,6 @@ RawDataPathProcessCqe(
         DATAPATH_SQE* Sqe = (DATAPATH_SQE*)CxPlatCqeUserData(Cqe);
         XDP_QUEUE* Queue;
         Queue = CXPLAT_CONTAINING_RECORD(Sqe, XDP_QUEUE, RxIoSqe);
-        CxPlatXdpRx(Queue);
         QuicTraceLogVerbose(
             XdpQueueAsyncIoRxComplete,
             "[ xdp][%p] XDP async IO complete (RX)",
