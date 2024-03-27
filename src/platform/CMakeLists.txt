@@ -76,7 +76,7 @@ elseif(LINUX_XDP_ENABLED)
 
     # Custom command to build XDP Tools
     add_custom_command(
-        OUTPUT ${LIBXDP_PATH} ${LIBBPF_PATH}
+        OUTPUT ${LIBXDP_PATH} ${LIBBPF_PATH} ${QUIC_OUTPUT_DIR}/xdp-dispatcher.o
         COMMAND ./configure
         COMMAND make
         # Experimental!
