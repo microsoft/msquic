@@ -1092,7 +1092,12 @@ QuicTestShutdownDuringHandshake(
                         return;
                     }
 
-                    TEST_EQUAL(TRUE, Client.GetPeerClosed());
+                    //
+                    // We can assert neither transport nor peer closed because the behavior
+                    // is platform dependent. Schannel provides 1-RTT read keys early enough to
+                    // receive the app CONNECTION_CLOSE, but OpenSSL does not and leads to
+                    // transport close.
+                    //
                 }
             }
         }
