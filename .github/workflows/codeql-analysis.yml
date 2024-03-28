@@ -40,7 +40,7 @@ jobs:
       - run: |
          sudo apt-add-repository ppa:lttng/stable-2.13
          sudo apt-get update
-         sudo apt-get install -y liblttng-ust-dev libnuma-dev
+         sudo apt-get install -y liblttng-ust-dev libnuma-dev libnl-3-dev libnl-genl-3-dev libnl-route-3-dev zlib1g-dev zlib1g pkg-config m4 clang libpcap-dev libelf-dev
          sudo sh scripts/install-powershell-docker.sh
          mkdir build
          cd build
