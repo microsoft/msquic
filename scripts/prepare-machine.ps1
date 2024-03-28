@@ -228,13 +228,18 @@ function Uninstall-Xdp {
 
 # Installs DuoNic from the CoreNet-CI repo.
 function Install-DuoNic {
-    if (!$IsWindows) { return } # Windows only
     # Install the DuoNic driver.
-    Write-Host "Installing DuoNic driver"
-    $DuoNicPath = Join-Path $SetupPath duonic
-    $DuoNicScript = (Join-Path $DuoNicPath duonic.ps1)
-    if (!(Test-Path $DuoNicScript)) { Write-Error "Missing file: $DuoNicScript" }
-    Invoke-Expression "cmd /c `"pushd $DuoNicPath && pwsh duonic.ps1 -Install`""
+    if ($IsWindows) {
+        Write-Host "Installing DuoNic driver"
+        $DuoNicPath = Join-Path $SetupPath duonic
+        $DuoNicScript = (Join-Path $DuoNicPath duonic.ps1)
+        if (!(Test-Path $DuoNicScript)) { Write-Error "Missing file: $DuoNicScript" }
+        Invoke-Expression "cmd /c `"pushd $DuoNicPath && pwsh duonic.ps1 -Install`""
+    } elseif ($IsLinux) {
+        Write-Host "Creating DuoNic endpoints"
+        $DuoNicScript = Join-Path $PSScriptRoot "duonic.sh"
+        Invoke-Expression "sudo bash $DuoNicScript install"
+    }
 }
 
 function Update-Path($NewPath) {
@@ -468,6 +473,12 @@ if ($ForBuild -or $ForContainerBuild) {
     }
 
     git submodule update --jobs=8
+    if ($IsLinux) {
+        Write-Host "Initializing xdp-tools submodules"
+        git submodule update --init --recursive --jobs=8 submodules/xdp-tools
+        # temporal workaround for libxdp v1.4.0
+        sed -i '/BPF_CFLAGS += -I$(HEADER_DIR)/ { /${ARCH_INCLUDES}/! s|$| ${ARCH_INCLUDES}| }' submodules/xdp-tools/lib/libxdp/Makefile
+    }
 }
 
 if ($InstallCoreNetCiDeps) { Download-CoreNet-Deps }
@@ -504,6 +515,10 @@ if ($IsLinux) {
         sudo apt-get install -y ruby ruby-dev rpm
         sudo gem install public_suffix -v 4.0.7
         sudo gem install fpm
+
+        # XDP dependencies
+        sudo apt-get -y install libnl-3-dev libnl-genl-3-dev libnl-route-3-dev zlib1g-dev zlib1g pkg-config m4 clang libpcap-dev libelf-dev
+        sudo apt-get -y install --no-install-recommends libc6-dev-i386
     }
 
     if ($ForTest) {
@@ -512,6 +527,10 @@ if ($IsLinux) {
         sudo apt-get install -y lttng-tools
         sudo apt-get install -y liblttng-ust-dev
         sudo apt-get install -y gdb
+        if ($UseXdp) {
+            sudo apt-get -y install iproute2 iptables libnl-3-200 libnl-route-3-200 libnl-genl-3-200
+            Install-DuoNic
+        }
 
         # Enable core dumps for the system.
         Write-Host "Setting core dump size limit"

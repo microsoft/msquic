@@ -86,6 +86,10 @@ extern "C" {
 #define TYPEOF_STRUCT_MEMBER(StructType, StructMember) typeof(((StructType *)0)->StructMember)
 
 #define SOCKET int
+#define _CxPlatSocketError() errno
+#define _CxPlatCloseSocket(s) close(s)
+#define _CxPlatQuicErrorFromSocketError(e) (QUIC_STATUS)e
+#define _CxPlatAddressLengthType uint32_t
 
 #if defined(__GNUC__) && __GNUC__ >= 7
 #define __fallthrough __attribute__((fallthrough))
@@ -1092,7 +1096,9 @@ CxPlatSqeInitialize(
     )
 {
     struct epoll_event event = { .events = EPOLLIN | EPOLLET, .data = { .ptr = user_data } };
-    if ((*sqe = eventfd(0, EFD_CLOEXEC)) == -1) return FALSE;
+    while ((*sqe = eventfd(0, EFD_CLOEXEC)) == 0) { // WARN: temporal workaround
+        if (*sqe == -1) return FALSE;
+    }
     if (epoll_ctl(*queue, EPOLL_CTL_ADD, *sqe, &event) != 0) { close(*sqe); return FALSE; }
     return TRUE;
 }

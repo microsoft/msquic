@@ -64,6 +64,11 @@ elseif (APPLE)
     set(CX_PLATFORM "darwin")
 elseif (UNIX)
     set(CX_PLATFORM "linux")
+    find_program(LSB_RELEASE lsb_release)
+    execute_process(COMMAND ${LSB_RELEASE} -rs
+      OUTPUT_VARIABLE UBUNTU_VERSION
+      OUTPUT_STRIP_TRAILING_WHITESPACE
+    )
 endif()
 message(STATUS "QUIC Platform: ${CX_PLATFORM}")
 
@@ -434,13 +439,13 @@ if (NOT MSVC AND NOT APPLE AND NOT ANDROID)
     endif()
 endif()
 
-if(WIN32)
-    if (CMAKE_GENERATOR_PLATFORM STREQUAL "")
-        string(TOLOWER ${CMAKE_SYSTEM_PROCESSOR} SYSTEM_PROCESSOR)
-    else()
-        string(TOLOWER ${CMAKE_GENERATOR_PLATFORM} SYSTEM_PROCESSOR)
-    endif()
+if (CMAKE_GENERATOR_PLATFORM STREQUAL "")
+string(TOLOWER ${CMAKE_SYSTEM_PROCESSOR} SYSTEM_PROCESSOR)
+else()
+string(TOLOWER ${CMAKE_GENERATOR_PLATFORM} SYSTEM_PROCESSOR)
+endif()
 
+if(WIN32)
     # Generate the MsQuicEtw header file.
     file(MAKE_DIRECTORY ${QUIC_BUILD_DIR}/inc)
 

@@ -111,11 +111,70 @@ RawDataPathInitialize(
     _Out_ CXPLAT_DATAPATH_RAW** NewDataPath
     )
 {
-    UNREFERENCED_PARAMETER(ClientRecvContextLength);
-    UNREFERENCED_PARAMETER(Config);
-    UNREFERENCED_PARAMETER(ParentDataPath);
-    UNREFERENCED_PARAMETER(NewDataPath);
-    return QUIC_STATUS_NOT_SUPPORTED;
+    QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
+    const size_t DatapathSize = CxPlatDpRawGetDatapathSize(Config);
+    BOOLEAN DpRawInitialized = FALSE;
+    BOOLEAN SockPoolInitialized = FALSE;
+
+    if (NewDataPath == NULL) {
+        return QUIC_STATUS_INVALID_PARAMETER;
+    }
+
+    CXPLAT_DATAPATH_RAW* DataPath = CXPLAT_ALLOC_PAGED(DatapathSize, QUIC_POOL_DATAPATH);
+    if (DataPath == NULL) {
+        QuicTraceEvent(
+            AllocFailure,
+            "Allocation of '%s' failed. (%llu bytes)",
+            "CXPLAT_DATAPATH",
+            DatapathSize);
+        return QUIC_STATUS_OUT_OF_MEMORY;
+    }
+    CxPlatZeroMemory(DataPath, DatapathSize);
+    CXPLAT_FRE_ASSERT(CxPlatRundownAcquire(&CxPlatWorkerRundown));
+
+    if (Config && (Config->Flags & QUIC_EXECUTION_CONFIG_FLAG_QTIP)) {
+        DataPath->UseTcp = TRUE;
+    }
+
+    if (!CxPlatSockPoolInitialize(&DataPath->SocketPool)) {
+        Status = QUIC_STATUS_OUT_OF_MEMORY;
+        goto Error;
+    }
+    SockPoolInitialized = TRUE;
+
+    Status = CxPlatDpRawInitialize(DataPath, ClientRecvContextLength, Config);
+    if (QUIC_FAILED(Status)) {
+        goto Error;
+    }
+    DpRawInitialized = TRUE;
+
+    Status = CxPlatDataPathRouteWorkerInitialize(DataPath);
+    if (QUIC_FAILED(Status)) {
+        goto Error;
+    }
+
+    *NewDataPath = DataPath;
+    DataPath->ParentDataPath = ParentDataPath;
+    DataPath = NULL;
+
+Error:
+
+    if (DataPath != NULL) {
+#if DEBUG
+        DataPath->Uninitialized = TRUE;
+#endif
+        if (DpRawInitialized) {
+            CxPlatDpRawUninitialize(DataPath);
+        } else {
+            if (SockPoolInitialized) {
+                CxPlatSockPoolUninitialize(&DataPath->SocketPool);
+            }
+            CXPLAT_FREE(DataPath, QUIC_POOL_DATAPATH);
+            CxPlatRundownRelease(&CxPlatWorkerRundown);
+        }
+    }
+
+    return Status;
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -158,8 +217,7 @@ RawDataPathUpdateConfig(
     _In_ QUIC_EXECUTION_CONFIG* Config
     )
 {
-    UNREFERENCED_PARAMETER(Datapath);
-    UNREFERENCED_PARAMETER(Config);
+    CxPlatDpRawUpdateConfig(Datapath, Config);;
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -185,14 +243,94 @@ RawDataPathIsPaddingPreferred(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 RawSocketCreateUdp(
-    _In_ CXPLAT_DATAPATH_RAW* Datapath,
+    _In_ CXPLAT_DATAPATH_RAW* Raw,
     _In_ const CXPLAT_UDP_CONFIG* Config,
     _Inout_ CXPLAT_SOCKET_RAW* NewSocket
     )
 {
+    QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
+
+    CxPlatRundownInitialize(&NewSocket->Rundown);
+    NewSocket->RawDatapath = Raw;
+    NewSocket->CibirIdLength = Config->CibirIdLength;
+    NewSocket->CibirIdOffsetSrc = Config->CibirIdOffsetSrc;
+    NewSocket->CibirIdOffsetDst = Config->CibirIdOffsetDst;
+    NewSocket->UseTcp = Raw->UseTcp;
+    if (Config->CibirIdLength) {
+        memcpy(NewSocket->CibirId, Config->CibirId, Config->CibirIdLength);
+    }
+
+    if (Config->RemoteAddress) {
+        CXPLAT_FRE_ASSERT(!QuicAddrIsWildCard(Config->RemoteAddress));  // No wildcard remote addresses allowed.
+        if (NewSocket->UseTcp) {
+            NewSocket->RemoteAddress = *Config->RemoteAddress;
+        }
+        NewSocket->Connected = TRUE;
+    }
+
+    if (Config->LocalAddress) {
+        if (NewSocket->UseTcp) {
+            NewSocket->LocalAddress = *Config->LocalAddress;
+        }
+        if (QuicAddrIsWildCard(Config->LocalAddress)) {
+            if (!NewSocket->Connected) {
+                NewSocket->Wildcard = TRUE;
+            }
+        } else if (!NewSocket->Connected) {
+            // Assumes only connected sockets fully specify local address
+            Status = QUIC_STATUS_INVALID_STATE;
+            goto Error;
+        }
+    } else {
+        if (NewSocket->UseTcp) {
+            QuicAddrSetFamily(&NewSocket->LocalAddress, QUIC_ADDRESS_FAMILY_INET6);
+        }
+        if (!NewSocket->Connected) {
+            NewSocket->Wildcard = TRUE;
+        } else {
+            int oif = -1;
+            NewSocket->LocalAddress.Ip.sa_family = NewSocket->RemoteAddress.Ip.sa_family;
+            ResolveBestL3Route(&NewSocket->RemoteAddress, &NewSocket->LocalAddress, NULL, &oif);
+        }
+    }
+
+    CXPLAT_FRE_ASSERT(NewSocket->Wildcard ^ NewSocket->Connected); // Assumes either a pure wildcard listener or a
+                                                                         // connected socket; not both.
+    Status = CxPlatTryAddSocket(&Raw->SocketPool, NewSocket);
+    if (QUIC_FAILED(Status)) {
+        goto Error;
+    }
+
+    CxPlatDpRawPlumbRulesOnSocket(NewSocket, TRUE);
+
+Error:
+
+    if (QUIC_FAILED(Status)) {
+        if (NewSocket != NULL) {
+            CxPlatRundownUninitialize(&NewSocket->Rundown);
+            CxPlatZeroMemory(NewSocket, sizeof(CXPLAT_SOCKET_RAW) - sizeof(CXPLAT_SOCKET));
+            NewSocket = NULL;
+        }
+    }
+
+    return Status;
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_STATUS
+RawSocketCreateTcp(
+    _In_ CXPLAT_DATAPATH* Datapath,
+    _In_opt_ const QUIC_ADDR* LocalAddress,
+    _In_ const QUIC_ADDR* RemoteAddress,
+    _In_opt_ void* CallbackContext,
+    _Out_ CXPLAT_SOCKET** Socket
+    )
+{
     UNREFERENCED_PARAMETER(Datapath);
-    UNREFERENCED_PARAMETER(Config);
-    UNREFERENCED_PARAMETER(NewSocket);
+    UNREFERENCED_PARAMETER(LocalAddress);
+    UNREFERENCED_PARAMETER(RemoteAddress);
+    UNREFERENCED_PARAMETER(CallbackContext);
+    UNREFERENCED_PARAMETER(Socket);
     return QUIC_STATUS_NOT_SUPPORTED;
 }
 
@@ -202,7 +340,16 @@ RawSocketDelete(
     _In_ CXPLAT_SOCKET_RAW* Socket
     )
 {
-    UNREFERENCED_PARAMETER(Socket);
+    CxPlatDpRawPlumbRulesOnSocket(Socket, FALSE);
+    CxPlatRemoveSocket(&Socket->RawDatapath->SocketPool, Socket);
+    CxPlatRundownReleaseAndWait(&Socket->Rundown);
+    if (Socket->PausedTcpSend) {
+        CxPlatDpRawTxFree(Socket->PausedTcpSend);
+    }
+
+    if (Socket->CachedRstSend) {
+        CxPlatDpRawTxEnqueue(Socket->CachedRstSend);
+    }
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)

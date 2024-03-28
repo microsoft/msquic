@@ -679,6 +679,9 @@ CxPlatDpRawGetDatapathSize(
 #define CXPLAT_CQE_TYPE_SOCKET_SHUTDOWN     CXPLAT_CQE_TYPE_QUIC_BASE + 3
 #define CXPLAT_CQE_TYPE_SOCKET_IO           CXPLAT_CQE_TYPE_QUIC_BASE + 4
 #define CXPLAT_CQE_TYPE_SOCKET_FLUSH_TX     CXPLAT_CQE_TYPE_QUIC_BASE + 5
+#define CXPLAT_CQE_TYPE_XDP_SHUTDOWN        CXPLAT_CQE_TYPE_QUIC_BASE + 6
+#define CXPLAT_CQE_TYPE_XDP_IO              CXPLAT_CQE_TYPE_QUIC_BASE + 7
+#define CXPLAT_CQE_TYPE_XDP_FLUSH_TX        CXPLAT_CQE_TYPE_QUIC_BASE + 8
 
 extern CXPLAT_RUNDOWN_REF CxPlatWorkerRundown;
 
@@ -824,6 +827,8 @@ typedef struct CXPLAT_SOCKET {
 
     uint8_t UseTcp : 1;                  // Quic over TCP
 
+    uint8_t RawSocketAvailable : 1;
+
     //
     // Set of socket contexts one per proc.
     //
@@ -931,6 +936,10 @@ typedef struct CXPLAT_DATAPATH {
     uint8_t Uninitialized : 1;
     uint8_t Freed : 1;
 #endif
+
+    uint8_t UseTcp : 1;
+
+    CXPLAT_DATAPATH_RAW* RawDataPath;
 
     //
     // The per proc datapath contexts.
