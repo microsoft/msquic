@@ -147,7 +147,7 @@ jobs:
       if: matrix.vec.os == 'ubuntu-22.04' && matrix.vec.xdp == '-UseXdp'
       shell: pwsh
       timeout-minutes: 120
-      run: sudo scripts/test.ps1 -Config ${{ matrix.vec.config }} -Arch ${{ matrix.vec.arch }} -Tls ${{ matrix.vec.tls }} -OsRunner ${{ matrix.vec.os }} -GHA -LogProfile Full.Light -GenerateXmlResults ${{ matrix.vec.xdp }} ${{ matrix.vec.qtip }}
+      run: sudo ./scripts/test.ps1 -Config ${{ matrix.vec.config }} -Arch ${{ matrix.vec.arch }} -Tls ${{ matrix.vec.tls }} -OsRunner ${{ matrix.vec.os }} -GHA -LogProfile Full.Light -GenerateXmlResults ${{ matrix.vec.xdp }} ${{ matrix.vec.qtip }}
     - name: Test
       if: matrix.vec.os == 'WinServerPrerelease'
       shell: pwsh
