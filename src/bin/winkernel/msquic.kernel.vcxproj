@@ -44,6 +44,7 @@
     <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
     <MinimumVisualStudioVersion>12.0</MinimumVisualStudioVersion>
     <UseInternalMSUniCrtPackage>true</UseInternalMSUniCrtPackage>
+    <UndockedKernelModeBuild>true</UndockedKernelModeBuild>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Label="Configuration">
@@ -101,7 +102,6 @@
       <ModuleDefinitionFile>msquic.src</ModuleDefinitionFile>
       <AdditionalDependencies>cng.lib;ksecdd.lib;msnetioid.lib;ndis.lib;netio.lib;uuid.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalOptions>/kernel /NOOPTIDATA /pdbcompress /MERGE:.gfids=GFIDS /MERGE:.orpc=.text /MERGE:_PAGE=PAGE /MERGE:_RDATA=.rdata /MERGE:_TEXT=.text /section:GFIDS,d</AdditionalOptions>
-      <AdditionalOptions>%(AdditionalOptions) /nodefaultlib:libcmt.lib /nodefaultlib:libcmtd.lib</AdditionalOptions>
       <LinkTimeCodeGeneration>UseLinkTimeCodeGeneration</LinkTimeCodeGeneration>
     </Link>
     <ResourceCompile>
