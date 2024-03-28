@@ -161,10 +161,10 @@ QuicCryptoInitialize(
 
     if (QuicConnIsServer(Connection)) {
         CXPLAT_DBG_ASSERT(Connection->SourceCids.Next != NULL);
-        QUIC_CID_HASH_ENTRY* SourceCid =
+        QUIC_CID_SLIST_ENTRY* SourceCid =
             CXPLAT_CONTAINING_RECORD(
                 Connection->SourceCids.Next,
-                QUIC_CID_HASH_ENTRY,
+                QUIC_CID_SLIST_ENTRY,
                 Link);
 
         HandshakeCid = SourceCid->CID.Data;
@@ -416,10 +416,10 @@ QuicCryptoOnVersionChange(
 
     if (QuicConnIsServer(Connection)) {
         CXPLAT_DBG_ASSERT(Connection->SourceCids.Next != NULL);
-        QUIC_CID_HASH_ENTRY* SourceCid =
+        QUIC_CID_SLIST_ENTRY* SourceCid =
             CXPLAT_CONTAINING_RECORD(
                 Connection->SourceCids.Next,
-                QUIC_CID_HASH_ENTRY,
+                QUIC_CID_SLIST_ENTRY,
                 Link);
 
         HandshakeCid = SourceCid->CID.Data;
@@ -1588,10 +1588,10 @@ QuicCryptoProcessTlsCompletion(
             CXPLAT_DBG_ASSERT(Connection->SourceCids.Next->Next != NULL);
             CXPLAT_DBG_ASSERT(Connection->SourceCids.Next->Next != NULL);
             CXPLAT_DBG_ASSERT(Connection->SourceCids.Next->Next->Next == NULL);
-            QUIC_CID_HASH_ENTRY* InitialSourceCid =
+            QUIC_CID_SLIST_ENTRY* InitialSourceCid =
                 CXPLAT_CONTAINING_RECORD(
                     Connection->SourceCids.Next->Next,
-                    QUIC_CID_HASH_ENTRY,
+                    QUIC_CID_SLIST_ENTRY,
                     Link);
             CXPLAT_DBG_ASSERT(InitialSourceCid->CID.IsInitial);
             Connection->SourceCids.Next->Next = Connection->SourceCids.Next->Next->Next;
@@ -1602,7 +1602,7 @@ QuicCryptoProcessTlsCompletion(
                 Connection,
                 InitialSourceCid->CID.SequenceNumber,
                 CASTED_CLOG_BYTEARRAY(InitialSourceCid->CID.Length, InitialSourceCid->CID.Data));
-            CXPLAT_FREE(InitialSourceCid, QUIC_POOL_CIDHASH);
+            CXPLAT_FREE(InitialSourceCid, QUIC_POOL_CIDSLIST);
         }
 
         //

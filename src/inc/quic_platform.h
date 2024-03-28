@@ -80,7 +80,7 @@ typedef struct CXPLAT_SLIST_ENTRY {
 #define QUIC_POOL_WORKER                    'A0cQ' // Qc0A - QUIC Worker
 #define QUIC_POOL_LISTENER                  'B0cQ' // Qc0B - QUIC Listener
 #define QUIC_POOL_CID                       'C0cQ' // Qc0C - QUIC CID
-#define QUIC_POOL_CIDHASH                   'D0cQ' // Qc0D - QUIC CID Hash
+#define QUIC_POOL_CIDSLIST                  'D0cQ' // Qc0D - QUIC CID Hash
 #define QUIC_POOL_CIDLIST                   'E0cQ' // Qc0E - QUIC CID List Entry
 #define QUIC_POOL__UNUSED_1_                'F0cQ' // Qc0F - UNUSED
 #define QUIC_POOL_ALPN                      '01cQ' // Qc10 - QUIC ALPN
@@ -144,6 +144,8 @@ typedef struct CXPLAT_SLIST_ENTRY {
 #define QUIC_POOL_ROUTE_RESOLUTION_WORKER   'A4cQ' // Qc4A - QUIC route resolution worker
 #define QUIC_POOL_ROUTE_RESOLUTION_OPER     'B4cQ' // Qc4B - QUIC route resolution operation
 #define QUIC_POOL_EXECUTION_CONFIG          'C4cQ' // Qc4C - QUIC execution config
+#define QUIC_POOL_CIDHASH                   'D4cQ' // Qc4D - QUIC CID Hash
+
 
 typedef enum CXPLAT_THREAD_FLAGS {
     CXPLAT_THREAD_FLAG_NONE               = 0x0000,
