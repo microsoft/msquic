@@ -83,7 +83,7 @@ Write-Host "    New version: $NewVerMajor.$NewVerMinor.$NewVerPatch"
     -replace "$VerMajor.$VerMinor.$VerPatch", "$NewVerMajor.$NewVerMinor.$NewVerPatch" |`
     Out-File $CargoFile
 (Get-Content $VersionJson) `
-    -replace '"major": $VerMajor', '"major": $NewVerMajor' `
-    -replace '"minor": $VerMinor', '"minor": $NewVerMinor' `
-    -replace '"patch": $VerPatch', '"patch": $NewVerPatch' |`
-    Out-File $MsQuicVerFilePath
+    -replace """major"": $VerMajor", """major"": $NewVerMajor" `
+    -replace """minor"": $VerMinor", """minor"": $NewVerMinor" `
+    -replace """patch"": $VerPatch", """patch"": $NewVerPatch" |`
+    Out-File $VersionJson
