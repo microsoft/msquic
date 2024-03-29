@@ -561,13 +561,21 @@ CxPlatDpRawInterfaceInitialize(
         CxPlatLockInitialize(&xsk_info->UmemLock);
         Queue->xsk_info = xsk_info;
         xsk_info->umem = Umem;
-        int ret = xsk_socket__create(&xsk_info->xsk, Interface->IfName,
-                    i, Umem->umem, &xsk_info->rx,
-                    &xsk_info->tx, XskCfg);
-        if (ret) {
+
+        int RetryCount = 10;
+        int ret = 0;
+        do {
+            ret = xsk_socket__create(&xsk_info->xsk, Interface->IfName,
+                        i, Umem->umem, &xsk_info->rx,
+                        &xsk_info->tx, XskCfg);
+            if (ret == -EBUSY) {
+                CxPlatSleep(100);
+            }
+        } while (ret == -EBUSY && RetryCount-- > 0);
+        if (ret < 0) {
             QuicTraceLogVerbose(
-                XdpSocketCreate,
-                "[ xdp] Failed to create AF_XDP socket. ret:%d errno:%d", ret, errno);
+                FailXskSocketCreate,
+                "[ xdp] Failed to create XDP socket for %s. error:%s", Interface->IfName, strerror(-ret));
             Status = QUIC_STATUS_INTERNAL_ERROR;
             goto Error;
         }

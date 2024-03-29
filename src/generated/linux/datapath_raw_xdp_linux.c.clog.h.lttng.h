@@ -168,21 +168,21 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_LINUX_C, XdpConfigureUmem,
 
 
 /*----------------------------------------------------------
-// Decoder Ring for XdpSocketCreate
-// [ xdp] Failed to create AF_XDP socket. ret:%d errno:%d
+// Decoder Ring for FailXskSocketCreate
+// [ xdp] Failed to create XDP socket for %s. error:%s
 // QuicTraceLogVerbose(
-                XdpSocketCreate,
-                "[ xdp] Failed to create AF_XDP socket. ret:%d errno:%d", ret, errno);
-// arg2 = arg2 = ret = arg2
-// arg3 = arg3 = errno = arg3
+                FailXskSocketCreate,
+                "[ xdp] Failed to create XDP socket for %s. error:%s", Interface->IfName, strerror(-ret));
+// arg2 = arg2 = Interface->IfName = arg2
+// arg3 = arg3 = strerror(-ret) = arg3
 ----------------------------------------------------------*/
-TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_LINUX_C, XdpSocketCreate,
+TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_LINUX_C, FailXskSocketCreate,
     TP_ARGS(
-        int, arg2,
-        int, arg3), 
+        const char *, arg2,
+        const char *, arg3), 
     TP_FIELDS(
-        ctf_integer(int, arg2, arg2)
-        ctf_integer(int, arg3, arg3)
+        ctf_string(arg2, arg2)
+        ctf_string(arg3, arg3)
     )
 )
 

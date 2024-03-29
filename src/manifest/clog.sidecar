@@ -4124,6 +4124,22 @@
       "splitArgs": [],
       "macroName": "QuicTraceLogVerbose"
     },
+    "FailXskSocketCreate": {
+      "ModuleProperites": {},
+      "TraceString": "[ xdp] Failed to create XDP socket for %s. error:%s",
+      "UniqueId": "FailXskSocketCreate",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "s",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "s",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macroName": "QuicTraceLogVerbose"
+    },
     "FirstCidUsage": {
       "ModuleProperites": {},
       "TraceString": "[conn][%p] First usage of SrcCid: %s",
@@ -14380,6 +14396,11 @@
         "UniquenessHash": "6fba1f73-1c29-c558-b9dc-99730e6b81e8",
         "TraceID": "FailTxReserve",
         "EncodingString": "[ xdp][tx  ] Failed to reserve"
+      },
+      {
+        "UniquenessHash": "390d4109-4036-2b2d-0471-27ec7be8eee7",
+        "TraceID": "FailXskSocketCreate",
+        "EncodingString": "[ xdp] Failed to create XDP socket for %s. error:%s"
       },
       {
         "UniquenessHash": "5e023c07-7bc3-8b2f-76d0-4a38701cef2d",

@@ -182,17 +182,17 @@ tracepoint(CLOG_DATAPATH_RAW_XDP_LINUX_C, XdpConfigureUmem );\
 
 
 /*----------------------------------------------------------
-// Decoder Ring for XdpSocketCreate
-// [ xdp] Failed to create AF_XDP socket. ret:%d errno:%d
+// Decoder Ring for FailXskSocketCreate
+// [ xdp] Failed to create XDP socket for %s. error:%s
 // QuicTraceLogVerbose(
-                XdpSocketCreate,
-                "[ xdp] Failed to create AF_XDP socket. ret:%d errno:%d", ret, errno);
-// arg2 = arg2 = ret = arg2
-// arg3 = arg3 = errno = arg3
+                FailXskSocketCreate,
+                "[ xdp] Failed to create XDP socket for %s. error:%s", Interface->IfName, strerror(-ret));
+// arg2 = arg2 = Interface->IfName = arg2
+// arg3 = arg3 = strerror(-ret) = arg3
 ----------------------------------------------------------*/
-#ifndef _clog_4_ARGS_TRACE_XdpSocketCreate
-#define _clog_4_ARGS_TRACE_XdpSocketCreate(uniqueId, encoded_arg_string, arg2, arg3)\
-tracepoint(CLOG_DATAPATH_RAW_XDP_LINUX_C, XdpSocketCreate , arg2, arg3);\
+#ifndef _clog_4_ARGS_TRACE_FailXskSocketCreate
+#define _clog_4_ARGS_TRACE_FailXskSocketCreate(uniqueId, encoded_arg_string, arg2, arg3)\
+tracepoint(CLOG_DATAPATH_RAW_XDP_LINUX_C, FailXskSocketCreate , arg2, arg3);\
 
 #endif
 
