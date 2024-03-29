@@ -12,6 +12,8 @@
 #pragma warning(disable:4204)  // nonstandard extension used: non-constant aggregate initializer
 #pragma warning(disable:4214)  // nonstandard extension used: zero-sized array in struct/union
 #pragma warning(disable:4324)  // structure was padded due to alignment specifier
+#pragma warning(disable:4746)  // volatile access of '<expression>' is subject to /volatile:<iso|ms> setting;
+                               // consider using __iso_volatile_load/store intrinsic functions
 #pragma warning(disable:26035) // Precondition Nulltermination Violation
 #pragma warning(disable:26451) // Arithmetic overflow: Using operator '+' on a 4 byte value and then casting the result to a 8 byte value.
 #pragma warning(disable:28931) // Unused Assignment
