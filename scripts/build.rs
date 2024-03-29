@@ -13,13 +13,15 @@ fn main() {
     }
 
     let target = env::var("TARGET").unwrap();
+    let out_path = std::env::var("OUT_DIR").unwrap();
+    let dep_path = Path::new(&out_path).join("../artifact/lib");
 
     // Builds the native MsQuic and installs it into $OUT_DIR.
     let mut config = Config::new(".");
     config
         .define("QUIC_ENABLE_LOGGING", logging_enabled)
         .define("QUIC_TLS", "openssl")
-        .define("QUIC_OUTPUT_DIR", "../lib");
+        .define("QUIC_OUTPUT_DIR", dep_path.to_str().unwrap());
 
     match target.as_str() {
         "x86_64-apple-darwin" => config
