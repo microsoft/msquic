@@ -232,6 +232,19 @@ void UninitializeUmem(struct xsk_umem_info* Umem)
     free(Umem);
 }
 
+// Detach XDP program from interface
+void DetachXdpProgram(XDP_INTERFACE *Interface)
+{
+    // NOTE: Experimental. this might remove none related programs as well.
+    struct xdp_multiprog *mp = xdp_multiprog__get_from_ifindex(Interface->IfIndex);
+    int err = xdp_multiprog__detach(mp);
+    if (err) {
+        // benigh error
+        // fprintf(stderr, "Unable to detach XDP program: %s\n", strerror(-err));
+    }
+	xdp_multiprog__close(mp);
+}
+
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 CxPlatDpRawInterfaceUninitialize(
@@ -272,13 +285,7 @@ CxPlatDpRawInterfaceUninitialize(
         CxPlatFree(Interface->Queues, QUEUE_TAG);
     }
 
-    struct xdp_multiprog *mp = xdp_multiprog__get_from_ifindex(Interface->IfIndex);
-    int err = xdp_multiprog__detach(mp);
-    if (err) {
-        fprintf(stderr, "Unable to detach XDP program: %s\n",
-            strerror(-err));
-    }
-	xdp_multiprog__close(mp);
+    DetachXdpProgram(Interface);
 
     if (Interface->XdpProg) {
         xdp_program__close(Interface->XdpProg);
@@ -443,6 +450,8 @@ CxPlatDpRawInterfaceInitialize(
     XskCfg->bind_flags |= XDP_COPY;
     XskCfg->bind_flags |= XDP_USE_NEED_WAKEUP;
     Interface->XskCfg = XskCfg;
+
+    DetachXdpProgram(Interface);
 
     struct xdp_program *prog = NULL;
     const char* Filename = "datapath_raw_xdp_kern.o";
