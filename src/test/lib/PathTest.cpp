@@ -146,7 +146,7 @@ QuicTestProbePath(
     TEST_QUIC_SUCCEEDED(Listener.Start("MsQuicTest", &ServerLocalAddr.SockAddr));
     TEST_QUIC_SUCCEEDED(Listener.GetLocalAddr(ServerLocalAddr));
 
-    MsQuicConnection Connection(Registration, MsQuicCleanUpMode::CleanUpManual, ClientCallback, &PeerStreamsChanged);
+    MsQuicConnection Connection(Registration, CleanUpManual, ClientCallback, &PeerStreamsChanged);
     TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
 
     if (ShareBinding) {
@@ -234,6 +234,8 @@ QuicTestMigration(
         Connection.SetShareUdpBinding();
     }
 
+    Connection.SetSettings(MsQuicSettings{}.SetKeepAlive(25));
+
     TEST_QUIC_SUCCEEDED(Connection.Start(ClientConfiguration, ServerLocalAddr.GetFamily(), QUIC_TEST_LOOPBACK_FOR_AF(ServerLocalAddr.GetFamily()), ServerLocalAddr.GetPort()));
     TEST_TRUE(Connection.HandshakeCompleteEvent.WaitTimeout(TestWaitTimeout));
     TEST_TRUE(Context.HandshakeCompleteEvent.WaitTimeout(TestWaitTimeout));
@@ -287,8 +289,6 @@ QuicTestMigration(
             QUIC_PARAM_CONN_LOCAL_ADDRESS,
             sizeof(SecondLocalAddr.SockAddr),
             &SecondLocalAddr.SockAddr));
-
-    Connection.SetSettings(MsQuicSettings{}.SetKeepAlive(25));
 
     TEST_TRUE(Context.PeerAddrChangedEvent.WaitTimeout(1500));
     QuicAddr ServerRemoteAddr;

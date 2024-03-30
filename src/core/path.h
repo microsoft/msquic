@@ -298,7 +298,6 @@ QuicConnGetPathByID(
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 _Ret_maybenull_
-_Success_(return != NULL)
 QUIC_PATH*
 QuicConnGetPathByAddress(
     _In_ QUIC_CONNECTION* Connection,

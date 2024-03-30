@@ -846,7 +846,10 @@ QuicConnGenerateNewSourceCid(
 
         CxPlatDispatchLockAcquire(&MsQuicLib.DatapathLock);
 
-        // Check whether a sourceCid collides or not around all the connections.
+        //
+        // Check whether a new sourceCid collides with any sourceCid which belong to all
+        // the bindings including the ones which this connection doesn't bound.
+        //
         for (CXPLAT_LIST_ENTRY* Link = MsQuicLib.Bindings.Flink;
             Link != &MsQuicLib.Bindings;
             Link = Link->Flink) {
@@ -5145,7 +5148,7 @@ QuicConnRecvFrames(
                     !memcmp(Frame.Data, TempPath->Challenge, sizeof(Frame.Data))) {
                     QuicPerfCounterIncrement(QUIC_PERF_COUNTER_PATH_VALIDATED);
                     QuicPathSetValid(Connection, TempPath, QUIC_PATH_VALID_PATH_RESPONSE);
-                   break;
+                    break;
                 }
             }
 
@@ -6668,7 +6671,7 @@ QuicConnParamSet(
         }
 
         if (QuicConnIsServer(Connection)) {
-            Status = QUIC_STATUS_INVALID_STATE;
+            Status = QUIC_STATUS_NOT_SUPPORTED;
             break;
         }
 
@@ -6693,8 +6696,8 @@ QuicConnParamSet(
         BOOLEAN AddrInUse = FALSE;
         for (uint8_t i = 0; i < Connection->PathsCount; ++i) {
             if (QuicAddrCompare(
-                &Connection->Paths[i].Route.LocalAddress,
-                LocalAddress)) {
+                    &Connection->Paths[i].Route.LocalAddress,
+                    LocalAddress)) {
                 AddrInUse = TRUE;
                 break;
             }
@@ -6841,8 +6844,8 @@ QuicConnParamSet(
         uint8_t PathIndex = Connection->PathsCount;
         for (uint8_t i = 0; i < Connection->PathsCount; ++i) {
             if (QuicAddrCompare(
-                &Connection->Paths[i].Route.LocalAddress,
-                LocalAddress)) {
+                    &Connection->Paths[i].Route.LocalAddress,
+                    LocalAddress)) {
                 PathIndex = i;
                 break;
             }
