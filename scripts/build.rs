@@ -14,7 +14,7 @@ fn main() {
 
     let target = env::var("TARGET").unwrap();
     let out_path = std::env::var("OUT_DIR").unwrap();
-    let dep_path = Path::new(&out_path).join("../artifact/lib");
+    let dep_path = Path::new(&out_path).join("dep/");
 
     // Builds the native MsQuic and installs it into $OUT_DIR.
     let mut config = Config::new(".");
@@ -36,4 +36,6 @@ fn main() {
     let dst = config.build();
     let lib_path = Path::join(Path::new(&dst), Path::new(path_extra));
     println!("cargo:rustc-link-search=native={}", lib_path.display());
+    println!("cargo:rustc-link-search=native={}", dep_path.display());
+    println!("cargo:rustc-link-lib=dylib=xdp");
 }
