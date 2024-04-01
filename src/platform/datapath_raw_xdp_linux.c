@@ -240,7 +240,7 @@ void DetachXdpProgram(XDP_INTERFACE *Interface)
     int err = xdp_multiprog__detach(mp);
     if (err) {
         // benigh error
-        // fprintf(stderr, "Unable to detach XDP program: %s\n", strerror(-err));
+        fprintf(stderr, "Unable to detach XDP program: %s (benign)\n", strerror(-err));
     }
 	xdp_multiprog__close(mp);
 }
@@ -315,7 +315,7 @@ static QUIC_STATUS InitializeUmem(uint32_t frameSize, uint32_t numFrames, uint32
         .flags = 0
     };
 
-    int Ret = xsk_umem__create(&Umem->umem, buffer, frameSize * numFrames, &Umem->fq, &Umem->cq, &UmemConfig);
+    int Ret = xsk_umem__create(&Umem->umem, buffer, (uint64_t)(frameSize) * numFrames, &Umem->fq, &Umem->cq, &UmemConfig);
     if (Ret) {
         errno = -Ret;
         return QUIC_STATUS_INTERNAL_ERROR;
@@ -430,10 +430,8 @@ CxPlatDpRawInterfaceInitialize(
     // const uint64_t UmemSize = NUM_FRAMES * FrameSize;
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
 
-    // Interface->OffloadStatus.Receive.NetworkLayerXsum = Xdp->SkipXsum;
-    // Interface->OffloadStatus.Receive.TransportLayerXsum = Xdp->SkipXsum;
-    // Interface->OffloadStatus.Transmit.NetworkLayerXsum = Xdp->SkipXsum;
-    // Interface->OffloadStatus.Transmit.NetworkLayerXsum = Xdp->SkipXsum;
+    // TODO: setup offload features
+
     Interface->Xdp = Xdp;
     struct xsk_socket_config *XskCfg = (struct xsk_socket_config*)calloc(1, sizeof(struct xsk_socket_config));
     if (!XskCfg) {
@@ -1073,8 +1071,21 @@ CxPlatDpRawTxEnqueue(
     }
     CxPlatLockRelease(&xsk_info->UmemLock);
 
-    // Partition->Ec.Ready = TRUE;
-    // CxPlatWakeExecutionContext(&Partition->Ec);
+    // This is needed after CxPlatXdpTx is implemented
+    Partition->Ec.Ready = TRUE;
+    CxPlatWakeExecutionContext(&Partition->Ec);
+}
+
+static
+BOOLEAN // Did work?
+CxPlatXdpTx(
+    _In_ const XDP_DATAPATH* Xdp,
+    _In_ XDP_QUEUE* Queue
+    )
+{
+    UNREFERENCED_PARAMETER(Xdp);
+    UNREFERENCED_PARAMETER(Queue);
+    return FALSE;
 }
 
 static
@@ -1111,7 +1122,7 @@ CxPlatXdpExecute(
     XDP_QUEUE* Queue = Partition->Queues;
     while (Queue) {
         DidWork |= CxPlatXdpRx(Xdp, Queue, Partition->PartitionIndex);
-        // DidWork |= CxPlatXdpTx(Xdp, Queue);
+        DidWork |= CxPlatXdpTx(Xdp, Queue);
         Queue = Queue->Next;
     }
 

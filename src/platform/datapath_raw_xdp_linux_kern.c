@@ -59,6 +59,8 @@ char IpDump[256] = {0};
 char UdpHeader[256] = {0};
 char UdpDump[256] = {0};
 
+// This is for debugging purpose
+// TODO: get flag from user app to enable/disable dump
 static __always_inline void dump(struct xdp_md *ctx, void *data, void *data_end) {
     int RxIndex = ctx->rx_queue_index;
     int IfNameKey = 0;
@@ -97,7 +99,7 @@ static __always_inline void dump(struct xdp_md *ctx, void *data, void *data_end)
         BPF_SNPRINTF(IpDump, sizeof(IpDump), "\t\tIpv4 TotalLen:[%d]\tSrc: %s => Dst: %s", bpf_ntohs(iph->tot_len), IP4Src, IP4Dst);
 
         if (iph->protocol != IPPROTO_UDP) {
-            // bpf_printk("\t\t\tnot UDP %d", iph->protocol);
+            bpf_printk("\t\t\tnot UDP %d", iph->protocol);
             return;
         }
         udph = (struct udphdr *)(iph + 1);
@@ -118,7 +120,7 @@ static __always_inline void dump(struct xdp_md *ctx, void *data, void *data_end)
         BPF_SNPRINTF(IpDump, sizeof(IpDump), "\t\tIpv6 PayloadLen[%d]\tSrc: %s => Dst: %s", bpf_ntohs(ip6h->payload_len), IP6Src, IP6Dst);
 
         if (ip6h->nexthdr != IPPROTO_UDP) {
-            // bpf_printk("\t\t\tnot UDP %d", ip6h->nexthdr);
+            bpf_printk("\t\t\tnot UDP %d", ip6h->nexthdr);
             return;
         }
         udph = (struct udphdr *)(ip6h + 1);
@@ -174,14 +176,14 @@ static __always_inline bool to_quic_service(struct xdp_md *ctx, void *data, void
     struct iphdr *iph = 0;
     struct ipv6hdr *ip6h = 0;
     struct udphdr *udph = 0;
+    // TODO: check IP address
+    //       need to get IP address from user app via BPF map
     if (eth->h_proto == bpf_htons(ETH_P_IP)) {
         iph = (struct iphdr *)(eth + 1);
         if ((void*)(iph + 1) > data_end) {
             return false;
         }
 
-        __u32 src_ip = bpf_ntohl(iph->saddr);
-        __u32 dst_ip = bpf_ntohl(iph->daddr);
         if (iph->protocol != IPPROTO_UDP) {
             return false;
         }
