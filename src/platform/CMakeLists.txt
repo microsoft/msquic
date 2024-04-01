@@ -57,7 +57,6 @@ else()
     message(FATAL_ERROR "TLS Provider not configured")
 endif()
 
-
 add_library(platform STATIC ${SOURCES})
 
 if ("${CX_PLATFORM}" STREQUAL "windows")
@@ -95,6 +94,7 @@ elseif(LINUX_XDP_ENABLED)
     # Include directories for libxdp.so and libbpf.so
     target_include_directories(platform PRIVATE ${XDP_TOOLS_DIR}/headers/xdp)
     target_include_directories(platform PRIVATE ${XDP_TOOLS_DIR}/lib/libbpf/src)
+    target_include_directories(platform PRIVATE ${XDP_TOOLS_DIR}/lib/libbpf/include/linux)
     target_include_directories(platform PRIVATE ${XDP_TOOLS_DIR}/lib/libbpf/src/root/usr/include) # TODO: use installed path
 
     # building XDP program

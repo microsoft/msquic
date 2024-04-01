@@ -12375,6 +12375,18 @@
       ],
       "macroName": "QuicTraceLogVerbose"
     },
+    "XdpOpenFileError": {
+      "ModuleProperites": {},
+      "TraceString": "[ xdp] Failed to open xdp program %s",
+      "UniqueId": "XdpOpenFileError",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "s",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceLogVerbose"
+    },
     "XdpPartitionShutdown": {
       "ModuleProperites": {},
       "TraceString": "[ xdp][%p] XDP partition shutdown",
@@ -16991,6 +17003,11 @@
         "UniquenessHash": "6a5bfc6f-444f-4971-09f2-49a362ebac82",
         "TraceID": "XdpNotSupported",
         "EncodingString": "[ xdp][%p] Xdp is not supported on this interface:%s"
+      },
+      {
+        "UniquenessHash": "e884eaa4-f326-406c-760c-7da9924e4c6c",
+        "TraceID": "XdpOpenFileError",
+        "EncodingString": "[ xdp] Failed to open xdp program %s"
       },
       {
         "UniquenessHash": "18009e0d-e738-467e-35c0-55ebabcbf31f",

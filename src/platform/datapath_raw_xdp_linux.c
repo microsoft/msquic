@@ -17,6 +17,7 @@ Abstract:
 #include "libbpf.h"
 #include "libxdp.h"
 #include "xsk.h"
+#include "err.h"
 #include <dirent.h>
 #include <linux/ethtool.h>
 #include <linux/sockios.h>
@@ -456,17 +457,28 @@ CxPlatDpRawInterfaceInitialize(
     char* EnvPath = getenv("MSQUIC_XDP_OBJECT_PATH");
     char* Paths[2] = {EnvPath, "."};
     char FilePath[256];
+    int readRetry = 5;
     for (int i = 0; i < 2; i++) {
         if (Paths[i] != NULL) {
             snprintf(FilePath, sizeof(FilePath), "%s/%s", Paths[i], Filename);
             if (access(FilePath, F_OK) == 0) {
-                // The file exists at the path specified by the environment variable.
-                prog = xdp_program__open_file(FilePath, "xdp_prog", NULL);
+                do {
+                    // TODO: Need investigation.
+                    //       Sometimes fail to load same object
+                    prog = xdp_program__open_file(FilePath, "xdp_prog", NULL);
+                    if (IS_ERR(prog)) {
+                        CxPlatSleep(50);
+                    }
+                } while (IS_ERR(prog) && readRetry-- > 0);
                 break;
             }
         }
     }
-    if (prog == NULL) {
+    if (IS_ERR(prog)) {
+        QuicTraceLogVerbose(
+            XdpOpenFileError,
+            "[ xdp] Failed to open xdp program %s",
+            FilePath);
         Status = QUIC_STATUS_INTERNAL_ERROR;
         goto Error;
     }
@@ -1026,6 +1038,7 @@ CxPlatDpRawTxEnqueue(
 {
     // TODO: use PartitionTxQueue to submit at once?
     XDP_TX_PACKET* Packet = (XDP_TX_PACKET*)SendData;
+    XDP_PARTITION* Partition = Packet->Queue->Partition;
     struct xsk_socket_info* xsk_info = Packet->Queue->xsk_info;
     CxPlatLockAcquire(&xsk_info->UmemLock);
 

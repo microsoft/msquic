@@ -148,6 +148,24 @@ tracepoint(CLOG_DATAPATH_RAW_XDP_LINUX_C, XdpAttachSucceeds , arg2);\
 
 
 /*----------------------------------------------------------
+// Decoder Ring for XdpOpenFileError
+// [ xdp] Failed to open xdp program %s
+// QuicTraceLogVerbose(
+            XdpOpenFileError,
+            "[ xdp] Failed to open xdp program %s",
+            FilePath);
+// arg2 = arg2 = FilePath = arg2
+----------------------------------------------------------*/
+#ifndef _clog_3_ARGS_TRACE_XdpOpenFileError
+#define _clog_3_ARGS_TRACE_XdpOpenFileError(uniqueId, encoded_arg_string, arg2)\
+tracepoint(CLOG_DATAPATH_RAW_XDP_LINUX_C, XdpOpenFileError , arg2);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for XdpLoadObject
 // [ xdp] Successfully loaded xdp object of %s
 // QuicTraceLogVerbose(
