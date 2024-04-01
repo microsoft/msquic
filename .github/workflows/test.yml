@@ -71,7 +71,7 @@ jobs:
           { config: "Debug", plat: "linux", os: "ubuntu-20.04", arch: "x64", tls: "openssl3", sanitize: "-Sanitize", build: "-Test" },
           { config: "Debug", plat: "linux", os: "ubuntu-22.04", arch: "x64", tls: "openssl", sanitize: "-Sanitize", build: "-Test" },
           { config: "Debug", plat: "linux", os: "ubuntu-22.04", arch: "x64", tls: "openssl3", sanitize: "-Sanitize", build: "-Test" },
-          { config: "Debug", plat: "linux", os: "ubuntu-22.04", arch: "x64", tls: "openssl3", sanitize: build: "-Test" },
+          { config: "Debug", plat: "linux", os: "ubuntu-22.04", arch: "x64", tls: "openssl3", build: "-Test" },
           { config: "Debug", plat: "linux", os: "ubuntu-22.04", arch: "x64", tls: "openssl3", systemcrypto: "-UseSystemOpenSSLCrypto", sanitize: "-Sanitize", build: "-Test" },
         ]
     uses: ./.github/workflows/build-reuse-unix.yml
