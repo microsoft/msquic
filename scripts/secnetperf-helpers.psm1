@@ -224,14 +224,12 @@ function Cleanup-State {
     }
 
     # Clean up any ETL residue.
-    try {
-        if ($isWindows) {
-            $homeDirectory = $env:USERPROFILE
-        } else {
-            $homeDirectory = $env:HOME
-        }
-        Remove-Item $homeDirectory/AppData/Local/Temp -Recurse -Force
-    } catch { Write-Host "Failed to find and cleanup residual ETL files. Ignoring. Message: $_" }
+    try { .\scripts\log.ps1 -Stop -OutputPath "$artifactDir/client" -RawLogOnly }
+    catch { Write-Host "Failed to stop logging on client!" }
+    Invoke-Command -Session $Session -ScriptBlock {
+        try { & "$Using:RemoteDir/scripts/log.ps1" -Stop -OutputPath "$Using:remoteArtifactDir/server" -RawLogOnly }
+        catch { Write-Host "Failed to stop logging on server!" }
+    }
 }
 
 # Waits for a remote job to be ready based on looking for a particular string in
