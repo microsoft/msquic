@@ -431,6 +431,7 @@ CxPlatDpRawInterfaceInitialize(
     const uint32_t FrameSize = FRAME_SIZE;
     // const uint64_t UmemSize = NUM_FRAMES * FrameSize;
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
+    int SocketCreated = 0;
 
     // TODO: setup offload features
 
@@ -599,6 +600,8 @@ CxPlatDpRawInterfaceInitialize(
             Status = QUIC_STATUS_INTERNAL_ERROR;
             goto Error;
         }
+        CxPlatRundownAcquire(&Xdp->Rundown);
+        SocketCreated++;
 
         if(xsk_socket__update_xskmap(xsk_info->xsk, XskBypassMapFd)) {
             Status = QUIC_STATUS_INTERNAL_ERROR;
@@ -639,6 +642,7 @@ CxPlatDpRawInterfaceInitialize(
 
 Error:
     if (QUIC_FAILED(Status)) {
+        while (SocketCreated--) {CxPlatRundownRelease(&Xdp->Rundown);}
         CxPlatDpRawInterfaceUninitialize(Interface);
     }
     return Status;
@@ -698,6 +702,8 @@ CxPlatDpRawInitialize(
         return QUIC_STATUS_INTERNAL_ERROR;
     }
 
+    CxPlatRundownInitialize(&Xdp->Rundown);
+    CxPlatRundownAcquire(&Xdp->Rundown);
     for (ifa = ifaddr; ifa != NULL; ifa = ifa->ifa_next) {
         if (ifa->ifa_addr == NULL) {
             continue;
@@ -753,7 +759,6 @@ CxPlatDpRawInitialize(
 
     Xdp->Running = TRUE;
     CxPlatRefInitialize(&Xdp->RefCount);
-    CxPlatRundownInitialize(&Xdp->Rundown);
     for (uint32_t i = 0; i < Xdp->PartitionCount; i++) {
         XDP_PARTITION* Partition = &Xdp->Partitions[i];
         if (Partition->Queues == NULL) {
@@ -853,11 +858,14 @@ CxPlatDpRawRelease(
             XDP_INTERFACE* Interface =
                 CXPLAT_CONTAINING_RECORD(CxPlatListRemoveHead(&Xdp->Interfaces), XDP_INTERFACE, Link);
             CxPlatDpRawInterfaceUninitialize(Interface);
+            for (int i = 0; i < Interface->QueueCount; i++) {
+                CxPlatRundownRelease(&Xdp->Rundown);
+            }
             CxPlatFree(Interface, IF_TAG);
         }
         CxPlatDataPathUninitializeComplete((CXPLAT_DATAPATH_RAW*)Xdp);
-        CxPlatRundownRelease(&Xdp->Rundown);
     }
+    CxPlatRundownRelease(&Xdp->Rundown);
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
