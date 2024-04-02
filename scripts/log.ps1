@@ -268,9 +268,7 @@ function Log-Cancel {
         try {
             $homeDirectory = $env:USERPROFILE
             Remove-Item $homeDirectory/AppData/Local/Temp -Recurse -Force
-        } catch {
-            Write-Host "Failed to find and cleanup residual ETL files on Windows. Ignoring. Message: $_"
-        }
+        } catch { }
     } elseif ($IsMacOS) {
     } else {
         if (!(Test-Path $TempLTTngDir)) {
