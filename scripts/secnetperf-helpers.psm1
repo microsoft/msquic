@@ -224,10 +224,10 @@ function Cleanup-State {
     }
 
     # Clean up any ETL residue.
-    try { .\scripts\log.ps1 -Stop -OutputPath "$artifactDir/client" -RawLogOnly }
+    try { .\scripts\log.ps1 -Cancel }
     catch { Write-Host "Failed to stop logging on client!" }
     Invoke-Command -Session $Session -ScriptBlock {
-        try { & "$Using:RemoteDir/scripts/log.ps1" -Stop -OutputPath "$Using:remoteArtifactDir/server" -RawLogOnly }
+        try { & "$Using:RemoteDir/scripts/log.ps1" -Cancel }
         catch { Write-Host "Failed to stop logging on server!" }
     }
 }
