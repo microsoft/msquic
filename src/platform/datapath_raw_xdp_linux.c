@@ -74,6 +74,7 @@ typedef struct XDP_DATAPATH { // NOLINT(clang-analyzer-optin.performance.Padding
     BOOLEAN SkipXsum;
     BOOLEAN Running;        // Signal to stop workers.
 
+    CXPLAT_RUNDOWN_REF Rundown;
     XDP_PARTITION Partitions[0];
 } XDP_DATAPATH;
 
@@ -752,6 +753,7 @@ CxPlatDpRawInitialize(
 
     Xdp->Running = TRUE;
     CxPlatRefInitialize(&Xdp->RefCount);
+    CxPlatRundownInitialize(&Xdp->Rundown);
     for (uint32_t i = 0; i < Xdp->PartitionCount; i++) {
         XDP_PARTITION* Partition = &Xdp->Partitions[i];
         if (Partition->Queues == NULL) {
@@ -772,6 +774,7 @@ CxPlatDpRawInitialize(
         Partition->Ec.Context = &Xdp->Partitions[i];
         Partition->ShutdownSqe.CqeType = CXPLAT_CQE_TYPE_XDP_SHUTDOWN;
         CxPlatRefIncrement(&Xdp->RefCount);
+        CxPlatRundownAcquire(&Xdp->Rundown);
         Partition->EventQ = CxPlatWorkerGetEventQ((uint16_t)i);
 
         if (!CxPlatSqeInitialize(
@@ -853,6 +856,7 @@ CxPlatDpRawRelease(
             CxPlatFree(Interface, IF_TAG);
         }
         CxPlatDataPathUninitializeComplete((CXPLAT_DATAPATH_RAW*)Xdp);
+        CxPlatRundownRelease(&Xdp->Rundown);
     }
 }
 
@@ -867,13 +871,13 @@ CxPlatDpRawUninitialize(
         XdpUninitialize,
         "[ xdp][%p] XDP uninitialize",
         Xdp);
-    Xdp->Running = FALSE;
-    // TODO: currently no worker created
+    Xdp->Running = FALSE; // call CxPlatDpRawRelease from each partition
     for (uint32_t i = 0; i < Xdp->PartitionCount; i++) {
         Xdp->Partitions[i].Ec.Ready = TRUE;
         CxPlatWakeExecutionContext(&Xdp->Partitions[i].Ec);
     }
     CxPlatDpRawRelease(Xdp);
+    CxPlatRundownReleaseAndWait(&Xdp->Rundown);
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
