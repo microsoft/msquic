@@ -222,6 +222,16 @@ function Cleanup-State {
             if ($null -ne (Get-Service msquicpriv -ErrorAction Ignore)) { throw "msquicpriv still running remotely!" }
         }
     }
+
+    # Clean up any ETL residue.
+    try {
+        if ($isWindows) {
+            $homeDirectory = $env:USERPROFILE
+        } else {
+            $homeDirectory = $env:HOME
+        }
+        Remove-Item $homeDirectory/AppData/Local/Temp -Recurse -Force
+    } catch { Write-Host "Failed to find and cleanup residual ETL files. Ignoring. Message: $_" }
 }
 
 # Waits for a remote job to be ready based on looking for a particular string in
