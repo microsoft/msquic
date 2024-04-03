@@ -255,6 +255,7 @@ RawSocketCreateUdp(
     NewSocket->CibirIdLength = Config->CibirIdLength;
     NewSocket->CibirIdOffsetSrc = Config->CibirIdOffsetSrc;
     NewSocket->CibirIdOffsetDst = Config->CibirIdOffsetDst;
+    NewSocket->AuxSocket = INVALID_SOCKET;
     NewSocket->UseTcp = Raw->UseTcp;
     if (Config->CibirIdLength) {
         memcpy(NewSocket->CibirId, Config->CibirId, Config->CibirIdLength);
