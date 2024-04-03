@@ -190,7 +190,7 @@ function Perf-Cancel {
     if (!$IsLinux) {
         throw "perf command wapper is only for Linux"
     } else {
-        pkill perf
+        sudo pkill perf
         try { Remove-Item -Path $TempPerfDir -Recurse -Force | Out-Null } catch { }
     }
 }

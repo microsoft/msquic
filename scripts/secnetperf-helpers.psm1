@@ -224,12 +224,12 @@ function Cleanup-State {
     }
 
     # Clean up any ETL residue.
-    try { .\scripts\log.ps1 -Cancel }
-    catch { Write-Host "Failed to stop logging on client!" }
-    Invoke-Command -Session $Session -ScriptBlock {
-        try { & "$Using:RemoteDir/scripts/log.ps1" -Cancel }
-        catch { Write-Host "Failed to stop logging on server!" }
-    }
+    # try { .\scripts\log.ps1 -Cancel }
+    # catch { Write-Host "Failed to stop logging on client!" }
+    # Invoke-Command -Session $Session -ScriptBlock {
+    #     try { & "$Using:RemoteDir/scripts/log.ps1" -Cancel }
+    #     catch { Write-Host "Failed to stop logging on server!" }
+    # }
 }
 
 # Waits for a remote job to be ready based on looking for a particular string in
