@@ -41,6 +41,7 @@ RUN apt-get update && apt-get install --no-install-recommends -y apt-transport-h
     gdb \
   && rm -rf /var/lib/apt/lists/*
 
+RUN gem install --version 2.8.1 dotenv
 RUN gem install fpm
 
 RUN wget -q https://packages.microsoft.com/config/ubuntu/18.04/packages-microsoft-prod.deb -O packages-microsoft-prod.deb && \

@@ -221,6 +221,13 @@ function Cleanup-State {
             if ($null -ne (Get-Service msquicpriv -ErrorAction Ignore)) { throw "secnetperfdrvpriv still running remotely!" }
             if ($null -ne (Get-Service msquicpriv -ErrorAction Ignore)) { throw "msquicpriv still running remotely!" }
         }
+        # Clean up any ETL residue.
+        try { .\scripts\log.ps1 -Cancel }
+        catch { Write-Host "Failed to stop logging on client!" }
+        Invoke-Command -Session $Session -ScriptBlock {
+            try { & "$Using:RemoteDir/scripts/log.ps1" -Cancel }
+            catch { Write-Host "Failed to stop logging on server!" }
+        }
     }
 }
 

@@ -48,6 +48,7 @@ RUN apt-get update && apt-get install --no-install-recommends -y apt-transport-h
     m4 \
     libpcap-dev \
     libelf-dev \
+    libc6-dev-i386 \
   && rm -rf /var/lib/apt/lists/*
 
 RUN gem install fpm
