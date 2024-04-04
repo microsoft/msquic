@@ -2,6 +2,64 @@
 
 
 /*----------------------------------------------------------
+// Decoder Ring for XdpFailGettingRssQueueCount
+// [ xdp] Failed to get RSS queue count for %s
+// QuicTraceLogVerbose(
+            XdpFailGettingRssQueueCount,
+            "[ xdp] Failed to get RSS queue count for %s",
+            IfName);
+// arg2 = arg2 = IfName = arg2
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_LINUX_C, XdpFailGettingRssQueueCount,
+    TP_ARGS(
+        const char *, arg2), 
+    TP_FIELDS(
+        ctf_string(arg2, arg2)
+    )
+)
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for XdpUmemDeleteFails
+// [ xdp] Failed to delete Umem
+// QuicTraceLogVerbose(
+            XdpUmemDeleteFails,
+            "[ xdp] Failed to delete Umem");
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_LINUX_C, XdpUmemDeleteFails,
+    TP_ARGS(
+), 
+    TP_FIELDS(
+    )
+)
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for XdpDetachFails
+// [ xdp] Failed to detach XDP program from %s. error:%s
+// QuicTraceLogVerbose(
+            XdpDetachFails,
+            "[ xdp] Failed to detach XDP program from %s. error:%s",
+            Interface->IfName,
+            strerror(-err));
+// arg2 = arg2 = Interface->IfName = arg2
+// arg3 = arg3 = strerror(-err) = arg3
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_LINUX_C, XdpDetachFails,
+    TP_ARGS(
+        const char *, arg2,
+        const char *, arg3), 
+    TP_FIELDS(
+        ctf_string(arg2, arg2)
+        ctf_string(arg3, arg3)
+    )
+)
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for InterfaceFree
 // [ xdp][%p] Freeing Interface
 // QuicTraceLogVerbose(
@@ -171,6 +229,22 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_LINUX_C, XdpLoadObject,
 
 
 /*----------------------------------------------------------
+// Decoder Ring for XdpNoXsksMap
+// [ xdp] No xsks map found
+// QuicTraceLogVerbose(
+            XdpNoXsksMap,
+            "[ xdp] No xsks map found");
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_LINUX_C, XdpNoXsksMap,
+    TP_ARGS(
+), 
+    TP_FIELDS(
+    )
+)
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for XdpConfigureUmem
 // [ xdp] Failed to configure Umem
 // QuicTraceLogVerbose(
@@ -327,6 +401,69 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_LINUX_C, XdpUninitialize,
 
 
 /*----------------------------------------------------------
+// Decoder Ring for XdpSetPortFails
+// [ xdp] Failed to set port %d on %s
+// QuicTraceLogVerbose(
+                        XdpSetPortFails,
+                        "[ xdp] Failed to set port %d on %s", port, Interface->IfName);
+// arg2 = arg2 = port = arg2
+// arg3 = arg3 = Interface->IfName = arg3
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_LINUX_C, XdpSetPortFails,
+    TP_ARGS(
+        int, arg2,
+        const char *, arg3), 
+    TP_FIELDS(
+        ctf_integer(int, arg2, arg2)
+        ctf_string(arg3, arg3)
+    )
+)
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for XdpDeletePortFails
+// [ xdp] Failed to delete port %d on %s
+// QuicTraceLogVerbose(
+                        XdpDeletePortFails,
+                        "[ xdp] Failed to delete port %d on %s", port, Interface->IfName);
+// arg2 = arg2 = port = arg2
+// arg3 = arg3 = Interface->IfName = arg3
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_LINUX_C, XdpDeletePortFails,
+    TP_ARGS(
+        int, arg2,
+        const char *, arg3), 
+    TP_FIELDS(
+        ctf_integer(int, arg2, arg2)
+        ctf_string(arg3, arg3)
+    )
+)
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for XdpSetIfnameFails
+// [ xdp] Failed to set ifname %s on %s
+// QuicTraceLogVerbose(
+                        XdpSetIfnameFails,
+                        "[ xdp] Failed to set ifname %s on %s", Interface->IfName, Interface->IfName);
+// arg2 = arg2 = Interface->IfName = arg2
+// arg3 = arg3 = Interface->IfName = arg3
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_LINUX_C, XdpSetIfnameFails,
+    TP_ARGS(
+        const char *, arg2,
+        const char *, arg3), 
+    TP_FIELDS(
+        ctf_string(arg2, arg2)
+        ctf_string(arg3, arg3)
+    )
+)
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for FailTxAlloc
 // [ xdp][tx  ] OOM for Tx
 // QuicTraceLogVerbose(
@@ -428,6 +565,25 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_LINUX_C, ReleaseCons,
 // arg2 = arg2 = Partition = arg2
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_LINUX_C, XdpPartitionShutdown,
+    TP_ARGS(
+        const void *, arg2), 
+    TP_FIELDS(
+        ctf_integer_hex(uint64_t, arg2, arg2)
+    )
+)
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for XdpPartitionShutdownComplete
+// [ xdp][%p] XDP partition shutdown complete
+// QuicTraceLogVerbose(
+            XdpPartitionShutdownComplete,
+            "[ xdp][%p] XDP partition shutdown complete",
+            Partition);
+// arg2 = arg2 = Partition = arg2
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_LINUX_C, XdpPartitionShutdownComplete,
     TP_ARGS(
         const void *, arg2), 
     TP_FIELDS(

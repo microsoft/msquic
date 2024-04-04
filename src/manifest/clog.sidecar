@@ -12263,6 +12263,38 @@
       "splitArgs": [],
       "macroName": "QuicTraceLogVerbose"
     },
+    "XdpDeletePortFails": {
+      "ModuleProperites": {},
+      "TraceString": "[ xdp] Failed to delete port %d on %s",
+      "UniqueId": "XdpDeletePortFails",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "d",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "s",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macroName": "QuicTraceLogVerbose"
+    },
+    "XdpDetachFails": {
+      "ModuleProperites": {},
+      "TraceString": "[ xdp] Failed to detach XDP program from %s. error:%s",
+      "UniqueId": "XdpDetachFails",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "s",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "s",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macroName": "QuicTraceLogVerbose"
+    },
     "XdpEpollErrorStatus": {
       "ModuleProperites": {},
       "TraceString": "[ xdp][%p] ERROR, %u, %s.",
@@ -12282,6 +12314,18 @@
         }
       ],
       "macroName": "QuicTraceEvent"
+    },
+    "XdpFailGettingRssQueueCount": {
+      "ModuleProperites": {},
+      "TraceString": "[ xdp] Failed to get RSS queue count for %s",
+      "UniqueId": "XdpFailGettingRssQueueCount",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "s",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceLogVerbose"
     },
     "XdpFindProbramSectionError": {
       "ModuleProperites": {},
@@ -12373,6 +12417,13 @@
           "MacroVariableName": "arg3"
         }
       ],
+      "macroName": "QuicTraceLogVerbose"
+    },
+    "XdpNoXsksMap": {
+      "ModuleProperites": {},
+      "TraceString": "[ xdp] No xsks map found",
+      "UniqueId": "XdpNoXsksMap",
+      "splitArgs": [],
       "macroName": "QuicTraceLogVerbose"
     },
     "XdpOpenFileError": {
@@ -12503,6 +12554,38 @@
       ],
       "macroName": "QuicTraceLogVerbose"
     },
+    "XdpSetIfnameFails": {
+      "ModuleProperites": {},
+      "TraceString": "[ xdp] Failed to set ifname %s on %s",
+      "UniqueId": "XdpSetIfnameFails",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "s",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "s",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macroName": "QuicTraceLogVerbose"
+    },
+    "XdpSetPortFails": {
+      "ModuleProperites": {},
+      "TraceString": "[ xdp] Failed to set port %d on %s",
+      "UniqueId": "XdpSetPortFails",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "d",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "s",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macroName": "QuicTraceLogVerbose"
+    },
     "XdpSkipOrEndofBuffer": {
       "ModuleProperites": {},
       "TraceString": "[ xdp] Skip or End of Buffer %d/%d",
@@ -12555,6 +12638,13 @@
       "ModuleProperites": {},
       "TraceString": "[ xdp][umem] Out of UMEM frame, OOM",
       "UniqueId": "XdpUmemAllocFails",
+      "splitArgs": [],
+      "macroName": "QuicTraceLogVerbose"
+    },
+    "XdpUmemDeleteFails": {
+      "ModuleProperites": {},
+      "TraceString": "[ xdp] Failed to delete Umem",
+      "UniqueId": "XdpUmemDeleteFails",
       "splitArgs": [],
       "macroName": "QuicTraceLogVerbose"
     },
@@ -16970,9 +17060,24 @@
         "EncodingString": "[ xdp] Failed to configure Umem"
       },
       {
+        "UniquenessHash": "7edd8f9c-f912-fa9b-33f1-7af48161f4da",
+        "TraceID": "XdpDeletePortFails",
+        "EncodingString": "[ xdp] Failed to delete port %d on %s"
+      },
+      {
+        "UniquenessHash": "c1420563-cb81-204e-b2ff-3e76e4008796",
+        "TraceID": "XdpDetachFails",
+        "EncodingString": "[ xdp] Failed to detach XDP program from %s. error:%s"
+      },
+      {
         "UniquenessHash": "6ab66d7a-b0d6-b804-8b3d-55ab9f898d58",
         "TraceID": "XdpEpollErrorStatus",
         "EncodingString": "[ xdp]ERROR, %u, %s."
+      },
+      {
+        "UniquenessHash": "83160eea-39ee-6bfe-5936-74677c889d20",
+        "TraceID": "XdpFailGettingRssQueueCount",
+        "EncodingString": "[ xdp] Failed to get RSS queue count for %s"
       },
       {
         "UniquenessHash": "85daf4dc-93cf-8f55-f583-c708356db354",
@@ -17003,6 +17108,11 @@
         "UniquenessHash": "6a5bfc6f-444f-4971-09f2-49a362ebac82",
         "TraceID": "XdpNotSupported",
         "EncodingString": "[ xdp][%p] Xdp is not supported on this interface:%s"
+      },
+      {
+        "UniquenessHash": "d6fd6cf6-d65c-5e75-31f2-2a34a36c3255",
+        "TraceID": "XdpNoXsksMap",
+        "EncodingString": "[ xdp] No xsks map found"
       },
       {
         "UniquenessHash": "e884eaa4-f326-406c-760c-7da9924e4c6c",
@@ -17055,6 +17165,16 @@
         "EncodingString": "[ xdp][%p] Release %d from Rx queue (TODO:Check necesity here)"
       },
       {
+        "UniquenessHash": "02a4f582-b4ac-f506-b60f-2627183d2bde",
+        "TraceID": "XdpSetIfnameFails",
+        "EncodingString": "[ xdp] Failed to set ifname %s on %s"
+      },
+      {
+        "UniquenessHash": "f209f7d4-9287-cfed-6abd-bfcd201e5ee7",
+        "TraceID": "XdpSetPortFails",
+        "EncodingString": "[ xdp] Failed to set port %d on %s"
+      },
+      {
         "UniquenessHash": "2bcd0dff-21b9-c403-d43c-d997d9a6ec6d",
         "TraceID": "XdpSkipOrEndofBuffer",
         "EncodingString": "[ xdp] Skip or End of Buffer %d/%d"
@@ -17073,6 +17193,11 @@
         "UniquenessHash": "e81e1b15-4470-f033-d0b6-6c03f9a19011",
         "TraceID": "XdpUmemAllocFails",
         "EncodingString": "[ xdp][umem] Out of UMEM frame, OOM"
+      },
+      {
+        "UniquenessHash": "b267e0ad-4baf-d8f0-39c7-1a20ae744dbc",
+        "TraceID": "XdpUmemDeleteFails",
+        "EncodingString": "[ xdp] Failed to delete Umem"
       },
       {
         "UniquenessHash": "d75a0e64-de8c-65d3-12ee-03cc24d2a875",

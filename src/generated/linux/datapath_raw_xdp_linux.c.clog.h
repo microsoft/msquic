@@ -26,6 +26,60 @@
 extern "C" {
 #endif
 /*----------------------------------------------------------
+// Decoder Ring for XdpFailGettingRssQueueCount
+// [ xdp] Failed to get RSS queue count for %s
+// QuicTraceLogVerbose(
+            XdpFailGettingRssQueueCount,
+            "[ xdp] Failed to get RSS queue count for %s",
+            IfName);
+// arg2 = arg2 = IfName = arg2
+----------------------------------------------------------*/
+#ifndef _clog_3_ARGS_TRACE_XdpFailGettingRssQueueCount
+#define _clog_3_ARGS_TRACE_XdpFailGettingRssQueueCount(uniqueId, encoded_arg_string, arg2)\
+tracepoint(CLOG_DATAPATH_RAW_XDP_LINUX_C, XdpFailGettingRssQueueCount , arg2);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for XdpUmemDeleteFails
+// [ xdp] Failed to delete Umem
+// QuicTraceLogVerbose(
+            XdpUmemDeleteFails,
+            "[ xdp] Failed to delete Umem");
+----------------------------------------------------------*/
+#ifndef _clog_2_ARGS_TRACE_XdpUmemDeleteFails
+#define _clog_2_ARGS_TRACE_XdpUmemDeleteFails(uniqueId, encoded_arg_string)\
+tracepoint(CLOG_DATAPATH_RAW_XDP_LINUX_C, XdpUmemDeleteFails );\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for XdpDetachFails
+// [ xdp] Failed to detach XDP program from %s. error:%s
+// QuicTraceLogVerbose(
+            XdpDetachFails,
+            "[ xdp] Failed to detach XDP program from %s. error:%s",
+            Interface->IfName,
+            strerror(-err));
+// arg2 = arg2 = Interface->IfName = arg2
+// arg3 = arg3 = strerror(-err) = arg3
+----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_XdpDetachFails
+#define _clog_4_ARGS_TRACE_XdpDetachFails(uniqueId, encoded_arg_string, arg2, arg3)\
+tracepoint(CLOG_DATAPATH_RAW_XDP_LINUX_C, XdpDetachFails , arg2, arg3);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for InterfaceFree
 // [ xdp][%p] Freeing Interface
 // QuicTraceLogVerbose(
@@ -184,6 +238,22 @@ tracepoint(CLOG_DATAPATH_RAW_XDP_LINUX_C, XdpLoadObject , arg2);\
 
 
 /*----------------------------------------------------------
+// Decoder Ring for XdpNoXsksMap
+// [ xdp] No xsks map found
+// QuicTraceLogVerbose(
+            XdpNoXsksMap,
+            "[ xdp] No xsks map found");
+----------------------------------------------------------*/
+#ifndef _clog_2_ARGS_TRACE_XdpNoXsksMap
+#define _clog_2_ARGS_TRACE_XdpNoXsksMap(uniqueId, encoded_arg_string)\
+tracepoint(CLOG_DATAPATH_RAW_XDP_LINUX_C, XdpNoXsksMap );\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for XdpConfigureUmem
 // [ xdp] Failed to configure Umem
 // QuicTraceLogVerbose(
@@ -328,6 +398,60 @@ tracepoint(CLOG_DATAPATH_RAW_XDP_LINUX_C, XdpUninitialize , arg2);\
 
 
 /*----------------------------------------------------------
+// Decoder Ring for XdpSetPortFails
+// [ xdp] Failed to set port %d on %s
+// QuicTraceLogVerbose(
+                        XdpSetPortFails,
+                        "[ xdp] Failed to set port %d on %s", port, Interface->IfName);
+// arg2 = arg2 = port = arg2
+// arg3 = arg3 = Interface->IfName = arg3
+----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_XdpSetPortFails
+#define _clog_4_ARGS_TRACE_XdpSetPortFails(uniqueId, encoded_arg_string, arg2, arg3)\
+tracepoint(CLOG_DATAPATH_RAW_XDP_LINUX_C, XdpSetPortFails , arg2, arg3);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for XdpDeletePortFails
+// [ xdp] Failed to delete port %d on %s
+// QuicTraceLogVerbose(
+                        XdpDeletePortFails,
+                        "[ xdp] Failed to delete port %d on %s", port, Interface->IfName);
+// arg2 = arg2 = port = arg2
+// arg3 = arg3 = Interface->IfName = arg3
+----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_XdpDeletePortFails
+#define _clog_4_ARGS_TRACE_XdpDeletePortFails(uniqueId, encoded_arg_string, arg2, arg3)\
+tracepoint(CLOG_DATAPATH_RAW_XDP_LINUX_C, XdpDeletePortFails , arg2, arg3);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for XdpSetIfnameFails
+// [ xdp] Failed to set ifname %s on %s
+// QuicTraceLogVerbose(
+                        XdpSetIfnameFails,
+                        "[ xdp] Failed to set ifname %s on %s", Interface->IfName, Interface->IfName);
+// arg2 = arg2 = Interface->IfName = arg2
+// arg3 = arg3 = Interface->IfName = arg3
+----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_XdpSetIfnameFails
+#define _clog_4_ARGS_TRACE_XdpSetIfnameFails(uniqueId, encoded_arg_string, arg2, arg3)\
+tracepoint(CLOG_DATAPATH_RAW_XDP_LINUX_C, XdpSetIfnameFails , arg2, arg3);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for FailTxAlloc
 // [ xdp][tx  ] OOM for Tx
 // QuicTraceLogVerbose(
@@ -424,6 +548,24 @@ tracepoint(CLOG_DATAPATH_RAW_XDP_LINUX_C, ReleaseCons , arg2);\
 #ifndef _clog_3_ARGS_TRACE_XdpPartitionShutdown
 #define _clog_3_ARGS_TRACE_XdpPartitionShutdown(uniqueId, encoded_arg_string, arg2)\
 tracepoint(CLOG_DATAPATH_RAW_XDP_LINUX_C, XdpPartitionShutdown , arg2);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for XdpPartitionShutdownComplete
+// [ xdp][%p] XDP partition shutdown complete
+// QuicTraceLogVerbose(
+            XdpPartitionShutdownComplete,
+            "[ xdp][%p] XDP partition shutdown complete",
+            Partition);
+// arg2 = arg2 = Partition = arg2
+----------------------------------------------------------*/
+#ifndef _clog_3_ARGS_TRACE_XdpPartitionShutdownComplete
+#define _clog_3_ARGS_TRACE_XdpPartitionShutdownComplete(uniqueId, encoded_arg_string, arg2)\
+tracepoint(CLOG_DATAPATH_RAW_XDP_LINUX_C, XdpPartitionShutdownComplete , arg2);\
 
 #endif
 

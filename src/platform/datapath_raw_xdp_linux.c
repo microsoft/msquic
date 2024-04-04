@@ -14,10 +14,10 @@ Abstract:
 #include "bpf.h"
 #include "datapath_raw_linux.h"
 #include "datapath_raw_xdp.h"
+#include "err.h"
 #include "libbpf.h"
 #include "libxdp.h"
 #include "xsk.h"
-#include "err.h"
 #include <dirent.h>
 #include <linux/ethtool.h>
 #include <linux/sockios.h>
@@ -94,7 +94,7 @@ typedef struct XDP_QUEUE {
     XDP_PARTITION* Partition;
     struct XDP_QUEUE* Next;
     DATAPATH_SQE RxIoSqe;
-    DATAPATH_IO_SQE TxIoSqe;
+    DATAPATH_SQE FlushTxSqe;
     BOOLEAN RxQueued;
     BOOLEAN TxQueued;
     BOOLEAN Error;
@@ -193,7 +193,10 @@ CxPlatGetInterfaceRssQueueCount(
 
     DIR* Dir = opendir(Path);
     if (Dir == NULL) {
-        perror("opendir");
+        QuicTraceLogVerbose(
+            XdpFailGettingRssQueueCount,
+            "[ xdp] Failed to get RSS queue count for %s",
+            IfName);
         return QUIC_STATUS_INTERNAL_ERROR;
     }
 
@@ -228,21 +231,27 @@ CxPlatXdpReadConfig(
 
 void UninitializeUmem(struct xsk_umem_info* Umem)
 {
-    // TODO: error check
-    xsk_umem__delete(Umem->umem);
+    if (xsk_umem__delete(Umem->umem) != 0) {
+        QuicTraceLogVerbose(
+            XdpUmemDeleteFails,
+            "[ xdp] Failed to delete Umem");
+    }
     free(Umem->buffer);
     free(Umem);
 }
 
 // Detach XDP program from interface
-void DetachXdpProgram(XDP_INTERFACE *Interface)
+void DetachXdpProgram(XDP_INTERFACE *Interface, BOOLEAN Initial)
 {
     // NOTE: Experimental. this might remove none related programs as well.
     struct xdp_multiprog *mp = xdp_multiprog__get_from_ifindex(Interface->IfIndex);
     int err = xdp_multiprog__detach(mp);
-    if (err) {
-        // benigh error
-        fprintf(stderr, "Unable to detach XDP program: %s (benign)\n", strerror(-err));
+    if (!Initial && err) {
+        QuicTraceLogVerbose(
+            XdpDetachFails,
+            "[ xdp] Failed to detach XDP program from %s. error:%s",
+            Interface->IfName,
+            strerror(-err));
     }
 	xdp_multiprog__close(mp);
 }
@@ -270,6 +279,11 @@ CxPlatDpRawInterfaceUninitialize(
             if (Queue->xsk_info->xsk) {
                 if (Queue->Partition && Queue->Partition->EventQ) {
                     epoll_ctl(*Queue->Partition->EventQ, EPOLL_CTL_DEL, xsk_socket__fd(Queue->xsk_info->xsk), NULL);
+                    CxPlatSqeCleanup(Queue->Partition->EventQ, &Queue->RxIoSqe.Sqe);
+                    CxPlatSqeCleanup(Queue->Partition->EventQ, &Queue->FlushTxSqe.Sqe);
+                    if (i == 0) {
+                        CxPlatSqeCleanup(Queue->Partition->EventQ, &Queue->Partition->ShutdownSqe.Sqe);
+                    }
                 }
                 xsk_socket__delete(Queue->xsk_info->xsk);
             }
@@ -287,7 +301,7 @@ CxPlatDpRawInterfaceUninitialize(
         CxPlatFree(Interface->Queues, QUEUE_TAG);
     }
 
-    DetachXdpProgram(Interface);
+    DetachXdpProgram(Interface, false);
 
     if (Interface->XdpProg) {
         xdp_program__close(Interface->XdpProg);
@@ -416,6 +430,49 @@ AttachXdpProgram(struct xdp_program *prog, XDP_INTERFACE *Interface, struct xsk_
     return QUIC_STATUS_SUCCESS;
 }
 
+QUIC_STATUS
+OpenXdpProgram(struct xdp_program **prog)
+{
+    const char* Filename = "datapath_raw_xdp_kern.o";
+    char* EnvPath = getenv("MSQUIC_XDP_OBJECT_PATH");
+    char* Paths[] = {
+        EnvPath,
+        "/usr/lib/TBD" // TODO: decide where to install
+        ".",           // for development
+        };
+    char FilePath[256];
+    int readRetry = 5;
+
+    for (uint32_t i = 0; i < ARRAYSIZE(Paths); i++) {
+        if (Paths[i] != NULL) {
+            snprintf(FilePath, sizeof(FilePath), "%s/%s", Paths[i], Filename);
+            if (access(FilePath, F_OK) == 0) {
+                do {
+                    *prog = xdp_program__open_file(FilePath, "xdp_prog", NULL);
+                    if (IS_ERR(*prog)) {
+                        // TODO: Need investigation.
+                        //       Sometimes fail to load same object
+                        CxPlatSleep(50);
+                    }
+                } while (IS_ERR(*prog) && readRetry-- > 0);
+                break;
+            }
+        }
+    }
+    if (IS_ERR(*prog)) {
+        QuicTraceLogVerbose(
+            XdpOpenFileError,
+            "[ xdp] Failed to open xdp program %s",
+            FilePath);
+        return QUIC_STATUS_INTERNAL_ERROR;
+    }
+    QuicTraceLogVerbose(
+    XdpLoadObject,
+    "[ xdp] Successfully loaded xdp object of %s",
+    FilePath);
+    return QUIC_STATUS_SUCCESS;
+}
+
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 CxPlatDpRawInterfaceInitialize(
@@ -452,44 +509,15 @@ CxPlatDpRawInterfaceInitialize(
     XskCfg->bind_flags |= XDP_USE_NEED_WAKEUP;
     Interface->XskCfg = XskCfg;
 
-    DetachXdpProgram(Interface);
+    DetachXdpProgram(Interface, true);
 
+    // TODO: this could be opened at onece for all interfaces
     struct xdp_program *prog = NULL;
-    const char* Filename = "datapath_raw_xdp_kern.o";
-    char* EnvPath = getenv("MSQUIC_XDP_OBJECT_PATH");
-    char* Paths[2] = {EnvPath, "."};
-    char FilePath[256];
-    int readRetry = 5;
-    for (int i = 0; i < 2; i++) {
-        if (Paths[i] != NULL) {
-            snprintf(FilePath, sizeof(FilePath), "%s/%s", Paths[i], Filename);
-            if (access(FilePath, F_OK) == 0) {
-                do {
-                    // TODO: Need investigation.
-                    //       Sometimes fail to load same object
-                    prog = xdp_program__open_file(FilePath, "xdp_prog", NULL);
-                    if (IS_ERR(prog)) {
-                        CxPlatSleep(50);
-                    }
-                } while (IS_ERR(prog) && readRetry-- > 0);
-                break;
-            }
-        }
-    }
-    if (IS_ERR(prog)) {
-        QuicTraceLogVerbose(
-            XdpOpenFileError,
-            "[ xdp] Failed to open xdp program %s",
-            FilePath);
-        Status = QUIC_STATUS_INTERNAL_ERROR;
+    Status = OpenXdpProgram(&prog);
+    if (QUIC_FAILED(Status)) {
         goto Error;
     }
-    QuicTraceLogVerbose(
-    XdpLoadObject,
-    "[ xdp] Successfully loaded xdp object of %s",
-    FilePath);
 
-    // uint8_t Attached = IsXdpAttached(xdp_program__name(prog), Interface, XDP_MODE_SKB);
     // FIXME: eth0 on azure VM doesn't work with XDP_FLAGS_DRV_MODE
     XskCfg->xdp_flags = XDP_FLAGS_SKB_MODE;
     Status = AttachXdpProgram(prog, Interface, XskCfg);
@@ -500,28 +528,15 @@ CxPlatDpRawInterfaceInitialize(
 
     int XskBypassMapFd = bpf_map__fd(bpf_object__find_map_by_name(xdp_program__bpf_obj(prog), "xsks_map"));
     if (XskBypassMapFd < 0) {
-        fprintf(stderr, "ERROR: no xsks map found: %s\n",
-            strerror(XskBypassMapFd));
-        exit(EXIT_FAILURE);
-    }
-
-    // Debug info for bpf
-    struct bpf_map *ifname_map = bpf_object__find_map_by_name(xdp_program__bpf_obj(prog), "ifname_map");
-    if (ifname_map) {
-        int key = 0;
-        if (bpf_map_update_elem(bpf_map__fd(ifname_map), &key, Interface->IfName, BPF_ANY)) {
-            fprintf(stderr, "Failed to update BPF map\n");
-        }
-    } else {
-        fprintf(stderr, "Failed to find BPF ifacename_map\n");
-    }
-
-    Status = CxPlatGetInterfaceRssQueueCount(Interface->IfIndex, &Interface->QueueCount);
-    if (QUIC_FAILED(Status)) {
+        QuicTraceLogVerbose(
+            XdpNoXsksMap,
+            "[ xdp] No xsks map found");
+        Status = QUIC_STATUS_INTERNAL_ERROR;
         goto Error;
     }
 
-    if (Interface->QueueCount == 0) {
+    Status = CxPlatGetInterfaceRssQueueCount(Interface->IfIndex, &Interface->QueueCount);
+    if (QUIC_FAILED(Status) || Interface->QueueCount == 0) {
         Status = QUIC_STATUS_INVALID_STATE;
         QuicTraceEvent(
             LibraryErrorStatus,
@@ -803,16 +818,15 @@ CxPlatDpRawInitialize(
             Queue->RxIoSqe.CqeType = CXPLAT_CQE_TYPE_XDP_IO;
             XdpSocketContextSetEvents(Queue, EPOLL_CTL_ADD, EPOLLIN);
 
-            // if (!CxPlatSqeInitialize(
-            //     Partition->EventQ,
-            //     &Queue->TxIoSqe.Sqe,
-            //     &Queue->TxIoSqe)) {
-            //     Status = QUIC_STATUS_INTERNAL_ERROR;
-            //     goto Error;
-            // }
-            // Queue->TxIoSqe.CqeType = CXPLAT_CQE_TYPE_XDP_FLUSH_TX
-            // XdpSocketContextSetEvents(Queue, EPOLL_CTL_ADD, EPOLLIN);
-            // TODOL other queues
+            if (!CxPlatSqeInitialize(
+                    Partition->EventQ,
+                    &Queue->FlushTxSqe.Sqe,
+                    &Queue->FlushTxSqe)) {
+                Status = QUIC_STATUS_INTERNAL_ERROR;
+                goto Error;
+            }
+            Queue->FlushTxSqe.CqeType = CXPLAT_CQE_TYPE_XDP_FLUSH_TX;
+
             ++QueueCount;
             Queue = Queue->Next;
         }
@@ -910,33 +924,37 @@ CxPlatDpRawPlumbRulesOnSocket(
     for (; Entry != &Socket->RawDatapath->Interfaces; Entry = Entry->Flink) {
         XDP_INTERFACE* Interface = (XDP_INTERFACE*)CXPLAT_CONTAINING_RECORD(Entry, CXPLAT_INTERFACE, Link);
         struct bpf_map *port_map = bpf_object__find_map_by_name(xdp_program__bpf_obj(Interface->XdpProg), "port_map");
-        if (!port_map) {
-            fprintf(stderr, "CxPlatDpRawPlumbRulesOnSocket: Failed to find BPF port_map\n");
+        if (port_map) {
+            int port = Socket->LocalAddress.Ipv4.sin_port;
+            if (IsCreated) {
+                BOOLEAN exist = true;
+                if (bpf_map_update_elem(bpf_map__fd(port_map), &port, &exist, BPF_ANY)) {
+                    QuicTraceLogVerbose(
+                        XdpSetPortFails,
+                        "[ xdp] Failed to set port %d on %s", port, Interface->IfName);
+                }
+            } else {
+                if (bpf_map_delete_elem(bpf_map__fd(port_map), &port)) {
+                    QuicTraceLogVerbose(
+                        XdpDeletePortFails,
+                        "[ xdp] Failed to delete port %d on %s", port, Interface->IfName);
+                }
+            }
         }
 
-        int port = Socket->LocalAddress.Ipv4.sin_port;
-        if (IsCreated) {
-            BOOLEAN exist = true;
-            if (bpf_map_update_elem(bpf_map__fd(port_map), &port, &exist, BPF_ANY)) {
-                fprintf(stderr, "CxPlatDpRawPlumbRulesOnSocket: Failed to update BPF map on %s, port:%d\n", Interface->IfName, port);
-            }
-        } else {
-            if (bpf_map_delete_elem(bpf_map__fd(port_map), &port)) {
-                fprintf(stderr, "CxPlatDpRawPlumbRulesOnSocket: Failed to delete port %d from BPF map on %s\n", port, Interface->IfName);
-            }
-        }
-
+        // Debug info
+        // TODO: set flag to enable dump in xdp program
         struct bpf_map *ifname_map = bpf_object__find_map_by_name(xdp_program__bpf_obj(Interface->XdpProg), "ifname_map");
-        if (!ifname_map) {
-            fprintf(stderr, "CxPlatDpRawPlumbRulesOnSocket: Failed to find BPF ifacename_map\n");
+        if (ifname_map) {
+            int key = 0;
+            if (IsCreated) {
+                if (bpf_map_update_elem(bpf_map__fd(ifname_map), &key, Interface->IfName, BPF_ANY)) {
+                    QuicTraceLogVerbose(
+                        XdpSetIfnameFails,
+                        "[ xdp] Failed to set ifname %s on %s", Interface->IfName, Interface->IfName);
+                }
+            } // BPF_MAP_TYPE_ARRAY doesn't support delete
         }
-
-        int key = 0;
-        if (IsCreated) {
-            if (bpf_map_update_elem(bpf_map__fd(ifname_map), &key, Interface->IfName, BPF_ANY)) {
-                fprintf(stderr, "CxPlatDpRawPlumbRulesOnSocket: Failed to update BPF map\n");
-            }
-        } // BPF_MAP_TYPE_ARRAY doesn't support delete
     }
 }
 
@@ -1143,6 +1161,9 @@ CxPlatXdpExecute(
         return FALSE;
     }
 
+     const BOOLEAN PollingExpired =
+        CxPlatTimeDiff64(State->LastWorkTime, State->TimeNow) >= Xdp->PollingIdleTimeoutUs;
+
     BOOLEAN DidWork = FALSE;
     XDP_QUEUE* Queue = Partition->Queues;
     while (Queue) {
@@ -1154,6 +1175,17 @@ CxPlatXdpExecute(
     if (DidWork) {
         Partition->Ec.Ready = TRUE;
         State->NoWorkCount = 0;
+    } else if (!PollingExpired) {
+        Partition->Ec.Ready = TRUE;
+    } else {
+        Queue = Partition->Queues;
+        while (Queue) {
+            if (!Queue->RxQueued) {
+            }
+            if (!Queue->TxQueued) {
+            }
+            Queue = Queue->Next;
+        }
     }
 
     return TRUE;
@@ -1274,7 +1306,10 @@ RawDataPathProcessCqe(
     case CXPLAT_CQE_TYPE_XDP_SHUTDOWN: {
         XDP_PARTITION* Partition =
             CXPLAT_CONTAINING_RECORD(CxPlatCqeUserData(Cqe), XDP_PARTITION, ShutdownSqe);
-
+        QuicTraceLogVerbose(
+            XdpPartitionShutdownComplete,
+            "[ xdp][%p] XDP partition shutdown complete",
+            Partition);
         CxPlatDpRawRelease((XDP_DATAPATH*)Partition->Xdp);
         break;
     }

@@ -303,7 +303,6 @@ RawSocketCreateUdp(
     }
 
     CxPlatDpRawPlumbRulesOnSocket(NewSocket, TRUE);
-
 Error:
 
     if (QUIC_FAILED(Status)) {
