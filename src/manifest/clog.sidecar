@@ -12223,12 +12223,16 @@
     },
     "XdpAttachSucceeds": {
       "ModuleProperites": {},
-      "TraceString": "[ xdp] Successfully attach XDP program to %s",
+      "TraceString": "[ xdp] Successfully attach XDP program to %s by mode:%d",
       "UniqueId": "XdpAttachSucceeds",
       "splitArgs": [
         {
           "DefinationEncoding": "s",
           "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "d",
+          "MacroVariableName": "arg3"
         }
       ],
       "macroName": "QuicTraceLogVerbose"
@@ -17040,9 +17044,9 @@
         "EncodingString": "[ xdp] Failed to attach XDP program to %s. error:%s"
       },
       {
-        "UniquenessHash": "c5f1a6c8-1570-6446-0b9b-ce13446d8f6a",
+        "UniquenessHash": "a4b84136-131d-0ec3-2ff5-23c3a752b330",
         "TraceID": "XdpAttachSucceeds",
-        "EncodingString": "[ xdp] Successfully attach XDP program to %s"
+        "EncodingString": "[ xdp] Successfully attach XDP program to %s by mode:%d"
       },
       {
         "UniquenessHash": "d437d3dd-3834-5c47-d972-1a1d8c08ccd8",

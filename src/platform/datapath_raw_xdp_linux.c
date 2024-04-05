@@ -86,6 +86,7 @@ typedef struct XDP_INTERFACE {
     struct xsk_socket_config *XskCfg;
     struct bpf_object *BpfObj;
     struct xdp_program *XdpProg;
+    enum xdp_attach_mode AttachMode;
     char IfName[IFNAMSIZ];
 } XDP_INTERFACE;
 
@@ -389,34 +390,28 @@ AttachXdpProgram(struct xdp_program *prog, XDP_INTERFACE *Interface, struct xsk_
 {
     char errmsg[1024];
     int err;
-    enum xdp_attach_mode attach_mode = XDP_MODE_NATIVE;
 
     // TODO: iterate from HW -> DRV -> SKB
+    // WARN: Attaching HW mode (error) affects doing
+    //       with DRV/SKB mode. Need report to libxdp team
+    // NOTE: eth0 on azure VM doesn't work with XDP_FLAGS_DRV_MODE
     static const struct AttachTypePair {
         enum xdp_attach_mode mode;
         unsigned int xdp_flag;
     } AttachTypePairs[]  = {
-        { XDP_MODE_HW, XDP_FLAGS_HW_MODE },
+        // { XDP_MODE_HW, XDP_FLAGS_HW_MODE },
         { XDP_MODE_NATIVE, XDP_FLAGS_DRV_MODE },
         { XDP_MODE_SKB, XDP_FLAGS_SKB_MODE },
     };
-    UNREFERENCED_PARAMETER(AttachTypePairs);
-
-    switch (xskcfg->xdp_flags) {
-    case XDP_FLAGS_DRV_MODE:
-        attach_mode = XDP_MODE_NATIVE;
-        break;
-    case XDP_FLAGS_SKB_MODE:
-        attach_mode = XDP_MODE_SKB;
-        break;
-    case XDP_FLAGS_HW_MODE:
-        attach_mode = XDP_MODE_HW;
-        break;
-    default:
-        CXPLAT_DBG_ASSERT(FALSE);
+    for (uint32_t i = 0; i < ARRAYSIZE(AttachTypePairs); i++) {
+        err = xdp_program__attach(prog, Interface->IfIndex, AttachTypePairs[i].mode, 0);
+        if (!err) {
+            Interface->AttachMode = AttachTypePairs[i].mode;
+            xskcfg->xdp_flags = AttachTypePairs[i].xdp_flag;
+            break;
+        }
     }
 
-    err = xdp_program__attach(prog, Interface->IfIndex, attach_mode, 0);
     if (err) {
         libxdp_strerror(err, errmsg, sizeof(errmsg));
         QuicTraceLogVerbose(
@@ -426,7 +421,7 @@ AttachXdpProgram(struct xdp_program *prog, XDP_INTERFACE *Interface, struct xsk_
     }
     QuicTraceLogVerbose(
         XdpAttachSucceeds,
-        "[ xdp] Successfully attach XDP program to %s", Interface->IfName);
+        "[ xdp] Successfully attach XDP program to %s by mode:%d", Interface->IfName, Interface->AttachMode);
     return QUIC_STATUS_SUCCESS;
 }
 
@@ -500,7 +495,6 @@ CxPlatDpRawInterfaceInitialize(
     XskCfg->rx_size = CONS_NUM_DESCS;
     XskCfg->tx_size = PROD_NUM_DESCS;
     XskCfg->libbpf_flags = XSK_LIBBPF_FLAGS__INHIBIT_PROG_LOAD;
-    XskCfg->xdp_flags = XDP_FLAGS_DRV_MODE;
     // TODO: check ZEROCOPY feature, change Tx/Rx behavior based on feature
     //       refer xdp-tools/xdp-loader/xdp-loader features <ifname>
     XskCfg->bind_flags &= ~XDP_ZEROCOPY;
@@ -517,8 +511,6 @@ CxPlatDpRawInterfaceInitialize(
         goto Error;
     }
 
-    // FIXME: eth0 on azure VM doesn't work with XDP_FLAGS_DRV_MODE
-    XskCfg->xdp_flags = XDP_FLAGS_SKB_MODE;
     Status = AttachXdpProgram(prog, Interface, XskCfg);
     if (QUIC_FAILED(Status)) {
         goto Error;

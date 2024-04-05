@@ -186,15 +186,16 @@ tracepoint(CLOG_DATAPATH_RAW_XDP_LINUX_C, XdpAttachFails , arg2, arg3);\
 
 /*----------------------------------------------------------
 // Decoder Ring for XdpAttachSucceeds
-// [ xdp] Successfully attach XDP program to %s
+// [ xdp] Successfully attach XDP program to %s by mode:%d
 // QuicTraceLogVerbose(
         XdpAttachSucceeds,
-        "[ xdp] Successfully attach XDP program to %s", Interface->IfName);
+        "[ xdp] Successfully attach XDP program to %s by mode:%d", Interface->IfName, Interface->AttachMode);
 // arg2 = arg2 = Interface->IfName = arg2
+// arg3 = arg3 = Interface->AttachMode = arg3
 ----------------------------------------------------------*/
-#ifndef _clog_3_ARGS_TRACE_XdpAttachSucceeds
-#define _clog_3_ARGS_TRACE_XdpAttachSucceeds(uniqueId, encoded_arg_string, arg2)\
-tracepoint(CLOG_DATAPATH_RAW_XDP_LINUX_C, XdpAttachSucceeds , arg2);\
+#ifndef _clog_4_ARGS_TRACE_XdpAttachSucceeds
+#define _clog_4_ARGS_TRACE_XdpAttachSucceeds(uniqueId, encoded_arg_string, arg2, arg3)\
+tracepoint(CLOG_DATAPATH_RAW_XDP_LINUX_C, XdpAttachSucceeds , arg2, arg3);\
 
 #endif
 

@@ -174,17 +174,20 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_LINUX_C, XdpAttachFails,
 
 /*----------------------------------------------------------
 // Decoder Ring for XdpAttachSucceeds
-// [ xdp] Successfully attach XDP program to %s
+// [ xdp] Successfully attach XDP program to %s by mode:%d
 // QuicTraceLogVerbose(
         XdpAttachSucceeds,
-        "[ xdp] Successfully attach XDP program to %s", Interface->IfName);
+        "[ xdp] Successfully attach XDP program to %s by mode:%d", Interface->IfName, Interface->AttachMode);
 // arg2 = arg2 = Interface->IfName = arg2
+// arg3 = arg3 = Interface->AttachMode = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_LINUX_C, XdpAttachSucceeds,
     TP_ARGS(
-        const char *, arg2), 
+        const char *, arg2,
+        int, arg3), 
     TP_FIELDS(
         ctf_string(arg2, arg2)
+        ctf_integer(int, arg3, arg3)
     )
 )
 
