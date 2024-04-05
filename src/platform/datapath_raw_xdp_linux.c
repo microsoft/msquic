@@ -315,7 +315,7 @@ CxPlatDpRawInterfaceUninitialize(
 static QUIC_STATUS InitializeUmem(uint32_t frameSize, uint32_t numFrames, uint32_t RxHeadRoom, uint32_t TxHeadRoom, struct xsk_umem_info* Umem)
 {
     void *buffer;
-    if (posix_memalign(&buffer, getpagesize(), frameSize * numFrames)) {
+    if (posix_memalign(&buffer, getpagesize(), (size_t)(frameSize) * numFrames)) {
         QuicTraceLogVerbose(
             XdpAllocUmem,
             "[ xdp] Failed to allocate umem");
