@@ -718,7 +718,7 @@ CxPlatDpRawInitialize(
 
         if ((ifa->ifa_flags & IFF_UP) &&
             // !(ifa->ifa_flags & IFF_LOOPBACK) &&
-            // FIXME: if there are MASTER-SLAVE interfaces, slave need to be
+            // TODO: if there are MASTER-SLAVE interfaces, slave need to be
             //         loaded first to load all interfaces
             !(ifa->ifa_flags & IFF_SLAVE) &&
             family == AF_PACKET) {
