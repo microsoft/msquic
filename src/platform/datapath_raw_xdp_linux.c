@@ -486,7 +486,6 @@ CxPlatDpRawInterfaceInitialize(
     // WARN: variable frame size cause unexpected behavior
     // TODO: 2K mode
     const uint32_t FrameSize = FRAME_SIZE;
-    // const uint64_t UmemSize = NUM_FRAMES * FrameSize;
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
     int SocketCreated = 0;
 
@@ -1180,10 +1179,6 @@ CxPlatXdpExecute(
     } else {
         Queue = Partition->Queues;
         while (Queue) {
-            if (!Queue->RxQueued) {
-            }
-            if (!Queue->TxQueued) {
-            }
             Queue = Queue->Next;
         }
     }
