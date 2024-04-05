@@ -29,7 +29,8 @@ else()
         set(SOURCES ${SOURCES} datapath_linux.c datapath_epoll.c)
         if((${UBUNTU_VERSION} STREQUAL "22.04") AND
            (${SYSTEM_PROCESSOR} STREQUAL "x86_64") AND
-           (NOT ANDROID))
+           (NOT ANDROID) AND
+           (NOT CARGO_BUILD))
            set(LINUX_XDP_ENABLED TRUE)
            set(SOURCES ${SOURCES} datapath_raw_linux.c datapath_raw_socket.c datapath_raw_socket_linux.c datapath_raw_xdp_linux.c)
         else()
