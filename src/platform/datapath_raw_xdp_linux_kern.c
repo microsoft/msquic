@@ -51,6 +51,8 @@ struct {
     __uint(max_entries, 1);
 } target_ip_map SEC(".maps");
 
+#ifdef DEBUG
+
 // TODO: dump flag map?
 // NOTE: divisible by 4
 #define DUMP_PAYLOAD_SIZE 12
@@ -167,6 +169,8 @@ static __always_inline void dump(struct xdp_md *ctx, void *data, void *data_end)
     }
 }
 
+#endif
+
 static __always_inline bool to_quic_service(struct xdp_md *ctx, void *data, void *data_end) {
     struct ethhdr *eth = data;
     if ((void *)(eth + 1) > data_end) {
@@ -218,8 +222,9 @@ int xdp_main(struct xdp_md *ctx)
     int index = ctx->rx_queue_index;
     void *data_end = (void*)(long)ctx->data_end;
     void *data = (void*)(long)ctx->data;
-    // TODO: enable/disable dump from user app
-    // dump(ctx, data, data_end);
+#ifdef DEBUG
+    dump(ctx, data, data_end);
+#endif
     if (to_quic_service(ctx, data, data_end)) {
         if (bpf_map_lookup_elem(&xsks_map, &index)) {
             return bpf_redirect_map(&xsks_map, index, 0);

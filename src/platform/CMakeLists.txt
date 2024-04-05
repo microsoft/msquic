@@ -102,7 +102,12 @@ elseif(LINUX_XDP_ENABLED)
     add_custom_command(
         OUTPUT ${PROJECT_SOURCE_DIR}/datapath_raw_xdp_kern.o
         OUTPUT ${QUIC_OUTPUT_DIR}/datapath_raw_xdp_kern.o
-        COMMAND clang -O2 -g -target bpf -c ${PROJECT_SOURCE_DIR}/src/platform/datapath_raw_xdp_linux_kern.c -o ${QUIC_OUTPUT_DIR}/datapath_raw_xdp_kern.o -I${PROJECT_SOURCE_DIR}/submodules/xdp-tools/lib -I/usr/include/x86_64-linux-gnu
+        COMMAND clang -O2 -g -target bpf
+        -c ${PROJECT_SOURCE_DIR}/src/platform/datapath_raw_xdp_linux_kern.c
+        -o ${QUIC_OUTPUT_DIR}/datapath_raw_xdp_kern.o
+        -I${PROJECT_SOURCE_DIR}/submodules/xdp-tools/lib
+        -I/usr/include/x86_64-linux-gnu
+        # -DDEBUG
         DEPENDS ${PROJECT_SOURCE_DIR}/src/platform/datapath_raw_xdp_linux_kern.c
     )
 
