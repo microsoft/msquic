@@ -401,7 +401,6 @@ function CMake-Generate {
             switch ($Arch) {
                 "arm"   { $env:PKG_CONFIG_PATH="$SysRoot/usr/lib/arm-linux-gnueabihf/pkgconfig" }
                 "arm64" { $env:PKG_CONFIG_PATH="$SysRoot/usr/lib/aarch64-linux-gnu/pkgconfig" }
-                default { $env:PKG_CONFIG_PATH="$SysRoot/usr/lib/x86_64-linux-gnu/pkgconfig" }
             }
        }
     }
