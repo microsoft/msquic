@@ -41,10 +41,7 @@ if ($IsWindows) {
 
 # Root directory of the project.
 $RootDir = Split-Path $PSScriptRoot -Parent
+$env:LD_LIBRARY_PATH = $RootArtifactDir
 
 dotnet build (Join-Path $RootDir src cs)
-ldd (Join-Path $RootArtifactDir $LibName)
-echo ""
-ldd (Join-Path $RootArtifactDir "libxdp.so")
-$env:LD_LIBRARY_PATH = $RootArtifactDir
 dotnet run --project (Join-Path $RootDir src cs tool) -- (Join-Path $RootArtifactDir $LibName)
