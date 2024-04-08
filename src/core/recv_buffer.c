@@ -923,7 +923,6 @@ QuicRecvBufferDrain(
         DrainLength = QuicRecvBufferFullDrain(RecvBuffer, DrainLength);
     } while (DrainLength != 0);
 
-    // return TRUE;
     return QuicRecvBufferHasUnreadData(RecvBuffer);
 }
 
