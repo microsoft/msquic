@@ -741,7 +741,7 @@ CxPlatDpRawInitialize(
                     } else if (family == AF_INET6) {
                         struct sockaddr_in6 *addr_in6 = (struct sockaddr_in6 *)ifa->ifa_addr;
                         if (addr_in6->sin6_scope_id == if_nametoindex(ifa->ifa_name)) {
-                            goto CONTINUE_OUTER;
+                            break;
                         }
                         memcpy(&Interface->Ipv6Address, &addr_in6->sin6_addr, sizeof(struct in6_addr));
                     } else if (family == AF_PACKET) {
@@ -778,7 +778,6 @@ CxPlatDpRawInitialize(
                 }
                 CxPlatListInsertTail(&Xdp->Interfaces, &Interface->Link);
             }
-CONTINUE_OUTER:
         }
     }
     freeifaddrs(ifaddr);
