@@ -272,7 +272,7 @@ typedef enum {
 struct SpinQuicStream {
     struct SpinQuicConnection& Connection;
     HQUIC Handle;
-    uint64_t PendingRecvLength {0};
+    uint64_t PendingRecvLength {UINT64_MAX}; // UINT64_MAX means no pending receive
     SpinQuicStream(SpinQuicConnection& Connection, HQUIC Handle = nullptr) :
         Connection(Connection), Handle(Handle) {}
     ~SpinQuicStream() { MsQuic.StreamClose(Handle); }
@@ -374,13 +374,20 @@ QUIC_STATUS QUIC_API SpinQuicHandleStreamEvent(HQUIC Stream, void* , QUIC_STREAM
     case QUIC_STREAM_EVENT_PEER_SEND_SHUTDOWN:
         MsQuic.StreamShutdown(Stream, (QUIC_STREAM_SHUTDOWN_FLAGS)GetRandom(16), 0);
         break;
-    case QUIC_STREAM_EVENT_PEER_SEND_ABORTED:
-        ctx->PendingRecvLength = 0;
+    case QUIC_STREAM_EVENT_PEER_SEND_ABORTED: {
+        std::lock_guard<std::mutex> Lock(ctx->Connection.Lock);
+        ctx->PendingRecvLength = UINT64_MAX;
         break;
+    }
     case QUIC_STREAM_EVENT_RECEIVE: {
+        if (Event->RECEIVE.TotalBufferLength == 0) {
+            ctx->PendingRecvLength = UINT64_MAX; // TODO - Add more complex handling
+            break;
+        }
         int Random = GetRandom(5);
+        std::lock_guard<std::mutex> Lock(ctx->Connection.Lock);
+        CXPLAT_DBG_ASSERT(ctx->PendingRecvLength == UINT64_MAX);
         if (Random == 0) {
-            std::lock_guard<std::mutex> Lock(ctx->Connection.Lock);
             ctx->PendingRecvLength = Event->RECEIVE.TotalBufferLength;
             return QUIC_STATUS_PENDING; // Pend the receive, to be completed later.
         } else if (Random == 1 && Event->RECEIVE.TotalBufferLength > 0) {
@@ -980,14 +987,14 @@ void Spin(Gbs& Gb, LockableVector<HQUIC>& Connections, std::vector<HQUIC>* Liste
                 auto Stream = ctx->TryGetStream();
                 if (Stream == nullptr) continue;
                 auto StreamCtx = SpinQuicStream::Get(Stream);
+                if (StreamCtx->PendingRecvLength == UINT64_MAX) continue; // Nothing to complete (yet
                 auto BytesRemaining = StreamCtx->PendingRecvLength;
+                StreamCtx->PendingRecvLength = UINT64_MAX;
                 if (BytesRemaining != 0 && GetRandom(10) == 0) {
-                    auto BytesConsumed = GetRandom(StreamCtx->PendingRecvLength);
-                    StreamCtx->PendingRecvLength = BytesRemaining - BytesConsumed;
+                    auto BytesConsumed = GetRandom(BytesRemaining);
                     MsQuic.StreamReceiveComplete(Stream, BytesConsumed);
                 } else {
-                    StreamCtx->PendingRecvLength = 0;
-                    MsQuic.StreamReceiveComplete(Stream, StreamCtx->PendingRecvLength);
+                    MsQuic.StreamReceiveComplete(Stream, BytesRemaining);
                 }
             }
             break;
@@ -1003,7 +1010,7 @@ void Spin(Gbs& Gb, LockableVector<HQUIC>& Connections, std::vector<HQUIC>* Liste
                 auto Flags = (QUIC_STREAM_SHUTDOWN_FLAGS)GetRandom(16);
                 if (Flags & QUIC_STREAM_SHUTDOWN_FLAG_ABORT_RECEIVE) {
                     auto StreamCtx = SpinQuicStream::Get(Stream);
-                    StreamCtx->PendingRecvLength = 0;
+                    StreamCtx->PendingRecvLength = UINT64_MAX;
                 }
                 MsQuic.StreamShutdown(Stream, Flags, 0);
             }
