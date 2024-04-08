@@ -105,7 +105,7 @@ static __always_inline void dump(struct xdp_md *ctx, void *data, void *data_end)
         BPF_SNPRINTF(IpDump, sizeof(IpDump), "\t\tIpv4 TotalLen:[%d]\tSrc: %s => Dst: %s", bpf_ntohs(iph->tot_len), IP4Src, IP4Dst);
 
         __u32 *ipv4_addr = bpf_map_lookup_elem(&ip_map, &ipv4_key);
-        IpMatch = ipv4_addr && *ipv4_addr != iph->daddr;
+        IpMatch = ipv4_addr && *ipv4_addr == iph->daddr;
 
         if (iph->protocol != IPPROTO_UDP) {
             bpf_printk("\t\t\tnot UDP %d", iph->protocol);
