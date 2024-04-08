@@ -317,7 +317,7 @@ CxPlatDpRawInterfaceUninitialize(
 
 static QUIC_STATUS InitializeUmem(uint32_t frameSize, uint32_t numFrames, uint32_t RxHeadRoom, uint32_t TxHeadRoom, struct xsk_umem_info* Umem)
 {
-    void *buffer;
+    void *buffer = NULL;
     if (posix_memalign(&buffer, getpagesize(), (size_t)(frameSize) * numFrames)) {
         QuicTraceLogVerbose(
             XdpAllocUmem,
@@ -336,6 +336,7 @@ static QUIC_STATUS InitializeUmem(uint32_t frameSize, uint32_t numFrames, uint32
     int Ret = xsk_umem__create(&Umem->umem, buffer, (uint64_t)(frameSize) * numFrames, &Umem->fq, &Umem->cq, &UmemConfig);
     if (Ret) {
         errno = -Ret;
+        free(buffer);
         return QUIC_STATUS_INTERNAL_ERROR;
     }
 
@@ -583,6 +584,8 @@ CxPlatDpRawInterfaceInitialize(
         struct xsk_socket_info *xsk_info = calloc(1, sizeof(*xsk_info));
         if (!xsk_info) {
             Status = QUIC_STATUS_OUT_OF_MEMORY;
+            free(Umem->buffer);
+            free(Umem);
             goto Error;
         }
         CxPlatLockInitialize(&xsk_info->UmemLock);
