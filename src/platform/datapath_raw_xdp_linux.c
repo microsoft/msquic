@@ -87,6 +87,8 @@ typedef struct XDP_INTERFACE {
     struct bpf_object *BpfObj;
     struct xdp_program *XdpProg;
     enum xdp_attach_mode AttachMode;
+    struct in_addr Ipv4Address;
+    struct in6_addr Ipv6Address;
     char IfName[IFNAMSIZ];
 } XDP_INTERFACE;
 
@@ -714,42 +716,69 @@ CxPlatDpRawInitialize(
         if (ifa->ifa_addr == NULL) {
             continue;
         }
-        family = ifa->ifa_addr->sa_family;
 
         if ((ifa->ifa_flags & IFF_UP) &&
             // !(ifa->ifa_flags & IFF_LOOPBACK) &&
             // TODO: if there are MASTER-SLAVE interfaces, slave need to be
             //         loaded first to load all interfaces
-            !(ifa->ifa_flags & IFF_SLAVE) &&
-            family == AF_PACKET) {
+            !(ifa->ifa_flags & IFF_SLAVE)) {
             // Create and initialize the interface data structure here
-            XDP_INTERFACE* Interface = (XDP_INTERFACE*) malloc(sizeof(XDP_INTERFACE));
-            if (Interface == NULL) {
-                QuicTraceEvent(
-                    AllocFailure,
-                    "Allocation of '%s' failed. (%llu bytes)",
-                    "XDP interface",
-                    sizeof(*Interface));
-                Status = QUIC_STATUS_OUT_OF_MEMORY;
-                goto Error;
-            }
-            CxPlatZeroMemory(Interface, sizeof(*Interface));
-            memcpy(Interface->IfName, ifa->ifa_name, sizeof(Interface->IfName));
-            Interface->IfIndex = if_nametoindex(ifa->ifa_name);
-            struct sockaddr_ll *sall = (struct sockaddr_ll*)ifa->ifa_addr;
-            memcpy(Interface->PhysicalAddress, sall->sll_addr, sizeof(Interface->PhysicalAddress));
+            family = ifa->ifa_addr->sa_family;
+            XDP_INTERFACE* Interface = NULL;
+            CXPLAT_LIST_ENTRY* Entry = Xdp->Interfaces.Flink;
+            bool Initialized = false;
+            for (; Entry != &Xdp->Interfaces; Entry = Entry->Flink) {
+                Interface = (XDP_INTERFACE*)CXPLAT_CONTAINING_RECORD(Entry, CXPLAT_INTERFACE, Link);
+                if (Interface == NULL) {
+                    break;
+                }
 
-            if (QUIC_FAILED(CxPlatDpRawInterfaceInitialize(
-                    Xdp, Interface, ClientRecvContextLength))) {
-                QuicTraceEvent(
-                    LibraryErrorStatus,
-                    "[ lib] ERROR, %u, %s.",
-                    Status,
-                    "CxPlatDpRawInterfaceInitialize");
-                CxPlatFree(Interface, IF_TAG);
-                continue;
+                if (strcmp(Interface->IfName, ifa->ifa_name) == 0) {
+                    Initialized = true;
+                    if (family == AF_INET) {
+                        struct sockaddr_in *addr_in = (struct sockaddr_in *)ifa->ifa_addr;
+                        Interface->Ipv4Address = addr_in->sin_addr;
+                    } else if (family == AF_INET6) {
+                        struct sockaddr_in6 *addr_in6 = (struct sockaddr_in6 *)ifa->ifa_addr;
+                        if (addr_in6->sin6_scope_id == if_nametoindex(ifa->ifa_name)) {
+                            goto CONTINUE_OUTER;
+                        }
+                        memcpy(&Interface->Ipv6Address, &addr_in6->sin6_addr, sizeof(struct in6_addr));
+                    } else if (family == AF_PACKET) {
+                        struct sockaddr_ll *sall = (struct sockaddr_ll*)ifa->ifa_addr;
+                        memcpy(Interface->PhysicalAddress, sall->sll_addr, sizeof(Interface->PhysicalAddress));
+                    }
+                    break;
+                }
             }
-            CxPlatListInsertTail(&Xdp->Interfaces, &Interface->Link);
+            if (!Initialized) {
+                Interface = (XDP_INTERFACE*)malloc(sizeof(XDP_INTERFACE));
+                if (Interface == NULL) {
+                    QuicTraceEvent(
+                        AllocFailure,
+                        "Allocation of '%s' failed. (%llu bytes)",
+                        "XDP interface",
+                        sizeof(*Interface));
+                    Status = QUIC_STATUS_OUT_OF_MEMORY;
+                    goto Error;
+                }
+                CxPlatZeroMemory(Interface, sizeof(*Interface));
+                memcpy(Interface->IfName, ifa->ifa_name, sizeof(Interface->IfName));
+                Interface->IfIndex = if_nametoindex(ifa->ifa_name);
+
+                if (QUIC_FAILED(CxPlatDpRawInterfaceInitialize(
+                        Xdp, Interface, ClientRecvContextLength))) {
+                    QuicTraceEvent(
+                        LibraryErrorStatus,
+                        "[ lib] ERROR, %u, %s.",
+                        Status,
+                        "CxPlatDpRawInterfaceInitialize");
+                    CxPlatFree(Interface, IF_TAG);
+                    continue;
+                }
+                CxPlatListInsertTail(&Xdp->Interfaces, &Interface->Link);
+            }
+CONTINUE_OUTER:
         }
     }
     freeifaddrs(ifaddr);
@@ -932,6 +961,30 @@ CxPlatDpRawPlumbRulesOnSocket(
                 }
             }
         }
+
+        struct bpf_map *ip_map = bpf_object__find_map_by_name(xdp_program__bpf_obj(Interface->XdpProg), "ip_map");
+        if (ip_map) {
+            if (IsCreated) {
+                __u8 ipv_data[16] = {0};
+                int ipv_key = 0;
+                if (IsCreated) {
+                    if (QuicAddrGetFamily(&Socket->LocalAddress) == QUIC_ADDRESS_FAMILY_INET) {
+                        ipv_key = 0;
+                        memcpy(ipv_data, &Interface->Ipv4Address.s_addr, 4);
+                        bpf_map_update_elem(bpf_map__fd(ip_map), &ipv_key, ipv_data, BPF_ANY);
+                    } else {
+                        ipv_key = 1;
+                        memcpy(ipv_data, &Interface->Ipv6Address.s6_addr, sizeof(ipv_data));
+                        bpf_map_update_elem(bpf_map__fd(ip_map), &ipv_key, ipv_data, BPF_ANY);
+                    }
+                } else {
+                    bpf_map_update_elem(bpf_map__fd(ip_map), &ipv_key, ipv_data, BPF_ANY);
+                    ipv_key = 1;
+                    bpf_map_update_elem(bpf_map__fd(ip_map), &ipv_key, ipv_data, BPF_ANY);
+                }
+            }
+        }
+
 
         // Debug info
         // TODO: set flag to enable dump in xdp program

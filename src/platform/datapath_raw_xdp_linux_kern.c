@@ -47,9 +47,12 @@ struct {
 struct {
     __uint(type, BPF_MAP_TYPE_ARRAY);
     __type(key, int);
-    __type(value, __u32);
-    __uint(max_entries, 1);
-} target_ip_map SEC(".maps");
+    __type(value, __u8[16]);
+    __uint(max_entries, 2); // 0: ipv4, 1: ipv6
+} ip_map SEC(".maps");
+
+static const __u32 ipv4_key = 0;
+static const __u32 ipv6_key = 1;
 
 #ifdef DEBUG
 
@@ -81,6 +84,7 @@ static __always_inline void dump(struct xdp_md *ctx, void *data, void *data_end)
         eth->h_dest[0], eth->h_dest[1], eth->h_dest[2], eth->h_dest[3], eth->h_dest[4], eth->h_dest[5]);
     BPF_SNPRINTF(EthDump, sizeof(EthDump), "\tEth[%d]\tSRC: %s => DST:%s", data_end - data, EthSrc, EthDst);
 
+    bool IpMatch = true;
     struct iphdr *iph = 0;
     struct ipv6hdr *ip6h = 0;
     struct udphdr *udph = 0;
@@ -99,6 +103,9 @@ static __always_inline void dump(struct xdp_md *ctx, void *data, void *data_end)
         BPF_SNPRINTF(IP4Dst, sizeof(IP4Dst), "%d.%d.%d.%d",
             (dst_ip >> 24) & 0xff, (dst_ip >> 16) & 0xff, (dst_ip >> 8) & 0xff, dst_ip & 0xff);
         BPF_SNPRINTF(IpDump, sizeof(IpDump), "\t\tIpv4 TotalLen:[%d]\tSrc: %s => Dst: %s", bpf_ntohs(iph->tot_len), IP4Src, IP4Dst);
+
+        __u32 *ipv4_addr = bpf_map_lookup_elem(&ip_map, &ipv4_key);
+        IpMatch = ipv4_addr && *ipv4_addr != iph->daddr;
 
         if (iph->protocol != IPPROTO_UDP) {
             bpf_printk("\t\t\tnot UDP %d", iph->protocol);
@@ -120,6 +127,16 @@ static __always_inline void dump(struct xdp_md *ctx, void *data, void *data_end)
             bpf_ntohs(ip6h->daddr.s6_addr16[0]), bpf_ntohs(ip6h->daddr.s6_addr16[1]), bpf_ntohs(ip6h->daddr.s6_addr16[2]), bpf_ntohs(ip6h->daddr.s6_addr16[3]),
             bpf_ntohs(ip6h->daddr.s6_addr16[4]), bpf_ntohs(ip6h->daddr.s6_addr16[5]), bpf_ntohs(ip6h->daddr.s6_addr16[6]), bpf_ntohs(ip6h->daddr.s6_addr16[7]));
         BPF_SNPRINTF(IpDump, sizeof(IpDump), "\t\tIpv6 PayloadLen[%d]\tSrc: %s => Dst: %s", bpf_ntohs(ip6h->payload_len), IP6Src, IP6Dst);
+
+        __u32 *ipv6_addr = bpf_map_lookup_elem(&ip_map, &ipv6_key);
+        if (ipv6_addr) {
+            for (int i = 0; i < 4; i++) {
+                if (ipv6_addr[i] != ip6h->daddr.s6_addr32[i]) {
+                    IpMatch = false;
+                    break;
+                }
+            }
+        }
 
         if (ip6h->nexthdr != IPPROTO_UDP) {
             bpf_printk("\t\t\tnot UDP %d", ip6h->nexthdr);
@@ -156,16 +173,15 @@ static __always_inline void dump(struct xdp_md *ctx, void *data, void *data_end)
     if (SocketExists) {
         Redirection = bpf_redirect_map(&xsks_map, RxIndex, 0);
     }
-    if (PortMatch && SocketExists && Redirection == XDP_REDIRECT) {
-        bpf_printk("========> To ifacename : [%s], RxQueueID:%d", ifname, RxIndex);
+    bpf_printk("========> To ifacename : [%s], RxQueueID:%d", ifname, RxIndex);
+    if (IpMatch && PortMatch && SocketExists && Redirection == XDP_REDIRECT) {
         bpf_printk("%s", EthDump);
         bpf_printk("%s", IpDump);
         bpf_printk("%s", UdpHeader);
         bpf_printk("%s", UdpDump);
-        bpf_printk("\t\t\tRedirect to QUIC service.  PortMatch:%d, SocketExists:%d, Redirection:%d\n", PortMatch, SocketExists, Redirection);
+        bpf_printk("\t\t\tRedirect to QUIC service.  IpMatch:%d, PortMatch:%d, SocketExists:%d, Redirection:%d\n", IpMatch, PortMatch, SocketExists, Redirection);
     } else {
-        bpf_printk("========> To ifacename : [%s], RxQueueID:%d", ifname, RxIndex);
-        bpf_printk("\t\t\tPass through packet.       PortMatch:%d, SocketExists:%d, Redirection:%d", PortMatch, SocketExists, Redirection);
+        bpf_printk("\t\t\tPass through packet.       IpMatch:%d, PortMatch:%d, SocketExists:%d, Redirection:%d", IpMatch, PortMatch, SocketExists, Redirection);
     }
 }
 
@@ -180,14 +196,16 @@ static __always_inline bool to_quic_service(struct xdp_md *ctx, void *data, void
     struct iphdr *iph = 0;
     struct ipv6hdr *ip6h = 0;
     struct udphdr *udph = 0;
-    // TODO: check IP address
-    //       need to get IP address from user app via BPF map
     if (eth->h_proto == bpf_htons(ETH_P_IP)) {
         iph = (struct iphdr *)(eth + 1);
         if ((void*)(iph + 1) > data_end) {
             return false;
         }
 
+        __u32 *ipv4_addr = bpf_map_lookup_elem(&ip_map, &ipv4_key);
+        if (ipv4_addr && *ipv4_addr != iph->daddr) {
+            return false;
+        }
         if (iph->protocol != IPPROTO_UDP) {
             return false;
         }
@@ -196,6 +214,15 @@ static __always_inline bool to_quic_service(struct xdp_md *ctx, void *data, void
         ip6h = (struct ipv6hdr *)(eth + 1);
         if ((void*)(ip6h + 1) > data_end) {
             return false;
+        }
+
+        __u32 *ipv6_addr = bpf_map_lookup_elem(&ip_map, &ipv6_key);
+        if (ipv6_addr) {
+            for (int i = 0; i < 4; i++) {
+                if (ipv6_addr[i] != ip6h->daddr.s6_addr32[i]) {
+                    return false;
+                }
+            }
         }
 
         if (ip6h->nexthdr != IPPROTO_UDP) {
