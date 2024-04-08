@@ -830,7 +830,8 @@ QuicRecvBufferPartialDrain(
 }
 
 //
-// Handles draining the entire first chunk (and possibly more). Return the new
+// Handles draining the entire first chunk (and possibly more). This function
+// expects the chunk to not contain more (unread) data. Return the new
 // drain length.
 //
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -907,20 +908,23 @@ QuicRecvBufferDrain(
     }
 
     do {
-        if ((uint64_t)RecvBuffer->ReadLength > DrainLength ||
+        BOOLEAN PartialDrain = (uint64_t)RecvBuffer->ReadLength > DrainLength;
+        if (PartialDrain ||
             //
             // If there are 2 or more written ranges, it means that there may be
             // more data later in the chunk that couldn't be read because there is a gap.
+            // Reuse the partial drain logic to preserve data after the gap.
             //
-            RecvBuffer->WrittenRanges.UsedLength > 1) {
+            QuicRangeSize(&RecvBuffer->WrittenRanges) > 1) {
             QuicRecvBufferPartialDrain(RecvBuffer, DrainLength);
-            return FALSE;
+            return PartialDrain;
         }
 
         DrainLength = QuicRecvBufferFullDrain(RecvBuffer, DrainLength);
     } while (DrainLength != 0);
 
-    return TRUE;
+    // return TRUE;
+    return QuicRecvBufferHasUnreadData(RecvBuffer);
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
