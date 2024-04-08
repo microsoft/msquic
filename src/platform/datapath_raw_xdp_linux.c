@@ -750,7 +750,7 @@ CxPlatDpRawInitialize(
                 }
             }
             if (!Initialized) {
-                Interface = (XDP_INTERFACE*)malloc(sizeof(XDP_INTERFACE));
+                Interface = CxPlatAlloc(sizeof(XDP_INTERFACE), IF_TAG);
                 if (Interface == NULL) {
                     QuicTraceEvent(
                         AllocFailure,
