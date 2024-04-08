@@ -374,13 +374,16 @@ QUIC_STATUS QUIC_API SpinQuicHandleStreamEvent(HQUIC Stream, void* , QUIC_STREAM
     case QUIC_STREAM_EVENT_PEER_SEND_SHUTDOWN:
         MsQuic.StreamShutdown(Stream, (QUIC_STREAM_SHUTDOWN_FLAGS)GetRandom(16), 0);
         break;
-    case QUIC_STREAM_EVENT_PEER_SEND_ABORTED:
+    case QUIC_STREAM_EVENT_PEER_SEND_ABORTED: {
+        std::lock_guard<std::mutex> Lock(ctx->Connection.Lock);
         ctx->PendingRecvLength = 0;
         break;
+    }
     case QUIC_STREAM_EVENT_RECEIVE: {
         int Random = GetRandom(5);
+        std::lock_guard<std::mutex> Lock(ctx->Connection.Lock);
+        CXPLAT_DBG_ASSERT(ctx->PendingRecvLength == 0);
         if (Random == 0) {
-            std::lock_guard<std::mutex> Lock(ctx->Connection.Lock);
             ctx->PendingRecvLength = Event->RECEIVE.TotalBufferLength;
             return QUIC_STATUS_PENDING; // Pend the receive, to be completed later.
         } else if (Random == 1 && Event->RECEIVE.TotalBufferLength > 0) {
@@ -981,13 +984,12 @@ void Spin(Gbs& Gb, LockableVector<HQUIC>& Connections, std::vector<HQUIC>* Liste
                 if (Stream == nullptr) continue;
                 auto StreamCtx = SpinQuicStream::Get(Stream);
                 auto BytesRemaining = StreamCtx->PendingRecvLength;
+                StreamCtx->PendingRecvLength = 0;
                 if (BytesRemaining != 0 && GetRandom(10) == 0) {
-                    auto BytesConsumed = GetRandom(StreamCtx->PendingRecvLength);
-                    StreamCtx->PendingRecvLength = BytesRemaining - BytesConsumed;
+                    auto BytesConsumed = GetRandom(BytesRemaining);
                     MsQuic.StreamReceiveComplete(Stream, BytesConsumed);
                 } else {
-                    StreamCtx->PendingRecvLength = 0;
-                    MsQuic.StreamReceiveComplete(Stream, StreamCtx->PendingRecvLength);
+                    MsQuic.StreamReceiveComplete(Stream, BytesRemaining);
                 }
             }
             break;
