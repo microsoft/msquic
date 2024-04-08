@@ -329,8 +329,7 @@ static QUIC_STATUS InitializeUmem(uint32_t frameSize, uint32_t numFrames, uint32
         .fill_size = PROD_NUM_DESCS,
         .comp_size = CONS_NUM_DESCS,
         .frame_size = frameSize, // frame_size is really sensitive to become EINVAL
-        // .frame_headroom = TxHeadRoom,
-        .frame_headroom = 0,
+        .frame_headroom = RxHeadRoom,
         .flags = 0
     };
 
@@ -506,7 +505,6 @@ CxPlatDpRawInterfaceInitialize(
 
     DetachXdpProgram(Interface, true);
 
-    // TODO: this could be opened at onece for all interfaces
     struct xdp_program *prog = NULL;
     Status = OpenXdpProgram(&prog);
     if (QUIC_FAILED(Status)) {
@@ -635,7 +633,7 @@ CxPlatDpRawInterfaceInitialize(
                     "[ xdp][rx  ] OOM for Rx");
                 break;
             }
-            *xsk_ring_prod__fill_addr(&xsk_info->umem->fq, FqIdx++) = addr + RxHeadroom;
+            *xsk_ring_prod__fill_addr(&xsk_info->umem->fq, FqIdx++) = addr;
         }
 
         xsk_ring_prod__submit(&xsk_info->umem->fq, PROD_NUM_DESCS);
@@ -1038,7 +1036,7 @@ CxPlatDpRawRxFree(
             Packet =
                 CXPLAT_CONTAINING_RECORD(PacketChain, XDP_RX_PACKET, RecvData);
             PacketChain = PacketChain->Next;
-            xsk_free_umem_frame(Packet->Queue->xsk_info, Packet->addr - xsk_info->umem->RxHeadRoom);
+            xsk_free_umem_frame(Packet->Queue->xsk_info, Packet->addr);
             Count++;
         }
     }
@@ -1283,8 +1281,7 @@ CxPlatXdpRx(
         //
         Packet->RecvData.Route->State = RouteResolved;
 
-        // NOTE: for some reason there is 32 byte gap
-        Packet->addr = addr + 32;
+        Packet->addr = addr - (XDP_PACKET_HEADROOM + xsk->umem->RxHeadRoom);
         Packet->RecvData.Allocated = TRUE;
         Buffers[PacketCount++] = &Packet->RecvData;
     }
@@ -1312,7 +1309,7 @@ CxPlatXdpRx(
                     "[ xdp][rx  ] OOM for Rx");
                 break;
             }
-            *xsk_ring_prod__fill_addr(&xsk->umem->fq, FqIdx++) = addr + xsk->umem->RxHeadRoom;
+            *xsk_ring_prod__fill_addr(&xsk->umem->fq, FqIdx++) = addr;
         }
         if (i > 0) {
             xsk_ring_prod__submit(&xsk->umem->fq, i);
