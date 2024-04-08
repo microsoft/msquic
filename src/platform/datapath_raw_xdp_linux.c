@@ -729,9 +729,6 @@ CxPlatDpRawInitialize(
             bool Initialized = false;
             for (; Entry != &Xdp->Interfaces; Entry = Entry->Flink) {
                 Interface = (XDP_INTERFACE*)CXPLAT_CONTAINING_RECORD(Entry, CXPLAT_INTERFACE, Link);
-                if (Interface == NULL) {
-                    break;
-                }
 
                 if (strcmp(Interface->IfName, ifa->ifa_name) == 0) {
                     Initialized = true;
@@ -962,25 +959,21 @@ CxPlatDpRawPlumbRulesOnSocket(
         }
 
         struct bpf_map *ip_map = bpf_object__find_map_by_name(xdp_program__bpf_obj(Interface->XdpProg), "ip_map");
+        static const int IPv4Key = 0;
+        static const int IPv6Key = 1;
         if (ip_map) {
+            __u8 ipv_data[16] = {0};
             if (IsCreated) {
-                __u8 ipv_data[16] = {0};
-                int ipv_key = 0;
-                if (IsCreated) {
-                    if (QuicAddrGetFamily(&Socket->LocalAddress) == QUIC_ADDRESS_FAMILY_INET) {
-                        ipv_key = 0;
-                        memcpy(ipv_data, &Interface->Ipv4Address.s_addr, 4);
-                        bpf_map_update_elem(bpf_map__fd(ip_map), &ipv_key, ipv_data, BPF_ANY);
-                    } else {
-                        ipv_key = 1;
-                        memcpy(ipv_data, &Interface->Ipv6Address.s6_addr, sizeof(ipv_data));
-                        bpf_map_update_elem(bpf_map__fd(ip_map), &ipv_key, ipv_data, BPF_ANY);
-                    }
+                if (QuicAddrGetFamily(&Socket->LocalAddress) == QUIC_ADDRESS_FAMILY_INET) {
+                    memcpy(ipv_data, &Interface->Ipv4Address.s_addr, 4);
+                    bpf_map_update_elem(bpf_map__fd(ip_map), &IPv4Key, ipv_data, BPF_ANY);
                 } else {
-                    bpf_map_update_elem(bpf_map__fd(ip_map), &ipv_key, ipv_data, BPF_ANY);
-                    ipv_key = 1;
-                    bpf_map_update_elem(bpf_map__fd(ip_map), &ipv_key, ipv_data, BPF_ANY);
+                    memcpy(ipv_data, &Interface->Ipv6Address.s6_addr, sizeof(ipv_data));
+                    bpf_map_update_elem(bpf_map__fd(ip_map), &IPv6Key, ipv_data, BPF_ANY);
                 }
+            } else {
+                bpf_map_update_elem(bpf_map__fd(ip_map), &IPv4Key, ipv_data, BPF_ANY);
+                bpf_map_update_elem(bpf_map__fd(ip_map), &IPv6Key, ipv_data, BPF_ANY);
             }
         }
 
