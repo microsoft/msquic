@@ -380,6 +380,10 @@ QUIC_STATUS QUIC_API SpinQuicHandleStreamEvent(HQUIC Stream, void* , QUIC_STREAM
         break;
     }
     case QUIC_STREAM_EVENT_RECEIVE: {
+        if (Event->RECEIVE.TotalBufferLength == 0) {
+            ctx->PendingRecvLength = UINT64_MAX; // TODO - Add more complex handling
+            break;
+        }
         int Random = GetRandom(5);
         std::lock_guard<std::mutex> Lock(ctx->Connection.Lock);
         CXPLAT_DBG_ASSERT(ctx->PendingRecvLength == UINT64_MAX);
