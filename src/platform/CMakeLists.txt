@@ -27,8 +27,7 @@ else()
     set(SOURCES ${SOURCES} inline.c platform_posix.c storage_posix.c cgroup.c)
     if(CX_PLATFORM STREQUAL "linux" AND NOT CMAKE_SYSTEM_NAME STREQUAL "FreeBSD")
         set(SOURCES ${SOURCES} datapath_linux.c datapath_epoll.c)
-        if((${UBUNTU_VERSION} STREQUAL "22.04") AND
-           (${SYSTEM_PROCESSOR} STREQUAL "x86_64") AND
+        if((${SYSTEM_PROCESSOR} STREQUAL "x86_64") AND
            (NOT ANDROID) AND
            (NOT CARGO_BUILD))
            set(LINUX_XDP_ENABLED TRUE)

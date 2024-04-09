@@ -72,6 +72,8 @@ jobs:
         vec: [
           { config: "Debug", plat: "linux", os: "ubuntu-20.04", arch: "x64", tls: "openssl", sanitize: "-Sanitize", build: "-Test" },
           { config: "Debug", plat: "linux", os: "ubuntu-20.04", arch: "x64", tls: "openssl3", sanitize: "-Sanitize", build: "-Test" },
+          { config: "Debug", plat: "linux", os: "ubuntu-20.04", arch: "x64", tls: "openssl3", xdp: "-UseXdp", build: "-Test"  },
+          { config: "Debug", plat: "linux", os: "ubuntu-22.04", arch: "x64", tls: "openssl3", xdp: "-UseXdp", build: "-Test"  },
           { config: "Debug", plat: "macos", os: "macos-12", arch: "x64", tls: "openssl", build: "-Test" },
           { config: "Debug", plat: "macos", os: "macos-12", arch: "x64", tls: "openssl3", build: "-Test" },
           { config: "Debug", plat: "windows", os: "windows-2022", arch: "x64", tls: "schannel", sanitize: "-Sanitize", build: "-Test" },
@@ -111,15 +113,25 @@ jobs:
       run: scripts/prepare-machine.ps1 -Tls ${{ matrix.vec.tls }} -ForTest ${{ matrix.vec.xdp }}
       shell: pwsh
     - name: spinquic (PR)
-      if: github.event_name == 'pull_request'
+      if: !(startsWith(matrix.vec.os, 'ubuntu') && matrix.vec.xdp == '-UseXdp') && github.event_name == 'pull_request'
       timeout-minutes: 15
       shell: pwsh
       run: scripts/spin.ps1 -AZP -Config ${{ matrix.vec.config }} -Arch ${{ matrix.vec.arch }} -Tls ${{ matrix.vec.tls }} -Timeout ${{ env.pr-timeout }} -RepeatCount ${{ env.pr-repeat }} -AllocFail ${{ env.pr-allocfail }} ${{ matrix.vec.xdp }}
     - name: spinquic (Official)
-      if: github.event_name != 'pull_request'
+      if: !(startsWith(matrix.vec.os, 'ubuntu') && matrix.vec.xdp == '-UseXdp') && github.event_name != 'pull_request'
       timeout-minutes: 65
       shell: pwsh
       run: scripts/spin.ps1 -AZP -Config ${{ matrix.vec.config }} -Arch ${{ matrix.vec.arch }} -Tls ${{ matrix.vec.tls }} -Timeout ${{ env.main-timeout }} -RepeatCount ${{ env.main-repeat }} -AllocFail ${{ env.main-allocfail }} ${{ matrix.vec.xdp }}
+    - name: spinquic (PR)
+      if: startsWith(matrix.vec.os, 'ubuntu') && matrix.vec.xdp == '-UseXdp' && github.event_name == 'pull_request'
+      timeout-minutes: 15
+      shell: pwsh
+      run: sudo scripts/spin.ps1 -AZP -Config ${{ matrix.vec.config }} -Arch ${{ matrix.vec.arch }} -Tls ${{ matrix.vec.tls }} -Timeout ${{ env.pr-timeout }} -RepeatCount ${{ env.pr-repeat }} -AllocFail ${{ env.pr-allocfail }} ${{ matrix.vec.xdp }}
+    - name: spinquic (Official)
+      if: startsWith(matrix.vec.os, 'ubuntu') && matrix.vec.xdp == '-UseXdp' && github.event_name != 'pull_request'
+      timeout-minutes: 65
+      shell: pwsh
+      run: sudo scripts/spin.ps1 -AZP -Config ${{ matrix.vec.config }} -Arch ${{ matrix.vec.arch }} -Tls ${{ matrix.vec.tls }} -Timeout ${{ env.main-timeout }} -RepeatCount ${{ env.main-repeat }} -AllocFail ${{ env.main-allocfail }} ${{ matrix.vec.xdp }}
     - name: Upload on Failure
       uses: actions/upload-artifact@5d5d22a31266ced268874388b861e4b58bb5c2f3
       if: failure()
