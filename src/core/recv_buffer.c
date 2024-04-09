@@ -917,7 +917,7 @@ QuicRecvBufferDrain(
             //
             QuicRangeSize(&RecvBuffer->WrittenRanges) > 1) {
             QuicRecvBufferPartialDrain(RecvBuffer, DrainLength);
-            return PartialDrain;
+            return !PartialDrain;
         }
 
         DrainLength = QuicRecvBufferFullDrain(RecvBuffer, DrainLength);
