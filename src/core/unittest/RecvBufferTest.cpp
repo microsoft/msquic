@@ -625,6 +625,74 @@ TEST_P(WithMode, RecvCrypto) // Note - Values based on a previous failing MsQuic
     }
 }
 
+TEST_P(WithMode, DrainFrontChunkWithPendingGap)
+{
+    RecvBuffer RecvBuf;
+    ASSERT_EQ(QUIC_STATUS_SUCCESS, RecvBuf.Initialize(GetParam(), false));
+    uint64_t InOutWriteLength = DEF_TEST_BUFFER_LENGTH;
+    BOOLEAN NewDataReady = FALSE;
+
+    // place data at some future offset
+    ASSERT_EQ(
+        QUIC_STATUS_SUCCESS,
+        RecvBuf.Write(
+            2,
+            1,
+            &InOutWriteLength,
+            &NewDataReady));
+    ASSERT_FALSE(RecvBuf.HasUnreadData());
+
+    // place data to the front and drain
+    InOutWriteLength = DEF_TEST_BUFFER_LENGTH;
+    ASSERT_EQ(
+        QUIC_STATUS_SUCCESS,
+        RecvBuf.Write(
+            0,
+            1,
+            &InOutWriteLength,
+            &NewDataReady));
+    ASSERT_TRUE(NewDataReady);
+
+    uint64_t ReadOffset;
+    QUIC_BUFFER ReadBuffers[3];
+    uint32_t BufferCount = ARRAYSIZE(ReadBuffers);
+    RecvBuf.Read(&ReadOffset, &BufferCount, ReadBuffers);
+    ASSERT_EQ(1ul, BufferCount);
+    ASSERT_EQ(1ul, ReadBuffers[0].Length);
+    ASSERT_TRUE(RecvBuf.Drain(1));
+
+    // insert missing chunk and drain the rest
+    InOutWriteLength = DEF_TEST_BUFFER_LENGTH;
+    ASSERT_EQ(
+        QUIC_STATUS_SUCCESS,
+        RecvBuf.Write(
+            1,
+            1,
+            &InOutWriteLength,
+            &NewDataReady));
+    ASSERT_TRUE(NewDataReady);
+
+    BufferCount = ARRAYSIZE(ReadBuffers);
+    RecvBuf.Read(&ReadOffset, &BufferCount, ReadBuffers);
+    uint64_t TotalRead = 0;
+    for (uint32_t i = 0; i < BufferCount; ++i) {
+        TotalRead += ReadBuffers[i].Length;
+    }
+    ASSERT_EQ(2ul, TotalRead);
+    ASSERT_FALSE(RecvBuf.Drain(1)); // more data left in buffer
+
+    if (GetParam() != QUIC_RECV_BUF_MODE_MULTIPLE) {
+        BufferCount = ARRAYSIZE(ReadBuffers);
+        RecvBuf.Read(&ReadOffset, &BufferCount, ReadBuffers);
+        TotalRead = 0;
+        for (uint32_t i = 0; i < BufferCount; ++i) {
+            TotalRead += ReadBuffers[i].Length;
+        }
+        ASSERT_EQ(1ul, TotalRead);
+    }
+    ASSERT_TRUE(RecvBuf.Drain(1));
+}
+
 INSTANTIATE_TEST_SUITE_P(
     RecvBufferTest,
     WithMode,
