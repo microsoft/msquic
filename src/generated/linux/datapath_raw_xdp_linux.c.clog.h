@@ -150,23 +150,6 @@ tracepoint(CLOG_DATAPATH_RAW_XDP_LINUX_C, XdpUmemAllocFails );\
 
 
 /*----------------------------------------------------------
-// Decoder Ring for XdpAttached
-// [ xdp] XDP program already attached to %s
-// QuicTraceLogVerbose(
-                    XdpAttached,
-                    "[ xdp] XDP program already attached to %s", Interface->IfName);
-// arg2 = arg2 = Interface->IfName = arg2
-----------------------------------------------------------*/
-#ifndef _clog_3_ARGS_TRACE_XdpAttached
-#define _clog_3_ARGS_TRACE_XdpAttached(uniqueId, encoded_arg_string, arg2)\
-tracepoint(CLOG_DATAPATH_RAW_XDP_LINUX_C, XdpAttached , arg2);\
-
-#endif
-
-
-
-
-/*----------------------------------------------------------
 // Decoder Ring for XdpAttachFails
 // [ xdp] Failed to attach XDP program to %s. error:%s
 // QuicTraceLogVerbose(
@@ -275,9 +258,9 @@ tracepoint(CLOG_DATAPATH_RAW_XDP_LINUX_C, XdpConfigureUmem );\
 // [ xdp] Failed to create XDP socket for %s. error:%s
 // QuicTraceLogVerbose(
                 FailXskSocketCreate,
-                "[ xdp] Failed to create XDP socket for %s. error:%s", Interface->IfName, strerror(-ret));
+                "[ xdp] Failed to create XDP socket for %s. error:%s", Interface->IfName, strerror(-Ret));
 // arg2 = arg2 = Interface->IfName = arg2
-// arg3 = arg3 = strerror(-ret) = arg3
+// arg3 = arg3 = strerror(-Ret) = arg3
 ----------------------------------------------------------*/
 #ifndef _clog_4_ARGS_TRACE_FailXskSocketCreate
 #define _clog_4_ARGS_TRACE_FailXskSocketCreate(uniqueId, encoded_arg_string, arg2, arg3)\
@@ -489,8 +472,8 @@ tracepoint(CLOG_DATAPATH_RAW_XDP_LINUX_C, FailTxReserve );\
 // [ xdp][tx  ] Faild sendto. errno:%d, Umem addr:%lld
 // QuicTraceLogVerbose(
             FailSendTo,
-            "[ xdp][tx  ] Faild sendto. errno:%d, Umem addr:%lld", er, tx_desc->addr);
-// arg2 = arg2 = er = arg2
+            "[ xdp][tx  ] Faild sendto. errno:%d, Umem addr:%lld", errno, tx_desc->addr);
+// arg2 = arg2 = errno = arg2
 // arg3 = arg3 = tx_desc->addr = arg3
 ----------------------------------------------------------*/
 #ifndef _clog_4_ARGS_TRACE_FailSendTo

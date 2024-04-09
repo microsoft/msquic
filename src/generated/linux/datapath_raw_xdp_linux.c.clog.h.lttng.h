@@ -134,24 +134,6 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_LINUX_C, XdpUmemAllocFails,
 
 
 /*----------------------------------------------------------
-// Decoder Ring for XdpAttached
-// [ xdp] XDP program already attached to %s
-// QuicTraceLogVerbose(
-                    XdpAttached,
-                    "[ xdp] XDP program already attached to %s", Interface->IfName);
-// arg2 = arg2 = Interface->IfName = arg2
-----------------------------------------------------------*/
-TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_LINUX_C, XdpAttached,
-    TP_ARGS(
-        const char *, arg2), 
-    TP_FIELDS(
-        ctf_string(arg2, arg2)
-    )
-)
-
-
-
-/*----------------------------------------------------------
 // Decoder Ring for XdpAttachFails
 // [ xdp] Failed to attach XDP program to %s. error:%s
 // QuicTraceLogVerbose(
@@ -268,9 +250,9 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_LINUX_C, XdpConfigureUmem,
 // [ xdp] Failed to create XDP socket for %s. error:%s
 // QuicTraceLogVerbose(
                 FailXskSocketCreate,
-                "[ xdp] Failed to create XDP socket for %s. error:%s", Interface->IfName, strerror(-ret));
+                "[ xdp] Failed to create XDP socket for %s. error:%s", Interface->IfName, strerror(-Ret));
 // arg2 = arg2 = Interface->IfName = arg2
-// arg3 = arg3 = strerror(-ret) = arg3
+// arg3 = arg3 = strerror(-Ret) = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_LINUX_C, FailXskSocketCreate,
     TP_ARGS(
@@ -503,8 +485,8 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_LINUX_C, FailTxReserve,
 // [ xdp][tx  ] Faild sendto. errno:%d, Umem addr:%lld
 // QuicTraceLogVerbose(
             FailSendTo,
-            "[ xdp][tx  ] Faild sendto. errno:%d, Umem addr:%lld", er, tx_desc->addr);
-// arg2 = arg2 = er = arg2
+            "[ xdp][tx  ] Faild sendto. errno:%d, Umem addr:%lld", errno, tx_desc->addr);
+// arg2 = arg2 = errno = arg2
 // arg3 = arg3 = tx_desc->addr = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_LINUX_C, FailSendTo,
