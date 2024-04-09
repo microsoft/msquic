@@ -13,6 +13,7 @@ RUN apt-get update && apt-get install --no-install-recommends -y apt-transport-h
     wget && \
     wget -O - https://apt.kitware.com/keys/kitware-archive-latest.asc 2>/dev/null | gpg --dearmor - | tee /etc/apt/trusted.gpg.d/kitware.gpg >/dev/null && \
     apt-add-repository 'deb https://apt.kitware.com/ubuntu/ jammy main' && \
+    apt-add-repository "deb http://mirrors.kernel.org/ubuntu noble main" -y && \
     apt-add-repository ppa:lttng/stable-2.13 && \
     apt-get update && apt-get install -y tzdata && apt-get install -y \
     build-essential \
@@ -39,6 +40,8 @@ RUN apt-get update && apt-get install --no-install-recommends -y apt-transport-h
     cppcheck \
     clang-tidy \
     gdb \
+    libxdp-dev \
+    libbpf-dev \
     libnl-3-dev \
     libnl-genl-3-dev \
     libnl-route-3-dev \
@@ -48,7 +51,6 @@ RUN apt-get update && apt-get install --no-install-recommends -y apt-transport-h
     m4 \
     libpcap-dev \
     libelf-dev \
-    libc6-dev-i386 \
   && rm -rf /var/lib/apt/lists/*
 
 RUN gem install fpm
@@ -61,12 +63,6 @@ RUN wget -q https://packages.microsoft.com/config/ubuntu/18.04/packages-microsof
         # INSTALL POWERSHELl
         powershell \
   && rm -rf /var/lib/apt/lists/*
-
-RUN wget -q https://github.com/libbpf/bpftool/releases/download/v7.2.0/bpftool-v7.2.0-amd64.tar.gz -O bpftool-amd64.tar.gz && \
-    tar xvzf bpftool-amd64.tar.gz && \
-    chmod +x ./bpftool && \
-    mv ./bpftool /usr/sbin/bpftool && \
-    rm -rf bpftool-amd64.tar.gz
 
 RUN dpkg --add-architecture arm64
 RUN dpkg --add-architecture armhf
