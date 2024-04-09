@@ -659,7 +659,7 @@ TEST_P(WithMode, DrainFrontChunkWithPendingGap)
     RecvBuf.Read(&ReadOffset, &BufferCount, ReadBuffers);
     ASSERT_EQ(1ul, BufferCount);
     ASSERT_EQ(1ul, ReadBuffers[0].Length);
-    ASSERT_FALSE(RecvBuf.Drain(1));
+    ASSERT_TRUE(RecvBuf.Drain(1));
 
     // insert missing chunk and drain the rest
     InOutWriteLength = DEF_TEST_BUFFER_LENGTH;
@@ -679,7 +679,7 @@ TEST_P(WithMode, DrainFrontChunkWithPendingGap)
         TotalRead += ReadBuffers[i].Length;
     }
     ASSERT_EQ(2ul, TotalRead);
-    ASSERT_TRUE(RecvBuf.Drain(1)); // more data left in buffer
+    ASSERT_FALSE(RecvBuf.Drain(1)); // more data left in buffer
 
     if (GetParam() != QUIC_RECV_BUF_MODE_MULTIPLE) {
         BufferCount = ARRAYSIZE(ReadBuffers);
@@ -690,7 +690,7 @@ TEST_P(WithMode, DrainFrontChunkWithPendingGap)
         }
         ASSERT_EQ(1ul, TotalRead);
     }
-    ASSERT_FALSE(RecvBuf.Drain(1));
+    ASSERT_TRUE(RecvBuf.Drain(1));
 }
 
 INSTANTIATE_TEST_SUITE_P(
