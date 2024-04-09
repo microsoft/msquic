@@ -1403,30 +1403,6 @@ QuicBindingDropBlockedSourcePorts(
     return FALSE;
 }
 
-BOOLEAN
-QuicPacketIsTypeHandshake(
-    _In_ const QUIC_RX_PACKET* Packet
-    )
-{
-    CXPLAT_DBG_ASSERT(Packet->ValidatedHeaderInv);
-
-    if (!Packet->Invariant->IsLongHeader) {
-        return FALSE;
-    }
-
-    switch (Packet->Invariant->LONG_HDR.Version) {
-    case QUIC_VERSION_1:
-    case QUIC_VERSION_DRAFT_29:
-    case QUIC_VERSION_MS_1:
-        return Packet->LH->Type != QUIC_INITIAL_V1;
-
-    case QUIC_VERSION_2:
-        return Packet->LH->Type != QUIC_INITIAL_V2;
-    }
-
-    return FALSE;
-}
-
 //
 // Looks up or creates a connection to handle a chain of packets.
 // Returns TRUE if the packets were delivered, and FALSE if they should be
@@ -1445,18 +1421,15 @@ QuicBindingDeliverPackets(
     CXPLAT_DBG_ASSERT(Packets->ValidatedHeaderInv);
 
     //
-    // For situations where we fully control the destination CID, we want to
-    // use the DestCid based lookup. The DestCid encodes the partition ID (PID)
-    // that can be used for partitioning the look up table.
+    // For client owned bindings (for which we always control the CID) or for
+    // short header packets for server owned bindings, the packet's destination
+    // connection ID (DestCid) is the key for looking up the corresponding
+    // connection object. The DestCid encodes the partition ID (PID) that can
+    // be used for partitioning the look up table.
     //
-    // We always control DestCid for client-owned bindings. For server-owned
-    // bindings, we control the DCIDs for all except the very first packet
-    // sent by the server. For simplicity, we do DestDcid-based lookup only
-    // for 1-RTT (short-header) and Handshake packets.
-    //
-    // For other packets (Initial and 0-RTT) for server owned bindings, the
-    // packet's DestCid was not necessarily generated locally, so cannot be used
-    // for lookup. Instead, a hash of the remote address/port and source CID is used.
+    // For long header packets for server owned bindings, the packet's DestCid
+    // was not necessarily generated locally, so cannot be used for lookup.
+    // Instead, a hash of the remote address/port and source CID is used.
     //
     // If the lookup fails, and if there is a listener on the local 2-Tuple,
     // then a new connection is created and inserted into the binding's lookup
@@ -1474,7 +1447,7 @@ QuicBindingDeliverPackets(
     //
 
     QUIC_CONNECTION* Connection;
-    if (!Binding->ServerOwned || Packets->IsShortHeader || QuicPacketIsTypeHandshake(Packets)) {
+    if (!Binding->ServerOwned || Packets->IsShortHeader) {
         Connection =
             QuicLookupFindConnectionByLocalCid(
                 &Binding->Lookup,
