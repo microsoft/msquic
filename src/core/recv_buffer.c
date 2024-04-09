@@ -923,7 +923,7 @@ QuicRecvBufferDrain(
         DrainLength = QuicRecvBufferFullDrain(RecvBuffer, DrainLength);
     } while (DrainLength != 0);
 
-    return QuicRecvBufferHasUnreadData(RecvBuffer);
+    return TRUE;
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
