@@ -5136,7 +5136,7 @@ QuicConnRecvFrames(
                     HandshakeConfirmedFrame,
                     Connection,
                     "Handshake confirmed (frame)");
-                QuicCryptoHandshakeConfirmed(&Connection->Crypto);
+                QuicCryptoHandshakeConfirmed(&Connection->Crypto, TRUE);
             }
 
             AckEliciting = TRUE;

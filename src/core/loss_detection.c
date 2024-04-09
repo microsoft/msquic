@@ -514,7 +514,7 @@ QuicLossDetectionOnPacketAcknowledged(
             HandshakeConfirmedAck,
             Connection,
             "Handshake confirmed (ack)");
-        QuicCryptoHandshakeConfirmed(&Connection->Crypto);
+        QuicCryptoHandshakeConfirmed(&Connection->Crypto, TRUE);
     }
 
     QUIC_PACKET_SPACE* PacketSpace = Connection->Packets[QUIC_ENCRYPT_LEVEL_1_RTT];
@@ -623,6 +623,10 @@ QuicLossDetectionOnPacketAcknowledged(
                 Packet->Flags.SuspectedLost ?
                     QUIC_DATAGRAM_SEND_ACKNOWLEDGED_SPURIOUS :
                     QUIC_DATAGRAM_SEND_ACKNOWLEDGED);
+            break;
+
+        case QUIC_FRAME_HANDSHAKE_DONE:
+            QuicCryptoHandshakeConfirmed(&Connection->Crypto, TRUE);
             break;
         }
     }
