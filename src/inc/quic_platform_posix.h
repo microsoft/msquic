@@ -1096,9 +1096,7 @@ CxPlatSqeInitialize(
     )
 {
     struct epoll_event event = { .events = EPOLLIN | EPOLLET, .data = { .ptr = user_data } };
-    while ((*sqe = eventfd(0, EFD_CLOEXEC)) == 0) { // WARN: temporal workaround
-        if (*sqe == -1) return FALSE;
-    }
+    if ((*sqe = eventfd(0, EFD_CLOEXEC)) == -1) return FALSE;
     if (epoll_ctl(*queue, EPOLL_CTL_ADD, *sqe, &event) != 0) { close(*sqe); return FALSE; }
     return TRUE;
 }
