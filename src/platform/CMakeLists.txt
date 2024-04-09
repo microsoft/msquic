@@ -60,7 +60,7 @@ endif()
 
 add_library(platform STATIC ${SOURCES})
 
-if ("${CX_PLATFORM}" STREQUAL "windows")
+if("${CX_PLATFORM}" STREQUAL "windows")
     target_link_libraries(
         platform
         PUBLIC

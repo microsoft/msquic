@@ -56,7 +56,6 @@ static const __u32 ipv6_key = 1;
 
 #ifdef DEBUG
 
-// TODO: dump flag map?
 // NOTE: divisible by 4
 #define DUMP_PAYLOAD_SIZE 12
 char EthDump[128] = {0};
@@ -65,7 +64,6 @@ char UdpHeader[256] = {0};
 char UdpDump[256] = {0};
 
 // This is for debugging purpose
-// TODO: get flag from user app to enable/disable dump
 static __always_inline void dump(struct xdp_md *ctx, void *data, void *data_end) {
     int RxIndex = ctx->rx_queue_index;
     int IfNameKey = 0;

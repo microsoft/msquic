@@ -34,22 +34,22 @@ Abstract:
 #define FRAME_SIZE         XSK_UMEM__DEFAULT_FRAME_SIZE // TODO: 2K mode
 #define INVALID_UMEM_FRAME UINT64_MAX
 
-struct xsk_socket_info {
-    struct xsk_ring_cons rx;
-    struct xsk_ring_prod tx;
-    struct xsk_umem_info *umem;
-    struct xsk_socket *xsk;
+struct XskSocketInfo {
+    struct xsk_ring_cons Rx;
+    struct xsk_ring_prod Tx;
+    struct XskUmemInfo *UmemInfo;
+    struct xsk_socket *Xsk;
 
     CXPLAT_LOCK UmemLock;
-    uint64_t umem_frame_addr[NUM_FRAMES];
-    uint32_t umem_frame_free;
+    uint64_t UmemFrameAddr[NUM_FRAMES];
+    uint32_t UmemFrameFree;
 };
 
-struct xsk_umem_info {
-    struct xsk_ring_prod fq;
-    struct xsk_ring_cons cq;
-    struct xsk_umem *umem;
-    void *buffer;
+struct XskUmemInfo {
+    struct xsk_ring_prod Fq;
+    struct xsk_ring_cons Cq;
+    struct xsk_umem *Umem;
+    void *Buffer;
     uint32_t RxHeadRoom;
     uint32_t TxHeadRoom;
 };
@@ -63,10 +63,6 @@ typedef struct XDP_DATAPATH { // NOLINT(clang-analyzer-optin.performance.Padding
     //
     CXPLAT_REF_COUNT RefCount;
     uint32_t PartitionCount;
-    uint32_t RxBufferCount; // TODO: remove
-    uint32_t RxRingSize;
-    uint32_t TxBufferCount; // TODO: remove
-    uint32_t TxRingSize;
     uint32_t BufferCount;
 
     uint32_t PollingIdleTimeoutUs;
@@ -119,13 +115,13 @@ typedef struct XDP_QUEUE {
     CXPLAT_LOCK FqLock;
     CXPLAT_LOCK CqLock;
 
-    struct xsk_socket_info* xsk_info;
+    struct XskSocketInfo* XskInfo;
 } XDP_QUEUE;
 
 typedef struct __attribute__((aligned(64))) XDP_RX_PACKET {
     XDP_QUEUE* Queue;
     CXPLAT_ROUTE RouteStorage;
-    uint64_t addr;
+    uint64_t Addr;
     CXPLAT_RECV_DATA RecvData;
     // Followed by:
     // uint8_t ClientContext[...];
@@ -154,7 +150,7 @@ XdpSocketContextSetEvents(
         epoll_ctl(
             *Queue->Partition->EventQ,
             Operation,
-            xsk_socket__fd(Queue->xsk_info->xsk),
+            xsk_socket__fd(Queue->XskInfo->Xsk),
             &SockFdEpEvt);
     if (Ret != 0) {
         QuicTraceEvent(
@@ -223,24 +219,18 @@ CxPlatXdpReadConfig(
     //
     // Default config.
     //
-    Xdp->RxBufferCount = 8192;
-    Xdp->RxRingSize = 256;
-    Xdp->TxBufferCount = 8192;
-    Xdp->TxRingSize = 256;
     Xdp->TxAlwaysPoke = FALSE;
-
-    // TODO
 }
 
-void UninitializeUmem(struct xsk_umem_info* Umem)
+void UninitializeUmem(struct XskUmemInfo* UmemInfo)
 {
-    if (xsk_umem__delete(Umem->umem) != 0) {
+    if (xsk_umem__delete(UmemInfo->Umem) != 0) {
         QuicTraceLogVerbose(
             XdpUmemDeleteFails,
             "[ xdp] Failed to delete Umem");
     }
-    free(Umem->buffer);
-    free(Umem);
+    free(UmemInfo->Buffer);
+    free(UmemInfo);
 }
 
 // Detach XDP program from interface
@@ -278,23 +268,23 @@ CxPlatDpRawInterfaceUninitialize(
             Queue,
             Interface);
 
-        if(Queue->xsk_info) {
-            if (Queue->xsk_info->xsk) {
+        if(Queue->XskInfo) {
+            if (Queue->XskInfo->Xsk) {
                 if (Queue->Partition && Queue->Partition->EventQ) {
-                    epoll_ctl(*Queue->Partition->EventQ, EPOLL_CTL_DEL, xsk_socket__fd(Queue->xsk_info->xsk), NULL);
+                    epoll_ctl(*Queue->Partition->EventQ, EPOLL_CTL_DEL, xsk_socket__fd(Queue->XskInfo->Xsk), NULL);
                     CxPlatSqeCleanup(Queue->Partition->EventQ, &Queue->RxIoSqe.Sqe);
                     CxPlatSqeCleanup(Queue->Partition->EventQ, &Queue->FlushTxSqe.Sqe);
                     if (i == 0) {
                         CxPlatSqeCleanup(Queue->Partition->EventQ, &Queue->Partition->ShutdownSqe.Sqe);
                     }
                 }
-                xsk_socket__delete(Queue->xsk_info->xsk);
+                xsk_socket__delete(Queue->XskInfo->Xsk);
             }
-            if (Queue->xsk_info->umem) {
-                UninitializeUmem(Queue->xsk_info->umem);
+            if (Queue->XskInfo->UmemInfo) {
+                UninitializeUmem(Queue->XskInfo->UmemInfo);
             }
-            CxPlatLockUninitialize(&Queue->xsk_info->UmemLock);
-            free(Queue->xsk_info);
+            CxPlatLockUninitialize(&Queue->XskInfo->UmemLock);
+            free(Queue->XskInfo);
         }
 
         CxPlatLockUninitialize(&Queue->TxLock);
@@ -315,10 +305,10 @@ CxPlatDpRawInterfaceUninitialize(
     }
 }
 
-static QUIC_STATUS InitializeUmem(uint32_t frameSize, uint32_t numFrames, uint32_t RxHeadRoom, uint32_t TxHeadRoom, struct xsk_umem_info* Umem)
+static QUIC_STATUS InitializeUmem(uint32_t FrameSize, uint32_t NumFrames, uint32_t RxHeadRoom, uint32_t TxHeadRoom, struct XskUmemInfo* UmemInfo)
 {
-    void *buffer = NULL;
-    if (posix_memalign(&buffer, getpagesize(), (size_t)(frameSize) * numFrames)) {
+    void *Buffer = NULL;
+    if (posix_memalign(&Buffer, getpagesize(), (size_t)(FrameSize) * NumFrames)) {
         QuicTraceLogVerbose(
             XdpAllocUmem,
             "[ xdp] Failed to allocate umem");
@@ -328,72 +318,55 @@ static QUIC_STATUS InitializeUmem(uint32_t frameSize, uint32_t numFrames, uint32
     struct xsk_umem_config UmemConfig = {
         .fill_size = PROD_NUM_DESCS,
         .comp_size = CONS_NUM_DESCS,
-        .frame_size = frameSize, // frame_size is really sensitive to become EINVAL
+        .frame_size = FrameSize, // frame_size is really sensitive to become EINVAL
         .frame_headroom = RxHeadRoom,
         .flags = 0
     };
 
-    int Ret = xsk_umem__create(&Umem->umem, buffer, (uint64_t)(frameSize) * numFrames, &Umem->fq, &Umem->cq, &UmemConfig);
+    int Ret = xsk_umem__create(&UmemInfo->Umem, Buffer, (uint64_t)(FrameSize) * NumFrames, &UmemInfo->Fq, &UmemInfo->Cq, &UmemConfig);
     if (Ret) {
         errno = -Ret;
-        free(buffer);
+        free(Buffer);
         return QUIC_STATUS_INTERNAL_ERROR;
     }
 
-    Umem->buffer = buffer;
-    Umem->RxHeadRoom = RxHeadRoom;
-    Umem->TxHeadRoom = TxHeadRoom;
+    UmemInfo->Buffer = Buffer;
+    UmemInfo->RxHeadRoom = RxHeadRoom;
+    UmemInfo->TxHeadRoom = TxHeadRoom;
     return QUIC_STATUS_SUCCESS;
 }
 
-static uint64_t xsk_alloc_umem_frame(struct xsk_socket_info *xsk)
+static uint64_t XskUmemFreeFrames(struct XskSocketInfo *Xsk)
 {
-    uint64_t frame;
-    if (xsk->umem_frame_free == 0) {
+    return Xsk->UmemFrameFree;
+}
+
+static uint64_t XskUmemFrameAlloc(struct XskSocketInfo *Xsk)
+{
+    uint64_t Frame;
+    if (Xsk->UmemFrameFree == 0) {
         QuicTraceLogVerbose(
             XdpUmemAllocFails,
             "[ xdp][umem] Out of UMEM frame, OOM");        
         return INVALID_UMEM_FRAME;
     }
-
-    frame = xsk->umem_frame_addr[--xsk->umem_frame_free];
-    xsk->umem_frame_addr[xsk->umem_frame_free] = INVALID_UMEM_FRAME;
-    return frame;
+    Frame = Xsk->UmemFrameAddr[--Xsk->UmemFrameFree];
+    Xsk->UmemFrameAddr[Xsk->UmemFrameFree] = INVALID_UMEM_FRAME;
+    return Frame;
 }
 
-// not used yet as bpf map control with already attached bpf object doesn't work
-uint8_t
-IsXdpAttached(const char* prog_name, XDP_INTERFACE *Interface, enum xdp_attach_mode attach_mode)
+static void XskUmemFrameFree(struct XskSocketInfo *Xsk, uint64_t Frame)
 {
-    struct xdp_multiprog* mp = xdp_multiprog__get_from_ifindex(Interface->IfIndex);
-    if (!mp) {
-        return 0; // should not happen
-    }
-    enum xdp_attach_mode mode = xdp_multiprog__attach_mode(mp);
-    struct xdp_program *p = NULL;
-
-    while ((p = xdp_multiprog__next_prog(p, mp))) {
-        if (strcmp(xdp_program__name(p), prog_name) == 0) {
-            if (mode == attach_mode) {
-                QuicTraceLogVerbose(
-                    XdpAttached,
-                    "[ xdp] XDP program already attached to %s", Interface->IfName);
-                return 2; // attached same
-            }
-            return 1; // attached, but different mode
-        }
-    }
-    // not attached anything, or attaching different program
-    return 0;
+    assert(Xsk->UmemFrameFree < NUM_FRAMES);
+    Xsk->UmemFrameAddr[Xsk->UmemFrameFree++] = Frame;
 }
 
 QUIC_STATUS
-AttachXdpProgram(struct xdp_program *prog, XDP_INTERFACE *Interface, struct xsk_socket_config *xskcfg)
+AttachXdpProgram(struct xdp_program *Prog, XDP_INTERFACE *Interface, struct xsk_socket_config *XskCfg)
 {
     char errmsg[1024];
     int err;
 
-    // TODO: iterate from HW -> DRV -> SKB
     // WARN: Attaching HW mode (error) affects doing
     //       with DRV/SKB mode. Need report to libxdp team
     // NOTE: eth0 on azure VM doesn't work with XDP_FLAGS_DRV_MODE
@@ -406,10 +379,10 @@ AttachXdpProgram(struct xdp_program *prog, XDP_INTERFACE *Interface, struct xsk_
         { XDP_MODE_SKB, XDP_FLAGS_SKB_MODE },
     };
     for (uint32_t i = 0; i < ARRAYSIZE(AttachTypePairs); i++) {
-        err = xdp_program__attach(prog, Interface->IfIndex, AttachTypePairs[i].mode, 0);
+        err = xdp_program__attach(Prog, Interface->IfIndex, AttachTypePairs[i].mode, 0);
         if (!err) {
             Interface->AttachMode = AttachTypePairs[i].mode;
-            xskcfg->xdp_flags = AttachTypePairs[i].xdp_flag;
+            XskCfg->xdp_flags = AttachTypePairs[i].xdp_flag;
             break;
         }
     }
@@ -428,7 +401,7 @@ AttachXdpProgram(struct xdp_program *prog, XDP_INTERFACE *Interface, struct xsk_
 }
 
 QUIC_STATUS
-OpenXdpProgram(struct xdp_program **prog)
+OpenXdpProgram(struct xdp_program **Prog)
 {
     const char* Filename = "datapath_raw_xdp_kern.o";
     char* EnvPath = getenv("MSQUIC_XDP_OBJECT_PATH");
@@ -445,18 +418,18 @@ OpenXdpProgram(struct xdp_program **prog)
             snprintf(FilePath, sizeof(FilePath), "%s/%s", Paths[i], Filename);
             if (access(FilePath, F_OK) == 0) {
                 do {
-                    *prog = xdp_program__open_file(FilePath, "xdp_prog", NULL);
-                    if (IS_ERR(*prog)) {
+                    *Prog = xdp_program__open_file(FilePath, "xdp_prog", NULL);
+                    if (IS_ERR(*Prog)) {
                         // TODO: Need investigation.
                         //       Sometimes fail to load same object
                         CxPlatSleep(50);
                     }
-                } while (IS_ERR(*prog) && readRetry-- > 0);
+                } while (IS_ERR(*Prog) && readRetry-- > 0);
                 break;
             }
         }
     }
-    if (IS_ERR(*prog)) {
+    if (IS_ERR(*Prog)) {
         QuicTraceLogVerbose(
             XdpOpenFileError,
             "[ xdp] Failed to open xdp program %s",
@@ -506,19 +479,19 @@ CxPlatDpRawInterfaceInitialize(
 
     DetachXdpProgram(Interface, true);
 
-    struct xdp_program *prog = NULL;
-    Status = OpenXdpProgram(&prog);
+    struct xdp_program *Prog = NULL;
+    Status = OpenXdpProgram(&Prog);
     if (QUIC_FAILED(Status)) {
         goto Error;
     }
 
-    Status = AttachXdpProgram(prog, Interface, XskCfg);
+    Status = AttachXdpProgram(Prog, Interface, XskCfg);
     if (QUIC_FAILED(Status)) {
         goto Error;
     }
-    Interface->XdpProg = prog;
+    Interface->XdpProg = Prog;
 
-    int XskBypassMapFd = bpf_map__fd(bpf_object__find_map_by_name(xdp_program__bpf_obj(prog), "xsks_map"));
+    int XskBypassMapFd = bpf_map__fd(bpf_object__find_map_by_name(xdp_program__bpf_obj(Prog), "xsks_map"));
     if (XskBypassMapFd < 0) {
         QuicTraceLogVerbose(
             XdpNoXsksMap,
@@ -563,83 +536,83 @@ CxPlatDpRawInterfaceInitialize(
         CxPlatLockInitialize(&Queue->CqLock);
 
         // Initialize shared packet_buffer for umem usage
-        struct xsk_umem_info *Umem = calloc(1, sizeof(struct xsk_umem_info));
-        if (!Umem) {
+        struct XskUmemInfo *UmemInfo = calloc(1, sizeof(struct XskUmemInfo));
+        if (!UmemInfo) {
             Status = QUIC_STATUS_OUT_OF_MEMORY;
             goto Error;
         }
 
-        Status = InitializeUmem(FRAME_SIZE, NUM_FRAMES, RxHeadroom, TxHeadroom, Umem);
+        Status = InitializeUmem(FRAME_SIZE, NUM_FRAMES, RxHeadroom, TxHeadroom, UmemInfo);
         if (QUIC_FAILED(Status)) {
             QuicTraceLogVerbose(
                 XdpConfigureUmem,
                 "[ xdp] Failed to configure Umem");
-            free(Umem);
+            free(UmemInfo);
             goto Error;
         }
 
         //
         // Create AF_XDP socket.
         //
-        struct xsk_socket_info *xsk_info = calloc(1, sizeof(*xsk_info));
-        if (!xsk_info) {
+        struct XskSocketInfo *XskInfo = calloc(1, sizeof(*XskInfo));
+        if (!XskInfo) {
             Status = QUIC_STATUS_OUT_OF_MEMORY;
-            free(Umem->buffer);
-            free(Umem);
+            free(UmemInfo->Buffer);
+            free(UmemInfo);
             goto Error;
         }
-        CxPlatLockInitialize(&xsk_info->UmemLock);
-        Queue->xsk_info = xsk_info;
-        xsk_info->umem = Umem;
+        CxPlatLockInitialize(&XskInfo->UmemLock);
+        Queue->XskInfo = XskInfo;
+        XskInfo->UmemInfo = UmemInfo;
 
         int RetryCount = 10;
-        int ret = 0;
+        int Ret = 0;
         do {
-            ret = xsk_socket__create(&xsk_info->xsk, Interface->IfName,
-                        i, Umem->umem, &xsk_info->rx,
-                        &xsk_info->tx, XskCfg);
-            if (ret == -EBUSY) {
+            Ret = xsk_socket__create(&XskInfo->Xsk, Interface->IfName,
+                        i, UmemInfo->Umem, &XskInfo->Rx,
+                        &XskInfo->Tx, XskCfg);
+            if (Ret == -EBUSY) {
                 CxPlatSleep(100);
             }
-        } while (ret == -EBUSY && RetryCount-- > 0);
-        if (ret < 0) {
+        } while (Ret == -EBUSY && RetryCount-- > 0);
+        if (Ret < 0) {
             QuicTraceLogVerbose(
                 FailXskSocketCreate,
-                "[ xdp] Failed to create XDP socket for %s. error:%s", Interface->IfName, strerror(-ret));
+                "[ xdp] Failed to create XDP socket for %s. error:%s", Interface->IfName, strerror(-Ret));
             Status = QUIC_STATUS_INTERNAL_ERROR;
             goto Error;
         }
         CxPlatRundownAcquire(&Xdp->Rundown);
         SocketCreated++;
 
-        if(xsk_socket__update_xskmap(xsk_info->xsk, XskBypassMapFd)) {
+        if(xsk_socket__update_xskmap(XskInfo->Xsk, XskBypassMapFd)) {
             Status = QUIC_STATUS_INTERNAL_ERROR;
             goto Error;
         }
 
         for (int i = 0; i < NUM_FRAMES; i++) {
-            xsk_info->umem_frame_addr[i] = i * FrameSize;
+            XskInfo->UmemFrameAddr[i] = i * FrameSize;
         }
-        xsk_info->umem_frame_free = NUM_FRAMES;
+        XskInfo->UmemFrameFree = NUM_FRAMES;
 
         // Setup fill queue for Rx
         uint32_t FqIdx = 0;
-        ret = xsk_ring_prod__reserve(&xsk_info->umem->fq, PROD_NUM_DESCS, &FqIdx);
-        if (ret != PROD_NUM_DESCS) {
+        Ret = xsk_ring_prod__reserve(&XskInfo->UmemInfo->Fq, PROD_NUM_DESCS, &FqIdx);
+        if (Ret != PROD_NUM_DESCS) {
             return QUIC_STATUS_OUT_OF_MEMORY;
         }
         for (uint32_t i = 0; i < PROD_NUM_DESCS; i ++) {
-            uint64_t addr = xsk_alloc_umem_frame(xsk_info);
-            if (addr == INVALID_UMEM_FRAME) {
+            uint64_t Addr = XskUmemFrameAlloc(XskInfo);
+            if (Addr == INVALID_UMEM_FRAME) {
                 QuicTraceLogVerbose(
                     FailRxAlloc,
                     "[ xdp][rx  ] OOM for Rx");
                 break;
             }
-            *xsk_ring_prod__fill_addr(&xsk_info->umem->fq, FqIdx++) = addr;
+            *xsk_ring_prod__fill_addr(&XskInfo->UmemInfo->Fq, FqIdx++) = Addr;
         }
 
-        xsk_ring_prod__submit(&xsk_info->umem->fq, PROD_NUM_DESCS);
+        xsk_ring_prod__submit(&XskInfo->UmemInfo->Fq, PROD_NUM_DESCS);
     }
 
     //
@@ -1015,12 +988,6 @@ CxPlatDpRawGetInterfaceFromQueue(
     return (const CXPLAT_INTERFACE*)((XDP_QUEUE*)Queue)->Interface;
 }
 
-static void xsk_free_umem_frame(struct xsk_socket_info *xsk, uint64_t frame)
-{
-    assert(xsk->umem_frame_free < NUM_FRAMES);
-    xsk->umem_frame_addr[xsk->umem_frame_free++] = frame;
-}
-
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 CxPlatDpRawRxFree(
@@ -1028,24 +995,24 @@ CxPlatDpRawRxFree(
     )
 {
     uint32_t Count = 0;
-    struct xsk_socket_info *xsk_info = NULL;
+    struct XskSocketInfo *XskInfo = NULL;
     if (PacketChain) {
         const XDP_RX_PACKET* Packet =
             CXPLAT_CONTAINING_RECORD(PacketChain, XDP_RX_PACKET, RecvData);
-        xsk_info = Packet->Queue->xsk_info;
+        XskInfo = Packet->Queue->XskInfo;
 
-        CxPlatLockAcquire(&xsk_info->UmemLock);
+        CxPlatLockAcquire(&XskInfo->UmemLock);
         while (PacketChain) {
             Packet =
                 CXPLAT_CONTAINING_RECORD(PacketChain, XDP_RX_PACKET, RecvData);
             PacketChain = PacketChain->Next;
-            xsk_free_umem_frame(Packet->Queue->xsk_info, Packet->addr);
+            XskUmemFrameFree(Packet->Queue->XskInfo, Packet->Addr);
             Count++;
         }
     }
 
     if (Count > 0) {
-        CxPlatLockRelease(&xsk_info->UmemLock);
+        CxPlatLockRelease(&XskInfo->UmemLock);
     }
 }
 
@@ -1061,10 +1028,10 @@ CxPlatDpRawTxAlloc(
     QUIC_ADDRESS_FAMILY Family = QuicAddrGetFamily(&Config->Route->RemoteAddress);
     XDP_TX_PACKET* Packet = NULL;
     XDP_QUEUE* Queue = Config->Route->Queue;
-    struct xsk_socket_info* xsk_info = Queue->xsk_info;
-    CxPlatLockAcquire(&xsk_info->UmemLock);
-    uint64_t BaseAddr = xsk_alloc_umem_frame(xsk_info);
-    CxPlatLockRelease(&xsk_info->UmemLock);
+    struct XskSocketInfo* XskInfo = Queue->XskInfo;
+    CxPlatLockAcquire(&XskInfo->UmemLock);
+    uint64_t BaseAddr = XskUmemFrameAlloc(XskInfo);
+    CxPlatLockRelease(&XskInfo->UmemLock);
     if (BaseAddr == INVALID_UMEM_FRAME) {
         QuicTraceLogVerbose(
             FailTxAlloc,
@@ -1072,7 +1039,7 @@ CxPlatDpRawTxAlloc(
         goto Error;
     }
 
-    Packet = (XDP_TX_PACKET*)xsk_umem__get_data(xsk_info->umem->buffer, BaseAddr);
+    Packet = (XDP_TX_PACKET*)xsk_umem__get_data(XskInfo->UmemInfo->Buffer, BaseAddr);
     if (Packet) {
         HEADER_BACKFILL HeaderBackfill = CxPlatDpRawCalculateHeaderBackFill(Family, Socket->UseTcp); // TODO - Cache in Route?
         CXPLAT_DBG_ASSERT(Config->MaxPacketSize <= sizeof(Packet->FrameBuffer) - HeaderBackfill.AllLayer);
@@ -1106,29 +1073,28 @@ CxPlatDpRawTxEnqueue(
     // TODO: use PartitionTxQueue to submit at once?
     XDP_TX_PACKET* Packet = (XDP_TX_PACKET*)SendData;
     XDP_PARTITION* Partition = Packet->Queue->Partition;
-    struct xsk_socket_info* xsk_info = Packet->Queue->xsk_info;
-    CxPlatLockAcquire(&xsk_info->UmemLock);
+    struct XskSocketInfo* XskInfo = Packet->Queue->XskInfo;
+    CxPlatLockAcquire(&XskInfo->UmemLock);
 
-    uint32_t tx_idx = 0;
-    if (xsk_ring_prod__reserve(&xsk_info->tx, 1, &tx_idx) != 1) {
-        xsk_free_umem_frame(xsk_info, Packet->UmemRelativeAddr);
+    uint32_t TxIdx = 0;
+    if (xsk_ring_prod__reserve(&XskInfo->Tx, 1, &TxIdx) != 1) {
+        XskUmemFrameFree(XskInfo, Packet->UmemRelativeAddr);
         QuicTraceLogVerbose(
             FailTxReserve,
             "[ xdp][tx  ] Failed to reserve");
         return;
     }
 
-    struct xdp_desc *tx_desc = xsk_ring_prod__tx_desc(&xsk_info->tx, tx_idx);
+    struct xdp_desc *tx_desc = xsk_ring_prod__tx_desc(&XskInfo->Tx, TxIdx);
     CXPLAT_FRE_ASSERT(tx_desc != NULL);
-    tx_desc->addr = Packet->UmemRelativeAddr + xsk_info->umem->TxHeadRoom;
+    tx_desc->addr = Packet->UmemRelativeAddr + XskInfo->UmemInfo->TxHeadRoom;
     tx_desc->len = SendData->Buffer.Length;
 
-    xsk_ring_prod__submit(&xsk_info->tx, 1);
-    if (sendto(xsk_socket__fd(xsk_info->xsk), NULL, 0, MSG_DONTWAIT, NULL, 0) < 0) {
-        int er = errno;
+    xsk_ring_prod__submit(&XskInfo->Tx, 1);
+    if (sendto(xsk_socket__fd(XskInfo->Xsk), NULL, 0, MSG_DONTWAIT, NULL, 0) < 0) {
         QuicTraceLogVerbose(
             FailSendTo,
-            "[ xdp][tx  ] Faild sendto. errno:%d, Umem addr:%lld", er, tx_desc->addr);
+            "[ xdp][tx  ] Faild sendto. errno:%d, Umem addr:%lld", errno, tx_desc->addr);
     } else {
         QuicTraceLogVerbose(
             DoneSendTo,
@@ -1137,21 +1103,20 @@ CxPlatDpRawTxEnqueue(
 
     uint32_t Completed;
     uint32_t CqIdx;
-    Completed = xsk_ring_cons__peek(&xsk_info->umem->cq, CONS_NUM_DESCS, &CqIdx);
+    Completed = xsk_ring_cons__peek(&XskInfo->UmemInfo->Cq, CONS_NUM_DESCS, &CqIdx);
     if (Completed > 0) {
         for (uint32_t i = 0; i < Completed; i++) {
-            uint64_t addr = *xsk_ring_cons__comp_addr(&xsk_info->umem->cq, CqIdx++) - xsk_info->umem->TxHeadRoom;
-            xsk_free_umem_frame(xsk_info, addr);
+            uint64_t addr = *xsk_ring_cons__comp_addr(&XskInfo->UmemInfo->Cq, CqIdx++) - XskInfo->UmemInfo->TxHeadRoom;
+            XskUmemFrameFree(XskInfo, addr);
         }
 
-        xsk_ring_cons__release(&xsk_info->umem->cq, Completed);
+        xsk_ring_cons__release(&XskInfo->UmemInfo->Cq, Completed);
         QuicTraceLogVerbose(
             ReleaseCons,
             "[ xdp][cq  ] Release %d from completion queue", Completed);
     }
-    CxPlatLockRelease(&xsk_info->UmemLock);
+    CxPlatLockRelease(&XskInfo->UmemLock);
 
-    // This is needed after CxPlatXdpTx is implemented
     Partition->Ec.Ready = TRUE;
     CxPlatWakeExecutionContext(&Partition->Ec);
 }
@@ -1183,9 +1148,6 @@ CxPlatXdpExecute(
     _Inout_ CXPLAT_EXECUTION_STATE* State
     )
 {
-    UNREFERENCED_PARAMETER(Context);
-    UNREFERENCED_PARAMETER(State);
-
     XDP_PARTITION* Partition = (XDP_PARTITION*)Context;
     const XDP_DATAPATH* Xdp = Partition->Xdp;
 
@@ -1224,11 +1186,6 @@ CxPlatXdpExecute(
     return TRUE;
 }
 
-static uint64_t xsk_umem_free_frames(struct xsk_socket_info *xsk)
-{
-    return xsk->umem_frame_free;
-}
-
 static
 BOOLEAN // Did work?
 CxPlatXdpRx(
@@ -1237,23 +1194,23 @@ CxPlatXdpRx(
     _In_ uint16_t PartitionIndex
     )
 {
-    struct xsk_socket_info *xsk = Queue->xsk_info;
+    struct XskSocketInfo *XskInfo = Queue->XskInfo;
     uint32_t Rcvd, i;
     uint32_t Available;
     uint32_t RxIdx = 0, FqIdx = 0;
     unsigned int ret;
 
-    Rcvd = xsk_ring_cons__peek(&xsk->rx, RX_BATCH_SIZE, &RxIdx);
+    Rcvd = xsk_ring_cons__peek(&XskInfo->Rx, RX_BATCH_SIZE, &RxIdx);
 
     // Process received packets
     CXPLAT_RECV_DATA* Buffers[RX_BATCH_SIZE] = {};
     uint32_t PacketCount = 0;
     for (i = 0; i < Rcvd; i++) {
-        uint64_t addr = xsk_ring_cons__rx_desc(&xsk->rx, RxIdx)->addr;
-        uint32_t len = xsk_ring_cons__rx_desc(&xsk->rx, RxIdx++)->len;
-        uint8_t *FrameBuffer = xsk_umem__get_data(xsk->umem->buffer, addr);
-        XDP_RX_PACKET* Packet = (XDP_RX_PACKET*)(FrameBuffer - xsk->umem->RxHeadRoom);
-        CxPlatZeroMemory(Packet, xsk->umem->RxHeadRoom);
+        uint64_t Addr = xsk_ring_cons__rx_desc(&XskInfo->Rx, RxIdx)->addr;
+        uint32_t Len = xsk_ring_cons__rx_desc(&XskInfo->Rx, RxIdx++)->len;
+        uint8_t *FrameBuffer = xsk_umem__get_data(XskInfo->UmemInfo->Buffer, Addr);
+        XDP_RX_PACKET* Packet = (XDP_RX_PACKET*)(FrameBuffer - XskInfo->UmemInfo->RxHeadRoom);
+        CxPlatZeroMemory(Packet, XskInfo->UmemInfo->RxHeadRoom);
 
         Packet->Queue = Queue;
         Packet->RouteStorage.Queue = Queue;
@@ -1261,15 +1218,15 @@ CxPlatXdpRx(
         Packet->RecvData.Route->DatapathType = Packet->RecvData.DatapathType = CXPLAT_DATAPATH_TYPE_RAW;
         Packet->RecvData.PartitionIndex = PartitionIndex;
 
-        // TODO xsk_free_umem_frame if parse error?
+        // TODO XskUmemFrameFree if parse error?
         CxPlatDpRawParseEthernet(
             (CXPLAT_DATAPATH*)Xdp,
             &Packet->RecvData,
             FrameBuffer,
-            (uint16_t)len);
+            (uint16_t)Len);
         if (false) {
             // free if CxPlatDpRawParseEthernet failed
-            xsk_free_umem_frame(xsk, addr - xsk->umem->RxHeadRoom);
+            XskUmemFrameFree(XskInfo, Addr - XskInfo->UmemInfo->RxHeadRoom);
         }
         QuicTraceEvent(
             RxConstructPacket,
@@ -1284,41 +1241,40 @@ CxPlatXdpRx(
         //
         Packet->RecvData.Route->State = RouteResolved;
 
-        Packet->addr = addr - (XDP_PACKET_HEADROOM + xsk->umem->RxHeadRoom);
+        Packet->Addr = Addr - (XDP_PACKET_HEADROOM + XskInfo->UmemInfo->RxHeadRoom);
         Packet->RecvData.Allocated = TRUE;
         Buffers[PacketCount++] = &Packet->RecvData;
     }
 
     if (Rcvd) {
-        xsk_ring_cons__release(&xsk->rx, Rcvd);
+        xsk_ring_cons__release(&XskInfo->Rx, Rcvd);
     }
 
-    CxPlatLockAcquire(&xsk->UmemLock);
+    CxPlatLockAcquire(&XskInfo->UmemLock);
     // Stuff the ring with as much frames as possible
-    Available = xsk_prod_nb_free(&xsk->umem->fq,
-                    xsk_umem_free_frames(xsk)); //TODO: remove lock and use  as big as possible?
+    Available = xsk_prod_nb_free(&XskInfo->UmemInfo->Fq, XskUmemFreeFrames(XskInfo));
     if (Available > 0) {
-        ret = xsk_ring_prod__reserve(&xsk->umem->fq, Available, &FqIdx);
+        ret = xsk_ring_prod__reserve(&XskInfo->UmemInfo->Fq, Available, &FqIdx);
 
         // This should not happen, but just in case
         while (ret != Available) {
-            ret = xsk_ring_prod__reserve(&xsk->umem->fq, Rcvd, &FqIdx);
+            ret = xsk_ring_prod__reserve(&XskInfo->UmemInfo->Fq, Rcvd, &FqIdx);
         }
         for (i = 0; i < Available; i++) {
-            uint64_t addr = xsk_alloc_umem_frame(xsk);
+            uint64_t addr = XskUmemFrameAlloc(XskInfo);
             if (addr == INVALID_UMEM_FRAME) {
                 QuicTraceLogVerbose(
                     FailRxAlloc,
                     "[ xdp][rx  ] OOM for Rx");
                 break;
             }
-            *xsk_ring_prod__fill_addr(&xsk->umem->fq, FqIdx++) = addr;
+            *xsk_ring_prod__fill_addr(&XskInfo->UmemInfo->Fq, FqIdx++) = addr;
         }
         if (i > 0) {
-            xsk_ring_prod__submit(&xsk->umem->fq, i);
+            xsk_ring_prod__submit(&XskInfo->UmemInfo->Fq, i);
         }
     }
-    CxPlatLockRelease(&xsk->UmemLock);
+    CxPlatLockRelease(&XskInfo->UmemLock);
 
     if (PacketCount) {
         CxPlatDpRawRxEthernet(
