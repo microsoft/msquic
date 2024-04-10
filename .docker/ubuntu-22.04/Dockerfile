@@ -48,7 +48,6 @@ RUN apt-get update && apt-get install --no-install-recommends -y apt-transport-h
     m4 \
     libpcap-dev \
     libelf-dev \
-    libc6-dev-i386 \
   && rm -rf /var/lib/apt/lists/*
 
 RUN gem install fpm
@@ -61,12 +60,6 @@ RUN wget -q https://packages.microsoft.com/config/ubuntu/18.04/packages-microsof
         # INSTALL POWERSHELl
         powershell \
   && rm -rf /var/lib/apt/lists/*
-
-RUN wget -q https://github.com/libbpf/bpftool/releases/download/v7.2.0/bpftool-v7.2.0-amd64.tar.gz -O bpftool-amd64.tar.gz && \
-    tar xvzf bpftool-amd64.tar.gz && \
-    chmod +x ./bpftool && \
-    mv ./bpftool /usr/sbin/bpftool && \
-    rm -rf bpftool-amd64.tar.gz
 
 RUN dpkg --add-architecture arm64
 RUN dpkg --add-architecture armhf
@@ -89,6 +82,13 @@ RUN apt-get --no-install-recommends install -y liblttng-ust-dev:arm64 \
     libssl-dev:armhf \
     libnuma-dev:arm64 \
     libnuma-dev:armhf \
+    && rm -rf /var/lib/apt/lists/*
+
+# install v1.3.0. v1.4.0 cause libc6 conflicts with arm packages
+RUN echo "deb [arch=amd64] http://cz.archive.ubuntu.com/ubuntu mantic main" > /etc/apt/sources.list.d/xdp.list && \
+    apt-get update && apt-get install -y -t mantic --no-install-recommends \
+    libxdp-dev:amd64 \
+    libbpf-dev:amd64 \
     && rm -rf /var/lib/apt/lists/*
 
 RUN git config --global safe.directory '*'
