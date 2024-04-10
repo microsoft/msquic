@@ -12432,12 +12432,20 @@
     },
     "XdpOpenFileError": {
       "ModuleProperites": {},
-      "TraceString": "[ xdp] Failed to open xdp program %s",
+      "TraceString": "[ xdp] Failed to open xdp program %s. error:%s(%d)",
       "UniqueId": "XdpOpenFileError",
       "splitArgs": [
         {
           "DefinationEncoding": "s",
           "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "s",
+          "MacroVariableName": "arg3"
+        },
+        {
+          "DefinationEncoding": "d",
+          "MacroVariableName": "arg4"
         }
       ],
       "macroName": "QuicTraceLogVerbose"
@@ -17119,9 +17127,9 @@
         "EncodingString": "[ xdp] No xsks map found"
       },
       {
-        "UniquenessHash": "e884eaa4-f326-406c-760c-7da9924e4c6c",
+        "UniquenessHash": "67da4ba2-b05d-a1c3-06e7-eae8ca8a51bb",
         "TraceID": "XdpOpenFileError",
-        "EncodingString": "[ xdp] Failed to open xdp program %s"
+        "EncodingString": "[ xdp] Failed to open xdp program %s. error:%s(%d)"
       },
       {
         "UniquenessHash": "18009e0d-e738-467e-35c0-55ebabcbf31f",

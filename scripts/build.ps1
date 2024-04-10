@@ -212,7 +212,10 @@ param (
     [switch]$OneBranch = $false,
 
     [Parameter(Mandatory = $false)]
-    [string]$ToolchainFile = ""
+    [string]$ToolchainFile = "",
+
+    [Parameter(Mandatory = $false)]
+    [switch]$BuildLibXdpFromSource = $false
 )
 
 Set-StrictMode -Version 'Latest'
@@ -402,6 +405,9 @@ function CMake-Generate {
                 "arm"   { $env:PKG_CONFIG_PATH="$SysRoot/usr/lib/arm-linux-gnueabihf/pkgconfig" }
                 "arm64" { $env:PKG_CONFIG_PATH="$SysRoot/usr/lib/aarch64-linux-gnu/pkgconfig" }
             }
+       }
+       if ($BuildLibXdpFromSource) {
+           $Arguments += " -DQUIC_BUILD_LIBXDP_FROM_SOURCE=on"
        }
     }
     if ($ToolchainFile -ne "") {

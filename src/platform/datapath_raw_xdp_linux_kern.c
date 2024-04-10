@@ -9,10 +9,7 @@ Abstract:
 
 --*/
 
-#include "libbpf/include/uapi/linux/bpf.h"
-#include "libbpf/src/bpf_helpers.h"
-#include "libbpf/src/bpf_endian.h"
-
+#include <linux/bpf.h>
 #include <linux/if_ether.h>
 #include <linux/in.h>
 #include <linux/ip.h>
@@ -22,6 +19,9 @@ Abstract:
 #include <linux/ipv6.h>
 #include <linux/icmpv6.h>
 #include <stdbool.h>
+
+#include <bpf_helpers.h>
+#include <bpf_endian.h>
 
 struct {
     __uint(type, BPF_MAP_TYPE_XSKMAP);

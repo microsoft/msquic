@@ -14,7 +14,6 @@ Abstract:
 #include "bpf.h"
 #include "datapath_raw_linux.h"
 #include "datapath_raw_xdp.h"
-#include "err.h"
 #include "libbpf.h"
 #include "libxdp.h"
 #include "xsk.h"
@@ -403,6 +402,8 @@ AttachXdpProgram(struct xdp_program *Prog, XDP_INTERFACE *Interface, struct xsk_
 QUIC_STATUS
 OpenXdpProgram(struct xdp_program **Prog)
 {
+    char errmsg[1024];
+    int err;
     const char* Filename = "datapath_raw_xdp_kern.o";
     char* EnvPath = getenv("MSQUIC_XDP_OBJECT_PATH");
     char* Paths[] = {
@@ -419,21 +420,25 @@ OpenXdpProgram(struct xdp_program **Prog)
             if (access(FilePath, F_OK) == 0) {
                 do {
                     *Prog = xdp_program__open_file(FilePath, "xdp_prog", NULL);
-                    if (IS_ERR(*Prog)) {
+                    err = libxdp_get_error(*Prog);
+                    if (err) {
                         // TODO: Need investigation.
                         //       Sometimes fail to load same object
                         CxPlatSleep(50);
                     }
-                } while (IS_ERR(*Prog) && readRetry-- > 0);
+                } while (err && readRetry-- > 0);
                 break;
             }
         }
     }
-    if (IS_ERR(*Prog)) {
+    if (err) {
+        libxdp_strerror(err, errmsg, sizeof(errmsg));
         QuicTraceLogVerbose(
             XdpOpenFileError,
-            "[ xdp] Failed to open xdp program %s",
-            FilePath);
+            "[ xdp] Failed to open xdp program %s. error:%s(%d)",
+            FilePath,
+            errmsg,
+            err);
         return QUIC_STATUS_INTERNAL_ERROR;
     }
     QuicTraceLogVerbose(

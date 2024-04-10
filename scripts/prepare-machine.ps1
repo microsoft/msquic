@@ -86,7 +86,10 @@ param (
     [switch]$DisableTest,
 
     [Parameter(Mandatory = $false)]
-    [switch]$InstallCoreNetCiDeps
+    [switch]$InstallCoreNetCiDeps,
+
+    [Parameter(Mandatory = $false)]
+    [switch]$BuildLibXdpFromSource = $false
 )
 
 # Admin is required because a lot of things are installed to the local machine
@@ -473,10 +476,10 @@ if ($ForBuild -or $ForContainerBuild) {
     }
 
     git submodule update --jobs=8
-    if ($IsLinux) {
+    if ($IsLinux -and $BuildLibXdpFromSource) {
         Write-Host "Initializing xdp-tools submodules"
         git submodule update --init --recursive --jobs=8 submodules/xdp-tools
-        # temporal workaround for libxdp v1.4.0
+        # temporal workaround for libxdp v1.4.2
         sed -i '/BPF_CFLAGS += -I$(HEADER_DIR)/ { /${ARCH_INCLUDES}/! s|$| ${ARCH_INCLUDES}| }' submodules/xdp-tools/lib/libxdp/Makefile
     }
 }
@@ -498,6 +501,11 @@ if ($IsLinux) {
 
     if ($ForBuild) {
         sudo apt-add-repository ppa:lttng/stable-2.13 -y
+        if (!$BuildLibXdpFromSource) {
+            # mantic for v1.3.0, noble for v1.4.2
+            # use mantic (v1.3.0) to align build with CI
+            sudo apt-add-repository "deb http://mirrors.kernel.org/ubuntu mantic main" -y
+        }
         sudo apt-get update -y
         sudo apt-get install -y cmake
         sudo apt-get install -y build-essential
@@ -517,16 +525,27 @@ if ($IsLinux) {
         sudo gem install fpm
 
         # XDP dependencies
+        if (!$BuildLibXdpFromSource) {
+            # for xdp-dispatcher.c
+            sudo apt-get -y install --no-install-recommends libc6-dev-i386
+        } else {
+            sudo apt-get -y install libxdp-dev libbpf-dev
+        }
         sudo apt-get -y install libnl-3-dev libnl-genl-3-dev libnl-route-3-dev zlib1g-dev zlib1g pkg-config m4 clang libpcap-dev libelf-dev
-        sudo apt-get -y install --no-install-recommends libc6-dev-i386
     }
 
     if ($ForTest) {
         sudo apt-add-repository ppa:lttng/stable-2.13 -y
+        if (!$BuildLibXdpFromSource) {
+            sudo apt-add-repository "deb http://mirrors.kernel.org/ubuntu noble main" -y
+        }
         sudo apt-get update -y
         sudo apt-get install -y lttng-tools
         sudo apt-get install -y liblttng-ust-dev
         sudo apt-get install -y gdb
+        if (!$BuildLibXdpFromSource) {
+            sudo apt-get install -y libxdp1 libbpf1
+        }
         sudo apt-get install -y libnl-3-200 libnl-route-3-200 libnl-genl-3-200
         if ($UseXdp) {
             sudo apt-get -y install iproute2 iptables

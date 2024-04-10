@@ -177,18 +177,26 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_LINUX_C, XdpAttachSucceeds,
 
 /*----------------------------------------------------------
 // Decoder Ring for XdpOpenFileError
-// [ xdp] Failed to open xdp program %s
+// [ xdp] Failed to open xdp program %s. error:%s(%d)
 // QuicTraceLogVerbose(
             XdpOpenFileError,
-            "[ xdp] Failed to open xdp program %s",
-            FilePath);
+            "[ xdp] Failed to open xdp program %s. error:%s(%d)",
+            FilePath,
+            errmsg,
+            err);
 // arg2 = arg2 = FilePath = arg2
+// arg3 = arg3 = errmsg = arg3
+// arg4 = arg4 = err = arg4
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_LINUX_C, XdpOpenFileError,
     TP_ARGS(
-        const char *, arg2), 
+        const char *, arg2,
+        const char *, arg3,
+        int, arg4), 
     TP_FIELDS(
         ctf_string(arg2, arg2)
+        ctf_string(arg3, arg3)
+        ctf_integer(int, arg4, arg4)
     )
 )
 
