@@ -85,8 +85,8 @@ RUN apt-get --no-install-recommends install -y liblttng-ust-dev:arm64 \
     && rm -rf /var/lib/apt/lists/*
 
 # install v1.3.0. v1.4.0 cause libc6 conflicts with arm packages
-RUN echo "deb [arch=amd64] http://cz.archive.ubuntu.com/ubuntu mantic main" > /etc/apt/sources.list.d/mantic.list && \
-    apt-get update && apt-get install -y -t mantic \
+RUN echo "deb [arch=amd64] http://cz.archive.ubuntu.com/ubuntu mantic main" > /etc/apt/sources.list.d/xdp.list && \
+    apt-get update && apt-get install -y -t mantic --no-install-recommends \
     libxdp-dev:amd64 \
     libbpf-dev:amd64 \
     && rm -rf /var/lib/apt/lists/*
