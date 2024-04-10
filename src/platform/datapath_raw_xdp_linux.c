@@ -1229,10 +1229,6 @@ CxPlatXdpRx(
             &Packet->RecvData,
             FrameBuffer,
             (uint16_t)Len);
-        if (false) {
-            // free if CxPlatDpRawParseEthernet failed
-            XskUmemFrameFree(XskInfo, Addr - XskInfo->UmemInfo->RxHeadRoom);
-        }
         QuicTraceEvent(
             RxConstructPacket,
             "[ xdp][rx  ] Constructing Packet from Rx, local=%!ADDR!, remote=%!ADDR!",
@@ -1246,9 +1242,13 @@ CxPlatXdpRx(
         //
         Packet->RecvData.Route->State = RouteResolved;
 
-        Packet->Addr = Addr - (XDP_PACKET_HEADROOM + XskInfo->UmemInfo->RxHeadRoom);
-        Packet->RecvData.Allocated = TRUE;
-        Buffers[PacketCount++] = &Packet->RecvData;
+        if (Packet->RecvData.Buffer) {
+            Packet->Addr = Addr - (XDP_PACKET_HEADROOM + XskInfo->UmemInfo->RxHeadRoom);
+            Packet->RecvData.Allocated = TRUE;
+            Buffers[PacketCount++] = &Packet->RecvData;
+        } else {
+            XskUmemFrameFree(XskInfo, Addr - (XDP_PACKET_HEADROOM + XskInfo->UmemInfo->RxHeadRoom));
+        }
     }
 
     if (Rcvd) {
