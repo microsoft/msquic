@@ -13,7 +13,6 @@ RUN apt-get update && apt-get install --no-install-recommends -y apt-transport-h
     wget && \
     wget -O - https://apt.kitware.com/keys/kitware-archive-latest.asc 2>/dev/null | gpg --dearmor - | tee /etc/apt/trusted.gpg.d/kitware.gpg >/dev/null && \
     apt-add-repository 'deb https://apt.kitware.com/ubuntu/ focal main' && \
-    apt-add-repository "deb http://mirrors.kernel.org/ubuntu noble main" -y && \
     apt-add-repository ppa:lttng/stable-2.13 && \
     apt-get update && apt-get install -y tzdata && apt-get install -y \
     build-essential \
@@ -40,8 +39,6 @@ RUN apt-get update && apt-get install --no-install-recommends -y apt-transport-h
     cppcheck \
     clang-tidy \
     gdb \
-    libxdp-dev \
-    libbpf-dev \
     libnl-3-dev \
     libnl-genl-3-dev \
     libnl-route-3-dev \
@@ -86,6 +83,13 @@ RUN apt-get install --no-install-recommends -y liblttng-ust-dev:arm64 \
     libssl-dev:armhf \
     libnuma-dev:arm64 \
     libnuma-dev:armhf \
+    && rm -rf /var/lib/apt/lists/*
+
+# install v1.3.0. v1.4.0 cause libc6 conflicts with arm packages
+RUN echo "deb [arch=amd64] http://cz.archive.ubuntu.com/ubuntu mantic main" > /etc/apt/sources.list.d/mantic.list && \
+    apt-get update && apt-get install -y -t mantic \
+    libxdp-dev:amd64 \
+    libbpf-dev:amd64 \
     && rm -rf /var/lib/apt/lists/*
 
 RUN git config --global safe.directory '*'
