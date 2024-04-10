@@ -147,7 +147,7 @@ jobs:
         wevtutil.exe um $ManifestPath
         wevtutil.exe im $ManifestPath /rf:$($MsQuicDll) /mf:$($MsQuicDll)
     - name: Test
-      if: startsWith(matrix.vec.os, 'ubuntu') && matrix.vec.xdp == '-UseXdp'
+      if: (matrix.vec.os == 'ubuntu-20.04' || matrix.vec.os == 'ubuntu-22.04') && matrix.vec.xdp == '-UseXdp'
       shell: bash
       timeout-minutes: 120
       run: sudo pwsh scripts/test.ps1 -Config ${{ matrix.vec.config }} -Arch ${{ matrix.vec.arch }} -Tls ${{ matrix.vec.tls }} -OsRunner ${{ matrix.vec.os }} -GHA -LogProfile Full.Light -GenerateXmlResults ${{ matrix.vec.xdp }} ${{ matrix.vec.qtip }}
@@ -157,7 +157,7 @@ jobs:
       timeout-minutes: 120
       run: scripts/test.ps1 -Config ${{ matrix.vec.config }} -Arch ${{ matrix.vec.arch }} -Tls ${{ matrix.vec.tls }} -GHA -LogProfile Full.Light -GenerateXmlResults ${{ matrix.vec.xdp }} ${{ matrix.vec.qtip }}
     - name: Test
-      if: matrix.vec.os != 'WinServerPrerelease' && !(startsWith(matrix.vec.os, 'ubuntu') && matrix.vec.xdp == '-UseXdp')
+      if: matrix.vec.os != 'WinServerPrerelease' && !((matrix.vec.os == 'ubuntu-20.04' || matrix.vec.os == 'ubuntu-22.04') && matrix.vec.xdp == '-UseXdp')
       shell: pwsh
       timeout-minutes: 120
       run: scripts/test.ps1 -Config ${{ matrix.vec.config }} -Arch ${{ matrix.vec.arch }} -Tls ${{ matrix.vec.tls }} -OsRunner ${{ matrix.vec.os }} -GHA -LogProfile Full.Light -GenerateXmlResults ${{ matrix.vec.xdp }} ${{ matrix.vec.qtip }}
