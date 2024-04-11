@@ -272,10 +272,11 @@ typedef enum {
 struct SpinQuicStream {
     struct SpinQuicConnection& Connection;
     HQUIC Handle;
+    bool Deleting {false};
     uint64_t PendingRecvLength {UINT64_MAX}; // UINT64_MAX means no pending receive
     SpinQuicStream(SpinQuicConnection& Connection, HQUIC Handle = nullptr) :
         Connection(Connection), Handle(Handle) {}
-    ~SpinQuicStream() { MsQuic.StreamClose(Handle); }
+    ~SpinQuicStream() { Deleting = true; MsQuic.StreamClose(Handle); }
     static SpinQuicStream* Get(HQUIC Stream) {
         return (SpinQuicStream*)MsQuic.GetContext(Stream);
     }
@@ -365,10 +366,26 @@ static struct {
     uint32_t RepeatCount;
 } SpinSettings;
 
+void SpinQuicGetRandomParam(HQUIC Handle, uint16_t ThreadID);
+void SpinQuicSetRandomStreamParam(HQUIC Stream, uint16_t ThreadID);
+
 QUIC_STATUS QUIC_API SpinQuicHandleStreamEvent(HQUIC Stream, void* , QUIC_STREAM_EVENT *Event)
 {
     auto ctx = SpinQuicStream::Get(Stream);
     auto ThreadID = ctx->Connection.ThreadID;
+
+    if (GetRandom(5) == 0) {
+        SpinQuicGetRandomParam(Stream, ThreadID);
+    }
+
+    if (GetRandom(10) == 0) {
+        SpinQuicSetRandomStreamParam(Stream, ThreadID);
+    }
+
+    if (!ctx->Deleting && GetRandom(20) == 0) {
+        MsQuic.StreamShutdown(Stream, (QUIC_STREAM_SHUTDOWN_FLAGS)GetRandom(16), 0);
+        return QUIC_STATUS_SUCCESS;
+    }
 
     switch (Event->Type) {
     case QUIC_STREAM_EVENT_PEER_SEND_SHUTDOWN:
