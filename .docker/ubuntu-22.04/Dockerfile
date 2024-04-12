@@ -54,7 +54,7 @@ RUN apt-get update -y && apt-get install -y \
     liblttng-ust-dev \
     libssl-dev \
     libnuma-dev \
-    && "deb [arch=amd64] http://cz.archive.ubuntu.com/ubuntu noble main" > /etc/apt/sources.list.d/xdp.list \
+    && echo "deb [arch=amd64] http://cz.archive.ubuntu.com/ubuntu noble main" > /etc/apt/sources.list.d/xdp.list \
     && apt-get update -y && apt-get install -y -t noble \
     libnl-3-dev \
     libnl-genl-3-dev \
