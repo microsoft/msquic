@@ -20,7 +20,7 @@ fn main() {
         .define("QUIC_ENABLE_LOGGING", logging_enabled)
         .define("QUIC_TLS", "openssl")
         .define("QUIC_OUTPUT_DIR", "../lib")
-        .define("CARGO_BUILD", "on");
+        .define("QUIC_CARGO_BUILD", "on");
 
     match target.as_str() {
         "x86_64-apple-darwin" => config
