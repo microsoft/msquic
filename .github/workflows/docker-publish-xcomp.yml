@@ -28,6 +28,7 @@ jobs:
       fail-fast: false
       matrix:
         version: ['20.04', '22.04']
+        target: ['x86_64', 'arm']
 
     name: Build
     runs-on: ubuntu-latest
@@ -70,5 +71,6 @@ jobs:
           context: .docker/ubuntu-${{ matrix.version }}
           file: .docker/ubuntu-${{ matrix.version }}/Dockerfile
           push: ${{ github.event_name != 'pull_request' }}
-          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:ubuntu-${{ matrix.version }}
+          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:ubuntu-${{ matrix.version }}-${{ matrix.target }}
           labels: ${{ steps.meta.outputs.labels }}
+          target: ${{ matrix.target }}-build
