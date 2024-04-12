@@ -1009,6 +1009,8 @@ void Spin(Gbs& Gb, LockableVector<HQUIC>& Connections, std::vector<HQUIC>* Liste
                     if (QUIC_SUCCEEDED(
                         MsQuic.StreamSend(Stream, Buffer, 1, (QUIC_SEND_FLAGS)GetRandom(16), Buffer))) {
                         StreamCtx->SendOffset = (uint8_t)(StreamCtx->SendOffset + Length);
+                    } else {
+                        delete Buffer;
                     }
                 }
             }
@@ -1140,7 +1142,9 @@ void Spin(Gbs& Gb, LockableVector<HQUIC>& Connections, std::vector<HQUIC>* Liste
             if (Buffer) {
                 Buffer->Buffer = Gb.SendBuffer;
                 Buffer->Length = MaxBufferSizes[GetRandom(BufferCount)];
-                MsQuic.DatagramSend(Connection, Buffer, 1, (QUIC_SEND_FLAGS)GetRandom(8), Buffer);
+                if (QUIC_FAILED(MsQuic.DatagramSend(Connection, Buffer, 1, (QUIC_SEND_FLAGS)GetRandom(8), Buffer))) {
+                    delete Buffer;
+                }
             }
             break;
         }
