@@ -1003,10 +1003,13 @@ void Spin(Gbs& Gb, LockableVector<HQUIC>& Connections, std::vector<HQUIC>* Liste
                 auto StreamCtx = SpinQuicStream::Get(Stream);
                 auto Buffer = new(std::nothrow) QUIC_BUFFER;
                 if (Buffer) {
+                    const uint32_t Length = MaxBufferSizes[GetRandom(BufferCount)];
                     Buffer->Buffer = Gb.SendBuffer + StreamCtx->SendOffset;
-                    Buffer->Length = MaxBufferSizes[GetRandom(BufferCount)];
-                    StreamCtx->SendOffset = (uint8_t)(StreamCtx->SendOffset + Buffer->Length);
-                    MsQuic.StreamSend(Stream, Buffer, 1, (QUIC_SEND_FLAGS)GetRandom(16), Buffer);
+                    Buffer->Length = Length;
+                    if (QUIC_SUCCEEDED(
+                        MsQuic.StreamSend(Stream, Buffer, 1, (QUIC_SEND_FLAGS)GetRandom(16), Buffer))) {
+                        StreamCtx->SendOffset = (uint8_t)(StreamCtx->SendOffset + Length);
+                    }
                 }
             }
             break;
