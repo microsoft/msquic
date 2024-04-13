@@ -181,6 +181,82 @@ sudo dnf install openssl-devel
 sudo dnf install libatomic
 ```
 
+#### Linux XDP
+Linux XDP is experimentally supported on amd64 && Ubuntu 22.04LTS.  
+A command below automatically installs building and running dependencies
+```sh
+pwsh ./scripts/prepare-machine.ps1
+pwsh ./scripts/build.ps1
+```
+
+`./scripts/prepare-machine.ps1` internally donig belows
+```sh
+# for libxdp v1.4.2
+sudo apt-add-repository "deb http://mirrors.kernel.org/ubuntu mantic main" -y
+
+# install runtime dependencies
+sudo apt-get install -y libxdp1 libbpf1 libnl-3-200 libnl-route-3-200 libnl-genl-3-200
+
+# install build dependencies
+sudo apt-get -y install libxdp-dev libbpf-dev libnl-3-dev libnl-genl-3-dev libnl-route-3-dev zlib1g-dev zlib1g pkg-config m4 clang libpcap-dev libelf-dev
+
+# Optional. This is required when you run test with duonic (XDP capable virtual nic pair)
+sudo apt-get -y install iproute2 iptables
+sudo ./scripts/duonic.sh install
+```
+
+Test
+```sh
+# "sudo" required
+# MSQUIC_XDP_OBJECT_PATH points to where datapath_raw_xdp_kern.o is located
+sudo MSQUIC_XDP_OBJECT_PATH=${PATH_TO_MSQUIC}/artifacts/bin/linux/x64_Debug_openssl3/ ./artifacts/bin/linux/x64_Debug_openssl3/msquictest --duoNic
+```
+
+**Q&A**
+- Q: Is this workload really running on XDP?  
+A: If you have the `xdp-dump` command, try using `sudo xdp-dump --list-interfaces`. The `xdp_main` function is located in `src/platform/datapath_raw_xdp_linux_kern.c`. If none of the interfaces load the XDP program, something must be wrong.   
+```
+$ sudo ./submodules/xdp-tools/xdp-dump/xdpdump --list-interfaces
+Interface        Prio  Program name      Mode     ID   Tag               Chain actions
+--------------------------------------------------------------------------------------
+lo                     <No XDP program loaded!>
+eth0                   <No XDP program loaded!>
+docker0                <No XDP program loaded!>
+duo2                   xdp_dispatcher    native   608211 4d7e87c0d30db711 
+ =>              50     xdp_main                  608220 c8fcabdd9e3895f3  XDP_PASS
+duo1                   xdp_dispatcher    native   608225 4d7e87c0d30db711 
+ =>              50     xdp_main                  608228 c8fcabdd9e3895f3  XDP_PASS
+```
+
+- Q: Any xdp logs?  
+A: For MsQuic layer, see `Diagnostics.md`. For XDP layer, enable DEBUG flag `src/platform/CMakeLists.txt`.  
+You can see it `sudo cat /sys/kernel/debug/tracing/trace_pipe`. **Your workload must become too slow.**
+```
+msquictest-3797496 [005] ..s1. 2079546.776875: bpf_trace_printk: ========> To ifacename : [duo2], RxQueueID:0
+msquictest-3797496 [005] ..s1. 2079546.776875: bpf_trace_printk:  Eth[244]        SRC: 00:00:00:00:00:00 => DST:22:22:22:22:00:02
+msquictest-3797496 [005] ..s1. 2079546.776876: bpf_trace_printk:          Ipv4 TotalLen:[230]     Src: 192.168.1.11 => Dst: 192.168.1.12
+msquictest-3797496 [005] ..s1. 2079546.776877: bpf_trace_printk:                  UDP[202]: SRC: 43829 DST:58141
+msquictest-3797496 [005] ..s1. 2079546.776877: bpf_trace_printk:                           [ec 00 00 00 01 00 09 c0 30 3d 49 a2]
+msquictest-3797496 [005] ..s1. 2079546.776878: bpf_trace_printk:                  Redirect to QUIC service.  IpMatch:1, PortMatch:1, SocketExists:1, Redirection:4
+
+msquictest-3797496 [005] ..s1. 2079546.777235: bpf_trace_printk: ========> To ifacename : [duo1], RxQueueID:0
+msquictest-3797496 [005] ..s1. 2079546.777310: bpf_trace_printk:  Eth[1262]       SRC: 00:00:00:00:00:00 => DST:22:22:22:22:00:01
+msquictest-3797496 [005] ..s1. 2079546.777323: bpf_trace_printk:          Ipv4 TotalLen:[1248]    Src: 192.168.1.12 => Dst: 192.168.1.11
+msquictest-3797496 [005] ..s1. 2079546.777323: bpf_trace_printk:                  UDP[1220]: SRC: 58141 DST:43829
+msquictest-3797496 [005] ..s1. 2079546.777324: bpf_trace_printk:                           [c0 00 00 00 01 09 c0 30 3d 49 a2 56]
+msquictest-3797496 [005] ..s1. 2079546.777325: bpf_trace_printk:                  Redirect to QUIC service.  IpMatch:1, PortMatch:1, SocketExists:1, Redirection:4
+```
+- Q: Is Ubuntu 20.04LTS supported?  
+A: Not officially, but you can still **build** it by running `apt-get upgrade linux-libc-dev`. Please be aware of potential side effects from the upgrade.
+- Q: Can I build libxdp/libbpf from source?  
+A: Yes. Try below. We don't use CI/CD for the source version, but we saw xdp-tools v1.4.2 from source works.
+```sh
+pwsh ./scripts/prepare-machine.ps1 -BuildLibXdpFromSource
+pwsh ./scripts/build.ps1 -BuildLibXdpFromSource
+# try using ldd which libxdp.so/libbpf.so are linked
+# When running binary, set LIBXDP_SKIP_DISPATCHER=1 or LIBXDP_OBJECT_PATH=${where xdp-dispatcher.o is located}
+```
+
 ### macOS
 The build needs CMake and compiler.
 
