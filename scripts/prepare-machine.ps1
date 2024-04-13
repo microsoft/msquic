@@ -501,9 +501,6 @@ if ($IsLinux) {
 
     if ($ForBuild) {
         sudo apt-add-repository ppa:lttng/stable-2.13 -y
-        if (!$BuildLibXdpFromSource) {
-            sudo apt-add-repository "deb http://mirrors.kernel.org/ubuntu noble main" -y
-        }
         sudo apt-get update -y
         sudo apt-get install -y cmake
         sudo apt-get install -y build-essential
@@ -523,31 +520,36 @@ if ($IsLinux) {
         sudo gem install fpm
 
         # XDP dependencies
-        if ($BuildLibXdpFromSource) {
-            # for xdp-dispatcher.c
-            sudo apt-get -y install --no-install-recommends libc6-dev-i386
-        } else {
-            sudo apt-get -y install libxdp-dev libbpf-dev
+        if ((bash -c 'lsb_release -r') -match '22.04') {
+            if ($BuildLibXdpFromSource) {
+                # for xdp-dispatcher.c
+                sudo apt-get -y install --no-install-recommends libc6-dev-i386
+            } else {
+                sudo apt-add-repository "deb http://mirrors.kernel.org/ubuntu noble main" -y
+                sudo apt-get update -y
+                sudo apt-get -y install libxdp-dev libbpf-dev
+            }
+            sudo apt-get -y install libnl-3-dev libnl-genl-3-dev libnl-route-3-dev zlib1g-dev zlib1g pkg-config m4 clang libpcap-dev libelf-dev
         }
-        sudo apt-get -y install libnl-3-dev libnl-genl-3-dev libnl-route-3-dev zlib1g-dev zlib1g pkg-config m4 clang libpcap-dev libelf-dev
     }
 
     if ($ForTest) {
         sudo apt-add-repository ppa:lttng/stable-2.13 -y
-        if (!$BuildLibXdpFromSource) {
-            sudo apt-add-repository "deb http://mirrors.kernel.org/ubuntu noble main" -y
-        }
         sudo apt-get update -y
         sudo apt-get install -y lttng-tools
         sudo apt-get install -y liblttng-ust-dev
         sudo apt-get install -y gdb
-        if (!$BuildLibXdpFromSource) {
-            sudo apt-get install -y libxdp1 libbpf1
-        }
-        sudo apt-get install -y libnl-3-200 libnl-route-3-200 libnl-genl-3-200
-        if ($UseXdp) {
-            sudo apt-get -y install iproute2 iptables
-            Install-DuoNic
+        if ((bash -c 'lsb_release -r') -match '22.04') {
+            if (!$BuildLibXdpFromSource) {
+                sudo apt-add-repository "deb http://mirrors.kernel.org/ubuntu noble main" -y
+                sudo apt-get update -y
+                sudo apt-get install -y libxdp1 libbpf1
+            }
+            sudo apt-get install -y libnl-3-200 libnl-route-3-200 libnl-genl-3-200
+            if ($UseXdp) {
+                sudo apt-get -y install iproute2 iptables
+                Install-DuoNic
+            }
         }
 
         # Enable core dumps for the system.

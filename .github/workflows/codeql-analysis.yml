@@ -39,7 +39,7 @@ jobs:
       # Install dependencies and build submodules before starting analysis.
       - run: |
          sudo apt-add-repository ppa:lttng/stable-2.13
-         sudo apt-add-repository "deb http://mirrors.kernel.org/ubuntu mantic main" -y
+         sudo apt-add-repository "deb http://mirrors.kernel.org/ubuntu noble main" -y
          sudo apt-get update
          sudo apt-get install -y liblttng-ust-dev libnuma-dev
          sudo apt-get install -y libxdp-dev libbpf-dev libnl-3-dev libnl-genl-3-dev libnl-route-3-dev zlib1g-dev zlib1g pkg-config m4 clang libpcap-dev libelf-dev

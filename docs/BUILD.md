@@ -192,7 +192,7 @@ pwsh ./scripts/build.ps1
 `./scripts/prepare-machine.ps1` internally donig belows
 ```sh
 # for libxdp v1.4.2
-sudo apt-add-repository "deb http://mirrors.kernel.org/ubuntu mantic main" -y
+sudo apt-add-repository "deb http://mirrors.kernel.org/ubuntu noble main" -y
 
 # install runtime dependencies
 sudo apt-get install -y libxdp1 libbpf1 libnl-3-200 libnl-route-3-200 libnl-genl-3-200
