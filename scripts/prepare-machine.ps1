@@ -502,9 +502,7 @@ if ($IsLinux) {
     if ($ForBuild) {
         sudo apt-add-repository ppa:lttng/stable-2.13 -y
         if (!$BuildLibXdpFromSource) {
-            # mantic for v1.3.0, noble for v1.4.2
-            # use mantic (v1.3.0) to align build with CI
-            sudo apt-add-repository "deb http://mirrors.kernel.org/ubuntu mantic main" -y
+            sudo apt-add-repository "deb http://mirrors.kernel.org/ubuntu noble main" -y
         }
         sudo apt-get update -y
         sudo apt-get install -y cmake
@@ -525,7 +523,7 @@ if ($IsLinux) {
         sudo gem install fpm
 
         # XDP dependencies
-        if (!$BuildLibXdpFromSource) {
+        if ($BuildLibXdpFromSource) {
             # for xdp-dispatcher.c
             sudo apt-get -y install --no-install-recommends libc6-dev-i386
         } else {
