@@ -403,7 +403,7 @@ QUIC_STATUS
 OpenXdpProgram(struct xdp_program **Prog)
 {
     char errmsg[1024];
-    int err;
+    int err = 0;
     const char* Filename = "datapath_raw_xdp_kern.o";
     char* EnvPath = getenv("MSQUIC_XDP_OBJECT_PATH");
     char* Paths[] = {

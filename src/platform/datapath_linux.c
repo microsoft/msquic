@@ -58,23 +58,18 @@ CxPlatDataPathInitialize(
         goto Error;
     }
 
-    // temporally disable XDP by default
-    char* envValue = getenv("MSQUIC_ENABLE_XDP");
-    if (envValue != NULL &&
-        envValue[0] == '1') {
-        Status =
-            RawDataPathInitialize(
-                ClientRecvContextLength,
-                Config,
-                (*NewDataPath),
-                &((*NewDataPath)->RawDataPath));
-        if (QUIC_FAILED(Status)) {
-            QuicTraceLogVerbose(
-                RawDatapathInitFail,
-                "[ raw] Failed to initialize raw datapath, status:%d", Status);
-            Status = QUIC_STATUS_SUCCESS;
-            (*NewDataPath)->RawDataPath = NULL;
-        }
+    Status =
+        RawDataPathInitialize(
+            ClientRecvContextLength,
+            Config,
+            (*NewDataPath),
+            &((*NewDataPath)->RawDataPath));
+    if (QUIC_FAILED(Status)) {
+        QuicTraceLogVerbose(
+            RawDatapathInitFail,
+            "[ raw] Failed to initialize raw datapath, status:%d", Status);
+        Status = QUIC_STATUS_SUCCESS;
+        (*NewDataPath)->RawDataPath = NULL;
     }
 
 Error:

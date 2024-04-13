@@ -227,9 +227,6 @@ if ($UseXdp) {
     # Helper for XDP usage
     $DuoNic = $true
     if ($IsLinux) {
-        # Temporal feature flag for Linux
-        $env:MSQUIC_ENABLE_XDP = 1
-        $env:LIBXDP_OBJECT_PATH = $RootArtifactDir
         $env:MSQUIC_XDP_OBJECT_PATH = $RootArtifactDir
     }
 }
