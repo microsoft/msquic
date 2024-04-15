@@ -481,16 +481,34 @@ QuicPacketBuilderGetPacketTypeAndKeyForControlFrames(
 
     QUIC_PACKET_KEY_TYPE MaxKeyType = Connection->Crypto.TlsState.WriteKey;
 
-    if (QuicConnIsClient(Connection) &&
-        !Connection->State.HandshakeConfirmed &&
-        MaxKeyType == QUIC_PACKET_KEY_1_RTT &&
-        (SendFlags & QUIC_CONN_SEND_FLAG_CONNECTION_CLOSE)) {
+    if (SendFlags & (QUIC_CONN_SEND_FLAG_CONNECTION_CLOSE | QUIC_CONN_SEND_FLAG_APPLICATION_CLOSE)) {
         //
-        // Server is not allowed to process 1-RTT packets until the handshake is confirmed and since we are
-        // closing the connection, the handshake is unlikely to complete. Ensure the CONNECTION_CLOSE is sent
-        // in a packet which server can process.
+        // CLOSE is ready to be sent. The peer might not be able to read current
+        // highest key, so the CLOSE frame should be sent at the current and
+        // previous encryption levels if the handshake hasn't been confirmed.
         //
-        MaxKeyType = QUIC_PACKET_KEY_HANDSHAKE;
+        if (!Connection->State.HandshakeConfirmed && MaxKeyType >= QUIC_PACKET_KEY_HANDSHAKE) {
+            QUIC_PACKET_KEY_TYPE PreviousKeyType =
+                MaxKeyType == QUIC_PACKET_KEY_1_RTT
+                    ? QUIC_PACKET_KEY_HANDSHAKE
+                    : QUIC_PACKET_KEY_INITIAL;
+
+            if ((Builder->Datagram == NULL || Builder->DatagramLength == 0) &&
+                Connection->Crypto.TlsState.WriteKeys[PreviousKeyType] != NULL) {
+                MaxKeyType = PreviousKeyType; // Use the lower key for the first packet in a datagram.
+            }
+        }
+
+        //
+        // Don't use 0-RTT key for sending CLOSE frames.
+        //
+        if (MaxKeyType == QUIC_PACKET_KEY_0_RTT) {
+            *PacketKeyType = QUIC_PACKET_KEY_INITIAL;
+        } else {
+            *PacketKeyType = MaxKeyType;
+        }
+
+        return TRUE;
     }
 
     for (QUIC_PACKET_KEY_TYPE KeyType = 0;
@@ -540,16 +558,11 @@ QuicPacketBuilderGetPacketTypeAndKeyForControlFrames(
         }
     }
 
-    if (SendFlags & (QUIC_CONN_SEND_FLAG_CONNECTION_CLOSE | QUIC_CONN_SEND_FLAG_PING)) {
+    if (SendFlags & QUIC_CONN_SEND_FLAG_PING) {
         //
-        // CLOSE or PING is ready to be sent. This is always sent with the
-        // current write key.
+        // PING is ready to be sent. This is always sent with the current write key.
         //
-        // TODO - This logic isn't correct. The peer might not be able to read
-        // this key, so the CLOSE frame should be sent at the current and
-        // previous encryption level if the handshake hasn't been confirmed.
-        //
-        if (Connection->Crypto.TlsState.WriteKey == QUIC_PACKET_KEY_0_RTT) {
+        if (MaxKeyType == QUIC_PACKET_KEY_0_RTT) {
             *PacketKeyType = QUIC_PACKET_KEY_INITIAL;
         } else {
             *PacketKeyType = MaxKeyType;
