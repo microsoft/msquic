@@ -116,7 +116,7 @@ jobs:
     runs-on: ${{ matrix.vec.plat == 'windows' && matrix.vec.os == 'WinServerPrerelease' && fromJson('[''self-hosted'', ''1ES.Pool=1es-msquic-pool'', ''1ES.ImageOverride=WinServerPrerelease'']') || matrix.vec.os }}
     steps:
     - name: Checkout repository
-      uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11
+      uses: actions/checkout@9bb56186c3b09b4f86b1c65136769dd318469633
     - name: Download Build Artifacts
       uses: actions/download-artifact@c850b930e6ba138125429b7e5c93fc707a7f8427
       if: matrix.vec.plat == 'windows'
@@ -181,7 +181,7 @@ jobs:
     runs-on: ${{ matrix.vec.plat == 'winkernel' && matrix.vec.os == 'WinServerPrerelease' && fromJson('[''self-hosted'', ''1ES.Pool=1es-msquic-pool'', ''1ES.ImageOverride=WinServerPrerelease'']') || matrix.vec.os }}
     steps:
     - name: Checkout repository
-      uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11
+      uses: actions/checkout@9bb56186c3b09b4f86b1c65136769dd318469633
     - name: Download Build Artifacts
       uses: actions/download-artifact@c850b930e6ba138125429b7e5c93fc707a7f8427
       with: # note we always use binaries built on windows-2022.
@@ -228,7 +228,7 @@ jobs:
     - "1ES.ImageOverride=WinServerPrerelease"
     steps:
     - name: Checkout repository
-      uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11
+      uses: actions/checkout@9bb56186c3b09b4f86b1c65136769dd318469633
       with:
         fetch-depth: 0
     - uses: actions/download-artifact@c850b930e6ba138125429b7e5c93fc707a7f8427

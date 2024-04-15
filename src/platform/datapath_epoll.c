@@ -76,7 +76,7 @@ typedef struct DATAPATH_RX_IO_BLOCK {
 
 } DATAPATH_RX_IO_BLOCK;
 
-typedef struct DATAPATH_RX_PACKET {
+typedef struct __attribute__((aligned(16))) DATAPATH_RX_PACKET {
     //
     // The IO block that owns the packet.
     //

@@ -940,13 +940,7 @@ QuicStreamRecvFlush(
 
         Stream->Flags.ReceiveCallActive = FALSE;
 
-        if (Status == QUIC_STATUS_SUCCESS) {
-            InterlockedExchangeAdd64(
-                (int64_t*)&Stream->RecvCompletionLength,
-                (int64_t)Event.RECEIVE.TotalBufferLength);
-            FlushRecv = TRUE;
-
-        } else if (Status == QUIC_STATUS_CONTINUE) {
+        if (Status == QUIC_STATUS_CONTINUE) {
             CXPLAT_DBG_ASSERT(!Stream->Flags.SentStopSending);
             InterlockedExchangeAdd64(
                 (int64_t*)&Stream->RecvCompletionLength,
@@ -967,15 +961,18 @@ QuicStreamRecvFlush(
 
         } else {
             //
-            // All other failure status returns are ignored and shouldn't be
-            // used by the app. Treat as draining zero bytes, which will disable
-            // receive future callbacks.
+            // All failure status returns shouldn't be used by the app are
+            // ignored. We fire a telemetry event and treat as success.
             //
             CXPLAT_TEL_ASSERTMSG_ARGS(
                 QUIC_SUCCEEDED(Status),
                 "App failed recv callback",
                 Stream->Connection->Registration->AppName,
                 Status, 0);
+
+            InterlockedExchangeAdd64(
+                (int64_t*)&Stream->RecvCompletionLength,
+                (int64_t)Event.RECEIVE.TotalBufferLength);
             FlushRecv = TRUE;
         }
 

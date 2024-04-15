@@ -1011,6 +1011,101 @@ QuicTestCustomClientCertificateValidation(
 }
 
 void
+QuicTestShutdownDuringHandshake(
+    _In_ bool ClientShutdown
+    )
+{
+    MsQuicRegistration Registration;
+    TEST_TRUE(Registration.IsValid());
+
+    MsQuicAlpn Alpn("MsQuicTest");
+
+    MsQuicSettings Settings;
+    Settings.SetIdleTimeoutMs(3000);
+
+    MsQuicConfiguration ServerConfiguration(Registration, Alpn, Settings, ServerSelfSignedCredConfig);
+    TEST_TRUE(ServerConfiguration.IsValid());
+
+    MsQuicCredentialConfig ClientCredConfig(QUIC_CREDENTIAL_FLAG_CLIENT | QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION | QUIC_CREDENTIAL_FLAG_INDICATE_CERTIFICATE_RECEIVED);
+    MsQuicConfiguration ClientConfiguration(Registration, Alpn, Settings, ClientCredConfig);
+    TEST_TRUE(ClientConfiguration.IsValid());
+
+    {
+        TestListener Listener(Registration, ListenerAcceptConnection, ServerConfiguration);
+        TEST_TRUE(Listener.IsValid());
+        TEST_QUIC_SUCCEEDED(Listener.Start(Alpn));
+
+        QuicAddr ServerLocalAddr;
+        TEST_QUIC_SUCCEEDED(Listener.GetLocalAddr(ServerLocalAddr));
+
+        {
+            UniquePtr<TestConnection> Server;
+            ServerAcceptContext ServerAcceptCtx((TestConnection**)&Server);
+            ServerAcceptCtx.ExpectedTransportCloseStatus = QUIC_STATUS_USER_CANCELED;
+            Listener.Context = &ServerAcceptCtx;
+
+            {
+                TestConnection Client(Registration);
+                TEST_TRUE(Client.IsValid());
+
+                Client.SetExpectedCustomValidationResult(TRUE);
+                Client.SetAsyncCustomValidationResult(TRUE);
+                Client.SetExpectedTransportCloseStatus(QUIC_STATUS_USER_CANCELED);
+
+                TEST_QUIC_SUCCEEDED(
+                    Client.Start(
+                        ClientConfiguration,
+                        QUIC_ADDRESS_FAMILY_UNSPEC,
+                        QUIC_TEST_LOOPBACK_FOR_AF(
+                            QuicAddrGetFamily(&ServerLocalAddr.SockAddr)),
+                        ServerLocalAddr.GetPort()));
+
+                CxPlatSleep(1000);
+
+                //
+                // By now, the handshake is waiting for custom certificate validation.
+                //
+                if (ClientShutdown) {
+                    Client.Shutdown(QUIC_CONNECTION_SHUTDOWN_FLAG_NONE, QUIC_TEST_NO_ERROR);
+
+                    if (!Client.WaitForShutdownComplete()) {
+                        return;
+                    }
+
+                    if (!Server->WaitForConnectionComplete()) {
+                        return;
+                    }
+
+                    //
+                    // server is not allowed to respond to 1-RTT packets, so it will only
+                    // receive Handshake CONNECTION_CLOSE which cannot bear app error code
+                    //
+                    TEST_EQUAL(TRUE, Server->GetTransportClosed());
+                } else {
+                    Server->Shutdown(QUIC_CONNECTION_SHUTDOWN_FLAG_NONE, QUIC_TEST_NO_ERROR);
+
+                    if (!Server->WaitForShutdownComplete()) {
+                        return;
+                    }
+
+                    if (!Client.WaitForConnectionComplete()) {
+                        return;
+                    }
+
+                    //
+                    // We can assert neither transport nor peer closed because the behavior
+                    // is platform dependent. Schannel provides 1-RTT read keys early enough to
+                    // receive the app CONNECTION_CLOSE, but OpenSSL does not and leads to
+                    // transport close.
+                    //
+                }
+            }
+        }
+    }
+
+}
+
+void
 QuicTestConnectUnreachable(
     _In_ int Family
     )

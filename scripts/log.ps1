@@ -265,10 +265,6 @@ function Log-Start {
 function Log-Cancel {
     if ($IsWindows) {
         try { wpr.exe -cancel -instancename $InstanceName 2>&1 } catch { }
-        try {
-            $homeDirectory = $env:USERPROFILE
-            Remove-Item $homeDirectory/AppData/Local/Temp -Recurse -Force
-        } catch { }
     } elseif ($IsMacOS) {
     } else {
         if (!(Test-Path $TempLTTngDir)) {
