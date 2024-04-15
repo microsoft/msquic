@@ -257,6 +257,7 @@ function Install-NASM {
     if (!(Test-Path $NasmExe) -and $env:GITHUB_PATH -eq $null) {
         Write-Host "Downloading NASM"
         $NasmArch = "win64"
+        mkdir artifacts
         if (![System.Environment]::Is64BitOperatingSystem) { $NasmArch = "win32" }
         try {
             Invoke-WebRequest -Uri "https://www.nasm.us/pub/nasm/releasebuilds/$NasmVersion/win64/nasm-$NasmVersion-$NasmArch.zip" -OutFile "artifacts\nasm.zip"
