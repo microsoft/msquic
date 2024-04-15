@@ -299,6 +299,15 @@ QuicConnGetPathByID(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 _Ret_maybenull_
 QUIC_PATH*
+QuicConnGetPathByAddress(
+    _In_ QUIC_CONNECTION* Connection,
+    _In_ const QUIC_ADDR* LocalAddress,
+    _In_ const QUIC_ADDR* RemoteAddress
+    );
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Ret_maybenull_
+QUIC_PATH*
 QuicConnGetPathForPacket(
     _In_ QUIC_CONNECTION* Connection,
     _In_ const QUIC_RX_PACKET* Packet

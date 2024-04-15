@@ -2523,7 +2523,6 @@ CxPlatRecvDataReturn(
         DATAPATH_RX_IO_BLOCK* IoBlock =
             CXPLAT_CONTAINING_RECORD(Datagram, DATAPATH_RX_PACKET, Data)->IoBlock;
 
-        CXPLAT_DBG_ASSERT(Binding == NULL || Binding == IoBlock->Binding);
         Binding = IoBlock->Binding;
         Datagram->Allocated = FALSE;
 

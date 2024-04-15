@@ -116,7 +116,7 @@ QuicPacketBuilderInitialize(
     Builder->SourceCid =
         CXPLAT_CONTAINING_RECORD(
             Connection->SourceCids.Next,
-            QUIC_CID_HASH_ENTRY,
+            QUIC_CID_SLIST_ENTRY,
             Link);
 
     uint64_t TimeNow = CxPlatTimeUs64();
@@ -946,6 +946,7 @@ QuicPacketBuilderFinalize(
     Builder->Metadata->PacketLength =
         Builder->HeaderLength + PayloadLength;
     Builder->Metadata->Flags.EcnEctSet = Builder->EcnEctSet;
+    Builder->Metadata->PathId = Builder->Path->ID;
     QuicTraceEvent(
         ConnPacketSent,
         "[conn][%p][TX][%llu] %hhu (%hu bytes)",

@@ -518,6 +518,8 @@ size_t QUIC_IOCTL_BUFFER_SIZES[] =
     0,
     sizeof(QUIC_RUN_CANCEL_ON_LOSS_PARAMS),
     sizeof(uint32_t),
+    sizeof(QUIC_RUN_PROBE_PATH_PARAMS),
+    sizeof(QUIC_RUN_MIGRATION_PARAMS),
 };
 
 CXPLAT_STATIC_ASSERT(
@@ -549,6 +551,8 @@ typedef union {
     QUIC_RUN_KEY_UPDATE_RANDOM_LOSS_PARAMS KeyUpdateRandomLossParams;
     QUIC_RUN_MTU_DISCOVERY_PARAMS MtuDiscoveryParams;
     uint32_t Test;
+    QUIC_RUN_PROBE_PATH_PARAMS ProbePathParams;
+    QUIC_RUN_MIGRATION_PARAMS MigrationParams;
     QUIC_RUN_REBIND_PARAMS RebindParams;
     UINT8 RejectByClosing;
     QUIC_RUN_CIBIR_EXTENSION CibirParams;
@@ -923,6 +927,24 @@ QuicTestCtlEvtIoDeviceControl(
         QuicTestCtlRun(
             QuicTestDatagramSend(
                 Params->Family));
+        break;
+
+    case IOCTL_QUIC_RUN_PROBE_PATH:
+        CXPLAT_FRE_ASSERT(Params != nullptr);
+        QuicTestCtlRun(
+            QuicTestProbePath(
+                Params->ProbePathParams.Family,
+                Params->ProbePathParams.ShareBinding,
+                Params->ProbePathParams.DropPacketCount));
+        break;
+
+    case IOCTL_QUIC_RUN_MIGRATION:
+        CXPLAT_FRE_ASSERT(Params != nullptr);
+        QuicTestCtlRun(
+            QuicTestMigration(
+                Params->MigrationParams.Family,
+                Params->MigrationParams.ShareBinding,
+                Params->MigrationParams.Smooth));
         break;
 
     case IOCTL_QUIC_RUN_NAT_PORT_REBIND:

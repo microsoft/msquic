@@ -214,7 +214,7 @@ QuicConnAlloc(
             Path->DestCid->CID.SequenceNumber,
             CASTED_CLOG_BYTEARRAY(Path->DestCid->CID.Length, Path->DestCid->CID.Data));
 
-        QUIC_CID_HASH_ENTRY* SourceCid =
+        QUIC_CID_SLIST_ENTRY* SourceCid =
             QuicCidNewSource(Connection, Packet->DestCidLen, Packet->DestCid);
         if (SourceCid == NULL) {
             Status = QUIC_STATUS_OUT_OF_MEMORY;
@@ -288,9 +288,9 @@ Error:
         CXPLAT_FREE(
             CXPLAT_CONTAINING_RECORD(
                 Connection->SourceCids.Next,
-                QUIC_CID_HASH_ENTRY,
+                QUIC_CID_SLIST_ENTRY,
                 Link),
-            QUIC_POOL_CIDHASH);
+            QUIC_POOL_CIDSLIST);
         Connection->SourceCids.Next = NULL;
     }
     while (!CxPlatListIsEmpty(&Connection->DestCids)) {
@@ -360,10 +360,11 @@ QuicConnFree(
         CxPlatRecvDataReturn((CXPLAT_RECV_DATA*)Connection->ReceiveQueue);
         Connection->ReceiveQueue = NULL;
     }
-    QUIC_PATH* Path = &Connection->Paths[0];
-    if (Path->Binding != NULL) {
-        QuicLibraryReleaseBinding(Path->Binding);
-        Path->Binding = NULL;
+    for (uint8_t i = 0; i < Connection->PathsCount; ++i) {
+        if (Connection->Paths[i].Binding != NULL) {
+            QuicLibraryReleaseBinding(Connection->Paths[i].Binding);
+            Connection->Paths[i].Binding = NULL;
+        }
     }
     CxPlatDispatchLockUninitialize(&Connection->ReceiveQueueLock);
     QuicOperationQueueUninitialize(&Connection->OperQ);
@@ -607,10 +608,10 @@ QuicConnTraceRundownOper(
         for (CXPLAT_SLIST_ENTRY* Entry = Connection->SourceCids.Next;
                 Entry != NULL;
                 Entry = Entry->Next) {
-            const QUIC_CID_HASH_ENTRY* SourceCid =
+            const QUIC_CID_SLIST_ENTRY* SourceCid =
                 CXPLAT_CONTAINING_RECORD(
                     Entry,
-                    QUIC_CID_HASH_ENTRY,
+                    QUIC_CID_SLIST_ENTRY,
                     Link);
             UNREFERENCED_PARAMETER(SourceCid);
             QuicTraceEvent(
@@ -801,14 +802,14 @@ QuicConnUpdateRtt(
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
-QUIC_CID_HASH_ENTRY*
+QUIC_CID_SLIST_ENTRY*
 QuicConnGenerateNewSourceCid(
     _In_ QUIC_CONNECTION* Connection,
     _In_ BOOLEAN IsInitial
     )
 {
     uint8_t TryCount = 0;
-    QUIC_CID_HASH_ENTRY* SourceCid;
+    QUIC_CID_SLIST_ENTRY* SourceCid;
 
     if (!Connection->State.ShareBinding) {
         //
@@ -836,12 +837,40 @@ QuicConnGenerateNewSourceCid(
                 AllocFailure,
                 "Allocation of '%s' failed. (%llu bytes)",
                 "new Src CID",
-                sizeof(QUIC_CID_HASH_ENTRY) + MsQuicLib.CidTotalLength);
+                sizeof(QUIC_CID_SLIST_ENTRY) + MsQuicLib.CidTotalLength);
             QuicConnFatalError(Connection, QUIC_STATUS_INTERNAL_ERROR, NULL);
             return NULL;
         }
-        if (!QuicBindingAddSourceConnectionID(Connection->Paths[0].Binding, SourceCid)) {
-            CXPLAT_FREE(SourceCid, QUIC_POOL_CIDHASH);
+
+        BOOLEAN Collision = FALSE;
+
+        CxPlatDispatchLockAcquire(&MsQuicLib.DatapathLock);
+
+        //
+        // Check whether a new sourceCid collides with any sourceCid which belong to all
+        // the bindings including the ones which this connection doesn't bound.
+        //
+        for (CXPLAT_LIST_ENTRY* Link = MsQuicLib.Bindings.Flink;
+            Link != &MsQuicLib.Bindings;
+            Link = Link->Flink) {
+
+            QUIC_BINDING* Binding =
+                CXPLAT_CONTAINING_RECORD(Link, QUIC_BINDING, Link);
+            QUIC_CONNECTION* Connection1 =
+                QuicLookupFindConnectionByLocalCid(
+                    &Binding->Lookup,
+                    SourceCid->CID.Data,
+                    SourceCid->CID.Length);
+            if (Connection1 != NULL) {
+                Collision = TRUE;
+                break;
+            }    
+        }
+
+        CxPlatDispatchLockRelease(&MsQuicLib.DatapathLock);
+
+        if (Collision) {
+            CXPLAT_FREE(SourceCid, QUIC_POOL_CIDSLIST);
             SourceCid = NULL;
             if (++TryCount > QUIC_CID_MAX_COLLISION_RETRY) {
                 QuicTraceEvent(
@@ -859,6 +888,14 @@ QuicConnGenerateNewSourceCid(
         }
     } while (SourceCid == NULL);
 
+    for (uint8_t i = 0; i < Connection->PathsCount; ++i) {
+        if (Connection->Paths[i].Binding != NULL) {
+            QuicBindingAddSourceConnectionID(Connection->Paths[i].Binding, SourceCid);
+        }
+    }
+
+    SourceCid->CID.SequenceNumber = Connection->NextSourceCidSequenceNumber++;
+
     QuicTraceEvent(
         ConnSourceCidAdded,
         "[conn][%p] (SeqNum=%llu) New Source CID: %!CID!",
@@ -866,7 +903,6 @@ QuicConnGenerateNewSourceCid(
         SourceCid->CID.SequenceNumber,
         CASTED_CLOG_BYTEARRAY(SourceCid->CID.Length, SourceCid->CID.Data));
 
-    SourceCid->CID.SequenceNumber = Connection->NextSourceCidSequenceNumber++;
     if (SourceCid->CID.SequenceNumber > 0) {
         SourceCid->CID.NeedsToSend = TRUE;
         QuicSendSetSendFlag(&Connection->Send, QUIC_CONN_SEND_FLAG_NEW_CONNECTION_ID);
@@ -930,8 +966,8 @@ QuicConnGenerateNewSourceCids(
         NewCidCount = Connection->SourceCidLimit;
         CXPLAT_SLIST_ENTRY* Entry = Connection->SourceCids.Next;
         while (Entry != NULL) {
-            QUIC_CID_HASH_ENTRY* SourceCid =
-                CXPLAT_CONTAINING_RECORD(Entry, QUIC_CID_HASH_ENTRY, Link);
+            QUIC_CID_SLIST_ENTRY* SourceCid =
+                CXPLAT_CONTAINING_RECORD(Entry, QUIC_CID_SLIST_ENTRY, Link);
             SourceCid->CID.Retired = TRUE;
             Entry = Entry->Next;
         }
@@ -950,6 +986,28 @@ QuicConnGenerateNewSourceCids(
             break;
         }
     }
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+uint16_t
+QuicConnUnusedDestCidsCount(
+    _In_ const QUIC_CONNECTION* Connection
+    )
+{
+    uint16_t Count = 0;
+    for (CXPLAT_LIST_ENTRY* Entry = Connection->DestCids.Flink;
+            Entry != &Connection->DestCids;
+            Entry = Entry->Flink) {
+        QUIC_CID_LIST_ENTRY* DestCid =
+            CXPLAT_CONTAINING_RECORD(
+                Entry,
+                QUIC_CID_LIST_ENTRY,
+                Link);
+        if (!DestCid->CID.UsedLocally && !DestCid->CID.Retired) {
+            ++Count;
+        }
+    }
+    return Count;
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -1084,7 +1142,6 @@ QuicConnReplaceRetiredCids(
             continue;
         }
 
-        QUIC_CID_VALIDATE_NULL(Connection, Path->DestCid); // Previously cleared on retire.
         QUIC_CID_LIST_ENTRY* NewDestCid = QuicConnGetUnusedDestCid(Connection);
         if (NewDestCid == NULL) {
             if (Path->IsActive) {
@@ -1106,8 +1163,10 @@ QuicConnReplaceRetiredCids(
         }
 
         CXPLAT_DBG_ASSERT(NewDestCid != Path->DestCid);
+        QUIC_CID_LIST_ENTRY* OldDestCid = Path->DestCid;
         Path->DestCid = NewDestCid;
         QUIC_CID_SET_PATH(Connection, NewDestCid, Path);
+        QUIC_CID_VALIDATE_NULL(Connection, OldDestCid);
         Path->DestCid->CID.UsedLocally = TRUE;
         Path->InitiatedCidUpdate = TRUE;
         QuicPathValidate(Path);
@@ -1356,12 +1415,36 @@ QuicConnOnShutdownComplete(
         if (Path->EncryptionOffloading) {
             QuicPathUpdateQeo(Connection, Path, CXPLAT_QEO_OPERATION_REMOVE);
         }
+    }
+    //
+    // Remove all entries in the binding's lookup tables so we don't get any
+    // more packets queued.
+    //
+    if (Connection->RemoteHashEntry != NULL) {
+        CXPLAT_DBG_ASSERT(Connection->RemoteHashEntry->Binding != NULL);
+        QuicBindingRemoveRemoteHash(
+            Connection->RemoteHashEntry->Binding,
+            Connection->RemoteHashEntry);
+    }
 
-        //
-        // Remove all entries in the binding's lookup tables so we don't get any
-        // more packets queued.
-        //
-        QuicBindingRemoveConnection(Connection->Paths[0].Binding, Connection);
+    while (Connection->SourceCids.Next != NULL) {
+        QUIC_CID_SLIST_ENTRY* CID =
+            CXPLAT_CONTAINING_RECORD(
+                CxPlatListPopEntry(&Connection->SourceCids),
+                QUIC_CID_SLIST_ENTRY,
+                Link);
+        while (CID->HashEntries.Next != NULL) {
+            QUIC_CID_HASH_ENTRY* CID1 =
+                CXPLAT_CONTAINING_RECORD(
+                    CxPlatListPopEntry(&CID->HashEntries),
+                    QUIC_CID_HASH_ENTRY,
+                    Link);
+            QuicBindingRemoveSourceConnectionID(
+                CID1->Binding,
+                CID1);
+            CXPLAT_FREE(CID1, QUIC_POOL_CIDHASH);
+        }
+        CXPLAT_FREE(CID, QUIC_POOL_CIDSLIST);
     }
 
     //
@@ -1852,7 +1935,7 @@ QuicConnStart(
     // Clients only need to generate a non-zero length source CID if it
     // intends to share the UDP binding.
     //
-    QUIC_CID_HASH_ENTRY* SourceCid;
+    QUIC_CID_SLIST_ENTRY* SourceCid;
     if (Connection->State.ShareBinding) {
         SourceCid =
             QuicCidNewRandomSource(
@@ -2230,10 +2313,10 @@ QuicConnGenerateLocalTransportParameters(
     CXPLAT_TEL_ASSERT(Connection->Configuration != NULL);
 
     CXPLAT_DBG_ASSERT(Connection->SourceCids.Next != NULL);
-    const QUIC_CID_HASH_ENTRY* SourceCid =
+    const QUIC_CID_SLIST_ENTRY* SourceCid =
         CXPLAT_CONTAINING_RECORD(
             Connection->SourceCids.Next,
-            QUIC_CID_HASH_ENTRY,
+            QUIC_CID_SLIST_ENTRY,
             Link);
 
     LocalTP->InitialMaxData = Connection->Send.MaxData;
@@ -2365,10 +2448,10 @@ QuicConnGenerateLocalTransportParameters(
 
             if (Connection->State.HandshakeUsedRetryPacket) {
                 CXPLAT_DBG_ASSERT(SourceCid->Link.Next != NULL);
-                const QUIC_CID_HASH_ENTRY* PrevSourceCid =
+                const QUIC_CID_SLIST_ENTRY* PrevSourceCid =
                     CXPLAT_CONTAINING_RECORD(
                         SourceCid->Link.Next,
-                        QUIC_CID_HASH_ENTRY,
+                        QUIC_CID_SLIST_ENTRY,
                         Link);
 
                 LocalTP->Flags |= QUIC_TP_FLAG_RETRY_SOURCE_CONNECTION_ID;
@@ -4982,7 +5065,7 @@ QuicConnRecvFrames(
             }
 
             BOOLEAN IsLastCid;
-            QUIC_CID_HASH_ENTRY* SourceCid =
+            QUIC_CID_SLIST_ENTRY* SourceCid =
                 QuicConnGetSourceCidFromSeq(
                     Connection,
                     Frame.Sequence,
@@ -4990,7 +5073,7 @@ QuicConnRecvFrames(
                     &IsLastCid);
             if (SourceCid != NULL) {
                 BOOLEAN CidAlreadyRetired = SourceCid->CID.Retired;
-                CXPLAT_FREE(SourceCid, QUIC_POOL_CIDHASH);
+                CXPLAT_FREE(SourceCid, QUIC_POOL_CIDSLIST);
                 if (IsLastCid) {
                     QuicTraceEvent(
                         ConnError,
@@ -5310,7 +5393,7 @@ QuicConnRecvPostProcessing(
 {
     BOOLEAN PeerUpdatedCid = FALSE;
     if (Packet->DestCidLen != 0) {
-        QUIC_CID_HASH_ENTRY* SourceCid =
+        QUIC_CID_SLIST_ENTRY* SourceCid =
             QuicConnGetSourceCidFromBuf(
                 Connection,
                 Packet->DestCidLen,
@@ -5331,7 +5414,8 @@ QuicConnRecvPostProcessing(
     if (!(*Path)->GotValidPacket) {
         (*Path)->GotValidPacket = TRUE;
 
-        if (!(*Path)->IsActive) {
+        if (!(*Path)->IsActive &&
+            QuicConnIsServer(Connection)) {
 
             //
             // This is the first valid packet received on this non-active path.
@@ -5403,7 +5487,8 @@ QuicConnRecvPostProcessing(
         }
     }
 
-    if (Packet->HasNonProbingFrame &&
+    if (QuicConnIsServer(Connection) &&
+        Packet->HasNonProbingFrame &&
         Packet->NewLargestPacketNumber &&
         !(*Path)->IsActive) {
         //
@@ -5759,20 +5844,22 @@ QuicConnRecvDatagrams(
         QuicConnSilentlyAbort(Connection);
     }
 
-    //
-    // Any new paths created here were created before packet validation. Now
-    // remove any non-active paths that didn't get any valid packets.
-    // NB: Traversing the array backwards is simpler and more efficient here due
-    // to the array shifting that happens in QuicPathRemove.
-    //
-    for (uint8_t i = Connection->PathsCount - 1; i > 0; --i) {
-        if (!Connection->Paths[i].GotValidPacket) {
-            QuicTraceLogConnInfo(
-                PathDiscarded,
-                Connection,
-                "Removing invalid path[%hhu]",
-                Connection->Paths[i].ID);
-            QuicPathRemove(Connection, i);
+    if (QuicConnIsServer(Connection)) {
+        //
+        // Any new paths created here were created before packet validation. Now
+        // remove any non-active paths that didn't get any valid packets.
+        // NB: Traversing the array backwards is simpler and more efficient here due
+        // to the array shifting that happens in QuicPathRemove.
+        //
+        for (uint8_t i = Connection->PathsCount - 1; i > 0; --i) {
+            if (!Connection->Paths[i].GotValidPacket) {
+                QuicTraceLogConnInfo(
+                    PathDiscarded,
+                    Connection,
+                    "Removing invalid path[%hhu]",
+                    Connection->Paths[i].ID);
+                QuicPathRemove(Connection, i);
+            }
         }
     }
 
@@ -6099,6 +6186,201 @@ QuicConnUpdatePeerPacketTolerance(
     }
 }
 
+_IRQL_requires_max_(PASSIVE_LEVEL)
+static
+QUIC_STATUS
+QuicConnAddLocalAddress(
+    _In_ QUIC_CONNECTION* Connection,
+    _In_ QUIC_ADDR* LocalAddress
+    )
+{
+    QUIC_STATUS Status;
+
+    if (QuicConnIsServer(Connection)) {
+        return QUIC_STATUS_NOT_SUPPORTED;
+    }
+
+    if (!Connection->State.Started) {
+        return QUIC_STATUS_INVALID_STATE;
+    }
+
+    QUIC_CID_LIST_ENTRY* NewDestCid = QuicConnGetUnusedDestCid(Connection);
+    if (NewDestCid == NULL) {
+        return QUIC_STATUS_INVALID_STATE;
+    }
+
+    if (!QuicAddrIsValid(LocalAddress)) {
+        return QUIC_STATUS_INVALID_PARAMETER;
+    }
+
+    BOOLEAN AddrInUse = FALSE;
+    for (uint8_t i = 0; i < Connection->PathsCount; ++i) {
+        if (QuicAddrCompare(
+                &Connection->Paths[i].Route.LocalAddress,
+                LocalAddress)) {
+            AddrInUse = TRUE;
+            break;
+        }
+    }
+
+    if (AddrInUse) {
+        return QUIC_STATUS_ADDRESS_IN_USE;
+    }
+
+    if (Connection->PathsCount == QUIC_MAX_PATH_COUNT) {
+        //
+        // Already tracking the maximum number of paths, and can't free
+        // any more.
+        //
+        return QUIC_STATUS_OUT_OF_MEMORY;
+    }
+
+    CXPLAT_DBG_ASSERT(Connection->State.RemoteAddressSet);
+    CXPLAT_DBG_ASSERT(Connection->Configuration != NULL);
+
+    CXPLAT_UDP_CONFIG UdpConfig = {0};
+    UdpConfig.LocalAddress = LocalAddress;
+    UdpConfig.RemoteAddress = &Connection->Paths[0].Route.RemoteAddress;
+    UdpConfig.Flags = Connection->State.ShareBinding ? CXPLAT_SOCKET_FLAG_SHARE : 0;
+    UdpConfig.InterfaceIndex = 0;
+#ifdef QUIC_COMPARTMENT_ID
+    UdpConfig.CompartmentId = Connection->Configuration->CompartmentId;
+#endif
+#ifdef QUIC_OWNING_PROCESS
+    UdpConfig.OwningProcess = Connection->Configuration->OwningProcess;
+#endif
+
+    QUIC_BINDING* NewBinding = NULL;
+    Status =
+        QuicLibraryGetBinding(
+            &UdpConfig,
+            &NewBinding);
+    if (QUIC_FAILED(Status)) {
+        return Status;
+    }
+
+    if (!Connection->State.ShareBinding) {
+        QUIC_CID_SLIST_ENTRY* SourceCid = QuicCidNewNullSource(Connection);
+        if (SourceCid == NULL) {
+            QuicLibraryReleaseBinding(NewBinding);
+            return QUIC_STATUS_OUT_OF_MEMORY;
+        }
+
+        Connection->NextSourceCidSequenceNumber++;
+        QuicTraceEvent(
+            ConnSourceCidAdded,
+            "[conn][%p] (SeqNum=%llu) New Source CID: %!CID!",
+            Connection,
+            SourceCid->CID.SequenceNumber,
+            CASTED_CLOG_BYTEARRAY(SourceCid->CID.Length, SourceCid->CID.Data));
+        CxPlatListPushEntry(&Connection->SourceCids, &SourceCid->Link);
+
+        if (!QuicBindingAddSourceConnectionID(NewBinding, SourceCid)) {
+            QuicLibraryReleaseBinding(NewBinding);
+            return QUIC_STATUS_OUT_OF_MEMORY;
+        }
+    } else {
+        if (!QuicBindingAddAllSourceConnectionIDs(NewBinding, Connection)) {
+            QuicLibraryReleaseBinding(NewBinding);
+            return QUIC_STATUS_OUT_OF_MEMORY;
+        }
+    }
+
+    if (Connection->PathsCount > 1) {
+        //
+        // Make room for the new path (at index 1).
+        //
+        CxPlatMoveMemory(
+            &Connection->Paths[2],
+            &Connection->Paths[1],
+            (Connection->PathsCount - 1) * sizeof(QUIC_PATH));
+    }
+
+    QUIC_PATH* Path = &Connection->Paths[1];
+    QuicPathInitialize(Connection, Path);
+    Connection->PathsCount++;
+
+    Path->Binding = NewBinding;
+
+    QuicBindingGetLocalAddress(
+        Path->Binding,
+        &Path->Route.LocalAddress);
+    CxPlatCopyMemory(&Path->Route.RemoteAddress, &Connection->Paths[0].Route.RemoteAddress, sizeof(QUIC_ADDR));
+
+    Path->Allowance = UINT32_MAX;
+
+    Path->DestCid = NewDestCid;
+    QUIC_CID_SET_PATH(Connection, Path->DestCid, Path);
+    Path->DestCid->CID.UsedLocally = TRUE;
+
+    CXPLAT_DBG_ASSERT(Path->DestCid != NULL);
+    QuicPathValidate(Path);
+    Path->SendChallenge = TRUE;
+    Path->PathValidationStartTime = CxPlatTimeUs64();
+
+    CxPlatRandom(sizeof(Path->Challenge), Path->Challenge);
+
+    QuicTraceEvent(
+        ConnLocalAddrAdded,
+        "[conn][%p] New Local IP: %!ADDR!",
+        Connection,
+        CASTED_CLOG_BYTEARRAY(sizeof(Path->Route.LocalAddress), &Path->Route.LocalAddress));
+
+    QuicSendSetSendFlag(&Connection->Send, QUIC_CONN_SEND_FLAG_PATH_CHALLENGE);
+
+    return QUIC_STATUS_SUCCESS;
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+static
+QUIC_STATUS
+QuicConnRemoveLocalAddress(
+    _In_ QUIC_CONNECTION* Connection,
+    _In_ QUIC_ADDR* LocalAddress
+    )
+{
+    if (QuicConnIsServer(Connection)) {
+        return QUIC_STATUS_INVALID_STATE;
+    }
+
+    if (!Connection->State.Started) {
+        return QUIC_STATUS_INVALID_STATE;
+    }
+
+    if (!QuicAddrIsValid(LocalAddress)) {
+        return QUIC_STATUS_INVALID_PARAMETER;
+    }
+
+    uint8_t PathIndex = Connection->PathsCount;
+    for (uint8_t i = 0; i < Connection->PathsCount; ++i) {
+        if (QuicAddrCompare(
+                &Connection->Paths[i].Route.LocalAddress,
+                LocalAddress)) {
+            PathIndex = i;
+            break;
+        }
+    }
+
+    if (PathIndex == Connection->PathsCount) {
+        return QUIC_STATUS_NOT_FOUND;
+    }
+
+    QUIC_PATH* Path = &Connection->Paths[PathIndex];
+
+    if (Path->IsActive) {
+        return QUIC_STATUS_INVALID_STATE;
+    }
+
+    QuicConnRetireCid(Connection, Path->DestCid);
+
+    QuicBindingRemoveAllSourceConnectionIDs(Path->Binding, Connection);
+    QuicLibraryReleaseBinding(Path->Binding);
+
+    QuicPathRemove(Connection, PathIndex);
+
+    return QUIC_STATUS_SUCCESS;
+}
+
 #define QUIC_CONN_BAD_START_STATE(CONN) (CONN->State.Started || CONN->State.ClosedLocally)
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -6141,6 +6423,15 @@ QuicConnParamSet(
             break;
         }
 
+        QUIC_PATH* Path = QuicConnGetPathByAddress(Connection, LocalAddress, &Connection->Paths[0].Route.RemoteAddress);
+        if (Path != NULL) {
+            if (!Path->IsActive) {
+                QuicPathSetActive(Connection, Path);
+            }
+            Status = QUIC_STATUS_SUCCESS;
+            break;
+        }
+
         Connection->State.LocalAddressSet = TRUE;
         CxPlatCopyMemory(&Connection->Paths[0].Route.LocalAddress, Buffer, sizeof(QUIC_ADDR));
         QuicTraceEvent(
@@ -6176,14 +6467,21 @@ QuicConnParamSet(
                 Connection->Paths[0].Binding = OldBinding;
                 break;
             }
+
+            if (!QuicConnRetireCurrentDestCid(Connection, &Connection->Paths[0])) {
+                QuicLibraryReleaseBinding(Connection->Paths[0].Binding);
+                Connection->Paths[0].Binding = OldBinding;
+                Status = QUIC_STATUS_INVALID_STATE;
+            }
+
             Connection->Paths[0].Route.Queue = NULL;
 
             //
             // TODO - Need to free any queued recv packets from old binding.
             //
 
-            QuicBindingMoveSourceConnectionIDs(
-                OldBinding, Connection->Paths[0].Binding, Connection);
+            QuicBindingAddAllSourceConnectionIDs(Connection->Paths[0].Binding, Connection);
+            QuicBindingRemoveAllSourceConnectionIDs(OldBinding, Connection);
             QuicLibraryReleaseBinding(OldBinding);
 
             QuicTraceEvent(
@@ -6201,6 +6499,8 @@ QuicConnParamSet(
                 "[conn][%p] New Local IP: %!ADDR!",
                 Connection,
                 CASTED_CLOG_BYTEARRAY(sizeof(Connection->Paths[0].Route.LocalAddress), &Connection->Paths[0].Route.LocalAddress));
+
+            QuicCongestionControlReset(&Connection->CongestionControl, FALSE);
 
             QuicSendSetSendFlag(&Connection->Send, QUIC_CONN_SEND_FLAG_PING);
         }
@@ -6565,6 +6865,28 @@ QuicConnParamSet(
             Connection->CibirId[1]);
 
         return QUIC_STATUS_SUCCESS;
+    }
+
+    case QUIC_PARAM_CONN_ADD_LOCAL_ADDRESS: {
+
+        if (BufferLength != sizeof(QUIC_ADDR)) {
+            Status = QUIC_STATUS_INVALID_PARAMETER;
+            break;
+        }
+
+        Status = QuicConnAddLocalAddress(Connection, (QUIC_ADDR*)Buffer);
+        break;
+    }
+
+    case QUIC_PARAM_CONN_REMOVE_LOCAL_ADDRESS: {
+
+        if (BufferLength != sizeof(QUIC_ADDR)) {
+            Status = QUIC_STATUS_INVALID_PARAMETER;
+            break;
+        }
+
+        Status = QuicConnRemoveLocalAddress(Connection, (QUIC_ADDR*)Buffer);
+        break;
     }
 
     //
@@ -7156,10 +7478,12 @@ QuicConnParamGet(
             *BufferLength = Connection->OrigDestCID->Length;
             break;
         }
+
         if (Buffer == NULL) {
             Status = QUIC_STATUS_INVALID_PARAMETER;
             break;
         }
+
         CxPlatCopyMemory(
             Buffer,
             Connection->OrigDestCID->Data,
@@ -7168,6 +7492,26 @@ QuicConnParamGet(
         // Tell app how much buffer we copied.
         //
         *BufferLength = Connection->OrigDestCID->Length;
+
+        Status = QUIC_STATUS_SUCCESS;
+        break;
+
+    case QUIC_PARAM_CONN_LOCAL_UNUSED_DEST_CID_COUNT:
+        if (*BufferLength < sizeof(uint16_t)) {
+            *BufferLength = sizeof(uint16_t);
+            Status = QUIC_STATUS_BUFFER_TOO_SMALL;
+            break;
+        }
+
+        if (Buffer == NULL) {
+            Status = QUIC_STATUS_INVALID_PARAMETER;
+            break;
+        }
+
+        *BufferLength = sizeof(uint16_t);
+        *(uint16_t*)Buffer =
+            QuicConnUnusedDestCidsCount(Connection);
+
         Status = QUIC_STATUS_SUCCESS;
         break;
 

@@ -1628,6 +1628,34 @@ TEST_P(WithFamilyArgs, PathValidationTimeout) {
         QuicTestPathValidationTimeout(GetParam().Family);
     }
 }
+
+TEST_P(WithProbePathArgs, ProbePath) {
+    TestLoggerT<ParamType> Logger("QuicTestProbePath", GetParam());
+    if (TestingKernelMode) {
+        QUIC_RUN_PROBE_PATH_PARAMS Params = {
+            GetParam().Family,
+            GetParam().ShareBinding,
+            GetParam().DropPacketCount
+        };
+        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_PROBE_PATH, Params));
+    } else {
+        QuicTestProbePath(GetParam().Family, GetParam().ShareBinding, GetParam().DropPacketCount);
+    }
+}
+
+TEST_P(WithMigrationArgs, Migration) {
+    TestLoggerT<ParamType> Logger("QuicTestMigration", GetParam());
+    if (TestingKernelMode) {
+        QUIC_RUN_MIGRATION_PARAMS Params = {
+            GetParam().Family,
+            GetParam().ShareBinding,
+            GetParam().Smooth
+        };
+        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_MIGRATION, Params));
+    } else {
+        QuicTestMigration(GetParam().Family, GetParam().ShareBinding, GetParam().Smooth);
+    }
+}
 #endif
 
 TEST_P(WithFamilyArgs, ChangeMaxStreamIDs) {
@@ -2343,6 +2371,15 @@ INSTANTIATE_TEST_SUITE_P(
     WithRebindPaddingArgs,
     ::testing::ValuesIn(RebindPaddingArgs::Generate()));
 
+INSTANTIATE_TEST_SUITE_P(
+    Basic,
+    WithProbePathArgs,
+    ::testing::ValuesIn(ProbePathArgs::Generate()));
+
+INSTANTIATE_TEST_SUITE_P(
+    Basic,
+    WithMigrationArgs,
+    ::testing::ValuesIn(MigrationArgs::Generate()));
 #endif // QUIC_TEST_DATAPATH_HOOKS_ENABLED
 
 #ifdef QUIC_API_ENABLE_PREVIEW_FEATURES

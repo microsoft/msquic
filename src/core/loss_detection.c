@@ -585,7 +585,7 @@ QuicLossDetectionOnPacketAcknowledged(
 
         case QUIC_FRAME_NEW_CONNECTION_ID: {
             BOOLEAN IsLastCid;
-            QUIC_CID_HASH_ENTRY* SourceCid =
+            QUIC_CID_SLIST_ENTRY* SourceCid =
                 QuicConnGetSourceCidFromSeq(
                     Connection,
                     Packet->Frames[i].NEW_CONNECTION_ID.Sequence,
@@ -785,7 +785,7 @@ QuicLossDetectionRetransmitFrames(
 
         case QUIC_FRAME_NEW_CONNECTION_ID: {
             BOOLEAN IsLastCid;
-            QUIC_CID_HASH_ENTRY* SourceCid =
+            QUIC_CID_SLIST_ENTRY* SourceCid =
                 QuicConnGetSourceCidFromSeq(
                     Connection,
                     Packet->Frames[i].NEW_CONNECTION_ID.Sequence,
