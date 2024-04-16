@@ -532,7 +532,7 @@ QuicSendWriteFrames(
         char* CloseReasonPhrase = Connection->CloseReasonPhrase;
 
         if (IsApplicationClose && ! Is1RttEncryptionLevel) {
-            // 
+            //
             // A CONNECTION_CLOSE of type 0x1d MUST be replaced by a CONNECTION_CLOSE of
             // type 0x1c when sending the frame in Initial or Handshake packets. Otherwise,
             // information about the application state might be revealed. Endpoints MUST
@@ -557,6 +557,8 @@ QuicSendWriteFrames(
                 &Builder->DatagramLength,
                 AvailableBufferLength,
                 Builder->Datagram->Buffer)) {
+
+            Builder->WrittenConnectionCloseFrame = TRUE;
 
             //
             // We potentially send the close frame on multiple protection levels.
