@@ -1,7 +1,7 @@
 FROM    martenseemann/quic-network-simulator-endpoint@sha256:2ec0a19a54f4547f068a81afcb3e92251b8808934eb86e5cb6919d91c4958791 as source
 ENV     DEBIAN_FRONTEND=noninteractive
 RUN     echo "deb [arch=amd64] http://cz.archive.ubuntu.com/ubuntu noble main" > /etc/apt/sources.list.d/xdp.list \
-        && apt-get update -y && apt-get install -y \
+        && apt-get update -y && apt-get install --no-install-recommends -y \
             build-essential \
             cmake \
             liblttng-ust-dev \
