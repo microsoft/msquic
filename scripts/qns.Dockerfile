@@ -1,11 +1,23 @@
 FROM    martenseemann/quic-network-simulator-endpoint@sha256:2ec0a19a54f4547f068a81afcb3e92251b8808934eb86e5cb6919d91c4958791 as source
 ENV     DEBIAN_FRONTEND=noninteractive
-RUN     apt-get update -y \
-            && apt-get install -y \
+RUN     echo "deb [arch=amd64] http://cz.archive.ubuntu.com/ubuntu noble main" > /etc/apt/sources.list.d/xdp.list \
+        && apt-get update -y && apt-get install -y \
             build-essential \
             cmake \
             liblttng-ust-dev \
             libnuma-dev \
+            libnl-3-dev \
+            libnl-genl-3-dev \
+            libnl-route-3-dev \
+            zlib1g-dev \
+            zlib1g \
+            pkg-config \
+            m4 \
+            libpcap-dev \
+            libelf-dev \
+            libc6-dev-i386 \
+            libxdp-dev \
+            libbpf-dev \
             && apt-get clean
 COPY    . /src
 
