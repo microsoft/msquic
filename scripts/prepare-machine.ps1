@@ -521,14 +521,10 @@ if ($IsLinux) {
 
         # XDP dependencies
         if ((bash -c 'lsb_release -r') -match '22.04') {
-            if ($BuildLibXdpFromSource) {
-                # for xdp-dispatcher.c
-                sudo apt-get -y install --no-install-recommends libc6-dev-i386
-            } else {
-                sudo apt-add-repository "deb http://mirrors.kernel.org/ubuntu noble main" -y
-                sudo apt-get update -y
-                sudo apt-get -y install libxdp-dev libbpf-dev
-            }
+            sudo apt-get -y install --no-install-recommends libc6-dev-i386 # for building xdp programs
+            sudo apt-add-repository "deb http://mirrors.kernel.org/ubuntu noble main" -y
+            sudo apt-get update -y
+            sudo apt-get -y install libxdp-dev libbpf-dev
             sudo apt-get -y install libnl-3-dev libnl-genl-3-dev libnl-route-3-dev zlib1g-dev zlib1g pkg-config m4 clang libpcap-dev libelf-dev
         }
     }
