@@ -64,11 +64,9 @@ elseif (APPLE)
     set(CX_PLATFORM "darwin")
 elseif (UNIX)
     set(CX_PLATFORM "linux")
-    find_program(LSB_RELEASE lsb_release)
-    execute_process(COMMAND ${LSB_RELEASE} -rs
-      OUTPUT_VARIABLE UBUNTU_VERSION
-      OUTPUT_STRIP_TRAILING_WHITESPACE
-    )
+    file(STRINGS "/etc/lsb-release" LSB_RELEASE_CONTENT)
+    string(REGEX MATCH "DISTRIB_RELEASE=([0-9]+\\.[0-9]+)" _ ${LSB_RELEASE_CONTENT})
+    set(UBUNTU_VERSION ${CMAKE_MATCH_1})
 endif()
 message(STATUS "QUIC Platform: ${CX_PLATFORM}")
 

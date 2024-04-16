@@ -6,20 +6,6 @@ RUN     apt-get update -y \
             cmake \
             liblttng-ust-dev \
             libnuma-dev \
-            && echo "deb [arch=amd64] http://cz.archive.ubuntu.com/ubuntu noble main" > /etc/apt/sources.list.d/xdp.list \
-            && apt-get update -y && apt-get install --no-install-recommends -y \
-            libnl-3-dev \
-            libnl-genl-3-dev \
-            libnl-route-3-dev \
-            zlib1g-dev \
-            zlib1g \
-            pkg-config \
-            m4 \
-            libpcap-dev \
-            libelf-dev \
-            libc6-dev-i386 \
-            libxdp-dev \
-            libbpf-dev \
             && apt-get clean
 COPY    . /src
 
