@@ -112,12 +112,12 @@ jobs:
       run: scripts/prepare-machine.ps1 -Tls ${{ matrix.vec.tls }} -ForTest ${{ matrix.vec.xdp }}
       shell: pwsh
     - name: spinquic (PR)
-      if: !(matrix.vec.os == 'ubuntu-22.04' && matrix.vec.xdp == '-UseXdp') && github.event_name == 'pull_request'
+      if: (!(matrix.vec.os == 'ubuntu-22.04' && matrix.vec.xdp == '-UseXdp') && github.event_name == 'pull_request')
       timeout-minutes: 15
       shell: pwsh
       run: scripts/spin.ps1 -AZP -Config ${{ matrix.vec.config }} -Arch ${{ matrix.vec.arch }} -Tls ${{ matrix.vec.tls }} -Timeout ${{ env.pr-timeout }} -RepeatCount ${{ env.pr-repeat }} -AllocFail ${{ env.pr-allocfail }} ${{ matrix.vec.xdp }}
     - name: spinquic (Official)
-      if: !(matrix.vec.os == 'ubuntu-22.04' && matrix.vec.xdp == '-UseXdp') && github.event_name != 'pull_request'
+      if: (!(matrix.vec.os == 'ubuntu-22.04' && matrix.vec.xdp == '-UseXdp') && github.event_name != 'pull_request')
       timeout-minutes: 65
       shell: pwsh
       run: scripts/spin.ps1 -AZP -Config ${{ matrix.vec.config }} -Arch ${{ matrix.vec.arch }} -Tls ${{ matrix.vec.tls }} -Timeout ${{ env.main-timeout }} -RepeatCount ${{ env.main-repeat }} -AllocFail ${{ env.main-allocfail }} ${{ matrix.vec.xdp }}
