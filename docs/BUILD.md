@@ -183,7 +183,7 @@ sudo dnf install libatomic
 
 #### Linux XDP
 Linux XDP is experimentally supported on amd64 && Ubuntu 22.04LTS.  
-A command below automatically installs building and running dependencies
+Commands below automatically install dependencies.
 ```sh
 pwsh ./scripts/prepare-machine.ps1
 pwsh ./scripts/build.ps1
@@ -198,7 +198,7 @@ sudo apt-add-repository "deb http://mirrors.kernel.org/ubuntu noble main" -y
 sudo apt-get install -y libxdp1 libbpf1 libnl-3-200 libnl-route-3-200 libnl-genl-3-200
 
 # install build dependencies
-sudo apt-get -y install libxdp-dev libbpf-dev libnl-3-dev libnl-genl-3-dev libnl-route-3-dev zlib1g-dev zlib1g pkg-config m4 clang libpcap-dev libelf-dev
+sudo apt-get --no-install-recommends -y install libxdp-dev libbpf-dev libnl-3-dev libnl-genl-3-dev libnl-route-3-dev zlib1g-dev zlib1g pkg-config m4 clang libpcap-dev libelf-dev libc6-dev-i386
 
 # Optional. This is required when you run test with duonic (XDP capable virtual nic pair)
 sudo apt-get -y install iproute2 iptables
@@ -208,11 +208,44 @@ sudo ./scripts/duonic.sh install
 Test
 ```sh
 # "sudo" required
-# MSQUIC_XDP_OBJECT_PATH points to where datapath_raw_xdp_kern.o is located
-sudo MSQUIC_XDP_OBJECT_PATH=${PATH_TO_MSQUIC}/artifacts/bin/linux/x64_Debug_openssl3/ ./artifacts/bin/linux/x64_Debug_openssl3/msquictest --duoNic
+# You can explicitly directory of datapath_raw_xdp_kern.o by MSQUIC_XDP_OBJECT_PATH
+# libmsquic.so searchs for same directory as its executable by default.
+# If something failed, fallback to normal socket
+sudo ./artifacts/bin/linux/x64_Debug_openssl3/msquictest --duoNic
 ```
 
 **Q&A**
+- Q: Several stderr printed. Is this okey?
+A: It is ignorable error comming from libbpf.so
+```
+# example 1
+[ RUN      ] AppData/WithSendArgs2.SendLarge0
+libbpf: elf: skipping unrecognized data section(7) xdp_metadata
+libbpf: elf: skipping unrecognized data section(7) xdp_metadata
+libbpf: elf: skipping unrecognized data section(7) xdp_metadata
+libbpf: elf: skipping unrecognized data section(7) xdp_metadata
+libbpf: Kernel error message: Underlying driver does not support XDP in native mode
+libxdp: Error attaching XDP program to ifindex 1: Operation not supported
+libxdp: XDP mode not supported; try using SKB mode
+...
+[       OK ] AppData/WithSendArgs2.SendLarge/0 (2411 ms)
+
+# example 2 (run without sudo)
+[ RUN      ] AppData/WithSendArgs2.SendLarge/0
+libbpf: elf: skipping unrecognized data section(7) xdp_metadata
+libbpf: Failed to bump RLIMIT_MEMLOCK (err = -1), you might need to do it explicitly!
+libbpf: Error in bpf_object__probe_loading():Operation not permitted(1). Couldn't load trivial BPF program. Make sure your kernel supports BPF (CONFIG_BPF_SYSCALL=y) and/or that RLIMIT_MEMLOCK is set to big enough value.
+libbpf: failed to load object '/usr/lib/x86_64-linux-gnu/bpf/xdp-dispatcher.o'
+libbpf: elf: skipping unrecognized data section(7) xdp_metadata
+libbpf: Error in bpf_object__probe_loading():Operation not permitted(1). Couldn't load trivial BPF program. Make sure your kernel supports BPF (CONFIG_BPF_SYSCALL=y) and/or that RLIMIT_MEMLOCK is set to big enough value.
+libbpf: failed to load object '/usr/lib/x86_64-linux-gnu/bpf/xdp-dispatcher.o'
+libxdp: Failed to load dispatcher: Operation not permitted
+libxdp: Falling back to loading single prog without dispatcher
+...
+[       OK ] AppData/WithSendArgs2.SendLarge/0 (471 ms)
+```
+
+
 - Q: Is this workload really running on XDP?  
 A: If you have the `xdp-dump` command, try using `sudo xdp-dump --list-interfaces`. The `xdp_main` function is located in `src/platform/datapath_raw_xdp_linux_kern.c`. If none of the interfaces load the XDP program, something must be wrong.   
 ```
@@ -229,7 +262,7 @@ duo1                   xdp_dispatcher    native   608225 4d7e87c0d30db711
 ```
 
 - Q: Any xdp logs?  
-A: For MsQuic layer, see `Diagnostics.md`. For XDP layer, enable DEBUG flag `src/platform/CMakeLists.txt`.  
+A: For MsQuic layer, see `Diagnostics.md`. For XDP layer, enable `DEBUG` flag in `src/platform/CMakeLists.txt`.  
 You can see it `sudo cat /sys/kernel/debug/tracing/trace_pipe`. **Your workload must become too slow.**
 ```
 msquictest-3797496 [005] ..s1. 2079546.776875: bpf_trace_printk: ========> To ifacename : [duo2], RxQueueID:0
@@ -247,13 +280,13 @@ msquictest-3797496 [005] ..s1. 2079546.777324: bpf_trace_printk:                
 msquictest-3797496 [005] ..s1. 2079546.777325: bpf_trace_printk:                  Redirect to QUIC service.  IpMatch:1, PortMatch:1, SocketExists:1, Redirection:4
 ```
 - Q: Is Ubuntu 20.04LTS supported?  
-A: Not officially, but you can still **build** it by running `apt-get upgrade linux-libc-dev`. Please be aware of potential side effects from the upgrade.
+A: Not officially, but you can still **build** it by running `apt-get upgrade linux-libc-dev`. Please be aware of potential side effects from the **upgrade**.
 - Q: Can I build libxdp/libbpf from source?  
 A: Yes. Try below. We don't use CI/CD for the source version, but we saw xdp-tools v1.4.2 from source works.
 ```sh
 pwsh ./scripts/prepare-machine.ps1 -BuildLibXdpFromSource
 pwsh ./scripts/build.ps1 -BuildLibXdpFromSource
-# try using ldd which libxdp.so/libbpf.so are linked
+# try using ldd whether your libxdp.so/libbpf.so are linked
 # When running binary, set LIBXDP_SKIP_DISPATCHER=1 or LIBXDP_OBJECT_PATH=${where xdp-dispatcher.o is located}
 ```
 

@@ -18,6 +18,7 @@ Abstract:
 #include "libxdp.h"
 #include "xsk.h"
 #include <dirent.h>
+#include <libgen.h>
 #include <linux/ethtool.h>
 #include <linux/sockios.h>
 #include <netpacket/packet.h>
@@ -404,12 +405,21 @@ OpenXdpProgram(struct xdp_program **Prog)
 {
     char errmsg[1024];
     int err = 0;
+    char ExePath[256];
+    ssize_t len = readlink("/proc/self/exe", ExePath, sizeof(ExePath)-1);
+    char *ExeDir = NULL;
+    if (len != -1) {
+        ExePath[len] = '\0'; // Ensure null-terminated
+        ExeDir = dirname(ExePath); // Get directory name
+    }
+
     const char* Filename = "datapath_raw_xdp_kern.o";
     char* EnvPath = getenv("MSQUIC_XDP_OBJECT_PATH");
     char* Paths[] = {
         EnvPath,
-        "/usr/lib/TBD" // TODO: decide where to install
-        ".",           // for development
+        "/usr/lib/TBD", // TODO: decide where to install
+        ExeDir,         // Same directory as executable
+        ".",            // For development
         };
     char FilePath[256];
     int readRetry = 5;
