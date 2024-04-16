@@ -140,17 +140,19 @@ elseif(LINUX_XDP_ENABLED)
     add_dependencies(platform xdp_program)
 
     if (NOT BUILD_SHARED_LIBS)
-        find_library(ELF_LIB elf) # for static
-        find_library(Z_LIB z)     # for static
+        find_library(ELF_LIB elf)   # for static
+        find_library(Z_LIB z)       # for static
+        find_library(ZSTD_LIB zstd) # for static
         string(REPLACE ".so" ".a" NL_LIB ${NL_LIB})
         string(REPLACE ".so" ".a" NL_ROUTE_LIB ${NL_ROUTE_LIB})
         string(REPLACE ".so" ".a" ELF_LIB ${ELF_LIB})
         string(REPLACE ".so" ".a" Z_LIB ${Z_LIB})
+        string(REPLACE ".so" ".a" ZSTD_LIB ${ZSTD_LIB})
         string(REPLACE ".so" ".a" XDP_LIB ${XDP_LIB})
         string(REPLACE ".so" ".a" BPF_LIB ${BPF_LIB})
     endif()
 
-    target_link_libraries(platform PUBLIC ${XDP_LIB} ${BPF_LIB} ${NL_LIB} ${NL_ROUTE_LIB} ${ELF_LIB} ${Z_LIB})
+    target_link_libraries(platform PUBLIC ${XDP_LIB} ${BPF_LIB} ${NL_LIB} ${NL_ROUTE_LIB} ${ELF_LIB} ${Z_LIB} ${ZSTD_LIB})
 endif()
 
 target_link_libraries(platform PUBLIC inc)
