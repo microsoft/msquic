@@ -50,8 +50,8 @@ tracepoint(CLOG_DATAPATH_LINUX_C, DatapathInitFail , arg2);\
 // Decoder Ring for RawDatapathInitFail
 // [ raw] Failed to initialize raw datapath, status:%d
 // QuicTraceLogVerbose(
-            RawDatapathInitFail,
-            "[ raw] Failed to initialize raw datapath, status:%d", Status);
+                RawDatapathInitFail,
+                "[ raw] Failed to initialize raw datapath, status:%d", Status);
 // arg2 = arg2 = Status = arg2
 ----------------------------------------------------------*/
 #ifndef _clog_3_ARGS_TRACE_RawDatapathInitFail

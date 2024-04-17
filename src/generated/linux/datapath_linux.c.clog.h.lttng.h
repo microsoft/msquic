@@ -23,8 +23,8 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_LINUX_C, DatapathInitFail,
 // Decoder Ring for RawDatapathInitFail
 // [ raw] Failed to initialize raw datapath, status:%d
 // QuicTraceLogVerbose(
-            RawDatapathInitFail,
-            "[ raw] Failed to initialize raw datapath, status:%d", Status);
+                RawDatapathInitFail,
+                "[ raw] Failed to initialize raw datapath, status:%d", Status);
 // arg2 = arg2 = Status = arg2
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_DATAPATH_LINUX_C, RawDatapathInitFail,
