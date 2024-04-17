@@ -209,15 +209,15 @@ sudo ./scripts/duonic.sh install
 Test
 ```sh
 # "sudo" and MSQUIC_ENABLE_XDP=1 required
-# You can explicitly directory of datapath_raw_xdp_kern.o by MSQUIC_XDP_OBJECT_PATH
-# libmsquic.so searchs for same directory as its executable by default.
+# You can explicitly specify directory of datapath_raw_xdp_kern.o by MSQUIC_XDP_OBJECT_PATH
+# By default, libmsquic.so searchs for same directory as its executable
 # If something failed, fallback to normal socket
 sudo MSQUIC_ENABLE_XDP=1 ./artifacts/bin/linux/x64_Debug_openssl3/msquictest --duoNic
 ```
 
 **Q&A**
-- Q: Several stderr printed. Is this okey?
-A: It is ignorable error comming from libbpf.so
+- Q: Several stderr printed. Is this okey?  
+A: It is ignorable error coming from libbpf.so
 ```
 # example 1
 [ RUN      ] AppData/WithSendArgs2.SendLarge0
