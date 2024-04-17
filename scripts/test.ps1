@@ -226,6 +226,10 @@ $RootArtifactDir = $BuildConfig.ArtifactsDir
 if ($UseXdp) {
     # Helper for XDP usage
     $DuoNic = $true
+    if ($IsLinux) {
+        # Temporal flag
+        $env:MSQUIC_ENABLE_XDP = 1
+    }
 }
 
 # Root directory of the project.

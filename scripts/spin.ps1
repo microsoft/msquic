@@ -116,6 +116,10 @@ $RunExecutable = Join-Path $RootDir "scripts/run-executable.ps1"
 # Helper for XDP usage.
 if ($UseXdp) {
     $Target = "192.168.1.11"
+    if ($IsLinux) {
+        # Temporal flag
+        $env:MSQUIC_ENABLE_XDP = 1
+    }
 }
 
 # Validate the code coverage switch.
