@@ -1233,7 +1233,6 @@ CxPlatXdpRx(
         Packet->RecvData.Route->DatapathType = Packet->RecvData.DatapathType = CXPLAT_DATAPATH_TYPE_RAW;
         Packet->RecvData.PartitionIndex = PartitionIndex;
 
-        // TODO XskUmemFrameFree if parse error?
         CxPlatDpRawParseEthernet(
             (CXPLAT_DATAPATH*)Xdp,
             &Packet->RecvData,

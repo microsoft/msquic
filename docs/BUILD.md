@@ -183,10 +183,11 @@ sudo dnf install libatomic
 
 #### Linux XDP
 Linux XDP is experimentally supported on amd64 && Ubuntu 22.04LTS.  
-Commands below automatically install dependencies.
+Commands below automatically install dependencies and setup runtime environment.
 ```sh
 pwsh ./scripts/prepare-machine.ps1
 pwsh ./scripts/build.ps1
+export MSQUIC_ENABLE_XDP=1
 ```
 
 `./scripts/prepare-machine.ps1` internally donig belows
@@ -207,11 +208,11 @@ sudo ./scripts/duonic.sh install
 
 Test
 ```sh
-# "sudo" required
+# "sudo" and MSQUIC_ENABLE_XDP=1 required
 # You can explicitly directory of datapath_raw_xdp_kern.o by MSQUIC_XDP_OBJECT_PATH
 # libmsquic.so searchs for same directory as its executable by default.
 # If something failed, fallback to normal socket
-sudo ./artifacts/bin/linux/x64_Debug_openssl3/msquictest --duoNic
+sudo MSQUIC_ENABLE_XDP=1 ./artifacts/bin/linux/x64_Debug_openssl3/msquictest --duoNic
 ```
 
 **Q&A**
