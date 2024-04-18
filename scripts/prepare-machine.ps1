@@ -278,7 +278,7 @@ function Install-JOM {
     $JomVersion = "1_1_3"
     $JomPath = Join-Path $env:Programfiles "jom_$JomVersion"
     $JomExe = Join-Path $JomPath "jom.exe"
-    echo $JomExe
+
     if (!(Test-Path $JomExe) -and $env:GITHUB_PATH -eq $null) {
         Write-Host "Downloading JOM"
         try {
