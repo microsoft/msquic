@@ -216,34 +216,6 @@ sudo MSQUIC_ENABLE_XDP=1 ./artifacts/bin/linux/x64_Debug_openssl3/msquictest --d
 ```
 
 **Q&A**
-- Q: Several stderr printed. Is this okay?  
-A: It is ignorable error coming from libbpf.so
-```
-# example 1
-[ RUN      ] AppData/WithSendArgs2.SendLarge0
-libbpf: elf: skipping unrecognized data section(7) xdp_metadata
-libbpf: elf: skipping unrecognized data section(7) xdp_metadata
-libbpf: elf: skipping unrecognized data section(7) xdp_metadata
-libbpf: elf: skipping unrecognized data section(7) xdp_metadata
-...
-[       OK ] AppData/WithSendArgs2.SendLarge/0 (2411 ms)
-
-# example 2 (run without sudo)
-[ RUN      ] AppData/WithSendArgs2.SendLarge/0
-libbpf: elf: skipping unrecognized data section(7) xdp_metadata
-libbpf: Failed to bump RLIMIT_MEMLOCK (err = -1), you might need to do it explicitly!
-libbpf: Error in bpf_object__probe_loading():Operation not permitted(1). Couldn't load trivial BPF program. Make sure your kernel supports BPF (CONFIG_BPF_SYSCALL=y) and/or that RLIMIT_MEMLOCK is set to big enough value.
-libbpf: failed to load object '/usr/lib/x86_64-linux-gnu/bpf/xdp-dispatcher.o'
-libbpf: elf: skipping unrecognized data section(7) xdp_metadata
-libbpf: Error in bpf_object__probe_loading():Operation not permitted(1). Couldn't load trivial BPF program. Make sure your kernel supports BPF (CONFIG_BPF_SYSCALL=y) and/or that RLIMIT_MEMLOCK is set to big enough value.
-libbpf: failed to load object '/usr/lib/x86_64-linux-gnu/bpf/xdp-dispatcher.o'
-libxdp: Failed to load dispatcher: Operation not permitted
-libxdp: Falling back to loading single prog without dispatcher
-...
-[       OK ] AppData/WithSendArgs2.SendLarge/0 (471 ms)
-```
-
-
 - Q: Is this workload really running on XDP?  
 A: If you have the `xdp-dump` command, try using `sudo xdp-dump --list-interfaces`. The `xdp_main` function is located in `src/platform/datapath_raw_xdp_linux_kern.c`. If none of the interfaces load the XDP program, something must be wrong.   
 ```

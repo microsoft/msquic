@@ -375,7 +375,7 @@ AttachXdpProgram(struct xdp_program *Prog, XDP_INTERFACE *Interface, struct xsk_
         unsigned int xdp_flag;
     } AttachTypePairs[]  = {
         // { XDP_MODE_HW, XDP_FLAGS_HW_MODE },
-        // { XDP_MODE_NATIVE, XDP_FLAGS_DRV_MODE },
+        { XDP_MODE_NATIVE, XDP_FLAGS_DRV_MODE },
         { XDP_MODE_SKB, XDP_FLAGS_SKB_MODE },
     };
     for (uint32_t i = 0; i < ARRAYSIZE(AttachTypePairs); i++) {
@@ -466,6 +466,9 @@ CxPlatDpRawInterfaceInitialize(
     _In_ uint32_t ClientRecvContextLength
     )
 {
+    libxdp_set_print(NULL);
+    libbpf_set_print(NULL);
+
     const uint32_t RxHeadroom = ALIGN_UP(sizeof(XDP_RX_PACKET) + ClientRecvContextLength, 32);
     const uint32_t TxHeadroom = ALIGN_UP(FIELD_OFFSET(XDP_TX_PACKET, FrameBuffer), 32);
     // WARN: variable frame size cause unexpected behavior
