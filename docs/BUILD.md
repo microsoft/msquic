@@ -216,7 +216,7 @@ sudo MSQUIC_ENABLE_XDP=1 ./artifacts/bin/linux/x64_Debug_openssl3/msquictest --d
 ```
 
 **Q&A**
-- Q: Several stderr printed. Is this okey?  
+- Q: Several stderr printed. Is this okay?  
 A: It is ignorable error coming from libbpf.so
 ```
 # example 1
