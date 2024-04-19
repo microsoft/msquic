@@ -25,6 +25,7 @@ This document is meant to be a step-by-step guide for trouble shooting any issue
 1. [No credentials when loading a server certificate from PEM with Schannel.](#convert-pem-to-pkcs12-for-schannel)
 1. [TLS handshake fails in Chrome and Edge for HTTP/3 (including WebTransport) even though HTTP/1.1 and HTTP/2 work.](#using-a-self-signed-certificate-for-http3)
 1. [I need to get a packet capture](#collecting-a-packet-capture).
+1. [Linux XDP logging?](#linux-xdp-logging)
 
 ## Logging
 
@@ -354,6 +355,27 @@ Since this flame was essentially all of CPU 4, whatever is taking the most signi
 ### Finding Throughput Bottlenecks
 
 > TODO
+
+## Linux XDP logging?
+For MsQuic layer, see `Diagnostics.md`. For XDP layer, enable `DEBUG` flag in `src/platform/CMakeLists.txt`.
+You can see it `sudo cat /sys/kernel/debug/tracing/trace_pipe`. **Your workload must become too slow.**
+```
+msquictest-3797496 [005] ..s1. 2079546.776875: bpf_trace_printk: ========> To ifacename : [duo2], RxQueueID:0
+msquictest-3797496 [005] ..s1. 2079546.776875: bpf_trace_printk:  Eth[244]        SRC: 00:00:00:00:00:00 => DST:22:22:22:22:00:02
+msquictest-3797496 [005] ..s1. 2079546.776876: bpf_trace_printk:          Ipv4 TotalLen:[230]     Src: 192.168.1.11 => Dst: 192.168.1.12
+msquictest-3797496 [005] ..s1. 2079546.776877: bpf_trace_printk:                  UDP[202]: SRC: 43829 DST:58141
+msquictest-3797496 [005] ..s1. 2079546.776877: bpf_trace_printk:                           [ec 00 00 00 01 00 09 c0 30 3d 49 a2]
+msquictest-3797496 [005] ..s1. 2079546.776878: bpf_trace_printk:                  Redirect to QUIC service.  IpMatch:1, PortMatch:1, SocketExists:1, Redirection:4
+
+msquictest-3797496 [005] ..s1. 2079546.777235: bpf_trace_printk: ========> To ifacename : [duo1], RxQueueID:0
+msquictest-3797496 [005] ..s1. 2079546.777310: bpf_trace_printk:  Eth[1262]       SRC: 00:00:00:00:00:00 => DST:22:22:22:22:00:01
+msquictest-3797496 [005] ..s1. 2079546.777323: bpf_trace_printk:          Ipv4 TotalLen:[1248]    Src: 192.168.1.12 => Dst: 192.168.1.11
+msquictest-3797496 [005] ..s1. 2079546.777323: bpf_trace_printk:                  UDP[1220]: SRC: 58141 DST:43829
+msquictest-3797496 [005] ..s1. 2079546.777324: bpf_trace_printk:                           [c0 00 00 00 01 09 c0 30 3d 49 a2 56]
+msquictest-3797496 [005] ..s1. 2079546.777325: bpf_trace_printk:                  Redirect to QUIC service.  IpMatch:1, PortMatch:1, SocketExists:1, Redirection:4
+```
+
+
 
 ## Why is Performance bad across all my Connections?
 1. [UDP receive offload is not working.](#diagnosing-udp-receive-offload-issues-windows-only)
