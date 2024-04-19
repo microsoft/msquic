@@ -225,9 +225,6 @@ libbpf: elf: skipping unrecognized data section(7) xdp_metadata
 libbpf: elf: skipping unrecognized data section(7) xdp_metadata
 libbpf: elf: skipping unrecognized data section(7) xdp_metadata
 libbpf: elf: skipping unrecognized data section(7) xdp_metadata
-libbpf: Kernel error message: Underlying driver does not support XDP in native mode
-libxdp: Error attaching XDP program to ifindex 1: Operation not supported
-libxdp: XDP mode not supported; try using SKB mode
 ...
 [       OK ] AppData/WithSendArgs2.SendLarge/0 (2411 ms)
 
