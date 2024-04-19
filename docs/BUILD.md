@@ -190,7 +190,7 @@ pwsh ./scripts/build.ps1
 export MSQUIC_ENABLE_XDP=1
 ```
 
-`./scripts/prepare-machine.ps1` internally donig belows
+`./scripts/prepare-machine.ps1` internally does the below commands:
 ```sh
 # for libxdp v1.4.2
 sudo apt-add-repository "deb http://mirrors.kernel.org/ubuntu noble main" -y
