@@ -35,7 +35,7 @@ jobs:
     runs-on: windows-latest
     steps:
     - name: Checkout repository
-      uses: actions/checkout@9bb56186c3b09b4f86b1c65136769dd318469633
+      uses: actions/checkout@1d96c772d19495a3b5c517cd2bc0cb401ea0529f
     - name: Prepare Machine
       shell: pwsh
       run: scripts/prepare-machine.ps1 -ForBuild -DisableTest
@@ -83,7 +83,7 @@ jobs:
           queueRatio: 5 # Exceeds QueueLimitPackets limit of 100000
     steps:
     - name: Checkout repository
-      uses: actions/checkout@9bb56186c3b09b4f86b1c65136769dd318469633
+      uses: actions/checkout@1d96c772d19495a3b5c517cd2bc0cb401ea0529f
     - name: Prepare Machine
       shell: pwsh
       run: scripts/prepare-machine.ps1 -ForTest -InstallDuoNic
@@ -116,7 +116,7 @@ jobs:
     needs: wan-perf
     steps:
     - name: Checkout repository
-      uses: actions/checkout@9bb56186c3b09b4f86b1c65136769dd318469633
+      uses: actions/checkout@1d96c772d19495a3b5c517cd2bc0cb401ea0529f
       with:
         fetch-depth: 0
     - uses: actions/download-artifact@c850b930e6ba138125429b7e5c93fc707a7f8427
