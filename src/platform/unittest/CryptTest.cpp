@@ -327,7 +327,7 @@ struct CryptTest : public ::testing::TestWithParam<int32_t>
         ASSERT_EQ(0, memcmp(HpMask, ExpectedHpMask.Data, ExpectedHpMask.Length));
 
         PacketBuffer[0] ^= HpMask[0] & 0x1F;
-        for (uint8_t i = 1; i < ExpectedHeader.Length; ++i) {
+        for (uint16_t i = 1; i < ExpectedHeader.Length; ++i) {
             PacketBuffer[i] ^= HpMask[i];
         }
         ASSERT_EQ(0, memcmp(PacketBuffer, ExpectedHeader.Data, ExpectedHeader.Length));
