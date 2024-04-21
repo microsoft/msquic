@@ -48,20 +48,15 @@ typedef struct XDP_DATAPATH {
 } XDP_DATAPATH;
 
 typedef struct XDP_INTERFACE {
-    CXPLAT_INTERFACE;
+    XDP_INTERFACE_COMMON;
     HANDLE XdpHandle;
-    uint16_t QueueCount;
     uint8_t RuleCount;
     CXPLAT_LOCK RuleLock;
     XDP_RULE* Rules;
-    XDP_QUEUE* Queues; // An array of queues.
-    const struct XDP_DATAPATH* Xdp;
 } XDP_INTERFACE;
 
 typedef struct XDP_QUEUE {
-    const XDP_INTERFACE* Interface;
-    XDP_PARTITION* Partition;
-    struct XDP_QUEUE* Next;
+    XDP_QUEUE_COMMON;
     uint8_t* RxBuffers;
     HANDLE RxXsk;
     DATAPATH_XDP_IO_SQE RxIoSqe;
@@ -73,9 +68,6 @@ typedef struct XDP_QUEUE {
     DATAPATH_XDP_IO_SQE TxIoSqe;
     XSK_RING TxRing;
     XSK_RING TxCompletionRing;
-    BOOLEAN RxQueued;
-    BOOLEAN TxQueued;
-    BOOLEAN Error;
 
     CXPLAT_LIST_ENTRY PartitionTxQueue;
     CXPLAT_SLIST_ENTRY PartitionRxPool;
@@ -107,17 +99,6 @@ typedef struct DECLSPEC_ALIGN(MEMORY_ALLOCATION_ALIGNMENT) XDP_TX_PACKET {
     CXPLAT_LIST_ENTRY Link;
     uint8_t FrameBuffer[MAX_ETH_FRAME_SIZE];
 } XDP_TX_PACKET;
-
-
-void XdpWorkerAddQueue(_In_ XDP_PARTITION* Partition, _In_ XDP_QUEUE* Queue) {
-    XDP_QUEUE** Tail = &Partition->Queues;
-    while (*Tail != NULL) {
-        Tail = &(*Tail)->Next;
-    }
-    *Tail = Queue;
-    Queue->Next = NULL;
-    Queue->Partition = Partition;
-}
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 BOOLEAN
@@ -1517,26 +1498,6 @@ CxPlatDpRawPlumbRulesOnSocket(
             }
         }
     }
-}
-
-_IRQL_requires_max_(PASSIVE_LEVEL)
-void
-CxPlatDpRawAssignQueue(
-    _In_ const CXPLAT_INTERFACE* _Interface,
-    _Inout_ CXPLAT_ROUTE* Route
-    )
-{
-    const XDP_INTERFACE* Interface = (const XDP_INTERFACE*)_Interface;
-    Route->Queue = &Interface->Queues[0];
-}
-
-_IRQL_requires_max_(DISPATCH_LEVEL)
-const CXPLAT_INTERFACE*
-CxPlatDpRawGetInterfaceFromQueue(
-    _In_ const void* Queue
-    )
-{
-    return (const CXPLAT_INTERFACE*)((XDP_QUEUE*)Queue)->Interface;
 }
 
 static

@@ -75,10 +75,7 @@ typedef struct XDP_DATAPATH { // NOLINT(clang-analyzer-optin.performance.Padding
 } XDP_DATAPATH;
 
 typedef struct XDP_INTERFACE {
-    CXPLAT_INTERFACE;
-    uint16_t QueueCount;
-    XDP_QUEUE* Queues; // An array of queues.
-    const struct XDP_DATAPATH* Xdp;
+    XDP_INTERFACE_COMMON;
     struct xsk_socket_config *XskCfg;
     struct bpf_object *BpfObj;
     struct xdp_program *XdpProg;
@@ -89,14 +86,9 @@ typedef struct XDP_INTERFACE {
 } XDP_INTERFACE;
 
 typedef struct XDP_QUEUE {
-    const XDP_INTERFACE* Interface;
-    XDP_PARTITION* Partition;
-    struct XDP_QUEUE* Next;
+    XDP_QUEUE_COMMON;
     DATAPATH_SQE RxIoSqe;
     DATAPATH_SQE FlushTxSqe;
-    BOOLEAN RxQueued;
-    BOOLEAN TxQueued;
-    BOOLEAN Error;
 
     CXPLAT_LIST_ENTRY PartitionTxQueue;
     CXPLAT_SLIST_ENTRY PartitionRxPool;
@@ -160,16 +152,6 @@ XdpSocketContextSetEvents(
             "epoll_ctl failed");
     }
 }
-
-// void XdpWorkerAddQueue(_In_ XDP_PARTITION* Partition, _In_ XDP_QUEUE* Queue) {
-//     XDP_QUEUE** Tail = &Partition->Queues;
-//     while (*Tail != NULL) {
-//         Tail = &(*Tail)->Next;
-//     }
-//     *Tail = Queue;
-//     Queue->Next = NULL;
-//     Queue->Partition = Partition;
-// }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 BOOLEAN
@@ -999,26 +981,6 @@ CxPlatDpRawPlumbRulesOnSocket(
             } // BPF_MAP_TYPE_ARRAY doesn't support delete
         }
     }
-}
-
-_IRQL_requires_max_(PASSIVE_LEVEL)
-void
-CxPlatDpRawAssignQueue(
-    _In_ const CXPLAT_INTERFACE* _Interface,
-    _Inout_ CXPLAT_ROUTE* Route
-    )
-{
-    const XDP_INTERFACE* Interface = (const XDP_INTERFACE*)_Interface;
-    Route->Queue = &Interface->Queues[0];
-}
-
-_IRQL_requires_max_(DISPATCH_LEVEL)
-const CXPLAT_INTERFACE*
-CxPlatDpRawGetInterfaceFromQueue(
-    _In_ const void* Queue
-    )
-{
-    return (const CXPLAT_INTERFACE*)((XDP_QUEUE*)Queue)->Interface;
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
