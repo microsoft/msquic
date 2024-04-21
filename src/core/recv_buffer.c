@@ -684,7 +684,7 @@ QuicRecvBufferRead(
                 Link);
         BOOLEAN IsFirstChunk = TRUE;
         uint32_t ChunkLength = RecvBuffer->ReadLength;
-        while (ChunkLength <= ReadOffset) {
+        while ((uint64_t)ChunkLength <= ReadOffset) {
             CXPLAT_DBG_ASSERT(ChunkLength);
             CXPLAT_DBG_ASSERT(Chunk->ExternalReference);
             CXPLAT_DBG_ASSERT(Chunk->Link.Flink != &RecvBuffer->Chunks);
