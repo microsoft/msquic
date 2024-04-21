@@ -53,29 +53,6 @@ CxPlatSockPoolUninitialize(
     (void)WSACleanup();
 }
 
-void
-CxPlatRemoveSocket(
-    _In_ CXPLAT_SOCKET_POOL* Pool,
-    _In_ CXPLAT_SOCKET_RAW* Socket
-    )
-{
-    CxPlatRwLockAcquireExclusive(&Pool->Lock);
-    CxPlatHashtableRemove(&Pool->Sockets, &Socket->Entry, NULL);
-
-    if (Socket->AuxSocket != INVALID_SOCKET &&
-        closesocket(Socket->AuxSocket) == SOCKET_ERROR) {
-        int Error = SocketError();
-        QuicTraceEvent(
-            DatapathErrorStatus,
-            "[data][%p] ERROR, %u, %s.",
-            Socket,
-            Error,
-            "closesocket");
-    }
-
-    CxPlatRwLockReleaseExclusive(&Pool->Lock);
-}
-
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 RawResolveRoute(

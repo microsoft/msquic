@@ -60,6 +60,29 @@ CxPlatGetSocket(
 }
 
 void
+CxPlatRemoveSocket(
+    _In_ CXPLAT_SOCKET_POOL* Pool,
+    _In_ CXPLAT_SOCKET_RAW* Socket
+    )
+{
+    CxPlatRwLockAcquireExclusive(&Pool->Lock);
+    CxPlatHashtableRemove(&Pool->Sockets, &Socket->Entry, NULL);
+
+    if (Socket->AuxSocket != INVALID_SOCKET &&
+        CxPlatCloseSocket(Socket->AuxSocket) == SOCKET_ERROR) {
+        int Error = CxPlatSocketError();
+        QuicTraceEvent(
+            DatapathErrorStatus,
+            "[data][%p] ERROR, %u, %s.",
+            Socket,
+            Error,
+            "closesocket");
+    }
+
+    CxPlatRwLockReleaseExclusive(&Pool->Lock);
+}
+
+void
 RawResolveRouteComplete(
     _In_ void* Context,
     _Inout_ CXPLAT_ROUTE* Route,

@@ -161,15 +161,15 @@ XdpSocketContextSetEvents(
     }
 }
 
-void XdpWorkerAddQueue(_In_ XDP_PARTITION* Partition, _In_ XDP_QUEUE* Queue) {
-    XDP_QUEUE** Tail = &Partition->Queues;
-    while (*Tail != NULL) {
-        Tail = &(*Tail)->Next;
-    }
-    *Tail = Queue;
-    Queue->Next = NULL;
-    Queue->Partition = Partition;
-}
+// void XdpWorkerAddQueue(_In_ XDP_PARTITION* Partition, _In_ XDP_QUEUE* Queue) {
+//     XDP_QUEUE** Tail = &Partition->Queues;
+//     while (*Tail != NULL) {
+//         Tail = &(*Tail)->Next;
+//     }
+//     *Tail = Queue;
+//     Queue->Next = NULL;
+//     Queue->Partition = Partition;
+// }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 BOOLEAN
@@ -919,6 +919,21 @@ CxPlatDpRawUpdateConfig(
 {
     XDP_DATAPATH* Xdp = (XDP_DATAPATH*)Datapath;
     Xdp->PollingIdleTimeoutUs = Config->PollingIdleTimeoutUs;
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_STATUS
+RawSocketUpdateQeo(
+    _In_ CXPLAT_SOCKET_RAW* Socket,
+    _In_reads_(OffloadCount)
+        const CXPLAT_QEO_CONNECTION* Offloads,
+    _In_ uint32_t OffloadCount
+    )
+{
+    UNREFERENCED_PARAMETER(Socket);
+    UNREFERENCED_PARAMETER(Offloads);
+    UNREFERENCED_PARAMETER(OffloadCount);
+    return QUIC_STATUS_NOT_SUPPORTED;
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
