@@ -101,6 +101,7 @@ QuicPacketBuilderInitialize(
     Builder->Path = Path;
     Builder->PacketBatchSent = FALSE;
     Builder->PacketBatchRetransmittable = FALSE;
+    Builder->WrittenConnectionCloseFrame = FALSE;
     Builder->Metadata = &Builder->MetadataStorage.Metadata;
     Builder->EncryptionOverhead = CXPLAT_ENCRYPTION_OVERHEAD;
     Builder->TotalDatagramsLength = 0;
@@ -493,9 +494,12 @@ QuicPacketBuilderGetPacketTypeAndKeyForControlFrames(
                     ? QUIC_PACKET_KEY_HANDSHAKE
                     : QUIC_PACKET_KEY_INITIAL;
 
-            if ((Builder->Datagram == NULL || Builder->DatagramLength == 0) &&
+            if (!Builder->WrittenConnectionCloseFrame &&
                 Connection->Crypto.TlsState.WriteKeys[PreviousKeyType] != NULL) {
-                MaxKeyType = PreviousKeyType; // Use the lower key for the first packet in a datagram.
+                //
+                // Downgrade the key so that we send the CLOSE frame on previous protection level.
+                //
+                MaxKeyType = PreviousKeyType;
             }
         }
 

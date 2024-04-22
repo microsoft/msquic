@@ -267,15 +267,15 @@ function Install-NASM {
         $NasmArch = "win64"
         if (![System.Environment]::Is64BitOperatingSystem) { $NasmArch = "win32" }
         try {
-            Invoke-WebRequest -Uri "https://www.nasm.us/pub/nasm/releasebuilds/$NasmVersion/win64/nasm-$NasmVersion-$NasmArch.zip" -OutFile "artifacts\nasm.zip"
+            Invoke-WebRequest -Uri "https://www.nasm.us/pub/nasm/releasebuilds/$NasmVersion/win64/nasm-$NasmVersion-$NasmArch.zip" -OutFile "$ArtifactsPath\nasm.zip"
         } catch {
             # Mirror fallback
-            Invoke-WebRequest -Uri "https://fossies.org/windows/misc/nasm-$NasmVersion-$NasmArch.zip" -OutFile "artifacts\nasm.zip"
+            Invoke-WebRequest -Uri "https://fossies.org/windows/misc/nasm-$NasmVersion-$NasmArch.zip" -OutFile "$ArtifactsPath\nasm.zip"
         }
 
         Write-Host "Extracting/installing NASM"
-        Expand-Archive -Path "artifacts\nasm.zip" -DestinationPath $env:Programfiles -Force
-        Remove-Item -Path "artifacts\nasm.zip"
+        Expand-Archive -Path "$ArtifactsPath\nasm.zip" -DestinationPath $env:Programfiles -Force
+        Remove-Item -Path "$ArtifactsPath\nasm.zip"
         Update-Path $NasmPath
     }
 }
@@ -286,19 +286,20 @@ function Install-JOM {
     $JomVersion = "1_1_3"
     $JomPath = Join-Path $env:Programfiles "jom_$JomVersion"
     $JomExe = Join-Path $JomPath "jom.exe"
+
     if (!(Test-Path $JomExe) -and $env:GITHUB_PATH -eq $null) {
         Write-Host "Downloading JOM"
         try {
-            Invoke-WebRequest -Uri "https://qt.mirror.constant.com/official_releases/jom/jom_$JomVersion.zip" -OutFile "artifacts\jom.zip"
+            Invoke-WebRequest -Uri "https://qt.mirror.constant.com/official_releases/jom/jom_$JomVersion.zip" -OutFile "$ArtifactsPath\jom.zip"
         } catch {
             # Mirror fallback
-            Invoke-WebRequest -Uri "https://mirrors.ocf.berkeley.edu/qt/official_releases/jom/jom_$JomVersion.zip" -OutFile "artifacts\jom.zip"
+            Invoke-WebRequest -Uri "https://mirrors.ocf.berkeley.edu/qt/official_releases/jom/jom_$JomVersion.zip" -OutFile "$ArtifactsPath\jom.zip"
         }
 
         Write-Host "Extracting/installing JOM"
         New-Item -Path $JomPath -ItemType Directory -Force
-        Expand-Archive -Path "artifacts\jom.zip" -DestinationPath $JomPath -Force
-        Remove-Item -Path "artifacts\jom.zip"
+        Expand-Archive -Path "$ArtifactsPath\jom.zip" -DestinationPath $JomPath -Force
+        Remove-Item -Path "$ArtifactsPath\jom.zip"
         Update-Path $JomPath
     }
 }
@@ -436,7 +437,7 @@ function Install-DotnetTool {
 
 function Install-Clog2Text {
     Write-Host "Initializing clog submodule"
-    git submodule init submodules/clog
+    git submodule init $RootDir/submodules/clog
     git submodule update
 
     dotnet build (Join-Path $RootDir submodules clog)
@@ -446,33 +447,32 @@ function Install-Clog2Text {
 
 # We remove OpenSSL path for kernel builds because it's not needed.
 if ($ForKernel) {
-    git rm submodules/openssl
-    git rm submodules/openssl3
+    git rm $RootDir/submodules/openssl
+    git rm $RootDir/submodules/openssl3
 }
 
 if ($ForBuild -or $ForContainerBuild) {
-
     Write-Host "Initializing clog submodule"
-    git submodule init submodules/clog
+    git submodule init $RootDir/submodules/clog
 
     if (!$IsLinux) {
         Write-Host "Initializing XDP-for-Windows submodule"
-        git submodule init submodules/xdp-for-windows
+        git submodule init $RootDir/submodules/xdp-for-windows
     }
 
     if ($Tls -eq "openssl") {
         Write-Host "Initializing openssl submodule"
-        git submodule init submodules/openssl
+        git submodule init $RootDir/submodules/openssl
     }
 
     if ($Tls -eq "openssl3") {
         Write-Host "Initializing openssl3 submodule"
-        git submodule init submodules/openssl3
+        git submodule init $RootDir/submodules/openssl3
     }
 
     if (!$DisableTest) {
         Write-Host "Initializing googletest submodule"
-        git submodule init submodules/googletest
+        git submodule init $RootDir/submodules/googletest
     }
 
     git submodule update --jobs=8
