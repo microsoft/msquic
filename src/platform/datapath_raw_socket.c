@@ -14,12 +14,12 @@ Abstract:
 #include "datapath_raw_socket.c.clog.h"
 #endif
 
-#ifdef CX_PLATFORM_LINUX || CX_PLATFORM_DARWIN
+#if defined(CX_PLATFORM_LINUX) || defined(CX_PLATFORM_DARWIN)
 #define CxPlatSocketError() errno
 #define CxPlatCloseSocket(s) close(s)
 #define CxPlatQuicErrorFromSocketError(e) (QUIC_STATUS)e
 #define CxPlatAddressLengthType uint32_t
-#elif _WIN32 || _KERNEL_MODE
+#elif defined(_WIN32) || defined(_KERNEL_MODE)
 #define CxPlatSocketError() WSAGetLastError()
 #define CxPlatCloseSocket(s) closesocket(s)
 #define CxPlatQuicErrorFromSocketError(e) HRESULT_FROM_WIN32(e)
