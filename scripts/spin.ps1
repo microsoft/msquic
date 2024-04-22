@@ -188,7 +188,7 @@ if (![string]::IsNullOrWhiteSpace($ExtraArtifactDir)) {
 
 # Run the script.
 if ($IsLinux -and $UseXdp) {
-    Invoke-Expression ("sudo MSQUIC_ENABLE_XDP=1 pwsh -c " + $RunExecutable + " " + $Arguments)
+    Invoke-Expression ('sudo MSQUIC_ENABLE_XDP=1 pwsh -c "$RunExecutable $Arguments"')
 } else {
     Invoke-Expression ($RunExecutable + " " + $Arguments)
 }
