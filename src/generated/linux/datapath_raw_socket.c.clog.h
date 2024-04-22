@@ -87,12 +87,12 @@ tracepoint(CLOG_DATAPATH_RAW_SOCKET_C, RouteResolutionEnd , arg1, arg3, arg4, ar
 // QuicTraceEvent(
             DatapathErrorStatus,
             "[data][%p] ERROR, %u, %s.",
-            Datapath,
-            Length,
-            "packet is too small for a UDP header");
-// arg2 = arg2 = Datapath = arg2
-// arg3 = arg3 = Length = arg3
-// arg4 = arg4 = "packet is too small for a UDP header" = arg4
+            Socket,
+            Error,
+            "closesocket");
+// arg2 = arg2 = Socket = arg2
+// arg3 = arg3 = Error = arg3
+// arg4 = arg4 = "closesocket" = arg4
 ----------------------------------------------------------*/
 #ifndef _clog_5_ARGS_TRACE_DatapathErrorStatus
 #define _clog_5_ARGS_TRACE_DatapathErrorStatus(uniqueId, encoded_arg_string, arg2, arg3, arg4)\
