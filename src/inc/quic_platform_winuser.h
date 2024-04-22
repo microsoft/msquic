@@ -80,11 +80,6 @@ extern "C" {
 
 #define INIT_NO_SAL(X) // No-op since Windows supports SAL
 
-#define CxPlatSocketError() WSAGetLastError()
-#define CxPlatCloseSocket(s) closesocket(s)
-#define CxPlatQuicErrorFromSocketError(e) HRESULT_FROM_WIN32(e)
-#define CxPlatAddressLengthType int
-
 #ifdef QUIC_RESTRICTED_BUILD
 #ifndef NT_SUCCESS
 #define NT_SUCCESS(Status) (((NTSTATUS)(Status)) >= 0)

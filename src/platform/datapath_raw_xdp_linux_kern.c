@@ -5,7 +5,7 @@
 
 Abstract:
 
-    EBPF for Linux XDP Implementation
+    eBPF program for Linux XDP Implementation
 
 --*/
 
@@ -185,8 +185,11 @@ static __always_inline void dump(struct xdp_md *ctx, void *data, void *data_end)
 
 #endif
 
+// varidate packet whether it is really to user space quic service
+// return true if valid Ethernet, IPv4/6, UDP header and destination port
 static __always_inline bool to_quic_service(struct xdp_md *ctx, void *data, void *data_end) {
     struct ethhdr *eth = data;
+    // boundary check
     if ((void *)(eth + 1) > data_end) {
         return false;
     }
@@ -196,10 +199,12 @@ static __always_inline bool to_quic_service(struct xdp_md *ctx, void *data, void
     struct udphdr *udph = 0;
     if (eth->h_proto == bpf_htons(ETH_P_IP)) {
         iph = (struct iphdr *)(eth + 1);
+        // boundary check
         if ((void*)(iph + 1) > data_end) {
             return false;
         }
 
+        // check if the destination IP address matches
         __u32 *ipv4_addr = bpf_map_lookup_elem(&ip_map, &ipv4_key);
         if (ipv4_addr && *ipv4_addr != iph->daddr) {
             return false;
@@ -210,10 +215,12 @@ static __always_inline bool to_quic_service(struct xdp_md *ctx, void *data, void
         udph = (struct udphdr *)(iph + 1);
     } else if (eth->h_proto == bpf_htons(ETH_P_IPV6)) {
         ip6h = (struct ipv6hdr *)(eth + 1);
+        // boundary check
         if ((void*)(ip6h + 1) > data_end) {
             return false;
         }
 
+        // check if the destination IP address matches
         __u32 *ipv6_addr = bpf_map_lookup_elem(&ip_map, &ipv6_key);
         if (ipv6_addr) {
             for (int i = 0; i < 4; i++) {
@@ -230,10 +237,12 @@ static __always_inline bool to_quic_service(struct xdp_md *ctx, void *data, void
     } else {
         return false;
     }
+    // boundary check
     if ((void*)(udph + 1) > data_end) {
         return false;
     }
 
+    // check if the destination port matches
     bool *exist = bpf_map_lookup_elem(&port_map, (__u16*)&udph->dest); // slow?
     if (exist && *exist) {
         return true;

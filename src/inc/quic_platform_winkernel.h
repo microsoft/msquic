@@ -99,11 +99,6 @@ ZwQueryInformationThread (
 
 #define INIT_NO_SAL(X) // No-op since Windows supports SAL
 
-#define CxPlatSocketError() WSAGetLastError()
-#define CxPlatCloseSocket(s) closesocket(s)
-#define CxPlatQuicErrorFromSocketError(e) HRESULT_FROM_WIN32(e)
-#define CxPlatAddressLengthType int
-
 //
 // Wrapper functions
 //
