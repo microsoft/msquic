@@ -14,8 +14,7 @@ This document is meant to be a step-by-step guide for trouble shooting any issue
 
 # Trouble Shooting a Functional Issue
 
-1. [MsQuic logging?](#logging)  
-1-2. [Linux XDP logging?](#linux-xdp-logging)
+1. [MsQuic logging?](#logging)
 3. [I am getting an error code I don't understand.](#understanding-error-codes)
 4. [The connection is unexpectedly shutting down.](#why-is-the-connection-shutting-down)
 5. [The stream is aborted](#the-stream-is-aborted)

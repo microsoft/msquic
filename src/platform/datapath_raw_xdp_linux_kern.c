@@ -185,7 +185,7 @@ static __always_inline void dump(struct xdp_md *ctx, void *data, void *data_end)
 
 #endif
 
-// varidate packet whether it is really to user space quic service
+// Validates packet whether it is really to user space quic service
 // return true if valid Ethernet, IPv4/6, UDP header and destination port
 static __always_inline bool to_quic_service(struct xdp_md *ctx, void *data, void *data_end) {
     struct ethhdr *eth = data;
@@ -268,4 +268,4 @@ int xdp_main(struct xdp_md *ctx)
     return XDP_PASS;
 }
 
-char _license[] SEC("license") = "GPL";
+char _license[] SEC("license") = "MIT";
