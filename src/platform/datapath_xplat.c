@@ -236,6 +236,7 @@ CxPlatSocketGetLocalMtu(
     return Socket->Mtu;
 }
 
+_IRQL_requires_max_(DISPATCH_LEVEL)
 void
 CxPlatSocketGetLocalAddress(
     _In_ CXPLAT_SOCKET* Socket,
@@ -246,6 +247,7 @@ CxPlatSocketGetLocalAddress(
     *Address = Socket->LocalAddress;
 }
 
+_IRQL_requires_max_(DISPATCH_LEVEL)
 void
 CxPlatSocketGetRemoteAddress(
     _In_ CXPLAT_SOCKET* Socket,
@@ -256,6 +258,7 @@ CxPlatSocketGetRemoteAddress(
     *Address = Socket->RemoteAddress;
 }
 
+_IRQL_requires_max_(DISPATCH_LEVEL)
 void
 CxPlatRecvDataReturn(
     _In_opt_ CXPLAT_RECV_DATA* RecvDataChain
