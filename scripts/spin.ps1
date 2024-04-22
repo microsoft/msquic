@@ -116,10 +116,6 @@ $RunExecutable = Join-Path $RootDir "scripts/run-executable.ps1"
 # Helper for XDP usage.
 if ($UseXdp) {
     $Target = "192.168.1.11"
-    if ($IsLinux) {
-        # Temporal flag
-        $env:MSQUIC_ENABLE_XDP = 1
-    }
 }
 
 # Validate the code coverage switch.
@@ -191,4 +187,8 @@ if (![string]::IsNullOrWhiteSpace($ExtraArtifactDir)) {
 }
 
 # Run the script.
-Invoke-Expression ($RunExecutable + " " + $Arguments)
+if ($IsLinux -and $UseXdp) {
+    Invoke-Expression ("sudo MSQUIC_ENABLE_XDP=1 pwsh -c " + $RunExecutable + " " + $Arguments)
+} else {
+    Invoke-Expression ($RunExecutable + " " + $Arguments)
+}

@@ -226,10 +226,6 @@ $RootArtifactDir = $BuildConfig.ArtifactsDir
 if ($UseXdp) {
     # Helper for XDP usage
     $DuoNic = $true
-    if ($IsLinux) {
-        # Temporal flag
-        $env:MSQUIC_ENABLE_XDP = 1
-    }
 }
 
 # Root directory of the project.
@@ -356,16 +352,25 @@ if (![string]::IsNullOrWhiteSpace($ExtraArtifactDir)) {
     $TestArguments += " -ExtraArtifactDir $ExtraArtifactDir"
 }
 
+$TestPaths = @()
+if (!$Kernel -and !$SkipUnitTests) {
+    $TestPaths += $MsQuicPlatTest
+    $TestPaths += $MsQuicCoreTest
+}
+$TestPaths += $MsQuicTest
+
 for ($iteration = 1; $iteration -le $NumIterations; $iteration++) {
     if ($NumIterations -gt 1) {
         Write-Host "------- Iteration $iteration -------"
     }
     # Run the script.
-    if (!$Kernel -and !$SkipUnitTests) {
-        Invoke-Expression ($RunTest + " -Path $MsQuicPlatTest " + $TestArguments)
-        Invoke-Expression ($RunTest + " -Path $MsQuicCoreTest " + $TestArguments)
+    foreach ($TestPath in $TestPaths) {
+        if ($IsLinux -and $UseXdp) {
+            Invoke-Expression ("sudo MSQUIC_ENABLE_XDP=1 pwsh -c " + $RunTest + " -Path $TestPath " + $TestArguments)
+        } else {
+            Invoke-Expression ($RunTest + " -Path $TestPath " + $TestArguments)
+        }
     }
-    Invoke-Expression ($RunTest + " -Path $MsQuicTest " + $TestArguments)
 }
 
 if ($CodeCoverage) {
