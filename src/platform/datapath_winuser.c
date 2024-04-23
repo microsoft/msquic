@@ -2646,15 +2646,15 @@ CxPlatDataPathSocketProcessAcceptCompletion(
             goto Error;
         }
 
-        CxPlatDataPathStartReceiveAsync(AcceptSocketProc);
-
-        AcceptSocketProc->IoStarted = TRUE;
         Datapath->TcpHandlers.Accept(
             ListenerSocketProc->Parent,
             ListenerSocketProc->Parent->ClientContext,
             ListenerSocketProc->AcceptSocket,
             &ListenerSocketProc->AcceptSocket->ClientContext);
         ListenerSocketProc->AcceptSocket = NULL;
+
+        CxPlatDataPathStartReceiveAsync(AcceptSocketProc);
+        AcceptSocketProc->IoStarted = TRUE;
 
     } else {
         QuicTraceEvent(
