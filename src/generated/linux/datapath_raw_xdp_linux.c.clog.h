@@ -422,6 +422,26 @@ tracepoint(CLOG_DATAPATH_RAW_XDP_LINUX_C, XdpDeletePortFails , arg2, arg3);\
 
 
 /*----------------------------------------------------------
+// Decoder Ring for XdpSetIpFails
+// [ xdp] Failed to set ipv4 %s on %s
+// QuicTraceLogVerbose(
+                        XdpSetIpFails,
+                        "[ xdp] Failed to set ipv4 %s on %s",
+                        inet_ntoa(Interface->Ipv4Address),
+                        Interface->IfName);
+// arg2 = arg2 = inet_ntoa(Interface->Ipv4Address) = arg2
+// arg3 = arg3 = Interface->IfName = arg3
+----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_XdpSetIpFails
+#define _clog_4_ARGS_TRACE_XdpSetIpFails(uniqueId, encoded_arg_string, arg2, arg3)\
+tracepoint(CLOG_DATAPATH_RAW_XDP_LINUX_C, XdpSetIpFails , arg2, arg3);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for XdpSetIfnameFails
 // [ xdp] Failed to set ifname %s on %s
 // QuicTraceLogVerbose(

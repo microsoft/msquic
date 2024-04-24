@@ -650,6 +650,22 @@ CxPlatDpRawGetDatapathSize(
     return sizeof(XDP_DATAPATH) + (PartitionCount * sizeof(XDP_PARTITION));
 }
 
+void ProcessInterfaceAddress(int family, struct ifaddrs *ifa, XDP_INTERFACE *Interface) {
+    if (family == AF_INET) {
+        struct sockaddr_in *addr_in = (struct sockaddr_in *)ifa->ifa_addr;
+        Interface->Ipv4Address = addr_in->sin_addr;
+    } else if (family == AF_INET6) {
+        struct sockaddr_in6 *addr_in6 = (struct sockaddr_in6 *)ifa->ifa_addr;
+        if (addr_in6->sin6_scope_id == if_nametoindex(ifa->ifa_name)) {
+            return;
+        }
+        memcpy(&Interface->Ipv6Address, &addr_in6->sin6_addr, sizeof(struct in6_addr));
+    } else if (family == AF_PACKET) {
+        struct sockaddr_ll *sall = (struct sockaddr_ll*)ifa->ifa_addr;
+        memcpy(Interface->PhysicalAddress, sall->sll_addr, sizeof(Interface->PhysicalAddress));
+    }
+}
+
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 CxPlatDpRawInitialize(
@@ -706,19 +722,7 @@ CxPlatDpRawInitialize(
 
                 if (strcmp(Interface->IfName, ifa->ifa_name) == 0) {
                     Initialized = true;
-                    if (family == AF_INET) {
-                        struct sockaddr_in *addr_in = (struct sockaddr_in *)ifa->ifa_addr;
-                        Interface->Ipv4Address = addr_in->sin_addr;
-                    } else if (family == AF_INET6) {
-                        struct sockaddr_in6 *addr_in6 = (struct sockaddr_in6 *)ifa->ifa_addr;
-                        if (addr_in6->sin6_scope_id == if_nametoindex(ifa->ifa_name)) {
-                            break;
-                        }
-                        memcpy(&Interface->Ipv6Address, &addr_in6->sin6_addr, sizeof(struct in6_addr));
-                    } else if (family == AF_PACKET) {
-                        struct sockaddr_ll *sall = (struct sockaddr_ll*)ifa->ifa_addr;
-                        memcpy(Interface->PhysicalAddress, sall->sll_addr, sizeof(Interface->PhysicalAddress));
-                    }
+                    ProcessInterfaceAddress(family, ifa, Interface);
                     break;
                 }
             }
@@ -736,6 +740,7 @@ CxPlatDpRawInitialize(
                 CxPlatZeroMemory(Interface, sizeof(*Interface));
                 memcpy(Interface->IfName, ifa->ifa_name, sizeof(Interface->IfName));
                 Interface->IfIndex = if_nametoindex(ifa->ifa_name);
+                ProcessInterfaceAddress(family, ifa, Interface);
 
                 if (QUIC_FAILED(CxPlatDpRawInterfaceInitialize(
                         Xdp, Interface, ClientRecvContextLength))) {
@@ -953,12 +958,23 @@ CxPlatDpRawPlumbRulesOnSocket(
         if (ip_map) {
             __u8 ipv_data[16] = {0};
             if (IsCreated) {
-                if (QuicAddrGetFamily(&Socket->LocalAddress) == QUIC_ADDRESS_FAMILY_INET) {
-                    memcpy(ipv_data, &Interface->Ipv4Address.s_addr, 4);
-                    bpf_map_update_elem(bpf_map__fd(ip_map), &IPv4Key, ipv_data, BPF_ANY);
-                } else {
-                    memcpy(ipv_data, &Interface->Ipv6Address.s6_addr, sizeof(ipv_data));
-                    bpf_map_update_elem(bpf_map__fd(ip_map), &IPv6Key, ipv_data, BPF_ANY);
+                memcpy(ipv_data, &Interface->Ipv4Address.s_addr, 4);
+                if (bpf_map_update_elem(bpf_map__fd(ip_map), &IPv4Key, ipv_data, BPF_ANY)) {
+                    QuicTraceLogVerbose(
+                        XdpSetIpFails,
+                        "[ xdp] Failed to set ipv4 %s on %s",
+                        inet_ntoa(Interface->Ipv4Address),
+                        Interface->IfName);
+                }
+                memcpy(ipv_data, &Interface->Ipv6Address.s6_addr, sizeof(ipv_data));
+                if (bpf_map_update_elem(bpf_map__fd(ip_map), &IPv6Key, ipv_data, BPF_ANY)) {
+                    char str_ipv6[INET6_ADDRSTRLEN];
+                    inet_ntop(AF_INET6, &Interface->Ipv6Address, str_ipv6, sizeof(str_ipv6));
+                    QuicTraceLogVerbose(
+                        XdpSetIpFails,
+                        "[ xdp] Failed to set ipv6 %s on %s",
+                        str_ipv6,
+                        Interface->IfName);
                 }
             } else {
                 bpf_map_update_elem(bpf_map__fd(ip_map), &IPv4Key, ipv_data, BPF_ANY);

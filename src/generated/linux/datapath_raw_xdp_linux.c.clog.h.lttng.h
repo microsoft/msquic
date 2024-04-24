@@ -436,6 +436,29 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_LINUX_C, XdpDeletePortFails,
 
 
 /*----------------------------------------------------------
+// Decoder Ring for XdpSetIpFails
+// [ xdp] Failed to set ipv4 %s on %s
+// QuicTraceLogVerbose(
+                        XdpSetIpFails,
+                        "[ xdp] Failed to set ipv4 %s on %s",
+                        inet_ntoa(Interface->Ipv4Address),
+                        Interface->IfName);
+// arg2 = arg2 = inet_ntoa(Interface->Ipv4Address) = arg2
+// arg3 = arg3 = Interface->IfName = arg3
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_LINUX_C, XdpSetIpFails,
+    TP_ARGS(
+        const char *, arg2,
+        const char *, arg3), 
+    TP_FIELDS(
+        ctf_string(arg2, arg2)
+        ctf_string(arg3, arg3)
+    )
+)
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for XdpSetIfnameFails
 // [ xdp] Failed to set ifname %s on %s
 // QuicTraceLogVerbose(

@@ -12594,6 +12594,22 @@
       ],
       "macroName": "QuicTraceLogVerbose"
     },
+    "XdpSetIpFails": {
+      "ModuleProperites": {},
+      "TraceString": "[ xdp] Failed to set ipv4 %s on %s",
+      "UniqueId": "XdpSetIpFails",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "s",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "s",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macroName": "QuicTraceLogVerbose"
+    },
     "XdpSetPortFails": {
       "ModuleProperites": {},
       "TraceString": "[ xdp] Failed to set port %d on %s",
@@ -17197,6 +17213,11 @@
         "UniquenessHash": "02a4f582-b4ac-f506-b60f-2627183d2bde",
         "TraceID": "XdpSetIfnameFails",
         "EncodingString": "[ xdp] Failed to set ifname %s on %s"
+      },
+      {
+        "UniquenessHash": "3920ec7a-fd58-050b-a020-e91a02d8c2d3",
+        "TraceID": "XdpSetIpFails",
+        "EncodingString": "[ xdp] Failed to set ipv4 %s on %s"
       },
       {
         "UniquenessHash": "f209f7d4-9287-cfed-6abd-bfcd201e5ee7",
