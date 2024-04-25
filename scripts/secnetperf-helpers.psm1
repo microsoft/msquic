@@ -228,6 +228,12 @@ function Cleanup-State {
             try { & "$Using:RemoteDir/scripts/log.ps1" -Cancel }
             catch { Write-Host "Failed to stop logging on server!" }
         }
+    } else {
+        # iterate all interface and "ip link set ${iface} xdp off"
+        $ifaces = ip link show | grep -oP '^\d+: \K[\w@]+' | cut -d'@' -f1
+        foreach ($iface in $ifaces) {
+            sudo ip link set $iface xdp off
+        }
     }
 }
 

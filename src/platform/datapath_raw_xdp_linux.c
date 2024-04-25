@@ -357,7 +357,7 @@ AttachXdpProgram(struct xdp_program *Prog, XDP_INTERFACE *Interface, struct xsk_
         unsigned int xdp_flag;
     } AttachTypePairs[]  = {
         // { XDP_MODE_HW, XDP_FLAGS_HW_MODE },
-        { XDP_MODE_NATIVE, XDP_FLAGS_DRV_MODE },
+        // { XDP_MODE_NATIVE, XDP_FLAGS_DRV_MODE },
         { XDP_MODE_SKB, XDP_FLAGS_SKB_MODE },
     };
     for (uint32_t i = 0; i < ARRAYSIZE(AttachTypePairs); i++) {
@@ -676,6 +676,10 @@ CxPlatDpRawInitialize(
 {
     XDP_DATAPATH* Xdp = (XDP_DATAPATH*)Datapath;
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
+    if (ClientRecvContextLength == 0) {
+        // allow only from registration.c
+        return QUIC_STATUS_INVALID_PARAMETER;
+    }
 
     CxPlatXdpReadConfig(Xdp);
     CxPlatListInitializeHead(&Xdp->Interfaces);

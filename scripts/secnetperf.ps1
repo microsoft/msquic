@@ -68,7 +68,10 @@ param (
     [string]$filter = "",
 
     [Parameter(Mandatory = $false)]
-    [string]$RemoteName = "netperf-peer"
+    [string]$RemoteName = "netperf-peer",
+
+    [Parameter(Mandatory = $false)]
+    [string]$UserName = "secnetperf"
 )
 
 Set-StrictMode -Version "Latest"
@@ -77,7 +80,11 @@ $PSDefaultParameterValues["*:ErrorAction"] = "Stop"
 # Set up some important paths.
 $RemoteDir = "C:/_work/quic"
 if (!$isWindows) {
-    $RemoteDir = "/home/secnetperf/_work/quic"
+    if ($UserName -eq "root") {
+        $RemoteDir = "/$UserName/_work/quic"
+    } else {
+        $RemoteDir = "/home/$UserName/_work/quic"
+    }
 }
 $SecNetPerfDir = "artifacts/bin/$plat/$($arch)_Release_$tls"
 $SecNetPerfPath = "$SecNetPerfDir/secnetperf"
@@ -106,7 +113,7 @@ while ($Attempts -lt 5) {
             $cred = New-Object System.Management.Automation.PSCredential ($username, $password)
             $Session = New-PSSession -ComputerName $RemoteName -Credential $cred -ConfigurationName PowerShell.7
         } else {
-            $Session = New-PSSession -HostName $RemoteName -UserName secnetperf -SSHTransport
+            $Session = New-PSSession -HostName $RemoteName -UserName $UserName -SSHTransport
         }
         break
     } catch {
@@ -234,20 +241,38 @@ if ($isWindows) {
 # Configure the dump collection.
 Configure-DumpCollection $Session
 
-# Install any dependent drivers.
-if ($useXDP) { Install-XDP $Session $RemoteDir }
+$GRO = "on"
+if ($useXDP) {
+    # Install any dependent drivers.
+    if ($isWindows) {
+        Install-XDP $Session $RemoteDir
+    } else {
+        $env:MSQUIC_ENABLE_XDP=1
+        $GRO = "off"
+    }
+}
 if ($io -eq "wsk") { Install-Kernel $Session $RemoteDir $SecNetPerfDir }
 
 if (!$isWindows) {
     # Make sure the secnetperf binary is executable.
     Write-Host "Updating secnetperf permissions"
+    $GRO = "on"
+    $ENABLE_XDP=0
+    if ($io -eq "xdp") {
+        $GRO = "off"
+        $ENABLE_XDP=1
+    }
     Invoke-Command -Session $Session -ScriptBlock {
         $env:LD_LIBRARY_PATH = "${env:LD_LIBRARY_PATH}:$Using:RemoteDir/$Using:SecNetPerfDir"
         chmod +x "$Using:RemoteDir/$Using:SecNetPerfPath"
+        sudo sh -c "ethtool -K eth0 generic-receive-offload $Using:GRO"
+        $env:MSQUIC_ENABLE_XDP=$Using:ENABLE_XDP
     }
     $fullPath = Repo-Path $SecNetPerfDir
     $env:LD_LIBRARY_PATH = "${env:LD_LIBRARY_PATH}:$fullPath"
     chmod +x "./$SecNetPerfPath"
+    sudo sh -c "ethtool -K eth0 generic-receive-offload $GRO"
+    $env:MSQUIC_ENABLE_XDP=$ENABLE_XDP
 
     if ((Get-Content "/etc/security/limits.conf") -notcontains "root soft core unlimited") {
         # Enable core dumps for the system.
