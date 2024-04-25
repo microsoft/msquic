@@ -228,13 +228,18 @@ function Uninstall-Xdp {
 
 # Installs DuoNic from the CoreNet-CI repo.
 function Install-DuoNic {
-    if (!$IsWindows) { return } # Windows only
     # Install the DuoNic driver.
-    Write-Host "Installing DuoNic driver"
-    $DuoNicPath = Join-Path $SetupPath duonic
-    $DuoNicScript = (Join-Path $DuoNicPath duonic.ps1)
-    if (!(Test-Path $DuoNicScript)) { Write-Error "Missing file: $DuoNicScript" }
-    Invoke-Expression "cmd /c `"pushd $DuoNicPath && pwsh duonic.ps1 -Install`""
+    if ($IsWindows) {
+        Write-Host "Installing DuoNic driver"
+        $DuoNicPath = Join-Path $SetupPath duonic
+        $DuoNicScript = (Join-Path $DuoNicPath duonic.ps1)
+        if (!(Test-Path $DuoNicScript)) { Write-Error "Missing file: $DuoNicScript" }
+        Invoke-Expression "cmd /c `"pushd $DuoNicPath && pwsh duonic.ps1 -Install`""
+    } elseif ($IsLinux) {
+        Write-Host "Creating DuoNic endpoints"
+        $DuoNicScript = Join-Path $PSScriptRoot "duonic.sh"
+        Invoke-Expression "sudo bash $DuoNicScript install"
+    }
 }
 
 function Update-Path($NewPath) {
@@ -504,6 +509,15 @@ if ($IsLinux) {
         sudo apt-get install -y ruby ruby-dev rpm
         sudo gem install public_suffix -v 4.0.7
         sudo gem install fpm
+
+        # XDP dependencies
+        if ((bash -c 'lsb_release -r') -match '22.04') {
+            sudo apt-get -y install --no-install-recommends libc6-dev-i386 # for building xdp programs
+            sudo apt-add-repository "deb http://mirrors.kernel.org/ubuntu noble main" -y
+            sudo apt-get update -y
+            sudo apt-get -y install libxdp-dev libbpf-dev
+            sudo apt-get -y install libnl-3-dev libnl-genl-3-dev libnl-route-3-dev zlib1g-dev zlib1g pkg-config m4 clang libpcap-dev libelf-dev
+        }
     }
 
     if ($ForTest) {
@@ -512,6 +526,16 @@ if ($IsLinux) {
         sudo apt-get install -y lttng-tools
         sudo apt-get install -y liblttng-ust-dev
         sudo apt-get install -y gdb
+        if ((bash -c 'lsb_release -r') -match '22.04') {
+            sudo apt-add-repository "deb http://mirrors.kernel.org/ubuntu noble main" -y
+            sudo apt-get update -y
+            sudo apt-get install -y libxdp1 libbpf1
+            sudo apt-get install -y libnl-3-200 libnl-route-3-200 libnl-genl-3-200
+            if ($UseXdp) {
+                sudo apt-get -y install iproute2 iptables
+                Install-DuoNic
+            }
+        }
 
         # Enable core dumps for the system.
         Write-Host "Setting core dump size limit"

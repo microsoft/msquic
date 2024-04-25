@@ -929,7 +929,8 @@ TEST_P(DataPathTest, UdpShareClientSocket)
     CxPlatDataPath Datapath(&UdpRecvCallbacks);
     VERIFY_QUIC_SUCCESS(Datapath.GetInitStatus());
     ASSERT_NE(nullptr, Datapath.Datapath);
-    if (!(Datapath.GetSupportedFeatures() & CXPLAT_DATAPATH_FEATURE_LOCAL_PORT_SHARING)) {
+    // TODO: Linux XDP (duonic) to support port sharing
+    if (!(Datapath.GetSupportedFeatures() & CXPLAT_DATAPATH_FEATURE_LOCAL_PORT_SHARING) || UseDuoNic) {
         std::cout << "SKIP: Sharing Feature Unsupported" << std::endl;
         return;
     }

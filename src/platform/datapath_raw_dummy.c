@@ -122,7 +122,7 @@ RawSocketUpdateQeo(
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
-UINT16
+uint16_t
 RawSocketGetLocalMtu(
     _In_ CXPLAT_SOCKET_RAW* Socket
     )

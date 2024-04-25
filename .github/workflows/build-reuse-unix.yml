@@ -65,6 +65,10 @@ on:
         required: false
         default: ''
         type: string
+      xdp:
+        required: false
+        default: ''
+        type: string
       sanitize:
         required: false
         default: ''
@@ -95,7 +99,7 @@ jobs:
         chown -R $(id -u):$(id -g) $PWD
     - name: Prepare Machine
       shell: pwsh
-      run: scripts/prepare-machine.ps1 ${{ inputs.plat == 'linux' && '-ForContainerBuild' || '-ForBuild' }} -Tls ${{ inputs.tls }}
+      run: scripts/prepare-machine.ps1 ${{ inputs.plat == 'linux' && '-ForContainerBuild' || '-ForBuild' }} -Tls ${{ inputs.tls }} ${{ inputs.xdp }}
     - name: Build For Test
       if: inputs.build == '-Test'
       shell: pwsh

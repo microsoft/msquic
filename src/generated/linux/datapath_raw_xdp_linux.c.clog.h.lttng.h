@@ -1,30 +1,6 @@
-#ifndef CLOG_DO_NOT_INCLUDE_HEADER
-#include <clog.h>
-#endif
-#undef TRACEPOINT_PROVIDER
-#define TRACEPOINT_PROVIDER CLOG_DATAPATH_RAW_XDP_LINUX_C
-#undef TRACEPOINT_PROBE_DYNAMIC_LINKAGE
-#define  TRACEPOINT_PROBE_DYNAMIC_LINKAGE
-#undef TRACEPOINT_INCLUDE
-#define TRACEPOINT_INCLUDE "datapath_raw_xdp_linux.c.clog.h.lttng.h"
-#if !defined(DEF_CLOG_DATAPATH_RAW_XDP_LINUX_C) || defined(TRACEPOINT_HEADER_MULTI_READ)
-#define DEF_CLOG_DATAPATH_RAW_XDP_LINUX_C
-#include <lttng/tracepoint.h>
-#define __int64 __int64_t
-#include "datapath_raw_xdp_linux.c.clog.h.lttng.h"
-#endif
-#include <lttng/tracepoint-event.h>
-#ifndef _clog_MACRO_QuicTraceLogVerbose
-#define _clog_MACRO_QuicTraceLogVerbose  1
-#define QuicTraceLogVerbose(a, ...) _clog_CAT(_clog_ARGN_SELECTOR(__VA_ARGS__), _clog_CAT(_,a(#a, __VA_ARGS__)))
-#endif
-#ifndef _clog_MACRO_QuicTraceEvent
-#define _clog_MACRO_QuicTraceEvent  1
-#define QuicTraceEvent(a, ...) _clog_CAT(_clog_ARGN_SELECTOR(__VA_ARGS__), _clog_CAT(_,a(#a, __VA_ARGS__)))
-#endif
-#ifdef __cplusplus
-extern "C" {
-#endif
+
+
+
 /*----------------------------------------------------------
 // Decoder Ring for XdpFailGettingRssQueueCount
 // [ xdp] Failed to get RSS queue count for %s
@@ -34,12 +10,13 @@ extern "C" {
             IfName);
 // arg2 = arg2 = IfName = arg2
 ----------------------------------------------------------*/
-#ifndef _clog_3_ARGS_TRACE_XdpFailGettingRssQueueCount
-#define _clog_3_ARGS_TRACE_XdpFailGettingRssQueueCount(uniqueId, encoded_arg_string, arg2)\
-tracepoint(CLOG_DATAPATH_RAW_XDP_LINUX_C, XdpFailGettingRssQueueCount , arg2);\
-
-#endif
-
+TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_LINUX_C, XdpFailGettingRssQueueCount,
+    TP_ARGS(
+        const char *, arg2), 
+    TP_FIELDS(
+        ctf_string(arg2, arg2)
+    )
+)
 
 
 
@@ -50,12 +27,12 @@ tracepoint(CLOG_DATAPATH_RAW_XDP_LINUX_C, XdpFailGettingRssQueueCount , arg2);\
             XdpUmemDeleteFails,
             "[ xdp] Failed to delete Umem");
 ----------------------------------------------------------*/
-#ifndef _clog_2_ARGS_TRACE_XdpUmemDeleteFails
-#define _clog_2_ARGS_TRACE_XdpUmemDeleteFails(uniqueId, encoded_arg_string)\
-tracepoint(CLOG_DATAPATH_RAW_XDP_LINUX_C, XdpUmemDeleteFails );\
-
-#endif
-
+TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_LINUX_C, XdpUmemDeleteFails,
+    TP_ARGS(
+), 
+    TP_FIELDS(
+    )
+)
 
 
 
@@ -70,12 +47,15 @@ tracepoint(CLOG_DATAPATH_RAW_XDP_LINUX_C, XdpUmemDeleteFails );\
 // arg2 = arg2 = Interface->IfName = arg2
 // arg3 = arg3 = strerror(-err) = arg3
 ----------------------------------------------------------*/
-#ifndef _clog_4_ARGS_TRACE_XdpDetachFails
-#define _clog_4_ARGS_TRACE_XdpDetachFails(uniqueId, encoded_arg_string, arg2, arg3)\
-tracepoint(CLOG_DATAPATH_RAW_XDP_LINUX_C, XdpDetachFails , arg2, arg3);\
-
-#endif
-
+TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_LINUX_C, XdpDetachFails,
+    TP_ARGS(
+        const char *, arg2,
+        const char *, arg3), 
+    TP_FIELDS(
+        ctf_string(arg2, arg2)
+        ctf_string(arg3, arg3)
+    )
+)
 
 
 
@@ -88,12 +68,13 @@ tracepoint(CLOG_DATAPATH_RAW_XDP_LINUX_C, XdpDetachFails , arg2, arg3);\
         Interface);
 // arg2 = arg2 = Interface = arg2
 ----------------------------------------------------------*/
-#ifndef _clog_3_ARGS_TRACE_InterfaceFree
-#define _clog_3_ARGS_TRACE_InterfaceFree(uniqueId, encoded_arg_string, arg2)\
-tracepoint(CLOG_DATAPATH_RAW_XDP_LINUX_C, InterfaceFree , arg2);\
-
-#endif
-
+TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_LINUX_C, InterfaceFree,
+    TP_ARGS(
+        const void *, arg2), 
+    TP_FIELDS(
+        ctf_integer_hex(uint64_t, arg2, arg2)
+    )
+)
 
 
 
@@ -108,12 +89,15 @@ tracepoint(CLOG_DATAPATH_RAW_XDP_LINUX_C, InterfaceFree , arg2);\
 // arg2 = arg2 = Queue = arg2
 // arg3 = arg3 = Interface = arg3
 ----------------------------------------------------------*/
-#ifndef _clog_4_ARGS_TRACE_QueueFree
-#define _clog_4_ARGS_TRACE_QueueFree(uniqueId, encoded_arg_string, arg2, arg3)\
-tracepoint(CLOG_DATAPATH_RAW_XDP_LINUX_C, QueueFree , arg2, arg3);\
-
-#endif
-
+TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_LINUX_C, QueueFree,
+    TP_ARGS(
+        const void *, arg2,
+        const void *, arg3), 
+    TP_FIELDS(
+        ctf_integer_hex(uint64_t, arg2, arg2)
+        ctf_integer_hex(uint64_t, arg3, arg3)
+    )
+)
 
 
 
@@ -124,12 +108,12 @@ tracepoint(CLOG_DATAPATH_RAW_XDP_LINUX_C, QueueFree , arg2, arg3);\
             XdpAllocUmem,
             "[ xdp] Failed to allocate umem");
 ----------------------------------------------------------*/
-#ifndef _clog_2_ARGS_TRACE_XdpAllocUmem
-#define _clog_2_ARGS_TRACE_XdpAllocUmem(uniqueId, encoded_arg_string)\
-tracepoint(CLOG_DATAPATH_RAW_XDP_LINUX_C, XdpAllocUmem );\
-
-#endif
-
+TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_LINUX_C, XdpAllocUmem,
+    TP_ARGS(
+), 
+    TP_FIELDS(
+    )
+)
 
 
 
@@ -140,12 +124,12 @@ tracepoint(CLOG_DATAPATH_RAW_XDP_LINUX_C, XdpAllocUmem );\
             XdpUmemAllocFails,
             "[ xdp][umem] Out of UMEM frame, OOM");
 ----------------------------------------------------------*/
-#ifndef _clog_2_ARGS_TRACE_XdpUmemAllocFails
-#define _clog_2_ARGS_TRACE_XdpUmemAllocFails(uniqueId, encoded_arg_string)\
-tracepoint(CLOG_DATAPATH_RAW_XDP_LINUX_C, XdpUmemAllocFails );\
-
-#endif
-
+TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_LINUX_C, XdpUmemAllocFails,
+    TP_ARGS(
+), 
+    TP_FIELDS(
+    )
+)
 
 
 
@@ -158,12 +142,15 @@ tracepoint(CLOG_DATAPATH_RAW_XDP_LINUX_C, XdpUmemAllocFails );\
 // arg2 = arg2 = Interface->IfName = arg2
 // arg3 = arg3 = errmsg = arg3
 ----------------------------------------------------------*/
-#ifndef _clog_4_ARGS_TRACE_XdpAttachFails
-#define _clog_4_ARGS_TRACE_XdpAttachFails(uniqueId, encoded_arg_string, arg2, arg3)\
-tracepoint(CLOG_DATAPATH_RAW_XDP_LINUX_C, XdpAttachFails , arg2, arg3);\
-
-#endif
-
+TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_LINUX_C, XdpAttachFails,
+    TP_ARGS(
+        const char *, arg2,
+        const char *, arg3), 
+    TP_FIELDS(
+        ctf_string(arg2, arg2)
+        ctf_string(arg3, arg3)
+    )
+)
 
 
 
@@ -176,12 +163,15 @@ tracepoint(CLOG_DATAPATH_RAW_XDP_LINUX_C, XdpAttachFails , arg2, arg3);\
 // arg2 = arg2 = Interface->IfName = arg2
 // arg3 = arg3 = Interface->AttachMode = arg3
 ----------------------------------------------------------*/
-#ifndef _clog_4_ARGS_TRACE_XdpAttachSucceeds
-#define _clog_4_ARGS_TRACE_XdpAttachSucceeds(uniqueId, encoded_arg_string, arg2, arg3)\
-tracepoint(CLOG_DATAPATH_RAW_XDP_LINUX_C, XdpAttachSucceeds , arg2, arg3);\
-
-#endif
-
+TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_LINUX_C, XdpAttachSucceeds,
+    TP_ARGS(
+        const char *, arg2,
+        int, arg3), 
+    TP_FIELDS(
+        ctf_string(arg2, arg2)
+        ctf_integer(int, arg3, arg3)
+    )
+)
 
 
 
@@ -198,12 +188,17 @@ tracepoint(CLOG_DATAPATH_RAW_XDP_LINUX_C, XdpAttachSucceeds , arg2, arg3);\
 // arg3 = arg3 = errmsg = arg3
 // arg4 = arg4 = err = arg4
 ----------------------------------------------------------*/
-#ifndef _clog_5_ARGS_TRACE_XdpOpenFileError
-#define _clog_5_ARGS_TRACE_XdpOpenFileError(uniqueId, encoded_arg_string, arg2, arg3, arg4)\
-tracepoint(CLOG_DATAPATH_RAW_XDP_LINUX_C, XdpOpenFileError , arg2, arg3, arg4);\
-
-#endif
-
+TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_LINUX_C, XdpOpenFileError,
+    TP_ARGS(
+        const char *, arg2,
+        const char *, arg3,
+        int, arg4), 
+    TP_FIELDS(
+        ctf_string(arg2, arg2)
+        ctf_string(arg3, arg3)
+        ctf_integer(int, arg4, arg4)
+    )
+)
 
 
 
@@ -216,12 +211,13 @@ tracepoint(CLOG_DATAPATH_RAW_XDP_LINUX_C, XdpOpenFileError , arg2, arg3, arg4);\
     FilePath);
 // arg2 = arg2 = FilePath = arg2
 ----------------------------------------------------------*/
-#ifndef _clog_3_ARGS_TRACE_XdpLoadObject
-#define _clog_3_ARGS_TRACE_XdpLoadObject(uniqueId, encoded_arg_string, arg2)\
-tracepoint(CLOG_DATAPATH_RAW_XDP_LINUX_C, XdpLoadObject , arg2);\
-
-#endif
-
+TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_LINUX_C, XdpLoadObject,
+    TP_ARGS(
+        const char *, arg2), 
+    TP_FIELDS(
+        ctf_string(arg2, arg2)
+    )
+)
 
 
 
@@ -232,12 +228,12 @@ tracepoint(CLOG_DATAPATH_RAW_XDP_LINUX_C, XdpLoadObject , arg2);\
             XdpNoXsksMap,
             "[ xdp] No xsks map found");
 ----------------------------------------------------------*/
-#ifndef _clog_2_ARGS_TRACE_XdpNoXsksMap
-#define _clog_2_ARGS_TRACE_XdpNoXsksMap(uniqueId, encoded_arg_string)\
-tracepoint(CLOG_DATAPATH_RAW_XDP_LINUX_C, XdpNoXsksMap );\
-
-#endif
-
+TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_LINUX_C, XdpNoXsksMap,
+    TP_ARGS(
+), 
+    TP_FIELDS(
+    )
+)
 
 
 
@@ -248,12 +244,12 @@ tracepoint(CLOG_DATAPATH_RAW_XDP_LINUX_C, XdpNoXsksMap );\
                 XdpConfigureUmem,
                 "[ xdp] Failed to configure Umem");
 ----------------------------------------------------------*/
-#ifndef _clog_2_ARGS_TRACE_XdpConfigureUmem
-#define _clog_2_ARGS_TRACE_XdpConfigureUmem(uniqueId, encoded_arg_string)\
-tracepoint(CLOG_DATAPATH_RAW_XDP_LINUX_C, XdpConfigureUmem );\
-
-#endif
-
+TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_LINUX_C, XdpConfigureUmem,
+    TP_ARGS(
+), 
+    TP_FIELDS(
+    )
+)
 
 
 
@@ -266,12 +262,15 @@ tracepoint(CLOG_DATAPATH_RAW_XDP_LINUX_C, XdpConfigureUmem );\
 // arg2 = arg2 = Interface->IfName = arg2
 // arg3 = arg3 = strerror(-Ret) = arg3
 ----------------------------------------------------------*/
-#ifndef _clog_4_ARGS_TRACE_FailXskSocketCreate
-#define _clog_4_ARGS_TRACE_FailXskSocketCreate(uniqueId, encoded_arg_string, arg2, arg3)\
-tracepoint(CLOG_DATAPATH_RAW_XDP_LINUX_C, FailXskSocketCreate , arg2, arg3);\
-
-#endif
-
+TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_LINUX_C, FailXskSocketCreate,
+    TP_ARGS(
+        const char *, arg2,
+        const char *, arg3), 
+    TP_FIELDS(
+        ctf_string(arg2, arg2)
+        ctf_string(arg3, arg3)
+    )
+)
 
 
 
@@ -282,12 +281,12 @@ tracepoint(CLOG_DATAPATH_RAW_XDP_LINUX_C, FailXskSocketCreate , arg2, arg3);\
                     FailRxAlloc,
                     "[ xdp][rx  ] OOM for Rx");
 ----------------------------------------------------------*/
-#ifndef _clog_2_ARGS_TRACE_FailRxAlloc
-#define _clog_2_ARGS_TRACE_FailRxAlloc(uniqueId, encoded_arg_string)\
-tracepoint(CLOG_DATAPATH_RAW_XDP_LINUX_C, FailRxAlloc );\
-
-#endif
-
+TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_LINUX_C, FailRxAlloc,
+    TP_ARGS(
+), 
+    TP_FIELDS(
+    )
+)
 
 
 
@@ -302,12 +301,15 @@ tracepoint(CLOG_DATAPATH_RAW_XDP_LINUX_C, FailRxAlloc );\
 // arg2 = arg2 = Xdp = arg2
 // arg3 = arg3 = Xdp->PartitionCount = arg3
 ----------------------------------------------------------*/
-#ifndef _clog_4_ARGS_TRACE_XdpInitialize
-#define _clog_4_ARGS_TRACE_XdpInitialize(uniqueId, encoded_arg_string, arg2, arg3)\
-tracepoint(CLOG_DATAPATH_RAW_XDP_LINUX_C, XdpInitialize , arg2, arg3);\
-
-#endif
-
+TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_LINUX_C, XdpInitialize,
+    TP_ARGS(
+        const void *, arg2,
+        unsigned int, arg3), 
+    TP_FIELDS(
+        ctf_integer_hex(uint64_t, arg2, arg2)
+        ctf_integer(unsigned int, arg3, arg3)
+    )
+)
 
 
 
@@ -322,12 +324,15 @@ tracepoint(CLOG_DATAPATH_RAW_XDP_LINUX_C, XdpInitialize , arg2, arg3);\
 // arg2 = arg2 = Partition = arg2
 // arg3 = arg3 = QueueCount = arg3
 ----------------------------------------------------------*/
-#ifndef _clog_4_ARGS_TRACE_XdpWorkerStart
-#define _clog_4_ARGS_TRACE_XdpWorkerStart(uniqueId, encoded_arg_string, arg2, arg3)\
-tracepoint(CLOG_DATAPATH_RAW_XDP_LINUX_C, XdpWorkerStart , arg2, arg3);\
-
-#endif
-
+TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_LINUX_C, XdpWorkerStart,
+    TP_ARGS(
+        const void *, arg2,
+        unsigned int, arg3), 
+    TP_FIELDS(
+        ctf_integer_hex(uint64_t, arg2, arg2)
+        ctf_integer(unsigned int, arg3, arg3)
+    )
+)
 
 
 
@@ -340,12 +345,13 @@ tracepoint(CLOG_DATAPATH_RAW_XDP_LINUX_C, XdpWorkerStart , arg2, arg3);\
         Xdp);
 // arg2 = arg2 = Xdp = arg2
 ----------------------------------------------------------*/
-#ifndef _clog_3_ARGS_TRACE_XdpRelease
-#define _clog_3_ARGS_TRACE_XdpRelease(uniqueId, encoded_arg_string, arg2)\
-tracepoint(CLOG_DATAPATH_RAW_XDP_LINUX_C, XdpRelease , arg2);\
-
-#endif
-
+TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_LINUX_C, XdpRelease,
+    TP_ARGS(
+        const void *, arg2), 
+    TP_FIELDS(
+        ctf_integer_hex(uint64_t, arg2, arg2)
+    )
+)
 
 
 
@@ -358,12 +364,13 @@ tracepoint(CLOG_DATAPATH_RAW_XDP_LINUX_C, XdpRelease , arg2);\
             Xdp);
 // arg2 = arg2 = Xdp = arg2
 ----------------------------------------------------------*/
-#ifndef _clog_3_ARGS_TRACE_XdpUninitializeComplete
-#define _clog_3_ARGS_TRACE_XdpUninitializeComplete(uniqueId, encoded_arg_string, arg2)\
-tracepoint(CLOG_DATAPATH_RAW_XDP_LINUX_C, XdpUninitializeComplete , arg2);\
-
-#endif
-
+TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_LINUX_C, XdpUninitializeComplete,
+    TP_ARGS(
+        const void *, arg2), 
+    TP_FIELDS(
+        ctf_integer_hex(uint64_t, arg2, arg2)
+    )
+)
 
 
 
@@ -376,12 +383,13 @@ tracepoint(CLOG_DATAPATH_RAW_XDP_LINUX_C, XdpUninitializeComplete , arg2);\
         Xdp);
 // arg2 = arg2 = Xdp = arg2
 ----------------------------------------------------------*/
-#ifndef _clog_3_ARGS_TRACE_XdpUninitialize
-#define _clog_3_ARGS_TRACE_XdpUninitialize(uniqueId, encoded_arg_string, arg2)\
-tracepoint(CLOG_DATAPATH_RAW_XDP_LINUX_C, XdpUninitialize , arg2);\
-
-#endif
-
+TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_LINUX_C, XdpUninitialize,
+    TP_ARGS(
+        const void *, arg2), 
+    TP_FIELDS(
+        ctf_integer_hex(uint64_t, arg2, arg2)
+    )
+)
 
 
 
@@ -394,12 +402,15 @@ tracepoint(CLOG_DATAPATH_RAW_XDP_LINUX_C, XdpUninitialize , arg2);\
 // arg2 = arg2 = port = arg2
 // arg3 = arg3 = Interface->IfName = arg3
 ----------------------------------------------------------*/
-#ifndef _clog_4_ARGS_TRACE_XdpSetPortFails
-#define _clog_4_ARGS_TRACE_XdpSetPortFails(uniqueId, encoded_arg_string, arg2, arg3)\
-tracepoint(CLOG_DATAPATH_RAW_XDP_LINUX_C, XdpSetPortFails , arg2, arg3);\
-
-#endif
-
+TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_LINUX_C, XdpSetPortFails,
+    TP_ARGS(
+        int, arg2,
+        const char *, arg3), 
+    TP_FIELDS(
+        ctf_integer(int, arg2, arg2)
+        ctf_string(arg3, arg3)
+    )
+)
 
 
 
@@ -412,12 +423,15 @@ tracepoint(CLOG_DATAPATH_RAW_XDP_LINUX_C, XdpSetPortFails , arg2, arg3);\
 // arg2 = arg2 = port = arg2
 // arg3 = arg3 = Interface->IfName = arg3
 ----------------------------------------------------------*/
-#ifndef _clog_4_ARGS_TRACE_XdpDeletePortFails
-#define _clog_4_ARGS_TRACE_XdpDeletePortFails(uniqueId, encoded_arg_string, arg2, arg3)\
-tracepoint(CLOG_DATAPATH_RAW_XDP_LINUX_C, XdpDeletePortFails , arg2, arg3);\
-
-#endif
-
+TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_LINUX_C, XdpDeletePortFails,
+    TP_ARGS(
+        int, arg2,
+        const char *, arg3), 
+    TP_FIELDS(
+        ctf_integer(int, arg2, arg2)
+        ctf_string(arg3, arg3)
+    )
+)
 
 
 
@@ -432,12 +446,15 @@ tracepoint(CLOG_DATAPATH_RAW_XDP_LINUX_C, XdpDeletePortFails , arg2, arg3);\
 // arg2 = arg2 = inet_ntoa(Interface->Ipv4Address) = arg2
 // arg3 = arg3 = Interface->IfName = arg3
 ----------------------------------------------------------*/
-#ifndef _clog_4_ARGS_TRACE_XdpSetIpFails
-#define _clog_4_ARGS_TRACE_XdpSetIpFails(uniqueId, encoded_arg_string, arg2, arg3)\
-tracepoint(CLOG_DATAPATH_RAW_XDP_LINUX_C, XdpSetIpFails , arg2, arg3);\
-
-#endif
-
+TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_LINUX_C, XdpSetIpFails,
+    TP_ARGS(
+        const char *, arg2,
+        const char *, arg3), 
+    TP_FIELDS(
+        ctf_string(arg2, arg2)
+        ctf_string(arg3, arg3)
+    )
+)
 
 
 
@@ -450,12 +467,15 @@ tracepoint(CLOG_DATAPATH_RAW_XDP_LINUX_C, XdpSetIpFails , arg2, arg3);\
 // arg2 = arg2 = Interface->IfName = arg2
 // arg3 = arg3 = Interface->IfName = arg3
 ----------------------------------------------------------*/
-#ifndef _clog_4_ARGS_TRACE_XdpSetIfnameFails
-#define _clog_4_ARGS_TRACE_XdpSetIfnameFails(uniqueId, encoded_arg_string, arg2, arg3)\
-tracepoint(CLOG_DATAPATH_RAW_XDP_LINUX_C, XdpSetIfnameFails , arg2, arg3);\
-
-#endif
-
+TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_LINUX_C, XdpSetIfnameFails,
+    TP_ARGS(
+        const char *, arg2,
+        const char *, arg3), 
+    TP_FIELDS(
+        ctf_string(arg2, arg2)
+        ctf_string(arg3, arg3)
+    )
+)
 
 
 
@@ -466,12 +486,12 @@ tracepoint(CLOG_DATAPATH_RAW_XDP_LINUX_C, XdpSetIfnameFails , arg2, arg3);\
             FailTxAlloc,
             "[ xdp][tx  ] OOM for Tx");
 ----------------------------------------------------------*/
-#ifndef _clog_2_ARGS_TRACE_FailTxAlloc
-#define _clog_2_ARGS_TRACE_FailTxAlloc(uniqueId, encoded_arg_string)\
-tracepoint(CLOG_DATAPATH_RAW_XDP_LINUX_C, FailTxAlloc );\
-
-#endif
-
+TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_LINUX_C, FailTxAlloc,
+    TP_ARGS(
+), 
+    TP_FIELDS(
+    )
+)
 
 
 
@@ -482,12 +502,12 @@ tracepoint(CLOG_DATAPATH_RAW_XDP_LINUX_C, FailTxAlloc );\
             FailTxReserve,
             "[ xdp][tx  ] Failed to reserve");
 ----------------------------------------------------------*/
-#ifndef _clog_2_ARGS_TRACE_FailTxReserve
-#define _clog_2_ARGS_TRACE_FailTxReserve(uniqueId, encoded_arg_string)\
-tracepoint(CLOG_DATAPATH_RAW_XDP_LINUX_C, FailTxReserve );\
-
-#endif
-
+TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_LINUX_C, FailTxReserve,
+    TP_ARGS(
+), 
+    TP_FIELDS(
+    )
+)
 
 
 
@@ -500,12 +520,15 @@ tracepoint(CLOG_DATAPATH_RAW_XDP_LINUX_C, FailTxReserve );\
 // arg2 = arg2 = errno = arg2
 // arg3 = arg3 = tx_desc->addr = arg3
 ----------------------------------------------------------*/
-#ifndef _clog_4_ARGS_TRACE_FailSendTo
-#define _clog_4_ARGS_TRACE_FailSendTo(uniqueId, encoded_arg_string, arg2, arg3)\
-tracepoint(CLOG_DATAPATH_RAW_XDP_LINUX_C, FailSendTo , arg2, arg3);\
-
-#endif
-
+TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_LINUX_C, FailSendTo,
+    TP_ARGS(
+        int, arg2,
+        long long, arg3), 
+    TP_FIELDS(
+        ctf_integer(int, arg2, arg2)
+        ctf_integer(int64_t, arg3, arg3)
+    )
+)
 
 
 
@@ -518,12 +541,15 @@ tracepoint(CLOG_DATAPATH_RAW_XDP_LINUX_C, FailSendTo , arg2, arg3);\
 // arg2 = arg2 = SendData->Buffer.Length = arg2
 // arg3 = arg3 = tx_desc->addr = arg3
 ----------------------------------------------------------*/
-#ifndef _clog_4_ARGS_TRACE_DoneSendTo
-#define _clog_4_ARGS_TRACE_DoneSendTo(uniqueId, encoded_arg_string, arg2, arg3)\
-tracepoint(CLOG_DATAPATH_RAW_XDP_LINUX_C, DoneSendTo , arg2, arg3);\
-
-#endif
-
+TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_LINUX_C, DoneSendTo,
+    TP_ARGS(
+        int, arg2,
+        long long, arg3), 
+    TP_FIELDS(
+        ctf_integer(int, arg2, arg2)
+        ctf_integer(int64_t, arg3, arg3)
+    )
+)
 
 
 
@@ -535,12 +561,13 @@ tracepoint(CLOG_DATAPATH_RAW_XDP_LINUX_C, DoneSendTo , arg2, arg3);\
             "[ xdp][cq  ] Release %d from completion queue", Completed);
 // arg2 = arg2 = Completed = arg2
 ----------------------------------------------------------*/
-#ifndef _clog_3_ARGS_TRACE_ReleaseCons
-#define _clog_3_ARGS_TRACE_ReleaseCons(uniqueId, encoded_arg_string, arg2)\
-tracepoint(CLOG_DATAPATH_RAW_XDP_LINUX_C, ReleaseCons , arg2);\
-
-#endif
-
+TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_LINUX_C, ReleaseCons,
+    TP_ARGS(
+        int, arg2), 
+    TP_FIELDS(
+        ctf_integer(int, arg2, arg2)
+    )
+)
 
 
 
@@ -553,12 +580,13 @@ tracepoint(CLOG_DATAPATH_RAW_XDP_LINUX_C, ReleaseCons , arg2);\
             Partition);
 // arg2 = arg2 = Partition = arg2
 ----------------------------------------------------------*/
-#ifndef _clog_3_ARGS_TRACE_XdpPartitionShutdown
-#define _clog_3_ARGS_TRACE_XdpPartitionShutdown(uniqueId, encoded_arg_string, arg2)\
-tracepoint(CLOG_DATAPATH_RAW_XDP_LINUX_C, XdpPartitionShutdown , arg2);\
-
-#endif
-
+TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_LINUX_C, XdpPartitionShutdown,
+    TP_ARGS(
+        const void *, arg2), 
+    TP_FIELDS(
+        ctf_integer_hex(uint64_t, arg2, arg2)
+    )
+)
 
 
 
@@ -571,12 +599,13 @@ tracepoint(CLOG_DATAPATH_RAW_XDP_LINUX_C, XdpPartitionShutdown , arg2);\
             Partition);
 // arg2 = arg2 = Partition = arg2
 ----------------------------------------------------------*/
-#ifndef _clog_3_ARGS_TRACE_XdpPartitionShutdownComplete
-#define _clog_3_ARGS_TRACE_XdpPartitionShutdownComplete(uniqueId, encoded_arg_string, arg2)\
-tracepoint(CLOG_DATAPATH_RAW_XDP_LINUX_C, XdpPartitionShutdownComplete , arg2);\
-
-#endif
-
+TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_LINUX_C, XdpPartitionShutdownComplete,
+    TP_ARGS(
+        const void *, arg2), 
+    TP_FIELDS(
+        ctf_integer_hex(uint64_t, arg2, arg2)
+    )
+)
 
 
 
@@ -589,12 +618,13 @@ tracepoint(CLOG_DATAPATH_RAW_XDP_LINUX_C, XdpPartitionShutdownComplete , arg2);\
             Queue);
 // arg2 = arg2 = Queue = arg2
 ----------------------------------------------------------*/
-#ifndef _clog_3_ARGS_TRACE_XdpQueueAsyncIoRxComplete
-#define _clog_3_ARGS_TRACE_XdpQueueAsyncIoRxComplete(uniqueId, encoded_arg_string, arg2)\
-tracepoint(CLOG_DATAPATH_RAW_XDP_LINUX_C, XdpQueueAsyncIoRxComplete , arg2);\
-
-#endif
-
+TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_LINUX_C, XdpQueueAsyncIoRxComplete,
+    TP_ARGS(
+        const void *, arg2), 
+    TP_FIELDS(
+        ctf_integer_hex(uint64_t, arg2, arg2)
+    )
+)
 
 
 
@@ -609,12 +639,15 @@ tracepoint(CLOG_DATAPATH_RAW_XDP_LINUX_C, XdpQueueAsyncIoRxComplete , arg2);\
 // arg2 = arg2 = errno = arg2
 // arg3 = arg3 = "epoll_ctl failed" = arg3
 ----------------------------------------------------------*/
-#ifndef _clog_4_ARGS_TRACE_XdpEpollErrorStatus
-#define _clog_4_ARGS_TRACE_XdpEpollErrorStatus(uniqueId, encoded_arg_string, arg2, arg3)\
-tracepoint(CLOG_DATAPATH_RAW_XDP_LINUX_C, XdpEpollErrorStatus , arg2, arg3);\
-
-#endif
-
+TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_LINUX_C, XdpEpollErrorStatus,
+    TP_ARGS(
+        unsigned int, arg2,
+        const char *, arg3), 
+    TP_FIELDS(
+        ctf_integer(unsigned int, arg2, arg2)
+        ctf_string(arg3, arg3)
+    )
+)
 
 
 
@@ -629,12 +662,15 @@ tracepoint(CLOG_DATAPATH_RAW_XDP_LINUX_C, XdpEpollErrorStatus , arg2, arg3);\
 // arg2 = arg2 = Status = arg2
 // arg3 = arg3 = "CxPlatGetInterfaceRssQueueCount" = arg3
 ----------------------------------------------------------*/
-#ifndef _clog_4_ARGS_TRACE_LibraryErrorStatus
-#define _clog_4_ARGS_TRACE_LibraryErrorStatus(uniqueId, encoded_arg_string, arg2, arg3)\
-tracepoint(CLOG_DATAPATH_RAW_XDP_LINUX_C, LibraryErrorStatus , arg2, arg3);\
-
-#endif
-
+TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_LINUX_C, LibraryErrorStatus,
+    TP_ARGS(
+        unsigned int, arg2,
+        const char *, arg3), 
+    TP_FIELDS(
+        ctf_integer(unsigned int, arg2, arg2)
+        ctf_string(arg3, arg3)
+    )
+)
 
 
 
@@ -649,12 +685,15 @@ tracepoint(CLOG_DATAPATH_RAW_XDP_LINUX_C, LibraryErrorStatus , arg2, arg3);\
 // arg2 = arg2 = "XDP Queues" = arg2
 // arg3 = arg3 = Interface->QueueCount * sizeof(*Interface->Queues) = arg3
 ----------------------------------------------------------*/
-#ifndef _clog_4_ARGS_TRACE_AllocFailure
-#define _clog_4_ARGS_TRACE_AllocFailure(uniqueId, encoded_arg_string, arg2, arg3)\
-tracepoint(CLOG_DATAPATH_RAW_XDP_LINUX_C, AllocFailure , arg2, arg3);\
-
-#endif
-
+TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_LINUX_C, AllocFailure,
+    TP_ARGS(
+        const char *, arg2,
+        unsigned long long, arg3), 
+    TP_FIELDS(
+        ctf_string(arg2, arg2)
+        ctf_integer(uint64_t, arg3, arg3)
+    )
+)
 
 
 
@@ -667,12 +706,13 @@ tracepoint(CLOG_DATAPATH_RAW_XDP_LINUX_C, AllocFailure , arg2, arg3);\
             "no XDP capable interface");
 // arg2 = arg2 = "no XDP capable interface" = arg2
 ----------------------------------------------------------*/
-#ifndef _clog_3_ARGS_TRACE_LibraryError
-#define _clog_3_ARGS_TRACE_LibraryError(uniqueId, encoded_arg_string, arg2)\
-tracepoint(CLOG_DATAPATH_RAW_XDP_LINUX_C, LibraryError , arg2);\
-
-#endif
-
+TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_LINUX_C, LibraryError,
+    TP_ARGS(
+        const char *, arg2), 
+    TP_FIELDS(
+        ctf_string(arg2, arg2)
+    )
+)
 
 
 
@@ -687,18 +727,16 @@ tracepoint(CLOG_DATAPATH_RAW_XDP_LINUX_C, LibraryError , arg2);\
 // arg2 = arg2 = CASTED_CLOG_BYTEARRAY(sizeof(Packet->RouteStorage.LocalAddress), &Packet->RouteStorage.LocalAddress) = arg2
 // arg3 = arg3 = CASTED_CLOG_BYTEARRAY(sizeof(Packet->RouteStorage.RemoteAddress), &Packet->RouteStorage.RemoteAddress) = arg3
 ----------------------------------------------------------*/
-#ifndef _clog_6_ARGS_TRACE_RxConstructPacket
-#define _clog_6_ARGS_TRACE_RxConstructPacket(uniqueId, encoded_arg_string, arg2, arg2_len, arg3, arg3_len)\
-tracepoint(CLOG_DATAPATH_RAW_XDP_LINUX_C, RxConstructPacket , arg2_len, arg2, arg3_len, arg3);\
-
-#endif
-
-
-
-
-#ifdef __cplusplus
-}
-#endif
-#ifdef CLOG_INLINE_IMPLEMENTATION
-#include "quic.clog_datapath_raw_xdp_linux.c.clog.h.c"
-#endif
+TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_LINUX_C, RxConstructPacket,
+    TP_ARGS(
+        unsigned int, arg2_len,
+        const void *, arg2,
+        unsigned int, arg3_len,
+        const void *, arg3), 
+    TP_FIELDS(
+        ctf_integer(unsigned int, arg2_len, arg2_len)
+        ctf_sequence(char, arg2, arg2, unsigned int, arg2_len)
+        ctf_integer(unsigned int, arg3_len, arg3_len)
+        ctf_sequence(char, arg3, arg3, unsigned int, arg3_len)
+    )
+)
