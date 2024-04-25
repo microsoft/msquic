@@ -2960,6 +2960,8 @@ void
 QuicTestNthPacketDrop(
     )
 {
+    uint64_t StartTime = CxPlatTimeUs64();
+
     MsQuicRegistration Registration(true);
     TEST_QUIC_SUCCEEDED(Registration.GetInitStatus());
 
@@ -2981,9 +2983,11 @@ QuicTestNthPacketDrop(
     TEST_QUIC_SUCCEEDED(Connection.Start(ClientConfiguration, ServerLocalAddr.GetFamily(), QUIC_TEST_LOOPBACK_FOR_AF(ServerLocalAddr.GetFamily()), ServerLocalAddr.GetPort()));
 
 #if LARGE_DROP_TEST
-    const uint32_t BufferLength = 0x1000000;
+    const uint32_t BufferLength = 0x800000;
+    const uint64_t TimeOutS = 60 * 60; // 1 hour
 #else
     const uint32_t BufferLength = 0x200000;
+    const uint64_t TimeOutS = 50; // All test cases need to complete in less than 60 seconds
 #endif
     uint8_t* RawBuffer = new uint8_t[BufferLength];
     for (uint32_t i = 0; i < BufferLength; ++i) {
@@ -2993,21 +2997,18 @@ QuicTestNthPacketDrop(
 
     CxPlatSleep(100); // Quiesce
 
-    const uint32_t EstimatedPackets = BufferLength / 1280 + 100;
-#if LARGE_DROP_TEST
-    const uint32_t DropCount = EstimatedPackets;
-#else
-    const uint32_t DropCount = CXPLAT_MIN(EstimatedPackets, 1000); // Too many to run in < 60 seconds
-#endif
-    bool NoMoreDrops = false;
-    for (uint32_t i = 0; i < DropCount && !RecvContext.Failure && !NoMoreDrops; ++i) {
+    bool StopRunning = false;
+    for (uint32_t i = 0; !StopRunning; ++i) {
         NthLossHelper LossHelper(i);
         MsQuicStream Stream(Connection, QUIC_STREAM_OPEN_FLAG_UNIDIRECTIONAL);
         CONTINUE_ON_FAIL(Stream.GetInitStatus());
 
         CONTINUE_ON_FAIL(Stream.Send(&Buffer, 1, QUIC_SEND_FLAG_START | QUIC_SEND_FLAG_FIN));
         TEST_TRUE(RecvContext.ServerStreamShutdown.WaitTimeout(2000));
-        if (!LossHelper.Dropped()) { NoMoreDrops = true; }
+        if (RecvContext.Failure || !LossHelper.Dropped() ||
+            CxPlatTimeDiff64(StartTime, CxPlatTimeUs64()) > S_TO_US(TimeOutS)) {
+            StopRunning = true;
+        }
     }
 
     delete[] RawBuffer;
