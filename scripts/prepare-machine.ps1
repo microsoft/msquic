@@ -86,10 +86,7 @@ param (
     [switch]$DisableTest,
 
     [Parameter(Mandatory = $false)]
-    [switch]$InstallCoreNetCiDeps,
-
-    [Parameter(Mandatory = $false)]
-    [switch]$BuildLibXdpFromSource = $false
+    [switch]$InstallCoreNetCiDeps
 )
 
 # Admin is required because a lot of things are installed to the local machine
@@ -476,12 +473,6 @@ if ($ForBuild -or $ForContainerBuild) {
     }
 
     git submodule update --jobs=8
-    if ($IsLinux -and $BuildLibXdpFromSource) {
-        Write-Host "Initializing xdp-tools submodules"
-        git submodule update --init --recursive --jobs=8 submodules/xdp-tools
-        # temporal workaround for libxdp v1.4.2
-        sed -i '/BPF_CFLAGS += -I$(HEADER_DIR)/ { /${ARCH_INCLUDES}/! s|$| ${ARCH_INCLUDES}| }' submodules/xdp-tools/lib/libxdp/Makefile
-    }
 }
 
 if ($InstallCoreNetCiDeps) { Download-CoreNet-Deps }
@@ -536,11 +527,9 @@ if ($IsLinux) {
         sudo apt-get install -y liblttng-ust-dev
         sudo apt-get install -y gdb
         if ((bash -c 'lsb_release -r') -match '22.04') {
-            if (!$BuildLibXdpFromSource) {
-                sudo apt-add-repository "deb http://mirrors.kernel.org/ubuntu noble main" -y
-                sudo apt-get update -y
-                sudo apt-get install -y libxdp1 libbpf1
-            }
+            sudo apt-add-repository "deb http://mirrors.kernel.org/ubuntu noble main" -y
+            sudo apt-get update -y
+            sudo apt-get install -y libxdp1 libbpf1
             sudo apt-get install -y libnl-3-200 libnl-route-3-200 libnl-genl-3-200
             if ($UseXdp) {
                 sudo apt-get -y install iproute2 iptables

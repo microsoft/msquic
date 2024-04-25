@@ -71,60 +71,12 @@ if("${CX_PLATFORM}" STREQUAL "windows")
 elseif(LINUX_XDP_ENABLED)
     find_library(NL_LIB nl-3)
     find_library(NL_ROUTE_LIB nl-route-3)
-    if (NOT QUIC_BUILD_LIBXDP_FROM_SOURCE)
-        target_include_directories(platform PRIVATE /usr/include/xdp)
-        target_include_directories(platform PRIVATE /usr/include/bpf)
-        set(XDP_PROG_INCLUDE_DIR "-I/usr/include/bpf")
+    find_library(XDP_LIB libxdp.so)
+    find_library(BPF_LIB libbpf.so)
+    target_include_directories(platform PRIVATE /usr/include/xdp)
+    target_include_directories(platform PRIVATE /usr/include/bpf)
+    set(XDP_PROG_INCLUDE_DIR "-I/usr/include/bpf")
 
-        find_library(XDP_LIB libxdp.so)
-        find_library(BPF_LIB libbpf.so)
-    else ()
-        # XDP Tools and libbpf paths
-        set(XDP_TOOLS_DIR ${PROJECT_SOURCE_DIR}/submodules/xdp-tools)
-
-        # Include directories for libxdp.so and libbpf.so
-        target_include_directories(platform PRIVATE ${XDP_TOOLS_DIR}/headers/xdp)       # libxdp.h, xsk.h
-        target_include_directories(platform PRIVATE ${XDP_TOOLS_DIR}/lib/libbpf/src)    # libbpf.h
-        set(XDP_PROG_INCLUDE_DIR "-I${PROJECT_SOURCE_DIR}/submodules/xdp-tools/lib/libbpf/src;-I${PROJECT_SOURCE_DIR}/submodules/xdp-tools/lib")
-        
-        set(LIBXDP_DIR ${XDP_TOOLS_DIR}/lib/libxdp)
-        set(LIBBPF_DIR ${XDP_TOOLS_DIR}/lib/libbpf/src)
-
-        # Custom command to build XDP Tools
-        add_custom_command(
-            OUTPUT ${LIBXDP_DIR}/libxdp.so ${LIBBPF_DIR}/libbpf.so ${QUIC_OUTPUT_DIR}/xdp-dispatcher.o
-            COMMAND ./configure
-            COMMAND make
-            # Experimental!
-            # xdp-dispatcher.o need to be placed at
-            # - "./" (libxdp Debug build)
-            # - "/usr/lib/bpf"
-            # - Specified by LIBXDP_OBJECT_PATH
-            COMMAND cp ${XDP_TOOLS_DIR}/lib/libxdp/xdp-dispatcher.o ${QUIC_OUTPUT_DIR}/
-            WORKING_DIRECTORY ${XDP_TOOLS_DIR}
-        )
-
-        # Add custom target and make platform depend on it
-        add_custom_target(xdp_tools DEPENDS ${LIBXDP_DIR}/libxdp.so ${LIBBPF_DIR}/libbpf.so)
-        add_dependencies(platform xdp_tools)
-
-        if (BUILD_SHARED_LIBS)
-            add_custom_target(
-                CopyLibsAndLinks ALL
-                COMMAND cp -P ${LIBXDP_DIR}/*.so* ${QUIC_OUTPUT_DIR}/
-                COMMAND cp -P ${LIBBPF_DIR}/*.so* ${QUIC_OUTPUT_DIR}/
-                DEPENDS xdp_tools
-            )
-            set_target_properties(platform PROPERTIES BUILD_WITH_INSTALL_RPATH TRUE)
-            set_target_properties(platform PROPERTIES INSTALL_RPATH "${QUIC_OUTPUT_DIR}/libxdp.so;${QUIC_OUTPUT_DIR}/libbpf.so")
-            add_dependencies(platform CopyLibsAndLinks)
-            set(XDP_LIB ${QUIC_OUTPUT_DIR}/libxdp.so)
-            set(BPF_LIB ${QUIC_OUTPUT_DIR}/libbpf.so)
-        else()
-            set(XDP_LIB ${LIBXDP_DIR}/libxdp.so) # replaced to .a later
-            set(BPF_LIB ${LIBBPF_DIR}/libbpf.so)
-        endif()
-    endif()
     # building XDP program
     add_custom_command(
         OUTPUT ${QUIC_OUTPUT_DIR}/datapath_raw_xdp_kern.o

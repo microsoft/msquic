@@ -219,7 +219,7 @@ sudo MSQUIC_ENABLE_XDP=1 ./artifacts/bin/linux/x64_Debug_openssl3/msquictest --d
 - Q: Is this workload really running on XDP?  
 A: If you have the `xdp-dump` command, try using `sudo xdp-dump --list-interfaces`. The `xdp_main` function is located in `src/platform/datapath_raw_xdp_linux_kern.c`. If none of the interfaces load the XDP program, something must be wrong.   
 ```
-$ sudo ./submodules/xdp-tools/xdp-dump/xdpdump --list-interfaces
+$ sudo ./xdp-tools/xdp-dump/xdpdump --list-interfaces
 Interface        Prio  Program name      Mode     ID   Tag               Chain actions
 --------------------------------------------------------------------------------------
 lo                     <No XDP program loaded!>
@@ -233,14 +233,6 @@ duo1                   xdp_dispatcher    native   608225 4d7e87c0d30db711
 
 - Q: Is Ubuntu 20.04LTS supported?  
 A: Not officially, but you can still **build** it by running `apt-get upgrade linux-libc-dev`. Please be aware of potential side effects from the **upgrade**.
-- Q: Can I build libxdp/libbpf from source?  
-A: Yes. Try below. We don't use CI/CD for the source version, but we saw xdp-tools v1.4.2 from source works.
-```sh
-pwsh ./scripts/prepare-machine.ps1 -BuildLibXdpFromSource
-pwsh ./scripts/build.ps1 -BuildLibXdpFromSource
-# try using ldd whether your libxdp.so/libbpf.so are linked
-# When running binary, set LIBXDP_SKIP_DISPATCHER=1 or LIBXDP_OBJECT_PATH=${where xdp-dispatcher.o is located}
-```
 
 ### macOS
 The build needs CMake and compiler.

@@ -12,10 +12,6 @@
 [submodule "submodules/clog"]
 	path = submodules/clog
 	url = https://github.com/microsoft/CLOG.git
-[submodule "submodules/xdp-tools"]
-	path = submodules/xdp-tools
-	url = https://github.com/xdp-project/xdp-tools.git
-	branch = v1.4.2
 [submodule "submodules/xdp-for-windows"]
 	path = submodules/xdp-for-windows
 	url = https://github.com/microsoft/xdp-for-windows.git
