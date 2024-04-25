@@ -241,16 +241,8 @@ if ($isWindows) {
 # Configure the dump collection.
 Configure-DumpCollection $Session
 
-$GRO = "on"
-if ($useXDP) {
-    # Install any dependent drivers.
-    if ($isWindows) {
-        Install-XDP $Session $RemoteDir
-    } else {
-        $env:MSQUIC_ENABLE_XDP=1
-        $GRO = "off"
-    }
-}
+# Install any dependent drivers.
+if ($useXDP -and $isWindows) { Install-XDP $Session $RemoteDir }
 if ($io -eq "wsk") { Install-Kernel $Session $RemoteDir $SecNetPerfDir }
 
 if (!$isWindows) {
