@@ -2954,6 +2954,8 @@ struct NthPacketDropTestContext {
     }
 };
 
+//#define LARGE_DROP_TEST 1 // Can only run locally because of the long runtime
+
 void
 QuicTestNthPacketDrop(
     )
@@ -2978,7 +2980,11 @@ QuicTestNthPacketDrop(
     TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
     TEST_QUIC_SUCCEEDED(Connection.Start(ClientConfiguration, ServerLocalAddr.GetFamily(), QUIC_TEST_LOOPBACK_FOR_AF(ServerLocalAddr.GetFamily()), ServerLocalAddr.GetPort()));
 
+#if LARGE_DROP_TEST
+    const uint32_t BufferLength = 0x1000000;
+#else
     const uint32_t BufferLength = 0x200000;
+#endif
     uint8_t* RawBuffer = new uint8_t[BufferLength];
     for (uint32_t i = 0; i < BufferLength; ++i) {
         RawBuffer[i] = (uint8_t)i;
@@ -2987,8 +2993,12 @@ QuicTestNthPacketDrop(
 
     CxPlatSleep(100); // Quiesce
 
-    const uint32_t EstimatedPackets = BufferLength / 1280;
+    const uint32_t EstimatedPackets = BufferLength / 1280 + 100;
+#if LARGE_DROP_TEST
+    const uint32_t DropCount = EstimatedPackets;
+#else
     const uint32_t DropCount = CXPLAT_MIN(EstimatedPackets, 1000); // Too many to run in < 60 seconds
+#endif
     bool NoMoreDrops = false;
     for (uint32_t i = 0; i < DropCount && !RecvContext.Failure && !NoMoreDrops; ++i) {
         NthLossHelper LossHelper(i);
