@@ -15,16 +15,16 @@ This document is meant to be a step-by-step guide for trouble shooting any issue
 # Trouble Shooting a Functional Issue
 
 1. [MsQuic logging?](#logging)
-3. [I am getting an error code I don't understand.](#understanding-error-codes)
-4. [The connection is unexpectedly shutting down.](#why-is-the-connection-shutting-down)
-5. [The stream is aborted](#the-stream-is-aborted)
-6. [No application (stream) data seems to be flowing.](#why-isnt-application-data-flowing)
-7. [Why is this API failing?](#why-is-this-api-failing)
-8. [An MsQuic API is hanging.](#why-is-the-api-hanging-or-deadlocking)
-9. [I am having problems with SMB over QUIC.](#trouble-shooting-smb-over-quic-issues)
-10. [No credentials when loading a server certificate from PEM with Schannel.](#convert-pem-to-pkcs12-for-schannel)
-11. [TLS handshake fails in Chrome and Edge for HTTP/3 (including WebTransport) even though HTTP/1.1 and HTTP/2 work.](#using-a-self-signed-certificate-for-http3)
-12. [I need to get a packet capture](#collecting-a-packet-capture).
+1. [I am getting an error code I don't understand.](#understanding-error-codes)
+1. [The connection is unexpectedly shutting down.](#why-is-the-connection-shutting-down)
+1. [The stream is aborted](#the-stream-is-aborted)
+1. [No application (stream) data seems to be flowing.](#why-isnt-application-data-flowing)
+1. [Why is this API failing?](#why-is-this-api-failing)
+1. [An MsQuic API is hanging.](#why-is-the-api-hanging-or-deadlocking)
+1. [I am having problems with SMB over QUIC.](#trouble-shooting-smb-over-quic-issues)
+1. [No credentials when loading a server certificate from PEM with Schannel.](#convert-pem-to-pkcs12-for-schannel)
+1. [TLS handshake fails in Chrome and Edge for HTTP/3 (including WebTransport) even though HTTP/1.1 and HTTP/2 work.](#using-a-self-signed-certificate-for-http3)
+1. [I need to get a packet capture](#collecting-a-packet-capture).
 
 ## Logging
 
