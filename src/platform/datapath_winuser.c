@@ -2564,6 +2564,7 @@ CxPlatDataPathSocketProcessAcceptCompletion(
 {
     CXPLAT_SOCKET_PROC* ListenerSocketProc = CONTAINING_RECORD(Sqe, CXPLAT_SOCKET_PROC, IoSqe);
     ULONG IoResult = RtlNtStatusToDosError((NTSTATUS)Cqe->Internal);
+    CXPLAT_SOCKET_PROC* AcceptSocketProc = NULL;
 
     if (IoResult == WSAENOTSOCK || IoResult == WSA_OPERATION_ABORTED) {
         //
@@ -2579,7 +2580,7 @@ CxPlatDataPathSocketProcessAcceptCompletion(
 
     if (IoResult == QUIC_STATUS_SUCCESS) {
         CXPLAT_DBG_ASSERT(ListenerSocketProc->AcceptSocket != NULL);
-        CXPLAT_SOCKET_PROC* AcceptSocketProc = &ListenerSocketProc->AcceptSocket->PerProcSockets[0];
+        AcceptSocketProc = &ListenerSocketProc->AcceptSocket->PerProcSockets[0];
         CXPLAT_DBG_ASSERT(ListenerSocketProc->AcceptSocket == AcceptSocketProc->Parent);
         DWORD BytesReturned;
         SOCKET_PROCESSOR_AFFINITY RssAffinity = { 0 };
@@ -2591,6 +2592,11 @@ CxPlatDataPathSocketProcessAcceptCompletion(
             ListenerSocketProc->Parent,
             0,
             "AcceptEx Completed!");
+
+
+        if (!CxPlatRundownAcquire(&AcceptSocketProc->RundownRef)) {
+            goto Error;
+        }
 
         int Result =
             setsockopt(
@@ -2653,8 +2659,8 @@ CxPlatDataPathSocketProcessAcceptCompletion(
             &ListenerSocketProc->AcceptSocket->ClientContext);
         ListenerSocketProc->AcceptSocket = NULL;
 
-        CxPlatDataPathStartReceiveAsync(AcceptSocketProc);
         AcceptSocketProc->IoStarted = TRUE;
+        CxPlatDataPathStartReceiveAsync(AcceptSocketProc);
 
     } else {
         QuicTraceEvent(
@@ -2666,6 +2672,10 @@ CxPlatDataPathSocketProcessAcceptCompletion(
     }
 
 Error:
+
+    if (AcceptSocketProc != NULL) {
+        CxPlatRundownRelease(&AcceptSocketProc->RundownRef);
+    }
 
     if (ListenerSocketProc->AcceptSocket != NULL) {
         SocketDelete(ListenerSocketProc->AcceptSocket);
