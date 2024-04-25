@@ -15,12 +15,6 @@ Abstract:
 #include "datapath_winuser.c.clog.h"
 #endif
 
-#pragma warning(disable:4116) // unnamed type definition in parentheses
-
-#pragma warning(disable:4100) // unreferenced
-#pragma warning(disable:6101) // uninitialized
-#pragma warning(disable:6386) // buffer overrun
-
 _IRQL_requires_max_(PASSIVE_LEVEL)
 _Success_(QUIC_SUCCEEDED(return))
 QUIC_STATUS

@@ -15,12 +15,6 @@ Abstract:
 #include "datapath_linux.c.clog.h"
 #endif
 
-#pragma warning(disable:4116) // unnamed type definition in parentheses
-
-#pragma warning(disable:4100) // unreferenced
-#pragma warning(disable:6101) // uninitialized
-#pragma warning(disable:6386) // buffer overrun
-
 QUIC_STATUS
 CxPlatSocketUpdateQeo(
     _In_ CXPLAT_SOCKET* Socket,
