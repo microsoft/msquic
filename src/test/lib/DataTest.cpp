@@ -2923,6 +2923,86 @@ QuicTestNthAllocFail(
     }
 }
 
+struct NthPacketDropTestContext {
+    bool Failure {false};
+    CxPlatEvent ServerStreamShutdown;
+    static QUIC_STATUS StreamCallback(_In_ MsQuicStream* Stream, _In_opt_ void* Context, _Inout_ QUIC_STREAM_EVENT* Event) {
+        auto TestContext = (NthPacketDropTestContext*)Context;
+        if (Event->Type == QUIC_STREAM_EVENT_RECEIVE) {
+            auto Offset = Event->RECEIVE.AbsoluteOffset;
+            for (uint32_t i = 0; i < Event->RECEIVE.BufferCount; ++i) {
+                for (uint32_t j = 0; j < Event->RECEIVE.Buffers[i].Length; ++j) {
+                    if (Event->RECEIVE.Buffers[i].Buffer[j] != (uint8_t)(Offset + j)) {
+                        TestContext->Failure = true;
+                        TEST_FAILURE("Buffer Corrupted!");
+                        Stream->Shutdown(1); // Kill the transfer immediately
+                    }
+                }
+                Offset += Event->RECEIVE.Buffers[i].Length;
+            }
+        } else if (Event->Type == QUIC_STREAM_EVENT_SHUTDOWN_COMPLETE) {
+            TestContext->ServerStreamShutdown.Set();
+        }
+        return QUIC_STATUS_SUCCESS;
+    }
+
+    static QUIC_STATUS ConnCallback(_In_ MsQuicConnection*, _In_opt_ void* Context, _Inout_ QUIC_CONNECTION_EVENT* Event) {
+        if (Event->Type == QUIC_CONNECTION_EVENT_PEER_STREAM_STARTED) {
+            new(std::nothrow) MsQuicStream(Event->PEER_STREAM_STARTED.Stream, CleanUpAutoDelete, StreamCallback, Context);
+        }
+        return QUIC_STATUS_SUCCESS;
+    }
+};
+
+void
+QuicTestNthPacketDrop(
+    )
+{
+    MsQuicRegistration Registration(true);
+    TEST_QUIC_SUCCEEDED(Registration.GetInitStatus());
+
+    MsQuicConfiguration ServerConfiguration(Registration, "MsQuicTest", MsQuicSettings().SetPeerUnidiStreamCount(1), ServerSelfSignedCredConfig);
+    TEST_QUIC_SUCCEEDED(ServerConfiguration.GetInitStatus());
+
+    MsQuicConfiguration ClientConfiguration(Registration, "MsQuicTest", MsQuicCredentialConfig());
+    TEST_QUIC_SUCCEEDED(ClientConfiguration.GetInitStatus());
+
+    NthPacketDropTestContext RecvContext {};
+    MsQuicAutoAcceptListener Listener(Registration, ServerConfiguration, NthPacketDropTestContext::ConnCallback, &RecvContext);
+    TEST_QUIC_SUCCEEDED(Listener.GetInitStatus());
+    TEST_QUIC_SUCCEEDED(Listener.Start("MsQuicTest"));
+    QuicAddr ServerLocalAddr;
+    TEST_QUIC_SUCCEEDED(Listener.GetLocalAddr(ServerLocalAddr));
+
+    MsQuicConnection Connection(Registration);
+    TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
+    TEST_QUIC_SUCCEEDED(Connection.Start(ClientConfiguration, ServerLocalAddr.GetFamily(), QUIC_TEST_LOOPBACK_FOR_AF(ServerLocalAddr.GetFamily()), ServerLocalAddr.GetPort()));
+
+    const uint32_t BufferLength = 0x200000;
+    uint8_t* RawBuffer = new uint8_t[BufferLength];
+    for (uint32_t i = 0; i < BufferLength; ++i) {
+        RawBuffer[i] = (uint8_t)i;
+    }
+    QUIC_BUFFER Buffer { BufferLength, RawBuffer };
+
+    CxPlatSleep(100); // Quiesce
+
+    const uint32_t EstimatedPackets = BufferLength / 1280;
+    const uint32_t DropCount = CXPLAT_MIN(EstimatedPackets, 1000); // Too many to run in < 60 seconds
+    bool NoMoreDrops = false;
+    for (uint32_t i = 0; i < DropCount && !RecvContext.Failure && !NoMoreDrops; ++i) {
+        NthLossHelper LossHelper(i);
+        MsQuicStream Stream(Connection, QUIC_STREAM_OPEN_FLAG_UNIDIRECTIONAL);
+        CONTINUE_ON_FAIL(Stream.GetInitStatus());
+
+        CONTINUE_ON_FAIL(Stream.Send(&Buffer, 1, QUIC_SEND_FLAG_START | QUIC_SEND_FLAG_FIN));
+        TEST_TRUE(RecvContext.ServerStreamShutdown.WaitTimeout(2000));
+        if (!LossHelper.Dropped()) { NoMoreDrops = true; }
+    }
+
+    delete[] RawBuffer;
+}
+
 struct StreamPriorityTestContext {
     QUIC_UINT62 ReceiveEvents[3];
     uint32_t CurrentReceiveCount {0};

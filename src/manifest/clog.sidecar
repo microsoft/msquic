@@ -11010,6 +11010,13 @@
       "splitArgs": [],
       "macroName": "QuicTraceLogVerbose"
     },
+    "TestHookDropPacketNth": {
+      "ModuleProperites": {},
+      "TraceString": "[test][hook] Nth packet drop",
+      "UniqueId": "TestHookDropPacketNth",
+      "splitArgs": [],
+      "macroName": "QuicTraceLogVerbose"
+    },
     "TestHookDropPacketRandom": {
       "ModuleProperites": {},
       "TraceString": "[test][hook] Random packet drop",
@@ -15887,6 +15894,11 @@
         "UniquenessHash": "a5664948-8711-00da-6c95-520e7c6ebab0",
         "TraceID": "TestHookDropPacketBitmap",
         "EncodingString": "[test][hook] Bitmap packet drop"
+      },
+      {
+        "UniquenessHash": "1aaf1289-23c1-c788-e34d-dc5d46c92b88",
+        "TraceID": "TestHookDropPacketNth",
+        "EncodingString": "[test][hook] Nth packet drop"
       },
       {
         "UniquenessHash": "ccf24f92-4b3c-0f17-5c84-1d454a788837",
