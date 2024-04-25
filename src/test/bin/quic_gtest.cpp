@@ -2125,7 +2125,7 @@ TEST(Misc, NthAllocFail) {
 TEST(Misc, NthPacketDrop) {
     TestLogger Logger("NthPacketDrop");
     if (TestingKernelMode) {
-        //ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_NTH_ALLOC_FAIL));
+        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_NTH_PACKET_DROP));
     } else {
         QuicTestNthPacketDrop();
     }
