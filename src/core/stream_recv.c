@@ -1046,6 +1046,7 @@ QuicStreamReceiveComplete(
     if (BufferLength != 0) {
         Stream->RecvPendingLength -= BufferLength;
         QuicPerfCounterAdd(QUIC_PERF_COUNTER_APP_RECV_BYTES, BufferLength);
+        QuicStreamOnBytesDelivered(Stream, BufferLength);
     }
 
     if (Stream->RecvPendingLength == 0) {
