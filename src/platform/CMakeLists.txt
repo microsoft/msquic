@@ -27,16 +27,11 @@ else()
     set(SOURCES ${SOURCES} inline.c platform_posix.c storage_posix.c cgroup.c datapath_unix.c)
     if(CX_PLATFORM STREQUAL "linux" AND NOT CMAKE_SYSTEM_NAME STREQUAL "FreeBSD")
         set(SOURCES ${SOURCES} datapath_linux.c datapath_epoll.c)
-        if ((${UBUNTU_VERSION} STREQUAL "20.04") OR
-            (${CMAKE_TARGET_ARCHITECTURE} STREQUAL "arm64") OR
-            (${CMAKE_TARGET_ARCHITECTURE} STREQUAL "arm") OR
-            (${CMAKE_SYSTEM_PROCESSOR} STREQUAL "arm") OR
-            (ANDROID) OR
-            (QUIC_CARGO_BUILD))
-            set(SOURCES ${SOURCES} datapath_xplat.c datapath_raw_dummy.c)
-        else()
+        if ("${UBUNTU_VERSION}" STREQUAL "22.04")
             set(LINUX_XDP_ENABLED TRUE)
             set(SOURCES ${SOURCES} datapath_xplat.c datapath_raw.c datapath_raw_linux.c datapath_raw_socket.c datapath_raw_socket_linux.c datapath_raw_xdp_linux.c)
+        else()
+            set(SOURCES ${SOURCES} datapath_xplat.c datapath_raw_dummy.c)
         endif()
     else()
         set(SOURCES ${SOURCES} datapath_kqueue.c)
