@@ -684,7 +684,7 @@ QuicRecvBufferRead(
                 Link);
         BOOLEAN IsFirstChunk = TRUE;
         uint32_t ChunkLength = RecvBuffer->ReadLength;
-        while (ChunkLength <= ReadOffset) {
+        while ((uint64_t)ChunkLength <= ReadOffset) {
             CXPLAT_DBG_ASSERT(ChunkLength);
             CXPLAT_DBG_ASSERT(Chunk->ExternalReference);
             CXPLAT_DBG_ASSERT(Chunk->Link.Flink != &RecvBuffer->Chunks);
@@ -838,7 +838,8 @@ QuicRecvBufferPartialDrain(
 }
 
 //
-// Handles draining the entire first chunk (and possibly more). Return the new
+// Handles draining the entire first chunk (and possibly more). This function
+// expects the chunk to not contain more (unread) data. Return the new
 // drain length.
 //
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -915,9 +916,16 @@ QuicRecvBufferDrain(
     }
 
     do {
-        if ((uint64_t)RecvBuffer->ReadLength > DrainLength) {
+        BOOLEAN PartialDrain = (uint64_t)RecvBuffer->ReadLength > DrainLength;
+        if (PartialDrain ||
+            //
+            // If there are 2 or more written ranges, it means that there may be
+            // more data later in the chunk that couldn't be read because there is a gap.
+            // Reuse the partial drain logic to preserve data after the gap.
+            //
+            QuicRangeSize(&RecvBuffer->WrittenRanges) > 1) {
             QuicRecvBufferPartialDrain(RecvBuffer, DrainLength);
-            return FALSE;
+            return !PartialDrain;
         }
 
         DrainLength = QuicRecvBufferFullDrain(RecvBuffer, DrainLength);

@@ -325,6 +325,24 @@ class WithHandshakeArgs10 : public testing::Test,
     public testing::WithParamInterface<HandshakeArgs10> {
 };
 
+struct HandshakeArgs11 {
+    bool ClientShutdown;
+    static ::std::vector<HandshakeArgs11> Generate() {
+        ::std::vector<HandshakeArgs11> list;
+        for (bool ClientShutdown : { false, true })
+            list.push_back({ ClientShutdown });
+        return list;
+    }
+};
+
+std::ostream& operator << (std::ostream& o, const HandshakeArgs11& args) {
+    return o << (args.ClientShutdown ? "Client" : "Server");
+};
+
+class WithHandshakeArgs11 : public testing::Test,
+    public testing::WithParamInterface<HandshakeArgs11> {
+};
+
 struct FeatureSupportArgs {
     int Family;
     bool ServerSupport;

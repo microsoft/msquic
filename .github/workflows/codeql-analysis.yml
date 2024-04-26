@@ -31,7 +31,7 @@ jobs:
         with:
           egress-policy: audit
       - name: Checkout repository
-        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11
+        uses: actions/checkout@1d96c772d19495a3b5c517cd2bc0cb401ea0529f
         with:
           fetch-depth: 2
           submodules: 'recursive'
@@ -39,8 +39,11 @@ jobs:
       # Install dependencies and build submodules before starting analysis.
       - run: |
          sudo apt-add-repository ppa:lttng/stable-2.13
+         sudo apt-add-repository "deb http://mirrors.kernel.org/ubuntu noble main" -y
          sudo apt-get update
          sudo apt-get install -y liblttng-ust-dev libnuma-dev
+         sudo apt-get install -y libxdp-dev libbpf-dev libnl-3-dev libnl-genl-3-dev libnl-route-3-dev zlib1g-dev zlib1g pkg-config m4 clang libpcap-dev libelf-dev
+         sudo apt-get install -y --no-install-recommends libc6-dev-i386
          sudo sh scripts/install-powershell-docker.sh
          mkdir build
          cd build

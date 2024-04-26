@@ -228,13 +228,18 @@ function Uninstall-Xdp {
 
 # Installs DuoNic from the CoreNet-CI repo.
 function Install-DuoNic {
-    if (!$IsWindows) { return } # Windows only
     # Install the DuoNic driver.
-    Write-Host "Installing DuoNic driver"
-    $DuoNicPath = Join-Path $SetupPath duonic
-    $DuoNicScript = (Join-Path $DuoNicPath duonic.ps1)
-    if (!(Test-Path $DuoNicScript)) { Write-Error "Missing file: $DuoNicScript" }
-    Invoke-Expression "cmd /c `"pushd $DuoNicPath && pwsh duonic.ps1 -Install`""
+    if ($IsWindows) {
+        Write-Host "Installing DuoNic driver"
+        $DuoNicPath = Join-Path $SetupPath duonic
+        $DuoNicScript = (Join-Path $DuoNicPath duonic.ps1)
+        if (!(Test-Path $DuoNicScript)) { Write-Error "Missing file: $DuoNicScript" }
+        Invoke-Expression "cmd /c `"pushd $DuoNicPath && pwsh duonic.ps1 -Install`""
+    } elseif ($IsLinux) {
+        Write-Host "Creating DuoNic endpoints"
+        $DuoNicScript = Join-Path $PSScriptRoot "duonic.sh"
+        Invoke-Expression "sudo bash $DuoNicScript install"
+    }
 }
 
 function Update-Path($NewPath) {
@@ -259,15 +264,15 @@ function Install-NASM {
         $NasmArch = "win64"
         if (![System.Environment]::Is64BitOperatingSystem) { $NasmArch = "win32" }
         try {
-            Invoke-WebRequest -Uri "https://www.nasm.us/pub/nasm/releasebuilds/$NasmVersion/win64/nasm-$NasmVersion-$NasmArch.zip" -OutFile "artifacts\nasm.zip"
+            Invoke-WebRequest -Uri "https://www.nasm.us/pub/nasm/releasebuilds/$NasmVersion/win64/nasm-$NasmVersion-$NasmArch.zip" -OutFile "$ArtifactsPath\nasm.zip"
         } catch {
             # Mirror fallback
-            Invoke-WebRequest -Uri "https://fossies.org/windows/misc/nasm-$NasmVersion-$NasmArch.zip" -OutFile "artifacts\nasm.zip"
+            Invoke-WebRequest -Uri "https://fossies.org/windows/misc/nasm-$NasmVersion-$NasmArch.zip" -OutFile "$ArtifactsPath\nasm.zip"
         }
 
         Write-Host "Extracting/installing NASM"
-        Expand-Archive -Path "artifacts\nasm.zip" -DestinationPath $env:Programfiles -Force
-        Remove-Item -Path "artifacts\nasm.zip"
+        Expand-Archive -Path "$ArtifactsPath\nasm.zip" -DestinationPath $env:Programfiles -Force
+        Remove-Item -Path "$ArtifactsPath\nasm.zip"
         Update-Path $NasmPath
     }
 }
@@ -278,19 +283,20 @@ function Install-JOM {
     $JomVersion = "1_1_3"
     $JomPath = Join-Path $env:Programfiles "jom_$JomVersion"
     $JomExe = Join-Path $JomPath "jom.exe"
+
     if (!(Test-Path $JomExe) -and $env:GITHUB_PATH -eq $null) {
         Write-Host "Downloading JOM"
         try {
-            Invoke-WebRequest -Uri "https://qt.mirror.constant.com/official_releases/jom/jom_$JomVersion.zip" -OutFile "artifacts\jom.zip"
+            Invoke-WebRequest -Uri "https://qt.mirror.constant.com/official_releases/jom/jom_$JomVersion.zip" -OutFile "$ArtifactsPath\jom.zip"
         } catch {
             # Mirror fallback
-            Invoke-WebRequest -Uri "https://mirrors.ocf.berkeley.edu/qt/official_releases/jom/jom_$JomVersion.zip" -OutFile "artifacts\jom.zip"
+            Invoke-WebRequest -Uri "https://mirrors.ocf.berkeley.edu/qt/official_releases/jom/jom_$JomVersion.zip" -OutFile "$ArtifactsPath\jom.zip"
         }
 
         Write-Host "Extracting/installing JOM"
         New-Item -Path $JomPath -ItemType Directory -Force
-        Expand-Archive -Path "artifacts\jom.zip" -DestinationPath $JomPath -Force
-        Remove-Item -Path "artifacts\jom.zip"
+        Expand-Archive -Path "$ArtifactsPath\jom.zip" -DestinationPath $JomPath -Force
+        Remove-Item -Path "$ArtifactsPath\jom.zip"
         Update-Path $JomPath
     }
 }
@@ -428,7 +434,7 @@ function Install-DotnetTool {
 
 function Install-Clog2Text {
     Write-Host "Initializing clog submodule"
-    git submodule init submodules/clog
+    git submodule init $RootDir/submodules/clog
     git submodule update
 
     dotnet build (Join-Path $RootDir submodules clog)
@@ -438,33 +444,32 @@ function Install-Clog2Text {
 
 # We remove OpenSSL path for kernel builds because it's not needed.
 if ($ForKernel) {
-    git rm submodules/openssl
-    git rm submodules/openssl3
+    git rm $RootDir/submodules/openssl
+    git rm $RootDir/submodules/openssl3
 }
 
 if ($ForBuild -or $ForContainerBuild) {
-
     Write-Host "Initializing clog submodule"
-    git submodule init submodules/clog
+    git submodule init $RootDir/submodules/clog
 
     if (!$IsLinux) {
         Write-Host "Initializing XDP-for-Windows submodule"
-        git submodule init submodules/xdp-for-windows
+        git submodule init $RootDir/submodules/xdp-for-windows
     }
 
     if ($Tls -eq "openssl") {
         Write-Host "Initializing openssl submodule"
-        git submodule init submodules/openssl
+        git submodule init $RootDir/submodules/openssl
     }
 
     if ($Tls -eq "openssl3") {
         Write-Host "Initializing openssl3 submodule"
-        git submodule init submodules/openssl3
+        git submodule init $RootDir/submodules/openssl3
     }
 
     if (!$DisableTest) {
         Write-Host "Initializing googletest submodule"
-        git submodule init submodules/googletest
+        git submodule init $RootDir/submodules/googletest
     }
 
     git submodule update --jobs=8
@@ -504,6 +509,15 @@ if ($IsLinux) {
         sudo apt-get install -y ruby ruby-dev rpm
         sudo gem install public_suffix -v 4.0.7
         sudo gem install fpm
+
+        # XDP dependencies
+        if ((bash -c 'lsb_release -r') -match '22.04') {
+            sudo apt-get -y install --no-install-recommends libc6-dev-i386 # for building xdp programs
+            sudo apt-add-repository "deb http://mirrors.kernel.org/ubuntu noble main" -y
+            sudo apt-get update -y
+            sudo apt-get -y install libxdp-dev libbpf-dev
+            sudo apt-get -y install libnl-3-dev libnl-genl-3-dev libnl-route-3-dev zlib1g-dev zlib1g pkg-config m4 clang libpcap-dev libelf-dev
+        }
     }
 
     if ($ForTest) {
@@ -512,6 +526,16 @@ if ($IsLinux) {
         sudo apt-get install -y lttng-tools
         sudo apt-get install -y liblttng-ust-dev
         sudo apt-get install -y gdb
+        if ((bash -c 'lsb_release -r') -match '22.04') {
+            sudo apt-add-repository "deb http://mirrors.kernel.org/ubuntu noble main" -y
+            sudo apt-get update -y
+            sudo apt-get install -y libxdp1 libbpf1
+            sudo apt-get install -y libnl-3-200 libnl-route-3-200 libnl-genl-3-200
+            if ($UseXdp) {
+                sudo apt-get -y install iproute2 iptables
+                Install-DuoNic
+            }
+        }
 
         # Enable core dumps for the system.
         Write-Host "Setting core dump size limit"

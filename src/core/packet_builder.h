@@ -79,6 +79,11 @@ typedef struct QUIC_PACKET_BUILDER {
     uint8_t EcnEctSet : 1;
 
     //
+    // Indicates that a CONNECTION_CLOSE frame was written in some packet.
+    //
+    uint8_t WrittenConnectionCloseFrame : 1;
+
+    //
     // The total number of datagrams that have been created.
     //
     uint8_t TotalCountDatagrams;

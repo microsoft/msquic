@@ -240,7 +240,9 @@ public:
         Config.Name = Name;
         Config.Callback = WatchdogThreadCallback;
         Config.Context = this;
-        CXPLAT_FRE_ASSERT(QUIC_SUCCEEDED(WatchdogThread.Create(&Config)));
+        if (WatchdogTimeoutMs != UINT32_MAX) {
+            CXPLAT_FRE_ASSERT(QUIC_SUCCEEDED(WatchdogThread.Create(&Config)));
+        }
     }
     ~CxPlatWatchdog() noexcept {
         ShutdownEvent.Set();

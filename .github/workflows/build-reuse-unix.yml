@@ -65,6 +65,10 @@ on:
         required: false
         default: ''
         type: string
+      xdp:
+        required: false
+        default: ''
+        type: string
       sanitize:
         required: false
         default: ''
@@ -81,10 +85,10 @@ jobs:
     name: Build
     runs-on: ${{ inputs.os }}
     container:
-      image: ${{ inputs.plat == 'linux' && format('ghcr.io/microsoft/msquic/linux-build-xcomp:{0}', inputs.os) || '' }}
+      image: ${{ (inputs.plat == 'linux' && format('ghcr.io/microsoft/msquic/linux-build-xcomp:{0}-{1}', inputs.os, (startsWith(inputs.arch, 'x') && 'x86_64') || 'arm')) || '' }}
     steps:
     - name: Checkout repository
-      uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11
+      uses: actions/checkout@1d96c772d19495a3b5c517cd2bc0cb401ea0529f
       with:
         repository: microsoft/msquic
         ref: ${{ inputs.ref }}
@@ -95,7 +99,7 @@ jobs:
         chown -R $(id -u):$(id -g) $PWD
     - name: Prepare Machine
       shell: pwsh
-      run: scripts/prepare-machine.ps1 ${{ inputs.plat == 'linux' && '-ForContainerBuild' || '-ForBuild' }} -Tls ${{ inputs.tls }}
+      run: scripts/prepare-machine.ps1 ${{ inputs.plat == 'linux' && '-ForContainerBuild' || '-ForBuild' }} -Tls ${{ inputs.tls }} ${{ inputs.xdp }}
     - name: Build For Test
       if: inputs.build == '-Test'
       shell: pwsh
@@ -109,7 +113,7 @@ jobs:
       shell: pwsh
       run: scripts/build.ps1 -Config ${{ inputs.config }} -Platform ${{ inputs.plat }} -Arch ${{ inputs.arch }} -Tls ${{ inputs.tls }} ${{ inputs.static }} ${{ inputs.clang }} ${{ inputs.systemcrypto }} ${{ inputs.codecheck }} ${{ inputs.sanitize }} -OneBranch
     - name: Upload build artifacts
-      uses: actions/upload-artifact@5d5d22a31266ced268874388b861e4b58bb5c2f3
+      uses: actions/upload-artifact@1746f4ab65b179e0ea60a494b83293b640dd5bba
       with:
         name: ${{ inputs.config }}-${{ inputs.plat }}-${{ inputs.os }}-${{ inputs.arch }}-${{ inputs.tls }}${{ inputs.static }}${{ inputs.clang }}${{ inputs.systemcrypto }}${{ inputs.codecheck }}${{ inputs.sanitize }}${{ inputs.build }}
         path: artifacts

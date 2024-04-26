@@ -98,6 +98,7 @@ param (
     [switch]$UseXdp
 )
 
+$env:ASAN_OPTIONS = "allocator_may_return_null=1"
 Set-StrictMode -Version 'Latest'
 $PSDefaultParameterValues['*:ErrorAction'] = 'Stop'
 

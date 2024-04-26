@@ -221,6 +221,13 @@ function Cleanup-State {
             if ($null -ne (Get-Service msquicpriv -ErrorAction Ignore)) { throw "secnetperfdrvpriv still running remotely!" }
             if ($null -ne (Get-Service msquicpriv -ErrorAction Ignore)) { throw "msquicpriv still running remotely!" }
         }
+        # Clean up any ETL residue.
+        try { .\scripts\log.ps1 -Cancel }
+        catch { Write-Host "Failed to stop logging on client!" }
+        Invoke-Command -Session $Session -ScriptBlock {
+            try { & "$Using:RemoteDir/scripts/log.ps1" -Cancel }
+            catch { Write-Host "Failed to stop logging on server!" }
+        }
     }
 }
 
@@ -574,4 +581,82 @@ function Invoke-Secnetperf {
         Latency = $latency
         HasFailures = $hasFailures
     }
+}
+
+function CheckRegressionResult($values, $testid, $transport, $regressionJson, $envStr) {
+
+    $sum = 0
+    foreach ($item in $values) {
+        $sum += $item
+    }
+    $avg = $sum / $values.Length
+    $Testid = "$testid-$transport"
+
+    $res = @{
+        Baseline = "N/A"
+        BestResult = "N/A"
+        BestResultCommit = "N/A"
+        CumulativeResult = "N/A"
+        AggregateFunction = "N/A"
+        HasRegression = $false
+    }
+
+    try {
+        $res.Baseline = $regressionJson.$Testid.$envStr.baseline
+        $res.BestResult = $regressionJson.$Testid.$envStr.BestResult
+        $res.BestResultCommit = $regressionJson.$Testid.$envStr.BestResultCommit
+        $res.CumulativeResult = $avg
+        $res.AggregateFunction = "AVG"
+
+        if ($avg -lt $res.Baseline) {
+            Write-GHError "Regression detected in $Testid for $envStr. See summary table for details."
+            $res.HasRegression = $true
+        }
+    } catch {
+        Write-Host "Not using a watermark-based regression method. Skipping."
+    }
+
+    return $res
+}
+
+function CheckRegressionLat($values, $regressionJson, $testid, $transport, $envStr) {
+
+    # TODO: Right now, we are not using a watermark based method for regression detection of latency percentile values because we don't know how to determine a "Best Ever" distribution.
+    #       (we are just looking at P0, P50, P99 columns, and computing the baseline for each percentile as the mean - 2 * std of the last 20 runs. )
+    #       So, the summary table omits a "BestEver" and "Baseline" column for latency. In fact, we ignore the "mean - 2*std" signal entirely. Need to determine how we compare distributions.
+
+    $RpsAvg = 0
+    $NumRuns = $values.Length / 9
+    for ($offset = 0; $offset -lt $values.Length; $offset += 9) {
+        $RpsAvg += $values[$offset + 8]
+    }
+
+    $RpsAvg /= $NumRuns
+    $Testid = "$testid-$transport"
+
+    $res = @{
+        Baseline = "N/A"
+        BestResult = "N/A"
+        BestResultCommit = "N/A"
+        CumulativeResult = "N/A"
+        AggregateFunction = "N/A"
+        HasRegression = $false
+    }
+
+    try {
+        $res.Baseline = $regressionJson.$Testid.$envStr.baseline
+        $res.BestResult = $regressionJson.$Testid.$envStr.BestResult
+        $res.BestResultCommit = $regressionJson.$Testid.$envStr.BestResultCommit
+        $res.CumulativeResult = $RpsAvg
+        $res.AggregateFunction = "AVG"
+
+        if ($RpsAvg -lt $res.Baseline) {
+            Write-GHError "RPS Regression detected in $Testid for $envStr. See summary table for details."
+            $res.HasRegression = $true
+        }
+    } catch {
+        Write-Host "Not using a watermark-based regression method."
+    }
+
+    return $res
 }

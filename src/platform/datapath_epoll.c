@@ -76,7 +76,7 @@ typedef struct DATAPATH_RX_IO_BLOCK {
 
 } DATAPATH_RX_IO_BLOCK;
 
-typedef struct DATAPATH_RX_PACKET {
+typedef struct __attribute__((aligned(16))) DATAPATH_RX_PACKET {
     //
     // The IO block that owns the packet.
     //
@@ -94,6 +94,7 @@ typedef struct DATAPATH_RX_PACKET {
 //
 
 typedef struct CXPLAT_SEND_DATA {
+    CXPLAT_SEND_DATA_COMMON;
     //
     // The socket context owning this send.
     //
@@ -145,11 +146,6 @@ typedef struct CXPLAT_SEND_DATA {
     // computed.
     //
     uint8_t ControlBufferLength;
-
-    //
-    // The type of ECN markings needed for send.
-    //
-    uint8_t ECN; // CXPLAT_ECN_TYPE
 
     //
     // Set of flags set to configure the send behavior.
@@ -1053,7 +1049,7 @@ CxPlatSocketRelease(
         CXPLAT_DBG_ASSERT(Socket->Uninitialized);
         Socket->Freed = TRUE;
 #endif
-        CXPLAT_FREE(Socket, QUIC_POOL_SOCKET);
+        CXPLAT_FREE(CxPlatSocketToRaw(Socket), QUIC_POOL_SOCKET);
     }
 }
 
@@ -1191,19 +1187,20 @@ SocketCreateUdp(
 
     CXPLAT_DBG_ASSERT(Datapath->UdpHandlers.Receive != NULL || Config->Flags & CXPLAT_SOCKET_FLAG_PCP);
 
-    const size_t BindingLength =
-        sizeof(CXPLAT_SOCKET) + SocketCount * sizeof(CXPLAT_SOCKET_CONTEXT);
-    CXPLAT_SOCKET* Binding =
-        (CXPLAT_SOCKET*)CXPLAT_ALLOC_PAGED(BindingLength, QUIC_POOL_SOCKET);
-    if (Binding == NULL) {
+    const size_t RawBindingLength =
+        CxPlatGetRawSocketSize() + SocketCount * sizeof(CXPLAT_SOCKET_CONTEXT);
+    CXPLAT_SOCKET_RAW* RawBinding =
+        (CXPLAT_SOCKET_RAW*)CXPLAT_ALLOC_PAGED(RawBindingLength, QUIC_POOL_SOCKET);
+    if (RawBinding == NULL) {
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         QuicTraceEvent(
             AllocFailure,
             "Allocation of '%s' failed. (%llu bytes)",
             "CXPLAT_SOCKET",
-            BindingLength);
+            RawBindingLength);
         goto Exit;
     }
+    CXPLAT_SOCKET* Binding = CxPlatRawToSocket(RawBinding);
 
     QuicTraceEvent(
         DatapathCreated,
@@ -1212,7 +1209,7 @@ SocketCreateUdp(
         CASTED_CLOG_BYTEARRAY(Config->LocalAddress ? sizeof(*Config->LocalAddress) : 0, Config->LocalAddress),
         CASTED_CLOG_BYTEARRAY(Config->RemoteAddress ? sizeof(*Config->RemoteAddress) : 0, Config->RemoteAddress));
 
-    CxPlatZeroMemory(Binding, BindingLength);
+    CxPlatZeroMemory(RawBinding, RawBindingLength);
     Binding->Datapath = Datapath;
     Binding->ClientContext = Config->CallbackContext;
     Binding->NumPerProcessorSockets = NumPerProcessorSockets;
@@ -1280,11 +1277,12 @@ SocketCreateUdp(
     }
 
     Binding = NULL;
+    RawBinding = NULL;
 
 Exit:
 
-    if (Binding != NULL) {
-        CxPlatSocketDelete(Binding);
+    if (RawBinding != NULL) {
+        SocketDelete(CxPlatRawToSocket(RawBinding));
     }
 
     return Status;
@@ -1308,17 +1306,18 @@ CxPlatSocketCreateTcpInternal(
     CXPLAT_DBG_ASSERT(Datapath->TcpHandlers.Receive != NULL);
 
     CXPLAT_SOCKET_CONTEXT* SocketContext = NULL;
-    uint32_t SocketLength = sizeof(CXPLAT_SOCKET) + sizeof(CXPLAT_SOCKET_CONTEXT);
-    CXPLAT_SOCKET* Binding = CXPLAT_ALLOC_PAGED(SocketLength, QUIC_POOL_SOCKET);
-    if (Binding == NULL) {
+    uint32_t RawSocketLength = CxPlatGetRawSocketSize() + sizeof(CXPLAT_SOCKET_CONTEXT);
+    CXPLAT_SOCKET_RAW* RawBinding = CXPLAT_ALLOC_PAGED(RawSocketLength, QUIC_POOL_SOCKET);
+    if (RawBinding == NULL) {
         QuicTraceEvent(
             AllocFailure,
             "Allocation of '%s' failed. (%llu bytes)",
             "CXPLAT_SOCKET",
-            SocketLength);
+            RawSocketLength);
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         goto Exit;
     }
+    CXPLAT_SOCKET* Binding = CxPlatRawToSocket(RawBinding);
 
     QuicTraceEvent(
         DatapathCreated,
@@ -1327,7 +1326,7 @@ CxPlatSocketCreateTcpInternal(
         CASTED_CLOG_BYTEARRAY(LocalAddress ? sizeof(*LocalAddress) : 0, LocalAddress),
         CASTED_CLOG_BYTEARRAY(RemoteAddress ? sizeof(*RemoteAddress) : 0, RemoteAddress));
 
-    CxPlatZeroMemory(Binding, SocketLength);
+    CxPlatZeroMemory(RawBinding, RawSocketLength);
     Binding->Datapath = Datapath;
     Binding->ClientContext = RecvCallbackContext;
     Binding->HasFixedRemoteAddress = TRUE;
@@ -1369,6 +1368,7 @@ CxPlatSocketCreateTcpInternal(
     if (Type == CXPLAT_SOCKET_TCP_SERVER) {
         *NewBinding = Binding;
         Binding = NULL;
+        RawBinding = NULL;
         goto Exit;
     }
 
@@ -1391,11 +1391,12 @@ CxPlatSocketCreateTcpInternal(
     SocketContext->IoStarted = TRUE;
 
     Binding = NULL;
+    RawBinding = NULL;
 
 Exit:
 
-    if (Binding != NULL) {
-        CxPlatSocketDelete(Binding);
+    if (RawBinding != NULL) {
+        SocketDelete(CxPlatRawToSocket(RawBinding));
     }
 
     return Status;
@@ -1435,17 +1436,18 @@ SocketCreateTcpListener(
     CXPLAT_DBG_ASSERT(Datapath->TcpHandlers.Receive != NULL);
 
     CXPLAT_SOCKET_CONTEXT* SocketContext = NULL;
-    uint32_t SocketLength = sizeof(CXPLAT_SOCKET) + sizeof(CXPLAT_SOCKET_CONTEXT);
-    CXPLAT_SOCKET* Binding = CXPLAT_ALLOC_PAGED(SocketLength, QUIC_POOL_SOCKET);
-    if (Binding == NULL) {
+    uint32_t RawSocketLength = CxPlatGetRawSocketSize() + sizeof(CXPLAT_SOCKET_CONTEXT);
+    CXPLAT_SOCKET_RAW* RawBinding = CXPLAT_ALLOC_PAGED(RawSocketLength, QUIC_POOL_SOCKET);
+    if (RawBinding == NULL) {
         QuicTraceEvent(
             AllocFailure,
             "Allocation of '%s' failed. (%llu bytes)",
             "CXPLAT_SOCKET",
-            SocketLength);
+            RawSocketLength);
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         goto Exit;
     }
+    CXPLAT_SOCKET* Binding = CxPlatRawToSocket(RawBinding);
 
     QuicTraceEvent(
         DatapathCreated,
@@ -1454,7 +1456,7 @@ SocketCreateTcpListener(
         CASTED_CLOG_BYTEARRAY(LocalAddress ? sizeof(*LocalAddress) : 0, LocalAddress),
         CASTED_CLOG_BYTEARRAY(0, NULL));
 
-    CxPlatZeroMemory(Binding, SocketLength);
+    CxPlatZeroMemory(RawBinding, RawSocketLength);
     Binding->Datapath = Datapath;
     Binding->ClientContext = CallbackContext;
     Binding->HasFixedRemoteAddress = FALSE;
@@ -1497,12 +1499,13 @@ SocketCreateTcpListener(
 
     SocketContext->IoStarted = TRUE;
     Binding = NULL;
+    RawBinding = NULL;
     Status = QUIC_STATUS_SUCCESS;
 
 Exit:
 
-    if (Binding != NULL) {
-        CxPlatSocketDelete(Binding);
+    if (RawBinding != NULL) {
+        SocketDelete(CxPlatRawToSocket(RawBinding));
     }
 
     return Status;
@@ -1538,7 +1541,6 @@ CxPlatSocketContextAcceptCompletion(
             SocketContext->Binding,
             Status,
             "accept failed");
-        fprintf(stderr, "Accept failure: %d\n", Status);
         goto Error;
     }
 
@@ -1773,6 +1775,7 @@ CxPlatSocketContextRecvComplete(
             RecvData->PartitionIndex = SocketContext->DatapathPartition->PartitionIndex;
             RecvData->TypeOfService = TOS;
             RecvData->Allocated = TRUE;
+            RecvData->Route->DatapathType = RecvData->DatapathType = CXPLAT_DATAPATH_TYPE_USER;
             RecvData->QueuedOnConnection = FALSE;
             RecvData->Reserved = FALSE;
 
@@ -2112,6 +2115,7 @@ SendDataAlloc(
             !!(Socket->Datapath->Features & CXPLAT_DATAPATH_FEATURE_SEND_SEGMENTATION);
         SendData->Iovs[0].iov_len = 0;
         SendData->Iovs[0].iov_base = SendData->Buffer;
+        SendData->DatapathType = Config->Route->DatapathType = CXPLAT_DATAPATH_TYPE_USER;
     }
 
     return SendData;

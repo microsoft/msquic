@@ -1118,6 +1118,12 @@ MsQuicStreamSend(
         goto Exit;
     }
 
+    //
+    // From here on, we cannot fail the call because the stream has been queued
+    // and possibly already started to be processed.
+    //
+    Status = QUIC_STATUS_PENDING;
+
     if (SendInline) {
 
         CXPLAT_PASSIVE_CODE();
@@ -1139,8 +1145,6 @@ MsQuicStreamSend(
                 "Allocation of '%s' failed. (%llu bytes)",
                 "STRM_SEND operation",
                 0);
-
-            Status = QUIC_STATUS_OUT_OF_MEMORY;
 
             //
             // We failed to alloc the operation we needed to queue, so make sure
@@ -1178,8 +1182,6 @@ MsQuicStreamSend(
         //
         QuicConnQueueOper(Connection, Oper);
     }
-
-    Status = QUIC_STATUS_PENDING;
 
 Exit:
 
@@ -1300,7 +1302,9 @@ MsQuicStreamReceiveComplete(
         (Connection->WorkerThreadID == CxPlatCurThreadID()) ||
         !Connection->State.HandleClosed);
 
-    QUIC_CONN_VERIFY(Connection, BufferLength <= Stream->RecvPendingLength);
+    QUIC_CONN_VERIFY(Connection,
+        (Stream->RecvPendingLength == 0) || // Stream might have been shutdown already
+        BufferLength <= Stream->RecvPendingLength);
 
     QuicTraceEvent(
         StreamAppReceiveCompleteCall,

@@ -485,15 +485,18 @@ Exit:
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicCryptoHandshakeConfirmed(
-    _In_ QUIC_CRYPTO* Crypto
+    _In_ QUIC_CRYPTO* Crypto,
+    _In_ BOOLEAN SignalBinding
     )
 {
     QUIC_CONNECTION* Connection = QuicCryptoGetConnection(Crypto);
     Connection->State.HandshakeConfirmed = TRUE;
 
-    QUIC_PATH* Path = &Connection->Paths[0];
-    CXPLAT_DBG_ASSERT(Path->Binding != NULL);
-    QuicBindingOnConnectionHandshakeConfirmed(Path->Binding, Connection);
+    if (SignalBinding) {
+        QUIC_PATH* Path = &Connection->Paths[0];
+        CXPLAT_DBG_ASSERT(Path->Binding != NULL);
+        QuicBindingOnConnectionHandshakeConfirmed(Path->Binding, Connection);
+    }
 
     QuicCryptoDiscardKeys(Crypto, QUIC_PACKET_KEY_HANDSHAKE);
 }
@@ -1578,7 +1581,13 @@ QuicCryptoProcessTlsCompletion(
                 Connection,
                 "Handshake confirmed (server)");
             QuicSendSetSendFlag(&Connection->Send, QUIC_CONN_SEND_FLAG_HANDSHAKE_DONE);
-            QuicCryptoHandshakeConfirmed(&Connection->Crypto);
+            //
+            // Don't signal handshake confirmed to binding yet, we need to keep
+            // the hash entry around to be able to associate potential Handshake
+            // packets to this connection. The binding will be signaled when the
+            // HANDSHAKE_DONE frame is confirmed received by the client.
+            //
+            QuicCryptoHandshakeConfirmed(&Connection->Crypto, FALSE);
 
             //
             // Take this opportinuty to clean up the client chosen initial CID.
@@ -1720,6 +1729,13 @@ QuicCryptoCustomCertValidationComplete(
             QuicCryptoGetConnection(Crypto),
             "Custom cert validation succeeded");
         QuicCryptoProcessDataComplete(Crypto, Crypto->PendingValidationBufferLength);
+
+        if (QuicRecvBufferHasUnreadData(&Crypto->RecvBuffer)) {
+            //
+            // More data was received while waiting for user to perform the validation.
+            //
+            QuicCryptoProcessData(Crypto, FALSE);
+        }
     } else {
         QuicTraceEvent(
             ConnError,
@@ -1757,6 +1773,13 @@ QuicCryptoCustomTicketValidationComplete(
         //
         Crypto->TicketValidationPending = FALSE;
         QuicCryptoProcessDataComplete(Crypto, Crypto->PendingValidationBufferLength);
+
+        if (QuicRecvBufferHasUnreadData(&Crypto->RecvBuffer)) {
+            //
+            // More data was received while waiting for user to perform the validation.
+            //
+            QuicCryptoProcessData(Crypto, FALSE);
+        }
     } else {
         //
         // Need to rollback status before processing client's initial packet, because outgoing buffer and
@@ -1799,6 +1822,14 @@ QuicCryptoProcessData(
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
     uint32_t BufferCount = 1;
     QUIC_BUFFER Buffer;
+
+    if (Crypto->CertValidationPending ||
+        (Crypto->TicketValidationPending && !Crypto->TicketValidationRejecting)) {
+        //
+        // An async validation is pending, don't process any more data until it is complete.
+        //
+        return Status;
+    }
 
     if (IsClientInitial) {
         Buffer.Length = 0;

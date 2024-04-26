@@ -87,6 +87,18 @@ typedef struct CXPLAT_SEND_DATA {
 
 } CXPLAT_SEND_DATA;
 
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+CxPlatDataPathRouteWorkerUninitialize(
+    _In_ CXPLAT_ROUTE_RESOLUTION_WORKER* Worker
+    );
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_STATUS
+CxPlatDataPathRouteWorkerInitialize(
+    _Inout_ CXPLAT_DATAPATH_RAW* DataPath
+    );
+
 //
 // Initializes the raw datapath stack.
 //
@@ -273,7 +285,7 @@ CxPlatSockPoolUninitialize(
 // conjunction with the hash table lookup, which already compares local UDP port
 // so it assumes that matches already.
 //
-inline
+static inline
 BOOLEAN
 CxPlatSocketCompare(
     _In_ CXPLAT_SOCKET_RAW* Socket,

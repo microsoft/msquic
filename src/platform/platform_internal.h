@@ -126,6 +126,8 @@ typedef enum CXPLAT_SOCKET_TYPE {
     CXPLAT_SOCKET_TCP_SERVER      = 3
 } CXPLAT_SOCKET_TYPE;
 
+#define DatapathType(SendData) ((CXPLAT_SEND_DATA_COMMON*)(SendData))->DatapathType
+
 #ifdef _KERNEL_MODE
 
 #define CXPLAT_BASE_REG_PATH L"\\Registry\\Machine\\System\\CurrentControlSet\\Services\\MsQuic\\Parameters\\"
@@ -523,6 +525,11 @@ typedef struct CXPLAT_SOCKET {
 
 } CXPLAT_SOCKET;
 
+#define IS_LOOPBACK(Address) ((Address.si_family == QUIC_ADDRESS_FAMILY_INET &&                \
+                               Address.Ipv4.sin_addr.S_un.S_addr == htonl(INADDR_LOOPBACK)) || \
+                              (Address.si_family == QUIC_ADDRESS_FAMILY_INET6 &&               \
+                               IN6_IS_ADDR_LOOPBACK(&Address.Ipv6.sin6_addr)))
+
 #elif defined(CX_PLATFORM_LINUX) || defined(CX_PLATFORM_DARWIN)
 
 typedef struct CX_PLATFORM {
@@ -543,6 +550,11 @@ typedef struct CX_PLATFORM {
 #endif
 
 } CX_PLATFORM;
+
+#define IS_LOOPBACK(Address) ((Address.Ip.sa_family == QUIC_ADDRESS_FAMILY_INET &&        \
+                               Address.Ipv4.sin_addr.s_addr == htonl(INADDR_LOOPBACK)) || \
+                              (Address.Ip.sa_family == QUIC_ADDRESS_FAMILY_INET6 &&       \
+                               IN6_IS_ADDR_LOOPBACK(&Address.Ipv6.sin6_addr)))
 
 #else
 
@@ -679,6 +691,9 @@ CxPlatDpRawGetDatapathSize(
 #define CXPLAT_CQE_TYPE_SOCKET_SHUTDOWN     CXPLAT_CQE_TYPE_QUIC_BASE + 3
 #define CXPLAT_CQE_TYPE_SOCKET_IO           CXPLAT_CQE_TYPE_QUIC_BASE + 4
 #define CXPLAT_CQE_TYPE_SOCKET_FLUSH_TX     CXPLAT_CQE_TYPE_QUIC_BASE + 5
+#define CXPLAT_CQE_TYPE_XDP_SHUTDOWN        CXPLAT_CQE_TYPE_QUIC_BASE + 6
+#define CXPLAT_CQE_TYPE_XDP_IO              CXPLAT_CQE_TYPE_QUIC_BASE + 7
+#define CXPLAT_CQE_TYPE_XDP_FLUSH_TX        CXPLAT_CQE_TYPE_QUIC_BASE + 8
 
 extern CXPLAT_RUNDOWN_REF CxPlatWorkerRundown;
 
@@ -824,6 +839,8 @@ typedef struct CXPLAT_SOCKET {
 
     uint8_t UseTcp : 1;                  // Quic over TCP
 
+    uint8_t RawSocketAvailable : 1;
+
     //
     // Set of socket contexts one per proc.
     //
@@ -931,6 +948,10 @@ typedef struct CXPLAT_DATAPATH {
     uint8_t Uninitialized : 1;
     uint8_t Freed : 1;
 #endif
+
+    uint8_t UseTcp : 1;
+
+    CXPLAT_DATAPATH_RAW* RawDataPath;
 
     //
     // The per proc datapath contexts.

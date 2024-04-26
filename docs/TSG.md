@@ -30,6 +30,26 @@ This document is meant to be a step-by-step guide for trouble shooting any issue
 
 See [Tracing](./Diagnostics.md#Built-in-Tracing)
 
+### Linux XDP logging?
+For XDP layer, enable `DEBUG` flag in `src/platform/CMakeLists.txt`.  
+You can see incomming packets information by `sudo cat /sys/kernel/debug/tracing/trace_pipe`.  
+**Your workload must become too slow.**
+```
+msquictest-3797496 [005] ..s1. 2079546.776875: bpf_trace_printk: ========> To ifacename : [duo2], RxQueueID:0
+msquictest-3797496 [005] ..s1. 2079546.776875: bpf_trace_printk:  Eth[244]        SRC: 00:00:00:00:00:00 => DST:22:22:22:22:00:02
+msquictest-3797496 [005] ..s1. 2079546.776876: bpf_trace_printk:          Ipv4 TotalLen:[230]     Src: 192.168.1.11 => Dst: 192.168.1.12
+msquictest-3797496 [005] ..s1. 2079546.776877: bpf_trace_printk:                  UDP[202]: SRC: 43829 DST:58141
+msquictest-3797496 [005] ..s1. 2079546.776877: bpf_trace_printk:                           [ec 00 00 00 01 00 09 c0 30 3d 49 a2]
+msquictest-3797496 [005] ..s1. 2079546.776878: bpf_trace_printk:                  Redirect to QUIC service.  IpMatch:1, PortMatch:1, SocketExists:1, Redirection:4
+
+msquictest-3797496 [005] ..s1. 2079546.777235: bpf_trace_printk: ========> To ifacename : [duo1], RxQueueID:0
+msquictest-3797496 [005] ..s1. 2079546.777310: bpf_trace_printk:  Eth[1262]       SRC: 00:00:00:00:00:00 => DST:22:22:22:22:00:01
+msquictest-3797496 [005] ..s1. 2079546.777323: bpf_trace_printk:          Ipv4 TotalLen:[1248]    Src: 192.168.1.12 => Dst: 192.168.1.11
+msquictest-3797496 [005] ..s1. 2079546.777323: bpf_trace_printk:                  UDP[1220]: SRC: 58141 DST:43829
+msquictest-3797496 [005] ..s1. 2079546.777324: bpf_trace_printk:                           [c0 00 00 00 01 09 c0 30 3d 49 a2 56]
+msquictest-3797496 [005] ..s1. 2079546.777325: bpf_trace_printk:                  Redirect to QUIC service.  IpMatch:1, PortMatch:1, SocketExists:1, Redirection:4
+```
+
 ## Understanding Error Codes
 
 Some error codes are MsQuic specific (`QUIC_STATUS_*`), and some are simply a passthrough from the platform. You can find the MsQuic specific error codes in the platform specific header ([msquic_posix.h](../src/inc/msquic_posix.h), [msquic_winkernel.h](../src/inc/msquic_winkernel.h), or [msquic_winuser.h](../src/inc/msquic_winuser.h)).

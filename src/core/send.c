@@ -516,8 +516,7 @@ QuicSendWriteFrames(
         }
     }
 
-    if ((Send->SendFlags & QUIC_CONN_SEND_FLAG_CONNECTION_CLOSE) ||
-        ((Send->SendFlags & QUIC_CONN_SEND_FLAG_APPLICATION_CLOSE) && Is1RttEncryptionLevel)) {
+    if (Send->SendFlags & (QUIC_CONN_SEND_FLAG_CONNECTION_CLOSE | QUIC_CONN_SEND_FLAG_APPLICATION_CLOSE)) {
         BOOLEAN IsApplicationClose =
             !!(Send->SendFlags & QUIC_CONN_SEND_FLAG_APPLICATION_CLOSE);
         if (Connection->State.ClosedRemotely) {
@@ -529,12 +528,28 @@ QuicSendWriteFrames(
             IsApplicationClose = FALSE;
         }
 
+        QUIC_VAR_INT CloseErrorCode = Connection->CloseErrorCode;
+        char* CloseReasonPhrase = Connection->CloseReasonPhrase;
+
+        if (IsApplicationClose && ! Is1RttEncryptionLevel) {
+            //
+            // A CONNECTION_CLOSE of type 0x1d MUST be replaced by a CONNECTION_CLOSE of
+            // type 0x1c when sending the frame in Initial or Handshake packets. Otherwise,
+            // information about the application state might be revealed. Endpoints MUST
+            // clear the value of the Reason Phrase field and SHOULD use the APPLICATION_ERROR
+            // code when converting to a CONNECTION_CLOSE of type 0x1c.
+            //
+            CloseErrorCode = QUIC_ERROR_APPLICATION_ERROR;
+            CloseReasonPhrase = NULL;
+            IsApplicationClose = FALSE;
+        }
+
         QUIC_CONNECTION_CLOSE_EX Frame = {
             IsApplicationClose,
-            Connection->State.ClosedRemotely ? 0 : Connection->CloseErrorCode,
+            CloseErrorCode,
             0, // TODO - Set the FrameType field.
-            Connection->CloseReasonPhrase == NULL ? 0 : strlen(Connection->CloseReasonPhrase),
-            Connection->CloseReasonPhrase
+            CloseReasonPhrase == NULL ? 0 : strlen(CloseReasonPhrase),
+            CloseReasonPhrase
         };
 
         if (QuicConnCloseFrameEncode(
@@ -543,7 +558,17 @@ QuicSendWriteFrames(
                 AvailableBufferLength,
                 Builder->Datagram->Buffer)) {
 
-            Send->SendFlags &= ~(QUIC_CONN_SEND_FLAG_CONNECTION_CLOSE | QUIC_CONN_SEND_FLAG_APPLICATION_CLOSE);
+            Builder->WrittenConnectionCloseFrame = TRUE;
+
+            //
+            // We potentially send the close frame on multiple protection levels.
+            // We send in increasing encryption level so clear the flag only once
+            // we send on the current protection level.
+            //
+            if (Builder->Key->Type == Connection->Crypto.TlsState.WriteKey) {
+                Send->SendFlags &= ~(QUIC_CONN_SEND_FLAG_CONNECTION_CLOSE | QUIC_CONN_SEND_FLAG_APPLICATION_CLOSE);
+            }
+
             (void)QuicPacketBuilderAddFrame(
                 Builder, IsApplicationClose ? QUIC_FRAME_CONNECTION_CLOSE_1 : QUIC_FRAME_CONNECTION_CLOSE, FALSE);
         } else {

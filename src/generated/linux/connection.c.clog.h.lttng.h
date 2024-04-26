@@ -466,25 +466,6 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, UnreachableInvalid,
 
 
 /*----------------------------------------------------------
-// Decoder Ring for CloseUserCanceled
-// [conn][%p] Connection close using user canceled error
-// QuicTraceLogConnInfo(
-                CloseUserCanceled,
-                Connection,
-                "Connection close using user canceled error");
-// arg1 = arg1 = Connection = arg1
-----------------------------------------------------------*/
-TRACEPOINT_EVENT(CLOG_CONNECTION_C, CloseUserCanceled,
-    TP_ARGS(
-        const void *, arg1), 
-    TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg1, arg1)
-    )
-)
-
-
-
-/*----------------------------------------------------------
 // Decoder Ring for CloseComplete
 // [conn][%p] Connection close complete
 // QuicTraceLogConnInfo(
@@ -2389,6 +2370,25 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, ConnPacketRecv,
         ctf_integer(uint64_t, arg3, arg3)
         ctf_integer(unsigned char, arg4, arg4)
         ctf_integer(unsigned short, arg5, arg5)
+    )
+)
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for ConnDelayCloseApplicationError
+// [conn][%p] Received APPLICATION_ERROR error, delaying close in expectation of a 1-RTT CONNECTION_CLOSE frame.
+// QuicTraceEvent(
+                    ConnDelayCloseApplicationError,
+                    "[conn][%p] Received APPLICATION_ERROR error, delaying close in expectation of a 1-RTT CONNECTION_CLOSE frame.",
+                    Connection);
+// arg2 = arg2 = Connection = arg2
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_CONNECTION_C, ConnDelayCloseApplicationError,
+    TP_ARGS(
+        const void *, arg2), 
+    TP_FIELDS(
+        ctf_integer_hex(uint64_t, arg2, arg2)
     )
 )
 

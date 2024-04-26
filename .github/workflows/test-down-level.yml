@@ -45,7 +45,7 @@ jobs:
     name: Test
     steps:
     - name: Checkout repository
-      uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11
+      uses: actions/checkout@1d96c772d19495a3b5c517cd2bc0cb401ea0529f
     - name: Install Perl
       if: runner.os == 'Windows'
       uses: shogo82148/actions-setup-perl@28eae78d12c2bba1163aec45d123f6d9228bc307
