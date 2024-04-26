@@ -97,14 +97,23 @@ $useXDP = ($io -eq "xdp" -or $io -eq "qtip")
 
 # Set up the connection to the peer over remote powershell.
 Write-Host "Connecting to $RemoteName"
-if ($isWindows) {
-    $username = (Get-ItemProperty 'HKLM:\Software\Microsoft\Windows NT\CurrentVersion\Winlogon').DefaultUserName
-    $password = (Get-ItemProperty 'HKLM:\Software\Microsoft\Windows NT\CurrentVersion\Winlogon').DefaultPassword | ConvertTo-SecureString -AsPlainText -Force
-    $cred = New-Object System.Management.Automation.PSCredential ($username, $password)
-    $Session = New-PSSession -ComputerName $RemoteName -Credential $cred -ConfigurationName PowerShell.7
-} else {
-    $Session = New-PSSession -HostName $RemoteName -UserName secnetperf -SSHTransport
+$Attempts = 0
+while ($Attempts -lt 5) {
+    try {
+        if ($isWindows) {
+            $username = (Get-ItemProperty 'HKLM:\Software\Microsoft\Windows NT\CurrentVersion\Winlogon').DefaultUserName
+            $password = (Get-ItemProperty 'HKLM:\Software\Microsoft\Windows NT\CurrentVersion\Winlogon').DefaultPassword | ConvertTo-SecureString -AsPlainText -Force
+            $cred = New-Object System.Management.Automation.PSCredential ($username, $password)
+            $Session = New-PSSession -ComputerName $RemoteName -Credential $cred -ConfigurationName PowerShell.7
+        } else {
+            $Session = New-PSSession -HostName $RemoteName -UserName secnetperf -SSHTransport
+        }
+        break
+    } catch {
+        $Attempts += 1
+    }
 }
+
 if ($null -eq $Session) {
     Write-GHError "Failed to create remote session"
     exit 1
