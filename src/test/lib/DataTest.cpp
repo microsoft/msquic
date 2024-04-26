@@ -2989,7 +2989,7 @@ QuicTestNthPacketDrop(
     const uint32_t BufferLength = 0x200000;
     const uint64_t TimeOutS = 50; // All test cases need to complete in less than 60 seconds
 #endif
-    uint8_t* RawBuffer = new uint8_t[BufferLength];
+    uint8_t* RawBuffer = new(std::nothrow) uint8_t[BufferLength];
     for (uint32_t i = 0; i < BufferLength; ++i) {
         RawBuffer[i] = (uint8_t)i;
     }
