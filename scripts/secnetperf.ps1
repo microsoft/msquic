@@ -111,6 +111,7 @@ while ($Attempts -lt 5) {
         break
     } catch {
         $Attempts += 1
+        Start-Sleep -Seconds 10
     }
 }
 
