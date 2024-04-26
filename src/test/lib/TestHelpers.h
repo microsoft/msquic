@@ -689,6 +689,35 @@ struct SelectiveLossHelper : public DatapathHook
     }
 };
 
+struct NthLossHelper : public DatapathHook
+{
+    uint32_t DropPacketIndex;
+    NthLossHelper(uint32_t Index = UINT32_MAX) : DropPacketIndex(Index) {
+        DatapathHooks::Instance->AddHook(this);
+    }
+    ~NthLossHelper() {
+        DatapathHooks::Instance->RemoveHook(this);
+    }
+    void DropIndex(uint32_t Index) { DropPacketIndex = Index; }
+    bool Dropped() { return DropPacketIndex == UINT32_MAX; }
+    _IRQL_requires_max_(DISPATCH_LEVEL)
+    BOOLEAN
+    Receive(
+        _Inout_ struct CXPLAT_RECV_DATA* /* Datagram */
+        ) {
+        if (DropPacketIndex == UINT32_MAX) { return FALSE; }
+        if (DropPacketIndex == 0) {
+            DropPacketIndex = UINT32_MAX;
+            QuicTraceLogVerbose(
+                TestHookDropPacketNth,
+                "[test][hook] Nth packet drop");
+            return TRUE;
+        }
+        --DropPacketIndex;
+        return FALSE;
+    }
+};
+
 struct BitmapLossHelper : public DatapathHook
 {
     long RxCount {0};

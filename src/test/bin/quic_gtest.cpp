@@ -2121,6 +2121,17 @@ TEST(Misc, NthAllocFail) {
 #endif // QUIC_TEST_OPENSSL_FLAGS
 #endif // QUIC_TEST_ALLOC_FAILURES_ENABLED
 
+#if QUIC_TEST_DATAPATH_HOOKS_ENABLED
+TEST(Misc, NthPacketDrop) {
+    TestLogger Logger("NthPacketDrop");
+    if (TestingKernelMode) {
+        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_NTH_PACKET_DROP));
+    } else {
+        QuicTestNthPacketDrop();
+    }
+}
+#endif // QUIC_TEST_DATAPATH_HOOKS_ENABLED
+
 TEST(Misc, StreamPriority) {
     TestLogger Logger("StreamPriority");
     if (TestingKernelMode) {
