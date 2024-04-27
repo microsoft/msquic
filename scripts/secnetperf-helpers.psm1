@@ -240,9 +240,18 @@ function Cleanup-State {
 # Waits for a remote job to be ready based on looking for a particular string in
 # the output.
 function Start-RemoteServer {
-    param ($Session, $Command)
+    param ($Session, $Command, $NeedSudo)
+    Write-Host "Remote Starting $Command $NeedSudo"
     # Start the server on the remote in an async job.
-    $job = Invoke-Command -Session $Session -ScriptBlock { iex $Using:Command } -AsJob
+    if ($IsWindows) {
+        $job = Invoke-Command -Session $Session -ScriptBlock { iex $Using:Command } -AsJob
+    } else {
+        if ($NeedSudo) {
+            $job = Invoke-Command -Session $Session -ScriptBlock { iex "sudo MSQUIC_ENABLE_XDP=1 $Using:Command" } -AsJob
+        } else {
+            $job = Invoke-Command -Session $Session -ScriptBlock { iex $Using:Command } -AsJob
+        }
+    }
     # Poll the job for 10 seconds to see if it started.
     $stopWatch = [system.diagnostics.stopwatch]::StartNew()
     while ($stopWatch.ElapsedMilliseconds -lt 10000) {
@@ -289,7 +298,8 @@ function Stop-RemoteServer {
 
 # Creates a new local process to asynchronously run the test.
 function Start-LocalTest {
-    param ($FullPath, $FullArgs, $OutputDir)
+    param ($FullPath, $FullArgs, $OutputDir, $NeedSudo)
+    Write-Host "Starting $FullPath $FullArgs $NeedSudo"
     $pinfo = New-Object System.Diagnostics.ProcessStartInfo
     if ($IsWindows) {
         $pinfo.FileName = $FullPath
@@ -297,7 +307,11 @@ function Start-LocalTest {
     } else {
         # We use bash to execute the test so we can collect core dumps.
         $pinfo.FileName = "bash"
-        $pinfo.Arguments = "-c `"ulimit -c unlimited && LSAN_OPTIONS=report_objects=1 ASAN_OPTIONS=disable_coredump=0:abort_on_error=1 UBSAN_OPTIONS=halt_on_error=1:print_stacktrace=1 $FullPath $FullArgs && echo ''`""
+        $sudo = ""
+        if ($NeedSudo) {
+            $sudo = "sudo MSQUIC_ENABLE_XDP=1"
+        }
+        $pinfo.Arguments = "-c `"ulimit -c unlimited && LSAN_OPTIONS=report_objects=1 ASAN_OPTIONS=disable_coredump=0:abort_on_error=1 UBSAN_OPTIONS=halt_on_error=1:print_stacktrace=1 $sudo $FullPath $FullArgs && echo ''`""
         $pinfo.WorkingDirectory = $OutputDir
     }
     $pinfo.RedirectStandardOutput = $true
@@ -517,7 +531,7 @@ function Invoke-Secnetperf {
 
     # Start the server running.
     "> secnetperf $serverArgs" | Add-Content $serverOut
-    $job = Start-RemoteServer $Session "$RemoteDir/$SecNetPerfPath $serverArgs"
+    $job = Start-RemoteServer $Session "$RemoteDir/$SecNetPerfPath $serverArgs" (!$IsWindows -and $io -eq "xdp")
 
     # Run the test multiple times, failing (for now) only if all tries fail.
     # TODO: Once all failures have been fixed, consider all errors fatal.
@@ -527,7 +541,7 @@ function Invoke-Secnetperf {
         Write-Host "==============================`nRUN $($try+1):"
         "> secnetperf $clientArgs" | Add-Content $clientOut
         try {
-            $process = Start-LocalTest $clientPath $clientArgs $artifactDir
+            $process = Start-LocalTest $clientPath $clientArgs $artifactDir (!$IsWindows -and $io -eq "xdp")
             $rawOutput = Wait-LocalTest $process $artifactDir ($io -eq "wsk") 30000
             Write-Host $rawOutput
             $values[$tcp] += Get-TestOutput $rawOutput $metric
