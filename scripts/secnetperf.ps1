@@ -249,16 +249,20 @@ if (!$isWindows) {
     # Make sure the secnetperf binary is executable.
     Write-Host "Updating secnetperf permissions"
     $GRO = "on"
+    $ENABLE_XDP=0
     if ($io -eq "xdp") {
         $GRO = "off"
+        $ENABLE_XDP=1
     }
     Invoke-Command -Session $Session -ScriptBlock {
         $env:LD_LIBRARY_PATH = "${env:LD_LIBRARY_PATH}:$Using:RemoteDir/$Using:SecNetPerfDir"
+        $env:MSQUIC_ENABLE_XDP=$Using:ENABLE_XDP
         chmod +x "$Using:RemoteDir/$Using:SecNetPerfPath"
         sudo sh -c "ethtool -K eth0 generic-receive-offload $Using:GRO"
     }
     $fullPath = Repo-Path $SecNetPerfDir
     $env:LD_LIBRARY_PATH = "${env:LD_LIBRARY_PATH}:$fullPath"
+    $env:MSQUIC_ENABLE_XDP=$ENABLE_XDP
     chmod +x "./$SecNetPerfPath"
     sudo sh -c "ethtool -K eth0 generic-receive-offload $GRO"
 
@@ -283,7 +287,7 @@ $regressionJson = Get-Content -Raw -Path "watermark_regression.json" | ConvertFr
 Write-Host "Setup complete! Running all tests"
 foreach ($testId in $allTests.Keys) {
     $ExeArgs = $allTests[$testId] + " -io:$io"
-    $Output = Invoke-Secnetperf $Session $RemoteName $RemoteDir $SecNetPerfPath $LogProfile $testId $ExeArgs $io $filter
+    $Output = Invoke-Secnetperf $Session $RemoteName $RemoteDir $UserName $SecNetPerfPath $LogProfile $testId $ExeArgs $io $filter
     $Test = $Output[-1]
     if ($Test.HasFailures) { $hasFailures = $true }
 

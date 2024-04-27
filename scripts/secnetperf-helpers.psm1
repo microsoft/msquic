@@ -240,17 +240,9 @@ function Cleanup-State {
 # Waits for a remote job to be ready based on looking for a particular string in
 # the output.
 function Start-RemoteServer {
-    param ($Session, $Command, $NeedSudo)
+    param ($Session, $Command)
     # Start the server on the remote in an async job.
-    if ($IsWindows) {
-        $job = Invoke-Command -Session $Session -ScriptBlock { iex $Using:Command } -AsJob
-    } else {
-        if ($NeedSudo) {
-            $job = Invoke-Command -Session $Session -ScriptBlock { iex "sudo MSQUIC_ENABLE_XDP=1 $Using:Command" } -AsJob
-        } else {
-            $job = Invoke-Command -Session $Session -ScriptBlock { iex $Using:Command } -AsJob
-        }
-    }
+    $job = Invoke-Command -Session $Session -ScriptBlock { iex $Using:Command } -AsJob
     # Poll the job for 10 seconds to see if it started.
     $stopWatch = [system.diagnostics.stopwatch]::StartNew()
     while ($stopWatch.ElapsedMilliseconds -lt 10000) {
@@ -297,7 +289,7 @@ function Stop-RemoteServer {
 
 # Creates a new local process to asynchronously run the test.
 function Start-LocalTest {
-    param ($FullPath, $FullArgs, $OutputDir, $NeedSudo)
+    param ($FullPath, $FullArgs, $OutputDir)
     $pinfo = New-Object System.Diagnostics.ProcessStartInfo
     if ($IsWindows) {
         $pinfo.FileName = $FullPath
@@ -306,10 +298,7 @@ function Start-LocalTest {
         # We use bash to execute the test so we can collect core dumps.
         $pinfo.FileName = "bash"
         $sudo = ""
-        if ($NeedSudo) {
-            $sudo = "sudo MSQUIC_ENABLE_XDP=1"
-        }
-        $pinfo.Arguments = "-c `"ulimit -c unlimited && LSAN_OPTIONS=report_objects=1 ASAN_OPTIONS=disable_coredump=0:abort_on_error=1 UBSAN_OPTIONS=halt_on_error=1:print_stacktrace=1 $sudo $FullPath $FullArgs && echo ''`""
+        $pinfo.Arguments = "-c `"ulimit -c unlimited && LSAN_OPTIONS=report_objects=1 ASAN_OPTIONS=disable_coredump=0:abort_on_error=1 UBSAN_OPTIONS=halt_on_error=1:print_stacktrace=1 $FullPath $FullArgs && echo ''`""
         $pinfo.WorkingDirectory = $OutputDir
     }
     $pinfo.RedirectStandardOutput = $true
@@ -446,7 +435,7 @@ function Get-LatencyOutput {
 
 # Invokes secnetperf with the given arguments for both TCP and QUIC.
 function Invoke-Secnetperf {
-    param ($Session, $RemoteName, $RemoteDir, $SecNetPerfPath, $LogProfile, $TestId, $ExeArgs, $io, $Filter)
+    param ($Session, $RemoteName, $RemoteDir, $UserName, $SecNetPerfPath, $LogProfile, $TestId, $ExeArgs, $io, $Filter)
 
     $values = @(@(), @())
     $latency = $null
@@ -501,6 +490,11 @@ function Invoke-Secnetperf {
         continue
     }
 
+    $sudo=""
+    if ((!$IsWindows -and $io -eq "xdp")) {
+        $sudo = "sudo -E "
+    }
+
     $artifactName = $tcp -eq 0 ? "$TestId-quic" : "$TestId-tcp"
     New-Item -ItemType Directory "artifacts/logs/$artifactName" -ErrorAction Ignore | Out-Null
     $artifactDir = Repo-Path "artifacts/logs/$artifactName"
@@ -529,7 +523,7 @@ function Invoke-Secnetperf {
 
     # Start the server running.
     "> secnetperf $serverArgs" | Add-Content $serverOut
-    $job = Start-RemoteServer $Session "$RemoteDir/$SecNetPerfPath $serverArgs" (!$IsWindows -and $io -eq "xdp")
+    $job = Start-RemoteServer $Session "$sudo$RemoteDir/$SecNetPerfPath $serverArgs"
 
     # Run the test multiple times, failing (for now) only if all tries fail.
     # TODO: Once all failures have been fixed, consider all errors fatal.
@@ -539,11 +533,15 @@ function Invoke-Secnetperf {
         Write-Host "==============================`nRUN $($try+1):"
         "> secnetperf $clientArgs" | Add-Content $clientOut
         try {
-            $process = Start-LocalTest $clientPath $clientArgs $artifactDir (!$IsWindows -and $io -eq "xdp")
+            $process = Start-LocalTest "$sudo$clientPath" $clientArgs $artifactDir
             $rawOutput = Wait-LocalTest $process $artifactDir ($io -eq "wsk") 30000
             Write-Host $rawOutput
             $values[$tcp] += Get-TestOutput $rawOutput $metric
             if ($extraOutput) {
+                # if $sudo is not empty, change owner of the file to the user of the script
+                if ($sudo -ne "") {
+                    sudo chown $UserName $extraOutput
+                }
                 $latency[$tcp] += Get-LatencyOutput $extraOutput
             }
             $rawOutput | Add-Content $clientOut
