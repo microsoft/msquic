@@ -30,7 +30,7 @@ jobs:
       uses: microsoft/setup-msbuild@6fb02220983dee41ce7ae257b6f4d8f9bf5ed4ce
     - name: Build
       run: msbuild src\plugins\msquic.windbg.sln /p:configuration=${{ matrix.configuration }} /p:platform=${{ matrix.platform }}
-    - uses: actions/upload-artifact@1746f4ab65b179e0ea60a494b83293b640dd5bba
+    - uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808
       with:
         name: bin_windbg_${{ matrix.configuration }}_${{ matrix.platform }}
         path: |
@@ -56,7 +56,7 @@ jobs:
         dotnet-version: 6.0.x
     - name: Build
       run: dotnet build src\plugins\QuicTrace.sln -c ${{ matrix.configuration }}
-    - uses: actions/upload-artifact@1746f4ab65b179e0ea60a494b83293b640dd5bba
+    - uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808
       with:
         name: bin_quictrace_${{ matrix.configuration }}
         path: artifacts/bin
