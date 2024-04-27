@@ -249,22 +249,18 @@ if (!$isWindows) {
     # Make sure the secnetperf binary is executable.
     Write-Host "Updating secnetperf permissions"
     $GRO = "on"
-    $ENABLE_XDP=0
     if ($io -eq "xdp") {
         $GRO = "off"
-        $ENABLE_XDP=1
     }
     Invoke-Command -Session $Session -ScriptBlock {
         $env:LD_LIBRARY_PATH = "${env:LD_LIBRARY_PATH}:$Using:RemoteDir/$Using:SecNetPerfDir"
         chmod +x "$Using:RemoteDir/$Using:SecNetPerfPath"
         sudo sh -c "ethtool -K eth0 generic-receive-offload $Using:GRO"
-        $env:MSQUIC_ENABLE_XDP=$Using:ENABLE_XDP
     }
     $fullPath = Repo-Path $SecNetPerfDir
     $env:LD_LIBRARY_PATH = "${env:LD_LIBRARY_PATH}:$fullPath"
     chmod +x "./$SecNetPerfPath"
     sudo sh -c "ethtool -K eth0 generic-receive-offload $GRO"
-    $env:MSQUIC_ENABLE_XDP=$ENABLE_XDP
 
     if ((Get-Content "/etc/security/limits.conf") -notcontains "root soft core unlimited") {
         # Enable core dumps for the system.

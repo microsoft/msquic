@@ -241,7 +241,6 @@ function Cleanup-State {
 # the output.
 function Start-RemoteServer {
     param ($Session, $Command, $NeedSudo)
-    Write-Host "Remote Starting $Command $NeedSudo"
     # Start the server on the remote in an async job.
     if ($IsWindows) {
         $job = Invoke-Command -Session $Session -ScriptBlock { iex $Using:Command } -AsJob
@@ -299,7 +298,6 @@ function Stop-RemoteServer {
 # Creates a new local process to asynchronously run the test.
 function Start-LocalTest {
     param ($FullPath, $FullArgs, $OutputDir, $NeedSudo)
-    Write-Host "Starting $FullPath $FullArgs $NeedSudo"
     $pinfo = New-Object System.Diagnostics.ProcessStartInfo
     if ($IsWindows) {
         $pinfo.FileName = $FullPath
