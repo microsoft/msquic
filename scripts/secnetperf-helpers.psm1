@@ -538,7 +538,6 @@ function Invoke-Secnetperf {
             Write-Host $rawOutput
             $values[$tcp] += Get-TestOutput $rawOutput $metric
             if ($extraOutput) {
-                # if $sudo is not empty, change owner of the file to the user of the script
                 if ($sudo -ne "") {
                     sudo chown $UserName $extraOutput
                 }
