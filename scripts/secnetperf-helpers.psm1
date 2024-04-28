@@ -297,7 +297,6 @@ function Start-LocalTest {
     } else {
         # We use bash to execute the test so we can collect core dumps.
         $pinfo.FileName = "bash"
-        $sudo = ""
         $pinfo.Arguments = "-c `"ulimit -c unlimited && LSAN_OPTIONS=report_objects=1 ASAN_OPTIONS=disable_coredump=0:abort_on_error=1 UBSAN_OPTIONS=halt_on_error=1:print_stacktrace=1 $FullPath $FullArgs && echo ''`""
         $pinfo.WorkingDirectory = $OutputDir
     }
@@ -490,10 +489,8 @@ function Invoke-Secnetperf {
         continue
     }
 
-    $sudo=""
-    if ((!$IsWindows -and $io -eq "xdp")) {
-        $sudo = "sudo -E "
-    }
+     # Linux XDP requires env var and sudo for now
+    $sudo = (!$IsWindows -and $io -eq "xdp") ? "sudo MSQUIC_ENABLE_XDP=1 " : ""
 
     $artifactName = $tcp -eq 0 ? "$TestId-quic" : "$TestId-tcp"
     New-Item -ItemType Directory "artifacts/logs/$artifactName" -ErrorAction Ignore | Out-Null
