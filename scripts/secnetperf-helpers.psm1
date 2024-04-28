@@ -489,8 +489,8 @@ function Invoke-Secnetperf {
         continue
     }
 
-     # Linux XDP requires env var and sudo for now
-    $sudo = (!$IsWindows -and $io -eq "xdp") ? "sudo MSQUIC_ENABLE_XDP=1 " : ""
+     # Linux XDP requires sudo for now
+    $sudo = (!$IsWindows -and $io -eq "xdp") ? "sudo -E " : ""
 
     $artifactName = $tcp -eq 0 ? "$TestId-quic" : "$TestId-tcp"
     New-Item -ItemType Directory "artifacts/logs/$artifactName" -ErrorAction Ignore | Out-Null
