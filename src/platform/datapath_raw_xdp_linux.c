@@ -676,10 +676,6 @@ CxPlatDpRawInitialize(
 {
     XDP_DATAPATH* Xdp = (XDP_DATAPATH*)Datapath;
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
-    if (ClientRecvContextLength == 0) {
-        // allow only from registration.c
-        return QUIC_STATUS_INVALID_PARAMETER;
-    }
 
     CxPlatXdpReadConfig(Xdp);
     CxPlatListInitializeHead(&Xdp->Interfaces);
