@@ -256,15 +256,19 @@ if (!$isWindows) {
     }
     Invoke-Command -Session $Session -ScriptBlock {
         $env:LD_LIBRARY_PATH = "${env:LD_LIBRARY_PATH}:$Using:RemoteDir/$Using:SecNetPerfDir"
-        $env:MSQUIC_ENABLE_XDP=$Using:ENABLE_XDP
         chmod +x "$Using:RemoteDir/$Using:SecNetPerfPath"
-        sudo sh -c "ethtool -K eth0 generic-receive-offload $Using:GRO"
+        if ($Using:os -eq "ubuntu-22.04") {
+            $env:MSQUIC_ENABLE_XDP=$Using:ENABLE_XDP
+            sudo sh -c "ethtool -K eth0 generic-receive-offload $Using:GRO"
+        }
     }
     $fullPath = Repo-Path $SecNetPerfDir
     $env:LD_LIBRARY_PATH = "${env:LD_LIBRARY_PATH}:$fullPath"
-    $env:MSQUIC_ENABLE_XDP=$ENABLE_XDP
     chmod +x "./$SecNetPerfPath"
-    sudo sh -c "ethtool -K eth0 generic-receive-offload $GRO"
+    if ($os -eq "ubuntu-22.04") {
+        $env:MSQUIC_ENABLE_XDP=$ENABLE_XDP
+        sudo sh -c "ethtool -K eth0 generic-receive-offload $GRO"
+    }
 
     if ((Get-Content "/etc/security/limits.conf") -notcontains "root soft core unlimited") {
         # Enable core dumps for the system.
