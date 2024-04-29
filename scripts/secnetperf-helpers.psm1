@@ -230,17 +230,21 @@ function Cleanup-State {
         }
     } else {
         # iterate all interface and "ip link set ${iface} xdp off"
-        $ifaces = ip link show | grep -oP '^\d+: \K[\w@]+' | cut -d'@' -f1
-        foreach ($xdp in @('xdp', 'xdpgeneric')) {
-            foreach ($iface in $ifaces) {
-                sudo ip link set $iface $xdp off
-            }
-        }
-        Invoke-Command -Session $Session -ScriptBlock {
+        if ((ip link show) -match "xdp") {
             $ifaces = ip link show | grep -oP '^\d+: \K[\w@]+' | cut -d'@' -f1
             foreach ($xdp in @('xdp', 'xdpgeneric')) {
                 foreach ($iface in $ifaces) {
                     sudo ip link set $iface $xdp off
+                }
+            }
+        }
+        Invoke-Command -Session $Session -ScriptBlock {
+            if ((ip link show) -match "xdp") {
+                $ifaces = ip link show | grep -oP '^\d+: \K[\w@]+' | cut -d'@' -f1
+                foreach ($xdp in @('xdp', 'xdpgeneric')) {
+                    foreach ($iface in $ifaces) {
+                        sudo ip link set $iface $xdp off
+                    }
                 }
             }
         }
