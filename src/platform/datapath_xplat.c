@@ -49,7 +49,7 @@ CxPlatDataPathInitialize(
     char* EnableXdp = getenv("MSQUIC_ENABLE_XDP");
     if (EnableXdp != NULL && EnableXdp[0] == '1') {
 #endif
-    if (Config->Flags & QUIC_EXECUTION_CONFIG_FLAG_XDP) {
+    if (Config && Config->Flags & QUIC_EXECUTION_CONFIG_FLAG_XDP) {
         Status =
             RawDataPathInitialize(
                 ClientRecvContextLength,

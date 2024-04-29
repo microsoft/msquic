@@ -457,7 +457,7 @@ main(
         };
         // flag
         QUIC_EXECUTION_CONFIG_FLAGS Flags = QUIC_EXECUTION_CONFIG_FLAG_XDP;
-        Flags |= AttachType == 0 ? QUIC_EXECUTION_CONFIG_FLAG_TCP : QUIC_EXECUTION_CONFIG_FLAG_NONE;
+        Flags |= AttackType == 0 ? QUIC_EXECUTION_CONFIG_FLAG_QTIP : QUIC_EXECUTION_CONFIG_FLAG_NONE;
         QUIC_EXECUTION_CONFIG DatapathFlags = {
             Flags,
         };
