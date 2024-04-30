@@ -258,7 +258,6 @@ if (!$isWindows) {
         $env:LD_LIBRARY_PATH = "${env:LD_LIBRARY_PATH}:$Using:RemoteDir/$Using:SecNetPerfDir"
         chmod +x "$Using:RemoteDir/$Using:SecNetPerfPath"
         if ($Using:os -eq "ubuntu-22.04") {
-            $env:MSQUIC_ENABLE_XDP=$Using:ENABLE_XDP
             sudo sh -c "ethtool -K eth0 generic-receive-offload $Using:GRO"
         }
     }
@@ -266,7 +265,6 @@ if (!$isWindows) {
     $env:LD_LIBRARY_PATH = "${env:LD_LIBRARY_PATH}:$fullPath"
     chmod +x "./$SecNetPerfPath"
     if ($os -eq "ubuntu-22.04") {
-        $env:MSQUIC_ENABLE_XDP=$ENABLE_XDP
         sudo sh -c "ethtool -K eth0 generic-receive-offload $GRO"
     }
 

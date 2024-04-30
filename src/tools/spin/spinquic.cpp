@@ -1538,6 +1538,20 @@ void start() {
             }
         }
 
+        // Enable XDP
+        if (strncmp(SpinSettings.ServerName, "192.168.1.11", 12) == 0) {
+            QUIC_EXECUTION_CONFIG ExecutionConfig { QUIC_EXECUTION_CONFIG_FLAG_XDP, 10000, 0, {0} };
+            if (QUIC_FAILED(
+            Status =
+            MsQuic->SetParam(
+                nullptr,
+                QUIC_PARAM_GLOBAL_EXECUTION_CONFIG,
+                sizeof(ExecutionConfig),
+                &ExecutionConfig))) {
+                printf("Failed to set execution config %d\n", Status);
+            }
+        }
+
         MsQuicClose(TempMsQuic);
 
 #ifndef FUZZING
