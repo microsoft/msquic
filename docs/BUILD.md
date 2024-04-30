@@ -207,7 +207,7 @@ sudo ./scripts/duonic.sh install
 
 Test
 ```sh
-# "sudo"and --duoNic required
+# "sudo" and --duoNic required
 # You can explicitly specify directory of datapath_raw_xdp_kern.o by MSQUIC_XDP_OBJECT_PATH
 # By default, libmsquic.so searchs for same directory as its executable
 # If something failed, fallback to normal socket

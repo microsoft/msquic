@@ -249,10 +249,8 @@ if (!$isWindows) {
     # Make sure the secnetperf binary is executable.
     Write-Host "Updating secnetperf permissions"
     $GRO = "on"
-    $ENABLE_XDP=0
     if ($io -eq "xdp") {
         $GRO = "off"
-        $ENABLE_XDP=1
     }
     Invoke-Command -Session $Session -ScriptBlock {
         $env:LD_LIBRARY_PATH = "${env:LD_LIBRARY_PATH}:$Using:RemoteDir/$Using:SecNetPerfDir"
