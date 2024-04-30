@@ -9,6 +9,8 @@ Abstract:
 
 --*/
 
+#define QUIC_API_ENABLE_PREVIEW_FEATURES 1
+
 #include "main.h"
 #include "quic_datapath.h"
 
@@ -18,7 +20,6 @@ Abstract:
 #endif
 
 extern bool UseDuoNic;
-#define QUIC_EXECUTION_CONFIG_FLAG_XDP (QUIC_EXECUTION_CONFIG_FLAGS)0x0004
 
 //
 // Connect to the duonic address (if using duonic) or localhost (if not).
