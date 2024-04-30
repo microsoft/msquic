@@ -77,4 +77,4 @@ jobs:
     - uses: actions/upload-artifact@1746f4ab65b179e0ea60a494b83293b640dd5bba
       with:
         name: ptix_quictrace_${{ matrix.configuration }}
-        path: src\plugins\trace\dll\bin\${{ matrix.configuration }}\netstandard2.1\QuicTrace-1.0.0.ptix
+        path: artifacts/bin/quictrace/QuicTrace-1.0.0.ptix
