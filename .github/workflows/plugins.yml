@@ -59,4 +59,22 @@ jobs:
     - uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808
       with:
         name: bin_quictrace_${{ matrix.configuration }}
-        path: artifacts/bin
+        path: artifacts/bin/quictrace/${{ matrix.configuration }}
+    # Package the plugin
+    - name: Install plugintool
+      run: dotnet tool install --global Microsoft.Performance.Toolkit.Plugins.Cli --version 0.1.25-preview
+    - name: Package
+      shell: pwsh
+      run: |
+        $sourceDir = "src\plugins\trace\dll\bin\${{ matrix.configuration }}\netstandard2.1"
+        $manifestPath = "$sourceDir/pluginManifest.json"
+        $manifest = Get-Content -Path $manifestPath | ConvertFrom-Json
+        $pluginId = $manifest.identity.id
+        $pluginVersion = $manifest.identity.version
+        $packageName = "$pluginId-$pluginVersion.ptix"
+        Write-Host "Creating $packageName"
+        & plugintool pack -s $sourceDir -o "artifacts/bin/quictrace/$packageName"
+    - uses: actions/upload-artifact@1746f4ab65b179e0ea60a494b83293b640dd5bba
+      with:
+        name: ptix_quictrace_${{ matrix.configuration }}
+        path: src\plugins\trace\dll\bin\${{ matrix.configuration }}\netstandard2.1\QuicTrace-1.0.0.ptix
