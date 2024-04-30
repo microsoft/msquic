@@ -88,7 +88,7 @@ jobs:
       image: ${{ (inputs.plat == 'linux' && format('ghcr.io/microsoft/msquic/linux-build-xcomp:{0}-{1}', inputs.os, (startsWith(inputs.arch, 'x') && 'x86_64') || 'arm')) || '' }}
     steps:
     - name: Checkout repository
-      uses: actions/checkout@1d96c772d19495a3b5c517cd2bc0cb401ea0529f
+      uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b
       with:
         repository: microsoft/msquic
         ref: ${{ inputs.ref }}

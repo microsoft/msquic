@@ -194,7 +194,7 @@ jobs:
     runs-on: windows-2022
     steps:
     - name: Checkout repository
-      uses: actions/checkout@1d96c772d19495a3b5c517cd2bc0cb401ea0529f
+      uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b
     - name: Download Build Artifacts
       uses: dawidd6/action-download-artifact@09f2f74827fd3a8607589e5ad7f9398816f540fe
       with:
