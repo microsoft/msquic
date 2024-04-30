@@ -18,6 +18,7 @@ Abstract:
 #endif
 
 extern bool UseDuoNic;
+#define QUIC_EXECUTION_CONFIG_FLAG_XDP (QUIC_EXECUTION_CONFIG_FLAGS)0x0004
 
 //
 // Connect to the duonic address (if using duonic) or localhost (if not).
