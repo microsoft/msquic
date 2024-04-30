@@ -542,7 +542,7 @@ QuicTestNatAddrRebind(
     ReplaceAddressHelper AddrHelper(OrigLocalAddr.SockAddr, OrigLocalAddr.SockAddr);
 
     if (RebindDatapathAddr) {
-        QuicAddrFromString(UseDuoNic ? ((Family == AF_INET) ? "127.0.0.1" : "::1") : ((Family == AF_INET) ? "192.168.1.11" : "fc00::1:11"),
+        QuicAddrFromString(!UseDuoNic ? ((Family == AF_INET) ? "127.0.0.1" : "::1") : ((Family == AF_INET) ? "192.168.1.11" : "fc00::1:11"),
                            OrigLocalAddr.GetPort(),
                            &AddrHelper.New);
     } else {
