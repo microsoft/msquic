@@ -1588,7 +1588,7 @@ TEST_P(WithFamilyArgs, RebindAddr) {
 
 TEST_P(WithFamilyArgs, RebindDatapathAddr) {
 #if defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
-    if (UseQTIP) {
+    if (UseQTIP || !UseDuoNic) {
         //
         // NAT rebind doesn't make sense for TCP and QTIP.
         //
