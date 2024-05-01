@@ -427,9 +427,7 @@ QuicAddr DataPathTest::UnspecIPv4;
 QuicAddr DataPathTest::UnspecIPv6;
 
 struct CxPlatDataPath {
-    static uint8_t RawConfig[QUIC_EXECUTION_CONFIG_MIN_SIZE + 256 * sizeof(uint16_t)] {0};
-    static QUIC_EXECUTION_CONFIG* DefaultExecutionConfig;
-
+    QUIC_EXECUTION_CONFIG DefaultExecutionConfig { QUIC_EXECUTION_CONFIG_FLAG_XDP, 0, 0, {0} };
     CXPLAT_DATAPATH* Datapath {nullptr};
     QUIC_STATUS InitStatus;
     CxPlatDataPath(
@@ -439,22 +437,12 @@ struct CxPlatDataPath {
         _In_opt_ QUIC_EXECUTION_CONFIG* Config = nullptr
         ) noexcept
     {
-        if (!Config && UseDuoNic) {
-            if (DefaultExecutionConfig == nullptr) {
-                DefaultExecutionConfig = (QUIC_EXECUTION_CONFIG*)RawConfig;
-                DefaultExecutionConfig->Flags |= QUIC_EXECUTION_CONFIG_FLAG_XDP;
-                DefaultExecutionConfig->ProcessorCount = CxPlatProcCount();
-                for (uint32_t i = 0; i < DefaultExecutionConfig->ProcessorCount; ++i) {
-                    DefaultExecutionConfig->ProcessorList[i] = (uint16_t)i;
-                }
-            }
-        }
         InitStatus =
             CxPlatDataPathInitialize(
                 ClientRecvContextLength,
                 UdpCallbacks,
                 TcpCallbacks,
-                Config ? Config : DefaultExecutionConfig,
+                Config ? Config : &DefaultExecutionConfig,
                 &Datapath);
     }
     ~CxPlatDataPath() noexcept {

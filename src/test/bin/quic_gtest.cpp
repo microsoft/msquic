@@ -96,29 +96,19 @@ public:
             MsQuic = new(std::nothrow) MsQuicApi();
             ASSERT_TRUE(QUIC_SUCCEEDED(MsQuic->GetInitStatus()));
 #if defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
-            uint8_t RawConfig[QUIC_EXECUTION_CONFIG_MIN_SIZE + 256 * sizeof(uint16_t)] = {0};
-            QUIC_EXECUTION_CONFIG* Config = (QUIC_EXECUTION_CONFIG*)RawConfig;
-            Config->Flags = QUIC_EXECUTION_CONFIG_FLAG_NONE;
-            if (UseDuoNic) {
-                Config->PollingIdleTimeoutUs = 0;
-                Config->Flags |= QUIC_EXECUTION_CONFIG_FLAG_XDP;
-                Config->ProcessorCount = CxPlatProcCount();
-                for (uint16_t i = 0; i < Config->ProcessorCount; i++) {
-                    Config->ProcessorList[i] = i;
-                }
-            }
+            QUIC_EXECUTION_CONFIG Config = {QUIC_EXECUTION_CONFIG_FLAG_NONE, 0, 0, {0}};
             if (UseQTIP) {
-                Config->PollingIdleTimeoutUs = 10000;
-                Config->Flags |= QUIC_EXECUTION_CONFIG_FLAG_QTIP;
-                Config->ProcessorCount = 0;
+                Config.PollingIdleTimeoutUs = 10000;
+                Config.Flags |= QUIC_EXECUTION_CONFIG_FLAG_QTIP;
             }
-            if (Config->Flags != QUIC_EXECUTION_CONFIG_FLAG_NONE) {
+            Config.Flags |= UseDuoNic ? QUIC_EXECUTION_CONFIG_FLAG_XDP : QUIC_EXECUTION_CONFIG_FLAG_NONE;
+            if (Config.Flags != QUIC_EXECUTION_CONFIG_FLAG_NONE) {
                 ASSERT_TRUE(QUIC_SUCCEEDED(
                     MsQuic->SetParam(
                         nullptr,
                         QUIC_PARAM_GLOBAL_EXECUTION_CONFIG,
-                        sizeof(RawConfig),
-                        Config)));
+                        sizeof(Config),
+                        &Config)));
             }
 #endif
             memcpy(&ServerSelfSignedCredConfig, SelfSignedCertParams, sizeof(QUIC_CREDENTIAL_CONFIG));
