@@ -479,19 +479,17 @@ CxPlatDpRawInterfaceInitialize(
 
     DetachXdpProgram(Interface, true);
 
-    struct xdp_program *Prog = NULL;
-    Status = OpenXdpProgram(&Prog);
+    Status = OpenXdpProgram(&Interface->XdpProg);
     if (QUIC_FAILED(Status)) {
         goto Error;
     }
 
-    Status = AttachXdpProgram(Prog, Interface, XskCfg);
+    Status = AttachXdpProgram(Interface->XdpProg, Interface, XskCfg);
     if (QUIC_FAILED(Status)) {
         goto Error;
     }
-    Interface->XdpProg = Prog;
 
-    int XskBypassMapFd = bpf_map__fd(bpf_object__find_map_by_name(xdp_program__bpf_obj(Prog), "xsks_map"));
+    int XskBypassMapFd = bpf_map__fd(bpf_object__find_map_by_name(xdp_program__bpf_obj(Interface->XdpProg), "xsks_map"));
     if (XskBypassMapFd < 0) {
         QuicTraceLogVerbose(
             XdpNoXsksMap,
