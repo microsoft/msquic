@@ -228,6 +228,26 @@ function Cleanup-State {
             try { & "$Using:RemoteDir/scripts/log.ps1" -Cancel }
             catch { Write-Host "Failed to stop logging on server!" }
         }
+    } else {
+        # iterate all interface and "ip link set ${iface} xdp off"
+        if ((ip link show) -match "xdp") {
+            $ifaces = ip link show | grep -oP '^\d+: \K[\w@]+' | cut -d'@' -f1
+            foreach ($xdp in @('xdp', 'xdpgeneric')) {
+                foreach ($iface in $ifaces) {
+                    sudo ip link set $iface $xdp off
+                }
+            }
+        }
+        Invoke-Command -Session $Session -ScriptBlock {
+            if ((ip link show) -match "xdp") {
+                $ifaces = ip link show | grep -oP '^\d+: \K[\w@]+' | cut -d'@' -f1
+                foreach ($xdp in @('xdp', 'xdpgeneric')) {
+                    foreach ($iface in $ifaces) {
+                        sudo ip link set $iface $xdp off
+                    }
+                }
+            }
+        }
     }
 }
 
@@ -428,7 +448,7 @@ function Get-LatencyOutput {
 
 # Invokes secnetperf with the given arguments for both TCP and QUIC.
 function Invoke-Secnetperf {
-    param ($Session, $RemoteName, $RemoteDir, $SecNetPerfPath, $LogProfile, $TestId, $ExeArgs, $io, $Filter)
+    param ($Session, $RemoteName, $RemoteDir, $UserName, $SecNetPerfPath, $LogProfile, $TestId, $ExeArgs, $io, $Filter)
 
     $values = @(@(), @())
     $latency = $null
@@ -483,6 +503,9 @@ function Invoke-Secnetperf {
         continue
     }
 
+     # Linux XDP requires sudo for now
+    $sudo = (!$IsWindows -and $io -eq "xdp") ? "sudo -E " : ""
+
     $artifactName = $tcp -eq 0 ? "$TestId-quic" : "$TestId-tcp"
     New-Item -ItemType Directory "artifacts/logs/$artifactName" -ErrorAction Ignore | Out-Null
     $artifactDir = Repo-Path "artifacts/logs/$artifactName"
@@ -511,7 +534,7 @@ function Invoke-Secnetperf {
 
     # Start the server running.
     "> secnetperf $serverArgs" | Add-Content $serverOut
-    $job = Start-RemoteServer $Session "$RemoteDir/$SecNetPerfPath $serverArgs"
+    $job = Start-RemoteServer $Session "$sudo$RemoteDir/$SecNetPerfPath $serverArgs"
 
     # Run the test multiple times, failing (for now) only if all tries fail.
     # TODO: Once all failures have been fixed, consider all errors fatal.
@@ -521,11 +544,14 @@ function Invoke-Secnetperf {
         Write-Host "==============================`nRUN $($try+1):"
         "> secnetperf $clientArgs" | Add-Content $clientOut
         try {
-            $process = Start-LocalTest $clientPath $clientArgs $artifactDir
+            $process = Start-LocalTest "$sudo$clientPath" $clientArgs $artifactDir
             $rawOutput = Wait-LocalTest $process $artifactDir ($io -eq "wsk") 30000
             Write-Host $rawOutput
             $values[$tcp] += Get-TestOutput $rawOutput $metric
             if ($extraOutput) {
+                if ($sudo -ne "") {
+                    sudo chown $UserName $extraOutput
+                }
                 $latency[$tcp] += Get-LatencyOutput $extraOutput
             }
             $rawOutput | Add-Content $clientOut

@@ -2582,7 +2582,7 @@ void QuicTestGlobalParam()
         }
 
 #if defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
-        if (!UseQTIP)
+        if (!UseQTIP && !UseDuoNic)
 #endif
         {
             //
