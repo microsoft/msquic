@@ -1538,19 +1538,6 @@ void start() {
             }
         }
 
-        // Enable XDP
-        if (strncmp(SpinSettings.ServerName, "192.168.1.11", 12) == 0) {
-            QUIC_EXECUTION_CONFIG ExecutionConfig { QUIC_EXECUTION_CONFIG_FLAG_XDP, 10000, 0, {0} };
-            if (QUIC_FAILED(
-                MsQuic.SetParam(
-                    nullptr,
-                    QUIC_PARAM_GLOBAL_EXECUTION_CONFIG,
-                    sizeof(ExecutionConfig),
-                    &ExecutionConfig))) {
-                printf("Failed to set execution config\n");
-            }
-        }
-
         MsQuicClose(TempMsQuic);
 
 #ifndef FUZZING
@@ -1569,7 +1556,11 @@ void start() {
             printf("Using %u partitions...\n", ProcCount);
             ExecConfigSize = QUIC_EXECUTION_CONFIG_MIN_SIZE + sizeof(uint16_t)*ProcCount;
             ExecConfig = (QUIC_EXECUTION_CONFIG*)malloc(ExecConfigSize);
-            ExecConfig->Flags = QUIC_EXECUTION_CONFIG_FLAG_NONE;
+            if (strncmp(SpinSettings.ServerName, "192.168.1.11", 12) == 0) {
+                ExecConfig->Flags = QUIC_EXECUTION_CONFIG_FLAG_XDP;
+            } else {
+                ExecConfig->Flags = QUIC_EXECUTION_CONFIG_FLAG_NONE;
+            }
             ExecConfig->PollingIdleTimeoutUs = 0; // TODO - Randomize?
             ExecConfig->ProcessorCount = ProcCount;
             for (uint32_t i = 0; i < ProcCount; ++i) {
