@@ -151,6 +151,11 @@ QuicMainStart(
         SetConfig = true;
     }
 
+    if (IoMode && IsValue(IoMode, "xdp")) {
+        Config->Flags |= QUIC_EXECUTION_CONFIG_FLAG_XDP;
+        SetConfig = true;
+    }
+
     const char* CpuStr;
     if ((CpuStr = GetValue(argc, argv, "cpu")) != nullptr) {
         SetConfig = true;

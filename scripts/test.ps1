@@ -366,7 +366,7 @@ for ($iteration = 1; $iteration -le $NumIterations; $iteration++) {
     # Run the script.
     foreach ($TestPath in $TestPaths) {
         if ($IsLinux -and $UseXdp) {
-            Invoke-Expression ("sudo MSQUIC_ENABLE_XDP=1 pwsh -c " + $RunTest + " -Path $TestPath " + $TestArguments)
+            Invoke-Expression ("sudo pwsh -c " + $RunTest + " -Path $TestPath " + $TestArguments)
         } else {
             Invoke-Expression ($RunTest + " -Path $TestPath " + $TestArguments)
         }

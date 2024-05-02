@@ -358,7 +358,7 @@ AttachXdpProgram(struct xdp_program *Prog, XDP_INTERFACE *Interface, struct xsk_
         unsigned int xdp_flag;
     } AttachTypePairs[]  = {
         // { XDP_MODE_HW, XDP_FLAGS_HW_MODE },
-        { XDP_MODE_NATIVE, XDP_FLAGS_DRV_MODE },
+        // { XDP_MODE_NATIVE, XDP_FLAGS_DRV_MODE },
         { XDP_MODE_SKB, XDP_FLAGS_SKB_MODE },
     };
     for (uint32_t i = 0; i < ARRAYSIZE(AttachTypePairs); i++) {
@@ -480,19 +480,17 @@ CxPlatDpRawInterfaceInitialize(
 
     DetachXdpProgram(Interface, true);
 
-    struct xdp_program *Prog = NULL;
-    Status = OpenXdpProgram(&Prog);
+    Status = OpenXdpProgram(&Interface->XdpProg);
     if (QUIC_FAILED(Status)) {
         goto Error;
     }
 
-    Status = AttachXdpProgram(Prog, Interface, XskCfg);
+    Status = AttachXdpProgram(Interface->XdpProg, Interface, XskCfg);
     if (QUIC_FAILED(Status)) {
         goto Error;
     }
-    Interface->XdpProg = Prog;
 
-    int XskBypassMapFd = bpf_map__fd(bpf_object__find_map_by_name(xdp_program__bpf_obj(Prog), "xsks_map"));
+    int XskBypassMapFd = bpf_map__fd(bpf_object__find_map_by_name(xdp_program__bpf_obj(Interface->XdpProg), "xsks_map"));
     if (XskBypassMapFd < 0) {
         QuicTraceLogVerbose(
             XdpNoXsksMap,
