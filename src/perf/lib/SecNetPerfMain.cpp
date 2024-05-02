@@ -136,29 +136,24 @@ QuicMainStart(
     uint8_t RawConfig[QUIC_EXECUTION_CONFIG_MIN_SIZE + 256 * sizeof(uint16_t)] = {0};
     QUIC_EXECUTION_CONFIG* Config = (QUIC_EXECUTION_CONFIG*)RawConfig;
     Config->PollingIdleTimeoutUs = UINT32_MAX; // Default to no sleep.
-    bool SetConfig = false;
 
 #ifndef _KERNEL_MODE
     const char* IoMode = GetValue(argc, argv, "io");
 
     if (IoMode && IsValue(IoMode, "qtip")) {
         Config->Flags |= QUIC_EXECUTION_CONFIG_FLAG_QTIP;
-        SetConfig = true;
     }
 
     if (IoMode && IsValue(IoMode, "rio")) {
         Config->Flags |= QUIC_EXECUTION_CONFIG_FLAG_RIO;
-        SetConfig = true;
     }
 
     if (IoMode && IsValue(IoMode, "xdp")) {
         Config->Flags |= QUIC_EXECUTION_CONFIG_FLAG_XDP;
-        SetConfig = true;
     }
 
     const char* CpuStr;
     if ((CpuStr = GetValue(argc, argv, "cpu")) != nullptr) {
-        SetConfig = true;
         if (strtol(CpuStr, nullptr, 10) == -1) {
             for (uint32_t i = 0; i < CxPlatProcCount() && Config->ProcessorCount < 256; ++i) {
                 Config->ProcessorList[Config->ProcessorCount++] = (uint16_t)i;
@@ -173,12 +168,9 @@ QuicMainStart(
     }
 #endif // _KERNEL_MODE
 
-    if (TryGetValue(argc, argv, "pollidle", &Config->PollingIdleTimeoutUs)) {
-        SetConfig = true;
-    }
+    TryGetValue(argc, argv, "pollidle", &Config->PollingIdleTimeoutUs);
 
-    if (SetConfig &&
-        QUIC_FAILED(
+    if (QUIC_FAILED(
         Status =
         MsQuic->SetParam(
             nullptr,
