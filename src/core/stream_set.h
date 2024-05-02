@@ -51,6 +51,11 @@ typedef struct QUIC_STREAM_SET {
     //
     CXPLAT_LIST_ENTRY ClosedStreams;
 
+    //
+    // Used to protect access to the Type variable across threads.
+    //
+    CXPLAT_DISPATCH_LOCK TypesLock;
+
 #if DEBUG
     //
     // The list of allocated streams for leak tracking.
@@ -173,14 +178,25 @@ QuicStreamSetGetFlowControlSummary(
     );
 
 //
+// Assigns a new local stream ID to the stream. May be called on the app thread,
+// and at dispatch level.
+//
+_IRQL_requires_max_(DISPATCH_LEVEL)
+QUIC_STATUS
+QuicStreamSetNewLocalStreamID(
+    _Inout_ QUIC_STREAM_SET* StreamSet,
+    _In_ BOOLEAN FailOnBlocked,
+    _In_ QUIC_STREAM* Stream,
+    _Out_ BOOLEAN* NewStreamBlocked
+    );
+
+//
 // Creates a new local stream.
 //
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 QuicStreamSetNewLocalStream(
     _Inout_ QUIC_STREAM_SET* StreamSet,
-    _In_ uint8_t Type,
-    _In_ BOOLEAN FailOnBlocked,
     _In_ QUIC_STREAM* Stream
     );
 

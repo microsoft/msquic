@@ -49,6 +49,7 @@ QuicStreamSetInitialize(
     )
 {
     CxPlatListInitializeHead(&StreamSet->ClosedStreams);
+    CxPlatDispatchLockInitialize(&StreamSet->TypesLock);
 #if DEBUG
     CxPlatListInitializeHead(&StreamSet->AllStreams);
     CxPlatDispatchLockInitialize(&StreamSet->AllStreamsLock);
@@ -64,6 +65,7 @@ QuicStreamSetUninitialize(
     if (StreamSet->StreamTable != NULL) {
         CxPlatHashtableUninitialize(StreamSet->StreamTable);
     }
+    CxPlatDispatchLockUninitialize(&StreamSet->TypesLock);
 #if DEBUG
     CxPlatDispatchLockUninitialize(&StreamSet->AllStreamsLock);
 #endif
@@ -191,8 +193,10 @@ QuicStreamSetReleaseStream(
     uint8_t Flags = (uint8_t)(Stream->ID & STREAM_ID_MASK);
     QUIC_STREAM_TYPE_INFO* Info = &StreamSet->Types[Flags];
 
+    CxPlatDispatchLockAcquire(&StreamSet->TypesLock);
     CXPLAT_DBG_ASSERT(Info->CurrentStreamCount != 0);
     Info->CurrentStreamCount--;
+    CxPlatDispatchLockRelease(&StreamSet->TypesLock);
 
     if ((Flags & STREAM_ID_FLAG_IS_SERVER) == QuicConnIsServer(Stream->Connection)) {
         //
@@ -520,57 +524,80 @@ QuicStreamSetGetFlowControlSummary(
     }
 }
 
+_IRQL_requires_max_(DISPATCH_LEVEL)
+QUIC_STATUS
+QuicStreamSetNewLocalStreamID(
+    _Inout_ QUIC_STREAM_SET* StreamSet,
+    _In_ BOOLEAN FailOnBlocked,
+    _In_ QUIC_STREAM* Stream,
+    _Out_ BOOLEAN* NewStreamBlocked
+    )
+{
+    QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
+    uint8_t Type =
+        QuicConnIsServer(Stream->Connection) ?
+            STREAM_ID_FLAG_IS_SERVER :
+            STREAM_ID_FLAG_IS_CLIENT;
+    if (Stream->Flags.Unidirectional) {
+        Type |= STREAM_ID_FLAG_IS_UNI_DIR;
+    }
+    QUIC_STREAM_TYPE_INFO* Info = &StreamSet->Types[Type];
+
+    CxPlatDispatchLockAcquire(&StreamSet->TypesLock);
+
+    uint64_t NewStreamId = Type + (Info->TotalStreamCount << 2);
+    *NewStreamBlocked = Info->TotalStreamCount >= Info->MaxTotalStreamCount;
+
+    if (FailOnBlocked && *NewStreamBlocked) {
+        Status = QUIC_STATUS_STREAM_LIMIT_REACHED;
+    } else {
+        Stream->ID = NewStreamId;
+        Info->CurrentStreamCount++;
+        Info->TotalStreamCount++;
+    }
+
+    CxPlatDispatchLockRelease(&StreamSet->TypesLock);
+
+    return Status;
+}
+
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 QuicStreamSetNewLocalStream(
     _Inout_ QUIC_STREAM_SET* StreamSet,
-    _In_ uint8_t Type,
-    _In_ BOOLEAN FailOnBlocked,
     _In_ QUIC_STREAM* Stream
     )
 {
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
-    QUIC_STREAM_TYPE_INFO* Info = &StreamSet->Types[Type];
-    uint64_t NewStreamId = Type + (Info->TotalStreamCount << 2);
-    BOOLEAN NewStreamBlocked = Info->TotalStreamCount >= Info->MaxTotalStreamCount;
 
-    if (FailOnBlocked && NewStreamBlocked) {
-        if (Stream->Connection->State.PeerTransportParameterValid) {
-            QuicSendSetSendFlag(
-                &Stream->Connection->Send,
-                STREAM_ID_IS_UNI_DIR(Type) ?
-                    QUIC_CONN_SEND_FLAG_UNI_STREAMS_BLOCKED : QUIC_CONN_SEND_FLAG_BIDI_STREAMS_BLOCKED);
+    if (Stream->ID == UINT64_MAX) {
+        BOOLEAN NewStreamBlocked;
+        QuicStreamSetNewLocalStreamID(
+            StreamSet,
+            FALSE,
+            Stream,
+            &NewStreamBlocked);
+        if (NewStreamBlocked) {
+            //
+            // We don't call QuicStreamAddOutFlowBlockedReason here because we
+            // haven't logged the stream created event yet at this point. We
+            // will log the event after that.
+            //
+            Stream->OutFlowBlockedReasons |= QUIC_FLOW_BLOCKED_STREAM_ID_FLOW_CONTROL;
+            Stream->BlockedTimings.StreamIdFlowControl.LastStartTimeUs = CxPlatTimeUs64();
+            if (Stream->Connection->State.PeerTransportParameterValid) {
+                QuicSendSetSendFlag(
+                    &Stream->Connection->Send,
+                    STREAM_ID_IS_UNI_DIR(Stream->ID) ?
+                        QUIC_CONN_SEND_FLAG_UNI_STREAMS_BLOCKED : QUIC_CONN_SEND_FLAG_BIDI_STREAMS_BLOCKED);
+            }
         }
-        Status = QUIC_STATUS_STREAM_LIMIT_REACHED;
-        goto Exit;
     }
-
-    Stream->ID = NewStreamId;
 
     if (!QuicStreamSetInsertStream(StreamSet, Stream)) {
         Status = QUIC_STATUS_OUT_OF_MEMORY;
-        Stream->ID = UINT64_MAX;
         goto Exit;
     }
-
-    if (NewStreamBlocked) {
-        //
-        // We don't call QuicStreamAddOutFlowBlockedReason here because we haven't
-        // logged the stream created event yet at this point. We will log the event
-        // after that.
-        //
-        Stream->OutFlowBlockedReasons |= QUIC_FLOW_BLOCKED_STREAM_ID_FLOW_CONTROL;
-        Stream->BlockedTimings.StreamIdFlowControl.LastStartTimeUs = CxPlatTimeUs64();
-        if (Stream->Connection->State.PeerTransportParameterValid) {
-            QuicSendSetSendFlag(
-                &Stream->Connection->Send,
-                STREAM_ID_IS_UNI_DIR(Stream->ID) ?
-                    QUIC_CONN_SEND_FLAG_UNI_STREAMS_BLOCKED : QUIC_CONN_SEND_FLAG_BIDI_STREAMS_BLOCKED);
-        }
-    }
-
-    Info->CurrentStreamCount++;
-    Info->TotalStreamCount++;
 
     QuicStreamAddRef(Stream, QUIC_STREAM_REF_STREAM_SET);
 

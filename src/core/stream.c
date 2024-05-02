@@ -256,8 +256,6 @@ QuicStreamStart(
         Status =
             QuicStreamSetNewLocalStream(
                 &Stream->Connection->Streams,
-                Type,
-                !!(Flags & QUIC_STREAM_START_FLAG_FAIL_BLOCKED),
                 Stream);
         if (QUIC_FAILED(Status)) {
             goto Exit;
@@ -763,7 +761,7 @@ QuicStreamParamGet(
             break;
         }
 
-        if (!Stream->Flags.Started) {
+        if (Stream->ID == UINT64_MAX) {
             Status = QUIC_STATUS_INVALID_STATE;
             break;
         }
