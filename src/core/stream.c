@@ -244,15 +244,6 @@ QuicStreamStart(
     }
 
     if (!IsRemoteStream) {
-        uint8_t Type =
-            QuicConnIsServer(Stream->Connection) ?
-                STREAM_ID_FLAG_IS_SERVER :
-                STREAM_ID_FLAG_IS_CLIENT;
-
-        if (Stream->Flags.Unidirectional) {
-            Type |= STREAM_ID_FLAG_IS_UNI_DIR;
-        }
-
         Status =
             QuicStreamSetNewLocalStream(
                 &Stream->Connection->Streams,
