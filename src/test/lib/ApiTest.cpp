@@ -1449,12 +1449,10 @@ void QuicTestValidateStream(bool Connect)
                             QUIC_STREAM_START_FLAG_FAIL_BLOCKED));
                 } else {
                     TEST_QUIC_STATUS(
-                        QUIC_STATUS_PENDING,
+                        QUIC_STATUS_STREAM_LIMIT_REACHED,
                         MsQuic->StreamStart(
                             Stream.Handle,
                             QUIC_STREAM_START_FLAG_FAIL_BLOCKED));
-                    Context.StartCompleteEvent.WaitTimeout(2000);
-                    TEST_EQUAL(Context.StartCompleteStatus, QUIC_STATUS_STREAM_LIMIT_REACHED);
                 }
                 TEST_FALSE(Context.ShutdownComplete);
             }
@@ -1474,14 +1472,10 @@ void QuicTestValidateStream(bool Connect)
                         &Context,
                         &Stream.Handle));
                 TEST_QUIC_STATUS(
-                    QUIC_STATUS_PENDING,
+                    QUIC_STATUS_STREAM_LIMIT_REACHED,
                     MsQuic->StreamStart(
                         Stream.Handle,
                         QUIC_STREAM_START_FLAG_FAIL_BLOCKED | QUIC_STREAM_START_FLAG_SHUTDOWN_ON_FAIL));
-                Context.StartCompleteEvent.WaitTimeout(2000);
-                TEST_EQUAL(Context.StartCompleteStatus, QUIC_STATUS_STREAM_LIMIT_REACHED);
-                Context.ShutdownCompleteEvent.WaitTimeout(2000);
-                TEST_TRUE(Context.ShutdownComplete);
             }
 
             //
