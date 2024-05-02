@@ -1107,17 +1107,17 @@ CxPlatDpRawTxEnqueue(
     uint32_t Completed;
     uint32_t CqIdx;
     Completed = xsk_ring_cons__peek(&XskInfo->UmemInfo->Cq, CONS_NUM_DESCS, &CqIdx);
-    if (Completed > 0) {
+    if (Completed >= TX_BATCH_SIZE) {
         uint64_t FreeingFrames[TX_BATCH_SIZE];
-        for (uint32_t i = 0; i < Completed; i++) {
+        for (uint32_t i = 0; i < TX_BATCH_SIZE; i++) {
             FreeingFrames[i] = *xsk_ring_cons__comp_addr(&XskInfo->UmemInfo->Cq, CqIdx++) - XskInfo->UmemInfo->TxHeadRoom;
         }
-        XskUmemFrameFreeN(XskInfo, FreeingFrames, Completed);
+        XskUmemFrameFreeN(XskInfo, FreeingFrames, TX_BATCH_SIZE);
 
-        xsk_ring_cons__release(&XskInfo->UmemInfo->Cq, Completed);
+        xsk_ring_cons__release(&XskInfo->UmemInfo->Cq, TX_BATCH_SIZE);
         QuicTraceLogVerbose(
             ReleaseCons,
-            "[ xdp][cq  ] Release %d from completion queue", Completed);
+            "[ xdp][cq  ] Release %d from completion queue", TX_BATCH_SIZE);
     }
     CxPlatLockRelease(&XskInfo->UmemLock);
 
