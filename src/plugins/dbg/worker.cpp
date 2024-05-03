@@ -24,12 +24,11 @@ EXT_COMMAND(
         "\n"
         "\tState               %s\n"
         "\tPartition           %u\n"
-        "\tThread              0x%X (<link cmd=\"~~[0x%X]s\">UM</link>/<link cmd=\"!thread 0x%I64X\">KM</link>)\n",
+        "\tThread              <link cmd=\"!thread 0x%I64X\">0x%X</link>\n",
         Work.Addr,
         Work.StateStr(),
         Work.PartitionIndex(),
-        Work.ThreadID(),
-        Work.ThreadID(),
+        Work.Thread(),
         Work.Thread());
 
     Dml("\n<u>QUEUE</u>\n"
