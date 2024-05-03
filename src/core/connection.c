@@ -750,7 +750,7 @@ QuicConnQueueHighestPriorityOper(
         // The connection needs to be queued on the worker because this was the
         // first operation in our OperQ.
         //
-        QuicWorkerQueueConnection(Connection->Worker, Connection);
+        QuicWorkerQueuePriorityConnection(Connection->Worker, Connection);
     }
 }
 
