@@ -197,6 +197,7 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 QuicStreamSetNewLocalStream(
     _Inout_ QUIC_STREAM_SET* StreamSet,
+    _In_ BOOLEAN FailOnBlocked,
     _In_ QUIC_STREAM* Stream
     );
 

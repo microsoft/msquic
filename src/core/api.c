@@ -828,7 +828,7 @@ MsQuicStreamStart(
         goto Exit;
     }
 
-    if (Flags & QUIC_STREAM_START_FLAG_FAIL_BLOCKED) {
+    if (Flags & QUIC_STREAM_START_FLAG_FAIL_BLOCKED_INLINE) {
         BOOLEAN NewStreamBlocked;
         Status =
             QuicStreamSetNewLocalStreamID(

@@ -1449,10 +1449,41 @@ void QuicTestValidateStream(bool Connect)
                             QUIC_STREAM_START_FLAG_FAIL_BLOCKED));
                 } else {
                     TEST_QUIC_STATUS(
-                        QUIC_STATUS_STREAM_LIMIT_REACHED,
+                        QUIC_STATUS_PENDING,
                         MsQuic->StreamStart(
                             Stream.Handle,
                             QUIC_STREAM_START_FLAG_FAIL_BLOCKED));
+                    Context.StartCompleteEvent.WaitTimeout(2000);
+                    TEST_EQUAL(Context.StartCompleteStatus, QUIC_STATUS_STREAM_LIMIT_REACHED);
+                }
+                TEST_FALSE(Context.ShutdownComplete);
+            }
+
+            //
+            // Fail on blocked inline.
+            //
+            {
+                TestScopeLogger logScope("Fail on blocked inline");
+                ShutdownStreamContext Context;
+                StreamScope Stream;
+                TEST_QUIC_SUCCEEDED(
+                    MsQuic->StreamOpen(
+                        Client.GetConnection(),
+                        QUIC_STREAM_OPEN_FLAG_NONE,
+                        ShutdownStreamCallback,
+                        &Context,
+                        &Stream.Handle));
+                if (Connect) {
+                    TEST_QUIC_SUCCEEDED(
+                        MsQuic->StreamStart(
+                            Stream.Handle,
+                            QUIC_STREAM_START_FLAG_FAIL_BLOCKED_INLINE));
+                } else {
+                    TEST_QUIC_STATUS(
+                        QUIC_STATUS_STREAM_LIMIT_REACHED,
+                        MsQuic->StreamStart(
+                            Stream.Handle,
+                            QUIC_STREAM_START_FLAG_FAIL_BLOCKED_INLINE));
                 }
                 TEST_FALSE(Context.ShutdownComplete);
             }
@@ -1472,10 +1503,14 @@ void QuicTestValidateStream(bool Connect)
                         &Context,
                         &Stream.Handle));
                 TEST_QUIC_STATUS(
-                    QUIC_STATUS_STREAM_LIMIT_REACHED,
+                    QUIC_STATUS_PENDING,
                     MsQuic->StreamStart(
                         Stream.Handle,
                         QUIC_STREAM_START_FLAG_FAIL_BLOCKED | QUIC_STREAM_START_FLAG_SHUTDOWN_ON_FAIL));
+                Context.StartCompleteEvent.WaitTimeout(2000);
+                TEST_EQUAL(Context.StartCompleteStatus, QUIC_STATUS_STREAM_LIMIT_REACHED);
+                Context.ShutdownCompleteEvent.WaitTimeout(2000);
+                TEST_TRUE(Context.ShutdownComplete);
             }
 
             //

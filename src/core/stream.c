@@ -247,6 +247,7 @@ QuicStreamStart(
         Status =
             QuicStreamSetNewLocalStream(
                 &Stream->Connection->Streams,
+                Flags & QUIC_STREAM_START_FLAG_FAIL_BLOCKED, // Inline flag was already handled
                 Stream);
         if (QUIC_FAILED(Status)) {
             goto Exit;

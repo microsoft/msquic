@@ -533,6 +533,8 @@ QuicStreamSetNewLocalStreamID(
     _Out_ BOOLEAN* NewStreamBlocked
     )
 {
+    CXPLAT_DBG_ASSERT(Stream->ID == UINT64_MAX);
+
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
     uint8_t Type =
         QuicConnIsServer(Stream->Connection) ?
@@ -565,6 +567,7 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 QuicStreamSetNewLocalStream(
     _Inout_ QUIC_STREAM_SET* StreamSet,
+    _In_ BOOLEAN FailOnBlocked,
     _In_ QUIC_STREAM* Stream
     )
 {
@@ -572,11 +575,15 @@ QuicStreamSetNewLocalStream(
 
     if (Stream->ID == UINT64_MAX) {
         BOOLEAN NewStreamBlocked;
-        QuicStreamSetNewLocalStreamID(
-            StreamSet,
-            FALSE,
-            Stream,
-            &NewStreamBlocked);
+        Status =
+            QuicStreamSetNewLocalStreamID(
+                StreamSet,
+                FailOnBlocked,
+                Stream,
+                &NewStreamBlocked);
+        if (QUIC_FAILED(Status)) {
+            goto Exit;
+        }
         if (NewStreamBlocked) {
             //
             // We don't call QuicStreamAddOutFlowBlockedReason here because we
@@ -596,6 +603,7 @@ QuicStreamSetNewLocalStream(
 
     if (!QuicStreamSetInsertStream(StreamSet, Stream)) {
         Status = QUIC_STATUS_OUT_OF_MEMORY;
+        QuicConnFatalError(Stream->Connection, Status, "StreamSetInsertStream failed");
         goto Exit;
     }
 
