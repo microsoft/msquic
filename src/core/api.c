@@ -1366,6 +1366,9 @@ MsQuicSetParam(
 {
     CXPLAT_PASSIVE_CODE();
 
+    const BOOLEAN IsPriority = !!(Param & QUIC_PARAM_HIGH_PRIORITY);
+    Param &= ~QUIC_PARAM_HIGH_PRIORITY;
+
     if ((Handle == NULL) ^ QUIC_PARAM_IS_GLOBAL(Param)) {
         //
         // Ensure global parameters don't have a handle passed in, and vice
@@ -1381,8 +1384,6 @@ MsQuicSetParam(
         Handle);
 
     QUIC_STATUS Status;
-    const BOOLEAN IsPriority = !!(Param & QUIC_PARAM_HIGH_PRIORITY);
-    Param &= ~QUIC_PARAM_HIGH_PRIORITY;
 
     if (QUIC_PARAM_IS_GLOBAL(Param)) {
         //
@@ -1489,6 +1490,9 @@ MsQuicGetParam(
 {
     CXPLAT_PASSIVE_CODE();
 
+    const BOOLEAN IsPriority = !!(Param & QUIC_PARAM_HIGH_PRIORITY);
+    Param &= ~QUIC_PARAM_HIGH_PRIORITY;
+
     if ((Handle == NULL) ^ QUIC_PARAM_IS_GLOBAL(Param) ||
         BufferLength == NULL) {
         //
@@ -1505,8 +1509,6 @@ MsQuicGetParam(
         Handle);
 
     QUIC_STATUS Status;
-    const BOOLEAN IsPriority = !!(Param & QUIC_PARAM_HIGH_PRIORITY);
-    Param &= ~QUIC_PARAM_HIGH_PRIORITY;
 
     if (QUIC_PARAM_IS_GLOBAL(Param)) {
         //
