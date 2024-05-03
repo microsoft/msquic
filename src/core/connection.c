@@ -734,7 +734,7 @@ QuicConnQueuePriorityOper(
         // The connection needs to be queued on the worker because this was the
         // first operation in our OperQ.
         //
-        QuicWorkerQueueConnection(Connection->Worker, Connection); // TODO - Support priority connections on worker?
+        QuicWorkerQueuePriorityConnection(Connection->Worker, Connection);
     }
 }
 
