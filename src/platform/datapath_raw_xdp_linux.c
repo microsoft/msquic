@@ -1104,14 +1104,17 @@ CxPlatDpRawTxEnqueue(
         if (errno == EBUSY || errno == EAGAIN) {
             CxPlatSleep(20);
         } else {
-            fprintf(stderr, "[%p] sendto failed\n", XskInfo);
             QuicTraceLogVerbose(
                 FailSendTo,
                 "[ xdp][tx  ] Faild sendto. errno:%d, Umem addr:%lld", errno, tx_desc->addr);
-            beak;
+            goto Error;
         }
     }
+    QuicTraceLogVerbose(
+        DoneSendTo,
+        "[ xdp][TX  ] Done sendto. len:%d, Umem addr:%lld", SendData->Buffer.Length, tx_desc->addr);
 
+Error:
     uint32_t Completed;
     uint32_t CqIdx;
     Completed = xsk_ring_cons__peek(&XskInfo->UmemInfo->Cq, CONS_NUM_DESCS, &CqIdx);
