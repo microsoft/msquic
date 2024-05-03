@@ -515,8 +515,8 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_LINUX_C, FailTxReserve,
 // Decoder Ring for FailSendTo
 // [ xdp][tx  ] Faild sendto. errno:%d, Umem addr:%lld
 // QuicTraceLogVerbose(
-            FailSendTo,
-            "[ xdp][tx  ] Faild sendto. errno:%d, Umem addr:%lld", errno, tx_desc->addr);
+                FailSendTo,
+                "[ xdp][tx  ] Faild sendto. errno:%d, Umem addr:%lld", errno, tx_desc->addr);
 // arg2 = arg2 = errno = arg2
 // arg3 = arg3 = tx_desc->addr = arg3
 ----------------------------------------------------------*/
@@ -536,8 +536,8 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_LINUX_C, FailSendTo,
 // Decoder Ring for DoneSendTo
 // [ xdp][TX  ] Done sendto. len:%d, Umem addr:%lld
 // QuicTraceLogVerbose(
-            DoneSendTo,
-            "[ xdp][TX  ] Done sendto. len:%d, Umem addr:%lld", SendData->Buffer.Length, tx_desc->addr);
+        DoneSendTo,
+        "[ xdp][TX  ] Done sendto. len:%d, Umem addr:%lld", SendData->Buffer.Length, tx_desc->addr);
 // arg2 = arg2 = SendData->Buffer.Length = arg2
 // arg3 = arg3 = tx_desc->addr = arg3
 ----------------------------------------------------------*/
