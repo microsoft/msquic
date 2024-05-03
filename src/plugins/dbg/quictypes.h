@@ -1465,7 +1465,7 @@ struct Registration : Struct {
         bool HasQueuedWorker = false;
         for (UCHAR i = 0; i < WorkerCount; i++) {
             if (Workers.GetWorker(i).IsActive()) {
-                return " ACTIVE";
+                return "ACTIVE";
             }
             if (Workers.GetWorker(i).HasWorkQueue()) {
                 HasQueuedWorker = true;
