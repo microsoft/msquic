@@ -718,7 +718,7 @@ QuicConnQueueOper(
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
-QuicConnQueueHighPriorityOper(
+QuicConnQueuePriorityOper(
     _In_ QUIC_CONNECTION* Connection,
     _In_ QUIC_OPERATION* Oper
     )

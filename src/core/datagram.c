@@ -390,7 +390,7 @@ QuicDatagramQueueSend(
         // Queue the operation but don't wait for the completion.
         //
         if (IsPriority) {
-            QuicConnQueueHighPriorityOper(Connection, Oper);
+            QuicConnQueuePriorityOper(Connection, Oper);
         } else {
             QuicConnQueueOper(Connection, Oper);
         }

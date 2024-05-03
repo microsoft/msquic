@@ -854,7 +854,7 @@ MsQuicStreamStart(
     // Queue the operation but don't wait for the completion.
     //
     if (Flags & QUIC_STREAM_START_FLAG_PRIORITY_WORK) {
-        QuicConnQueueHighPriorityOper(Connection, Oper);
+        QuicConnQueuePriorityOper(Connection, Oper);
     } else {
         QuicConnQueueOper(Connection, Oper);
     }
@@ -1186,7 +1186,7 @@ MsQuicStreamSend(
         // Queue the operation but don't wait for the completion.
         //
         if (IsPriority) {
-            QuicConnQueueHighPriorityOper(Connection, Oper);
+            QuicConnQueuePriorityOper(Connection, Oper);
         } else {
             QuicConnQueueOper(Connection, Oper);
         }
@@ -1455,7 +1455,7 @@ MsQuicSetParam(
     // Queue the operation and wait for it to be processed.
     //
     if (IsPriority) {
-        QuicConnQueueHighPriorityOper(Connection, &Oper);
+        QuicConnQueuePriorityOper(Connection, &Oper);
     } else {
         QuicConnQueueOper(Connection, &Oper);
     }
@@ -1580,7 +1580,7 @@ MsQuicGetParam(
     // Queue the operation and wait for it to be processed.
     //
     if (IsPriority) {
-        QuicConnQueueHighPriorityOper(Connection, &Oper);
+        QuicConnQueuePriorityOper(Connection, &Oper);
     } else {
         QuicConnQueueOper(Connection, &Oper);
     }
