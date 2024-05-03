@@ -853,7 +853,11 @@ MsQuicStreamStart(
     //
     // Queue the operation but don't wait for the completion.
     //
-    QuicConnQueueOper(Connection, Oper);
+    if (Flags & QUIC_STREAM_START_FLAG_PRIORITY_WORK) {
+        QuicConnQueueHighPriorityOper(Connection, Oper);
+    } else {
+        QuicConnQueueOper(Connection, Oper);
+    }
     Status = QUIC_STATUS_PENDING;
 
 Exit:
@@ -1004,6 +1008,7 @@ MsQuicStreamSend(
     uint64_t TotalLength;
     QUIC_SEND_REQUEST* SendRequest;
     BOOLEAN QueueOper = TRUE;
+    const BOOLEAN IsPriority = Flags & QUIC_SEND_FLAG_PRIORITY_WORK;
     BOOLEAN SendInline;
     QUIC_OPERATION* Oper;
 
@@ -1170,7 +1175,7 @@ MsQuicStreamSend(
             Oper->API_CALL.Context->CONN_SHUTDOWN.ErrorCode = (QUIC_VAR_INT)QUIC_STATUS_OUT_OF_MEMORY;
             Oper->API_CALL.Context->CONN_SHUTDOWN.RegistrationShutdown = FALSE;
             Oper->API_CALL.Context->CONN_SHUTDOWN.TransportShutdown = TRUE;
-            QuicConnQueueOper(Connection, Oper);
+            QuicConnQueueHighestPriorityOper(Connection, Oper);
             goto Exit;
         }
 
@@ -1180,7 +1185,11 @@ MsQuicStreamSend(
         //
         // Queue the operation but don't wait for the completion.
         //
-        QuicConnQueueOper(Connection, Oper);
+        if (IsPriority) {
+            QuicConnQueueHighPriorityOper(Connection, Oper);
+        } else {
+            QuicConnQueueOper(Connection, Oper);
+        }
     }
 
 Exit:
@@ -1372,6 +1381,8 @@ MsQuicSetParam(
         Handle);
 
     QUIC_STATUS Status;
+    const BOOLEAN IsPriority = !!(Param & QUIC_PARAM_HIGH_PRIORITY);
+    Param &= ~QUIC_PARAM_HIGH_PRIORITY;
 
     if (QUIC_PARAM_IS_GLOBAL(Param)) {
         //
@@ -1442,7 +1453,11 @@ MsQuicSetParam(
     //
     // Queue the operation and wait for it to be processed.
     //
-    QuicConnQueueOper(Connection, &Oper);
+    if (IsPriority) {
+        QuicConnQueueHighPriorityOper(Connection, &Oper);
+    } else {
+        QuicConnQueueOper(Connection, &Oper);
+    }
     QuicTraceEvent(
         ApiWaitOperation,
         "[ api] Waiting on operation");
@@ -1483,13 +1498,15 @@ MsQuicGetParam(
         return QUIC_STATUS_INVALID_PARAMETER;
     }
 
-    QUIC_STATUS Status;
-
     QuicTraceEvent(
         ApiEnter,
         "[ api] Enter %u (%p).",
         QUIC_TRACE_API_GET_PARAM,
         Handle);
+
+    QUIC_STATUS Status;
+    const BOOLEAN IsPriority = !!(Param & QUIC_PARAM_HIGH_PRIORITY);
+    Param &= ~QUIC_PARAM_HIGH_PRIORITY;
 
     if (QUIC_PARAM_IS_GLOBAL(Param)) {
         //
@@ -1560,7 +1577,11 @@ MsQuicGetParam(
     //
     // Queue the operation and wait for it to be processed.
     //
-    QuicConnQueueOper(Connection, &Oper);
+    if (IsPriority) {
+        QuicConnQueueHighPriorityOper(Connection, &Oper);
+    } else {
+        QuicConnQueueOper(Connection, &Oper);
+    }
     QuicTraceEvent(
         ApiWaitOperation,
         "[ api] Waiting on operation");

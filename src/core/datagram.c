@@ -328,6 +328,7 @@ QuicDatagramQueueSend(
 {
     QUIC_STATUS Status;
     BOOLEAN QueueOper = TRUE;
+    BOOLEAN IsPriority = !!(SendRequest->Flags & QUIC_SEND_FLAG_PRIORITY_WORK);
     QUIC_CONNECTION* Connection = QuicDatagramGetConnection(Datagram);
 
     CxPlatDispatchLockAcquire(&Datagram->ApiQueueLock);
@@ -388,7 +389,11 @@ QuicDatagramQueueSend(
         //
         // Queue the operation but don't wait for the completion.
         //
-        QuicConnQueueOper(Connection, Oper);
+        if (IsPriority) {
+            QuicConnQueueHighPriorityOper(Connection, Oper);
+        } else {
+            QuicConnQueueOper(Connection, Oper);
+        }
     }
 
 Exit:
