@@ -1008,7 +1008,7 @@ MsQuicStreamSend(
     uint64_t TotalLength;
     QUIC_SEND_REQUEST* SendRequest;
     BOOLEAN QueueOper = TRUE;
-    const BOOLEAN IsPriority = Flags & QUIC_SEND_FLAG_PRIORITY_WORK;
+    const BOOLEAN IsPriority = !!(Flags & QUIC_SEND_FLAG_PRIORITY_WORK);
     BOOLEAN SendInline;
     QUIC_OPERATION* Oper;
 
