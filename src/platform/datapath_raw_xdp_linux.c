@@ -43,6 +43,10 @@ struct XskSocketInfo {
     CXPLAT_LOCK UmemLock;
     uint64_t UmemFrameAddr[NUM_FRAMES];
     uint32_t UmemFrameFree;
+
+    // number of entries in FQ/CQ
+    uint32_t AvailableRx;
+    uint32_t OutstandingTx;
 };
 
 struct XskUmemInfo {
@@ -320,19 +324,21 @@ static QUIC_STATUS InitializeUmem(uint32_t FrameSize, uint32_t NumFrames, uint32
 
 static uint32_t XskUmemFrameAllocN(struct XskSocketInfo *Xsk, uint64_t* Frames, uint32_t N)
 {
+    uint32_t Allocated = 0;
     CxPlatLockAcquire(&Xsk->UmemLock);
-    if ( Xsk->UmemFrameFree < N) {
+    if (Xsk->UmemFrameFree < N) {
         QuicTraceLogVerbose(
             XdpUmemAllocFails,
             "[ xdp][umem] Out of UMEM frame, OOM");
-        return 0;
+        goto Error;
     }
 
     Xsk->UmemFrameFree -= N;
-    uint64_t *Ptr = &Xsk->UmemFrameAddr[Xsk->UmemFrameFree];
-    memcpy(Frames, Ptr, N * sizeof(uint64_t));
+    memcpy(Frames, &Xsk->UmemFrameAddr[Xsk->UmemFrameFree], N * sizeof(uint64_t));
+    Allocated = N;
+Error:
     CxPlatLockRelease(&Xsk->UmemLock);
-    return N;
+    return Allocated;
 }
 
 static void XskUmemFrameFreeN(struct XskSocketInfo *Xsk, uint64_t* Frames, uint32_t N)
@@ -607,6 +613,9 @@ CxPlatDpRawInterfaceInitialize(
         }
 
         xsk_ring_prod__submit(&XskInfo->UmemInfo->Fq, PROD_NUM_DESCS);
+
+        XskInfo->AvailableRx = PROD_NUM_DESCS;
+        XskInfo->OutstandingTx = 0;
     }
 
     //
@@ -1077,7 +1086,6 @@ CxPlatDpRawTxEnqueue(
     XDP_TX_PACKET* Packet = (XDP_TX_PACKET*)SendData;
     XDP_PARTITION* Partition = Packet->Queue->Partition;
     struct XskSocketInfo* XskInfo = Packet->Queue->XskInfo;
-    CxPlatLockAcquire(&XskInfo->UmemLock);
 
     uint32_t TxIdx = 0;
     if (xsk_ring_prod__reserve(&XskInfo->Tx, 1, &TxIdx) != 1) {
@@ -1094,6 +1102,7 @@ CxPlatDpRawTxEnqueue(
     tx_desc->len = SendData->Buffer.Length;
 
     xsk_ring_prod__submit(&XskInfo->Tx, 1);
+    XskInfo->OutstandingTx++;
     if (sendto(xsk_socket__fd(XskInfo->Xsk), NULL, 0, MSG_DONTWAIT, NULL, 0) < 0) {
         QuicTraceLogVerbose(
             FailSendTo,
@@ -1106,20 +1115,24 @@ CxPlatDpRawTxEnqueue(
 
     uint32_t Completed;
     uint32_t CqIdx;
+    uint64_t FreeingFrames[TX_BATCH_SIZE];
     Completed = xsk_ring_cons__peek(&XskInfo->UmemInfo->Cq, CONS_NUM_DESCS, &CqIdx);
-    if (Completed >= TX_BATCH_SIZE) {
-        uint64_t FreeingFrames[TX_BATCH_SIZE];
-        for (uint32_t i = 0; i < TX_BATCH_SIZE; i++) {
+    if (Completed > 0) {
+        uint32_t Freeing = Completed < TX_BATCH_SIZE ? Completed : TX_BATCH_SIZE;
+        for (uint32_t i = 0; i < Freeing; i++) {
             FreeingFrames[i] = *xsk_ring_cons__comp_addr(&XskInfo->UmemInfo->Cq, CqIdx++) - XskInfo->UmemInfo->TxHeadRoom;
         }
-        XskUmemFrameFreeN(XskInfo, FreeingFrames, TX_BATCH_SIZE);
+        XskUmemFrameFreeN(XskInfo, FreeingFrames, Freeing);
 
-        xsk_ring_cons__release(&XskInfo->UmemInfo->Cq, TX_BATCH_SIZE);
+        xsk_ring_cons__release(&XskInfo->UmemInfo->Cq, Freeing);
+        XskInfo->OutstandingTx -= Freeing;
         QuicTraceLogVerbose(
             ReleaseCons,
-            "[ xdp][cq  ] Release %d from completion queue", TX_BATCH_SIZE);
+            "[ xdp][cq  ] Release %d from completion queue", Freeing);
+        if (TX_BATCH_SIZE < Completed) {
+            xsk_ring_cons__cancel(&XskInfo->UmemInfo->Cq, Completed - TX_BATCH_SIZE);
+        }
     }
-    CxPlatLockRelease(&XskInfo->UmemLock);
 
     Partition->Ec.Ready = TRUE;
     CxPlatWakeExecutionContext(&Partition->Ec);
@@ -1207,7 +1220,8 @@ CxPlatXdpRx(
     // Process received packets
     CXPLAT_RECV_DATA* Buffers[RX_BATCH_SIZE] = {};
     uint32_t PacketCount = 0;
-    for (i = 0; i < Rcvd; i++) {
+    uint32_t Receiving = Rcvd < RX_BATCH_SIZE ? Rcvd : RX_BATCH_SIZE;
+    for (i = 0; i < Receiving; i++) {
         uint64_t Addr = xsk_ring_cons__rx_desc(&XskInfo->Rx, RxIdx)->addr;
         uint32_t Len = xsk_ring_cons__rx_desc(&XskInfo->Rx, RxIdx++)->len;
         uint8_t *FrameBuffer = xsk_umem__get_data(XskInfo->UmemInfo->Buffer, Addr);
@@ -1248,25 +1262,32 @@ CxPlatXdpRx(
         }
     }
 
-    if (Rcvd) {
-        xsk_ring_cons__release(&XskInfo->Rx, Rcvd);
+    if (Receiving) {
+        xsk_ring_cons__release(&XskInfo->Rx, Receiving);
+        XskInfo->AvailableRx -= Receiving;
+        if (RX_BATCH_SIZE < Rcvd) { // never happen?
+            xsk_ring_cons__cancel(&XskInfo->Rx, Rcvd - RX_BATCH_SIZE);
+        }
     }
 
     // Stuff the ring with new buffers
-    if (xsk_prod_nb_free(&XskInfo->UmemInfo->Fq, RX_BATCH_SIZE) >= RX_BATCH_SIZE) {
+    uint32_t Available = xsk_prod_nb_free(&XskInfo->UmemInfo->Fq, RX_BATCH_SIZE);
+    if (Available > 0) {
         uint64_t Frames[RX_BATCH_SIZE];
-        xsk_ring_prod__reserve(&XskInfo->UmemInfo->Fq, RX_BATCH_SIZE, &FqIdx);
+        uint32_t Filling = Available < RX_BATCH_SIZE ? Available : RX_BATCH_SIZE;
+        xsk_ring_prod__reserve(&XskInfo->UmemInfo->Fq, Filling, &FqIdx);
 
-        if (XskUmemFrameAllocN(XskInfo, Frames, RX_BATCH_SIZE) == 0) {
+        if (XskUmemFrameAllocN(XskInfo, Frames, Filling) == 0) {
             QuicTraceLogVerbose(
                 FailRxAlloc,
                 "[ xdp][rx  ] OOM for Rx");
             goto Done;
         }
-        for (i = 0; i < RX_BATCH_SIZE; i++) {
+        for (i = 0; i < Filling; i++) {
             *xsk_ring_prod__fill_addr(&XskInfo->UmemInfo->Fq, FqIdx++) = Frames[i];
         }
-        xsk_ring_prod__submit(&XskInfo->UmemInfo->Fq, RX_BATCH_SIZE);
+        xsk_ring_prod__submit(&XskInfo->UmemInfo->Fq, Filling);
+        XskInfo->AvailableRx += Filling;
     }
 
 Done:
