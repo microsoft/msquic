@@ -74,7 +74,7 @@ jobs:
         $packageName = "$pluginId-$pluginVersion.ptix"
         Write-Host "Creating $packageName"
         & plugintool pack -s $sourceDir -o "artifacts/bin/quictrace/$packageName"
-    - uses: actions/upload-artifact@1746f4ab65b179e0ea60a494b83293b640dd5bba
+    - uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808
       with:
         name: ptix_quictrace_${{ matrix.configuration }}
         path: artifacts/bin/quictrace/QuicTrace-1.0.0.ptix
