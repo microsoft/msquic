@@ -389,6 +389,12 @@ function CMake-Generate {
                 "arm64" { $Arguments += " -DCMAKE_CXX_COMPILER_TARGET=aarch64-linux-gnu -DCMAKE_C_COMPILER_TARGET=aarch64-linux-gnu -DCMAKE_TARGET_ARCHITECTURE=arm64" }
                 "arm" { $Arguments += " -DCMAKE_CXX_COMPILER_TARGET=arm-linux-gnueabihf  -DCMAKE_C_COMPILER_TARGET=arm-linux-gnueabihf -DCMAKE_TARGET_ARCHITECTURE=arm" }
             }
+
+            # to build with pkg-config
+            switch ($Arch) {
+                "arm"   { $env:PKG_CONFIG_PATH="$SysRoot/usr/lib/arm-linux-gnueabihf/pkgconfig" }
+                "arm64" { $env:PKG_CONFIG_PATH="$SysRoot/usr/lib/aarch64-linux-gnu/pkgconfig" }
+            }
        }
     }
     if($Static) {
@@ -489,7 +495,8 @@ function CMake-Generate {
         $Arguments += " -DQUIC_USE_XDP=on"
     }
     if ($Platform -eq "android") {
-        $env:PATH = "$env:ANDROID_NDK_LATEST_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin:$env:PATH"
+        $NDK = $env:ANDROID_NDK_LATEST_HOME -replace '26\.\d+\.\d+', '25.2.9519653' # Temporary work around. Use RegEx to replace newer version.
+        $env:PATH = "$NDK/toolchains/llvm/prebuilt/linux-x86_64/bin:$env:PATH"
         switch ($Arch) {
             "x86"   { $Arguments += " -DANDROID_ABI=x86"}
             "x64"   { $Arguments += " -DANDROID_ABI=x86_64" }
@@ -497,8 +504,7 @@ function CMake-Generate {
             "arm64" { $Arguments += " -DANDROID_ABI=arm64-v8a" }
         }
         $Arguments += " -DANDROID_PLATFORM=android-29"
-        $NDK = $env:ANDROID_NDK_LATEST_HOME
-        $env:ANDROID_NDK_HOME = $env:ANDROID_NDK_LATEST_HOME
+        $env:ANDROID_NDK_HOME = $NDK
         $NdkToolchainFile = "$NDK/build/cmake/android.toolchain.cmake"
         $Arguments += " -DANDROID_NDK=""$NDK"""
         $Arguments += " -DCMAKE_TOOLCHAIN_FILE=""$NdkToolchainFile"""
