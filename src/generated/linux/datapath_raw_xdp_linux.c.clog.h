@@ -476,51 +476,15 @@ tracepoint(CLOG_DATAPATH_RAW_XDP_LINUX_C, FailTxAlloc );\
 
 
 /*----------------------------------------------------------
-// Decoder Ring for FailTxReserve
-// [ xdp][tx  ] Failed to reserve
-// QuicTraceLogVerbose(
-            FailTxReserve,
-            "[ xdp][tx  ] Failed to reserve");
-----------------------------------------------------------*/
-#ifndef _clog_2_ARGS_TRACE_FailTxReserve
-#define _clog_2_ARGS_TRACE_FailTxReserve(uniqueId, encoded_arg_string)\
-tracepoint(CLOG_DATAPATH_RAW_XDP_LINUX_C, FailTxReserve );\
-
-#endif
-
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for FailSendTo
-// [ xdp][tx  ] Faild sendto. errno:%d, Umem addr:%lld
-// QuicTraceLogVerbose(
-                FailSendTo,
-                "[ xdp][tx  ] Faild sendto. errno:%d, Umem addr:%lld", errno, tx_desc->addr);
-// arg2 = arg2 = errno = arg2
-// arg3 = arg3 = tx_desc->addr = arg3
-----------------------------------------------------------*/
-#ifndef _clog_4_ARGS_TRACE_FailSendTo
-#define _clog_4_ARGS_TRACE_FailSendTo(uniqueId, encoded_arg_string, arg2, arg3)\
-tracepoint(CLOG_DATAPATH_RAW_XDP_LINUX_C, FailSendTo , arg2, arg3);\
-
-#endif
-
-
-
-
-/*----------------------------------------------------------
 // Decoder Ring for DoneSendTo
-// [ xdp][TX  ] Done sendto. len:%d, Umem addr:%lld
+// [ xdp][TX  ] Done sendto.
 // QuicTraceLogVerbose(
         DoneSendTo,
-        "[ xdp][TX  ] Done sendto. len:%d, Umem addr:%lld", SendData->Buffer.Length, tx_desc->addr);
-// arg2 = arg2 = SendData->Buffer.Length = arg2
-// arg3 = arg3 = tx_desc->addr = arg3
+        "[ xdp][TX  ] Done sendto.");
 ----------------------------------------------------------*/
-#ifndef _clog_4_ARGS_TRACE_DoneSendTo
-#define _clog_4_ARGS_TRACE_DoneSendTo(uniqueId, encoded_arg_string, arg2, arg3)\
-tracepoint(CLOG_DATAPATH_RAW_XDP_LINUX_C, DoneSendTo , arg2, arg3);\
+#ifndef _clog_2_ARGS_TRACE_DoneSendTo
+#define _clog_2_ARGS_TRACE_DoneSendTo(uniqueId, encoded_arg_string)\
+tracepoint(CLOG_DATAPATH_RAW_XDP_LINUX_C, DoneSendTo );\
 
 #endif
 
@@ -538,6 +502,22 @@ tracepoint(CLOG_DATAPATH_RAW_XDP_LINUX_C, DoneSendTo , arg2, arg3);\
 #ifndef _clog_3_ARGS_TRACE_ReleaseCons
 #define _clog_3_ARGS_TRACE_ReleaseCons(uniqueId, encoded_arg_string, arg2)\
 tracepoint(CLOG_DATAPATH_RAW_XDP_LINUX_C, ReleaseCons , arg2);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for FailTxReserve
+// [ xdp][tx  ] Failed to reserve
+// QuicTraceLogVerbose(
+            FailTxReserve,
+            "[ xdp][tx  ] Failed to reserve");
+----------------------------------------------------------*/
+#ifndef _clog_2_ARGS_TRACE_FailTxReserve
+#define _clog_2_ARGS_TRACE_FailTxReserve(uniqueId, encoded_arg_string)\
+tracepoint(CLOG_DATAPATH_RAW_XDP_LINUX_C, FailTxReserve );\
 
 #endif
 

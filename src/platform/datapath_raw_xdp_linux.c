@@ -1080,14 +1080,17 @@ KickTx(
     )
 {
     struct XskSocketInfo* XskInfo = Queue->XskInfo;
-    while (sendto(xsk_socket__fd(XskInfo->Xsk), NULL, 0, MSG_DONTWAIT, NULL, 0) < 0) {
-        if (errno == EBUSY || errno == EAGAIN) {
+    if (sendto(xsk_socket__fd(XskInfo->Xsk), NULL, 0, MSG_DONTWAIT, NULL, 0) < 0) {
+        if (errno != EAGAIN && errno != EWOULDBLOCK) {
             if (!SendAlreadyPending) {
                 XdpSocketContextSetEvents(Queue, EPOLL_CTL_MOD, EPOLLIN | EPOLLOUT);
-                return;
             }
+            return;
         }
     }
+    QuicTraceLogVerbose(
+        DoneSendTo,
+        "[ xdp][TX  ] Done sendto.");
 
     if (SendAlreadyPending) {
         XdpSocketContextSetEvents(Queue, EPOLL_CTL_MOD, EPOLLIN);
