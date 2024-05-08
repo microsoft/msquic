@@ -35,14 +35,14 @@ jobs:
     runs-on: windows-latest
     steps:
     - name: Checkout repository
-      uses: actions/checkout@1d96c772d19495a3b5c517cd2bc0cb401ea0529f
+      uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b
     - name: Prepare Machine
       shell: pwsh
       run: scripts/prepare-machine.ps1 -ForBuild -DisableTest
     - name: Prepare Machine
       shell: pwsh
       run: scripts/build.ps1 -Config Release -DisableTest -DisableTools
-    - uses: actions/upload-artifact@1746f4ab65b179e0ea60a494b83293b640dd5bba
+    - uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808
       with:
         name: bin
         path: |
@@ -83,11 +83,11 @@ jobs:
           queueRatio: 5 # Exceeds QueueLimitPackets limit of 100000
     steps:
     - name: Checkout repository
-      uses: actions/checkout@1d96c772d19495a3b5c517cd2bc0cb401ea0529f
+      uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b
     - name: Prepare Machine
       shell: pwsh
       run: scripts/prepare-machine.ps1 -ForTest -InstallDuoNic
-    - uses: actions/download-artifact@8caf195ad4b1dee92908e23f56eeb0696f1dd42d
+    - uses: actions/download-artifact@65a9edc5881444af0b9093a5e628f2fe47ea3b2e
       with:
         name: bin
         path: artifacts/bin
@@ -100,12 +100,12 @@ jobs:
       shell: pwsh
       run: scripts/emulated-performance.ps1 -Debug -Protocol ('QUIC','TCPTLS') -LogProfile Performance.Light -NoDateLogDir -NumIterations ${{ env.iterations }} -DurationMs ${{ env.duration }} -Pacing ${{ env.pacing }} -BottleneckMbps ${{ matrix.rate }} -RttMs ${{ matrix.rtt }} -BottleneckQueueRatio ${{ matrix.queueRatio }} -RandomLossDenominator ${{ env.loss }} -RandomReorderDenominator ${{ env.reorder }} -ReorderDelayDeltaMs ${{ env.delay }} -BaseRandomSeed ${{ env.seed }} -CongestionControl ${{ env.congestionControl }}
     - name: Upload Results
-      uses: actions/upload-artifact@1746f4ab65b179e0ea60a494b83293b640dd5bba
+      uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808
       with:
         name: data
         path: artifacts/PerfDataResults/windows/x64_Release_schannel/WAN/*.json
     - name: Upload Logs
-      uses: actions/upload-artifact@1746f4ab65b179e0ea60a494b83293b640dd5bba
+      uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808
       with:
         name: ${{ format('logs.{0}mbps.{1}ms', matrix.rate, matrix.rtt) }}
         path: artifacts/logs/wanperf/*.etl
@@ -116,10 +116,10 @@ jobs:
     needs: wan-perf
     steps:
     - name: Checkout repository
-      uses: actions/checkout@1d96c772d19495a3b5c517cd2bc0cb401ea0529f
+      uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b
       with:
         fetch-depth: 0
-    - uses: actions/download-artifact@8caf195ad4b1dee92908e23f56eeb0696f1dd42d
+    - uses: actions/download-artifact@65a9edc5881444af0b9093a5e628f2fe47ea3b2e
       with:
         name: data
         path: artifacts/PerfDataResults/windows/x64_Release_schannel/WAN
@@ -127,7 +127,7 @@ jobs:
       shell: pwsh
       run: scripts/emulated-performance.ps1 -MergeDataFiles
     - name: Upload CSV
-      uses: actions/upload-artifact@1746f4ab65b179e0ea60a494b83293b640dd5bba
+      uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808
       with:
         name: csv
         path: artifacts\PerfDataResults\windows\x64_Release_schannel\WAN\wan_data.csv

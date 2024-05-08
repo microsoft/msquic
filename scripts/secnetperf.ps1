@@ -68,7 +68,10 @@ param (
     [string]$filter = "",
 
     [Parameter(Mandatory = $false)]
-    [string]$RemoteName = "netperf-peer"
+    [string]$RemoteName = "netperf-peer",
+
+    [Parameter(Mandatory = $false)]
+    [string]$UserName = "secnetperf"
 )
 
 Set-StrictMode -Version "Latest"
@@ -77,7 +80,11 @@ $PSDefaultParameterValues["*:ErrorAction"] = "Stop"
 # Set up some important paths.
 $RemoteDir = "C:/_work/quic"
 if (!$isWindows) {
-    $RemoteDir = "/home/secnetperf/_work/quic"
+    if ($UserName -eq "root") {
+        $RemoteDir = "/$UserName/_work/quic"
+    } else {
+        $RemoteDir = "/home/$UserName/_work/quic"
+    }
 }
 $SecNetPerfDir = "artifacts/bin/$plat/$($arch)_Release_$tls"
 $SecNetPerfPath = "$SecNetPerfDir/secnetperf"
@@ -97,14 +104,24 @@ $useXDP = ($io -eq "xdp" -or $io -eq "qtip")
 
 # Set up the connection to the peer over remote powershell.
 Write-Host "Connecting to $RemoteName"
-if ($isWindows) {
-    $username = (Get-ItemProperty 'HKLM:\Software\Microsoft\Windows NT\CurrentVersion\Winlogon').DefaultUserName
-    $password = (Get-ItemProperty 'HKLM:\Software\Microsoft\Windows NT\CurrentVersion\Winlogon').DefaultPassword | ConvertTo-SecureString -AsPlainText -Force
-    $cred = New-Object System.Management.Automation.PSCredential ($username, $password)
-    $Session = New-PSSession -ComputerName $RemoteName -Credential $cred -ConfigurationName PowerShell.7
-} else {
-    $Session = New-PSSession -HostName $RemoteName -UserName secnetperf -SSHTransport
+$Attempts = 0
+while ($Attempts -lt 5) {
+    try {
+        if ($isWindows) {
+            $username = (Get-ItemProperty 'HKLM:\Software\Microsoft\Windows NT\CurrentVersion\Winlogon').DefaultUserName
+            $password = (Get-ItemProperty 'HKLM:\Software\Microsoft\Windows NT\CurrentVersion\Winlogon').DefaultPassword | ConvertTo-SecureString -AsPlainText -Force
+            $cred = New-Object System.Management.Automation.PSCredential ($username, $password)
+            $Session = New-PSSession -ComputerName $RemoteName -Credential $cred -ConfigurationName PowerShell.7
+        } else {
+            $Session = New-PSSession -HostName $RemoteName -UserName $UserName -SSHTransport
+        }
+        break
+    } catch {
+        $Attempts += 1
+        Start-Sleep -Seconds 10
+    }
 }
+
 if ($null -eq $Session) {
     Write-GHError "Failed to create remote session"
     exit 1
@@ -225,19 +242,29 @@ if ($isWindows) {
 Configure-DumpCollection $Session
 
 # Install any dependent drivers.
-if ($useXDP) { Install-XDP $Session $RemoteDir }
+if ($useXDP -and $isWindows) { Install-XDP $Session $RemoteDir }
 if ($io -eq "wsk") { Install-Kernel $Session $RemoteDir $SecNetPerfDir }
 
 if (!$isWindows) {
     # Make sure the secnetperf binary is executable.
     Write-Host "Updating secnetperf permissions"
+    $GRO = "on"
+    if ($io -eq "xdp") {
+        $GRO = "off"
+    }
     Invoke-Command -Session $Session -ScriptBlock {
         $env:LD_LIBRARY_PATH = "${env:LD_LIBRARY_PATH}:$Using:RemoteDir/$Using:SecNetPerfDir"
         chmod +x "$Using:RemoteDir/$Using:SecNetPerfPath"
+        if ($Using:os -eq "ubuntu-22.04") {
+            sudo sh -c "ethtool -K eth0 generic-receive-offload $Using:GRO"
+        }
     }
     $fullPath = Repo-Path $SecNetPerfDir
     $env:LD_LIBRARY_PATH = "${env:LD_LIBRARY_PATH}:$fullPath"
     chmod +x "./$SecNetPerfPath"
+    if ($os -eq "ubuntu-22.04") {
+        sudo sh -c "ethtool -K eth0 generic-receive-offload $GRO"
+    }
 
     if ((Get-Content "/etc/security/limits.conf") -notcontains "root soft core unlimited") {
         # Enable core dumps for the system.
@@ -260,7 +287,7 @@ $regressionJson = Get-Content -Raw -Path "watermark_regression.json" | ConvertFr
 Write-Host "Setup complete! Running all tests"
 foreach ($testId in $allTests.Keys) {
     $ExeArgs = $allTests[$testId] + " -io:$io"
-    $Output = Invoke-Secnetperf $Session $RemoteName $RemoteDir $SecNetPerfPath $LogProfile $testId $ExeArgs $io $filter
+    $Output = Invoke-Secnetperf $Session $RemoteName $RemoteDir $UserName $SecNetPerfPath $LogProfile $testId $ExeArgs $io $filter
     $Test = $Output[-1]
     if ($Test.HasFailures) { $hasFailures = $true }
 

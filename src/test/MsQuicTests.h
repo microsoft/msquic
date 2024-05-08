@@ -539,6 +539,10 @@ QuicTestNthAllocFail(
     );
 
 void
+QuicTestNthPacketDrop(
+    );
+
+void
 QuicTestStreamPriority(
     );
 
@@ -1287,4 +1291,7 @@ typedef struct {
     QUIC_CTL_CODE(120, METHOD_BUFFERED, FILE_WRITE_DATA)
     // BOOLEAN - ClientShutdown
 
-#define QUIC_MAX_IOCTL_FUNC_CODE 120
+#define IOCTL_QUIC_RUN_NTH_PACKET_DROP \
+    QUIC_CTL_CODE(121, METHOD_BUFFERED, FILE_WRITE_DATA)
+
+#define QUIC_MAX_IOCTL_FUNC_CODE 121

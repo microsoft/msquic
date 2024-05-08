@@ -187,7 +187,6 @@ Commands below automatically install dependencies and setup runtime environment.
 ```sh
 pwsh ./scripts/prepare-machine.ps1 -UseXdp
 pwsh ./scripts/build.ps1
-export MSQUIC_ENABLE_XDP=1
 ```
 
 `./scripts/prepare-machine.ps1` internally does the below commands:
@@ -208,11 +207,11 @@ sudo ./scripts/duonic.sh install
 
 Test
 ```sh
-# "sudo" and MSQUIC_ENABLE_XDP=1 required
+# "sudo" and --duoNic required
 # You can explicitly specify directory of datapath_raw_xdp_kern.o by MSQUIC_XDP_OBJECT_PATH
 # By default, libmsquic.so searchs for same directory as its executable
 # If something failed, fallback to normal socket
-sudo MSQUIC_ENABLE_XDP=1 ./artifacts/bin/linux/x64_Debug_openssl3/msquictest --duoNic
+sudo ./artifacts/bin/linux/x64_Debug_openssl3/msquictest --duoNic
 ```
 
 **Q&A**
