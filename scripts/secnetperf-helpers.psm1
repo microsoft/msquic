@@ -504,7 +504,7 @@ function Invoke-Secnetperf {
     }
 
      # Linux XDP requires sudo for now
-    $sudo = (!$IsWindows -and $io -eq "xdp") ? "sudo -E " : ""
+    $sudo = (!$IsWindows -and $io -eq "xdp") ? "sudo -E LD_LIBRARY_PATH=$RemoteDir/$(Split-Path $SecNetPerfPath -Parent) " : ""
 
     $artifactName = $tcp -eq 0 ? "$TestId-quic" : "$TestId-tcp"
     New-Item -ItemType Directory "artifacts/logs/$artifactName" -ErrorAction Ignore | Out-Null
