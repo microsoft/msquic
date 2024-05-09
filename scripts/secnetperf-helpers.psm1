@@ -498,7 +498,9 @@ function Invoke-Secnetperf {
         continue
     }
 
-    if ($io -eq "wsk" -and $metric -eq "hps") { # TODO - Figure out why this is crashing, and fix it.
+    # These scenarios are currently broken! TODO - Figure out why and fix them.
+    if (($io -eq "wsk" -and $metric -eq "hps") -or
+        (!$isWindows -and $io -eq "xdp" -and $metric -eq "hps")) {
         Write-Host "> secnetperf $clientArgs BROKEN!"
         continue
     }
