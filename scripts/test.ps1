@@ -367,7 +367,7 @@ for ($iteration = 1; $iteration -le $NumIterations; $iteration++) {
     foreach ($TestPath in $TestPaths) {
         if ($IsLinux -and $UseXdp) {
             $NOFILE = Invoke-Expression "bash -c 'ulimit -n'"
-            Invoke-Expression ('/usr/bin/sudo pwsh -c "ulimit -n $NOFILE && $RunTest -Path $TestPath $TestArguments"')
+            Invoke-Expression ('/usr/bin/sudo bash -c "ulimit -n $NOFILE && $RunTest -Path $TestPath $TestArguments"')
         } else {
             Invoke-Expression ($RunTest + " -Path $TestPath " + $TestArguments)
         }
