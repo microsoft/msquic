@@ -314,7 +314,7 @@ function Start-LocalTest {
         $CommonCommand = "ulimit -n $NOFILE && ulimit -c unlimited && LSAN_OPTIONS=report_objects=1 ASAN_OPTIONS=disable_coredump=0:abort_on_error=1 UBSAN_OPTIONS=halt_on_error=1:print_stacktrace=1 $FullPath $FullArgs && echo ''"
         if ($UseSudo) {
             $pinfo.FileName = "/usr/bin/sudo"
-            $pinfo.Arguments = "/usr/bin/bash -c `"$CommonCommand`""
+            $pinfo.Arguments = "/usr/bin/bash -c `"$CommonCommand`" 2>&1"
         } else {
             $pinfo.FileName = "bash"
             $pinfo.Arguments = "-c `"$CommonCommand`""
@@ -328,6 +328,10 @@ function Start-LocalTest {
     $p.StartInfo = $pinfo
     $p.Start() | Out-Null
     $p
+
+    $p.WaitForExit()
+    $stdout = $p.StandardOutput.ReadToEnd()
+    Write-Host $stdout
 }
 
 # Waits for a local test process to complete, and then returns the console output.
