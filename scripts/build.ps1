@@ -57,7 +57,7 @@ This script provides helpers for building msquic.
 .PARAMETER PGO
     Builds msquic with profile guided optimization support (Windows-only).
 
-.PARAMETER EnableXDP
+.PARAMETER EnableLinuxXDP
     Enables XDP support (Linux-only).
 
 .PARAMETER Generator
@@ -170,7 +170,7 @@ param (
     [switch]$PGO = $false,
 
     [Parameter(Mandatory = $false)]
-    [switch]$EnableXDP = $false,
+    [switch]$EnableLinuxXDP = $false,
 
     [Parameter(Mandatory = $false)]
     [string]$Generator = "",
@@ -271,9 +271,9 @@ if ($Arch -eq "arm64ec") {
     }
 }
 
-if (!$IsLinux -Or $Arch -ne "x64") {
-    if ($EnableXDP) {
-        Write-Error "XDP is supported only on Linux x64"
+if ($IsLinux -And $Arch -ne "x64") {
+    if ($EnableLinuxXDP) {
+        Write-Error "Linux XDP is supported only on x64 platforms"
     }
 }
 
@@ -469,8 +469,8 @@ function CMake-Generate {
     if ($PGO) {
         $Arguments += " -DQUIC_PGO=on"
     }
-    if ($EnableXDP) {
-        $Arguments += " -DQUIC_XDP_ENABLED=on"
+    if ($EnableLinuxXDP) {
+        $Arguments += " -DQUIC_LINUX_XDP_ENABLED=on"
     }
     if ($Platform -eq "uwp") {
         $Arguments += " -DCMAKE_SYSTEM_NAME=WindowsStore -DCMAKE_SYSTEM_VERSION=10.0 -DQUIC_UWP_BUILD=on"
