@@ -303,15 +303,22 @@ function Stop-RemoteServer {
 
 # Creates a new local process to asynchronously run the test.
 function Start-LocalTest {
-    param ($FullPath, $FullArgs, $OutputDir)
+    param ($FullPath, $FullArgs, $OutputDir, $UseSudo = $false)
     $pinfo = New-Object System.Diagnostics.ProcessStartInfo
     if ($IsWindows) {
         $pinfo.FileName = $FullPath
         $pinfo.Arguments = $FullArgs
     } else {
         # We use bash to execute the test so we can collect core dumps.
-        $pinfo.FileName = "bash"
-        $pinfo.Arguments = "-c `"ulimit -c unlimited && LSAN_OPTIONS=report_objects=1 ASAN_OPTIONS=disable_coredump=0:abort_on_error=1 UBSAN_OPTIONS=halt_on_error=1:print_stacktrace=1 $FullPath $FullArgs && echo ''`""
+        $NOFILE = Invoke-Expression "bash -c 'ulimit -n'"
+        $CommonCommand = "ulimit -n $NOFILE && ulimit -c unlimited && LSAN_OPTIONS=report_objects=1 ASAN_OPTIONS=disable_coredump=0:abort_on_error=1 UBSAN_OPTIONS=halt_on_error=1:print_stacktrace=1 $FullPath $FullArgs && echo ''"
+        if ($UseSudo) {
+            $pinfo.FileName = "/usr/bin/sudo"
+            $pinfo.Arguments = "bash -c `"$CommonCommand`""
+        } else {
+            $pinfo.FileName = "bash"
+            $pinfo.Arguments = "-c `"$CommonCommand`""
+        }
         $pinfo.WorkingDirectory = $OutputDir
     }
     $pinfo.RedirectStandardOutput = $true
@@ -546,7 +553,7 @@ function Invoke-Secnetperf {
         Write-Host "==============================`nRUN $($try+1):"
         "> secnetperf $clientArgs" | Add-Content $clientOut
         try {
-            $process = Start-LocalTest "$sudo$clientPath" $clientArgs $artifactDir
+            $process = Start-LocalTest "$clientPath" $clientArgs $artifactDir $sudo -ne ""
             $rawOutput = Wait-LocalTest $process $artifactDir ($io -eq "wsk") 30000
             Write-Host $rawOutput
             $values[$tcp] += Get-TestOutput $rawOutput $metric
