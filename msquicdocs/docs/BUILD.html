@@ -216,7 +216,7 @@ sudo dnf install libatomic
 <p>Linux XDP is experimentally supported on amd64 &amp;&amp; Ubuntu 22.04LTS.<br>
 Commands below automatically install dependencies and setup runtime environment.</p>
 <pre><code class="lang-sh">pwsh ./scripts/prepare-machine.ps1 -UseXdp
-pwsh ./scripts/build.ps1
+pwsh ./scripts/build.ps1 -EnableLinuxXDP
 </code></pre>
 <p><code>./scripts/prepare-machine.ps1</code> internally does the below commands:</p>
 <pre><code class="lang-sh"># for libxdp v1.4.2
