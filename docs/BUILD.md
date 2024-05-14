@@ -186,7 +186,7 @@ Linux XDP is experimentally supported on amd64 && Ubuntu 22.04LTS.
 Commands below automatically install dependencies and setup runtime environment.
 ```sh
 pwsh ./scripts/prepare-machine.ps1 -UseXdp
-pwsh ./scripts/build.ps1
+pwsh ./scripts/build.ps1 -EnableLinuxXDP
 ```
 
 `./scripts/prepare-machine.ps1` internally does the below commands:
