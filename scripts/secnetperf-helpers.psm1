@@ -328,10 +328,6 @@ function Start-LocalTest {
     $p.StartInfo = $pinfo
     $p.Start() | Out-Null
     $p
-
-    $p.WaitForExit()
-    $stdout = $p.StandardOutput.ReadToEnd()
-    Write-Host $stdout
 }
 
 # Waits for a local test process to complete, and then returns the console output.
@@ -359,7 +355,8 @@ function Wait-LocalTest {
             $Out = $StdOut.Result.Trim()
             if ($Out.Length -ne 0) { Write-Host $Out }
         } catch {}
-        # throw "secnetperf: Nonzero exit code: $($Process.ExitCode)"
+        Write-Host $StdError.Result.Trim()
+        Write-Host "secnetperf: Nonzero exit code: $($Process.ExitCode)"
     }
     # Wait for the output streams to flush.
     [System.Threading.Tasks.Task]::WaitAll(@($StdOut, $StdError))
