@@ -86,6 +86,16 @@ if (!$isWindows) {
         $RemoteDir = "/home/$UserName/_work/quic"
     }
 }
+
+# Azure environment specific setup.
+if ($environment -eq "azure") {
+    if ($isWindows) {
+        $RemoteDir = "C:/"
+    } else {
+        # TODO
+    }
+}
+
 $SecNetPerfDir = "artifacts/bin/$plat/$($arch)_Release_$tls"
 $SecNetPerfPath = "$SecNetPerfDir/secnetperf"
 if ($io -eq "") {
@@ -106,6 +116,14 @@ $useXDP = ($io -eq "xdp" -or $io -eq "qtip")
 Write-Host "Connecting to $RemoteName"
 $Attempts = 0
 while ($Attempts -lt 5) {
+    if ($environment -eq "azure") {
+        if ($isWindows) {
+            $Session = New-PSSession -ComputerName $RemoteName
+        } else {
+            # TODO
+        }
+        continue
+    }
     try {
         if ($isWindows) {
             $username = (Get-ItemProperty 'HKLM:\Software\Microsoft\Windows NT\CurrentVersion\Winlogon').DefaultUserName
