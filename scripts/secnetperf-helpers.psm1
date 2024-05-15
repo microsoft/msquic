@@ -257,7 +257,6 @@ function Start-RemoteServer {
     param ($Session, $Command, $Args, $UseSudo)
     # Start the server on the remote in an async job.
     if ($UseSudo) {
-        Write-Host "Start-RemoteServer" $(Split-Path $Command -Parent)
         $job = Invoke-Command -Session $Session -ScriptBlock { iex "sudo LD_LIBRARY_PATH=$(Split-Path $Using:Command -Parent)  $Using:Command $Using:Args" } -AsJob
     } else {
         $job = Invoke-Command -Session $Session -ScriptBlock { iex "$Using:Command $Using:Args"} -AsJob
@@ -318,7 +317,6 @@ function Start-LocalTest {
         $NOFILE = Invoke-Expression "bash -c 'ulimit -n'"
         $CommonCommand = "ulimit -n $NOFILE && ulimit -c unlimited && LSAN_OPTIONS=report_objects=1 ASAN_OPTIONS=disable_coredump=0:abort_on_error=1 UBSAN_OPTIONS=halt_on_error=1:print_stacktrace=1 $FullPath $FullArgs && echo ''"
         if ($UseSudo) {
-            Write-Host "Start-LocalTest" $(Split-Path $FullPath -Parent)
             $pinfo.FileName = "/usr/bin/sudo"
             $pinfo.Arguments = "/usr/bin/bash -c `"export LD_LIBRARY_PATH=$(Split-Path $FullPath -Parent) && $CommonCommand`""
         } else {
@@ -361,8 +359,7 @@ function Wait-LocalTest {
             $Out = $StdOut.Result.Trim()
             if ($Out.Length -ne 0) { Write-Host $Out }
         } catch {}
-        Write-Host $StdError.Result.Trim()
-        Write-Host "secnetperf: Nonzero exit code: $($Process.ExitCode)"
+        throw "secnetperf: Nonzero exit code: $($Process.ExitCode)"
     }
     # Wait for the output streams to flush.
     [System.Threading.Tasks.Task]::WaitAll(@($StdOut, $StdError))
@@ -555,7 +552,7 @@ function Invoke-Secnetperf {
     # TODO: Once all failures have been fixed, consider all errors fatal.
     $successCount = 0
     $testFailures = $false
-    for ($try = 0; $try -lt 1; $try++) {
+    for ($try = 0; $try -lt 3; $try++) {
         Write-Host "==============================`nRUN $($try+1):"
         "> secnetperf $clientArgs" | Add-Content $clientOut
         try {
