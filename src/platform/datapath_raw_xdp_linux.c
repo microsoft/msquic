@@ -270,6 +270,9 @@ CxPlatDpRawInterfaceUninitialize(
         }
 
         CxPlatLockUninitialize(&Queue->TxLock);
+        CxPlatLockUninitialize(&Queue->RxLock);
+        CxPlatLockUninitialize(&Queue->CqLock);
+        CxPlatLockUninitialize(&Queue->FqLock);
     }
 
     if (Interface->Queues != NULL) {
@@ -1098,6 +1101,7 @@ KickTx(
 
     uint32_t Completed;
     uint32_t CqIdx;
+    CxPlatLockAcquire(&Queue->CqLock);
     Completed = xsk_ring_cons__peek(&XskInfo->UmemInfo->Cq, CONS_NUM_DESCS, &CqIdx);
     if (Completed > 0) {
         CxPlatLockAcquire(&XskInfo->UmemLock);
@@ -1112,6 +1116,7 @@ KickTx(
             ReleaseCons,
             "[ xdp][cq  ] Release %d from completion queue", Completed);
     }
+    CxPlatLockRelease(&Queue->CqLock);
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -1121,10 +1126,12 @@ CxPlatDpRawTxEnqueue(
     )
 {
     XDP_TX_PACKET* Packet = (XDP_TX_PACKET*)SendData;
-    XDP_PARTITION* Partition = Packet->Queue->Partition;
-    struct XskSocketInfo* XskInfo = Packet->Queue->XskInfo;
+    XDP_QUEUE* Queue = Packet->Queue;
+    XDP_PARTITION* Partition = Queue->Partition;
+    struct XskSocketInfo* XskInfo = Queue->XskInfo;
 
     uint32_t TxIdx = 0;
+    CxPlatLockAcquire(&Queue->TxLock);
     if (xsk_ring_prod__reserve(&XskInfo->Tx, 1, &TxIdx) != 1) {
         CxPlatLockAcquire(&XskInfo->UmemLock);
         XskUmemFrameFree(XskInfo, Packet->UmemRelativeAddr);
@@ -1139,8 +1146,9 @@ CxPlatDpRawTxEnqueue(
     CXPLAT_FRE_ASSERT(tx_desc != NULL);
     tx_desc->addr = Packet->UmemRelativeAddr + XskInfo->UmemInfo->TxHeadRoom;
     tx_desc->len = SendData->Buffer.Length;
-
     xsk_ring_prod__submit(&XskInfo->Tx, 1);
+    CxPlatLockRelease(&Queue->TxLock);
+
     KickTx(Packet->Queue, FALSE);
 
     Partition->Ec.Ready = TRUE;
@@ -1226,6 +1234,7 @@ CxPlatXdpRx(
     uint32_t RxIdx = 0, FqIdx = 0;
     unsigned int ret;
 
+    CxPlatLockAcquire(&Queue->RxLock);
     Rcvd = xsk_ring_cons__peek(&XskInfo->Rx, RX_BATCH_SIZE, &RxIdx);
 
     // Process received packets
@@ -1274,8 +1283,10 @@ CxPlatXdpRx(
     if (Rcvd) {
         xsk_ring_cons__release(&XskInfo->Rx, Rcvd);
     }
+    CxPlatLockRelease(&Queue->RxLock);
 
     CxPlatLockAcquire(&XskInfo->UmemLock);
+    CxPlatLockAcquire(&Queue->FqLock);
     // Stuff the ring with as much frames as possible
     Available = xsk_prod_nb_free(&XskInfo->UmemInfo->Fq, XskUmemFreeFrames(XskInfo));
     if (Available > 0) {
@@ -1299,6 +1310,7 @@ CxPlatXdpRx(
             xsk_ring_prod__submit(&XskInfo->UmemInfo->Fq, i);
         }
     }
+    CxPlatLockRelease(&Queue->FqLock);
     CxPlatLockRelease(&XskInfo->UmemLock);
 
     if (PacketCount) {
