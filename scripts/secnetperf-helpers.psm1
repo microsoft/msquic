@@ -257,7 +257,8 @@ function Start-RemoteServer {
     param ($Session, $Command, $Args, $UseSudo)
     # Start the server on the remote in an async job.
     if ($UseSudo) {
-        $job = Invoke-Command -Session $Session -ScriptBlock { iex "sudo LD_LIBRARY_PATH=$(Split-Path $Using:Command -Parent)  $Using:Command $Using:Args" } -AsJob
+        Write-Host "Start-RemoteServer" $(Split-Path $Command -Parent)
+        $job = Invoke-Command -Session $Session -ScriptBlock { iex "sudo LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:$(Split-Path $Using:Command -Parent)  $Using:Command $Using:Args" } -AsJob
     } else {
         $job = Invoke-Command -Session $Session -ScriptBlock { iex "$Using:Command $Using:Args"} -AsJob
     }
@@ -317,8 +318,9 @@ function Start-LocalTest {
         $NOFILE = Invoke-Expression "bash -c 'ulimit -n'"
         $CommonCommand = "ulimit -n $NOFILE && ulimit -c unlimited && LSAN_OPTIONS=report_objects=1 ASAN_OPTIONS=disable_coredump=0:abort_on_error=1 UBSAN_OPTIONS=halt_on_error=1:print_stacktrace=1 $FullPath $FullArgs && echo ''"
         if ($UseSudo) {
+            Write-Host "Start-LocalTest" $(Split-Path $FullPath -Parent)
             $pinfo.FileName = "/usr/bin/sudo"
-            $pinfo.Arguments = "/usr/bin/bash -c `"LD_LIBRARY_PATH=$(Split-Path $FullPath -Parent) && $CommonCommand`""
+            $pinfo.Arguments = "/usr/bin/bash -c `"LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:$(Split-Path $FullPath -Parent) && $CommonCommand`""
         } else {
             $pinfo.FileName = "bash"
             $pinfo.Arguments = "-c `"$CommonCommand`""

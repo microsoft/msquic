@@ -261,6 +261,8 @@ if (!$isWindows) {
     }
     $fullPath = Repo-Path $SecNetPerfDir
     $env:LD_LIBRARY_PATH = "${env:LD_LIBRARY_PATH}:$fullPath"
+    Write-Host $RemoteDir/$SecNetPerfDir
+    Write-Host $fullPath
     chmod +x "./$SecNetPerfPath"
     if ($os -eq "ubuntu-22.04") {
         sudo sh -c "ethtool -K eth0 generic-receive-offload $GRO"
