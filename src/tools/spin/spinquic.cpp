@@ -10,6 +10,7 @@
 
 #include <vector>
 #include <map>
+#include <unordered_set>
 #include <mutex>
 #include <algorithm>
 
@@ -207,6 +208,8 @@ CXPLAT_LOCK RunThreadLock;
 
 const uint32_t MaxBufferSizes[] = { 0, 1, 2, 32, 50, 256, 500, 1000, 1024, 1400, 5000, 10000, 64000, 10000000 };
 static const size_t BufferCount = ARRAYSIZE(MaxBufferSizes);
+std::unordered_set<QUIC_BUFFER*> OrphanedBuffers;
+std::mutex OrphanedBuffersLock;
 
 struct SpinQuicGlobals {
     uint64_t StartTimeMs;
@@ -389,13 +392,10 @@ QUIC_STATUS QUIC_API SpinQuicHandleStreamEvent(HQUIC Stream, void* , QUIC_STREAM
 
     if (!ctx->Deleting && GetRandom(20) == 0) {
         MsQuic.StreamShutdown(Stream, (QUIC_STREAM_SHUTDOWN_FLAGS)GetRandom(16), 0);
-        return QUIC_STATUS_SUCCESS;
+        goto Exit;
     }
 
     switch (Event->Type) {
-    case QUIC_STREAM_EVENT_SEND_COMPLETE:
-        delete (QUIC_BUFFER*)Event->SEND_COMPLETE.ClientContext;
-        break;
     case QUIC_STREAM_EVENT_PEER_SEND_SHUTDOWN:
         MsQuic.StreamShutdown(Stream, (QUIC_STREAM_SHUTDOWN_FLAGS)GetRandom(16), 0);
         break;
@@ -434,6 +434,11 @@ QUIC_STATUS QUIC_API SpinQuicHandleStreamEvent(HQUIC Stream, void* , QUIC_STREAM
     }
     default:
         break;
+    }
+
+Exit:
+    if (Event->Type == QUIC_STREAM_EVENT_SEND_COMPLETE) {
+        delete (QUIC_BUFFER*)Event->SEND_COMPLETE.ClientContext;
     }
 
     return QUIC_STATUS_SUCCESS;
@@ -496,6 +501,10 @@ QUIC_STATUS QUIC_API SpinQuicHandleConnectionEvent(HQUIC Connection, void* , QUI
     }
     case QUIC_CONNECTION_EVENT_DATAGRAM_SEND_STATE_CHANGED:
         if (QUIC_DATAGRAM_SEND_STATE_IS_FINAL(Event->DATAGRAM_SEND_STATE_CHANGED.State)) {
+            {
+                std::lock_guard<std::mutex> Lock(OrphanedBuffersLock);
+                OrphanedBuffers.erase((QUIC_BUFFER*)Event->DATAGRAM_SEND_STATE_CHANGED.ClientContext);
+            }
             delete (QUIC_BUFFER*)Event->DATAGRAM_SEND_STATE_CHANGED.ClientContext;
         }
         break;
@@ -1140,9 +1149,17 @@ void Spin(Gbs& Gb, LockableVector<HQUIC>& Connections, std::vector<HQUIC>* Liste
             BAIL_ON_NULL_CONNECTION(Connection);
             auto Buffer = new(std::nothrow) QUIC_BUFFER;
             if (Buffer) {
+                {
+                    std::lock_guard<std::mutex> Lock(OrphanedBuffersLock);
+                    OrphanedBuffers.insert(Buffer);
+                }
                 Buffer->Buffer = Gb.SendBuffer;
                 Buffer->Length = MaxBufferSizes[GetRandom(BufferCount)];
                 if (QUIC_FAILED(MsQuic.DatagramSend(Connection, Buffer, 1, (QUIC_SEND_FLAGS)GetRandom(8), Buffer))) {
+                    {
+                        std::lock_guard<std::mutex> Lock(OrphanedBuffersLock);
+                        OrphanedBuffers.erase(Buffer);
+                    }
                     delete Buffer;
                 }
             }
@@ -1587,6 +1604,10 @@ void start() {
                 CxPlatThreadDelete(&Threads[j]);
             }
         }
+    }
+
+    for (auto &Buffer : OrphanedBuffers) {
+        delete Buffer;
     }
 
     CxPlatLockUninitialize(&RunThreadLock);
