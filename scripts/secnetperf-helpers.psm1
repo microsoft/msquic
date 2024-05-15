@@ -254,9 +254,13 @@ function Cleanup-State {
 # Waits for a remote job to be ready based on looking for a particular string in
 # the output.
 function Start-RemoteServer {
-    param ($Session, $Command)
+    param ($Session, $Command, $Args, $UseSudo)
     # Start the server on the remote in an async job.
-    $job = Invoke-Command -Session $Session -ScriptBlock { iex $Using:Command } -AsJob
+    if ($UseSudo) {
+        $job = Invoke-Command -Session $Session -ScriptBlock { iex "sudo LD_LIBRARY_PATH=$(Split-Path $Using:Command -Parent)  $Using:Command $Using:Args" } -AsJob
+    } else {
+        $job = Invoke-Command -Session $Session -ScriptBlock { iex "$Using:Command $Using:Args"} -AsJob
+    }
     # Poll the job for 10 seconds to see if it started.
     $stopWatch = [system.diagnostics.stopwatch]::StartNew()
     while ($stopWatch.ElapsedMilliseconds -lt 10000) {
@@ -303,7 +307,7 @@ function Stop-RemoteServer {
 
 # Creates a new local process to asynchronously run the test.
 function Start-LocalTest {
-    param ($FullPath, $FullArgs, $OutputDir, $UseSudo = $false)
+    param ($FullPath, $FullArgs, $OutputDir, $UseSudo)
     $pinfo = New-Object System.Diagnostics.ProcessStartInfo
     if ($IsWindows) {
         $pinfo.FileName = $FullPath
@@ -314,7 +318,7 @@ function Start-LocalTest {
         $CommonCommand = "ulimit -n $NOFILE && ulimit -c unlimited && LSAN_OPTIONS=report_objects=1 ASAN_OPTIONS=disable_coredump=0:abort_on_error=1 UBSAN_OPTIONS=halt_on_error=1:print_stacktrace=1 $FullPath $FullArgs && echo ''"
         if ($UseSudo) {
             $pinfo.FileName = "/usr/bin/sudo"
-            $pinfo.Arguments = "/usr/bin/bash -c `"$CommonCommand`" 2>&1 | tee -a /home/secnetperf/out.log"
+            $pinfo.Arguments = "/usr/bin/bash -c `"LD_LIBRARY_PATH=$(Split-Path $FullPath -Parent) && $CommonCommand`""
         } else {
             $pinfo.FileName = "bash"
             $pinfo.Arguments = "-c `"$CommonCommand`""
@@ -513,7 +517,7 @@ function Invoke-Secnetperf {
     }
 
      # Linux XDP requires sudo for now
-    $sudo = (!$IsWindows -and $io -eq "xdp") ? "sudo -E LD_LIBRARY_PATH=$RemoteDir/$(Split-Path $SecNetPerfPath -Parent) " : ""
+    $useSudo = (!$IsWindows -and $io -eq "xdp")
 
     $artifactName = $tcp -eq 0 ? "$TestId-quic" : "$TestId-tcp"
     New-Item -ItemType Directory "artifacts/logs/$artifactName" -ErrorAction Ignore | Out-Null
@@ -543,7 +547,7 @@ function Invoke-Secnetperf {
 
     # Start the server running.
     "> secnetperf $serverArgs" | Add-Content $serverOut
-    $job = Start-RemoteServer $Session "$sudo$RemoteDir/$SecNetPerfPath $serverArgs"
+    $job = Start-RemoteServer $Session "$RemoteDir/$SecNetPerfPath" $serverArgs $useSudo
 
     # Run the test multiple times, failing (for now) only if all tries fail.
     # TODO: Once all failures have been fixed, consider all errors fatal.
@@ -553,12 +557,12 @@ function Invoke-Secnetperf {
         Write-Host "==============================`nRUN $($try+1):"
         "> secnetperf $clientArgs" | Add-Content $clientOut
         try {
-            $process = Start-LocalTest "$clientPath" $clientArgs $artifactDir $sudo -ne ""
+            $process = Start-LocalTest "$clientPath" $clientArgs $artifactDir $useSudo
             $rawOutput = Wait-LocalTest $process $artifactDir ($io -eq "wsk") 30000
             Write-Host $rawOutput
             $values[$tcp] += Get-TestOutput $rawOutput $metric
             if ($extraOutput) {
-                if ($sudo -ne "") {
+                if ($useSudo) {
                     sudo chown $UserName $extraOutput
                 }
                 $latency[$tcp] += Get-LatencyOutput $extraOutput
