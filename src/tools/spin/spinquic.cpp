@@ -208,8 +208,26 @@ CXPLAT_LOCK RunThreadLock;
 
 const uint32_t MaxBufferSizes[] = { 0, 1, 2, 32, 50, 256, 500, 1000, 1024, 1400, 5000, 10000, 64000, 10000000 };
 static const size_t BufferCount = ARRAYSIZE(MaxBufferSizes);
-std::unordered_set<QUIC_BUFFER*> OrphanedBuffers;
-std::mutex OrphanedBuffersLock;
+
+struct DatagramTracker {
+    std::unordered_set<QUIC_BUFFER*> OrphanedBuffers;
+    std::mutex OrphanedBuffersLock;
+    void Insert(QUIC_BUFFER* Buffer) {
+        std::lock_guard<std::mutex> Lock(OrphanedBuffersLock);
+        OrphanedBuffers.insert(Buffer);
+    }
+    void Erase(QUIC_BUFFER* Buffer) {
+        std::lock_guard<std::mutex> Lock(OrphanedBuffersLock);
+        OrphanedBuffers.erase(Buffer);
+    }
+    void Clean() {
+        std::lock_guard<std::mutex> Lock(OrphanedBuffersLock);
+        for (auto Buffer : OrphanedBuffers) {
+            delete Buffer;
+        }
+    }
+};
+DatagramTracker Tracker;
 
 struct SpinQuicGlobals {
     uint64_t StartTimeMs;
@@ -501,10 +519,7 @@ QUIC_STATUS QUIC_API SpinQuicHandleConnectionEvent(HQUIC Connection, void* , QUI
     }
     case QUIC_CONNECTION_EVENT_DATAGRAM_SEND_STATE_CHANGED:
         if (QUIC_DATAGRAM_SEND_STATE_IS_FINAL(Event->DATAGRAM_SEND_STATE_CHANGED.State)) {
-            {
-                std::lock_guard<std::mutex> Lock(OrphanedBuffersLock);
-                OrphanedBuffers.erase((QUIC_BUFFER*)Event->DATAGRAM_SEND_STATE_CHANGED.ClientContext);
-            }
+            Tracker.Erase((QUIC_BUFFER*)Event->DATAGRAM_SEND_STATE_CHANGED.ClientContext);
             delete (QUIC_BUFFER*)Event->DATAGRAM_SEND_STATE_CHANGED.ClientContext;
         }
         break;
@@ -1149,17 +1164,11 @@ void Spin(Gbs& Gb, LockableVector<HQUIC>& Connections, std::vector<HQUIC>* Liste
             BAIL_ON_NULL_CONNECTION(Connection);
             auto Buffer = new(std::nothrow) QUIC_BUFFER;
             if (Buffer) {
-                {
-                    std::lock_guard<std::mutex> Lock(OrphanedBuffersLock);
-                    OrphanedBuffers.insert(Buffer);
-                }
+                Tracker.Insert(Buffer);
                 Buffer->Buffer = Gb.SendBuffer;
                 Buffer->Length = MaxBufferSizes[GetRandom(BufferCount)];
                 if (QUIC_FAILED(MsQuic.DatagramSend(Connection, Buffer, 1, (QUIC_SEND_FLAGS)GetRandom(8), Buffer))) {
-                    {
-                        std::lock_guard<std::mutex> Lock(OrphanedBuffersLock);
-                        OrphanedBuffers.erase(Buffer);
-                    }
+                    Tracker.Erase(Buffer);
                     delete Buffer;
                 }
             }
@@ -1606,9 +1615,7 @@ void start() {
         }
     }
 
-    for (auto &Buffer : OrphanedBuffers) {
-        delete Buffer;
-    }
+    Tracker.Clean();
 
     CxPlatLockUninitialize(&RunThreadLock);
     CxPlatUninitialize();
