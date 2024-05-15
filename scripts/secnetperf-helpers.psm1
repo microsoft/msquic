@@ -320,7 +320,7 @@ function Start-LocalTest {
         if ($UseSudo) {
             Write-Host "Start-LocalTest" $(Split-Path $FullPath -Parent)
             $pinfo.FileName = "/usr/bin/sudo"
-            $pinfo.Arguments = "/usr/bin/bash -c `"LD_LIBRARY_PATH=$(Split-Path $FullPath -Parent) && $CommonCommand`""
+            $pinfo.Arguments = "/usr/bin/bash -c `"export LD_LIBRARY_PATH=$(Split-Path $FullPath -Parent) && $CommonCommand`""
         } else {
             $pinfo.FileName = "bash"
             $pinfo.Arguments = "-c `"$CommonCommand`""
