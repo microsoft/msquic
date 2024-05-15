@@ -183,13 +183,19 @@ sudo dnf install libatomic
 
 #### Linux XDP
 Linux XDP is experimentally supported on amd64 && Ubuntu 22.04LTS.  
-Commands below automatically install dependencies and setup runtime environment.
+Commands below install dependencies and setup runtime environment.  
+**<span style="color:red;">WARN: This might break your system by installing Ubuntu 24.04LTS packages. Do not run on production environment and need to understand the side effect </span>**
 ```sh
-pwsh ./scripts/prepare-machine.ps1 -UseXdp
-pwsh ./scripts/build.ps1 -EnableLinuxXDP
+$ pwsh ./scripts/prepare-machine.ps1 -UseXdp
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! WARN !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+Linux XDP installs dependencies from Ubuntu 24.04 packages, which should affect your environment
+You need to understand the impact of this on your environment before proceeding
+Type 'YES' to proceed: YES
+
+$ pwsh ./scripts/build.ps1 -EnableLinuxXDP
 ```
 
-`./scripts/prepare-machine.ps1` internally does the below commands:
+`./scripts/prepare-machine.ps1` internally does the below commands. This might break your environment.
 ```sh
 # for libxdp v1.4.2
 sudo apt-add-repository "deb http://mirrors.kernel.org/ubuntu noble main" -y
