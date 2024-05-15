@@ -303,7 +303,7 @@ function Stop-RemoteServer {
 
 # Creates a new local process to asynchronously run the test.
 function Start-LocalTest {
-    param ($FullPath, $FullArgs, $OutputDir, $UseSudo)
+    param ($FullPath, $FullArgs, $OutputDir, $UseSudo = $false)
     $pinfo = New-Object System.Diagnostics.ProcessStartInfo
     if ($IsWindows) {
         $pinfo.FileName = $FullPath
@@ -337,41 +337,40 @@ function Start-LocalTest {
 # Waits for a local test process to complete, and then returns the console output.
 function Wait-LocalTest {
     param ($Process, $OutputDir, $testKernel, $TimeoutMs)
-    # $StdOut = $Process.StandardOutput.ReadToEndAsync()
-    # $StdError = $Process.StandardError.ReadToEndAsync()
+    $StdOut = $Process.StandardOutput.ReadToEndAsync()
+    $StdError = $Process.StandardError.ReadToEndAsync()
     # Wait for the process to exit.
     if (!$Process.WaitForExit($TimeoutMs)) {
         # We timed out waiting for completion. Collect a dump of the current state.
         if ($testKernel) { Collect-LiveKD $OutputDir "client" }
         Collect-LocalDump $Process $OutputDir
         try { $Process.Kill() } catch { }
-        # try {
-        #     [System.Threading.Tasks.Task]::WaitAll(@($StdOut, $StdError))
-        #     $Out = $StdOut.Result.Trim()
-        #     if ($Out.Length -ne 0) { Write-Host $Out }
-        # } catch {}
+        try {
+            [System.Threading.Tasks.Task]::WaitAll(@($StdOut, $StdError))
+            $Out = $StdOut.Result.Trim()
+            if ($Out.Length -ne 0) { Write-Host $Out }
+        } catch {}
         throw "secnetperf: Client timed out!"
     }
     # Verify the process cleanly exitted.
     if ($Process.ExitCode -ne 0) {
-        # try {
-        #     [System.Threading.Tasks.Task]::WaitAll(@($StdOut, $StdError))
-        #     $Out = $StdOut.Result.Trim()
-        #     if ($Out.Length -ne 0) { Write-Host $Out }
-        # } catch {}
+        try {
+            [System.Threading.Tasks.Task]::WaitAll(@($StdOut, $StdError))
+            $Out = $StdOut.Result.Trim()
+            if ($Out.Length -ne 0) { Write-Host $Out }
+        } catch {}
         # throw "secnetperf: Nonzero exit code: $($Process.ExitCode)"
     }
-    return ""
     # Wait for the output streams to flush.
-    # [System.Threading.Tasks.Task]::WaitAll(@($StdOut, $StdError))
-    # $consoleTxt = $StdOut.Result.Trim()
-    # if ($consoleTxt.Length -eq 0) {
-    #     throw "secnetperf: No console output (possibly crashed)!"
-    # }
-    # if ($consoleTxt.Contains("Error")) {
-    #     throw "secnetperf: $($consoleTxt.Substring(7))" # Skip over the "Error: " prefix
-    # }
-    # return $consoleTxt
+    [System.Threading.Tasks.Task]::WaitAll(@($StdOut, $StdError))
+    $consoleTxt = $StdOut.Result.Trim()
+    if ($consoleTxt.Length -eq 0) {
+        throw "secnetperf: No console output (possibly crashed)!"
+    }
+    if ($consoleTxt.Contains("Error")) {
+        throw "secnetperf: $($consoleTxt.Substring(7))" # Skip over the "Error: " prefix
+    }
+    return $consoleTxt
 }
 
 # Test the args to see if they match one of the positive patterns but none of
