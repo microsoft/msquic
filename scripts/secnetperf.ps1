@@ -90,6 +90,7 @@ if (!$isWindows) {
 # Azure environment specific setup.
 if ($environment -eq "azure") {
     if ($isWindows) {
+        Write-Host "Setting RemoteDir to C:/ on 1ES Azure environments."
         $RemoteDir = "C:/"
     } else {
         # TODO
@@ -118,6 +119,7 @@ $Attempts = 0
 while ($Attempts -lt 5) {
     if ($environment -eq "azure") {
         if ($isWindows) {
+            Write-Host "Attempting to connect..."
             $Session = New-PSSession -ComputerName $RemoteName
         } else {
             # TODO
