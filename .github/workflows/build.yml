@@ -81,7 +81,7 @@ jobs:
       matrix:
         config: ['Debug', 'Release']
         plat: [linux]
-        os: ['ubuntu-20.04', 'ubuntu-22.04']
+        os: ['ubuntu-20.04', 'ubuntu-22.04', 'ubuntu-24.04']
         arch: [arm, arm64]
         tls: [openssl, openssl3]
         static: ['', '-Static']
