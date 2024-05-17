@@ -139,7 +139,7 @@ while ($Attempts -lt 5) {
         }
         break
     } catch {
-        Write-Host "Error connecting to $RemoteName: $_"
+        Write-Host "Error $_"
         $Attempts += 1
         Start-Sleep -Seconds 10
     }
