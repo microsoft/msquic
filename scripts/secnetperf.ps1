@@ -87,16 +87,6 @@ if (!$isWindows) {
     }
 }
 
-# Azure environment specific setup.
-if ($environment -eq "azure") {
-    if ($isWindows) {
-        Write-Host "Setting RemoteDir to C:/ on 1ES Azure environments."
-        $RemoteDir = "C:/"
-    } else {
-        # TODO
-    }
-}
-
 $SecNetPerfDir = "artifacts/bin/$plat/$($arch)_Release_$tls"
 $SecNetPerfPath = "$SecNetPerfDir/secnetperf"
 if ($io -eq "") {
