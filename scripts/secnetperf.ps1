@@ -121,6 +121,8 @@ while ($Attempts -lt 5) {
         if ($isWindows) {
             Write-Host "Attempting to connect..."
             $Session = New-PSSession -ComputerName $RemoteName
+            $Session
+            break
         } else {
             # TODO
         }
@@ -137,6 +139,7 @@ while ($Attempts -lt 5) {
         }
         break
     } catch {
+        Write-Host "Error connecting to $RemoteName: $_"
         $Attempts += 1
         Start-Sleep -Seconds 10
     }
