@@ -1345,7 +1345,7 @@ QuicConnOnShutdownComplete(
             "Indicating QUIC_CONNECTION_EVENT_SHUTDOWN_COMPLETE");
         (void)QuicConnIndicateEvent(Connection, &Event);
 
-        Connection->ClientCallbackHandler = NULL;
+        // Connection->ClientCallbackHandler = NULL;
     }
 
     //
