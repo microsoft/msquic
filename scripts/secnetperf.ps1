@@ -239,7 +239,7 @@ $json["run_args"] = $allTests
 try {
 
 # Prepare the machines for the testing.
-if ($isWindows) {
+if ($isWindows -and !($environment -eq "azure")) {
     Write-Host "Preparing local machine for testing"
     ./scripts/prepare-machine.ps1 -ForTest -InstallSigningCertificates
 
