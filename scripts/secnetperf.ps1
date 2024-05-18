@@ -140,8 +140,10 @@ if ($null -eq $Session) {
     exit 1
 }
 
-# Make sure nothing is running from a previous run.
-Cleanup-State $Session $RemoteDir
+if (!($environment -eq "azure")) {
+    # Make sure nothing is running from a previous run. This only applies to non-azure / 1ES environments.
+    Cleanup-State $Session $RemoteDir
+}
 
 # Create intermediary files.
 New-Item -ItemType File -Name "latency.txt"
