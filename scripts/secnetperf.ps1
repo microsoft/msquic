@@ -110,7 +110,7 @@ while ($Attempts -lt 5) {
     if ($environment -eq "azure") {
         if ($isWindows) {
             Write-Host "Attempting to connect..."
-            $Session = New-PSSession -ComputerName $RemoteName
+            $Session = New-PSSession -ComputerName $RemoteName -ConfigurationName PowerShell.7
             $Session
             break
         } else {
