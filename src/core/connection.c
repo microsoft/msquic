@@ -1322,6 +1322,9 @@ QuicConnOnShutdownComplete(
     Connection->State.ShutdownComplete = TRUE;
     Connection->State.UpdateWorker = FALSE;
 
+    // call earlier then others for frames which requires ClientCallbackHandler to freeing app memory (Datagram)
+    QuicLossDetectionUninitialize(&Connection->LossDetection);
+
     QuicTraceEvent(
         ConnShutdownComplete,
         "[conn][%p] Shutdown complete, PeerFailedToAcknowledged=%hhu.",
@@ -1368,7 +1371,6 @@ QuicConnOnShutdownComplete(
     // Clean up the rest of the internal state.
     //
     QuicTimerWheelRemoveConnection(&Connection->Worker->TimerWheel, Connection);
-    QuicLossDetectionUninitialize(&Connection->LossDetection);
     QuicSendUninitialize(&Connection->Send);
 
     if (!Connection->State.ExternalOwner) {
