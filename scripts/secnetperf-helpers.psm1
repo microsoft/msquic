@@ -295,6 +295,8 @@ function Start-RemoteServerPassive {
             }
         }
         # Create a new file with the next number
+        Write-Host "Creating new file execute_$($max + 1).ps1"
+        New-Item -ItemType File (Join-Path $Using:RemoteStateDir ("execute_$($max + 1).ps1")) | Out-Null
         $newFile = Join-Path $Using:RemoteStateDir ("execute_$($max + 1).ps1")
         Set-Content -Path $newFile -Value $Using:Command
     }
