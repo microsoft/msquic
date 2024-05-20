@@ -281,7 +281,7 @@ function Start-RemoteServer {
 function Start-RemoteServerPassive {
     param ($Session, $Command, $RemoteStateDir)
     Invoke-Command -Session $Session -ScriptBlock {
-        if (!Test-Path $Using:RemoteStateDir) {
+        if (!(Test-Path $Using:RemoteStateDir)) {
             New-Item -ItemType Directory $Using:RemoteStateDir | Out-Null
         }
         # Fetch all files names inside the directory
@@ -326,7 +326,7 @@ function Stop-RemoteServer {
 }
 
 function Stop-RemoteServerPassive {
-    param ($Session, $RemoteStateDir)
+    param ($Session, $RemoteStateDir, $RemoteAddress)
     # Ping side-channel socket on 9999 to tell the app to die
     $Socket = New-Object System.Net.Sockets.UDPClient
     $BytesToSend = @(
@@ -647,7 +647,7 @@ function Invoke-Secnetperf {
     } finally {
         # Stop the server.
         if ($Environment -eq "azure") {
-            Stop-RemoteServerPassive $Session $StateDir
+            Stop-RemoteServerPassive $Session $StateDir $RemoteName
         } else {
             try { Stop-RemoteServer $job $RemoteName | Add-Content $serverOut } catch { }
         }
