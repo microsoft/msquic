@@ -345,7 +345,8 @@ function Stop-RemoteServerPassive {
         Start-Sleep -Seconds 5 | Out-Null
         $files = Invoke-Command -Session $Session -ScriptBlock { Get-ChildItem $Using:RemoteStateDir }
         foreach ($file in $files) {
-            $num = [int]($file.Name -replace "[^0-9]", "")
+            $filename = $file.Name.split(".")[0]
+            $num = [int]($filename -replace "[^0-9]", "")
             if ($num -gt $MaxSeqNum) {
                 $MaxSeqNum = $num
             }
