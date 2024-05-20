@@ -278,6 +278,7 @@ function Start-RemoteServer {
     throw "Server failed to start!"
 }
 
+# Passively starts the server on the remote machine by queuing up a new script to execute.
 function Start-RemoteServerPassive {
     param ($Session, $Command, $RemoteStateDir)
     Invoke-Command -Session $Session -ScriptBlock {
@@ -303,8 +304,6 @@ function Start-RemoteServerPassive {
         $newFile = Join-Path $Using:RemoteStateDir ("execute_$newmax.ps1")
         Set-Content -Path $newFile -Value $Using:Command
     }
-    # Wait for the server process to fetch and execute that file
-    Start-Sleep -Seconds 30 | Out-Null
 }
 
 # Sends a special UDP packet to tell the remote secnetperf to shutdown, and then
@@ -330,7 +329,7 @@ function Stop-RemoteServer {
     return $RemoteResult -join "`n"
 }
 
-function Stop-RemoteServerPassive {
+function Stop-RemoteServerAsyncAwait {
     param ($Session, $RemoteStateDir, $RemoteAddress)
     # Ping side-channel socket on 9999 to tell the app to die
     $Socket = New-Object System.Net.Sockets.UDPClient
@@ -364,10 +363,25 @@ function Stop-RemoteServerPassive {
     }
     if (!$done) {
         Write-GHError "[Stop-Remote-Passive] Unable to find a corresponding 'completed_$MaxSeqNum' file!"
+        throw "Unable to stop the remote server in time!"
     }
 }
 
+function Wait-StartRemoteServerPassive {
+    param ($FullPath, $RemoteName, $OutputDir)
 
+    for ($i = 0; $i -lt 30; $i++) {
+        Start-Sleep -Seconds 5 | Out-Null
+        $Process = Start-LocalTest $FullPath "-target:$RemoteName" $OutputDir
+        $ConsoleOutput = Wait-LocalTest $Process $OutputDir $false 30000 $true
+        $DidMatch = $ConsoleOutput -match "Completed" # Look for the special string to indicate success.
+        if ($DidMatch) {
+            return
+        }
+    }
+
+    throw "Unable to start the remote server in time!"
+}
 
 # Creates a new local process to asynchronously run the test.
 function Start-LocalTest {
@@ -393,7 +407,7 @@ function Start-LocalTest {
 
 # Waits for a local test process to complete, and then returns the console output.
 function Wait-LocalTest {
-    param ($Process, $OutputDir, $testKernel, $TimeoutMs)
+    param ($Process, $OutputDir, $testKernel, $TimeoutMs, $Silent = $false)
     $StdOut = $Process.StandardOutput.ReadToEndAsync()
     $StdError = $Process.StandardError.ReadToEndAsync()
     # Wait for the process to exit.
@@ -407,6 +421,10 @@ function Wait-LocalTest {
             $Out = $StdOut.Result.Trim()
             if ($Out.Length -ne 0) { Write-Host $Out }
         } catch {}
+        if ($Silent) {
+            Write-Host "Silently ignoring Client timeout!"
+            return ""
+        }
         throw "secnetperf: Client timed out!"
     }
     # Verify the process cleanly exitted.
@@ -416,15 +434,27 @@ function Wait-LocalTest {
             $Out = $StdOut.Result.Trim()
             if ($Out.Length -ne 0) { Write-Host $Out }
         } catch {}
+        if ($Silent) {
+            Write-Host "Silently ignoring Client exit code: $($Process.ExitCode)"
+            return ""
+        }
         throw "secnetperf: Nonzero exit code: $($Process.ExitCode)"
     }
     # Wait for the output streams to flush.
     [System.Threading.Tasks.Task]::WaitAll(@($StdOut, $StdError))
     $consoleTxt = $StdOut.Result.Trim()
     if ($consoleTxt.Length -eq 0) {
+        if ($Silent) {
+            Write-Host "Silently ignoring Client no console output!"
+            return ""
+        }
         throw "secnetperf: No console output (possibly crashed)!"
     }
     if ($consoleTxt.Contains("Error")) {
+        if ($Silent) {
+            Write-Host "Silently ignoring Client error: $($consoleTxt)"
+            return ""
+        }
         throw "secnetperf: $($consoleTxt.Substring(7))" # Skip over the "Error: " prefix
     }
     return $consoleTxt
@@ -541,7 +571,7 @@ function Invoke-Secnetperf {
     $execMode = $ExeArgs.Substring(0, $ExeArgs.IndexOf(" ")) # First arg is the exec mode
     $clientPath = Repo-Path $SecNetPerfPath
     $serverArgs = "$execMode -io:$io"
-    $clientArgs = "-target:netperf-peer $ExeArgs -tcp:$tcp -trimout -watchdog:25000"
+    $clientArgs = "-target:$RemoteName $ExeArgs -tcp:$tcp -trimout -watchdog:25000"
     if ($io -eq "xdp" -or $io -eq "qtip") {
         $serverArgs += " -pollidle:10000"
         $clientArgs += " -pollidle:10000"
@@ -611,6 +641,7 @@ function Invoke-Secnetperf {
     }
     if ($Environment -eq "azure") {
         Start-RemoteServerPassive $Session "$sudo$RemoteDir/$SecNetPerfPath $serverArgs" $StateDir
+        Wait-StartRemoteServerPassive "$sudo$clientPath" $RemoteName $artifactDir
     } else {
         $job = Start-RemoteServer $Session "$sudo$RemoteDir/$SecNetPerfPath $serverArgs"
     }
@@ -653,7 +684,7 @@ function Invoke-Secnetperf {
     } finally {
         # Stop the server.
         if ($Environment -eq "azure") {
-            Stop-RemoteServerPassive $Session $StateDir $RemoteName
+            Stop-RemoteServerAsyncAwait $Session $StateDir $RemoteName
         } else {
             try { Stop-RemoteServer $job $RemoteName | Add-Content $serverOut } catch { }
         }
