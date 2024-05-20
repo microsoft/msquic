@@ -302,7 +302,7 @@ $regressionJson = Get-Content -Raw -Path "watermark_regression.json" | ConvertFr
 Write-Host "Setup complete! Running all tests"
 foreach ($testId in $allTests.Keys) {
     $ExeArgs = $allTests[$testId] + " -io:$io"
-    $Output = Invoke-Secnetperf $Session $RemoteName $RemoteDir $UserName $SecNetPerfPath $LogProfile $testId $ExeArgs $io $filter
+    $Output = Invoke-Secnetperf $Session $RemoteName $RemoteDir $UserName $SecNetPerfPath $LogProfile $testId $ExeArgs $io $filter $environment
     $Test = $Output[-1]
     if ($Test.HasFailures) { $hasFailures = $true }
 

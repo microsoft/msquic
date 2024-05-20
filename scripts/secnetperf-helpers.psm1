@@ -278,6 +278,30 @@ function Start-RemoteServer {
     throw "Server failed to start!"
 }
 
+function Start-RemoteServerPassive {
+    param ($Session, $Command, $RemoteStateDir)
+    Invoke-Command -Session $Session -ScriptBlock {
+        if (!Test-Path $Using:RemoteStateDir) {
+            New-Item -ItemType Directory $Using:RemoteStateDir | Out-Null
+        }
+        # Fetch all files names inside the directory
+        $files = Get-ChildItem $Using:RemoteStateDir
+        # Find the highest lexicographically sorted file name
+        $max = 0
+        foreach ($file in $files) {
+            $num = [int]($file.Name -replace "[^0-9]", "")
+            if ($num -gt $max) {
+                $max = $num
+            }
+        }
+        # Create a new file with the next number
+        $newFile = Join-Path $Using:RemoteStateDir ("execute_$($max + 1).ps1")
+        Set-Content -Path $newFile -Value $Using:Command
+    }
+    # Wait for the server process to fetch and execute that file
+    Start-Sleep -Seconds 30 | Out-Null
+}
+
 # Sends a special UDP packet to tell the remote secnetperf to shutdown, and then
 # waits for the job to complete. Finally, it returns the console output of the
 # job.
@@ -300,6 +324,44 @@ function Stop-RemoteServer {
     $RemoteResult = Receive-Job -Job $Job -ErrorAction Ignore
     return $RemoteResult -join "`n"
 }
+
+function Stop-RemoteServerPassive {
+    param ($Session, $RemoteStateDir)
+    # Ping side-channel socket on 9999 to tell the app to die
+    $Socket = New-Object System.Net.Sockets.UDPClient
+    $BytesToSend = @(
+        0x57, 0xe6, 0x15, 0xff, 0x26, 0x4f, 0x0e, 0x57,
+        0x88, 0xab, 0x07, 0x96, 0xb2, 0x58, 0xd1, 0x1c
+    )
+    $done = $false
+    $MaxSeqNum = 0
+    for ($i = 0; $i -lt 30; $i++) {
+        $Socket.Send($BytesToSend, $BytesToSend.Length, $RemoteAddress, 9999) | Out-Null
+        Start-Sleep -Seconds 5 | Out-Null
+        $files = Invoke-Command -Session $Session -ScriptBlock { Get-ChildItem $Using:RemoteStateDir }
+        foreach ($file in $files) {
+            $num = [int]($file.Name -replace "[^0-9]", "")
+            if ($num -gt $MaxSeqNum) {
+                $MaxSeqNum = $num
+            }
+        }
+        # Check if completed_<MaxSeqNum>.txt exists
+        foreach ($file in $files) {
+            if ($file.Name -eq "completed_$MaxSeqNum.txt") {
+                $done = $true
+                break
+            }
+        }
+        if ($done) {
+            break
+        }
+    }
+    if (!$done) {
+        Write-GHError "[Stop-Remote-Passive] Unable to find a corresponding 'completed_$MaxSeqNum' file!"
+    }
+}
+
+
 
 # Creates a new local process to asynchronously run the test.
 function Start-LocalTest {
@@ -448,7 +510,7 @@ function Get-LatencyOutput {
 
 # Invokes secnetperf with the given arguments for both TCP and QUIC.
 function Invoke-Secnetperf {
-    param ($Session, $RemoteName, $RemoteDir, $UserName, $SecNetPerfPath, $LogProfile, $TestId, $ExeArgs, $io, $Filter)
+    param ($Session, $RemoteName, $RemoteDir, $UserName, $SecNetPerfPath, $LogProfile, $TestId, $ExeArgs, $io, $Filter, $Environment)
 
     $values = @(@(), @())
     $latency = $null
@@ -536,7 +598,16 @@ function Invoke-Secnetperf {
 
     # Start the server running.
     "> secnetperf $serverArgs" | Add-Content $serverOut
-    $job = Start-RemoteServer $Session "$sudo$RemoteDir/$SecNetPerfPath $serverArgs"
+
+    $StateDir = "C:/_state"
+    if (!$IsWindows) {
+        $StateDir = "/etc/_state"
+    }
+    if ($Environment -eq "azure") {
+        Start-RemoteServerPassive $Session "$sudo$RemoteDir/$SecNetPerfPath $serverArgs" $StateDir
+    } else {
+        $job = Start-RemoteServer $Session "$sudo$RemoteDir/$SecNetPerfPath $serverArgs"
+    }
 
     # Run the test multiple times, failing (for now) only if all tries fail.
     # TODO: Once all failures have been fixed, consider all errors fatal.
@@ -575,7 +646,11 @@ function Invoke-Secnetperf {
         $testFailures = $true
     } finally {
         # Stop the server.
-        try { Stop-RemoteServer $job $RemoteName | Add-Content $serverOut } catch { }
+        if ($Environment -eq "azure") {
+            Stop-RemoteServerPassive $Session $StateDir
+        } else {
+            try { Stop-RemoteServer $job $RemoteName | Add-Content $serverOut } catch { }
+        }
 
         # Stop any logging and copy the logs to the artifacts folder.
         if ($LogProfile -ne "" -and $LogProfile -ne "NULL") {
