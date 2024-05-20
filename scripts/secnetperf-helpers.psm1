@@ -289,7 +289,9 @@ function Start-RemoteServerPassive {
         # Find the highest lexicographically sorted file name
         $max = 0
         foreach ($file in $files) {
-            $num = [int]($file.Name -replace "[^0-9]", "")
+            # Remove .ps1 extension from file.Name
+            $filename = $file.Name.split(".")[0]
+            $num = [int]($filename -replace "[^0-9]", "")
             if ($num -gt $max) {
                 $max = $num
             }
