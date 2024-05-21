@@ -145,6 +145,14 @@ QuicDatagramUninitialize(
     )
 {
     QuicDatagramSendShutdown(Datagram);
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+QuicDatagramFree(
+    _In_ QUIC_DATAGRAM* Datagram
+    )
+{
     CXPLAT_DBG_ASSERT(Datagram->SendQueue == NULL);
     CXPLAT_DBG_ASSERT(Datagram->ApiQueue == NULL);
     CxPlatDispatchLockUninitialize(&Datagram->ApiQueueLock);
@@ -330,6 +338,7 @@ QuicDatagramQueueSend(
     BOOLEAN QueueOper = TRUE;
     QUIC_CONNECTION* Connection = QuicDatagramGetConnection(Datagram);
 
+    CxPlatDispatchLockAcquire(&Datagram->ApiQueueLock);
     if (!Datagram->SendEnabled) {
         QuicTraceEvent(
             ConnError,
@@ -346,7 +355,6 @@ QuicDatagramQueueSend(
                 "Datagram send request is longer than allowed");
             Status = QUIC_STATUS_INVALID_PARAMETER;
         } else {
-            CxPlatDispatchLockAcquire(&Datagram->ApiQueueLock);
             QUIC_SEND_REQUEST** ApiQueueTail = &Datagram->ApiQueue;
             while (*ApiQueueTail != NULL) {
                 ApiQueueTail = &((*ApiQueueTail)->Next);
@@ -354,9 +362,9 @@ QuicDatagramQueueSend(
             }
             *ApiQueueTail = SendRequest;
             Status = QUIC_STATUS_SUCCESS;
-            CxPlatDispatchLockRelease(&Datagram->ApiQueueLock);
         }
     }
+    CxPlatDispatchLockRelease(&Datagram->ApiQueueLock);
 
     if (QUIC_FAILED(Status)) {
         CxPlatPoolFree(&Connection->Worker->SendRequestPool, SendRequest);
@@ -402,9 +410,6 @@ QuicDatagramSendFlush(
     _In_ QUIC_DATAGRAM* Datagram
     )
 {
-    if (!Datagram->SendEnabled) {
-        return;
-    }
     CxPlatDispatchLockAcquire(&Datagram->ApiQueueLock);
     QUIC_SEND_REQUEST* ApiQueue = Datagram->ApiQueue;
     Datagram->ApiQueue = NULL;

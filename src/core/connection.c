@@ -370,6 +370,7 @@ QuicConnFree(
     QuicStreamSetUninitialize(&Connection->Streams);
     QuicSendBufferUninitialize(&Connection->SendBuffer);
     QuicDatagramUninitialize(&Connection->Datagram);
+    QuicDatagramFree(&Connection->Datagram);
     if (Connection->Configuration != NULL) {
         QuicConfigurationRelease(Connection->Configuration);
         Connection->Configuration = NULL;
