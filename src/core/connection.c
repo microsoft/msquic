@@ -1350,6 +1350,7 @@ QuicConnOnShutdownComplete(
     QuicTimerWheelRemoveConnection(&Connection->Worker->TimerWheel, Connection);
     QuicLossDetectionUninitialize(&Connection->LossDetection);
     QuicSendUninitialize(&Connection->Send);
+    QuicDatagramUninitialize(&Connection->Datagram);
 
     if (Connection->State.ExternalOwner) {
 
