@@ -27,12 +27,12 @@ jobs:
       fail-fast: false
       matrix:
         vec: [
-          { config: "Release", os: "ubuntu-20.04", arch: "arm", tls: "openssl" },
-          { config: "Release", os: "ubuntu-20.04", arch: "arm64", tls: "openssl" },
-          { config: "Release", os: "ubuntu-20.04", arch: "x64", tls: "openssl" },
-          { config: "Release", os: "ubuntu-22.04", arch: "arm", tls: "openssl3" },
-          { config: "Release", os: "ubuntu-22.04", arch: "arm64", tls: "openssl3" },
-          { config: "Release", os: "ubuntu-22.04", arch: "x64", tls: "openssl3", xdp: true},
+          { config: "Release", os: "ubuntu-20.04", arch: "arm", tls: "openssl", xdp: false },
+          { config: "Release", os: "ubuntu-20.04", arch: "arm64", tls: "openssl", xdp: false },
+          { config: "Release", os: "ubuntu-20.04", arch: "x64", tls: "openssl", xdp: false },
+          { config: "Release", os: "ubuntu-22.04", arch: "arm", tls: "openssl3", xdp: false },
+          { config: "Release", os: "ubuntu-22.04", arch: "arm64", tls: "openssl3", xdp: false },
+          { config: "Release", os: "ubuntu-22.04", arch: "x64", tls: "openssl3", xdp: true },
         ]
     uses: ./.github/workflows/package-reuse-linux.yml
     with:
@@ -50,8 +50,8 @@ jobs:
       fail-fast: false
       matrix:
         vec: [
-          { config: "Release", os: "ubuntu-20.04", arch: "x64", tls: "openssl" },
-          { config: "Release", os: "ubuntu-22.04", arch: "x64", tls: "openssl3", xdp: true},
+          { config: "Release", os: "ubuntu-20.04", arch: "x64", tls: "openssl", xdp: false },
+          { config: "Release", os: "ubuntu-22.04", arch: "x64", tls: "openssl3", xdp: true },
         ]
     steps:
     - name: Checkout repository
