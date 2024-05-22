@@ -128,7 +128,7 @@ jobs:
       uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808
       if: failure()
       with:
-        name: Stress-${{ matrix.vec.config }}-${{ matrix.vec.plat }}-${{ matrix.vec.os }}-${{ matrix.vec.arch }}-${{ matrix.vec.tls }}${{ (matrix.vec.xdp }}${{ matrix.vec.sanitize }}
+        name: Stress-${{ matrix.vec.config }}-${{ matrix.vec.plat }}-${{ matrix.vec.os }}-${{ matrix.vec.arch }}-${{ matrix.vec.tls }}${{ matrix.vec.xdp }}${{ matrix.vec.sanitize }}
         path: artifacts
 
   recvfuzz:
