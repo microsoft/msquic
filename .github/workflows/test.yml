@@ -66,13 +66,13 @@ jobs:
       fail-fast: false
       matrix:
         vec: [
-          { config: "Debug", plat: "linux", os: "ubuntu-20.04", arch: "x64", tls: "openssl", sanitize: "-Sanitize", build: "-Test" },
-          { config: "Debug", plat: "linux", os: "ubuntu-20.04", arch: "x64", tls: "openssl", systemcrypto: "-UseSystemOpenSSLCrypto", sanitize: "-Sanitize", build: "-Test" },
-          { config: "Debug", plat: "linux", os: "ubuntu-20.04", arch: "x64", tls: "openssl3", sanitize: "-Sanitize", build: "-Test" },
-          { config: "Debug", plat: "linux", os: "ubuntu-22.04", arch: "x64", tls: "openssl", sanitize: "-Sanitize", build: "-Test" },
-          { config: "Debug", plat: "linux", os: "ubuntu-22.04", arch: "x64", tls: "openssl3", sanitize: "-Sanitize", build: "-Test" },
+          { config: "Debug", plat: "linux", os: "ubuntu-20.04", arch: "x64", tls: "openssl", sanitize: "-Sanitize", build: "-Test", xdp: false },
+          { config: "Debug", plat: "linux", os: "ubuntu-20.04", arch: "x64", tls: "openssl", systemcrypto: "-UseSystemOpenSSLCrypto", sanitize: "-Sanitize", build: "-Test", xdp: false },
+          { config: "Debug", plat: "linux", os: "ubuntu-20.04", arch: "x64", tls: "openssl3", sanitize: "-Sanitize", build: "-Test", xdp: false },
+          { config: "Debug", plat: "linux", os: "ubuntu-22.04", arch: "x64", tls: "openssl", sanitize: "-Sanitize", build: "-Test", xdp: false },
+          { config: "Debug", plat: "linux", os: "ubuntu-22.04", arch: "x64", tls: "openssl3", sanitize: "-Sanitize", build: "-Test", xdp: false },
           { config: "Debug", plat: "linux", os: "ubuntu-22.04", arch: "x64", tls: "openssl3", build: "-Test", xdp: true },
-          { config: "Debug", plat: "linux", os: "ubuntu-22.04", arch: "x64", tls: "openssl3", systemcrypto: "-UseSystemOpenSSLCrypto", sanitize: "-Sanitize", build: "-Test" },
+          { config: "Debug", plat: "linux", os: "ubuntu-22.04", arch: "x64", tls: "openssl3", systemcrypto: "-UseSystemOpenSSLCrypto", sanitize: "-Sanitize", build: "-Test", xdp: false },
         ]
     uses: ./.github/workflows/build-reuse-unix.yml
     with:
