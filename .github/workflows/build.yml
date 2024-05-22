@@ -109,6 +109,7 @@ jobs:
         static: ['', '-Static']
         clang: ['', '-Clang']
         codecheck: ['', '-CodeCheck']
+        xdp: [false, true]
         exclude:
         # Android doesn't support x86
         - plat: android
@@ -126,6 +127,12 @@ jobs:
           os: 'ubuntu-22.04'
           tls: 'openssl'
           systemcrypto: '-UseSystemOpenSSLCrypto'
+        # linux xdp is for ubuntu22.04 only for now
+        - plat: android
+          xdp: true
+        - plat: linux
+          os: 'ubuntu-20.04'
+          xdp: true
         # Android doesn't use Clang
         - plat: android
           clang: '-Clang'

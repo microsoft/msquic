@@ -50,6 +50,10 @@ on:
         required: false
         default: '' # Empty string means build all
         type: string
+      xdp:
+        required: false
+        default: false
+        type: boolean
 
 permissions: read-all
 
@@ -66,6 +70,7 @@ jobs:
       systemcrypto: '-UseSystemOpenSSLCrypto' # packages must use libcrypto on system
       clang: ${{ inputs.clang }}
       build: ${{ inputs.build }}
+      xdp: ${{ inputs.xdp }}
 
   package:
     name: Package
