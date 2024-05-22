@@ -144,15 +144,6 @@ QuicDatagramUninitialize(
     _In_ QUIC_DATAGRAM* Datagram
     )
 {
-    QuicDatagramSendShutdown(Datagram);
-}
-
-_IRQL_requires_max_(PASSIVE_LEVEL)
-void
-QuicDatagramFree(
-    _In_ QUIC_DATAGRAM* Datagram
-    )
-{
     CXPLAT_DBG_ASSERT(Datagram->SendQueue == NULL);
     CXPLAT_DBG_ASSERT(Datagram->ApiQueue == NULL);
     CxPlatDispatchLockUninitialize(&Datagram->ApiQueueLock);

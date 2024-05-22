@@ -54,12 +54,6 @@ QuicDatagramUninitialize(
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
-QuicDatagramFree(
-    _In_ QUIC_DATAGRAM* Datagram
-    );
-
-_IRQL_requires_max_(PASSIVE_LEVEL)
-void
 QuicDatagramSendShutdown(
     _In_ QUIC_DATAGRAM* Datagram
     );

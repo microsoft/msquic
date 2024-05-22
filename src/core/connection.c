@@ -369,8 +369,8 @@ QuicConnFree(
     QuicOperationQueueUninitialize(&Connection->OperQ);
     QuicStreamSetUninitialize(&Connection->Streams);
     QuicSendBufferUninitialize(&Connection->SendBuffer);
+    QuicDatagramSendShutdown(&Connection->Datagram);
     QuicDatagramUninitialize(&Connection->Datagram);
-    QuicDatagramFree(&Connection->Datagram);
     if (Connection->Configuration != NULL) {
         QuicConfigurationRelease(Connection->Configuration);
         Connection->Configuration = NULL;
@@ -1351,7 +1351,7 @@ QuicConnOnShutdownComplete(
     QuicTimerWheelRemoveConnection(&Connection->Worker->TimerWheel, Connection);
     QuicLossDetectionUninitialize(&Connection->LossDetection);
     QuicSendUninitialize(&Connection->Send);
-    QuicDatagramUninitialize(&Connection->Datagram);
+    QuicDatagramSendShutdown(&Connection->Datagram);
 
     if (Connection->State.ExternalOwner) {
 
