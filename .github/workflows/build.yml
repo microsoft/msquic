@@ -165,6 +165,7 @@ jobs:
       static: ${{ matrix.static }}
       clang: ${{ matrix.clang }}
       codecheck: ${{ matrix.codecheck }}
+      xdp: ${{ matrix.xdp }}
 
   build-darwin:
     name: MacOs

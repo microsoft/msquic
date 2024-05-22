@@ -97,48 +97,22 @@ jobs:
       run: |
         # this is to fix GIT not liking owner of the checkout dir
         chown -R $(id -u):$(id -g) $PWD
-    - name: Prepare Machine (default)
-      if: inputs.xdp == false
+    - name: Prepare Machine
+      run: scripts/prepare-machine.ps1 ${{ inputs.plat == 'linux' && '-ForContainerBuild' || '-ForBuild' }} -Tls ${{ inputs.tls }} ${{ (inputs.xdp  && '-UseXdp') || '' }}
+    - name: Build For Test
+      if: inputs.build == '-Test'
       shell: pwsh
-      run: |
-        scripts/prepare-machine.ps1 ${{ inputs.plat == 'linux' && '-ForContainerBuild' || '-ForBuild' }} -Tls ${{ inputs.tls }}
-    - name: Prepare Machine (XDP enabled)
-      if: inputs.xdp == true
+      run: scripts/build.ps1 -Config ${{ inputs.config }} -Platform ${{ inputs.plat }} -Arch ${{ inputs.arch }} -Tls ${{ inputs.tls }} -DisablePerf ${{ inputs.static }} ${{ inputs.clang }} ${{ inputs.systemcrypto }} ${{ inputs.codecheck }} ${{ inputs.sanitize }} ${{ (inputs.xdp  && '-EnableLinuxXDP') || '' }} -OneBranch
+    - name: Build For Perf
+      if: inputs.build == '-Perf'
       shell: pwsh
-      run: |
-        scripts/prepare-machine.ps1 ${{ inputs.plat == 'linux' && '-ForContainerBuild' || '-ForBuild' }} -Tls ${{ inputs.tls }} -UseXdp
-    - name: Build For Test (default)
-      if: inputs.build == '-Test' && inputs.xdp == false
+      run: scripts/build.ps1 -Config ${{ inputs.config }} -Platform ${{ inputs.plat }} -Arch ${{ inputs.arch }} -Tls ${{ inputs.tls }} -DisableTools -DisableTest ${{ inputs.static }} ${{ inputs.clang }} ${{ inputs.systemcrypto }} ${{ inputs.codecheck }} ${{ inputs.sanitize }} ${{ (inputs.xdp  && '-EnableLinuxXDP') || '' }}
+    - name: Build
+      if: inputs.build == ''
       shell: pwsh
-      run: |
-        scripts/build.ps1 -Config ${{ inputs.config }} -Platform ${{ inputs.plat }} -Arch ${{ inputs.arch }} -Tls ${{ inputs.tls }} -DisablePerf ${{ inputs.static }} ${{ inputs.clang }} ${{ inputs.systemcrypto }} ${{ inputs.codecheck }} ${{ inputs.sanitize }} -OneBranch
-    - name: Build For Test (XDP enabled)
-      if: inputs.build == '-Test' && inputs.xdp == true
-      shell: pwsh
-      run: |
-        scripts/build.ps1 -Config ${{ inputs.config }} -Platform ${{ inputs.plat }} -Arch ${{ inputs.arch }} -Tls ${{ inputs.tls }} -DisablePerf ${{ inputs.static }} ${{ inputs.clang }} ${{ inputs.systemcrypto }} ${{ inputs.codecheck }} ${{ inputs.sanitize }} -EnableLinuxXDP -OneBranch
-    - name: Build For Perf (default)
-      if: inputs.build == '-Perf' && inputs.xdp == false
-      shell: pwsh
-      run: |
-        scripts/build.ps1 -Config ${{ inputs.config }} -Platform ${{ inputs.plat }} -Arch ${{ inputs.arch }} -Tls ${{ inputs.tls }} -DisableTools -DisableTest ${{ inputs.static }} ${{ inputs.clang }} ${{ inputs.systemcrypto }} ${{ inputs.codecheck }} ${{ inputs.sanitize }}
-    - name: Build For Perf (XDP enabled)
-      if: inputs.build == '-Perf' && inputs.xdp == true
-      shell: pwsh
-      run: |
-        scripts/build.ps1 -Config ${{ inputs.config }} -Platform ${{ inputs.plat }} -Arch ${{ inputs.arch }} -Tls ${{ inputs.tls }} -DisableTools -DisableTest ${{ inputs.static }} ${{ inputs.clang }} ${{ inputs.systemcrypto }} ${{ inputs.codecheck }} ${{ inputs.sanitize }} -EnableLinuxXDP
-    - name: Build (default)
-      if: inputs.build == '' && inputs.xdp == false
-      shell: pwsh
-      run: |
-        scripts/build.ps1 -Config ${{ inputs.config }} -Platform ${{ inputs.plat }} -Arch ${{ inputs.arch }} -Tls ${{ inputs.tls }} ${{ inputs.static }} ${{ inputs.clang }} ${{ inputs.systemcrypto }} ${{ inputs.codecheck }} ${{ inputs.sanitize }} -OneBranch
-    - name: Build (XDP enabled)
-      if: inputs.build == '' && inputs.xdp == true
-      shell: pwsh
-      run: |
-        scripts/build.ps1 -Config ${{ inputs.config }} -Platform ${{ inputs.plat }} -Arch ${{ inputs.arch }} -Tls ${{ inputs.tls }} ${{ inputs.static }} ${{ inputs.clang }} ${{ inputs.systemcrypto }} ${{ inputs.codecheck }} ${{ inputs.sanitize }} -EnableLinuxXDP -OneBranch
+      run: scripts/build.ps1 -Config ${{ inputs.config }} -Platform ${{ inputs.plat }} -Arch ${{ inputs.arch }} -Tls ${{ inputs.tls }} ${{ inputs.static }} ${{ inputs.clang }} ${{ inputs.systemcrypto }} ${{ inputs.codecheck }} ${{ inputs.sanitize }} ${{ (inputs.xdp  && '-EnableLinuxXDP') || '' }} -OneBranch
     - name: Upload build artifacts
       uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808
       with:
-        name: ${{ inputs.config }}-${{ inputs.plat }}-${{ inputs.os }}-${{ inputs.arch }}-${{ inputs.tls }}${{ inputs.static }}${{ inputs.clang }}${{ inputs.systemcrypto }}${{ inputs.codecheck }}${{ inputs.sanitize }}${{ inputs.xdp && '-XDP' || '' }}${{ inputs.build }}
+        name: ${{ inputs.config }}-${{ inputs.plat }}-${{ inputs.os }}-${{ inputs.arch }}-${{ inputs.tls }}${{ inputs.static }}${{ inputs.clang }}${{ inputs.systemcrypto }}${{ inputs.codecheck }}${{ inputs.sanitize }}${{ (inputs.xdp && '-XDP') || '' }}${{ inputs.build }}
         path: artifacts
