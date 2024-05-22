@@ -67,7 +67,8 @@ void
 QuicLossDetectionOnPacketDiscarded(
     _In_ QUIC_LOSS_DETECTION* LossDetection,
     _In_ QUIC_SENT_PACKET_METADATA* Packet,
-    _In_ BOOLEAN DiscardedForLoss
+    _In_ BOOLEAN DiscardedForLoss,
+    _In_ BOOLEAN ReleasePacket
     );
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -151,7 +152,7 @@ QuicLossDetectionUninitialize(
 
         }
 
-        QuicLossDetectionOnPacketDiscarded(LossDetection, Packet, FALSE);
+        QuicLossDetectionOnPacketDiscarded(LossDetection, Packet, FALSE, TRUE);
     }
     while (LossDetection->LostPackets != NULL) {
         QUIC_SENT_PACKET_METADATA* Packet = LossDetection->LostPackets;
@@ -163,7 +164,7 @@ QuicLossDetectionUninitialize(
             PtkConnPre(Connection),
             Packet->PacketNumber);
 
-        QuicLossDetectionOnPacketDiscarded(LossDetection, Packet, FALSE);
+        QuicLossDetectionOnPacketDiscarded(LossDetection, Packet, FALSE, TRUE);
     }
 }
 
@@ -408,6 +409,7 @@ QuicLossDetectionOnPacketSent(
             "Sent packet metadata",
             SIZEOF_QUIC_SENT_PACKET_METADATA(TempSentPacket->FrameCount));
         QuicLossDetectionRetransmitFrames(LossDetection, TempSentPacket, FALSE);
+        QuicLossDetectionOnPacketDiscarded(LossDetection, TempSentPacket, FALSE, FALSE);
         QuicSentPacketMetadataReleaseFrames(TempSentPacket);
         return;
     }
@@ -893,7 +895,8 @@ void
 QuicLossDetectionOnPacketDiscarded(
     _In_ QUIC_LOSS_DETECTION* LossDetection,
     _In_ QUIC_SENT_PACKET_METADATA* Packet,
-    _In_ BOOLEAN DiscardedForLoss
+    _In_ BOOLEAN DiscardedForLoss,
+    _In_ BOOLEAN ReleasePacket
     )
 {
     QUIC_CONNECTION* Connection = QuicLossDetectionGetConnection(LossDetection);
@@ -923,7 +926,9 @@ QuicLossDetectionOnPacketDiscarded(
         }
     }
 
-    QuicSentPacketPoolReturnPacketMetadata(&Connection->Worker->SentPacketPool, Packet);
+    if (ReleasePacket) {
+        QuicSentPacketPoolReturnPacketMetadata(&Connection->Worker->SentPacketPool, Packet);
+    }
 }
 
 //
@@ -959,7 +964,7 @@ QuicLossDetectionDetectAndHandleLostPackets(
                 PtkConnPre(Connection),
                 Packet->PacketNumber);
             LossDetection->LostPackets = Packet->Next;
-            QuicLossDetectionOnPacketDiscarded(LossDetection, Packet, TRUE);
+            QuicLossDetectionOnPacketDiscarded(LossDetection, Packet, TRUE, TRUE);
         }
         if (LossDetection->LostPackets == NULL) {
             LossDetection->LostPacketsTail = &LossDetection->LostPackets;
