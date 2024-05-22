@@ -105,7 +105,7 @@ jobs:
     - uses: actions/download-artifact@65a9edc5881444af0b9093a5e628f2fe47ea3b2e
       if: matrix.vec.plat == 'linux' || matrix.vec.plat == 'macos'
       with:
-        name: ${{ matrix.vec.config }}-${{ matrix.vec.plat }}-${{ matrix.vec.os }}-${{ matrix.vec.arch }}-${{ matrix.vec.tls }}${{ matrix.vec.sanitize }}${{ matrix.vec.build }}
+        name: ${{ matrix.vec.config }}-${{ matrix.vec.plat }}-${{ matrix.vec.os }}-${{ matrix.vec.arch }}-${{ matrix.vec.tls }}${{ matrix.vec.sanitize }}${{ (matrix.vec.tls == "-UseXdp" && "-XDP") || "" }}${{ matrix.vec.build }}
         path: artifacts
     - name: Fix permissions for Unix
       if: matrix.vec.plat == 'linux' || matrix.vec.plat == 'macos'
@@ -128,7 +128,7 @@ jobs:
       uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808
       if: failure()
       with:
-        name: Stress-${{ matrix.vec.config }}-${{ matrix.vec.plat }}-${{ matrix.vec.os }}-${{ matrix.vec.arch }}-${{ matrix.vec.tls }}${{ matrix.vec.xdp }}${{ matrix.vec.sanitize }}
+        name: Stress-${{ matrix.vec.config }}-${{ matrix.vec.plat }}-${{ matrix.vec.os }}-${{ matrix.vec.arch }}-${{ matrix.vec.tls }}${{ (matrix.vec.xdp }}${{ matrix.vec.sanitize }}
         path: artifacts
 
   recvfuzz:

@@ -33,7 +33,7 @@ jobs:
       fail-fast: false
       matrix:
         vec: [
-          { plat: "linux", os: "ubuntu-20.04", arch: "x64", tls: "openssl", xdp: false },
+          { plat: "linux", os: "ubuntu-20.04", arch: "x64", tls: "openssl" },
           { plat: "linux", os: "ubuntu-22.04", arch: "x64", tls: "openssl3", xdp: true },
         ]
     uses: ./.github/workflows/build-reuse-unix.yml
@@ -73,7 +73,7 @@ jobs:
           { plat: "windows", os: "windows-2022", arch: "x64", tls: "openssl" },
           { plat: "windows", os: "windows-2022", arch: "x64", tls: "openssl3" },
           { plat: "linux", os: "ubuntu-20.04", arch: "x64", tls: "openssl" },
-          { plat: "linux", os: "ubuntu-22.04", arch: "x64", tls: "openssl3" },
+          { plat: "linux", os: "ubuntu-22.04", arch: "x64", tls: "openssl3", xdp: true },
           { plat: "macos", os: "macos-12", arch: "universal", tls: "openssl" },
         ]
     runs-on: ${{ matrix.vec.os }}
@@ -82,11 +82,11 @@ jobs:
       uses: actions/checkout@44c2b7a8a4ea60a981eaca3cf939b5f4305c123b
     - name: Prepare Machine
       shell: pwsh
-      run: scripts/prepare-machine.ps1 -ForTest
+      run: scripts/prepare-machine.ps1 -ForTest ${{ matrix.vec.xdp && '-UseXdp' || '' }}
     - name: Download Build Artifacts
       uses: actions/download-artifact@65a9edc5881444af0b9093a5e628f2fe47ea3b2e
       with:
-        name: Debug-${{ matrix.vec.plat }}-${{ matrix.vec.os }}-${{ matrix.vec.arch }}-${{ matrix.vec.tls }}
+        name: Debug-${{ matrix.vec.plat }}-${{ matrix.vec.os }}-${{ matrix.vec.arch }}-${{ matrix.vec.tls }}${{ matrix.vec.xdp && '-XDP' || '' }}
         path: artifacts
     - uses: actions/setup-dotnet@4d6c8fcf3c8f7a60068d26b594648e99df24cee3
       with:
