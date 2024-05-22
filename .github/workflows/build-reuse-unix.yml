@@ -98,6 +98,7 @@ jobs:
         # this is to fix GIT not liking owner of the checkout dir
         chown -R $(id -u):$(id -g) $PWD
     - name: Prepare Machine
+      shell: pwsh
       run: scripts/prepare-machine.ps1 ${{ inputs.plat == 'linux' && '-ForContainerBuild' || '-ForBuild' }} -Tls ${{ inputs.tls }} ${{ (inputs.xdp  && '-UseXdp') || '' }}
     - name: Build For Test
       if: inputs.build == '-Test'
