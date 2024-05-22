@@ -130,8 +130,9 @@ jobs:
         # linux xdp is for ubuntu22.04 only for now
         - plat: android
           xdp: true
-        - plat: linux
-          os: 'ubuntu-20.04'
+        - os: 'ubuntu-20.04'
+          xdp: true
+        - arch: x86
           xdp: true
         # Android doesn't use Clang
         - plat: android
