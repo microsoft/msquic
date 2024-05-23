@@ -1210,11 +1210,11 @@ CxPlatTlsSecConfigCreate(
         }
     }
 
-    if (CredConfig->Flags & QUIC_CREDENTIAL_FLAG_SET_ALLOWED_CERT_ALGS) {
-        QUIC_ALLOWED_CERT_ALG_FLAGS DisallowedCertAlgs = ~CredConfig->AllowedCertAlgs;
+    if (CredConfig->Flags & QUIC_CREDENTIAL_FLAG_SET_ALLOWED_CERTIFICATE_ALGORITHMS) {
+        QUIC_ALLOWED_CERTIFICATE_ALGORITHM_FLAGS DisallowedCertAlgs = ~CredConfig->AllowedCertAlgs;
 
-        if (DisallowedCertAlgs & QUIC_ALLOWED_CERT_ALG_RSA &&
-            DisallowedCertAlgs & QUIC_ALLOWED_CERT_ALG_ECDSA) {
+        if (DisallowedCertAlgs & QUIC_ALLOWED_CERTIFICATE_ALGORITHM_RSA &&
+            DisallowedCertAlgs & QUIC_ALLOWED_CERTIFICATE_ALGORITHM_ECDSA) {
             QuicTraceEvent(
                 LibraryError,
                 "[ lib] ERROR, %s.",
@@ -1223,7 +1223,7 @@ CxPlatTlsSecConfigCreate(
             goto Error;
         }
 
-        if (DisallowedCertAlgs & QUIC_ALLOWED_CERT_ALG_RSA) {
+        if (DisallowedCertAlgs & QUIC_ALLOWED_CERTIFICATE_ALGORITHM_RSA) {
             AchContext->CryptoSettings[CryptoSettingsIdx].eAlgorithmUsage = TlsParametersCngAlgUsageCertSig;
             AchContext->CryptoSettings[CryptoSettingsIdx].strCngAlgId = (UNICODE_STRING){
                 sizeof(BCRYPT_RSA_ALGORITHM),
@@ -1232,7 +1232,7 @@ CxPlatTlsSecConfigCreate(
             CryptoSettingsIdx++;
         }
 
-        if (DisallowedCertAlgs & QUIC_ALLOWED_CERT_ALG_ECDSA) {
+        if (DisallowedCertAlgs & QUIC_ALLOWED_CERTIFICATE_ALGORITHM_ECDSA) {
             AchContext->CryptoSettings[CryptoSettingsIdx].eAlgorithmUsage = TlsParametersCngAlgUsageCertSig;
             AchContext->CryptoSettings[CryptoSettingsIdx].strCngAlgId = (UNICODE_STRING){
                 sizeof(BCRYPT_ECDSA_P256_ALGORITHM),

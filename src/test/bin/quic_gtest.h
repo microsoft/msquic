@@ -933,7 +933,7 @@ class WithValidateTlsConfigArgs : public testing::Test,
 struct MultiCertArgs {
     QUIC_CREDENTIAL_TYPE CredType;
     CXPLAT_TEST_CERT_TYPE CertTypes[2];
-    QUIC_ALLOWED_CERT_ALG_FLAGS AllowedAlgs;
+    QUIC_ALLOWED_CERTIFICATE_ALGORITHM_FLAGS AllowedAlgs;
 
     static ::std::vector<MultiCertArgs> Generate() {
         ::std::vector<MultiCertArgs> List;
@@ -947,7 +947,7 @@ struct MultiCertArgs {
             // test cases for Windows.
         })
         for (auto RsaCertFirst: {true, false})
-        for (auto AllowedAlg: {QUIC_ALLOWED_CERT_ALG_RSA, QUIC_ALLOWED_CERT_ALG_ECDSA, QUIC_ALLOWED_CERT_ALG_ECDSA | QUIC_ALLOWED_CERT_ALG_RSA})
+        for (auto AllowedAlg: {QUIC_ALLOWED_CERTIFICATE_ALGORITHM_RSA, QUIC_ALLOWED_CERTIFICATE_ALGORITHM_ECDSA, QUIC_ALLOWED_CERTIFICATE_ALGORITHM_ECDSA | QUIC_ALLOWED_CERTIFICATE_ALGORITHM_RSA})
             List.push_back({
                 CredType,
                 {RsaCertFirst ? CXPLAT_TEST_CERT_VALID_SERVER_RSA : CXPLAT_TEST_CERT_VALID_SERVER,
@@ -958,14 +958,14 @@ struct MultiCertArgs {
     }
 };
 
-std::ostream& operator << (std::ostream& o, const QUIC_ALLOWED_CERT_ALG_FLAGS& flags) {
-    if (flags == QUIC_ALLOWED_CERT_ALG_NONE) {
+std::ostream& operator << (std::ostream& o, const QUIC_ALLOWED_CERTIFICATE_ALGORITHM_FLAGS& flags) {
+    if (flags == QUIC_ALLOWED_CERTIFICATE_ALGORITHM_NONE) {
         return o << "None";
     }
-    if (flags & QUIC_ALLOWED_CERT_ALG_RSA) {
+    if (flags & QUIC_ALLOWED_CERTIFICATE_ALGORITHM_RSA) {
         o << "RSA";
     }
-    if (flags & QUIC_ALLOWED_CERT_ALG_ECDSA) {
+    if (flags & QUIC_ALLOWED_CERTIFICATE_ALGORITHM_ECDSA) {
         o << "ECDSA";
     }
     return o;

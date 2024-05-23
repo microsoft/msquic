@@ -1296,7 +1296,7 @@ typedef struct {
 
 typedef struct {
     QUIC_CREDENTIAL_CONFIG CredConfig;
-    QUIC_ALLOWED_CERT_ALG_FLAGS AllowedCertAlgs;
+    QUIC_ALLOWED_CERTIFICATE_ALGORITHM_FLAGS AllowedCertAlgs;
     union {
         QUIC_CERTIFICATE_HASH CertHash[2];
         QUIC_CERTIFICATE_HASH_STORE CertHashStore[2];

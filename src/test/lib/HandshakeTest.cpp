@@ -3000,7 +3000,7 @@ QuicTestConnectValidServerCertificate(
 void
 QuicTestConnectValidServerCertificateAlgorithms(
     _In_ const QUIC_CREDENTIAL_CONFIG* ServerConfig,
-    _In_ QUIC_ALLOWED_CERT_ALG_FLAGS Flags
+    _In_ QUIC_ALLOWED_CERTIFICATE_ALGORITHM_FLAGS Flags
     )
 {
     MsQuicRegistration Registration;
@@ -3016,7 +3016,7 @@ QuicTestConnectValidServerCertificateAlgorithms(
 
     MsQuicCredentialConfig ClientCredConfig;
     ClientCredConfig.Flags &= ~QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION;
-    ClientCredConfig.Flags |= QUIC_CREDENTIAL_FLAG_SET_ALLOWED_CERT_ALGS;
+    ClientCredConfig.Flags |= QUIC_CREDENTIAL_FLAG_SET_ALLOWED_CERTIFICATE_ALGORITHMS;
     ClientCredConfig.Flags |= QUIC_CREDENTIAL_FLAG_INDICATE_CERTIFICATE_RECEIVED;
     ClientCredConfig.AllowedCertAlgs = Flags;
     MsQuicConfiguration ClientConfiguration(Registration, Alpn, Settings, ClientCredConfig);
