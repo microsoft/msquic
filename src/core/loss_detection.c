@@ -623,6 +623,7 @@ QuicLossDetectionOnPacketAcknowledged(
                 Packet->Flags.SuspectedLost ?
                     QUIC_DATAGRAM_SEND_ACKNOWLEDGED_SPURIOUS :
                     QUIC_DATAGRAM_SEND_ACKNOWLEDGED);
+            Packet->Frames[i].DATAGRAM.ClientContext = NULL;
             break;
 
         case QUIC_FRAME_HANDSHAKE_DONE:
