@@ -67,8 +67,7 @@ void
 QuicLossDetectionOnPacketDiscarded(
     _In_ QUIC_LOSS_DETECTION* LossDetection,
     _In_ QUIC_SENT_PACKET_METADATA* Packet,
-    _In_ BOOLEAN DiscardedForLoss,
-    _In_ BOOLEAN ReleasePacket
+    _In_ BOOLEAN DiscardedForLoss
     );
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -152,7 +151,7 @@ QuicLossDetectionUninitialize(
 
         }
 
-        QuicLossDetectionOnPacketDiscarded(LossDetection, Packet, FALSE, TRUE);
+        QuicLossDetectionOnPacketDiscarded(LossDetection, Packet, FALSE);
     }
     while (LossDetection->LostPackets != NULL) {
         QUIC_SENT_PACKET_METADATA* Packet = LossDetection->LostPackets;
@@ -164,7 +163,7 @@ QuicLossDetectionUninitialize(
             PtkConnPre(Connection),
             Packet->PacketNumber);
 
-        QuicLossDetectionOnPacketDiscarded(LossDetection, Packet, FALSE, TRUE);
+        QuicLossDetectionOnPacketDiscarded(LossDetection, Packet, FALSE);
     }
 }
 
@@ -409,8 +408,7 @@ QuicLossDetectionOnPacketSent(
             "Sent packet metadata",
             SIZEOF_QUIC_SENT_PACKET_METADATA(TempSentPacket->FrameCount));
         QuicLossDetectionRetransmitFrames(LossDetection, TempSentPacket, FALSE);
-        QuicLossDetectionOnPacketDiscarded(LossDetection, TempSentPacket, FALSE, FALSE);
-        QuicSentPacketMetadataReleaseFrames(TempSentPacket);
+        QuicSentPacketMetadataReleaseFrames(TempSentPacket, Connection);
         return;
     }
 
@@ -884,7 +882,7 @@ QuicLossDetectionRetransmitFrames(
     Packet->Flags.SuspectedLost = TRUE;
 
     if (ReleasePacket) {
-        QuicSentPacketPoolReturnPacketMetadata(&Connection->Worker->SentPacketPool, Packet);
+        QuicSentPacketPoolReturnPacketMetadata(Packet, Connection);
     }
 
     return NewDataQueued;
@@ -895,40 +893,25 @@ void
 QuicLossDetectionOnPacketDiscarded(
     _In_ QUIC_LOSS_DETECTION* LossDetection,
     _In_ QUIC_SENT_PACKET_METADATA* Packet,
-    _In_ BOOLEAN DiscardedForLoss,
-    _In_ BOOLEAN ReleasePacket
+    _In_ BOOLEAN DiscardedForLoss
     )
 {
     QUIC_CONNECTION* Connection = QuicLossDetectionGetConnection(LossDetection);
 
-    for (uint8_t i = 0; i < Packet->FrameCount; i++) {
-        switch (Packet->Frames[i].Type) {
-
-        case QUIC_FRAME_DATAGRAM:
-        case QUIC_FRAME_DATAGRAM_1:
-            QuicDatagramIndicateSendStateChange(
-                Connection,
-                &Packet->Frames[i].DATAGRAM.ClientContext,
-                QUIC_DATAGRAM_SEND_LOST_DISCARDED);
-            break;
-        }
-        if (Packet->Flags.IsMtuProbe && DiscardedForLoss) {
-            uint8_t PathIndex;
-            QUIC_PATH* Path = QuicConnGetPathByID(Connection, Packet->PathId, &PathIndex);
-            UNREFERENCED_PARAMETER(PathIndex);
-            if (Path != NULL) {
-                uint16_t PacketMtu =
-                    PacketSizeFromUdpPayloadSize(
-                        QuicAddrGetFamily(&Path->Route.RemoteAddress),
-                        Packet->PacketLength);
-                QuicMtuDiscoveryProbePacketDiscarded(&Path->MtuDiscovery, Connection, PacketMtu);
-            }
+    if (Packet->Flags.IsMtuProbe && DiscardedForLoss) {
+        uint8_t PathIndex;
+        QUIC_PATH* Path = QuicConnGetPathByID(Connection, Packet->PathId, &PathIndex);
+        UNREFERENCED_PARAMETER(PathIndex);
+        if (Path != NULL) {
+            uint16_t PacketMtu =
+                PacketSizeFromUdpPayloadSize(
+                    QuicAddrGetFamily(&Path->Route.RemoteAddress),
+                    Packet->PacketLength);
+            QuicMtuDiscoveryProbePacketDiscarded(&Path->MtuDiscovery, Connection, PacketMtu);
         }
     }
 
-    if (ReleasePacket) {
-        QuicSentPacketPoolReturnPacketMetadata(&Connection->Worker->SentPacketPool, Packet);
-    }
+    QuicSentPacketPoolReturnPacketMetadata(Packet, Connection);
 }
 
 //
@@ -964,7 +947,7 @@ QuicLossDetectionDetectAndHandleLostPackets(
                 PtkConnPre(Connection),
                 Packet->PacketNumber);
             LossDetection->LostPackets = Packet->Next;
-            QuicLossDetectionOnPacketDiscarded(LossDetection, Packet, TRUE, TRUE);
+            QuicLossDetectionOnPacketDiscarded(LossDetection, Packet, TRUE);
         }
         if (LossDetection->LostPackets == NULL) {
             LossDetection->LostPacketsTail = &LossDetection->LostPackets;
@@ -1150,7 +1133,7 @@ QuicLossDetectionDiscardPackets(
 
             QuicLossDetectionOnPacketAcknowledged(LossDetection, EncryptLevel, Packet, TRUE, TimeNow, 0);
 
-            QuicSentPacketPoolReturnPacketMetadata(&Connection->Worker->SentPacketPool, Packet);
+            QuicSentPacketPoolReturnPacketMetadata(Packet, Connection);
 
             Packet = NextPacket;
 
@@ -1199,7 +1182,7 @@ QuicLossDetectionDiscardPackets(
 
             QuicLossDetectionOnPacketAcknowledged(LossDetection, EncryptLevel, Packet, TRUE, TimeNow, 0);
 
-            QuicSentPacketPoolReturnPacketMetadata(&Connection->Worker->SentPacketPool, Packet);
+            QuicSentPacketPoolReturnPacketMetadata(Packet, Connection);
 
             Packet = NextPacket;
 
@@ -1633,7 +1616,7 @@ QuicLossDetectionProcessAckBlocks(
     while (AckedPacketsIterator != NULL) {
         QUIC_SENT_PACKET_METADATA* PacketMeta = AckedPacketsIterator;
         AckedPacketsIterator = AckedPacketsIterator->Next;
-        QuicSentPacketPoolReturnPacketMetadata(&Connection->Worker->SentPacketPool, PacketMeta);
+        QuicSentPacketPoolReturnPacketMetadata(PacketMeta, Connection);
     }
 
     //
