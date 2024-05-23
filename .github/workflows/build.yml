@@ -109,7 +109,7 @@ jobs:
         static: ['', '-Static']
         clang: ['', '-Clang']
         codecheck: ['', '-CodeCheck']
-        xdp: [false, true]
+        xdp: ['', '-UseXdp']
         exclude:
         # Android doesn't support x86
         - plat: android

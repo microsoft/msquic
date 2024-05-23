@@ -52,8 +52,8 @@ on:
         type: string
       xdp:
         required: false
-        default: false
-        type: boolean
+        default: ''
+        type: string
 
 permissions: read-all
 
@@ -83,11 +83,11 @@ jobs:
         fetch-depth: 0
     - name: Prepare Machine
       shell: pwsh
-      run: scripts/prepare-machine.ps1 -ForBuild ${{ inputs.xdp && '-UseXdp' || '' }}
+      run: scripts/prepare-machine.ps1 -ForBuild ${{ inputs.xdp }}
     - name: Download Build Artifacts
       uses: actions/download-artifact@65a9edc5881444af0b9093a5e628f2fe47ea3b2e
       with:
-        name: ${{ inputs.config }}-linux-${{ inputs.os }}-${{ inputs.arch }}-${{ inputs.tls }}-UseSystemOpenSSLCrypto${{ inputs.sanitize }}${{ (inputs.xdp && '-XDP') || '' }}${{ inputs.build }}
+        name: ${{ inputs.config }}-linux-${{ inputs.os }}-${{ inputs.arch }}-${{ inputs.tls }}-UseSystemOpenSSLCrypto${{ inputs.sanitize }}${{ inputs.xdp }}${{ inputs.build }}
         path: artifacts
     - name: Extract binaries # they are tar'd to preserve permissions and symlinks.
       run: |
@@ -100,5 +100,5 @@ jobs:
     - name: Upload build artifacts
       uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808
       with:
-        name: Package-${{ inputs.config }}-linux-${{ inputs.os }}-${{ inputs.arch }}-${{ inputs.tls }}-UseSystemOpenSSLCrypto${{ inputs.sanitize }}${{ (inputs.xdp && '-XDP') || '' }}${{ inputs.build }}
+        name: Package-${{ inputs.config }}-linux-${{ inputs.os }}-${{ inputs.arch }}-${{ inputs.tls }}-UseSystemOpenSSLCrypto${{ inputs.sanitize }}${{ inputs.xdp }}${{ inputs.build }}
         path: artifacts/dist

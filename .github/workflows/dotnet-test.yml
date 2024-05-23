@@ -33,8 +33,8 @@ jobs:
       fail-fast: false
       matrix:
         vec: [
-          { plat: "linux", os: "ubuntu-20.04", arch: "x64", tls: "openssl", xdp: false },
-          { plat: "linux", os: "ubuntu-22.04", arch: "x64", tls: "openssl3", xdp: true },
+          { plat: "linux", os: "ubuntu-20.04", arch: "x64", tls: "openssl" },
+          { plat: "linux", os: "ubuntu-22.04", arch: "x64", tls: "openssl3", xdp: "-UseXdp" },
         ]
     uses: ./.github/workflows/build-reuse-unix.yml
     with:
