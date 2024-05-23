@@ -421,7 +421,13 @@ QuicDatagramSendFlush(
         CXPLAT_DBG_ASSERT(!(SendRequest->Flags & QUIC_SEND_FLAG_BUFFERED));
         CXPLAT_TEL_ASSERT(Datagram->SendEnabled);
 
-        if (SendRequest->TotalLength > (uint64_t)Datagram->MaxSendLength || QuicConnIsClosed(Connection)) {
+        // Cancels the sending of a Datagram if:
+        // The length we want to send > the length we can send
+        // The connection is closed
+        // The sending mode requires to send immediately (no datagram in queue)
+        if (SendRequest->TotalLength > (uint64_t)Datagram->MaxSendLength 
+        || QuicConnIsClosed(Connection) 
+        || ((SendRequest->Flags & QUIC_SEND_FLAG_DGRAM_CANCEL_ON_BLOCKED) && Datagram->SendQueue != NULL)) {
             QuicDatagramCancelSend(Connection, SendRequest);
             continue;
         }
