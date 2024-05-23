@@ -195,7 +195,7 @@ Type 'YES' to proceed: YES
 or
 
 $ pwsh ./scripts/prepare-machine.ps1 -UseXdp -ForceXdpInstall
-$ pwsh ./scripts/build.ps1 -EnableLinuxXDP
+$ pwsh ./scripts/build.ps1 -UseXdp
 ```
 
 `./scripts/prepare-machine.ps1` internally does the below commands. This might break your environment.
