@@ -129,11 +129,11 @@ jobs:
           systemcrypto: '-UseSystemOpenSSLCrypto'
         # linux xdp is for ubuntu22.04 only for now
         - plat: android
-          xdp: true
+          xdp: "-UseXdp"
         - os: 'ubuntu-20.04'
-          xdp: true
+          xdp: "-UseXdp"
         - arch: x86
-          xdp: true
+          xdp: "-UseXdp"
         # Android doesn't use Clang
         - plat: android
           clang: '-Clang'
