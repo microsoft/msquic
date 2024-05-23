@@ -71,7 +71,7 @@ param (
     [switch]$UseXdp,
 
     [Parameter(Mandatory = $false)]
-    [switch]$InstallLinuxXdpByForce,
+    [switch]$ForceXdpInstall,
 
     [Parameter(Mandatory = $false)]
     [switch]$InstallArm64Toolchain,
@@ -101,7 +101,8 @@ $PSDefaultParameterValues['*:ErrorAction'] = 'Stop'
 $ProgressPreference = 'SilentlyContinue'
 
 if ($IsLinux -and $UseXdp) {
-    if (!$InstallLinuxXdpByForce) {
+    $IsUbuntu2404 = (Get-Content -Path /etc/os-release | Select-String -Pattern "24.04") -ne $null
+    if (!$IsUbuntu2404 -and !$ForceXdpInstall) {
         Write-Host "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! WARN !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
         Write-Host "Linux XDP installs dependencies from Ubuntu 24.04 packages, which should affect your environment"
         Write-Host "You need to understand the impact of this on your environment before proceeding"
