@@ -929,3 +929,52 @@ std::ostream& operator << (std::ostream& o, const TlsConfigArgs& args) {
 class WithValidateTlsConfigArgs : public testing::Test,
     public testing::WithParamInterface<TlsConfigArgs> {
 };
+
+struct MultiCertArgs {
+    QUIC_CREDENTIAL_TYPE CredType;
+    CXPLAT_TEST_CERT_TYPE CertTypes[2];
+    QUIC_ALLOWED_CERT_ALG_FLAGS AllowedAlgs;
+
+    static ::std::vector<MultiCertArgs> Generate() {
+        ::std::vector<MultiCertArgs> List;
+
+        for (auto CredType : {
+        #ifdef _WIN32
+            QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH,
+            QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH_STORE,
+        #endif
+            // Test only supported on Windows Kernel mode, so only generate
+            // test cases for Windows.
+        })
+        for (auto RsaCertFirst: {true, false})
+        for (auto AllowedAlg: {QUIC_ALLOWED_CERT_ALG_RSA, QUIC_ALLOWED_CERT_ALG_ECDSA, QUIC_ALLOWED_CERT_ALG_ECDSA | QUIC_ALLOWED_CERT_ALG_RSA})
+            List.push_back({
+                CredType,
+                {RsaCertFirst ? CXPLAT_TEST_CERT_VALID_SERVER_RSA : CXPLAT_TEST_CERT_VALID_SERVER,
+                RsaCertFirst ? CXPLAT_TEST_CERT_VALID_SERVER : CXPLAT_TEST_CERT_VALID_SERVER_RSA},
+                AllowedAlg});
+
+        return List;
+    }
+};
+
+std::ostream& operator << (std::ostream& o, const QUIC_ALLOWED_CERT_ALG_FLAGS& flags) {
+    if (flags == QUIC_ALLOWED_CERT_ALG_NONE) {
+        return o << "None";
+    }
+    if (flags & QUIC_ALLOWED_CERT_ALG_RSA) {
+        o << "RSA";
+    }
+    if (flags & QUIC_ALLOWED_CERT_ALG_ECDSA) {
+        o << "ECDSA";
+    }
+    return o;
+}
+
+std::ostream& operator << (std::ostream& o, const MultiCertArgs& args) {
+    return o << args.CredType << "/" << (args.CertTypes[0] == CXPLAT_TEST_CERT_VALID_SERVER_RSA ? "RSA first" : "ECDSA first") << "/" << args.AllowedAlgs << " allowed";
+}
+
+class WithMultiCertArgs : public testing::Test,
+    public testing::WithParamInterface<MultiCertArgs> {
+};

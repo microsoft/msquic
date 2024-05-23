@@ -520,6 +520,7 @@ size_t QUIC_IOCTL_BUFFER_SIZES[] =
     sizeof(uint32_t),
     sizeof(BOOLEAN),
     0,
+    sizeof(QUIC_RUN_CERT_ALG_VALIDATION),
 };
 
 CXPLAT_STATIC_ASSERT(
@@ -560,6 +561,7 @@ typedef union {
     QUIC_RUN_FEATURE_NEGOTIATION FeatureNegotiationParams;
     QUIC_HANDSHAKE_LOSS_PARAMS HandshakeLossParams;
     BOOLEAN ClientShutdown;
+    QUIC_RUN_CERT_ALG_VALIDATION CertAlgValidationParams;
 } QUIC_IOCTL_PARAMS;
 
 #define QuicTestCtlRun(X) \

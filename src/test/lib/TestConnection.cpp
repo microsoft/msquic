@@ -26,7 +26,7 @@ TestConnection::TestConnection(
     ExpectedTransportCloseStatus(QUIC_STATUS_SUCCESS), ExpectedPeerCloseErrorCode(QUIC_TEST_NO_ERROR),
     ExpectedClientCertValidationResult{}, ExpectedClientCertValidationResultCount(0),
     ExpectedCustomValidationResult(false), PeerCertEventReturnStatus(QUIC_STATUS_SUCCESS),
-    EventDeleted(nullptr),
+    ExpectedPeerCertFlag(QUIC_ALLOWED_CERT_ALG_NONE), EventDeleted(nullptr),
     NewStreamCallback(NewStreamCallbackHandler), ShutdownCompleteCallback(nullptr),
     DatagramsSent(0), DatagramsCanceled(0), DatagramsSuspectLost(0),
     DatagramsLost(0), DatagramsAcknowledged(0), NegotiatedAlpn(nullptr),
@@ -56,7 +56,7 @@ TestConnection::TestConnection(
     ExpectedTransportCloseStatus(QUIC_STATUS_SUCCESS), ExpectedPeerCloseErrorCode(QUIC_TEST_NO_ERROR),
     ExpectedClientCertValidationResult{}, ExpectedClientCertValidationResultCount(0),
     ExpectedCustomValidationResult(false), PeerCertEventReturnStatus(QUIC_STATUS_SUCCESS),
-    EventDeleted(nullptr),
+    ExpectedPeerCertFlag(QUIC_ALLOWED_CERT_ALG_NONE), EventDeleted(nullptr),
     NewStreamCallback(NewStreamCallbackHandler), ShutdownCompleteCallback(nullptr),
     DatagramsSent(0), DatagramsCanceled(0), DatagramsSuspectLost(0),
     DatagramsLost(0), DatagramsAcknowledged(0), NegotiatedAlpn(nullptr),
@@ -928,6 +928,9 @@ TestConnection::HandleConnectionEvent(
         }
         if (CustomValidationResultSet && !ExpectedCustomValidationResult) {
             return QUIC_STATUS_INTERNAL_ERROR;
+        }
+        if (ExpectedPeerCertFlag != QUIC_ALLOWED_CERT_ALG_NONE) {
+            // TODO check the certificate
         }
         if (ExpectedClientCertValidationResultCount > 0) {
             bool Match = false;

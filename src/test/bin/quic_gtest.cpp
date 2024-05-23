@@ -1276,6 +1276,53 @@ TEST(CredValidation, ConnectValidServerCertificate) {
     }
 }
 
+TEST_P(WithMultiCertArgs, ConnectServerAllowedCertificateAlgorithms) {
+    QUIC_RUN_CERT_ALG_VALIDATION Params;
+    ASSERT_TRUE(CxPlatGetTestCertificate(
+        GetParam().CertTypes[1],
+        TestingKernelMode ?
+            CXPLAT_SELF_SIGN_CERT_MACHINE :
+            CXPLAT_SELF_SIGN_CERT_USER,
+        GetParam().CredType,
+        &Params.CredConfig,
+        &Params.CertHash[1],
+        &Params.CertHashStore[1],
+        NULL,
+        NULL,
+        NULL,
+        NULL));
+
+    ASSERT_TRUE(CxPlatGetTestCertificate(
+        GetParam().CertTypes[0],
+        TestingKernelMode ?
+            CXPLAT_SELF_SIGN_CERT_MACHINE :
+            CXPLAT_SELF_SIGN_CERT_USER,
+        GetParam().CredType,
+        &Params.CredConfig,
+        &Params.CertHash[0],
+        &Params.CertHashStore[0],
+        NULL,
+        NULL,
+        NULL,
+        NULL));
+
+    //
+    // Fix up the Credential config because CxPlatGetTestCertificate overwrote
+    // the first certificate.
+    //
+    Params.CredConfig.Flags =
+        QUIC_CREDENTIAL_FLAG_SET_MULTIPLE;
+    Params.CredConfig.MultipleCount = 2;
+    Params.AllowedCertAlgs = GetParam().AllowedAlgs;
+
+    if (TestingKernelMode) {
+        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_CERT_ALG_VALIDATION, Params));
+    } else {
+        QuicTestConnectValidServerCertificate(&Params.CredConfig);
+    }
+    CxPlatFreeTestCert((QUIC_CREDENTIAL_CONFIG*)&Params.CredConfig);
+}
+
 TEST(CredValidation, ConnectExpiredClientCertificate) {
     QUIC_RUN_CRED_VALIDATION Params;
     for (auto CredType : { QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH, QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH_STORE }) {

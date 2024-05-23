@@ -72,6 +72,7 @@ class TestConnection
     uint32_t ExpectedClientCertValidationResultCount;
     bool ExpectedCustomValidationResult;
     QUIC_STATUS PeerCertEventReturnStatus;
+    QUIC_ALLOWED_CERT_ALG_FLAGS ExpectedPeerCertFlag;
 
     QUIC_STATUS TransportCloseStatus;
     QUIC_UINT62 PeerCloseErrorCode;
@@ -309,4 +310,7 @@ public:
     uint8_t GetNegotiatedAlpnLength() const;
 
     QUIC_STATUS SetTlsSecrets(QUIC_TLS_SECRETS* Secrets);
+
+    void SetPeerCertFlag(QUIC_ALLOWED_CERT_ALG_FLAGS Flag) { ExpectedPeerCertFlag = Flag; }
+
 };

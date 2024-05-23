@@ -504,7 +504,7 @@ typedef struct QUIC_ACH_CONTEXT {
     //
     // Holds the blocked algorithms for the lifetime of the ACH call.
     //
-    CRYPTO_SETTINGS CryptoSettings[4];
+    CRYPTO_SETTINGS CryptoSettings[7];
 
     //
     // Holds the list of blocked chaining modes for the lifetime of the ACH call.
@@ -1206,6 +1206,52 @@ CxPlatTlsSecConfigCreate(
                 sizeof(BCRYPT_SHA256_ALGORITHM),
                 sizeof(BCRYPT_SHA256_ALGORITHM),
                 BCRYPT_SHA256_ALGORITHM};
+            CryptoSettingsIdx++;
+        }
+    }
+
+    if (CredConfig->Flags & QUIC_CREDENTIAL_FLAG_SET_ALLOWED_CERT_ALGS) {
+        QUIC_ALLOWED_CERT_ALG_FLAGS DisallowedCertAlgs = ~CredConfig->AllowedCertAlgs;
+
+        if (DisallowedCertAlgs & QUIC_ALLOWED_CERT_ALG_RSA &&
+            DisallowedCertAlgs & QUIC_ALLOWED_CERT_ALG_ECDSA) {
+            QuicTraceEvent(
+                LibraryError,
+                "[ lib] ERROR, %s.",
+                "No Allowed TLS Cert Algorithms");
+            Status = QUIC_STATUS_INVALID_PARAMETER;
+            goto Error;
+        }
+
+        if (DisallowedCertAlgs & QUIC_ALLOWED_CERT_ALG_RSA) {
+            AchContext->CryptoSettings[CryptoSettingsIdx].eAlgorithmUsage = TlsParametersCngAlgUsageCertSig;
+            AchContext->CryptoSettings[CryptoSettingsIdx].strCngAlgId = (UNICODE_STRING){
+                sizeof(BCRYPT_RSA_ALGORITHM),
+                sizeof(BCRYPT_RSA_ALGORITHM),
+                BCRYPT_RSA_ALGORITHM};
+            CryptoSettingsIdx++;
+        }
+
+        if (DisallowedCertAlgs & QUIC_ALLOWED_CERT_ALG_ECDSA) {
+            AchContext->CryptoSettings[CryptoSettingsIdx].eAlgorithmUsage = TlsParametersCngAlgUsageCertSig;
+            AchContext->CryptoSettings[CryptoSettingsIdx].strCngAlgId = (UNICODE_STRING){
+                sizeof(BCRYPT_ECDSA_P256_ALGORITHM),
+                sizeof(BCRYPT_ECDSA_P256_ALGORITHM),
+                BCRYPT_ECDSA_P256_ALGORITHM};
+            CryptoSettingsIdx++;
+
+            AchContext->CryptoSettings[CryptoSettingsIdx].eAlgorithmUsage = TlsParametersCngAlgUsageCertSig;
+            AchContext->CryptoSettings[CryptoSettingsIdx].strCngAlgId = (UNICODE_STRING){
+                sizeof(BCRYPT_ECDSA_P384_ALGORITHM),
+                sizeof(BCRYPT_ECDSA_P384_ALGORITHM),
+                BCRYPT_ECDSA_P384_ALGORITHM};
+            CryptoSettingsIdx++;
+
+            AchContext->CryptoSettings[CryptoSettingsIdx].eAlgorithmUsage = TlsParametersCngAlgUsageCertSig;
+            AchContext->CryptoSettings[CryptoSettingsIdx].strCngAlgId = (UNICODE_STRING){
+                sizeof(BCRYPT_ECDSA_P521_ALGORITHM),
+                sizeof(BCRYPT_ECDSA_P521_ALGORITHM),
+                BCRYPT_ECDSA_P521_ALGORITHM};
             CryptoSettingsIdx++;
         }
     }
