@@ -112,7 +112,7 @@ jobs:
       run: |
         sudo chmod -R 777 artifacts
     - name: Prepare Machine
-      run: scripts/prepare-machine.ps1 -Tls ${{ matrix.vec.tls }} -ForTest ${{ matrix.vec.xdp }} ${{ matrix.vec.xdp == "-UseXdp" && "-ForceXdpInstall" || "" }}
+      run: scripts/prepare-machine.ps1 -Tls ${{ matrix.vec.tls }} -ForTest ${{ matrix.vec.xdp == "-UseXdp" && "-UseXdp -ForceXdpInstall" || "" }}
       shell: pwsh
     - name: spinquic (PR)
       if: github.event_name == 'pull_request'
