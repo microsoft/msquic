@@ -1277,6 +1277,9 @@ TEST(CredValidation, ConnectValidServerCertificate) {
 }
 
 TEST_P(WithMultiCertArgs, ConnectServerAllowedCertificateAlgorithms) {
+#ifdef QUIC_DISABLE_CERT_ALG_TESTS
+    GTEST_SKIP_("This TLS doesn't support multiple certificates per config yet");
+#endif
     QUIC_RUN_CERT_ALG_VALIDATION Params;
     ASSERT_TRUE(CxPlatGetTestCertificate(
         GetParam().CertTypes[1],

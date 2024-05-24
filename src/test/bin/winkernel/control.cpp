@@ -1454,6 +1454,14 @@ QuicTestCtlEvtIoDeviceControl(
         QuicTestCtlRun(QuicTestNthPacketDrop());
         break;
 
+    case IOCTL_QUIC_RUN_CERT_ALG_VALIDATION:
+        CXPLAT_FRE_ASSERT(Params != nullptr);
+        QuicTestCtlRun(
+            QuicTestConnectValidServerCertificateAlgorithms(
+                Params->CertAlgValidationParams.CredConfig,
+                Params->CertAlgValidationParams.AllowedAlgs));
+        break;
+
     default:
         Status = STATUS_NOT_IMPLEMENTED;
         break;

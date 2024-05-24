@@ -317,6 +317,12 @@ QuicTestConnectValidServerCertificate(
     );
 
 void
+QuicTestConnectValidServerCertificateAlgorithms(
+    _In_ const QUIC_CREDENTIAL_CONFIG* ServerConfig,
+    _In_ QUIC_ALLOWED_CERTIFICATE_ALGORITHM_FLAGS Flags
+    );
+
+void
 QuicTestConnectValidClientCertificate(
     _In_ const QUIC_CREDENTIAL_CONFIG* Config
     );

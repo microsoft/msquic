@@ -938,20 +938,18 @@ struct MultiCertArgs {
     static ::std::vector<MultiCertArgs> Generate() {
         ::std::vector<MultiCertArgs> List;
 
-        for (auto CredType : {
-        #ifdef _WIN32
+        for (QUIC_CREDENTIAL_TYPE CredType : {
             QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH,
-            QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH_STORE,
-        #endif
-            // Test only supported on Windows Kernel mode, so only generate
-            // test cases for Windows.
-        })
+            QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH_STORE})
         for (auto RsaCertFirst: {true, false})
-        for (auto AllowedAlg: {QUIC_ALLOWED_CERTIFICATE_ALGORITHM_RSA, QUIC_ALLOWED_CERTIFICATE_ALGORITHM_ECDSA, QUIC_ALLOWED_CERTIFICATE_ALGORITHM_ECDSA | QUIC_ALLOWED_CERTIFICATE_ALGORITHM_RSA})
+        for (auto AllowedAlg: {
+            QUIC_ALLOWED_CERTIFICATE_ALGORITHM_RSA,
+            QUIC_ALLOWED_CERTIFICATE_ALGORITHM_ECDSA,
+            QUIC_ALLOWED_CERTIFICATE_ALGORITHM_ECDSA | QUIC_ALLOWED_CERTIFICATE_ALGORITHM_RSA})
             List.push_back({
                 CredType,
                 {RsaCertFirst ? CXPLAT_TEST_CERT_VALID_SERVER_RSA : CXPLAT_TEST_CERT_VALID_SERVER,
-                RsaCertFirst ? CXPLAT_TEST_CERT_VALID_SERVER : CXPLAT_TEST_CERT_VALID_SERVER_RSA},
+                    RsaCertFirst ? CXPLAT_TEST_CERT_VALID_SERVER : CXPLAT_TEST_CERT_VALID_SERVER_RSA},
                 AllowedAlg});
 
         return List;
