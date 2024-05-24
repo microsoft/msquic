@@ -1459,7 +1459,7 @@ QuicTestCtlEvtIoDeviceControl(
         QuicTestCtlRun(
             QuicTestConnectValidServerCertificateAlgorithms(
                 Params->CertAlgValidationParams.CredConfig,
-                Params->CertAlgValidationParams.AllowedAlgs));
+                Params->CertAlgValidationParams.AllowedCertAlgs));
         break;
 
     default:
