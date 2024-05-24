@@ -1458,7 +1458,7 @@ QuicTestCtlEvtIoDeviceControl(
         CXPLAT_FRE_ASSERT(Params != nullptr);
         QuicTestCtlRun(
             QuicTestConnectValidServerCertificateAlgorithms(
-                Params->CertAlgValidationParams.CredConfig,
+                &Params->CertAlgValidationParams.CredConfig,
                 Params->CertAlgValidationParams.AllowedCertAlgs));
         break;
 
