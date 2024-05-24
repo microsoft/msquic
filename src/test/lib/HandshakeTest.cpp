@@ -3003,6 +3003,7 @@ QuicTestConnectValidServerCertificateAlgorithms(
     _In_ QUIC_ALLOWED_CERTIFICATE_ALGORITHM_FLAGS Flags
     )
 {
+    bool ExpectedConnectionSuccess = (Flags != QUIC_ALLOWED_CERTIFICATE_ALGORITHM_NONE);
     MsQuicRegistration Registration;
     TEST_TRUE(Registration.IsValid());
 
@@ -3052,13 +3053,17 @@ QuicTestConnectValidServerCertificateAlgorithms(
                 if (!Client.WaitForConnectionComplete()) {
                     return;
                 }
-                TEST_EQUAL(true, Client.GetIsConnected());
+                TEST_EQUAL(ExpectedConnectionSuccess, Client.GetIsConnected());
 
-                TEST_NOT_EQUAL(nullptr, Server);
-                if (!Server->WaitForConnectionComplete()) {
-                    return;
+                if (ExpectedConnectionSuccess) {
+                    TEST_NOT_EQUAL(nullptr, Server);
+                    if (!Server->WaitForConnectionComplete()) {
+                        return;
+                    }
+                    TEST_EQUAL(true, Server->GetIsConnected());
+                } else {
+                    TEST_EQUAL(nullptr, Server);
                 }
-                TEST_EQUAL(true, Server->GetIsConnected());
             }
         }
     }

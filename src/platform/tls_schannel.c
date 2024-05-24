@@ -504,7 +504,7 @@ typedef struct QUIC_ACH_CONTEXT {
     //
     // Holds the blocked algorithms for the lifetime of the ACH call.
     //
-    CRYPTO_SETTINGS CryptoSettings[7];
+    CRYPTO_SETTINGS CryptoSettings[8];
 
     //
     // Holds the list of blocked chaining modes for the lifetime of the ACH call.
@@ -512,9 +512,12 @@ typedef struct QUIC_ACH_CONTEXT {
     UNICODE_STRING BlockedChainingModes[1];
 
     //
-    // CredConfig certificate hash used to find the server certificate.
+    // CredConfig certificate hash/cert context used to find the server certificate(s).
     //
-    SCHANNEL_CERT_HASH_STORE CertHash[0];
+    union {
+        SCHANNEL_CERT_HASH_STORE CertHash[0];
+        PCCERT_CONTEXT CertContext[0];
+    };
 
 } QUIC_ACH_CONTEXT;
 
@@ -981,7 +984,7 @@ CxPlatTlsSecConfigCreate(
     }
 
 #ifndef _KERNEL_MODE
-    PCERT_CONTEXT CertContext = NULL;
+    PCCERT_CONTEXT* CertContext = NULL;
 
     if (CredConfig->Flags & QUIC_CREDENTIAL_FLAG_LOAD_ASYNCHRONOUS) {
         return QUIC_STATUS_NOT_SUPPORTED;
@@ -1213,16 +1216,6 @@ CxPlatTlsSecConfigCreate(
     if (CredConfig->Flags & QUIC_CREDENTIAL_FLAG_SET_ALLOWED_CERTIFICATE_ALGORITHMS) {
         QUIC_ALLOWED_CERTIFICATE_ALGORITHM_FLAGS DisallowedCertAlgs = ~CredConfig->AllowedCertAlgs;
 
-        if (DisallowedCertAlgs & QUIC_ALLOWED_CERTIFICATE_ALGORITHM_RSA &&
-            DisallowedCertAlgs & QUIC_ALLOWED_CERTIFICATE_ALGORITHM_ECDSA) {
-            QuicTraceEvent(
-                LibraryError,
-                "[ lib] ERROR, %s.",
-                "No Allowed TLS Cert Algorithms");
-            Status = QUIC_STATUS_INVALID_PARAMETER;
-            goto Error;
-        }
-
         if (DisallowedCertAlgs & QUIC_ALLOWED_CERTIFICATE_ALGORITHM_RSA) {
             AchContext->CryptoSettings[CryptoSettingsIdx].eAlgorithmUsage = TlsParametersCngAlgUsageCertSig;
             AchContext->CryptoSettings[CryptoSettingsIdx].strCngAlgId = (UNICODE_STRING){
@@ -1363,23 +1356,22 @@ CxPlatTlsSecConfigCreate(
 #else
 
     if (CredConfig->Type != QUIC_CREDENTIAL_TYPE_NONE) {
-        if (CredCount != 1) {
-            Status = QUIC_STATUS_NOT_SUPPORTED; // TODO - Support multiple certificates in UM
-            goto Error;
-        }
+        CertContext = AchContext->CertContext;
 
-        Status = CxPlatCertCreate(CredConfig, &CertContext);
-        if (QUIC_FAILED(Status)) {
-            QuicTraceEvent(
-                LibraryErrorStatus,
-                "[ lib] ERROR, %u, %s.",
-                Status,
-                "CxPlatCertCreate");
-            goto Error;
+        for (uint32_t i = 0; i < CredCount; i++) {
+            Status = CxPlatCertCreate(CredConfig, CertContext + i);
+            if (QUIC_FAILED(Status)) {
+                QuicTraceEvent(
+                    LibraryErrorStatus,
+                    "[ lib] ERROR, %u, %s.",
+                    Status,
+                    "CxPlatCertCreate");
+                goto Error;
+            }
         }
 
         Credentials->cCreds = CredCount;
-        Credentials->paCred = &CertContext;
+        Credentials->paCred = CertContext;
 
     } else {
         CXPLAT_DBG_ASSERT(IsClient);
@@ -1501,8 +1493,12 @@ CxPlatTlsSecConfigCreate(
 Error:
 
 #ifndef _KERNEL_MODE
-    if (CertContext != NULL && CertContext != CredConfig->CertificateContext) {
-        CertFreeCertificateContext(CertContext);
+    if (CertContext != NULL) {
+        for (uint32_t i = 0; i < CredCount; i++) {
+            if ((CertContext[i]) != (PCCERT_CONTEXT)CredConfig->CertificateContext + i) {
+                CertFreeCertificateContext(CertContext[i]);
+            }
+        }
     }
 #endif
 
