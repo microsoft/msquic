@@ -71,6 +71,9 @@ param (
     [switch]$UseXdp,
 
     [Parameter(Mandatory = $false)]
+    [switch]$ForceXdpInstall,
+
+    [Parameter(Mandatory = $false)]
     [switch]$InstallArm64Toolchain,
 
     [Parameter(Mandatory = $false)]
@@ -96,6 +99,20 @@ param (
 Set-StrictMode -Version 'Latest'
 $PSDefaultParameterValues['*:ErrorAction'] = 'Stop'
 $ProgressPreference = 'SilentlyContinue'
+
+if ($IsLinux -and $UseXdp) {
+    $IsUbuntu2404 = (Get-Content -Path /etc/os-release | Select-String -Pattern "24.04") -ne $null
+    if (!$IsUbuntu2404 -and !$ForceXdpInstall) {
+        Write-Host "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! WARN !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
+        Write-Host "Linux XDP installs dependencies from Ubuntu 24.04 packages, which should affect your environment"
+        Write-Host "You need to understand the impact of this on your environment before proceeding"
+        $userInput = Read-Host "Type 'YES' to proceed"
+        if ($userInput -ne 'YES') {
+            Write-Output "User did not type YES. Exiting script."
+            exit
+        }
+    }
+}
 
 $PrepConfig = & (Join-Path $PSScriptRoot get-buildconfig.ps1) -Tls $Tls
 $Tls = $PrepConfig.Tls
