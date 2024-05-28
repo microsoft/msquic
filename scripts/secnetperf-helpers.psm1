@@ -254,12 +254,12 @@ function Cleanup-State {
 # Waits for a remote job to be ready based on looking for a particular string in
 # the output.
 function Start-RemoteServer {
-    param ($Session, $Command, $Args, $UseSudo)
+    param ($Session, $Command, $ServerArgs, $UseSudo)
     # Start the server on the remote in an async job.
     if ($UseSudo) {
-        $job = Invoke-Command -Session $Session -ScriptBlock { iex "sudo LD_LIBRARY_PATH=$(Split-Path $Using:Command -Parent)  $Using:Command $Using:Args" } -AsJob
+        $job = Invoke-Command -Session $Session -ScriptBlock { iex "sudo LD_LIBRARY_PATH=$(Split-Path $Using:Command -Parent)  $Using:Command $Using:ServerArgs" } -AsJob
     } else {
-        $job = Invoke-Command -Session $Session -ScriptBlock { iex "$Using:Command $Using:Args"} -AsJob
+        $job = Invoke-Command -Session $Session -ScriptBlock { iex "$Using:Command $Using:ServerArgs"} -AsJob
     }
     # Poll the job for 10 seconds to see if it started.
     $stopWatch = [system.diagnostics.stopwatch]::StartNew()
