@@ -3036,11 +3036,19 @@ QuicTestConnectValidServerCertificateAlgorithms(
         {
             UniquePtr<TestConnection> Server;
             ServerAcceptContext ServerAcceptCtx((TestConnection**)&Server);
+            ServerAcceptCtx.ExpectedTransportCloseStatus =
+                ExpectedConnectionSuccess ?
+                    QUIC_STATUS_SUCCESS :
+                    QUIC_STATUS_ALPN_NEG_FAILURE;
             Listener.Context = &ServerAcceptCtx;
 
             {
                 TestConnection Client(Registration);
                 TEST_TRUE(Client.IsValid());
+                Client.SetExpectedTransportCloseStatus(
+                    ExpectedConnectionSuccess ?
+                        QUIC_STATUS_SUCCESS :
+                        QUIC_STATUS_ALPN_NEG_FAILURE);
 
                 TEST_QUIC_SUCCEEDED(
                     Client.Start(
@@ -3061,8 +3069,6 @@ QuicTestConnectValidServerCertificateAlgorithms(
                         return;
                     }
                     TEST_EQUAL(true, Server->GetIsConnected());
-                } else {
-                    TEST_EQUAL(nullptr, Server);
                 }
             }
         }

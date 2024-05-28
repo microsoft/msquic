@@ -938,7 +938,7 @@ struct MultiCertArgs {
     static ::std::vector<MultiCertArgs> Generate() {
         ::std::vector<MultiCertArgs> List;
 
-        for (QUIC_CREDENTIAL_TYPE CredType : {
+        for (auto CredType : {
             QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH,
             QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH_STORE})
         for (auto RsaCertFirst: {true, false})

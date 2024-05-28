@@ -1295,6 +1295,11 @@ TEST_P(WithMultiCertArgs, ConnectServerAllowedCertificateAlgorithms) {
         NULL,
         NULL));
 
+    //
+    // The first certificate is retrieved second because CxPlatGetTestCertificate
+    // overwrites the settings in the CredConfig. This way, it'll point to the
+    // start of the array of CertHashes/CertHashStores.
+    //
     ASSERT_TRUE(CxPlatGetTestCertificate(
         GetParam().CertTypes[0],
         TestingKernelMode ?
@@ -1310,8 +1315,7 @@ TEST_P(WithMultiCertArgs, ConnectServerAllowedCertificateAlgorithms) {
         NULL));
 
     //
-    // Fix up the Credential config because CxPlatGetTestCertificate overwrote
-    // the first certificate.
+    // Fix up the Credential config to support multiple certificates.
     //
     Params.CredConfig.Flags =
         QUIC_CREDENTIAL_FLAG_SET_MULTIPLE;
@@ -1321,7 +1325,7 @@ TEST_P(WithMultiCertArgs, ConnectServerAllowedCertificateAlgorithms) {
     if (TestingKernelMode) {
         ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_CERT_ALG_VALIDATION, Params));
     } else {
-        QuicTestConnectValidServerCertificate(&Params.CredConfig);
+        QuicTestConnectValidServerCertificateAlgorithms(&Params.CredConfig, Params.AllowedCertAlgs);
     }
     CxPlatFreeTestCert((QUIC_CREDENTIAL_CONFIG*)&Params.CredConfig);
 }
@@ -2500,6 +2504,11 @@ INSTANTIATE_TEST_SUITE_P(
     Handshake,
     WithHandshakeArgs11,
     testing::ValuesIn(HandshakeArgs11::Generate()));
+
+INSTANTIATE_TEST_SUITE_P(
+    Handshake,
+    WithMultiCertArgs,
+    testing::ValuesIn(MultiCertArgs::Generate()));
 
 INSTANTIATE_TEST_SUITE_P(
     AppData,
