@@ -961,8 +961,8 @@ CxPlatTlsSecConfigCreate(
     if (CredConfigFlags & QUIC_CREDENTIAL_FLAG_ENABLE_OCSP ||
         CredConfigFlags & QUIC_CREDENTIAL_FLAG_USE_SUPPLIED_CREDENTIALS ||
         CredConfigFlags & QUIC_CREDENTIAL_FLAG_USE_SYSTEM_MAPPER ||
-        CredConfigFlags & QUIC_CREDENTIAL_FLAG_INPROC_PEER_CERTIFICATE
-        CredConfigFlags & QUIC_CREDENTIAL_FLAG_SET_MULTIPLE
+        CredConfigFlags & QUIC_CREDENTIAL_FLAG_INPROC_PEER_CERTIFICATE ||
+        CredConfigFlags & QUIC_CREDENTIAL_FLAG_SET_MULTIPLE ||
         CredConfigFlags & QUIC_CREDENTIAL_FLAG_SET_ALLOWED_CERTIFICATE_ALGORITHMS) {
         return QUIC_STATUS_NOT_SUPPORTED; // Not supported by this TLS implementation
     }
