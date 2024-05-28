@@ -319,10 +319,10 @@ function Start-LocalTest {
 
         Write-Host "Start-LocalTest FullPath: $FullPath, FullArgs: $FullArgs, OutputDir: $OutputDir, UseSudo: $UseSudo"
         $NOFILE = Invoke-Expression "bash -c 'ulimit -n'"
-        $CommonCommand = "ulimit -n $NOFILE && ulimit -c unlimited && LSAN_OPTIONS=report_objects=1 ASAN_OPTIONS=disable_coredump=0:abort_on_error=1 UBSAN_OPTIONS=halt_on_error=1:print_stacktrace=1 $FullPath $FullArgs && echo ''"
+        $CommonCommand = "ulimit -n $NOFILE && ulimit -c unlimited && LD_LIBRARY_PATH=$(Split-Path $FullPath -Parent) LSAN_OPTIONS=report_objects=1 ASAN_OPTIONS=disable_coredump=0:abort_on_error=1 UBSAN_OPTIONS=halt_on_error=1:print_stacktrace=1 $FullPath $FullArgs && echo ''"
         if ($UseSudo) {
             $pinfo.FileName = "/usr/bin/sudo"
-            $pinfo.Arguments = "/usr/bin/bash -c `"export LD_LIBRARY_PATH=$(Split-Path $FullPath -Parent) && $CommonCommand`""
+            $pinfo.Arguments = "/usr/bin/bash -c `"$CommonCommand`""
         } else {
             $pinfo.FileName = "bash"
             $pinfo.Arguments = "-c `"$CommonCommand`""
