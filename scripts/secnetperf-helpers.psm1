@@ -257,7 +257,6 @@ function Start-RemoteServer {
     param ($Session, $Command, $ServerArgs, $UseSudo)
     # Start the server on the remote in an async job.
 
-    Write-Host "Start-RemoteServer Command: $Command, ServerArgs: $ServerArgs, UseSudo: $UseSudo"
     if ($UseSudo) {
         $job = Invoke-Command -Session $Session -ScriptBlock { iex "sudo LD_LIBRARY_PATH=$(Split-Path $Using:Command -Parent)  $Using:Command $Using:ServerArgs" } -AsJob
     } else {
@@ -316,8 +315,6 @@ function Start-LocalTest {
         $pinfo.Arguments = $FullArgs
     } else {
         # We use bash to execute the test so we can collect core dumps.
-
-        Write-Host "Start-LocalTest FullPath: $FullPath, FullArgs: $FullArgs, OutputDir: $OutputDir, UseSudo: $UseSudo"
         $NOFILE = Invoke-Expression "bash -c 'ulimit -n'"
         $CommonCommand = "ulimit -n $NOFILE && ulimit -c unlimited && LD_LIBRARY_PATH=$(Split-Path $FullPath -Parent) LSAN_OPTIONS=report_objects=1 ASAN_OPTIONS=disable_coredump=0:abort_on_error=1 UBSAN_OPTIONS=halt_on_error=1:print_stacktrace=1 $FullPath $FullArgs && echo ''"
         if ($UseSudo) {

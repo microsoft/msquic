@@ -68,7 +68,7 @@ param (
     [string]$filter = "",
 
     [Parameter(Mandatory = $false)]
-    [string]$RemoteName = "peer",
+    [string]$RemoteName = "netperf-peer",
 
     [Parameter(Mandatory = $false)]
     [string]$UserName = "secnetperf"
