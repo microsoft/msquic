@@ -1147,7 +1147,12 @@ QuicSendPathChallenges(
         BOOLEAN Result =
             QuicPathChallengeFrameEncode(
                 QUIC_FRAME_PATH_CHALLENGE,
-                &Frame,
+  
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+QuicDatagramCancelPending(
+    _In_ QUIC_CONNECTION* Conne              &Frame,
                 &Builder.DatagramLength,
                 AvailableBufferLength,
                 Builder.Datagram->Buffer);
@@ -1496,6 +1501,13 @@ QuicSendFlush(
         //
         // Temporarily disabled for now.
         //QuicConnUpdatePeerPacketTolerance(Connection, Builder.TotalCountDatagrams);
+    }
+
+    //
+    // Cancel all outstanding send requests if not able to send.
+    //
+    if(!(Send->SendFlags & QUIC_SEND_FLAG_DGRAM_CANCEL_ON_BLOCKED)) {
+        QuicDatagramCancelPending(Connection);
     }
 
     return Result != QUIC_SEND_INCOMPLETE;

@@ -144,6 +144,7 @@ QuicDatagramUninitialize(
     _In_ QUIC_DATAGRAM* Datagram
     )
 {
+    QuicDatagramSendShutdown(Datagram);
     CXPLAT_DBG_ASSERT(Datagram->SendQueue == NULL);
     CXPLAT_DBG_ASSERT(Datagram->ApiQueue == NULL);
     CxPlatDispatchLockUninitialize(&Datagram->ApiQueueLock);
@@ -178,13 +179,7 @@ QuicDatagramSendShutdown(
     //
     // Cancel all outstanding send requests.
     //
-    while (Datagram->SendQueue != NULL) {
-        QUIC_SEND_REQUEST* SendRequest = Datagram->SendQueue;
-        Datagram->SendQueue = SendRequest->Next;
-        QuicDatagramCancelSend(Connection, SendRequest);
-    }
-    Datagram->PrioritySendQueueTail = &Datagram->SendQueue;
-    Datagram->SendQueueTail = &Datagram->SendQueue;
+    QuicDatagramCancelPending(Connection);
 
     while (ApiQueue != NULL) {
         QUIC_SEND_REQUEST* SendRequest = ApiQueue;
@@ -362,16 +357,11 @@ QuicDatagramQueueSend(
         goto Exit;
     }
 
-    //
-    // From here on, we cannot fail the call because the stream has been queued
-    // and possibly already started to be processed.
-    //
-    Status = QUIC_STATUS_PENDING;
-
     if (QueueOper) {
         QUIC_OPERATION* Oper =
             QuicOperationAlloc(Connection->Worker, QUIC_OPER_TYPE_API_CALL);
         if (Oper == NULL) {
+            Status = QUIC_STATUS_OUT_OF_MEMORY;
             QuicTraceEvent(
                 AllocFailure,
                 "Allocation of '%s' failed. (%llu bytes)",
@@ -379,9 +369,6 @@ QuicDatagramQueueSend(
                 0);
             goto Exit;
         }
-
-        // TODO - Kill the connection?
-
         Oper->API_CALL.Context->Type = QUIC_API_TYPE_DATAGRAM_SEND;
 
         //
@@ -389,6 +376,8 @@ QuicDatagramQueueSend(
         //
         QuicConnQueueOper(Connection, Oper);
     }
+
+    Status = QUIC_STATUS_PENDING;
 
 Exit:
 
@@ -421,18 +410,11 @@ QuicDatagramSendFlush(
         CXPLAT_DBG_ASSERT(!(SendRequest->Flags & QUIC_SEND_FLAG_BUFFERED));
         CXPLAT_TEL_ASSERT(Datagram->SendEnabled);
 
-        // Cancels the sending of a Datagram if:
-        // The length we want to send > the length we can send
-        // The connection is closed
-        // The sending mode requires to send immediately (no datagram in queue)
-        if (SendRequest->TotalLength > (uint64_t)Datagram->MaxSendLength 
-        || QuicConnIsClosed(Connection) 
-        || ((SendRequest->Flags & QUIC_SEND_FLAG_DGRAM_CANCEL_ON_BLOCKED) && Datagram->SendQueue != NULL)) {
+        if (SendRequest->TotalLength > (uint64_t)Datagram->MaxSendLength || QuicConnIsClosed(Connection)) {
             QuicDatagramCancelSend(Connection, SendRequest);
             continue;
         }
         TotalBytesSent += SendRequest->TotalLength;
-
         if (SendRequest->Flags & QUIC_SEND_FLAG_DGRAM_PRIORITY) {
             SendRequest->Next = *Datagram->PrioritySendQueueTail;
             *Datagram->PrioritySendQueueTail = SendRequest;
@@ -444,7 +426,6 @@ QuicDatagramSendFlush(
             *Datagram->SendQueueTail = SendRequest;
             Datagram->SendQueueTail = &SendRequest->Next;
         }
-
         QuicTraceLogConnVerbose(
             DatagramSendQueued,
             Connection,
@@ -588,4 +569,20 @@ QuicDatagramProcessFrame(
     QuicPerfCounterAdd(QUIC_PERF_COUNTER_APP_RECV_BYTES, QuicBuffer.Length);
 
     return TRUE;
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+QuicDatagramCancelPending(
+    _In_ QUIC_CONNECTION* Connection
+    )
+{
+    QUIC_DATAGRAM* Datagram = &Connection->Datagram;
+    while (Datagram->SendQueue != NULL) {
+        QUIC_SEND_REQUEST* SendRequest = Datagram->SendQueue;
+        Datagram->SendQueue = SendRequest->Next;
+        QuicDatagramCancelSend(Connection, SendRequest);
+    }
+    Datagram->PrioritySendQueueTail = &Datagram->SendQueue;
+    Datagram->SendQueueTail = &Datagram->SendQueue;
 }
