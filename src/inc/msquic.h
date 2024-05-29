@@ -1209,6 +1209,8 @@ typedef struct QUIC_CONNECTION_EVENT {
         struct {
             uint16_t BidirectionalCount;
             uint16_t UnidirectionalCount;
+            uint16_t BidirectionalIncrement;
+            uint16_t UnidirectionalIncrement;
         } STREAMS_AVAILABLE;
         struct {
             BOOLEAN Bidirectional;
