@@ -528,7 +528,7 @@ if ($IsLinux) {
         sudo gem install fpm
 
         # XDP dependencies
-        if ((bash -c 'lsb_release -r') -match '22.04') {
+        if ($UseXdp) {
             sudo apt-get -y install --no-install-recommends libc6-dev-i386 # for building xdp programs
             sudo apt-add-repository "deb http://mirrors.kernel.org/ubuntu noble main" -y
             sudo apt-get update -y
@@ -543,15 +543,13 @@ if ($IsLinux) {
         sudo apt-get install -y lttng-tools
         sudo apt-get install -y liblttng-ust-dev
         sudo apt-get install -y gdb
-        if ((bash -c 'lsb_release -r') -match '22.04') {
+        if ($UseXdp) {
             sudo apt-add-repository "deb http://mirrors.kernel.org/ubuntu noble main" -y
             sudo apt-get update -y
             sudo apt-get install -y libxdp1 libbpf1
             sudo apt-get install -y libnl-3-200 libnl-route-3-200 libnl-genl-3-200
-            if ($UseXdp) {
-                sudo apt-get -y install iproute2 iptables
-                Install-DuoNic
-            }
+            sudo apt-get install -y iproute2 iptables
+            Install-DuoNic
         }
 
         # Enable core dumps for the system.
