@@ -114,7 +114,10 @@ while ($Attempts -lt 5) {
             $Session
             break
         } else {
-            # TODO
+            # On Azure in 1ES Linux environments, remote powershell is not supported (yet).
+            $Session = "NOT_SUPPORTED"
+            Write-Host "Remote PowerShell is not supported in Azure 1ES Linux environments"
+            break
         }
         continue
     }
