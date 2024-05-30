@@ -1147,12 +1147,7 @@ QuicSendPathChallenges(
         BOOLEAN Result =
             QuicPathChallengeFrameEncode(
                 QUIC_FRAME_PATH_CHALLENGE,
-  
-
-_IRQL_requires_max_(PASSIVE_LEVEL)
-void
-QuicDatagramCancelPending(
-    _In_ QUIC_CONNECTION* Conne              &Frame,
+                &Frame,
                 &Builder.DatagramLength,
                 AvailableBufferLength,
                 Builder.Datagram->Buffer);
