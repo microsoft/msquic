@@ -595,10 +595,10 @@ QuicDatagramCancelBlocked(
     while (*SendQueue != NULL) {
         if ((*SendQueue)->Flags & QUIC_SEND_FLAG_CANCEL_ON_BLOCKED) {
             QUIC_SEND_REQUEST* SendRequest = *SendQueue;
-            if(SendQueue == Datagram->PrioritySendQueueTail) {
+            if (SendQueue == Datagram->PrioritySendQueueTail) {
                 Datagram->PrioritySendQueueTail = PreviousAdded;
             }
-            if(PreviousAdded != NULL) {
+            if (PreviousAdded != NULL) {
                 (*PreviousAdded)->Next = SendRequest->Next;
             }
             *SendQueue = SendRequest->Next;
