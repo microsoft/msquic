@@ -5,7 +5,7 @@
 
 Abstract:
 
-    This module provides the implementation for most of the MsQuic* APIs.
+    This module provides the implementation for most of the MsQuic* APIs exposed in QUIC_API_TABLE.
 
 --*/
 
