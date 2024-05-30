@@ -589,29 +589,24 @@ QuicDatagramCancelBlocked(
     )
 {
     QUIC_DATAGRAM* Datagram = &Connection->Datagram;
-    QUIC_SEND_REQUEST* SendQueue = Datagram->SendQueue;
-    QUIC_SEND_REQUEST** PrioritySendQueueTail = Datagram->PrioritySendQueueTail;
-    Datagram->SendQueue = NULL;
-    bool priority = true;
+    QUIC_SEND_REQUEST** SendQueue = &Datagram->SendQueue;
+    QUIC_SEND_REQUEST** PreviousAdded = NULL;
 
-    while (SendQueue != NULL) {
-        if(SendQueue->Flags & QUIC_SEND_FLAG_CANCEL_ON_BLOCKED) {
-            QuicDatagramCancelSend(Connection, SendQueue);
-        } else {
-            if(Datagram->SendQueue == NULL) {
-                Datagram->SendQueue = SendQueue;
-                Datagram->SendQueueTail = &SendQueue;
-            } else {
-                if(priority) {
-                    (*(Datagram->PrioritySendQueueTail))->Next = SendQueue;
-                }
-                (*(Datagram->SendQueueTail))->Next = SendQueue;
-                Datagram->SendQueueTail = &SendQueue;
+    while (*SendQueue != NULL) {
+        if ((*SendQueue)->Flags & QUIC_SEND_FLAG_CANCEL_ON_BLOCKED) {
+            QUIC_SEND_REQUEST* SendRequest = *SendQueue;
+            if(SendQueue == Datagram->PrioritySendQueueTail) {
+                Datagram->PrioritySendQueueTail = PreviousAdded;
             }
+            if(PreviousAdded != NULL) {
+                (*PreviousAdded)->Next = SendRequest->Next;
+            }
+            *SendQueue = SendRequest->Next;
+            QuicDatagramCancelSend(Connection, SendRequest);
+        } else {
+            PreviousAdded = SendQueue;
+            SendQueue = &((*SendQueue)->Next);
         }
-        if(&SendQueue == PrioritySendQueueTail) {
-            priority = false;
-        }
-        SendQueue = SendQueue->Next;
     }
+    Datagram->SendQueueTail = PreviousAdded;
 }
