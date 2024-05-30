@@ -820,6 +820,7 @@ TestConnection::HandleConnectionEvent(
                 QuicTraceLogInfo(
                     TestIgnoreConnectionTimeout,
                     "[test] Ignoring timeout unexpected status because of random loss");
+                ConnectionTimeout = true;
             } else {
                 TEST_FAILURE(
                     "Unexpected transport Close Error, expected=0x%x, actual=0x%x",

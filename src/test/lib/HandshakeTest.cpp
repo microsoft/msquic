@@ -284,42 +284,57 @@ QuicTestConnect(
                     TEST_QUIC_SUCCEEDED(Client.SetRemoteAddr(RemoteAddr));
                 }
 
-                TEST_QUIC_SUCCEEDED(
-                    Client.Start(
-                        ClientConfiguration,
-                        QuicAddrFamily,
-                        QUIC_LOCALHOST_FOR_AF(QuicAddrFamily),
-                        ServerLocalAddr.GetPort()));
-
-                if (AsyncConfiguration || AsyncTicketValidation) {
-                    if (!CxPlatEventWaitWithTimeout(ServerAcceptCtx.NewConnectionReady, TestWaitTimeout)) {
-                        TEST_FAILURE("Timed out waiting for server accept.");
-                    } else if (Server == nullptr) {
-                        TEST_FAILURE("Failed to accept server connection.");
-                    } else {
-                        if (AsyncConfiguration) {
-                            if (AsyncConfiguration == QUIC_TEST_ASYNC_CONFIG_DELAYED) {
-                                CxPlatSleep(1000);
-                            }
-                            TEST_QUIC_SUCCEEDED(
-                                Server->SetConfiguration(ServerConfiguration));
-                        }
-                        if (AsyncTicketValidation) {
-                            CxPlatSleep(1000);
-                            TEST_QUIC_SUCCEEDED(Server->SetCustomTicketValidationResult(SessionResumption == QUIC_TEST_RESUMPTION_ENABLED_ASYNC));
+                do {
+                    if (Client.GetIsConnected()) {
+                        Client.Shutdown(QUIC_CONNECTION_SHUTDOWN_FLAG_NONE, QUIC_TEST_NO_ERROR);
+                        if (!Client.WaitForShutdownComplete()) {
+                            return;
                         }
                     }
-                }
+                    if (Server->GetIsConnected()) {
+                        Server->Shutdown(QUIC_CONNECTION_SHUTDOWN_FLAG_NONE, QUIC_TEST_NO_ERROR);
+                        if (!Server->WaitForShutdownComplete()) {
+                            return;
+                        }
+                    }
 
-                if (!Client.WaitForConnectionComplete()) {
-                    return;
-                }
+                    TEST_QUIC_SUCCEEDED(
+                        Client.Start(
+                            ClientConfiguration,
+                            QuicAddrFamily,
+                            QUIC_LOCALHOST_FOR_AF(QuicAddrFamily),
+                            ServerLocalAddr.GetPort()));
+
+                    if (AsyncConfiguration || AsyncTicketValidation) {
+                        if (!CxPlatEventWaitWithTimeout(ServerAcceptCtx.NewConnectionReady, TestWaitTimeout)) {
+                            TEST_FAILURE("Timed out waiting for server accept.");
+                        } else if (Server == nullptr) {
+                            TEST_FAILURE("Failed to accept server connection.");
+                        } else {
+                            if (AsyncConfiguration) {
+                                if (AsyncConfiguration == QUIC_TEST_ASYNC_CONFIG_DELAYED) {
+                                    CxPlatSleep(1000);
+                                }
+                                TEST_QUIC_SUCCEEDED(
+                                    Server->SetConfiguration(ServerConfiguration));
+                            }
+                            if (AsyncTicketValidation) {
+                                CxPlatSleep(1000);
+                                TEST_QUIC_SUCCEEDED(Server->SetCustomTicketValidationResult(SessionResumption == QUIC_TEST_RESUMPTION_ENABLED_ASYNC));
+                            }
+                        }
+                    }
+
+                    if (!Client.WaitForConnectionComplete()) {
+                        return;
+                    }
+
+                    TEST_NOT_EQUAL(nullptr, Server);
+                    if (!Server->WaitForConnectionComplete()) {
+                        return;
+                    }
+                } while (Server->GetConnectionTimeout() || Client.GetConnectionTimeout());
                 TEST_TRUE(Client.GetIsConnected());
-
-                TEST_NOT_EQUAL(nullptr, Server);
-                if (!Server->WaitForConnectionComplete()) {
-                    return;
-                }
                 TEST_TRUE(Server->GetIsConnected());
 
                 TEST_EQUAL(

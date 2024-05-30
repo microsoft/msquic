@@ -63,6 +63,7 @@ class TestConnection
     bool HasRandomLoss      : 1;
     bool AsyncCustomValidation : 1;
     bool CustomValidationResultSet : 1;
+    bool ConnectionTimeout : 1;
 
     bool ExpectedResumed    : 1;
     QUIC_STATUS ExpectedCustomTicketValidationResult;
@@ -193,6 +194,7 @@ public:
     bool GetTransportClosed() const { return TransportClosed; }
     bool GetIsShutdown() const { return IsShutdown; }
     bool GetShutdownTimedOut() const { return ShutdownTimedOut; }
+    bool GetConnectionTimeout() const { return ConnectionTimeout; }
 
     bool GetExpectedResumed() const { return ExpectedResumed; };
     void SetExpectedResumed(bool Value) { ExpectedResumed = Value; }
