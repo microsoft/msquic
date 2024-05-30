@@ -178,7 +178,13 @@ QuicDatagramSendShutdown(
     //
     // Cancel all outstanding send requests.
     //
-    QuicDatagramCancelPending(Connection);
+    while (Datagram->SendQueue != NULL) {
+        QUIC_SEND_REQUEST* SendRequest = Datagram->SendQueue;
+        Datagram->SendQueue = SendRequest->Next;
+        QuicDatagramCancelSend(Connection, SendRequest);
+    }
+    Datagram->PrioritySendQueueTail = &Datagram->SendQueue;
+    Datagram->SendQueueTail = &Datagram->SendQueue;
 
     while (ApiQueue != NULL) {
         QUIC_SEND_REQUEST* SendRequest = ApiQueue;
@@ -578,16 +584,34 @@ QuicDatagramProcessFrame(
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
-QuicDatagramCancelPending(
+QuicDatagramCancelBlocked(
     _In_ QUIC_CONNECTION* Connection
     )
 {
     QUIC_DATAGRAM* Datagram = &Connection->Datagram;
-    while (Datagram->SendQueue != NULL) {
-        QUIC_SEND_REQUEST* SendRequest = Datagram->SendQueue;
-        Datagram->SendQueue = SendRequest->Next;
-        QuicDatagramCancelSend(Connection, SendRequest);
+    QUIC_SEND_REQUEST* SendQueue = Datagram->SendQueue;
+    QUIC_SEND_REQUEST** PrioritySendQueueTail = Datagram->PrioritySendQueueTail;
+    Datagram->SendQueue = NULL;
+    bool priority = true;
+
+    while (SendQueue != NULL) {
+        if(SendQueue->Flags & QUIC_SEND_FLAG_CANCEL_ON_BLOCKED) {
+            QuicDatagramCancelSend(Connection, SendQueue);
+        } else {
+            if(Datagram->SendQueue == NULL) {
+                Datagram->SendQueue = SendQueue;
+                Datagram->SendQueueTail = &SendQueue;
+            } else {
+                if(priority) {
+                    (*(Datagram->PrioritySendQueueTail))->Next = SendQueue;
+                }
+                (*(Datagram->SendQueueTail))->Next = SendQueue;
+                Datagram->SendQueueTail = &SendQueue;
+            }
+        }
+        if(&SendQueue == PrioritySendQueueTail) {
+            priority = false;
+        }
+        SendQueue = SendQueue->Next;
     }
-    Datagram->PrioritySendQueueTail = &Datagram->SendQueue;
-    Datagram->SendQueueTail = &Datagram->SendQueue;
 }

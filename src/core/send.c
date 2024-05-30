@@ -1499,11 +1499,9 @@ QuicSendFlush(
     }
 
     //
-    // Cancel all outstanding send requests if not able to send.
+    // Clears the SendQueue list of not sent packets if the flag is applied
     //
-    if(!(Send->SendFlags & QUIC_SEND_FLAG_DGRAM_CANCEL_ON_BLOCKED)) {
-        QuicDatagramCancelPending(Connection);
-    }
+    QuicDatagramCancelBlocked(Connection);
 
     return Result != QUIC_SEND_INCOMPLETE;
 }

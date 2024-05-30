@@ -241,7 +241,7 @@ typedef enum QUIC_SEND_FLAGS {
     QUIC_SEND_FLAG_DGRAM_PRIORITY           = 0x0008,   // Indicates the datagram is higher priority than others.
     QUIC_SEND_FLAG_DELAY_SEND               = 0x0010,   // Indicates the send should be delayed because more will be queued soon.
     QUIC_SEND_FLAG_CANCEL_ON_LOSS           = 0x0020,   // Indicates that a stream is to be cancelled when packet loss is detected.
-    QUIC_SEND_FLAG_DGRAM_CANCEL_ON_BLOCKED  = 0x0030,   // Indicates that a datagram should be dropped when it can't be sent immediately.
+    QUIC_SEND_FLAG_CANCEL_ON_BLOCKED        = 0x0030,   // Indicates that a frame should be dropped when it can't be sent immediately.
 } QUIC_SEND_FLAGS;
 
 DEFINE_ENUM_FLAG_OPERATORS(QUIC_SEND_FLAGS)

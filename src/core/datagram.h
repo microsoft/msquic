@@ -106,6 +106,6 @@ QuicDatagramProcessFrame(
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
-QuicDatagramCancelPending(
+QuicDatagramCancelBlocked(
     _In_ QUIC_CONNECTION* Connection
     );
