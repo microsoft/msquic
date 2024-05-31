@@ -46,7 +46,7 @@ Value | Meaning
 **QUIC_SEND_FLAG_DGRAM_PRIORITY**<br>8 | Sets a priority to ensure a datagram is sent before others.
 **QUIC_SEND_FLAG_DELAY_SEND**<br>16 | **Unused and ignored** for `DatagramSend`
 **QUIC_SEND_FLAG_CANCEL_ON_LOSS**<br>32 | **Unused and ignored** for `DatagramSend`
-**QUIC_SEND_FLAG_CANCEL_ON_BLOCKED**<br>64 | Allows MsQuic to drop packets when all the data we could send has been sent out but we can't send more.
+**QUIC_SEND_FLAG_CANCEL_ON_BLOCKED**<br>64 | Allows MsQuic to drop frames when all the data that could be sent has been flushed out, but there are still some frames remaining in the queue.
 
 `ClientSendContext`
 
