@@ -299,7 +299,7 @@ function Add-XmlResults($TestCase) {
         $TestCaseNode = $Node.testcase | Where-Object { $_.Name -eq $TestCaseName }
         if ($TestCaseNode) {
             $IsRetry = $true
-            $Node.retries = ($Node.retries -as [Int]) + 1
+            $Node.retried = ($Node.retried -as [Int]) + 1
         }
         # Already has a matching test suite. Add the test case to it.
         $Node.tests = ($Node.tests -as [Int]) + 1
