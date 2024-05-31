@@ -425,6 +425,7 @@ QuicDatagramSendFlush(
             QuicDatagramCancelSend(Connection, SendRequest);
             continue;
         }
+        
         TotalBytesSent += SendRequest->TotalLength;
         if (SendRequest->Flags & QUIC_SEND_FLAG_DGRAM_PRIORITY) {
             SendRequest->Next = *Datagram->PrioritySendQueueTail;
@@ -437,6 +438,7 @@ QuicDatagramSendFlush(
             *Datagram->SendQueueTail = SendRequest;
             Datagram->SendQueueTail = &SendRequest->Next;
         }
+        
         QuicTraceLogConnVerbose(
             DatagramSendQueued,
             Connection,
