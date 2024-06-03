@@ -250,7 +250,7 @@ $XmlResults.testsuites.timestamp = Get-Date -UFormat "%Y-%m-%dT%T"
 $FailXmlText = @"
 <?xml version="1.0" encoding="UTF-8"?>
 <testsuites tests="1" failures="1" retried="0" disabled="0" errors="0" time="0" name="AllTests">
-  <testsuite name="TestSuiteName" tests="1" failures="1" retried="0" disabled="0" errors="0" timestamp="date" time="0" >
+  <testsuite name="TestSuiteName" tests="1" failures="1" disabled="0" errors="0" timestamp="date" time="0" >
     <testcase name="TestCaseName" status="run" result="completed" time="0" timestamp="date" classname="TestSuiteName">
       <failure message="Application Crashed" type=""><![CDATA[Application Crashed]]></failure>
     </testcase>
@@ -296,11 +296,7 @@ function Add-XmlResults($TestCase) {
         $Node = $XmlResults.testsuites.testsuite | Where-Object { $_.Name -eq $TestSuiteName }
     }
     if ($null -ne $Node) {
-        $TestCaseNode = $Node.testcase | Where-Object { $_.Name -eq $TestCaseName }
-        if ($TestCaseNode) {
-            $IsRetry = $true
-            $Node.retried = ($Node.retried -as [Int]) + 1
-        }
+        $IsRetry = $Node.testcase | Where-Object { $_.Name -eq $TestCaseName }
         # Already has a matching test suite. Add the test case to it.
         $Node.tests = ($Node.tests -as [Int]) + 1
         if ($IsFailure) {
