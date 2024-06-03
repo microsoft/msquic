@@ -71,7 +71,13 @@ param (
     [string]$RemoteName = "netperf-peer",
 
     [Parameter(Mandatory = $false)]
-    [string]$UserName = "secnetperf"
+    [string]$UserName = "secnetperf",
+
+    [Parameter(Mandatory = $false)]
+    [string]$RemotePowershellSupported = "TRUE",
+
+    [Parameter(Mandatory = $false)]
+    [string]$RunId = "0"
 )
 
 Set-StrictMode -Version "Latest"
@@ -103,44 +109,49 @@ if ($isWindows -and $NoLogs) {
 }
 $useXDP = ($io -eq "xdp" -or $io -eq "qtip")
 
-# Set up the connection to the peer over remote powershell.
-Write-Host "Connecting to $RemoteName"
-$Attempts = 0
-while ($Attempts -lt 5) {
-    if ($environment -eq "azure") {
-        if ($isWindows) {
-            Write-Host "Attempting to connect..."
-            $Session = New-PSSession -ComputerName $RemoteName -ConfigurationName PowerShell.7
-            $Session
-            break
-        } else {
-            # On Azure in 1ES Linux environments, remote powershell is not supported (yet).
-            $Session = "NOT_SUPPORTED"
-            Write-Host "Remote PowerShell is not supported in Azure 1ES Linux environments"
-            break
-        }
-        continue
-    }
-    try {
-        if ($isWindows) {
-            $username = (Get-ItemProperty 'HKLM:\Software\Microsoft\Windows NT\CurrentVersion\Winlogon').DefaultUserName
-            $password = (Get-ItemProperty 'HKLM:\Software\Microsoft\Windows NT\CurrentVersion\Winlogon').DefaultPassword | ConvertTo-SecureString -AsPlainText -Force
-            $cred = New-Object System.Management.Automation.PSCredential ($username, $password)
-            $Session = New-PSSession -ComputerName $RemoteName -Credential $cred -ConfigurationName PowerShell.7
-        } else {
-            $Session = New-PSSession -HostName $RemoteName -UserName $UserName -SSHTransport
-        }
-        break
-    } catch {
-        Write-Host "Error $_"
-        $Attempts += 1
-        Start-Sleep -Seconds 10
-    }
-}
+if ($RemotePowershellSupported -eq "TRUE") {
 
-if ($null -eq $Session) {
-    Write-GHError "Failed to create remote session"
-    exit 1
+    # Set up the connection to the peer over remote powershell.
+    Write-Host "Connecting to $RemoteName"
+    $Attempts = 0
+    while ($Attempts -lt 5) {
+        if ($environment -eq "azure") {
+            if ($isWindows) {
+                Write-Host "Attempting to connect..."
+                $Session = New-PSSession -ComputerName $RemoteName -ConfigurationName PowerShell.7
+                break
+            } else {
+                # On Azure in 1ES Linux environments, remote powershell is not supported (yet).
+                $Session = "NOT_SUPPORTED"
+                Write-Host "Remote PowerShell is not supported in Azure 1ES Linux environments"
+                break
+            }
+        }
+        try {
+            if ($isWindows) {
+                $username = (Get-ItemProperty 'HKLM:\Software\Microsoft\Windows NT\CurrentVersion\Winlogon').DefaultUserName
+                $password = (Get-ItemProperty 'HKLM:\Software\Microsoft\Windows NT\CurrentVersion\Winlogon').DefaultPassword | ConvertTo-SecureString -AsPlainText -Force
+                $cred = New-Object System.Management.Automation.PSCredential ($username, $password)
+                $Session = New-PSSession -ComputerName $RemoteName -Credential $cred -ConfigurationName PowerShell.7
+            } else {
+                $Session = New-PSSession -HostName $RemoteName -UserName $UserName -SSHTransport
+            }
+            break
+        } catch {
+            Write-Host "Error $_"
+            $Attempts += 1
+            Start-Sleep -Seconds 10
+        }
+    }
+
+    if ($null -eq $Session) {
+        Write-GHError "Failed to create remote session"
+        exit 1
+    }
+
+} else {
+    $Session = "NOT_SUPPORTED"
+    Write-Host "Remote PowerShell is not supported in this environment"
 }
 
 if (!($environment -eq "azure")) {

@@ -3,6 +3,8 @@
     Various helper functions for running secnetperf tests.
 #>
 
+Using module ..\..\netperf\p2p-common.psm1
+
 Set-StrictMode -Version "Latest"
 $PSDefaultParameterValues["*:ErrorAction"] = "Stop"
 
@@ -280,7 +282,23 @@ function Start-RemoteServer {
 
 # Passively starts the server on the remote machine by queuing up a new script to execute.
 function Start-RemoteServerPassive {
-    param ($Session, $Command, $RemoteStateDir)
+    param ($Session, $Command, $RemoteStateDir, $RunId, $SyncerSecret)
+    if ($Session -eq "NOT_SUPPORTED") {
+        $headers = @{
+            "secret" = "$SyncerSecret"
+        }
+        $url = "https://netperfapiwebapp.azurewebsites.net/getkeyvalue?key=$RunId"
+        $Response = Invoke-WebRequest -Uri $url -Headers $headers
+        if ($Response.StatusCode -eq 404) {
+            $state = [pscustomobject]@{
+                "SeqNum" = 0
+                "Commands" = @()
+            }
+            $StateJson = $state | ConvertTo-Json
+            $url = "https://netperfapiwebapp.azurewebsites.net/setkeyvalue?key=$RunId&value=$StateJson"
+            
+        }
+    }
     Invoke-Command -Session $Session -ScriptBlock {
         if (!(Test-Path $Using:RemoteStateDir)) {
             New-Item -ItemType Directory $Using:RemoteStateDir | Out-Null
