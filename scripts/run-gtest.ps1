@@ -925,11 +925,11 @@ try {
     if ($KeepOutputOnSuccess -or ($TestsFailed -ne 0) -or ($global:CrashedProcessCount -ne 0)) {
         Log "Output can be found in $($LogDir)"
         if ($ErrorsAsWarnings -or
-            (($IsolationMode -eq "Isolated") -and ($TestsFailed -ne 0) -and ($TestsFailed == $TestsRetried))) {
+            (($IsolationMode -eq "Isolated") -and ($TestsFailed -ne 0) -and ($TestsFailed -eq $TestsRetried))) {
             Write-Warning "$($TestsFailed) test(s) failed."
-            Write-Warning "$($TestsFailed) test(s) failed, $($(TestsRetried)), $($global:CrashedProcessCount) test(s) crashed."
+            Write-Warning "$($TestsFailed) test(s) failed, $($TestsRetried) test(s) retried, $($global:CrashedProcessCount) test(s) crashed."
         } else {
-            Write-Error "$($TestsFailed) test(s) failed, $($global:CrashedProcessCount) test(s) crashed."
+            Write-Error "$($TestsFailed) test(s) failed, $($TestsRetried) test(s) retried, $($global:CrashedProcessCount) test(s) crashed."
             $LastExitCode = 1
         }
     } elseif ($AZP -and $TestCount -eq 0) {
