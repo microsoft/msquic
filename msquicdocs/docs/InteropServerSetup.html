@@ -141,7 +141,7 @@ New-ItemProperty -Path $WerDumpRegPath -Name DumpFolder -PropertyType ExpandStri
 <p>Feel free to update <code>$OutputDir</code> to whatever local directory you wish.</p>
 <h2 id="linux-instructions-1">Linux Instructions</h2>
 <p>The following commands (run as root) should configure core dumps to be created in the local directory:</p>
-<pre><code># Enable core dumps for the system.
+<pre><code class="lang-sh"># Enable core dumps for the system.
 sudo sh -c &quot;echo 'root soft core unlimited' &gt;&gt; /etc/security/limits.conf&quot;
 sudo sh -c &quot;echo 'root hard core unlimited' &gt;&gt; /etc/security/limits.conf&quot;
 sudo sh -c &quot;echo '* soft core unlimited' &gt;&gt; /etc/security/limits.conf&quot;
@@ -149,6 +149,13 @@ sudo sh -c &quot;echo '* hard core unlimited' &gt;&gt; /etc/security/limits.conf
 
 # Set the core dump pattern.
 sudo sh -c &quot;echo -n '%e.%p.%t.core' &gt; /proc/sys/kernel/core_pattern&quot;
+</code></pre>
+<p>The following are sudo basd run especially for using XDP</p>
+<pre><code class="lang-sh"># Increase the number of file descriptors.
+sudo sh -c &quot;echo 'root soft nofile 1048576' &gt;&gt; /etc/security/limits.conf&quot;
+sudo sh -c &quot;echo 'root hard nofile 1048576' &gt;&gt; /etc/security/limits.conf&quot;
+sudo sh -c &quot;echo '* soft nofile 1048576' &gt;&gt; /etc/security/limits.conf&quot;
+sudo sh -c &quot;echo '* hard nofile 1048576' &gt;&gt; /etc/security/limits.conf&quot;
 </code></pre>
 
 </article>
