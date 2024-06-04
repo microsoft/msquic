@@ -28,8 +28,11 @@ jobs:
       fail-fast: false
       matrix:
         version: ['20.04', '22.04']
-        target: ['x86_64', 'arm']
-
+        target: ['xdp', 'cross']
+        exclude:
+        # Exclude xdp build for ubuntu 20.04
+        - version: '20.04'
+          target: 'xdp'
     name: Build
     runs-on: ubuntu-latest
     permissions:

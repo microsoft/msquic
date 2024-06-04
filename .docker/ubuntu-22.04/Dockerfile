@@ -33,6 +33,9 @@ RUN apt-get update && apt-get install --no-install-recommends -y \
     cppcheck \
     clang-tidy \
     gdb \
+    liblttng-ust-dev \
+    libssl-dev \
+    libnuma-dev \
     && rm -rf /var/lib/apt/lists/*
 
 RUN gem install fpm
@@ -47,13 +50,10 @@ RUN wget -q https://packages.microsoft.com/config/ubuntu/18.04/packages-microsof
 
 RUN git config --global safe.directory '*'
 
-# Stage 2: x86_64 build
-FROM base AS x86_64-build
+# Stage 2-1: dependencies for xdp-build
+FROM base AS xdp-build
 
 RUN apt-get update -y && apt-get install -y \
-    liblttng-ust-dev \
-    libssl-dev \
-    libnuma-dev \
     && echo "deb [arch=amd64] http://cz.archive.ubuntu.com/ubuntu noble main" > /etc/apt/sources.list.d/xdp.list \
     && apt-get update -y && apt-get install --no-install-recommends -y -t noble \
     libnl-3-dev \
@@ -70,8 +70,8 @@ RUN apt-get update -y && apt-get install -y \
     libbpf-dev \
     && rm -rf /var/lib/apt/lists/*
 
-# Stage 3: ARM build
-FROM base AS arm-build
+# Stage 2-2: dependencies for cross-build
+FROM base AS cross-build
 
 RUN apt-get update && apt-get install -y \
     gcc-arm-linux-gnueabihf \
