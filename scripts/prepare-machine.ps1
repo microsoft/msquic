@@ -558,6 +558,11 @@ if ($IsLinux) {
         sudo sh -c "echo 'root hard core unlimited' >> /etc/security/limits.conf"
         sudo sh -c "echo '* soft core unlimited' >> /etc/security/limits.conf"
         sudo sh -c "echo '* hard core unlimited' >> /etc/security/limits.conf"
+        # Increase the number of file descriptors.
+        sudo sh -c "echo 'root soft nofile 1048576' >> /etc/security/limits.conf"
+        sudo sh -c "echo 'root hard nofile 1048576' >> /etc/security/limits.conf"
+        sudo sh -c "echo '* soft nofile 1048576' >> /etc/security/limits.conf"
+        sudo sh -c "echo '* hard nofile 1048576' >> /etc/security/limits.conf"
         #sudo cat /etc/security/limits.conf
 
         # Set the core dump pattern.
