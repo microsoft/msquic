@@ -135,7 +135,7 @@ jobs:
       run: |
         sudo chmod -R 777 artifacts
     - name: Prepare Machine
-      run: scripts/prepare-machine.ps1 -Tls ${{ matrix.vec.tls }} -ForTest ${{ matrix.vec.os == 'ubuntu-22.04' && '-UseXdp -ForceXdpInstall' || '' }}
+      run: scripts/prepare-machine.ps1 -Tls ${{ matrix.vec.tls }} -ForTest ${{ (matrix.vec.xdp == '-UseXdp' || matrix.vec.os == 'ubuntu-22.04') && '-UseXdp -ForceXdpInstall' || '' }}
       shell: pwsh
     - name: Install ETW Manifest
       if: matrix.vec.plat == 'windows'
