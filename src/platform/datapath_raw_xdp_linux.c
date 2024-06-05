@@ -274,6 +274,9 @@ CxPlatDpRawInterfaceUninitialize(
         }
 
         CxPlatLockUninitialize(&Queue->TxLock);
+        CxPlatLockUninitialize(&Queue->RxLock);
+        CxPlatLockUninitialize(&Queue->CqLock);
+        CxPlatLockUninitialize(&Queue->FqLock);
     }
 
     if (Interface->Queues != NULL) {
@@ -1076,46 +1079,33 @@ CxPlatDpRawTxFree(
     UNREFERENCED_PARAMETER(SendData);
 }
 
-_IRQL_requires_max_(DISPATCH_LEVEL)
 void
-CxPlatDpRawTxEnqueue(
-    _In_ CXPLAT_SEND_DATA* SendData
+KickTx(
+    _In_ XDP_QUEUE* Queue,
+    _In_ BOOLEAN SendAlreadyPending
     )
 {
-    // TODO: use PartitionTxQueue to submit at once?
-    XDP_TX_PACKET* Packet = (XDP_TX_PACKET*)SendData;
-    XDP_PARTITION* Partition = Packet->Queue->Partition;
-    struct XskSocketInfo* XskInfo = Packet->Queue->XskInfo;
-
-    uint32_t TxIdx = 0;
-    if (xsk_ring_prod__reserve(&XskInfo->Tx, 1, &TxIdx) != 1) {
-        XskUmemFrameFreeN(XskInfo, &Packet->UmemRelativeAddr, 1);
-        QuicTraceLogVerbose(
-            FailTxReserve,
-            "[ xdp][tx  ] Failed to reserve");
-        return;
-    }
-
-    struct xdp_desc *tx_desc = xsk_ring_prod__tx_desc(&XskInfo->Tx, TxIdx);
-    CXPLAT_FRE_ASSERT(tx_desc != NULL);
-    tx_desc->addr = Packet->UmemRelativeAddr + XskInfo->UmemInfo->TxHeadRoom;
-    tx_desc->len = SendData->Buffer.Length;
-
-    xsk_ring_prod__submit(&XskInfo->Tx, 1);
-    XskInfo->OutstandingTx++;
+    struct XskSocketInfo* XskInfo = Queue->XskInfo;
     if (sendto(xsk_socket__fd(XskInfo->Xsk), NULL, 0, MSG_DONTWAIT, NULL, 0) < 0) {
-        QuicTraceLogVerbose(
-            FailSendTo,
-            "[ xdp][tx  ] Faild sendto. errno:%d, Umem addr:%lld", errno, tx_desc->addr);
-    } else {
-        QuicTraceLogVerbose(
-            DoneSendTo,
-            "[ xdp][TX  ] Done sendto. len:%d, Umem addr:%lld", SendData->Buffer.Length, tx_desc->addr);
+        if (errno == EAGAIN || errno == EWOULDBLOCK) {
+            if (!SendAlreadyPending) {
+                XdpSocketContextSetEvents(Queue, EPOLL_CTL_MOD, EPOLLIN | EPOLLOUT);
+            }
+            return;
+        }
+    }
+    QuicTraceLogVerbose(
+        DoneSendTo,
+        "[ xdp][TX  ] Done sendto.");
+
+    if (SendAlreadyPending) {
+        XdpSocketContextSetEvents(Queue, EPOLL_CTL_MOD, EPOLLIN);
     }
 
     uint32_t Completed;
     uint32_t CqIdx;
     uint64_t FreeingFrames[TX_BATCH_SIZE];
+    CxPlatLockAcquire(&Queue->CqLock);
     Completed = xsk_ring_cons__peek(&XskInfo->UmemInfo->Cq, CONS_NUM_DESCS, &CqIdx);
     if (Completed > 0) {
         uint32_t Freeing = Completed < TX_BATCH_SIZE ? Completed : TX_BATCH_SIZE;
@@ -1133,6 +1123,40 @@ CxPlatDpRawTxEnqueue(
             xsk_ring_cons__cancel(&XskInfo->UmemInfo->Cq, Completed - TX_BATCH_SIZE);
         }
     }
+    CxPlatLockRelease(&Queue->CqLock);
+}
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+void
+CxPlatDpRawTxEnqueue(
+    _In_ CXPLAT_SEND_DATA* SendData
+    )
+{
+    XDP_TX_PACKET* Packet = (XDP_TX_PACKET*)SendData;
+    XDP_QUEUE* Queue = Packet->Queue;
+    XDP_PARTITION* Partition = Queue->Partition;
+    struct XskSocketInfo* XskInfo = Queue->XskInfo;
+
+    uint32_t TxIdx = 0;
+    CxPlatLockAcquire(&Queue->TxLock);
+    if (xsk_ring_prod__reserve(&XskInfo->Tx, 1, &TxIdx) != 1) {
+        XskUmemFrameFreeN(XskInfo, &Packet->UmemRelativeAddr, 1);
+        QuicTraceLogVerbose(
+            FailTxReserve,
+            "[ xdp][tx  ] Failed to reserve");
+        CxPlatLockRelease(&Queue->TxLock);
+        return;
+    }
+
+    struct xdp_desc *tx_desc = xsk_ring_prod__tx_desc(&XskInfo->Tx, TxIdx);
+    CXPLAT_FRE_ASSERT(tx_desc != NULL);
+    tx_desc->addr = Packet->UmemRelativeAddr + XskInfo->UmemInfo->TxHeadRoom;
+    tx_desc->len = SendData->Buffer.Length;
+    xsk_ring_prod__submit(&XskInfo->Tx, 1);
+    XskInfo->OutstandingTx++;
+    CxPlatLockRelease(&Queue->TxLock);
+
+    KickTx(Packet->Queue, FALSE);
 
     Partition->Ec.Ready = TRUE;
     CxPlatWakeExecutionContext(&Partition->Ec);
@@ -1215,6 +1239,7 @@ CxPlatXdpRx(
     uint32_t Rcvd, i;
     uint32_t RxIdx = 0, FqIdx = 0;
 
+    CxPlatLockAcquire(&Queue->RxLock);
     Rcvd = xsk_ring_cons__peek(&XskInfo->Rx, RX_BATCH_SIZE, &RxIdx);
 
     // Process received packets
@@ -1269,7 +1294,9 @@ CxPlatXdpRx(
             xsk_ring_cons__cancel(&XskInfo->Rx, Rcvd - RX_BATCH_SIZE);
         }
     }
+    CxPlatLockRelease(&Queue->RxLock);
 
+    CxPlatLockAcquire(&Queue->FqLock);
     // Stuff the ring with new buffers
     uint32_t Available = xsk_prod_nb_free(&XskInfo->UmemInfo->Fq, RX_BATCH_SIZE);
     if (Available > 0) {
@@ -1291,6 +1318,7 @@ CxPlatXdpRx(
     }
 
 Done:
+    CxPlatLockRelease(&Queue->FqLock);
 
     if (PacketCount) {
         CxPlatDpRawRxEthernet(
@@ -1326,8 +1354,12 @@ RawDataPathProcessCqe(
             XdpQueueAsyncIoRxComplete,
             "[ xdp][%p] XDP async IO complete (RX)",
             Queue);
-        Queue->RxQueued = FALSE;
-        Queue->Partition->Ec.Ready = TRUE;
+        if (EPOLLOUT & Cqe->events) {
+            KickTx(Queue, TRUE);
+        } else {
+            Queue->RxQueued = FALSE;
+            Queue->Partition->Ec.Ready = TRUE;
+        }
         break;
     }
     case CXPLAT_CQE_TYPE_XDP_FLUSH_TX: {

@@ -91,7 +91,7 @@ Feel free to update `$OutputDir` to whatever local directory you wish.
 
 The following commands (run as root) should configure core dumps to be created in the local directory:
 
-```
+```sh
 # Enable core dumps for the system.
 sudo sh -c "echo 'root soft core unlimited' >> /etc/security/limits.conf"
 sudo sh -c "echo 'root hard core unlimited' >> /etc/security/limits.conf"
@@ -100,4 +100,13 @@ sudo sh -c "echo '* hard core unlimited' >> /etc/security/limits.conf"
 
 # Set the core dump pattern.
 sudo sh -c "echo -n '%e.%p.%t.core' > /proc/sys/kernel/core_pattern"
+```
+
+The following are sudo basd run especially for using XDP
+```sh
+# Increase the number of file descriptors.
+sudo sh -c "echo 'root soft nofile 1048576' >> /etc/security/limits.conf"
+sudo sh -c "echo 'root hard nofile 1048576' >> /etc/security/limits.conf"
+sudo sh -c "echo '* soft nofile 1048576' >> /etc/security/limits.conf"
+sudo sh -c "echo '* hard nofile 1048576' >> /etc/security/limits.conf"
 ```

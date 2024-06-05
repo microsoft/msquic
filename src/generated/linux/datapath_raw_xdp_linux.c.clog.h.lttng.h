@@ -480,58 +480,16 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_LINUX_C, FailTxAlloc,
 
 
 /*----------------------------------------------------------
-// Decoder Ring for FailTxReserve
-// [ xdp][tx  ] Failed to reserve
-// QuicTraceLogVerbose(
-            FailTxReserve,
-            "[ xdp][tx  ] Failed to reserve");
-----------------------------------------------------------*/
-TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_LINUX_C, FailTxReserve,
-    TP_ARGS(
-), 
-    TP_FIELDS(
-    )
-)
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for FailSendTo
-// [ xdp][tx  ] Faild sendto. errno:%d, Umem addr:%lld
-// QuicTraceLogVerbose(
-            FailSendTo,
-            "[ xdp][tx  ] Faild sendto. errno:%d, Umem addr:%lld", errno, tx_desc->addr);
-// arg2 = arg2 = errno = arg2
-// arg3 = arg3 = tx_desc->addr = arg3
-----------------------------------------------------------*/
-TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_LINUX_C, FailSendTo,
-    TP_ARGS(
-        int, arg2,
-        long long, arg3), 
-    TP_FIELDS(
-        ctf_integer(int, arg2, arg2)
-        ctf_integer(int64_t, arg3, arg3)
-    )
-)
-
-
-
-/*----------------------------------------------------------
 // Decoder Ring for DoneSendTo
-// [ xdp][TX  ] Done sendto. len:%d, Umem addr:%lld
+// [ xdp][TX  ] Done sendto.
 // QuicTraceLogVerbose(
-            DoneSendTo,
-            "[ xdp][TX  ] Done sendto. len:%d, Umem addr:%lld", SendData->Buffer.Length, tx_desc->addr);
-// arg2 = arg2 = SendData->Buffer.Length = arg2
-// arg3 = arg3 = tx_desc->addr = arg3
+        DoneSendTo,
+        "[ xdp][TX  ] Done sendto.");
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_LINUX_C, DoneSendTo,
     TP_ARGS(
-        int, arg2,
-        long long, arg3), 
+), 
     TP_FIELDS(
-        ctf_integer(int, arg2, arg2)
-        ctf_integer(int64_t, arg3, arg3)
     )
 )
 
@@ -550,6 +508,22 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_LINUX_C, ReleaseCons,
         int, arg2), 
     TP_FIELDS(
         ctf_integer(int, arg2, arg2)
+    )
+)
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for FailTxReserve
+// [ xdp][tx  ] Failed to reserve
+// QuicTraceLogVerbose(
+            FailTxReserve,
+            "[ xdp][tx  ] Failed to reserve");
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_LINUX_C, FailTxReserve,
+    TP_ARGS(
+), 
+    TP_FIELDS(
     )
 )
 
