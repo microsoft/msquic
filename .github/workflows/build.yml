@@ -102,7 +102,7 @@ jobs:
       matrix:
         config: ['Debug', 'Release']
         plat: [linux, android]
-        os: ['ubuntu-20.04', 'ubuntu-22.04']
+        os: ['ubuntu-20.04', 'ubuntu-22.04', 'ubuntu-24.04']
         arch: [x86, x64]
         tls: [openssl, openssl3]
         systemcrypto: ['', '-UseSystemOpenSSLCrypto']
@@ -125,6 +125,11 @@ jobs:
         # No openssl system crypto on ubuntu-22.04
         - plat: linux
           os: 'ubuntu-22.04'
+          tls: 'openssl'
+          systemcrypto: '-UseSystemOpenSSLCrypto'
+        # No openssl system crypto on ubuntu-24.04
+        - plat: linux
+          os: 'ubuntu-24.04'
           tls: 'openssl'
           systemcrypto: '-UseSystemOpenSSLCrypto'
         # linux xdp is for ubuntu22.04 only for now
