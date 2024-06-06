@@ -1460,6 +1460,35 @@ void QuicTestValidateStream(bool Connect)
             }
 
             //
+            // Fail on blocked inline.
+            //
+            {
+                TestScopeLogger logScope("Fail on blocked inline");
+                ShutdownStreamContext Context;
+                StreamScope Stream;
+                TEST_QUIC_SUCCEEDED(
+                    MsQuic->StreamOpen(
+                        Client.GetConnection(),
+                        QUIC_STREAM_OPEN_FLAG_NONE,
+                        ShutdownStreamCallback,
+                        &Context,
+                        &Stream.Handle));
+                if (Connect) {
+                    TEST_QUIC_SUCCEEDED(
+                        MsQuic->StreamStart(
+                            Stream.Handle,
+                            QUIC_STREAM_START_FLAG_FAIL_BLOCKED_INLINE));
+                } else {
+                    TEST_QUIC_STATUS(
+                        QUIC_STATUS_STREAM_LIMIT_REACHED,
+                        MsQuic->StreamStart(
+                            Stream.Handle,
+                            QUIC_STREAM_START_FLAG_FAIL_BLOCKED_INLINE));
+                }
+                TEST_FALSE(Context.ShutdownComplete);
+            }
+
+            //
             // Shutdown on fail.
             //
             if (!Connect) {

@@ -244,20 +244,10 @@ QuicStreamStart(
     }
 
     if (!IsRemoteStream) {
-        uint8_t Type =
-            QuicConnIsServer(Stream->Connection) ?
-                STREAM_ID_FLAG_IS_SERVER :
-                STREAM_ID_FLAG_IS_CLIENT;
-
-        if (Stream->Flags.Unidirectional) {
-            Type |= STREAM_ID_FLAG_IS_UNI_DIR;
-        }
-
         Status =
             QuicStreamSetNewLocalStream(
                 &Stream->Connection->Streams,
-                Type,
-                !!(Flags & QUIC_STREAM_START_FLAG_FAIL_BLOCKED),
+                Flags & QUIC_STREAM_START_FLAG_FAIL_BLOCKED, // Inline flag was already handled
                 Stream);
         if (QUIC_FAILED(Status)) {
             goto Exit;
@@ -763,7 +753,7 @@ QuicStreamParamGet(
             break;
         }
 
-        if (!Stream->Flags.Started) {
+        if (Stream->ID == UINT64_MAX) {
             Status = QUIC_STATUS_INVALID_STATE;
             break;
         }

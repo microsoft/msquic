@@ -162,6 +162,7 @@ namespace Microsoft.Quic
         FAIL_BLOCKED = 0x0002,
         SHUTDOWN_ON_FAIL = 0x0004,
         INDICATE_PEER_ACCEPT = 0x0008,
+        FAIL_BLOCKED_INLINE = 0x0010,
     }
 
     [System.Flags]

@@ -828,6 +828,19 @@ MsQuicStreamStart(
         goto Exit;
     }
 
+    if (Flags & QUIC_STREAM_START_FLAG_FAIL_BLOCKED_INLINE) {
+        BOOLEAN NewStreamBlocked;
+        Status =
+            QuicStreamSetNewLocalStreamID(
+                &Connection->Streams,
+                TRUE,
+                Stream,
+                &NewStreamBlocked);
+        if (QUIC_FAILED(Status)) {
+            goto Exit;
+        }
+    }
+
     QUIC_OPERATION* Oper =
         QuicOperationAlloc(Connection->Worker, QUIC_OPER_TYPE_API_CALL);
     if (Oper == NULL) {
