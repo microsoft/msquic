@@ -54,7 +54,7 @@ RUN wget -q https://launchpad.net/ubuntu/+archive/primary/+files/libicu72_72.1-3
 
 RUN git config --global safe.directory '*'
 
-# Stage 2: x86_64 build
+# Stage 2-1: dependencies for xdp-build
 FROM base AS xdp-build
 
 RUN apt-get update -y && apt-get install --no-install-recommends -y \
@@ -72,8 +72,8 @@ RUN apt-get update -y && apt-get install --no-install-recommends -y \
     libbpf-dev \
     && rm -rf /var/lib/apt/lists/*
 
-# Stage 3: ARM build
-FROM base AS arm-build
+# Stage 2-2: dependencies for cross-build
+FROM base AS cross-build
 
 RUN apt-get update && apt-get install -y \
     gcc-arm-linux-gnueabihf \
