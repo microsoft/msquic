@@ -924,12 +924,17 @@ try {
     Log "$($TestCount) test(s) run."
     if ($KeepOutputOnSuccess -or ($TestsFailed -ne 0) -or ($global:CrashedProcessCount -ne 0)) {
         Log "Output can be found in $($LogDir)"
+        $ConsistentFailure = $TestsFailed - $TestsRetried
+        $PassedWithRetry = $TestsRetried - $ConsistentFailure
         if ($ErrorsAsWarnings -or
             (($IsolationMode -eq "Isolated") -and ($TestsFailed -ne 0) -and ($TestsFailed -eq $TestsRetried))) {
-            Write-Warning "$($TestsFailed) test(s) failed."
-            Write-Warning "$($TestsFailed) test(s) failed, $($TestsRetried) test(s) retried, $($global:CrashedProcessCount) test(s) crashed."
+            if ($TestsFailed -eq $TestsRetried) {
+                Write-Warning "$($TestsRetried) test(s) passed with retry, $($global:CrashedProcessCount) test(s) crashed."
+            } else { # for $ErrorsAsWarning
+                Write-Warning "$($ConsistentFailure) test(s) failed with retry, $($PassedWithRetry) test(s) passed with retry, $($global:CrashedProcessCount) test(s) crashed."
+            }
         } else {
-            Write-Error "$($TestsFailed) test(s) failed, $($TestsRetried) test(s) retried, $($global:CrashedProcessCount) test(s) crashed."
+            Write-Error "$($ConsistentFailure) test(s) failed with retry, $($PassedWithRetry) test(s) passed with retry, $($global:CrashedProcessCount) test(s) crashed."
             $LastExitCode = 1
         }
     } elseif ($AZP -and $TestCount -eq 0) {
